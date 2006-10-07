@@ -1,0 +1,6 @@
+
+# This if for use on unix for playing sound files
+
+echo "Playing sound file $1"
+cat $1 > /dev/audio
+

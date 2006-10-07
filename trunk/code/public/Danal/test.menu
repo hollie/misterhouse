@@ -1,0 +1,48 @@
+ M: Genie
+    D: Query
+    D: Control
+    D: Demo
+    D: Pool
+
+ M: Query
+    P: anyone
+    D: Garage
+      A: Query garage door
+    D: Bedroom
+      R: eval state $Master_Control . ' pressed at ' . substr((state_log $Master_Control)[0], 9, 5) . ' lights are ' . state $Danal_Lamp . ' fans are ' . state $Danal_Fan
+
+ M: Control
+    P: anyone
+    D: Office lights on
+       A: danals office lights on
+       R: Ok, Danals office light on
+    D: Office lights off
+       A: danals office lights off
+       R: Ok, Danals office light off
+
+
+
+ M: Demo                 # Demo commands anyone can run
+    P: anyone
+    R: last_response     # Override Set to ... response
+    D: Up Time
+      A: What is your up time
+    D: Weather [forecast,conditions]
+      A: Show internet weather $state
+    D: Moon phase
+      A: What is the phase of the moon
+    D: Sun times
+      A: When will the sun set
+    D: Deep Thought
+      A: Display the next deep thought
+
+ M: Pool
+    P: anyone
+    D: Pool temperature
+       A: Pool temperature
+    D: Air temperature
+       A: Pool air temperature
+    D: Pool Status
+       A: Pool/Spa status
+    D: Full Status
+       A: Display Pool Status

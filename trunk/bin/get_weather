@@ -1,0 +1,180 @@
+#!/usr/bin/perl
+# -*- Perl -*-
+
+#---------------------------------------------------------------------------
+#  File:
+#      get_weather
+#  Description:
+#      A perl script that gets the weather forecast
+#  Author:
+#      Bruce Winter    bruce@misterhouse.net   http://misterhouse.net
+#  Latest version:
+#      http://misterhouse.net/mh/bin
+#  Change log:
+#    - 01/20/99  Created.  Replaces filter_weather with the nifty Geo::Weather module
+#    - The rest of the change log is at the bottom of this file.
+#
+#  This free software is licensed under the terms of the GNU public license.
+#  Copyright 1998 Bruce Winter
+#
+#---------------------------------------------------------------------------
+
+use strict;
+
+my ($Pgm_Path, $Pgm_Name);
+BEGIN {
+    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
+}
+
+my ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+
+#print "Command: $Pgm_Name @ARGV\n";
+#print "Version: $Version\n";
+
+use Getopt::Long;
+my %parms;
+if (!&GetOptions(\%parms, "h", "help", "v", "city:s", "zone:s", "state:s",
+                 "data=s", "no_log") or @ARGV or
+    ($parms{h} or $parms{help})) {
+    print<<eof;
+
+$Pgm_Name gets weather info
+
+Usage:
+
+  $Pgm_Name [options]
+
+    -h         => This help text
+    -help      => This help text
+    -v         => verbose
+
+    -city     xxx => xxx is the City  you want.
+    -state    xxx => xxx is the State you want.
+    -zone     xxx => xxx is the Zone (for forecast) you want.
+
+    -data     xxx => xxx is either conditions, forecast, or all.  Default is all.
+
+    -no_log       => Unless this option is used, the results also get filed
+                     into the data_dir/web directory
+
+  Example:
+    $Pgm_Name -city Rochester -state MN
+
+eof
+    exit;
+  }
+
+my ($conditions, $forecast, %data);
+my %config_parms;
+
+$parms{city}  = 'Rochester'  unless $parms{city};
+$parms{zone}  = $parms{city} unless $parms{zone};
+$parms{state} = 'MN'         unless $parms{state};
+$parms{data}  = 'all'        unless $parms{data};
+$data{conditions}++ if $parms{data} eq 'all' or $parms{data} eq 'conditions';
+$data{forecast}++   if $parms{data} eq 'all' or $parms{data} eq 'forecast';
+
+use vars '$opt_v';
+$opt_v++ if $parms{v};          # Geo::Weather looks at this
+
+my $caller = caller;
+my $return_flag = ($caller and $caller ne 'main') ? 1 : 0;
+
+#use my_lib "$Pgm_Path/../lib/site"; # See note in lib/mh_perl2exe.pl for lib -> my_lib explaination
+BEGIN { eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'" } # Use BEGIN eval to keep perl2exe happy
+
+require 'handy_utilities.pl';       # For read_mh_opts funcion
+&main::read_mh_opts(\%config_parms, $Pgm_Path);
+
+use Geo::WeatherNOAA;
+
+$Geo::WeatherNOAA::proxy_from_env = 1;
+
+if ($data{conditions}) {
+    print "\nGetting the current weather for $parms{city}, $parms{state}\n";
+    $conditions = print_current($parms{city}, $parms{state},undef,undef,undef,1);
+    $conditions =~ s/&deg;F/ degrees /;
+    $conditions =~ s/ in\./ inches. /g;
+}
+
+if ($data{forecast}) {
+    print "Getting the forecast for $parms{zone}, $parms{state}\n";
+    $forecast = print_forecast($parms{zone}, $parms{state},undef,undef,undef,1);
+    $forecast =~ s/Geo::WeatherNOAA.pm .+\n//; # Drop geo version
+    #$forecast =~ s/\.\.\./\. /g;
+    $forecast =~ s/(\()(EDT|EST|CDT|CST|MDT|MST|PDT|PST)(\) *)//g;
+}
+
+unless ($parms{no_log}) {
+    file_write("$config_parms{data_dir}/web/weather_conditions.txt", $conditions) if $data{conditions};
+    file_write("$config_parms{data_dir}/web/weather_forecast.txt", $forecast) if $data{forecast};
+                                # Hmmm, this fails from a mh run command :(
+#    system("\\mh\\bin\\house.bat show internet weather data");
+#    system("\\mh\\bin\\speak hi");
+#    sleep 3;
+}
+
+if ($return_flag) {
+                                # Dang ... a 'do pgm' can only return a scalar, not a list :(
+    if ($data{conditions}) {
+        return $conditions;
+    }
+    else {
+        return $forecast;
+    }
+}
+else {
+    if ($data{conditions}) {
+        print "\nCurrent conditions: $conditions\n";
+    }
+    if ($data{forecast}) {
+        print "\nThe forecast is $forecast\n\n";
+#       print "The extended forecast is $forecast{EXTENDED}\n\n";
+#       print "This information was updated $forecast{Date} and covers $forecast{Coverage}\n\n";
+    }
+}
+
+# WeatherNOAA methods:
+#	get_currentWX
+#	get_currentWX_html
+#	get_forecast
+#	print_forecast
+
+# $Log: get_weather,v $
+# Revision 1.12  2005/01/23 23:21:18  winter
+# *** empty log message ***
+#
+# Revision 1.11  2003/06/01 21:54:40  winter
+#  - 2.81 release
+#
+# Revision 1.10  2000/12/03 19:38:50  winter
+# - 2.36 release
+#
+# Revision 1.9  2000/01/27 13:23:38  winter
+# - update version number
+#
+# Revision 1.8  1999/11/08 02:13:21  winter
+# - update to latest Geo::Weather
+#
+# Revision 1.7  1999/09/27 03:13:40  winter
+# - add call to read_mh_opt, so we can use data_dir parm
+#
+# Revision 1.6  1999/03/21 17:37:46  winter
+# - email change
+#
+# Revision 1.5  1999/02/08 00:40:17  winter
+# - add logging to files and -no_log option
+#
+# Revision 1.4  1999/02/04 14:37:47  winter
+# - move cache to data/web
+#
+# Revision 1.3  1999/01/30 20:01:34  winter
+# - fix conditions bug.  Control output based on -data option.
+#
+# Revision 1.2  1999/01/24 21:01:07  winter
+# - make -state -city optional
+#
+# Revision 1.1  1999/01/24 20:15:08  winter
+# - created from filter_weather
+#

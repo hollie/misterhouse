@@ -1,0 +1,40 @@
+Manufacturer=KODAK
+Model=870
+Device=PhotoCD
+Protocol=RC5
+
+[Key Codes]
+#0          = c=3,14,00
+#1          = c=3,14,01
+#2          = c=3,14,02
+#3          = c=3,14,03
+#4          = c=3,14,04
+#5          = c=3,14,05
+#6          = c=3,14,06
+#7          = c=3,14,07
+#8          = c=3,14,08
+#9          = c=3,14,09
+Repeat      = c=3,14,29
+Next        = c=3,14,32
+Previous    = c=3,14,33
+Keep        = c=3,14,41
+Scan        = c=3,14,43
+Pause       = c=3,14,48
+Play        = c=3,14,53
+Stop        = c=3,14,54
+Skip        = c=3,14,58
+RotateCCW   = C=2,14,01
+RotateCW    = C=2,14,02
+PanUp       = C=2,14,16
+PanDn       = C=2,14,17
+PanLt       = C=2,14,21
+PanRt       = C=2,14,22
+FrameView   = C=2,14,33
+Reverse     = C=2,14,47
+Autoplay    = C=2,14,56
+Insert      = C=2,14,57
+Interval    = C=2,14,58
+FullView    = C=2,14,61
+TeleView    = C=2,14,62
+NormalView  = C=2,14,63
+

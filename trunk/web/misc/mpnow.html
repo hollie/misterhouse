@@ -1,0 +1,248 @@
+<html> 
+<!-- 
+ Remote contrul web interface MRU 20040712 V1.1 Pete Flaherty 
+ 1.1 changed playlist url for updated lists
+-->
+<head>
+<meta http-equiv='Pragma' content='no-cache'>
+<meta http-equiv='Expires' content='-1'>
+<META HTTP-EQUIV="CACHE-CONTROL" CONTENT="NO-CACHE">
+<title>MisterHouse Jukebox Remote</title>
+<script src='/bin/mp3_applet_data.pl'></script>
+<script src='/bin/mp3_cookies.js'></script>
+
+<script>
+if ( StreamSvr == null ){StreamSvr ="http://house:8010/";}
+BarWidth=129;
+progressColor = '#3333ff';
+loopCount = 1;
+currentPct = 0 ;
+scaleLen=BarWidth -1 ;
+CellWidth=BarWidth;
+GraphMode ="text" ; //0-text 1-scale
+PlayStat = "Running" 
+StatColor = "green"
+if ( Running == "0" ){
+    PlayStat = "STOPPED !" ;
+    StatColor = "red";
+}
+if (RAW == "?" | Running == "0" ){
+    PlayTime = "0";
+    ElapsedTime = "0";
+    NowPlaying = " ! " +  NowPlaying  + " !";
+    RAW = "00:00/00:00 (0%)";
+}
+
+timeout = (PlayTime - ElapsedTime ) / 5;
+if (timeout < 30 ) {
+   timeout = 30 ;
+}
+
+var isAudrey = navigator.userAgent.indexOf("Audrey") != -1;
+var isPhoton = navigator.userAgent.indexOf("Photon") != -1;
+isAudrey = (isAudrey | isPhoton ) ;
+
+function ReLoadMe() {
+    self.window.location.reload() ;
+        var ListON = readCookie('Playlist');
+	if ( isAudrey == false && ListON == 'OPEN') {	
+	    var targeturl = '/misc/mplist.html'; 
+	    window.open(targeturl,'mp3list' );
+        }
+
+}
+function Get_PlayList() { 
+//var targeturl ='/bin/mp3_applet_playlist.pl';
+var targeturl = '/misc/mplist.html'; 
+
+var ListON = readCookie('Playlist');
+    if ( ListON != 'OPEN' | ListON == null ){
+        //eraseCookie('Playlist');
+	createCookie('Playlist','OPEN','1');
+
+	if ( isAudrey == false ){
+	    var winOpt = "width=420, height=300, resizable='yes', scrollbars='yes',toolbar='no', menubar='no',titlebar='no', screenx=100, screeny=192, dependent ";
+    	    //   silly Audrey filmstrip doesnt like this
+	    window.open(targeturl,"mp3list",winOpt );
+	}
+    
+	if ( isAudrey == true ) {
+	    top.document.location = targeturl;
+	}
+
+    } else {
+    createCookie('Playlist','CLOSE','1');
+	if ( isAudrey == false ) {	
+	    var targeturl = '/misc/mplist.html'; 
+	    window.open(targeturl,'mp3list' );
+        }
+	if ( isAudrey == true ) {
+	    top.document.location = targeturl
+	}
+	ReLoadMe();
+    }
+}
+
+function Action(act){
+    ActCmd = "/RUN?Set_the_house_mp3_player_to_" + act ;
+    loopCount = timeout -2 ;
+    
+    if ( act == "Get_PlayList" ){
+	open( "/bin/get_playlist" );
+    } else { open( ActCmd, 'invisible' ); }
+    
+    var listWinNM = 'mp3list';
+    var targeturl = '/misc/mplist.html'; 
+    var ListON = readCookie('Playlist');
+    if (ListON == 'OPEN' && ListON != null ){
+	if ( isAudrey == false ) {	
+	    window.open(targeturl,'mp3list' );
+        }
+	if ( isAudrey == true ) {
+	    reload();
+	}
+    }
+}
+
+function TimeConv(time) {
+ PlayMins = 0 ;
+ PlaySecs = 0 ;
+    if ( time > 59 ) {
+        PlayMins = parseInt (time / 60) ;
+    }
+    PlaySecs = PlayMins * 60 ;
+    PlaySecs = parseInt( time - PlaySecs ) ;
+    if ( PlayMins < 10 ) { PlayMins = "0" + PlayMins ; }
+    if ( PlaySecs < 10 ) { PlaySecs = "0" + PlaySecs ; }
+    time =  PlayMins + ":" + PlaySecs;
+ return ( time );
+}
+function UpdateDisp() {
+ setTimeout( "UpdateDisp()", 1000 );
+ loopCount = loopCount + 1;
+ if ( Running =="1" ){
+    scaleCurrent = parseInt (( scaleLen / 100 ) * currentPct );
+    NewMsg = "" ;
+    for ( x = 1 ; x < scaleCurrent ; x++) {
+	if ( x/2 == parseInt(x/2) ) {NewMsg = NewMsg + "X" ;}
+	if (isAudrey == false){
+	document.getElementById('progress'+ parseInt( x )).style.backgroundColor = progressColor;
+	}
+    }
+    if ( isAudrey == true ){
+    document.messages.SongProgress.value = NewMsg;
+    //document.messages.SongPercnt.value = parseInt( currentPct) + "%";
+    }
+    //if ( isAudrey == false ){document.getElementById("SongPercnt").innerHTML = parseInt( currentPct) + "%" ;}
+    currentPct = currentPct + PercentSec ;
+    ElapsedTime = parseInt(ElapsedTime) + 1 ;
+    time = ElapsedTime ;
+    time = TimeConv( time );
+    if ( isAudrey == true ){document.messages.SongTime.value = time ;}
+    if ( isAudrey == false ){document.getElementById("SongTime").innerHTML = time ;}
+}
+    if ( (loopCount >= timeout ) | ( currentPct > 100) ) {
+	ReLoadMe();
+    }
+}
+</script>
+</head>
+<Body background='http://localhost/Channels/.MisterHouse/background.gif' style='color: rgb(0, 0, 0); background-color: rgb(200, 255, 255);; font-family: helvetica,arial,sans-serif;'" > 
+<base target ='invisible'>
+<b><small>Now Playing on MH radio...
+<script>
+document.write( "<FONT COLOR='",StatColor,"'>",PlayStat,"</FONT> &nbsp &nbsp &nbsp &nbsp &nbsp" );
+
+
+if (isAudrey == true ){
+document.write( "<a href='http://localhost/cgi-bin/mpctrl?file=" + StreamSvr + "&action=Play'>[Start]</a> " );
+document.write( "&nbsp<a href='http://localhost/cgi-bin/mpctrl?file=" + StreamSvr + "&action=Stop'>[Stop]</a> the local Player" );
+} 
+if (isAudrey == false ) { document.write ("<a type='audio/x-mpegurl' href='",StreamSvr,"'>Tune in Now</a>");}
+</script>
+
+</small></b>
+<hr align='left' size='1' width='90%' color='#000066'>
+
+<script>
+PercentSec =  ( 100 / PlayTime  ) ;
+playData = RAW.split( /\// );
+playData = playData[1].split( / / );
+playData = playData[0] ;
+
+if ( PlayStat == 'Running') { 
+    SongColor = 'black';
+} else { SongColor = 'red' ; }
+document.write( "<b><center><FONT COLOR='", SongColor,"'>",NowPlaying, "</FONT></b></center>" );
+</script>
+
+<small><small><center>~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</center></small></small>
+<table width='100%' border=0 cellpadding=1 cellsacing=1 align='center'><tr>
+<form name='messages'>
+<script>
+
+
+if ( isAudrey == false ) {
+ document.write ("<td><font id='SongTime' color='blue' size='4' face='terminal'>STOP!</font></td><td></td><td>-</td>");
+ document.write ("<td><font id='SongLen' size='4' face='terminal'>ST:TS</font></td><td> </td><td> </td>");
+ //document.write ("<td><font id='SongPercnt' size='4' face='terminal'>SP</font></td>");
+}
+if (isAudrey == true ){
+ document.write("<td><INPUT TYPE='text' NAME='SongTime' Size='5' value='stop'></td><td>-of-</td>");
+ document.write("<td><INPUT TYPE='text' NAME='SongLen' Size='5' value='stop'></td><td>");
+ //document.write("<td><INPUT TYPE='text' NAME='SongPercnt' Size='3' value='halt'></td>");
+}
+</script>
+
+
+<td>&nbsp &nbsp &nbsp &nbsp &nbsp</td>
+<td><Input type='button' name='bk' value='<<' onClick='Action("Previous_Song")'></td>
+<td><Input type='button' name='st' value=' || ' onClick='Action("Stop")'></td>
+<td><Input type='button' name='pl' value=' > ' onClick='Action("Play")'></td>
+<td><Input type='button' name='ff' value='>>' onClick='Action("Next_Song")'></td>
+
+<script>
+if (isAudrey == false) {
+    var ListON = readCookie('Playlist');
+    //document.write(ListON);
+    if ( ListON == 'OPEN' ){
+	document.write ("<td><Input type='image'  name='pl' value='PL' src ='/ia5/entertain/images/PL-button-ON.gif' onClick='Get_PlayList()'></td>");
+    }
+    if ( ListON != 'OPEN' ){
+	document.write ("<td><Input type='image'  name='pl' value='PL' src ='/ia5/entertain/images/PL-button-OFF.gif' onClick='Get_PlayList()'></td>");
+    }
+}
+if ( isAudrey == true) { 
+    document.write ( "<td><Input type='button'  name='pl' value='PL' onClick='Get_PlayList()'></td>"); }
+</script> 
+
+</tr></table>
+
+<script>
+if ( isAudrey == false ){
+document.write ( "<table align='center' width =" + ( BarWidth  ) + "HEIGHT='20' BORDER=0 CELLPADDING=2 CELLSPACING=1 >");
+document.write ( "<tr><td Width=" + CellWidth + ">");
+document.write ( "<div style='font-size:9pt;padding:1px;border:solid black 1px'>");
+  for ( x = 1 ; x < (BarWidth )  ; x++ ) {
+    document.write ("<span id='progress" + x + "'>&nbsp;</span>");
+  }
+document.write ("</td></tr></table>");
+}
+if (isAudrey == true ){
+document.write ( "<INPUT TYPE='text' NAME='SongProgress' Size=", BarWidth/2 + 1 ," value='No Data - Paused or Stopped ...'>");
+}
+document.write ( "</form>");
+if (isAudrey == true ) { document.messages.SongLen.value = TimeConv(PlayTime); }
+if (isAudrey == false) { document.getElementById("SongLen").innerHTML = TimeConv(PlayTime); }
+
+currentPct = PercentSec * ElapsedTime ;
+UpdateDisp();
+focus();
+if ( isAudrey == true ){
+document.write("<center><br><br><br>This Audrey Client is intended to be used with the <a href='http://www.mraudrey.net'>MrAudrey</a> Image");
+document.write("<br>with the 'mpgnoph' optional package installed<br><br>expect a 10 second delay before it starts</center>");
+}
+</script>
+
+</body>
+</html>

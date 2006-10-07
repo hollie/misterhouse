@@ -1,0 +1,13 @@
+Manufacturer=Madrigal
+Model=AVP
+Device=A/V PRE PRO
+Slink Descriptor=avp
+Protocol=Madrigal
+Frequency=40000
+
+[Keycodes]
+
+Volup= 24,18
+voldn= 24,48
+
+

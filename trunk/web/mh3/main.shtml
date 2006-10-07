@@ -1,0 +1,87 @@
+<html>
+<head>
+<LINK REL="STYLESHEET" HREF="/default.css" TYPE="text/css">
+
+<SCRIPT LANGUAGE="JavaScript">
+function popupWin(theName, theUrl, width, height) {
+    if((width==null)||(height==null)) {
+        newWin=window.open("",theName,'scrollbars,width=320,height=240,resizable');
+    }else{
+        newWin=window.open("",theName,'scrollbars,resizable,width=' + width + ',height=' + height);
+    }
+    newWin.location.href=theUrl;
+    newWin.focus();
+    if(newWin.focus){newWin.focus()};
+//  newWin.onBlur=newWin.self.close;
+}
+</SCRIPT>
+
+</head>
+
+<body>
+
+<BASE TARGET='control'>
+
+<DIV id="divAbout" style="position:absolute; left:10; top:5; visibility: hidden">
+  <hr>
+  <p><b>Program</b>:
+  <li><b><a TARGET='_blank' href="http://misterhouse.net">Homepage</a></b>
+  <li><b>Version:</b> <!--#include var="$Version"-->
+  <li><b>Date:</b> <!--#include var="$Version_date"-->
+  <li><b>OS:</b> <!--#include var="$^O"-->
+</DIV>
+
+
+<DIV id="divOther" style="position:absolute; left:10; top:5; visibility: hidden">
+  <BASE TARGET='control'>
+
+  <hr>
+
+  <li><a href="/speak/speak.html">Speak a message</a>
+
+  <li>Track <A href="http://misterhouse.net:8080/aprs">our cars</A>
+
+  <li><A href="/RUN:last_displayed?Display_the_next_deep_thought">Display a Deep Thought</A>
+
+  <li><a href="javascript:void(0);" 
+    target="categ"
+    onMouseOver="window.status='Show the top 10 list'; return true;"
+    onMouseOut="window.status=' ';"
+    onClick="popupWin('top10','http://misterhouse.net:8080/mh3/RUN:last_displayed?Show_the_top_10_list',500,700);return false;">
+    Show the top 10 list</a>
+
+
+  <li><a href=/test/test_stuff.shtml>Test Stuff</a>
+
+</DIV>
+
+
+<DIV id="divCateg" style="position:absolute; left:10; top:5">
+  <hr>
+  <!--#include file="/category"-->
+</DIV>
+
+<DIV id="divItems" style="position:absolute; left:10; top:5; visibility:hidden">
+  <hr>
+  <!--#include file="/items"-->
+</DIV>
+
+<DIV id="divGroups" style="position:absolute; left:10; top:5; visibility:hidden">
+  <hr>
+  <!--#include file="/groups"-->
+</DIV>
+
+<DIV id="divWidgets" style="position:absolute; left:10; top:5; visibility: hidden">
+  <hr>
+  <li><a href="/widgets_label">Labels</a>
+  <li><a href="/widgets">All widgets</a>
+  <li><a href="/widgets_type">All by type</a>
+  <li><a href="/widgets_entry">Entry</a>
+  <li><a href="/widgets_radiobutton">RadioButtons</a>
+  <li><a href="/widgets_checkbox">Checkboxes</a>
+  <li><a href="/vars_save">Save Variables</a>
+  <li><a href="/vars_global">Global Variables</a>
+</DIV>
+
+</body>
+</html>

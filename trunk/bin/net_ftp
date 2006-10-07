@@ -1,0 +1,65 @@
+#!/usr/bin/perl
+
+use strict;
+
+my ($Pgm_Path, $Pgm_Name);
+BEGIN {
+    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'";  # Use BEGIN eval to keep perl2exe happy
+}
+
+my %parms;
+use Getopt::Long;
+if (!&GetOptions(\%parms, 'h', 'help',
+                 'user=s', 'password=s', 'server=s', 'dir=s',
+                 'file=s', 'file_remote=s', 'command=s', 'type=s', 'passive=s') or
+    @ARGV or !$parms{command} or ($parms{h} or $parms{help})) {
+    print<<eof;
+
+    $Pgm_Name sends, receives, or deletes a file to remote site via ftp.
+
+  Usage:
+    $Pgm_Name -option value -option value ...
+
+    Where -option can be any of the following
+       server          Default is mh.ini parm net_www_server
+       user            Default is mh.ini parm net_www_user
+       password        Default is mh.ini parm net_www_password
+       dir             Default is mh.ini parm net_www_dir
+
+       file            Name local/remote file to get/put
+       file_remote     Name of remote file (if different from file)
+       command         get/put/delete/mkdir.
+       type            ascii/binary  (default is ascii)
+       passive         Sometimes needed if behind a firewall
+
+  Example:
+    $Pgm_Name -passive 1 -command put -file \junk1.txt -file_remote /tmp/junk1.txt
+
+eof
+    exit;
+}
+
+use Net::FTP;
+require 'handy_utilities.pl';      # For read_mh_opts
+require 'handy_net_utilities.pl';  # For net_ftp
+
+                                # Read default mh.ini parms
+use vars '%config_parms';
+&read_mh_opts(\%config_parms, $Pgm_Path);
+
+&net_ftp(%parms);
+
+#
+# $Log: net_ftp,v $
+# Revision 1.3  2002/05/28 13:07:47  winter
+# - 2.68 release
+#
+# Revision 1.2  2001/04/15 16:17:20  winter
+# - 2.49 release
+#
+# Revision 1.1  2000/09/09 21:20:02  winter
+# - 2.28 release
+#
+#

@@ -1,0 +1,36 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target="output">
+<table height="100%" border="0">
+<tbody>
+<td valign="top" align="left" width="100%">
+
+<a href='<!--#include var="$config_parms{web_href_weather_local}" -->'>
+<img src="images/localweather.gif" alt='Local Weather' border=0></a><br>
+
+<a href='<!--#include var="$config_parms{web_href_weather_local2}" -->'>
+<img src="images/localweather.gif" alt='Local Weather' border=0></a><br>
+
+<a href='<!--#include var="$config_parms{web_href_weather_national}" -->'>
+<img src="images/nationalweather.gif" alt='National Weather' border=0></a><br>
+
+<a href='weather_index.shtml'>
+<img src="images/weatherstation.gif" alt='Weather Station' border=0></a><br>
+
+<!-- <a href="radar.shtml"><img src="images/localweather.gif" alt='Local Radar' border=0></a><br> -->
+<!-- <a href="1wireweather.shtml"><img src="images/1wireweather.gif" alt='One wire' border=0></a><br> -->
+
+<a href="hvac.shtml"><img src="images/hvac.gif" alt='HVAC' border=0></a><br>
+<a href="sunmoon.shtml"><img src="images/sunmoon.gif" alt='Sun and Moon' border=0></a><br>
+<a href="earthquakes.shtml"><img src="images/earthquakes.gif" alt='Earthquakes' border=0></a><br>
+<a href="sattelite.shtml"><img src="images/iridium.gif" alt='Iridium' border=0></a><br>
+<a href="tracking.shtml"><img src="images/tracking.gif" alt='GPS tracking' border=0></a><br>
+<a href="browse.shtml"><img src="images/browse.gif" alt='Browse Category' border=0></a><br>
+</td>
+</tbody>
+</table>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target="output">
+<table height="100%" border="0">
+<tbody>
+<td valign="top" align="left" width="100%">
+<a href="/misc/mp3.html"><img src="images/mp3jukebox.gif" alt='MP3 Jukebox' border="0"></a><br>
+<a href="/media/mhmedia.html"><img src="images/mhmedia.gif" alt='Media Player' border="0"></a><br>
+<a href='<!--#include var="$config_parms{web_href_tv}" -->'>
+<img src="images/tvtoday.gif" alt='Tv Today' img='TV Today' border="0"></a><br>
+<a href='<!--#include var="$config_parms{web_href_tv2}" -->'>
+<img src="images/tvguide.gif" alt='TV Guide' border="0"></a><br>
+<a href='<!--#include var="$config_parms{web_href_tv3}" -->'>
+<img src="images/whatsonnow.gif" alt='Whats on Now' border="0"></a><br>
+<a href="shortcuts.shtml"><img src="images/shortcuts.gif" alt='TV Shortcuts' border="0"></a><br>
+<a href='<!--#include var="$config_parms{web_href_movies}" -->'>
+<img src="images/localmovies.gif" alt='Local Movies' border="0"></a><br>
+<a href='<!--#include var="$config_parms{web_href_radio}" -->'>
+<img src="images/radioguide.gif" alt='Radio Guide' border="0"></a><br>
+<a href="internetradio.shtml"><img src="images/internetradio.gif" alt='Internet Radio' border="0"></a><br>
+<a href="browse.shtml"><img src="images/browse.gif" alt='Browse Category' border="0"></a><br>
+</td>
+</tbody>
+</table>
+</body>
+</html>

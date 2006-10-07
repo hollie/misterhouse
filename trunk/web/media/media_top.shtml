@@ -1,0 +1,36 @@
+<html><body>
+<script>
+(new Image(64,37)).src = "/ia5/entertain/images/Info2.gif";
+</script>
+<base target ="invisible">
+<!--#include code="&html_header('Control MP3 JukeBox')" -->
+<table width="100%" border="0">
+<tr>
+<td><a href="RUN?Set_the_house_mp3_player_to_Previous_Song"><img src="/ia5/entertain/images/prev.gif" alt='Prev' border="0"></a></td>
+<td><a href="RUN?Set_the_house_mp3_player_to_Stop"><img src="/ia5/entertain/images/stop.gif" alt='Stop' border="0"></a></td>
+<td><a href="RUN?Set_the_house_mp3_player_to_Pause"><img src="/ia5/entertain/images/pause.gif" alt='Pause' border="0"></a></td>
+<td><a href="RUN?Set_the_house_mp3_player_to_Play"><img src="/ia5/entertain/images/play.gif" alt='Play' border="0"></a></td>
+<td><a href="RUN?Set_the_house_mp3_player_to_Next_Song"><img src="/ia5/entertain/images/next.gif" alt='Next' border="0"></a></td>
+<td><a href="RUN?Set_the_house_mp3_player_to_Volume_Down"><img src="/ia5/entertain/images/voldown.gif" alt='Volume Down' border="0"></a></td>
+<td><a href="RUN?Set_the_house_mp3_player_to_Volume_Up"><img src="/ia5/entertain/images/volup.gif" alt='Volume Up' border="0"></a></td>
+<td><A  href=""
+	onMouseOver="document.NowPlaying.src='/ia5/entertain/images/Info2.gif';" 
+	onMouseOut ="document.NowPlaying.src='/ia5/entertain/images/Info.gif';"
+	onClick="ProgressPop()" >
+	<img name='NowPlaying' src="/ia5/entertain/images/Info.gif" border="0"></a>
+	</td>
+
+</tr></table>
+<script>
+function ProgressPop() {
+  var targeturl="/misc/mpnowplay.html" ;
+  var winOpt = "width=420, height=135, resizable='yes', scrollbars='no',screenx=100, screeny=50";
+//   silly Audrey filmstrip doesnt like this
+//  window.open(targeturl,"_blank",winOpt );
+//   but this keeps only a single instance open
+    window.open(targeturl,"mp3play",winOpt );
+}
+</script>
+</center>
+
+

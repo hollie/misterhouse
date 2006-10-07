@@ -1,0 +1,128 @@
+03/16/2002 Bruce Winter
+ - These are the changes I made to get this to run ok under MisterHouse
+
+-------------
+
+diff \temp\temp1\org2/calendar.pl ./calendar.pl
+25d24
+< 
+27,28c26,27
+< 	$SIG{__WARN__} = \&FatalError;
+< 	$SIG{__DIE__} = \&FatalError;
+---
+> #	$SIG{__WARN__} = \&FatalError;
+> #	$SIG{__DIE__} = \&FatalError;
+34c33
+<     $ENV{"CONFIG_FILE"} = "/data/calendar.cfg";
+---
+> #   $ENV{"CONFIG_FILE"} = "/data/calendar.cfg";
+41c40,41
+<     $ENV{"CWD"} = GetCwd($ENV{"CONFIG_FILE"});
+---
+> #   $ENV{"CWD"} = GetCwd($ENV{"CONFIG_FILE"});
+>     $ENV{"CWD"} = '../web/organizer';
+97a98
+>     $configFilePath = "$config_parms{organizer_dir}/calendar.cfg";
+118a120,121
+> $filePath = "$config_parms{organizer_dir}/$fileName";
+> 
+diff \temp\temp1\org2/contacts.pl ./contacts.pl
+24,25c24,25
+< 	$SIG{__WARN__} = \&FatalError;
+< 	$SIG{__DIE__} = \&FatalError;
+---
+> #	$SIG{__WARN__} = \&FatalError;
+> #	$SIG{__DIE__} = \&FatalError;
+31c31
+<     $ENV{"CONFIG_FILE"} = "/data/contacts.cfg";
+---
+> #   $ENV{"CONFIG_FILE"} = "/data/contacts.cfg";
+38c38,39
+<     $ENV{"CWD"} = GetCwd($ENV{"CONFIG_FILE"});
+---
+> #   $ENV{"CWD"} = GetCwd($ENV{"CONFIG_FILE"});
+>     $ENV{"CWD"} = '../web/organizer';
+93a95,96
+>     $configFilePath = "$config_parms{organizer_dir}/contacts.cfg";
+> 
+129a133
+> $filePath = "$config_parms{organizer_dir}/$fileName";
+368c372
+< }
+\ No newline at end of file
+---
+> }
+Only in \temp\temp1\org2: data
+Common subdirectories: \temp\temp1\org2/images and ./images
+diff \temp\temp1\org2/inbox.pl ./inbox.pl
+26,27c26,27
+< 	$SIG{__WARN__} = \&FatalError;
+< 	$SIG{__DIE__} = \&FatalError;
+---
+> #	$SIG{__WARN__} = \&FatalError;
+> #	$SIG{__DIE__} = \&FatalError;
+33c33
+<     $ENV{"CONFIG_FILE"} = "/data/inbox.cfg";
+---
+> #   $ENV{"CONFIG_FILE"} = "/data/inbox.cfg";
+40c40,41
+<     $ENV{"CWD"} = GetCwd($ENV{"CONFIG_FILE"});
+---
+> #   $ENV{"CWD"} = GetCwd($ENV{"CONFIG_FILE"});
+>     $ENV{"CWD"} = '../web/organizer';
+94a96
+>     $configFilePath = "$config_parms{organizer_dir}/inbox.cfg";
+631c633
+< }
+\ No newline at end of file
+---
+> }
+Only in .: index.html
+Only in .: list_mh_diff.txt
+diff \temp\temp1\org2/setup.pl ./setup.pl
+22,23c22,23
+< 	$SIG{__WARN__} = \&FatalError;
+< 	$SIG{__DIE__} = \&FatalError;
+---
+> #	$SIG{__WARN__} = \&FatalError;
+> #	$SIG{__DIE__} = \&FatalError;
+29c29
+<     $ENV{"CONFIG_FILE"} = "/data/calendar.cfg";
+---
+> #   $ENV{"CONFIG_FILE"} = "/data/calendar.cfg";
+36c36,38
+<     $ENV{"CWD"} = GetCwd($ENV{"CONFIG_FILE"});
+---
+> #   $ENV{"CWD"} = GetCwd($ENV{"CONFIG_FILE"});
+>     $ENV{"CWD"} = '../web/organizer';
+> 
+243c245
+< }
+\ No newline at end of file
+---
+> }
+diff \temp\temp1\org2/tasks.pl ./tasks.pl
+23,24c23,24
+< 	$SIG{__WARN__} = \&FatalError;
+< 	$SIG{__DIE__} = \&FatalError;
+---
+> #	$SIG{__WARN__} = \&FatalError;
+> #	$SIG{__DIE__} = \&FatalError;
+30c30
+<     $ENV{"CONFIG_FILE"} = "/data/tasks.cfg";
+---
+> #   $ENV{"CONFIG_FILE"} = "/data/tasks.cfg";
+37c37,38
+<     $ENV{"CWD"} = GetCwd($ENV{"CONFIG_FILE"});
+---
+> #   $ENV{"CWD"} = GetCwd($ENV{"CONFIG_FILE"});
+>     $ENV{"CWD"} = '../web/organizer';
+92a94
+>     $configFilePath = "$config_parms{organizer_dir}/tasks.cfg";
+129a132
+> $filePath = "$config_parms{organizer_dir}/$fileName";
+390c393
+< }
+\ No newline at end of file
+---
+> }

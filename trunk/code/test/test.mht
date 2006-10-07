@@ -1,0 +1,68 @@
+
+Format = A
+#
+# See mh/lib/read_table_A.pl  for definition of Format=A items
+#
+
+# Floorplaning info:
+#  - If you include x,y data, you can monitor and control these items
+#    with the web floorplan page:  http://localhost:8080/bin/floorplan.pl
+#  - For items, specify the x,y after the room group name:  room_group(x;y)
+#  - For room groups, specify x,y,width,height relative to its
+#    parent group:   Group, room_group, parent_group(x;y;w;h)
+#  - By default, floorplan.pl will use $Property as the top level group
+
+
+# Define Room groups for floorplan
+
+GROUP, Garage,      Property(0;0;20;20)
+GROUP, LivingRoom,  Property(20;0;20;20)
+GROUP, BedRoom,     Property(40;0;15;20)
+GROUP, Backyard,    Property(0;20;55;10)
+
+#
+# Type    Address   Name                   Groups                                      Other Info
+#
+
+X10I,       A1,     garage_light,          All_Lights|Garage(10;10)
+
+X10I,       B1,     test_light1,           All_Lights|LivingRoom(5;15)
+X10I,       B2,     test_light2,           All_Lights|LivingRoom(15;5)
+
+X10I,       C1,     bedroom_light1,        All_Lights|BedRoom(5;15)
+X10I,       C1,     bedroom_light2,        All_Lights|BedRoom(10;10)
+
+X10A,       D1,     fountain,              Appliances|Backyard(30;2)
+X10I,       D2,     backyard_light,        All_Lights|Backyard(55;5)
+
+
+# VOICE entries default to [ON,OFF]
+VOICE,              garage_light,           Garage light [ON,OFF,BRIGHT,DIM]
+VOICE,              fountain,               Fountain
+
+# Here are some examples of adding multiple states to the same item
+
+SERIAL,     XPJ,    motion,               Motion,   on
+SERIAL,     XPK,    motion,               Motion,   off
+
+SERIAL,     XP6,    motion_unit,          Motion,   computer room
+SERIAL,     XP7,    motion_unit,          Motion,   BedRoom
+SERIAL,     XP8,    motion_unit,          Motion,   BedRoom dark
+
+
+
+# Here are some examples of specifying interface and module types
+# If your want to use a non-default X10 interface, specify with the 1st 'other info' field
+# If your X10 module support preset dim,      specify preset in the 2nd 'other info' field
+
+#X10A,       O9,     living_room_fan,       Appliances|Upstairs|LivingRoom(10;10),  CM17
+#X10I,       O7,     camera_light2,         All_Lights|Upstairs|LivingRoom(5;10),   CM11
+#X10I,       O7,     camera_light,          All_Lights|Upstairs|LivingRoom(10;5),        , LM14
+#X10I,       O7,     camera_light,          All_Lights|Upstairs|LivingRoom(10;5),        , preset
+
+
+# Here are X10_Sensor examples for detecting motion and brightness
+#
+#X10MS,      CA,    work_room_motion,       Sensors|Motion_Sensors,      Motion
+#X10MS,      CB,    work_room_brightness,   Sensors|Brighness_Sensors,   Brightness
+#X10MS,      CA,    work_room_sensors,      Sensors,      		MS13    # This detects both motion and brightness

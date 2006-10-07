@@ -1,0 +1,35 @@
+Manufacturer=PIONEER
+Device=CD Changer
+Model=PDF19
+Protocol=NEC-256
+Repeat=1
+Device Code=162
+
+[Key Codes]
+PowerON =          26
+PowerOFF =         27
+Stop =             22
+Play =             23
+Pause =            24
+Prev =             193
+Next =             29
+ScanR =            15
+ScanF =            14
+Step Rev =         17
+Step Fwd =         16
+00 =               0
+01 =               1
+02 =               2
+03 =               3
+04 =               4
+05 =               5
+06 =               6
+07 =               7
+08 =               8
+09 =               9
+Track=             64
+Disc=              65
+Clear =            69
+
+
+

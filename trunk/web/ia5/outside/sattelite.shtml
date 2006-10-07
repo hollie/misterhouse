@@ -1,0 +1,10 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target ="output">
+<!--#include code="&html_header('GPS Info & Iridium Flares')" -->
+<!--#include file="/data/web/iridium.html"-->
+</body>
+</html>

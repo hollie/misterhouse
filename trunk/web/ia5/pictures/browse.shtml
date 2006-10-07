@@ -1,0 +1,11 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target ="output">
+<!--#include file="/list?Photos"-->
+<br>
+<!--#include file="/list?Entertainment"-->
+</body>
+</html>

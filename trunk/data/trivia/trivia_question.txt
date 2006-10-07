@@ -1,0 +1,13 @@
+Todays Trivia Question.
+ What type of whale was Moby Dick?                                     
+  1: Sperm whale.
+  2: Humpback whale.
+  3: Killer whale.
+  4: Orca whale.
+  
+One more time.  The Trivia Question is:
+ What type of whale was Moby Dick?                                     
+  1: Sperm whale.
+  2: Humpback whale.
+  3: Killer whale.
+  4: Orca whale.

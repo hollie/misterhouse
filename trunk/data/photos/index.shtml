@@ -1,0 +1,14 @@
+<html>
+<title>MisterHouse Test Photos</title>
+<link rel="STYLESHEET" href="/default.css" type="text/css">
+</head>
+
+<body>
+<h3>MisterHouse Test Photos</h3>
+
+These are our family pictures
+
+<!--#include code="&dir_index('/photos')"-->
+
+</body> 
+</html>

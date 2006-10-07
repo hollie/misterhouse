@@ -1,0 +1,35 @@
+Manufacturer=NEC
+Device=Plasma TV
+Model=4210WA
+Protocol=NEC16ka
+Repeat=1
+
+
+[Key Codes]
+POWERON     = 6165,008
+VIDEO       = 6165,010
+CLEAR       = 6165,025
+CONTRAST+   = 6165,070
+CONTRAST-   = 6165,071
+COLOR+      = 6165,072
+COLOR-      = 6165,073
+BRIGHT+     = 6165,074
+BRIGHT-     = 6165,075
+TINT+       = 6165,076
+TINT-       = 6165,077
+SHARPNESS+  = 6165,078
+SHARPNESS-  = 6165,079
+
+?1          = 6168,176
+?2          = 6168,177
+?3          = 6168,178
+?4          = 6168,179
+POWEROFF    = 6168,192
+RGB1        = 6168,193
+RGB2        = 6168,194
+RGB3        = 6168,195
+PROCEED     = 6168,196
+EXIT        = 6168,197
+RASTER      = 6168,198
+VISUARNORMAL= 6168,199
+IDSELECT    = 6168,200

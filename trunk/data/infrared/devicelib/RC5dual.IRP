@@ -1,0 +1,11 @@
+Name=RC5 Test Protocol
+Protocol=RC5-Dual
+Modulation=PPM
+Frequency=36000
+First Bit=MSB
+Time Base=890
+One=-1,+1
+Zero=+1,-1
+Form=C:2,T:1,D:5,F:6,[113778]
+Generate Toggle=True
+

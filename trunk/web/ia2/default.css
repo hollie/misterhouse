@@ -1,0 +1,11 @@
+/* epods style sheet */
+HTML {color: yellow; font-size=8pt}
+BODY {color: yellow; background: black; font-family: Verdana, Arial, Helvetica; font-size:8pt}
+H1,H2,H3,H4,H5 {font-size:8pt}
+TD {font-size:8pt}
+
+
+A:link, A:visited, A:active { color: white; font-family: Verdana, Arial, Helvetica; font-size:8pt} 
+A:hover { color: lime; }
+
+.out  {text-decoration: none;} 

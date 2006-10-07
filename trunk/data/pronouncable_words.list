@@ -1,0 +1,13 @@
+# List any words that your TTS software gets wrong here
+#
+# two columns:
+# WORD	HOW THE tts SHOULD SPEAK IT
+
+Kees	Cayss
+
+#wind    winnd
+#geek    ggeek
+
+.com    dot com
+.net    dot net 
+.org    dot org

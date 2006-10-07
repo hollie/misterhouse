@@ -1,0 +1,33 @@
+Manufacturer=Sony
+Device=Mini Disc
+Model=MDS-S35
+Protocol=Sony12
+Device code=15
+
+[Key Codes]
+01              =     ;0
+02              =     ;1
+03              =     ;2
+04              =     ;3
+05              =     ;4
+06              =     ;5
+07              =     ;6
+08              =     ;7
+09              =     ;8
+00              =     ;9
+ENTER           =    ;11
+POWER           =    ;21
+DISPLAY         =    ;24
+SCROLL          =    ;25
+CONTINUE        =    ;29			
+PROGRAM         =    ;31
+STEP REV        =    ;32
+STEP FWD        =    ;33
+PAUSE           =    ;41
+FAST REV        =    ;43
+FAST FWD        =    ;44
+RECORD          =    ;45
+POWER ON        =    ;46
+POWER OFF       =    ;47
+
+

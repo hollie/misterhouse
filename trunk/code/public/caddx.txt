@@ -1,0 +1,40 @@
+The included code is intended to provide misterhouse with the ability
+to monitor the outputs from a CADDX nx8e alarm panel via the serial interface.
+(Optionally, the nx584 expansion board can also be used).
+
+The NX8 can also be controlled via the serial interface, but this code does 
+not yet attempt to do that.
+
+In order to use this code (which has now been verified on both Linux and Win32)
+1) untar the pkg  (if in tar fmt).  It is also included in the mh distribution
+	and s/b able to run directly from the $MH_DIST/code/public directory.
+2) Install the necessary prerequisite packages: (Time::HiRes and PodParser)
+3) configure the caddx panel to communicate at 38400bps, using the binary 
+	protocol.  The caddx panel MUST be set up accordingly.
+	Consult the perldoc on caddx.pl (perl caddx.pl -man) for 
+	a detailed list of caddx programming locations.
+4) run caddx.pl as a standalone process.   Depending on your configuration,
+	you will likely have to specify the --com_port entry on the command
+	line to override the default (ttyS0/COM1).  
+
+
+5) It should log its output to the /tmp filesystem.  There will be a new 
+	files created everyday in that filesystem, and there currently is 
+	no purge process to clean them up.
+
+
+Once this is done, and caddx.pl script is talking to the panel, you're ready 
+to pull misterhouse into the loop:
+
+1) modify mh.private.ini such that lib_dir=/xxx/caddx/lib 
+	(where the xxx/caddx directory points to the files in the 
+	lib/ directory from this distribution).
+
+2) modify the code/example entries to reflect your caddx config
+
+3) restart mh.
+
+Good Luck...
+
+Let me know if you have any questions <cwitte@xmlhq.com>
+

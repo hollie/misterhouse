@@ -1,0 +1,15 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target ="output">
+<!--#include file="/list?Outside"-->
+<!--#include file="/list?Weather"-->
+<!--#include file="/list?Informational"-->
+<br>
+<!--#include file="/list?group=\$Weather"-->
+<br>
+<!--#include file="/list?iButtons"-->
+</body>
+</html>

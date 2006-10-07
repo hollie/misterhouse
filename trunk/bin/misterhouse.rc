@@ -1,0 +1,47 @@
+#!/bin/sh
+# An (optional) linux init script
+#
+# 02/19/2001: Received from Douglas A. Parrish 
+#
+
+PGM=/usr/local/bin/misterhouse/bin/mh
+PIDFILE=/var/run/mh.pid
+
+test -x $PGM || exit 0
+
+if [ "$(id -u)" != "0" ]
+then
+  echo "You must be root to start, stop or restart Misterhouse client."
+  exit 1
+fi
+
+
+start () {
+  echo "Starting Misterhouse : mh"
+  start-stop-daemon --start --background --exec $PGM 
+  return 0
+}
+
+stop () {
+  echo "Stopping Misterhouse : mh"
+  start-stop-daemon --stop --pidfile $PIDFILE
+}
+
+case "$1" in
+  start)
+     start
+     ;;
+  stop)
+     stop
+     ;;
+  force-reload|restart)
+     stop
+     sleep 3
+     start
+     ;;
+  *)
+     echo "Usage: /etc/init.d/misterhouse {start|stop|restart|force-reload}"
+     exit 1
+esac
+
+exit 0

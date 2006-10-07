@@ -1,0 +1,75 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target="output">
+<!--#include code="&html_header('About MisterHouse')" -->
+<table cellSpacing="0" cellPadding="0" width="100%" border=0>
+<font size=2>
+<tr>
+<td align='left'>
+<b>Version:</b></td>
+<td align='left'>
+<!--#include var="$Version"--></td>
+</tr><tr>
+<td align='left'>
+<b>Modified:</b></td>
+<td align='left'>
+<!--#include var="$Version_date"--></td>
+</tr><tr>
+<td align='left'>
+<b>OS:</b></td>
+<td align='left'>
+<!--#include var="$^O"--></td>
+</tr><tr>
+<td align='left'>
+<b>Perl:</b></td>
+<td align='left'>
+<!--#include code="sprintf '%vd', $^V;"--></td>
+</tr><tr>
+<td align='left'>
+<b>User:</b></td>
+<td align='left'>
+<!--#include var="$Info{User}"--><td>
+</tr><tr>
+<td align='left'><br>
+<a href="http://misterhouse.net" target="main"><img src="images/website.gif" alt='HomePage' border="0"></a>
+</td>
+<td>It Knows Kung-Fu, visit MisterHouse's own homepage.</td>
+
+<td align='left'><br>
+<a href="/ia5/house/about.html"><img src="/ia5/images/text.gif" alt='About' border=0></a></td>
+
+</tr>
+<tr>
+<td align='left'>
+<a href="/docs/index.html" target="main"><img src="images/docs.gif"  alt='Documentation'  border="0"></a>
+</td>
+<td>Read the Documentation to get the most out of your Setup.</td>
+</tr>
+<tr>
+
+<td align='left'>
+<a href="http://sourceforge.net/mailarchive/forum.php?forum_id=5118" target="main"><img src="images/mailing.gif"  alt='MailingList Web'  border="0"></a>
+</td>
+<td>Search the online mailing list archives.</td>
+
+<td align='left'>
+<a href="http://misterhouse.wikispaces.com" target="main"><IMG alt=TWiki  src="images/TWiki.gif"  border=0></a>
+</td>
+<td><FONT size=1>Read the TWiki for online
+      advice.</FONT>     </td>
+
+</tr>
+
+<td align='left'>
+<a href="news://news.gmane.org/gmane.comp.misc.misterhouse.user" target="main"><img src="images/mailing.gif"  alt='MailingList News'  border="0"></a>
+</td>
+<td>Read mailing list with a news reader.</td>
+</tr>
+
+</table>
+</font>
+</body>
+</html>

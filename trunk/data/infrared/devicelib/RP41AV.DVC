@@ -1,0 +1,26 @@
+Manufacturer=XANTECH
+Device=Preamp
+Model=RP41AV
+Remote=PRE
+Format=Xantech
+Device Code=4/0
+
+[Key Codes]
+Input1         =00
+Input2         =05
+Input3         =06
+Input4         =07
+Treble+        =08
+Bass+          =13
+VolumeUP       =15
+TrebleFlat     =12
+BassFlat       =17
+VolumeDN       =19
+Treble-        =16
+Bass-          =25
+Mute           =26
+UnMute         =27
+BalanceLeft    =21
+BalanceCenter  =22
+BalanceRight   =23
+

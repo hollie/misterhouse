@@ -1,0 +1,28 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target="output">
+<table height="100%" border="0">
+<tbody>
+<td valign="top" align="left" width="100%">
+<a href="main.shtml"><img src="images/calendarfacts.gif" border="0"></a><br>
+<a href="/clock" target="_top"><img src="images/ledclock.gif" border="0"></a><br>
+<a href="/misc/alarms.html"><img src="images/alarms.gif" border="0"></a><br>
+<a href='<!--#include var="$config_parms{web_href_calander_today}" -->'>
+<img src="images/today.gif" border="0"></a><br>
+<a href='<!--#include var="$config_parms{web_href_calander_week}" -->'>
+<img src="images/week.gif" border="0"></a><br>
+<a href='<!--#include var="$config_parms{web_href_calander_month}" -->'>
+<img src="images/month.gif" border="0"></a><br>
+<a href='<!--#include var="$config_parms{web_href_calander_year}" -->'>
+<img src="images/year.gif" border="0"></a><br>
+<a href='<!--#include var="$config_parms{web_href_calander_addevent}" -->'>
+<img src="images/addevent.gif" border="0"></a><br>
+<a href="browse.shtml"><img src="images/browse.gif" border="0"></a><br>
+</td>
+</tbody>
+</table>
+</body>
+</html>

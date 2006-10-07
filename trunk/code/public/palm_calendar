@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# Update the calendar.tab file for MisterHouse
+# Data is extracted for each user from Palm Desktop datebook.dat files
+
+palm_calendar.pl \
+/home/axel/mh/data/organizer/calendar.tab \
+/home/axel/Palm/BrownA Axel \
+/home/debbie/Palm/Debbie Debbie
+

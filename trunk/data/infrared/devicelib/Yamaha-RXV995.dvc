@@ -1,0 +1,11 @@
+Manufacturer=Yamaha
+Model=RXV995
+Device=Receiver
+Protocol=NEC256A
+
+[Key Codes]
+Volume Up      = 122,26
+Volume Down    = 122,27
+Mute           = 122,28
+Channel Down   = 080,24
+Channel Up     = 080,25

@@ -1,0 +1,66 @@
+Mister House to Concept Alarm Panel Interface, Version 2.
+=========================================================
+By Nick Maddock, gnik@optushome.com.au
+
+
+This is my second attempt at interfacing the Concept 4000 alarm panel to
+Mister House. 
+
+The previous version just looked at the text on an alarm printer output and
+trapped for keys strings to detect zone changes.
+
+This version will poll the panel for alarm events and process the raw data 
+on an event, these allows for a better interface.
+
+This version will also allow the areas and auxiliaries to be controlled by 
+Mister House.
+
+To achieve this I had to move most of the key panel interface routines into 
+a separate alarm panel handling utility, these routines will interface Mister 
+House to my alarm utility. Unfortunately the alarm utility is written in C 
+for linux, sorry but I have no interest in windows machines. I'm still trying 
+to set up a web page to distribute my alarm utility, so until that is done, 
+the best method of getting a copy would be to send me an Email (if you put 
+misterhouse in the subject line, you will get past my spam filters).
+
+These routines were plagiarised from Richard Morgan's code for connecting 
+to the Cbus, they were so similar it was easier to copy Richard's code that 
+write my own from scratch.
+
+Setup
+-----
+1) Make sure these files are in your code directory;
+	concept.pl		- All the routines
+	Concept_Item.pm 	- Defines the concept item object
+	concept.csv		- The data for zones/auxiliaries/areas
+
+2) Add these parameters to the configuration file
+	concept_mon_address = 127.0.0.1:4011 	#Address of the monitor port on the alarm utiltiy 
+	concept_talk_address = 127.0.0.1:4012 	#Address of the command port on the alarm utiltiy
+	concept_dat_file = concept.csv    	#The file to get zone/aux data from
+	concept_interface = C1      		#The interface that the utility is using to the panel
+
+3) Edit the concept.csv file so that it contains the data for your alarm 
+   system configuration, instead of mine.
+
+4) Start/Restart/Reload MisterHouse
+
+5) Run the "Concept Build RUN_BUILDER" command. This causes the builder 
+   to examine the data in the concept.csv file and build a new program 
+   module in the code directory in a file called concept_data.pl
+
+6) Reload MisterHouse to force it to load the newly created program module.
+   This should setup all the objects used in the alarm system.
+
+
+Additional
+----------
+Several commands are added in the concept.pl file, that are all under the 
+Concept category.
+
+Concept Build RUN_BUILDER 	- Builds the concept_data.pl file
+Concept Build DUMP_DATA		- List the data loaded from the concept.csv file
+Concept Pannel Monitor Speak ON/OFF - Controls the announcement of alarm events
+Concept Pannel Monitor START/STOP/STATUS - Handles connections to the monitor port on the alarm utility
+Concept Pannel Talker START/STOP/STATUS - Handles connections to the command port on the alarm utility
+

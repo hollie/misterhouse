@@ -1,0 +1,134 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.6 [en-gb]C-CCK-MCD NetscapeOnline.co.uk  (Win95; I) [Netscape]">
+   <title>1: MisterHouse operational questions</title>
+<link 
+rev=made href="mailto:">
+</head>
+<body>
+<!-- INDEX BEGIN -->
+<h2>
+<a NAME="1_4_How_does_mh_ini_work_"></a>X.X: Why is my code not working?</h2>
+Many errors are flagged by mh on a Reload, but some can be difficult to
+spot. Here is a list of common errors in Perl code which you can check
+for.
+<ul>
+<li>
+Perl code is case-sensitive. Check your capitalisation. In mh, <tt>$Day</tt>
+is right, and <tt>$day</tt> is wrong.</li>
+
+<li>
+Commands end with ;&nbsp;&nbsp;&nbsp;&nbsp; But there should be no ; at
+the end of a line starting a do loop, an if, or a sub-routine.</li>
+
+<li>
+Unmatched parentheses, curly braces, quotes and delimiters.</li>
+
+<li>
+A line starting with <tt>if</tt> requires the condition to go between parentheses,
+eg <tt>if (time_now('2:00 PM')) {</tt></li>
+
+<li>
+<tt>if ($string = "abc")</tt> is wrong. The correct syntax is <tt>if ($string
+eq "abc")</tt></li>
+
+<li>
+<tt>if ($number = 1)</tt> is wrong. The correct syntax is <tt>if ($number
+== "abc")</tt></li>
+
+<li>
+Many perl scripts (including the code in mh) start with <tt>use strict;</tt>&nbsp;
+This means that new variables must be pre-declared as<tt> $my variable</tt>.
+This error is flagged as <tt>Oops1: Global symbol "$variable" requires
+explicit package name at (eval 57) line 1056</tt>. (See below for a point
+on this which is specific to mh)</li>
+
+<li>
+When declaring more than one variable, use parentheses: <tt>my ($variable1,
+$variable2)</tt></li>
+
+<li>
+VB programmers may accidentally type <tt>string$</tt> instead of <tt>$string</tt></li>
+
+<li>
+A very long line may appear to have a carriage return at the end, but not
+have a carriage return at the end</li>
+
+<li>
+<tt>#</tt> (which starts a Remark statement) may appear to be the first
+character of a line of code, but in fact be in the middle of a line of
+code</li>
+
+<li>
+Adot may be missing before or after <tt>"</tt> or <tt>=</tt></li>
+
+<li>
+It is easy to forget to put \ before / or \ or $ or . or " or @ etc</li>
+
+<li>
+In Windows and DOS, file-paths are typed as <tt>c:\filepath</tt>.&nbsp;
+In Perl this must appear as <tt>c:/filepath</tt> or (in some contexts for
+Windows users) <tt>c:\\filepath</tt></li>
+
+<li>
+&nbsp;( or [ might be typed when { is required (etc)</li>
+
+<li>
+It is easy to forget ~ after = in matches and substitutions</li>
+
+<li>
+Wrong number of arguments in subroutines</li>
+
+<li>
+Local variables lose their values outside their own section of code. A
+global variable should not be declared inside a sub-routine.</li>
+
+<li>
+<tt>foreach </tt>must be typed, not<tt> for each</tt></li>
+
+<li>
+<tt>foreach $item (@list) </tt>is right.<tt> foreach $item @list </tt>is
+wrong.</li>
+
+<li>
+In a substitution, <tt>s/(text1).+(text2)/</tt> may fail by looking too
+far ahead. You may have meant <tt>s/(text1).+?(text2)/. </tt>The ? tells
+Perl to keep the number of characters between texty1 and text 2 to a minimum.</li>
+
+<li>
+dot in a match will not match \n unless you use the /s modifier</li>
+
+<li>
+A match or substitution in a string containing newlines may fail if you
+forget the /s modifier at the end</li>
+
+<li>
+Arrays start at 0 not 1</li>
+</ul>
+
+<p><br>This is a vital point which applies only to mh, not to Perl generally.
+<ul>
+<li>
+A new variable in a loop module is taken out of the loop if it is typed
+in the first column on the left of the screen.&nbsp; This is not a problem
+if the value of the variable is fixed from the outset (eg <tt>my</tt> <tt>$sky_color
+= 'blue'</tt>), but will cause an error if the value of the variable is
+based on the value of another variable, <tt>my $circumference = $radius
+* 3.14.</tt> A line like this <b>must</b> be indented by at least one space.</li>
+
+<br>&nbsp;
+<p>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;</ul>
+
+<p><br>All the entries in mh.ini are read on mh Startup and on a Reload.
+They are stored in the <tt>%config_parms</tt> array. So, for example, if
+you added:
+<pre>&nbsp; myparm1=a b c</pre>
+&nbsp;
+</body>
+</html>

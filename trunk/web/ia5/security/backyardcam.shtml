@@ -1,0 +1,16 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+<meta http-equiv="refresh" content="5">
+</head>
+<!--#include code="&backgrab"-->
+<body>
+<base target ="output">
+<!--#include code="&html_header('BackYard Camera View')" -->
+<table cellSpacing=0 cellPadding=0 width="100%" border=0>
+<center>
+<img src="captures/back_latest.jpg" width="320" height="240">
+</center>
+</table>
+</body>
+</html>

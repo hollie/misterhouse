@@ -1,0 +1,96 @@
+
+From Dan Rich on 2/2004:
+
+---
+
+Here is the script I use.  I have this installed as /etc/init.d/mh.  You 
+can run chkconfig --add mh to enable it at boot.
+
+This script expects two things:
+  1. Your mh is installed in /usr/local/mh (as the RPM does)
+  2. You have a user "mh" that you want everything to run as.  If you 
+want it to run as root, you can take out the block of code that starts 
+with "# We must run as the mh user".  If you do run this as mh, you will 
+want to run "chown -R mh data web" in your mh install directory.
+
+---
+
+#!/bin/sh
+#
+# Startup for MisterHouse
+#
+# chkconfig: 2345 99 00
+# description: MisterHouse
+# processname: mh
+# config: /usr/local/mh/bin/mh.ini
+# pidfile: /usr/local/mh/data/mh.pid
+#
+
+PATH=/bin:/usr/bin:/usr/local/bin
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+mhdir=/usr/local/mh
+
+mh_parms=$mhdir/bin/mh.private.ini
+export mh_parms
+
+LANG=C
+export LANG
+
+# We must run as the mh user
+username=`id -n -u`
+if [ "$username" != "mh" ]; then
+    /bin/su - mh -s /bin/bash -c "exec $0 $@"
+    exit
+fi
+
+start() {
+        echo -n "Starting MisterHouse daemon: "
+        cd $mhdir/bin
+        ./mh -tk 0 -log_file $mhdir/data/logs/mh.log &
+
+        RETVAL=$?
+        echo
+        [ $RETVAL -eq 0 ] && touch /var/lock/subsys/mh
+        return $RETVAL
+}
+
+stop() {
+        echo -n "Shutting down MisterHouse: "
+        killproc mh
+       
+        RETVAL=$?
+        echo
+        [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/mh
+        return $RETVAL
+}
+
+case "$1" in
+        start)
+                start
+                ;;
+
+        stop)
+                stop
+                ;;
+
+        reload)
+                stop
+                start
+                RETVAL=$?
+                ;;
+
+        restart)
+                $0 stop
+                $0 start
+                RETVAL=$?
+                ;;
+
+        *)
+                echo "Usage: /etc/init.d/mh { start | stop }"
+                ;;
+
+esac
+

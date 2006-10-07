@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wsdl:definitions xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:s="http://www.w3.org/2001/XMLSchema" xmlns:s0="urn:mhsoap/schema" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:tns="urn:mhsoap" xmlns:tm="http://microsoft.com/wsdl/mime/textMatching/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" targetNamespace="urn:mhsoap" name="mhsoap" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+  <wsdl:types>
+    <s:schema xmlns="http://www.w3.org/2001/XMLSchema" targetNamespace="urn:mhsoap/schema">
+      <s:complexType name="ArrayOfString">
+        <s:complexContent mixed="false">
+          <s:restriction base="soapenc:Array">
+            <s:attribute wsdl:arrayType="s:string[]" ref="soapenc:arrayType" />
+          </s:restriction>
+        </s:complexContent>
+      </s:complexType>
+    </s:schema>
+  </wsdl:types>
+  <wsdl:message name="ListObjectTypesRequest" />
+  <wsdl:message name="ListObjectTypesResponse">
+    <wsdl:part name="return" type="s0:ArrayOfString" />
+  </wsdl:message>
+  <wsdl:message name="ListObjectsByTypeRequest">
+    <wsdl:part name="object_type" type="s:string" />
+  </wsdl:message>
+  <wsdl:message name="ListObjectsByTypeResponse">
+    <wsdl:part name="return" type="s0:ArrayOfString" />
+  </wsdl:message>
+  <wsdl:message name="SetItemStateRequest">
+    <wsdl:part name="ItemToSet" type="s:string" />
+    <wsdl:part name="State" type="s:string" />
+  </wsdl:message>
+  <wsdl:message name="SetItemStateResponse">
+    <wsdl:part name="return" type="s:int" />
+    <wsdl:part name="State" type="s:string" />
+  </wsdl:message>
+  <wsdl:message name="GetItemStateRequest">
+    <wsdl:part name="ItemToGet" type="s:string" />
+  </wsdl:message>
+  <wsdl:message name="GetItemStateResponse">
+    <wsdl:part name="return" type="s:string" />
+  </wsdl:message>
+  <wsdl:portType name="mhsoapServiceSoap">
+    <wsdl:operation name="ListObjectTypes">
+      <wsdl:input message="tns:ListObjectTypesRequest" />
+      <wsdl:output message="tns:ListObjectTypesResponse" />
+    </wsdl:operation>
+    <wsdl:operation name="ListObjectsByType">
+      <wsdl:input message="tns:ListObjectsByTypeRequest" />
+      <wsdl:output message="tns:ListObjectsByTypeResponse" />
+    </wsdl:operation>
+    <wsdl:operation name="SetItemState">
+      <wsdl:input message="tns:SetItemStateRequest" />
+      <wsdl:output message="tns:SetItemStateResponse" />
+    </wsdl:operation>
+    <wsdl:operation name="GetItemState">
+      <wsdl:input message="tns:GetItemStateRequest" />
+      <wsdl:output message="tns:GetItemStateResponse" />
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="mhsoapServiceSoap" type="tns:mhsoapServiceSoap">
+    <soap:binding transport="http://schemas.xmlsoap.org/soap/http" style="rpc" />
+    <wsdl:operation name="ListObjectTypes">
+      <soap:operation soapAction="urn:mhsoap/ListObjectTypes" />
+      <wsdl:input>
+        <soap:body use="encoded" namespace="urn:mhsoap" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="encoded" namespace="urn:mhsoap" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="ListObjectsByType">
+      <soap:operation soapAction="urn:mhsoap/ListObjectsByType" />
+      <wsdl:input>
+        <soap:body use="encoded" namespace="urn:mhsoap" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="encoded" namespace="urn:mhsoap" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="SetItemState">
+      <soap:operation soapAction="urn:mhsoap/SetItemState" />
+      <wsdl:input>
+        <soap:body use="encoded" namespace="urn:mhsoap" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="encoded" namespace="urn:mhsoap" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetItemState">
+      <soap:operation soapAction="urn:mhsoap/GetItemState" />
+      <wsdl:input>
+        <soap:body use="encoded" namespace="urn:mhsoap" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="encoded" namespace="urn:mhsoap" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="mhsoap">
+    <wsdl:port name="mhsoapService" binding="tns:mhsoapServiceSoap">
+      <soap:address location="http://misterhouse:8080/bin/soapcgi.pl" />
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

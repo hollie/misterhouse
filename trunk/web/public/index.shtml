@@ -1,0 +1,14 @@
+<html>
+<title>MisterHouse Public Web Directory</title>
+<link rel="STYLESHEET" href="/default.css" type="text/css">
+</head>
+
+<body>
+<h3>MisterHouse Public Web Directory</h3>
+
+<h4> These are miscellaneous web files, some of which have companion code in the mh/code/public directory</h4>
+
+<!--#include code="&dir_index('/public')"-->
+
+</body> 
+</html>

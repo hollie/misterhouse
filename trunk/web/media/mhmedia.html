@@ -1,0 +1,20 @@
+<html><head><title>Media Control Center</title></head>
+
+<frameset rows ='100,250,25,*,50' frameborder="no" border="0" framespacing="0">
+    <frame name='media' scrolling="no" noresize src="/bin/list?Media" >
+    <frameset cols= "*,250,15,225,*" frameborder="no" border="0" framespacing="0">
+	<center>
+	<frame src=''>
+        <frame name='nav'  scrolling="no" noresize src="/media/MediaPlayerNav" >
+	<frame src=''>
+	<frame name='ctrl' scrolling="no" noresize src="/media/MediaPlayerRemote" >
+	<frame src=''>
+	</center>
+    </frameset>
+    <frame name='action' scrolling='no' noresize src=''>
+    <frame name='mediaList' scrolling='yes' noresize src='/bin/mhmedia_list.pl'>
+    <frame name='speech' scrolling="no" noresize src="speech">
+</frameset>
+<body>
+</body>
+</html>

@@ -1,0 +1,184 @@
+#! /bin/sh
+#
+# Author: kevin wambsganz      wambs@attbi.com
+#  April 9 2002
+#
+# init.d/mh
+#
+# /sbin/rcmh
+#
+# System startup service for mister house using SuSE with
+# A user (mh) and group are created using yast2. The user and group are optional
+# but make it easier to separate production from developement work.
+# If you don't use the new group, then remove "-u mh -g 102" from startproc. 
+# If you add a new user, then you copy the mister house files into the mh directory.
+# This script assumes that mh is in the default /home/mh directory, if not then
+# change the "MH_LOG=/home/mh/data/logs/startup.txt" and  "MH_BIN=/home/mh/bin/mh" lines.
+#
+# This script supports starting/stopping/restarting, and status.
+# This script should be executed at runlevel 5 and the symbolic links in the must 
+# be created using the insserv command. Execute "insserv -d /etc/init.d/mh"
+# to setup the links as root. You must use this command, otherwise SuSE will overwrite
+# the symbolic links if you create them manually. At least thats what I read it
+# would do, I have not tried it.
+#
+# You can run this script from /etc/init.d by ./mh start or ./mh stop.
+# You must be root to run this script. 
+#
+# Note, my mh uses mysql as a Database. If you have any dependencies add/remove
+# from the "Required-Start:" line.
+#
+# This entire script goes into /etc/rc.d/init.d/mh file.
+#
+### BEGIN INIT INFO
+# Provides: mh
+# Required-Start: apache 
+# Required-Stop:  
+# Default-Start:  5
+# Default-Stop:   5
+# Description:    Start mh in run level 5
+### END INIT INFO
+
+# Source SuSE config
+. /etc/rc.config
+
+# Determine the base and follow a runlevel link name.
+base=${0##*/}
+link=${base#*[SK][0-9][0-9]}
+
+# Force execution if not called by a runlevel directory.
+#test $link = $base && START_MH=yes
+#test "$START_MH" = yes || exit 0
+
+MH_BIN=/home/mh/bin/mh
+MH_LOG=/home/mh/data/logs/startup.txt
+test -x $MH_BIN || exit 5
+
+start() {
+
+   startproc -u mh -g 102 $MH_BIN  -log_file $MH_LOG -tk 0  > /dev/null 2>&1 &
+RETVAL=$?
+return $RETVAL
+}
+
+# Shell functions sourced from /etc/rc.status:
+#      rc_check         check and set local and overall rc status
+#      rc_status        check and set local and overall rc status
+#      rc_status -v     ditto but be verbose in local rc status
+#      rc_status -v -r  ditto and clear the local rc status
+#      rc_failed        set local and overall rc status to failed
+#      rc_failed <num>  set local and overall rc status to <num><num>
+#      rc_reset         clear local rc status (overall remains)
+#      rc_exit          exit appropriate to overall rc status
+. /etc/rc.status
+
+# First reset status of this service
+rc_reset
+
+# Return values acc. to LSB for all commands but status:
+# 0 - success
+# 1 - generic or unspecified error
+# 2 - invalid or excess argument(s)
+# 3 - unimplemented feature (e.g. "reload")
+# 4 - insufficient privilege
+# 5 - program is not installed
+# 6 - program is not configured
+# 7 - program is not running
+# 
+# Note that starting an already running service, stopping
+# or restarting a not-running service as well as the restart
+# with force-reload (in case signalling is not supported) are
+# considered a success.
+
+case "$1" in
+    start)
+	echo -n "Starting Mister-House"
+	## Start daemon with startproc(8). If this fails
+	## the echo return value is set appropriate.
+
+	# NOTE: startproc return 0, even if service is 
+	# already running to match LSB spec.
+	start
+
+	# Remember status and be verbose
+	rc_status -v
+	;;
+    stop)
+	echo -n "Shutting down Mister-House"
+	## Stop daemon with killproc(8) and if this fails
+	## set echo the echo return value.
+
+	killproc $MH_BIN
+
+	# Remember status and be verbose
+	rc_status -v
+	;;
+    ##try-restart)
+	## Stop the service and if this succeeds (i.e. the 
+	## service was running before), start it again.
+	## Note: try-restart is not (yet) part of LSB (as of 0.7.5)
+	# $0 status >/dev/null &&  $0 restart
+
+	# Remember status and be quiet
+	##rc_status
+	##;;
+
+    restart)
+	## Stop the service and regardless of whether it was
+	## running or not, start it again.
+	stop
+	start
+
+	# Remember status and be quiet
+	rc_status
+	;;
+    force-reload)
+	## Signal the daemon to reload its config. Most daemons
+	## do this on signal 1 (SIGHUP).
+	## If it does not support it, restart.
+
+	echo -n "Reload service Mister-House"
+	## if it supports it:
+	stop
+	#touch /var/run/FOO.pid
+	# rc_status -v
+
+	## Otherwise:
+	#$0 stop  &&  $0 start
+	#rc_status
+	;;
+    reload)
+	## Like force-reload, but if daemon does not support
+	## signalling, do nothing (!)
+	
+	## Otherwise if it does not support reload:
+	rc_failed 3
+	rc_status -v
+	;;
+    status)
+	echo -n "Checking for Mister-House: "
+	## Check status with checkproc(8), if process is running
+	## checkproc will return with exit status 0.
+
+	# Status has a slightly different for the status command:
+	# 0 - service running
+	# 1 - service dead, but /var/run/  pid  file exists
+	# 2 - service dead, but /var/lock/ lock file exists
+	# 3 - service not running
+
+	# NOTE: checkproc returns LSB compliant status values.
+	checkproc $MH_BIN
+	rc_status -v
+	;;
+    probe)
+	## Optional: Probe for the necessity of a reload,
+	## give out the argument which is required for a reload.
+
+	##test /etc/FOO/FOO.conf -nt /var/run/FOO.pid && echo reload
+	;;
+    *)
+	echo "Usage: $0 {start|stop|status|try-restart|restart|force-reload|reload|probe}"
+	exit 1
+	;;
+esac
+rc_exit

@@ -1,0 +1,36 @@
+
+
+<html>
+<meta http-equiv="Refresh" content="30;URL=modes.shtml">
+<title>Main Status</title>
+<body bgcolor=123456 text=lime>
+
+ <br>
+ <table width=480 cellpadding=5 cellspacing=5 columns=4>
+ 
+ <tr>
+ <td bgcolor=silver align=left colspan=4><font face=arial size=4 color=black><b>House Modes</b></font></td>
+ </tr>
+ 
+ <tr>
+ <td bgcolor=gray width=15% align=center><!--#include code="&housemode('$speech','big_on','big_off')"--></td>
+ <td bgcolor=gray width=35%><font face=arial size=3 color=black><b>Speech</b>&nbsp;&nbsp;&nbsp;</font>
+ </td>
+ 
+ <td bgcolor=gray width=15% align=center><!--#include code="&housemode('$pager','big_on','big_off')"--></td>
+ <td bgcolor=gray width=35%> <font face=arial size=3 color=black><b>Pager</b>&nbsp;&nbsp;&nbsp;</font></td>
+ </tr>
+ 
+<tr>
+ <td bgcolor=gray width=15% align=center><!--#include code="&housemode('$guests','big_on','big_off')"--></td>
+ <td bgcolor=gray width=35%><font face=arial size=3 color=black><b>Guests</b>&nbsp;&nbsp;&nbsp;</font>
+ </td>
+ 
+ <td bgcolor=gray width=15% align=center></td>
+ <td bgcolor=gray width=35%> <font face=arial size=3 color=black><b></b>&nbsp;&nbsp;&nbsp;</font></td>
+ </tr>
+ 
+ </table>
+
+
+<!--#include file="/ia4/motion.pl"-->

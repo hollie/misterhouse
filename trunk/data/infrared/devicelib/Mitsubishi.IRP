@@ -1,0 +1,7 @@
+Name=Mitsubishi Protocol
+Protocol=Mitsubishi
+Frequency=40000
+Time Base=300
+One=1,-3
+Zero=1,-7
+Form=d:8,f:8,[1 -80]

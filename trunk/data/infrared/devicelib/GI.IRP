@@ -1,0 +1,7 @@
+Name Genral Instrument Protocol
+Protocol=GI
+Frequency=38000
+Time Base=500
+One=+1,-9
+Zero=+1,-5
+Form=[18 -9],d-f:8,16*f:8,[1 -90];[18 -5 1 -180]

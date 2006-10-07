@@ -1,0 +1,6112 @@
+$xmlparse = [
+              'oscar',
+              [
+                {},
+                0,
+                '
+
+	
+
+	',
+                'define',
+                [
+                  {
+                    'name' => 'flap'
+                  },
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {},
+                    0,
+                    '42'
+                  ],
+                  0,
+                  ' 
+		',
+                  'byte',
+                  [
+                    {
+                      'name' => 'channel'
+                    },
+                    0,
+                    '2'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'seqno'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'msg',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+	',
+                'define',
+                [
+                  {
+                    'name' => 'snac'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'family'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'subtype'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {
+                      'name' => 'flags1'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {
+                      'name' => 'flags2'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'reqid'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'data'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+	',
+                'define',
+                [
+                  {
+                    'name' => 'TLV'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'type'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'data',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'name' => 'subtyped TLV'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'type'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {
+                      'name' => 'subtype'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'data',
+                      'length_prefix' => 'byte'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+
+	',
+                'define',
+                [
+                  {
+                    'name' => 'userinfo'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'screenname',
+                      'length_prefix' => 'byte'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'evil'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'tlvchain',
+                  [
+                    {
+                      'count_prefix' => 'word'
+                    },
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '1'
+                      },
+                      'word',
+                      [
+                        {
+                          'name' => 'flags'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '2'
+                      },
+                      'dword',
+                      [
+                        {
+                          'name' => 'membersince'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '3'
+                      },
+                      'dword',
+                      [
+                        {
+                          'name' => 'onsince'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '4'
+                      },
+                      'word',
+                      [
+                        {
+                          'name' => 'idle'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '13'
+                      },
+                      'data',
+                      [
+                        {
+                          'count' => '-1',
+                          'length' => '16',
+                          'name' => 'capabilities'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '25'
+                      },
+                      'data',
+                      [
+                        {
+                          'count' => '-1',
+                          'length' => '2',
+                          'name' => 'shortcaps'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '29'
+                      },
+                      0,
+                      '
+				',
+                      'tlvchain',
+                      [
+                        {
+                          'subtyped' => 'yes'
+                        },
+                        0,
+                        '
+					',
+                        'tlv',
+                        [
+                          {
+                            'subtype' => '1',
+                            'type' => '1'
+                          },
+                          'data',
+                          [
+                            {
+                              'name' => 'icon_md5sum'
+                            }
+                          ]
+                        ],
+                        0,
+                        '
+					',
+                        'tlv',
+                        [
+                          {
+                            'subtype' => '-1',
+                            'type' => '2'
+                          },
+                          'data',
+                          [
+                            {
+                              'name' => 'extended_status',
+                              'length_prefix' => 'word'
+                            }
+                          ]
+                        ],
+                        0,
+                        '
+				'
+                      ],
+                      0,
+                      '
+			'
+                    ],
+                    0,
+                    '
+		
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '5'
+                      },
+                      0,
+                      ' 
+				',
+                      'tlvchain',
+                      [
+                        {},
+                        0,
+                        '
+					',
+                        'tlv',
+                        [
+                          {
+                            'type' => '12'
+                          },
+                          'data',
+                          [
+                            {
+                              'name' => 'invitation_message'
+                            }
+                          ]
+                        ],
+                        0,
+                        '
+					',
+                        'tlv',
+                        [
+                          {
+                            'type' => '10001'
+                          },
+                          0,
+                          '
+						',
+                          'word',
+                          [
+                            {}
+                          ],
+                          0,
+                          '
+						',
+                          'data',
+                          [
+                            {
+                              'name' => 'chat_url',
+                              'length_prefix' => 'byte'
+                            }
+                          ],
+                          0,
+                          '
+					'
+                        ],
+                        0,
+                        '
+				'
+                      ],
+                      0,
+                      '
+			'
+                    ],
+                    0,
+                    ' 
+
+
+			
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '15'
+                      },
+                      'dword',
+                      [
+                        {
+                          'name' => 'session_length'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '10'
+                      },
+                      'dword',
+                      [
+                        {
+                          'name' => 'ip'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+
+			
+			',
+                    'tlv',
+                    [
+                      {
+                        'name' => 'sub_info',
+                        'type' => '512'
+                      }
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+
+	
+
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '4',
+                    'name' => 'service request',
+                    'family' => '1'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'type'
+                    }
+                  ],
+                  0,
+                  '
+
+		
+		',
+                  'tlvchain',
+                  [
+                    {},
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'name' => 'chat',
+                        'type' => '1'
+                      },
+                      0,
+                      '
+				',
+                      'word',
+                      [
+                        {
+                          'name' => 'exchange'
+                        }
+                      ],
+                      0,
+                      '
+				',
+                      'data',
+                      [
+                        {
+                          'name' => 'url',
+                          'length_prefix' => 'byte'
+                        }
+                      ],
+                      0,
+                      '
+				',
+                      'word',
+                      [
+                        {},
+                        0,
+                        '0'
+                      ],
+                      0,
+                      '
+			'
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '1',
+                    'name' => 'error',
+                    'family' => '-1'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'errno'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'tlvchain',
+                  [
+                    {},
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '4'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'error_details'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '5',
+                    'name' => 'service redirect response',
+                    'family' => '1'
+                  },
+                  0,
+                  '
+		',
+                  'tlvchain',
+                  [
+                    {},
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '13'
+                      },
+                      'word',
+                      [
+                        {
+                          'name' => 'service_type'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '6'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'auth_cookie'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '5'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'server_ip'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+
+	
+
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '1',
+                    'flags2' => '6',
+                    'name' => 'BOS signon',
+                    'channel' => '1',
+                    'family' => '0'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'cookie'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '2',
+                    'name' => 'signon',
+                    'family' => '23'
+                  },
+                  0,
+                  '
+		',
+                  'tlvchain',
+                  [
+                    {},
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '1'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'screenname'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+
+			
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '37'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'auth_response'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '76'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'pass_is_hashed'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+
+			
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '2'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'password'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '3'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'clistr'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '22'
+                      },
+                      'word',
+                      [
+                        {
+                          'name' => 'supermajor'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '23'
+                      },
+                      'word',
+                      [
+                        {
+                          'name' => 'major'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '24'
+                      },
+                      'word',
+                      [
+                        {
+                          'name' => 'minor'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '25'
+                      },
+                      'word',
+                      [
+                        {
+                          'name' => 'subminor'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '26'
+                      },
+                      'word',
+                      [
+                        {
+                          'name' => 'build'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '20'
+                      },
+                      'dword',
+                      [
+                        {
+                          'name' => 'subbuild'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '15'
+                      },
+                      'data',
+                      [
+                        {},
+                        0,
+                        'en'
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '14'
+                      },
+                      'data',
+                      [
+                        {},
+                        0,
+                        'us'
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '74'
+                      },
+                      'byte',
+                      [
+                        {},
+                        0,
+                        '1'
+                      ]
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'name' => 'ICQ signon request',
+                    'channel' => '1'
+                  },
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {},
+                    0,
+                    '1'
+                  ],
+                  0,
+                  '
+		',
+                  'ref',
+                  [
+                    {
+                      'name' => 'signon'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '6',
+                    'name' => 'initial signon request',
+                    'family' => '23'
+                  },
+                  0,
+                  '
+		',
+                  'tlvchain',
+                  [
+                    {},
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '1'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'screenname'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'default_generate' => 'yes',
+                        'type' => '75'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'default_generate' => 'yes',
+                        'type' => '90'
+                      }
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+	
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '7',
+                    'name' => 'authentication key',
+                    'family' => '23'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'key',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+	
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '3',
+                    'name' => 'authorization response',
+                    'family' => '23'
+                  },
+                  0,
+                  '
+		',
+                  'tlvchain',
+                  [
+                    {},
+                    0,
+                    '
+			
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '8'
+                      },
+                      'word',
+                      [
+                        {
+                          'name' => 'error'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '4'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'error_details'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+
+			
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '1'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'screenname'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '17'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'email'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '6'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'auth_cookie'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '5'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'server_ip'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+
+			
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '19'
+                      },
+                      'word',
+                      [
+                        {
+                          'name' => 'registration_status'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '84'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'password_change_url'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '7',
+                    'name' => 'rate info response',
+                    'family' => '1'
+                  }
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '8',
+                    'name' => 'rate acknowledgement',
+                    'family' => '1'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {},
+                    0,
+                    '1'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {},
+                    0,
+                    '2'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {},
+                    0,
+                    '3'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {},
+                    0,
+                    '4'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {},
+                    0,
+                    '5'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '14',
+                    'name' => 'personal info request',
+                    'family' => '1'
+                  }
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '2',
+                    'name' => 'buddylist rights request',
+                    'family' => '19'
+                  }
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '4',
+                    'name' => 'buddylist request',
+                    'family' => '19'
+                  }
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '2',
+                    'name' => 'locate rights request',
+                    'family' => '2'
+                  }
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '3',
+                    'name' => 'locate rights response',
+                    'family' => '2'
+                  }
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '2',
+                    'name' => 'buddy rights request',
+                    'family' => '3'
+                  }
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '3',
+                    'name' => 'buddy rights response',
+                    'family' => '3'
+                  }
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '4',
+                    'name' => 'IM parameter request',
+                    'family' => '4'
+                  }
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '5',
+                    'name' => 'IM parameter response',
+                    'family' => '4'
+                  }
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '2',
+                    'name' => 'BOS rights request',
+                    'family' => '9'
+                  }
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '3',
+                    'name' => 'BOS rights response',
+                    'family' => '9'
+                  }
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '15',
+                    'name' => 'self information',
+                    'family' => '1'
+                  },
+                  'ref',
+                  [
+                    {
+                      'name' => 'userinfo'
+                    }
+                  ]
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '2',
+                    'name' => 'minimum report interval',
+                    'family' => '11'
+                  }
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '19',
+                    'name' => 'MOTD',
+                    'family' => '1'
+                  }
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '3',
+                    'name' => 'server ready',
+                    'family' => '1'
+                  }
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '23',
+                    'name' => 'set service versions',
+                    'family' => '1'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'count' => '-1',
+                      'name' => 'service'
+                    },
+                    0,
+                    '
+			',
+                    'word',
+                    [
+                      {
+                        'name' => 'service_id'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'word',
+                    [
+                      {
+                        'name' => 'service_version'
+                      }
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '2',
+                    'name' => 'set tool versions',
+                    'family' => '1'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'count' => '-1',
+                      'name' => 'service'
+                    },
+                    0,
+                    '
+			',
+                    'word',
+                    [
+                      {
+                        'name' => 'service_id'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'word',
+                    [
+                      {
+                        'name' => 'service_version'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'word',
+                    [
+                      {
+                        'name' => 'tool_id'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'word',
+                    [
+                      {
+                        'name' => 'tool_version'
+                      }
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '6',
+                    'name' => 'rate info request',
+                    'family' => '1'
+                  }
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '10',
+                    'name' => 'rate change',
+                    'family' => '1'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {}
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'group'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'window'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'clear'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'alert'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'limit'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'disconnect'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'current'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'max'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '8',
+                    'name' => 'outgoing warning',
+                    'family' => '4'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'is_anonymous'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'screenname',
+                      'length_prefix' => 'byte'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '16',
+                    'name' => 'incoming warning',
+                    'family' => '1'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'new_level'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'ref',
+                  [
+                    {
+                      'name' => 'userinfo'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '31',
+                    'name' => 'memory request',
+                    'family' => '1'
+                  }
+                ],
+                0,
+                ' 
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '24',
+                    'name' => 'host versions',
+                    'family' => '1'
+                  }
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '2',
+                    'name' => 'session was opened elsewhere',
+                    'family' => '9'
+                  }
+                ],
+                0,
+                ' 
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '2',
+                    'name' => 'add IM parameters',
+                    'family' => '4'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'channel'
+                    },
+                    0,
+                    '0'
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'flags'
+                    },
+                    0,
+                    '11'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'max_msg_len'
+                    },
+                    0,
+                    '8000'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'max_sender_warn'
+                    },
+                    0,
+                    '999'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'max_rcpt_warn'
+                    },
+                    0,
+                    '999'
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'min_msg_interval'
+                    },
+                    0,
+                    '0'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '7',
+                    'name' => 'buddylist done',
+                    'family' => '19'
+                  }
+                ],
+                0,
+                '
+
+
+
+	
+
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '3',
+                    'name' => 'buddylist 3 response',
+                    'family' => '19'
+                  }
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '6',
+                    'name' => 'buddylist',
+                    'family' => '19'
+                  },
+                  0,
+                  ' 
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'data'
+                    }
+                  ],
+                  0,
+                  '		
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '14',
+                    'name' => 'buddylist modification acknowledgement',
+                    'family' => '19'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'count' => '-1',
+                      'name' => 'error'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '15',
+                    'name' => 'buddylist error',
+                    'family' => '19'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'data'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+	
+	',
+                'define',
+                [
+                  {
+                    'name' => 'buddylist modification'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'entry_name',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'group_id'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'buddy_id'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'entry_type'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'entry_data',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '8',
+                    'name' => 'buddylist add',
+                    'family' => '19'
+                  },
+                  'data',
+                  [
+                    {
+                      'name' => 'mods'
+                    }
+                  ]
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '9',
+                    'name' => 'buddylist modify',
+                    'family' => '19'
+                  },
+                  'data',
+                  [
+                    {
+                      'name' => 'mods'
+                    }
+                  ]
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '10',
+                    'name' => 'buddylist delete',
+                    'family' => '19'
+                  },
+                  'data',
+                  [
+                    {
+                      'name' => 'mods'
+                    }
+                  ]
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '17',
+                    'name' => 'start buddylist modifications',
+                    'family' => '19'
+                  }
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '18',
+                    'name' => 'end buddylist modifications',
+                    'family' => '19'
+                  }
+                ],
+                0,
+                '
+	
+
+
+	
+
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '21',
+                    'name' => 'get info',
+                    'family' => '2'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {},
+                    0,
+                    '0'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {},
+                    0,
+                    '1'
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'screenname',
+                      'length_prefix' => 'byte'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '21',
+                    'name' => 'get away',
+                    'family' => '2'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {},
+                    0,
+                    '0'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {},
+                    0,
+                    '3'
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'screenname',
+                      'length_prefix' => 'byte'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '6',
+                    'name' => 'incoming profile',
+                    'family' => '2'
+                  },
+                  0,
+                  '
+		',
+                  'ref',
+                  [
+                    {
+                      'name' => 'userinfo'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'tlvchain',
+                  [
+                    {},
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '2'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'profile'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '4'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'awaymsg'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '4',
+                    'name' => 'set info',
+                    'family' => '2'
+                  },
+                  0,
+                  '
+		',
+                  'tlvchain',
+                  [
+                    {},
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '1'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'profile_mimetype'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '2'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'profile'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '3'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'awaymsg_mimetype'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '4'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'awaymsg'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '5'
+                      },
+                      'data',
+                      [
+                        {
+                          'count' => '-1',
+                          'length' => '16',
+                          'name' => 'capabilities'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '6'
+                      },
+                      0,
+                      '
+				',
+                      'tlvchain',
+                      [
+                        {},
+                        'tlv',
+                        [
+                          {
+                            'type' => '4'
+                          },
+                          'word',
+                          [
+                            {},
+                            0,
+                            '2'
+                          ]
+                        ]
+                      ],
+                      0,
+                      '
+			'
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '17',
+                    'name' => 'set idle',
+                    'family' => '1'
+                  },
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'duration'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+	
+
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '20',
+                    'name' => 'typing notification',
+                    'family' => '4'
+                  },
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {},
+                    0,
+                    '0'
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {},
+                    0,
+                    '0'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {},
+                    0,
+                    '1'
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'screenname',
+                      'length_prefix' => 'byte'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'typing_status'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '33',
+                    'name' => 'incoming extended information',
+                    'family' => '1'
+                  },
+                  0,
+                  '
+		
+		
+		',
+                  'tlvchain',
+                  [
+                    {
+                      'subtyped' => 'yes'
+                    },
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'subtype' => '65',
+                        'type' => '0'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'upload_checksum'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'subtype' => '65',
+                        'type' => '1'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'upload_checksum'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+
+			',
+                    'tlv',
+                    [
+                      {
+                        'subtype' => '129',
+                        'type' => '0'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'resend_checksum'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'subtype' => '129',
+                        'type' => '1'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'resend_checksum'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+
+			',
+                    'tlv',
+                    [
+                      {
+                        'subtype' => '-1',
+                        'type' => '2'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'status_message',
+                          'length_prefix' => 'word'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '30',
+                    'name' => 'set extended status',
+                    'family' => '1'
+                  },
+                  0,
+                  '
+		',
+                  'tlvchain',
+                  [
+                    {},
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'name' => 'status_message',
+                        'type' => '29'
+                      },
+                      0,
+                      '
+				',
+                      'word',
+                      [
+                        {},
+                        0,
+                        '2'
+                      ],
+                      0,
+                      '
+				',
+                      'byte',
+                      [
+                        {},
+                        0,
+                        '4'
+                      ],
+                      0,
+                      '
+				',
+                      'data',
+                      [
+                        {
+                          'length_prefix' => 'byte'
+                        },
+                        0,
+                        '
+					',
+                        'data',
+                        [
+                          {
+                            'name' => 'message',
+                            'length_prefix' => 'word'
+                          }
+                        ],
+                        0,
+                        '
+					',
+                        'word',
+                        [
+                          {},
+                          0,
+                          '0'
+                        ],
+                        0,
+                        '
+				'
+                      ],
+                      0,
+                      '
+			'
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'name' => 'stealth',
+                        'type' => '6'
+                      },
+                      0,
+                      '
+				
+				',
+                      'dword',
+                      [
+                        {
+                          'name' => 'state'
+                        }
+                      ],
+                      0,
+                      '
+			'
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '2',
+                    'name' => 'icon upload',
+                    'family' => '16'
+                  },
+                  0,
+                  '
+		',
+                  'tlvchain',
+                  [
+                    {},
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '1'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'icon'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+
+
+	
+
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '11',
+                    'name' => 'buddy status update',
+                    'family' => '3'
+                  },
+                  0,
+                  '
+		',
+                  'ref',
+                  [
+                    {
+                      'name' => 'userinfo'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '12',
+                    'name' => 'buddy signoff',
+                    'family' => '3'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'screenname',
+                      'length_prefix' => 'byte'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+
+
+	
+
+	',
+                'define',
+                [
+                  {
+                    'name' => 'standard IM header'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'length' => '8',
+                      'name' => 'cookie'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'channel'
+                    },
+                    0,
+                    '1'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'name' => 'standard IM footer'
+                  },
+                  0,
+                  '
+		',
+                  'tlvchain',
+                  [
+                    {},
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '2'
+                      },
+                      0,
+                      '
+				',
+                      'tlvchain',
+                      [
+                        {},
+                        0,
+                        '
+					',
+                        'tlv',
+                        [
+                          {
+                            'type' => '1281'
+                          },
+                          0,
+                          '
+						',
+                          'word',
+                          [
+                            {},
+                            0,
+                            '257'
+                          ],
+                          0,
+                          '
+						',
+                          'word',
+                          [
+                            {},
+                            0,
+                            '257'
+                          ],
+                          0,
+                          '
+					'
+                        ],
+                        0,
+                        '
+					',
+                        'tlv',
+                        [
+                          {
+                            'type' => '257'
+                          },
+                          0,
+                          '
+						',
+                          'word',
+                          [
+                            {},
+                            0,
+                            '0'
+                          ],
+                          0,
+                          '
+						',
+                          'word',
+                          [
+                            {},
+                            0,
+                            '0'
+                          ],
+                          0,
+                          '
+						',
+                          'data',
+                          [
+                            {
+                              'name' => 'message'
+                            }
+                          ],
+                          0,
+                          '
+					'
+                        ],
+                        0,
+                        '
+				'
+                      ],
+                      0,
+                      '
+			'
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'name' => 'is_automatic',
+                        'type' => '4'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'name' => 'request_server_confirmation',
+                        'type' => '3'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'name' => 'supports_typing_status',
+                        'type' => '11'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'name' => 'icon_data',
+                        'type' => '8'
+                      },
+                      0,
+                      '
+				',
+                      'dword',
+                      [
+                        {
+                          'name' => 'icon_length'
+                        }
+                      ],
+                      0,
+                      '
+				',
+                      'word',
+                      [
+                        {},
+                        0,
+                        '1'
+                      ],
+                      0,
+                      '
+				',
+                      'word',
+                      [
+                        {
+                          'name' => 'icon_checksum'
+                        }
+                      ],
+                      0,
+                      '
+				',
+                      'dword',
+                      [
+                        {
+                          'name' => 'icon_timestamp'
+                        }
+                      ],
+                      0,
+                      '
+			'
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'name' => 'rendezvous IM'
+                  },
+                  0,
+                  '
+		',
+                  'tlvchain',
+                  [
+                    {},
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '5'
+                      },
+                      0,
+                      '
+				
+				',
+                      'word',
+                      [
+                        {
+                          'name' => 'status'
+                        }
+                      ],
+                      0,
+                      ' 
+
+				',
+                      'data',
+                      [
+                        {
+                          'length' => '8',
+                          'name' => 'cookie'
+                        }
+                      ],
+                      0,
+                      '
+
+				
+				',
+                      'data',
+                      [
+                        {
+                          'length' => '16',
+                          'name' => 'capability'
+                        }
+                      ],
+                      0,
+                      '
+
+				',
+                      'tlvchain',
+                      [
+                        {},
+                        0,
+                        '
+					
+					',
+                        'tlv',
+                        [
+                          {
+                            'type' => '10'
+                          },
+                          'word',
+                          [
+                            {
+                              'name' => 'push_pull'
+                            }
+                          ]
+                        ],
+                        0,
+                        '
+					',
+                        'tlv',
+                        [
+                          {
+                            'type' => '11'
+                          },
+                          'word',
+                          [
+                            {
+                              'name' => 'error'
+                            }
+                          ]
+                        ],
+                        0,
+                        '
+					',
+                        'tlv',
+                        [
+                          {
+                            'default_generate' => 'yes',
+                            'type' => '15'
+                          }
+                        ],
+                        0,
+                        '
+
+					
+					',
+                        'tlv',
+                        [
+                          {
+                            'type' => '2'
+                          },
+                          'dword',
+                          [
+                            {
+                              'name' => 'client_1_ip'
+                            }
+                          ]
+                        ],
+                        0,
+                        '
+					',
+                        'tlv',
+                        [
+                          {
+                            'type' => '3'
+                          },
+                          'dword',
+                          [
+                            {
+                              'name' => 'client_2_ip'
+                            }
+                          ]
+                        ],
+                        0,
+                        '
+					',
+                        'tlv',
+                        [
+                          {
+                            'type' => '4'
+                          },
+                          'dword',
+                          [
+                            {
+                              'name' => 'client_external_ip'
+                            }
+                          ]
+                        ],
+                        0,
+                        '
+					',
+                        'tlv',
+                        [
+                          {
+                            'type' => '5'
+                          },
+                          'word',
+                          [
+                            {
+                              'name' => 'port'
+                            }
+                          ]
+                        ],
+                        0,
+                        '
+					',
+                        'tlv',
+                        [
+                          {
+                            'type' => '22'
+                          },
+                          'dword',
+                          [
+                            {
+                              'name' => 'proxy_ip'
+                            }
+                          ]
+                        ],
+                        0,
+                        '
+
+
+					
+					',
+                        'tlv',
+                        [
+                          {
+                            'type' => '12'
+                          },
+                          'data',
+                          [
+                            {
+                              'name' => 'invitation_msg'
+                            }
+                          ]
+                        ],
+                        0,
+                        '
+					',
+                        'tlv',
+                        [
+                          {
+                            'type' => '13'
+                          },
+                          'data',
+                          [
+                            {
+                              'name' => 'charset'
+                            },
+                            0,
+                            'us-ascii'
+                          ]
+                        ],
+                        0,
+                        '
+					',
+                        'tlv',
+                        [
+                          {
+                            'type' => '14'
+                          },
+                          'byte',
+                          [
+                            {
+                              'name' => 'language'
+                            },
+                            0,
+                            '48'
+                          ]
+                        ],
+                        0,
+                        '
+
+					
+					',
+                        'tlv',
+                        [
+                          {
+                            'type' => '10001'
+                          },
+                          'data',
+                          [
+                            {
+                              'name' => 'svcdata'
+                            }
+                          ]
+                        ],
+                        0,
+                        '
+					',
+                        'tlv',
+                        [
+                          {
+                            'type' => '10002'
+                          },
+                          'data',
+                          [
+                            {
+                              'name' => 'svcdata_charset'
+                            }
+                          ]
+                        ],
+                        0,
+                        '
+				'
+                      ],
+                      0,
+                      '
+			'
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '7',
+                    'name' => 'incoming IM',
+                    'family' => '4'
+                  },
+                  0,
+                  '
+		',
+                  'ref',
+                  [
+                    {
+                      'name' => 'standard IM header'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'ref',
+                  [
+                    {
+                      'name' => 'userinfo'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'message_body'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '6',
+                    'name' => 'outgoing IM',
+                    'family' => '4'
+                  },
+                  0,
+                  '
+		',
+                  'ref',
+                  [
+                    {
+                      'name' => 'standard IM header'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'screenname',
+                      'length_prefix' => 'byte'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'message_body'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '12',
+                    'name' => 'IM acknowledgement',
+                    'family' => '4'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'length' => '8',
+                      'name' => 'cookie'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'channel'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'screenname',
+                      'length_prefix' => 'byte'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+
+
+	
+
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '4',
+                    'name' => 'chat invitation accept',
+                    'family' => '13'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'exchange'
+                    },
+                    0,
+                    '4'
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'url',
+                      'length_prefix' => 'byte'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {},
+                    0,
+                    '0'
+                  ],
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {},
+                    0,
+                    '2'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '11',
+                    'name' => 'chat invitation decline',
+                    'family' => '4'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'length' => '8',
+                      'name' => 'cookie'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'channel'
+                    },
+                    0,
+                    '2'
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'screenname',
+                      'length_prefix' => 'byte'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'tlvchain',
+                  [
+                    {},
+                    0,
+                    '
+			
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '3'
+                      },
+                      'word',
+                      [
+                        {
+                          'name' => 'code'
+                        },
+                        0,
+                        '1'
+                      ]
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '2',
+                    'name' => 'chat navigator rights request',
+                    'family' => '13'
+                  }
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '8',
+                    'name' => 'chat navigator room create',
+                    'family' => '13'
+                  },
+                  0,
+                  '
+		',
+                  'ref',
+                  [
+                    {
+                      'name' => 'chat room info'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+	',
+                'define',
+                [
+                  {
+                    'name' => 'chat data'
+                  },
+                  0,
+                  '
+		',
+                  'tlvchain',
+                  [
+                    {
+                      'count_prefix' => 'word'
+                    },
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '106'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'name'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '111'
+                      },
+                      'word',
+                      [
+                        {
+                          'name' => 'occupant_count'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'count' => '-1',
+                        'name' => 'occupants',
+                        'type' => '115'
+                      },
+                      0,
+                      '
+				',
+                      'ref',
+                      [
+                        {
+                          'name' => 'userinfo'
+                        }
+                      ],
+                      0,
+                      '
+			'
+                    ],
+                    0,
+                    '
+
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '209'
+                      },
+                      'word',
+                      [
+                        {
+                          'name' => 'max_msg_len'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '211'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'name'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '214'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'charset'
+                        },
+                        0,
+                        'us-ascii'
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'default_generate' => 'yes',
+                        'type' => '215'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'language'
+                        },
+                        0,
+                        'en'
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '219'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'encoding'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'name' => 'chat room info'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'exchange'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'url',
+                      'length_prefix' => 'byte'
+                    },
+                    0,
+                    'create'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'instance'
+                    },
+                    0,
+                    '65535'
+                  ],
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {
+                      'name' => 'detail_level'
+                    },
+                    0,
+                    '1'
+                  ],
+                  0,
+                  '
+		',
+                  'ref',
+                  [
+                    {
+                      'name' => 'chat data'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+		',
+                'word',
+                [
+                  {}
+                ],
+                0,
+                '
+		',
+                'data',
+                [
+                  {
+                    'length_prefix' => 'byte'
+                  },
+                  0,
+                  '
+			',
+                  'byte',
+                  [
+                    {}
+                  ],
+                  0,
+                  '
+			',
+                  'data',
+                  [
+                    {
+                      'name' => 'name'
+                    }
+                  ],
+                  0,
+                  '
+		'
+                ],
+                0,
+                '
+		',
+                'word',
+                [
+                  {}
+                ],
+                0,
+                '
+		',
+                'byte',
+                [
+                  {
+                    'name' => 'detail_level'
+                  }
+                ],
+                0,
+                '
+		',
+                'tlvchain',
+                [
+                  {
+                    'count_prefix' => 'word'
+                  },
+                  0,
+                  '
+			',
+                  'tlv',
+                  [
+                    {
+                      'type' => '111'
+                    },
+                    'word',
+                    [
+                      {
+                        'name' => 'occupant_count'
+                      }
+                    ]
+                  ],
+                  0,
+                  '
+			',
+                  'tlv',
+                  [
+                    {
+                      'type' => '115'
+                    },
+                    0,
+                    '
+				',
+                    'data',
+                    [
+                      {
+                        'count' => '-1',
+                        'name' => 'occupants'
+                      },
+                      0,
+                      '
+					',
+                      'ref',
+                      [
+                        {
+                          'name' => 'userinfo'
+                        }
+                      ],
+                      0,
+                      '
+				'
+                    ],
+                    0,
+                    '
+			'
+                  ],
+                  0,
+                  '
+		'
+                ],
+                0,
+                '
+
+
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '9',
+                    'name' => 'chat navigator response',
+                    'family' => '13'
+                  },
+                  0,
+                  '
+		',
+                  'tlvchain',
+                  [
+                    {},
+                    0,
+                    '
+			
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '2'
+                      },
+                      'byte',
+                      [
+                        {
+                          'name' => 'max_concurrent_rooms'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'count' => '-1',
+                        'name' => 'exchange',
+                        'type' => '3'
+                      },
+                      0,
+                      '
+				',
+                      'word',
+                      [
+                        {
+                          'name' => 'exchange'
+                        }
+                      ],
+                      0,
+                      '
+				',
+                      'ref',
+                      [
+                        {
+                          'name' => 'chat data'
+                        }
+                      ],
+                      0,
+                      '
+			'
+                    ],
+                    0,
+                    '
+
+			
+			',
+                    'tlv',
+                    [
+                      {
+                        'count' => '-1',
+                        'name' => 'room',
+                        'type' => '4'
+                      },
+                      0,
+                      '
+				',
+                      'ref',
+                      [
+                        {
+                          'name' => 'chat room info'
+                        }
+                      ],
+                      0,
+                      '
+			'
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '2',
+                    'name' => 'chat room status',
+                    'family' => '14'
+                  },
+                  0,
+                  '
+		',
+                  'ref',
+                  [
+                    {
+                      'name' => 'chat room info'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '3',
+                    'name' => 'chat buddy arrival',
+                    'family' => '14'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'count' => '-1',
+                      'name' => 'arrivals'
+                    },
+                    0,
+                    '
+			',
+                    'ref',
+                    [
+                      {
+                        'name' => 'userinfo'
+                      }
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '4',
+                    'name' => 'chat buddy departure',
+                    'family' => '14'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'count' => '-1',
+                      'name' => 'departures',
+                      'length_prefix' => 'byte'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+
+	',
+                'define',
+                [
+                  {
+                    'name' => 'chat IM'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'length' => '8',
+                      'name' => 'cookie'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {},
+                    0,
+                    '3'
+                  ],
+                  0,
+                  ' 
+		',
+                  'tlvchain',
+                  [
+                    {},
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'default_generate' => 'yes',
+                        'type' => '1'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '3'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'sender',
+                          'length_prefix' => 'byte'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'name' => 'reflect',
+                        'type' => '6'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'name' => 'is_automatic',
+                        'type' => '7'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '5'
+                      },
+                      0,
+                      '
+				',
+                      'tlvchain',
+                      [
+                        {},
+                        0,
+                        '
+					',
+                        'tlv',
+                        [
+                          {
+                            'type' => '4'
+                          },
+                          'data',
+                          [
+                            {
+                              'name' => 'type'
+                            },
+                            0,
+                            'text/x-aolrtf'
+                          ]
+                        ],
+                        0,
+                        '
+					',
+                        'tlv',
+                        [
+                          {
+                            'type' => '2'
+                          },
+                          'data',
+                          [
+                            {
+                              'name' => 'charset'
+                            },
+                            0,
+                            'us-ascii'
+                          ]
+                        ],
+                        0,
+                        '
+					',
+                        'tlv',
+                        [
+                          {
+                            'type' => '3'
+                          },
+                          'data',
+                          [
+                            {
+                              'name' => 'language'
+                            },
+                            0,
+                            'en'
+                          ]
+                        ],
+                        0,
+                        '
+					',
+                        'tlv',
+                        [
+                          {
+                            'type' => '5'
+                          },
+                          'data',
+                          [
+                            {},
+                            0,
+                            'binary'
+                          ]
+                        ],
+                        0,
+                        '
+					',
+                        'tlv',
+                        [
+                          {
+                            'type' => '1'
+                          },
+                          'data',
+                          [
+                            {
+                              'name' => 'message'
+                            }
+                          ]
+                        ],
+                        0,
+                        '
+				'
+                      ],
+                      0,
+                      '
+			'
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '5',
+                    'name' => 'outgoing chat IM',
+                    'family' => '14'
+                  },
+                  'ref',
+                  [
+                    {
+                      'name' => 'chat IM'
+                    }
+                  ]
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '6',
+                    'name' => 'incoming chat IM',
+                    'family' => '14'
+                  },
+                  'ref',
+                  [
+                    {
+                      'name' => 'chat IM'
+                    }
+                  ]
+                ],
+                0,
+                '
+
+
+
+	
+
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '5',
+                    'name' => 'admin request response',
+                    'family' => '7'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'request_type'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'tlvchain',
+                  [
+                    {
+                      'count_prefix' => 'word'
+                    },
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '1'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'new_screenname'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '17'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'new_email'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '8'
+                      },
+                      'word',
+                      [
+                        {
+                          'name' => 'error_code'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '4'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'error_url'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '3'
+                      },
+                      'word',
+                      [
+                        {
+                          'name' => 'subrequest'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '3',
+                    'name' => 'buddy icon uploaded',
+                    'family' => '16'
+                  }
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '4',
+                    'name' => 'buddy icon download',
+                    'family' => '16'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'screenname',
+                      'length_prefix' => 'byte'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {},
+                    0,
+                    '1'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {},
+                    0,
+                    '1'
+                  ],
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {},
+                    0,
+                    '1'
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'md5sum',
+                      'length_prefix' => 'byte'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '5',
+                    'name' => 'buddy icon downloaded',
+                    'family' => '16'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'screenname',
+                      'length_prefix' => 'byte'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'flags'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {
+                      'name' => 'number'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'checksum',
+                      'length_prefix' => 'byte'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'icon',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '6',
+                    'name' => 'confirm account request',
+                    'family' => '7'
+                  }
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '7',
+                    'name' => 'confirm account response',
+                    'family' => '7'
+                  },
+                  0,
+                  '
+		
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'status'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '4',
+                    'name' => 'change account info',
+                    'family' => '7'
+                  },
+                  0,
+                  '
+		
+		',
+                  'tlvchain',
+                  [
+                    {},
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '1'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'new_screenname'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '17'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'new_email'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '2'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'newpass'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '18'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'oldpass'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+
+	
+
+	',
+                'define',
+                [
+                  {
+                    'name' => 'ICQ meta'
+                  },
+                  0,
+                  '
+		',
+                  'tlvchain',
+                  [
+                    {},
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '1'
+                      },
+                      0,
+                      '
+				',
+                      'data',
+                      [
+                        {
+                          'prefix_order' => 'vax',
+                          'length_prefix' => 'word'
+                        },
+                        0,
+                        '
+					',
+                        'dword',
+                        [
+                          {
+                            'order' => 'vax',
+                            'name' => 'our_uin'
+                          }
+                        ],
+                        0,
+                        '
+					',
+                        'word',
+                        [
+                          {
+                            'order' => 'vax',
+                            'name' => 'type'
+                          }
+                        ],
+                        0,
+                        '
+					',
+                        'word',
+                        [
+                          {
+                            'order' => 'vax',
+                            'name' => 'seqno'
+                          }
+                        ],
+                        0,
+                        '
+					',
+                        'data',
+                        [
+                          {
+                            'name' => 'typedata'
+                          }
+                        ],
+                        0,
+                        '
+				'
+                      ],
+                      0,
+                      '
+			'
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '2',
+                    'name' => 'ICQ meta request',
+                    'family' => '21'
+                  },
+                  'ref',
+                  [
+                    {
+                      'name' => 'ICQ meta'
+                    }
+                  ]
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '3',
+                    'name' => 'ICQ meta response',
+                    'family' => '21'
+                  },
+                  'ref',
+                  [
+                    {
+                      'name' => 'ICQ meta'
+                    }
+                  ]
+                ],
+                0,
+                '
+
+	
+	',
+                'define',
+                [
+                  {
+                    'name' => 'ICQ meta info request'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'order' => 'vax',
+                      'name' => 'subtype'
+                    },
+                    0,
+                    '1202'
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'order' => 'vax',
+                      'name' => 'uin'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+
+	
+	',
+                'define',
+                [
+                  {
+                    'name' => 'ICQ meta info response'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'order' => 'vax',
+                      'name' => 'subtype'
+                    }
+                  ],
+                  0,
+                  '
+
+		
+		',
+                  'byte',
+                  [
+                    {
+                      'name' => 'status'
+                    }
+                  ],
+                  0,
+                  '
+
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'response_data'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+	
+
+	
+	',
+                'define',
+                [
+                  {
+                    'name' => 'ICQ meta info response: basic'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'null_terminated' => 'yes',
+                      'prefix_order' => 'vax',
+                      'name' => 'nickname',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'null_terminated' => 'yes',
+                      'prefix_order' => 'vax',
+                      'name' => 'firstname',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'null_terminated' => 'yes',
+                      'prefix_order' => 'vax',
+                      'name' => 'lastname',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'null_terminated' => 'yes',
+                      'prefix_order' => 'vax',
+                      'name' => 'email',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'home'
+                    },
+                    0,
+                    '
+			',
+                    'data',
+                    [
+                      {
+                        'null_terminated' => 'yes',
+                        'prefix_order' => 'vax',
+                        'name' => 'city',
+                        'length_prefix' => 'word'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'data',
+                    [
+                      {
+                        'null_terminated' => 'yes',
+                        'prefix_order' => 'vax',
+                        'name' => 'state',
+                        'length_prefix' => 'word'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'data',
+                    [
+                      {
+                        'null_terminated' => 'yes',
+                        'prefix_order' => 'vax',
+                        'name' => 'phone_num',
+                        'length_prefix' => 'word'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'data',
+                    [
+                      {
+                        'null_terminated' => 'yes',
+                        'prefix_order' => 'vax',
+                        'name' => 'fax_num',
+                        'length_prefix' => 'word'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'data',
+                    [
+                      {
+                        'null_terminated' => 'yes',
+                        'prefix_order' => 'vax',
+                        'name' => 'address',
+                        'length_prefix' => 'word'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'data',
+                    [
+                      {
+                        'null_terminated' => 'yes',
+                        'prefix_order' => 'vax',
+                        'name' => 'cell_phone_num',
+                        'length_prefix' => 'word'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'data',
+                    [
+                      {
+                        'null_terminated' => 'yes',
+                        'prefix_order' => 'vax',
+                        'name' => 'zip_code',
+                        'length_prefix' => 'word'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'word',
+                    [
+                      {
+                        'order' => 'vax',
+                        'name' => 'country_code'
+                      }
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+
+		',
+                  'byte',
+                  [
+                    {
+                      'name' => 'gmt_offset'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {
+                      'name' => 'authorization'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {
+                      'name' => 'web_aware'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {
+                      'name' => 'direct_connect_permissions'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {
+                      'name' => 'publish_primary_email'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	
+	',
+                'define',
+                [
+                  {
+                    'name' => 'ICQ meta info response: office'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'null_terminated' => 'yes',
+                      'prefix_order' => 'vax',
+                      'name' => 'city',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'null_terminated' => 'yes',
+                      'prefix_order' => 'vax',
+                      'name' => 'state',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'null_terminated' => 'yes',
+                      'prefix_order' => 'vax',
+                      'name' => 'phone_num',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'null_terminated' => 'yes',
+                      'prefix_order' => 'vax',
+                      'name' => 'fax_num',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'null_terminated' => 'yes',
+                      'prefix_order' => 'vax',
+                      'name' => 'address',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'null_terminated' => 'yes',
+                      'prefix_order' => 'vax',
+                      'name' => 'zip_code',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'order' => 'vax',
+                      'name' => 'country_code'
+                    }
+                  ],
+                  0,
+                  '
+
+		',
+                  'data',
+                  [
+                    {
+                      'null_terminated' => 'yes',
+                      'prefix_order' => 'vax',
+                      'name' => 'company',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'null_terminated' => 'yes',
+                      'prefix_order' => 'vax',
+                      'name' => 'department',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'null_terminated' => 'yes',
+                      'prefix_order' => 'vax',
+                      'name' => 'position',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'order' => 'vax',
+                      'name' => 'occupation'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'null_terminated' => 'yes',
+                      'prefix_order' => 'vax',
+                      'name' => 'office_website',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	
+	',
+                'define',
+                [
+                  {
+                    'name' => 'ICQ meta info response: background'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'order' => 'vax',
+                      'name' => 'age'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {
+                      'name' => 'gender'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'null_terminated' => 'yes',
+                      'prefix_order' => 'vax',
+                      'name' => 'homepage',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'order' => 'vax',
+                      'name' => 'birth_year'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {
+                      'name' => 'birth_month'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {
+                      'name' => 'bith_day'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {
+                      'name' => 'language_1'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {
+                      'name' => 'language_2'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {
+                      'name' => 'language_3'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {}
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'null_terminated' => 'yes',
+                      'prefix_order' => 'vax',
+                      'name' => 'origin_city',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'null_terminated' => 'yes',
+                      'prefix_order' => 'vax',
+                      'name' => 'origin_state',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'order' => 'vax',
+                      'name' => 'origin_country'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {
+                      'name' => 'marital_status'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	
+	',
+                'define',
+                [
+                  {
+                    'name' => 'ICQ meta info response: notes'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'null_terminated' => 'yes',
+                      'prefix_order' => 'vax',
+                      'name' => 'notes',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	
+	',
+                'define',
+                [
+                  {
+                    'name' => 'ICQ meta info response: email'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'count_prefix' => 'byte',
+                      'name' => 'addresses'
+                    },
+                    0,
+                    '
+			',
+                    'byte',
+                    [
+                      {
+                        'name' => 'publish'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'data',
+                    [
+                      {
+                        'null_terminated' => 'yes',
+                        'prefix_order' => 'vax',
+                        'name' => 'address',
+                        'length_prefix' => 'word'
+                      }
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	
+	',
+                'define',
+                [
+                  {
+                    'name' => 'ICQ meta info response: interests'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'count_prefix' => 'byte',
+                      'name' => 'interests'
+                    },
+                    0,
+                    '
+			',
+                    'word',
+                    [
+                      {
+                        'order' => 'vax',
+                        'name' => 'category'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'data',
+                    [
+                      {
+                        'null_terminated' => 'yes',
+                        'prefix_order' => 'vax',
+                        'name' => 'interest',
+                        'length_prefix' => 'word'
+                      }
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	
+	',
+                'define',
+                [
+                  {
+                    'name' => 'ICQ meta info response: affiliations'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'count_prefix' => 'byte',
+                      'name' => 'past_affiliations'
+                    },
+                    0,
+                    '
+			',
+                    'word',
+                    [
+                      {
+                        'order' => 'vax',
+                        'name' => 'category'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'data',
+                    [
+                      {
+                        'null_terminated' => 'yes',
+                        'prefix_order' => 'vax',
+                        'name' => 'keyword',
+                        'length_prefix' => 'word'
+                      }
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'count_prefix' => 'byte',
+                      'name' => 'affiliations'
+                    },
+                    0,
+                    '
+			',
+                    'word',
+                    [
+                      {
+                        'order' => 'vax',
+                        'name' => 'category'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'data',
+                    [
+                      {
+                        'null_terminated' => 'yes',
+                        'prefix_order' => 'vax',
+                        'name' => 'keyword',
+                        'length_prefix' => 'word'
+                      }
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	
+	',
+                'define',
+                [
+                  {
+                    'name' => 'ICQ meta info response: homepage'
+                  },
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {
+                      'name' => 'enabled'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'order' => 'vax',
+                      'name' => 'category'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'null_terminated' => 'yes',
+                      'prefix_order' => 'vax',
+                      'name' => 'keywords',
+                      'length_prefix' => 'word'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {}
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+
+	
+	',
+                'define',
+                [
+                  {
+                    'name' => 'chat invite rendezvous data'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'exchange'
+                    },
+                    0,
+                    '4'
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'url',
+                      'length_prefix' => 'byte'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {},
+                    0,
+                    '0'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'name' => 'file transfer rendezvous data'
+                  },
+                  0,
+                  '
+		
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'file_count_status'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'file_count'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'size'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'count' => '-1',
+                      'null_terminated' => 'yes',
+                      'name' => 'files'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+
+	
+	',
+                'define',
+                [
+                  {
+                    'name' => 'file transfer header'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'length' => '4'
+                    },
+                    0,
+                    'OFT2'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'header_length'
+                    },
+                    0,
+                    '256'
+                  ],
+                  0,
+                  '
+
+		
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'type'
+                    }
+                  ],
+                  0,
+                  '
+
+		',
+                  'data',
+                  [
+                    {
+                      'length' => '8',
+                      'name' => 'cookie'
+                    }
+                  ],
+                  0,
+                  '
+
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'encrypt'
+                    },
+                    0,
+                    '0'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'compress'
+                    },
+                    0,
+                    '0'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'file_count'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'files_left'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'part_count'
+                    },
+                    0,
+                    '1'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'parts_left'
+                    },
+                    0,
+                    '1'
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'byte_count'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'bytes_left'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'mtime'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'checksum'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'received_initial_checksum'
+                    },
+                    0,
+                    '4294901760'
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'received_size'
+                    },
+                    0,
+                    '0'
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'ctime'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'initial_checksum'
+                    },
+                    0,
+                    '4294901760'
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'bytes_received'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'received_checksum'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'pad' => '0',
+                      'length' => '32',
+                      'name' => 'client_id'
+                    },
+                    0,
+                    'Cool FileXfer'
+                  ],
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {
+                      'name' => 'flags'
+                    },
+                    0,
+                    '32'
+                  ],
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {
+                      'name' => 'name_offset'
+                    },
+                    0,
+                    '28'
+                  ],
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {
+                      'name' => 'size_offset'
+                    },
+                    0,
+                    '17'
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'pad' => '0',
+                      'length' => '69'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'pad' => '0',
+                      'length' => '16',
+                      'name' => 'mac_file_info'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'encoding'
+                    },
+                    0,
+                    '0'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'language'
+                    },
+                    0,
+                    '0'
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'pad' => '0',
+                      'length' => '64',
+                      'name' => 'filename'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+'
+              ]
+            ];

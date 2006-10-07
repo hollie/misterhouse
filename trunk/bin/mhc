@@ -1,0 +1,34 @@
+
+# Compiles mh to mhe on Linux using the Par compiler
+
+echo Compiling ...
+
+cd /projects/mh/bin
+
+export myM="-M Audio::Mixer -M DB_File -M DBI -M DBD::mysql -M DBD::Sponge -M Net::Ping -M Digest::HMAC_MD5 -M Math::Trig -M Term::ReadKey"
+export myM="$myM -M Tk::Text -M Tk::Menubutton -M Tk::Radiobutton -M Tk::CursorControl -M Tk::Checkbutton"
+export myM="$myM -M Tk::JPEG -M Net:::Jabber::Protocol -M XML::Stream::Node -M Net::Jabber -M Net::Jabber::Client"
+export myM="$myM -M Device::SerialPort -M Text::LevenshteinXS"
+export myM="$myM -M Mp3::Info -M Xmms -M  Xmms::Remote -M CGI"
+export myM="$myM -M MIME::Base64 -M Time::localtime -M XML::RSS -M XML::Parser -M Crypt::SSLeay -M IPC::Open2 -M Encode"
+# RRDs"
+
+export myL="-l /usr/local/lib/libgd.so.2 -l /lib/libdb-4.0.so"
+
+# Avoid tk "Files for xyc not found" errors
+#export myL="$myL -a /usr/local/lib/perl5/site_perl/5.8.0/i686-linux/Tk/trans_cur.xbm"
+cp /usr/local/lib/perl5/site_perl/5.8.0/i686-linux/Tk/trans_cur* .
+export myL="$myL -a trans_cur.mask -a trans_cur.xbm"
+
+
+#export myL="-l /usr/local/lib/libgd.so.2 -l /lib/libdb-4.0.so -l /lib/i686/libc.so.6 -l /lib/ld-linux.so.2"
+#export myL="-l /usr/local/lib/libgd.so.2 -l /usr/lib/libpng12.so.0 -l /usr/lib/libz.so.1"
+#export myL="$myL -l /usr/lib/libjpeg.so.62 -l /lib/i686/libm.so.6 -l /usr/X11R6/lib/libX11.so.6"
+#export myL="$myL -l /usr/X11R6/lib/libXpm.so.4 -l /lib/i686/libc.so.6 -l /lib/libdl.so.2 -l /lib/ld-linux.so.2"
+#export myL="$myL -l /lib/libc.so.6 -l /lib/ld-linux.so.2"
+#export myL="$myL -l /usr/lib/libstdc++-libc6.1-1.so.2 -l /usr/lib/libstdc++-libc6.2-2.so.3"
+
+# -v 1
+rm mhc.errata
+pp  $* $myM $myL -o mhe -v 3 -L mhc.errata -d mh
+#pp  $* $myM $myL -C -p -o j1.pl -v 3 mh

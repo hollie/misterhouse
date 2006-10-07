@@ -1,0 +1,12 @@
+<html>
+<title>MisterHouse Graphics Directory</title>
+<link rel="STYLESHEET" href="/default.css" type="text/css">
+</head>
+
+<body>
+<h3>MisterHouse Graphics Directory</h3>
+
+<!--#include code="&dir_index('/graphics')"-->
+
+</body> 
+</html>

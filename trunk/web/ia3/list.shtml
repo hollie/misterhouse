@@ -1,0 +1,70 @@
+<html>
+<head>
+	<link rel="stylesheet" type="text/css" href="default.css">
+</head>
+<h1>Types of Items</h1>
+
+
+
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%">
+  <tr>
+    <td width="8%" align="center"><a href="list?File_Item">
+    <img border="0" src="images/webbullet.gif" width="40" height="40"></a></td>
+    <td width="92%" align="left">File Items</td>
+  </tr>
+  <tr>
+    <td width="8%" align="center"><a href="list?Generic_Item">
+    <img border="0" src="images/webbullet.gif" width="40" height="40"></a></td>
+    <td width="92%" align="left">Generic Items</td>
+  </tr>
+  <tr>
+    <td width="8%" align="center"><a href="list?Group">
+    <img border="0" src="images/webbullet.gif" width="40" height="40"></a></td>
+    <td width="92%" align="left">Groups</td>
+  </tr>
+  <tr>
+    <td width="8%" align="center"><a href="list?IR_Item">
+    <img border="0" src="images/webbullet.gif" width="40" height="40"></a></td>
+    <td width="92%" align="left">IR Items</td>
+  </tr>
+  <tr>
+    <td width="8%" align="center"><a href="list?Process_Item">
+    <img border="0" src="images/webbullet.gif" width="40" height="40"></a></td>
+    <td width="92%" align="left">Process Items</td>
+  </tr>
+  <tr>
+    <td width="8%" align="center"><a href="list?Serial_Item">
+    <img border="0" src="images/webbullet.gif" width="40" height="40"></a></td>
+    <td width="92%" align="left">Serial Items</td>
+  </tr>
+  <tr>
+    <td width="8%" align="center"><a href="list?Socket_Item">
+    <img border="0" src="images/webbullet.gif" width="40" height="40"></a></td>
+    <td width="92%" align="left">Socket Items</td>
+  </tr>
+  <tr>
+    <td width="8%" align="center"><a href="list?Timer">
+    <img border="0" src="images/webbullet.gif" width="40" height="40"></a></td>
+    <td width="92%" align="left">Timers</td>
+  </tr>
+  <tr>
+    <td width="8%" align="center"><a href="list?X10_Appliance">
+    <img border="0" src="images/webbullet.gif" width="40" height="40"></a></td>
+    <td width="92%" align="left">X10 Appliances</td>
+  </tr>
+  <tr>
+    <td width="8%" align="center"><a href="list?X10_Item">
+    <img border="0" src="images/webbullet.gif" width="40" height="40"></a></td>
+    <td width="92%" align="left">X10 Items</td>
+  </tr>
+  <tr>
+    <td width="8%" align="center"><a href="list?iButton">
+    <img border="0" src="images/webbullet.gif" width="40" height="40"></a></td>
+    <td width="92%" align="left">iButtons</td>
+  </tr>
+</table>
+
+
+
+
+</html>

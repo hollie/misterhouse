@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# See 'Use distributed MisterHouse proxies' in mh/docs/mh.*  for more info.
+
+export mh_parms=mh_proxy.ini
+
+./mhl "$@"
+

@@ -1,0 +1,12 @@
+<html>
+<body>
+
+<BASE TARGET='control'>
+
+<li><a href="/email">Email</a>
+
+<!--#include file="/category"-->
+
+</body>
+</html>
+

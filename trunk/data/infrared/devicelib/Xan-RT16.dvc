@@ -1,0 +1,11 @@
+Manufacturer=XANTECH
+Device=Remote
+Model=RT1610
+Protocol=Xantech
+Device Code=7/0
+
+[Key Codes]
+CD     =208
+Tuner  =209
+Off    =211
+NU     =210

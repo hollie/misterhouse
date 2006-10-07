@@ -1,0 +1,196 @@
+#!/usr/bin/perl
+# -*- Perl -*-
+#  Last change Time-stamp: <2001-11-01 23:15:03 winter>
+#---------------------------------------------------------------------------
+#  Description:
+#      Walks directories and stores selected files to gziped tar files.
+#  Author:
+#      Bruce Winter bruce@misterhouse.net
+#  Latest version:
+#      http://misterhouse.net/mh/bin
+#  Change log:
+#    - 03/03/01  Created.
+#    - The rest of the change log is at the bottom of this file.
+#
+#  This free software is licensed under the terms of the GNU public license. 
+#  Copyright 1998-2001 Bruce Winter
+#
+#---------------------------------------------------------------------------
+
+use strict;
+my($Pgm_Path, $Pgm_Name, $Version);
+BEGIN {
+    ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+}
+my %parms;
+use Getopt::Long;
+if (!&GetOptions(\%parms, 'h', 'help', 'file=s', 'size=i', 'skip=s', 'age=s', 'no_zip', 'no_date', 'int' ) or 
+    !@ARGV or $parms{h} or $parms{help}) { print<<eof;
+
+$Pgm_Name walks directories and stores selected files to gziped tar files.
+
+  Version: $Version
+
+  Usage:
+
+   $Pgm_Name [options] dir1 dir2 etc
+
+    -h        => This help text
+
+    -file xyz => Name of tar file.  Default is backup
+    -size xyz => Do NOT store files > xyz KBytes.  Default is 100
+    -skip xyz => Skip any file or dir that matches regex xyz       
+    -age  xyz => Only back up files changed in the last xyz days   
+
+    -no_zip   => Do NOT gzip the tar file.
+    -no_date  => Do NOT suffix the files with date stamp.
+
+    -int      => Use the internal perl tar and gzip modules, rather
+                 then external tar and gzip programs.  This is slower
+                 and users more memory (> the data being tared).
+
+    Windows binaries for tar.exe and gzip.exe can be found here:
+                   http://misterhouse.net/public
+ 
+
+  Examples:
+    $Pgm_Name /www
+    $Pgm_Name -size 10 -no_zip -int /usr/local/bin
+    $Pgm_Name -file /backup/misc /bin //misterhouse.net/bin
+    $Pgm_Name -file /backup/mh -skip "(/tv\$)|(/articles\$)" /misterhouse
+    $Pgm_Name -file /backup/mh_articles  -size 100000 /misterhouse/articles
+    $Pgm_Name -file /backup/docs -age 30 -size 100000 /docs
+
+eof
+    exit;
+}
+
+&setup;
+&get_files;
+&tar_files;
+
+my (%counts, @files, $tar, $log, $msg);
+sub setup { 
+    if ($parms{int}) {
+        eval 'use Archive::Tar';
+        die "Error in Archive::Tar: $@\n" if $@;
+        $tar = Archive::Tar->new();
+    }
+
+    my($mday, $month, $year) = (localtime)[3,4,5];
+    my $date = sprintf "_%s_%02d_%02d", $year+1900, ++$month, $mday;
+
+    $parms{size}  = 100      unless $parms{size};
+    $parms{file}  = 'backup' unless $parms{file};
+    $parms{file} .= $date    unless $parms{no_date};
+    $parms{file} .= '.tar';
+    $parms{file} .= '.gz'    unless $parms{no_zip} or (!$parms{int} and $^O eq 'MSWin32');
+
+}
+
+sub get_files {
+    for my $dir (@ARGV) {
+        print "\nTraversing dir $dir\n";
+        push @files, &read_dir($dir);
+    }
+    $msg  = "\nRead $counts{dir} directories:\n";
+    $msg .= sprintf " -  Storing %5.1f MB of data from %4d files\n", $counts{size}/10**6, $counts{file};
+    $msg .= sprintf " -  Skipped %5.1f MB of data from %4d files with size > $parms{size} KBytes\n", $counts{size_size}/10**6, $counts{count_size};
+    $msg .= sprintf " -  Skipped %5.1f MB of data from %4d files with name = $parms{skip}\n", $counts{size_skip}/10**6, $counts{count_skip};
+    $msg .= sprintf " -  Skipped %5.1f MB of data from %4d files with age  > $parms{age}\n",  $counts{size_age}/10**6,  $counts{count_age};
+    print $msg;
+    $log .= $msg;
+}
+
+sub tar_files {
+    if ($parms{int}) {
+        print "\nAdding files ...\n";
+        $tar->add_data('backup.log', $log);
+        $tar->add_files(@files);
+        print "Writing tar file ...\n";
+        $tar->write($parms{file}, !$parms{no_zip});
+    }
+    else {
+        open  LIST, ">tar_files.list" or die "Error, could not open tar_files.list: $!\n";
+        print LIST join "\n", @files;
+        close LIST;
+                                # The tar -z gzip does not work with tar on dos :(
+        my $options = ($parms{no_zip} or $^O eq 'MSWin32') ? '-cf' : 'czf';
+#       my $pgm = "tar -T tar_files.list $options $parms{file}";
+        my $pgm = "tar $options $parms{file} -T tar_files.list";
+        print "\nRunning: $pgm\n";
+        system $pgm;
+        if ($^O eq 'MSWin32' and !$parms{no_zip}) {
+            print "Running: gzip $parms{file}\n";
+            unlink $parms{file} . '.gz';
+            system "gzip $parms{file}\n";
+            $parms{file} .= '.gz';
+        }
+    }
+    my ($size, $date) = (stat $parms{file})[7,9];
+    printf "\nFile stats: %s  %s  %s\n\n", $parms{file}, $size, scalar localtime $date ;
+}
+
+sub read_dir {
+    my($dir) = @_;
+    print "  - Reading files in $dir\n";
+    $counts{dir}++;
+    opendir(DIR, $dir) or do {print "Error in dir open: $!\n"; return};
+    my @files;
+    for my $file (sort readdir DIR) {
+        next if $file eq '.' or $file eq '..';
+        $file = "$dir/$file";
+        my $size = -s $file;
+        if ($parms{skip} and $file =~ /$parms{skip}/i) {
+            my $msg = sprintf "     - File skipped: %9d %s\n", $size, $file;
+            print $msg;
+            $log .= $msg;
+            $counts{count_skip}++;
+            $counts{size_skip} += $size;
+            next;
+        }
+        elsif (-d $file) {
+            push @files, &read_dir($file);
+            next;
+        }
+        elsif ($size > $parms{size}*1000) {
+            my $msg = sprintf "     - File too big: %9d %s\n", $size, $file;
+            print $msg;
+            $log .= $msg;
+            $counts{count_size}++;
+            $counts{size_size} += $size;
+            next;
+        }
+        elsif ($parms{age} and -M $file > $parms{age}) {
+#           my $msg = sprintf "     - File too old: %9d %s\n", $size, $file;
+#           print $msg;
+#           $log .= $msg;
+            $counts{count_age}++;
+            $counts{size_age} += $size;
+            next;
+        }
+        push @files, $file;
+        $counts{size} += $size;
+        $counts{file}++;
+    }
+    close DIR;
+    return @files;
+}
+           
+
+#
+# $Log: backup_data,v $
+# Revision 1.4  2001/11/18 22:51:42  winter
+# - 2.61 release
+#
+# Revision 1.3  2001/09/23 19:26:53  winter
+# - 2.59 release
+#
+# Revision 1.2  2001/04/15 16:17:20  winter
+# - 2.49 release
+#
+# Revision 1.1  2001/03/24 18:08:37  winter
+# - 2.47 release
+#
+#

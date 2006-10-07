@@ -1,0 +1,20 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target ="output">
+<!--#include code="&html_header('Local Weather Data')" -->
+<br>
+<center>
+
+<!-- This is not used anymore ... wunderground does not make .gifs available now.  -->
+
+<img src='<!--#include var="$config_parms{web_href_weather_local_image}" -->'>
+
+<!--#include file="/bin/set_parm_weather_local.pl"-->
+
+
+</center>
+</body>
+</html>

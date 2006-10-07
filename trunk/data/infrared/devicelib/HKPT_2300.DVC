@@ -1,0 +1,31 @@
+Manufacturer=Harmon Kardon
+Model=PT2300
+Device=A/V PRE PRO
+Protocol=HK-1
+Device Code=28800
+
+[Key Codes]
+FM        =129
+AM        =130
+TuneUP    =132
+TuneDN    =133
+Preset1   =135
+Preset2   =136
+Preset3   =137
+Preset4   =138
+Preset5   =139
+Preset6   =140
+Preset7   =141
+Preset8   =142
+Shift     =143
+Seek      =145
+Power     =192
+Phono     =194
+Tuner     =195
+CD        =196
+AV1       =197
+VolumeUP  =199
+VolumeDN  =200
+VCR-Tape2 =202
+VCR-Tape2 =203
+AV2       =212

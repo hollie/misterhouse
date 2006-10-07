@@ -1,0 +1,111 @@
+=begin comment
+
+Got this code from Evan Graham  on 02/24/2001.  This is a variaion 
+of mh/code/bruce/pa_control.pl, but this supports the new 
+weeder digital IO boards.
+
+
+There are three things at the top of the pa_control.pl file that you 
+may need to edit: The dip switch setting for your weeder card (I am 
+using 'A'), The serial port name for your weeder card (I am using 
+'serial1'), and the names of your rooms -- they must match 
+whatever you are using in pa_items.pl.
+
+There are several things that I changed in this file from the original:
+
+1) Most significantly, I broke the my @speakers = 
+($pa_NAMES,....) down into two separate lines.  I was having 
+trouble with @speakers not getting defined properly when mh 
+pulled it out.  I'm not sure why the original version would work for 
+some people and not me.
+
+2) I also restructured the code slightly to make the "messy" part a 
+subroutine so that all communication to the weeder card would 
+always take place in one shot rather than sequentially turning the 
+relays on or off in some cases.
+
+3) I changed the pa_stub part of the code so that if no rooms are 
+specified that the speech (or sound) would be played to all rooms.
+
+4) There are four debug print lines in the file that you can comment 
+out after you are satisfied that everything is working.
+
+5) I deleted (or in some cases commented out) some of the 
+functionality that I did not need. 
+
+6) I put all of the stuff that needs to be changed to match different 
+weeder card settings up at the top of the file
+
+All you should have to do besides making sure that the weeder 
+card is properly defined in mh.priviate.ini is put the three attached 
+files in  your code directory.  The stuff in weed_test.pl will let you 
+exercise the relays to check it all out.    
+
+=cut 
+
+
+my ($temp, $state, $ref);
+
+$pa_one 	=new Serial_Item('AHA','on','serial1');
+$pa_one		->add ('ALA','off');
+$pa_two		=new Serial_Item('AHB','on','serial1');
+$pa_two		->add ('ALB','off');
+$pa_three 	=new Serial_Item('AHC','on','serial1');
+$pa_three	->add ('ALC','off');
+$pa_four 	=new Serial_Item('AHD','on','serial1');
+$pa_four	->add ('ALD','off');
+$pa_five	=new Serial_Item('AHE','on','serial1');
+$pa_five	->add ('ALE','off');
+$pa_six 	=new Serial_Item('AHF','on','serial1');
+$pa_six		->add ('ALF','off');
+$pa_seven 	=new Serial_Item('AHG','on','serial1');
+$pa_seven	->add ('ALG','off');
+$pa_eight	=new Serial_Item('AHH','on','serial1');
+$pa_eight	->add ('ALH','off');
+
+
+#Category=Test
+
+$v_test_weed	       = new Voice_Cmd("Turn Weeder Board [ON,OFF]");
+$v_speak_room	       = new Voice_Cmd("Speak in room [one,two,three,four,five,six,seven,eight,all]");
+$v_speak_rooms	       = new Voice_Cmd("Speak in multiple rooms");
+$v_speak_no_rooms      = new Voice_Cmd("Speak in unspecified rooms");
+$v_play_room           = new Voice_Cmd("Play sound in room [one,two,three,four]");
+$v_play_no_rooms       = new Voice_Cmd("Play sound in unspecified rooms");
+$v_init_weed	       = new Voice_Cmd("Initialize Weeder Board");
+$digitalio	       = new Serial_Item(undef, undef, 'serial1');
+
+
+set $digitalio "ABN" if said $v_init_weed;
+
+if ($state = said $v_speak_no_rooms){
+	speak ("this is spoken in unspecified rooms");
+}
+
+if ($state = said $v_play_room){
+	play (rooms=>"$state", file=>$sound_dir."chimes.wav");
+}
+
+if ($state = said $v_play_no_rooms){
+	play (file=>$sound_dir."chimes.wav");
+}
+
+if ($state = said $v_speak_rooms){
+	speak ("rooms=one,three,five,seven This is spoken in multiple rooms");
+}
+
+if ($state = said $v_speak_room){
+	speak ("rooms=$state This is a test in room $state");
+}
+
+
+if ($state = said $v_test_weed){
+	set $digitalio "AWFF" if $state eq "OFF";
+	set $digitalio "AW00" if $state eq "ON";
+
+}
+
+if (my $data = said $digitalio){
+	print "weeder: $data\n";
+
+}

@@ -1,0 +1,25 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target ="output">
+<!--#include code="&html_header('Speech Settings')" -->
+<table cellSpacing=5 cellPadding=0 width="100%" border=0>
+<font size=2>
+<tr>
+<td alight='left'>
+  <!--#include file="/bin/set_cookie2.pl?webmute"-->
+</td>
+<td>Set this <b>On</b> to disable receiving local wav files.  Unset to take the site default.</td>
+</tr>
+<tr>
+<td alight='left'>
+  <!--#include file="/bin/set_cookie2.pl?msagent"-->
+</td>
+<td>Set this <b>On</b> to enable the MS Agent character, with local TTS and VR (IE only)</td>
+</tr>
+</table>
+</font>
+</body>
+</html>

@@ -1,0 +1,130 @@
+#!/usr/bin/perl
+#================================================================================
+#
+# snpp_page
+#
+# This file sends a text message to an alphanumeric pager using the
+# Simple Network Paging Protocol (SNPP) and your Internet connection.
+#
+# Tested with Airtouch/Verizon but should work with any company that
+# conforms with RFC 1861
+#
+# Modeled after alpha_page by Craig Schaeffer
+#
+# Brent DeShazer, brent@deshazer.net
+# 01/15/2000
+#
+# Uses these values set in mh[.private].ini:
+#	snpp_page_NAME_server=ip/dns of snpp server (ex. snpp.airtouch.com)
+#   snpp_page_NAME_number=pager phone # (ex. 2025551212)
+#
+# Example usage from mh:
+#
+#   my $page_process=new Process_Item;
+#   my $page_program="$Pgm_Root/bin/snpp_page";
+# 
+#   if (state_now $garage_light eq ON) {
+#       set $page_process "$page_program --name brent --message
+#            'Garage motion detected.'";
+#       start $page_process;
+#   }
+# 
+# This software is distributed under the GNU public license version 2
+#================================================================================
+
+use strict;
+
+my ($Pgm_Path, $Pgm_Name, $Version);
+use vars '$Pgm_Root';
+use vars "%config_parms";
+
+BEGIN {
+    ($Version) = q$Revision$ =~ /: (\S+)/;
+    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
+    $Pgm_Root = "$Pgm_Path/..";
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'";
+}
+
+#--------------------------------------------------------------------------------
+# Make sure we have correct command-line arguments, print help message if not
+#--------------------------------------------------------------------------------
+use Getopt::Long;
+my %parms;
+if (!&GetOptions(\%parms, "h", "help", "message=s", "name=s") or
+    @ARGV or $parms{h} or $parms{help} or !$parms{message} or !$parms{name}) {
+    print<<eof;
+
+$Pgm_Name (version $Version) sends alphanumeric page using SNPP.
+
+  Usage:
+
+    $Pgm_Name [options]
+
+      -h              => This help text
+      -help           => This help text
+      -name xxx       => name of recipient (must be defined in mh[.private].ini)
+      -message xxx    => text of message to send
+
+  Example:
+    $Pgm_Name -name brent -message 'The alarm system was tripped!'
+
+eof
+
+  exit;
+}
+
+#--------------------------------------------------------------------------------
+# The main routine
+#--------------------------------------------------------------------------------
+my ($number, $server);
+&setup;
+unless ($number && $server) {
+	print<<eof;
+
+Could not find [number] and/or [server] for '$parms{name}'. Please make sure:
+
+snpp_page_$parms{name}_number 
+
+	- and -
+
+snpp_page_$parms{name}_server
+
+are in your mh[.private].ini configuration file.
+
+eof
+	exit;
+}
+&send_page;
+exit;
+
+#--------------------------------------------------------------------------------
+# Get server and number from config file
+#--------------------------------------------------------------------------------
+sub setup {
+    use Net::SNPP;
+	require 'handy_utilities.pl';
+
+	# Read entire config files
+	my $private_parms = $Pgm_Path . "/mh.private.ini";
+	&main::read_opts(\%config_parms, $Pgm_Path . "/mh.ini");
+	&main::read_opts(\%config_parms, $private_parms) if -e $private_parms;
+
+	# Parse out the snpp options
+	for my $parm (keys %config_parms) {
+		next unless $config_parms{$parm};
+		$number=$config_parms{$parm} if $parm=~/snpp_page_$parms{name}_number/;
+		$server=$config_parms{$parm} if $parm=~/snpp_page_$parms{name}_server/;
+	}
+}
+
+#--------------------------------------------------------------------------------
+# Actually send the page via SNPP
+#--------------------------------------------------------------------------------
+sub send_page {
+	my $snpp = Net::SNPP->new("$server");
+	print "$number $parms{message} $server\n";
+	$snpp->send(Pager => $number, Message => "$parms{message}") ||
+	  die $snpp->message;
+	$snpp->quit;
+}

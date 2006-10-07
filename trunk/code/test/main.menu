@@ -1,0 +1,304 @@
+
+# This is the main menu for Bruce's House
+
+ M: Main
+    D: Rooms
+    D: HVAC
+    D: Weather
+    D: Fun
+    D: Times
+    D: Timers
+    D: Email
+    D: Logs
+    D: Misc
+
+ M: Times
+    D: Up Time
+      A: What is your up time
+    D: Current time
+      A: Tell me the time
+    D: Set clock
+      A: Set the clock via the internet
+    D: Clock log
+      A: Display the clock adjustment log
+    D: Sun times
+      A: When will the sun set
+    D: Moon phase
+      A: What is the phase of the moon
+    D: Full moon
+      A: When is next full moon
+
+ M: Timers
+    R: last_response     # Override Set to ... response
+    D: Laundry [on,off]
+      A: Laundry timer $state
+    D: List timers
+      A: list all timers
+    D: Set Minute [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,25,30,45,60,90,120]
+      A: Set a timer for $state minutes
+    D: Cancel
+      A: Cancel all timers
+
+ M: Email
+    D: Check email
+      A: Check for e mail
+    D: Recent email
+      A: List new e mail
+    D: Send email
+      A: Send test e mail 1
+
+
+ M: Rooms
+    D: garage door
+      A: open garage door
+    D: Living Room
+    D: Bedroom
+    D: Downstairs
+    D: Nick
+    D: Zack
+    D: Outside
+
+ M: Living Room
+    D: Liv Lights
+    D: HVAC
+    D: Fountain [on,off]
+       A: set $indoor_fountain [on,off]
+    D: Curtain [open,close]
+       A: $state the living room curtains
+    D: Living Fan [on,off]
+       A: set $living_room_fan $state
+    D: Music [play,pause,V+,V-,next,prev]
+       A: Set the house mp3 player to [play,pause,volume up,volume down,next song,previous song]
+
+ M: Bedroom
+    D: Bed Lights
+    D: Bed Other
+    D: HVAC
+    D: Curtain [open,close]
+       A: $state the bedroom curtains
+    D: Bed Fan [on,off]
+       A: set $bedroom_fan $state
+
+ M: Downstairs
+    D: Hall Light [on,off,+30,-30]
+       A: set $hallway_light $state
+    D: Art Curtain [open,close]
+       A: $state the family room curtains
+    D: Curtains [open,close]
+       A: $state the basement curtains
+
+ M: Nick
+    D: Curtain [open,close]
+       A: $state Nicks curtains
+    D: Game time
+       A: Display Nicks total game time log
+    D: Music [play,pause,V+,V-,next,prev]
+       A: Set Nicks mp3 player to [play,pause,volume up,volume down,next song,previous song]
+
+ M: Zack
+    D: Curtain [open,close]
+       A: $state Zacks curtains
+
+ M: Outside
+    D: Garage Door [open,close]
+       A: $state garage door
+    D: Garage   [on,off,+,-]
+       A: set $garage_light [on,off,+30,-30]
+    D: Backyard [on,off,+,-]
+       A: set $backyard_light [on,off,+30,-30]
+    D: Driveway [on,off,+,-]
+       A: set $driveway_light $state
+    D: Fountain [on,off]
+       A: set $fountain $state
+
+ M: Liv Lights
+    D: Living room light [on,off]
+       A: set $living_light [on,off]
+    D: Camera [on,off,+,-]
+       A: set $camera_light [on,off,+30,-30]
+    D: Pedestal [on,off,+,-]
+       A: set $pedestal_light [on,off,+30,-30]
+    D: Blue [on,off]
+       A: set $blue_light $state
+    D: Driveway [on,off,+,-]
+       A: set $driveway_light [on,off,+30,-30]
+    D: Christmas [on,off,+30,-30]
+       A: set $christmas_lights $state
+
+ M: HVAC
+    D: Living Fan [on,off]
+       A: set $living_room_fan $state
+    D: Bed Fan [on,off]
+       A: set $bedroom_fan $state
+    D: Attic   [on,off]
+       A: set $attic_fan $state
+    D: Furnace heat [on,off]
+       A: set $furnace_heat $state
+    D: Furnace fan [on,off]
+       A: set $furnace_fan $state
+    D: List Temps
+       A: speak "At $Time_Date, the temperature is $Weather{TempIndoor}"
+    D: Heat [64,66,68,70]
+       A: $Save{heat_temp}=$state
+    D: Curtains
+
+ M: Curtains
+    D: Bedroom [open,close]
+       A: $state the bedroom curtains
+    D: Nick [open,close]
+       A: $state Nicks curtains
+    D: Zack [open,close]
+       A: $state Zacks curtains
+    D: Living [open,close]
+       A: $state the living room curtains
+    D: Art [open,close]
+       A: $state the family room curtains
+    D: Basement [open,close]
+       A: $state the basement curtains
+    D: All [open,close]
+       A: $state all the curtains
+
+ M: Bed Other
+    D: Wakeup [6:00 am,6:20 am,6:40 am,7:00 am,none]
+       A: $Save{wakeup_time}=$state
+       R: Ok, wakeup time set to $state
+    D: Mode [normal,mute,offline]
+       A: Put house in $state mode
+    D: Sleep in
+       A: Skip next wakeup time
+    D: School close
+       A: Check for school closing
+    D: Fan [on,off,+30,-30]
+       A: set $bedroom_fan_light $state
+    D: TV [power,ch+,ch-,mute,vol+,vol-]
+       A: tv $state
+    D: VCR [power,ch+,ch-,record,play,pause,stop,ff,rew]
+       A: vcr $state
+
+ M: Bed Lights
+    D: Left [on,off,+30,-30]
+       A: set $left_bedroom_light $state
+       R: Ok, light $state
+    D: Right [on,off,+30,-30]
+       A: set $right_bedroom_light $state
+    D: Fan [on,off,+30,-30]
+       A: set $bedroom_fan_light $state
+    D: All lights [on,off,+30,-30]
+       A: set $Bedroom $state
+    D: Bathroom [on,off,+30,-30]
+       A: set $bathroom_light $state
+
+
+
+ M: Logs
+    P: anyone            # Menu level Password authorization default
+    D: Vehicle logs
+      R: href=/aprs
+    D: Van location
+      A: Where is the van
+    D: Car location
+      A: Where is the car
+    D: Van log
+      R: eval &menu_vehicle_log('van')
+    D: Phone log in
+      R: eval &phone_log('in')
+    D: Phone log out
+      R: eval &phone_log('out')
+    D: Phone [in,out]
+      R: last_response
+      A: Display recent [incoming,outgoing] phone calls
+    D: Recent email
+      A: List recent e mail
+    D: Up Time
+      A: What is your up time
+
+ M: Weather
+    P: anyone            # Menu level Password authorization default
+    R: last_response     # Override Set to ... response
+    D: Temperature
+      A: What is the  temperature
+    D: Wind
+      A: What is the wind speed
+    D: Forecast
+      A: Show internet weather forecast
+    D: Conditions
+      A: Show internet weather conditions
+    D: Rain forecast
+      A: What is the forecasted chance of rain
+    D: Rain fall [hour,2 hours,6 hours,12 hours,day,2 days,3 days,4 days,5 days,6 days,week,2 weeks,3 weeks,month,2 months,3 months,4 months,6 months]
+      A: How much rain have we had in the last $state
+    D: Moon phase
+      A: What is the phase of the moon
+    D: Sun times
+      A: When will the sun set
+
+ M: Misc
+    D: Ibutton
+    D: Audrey
+    D: Sounds
+    D: TV shedule
+       R: href=/tv
+    D: Misc2
+
+
+ M: Misc2
+    D: List X10
+       A: List X 10 items
+    D: List Serial
+       A: List serial items
+    D: Slashdot
+       R: href=http://slashdot.org
+
+ M: Ibutton
+    D: Temperature 1
+       A: Read the ibutton temperature 1
+    D: Temperature 2
+       A: Read the ibutton temperature 2
+    D: List ibuttons
+       A: List all the ibutton buttons
+
+ M: Audrey
+    D: Piano Light [on,blink,off]
+       A: Set Piano Audrey light $state
+    D: Kitchen Light [on,blink,off]
+       A: Set Kitchen Audrey light $state
+    D: Bedroom Light [on,blink,off]
+       A: Set Bedroom Audrey light $state
+    D: Read tagline [all,Kitchen,Piano,Bedroom]
+       A: Read tag line to $state audrey
+    D: Test wav to [all,Kitchen,Piano,Bedroom]
+       A: set $state audrey to a wav file
+
+ M: Sounds
+    D: Event sounds
+       A: List event sounds
+    D: List voices
+       A: Speak in many voices
+    D: Play a sound
+       A: Play a goofy sound file
+
+ M: Fun
+    P: anyone            # Menu level Password authorization default
+    R: last_response     # Override Set to ... response
+    D: Tagline
+      A: Read the house tagline
+    D: Deep Thought
+      A: Read the next deep thought
+    D: Trivia [question,answer]
+      A: Display the [next science trivia question,trivia answer]
+    D: Bingo time [2,5,10,15,20]
+      A: Set bingo time to $state
+    D: Top 10 list
+      A: Display the top 10 list
+    D: Slashdot
+      A: Show the slashdot news
+    D: Top news
+      A: Show me the Top news
+    D: Stocks
+      A: Show stock quotes
+    D: Photos
+      R: href=/misc/photos.html
+
+ M: Games
+    D: Bingo [Start,Pause,Resume,Status]
+      A: $state bingo

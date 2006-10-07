@@ -1,0 +1,23 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<!--#include code="&html_header('Control MrHouse Modes and Events')" -->
+<center>
+
+<table cellSpacing=4 cellPadding=0 width="100%" border=0>  
+<tr>
+  <td align='middle'> <!--#include file="/bin/button_toggle.pl?mode_mh&/ia5/modes/main.shtml"--> </td>
+  <td align='middle'> <!--#include file="/bin/button_toggle.pl?mode_security&/ia5/modes/main.shtml"--> </td>
+</tr><tr>
+<tr>
+  <td align='middle'> <!--#include file="/bin/button_toggle.pl?mode_occupied&/ia5/modes/main.shtml"--> </td>
+  <td align='middle'> <!--#include file="/bin/button_toggle.pl?mode_sleeping&/ia5/modes/main.shtml"--> </td>
+</tr>
+
+</table>
+
+</center>
+</body>
+</html>

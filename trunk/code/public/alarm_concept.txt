@@ -1,0 +1,113 @@
+Concept Alarm System Interface for Mister House
+===============================================
+
+Intro:
+======
+
+This doco describes the perl module that allows the Mister House 
+application to communicate with a Concept 3000/4000 alarm system.
+
+Concept Alarm System:
+=====================
+
+The Concept alarm system is a popular alarm panel used by a lot of 
+Australian companies for high end alarm applications. It is a very 
+versatile system, offering a wide range options, but a bit of a 
+bitch to program. Details on the Concept system are available on 
+the Inner Range web site; 
+     http://www.innerrange.com.au/catalog/MainFrameSet.html
+
+
+Overview:
+=========
+
+The panel connects to the computer running Mister House, via a serial 
+cable and a comm. Port. The panel should be set the port as a printer 
+and send all review messages to it. 
+
+The module wakes up every 100 milliseconds and checks to see if there 
+has been any activity on the alarm system. If something has happened, 
+it will log the information to the alarm log file 
+( {data directory}/logs/Concept.yyyymmdd ) and then try to analyse the 
+received line.
+
+If it can recognise the alarm line, it will try to call the appropriate 
+method in the object for the type of alarm.
+
+Currently only zone inputs are handled.
+
+All Objects and methods are in the Concept.pm file, Examples of how to 
+drive the objects are in the Alarm.pl file.
+
+Logs
+====
+
+{data directory}/logs/Concept.yyyymmdd
+   Everything received from the alarm system will be written to this file.
+   yyyy - The current year
+   mm - The current month
+   dd  - The current day
+
+Error Messages
+==============
+
+Error messages are sent to the Mister House log file with the print_log 
+method.
+
+Concept.pm: No handler for zone: name
+   Means that there isn't an object defined to handle events on the zone
+   input recognised as 'name'.
+
+Concept.pm: Received and unknown line = line
+   The module couldn't understand what it was sent, this means more code 
+   needs to be written to handle this event.
+
+
+Configuration Parameters
+========================
+
+Concept_serial_port = port
+   The port that the module should use to talk to the alarm system on, 
+   eg: /dev/stty0
+
+Concept_baudrate = speed
+   The speed of the serial port, can be 1200, 4800 or 9600.
+
+debug = Concept
+   Option, will enable debug information if present.
+
+
+
+Objects and Methods:
+====================
+
+Concept
+   This is the parent object and alarm handler for the panel, it isn't meant 
+   to be called directly by the user scripts. It is a child of Generic_Item.
+
+ConceptZone
+   This is the object for handling zone events from the alarm system, it inherits 
+   from Concept, the methods are;
+
+   new( name, timer)
+   The method used to create a new zone handler.
+   name - The name of the zone, as sent by the alarm panel
+   timer - This is the number of seconds a zone must be idle for before it 
+           is judged to be unoccupied. This manly for use with motion sensors. If 
+           it isn't present, then it defaults to zero.
+
+   state
+   Returns the current alarm state for the zone;
+      1 - In alarm
+      0 - Not in alarm
+
+   occupied
+   Returns the current occupied state of the zone. A zone is judged to be unoccupied 
+   if it has been idle for the number of seconds that were specified when the object 
+   was created.
+
+
+
+
+
+

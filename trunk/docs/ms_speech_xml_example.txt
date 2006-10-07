@@ -1,0 +1,43 @@
+Starting.
+
+Test voices.
+<voice required="Name=Microsoft Mike"/>
+Mike's voice.
+<voice required="Name=Microsoft Mary"/>
+Mary's voice.
+<voice required="Name=Microsoft Sam"/>
+Sam's voice.
+<voice required="Vendor=Microsoft"/>
+Microsoft voice.
+<voice required="Language=409"/>
+English.
+<voice required="Gender=Female;Age!=Child"/>
+Female non child.
+
+
+<volume level="50"/>
+Volume at 50.
+<volume level="100"/>
+Volume at 100.
+
+<rate absspeed="10"/>
+Absolute Speed at 10.
+<rate speed="-5"/>
+Speed at -5.
+<rate absspeed="0"/>
+Default speed.
+
+<pitch absmiddle="10"/>
+Absolute Pitch at 10.
+<pitch middle="-5"/>
+Pitch to -5
+<pitch middle="-5"/>
+Pitch to default.
+
+Test emphasis.  boo. <emph> boo. </emph>
+Test spell.  <spell>spell.</spell>
+Test silence <silence msec="500"/> for 1/2 second.
+Test pronounce.  <pron sym="h eh 1 l ow & w er 1 l d"> hello world </pron>
+Test bookmark (does nothing) <bookmark mark="bookmark_two"/>
+Test noun/verb.  Did you <partofsp part="verb"> record </partofsp> that <partofsp part="noun"> record </partofsp>?
+Test context.  <context id="date_mdy"> 03/04/01 </context> should be March fourth, two thousand one.

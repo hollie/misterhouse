@@ -1,0 +1,41 @@
+#!/bin/sh
+
+# This is a linux shell mh loop for restarting mh if mh had an unexpected exit
+# If you want to use it, call it in the same way you would call mh.
+
+# Call Switch User if you call this script as root so mh does not run as root
+# su xyz 
+
+while [ 1 = 1 ]; do 
+
+    echo
+    echo Deleting startup file
+#   rm -f mh.started
+    touch mh.startup
+
+# Avoid a memory leak problem in Red Hat 8
+    export LANG=C
+    
+    echo Running mh
+    perl mh "$@"
+    rc=$?
+    echo mh rc=$rc
+    
+    if [ $rc = 1 ]; then
+       echo mh exited normally
+       exit
+    fi
+    
+#   if [ ! -f mh.started ]; then
+    if [   -f mh.startup ]; then
+       echo mh failed on startup ... will not restart
+       exit
+    fi
+    
+    echo mh had an unexpected exit ... sleep a bit, then restarting
+    date >> mh_restart.log
+    sleep 5
+
+done
+
+

@@ -1,0 +1,7 @@
+Name=Harmon Kardon Protocol
+Protocol=HK-1
+Frequency=39200
+Time Base=550
+One=+1,-3
+Zero=+1,-1
+Form=[16 -8],d:16,f:8,-f:8,[1 -70];[16 -4 1 -95000]

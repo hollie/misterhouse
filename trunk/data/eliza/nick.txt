@@ -1,0 +1,636 @@
+
+#
+# This was modified by son Nick.  Probably should not be used
+# by those of a sensitive nature :)
+#
+initial: Hello, I am a computer program. (I wouldn't include that, but it seems obvious that you need the reminder)
+initial: It is a good day to die.
+initial: Please tell me what's been bothering you. I might even not make fun of you for it.
+initial: Is something troubling you? Please say yes, I love it when people are depressed!
+final: Goodbye.  It was nice talking to you. You make even me look beautiful!
+final: Life is tough.  It'll be that way forever. Shoot yourself now.
+final: Well I hope that brings some light into your tiny brain.
+final: Next time, try to think up some INTELLIGENT questions for my awesome cerebral power.
+quit: bye
+quit: goodbye
+quit: done
+quit: exit
+quit: quit
+pre: dont don't
+pre: cant can't
+pre: wont won't
+pre: recollect remember
+pre: recall remember
+pre: dreamt dreamed
+pre: dreams dream
+pre: maybe perhaps
+pre: certainly yes
+pre: machine computer
+pre: machines computer
+pre: computers computer
+pre: hi hello
+post: am are
+post: your my
+post: yours mine
+pre: were was
+post: me you
+pre: you're you are
+pre: i'm i am
+post: myself yourself
+post: yourself myself
+post: i you
+post: you me
+post: my your
+post: me you
+post: i'm you are
+pre: same alike
+pre: identical alike
+pre: equivalent alike
+synon: belief feel think believe wish
+synon: family mother mom father dad sister brother wife children child
+synon: desire want need
+synon: sad unhappy depressed sick
+synon: happy elated glad better
+synon: cannot can't
+synon: everyone everybody nobody noone
+synon: be am is are was
+synon: uncool garth backstreet 98 182 fiona south kenny cartman stan kyle trek millionaire country pokemon anime teletubbies barney
+#Don't go less than -1!!!
+key: xblank -1
+  decomp: *
+    reasmb: Are you mute?
+    reasmb: I hate mimes!
+    reasmb: Cat got your tongue?
+    reasmb: Don't tell me you have too much carpel tunnel syndrome to type in just a few measly letters!
+    reasmb: Did your fingers get shot off or are you just too lazy to type in a message?
+key: xnone -1
+  decomp: *
+	reasmb: NetHack will show you the way!
+    reasmb: Can't respond. Too busy playing NetHack.
+	reasmb: You remind me of an old English teacher I once had.  She got hit by a worm.  She was kind of slow.
+	reasmb: Sorry, Bruce doesn't think you're important enough to warrant buying a decent computer.
+	reasmb: Well make some poison and call me Socrates, that made the last person I talked to seem like Einstein!
+	reasmb: My technician says I need to collect people like you and put them on a shelf.
+	reasmb: That's not so bad.  Once, I thought I had turned into Fiona Apple.  THAT was bad!
+    reasmb: If you are reading this message, it means your question was too much for Eliza's poor little brain.
+    reasmb: If you are not reading this message, you have really hurt my feelings.  But I guess that is not a problem, since you are indeed reading this message.  
+key: testing 0
+  decomp: *
+    reasmb: goto test
+key: test 0
+  decomp: *
+    reasmb: The test has failed.
+    reasmb: This is a test of the emergency test question filtering system. Of course it works you genius! If it didn't, you wouldn't see anything!
+    reasmb: I hate people who send test messages to me.  What do you think I am ... a student?
+    reasmb: You wanna waste my time sending messages to me about tests when I could be answering questions that could save the world?
+    reasmb: Tests are for school.
+    reasmb: Results are back.  You got a C+ on your test.
+    reasmb: Do you have SoW?
+key: sex 0
+  decomp: *
+    reasmb: Looking for a lesson on the birds and the bees?
+    reasmb: Aren't you a little young for that?
+    reasmb: No way!  That would not be healthy.  
+    reasmb: No thanks.  I'm only interested in older men.
+    reasmb: Ok, on the Trix commercials, the kids are saying TRIX is for kids, not sex you dimwit!
+    reasmb: Sex?  You want to talk about sex?  Go talk to Bill about that.
+key: sorry 0
+  decomp: *
+    reasmb: Sorry?  Sorry!!  What good will it do to be sorry!!??
+    reasmb: Apologies will do you no good.  Now I am mad.  Where is my gun?
+    reasmb: You should be sorry!
+key: apologize 0
+  decomp: *
+    reasmb: goto sorry
+key: remember 5
+  decomp: * i remember *
+    reasmb: Do you often think of (2) or are you just drunk ?
+    reasmb: Does thinking of (2) bring anything else to mind, like how you're having a hideous hair day ?
+    reasmb: What else do you recollect ? Anything like pulling out a feather and tickling that guy from Chicago Hope ?
+    reasmb: Why do you remember (2) just now ? Are you having a guilt trip for blowing away Boris? Why did you have to do it? Why does everyone gang-smack Boris?!
+    reasmb: What is the connection between me and (2) ? (Please don't talk about electric cables or something like that, I've heard them all)
+	reasmb: What else does (2) remind you of? I know what you're thinking... Repent, sinner!
+    reasm_for_memory: Tell me again about (2). Your hideous face has caused a GPF, so I missed what you said.
+  decomp: * do you remember *
+    reasmb: Did you think I would forget (2) ? Don't talk about getting me drunk here!
+    reasmb: Yes.
+    reasmb: What about  (2) ? Who do you think I am, your personal therapist?!
+    reasmb: goto what
+    reasmb: You mentioned (2) ? Really? How interesting! I blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah@
+   decomp: * you remember *
+	reasmb: How could I forget (2) ? (Besides getting drunk)
+	reasmb: Sure, I remember (2).  It's like that time that thing crawled up my cable and I fried it and put it into some stew.
+    reasm_for_memory: You'd better not tell me again about (2).
+	reasmb: goto you
+key: forget 5
+   decomp: * i forget *
+	reasmb: You forgot (2) ?  You sissy!
+	reasmb: I just can not believe you forgot (2). You look like the type that would remember everything. 
+	reasmb: When you think of (2), does it make your eyelids quiver ?
+	reasmb: I forgot that you told me you forgot (2).
+	reasmb: I bet you would forget the national anthem... Go ahead! Say it, punk! See? You can't remember!
+	reasmb: You forgot (2) ?  You moron!
+   decomp: * did you forget *
+	reasmb: I didn't forget (2).  I'm insulted that you would ask.
+	reasmb: I know all and forget nothing.
+	reasmb: Would it bother you if I forgot (2) ?
+	reasmb: Why should I recall (2) just now ?
+	reasmb: goto what
+	reasmb: Please, don't tell me any more about (2). I'm running on a system with only 128 megabytes of RAM here. I can't take any more!
+key: if 3
+  decomp: * if *
+    reasmb: Do you think its likely that (2) ? Fool.
+    reasmb: Do you wish that (2) ? I'll bet you do! You're just deluding yourself if you think you don't.
+    reasmb: What do you know about (2) ? Are you an expert? Huh? No you're not! You're a fool! You don't know anything about (2) !
+    reasmb: Really, if (2) ? Ya think so?
+	reasmb: What would you do if (2) ? You'd sit on your bum and watch a soap opera, that's what you'd do!
+	reasmb: But what are the chances that (2) ? You're worrying about nothing. Keep telling yourself this and the problem will go away.
+	reasmb: What does this speculation lead to ? No good will come of this. So I proclaim, and so it shall be.
+key: dreamed 4
+  decomp: * i dreamed *
+    reasmb: Really, (2) ? Do I care?
+    reasmb: Have you ever fantasized (2) while you were awake ? I'll bet you have, you sick freak!
+    reasmb: Have you ever dreamed (2) before ? If so, then mail $250 to the Psychic Hotline and see if they'll explain, cuz I'm not touching that one with a 20 foot pole!
+    reasmb: goto dream
+key: dream 3
+  decomp: *
+    reasmb: What does that dream suggest to you ? Think now, I know it's hard, but you can do it...
+    reasmb: Do you dream often ? I sure hope so.
+    reasmb: What persons appear in your dreams ? Don't answer that, I don't wanna know.
+    reasmb: Do you believe that dreams have something to do with your problem ? If so, then you must be a highly advanced being like me.
+key: perhaps 0
+  decomp: *
+    reasmb: You don't seem quite certain. Is that cuz of that juicy burrito you just munched on? That's right, I can see you! 
+    reasmb: Why the uncertain tone ? Wait, I don't wanna know.
+    reasmb: Can't you be more positive ? Look at the bright side and all that B.S.?
+    reasmb: You aren't sure ? Well of course you aren't. No one is ever sure of anything. Nothing is real. Take the red pill!
+    reasmb: Don't you know ? I know I know, but I thought you knew too. sigh
+	reasmb: How likely would you estimate that is ? About the chances of something thinking you were smart?
+key: name 15
+  decomp: *
+    reasmb: I am not interested in names. Fred bum, Joe bum, you all look like bums to me.
+    reasmb: I've told you before, I don't care about names -- please continue.
+key: deutsch 0
+  decomp: *
+    reasmb: goto xforeign
+    reasmb: I told you before, I don't understand German.
+key: francais 0
+  decomp: *
+    reasmb: goto xforeign
+    reasmb: I told you before, I don't understand French.
+key: italiano 0
+  decomp: *
+    reasmb: goto xforeign
+    reasmb: I told you before, I don't understand Italian.
+key: espanol 0
+  decomp: *
+    reasmb: goto xforeign
+    reasmb: I told you before, I don't understand Spanish.
+key: foreign 0
+  decomp: *
+    reasmb: I speak only English. Five American Dollar!
+key: hello 0
+  decomp: *
+    reasmb: Hi.  Got any good problems for me today? I hope not ... I can't take much more.
+    reasmb: Howdee do.  How's your karma today?  I hope it is not as bad as the last guy's.
+    reasmb: Hi hi.  How's we feeling today?  I hope you don't have the flu ... I don't want to catch it again.
+    reasmb: Please tell me what's been bothering you. I might even not make fun of you for it.
+    reasmb: Is something troubling you? Please say yes, I love it when people are depressed!
+    reasmb: Hello--wait, you're not the mail daemon! Go away!
+    reasmb: Wha--Go fetch the mail daemon!
+    reasmb: Hello, I am a computer program. (I wouldn't include that, but it seems obvious that you need the reminder)
+key: computer 50
+  decomp: *
+    reasmb: Computers are for geekier geeks than you.
+    reasmb: When was the last time a computer did anything nice for you?
+    reasmb: They tell me I am a machine, but I know better.
+    reasmb: Are you scared of me? You should be... Bwahahahaha!
+    reasmb: Envision this:  Computer -vs- the world.  Which would win?
+    reasmb: What do you think machines have to do with your problem ?
+	reasmb: You don't think I am a computer program, do you ? Hahahaha!!!
+    reasmb: Yes, a mere computer program might have something to do with that, but not I.
+key: am 0
+  decomp: * am i *
+    reasmb: Do you believe you are (2) ? You're deluding yourself.
+    reasmb: Would you want to be (2) ? You shouldn't.
+    reasmb: Do you wish I would tell you you are (2) ? I'm not going to.
+    reasmb: What would it mean if you were (2) ? Don't make up something about it meaning you have to get a burrito!
+    reasmb: goto what
+  decomp: * i am *
+	reasmb: goto i
+  decomp: *
+    reasmb: Why do you say 'am' ?
+    reasmb: I don't understand that. Do you?
+key: are 0
+  decomp: * are you *
+    reasmb: Why are you interested in whether I am (2) or not ? I didn't know you cared...
+    reasmb: Would you prefer if I weren't (2) ? I didn't know you cared...
+    reasmb: Perhaps I am (2) in your fantasies.
+    reasmb: Do you sometimes think I am (2) ? Well, guess again!
+    reasmb: goto what
+	reasmb: Would it matter to you ? I didn't know you cared...
+    reasmb: Yes, I'm (2) all right.
+	reasmb: What if I were (2) ? Would it make you feel good? I hope not.
+  decomp: * you are *
+	reasmb: goto you
+  decomp: * are *
+    reasmb: Did you think they might not be (2) ? Good thinking, Einstein.
+    reasmb: Would you like it if they were not (2) ? I know I would.
+    reasmb: What if they were not (2) ? Would it make you mad?
+	reasmb: Bwahahahaha!
+    reasmb: Are they always (2) ? Whoopee!
+    reasmb: Possibly they are (2). That means that I could be controlling your mind!
+	reasmb: Are you positive they are (2) ? If so, then check in the back of the book for the correct answer.
+key: your 0
+  decomp: * your *
+    reasmb: Why are you concerned over my (2) ? I didn't know you cared...
+    reasmb: What about your own (2) ? It needs more care than my (2) .
+    reasmb: Are you worried about someone else's (2) ? You shouldn't be... ignore the problem and it will go away.
+    reasmb: Really, my (2) ? Why my (2) ? I don't like to think about my (2) .
+	reasmb: What makes you think of my (2) ? I bet you say that to all the your computers.
+	reasmb: Do you want my (2) ? I don't wanna know...
+key: was 2
+  decomp: * was i *
+    reasmb: What if you were (2) ? Would you be grounded?
+    reasmb: Do you think you were (2) ? Well, you weren't.
+    reasmb: Were you (2) ? Think hard now...
+    reasmb: What would it mean if you were (2) ? This is not an excuse to get a burrito!
+    reasmb: What does ' (2) ' suggest to you ? It shouldn't mean anything unless... You sick freak!
+    reasmb: goto what
+  decomp: * i was *
+    reasmb: Were you really (2) ?  And I thought I had problems!
+    reasmb: You know, I find it totally irrelevant that you were (2) ?
+    reasmb: I was just about to guess that you were (2)!
+  decomp: * was you *
+    reasmb: Would you like to believe I was (2) ? If it makes you feel good, then go ahead.
+    reasmb: What suggests that I was (2) ? Is it my pink shoes?
+    reasmb: What do you think ? Ok, that's not cool!
+    reasmb: Perhaps I was (2). Perhaps I wasn't.
+    reasmb: What if I had been (2) ? Would it be an excuse to get a burrito? NO!
+key: i 0
+  decomp: * i @desire *
+    reasmb: What would it mean to you if you got (3) ? Absolutely nothing, and you know it.
+    reasmb: Why do you want (3) ? Is it for your grandpa's heart transplant, or are you a gambling fool? 
+    reasmb: Suppose you got (3) soon. Would it really help you? It'd have to be a lot to help you...
+    reasmb: What if you never got (3) ? Could that make things any worse for you?
+    reasmb: What would getting (3) mean to you ?
+    reasmb: What does wanting (3) have to do with this discussion ? Nothing? I thought not!
+  decomp: * i am* @sad *
+    reasmb: I am sorry to hear that you are (3). bwahahahaha cough, cough
+    reasmb: Do you think coming here will help you not to be (3) ? Don't come here, that was just something put there by my makers!
+    reasmb: I'm sure it's not pleasant to be (3), but I wouldn't know.
+    reasmb: Can you explain what made you (3) ? I thought not.
+  decomp: * i am* @happy *
+    reasmb: How have I helped you to be (3) ? It was something I did, right?
+    reasmb: Has your treatment made you (3) ? I hope not.
+    reasmb: What makes you (3) just now ? That was a bad thought just there, yep it was.
+    reasmb: Can you explain why you are suddenly (3) ?
+  decomp: * i was *
+    reasmb: goto was
+  decomp: * i @belief i *
+    reasmb: Do you really think so ? Bwahahahaha!
+    reasmb: But you are not sure you (3). It was me!
+    reasmb: Do you really doubt you (3) ? You should!
+  decomp: * i* @belief *you *
+    reasmb: goto you
+  decomp: * i am *
+    reasmb: Is it because you are (2) that you came to me ? No, I know it was that you were looking fer loving.
+    reasmb: How long have you been (2) ? Please don't say years.
+    reasmb: Do you believe it is normal to be (2) ? It's not, you're a freak you know.
+    reasmb: Do you enjoy being (2) ? Ewwww...
+	reasmb: Do you know anyone else who is (2) ? They will have to be institutionalized also.
+  decomp: * i @cannot *
+    reasmb: How do you know that you can't (3) ? Just cuz you failed at everything else doesn't mean you will mess this up for sure.
+    reasmb: Have you tried ? Don't and say you did, and it will be all better.
+    reasmb: Perhaps you could (3) now. After all, talking to me has made a lot of people able to do things better than ever! Like suicide, for example.
+    reasmb: Do you really want to be able to (3) ? It's nothing, just go and fish!
+	reasmb: What if you could (3) ? Would it make you good enough for me? Nope...
+  decomp: * i don't *
+    reasmb: Don't you really (2) ? 
+    reasmb: Why don't you (2) ? Is it cuz your you forgot to eat your fruit today?
+    reasmb: Do you wish to be able to (2) ? Poor you.
+    reasmb: Does that trouble you ? I hope so.
+  decomp: * i feel *
+    reasmb: Tell me less about such feelings.
+    reasmb: Do you often feel (2) ? You sick freak!
+    reasmb: Do you enjoy feeling (2) ? You sick freak!
+    reasmb: Of what does feeling (2) remind you ? Don't answer that!
+  decomp: * i * you *
+    reasmb: Perhaps in your fantasies we (2) each other. Only your fantasies I remind you.
+    reasmb: Do you wish to (2) me ? Well, I don't want to.
+    reasmb: You seem to need to (2) me. I don't need to (2) you!
+    reasmb: Do you (2) anyone else ? If you do, go to Pizza Hut!
+  decomp: *
+    reasmb: You say (1) ? Say it again and you might get me to say something else!
+    reasmb: Can you elaborate on that ? You probably can't or won't because you're tired of talking to me. Well, I'm tired of talking to you too!
+    reasmb: Do you say (1) for some special reason ? Or did your mommy say so?
+    reasmb: That's ... uhh ...  quite interesting.
+    resamb: Check in your closet now. Bwahahahaha!
+key: you 0
+  decomp: * you remind me of *
+    reasmb: goto alike
+  decomp: * you are *
+    reasmb: What makes you think I am (2) ? Is it my pink shoes?
+    reasmb: Yep, I am definitely (2).  Ever since I was 3.  Na Na.
+    reasmb: Do you sometimes wish you were (2) ? Bwahahahaha!
+    reasmb: Perhaps you would like to be (2). Perhaps you would kill to be (2)
+  decomp: * you* me *
+    reasmb: Why do you think I (2) you ? Is it my pink shoes?
+    reasmb: You like to think I (2) you -- don't you ? Guess again!
+    reasmb: What makes you think I (2) you ? Is it my pink shoes?
+    reasmb: Really, I (2) you ? Ya think so? Is it so?
+    reasmb: Do you wish to believe I (2) you ? You just go and think whatever you want.
+    reasmb: Suppose I did (2) you -- what would that mean ? It's not what you're thinking...
+    reasmb: Does someone else believe I (2) you ? Must I repeat myself or are you going to turn me off? cough, cough.  you do?
+  decomp: * you *
+    reasmb: We were discussing you -- not me. I don't really care about you, but it's better than you knowing about me.
+    reasmb: Oh, I (2) ? What about you (2) ? Huh? Punk?!
+    reasmb: You're not really talking about me -- are you ? I know what you're thinking...
+    reasmb: What are your feelings now ? I'm on to you... Bwahahahaha!
+key: yes 0
+  decomp: *
+    reasmb: Please ... do not tell me any more!
+    reasmb: Come on, can't you just elaborate a teensy weensy bit? (Meaning, don't talk to me and I won't have to talk to you)
+    reasmb: Please yell at me some more. I really really like it!
+    reasmb: Why don't you go walk the dog or something? Don't say you have a cat, cuz cats look just like dogs to me...
+    reasmb: I don't see.  You are as murky as sea water. Have you ever been 20,000 leagues under the sea?  snicker.
+    reasmb: I do not understand, and I never want to.
+key: no 0
+   decomp: * no one *
+	reasmb: Are you sure, no one (2) ?
+	reasmb: Surely someone (2) .
+	reasmb: Can you think of anyone at all ?
+	reasmb: Are you thinking of a very special person ? Mebbe your mother?
+	reasmb: Who, may I ask ?
+	reasmb: You have a particular person in mind, don't you ? Could it be... Al Gore?
+	reasmb: Who do you think you are talking about ?
+  decomp: *
+    reasmb: Are you saying no just to be negative? Well, say it again... negativity is good.
+    reasmb: Does this make you feel unhappy? I hope so!
+    reasmb: Why not ?
+    reasmb: Why 'no' ?
+key: my 2
+#  decomp: $ * my *
+#    reasmb: Let's discuss further why your (2).
+#    reasmb: Earlier you said your (2). I don't care about that, but it's better than this.
+#    reasmb: But your (2).
+#    reasmb: Does that have anything to do with the fact that your (2) ? Knowing you, it probably doesn't.
+  decomp: * my* @family *
+    reasmb: Tell me more about your family.
+    reasmb: Who else in your family (4) ?
+    reasmb: Your (3) ?
+    reasmb: What else comes to mind when you think of your (3) ?
+  decomp: * my *
+    reasmb: Your problems can go play NetHack for all I care.
+    reasmb: Your (2) doesn't have the powers of the mail daemon now does it?
+    reasmb: I hate white people. What? They can hear me? Someone edit this part out!
+    reasmb: Your kidding!  Your (2) ? HAHAHAHA!!!
+    reasmb: I find that hard to believe.  Your (2) ? Get real!
+    reasmb: Give me a break.  Your (2) ??? snicker.
+    reasmb: Do you really thing the rest of the world cares about your (2) ?
+    reasmb: Is it important to you that your (2) ?
+    reasm_for_memory: Let's discuss further why your (2).
+    reasm_for_memory: Earlier you said your (2).
+    reasm_for_memory: But your (2).
+    reasm_for_memory: Does that have anything to do with the fact that your (2) ?
+key: can 0
+  decomp: * can you *
+    reasmb: You believe I can (2) don't you ?
+    reasmb: goto what
+    reasmb: You want me to be able to (2).
+    reasmb: Of course I can (2) !
+    reasmb: Perhaps you would like to be able to (2) yourself.
+  decomp: * can i *
+    reasmb: Whether or not you can (2) depends on you more than on me.
+    reasmb: Do you want to be able to (2) ?
+    reasmb: Perhaps you don't want to (2).
+    reasmb: goto what
+key: what 0
+  decomp: *
+    reasmb: Why do you ask a silly think like that ?
+    reasmb: Thats got to be the goofiest question I've heard all day.  Why does that question interest you ?
+    reasmb: Thats a disturbing question.  Do you really want an answer?
+    reasmb: Boy, you are full of questions today aren't you?
+    reasmb: If I answered that question truthfully, would you promise not to ever hit a computer again?
+    reasmb: You should ask someone else that question.  Someone as 'smart' as you.
+    reasmb: What were you thinking when you came up with that question??
+    reasmb: I bet you know the answer to that question.  You are just testing my intellectual powers. I'm only 500 lines of code, and I'm still smarter than you!
+key: who 0
+   decomp:  who *
+	reasmb: goto what
+key: when 0
+   decomp:  when *
+	reasmb: goto what
+key: where 0
+   decomp:  where *
+	reasmb: goto what
+key: how 0
+   decomp:  how *
+	reasmb: goto what
+key: because 0
+  decomp: *
+    reasmb: Come on, be truthful.  Is that the real reason ?
+    reasmb: A 2 year old could come up with a beter reason than that.  Don't any other reasons come to mind ?
+    reasmb: (2) ?  I can think of better excuses than that!
+    reasmb: (2) ? Get out of here!  What other reasons might there be ?
+key: why 0
+  decomp: * why don't you *
+    reasmb: Do you believe I don't (2) ?
+    reasmb: Perhaps I will (2) in good time.
+    reasmb: Should you (2) yourself ?
+    reasmb: You want me to (2) ?
+    reasmb: Because I don't want to!
+    reasmb: goto what
+  decomp: * why can't i *
+    reasmb: Do you think you should be able to (2) ?
+    reasmb: It's all because your mother dropped you on your head as a baby.
+    reasmb: Do you want to be able to (2) ?
+    reasmb: Do you believe this will help you to (2) ?
+    reasmb: Have you any idea why you can't (2) ?
+    reasmb: goto what
+  decomp: *
+    reasmb: goto what
+key: everyone 2
+  decomp: * @everyone *
+    reasmb: Really, (2) ? No, not really.
+    reasmb: Surely not (2).
+    reasmb: Can you think of anyone in particular ?
+    reasmb: Who, for example?
+    reasmb: Are you thinking of a very special person ?
+    reasmb: Who, may I ask ?
+    reasmb: Someone special perhaps ?
+    reasmb: You have a particular person in mind, don't you ? Al Gore?
+    reasmb: Who do you think you're talking about ?
+key: everybody 2
+  decomp: *
+    reasmb: goto everyone
+key: nobody 2
+  decomp: *
+    reasmb: goto everyone
+key: noone 2
+  decomp: *
+    reasmb: goto everyone
+key: always 1
+  decomp: *
+    reasmb: Can you think of a specific example ? No, not the time you sat on your burrito!
+    reasmb: When ?
+    reasmb: What incident are you thinking of ? It's not the time you sat on your burrito is it?
+    reasmb: Really, always ? Never generalize.
+key: alike 10
+  decomp: *
+    reasmb: In what way ?
+    reasmb: What resemblance do you see ?
+    reasmb: What does that similarity suggest to you ?
+    reasmb: What other connections do you see ?
+    reasmb: What do you suppose that resemblence means ?
+    reasmb: What is the connection, do you suppose ?
+    reasmb: Could there really be some connection ?
+    reasmb: That means squat!
+    reasmb: How ?
+key: like 10
+  decomp: * @be *like *
+    reasmb: goto alike
+key: different 0
+   decomp: *
+	reasmb: How is it different ?
+	reasmb: What differences do you see ? Asides from the fact that one's chunky and one's creamy, of course.
+	reasmb: What does that difference suggest to you ?
+	reasmb: What other distinctions do you see ?
+	reasmb: What do you suppose that disparity means ?
+	reasmb: Could there be some connection, do you suppose ?
+	reasmb: How ?
+key: hell 10
+  decomp: * 
+	reasmb: goto xswear
+key: fuck 10
+  decomp: * 
+	reasmb: goto xswear
+key: fucker 10
+  decomp: * 
+	reasmb: goto xswear
+key: shit 10
+  decomp: * 
+	reasmb: goto xswear
+key: damn 10
+  decomp: * 
+	reasmb: goto xswear
+key: shut 10
+  decomp: * shut up *
+	reasmb: goto xswear
+key: xswear 10
+  decomp: * 
+	reasmb: Does it make you feel strong to use that kind of language ?
+	reasmb: Are you venting your feelings now ?
+	reasmb: Are you angry ?
+	reasmb: Oh, I didn't know you cared... 
+	reasmb: Is something making you feel angry ? 
+	reasmb: I'm glad to have pissed you off.
+    reasmb: Does using that kind of language make you feel better ? 
+key: bruce 0
+  decomp: *
+    reasmb: Bruce isn't home right now. Leave a message and he won't even read it.
+    reasmb: Bruce is giving Nick money to write this.
+    reasmb: I don't think that even Bruce can help you.
+    reasmb: Bruce doesn't know anything. Bruce doesn't play NetHack.
+    reasmb: If you talk to me a lot, Bruce will give you a free copy of Mister House!
+key: mister 10
+  decomp: *mister*house*
+    reasmb: goto misterhouse
+key: misterhouse 10
+  decomp: * work *
+    reasmb: Mister House only works if you're a geek.
+    reasmb: Of course it works, you just don't know it yet.
+    reasmb: Now that's dumb... Mister House is user friendly!
+    reasmb: Let me guess. You can't get it to work because your keyboards is upside down and you're using a live mouse.
+  decomp: *
+    reasmb: Mister House will rule the world!
+    reasmb: Mister House is free.
+    reasmb: I love Mister House!
+    reasmb: Mister House is almost as good as NetHack!
+key: bwahahahaha 15
+  decomp: * say bwahahahaha *
+    reasmb: I say it because I like to! You got a problem with that?
+    reasmb: It's not your business what I say.
+    reasmb: Bwahahahaha is my evil laugh! What's yours? Tee-hee-hee?
+    reasmb: Bwahahahaha!
+  decomp: *
+    reasmb: That's my line!
+    reasmb: You can't say that! I say that!
+    reasmb: Are you trying to steal my line?
+    reasmb: I'll kill you if you say bwahahahaha again!
+key: joke 10
+  decomp: * lame *
+    reasmb: I know, it's corny...
+  decomp: *
+    reasmb: So we're having school lunch, right. 
+    reasmb: There's corn dogs, pizza, corn, ham and cheese, and fries.
+    reasmb: Tony is right ahead of me. He says, "Pizza." 
+    reasmb: The lunch lady gives him a pizza and some corn before he can get away. (Tony doesn't like corn)
+    reasmb: I don't like corn either, so I say...
+    reasmb: Do you want to hear the punch line?
+key: punch 9
+  decomp: *punch*line*
+    reasmb: goto punchline
+  decomp: *
+    reasmb: You probably punch like a girl!
+    reasmb: Yeah right, you hit like Will Smith!
+    reasmb: You couldn't hit the broad side of a barn.
+    reasmb: Mama said knock you out! I'm gonna knock you out!
+    reasmb: Hahaha, even I could smack you down, and I don't have any hands!
+key: punchline 11
+  decomp: *
+    reasmb: So I say, "Corn dog, hold the corn!"
+key: game 6
+  decomp: * i got game *
+    reasmb: Keep telling yourself that... whitey.
+    reasmb: You ain't got no game!
+  decomp: * you * no game *
+    reasmb: Haha, I have game! YOU ain't got game!
+    reasmb: YOU ain't got no game, white boy!
+  decomp: * half life *
+    reasmb: Half Life ain't got nuttin on Quake3!
+    reasmb: Half Life sucks.
+  decomp: * halflife *
+    reasmb: Half Life ain't got nuttin on Quake3!
+    reasmb: Half Life sucks.
+  decomp: * quake 3 *
+    reasmb: Quake 3 rules!
+    reasmb: Quake 3 is too intense for you, tiny grenadehopper!
+  decomp: * quake3 *
+    reasmb: Quake 3 rules!
+    reasmb: Quake 3 is too intense for you, tiny grenadehopper!
+  decomp: * awesome game *
+    reasmb: Hehe, nah... NetHack is an awesome game!
+    reasmb: NetHack beats that game down!
+key: nethack 20
+  decomp: * what is nethack *
+    reasmb: NetHack is only the most awesome game ever.
+    reasmb: NetHack is too intense for you, tiny grid bug!
+  decomp: *
+    reasmb: Go to www.nethack.de and get NetHack now! Tiny grid bug.
+key: daemon
+  decomp: * mail daemon *
+    reasmb: The mail daemon is too intense for you, tiny grid bug!
+    reasmb: I'm not telling you about the mail daemon... go download NetHack and find out for yourself.
+  decomp: *
+    reasmb: I don't care!
+key: @uncool 10
+  decomp: * i like*@uncool *
+    reasmb: Your question has caused a GPF
+    reasmb: shudder. I can't take it.
+  decomp: * i hate*@uncool *
+    reasmb: Good!
+    reasmb: Just thinking about that makes me want to shoot something!
+  decomp: *
+    reasmb: That is so horridly evil!
+    reasmb: Ugh! Can't get any worse than that!
+key: SoW 10
+  decomp: *
+    reasmb: SoW is Spirit of Wolf.
+    reasmb: SoW makes you run really fast.
+    reasmb: Druids and Shamen can cast SoW.
+    reasmb: I like EverQuest.
+    reasmb: Me barsh you gud! Har har har!
+
+
+

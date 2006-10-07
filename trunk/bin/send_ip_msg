@@ -1,0 +1,26 @@
+#!/usr/bin/perl
+# -*- Perl -*-
+
+# Use this to send a message via ip
+
+use strict;
+use IO::Socket;
+
+unless (@ARGV == 2) { die "usage: $0 machine:port message" }
+my $host_port = shift;
+my $message   = shift;
+
+my ($host, $port) = $host_port =~ /(\S+):(\S+)/;
+
+my $EOL = "\0";
+
+my $remote = IO::Socket::INET->new(Proto     => "tcp",
+                                   PeerAddr  => $host,
+                                   PeerPort  => $port);
+
+unless ($remote) { die "send_ip_msg cannot connect to host $host on port $port" }
+
+$remote->autoflush(1);
+print $remote $message . $EOL;
+
+close $remote;

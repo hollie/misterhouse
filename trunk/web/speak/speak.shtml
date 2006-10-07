@@ -1,0 +1,94 @@
+<html>
+<head>
+
+<!--#include var="$config_parms{html_style}" -->
+
+<title>MisterHouse the DJ</title>
+</head>
+
+<h3>MisterHouse the DJ</h3>
+
+<p>If you have a shoutcast compatable mp3 player (e.g. <a href=http://winamp.com>Winamp</a>,
+<a href=http://www.xmms.org>Xmms</a>, or Windows Media Player),
+point it to <a href=http://music.misterhouse.net><b>http://music.misterhouse.net</b></a>
+to listen to what our house is saying, with about a 10 second lag.
+In addition to echoing what is being said in our house,
+the 'House DJ' will make random comments twice a minute.
+Background music is usually home grown <a href=http://misterhouse.net/mp3>Bruce Songs</a>.
+
+<p>The various voices are generated from either the <a target='_top' href=http://www.naturalvoices.com>AT&T Natural Voices</a> or <a target='_top' href=http://www.cepstral.com>Cepstral</a> TTS speech engines, available on both Linux and Windows.
+
+<p>
+Feel free to read <a target=speech href=RUN;last_response?Read_the_next_deep_thought>a deep thought</a>,
+or <a target=speech href=RUN;last_response?Read_the_house_tagline>a tagline</a>,
+review what was <a target=speech href=http://mh.misterhouse.net/speech>recently spoken</a>,
+or type something in below.
+
+
+<form target="speech" action="SET;last_response">
+<textarea rows=2 cols=55 name=eliza_data></textarea>
+<input type=submit value="Speak it!">
+
+<br>Voice:
+<select name=eliza_voice>
+ <option value=random>Random
+ <option value=next selected>Next
+ <option value=Mike>AT&T Mike
+ <option value=Crystal>AT&T Crystal
+ <option value=Charles>AT&T Charles
+ <option value=Audrey>AT&T Audrey
+ <option value=Anjali>AT&T Anjali
+ <option value=Sam>MS Sam
+ <option value=Damien>Cepstral Damien
+ <option value=Duchess>Cepstral Duchess
+ <option value=Duncan>Cepstral Duncan
+ <option value=Emily>Cepstral Emily
+ <option value=Frank>Cepstral Frank
+ <option value=Linda>Cepstral Linda
+ <option value=Robin>Cepstral Robin
+ <option value=Paul>NeoSpeech Paul
+ <option value=Kate>NeoSpeech Kate
+</select>
+
+<!--
+ <input type=radio name=eliza_voice value=Mike2>MS Mike
+ <input type=radio name=eliza_voice value=Mary>MS Mary
+ <input type=radio name=eliza_voice value=Rich>Rich
+ <input type=radio name=eliza_voice value=Clare>Clare
+-->
+
+Rule:
+
+<select name=eliza_rule>
+ <option value=none>None
+ <option value=nick selected>Nick
+ <option value=doctor>Classic Eliza
+ <option value=deutsch>German Eliza
+ <option value=thought>Deep Thought
+ <option value=thought2>Next Thought
+</select>
+
+Compression:
+<select name=eliza_wavcomp>
+ <option value='' selected>Default
+ <option value=low>low
+ <option value=normal>normal
+ <option value=high>high
+</select>
+
+</form>
+
+<!--#include file="/bin/set_cookie.pl?webmute&Set%20this%20<b>On</b>%20to%20disable%20receiving%20local%20wav%20files:%20<b>WebMute</b>"-->
+
+<p>If you are in need of some consoling, pick the "Eliza Classic" Rule,
+and a ChatBot version of the famous Eliza psychologist will
+have a conversation with you.  You may want to avoid
+<a href=http://misterhouse.net/mh/data/eliza/nick.txt>Nick's rule</a>
+if you have a sensitive personality :)
+Usually the Eliza AI engine gives a pretty dumb conversation, but
+<a href=http://misterhouse.net/mh/data/eliza/nick_conversations.txt>occasionally it can be kind of funny</a>.
+
+
+
+</body>
+</html>

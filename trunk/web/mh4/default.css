@@ -1,0 +1,9 @@
+
+BODY { color: black; background: wheat }
+FONT { font-family: Verdana, Arial, Helvetica; font-size:10pt}
+P    { font-family: Verdana, Arial, Helvetica; font-size:10pt}
+LI   { font-family: Verdana, Arial, Helvetica; font-size:8pt}
+A:link { color: blue; }
+A:visited { color: lightblue; }
+A:active { color: brown; } 
+A:hover { color: green; }

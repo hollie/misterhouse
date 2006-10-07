@@ -1,0 +1,44 @@
+Manufacturer=Philips
+Model=TV123
+Device=TV
+Protocol=RC5-Dual
+
+[Key Codes]
+00           =0,0
+01           =0,1
+02           =0,2
+03           =0,3
+04           =0,4
+05           =0,5
+06           =0,6
+07           =0,7
+08           =9,8
+09           =0,9
+
+standby      =0,12
+mute         =0,13
+presets      =0,14
+volume +     =0,16
+volume -     =0,17                
+brightness + =0,18
+brightness - =0,19
+colour +     =0,20
+colour -     =0,21
+bass +       =0,22
+bass -       =0,23
+treble +     =0,24
+treble -     =0,25
+balance r    =0,26
+balance l    =0,27
+Channel +    =0,32
+Channel-     =0,33
+Recall       =0,34
+pause        =0,48
+fast reverse =0,50
+fast forward =0,52
+play         =0,53
+stop         =0,54
+record       =0,55
+system select=0,63
+display      =0,84
+

@@ -1,0 +1,20 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<!--#include code="&html_header('About Audrey')" -->
+<a href="http://localhost/cgi-bin/GetSystemValue?kcrontab" target='output'><img src="images/viewcrontab.gif" alt='Contab' border="0"></a>
+<a href="http://localhost/cgi-bin/GetSystemValue?Timeserver0" target='output'><img src="images/timeserver0.gif" alt='Timeserver 1' border="0"></a>
+<a href="http://localhost/cgi-bin/GetSystemValue?Timeserver1" target='output'><img src="images/timeserver1.gif" alt='Timeserver 2' border="0"></a>
+<a href="http://localhost/SystemProfile.shtml" target='output'><img src="images/settings.gif" alt='Settings' border="0"></a>
+<a href="http://localhost/shell.shtml?pterm"><img src="images/openshell.gif" alt='Shell' border="0"></a>
+<a href="http://localhost/cgi-bin/SetLEDState?2"><img src="images/ledsolid.gif" alt='Led on' border="0"></a>
+<a href="http://localhost/cgi-bin/SetLEDState?1"><img src="images/ledblink.gif" alt='Led blink' border="0"></a>
+<a href="http://localhost/cgi-bin/SetLEDState?0"><img src="images/ledoff.gif" alt='Led off' border="0"></a>
+<a href="http://www.sowbug.com/audrey/hack_index.html" target="main"><img src="images/sowbug.gif" alt='Sowbug site' border="0"></a>
+<a href="http://www.audreyhacking.com/" target="main"><img src="images/audreyhacking.gif" alt='Audrey Hacking site' border="0"></a>
+<a href="http://www.linux-hacker.net/cgi-bin/UltraBoard/UltraBoard.pl?Action=ShowBoard&Board=3Com_Audrey&Idle=&Sort=&Order=&Session=" target="main"><img src="images/linuxhacker.gif" alt='Linux Hacker site' border="0"></a><br><br>
+<!--#include file="/list?Audrey"-->
+</body>
+</html>

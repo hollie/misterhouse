@@ -1,0 +1,57 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target ="output">
+<table width=100% bgcolor="lightgrey">
+<td><center>
+<font size=3 color="black"><b>
+Speak Text
+</b></font></center>
+</td>
+</table><br>
+<table cellSpacing=0 cellPadding=0 width="100%" border=0>
+<font size=2>
+
+<tr><td>Type something below to have MisterHouse
+process the text to speech and send a wav file to your browser. 
+If you are in need of some consoling, click the Eliza checkbot, 
+and a ChatBot version of the famous Eliza psychologist will have a conversation with you.
+Or have MisterHouse <a target=speech href=RUN;last_response?Read_the_next_deep_thought>read you a deep thought</a> or
+<a target=speech href=RUN;last_response?Read_the_house_tagline>read a tagline</a>. 
+</td></tr>
+
+<tr><td>
+
+<form target="speech" action="SET;last_response">
+<textarea rows=3 cols=50 name=eliza_data></textarea><p>
+</td></tr>
+<tr><td>
+<input type=submit value="Speak it!">
+
+Rule: <input type=radio name=eliza_rule value=none checked>None
+      <input type=radio name=eliza_rule value=nick>Nick's
+      <input type=radio name=eliza_rule value=doctor>Classic
+      <input type=radio name=eliza_rule value=deutsch>Eliza in German
+</form>
+</td></tr>
+
+<tr><td>
+<!--#include file="/bin/set_cookie.pl?webmute&Set%20this%20<b>On</b>%20to%20disable%20receiving%20local%20wav%20files:%20<b>WebMute</b>"-->
+</td></tr>
+
+<tr><td>
+<iframe name="speech" src="/speech" width=500 height=115>
+If you can see this, your browser doesn't 
+understand IFRAME.  However, we'll still 
+<a href="/speech">link</A> 
+you to the file.
+</iframe>
+</tr></td>
+
+</font>
+</table>
+
+</body>
+</html>

@@ -1,0 +1,30 @@
+<html><head><title>MrHouse</title>
+<!--#include var="$config_parms{html_style}" -->
+<base target="main">
+<!--#include var="$config_parms{html_style}" -->
+</head><body>
+<table CLASS="top" border="0" cellpadding="0" cellspacing="4" width="100%">
+<tr>
+
+<td width="40%" align="left" valign="top"><a href="/ia5/" target="_parent">
+<img src="images/mhlogo.gif" alt="Reload Page" alt='Reload' border="0"></a></td>
+
+<td width="10%" align="right" valign="top">
+<a href="javascript:history.go(-1)"><img src="images/back.gif" alt='Back' border=0></a></td>
+
+<td width="10%" align="right" valign="top">
+<a href='<!--#include var="$config_parms{'web_href_my_mh'}" -->'>
+<img src="images/my_mh.gif" alt='my_mh' border=0</a></td>
+
+<td width="10%" align="right" valign="top">
+<a href="/bin/menu.pl" ><img src="images/menus.gif" alt='Menus' border=0</a></td>
+
+<td width="10%" align="right" valign="top">
+<a href="house/search.html"><img src="images/search.gif" alt='Search' border=0></a></td>
+
+<td width="10%" align="right" valign="top">
+<!--#include file="/bin/icon_auth.pl"-->
+</td>
+
+</tr></table>
+</body></html>

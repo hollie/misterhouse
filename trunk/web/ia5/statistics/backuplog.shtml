@@ -1,0 +1,8 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target ="output">
+<!--#include code="&html_header('View Backup Log')" -->
+</body></html>

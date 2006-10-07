@@ -1,0 +1,69 @@
+Win32::DriveInfo
+----------------
+
+With this module you can get total/free space on Win32 drives,
+volume names, architecture, filesystem type, drive attributes, list of all
+available drives and free drive-letters. Additional function to determine
+Windows version info. 
+
+The intention was to have a part of Dave Roth's Win32::AdminMisc
+functionality on Win95/98. 
+
+The current version of Win32::DriveInfo is available at: 
+
+  http://www.dux.ru/guest/fno/perl/
+
+
+DriveSpace ( drive ) 
+     ($SectorsPerCluster, $BytesPerSector, $NumberOfFreeClusters,
+     $TotalNumberOfClusters, $FreeBytesAvailableToCaller, $TotalNumberOfBytes,
+     $TotalNumberOfFreeBytes) = Win32::DriveInfo::DriveSpace( drive ); 
+
+DrivesInUse ( ) 
+     Returns all drive-letters in use. 
+
+FreeDriveLetters ( ) 
+     Returns all drive-letters that are available for allocation. 
+
+DriveType ( drive ) 
+     Detects fixed, removable, networked, CD ROM and RAM drives. 
+
+VolumeInfo ( drive ) 
+     ($VolumeName, $VolumeSerialNumber, $MaximumComponentLength,
+      $FileSystemName, @attr) = Win32::DriveInfo::VolumeInfo ( drive ); 
+GetVersionEx ( ) 
+     major/minor/build of the operating system in use.
+
+
+You need Win32::API.pm by Aldo Calpini for this module. 
+
+No special installation is needed.
+Just put it into /Win32 subdir somewhere in your @INC. 
+
+
+This module has been created and tested in a Win95 environment on GS port
+of Perl 5.004_02. Please share your experience/bug-reports on other
+platforms.
+
+For more look into POD documentation.
+
+
+
+Win32::DriveInfo.pm version 0.01.                   November 7, 1998. 
+
+Use it under the same terms as Perl itself.
+This is beta-software - use it at your own risk.
+Author takes no responsibility etc. etc.
+
+Enjoy!
+
+
+Mike Blazer       <blazer@mail.nevalink.ru> 
+
+
+
+Copyright (C) 1998 by Mike Blazer. All rights reserved. 
+
+This package is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself. 
+

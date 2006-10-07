@@ -1,0 +1,5 @@
+#!/bin/bash
+
+./mp3Rip.pl "$1" >>"$2" 2>&1 &
+echo "$!" > "$3"
+exit 0

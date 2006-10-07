@@ -1,0 +1,8 @@
+Name=Denon (Sharp) Protocol
+Protocol=DENON
+Frequency=40000
+Time Base=300
+One=+1,-6
+Zero=+1,-3
+Form=d:5,f:9,0:1,[+1 -180],d:5,-f:9,1:1,[+1 -180]
+

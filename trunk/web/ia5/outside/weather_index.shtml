@@ -1,0 +1,8 @@
+<html><head><title>MrHouse</title>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<frameset cols="140,*" frameborder="no" border="0" framespacing="0" marginheight='0' marginwidth='0' scrolling='no'> 
+     <frame name="weather menu" src="weather_menu.shtml" frameborder="no" border="no" framespacing="0" marginheight='20' marginwidth='0' scrolling='yes'>
+     <frame name="weather output" src="/bin/weather_graph.pl?tempout" frameborder="no" border="0" framespacing="0" marginheight='0' marginwidth='0' scrolling='yes'>
+</frameset>
+</html>

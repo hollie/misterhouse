@@ -1,0 +1,9 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target ="output">
+<!--#include file="/list?Statistics"-->
+</body>
+</html>

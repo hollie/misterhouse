@@ -1,0 +1,211 @@
+
+# This is a simple test menu
+
+ M: Test
+    D: Lights
+    D: Demo1
+    D: Demo2
+    D: Demo3
+
+ M: Demo1
+    D: Times
+    D: Astro_Times
+    D: Email
+    D: Weather
+    D: Demo2
+
+M: Demo2
+    D: Ibutton
+    D: Audrey
+    D: Fun
+    D: Sounds
+    D: Demo3
+
+M: Demo3
+    D: Internet1
+    D: Internet2
+    D: Lights
+    D: Logs
+
+ M: Lights
+    D: Bedroom
+    D: Living
+    D: Outside
+    D: Fans
+    D: Demo1
+
+ M: Audrey
+    D: Light on
+       A: Set all Audrey light on
+    D: Light blink
+       A: Set all Audrey light blink
+    D: Light off
+       A: Set all Audrey light off
+    D: Read tagline
+       A: Read tag line to all audrey
+    D: Wav -> all
+       A: set all audrey to a wav file
+    D: Wav -> bedroom
+       A: set bedroom audrey to a wav file
+    D: Wav -> piano
+       A: set piano audrey to a wav file
+ 
+ M: Sounds
+    D: Event sounds
+       A: List event sounds
+    D: List voices
+       A: Speak in many voices
+    D: Play a sound
+       A: Play a goofy sound file
+
+
+ M: Ibutton
+    D: Temperature 1   
+       A: Read the ibutton temperature 1
+    D: Temperature 2   
+       A: Read the ibutton temperature 2
+    D: List ibuttons   
+       A: List all the ibutton buttons
+
+
+ M: Logs
+    P: anyone            # Menu level Password authorization default
+    D: Van location
+      A: Where is the van
+    D: Van log
+      R: eval &menu_vehicle_log('van')
+    D: Phone log in
+      R: eval &phone_log('in')
+    D: Phone log out
+      R: eval &phone_log('out')
+
+ M: Times
+    D: Up Time
+      A: What is your up time
+    D: Current time
+      A: Tell me the time
+    D: Set clock
+      A: Set the clock via the internet
+    D: Clock log
+      A: Display the clock adjustment log
+
+ M: Email
+    D: Check email
+      A: Check for e mail
+    D: Recent email
+      A: List new e mail
+    D: Send email
+      A: Send test e mail 1
+
+ M: Weather
+    P: anyone            # Menu level Password authorization default
+    R: last_response     # Override Set to ... response
+    D: Forecast
+      A: Show internet weather forecast
+    D: Conditions
+      A: Show internet weather conditions
+    D: Rain forecast
+      A: What is the forecasted chance of rain
+
+ M: Astro_Times
+    D: Moon phase
+      A: What is the phase of the moon
+    D: Full moon
+      A: When is next full moon
+    D: Sun times
+      A: When will the sun set
+
+
+ M: Fun
+    P: anyone            # Menu level Password authorization default
+    R: last_response     # Override Set to ... response
+    D: Tagline
+      A: Read the house tagline
+    D: Deep Thought
+      A: Read the next deep thought
+    D: Trivia question
+      A: What is the next science trivia question
+    D: Trivia answer
+      A: What is the trivia answer
+    D: Photos
+      R: href=/misc/photos.html
+
+
+ M: Internet1
+    D: Top 10 list
+      A: Display the top 10 list 
+    D: Top news
+      A: Show me the top news
+    D: Stocks
+      A: Show stock quotes
+ M: Internet2
+    D: Tv movies
+       A: What tv movies are on 8pm tonight 
+    D: Iridium flares
+       A: List iridium flares
+    D: SlashDot
+       R: href=http://slashdot.org
+
+ M: Fans
+    D: Living on
+       A: set $living_room_fan ON
+       R: Living room fan on
+    D: Living off
+       A: set $living_room_fan OFF
+       R: Living room fan off
+    D: Bedroom on
+       A: set $bedroom_fan ON
+       R: Bedroom room fan on
+    D: Bedroom off
+       A: set $bedroom_fan OFF
+       R: Bedroom room fan off
+
+
+ M: Bedroom
+    D: Left on
+       A: set $left_bedroom_light ON
+       R: Left bedroom light on
+    D: Left off
+       A: set $left_bedroom_light OFF
+       R: Left bedroom light off
+    D: Right on
+       A: set $right_bedroom_light ON
+       R: Right bedroom light on
+    D: Right off
+       A: set $right_bedroom_light OFF
+       R: Right bedroom light off
+    D: Fan Light on
+       A: set $bedroom_fan_light ON
+       R: Bedroom fan light on
+    D: Fan Light off
+       A: set $bedroom_fan_light OFF
+       R: Bedroom fan light off
+
+ M: Living
+    D: Camera on    
+       A: set $camera_light ON
+       R: Camera light on
+    D: Camera off
+       A: set $camera_light OFF
+       R: Camera light off
+    D: Blue on
+       A: set $blue_light ON
+       R: Blue light on
+    D: Blue off
+       A: set $blue_light OFF
+       R: Blue light off
+
+ M: Outside
+    D: Garage on
+       A: set $garage_light ON
+       R: garage light on
+    D: Garage off
+       A: set $garage_light OFF
+       R: garage light off
+    D: Backyard on
+       A: set $backyard_light ON
+       R: backyard light on
+    D: Backyard off
+       A: set $backyard_light OFF
+       R: backyard light off
+   

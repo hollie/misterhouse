@@ -1,0 +1,113 @@
+<html>
+
+<h1>CaFe.pm Interview with MisterHouse creator</h1>
+
+<p><a href="http://misterhouse.sourceforge.net/">MisterHouse</a> is an open source home automation program.
+It's fun, it's free, and it's entirely geeky. Written in Perl,
+it fires events based on time, web, socket, voice, and serial data.
+It currently runs on Windows 95/98/NT/2k/XP and on most Unix based
+platforms, including Linux and Mac OSX.</p>
+<p><strong>Please Bruce, introduce yourself to the CaFe<a class="new visualNoPrint" href="http://www.bit-man.com.ar/en/CaFePMMisterHouse/createform?page=CaFe" title="create this page">?</a>.pm group</strong></p>
+<p>I'm a 46 year old Electrical Engineer, living in Rochester, Minnesota,
+USA, working in the IBM Engineering services division.  Our group
+designs integrated circuits for a wide variety of companies, like  the
+CPUs<a class="new visualNoPrint" href="http://www.bit-man.com.ar/en/CaFePMMisterHouse/createform?page=CPUs" title="create this page">?</a> for the BlueGene<a class="new visualNoPrint" href="http://www.bit-man.com.ar/en/CaFePMMisterHouse/createform?page=BlueGene" title="create this page">?</a> supercomputer and the 3 next generation gaming boxes.</p>
+<p><strong>Which one was your motivation to build MisterHouse<a class="new visualNoPrint" href="http://www.bit-man.com.ar/en/CaFePMMisterHouse/createform?page=MisterHouse" title="create this page">?</a> ??</strong></p>
+<p>My house is a energy efficient earth-bermed home designed to be heated
+with passive solar energy from south facing windows.  To manage that
+heat gain, I installed home brewed, motor controlled window quilt
+curtains, so we could open them on those cold but sunny Winter days,
+then close them at night or when it was cloudy.</p>
+<p>I needed software to track the indoor/outdoor temperature and sunlight
+level, and control the curtains, furnace, and fans accordingly.  Once I
+had MisterHouse<a class="new visualNoPrint" href="http://www.bit-man.com.ar/en/CaFePMMisterHouse/createform?page=MisterHouse" title="create this page">?</a> doing those practical chores, I extended it into other
+less practical, but fun  and goofy things, like controlling and speaking
+through a couple of robots.</p>
+<p><strong>Why it's stated that MisterHouse<a class="new visualNoPrint" href="http://www.bit-man.com.ar/en/CaFePMMisterHouse/createform?page=MisterHouse" title="create this page">?</a> is entirely geeky ??</strong></p>
+<p>Having your house remind you to water the plants or telling you where
+your car is traveling is not for everyone.    It is a better fit for
+the geeky type.  Not only are they the type that might enjoy that sort
+of interaction, but also it takes some computer skill to get it
+running well.</p>
+<p><strong>And your family, did accept easily the idea of dealing with an automated
+system ?? How did you managed this ??</strong></p>
+<p>They like most of it.  The occasional bug that causes Mozart to play
+over the PA system at 2 am is not so popular, but things like phone
+callers being announced when the phone rings make up for it.</p>
+<p><strong>What skills (Perl related or not) did you gain while you build MisterHouse<a class="new visualNoPrint" href="http://www.bit-man.com.ar/en/CaFePMMisterHouse/createform?page=MisterHouse" title="create this page">?</a> ??</strong></p>
+<p>I use Perl quite a bit in my chip design work at IBM.   I don't share
+any of that code in MisterHouse<a class="new visualNoPrint" href="http://www.bit-man.com.ar/en/CaFePMMisterHouse/createform?page=MisterHouse" title="create this page">?</a>, but I use many of the Perl tricks I
+learned writing MisterHouse<a class="new visualNoPrint" href="http://www.bit-man.com.ar/en/CaFePMMisterHouse/createform?page=MisterHouse" title="create this page">?</a> at work and vise-versa.</p>
+<p><strong>Which devices management did you added first and why ??</strong></p>
+<p>As with most home automation programs, we started by supporting X10
+devices, as they are very common, simple, and inexpensive.   After
+that, we add support for digital inputs and outputs and analog inputs
+for things like door monitors, furnace controls, and temperature
+monitoring.</p>
+<p><strong>What advice will you give to the wanna be designers and hobbists facing
+a new project ??</strong></p>
+<p>Make it open sourced.  In the case of Home Automation, there is no way
+that one person, or even a small company, could encompass all the
+possible applications, so it is a perfect fit for open source.  Others
+contribute as they write code to fit there specific needs, which is then
+shared with others.</p>
+<p><strong>In which parts of the code you will advice to the novice Perl
+coder to look at, in order to have a very pleasant learning experience ?</strong></p>
+<p>We have many people learn Perl so they can run MisterHouse<a class="new visualNoPrint" href="http://www.bit-man.com.ar/en/CaFePMMisterHouse/createform?page=MisterHouse" title="create this page">?</a>.  There are
+also quite a few who run MisterHouse<a class="new visualNoPrint" href="http://www.bit-man.com.ar/en/CaFePMMisterHouse/createform?page=MisterHouse" title="create this page">?</a> as a fun way of learning Perl for
+some other use.</p>
+<p>We have a variety of code files listed here: <a href="http://misterhouse.net/examples.html">http://misterhouse.net/examples.html</a></p>
+<p><strong>How can anyone colaborate with MisterHouse<a class="new visualNoPrint" href="http://www.bit-man.com.ar/en/CaFePMMisterHouse/createform?page=MisterHouse" title="create this page">?</a> ??</strong></p>
+<p>We have over 600 members on the mailing list, with almost 300 of them
+listed in our authors log file as having contributed in some way.   Some
+simply post suggestions or find bugs, others will post patches to fix
+bugs or extend functionality, and some will write new applications.   I
+take changes through the mailing list, or emailed directly to me, or via
+CVS at Sourceforge.</p>
+<p><strong>What features you think are missed, and which ones will you add soon ??</strong></p>
+<p>The holy grail of Home Automation is reliable and convenient voice
+recognition.  VR with a good headset in a quiet room works pretty well,
+but not many of us wonder around the house with headsets.</p>
+<p><strong>Being an electrical engineer, how do you think Perl fits in this field
+?? And open source ??</strong></p>
+<p>Many of the problems we face in chip design are either new or are
+unique to a specific chip, so we don't always have an existing
+solution we can use.   We often code up Perl scripts for quick throw
+away solutions.   These programs are very specific to our design
+process or chip, so they are not good candidates for sharing as open
+source.</p>
+<p><strong>Any favorite CPAN module ?</strong></p>
+<p>That would be Bill Birthisel's SerialPort<a class="new visualNoPrint" href="http://www.bit-man.com.ar/en/CaFePMMisterHouse/createform?page=SerialPort" title="create this page">?</a> module.  Thats what enables us
+to talk to serial devices, on both Unix and Windows.</p>
+<p><strong>Which uses of MisterHouse<a class="new visualNoPrint" href="http://www.bit-man.com.ar/en/CaFePMMisterHouse/createform?page=MisterHouse" title="create this page">?</a> surprised you ?? (because of rare platforms
+implementation, stange devices, not intended use, etc.)</strong></p>
+<p>Some examples of MisterHouse<a class="new visualNoPrint" href="http://www.bit-man.com.ar/en/CaFePMMisterHouse/createform?page=MisterHouse" title="create this page">?</a> uses:  MisterCar<a class="new visualNoPrint" href="http://www.bit-man.com.ar/en/CaFePMMisterHouse/createform?page=MisterCar" title="create this page">?</a>, MisterBus<a class="new visualNoPrint" href="http://www.bit-man.com.ar/en/CaFePMMisterHouse/createform?page=MisterBus" title="create this page">?</a>,
+MisterAquarium<a class="new visualNoPrint" href="http://www.bit-man.com.ar/en/CaFePMMisterHouse/createform?page=MisterAquarium" title="create this page">?</a>,  MisterDoorRoom<a class="new visualNoPrint" href="http://www.bit-man.com.ar/en/CaFePMMisterHouse/createform?page=MisterDoorRoom" title="create this page">?</a>.    A group at Fermi Labs uses it as
+MisterLab<a class="new visualNoPrint" href="http://www.bit-man.com.ar/en/CaFePMMisterHouse/createform?page=MisterLab" title="create this page">?</a>, controlling some of their control room displays and giving
+alerts when their anti-matter monitors show problems.   Kind of like a
+computerized Scotty on Start Trek!</p>
+<p><strong>Have you received feedback from the home automation industry in any way
+(comments, business porposals, etc.) ??</strong></p>
+<p>Not too much.   I'm enjoying this as a hobby, so do not have an interest
+in this as a business.</p>
+<p><strong>Do you have any experience (funny or not so) that you had while making
+MisterHouse<a class="new visualNoPrint" href="http://www.bit-man.com.ar/en/CaFePMMisterHouse/createform?page=MisterHouse" title="create this page">?</a>  and that want to share with us ??</strong></p>
+<p>A proud moment for open source authors is when they make their first
+public post to the world announcing their software is available.  When I
+first posted to the UseNet<a class="new visualNoPrint" href="http://www.bit-man.com.ar/en/CaFePMMisterHouse/createform?page=UseNet" title="create this page">?</a> comp.home.automation list, I didn't review my
+spell checker results very carefully, so I didn't notice that it changed
+MisterHouse<a class="new visualNoPrint" href="http://www.bit-man.com.ar/en/CaFePMMisterHouse/createform?page=MisterHouse" title="create this page">?</a> to mysterious.   Mysterious House was not what I had in mind!</p>
+<p><strong>Anything else that you want to tell us and we haven't asked you ??</strong></p>
+<p>You don't need a house to try MisterHouse<a class="new visualNoPrint" href="http://www.bit-man.com.ar/en/CaFePMMisterHouse/createform?page=MisterHouse" title="create this page">?</a>.  We have some guys using in
+the apartments, dorm rooms, fish bowls, cars, and even national science
+labs!</p>
+<p>
+</p>
+
+
+<br>
+<p class="foot">
+<strong>Source:</strong> &nbsp;&nbsp;&nbsp;&nbsp;<strong>URL:</strong> http://www.bit-man.com.ar/en/CaFePMMisterHouse
+</p>
+
+</body></html>

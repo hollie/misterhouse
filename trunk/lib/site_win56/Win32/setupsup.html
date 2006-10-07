@@ -1,0 +1,364 @@
+<HTML>
+<HEAD>
+<TITLE>Win32::Setupsup - implements some functions to automate setups which have no silent mode</TITLE>
+<LINK REV="made" HREF="mailto:">
+</HEAD>
+
+<BODY>
+
+<!-- INDEX BEGIN -->
+
+<UL>
+
+	<LI><A HREF="#NAME">NAME</A></LI>
+	<LI><A HREF="#SYNOPSIS">SYNOPSIS</A></LI>
+	<LI><A HREF="#DESCRIPTION">DESCRIPTION</A></LI>
+	<LI><A HREF="#CONSTANTS">CONSTANTS</A></LI>
+	<LI><A HREF="#FUNCTIONS">FUNCTIONS</A></LI>
+	<UL>
+
+		<LI><A HREF="#NOTE_">NOTE:</A></LI>
+	</UL>
+
+	<LI><A HREF="#GetProcessList_server_proc_">GetProcessList($server, \@proc, \@thread)</A></LI>
+</UL>
+<!-- INDEX END -->
+
+<HR>
+<P>
+<H1><A NAME="NAME">NAME</A></H1>
+<P>
+Win32::Setupsup - implements some functions to automate setups which have
+no silent mode
+
+</P>
+<P>
+<HR>
+<H1><A NAME="SYNOPSIS">SYNOPSIS</A></H1>
+<P>
+<PRE>        use Win32::Setupsup;
+</PRE>
+</P>
+<P>
+<HR>
+<H1><A NAME="DESCRIPTION">DESCRIPTION</A></H1>
+<P>
+This module supports you in automate setup routines. You can get window
+list, window properties and you can send key stroke to windows like VB's
+SendKey.
+
+</P>
+<P>
+<HR>
+<H1><A NAME="CONSTANTS">CONSTANTS</A></H1>
+<P>
+<HR>
+<H1><A NAME="FUNCTIONS">FUNCTIONS</A></H1>
+<P>
+<CODE>SendKeys($window,</CODE> $keystr, $activate, [$timeout])
+<CODE>EnumWindows(\@windows)</CODE> <CODE>EnumChildWindows($window,</CODE>
+\\@childs) <CODE>WaitForWindow($title,</CODE> \$window, $timeout,
+[$refresh]) <CODE>WaitForAnyWindow($title,</CODE> \$window, $timeout,
+[$refresh]) <CODE>WaitForAnyWindowAsynch($title,</CODE> \$thread,
+\@actions, $timeout, [$refresh]) <CODE>WaitForWindowClose($window,</CODE>
+$timeout, [$refresh]) <CODE>GetWindowText($window,</CODE> \$windowtext)
+<CODE>SetWindowText($window,</CODE> $windowtext)
+<CODE>GetDlgItem($window,</CODE> $id, \$item)
+<CODE>SetFocus($window)</CODE> <CODE>GetWindowProperties($window,</CODE>
+@proptoget, \%windowprop) <CODE>SetWindowProperties($window,</CODE>
+\%windowprop) <CODE>AccountToSid($server,</CODE> $account, \$sid)
+<CODE>SidToAccount($server,</CODE> $sid, \$account)
+<CODE>GetVersionInfo($filename,</CODE> \%fileinfo)
+<CODE>GetProcessList(\@proc,</CODE> \@thread)
+<CODE>KillProcess($proc,</CODE> [$exitval, [$systemproc]])
+<CODE>Sleep([$time])</CODE>
+
+</P>
+<P>
+<HR>
+<H2><A NAME="NOTE_">NOTE:</A></H2>
+<P>
+All of the functions return false if they fail. You can call
+Win32::Setupsup::GetLastError() to get more error information. 
+
+</P>
+<P>
+Note: the module defines some own error codes. You cannot call ``net
+helpmsg'' for a description and these errors are currently not exported.
+
+</P>
+<DL>
+<DT><STRONG><A NAME="item_SendKeys">SendKeys($window, $keystr, $activate, [$timeout])</A></STRONG><DD>
+<P>
+Sends some key strokes to a window. <CODE>$window</CODE> must be a valid
+window handle or null. If <CODE>$window</CODE> is not valid the results are
+undefined. <CODE>$keystr</CODE> contains the keys to send. Some special
+keys are defined (see below). They must be enclosed in backslashes (you
+have to write two backslashes in perl). If you send alt, ctrl or shift down
+keys (f.e. \\alt+\\) don't forget the up key (\\alt-\\). If
+<CODE>$activate</CODE> is not null, <CODE>$window</CODE> will be activated
+everytime before a key will be sent. <CODE>$timeout</CODE> is the
+(optional) time between two key strokes. It's useful for debugging.
+
+</P>
+<P>
+special keys: ALT+ alt down ALT- alt up CTRL+ ctrl down CTRL- ctrl up
+SHIFT+ shift down SHIFT- shift up TAB tabulator RET return ESC escape BACK
+backspace DEL delete INS insert HELP help LEFT arrow left RIGHT arrow right
+UP arrow up DN arrow down PGUP page up PGDN page down BEG pos1 END end F1
+function 1 ... F12 function 12 NUM0 0 on the num block ... NUM9 9 on the
+num block NUM* multiply key on the num block NUM+ add key on the num block
+NUM- minus key on the num block NUM/ divide key on the num block
+
+</P>
+<DT><STRONG><A NAME="item_EnumWindows">EnumWindows(\@windows)</A></STRONG><DD>
+<P>
+Enumerates all desktop windows on the screen and returns the handles in the
+<CODE>@windows</CODE> array. <CODE>@windows</CODE> must be an array
+reference.
+
+</P>
+<DT><STRONG><A NAME="item_EnumChildWindows">EnumChildWindows($window, \\@childs)</A></STRONG><DD>
+<P>
+Enumerates all child windows that belong to <CODE>$window</CODE> and
+returns the handles in the <CODE>@childs</CODE> array. <CODE>$window</CODE>
+must be a valid window handle <CODE>@childs</CODE> must be an array
+reference.
+
+</P>
+<DT><STRONG><A NAME="item_WaitForWindow">WaitForWindow($title, \$window, $timeout, [$refresh])</A></STRONG><DD>
+<P>
+Waits for a window title and returns the app. window handle. Search is case
+insensitive. Returns if a window was found or <CODE>$timeout</CODE> elapsed
+(whatever happens earlier). <CODE>$refresh</CODE> is optional but you
+should specify a value (f.e. 100ms). Otherwise the function loops and
+consumes about 70 - 90% cpu time. If <CODE>$timeout</CODE> elapses
+<CODE>GetLastError()</CODE> returns ERROR_TIMEOUT_ELAPSED.
+
+</P>
+<DT><STRONG><A NAME="item_WaitForAnyWindow">WaitForAnyWindow($title, \$window, $timeout, [$refresh])</A></STRONG><DD>
+<P>
+Waits for a window title and returns the app. window handle. Search is case
+insensitive. <CODE>$title</CODE> could be a regular expression. Returns if
+a window was found or <CODE>$timeout</CODE> elapsed (whatever happens
+earlier). <CODE>$refresh</CODE> is optional but you should specify a value
+(f.e. 100ms). Otherwise the function loops and consumes about 70 - 90% cpu
+time. If <CODE>$timeout</CODE> elapses <CODE>GetLastError()</CODE> returns
+ERROR_TIMEOUT_ELAPSED.
+
+</P>
+<DT><STRONG><A NAME="item_WaitForAnyWindowAsynch">WaitForAnyWindowAsynch($title, \$thread, \@actions, $timeout, [$refresh])</A></STRONG><DD>
+<P>
+Creates a thread which waits for a window title. Function returns
+immediatly. If a app. window is catched, all actions defined in
+<CODE>@actions</CODE> will be applied. The thread handle is returned in
+$thread. <CODE>$title</CODE> could be a regular expression. Search is case
+insensitive. No actions are carried out if <CODE>$timeout</CODE> elapesed
+before a window was found. <CODE>$refresh</CODE> is optional but you should
+specify a value (f.e. 100ms). Otherwise the function loops and consumes
+about 70 - 90% cpu time. 
+
+</P>
+<P>
+The following actions are defined:
+
+</P>
+<P>
+keys : sends key strokes to the window close : closes the window (sends a
+WM_CLOSE message) wait : simply waits kill : kills the process the window
+belongs to
+
+</P>
+<DT><STRONG><A NAME="item_WaitForWindowClose">WaitForWindowClose($window, $timeout, [$refresh])</A></STRONG><DD>
+<P>
+Waits until a window will be closed. <CODE>$window</CODE> must be a valid
+window handle. Returns if <CODE>$window</CODE> is closed or
+<CODE>$timeout</CODE> elapsed (whatever happens earlier).
+<CODE>$refresh</CODE> is optional but you should specify a value (f.e.
+100ms). Otherwise the function loops and consumes about 70 - 90% cpu time.
+If <CODE>$timeout</CODE> elapses <CODE>GetLastError()</CODE> returns
+ERROR_TIMEOUT_ELAPSED.
+
+</P>
+<DT><STRONG><A NAME="item_GetWindowText">GetWindowText($window, \$windowtext)</A></STRONG><DD>
+<P>
+Returns the caption of a window. <CODE>$window</CODE> must be a valid
+window handle and <CODE>$windowtext</CODE> a salar reference. There is no
+check if <CODE>$window</CODE> is valid. The function fail if there is not
+enougth memory. <CODE>GetLastError()</CODE> returns
+NOT_ENOUGTH_MEMORY_ERROR.
+
+</P>
+<DT><STRONG><A NAME="item_SetWindowText">SetWindowText($window, $windowtext)</A></STRONG><DD>
+<P>
+Sets the caption of a window. <CODE>$window</CODE> must be a valid window
+handle and <CODE>$windowtext</CODE> a salar value. You can use also
+SetWindowProp.
+
+</P>
+<DT><STRONG><A NAME="item_GetDlgItem">GetDlgItem($window, $id, \$item)</A></STRONG><DD>
+<P>
+Gets the window handle of a dialog item. <CODE>$window</CODE> is the parent
+window and <CODE>$id</CODE> the id. <CODE>$item</CODE> contains the window
+handle if the function succeeds.
+
+</P>
+<DT><STRONG><A NAME="item_SetFocus">SetFocus($window)</A></STRONG><DD>
+<P>
+Sets the focus to $window. It does not activate the window (the foreground
+application will not be changed if <CODE>$windows</CODE> belongs to another
+application).
+
+</P>
+<DT><STRONG><A NAME="item_GetWindowProperties">GetWindowProperties($window, @proptoget, \%windowprop)</A></STRONG><DD>
+<P>
+Gets the properties of a window. Specify all properties you wish in
+@proptoget. See the supported properties below. <CODE>%windowprop</CODE>
+will contain the properties on success. If you specify an unknown property
+<CODE>GetLastError()</CODE> returns UNKNOWN_PROPERTY_ERROR. 
+
+</P>
+<P>
+valid properties are: checked : is window checked (checkboxes only) class :
+window class name classatom : class atom that <CODE>$window</CODE> belongs
+(see RegisterClass in win32 api) classbrush : handle to class background
+brush that <CODE>$window</CODE> belongs classcursor : handle to class
+cursor that <CODE>$window</CODE> belongs classicon : handle to class icon
+that <CODE>$window</CODE> belongs classiconsmall : handle to class small
+icon that <CODE>$window</CODE> belongs classmenu : handle to class menu
+that <CODE>$window</CODE> belongs classmodule : handle to class module that
+<CODE>$window</CODE> belongs classproc : pointer to class procedure that
+<CODE>$window</CODE> belongs classstyle : class style that
+<CODE>$window</CODE> belongs client : $window's client rectangle desktop :
+handle to desktop window dlgproc : pointer to $window's dialog procedure
+(if <CODE>$window</CODE> belongs to a dialog) enabled : is
+<CODE>$window</CODE> enabled or not extstyle : $window's extended style
+focused : is <CODE>$window</CODE> focused or not foreground : is
+<CODE>$window</CODE> the foreground window or not iconic : is
+<CODE>$window</CODE> iconic or not id : $window's id instance : application
+instance that <CODE>$window</CODE> belongs lastactivepopup : handle to the
+last active popup window owned by <CODE>$window</CODE> menu : handle to
+$window's menu next : handle to $window's next window in z order parent :
+handle to $window's parent window prev : handle to $window's previous
+window in z order pid : process id that <CODE>$window</CODE> belongs rect :
+$window's rectangle on the desktop style : $window's style text : $window's
+caption tid : thread id that <CODE>$window</CODE> belongs top : handle to
+$window's top window in z order unicode : is <CODE>$window</CODE> unicoded
+or not valid : is <CODE>$window</CODE> a valid window or not visible : is
+<CODE>$window</CODE> visible or not wndproc : pointer to $window's
+procedure zoomed : is <CODE>$window</CODE> zoomed or not
+
+</P>
+<DT><STRONG><A NAME="item_SetWindowProperties">SetWindowProperties($window, \%windowprop)</A></STRONG><DD>
+<P>
+Sets the properties of a window. Specify all properties you want to set in
+%windowprop. Some properties from GetWindowProperties cannot be set. These
+are:
+
+</P>
+<P>
+class classatom classproc client desktop focused lastactivepopup pid tid
+unicode valid
+
+</P>
+<P>
+If you specify some of them, they are ignored.
+
+</P>
+<DT><STRONG><A NAME="item_AccountToSid">AccountToSid($server, $account, \$sid)</A></STRONG><DD>
+<P>
+Converts an account name to a sid in a textual form (S-1-5-21- ...). The
+command will be executed on server $server. If <CODE>$server</CODE> is
+empty the local machine is used. If you need an account from a specific
+domain or server, you should specify domain\account or server\account.
+Otherwise the account will be resolved from trusted domains too. The first
+try will be made on $server. If it could not be resolved the next try is
+the domain <CODE>$server</CODE> belongs. After that all trusted domains
+will be tried. If you need a well known account (like system or everyone)
+don't specify a server or domain name. Otherwise the function will fail.
+
+</P>
+<DT><STRONG><A NAME="item_SidToAccount">SidToAccount($server, $sid, \$account)</A></STRONG><DD>
+<P>
+Converts a sid in a textual form to an account name. The command will be
+executed on server $server. If <CODE>$server</CODE> is empty the local
+machine is used. 
+
+</P>
+<DT><STRONG><A NAME="item_GetVersionInfo">GetVersionInfo($filename, \%fileinfo)</A></STRONG><DD>
+<P>
+Gets the file information record stored in a file with version information.
+The following information will be retrieved:
+
+</P>
+<P>
+FileVersionMS FileVersionLS ProductVersionMS ProductVersionLS FileFlagsMask
+FileFlags FileOS FileType FileSubtype FileDateMS FileDateLS Language
+Comments CompanyName FileDescription FileVersion InternalName
+LegalCopyright LegalTrademarks OriginalFilename PrivateBuild ProductName
+ProductVersion SpecialBuild
+
+</P>
+<P>
+See also GetFileVersionInfo in Win32-SDK.
+
+</P>
+<DT><STRONG><A NAME="item_GetProcessList">GetProcessList($server, \@proc, \@thread)</A></STRONG><DD>
+<P>
+Gets all process and thread id's running on $server. <CODE>$server</CODE>
+must be a valid machine name or '' if you need data from the local machine.
+<CODE>@proc</CODE> contains the process id's and process names and
+<CODE>@thread</CODE> the thread id's and app. process index the tread
+belongs to. <CODE>@proc</CODE> and <CODE>@thread</CODE> are arrays. Each
+array element is a hash reference. To access the hash values see the
+example GetProcessList below.
+
+</P>
+<DT><STRONG><A NAME="item_KillProcess">KillProcess($proc, [$exitval, [$systemproc]])</A></STRONG><DD>
+<P>
+Kills a process with pid $proc. The process ends with <CODE>$exitval</CODE>
+or 0 if omitted. If <CODE>$systemproc</CODE> is not null you can kill
+system processes too. But you need the app. rigths to do that (debug
+process must be enabled).
+
+</P>
+<DT><STRONG><A NAME="item_Sleep">Sleep([$time])</A></STRONG><DD>
+<P>
+Slepps <CODE>$time</CODE> milliseconds. If <CODE>$time</CODE> is omitted,
+your process sleeps forever.
+
+</P>
+<DT><STRONG><A NAME="item_CaptureMouse">CaptureMouse([$refresh])</A></STRONG><DD>
+<P>
+Captures mouse pointer in the upper left corner. Mouse will be captured
+until UnCaptureMouse is called. Optionally, you can specify a refresh
+value. This means, every <CODE>$refresh</CODE> milliseconds the mouse
+pointer is moved to the upper left corner. Default is 100 ms. 
+
+</P>
+<DT><STRONG><A NAME="item_UnCaptureMouse">UnCaptureMouse([$refresh])</A></STRONG><DD>
+<P>
+Uncaptures a captured mouse pointer.
+
+</P>
+<H1><A NAME="GetProcessList_server_proc_">GetProcessList($server, \@proc, \@thread)</A></H1>
+<P>
+die <CODE>if(!Win32::Setupsup::GetProcessList('',</CODE> \@proc,
+\@threads));
+
+</P>
+<P>
+foreach <CODE>$item</CODE> (@proc) { print ``name: ${$item}{'name'}; pid:
+${$item}{'pid'}\n'';}
+
+</P>
+<P>
+foreach <CODE>$item</CODE> (@threads) { print ``tid: ${$item}{'tid'}; pidx:
+${$item}{'process'}; process: ${$proc[${$item}{'process'}]}{'name'}\n''; }
+
+</P>
+</DL>
+
+</BODY>
+
+</HTML>

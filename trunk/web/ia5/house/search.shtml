@@ -1,0 +1,64 @@
+<html><head><title>MrHouse</title>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target="output">
+<!--#include code="&html_header('Search Menu')" -->
+<table>
+
+<tr>
+<!-- <form action='list' target='output'> -->
+<form action='/bin/command_search.pl' target='output'>
+<td>Search String:</td>
+<td><input align='left' size='25' name='search'></td>
+</form>
+</tr>
+
+<tr>
+<form action='/bin/code_search.pl' target='output'>
+<td>Code search:</td>
+<td><input align='left' size='25' name='search'></td>
+</form>
+</tr>
+
+<tr>
+<form action='/bin/photo_search.pl' target='output'>
+<td>Photos:</td>
+<td><input align='left' size='25' name='search'></td>
+</form>
+</tr>
+
+<tr>
+<!-- This is set by code in mh/code/bruce/phone.pl -->
+<form action='/bin/phone_search.pl' target='output'>
+<td>Phone logs:</td>
+<td><input align='left' size='25' name='search'></td>
+</form>
+</tr>
+
+<tr>
+<form action='set;last_response' target='speech'>
+<td>Type a command:</td>
+<td><input align='left' size='25' name='run_command'></td>
+</form>
+</tr>
+
+<tr>
+<form action='set;last_response' target='speech'>
+<td>Smart command search:</td>
+<td><input align='left' size='25' name='search_command_string'></td>
+</form>
+</tr>
+
+</table>
+</body>
+<script language="javascript">
+<!--
+try{
+  document.forms[0].search.focus();
+  document.forms[0].search.select();
+}
+catch(er){}
+// -->
+</script>
+</html>

@@ -1,0 +1,10 @@
+<html><body>
+<!--#include code="&html_header('My Menu1')" -->
+
+
+<br><a target=speech href="run?what_time_is_it"><img src='/bin/button.pl?Time' border='0'></a>
+<br><a target=speech href="run?what_is_your_normal_speed"><img src='/bin/button.pl?Speed' border='0'></a>
+<br><a target=speech href="run?reload_code"><img src='/bin/button.pl?Reload' border='0'></a>
+
+</body>
+</html>

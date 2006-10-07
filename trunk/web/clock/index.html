@@ -1,0 +1,110 @@
+<HEAD>
+<TITLE>JavaClock</TITLE>
+<SCRIPT LANGUAGE="JavaScript">
+<!-- Original:  Ramandeep Singh (ramandeepji@yahoo.com) -->
+<!-- Web Site:  http://hard-drive.hypermart.net -->
+
+<!-- This script and many more are available free online at -->
+<!-- The JavaScript Source!! http://javascript.internet.com -->
+
+<!-- Begin
+var dn;
+c1 = new Image(); c1.src = "numbers/c1.gif";
+c2 = new Image(); c2.src = "numbers/c2.gif";
+c3 = new Image(); c3.src = "numbers/c3.gif";
+c4 = new Image(); c4.src = "numbers/c4.gif";
+c5 = new Image(); c5.src = "numbers/c5.gif";
+c6 = new Image(); c6.src = "numbers/c6.gif";
+c7 = new Image(); c7.src = "numbers/c7.gif";
+c8 = new Image(); c8.src = "numbers/c8.gif";
+c9 = new Image(); c9.src = "numbers/c9.gif";
+c0 = new Image(); c0.src = "numbers/c0.gif";
+cb = new Image(); cb.src = "numbers/cb.gif";
+cam = new Image(); cam.src = "numbers/cam.gif";
+cpm = new Image(); cpm.src = "numbers/cpm.gif";
+function extract(h,m,s,type) {
+if (!document.images) return;
+if (h <= 9) {
+document.images.a.src = cb.src;
+document.images.b.src = eval("c"+h+".src");
+}
+else {
+document.images.a.src = eval("c"+Math.floor(h/10)+".src");
+document.images.b.src = eval("c"+(h%10)+".src");
+}
+if (m <= 9) {
+document.images.d.src = c0.src;
+document.images.e.src = eval("c"+m+".src");
+}
+else {
+document.images.d.src = eval("c"+Math.floor(m/10)+".src");
+document.images.e.src = eval("c"+(m%10)+".src");
+}
+if (s <= 9) {
+document.g.src = c0.src;
+document.images.h.src = eval("c"+s+".src");
+}
+else {
+document.images.g.src = eval("c"+Math.floor(s/10)+".src");
+document.images.h.src = eval("c"+(s%10)+".src");
+}
+if (dn == "AM") document.j.src = cam.src;
+else document.images.j.src = cpm.src;
+}
+function show3() {
+if (!document.images)
+return;
+var Digital = new Date();
+var hours = Digital.getHours();
+var minutes = Digital.getMinutes();
+var seconds = Digital.getSeconds();
+dn = "AM";
+if ((hours >= 12) && (minutes >= 1) || (hours >= 13)) {
+dn = "PM";
+hours = hours-12;
+}
+if (hours == 0)
+hours = 12;
+extract(hours, minutes, seconds, dn);
+setTimeout("show3()", 1000);
+}
+//  End -->
+</script>
+</HEAD>
+
+<BODY onLoad="show3()" bgcolor="#000000">
+
+
+<table>
+<tr>
+<td><a href='javascript:history.go(-1)'>              <img src='/graphics/1pixel.gif' width='200' height='150' border=0></a></td>
+<td><a href='/'                        target='_top'> <img src='/graphics/1pixel.gif' width='200' height='150' border=0></a></td>
+<td><a href='/ia5/index_menu.shtml'    target='_top'> <img src='/graphics/1pixel.gif' width='200' height='150' border=0></a></td>
+</tr></table>
+
+<center>
+<img height=100 src="numbers/cb.gif" width=72 name=a>
+<img height=100 src="numbers/cb.gif" width=72 name=b>
+<img height=100 src="numbers/colon.gif" width=36 name=c>
+<img height=100 src="numbers/cb.gif" width=72 name=d>
+<img height=100 src="numbers/cb.gif" width=72 name=e>
+<img height=100 src="numbers/colon.gif" width=36 name=f>
+<img height=100 src="numbers/cb.gif" width=72 name=g>
+<img height=100 src="numbers/cb.gif" width=72 name=h>
+<img height=100 src="numbers/cam.gif" width=72 name=j>
+</center>
+
+<table>
+<tr>
+<td><a href='/misc/photos.html' target='_top'> <img src='/graphics/1pixel.gif' width='600' height='150' border=0></a></td>
+</tr></table>
+
+<!-- Ever seen the TV series 24?  :) 
+
+<EMBED src='/data/clock_tick2.wav' autostart=true loop=false volume=10 hidden=true>
+<NOEMBED><BGSOUND src='/data/clock_tick2.wav'></NOEMBED>
+
+-->
+
+</BODY>
+</HTML>

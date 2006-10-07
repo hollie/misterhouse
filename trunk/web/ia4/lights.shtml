@@ -1,0 +1,56 @@
+
+
+<html>
+<meta http-equiv="Refresh" content="30;URL=lights.shtml">
+<title>Main Status</title>
+<body bgcolor=123456 text=lime>
+
+ <br>
+ <table width=480 cellpadding=5 cellspacing=5 columns=4>
+ 
+ <tr>
+ <td bgcolor=silver align=left colspan=4><font face=arial size=4 color=black><b>LIGHTS</b></font></td>
+ </tr>
+ 
+ <tr>
+ <td bgcolor=gray width=15% align=center><!--#include code="&X10Lamp('$office_lamp','big_on','big_off')"--></td>
+ <td bgcolor=gray width=35%><font face=arial size=3 color=black><b>Office Lamp</b>&nbsp;&nbsp;&nbsp;</font>
+ </td>
+ 
+ <td bgcolor=gray width=15% align=center><!--#include code="&X10Lamp('$office_stereo','big_on','big_off')"--></td>
+ <td bgcolor=gray width=35%> <font face=arial size=3 color=black><b>Office Stereo</b>&nbsp;&nbsp;&nbsp;</font></td>
+ </tr>
+ 
+ <tr>
+ <td bgcolor=gray align=center><!--#include code="&X10Lamp('$br_lamp_ron','big_on','big_off')"--></td>
+ <td bgcolor=gray ><font face=arial size=3 color=black><b>Ron's Lamp</b>&nbsp;&nbsp;&nbsp;</font></td>
+ 
+ <td bgcolor=gray align=center><!--#include code="&X10Lamp('$br_lamp_susan','big_on','big_off')"--></td>
+ <td bgcolor=gray><font face=arial size=3 color=black><b>Susan's Lamp</b>&nbsp;&nbsp;&nbsp;</font></td>
+ </tr>
+ 
+ <tr>
+ <td bgcolor=gray align=center><!--#include code="&X10Lamp('$ryans_lamp','big_on','big_off')"--></td>
+ <td bgcolor=gray><font face=arial size=3 color=black><b>Ryan's Lamp</b>&nbsp;&nbsp;&nbsp;</font></td>
+ 
+ <td bgcolor=gray align=center><!--#include code="&X10Lamp('$jacks_lamp','big_on','big_off')"--></td>
+ <td bgcolor=gray><font face=arial size=3 color=black><b>Jack's Lamp</b>&nbsp;&nbsp;&nbsp;</font></td>
+ </tr>
+ 
+ <tr>
+ <td bgcolor=gray align=center><!--#include code="&X10Lamp('$lr_lamps','big_on','big_off')"--></td>
+ <td bgcolor=gray><font face=arial size=3 color=black><b>Living Room</b>&nbsp;&nbsp;&nbsp;</font></td>
+ 
+ <td bgcolor=gray align=center><!--#include code="&X10Lamp('$kitchen_lamp','big_on','big_off')"--></td>
+ <td bgcolor=gray><font face=arial size=3 color=black><b>Kitchen Lamp</b>&nbsp;&nbsp;&nbsp;</font></td>
+ </tr>
+ 
+ <tr>
+ <td bgcolor=gray align=center><!--#include code="&X10Lamp('$floodlights','big_on','big_off')"--></td>
+ <td bgcolor=gray><font face=arial size=3 color=black><b>Outside</b>&nbsp;&nbsp;&nbsp;</font></td>
+ 
+ <td bgcolor=gray align=center><!--#include code="&X10Lamp('$office_fan','big_on','big_off')"--></td>
+ <td bgcolor=gray><font face=arial size=3 color=black><b>Office Fan</b>&nbsp;&nbsp;&nbsp;</font></td>
+ </tr>
+ 
+ </table>

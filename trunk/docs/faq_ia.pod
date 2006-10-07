@@ -1,0 +1,247 @@
+=pod
+
+=head1 Internet Appliances with MisterHouse FAQ
+
+This will try to cover info and tips on using various internet appliances
+like the Epods and Audrey with MisterHouse.
+
+=head1 What is an internet appliance
+
+A broad term used to cover any thing cheaper than a computer that hooks up 
+to an ethernet port.  A couple of examples:
+
+ - Web browsers used as touch screens
+ - Ethernet connected MP3 players
+ - Internet radios
+ 
+
+=head1 What is an epod
+
+An epod is a hacked WinCE webpad. 640x480 color
+touchpad display, 16MB memory, cf and pcmcia slot. I connect mine wirelessly
+using a D-Link card/access point. Epods are selling for about $300 on EBay.
+Check out:
+
+  http://www.geocities.com/epodsfiles/
+  http://www.linux-hacker.net/cgi-bin/UltraBoard/UltraBoard.pl?Action=ShowBoard&Board=EpodsOne
+
+
+=head1 What is an Audrey
+
+In Fall of 2001, the discontinued 3Com Audrey were being liquidated 
+by tigerdirect.com for $90 (originally $500).  With a 640x480 LCD
+touchscreen, it makes for a nice web appliance / touch control pannel.
+
+Here are some helpful links:
+
+ Order: check ebay listings (average cost ~$50 )
+ 
+ Hack:     http://www.audreyhacking.com/
+ Ether:    http://www.ppetru.net/audrey/#ether
+ Faq:      http://www.3rdmoon.com/crusso/audrey/
+ List:     http://www.linux-hacker.net/cgi-bin/UltraBoard/UltraBoard.pl?Action=ShowBoard&Board=3Com_Audrey&Idle
+ OS:       http://www.openqnx.com/
+ MrAudrey: http://mraudrey.net
+
+   features already included in the MrAudrey Image will be denoted with ** in the remainder of this FAQ
+
+=head2 MrAudrey (MisterHouse + Audrey + hacks + ...)
+Pete Flahertys MrAudrey Site contains a compilation of the information and hacks listed in this FAQ.
+ The site has information on just about anything audrey related, and a forum to help with questions.
+ 
+The MrAudrey image was created specifically for use with MisterHouse. Many of the features and hacks on this
+faq are already installed and ready to run.  Additional packages and channel content are availabe through the
+mraudrey package manager.  The image has been designed for flexibility and ease of customization. There are 
+many features on this image that are simply not on any other.
+
+MisterHouse Channel content was the original design focus. Adding all the standard functionality that 
+users were hacking into their images was a natural addition And easy customization and access to essential
+parameters was achieved through the unique package manager and settings pages. Giving the MisterHouse community
+the most unique and functional audrey image around
+
+=head2 Some common hacks
+
+Here are some common/useful hacks (edit these file to these values):
+
+  echo 1 > /config/BROWSER_AllowNewWindow
+  echo 0 > /config/SYSTEM_ScreenSaveSecs  (disable auto-shutdown)
+  ** available through the MrAudrey 'photon' menu
+
+
+To improve color resolution (do this on boot, before browser starts)
+  echo 0 > /config/BROWSER_Use256Colors
+  ** set by default
+
+If you press the Browser button while the browser is already visible, the menu will slide away.
+
+You may want to increase the size on these:
+
+ /config/BROWSER_ImageCacheSizeKB 2048 (Had problems increasing this to 20000)
+ /config/BROWSER_CacheSize        5000 (I changed to 50000) ** MrAudrey default
+
+Here are some instructions to allow turning the screen on/off remotely:
+
+ http://homepage.mac.com/deandavis/audrey/AudreyOnOff.html
+
+Note, the above simply turns the screen off.  Not quite the same as the power button 
+which also disable browser refreshes.
+
+=head2 Remote Audrey browsing and control
+
+Create a HOSTS entry to point to your audrey address (available from the
+About Audrey -> Provile icon on the Audrey Options menu).
+For example, edit c:/WINNT/system32/drivers/etc/hosts
+and add 192.168.0.101 Audrey).
+
+Assuming you have already done the above AudreyOnOff hack, try these urls:
+
+ http://audrey/Channels/.Channel00/.template/index.shtml
+ http://audrey/SystemProfile.shtml
+ http://audrey/cgi-bin/GetSystemValue?kcrontab
+ http://audrey/cgi-bin/GetSystemValue?Timeserver0
+ http://audrey/cgi-bin/SetLEDState?1  (2 blink, 0 off)
+ http://audrey/gpio.shtml?0 (screen off, 3 for on)
+
+
+
+=head2 How to boot Audrey to a mh page
+
+>From Ron Wright from some other site on 10/2001
+** MrAudrey channels are pre configured for MH, and can be set to 
+   start on any available MH page
+
+I has hacking away and realized that the 
+/data/XML/Channels/.countertop/TEMPLATE directory has 
+the default index.shtml that loads up when Audrey 
+boots. So I tried adding a refresh meta tag to this 
+file and rebooted. It worked just as I had hoped it would.
+
+Now it loads the intro screen for a few seconds 
+(5 in my case) and then "refreshes" to open my control 
+panel for the house. Works great and appears to be safe 
+enough for my wife to use now.
+
+Just add this tag to the index.shtml file mentioned 
+above. I added mine just below the first meta tag:
+
+ <meta HTTP-EQUIV="refresh" CONTENT="5;URL=http://192.168.0.1:8080/audrey/audrey.html">
+ ** MrAudrey has a master setting for your MH server, available through a settings page
+
+=head2 How to stop the Audrey from auto-upating
+
+>From Ron Wright from some other site on 10/2001
+
+I have also edited the kcrontab file to keep Audrey from
+trying to update her channels.  I found before doing this,
+everytime she tried an update it was changing the page
+back to default audrey welcome.  Also the initial reason
+for the above change.  This just makes it one better.
+** MrAudrey already has these disabled
+
+Losing kcrontab entries
+
+If you have the root shell hack on the audrey options panel, you can.
+
+1) Get into the shell 
+ cd /config
+ cat kcrontab >kcrontab.sav
+ exit
+
+2) Deselect broadband and all the download times
+
+3) go back to the shell
+ cd /config
+ edit kcrontab.sav to save what you want
+ cp kcrontab.sav kcrontab
+
+All better
+
+BTW My kcrontab looks like this
+
+ -MemDefrag;15;19;*;*;*
+ setitime;23;19;*;*;*
+ maild;/5;*;*;*;*
+
+=head2 How to share files
+
+Assuming a hacked shell like DaveC-Img10-23-01, 
+you can share access Windows shared folders with this command
+** MrAudrey has these and other methods for mounting remote systems
+   and there is a menu entry that can me easily changed to ease this
+
+ /nto/bin/fs-cifs -a //windows_box:ip_address:/share_name /directory user password
+
+For example:
+
+ mkdir /mp3
+ /nto/bin/fs-cifs -a //mp3_server:192.168.0.2:/mp3s /mp3 guest guest
+
+If using DaveC image, you can do this on startup by editing /kojak/remotemount.sh,
+called from /kojak/go
+
+=head2 How to play mp3 files
+
+>From Tony Perrie on 10/2001:
+
+Assuming a hacked shell like DaveC-Img10-23-01.
+** MrAudrey supports this, as well as PhJukebox, and plaympeg_noph methods
+   playmepg_noph has support for the MisterHouse jukebox too
+
+I setup a little shell script to start the photon player:
+
+ export MPEGAUDIOBUFFERSIZE=300000
+ export MPEGAUDIOBUFFERSTARTPERCENT=90
+ export MPEGAUDIOREFILLONUNDERFLOW=YES
+ phplay &
+
+The default priority on fs-cifs and phplay is 19 which is the lowest.
+You'll probably want to up the priority on fs-cifs and to keep the photon player
+from skipping with:
+
+ slay -P 5 fs-cifs
+ slay -P 5 phplay
+
+
+=head2 How to push speech to remote Audreys
+** MrAudrey - installed and enabled by default (in background mode)
+
+There are 2 ways to do remotely play wav files on an Audrey.  One plays a wav file in the foreground by 
+creating a popup window, the other uses playsound_noph to play wav files in the background.  
+Both ways requre you first enable remote control (see 'Remote Audrey browsing and control' above).
+
+To enable the foreground wav playing, add this mh.ini parm (this is the default):
+ 
+ voice_text_address_code = run 'get_url -quiet "http://$address/cgi-bin/SendMessage?M=GOTO_URL&S=$url" /dev/null'
+
+Now simply use the address argument when calling speak or play.  
+For example (substitute in you Audrey ip address(s)):
+
+ speak "address=192.168.0.101,kitchen Hello to the study";
+ play   address => 'study', file => '../sounds/hello_from_bruce.wav';
+ play   address => 'study,kitchen', file => '../sounds/hello_from_bruce.wav';
+
+To install playsound_noph, first download and unzip it from Keith Webb's site:  http://www.planetwebb.com/audrey .
+Note, you do not need to be running qnx.  A normal hacked Audrey works fine.
+
+Next, create this a file called playsound.shtml with these records:
+
+ <html><head><title>Shell</title></head></body>
+ <!--#exec cmd="playsound_noph $QUERY_STRING &" -->
+ </body></html>
+
+Now copy 3 files over to your Audrey(s).  
+Here are the commands I used from my Audrey to copy the files from my windows house c:/temp directory: 
+ 
+ mkdir /house
+ fs-cifs -a //house:192.168.0.2:/c /house guest guest
+ cd /house/temp
+ cp playsound_noph    /nto/photon/bin
+ cp soundfile_noph.so /nto/photon/dll
+ cp playsound.shtml   /data/XML
+
+Finally, add this mh.ini parm:
+ 
+ voice_text_address_code = run 'get_url -quiet "http://$address/playsound.shtml?$url" /dev/null'
+
+And use the speak and play examples from above.
+More examples are in mh/code/bruce/audrey.pl

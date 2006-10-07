@@ -1,0 +1,34 @@
+#
+# Enter the name how you want it pronounced by Mister House.
+#  - use phonetic spelling
+#  - You can point to a specific or wildcarded wave file from your mh/sounds directory.
+#
+# Use either 
+#
+#  Old Format:  Number  Name_or_wav file
+#
+#  New Format:  Number tab Name tab sound_file tab Category
+#    Seperator can be tab can be a comma
+#    You can wildcard either the number or name field
+#    
+
+# Old format examples
+
+507-288-1030 Winters_line1.wav
+507-288-4388 The Winters line 2
+507-253-7009 bruce_ibm*.wav
+2021230002 The White House
+
+
+# New format examples
+
+UNAVAILABLE	*			*		reject
+PRIVATE		*			*		reject
+4141230001	Jason (home)		*		family
+4141230002	Jason (cell)		jason.wav	family
+2621230001	Joe Smith 		*		friend
+*		*MARKET*		*		reject
+*		*MARQUET*		*		reject
+4141230003	MED ALLIANCE    	*		reject
+4801230001	ARIZONA CALL    	*		reject
+5131230001	OHIO CALL       	*		reject

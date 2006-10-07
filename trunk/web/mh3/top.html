@@ -1,0 +1,171 @@
+<html>
+<head>
+
+<LINK REL="STYLESHEET" HREF="/default.css" TYPE="text/css">
+
+<style> 
+  <!-- Use text-decorations none to turn of href links -->
+  .over {font-family: "times new roman"; color: green; text-decoration: none;} 
+  .out  {font-family: "times new roman"; color: blue;  text-decoration: none;} 
+}
+</style> 
+
+<!-- These functions let us layer catetory, item, etc, for a dyamic hover menu -->
+<SCRIPT LANGUAGE="JavaScript">
+
+if (document.layers) {n=1;ie=0};
+if (document.all) {n=0;ie=1};
+
+function layerViz() {
+    if (arguments.length >= 2) {
+        zeAction = layerViz.arguments[0];
+        zeLayer  = layerViz.arguments[1];
+        if (arguments.length == 3)  {
+            zeContext = layerViz.arguments[2] + ".";
+        }else{
+            zeContext = "";
+        }
+    }else{
+        return false;
+    }
+    
+    if (n) {
+        if (eval(zeContext + "document.layers." + zeLayer)) {
+            eval(zeContext + "document." + zeLayer + ".visibility = '" + zeAction + "'");    
+        }
+    }
+    if (ie) {
+        if (zeAction == 'show') zeAction = 'visible';
+        if (zeAction == 'hide') zeAction = 'hidden';
+        if (eval(zeContext + "document.all." + zeLayer)) {
+            eval(zeContext + zeLayer + ".style.visibility = '" + zeAction + "'");
+        }
+    }
+    return true;
+}
+
+function layerVizAll() {
+    if (arguments.length >= 1) {
+        zeAction = layerVizAll.arguments[0];
+        if (arguments.length == 2) {
+            zeContext = layerVizAll.arguments[1] + ".";
+        }else{
+            zeContext = "";
+        }
+    }else{
+        return false;
+    }
+
+    if (n) {
+        for (i=0; i<(eval(zeContext + "document.layers.length")); i++)
+            eval(zeContext + "document.layers[" + i + "].visibility = '" + zeAction + "'");
+    }
+        
+    if (ie) {
+        if (zeAction == 'show') 
+            zeAction = 'visible';
+        if (zeAction == 'hide')
+            zeAction = 'hidden';
+        eval ("content_div =" + zeContext + "document.all.tags('DIV')");
+        for (i=0; i<content_div.length; i++)
+            eval("content_div[" + i +"].style.visibility = '" + zeAction + "'");
+    }
+    return true;
+}
+
+</SCRIPT> 
+</head>
+
+<body bgcolor="#FFFFFF">
+
+<BASE TARGET='control'>
+
+<form action="list">
+
+  <table border="0" cellspacing="0">
+    <tr>
+
+<!--- These hover-hide-show items would be beter off without HREF, but netscape
+      does not work without href :(  -->
+
+      <td width="80" align="center">
+        <A HREF="main.shtml" target="main" class='out'
+        onmouseOver="layerVizAll('hide','top.main');layerViz('show','divCateg','top.main');this.className='over'"
+        onMouseOut="this.className='out'">
+        <h4>Category</h4></a>
+      </td>
+
+      <td width="55" align="center">
+        <A HREF="main.shtml" target="main" class='out'
+        onmouseOver="layerVizAll('hide','top.main');layerViz('show','divItems','top.main');this.className='over';"
+        onMouseOut="this.className='out'">
+        <h4>Items</h4></a>
+      </td>
+
+      <td width="55" align="center">
+        <A HREF="main.shtml" target="main" class='out'
+        onmouseOver="layerVizAll('hide','top.main');layerViz('show','divGroups','top.main');this.className='over';"
+        onMouseOut="this.className='out'">
+        <h4>Groups</h4></a>
+      </td>
+
+
+      <td width="60" align="center"> 
+        <A HREF="main.shtml" target="main" class='out'
+        onmouseOver="layerVizAll('hide','top.main');layerViz('show','divWidgets','top.main');this.className='over';"
+        onMouseOut="this.className='out'">
+        <h4>Widgets</h4></a>
+      </td>
+
+
+      <td width="50" align="center"> 
+        <A HREF="main.shtml" target="main" class='out'
+        onmouseOver="layerVizAll('hide','top.main');layerViz('show','divOther','top.main');this.className='over';"
+        onMouseOut="this.className='out'">
+        <h4>Other</h4></a>
+      </td>
+
+      <td width="50" align="center"> 
+        <A HREF="main.shtml" target="main" class='out'
+        onmouseOver="layerVizAll('hide','top.main');layerViz('show','divAbout','top.main');this.className='over';"
+        onMouseOut="this.className='out'">
+        <h4>About</h4></a>
+      </td>
+
+      <td width="60" align="center">
+        <a HREF="/speech" target="speech"
+        onmouseOver="this.className='over'" onMouseOut="this.className='default'">
+        <h4>Speech</h4></a>
+      </td>
+
+      <td width="40" align="center">
+        <a HREF="/print_log" target="speech"
+        onmouseOver="this.className='over'" onMouseOut="this.className='default'">
+        <h4>Log</h4></a>
+      </td>
+
+      <td width="30" align="center">
+        <a href=/tv target="_BLANK"
+        onmouseOver="this.className='over'" onMouseOut="this.className='default'">
+        <h4>TV</h4></a>
+      </td>
+
+      <td width="55" align="center">
+        <a HREF="/SET_PASSWORD"
+        onmouseOver="this.className='over'" onMouseOut="this.className='default'">
+        <h4>Login</h4></a>
+      </td>
+
+      <td width="185" hight="20" align="left">
+        <h4 align='right'> Search: &nbsp; <input align='left' SIZE="10" NAME="search"></h4>
+      </td>
+
+      <td>
+    
+    </tr>
+  </table>
+</form>
+</body>
+</html>
+
+

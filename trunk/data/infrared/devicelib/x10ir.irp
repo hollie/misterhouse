@@ -1,0 +1,7 @@
+Name=X10 4040 IR Protocol
+Protocol=X10IR
+Frequency=40000
+Time Base=650
+One=7,-7
+Zero=2,-13
+Form=[8 -8],f:5,~f:5,[23 -8]

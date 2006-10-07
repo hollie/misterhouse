@@ -1,0 +1,25 @@
+<html>
+<head>
+<title>Test MisterHouse Web Functions</title>
+<head>
+
+<LINK REL="STYLESHEET" HREF="/default.css" TYPE="text/css">
+
+<body>
+
+<p>Test web functions
+
+<br><a href=/list:last_response?Group>Test list group</a>
+<br><a href=/list:referer?Timers>Test Timers referer</a>
+<br><a href=/list:last_response?Timers>Test Timers last_response</a>
+
+<li><a href="/RUN:last_response_10?read_the_house_tagline">test</a>
+
+<p>
+
+<!--#include file="/list?Generic_Item"-->
+
+<p><a href="/RUN:referer?Reload_code">reload code</a>
+
+
+</body>

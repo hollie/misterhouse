@@ -1,0 +1,211 @@
+#!/usr/bin/perl
+#---------------------------------------------------------------------------
+#  File:
+#      sun_time
+#  Description:
+#      See help text below
+#  Author:
+#      Bruce Winter  bruce@misterhouse.net  http://misterhouse.net
+#  Latest version:
+#      http://misterhouse.net/mh/bin/sun_time
+#
+#  Results can be checked with: http://aa.usno.navy.mil/AA/data/docs/RS_OneYear.html
+#
+#  Change log:
+#
+#   The origional code was from a program by William C. Bell that was
+#   published in Astronomy Magazine in April, 1984.  Chris Spratt
+#   implemented this code in a BASIC program called SUNNY.BAS.
+#   In 1992 I ported it to a C program called sunrs and in 1997 I ported
+#   it again to perl.
+#
+#   01/09/97  Ported to perl.
+#   04/02/97  Fixed the A -> $A typo.  Sunset was a bit early ... 6:40 AM :)
+#   04/09/97  Add dst check.
+#
+#---------------------------------------------------------------------------
+
+use strict;
+
+my ($Pgm_Path, $Pgm_Name);
+BEGIN {
+    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
+    eval "use lib '$Pgm_Path/../lib/site'";  # Use BEGIN eval to keep perl2exe happy
+}
+
+use Getopt::Long;
+my %parms;
+if (!&GetOptions(\%parms, "h", "help", "return",
+         "latitude=s", "longitude=s", "no_dst",
+         "time_zone=s", "day_of_year=s") or @ARGV != 0 or $parms{h} or $parms{help}) { 
+    print<<eof;
+
+  $Pgm_Name calculates sunrise and sunset times            
+
+  Usage:
+
+  $Pgm_Name [options]
+
+  Where options is any of the following:
+    -latitude  xxx    Default is for Rochester, MN 
+    -longitue  xxx 
+    -time_zone xxx
+    -day_of_year xxx  Default is current day
+    -no_dst  Do NOT adjust for Daylight Savings time
+
+  Example:
+    $Pgm_Name -latitude 44.01 -longitude 92.28 -time_zone 6
+    $Pgm_Name -day_of_year 300
+
+eof
+
+  exit;
+}
+
+                                # Globals
+my ($A, $B, $C, $D, $E, $F, $G, $H, $I, $J, $K, $L, $M, $N, $O, $P, $Q, $R, $S, $T, $U, $V, $yday);
+
+&setup_suntime;
+my($sunrise) = &compute_time("rise");
+my($sunset)  = &compute_time("set");
+my $result = "Sunrise=$sunrise Sunset=$sunset";
+
+print "$result\n";
+return $result if caller;       # So we can get results from a 'do' from mh.bat
+
+sub setup_suntime {
+    $parms{latitude} = 44 +  4.9360/60 unless defined $parms{latitude};
+    $parms{longitude}= -(92 + 30.2246/60) unless defined $parms{longitude};
+    $parms{time_zone} = -6 unless defined $parms{time_zone};
+
+    $A = 1.5708;
+    $B = 3.14159;
+    $C = 4.71239;
+    $D = 6.28319;     
+    $E = 0.0174533 * $parms{latitude};
+    $F = 0.0174533 * $parms{longitude};
+    $G = 0.261799  * $parms{time_zone};
+
+    ($yday) = (localtime(time))[7];
+    $yday++;    # localtime jan 1 = 0
+    $yday = $parms{day_of_year} if defined $parms{day_of_year};
+
+# To get time of astronomical twilight, use R = -.309017
+# To get time of     nautical twilight, use R = -.207912
+# To get time of        civil twilight, use R = -.104528
+# To get time of     sunrise or sunset, use R = -.0145439
+#   $R = -.309017;
+    $R = -.0145439;
+}
+
+sub compute_time {
+    my($rise_set) = @_;
+    $J = ($rise_set eq "rise") ? $A : $C;
+#   $K = $yday + (($J + $F) / $D);
+    $K = $yday + (($J - $F) / $D);
+    $L = ($K * .017202) - .0574039;   # Solar Mean Anomoly
+    $M = $L + .0334405 * sin($L);     # Solar True Longitude
+    $M += 4.93289 + (3.49066E-04) * sin(2 * $L);
+    $M = &normalize($M);              # Quadrant Determination
+    $M += 4.84814E-06 if ($M / $A) - int($M / $A) == 0;
+    $P = sin($M) / cos($M);           # Solar Right Ascension
+    $P = atan2(.91746 * $P, 1);
+    if ($M > $C) {                    # Quadrant Adjustment
+        $P += $D;
+    }
+    elsif ($M > $A) {
+        $P += $B;
+    }
+    $Q = .39782 * sin($M);            # Solar Declination 
+    $Q = $Q / sqrt(-$Q * $Q + 1);     # This is how the original author wrote it!
+    $Q = atan2($Q, 1);
+
+    $S = $R - (sin($Q) * sin($E));
+    $S = $S / (cos($Q) * cos($E));
+    return(0, 0) if abs($S) > 1;      # Null phenomenon
+    $S = $S / sqrt(-$S * $S + 1);
+    $S = $A - atan2($S, 1);
+    $S = $D - $S if $rise_set eq "rise";
+    $T = $S + $P - 0.0172028 * $K - 1.73364; # Local apparent time
+#   $U = $T + $F;                     # Universal timer
+    $U = $T - $F;                     # Universal timer
+#   $V = $U - $G;                     # Wall clock time
+    $V = $U + $G;                     # Wall clock time
+    $V = &normalize($V);
+    $V = $V * 3.81972;
+    my $hour = int($V);
+    my $min  = int(($V - $hour) * 60);
+    my $sec  = int(($V - $hour - $min/60) * 3600);
+    $hour = &adjust_dst($hour) unless $parms{no_dst};
+    my $time = sprintf("%d:%02d:%02d", $hour ,$min, $sec);
+
+    BEGIN { eval "use lib '$Pgm_Path/../lib'" } # Use BEGIN eval to keep perl2exe happy
+    require 'handy_utilities.pl';      # Has time_to_ampm
+    print "db t=$time\n";
+    return(&main::time_to_ampm($time));
+}
+           
+sub normalize{
+    my($Z) = @_;
+    while ($Z < 0)   {$Z = $Z + $D}
+    while ($Z >= $D) {$Z = $Z - $D}
+    return $Z;
+}
+
+sub adjust_dst {
+    my($hour_in) = @_;
+                                # Note: jan -> month=0   sun -> wday=0
+                                # First Sunday in April, Last in October
+    my($sec, $min, $hour, $mday, $month, $year, $wday) = localtime(time);
+    $hour_in++ if (($month > 3   and $month < 9) or
+                   ($month == 3  and ($mday - $wday > 0)) or
+                   ($month == 9 and ($mday - $wday < 25)));
+    return $hour_in;
+}
+           
+
+__END__
+
+#
+# $Log: sun_time,v $
+# Revision 1.14  2001/08/12 04:02:57  winter
+# - 2.57 update
+#
+# Revision 1.13  2001/06/27 03:45:11  winter
+# - 2.54 release
+#
+# Revision 1.12  2001/02/24 23:18:40  winter
+# - 2.45 release
+#
+# Revision 1.11  2000/08/06 21:56:43  winter
+# - See 2.24 release notes.
+#
+# Revision 1.10  2000/01/27 13:31:51  winter
+# - update version number
+#
+# Revision 1.9  1999/09/12 16:56:18  winter
+# *** empty log message ***
+#
+# Revision 1.8  1999/03/21 17:39:37  winter
+# - email change
+#
+# Revision 1.7  1999/03/12 04:36:30  winter
+# - add pointer to url to check with
+#
+# Revision 1.6  1999/02/08 00:36:21  winter
+# - use eval use lib, so we can call with mh.exe
+#
+# Revision 1.5  1999/02/04 14:23:10  winter
+# - add my to $hour
+#
+# Revision 1.4  1999/01/23 23:10:42  winter
+# - break out of .bat file for linux use.  untabify
+#
+# Revision 1.3  1998/12/07 14:41:07  winter
+# - add return so we can do from mh
+#
+# Revision 1.2  1998/11/11 14:36:22  winter
+# - add seconds, rather than round up minutes, to avoid the '60 minute' problem
+#
+#

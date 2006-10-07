@@ -1,0 +1,70 @@
+<html><body>
+<base target ="mp3_output">
+<table width="100%" border="0" >
+<tr>
+<tr align=center>
+<tr align=center>
+
+<form action='/bin/mp3_search.pl'  target='mp3_output'>
+
+<td align=left><b>Search:</b>
+<input align='left' size='15' name='search' onChange='form.submit()'></td>
+</form>
+
+
+<td align=center>
+<a href='/bin/mp3_search.pl?playlists'  target='mp3_output'><b>All Playlists</b></a>
+</td>
+
+
+<td align=center>
+<a href='/bin/mp3_search.pl?search=.'  target='mp3_output'><b>All Songs</b></a>
+</td>
+
+
+<td align=center>
+<a href='/bin/mp3_search.pl?artists'  target='mp3_output'><b>All Artists</b></a>
+</td>
+
+
+<td align=center>
+<a href='/bin/mp3_search.pl?albums'  target='mp3_output'><b>All Albums</b></a>
+</td>
+
+
+<td align=center>
+<a href='/bin/mp3_search.pl?years'  target='mp3_output'><b>All Years</b></a>
+</td>
+
+
+<td align=center>
+<a href='/bin/mp3_search.pl?genres'  target='mp3_output'><b>All Genres</b></a>
+</td>
+
+
+<td align=center>
+<a href='/bin/mp3_search.pl?stations'  target='mp3_output'><b>Internet Radio</b></a>
+</td>
+
+
+</tr><tr>
+
+<td colspan=100>
+<table width=100%><tr>
+
+<td align=center>
+<a href='RUN?Build_the_mp3_database'  target='invisible'>Rebuild Database</a>
+</td>
+
+<td align=center>
+<a href='/misc/mp3Rip.pl'  target='mp3_output'>Rip a CD with mp3Rip</a>
+</td>
+
+</tr></table></td>
+
+
+
+</table>
+</center>
+</body>
+</html>

@@ -1,0 +1,15 @@
+# This file will be read and updated by web script /bin/code_select.pl.
+# It lists the files selected from the code/common directory.
+# This is the default list.
+
+benchmarks.pl
+menu.pl
+mh_control.pl
+mh_sound.pl
+mhsend_server.pl
+mh_release.pl
+organizer.pl
+tk_eye.pl
+tk_frames.pl
+tk_widgets.pl
+eliza_server.pl

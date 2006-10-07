@@ -1,0 +1,10 @@
+<html>
+<head>
+<title>Flight Status</title>
+<!-- #include code="&insert_keyboard_style" -->
+</head>
+<body>
+<h1>Flight Status</h1>
+<!-- #include file="/bin/flight_status.pl" -->
+</body>
+</html>

@@ -1,0 +1,52 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<script>
+<!--
+setTimeout("parent.location.href='/bin/photos.pl'",30000);
+
+function MM_preloadImages() { //v3.0
+  var d=document; if(d.images){ if(!d.MM_p) d.MM_p=new Array();
+    var i,j=d.MM_p.length,a=MM_preloadImages.arguments; for(i=0; i<a.length; i++)
+    if (a[i].indexOf("#")!=0){ d.MM_p[j]=new Image; d.MM_p[j++].src=a[i];}}
+}
+
+function MM_swapImgRestore() { //v3.0
+  var i,x,a=document.MM_sr; for(i=0;a&&i<a.length&&(x=a[i])&&x.oSrc;i++) x.src=x.oSrc;
+}
+
+function MM_findObj(n, d) { //v4.0
+  var p,i,x;  if(!d) d=document; if((p=n.indexOf("?"))>0&&parent.frames.length) {
+    d=parent.frames[n.substring(p+1)].document; n=n.substring(0,p);}
+  if(!(x=d[n])&&d.all) x=d.all[n]; for (i=0;!x&&i<d.forms.length;i++) x=d.forms[i][n];
+  for(i=0;!x&&d.layers&&i<d.layers.length;i++) x=MM_findObj(n,d.layers[i].document);
+  if(!x && document.getElementById) x=document.getElementById(n); return x;
+}
+
+function MM_swapImage() { //v3.0
+  var i,j=0,x,a=MM_swapImage.arguments; document.MM_sr=new Array; for(i=0;i<(a.length-2);i+=3)
+   if ((x=MM_findObj(a[i]))!=null){document.MM_sr[j++]=x; if(!x.oSrc) x.oSrc=x.src; x.src=a[i+2];}
+}
+//-->
+</script>
+</head>
+
+<body onLoad="MM_preloadImages('graphics/btn_back2.gif','graphics/btn_reload2.gif','graphics/btn_next2.gif','graphics/btn_main2.gif')" background="graphics/background_01.jpg">
+<table width=625><tr>
+    <td align=center> <a href="/bin/photos.pl" target='_parent'><img src="graphics/home1.gif" border="0" name="Image1"></a> 
+      <a href="javascript:parent.bottom.history.go(-1)" onMouseOver="MM_swapImage('Image2','','graphics/btn_back2.gif',1)" onMouseOut="MM_swapImgRestore()">
+      <img src="graphics/btn_back1.gif" border="0" name="Image2" width="96" height="36">
+      </a>
+      <a href="javascript:parent.bottom.location.reload()" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image3','','graphics/btn_reload2.gif',1)">
+      <img src="graphics/btn_reload1.gif" border="0" name="Image3" width="96" height="36">
+      </a>
+      <a href="javascript:parent.bottom.history.go(1)" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image4','','graphics/btn_next2.gif',1)">
+      <img src="graphics/btn_next1.gif" border="0" name="Image4" width="96" height="36">
+      </a>
+      <a href="index.html" target="_parent" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image61','','graphics/btn_main2.gif',1)">
+      <img src="graphics/btn_main1.gif" border="0" name="Image61" width="96" height="36">
+      </a>
+    </td>
+  </tr></table>
+</body>
+</html>

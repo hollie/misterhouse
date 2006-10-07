@@ -1,0 +1,175 @@
+Acknowledgement: 
+ The following document is an edited abstract taken from the reference manual for the 
+GENIRDB program developed by Barry V. Gordon and with the author's permission. 
+This program uses the notation described in the reference manual to specify IR 
+protocols and subsequently generate these protocols for several IR emitting devices.  
+The program and the full reference manual is available at Barry's web site barry@the-
+gordons.net.
+
+
+Protocol Definition Control Commands
+
+PROTOCOL	
+Example: Protocol=Sony20
+ 
+This command provides the name of the protocol.  It is not case sensitive.  
+
+MODULATION
+Example: Modulation=PPM
+
+	This command is used to state the type of modulation in the IR protocol.  The 
+default is "PWM" or Pulse Width Modulation.  The allowable values are PWM or  
+PPM (Bi-Phase).
+
+
+FIRST BIT                                          
+Example: First Bit=LSB
+
+This command is used to set the transmission order of bits in the protocol the 
+default is LSB (Least Significant bit first).  The allowable options are LSB and 
+MSB.  This directive applies to the entire message.  If a sub-field width 
+specification in a form is preceded with a minus sign, then that sub-field will have 
+its bits sent in the reverse order of the rest of the message.  Binary numbers will 
+be transmitted Least Significant Bit first unless the protocol directs otherwise
+
+
+TIME BASE	
+Example: Time Base=600
+ 
+It represents the basic unit of time in microseconds that all other time 
+measurements are a multiple of.  All timing references are relative to this value.  
+If the value for the Time base is 0, or the command is missing, then time in all 
+other commands is taken in absolute terms in microseconds. This value is an 
+integer.
+
+ONE		
+Example: One=600, -600 or One=1, -1
+ 
+This command provides the on time and off time of a burst pattern.. If "Bit Time" 
+is 0 (default case), then the time is specified in microseconds, other wise it is 
+specified as a multiple of the "Bit Time".  The value of this and other similar 
+quantities are not restricted to integers
+
+	[Note: Each bit is represented by two time periods, T1 and T2.  These two time 
+periods make up one clock cycle. The first number is the time for time period T1, 
+and the second number is the time for time period T2. 
+
+ A positive value represents Light or Modulation ON, a negative value represents 
+Light or Modulation OFF. In a standard Pulse Width Modulation code (PWM) 
+where the information is carried in either the on time or the off time, Period T1 
+(the first number) will normally be on (+); and period T2 (the second number) 
+will normally be off (-). A ONE and a ZERO will have the same sense(+ in T1, - 
+in T2). 
+
+ In a Bi-phase code, the sense of a ONE and a ZERO are different.  That is, if a 
+ONE is represented by light ON (+) followed by light OFF (-), then a zero will be 
+light OFF (-) followed by light ON (+) , or vice versa.]  
+
+ZERO		
+Example:  Zero=1200, -600 or zero=2, -1
+ 
+This command is identical in format as the "ONE" command value field.  It 
+represents the burst pattern on and off times for a zero.
+
+.
+ 
+FREQUENCY	
+Example: Frequency=40000
+ 
+This command states the carrier frequency of the IR signal in cycles per second 
+(Hertz). 
+
+REPEAT	
+Example: REPEAT=2
+ 
+Some protocols require repetition of the IR burst pattern for reliable recognition.  
+Sony codes are an example of this.  The Repeat count only applies to the "One 
+Time" field.  It makes no sense in a "Repeat" field.  The IR burst pattern is 
+produced repeated the stated number of times.
+
+FORM 
+Example: Form= [16 -8],D:8,S:8,F:8,~F:8,[1 -78];[16 -4 1 -173]   that is NEC1
+                 ;[16 -8],D:8,S:8,F:8,~F:8,[1 -78]                           that is NEC2
+ 
+The form string is the template used to generate the entire pattern in the canonical 
+form.  At the highest level a form string consists of two fields separated by a 
+semicolon (S1;S2). String S1 is used for the case where a single form is needed.  
+String S2 is used where a second form might be needed as in some remotes (e.g. 
+JVC) that have a basic form for the primary command, plus a secondary form for 
+the command to repeat the primary command. If the device requires only a 
+"repeat form" (the form after the semicolon, it should be provided with the 
+leading semicolon.
+
+vn:wn Sub-fields
+Example: F:8 or D:6 or 2:8 or ~D:8, or [1 –8]
+
+A single form string (e.g. S1 or S2) consists of sub-fields separated by commas  
+(S1=v1:w1, v2:w2, v3:w3…vn:wn).  Each sub-field consists two parts separated by a 
+colon (vn:wn), the first part represents the Value to be encoded.  The second part 
+represents the number of bits, or Width, to be used for the encoding of the value.  
+
+A value sub-field (vn)  may be a named entity using a DEFINE statement, or a 
+fixed numeric quantity. Named entities are restricted to case insensitive single 
+letters (A-Z).  Numeric quantities are unsigned integers expressed in decimal or 
+Hex using 0Xnnnn to represent hex notation. The field may be preceded by a tilde 
+(~) to indicate that the compliment of that value is to be encoded.
+
+The width sub-field (wn) is an integer representing the number of bits to be used 
+to encode the value. If a sub-field width specification in a form is preceded with a 
+minus sign, then that sub-field will have its bits sent in the reverse order of the 
+rest of the message
+
+
+Raw data sub-fields:
+A sub-field of the form [xxxx –yyyy aaaa –bbbb …] represents a string of half 
+bursts (either an on period or an off period)  An On period is always a value >0 
+and an Off period is always a value <0.  Note that it is possible to have an off 
+period precede or follow an on period, and in the case of a pulse position 
+modulation (PPM) such as RC5 to have two successive half bursts of the same 
+sign. The quantities may be symbols which are defined by DEFINE Statements at 
+which time they are unsigned and the current value of the variable determines the 
+sign. 
+
+There is a special notation of the form [^zzzzzz ] where zzzzzz represents the 
+total time that the message should last in microseconds.  The system will compute 
+the message time in microseconds and subtract it from this value.  The difference 
+will be set as the current or next off half burst.  This notation is now used to 
+represent prefix (lead-in) and suffix (lead-out) values
+
+The system adjusts the numeric values as follows.  If the numeric value is less 
+than the defined Time Base, it is multiplied by the Time Base to produce the value 
+in microseconds.  If the value is equal to or greater than the defined Time Base it 
+is assumed to be in microseconds and left alone.
+
+
+
+
+
+DEFINE	
+Example: DEFINE=A as 5 
+Example: DEFINE B=A^D
+ 
+This command is used to provide constants or computed values for the sub-fields of a 
+FORM..  The word "DEFAULT" may be used as a synonym for "DEFINE".   The format 
+of the Define/Default directive is very forgiving.  The following forms are accepted:
+
+DEFINE A as B          DEFINE A=B           DEFINE=A as B          DEFINE = A=B
+
+The DEFINE Directive may be used to form equations according to the following rules:
+
+Equations follow standard arithmetic notation. All symbolic names are restricted to single 
+letters. A symbolic name may be referenced as an entity in the whole (e.g. "F"), or as a 
+sub-span of the structure by enumerating the bits which make up the span; e.g., F(0..3) 
+would be the 4 least significant bits of F. The operators implemented are the set 
+"+(addition),  -(subtraction),  /(Integer Division),  *(multiplication),  @(exponentiation), 
+~(negation),  ^(xor), |(or), and &(and).  Parenthesis may be used in the equation with no 
+restrictions and standard arithmetic meaning. The equation is evaluated as a standard 
+arithmetic precedence grammar.
+
+The value assigned to a variable may be instantiated within the protocol file using the 
+DEFINE directive (e.g. DEFINE= A as 32), or may be defined within a component 
+device file as either a Device code or as a Key/Function code.  The Protocol file defines 
+by default two symbols D and F to be used as the Device Code and the Function Code 
+respectively.  
+
+

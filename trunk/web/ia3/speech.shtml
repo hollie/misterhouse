@@ -1,0 +1,12 @@
+<html>
+<head>
+<link REL="STYLESHEET" HREF="/epods/default.css" TYPE="text/css">
+</head>
+<body>
+
+<BASE TARGET='control'>
+
+<!--#include file="speech"-->
+
+</body>
+</html>

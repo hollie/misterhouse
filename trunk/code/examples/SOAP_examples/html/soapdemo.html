@@ -1,0 +1,80 @@
+<HTML>
+<HEAD>
+	<script type="text/javascript" src="scripts/prototype.js"></script>
+	<script type="text/javascript" src="scripts/ws.js"></script>
+	<script type="text/javascript">
+		function GetObjectTypes() {
+  			var call = new WS.Call('/bin/soapcgi.pl'); 
+  			var nsuri = 'urn:mhsoap';
+  			var qn_op = new WS.QName('ListObjectTypes',nsuri);
+  			var qn_op_resp = new WS.QName('ListObjectTypesResponse',nsuri); 
+  			call.invoke_rpc(qn_op, new Array(), null, WriteResults);
+		}
+	
+		function WriteResults(call, envelope){
+			var results = envelope.get_body().get_all_children()[0].get_all_children()[0].get_all_children();
+			var objtypes = $('object_types');
+			var item = '';
+			appendToSelect(objtypes, '', 'Choose a type');
+			for (var i=0;i<results.length;i++){
+				item = results[i].get_value();
+				appendToSelect(objtypes, item, item);
+			}
+		}
+		
+		function GetObjectsByType() {
+			var objtype = $('object_types').value;
+			var call = new WS.Call('/bin/soapcgi.pl');
+			var nsuri = 'urn:mhsoap';
+  			var qn_op = new WS.QName('ListObjectsByType',nsuri);
+  			var qn_op_resp = new WS.QName('ListObjectsByTypeResponse',nsuri);  
+			call.soapAction = 'urn:mhsoap#ListObjectsByType';
+  			call.invoke_rpc(qn_op, new Array({name:'object_type', value:objtype}), null, WriteObjectsList);
+		}
+
+		function WriteObjectsList(call, envelope){
+			var results = envelope.get_body().get_all_children()[0].get_all_children()[0].get_all_children();
+			var oObjectList = $('mhobjects');
+
+			clearSelectList(oObjectList);
+			for (var i=0;i<results.length;i++){
+				appendToSelect(oObjectList, '', results[i].get_value());
+			}
+		}
+			
+		function appendToSelect(select, value, content){
+			var opt = document.createElement("option");
+			var item = document.createTextNode(content);
+			opt.value = value;
+			opt.appendChild(item);
+			select.appendChild(opt);
+		}
+
+		function clearSelectList(select) {
+			while (select.length > 0) {
+				select.remove(0);
+			}
+		}
+	
+	</script>
+	
+</HEAD>
+<BODY onload="GetObjectTypes()">
+	<p style="width:600px"> 
+		This is a very simple html page to test the web services interface
+		for misterhouse.  It doesn't really do much but if you pick one of the
+		object types in the dropdown it will list all of the objects of that type
+		in the list box.  It does not have to refresh the entire page to do so.  
+		&nbsp;&nbsp;Although this page is so small you probably wouldn't notice a lot
+		of difference if it did.  This page uses a couple of javascript libraries to 
+		encapsulate much of the AJAX stuff.  They make life much easier.
+	</p>
+	<select style="width:300px" id="object_types" onchange="GetObjectsByType()">
+	</select>
+	<p>
+	<select style="width:300px" size="15" id="mhobjects">
+		<option> Select a type from the drop down</option>
+	</select>
+	
+</BODY>
+</HTML>

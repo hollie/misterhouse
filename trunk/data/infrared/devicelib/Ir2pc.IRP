@@ -1,0 +1,7 @@
+Name=Custom Remotes NECIR2PC Protocol
+Protocol=IR2PC
+Frequency=42500
+Time Base=550
+One=+1,-3
+Zero=+1,-1
+Form=[16 -8],~d:8,d:8,~f:8,f:8,[1 -65]

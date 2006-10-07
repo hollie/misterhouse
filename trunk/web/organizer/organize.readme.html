@@ -1,0 +1,318 @@
+<HTML>
+<HEAD>
+<META NAME="GENERATOR" Content="Microsoft Visual Studio 6.0">
+<TITLE>VerySimple Organizer ReadMe</TITLE>
+</HEAD>
+<BODY>
+
+<table bgcolor='#bbbbbb' border='0' width="100%"><tr><td><FONT face=Arial size=3><b>VerySimple Organizer 2.0: Calendar, Contacts, 
+Task List and Inbox</b></FONT></td></tr></table>
+
+<P>
+<IMG alt="VerySimple Organizer: Calendar View" src  ="images/screenshot.gif" align=right border=0 > 
+
+<FONT face=Arial size=2>VerySimple 
+Organizer is a set of four scripts: <STRONG>calendar.pl</STRONG>, 
+<STRONG>contacts.pl</STRONG>, <STRONG>tasks.pl</STRONG>
+and new in version 2.0 <STRONG>inbox.pl</STRONG>
+      .&nbsp;&nbsp;Together they&nbsp;can be used as 
+a standard personal or workgroup organizer.&nbsp; The functionality is similar to online services such 
+as MSN and Yahoo,&nbsp;and windows applications like MS Outlook or Lotus Notes.</FONT></P>
+<P><FONT face=Arial size=2>     These scripts are&nbsp;much simpler than 
+any of the above mentioned programs.&nbsp; However, they can still be very 
+useful when you need to share&nbsp;information with a small group of 
+people.&nbsp; You&nbsp;could use it for a social club, work team or whatever.</FONT></P>
+<P><FONT face=Arial size=2> All three scripts are easy to&nbsp;install and 
+customize.&nbsp; Color and layout settings&nbsp;can be changed using&nbsp;the 
+browser-based setup program.&nbsp; You can also add, remove or change the field 
+names to suit your needs.</FONT></P>
+<P><FONT face=Arial size=2><STRONG><U>Limitations:</U></STRONG></FONT></P>
+<P><FONT face=Arial size=2>If you plan to use this script in a multi-user environment,
+you will want to enable file locking.  This is done in the setup screen.  The
+setup field is called UseFileLocking and you will want to change the value from
+a 0 to a 1
+</FONT></P>
+<P><FONT face=Arial size=2>The 
+datafile size may be a consideration.&nbsp; I have 
+used these programs to edit datafiles of over 15,000 records without a noticable 
+slowdown.&nbsp; Depending on your server and the number of users, you may 
+have different results.&nbsp; If you do use this software for something 
+important, I'd recommend creating backup copies&nbsp;of your datafiles 
+regularly.</FONT></P>
+<P><FONT face=Arial size=2><STRONG><U>System 
+Requirements</U></STRONG></FONT></P>
+<UL>
+  <LI><FONT face=Arial size=2>UNIX or Windows 95/98/NT/2000 Web Server </FONT></LI>
+  <LI><FONT face=Arial size=2>Perl 5.0 or higher </FONT></LI>
+  <LI><FONT face=Arial size=2>Perl Modules Required: </FONT></LI>
+  <UL>
+    <LI><FONT face=Arial size=2>CGI </FONT></LI>
+    <LI><FONT face=Arial size=2>vsDB (included w/ scripts)</FONT></LI>
+    <LI><FONT face=Arial size=2>vsLock (included w/scripts)</FONT></LI>
+    </ul>
+<li><FONT face=Arial size=2>Additional Modules needed to use inbox.pl</FONT></li>    
+    <ul><LI><FONT face=Arial size=2>Crypt::RC4 </FONT></LI>
+    <LI><FONT face=Arial size=2>Date::Format </FONT></LI>
+    <LI><FONT face=Arial size=2>Mail::Pop3Client </FONT></LI>
+    <LI><FONT face=Arial size=2>MIME::Parser -or- MIME::Tools </FONT></LI>
+    <LI><FONT face=Arial size=2>vsEmail (included w/scripts)</FONT></LI>
+	</UL>
+    </UL>
+<P><FONT face=Arial size=2>The scripts will not run, displaying a 500 Server 
+Error if you have an outdated version of Perl installed. If you have a current 
+version of Perl, but are missing some modules, the scripts will tell you which 
+modules are missing. In general, your system admin will need to install Perl and 
+the required modules. If you administrate your own server, you can download Perl 
+and all required modules from </FONT><A href="http://www.cpan.org/"><FONT 
+face=Arial size=2>http://www.cpan.org/</FONT></A><FONT face=Arial size=2> or 
+</FONT><A href="http://www.activestate.com/"><FONT face=Arial 
+size=2>http://www.activestate.com/</FONT></A><FONT face=Arial size=2> 
+</FONT></P>
+<P><FONT face=Arial><FONT size=2><STRONG><U>Technical Support</U></STRONG> 
+</FONT></FONT></P>
+<P><FONT face=Arial size=2>Technical support for VerySimple scripts is provided 
+through the VerySimple support forum at </FONT><A 
+href="http://www.verysimple.com/support/"><FONT face=Arial 
+size=2>http://www.verysimple.com/support/</FONT></A><FONT face=Arial size=2> If 
+you have questions or problems, you may find it already answered there. If it is 
+not answered, you can post a question and receive e-mail when an answer is 
+posted. Because VerySimple is mostly the spare-time work of one person, there is 
+no company to call or e-mail for support. VerySimple software depends upon the 
+support of it's users. Since this software is offered for free, please consider 
+visiting the support forum and contributing your knowledge.</FONT></P>
+<P><FONT face=Arial><FONT size=2><B>About 500 Server Errors</B>: Before you post 
+a message or inquire about a 500 server error, you will need more information. A 
+500 server error is not enough information to troubleshoot your problem. It 
+basically means that the web server has no idea what went wrong, so it didn't 
+display the page. To see what the problem is, you need to see what the 
+<I>real</I>           
+    error message is. There are two ways to find the 
+real error message: check the server error logs, or run the script 
+from the command line.&nbsp; The location of your server error 
+logs depends on your server configuration. </FONT></FONT></P>
+<P><FONT face=Arial><FONT size=2><STRONG><U>UNIX Installation</U></STRONG> 
+</FONT></FONT></P>
+<OL>
+  <LI><FONT face=Arial size=2>  Unzip organize.zip 
+  using your preferred&nbsp;unarchiving program. </FONT>
+  <LI><FONT face=Arial size=2>You will need to know the 
+  location of Perl on your server.&nbsp; The scripts are already configured to 
+  look for Perl in /usr/local/bin/perl.&nbsp; If this is not where Perl is 
+  located on your server, then you will need to edit the top line of each of the 
+  four scripts to specify the correct location. </FONT>
+  <LI><FONT face=Arial size=2>Transfer 
+  all of the files to your web server in a directory that allows cgi-scripts to be executed.&nbsp; (ask your 
+  server administrator where to save them&nbsp;if you do not understand what this 
+  means).&nbsp; Be sure to transfer the "data" directory as is with 
+  all files inside it. </FONT>
+  <LI><FONT face=Arial size=2>The following files need to 
+  be executable by the web browser: calendar.pl, contacts.pl, tasks.pl and 
+  setup.pl.&nbsp; If you have telnet access, you may do a chmod 705 on these 
+  files.&nbsp; If you only have FTP access, check your FTP documentation to see 
+  if you can change the file permissions. </FONT>
+  <LI><FONT face=Arial size=2>The 
+  "data" directory and all files inside it must be 
+  readable/writable by the web server account.&nbsp; If you 
+  have telnet access, you may do a chmod 
+  707 on the directory and chmod 606 on the files.&nbsp; If you only have FTP 
+  access, check your FTP documentation to see if you can change the file 
+  permissions. </FONT>
+  <LI><FONT face=Arial size=2>   Open 
+  your browser to http://www.yoursite/cgi-bin/calendar.pl (or wherever 
+  you saved the files).&nbsp; The files should now be running properly.&nbsp; 
+  Try to open tasks.pl and contacts.pl as well.</FONT></LI></OL>
+<P><FONT face=Arial><FONT size=2><STRONG><U>Window Installation</U></STRONG> 
+</FONT></FONT></P>
+<OL>
+  <LI><FONT face=Arial size=2>  Unzip organize.zip 
+  using your preferred&nbsp;unarchiving program. </FONT>
+  <LI><FONT face=Arial size=2>Transfer 
+  all of the files to your web server in a directory that allows cgi-scripts to be executed.&nbsp; (ask your 
+  server administrator where to save them&nbsp;if you do not understand what this 
+  means).&nbsp; Be sure to transfer the "data" directory as is with 
+  all files inside it. </FONT>
+  <LI><FONT face=Arial size=2>The 
+  "data" directory and all files inside it 
+  must be readable/writable by the web server account.&nbsp; If 
+  you have direct access to the server, just make sure 
+  that the web server account has write permission for this directory and all 
+  files inside.&nbsp; If you use a virtual server, check to see if there is a 
+  browser-based control panel that allows you to change file permissions.&nbsp; 
+  If all else fails, check with your server administrator. </FONT>
+  <LI><FONT face=Arial size=2>   Open 
+  your browser to http://www.yoursite/cgi-bin/calendar.pl (or wherever 
+  you saved the files).&nbsp; The files should now be running properly.&nbsp; Try to open tasks.pl and contacts.pl as 
+well.</FONT></LI></OL>
+<P><FONT face=Arial size=2><STRONG><U>Configuring and Customizing The 
+Scripts</U></STRONG></FONT></P>
+<P><FONT face=Arial size=2>Each of the 
+three scripts can be configured through your browser.&nbsp; They get their 
+configuration settings from the files calendar.cfg,contacts.cfg 
+and&nbsp;tasks.cfg.&nbsp; These files are simply tab-delimited files containing 
+the settings.&nbsp; You could edit them using a spreadsheet program such as MS 
+Excel, or even a text editor such as NotePad.&nbsp; However, the program 
+<STRONG>setup.pl</STRONG>         
+          
+      
+           
+             
+     was also included along with the 
+other scripts.&nbsp; This program can be used to edit the 
+configuration&nbsp;files easily&nbsp;though your browser.</FONT></P>
+<P><FONT face=Arial size=2>When you open setup.pl in your browser, you'll see a 
+link to each of the three configuration files.&nbsp; They all have similar 
+settings having to do with colors, the script title, etc.&nbsp; The fields are 
+fairly self explainatory and you can play with them to see how they effect the 
+look of the scripts.</FONT></P>
+<P><FONT face=Arial size=2>These fields below affect the functionality of the 
+scripts, so you will want to be more careful when editing them:</FONT></P>
+<P><FONT face=Arial><FONT size=2><STRONG>FileName:</STRONG> This is the file that is used for 
+storing the data.&nbsp; This file must be readable/writeable.&nbsp; The script 
+will look for this file relative to the directory in which it is 
+installed.&nbsp; So, it is not necessary to have the datafile in the same 
+directory, however, you will have to use a relative path (ex: 
+../../datafiles/tasks.tab).</FONT></FONT></P>
+<P><FONT face=Arial><FONT size=2><STRONG>Delimiter:</STRONG> This is the delimiter character that is 
+used for the datafile.&nbsp; By default all scripts use a tab character.&nbsp; 
+If you have an existing datafile that you want to use that uses a different 
+delimiter character, you can change it here in setup.&nbsp; It is recommended 
+that you do not change this field.</FONT></FONT></P>
+<P><FONT face=Arial><FONT size=2><STRONG>ShowFields:</STRONG>      Contacts.pl 
+and tasks.pl have a "table view" and a "detail view".&nbsp; The table 
+view displays a few fields for&nbsp;all of the records, while the detail view shows 
+all fields for only one record.&nbsp; You can customize which fields will show 
+on the table view by specifying the fieldnames here.&nbsp; Separate fieldnames 
+with a comma&nbsp;(no spaces).</FONT></FONT></P>
+<P><FONT face=Arial size=2><STRONG>UseFileLocking:</STRONG> Enter a 1 or a 0 
+here if you enable or disable file locking.&nbsp; File locking prevents problems 
+when more than one person is accessing a file at the same time.&nbsp; If you 
+have more than one person using the scripts at once, it is recommended that you 
+enable file locking.&nbsp; If you do this, the directory in which the .tab files 
+are located must be writable by the script.</FONT></P>
+
+<P><FONT face=Arial size=2>
+<STRONG><U>Special Setup For Inbox:</U></STRONG></P>
+<p>
+The first thing to mention about inbox.pl is that this is a BETA version and it
+does not function all that well.  I'm including it just because it completes what
+you would normally expect from an organizer type software.  This is my first
+stab at an email client, and to be honest, I don't have major plans to do much
+with it because it requires a bit of specialized expertise to make a good email client and
+I'm just not that interested in it!  My plan is to find a better email client that is
+already written and bundle it with organizer.  If you have an email client that
+you would like to share, please contact me.
+<p>
+With that said, the inbox script relies on several Perl modules to function correctly.
+It is likely that you will recieve an error about missing modules when you first try
+to run it.  Check the system requirements section above to see what modules you
+need.
+<p>
+Once you have the modules required, you can configure inbox using the setup utility
+as all the other scripts.  You need to set PopServer, PopUserId in order to read
+your mail.  If you plan to send messages, then PopEmail and either SmtpServer or SendmailPath
+will need to be configured as well.  The EncryptKey field is the encryption key used to encrypt your password
+cookie file, so it is not stored as plain-text on your machine.  This can be any random word.
+The TempDir is a read/write directory on your server that the app can use to create temp files.
+
+</FONT>
+
+
+<P><FONT face=Arial size=2><STRONG><U>Advanced Customizing (Altering the 
+database fields):</U></STRONG></FONT></P>
+<P><FONT face=Arial size=2>All three of the organizer scripts were written to track 
+all of the information that you require.&nbsp; It may turn out that you need 
+to store additional information about a task, such as the last updated date, 
+progress status, or whatever.&nbsp; I</FONT><FONT face=Arial size=2>f you want to add an 
+additional field, or remove an existing one, all you have to do is open the datafile using 
+a spreadsheet or text editor program.&nbsp; The first line of the file are all of 
+the fieldnames.&nbsp; They are separated by a tab character.&nbsp; You can delete existing 
+fields, or add new ones by simply deleting or adding another 
+field name separated by tab characters.</FONT></P>
+<P><FONT face=Arial size=2>As long as you do not delete the fields labeled "ID", 
+"COMPLETED"&nbsp;or "DATE" you can make any changes that you like to the 
+columns.&nbsp; You can add or remove columns as you require.&nbsp; Keep in mind 
+that you cannot change the number of fields without also updating the 
+data.&nbsp; For that reason it is best if you make any customizations before you 
+enter any data into the system.&nbsp; Otherwise you will have to open the 
+datafile using&nbsp;a spreadsheet program and then export it.</FONT></P><FONT face=Arial size=2>
+<P><FONT face=Arial size=2><STRONG><U>Security 
+Considerations:</U></STRONG></FONT></P>
+<P><FONT face=Arial size=2>The organizer scripts have no built-in 
+security.&nbsp; If you are installing the script on a public server, it is 
+recommended that you use whatever security mechanisms are available through the 
+server.&nbsp; Unix/Apache normally controls security through .htaccess files and 
+a password file.&nbsp; Windows/IIS Servers use the IIS Management Console, or 
+the NTFS permissions.&nbsp; If you are on a virtual host, they may provide a 
+web-based utility for this purpose.</FONT></P>
+<P>Password protecting the entire installation directory is sufficient if you 
+are the only person using the script, or you know everyone who will be using the 
+script.&nbsp; For extra security, to prevent people from&nbsp;downloading your 
+datafiles, it is recommended that you put further security on the "data" 
+subdirectory so that it cannot be browsed.&nbsp; The data directory comes with 
+an .htaccess file that will prevent people from accessing those file if you are 
+on an Apache server.</P></FONT>
+<P><FONT face=Arial size=2><STRONG><U>Troubleshooting:</U></STRONG></FONT></P>
+<P><FONT face=Arial><FONT size=2><STRONG>Error: Can't call method "Open" without a package or object reference 
+at ...</STRONG> - This error occurs for one of three reasons.&nbsp; 1. 
+The datafile was not found.&nbsp; 2. The datafile is not readable or 3. The 
+datafile is not writable.&nbsp; If you only get this error only when you try to 
+add or update a record, then 3 is the reason.&nbsp; The file is not 
+writable.&nbsp; If you get this error when simply trying to look at a record, or 
+open the script, then you'll know it's either 1 or 2.&nbsp; Double check that 
+the file is where it should be, and that the web browser has permission to read 
+it.</FONT></FONT>
+</P>
+<P><FONT face=Arial size=2><STRONG>The script stalls for several seconds, then gives a 
+warning&nbsp;about&nbsp;locking the file:</STRONG> This happens when the 
+directory in which the .tab files are located is not writable by the 
+web&nbsp;server account.&nbsp; The file-locking mechanism creates a "lock" 
+file&nbsp;in the directory, so write permission on the file alone is not sufficient.&nbsp; 
+You must allow write permission&nbsp;for the&nbsp;entire directory.&nbsp; 
+If you are unable to do this, then you&nbsp;can still use the script, 
+however file locking cannot be used.&nbsp; You can enable/disable&nbsp;file-locking in Setup.</FONT>&nbsp;</P>
+
+<P><FONT face=Arial size=2><STRONG>The script produces no output, or writes only half
+of the page:</STRONG> different servers respond differently to the Perl buffering feature.
+You can experiment with this by editing this line in each script: <b>$| = 1;</b>  This is commented
+out by default, but you can remove the comment to enable buffering.  Try this both ways
+to see what works best on your server.
+</FONT>&nbsp;</P>
+
+
+<P><FONT face=Arial size=2>Visit the VerySimple Support 
+forum at </FONT>      <A 
+href="http://www.verysimple.com/support/"><FONT face=Arial 
+size=2>http://www.verysimple.com/support/</FONT></A><FONT face=Arial size=2> for 
+more information.</FONT> 
+  </P>
+<P><FONT face=Arial size=2><STRONG><U>Version History</U></STRONG></FONT></P>
+<P><FONT face=Arial size=2>         
+             
+            (see the 
+version history comments within each script for specific details)</FONT></P>
+<P><FONT face=Arial size=2>2.0 - 02/15/02 - Added inbox.pl to the suite.
+Moved all image files into sub-directory "images" to allow easier management.&nbsp; Fixed 
+FNF error that people were having in all scripts.  Better error handling and reporting in
+all scripts.  Updated vsDB module to fix various bugs.</FONT></P>
+<P><FONT face=Arial size=2>1.6 - 10/02/01 - Moved all .cfg and .tab files into 
+sub-directory "data" to allow easier security management.&nbsp; Fixed 
+various&nbsp;inconsistencies with Show All and Sorting in combination with the 
+Next/Previous Page links.&nbsp; Added Show/Hide Details and Event Links&nbsp;to 
+Calendar.&nbsp; Minor asthetic changes to the navigation links and 
+buttons.</FONT></P>
+<P><FONT face=Arial size=2>1.5 - 8/22/01 - Added file locking.&nbsp; Fixed note 
+field in task manager.&nbsp; Fixed bug with blank note field in task manager, 
+fixed problem with line breaks in note fields, fixed Show All link in contact 
+manager, fixed page count problem when records are filtered.</FONT></P>
+<P><FONT face=Arial size=2>1.4 - Original release</FONT></P>
+
+<p><FONT face=Arial size=2></FONT></p><FONT face=Arial 
+size=2><hr>
+</FONT>
+
+<P><FONT face=Arial size=1>© 2002, </FONT>  <A HREF="http://www.verysimple.com/"><FONT face=Arial 
+size=1>VerySimple.com</FONT></A></P>
+<P>&nbsp;</P>
+
+</BODY>
+</HTML>

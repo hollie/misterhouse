@@ -1,0 +1,76 @@
+#!/usr/bin/perl
+
+use strict;
+
+my ($Pgm_Path, $Pgm_Name);
+BEGIN {
+    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'";  # Use BEGIN eval to keep perl2exe happy
+}
+
+my %parms;
+use Getopt::Long;
+if (!&GetOptions(\%parms, 'h', 'help',
+                 'user=s', 'password=s', 'server=s', 'account=s', 'from=s', 'to=s', 'subject=s',
+                 'mime=s', 'text=s', 'file=s', 'filename=s') or
+    @ARGV or ($parms{h} or $parms{help})) {
+    print<<eof;
+
+    $Pgm_Name sends email.  You may want to call this as a background process
+    if you see the mh &net_mail_send function causes mh to pause.
+
+  Usage:
+    $Pgm_Name -option value -option value ...
+
+    Where -option can be any of the following
+        server      Default is mh.ini parm net_mail_ACCOUNT_server or
+                                      parm net_mail_ACCOUNT_server_send
+
+        from        Default is mh.ini parm net_mail_ACCOUNT_address
+        to          Default is mh.ini parm net_mail_ACCOUNT_address
+                    This can be a comma or semicolon delimited list of addresses
+
+        account     This is the ACCOUNT field used in finding the above parms.
+                    It defaults to the mh.ini parm net_mail_send_account.
+
+        subject     Default is 'Email from Mister House'
+        text        Body of the message
+
+        file        File with the body of the message or a file whose
+                    contents you want attached to the note.
+        filename    Name to give file attachement.  Defaults to file parm.
+
+        mime        Set to the mime type (used if a file is attached).
+                    Current recognized types are txt,pl,zip,bin,exe,jpg,gif,png, and html.
+                    If not specified, the extention of the file parm is used.
+                    Use bin for an arbitary binary file.
+
+  Example:
+    send_email -text "Test email"
+
+    send_email -account Bruce -to "winter\@misterhouse.net" -text "hi there"
+
+    send_email -to "winter\@misterhouse.net,santa\@claus.net" -text "hi ho"
+
+    send_email -subject "test a gif file attachment" -file ..\web\graphics\goofy.gif
+
+eof
+    exit;
+}
+
+require 'handy_utilities.pl';      # For read_mh_opts
+require 'handy_net_utilities.pl';  # For net_ftp
+
+                                # Read default mh.ini parms
+use vars '%config_parms';
+&read_mh_opts(\%config_parms, $Pgm_Path);
+
+&net_mail_send(%parms);
+
+#
+# $Log: send_email,v $
+# Revision 1.3  2004/02/01 19:24:18  winter
+#  - 2.87 release
+#
+#

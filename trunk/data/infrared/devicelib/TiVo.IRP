@@ -1,0 +1,8 @@
+Name=TiVo Personal TV Protocol
+Protocol=TIVO
+Frequency=38000
+Time Base=563               ' should really be 562.5
+One=1,-3
+Zero=1,-1
+Form=[16 -8],12421:16,d:12,f:4,[1 ^108000 16 -8 1 -47925]
+repeat=1

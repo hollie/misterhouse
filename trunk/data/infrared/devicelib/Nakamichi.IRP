@@ -1,0 +1,7 @@
+Name=Nakamichi Prodocol
+Protocol=Nakamichi
+Frequency=40000
+Time Base=500
+One=1,-3
+Zero=1,-1
+Form=[17 -9],d:16,f:8,~f:8,[1 -45];[17 -9 1 -45]

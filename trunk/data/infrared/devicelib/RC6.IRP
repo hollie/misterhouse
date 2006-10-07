@@ -1,0 +1,10 @@
+Name=RC6 Test Protocol
+Protocol=RC6
+Modulation=PPM
+Frequency=36000
+First Bit=MSB
+Time Base=890
+One=-1,+1
+Zero=+1,-1
+Form=C:2,0:1,D:5,F:6,[113778];C:2,1:1,D:5,F:6,[113778]
+'Inter message=113778

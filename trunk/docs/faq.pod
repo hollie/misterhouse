@@ -1,0 +1,2051 @@
+=pod
+
+
+=head1 1: MisterHouse operational questions
+
+
+=head2 1.1: What OSes can it run on?
+
+It has been tested on Windows 95, 98, NT 4.0, and 2K.  On Unix, it has been run on
+Linux, AIX, and Sun.
+
+In theory, any OS that runs perl should be able to run mh.  In practice, some platforms
+will likely have strange Serial Interfaces (e.g. Mac?), so the Serial IO related
+function would take some work.
+
+=head2 1.2: How can I make it run faster and use less memory?
+
+On my Celron 400 Mhz computer running Windows 98, using 60 code files with 6000 lines of code,
+mh takes 10% the cpu, running at 9 passes per second and using about 30 MB of memory.
+
+If you are happy with the Web interface and don't need the Tk interface, turn it off
+by editing the Tk mh.ini parm or run:
+
+   mh -tk 0
+
+If you want the tk window, but don't use the Command/Items/Group pull down menus, try:
+
+   mh -tk_comands 0 -tk_items 0 -tk_groups 0
+
+You can turn off the tk 'eye' that bounces back and forth by deleting the tk_eye.pl code file.
+
+You can speed up / slow down mh, using more/less cpu, by mh.ini sleep_time parm.
+
+Here are some memory stats:
+
+  Linux
+    10 Meg   <- mh -tk 0 mh_control.pl (run just one code file)
+    12 Meg   <- mh -tk 0               (run all the default code)
+    17 Meg   <- mh                     (run all the default code with tk gui on)
+
+  Windows
+    18 Meg   <- mh -tk 0 mh_control.pl (run just one code file)
+    20 Meg   <- mh -tk 0               (run all the default code)
+    27 Meg   <- mh                     (run all the default code with tk gui on)
+
+
+
+=head2 1.3: How can I easily upgrade to the latest version of mh?
+
+Point your mh.ini code_dir, data_dir, and html_dir parms to somplace other than your mh path.
+Then you should be able to rename your old mh directory and unzip the new one in its place without loosing
+anything.  Also keep your mh.private.ini somewhere else (see next question).
+
+=head2 1.4: How does mh.ini work?
+
+All the entries in mh.ini are read on mh Startup and on a Reload.  They are stored
+in the %config_parms array.  So, for example, if you added:
+
+  myparm1=a b c
+
+Then, mh would set $config_parms{myparm1} = 'a b c';
+
+These parms also defined what are legal startup values, so if you want to try
+a different value, instead of editing your mh.ini, you can run:
+
+  mh -myparm1 'd e f'
+
+Rather then edit the default mh.ini file, the best approach is to copy just
+the parms you want to change to your own .ini file (e.g. mh.private.ini), then
+set the environmental variable mh_parms to point where you keep that file
+(see the header of mh/bin/mh.ini for more detail).
+
+While the %config_parms array IS refreshed on a mh Reload, some parms are only used
+on mh startup (e.g. http_port), so will only be reloaded when you re-start mh.
+
+=head2 1.5: Can I run run mh in a 'fast debug mode'?
+
+Funny you should ask :)  Check out the time_start, time_stop, and time_increment parms
+in the mh.ini file.  Here are some examples:
+
+   mh -time_start 0 -time_stop 24 -tk 0 -voice_text 0
+   mh -time_start "6 AM" -time_stop "11 PM"  -time_increment 1
+   mh -time_start "5/14 7:10" -time_stop "5/15 10 PM" -time_increment 300
+
+
+=head2 1.6: How are the X10 and Serial Items implemented, indpendent of the platform?
+
+This answer is authored by Bill Birthisel, author of the SerialPort and CommPort modules.
+
+The user works with an X10_Item which reflects physical hardware and
+the state of that hardware. The user "loop" code deals with the state and
+conditions which alter it. This code is independent of OS and specific to
+mh.
+
+X10_Items talk to Serial_Items which implement a software protocol
+required by the model and type of the actual hardware. The Serial_Items
+can use protocol translator modules such as CM11.pm, HomeBase.pm,
+and CM17.pm. But the output is platform-independent serial commands
+to the next layer. The protocol translator modules are publicly available
+outside mh and may be used by code other than Serial_Items. These modules will
+eventually be on CPAN. The code is still independent of OS.
+Other Serial_Item types, including "generic" read/write ports, also exist.
+
+Win32::SerialPort.pm and Device::SerialPort.pm are CPAN modules which
+actually implement the serial command interface. Device::SerialPort is a
+clone of its Win32 cousin. These modules handle high-level OS issues
+including device names, configuration files, and validation of port
+settings.
+
+Each also calls a CPAN module to handle low-level interfacing to the OS
+and the serial driver: Win32API::CommPort.pm or POSIX.pm (you guessed
+correctly ;-)
+
+
+=head2 1.7: mh seems way too complicated.  How can I run something simple?
+
+Copy mh\code\test\test_x10.pl into your own code dir (e.g. c:\mh_code).  Then run:
+
+  mh -code_dir c:\mh_code
+
+You can then use http://localhost:8080 for control.  This will also run all the
+code in mh/code/common.  To run JUST a specific code member(s), specify
+it on the command line.  For example:
+
+  mh test_x10.pl
+
+
+
+=head2 1.8: Is there a way I can have direct X10 control with a simple perl script?
+
+If all you want to do is control X10 devices with a cron job or from your own cgi scripts,
+running mh is probably overkill.  You can send X10 commands using either the ActiveHome
+interface (CM11, available from http://www.x10.com/automation/x10_ck11a_d.htm )
+or the cheaper Firecracker interface (CM17, available from http://www.x10.com/automation/firecracker_d.htm )
+using the modules and documentation found in mh/lib/site/ControlX10 or download them from CPAN.
+Examples can be found in mh/lib/site/test_cm11.pl and test_cm17.pl.
+
+
+
+=head2 1.9: Can I send mh commands from other programs?
+
+You can send mh commands (Voice_Cmd text strings) from other programs in many ways:
+
+- Write commands to the file specified in the mh.ini xcmd_file parm.  By default this
+is mh/house_cmd.txt. See mh/bin/house and mh/bin/house.bat for examples.
+
+- Use mh/bin/mhsend to send commands via sockets (can be over the internet).  If you have
+run mh/bin/set_password, the mhsend -password parm is required.   Some examples:
+
+  mh/bin/mhsend -host ip.A -run "All Lights On"
+  mhsend -p password -run "turn living room light on"
+
+Where ip.A is computer A's ip address (or name if you have a HOST file setup
+to alias a name to an ip address).  mhsend is a stand alone perl script,
+so you do not need mh running there (although it will not hurt).
+The code that allows this is in mh/code/common/mhsend_server.pl.
+An example of mh code to act as a client to different mh box is in mh/code/examples/test_server2.pl
+
+- You can also control mh remotely via email (see faq question 'Can do I send mh comands via email?'),
+telnet sessions (if running mh/code/common/telent.pl), and via the built in web server.  An example url
+for the web server is:
+
+  http://192.168.1.10:8080/RUN;last_response?turn_living_room_light_on
+
+- If you are runing IM client (if running code file internet_im.pl)
+like AOL AIM, MSN, or Jabber, you can any voice command to
+MisterHouse if you give Misterhouse its own account to logon with.
+
+
+
+=head2 1.11: How can I debug a problem?
+
+Lots of debug errata can be controled with the mh -debug switch.  Most of this code is probably
+meaningful only if you dig into the source code, so most people probably will not use
+it unless you are generating debug to send to the author.  To create a log file with debug in it,
+run:
+
+  mh -log debug.log -debug xyz
+
+Where xyz can be any of the following:
+
+  x10
+  serial
+  socket
+  startup
+  homebase
+  misc
+  http
+  port_name of socket port
+
+You can also stack debug flags, using ; as a separator.  fro example:
+
+  mh -debug "serial;x10"
+
+
+=head2 1.12: How can I debug time event problem?
+
+One way is to create a code member that contains just the event you are trying to debug, then run mh on
+just that one member.  For example, create a member called \temp\test_time.pl with this code:
+
+  print "min=$Minute\n" if $New_Minute;
+  print "hour=$Hour\n"  if $New_Hour;
+  print "debug1 it is now $Time_Now\n" if time_now "11:59 PM";
+  print "debug2 it is now $Time_Now\n" if time_now "23:59";
+  print "debug3 it is now $Time_Now\n" if time_now "12:00 AM";
+  print "debug4 it is now $Time_Now\n" if time_now "00:00";
+
+
+Then run mh using these parameters:
+
+  mh -code_dir \temp -tk 0 -time_start '12/15 11:58 pm' -time_start '12/16 12:01 am'
+
+Note, you can run this test mh quickly without stoping your normal mh.
+
+=head2 1.13: What are the advantages/disadvantages to running the compiled versions of mh?
+
+Advantages:
+
+=over
+
+=item *
+
+You don't need the latest version of perl installed
+
+=item *
+
+You don't have to install additional perl modules
+
+=back
+
+Disadvantages:
+
+=over
+
+=item *
+
+For some reason, starting mh with the compiled versions is slower.  On my windows box, it is 10 seconds -vs- 20 seconds.
+
+=item *
+
+You can apply quick patches to mh, -vs- downloading a larger, less frequently updated mh.exe file.
+
+=back
+
+The memory and cpu used, once mh is started, is the same.
+
+
+=head2 1.14: How does mh read and use the user code in code_dir
+
+Each time mh is started or a Reload is done, mh will re-read all the .pl code members
+in the code_dir directory (this is a mh.ini parm)
+and the file data_dir/mh_temp.user_code is created.
+All of the objects and global variables (see FAQ question 2.4), are put at top
+of this file, and everything else is put in seperate subroutines, one for each file read.
+A &loop_code subroutine is also created (at the very bottom of mh_temp.user_code), that
+calls each member subroutine.
+
+After creating this file, mh runs the perl eval function on its contents.  This re-creates all the objects,
+global variables, and code_dir member subroutines.  Then mh goes back into its normal loop where
+it queries various input data (e.g. serial, tcp/ip, voice, time), updates objects and variables,
+evals the &loop_code code (it does an eval, rather then execute it directly, so we can trap errors and
+not kill mh), sleeps for a bit, then repeats.
+
+
+=head2 1.15 How can I control mh from a non-mh web server like Apache?
+
+You can think of the built in mh web server as 2 parts:
+
+ - The part that auto-generates web pages that reflect your items and commands.
+
+ - The part that responds to commands you give it via URLs.
+
+You don't really have to use the first part.
+Some mh users custom generate their own mh pages, to be served by the mh server or
+by a different server.  This allows for full control of
+what is on the web control page and how it looks.
+
+There is more (probably not so easy to read) documentation on how to do this
+under 'Customizing the Web Interface' in mh/docs/mh.html
+
+You can also use something like mh/code/common/mhsend_server.pl
+and then read/write to sockets directly from non-mh web server cgi scripts.
+Or have the web server script simply call mh/bin/mhsend to run mh commands.
+
+=head2 1.16 Is there a front-end tool for defining/editing mh items/events?
+
+Not yet, but you can now define items/events in a table-like format.
+This should allow us to enable a gui or web based front end tools for editing.
+
+Currently we have defined just one format defined, creativly named A,
+but other formats (e.g. XML) should be easy to implement.
+
+To use, create one or more *.mht (mh table) files in your code directory, specifying the table format with Format=A
+at the top of the table.  Then mh will process (on starup and reload) each record with mh/lib/read_table_A.pl, to create
+*.mhp (mh processed) files, which are then processed with all your other mh *.pl code files.
+
+Examples are in mh/code/bruce/*.mht and mh/code/test/*.mht.
+If you want to create another table format, all you need to do is create a mh/lib/read_table_xyz.pl member, then set Format=xyz.
+
+=head2 1.17: How can I use Family Radios with MisterHouse?
+
+=begin html
+There is seperate FAQ on the FRS topic in
+<a href="faq_frs.html">mh/docs/faq_frs.html</a>
+
+=end html
+
+
+=head2 1.18: Is there a way to tell if MH is shutdown correctly or not?
+
+On windows, mh/bin/mh.bat checks errorlevel and on linux, mh/bin/mhl finds the return code via $?.
+Both of these shells will restart mh unless they detect a normal exit (rc=1).
+
+This code in mh/code/common/mh_control.pl will detect an abnormal restart:
+
+ if ($Startup and $Save{mh_exit} ne 'normal') {
+    display "MisterHouse auto restarted: $Save{mh_exit}", 0;
+ }
+
+If you want to detect a power outage and you have a CM11,
+code in mh/code/common/mh_control.pl will set $Power_Supply, so you can do something like this:
+
+ if (state_now $Power_Supply eq 'Restored') {
+    speak 'You should have bought a ups';
+ }
+
+
+=head2 1.19: How can I use an Internet Appliance with MisterHouse?
+
+=begin html
+There is seperate FAQ on varous Internet Appliances in
+<a href="faq_ia.html">mh/docs/faq_ia.html</a>
+
+=end html
+
+
+=head2 1.20: Where is perl program code located?
+
+From Harald Koch on 2/2002.
+
+There are (at least) three different locations for scripts:
+
+/mh/bin - standalone programs (such as get_weather, get_tv_grid); they
+    are called from the main MH process via "run" or a Process_Item;
+    they do not get any environment or variables from the main MH
+    program, and typically return results to MH by writing output files
+    which MH later reads.
+
+    MH typically looks for external programs here, and also programs
+    here typically assume they're being run from this directory; they
+    try to find files in ../lib, for example.
+
+$config_parms{code_dir} - scripts in this directory are (after some
+    parsing) loaded into the middle of the MH event loop, and the
+    commands in them run constantly. They run within the MH environment,
+    and can use all the variables available there.
+
+$config_parms{html_dir} - scripts in this directory are run by the HTTP
+    server, and are expected to return blobs of HTML. They too run
+    inside the MH process, and can access all variables, subroutines,
+    etc.
+
+Each script directory has a different purpose, and programs in one are
+generally not terribly useful in another. My weather processing, for
+example, has scripts in all three places; mh/bin/get_weather_ca is the
+standalone that fetches/parses HTML, code/weather_ec.pl is the script
+that creates and processes voice commands and timer events, and then I
+have scripts in /web/weather/ that format the HTML for display.
+
+
+
+
+=head1 2: MisterHouse coding questions
+
+=head2 2.1: How do I debug syntax errors in my code?
+
+If there are syntax errors in your code, most of them will be caught on startup or reload.
+The error, and (hopefully) relevant code member and/or line number, will show up in
+your console, and if running Tk, in a Tk window on reload.
+
+When you go to write new code, first start mh with old code that works, then edit or copy in
+your new code and do a mh Reload.  Fixing errors with code Reloads is much
+quicker than trying to fix them on mh startup.  You can add/delete the .pl suffix
+on code members between reloads to enable/disable them.
+
+Some errors (e.g. too few/many {} around code) will point to a misleading line number.
+In these cases, if you can not find the file with the error,
+you can try a new option: mh -error_by_file 1 .
+This will try loading one file at a time untill the error is found, but
+it runs pretty slow and may not work with members that have # noloop directives.
+
+Some errors will only show up after mh triggers events.  The first time this happens, a console/tk message
+will be displayed, and a message spoken.  Since these errors might happen on sequential passes of mh, subsequent errors
+are only listed in the console window.  If more than 10 occur, another window is displayed,
+and the code member there error was in is disabled.
+
+All of these on-the-fly errors are logged in the file mh_temp.error_log in your code directory.
+This is useful if you are not running tk and the error has scrolled out of your console window.
+
+You can enable the perl diagnostics module (same as perl -w) to get additional warnings on potential
+coding errors.  Either use mh -diagnostics 1 or set diagnostics=1 in your mh.ini.  This takes
+about 1 meg more of memory and causes mh to run about 10% slower, but the messages it displays
+often point to valid problems.
+To simplify coding, the 'uninitialized value' warnings disabled in the user code processing.
+
+=head2 2.2: How should I code events that should occur only at infrequently, or
+only at Startup?
+
+You can use the $Startup or $Reload variables for events that should only
+occur when mh is Started, or when code is Reloaded.  Note that $Reload
+is also true when $Startup is true.
+
+To run events infrequently, you can use the modulus operator (%),
+$New_Second/Hour/Day/Month/Year variables,
+or the Time_Now/Time_Cron functions to control events.
+
+The $New_xxx variables are 1 (true) for each pass that the xxx variable gets incremented,
+and 0 for all other passes.  For example, $New_Hour is true for one pass
+when $Hour changes from one hour to another.
+
+Here are some examples:
+
+  print_log "Only at startup" if $Startup;
+
+  print_log "Every 5 minutes" if $New_Minute and !($Minute % 5);
+
+  print_log "At 10:05 pm" if time_now '10:05 PM';
+
+  print_log "Every weekday at 2:15 am" time_cron '2 15 * * 1-5';
+
+
+=head2 2.3: How should I structure my Perl code?
+
+Pretty much anyway you want!  You may want to put object definitions all in one
+member (e.g. mh/code/Bruce/items.pl) so you can easily change device codes,
+or you may want to define the objects in the file members you use them in.
+
+If the same object is defined in multiple members, it will still work ok, although
+some object types (e.g. Voice_Item) will warn about duplicate names.
+
+
+=head2 2.4: Can I create global variables that can be shared between code members?
+
+Yep.  All objects definitions (e.g. $light = new X10_Item('C5')) are always shared.  They are pulled out of the member loop by mh.
+
+All other variable declarations must be made using with 'my' or 'use vars':
+
+   my ($my_var1, $my_var2);
+   use vars '$my_var1', '$my_var2';
+   use vars qw($my_var1 $my_var2);
+
+The last example uses the qw function (Quote Words) to save you from the ' and , punctuation.
+
+If you code a 'my' or 'use var' record that starts in column 1,
+mh will pull these records out of the member loop code (as it did with object definitions),
+so that the variable can now be shared with other code members.
+
+If the 'my' or 'use var' record does not start in column 1, the variable declaration
+is left in with the rest of the member code and is local to that member.
+
+If you want to use the variable with any mh/web/*.pl script when creating
+mh web pages, you must use 'use vars', as 'my' variables can not be shared with the server.
+
+
+=head2 2.5: How can I move code out of the loop code?
+
+Sometimes you may need to have mh run code out of the loop code.  For example, if you
+want to create a Voice_Cmd object that has states that are read from a file.  Since
+objects are moved out of the loop code by mh, we need to also move any other code used
+to define that object.
+
+You can tell mh to do this using '# noloop=start/stop' comments.  For example:
+
+   # noloop=start
+   my $mp3names;
+   while ( my $mp3name = <d:/songs/*.mp3> ) {
+      $mp3name =~ s#^.*/##;  # remove path
+      $mp3name =~ s#\..*$##; # remove extension
+      $mp3names .= "," if $mp3names;
+      $mp3names .= $mp3name;
+   }
+  # noloop=stop
+
+  $v_play_music = new Voice_Cmd("Play [$mp3names]");
+  if ($state = said $v_play_music) {
+     speak "Playing song $state";
+     run("winamp d:/songs/$state.mp3")
+  }
+
+
+=head2 2.6: How can I add my own subroutines?
+
+You can add your own subroutines anywhere in any of your code files.  These can then be
+called by that member or any other member.  Here is a couple of examples:
+
+   print_log &mysub1(9990, 9);
+
+   sub mysub1 {
+      my ($a, $b) = @_;
+      my $c = $a + $b;
+      return "The answer is: $a + $b = $c";
+   }
+
+
+   $v_bedroom_curtain  = new  Voice_Cmd('[open,close] the bedroom curtains');
+   &curtain_on('bedroom', $state) if $state = said $v_bedroom_curtain;
+
+   sub curtain_on {
+       my($room, $action) = @_;
+       set $curtain_updown  $action;
+       eval "set \$curtain_$room ON;";
+   }
+
+=head2 2.7: What other special global variables are there?
+
+Here are a few:
+
+  $Pgm_Path is the directory that that mh/bin/mh is found in.
+  $Pgm_Root is one directory above $Pgm_Path
+  $OS_win is true on windows, false otherwise.  $^O will reflect the OS name.
+
+=head2 2.8: Can I use mh to control other windows
+
+On Windows (95,98, NT), you can use the SendKeys to send keystrokes to other windows.  See mh.html for details.
+
+If anyone knows of an equivalent function for linux, let me know.  Linux is usually clever enough to have
+command line options, so there is less of a need here.
+
+
+
+=head2 2.9: What data is saved when mh is exited and restarted?
+
+The state of all objects (Timer Serial_Item X10_Item X10_Appliance File_Item Generic_Item) and all the $Save variables.
+
+Every 5 minutes while mh is running, and whenever mh is exited, the state of these variables are saved to your code directory in a member called mh_temp.saved_states.  When you start mh, this member is run to restore the states.
+
+You can make up any members to the $Save array.  For example, you can use $Save{sleeping_cat} to track whenever your cat is asleep.
+
+
+=head2 2.10: How can I turn a bunch of lights on/off all at once?
+
+You can turn all the lights on a single house code on/off by specifying just the house code letter.  For example:
+
+   $v_bedroom_lights = new Voice_Cmd('Bedroom lights [on,off]');
+   $bedroom_lights   = new X10_Item('P');
+   set $bedroom_lights $state if $state = said $v_bedroom_lights;
+
+You can also create a group of X10 items.  Here is an example that would turn all lights on/off in several rooms.
+
+  $all_lights_bed    = new X10_Item('P');
+  $all_lights_living = new X10_Item('O');
+  $all_lights  = new Group($all_lights_bed, $all_lights_living);
+
+  $v_lights_all = new  Voice_Cmd('All lights [on,off]');
+  set $all_lights $state if $state = said $v_lights_all;
+
+
+=head2 2.11: How do I get mh to stop telling the time each minute?
+
+Out of the box, mh defaults to running most of the code in the mh/code/common directory and all the code in mh/code/test.
+Members test_tagline.pl and the hello_speak.pl members are the main sources of the periodic test speech.
+Once you have played around with the example code, you will want to use
+http://localhost:8080/bin/code_select.pl  menu (avaliable on the web ia5 MrHouse menu 'Select Code' button)
+and select only the code files you find useful.
+
+See the FAQ question 'How does mh.ini work' on how to modify the code_dir parm to point to your new code directory.
+
+
+=head2 2.12: Can do I send mh comands via email?
+
+Set the mh.ini net_mail_command_code parm to a secret code, and copy mh/code/common/internet_mail.pl
+into your code directory.   Now you can send email with the following string either
+in the subject or the body of your email:
+
+  command:your command    code:your_code
+
+The internet_mail.pl code periodicaly runs the get_email process and then scans for the above string.
+If found, it will send a confirmation email saying either "command run", "command not found",
+or "command not authorized".
+
+
+=head2 2.13: How can I control Command Categories
+
+All Voice_Cmd objects are listed in the Tk Command pull down and Web Category list.
+These lists are organize by Category, which is specified with a Category=value comment in the user code.
+For example:
+
+  # Category=Timers
+
+This can be specified multiple times in the same file, with the most recent specification appling
+to all subsequent Voice_Cmd entries.
+
+If a file does not have a # Category record, the file name will be used.
+
+
+=head2 2.14: How can I measure time between two nearly spaced events?
+
+If you are on Windows, or on Unix with the Time::HiRes module installed,
+a call to get_tickcount will give sub-second resolution (returns milliseconds).
+For example, to 'debounce' a doorbell button, (i.e. don't trigger it twice within a 250 millisecond time):
+
+  my $doorbell_time;
+  if (state_now $doorbell) {
+    play 'doorbell' if get_tickcount - $doorbell_time > 250;
+    $doorbell_time = get_tickcount;
+  }
+
+If you are on unix without Time::HiRes, you can use $LoopCount and count number of passes through the loop code.
+
+
+=head2 2.15: What is the format of MisterHouse X10 codes?
+
+At a low level MH sends and receives X10 data in character strings (called
+Serial Items) that start with the letter X. It is usually easier to create an
+X10 Item (or similar) for each X10 device you have and manipulate those
+instead of using X10 strings. Most of the functionality descibed here is
+available in various items in easy to use states.
+
+Here is format of Misterhouse X10 strings: X10 strings always begin with an
+uppercase X (all letters in X10 strings must be uppercase.) The X is followed
+by one or more token pairs that are either a housecode and unitcode, or a
+housecode and command.
+
+A housecode is a letter in the range A through P.
+
+A unitcode is a number in the range 1 through 16. Unitcodes above 9 can be
+specified as two digit numbers or their hex equivalent A through G. Okay,
+there is no such thing as hex G, but X10 unitcodes start at 1, not 0. A note
+to X10 interface module developers: the Serial_Item module converts unitcodes
+above 9 to their hex equivalent before passing them to the interface module.
+
+The following four basic X10 commands are the most common and are supported by
+all the interface modules. Each command is listed here followed by the
+corresponding X10 command that is sent or received, plus any notes about its
+use:
+
+    J    - ON
+    K    - OFF
+    L    - Brighten
+    M    - Dim
+
+
+These commands are less common and are not supported by all the interface modules:
+
+    O                - All Lights ON
+    P                - All Units OFF
+    STATUS           - accepted by some 2-way X10 devices to request status
+    PRESET_DIM1      - these are the original direct dim commands specified but never used by X10
+    PRESET_DIM2      - still used by some X10 venders, including PCS, SwitchLinc and RCS
+    +#               - increase brightness by # percent, not used for receive
+    -#               - decrease brightness by # percent, not used for receive
+                       Serial_Item rounds # to a multiple of 5 before it's passed to the interface module,
+                       the interface module calculates the number of Bright/Dim commands to send
+                       by multiplying # by 22/100, since there are 22 standard dim levels
+    &P#              - send an extended direct dim command accepted by some X10 devices,
+                       # is the brightness level in the range 0 through 63
+    #%               - same as &P command, but # is a percentage in the range 0 through 100,
+                       Serial_Item converts this to a &P command before it's passed to the interface module,
+                       neither &P nor % are currently used for receive
+    Z##              - intended for sending and receiving EXTENDED_CODE commands with arbitrary extended
+                       hex ## bytes appended, but appears only receive is implemented by the CM11 module,
+                       no other tokens may follow this command
+
+
+These commands are rarely used and only supported for completeness by a few interface modules:
+
+    ALL_LIGHTS_OFF   - reported as P on receive
+    HAIL_REQUEST
+    HAIL_ACK
+    EXTENDED_CODE    - see Z above     EXTENDED_DATA
+    STATUS_ON
+    STATUS_OFF
+
+
+Here are examples of valid X10 strings and what they do:
+
+    XM1MK            - turn off M1
+    XC1C2C3CJ        - turn on C1, C2, and C3 simultaneously
+    XI6IJIKIJIK      - flash I6 twice
+
+
+For more examples, take a look at mh/lib/X10_Items.pm.
+
+Many of the X10 interface modules expect only a housecode/unitcode pair and a
+housecode/command pair, like the first example above.  This makes it
+impossible to send more complicated strings like the other examples, and is
+therefore discouraged. This can't be avoided with interfaces like the CM17 and
+BX24 that transmit using the X10 wireless protocol, since it combines
+housecode, unitcode, and command in one transmission.
+
+
+=head2 2.16: How are states set for each pass though the user code loop?
+
+From Bill Sobel on 02/2003:
+
+Misterhouse works on a multipass system where a state becomes 'new' for
+one (and only) one pass thru the system.  The actually timing of the
+passes varies (based on the machine, the load, the code, etc) but you
+generally can presume multiple passes will occur per second (I'm getting
+about 19 per second with fairly light load on a 400mhz laptop).  I ran
+into an early problem where MH didn't handle multiple states being set
+during one pass (each subsequent state would 'overwrite' the previous
+one).  As an example if my object read from a device and noticed that
+both the volume and treble setting on my mixer changed, it would
+generate a volume state and a treble state.  The treble state when
+overwrite the volume state.
+
+To fix this Bruce introduced a queue of states.  So, when a module sets
+a state, it gets set for the 'next' *available* pass thru the system.
+In the example above (presuming no other states are outstanding) the
+volume state would be 'new' during currentpass+1 and the treble state
+would be 'new' during currentpass+2.
+
+The reason the 'current' pass is never effected is that you don't always
+no where you are in the list of code looking at the time you make the
+change.  If your in the 'middle' and set a state, code that already ran
+during that pass wouldn't have a chance to 'see' it before the pass
+ended.  By making states always start at the beginning of the next pass,
+we can insure that all modules see a coherent state in the system.  When
+the states becomes valid, if effects the tied_items (that is when they
+fire) as well as calls to 'state_now'.
+
+
+=head2 2.17: Common Perl and mh coding errors
+
+=begin html
+Clive Freedman sent in some useful tips on common coding errors in
+<a href="faq_damnblast.html">mh/docs/faq_damnblast.html</a>
+
+=end html
+
+=head2 2.18: What's the difference between 'on', 'ON' and ON?
+
+In MisterHouse, the state of many objects comes down to a question of whether
+they are on or off.  As this is a common situation, it is important to know
+exactly how to ask whether something is on or off.
+
+First, it is important to know that case matters.  PERL is a case sensitive
+language, so 'On' does not equal 'on'.  Second, by default, everytime that
+the state of an item is set, mh converts that state to its lowercase
+equivalent.  Hence, setting a light 'ON' actually sets it 'on'.  Third, the
+correct operator to check for string equality is eq, not == or =.
+
+Now, MisterHouse adds a little twist to the situation.  As 'on' and 'off' are
+common states, MisterHouse defines the PERL constants ON and OFF.  N.B. that
+there are no dollar signs ($) at the beginning of the constants.  Whenever
+MisterHouse code encounters ON and OFF as bare words (not within strings), they
+are replaced with 'on' and 'off' (both are lowercase).  This means:
+
+if (($state=$myLight->state_now) eq 'ON') # always fails as 'ON' is uppercase
+
+if (($state=$myLight->state_now) eq 'on') # could be true if light just turned on
+
+if (($state=$myLight->state_now) eq ON) # could be true as ON is the same as 'on'
+
+=head1 3: Linux specific questions
+
+=head2 3.1: When I run Viavoice and festival at the same time I get "Can't open output file '/dev/dsp'"
+
+Answer complements of Brent L Johnson.
+
+The problem is, festival or another sound program, is locking your dsp device.
+The sound drivers that come stock in the Linux kernel do not allow more than one program to access the /dev/dsp at one time.
+If you are using RedHat, you can use ESD to multiplex the soundcard usage.
+The problem is, not all sound programs are esd aware. Festival and Viavoice  do not directly support esd.
+ESD does have a workaround that _sometimes_ works with non-esd aware programs.
+Try starting your sound programs, festival and viavoice under esddsp.
+For example: "esddsp festival --server &".
+I had some success with this route but it doesn't always work because of sampling rates and such.
+
+The best fix would be to replace OSS with ALSA. http://www.alsa-project.org.
+The ALSA drivers directly support multiplexing the dsp devices.
+The only problem is they currently support fewer cards than the OSS drivers that come with the Linux kernel.
+Check out the web page and see if your card is supported. If it is, the best avenue would be replacing OSS with ALSA.
+
+From Dave Lounsberry and Denis Cheong on 10/2001:
+
+Problem: The speech stutters and then stops half way through, and I end up with 'hung' vv_tts.pl
+processes that do not complete.
+
+Solution: You need to use ViaVoice_Outloud 5.0 with "any" ALSA driver.
+ViaVoice Outloud 5.1 does not work with ALSA, but it seems that downgrading to 5.0 fixes it.
+You can get the it here:
+http://dittos.yi.org/automation/ViaVoice_Outloud_rtk-5.0-1.0.i386.rpm
+
+The older version ViaVoiceTTS that supports the older ViaVoice Outloud can be foudn at  Brad's website:
+http://www.reednet.org/ViaVoiceTTS/ViaVoiceTTS-0.02.tar.gz
+
+
+=head2 3.2 How can I set the default volume level for Festival?
+
+This might work ... it has not been tested.
+
+You can globally increase the volume of all waveforms generated by
+festival by adding the following to your siteinit.scm.  Put that in
+the festival/lib directory, (where all the other .scm files are)
+probably /usr/lib/festival/lib if you used the standard rpms.  Add the
+following
+
+    (set! default_after_synth_hooks
+          (list
+            (lambda (utt)
+              (utt.wave.rescale utt 1.0 t))))
+
+This will maximises the volume within a wavefrom, this wont necessary
+make all voices the same loudness (though it will be close).
+
+Alternatively
+
+    (set! default_after_synth_hooks
+          (list
+            (lambda (utt)
+               (utt.wave.rescale utt 4.0))))
+
+will mutiply the waveform by 4 but this has the problem that it may overflow.
+
+If you want X% of the maximum without overflow use the first example
+and lower the 1.0 until you get an acceptable volume
+
+=head2 3.3 How do I add a multi-port serial card in linux?
+
+From Dave Lounsberry on 1/1/2002
+
+First make sure you have the device nodes for the extra serial ports.
+You should have /dev/ttyS[16..23]. If not:
+
+  # cd /dev
+  # ./MAKEDEV ttyS16  (repeat for each device)
+
+Next you need to run setserial to setup the board. The kernel defaults
+to only two serial ports. Put the following in a file called
+/etc/rc.serial and make sure it runs each boot.
+
+  ---- clip here -----------------------------------------------
+  #!/bin/sh
+  setserial /dev/ttyS16 port 0x180 irq 4 uart 16550A ^fourport
+  setserial /dev/ttyS17 port 0x188 irq 4 uart 16550A ^fourport
+  setserial /dev/ttyS18 port 0x190 irq 4 uart 16550A ^fourport
+  setserial /dev/ttyS19 port 0x198 irq 4 uart 16550A ^fourport
+  setserial /dev/ttyS20 port 0x1a0 irq 4 uart 16550A ^fourport
+  setserial /dev/ttyS21 port 0x1a8 irq 4 uart 16550A ^fourport
+  setserial /dev/ttyS22 port 0x1b0 irq 4 uart 16550A ^fourport
+  setserial /dev/ttyS23 port 0x1b8 irq 4 uart 16550A ^fourport
+  setserial /dev/ttyS16 set_multiport port1 0x1c0 mask1 0xff match1 0xff
+
+  # chown to dbl (runs misterhouse)
+  for a in 16 17 18 19 20 21 22 23
+  do
+        chown dbl.wheel /dev/ttyS${a}
+  done
+  ----- clip here ----------------------------------------------
+
+
+Note that I am using irq 4 for my byterunner. Be careful that you don't
+have one of the built in serial ports on the same IRQ.
+
+You can probably take out the for loop in the bottom if you are running
+MH as root.
+
+Here is a link explaining the settings and jumpers (in more depth).
+http://www.mail-archive.com/linux-hardware%40senator-bedfellow.mit.edu/msg01897.html
+
+Another good resource is always the Linux HOWTOs. The serial HOWTO can
+be found at http://www.ibiblio.org/mdw/HOWTO/Serial-HOWTO.html#toc5
+
+
+Here is a followup from Nigel Titley:
+
+I have found that the linux serial card driver doesn't like the serial
+card to be on a shared interrupt (I assume your Byterunner is a PCI card and
+not ISA). I had exactly this problem and worked around it by using the BIOS
+to move interrupts around until the serial card set itself up on an unshared
+IRQ. Everything then worked. This does seem to be a Linux issue, and I haven't
+taken the plunge yet and tried to find out where in the serial port driver
+the bug exists (I guess I am hoping that someone else will do it).
+
+
+Here is some useful serial info from Bob Hughes:
+
+Here is another way to look at the current serial port settings
+
+  setserial -a /dev/ttySX  where "X" is the port
+
+To set the serial port baud rate 9600
+
+  setserial /dev/ttyS0 baud_base 9600
+
+You can use setserial -G to get a list of current setting and have them
+in a format that can be fed back into setserial...
+
+  setserial -G /dev/ttyS0
+
+You can put setserial setting in /etc/rc.local so the port is ready for
+your interface program once boot up is complete
+
+
+
+=head2 3.4: How do I get Mister House to start up automatically when my linux box boots
+
+Check out various .rc startup scripts in mh/bin/*.rc
+
+Here is a good tutorial note from Mike Bruno  on 4/2002
+
+OK, here's the quick and dirty on startup scripts.
+
+(You also may wish to check out
+http://www.linux-mandrake.com/en/doc/82/en/ref.html/sysv.html
+which is where I pulled some of the stuff you'll
+find below)
+
+Just for reference, there's two methodologies that
+are used for bringing up Unix systems: BSD and SysV.
+Mandrake uses SysV.  BSD is initially simpler, but
+the SysV method is more flexible.  The names of the
+methods and their merits should not really concern
+you at the moment, its just background in case
+someone jumps out of the woods and asks you.
+
+I should also mention that there may be some sort
+of fancy graphical interface into all this.  But
+its much more satisfying to get your hands dirty
+and roll your own solution.
+
+
+The boot scripts are located in /etc/rc.d.  If you
+look in there, you'll find several subdirectories
+named init.d and rc0.d -> rc6.d.  The rc?.d directories
+correspond directly to the various runlevels that
+Unix supports.  Runlevel is a set of predefined modes
+that define what the system does.
+Mandrake has the runlevels defined as
+
+ 0: complete machine stop;
+
+ 1: single-user mode; to be used in the event of major
+    problems or system recovery;
+
+ 2: multi-user mode, without networking;
+
+ 3: Multi-user mode, but this time with networking;
+
+ 4: unused;
+
+ 5: like 3, but also launches the graphical login interface;
+
+ 6: restart.
+
+If your machine comes up and immediately goes into
+an X-Window interface, then its default runlevel is 5.
+
+When you say 'reboot' or 'shutdown -r now', what you
+are really doing is putting the system into runlevel 6.
+
+When things have gone completely to shreds (typically after
+hardware failure or severe operator error ;), you want to
+get the machine into runlevel 1 - there are minimal
+services running and only one person can be logged in
+at a time.
+
+Now, on to the nitty-gritty.
+
+The init.d subdirectory is where all the startup/shutdown
+scripts are kept.  They are all text files, and you can
+get a good idea of their format by cracking one open
+(I'd recommend a short one) and looking at it.  You don't
+need to be an expert in shell programming to get the gist
+of it.
+
+These scripts are called with one arguement (more on how
+that arguement gets supplied later).  Virtually all scripts
+have the start and stop arguement, most have a restart, and
+then some have all sorts of custom ones.  Lets look at a
+quick example.
+
+This is an init script for starting up Apache.
+Most are more cluttered, but not really more complicated.
+
+ -----------------
+ #!/bin/sh
+ #
+ # Start the Apache web server
+ #
+
+ case "$1" in
+    'start')
+       /usr/sbin/apachectl start ;;
+    'stop')
+       /usr/sbin/apachectl stop ;;
+    'restart')
+       /usr/sbin/apachectl restart ;;
+    *)
+       echo "usage $0 start|stop|restart" ;;
+ esac
+ -----------------
+
+Anything after a # is a comment, except for the first line.
+If that is #!, then the shell starts up the command
+interpreter specified (in this case another /bin/sh) and
+sends all the following commands through that.
+(Don't know how far into Linux you are yet, but suffice
+it to say that shell scripts are like batch files on
+steroids).
+
+Moving down, we get to the first line of code.  This is just
+like a case statement in C, except for the syntax
+(case block ends with a esac, which, of course, is case backwards).
+$x are the positional parameters of the program
+($0 is the name of the program, $1 is the first arguement, etc.)
+
+The rest of the script is pretty self-explanatory.
+This particular one is easy as all the complicated parts
+are handled by apachectl.
+
+So that's all well and good, but how and when does it
+get called?  OK, lets go back to the rc0.d -> rc6.d directories.
+Looking in there, you can see a bunch of files that start
+with K or S and a number.  If you're using a color ls,
+then you'll notice that they are a different color and there
+might even be a @ after the name.  That's because these are
+all symlinks to the real files in the init.d directory.
+
+When the system enters a runlevel, it goes into the
+appropriate /etc/rc.d/rc?.d directory and begins
+executing the files in there.  If the file begins
+with a K, then the symlink gets called with a stop
+(kill) arguement; if it starts with an S the symlink
+is called with a start arguement.
+
+So if rc5.d has these links in it
+
+ K15postgresql@  K60atd@      S15netfs@   S60lpd@        S90xfs@
+ K20nfs@         K96pcmcia@   S20random@  S60nfs@        S99linuxconf@
+ K20rstatd@      S05apmd@     S30syslog@  S66yppasswdd@  S99local@
+ K20rusersd@     S10network@  S40crond@   S75keytable@
+ K20rwhod@       S11portmap@  S50inet@    S85gpm@
+ K30sendmail@    S12ypserv@   S55named@   S85httpd@
+ K35smb@         S13ypbind@   S55routed@  S85sound@
+
+the system is going to kill off postgress, nfs, rstatd, etc first
+(in that order).  Then its going to start apmd, network, portmap, etc.
+(in that order).
+
+OK, so now you have a rough background in how the system starts.
+So how do you get mh working in it?
+
+The easiest way is to go into init.d, copy an existing file,
+and edit that. (Remember, you're root.  Type carefully)
+
+ cp httpd mh
+ vi mh
+
+and change the lines so that they look something
+like this
+
+ -----------------
+ #!/bin/sh
+ #
+ # Start mh
+ #
+
+ set mh_parms=/home/house/misterhouse/mh.private.ini
+
+ case "$1" in
+    'start')
+       /home/house/misterhouse/mh/mh & ;;
+    'stop')
+       killall mh ;;
+    'restart')
+       killall mh
+       sleep 5
+       /home/house/misterhouse/mh/mh & ;;
+    *)
+       echo "usage $0 start|stop|restart" ;;
+ esac
+ -----------------
+
+This is very, very sloppy, but you get the idea.
+
+Before you go further, TEST IT!  Just call it by
+hand from the command line like
+
+ /etc/rc.d/init.d/mh start
+
+ /etc/rc.d/init.d/mh stop
+
+etc.
+
+(you'll need to include the full path as init.d is
+not in your PATH and neither is the currect directory for root)
+
+Once you've gotten all the bugs worked out and its working
+the way you like it, figure out which runlevels you want
+this to be running in.  I'd guess 3 and 5, but its up
+to you.
+
+Change into rc3.d.  Figure out when you want mh to start
+compared to all the other programs.  I'd guess you'd want
+to let everything else go first, then light up mh.
+So we'll give it a number of 99, effectively going last.
+Make the symlink like this
+
+ ln -s /etc/rc.d/init.d/mh S99mh
+
+Do the same thing in rc5.d
+
+Now, you'll also want to have a good clean shutdown.
+So you'll have to take care of runlevels 0 and 6.
+Here, you'll want mh to get killed off early in
+the process, so give it a low number, say 01.
+
+ ln -s /etc/rc.d/init.d/mh K01mh
+
+You'll also want to do the same in rc1.d
+
+
+Another option is to use a package called daemontools, available at
+
+ http://cr.yp.to/daemontools.html
+
+His take on why you should use it is at
+
+ http://cr.yp.to/daemontools/faq/create.html
+
+Its essentially inetd with the features it should have.
+
+When the system comes up, the daemontools program
+svscan starts and then starts up any programs
+you've asked it to.  Those programs are then
+monitored and get restarted if they die.  The
+good part here is that you can control any
+program from the command line without editing
+files
+
+ svc -h /service/yourdaemon: sends HUP
+ svc -t /service/yourdaemon: sends TERM, and
+        automatically restarts the daemon after it dies
+ svc -d /service/yourdaemon: sends TERM, and leaves the service down
+ svc -u /service/yourdaemon: brings the service back up
+ svc -o /service/yourdaemon: runs the service once
+
+
+-------------------------
+
+The following is from Harald Koch on 04/2002
+
+I'll offer an alternate method. Neither is really better or worse; it
+depends on your environment and requirements.
+
+I have a strong preference for running mission critical software
+directly from init, instead of from startup scripts; init will
+automatically restart software that crashes. I do this with misterhouse,
+SSH, and a database that I run.
+
+init is controlled from a file called (usually) /etc/inittab. Here's my
+MH entry from inittab:
+
+ mh:2345:respawn:/home/mhouse/mhinit
+
+This tells init to run "/home/mhouse/mhinit" when the computer is in any
+multi-user mode (see Mike's message for a definition of runlevels), and
+to run it again when it exits.
+
+And here's my script:
+
+ ----- /home/mhouse/mhinit -----
+ #!/bin/sh
+
+ mhhome=/home/mhouse
+
+ cd ${mhhome}
+
+ exec >> error_log 2>&1
+
+ export PATH=${mhhome}/mh/bin:${mhhome}/bin:$PATH
+ export mh_parms=${mhhome}/mh.ini
+
+ # rotate logs
+ /bin/mv log.3 log.4
+ /bin/mv log.2 log.3
+ /bin/mv log.1 log.2
+ /bin/mv log.0 log.1
+ /bin/mv log   log.0
+
+ # start
+ exec ${mhhome}/mh/bin/mh -log_file ${mhhome}/log
+
+ ----- /home/mhouse/mhinit -----
+
+This method *does* make it harder to stop MH, because you have to edit
+/etc/inittab, change the "respawn" to "off", and then run "telinit q" to
+tell init to re-read the config file.
+
+On the other hand, it means that MH will restart itself automatically
+even if it exits due to bad code, which does happen to me occaisionally.
+
+
+=head2 3.4: How do get Linux to play more than one sound at the same time
+
+Posted by Richard Phillips and Sean Walker on 03/2003
+
+FYI This is a bit of a "head's up" for those people who may be
+trying/struggling to get misterhouse to - for example - play music and also
+at the same time be able to speak under linux. You may find, for example,
+that misterhouse is silent whilst playing music and only after stopping
+(say) xmms your misterhouse server starts speaking all the queued up
+messages.
+
+There are a number of different ways to enable your linux server to
+multiplex sound, and many different theories as to which way is better. Some
+people prefer to use ALSA because it's not proprietary as opposed to ARTS
+which is installed by default under many distributions such as Redhat. The
+trouble with alsa at the moment is it can be a bit fiddly to configure as it
+is not currently part of the linux kernel used in most distributions (it
+will be when 2.5 is released). Anyhow, even after successfully getting alsa
+installed, there can be some issues with getting multiple applications to
+use the sound card concurrently - this is because not all alsa sound card
+drivers support multiplexing.
+
+So.....
+
+If you want to use alsa, good for you. I won't get involved in which system
+is better, and of course there are some other commercial alternatives out
+there that a number of people also use and swear by. Anyhow, I'll just
+describe what can be done to get things working with arts IF you are using
+it AND are also having problems.
+
+1. Install your distribution as you would normally, and ensure that arts is
+also installed/configured. As previously noted, many distros such as Redhat
+use arts by default so you won't have to do anything special - everything
+should be automagically detected. If you open up a terminal session and type
+"ps -ef | grep artsd" you should see a line showing the details of the artsd
+daemon.
+2. Install flite - again depends on distro. With gentoo you can just do an
+"emerge flite". If you don't have a package available for your distro, you
+can get the source from http://www.speech.cs.cmu.edu/flite/ and try to build
+it yourself. There are other speech engines you can use of course, but this
+is probably the easiest to get running so it's what I'll use in this
+demonstration.
+3. From a command prompt type "flite -t hello -o play" - you should hear a
+very bad hello from your computer
+4. Fire up an application such as a music player that can use arts. If you
+use something like xmms, make sure that it is actually using arts (with
+xmms, go into options/preferences and check that the outplut plugin being
+used is the "aRts driver"). Now load up a playlist, put it on repeat, and
+start playing music.
+5. Now try step 3 again - you'll probably find that it appears to hang. Just
+kill it with a "ctrl c"
+6. Now try "artsdsp flite -t hello -o play" instead - you should hear music
+AND a bad "hello".
+
+Why is it so? Well, by default flite - and a number of other applications -
+when trying to create sound directly access the sound device (usually
+something like /dev/dsp). By using the wrapper "artsdsp" before running an
+application such as flite, any calls to the sound device by the program are
+trapped and redirected to the arts server - basically it forces the
+application to "play nice" and not grab exclusive use of the sound device.
+
+So how do I now use flite and misterhouse? Well, you just need to change the
+line in your ini file that tells misterhouse where flite is located. Go to a
+command prompt and type "which artsdsp". This will let you know exactly
+where the artsdsp program is located. Do the same for flite (eg "which
+flite"). Now change your mh.private.ini file as follows:
+
+voice_text = flite
+voice_text_flite = /usr/kde/3.1/bin/artsdsp /usr/bin/flite
+
+(Naturally, change the program locations depending on where your programs
+live).
+
+Now, restart misterhouse and keep xmms (or whatever) running and playing
+music. You should now be able to do something like go to the ia5 web
+interface, select misterhouse, then misterhouse home, then browse mr house,
+and then click on the "what is your up time" and be able to hear mister
+house talking whilst music is also a happening thing!
+
+Of course, as noted before you can use the same wrapper for other programs
+that may not directly support arts - for example if you install festival,
+you can test it by typing something like "echo 'Hello from Festival'|
+artsdsp festival --tts".
+
+The same also works for using esd as well as artsd. You can use JACK,
+I'm sure, but I haven't tried it yet. Also, you can configure festival
+to use any play program directly instead of using the artsdsp or esddsp
+hacks. Those are hacks and will not work with all programs, just for
+reference. To configure festival use something like this in your
+siteinit.scm file (located in the festival root directory):
+
+  (Parameter.set 'Audio_Required_Format 'snd)
+  (Parameter.set 'Audio_Command "esdplay -s localhost:5001 $FILE")
+  (Parameter.set 'Audio_Method 'Audio_Command)
+
+In the Audio_Command line, the only thing critical is the $FILE
+You can use any player that you want in place of esdplay in the above,
+but it must be compatible with the audio formats that festival can
+produce. These, coming from the docs, are as follows:
+The default is unheadered raw, but this may be any of the values
+supported by the speech tools (including nist, esps, snd, riff, aiff,
+audlab, raw and, if you really want it, ascii).
+
+More information can be found in the festival doc files festival_6.html
+and festival_23.html wherever your festival documentation is installed,
+including the handy:
+
+  (Parameter.set 'Audio_Required_Rate 16000)
+  (Parameter.set 'Audio_Device "/dev/dsp2")
+
+
+These parameters can be specified in alternative methods as well. We
+should be able to tell festival which sound card to use or modify other
+settings on the fly as well. I haven't looked into that yet.
+
+By default festival should be asynchronous and you should be able to
+start playing from the file even before the file if finished writing. At
+least that is what I gathered out of the doc files. Setting synchronous
+or asynchronous modes are as easy as (audio_mode sync) or (audio_mode async)
+
+
+
+=head1 4: Windows specific questions
+
+=head2 4.1: mh seems to cause some windows to hang
+
+If you are experiencing problems with windows not popping
+up when they should (e.g. control panel or install shield),
+you will want to install DCOM 1.3, available from here:
+
+  http://www.microsoft.com/com/dcom/dcom98/dcom1_3.asp
+
+Note, I had run all the 'Windows updates', including the Service Pack 2, but
+I still had the problem until I installed the above.
+
+For Windows 95, the update is at:
+
+  http://www.microsoft.com/com/dcom/dcom95/dcom1_3.asp
+
+
+=head2 4.2: How do I set setup networking between Windows boxes
+
+You need to have the TCP/IP protocol enabled for your Networking Interface Card (NIC).
+If you use a modem to reach the internet, you already have TCP/IP enable for the dial up adaptor,
+but you need to seperately enable it for your NIC card, using the control panel Network icon.
+
+You can find instuctions on how to do this at: http://win98central.acauth.com/inside98/networking.htm .
+
+IP addresses that start with 10. (e.g. 10.0.0.1) are reserved for internal lans, so you can use
+10.0.0.1, 10.0.0.2, etc.
+
+=head2 4.3 How do I run MH when not logged in to Win2K or XP?
+
+You can run any program as a service, using a program called srvany.exe,
+available in the Resource Kit, or from here:
+
+ http://www.electrasoft.com/srvany/srvany.htm
+
+Here is an example of registry entries after configuring my to run with srvany:
+
+ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\MisterHouse\Parameters AppDirectory  REG_SZ    c:\mh\bin
+ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\MisterHouse\Parameters Application   REG_SZ    c:\perl\bin\perl.exe -S c:\mh\bin\mh
+
+
+Rather than call mh as a service, many peopld have Windows do an auto-login and add mh to the startup.
+
+
+=head1 5: Perl questions
+
+=head2 5.1: Whats the best way to learn perl?
+
+Using MisterHouse ;-)  Much more fun that trying to code up that report generator at work!
+Some good books are referenced in mh.html.
+
+
+=head2 5.2 What are good editors to use with perl?
+
+Codeing perl is much easier and less error prone if you use an programing
+editor that automatically highlights and indents code.
+
+One very popular and powerful (and free) editor is Emacs: http://www.gnu.org/software/emacs/.
+A pre-compiled windows version can be found here: http://www.gnu.org/software/emacs/windows/ntemacs.html
+
+Alan Jackson liks vim: http://www.vim.org. "Does syntax highlighting quite nicely for perl"
+
+Kieran Ames likes UltraEdit32: http://www.ultraedit.com.
+"I swear by UltraEdit32 available at
+It works fully functional for 30 days and then expires.
+Registration goes for around $30. I'm coding Perl all day long and would die without it!
+Fairly thin and goes the distance with just about any language you'd want to use."
+
+Bill Sobel sent a pointer to J: http://www.armedbear.org/.
+"I was using notepad and switched to 'J' and open source development editor.
+The author, Peter Graves, is a
+coworker of mine and all around swell guy.  This java based editor already
+includes Perl syntax highlighting and Peter is pretty quick about
+fixes/changes."
+
+Mark Yocom writes "I myself have grown fond of PrimalSCRIPT, which handles Perl, Java (and
+JScript & JavaScript), HTML, ASP, LotusScript, Livewire, Python, SQL, Tcl,
+REXX, VBScript, and good old fashioned .BAT/.CMD files.  In addition to the
+obligatory syntax coloring, it also has a number of other handy features.
+It's spendy, but a trial version is available at their website:
+http://www.sapien.com/PrimalSCRIPT.htm "
+
+Doug likes $20 shareware  CodeWhiz: http://www.incatec.com .   Colored commands, auto indent, auto remark/unremark, line #s, etc.
+
+
+=head2 5.3 When are you supposed to use '=>' as opposed to '->' ?
+
+You can use => for a synatically pretty way to seperate entries in a list.
+When creating a hash, you can pass it a set of key/value pairs via a list, so instead of this:
+
+  %hash = ('key1', 'value1', 'key2', 'value2');
+
+You can use => instead of a , to make it look pretty:
+
+ %hash = ('key1' => 'value1', 'key2' => 'value2');
+
+Now to really confuse you, I'll try to explain how -> is used for dereferencing pointers.  All mh objects can be viewed as pointers, and the state of an object is stored in a hash key of {state}, so there are 4 ways to get the current object state:
+
+ $state = state $light;    # Use the state method to get {state}
+ $state = $light->state;   # Dereference with -> to get the state method
+ $state = $light->{state}; # Dereference with -> to get the state hash
+ $state = $$light{state};  # Dereference object with an extra
+
+
+=head1 6: Misc questions
+
+=head2 6.1: Misterhouse Timeline
+
+Here is a rough timeline of MisterHouse development:
+
+ - 12/96 Coded a predecessor called House_Menu
+ -  8/98 Re-wrote everything, called it MisterHouse
+ -  9/98 Uploaded to the web
+ - 10/98 Created compiled version.
+ - 11/98 First known user.
+ - 01/99 Started a mailing list at onelist.com
+ - 02/99 Ported mh to Unix/Linux
+ - 03/99 Article in Popular Home Automation
+ - 04/99 Posted to comp.home.automation
+ - 05/99 Registered misterhouse.net domain name.
+ - 06/99 Added CM17 & HomeBase support
+ - 06/99 Article in HomeToys: http://hometoys.com/htinews/jun99/articles/winter/winter.htm
+ - 08/99 Mailing list reaches 100 members
+ - 09/99 Added LCDproc and IRman support
+ - 10/99 Article in Circuit Cellar Ink: href=http://www.circuitcellar.com/pastissues/articles/winter111/winter.pdf
+ - 11/99 Linux VR using IBM's ViaVoice
+ - 11/99 HomeVision support
+ - 11/99 Mailing list reaches 200 members
+ - 01/00 Moved the mailing list and CVS repostitory to sourceforge.net
+ - 02/00 Re-worked the web interface
+ - 03/00 Added support for iButtons
+ - 04/00 Added support for X10's IR Commander transmiter
+ - 05/00 Added voice modem, ISDN modem, and Compool support.
+ - 05/00 Article in The Perl Journal #17
+ - 06/00 Mailing list reaches 300 members
+ - 06/00 Added support for table item/event input and tie_items/tie_events.
+ - 08/00 Enable perl -w checks, .jpg and .gif, and Slinke support.
+ - 08/00 Added rpm and tarballs, NetGear router support
+ - 09/00 Added ViaVoiceTTS.pm, Jabber, and Applied Digital cpuxad support
+ - 10/00 Added barcode scanner and MS Agent support
+ - 11/00 Support for ical, rrd, html email access, WAP, and VXML for phone access via tellme.com
+ - 12/00 wx200d and wunderground personal weather project support, new add_sound function.
+ - 01/00 SMS and snnp messaging, improved iButton and benchmarking support.
+ - 01/01 Mailing list reaches 400 members
+ - 02/01 2 way AOL AIM messaging, earthquake and satellite tracking.
+ - 03/01 Backup program and menu templates for WAP, VXML, and LCD displays.
+ - 05/01 Audible menus, X10 Mr26 support, linux volume control.
+ - 07/01 Browser dependent web pages, zap2it tv support, call waiting callerid.
+ - 09/01 Audrey support, more MS TTS controls.
+ - 10/01 Web mh.ini editing, remote browse TTS support, zap2it tv pages.
+ - 11/01 New web interface, Audrey pictureframes, multiple sound cards.
+ - 12/01 Wireless wmr968 and Ultimeter2000 weather stations, Lynx10 X10 support.
+ - 01/02 Xmms, audrey callerid, Linksys rounter, TTS flite engine, standard CGIs.
+ - 03/02 GD on-the-fly web buttons, support for comics, xmms, redrat.
+ - 04/02 Added web calendar, contact, todo list, and tk photo slideshow
+ - 05/02 Improved TTS support, TWiki web site, and support for DSS units, BX24 interface, and MSN,
+ - 05/02 Rewrote web menu interface, added AudioTron support and improved im support.
+ - 06/02 Registered misterhouse.com domain name.
+ - 08/02 Caddx alarm, iButton humidity sensor, undo, light/dark hawkey sensor
+ - 09/02 Proxy mh, improved %cpu used, Group member and idle_time methods, Linux NaturalVoice, Clipsal CBUS
+ - 10/02 Enabled web based code selection, file based alarms, palm reader, and Mac OSX support.
+ - 11/02 UIRT2 control, better im control, web interface for triggers and items
+ - 12/02 Improved callerID, new respond and Text_Item functions, xAP support.
+ - 01/03 Mailing list reaches 500 members.
+ - 02/03 Addex xPL support, stacked and overloaded states, and multi-user logon.
+ - 03/03 Linux NaturalVoiceWine, web based TV and photo setup, improved Lynx X10 support.
+ - 04/03 Compiled mhe for linux, support for X10 W800, CallerID Identifier, USB-UIRT, and more iButton modules.
+ - 07/03 Improved web floorplan, DBI interface, xAP news and weather interfaces.
+ - 09/03 Cepstral TTS engine support, a new PA room object, improved proxy support.
+ - 11/03 Support for Sphinx2 VR, myHTPC tv menus, Asterisk phone interface, SMTP authentication, and a xAP command server.
+ - 12/03 Code for RCS TR40 theormostate, phone xAP.
+ - 01/04 Code for rrd weather graphs, v4lctl.
+ - 04/04 Code for ER1 robot, switched to the par compiler, improved mp3 Jukebox.
+ - 06/04 Code for Musica whole house audio, rss feeds, xAP Slimserver
+ - 07/04 Code for ICQ, vocp, tivo, Alpha LED displays, xAP IR for RedRat, RoboSapien.
+ - 08/04 Mailing list reaches 600 members.
+ - 09/04 Support for SVG floorplans, mp3 ripping, ebay monitoring, siteplayer, irc.
+ - 11/04 Support for servo motors, the ESRA robot, cell phone minutes monitoring, motherboard monitoring.
+ - 03/05 Support for serving multimedia files, cell phone minute monitors, shopping lists.
+ - 05/05 Support for distributed xAP speech, bluetooth proximity detection.
+ - 10/05 Support for xAP BCS, ssh, osd232, vocp, Wish x10, and EIB.
+ - 01/06 New spam free Wiki, support for azureus, Insteon iplcs, ical, k8055, TI103.
+ - 04/06 Moved from CVS to SVN, support for Xantrex power inverter, spanish web pages, french EDF power rates, DSC5401, xAP asterisk, 
+
+
+=head2 6.2: Who is that Bruce guy anyway?
+
+Bruce was the the original author of MisterHouse, but can no longer
+claim much authorship credit as it is now truly a group effort with many contributors.
+He has a day job with IBM in Rochester, Minnesota, designing integrated circuits.
+Lots of stuff of interest only to family and aliens at http://brucewinter.net
+
+=head2 6.3: Why open source?
+
+Because open source only has 3 syllables, and proprietary has 5.
+
+That and MisterHouse has developed much faster with the help of a wider user base
+and help from other coders than it would have if it were proprietary.
+
+Plus it feels good to give stuff back to the growing open source community.
+
+
+=head2 6.4: Misc Home Automation links
+
+Here are some useful/related Home Automation links:
+
+  Dan Hoehnens most excellent collection of HA links:
+    http://my.ohio.voyager.net/~dhoehnen/ha/list.html
+
+  Mark Henrichs has a great 'Home Wiring Guide' site here:
+    http://www.wildtracks.cihost.com/homewire/
+
+  Over 500 links on about everything with HA:
+    http://home-automation.org/
+
+  Lots of good tutorials and articles are here:
+    http://hometoys.com/
+
+  X10 has many of its products documented here:
+    http://www.x10.com/support/support_manuals.htm
+
+  Lots of good X10 data/ideas can be found here:
+    http://www.geocities.com/ido_bartana/toc.htm
+    http://www.x10ideas.com
+    http://www.x10.com/automation/homeautomation_e.htm
+
+  Dave Houston has some good X10 info (e.g. causes of CM11A lockups) here:
+     http://www.laser.com/dhouston/
+
+  Europeans can get X10 stuff distributers listed here:
+    http://www.x10.com/x10euro.htm
+  Some examples are:
+    http://www.intellihome.be
+    http://www.marmitek.com/
+
+  Neil Cherry has created a home for linux related Home Automation programs at
+    http://linuxha.sourceforge.net
+
+  Rene Mueller has a nice set of web pages with lots of info on HomeAppliances at
+    http://the-labs.com/HomeNetwork/
+
+  Jay Archer recommends this free Windows mail server and mult-platform web server:
+    http://www.argosoft.com
+    http://www.xitami.com
+
+  Nokia sponsered open source site for home entertainment devices.
+    http://www.ostdev.net/
+
+
+=head2 6.5: How do I contribute additions or updates to the mh code?
+
+The MisterHouse code is maintained via a SVN repository on sourceforge.
+Instructions on how to commit changes can are on the wiki here:
+http://misterhouse.wikispaces.com/Subversion
+
+If you have minor changes and don't want to bother with a sourceforge ID, feel free to mail them to Bruce or the mailing list.
+
+
+=head2 6.6 What is X10?
+
+The people at http://www.x10.com sell affordable devices that communicate with each other over
+normal household power lines.  Manuals for many of there devices are listed
+at http://www.x10.com/support/support_manuals.htm  .
+They have their home automation product slited here: http://www.x10.com/automation/homeautomation_e.htm/#homeautomation
+
+The most common modules are the Lamp module and the Appliance module.  Both sell for around $10-$15.
+The lamp module has can turn up to 300 watt lamps on, off, and various levels of bright.
+The appliance module is an on/off relay.
+
+The 2 most popular X10 PC interfaces are
+the $50 ActiveHome/CM11 and the $6 Firecracker/CM17.
+
+The CM17 is a transmit only interface.  In addition to being almost free, another advantage is
+it is wireless. It is a small, 1 inch box that just dangles off of your serial port and transmits
+to a receiver that plugs into the wall.  The other advantage to the CM17 is gives
+instant ON/OFF control to the relay built into the wireless receiver.  All other X10 devices
+have about a 1/2 second delay to send and receive the protocol over the power lines.
+
+The CM11 is a 2 way interface, so you can program mh events to react to X10 motion sensor
+and button pushes from various X10 controlers (e.g. keychain and palmpads).
+Some of the newer, more expensive modules, like the $35 LM14A lamp module,
+allow you to query their status, so you can determine it status even if it were manually turned on or off.
+
+If decide you splurge for the CM11 activehome kit, you might as well also get the Firecracker kit.
+For the extra $6, you also get a few extra modules and mh can support both the CM11 and the CM17
+on the same port.
+
+There is lots of great X10 info at http://www.geocities.com/ido_bartana ,
+including information on using and buying X10 hardward outside of the US.
+
+Here is some more info, copied from a misterhouse-users post by Kevin Olalde.
+
+
+The firecracker hardware, CM17 which plugs into the PC, can only send radio
+frequency (RF) commands to devices.  With the kit you will also get a
+transceiver, TM751, that receives commands from the CM17 and relays
+commands for the house code it's set to via your power lines.  You also get
+a lamp module, LM465,  which can be control with via the transceiver.  With
+the PalmPad or the CM17 you send RF commands  to the TM751, those commands
+are then relayed to the lamp module (or other power line receiver modules,
+like light switches).  All of this is one way communications, the LM465
+lamp module and the TM751 transceiver are not capable of reporting status.
+The TM751 doubles as an appliance module hard coded to unit 1.  You can
+only control it though RF commands, it does not respond to power pline
+commands.
+
+The next step I took was to order the Active Home kit.  With it you get
+(among other stuff), another transceiver, RR501, and another computer
+interface, CM11A.  The RR501 works like the TM751, in that it receives RF
+commands, and relays then on to the power line.  A difference is that the
+RR501 can report it's status.  The computer interface, CM11A, can send
+power line commands (you use computer software to tell the interface what
+commands to send), 'sees' all commands being sent over the power line (and
+reports those commands to computer software), and can ask modules for their
+status.  The RR501 also doubles as an appliance module, it can be set to
+unit code 1 or 9, and can be controlled with both RF and power line
+commands.
+
+The majority of the devices, lamp modules, appliance modules, wall
+switches, ..... are one way devices, they can only receive.  I have no
+historical perspective, but it looks as though that was the way the
+original X10 spec went, one way only.
+
+There are devices that can report their current status to something like
+the CM11A, but I haven't used any of then (except for the RR501), since
+that are much more expense.
+
+  http://www.x10.com/products/x10_lm465.htm  one way lamp module from X10, $13
+  http://www.x10.com/products/x10_lm14a.htm  two way lamp module from X10, $33
+
+Bill Bass sent in these links to a bunch of links from
+Phil Kingery's great series of X10 articles at http://hometoys.com
+
+  Which One Should I Use?
+  http://www.hometoys.com/htinews/dec96/articles/kingery/kingery.htm
+
+  Controlling Motors and Transformers
+  http://www.hometoys.com/htinews/apr97/articles/kingery/kingery2.htm
+
+  120/240v Residential Coupling
+  http://www.hometoys.com/htinews/jun97/articles/kingery/kingery3.htm
+
+  Complex Residential Coupling with Considerations for Dim/Bright
+  http://www.hometoys.com/htinews/aug97/articles/kingery/kingery4.htm
+
+  Dim/Bright Commands and Coupler-Repeaters
+  http://www.hometoys.com/htinews/oct97/articles/kingery/kingery5.htm
+
+  Three-Way Switch Circuits
+  http://www.hometoys.com/htinews/dec97/articles/kingery/kingery6.htm
+
+  More Three-Way and Four-Way Switch Circuits
+  http://www.hometoys.com/htinews/feb98/articles/kingery/kingery7.htm
+
+  Troubleshooting Three-Way and Four-Way Switch Circuits
+  http://www.hometoys.com/htinews/apr98/articles/kingery/kingery8.htm
+
+  Noise and Filtering
+  http://www.hometoys.com/htinews/jun98/articles/kingery/kingery9.htm
+
+
+=head2 6.7 What do I need to use the iButtons?
+
+Ray Dzek created a how to get started with iButton guide at
+http://www.solarbugs.com/home/ibutton.htm
+
+Here is a post from Clay Jackson
+
+Right now, I've got 3 sensors (DS1822, in the three-lead package, inside an
+epoxy filled soda straw) at the end of 150' of Radio Shack "flat" cable,
+talking to a DS9097U (the U is CRITICAL) with no problems.  On the bench, I
+had another 2 sensors on the end of a 50' cable (for a total of 5 sensors).
+When I strung the 50' cable, I must have crimped a lead, because it now
+meters "closed" and when it was plugged into the "net", I got no readings.
+
+I also have an HA5 from Point-Six; that I'm gonna play with soon. The code
+Bruce did is for the 9097U, so that's why I started there (and, it's
+cheaper).  The 9097U has all the "passive" pull-up stuff the data sheets
+talk about (courtesy of a DS2048 inside the DB9); so I'm hoping it will do
+the trick.  Anyway, I'll keep the list posted as things progress.
+
+Bottom line - all I needed was Bruce's code, a 9097U from Dallas, the
+sensors and some Radio Shack "phone" cable.
+
+One more thing to watch - as best I can tell, Dallas has not standardized
+their thermal devices with respect to their outputs.  For example, the
+DS1820 and DS1920  both return a 9 bit value that's basically an integer.
+However, the DS1822 returns a VARIABLE length value (12 bits by default),
+with a binary point between the 3rd and 4th digits.  According to someone
+else on the list, the ThermoCRON iButton is different yet again.
+
+
+Here is another post from Jeff Pagel (06/2002).
+
+
+The Dallas '1-wire' bus for the ibutton family is actually 2 wires(there
+are only 2 connecting points on the devices).  1 for signal and power, the
+other for ground.  They talk about cat-5, which has 8 conductors, a lot
+because the signal charactoristics of it are very good for the '1-wire'
+bus, twisted pairs, size of the wire, etc..  Of the 8, you only need to use
+2.  Theoretically, the other 6 could be used for something else.
+
+So, back to the original problem, you would need to run a twisted pair,
+like cat5 or cat3, from your mh machine to the garage.  I have cat5 runs of
+over 500 feet that work fine without any special conditioning.
+
+The cool part about the 1-wire bus is that you just need to run 1(ok
+actually 2,but usually in 1 bundle) wire(s) around your house.  It's like a
+'multi-drop' system.  One connects to the other, to the other, etc., in
+parallel.
+
+ In this case, you would run a line, from 1 spool of wire, to the bedroom
+to the living room to the kids room back to the computer.  If this is a
+pre-existing structure, you will face some wiring issues.  It's much easier
+for new construction.  For each ibutton, you would connect 'across' each
+line.  Just solder plus to plus, minus to minus and keep the wire going.
+Think of a railroad track as the 'wire' and the railroad ties as the
+ibutton devices.
+
+The 1-wire bus is fairly restrictive on how you wire it vs how long the
+runs are.  You should avoid 'star' type configurations.  They are ok, but
+only for short runs, the stars introduce reflections of the signal.
+
+Here will be a really bad ascii representation:
+
+
+ Host +   -----------------------------------------------------
+                     |                  |                     |
+                  ibutton1           ibutton2             ibutton3
+                     |                  |                     |
+ Host -   ----------------------------------------------------
+
+
+
+From Yannick Moussette (06/2002)
+
+The DS1820 Temp sensors come in 2 models: iButton and TO-220
+(transistor-type casing).
+
+The Ibutton has a total of 2 connections, ground and signal. It functions in
+"parasitic" mode to draw its power from the signal connections (kinda of
+like what X10 modules do to piggyback signals on powerlines...).
+
+Where things that may confuse you on Dallas's Website site, is the TO-220
+format of this same sensor which has 3 leads (connections). 1 for power, 1
+for ground and 1 for signal(data). The power lead may be omitted, in which
+case the sensor will work exactly like its iButton counterpart: Through
+parasitic powering.
+
+Here is a link with some detailed electronic info: http://www.maxim-ic.com/1st_pages/tb1.htm
+
+Kieran Ames has a nice writeup on how he used iButtons to log and plot his
+pond temperatures: http://ames.homeip.net:81/pages/My_iButtonVenture.htm
+
+
+=head2 6.8 What sort of hardware do you have in your house?
+
+This is what is currently (04/2001) in Bruce's house (see mh/docs/mh.* 'List of supported hardware interfaces' for more info):
+
+ - Mh running on a dual 600 PIII Win 2K box great for quick mh debugging :)
+ - SB Live Value sound card (supports simultaneous sound sources)
+ - PCI ByteRunner 8 port serial card
+ - PCI phone modem for callerid logging and announcements
+ - Linux box for hosting misterhouse.net
+ - 5 other networked computers for mp3 client/servers,
+   shoutcast server, games, writing, and work from home
+ - Radio Shack PA amp with a PA speaker in each room
+ - Wiring closet with 3 DIO weeder cards and 2 analog cards
+ - 16 relay card from jameco for PA speaker switch
+ - Home brew motor/relays for up/down control of 9 Window quilt curtains
+ - RF sensor in the mailbox across the steet
+ - WX200 weather station from Radio Shack
+ - Relays controling garage door and furnace heat and fan
+ - Digital input sensors on doors and garage door
+ - A few iButtons for testing
+ - X10 IR commander and CM17 for sending IR signals
+ - X10 CM11 with X10 consoles in each room for control
+ - X10 motion sensors, light, and appliance modules
+ - Matrix-orbital LCD keypad for local output and control
+ - WAP cell phone for remote queries and control
+ - A ham radio TNC for tracking 2 GPS APRS equipped cars
+ - NetGear router with mh monitored SYSLOG data for tracking internet traffic
+ - MSVoice VR via a Andrea Desktop Array microphone
+
+=head1 7.0: Setup Questions
+
+=head2 7.1: Password Management
+
+To password protect Misterhouse, you can set passwords for different users via set_password.
+The 'admin' link from the main page is only for logging in once you have setup a password.
+
+To enable password protection, run mh/bin/set_password command like this:
+
+     set_password -user family -password xyz1
+     set_password -user admin  -password xyz2
+
+    Note: only the first 8 characters are used. The admin password is
+    required for controling the mh web setup menus (e.g. item and code
+    selection menus).(Unix or Windows)
+
+This will create a file pointed to with the mh.ini password_file parm (e.g. mh/data/.password).
+To further extend which user can do what see password_allow in mh/data/
+
+
+=head2 7.2: Customizing the TV guide
+
+To set the MisterHouse TV Today so it will display listings relevant to your area and provider
+Start by finding your tv_provider ID, run this command (located in mh/bin):
+
+  get_tv_grid -zip your_zipcode -get_provider
+
+Then edit your mh.ini and set the tv_provider_name parm.
+Listed below are two examples or related parms, one that uses sat_ and one that is tv_.
+You can copy these tv_* parms as another set of sat_* or cable_* or
+or whatever_*, then run get_tv_grid multiple times to support
+multiple sets of tv schedules.  For example:
+
+   get_tv_grid -db tv   (-db tv is the default)
+   get_tv_grid -db sat
+
+  sat_provider = 128772
+  sat_provider_name = DirectTV Washington
+  sat_name =SAT               @ Used to give a useful label on the web pages
+  sat_hours=all  				@ Which hours to get.  Use all for all hours
+  sat_label=SATELLITE         @ Which web link name.  Use none to disable,
+  sat_channels_keep=          @ Which channels to keep
+  sat_channels_skip=          @ Which channels to skip
+  sat_channel_min=0           @ Keep only channels above this number
+  sat_channel_max=99999
+
+  tv_provider_name = Charter Communications - Rochester
+  tv_name = TV                @ Used to give a useful label on the web pages
+  tv_hours=02,06,10,14,18,22  @ Which hours to get.  Use all for all hours
+  tv_label=VCR                @ Which web link name.  Use none to disable,
+  tv_channels_keep=           @ Which channels to keep
+  tv_channels_skip=           @ Which channels to skip
+  tv_channel_min=0            @ Keep only channels above this number
+  tv_channel_max=99999        @ Keep only channels below this number
+
+Use mh/common/tv_grid.pl to do daily call get_tv_grid to update your tv database and web pages.
+and mh/code/common/tv_info.pl to search and announce shows.
+If you change your tv_provider, you can use get_tv_grid -reget to refresh the tv/*.html files.
+
+When I first setup MH it took me three weeks to figure out that my providerID
+had changed since install (matter of a week) and thats why the tv listings came up broken.
+So if you have a problem, and you think the syntax in the mh.ini is correct, try re-checking your provider ID.
+
+
+=head2 7.3: How can I point MisterHouse to a custom web interface?
+
+From David Norwood on 10/2001
+
+Here's a way to configure Misterhouse so you can have your own custom web
+interface AND still have access to web pages that are introduced with new
+releases (like the Audrey pages).
+
+Let's assume your misterhouse distribution is in /misterhouse/mh and your
+custom html files are in /misterhouse/web/custom.   Set these private.ini
+parameters:
+
+ html_dir=$Pgm_Root/web
+ html_file=/custom/index.html
+ html_alias_custom=/custom       /misterhouse/web/custom
+
+Now your custom web pages will come up by default, but you will still have
+access to the latest and greatest "mh4" and "ia*" interfaces.  Your pages
+will not be over-written by new releases.  If you need another directory
+for, say, your audrey interface, just add another html_alias_whatever
+parameter.
+
+You can now also override just specific pages from an existing web interface.
+For example, create your own web/ia5 and web/ia5/security
+directories, then add this mh.ini parm to point to it:
+
+ html_alias2_ia5    = /misterhouse/web/ia5
+
+For example, you can change the ia5 Security menu to point to different webcams or floorplan
+images by creating your own web/ia5/security directory with just the files you want to
+modify.
+
+
+
+=cut
+
+
+#
+# $Log: faq.pod,v $
+# Revision 1.48  2006/01/29 20:30:14  winter
+# *** empty log message ***
+#
+# Revision 1.47  2005/05/22 18:12:57  winter
+# *** empty log message ***
+#
+# Revision 1.46  2004/11/22 22:57:20  winter
+# *** empty log message ***
+#
+# Revision 1.45  2004/07/18 22:16:33  winter
+# *** empty log message ***
+#
+# Revision 1.44  2004/02/01 19:24:20  winter
+#  - 2.87 release
+#
+# Revision 1.43  2003/12/01 03:09:52  winter
+#  - 2.85 release
+#
+# Revision 1.42  2003/09/02 02:48:46  winter
+#  - 2.83 release
+#
+# Revision 1.41  2003/07/06 17:55:10  winter
+#  - 2.82 release
+#
+# Revision 1.40  2003/04/20 21:39:36  winter
+#  - 2.80 release
+#
+# Revision 1.39  2003/03/09 19:34:38  winter
+#  - 2.79 release
+#
+# Revision 1.38  2003/02/08 05:29:19  winter
+#  - 2.78 release
+#
+# Revision 1.37  2003/01/12 20:39:14  winter
+#  - 2.76 release
+#
+# Revision 1.36  2002/12/24 03:05:06  winter
+# - 2.75 release
+#
+# Revision 1.35  2002/11/10 01:59:56  winter
+# - 2.73 release
+#
+# Revision 1.34  2002/10/13 02:07:58  winter
+#  - 2.72 release
+#
+# Revision 1.33  2002/09/22 01:33:22  winter
+# - 2.71 release
+#
+# Revision 1.32  2002/08/22 04:33:20  winter
+# - 2.70 release
+#
+# Revision 1.31  2002/07/01 22:25:28  winter
+# - 2.69 release
+#
+# Revision 1.30  2002/05/28 13:07:49  winter
+# - 2.68 release
+#
+# Revision 1.29  2002/03/02 02:36:50  winter
+# - 2.65 release
+#
+# Revision 1.28  2002/01/19 21:11:11  winter
+# - 2.63 release
+#
+# Revision 1.27  2001/11/18 22:51:43  winter
+# - 2.61 release
+#
+# Revision 1.26  2001/10/21 01:22:32  winter
+# - 2.60 release
+#
+# Revision 1.25  2001/05/28 21:14:38  winter
+# - 2.52 release
+#
+# Revision 1.24  2001/05/06 21:07:25  winter
+# - 2.51 release
+#
+# Revision 1.23  2001/04/15 16:17:20  winter
+# - 2.49 release
+#
+# Revision 1.22  2001/02/24 23:26:39  winter
+# - 2.45 release
+#
+# Revision 1.21  2001/02/04 20:31:31  winter
+# - 2.43 release
+#
+# Revision 1.20  2001/01/20 17:47:50  winter
+# - 2.41 release
+#
+# Revision 1.19  2000/12/03 19:38:54  winter
+# - 2.36 release
+#
+# Revision 1.18  2000/10/22 16:48:29  winter
+# - 2.32 release
+#
+# Revision 1.17  2000/10/09 02:31:13  winter
+# - 2.30 update
+#
+# Revision 1.16  2000/08/19 01:22:35  winter
+# - 2.27 release
+#
+# Revision 1.15  2000/06/24 22:10:54  winter
+# - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
+#
+# Revision 1.14  2000/05/27 16:40:09  winter
+# - 2.20 release
+#
+# Revision 1.13  2000/05/06 16:41:43  winter
+# - 2.15 release
+#
+# Revision 1.12  2000/04/09 18:03:19  winter
+# - 2.13 release
+#
+# Revision 1.11  2000/03/10 04:09:01  winter
+# - Add Ibutton support and more web changes
+#
+# Revision 1.10  2000/02/20 04:47:54  winter
+# -2.01 release
+#
+# Revision 1.9  2000/02/12 06:11:36  winter
+# - commit lots of changes, in preperation for mh release 2.0
+#
+# Revision 1.8  2000/01/27 13:36:11  winter
+# - update version number
+#
+# Revision 1.7  2000/01/13 13:36:34  winter
+# - add useful links
+#
+# Revision 1.6  2000/01/02 23:38:23  winter
+# - renumbered.  Added 1.13
+#
+# Revision 1.5  1999/12/12 23:51:34  winter
+# - added 'too compiliated', 'simple perl', 'commands via email'
+#
+# Revision 1.4  1999/11/21 02:54:11  winter
+# - add 'debug a problem', and 'stop telling time'.
+#
+# Revision 1.3  1999/11/08 02:11:28  winter
+# - add all lights, and save on exit questions
+#
+# Revision 1.2  1999/09/27 03:09:39  winter
+# - add pointer to DCOM 1.3 update
+#
+# Revision 1.1  1999/09/12 16:08:42  winter
+# - Created
+#
+#

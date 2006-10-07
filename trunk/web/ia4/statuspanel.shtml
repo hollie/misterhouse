@@ -1,0 +1,11 @@
+<html>
+<meta http-equiv="Refresh" content="30;URL=statuspanel.shtml">
+<title>Main Status</title>
+<body bgcolor=123456 text=lime>
+<center>
+
+<!--#include file="statuspanel.pl"-->
+</center>
+</body>
+</html>
+

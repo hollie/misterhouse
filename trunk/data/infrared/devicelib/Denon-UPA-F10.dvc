@@ -1,0 +1,13 @@
+Manufacturer=DENON
+Model=UPA-F10
+Device=Amplifier
+Protocol=Denon
+Device Code=12
+Certified= John McClymont;15/07/2000
+
+[Key Codes]
+Power On/Off     =;80
+Vol UP           =;77
+Vol DN           =;76
+Tuner Select     =;89
+Input Toggle     =;95

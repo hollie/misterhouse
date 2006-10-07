@@ -1,0 +1,79 @@
+#!/usr/bin/perl
+
+use strict;
+
+my($Pgm_Path, $Pgm_Name);
+BEGIN {
+    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.*)\.?/;
+    ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
+    eval "use lib '$Pgm_Path/../lib'"; # Use BEGIN eval to keep perl2exe happy
+}
+
+
+use Getopt::Long; 
+my %parm = (); 
+if (!&GetOptions(\%parm, "help", "h", "time=s", "title=s", "font=s") or 
+    (@ARGV < 1 or $parm{h} or $parm{help})) { 
+    print <<End_of_Help; 
+
+    $0 displays text (from a file or the command line) using perl TK 
+
+    Use -time  xxx to have the window timeout in xxx seconds
+    Use -font  xxx to pick the font
+    Use -title xxx to set the window title
+
+  Usage: 
+    $0 file 
+    $0 -title 'triva answer' c:/data/triva_answer.txt
+    $0 text to display 
+    $0 -time 10 text
+
+End_of_Help
+    (caller) ? return : exit;
+}
+
+				# Find the path to the mh/bin directory.
+BEGIN {
+    ($Pgm_Path, $Pgm_Name) = $0 =~ /^(.*?)[\\\/]?([^\\\/]+).bat/;
+    use Cwd;			# perl2exe leaves $0=mh.bat, so assume/require current directory is mh/bin dir
+    $Pgm_Path = cwd() unless ($Pgm_Path);
+}
+
+#use lib "$Pgm_Path/../lib";
+use Display;
+
+
+my $text = join(' ', @ARGV);
+my $windows1 = new Display($text, $parm{time}, $parm{title}, $parm{font});
+
+
+__END__
+
+
+#
+# $Log: display,v $
+# Revision 1.9  2000/01/27 13:20:38  winter
+# - update version number
+#
+# Revision 1.8  1999/02/08 00:36:44  winter
+# - use eval use lib, so we can call with mh.exe
+#
+# Revision 1.7  1999/02/04 14:34:40  winter
+# - fixe Pgm_Path
+#
+# Revision 1.6  1999/01/23 23:10:19  winter
+# - break out from bat file, for linux use
+#
+# Revision 1.5  1999/01/07 01:52:38  winter
+# - exit if not from caller, rather than return
+#
+# Revision 1.4  1998/12/07 14:38:33  winter
+# - add font option
+#
+# Revision 1.3  1998/11/15 22:08:12  winter
+# - Extract code into Display.pm
+#
+# Revision 1.2  1998/08/29 20:42:21  winter
+# - fixed countdown so it works with latest 5.005 release
+#
+#

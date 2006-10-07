@@ -1,0 +1,8 @@
+Name=Nec 256 Protocol
+Protocol=NEC-256
+Frequency=38000
+Time Base=500
+One=1,-3
+Zero=1,-1
+Form=[17 -9],d:8,~d:8,f:8,~f:8,[1 -45]
+Repeat=2

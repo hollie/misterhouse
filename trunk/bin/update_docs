@@ -1,0 +1,28 @@
+#!/bin/sh
+cd ../docs
+
+pod2html mh.pod > mh.html
+pod2text mh.pod > mh.txt
+
+pod2html install.pod > install.html
+pod2text install.pod > install.txt
+
+pod2html faq.pod > faq.html
+pod2text faq.pod > faq.txt
+
+pod2html faq_frs.pod > faq_frs.html
+pod2text faq_frs.pod > faq_frs.txt
+
+pod2html faq_ia.pod > faq_ia.html
+pod2text faq_ia.pod > faq_ia.txt
+
+pod2text faq_mhmedia.pod > faq_mhmedia.txt
+pod2html faq_mhmedia.pod > faq_mhmedia.html
+
+pod2html updates.pod > updates.html
+pod2text updates.pod > updates.txt
+
+perl ../bin/authors updates.pod > authors.html
+
+# mh_users_table.pl is currently missing
+# perl ../bin/mh_users_table.pl mh_usage.txt > mh_usage_table.html

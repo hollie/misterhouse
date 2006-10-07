@@ -1,0 +1,300 @@
+#!/usr/bin/perl
+
+#
+# Program Summary:
+#
+# Name:             dailystrips-update
+# Description:      downloads updated dailystrips definitions
+# Author:           Andrew Medico <amedico@amedico.dhs.org>
+# Created:          29 May 2003, 10:07 EDT
+# Last Modified:    29 May 2003, 17:03 EDT
+# Current Revision: 1.0.0
+#
+
+
+# Set up
+use strict;
+no strict qw(refs);
+
+use LWP::UserAgent;
+use HTTP::Request;
+use POSIX qw(strftime);
+use Getopt::Long;
+use File::Copy;
+
+
+# Variables
+my (%options, $version, $dailystrips_version);
+
+$version = "1.0.0";
+$dailystrips_version = "1.0.28";
+
+# Get options
+GetOptions(\%options, 'quiet|q','verbose','proxy=s',
+	'proxyauth=s','noenvproxy','version|v','help|h',
+	'retries=s','updates=s','minage=s') or exit 1;
+
+# Process options:
+#  Note: Blocks have been ordered so that we only do as much as absolutely
+#  necessary if an error is encountered (i.e. do not load defs if --version
+#  specified)
+
+# Help and version override anything else
+if ($options{'help'}) {
+	print
+"Usage: $0 [OPTIONS]
+This program will attempt to download updated dailystrips definitions and save
+the information to ~/.dailystrips-updates.def
+
+Options:
+  -q  --quiet                Turn off progress messages		
+      --verbose              Turn on extra progress information, overrides -q
+      --proxy host:port      Use specified HTTP proxy server (overrides
+                             environment proxy, if set)
+      --proxyauth user:pass  Set username and password for proxy server
+      --noenvproxy           Ignore the http_proxy environment variable, if set
+      --retries NUM          When downloading items, make NUM attempts instead
+                             of only once
+      --updates FILE         Save updates to FILE instead of
+                             ~/.dailystrips-updates.def
+      --minage NUM           Skip downloading updates if local file is less than
+                             NUM seconds old
+  -v  --version              Print version number
+
+Bugs and comments to dailystrips\@amedico.dhs.org\n";
+
+	exit;
+}
+
+
+# Handle options that are needed first
+if ($options{'version'}) {
+		print "dailystrips version $version\n";
+		exit;
+}
+
+if ($options{'retries'} =~ m/\D/) {
+        die "Error: 'retries' value must be numeric\n";
+}
+
+unless ($options{'retries'}) {
+        $options{'retries'} = 3;
+}
+
+
+#Set proxy
+if ($options{'proxy'})
+{
+	$options{'proxy'} =~ /^(http:\/\/)?(.*?):(.+?)\/?$/i;
+	unless ($2 and $3) {
+		die "Error: incorrectly formatted proxy server ('http://server:port' expected)\n";
+	}
+				
+	$options{'proxy'} = "http://$2:$3";
+}
+
+if (!$options{'noenvproxy'} and !$options{'proxy'} and $ENV{'http_proxy'} ) {
+	$ENV{'http_proxy'} =~ /(http:\/\/)?(.*?):(.+?)\/?$/i;
+	unless ($2 and $3) {
+		die "Error: incorrectly formatted proxy server environment variable\n('http://server:port' expected)\n";
+	}
+			
+	$options{'proxy'} = "http://$2:$3";
+}
+
+if ($options{'proxyauth'}) {
+	unless ($options{'proxyauth'} =~ /^.+?:.+?$/) {
+		die "Error: incorrectly formatted proxy credentials ('user:pass' expected)\n";
+	}
+}
+
+
+# verbose overrides quiet
+if ($options{'verbose'} and $options{'quiet'}) {
+	undef $options{'quiet'};
+}
+
+
+# minimum age must be non-zero
+if ($options{'minage'} =~ m/\D/) {
+        die "Error: 'minage' value must be numeric\n";
+}
+
+if ($options{'minage'} < 0) {
+        die "Error: 'minage' value must be >= 0\n";
+}
+
+unless ($options{'minage'}) {
+        $options{'minage'} = 0;
+}
+
+
+# 1 retry by default
+unless ($options{'retries'}) {
+        $options{'retries'} = 1;
+}
+
+
+# default updates path
+unless (defined $options{'updates'})
+{
+        $options{'updates'} = &get_homedir() . "/.dailystrips-updates.def";
+}
+
+
+# Download new definitions and save
+unless ($options{'quiet'})
+{
+	print "dailystrips-update $version starting...\n";
+}
+
+&get_updated_defs($options{'updates'});
+
+
+sub http_get {
+	my ($url, $referer) = @_;
+	my ($request, $response, $status);
+	
+	my $headers = new HTTP::Headers;
+	$headers->proxy_authorization_basic(split(/:/, $options{'proxyauth'}));
+	$headers->referer($referer);
+	
+	my $ua = LWP::UserAgent->new;
+	$ua->agent($options{'useragent'});
+	$ua->proxy('http', $options{'proxy'});
+	
+	for (1 .. $options{'retries'}) {
+		# main request
+		$request = HTTP::Request->new('GET', $url, $headers);				
+		$response = $ua->request($request);
+		($status = $response->status_line()) =~ s/^(\d+)/$1:/;
+
+		if ($response->is_error()) {
+			if ($options{'verbose'}) {
+				warn "Warning: could not download $url: $status (attempt $_ of $options{'retries'})\n";
+			}
+		} else {
+			return $response->content;
+		}
+	}
+
+	# if we get here, URL retrieval completely failed
+	warn "Warning: failed to download $url\n";
+	return "ERROR: $status";
+}
+
+sub get_updated_defs
+{
+	# set parameters
+	my $updates_file = shift;
+	my $updates_rev_url = "http://dailystrips.sourceforge.net/UPDATES/ds-update-" . $dailystrips_version . ".rev";
+        my $updates_url = "http://dailystrips.sourceforge.net/UPDATES/ds-update-" . $dailystrips_version;
+	my $local_revision = 0;
+	my $remote_revision = 0;
+
+	
+	# only update if local update file is old enough
+	if (time() - (stat($updates_file))[9] < $options{'minage'})
+	{
+		if ($options{'verbose'})
+		{
+			print "Existing file is too new, exiting\n";
+		}
+		return;
+	}
+	
+	# check revision of local file
+	if (open(UPDATES,"<$updates_file")) # or die "Error: cannot read updates file: $!\n";
+	{ 
+		while(<UPDATES>)
+		{
+			if (/^#REVISION:\s*(\-?\d+)/i)
+			{
+				$local_revision = $1;
+				#print "line in local: $_\n";
+				last;
+			}
+		}	
+		close(UPDATES);
+	}
+
+	if ($options{'verbose'})
+	{
+		print "Local revision: $local_revision\n";
+	}
+	
+	# find current revision
+	my $updates_rev = &http_get($updates_rev_url);
+
+	if ($updates_rev =~ /^ERROR/)
+	{
+		die "Error: failed to download updates\n";
+	}
+
+	
+	# check revision of downloaded file
+	for(split(/\n/, $updates_rev))
+        {
+                if (/^#REVISION:\s*(\-?\d+)/)
+                {
+                        $remote_revision = $1;
+                        last;
+                }
+        }
+
+	if ($options{'verbose'})
+        {
+		print "Remote revision: $remote_revision\n";
+	}
+
+	# if there is a newer file available, download and save it
+	if ($remote_revision > $local_revision)
+	{
+		unless ($options{'quiet'})
+		{
+			print "Downloading updated definitions...";
+		}
+
+		# download updates
+	        my $updates = &http_get($updates_url);
+
+		if ($updates =~ /^ERROR/)
+        	{
+               		print "failed\n";
+                	die "Error: failed to download updates\n";
+        	}
+
+
+		unless ($options{'quiet'})
+                {
+                        print "done\n";
+                }
+
+
+		open(UPDATES,">$updates_file") or die "Error: cannot write updates ($updates_file) file: $!\n";
+		print UPDATES $updates;
+		close(UPDATES); 
+	}
+	else
+	{
+		unless($options{'quiet'})
+		{
+			print "Local file is already latest revision, exiting.\n";
+		}
+	}
+}
+
+sub get_homedir
+{
+        if ($^O =~ /Win32/ )
+        {
+                my $dir = $ENV{'USERPROFILE'};
+                if ($dir eq "") {$dir = $ENV{'WINDIR'};}
+                $dir =~ s|\\|/|g;
+                return $dir;
+        }
+        else
+        {
+                return (getpwuid($>))[7];
+        }
+}

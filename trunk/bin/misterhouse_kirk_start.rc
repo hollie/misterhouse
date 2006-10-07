@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# If you want to use Festival, do this...
+#killall -9 festival
+#/usr/local/festival/bin/festival --server &
+
+# Start the local X10 proxy
+cd /mh/misterhouse/bin
+export mh_parms=/mh/mh_proxy.ini
+./mhl -log /mh/data/logs/proxy_console.log &
+
+# Set up environment
+export mh_parms=/mh/mh.private.ini
+export PATH=$PATH:/mh/misterhouse/bin
+
+# Uncomment this if you want to use ViaVoice
+#aumix -m R -m 100
+#source vvsetenv
+#export ECIINI=/usr/lib/ViaVoiceOutloud/eci.ini
+#killall -9 viavoice_server
+#/mh/misterhouse/bin/viavoice_server_start &
+
+# The init script runs 'start_mrhouse -tk 0' and thus matches the
+# first case.  This is the normal case and the other two cases 
+# are for debugging and development use.
+# I can also manually run 'start_mrhouse notk' which does
+# not redirect the console output to a log file but still prevents
+# the tk interface from starting.  Finally, if neither of those are
+# present it starts up like normal with the tk interface.
+cd /mh/misterhouse/bin
+if [ "$1" == "-tk" ] ; then
+   ./mhl -log /mh/data/logs/console.log "$@" >/dev/null 2>&1 &
+elif [ "$1" == "notk" ] ; then
+   ./mhl -tk 0
+else 
+   ./mhl "$@"
+fi
+

@@ -1,0 +1,62 @@
+The spreadsheet is a compilation of IR protocols that I have found by searching the web and 
+decoding various protocols.  Many of them came from the documentation from two programs, 
+GenIRDB written by Barry Gordon and MakeHex written by John Fine that can be found at 
+http://www.remotecentral.com/files/util.htm.   It is my understanding that Barry, John and Rob 
+Crowe collaborated on these definitions and the original decoding of the IR signatures that led 
+to the notation used in the spreadsheet.  John also wrote ccf2efc and it uses the same protocol 
+names and definitions that are found in the protocol files of MakeHex that generates Pronto hex 
+from these protocols.
+
+In other cases, I used information in the many discussion threads by searching for those written 
+by John, Barry, and Rob at Remote Central and that provided sufficient information to create a 
+protocol definition.  Zenith is one that comes to mind that was brilliantly decoded by Rob with 
+an assist from John and I just documented what was there.  In other cases I have used the many 
+tools developed by Rob to deduce some of the computed or check fields like XOR's of certain 
+bits within the device and command codes.
+
+A few of these I decoded initially by manually decoding pronto hex files and later on by using an 
+IR Analyzer designed and built by Tommy Tyler and decoding some of the UEIC protocols 
+found in my RS 15-1994, RS 15-2104 and C7+/URC-7800 OFA remotes that had not 
+previously been identified.  
+
+Tommy also wrote a paper on the IR signal characteristics of the UEIC remotes that was 
+extremely helpful.  This is because he carefully analyzed the repeat patterns that are not always 
+obvious from decoding learned signals from a Pronto.
+
+I have also tried to provide a cross reference of the protocol names found in various places. 
+One of the principal tools for advanced JP1 users to decode Pronto ccf files is John Fine's 
+ccf2efc (found in at least three versions).  This is still the best decoding program for Pronto ccf 
+files for the protocols that John had defined when he originally wrote it. Ccf2efc will still decode 
+~95% of the cases but a few of the names that John originally used have been changed by Rob 
+over time that generally connote the manufacturer.  For example, ccf2efc will decode what is 
+now called Mitsubishi as s16a.
+
+I believe that IR.exe uses the some of ccf2efc's recognition code and hence IR will also return 
+names that are the same as ccf2efc.  I have not yet needed to learn any commands so I don't 
+have any direct experience. I will try to confirm this and update this document.
+
+There are certain names that are commonly used.  Sony 12, Sony 15, and Sony 20 come to 
+mind.  Since in these protocols Sony uses a 7 bit command code, IR Tool calls them Sony 5, 8, 
+and 13 respectively.  MakeHex and GenIRDB both have identical Sony12.irp, Sony15.irp and 
+Sony20.irp files with exception of the notational differences explained at the outset.  However, 
+Rob Crowe became convinced that the 13 bits of device code in Sony 20 was in reality a 5-bit 
+device and 8-bit sub-device code and his tools all work that way and the later two versions of 
+ccf2efc reflect that convention.  KM-Master and UEIC do not differentiate between Sony12 or 
+Sony15. If the device number is greater than 31 and less than 256 then it is Sony 15, otherwise 
+it is Sony12 if less than 32..
+
+The three paragraphs above are really IR protocol semantics since the actual signal is the same 
+it is simply how it is defined.  The results may look different if you are to decode a Sony20 
+signal using an old version of ccf2efc rather than the latest one in the JP1 files section.  Similarly, 
+the devices.xls spreadsheet in the files section has Sony VCR/DVD_0533 as device 2362 and 
+if you were to enter VCR_0533 in devices4.xls you would get 26.73.  [device=26 (5-bits), 
+sub-device=73 (8-bits)] These are the same 13 bits in binary (don't forget they are LSB and 
+you have to think through where the bits go.)  
+
+Barry Gordon was kind enough to allow me to abstract his documentation that explains the 
+syntax of the irp files.  Barry also revised the notation slightly in his later revisions of GenIRDB 
+and I have used this updated notation that varies slightly from that found in MakeHex but I 
+believe that the minor differences in prefixes and suffixes will be apparent.
+
+Finally, I will attempt to keep this current.  If you have any questions or corrections please email 
+me at jarmstrong@hanarmco.com

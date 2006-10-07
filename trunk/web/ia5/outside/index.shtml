@@ -1,0 +1,10 @@
+<html><head><title>MrHouse</title>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<frameset cols="125,*" frameborder="no" border="0" framespacing="0"> 
+  <frame name="menu" scrolling="no" noresize src="menu.shtml">
+  <frame name="output" src='<!--#include var="$config_parms{web_href_weather_local}" -->'>
+</frameset>
+<body bgcolor="#ffffff" text="#000000">
+</body>
+</html>

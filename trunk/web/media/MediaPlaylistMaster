@@ -1,0 +1,19 @@
+<img src="remote5-2.gif" width="215" height="215" border="0" usemap="#map" />
+
+<map name="map">
+<!-- #$-:Image Map file created by GIMP Imagemap Plugin -->
+<!-- #$-:GIMP Imagemap Plugin by Maurits Rijk -->
+<!-- #$-:Please do not edit lines starting with "#$" -->
+<!-- #$VERSION:2.0 -->
+<!-- #$AUTHOR:Pete F -->
+<area shape="circle" coords="104,101,37" alt="Play" href="/RUN;referer?Set_the_house_media_player_to_Play" />
+<area shape="poly" coords="2,103,57,102,62,120,71,133,80,139,43,188,10,151,3,127" alt="Pause" href="/RUN;referer?Set_the_house_media_player_to_Pause" />
+<area shape="poly" coords="153,101,211,102,199,146,184,172,165,187,133,143,150,124" alt="Slow Forward" href="/RUN;referer?Set_the_house_media_player_to_Slow" />
+<area shape="poly" coords="107,0,106,54,130,62,142,72,152,90,153,100,210,101,200,60,182,33,151,10" alt="Fast Fwd x4" href="/RUN;referer?Set_the_house_media_player_to_Next_Chapter" />
+<area shape="poly" coords="102,0,102,55,83,59,67,71,57,88,53,101,0,102,8,63,27,33,59,9" alt="Rewind x2" href="/RUN;referer?Set_the_house_media_player_to_Previous_Chapter" />
+<area shape="poly" coords="47,189,80,142,93,147,118,146,130,141,161,189,134,200,104,206,72,201" alt="Stop" href="/RUN;referer?Set_the_house_media_player_to_Stop" />
+<area shape="poly" coords="169,0,169,10,200,41,212,37,208,5,206,0" alt="Fast Forward" href="/RUN;referer?Set_the_house_media_player_to_FastForward" />
+<area shape="poly" coords="1,41,1,6,7,0,38,1,41,8,12,41" alt="Select or OK" href="/RUN;referer?Set_the_house_media_player_to_Select" />
+<area shape="poly" coords="10,164,42,198,37,206,3,206,2,169" alt="Toggle Fullscreen" href="/RUN;referer?Set_the_house_media_player_to_Fullscreen" />
+<area shape="poly" coords="165,195,197,163,206,168,206,202,204,204,169,204" alt="Jump Back to the Main Menu" href="/RUN;referer?Set_the_house_media_player_to_Menu" />
+</map>

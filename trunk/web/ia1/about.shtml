@@ -1,0 +1,18 @@
+<html>
+<body>
+
+<BASE TARGET='control'>
+
+<p><b>Program</b>:
+<li><b>Version:</b>  <!--#include var="$Version"-->
+<li><b>Modified:</b> <!--#include var="$Version_date"-->
+<li><b>OS:</b>   <!--#include var="$^O"-->
+<li><b>Perl:</b> <!--#include var="$]"-->
+<li><b><a TARGET='_blank' href="http://misterhouse.net">Homepage</a></b>
+<li><b><a TARGET='_blank' href="/docs/index.html">Local Docs</a></b>
+<li><b><a href="http://misterhouse.net/mh/docs/download.html">Download</a></b>
+
+
+</body>
+</html>
+

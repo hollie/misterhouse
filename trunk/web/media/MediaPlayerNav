@@ -1,0 +1,23 @@
+<base target='action'>
+<img src="Remote6b.gif" width="241" height="241" border="0" usemap="#map" />
+
+<map name="map">
+<!-- #$-:Image Map file created by GIMP Imagemap Plugin -->
+<!-- #$-:GIMP Imagemap Plugin by Maurits Rijk -->
+<!-- #$-:Please do not edit lines starting with "#$" -->
+<!-- #$VERSION:2.0 -->
+<!-- #$AUTHOR:Pete F -->
+<area shape="circle" coords="118,118,23" alt="OK or Select" href="/RUN;last_response?Set_the_house_media_player_to_Select" />
+<area shape="poly" coords="92,49,118,45,147,49,166,6,138,0,107,0,74,6" alt="Go to the Menu" href="/RUN;last_response?Set_the_house_media_player_to_Menu" />
+<area shape="poly" coords="3,85,48,99,53,82,67,65,35,32,12,58" alt="Up the Playlist" href="/RUN;last_response?Set_the_house_media_player_to_Previous_Track" />
+<area shape="poly" coords="2,91,0,104,0,132,3,148,47,136,45,117,46,100" alt="Show Hide the Playlist" href="/RUN;last_response?Set_the_house_media_player_to_Playlist" />
+<area shape="poly" coords="3,150,46,137,53,154,66,170,31,202,13,179" alt="Move down the playlist" href="/RUN;last_response?Set_the_house_media_player_to_Next_Track" />
+<area shape="poly" coords="91,188,73,229,100,237,111,238,129,237,161,235,167,230,149,187,119,192" alt="Toggle Fullscreen Mode" href="/RUN;last_response?Set_the_house_media_player_to_Fullscreen" />
+<area shape="poly" coords="169,65,182,80,189,97,233,85,223,61,204,33" alt="Increase Master Volume" href="/RUN;last_response?Set_the_house_media_player_to_Volume_Up" />
+<area shape="poly" coords="190,100,234,87,238,109,238,128,236,147,191,136,193,118" alt="Mute" href="/RUN;last_response?Set_the_house_media_player_to_Mute" />
+<area shape="poly" coords="189,138,234,150,225,173,206,202,173,171,184,156" alt="decrease volume" href="/RUN;last_response?Set_the_house_media_player_to_Volume_down" />
+<area shape="poly" coords="71,70,95,96,108,87,127,86,141,95,165,67,144,53,118,49,91,54" alt="Navigate up" href="/RUN;last_response?Set_the_house_media_player_to_Up" />
+<area shape="poly" coords="141,95,166,68,183,95,188,118,184,144,168,167,141,141,150,127,150,112" alt="Navigate right" href="/RUN;last_response?Set_the_house_media_player_to_right" />
+<area shape="poly" coords="70,167,94,141,107,148,123,150,134,147,141,141,168,168,152,181,135,186,118,188,97,185,79,176,68,167" alt="Nav Down" href="/RUN;last_response?Set_the_house_media_player_to_down" />
+<area shape="poly" coords="69,71,95,97,88,107,86,123,95,140,68,164,52,141,48,121,50,104,58,83" alt="Nav Left" href="/RUN;last_response?Set_the_house_media_player_to_left" />
+</map>

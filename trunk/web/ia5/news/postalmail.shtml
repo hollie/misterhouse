@@ -1,0 +1,14 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target ="output">
+<!--#include code="&html_header('Postal Mail Delivery')" -->
+<table cellSpacing=0 cellPadding=0 width="100%" border=0>
+<tr>
+<td colspan=3  valign=top height=250>
+<font size=2>
+</table>
+</body>
+</html>

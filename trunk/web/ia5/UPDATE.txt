@@ -1,0 +1,81 @@
+IA5 changelog as of 21-12-2002:
+general section:
+------
+rm top_old.shtml
+rm non ia5-graphics from graphics
+changed background color in default.css list.css from wheat to white
+rm speak/default.css
+rm ia5/README.* (outdated)
+rm _install (outdated)
+rm _templates (are in graphics already)
+added iexplore resize code to index.shtml via parm web_resize
+adapted alot of html pages to use html_header in http_server.pl
+
+graphics:
+------
+added group icons: group-dark, group-entry, group-bed, group-holiday, group-study,
+group-familyroom, group-motion, group-cameras, group-x10sensors, group-den
+added item icons: item-x10sensors, item-x10mr26
+added button icons: x10, cm11, zip
+changed custom light button layout to look like gd generated ones
+added light-buttons: computerroom_light, entry_light, chandelier,
+rope_light, bedroom_left_reading_light, bedroom_right_reading_light,
+bathroom_light, driveway_light, backyard_light, bedroom_fan_light, garage_light,
+student_light, den_light, christmas_lights, halloween_lights, aquarium_light,
+den_torch, bed_lamp
+include this snippet in your items.mht file to create a demo group:
+X10I, D5, computerroom_light,    Test,        CM11
+X10I, D5, entry_light,           Test,        CM11
+X10I, D5, chandelier,            Test,        CM11
+X10I, D5, rope_light,            Test,        CM11
+X10I, D5, bedroom_left_reading_light, Test,   CM11
+X10I, D5, bedroom_right_reading_light,Test,   CM11
+X10I, D5, bathroom_light,        Test,        CM11
+X10I, D5, driveway_light,        Test,        CM11
+X10I, D5, backyard_light,        Test,        CM11
+X10I, D5, bedroom_fan_light,     Test,        CM11
+X10I, D5, garage_light,          Test,        CM11
+X10I, D5, student_light,         Test,        CM11
+X10I, D5, den_light,             Test,        CM11
+X10I, D5, christmas_lights,      Test,        CM11
+X10I, D5, halloween_lights,      Test,        CM11
+X10I, D5, aquarium_light,        Test,        CM11
+X10I, D5, den_torch,             Test,        CM11
+X10I, D5, bed_lamp,              Test,        CM11
+
+house section:
+------
+revamped main.shtml, deleted images/download.*
+created newer/bigger buttons for website, mailinglist and docs
+rm j1.shtml
+created setup section, deleted images/setup.jpg, added images/setup.gif
+moved ini editor, prog irman and select code to it, with new buttons
+deleted edititems.jpg, edittriggers.jpg, editcommon edituser.jpg, added gif
+replacements
+corrected header text in bin/inieditor.pl
+added header in bin/selectcode.pl
+added html_header to search.shtml
+
+speech section:
+------
+resized msagent and webmute buttons, they where a bit to big.
+
+entertainment section:
+------
+moved irman.shtml to house, deleted images/irman
+added browse category back to menu
+
+outside section:
+-----
+repaired wrong 'nbsp' entries in sunmoon.shtml
+use table in sunmoon.shtml
+
+statistics section:
+-----
+added the following icons and menu entries:
+backuplog, errorlog and changed webserver stats entry
+it shows /data/logs/server_hits.*.log
+
+news section:
+-----
+use purple header in read e-mail

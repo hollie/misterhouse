@@ -1,0 +1,82 @@
+#!/usr/bin/perl -w
+#  Last change Time-stamp: <2002-08-03 18:41:14 winter>
+
+=begin comment
+
+Author:
+    Bruce Winter    bruce@misterhouse.net   http://misterhouse.net:81
+Latest version:
+    http://misterhouse.net:81/mh/bin
+
+Description:
+  Create html and thumnails of photos of pictures in the current directory.
+
+  Uses image_resize (which uses imagemagick) to create thumnails.
+
+
+=cut
+
+sub help {
+    print <<DONE;
+
+$0 creates an html index of photos.
+
+Usage: $0 [OPTIONS]
+
+Options are:
+
+-h, --help        Display this help message.
+
+Examples:
+
+ image_html
+
+DONE
+    exit;
+}
+
+use strict;
+use File::Find;
+use Getopt::Long;
+
+                                # Changes defaults if specified on command line
+my $help;
+&help if (!GetOptions('help' => \$help) or $help);
+
+#y $size = '20%';
+my $size = '160x120';
+#my $size = '80x60';
+my $dir  = '.';
+print "Resizing $dir to $size\n";
+system "image_resize --dir $dir --size $size --prefix icon -b 0 -r 0";
+
+                                # Recurses, starting from within the current directory, 
+my $prefix = 'icon';
+my $html = "<h2>Index of $dir</h2><table><tr>\n";
+
+print "\nReading dirs\n";
+find(\&get_img, $dir);
+
+my $count;
+sub get_img() {
+    my ($file) = $_;
+    if (-f $file) {
+        my ($root, $ext) = $file =~ /(.+)\.(.+)/;
+        return unless $ext and $ext =~ /(jpg|gif)/i;
+        return if $root =~ /^${prefix}_/;
+        my $file_icon = "${prefix}_$root.$ext";
+        $html .= qq[<td>$file<br><a href="$file"><img src="$file_icon"></a></td>\n];
+        $html .= qq[</tr><tr>\n] unless ++$count % 4;
+    }
+}
+$html .= "</tr></table>\n";
+open (HTML, ">index.html");
+print HTML $html;
+close HTML;
+
+#
+# $Log: image_index,v $
+# Revision 1.3  2004/02/01 19:24:18  winter
+#  - 2.87 release
+#
+#

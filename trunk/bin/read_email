@@ -1,0 +1,73 @@
+#!/usr/bin/perl
+
+use strict;
+
+my ($Pgm_Path, $Pgm_Name);
+BEGIN {
+    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'";  # Use BEGIN eval to keep perl2exe happy
+}
+
+my %parms;
+use Getopt::Long;
+if (!&GetOptions(\%parms, 'h', 'help', 'debug', 
+                 'user=s', 'password=s', 'server=s', 'account=s', 'msgnum=s', 'file=s') or
+    @ARGV or ($parms{h} or $parms{help})) {
+    print<<eof;
+
+    $Pgm_Name reads an email message.  You may want to call this as a background process
+    if you see the mh &net_mail_read function causes mh to pause.
+
+  Usage:
+    $Pgm_Name -option value -option value ...
+
+    Where -option can be any of the following
+        server      Default is mh.ini parm net_mail_ACCOUNT_server
+        user        Default is mh.ini parm net_mail_ACCOUNT_user  
+        password    Default is mh.ini parm net_mail_ACCOUNT_password
+
+        account     This is the ACCOUNT field used in finding the above parms.
+
+        msgnum      Which message number to read.
+
+        file        Put the message body into a file, rather than stdout
+
+  Example:
+    read_email -msgnum 45
+
+    read_email -account Bruce -msgnum 103
+
+    read_email -server misterhouse.net -user bruce -password haha -msgnum 206
+
+eof
+    exit;
+}
+
+require 'handy_utilities.pl';      # For read_mh_opts
+require 'handy_net_utilities.pl';  # For net_ftp
+
+                                # Read default mh.ini parms
+use vars '%config_parms';
+&read_mh_opts(\%config_parms, $Pgm_Path);
+
+print "Reading msgnum $parms{msgnum} for account $parms{account}\n";
+my @data = &net_mail_read(%parms);
+my $data = "@data";
+if ($parms{file}) {
+    print "Saving message to $parms{file}\n";
+    open OUT, ">$parms{file}";
+    binmode OUT;
+    print OUT $data;
+    close OUT;
+}
+else {
+    print $data;
+}
+
+#
+# $Log: read_email,v $
+# Revision 2.1  2004/03/23 02:27:03  winter
+# *** empty log message ***
+#
+#

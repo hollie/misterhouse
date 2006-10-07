@@ -1,0 +1,32 @@
+
+Here is how you can turn off the 'motion only in darkness' feature of a
+MS130/MS13A (thanks to Roger Bille):
+
+ 
+ 1. Press the "UNIT/OFF" key briefly. The red LED will flicker.
+ 
+ 2. Hold the "HOUSE/ON" key down for 5 seconds. The red LED will flicker, the
+    green LED comes on, and after about 5 seconds the red LED will flash
+    either once or twice.
+ 
+ 3. Let go off the "HOUSE/ON" key.
+ 
+ 4. Press the "HOUSE/ON" key once and hold it down for 3 seconds, The LED will
+    flash once (if the movement detector is to react at all times)
+ 
+        or
+    
+    Press the "HOUSE/ON" key twice, and the second time hold it down for 3
+    seconds, The LED will flash twice (if the movement detector is only to
+    react during darkness).
+ 
+ 5. Let go off the "HOUSE/ON" key.
+ 
+== End ==
+ 
+ I hope this help you. You will want the first option at point 4, one single
+ press on "HOUSE/ON" to have the movement detector to always react. Note that
+ the dark/dusk will still sending ON/OFF messages on the +1 unit code, so just
+ trap them in mh (to prevent mh error messages) but you don't need to use them
+ in mh.
+ 

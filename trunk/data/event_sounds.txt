@@ -1,0 +1,33 @@
+#event sounds
+#one per line
+# $Date$
+# $Revision$
+
+alarm=>'sound_nature/gonge.wav',    volume => 100, mode=>'unmuted', nolog=>1
+movement1    => 'sound_nature/02.wav',       volume => 10
+movement2    => 'sound_nature/02.wav',       volume => 100
+unauthorized => 'sound_nature/loon.wav',       volume => 100
+3            => 'sound_nature/65.wav',       volume => 20
+4            => 'sound_nature/aviary.wav',   volume => 20
+barcode_scan => 'sound_beep1.wav',     volume => 70
+mh_problem   => 'sound_nature/bird1.wav',    volume => 20
+mh_pause     => 'none',                      volume => 20
+7            => 'sound_nature/bird2.wav',    volume => 20
+wap          => 'sound_nature/bird3.wav',    volume => 100
+tell_me      => 'sound_nature/birds.wav',    volume => 20
+10           => 'sound_nature/chirp.wav',    volume => 20
+router_hit   => 'sound_nature/frog.wav',     volume =>  2
+12           => 'sound_nature/frog3.wav',    volume => 20
+13           => 'sound_nature/h4560sh.wav',  volume => 20
+14           => 'sound_nature/kirtland.wav', volume => 20
+router_new   => 'sound_nature/loon.wav',     volume => 20
+16           => 'sound_nature/octap95.wav',  volume => 20
+17           => 'sound_nature/parakeet.wav', volume => 20
+18           => 'sound_nature/ribbit.wav',   volume => 10
+19           => 'sound_nature/wren.wav',     volume => 20
+timer        => 'sound_nature/gonge.wav',    volume => 100, rooms => 'all', time => 3 
+announcement => 'announcement.wav',   volume => 100, nolog=>1
+chat      => 'sound_nature/loon.wav', volume => 100, nolog => 1
+frog => 'sound_nature/frog.wav', nolog => 1
+cash_register => 'cash_register.wav', nolog => 1
+about => 'sound_nature/loon.wav', nolog => 1

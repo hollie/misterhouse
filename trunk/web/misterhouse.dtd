@@ -1,0 +1,12 @@
+<!-- Example doc. is at: http://xmlwriter.net/xml_guide/element_declaration.shtml -->
+
+<!-- not sure if we need this or not?? It does not really match the data from xml.pl yet -->
+
+<!ELEMENT misterhouse (objects*)>
+<!ELEMENT objects (object_type*)>
+<!ELEMENT object_type (name,object*)>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT object (name,file,state,states)>
+<!ELEMENT file   (#PCDATA)>
+<!ELEMENT state  (#PCDATA)>
+<!ELEMENT states (#PCDATA)>

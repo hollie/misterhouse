@@ -1,0 +1,26 @@
+Manufacturer=Theta
+Model=Casanova
+Device=A/V PRE-PRO
+Protocol=RC5
+
+[Key Codes]
+Power        =16,14
+MR           =16,17
+Disp         =16,13
+Mode         =16,9
+Tape         =16,10
+A-D          =16,7
+CursorUP     =16,15
+CursorDN     =16,16
+CursorLT     =16,19
+CursorRT     =16,20
+00           =16,0
+01           =16,1
+02           =16,2
+03           =16,3
+04           =16,4
+05           =16,5
+06           =16,6
+07           =16,7
+08           =16,8
+09           =16,9

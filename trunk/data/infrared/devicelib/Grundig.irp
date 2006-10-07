@@ -1,0 +1,10 @@
+Name=Grundig
+Protocol=Grundig
+Modulation=Bi-Phase
+Frequency=32000
+Time Base=500
+Bit order=LSB
+Zero=1,-1
+One=-1,1
+Form=[1 -5],0:9,[1 -38],[1 -5],[1 -1],f:9,[1 -223]
+' Form=[1 -5],0:9,[1 -38];[1 -5],[1 -1],f:9,[1 -223]

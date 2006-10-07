@@ -1,0 +1,22 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target ="output">
+<table width=100% bgcolor="lightgrey">
+<td><center>
+<font size=3 color="black"><b>
+National Weather Data
+</b></font></center>
+</td>
+</table><br>
+<table cellSpacing=0 cellPadding=0 width="100%" border=0>
+<center>
+
+<img src='<!--#include var="$config_parms{web_href_weather_national1}" -->' border=0><br>
+<img src='<!--#include var="$config_parms{web_href_weather_national2}" -->' border=0>
+
+</center>
+</body>
+</html>

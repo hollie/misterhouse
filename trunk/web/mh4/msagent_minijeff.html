@@ -1,0 +1,22 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<!-- saved from url=(0051)http://misterhouse.net/mh/web/msagent_minijeff.html -->
+<HTML><HEAD>
+<META http-equiv=Content-Type content="text/html; charset=windows-1252">
+<META content="MSHTML 5.50.4134.600" name=GENERATOR></HEAD>
+<BODY>
+<SCRIPT language=VBScript>
+<!--
+On Error Resume Next
+Dim minijeff
+//t minijeff=parent.my_win.minijeff    'reference the msagent object in the control window, agentcontrol.html, which is named "my_win" by the script in index.html
+set minijeff=parent.control.minijeff  
+Sub window_OnLoad
+On Error Resume Next
+	minijeff.Stop
+ 	minijeff.Speak " <!-- speak_text --> "
+	minijeff.Shrug
+end Sub
+-->
+
+</SCRIPT>
+</BODY></HTML>

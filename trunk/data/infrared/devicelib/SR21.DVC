@@ -1,0 +1,12 @@
+Manufacturer=XANTECH
+Device=Switch
+Model=SR21
+Remote=SWT
+Format=Xantech
+Device Code=5/0
+
+[Key Codes]
+SelectA         =01
+SelectB         =20
+
+

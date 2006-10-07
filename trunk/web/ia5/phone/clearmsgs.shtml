@@ -1,0 +1,9 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<base target="output">
+<body>
+<!--#include code="&clearmsgs"-->
+</body>
+</html>

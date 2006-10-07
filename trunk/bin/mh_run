@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# Call mh -run script_xyz  args, so we can use the perl libs in the mh distro
+# Also checks for and uses the compiled mhe if it is found.
+# Set PAR_TEMP so this process does not mess with parent process tmp files (pid is the same!?!)
+
+if [ -f mhe ]; then
+  echo Using compiled mhe
+  export PAR_TEMP=/tmp/par_mh.$$
+  mhe -run $* 
+  exit
+fi
+
+perl mh -run $*
+

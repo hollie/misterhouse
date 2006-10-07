@@ -1,0 +1,7 @@
+Name=Lexicon Protocol
+Protocol=Lexicon
+Frequency=38000
+Time Base=550
+One=1,-3
+Zero=1,-1
+Form=[16 -8],d:16,f:8,~f:8,[1 -78];[16 -8 1 -78]

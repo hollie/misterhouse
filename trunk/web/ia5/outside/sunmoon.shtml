@@ -1,0 +1,60 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target ="output">
+<!--#include code="&html_header('Sun and Moon Data')" -->
+
+<center>
+
+<table cellSpacing="0" cellPadding="0" width="400" border="0">
+<font size=3>
+<tr>
+<td><b>General</b></td><td></td>
+</tr><tr>
+<td  ALIGN="right">Time of Day:&nbsp&nbsp</td><td><!--#include var="$Time_Of_Day"--></td>
+</tr><tr>
+<td  ALIGN="right">Season:&nbsp&nbsp</td><td><!--#include var="$Season"--></td>
+</tr><tr>
+</tr><tr>
+<td><b>Sun</b></td>
+</tr><tr>
+<td  ALIGN="right">Time Sunrise:&nbsp&nbsp</td><td><!--#include var="$Time_Sunrise"--></td>
+</tr><tr>
+<td  ALIGN="right">Time Sunrise Twilight:&nbsp&nbsp</td><td><!--#include var="$Time_Sunrise_Twilight"--></td>
+</tr><tr>
+<td  ALIGN="right">Time Sunset:&nbsp&nbsp</td><td><!--#include var="$Time_Sunset"--></td>
+</tr><tr>
+<td  ALIGN="right">Time Sunset Twilight:&nbsp&nbsp</td><td><!--#include var="$Time_Sunset_Twilight"--></td>
+</tr><tr>
+</tr><tr>	
+<td><b>Moon</b></td><td></td>
+</tr><tr>
+<td  ALIGN="right">Age:&nbsp&nbsp</td><td><!--#include var="$Moon{age}"--></td>
+</tr><tr>
+<td ALIGN="right">Brightness:&nbsp&nbsp</td><td><!--#include var="$Moon{brightness}"--></td>
+</tr><tr>
+<td ALIGN="right">Phase:&nbsp&nbsp</td><td><!--#include var="$Moon{phase}"--></td>
+</tr><tr>
+<td ALIGN="right">Moon First:&nbsp&nbsp</td><td><!--#include var="$Moon{first}"--></td>
+</tr><tr>
+<td ALIGN="right">Moon First Prev:&nbsp&nbsp</td><td><!--#include var="$Moon{first_prev}"--></td>
+</tr><tr>
+<td ALIGN="right">Moon Full:&nbsp&nbsp</td><td><!--#include var="$Moon{full}"--></td>
+</tr><tr>
+<td ALIGN="right">Moon Full Prev:&nbsp&nbsp</td><td><!--#include var="$Moon{full_prev}"--></td>
+</tr><tr>
+<td ALIGN="right">Moon Last:&nbsp&nbsp</td><td><!--#include var="$Moon{last}"--></td>
+</tr><tr>
+<td ALIGN="right">Moon Last Prev:&nbsp&nbsp</td><td><!--#include var="$Moon{last_prev}"--></td>
+</tr><tr>
+<td ALIGN="right">Moon New:&nbsp&nbsp</td><td><!--#include var="$Moon{new}"--></td>
+</tr><tr></tr><tr></tr><tr></tr><tr></tr><tr></tr><tr></tr><tr></tr><tr></tr><tr></tr><tr></tr><tr></tr><tr></tr><tr></tr><tr></tr><tr></tr><tr>
+<td ALIGN="right">Moon New Prev:&nbsp&nbsp</td><td><!--#include var="$Moon{new_prev}"--></td>
+</tr>
+</table>
+</center>
+</font>
+</body>
+</html>

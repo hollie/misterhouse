@@ -1,0 +1,78 @@
+#!/bin/sh
+
+# From Paul Chamberlain on 10/2001
+#I have a user named "mh" and a "start" script in his home dir.
+#I like this method because it keeps the real mh information
+#in the mh dir.  Then I have an /etc/rc.d/init.d/mh script
+#that does little more than run that script.
+
+# Start sript simply has this:
+#!/bin/sh
+#  su -c "./current/bin/mh >> log 2>&1 &" - mh
+
+# The rest of this file goes into .../init.d/mh
+
+#-----------------
+# Startup script for MisterHouse home automation
+#
+# chkconfig: 2345 95 05
+# description: Home automation stuff
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+[ -f /home/mh/start ] || exit 0
+
+prog="mh"
+
+start() {
+    echo -n $"Starting $prog: " 
+    cd /home/mh
+    daemon ./start
+    RETVAL=$?
+    [ $RETVAL -eq 0 ] && touch /var/lock/subsys/mh
+    echo
+    return $RETVAL
+}
+
+stop() {
+    if test "x`pidof mh`" != x; then
+	echo -n $"Stopping $prog: "
+	killproc mh
+	echo
+    fi
+    RETVAL=$?
+    [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/mh 
+    return $RETVAL
+}
+
+case "$1" in
+	start)
+	    start
+	    ;;
+	
+	stop)
+	    stop
+	    ;;
+	
+	status)
+	    status mh
+	    ;;
+	restart)
+	    stop
+	    start
+	    ;;
+	condrestart)
+	    if test "x`pidof mh`" != x; then
+		stop
+		start
+	    fi
+	    ;;
+	
+	*)
+	    echo $"Usage: $0 {start|stop|restart|condrestart|status}"
+	    exit 1
+
+esac
+
+exit 0

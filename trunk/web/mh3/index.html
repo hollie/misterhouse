@@ -1,0 +1,47 @@
+<HTML>
+<HEAD>
+<TITLE>Mister House Control Page</TITLE>
+
+<META NAME="ROBOTS" CONTENT="NOINDEX, NOFOLLOW">
+
+<!---
+This would auto-refresh periodically, but will probably interfere with normal usage 
+<META HTTP-EQUIV="REFRESH" CONTENT="180">
+---->
+
+
+<script language="javascript1.2">
+if (document.layers) {n=1;ie=0};
+if (document.all)    {n=0;ie=1};
+function rez() {
+	where='http://' + location.host + location.pathname;
+	location.href=(where);
+	return false;
+}
+if (n) {
+    captureEvents(Event.RESIZE);
+    onresize=rez;
+}
+</script>
+
+
+</HEAD>
+
+<FRAMESET Rows="35,*" FRAMEBORDER="NO" BORDER="0" FRAMESPACING="0">
+
+    <FRAME SRC="/mh3/top.html" NAME="top" SCROLLING="no" MARGINHEIGHT="0" MARGINWIDTH="0" noresize>
+
+    <FRAMESET cols="25%,*" FRAMEBORDER="NO" BORDER="1" FRAMESPACING="0">
+
+        <FRAME SRC="/category" NAME="main" MARGINHEIGHT="0" MARGINWIDTH="0">
+
+        <FRAMESET Rows="60%,*" FRAMEBORDER="YES" BORDER="0" FRAMESPACING="0">
+            <FRAME SRC="/list?X10_Item" NAME="control" MARGINHEIGHT="0" MARGINWIDTH="0">
+            <FRAME SRC="/speech"  NAME="speech"  MARGINHEIGHT="0" MARGINWIDTH="0">
+        </FRAMESET>
+
+    </FRAMESET>
+
+</FRAMESET>
+
+</HTML>

@@ -1,0 +1,22 @@
+<html>
+<head>
+<LINK REL="STYLESHEET" HREF="/default.css" TYPE="text/css">
+</head>
+<body>
+
+<BASE TARGET='control'>
+
+<b>Open Access</b>
+<li><a href="/misc/barcode_scan.html">Scan a barcode</a></li>
+<li><A href="http://misterhouse.net:8080/aprs">Track vehicles</A>
+<li><a href="/list?authority=\S">Other</a>
+
+<hr>
+<b>Password protected</b>
+<li><a href="/email">Email</a>
+
+<!--#include file="/category"-->
+
+</body>
+</html>
+

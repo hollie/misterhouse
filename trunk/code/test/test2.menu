@@ -1,0 +1,142 @@
+
+# This is another simple test menu
+
+ M: Test2
+    D: Demo
+    D: Test1
+    D: HVAC
+    D: Fans
+    D: Lights
+
+ M: Demo                 # Demo commands anyone can run
+    D: Logs
+    D: Weather
+    D: Fun
+
+ M: Logs
+    P: anyone            # Menu level Password authorization default
+    D: Van location
+      A: Where is the van
+    D: Van log
+      R: eval &menu_vehicle_log('van')
+    D: Phone log in
+      R: eval &phone_log('in')
+    D: Phone log out
+      R: eval &phone_log('out')
+    D: Recent email
+      A: List recent e mail
+    D: Up Time
+      A: What is your up time
+
+ M: Weather
+    P: anyone            # Menu level Password authorization default
+    R: last_response     # Override Set to ... response
+    D: Temperature 
+      A: What is the  temperature
+    D: Weather [forecast,conditions]
+      A: Show internet weather $state
+    D: Moon phase
+      A: What is the phase of the moon
+    D: Sun times
+      A: When will the sun set
+    D: Test Light [on,off,+,-]    
+       A: Internet light [on,off,+30,-30]
+#      R: Light set to $state
+       R: no response
+
+ M: Fun
+    P: anyone            # Menu level Password authorization default
+    R: last_response     # Override Set to ... response
+    D: Tagline
+      A: Read the house tagline
+    D: Deep Thought
+      A: Display the next deep thought
+    D: Trivia [question,answer]
+      A: Display the [next science trivia question,trivia answer]
+    D: Top 10 list
+      A: Display the top 10 list 
+    D: Slashdot
+      A: Show the slashdot news
+    D: On This Day
+      A: Show onthisday
+    D: Top news
+      A: Tell me the Top news
+    D: Stocks
+      A: Show stock quotes
+
+
+ M: Test1
+    D: Speaker test 1
+      R: "Speaker is $mh_speakers->{state}"
+    D: Speaker test 2
+      A: speak "Speaker is " . state $mh_speakers
+    D: Camera Light
+      A: speak "Camera light is set to  " . state $camera_light
+    D: Test response 1
+      R: eval "Temp is 100" . chr(133) . chr(07)   # Use % symbol for degrees and ring the bell
+    D: Test eval 1     
+      A: eval speak "Outside is " . $Weather{TempOutdoor}
+    D: Test eval 1     
+       A: speak "Outside is " . (( 9 * (($Weather{TempOutdoor})-2730)/50)+22)
+       R: last_response
+    D: Inside
+       A: eval speak "Temp is " . $Weather{TempOutdoor}
+    D: [What is,Read,Display] the next deep thought
+      A: $state the next deep thought
+      R: last_response
+    D: [What is,Read,Display] the next deep thought
+      R: last_response
+    D: Test var1
+      R: season=$Season
+ M: HVAC
+    D: List Time
+       R: $Time_Now $Date_Now
+    D: List Temps
+       A: speak "At $Time_Date, the temperature is $Weather{TempIndoor}"
+    D: Heat
+
+ M: Heat
+    D: Heat Set [64,66,68,70]
+       A: $Save{heat_temp}=$state
+    D: Heat Change [+,-]
+       A: ($state eq '+') ? ++$Save{heat_temp} : --$Save{heat_temp};
+
+ M: Fans
+    D: Living  [on,off]
+       A: Living room fan $state
+    D: Bedroom [on,off] 
+       A: Bedroom fan $state
+    D: Attic   [on,off] 
+       A: Attic fan $state
+    D: Furnace [on,off]
+       A: Furnace $state
+       R: None
+
+ M: Lights 
+    D: Bedroom
+    D: Living
+    D: Outside
+
+ M: Bedroom
+    D: Left Bedroom Light [on,off,+30,-30]
+       A: Left bedroom light $state
+       R: Ok, light $state
+    D: Right Bedroom [on,off,+30,-30] 
+       A: Right bedroom light $state
+    D: Fan [on,off,+30,-30] 
+       A: set $bedroom_fan_light $state
+
+ M: Living
+    D: Camera [on,off,+,-]    
+       A: Camera light [on,off,+30,-30]
+    D: Pedestal [on,off,+,-]  
+       A: Pedestal light [on,off,+30,-30]
+    D: Blue [on,off]          
+       A: Blue light $state
+
+ M: Outside
+    D: Garage   [+,-,^,v]
+       A: set $garage_light [on,off,+30,-30]
+    D: Backyard [+,-,^,v]
+       A: set $backyard_light [on,off,+30,-30]
+   

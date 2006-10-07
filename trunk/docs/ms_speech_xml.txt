@@ -1,0 +1,284 @@
+Microsoft Speech SDK 
+SAPI 5.1 
+ 
+XML TTS Tutorial
+SAPI XML TTS for Application Developers
+SAPI text-to-speech (TTS) extensible markup language (XML) tags fall into several categories.
+	Voice state control 
+	Direct item insertion 
+	Voice context control 
+	Voice selection 
+	Custom Pronunciation 
+
+Voice state control tags
+
+SAPI TTS XML supports five tags that control the state of the current voice: Volume, Rate, 
+Pitch, Emph, and Spell.
+
+
+Volume
+
+The Volume tag controls the volume of a voice. The tag can be empty, in which case it applies 
+to all subsequent text, or it can have content, in which case it only applies to that content.
+The Volume tag has one required attribute: Level. The value of this attribute should be an integer 
+between zero and one hundred. Values outside of this range will be truncated.
+<volume level="50">
+This text should be spoken at volume level fifty.
+
+   <volume level="100">
+      This text should be spoken at volume level one hundred.
+   </volume>
+   
+</volume>
+
+<volume level="80"/>
+
+All text which follows should be spoken at volume level eighty.
+One hundred represents the default volume of a voice. Lower values represent percentages of 
+this default. That is, 50 corresponds to 50% of full volume.
+Values specified using the Volume tag will be combined with values specified programmatically 
+(using ISpVoice::SetVolume). For example, if you combine a SetVolume( 50 ) call with a 
+<volume level="50"> tag, the volume of the voice should be 25% of its full volume.
+
+
+Rate
+
+The Rate tag controls the rate of a voice. The tag can be empty, in which case it applies to all 
+subsequent text, or it can have content, in which case it only applies to that content.
+The Rate tag has two attributes, Speed and AbsSpeed, one of which must be present. The 
+value of both of these attributes should be an integer between negative ten and ten. Values 
+outside of this range may be truncated by the engine (but are not truncated by SAPI). The 
+AbsSpeed attribute controls the absolute rate of the voice, so a value of ten always corresponds 
+to a value of ten, a value of five always corresponds to a value of five.
+
+<rate absspeed="5">
+   This text should be spoken at rate five.
+   <rate absspeed="-5">
+      This text should be spoken at rate negative five.
+   </rate>
+</rate>
+<rate absspeed="10"/>
+
+All text which follows should be spoken at rate ten.
+
+
+Speed
+
+The Speed attribute controls the relative rate of the voice. The absolute value is found by adding 
+each Speed to the current absolute value.
+
+<rate speed="5">
+   This text should be spoken at rate five.
+      <rate speed="-5">
+         This text should be spoken at rate zero.
+      </rate>
+</rate>
+
+Zero represents the default rate of a voice, with positive values being faster and negative values 
+being slower. Values specified using the Rate tag will be combined with values specified 
+programmatically (using ISpVoice::SetRate).
+
+
+Pitch
+
+The Pitch tag controls the pitch of a voice. The tag can be empty, in which case it applies to all 
+subsequent text, or it can have content, in which case it only applies to that content.
+The Pitch tag has two attributes, Middle and AbsMiddle, one of which must be present. The 
+value of both of these attributes should be an integer between negative ten and ten. Values 
+outside of this range may be truncated by the engine (but are not truncated by SAPI).
+The AbsMiddle attribute controls the absolute pitch of the voice, so a value of ten always 
+corresponds to a value of ten, a value of five always corresponds to a value of five.
+
+<pitch absmiddle="5">
+This text should be spoken at pitch five.
+   <pitch absmiddle="-5">
+      This text should be spoken at pitch negative five.
+   </pitch>
+</pitch>
+<pitch absmiddle="10"/>
+
+All text which follows should be spoken at pitch ten.
+The Middle attribute controls the relative pitch of the voice. The absolute value is found by 
+adding each Middle to the current absolute value.
+
+<pitch middle="5">
+This text should be spoken at pitch five.
+   <pitch middle="-5">
+      This text should be spoken at pitch zero.
+   </pitch>
+</pitch>
+
+Zero represents the default middle pitch for a voice, with positive values being higher and 
+negative values being lower.
+
+
+Emph
+
+The Emph tag instructs the voice to emphasize a word or section of text. The Emph tag cannot 
+be empty. The following word should be emphasized.
+<emph> boo </emph>!
+The method of emphasis may vary from voice to voice.
+
+
+Spell
+
+The Spell tag forces the voice to spell out all text, rather than using its default word and sentence 
+breaking rules, normalization rules, and so forth. All characters should be expanded to 
+corresponding words (including punctuation, numbers, and so forth). The Spell tag cannot be 
+empty.
+
+<spell>
+These words should be spelled out.
+</spell>
+
+These words should not be spelled out.
+
+
+Direct item insertion tags
+
+Three tags are supported that applications the ability to insert items directly at some level: 
+Silence, Pron, and Bookmark.
+
+
+Silence
+
+The Silence tag inserts a specified number of milliseconds of silence into the output audio 
+stream. This tag must be empty, and must have one attribute, Msec.
+Five hundred milliseconds of silence <silence msec="500"/> just 
+occurred.
+
+
+Pron
+
+The Pron tag inserts a specified pronunciation. The voice will process the sequence of 
+phonemes exactly as they are specified. This tag can be empty, or it can have content. If it does 
+have content, it will be interpreted as providing the pronunciation for the enclosed text. That is, 
+the enclosed text will not be processed as it normally would be.
+The Pron tag has one attribute, Sym, whose value is a string of white space separated 
+phonemes.
+
+<pron sym="h eh 1 l ow & w er 1 l d "/>
+<pron sym="h eh 1 l ow & w er 1 l d"> hello world </pron>
+
+
+Bookmark
+
+The Bookmark tag inserts a bookmark event into the output audio stream. Use this event to 
+signal the application when the audio corresponding to the text at the Bookmark tag has been 
+reached. The Bookmark tag must be empty.
+The Bookmark tag has one attribute, Mark, whose value is a string. This value can then be used 
+to differentiate between bookmark events (each of which will contain the string value from their 
+corresponding tag).
+The application will receive an event here,
+
+<bookmark mark="bookmark_one"/>
+and another one here 
+<bookmark mark="bookmark_two"/>
+
+
+Voice context control tags
+
+Two tags provide context to the current voice: PartOfSp and Context. Those tags enable the 
+voice to determine how to deal with the text it is processing. With both of these tags, the extent 
+to which voices use the context may vary.
+
+
+PartOfSp
+
+The PartOfSp tag provides the voice with the part of speech of the enclosed word(s). Use this 
+tag to enable the voice to pronounce a word with multiple pronunciations correctly depending 
+on its part of speech. The PartOfSp tag cannot be empty.
+The PartOfSp tag has one attribute, Part, which takes a string corresponding to a SAPI part of 
+speech as its attribute. Only SAPI defined parts of speech are supported - "Unknown", "Noun", 
+"Verb", "Modifier", "Function", "Interjection".
+
+<partofsp part="noun"> A </partofsp> is the first letter of the 
+alphabet.
+Did you <partofsp part="verb"> record </partofsp> that <partofsp 
+part="noun"> record </partofsp>?
+
+
+Context
+
+The Context tag provides the voice with information which the voice may then use to determine 
+how to normalize special items, like dates, numbers, and currency. Use this tag to enable the 
+voice to distinguish between confusable date formats (see the example, below). The Context tag 
+cannot be empty.
+The Context tag has one attribute, Id, which takes a string corresponding to the context of the 
+enclosed text. Several contexts are defined by SAPI and are more likely to be recognized by 
+SAPI compliant voices, but any string may be used. See documentation for a particular voice 
+for more details.
+
+<context id="date_mdy"> 03/04/01 </context> should be March fourth, two 
+thousand one.
+<context id="date_dmy"> 03/04/01 </context> should be April third, two 
+thousand one.
+<context id="date_ymd"> 03/04/01 </context> should be April first, two 
+thousand four.
+
+
+Voice Selection Tags
+
+There are two tags which can be used (potentially) to change the current voice: Voice and Lang.
+
+
+Voice
+
+The Voice tag selects a voice based on its attributes, Age, Gender, Language, Name, Vendor, 
+and VendorPreferred. The tag can be empty, in which case it changes the voice for all 
+subsequent text, or it can have content, in which case it only changes the voice for that content.
+The Voice tag has two attributes: Required and Optional. These correspond exactly to the 
+required and optional attributes parameters to ISpObjectTokenCategory_EnumerateTokens 
+and SpFindBestToken functions. The selected voice follows exactly the same rules as the latter 
+of these two functions. That is, all the required attributes are present, and more optional 
+attributes are present than with the other installed voices (if several voices have equal numbers 
+of optional attributes one is selected at random). See Object Tokens and Registry Settings for 
+more details.
+In addition, the attributes of the current voice are always added as optional attributes when the 
+Voice tag is used. This means that, a voice which is more similar to the current voice will be 
+selected over one which is less similar.
+If no voice is found that matches all of the required attributes, no voice change will occur.
+The default voice should speak this sentence.
+<voice required="Gender=Female;Age!=Child">
+A female non-child should speak this sentence, if one exists.
+
+<voice required="Age=Teen">
+   A teen should speak this sentence - if a female, non-child teen is 
+present, she will be selected over a male teen, for example.
+   </voice>
+</voice>
+
+
+Lang
+
+The Lang tag selects a voice based solely on its Language attribute. The tag can be empty, in 
+which case it changes the voice for all subsequent text; or it can have content, in which case it 
+only changes the voice for that content.
+The Lang tag has one attribute, LangId. This attribute should be a LANGID, such as 409 (U.S. 
+English) or 411 (Japanese). Note that these numbers are hexadecimal, but without the typical 
+"0x".
+The Lang tag is a shortened version of the Voice tag with the Required attribute containing 
+"Language=xxx". So the following examples should produce exactly the same results:
+
+<voice required="Language=409">
+A U.S. English voice should speak this.
+</voice>
+<lang langid="409">
+   A U.S. English voice should speak this.
+</lang>
+
+
+Custom Pronunciation
+
+An alternative to using the <P> tag with the DISP and PRON attributes is to use custom 
+pronunciation. Using custom pronunciation, tags in the form of the following.
+
+<P DISP="disp" PRON="pron">word</P>
+can be written as
+<P>/disp/word/pron;</P>
+More specifically, if you want to recognize the word hello only when it is pronounced as ah and 
+display greeting when recognized, you would normally use something like the following.
+<P DISP="greeting" PRON="ah">hello</P>
+Using custom pronunciation, the above would translate to the following.
+<P>/greeting/hello/ah;</P>
+

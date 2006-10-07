@@ -1,0 +1,33 @@
+Manufacturer=JVC
+Device=VCR
+Model=HR-S6700U
+Protocol=JVC
+Device Code=67 ' device A
+'      code=83 ' device B 
+
+[Key Codes]
+
+Start Time for ITR        =28
+Enter ITR STart Time      =100
+SAP to 2nd AUdio          =108
+AUX Video Input           =110
+Reset System              =111
+Toggle Aux Mode           =001      '********
+Toggle Record Mode        =119
+Digital Tracking Off      =126
+Toggle Digital Tracking   =137
+Play Back SLowly          =175
+6th sp back               =177
+5th sp back               =178
+4rd sp back               =179
+3rd sp back               =180
+2nd sp back               =181
+1st sp back               =182
+0th sp back               =183
+0th sp forward            =184
+1st sp forward            =185
+2nd sp forward            =186
+3rd sp forward            =187
+4th sp forward            =188
+5th sp forward            =189
+6th sp forward            =190

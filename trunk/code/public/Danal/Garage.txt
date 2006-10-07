@@ -1,0 +1,204 @@
+Log from testing Saturday, January 8, 2000
+
+Hardware Utilized:
+
+Stanley Homelink Vehicle Interface Module Model 30001 
+Stanley Homelink Garage Door Status Transmitter Model 30002
+CM11 Interface
+
+Software Utilized:
+
+MisterHouse w/CM11.pm V203 modified to print contents of receive buffer
+
+In following doc, the word "Training" means: 
+	Slide switch on receiver to "install".  
+	Press test button on transmitter.  Hear beeps.
+	Slide switch on receiver to "run".
+as per Smarthome provided documentation.
+
+Undocumented tip:  Powering up receiver with "run/install" switch in "install" will clear all training.
+
+1.  Action: Vehicle interface cleared as above.
+     House: A
+      Unit: 1
+      Data: None.
+   Display: 1 off; 2 off; 3 off
+
+2.  Action: Vehicle interface powere on w/ switch in "run" position.
+     House: A
+      Unit: 1
+      Data: 05016700001d
+   Display: 1 off; 2 off; 3 off
+
+3.  Action: Training
+     House: A
+      Unit: 1
+      Data: None.
+   Display: 1 off; 2 off; 3 off
+
+4.  Action: Transmitter tipped to "open" state.
+     House: A
+      Unit: 1
+      Data: 05016701111d (twice)
+   Display: 1 red; 2 off; 3 off
+
+5.  Action: Transmitter tipped to "closed" state.
+     House: A
+      Unit: 1
+      Data: 05016701101d (twice)
+   Display: 1 grn; 2 off; 3 off
+
+6.  Action: Code button on transmitter; Training
+     House: A
+      Unit: 3
+      Data: None.
+   Display: 1 grn; 2 off; 3 off
+
+7.  Action: Transmitter tipped to "open" state
+     House: A
+      Unit: 3
+      Data: 05016705441d (twice)
+   Display: 1 grn; 2 off; 3 red
+
+8.  Action: Transmitter tipped to "closed" state
+     House: A
+      Unit: 3
+      Data: 05016705401d (twice)
+   Display: 1 grn; 2 off; 3 grn
+
+9.  Action: Transmitter and indicator powered off
+     House: A
+      Unit: 3
+      Data: None.
+   Display: 1 off; 2 off; 3 off
+
+10. Action: Indicator powered on
+     House: A
+      Unit: 3
+      Data: None.
+   Display: 1 off; 2 off; 3 off
+
+11. Action: Receiver powered on
+     House: A
+      Unit: 3
+      Data: 05016705401d
+   Display: 1 grn; 2 off; 3 grn
+
+12. Action: Housecode on receiver changed to "B"
+     House: B
+      Unit: 3
+      Data: None.
+   Display: 1 grn; 2 off; 3 grn
+
+13. Action: Transmitter tipped to "open" state
+     House: B
+      Unit: 3
+      Data: 0501e705441d
+   Display: 1 grn; 2 off; 3 red
+
+
+Following steps performed Sunday, January 9, 2000
+
+Many trasmissions were performed after step 13 on Saturday,
+then the equipment sat for approximately six hours.
+During overnight wait, transmitter #3 sat in "closed" position.
+
+At start of testing on Sunday,
+Display LED #3 was green
+Display LED #2 was off
+Display LED #1 was flashing green
+
+14. Action: Trained an additional transmitter as "1"
+     House: B
+      Unit: 1
+      Data: None.
+   Display: 1 grn; 2 off; 3 grn  (#1 was flashing)
+
+15. Action: Transmitter #1 tipped to "open" state
+     House: B
+      Unit: 1
+      Data: 0501e705111d
+   Display: 1 red; 2 off; 3 grn
+
+16. Action: Transmitter #3 tipped to "open" state
+     House: B
+      Unit: 1
+      Data: 0501e705451d
+   Display: 1 red; 2 off; 3 red
+
+
+
+
+Data sent consists of (example from step 13 decoded):
+0501e705441d
+
+05= CM11 interface number of bytes
+
+01= CM11 interface function/address mask.  Note it is wrong for extended data.
+
+e7= e=1110=House Code=B
+    7=0111=Function=Extended Code
+
+05= Currently enrolled garage door transmitters
+    0=0000=N/A
+    5=0101=door #3 and door #1 (somebody should write a song about door#3)
+    Note: This could also be viewed as a mask of which LEDs to leave off (not red/green)
+
+44= 4=0100=Which door changed status in this transmission; door #3
+    4=0100=Door state; 1=open (light red led); 0=closed (light green led)
+      door 3 red
+      door 2 would be green, but is masked off in "enrolled" byte, no leds lit
+      door 1 green
+
+1d= Constant that is always sent?  Terminator for extended data? 
+    If this were a function, it would be housecode=E, function=extended data transfer.
+    If this were an address (as the CM11 mask says), it would be housecode=E, unitcode=16.
+
+
+
+Data sent consists of (example from step 16 decoded):
+0501e705451d
+
+05= CM11 interface number of bytes
+
+01= CM11 interface function/address mask.  Note it is wrong for extended data.
+
+e7= e=1110=House Code=B
+    7=0111=Function=Extended Code
+
+05= Currently enrolled garage door transmitters
+    0=0000=N/A
+    5=0101=door #3 and door #1
+    Note: This could also be viewed as a mask of which LEDs to leave off (not red/green)
+
+45= 4=0100=Which door changed status in this transmission; door #3
+    5=0101=Door state; 1=open (light red led); 0=closed (light green led)
+      door 3 red
+      door 2 would be green, but is masked off in "enrolled" byte, no leds lit
+      door 1 red
+
+1d= Constant that is always sent by garage door interface
+    According to ftp://ftp.x10.com/pub/manuals/xtc798.doc
+    "Standard" and "Extended" X-10 Code Formats   September 22, 1993
+    Rev. 11/20/94, 07/12/96, 12/18/96, 04/02/97, 07/22/97, 05/07/98
+    1=0001=Type code for "sensor" data
+    d=1101=Data is bit encoded in prior two bytes.
+	
+
+Conclusions:
+
+Housecode is not memorized during training.  It may be changed at any time and is sent correctly.
+
+Unit code is used only during training; changing it later does not affect data sent.
+
+Each transmission tells us:
+  bitmask of enrolled transmitters.
+  which transmitter caused this transition (i.e. transmitted)
+  state of all enrolled transmitters (open/closed)
+
+Each transmitter re-transmits it's current status every 90 minutes.  
+
+The display units will flash any LED (red or green) for which it has not received an update
+in 4 hours.  This helps detect dead batteries in a transmitter.  This display timer is 
+based on the "which door changed status" nibble, not the "door state" nibble.
+

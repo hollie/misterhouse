@@ -1,0 +1,18 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target="output">
+<table height="100%" border="0">
+<tbody>
+<td valign="top" align="left" width="100%">
+<a href="/speech"><img src="../statistics/images/speechlog.gif" alt='Speech Log' border="0"></a><br>
+<a href="speakframe.html"><img src="images/speaktext.gif" alt='Speak Text' border="0"></a><br>
+<a href="speechsettings.shtml"><img src="images/speechsettings.gif" alt='Speech Settings' border="0"></a><br>
+<a href="browse.shtml"><img src="images/browse.gif" alt='Browse Category' border="0"></a><br>
+</td>
+</tbody>
+</table>
+</body>
+</html>

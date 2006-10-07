@@ -1,0 +1,9 @@
+<HTML>
+<HEAD>
+<LINK REL="STYLESHEET" HREF="default.css" TYPE="text/css">
+<TITLE></TITLE>
+</HEAD>
+<BODY>
+<!--#include file="list?group=$All_Lights"-->
+</BODY>
+</HTML>

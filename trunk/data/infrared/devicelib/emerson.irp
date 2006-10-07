@@ -1,0 +1,7 @@
+Name=Emerson
+Protocol=EMERSON
+Frequency=36700
+Time Base=872
+Zero=1,-1
+One=1,-3
+Form=[4 -4],D:6,F:6,~D6,~F:6,[1 -39]

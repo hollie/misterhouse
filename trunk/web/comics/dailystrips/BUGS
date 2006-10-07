@@ -1,0 +1,69 @@
+1.0.21
+  12 Jan 2002
+
+  Script does not seem to work on Perl 5.0 due to <code:> parser
+
+1.0.13
+  04 June 2001
+  The new <code:> feature seems to be ok. The only issue may be the escaping of
+  > symbols in the code. I think I've handled it properly - let me know if there
+  are any problems or if there's a better way.
+
+  15 May 2001
+  sfgate still isn't working right. They seem to have devised some way of
+  only allowing strip images to be downloaded when you're actually looking
+  at the webpage. It's more sophisticated that just checking the referer
+  (which is already handled) - but I'm sure it will be figured out soon
+  enough.
+
+1.0.12
+  11 Mar 2001
+  Since the program does not keep track of which options you use when running in
+  local mode, changing options from one day to the next (such as using
+  --dailydir one day and --stripdir the next) will prevent it from being able to
+  check for duplicates that time. Unless you switch options every day, though,
+  this shouldn't really be a problem.
+
+  When using the --date option, the program downloads strips that may not be for
+  the correct day anyway (such as searching an index.html page, as opposed to
+  a %Y%m%d.html page). The definitions should declare whether or not they can
+  find a strip for a specific day, or just the latest one. - FIXED in 1.0.16
+
+1.0.8
+  20 Feb 2001
+  Need better error handling with the LWP::UserAgent module (if there's a
+  problem, report exactly *what* went wrong - proxy, etc..)
+
+  The definition file parsing code needs to be re-thought and re-done. It works,
+  but gets weird in places and is generally hard to maintain.
+
+  One thing I should have mentioned for 1.0.4 is that the defs file parsing code
+  gives completely erroneous line numbers (they represent the lines of the file
+  after removing blank line and comment lines) and should be dealt with. -
+  FIXED in 1.0.16
+
+
+1.0.6
+  02 Feb 2001
+  It's not actually a bug in the program, but I'd like to advise users anyway
+  that something is wrong at sfgate.com, so none of the strips from that site
+  are available. (19 Feb 2001 - not surprisingly, all is well now)
+
+1.0.4
+  26 Jan 2001:
+
+  The definition file-parsing code, while it works fine on correctly formatted
+  files, weird things may happen with improperly formatted files (most obvious
+  problems are checked for, but not all may be caught).
+
+1.0.0:
+  20 Jan 2001:
+
+  The command-line option parsing stuff works for me, but it really isn't
+  "right". For example, it's impossible to use --output with --local.
+  Also, "--quiet" won't work completely if specified last. This section
+  needs a complete rethink to operate optimally. - FIXED in 1.0.2
+
+  If an image doesn't download (404 error), but the remote webserver returns
+  a custom 404 page, this 404 page gets saved as the image, causing a "broken"
+  image. This should be detected. - FIXED in 1.0.1

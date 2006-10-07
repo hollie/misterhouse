@@ -1,0 +1,23 @@
+#! /usr/bin/perl -w
+
+use strict;
+use SOAP::Lite;
+
+my $endpoint = 'http://misterhouse:8080/bin/soapcgi.pl';
+
+my $soap = SOAP::Lite->uri('urn:mhsoap')->proxy($endpoint);
+
+my $som = $soap->ListObjectTypes;
+
+if ($som->fault) {
+	die "$0: Operation failed: " . $som->faultstring;
+}
+else{
+	my $results = $som->result;
+	foreach my $v (@$results){
+		print "$v\n";
+	}
+}
+exit;
+
+

@@ -1,0 +1,19 @@
+Manufacturer=Philips
+Model=Special-A
+Device=Test
+Protocol=RC5-Dual
+
+[Key Codes]
+00           =10,0
+01           =10,1
+02           =10,2
+03           =10,3
+04           =10,4
+05           =10,5
+06           =10,6
+07           =10,7
+08           =19,8
+09           =10,9
+10           =10,10
+
+

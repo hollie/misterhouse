@@ -1,0 +1,70 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<!--#include code="&html_header('Setup MisterHouse')" -->
+<table cellSpacing="0" cellPadding="0" width="100%" border=0>
+<font size=2>
+<tr>
+<td align='left'>
+<a href="/bin/code_select.pl"><img src="images/selectcommon.gif" alt='Select Common Code' border="0"></a>
+</td>
+<td align='left'>Configure which Common code to run from the distribution, simply by selecting the ones you want.</td>
+</tr>
+<tr>
+<td align='left'>
+<a href="/bin/code_unselect.pl"><img src="images/selectuser.gif" alt='De-Select User Code' border="0"></a>
+</td>
+<td align='left'>The same as above for the User code.</td>
+</tr>
+<tr>
+<td align='left'>
+<a href="/bin/triggers.pl"><img src="images/edittriggers.gif" alt='Edit Triggers' border="0"></a>
+</td>
+<td align='left'>Here you can setup different types of time-triggered events.</td>
+</tr>
+<tr>
+<td align='left'>
+<a href="/bin/items.pl"><img src="images/edititems.gif" alt='Edit Items' border="0"></a>
+</td>
+<td align='left'>Edit your items with the .mht file editor.</td>
+</tr>
+<tr>
+<td align='left'>
+<a href="/bin/iniedit.pl"><img src="images/inieditor.gif"  alt='Ini Editor'  border="0"></a>
+</td>
+<td align='left'>Edit your parameters with the mh.ini file editor.</td>
+</tr>
+
+<tr>
+<td align='left'>
+<a href="irman.shtml"><img src="images/progirman.gif"  alt='Program IRMan'  border="0"></a>
+</td>
+<td align='left'>Learn your IRMAN interface remote control codes.</td>
+</tr>
+<tr>
+<td align='left'>
+<a href="/bin/headercontrol.pl"><img src="images/headercontrol.gif"  alt='Header Control'  border="0"></a>
+</td>
+<td align='left'>This is where you can setup if the family or guest password can view certain pages.</td>
+</tr>
+
+<tr><td align='left' colspan=2>
+<p>Other setup links
+
+<li>Use <a href=/bin/set_parm_tv_provider.pl>/bin/set_parm_tv_provider.pl</a> to set your tv_provider parm
+
+<li>Use <a href="SUB;photo_html">SUB;photo_html</a> to pick a specific photo dir
+for <a href=/bin/photos.pl>the photo slide show</a>
+
+</ul>
+
+</td></tr>
+
+
+
+</table>
+</font>
+</body>
+</html>

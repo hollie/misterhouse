@@ -1,0 +1,33 @@
+
+From Jeff H on 04/2002:
+
+
+I wanted to post a follow-up on getting this working so that it would be in
+the archives for others (or in case I forget it ;-)). Many thanks to all the
+great MH guys who reponded and especially Gaetan and Bob Hughes for helping
+me identify the missing link! I was missing xmms-devel and didn't know about
+it.
+
+Linux Users - Xmms Mp3 Player
+=======================
+To integrate Xmms into MisterHouse and use the IA5 interface for control, do
+the following:
+1. Get the required packages, compile and install. Xmms-Perl is now included
+in the xmms-devel distro. Make certain you have the same version of
+xmms-devel as your xmms package. You must have:
+   xmms - This is the MP3 player, of course.
+   xmms-devel - This is the control API for xmms.
+   Xmms-Perl - This is the Perl interface to the xmms-devel API.
+2. Copy the Xmms_Control.pl, Xmms_jukebox.pl and mp3_playlist_xmms.pl code
+modules into your code directory.
+3. Make sure you edit mh.ini (or mh.private.ini) and set the mp3 player var
+(mp3_program=/usr/bin/xmms ).
+4. Change the RUN commands in web/misc/mp3_top.html to match the voice
+commands in Xmms_jukebox.pl.
+
+And you should be set. If anyone sees anything I missed, feel free to add
+but I think I remembered everything here.
+
+Jeff
+
+

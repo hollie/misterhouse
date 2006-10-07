@@ -1,0 +1,13 @@
+<html>
+<head>
+<!--#include var="$config_parms{html_style}" -->
+</head>
+<body>
+<base target ="output">
+<!--#include code="&html_header('Read e-mail')" -->
+<a href='RUN;/ia5/news/main.shtml?Check_for_e_mail'>Check for new e mail</a>
+<br>
+<!--#include file="/email/summary.html"-->
+<!--#include code="&dir_index('/email', 'date', 1, '_\S+.shtml|latest')"-->
+</body>
+</html>

@@ -1,0 +1,79 @@
+First, make sure that the Misterhouse user can read from your CDROM drive:
+   chmod a+r /dev/cdrom
+
+You'll probably have to add this line to /etc/rc.d/rc.local so it will run
+after each reboot.
+
+---------------------------------------------------------------------
+
+First, you need to have a working 'cd-info' program that can be run by the
+Misterhouse user.  There is no substitute for this program -- I tried to get
+things to work without it but it was just too much work.  
+
+The 'cd-info' program is part of the GNU lbicdio project
+(http://www.gnu.org/software/libcdio/).
+
+1) Download libcdio-0.70.tar.gz from http://ftp.gnu.org/gnu/libcdio/.
+
+2) tar -xvzf libcdio-0.70.tar.gz
+
+3) cd libcdio-0.70
+
+4) ./configure
+
+5) make
+
+6) make install
+
+7) chmod -R a+rX /usr/local
+
+---------------------------------------------------------------------
+
+Next, you must have a program that can read tracks off of your cd drive and
+store them as WAV files.  I use cdparanoia which produces very good quality
+audio but does hurt my system's performance while it is running.  That being
+said, I haven't bothered to try anything else.
+
+However, you can use any program you want, as long as it can rip a specific
+track off of a CD and store it to a WAV file.  The program must exit with a
+non-zero exit status upon failure.  If you get another reading program working
+please email your 'mp3Rip_cdripper' setting from mh.ini to me at
+kirk@kaybee.org.
+
+I find that 'cdparanoia' is installed on most modern Linux distributions so
+installation instructions are not provided here.
+
+---------------------------------------------------------------------
+
+Finally, you need to have an MP3 encoder, or actually any audio encoder as
+long as you change the extension in the 'mp3Rip_default_mp3_name' setting in
+mh.ini to indicate the output format of your encoder.
+
+I use the lame MP3 encoder as it produces good audio quality, supports VBR,
+and can add ID3 tags to the MP3 during the encoding process.  Its homepage is:
+http://sourceforge.net/projects/lame/.
+
+However, you can use any program you want, as long as it can take in a WAV
+file and produce encoded audio in any format.  The program must exit with a
+non-zero exit status upon failure.  If you get another compression program
+working please email your 'mp3Rip_mp3_encoder' setting from mh.ini to me at
+kirk@kaybee.org.
+
+To install the 'lame' MP3 encoder:
+
+1) Download the latest version from
+http://sourceforge.net/project/showfiles.php?group_id=290.  In my example here
+I'm using version 3.96.1.
+
+2) tar -xvzf lame-3.96.1.tar.gz
+
+3) cd lame-3.96.1
+
+4) ./configure
+
+5) make
+
+6) make install
+
+7) chmod -R a+rX /usr/local
+

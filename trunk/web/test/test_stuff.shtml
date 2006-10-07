@@ -1,0 +1,48 @@
+<html>
+<head>
+<title>Test MisterHouse Web Functions</title>
+<head>
+
+<LINK REL="STYLESHEET" HREF="/default.css" TYPE="text/css">
+
+<body>
+
+<BASE TARGET='speech'>
+
+<p>This is an example of picking images on the fly using cgi .pl programs
+<br><img src="image_status.pl">
+
+<p>Test web functions
+<!--#include code="&web_func1"-->
+<!--#include code="&web_func2"-->
+
+<p>This is an example of generating html on the fly using cgi .pl programs
+<!--#include file="/test/test1.pl?argument1&argument2"-->
+
+<p> Test list:last_response?group
+<!--#include file="/list:last_response?Group"-->
+
+<p> Test widget labels
+<!--#include file="/widgets_label?"-->
+
+<p> Test widget buttons
+<!--#include file="/widgets_radiobutton?"-->
+
+<p>Various RUN examples with different html response options
+<li><a href=http://localhost:8080/RUN?what_time_is_it>What time is it -- default(last_spoken)</a>
+<li><a href=http://localhost:8080/RUN:last_spoken?what_time_is_it>What time is it -- last_spoken</a>
+<li><a href=http://localhost:8080/RUN:you_asked_for_the_time?what_time_is_it>What time is it -- string_return</a>
+<li><a href=http://localhost:8080/RUN:/graphics/SQGIRL12.JPG?what_time_is_it>What time is it -- file_return</a>
+<li><a href=http://localhost:8080/RUN:last_displayed?Display_the_next_deep_thought>Deep Thought -- last_displayed</a>
+
+<p>This is an example of a form input using SET.  Input 'a-z' (try f).
+<form action="SET:your_data_was_submited">
+Test 1:<INPUT SIZE=5 NAME="$Save{test_input1}">
+<input type="submit" value="Submit">
+</form>
+
+<!-- Comment out stuff
+<br><img src="test2.pl?Lights.jpg">
+-->
+
+</body>

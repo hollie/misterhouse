@@ -1,0 +1,128 @@
+
+<OBJECT ID="AgentControl" width=0 height=0 style="LEFT: 50px; TOP: 50px" 
+ CLASSID="CLSID:D45FD31B-5C6E-11D1-9EC1-00C04FD7081F"
+ CODEBASE="#VERSION=2,0,0,0">
+</OBJECT>
+
+<OBJECT ID="TruVoice" width=0 height=0
+ CLASSID="CLSID:B8F2846E-CE36-11D0-AC83-00C04FD97575"
+ CODEBASE="#VERSION=6,0,0,0">
+</OBJECT>
+
+<OBJECT width=0 height=0
+ CLASSID="CLSID:161FA781-A52C-11d0-8D7C-00A0C9034A7E"
+ CODEBASE="#VERSION=4,0,0,0">
+</OBJECT>
+
+<SCRIPT language=JavaScript>
+// This is here so that the OverLib JavaScript does not give errors
+//  - VBScript works ok after javascript, but not vice-versa
+</SCRIPT>
+
+
+<SCRIPT language=VBScript>
+Dim minijeff    ' a global variable to hold the character object
+Dim wintarget   ' a window object
+
+' A production quality page should always include error handling.
+' This is not a production quality page... *grin*
+
+Sub window_OnLoad
+    AgentControl.Connected = True   ' necessary for IE3
+    AgentControl.Characters.Load "minijeff", "http://www.ferristech.net/agent/minijeff.acf"
+    Set minijeff = AgentControl.Characters("minijeff")
+    minijeff.LanguageID = &H0409        ' needed under some conditions (English)
+    minijeff.Get "State", "Showing, Speaking, Listening, IdlingLevel1, IdlingLevel2, IdlingLevel3"
+    minijeff.Get "Animation", "Showing, Left, Right, Shrug"
+    minijeff.Show
+    minijeff.Get "State", "Hiding"
+    InitCommands
+    minijeff.Play "Showing"
+//  minijeff.Speak "Welcome to Jeff-Re ality."
+//  minijeff.speak "It's just like V R, without the annoying polygons."
+//  minijeff.Speak "I am e-Jeff, your guide for this little corner of CyberSpace."
+    minijeff.Play "Shrug"
+//  minijeff.Speak "Where would you like to go today?"
+    'minijeff.Hide
+End Sub
+
+Sub AgentControl_Click (ByVal CharacterID, ByVal Button, ByVal Shift, ByVal X, ByVal Y)
+    minijeff.Stop
+    minijeff.Play "Showing"
+//  minijeff.Speak "Hey, watch it with that pointer!|Oh that tickles!"
+    minijeff.Play "Shrug"
+    minijeff.Play "Showing"
+End Sub
+
+Sub AgentControl_DragComplete (ByVal CharacterID, ByVal Button, ByVal Shift, ByVal X, ByVal Y)
+    minijeff.Stop
+    minijeff.Play "Right"
+    minijeff.Speak "Hey! \emp\You think you can just drag me, drop me, and treat me like some sort of object!|Quit pushing!|Hey, be careful!"
+    minijeff.Play "Left"
+    minijeff.Play "Showing"
+End Sub
+
+Sub InitCommands
+    minijeff.Commands.Add "Hello", "Say Hello", "[say] (hello | hi)", True, True
+    minijeff.Commands.Add "Goodbye", "Go Away", "(go away | [say] goodbye | scram | leave)", True, True
+
+    ' The following like will be replaced by mh commands
+<!-- vr_cmds --> 
+
+    ' You should always include the following command, which gives
+    ' the user access to the Advanced Character Options dialog:
+    minijeff.Commands.Add "ACO", "Advanced Character Options", "advanced character options", True, True
+
+    ' Now configure the Commands object
+    minijeff.Commands.Caption = "eJeff DigiEars"    ' display text
+    minijeff.Commands.Voice   = "eJeff DigiEars"    ' what the user says to make input active
+    minijeff.Commands.Visible = True        ' show the caption in the pop-up
+End Sub
+
+Sub AgentControl_Command(byVal UserInput)
+' This is the Command event handler.
+' It is called whenever the user speaks a command
+' or selects one from the menu.
+' The UserInput object has the details of the command.
+' The Name property contains the name assigned when the command was added.
+    Select Case UserInput.Name
+        Case "Hello"
+            SayHello
+        Case "Goodbye"
+            SayGoodbye
+
+<!-- vr_select --> 
+
+        Case "ACO"
+            AgentControl.PropertySheet.visible = True
+    End Select
+End Sub
+
+Sub Run_Command(text)
+   dim cmd
+   'following line translates "the spoken command" to "the_spoken_command"
+   cmd = replace(text, " ", "_")
+   window.open "/RUN:last_response?" & cmd , "speech"
+End Sub
+
+Sub SayHello
+    minijeff.Play "Left"
+    minijeff.Speak "Hello! How are you?"
+    minijeff.Play "Shrug"
+End Sub
+
+Sub SayGoodbye
+    minijeff.Play "Shrug"
+    minijeff.Speak "Fine. I'm outta here."
+    minijeff.Hide
+End Sub
+
+</SCRIPT>
+
+
+
+
+
+
+
+
