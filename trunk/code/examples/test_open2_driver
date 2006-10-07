@@ -1,9 +1,0 @@
-#!/usr/bin/perl
-
-# A dummy driver to use with the test_open2.pl testcase
-
-$|++;
-while (<>) {
-    print "You said: $_";
-}
-print "Finished\n";

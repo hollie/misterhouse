@@ -1,3 +1,0 @@
-
-To enable Tivo control, see the top of mh/lib/Tivo_Control.pm
- 

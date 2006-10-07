@@ -1,4 +1,0 @@
-# Robots.txt.  No need for robots to crawl mh webserver
-
-User-agent: *
-Disallow: /
