@@ -1,0 +1,6 @@
+#define trans_cur_width 8
+#define trans_cur_height 8
+#define trans_cur_x_hot 0
+#define trans_cur_y_hot 0
+static unsigned char trans_cur_bits[] = {
+   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
