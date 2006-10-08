@@ -227,7 +227,7 @@ sub read_temp {
     return wantarray ? () : undef if !defined $temp;
 
     my $temp_c = sprintf("%3.2f", $temp);
-    my $temp_f = sprintf("%3.2f", convert_c2f($temp));
+    my $temp_f = sprintf("%3.2f", &::convert_c2f($temp));
     my $temp_def = ($main::config_parms{weather_uom_temp} eq 'C') ? $temp_c : $temp_f;
 
     set_receive $self $temp_def;
@@ -368,7 +368,7 @@ sub read_temp {
     return if !defined $temp;
 
     my $temp_c = sprintf("%3.2f", $temp);
-    my $temp_f = sprintf("%3.2f", convert_c2f($temp));
+    my $temp_f = sprintf("%3.2f", &::convert_c2f($temp));
     my $temp_def = ($main::config_parms{weather_uom_temp} eq 'C') ? $temp_c : $temp_f;
 
     $this->set_receive( $temp_def );
