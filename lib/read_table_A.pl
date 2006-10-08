@@ -498,12 +498,13 @@ sub read_table_A {
     elsif($type eq "ANALOG_SENSOR") {
         my $owx_name;
         my $sensor_type;
-        ($address, $name, $owx_name, $grouplist, $sensor_type) = @item_info;
+        ($address, $name, $owx_name, $grouplist, $sensor_type, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         if( ! $packages{OneWire_xAP}++ ) {   # first time for this object type?
             $code .= "use OneWire_xAP;\n";
         }
-        $code .= sprintf "\n\$%-35s = new AnalogSensor_Item('%s', '%s');\n", $name, $address, $sensor_type;
+        $code .= sprintf "\n\$%-35s = new AnalogSensor_Item('%s', '%s', %s);\n", 
+                  $name, $address, $sensor_type, $other;
         if ($objects{$owx_name}) {
            $code .= sprintf "\$%-35s -> add(\$%s);\n", $owx_name, $name;
         }
