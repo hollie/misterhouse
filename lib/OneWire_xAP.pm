@@ -162,8 +162,13 @@ Usage:
 		data maintained by this item if measurement, etc are provided;
 		otherwise the last measurement value is returned.
 
-	map_to_weather(weather_hash_member) - copies any measurement update to
-		the Weather hash specified by weather_hash_member
+	map_to_weather(weather_hash_memberi, graph_title) - copies any measurement 
+                update to the Weather hash specified by weather_hash_member.
+                If graph_title is supplied, it will replace the default graph title
+                used by code/common/weather_rrd_update.pl to display titles.
+                Note that if graph_title is used, then you must consistently use
+                this with all sensors or specify the titles via the ini parm:
+                weather_graph_sensor_names.
 
 	get_average_change_rate(number_samples) - returns the average change
 		rate over number_samples.  In general, number_samples should be
@@ -178,7 +183,8 @@ Usage:
 		compensate for linear temperature shifts.
 
         token(tag,value) - adds "value" as a "token" to be evaluated during state
-                and/or event condition checks.  A token is referenced in a condition
+                and/or event condition checks; or, returns "token" if only "tag"
+                is supplied.  A token is referenced in a condition
                 using the syntax: $token_<tag> where <tag> is tag.  See 
                 tie_state_condition example below.
 
@@ -352,9 +358,61 @@ sub get_average_change_rate {
 	}
 }
 
+sub weather_to_rrd {
+   my ($weather_ref) = @_;
+   my $rrd_ref = lc $weather_ref;
+   # this is totally ridiculous that RRD names are not the same as Weather hash refs
+   # somebody was definitely not thinking
+   if ($weather_ref eq 'tempoutdoor') {
+       $rrd_ref = 'temp';
+   } elsif ($weather_ref eq 'humidoutdoor') {
+       $rrd_ref = 'humid';
+   } elsif ($weather_ref eq 'tempindoor') {
+       $rrd_ref = 'intemp';
+   } elsif ($weather_ref eq 'humidindoor') {
+       $rrd_ref = 'inhumid';
+   } elsif ($weather_ref eq 'dewindoor') {
+       $rrd_ref = 'indew';
+   } elsif ($weather_ref eq 'dewoutdoor') {
+       $rrd_ref = 'dew';
+   } elsif ($weather_ref eq 'barom') {
+       $rrd_ref = 'pressure';
+   } elsif ($weather_ref eq 'windavgdir') {
+       $rrd_ref = 'avgdir';
+   } elsif ($weather_ref eq 'windgustdir') {
+       $rrd_ref = 'dir';
+   } elsif ($weather_ref eq 'windavgspeed') {
+       $rrd_ref = 'avgspeed';
+   } elsif ($weather_ref eq 'windgustspeed') {
+       $rrd_ref = 'speed';
+   } elsif ($weather_ref eq 'tempoutdoorapparent') {
+       $rrd_ref = 'apparent';
+   } elsif ($weather_ref eq 'rainrate') {
+       $rrd_ref = 'rate';
+   } elsif ($weather_ref eq 'raintotal') {
+       $rrd_ref = 'rain';
+   }
+   return $rrd_ref; 
+}
+
 sub map_to_weather {
-	my ($self, $p_hash_ref) = @_;
+	my ($self, $p_hash_ref, $p_sensor_name) = @_;
 	$$self{m_weather_hash_ref} = $p_hash_ref if $p_hash_ref;
+        if ($p_sensor_name) {
+          my $rrd_ref = &AnalogSensor_Item::weather_to_rrd(lc $p_hash_ref);
+          my $sensor_names = $main::config_parms{weather_graph_sensor_names};
+           if ($sensor_names) {
+              if ($sensor_names !~ /$rrd_ref/i) {
+                 $sensor_names .= ", $rrd_ref => $p_sensor_name";
+                 $main::config_parms{weather_graph_sensor_names} = $sensor_names;
+                 print "[AnalogSensor] weather_graph_sensor_names: $sensor_names\n" if $main::Debug{onewire};
+              }
+           } else {
+              $main::config_parms{weather_graph_sensor_names} = "$rrd_ref => $p_sensor_name";
+              print "[AnalogSensor] weather_graph_sensor_names: $main::config_parms{weather_graph_sensor_names}\n"
+                 if $main::Debug{onewire};
+           }
+        }
 	return $$self{m_weather_hash_ref};
 }
 
