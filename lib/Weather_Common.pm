@@ -397,6 +397,8 @@ sub populate_internet_weather {
 				HumidOutdoor
 				IsRaining
 				IsSnowing
+				RainTotal
+				RainRate
 			);
 		} else {
 			@keys=split(/\s+/,$main::config_parms{weather_internet_elements});
