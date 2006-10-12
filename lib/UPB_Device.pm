@@ -77,6 +77,7 @@ sub new
 	$self->device_id($p_deviceid) if defined $p_deviceid;
 	$self->initialize();
 	$self->rate(0);
+	$$self{firstOctet} = "0";
 	$$self{interface}->add($self);
 	return $self;
 }
@@ -157,27 +158,34 @@ sub _xlate_upb_mh
    	my $destination = unpack("C",pack("H*",substr($p_state,6,2)));
    	my $source = unpack("C",pack("H*",substr($p_state,8,2)));
 	my $msgid = unpack("C",pack("H*",substr($p_state,10,2)));
-	my @args = unpack("C*",pack("H2",substr($p_state,12,length($p_state)-12)));
+	my $msgdata = substr($p_state,12,length($p_state)-14);
+	my @args = unpack("C*",pack("H*",$msgdata));
 	my $msg=undef;
-	print "RRRRRR";
+	my $state = undef;
+
 	for my $key (keys %message_types){
 		if ($message_types{$key} == $msgid)
 		{
-			&::print_log("FOUND: $key");
+#			&::print_log("FOUND: $key");
 			$msg=$key;
 			last;
 		}
 	}
+
+	#Device report.  ON/OFF anything else is the state percentage?
 	if ($message_types{device_state_report} == $msgid and
 		$source = $self->device_id()) 
 	{
-		for my $arg (@args)
-		{
-			
-		}			
+		if ($args[0]==100) {
+			$state='ON';
+		} elsif ($args[0]==0) {
+			$state='OFF';
+		} else {
+			$state = $args[0] . "%";
+		}
+		
 	}
-
-	return $p_state;
+	return $state;
 }
 
 sub _xlate_mh_upb
@@ -192,6 +200,7 @@ sub _xlate_mh_upb
 	#msg id
 	$msg=$p_state;
 	$msg=~ s/\:.*$//;
+	$msg=lc($msg);
 #	&::print_log("XLATE:$msg:$p_state:");
 	if (uc($msg) eq 'ON')
 	{	
@@ -208,6 +217,9 @@ sub _xlate_mh_upb
 		$msg= "goto";
 		$level = $1;
 		$rate = $self->rate();
+	} elsif (lc($msg) eq 'status')
+	{
+		$msg = 'report';
 	}
 
 =begin
@@ -224,7 +236,7 @@ sub _xlate_mh_upb
 	$msg = $message_types{$msg};
 
 	#control word
-	$cmd="0970";
+	$cmd=$$self{firstOctet} . "970";
 	#network id;
 	$cmd.= sprintf("%02X",$self->network_id());
 	#destination;
