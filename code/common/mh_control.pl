@@ -497,7 +497,8 @@ if ($temp = state_now $search_command_string) {
         $results .= " $i: $cmd2\n";
         $i++;
     }
-    respond $results;
+#    respond $results;
+    $search_command_string->respond($results);
 }
 
 $v_undo_last_change = new Voice_Cmd 'Undo the last action';
