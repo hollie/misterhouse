@@ -369,7 +369,14 @@ sub delegate
 	my ($self,$p_data) = @_;
 	my $network=unpack("C",pack("H*",substr($p_data,4,2)));
 	my $destination=unpack("C",pack("H*",substr($p_data,6,2)));
-	my $isLink = 8 & unpack("C",pack("H*",substr($p_data,0,1)));
+	my $source=unpack("C",pack("H*",substr($p_data,8,2)));
+	my $isLink = 0;	
+	if ( (8 & unpack("C",pack("h*",substr($p_data,0,1)))) ==8 )
+	{
+		$isLink=1;
+	}
+
+	&::print_log ("DELEGATE:$network:$source:$destination:$isLink:");
 	for my $obj (@{$$self{objects}})
 	{
 		#Match on UPB objects only
