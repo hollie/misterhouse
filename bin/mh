@@ -5843,7 +5843,8 @@ sub respond_unmuted {
 
 sub respond_telnet {
     my %parms = @_;
-    my $text = $parms{text};
+    my $text = $parms{raw_text};
+    $text = $parms{text} unless $text;
     $text =~ s/\n/\n\r/g;
     my $to = $parms{to};
     if ($to) {
