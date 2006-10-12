@@ -31,7 +31,7 @@ $telnet_server ->add             ("\rmh# ", 'prompt_admin');
 
                                 # Authorize user with password
 use vars '%telnet_flags';
-my $reponse_loop_telnet;
+my $response_loop_telnet;
 if (active_now $telnet_server) { 
     set $telnet_server 'Welcome1';
     set_echo $telnet_server 0;
@@ -107,7 +107,7 @@ if (said $v_telnet_client_set) {
 }
 
                 # Read from the port, then write to it based on what was sent, if authorized
-#my $reponse_loop_telnet=0;
+my $reponse_loop_telnet=0;
 #if (my $data = $Socket_Ports{server_telnet}{data_record}) {
 
 #my $data='';
@@ -193,7 +193,7 @@ if (defined($datapart = said $telnet_server)) {
                 else {
                     $log_to_telnet_list{"$client"} = lc $1;
                 }
-                print_log "Telnet: logging $1 to $client";
+                print_log "Telnet: logging $1 to $client_ip";
             }
             
             elsif (lc($telnet_flags{$client}{data}) eq 'whoami') {
@@ -231,13 +231,15 @@ if (defined($datapart = said $telnet_server)) {
                     if ($authority eq 'admin' and $telnet_flags{$client}{auth} ne 'admin') {
                         $msg = "Admin logon required for '$telnet_flags{$client}{data}'";
                     }
-                    elsif (&process_external_command($telnet_flags{$client}{data}, 0, 'telnet', $respond)) {
+                     elsif (&process_external_command($telnet_flags{$client}{data}, 0, "telnet [$client_ip]")) {
+ #                   elsif (&process_external_command($telnet_flags{$client}{data}, 0, 'telnet', $respond)) {
                         $msg = "Command executed: \"$telnet_flags{$client}{data}\"\n\r";
-                        $reponse_loop_telnet = $Loop_Count + 4; # Give us 4 passes to wait for any resulting speech
+                        $response_loop_telnet = $Loop_Count + 4; # Give us 4 passes to wait for any resulting speech
                     }
                     else {
                         $msg = "Searching for cmd: $telnet_flags{$client}{data}.\n\r";
-                        set $search_command_string $telnet_flags{$client}{data}, 'telnet', $respond;
+                        set $search_command_string $telnet_flags{$client}{data}, "telnet [$client_ip]";
+#                        set $search_command_string $telnet_flags{$client}{data}, 'telnet', $respond;
                     }
 #                    else {
 #                        $msg = "Command not recognized: \"$telnet_flags{$client}{data}\"\n\r";
@@ -260,11 +262,11 @@ if (defined($datapart = said $telnet_server)) {
 
 
                                 # Show the reponse the the previous command
-if (active $telnet_server and $reponse_loop_telnet == $Loop_Count) {
+#if (active $telnet_server and $response_loop_telnet == $Loop_Count) {
 #    set $telnet_server 'cr';
-    my $client = $Socket_Ports{server_telnet}{socka};
-    set $telnet_server ($telnet_flags{$client}{auth} eq "admin") ? 'prompt_admin' : 'prompt';
-}
+#    my $client = $Socket_Ports{server_telnet}{socka};
+#    set $telnet_server ($telnet_flags{$client}{auth} eq "admin") ? 'prompt_admin' : 'prompt';
+#}
 
                                 # Example of how enable inputing random data from a telnet session
                                 # In your telnet, type:  set $wakeup_time_test '10 am'

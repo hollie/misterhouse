@@ -285,6 +285,11 @@ sub respond {
 		my ($address) = $set_by =~ /\[(.+)\]/;
 		$to = $address if !$parms{to};
 	}
+	elsif ($set_by =~ /^telnet/i) {
+		my ($address) = $set_by =~ /\[(.+)\]/;
+		$to = $address if !$parms{to};
+	}
+
 
 	# important messages are never diverted to log (even if automated)
 	# ex. new mh version available

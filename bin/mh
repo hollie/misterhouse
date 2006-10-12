@@ -5843,10 +5843,36 @@ sub respond_unmuted {
 
 sub respond_telnet {
     my %parms = @_;
-    $parms{text} =~ s/\n/\n\r/g;
-    print "respond telnet: client=$parms{client} text=$parms{text}\n" if $Debug{respond};
-    eval "\$telnet_server->set(q~$parms{text}~, $parms{arg1})";
-    print "respond telnet eval error: client=$parms{client} text=$parms{text} error=$@\n" if $@;
+    my $text = $parms{text};
+    $text =~ s/\n/\n\r/g;
+    my $to = $parms{to};
+    if ($to) {
+       $text = '[response] ' . $text;
+    } else {
+       $to = 'all' unless $to;
+       $text = '[echo] ' . $text;
+    }
+    print "respond telnet: client=$parms{client} text=$text to=$parms{to}\n" if $Debug{respond};
+    if ($to) {
+       my $client_num = 0;
+       for my $ptr (@{$main::Socket_Ports{server_telnet}{clients}}) {
+          my ($socka, $client_ip_address, $client_port, $data) = @{$ptr};
+          if (($to eq 'all') or ($client_ip_address eq $to)) {
+              eval "\$telnet_server->set(q~$text~,$client_num)";
+              if ($@) {
+                 print "respond telnet eval error: client=$parms{client} text=$parms{text} error=$@\n";
+              } else {
+                 # send a cr
+                 eval "\$telnet_server->set('cr',$client_num)";
+              }
+          }
+          $client_num++;
+       }
+    } else {
+       eval "\$telnet_server->set(q~$parms{text}~)";#, $parms{to})";
+#    eval "\$telnet_server->set(q~$parms{text}~, $parms{arg1})";
+       print "respond telnet eval error: client=$parms{client} text=$parms{text} error=$@\n" if $@;
+    }
 }
 
 sub respond_object_set {
@@ -5999,6 +6025,8 @@ sub speak {
                 &net_mail_send(%parms);
             } elsif ($echo_conduit eq 'sms') {
                 &net_mail_send(%parms);
+            } elsif ($echo_conduit eq 'telnet') {
+                &respond_telnet(%parms);
             } elsif (!(exists($parms{display_rooms}))) {
                 my $func = "display_$echo_conduit";
                 if ($main::{$func}) {
