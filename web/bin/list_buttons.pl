@@ -22,11 +22,17 @@ for my $item (sort @objects) {
 
     next if $object->{hidden};
 
-    my $state = state_level $object if $object->isa('X10_Item');
-    $state = state $object if $object->isa('Fan_Light') or $object->isa('Fan_Motor') or $object->isa('X10_Appliance') or $object->isa('Network_Item');
-    $state = state $object if $object->isa('EIB1_Item');
-    $state = state_level $object if $object->isa('EIB2_Item');
+#    my $state = state_level $object if $object->isa('X10_Item');
+#    $state = state $object if $object->isa('Fan_Light') or $object->isa('Fan_Motor') or $object->isa('X10_Appliance') or $object->isa('Network_Item');
+#    $state = state $object if $object->isa('EIB1_Item');
+#    $state = state_level $object if $object->isa('EIB2_Item');
 
+	my $state = undef;
+	if ($object->can('state_level')) {
+		$state = $object->state_level();
+	} elsif ($object->can('state')) {
+		$state = $object->state();
+	}
     $state = 'unk' unless $state;
 #	print $state_new . "\n";
 
