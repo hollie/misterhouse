@@ -172,6 +172,7 @@ sub _xlate_upb_mh
 		}
 	}
 
+	$state=$msg;
 	#Device report.  ON/OFF anything else is the state percentage?
 	if ($message_types{device_state_report} == $msgid and
 		$source = $self->device_id()) 
@@ -236,7 +237,8 @@ sub _xlate_mh_upb
 	$msg = $message_types{$msg};
 
 	#control word
-	$cmd=$$self{firstOctet} . "970";
+#	$cmd=$$self{firstOctet} . "970";
+	$cmd=$$self{firstOctet} . "000";
 	#network id;
 	$cmd.= sprintf("%02X",$self->network_id());
 	#destination;
