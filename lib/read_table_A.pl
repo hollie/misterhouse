@@ -555,12 +555,46 @@ sub read_table_A {
             $code .= "use X10_Scene;\n";
         }
     } 
+    elsif($type eq "SCENE") {
+        ($name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if($other){
+            $object = "Scene($other)";
+        }
+        else{
+            $object = "Scene()";
+        }
+        if( ! $packages{Scene}++ ) {   # first time for this object type?
+            $code .= "use Scene;\n";
+        }
+    } 
     elsif($type eq "X10_SCENE_MEMBER") {
         my ($scene_name, $on_level, $ramp_rate);
         ($name, $scene_name, $on_level, $ramp_rate) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         if( ! $packages{X10_Scene}++ ) {   # first time for this object type?
             $code .= "use X10_Scene;\n";
+        }
+        if (($objects{$scene_name}) and ($objects{$name})) {
+           if ($on_level) {
+              if ($ramp_rate) {
+                 $code .= sprintf "\$%-35s -> add(\$%s,'%s','%s');\n", 
+                            $scene_name, $name, $on_level, $ramp_rate;
+              } else {
+                 $code .= sprintf "\$%-35s -> add(\$%s,'%s');\n", $scene_name, $name, $on_level;
+              }
+           } else {
+              $code .= sprintf "\$%-35s -> add(\$%s);\n", $scene_name, $name;
+           }
+        }
+        $object = '';
+	}
+    elsif($type eq "SCENE_MEMBER") {
+        my ($scene_name, $on_level, $ramp_rate);
+        ($name, $scene_name, $on_level, $ramp_rate) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if( ! $packages{Scene}++ ) {   # first time for this object type?
+            $code .= "use Scene;\n";
         }
         if (($objects{$scene_name}) and ($objects{$name})) {
            if ($on_level) {
