@@ -134,6 +134,8 @@ sub new {
    $$self{state_now} = '';
    $$self{port_name} = $port_name;
 	$$self{last_command} = '';
+	$$self{xmit_in_progress} = 0;
+	@{$$self{command_stack}} = ();
    bless $self, $class;
    $UPBPIM_Data{$port_name}{'obj'} = $self;
 
@@ -193,8 +195,24 @@ sub get_firwmare_version
 sub send_upb_cmd
 {
 	my ($self, $cmd) = @_;
-	$cmd.= get_checksumHex($cmd);
-	return $self->_send_cmd("\x14" . $cmd . "\x0D");
+	#queue any new commands
+	unshift(@{$$self{command_stack}},$cmd) if defined $cmd;
+#	&::print_log("UPB Command stack:@{$$self{command_stack}}:");
+	#we dont transmit on top of another xmit
+	if ($$self{xmit_in_progress} != 1) {
+		$$self{xmit_in_progress} = 1;
+		#always send the oldest command first
+		$cmd = pop(@{$$self{command_stack}});
+		if (defined $cmd) 
+		{
+			#put the command back into the stack.. Its not our job to tamper with this array
+			push(@{$$self{command_stack}},$cmd);
+			$cmd.= get_checksumHex($cmd);
+			return $self->_send_cmd("\x14" . $cmd . "\x0D");
+		}
+	} else {
+		return;
+	}
 }
 
 
@@ -235,7 +253,7 @@ sub _send_cmd {
 	my $instance = $$self{port_name};
 	print "$::Time_Date: UPBPIM: Executing command $cmd\n" unless $main::config_parms{no_log} =~/UPBPIM/;
 	my $data = $cmd;
-print "PN:$instance:";
+#print "PN:$instance:";
 	$main::Serial_Ports{$instance}{object}->write($data);
 ### Dont overrun the controller.. Its easy, so lets wait a bit
    select(undef,undef,undef,0.15);
@@ -254,7 +272,7 @@ sub _parse_data {
    my ($name, $val);
    $data =~ s/^\s*//;
    $data =~ s/\s*$//;
-   print "UPBPIM: Parsing serial data: $data\n" unless $main::config_parms{no_log} =~/UPBPIM/;
+  &::print_log( "UPBPIM: Parsing serial data: $data\n") unless $main::config_parms{no_log} =~/UPBPIM/;
 
 	#PIM to Host Message
 	if (uc(substr($data,0,1)) eq 'P')
@@ -287,12 +305,40 @@ sub _parse_data {
 			elsif (uc(substr($data,1,1)) eq 'U') {
 				$self->delegate(substr($data,2,length($data)));
 			}				
-			#UPB Busy - Resend
+			#UPB Accept command
+			elsif (uc(substr($data,1,1)) eq 'A') {
+				#dont really care
+			}
+			#UPB Busy
 			elsif (uc(substr($data,1,1)) eq 'B') {
-				$self->send_upb_cmd($$self{last_command});
+				$$self{xmit_in_progress} = 0;
+			}
+			#UPB Acknowledgement
+			elsif (uc(substr($data,1,1)) eq 'K') {
+				$$self{xmit_in_progress} = 0;
+				pop(@{$$self{command_stack}});				
+				$self->process_command_stack();
+			}
+			#UPB No Acknowledgement
+			elsif (uc(substr($data,1,1)) eq 'N') {
+				$$self{xmit_in_progress} = 0;
+				$self->process_command_stack();
 			}
 		}
 	}
+}
+
+sub process_command_stack
+{
+	my ($self) = @_;
+			## send any remaining commands in stack
+			my $stack_count = @{$$self{command_stack}};
+#			&::print_log("UPB Command stack2:$stack_count:@{$$self{command_stack}}:");
+			if ($stack_count> 0 ) 
+			{
+				#send any remaining commands.
+				$self->send_upb_cmd();
+			}			
 }
 
 sub add
@@ -381,7 +427,7 @@ sub delegate
 		$isLink=1;
 	}
 
-	&::print_log ("DELEGATE:$network:$source:$destination:$isLink:");
+#	&::print_log ("DELEGATE:$network:$source:$destination:$isLink:");
 	for my $obj (@{$$self{objects}})
 	{
 		#Match on UPB objects only
@@ -417,7 +463,7 @@ sub sset
 	return if (ref $p_setby and $p_setby->can('get_set_by') and 
         $p_setby->{set_by} eq $self);
 =cut
-  	&::print_log($self->get_object_name() . "::set($p_state, $p_setby)");
+#  	&::print_log($self->get_object_name() . "::set($p_state, $p_setby)");
 
 	# ensure the setting object is associated w/ the current object before
 	#  iterating over the children.  At a minimum, main::set_by_to_target
