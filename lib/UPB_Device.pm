@@ -238,7 +238,7 @@ sub _xlate_mh_upb
 
 	#control word
 #	$cmd=$$self{firstOctet} . "970";
-	$cmd=$$self{firstOctet} . "000";
+	$cmd=$$self{firstOctet} . "010";
 	#network id;
 	$cmd.= sprintf("%02X",$self->network_id());
 	#destination;
