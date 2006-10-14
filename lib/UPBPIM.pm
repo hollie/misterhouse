@@ -133,6 +133,7 @@ sub new {
    $$self{said}      = '';
    $$self{state_now} = '';
    $$self{port_name} = $port_name;
+	$$self{last_command} = '';
    bless $self, $class;
    $UPBPIM_Data{$port_name}{'obj'} = $self;
 
@@ -286,7 +287,10 @@ sub _parse_data {
 			elsif (uc(substr($data,1,1)) eq 'U') {
 				$self->delegate(substr($data,2,length($data)));
 			}				
-
+			#UPB Busy - Resend
+			elsif (uc(substr($data,1,1)) eq 'B') {
+				$self->send_upb_cmd($$self{last_command});
+			}
 		}
 	}
 }
@@ -361,6 +365,7 @@ sub remove_item {
 sub set
 {
 	my ($self,$p_state,$p_setby,$p_response) = @_;
+	$$self{last_command} = $p_state;
 	$self->send_upb_cmd($p_state);
 }
 
