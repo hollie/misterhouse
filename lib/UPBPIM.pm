@@ -317,11 +317,15 @@ sub _parse_data {
 			elsif (uc(substr($data,1,1)) eq 'K') {
 				$$self{xmit_in_progress} = 0;
 				pop(@{$$self{command_stack}});				
+   select(undef,undef,undef,1);
 				$self->process_command_stack();
 			}
 			#UPB No Acknowledgement
 			elsif (uc(substr($data,1,1)) eq 'N') {
 				$$self{xmit_in_progress} = 0;
+				&::print_log("$self->object_name: Reports device does not respond");
+				pop(@{$$self{command_stack}});
+   select(undef,undef,undef,1);
 				$self->process_command_stack();
 			}
 		}
@@ -365,6 +369,12 @@ sub add_item
 
 #    $p_object->tie_items($self);
     push @{$$self{objects}}, $p_object;
+	#request an initial state from the device
+	if (! $p_object->isa('UPB_Link') ) 
+	{	
+		$p_object->set("report");
+	}
+	return $p_object;
 }
 
 sub remove_all_items {
