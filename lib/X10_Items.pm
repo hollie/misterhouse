@@ -1179,7 +1179,7 @@ sub init {
                                 # set yet on startup :(
 sub new {
     my ($class, $id, $name, $type) = @_;
-    my $self = X10_Item->new($id);
+    my $self = X10_Item->new();
 
     $$self{state} = '';
     bless $self, $class;
