@@ -78,6 +78,7 @@ sub new
 	$self->initialize();
 	$self->rate(0);
 	$$self{firstOctet} = "0";
+	$$self{ackMode} = "1";
 	$$self{interface}->add($self);
 	return $self;
 }
@@ -238,7 +239,7 @@ sub _xlate_mh_upb
 
 	#control word
 #	$cmd=$$self{firstOctet} . "970";
-	$cmd=$$self{firstOctet} . "010";
+	$cmd=$$self{firstOctet} . "0". $$self{ackMode} . "0";
 	#network id;
 	$cmd.= sprintf("%02X",$self->network_id());
 	#destination;
