@@ -340,7 +340,8 @@ sub main::net_ftp {
 
 use vars qw($aim_connection $icq_connection $jabber_connection $msn_connection %msn_connections %msn_queue %im_queue);
 
-eval 'use Net::Jabber qw (Client)';
+eval 'use Net::Jabber';
+print "Error loading Net::Jabber library\n$@\n" if $@;
 
 sub main::net_jabber_signon {
     return if $jabber_connection;  # Already signed on
@@ -350,16 +351,17 @@ sub main::net_jabber_signon {
     $name     = $main::config_parms{net_jabber_name}      unless $name;
     $password = $main::config_parms{net_jabber_password}  unless $password;
     $server   = $main::config_parms{net_jabber_server}    unless $server;
+    $port     = $main::config_parms{net_jabber_port}      unless $port;
     $resource = $main::config_parms{net_jabber_resource}  unless $resource;
 
     $server   = 'jabber.com' unless $server;
     $port     = 5222         unless $port;
-    $resource = 'none'       unless $resource;
+    $resource = 'misterhouse'       unless $resource;
 
     print "Logging onto $server $port with name=$name resource=$resource\n";
 
     print "Error in Net::Jabber: $@\n" if $@;
-    $jabber_connection = new Net::Jabber::Client;
+    $jabber_connection = new Net::Jabber::Client();
 #   $jabber_connection = Net::Jabber::Client->new(debuglevel => 2, debugtime  => 1 , debugfile  =>  "/tmp/jabber.log");
 
     unless ($jabber_connection->Connect(hostname => $server, port => $port)) {
@@ -372,7 +374,7 @@ sub main::net_jabber_signon {
                                      presence => \&jabber::InPresence,
                                      iq       => \&jabber::InIQ);
 
-    print "  - Sending username\n";
+    print "  - Sending username/resource ${name}/${resource}\n";
 #   $jabber_connection->Connect();
     my @result = $jabber_connection->AuthSend(username => $name,
                                               password => $password,

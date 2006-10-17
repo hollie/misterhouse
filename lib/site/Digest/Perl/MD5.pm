@@ -1,5 +1,7 @@
-#!/usr/local/bin/perl -w
-#$Id$
+#! /usr/bin/false
+#
+# $Id$
+#
 
 package Digest::Perl::MD5;
 use strict;
@@ -10,7 +12,7 @@ use vars qw($VERSION @ISA @EXPORTER @EXPORT_OK);
 @EXPORT_OK = qw(md5 md5_hex md5_base64);
 
 @ISA = 'Exporter';
-$VERSION = '1.5';
+$VERSION = '1.8';
 
 # I-Vektor
 sub A() { 0x67_45_23_01 }
@@ -22,7 +24,7 @@ sub D() { 0x10_32_54_76 }
 sub MAX() { 0xFFFFFFFF }
 
 # padd a message to a multiple of 64
-sub padding($) {
+sub padding {
     my $l = length (my $msg = shift() . chr(128));    
     $msg .= "\0" x (($l%64<=56?56:120)-$l%64);
     $l = ($l-1)*8;
@@ -58,7 +60,7 @@ sub gen_code {
 	S43 => 15, S44 => 21
   );
 
-  my $insert = "";
+  my $insert = "\n";
   while(<DATA>) {
 	chomp;
 	next unless /^[FGHI]/;
@@ -66,46 +68,91 @@ sub gen_code {
 	my $c = $f{$func};
 	$c =~ s/X(\d)/$x[$1]/g;
 	$c =~ s/(S\d{2})/$s{$1}/;
-        $c =~ s/^(.*)=rotate_left\((.*),(.*)\)\+(.*)$//;
+	$c =~ s/^(.*)=rotate_left\((.*),(.*)\)\+(.*)$//;
+
+	my $su = 32 - $3;
+	my $sh = (1 << $3) - 1;
+
+	$c = "$1=(((\$r=$2)<<$3)|((\$r>>$su)&$sh))+$4";
 
 	#my $rotate = "(($2 << $3) || (($2 >> (32 - $3)) & (1 << $2) - 1)))"; 
-	$c = "\$r = $2;
-        $1 = ((\$r << $3) | ((\$r >> (32 - $3))  & ((1 << $3) - 1))) + $4";
+	# $c = "\$r = $2;
+	# $1 = ((\$r << $3) | ((\$r >> (32 - $3))  & ((1 << $3) - 1))) + $4";
 	$insert .= "\t$c\n";
   }
+  close DATA;
   
   my $dump = '
   sub round {
 	my ($a,$b,$c,$d) = @_[0 .. 3];
-	my $r;
-
-	' . $insert . '
+	my $r;' . $insert . '
 	$_[0]+$a' . $MSK . ', $_[1]+$b ' . $MSK . 
         ', $_[2]+$c' . $MSK . ', $_[3]+$d' . $MSK . ';
   }';
   eval $dump;
-  #print "$dump\n";
-  #exit 0;
+  # print "$dump\n";
+  # exit 0;
 }
 
 gen_code();
 
+#########################################
+# Private output converter functions:
+sub _encode_hex { unpack 'H*', $_[0] }
+sub _encode_base64 {
+	my $res;
+	while ($_[0] =~ /(.{1,45})/gs) {
+		$res .= substr pack('u', $1), 1;
+		chop $res;
+	}
+	$res =~ tr|` -_|AA-Za-z0-9+/|;#`
+	chop $res; chop $res;
+	$res
+}
 
-# object part of this module
+#########################################
+# OOP interface:
 sub new {
-	my $class = shift;
-	bless {}, ref($class) || $class;
+	my $proto = shift;
+	my $class = ref $proto || $proto;
+	my $self = {};
+	bless $self, $class;
+	$self->reset();
+	$self
 }
 
 sub reset {
 	my $self = shift;
-	delete $self->{data};
+	delete $self->{_data};
+	$self->{_state} = [A,B,C,D];
+	$self->{_length} = 0;
 	$self
 }
 
-sub add(@) {
+sub add {
 	my $self = shift;
-	$self->{data} .= join'', @_;
+	$self->{_data} .= join '', @_ if @_;
+	my ($i,$c);
+	for $i (0 .. (length $self->{_data})/64-1) {
+		my @X = unpack 'V16', substr $self->{_data}, $i*64, 64;
+		@{$self->{_state}} = round(@{$self->{_state}},@X);
+		++$c;
+	}
+	if ($c) {
+		substr ($self->{_data}, 0, $c*64) = '';
+		$self->{_length} += $c*64;
+	}
+	$self
+}
+
+sub finalize {
+	my $self = shift;
+	$self->{_data} .= chr(128);
+    my $l = $self->{_length} + length $self->{_data};
+    $self->{_data} .= "\0" x (($l%64<=56?56:120)-$l%64);
+    $l = ($l-1)*8;
+    $self->{_data} .= pack 'VV', $l & MAX , ($l >> 16 >> 16);
+	$self->add();
 	$self
 }
 
@@ -115,23 +162,51 @@ sub addfile {
 	    require Symbol;
 	    $fh = Symbol::qualify($fh, scalar caller);
 	}
-	$self->{data} .= do{local$/;<$fh>};
+	# $self->{_data} .= do{local$/;<$fh>};
+	my $read = 0;
+	my $buffer = '';
+	$self->add($buffer) while $read = read $fh, $buffer, 8192;
+	die __PACKAGE__, " read failed: $!" unless defined $read;
 	$self
 }
 
+sub add_bits {
+	my $self = shift;
+	return $self->add( pack 'B*', shift ) if @_ == 1;
+	my ($b,$n) = @_;
+	die __PACKAGE__, " Invalid number of bits\n" if $n%8;
+	$self->add( substr $b, 0, $n/8 )
+}
+
 sub digest {
-	md5(shift->{data})
+	my $self = shift;
+	$self->finalize();
+	my $res = pack 'V4', @{$self->{_state}};
+	$self->reset();
+	$res
 }
 
 sub hexdigest {
-	md5_hex(shift->{data})
+	_encode_hex($_[0]->digest)
 }
 
 sub b64digest {
-	md5_base64(shift->{data})
+	_encode_base64($_[0]->digest)
 }
 
-sub md5(@) {
+sub clone {
+	my $self = shift;
+	my $clone = { 
+		_state => [@{$self->{_state}}],
+		_length => $self->{_length},
+		_data => $self->{_data}
+	};
+	bless $clone, ref $self || $self;
+}
+
+#########################################
+# Procedural interface:
+sub md5 {
 	my $message = padding(join'',@_);
 	my ($a,$b,$c,$d) = (A,B,C,D);
 	my $i;
@@ -141,27 +216,9 @@ sub md5(@) {
 	}
 	pack 'V4',$a,$b,$c,$d;
 }
+sub md5_hex { _encode_hex &md5 } 
+sub md5_base64 { _encode_base64 &md5 }
 
-
-sub md5_hex(@) {  
-  unpack 'H*', &md5;
-}
-
-sub md5_base64(@) {
-  encode_base64(&md5);
-}
-
-
-sub encode_base64 ($) {
-    my $res;
-    while ($_[0] =~ /(.{1,45})/gs) {
-	$res .= substr pack('u', $1), 1;
-	chop $res;
-    }
-    $res =~ tr|` -_|AA-Za-z0-9+/|;#`
-    chop $res;chop $res;
-    $res;
-}
 
 1;
 
@@ -264,6 +321,11 @@ checksum can also be calculated in OO style:
     
     print "Digest is $digest\n";
 
+The digest methods are destructive. That means you can only call them
+once and the $md5 objects is reset after use. You can make a copy with clone:
+
+	$md5->clone->hexdigest
+
 =head1 LIMITATIONS
 
 This implementation of the MD5 algorithm has some limitations:
@@ -272,18 +334,14 @@ This implementation of the MD5 algorithm has some limitations:
 
 =item
 
-It's slow, very slow. I've done my very best but Digest::MD5 is still about 135 times faster.
+It's slow, very slow. I've done my very best but Digest::MD5 is still about 100 times faster.
 You can only encrypt Data up to one million bytes in an acceptable time. But it's very usefull
 for encrypting small amounts of data like passwords.
 
 =item
 
-You can only encrypt up to 2^32 bits = 512 MB on 32bit archs. You should use C<Digest::MD5>
-for those amounts of data.
-
-=item
-
-C<Digest::Perl::MD5> loads all data to encrypt into memory. This is a todo.
+You can only encrypt up to 2^32 bits = 512 MB on 32bit archs. But You should
+use C<Digest::MD5> for those amounts of data anyway.
 
 =back
 
@@ -291,9 +349,11 @@ C<Digest::Perl::MD5> loads all data to encrypt into memory. This is a todo.
 
 L<Digest::MD5>
 
-L<md5sum(1)>
+L<md5(1)>
 
 RFC 1321
+
+tools/md5: a small BSD compatible md5 tool written in pure perl.
 
 =head1 COPYRIGHT
 
@@ -313,7 +373,7 @@ covered by the following copyright:
 
 =item
 
-Copyright (C) 1991-2, RSA Data Security, Inc. Created 1991. All
+Copyright (C) 1991-1992, RSA Data Security, Inc. Created 1991. All
 rights reserved.
 
 License to copy and use this software is granted provided that it
@@ -343,14 +403,14 @@ licenses.
 =head1 AUTHORS
 
 The original MD5 interface was written by Neil Winton
-(C<N.Winton@axion.bt.co.uk>).
+(<N.Winton (at) axion.bt.co.uk>).
 
-C<Digest::MD5> was made by Gisle Aas <gisle@aas.no> (I took his Interface
-and part of the documentation)
+C<Digest::MD5> was made by Gisle Aas <gisle (at) aas.no> (I took his Interface
+and part of the documentation).
 
 Thanks to Guido Flohr for his 'use integer'-hint.
 
-This release was made by Christian Lackas <delta@clackas.de>.
+This release was made by Christian Lackas <delta (at) lackas.net>.
 
 =cut
 
