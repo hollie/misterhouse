@@ -317,7 +317,7 @@ sub _parse_data {
 			elsif (uc(substr($data,1,1)) eq 'K') {
 				$$self{xmit_in_progress} = 0;
 				pop(@{$$self{command_stack}});				
-   select(undef,undef,undef,1);
+  select(undef,undef,undef,.15);
 				$self->process_command_stack();
 			}
 			#UPB No Acknowledgement
@@ -325,7 +325,7 @@ sub _parse_data {
 				$$self{xmit_in_progress} = 0;
 				&::print_log("$self->object_name: Reports device does not respond");
 				pop(@{$$self{command_stack}});
-   select(undef,undef,undef,1);
+   select(undef,undef,undef,.15);
 				$self->process_command_stack();
 			}
 		}
