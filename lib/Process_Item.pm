@@ -47,7 +47,20 @@ sub add {
 
                                 # This is called by mh on exit to save persistant data
 sub restore_string {
-    return;
+    my ($self) = @_;
+    my $restore_string = '';
+#    if ($self->{cmds} and my $cmds = join($;, @{$self->{cmds}})) {
+#      $cmds =~ s/\n/ /g; # Avoid new-lines on restored vars
+#      $cmds =~ s/~/\\~/g;
+#      $restore_string .= '@{' . $self->{object_name} . "->{cmds}} = split(\$;, q~$cmds~);";
+#    }
+    $restore_string .= $self->{object_name} . "->{timeout} = q~$self->{timeout}~;\n" if $self->{timeout};
+    $restore_string .= $self->{object_name} . "->{output} = q~$self->{output}~;\n"   if $self->{output};
+    $restore_string .= $self->{object_name} . "->{errlog} = q~$self->{errlog}~;\n"   if $self->{errlog};
+    $restore_string .= $self->{object_name} . "->{killsig} = q~$self->{killsig}~;\n" if $self->{killsig};
+    $restore_string .= $self->{object_name} . "->{started} = q~$self->{started}~;\n" if $self->{started};
+    $restore_string .= $self->{object_name} . "->{pid} = q~$self->{pid}~;\n"         if $self->{pid};
+    return $restore_string;
 }
 
 sub get_set_by {
@@ -85,7 +98,7 @@ sub start_next {
 
     if ($type eq 'eval') {
         if ($main::OS_win and ($ENV{sourceExe} or &Win32::BuildNumber() < 600)) {
-            my $msg = "Sorry, Process_Item eval fork only supported with windows perl build 5.6 or later.\n   cmd=$cmd";
+            my $msg = "Sorry, {Process_Item eval fork only supported with windows perl build 5.6 or later.\n   cmd=$cmd";
             print "$msg\n";
             &main::print_log($msg);
             return;
@@ -253,6 +266,7 @@ sub harvest {
                 $$process{done_now}++;
                 $$process{done} = $time;
                 delete $$process{pid};
+                delete $$process{started};
                 print "Process done_now process=$$process{object_name} pid=$pid to=$$process{timed_out} cmd=@{$$process{cmds}}\n" if $main::Debug{process};
             }
         }
@@ -272,7 +286,9 @@ sub stop {
         next if ref $process eq 'SCALAR'; # In case a non ref was passed in
         my $pid = $$process{pid};
         next unless $pid;
+        $$process{runtime} = time - $$process{started};
         delete $$process{pid};
+        delete $$process{started};
         print "\nKilling unfinished process id $pid for $process cmd @{$$process{cmds}}\n" if $main::Debug{process};
         if ($main::OS_win) {
 #           $pid->Suspend() or print "Warning 1, stop Process error:", Win32::FormatMessage( Win32::GetLastError() ), "\n";
