@@ -75,14 +75,15 @@ sub restore_string {
     my $expire_time = $self->{expire_time};
     return unless $self->{time} or ($expire_time and $expire_time > main::get_tickcount);
 
-    my $restore_string  = "set $self->{object_name} $self->{period} " if $self->{period};
+    my $restore_string  = "set $self->{object_name} $self->{period}" if $self->{period};
     $restore_string .= ", q|$self->{action}|"  if $self->{action};
     $restore_string .= ", $self->{repeat}"     if $self->{repeat};
-    $restore_string .= ";  ";
-    $restore_string .= $self->{object_name} . "->{expire_time} = $expire_time;"  if $expire_time;
-    $restore_string .= $self->{object_name} . "->{time}        = $self->{time};" if $self->{time};
-    $restore_string .= $self->{object_name} . "->{time_pause}  = $self->{time_pause};"  if $self->{time_pause};
-    $restore_string .= $self->{object_name} . "->{time_adjust} = $self->{time_adjust};" if $self->{time_adjust};
+    $restore_string .= ";\n";
+    $restore_string .= $self->{object_name} . "->set_from_last_pass();\n";
+    $restore_string .= $self->{object_name} . "->{expire_time} = $expire_time;\n"  if $expire_time;
+    $restore_string .= $self->{object_name} . "->{time} = q~$self->{time}~;\n" if $self->{time};
+    $restore_string .= $self->{object_name} . "->{time_pause} = q~$self->{time_pause}~;\n"  if $self->{time_pause};
+    $restore_string .= $self->{object_name} . "->{time_adjust} = q~$self->{time_adjust}~;\n" if $self->{time_adjust};
 
     return $restore_string;
 }
@@ -136,6 +137,7 @@ sub set_from_last_pass {
                                 # Turn a timer off
     if ($state == 0) {
         $self->{expire_time} = undef;
+        $self->{time} = undef;
         &delete_timer_with_action($self);
         $resort_timers_with_actions = 1;
     }
@@ -165,6 +167,7 @@ sub resort_timers_with_actions {
 sub unset {
     ($self) = @_;
     undef $self->{expire_time};
+    undef $self->{time};
     undef $self->{action};
     &delete_timer_with_action($self);
 }
