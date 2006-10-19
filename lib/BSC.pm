@@ -27,6 +27,8 @@ Special Thanks to:
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 =cut
 
+use strict;
+
 use xAP_Items;
 
 package BSC;
@@ -60,6 +62,7 @@ sub new
    my $friendly_name = "bsc_$p_source_name";
    &main::store_object_data($$self{m_xap},'xAP_Item',$friendly_name,$friendly_name);
    $$self{m_xap}->tie_items($self);
+   $self->restore_data('m_xapuid','bsc_state','level','text','display_text');
 
    return $self;
 }
@@ -107,15 +110,16 @@ sub display_text {
 sub set
 {
    my ($self, $p_state, $p_setby, $p_respond) = @_;
-   return if &main::check_for_tied_filters($self, $state);
+   return if &main::check_for_tied_filters($self, $p_state);
    my $state = $p_state;
    # don't do anything if setby an inherited object
-   if (($p_setby != $self)) {
-      if ($p_setby eq $$self{m_xap} ) {
+   if ($p_setby ne $self) {
+     my ($xap_subaddress) = $$self{m_xap}->source =~ /.+\:(.+)/;
+     if ($p_setby eq $$self{m_xap}) {
          $$self{device_target} = $$self{m_xap}{target_address};
-         my ($xap_subaddress) = $$self{m_xap}{target_address} =~ /.+\:(.+)/;
-         $$self{device_subaddress_target} = $xap_subaddress;
-         $sender_class = $$p_setby{'xap-header'}{class};
+         my ($xap_target_subaddress) = $$self{m_xap}{target_address} =~ /.+\:(.+)/;
+         $$self{device_subaddress_target} = $xap_target_subaddress;
+         my $sender_class = $$p_setby{'xap-header'}{class};
          if (lc $sender_class eq 'xapbsc.cmd') {
             # handle command
             $state = $self->cmd_callback($p_setby);
@@ -124,19 +128,58 @@ sub set
             $state = $self->query_callback($$p_setby{'xap-header'}{target}, $$p_setby{'xap-header'}{source});
          } elsif (lc $sender_class eq 'xapbsc.event') {
             # handle event
+            $self->uid($$self{m_xap}{'xap-header'}{uid});
             $state = $self->event_callback($p_setby);
          } elsif (lc $sender_class eq 'xapbsc.info') {
             # handle info
+            $self->uid($$self{m_xap}{'xap-header'}{uid});
             $state = $self->info_callback($p_setby);
          }
+      } elsif ($xap_subaddress) {
+        my $subuid = '';
+         if ($self->uid) {
+            $subuid = substr($self->uid, 6) if length($self->uid) == 8;
+            print "[BSC] " . $self->{object_name} . " extracting subaddress uid = $subuid\n" if $main::Debug{bsc};
+         } else {
+            print "[BSC] " . $self->{object_name} . " does not have a xAP uid!\n" if $main::Debug{bsc};
+         }
+         if ($subuid) {
+            my $bsc_block;
+         
+	    $bsc_block->{'id'} = $subuid;
+            if ($p_state eq 'off') {
+               $bsc_block->{'state'} = 'off';
+            } elsif ($p_state eq 'on') {
+               $bsc_block->{'state'} = 'on';
+            } else {
+               $bsc_block->{'state'} = 'on';
+               if ($p_state =~ /\d+\/\d+/) {
+                  $bsc_block->{'level'} = $p_state;
+               } elsif ($p_state =~ /^\d?\d?\d%$/) {
+                  my ($percent) = $p_state =~ /^(\d?\d?\d)%$/;
+                  if (defined $percent) {
+                     $bsc_block->{'level'} = "$percent/100";
+                  }
+               } else {
+                  $bsc_block->{'text'} = $p_state;
+               } 
+            }
+            &xAP::sendXap($$self{m_xap}{source}, 'xapbsc.cmd', 'output.state.1' => $bsc_block);
+         }
       } else {
-         print "Unable to processX $$self{object_name}->set($state) for $p_setby->{object_name}\n" if $main::Debug{bsc};
+        print "Unable to process " . $self->{object_name} . "; state: $state\n" if $main::Debug{bsc};
+        $state = 'unknown';
       }
    }
    # Always pass along the state to base class
    $self->SUPER::set($state,$p_setby, $p_respond) unless $state eq 'unknown';
-
    return;
+}
+
+sub uid {
+   my ($self, $p_uid) = @_;
+   $$self{m_xapuid} = $p_uid if $p_uid;
+   return $$self{m_xapuid};
 }
 
 sub cmd_callback {
@@ -233,6 +276,184 @@ sub info_callback {
    return $state;
 }
 
+sub send_query {
+   my ($self, $family_name, $target);
+   $target = '*' unless $target; # this is probably a bad idea since wildcarding should only be done to endpoints
+   my ($headerVars, @data2);
+   $headerVars->{'class'} = 'xAPBSC.query';
+   $headerVars->{'target'} = $target;
+   $headerVars->{'source'} = &xAP::get_xap_mh_source_info($family_name);
+   $headerVars->{'uid'} = &xAP::get_xap_uid($family_name, '00');
+   push @data2, $headerVars;
+   push @data2, 'request', ''; # hmmm, this could blow-up maybe? really only want a blank request block
+
+   &xAP::sendXapWithHeaderVars(@data2);
+
+}
+
+
+package BSCMH_Item;
+
+use constant DEVICE_TYPE_X10           => 'x10_device';
+use constant DEVICE_TYPE_PRESENCE      => 'presence';
+use constant DEVICE_TYPE_ABSTRACT      => 'abstract_device';
+
+use constant X10_ITEM                  => 'X10_Item';
+use constant X10_APPLIANCE             => 'X10_Appliance';
+use constant X10_TRANSMITTER           => 'X10_Transmitter';
+use constant X10_RF_RECEIVER           => 'X10_RF_Receiver';
+use constant X10_GARAGE_DOOR           => 'X10_GARAGE_DOOR';
+use constant X10_IRRIGATION_CONTROLLER => 'X10_IrrigationController';
+use constant X10_SWITCHLINC            => 'X10_Switchlinc';
+use constant X10_TEMPLINC              => 'X10_Templinc';
+use constant X10_OTE                   => 'X10_Ote';
+use constant X10_SENSOR                => 'X10_Sensor';
+
+use constant LIGHT_ITEM                => 'Light_Item';
+use constant MOTION_ITEM               => 'Motion_Item';
+
+use constant PRESENCE_MONITOR          => 'Presence_Monitor';
+use constant OCCUPANCY_MONITOR         => 'Occupancy_Monitor';
+
+@BSCMH_Item::ISA = ('Generic_Item');
+
+
+#Initialize class
+sub new
+{
+   my ($class,$p_device_family) = @_;
+   my $self={};
+   bless $self, $class;
+
+   $$self{m_device_family} = $p_device_family;
+   $$self{m_source_name} = &xAP::get_xap_mh_source_info($p_device_family);
+
+   my $source_name = &xAP::get_xap_mh_source_info($p_device_family);# . ':>';
+   $$self{m_xap} = new xAP_Item('xAPBSC.*','*');
+   $$self{m_xap}->target_address($source_name); # want to listen to messages directed to us
+   $$self{m_xap}->device_name($p_device_family);
+   $$self{m_xap}->allow_empty_state(1); # because query commands result in an empty xap body
+   # init a virtual xap device
+   #   this will force a new xap listener to exist as well as separate hearbeats.
+   #   it is only required because of the current max 254 endpoint limitation
+
+   &xAP::init_xap_virtual_device($p_device_family);
+
+   my $code = &main::store_object_data($$self{m_xap},'xAP_Item','xAP_Item','BSC.pm');
+   eval($code);
+   $$self{m_xap}->tie_items($self);
+   return $self;
+}
+
+sub register_obj {
+   my ($self, $mh_obj_name, $handler_name, $requested_uid) = @_;
+
+   my $o = &main::get_object_by_name($mh_obj_name);
+   $o = $mh_obj_name unless $o; # In case we stored object directly
+   if (!($requested_uid)) {
+      # extract the x10 id
+      my ($x10_id) = $o->{x10_id} =~ /^X*(.*)/;
+      # if a x10_id exists, then convert it to the hex uid format
+      if ($x10_id) {
+         # we can only permit the subaddress space to map to 254 devices;
+         # so, don't allow the last 2 possible x10 devices
+         if ($x10_id eq 'PF' or $x10_id eq 'PG') {
+            print "WARNING: x10 devices w/ housecode/usercodes of $x10_id are not supported\n" if $main::Debug{bsc};
+            return;
+         }
+         print "x10id: $x10_id\n" if $main::Debug{bsc};
+         $requested_uid = &_convert_x10_id($x10_id);
+      }
+   }
+   # reserve the UID
+   my $sub_uid = &xAP::get_xap_subaddress_uid($handler_name, $mh_obj_name, $requested_uid);
+   $$self{m_registered_objects}{$$o{object_name}} = $handler_name;
+   $o->tie_items($self) if $o;
+   print "Registered $$o{object_name} as $sub_uid to $$self{object_name} using handler: $handler_name\n"
+          if $main::Debug{bsc};
+}
+
+sub register_device_type {
+   my ($self, $p_device_type) = @_;
+   if ($p_device_type eq X10_ITEM
+      or $p_device_type eq X10_APPLIANCE
+      or $p_device_type eq X10_TRANSMITTER
+      or $p_device_type eq X10_RF_RECEIVER
+      or $p_device_type eq X10_GARAGE_DOOR
+      or $p_device_type eq X10_IRRIGATION_CONTROLLER
+      or $p_device_type eq X10_SWITCHLINC
+      or $p_device_type eq X10_TEMPLINC
+      or $p_device_type eq X10_OTE
+      or $p_device_type eq X10_SENSOR) {
+         $self->_init_object($p_device_type, DEVICE_TYPE_X10);
+   } elsif ($p_device_type eq LIGHT_ITEM
+      or $p_device_type eq MOTION_ITEM) {
+         $self->_init_object($p_device_type, DEVICE_TYPE_ABSTRACT);
+   } elsif ($p_device_type eq PRESENCE_MONITOR
+      or $p_device_type eq OCCUPANCY_MONITOR) {
+         $self->_init_object($p_device_type, DEVICE_TYPE_PRESENCE);
+   } else {
+      print "WARNING: $p_device_type is not supported by BSCMH_Item!!\n" if $main::Debug{bsc};
+   }
+}
+
+sub set
+{
+   my ($self, $p_state, $p_setby, $p_respond) = @_;
+   return if &main::check_for_tied_filters($self, $p_state);
+   my $state = $p_state;
+   if ($p_setby eq $$self{m_xap} ) {
+      $$self{device_target} = $$self{m_xap}{target_address};
+      my ($xap_subaddress) = $$self{m_xap}{target_address} =~ /.+\:(.+)/;
+      $$self{device_subaddress_target} = $xap_subaddress;
+      my $msg_class_name = lc($$self{m_xap}{'xap-header'}{class});
+      if ($msg_class_name  eq 'xapbsc.cmd') {
+         # handle command
+         $state = $self->cmd_callback($p_setby);
+      } elsif ($msg_class_name eq 'xapbsc.query') {
+         # handle query
+         $state = $self->query_callback($$p_setby{'xap-header'}{target}, $$p_setby{'xap-header'}{target});
+      } elsif ($msg_class_name eq 'xapbsc.event') {
+         # ignore since only mh is responsible for sending out event messages
+         $state = 'event';
+      } elsif ($msg_class_name eq 'xapbsc.info') {
+         # ignore since only mh is responsible for sending out info messages
+         $state = 'info';
+      }
+      $p_setby = $self; # override so that SUPER doesn't attempt;
+   } elsif (defined($$p_setby{object_name}) && (exists($$self{m_registered_objects}{$$p_setby{object_name}}))) {
+      print "In $$self{object_name} set callback for $$p_setby{object_name} using $$self{m_registered_objects}{$$p_setby{object_name}}\n"
+                 if $main::Debug{bsc};
+     # only handle changes in state
+      if ($self->state_changed($p_setby)) {
+         my ($mh_obj_name, $bsc_obj_name, $handler_name) = @_;
+         my $code = "\&BSCMH_Item::_handle_$$self{m_registered_objects}{$$p_setby{object_name}}";
+         $code .= "('send-event', \'$$p_setby{object_name}\',\'$$self{object_name}\')";
+         eval($code);
+         $p_setby = $self; # override so that SUPER doesn't attempt
+      } else {
+         print "No state change for $$p_setby{object_name}\n" if $main::Debug{bsc};
+      }
+      $p_setby = $self;
+   } else {
+       print "Unable to process $$self{object_name}->set for $$p_setby{object_name}\n" if $main::Debug{bsc};
+   }
+
+   # Always pass along the state to base class
+   $self->SUPER::set($p_state,$p_setby, $p_respond);
+
+   return;
+}
+
+sub state_changed {
+   my ($self, $p_setby) = @_;
+   my $id = &xAP::get_xap_subaddress_uid($$self{m_registered_objects}{$$p_setby{object_name}},
+                  $$p_setby{object_name});
+   my $current_bsc_state = $self->{device_state}{$id}{'RefState'};
+   return 1 if !(defined($current_bsc_state));
+   return ($p_setby->state() ne $current_bsc_state);
+}
+
 sub pending_device_state {
    my ($self, $id) = @_;
    if ($id) {
@@ -260,7 +481,7 @@ sub send_cmd {
    $target = '*' unless $target; # possibly a bad idea as wildcarding across all devices doesn't make sense
    my ($headerVars, @data2);
    $headerVars->{'class'} = 'xAPBSC.cmd';
-   $haaderVars->{'target'} = $target;
+   $headerVars->{'target'} = $target;
    $headerVars->{'source'} = &xAP::get_xap_mh_source_info($family_name);
    $headerVars->{'uid'} = &xAP::get_xap_uid($family_name, '00');
    push @data2, $headerVars;
@@ -298,21 +519,6 @@ sub send_cmd {
    }
 }
 
-sub send_query {
-   my ($self, $family_name, $target);
-   $target = '*' unless $target; # this is probably a bad idea since wildcarding should only be done to endpoints
-   my ($headerVars, @data2);
-   $headerVars->{'class'} = 'xAPBSC.query';
-   $haaderVars->{'target'} = $target;
-   $headerVars->{'source'} = &xAP::get_xap_mh_source_info($family_name);
-   $headerVars->{'uid'} = &xAP::get_xap_uid($family_name, '00');
-   push @data2, $headerVars;
-   push @data2, 'request', ''; # hmmm, this could blow-up maybe? really only want a blank request block
-
-   &xAP::sendXapWithHeaderVars(@data2);
-
-}
-
 sub send_info {
    my ($self, $family_name, $subaddress_name) = @_;
    print "In send_info using $family_name and $subaddress_name\n" if $main::Debug{bsc};
@@ -323,7 +529,7 @@ sub send_info {
    my ($subaddress) = $subaddress_name =~ /^\$*(.*)/;
    my ($headerVars, @data2);
    $headerVars->{'class'} = 'xAPBSC.info';
-   $haaderVars->{'target'} = '*';
+   $headerVars->{'target'} = '*';
    $headerVars->{'source'} = &xAP::get_xap_mh_source_info($family_name) . ":" . $subaddress_name;
 
    # iterate over the pending/"state now" device state hash and create the blocks
@@ -377,7 +583,7 @@ sub send_event {
    my ($subaddress) = $subaddress_name =~ /^\$*(.*)/;
    my ($headerVars, @data2);
    $headerVars->{'class'} = 'xAPBSC.event';
-   $haaderVars->{'target'} = '*';
+   $headerVars->{'target'} = '*';
    $headerVars->{'source'} = &xAP::get_xap_mh_source_info($family_name) . ":" . $subaddress_name;
 
    # iterate over the pending/"state now" device state hash and create the blocks
@@ -429,167 +635,6 @@ sub commit_pending_state {
 }
 
 
-package BSCMH_Item;
-
-use constant DEVICE_TYPE_X10           => 'x10_device';
-use constant DEVICE_TYPE_PRESENCE      => 'presence';
-use constant DEVICE_TYPE_ABSTRACT      => 'abstract_device';
-
-use constant X10_ITEM                  => 'X10_Item';
-use constant X10_APPLIANCE             => 'X10_Appliance';
-use constant X10_TRANSMITTER           => 'X10_Transmitter';
-use constant X10_RF_RECEIVER           => 'X10_RF_Receiver';
-use constant X10_GARAGE_DOOR           => 'X10_GARAGE_DOOR';
-use constant X10_IRRIGATION_CONTROLLER => 'X10_IrrigationController';
-use constant X10_SWITCHLINC            => 'X10_Switchlinc';
-use constant X10_TEMPLINC              => 'X10_Templinc';
-use constant X10_OTE                   => 'X10_Ote';
-use constant X10_SENSOR                => 'X10_Sensor';
-
-use constant LIGHT_ITEM                => 'Light_Item';
-use constant MOTION_ITEM               => 'Motion_Item';
-
-use constant PRESENCE_MONITOR          => 'Presence_Monitor';
-use constant OCCUPANCY_MONITOR         => 'Occupancy_Monitor';
-
-@BSCMH_Item::ISA = ('BSC_Item');
-
-
-#Initialize class
-sub new
-{
-   my ($class,$p_device_family) = @_;
-   my $self={};
-   bless $self, $class;
-
-   $$self{m_device_family} = $p_device_family;
-   $$self{m_source_name} = &xAP::get_xap_mh_source_info($p_device_family);
-
-   my $source_name = &xAP::get_xap_mh_source_info($p_device_family);# . ':>';
-   $$self{m_xap} = new xAP_Item('xAPBSC.*','*');
-   $$self{m_xap}->target_address($source_name); # want to listen to messages directed to us
-   $$self{m_xap}->device_name($p_device_family);
-   $$self{m_xap}->allow_empty_state(1); # because query commands result in an empty xap body
-   # init a virtual xap device
-   #   this will force a new xap listener to exist as well as separate hearbeats.
-   #   it is only required because of the current max 254 endpoint limitation
-
-   &xAP::init_xap_virtual_device($p_device_family);
-
-   my $code = &main::store_object_data($$self{m_xap},'xAP_Item','xAP_Item','BSC.pm');
-   eval($code);
-   $$self{m_xap}->tie_items($self);
-   return $self;
-}
-
-sub register_obj {
-   my ($self, $mh_obj_name, $handler_name, $requested_uid) = @_;
-
-   my $o = &main::get_object_by_name($mh_obj_name);
-   $o = $mh_obj_name unless $o; # In case we stored object directly
-   if (!($requested_uid)) {
-      # extract the x10 id
-      my ($x10_id) = $o->{x10_id} =~ /^X*(.*)/;
-      # if a x10_id exists, then convert it to the hex uid format
-      if ($x10_id) {
-         # we can only permit the subaddress space to map to 254 devices;
-         # so, don't allow the last 2 possible x10 devices
-         if ($x10_id eq 'PF' or $x10_id eq 'PG') {
-            print "WARNING: x10 devices w/ housecode/usercodes of $x10_id are not supported\n" if $main::Debug{bsc};
-            return;
-         }
-         print "x10id: $x10_id\n" if $main::Debug{bsc};
-         $requested_uid = &_convert_x10_id($x10_id);
-      }
-   }
-   # reserve the UID
-   my $sub_uid = &xAP::get_xap_subaddress_uid($virtual_device_name, $mh_obj_name, $requested_uid);
-   $$self{m_registered_objects}{$$o{object_name}} = $handler_name;
-   $o->tie_items($self) if $o;
-   print "Registered $$o{object_name} as $sub_uid to $$self{object_name} using handler: $handler_name\n"
-          if $main::Debug{bsc};
-}
-
-sub register_device_type {
-   my ($self, $p_device_type) = @_;
-   if ($p_device_type eq X10_ITEM
-      or $p_device_type eq X10_APPLIANCE
-      or $p_device_type eq X10_TRANSMITTER
-      or $p_device_type eq X10_RF_RECEIVER
-      or $p_device_type eq X10_GARAGE_DOOR
-      or $p_device_type eq X10_IRRIGATION_CONTROLLER
-      or $p_device_type eq X10_SWITCHLINC
-      or $p_device_type eq X10_TEMPLINC
-      or $p_device_type eq X10_OTE
-      or $p_device_type eq X10_SENSOR) {
-         $self->_init_object($p_device_type, DEVICE_TYPE_X10);
-   } elsif ($p_device_type eq LIGHT_ITEM
-      or $p_device_type eq MOTION_ITEM) {
-         $self->_init_object($p_device_type, DEVICE_TYPE_ABSTRACT);
-   } elsif ($p_device_type eq PRESENCE_MONITOR
-      or $p_device_type eq OCCUPANCY_MONITOR) {
-         $self->_init_object($p_device_type, DEVICE_TYPE_PRESENCE);
-   } else {
-      print "WARNING: $p_device_type is not supported by BSCMH_Item!!\n" if $main::Debug{bsc};
-   }
-}
-
-sub set
-{
-   my ($self, $p_state, $p_setby, $p_respond) = @_;
-   return if &main::check_for_tied_filters($self, $state);
-   if ($p_setby eq $$self{m_xap} ) {
-      $$self{device_target} = $$self{m_xap}{target_address};
-      my ($xap_subaddress) = $$self{m_xap}{target_address} =~ /.+\:(.+)/;
-      $$self{device_subaddress_target} = $xap_subaddress;
-      my $msg_class_name = lc($$self{m_xap}{'xap-header'}{class});
-      if ($msg_class_name  eq 'xapbsc.cmd') {
-         # handle command
-         $state = $self->cmd_callback($p_setby);
-      } elsif ($msg_class_name eq 'xapbsc.query') {
-         # handle query
-         $state = $self->query_callback($$p_setby{'xap-header'}{target}, $$p_setby{'xap-header'}{target});
-      } elsif ($msg_class_name eq 'xapbsc.event') {
-         # ignore since only mh is responsible for sending out event messages
-         $state = 'event';
-      } elsif ($msg_class_name eq 'xapbsc.info') {
-         # ignore since only mh is responsible for sending out info messages
-         $state = 'info';
-      }
-      $p_setby = $self; # override so that SUPER doesn't attempt;
-   } elsif (defined($$p_setby{object_name}) && (exists($$self{m_registered_objects}{$$p_setby{object_name}}))) {
-      print "In $$self{object_name} set callback for $$p_setby{object_name} using $$self{m_registered_objects}{$$p_setby{object_name}}\n"
-                 if $main::Debug{bsc};
-     # only handle changes in state
-      if ($self->state_changed($p_setby)) {
-         my ($mh_obj_name, $bsc_obj_name, $handler_name) = @_;
-         my $code = "\&BSCMH_Item::_handle_$$self{m_registered_objects}{$$p_setby{object_name}}";
-         $code .= "('send-event', \'$$p_setby{object_name}\',\'$$self{object_name}\')";
-         eval($code);
-         $p_setby = $self; # override so that SUPER doesn't attempt
-      } else {
-         print "No state change for $$p_setby{object_name}\n" if $main::Debug{bsc};
-      }
-      $p_setby = $self;
-   } else {
-       print "Unable to process $$self{object_name}->set for $$p_setby{object_name}\n" if $main::Debug{bsc};
-   }
-
-   # Always pass along the state to base class
-   $self->SUPER::set($p_state,$p_setby, $p_respond);
-
-   return;
-}
-
-sub state_changed {
-   my ($self, $p_setby) = @_;
-   my $id = &xAP::get_xap_subaddress_uid($$self{m_registered_objects}{$$p_setby{object_name}},
-                  $$p_setby{object_name});
-   my $current_bsc_state = $self->{device_state}{$id}{'RefState'};
-   return 1 if !(defined($current_bsc_state));
-   return ($p_setby->state() ne $current_bsc_state);
-}
-
 sub cmd_callback {
    my ($self, $p_xap) = @_;
    # use the base BSC class to deposit the request into the pending_device_state hash
@@ -614,7 +659,7 @@ sub cmd_callback {
 
 sub query_callback {
    my ($self, $p_target, $p_source) = @_;
-   my $bscstate = $self->SUPER::query_callback($p_xap);
+   my $bscstate = 'query';
 
    my ($xap_subaddress) = $$self{m_xap}{target_address} =~ /.+\:(.+)/;
    print "db BSCMD->query_callback: xap_subaddress target=$xap_subaddress\n" if $main::Debug{bsc};
@@ -661,28 +706,28 @@ sub _handle_x10_device {
 
          # TO-DO: handle "bright" and "dim"; this requires translating the relative vals to absolute levels
          if ($mh_state eq 'on') {
-            $bsc_obj->set_device($bsc_id, $mh_state, OUTPUT, 'on', '100%', '');
+            $bsc_obj->set_device($bsc_id, $mh_state, 'output', 'on', '100%', '');
          } elsif ($mh_state eq 'off') {
-            $bsc_obj->set_device($bsc_id, $mh_state, OUTPUT, 'off', '0%', '');
+            $bsc_obj->set_device($bsc_id, $mh_state, 'output', 'off', '0%', '');
          } elsif ($mh_state =~ /.*\%$/) {
          # handle levels expressed as percent
             my ($state_in_percent) = $mh_state =~ /^[+|-]*(\d+)%$/;
-            $bsc_obj->set_device($bsc_id, $mh_state, OUTPUT, 'on', $state_in_percent . '%', '');
+            $bsc_obj->set_device($bsc_id, $mh_state, 'output', 'on', $state_in_percent . '%', '');
          } elsif ($mh_state =~ /&P\d+/) {
          # handle levels expressed as their presets
             # the following needs to change so that the preset amount is converted to
             # an actual level rather than passed as a text string
-            $bsc_obj->set_device($bsc_id, $mh_state, OUTPUT, 'on', '', $mh_state);
+            $bsc_obj->set_device($bsc_id, $mh_state, 'output', 'on', '', $mh_state);
 
          } elsif ($mh_state eq 'motion') {
-            $bsc_obj->set_device($bsc_id, $mh_state, INPUT, 'on', '', $mh_state);
+            $bsc_obj->set_device($bsc_id, $mh_state, 'input', 'on', '', $mh_state);
          } elsif ($mh_state eq 'still') {
-            $bsc_obj->set_device($bsc_id, $mh_state, INPUT, 'off', '', $mh_state);
+            $bsc_obj->set_device($bsc_id, $mh_state, 'input', 'off', '', $mh_state);
          # now, handle X10_Sensor objects w/ photocells but ONLY if defined as type: brightness (not ms13)
          } elsif (($mh_state eq 'light') and (lc $mh_obj->{type} eq 'brightness')) {
-            $bsc_obj->set_device($bsc_id, $mh_state, INPUT, 'on', '', $mh_state);
+            $bsc_obj->set_device($bsc_id, $mh_state, 'input', 'on', '', $mh_state);
          } elsif (($mh_state eq 'dark') and (lc $mh_obj->{type} eq 'brightness')) {
-            $bsc_obj->set_device($bsc_id, $mh_state, INPUT, 'off', '', $mh_state);
+            $bsc_obj->set_device($bsc_id, $mh_state, 'input', 'off', '', $mh_state);
          } else {
             print "Warning: unable to process state: $mh_state\n" if $main::Debug{bsc};
             return;
@@ -731,15 +776,15 @@ sub _handle_x10_device {
                   $mh_state = lc $bsc_state;
                   $mh_obj->set($mh_state, $bsc_obj);
             }
+           if ($mh_state) {
+              $$pending_state{'RefState'} = $mh_state;
+              # "commit" the pending state data to the state data
+              $bsc_obj->commit_pending_state($bsc_id);
+            }
          } else {
             print "State for $mh_obj_name:$bsc_id is unset for incoming xAP BSC message!\n";
          }
          # be sure to set the 'RefState' hash member to whatever mh state gets mapped
-         if ($mh_state) {
-            $pending_state{'RefState'} = $mh_state;
-            # "commit" the pending state data to the state data
-            $bsc_obj->commit_pending_state($key);
-         }
       }
    }
 
@@ -760,21 +805,21 @@ sub _handle_abstract_device {
 
          # TO-DO: handle "bright" and "dim"; this requires translating the relative vals to absolute levels
          if ($mh_state eq 'on') {
-            $bsc_obj->set_device($bsc_id, $mh_state, OUTPUT, 'on', '100%', '');
+            $bsc_obj->set_device($bsc_id, $mh_state, 'output', 'on', '100%', '');
          } elsif ($mh_state eq 'off') {
-            $bsc_obj->set_device($bsc_id, $mh_state, OUTPUT, 'off', '0%', '');
+            $bsc_obj->set_device($bsc_id, $mh_state, 'output', 'off', '0%', '');
          } elsif ($mh_state =~ /.*\%$/) {
          # handle levels expressed as percent
             my ($state_in_percent) = $mh_state =~ /^[+|-]*(\d+)%$/;
-            $bsc_obj->set_device($bsc_id, $mh_state, OUTPUT, 'on', $state_in_percent . '%', '');
+            $bsc_obj->set_device($bsc_id, $mh_state, 'output', 'on', $state_in_percent . '%', '');
          } elsif ($mh_state eq 'motion') {
-            $bsc_obj->set_device($bsc_id, $mh_state, INPUT, 'on', '', $mh_state);
+            $bsc_obj->set_device($bsc_id, $mh_state, 'input', 'on', '', $mh_state);
          } elsif ($mh_state eq 'still') {
-            $bsc_obj->set_device($bsc_id, $mh_state, INPUT, 'off', '', $mh_state);
+            $bsc_obj->set_device($bsc_id, $mh_state, 'input', 'off', '', $mh_state);
          } elsif ($mh_state eq 'light') {
-            $bsc_obj->set_device($bsc_id, $mh_state, INPUT, 'on', '', $mh_state);
+            $bsc_obj->set_device($bsc_id, $mh_state, 'input', 'on', '', $mh_state);
          } elsif ($mh_state eq 'dark') {
-            $bsc_obj->set_device($bsc_id, $mh_state, INPUT, 'off', '', $mh_state);
+            $bsc_obj->set_device($bsc_id, $mh_state, 'input', 'off', '', $mh_state);
          } else {
             print "Warning: unable to process state: $mh_state\n" if $main::Debug{bsc};
             return;
@@ -826,15 +871,15 @@ sub _handle_abstract_device {
                   }
                   $mh_obj->set($mh_state, $bsc_obj);
             }
+            if ($mh_state) {
+               $$pending_state{'RefState'} = $mh_state;
+               # "commit" the pending state data to the state data
+               $bsc_obj->commit_pending_state($bsc_id);
+            }
          } else {
             print "State for $mh_obj_name:$bsc_id is unset for incoming xAP BSC message!\n";
          }
          # be sure to set the 'RefState' hash member to whatever mh state gets mapped
-         if ($mh_state) {
-            $pending_state{'RefState'} = $mh_state;
-            # "commit" the pending state data to the state data
-            $bsc_obj->commit_pending_state($key);
-         }
       }
    }
 
@@ -856,13 +901,13 @@ sub _handle_presence {
             my $room_count = $mh_obj->get_count();
             if ($mh_state eq 'occupied') {
                $room_count = 1 if $room_count == 0; # doesn't make much sense otherwise; perhaps a mistake in Presence_Monitor
-               $bsc_obj->set_device($bsc_id, $mh_state, OUTPUT, 'on', '', "room_count=$room_count");
+               $bsc_obj->set_device($bsc_id, $mh_state, 'output', 'on', '', "room_count=$room_count");
             } elsif ($mh_state eq 'predict') {
                $room_count = 0; # allowing -1 doesn't make much sense except to mh
-               $bsc_obj->set_device($bsc_id, $mh_state, OUTPUT, 'on', '', "room_count=$room_count");
+               $bsc_obj->set_device($bsc_id, $mh_state, 'output', 'on', '', "room_count=$room_count");
             } elsif ($mh_state eq 'vacant') {
                $room_count = 0; # apparently, no room count exists if vacant and we want to report it always
-               $bsc_obj->set_device($bsc_id, $mh_state, OUTPUT, 'off', '', "room_count=$room_count");
+               $bsc_obj->set_device($bsc_id, $mh_state, 'output', 'off', '', "room_count=$room_count");
             }
          } else {
             print "Warning: unable to process state: $mh_state\n" if $main::Debug{bsc};
@@ -903,16 +948,16 @@ sub _handle_presence {
                      $mh_obj->set_count($room_count);
                   }
             }
+            if ($mh_state) {
+               $$pending_state{'RefState'} = $mh_state;
+               # "commit" the pending state data to the state data
+               $bsc_obj->commit_pending_state($bsc_id);
+            }
          } else {
             print "State for $mh_obj_name:$bsc_id is unset for incoming xAP BSC message!\n";
          }
          # be sure to set the 'RefState' hash member to whatever mh state gets mapped
-         if ($mh_state) {
-            $pending_state{'RefState'} = $mh_state;
-            # "commit" the pending state data to the state data
-            $bsc_obj->commit_pending_state($key);
-         }
-      }
+     }
    }
 
 }
