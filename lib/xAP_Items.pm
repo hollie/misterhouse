@@ -729,6 +729,8 @@ sub _process_incoming_xap_data {
                for my $section (keys %{$xap_data}) {
                    if (lc $class eq 'xap-hbeat') {
                        if (lc $class eq 'xap-hbeat.alive') {
+                           my $uid = $$xap_data{'xap-hbeat'}{uid};
+                           $o->uid($uid) if $uid;
                            $o->_handle_alive_app();
                        } else {
                            $o->_handle_dead_app();
@@ -1301,6 +1303,12 @@ sub device_name {
     my ($self, $p_strDeviceName) = @_;
     $$self{m_device_name} = $p_strDeviceName if $p_strDeviceName;
     return $$self{m_device_name};
+}
+
+sub uid {
+    my ($self, $p_uid) = @_;
+    $$self{m_uid} = $p_uid if $p_uid;
+    return $$self{m_uid};
 }
 
 sub allow_empty_state {
