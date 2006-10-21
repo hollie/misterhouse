@@ -353,10 +353,12 @@ sub main::net_jabber_signon {
     $server   = $main::config_parms{net_jabber_server}    unless $server;
     $port     = $main::config_parms{net_jabber_port}      unless $port;
     $resource = $main::config_parms{net_jabber_resource}  unless $resource;
+    my $tls   = $main::config_parms{net_jabber_tls};
 
     $server   = 'jabber.com' unless $server;
     $port     = 5222         unless $port;
     $resource = 'misterhouse'       unless $resource;
+    $tls = 1 unless defined($tls);
 
     print "Logging onto $server $port with name=$name resource=$resource\n";
 
@@ -364,7 +366,7 @@ sub main::net_jabber_signon {
     $jabber_connection = new Net::Jabber::Client();
 #   $jabber_connection = Net::Jabber::Client->new(debuglevel => 2, debugtime  => 1 , debugfile  =>  "/tmp/jabber.log");
 
-    unless ($jabber_connection->Connect(hostname => $server, port => $port)) {
+    unless ($jabber_connection->Connect(hostname => $server, port => $port, tls => $tls)) {
         print "  - Error:  Jabber server is down or connection was not allowed. jc=$jabber_connection\n";
         undef $jabber_connection;
         return;
