@@ -336,7 +336,7 @@ if (said $v_what_wind) {
         $temp .= ".  Average speed is " .
             round($Weather{WindAvgSpeed}) . " from the " . convert_direction($Weather{WindAvgDir});
     }
-    respond "app=weather $temp";
+    $v_what_wind->respond("app=weather $temp");
 }
 
 $v_what_rain = new  Voice_Cmd('How much rain have we had in the last ' .
@@ -385,7 +385,7 @@ if (my $period = said $v_what_rain) {
             $temp .= "in the last $period";
         }
     }
-    respond "app=weather $temp";
+    $v_what_rain->respond("app=weather $temp");
 }
 
                                 # This code does not get archived weather data
@@ -427,7 +427,7 @@ if (expired $timer_wind_gust2) {
 	5 + $timer_wind_gust->{speed} < $speed) {
         $timer_wind_gust->{speed} = $speed;
         set $timer_wind_gust 20*60;
-        respond "app=weather image=warning color=red Weather alert, the wind is gusting to " . round($speed);
+        speak "app=weather image=warning color=red Weather alert, the wind is gusting to " . round($speed);
         $Weather{Warning} = 'High winds gusting to ' . round($speed);
     }
     $Save{WindGustMax} = $speed if $Save{WindGustMax} < $speed; # Save a daily max
@@ -447,14 +447,17 @@ if (expired $israining_timer) {
     $Weather{IsRaining} = 0 ;
     my $minutes = int(60 - minutes_remaining $rain_report_timer);
     my $rain = rain_since($Time - 60 * $minutes) if $minutes;
-    &speak (app => 'weather', text => "It rained $rain $rain_units in the past $minutes minutes") if $rain;
+    &speak (app => 'weather', text => "It rained $rain $rain_units in the past $minutes minutes") if $rain > 0;
     set $rain_report_timer 0;
 }
 
 $rain_report_timer = new Timer;
 if (expired $rain_report_timer and $Weather{IsRaining}) {
     my $rain = rain_since($Time - 60 * 60);
-    speak (app => 'weather', text => "It has rained $rain $rain_units in the past hour") if $rain;
+    # make sure that rain has actually fallen
+    if ($rain > 0) {
+    	speak (app => 'weather', text => "It has rained $rain $rain_units in the past hour") if $rain;
+    }
     set $rain_report_timer 60 * 60 if $Weather{IsRaining};
 }
 
@@ -465,7 +468,7 @@ if (my $rain = state_now $RainTotal) {
     $Weather{RainRecent} = $rain - $raintotal_prev if $rain > $raintotal_prev;
 #   print "db r=$rain p=$raintotal_prev w=$Weather{RainRecent} f=$firstrain\n";
     if ($Weather{RainRecent} > 0) {
-        respond "app=weather Notice, it just started raining" unless $firstrain;
+        speak "app=weather Notice, it just started raining" unless $firstrain;
         dbm_write $rain_file, $Time, $Weather{RainRecent};
 #       logit "$config_parms{data_dir}/rain.dbm", "$Time_Now $Weather{RainRecent}"
         set $israining_timer 20 * 60;
