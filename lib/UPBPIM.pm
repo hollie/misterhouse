@@ -251,7 +251,7 @@ sub network_password
 sub _send_cmd {
 	my ($self, $cmd) = @_;
 	my $instance = $$self{port_name};
-	print "$::Time_Date: UPBPIM: Executing command $cmd\n" unless $main::config_parms{no_log} =~/UPBPIM/;
+#	print "$::Time_Date: UPBPIM: Executing command $cmd\n" unless $main::config_parms{no_log} =~/UPBPIM/;
 	my $data = $cmd;
 #print "PN:$instance:";
 	$main::Serial_Ports{$instance}{object}->write($data);
@@ -272,7 +272,7 @@ sub _parse_data {
    my ($name, $val);
    $data =~ s/^\s*//;
    $data =~ s/\s*$//;
-  &::print_log( "UPBPIM: Parsing serial data: $data\n") unless $main::config_parms{no_log} =~/UPBPIM/;
+#  &::print_log( "UPBPIM: Parsing serial data: $data\n") unless $main::config_parms{no_log} =~/UPBPIM/;
 
 	#PIM to Host Message
 	if (uc(substr($data,0,1)) eq 'P')
@@ -421,7 +421,6 @@ sub remove_item {
 sub set
 {
 	my ($self,$p_state,$p_setby,$p_response) = @_;
-	$$self{last_command} = $p_state;
 	$self->send_upb_cmd($p_state);
 }
 
@@ -432,9 +431,30 @@ sub delegate
 	my $destination=unpack("C",pack("H*",substr($p_data,6,2)));
 	my $source=unpack("C",pack("H*",substr($p_data,8,2)));
 	my $isLink = 0;	
+	my $transeq = unpack("C",pack("h*",substr($p_data,3,1)));
+	my $count = $transeq & 0b1100;
+	$count = $count>>2;
+	my $sequence = $transeq & 0b0011;
+
 	if ( (8 & unpack("C",pack("h*",substr($p_data,0,1)))) ==8 )
 	{
 		$isLink=1;
+	}
+
+	# If a packet is being sent with a xmit count greater than 1
+    # then make sure we only delagate one packet and not the repeats
+	if ($count > 0) 
+	{
+		my $packet=substr($p_data,4,length($p_data)-6);
+		if ($packet ne $$self{last_command} or 
+		($packet eq $$self{last_command} && $sequence <= $$self{last_sequence} ) )
+		{
+			$$self{last_command} = $packet;
+			$$self{last_sequence} = $sequence;
+		} else {
+			&::print_log("UPBPIM: duplicate packet, ignore!");
+			return;
+		}			
 	}
 
 #	&::print_log ("DELEGATE:$network:$source:$destination:$isLink:");
