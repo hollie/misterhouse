@@ -83,7 +83,7 @@ sub weather_updated {
 	# windchill formula is only valid for the following conditions
 		if ($windSpeed >= 5 and $windSpeed <= 100 and $temp >= -50 and $temp <= 5) {
 			my $windchill=13.12+0.6215*$temp-11.37*($windSpeed**0.16)+0.3965*$temp*($windSpeed**0.16);
-			if ($main::config_parms{config_uom_temp} eq 'F') {
+			if ($main::config_parms{weather_uom_temp} eq 'F') {
 				$windchill=&::convert_c2f($windchill);
 			}
 			$windchill=sprintf('%.1f',$windchill);
