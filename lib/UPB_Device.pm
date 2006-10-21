@@ -125,7 +125,7 @@ sub set
     return if (ref $p_setby and $p_setby->can('get_set_by') and 
         $p_setby->{set_by} eq $self);
 
-   &::print_log($self->get_object_name() . "::set($p_state, $p_setby)");
+#   &::print_log($self->get_object_name() . "::set($p_state, $p_setby)");
 
 	if ($p_setby eq $self->interface())
 	{
@@ -142,11 +142,13 @@ sub set
 				if (!($source != $self->device_id() and $msg >= 0x80)) 
 				{
 					$p_state = $self->_xlate_upb_mh($l_state);
+				    &::print_log($self->get_object_name() . "::set($p_state, $p_setby)");
 				}
 			}
 		}
 	} else {
 		$$self{interface}->set($self->_xlate_mh_upb($p_state));
+	    &::print_log($self->get_object_name() . "::set($p_state, $p_setby)");
 	}
 	$self->SUPER::set($p_state,$p_setby,$p_response) if defined $p_state;
 }
