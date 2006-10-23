@@ -341,7 +341,7 @@ sub main::net_ftp {
 use vars qw($aim_connection $icq_connection $jabber_connection $msn_connection %msn_connections %msn_queue %im_queue);
 
 eval 'use Net::Jabber';
-print "Error loading Net::Jabber library\n$@\n" if $@;
+# print "Error loading Net::Jabber library\n$@\n" if $@;
 
 sub main::net_jabber_signon {
     return if $jabber_connection;  # Already signed on
