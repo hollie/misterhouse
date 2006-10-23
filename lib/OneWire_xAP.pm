@@ -101,20 +101,20 @@ sub set {
                            if ($source->level) {
                               if ($source->level =~ /\d+\/\d+/) {
                                  my ($humid1, $range) = $source->level =~ /^(\d+)\/(\d+)/;
-                                 $device->measurement(100*($humid1/$range));
+                                 $device->measurement(100*($humid1/$range)) if (defined($humid1) and ($range));
                               } else {
 			         my ($humid, $humid_scale) = $source->level =~ /^(-?\d*\.?\d*)\s*(\S*)/;
-			         $device->measurement($humid);
+			         $device->measurement($humid) if defined($humid);
                               }
                            } elsif ($source->text) {
 			      my ($humid, $humid_scale) = $source->text =~ /^(-?\d*\.?\d*)\s*(\S*)/;
-			      $device->measurement($humid);
+			      $device->measurement($humid) if defined($humid);
                            }
 			} elsif ($device->type eq 'temp') {
 			# parse the data from the text member using the last char for scale
                         # TO-DO: perform conversion if temp_scale is not what device wants
 				my ($temp, $temp_scale) = $source->text =~ /^(-?\d*\.?\d*)\s*(\S*)/;
-				$device->measurement($temp);
+				$device->measurement($temp) if defined($temp);
 			}
 			last; # we're done as only one setby
 		}
@@ -331,7 +331,8 @@ sub measurement {
 		$$self{m_measurement_records} = [ @measurement_records ];
 		$$self{m_measurement} = $p_measurement;
 		$$self{m_timestamp} = $p_timestamp;
-		$main::Weather{$self->map_to_weather} = $p_measurement if $self->map_to_weather;
+		$main::Weather{$self->map_to_weather} = $p_measurement 
+                       if (defined($p_measurement) && ($self->map_to_weather));
 		$self->check_tied_state_conditions();
 	}
 
