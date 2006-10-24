@@ -2694,7 +2694,6 @@ sub display {
             if ($main::{$func}) {
                 no strict 'refs';
                 &$func(%parms);
-                return;
             }
         }
     } elsif ($parms{display_rooms}) {
