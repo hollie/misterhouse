@@ -2690,7 +2690,7 @@ sub display {
     if ($parms{device}) {
         my (@display_devices) = split(/[,;|]/, $parms{device});
         for my $device (@display_devices) {
-            my $func = "display_$parms{device}";
+            my $func = "display_$device";
             if ($main::{$func}) {
                 no strict 'refs';
                 &$func(%parms);
