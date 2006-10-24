@@ -2688,16 +2688,22 @@ sub display {
 
                                 # Allow for display_device functions (e.g. lib/Display_Alpha.pm display_alpha)
     if ($parms{device}) {
+        my $use_tk = 0;
         my (@display_devices) = split(/[,;|]/, $parms{device});
         for my $device (@display_devices) {
-            my $func = "display_$device";
-            if ($main::{$func}) {
-                no strict 'refs';
-                &$func(%parms);
+            if ($device eq 'tk') {
+               $use_tk = 1;
+            } else {
+               my $func = "display_$device";
+               if ($main::{$func}) {
+                  no strict 'refs';
+                  eval &$func(%parms);
+               }
             }
         }
+        return unless $use_tk;
     } elsif ($parms{display_rooms}) {
-        &route_display_rooms(%parms);
+        return unless &route_display_rooms(%parms);
     }
 
                                 # Assume we were waiting for this and reset http server counter. Speak has precedence. (?)
@@ -6122,17 +6128,23 @@ sub route_display_rooms {
        }
     }
     # iterate over the targets and invoke the applicable function
+    my $return_tk = 0;
     for my $target_room (keys %targets) {
-       if ($targets{$target_room}{device} eq 'xap' or $targets{$target_room}{device} eq 'xpl') {
+       if ($targets{$target_room}{device} eq 'tk') {
+          $return_tk = 1;
+       } else {
           my $func = "display_$targets{$target_room}{device}";
           $parms{address} = $targets{$target_room}{address};
-          $parms{schema} = $targets{$target_room}{schema};
+          if ($targets{$target_room}{device} eq 'xap' or $targets{$target_room}{device} eq 'xpl') {
+             $parms{schema} = $targets{$target_room}{schema};
+          }
           if ($main::{$func}) {
               no strict 'refs';
-              &$func(%parms);
+              eval &$func(%parms);
           }
        }
     }
+    return $return_tk;
 }
 
 sub speak_log_last {
