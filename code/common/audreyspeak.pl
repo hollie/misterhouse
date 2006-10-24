@@ -119,6 +119,7 @@ sub file_ready_for_audrey {
 #MH just said something. Generate the same thing to our file (which is monitored above)
 sub speak_to_Audrey {
     my %parms = @_;
+    return if $parms{mode} and ($parms{mode} eq 'mute' or $parms{mode} eq 'offline');
     return if $Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $parms{mode} !~ /unmute/i;
     my @rooms = split ',', lc $parms{rooms};
 
