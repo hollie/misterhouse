@@ -179,7 +179,7 @@ BEGIN {
             if $Info{Perl_compiled};
 
                                 # Pick local mh modules first, over any site install ones
-        unshift (@INC, './../lib', './../lib/site', '.');
+        unshift (@INC, "${Pgm_Path}/../lib", "${Pgm_Path}/../lib/site", '.');
 #       my $pwd=cwd(); print "pwd=$pwd inc=@INC\n";
 #       push (@INC, './../lib', './../lib/site', '.');
 #       push (@INC, './../lib');

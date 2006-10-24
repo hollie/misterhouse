@@ -1,5 +1,7 @@
-
 # Category = Entertainment
+#
+# $Date$
+# $Revision$
 
 #@ This module downloads selected comic strips daily and
 #@ cleans out old strips weekly. They can be accessed <A HREF="/comics/">here</A>
@@ -21,7 +23,7 @@ if ($state = said $v_dailystrip_update) {
     my $comics_dir = &html_alias('/comics');
     if ($state eq 'Update') {
         $v_dailystrip_update->respond("app=comics Retrieving daily comic strips...");
-        my $cmd = "mh -run dailystrips ";
+        my $cmd = "${Pgm_Path}/mh -run dailystrips ";
         $cmd .= "--defs $config_parms{html_dir}/comics/dailystrips/strips.def ";
         $cmd .= "--local --basedir $comics_dir --save --nostale ";
         $cmd .= "--nospaces ";
