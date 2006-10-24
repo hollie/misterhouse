@@ -61,10 +61,18 @@ sub new {
    &main::print_log("Starting DSC 5401 computer interface module");
    $Self = $self;
    cmd( $self, 'StatusReport' ); # request an initial status report
-   cmd( $self, 'VerboseArmingControl', $::config_parms{DSC_5401_verbose_arming}) if defined $::config_parms{DSC_5401_verbose_arming}; # enable/disable verbose arming if configured
-   select(undef, undef, undef, 0.250); # wait 250 millseconds to avoid overrunning RS-232 receive buffer on panel
-   cmd( $self, 'TimeBroadcastControl', $::config_parms{DSC_5401_time_log}) if defined $::config_parms{DSC_5401_time_log}; # enable/disable time broadcasts if configured
-   cmd( $self, 'TemperatureBroadcastControl', $::config_parms{DSC_5401_temp_log}) if defined $::config_parms{DSC_5401_temp_log}; # enable/disable temperature broadcasts if configured
+   if (defined $::config_parms{DSC_5401_verbose_arming}) { # enable/disable verbose arming if configured
+      select(undef, undef, undef, 0.250); # wait 250 millseconds to avoid overrunning RS-232 receive buffer on panel
+      cmd( $self, 'VerboseArmingControl', $::config_parms{DSC_5401_verbose_arming});
+   }
+   if (defined $::config_parms{DSC_5401_time_log}) { # enable/disable time broadcasts if configured
+      select(undef, undef, undef, 0.250); # wait 250 millseconds to avoid overrunning RS-232 receive buffer on panel
+      cmd( $self, 'TimeBroadcastControl', $::config_parms{DSC_5401_time_log});
+   }
+   if (defined $::config_parms{DSC_5401_temp_log}) { # enable/disable temperature broadcasts if configured
+      select(undef, undef, undef, 0.250); # wait 250 millseconds to avoid overrunning RS-232 receive buffer on panel
+      cmd( $self, 'TemperatureBroadcastControl', $::config_parms{DSC_5401_temp_log});
+   }
    return $self;
 }
 
