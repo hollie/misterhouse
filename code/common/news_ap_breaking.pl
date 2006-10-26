@@ -10,7 +10,7 @@ my $rss = new XML::RSS;
 my $f_ap_news = "$config_parms{data_dir}/web/ap_breaking_news.txt";
 my $f_ap_news_html = "$config_parms{data_dir}/web/ap_breaking_news_pruned.html";
 my $f_ap_news_rss = "$config_parms{data_dir}/web/ap_breaking_news.rss";
-$p_ap_news = new Process_Item("get_url 'http://hosted.ap.org/lineups/TOPHEADS.rss?SITE=NHPOR&SECTION=HOME' $f_ap_news_rss");
+$p_ap_news = new Process_Item(qq!get_url "http://hosted.ap.org/lineups/TOPHEADS.rss?SITE=NHPOR&SECTION=HOME" $f_ap_news_rss!);
 $v_ap_news = new Voice_Cmd('What is in the News');
 $v_ap_news->set_info('Responds with headline stories from the AP');
 $v_get_ap_news = new  Voice_Cmd('[Get,Check,Mail,SMS] AP breaking news');
