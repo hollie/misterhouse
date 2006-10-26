@@ -4,6 +4,10 @@
 # This is the Dummy_Interface class and is used as a placeholder interface.
 # It's entire job is to warn users that a real, working interface couldn't
 # be found.
+#
+# If you see Dummy_Interface warnings in your log, then look back to when the Dummy_Interface
+# was created and you'll see for which id, state and interface misterhouse couldn't find and active
+# interface
 
 package Dummy_Interface;
 
@@ -20,23 +24,25 @@ sub new {
 	$self->{instanceId}=$nextInstanceId;
 	$nextInstanceId++;
 
-	# let users know why we exist ... too verbose?
-#	$self->firstWarning;
+	$self->firstWarning();
 
-	$self->warning("Dummy interface for id=$id, state=$state and interface=$interface.");
+	$self->warning("Creating dummy interface for id=$id, state=$state and interface=$interface.",1);
 	return $self;
 }
 
 sub firstWarning {
 	my ($self)=@_;
 
-	$self->warning("This Dummy_Interface is being used because MrHouse can't find a real hardware device to support some requested functionality")
+	$self->warning("This Dummy_Interface is being used because MrHouse can't find a real hardware device to support some requested functionality",3)
 }
 
 sub warning {
-	my ($self,$message)=@_;
+	my ($self,$message,$level)=@_;
 
-	$message='Dummy_Item #'.$self->instanceId.": $message";
+	$level = 2 unless $level;
+	return if ($level > $::config_parms{dummy_interface_warnings});
+
+	$message='Warning: Dummy_Interface #'.$self->instanceId.": $message";
 	print "$message\n";
 }
 
@@ -55,7 +61,7 @@ sub set {
 sub add {
 	my ($self, $id, $state)=@_;
 
-#	$self->warning("trying to add id $id state $state"); ... too verbose with undefined X10 items ... many states!
+	$self->warning("trying to add id $id state $state",3);
 	$self->SUPER::add($id, $state);
 }
 
