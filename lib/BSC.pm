@@ -57,8 +57,10 @@ sub new
 
    $$self{m_xap} = new xAP_Item('xAPBSC.*', $p_source_name);
    $$self{m_xap}->target_address($p_target_name) if $p_target_name;
+   $$self{m_always_set_state} = 1;
 #   $$self{m_xap}->class_name('xAPBSC.*');
    $self->_initialize();
+   $self->set_casesensitive();
    my $friendly_name = "bsc_$p_source_name";
    &main::store_object_data($$self{m_xap},'xAP_Item',$friendly_name,$friendly_name);
    $$self{m_xap}->tie_items($self);
@@ -105,6 +107,12 @@ sub display_text {
    my ($self, $p_display_text) = @_;
    $$self{display_text} = $p_display_text if defined $p_display_text;
    return $$self{display_text};
+}
+
+sub always_set_state {
+   my ($self, $p_always_set_state) = @_;
+   $$self{m_always_set_state} = $p_always_set_state if defined $p_always_set_state;
+   return $$self{m_always_set_state};
 }
 
 sub set
@@ -168,11 +176,11 @@ sub set
          }
       } else {
         print "Unable to process " . $self->{object_name} . "; state: $state\n" if $main::Debug{bsc};
-        $state = 'unknown';
+        $state = '_unknown';
       }
    }
    # Always pass along the state to base class
-   $self->SUPER::set($state,$p_setby, $p_respond) unless $state eq 'unknown';
+   $self->SUPER::set($state,$p_setby, $p_respond) unless ($state eq '_unknown' or $state eq '_unchanged');
    return;
 }
 
@@ -216,7 +224,7 @@ sub query_callback {
 
 sub event_callback {
    my ($self, $p_xap) = @_;
-   my $state = 'unknown';
+   my $state = '_unknown';
    # clear out any old data
    $$self{bsc_state} = undef;
    $$self{level} = undef;
@@ -247,7 +255,7 @@ sub event_callback {
 
 sub info_callback {
    my ($self, $p_xap) = @_;
-    my $state = 'unknown';
+    my $state = '_unknown';
    # clear out any old data
    $$self{bsc_state} = undef;
    $$self{level} = undef;
@@ -273,7 +281,11 @@ sub info_callback {
       $state = $bsc_state;
       last;
    };
-   return $state;
+   if ($self->always_set_state) {
+      return $state;
+   } else {
+      return (($self->state eq $state) ? '_unchanged' : $state);
+   }
 }
 
 sub send_query {
