@@ -203,13 +203,14 @@ if (done_now $p_awsweather_page) {
   #print "Max wind direction: $1, Speed: ", join(".", $2, $3), " at $4:$5 $6\n";
   my $newgustdir = $1;
   my $newgusttime = "$4:$5 $6";
-  if ($w{WindGustTime} ne $newgusttime) {
+  if ($Weather{WindGustTime} ne $newgusttime) {
     $w{WindGustSpeed} = join(".", $2, $3);
     $w{WindGustDir} = convert_wind_dir_abbr_to_num($newgustdir);
     $w{WindGustTime} = $newgusttime;
   }
   else {
-    $w{WindGustSpeed} = 0 if $w{WindGustSpeed};
+    $w{WindGustSpeed} = $w{WindAvgSpeed};
+    $w{WindGustDir} = $w{WindAvgDir};
   }
 
   $cell[4][1] =~ m/\s+(\d+).(\d+)/;
@@ -298,7 +299,7 @@ if (done_now $p_awsweather_page) {
   	);
   }
 
-  &populate_internet_weather(\%w);
+  &populate_internet_weather(\%w, $config_parms{weather_internet_elements_aws});
   &weather_updated;
   if ($Debug{weather}) {
   	foreach my $key (sort(keys(%w))) {

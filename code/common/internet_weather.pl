@@ -207,7 +207,7 @@ if (done_now $p_weather_data or done_now $p_weather_conditions) {
 			}
 		}
 
-		&populate_internet_weather(\%w);
+		&populate_internet_weather(\%w, $config_parms{weather_internet_elements_noaa});
 		&weather_updated;
 	}
 	if (done_now $p_weather_data) {

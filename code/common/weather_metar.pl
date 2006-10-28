@@ -208,7 +208,7 @@ sub process_metar {
 		}
 	}
 
-	&populate_internet_weather(\%metar);
+	&populate_internet_weather(\%metar, $config_parms{weather_internet_elements_metar});
 	&weather_updated;
 }
 
