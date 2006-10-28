@@ -270,8 +270,8 @@ if ($New_Minute) {
 	);
 
     foreach my $sensor (@rrd_sensors) {
-    	# this command says that only use the sensor if it is defined and composed of digits and decimal points
-    	my $command='$rrd_'.$sensor.' = (defined $Weather{'.$sensor.'} and $Weather{'.$sensor.'} =~ /^[\d\.]*$/) ? $Weather{'.$sensor.'} : "U";';
+    	# this command says that only use the sensor if it is defined and composed of an optional negative sign, digits and decimal points
+    	my $command='$rrd_'.$sensor.' = (defined $Weather{'.$sensor.'} and $Weather{'.$sensor.'} =~ /^-?[\d\.]*$/) ? $Weather{'.$sensor.'} : "U";';
     	eval $command;
     }
 
