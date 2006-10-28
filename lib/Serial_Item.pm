@@ -11,7 +11,7 @@ our $mainHash=\%::Serial_Ports;
 
 @Serial_Item::ISA = ('X10_Interface');
 our @supported_interfaces=qw!cm11 BX24 Homevision HomeBase Stargate HouseLinc
-	Marrick cm17 Lynx10PLC weeder wish iplcs!;
+	Marrick cm17 Lynx10PLC weeder wish iplcs ti103 ncpuxa!;
 
 sub new {
 	my ($class, $id, $state, $device_name) = @_;

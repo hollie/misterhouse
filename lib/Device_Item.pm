@@ -250,7 +250,7 @@ sub lookup_interface {
 	# go through each interface supported by the current library
 	foreach my $possibleInterface (@$supported_interfaces) {
 		# if there is an interface object associated with this interface
-		# then the interace does exist and is usable, so use it
+		# then the interface does exist and is usable, so use it
 		if ($mainHash->{$possibleInterface}{object}) {
 			return lc $possibleInterface;
 		}
