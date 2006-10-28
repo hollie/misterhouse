@@ -1,11 +1,12 @@
 package LWP::ConnCache;
 
-# $Id$
+# $Id: ConnCache.pm,v 1.6 2004/04/09 15:07:04 gisle Exp $
 
 use strict;
 use vars qw($VERSION $DEBUG);
 
 $VERSION = "0.01";
+
 
 sub new {
     my($class, %cnf) = @_;
@@ -20,12 +21,14 @@ sub new {
     $self;
 }
 
+
 sub deposit {
     my($self, $type, $key, $conn) = @_;
     push(@{$self->{cc_conns}}, [$conn, $type, $key, time]);
     $self->enforce_limits($type);
     return;
 }
+
 
 sub withdraw {
     my($self, $type, $key) = @_;
@@ -39,6 +42,7 @@ sub withdraw {
     return undef;
 }
 
+
 sub total_capacity {
     my $self = shift;
     my $old = $self->{cc_limit_total};
@@ -48,6 +52,7 @@ sub total_capacity {
     }
     $old;
 }
+
 
 sub capacity {
     my $self = shift;
@@ -59,6 +64,7 @@ sub capacity {
     }
     $old;
 }
+
 
 sub enforce_limits {
     my($self, $type) = @_;
@@ -84,10 +90,12 @@ sub enforce_limits {
     }
 }
 
+
 sub dropping {
     my($self, $c, $reason) = @_;
     print "DROPPING @$c [$reason]\n" if $DEBUG;
 }
+
 
 sub drop {
     my($self, $checker, $reason) = @_;
@@ -126,10 +134,12 @@ sub drop {
     @{$self->{cc_conns}} = @c;
 }
 
+
 sub prune {
     my $self = shift;
     $self->drop(sub { !shift->ping }, "ping");
 }
+
 
 sub get_types {
     my $self = shift;
@@ -137,6 +147,7 @@ sub get_types {
     $t{$_->[1]}++ for @{$self->{cc_conns}};
     return keys %t;
 }
+
 
 sub get_connections {
     my($self, $type) = @_;
@@ -147,11 +158,13 @@ sub get_connections {
     @c;
 }
 
+
 sub _looks_like_number {
     $_[0] =~ /^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/;
 }
 
 1;
+
 
 __END__
 
@@ -184,7 +197,7 @@ The following basic methods are provided:
 
 This method constructs a new C<LWP::ConnCache> object.  The only
 option currently accepted is 'total_capacity'.  If specified it
-initalize the total_capacity option.  It defaults to the value 1.
+initialize the total_capacity option.  It defaults to the value 1.
 
 =item $cache->total_capacity( [$num_connections] )
 
@@ -195,7 +208,7 @@ then there is no limit.
 
 =item $cache->capacity($type, [$num_connections] )
 
-Get/set a limit for the number of connections of the specifed type
+Get/set a limit for the number of connections of the specified type
 that can be cached.  The $type will typically be a short string like
 "http" or "ftp".
 
@@ -297,5 +310,3 @@ Copyright 2001 Gisle Aas.
 
 This library is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
-
-=cut

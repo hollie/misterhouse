@@ -1,13 +1,17 @@
-
-require 5;
 package LWP::DebugFile;
-use LWP::Debug ();
+
+# $Id: DebugFile.pm,v 1.3 2003/10/23 18:56:01 uid39246 Exp $
+
 use strict;
+use LWP::Debug ();
+
 use vars qw($outname $outpath @ISA $last_message_time);
 @ISA = ('LWP::Debug');
 
 _init() unless $^C or !caller;
 $LWP::Debug::current_level{'conns'} = 1;
+
+
 
 sub _init {
   $outpath = $ENV{'LWPDEBUGPATH'} || ''
@@ -43,12 +47,12 @@ sub _init {
   return;
 }
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 BEGIN { # So we don't get redefinition warnings...
   undef &LWP::Debug::conns;
   undef &LWP::Debug::_log;
 }
+
 
 sub LWP::Debug::conns {
   if($LWP::Debug::current_level{'conns'}) {
@@ -68,6 +72,7 @@ sub LWP::Debug::conns {
   }
 }
 
+
 sub LWP::Debug::_log
 {
     my $msg = shift;
@@ -82,8 +87,9 @@ sub LWP::Debug::_log
     print LWPERR "$sub: $msg";
 }
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 1;
+
 __END__
 
 =head1 NAME
@@ -213,7 +219,4 @@ merchantability or fitness for a particular purpose.
 =head1 AUTHOR
 
 Sean M. Burke C<sburke@cpan.org>
-
-=cut
-
 

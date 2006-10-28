@@ -1,39 +1,12 @@
-#
-# $Id$
-
 package LWP::MediaTypes;
 
-=head1 NAME
-
-LWP::MediaTypes - guess media type for a file or a URL
-
-=head1 SYNOPSIS
-
- use LWP::MediaTypes qw(guess_media_type);
- $type = guess_media_type("/tmp/foo.gif");
-
-=head1 DESCRIPTION
-
-This module provides functions for handling media (also known as
-MIME) types and encodings.  The mapping from file extentions to media
-types is defined by the F<media.types> file.  If the F<~/.media.types>
-file exists it is used instead.
-For backwards compatability we will also look for F<~/.mime.types>.
-
-The following functions are exported by default:
-
-=over 4
-
-=cut
-
-####################################################################
+# $Id: MediaTypes.pm,v 1.32 2004/11/17 11:04:09 gisle Exp $
 
 require Exporter;
 @ISA = qw(Exporter);
 @EXPORT = qw(guess_media_type media_suffix);
 @EXPORT_OK = qw(add_type add_encoding read_media_types);
-($VERSION) = q$Revision$ =~ /: (\d+)/;
-
+$VERSION = sprintf("%d.%02d", q$Revision: 1.32 $ =~ /(\d+)\.(\d+)/);
 
 require LWP::Debug;
 use strict;
@@ -65,36 +38,16 @@ my %suffixEncoding = (
     'bz2' => 'x-bzip2',
 );
 
+read_media_types();
+
+
+
 sub _dump {
     require Data::Dumper;
     Data::Dumper->new([\%suffixType, \%suffixExt, \%suffixEncoding],
 		      [qw(*suffixType *suffixExt *suffixEncoding)])->Dump;
 }
 
-read_media_types();
-
-
-
-=item guess_media_type($filename_or_url, [$header_to_modify])
-
-This function tries to guess media type and encoding for a file or url.
-It returns the content-type, which is a string like C<"text/html">.
-In array context it also returns any content-encodings applied (in the
-order used to encode the file).  You can pass a URI object
-reference, instead of the file name.
-
-If the type can not be deduced from looking at the file name,
-then guess_media_type() will let the C<-T> Perl operator take a look.
-If this works (and C<-T> returns a TRUE value) then we return
-I<text/plain> as the type, otherwise we return
-I<application/octet-stream> as the type.
-
-The optional second argument should be a reference to a HTTP::Headers
-object or any object that implements the $obj->header method in a
-similar way.  When it is present the values of the
-'Content-Type' and 'Content-Encoding' will be set for this header.
-
-=cut
 
 sub guess_media_type
 {
@@ -106,7 +59,8 @@ sub guess_media_type
 	# assume URI object
 	$file = $file->path;
 	#XXX should handle non http:, file: or ftp: URIs differently
-    } else {
+    }
+    else {
 	$fullname = $file;  # enable peek at actual file
     }
 
@@ -140,7 +94,8 @@ sub guess_media_type
 	# Take a look at the file
 	if (defined $fullname) {
 	    $ct = (-T $fullname) ? "text/plain" : "application/octet-stream";
-	} else {
+	}
+	else {
 	    $ct = "application/octet-stream";
 	}
     }
@@ -154,19 +109,6 @@ sub guess_media_type
 }
 
 
-=item media_suffix($type,...)
-
-This function will return all suffixes that can be used to denote the
-specified media type(s).  Wildcard types can be used.  In a scalar
-context it will return the first suffix found.
-
-Examples:
-
-  @suffixes = media_suffix('image/*', 'audio/basic');
-  $suffix = media_suffix('text/html');
-
-=cut
-
 sub media_suffix {
     if (!wantarray && @_ == 1 && $_[0] !~ /\*/) {
 	return $suffixExt{$_[0]};
@@ -178,7 +120,8 @@ sub media_suffix {
 	    while(($ext,$type) = each(%suffixType)) {
 		push(@suffix, $ext) if $type =~ /^$_$/;
 	    }
-	} else {
+	}
+	else {
 	    while(($ext,$type) = each(%suffixType)) {
 		push(@suffix, $ext) if $type eq $_;
 	    }
@@ -197,22 +140,6 @@ sub file_exts
 }
 
 
-=back
-
-The following functions are only exported by explict request:
-
-=over 4
-
-=item add_type($type, @exts)
-
-Associate a list of file extensions with the given media type.
-
-Example:
-
-    add_type("x-world/x-vrml" => qw(wrl vrml));
-
-=cut
-
 sub add_type 
 {
     my($type, @exts) = @_;
@@ -224,16 +151,6 @@ sub add_type
 }
 
 
-=item add_encoding($type, @ext)
-
-Associate a list of file extensions with an encoding type.
-
-Example:
-
- add_encoding("x-gzip" => "gz");
-
-=cut
-
 sub add_encoding
 {
     my($type, @exts) = @_;
@@ -243,16 +160,6 @@ sub add_encoding
     }
 }
 
-
-=item read_media_types(@files)
-
-Parse media types files and add the type mappings found there.
-
-Example:
-
-    read_media_types("conf/mime.types");
-
-=cut
 
 sub read_media_types 
 {
@@ -264,7 +171,8 @@ sub read_media_types
     if($^O eq "MacOS") {
 	push(@priv_files, "$ENV{HOME}:media.types", "$ENV{HOME}:mime.types")
 	    if defined $ENV{HOME};  # Some does not have a home (for instance Win32)
-    } else {
+    }
+    else {
 	push(@priv_files, "$ENV{HOME}/.media.types", "$ENV{HOME}/.mime.types")
 	    if defined $ENV{HOME};  # Some doesn't have a home (for instance Win32)
     }
@@ -274,7 +182,8 @@ sub read_media_types
     unless (@files) {
 	if($^O eq "MacOS") {
 	    @files = map {$_."LWP:media.types"} @INC;
-	} else {
+	}
+	else {
 	    @files = map {"$_/LWP/media.types"} @INC;
 	}
 	push @files, @priv_files;
@@ -296,7 +205,90 @@ sub read_media_types
 
 1;
 
-=back 
+
+__END__
+
+=head1 NAME
+
+LWP::MediaTypes - guess media type for a file or a URL
+
+=head1 SYNOPSIS
+
+ use LWP::MediaTypes qw(guess_media_type);
+ $type = guess_media_type("/tmp/foo.gif");
+
+=head1 DESCRIPTION
+
+This module provides functions for handling media (also known as
+MIME) types and encodings.  The mapping from file extensions to media
+types is defined by the F<media.types> file.  If the F<~/.media.types>
+file exists it is used instead.
+For backwards compatibility we will also look for F<~/.mime.types>.
+
+The following functions are exported by default:
+
+=over 4
+
+=item guess_media_type( $filename )
+
+=item guess_media_type( $uri )
+
+=item guess_media_type( $filename_or_uri, $header_to_modify )
+
+This function tries to guess media type and encoding for a file or a URI.
+It returns the content type, which is a string like C<"text/html">.
+In array context it also returns any content encodings applied (in the
+order used to encode the file).  You can pass a URI object
+reference, instead of the file name.
+
+If the type can not be deduced from looking at the file name,
+then guess_media_type() will let the C<-T> Perl operator take a look.
+If this works (and C<-T> returns a TRUE value) then we return
+I<text/plain> as the type, otherwise we return
+I<application/octet-stream> as the type.
+
+The optional second argument should be a reference to a HTTP::Headers
+object or any object that implements the $obj->header method in a
+similar way.  When it is present the values of the
+'Content-Type' and 'Content-Encoding' will be set for this header.
+
+=item media_suffix( $type, ... )
+
+This function will return all suffixes that can be used to denote the
+specified media type(s).  Wildcard types can be used.  In a scalar
+context it will return the first suffix found. Examples:
+
+  @suffixes = media_suffix('image/*', 'audio/basic');
+  $suffix = media_suffix('text/html');
+
+=back
+
+The following functions are only exported by explicit request:
+
+=over 4
+
+=item add_type( $type, @exts )
+
+Associate a list of file extensions with the given media type.
+Example:
+
+    add_type("x-world/x-vrml" => qw(wrl vrml));
+
+=item add_encoding( $type, @ext )
+
+Associate a list of file extensions with an encoding type.
+Example:
+
+ add_encoding("x-gzip" => "gz");
+
+=item read_media_types( @files )
+
+Parse media types files and add the type mappings found there.
+Example:
+
+    read_media_types("conf/mime.types");
+
+=back
 
 =head1 COPYRIGHT
 
@@ -305,4 +297,3 @@ Copyright 1995-1999 Gisle Aas.
 This library is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
 
-=cut

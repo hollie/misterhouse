@@ -1,4 +1,4 @@
-# $Id$
+# $Id: http.pm,v 1.70 2005/12/08 10:28:01 gisle Exp $
 #
 
 package LWP::Protocol::http;
@@ -83,17 +83,17 @@ sub _fixup_header
 
     # Extract 'Host' header
     my $hhost = $url->authority;
-    $hhost =~ s/^([^\@]*)\@//;  # get rid of potential "user:pass@"
-    $h->init_header('Host' => $hhost);
-
-    # add authorization header if we need them.  HTTP URLs do
-    # not really support specification of user and password, but
-    # we allow it.
-    if (defined($1) && not $h->header('Authorization')) {
-	require URI::Escape;
-	$h->authorization_basic(map URI::Escape::uri_unescape($_),
-				split(":", $1, 2));
+    if ($hhost =~ s/^([^\@]*)\@//) {  # get rid of potential "user:pass@"
+	# add authorization header if we need them.  HTTP URLs do
+	# not really support specification of user and password, but
+	# we allow it.
+	if (defined($1) && not $h->header('Authorization')) {
+	    require URI::Escape;
+	    $h->authorization_basic(map URI::Escape::uri_unescape($_),
+				    split(":", $1, 2));
+	}
     }
+    $h->init_header('Host' => $hhost);
 
     if ($proxy) {
 	# Check the proxy URI's userinfo() for proxy credentials
@@ -147,7 +147,7 @@ sub request
 	$host = $url->host;
 	$port = $url->port;
 	$fullpath = $url->path_query;
-	$fullpath = "/" unless length $fullpath;
+	$fullpath = "/$fullpath" unless $fullpath =~ m,^/,;
     }
 
     # connect to remote site
@@ -160,6 +160,7 @@ sub request
 
     $request_headers->scan(sub {
 			       my($k, $v) = @_;
+			       $k =~ s/^://;
 			       $v =~ s/\n/ /g;
 			       push(@h, $k, $v);
 			   });
@@ -177,44 +178,46 @@ sub request
 	    $has_content++;
 	    $chunked++;
 	}
-    } else {
+    }
+    else {
 	# Set (or override) Content-Length header
 	my $clen = $request_headers->header('Content-Length');
 	if (defined($$content_ref) && length($$content_ref)) {
-	    $has_content++;
-	    if (!defined($clen) || $clen ne length($$content_ref)) {
+	    $has_content = length($$content_ref);
+	    if (!defined($clen) || $clen ne $has_content) {
 		if (defined $clen) {
 		    warn "Content-Length header value was wrong, fixed";
 		    hlist_remove(\@h, 'Content-Length');
 		}
-		push(@h, 'Content-Length' => length($$content_ref));
+		push(@h, 'Content-Length' => $has_content);
 	    }
 	}
 	elsif ($clen) {
-	    warn "Content-Length set when there is not content, fixed";
+	    warn "Content-Length set when there is no content, fixed";
 	    hlist_remove(\@h, 'Content-Length');
 	}
     }
 
+    my $write_wait = 0;
+    $write_wait = 2
+	if ($request_headers->header("Expect") || "") =~ /100-continue/;
+
     my $req_buf = $socket->format_request($method, $fullpath, @h);
     #print "------\n$req_buf\n------\n";
 
-    # XXX need to watch out for write timeouts
-    {
+    if (!$has_content || $write_wait || $has_content > 8*1024) {
+	# XXX need to watch out for write timeouts
 	my $n = $socket->syswrite($req_buf, length($req_buf));
 	die $! unless defined($n);
 	die "short write" unless $n == length($req_buf);
 	#LWP::Debug::conns($req_buf);
+	$req_buf = "";
     }
 
     my($code, $mess, @junk);
     my $drop_connection;
 
     if ($has_content) {
-	my $write_wait = 0;
-	$write_wait = 2
-	    if ($request_headers->header("Expect") || "") =~ /100-continue/;
-
 	my $eof;
 	my $wbuf;
 	my $woffset = 0;
@@ -223,10 +226,17 @@ sub request
 	    $buf = "" unless defined($buf);
 	    $buf = sprintf "%x%s%s%s", length($buf), $CRLF, $buf, $CRLF
 		if $chunked;
+	    substr($buf, 0, 0) = $req_buf if $req_buf;
 	    $wbuf = \$buf;
 	}
 	else {
-	    $wbuf = $content_ref;
+	    if ($req_buf) {
+		my $buf = $req_buf . $$content_ref;
+		$wbuf = \$buf;
+	    }
+	    else {
+		$wbuf = $content_ref;
+	    }
 	    $eof = 1;
 	}
 

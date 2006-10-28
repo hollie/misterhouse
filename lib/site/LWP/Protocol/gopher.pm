@@ -1,5 +1,5 @@
 #
-# $Id$
+# $Id: gopher.pm,v 1.20 2003/10/23 19:11:33 uid39246 Exp $
 
 # Implementation of the gopher protocol (RFC 1436)
 #
@@ -159,7 +159,8 @@ EOT
 	my $content = menu2html($response->content);
 	if (defined $user_arg) {
 	    $response = $self->collect_once($user_arg, $response, $content);
-	} else {
+	}
+	else {
 	    $response->content($content);
 	}
     }
@@ -178,7 +179,8 @@ sub gopher2url
 	# telnet session
 	$url = $HTTP::URI_CLASS->new($gophertype eq '8' ? 'telnet:':'tn3270:');
 	$url->user($path) if defined $path;
-    } else {
+    }
+    else {
 	$path = URI::Escape::uri_escape($path);
 	$url = $HTTP::URI_CLASS->new("gopher:/$gophertype$path");
     }

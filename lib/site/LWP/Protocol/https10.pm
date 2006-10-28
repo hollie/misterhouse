@@ -1,5 +1,5 @@
 #
-# $Id$
+# $Id: https10.pm,v 1.2 2003/10/23 19:11:33 uid39246 Exp $
 
 use strict;
 
@@ -9,12 +9,14 @@ package LWP::Protocol::https10;
 use vars qw($SSL_CLASS);
 if ($IO::Socket::SSL::VERSION) {
     $SSL_CLASS = "IO::Socket::SSL"; # it was already loaded
-} else {
+}
+else {
     eval { require Net::SSL; };     # from Crypt-SSLeay
     if ($@) {
 	require IO::Socket::SSL;
 	$SSL_CLASS = "IO::Socket::SSL";
-    } else {
+    }
+    else {
 	$SSL_CLASS = "Net::SSL";
     }
 }

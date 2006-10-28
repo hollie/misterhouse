@@ -1,4 +1,4 @@
-# $Id$
+# $Id: media.types,v 1.5 2004/04/06 11:15:04 gisle Exp $
 #
 # This file defines the mapping from file name extentions to media types.
 # Media types where the subtype does not have the "x-" prefix should be
@@ -46,9 +46,9 @@ audio/x-mpeg-2			mp2			# MPEG layer 2 audio
 
 # Video formats
 video/mpeg			mpeg mpg mpe
-video/quicktime			qt
+video/quicktime			qt mov
 video/x-msvideo			avi
-video/x-sgi-movie		mov
+video/x-sgi-movie		movie
 
 # Message
 message/rfc822			mail

@@ -1,45 +1,10 @@
-# $Id$
-
 package LWP::Protocol;
 
-=head1 NAME
-
-LWP::Protocol - Base class for LWP protocols
-
-=head1 SYNOPSIS
-
- package LWP::Protocol::foo;
- require LWP::Protocol;
- @ISA=qw(LWP::Protocol);
-
-=head1 DESCRIPTION
-
-This class is used a the base class for all protocol implementations
-supported by the LWP library.
-
-When creating an instance of this class using
-C<LWP::Protocol::create($url)>, and you get an initialised subclass
-appropriate for that access method. In other words, the
-LWP::Protocol::create() function calls the constructor for one of its
-subclasses.
-
-All derived LWP::Protocol classes need to override the request()
-method which is used to service a request. The overridden method can
-make use of the collect() function to collect together chunks of data
-as it is received.
-
-The following methods and functions are provided:
-
-=over 4
-
-=cut
-
-#####################################################################
+# $Id: Protocol.pm,v 1.43 2004/11/12 13:34:10 gisle Exp $
 
 require LWP::MemberMixin;
 @ISA = qw(LWP::MemberMixin);
-($VERSION) = q$Revision$ =~ /: (\d+)/;
-
+$VERSION = sprintf("%d.%02d", q$Revision: 1.43 $ =~ /(\d+)\.(\d+)/);
 
 use strict;
 use Carp ();
@@ -49,12 +14,6 @@ use HTTP::Response;
 my %ImplementedBy = (); # scheme => classname
 
 
-=item $prot = LWP::Protocol->new()
-
-The LWP::Protocol constructor is inherited by subclasses. As this is a
-virtual base class this method should B<not> be called directly.
-
-=cut
 
 sub new
 {
@@ -73,15 +32,6 @@ sub new
 }
 
 
-=item $prot = LWP::Protocol::create($scheme)
-
-Create an object of the class implementing the protocol to handle the
-given scheme. This is a function, not a method. It is more an object
-factory than a constructor. This is the function user agents should
-use to access protocols.
-
-=cut
-
 sub create
 {
     my($scheme, $ua) = @_;
@@ -94,13 +44,6 @@ sub create
     return $protocol;
 }
 
-
-=item $class = LWP::Protocol::implementor($scheme, [$class])
-
-Get and/or set implementor class for a scheme.  Returns '' if the
-specified scheme is not supported.
-
-=cut
 
 sub implementor
 {
@@ -127,7 +70,8 @@ sub implementor
 	if ($@) {
 	    if ($@ =~ /Can't locate/) { #' #emacs get confused by '
 		$ic = '';
-	    } else {
+	    }
+	    else {
 		die "$@\n";
 	    }
 	}
@@ -136,18 +80,6 @@ sub implementor
     $ic;
 }
 
-
-=item $prot->request(...)
-
- $response = $protocol->request($request, $proxy, undef);
- $response = $protocol->request($request, $proxy, '/tmp/sss');
- $response = $protocol->request($request, $proxy, \&callback, 1024);
-
-Dispactches a request over the protocol, and returns a response
-object. This method needs to be overridden in subclasses.  Referer to
-L<LWP::UserAgent> for description of the arguments.
-
-=cut
 
 sub request
 {
@@ -161,29 +93,6 @@ sub timeout    { shift->_elem('timeout',    @_); }
 sub parse_head { shift->_elem('parse_head', @_); }
 sub max_size   { shift->_elem('max_size',   @_); }
 
-
-=item $prot->collect($arg, $response, $collector)
-
-Called to collect the content of a request, and process it
-appropriately into a scalar, file, or by calling a callback.  If $arg
-is undefined, then the content is stored within the $response.  If
-$arg is a simple scalar, then $arg is interpreted as a file name and
-the content is written to this file.  If $arg is a reference to a
-routine, then content is passed to this routine.
-
-The $collector is a routine that will be called and which is
-reponsible for returning pieces (as ref to scalar) of the content to
-process.  The $collector signals EOF by returning a reference to an
-empty sting.
-
-The return value from collect() is the $response object reference.
-
-B<Note:> We will only use the callback or file argument if
-$response->is_success().  This avoids sendig content data for
-redirects and authentization responses to the callback which would be
-confusing.
-
-=cut
 
 sub collect
 {
@@ -228,7 +137,7 @@ sub collect
 		$parser->parse($$content) or undef($parser);
 	    }
 	    LWP::Debug::debug("read " . length($$content) . " bytes");
-	    print OUT $$content;
+	    print OUT $$content or die "Can't write to '$arg': $!";
 	    $content_size += length($$content);
 	    if (defined($max_size) && $content_size > $max_size) {
 		LWP::Debug::debug("Aborting because size limit exceeded");
@@ -238,7 +147,7 @@ sub collect
 		last;
 	    }
 	}
-	close(OUT);
+	close(OUT) or die "Can't write to '$arg': $!";
     }
     elsif (ref($arg) eq 'CODE') {
 	# read into callback
@@ -266,15 +175,6 @@ sub collect
 }
 
 
-=item $prot->collect_once($arg, $response, $content)
-
-Can be called when the whole response content is available as
-$content.  This will invoke collect() with a collector callback that
-returns a reference to $content the first time and an empty string the
-next.
-
-=cut
-
 sub collect_once
 {
     my($self, $arg, $response) = @_;
@@ -288,6 +188,94 @@ sub collect_once
 
 1;
 
+
+__END__
+
+=head1 NAME
+
+LWP::Protocol - Base class for LWP protocols
+
+=head1 SYNOPSIS
+
+ package LWP::Protocol::foo;
+ require LWP::Protocol;
+ @ISA=qw(LWP::Protocol);
+
+=head1 DESCRIPTION
+
+This class is used a the base class for all protocol implementations
+supported by the LWP library.
+
+When creating an instance of this class using
+C<LWP::Protocol::create($url)>, and you get an initialised subclass
+appropriate for that access method. In other words, the
+LWP::Protocol::create() function calls the constructor for one of its
+subclasses.
+
+All derived LWP::Protocol classes need to override the request()
+method which is used to service a request. The overridden method can
+make use of the collect() function to collect together chunks of data
+as it is received.
+
+The following methods and functions are provided:
+
+=over 4
+
+=item $prot = LWP::Protocol->new()
+
+The LWP::Protocol constructor is inherited by subclasses. As this is a
+virtual base class this method should B<not> be called directly.
+
+=item $prot = LWP::Protocol::create($scheme)
+
+Create an object of the class implementing the protocol to handle the
+given scheme. This is a function, not a method. It is more an object
+factory than a constructor. This is the function user agents should
+use to access protocols.
+
+=item $class = LWP::Protocol::implementor($scheme, [$class])
+
+Get and/or set implementor class for a scheme.  Returns '' if the
+specified scheme is not supported.
+
+=item $prot->request(...)
+
+ $response = $protocol->request($request, $proxy, undef);
+ $response = $protocol->request($request, $proxy, '/tmp/sss');
+ $response = $protocol->request($request, $proxy, \&callback, 1024);
+
+Dispatches a request over the protocol, and returns a response
+object. This method needs to be overridden in subclasses.  Refer to
+L<LWP::UserAgent> for description of the arguments.
+
+=item $prot->collect($arg, $response, $collector)
+
+Called to collect the content of a request, and process it
+appropriately into a scalar, file, or by calling a callback.  If $arg
+is undefined, then the content is stored within the $response.  If
+$arg is a simple scalar, then $arg is interpreted as a file name and
+the content is written to this file.  If $arg is a reference to a
+routine, then content is passed to this routine.
+
+The $collector is a routine that will be called and which is
+responsible for returning pieces (as ref to scalar) of the content to
+process.  The $collector signals EOF by returning a reference to an
+empty sting.
+
+The return value from collect() is the $response object reference.
+
+B<Note:> We will only use the callback or file argument if
+$response->is_success().  This avoids sending content data for
+redirects and authentication responses to the callback which would be
+confusing.
+
+=item $prot->collect_once($arg, $response, $content)
+
+Can be called when the whole response content is available as
+$content.  This will invoke collect() with a collector callback that
+returns a reference to $content the first time and an empty string the
+next.
+
 =head1 SEE ALSO
 
 Inspect the F<LWP/Protocol/file.pm> and F<LWP/Protocol/http.pm> files
@@ -299,5 +287,3 @@ Copyright 1995-2001 Gisle Aas.
 
 This library is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
-
-=cut

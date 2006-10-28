@@ -1,7 +1,7 @@
 #
 package LWP::Protocol::https;
 
-# $Id$
+# $Id: https.pm,v 1.12 2003/10/15 10:35:47 gisle Exp $
 
 use strict;
 
@@ -34,7 +34,9 @@ sub _get_sock_info
 	$res->header("Client-SSL-Cert-Subject" => $cert->subject_name);
 	$res->header("Client-SSL-Cert-Issuer" => $cert->issuer_name);
     }
-    $res->header("Client-SSL-Warning" => "Peer certificate not verified");
+    if(! eval { $sock->get_peer_verify }) {
+       $res->header("Client-SSL-Warning" => "Peer certificate not verified");
+    }
 }
 
 #-----------------------------------------------------------

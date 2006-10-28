@@ -1,7 +1,19 @@
-#
-# $Id$
-
 package LWP::MemberMixin;
+
+# $Id: MemberMixin.pm,v 1.8 2004/04/09 15:07:04 gisle Exp $
+
+sub _elem
+{
+    my $self = shift;
+    my $elem = shift;
+    my $old = $self->{$elem};
+    $self->{$elem} = shift if @_;
+    return $old;
+}
+
+1;
+
+__END__
 
 =head1 NAME
 
@@ -17,7 +29,7 @@ LWP::MemberMixin - Member access mixin class
 
 A mixin class to get methods that provide easy access to member
 variables in the %$self.
-Ideally there should be better Perl langauge support for this.
+Ideally there should be better Perl language support for this.
 
 There is only one method provided:
 
@@ -32,16 +44,3 @@ value is not touched. In both cases the previous value of
 the member variable is returned.
 
 =back
-
-=cut
-
-sub _elem
-{
-    my $self = shift;
-    my $elem = shift;
-    my $old = $self->{$elem};
-    $self->{$elem} = shift if @_;
-    return $old;
-}
-
-1;

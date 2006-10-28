@@ -1,10 +1,10 @@
-# $Id$
-
 package LWP::RobotUA;
+
+# $Id: RobotUA.pm,v 1.27 2004/04/06 13:14:37 gisle Exp $
 
 require LWP::UserAgent;
 @ISA = qw(LWP::UserAgent);
-($VERSION) = q$Revision$ =~ /: (\d+)/;
+$VERSION = sprintf("%d.%02d", q$Revision: 1.27 $ =~ /(\d+)\.(\d+)/);
 
 require WWW::RobotRules;
 require HTTP::Request;
@@ -16,49 +16,6 @@ use HTTP::Status ();
 use HTTP::Date qw(time2str);
 use strict;
 
-=head1 NAME
-
-LWP::RobotUA - a class for well-behaved Web robots
-
-=head1 SYNOPSIS
-
-  use LWP::RobotUA;
-  my $ua = LWP::RobotUA->new( 'my-robot/0.1', 'me@foo.com' );
-  $ua->delay(10);  # be very nice -- max one hit every ten minutes!
-  ...
-
-  # Then just use it just like a normal LWP::UserAgent:
-  my $response = $ua->get('http://whatever.int/...');
-  ...
-
-=head1 DESCRIPTION
-
-This class implements a user agent that is suitable for robot
-applications.  Robots should be nice to the servers they visit.  They
-should consult the F</robots.txt> file to ensure that they are welcomed
-and they should not make requests too frequently.
-
-But before you consider writing a robot, take a look at
-<URL:http://www.robotstxt.org/>.
-
-When you use a I<LWP::RobotUA> object as your user agent, then you do not
-really have to think about these things yourself; C<robots.txt> files
-are automatically consulted and obeyed, the server isn't queried
-too rapidly, and so on.  Just send requests
-as you do when you are using a normal I<LWP::UserAgent>
-object (using C<< $ua->get(...) >>, C<< $ua->head(...) >>,
-C<< $ua->request(...) >>, etc.), and this
-special agent will make sure you are nice.
-
-=head1 METHODS
-
-The LWP::RobotUA is a sub-class of LWP::UserAgent and implements the
-same methods. In addition the following methods are provided:
-
-=over 4
-
-=cut
-
 
 #
 # Additional attributes in addition to those found in LWP::UserAgent:
@@ -69,66 +26,48 @@ same methods. In addition the following methods are provided:
 # $self->{'rules'}     A WWW::RobotRules object
 #
 
-
-=item $ua = LWP::RobotUA->new($agent_name, $from, [$rules])
-
-Your robot's name and the mail address of the human responsible for
-the robot (i.e. you) are required by the constructor.
-
-Optionally it allows you to specify the I<WWW::RobotRules> object to
-use.  If you don't provide one, then this user agent will make its own
-internal database of F<robots.txt> rules as needed.
-
-=cut
-
 sub new
 {
-    my($class,$name,$from,$rules) = @_;
+    my $class = shift;
+    my %cnf;
+    if (@_ < 4) {
+	# legacy args
+	@cnf{qw(agent from rules)} = @_;
+    }
+    else {
+	%cnf = @_;
+    }
 
-    Carp::croak('LWP::RobotUA name required') unless $name;
-    Carp::croak('LWP::RobotUA from address required') unless $from
-     and $from =~ m/\@/;
+    Carp::croak('LWP::RobotUA agent required') unless $cnf{agent};
+    Carp::croak('LWP::RobotUA from address required')
+	unless $cnf{from} && $cnf{from} =~ m/\@/;
 
-    my $self = new LWP::UserAgent;
+    my $delay = delete $cnf{delay} || 1;
+    my $use_sleep = delete $cnf{use_sleep};
+    $use_sleep = 1 unless defined($use_sleep);
+    my $rules = delete $cnf{rules};
+
+    my $self = LWP::UserAgent->new(%cnf);
     $self = bless $self, $class;
 
     $self->{'delay'} = 1;   # minutes
-    $self->{'agent'} = $name;
-    $self->{'from'}  = $from;
     $self->{'use_sleep'} = 1;
 
     if ($rules) {
-	$rules->agent($name);
+	$rules->agent($cnf{agent});
 	$self->{'rules'} = $rules;
-    } else {
-	$self->{'rules'} = new WWW::RobotRules $name;
+    }
+    else {
+	$self->{'rules'} = WWW::RobotRules->new($cnf{agent});
     }
 
     $self;
 }
 
 
-=item $ua->delay([$minutes])
-
-Set the minimum delay between requests to the same server,
-in I<minutes>.  The
-default is 1 minute.  Note that this number doesn't have to be an integer;
-for example, this sets the delay to 10 seconds:
-
-    $ua->delay(10/60);
-
-=item $ua->use_sleep([$boolean])
-
-Get/set a value indicating whether the UA should sleep() if requests
-arrive too fast (before $ua->delay minutes has passed).  The default is
-TRUE.  If this value is FALSE then an internal SERVICE_UNAVAILABLE
-response will be generated.  It will have an Retry-After header that
-indicates when it is OK to send another request to this server.
-
-=cut
-
 sub delay     { shift->_elem('delay',     @_); }
 sub use_sleep { shift->_elem('use_sleep', @_); }
+
 
 sub agent
 {
@@ -142,12 +81,6 @@ sub agent
 }
 
 
-=item $ua->rules([$rules])
-
-Set/get which I<WWW::RobotRules> object to use. 
-
-=cut
-
 sub rules {
     my $self = shift;
     my $old = $self->_elem('rules', @_);
@@ -155,13 +88,6 @@ sub rules {
     $old;
 }
 
-=item $ua->no_visits($netloc)
-
-Returns the number of documents fetched from this server host. Yes I
-know, this method should probably have been named num_visits() or
-something like that. :-(
-
-=cut
 
 sub no_visits
 {
@@ -171,13 +97,6 @@ sub no_visits
 
 *host_count = \&no_visits;  # backwards compatibility with LWP-5.02
 
-
-=item $ua->host_wait($netloc)
-
-Returns the number of I<seconds> (from now) you must wait before you can
-make a new request to this host.
-
-=cut
 
 sub host_wait
 {
@@ -218,7 +137,7 @@ sub simple_request
 	my $fresh_until = $robot_res->fresh_until;
 	if ($robot_res->is_success) {
 	    my $c = $robot_res->content;
-	    if ($robot_res->content_type =~ m,^text/, && $c =~ /Disallow/) {
+	    if ($robot_res->content_type =~ m,^text/, && $c =~ /^\s*Disallow\s*:/mi) {
 		LWP::Debug::debug("Parsing robot rules");
 		$self->{'rules'}->parse($robot_url, $c, $fresh_until);
 	    }
@@ -227,7 +146,8 @@ sub simple_request
 		$self->{'rules'}->parse($robot_url, "", $fresh_until);
 	    }
 
-	} else {
+	}
+	else {
 	    LWP::Debug::debug("No robots.txt file found");
 	    $self->{'rules'}->parse($robot_url, "", $fresh_until);
 	}
@@ -251,7 +171,8 @@ sub simple_request
 	LWP::Debug::debug("Must wait $wait seconds");
 	if ($self->{'use_sleep'}) {
 	    sleep($wait)
-	} else {
+	}
+	else {
 	    my $res = new HTTP::Response
 	      &HTTP::Status::RC_SERVICE_UNAVAILABLE, 'Please, slow down';
 	    $res->header('Retry-After', time2str(time + $wait));
@@ -269,13 +190,6 @@ sub simple_request
 }
 
 
-=item $ua->as_string
-
-Returns a string that describes the state of the UA.
-Mainly useful for debugging.
-
-=cut
-
 sub as_string
 {
     my $self = shift;
@@ -289,6 +203,108 @@ sub as_string
 
 1;
 
+
+__END__
+
+=head1 NAME
+
+LWP::RobotUA - a class for well-behaved Web robots
+
+=head1 SYNOPSIS
+
+  use LWP::RobotUA;
+  my $ua = LWP::RobotUA->new('my-robot/0.1', 'me@foo.com');
+  $ua->delay(10);  # be very nice -- max one hit every ten minutes!
+  ...
+
+  # Then just use it just like a normal LWP::UserAgent:
+  my $response = $ua->get('http://whatever.int/...');
+  ...
+
+=head1 DESCRIPTION
+
+This class implements a user agent that is suitable for robot
+applications.  Robots should be nice to the servers they visit.  They
+should consult the F</robots.txt> file to ensure that they are welcomed
+and they should not make requests too frequently.
+
+But before you consider writing a robot, take a look at
+<URL:http://www.robotstxt.org/>.
+
+When you use a I<LWP::RobotUA> object as your user agent, then you do not
+really have to think about these things yourself; C<robots.txt> files
+are automatically consulted and obeyed, the server isn't queried
+too rapidly, and so on.  Just send requests
+as you do when you are using a normal I<LWP::UserAgent>
+object (using C<< $ua->get(...) >>, C<< $ua->head(...) >>,
+C<< $ua->request(...) >>, etc.), and this
+special agent will make sure you are nice.
+
+=head1 METHODS
+
+The LWP::RobotUA is a sub-class of LWP::UserAgent and implements the
+same methods. In addition the following methods are provided:
+
+=over 4
+
+=item $ua = LWP::RobotUA->new( %options )
+
+=item $ua = LWP::RobotUA->new( $agent, $from )
+
+=item $ua = LWP::RobotUA->new( $agent, $from, $rules )
+
+The LWP::UserAgent options C<agent> and C<from> are mandatory.  The
+options C<delay>, C<use_sleep> and C<rules> initialize attributes
+private to the RobotUA.  If C<rules> are not provided, then
+C<WWW::RobotRules> is instantiated providing an internal database of
+F<robots.txt>.
+
+It is also possible to just pass the value of C<agent>, C<from> and
+optionally C<rules> as plain positional arguments.
+
+=item $ua->delay
+
+=item $ua->delay( $minutes )
+
+Get/set the minimum delay between requests to the same server, in
+I<minutes>.  The default is 1 minute.  Note that this number doesn't
+have to be an integer; for example, this sets the delay to 10 seconds:
+
+    $ua->delay(10/60);
+
+=item $ua->use_sleep
+
+=item $ua->use_sleep( $boolean )
+
+Get/set a value indicating whether the UA should sleep() if requests
+arrive too fast, defined as $ua->delay minutes not passed since
+last request to the given server.  The default is TRUE.  If this value is
+FALSE then an internal SERVICE_UNAVAILABLE response will be generated.
+It will have an Retry-After header that indicates when it is OK to
+send another request to this server.
+
+=item $ua->rules
+
+=item $ua->rules( $rules )
+
+Set/get which I<WWW::RobotRules> object to use.
+
+=item $ua->no_visits( $netloc )
+
+Returns the number of documents fetched from this server host. Yeah I
+know, this method should probably have been named num_visits() or
+something like that. :-(
+
+=item $ua->host_wait( $netloc )
+
+Returns the number of I<seconds> (from now) you must wait before you can
+make a new request to this host.
+
+=item $ua->as_string
+
+Returns a string that describes the state of the UA.
+Mainly useful for debugging.
+
 =back
 
 =head1 SEE ALSO
@@ -297,9 +313,7 @@ L<LWP::UserAgent>, L<WWW::RobotRules>
 
 =head1 COPYRIGHT
 
-Copyright 1996-2002 Gisle Aas.
+Copyright 1996-2004 Gisle Aas.
 
 This library is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
-
-=cut
