@@ -328,13 +328,10 @@ if (said $v_what_wind) {
         $temp .= "There is currently no wind.";
     }
     else {
-
-
-
         $temp  .= "The wind is gusting at " .
-            round($Weather{WindGustSpeed}) . " from the " . convert_direction($Weather{WindGustDir});
+            round($Weather{WindGustSpeed}) . ' ' . $wind_units . " from the " . convert_direction($Weather{WindGustDir});
         $temp .= ".  Average speed is " .
-            round($Weather{WindAvgSpeed}) . " from the " . convert_direction($Weather{WindAvgDir});
+            round($Weather{WindAvgSpeed}) . ' ' . $wind_units . " from the " . convert_direction($Weather{WindAvgDir});
     }
     $v_what_wind->respond("app=weather $temp");
 }
@@ -421,14 +418,14 @@ if (state $Windy) {
     }
 }
 if (expired $timer_wind_gust2) {
-    my $speed = $timer_wind_gust2->{speed};
+    my $speed = round($timer_wind_gust2->{speed});
     $timer_wind_gust2->{speed} = 0;
     if (inactive $timer_wind_gust or
 	5 + $timer_wind_gust->{speed} < $speed) {
         $timer_wind_gust->{speed} = $speed;
         set $timer_wind_gust 20*60;
-        speak "app=weather image=warning color=red Weather alert, the wind is gusting to " . round($speed);
-        $Weather{Warning} = 'High winds gusting to ' . round($speed);
+        &speak("app=weather image=warning color=red Weather alert, the wind is gusting to $speed $wind_units");
+        $Weather{Warning} = "High winds gusting to $speed $wind_units";
     }
     $Save{WindGustMax} = $speed if $Save{WindGustMax} < $speed; # Save a daily max
 }
