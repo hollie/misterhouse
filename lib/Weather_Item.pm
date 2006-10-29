@@ -83,8 +83,11 @@ sub state {
 	$valid = 0 if !defined $main::Weather{$_};
     }
 
-    my $results = eval $self->{type} if $valid;
-    print "Weather_Item eval error: object=$self->{object_name} test=$self->{type} error=$@" if $@;
+    my $results;
+    if ($valid) {
+        $results = eval $self->{type} if $valid;
+        print "Weather_Item eval error: object=$self->{object_name} test=$self->{type} error=$@" if $@;
+    }
 
     return $results;
 }
