@@ -60,6 +60,14 @@ sub new {
 
    &main::print_log("Starting DSC 5401 computer interface module");
    $Self = $self;
+
+   # Sometimes the first command sent generates an API Command Syntax Error.
+   # This is likely due to stray bits making it onto the serial port.
+   # So, we send a poll, which is really a NOP.  If this command fails,
+   # no big deal.
+   cmd( $self, 'Poll' ); # request an initial poll
+
+   select(undef, undef, undef, 0.250); # wait 250 millseconds to avoid overrunning RS-232 receive buffer on panel
    cmd( $self, 'StatusReport' ); # request an initial status report
    if (defined $::config_parms{DSC_5401_verbose_arming}) { # enable/disable verbose arming if configured
       select(undef, undef, undef, 0.250); # wait 250 millseconds to avoid overrunning RS-232 receive buffer on panel
