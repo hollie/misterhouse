@@ -1,9 +1,16 @@
 package Digest::MD5;
 
+# $Date$
+# $Revision$
+
 use strict;
 use vars qw($VERSION @ISA @EXPORT_OK);
 
-$VERSION = '2.36';  # $Date$
+# this is a highly modified MD5.pm that doesn't try to use the C interface, only
+# the PERL interface due to potential imcompatibilities between mh's MD5.pm
+# and the locally installed object files.  
+
+$VERSION = '2.36'; # this is not really 2.36, but is based on it and has same API
 
 require Exporter;
 *import = \&Exporter::import;
@@ -14,32 +21,16 @@ eval {
     push(@ISA, 'Digest::base');
 };
 if ($@) {
+    die $@;
     my $err = $@;
     *add_bits = sub { die $err };
 }
 
+require Digest::Perl::MD5;
 
-eval {
-    require XSLoader;
-    XSLoader::load('Digest::MD5', $VERSION);
-};
-if ($@) {
-    my $olderr = $@;
-    eval {
-	# Try to load the pure perl version
-	require Digest::Perl::MD5;
-
-	Digest::Perl::MD5->import(qw(md5 md5_hex md5_base64));
-	push(@ISA, "Digest::Perl::MD5");  # make OO interface work
-    };
-    if ($@) {
-	# restore the original error
-	die $olderr;
-    }
-}
-else {
-    *reset = \&new;
-}
+Digest::Perl::MD5->import(qw(md5 md5_hex md5_base64));
+# unshift instead of push as the PERL stuff MUST come first
+unshift(@ISA, "Digest::Perl::MD5");
 
 1;
 __END__
