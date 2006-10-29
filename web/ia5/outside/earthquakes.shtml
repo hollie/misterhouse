@@ -6,7 +6,7 @@
 <base target ="output">
 <!--#include code="&html_header('Earthquake Information')" -->
 <pre>
-<!--#include file="/data/web/earthquakes.finger"-->
+<!--#include file="/data/web/earthquakes.txt"-->
 </pre>
 </body>
 </html>
