@@ -2347,9 +2347,11 @@ sub html_item_state {
         $html .= qq[<SELECT name="select_state" onChange="form.submit()">\n];
         $html .= qq[<option value="pick_a_state_msg" SELECTED> \n]; # Default is blank
         for my $state (@states) {
-            my $state_url = &escape($state);
+#           my $state_url = &escape($state);
+            my $state_url = &quote_attribute($state);
             my $state_short = substr $state, 0, 15;
-            $html .= qq[<option value="$state_url">$state_short\n];
+            $html .= qq[<option value=$state_url>$state_short\n];
+#           $html .= qq[<option value="$state_url">$state_short\n];
 #           $html .= qq[<a href='SET;&html_list($object_type)?$object_name?$state'>$state</a> ];
         }
         $html .= qq[</SELECT>\n];
