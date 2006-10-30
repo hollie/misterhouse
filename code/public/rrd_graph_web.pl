@@ -1,9 +1,13 @@
 # Authority: anyone
 # graph.pl
 #
+# $Date$
+# $Revision$
+#
 # This code generates the iButton temperature graph
 #
-# put rrd_graph_web.pl and rrd_graph_web.css in /Misterhouse/mh/web/bin
+# put rrd_graph_web.pl, rrd_graph_web.css, and rrd_create_graph.pl in 
+# /Misterhouse/mh/web/bin
 # run http://your-misterhouse:8080/bin/rrd_graph_web.pl
 #
 
@@ -90,23 +94,8 @@ sub graph {
    my $avg = sprintf("%.1f",$sum/scalar(@temp));
    my $max = sprintf("%.1f",$oTemp[0]);
 
-   # generate temp graph
-   RRDs::graph "$img_dir/$rrd_name-temp-$t.png",
-            "--start","-$t",
- 	    "--title", "$rrd_name $descr $t",
-            "--alt-y-grid", "--alt-autoscale",
-            "--height", "$height",
-            "--width", "$width",
-            "--imgformat", "PNG",
-            "--vertical-label", "degree $dt",
-            "DEF:ib=$rrd:temp:AVERAGE",
-            "COMMENT:$timenow",
-            "LINE1:ib#ff0000";
-
-   # "--lazy",
-
-   my $ERROR = RRDs::error;
-   print_log "RRDs::fetch ERROR: $ERROR\n" if $ERROR;
+   # RRDs::graph leaks memory, so use a system call to create the graph.
+   system ("perl $config_parms{html_dir}/bin/rrd_create_graph.pl $rrd_name $rrd $img_dir $t $descr $height $width $dt");
 
    $html .= qq[  <tr>\n];
    $html .= qq[    <td  rowspan="3"><a href="/bin/graph.pl?$rrd_name" target="_self" >];
