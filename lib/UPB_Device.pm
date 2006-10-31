@@ -76,7 +76,7 @@ sub new
 	$self->network_id($p_networkid) if defined $p_networkid;
 	$self->device_id($p_deviceid) if defined $p_deviceid;
 	$self->initialize();
-	$self->rate(0);
+	$self->rate(undef);
 	$$self{firstOctet} = "0";
 	$$self{ackMode} = "1";
 	$$self{interface}->add($self);
@@ -208,16 +208,19 @@ sub _xlate_mh_upb
 #	&::print_log("XLATE:$msg:$p_state:");
 	if (uc($msg) eq 'ON')
 	{	
+#		$msg = "fade_start";
 		$msg = "goto";
 		$level=100;
 		$rate=$self->rate();
 	} elsif (uc($msg) eq 'OFF')
 	{	
+#		$msg = "fade_start";
 		$msg = "goto";
 		$level = 0;
 		$rate = $self->rate();
 	} elsif ($msg=~/^([1]?[0-9]?[0-9])/)
 	{	
+#		$msg= "fade_start";
 		$msg= "goto";
 		$level = $1;
 		$rate = $self->rate();
@@ -261,7 +264,7 @@ sub _xlate_mh_upb
 	elsif ($msg == $message_types{goto})
 	{	
 		$args[0]=$level;
-		$args[1]=$rate;		
+		$args[1]=$rate if defined $rate;		
 	}
 
 	##Finish off the command
