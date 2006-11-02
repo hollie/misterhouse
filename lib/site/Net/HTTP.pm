@@ -32,7 +32,7 @@ Net::HTTP - Low-level HTTP connection (client)
 =head1 SYNOPSIS
 
  use Net::HTTP;
- my $s = Net::HTTP->new(Host => "www.perl.com) || die $@;
+ my $s = Net::HTTP->new(Host => "www.perl.com") || die $@;
  $s->write_request(GET => "/", 'User-Agent' => "Mozilla/5.0");
  my($code, $mess, %h) = $s->read_response_headers;
 
@@ -87,7 +87,7 @@ connect, a C<Net:HTTP> object is returned.
 =item $s->host
 
 Get/set the default value of the C<Host> header to send.  The $host
-should not be set to an empty string (or C<undef>).
+must not be set to an empty string (or C<undef>) for HTTP/1.1.
 
 =item $s->keep_alive
 
@@ -101,9 +101,9 @@ and C<peer_http_version> attributes.
 =item $s->send_te
 
 Get/set the a value indicating if the request will be sent with a "TE"
-header to indicate the transfer encodings that the server can chose to
+header to indicate the transfer encodings that the server can choose to
 use.  If the C<Compress::Zlib> module is installed then this will
-annouce that this client accept both the I<deflate> and I<gzip>
+announce that this client accept both the I<deflate> and I<gzip>
 encodings.
 
 =item $s->http_version
@@ -214,7 +214,7 @@ supported yet.  This method should only be called after a successful
 read_response_headers() call.
 
 The return value will be C<undef> on read errors, 0 on EOF, -1 if no data
-could be returned this time, otherwise the number of bytes assgined
+could be returned this time, otherwise the number of bytes assigned
 to $buf.  The $buf set to "" when the return value is -1.
 
 This method will raise exceptions (die) if the server does not speak
@@ -247,7 +247,7 @@ but might be more efficient.
 
 The read_response_headers() and read_entity_body() will invoke the
 sysread() method when they need more data.  Subclasses might want to
-override this method to contol how reading takes place.
+override this method to control how reading takes place.
 
 The object itself is a glob.  Subclasses should avoid using hash key
 names prefixed with C<http_> and C<io_>.

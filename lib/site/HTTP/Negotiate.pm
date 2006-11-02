@@ -3,7 +3,7 @@
 
 package HTTP::Negotiate;
 
-($VERSION) = q$Revision$ =~ /: (\d+)/;
+$VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
 sub Version { $VERSION; }
 
 require 5.002;
@@ -71,7 +71,8 @@ sub choose ($;$)
 	    if (defined $param{'q'}) {
 		$param{'q'} = 1 if $param{'q'} > 1;
 		$param{'q'} = 0 if $param{'q'} < 0;
-	    } else {
+	    }
+	    else {
 		$param{'q'} = $default_q;
 
 		# This makes sure that the first ones are slightly better off
@@ -143,7 +144,8 @@ sub choose ($;$)
 		    print "no\n" if $DEBUG;
 		    $qe = 0;
 		    last;
-		} else {
+		}
+		else {
 		    print "yes\n" if $DEBUG;
 		}
 	    }
@@ -179,7 +181,8 @@ sub choose ($;$)
 	    }
 	    if(defined $q) {
 	        $DEBUG and print " -- Exact language match at q=$q\n";
-	    } else {
+	    }
+	    else {
 		# If there was no exact match and at least one of
 		# the Accept-Language field values is a complete
 		# subtag prefix of the content language tag(s), then
@@ -188,14 +191,15 @@ sub choose ($;$)
 		$DEBUG and print " -- No exact language match\n";
 		my $selected = undef;
 		for $al (keys %{ $accept{'language'} }) {
-		    if (substr($lang, 0, 1 + length($al)) eq "$al-") {
+		    if (index($al, "$lang-") == 0) {
 		        # $lang starting with $al isn't enough, or else
 		        #  Accept-Language: hu (Hungarian) would seem
 		        #  to accept a document in hup (Hupa)
-		        $DEBUG and print " -- $lang ISA $al\n";
+		        $DEBUG and print " -- $al ISA $lang\n";
 			$selected = $al unless defined $selected;
 			$selected = $al if length($al) > length($selected);
-		    } else {
+		    }
+		    else {
 		        $DEBUG and print " -- $lang  isn't a $al\n";
 		    }
 		}
@@ -208,7 +212,8 @@ sub choose ($;$)
 		$q = 0.001 unless defined $q;
 	    }
 	    $ql = $q;
-	} else {
+	}
+	else {
 	    $ql = 0.5 if $any_lang && exists $accept{'language'};
 	}
 
@@ -273,7 +278,8 @@ sub choose ($;$)
 	my $Q;
 	if (!defined($mbx) || $mbx >= $bs) {
 	    $Q = $qs * $qe * $qc * $ql * $q;
-	} else {
+	}
+	else {
 	    $Q = 0;
 	    print "Variant's size is too large ==> Q=0\n" if $DEBUG;
 	}
@@ -303,11 +309,11 @@ __END__
 
 =head1 NAME
 
-choose - choose a variant of a document to serve (HTTP content negotiation)
+HTTP::Negotiate - choose a variant to serve
 
 =head1 SYNOPSIS
 
- use HTTP::Negotiate;
+ use HTTP::Negotiate qw(choose);
 
  #  ID       QS     Content-Type   Encoding Char-Set        Lang   Size
  $variants =
@@ -458,7 +464,7 @@ F<draft-ietf-http-v11-spec-00.ps>):
 =item Accept
 
 This header can be used to indicate a list of media ranges which are
-acceptable as a reponse to the request.  The "*" character is used to
+acceptable as a response to the request.  The "*" character is used to
 group media types into ranges, with "*/*" indicating all media types
 and "type/*" indicating all subtypes of that type.
 

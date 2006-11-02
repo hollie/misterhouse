@@ -1,10 +1,100 @@
-#
-# $Id$
-
 package HTTP::Status;
+
+# $Id$
 
 use strict;
 require 5.002;   # becase we use prototypes
+
+use vars qw(@ISA @EXPORT @EXPORT_OK $VERSION);
+
+require Exporter;
+@ISA = qw(Exporter);
+@EXPORT = qw(is_info is_success is_redirect is_error status_message);
+@EXPORT_OK = qw(is_client_error is_server_error);
+$VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
+
+# Note also addition of mnemonics to @EXPORT below
+
+my %StatusCode = (
+    100 => 'Continue',
+    101 => 'Switching Protocols',
+    102 => 'Processing',                      # WebDAV
+    200 => 'OK',
+    201 => 'Created',
+    202 => 'Accepted',
+    203 => 'Non-Authoritative Information',
+    204 => 'No Content',
+    205 => 'Reset Content',
+    206 => 'Partial Content',
+    207 => 'Multi-Status',                    # WebDAV
+    300 => 'Multiple Choices',
+    301 => 'Moved Permanently',
+    302 => 'Found',
+    303 => 'See Other',
+    304 => 'Not Modified',
+    305 => 'Use Proxy',
+    307 => 'Temporary Redirect',
+    400 => 'Bad Request',
+    401 => 'Unauthorized',
+    402 => 'Payment Required',
+    403 => 'Forbidden',
+    404 => 'Not Found',
+    405 => 'Method Not Allowed',
+    406 => 'Not Acceptable',
+    407 => 'Proxy Authentication Required',
+    408 => 'Request Timeout',
+    409 => 'Conflict',
+    410 => 'Gone',
+    411 => 'Length Required',
+    412 => 'Precondition Failed',
+    413 => 'Request Entity Too Large',
+    414 => 'Request-URI Too Large',
+    415 => 'Unsupported Media Type',
+    416 => 'Request Range Not Satisfiable',
+    417 => 'Expectation Failed',
+    422 => 'Unprocessable Entity',            # WebDAV
+    423 => 'Locked',                          # WebDAV
+    424 => 'Failed Dependency',               # WebDAV
+    500 => 'Internal Server Error',
+    501 => 'Not Implemented',
+    502 => 'Bad Gateway',
+    503 => 'Service Unavailable',
+    504 => 'Gateway Timeout',
+    505 => 'HTTP Version Not Supported',
+    507 => 'Insufficient Storage',            # WebDAV
+);
+
+my $mnemonicCode = '';
+my ($code, $message);
+while (($code, $message) = each %StatusCode) {
+    # create mnemonic subroutines
+    $message =~ tr/a-z \-/A-Z__/;
+    $mnemonicCode .= "sub RC_$message () { $code }\t";
+    # make them exportable
+    $mnemonicCode .= "push(\@EXPORT, 'RC_$message');\n";
+}
+# warn $mnemonicCode; # for development
+eval $mnemonicCode; # only one eval for speed
+die if $@;
+
+# backwards compatibility
+*RC_MOVED_TEMPORARILY = \&RC_FOUND;  # 302 was renamed in the standard
+push(@EXPORT, "RC_MOVED_TEMPORARILY");
+
+
+sub status_message  ($) { $StatusCode{$_[0]}; }
+
+sub is_info         ($) { $_[0] >= 100 && $_[0] < 200; }
+sub is_success      ($) { $_[0] >= 200 && $_[0] < 300; }
+sub is_redirect     ($) { $_[0] >= 300 && $_[0] < 400; }
+sub is_error        ($) { $_[0] >= 400 && $_[0] < 600; }
+sub is_client_error ($) { $_[0] >= 400 && $_[0] < 500; }
+sub is_server_error ($) { $_[0] >= 500 && $_[0] < 600; }
+
+1;
+
+
+__END__
 
 =head1 NAME
 
@@ -85,87 +175,6 @@ names:
    RC_HTTP_VERSION_NOT_SUPPORTED	(505)
    RC_INSUFFICIENT_STORAGE              (507)
 
-=cut
-
-#####################################################################
-
-use vars qw(@ISA @EXPORT @EXPORT_OK $VERSION);
-
-require Exporter;
-@ISA = qw(Exporter);
-@EXPORT = qw(is_info is_success is_redirect is_error status_message);
-@EXPORT_OK = qw(is_client_error is_server_error);
-($VERSION) = q$Revision$ =~ /: (\d+)/;
-
-# Note also addition of mnemonics to @EXPORT below
-
-my %StatusCode = (
-    100 => 'Continue',
-    101 => 'Switching Protocols',
-    102 => 'Processing',                      # WebDAV
-    200 => 'OK',
-    201 => 'Created',
-    202 => 'Accepted',
-    203 => 'Non-Authoritative Information',
-    204 => 'No Content',
-    205 => 'Reset Content',
-    206 => 'Partial Content',
-    207 => 'Multi-Status',                    # WebDAV
-    300 => 'Multiple Choices',
-    301 => 'Moved Permanently',
-    302 => 'Found',
-    303 => 'See Other',
-    304 => 'Not Modified',
-    305 => 'Use Proxy',
-    307 => 'Temporary Redirect',
-    400 => 'Bad Request',
-    401 => 'Unauthorized',
-    402 => 'Payment Required',
-    403 => 'Forbidden',
-    404 => 'Not Found',
-    405 => 'Method Not Allowed',
-    406 => 'Not Acceptable',
-    407 => 'Proxy Authentication Required',
-    408 => 'Request Timeout',
-    409 => 'Conflict',
-    410 => 'Gone',
-    411 => 'Length Required',
-    412 => 'Precondition Failed',
-    413 => 'Request Entity Too Large',
-    414 => 'Request-URI Too Large',
-    415 => 'Unsupported Media Type',
-    416 => 'Request Range Not Satisfiable',
-    417 => 'Expectation Failed',
-    422 => 'Unprocessable Entity',            # WebDAV
-    423 => 'Locked',                          # WebDAV
-    424 => 'Failed Dependency',               # WebDAV
-    500 => 'Internal Server Error',
-    501 => 'Not Implemented',
-    502 => 'Bad Gateway',
-    503 => 'Service Unavailable',
-    504 => 'Gateway Timeout',
-    505 => 'HTTP Version Not Supported',
-    507 => 'Insufficient Storage',            # WebDAV
-);
-
-my $mnemonicCode = '';
-my ($code, $message);
-while (($code, $message) = each %StatusCode) {
-    # create mnemonic subroutines
-    $message =~ tr/a-z \-/A-Z__/;
-    $mnemonicCode .= "sub RC_$message () { $code }\t";
-    # make them exportable
-    $mnemonicCode .= "push(\@EXPORT, 'RC_$message');\n";
-}
-# warn $mnemonicCode; # for development
-eval $mnemonicCode; # only one eval for speed
-die if $@;
-
-# backwards compatibility
-*RC_MOVED_TEMPORARILY = \&RC_FOUND;  # 302 was renamed in the standard
-push(@EXPORT, "RC_MOVED_TEMPORARILY");
-
-
 =head1 FUNCTIONS
 
 The following additional functions are provided.  Most of them are
@@ -173,41 +182,34 @@ exported by default.
 
 =over 4
 
-=item status_message($code)
+=item status_message( $code )
 
 The status_message() function will translate status codes to human
 readable strings. The string is the same as found in the constant
 names above.  If the $code is unknown, then C<undef> is returned.
 
-=cut
-
-sub status_message ($)
-{
-    $StatusCode{$_[0]};
-}
-
-=item is_info($code)
+=item is_info( $code )
 
 Return TRUE if C<$code> is an I<Informational> status code.  This
 class of status code indicates a provisional response which can't have
 any content.
 
-=item is_success($code)
+=item is_success( $code )
 
 Return TRUE if C<$code> is a I<Successful> status code.
 
-=item is_redirect($code)
+=item is_redirect( $code )
 
 Return TRUE if C<$code> is a I<Redirection> status code. This class of
 status code indicates that further action needs to be taken by the
 user agent in order to fulfill the request.
 
-=item is_error($code)
+=item is_error( $code )
 
 Return TRUE if C<$code> is an I<Error> status code.  The function
 return TRUE for both client error or a server error status codes.
 
-=item is_client_error($code)
+=item is_client_error( $code )
 
 Return TRUE if C<$code> is an I<Client Error> status code. This class
 of status code is intended for cases in which the client seems to have
@@ -215,7 +217,7 @@ erred.
 
 This function is B<not> exported by default.
 
-=item is_server_error($code)
+=item is_server_error( $code )
 
 Return TRUE if C<$code> is an I<Server Error> status code. This class
 of status codes is intended for cases in which the server is aware
@@ -225,20 +227,8 @@ This function is B<not> exported by default.
 
 =back
 
-=cut
-
-sub is_info         ($) { $_[0] >= 100 && $_[0] < 200; }
-sub is_success      ($) { $_[0] >= 200 && $_[0] < 300; }
-sub is_redirect     ($) { $_[0] >= 300 && $_[0] < 400; }
-sub is_error        ($) { $_[0] >= 400 && $_[0] < 600; }
-sub is_client_error ($) { $_[0] >= 400 && $_[0] < 500; }
-sub is_server_error ($) { $_[0] >= 500 && $_[0] < 600; }
-
-1;
-
 =head1 BUGS
 
 Wished @EXPORT_OK had been used instead of @EXPORT in the beginning.
 Now too much is exported by default.
 
-=cut

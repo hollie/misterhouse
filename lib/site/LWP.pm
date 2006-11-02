@@ -3,10 +3,10 @@
 
 package LWP;
 
-$VERSION = "5.68";
+$VERSION = "5.805";
 sub Version { $VERSION; }
 
-require 5.004;
+require 5.005;
 require LWP::UserAgent;  # this should load everything you need
 
 1;
@@ -76,6 +76,10 @@ Provides parser for F<robots.txt> files and a framework for constructing robots.
 
 =item *
 
+Supports parsing of HTML forms.
+
+=item *
+
 Implements HTTP content negotiation algorithm that can
 be used both in protocol modules and in server scripts (like CGI
 scripts).
@@ -86,7 +90,7 @@ Supports HTTP cookies.
 
 =item *
 
-A simple command line client application called C<lwp-request>.
+Some simple command line clients, for instance C<lwp-request> and C<lwp-download>.
 
 =back
 
@@ -298,9 +302,9 @@ represented in actual perl code:
   $ua->agent("MyApp/0.1 ");
 
   # Create a request
-  my $req = HTTP::Request->new(POST => 'http://www.perl.com/cgi-bin/BugGlimpse');
+  my $req = HTTP::Request->new(POST => 'http://search.cpan.org/search');
   $req->content_type('application/x-www-form-urlencoded');
-  $req->content('match=www&errors=0');
+  $req->content('query=libwww-perl&mode=dist');
 
   # Pass request to the user agent and get a response back
   my $res = $ua->request($req);
@@ -308,8 +312,9 @@ represented in actual perl code:
   # Check the outcome of the response
   if ($res->is_success) {
       print $res->content;
-  } else {
-      print "Bad luck this time\n";
+  }
+  else {
+      print $res->status_line, "\n";
   }
 
 The $ua is created once when the application starts up.  New request
@@ -346,10 +351,10 @@ internal error response.
 The library automatically adds a "Host" and a "Content-Length" header
 to the HTTP request before it is sent over the network.
 
-For GET request you might want to add a "If-Modified-Since" or
+For a GET request you might want to add a "If-Modified-Since" or
 "If-None-Match" header to make the request conditional.
 
-For POST request you should add the "Content-Type" header.  When you
+For a POST request you should add the "Content-Type" header.  When you
 try to emulate HTML E<lt>FORM> handling you should usually let the value
 of the "Content-Type" header be "application/x-www-form-urlencoded".
 See L<lwpcook> for examples of this.
@@ -491,6 +496,23 @@ Example:
   $req->header(Subject => "subscribe");
   $req->content("Please subscribe me to the libwww-perl mailing list!\n");
 
+=head2 CPAN Requests
+
+URLs with scheme C<cpan:> are redirected to the a suitable CPAN
+mirror.  If you have your own local mirror of CPAN you might tell LWP
+to use it for C<cpan:> URLs by an assignment like this:
+
+  $LWP::Protocol::cpan::CPAN = "file:/local/CPAN/";
+
+Suitable CPAN mirrors are also picked up from the configuration for
+the CPAN.pm, so if you have used that module a suitable mirror should
+be picked automatically.  If neither of these apply, then a redirect
+to the generic CPAN http location is issued.
+
+Example request to download the newest perl:
+
+  $req = HTTP::Request->new(GET => "cpan:src/latest.tar.gz");
+
 
 =head1 OVERVIEW OF CLASSES AND PACKAGES
 
@@ -574,35 +596,50 @@ better.
 =item PERL_HTTP_URI_CLASS
 
 Used to decide what URI objects to instantiate.  The default is C<URI>.
-You might want to set it to C<URI::URL> for compatiblity with old times.
+You might want to set it to C<URI::URL> for compatibility with old times.
 
 =back
 
-=head1 BUGS
+=head1 AUTHORS
 
-The library can not handle multiple simultaneous requests yet.  Also,
-check out what's left in the TODO file.
+LWP was made possible by contributions from Adam Newby, Albert
+Dvornik, Alexandre Duret-Lutz, Andreas Gustafsson, Andreas König,
+Andrew Pimlott, Andy Lester, Ben Coleman, Benjamin Low, Ben Low, Ben
+Tilly, Blair Zajac, Bob Dalgleish, BooK, Brad Hughes, Brian
+J. Murrell, Brian McCauley, Charles C. Fu, Charles Lane, Chris Nandor,
+Christian Gilmore, Chris W. Unger, Craig Macdonald, Dale Couch, Dan
+Kubb, Dave Dunkin, Dave W. Smith, David Coppit, David Dick, David
+D. Kilzer, Doug MacEachern, Edward Avis, erik, Gary Shea, Gisle Aas,
+Graham Barr, Gurusamy Sarathy, Hans de Graaff, Harald Joerg, Harry
+Bochner, Hugo, Ilya Zakharevich, INOUE Yoshinari, Ivan Panchenko, Jack
+Shirazi, James Tillman, Jan Dubois, Jared Rhine, Jim Stern, Joao
+Lopes, John Klar, Johnny Lee, Josh Kronengold, Josh Rai, Joshua
+Chamas, Joshua Hoblitt, Kartik Subbarao, Keiichiro Nagano, Ken
+Williams, KONISHI Katsuhiro, Lee T Lindley, Liam Quinn, Marc Hedlund,
+Marc Langheinrich, Mark D. Anderson, Marko Asplund, Mark Stosberg,
+Markus B Krüger, Markus Laker, Martijn Koster, Martin Thurn, Matthew
+Eldridge, Matthew.van.Eerde, Matt Sergeant, Michael A. Chase, Michael
+Quaranta, Michael Thompson, Mike Schilli, Moshe Kaminsky, Nathan
+Torkington, Nicolai Langfeldt, Norton Allen, Olly Betts, Paul
+J. Schinder, peterm, Philip GuentherDaniel Buenzli, Pon Hwa Lin,
+Radoslaw Zielinski, Radu Greab, Randal L. Schwartz, Richard Chen,
+Robin Barker, Roy Fielding, Sander van Zoest, Sean M. Burke,
+shildreth, Slaven Rezic, Steve A Fink, Steve Hay, Steven Butler,
+Steve_Kilbane, Takanori Ugai, Thomas Lotterer, Tim Bunce, Tom Hughes,
+Tony Finch, Ville Skyttä, Ward Vandewege, William York, Yale Huang,
+and Yitzchak Scott-Thoennes.
 
-=head1 ACKNOWLEDGEMENTS
-
-This package owes a lot in motivation, design, and code, to the
-libwww-perl library for Perl 4, maintained by Roy Fielding
-E<lt>fielding@ics.uci.edu>.
-
-That package used work from Alberto Accomazzi, James Casey, Brooks
-Cutter, Martijn Koster, Oscar Nierstrasz, Mel Melchner, Gertjan van
-Oosten, Jared Rhine, Jack Shirazi, Gene Spafford, Marc VanHeyningen,
-Steven E. Brenner, Marion Hakanson, Waldemar Kebsch, Tony Sanders, and
-Larry Wall; see the libwww-perl-0.40 library for details.
-
-The primary architect for this Perl 5 library is Martijn Koster and
-Gisle Aas, with lots of help from Graham Barr, Tim Bunce, Andreas
-Koenig, Jared Rhine, and Jack Shirazi.
-
+LWP owes a lot in motivation, design, and code, to the libwww-perl
+library for Perl4 by Roy Fielding, which included work from Alberto
+Accomazzi, James Casey, Brooks Cutter, Martijn Koster, Oscar
+Nierstrasz, Mel Melchner, Gertjan van Oosten, Jared Rhine, Jack
+Shirazi, Gene Spafford, Marc VanHeyningen, Steven E. Brenner, Marion
+Hakanson, Waldemar Kebsch, Tony Sanders, and Larry Wall; see the
+libwww-perl-0.40 library for details.
 
 =head1 COPYRIGHT
 
-  Copyright 1995-2001, Gisle Aas
+  Copyright 1995-2005, Gisle Aas
   Copyright 1995, Martijn Koster
 
 This library is free software; you can redistribute it and/or

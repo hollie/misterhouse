@@ -3,12 +3,89 @@ package HTTP::Headers::Util;
 use strict;
 use vars qw($VERSION @ISA @EXPORT_OK);
 
-($VERSION) = q$Revision$ =~ /: (\d+)/;
+$VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
 
 require Exporter;
 @ISA=qw(Exporter);
 
 @EXPORT_OK=qw(split_header_words join_header_words);
+
+
+
+sub split_header_words
+{
+    my(@val) = @_;
+    my @res;
+    for (@val) {
+	my @cur;
+	while (length) {
+	    if (s/^\s*(=*[^\s=;,]+)//) {  # 'token' or parameter 'attribute'
+		push(@cur, $1);
+		# a quoted value
+		if (s/^\s*=\s*\"([^\"\\]*(?:\\.[^\"\\]*)*)\"//) {
+		    my $val = $1;
+		    $val =~ s/\\(.)/$1/g;
+		    push(@cur, $val);
+		# some unquoted value
+		}
+		elsif (s/^\s*=\s*([^;,\s]*)//) {
+		    my $val = $1;
+		    $val =~ s/\s+$//;
+		    push(@cur, $val);
+		# no value, a lone token
+		}
+		else {
+		    push(@cur, undef);
+		}
+	    }
+	    elsif (s/^\s*,//) {
+		push(@res, [@cur]) if @cur;
+		@cur = ();
+	    }
+	    elsif (s/^\s*;// || s/^\s+//) {
+		# continue
+	    }
+	    else {
+		die "This should not happen: '$_'";
+	    }
+	}
+	push(@res, \@cur) if @cur;
+    }
+    @res;
+}
+
+
+sub join_header_words
+{
+    @_ = ([@_]) if @_ && !ref($_[0]);
+    my @res;
+    for (@_) {
+	my @cur = @$_;
+	my @attr;
+	while (@cur) {
+	    my $k = shift @cur;
+	    my $v = shift @cur;
+	    if (defined $v) {
+		if ($v =~ /[\x00-\x20()<>@,;:\\\"\/\[\]?={}\x7F-\xFF]/ || !length($v)) {
+		    $v =~ s/([\"\\])/\\$1/g;  # escape " and \
+		    $k .= qq(="$v");
+		}
+		else {
+		    # token
+		    $k .= "=$v";
+		}
+	    }
+	    push(@attr, $k);
+	}
+	push(@res, join("; ", @attr)) if @attr;
+    }
+    join(", ", @res);
+}
+
+
+1;
+
+__END__
 
 =head1 NAME
 
@@ -70,56 +147,15 @@ would want.
 
 This is easier to describe with some examples:
 
-   split_header_words('foo="bar"; port="80,81"; discard, bar=baz')
-   split_header_words('text/html; charset="iso-8859-1");
-   split_header_words('Basic realm="\"foo\\bar\""');
+   split_header_words('foo="bar"; port="80,81"; discard, bar=baz');
+   split_header_words('text/html; charset="iso-8859-1"');
+   split_header_words('Basic realm="\\"foo\\\\bar\\""');
 
 will return
 
    [foo=>'bar', port=>'80,81', discard=> undef], [bar=>'baz' ]
    ['text/html' => undef, charset => 'iso-8859-1']
-   [Basic => undef, realm => '"foo\bar"']
-
-=cut
-
-
-sub split_header_words
-{
-    my(@val) = @_;
-    my @res;
-    for (@val) {
-	my @cur;
-	while (length) {
-	    if (s/^\s*(=*[^\s=;,]+)//) {  # 'token' or parameter 'attribute'
-		push(@cur, $1);
-		# a quoted value
-		if (s/^\s*=\s*\"([^\"\\]*(?:\\.[^\"\\]*)*)\"//) {
-		    my $val = $1;
-		    $val =~ s/\\(.)/$1/g;
-		    push(@cur, $val);
-		# some unquoted value
-		} elsif (s/^\s*=\s*([^;,\s]*)//) {
-		    my $val = $1;
-		    $val =~ s/\s+$//;
-		    push(@cur, $val);
-		# no value, a lone token
-		} else {
-		    push(@cur, undef);
-		}
-	    } elsif (s/^\s*,//) {
-		push(@res, [@cur]) if @cur;
-		@cur = ();
-	    } elsif (s/^\s*;// || s/^\s+//) {
-		# continue
-	    } else {
-		die "This should not happen: '$_'";
-	    }
-	}
-	push(@res, \@cur) if @cur;
-    }
-    @res;
-}
-
+   [Basic => undef, realm => "\"foo\\bar\""]
 
 =item join_header_words( @arrays )
 
@@ -137,37 +173,6 @@ will both return the string:
 
    text/plain; charset="iso-8859/1"
 
-=cut
-
-sub join_header_words
-{
-    @_ = ([@_]) if @_ && !ref($_[0]);
-    my @res;
-    for (@_) {
-	my @cur = @$_;
-	my @attr;
-	while (@cur) {
-	    my $k = shift @cur;
-	    my $v = shift @cur;
-	    if (defined $v) {
-		if ($v =~ /^\w+$/) {
-		    $k .= "=$v";
-		} else {
-		    $v =~ s/([\"\\])/\\$1/g;  # escape " and \
-		    $k .= qq(="$v");
-		}
-	    }
-	    push(@attr, $k);
-	}
-	push(@res, join("; ", @attr)) if @attr;
-    }
-    join(", ", @res);
-}
-
-1;
-
-__END__
-
 =back
 
 =head1 COPYRIGHT
@@ -177,4 +182,3 @@ Copyright 1997-1998, Gisle Aas
 This library is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
 
-=cut

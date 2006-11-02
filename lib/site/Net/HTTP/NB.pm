@@ -5,7 +5,7 @@ package Net::HTTP::NB;
 use strict;
 use vars qw($VERSION @ISA);
 
-$VERSION = "0.02";
+$VERSION = "0.03";
 require Net::HTTP;
 @ISA=qw(Net::HTTP);
 
@@ -59,7 +59,7 @@ Net::HTTP::NB - Non-blocking HTTP client
 =head1 SYNOPSIS
 
  use Net::HTTP::NB;
- my $s = Net::HTTP::NB->new(Host => "www.perl.com) || die $@;
+ my $s = Net::HTTP::NB->new(Host => "www.perl.com") || die $@;
  $s->write_request(GET => "/");
 
  use IO::Select;

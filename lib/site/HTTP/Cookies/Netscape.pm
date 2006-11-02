@@ -3,8 +3,7 @@ package HTTP::Cookies::Netscape;
 use strict;
 use vars qw(@ISA $VERSION);
 
-($VERSION) = q$Revision$ =~ /: (\d+)/;
-
+$VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
 
 require HTTP::Cookies;
 @ISA=qw(HTTP::Cookies);
@@ -100,14 +99,16 @@ Please note that the Netscape/Mozilla cookie file format can't store
 all the information available in the Set-Cookie2 headers, so you will
 probably lose some information if you save in this format.
 
-=head1 TO DO
+At time of writing, this module seems to work fine with Mozilla      
+Phoenix/Firebird.
 
-Might someone write a class for MSIE cookies? Or at least for reading
-them?
+=head1 SEE ALSO
+
+L<HTTP::Cookies::Microsoft>
 
 =head1 COPYRIGHT
 
-Copyright 2002 Gisle Aas
+Copyright 2002-2003 Gisle Aas
 
 This library is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

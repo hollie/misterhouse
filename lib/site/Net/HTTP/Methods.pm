@@ -7,7 +7,7 @@ require 5.005;  # 4-arg substr
 use strict;
 use vars qw($VERSION);
 
-$VERSION = "1.00";
+$VERSION = "1.02";
 
 my $CRLF = "\015\012";   # "\r\n" is not portable
 
@@ -22,12 +22,13 @@ sub http_configure {
     my($self, $cnf) = @_;
 
     die "Listen option not allowed" if $cnf->{Listen};
+    my $explict_host = (exists $cnf->{Host});
     my $host = delete $cnf->{Host};
     my $peer = $cnf->{PeerAddr} || $cnf->{PeerHost};
     if ($host) {
 	$cnf->{PeerAddr} = $host unless $peer;
     }
-    else {
+    elsif (!$explict_host) {
 	$host = $peer;
 	$host =~ s/:.*//;
     }
@@ -47,9 +48,9 @@ sub http_configure {
 
     return undef unless $self->http_connect($cnf);
 
-    unless ($host =~ /:/) {
+    if ($host && $host !~ /:/) {
 	my $p = $self->peerport;
-	$host .= ":$p";
+	$host .= ":$p" if $p != $self->http_default_port;
     }
     $self->host($host);
     $self->keep_alive($keep_alive);
@@ -119,6 +120,8 @@ sub format_request {
 	my($k, $v) = splice(@_, 0, 2);
 	my $lc_k = lc($k);
 	if ($lc_k eq "connection") {
+	    $v =~ s/^\s+//;
+	    $v =~ s/\s+$//;
 	    push(@connection, split(/\s*,\s*/, $v));
 	    next;
 	}
@@ -156,7 +159,10 @@ sub format_request {
 	}
     }
     push(@h2, "Connection: " . join(", ", @connection)) if @connection;
-    push(@h2, "Host: ${*$self}{'http_host'}") unless $given{host};
+    unless ($given{host}) {
+	my $h = ${*$self}{'http_host'};
+	push(@h2, "Host: $h") if $h;
+    }
 
     return join($CRLF, "$method $uri HTTP/$ver", @h2, @h, "", $content);
 }
@@ -297,12 +303,7 @@ sub read_response_headers {
 
     my($status, $eol) = my_readline($self);
     unless (defined $status) {
-	die "EOF instead of response status line" unless $laxed;
-	# assume HTTP/0.9
-	${*$self}{'http_peer_http_version'} = "0.9";
-	${*$self}{'http_status'} = "200";
-	return 200 unless wantarray;
-	return (200, "EOF");
+	die "Server closed connection without sending any data back";
     }
 
     my($peer_ver, $code, $message) = split(/\s+/, $status, 3);
@@ -311,7 +312,7 @@ sub read_response_headers {
 	# assume HTTP/0.9
 	${*$self}{'http_peer_http_version'} = "0.9";
 	${*$self}{'http_status'} = "200";
-	substr(${*$self}{'http_buf'}, 0, 0) = $status . $eol;
+	substr(${*$self}{'http_buf'}, 0, 0) = $status . ($eol || "");
 	return 200 unless wantarray;
 	return (200, "Assumed OK");
     };
@@ -331,10 +332,16 @@ sub read_response_headers {
     for (my $i = 0; $i < @headers; $i += 2) {
 	my $h = lc($headers[$i]);
 	if ($h eq 'transfer-encoding') {
-	    push(@te, $headers[$i+1]);
+	    my $te = $headers[$i+1];
+	    $te =~ s/^\s+//;
+	    $te =~ s/\s+$//;
+	    push(@te, $te) if length($te);
 	}
 	elsif ($h eq 'content-length') {
-	    $content_length = $headers[$i+1];
+	    # ignore bogus and overflow values
+	    if ($headers[$i+1] =~ /^\s*(\d{1,15})(?:\s|$)/) {
+		$content_length = $1;
+	    }
 	}
     }
     ${*$self}{'http_te'} = join(",", @te);
@@ -423,9 +430,11 @@ sub read_entity_body {
 	if ($chunked <= 0) {
 	    my $line = my_readline($self);
 	    if ($chunked == 0) {
-		die "Missing newline after chunk data: '$line'" unless $line eq "";
+		die "Missing newline after chunk data: '$line'"
+		    if !defined($line) || $line ne "";
 		$line = my_readline($self);
 	    }
+	    die "EOF when chunk header expected" unless defined($line);
 	    my $chunk_len = $line;
 	    $chunk_len =~ s/;.*//;  # ignore potential chunk parameters
 	    unless ($chunk_len =~ /^([\da-fA-F]+)\s*$/) {

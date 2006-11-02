@@ -1,6 +1,6 @@
 # Net::SMTP.pm
 #
-# Copyright (c) 1995-1997 Graham Barr <gbarr@ti.com>. All rights reserved.
+# Copyright (c) 1995-2004 Graham Barr <gbarr@pobox.com>. All rights reserved.
 # This program is free software; you can redistribute it and/or
 # modify it under the same terms as Perl itself.
 
@@ -16,7 +16,7 @@ use IO::Socket;
 use Net::Cmd;
 use Net::Config;
 
-$VERSION = do { my @r=(q$Revision$=~/\d+/g); sprintf "%d."."%02d"x$#r,@r};
+$VERSION = "2.29";
 
 @ISA = qw(Net::Cmd IO::Socket::INET);
 
@@ -24,16 +24,24 @@ sub new
 {
  my $self = shift;
  my $type = ref($self) || $self;
- my $host = shift if @_ % 2;
- my %arg  = @_; 
- my $hosts = defined $host ? [ $host ] : $NetConfig{smtp_hosts};
+ my ($host,%arg);
+ if (@_ % 2) {
+   $host = shift ;
+   %arg  = @_;
+ } else {
+   %arg = @_;
+   $host=delete $arg{Host};
+ }
+ my $hosts = defined $host ? $host : $NetConfig{smtp_hosts};
  my $obj;
 
  my $h;
- foreach $h (@{$hosts})
+ foreach $h (@{ref($hosts) ? $hosts : [ $hosts ]})
   {
    $obj = $type->SUPER::new(PeerAddr => ($host = $h), 
 			    PeerPort => $arg{Port} || 'smtp(25)',
+			    LocalAddr => $arg{LocalAddr},
+			    LocalPort => $arg{LocalPort},
 			    Proto    => 'tcp',
 			    Timeout  => defined $arg{Timeout}
 						? $arg{Timeout}
@@ -50,22 +58,40 @@ sub new
 
  unless ($obj->response() == CMD_OK)
   {
-   $obj->SUPER::close();
+   $obj->close();
    return undef;
   }
 
+ ${*$obj}{'net_smtp_exact_addr'} = $arg{ExactAddresses};
  ${*$obj}{'net_smtp_host'} = $host;
 
+ (${*$obj}{'net_smtp_banner'}) = $obj->message;
  (${*$obj}{'net_smtp_domain'}) = $obj->message =~ /\A\s*(\S+)/;
 
- $obj->hello($arg{Hello} || "");
+ unless($obj->hello($arg{Hello} || ""))
+  {
+   $obj->close();
+   return undef;
+  }
 
  $obj;
+}
+
+sub host {
+ my $me = shift;
+ ${*$me}{'net_smtp_host'};
 }
 
 ##
 ## User interface methods
 ##
+
+sub banner
+{
+ my $me = shift;
+
+ return ${*$me}{'net_smtp_banner'} || undef;
+}
 
 sub domain
 {
@@ -74,59 +100,123 @@ sub domain
  return ${*$me}{'net_smtp_domain'} || undef;
 }
 
+sub etrn {
+    my $self = shift;
+    defined($self->supports('ETRN',500,["Command unknown: 'ETRN'"])) &&
+	$self->_ETRN(@_);
+}
+
+sub auth {
+    my ($self, $username, $password) = @_;
+
+    eval {
+	require MIME::Base64;
+	require Authen::SASL;
+    } or $self->set_status(500,["Need MIME::Base64 and Authen::SASL todo auth"]), return 0;
+
+    my $mechanisms = $self->supports('AUTH',500,["Command unknown: 'AUTH'"]);
+    return unless defined $mechanisms;
+
+    my $sasl;
+
+    if (ref($username) and UNIVERSAL::isa($username,'Authen::SASL')) {
+      $sasl = $username;
+      $sasl->mechanism($mechanisms);
+    }
+    else {
+      die "auth(username, password)" if not length $username;
+      $sasl = Authen::SASL->new(mechanism=> $mechanisms,
+				callback => { user => $username,
+                                              pass => $password,
+					      authname => $username,
+                                            });
+    }
+
+    # We should probably allow the user to pass the host, but I don't
+    # currently know and SASL mechanisms that are used by smtp that need it
+    my $client = $sasl->client_new('smtp',${*$self}{'net_smtp_host'},0);
+    my $str    = $client->client_start;
+    # We dont support sasl mechanisms that encrypt the socket traffic.
+    # todo that we would really need to change the ISA hierarchy
+    # so we dont inherit from IO::Socket, but instead hold it in an attribute
+
+    my @cmd = ("AUTH", $client->mechanism);
+    my $code;
+
+    push @cmd, MIME::Base64::encode_base64($str,'')
+      if defined $str and length $str;
+
+    while (($code = $self->command(@cmd)->response()) == CMD_MORE) {
+      @cmd = (MIME::Base64::encode_base64(
+	$client->client_step(
+	  MIME::Base64::decode_base64(
+	    ($self->message)[0]
+	  )
+	), ''
+      ));
+    }
+
+    $code == CMD_OK;
+}
+
 sub hello
 {
  my $me = shift;
- my $domain = shift ||
-	      eval {
-		    require Net::Domain;
-		    Net::Domain::hostfqdn();
-		   } ||
-		"";
+ my $domain = shift || "localhost.localdomain";
  my $ok = $me->_EHLO($domain);
- my $msg;
+ my @msg = $me->message;
 
  if($ok)
   {
-   $msg = $me->message;
-
    my $h = ${*$me}{'net_smtp_esmtp'} = {};
-   my $ext;
-   foreach $ext (qw(8BITMIME CHECKPOINT DSN SIZE))
-    {
-     $h->{$ext} = 1
-	if $msg =~ /\b${ext}\b/;
+   my $ln;
+   foreach $ln (@msg) {
+     $h->{uc $1} = $2
+	if $ln =~ /(\w+)\b[= \t]*([^\n]*)/;
     }
   }
- else
+ elsif($me->status == CMD_ERROR) 
   {
-   $msg = $me->message
-	if $me->_HELO($domain);
+   @msg = $me->message
+	if $ok = $me->_HELO($domain);
   }
 
- $ok && $msg =~ /\A(\S+)/
-	? $1
-	: undef;
+ return undef unless $ok;
+
+ $msg[0] =~ /\A\s*(\S+)/;
+ return ($1 || " ");
 }
 
-sub _addr
-{
- my $addr = shift || "";
-
- return $1
-    if $addr =~ /(<[^>]+>)/so;
-
- $addr =~ s/\n/ /sog;
- $addr =~ s/(\A\s+|\s+\Z)//sog;
-
- return "<" . $addr . ">";
+sub supports {
+    my $self = shift;
+    my $cmd = uc shift;
+    return ${*$self}{'net_smtp_esmtp'}->{$cmd}
+	if exists ${*$self}{'net_smtp_esmtp'}->{$cmd};
+    $self->set_status(@_)
+	if @_;
+    return;
 }
 
+sub _addr {
+  my $self = shift;
+  my $addr = shift;
+  $addr = "" unless defined $addr;
+
+  if (${*$self}{'net_smtp_exact_addr'}) {
+    return $1 if $addr =~ /^\s*(<.*>)\s*$/s;
+  }
+  else {
+    return $1 if $addr =~ /(<[^>]*>)/;
+    $addr =~ s/^\s+|\s+$//sg;
+  }
+
+  "<$addr>";
+}
 
 sub mail
 {
  my $me = shift;
- my $addr = _addr(shift);
+ my $addr = _addr($me, shift);
  my $opts = "";
 
  if(@_)
@@ -154,7 +244,7 @@ sub mail
       {
        if(exists $esmtp->{DSN})
         {
-	 $opts .= " RET=" . uc $v
+	 $opts .= " RET=" . ((uc($v) eq "FULL") ? "FULL" : "HDRS");
         }
        else
         {
@@ -164,13 +254,36 @@ sub mail
 
      if(defined($v = delete $opt{Bits}))
       {
-       if(exists $esmtp->{'8BITMIME'})
+       if($v eq "8")
         {
-	 $opts .= $v == 8 ? " BODY=8BITMIME" : " BODY=7BIT"
+         if(exists $esmtp->{'8BITMIME'})
+          {
+	 $opts .= " BODY=8BITMIME";
+          }
+         else
+          {
+	 carp 'Net::SMTP::mail: 8BITMIME option not supported by host';
+          }
+        }
+       elsif($v eq "binary")
+        {
+         if(exists $esmtp->{'BINARYMIME'} && exists $esmtp->{'CHUNKING'})
+          {
+   $opts .= " BODY=BINARYMIME";
+   ${*$me}{'net_smtp_chunking'} = 1;
+          }
+         else
+          {
+   carp 'Net::SMTP::mail: BINARYMIME option not supported by host';
+          }
+        }
+       elsif(exists $esmtp->{'8BITMIME'} or exists $esmtp->{'BINARYMIME'})
+        {
+   $opts .= " BODY=7BIT";
         }
        else
         {
-	 carp 'Net::SMTP::mail: 8BITMIME option not supported by host';
+   carp 'Net::SMTP::mail: 8BITMIME and BINARYMIME options not supported by host';
         }
       }
 
@@ -178,7 +291,7 @@ sub mail
       {
        if(exists $esmtp->{CHECKPOINT})
         {
-	 $opts .= " TRANSID=" . _addr($v);
+	 $opts .= " TRANSID=" . _addr($me, $v);
         }
        else
         {
@@ -199,6 +312,18 @@ sub mail
         }
       }
 
+     if(defined($v = delete $opt{XVERP}))
+      {
+       if(exists $esmtp->{'XVERP'})
+        {
+	 $opts .= " XVERP"
+        }
+       else
+        {
+	 carp 'Net::SMTP::mail: XVERP option not supported by host';
+        }
+      }
+
      carp 'Net::SMTP::recipient: unknown option(s) '
 		. join(" ", keys %opt)
 		. ' - ignored'
@@ -213,9 +338,9 @@ sub mail
  $me->_MAIL("FROM:".$addr.$opts);
 }
 
-sub send	  { shift->_SEND("FROM:" . _addr($_[0])) }
-sub send_or_mail  { shift->_SOML("FROM:" . _addr($_[0])) }
-sub send_and_mail { shift->_SAML("FROM:" . _addr($_[0])) }
+sub send	  { my $me = shift; $me->_SEND("FROM:" . _addr($me, $_[0])) }
+sub send_or_mail  { my $me = shift; $me->_SOML("FROM:" . _addr($me, $_[0])) }
+sub send_and_mail { my $me = shift; $me->_SAML("FROM:" . _addr($me, $_[0])) }
 
 sub reset
 {
@@ -231,13 +356,15 @@ sub reset
 sub recipient
 {
  my $smtp = shift;
- my $ok = 1;
  my $opts = "";
+ my $skip_bad = 0;
 
  if(@_ && ref($_[-1]))
   {
    my %opt = %{pop(@_)};
    my $v;
+
+   $skip_bad = delete $opt{'SkipBad'};
 
    if(exists ${*$smtp}{'net_smtp_esmtp'})
     {
@@ -260,30 +387,88 @@ sub recipient
 		. ' - ignored'
 	if scalar keys %opt;
     }
-   else
+   elsif(%opt)
     {
      carp 'Net::SMTP::recipient: ESMTP not supported by host - options discarded :-(';
     }
   }
 
- while($ok && scalar(@_))
+ my @ok;
+ my $addr;
+ foreach $addr (@_) 
   {
-   $ok = $smtp->_RCPT("TO:" . _addr(shift) . $opts);
+    if($smtp->_RCPT("TO:" . _addr($smtp, $addr) . $opts)) {
+      push(@ok,$addr) if $skip_bad;
+    }
+    elsif(!$skip_bad) {
+      return 0;
+    }
   }
 
- return $ok;
+ return $skip_bad ? @ok : 1;
 }
 
-sub to { shift->recipient(@_) }
+BEGIN {
+  *to  = \&recipient;
+  *cc  = \&recipient;
+  *bcc = \&recipient;
+}
 
 sub data
 {
  my $me = shift;
 
- my $ok = $me->_DATA() && $me->datasend(@_);
+ if(exists ${*$me}{'net_smtp_chunking'})
+  {
+   carp 'Net::SMTP::data: CHUNKING extension in use, must call bdat instead';
+  }
+ else
+  {
+   my $ok = $me->_DATA() && $me->datasend(@_);
 
- $ok && @_ ? $me->dataend
-	   : $ok;
+   $ok && @_ ? $me->dataend
+	     : $ok;
+  }
+}
+
+sub bdat
+{
+ my $me = shift;
+
+ if(exists ${*$me}{'net_smtp_chunking'})
+  {
+   my $data = shift;
+
+   $me->_BDAT(length $data) && $me->rawdatasend($data) &&
+     $me->response() == CMD_OK;
+  }
+ else
+  {
+   carp 'Net::SMTP::bdat: CHUNKING extension is not in use, call data instead';
+  }
+}
+
+sub bdatlast
+{
+ my $me = shift;
+
+ if(exists ${*$me}{'net_smtp_chunking'})
+  {
+   my $data = shift;
+
+   $me->_BDAT(length $data, "LAST") && $me->rawdatasend($data) &&
+     $me->response() == CMD_OK;
+  }
+ else
+  {
+   carp 'Net::SMTP::bdat: CHUNKING extension is not in use, call data instead';
+  }
+}
+
+sub datafh {
+  my $me = shift;
+  return unless $me->_DATA();
+  return $me->tied_fh;
 }
 
 sub expand
@@ -305,18 +490,18 @@ sub help
 	        : undef;
 }
 
-sub close
+sub quit
 {
  my $me = shift;
 
- return 1
-   unless (ref($me) && defined fileno($me));
-
- $me->_QUIT && $me->SUPER::close;
+ $me->_QUIT;
+ $me->close;
 }
 
-sub DESTROY { shift->close }
-sub quit    { shift->close }
+sub DESTROY
+{
+# ignore
+}
 
 ##
 ## RFC821 commands
@@ -336,7 +521,10 @@ sub _RSET { shift->command("RSET")->response()	    == CMD_OK }
 sub _NOOP { shift->command("NOOP")->response()	    == CMD_OK }   
 sub _QUIT { shift->command("QUIT")->response()	    == CMD_OK }   
 sub _DATA { shift->command("DATA")->response()	    == CMD_MORE } 
+sub _BDAT { shift->command("BDAT", @_) }
 sub _TURN { shift->unsupported(@_); } 			   	  
+sub _ETRN { shift->command("ETRN", @_)->response()  == CMD_OK }
+sub _AUTH { shift->command("AUTH", @_)->response()  == CMD_OK }   
 
 1;
 
@@ -349,7 +537,7 @@ Net::SMTP - Simple Mail Transfer Protocol Client
 =head1 SYNOPSIS
 
     use Net::SMTP;
-    
+
     # Constructors
     $smtp = Net::SMTP->new('mailhost');
     $smtp = Net::SMTP->new('mailhost', Timeout => 60);
@@ -371,9 +559,9 @@ The Net::SMTP class is a subclass of Net::Cmd and IO::Socket::INET.
 This example prints the mail domain name of the SMTP server known as mailhost:
 
     #!/usr/local/bin/perl -w
-    
+
     use Net::SMTP;
-    
+
     $smtp = Net::SMTP->new('mailhost');
     print $smtp->domain,"\n";
     $smtp->quit;
@@ -382,43 +570,56 @@ This example sends a small message to the postmaster at the SMTP server
 known as mailhost:
 
     #!/usr/local/bin/perl -w
-    
+
     use Net::SMTP;
-    
+
     $smtp = Net::SMTP->new('mailhost');
-    
+
     $smtp->mail($ENV{USER});
     $smtp->to('postmaster');
-    
+
     $smtp->data();
     $smtp->datasend("To: postmaster\n");
     $smtp->datasend("\n");
     $smtp->datasend("A simple test message\n");
     $smtp->dataend();
-    
+
     $smtp->quit;
 
 =head1 CONSTRUCTOR
 
 =over 4
 
-=item new Net::SMTP [ HOST, ] [ OPTIONS ]
+=item new ( [ HOST ] [, OPTIONS ] )
 
 This is the constructor for a new Net::SMTP object. C<HOST> is the
-name of the remote host to which a SMTP connection is required.
+name of the remote host to which an SMTP connection is required.
 
-If C<HOST> is not given, then the C<SMTP_Host> specified in C<Net::Config>
-will be used.
+C<HOST> is optional. If C<HOST> is not given then it may instead be
+passed as the C<Host> option described below. If neither is given then
+the C<SMTP_Hosts> specified in C<Net::Config> will be used.
 
 C<OPTIONS> are passed in a hash like fashion, using key and value pairs.
 Possible options are:
 
 B<Hello> - SMTP requires that you identify yourself. This option
-specifies a string to pass as your mail domain. If not
-given a guess will be taken.
+specifies a string to pass as your mail domain. If not given localhost.localdomain
+will be used.
+
+B<Host> - SMTP host to connect to. It may be a single scalar, as defined for
+the C<PeerAddr> option in L<IO::Socket::INET>, or a reference to
+an array with hosts to try in turn. The L</host> method will return the value
+which was used to connect to the host.
+
+B<LocalAddr> and B<LocalPort> - These parameters are passed directly
+to IO::Socket to allow binding the socket to a local port.
 
 B<Timeout> - Maximum time, in seconds, to wait for a response from the
 SMTP server (default: 120)
+
+B<ExactAddresses> - If true the all ADDRESS arguments must be as
+defined by C<addr-spec> in RFC2822. If not given, or false, then
+Net::SMTP will attempt to extract the address from the value passed.
 
 B<Debug> - Enable debugging information
 
@@ -432,6 +633,22 @@ Example:
                            Debug   => 1,
 			  );
 
+    # the same
+    $smtp = Net::SMTP->new(
+			   Host => 'mailhost',
+			   Hello => 'my.mail.domain'
+			   Timeout => 30,
+                           Debug   => 1,
+			  );
+
+    # Connect to the default server from Net::config
+    $smtp = Net::SMTP->new(
+			   Hello => 'my.mail.domain'
+			   Timeout => 30,
+			  );
+
+=back
+
 =head1 METHODS
 
 Unless otherwise stated all methods return either a I<true> or I<false>
@@ -440,6 +657,11 @@ states that it returns a value, failure will be returned as I<undef> or an
 empty list.
 
 =over 4
+
+=item banner ()
+
+Returns the banner message which the server replied with when the
+initial connection was made.
 
 =item domain ()
 
@@ -452,6 +674,19 @@ Tell the remote server the mail domain which you are in using the EHLO
 command (or HELO if EHLO fails).  Since this method is invoked
 automatically when the Net::SMTP object is constructed the user should
 normally not have to call it manually.
+
+=item host ()
+
+Returns the value used by the constructor, and passed to IO::Socket::INET,
+to connect to the host.
+
+=item etrn ( DOMAIN )
+
+Request a queue run for the DOMAIN given.
+
+=item auth ( USERNAME, PASSWORD )
+
+Attempt SASL authentication.
 
 =item mail ( ADDRESS [, OPTIONS] )
 
@@ -470,11 +705,14 @@ The C<mail> method can some additional ESMTP OPTIONS which is passed
 in hash like fashion, using key and value pairs.  Possible options are:
 
  Size        => <bytes>
- Return      => <???>
- Bits        => "7" | "8"
+ Return      => "FULL" | "HDRS"
+ Bits        => "7" | "8" | "binary"
  Transaction => <ADDRESS>
  Envelope    => <ENVID>
+ XVERP       => 1
 
+The C<Return> and C<Envelope> parameters are used for DSN (Delivery
+Status Notification).
 
 =item reset ()
 
@@ -482,17 +720,71 @@ Reset the status of the server. This may be called after a message has been
 initiated, but before any data has been sent, to cancel the sending of the
 message.
 
-=item recipient ( ADDRESS [, ADDRESS [ ...]] )
+=item recipient ( ADDRESS [, ADDRESS, [...]] [, OPTIONS ] )
 
 Notify the server that the current message should be sent to all of the
 addresses given. Each address is sent as a separate command to the server.
-Should the sending of any address result in a failure then the
-process is aborted and a I<false> value is returned. It is up to the
-user to call C<reset> if they so desire.
+Should the sending of any address result in a failure then the process is
+aborted and a I<false> value is returned. It is up to the user to call
+C<reset> if they so desire.
+
+The C<recipient> method can also pass additional case-sensitive OPTIONS as an
+anonymous hash using key and value pairs.  Possible options are:
+
+  Notify  => ['NEVER'] or ['SUCCESS','FAILURE','DELAY']  (see below)
+  SkipBad => 1        (to ignore bad addresses)
+
+If C<SkipBad> is true the C<recipient> will not return an error when a bad
+address is encountered and it will return an array of addresses that did
+succeed.
+
+  $smtp->recipient($recipient1,$recipient2);  # Good
+  $smtp->recipient($recipient1,$recipient2, { SkipBad => 1 });  # Good
+  $smtp->recipient($recipient1,$recipient2, { Notify => ['FAILURE','DELAY'], SkipBad => 1 });  # Good
+  @goodrecips=$smtp->recipient(@recipients, { Notify => ['FAILURE'], SkipBad => 1 });  # Good
+  $smtp->recipient("$recipient,$recipient2"); # BAD
+
+Notify is used to request Delivery Status Notifications (DSNs), but your
+SMTP/ESMTP service may not respect this request depending upon its version and
+your site's SMTP configuration.
+
+Leaving out the Notify option usually defaults an SMTP service to its default
+behavior equivalent to ['FAILURE'] notifications only, but again this may be
+dependent upon your site's SMTP configuration.
+
+The NEVER keyword must appear by itself if used within the Notify option and "requests
+that a DSN not be returned to the sender under any conditions."
+
+  {Notify => ['NEVER']}
+
+  $smtp->recipient(@recipients, { Notify => ['NEVER'], SkipBad => 1 });  # Good
+
+You may use any combination of these three values 'SUCCESS','FAILURE','DELAY' in
+the anonymous array reference as defined by RFC3461 (see http://rfc.net/rfc3461.html
+for more information.  Note: quotations in this topic from same.).
+
+A Notify parameter of 'SUCCESS' or 'FAILURE' "requests that a DSN be issued on
+successful delivery or delivery failure, respectively."
+
+A Notify parameter of 'DELAY' "indicates the sender's willingness to receive
+delayed DSNs.  Delayed DSNs may be issued if delivery of a message has been
+delayed for an unusual amount of time (as determined by the Message Transfer
+Agent (MTA) at which the message is delayed), but the final delivery status
+(whether successful or failure) cannot be determined.  The absence of the DELAY
+keyword in a NOTIFY parameter requests that a "delayed" DSN NOT be issued under
+any conditions."
+
+  {Notify => ['SUCCESS','FAILURE','DELAY']}
+
+  $smtp->recipient(@recipients, { Notify => ['FAILURE','DELAY'], SkipBad => 1 });  # Good
 
 =item to ( ADDRESS [, ADDRESS [...]] )
 
-A synonym for C<recipient>.
+=item cc ( ADDRESS [, ADDRESS [...]] )
+
+=item bcc ( ADDRESS [, ADDRESS [...]] )
+
+Synonyms for C<recipient>.
 
 =item data ( [ DATA ] )
 
@@ -508,12 +800,15 @@ and C<dataend> methods described in L<Net::Cmd>.
 
 =item expand ( ADDRESS )
 
-Request the server to expand the given address Returns a reference to an array
+Request the server to expand the given address Returns an array
 which contains the text read from the server.
 
 =item verify ( ADDRESS )
 
 Verify that C<ADDRESS> is a legitimate mailing address.
+
+Most sites usually disable this feature in their SMTP service configuration.
+Use "Debug => 1" option under new() to see if disabled.
 
 =item help ( [ $subject ] )
 
@@ -525,17 +820,33 @@ Send the QUIT command to the remote SMTP server and close the socket connection.
 
 =back
 
+=head1 ADDRESSES
+
+Net::SMTP attempts to DWIM with addresses that are passed. For
+example an application might extract The From: line from an email
+and pass that to mail(). While this may work, it is not reccomended.
+The application should really use a module like L<Mail::Address>
+to extract the mail address and pass that.
+
+If C<ExactAddresses> is passed to the contructor, then addresses
+should be a valid rfc2821-quoted address, although Net::SMTP will
+accept accept the address surrounded by angle brackets.
+
+ funny user@domain      WRONG
+ "funny user"@domain    RIGHT, recommended
+ <"funny user"@domain>  OK
+
 =head1 SEE ALSO
 
 L<Net::Cmd>
 
 =head1 AUTHOR
 
-Graham Barr <gbarr@ti.com>
+Graham Barr <gbarr@pobox.com>
 
 =head1 COPYRIGHT
 
-Copyright (c) 1995-1997 Graham Barr. All rights reserved.
+Copyright (c) 1995-2004 Graham Barr. All rights reserved.
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
 

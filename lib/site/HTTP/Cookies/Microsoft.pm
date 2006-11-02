@@ -4,8 +4,7 @@ use strict;
 
 use vars qw(@ISA $VERSION);
 
-($VERSION) = q$Revision$ =~ /: (\d+)/;
-
+$VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
 
 require HTTP::Cookies;
 @ISA=qw(HTTP::Cookies);
@@ -57,6 +56,7 @@ sub load_cookies_from_file
 sub get_user_name
 {
 	use Win32;
+	use locale;
 	my $user = lc(Win32::LoginName());
 
 	return $user;
@@ -274,7 +274,7 @@ HTTP::Cookies::Microsoft - access to Microsoft cookies files
       {"CUser/Software/Microsoft/Windows/CurrentVersion/Explorer/Shell Folders/Cookies"};
 
  $cookie_jar = HTTP::Cookies::Microsoft->new(
-                   File     => "$cookies_dir\\index.dat",
+                   file     => "$cookies_dir\\index.dat",
                    'delayload' => 1,
                );
  my $browser = LWP::UserAgent->new;
@@ -287,6 +287,26 @@ loads Microsoft Internet Explorer 5.x and 6.x for Windows (MSIE)
 cookie files.
 
 See the documentation for L<HTTP::Cookies>.
+
+=head1 METHODS
+
+The following methods are provided:
+
+=over 4
+
+=item $cookie_jar = HTTP::Cookies::Microsoft->new;
+
+The constructor takes hash style parameters. In addition
+to the regular HTTP::Cookies parameters, HTTP::Cookies::Microsoft
+recognizes the following:
+
+  delayload:       delay loading of cookie data until a request
+                   is actually made. This results in faster
+                   runtime unless you use most of the cookies
+                   since only the domain's cookie data
+                   is loaded on demand.
+
+=back
 
 =head1 CAVEATS
 
