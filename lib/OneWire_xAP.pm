@@ -473,7 +473,7 @@ sub check_tied_state_conditions {
       next if (defined $self->state && $$self{tied_state_conditions}{$condition} eq $self->state); 
       # expose vars for evaluating the condition
       my $measurement = $self->measurement;
-      my $measurement_change = $self->{m_measurement_change};
+      my $measurement_change = abs($self->{m_measurement_change});
       my $time_since_previous = $self->{m_time_since_previous};
       my $recent_change_rate = $self->get_average_change_rate(3);
       my $state = $self->state;
@@ -517,7 +517,7 @@ sub check_tied_event_conditions {
       next if (defined $self->state && $$self{tied_event_conditions}{$condition} eq $self->state); 
       # expose vars for evaluating the condition
       my $measurement = $self->measurement;
-      my $measurement_change = $self->{m_measurement_change};
+      my $measurement_change = abs($self->{m_measurement_change});
       my $time_since_previous = $self->{m_time_since_previous};
       my $recent_change_rate = $self->get_average_change_rate(3);
       my $state = $self->state;
