@@ -227,6 +227,8 @@ Usage:
 		$recent_change_rate - the average change rate over the last three samples
 		$state - the state of the item
 
+        measurement_change - returns the most current change of measurement values
+
 	untie_state_condition(condition) - unregisters condition.  Unregisters all 
 		conditions if condition is not provided.
 
@@ -357,6 +359,11 @@ sub get_average_change_rate {
 	} else {
 		return undef;
 	}
+}
+
+sub measurement_change {
+   my ($self) = @_;
+   return $$self{m_measurement_change};
 }
 
 sub weather_to_rrd {
