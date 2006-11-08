@@ -1,4 +1,7 @@
 #!/usr/local/bin/perl -w
+# 
+# $Date$
+# $Revision$
 # ----------------------------------------------------------------------------
 # tasks.pl
 # Copyright (c) 2001 Jason M. Hinkle. All rights reserved. This script is
@@ -12,12 +15,15 @@
 # or indirectly caused by this software.
 # 
 # Version History
-# 1.4.7 - 02/15/02 - fixed FNF error & improved error reporting
-# 1.4.6 - 10/02/01 - fixed bug viewing pages in "show all" mode
-# 1.4.5 - 08/22/01 - added file locking
-# 1.4.4 - 08/05/01 - handle missing datafiles gracefully 
+# 1.4.8-2 - 08/30/06 - minor fixes
+# 1.4.8-1 - 07/24/06 - added control over speech events
+# 1.4.8   - 05/06/06 - added vsPS for changing page size
+# 1.4.7   - 02/15/02 - fixed FNF error & improved error reporting
+# 1.4.6   - 10/02/01 - fixed bug viewing pages in "show all" mode
+# 1.4.5   - 08/22/01 - added file locking
+# 1.4.4   - 08/05/01 - handle missing datafiles gracefully 
 # ----------------------------------------------------------------------------
-my $VERSION = "1.4.7";
+my $VERSION = "1.4.8-2";
 
 BEGIN {
 #	$SIG{__WARN__} = \&FatalError;
@@ -132,6 +138,7 @@ my ($filePath) = $ENV{"CWD"} . "/" . $fileName;
 $filePath = "$config_parms{organizer_dir}/$fileName";
 my ($activePage) = $objCGI->param('vsAP') || "1";
 my ($sortField) = $objCGI->param('vsSORT') || "";
+my ($pageSize) = $objCGI->param('vsPS') if $objCGI->param('vsPS');
 
 
 print "<form action='" . $scriptName . "' method='post'>\n";
@@ -178,22 +185,23 @@ if ($command eq "EDIT") {
 	PrintAllRecords($objDB);
 } else {
 	PrintAllRecords($objDB);
+        print "<b><font face='arial' size='2'><a href='$scriptName" . PassThrough("vsCOM","ADD") . "'>Add New Task</a></font></b>\n";
+	if ($showCompleted) {
+	   print "| <b><font face='arial' size='2'><a href='$scriptName?vsSORT=$sortField&vsPS=$pageSize'>Hide Completed</a></font></b>\n";
+	} else {
+	   print "| <b><font face='arial' size='2'><a href='$scriptName?vsSORT=$sortField&vsSC=1&vsPS=$pageSize'>Show Completed</a></font></b>\n";
+	}
 }
 
 if ($useFileLocking) {
     $objLock->unlock($filePath);
 }
 
-print "<b><font face='arial' size='2'><a href='$scriptName" . PassThrough("vsCOM","ADD") . "'>Add New Task</a></font></b>\n";
-if ($showCompleted) {
-	print "| <b><font face='arial' size='2'><a href='$scriptName?vsSORT=$sortField'>Hide Completed</a></font></b>\n";
-} else {
-	print "| <b><font face='arial' size='2'><a href='$scriptName?vsSORT=$sortField&vsSC=1'>Show Completed</a></font></b>\n";
-}
+
 print "
 	</form>
 	<hr><font size='1'>
-	VerySimple Task Editor $VERSION &copy 2001, <a href='http://www.verysimple.com/'>VerySimple</a><br>
+	VerySimple Task Editor $VERSION &copy 2001, <a href='http://www.verysimple.com/'>VerySimple</a> Modified<br>
 ";
 print "vsDB Module Version " . $objDB->Version . "<br>";
 print "vsLock Module Version " . $objLock->Version;
@@ -226,18 +234,26 @@ sub PrintAllRecords {
 	print "<tr valign='top' bgcolor='#CCCCCC'>\n";
 	print "<td>&nbsp;</td>\n";
 	foreach $fieldName (@showFields) {
-		print "<td><b><font face='arial' size='2'><a href='$scriptName?vsSORT=$fieldName&vsSC=$showCompleted'>" . $fieldName . "</a></font></b></td>\n";
+		print "<td><b><font face='arial' size='2'><a href='$scriptName?vsSORT=$fieldName&vsPS=$pageSize&vsSC=$showCompleted'>" . $fieldName . "</a></font></b></td>\n";
 	}
 	print "</tr>\n";
 	while (!$objMyDB->EOF && $count < $pageSize) {
 		print "<tr valign='top' bgcolor='$dataLightColor'>\n";
-		print "<td><font face='arial' size='1'><a href='" . $scriptName . "?vsSORT=$sortField&vsAP=$activePage&vsCOM=EDIT&vsID=" . $objMyDB->FieldValue("ID") . "'><img src='$detailIcon' alt='Details' border='0'></a></font></td>\n";
+		print "<td><font face='arial' size='1'><a href='" . $scriptName . "?vsSORT=$sortField&vsPS=$pageSize&vsAP=$activePage&vsCOM=EDIT&vsID=" . $objMyDB->FieldValue("ID") . "'><img src='$detailIcon' alt='Details' border='0'></a></font></td>\n";
 		foreach $fieldName (@showFields) {
 			$fieldValue = $objMyDB->FieldValue($fieldName);
 			$fieldValue = "&nbsp;" if ($fieldValue eq "");
 			if ($fieldName eq "SpecialField") {
 				# not used at the moment, but maybe later...
 				print "<td><font face='arial' size='2'>" . $fieldValue . "</font></td>\n";
+			} elsif ($fieldName eq "Speak") {
+				print "<td><font face='arial' size='2'>";
+				if ($fieldValue eq "on") {
+					print "Yes";
+				} else {
+					print "No";
+				}
+				print "</font></td>\n";
 			} else {
 				print "<td><font face='arial' size='2'>" . $fieldValue . "</font></td>\n";
 			}
@@ -286,6 +302,15 @@ sub PrintCurrentRecord {
 				$fieldValue = $objMyDB->FieldValue("Notes");
 				$fieldValue =~ s/\"/&quot;/g;		
 				print $fieldValue . "</textarea></td>\n";
+			} elsif (lc $fieldName eq "speak") {
+		    		$fieldValue = $objMyDB->FieldValue($fieldName);
+		    		print "<td><input name='Speak' type=\"checkbox\" value=\"on\" ";
+		    		if ($fieldValue eq "on") { 
+					print "CHECKED > ";
+				} else {
+					print "> ";
+				}
+		    		print "</tr>\n";
 			} else {
 				print "<td><input size=\"50\" name=\"" . $fieldName . "\" value=\"";
 				$fieldValue = $objMyDB->FieldValue($fieldName);
@@ -300,9 +325,10 @@ sub PrintCurrentRecord {
 	print "<input type='hidden' name='vsSC' value='$showCompleted'>\n";
 	print "<input type='hidden' name='vsAP' value='$activePage'>\n";
 	print "<input type='hidden' name='vsSORT' value='$sortField'>\n";
+	print "<input type='hidden' name='vsPS' value='$pageSize'>\n";
 	print "<input type='hidden' name='vsCOM' value='UPDATE'>\n";
-	print "<input type='submit' value='Update'>\n";
-	print "<input style=\"COLOR: maroon;\" type='reset' value='Delete'  onclick=\"if (confirm('Permenantly delete this task?')) {self.location='$scriptName?vsSORT=$sortField&vsAP=$activePage&vsSC=$showCompleted&vsCOM=DELETE&vsID=" . $objMyDB->FieldValue("ID") . "';return false;} else {return false;};\">\n";
+	print "<input type='submit' value='Update' >\n";
+	print "<input style=\"COLOR: maroon;\" type='reset' value='Delete'  onclick=\"if (confirm('Permenantly delete this task?')) {self.location='$scriptName?vsSORT=$sortField&vsAP=$activePage&vsPS=$pageSize&vsSC=$showCompleted&vsCOM=DELETE&vsID=" . $objMyDB->FieldValue("ID") . "';return false;} else {return false;};\">\n";
 	print "<input type='reset' value='Cancel' onclick=\"window.history.go(-1);return false;\">\n";
 	print "<p>\n";
 }
@@ -323,6 +349,9 @@ sub PrintBlankRecord {
 				print "</font></td>";
 			} elsif ($fieldName eq "Notes") {
 				print "<td><textarea name='Notes' cols='38' rows='3'></textarea></td>\n";
+			} elsif ($fieldName eq "Speak") {
+		    		print "<td><input name='Speak' type=\"checkbox\" value=\"on\" >";
+		    		print "</tr>\n";
 			} else {
 				print "<td><input size=\"50\" name=\"" . $fieldName . "\" value=\"\"></td>\n";
 		    }
@@ -334,6 +363,7 @@ sub PrintBlankRecord {
 	print "<input type='hidden' name='vsSC' value='$showCompleted'>\n";
 	print "<input type='hidden' name='vsAP' value='$activePage'>\n";
 	print "<input type='hidden' name='vsSORT' value='$sortField'>\n";
+	print "<input type='hidden' name='vsPS' value='$pageSize'>\n";
 	print "<input type='hidden' name='vsCOM' value='INSERT'>\n";
 	print "<input type='submit' value='Add'>\n";
 	print "<input type='reset' value='Cancel' onclick=\"window.history.go(-1);return false;\">\n";
@@ -347,6 +377,8 @@ sub UpdateCurrentRecord {
 	my ($fieldName,$fieldValue);
 	foreach $fieldName ($objMyDB->FieldNames) {
 		$fieldValue = $objMyCGI->param($fieldName);
+		$fieldValue = "off" if (($fieldName eq "Speak" ) and (not ($fieldValue eq "on")));
+#print "db: fn=$fieldName fv=$fieldValue\n";
 		$objMyDB->FieldValue($fieldName,$fieldValue);
 	}
 	$objMyDB->Commit;

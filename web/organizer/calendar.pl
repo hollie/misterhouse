@@ -1,4 +1,7 @@
 #!/usr/local/bin/perl -w
+#
+# $Date$
+# $Revision$
 # ----------------------------------------------------------------------------
 # vsDB.pl DataFile Editor
 # Copyright (c) 2001 Jason M. Hinkle. All rights reserved. This script is
@@ -12,16 +15,18 @@
 # or indirectly caused by this software.
 # 
 # Version History
-# 1.5.8 - 09/04/05 - Added Audrey (640x480) specific layout (hp)
-# 1.5.7 - 02/15/02 - fixed missing date when inserting new event
-# 1.5.6 - 02/15/02 - fixed FNF bug & improved error reporting
-# 1.5.5 - 01/19/02 - failed attempt to fix FNF bug
-# 1.5.4 - 10/02/01 - fixed bug in direct link
-# 1.5.3 - 10/02/01 - added direct link to event & show/hide details
-# 1.5.2 - 08/22/01 - added file locking
+# 1.5.7-3 - 08/25/06 - Added 'vacation' checkbox
+# 1.5.7-2 - 07/25/06 - Added 'holiday' checkbox
+# 1.5.7-1 - 09/04/05 - Added Audrey (640x480) specific layout
+# 1.5.7   - 02/15/02 - fixed missing date when inserting new event
+# 1.5.6   - 02/15/02 - fixed FNF bug & improved error reporting
+# 1.5.5   - 01/19/02 - failed attempt to fix FNF bug
+# 1.5.4   - 10/02/01 - fixed bug in direct link
+# 1.5.3   - 10/02/01 - added direct link to event & show/hide details
+# 1.5.2   - 08/22/01 - added file locking
 # ----------------------------------------------------------------------------
 
-my $VERSION = "1.5.8";
+my $VERSION = "1.5.7-3";
 
 BEGIN {
 #	$SIG{__WARN__} = \&FatalError;
@@ -94,6 +99,7 @@ eval 'use vsLock';
 eval 'use vsDB';
 eval 'use CGI';
 
+my $debug = 0;
 # --- get the configuration settings 
 my ($configFilePath) = $ENV{"CWD"} . $ENV{"CONFIG_FILE"};
     $configFilePath = "$config_parms{organizer_dir}/calendar.cfg";
@@ -109,6 +115,10 @@ my ($dataDarkColor) = $objConfig->FieldValue("DataDarkColor");
 my ($dataLightColor) = $objConfig->FieldValue("DataLightColor");
 my ($dataDayColor) = $objConfig->FieldValue("DataDayColor");
 my ($dataHighlightColor) = $objConfig->FieldValue("DataHighlightColor");
+## --- Custom
+my ($dataHolidayColor) = "#90EE90";
+my ($dataVacationColor) = "#FFCC66";
+## --- Custom
 my ($detailIcon) = $objConfig->FieldValue("DetailIcon");
 my ($fileName) = $objConfig->FieldValue("FileName") || "calendar.tab";
 my ($delimiter) = $objConfig->FieldValue("Delimiter") || "\t";
@@ -144,6 +154,7 @@ my ($showDefault) = 0;
 #if (length($month) < 2) {$month = "0" . $month}
 #if (length($day) < 2) {$month = "0" . $day}
 
+## --- Custom
 my ($showDayDetails) = $objCGI->param('vsSD') || 0;
 my ($showforAudrey) = $objCGI->param('vsMA') || 0;
 my ($noShowDayDetails) = 1;
@@ -152,6 +163,7 @@ $cellSize = 60 if ($showDayDetails);
 $cellSize = 75 if ($showforAudrey);
 $showDayDetails = 1 if ($showforAudrey);
 $noShowDayDetails = 0 if ($showDayDetails);
+## --- Custom
 
 my ($nmonth, $nyear, $pmonth, $pyear, $highlightDate);
 
@@ -185,7 +197,7 @@ if ($pmonth < 1) {
     $pmonth = 12;
     $pyear--;
 }
-$highlightDate = $year . "." . $month . "." . $day;
+##$highlightDate = $year . "." . $month . "." . $day; ## Disabled 1.5.7-2 to only highlight today
 
 # --------- Main Logic --------------
 if ($command eq "UPDATE") {
@@ -219,7 +231,7 @@ if ($useFileLocking) {
 print "
 	</form>
 	<hr><font size='1'>
-	VerySimple Calendar $VERSION &copy 2002, <a href='http://www.verysimple.com/'>VerySimple</a><br>
+	VerySimple Calendar $VERSION &copy 2002, <a href='http://www.verysimple.com/'>VerySimple</a> Modified<br>
 ";
 print "vsDB Module Version " . $objDB->Version . "<br>";
 print "vsLock Module Version " . $objLock->Version;
@@ -241,6 +253,7 @@ sub PrintDefault {
     print "<td>\n";
     print "<font size='2' face='arial,helvetica'>\n";
 
+#print "h1=$highlightDate\n";
     &PrintMonth($month,$year,$objDB,$highlightDate);
     if (!$showDayDetails) {
     	&PrintMonth($nmonth,$nyear,$objDB,$highlightDate);
@@ -291,16 +304,21 @@ sub PrintDay {
     $objMyDb->RemoveFilter;	
     $objMyDb->Filter("DATE","eq",$thisDate);
 
-    print "<table border='1' cellspacing='0' cellpadding='2' width='350' bgcolor='$dataHighlightColor'>\n";
-    print "<font size='2' face='arial,helvetica'><b>Details For $months[$month-1] $day, $year </b></font><br>\n";
-    print "<tr><td width='25'>&nbsp;</td>\n";
+    print "<table border='1' cellspacing='0' cellpadding='2' width='350' >\n";
+    print "<font size='2' face='arial,helvetica'><b>Details For $months[$month-1] $day, $year</b></font><br>\n";
+    print "<tr bgcolor='$dataHighlightColor'><td width='25'>&nbsp;</td>\n";
     print "<td width='75'><font size='2' face='arial,helvetica'><b>Time</b></font></td>\n";
     print "<td width='250'><font size='2' face='arial,helvetica'><b>Event</b></font></td></tr>\n";
 
     while (!$objMyDb->EOF) {
-	print "<tr><td><a href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsCOM=EDIT&vsMonth=$month&vsYear=$year&vsDay=$day&vsID=" . $objMyDb->FieldValue("ID") . "'><img src='$detailIcon' border='0'></a></td>";
+	my $custcolor = "";
+	$custcolor = " bgcolor='$dataHolidayColor' " if ($objMyDb->FieldValue("HOLIDAY") eq "on");
+	$custcolor = " bgcolor='$dataVacationColor' " if (($objMyDb->FieldValue("VACATION") eq "on") and (!$custcolor)); # if a day is both vacation and holiday, holiday trumps vacation for display.
+	print "<tr $custcolor><td><a href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsCOM=EDIT&vsMonth=$month&vsYear=$year&vsDay=$day&vsID=" . $objMyDb->FieldValue("ID") . "'><img src='$detailIcon' border='0'></a></td>";
 	print "<td><font size='2' face='arial,helvetica'>" . $objMyDb->FieldValue("TIME") . "&nbsp;</font></td>";
-	print "<td><font size='2' face='arial,helvetica'>" . $objMyDb->FieldValue("EVENT") . "&nbsp;</font></td></tr>\n";
+	print "<td><font size='2' face='arial,helvetica'>";
+
+	print $objMyDb->FieldValue("EVENT") . "&nbsp;</font></td></tr>\n";
 	$objMyDb->MoveNext;
     }
 
@@ -359,8 +377,34 @@ sub PrintMonth {
 
 		$thisDate = $year . "." . $month . "." . $weekDayCount;
 
+		$objMyDb->RemoveFilter;	
+		$objMyDb->Filter("DATE","eq",$thisDate);
+
+if ($debug) {
+my $tmp=$objMyDb->FieldValue("HOLIDAY");
+print "\ndb: t=$thisDate,  fv=$tmp\n" unless ($tmp eq "EOF");
+}
+		my $bgcolor=undef;
+
+	        while (!$objMyDb->EOF) {
+		   if ($objMyDb->FieldValue("VACATION") eq "on") { 
+		   	$bgcolor=$dataVacationColor;
+		       }
+		   if ($objMyDb->FieldValue("HOLIDAY") eq "on") {
+		   	$bgcolor=$dataHolidayColor;
+		       }
+		   $objMyDb->MoveNext;
+		}
+	
+
+		$objMyDb->MoveFirst;
+
 		if ($thisDate eq $highlightDate) {
-		    print "<td width='$cellSize' height='$cellSize' bgcolor='$dataHighlightColor'><font face='arial,helvetica' size='2'>";
+			$bgcolor=$dataHighlightColor;
+		}
+
+		if (defined $bgcolor) {
+		    print "<td width='$cellSize' height='$cellSize' bgcolor='$bgcolor'><font face='arial,helvetica' size='2'>";
 		} else {
 		    print "<td width='$cellSize' height='$cellSize'><font face='arial,helvetica' size='2'>";
 		}
@@ -371,12 +415,12 @@ sub PrintMonth {
 		    $style = "";
 		}		    
 
-		$objMyDb->RemoveFilter;	
-		$objMyDb->Filter("DATE","eq",$thisDate);
+
 
 		if ($objMyDb->EOF) {
 		    print "<a $style href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year&vsDay=$weekDayCount'>$weekDayCount</a><br>";
 		} else {
+	#$style = "style=\"color:$dataHolidayColor\"" if ($objMyDb->FieldValue("HOLIDAY") eq "on");
 		    print "<b><a $style href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year&vsDay=$weekDayCount'>$weekDayCount</a></b><br>";
 		}			
 
@@ -462,6 +506,25 @@ sub PrintCurrentRecord {
 		    $fieldValue =~ s/\"/&quot;/g;		
 		    print $fieldValue . "</textarea></td>\n";
 		    print "</tr>\n";
+
+		} elsif ($fieldName eq "HOLIDAY") {
+		    print "<tr valign='top' bgcolor='#DDDDDD'>\n";
+		    print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n";
+		    $fieldValue = $objMyDB->FieldValue($fieldName);
+		    print "<td><input name='HOLIDAY' type=\"checkbox\" value=\"on\" ";
+		    print "checked " if ($fieldValue eq "on");
+		    print ">";
+		    print "</tr>\n";
+
+		} elsif ($fieldName eq "VACATION") {
+		    print "<tr valign='top' bgcolor='#DDDDDD'>\n";
+		    print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n";
+		    $fieldValue = $objMyDB->FieldValue($fieldName);
+		    print "<td><input name='VACATION' type=\"checkbox\" value=\"on\" ";
+		    print "checked " if ($fieldValue eq "on");
+		    print ">";
+		    print "</tr>\n";
+
 		} else {
 		    print "<tr valign='top' bgcolor='#DDDDDD'>\n";
 		    print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n";
@@ -481,7 +544,7 @@ sub PrintCurrentRecord {
 	if ($objMyDB->FieldValue("ID")) {
 	    print "<input type='hidden' name='vsCOM' value='UPDATE'>\n";
 	    print "<input type='submit' value='Update'>\n";
-	    print "<input type='submit' value='Delete' onclick=\"if (confirm('Delete This Record?')) {self.location='$scriptName?vsCOM=DELETE&vsMonth=$month&vsYear=$year&vsDay=$day&vsID=" . $objMyDB->FieldValue("ID") . "';return false;} else {return false;};\">\n";
+	    print "<input type='submit' value='Delete' onclick=\"if (confirm('Delete This Record?')) {self.location='$scriptName?vsCOM=DELETE&vsSD=$showDayDetails&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year&vsDay=$day&vsID=" . $objMyDB->FieldValue("ID") . "';return false;} else {return false;};\">\n";
 	} else {
 		print "<input type='hidden' name='DATE' value='$year.$month.$day'>\n";
 	    print "<input type='hidden' name='vsCOM' value='INSERT'>\n";
@@ -506,6 +569,9 @@ sub UpdateCurrentRecord {
 	my ($fieldName,$fieldValue);
 	foreach $fieldName ($objMyDB->FieldNames) {
 		$fieldValue = $objMyCGI->param($fieldName);
+		$fieldValue = "off" if (($fieldName eq "HOLIDAY" ) and (not ($fieldValue eq "on")));
+		$fieldValue = "off" if (($fieldName eq "VACATION" ) and (not ($fieldValue eq "on")));
+#print "db: fn=$fieldName fv=$fieldValue\n";
 		$objMyDB->FieldValue($fieldName,$fieldValue);
 	}
 	$objMyDB->Commit;
@@ -529,3 +595,4 @@ sub FatalError {
     print "</font>\n";
     exit 1;
 }
+
