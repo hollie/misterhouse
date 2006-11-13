@@ -316,7 +316,7 @@ sub measurement {
 			$$self{m_time_since_previous} = $p_timestamp -
 				$measurement_records[$last_index]->{time_since_previous};
 			$$self{m_measurement_change} = $p_measurement -
-				$measurement_records[$last_index]->{measurement_change};
+				$measurement_records[$last_index]->{measurement};
 			# and update this record
 			$measurement_record->{time_since_previous} = $$self{m_time_since_previous};
 			$measurement_record->{measurement_change} = $$self{m_measurement_change};
