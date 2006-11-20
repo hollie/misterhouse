@@ -42,24 +42,24 @@ sub set_killsig {
 sub add {
     my ($self, @cmds) = @_;
     push @{$$self{cmds}}, @cmds;
-    print "\ndb add @cmds=@cmds.  total=@{$$self{cmds}}\n";
+    print "\ndb add @cmds=@cmds.  total=@{$$self{cmds}}\n" if $main::Debug{process};
 }
 
                                 # This is called by mh on exit to save persistant data
 sub restore_string {
     my ($self) = @_;
     my $restore_string = '';
-#    if ($self->{cmds} and my $cmds = join($;, @{$self->{cmds}})) {
-#      $cmds =~ s/\n/ /g; # Avoid new-lines on restored vars
-#      $cmds =~ s/~/\\~/g;
-#      $restore_string .= '@{' . $self->{object_name} . "->{cmds}} = split(\$;, q~$cmds~);";
-#    }
-    $restore_string .= $self->{object_name} . "->{timeout} = q~$self->{timeout}~;\n" if $self->{timeout};
-    $restore_string .= $self->{object_name} . "->{output} = q~$self->{output}~;\n"   if $self->{output};
-    $restore_string .= $self->{object_name} . "->{errlog} = q~$self->{errlog}~;\n"   if $self->{errlog};
-    $restore_string .= $self->{object_name} . "->{killsig} = q~$self->{killsig}~;\n" if $self->{killsig};
-    $restore_string .= $self->{object_name} . "->{started} = q~$self->{started}~;\n" if $self->{started};
-    $restore_string .= $self->{object_name} . "->{pid} = q~$self->{pid}~;\n"         if $self->{pid};
+    foreach my $cmd (@{$self->{cmds}}) {
+      $restore_string .= $self->{object_name} . "->add(q~$cmd~);\n";
+    }
+    $restore_string .= $self->{object_name} . "->{cmd_index} = q~$self->{cmd_index}~;\n" if $self->{cmd_index};
+    $restore_string .= $self->{object_name} . "->{timeout} = q~$self->{timeout}~;\n"     if $self->{timeout};
+    $restore_string .= $self->{object_name} . "->{output} = q~$self->{output}~;\n"       if $self->{output};
+    $restore_string .= $self->{object_name} . "->{errlog} = q~$self->{errlog}~;\n"       if $self->{errlog};
+    $restore_string .= $self->{object_name} . "->{killsig} = q~$self->{killsig}~;\n"     if $self->{killsig};
+    $restore_string .= $self->{object_name} . "->{started} = q~$self->{started}~;\n"     if $self->{started};
+    $restore_string .= $self->{object_name} . "->{pid} = q~$self->{pid}~;\n"             if $self->{pid};
+    $restore_string .= $self->{object_name} . "->restore_active();\n"                    if $self->{pid};
     return $restore_string;
 }
 
@@ -203,6 +203,11 @@ sub start_next {
     $$self{runtime} = 0;
     undef $$self{timed_out};
     undef $$self{done};
+}
+
+sub restore_active {
+    my ($self) = @_;
+    push(@active_processes, $self);
 }
 
 sub done {
