@@ -94,6 +94,13 @@ sub init {
 sub speak_text {
     my(%parms) = @_;
 
+    if ($::Debug{voice}) {
+        print 'speak_text: parms are';
+	foreach (sort(keys(%parms))) {
+            print " '$_'='$parms{$_}'";
+        }
+        print "\n";
+    }
 	# set a default voice, if configured
     $parms{voice}=$::config_parms{voice_text_default_voice} unless $parms{voice};
     return if lc $parms{voice} eq 'none';
@@ -476,8 +483,7 @@ sub speak_text {
                 $speak_pgm_arg .= " -to_file $parms{to_file}" if $parms{to_file};
             }
 
-            print "Voice_text TTS: f=$fork stdin=$speak_pgm_use_stdin p=$speak_pgm a=$speak_pgm_arg\n" if $main::Debug{voice};
-            print "Voice_text TTS: f=$fork stdin=$speak_pgm_use_stdin p=$speak_pgm a=$speak_pgm_arg ai=$parms{audreyIndex}\n";
+            print "Voice_text TTS: f=$fork stdin=$speak_pgm_use_stdin p=$speak_pgm a=$speak_pgm_arg ai=$parms{audreyIndex}\n" if $main::Debug{voice};
 
             if ($speak_pgm_use_stdin) {
                 open  VOICE, "| $speak_pgm $speak_pgm_arg";
@@ -513,6 +519,21 @@ sub speak_text {
         if ($VTxt_version eq 'msv5') {
                                 # Allow option to save speech to a wav file
             if ($parms{to_file}) {
+                my $audreyFork=0;
+                # we only fork if we are asynchronously generating a file for Audrey.
+                # otherwise, we can just use the native async capability
+
+                $audreyFork=1 if ($parms{async} and defined $parms{audreyIndex});
+
+				# this currently doesn't work - causes a strange "Bizarre SvType [92]" error at the fork line below
+				# This is due to Win32::OLE not supporting forks!  Known problem, not yet fixed.
+                # For now, force async=0 for Audrey on windows
+                # Hopefully this will work sometime in the future.  :-(
+                if ($audreyFork) {
+                	$audreyFork=0;
+                	$parms{async}=0;
+                }
+
 # From sdk SpeechAudioFormatType:
 # SAFT8kHz8BitMono            =  4 (16k for for 4 words)
 # SAFT8kHz16BitMono           =  6 (32k)
@@ -528,23 +549,56 @@ sub speak_text {
 # SAFTGSM610_22kHzMono        = 66 (5k .. not choppy like above 11kHz mode)
 # SAFTGSM610_44kHzMono        = 67 (9k)
 
-                $VTxt_stream2 = Win32::OLE->new('Sapi.SpFileStream');
-                $VTxt_stream2->{Format}->{Type} = 4;
-                $VTxt_stream2->{Format}->{Type} = $parms{compression} if $parms{compression} =~ /^\d+$/;
-                $VTxt_stream2->{Format}->{Type} = 22 if $parms{compression} eq 'low';
-                $VTxt_stream2->{Format}->{Type} = 66 if $parms{compression} eq 'high';
-                $VTxt_stream2->Open($parms{to_file}, 3, 0);
-                $VTxt_stream1->{AudioOutputStream} = $VTxt_stream2;
 
-                if ($parms{async}) {
-                    $VTxt_stream1->Speak($parms{text}, 1 + 8); # Flags: 1=async 8=XML
-                }
-                else {
-                    $VTxt_stream1->Speak($parms{text}, 8); # Flags: 8=XML (no async, so we can close)
-                    $VTxt_stream2->Close;
-                    undef $VTxt_stream2;
-#                   &main::print_log("Text->wav file:  $parms{to_file}");
-#                   &main::play($parms{to_file});
+                # we are asynchronously generating a file for Audrey, so we need to fork a child process
+                # so that we can wait around for the file to get created.  Once created, we notify
+                # Audrey that the file is ready through &::file_ready_for_audrey
+
+                if ($audreyFork) {
+                    my $pid=fork;
+                    # if we are the child
+                    if (!defined($pid)) {
+                        # fork failed
+                        warn ('fork failed when trying to create Audrey TTS');
+                    } elsif ($pid==0) {
+                    	# we are the child process
+                        $VTxt_stream2 = Win32::OLE->new('Sapi.SpFileStream');
+                        $VTxt_stream2->{Format}->{Type} = 22; # see table above for constant defs
+                        $VTxt_stream2->{Format}->{Type} = $parms{compression} if $parms{compression} =~ /^\d+$/;
+                        $VTxt_stream2->{Format}->{Type} = 20 if $parms{compression} eq 'low';
+                        $VTxt_stream2->{Format}->{Type} = 66 if $parms{compression} eq 'high';
+                        $VTxt_stream2->Open($parms{to_file}, 3, 0);
+                        $VTxt_stream1->{AudioOutputStream} = $VTxt_stream2;
+                        $VTxt_stream1->Speak($parms{text}, 8); # Flags: 8=XML (no async, so we can close)
+                        $VTxt_stream2->Close;
+                        # at this point, the file _should_ be ready for Audrey
+                        undef $VTxt_stream2;
+                        &::file_ready_for_audrey($parms{audreyIndex});
+                        # child is done all its work
+                        exec 'true';
+                    } else  {
+                        # we are the parent - $pid will contain process ID
+                        # so we have nothing special to do
+                        return;
+                    }
+                } else {
+                    $VTxt_stream2 = Win32::OLE->new('Sapi.SpFileStream');
+                    $VTxt_stream2->{Format}->{Type} = 22; # see table above for constant defs
+                    $VTxt_stream2->{Format}->{Type} = $parms{compression} if $parms{compression} =~ /^\d+$/;
+                    $VTxt_stream2->{Format}->{Type} = 20 if $parms{compression} eq 'low';
+                    $VTxt_stream2->{Format}->{Type} = 66 if $parms{compression} eq 'high';
+                    $VTxt_stream2->Open($parms{to_file}, 3, 0);
+                    $VTxt_stream1->SetProperty('AudioOutputStream',$VTxt_stream2);
+                    if ($parms{async}) {
+                        $VTxt_stream1->Speak($parms{text}, 1 + 8); # Flags: 1=async 8=XML
+                    } else {                     
+                        $VTxt_stream1->Speak($parms{text}, 8); # Flags: 8=XML (no async, so we can close)
+                        $VTxt_stream2->Close;
+                        undef $VTxt_stream2;
+                        &::file_ready_for_audrey($parms{audreyIndex}) if (defined $parms{audreyIndex});
+#                       &main::print_log("Text->wav file:  $parms{to_file}");
+#                       &main::play($parms{to_file});
+                    }
                 }
             }
             else {
