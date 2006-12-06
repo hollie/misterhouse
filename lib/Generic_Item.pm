@@ -264,10 +264,14 @@ sub respond {
 		# Aquire target
 
 		$target = ($object->{target})?$object->{target}:&main::set_by_to_target($object->{set_by});
+	} else {
+		$target = $parms{target};
 	}
 
         $set_by = &main::set_by_to_target($set_by, 1);
 	my $automation = (!$set_by or $set_by =~ /usercode/i or $set_by =~ /unknown/i or $set_by =~ /time/i or $set_by eq 'status');
+	# cancel automation (regardless) if an explicit target is set
+	$automation = 0 if $parms{target} or $object->{target};
 
 	# get user info
 
@@ -316,6 +320,8 @@ sub respond {
 		# Send dicrete chime parameters if none specified (we know what to do, no need to rely on global respond target.)
 
 		$extra .= "target=$target " if $target;
+		# include the app parm if it is passed
+		$extra .= "app=$parms{app} " if $parms{app};
 
 		if (!$parms{no_chime} and !$parms{force_chime}) {
 			$extra .= ($automation)?'force_chime=1 ':'no_chime=1 ';
