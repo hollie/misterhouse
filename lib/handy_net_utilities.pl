@@ -106,14 +106,19 @@ sub main::net_connect_check {
             print "mh.ini parm net_connect and net_connect_if is not defined.  net connection assumed.\n";
             return $prev_state = 1;
         }
+        $prev_state=0;
         open (PROC,"/proc/net/dev");
         while (<PROC>) {
             if ( $_ =~ /$if/ ) {
-                return $prev_state = 1;
+                $prev_state = 1;
+                last;
             }
         }
-        &main::print_log("net_connect_check: interface $if not active.");
-        return $prev_state = 0;
+        close PROC;
+        if ($prev_state==0) {
+            &main::print_log("net_connect_check: interface $if not active.");
+        }
+        return $prev_state;
     }
 
                                 # Windows 95/98
