@@ -48,6 +48,9 @@ sub processData {
 		return;
 	}
 
+	# ensure data is in uppercase
+	$data = uc ($data);
+
 	my $interface=$self->{interface};
 
 	if ($data =~ /(\d+)%/) {
