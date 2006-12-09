@@ -35,7 +35,7 @@ my $revision = '$Revision$';
    $revision = $1;
    $VERSION  = $revision;
 
-my $URL_BASE = 'http://iwin.nws.noaa.gov/iwin/';
+my $URL_BASE = 'http://www.weather.gov/view/prodsByState.php';#'http://iwin.nws.noaa.gov/iwin/';
 
 use vars '$proxy_from_env';
 $proxy_from_env = 0;
@@ -177,8 +177,8 @@ sub process_city_zone {
 sub get_city_zone {
 	my ($city, $state, $filename, $fileopt, $UA) = @_;
 
-	my $URL = $URL_BASE . lc $state . '/zone.html';
-		
+#	my $URL = $URL_BASE . lc $state . '/zone.html';
+	my $URL = $URL_BASE . '?state=' . lc $state . '&prodtype=zone';		
 
 	# City and States must be capital
 	#
@@ -193,11 +193,13 @@ sub get_city_zone {
 	#
 	$rawData = get_data($URL,$filename,$fileopt,$UA);
 
+        # required for new data format:
+	$rawData =~ s/\012\s/\012/g;
+
 	# Return error if there's an error
 	if ($rawData =~ /Error/) {
 		return $rawData;
 	}
-
 	# Find our city's data from all raw data
 	#
 	#foreach my $section ($rawData =~ /\012${state}Z.*?	# StateZone
@@ -406,10 +408,15 @@ sub get_city_hourly {
 	
 	# Get data
 	#
-	my $URL = $URL_BASE . lc $state . '/hourly.html';
-	#print STDERR "Getting data\n";
+#	my $URL = $URL_BASE . lc $state . '/hourly.html';
+	my $URL = $URL_BASE . '?state=' . lc $state . '&prodtype=hourly';		
+
+#print STDERR "Getting data\n";
 	my $data = get_data($URL,$filename,$fileopt,$UA);
 	#print STDERR "Got data\n";
+
+        # required for new data format:
+	$data =~ s/\012\s/\012/g;
 
 	# Return error if there's an error
 	if ($data =~ /Error/) {
