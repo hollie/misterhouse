@@ -186,13 +186,13 @@ BEGIN {
         if ($^O eq 'MSWin32') {
             my $build = &Win32::BuildNumber;
             if ($build < 600) {
-                push @INC, './../lib/site_win50';
+                push @INC, "${Pgm_Path}/../lib/site_win50";
             }
             elsif ($build < 800) {
-                push @INC, './../lib/site_win56';
+                push @INC, "${Pgm_Path}/../lib/site_win56";
             }
             else {
-                push @INC, './../lib/site_win58';
+                push @INC, "${Pgm_Path}/../lib/site_win58";
             }
         }
         require 'handy_utilities.pl';       # For misc. functions (e.g. time/date stamp routines)
@@ -3826,7 +3826,11 @@ sub play {
                 warn "Cannot fork in &play: $!" unless defined $kid;
                 if ($kid) {
                     print_log ("Skipping sound file") if $Debug{play};
-                    waitpid($kid,0);
+                    # 2006-12-10, commenting out the following line as
+                    # we don't want mh to wait during fork sounds.
+                    # If people start to experience problems with forked sound,
+                    # the lack of the following line is a likely culprit.
+                    # waitpid($kid,0);
                     $played_ok = 1;
                 }
                 else {
