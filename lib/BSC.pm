@@ -283,6 +283,9 @@ sub info_callback {
    };
    if ($self->always_set_state) {
       return $state;
+   } elsif (lc $state eq 'toggle') {
+      # a state of 'toggle' is special within BSC and shouldn't force a change
+      return '_unchanged';
    } else {
       return (($self->state eq $state) ? '_unchanged' : $state);
    }
