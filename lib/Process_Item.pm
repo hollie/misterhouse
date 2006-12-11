@@ -42,25 +42,12 @@ sub set_killsig {
 sub add {
     my ($self, @cmds) = @_;
     push @{$$self{cmds}}, @cmds;
-    print "\ndb add @cmds=@cmds.  total=@{$$self{cmds}}\n" if $main::Debug{process};
+    print "\ndb add @cmds=@cmds.  total=@{$$self{cmds}}\n";
 }
 
                                 # This is called by mh on exit to save persistant data
 sub restore_string {
-    my ($self) = @_;
-    my $restore_string = '';
-    foreach my $cmd (@{$self->{cmds}}) {
-      $restore_string .= $self->{object_name} . "->add(q~$cmd~);\n";
-    }
-    $restore_string .= $self->{object_name} . "->{cmd_index} = q~$self->{cmd_index}~;\n" if $self->{cmd_index};
-    $restore_string .= $self->{object_name} . "->{timeout} = q~$self->{timeout}~;\n"     if $self->{timeout};
-    $restore_string .= $self->{object_name} . "->{output} = q~$self->{output}~;\n"       if $self->{output};
-    $restore_string .= $self->{object_name} . "->{errlog} = q~$self->{errlog}~;\n"       if $self->{errlog};
-    $restore_string .= $self->{object_name} . "->{killsig} = q~$self->{killsig}~;\n"     if $self->{killsig};
-    $restore_string .= $self->{object_name} . "->{started} = q~$self->{started}~;\n"     if $self->{started};
-    $restore_string .= $self->{object_name} . "->{pid} = q~$self->{pid}~;\n"             if $self->{pid};
-    $restore_string .= $self->{object_name} . "->restore_active();\n"                    if $self->{pid};
-    return $restore_string;
+    return;
 }
 
 sub get_set_by {
@@ -98,7 +85,7 @@ sub start_next {
 
     if ($type eq 'eval') {
         if ($main::OS_win and ($ENV{sourceExe} or &Win32::BuildNumber() < 600)) {
-            my $msg = "Sorry, {Process_Item eval fork only supported with windows perl build 5.6 or later.\n   cmd=$cmd";
+            my $msg = "Sorry, Process_Item eval fork only supported with windows perl build 5.6 or later.\n   cmd=$cmd";
             print "$msg\n";
             &main::print_log($msg);
             return;
@@ -205,11 +192,6 @@ sub start_next {
     undef $$self{done};
 }
 
-sub restore_active {
-    my ($self) = @_;
-    push(@active_processes, $self);
-}
-
 sub done {
     my ($self) = @_;
     return ($$self{pid}) ? 0 : 1;
@@ -271,7 +253,6 @@ sub harvest {
                 $$process{done_now}++;
                 $$process{done} = $time;
                 delete $$process{pid};
-                delete $$process{started};
                 print "Process done_now process=$$process{object_name} pid=$pid to=$$process{timed_out} cmd=@{$$process{cmds}}\n" if $main::Debug{process};
             }
         }
@@ -291,9 +272,7 @@ sub stop {
         next if ref $process eq 'SCALAR'; # In case a non ref was passed in
         my $pid = $$process{pid};
         next unless $pid;
-        $$process{runtime} = time - $$process{started};
         delete $$process{pid};
-        delete $$process{started};
         print "\nKilling unfinished process id $pid for $process cmd @{$$process{cmds}}\n" if $main::Debug{process};
         if ($main::OS_win) {
 #           $pid->Suspend() or print "Warning 1, stop Process error:", Win32::FormatMessage( Win32::GetLastError() ), "\n";
