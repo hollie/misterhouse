@@ -16,6 +16,8 @@
                                 # - This string can be in either the subject or the body of the email
                                 #      Subject line is:  command:x y z  code:xyz
 
+## added config param net_mail_scan_timeout_cycles to prevent process item being killed if it
+## didn't complete within a scan interval.
 
 #noloop=start
 $v_send_email_test = new Voice_Cmd('Send test e mail [1,2,3,4,5,6,7,8,9,10,11]');
@@ -34,6 +36,9 @@ $v_unread_email = new Voice_Cmd('[List,Read] unread e mail');
 $v_unread_email-> set_info('Summarize unread email headers and optionally call Outlook to read the mail');
 
 my $get_email_scan_file = "$config_parms{data_dir}/get_email.scan";
+my $get_email_timeout_cycles = 0;
+$get_email_timeout_cycles = $config_parms{net_mail_scan_timeout_cycles} if $config_parms{net_mail_scan_timeout_cycles};
+my $get_email_timeout_current = 0;
 
 #$email_flag = new Generic_Item;
 
@@ -115,7 +120,22 @@ if (said $v_recent_email or ($Save{email_check} ne 'no' and new_minute $config_p
     $v_recent_email->respond('Checking email...') if said $v_recent_email;
     set $p_get_email 'get_email -quiet';
     set $p_get_email 'get_email -debug' if $Debug{email};
-    start $p_get_email;
+
+# New functionality added, if config_param exists, then wait x cycles before blindly killing process
+    if ((! ($get_email_timeout_cycles)) or (done $p_get_email)) {
+       $get_email_timeout_current = 0;
+       start $p_get_email;
+    } else {
+	if ($get_email_timeout_cycles == $get_email_timeout_current) {
+	  print_log "Internet_mail: Timeout expired on getting email, killing process...";
+	  $get_email_timeout_current = 0;
+          start $p_get_email;
+	} else {
+	  $get_email_timeout_current++;
+	  my $cycles_left = $get_email_timeout_cycles - $get_email_timeout_current;
+	  print_log "Internet_mail: Request to check mail but process still running. $cycles_left scan intervals remain";
+	}
+    }
 }
 
 if ($p_get_email->{done_now}) {

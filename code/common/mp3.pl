@@ -189,8 +189,7 @@ sub set_tk_progress {
 	$Tk_objects{mp3_progress}->configure(-value => $percent)
 }
 
-
-if (new_second and &mp3_player_running()) {
+if (!$config_parms{mp3_no_tkupdates} and new_second and &mp3_player_running()) {
 
    if (new_second 5) {
    	$Save{mp3_mode} = &mp3_playing();
