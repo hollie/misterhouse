@@ -107,7 +107,7 @@ my @directionshort=("N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WS
 
 set $ibws_v 'Start' if $Startup;
 
-if (time_cron '31 9-23 * * *') {
+if (time_cron '31 * * * *') {
 	run_voice_cmd 'Start the ibutton weather station client';
 }
 
@@ -170,13 +170,13 @@ if ($state = said $ibws_v) {
 
   if ($state eq 'Start') {
     unless (active $ibws) {
-    print_log 'Starting a connection to ibws';
-    start $ibws;
-  }
+      print_log 'Starting a connection to ibws';
+      start $ibws;
+    }
 
-} elsif ($state eq 'Stop' and active $ibws) {
-  print_log "closing ibws";
-  stop $ibws;
+  } elsif ($state eq 'Stop' and active $ibws) {
+    print_log "closing ibws";
+    stop $ibws;
 
   } elsif ($state eq 'Speak') {
     my $msg = "\nThe Current temperature is $Weather{TempOutdoor}\nA high of $Weather{TempOutdoorHigh}\nA low of $Weather{TempOutdoorLow}.\n";
