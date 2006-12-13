@@ -112,7 +112,7 @@ Tuesday: Mostly sunny except for patchy morning low clouds and fog. Highs
 		  /(rain|showers|snow|thunderstorms) (becoming )?likely/i;
 		$chance = $1 if $forecasts{$day} =~ 
 		  /(\d+) percent chance (of|for) *\S* *(rain|showers|snow|thunderstorms)/i;
-		$chance = $3 if $forecasts{$day} =~ 
+		$chance = $4 if $forecasts{$day} =~ 
 		  /chance (of|for) *\S* *(rain|showers|snow|thunderstorms)( near)? (\d+) percent/i;
 		$chance = $3 if $forecasts{$day} =~ 
 		  /chance (of|for) *\S* *(rain|showers|snow|thunderstorms) increasing to (\d+) percent/i;
