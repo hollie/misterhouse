@@ -477,10 +477,12 @@ sub check_tied_state_conditions {
       my $time_since_previous = $self->{m_time_since_previous};
       my $recent_change_rate = $self->get_average_change_rate(3);
       my $state = $self->state;
-      my $result = ($token_string) ? eval($token_string . ' ' . $condition) : eval($condition);
+      my $code = "no strict; ";
+      $code .= ($token_string) ? ($token_string . ' ' . $condition) : $condition;
+      my $result = eval($code);
       if ($@) {
          &::print_log("Problem encountered when evaluating " . $self->{object_name}
-            . " condition: $condition");
+            . " condition: $condition; $@");
          $self->untie_state_condition($condition);
       } elsif ($result) {
          $self->SUPER::set($$self{tied_state_conditions}{$condition});
@@ -521,10 +523,12 @@ sub check_tied_event_conditions {
       my $time_since_previous = $self->{m_time_since_previous};
       my $recent_change_rate = $self->get_average_change_rate(3);
       my $state = $self->state;
-      my $result = ($token_string) ? eval($token_string . ' ' . $condition) : eval($condition);
+      my $code = "no strict; ";
+      $code .= ($token_string) ? ($token_string . ' ' . $condition) : $condition;
+      my $result = eval($code);
       if ($@) {
          &::print_log("Problem encountered when evaluating " . $self->{object_name}
-            . " condition: $condition");
+            . " condition: $condition; $@");
          $self->untie_state_condition($condition);
       } elsif ($result) {
          my $code = $$self{tied_event_conditions}{$condition};
