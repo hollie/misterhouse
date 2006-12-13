@@ -1,3 +1,6 @@
+$Date$
+$Revision$
+
 mh/code/public:
 
 This directory has code sent in by you, the public.
@@ -285,7 +288,7 @@ rrd_create.bat
  - David Lounsberry's example of how to create graphs using  rrdtool.
    Download from http://ee-staff.ethz.ch/~oetiker/webtools/rrdtool/
    You can see David's plots at: http://dittos.yi.org/automation/plots/temps.html
-   See &update_rrd in mh/code/bruce/iButton.pl for an example of logging data.
+   See &update_rrd in mh/code/bruce/iButton_bruce.pl for an example of logging data.
    To install RRDs.pm on windows, download the i386 distro, then from
    the perl-shared directory, run:  ppm install rrds.ppd
    After installing RRDs.pm, set the rrd_dir mh.ini parm to enable from mh.

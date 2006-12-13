@@ -1,3 +1,6 @@
+# $Date$
+# $Revision$
+
 =pod
 
 =head1 NAME
@@ -1019,7 +1022,7 @@ See mh/code/examples/test_group.pl and mh/code/public/monitor_occupancy_jason.pl
 =item iButton_Item
 
 This is used to query and/or control an iButton device (for more info on iButton, see the hardware section).
-To enable iButton support in mh, set the mh.ini parm ibutton_port.
+To enable iButton support in mh, set the mh.ini parm ibutton_serial_port.
 
   Methods:
      new $id, $port, $channel
