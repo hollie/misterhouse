@@ -32,7 +32,7 @@ package UPB_Device;
 
 @UPB_Device::ISA = ('Generic_Item');
 
-my %message_types = ( 	
+my %message_types = (
 #UPB Core Command Set
 						null => 0x00,
 						write_enable => 0x01,
@@ -54,16 +54,21 @@ my %message_types = (
 						activate_link => 0x20,
 						deactivate_link => 0x21,
 						goto => 0x22,
-						fade_start => 0x23, 
+						fade_start => 0x23,
 						fade_stop =>0x24,
 						blink => 0x25,
 						indicate => 0x26,
 						toggle => 0x27,
+			# new RCS thermostat device commands
+						set_rcs_variable => 0x28,
+						request_rcs_variable => 0x29,
+			# end RCS commands
 						report => 0x30,
-						store => 0x31,					
+						store => 0x31,
 #UPB Core Reports
 						device_state_report =>0x86,
-						device_status_report =>0x87
+						device_status_report =>0x87,
+						device_variable_report =>0xA9 #RCS Autosend (or request_rcs_variable response) data
  );
 
 sub new
@@ -92,21 +97,21 @@ sub interface
 {
 	my ($self,$p_interface) = @_;
 	$$self{interface} = $p_interface if defined $p_interface;
-	return $$self{interface};	
+	return $$self{interface};
 }
 
 sub network_id
 {
 	my ($self,$p_network_id) = @_;
 	$$self{network_id} = $p_network_id if defined $p_network_id;
-	return $$self{network_id};	
+	return $$self{network_id};
 }
 
 sub device_id
 {
 	my ($self,$p_device_id) = @_;
 	$$self{device_id} = $p_device_id if defined $p_device_id;
-	return $$self{device_id};	
+	return $$self{device_id};
 }
 
 sub rate
@@ -122,7 +127,7 @@ sub set
 
     # prevent reciprocal sets that can occur because of this method's state
     # propogation
-    return if (ref $p_setby and $p_setby->can('get_set_by') and 
+    return if (ref $p_setby and $p_setby->can('get_set_by') and
         $p_setby->{set_by} eq $self);
 
 #   &::print_log($self->get_object_name() . "::set($p_state, $p_setby)");
@@ -135,11 +140,11 @@ sub set
 		my $msg=unpack("C",pack("H*",substr($p_state,10,2)));
 		my $l_state = $p_state;
 		$p_state = undef;
-		if ($network == $self->network_id() or $network==0) 
+		if ($network == $self->network_id() or $network==0)
 		{
 			if ( $destination==$self->device_id() or $destination==0 or $source == $self->device_id() )
 			{
-				if (!($source != $self->device_id() and $msg >= 0x80)) 
+				if (!($source != $self->device_id() and $msg >= 0x80))
 				{
 					$p_state = $self->_xlate_upb_mh($l_state);
 				    &::print_log($self->get_object_name() . "::set($p_state, $p_setby)");
@@ -178,7 +183,7 @@ sub _xlate_upb_mh
 	$state=$msg;
 	#Device report.  ON/OFF anything else is the state percentage?
 	if ($message_types{device_state_report} == $msgid and
-		$source = $self->device_id()) 
+		$source = $self->device_id())
 	{
 		if ($args[0]==100) {
 			$state='ON';
@@ -187,7 +192,7 @@ sub _xlate_upb_mh
 		} else {
 			$state = $args[0] . "%";
 		}
-		
+
 	}
 	return $state;
 }
@@ -207,19 +212,19 @@ sub _xlate_mh_upb
 	$msg=lc($msg);
 #	&::print_log("XLATE:$msg:$p_state:");
 	if (uc($msg) eq 'ON')
-	{	
+	{
 #		$msg = "fade_start";
 		$msg = "goto";
 		$level=100;
 		$rate=$self->rate();
 	} elsif (uc($msg) eq 'OFF')
-	{	
+	{
 #		$msg = "fade_start";
 		$msg = "goto";
 		$level = 0;
 		$rate = $self->rate();
 	} elsif ($msg=~/^([1]?[0-9]?[0-9])/)
-	{	
+	{
 #		$msg= "fade_start";
 		$msg= "goto";
 		$level = $1;
@@ -259,12 +264,12 @@ sub _xlate_mh_upb
 		@targs = split(':',$p_state);
 		@targs = shift(@targs);
 		@args=@targs;
-	} 
+	}
 	#Format the specific message
 	elsif ($msg == $message_types{goto})
-	{	
+	{
 		$args[0]=$level;
-		$args[1]=$rate if defined $rate;		
+		$args[1]=$rate if defined $rate;
 	}
 
 	##Finish off the command
@@ -277,7 +282,7 @@ sub _xlate_mh_upb
 	}
 
 	#set length
-	substr($cmd,1,1,sprintf("%X",(length($cmd)/2)+1));	
+	substr($cmd,1,1,sprintf("%X",(length($cmd)/2)+1));
 
 	return $cmd;
 }
