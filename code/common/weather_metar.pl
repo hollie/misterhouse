@@ -83,9 +83,9 @@ sub process_metar {
 		print_log "Parsing METAR report: $last_report";
 
 		($metar{WindAvgDir},$metar{WindAvgSpeed},$metar{WindGustSpeed})=$last_report =~ m#(\d{3}|VRB)(\d{2})(G\d{2})?KT#; # speeds in knots
-		if ($last_report =~ m#(M?\d{2})/(M?\d{2})#) { ($metar{TempOutdoor},$metar{DewOutdoor})=($1,$2);	}; # temperatures are in Celsius
-		if ($last_report =~ m#A(\d{4})#) { $metar{BaromSea}=convert_in2mb($1/100) }; # pressure in inches of mercury, converted to mb
-		if ($last_report =~ m#Q(\d{4})#) { $metar{BaromSea}=$1; };	# pressure in hPa (mb)
+		if ($last_report =~ m#\s(M?\d{2})/(M?\d{2})\s#) { ($metar{TempOutdoor},$metar{DewOutdoor})=($1,$2);	}; # temperatures are in Celsius
+		if ($last_report =~ m#\sA(\d{4})\s#) { $metar{BaromSea}=convert_in2mb($1/100) }; # pressure in inches of mercury, converted to mb
+		if ($last_report =~ m#\sQ(\d{4})\s#) { $metar{BaromSea}=$1; };	# pressure in hPa (mb)
 		my $element;
 		foreach $element (split (/ /,$last_report)) {
 			if ($element eq $station) { next; }; # don't decode station
