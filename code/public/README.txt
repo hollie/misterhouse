@@ -158,8 +158,8 @@ internet_hebcal.pl
 internet_ip_update*.pl
  - Updates IP servers/web pages with IP addresses
 
-internet_internet_usgs.pl
- - Rick Steeven's code for monitoring the water level of any river or lake in the continental US that
+internet_usgs.pl
+ - Rick Steeve's code for monitoring the water level of any river or lake in the continental US that
    is monitored by the USGS.  Whenever that level passes a certain point MH will send notification.
 
 
