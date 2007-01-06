@@ -68,6 +68,7 @@ use vars '%config_parms';  # Not a my, as called from handy_net_utils
 my ( %parms, $didLogIn, $infile, $outfile, %channels_skip, %channels_keep, $channel_data );
 my ($url, $ua, $cookie_jar, $req_get1, $req_get2, $req_post, $logged_in);
 my (@hours, %providers, @uas);
+my ($dbm_file, $dbm_file2);
 my  (%DBM, %DBM2);
 
 %channels_skip = ();
@@ -314,8 +315,8 @@ sub setup
    }
 
    # Set up DBM files
-   my $dbm_file  = "$config_parms{data_dir}/$parms{db}_programs.dbm";
-   my $dbm_file2 = "$config_parms{data_dir}/$parms{db}_channels.dbm";
+   $dbm_file  = "$config_parms{data_dir}/$parms{db}_programs.dbm";
+   $dbm_file2 = "$config_parms{data_dir}/$parms{db}_channels.dbm";
    print "Files will be stored to $parms{outdir}\n";
    print "Tieing to $dbm_file\n";
    use Fcntl;
@@ -1267,32 +1268,49 @@ sub make_index {
 # as well.
 #======================================================================
 sub delete_old_data {
-   #my ($down, $down, $day, $month) = &days_from_now(time, -28);
-   my ($dow, $down, $day, $month) = &days_from_now(time, $parms{purge} * -1 );
-   my $pgm_date = "$month/$day";
-   print "Deleting old data from $parms{purge} days ago: $pgm_date ...\n";
-   my @channels = keys %DBM2;
-
-#   for my $channel_number (@channels) {
-#       for my $hour (00 .. 23) {
-#           for my $min ('00', '30') {
-
-   for my $hour (00 .. 27) {
-       $hour = '0' . $hour if $hour < 10;
-       my $rawfile = "$parms{outdir}/download/"
-            ."${month}_${day}_${hour}_$parms{duration}.html";
-       my $outfile = "$parms{outdir}/${day}_${hour}.html";
-       unlink $rawfile if -f $rawfile;
-       unlink $outfile if -f $outfile;
-       for my $min ('00', '30') {
-           for my $channel_number (@channels) {
-
-               my $db_key = join($;, $channel_number, $pgm_date, "$hour:$min");
-#               print "deleting $db_key\n" if $parms{debug};
-               delete $DBM{$db_key};
-           }
-       }
+   my @dates;
+   for (1..$parms{purge}) {
+      my ($dow, $down, $day, $month) = &days_from_now(time, -$_ );
+      push @dates,"$month/$day";
    }
+   print "Deleting old data more than $parms{purge} days ago ...\n";
+   print "Keeping these dates ONLY: @dates\n";
+
+   my ($key,$value);
+   while (($key,$value) = each %DBM) {
+      my ($channel, $date, $time)=split($;, $key);
+      # don't delete it if the date matches
+      next if (grep (/^$date$/, @dates) > 0);
+      delete $DBM{$key};
+   }
+
+   print "Compressing non-purged data\n";
+
+   my $dbm_file_temp=$dbm_file.'.temp';
+
+   unlink $dbm_file_temp if -e $dbm_file_temp;
+
+   my %DBM_TEMP;
+   tie (%DBM_TEMP,  'DB_File',  $dbm_file_temp,  O_RDWR|O_CREAT, 0666) or die "Error, can not open dbm file $dbm_file_temp: $!";
+
+   # copy hash info over to new DBM file
+   %DBM_TEMP=%DBM;
+
+   # untie these two hashes
+   untie %DBM;
+   untie %DBM_TEMP;
+
+   # delete old DBM file
+   rename ($dbm_file, $dbm_file.'.to.be.deleted') or die "can't rename to .to.be.deleted: $!" ;
+   rename $dbm_file_temp, $dbm_file or die "can't rename from temp to real: $!";
+   unlink $dbm_file.'.to.be.deleted';
+
+   # clear hash
+   undef %DBM;
+
+   # retie hash
+   tie (%DBM,  'DB_File',  $dbm_file,  O_RDWR|O_CREAT, 0666) or die "Error, can not open dbm file $dbm_file the second time: $!";
+   print "Finished deleting old data\n";
 }
 
 #======================================================================
@@ -1447,5 +1465,5 @@ if ( -1 == fetchLoop() )
 
 print "Grid Update for $parms{db} complete\n";
 
-dbmclose %DBM;
-dbmclose %DBM2;
+untie %DBM;
+untie %DBM2;
