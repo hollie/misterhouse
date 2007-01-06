@@ -67,6 +67,19 @@ if ( -f $file ) {
 	$LIBNET_CFG = $file;
     }
 }
+# the following block is misterhouse specific and searches all @INC paths
+# for libnet.cfg, allowing site specific network configs to be used
+for (@INC) {
+	$file="$_/Net/libnet.cfg";
+	if (-f $file) {
+		$ref = eval { local $SIG{__DIE__}; do $file };
+		if (ref($ref) eq 'HASH') {
+			%NetConfig = (%NetConfig, %{ $ref });
+			$LIBNET_CFG = $file;
+			last;
+		}
+	}
+}
 if ($< == $> and !$CONFIGURE)  {
     my $home = eval { local $SIG{__DIE__}; (getpwuid($>))[7] } || $ENV{HOME};
     $home ||= $ENV{HOMEDRIVE} . ($ENV{HOMEPATH}||'') if defined $ENV{HOMEDRIVE};
