@@ -1132,7 +1132,56 @@ sub Get_Vsens_2438{
     }
 }
 
+# adds support for the water sensor from ibuttonlink
 
+sub Get_Vwet_2438 {
+	#Get the water information for the ibuttonlink MS-TW or MS-THW
+	#http://www.ibuttonlink.com/PDFs/MS-THW%20programmers%20guide.pdf
+	# Returns
+	#  0: connected and dry
+	#  1: no line continuity/cable detected - something wrong)
+	#  2: connected and wet
+    my $this = shift;
+    my $result="";
+    my $c = $this->{'connection'};
+    return undef if !$c->connected();
+    if ($this->select()) {my $result = $c->owBlock("\x00\x4E\x00\x00");}  # 0x004E Write Scratchpad (two blank spaces)
+  	if ($this->select()) {my $result = $c->owBlock("xB4");}               # 0x00B4 Convert Voltage (Causes Water Detection test to execute)
+     if ($this->select()) {my $result = $c->owBlock("\x00\x05");}          # 0x0005 Save the WD Threshold and WDFloor Registers to EEPROM
+     if ($this->select()) {my $result = $c->owBlock("\x00\xB8\x00");}      # 0x00B8 Recall Memory to Scratchpad (Receives 1 byte EEPROM address)
+     if ($this->select()) { my $result = $c->owBlock("\x00\x03".("\xFF" x 10));   # 0x00BE Read Scratchpad (Returns up to 10 bytes)  0x0003 Read the contents of the WD registers (Returns up to 10 bytes)
+         if ($result)
+         {
+             #my @data = unpack("C*",$result);
+             # Break out all of the hex into characters, swap the bytes around, and convert to decimal
+             # The detection floor and detection threshold have been set at the factory.
+             # The detection floor is set to the no cable reading of the sensor.
+             # The detection threshold is set to the detection floor + 55 ticks.
+             my $data = unpack("H*",$result);
+             my @data = split(//,$data);
+             # $data[0-3] is the code of the request
+	    		my $detected = hex($data[4].$data[5]); # detection of water - 2 is working and wet, 0 is working and dry, 1 is not working, based on detection value, continuity, and threshold.
+	    		my $continuity = hex($data[8].$data[9].$data[6].$data[7]); # 
+is there line continuity/a cable attached
+	    		my $det_value = hex($data[12].$data[13].$data[10].$data[11]); 
+# Detection value, can be used instead of $detected if you want to sense degrees of wet, and set your own thresholds
+	    		my $det_threshold = hex($data[16].$data[17].$data[14].$data[15]); #Detection threshold. Hardcoded on chip.
+	    		my $det_floor = hex($data[20].$data[21].$data[18].$data[19]); # Detection floor. Hardcoded on chip.
+	    		my $par = hex($data[22].$data[23]); # parity, for completeness
+	    		
+	    		# Set for the value you want to return.
+	    		# $det_value will return degree of wetness instead of absolute wet/dry.
+             my $wet = $detected;
+	    		#debug
+        		#my $wet = "dets: $detected cont: $cont det: $det_value thresh: $det_threshold floor: $det_floor par: $par";
+				return $wet;
+         }
+     }
+     else
+     {
+         return undef;
+     }
+}
 
 
 package Hardware::iButton::Device::DS1957B;
