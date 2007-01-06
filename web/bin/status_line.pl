@@ -9,16 +9,21 @@ my @parms = @ARGV;
 my $parms = "@parms";
 my %parms = map {$_, 1} @parms;
 
-my $font = 3;
-
 my $color = $config_parms{html_color_header};
-$font  = $1 if $parms =~ /font=(\d+)/;
+
+my ($fontsize,undef,$fontname)  = $parms =~ /font=(\d+)(;(\S+))? /;
+$fontsize = 3 unless $fontsize;
+
 $color = $1 if $parms =~ /color=(\S+)/;
+
+my $fontstart=qq[<font size=${fontsize}>];
+my $fontstart=qq[<font size=${fontsize} face="${fontname}">] if $fontname;
 
 #color = '#cccdcc';
 $color = '#9999cc' unless $color;
 
 my $html = qq[<html><head><title>MrHouse</title>\n];
+
 
 # Try javascript, instead of meta refresh ... might be more reliable?
 
@@ -50,7 +55,7 @@ if ($parms{jclock1} or $parms{jclock2}) {
     $html .= "</head>\n";
     $html .= qq[<body bgcolor='$color' onLoad="clock()">\n];
 #   $html .= qq[<body bgcolor='$color' onLoad="clock();doLoad()">\n];
-    $html =~ s/font size='\d'/font size='$font'/ if $font != 2;
+    $html =~ s/font size='\d'/font size='$fontsize'/ if $fontsize != 2;
 }
 else {
     $html .= "</head>\n";
@@ -61,7 +66,7 @@ else {
 $html .= qq[<form>\n];
 
 $html .= qq[<table cellpadding=0 cellspacing=0 width='100%' border='0' align='center'>\n];
-$html .= qq[<tr valign='center'><td nowrap><b><font size='$font'>\n];
+$html .= qq[<tr valign='center'><td nowrap><b>$fontstart\n];
 
 
                                 # Do parms in specified order
@@ -136,16 +141,16 @@ for my $parm (@parms) {
 $html .= "</font></td>\n";
 
 if ($parms{date}) {
-    $html .= qq[<td id='jdate' nowrap align='right'><font size='$font'><b>$Date_Now</b></font></td>\n];
+    $html .= qq[<td id='jdate' nowrap align='right'>$fontstart<b>$Date_Now</b></font></td>\n];
 }
 if ($parms{clock}) {
-    $html .= qq[<td nowrap><font size='$font'><b>&nbsp;$Time_Now</b></font></td>\n];
+    $html .= qq[<td nowrap>${fontstart}<b>&nbsp;$Time_Now</b></font></td>\n];
 }
 if ($parms{jclock1}) {
     $html .= qq[<td><form name=form><input type=button name=jclock value='' style="font-size: 15"></form></td>\n];
 }
 if ($parms{jclock2}) {
-    $html .= qq[<td nowrap align='right'><div id='jclock'><font size='$font'><b>&nbsp;$Time_Now</b></font></div></td>\n];
+    $html .= qq[<td nowrap align='right'><div id='jclock'>${fontstart}<b>&nbsp;$Time_Now</b></font></div></td>\n];
 }
 
 $html .= qq[</tr></table></form></body></html>\n];
