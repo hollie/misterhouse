@@ -1161,8 +1161,7 @@ sub Get_Vwet_2438 {
              my @data = split(//,$data);
              # $data[0-3] is the code of the request
 	    		my $detected = hex($data[4].$data[5]); # detection of water - 2 is working and wet, 0 is working and dry, 1 is not working, based on detection value, continuity, and threshold.
-	    		my $continuity = hex($data[8].$data[9].$data[6].$data[7]); # 
-is there line continuity/a cable attached
+	    		my $continuity = hex($data[8].$data[9].$data[6].$data[7]); # is there line continuity/a cable attached
 	    		my $det_value = hex($data[12].$data[13].$data[10].$data[11]); 
 # Detection value, can be used instead of $detected if you want to sense degrees of wet, and set your own thresholds
 	    		my $det_threshold = hex($data[16].$data[17].$data[14].$data[15]); #Detection threshold. Hardcoded on chip.
