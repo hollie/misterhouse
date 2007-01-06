@@ -1249,7 +1249,7 @@ end
 
 strip foxtrot
 	name FoxTrot
-	useclass gocomics-gen
+	useclass gocomics-flashdrm
 	$1 ft
 end
 
