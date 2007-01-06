@@ -97,7 +97,11 @@ sub weather_updated {
 		my $vapourPressure=6.112*10.0**(7.5*$dewpoint/(237.7+$dewpoint));
 		# only calculate humidity if is isn't directly measured by something
 		if (!$$w{HumidOutdoorMeasured}) {
-			$$w{HumidOutdoor}=sprintf('%.0f',100*$vapourPressure/$vapourPressureSaturation);
+			my $humidity=100*$vapourPressure/$vapourPressureSaturation;
+			# sometimes the measured dewpoint may be higher than the measured
+			# temperature due to measurement errors
+			$humidity=100 if $humidity > 100;
+			$$w{HumidOutdoor}=sprintf('%.0f',$humidity);
 		}
 		my $humidex=$temp+(0.5555*($vapourPressure-10));
 
