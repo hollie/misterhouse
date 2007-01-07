@@ -192,7 +192,7 @@ sub send_x10_data {
     }
 
     elsif ($interface eq 'lynx10plc') {
-                                # marrick PLC wants XA1AK
+                                # lynx10plc wants individual codes without X
         &Lynx10PLC::send_plc($main::Serial_Ports{Lynx10PLC}{object},
                              $serial_data, $module_type);
     }
