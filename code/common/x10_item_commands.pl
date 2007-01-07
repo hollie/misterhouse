@@ -18,7 +18,7 @@ if ($Reload) {
         if ($object->isa('X10_Item')) {
            my $states = 'on,off,status';
            $states = $config_parms{x10_menu_states} unless $object->isa('X10_Appliance') or $object->isa('X10_Appliancelinc');
-           $states .= ',add to scene,remove from scene' if $object->isa('X10_Switchlinc') 
+           $states .= ',add to scene,remove from scene,set ramp rate,set on level' if $object->isa('X10_Switchlinc') 
                 or $object->isa('X10_Appliancelinc') or $object->isa('X10_Lamplinc')
                 or $object->isa('X10_Keypadlinc');
            $object_string .= "$object_name_v  = new Voice_Cmd '$command [$states]';\n";
