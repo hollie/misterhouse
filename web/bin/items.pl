@@ -46,8 +46,9 @@ function openparmhelp(parm1){
         }
     }
 
-    $web_item_file_name = @file_paths[0] unless $web_item_file_name;  # Default
-    $web_item_file_name = $1 if $ARGV[0] =~ /^file=(\S+)/;
+    push @file_paths, @Code_Dirs[0] . "items.mht" unless @file_paths[0];  # Create new items file if none
+    $web_item_file_name = @file_paths[0] unless $web_item_file_name;      # Default to first mht file found 
+    $web_item_file_name = $1 if $ARGV[0] =~ /^file=(.+)$/;                # User selected another mht file  
 
                                 # Create a form to pick which file
     $html .= "<table border><tr><form action=/bin/items.pl method=post><td>Which .mht file to edit?\n";
