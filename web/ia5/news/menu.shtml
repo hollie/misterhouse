@@ -1,9 +1,9 @@
 <html>
 <head>
 <!--#include var="$config_parms{html_style}" -->
+<base target="output">
 </head>
 <body>
-<base target="output">
 <table height="100%" border="0">
 <tbody>
 <td valign="top" align="left" width="100%">
