@@ -12,7 +12,7 @@
 # ----------------------------------------------------------------------------
 package vsDB;
 require 5.000;
-$VERSION = "1.3.0";
+$VERSION = "1.3.9";
 $ID = "vsDB.pm";
 
 
@@ -32,16 +32,16 @@ sub new {
 		fileArray			=> \@fileArray,
 		filterArray			=> \@filterArray,
 		row				=> \@row,
-		recordCount			=> 0,
+		recordCount		=> 0,
 		filterRecordCount		=> 0,
 		absolutePosition		=> 0,
 		pageSize			=> 10,
 		EOF				=> 1,
-		isOpen				=> 0,
+		isOpen			=> 0,
 		lastError			=> '',
 		appendOnly			=> 1,
-		isDirty				=> 0,
-		originalCount			=> 0,
+		isDirty			=> 0,
+		originalCount		=> 0,
 		CR				=> '<CR>',
 		LF				=> '<LF>',
 	};
@@ -96,9 +96,12 @@ sub ActivePage {
 		$this->_RefreshRow;
 		return 1;
 	} else {
+	    # BUG - when filtering, this returns the wrong value
 	    return 1 if ($this->{'absolutePosition'} == 1);
 	    my ($count) = (($this->{'absolutePosition'} - 1) / $this->{'pageSize'}); #/
-	    return int($count) + 1;
+	    my ($activePage) = int($count) + 1;
+	    $activePage = $this->PageCount if ($activePage > $this->PageCount);
+	    return $activePage;
 	}	
 	
 }
@@ -125,7 +128,11 @@ sub PageCount {
 
 #_____________________________________________________________________________
 sub File {
-	return shift->_GetSetProperty("fileName",shift);
+	my ($this) = shift;
+	my ($newVal) = shift;
+	# if the file has changed, then we can't just append...
+	if ($newVal) {$this->{'appendOnly'} = 0}
+	return $this->_GetSetProperty("fileName",$newVal);
 }
 
 #_____________________________________________________________________________
@@ -150,20 +157,23 @@ sub RecordCount {
 
 #_____________________________________________________________________________
 sub EOF {
-	return shift->{'EOF'};
+	my ($this) = shift;
+	return 1 if ($this->RecordCount < 1);
+	return $this->{'EOF'};
 }
 
 #_____________________________________________________________________________
 sub FieldValue {
 	my ($this) = shift;
-	my ($fieldName) = shift || return "ERROR: FR";
+	return "EOF" if ($this->{'EOF'});
+	my ($fieldName) = shift || return "ERROR: FieldValue(): Field Name Required";
 	my ($newValue) = shift;
 	my ($fieldNumber) = $this->{'fieldNames'}{$fieldName};
 	my ($lineFeed) = chr(10);
 	my ($carriageReturn) = chr(13);
 	my ($crReplacement) = $this->{'CR'};
 	my ($lfReplacement) = $this->{'LF'};
-	return "ERROR: FNF" if (!defined($fieldNumber));
+	return "ERROR: FieldValue('" . $fieldName . "') Field Not Found." if (!defined($fieldNumber));
 
 	# if a new value is defined, update, otherwise return current value
 	if (defined($newValue)) {
@@ -235,6 +245,34 @@ sub Row {
 }
 
 #_____________________________________________________________________________
+sub xml {
+	# returns current recordset as xml
+	my ($this) = shift;
+	my ($strRootName) = shift || "vsDB";
+	my ($strElementName) = shift || "Record";
+	my ($strXml);
+
+	$strXml = "<?xml version=\"1.0\"?>\n";
+	$strXml .= "<!DOCTYPE $strRootName>\n";
+	$strXml .= "<$strRootName>\n";
+	$this->MoveFirst;
+	my (@fields) = $this->FieldNames;
+	my ($field, $fieldValue);
+	until ($this->EOF) {
+		$strXml .= "<$strElementName>\n";
+		foreach $field (@fields) {
+			$fieldValue = $this->FieldValue($field);
+			$strXml .= "<$field>$fieldValue</$field>\n";
+		}			
+		$strXml .= "</$strElementName>\n";
+	$this->MoveNext;
+	}		
+	$strXml .= "</$strRootName>\n";	
+	
+	return $strXml;
+}
+
+#_____________________________________________________________________________
 sub MoveNext {
 	# moves the curser to the next row in the data file 
 	my ($this) = shift;
@@ -294,6 +332,7 @@ sub Delete {
 	my ($this) = shift;
 	return 0 unless ($this->{'isOpen'});
 	return 0 if $this->{'recordCount'} < 1;
+	return 0 if ($this->{'EOF'});
 	$this->{'isDirty'} = 1;
 	if ($this->{'absolutePosition'} <= $this->{'originalCount'}) {
 		$this->{'appendOnly'} = 0
@@ -324,6 +363,8 @@ sub AddNew {
 
 	# add the correct number of colums using the delimiterCount
 	$this->{'fileArray'}[$this->{'absolutePosition'}] = ($this->{'delimiter'} x $delimiterCount) . "\n";
+	
+	$this->MoveLast;
 
 	return 1;
 }
@@ -430,7 +471,7 @@ sub Filter {
 			$filterSetting = 1;
 		} elsif ($operator eq "ne" && !($this->FieldValue($fieldName) ne $criteria)) {
 			$filterSetting = 1;
-		} elsif ($operator eq "like" && !(index($this->FieldValue($fieldName),$criteria,0) + 1)) {
+		} elsif ($operator eq "like" && !(index(lc($this->FieldValue($fieldName)),lc($criteria),0) + 1)) {
 			$filterSetting = 1;
 		} elsif ($operator eq ">" && !($this->FieldValue($fieldName) > $criteria) ) {
 			$filterSetting = 1;
@@ -461,6 +502,8 @@ sub RemoveFilter {
 sub Commit {
 	# update the file, saving all changes made 
 	my ($this) = shift;
+	my ($useFlock) = shift || 0;
+	my ($fileName) = $this->{'fileName'};
 
 	# if no changes were made, don't bother writing to the file 
 	if (!$this->{'isDirty'}) {return 1};
@@ -468,24 +511,27 @@ sub Commit {
 	if ($this->{'appendOnly'}) {
 		# if only new records were added, just append to the file
 		my ($nCount);
-		if (!open (OUTPUTFILE, ">>$this->{'fileName'}")) {
-			$this->{'lastError'} = "Commit: Couldn't Open DataFile For Writing";
+		if (!open (OUTPUTFILE, ">>$fileName")) {
+			$this->{'lastError'} = "Commit: Couldn't Open DataFile '$fileName' For Appending";
 			return 0
 		};
+		flock(OUTPUTFILE,2) if ($useFlock);
 		my ($tempArray) = $this->{'fileArray'};
 		for ($nCount = $this->{'originalCount'} + 1; $nCount <= $this->{'recordCount'}; $nCount++) {
 			print OUTPUTFILE @$tempArray[$nCount];
 		}
 	} else {		
 		# if records were changed or deleted, we have to replace them all 	
-		if (!open (OUTPUTFILE, ">$this->{'fileName'}")) {
-			$this->{'lastError'} = "Commit: Couldn't Open DataFile For Writing";
+		if (!open (OUTPUTFILE, ">$fileName")) {
+			$this->{'lastError'} = "Commit: Couldn't Open DataFile '$fileName' For Writing";
 			return 0
 		};
+		flock(OUTPUTFILE,2) if ($useFlock);
 		my ($tempArray) = $this->{'fileArray'};
 		print OUTPUTFILE join('',@$tempArray);
 	}
 	close (OUTPUTFILE);
+	flock(OUTPUTFILE,8) if ($useFlock);
 	return 1;
 }
 
@@ -498,6 +544,7 @@ sub Sort {
 	
 	my ($this) = shift;
 	my ($fieldName) = shift || '0';
+	my ($desc) = shift || '0';
 	my ($delimiter) = $this->{'delimiter'};
 
 	# can't append once we've changed the sort order 
@@ -518,7 +565,11 @@ sub Sort {
 		# custom sorting comparison routine
 		my (@aVals) = split($delimiter,$a);
 		my (@bVals) = split($delimiter,$b);
-		return $aVals[$fieldNumber] cmp $bVals[$fieldNumber]; 
+		if ($desc) {
+			return $bVals[$fieldNumber] cmp $aVals[$fieldNumber];
+		} else {
+			return $aVals[$fieldNumber] cmp $bVals[$fieldNumber]; 
+		}
 		undef(@aVals);
 		undef(@bVals);
 	} @$unsortedArray;
@@ -547,11 +598,11 @@ sub Open {
 	$fileName =~ s/;//g;
 	$fileName =~ s/|//g;
 
-	if (!(-e $this->{'fileName'})) {
-		$this->{'lastError'} = 'Open: Datafile Not Found';
+	if (!(-e $fileName)) {
+		$this->{'lastError'} = "Open: Datafile '$fileName' Not Found";
 		return 0;
-	} elsif (!(-r $this->{'fileName'})) {
-		$this->{'lastError'} = "Open: Couldn't Open DataFile For Reading";
+	} elsif (!(-r $fileName)) {
+		$this->{'lastError'} = "Open: Couldn't Open DataFile '$fileName' For Reading";
 		return 0;
 	}
 
@@ -655,7 +706,7 @@ __END__
 
 =head1 NAME
 
-vsDB - simple interface to delimited text files
+vsDB - Simple interface to text-delimited data files
 
 =head1 SYNOPSIS
 
@@ -840,6 +891,11 @@ For example:
 
 Returns current version
 
+=head2 xml([strRootName] [,strElementName])
+
+Returns current recordset as xml.  strRootName and strElementName are
+optional.  Default values are "vsDB" and "Record"
+
 
 =head1 OBJECT MODEL REFERENCE: METHODS
 
@@ -874,11 +930,12 @@ Although it is not necessary to call this method, it is recommended that you do
 in case vsDB is later modified to keep the file handle open.  This might be
 useful for a persistent connection to the file...?
 
-=head2 Commit()
+=head2 Commit([blnUseFLock])
 
 Commit writes the current RecordSet in memory to the filepath specified by
 the File property.  This method should be called any time there have been data
-modifications.
+modifications. blnUseFLock is an optional argument that should be 1 if flock
+should be used while writing to the file.
 
 Commit re-opens the datafile with the least amount of privledges required.  If you
 have not made any changes to the RecordSet, calling Close will not access the
@@ -897,7 +954,7 @@ the Commit method.
 
 Filter provides a way to either search the RecordSet or to get a specific record
 based on a primary key field.  strFieldName indicates the field that you want to
-filter.  strOperator is one of the following "eq", "ne", "like", ">" or ">" to indicate
+filter.  strOperator is one of the following "eq", "ne", "like", "<" or ">" to indicate
 how the field is to be compared.  strCriteria indicates the search pattern that you
 wish to find.
 
@@ -947,10 +1004,13 @@ Warning: calling Open more than once may cause unexpected results.
 RemoveFilter removes any filtering that you have done using the Filter method
 and moves the cursor to the first row in the RecordSet.
 
-=head2 Sort(strFieldName)
+=head2 Sort(strFieldName [,Descending])
 
 Sort sorts the RecordSet by the strFieldName.  You can sort by multiple fields
 by calling the Sort method more than once with a different fieldname each time.
+
+Descending should be 1 if you want the sort to be in descending order instead
+of the default ascending order.
 
 Note: Calling Sort will remove any Filters that you have applied.  If you want to
 sort and filter, then call Sort first, then Filter.
@@ -961,6 +1021,15 @@ if you always sort the same way, but proceed with caution.
 
 =head1 VERSION HISTORY
 
+	1.3.9: don't allow FieldValue or Delete if EOF is true
+	1.3.8: added UseFLock argument to Commit method
+	1.3.7: Updated error messages
+	1.3.6: AddNew now moves to the last record properly
+	1.3.5: fixed record jumbling bug in xml property
+	1.3.4: filter "like" option made case-insensitive, updated ActivePage
+	1.3.3: fixed EOF not being set properly when filtering
+	1.3.2: added xml Property
+	1.3.1: added Desc option to sort routine
 	1.3.0: added AddNewField
 	1.2.7: CR and LF properties added.  fixed bug with line breaks
 	       in the data.  Added filename security check to ->Open
@@ -978,16 +1047,11 @@ if you always sort the same way, but proceed with caution.
 
 =head1 KNOWN ISSUES & LIMITATIONS
 
-vsDB does not attempt to lock the file before accessing it.  If you plan
-to use vsDB in a multi-user environment, you should make sure that your
-script locks the file before calling the Open method and unlocks it after
-calling Close.
-
 vsDB loads the entire datafile into an array which could cause performance
-problems if your datafile grows large.  (largest test file was 15,000 records)
+problems if your datafile grows large.  (largest test file was 17,000 records)
 
-vsDB does not allow you to modify the database structure and/or create a
-RecordSet that is not connected to a file.
+ActivePage and possibly other page-related properties may return unexpected
+values when used in combination with filtering.
 
 =head1 AUTHOR
 
@@ -1000,3 +1064,4 @@ This module is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
 
 =cut
+
