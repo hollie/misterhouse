@@ -160,11 +160,22 @@ sub web_item_set_field {
     return &html_page('', 'Not authorized to make updates') unless $Authorized eq 'admin';
     my ($pos, $field) = $pos_field =~ /(\d+),(\d+)/;
 
-    my $record = @file_data[$pos];
+                                # Sanitize the data input by user (also done in web_item_add)
+    if ($field == 2) { # name 
+        $data =~ s/\s*$//;
+        $data =~ s/^\s*//;
+        $data =~ s/ +/_/g;
+        $data =~ s/[^a-z0-9_]//ig;
+    }
 
+                                # Get current item record and split into fields 
+    my $record = @file_data[$pos];
     my @item_info = split(',\s*', $record);
+
+                                # Replace the updated field 
     $item_info[$field] = $data;
 
+                                # Rebuild the record with updated field 
     $record = '';
     while (@item_info) {
         my $item = shift @item_info;
@@ -172,6 +183,7 @@ sub web_item_set_field {
         $record .= sprintf("%-20s", $item);
     }
 
+                                # Replace the updated record and write out mht file 
     $file_data[$pos] = $record;
 #   print "db2 p=$pos f=$field d=$data r=$record\n";
 
@@ -199,23 +211,26 @@ sub web_item_delete {
 }
 
 sub web_item_add {
-    my (@parms) = @_;
+    my $type = shift;
+    my $address = shift;
+    my $name = shift;
+    my $group = shift;
+    my $other1 = shift;
+    my $other2 = shift;
                                 # Allow un-authorized users to browse only (if listed in password_allow)
     return &html_page('', 'Not authorized to make updates') unless $Authorized eq 'admin';
 
-                                # Process form
-    if (@parms) {
-        my $record;
-        for my $p (@parms) {
-            $p =~ s/.+ \((\S+)\)/$1/;  # Change 'X10 Light (X10I)'  to X10I
-            $p =~ s/ +/_/g;            # Blanks not allowed?
-            $record .= "$p,  ";
-#            print "db p=$p\n";
-        }
-#       print "db r=$record\n";
-        $file_data[@file_data] = $record;
-        &mht_item_file_write($web_item_file_name, \@file_data);
-    }
+                                # Sanitize the data input by user (also done in web_item_set_field)
+    $type =~ s/.+ \((\S+)\)/$1/;  # Change 'X10 Light (X10I)'  to X10I
+    $name =~ s/\s*$//;
+    $name =~ s/^\s*//;
+    $name =~ s/ +/_/g;
+    $name =~ s/[^a-z0-9_]//ig;
+
+                                # write out new record to mht file 
+    $file_data[@file_data] = "$type, $address, $name, $group, $other1, $other2";
+    &mht_item_file_write($web_item_file_name, \@file_data);
+
     return 0;
 }
 
@@ -237,6 +252,7 @@ sub web_item_help {
                 Item    => 'Item name to tie this voice command to',
                 Phrase  => 'Voice_Cmd Text',
                 Mode    => '\'R\' (readable): generate read request to learn current state at initialization',
+                Options => 'List the device options separated by | (e.g. preset, resume=80)',
                 Other   => 'Other stuff :)');
 
     my $help = $help{$field};
