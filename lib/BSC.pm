@@ -120,65 +120,63 @@ sub set
    my ($self, $p_state, $p_setby, $p_respond) = @_;
    return if &main::check_for_tied_filters($self, $p_state);
    my $state = $p_state;
-   # don't do anything if setby an inherited object
-   if ($p_setby ne $self) {
-     my ($xap_subaddress) = $$self{m_xap}->source =~ /.+\:(.+)/;
-     if ($p_setby eq $$self{m_xap}) {
-         $$self{device_target} = $$self{m_xap}{target_address};
-         my ($xap_target_subaddress) = $$self{m_xap}{target_address} =~ /.+\:(.+)/;
-         $$self{device_subaddress_target} = $xap_target_subaddress;
-         my $sender_class = $$p_setby{'xap-header'}{class};
-         if (lc $sender_class eq 'xapbsc.cmd') {
-            # handle command
-            $state = $self->cmd_callback($p_setby);
-         } elsif (lc $sender_class eq 'xapbsc.query') {
-            # handle query
-            $state = $self->query_callback($$p_setby{'xap-header'}{target}, $$p_setby{'xap-header'}{source});
-         } elsif (lc $sender_class eq 'xapbsc.event') {
-            # handle event
-            $self->uid($$self{m_xap}{'xap-header'}{uid});
-            $state = $self->event_callback($p_setby);
-         } elsif (lc $sender_class eq 'xapbsc.info') {
-            # handle info
-            $self->uid($$self{m_xap}{'xap-header'}{uid});
-            $state = $self->info_callback($p_setby);
-         }
-      } elsif ($xap_subaddress) {
-        my $subuid = '';
-         if ($self->uid) {
-            $subuid = substr($self->uid, 6) if length($self->uid) == 8;
-            print "[BSC] " . $self->{object_name} . " extracting subaddress uid = $subuid\n" if $main::Debug{bsc};
-         } else {
-            print "[BSC] " . $self->{object_name} . " does not have a xAP uid!\n" if $main::Debug{bsc};
-         }
-         if ($subuid) {
-            my $bsc_block;
-         
-	    $bsc_block->{'id'} = $subuid;
-            if ($p_state eq 'off') {
-               $bsc_block->{'state'} = 'off';
-            } elsif ($p_state eq 'on') {
-               $bsc_block->{'state'} = 'on';
-            } else {
-               $bsc_block->{'state'} = 'on';
-               if ($p_state =~ /\d+\/\d+/) {
-                  $bsc_block->{'level'} = $p_state;
-               } elsif ($p_state =~ /^\d?\d?\d%$/) {
-                  my ($percent) = $p_state =~ /^(\d?\d?\d)%$/;
-                  if (defined $percent) {
-                     $bsc_block->{'level'} = "$percent/100";
-                  }
-               } else {
-                  $bsc_block->{'text'} = $p_state;
-               } 
-            }
-            &xAP::sendXap($$self{m_xap}{source}, 'xapbsc.cmd', 'output.state.1' => $bsc_block);
-         }
+   my ($xap_subaddress) = $$self{m_xap}->source =~ /.+\:(.+)/;
+   if ($p_setby eq $$self{m_xap}) {
+      $$self{device_target} = $$self{m_xap}{target_address};
+      my ($xap_target_subaddress) = $$self{m_xap}{target_address} =~ /.+\:(.+)/;
+      $$self{device_subaddress_target} = $xap_target_subaddress;
+      my $sender_class = $$p_setby{'xap-header'}{class};
+      if (lc $sender_class eq 'xapbsc.cmd') {
+         # handle command
+         $state = $self->cmd_callback($p_setby);
+      } elsif (lc $sender_class eq 'xapbsc.query') {
+         # handle query
+         $state = $self->query_callback($$p_setby{'xap-header'}{target}, $$p_setby{'xap-header'}{source});
+      } elsif (lc $sender_class eq 'xapbsc.event') {
+         # handle event
+         $self->uid($$self{m_xap}{'xap-header'}{uid});
+         $state = $self->event_callback($p_setby);
+      } elsif (lc $sender_class eq 'xapbsc.info') {
+         # handle info
+         $self->uid($$self{m_xap}{'xap-header'}{uid});
+         $state = $self->info_callback($p_setby);
+      }
+   } elsif ($xap_subaddress) {
+      my $subuid = '';
+      if ($self->uid) {
+         $subuid = substr($self->uid, 6) if length($self->uid) == 8;
+         print "[BSC] " . $self->{object_name} . " extracting subaddress uid = $subuid\n" if $main::Debug{bsc};
       } else {
+         print "[BSC] " . $self->{object_name} . " does not have a xAP uid!\n" if $main::Debug{bsc};
+      }
+      if ($subuid) {
+         my $bsc_block;
+         
+         $bsc_block->{'id'} = $subuid;
+         if ($p_state eq 'off') {
+            $bsc_block->{'state'} = 'off';
+         } elsif ($p_state eq 'on') {
+            $bsc_block->{'state'} = 'on';
+         } else {
+            $bsc_block->{'state'} = 'on';
+            if ($p_state =~ /\d+\/\d+/) {
+               $bsc_block->{'level'} = $p_state;
+            } elsif ($p_state =~ /^\d?\d?\d%$/) {
+               my ($percent) = $p_state =~ /^(\d?\d?\d)%$/;
+               if (defined $percent) {
+                  $bsc_block->{'level'} = "$percent/100";
+               }
+            } else {
+               $bsc_block->{'text'} = $p_state;
+            } 
+         }
+         &xAP::sendXap($$self{m_xap}{source}, 'xapbsc.cmd', 'output.state.1' => $bsc_block);
+      }
+   } else {
         print "Unable to process " . $self->{object_name} . "; state: $state\n" if $main::Debug{bsc};
         $state = '_unknown';
-      }
    }
+   
    # Always pass along the state to base class
    $self->SUPER::set($state,$p_setby, $p_respond) unless ($state eq '_unknown' or $state eq '_unchanged');
    return;
