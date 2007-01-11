@@ -17,7 +17,7 @@ require Exporter;
 @EXPORT_OK= qw();
 %EXPORT_TAGS = (FUNC    => [qw( send_ti103   receive_ti103
 				read_ti103   dim_decode_ti103
- 				ping_ti103 )]);
+ 				ping_ti103   send_buffer )]);
 
 Exporter::export_ok_tags('FUNC');
 
@@ -150,10 +150,57 @@ sub x10dup {
     	my ($str) = @_;
 	return $str . $str ;
 }
+
+sub buffer_blk {
+    	my ($serial_port, $str) = @_;
+	push @{$serial_port->{buffer}}, $str;
+
+	# Only send if this is the start of a new queue,
+	#  otherwise, let the queue drain once a second
+	#  via check_ti103_...
+	if ($#{$serial_port->{buffer}} == 0) {
+		&send_buffer($serial_port);
+		}
+	else {
+    		print &main::print_log("TI103 buffering $str") if $DEBUG;
+		}
+
+	return 1;
+	}
+
+sub send_buffer {
+	my($serial_port) = @_;
+	my($data,$ok);
+
+	$ok = ($#{$serial_port->{buffer}} > -1);
+
+	while ($ok) {
+		$data = ${$serial_port->{buffer}}[0];
+    		print &main::print_log("TI103 sending buffer: $data") if $DEBUG;
+		$ok = &sendblk($serial_port, $data);
+
+		if ($ok == 1) {
+    			print &main::print_log("TI103 buffered item sent ok") if $DEBUG;
+			shift @{$serial_port->{buffer}};
+			$ok = ($#{$serial_port->{buffer}} > -1);
+			}
+		elsif ($ok == 0) {
+			# No info back from controller - erase buffer
+    			print &main::print_log("TI103 - no response after send - bad") if $DEBUG;
+			undef @{$serial_port->{buffer}};
+			}
+		else {
+			# Received a '2', aka TI103 full
+    			print &main::print_log("TI103 - full, held buffer") if $DEBUG;
+			$ok = 0;
+			}
+		}
+	}
+
 sub sendblk {
     my ($serial_port, $str) = @_;
     my $data = "\$>28001" . $str ;
-
+    my $retval = 1;
     my $cksum = 0;
     my $n_char = "";
     my @loc_char = split (//, $data);
@@ -162,16 +209,20 @@ sub sendblk {
     }
     $data = sprintf("%s%02X#",$data,$cksum % 256);
     return 0 unless $data;
-    print &main::print_log("TI103 send: $data\n") if $DEBUG;
-    print &main::print_log("Bad ti103 data send transmition\n") unless length($data) == $serial_port->write($data);
-    print &main::print_log("send:$data\n") if $DEBUG ;
+    print &main::print_log("TI103 send: $data") if $DEBUG;
+    print &main::print_log("Bad ti103 data send transmition") unless length($data) == $serial_port->write($data);
+    print &main::print_log("send:$data") if $DEBUG ;
 
 
     $data = &read($serial_port, 0, 1);
-    print &main::print_log("TI103 recv: $data\n") if $DEBUG;
+    print &main::print_log("TI103 recv: $data") if $DEBUG;
 
-    return 1;
-    #return $data ;
+    if ($data eq "")        { $retval = 0; } # 0 = no data	        ('perm' err)
+    if ($data =~ /\!S0..#/) { $retval = 2; } # 2 = buf err, buffer full (tmp err)
+    if ($data =~ /\?..#/)   { $retval = 2; } # 2 = CRC err, retransmit  (tmp err)
+					     # else 1=success           (no err)
+
+    return $retval;
 }
 
 #
@@ -272,10 +323,12 @@ sub send {
     				$X10Cmd .= x10dup($House . "HAK") ;
 			} elsif ($val == 6 ) {
 				# $X10String =~ s/PRESET_DIM1/#06/;
-    				$X10Cmd .= x10dup(sprintf("DIM%02d", $X10Preset2{$House})) ;
+    				#$X10Cmd .= x10dup(sprintf("DIM%02d", $X10Preset2{$House})) ;
+    				$X10Cmd .= x10dup($House . "PR0");
 			} elsif ($val == 7 ) {
 				# $X10String =~ s/PRESET_DIM2/#07/;
-    				$X10Cmd .= x10dup(sprintf("DIM%02d", ($X10Preset2{$House}+16))) ;
+    				#$X10Cmd .= x10dup(sprintf("DIM%02d", ($X10Preset2{$House}+16))) ;
+    				$X10Cmd .= x10dup($House . "PR1");
 			} elsif ($val == 8 ) {
     				$X10Cmd .= x10dup($House . "SON") ;
 			} elsif ($val == 9 ) {
@@ -297,7 +350,7 @@ sub send {
 	     	}
     	}
 
-	if (sendblk($serial_port,$X10Cmd)) {
+	if (buffer_blk($serial_port,$X10Cmd)) {
       		&main::print_log("TI103.pm: SendX10 Complete X10 command received [$Cmd]") if $DEBUG;
    		return 1;
    	}

@@ -911,7 +911,7 @@ sub setup {
     }
 
     if ($config_parms{ti103_port}) {
-        require 'ControlX10/TI103.pm';
+        require 'TI103.pm';
         if (&serial_port_create('ti103', $config_parms{ti103_port}, 19200, 'none')) {
             &ControlX10::TI103::read($Serial_Ports{ti103}{object}, 1);
             $ti103_objects{timer} = new Timer;
@@ -1693,6 +1693,11 @@ sub check_for_action {
 
 sub check_for_ti103_data {
                 # Standard 1-ti103 code
+
+    if ($New_Second) {
+        &ControlX10::TI103::send_buffer($Serial_Ports{ti103}{object});
+    }
+
     my $data = &ControlX10::TI103::read($Serial_Ports{ti103}{object}, 1);
     return unless $data;
     my $data_d = unpack('C', $data);    # Convert from string to decimal
