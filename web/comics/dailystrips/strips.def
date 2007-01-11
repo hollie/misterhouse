@@ -182,6 +182,14 @@ class sev-comics
         provides latest
 end
 
+class creators
+	homepage http://featurepage.creators.com/comics/$1.html
+	type search
+	searchpattern <img src="(/comics/\d+/\d+_thumb.gif)"
+	baseurl http://featurepage.creators.com
+	provides latest
+end
+
 class washpost-creators
         homepage http://featurepage.creators.com/washpost.html?name=$1
         type generate
@@ -2278,19 +2286,19 @@ end
 #washpost strips
 strip andycapp
         name Andy Capp
-        useclass washpost-creators
-        $1 cap
+        useclass creators
+        $1 andy-capp
 end
 
 strip wizardofid
         name Wizard of Id
-        useclass washpost-creators
-        $1 wiz
+        useclass creators
+        $1 wizard-of-id
 end
 
 strip bc
         name BC
-        useclass washpost-creators
+        useclass creators
         $1 bc
 end
 
