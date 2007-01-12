@@ -2320,11 +2320,8 @@ end
 
 strip archie
 	name Archie
-	homepage http://www.creators.com/comics_show.cfm?comicname=arc
-	type search
-	searchpattern <img.+?alt="Archie".+?src="(.+?)"
-	baseurl http://www.creators.com/
-	provides latest
+	useclass creators
+	$1 archie
 end
 
 strip askshagg
@@ -2483,11 +2480,8 @@ end
 
 strip speedbump
 	name Speed Bump
-	homepage http://www.creators.com/comics_show.cfm?comicname=bmp
-	type search
-	searchpattern <img.+?alt="Speed Bump".+?src="(.+?)"
-	baseurl http://www.creators.com/
-	provides latest
+	useclass creators
+	$1 speed-bump
 end
 
 strip strangebrew
