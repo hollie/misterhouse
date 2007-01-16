@@ -45,7 +45,7 @@ sub new {
 sub ping_check {
     my ($self) = @_;
     my $address = $self->{address};
-    &::print_log("Network_Item ping on ip=$address");
+    &::print_log("Network_Item ping on ip=$address") if $::Debug{network};
 
     $self->{process}->stop();
 
