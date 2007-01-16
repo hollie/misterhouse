@@ -138,15 +138,15 @@ sub set {
 
     my @fancy_controllers; #cm11, stargate, etc.
     my @group = @{$ref->{members}};
-    print 'Number of Members: ' . ($#group + 1) . "\n";
-    print 'State:' . $state . "\n";
-    print "$state is an X10 command\n" if $x10_state;
+    print 'Number of Members: ' . ($#group + 1) . "\n" if ($main::Debug{group});
+    print 'State:' . $state . "\n" if ($main::Debug{group});
+    print "$state is an X10 command\n" if ($x10_state && $main::Debug{group});
 
     for $item (@group) {
         push @fancy_controllers, $item->{interface} if can_combine($item) and !(grep $_ eq $item->{interface}, @fancy_controllers);
-	print $item->{object_name} . "\n";
+	print $item->{object_name} . "\n" if ($main::Debug{group});
     }
-    print 'Interfaces: ' . ($#fancy_controllers + 1) . "\n";
+    print 'Interfaces: ' . ($#fancy_controllers + 1) . "\n" if ($main::Debug{group});
 
     if ($x10_state) {
 	$x10_dim_state = !($state =~ /^on$/i or $state =~ /^off$/i or $state =~ /^status/i);
@@ -194,7 +194,7 @@ sub set {
 
 
     for $controller (@fancy_controllers) {
-        print "Processing group members on interface:$controller\n";
+        print "Processing group members on interface:$controller\n" if ($main::Debug{group});
 
     for my $ref (@group) {
 	if (is_group_x10_item($ref)) {
@@ -224,7 +224,7 @@ sub set {
 
     for my $hc (keys %house_code_last_ref) {
 	if ($house_code_group_item_count{$hc} and $house_code_last_ref{$hc}) { #Are there any items at all in this group for this house code
-	print "House code: $hc\n";
+	print "House code: $hc\n" if ($main::Debug{group});
 
 	 my $last_ref = $house_code_last_ref{$hc};
 
@@ -232,7 +232,7 @@ sub set {
 	#Only done if all items in group are on the same controller and there is more than one item to set for this house code (no need to optimize A1AJ to AO.)  Note that this optimization assumes that all X10 items are defined in items.mht.
 
 	 if ($house_code_item_count{$hc} == $house_code_group_item_count{$hc} and ($state eq 'off' or ($state eq 'on' and $house_code_group_appliance_count{$hc} == 0)) and $#fancy_controllers == 0 and $house_code_item_count{$hc} > 1) {
-		print "Setting $hc to $state with " . (($state eq 'on')?'All Lights On':'All Off') . "\n";
+		print "Setting $hc to $state with " . (($state eq 'on')?'All Lights On':'All Off') . "\n" if ($main::Debug{group});
 	        &Serial_Item::send_x10_data($controller, 'X' . $hc . (($state eq 'on')?'O':'P'));
 
 	 }
@@ -368,9 +368,9 @@ sub can_combine {
 sub set_group_item {
 	my $ref = shift;
 	my $state = shift;
-	print "Desired state is $state\n";
-	print $ref->{object_name} . " has states ".join(', ',@{$ref->{states}})."\n" if $ref->{states};
-	print "$ref->{object_name}:$state\n" if item_state_exists($ref, $state);
+	print "Desired state is $state\n" if $main::Debug{group};
+	print $ref->{object_name} . " has states ".join(', ',@{$ref->{states}})."\n" if ($ref->{states} && $main::Debug{group});
+	print "$ref->{object_name}:$state\n" if (item_state_exists($ref, $state) && $main::Debug{group});
 	$ref->set($state) if item_state_exists($ref, $state);
 }
 
