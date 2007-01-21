@@ -1,6 +1,8 @@
 <html>
-<BODY bgcolor="#ffffff">
+<head>
 <base target="weather output">
+</head>
+<BODY bgcolor="#ffffff">
 <table width='100%' border='0'>
     <tr>
       <TD align="center"><a href="/bin/weather_graph_zoom.pl"><img src="images/weather-zoom.gif" alt='Weather zoom' border="0" name="Weather zoom"></a></TD>
@@ -33,5 +35,5 @@
       <TD align="center"><a href="/bin/weather_graph.pl?press"><img src="images/weather-press.gif" alt='Barometric pressure' border="0" name="Barometric pressure"></a></TD>
     </tr>
 </table>
-</HEAD>
+</body>
 </html>
