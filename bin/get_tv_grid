@@ -1263,13 +1263,14 @@ sub make_index {
 
 #======================================================================
 # SUB: delete_old_data
-# Delete data from 4 weeks ago
+# Delete data that doesn't fall into the following range:
+#   $parms{purge} days ago through 7 days from now
 # NOTE: This should probably be modified to delete old raw HTML files
 # as well.
 #======================================================================
 sub delete_old_data {
    my @dates;
-   for (1..$parms{purge}) {
+   for (-7..$parms{purge}) {
       my ($dow, $down, $day, $month) = &days_from_now(time, -$_ );
       push @dates,"$month/$day";
    }
