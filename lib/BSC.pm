@@ -58,6 +58,7 @@ sub new
    $$self{m_xap} = new xAP_Item('xAPBSC.*', $p_source_name);
    $$self{m_xap}->target_address($p_target_name) if $p_target_name;
    $$self{m_always_set_state} = 1;
+   $$self{m_allow_local_set_state} = 1;
 #   $$self{m_xap}->class_name('xAPBSC.*');
    $self->_initialize();
    $self->set_casesensitive();
@@ -113,6 +114,19 @@ sub always_set_state {
    my ($self, $p_always_set_state) = @_;
    $$self{m_always_set_state} = $p_always_set_state if defined $p_always_set_state;
    return $$self{m_always_set_state};
+}
+
+#
+# allow_local_set_state(flag) - sets the local flag to either 1 (true) or 0 (false);
+#         the default is true.  If flag is true, then the item's state is changed
+#         on a "programatic" set (i.e., local control).  If flag is false, then the
+#         item's state is changed only when the device acknowledges it's state change
+#         via a BSC event or info message
+#
+sub allow_local_set_state {
+   my ($self, $p_allow_local_set_state) = @_;
+   $$self{m_allow_local_set_state} = $p_allow_local_set_state if defined $p_allow_local_set_state;
+   return $$self{m_allow_local_set_state};
 }
 
 sub set
@@ -171,6 +185,9 @@ sub set
             } 
          }
          &xAP::sendXap($$self{m_xap}{source}, 'xapbsc.cmd', 'output.state.1' => $bsc_block);
+         # if allow_local_set_state is set false, then don't propogate the state
+         # and instead only allow the device to acknowledge it's state change via info or event
+         $state = '_masked' if !($$self{m_allow_local_set_state});
       }
    } else {
         print "Unable to process " . $self->{object_name} . "; state: $state\n" if $main::Debug{bsc};
@@ -178,7 +195,8 @@ sub set
    }
    
    # Always pass along the state to base class
-   $self->SUPER::set($state,$p_setby, $p_respond) unless ($state eq '_unknown' or $state eq '_unchanged');
+   $self->SUPER::set($state,$p_setby, $p_respond) 
+      unless ($state eq '_unknown' or $state eq '_unchanged' or $state eq '_masked');
    return;
 }
 
