@@ -317,7 +317,7 @@ sub wx_wind {
     # Weather_Common will calculate it for us anyway
 #        $$wptr{WindChill} = sprintf('%x', $data[9]);
 #        $$wptr{WindChill} *= -1 if 0x80 & $data[8];
-#        $$wptr{WindChill} = &main::convert_c2f($$wptr{WindChill_ws}) if $main::config_parms{weather_uom_temp} eq 'F';
+#        $$wptr{WindChill} = &main::convert_c2f($$wptr{WindChill}) if $main::config_parms{weather_uom_temp} eq 'F';
 #
 #        $$wptr{WindChillNoData} = (0x20 & $data[8])?1:0;
 #        $$wptr{WindChillOver} = (0x40 & $data[8])?1:0;
@@ -330,7 +330,7 @@ sub wx_wind {
     print "       WindGustSpeed   ($$wptr{WindGustSpeed} $main::config_parms{weather_uom_wind})\n" if $debug;
     print "       WindGustDir     ($$wptr{WindGustDir})\n" if $debug;
     print "       WindAvgSpeed    ($$wptr{WindAvgSpeed} $main::config_parms{weather_uom_wind})\n" if $debug;
-#    print "       WindChill       ($$wptr{WindChill_ws} C) ($$wptr{WindChill})\n" if $debug;
+#    print "       WindChill       ($$wptr{WindChill})\n" if $debug;
 #    print "       WindChillNoData ($$wptr{WindChillNoData})\n" if $debug;
 #    print "       WindChillOver   ($$wptr{WindChillOver})\n" if $debug;
 }
@@ -438,8 +438,8 @@ print "       HumidIndoor     ($$wptr{HumidIndoor})\n" if $debug;
 print "       DewIndoor       ($$wptr{DewIndoor} $main::config_parms{weather_uom_temp})\n" if $debug;
 print "       DewIndoorUnder  ($$wptr{DewIndoorUnder})\n" if $debug;
 print "       WxTendency      ($$wptr{WxTendency})\n" if $debug;
-print "       Barom           ($$wptr{Barom_ws} mb) ($$wptr{Barom})\n" if $debug;
-print "       BaromSea        ($$wptr{BaromSea_ws} mb) ($$wptr{BaromSea})\n" if $debug;
+print "       Barom           ($$wptr{Barom})\n" if $debug;
+print "       BaromSea        ($$wptr{BaromSea})\n" if $debug;
 }
 #=============================================================================
 # THERMO HYGRO THERMO-HYGROMETER (OUTSIDE)
@@ -465,7 +465,7 @@ unless ($skip{TempOutdoor}) {
         $$wptr{TempOutdoor}=sprintf('%u',(0x0f & $data[4]))*0.1 + sprintf('%u',(0xf0 & $data[4])>>4)*1
 				+ sprintf('%u',(0x0f & $data[5]))*10 + sprintf('%u',(0x30 & $data[5])>>4)*100;
         $$wptr{TempOutdoor} *= -1 if 0x80 & $data[5];
-	$$wptr{TempOutdoor} = &main::convert_c2f($$wptr{TempOutdoor_ws}) if $main::config_parms{weather_uom_temp} eq 'F';
+	$$wptr{TempOutdoor} = &main::convert_c2f($$wptr{TempOutdoor}) if $main::config_parms{weather_uom_temp} eq 'F';
 	#Over/Under
 	$$wptr{TempOutdoorOverUnder} = ((($data[5] & 0x40)>>6)?1:0)*((0x80 & $data[5])?-1:1);
     }
@@ -479,7 +479,7 @@ unless ($skip{HumidOutdoor}) {
 unless ($skip{DewOutdoor}) {
 	if (!$$wptr{DewOutdoorUnder})  {
       $$wptr{DewOutdoor}=sprintf('%u',(0x0f & $data[7]))*1 + sprintf('%u',(0xf0 & $data[7])>>4)*10;
-	$$wptr{DewOutdoor} = &main::convert_c2f($$wptr{DewOutdoor_ws}) if $main::config_parms{weather_uom_temp} eq 'F';
+	$$wptr{DewOutdoor} = &main::convert_c2f($$wptr{DewOutdoor}) if $main::config_parms{weather_uom_temp} eq 'F';
 	}
 }
 print "** THERMO-HYGROMETER : $main::Time_Date\n" if $debug;
