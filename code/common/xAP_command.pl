@@ -61,15 +61,52 @@ if ($state = $xap_command_external->state_now()) {
    undef $$xap_command_external{'command.external'};
 }
 
+$xap_command_external2 = new xAP_Item('messenger.event');
+
+if ($xap_command_external2->state_now('message.receive')) {
+        my $command = $$xap_command_external2{'message.receive'}{body};
+        my $respondtgt = $$xap_command_external2{'message.receive'}{from};
+        my $vc = &Voice_Cmd::voice_item_by_text(lc($command));
+	
+        if ($vc) {
+		my $target;
+		$xap_command_external2->{set_by} = "xap [msgr:$respondtgt]";
+		
+		my $response =&process_external_command(
+			$command,
+			1,
+			$xap_command_external2,
+			$target);
+				# Special error response.  Normal response handled by respond_xap
+		if ($response ne 1) {
+		        my $target = '*'; 
+	        	&xAP::sendXap($target,
+				"messenger.cmd",
+				'message.send' => {to => $respondtgt, body => 'Error encountered'});
+		}
+	}
+   # very important! - must clear out the attribs for command.external as certain xap message components
+   # 	are optional and won't clear out old data otherwise
+   undef $$xap_command_external2{'message.receive'};
+}
+
+
 # This gets invoked by Respond, when target=xap
 sub respond_xap
 {
 	my (%parms) = @_;
         my $target = $parms{to};
-        $target = '*' unless $target; # not good form as target='*' will get stripped out; but ...
-        &xAP::sendXap($target,
+        my ($xapclass,$to) = $target =~ /(.*):(.*)/;
+        if ($xapclass eq 'msgr') {
+	    &xAP::sendXap('*',
+                "messenger.cmd",
+		"message.send" => {to => $to, body => $parms{text}});	
+	} else {
+            $target = '*' unless $target; # not good form as target='*' will get stripped out; but ...
+            &xAP::sendXap($target,
 		"command.response",
 		'command.response' => {response => $parms{text}, app => $parms{app}, mode => $parms{mode}, error => 0});
+	}
 }
 
 $xap_command_response = new xAP_Item('command.response');
