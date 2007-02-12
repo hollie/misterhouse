@@ -1025,9 +1025,11 @@ sub sendXapWithHeaderVars {
           my $section = shift @data;
           $msg .= "$section\n{\n";
           my $ptr = shift @data;
-          my %parms = %$ptr;
-          for my $key (keys %parms) {
-             $msg .= "$key=$parms{$key}\n";
+          if ($ptr) {
+             my %parms = %$ptr;
+             for my $key (keys %parms) {
+                $msg .= "$key=$parms{$key}\n";
+             }
           }
           $msg .= "}\n";
        }
