@@ -167,6 +167,8 @@ sub im_message {
     return if $text =~ /^I am currently away from the computer/i;
     return if $from =~ /AOL System Msg/i; # Fix for AOL: bot to bot infinite loop - stops replies to AOL's bot.
 
+    my ($im_sessionless_from) = $from =~ m/^(.*@.*\/.*)\w{8}$/;
+
     my $msg;
     if ($text =~ /^(login|logon): *(\S*)$/i) {
         if ($im_data{password_allow}{$from}) {
@@ -226,7 +228,7 @@ sub im_message {
         $msg .= "  send sname:  xyz  => sname is a Screenname to send a message to, and xyz is the text to send. Can only send using current IM program\n" if ($im_data{password_allow}{$from} or $im_data{password_allow_temp}{$from});
         $msg .= "  any valid MisterHouse command(e.g. What time is it)\n";
     }
-    elsif ($authority eq 'anyone' or $im_data{password_allow}{$from} or $im_data{password_allow_temp}{$from}) {
+    elsif ($authority eq 'anyone' or $im_data{password_allow}{$from} or $im_data{password_allow_temp}{$from} or $im_data{password_allow}{$im_sessionless_from}) {
         if ($authority eq 'admin' and $im_data{password_allow_temp}{$from} ne 'admin') {
             $msg = "Admin logon required";
         }
@@ -377,7 +379,7 @@ sub im_message {
       }
     }
     else {
-        $msg = "You are not authorized to run this command!";
+        $msg = "$from: You are not authorized to run this command!";
     }
 
     print_log "$pgm IM: $from: $text" . (($msg)?" ($msg)":'');
