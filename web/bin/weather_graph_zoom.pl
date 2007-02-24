@@ -199,7 +199,7 @@ print $cgi->start_td({-align=>'right',valign=>"center",width=>"90"});
 print '<B>Round Robin Database</B>';
 print $cgi->end_td;
 $RRDDIR = "$config_parms{rrd_dir}";
-opendir DIR,"$RRDDIR" or die;
+opendir DIR,"$RRDDIR" or die "Can't open $RRDDIR: $!";
 @tabrrd= grep /^.*\.rrd$/,readdir(DIR);
 print $cgi->start_td({-align=>'left',-colspan=>1});
 print $cgi->popup_menu(-name=>'rrddatabase',
