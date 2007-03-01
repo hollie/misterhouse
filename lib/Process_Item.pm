@@ -48,7 +48,12 @@ sub add {
                                 # This is called by mh on exit to save persistant data
 sub restore_string {
     my ($self) = @_;
+
+    return '' if $main::OS_win; # we don't currently have a method to restore
+    							# Process_Item state in Windows
+
     my $restore_string = '';
+
     if ($self->{cmds} and my $cmds = join($;, @{$self->{cmds}})) {
         $cmds =~ s/\n/ /g; # Avoid new-lines on restored vars
         $cmds =~ s/~/\\~/g;
