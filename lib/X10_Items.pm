@@ -1215,7 +1215,7 @@ sub add {
 
                                 #24 hour countdown Timer
     $self->{battery_timer} = new Timer;
-    $self->{battery_timer}-> set(24*60*60,
+    $self->{battery_timer}->set(($main::config_parms{MS13_Battery_timer}) ? $main::config_parms{MS13_Battery_timer} : 24 *60*60,
 	      ( ($main::config_parms{MS13_Battery_action}) ? $main::config_parms{MS13_Battery_action} : "print_log")
 				 .  " \"rooms=all Battery timer for $name expired\"", 7);
 
