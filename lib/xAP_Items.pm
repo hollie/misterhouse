@@ -230,7 +230,7 @@ sub main::display_xap_message_display
       $mapped_priority = 9;
    }
    $text_block->{priority} = $mapped_priority;
-   push @xap_data, 'display.text', $text_block;
+   push @xap_data, 'Display.Text', $text_block;
 
    if ($args{pic_url} or $args{pic_refresh} or $args{link_url}) {
       my $web_block;
@@ -431,6 +431,10 @@ sub parse_data {
         else {
             $data_type = lc $r;
         }
+    }
+    # the following is a "hack" to allow unorthodox structures like xAP BSC's query
+    if (!(exists($d{$data_type}))) {
+       $d{$data_type}{'_dummy'} = 1;
     }
     return \%d;
 }
@@ -768,6 +772,9 @@ sub _process_incoming_xap_data {
                            print "db3 xap setting state to $value\n" if $main::Debug{xap} and $main::Debug{xap} == 3;
                            $state_value = $value;
                        }
+                   }
+                   if ($$o{changed} eq '' && $section ne 'xap-header') {
+                      $$o{changed} .= "$section";
                    }
                }
 
@@ -1433,7 +1440,7 @@ sub state_now {
 			}
 		}
 		print "db xAP_Item:state_now: section data for $section_name is: $section_state_now\n"
-			if $main::Debug{xap};
+			if $main::Debug{xap} and $section_state_now;
 		$state_now = $section_state_now;
 	}
 	return $state_now;
