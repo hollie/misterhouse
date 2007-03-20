@@ -317,7 +317,7 @@ sub set {
             if ($$p_setby{'alarm'}{cause} eq 'Motion') {
                my $id = $$p_setby{'alarm'}{alarmid};
                my (@zone_names) = split(/,/, $$p_setby{'alarm'}{zonedata}) if $$p_setby{'alarm'}{zonedata};
-               my (@zones) = @{$$self{m_zones}}; #$self->find_members('ZM_ZoneItem');
+               my (@zones) = @{$$self{m_zones}} if $$self{m_zones};
                if (!(@zone_names) && @zones) {
                   push @zone_names, $zones[0]->name;
                }
