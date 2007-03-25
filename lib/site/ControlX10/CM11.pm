@@ -618,6 +618,57 @@ sub setClock {
     print "Bad cm11 checksum acknowledge\n" unless 1 == $serial_port->write($pc_ok);
 }
 
+sub clearMacros {
+	my ($serial_port)=@_;
+
+	# The clear_macros string was taken from heyu 2.0 beta 8.1.
+	# The following is the copyright code from the heyu source
+	#
+	# /*
+	#  * Copyright 1996, 1997, 1998, 1999 by Daniel B. Suthers,
+	#  * Pleasanton Ca. 94588 USA
+	#  * E-MAIL dbs@tanj.com
+	#  *
+	#  * You may freely copy, use, and distribute this software,
+	#  * in whole or in part, subject to the following restrictions:
+	#  *
+	#  *  1)  You may not charge money for it.
+	#  *  2)  You may not remove or alter this copyright notice.
+	#  *  3)  You may not claim you wrote it.
+	#  *  4)  If you make improvements (or other changes), you are requested
+	#  *      to send them to me, so there's a focal point for distributing
+	#  *      improved versions.
+	#  *
+	#  */
+
+	# Here is the explanation of the the data that we are sending to the CM11
+	#
+	# * The qerase function erases the headers of the EEPROM in the CM11.
+	# * It forces the erase by ignoring the response of the CM11A.  This can get
+	# * you out of a lockup.
+	# * 
+	# * It does so  by overwriting the EEPROM with no macros and no events
+	# * In essence, the following byte string should be sent 
+	# * FB 00 00 00 02 ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+	# * FB = load macros
+	# *    00 00 = address to load at
+	# *          00 02 = address 2 = start of macro initiators
+	# *                ff ff  end of macro initiators
+	# *                      ff ff ff ff ff ff ff ff ff ff ff ff   filler
+	# *
+	# * It's important to note that the eeprom macro data is NOT zeroed.  This
+	# * leaves a possibility that a new timer/macro will put a partial record
+	# * at the address of the old one.
+
+	my $clear_macros='FB 00 00 00 02 ff ff ff ff ff ff ff ff ff ff ff ff ff ff';
+	$clear_macros =~ s/ //g;
+	$clear_macros=pack('H*',$clear_macros);
+
+	my $results = $serial_port->write($clear_macros);
+    select undef, undef, undef, 50 / 1000;
+    my $checksum = $serial_port->input; # Receive, but ignore, checksum
+}
+
 sub ping {
     my ($serial_port) = @_;
     my $ri_on = 0xeb;
