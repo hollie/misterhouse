@@ -1213,6 +1213,7 @@ for $celgtime (@$tabgtime) {
 "--imgformat", "$rrd_format_upper",
 "--units-exponent", "0",
 "--alt-autoscale",
+"--alt-y-grid",
 "--color","SHADEA#${colorshadea}",
 "--color","SHADEB#${colorshadeb}",
 ^
