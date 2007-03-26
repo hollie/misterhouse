@@ -37,13 +37,23 @@ sub new {
 
     $self->set_interface($interface, $id);
 
+                                # level variable stores current brightness level 
+                                # undef means off, 100 is on 
     restore_data $self ('level'); # Save brightness level between restarts
+
+                                # resume variable stores brightness level to use when on is sent 
+                                # defaults to 100, 0 means set to previous level 
+    $self->{resume} = 100;
+    my $set_resume;
+    (($set_resume) = $self->{type} =~ /resume=(\d+)/i) if $self->{type};
+    $self->{resume} = $set_resume if defined $set_resume;
+    restore_data $self ('resume'); # Save resume level between restarts
 
     if ($id) {
         my $hc = substr($id, 0, 1);
         push @{$items_by_house_code{$hc}}, $self;
 
-                                # Allow for unit=9,10,11..16, instead of 9,A,B,C..F
+                                # Allow for unit=9,10,11..16, instead of 9,A,B,C..G
         if ($id =~ /^\S1(\d)$/) {
             $id = $hc . substr 'ABCDEFG', $1, 1;
         }
@@ -72,6 +82,8 @@ sub new {
             $self->add ($id . $hc . 'L', 'brighten');
             $self->add ($id . $hc . 'M', 'dim');
             $self->add ($id . $hc . 'STATUS', 'status');
+            $self->add ($id . $hc . 'STATUS_ON', 'status on');
+            $self->add ($id . $hc . 'STATUS_OFF', 'status off');
             $self->add ($id , 'manual'); # Used in Group.pm.  This is what we get with a manual kepress, with on ON/OFF after it
 
             if ($self->{type} and $self->{type} =~ /(preset3)/i) {
@@ -99,59 +111,59 @@ sub new {
 }
 
 sub add {
-	my ($self, $id, $state)=@_;
+    my ($self, $id, $state)=@_;
 
-	#print "X10Items->add called with self $self, id $id and state $state\n";
-	#print "self not defined\n" if not defined $self;
-	#print "interface not defined\n" if $self and not defined $self->{interface};
+    #print "X10Items->add called with self $self, id $id and state $state\n";
+    #print "self not defined\n" if not defined $self;
+    #print "interface not defined\n" if $self and not defined $self->{interface};
 
-	$self->{interface}->add($id, $state);
-	$self->SUPER::add($id, $state);
+    $self->{interface}->add($id, $state);
+    $self->SUPER::add($id, $state);
 }
 
 # this sets the interface through which we will send X10 data when asked to do so
 sub set_interface {
-	my ($self, $interface, $id) = @_;
-	my $localDebug=0;
+    my ($self, $interface, $id) = @_;
+    my $localDebug=0;
 
-	# if an interface is specified, then we need to search through the
-	# possible interface modules until we find one that will work with it
+    # if an interface is specified, then we need to search through the
+    # possible interface modules until we find one that will work with it
     if ($interface) {
-    	if (X10_Interface->supports($interface)) {
-    		print "for id $id, x10 interface supplied ($interface) and supported by X10_Interface\n" if $localDebug;
-    		$self->{interface}=new X10_Interface(undef,undef,$interface);
-		} elsif (Serial_Item->supports($interface)) {
-    		print "for id $id, x10 interface supplied ($interface) and supported by Serial_Item\n" if $localDebug;
-			$self->{interface}=new Serial_Item(undef,undef,$interface);
-		} else {
-			# we can't find a real interface, so use a Dummy_Interface
-			print "warning, using dummy interface for id $id and supplied interface $interface\n" if $localDebug;
-			$self->{interface}=new Dummy_Interface($id, undef, $interface);
-		}
-	} else {
-	# an interface wasn't specified, we'll use the first one that we find
-		if ($interface=X10_Interface->lookup_interface){
-    		print "for id $id, x10 interface not supplied, supported by X10_Interface $interface\n" if $localDebug;
-			$self->{interface}=new X10_Interface(undef,undef,$interface);
-		} elsif ($interface=Serial_Item->lookup_interface) {
-    		print "for id $id, x10 interface not supplied, supported by Serial_Item $interface\n" if $localDebug;
-			$self->{interface}=new Serial_Item(undef,undef,$interface);
-		} else {
-			# we can't find a real interface, so use a Dummy_Interface
-			print "warning, using dummy interface for id $id\n" if $localDebug;
-			$self->{interface}=new Dummy_Interface($id);
-		}
-	}
-	# tell our "generic" interface object the name of the actual interface to use
-	# we could also call set_interface without an interface name but it would
-	# just repeat the same search that we just did
-	$self->{interface}->set_interface($interface);
+        if (X10_Interface->supports($interface)) {
+            print "for id $id, x10 interface supplied ($interface) and supported by X10_Interface\n" if $localDebug;
+            $self->{interface}=new X10_Interface(undef,undef,$interface);
+        } elsif (Serial_Item->supports($interface)) {
+            print "for id $id, x10 interface supplied ($interface) and supported by Serial_Item\n" if $localDebug;
+            $self->{interface}=new Serial_Item(undef,undef,$interface);
+        } else {
+            # we can't find a real interface, so use a Dummy_Interface
+            print "warning, using dummy interface for id $id and supplied interface $interface\n" if $localDebug;
+            $self->{interface}=new Dummy_Interface($id, undef, $interface);
+        }
+    } else {
+        # an interface wasn't specified, we'll use the first one that we find
+        if ($interface=X10_Interface->lookup_interface){
+            print "for id $id, x10 interface not supplied, supported by X10_Interface $interface\n" if $localDebug;
+            $self->{interface}=new X10_Interface(undef,undef,$interface);
+        } elsif ($interface=Serial_Item->lookup_interface) {
+            print "for id $id, x10 interface not supplied, supported by Serial_Item $interface\n" if $localDebug;
+            $self->{interface}=new Serial_Item(undef,undef,$interface);
+        } else {
+            # we can't find a real interface, so use a Dummy_Interface
+            print "warning, using dummy interface for id $id\n" if $localDebug;
+            $self->{interface}=new Dummy_Interface($id);
+        }
+    }
+    # tell our "generic" interface object the name of the actual interface to use
+    # we could also call set_interface without an interface name but it would
+    # just repeat the same search that we just did
+    $self->{interface}->set_interface($interface);
 
-	# Set a placeholder object name for our contained interface class
-	# This is to provide a more friendly log message when X10 data is received
-	# It starts with a '#' so that we can identify these contained objects in
-	# code/common/mh_control.pl and suppress them if desired.
-	$self->{interface}->{object_name}='#'.ref($self->{interface}).' for '.ref($self);
+    # Set a placeholder object name for our contained interface class
+    # This is to provide a more friendly log message when X10 data is received
+    # It starts with a '#' so that we can identify these contained objects in
+    # code/common/mh_control.pl and suppress them if desired.
+    $self->{interface}->{object_name}='#'.ref($self->{interface}).' for '.ref($self);
 }
 
 sub property_changed {
@@ -166,8 +178,20 @@ sub property_changed {
 sub set {
     my ($self, $state, $set_by) = @_;
     return if &main::check_for_tied_filters($self, $state);
+
+    my $level = $$self{level};
+    my $resume = $self->{resume};
+    my ($presetable, $lm14, $preset, $preset2, $preset3);
+    $lm14 = 1 if $self->{type} and ($self->{type} =~ /\blm14\b/i);
+    $preset = 1 if $self->{type} and ($self->{type} =~ /\bpreset\b/i);
+    $preset2 = 1 if $self->{type} and ($self->{type} =~ /\bpreset2\b/i);
+    $preset3 = 1 if $self->{type} and ($self->{type} =~ /\bpreset3\b/i);
+    $presetable = 1 if $self->{type} and ($self->{type} =~ /(lm14|preset)/i);
+    $presetable = 1 if $self->{type} and ($self->{type} =~ /(lm14|preset)/i);
+
+                                # Turn light off if on or dim, turn on if off 
     if ($state eq 'toggle') {
-        if ($$self{state} eq 'on') {
+        if ($level) {
             $state = 'off';
         }
         else {
@@ -176,24 +200,17 @@ sub set {
         &main::print_log("Toggling X10_Item object $self->{object_name} from $$self{state} to $state");
     }
 
-    my ($presetable, $resume);
-    $presetable = 1 if $self->{type} and ($self->{type} =~ /(lm14|preset)/i);
-    (($resume) = $self->{type} =~ /resume=(\d+)/i) if $self->{type};
-#   print "db ps=$presetable t=$self->{type}\n";
-
-                                # If we are currently in a dim state, then make an 'on' really a 100%
-                                # doesn't an 'on' set a dumb module to 100% faster than this? dnorwood2
-    if (!$presetable and $state eq 'on' and $self->state() =~ /^[-+]?\d+/) {
-#        $state = "100%";
-    }
-
                                 # Make sure we do the right thing if light was off
-    if (($self->state() eq 'off' or $self->state() eq 'double off' or $self->state() eq 'triple off')
-      and ($state =~ /^\d+\%$/ or $state =~ /^[-+]?\d+$/ or $state =~ /^[-+]\d+\%$/)) {
-        $self->{level} = $resume if defined $resume;
-        $self->{level} = 100 unless defined $self->{level};
-                                # doesn't a dim or brighten set a dumb module to 100% anyway? dnorwood2
-        $self->set(ON) unless $presetable;      # First turn it on, then go to specified level
+                                # Presetable modules can come on dimmed, so allow 0 + 20 = 20
+                                # Basic modules should be turned on first 
+    if (! defined $level and ($state =~ /^\d+\%$/ or $state =~ /^[-+]?\d+$/ or $state =~ /^[-+]\d+\%$/)) {
+        if ($presetable) {
+            $self->{level} = 0;
+        }
+        else {
+            &set($self, 'on');
+            &set_x10_level($self, 'on');
+        }
     }
 
                                 # Convert +-dd% to +-dd by multiplying it by the current level
@@ -239,9 +256,8 @@ sub set {
                                 # Some presetable devices, like the Leviton 6381, will remain addressed
                                 # after a preset command and will accept subsequent unrelated
                                 # commands unless they are set to ON.
-    if ($self->{type} =~ /preset2/i and $state =~ /^\d+\%$/) {
-        $self->{interface}->send_x10_data($self->{interface},       $self->{x10_id}) ;
-        &self->{interface}->send_x10_data($self->{interface}, 'X' . substr($self->{x10_id},1,1) . 'J') ;
+    if ($preset2 and $state =~ /^\d+\%$/) {
+        &set($self, 'on');
     }
 
                                 # Set objects that match House Code commands
@@ -262,27 +278,26 @@ sub set_receive {
                                 # Try to keep track of X10 brightness level
 sub set_x10_level {
     my ($self, $state) = @_;
-    my $level;
-    $level = $$self{level};
-    my ($presetable, $resume);
-    $presetable = 1 if $self->{type} and ($self->{type} =~ /(lm14|preset)/i);
-    (($resume) = $self->{type} =~ /resume\=(\d+)/i) if $self->{type};
     return unless defined $state;
+
+    my $level = $$self{level};
+    my $resume = $self->{resume};
+    my ($presetable, $lm14, $preset, $preset2, $preset3);
+    $lm14 = 1 if $self->{type} and ($self->{type} =~ /\blm14\b/i);
+    $preset = 1 if $self->{type} and ($self->{type} =~ /\bpreset\b/i);
+    $preset2 = 1 if $self->{type} and ($self->{type} =~ /\bpreset2\b/i);
+    $preset3 = 1 if $self->{type} and ($self->{type} =~ /\bpreset3\b/i);
+    $presetable = 1 if $self->{type} and ($self->{type} =~ /(lm14|preset)/i);
 
                                 # handle relative changes
     if ($state =~ /^([\+\-]?)(\d+)$/ or $state eq 'dim' or $state eq 'brighten') {
-                                # use resume=dd in type field if the module has set level
-        $level = $resume if defined $resume and !defined $level;
-        $level = 100 unless defined $level; # bright and dim from on or off will start at 100%
+                                # dumb modules come on full if a dim or bright is sent 
+        $level = $resume if !$presetable and !defined $level;
         if ($state eq 'dim') {
             $state = -5;
-            $state = -2 if $self->{type} =~ /(lm14|preset)/i;
-            $state = -3 if $self->{type} =~ /preset3/i;
         }
         elsif ($state eq 'brighten') {
             $state = 5;
-            $state = 2 if $self->{type} and $self->{type} =~ /(lm14|preset)/i;
-            $state = 3 if $self->{type} and $self->{type} =~ /preset3/i;
         }
         $level += $state;
         $level =   0 if $level <   0;
@@ -290,22 +305,40 @@ sub set_x10_level {
     }
                                 # handle direct changes
     elsif ($state =~ /^(\d+)\%$/) {
-
         $level = $1;
     }
-    elsif ($state eq 'on' ) {
                                 # use resume=dd in type field if the module has set level
-        $level = $resume if defined $resume;
-        $level = 100 unless $presetable;
-        $level = 100 unless defined $level; # Only if we used to be off.
+    elsif ($state eq 'on' ) {
+        if (defined $level) {
+                                # the Switchlincs change to resume level even if dimmed 
+            $level = $resume if $preset3;
+        }
+        else {
+                                # other modules only change if off 
+            $level = $resume;
+        }
     }
-                                # Dimming from off starts at 100%, unless it is presetable
+                                # handle off state 
     elsif ($state eq 'off' or $state eq 'double off' or $state eq 'triple off ') {
-        $level = undef unless $presetable;
+        my $set_resume;
+        (($set_resume) = $self->{type} =~ /resume=(\d+)/i) if $self->{type};
+        if (defined $set_resume) {
+                                # resume=0 means resume at previous level 
+            if ($set_resume == 0) {
+                $self->{resume} = $level;
+           }
+            else {
+                $self->{resume} = $set_resume;
+            }
+        }
+        $level = undef;
     }
     elsif ($state eq 'double on' or $state eq 'triple on') {
         $level = 100;
     }
+
+                                # on presetable switches, 0 brightness is same as off 
+    $level = undef if $level == 0 and $presetable;
 
 #   print "db setting level for $self $$self{object_name} state=$state level=$level\n";
     $$self{level} = $level;
@@ -314,6 +347,11 @@ sub set_x10_level {
                                 # This returns the type variable
 sub type {
     return $_[0]->{type};
+}
+
+                                # This returns the resume type variable
+sub resume {
+    return $_[0]->{resume};
 }
 
                                 # This returns current brightness level ... see above
@@ -325,21 +363,12 @@ sub level {
 sub state_level {
     my $state = $_[0]->{state};
     my $level = $_[0]->{level};
-    if (!defined $state or !($state eq 'on' or $state eq 'off')) {
-        if (defined $level and $level =~ /^\d+$/) {
-            $state = 'dim';
-            $state = 'off' if $level ==   0;
-            $state = 'on'  if $level == 100;
-        }
-        elsif ($state =~ /^[\+\-\d\%]+$/ or $state eq 'dim' or $state eq 'brighten') {
-            $state = 'dim';
-        }
-        else {
-            $state = ''; # unknown
-        }
-    }
-    elsif ($state eq 'on' and defined $level and $level < 100) {
+    if (defined $level) {
         $state = 'dim';
+        $state = 'on'  if $level == 100;
+    }
+    else {
+        $state = 'off';
     }
     return $state;
 }
