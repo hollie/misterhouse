@@ -86,6 +86,7 @@ $form_type
     for my $record (@file_data) {
                                 # Do not list comments
         unless ($record =~ /^\s*\#/ or $record =~ /^\s*$/ or $record =~ /^Format *=/) {
+            $record =~ s/,? *$//;
             my(@item_info) = split(',\s*', $record);
             my $type = shift @item_info;
             push @{$item_pos{$type}}, $pos;
@@ -107,7 +108,7 @@ $form_type
                     X10SL   => [qw(Address Name Groups Interface Options)],
                     X10MS   => [qw(Address Name Groups Type)],
                     X106BUTTON => [qw(Address Name)],
-                    GENERIC => [qw(Name Groups)],
+                    GNERIC => [qw(Name Groups)],
                     SERIAL  => [qw(String Name Groups State Port)],
                     IBUTTON => [qw(ID Name Port Channel)],
                     VOICE   => [qw(Item Phrase)],
@@ -161,9 +162,10 @@ sub web_item_set_field {
     my ($pos, $field) = $pos_field =~ /(\d+),(\d+)/;
 
                                 # Sanitize the data input by user (also done in web_item_add)
+    $data =~ s/\s*$//;
+    $data =~ s/^\s*//;
+    $data =~ s/,//g;
     if ($field == 2) { # name 
-        $data =~ s/\s*$//;
-        $data =~ s/^\s*//;
         $data =~ s/ +/_/g;
         $data =~ s/[^a-z0-9_]//ig;
     }
@@ -182,6 +184,7 @@ sub web_item_set_field {
         $item .= ', ' if @item_info;
         $record .= sprintf("%-20s", $item);
     }
+    $record =~ s/ *$//;
 
                                 # Replace the updated record and write out mht file 
     $file_data[$pos] = $record;
@@ -221,14 +224,20 @@ sub web_item_add {
     return &html_page('', 'Not authorized to make updates') unless $Authorized eq 'admin';
 
                                 # Sanitize the data input by user (also done in web_item_set_field)
+    foreach my $field ($type, $address, $name, $group, $other1, $other2) {
+        $field =~ s/\s*$//;
+        $field =~ s/^\s*//;
+        $field =~ s/,//g;
+        $field =~ s/$/,/;
+    }
     $type =~ s/.+ \((\S+)\)/$1/;  # Change 'X10 Light (X10I)'  to X10I
-    $name =~ s/\s*$//;
-    $name =~ s/^\s*//;
     $name =~ s/ +/_/g;
-    $name =~ s/[^a-z0-9_]//ig;
+    $name =~ s/[^a-z0-9_,]//ig;
+    $other2 =~ s/,$//;
 
                                 # write out new record to mht file 
-    $file_data[@file_data] = "$type, $address, $name, $group, $other1, $other2";
+    $file_data[@file_data] = sprintf("%-20s%-20s%-20s%-20s%-20s%s", 
+      $type, $address, $name, $group, $other1, $other2);
     &mht_item_file_write($web_item_file_name, \@file_data);
 
     return 0;
