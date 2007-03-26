@@ -686,6 +686,8 @@ sub http_get_local_file {
             undef $file;
         }
     }
+    $file = "$main::config_parms{'html_dir2' . $Http{format}}/$get_req" if ! $file and 
+      -f "$main::config_parms{'html_dir2' . $Http{format}}/$get_req";
     $file = "$main::config_parms{'html_dir' . $Http{format}}/$get_req" unless $file;
 
                                # Goofy audrey can add a / suffix to a file request
@@ -1744,12 +1746,9 @@ sub html_find_icon_image {
     else {
         $name  = lc $object->{object_name};
         $state = lc $object->{state};
+        $state = lc $object->state_level() if ($type eq 'x10_item' or $type eq 'x10_switchlinc') ;
         $name =~ s/^\$//;       # remove $ at front of objects
         $name =~ s/^v_//;       # remove v_ in voice commands
-                                # Hard to track exact time state, so just use 1 icon for any dim
-        $state = 'dim' if ($type eq 'x10_item' or $type eq 'x10_switchlinc') and ($state =~ /^[+-]?\d+$/ or $state =~ /\d+\%/);
-        $state = 'on' if ($type eq 'x10_item' or $type eq 'x10_switchlinc') and ($state eq 'double on' or $state eq 'triple on');
-        $state = 'off' if ($type eq 'x10_item' or $type eq 'x10_switchlinc') and ($state eq 'double off' or $state eq 'triple off');
                                 # Use on/off icons for conditional Weather_Items
         $state = ($state) ? 'on' : 'off' if $type eq 'weather_item' and ($object->{comparison});
                                 # Allow for set_icon to set the icon directly
@@ -2118,7 +2117,9 @@ sub html_command_table {
                                 # Start the form before the icon
                                 #  - outside of td so the table is shorter
                                 #  - allows the icon to be a submit
-        my $form = qq[<FORM action="RUN;$H_Response" method="get">\n];
+        my $form = qq[<FORM action="RUN;$H_Response" method="get" target="] .
+          $config_parms{'html_target_speech' . $Http{format}} . 
+          qq[">\n];
 
                                 # Icon button
         push @htmls, qq[$form  <td align='left' valign='center' width='0%' $ol_state_log>$html</td>\n];
@@ -2192,7 +2193,9 @@ sub html_command_table {
 
                                 # We could add ol_info here, so netscape kind of works, but this
                                 # would be redundant and ineffecient.
-                $hrefs .= qq[<a href='RUN;$H_Response?$text_cmd'>$state</a> ];
+                $hrefs .= qq[<a href='RUN;$H_Response?$text_cmd' target="] .
+                   $config_parms{'html_target_speech' . $Http{format}} . 
+                   qq[">$state</a> ];
                 $state =~ s/\+(\d+)/$1/; # Msagent doesn't like +20, +30, etc
                 $msagent_cmd1 .= "$state|" if $state;
 #               $hrefs .= qq[<a href='/RUN;$H_Response?$text_cmd' $ol_info>$state</a> ];
@@ -2240,7 +2243,8 @@ sub html_command_table {
     }
 
                                 # Create final html
-    $html = "<BASE TARGET='" . $config_parms{'html_target_speech' . $Http{format}}. "'>\n";
+                                # moved the target option down to form and a tags to be compatible with IE7, dn
+#   $html = "<BASE TARGET='" . $config_parms{'html_target_speech' . $Http{format}}. "'>\n";
     $html = qq[<DIV ID="overDiv" STYLE="position:absolute; visibility:hide; z-index:1;"></DIV>\n] .
             qq[<SCRIPT LANGUAGE="JavaScript" SRC="/overlib.js"></SCRIPT>\n] .
                 $html if $html_info_overlib;

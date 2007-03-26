@@ -2,9 +2,8 @@
 <head>
 <LINK REL="STYLESHEET" HREF="/default.css" TYPE="text/css">
 </head>
-<body>
-
 <BASE TARGET='control'>
+<body>
 
 <b>Open Access</b>
 <li><a href="/misc/barcode_scan.html">Scan a barcode</a></li>

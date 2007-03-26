@@ -13,13 +13,14 @@ function clearit() {
 }
 </SCRIPT>
 
+<BASE TARGET='speech'>
+
 <!-- authority=anyone -->
 
 </HEAD>
 <BODY onLoad="self.focus();document.barcode.$barcode_scan.focus();
               document.barcode.$barcode_scan.value = '.0.cGf2.ENr7C3vYE3n0D3n2CNPZC3nZ.';
               document.barcode.$barcode_scan.select();">
-<BASE TARGET='speech'>
 
 <H3>Barcode Scan</H3>
 
