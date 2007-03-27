@@ -85,6 +85,12 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "UPB_Link(\$$object, $network,$address)";
     }
+    elsif($type eq "UPBRAIN8") {
+        require 'UPB_Rain8.pm';
+        ($name, $object, $network, $address,$grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "UPB_Rain8(\$$object, $network,$address)";
+    }
     # ----------------------------------------------------------------------
     elsif($type eq 'FROG') {
         require 'FroggyRita.pm';
