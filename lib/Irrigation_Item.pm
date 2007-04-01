@@ -1,0 +1,240 @@
+=begin comment
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+File:
+	Irrigation_Item.pm
+
+Description:
+	Irrigation Cycle controller - This is an attempt to abstract irrigation control
+	features from the hardware specific device driver.   This driver can cycle
+	through specific zones with specified time delays (much like a generic sprinkler
+	controller found on an existing system)  This driver has been tested
+	to work with the UPB_Rain8 driver, but should work with any other device object
+	that can turn on/off its zones using the MH support substate syntax ( ->set(on:4);)
+
+Author(s):
+	Jason Sharpee  - jason@sharpee.com
+	
+License:
+	This free software is licensed under the terms of the GNU public license.
+	By using this software you agree that it comes with no warranty and author 
+	is not responsible for any damage that may occur.
+	
+Usage:
+	Example initialization:
+      These are to be placed in a *.mht file in your user code directory.
+
+      First, define your actual irrigation object:
+		 UPB_Rain8, irrigation_controller1, 13, 1
+
+      Then, define the Irrigation_Item(s) and attach the real object:
+         IRRIGATION, irrigation_controller1, morning_irrigation
+         IRRIGATION, irrigation_controller1, evening_irrigation
+
+	Methods:
+		set(state) - Start / Stop full irrigation cycle
+			state[on/off] = Start/Stop full irrigation cycle
+		zone_single(zone,state,time) - Start / Stop single zone
+			zone[x] = Single zone to activate/deactivate
+			state[on/off] = Start / Stop single zone
+			time[x] = Time in seconds for the zone to run
+		zone_activate(zone,activated) - Set zone activation part of the cycle
+			zone[x] = Zone to set activate/de-activated
+			activated[1/0] = Set / unset active zone in full cycle
+		zone_time(zone,time) - Set zone cycle time
+			zone[x] = Zone to set cycle time
+			time[x] = Time in seconds for the zone to run part of the cycle
+		zone_count(zones) - Set total zones
+			zones[x] = Number of zones as a part of the system (default 8)
+
+		running() - Returns (1/0) system running
+		zone_current() - Returns [1/0] current zone running
+		
+	Output states:
+
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=cut
+
+use strict;
+use Base_Item;
+
+package Irrigation_Item;
+
+@Irrigation_Item::ISA = ('Base_Item');
+
+sub initialize
+{
+	my ($self) = @_;
+
+	$$self{m_write} = 1;
+	$$self{m_timerCycle} = new Timer();
+	$$self{m_zoneCurrent} = 0;
+	$$self{m_zoneMaximum} = 1*60*60; #if no time is specified this is the failsafe time
+	$self->zone_count(8); #default 8 zones
+}
+
+sub set
+{
+	my ($self,$p_state,$p_setby,$p_respond) = @_;
+
+#	&::print_log("Irrigation Set:". $p_state . ":" . $p_setby);
+	if ($p_setby eq $$self{m_timerCycle}) { ### Timer calling us back
+		if ($self->single() ne 1 and $self->zone_current() ne 0) {
+			$self->cascade();
+		} elsif ($self->single() eq 1)  {
+			$self->zone($self->zone_current(),'off');
+			$self->single(0);
+			$self->zone_current(0);
+			&::print_log("Irrigation Single Stopped");
+		} else {
+			&::print_log("Irrigation Cycle Stopped");
+		}
+	} elsif (lc($p_state) eq 'on') {
+		$self->cascade();
+	} elsif (lc($p_state) eq 'off') {
+		$$self{m_timerCycle}->set('off');
+		$self->zone($self->zone_current(),'off');
+		$self->zone_current(0);
+	}
+
+#			$self->SUPER::set($l_final_state,$p_setby,$p_respond);
+#			$self->SUPER::set($l_final_state,$self,$p_respond);
+}
+	
+sub cascade
+{
+	my ($self) = @_;
+
+	$self->zone($self->zone_current(),'off') if $self->zone_current() ne 0;
+	my $next_zone = $self->zone_next();
+	if ($next_zone ne 0) #go to next zone if there is one
+	{
+#		&::print_log("Irrigation_Cascade". $next_zone . ":");
+		$self->zone($next_zone,'on',$self->zone_time($next_zone));
+	} else {
+#		$$self{m_timerCycle}->set('off'); #re-dundant
+		$self->zone_current(0);
+		&::print_log("Irrigation Cycle Stopped");
+	}
+}
+
+sub zone_next
+{
+	my ($self,$p_current) = @_;
+	$p_current = $self->zone_current() if not defined $p_current;
+
+	for (my $index = $p_current+1; $index< $self->zone_count() ; $index++)
+	{
+		if ($self->zone_active($index) eq 1)
+		{
+			return $index;
+		}
+	}
+	return 0;
+}
+
+sub zone_active
+{
+	my ($self,$p_zone,$p_blnActive) = @_;
+#	&::print_log("here1:$p_zone,$p_blnActive");
+	$$self{m_zoneActive}[$p_zone-1] = $p_blnActive if defined $p_blnActive;
+	return $$self{m_zoneActive}[$p_zone-1];
+}
+
+sub zone_time
+{
+	my ($self,$p_zone,$p_time) = @_;
+	$$self{m_zoneTime}[$p_zone-1] = $p_time if defined $p_time;
+	return $$self{m_zoneTime}[$p_zone-1];
+}
+
+sub zone_single
+{
+	my ($self,$p_zone,$p_time) = @_;
+	$self->single(1);
+	$self->zone($p_zone,$p_time);	
+	return 1;
+}
+
+sub zone_count
+{
+	my ($self,$p_count) = @_;
+
+#	&::print_log("IRR:Count:$p_count");
+	if (defined $p_count) 
+	{
+		$$self{m_zoneCount}=$p_count;
+		for (my $index=1;$index<=$p_count;$index++)
+		{
+			$self->zone_active($index,1); #default all zones active
+			$self->zone_time($index,10 * 60); #default 10 minutes
+#			$$self{m_zoneActive}[$index] = 1; #default all zone active
+#			$$self{m_zoneTime}[$index] = 30; #default 10 minutes
+		}
+	
+	}
+	return $$self{m_zoneCount};
+}
+
+sub running
+{
+	my ($self,$p_blnState) = @_;
+#	$$self{m_isRunning} = $p_blnState if defined $p_blnState;
+#	return $$self{m_isRunning};
+	if ($self->zone_current() ne 0) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+sub zone_current
+{
+	my ($self,$p_zone) = @_;
+	$$self{m_zoneCurrent} = $p_zone if defined $p_zone;
+	return $$self{m_zoneCurrent};
+}
+
+sub zone
+{
+	my ($self,$p_zone,$p_state,$p_time) = @_;
+
+	#turn on or off zone
+	if (lc($p_state) eq 'on')
+	{
+		&::print_log("Irrigation Zone:$p_zone:On:");
+		$self->zone_current($p_zone);
+		$self->SUPER::set('on:' . $p_zone);
+	} else {
+		&::print_log("Irrigiation Zone:$p_zone:Off:");
+		$self->SUPER::set('off:' . $p_zone);
+		if ($self->single() eq 1) { #if single shot mode, shut everything down
+			$self->zone_current(0);
+			$$self{m_timerCycle}->set('off');
+		} else { # if normal cycle mode, skip this zone
+			if ($self->zone_current() eq $p_zone and $$self{m_timerCycle}->active() eq 1) {
+				$$self{m_timerCycle}->set(1,$self);
+			}
+		}
+	}
+	#set time limit
+	if (defined $p_time) {
+#		&::print_log("Irr:Timer:" , $p_time);
+		$$self{m_timerCycle}->set($p_time,$self);
+	} elsif (lc($p_state) eq 'on') {
+		$$self{m_timerCycle}->set(1*60*60,$self); #Failsafe 1 hour limit
+	}
+
+	
+}
+
+sub single
+{
+	my ($self,$p_blnSingle) = @_;
+	$$self{m_modeSingle} = $p_blnSingle if defined $p_blnSingle;
+	return $$self{m_modeSingle};	
+}
+
+1;
+
