@@ -211,6 +211,11 @@ sub read_table_A {
         ($object, $name, $grouplist, @other) = @item_info;
         $object = "Photocell_Item(\$$object, $other)";
     }
+	elsif($type eq 'IRRIGATION') {
+        require 'Irrigation_Item.pm';
+        ($object, $name, $grouplist, @other) = @item_info;
+        $object = "Irrigation_Item(\$$object, $other)";
+    }
     elsif($type eq "MOTION_TRACKER") {
        require 'Motion_Tracker.pm';
        ($object, $name, $grouplist, @other) = @item_info;
