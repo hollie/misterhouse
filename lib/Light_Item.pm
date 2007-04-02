@@ -68,11 +68,18 @@ Usage:
          do NOT want to attach door objects and motion objects to the object
          if using this feature -- just attach the presence object(s) and
          any light restriction objects (and possibly a Light_Switch_Object).
-      manual(X): Set X to 1 to set the light into a full manual mode where
-         it will never be turned on or off automatically.
+      manual(X,time_on,time_off): Set X to 1 to set the light into a full manual mode where
+         it will never be turned on or off automatically unless optional time_on or
+         time_off are set.  Set X to the physical light to ensure that 
+         the light_item tracks the state of the physical light while
+         in manual mode.  Assign time_on and optionally time_off to time
+         in secs for manual mode to be set until resuming to automatic
+         mode.  time_off is assigned to time_on if uninitialized.
       always_set_state(X): set X to 0 to only set state when the state
          changes value.  The default is 1 and allows any number of sets
          with the same value.
+      retrict_off(X): set X to 0 to prevent any attached light restriction
+         items from preventing off states.  The default is "0".
 
 	Input states:
       From a Light_Restriction_Item:
@@ -154,12 +161,14 @@ sub initialize
    $$self{m_pending_lock} = 0;
    $$self{m_delay_on} = 0;
    $$self{m_manual} = undef;
+   $$self{m_manualTimer} = new Timer();
 $$self{m_idleTimer} = new Timer();
 $$self{m_idleAmount} = 0;
 $$self{m_idleState} = undef;
 $$self{m_idleActiveState} = undef;
 	$$self{state}='off';
 	$$self{m_always_set_state} = 1; # the default is to set state regardless of change
+        $$self{m_restrict_off} = 0; # disable light restrictions items from preventing off states
 }
 
 sub set
@@ -176,11 +185,19 @@ sub set
 
 	$p_state=lc($p_state);
 
-	### Manual shutoff ###
-	return if defined($self->manual());
-
 	### prevent reciprocal sets ###
 	return if (ref $p_setby and $p_setby->can('get_set_by') and $p_setby->{set_by} eq $self);
+
+        ### allow "automatic resume from manual" if a timer has been set
+        if ((ref $p_setby) && ($p_setby eq $$self{m_manualTimer})) {
+           $self->manual(0);
+           $$self{m_manualTimer}->unset();
+           &::print_log("Light_Item($$self{object_name}):: resuming from manual to automatic mode") if $main::Debug{light_item};
+           return;
+        }
+
+	### Manual shutoff (unless set by the manually controlled light) ###
+	return if ($self->manual() && !((ref $p_setby) && (ref $self->manual) && ($self->manual eq $p_setby)));
 
 	
 ######### EVENTS
@@ -191,6 +208,7 @@ sub set
 		$l_event_state='off';
 	}
 
+    if (!($self->manual)) {
 ######### HANDLERS
 	#IDLE Handler
 	$l_handler_state = $l_event_state;
@@ -220,7 +238,7 @@ sub set
 		} else {
 			if ($l_event_state ne $l_handler_state) { #If a handler modified the state, then use it instead
 				$l_final_state = $l_handler_state;
-			} elsif ($p_state=~/^[+-]?\d?\d\%?/ or $p_state=~/^[+]100%?/) {
+			} elsif ($p_state=~/^[+-]?\d?\d\%?/ or $p_state=~/^[+]?100\%?/) {
 				#Someone wants a pre-set dim or dimmed state
 				$l_final_state = $p_state;
 			} else {
@@ -236,19 +254,18 @@ sub set
 			$l_final_state = $l_handler_state;
 		}
 	}
-
-        if ($self->allow_set_state($l_final_state, $p_setby)) {
+    }
+    if ($self->allow_set_state($l_final_state, $p_setby)) {
 ######### LOG ##############
-		if (defined($l_final_state)) { #Log only actions that do something
+	if (defined($l_final_state)) { #Log only actions that do something
 			&::print_log("Light_Item($$self{object_name}):: State->$p_state Event->$l_event_state Handler->$l_handler_state Final->$l_final_state DelayOff->" . $$self{m_timerOff}->active() . " Setby->$p_setby (" . ( ref($p_setby) ? $$p_setby{object_name} :'') . ")") if $main::Debug{light_item};
-		}
+	}
 
 ######### SET LIGHT STATE ##############
-		if (defined($l_final_state)) {
-			$self->SUPER::set($l_final_state,$p_setby,$p_respond);
-#			$self->SUPER::set($l_final_state,$self,$p_respond);
-		}
-        }
+	if (defined($l_final_state)) {
+	   $self->SUPER::set($l_final_state,$p_setby,$p_respond);
+	}
+    }
 }
 
 ## used to prevent set state if no change
@@ -270,6 +287,13 @@ sub always_set_state
 	my ($self, $p_always_set_state) = @_;
 	$$self{m_always_set_state} = $p_always_set_state if defined($p_always_set_state);
 	return $$self{m_always_set_state};
+}
+
+sub restrict_off
+{
+	my ($self, $p_restrict_off) = @_;
+        $$self{m_restrict_off} = $p_restrict_off if defined($p_restrict_off);
+        return $$self{m_restrict_off};
 }
 
 sub get_handler_state
@@ -545,7 +569,7 @@ sub is_off_restriction
 {
 	my ($self,$p_state,$p_setby) = @_;
 	my $l_qualified=0;
-	if ( ! $self->is_change_allowed() ) { # We cant change the status of the light
+	if ($$self{m_restrict_off} and (! $self->is_change_allowed())) { # We cant change the status of the light
 		$l_qualified=1;
 	}
 	if ( defined($p_setby) ) {
@@ -678,11 +702,23 @@ sub delay_on {
 }
 
 sub manual {
-	my ($self, $p_manual) = @_;
+   my ($self, $p_manual, $p_manualOnTime, $p_manualOffTime) = @_;
    if (defined($p_manual)) {
    	$$self{m_manual} = $p_manual;
+        if (($p_manual) and ($p_manualOnTime)) {
+           my $_manualOffTime = $p_manualOffTime;
+           $_manualOffTime = $p_manualOnTime unless $_manualOffTime;
+           $$self{m_manualTimer}->unset();
+           if (($self->state eq 'off') or ($self->state eq '') or ($self->state eq '0%')) {
+              &::print_log("Light_Item($$self{object_name}):: setting mode to manual; reverting in $_manualOffTime seconds") if $main::Debug{light_item};
+              $$self{m_manualTimer}->set($_manualOffTime, $self);
+           } else {
+              &::print_log("Light_Item($$self{object_name}):: setting mode to manual; reverting in $p_manualOnTime seconds") if $main::Debug{light_item};
+              $$self{m_manualTimer}->set($p_manualOnTime, $self);
+           }
+        }
    }
-	return $$self{m_manual};
+   return $$self{m_manual};
 }
 
 sub idle_state {
