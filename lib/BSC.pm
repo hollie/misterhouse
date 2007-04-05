@@ -155,44 +155,46 @@ sub set
          $self->uid($$self{m_xap}{'xap-header'}{uid});
          $state = $self->info_callback($p_setby);
       }
-   } elsif ($xap_subaddress) {
-      my $subuid = '';
-      if ($self->uid) {
-         $subuid = substr($self->uid, 6) if length($self->uid) == 8;
-         print "[BSC] " . $self->{object_name} . " extracting subaddress uid = $subuid\n" if $main::Debug{bsc};
-      } else {
-         print "[BSC] " . $self->{object_name} . " does not have a xAP uid!\n" if $main::Debug{bsc};
-      }
-      if ($subuid) {
-         my $bsc_block;
-         
-         $bsc_block->{'id'} = $subuid;
-         if ($p_state eq 'off') {
-            $bsc_block->{'state'} = 'off';
-         } elsif ($p_state eq 'on') {
-            $bsc_block->{'state'} = 'on';
-         } else {
-            $bsc_block->{'state'} = 'on';
-            if ($p_state =~ /\d+\/\d+/) {
-               $bsc_block->{'level'} = $p_state;
-            } elsif ($p_state =~ /^\d?\d?\d%$/) {
-               my ($percent) = $p_state =~ /^(\d?\d?\d)%$/;
-               if (defined $percent) {
-                  $bsc_block->{'level'} = "$percent/100";
-               }
-            } else {
-               $bsc_block->{'text'} = $p_state;
-            } 
-         }
-         &xAP::sendXap($$self{m_xap}{source}, 'xapbsc.cmd', 'output.state.1' => $bsc_block);
-         # if allow_local_set_state is set false, then don't propogate the state
-         # and instead only allow the device to acknowledge it's state change via info or event
-         $state = '_masked' if !($$self{m_allow_local_set_state});
-      }
    } else {
-        print "Unable to process " . $self->{object_name} . "; state: $state\n" if $main::Debug{bsc};
-        $state = '_unknown';
+      my $bsc_block;
+      my $id = '*';
+      if ($xap_subaddress) {
+         my $subuid = '';
+         if ($self->uid) {
+            $subuid = substr($self->uid, 6) if length($self->uid) == 8;
+            print "[BSC] " . $self->{object_name} . " extracting subaddress uid = $subuid\n" if $main::Debug{bsc};
+         } else {
+            print "[BSC] " . $self->{object_name} . " does not have a xAP uid!\n" if $main::Debug{bsc};
+         }
+         $id = $subuid if defined($subuid);
+      } 
+      $bsc_block->{'id'} = $id;
+      if ($p_state eq 'off') {
+         $bsc_block->{'state'} = 'off';
+      } elsif ($p_state eq 'on') {
+         $bsc_block->{'state'} = 'on';
+      } else {
+         $bsc_block->{'state'} = 'on';
+         if ($p_state =~ /\d+\/\d+/) {
+           $bsc_block->{'level'} = $p_state;
+         } elsif ($p_state =~ /^\d?\d?\d%$/) {
+            my ($percent) = $p_state =~ /^(\d?\d?\d)%$/;
+            if (defined $percent) {
+               $bsc_block->{'level'} = "$percent/100";
+            }
+         } else {
+            $bsc_block->{'text'} = $p_state;
+         } 
+      }
+      &xAP::sendXap($$self{m_xap}{source}, 'xapbsc.cmd', 'output.state.1' => $bsc_block);
+      # if allow_local_set_state is set false, then don't propogate the state
+      # and instead only allow the device to acknowledge it's state change via info or event
+      $state = '_masked' if !($$self{m_allow_local_set_state});
    }
+#   } else {
+#        print "Unable to process " . $self->{object_name} . "; state: $state\n" if $main::Debug{bsc};
+#        $state = '_unknown';
+#   }
    
    # Always pass along the state to base class
    $self->SUPER::set($state,$p_setby, $p_respond) 
