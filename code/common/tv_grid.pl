@@ -92,3 +92,12 @@ if (time_cron "50 * * * *") {
         copy "$tvdir/$tvfile", "$tvdir/index.html";
     }
 }
+
+# lets allow the user to control via triggers
+
+if ($Reload) { 
+	&trigger_set("time_cron '5 19 * * *'", 
+	  "run_voice_cmd 'Get tv grid data for the next 2 weeks'", 'NoExpire', 'get tv grids') 
+	  unless &trigger_get('get tv grids');
+}
+
