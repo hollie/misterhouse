@@ -173,7 +173,7 @@ sub process{
 	$rain_rate=undef;
 	if (defined ($lastRainReadingTime)) {
 		$rain_rate=($total_rain-$lastRainReading); # delta in inches
-		my $time_delta=(time - $lastRainReading);
+		my $time_delta=(time - $lastRainReadingTime);
 		if ($time_delta != 0) {
 			$rain_rate/=$time_delta; # rate in inches per second
 			$rain_rate *= 3600; # rate in inches per hour
