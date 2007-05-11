@@ -383,9 +383,11 @@ sub update_graphs {
 	foreach my $key (keys(%config_parms)) {
 		next if $key !~ /^weather_rrd_color_(.*)/; # we only want certain keys
 		next if $key =~ /_MHINTERNAL_/; # not internal copies
-		&print_log("weather_rrd: found key $key") if $Debug{weather_graph};
-		my $color=$1;
-		print RRDDATATRANSFER qq:\$color$color=$config_parms{"weather_rrd_color_".$color}\n:;
+		my $element=$1;
+		my $color=$config_parms{"weather_rrd_color_".$element};
+		&print_log("weather_rrd: found element -$element- value is -$color-");
+		next if $color eq '';
+		print RRDDATATRANSFER qq:\$color$element='$color'\n:;
 	}
 
 	foreach my $key (keys(%config_parms)) {
