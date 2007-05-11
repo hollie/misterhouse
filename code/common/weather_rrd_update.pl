@@ -387,7 +387,7 @@ sub update_graphs {
 		my $color=$config_parms{"weather_rrd_color_".$element};
 		&print_log("weather_rrd: found element -$element- value is -$color-");
 		next if $color eq '';
-		print RRDDATATRANSFER qq:\$color$element='$color'\n:;
+		print RRDDATATRANSFER qq:\$color$element='$color';\n:;
 	}
 
 	foreach my $key (keys(%config_parms)) {
