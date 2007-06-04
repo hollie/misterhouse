@@ -179,6 +179,8 @@ sub rss_file_process {
 				$link =~ s/\'/%27/g;
 				my $file = "$title.torrent";
 				# Remove or escape problematic filename characters
+				$file =~ s/\[/\(/ if $file =~ /car talk/i;
+				$file =~ s/\]/\)/ if $file =~ /car talk/i;
 				$file =~ s/ *\[.*?\] *//g;
 				$file =~ s/\// - /g;
 				$file =~ s/\?//g;
@@ -189,6 +191,7 @@ sub rss_file_process {
 				$file =~ s/\|//g;
 				$file =~ s/\://g;
 				$file =~ s/\?//g;
+				$file =~ s/ +$//g;
 				print_log "$file currently downloading" if $current_file eq "$torrent_dir/$file";
 				print_log "$file already downloaded" if $DBM{"$torrent_dir/$file"};
 				print_log "$file already queued" if grep {$_ eq "'$link' '$torrent_dir/$file'"} @rss_file_download_queue;
