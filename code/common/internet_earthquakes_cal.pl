@@ -106,7 +106,7 @@ if ( $state eq 'Read' ) {
   foreach (split /\t/, $Save{quakes_cal}) {
     $quake = $_;
     return unless $num < $Earthquake_Count;
-    $num += speak_quake($quake);
+    $num += speak_quake_cal($quake);
   }
 }
 
