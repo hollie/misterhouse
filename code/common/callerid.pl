@@ -17,7 +17,7 @@ use Telephony_Item;
 #@  callerid_type   = type (e.g. netcallerid, rockwell, zyxel)  See lib/Telephony_Interface.pm for options.
 #@  callerid_format =      (number only)
 #@ The NetCallerID device
-#@ <a href=http://www.dfwmetrotechs.com/misterhouse/calleridorder.html>now on clearance for $15 here</a>,
+#@ available <a href="http://www.electronicdiscountsales.com/shop/pub/1154299397_44598505.htm">here</a>
 #@ will also do call waiting callerid (caller id even while you are on the phone).
 
 

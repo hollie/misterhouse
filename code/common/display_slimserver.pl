@@ -2,7 +2,7 @@
 # $Revision$
 # $Date$
 
-#@ Echos spoken text to a Slimp3 display ( http://www.slimdevices.com ).
+#@ Echos spoken text to a <a href="http://www.slimdevices.com">Slimp3 display</a>.
 #@ Example mh.ini parms:  slimserver_clients=192.168.0.60:69,192.168.0.61:69  slimserver_server=192.168.0.2:9000
 
 # Slimserver http controls are documented here:

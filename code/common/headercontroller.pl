@@ -1,8 +1,8 @@
 # Category = MisterHouse
 
-#@This code is used to generate a header control file that limits
-#@what type of password can access certain pages in the IA5 web directory.
-#@It allows you to set access based on family and or guest password.
+#@ This code is used to generate a header control file that limits
+#@ what type of password can access certain pages in the IA5 web directory.
+#@ It allows you to set access based on family and or guest password.
 
 
 

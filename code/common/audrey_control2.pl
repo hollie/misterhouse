@@ -12,7 +12,8 @@
 #@ optional mpgnoph2 MrAudrey package
 #@
 #@ Further information on the MrAudrey Image may be seen at
-#@ http://www.mraudrey.net -or- http://vsa.cape.com/~pjf
+#@ <a href="http://www.mraudrey.net">http://www.mraudrey.net</a> -or- 
+#@ <a href="http://vsa.cape.com/~pjf">http://vsa.cape.com/~pjf</a>.
 #@
 #  MRU 20050214-04,
 #  v0.16 Pete Flaherty - initial relase

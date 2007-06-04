@@ -1,9 +1,9 @@
 
 #Category=News
 
-#@ Check incoming email and announce big breaking news from CNN:
-#@  - subscribe here:  http://www.cnn.com/EMAIL/
-#@ Requires internet_mail.pl
+#@ Check incoming email and announce big breaking news from CNN.
+#@ Subscribe here:  <a href="http://www.cnn.com/EMAIL/">http://www.cnn.com/EMAIL/</a>.
+#@ Requires internet_mail.pl in the Internet category.   
 
                                 # get_email_scan_file and $p_get_email are created by internet_mail.pl
 if (done_now $p_get_email and -e $get_email_scan_file) {

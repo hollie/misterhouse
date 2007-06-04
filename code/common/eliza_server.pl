@@ -5,11 +5,10 @@
 
 #@ This code uses The Eliza Chatbot module to reply to a message.
 #@ Eliza is not a very sophisticated chatbot, but it allows for
-#@ a simple conversation.  The rules are in mh/data/eliza/*.txt
+#@ a simple conversation.  The rules are in mh/data/eliza/*.txt.
 
 #@ Text can be entered via the Tk interface or via a web page.
-#@ An example page is in mh/web/speak/speak.shtml, called with
-#@ http://localhost:8080/speak
+#@ An example page is in <a href="/speak">mh/web/speak/speak.shtml</a>.
 
 =cut
 

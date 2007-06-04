@@ -1,11 +1,11 @@
 # Category = Weather
 
 #@ Reads iButton One Wire Weather Station data broadcast from the OWW program.
-#@  This program is freely available from http://www.simon.lenhuish.net/projects/oww
-#@  this is a multiplatrorm networkable weatherstation server/client for use
-#@  with the Dallas One wire weather station (all versions)
+#@  This program is freely available from <a href=http://oww.sourceforge.net/>here</a>.
+#@  This is a multiplatrorm networkable weatherstation server/client for use
+#@  with the Dallas One wire weather station (all versions).
 #@ Default parameters are for the station to be running on the localhost
-#@  at port 8888, you can override this with the owwserver_host_port ini
+#@  at port 8888, but you can override this with the owwserver_host_port ini
 #@  parameter.  This may point to a machine other than the localhost.
 
 =begin_comment
