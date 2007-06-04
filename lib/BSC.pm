@@ -316,7 +316,7 @@ sub send_query {
    $headerVars->{'class'} = 'xAPBSC.query';
    $headerVars->{'target'} = $target;
    $headerVars->{'source'} = &xAP::get_xap_mh_source_info($family_name);
-   $headerVars->{'uid'} = &xAP::get_xap_uid($family_name, '00');
+   $headerVars->{'uid'} = &xAP::get_xap_base_uid($family_name) . '00';
    push @data2, $headerVars;
    push @data2, 'request', ''; # hmmm, this could blow-up maybe? really only want a blank request block
 
