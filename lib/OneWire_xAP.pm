@@ -64,11 +64,16 @@ use BSC;
 
 sub new {
 
-	my ($class) = @_;
+	my ($class, $xap_base_address) = @_;
 	my $self={};
 	bless $self, $class;
 
 	$$self{source_map} = {};
+        if ($xap_base_address) {
+           $$self{m_base_address} = $xap_base_address;
+        } else {
+           $$self{m_base_address} = '';
+        }
 	return $self;
 }
 
@@ -78,11 +83,17 @@ sub add {
 	my $instance_name = "house"; # need to make this configurable
         if ($device) {
 		push @{$$self{m_devices}}, $device;
-		my $xap_address = "liming.oxc.$instance_name:" . lc $device->type
-			. "." . $device->id;
+                my $xap_address = $$self{m_base_address};
+                $xap_address = "liming.oxc.$instance_name" unless $xap_address;
+                if ($device->id !~ /^\S*\.\S*/) {
+			$xap_address = $xap_address . ':' . lc $device->type . "." . $device->id;
+                } else {
+			$xap_address = $xap_address . ':' . $device->id;
+		}
 		my $xap_item = new BSC_Item($xap_address);
 		$$self{source_map}{$xap_item} = $device;
 		$self->SUPER::add($xap_item); # add it so that it can set this obejct
+                $xap_item->send_query('core', $xap_address);
 	}
 }
 
@@ -100,7 +111,7 @@ sub set {
 			# parse the data from the level member stripping % char
                            if ($source->level) {
                               if ($source->level =~ /\d+\/\d+/) {
-                                 my ($humid1, $range) = $source->level =~ /^(\d+)\/(\d+)/;
+                                 my ($humid1, $range) = $source->level =~ /^(\d+\.?\d*)\/(\d+)/;
                                  $device->measurement(100*($humid1/$range)) if (defined($humid1) and ($range));
                               } else {
 			         my ($humid, $humid_scale) = $source->level =~ /^(-?\d*\.?\d*)\s*(\S*)/;
