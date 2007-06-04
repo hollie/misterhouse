@@ -71,6 +71,10 @@ sub new
 	   $p_xap = new xAP_Item('Telephony.Info');
 	   &main::store_object_data($p_xap,'xAP_Item','Telephony','Telephony');
         } else {
+           if (!($p_xap->isa('xAP_Item'))) {
+     	   	$p_xap = new xAP_Item($p_xap);
+	   	&main::store_object_data($p_xap,'xAP_Item','Telephony','Telephony');
+           }
            &::print_log("Initializing Telephony_xAP with xAP object: " . $p_xap->class_name() . "\n");
         }
         $$self{xap_listeners}{$p_xap->class_name()} = $p_xap;
@@ -140,29 +144,23 @@ sub meteor_out_complete_hook
 sub callerid_hook
 {
 	my ($self,$p_xap)= @_;
-#	foreach (keys %{$$p_xap{'incoming.callwithcid'}}) {
-#		&::print_log("Keys: $_");
-#	}
-	#CLEAR
 	$self->cid_name('');
 	$self->cid_number('');
 	$self->cid_type('');
 	$self->cid_name($$p_xap{'incoming.callwithcid'}{name});
         $self->cid_number($$p_xap{'incoming.callwithcid'}{phone});
         $self->cid_type('N'); # N-Normal, P-Private/Blocked, U-Unknown;
-#	&::print_log("CID=====". $$p_xap{'incoming.callwithcid'}{rnname} );
 	if (uc $$p_xap{'incoming.callwithcid'}{rnnumber} eq 'UNAVAILABLE' or 
 		uc $$p_xap{'incoming.callwithcid'}{rnnumber} eq 'WITHHELD' ) {
 	        $self->cid_type('U'); # N-Normal, P-Private/Blocked, U-Unknown;
 	}	
 	$self->address($$p_xap{'incoming.callwithcid'}{line});
-#	&::print_log("CID====" . $self->cid_number());
 	return "cid";
 }
 
 sub meteor_in_cid_hook
 {
-	my ($self,$p_xap)= @_;
+	my ($self,$p_xap,$block_name)= @_;
 	$self->cid_name('');
 	$self->cid_number('');
 	$self->cid_type('');
@@ -213,7 +211,8 @@ sub set
 {
 	my ($self, $p_state, $p_setby, $p_response) = @_;
 	return if &main::check_for_tied_filters($self, $state);
-        for $class_name (keys %{$$self{xap_listeners}}) {
+
+	for $class_name (keys %{$$self{xap_listeners}}) {
            my $xap_listener = $$self{xap_listeners}{$class_name};
 	   if ($p_setby eq $xap_listener ) {
               if (lc $class_name eq 'telephony.info') {
@@ -227,21 +226,17 @@ sub set
 
               } elsif (lc $class_name eq 'cid.meteor') {
 		 if (defined $xap_listener->state_now('incoming.callwithcid') ) {
-			$state=$self->meteor_in_cid_hook($p_setby);
+			$state=$self->meteor_in_cid_hook($p_setby,'incoming.callwithcid');
 		 } elsif (defined $xap_listener->state_now('outgoing.callcomplete') ) {
 			$state=$self->meteor_out_complete_hook($p_setby);
-                        $state = 'onhook' unless $self->hook && $self->hook eq 'on';
-		 } elsif (defined $xap_listener->state_now('incoming.callcomplete') ) {
-                        $state = 'onhook' unless $self->hook && $self->hook eq 'on';
-		 } elsif (defined $xap_listener->state_now('outgoing.callinitiated') ) {
-			$state= 'offhook' unless $self->hook && $self->hook eq 'off';
-		 } elsif (defined $xap_listener->state_now('incoming.callanswered') ) {
-			$state= 'offhook' unless $self->hook && $self->hook eq 'off';
-
 		 } else {
 			$state='unknown';
 		 }
 
+              } elsif (lc $class_name eq 'cid.incoming') {
+		 if (defined $xap_listener->state_now('cid.incoming') ) {
+			$state=$self->meteor_in_cid_hook($p_setby,'cid.incoming');
+                 }
               } else {
                  $state='unknown';
               }		
@@ -250,7 +245,7 @@ sub set
 
 
 	# Always pass along the state to base class unless "unknown"
-	$self->SUPER::set($state,$p_setby, $p_response) unless $state eq 'unknown';
+	$self->SUPER::set($state,$p_setby, $p_response) unless $state eq 'unknown'; 
 
 	return;
 }
