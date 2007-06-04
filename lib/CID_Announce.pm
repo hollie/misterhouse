@@ -155,7 +155,11 @@ sub speak_cid
 	my ($self,$p_cid) = @_;
 #	print "CID SPEAK";
 #	&::respond	('app=phone target=callerid $response');
-	&::speak("app=phone target=callerid $p_cid");
+        if ($::config_parms{'callerid_raw_numbers'}) {
+		&::speak("app=phone target=callerid raw_numbers=1 $p_cid");
+	} else {        
+		&::speak("app=phone target=callerid $p_cid");
+	}
 }
 
 sub play_cid
