@@ -104,7 +104,7 @@ sub xAP_send_speak {
 # For the mi4.biz client, documented here: http://www.mi4.biz/modules.php?name=Content&pa=showpage&pid=17
     my $tts_block;
     $tts_block->{'say'} = $$parms_ref{text};
-    $tts_block->{'volume'} = $$parms_ref{'volume'} if defined $$parms_ref{'volume'};
+    $tts_block->{'volume'} = $$parms_ref{'volume'} if $$parms_ref{'volume'};
     my $voice = $$parms_ref{'voice'};
     if ($voice) {
        my (%voice_names);
