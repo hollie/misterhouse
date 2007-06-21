@@ -385,6 +385,17 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "WakeOnLan('$address', $other)";
     }
+    ##NETWORK, ipaddress, Name, Grouplist, ping delay (seconds), on command (optional), off command (optional)
+    elsif($type eq 'NETWORK') {
+        require 'Network_Item.pm';
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+	#not used...yet
+	#$grouplist .= "|network_items";
+	#$grouplist .= "|network_items_on"  if (@other[1]); #if on command present
+        #$grouplist .= "|network_items_off" if (@other[2]); #if off command present
+        $object = "Network_Item('$address', $other)";
+    }
     #YACCLIENT, machinename, Name, Grouplist
     #YACCLIENT, titan, TitanYacClient, YacClients
     elsif($type eq "YACCLIENT") {
@@ -513,17 +524,42 @@ sub read_table_A {
         }
     } 
     elsif($type eq "ANALOG_SENSOR") {
-        my $owx_name;
+        my $xc_name; #xap conduit
         my $sensor_type;
-        ($address, $name, $owx_name, $grouplist, $sensor_type, @other) = @item_info;
+	#ANALOG_SENSOR, xap source, object name, xap conduit name, groups, xap sensor type, tokens...
+        ($address, $name, $xc_name, $grouplist, $sensor_type, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
-        if( ! $packages{OneWire_xAP}++ ) {   # first time for this object type?
-            $code .= "use OneWire_xAP;\n";
+        if( ! $packages{AnalogSensor_Item}++ ) {   # first time for this object type?
+            $code .= "use AnalogSensor_Item;\n";
+        }
+        if ( lc $name eq 'auto' ) {   #new
+            $name = $xc_name . "_" . $sensor_type . "_" . $address;
+	    $name =~ s/\./_/g; #strip out all the periods from xap names
         }
         $code .= sprintf "\n\$%-35s = new AnalogSensor_Item('%s', '%s', %s);\n", 
                   $name, $address, $sensor_type, $other;
-        if ($objects{$owx_name}) {
-           $code .= sprintf "\$%-35s -> add(\$%s);\n", $owx_name, $name;
+        if ($objects{$xc_name}) {
+           $code .= sprintf "\$%-35s -> add(\$%s);\n", $xc_name, $name;
+        }
+        $object = '';
+    } 
+    elsif($type eq "ANALOG_SENSOR_R") {
+        my $xc_name; #xap conduit
+        my $sensor_type;
+	#ANALOG_SENSOR_R, xap source, object name, xap conduit name, groups, xap sensor type, tokens...
+        ($address, $name, $xc_name, $grouplist, $sensor_type, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if( ! $packages{AnalogSensor_Item}++ ) {   # first time for this object type?
+            $code .= "use AnalogSensor_Item;\n";
+        }
+        if ( lc $name eq 'auto' ) {   #new
+            $name = $xc_name . "_" . $sensor_type . "_" . $address;
+	    $name =~ s/\./_/g; #strip out all the periods from xap names
+        }
+        $code .= sprintf "\n\$%-35s = new AnalogRangeSensor_Item('%s', '%s', %s);\n", 
+                  $name, $address, $sensor_type, $other;
+        if ($objects{$xc_name}) {
+           $code .= sprintf "\$%-35s -> add(\$%s);\n", $xc_name, $name;
         }
         $object = '';
     } 
@@ -538,6 +574,21 @@ sub read_table_A {
         }
         if( ! $packages{OneWire_xAP}++ ) {   # first time for this object type?
             $code .= "use OneWire_xAP;\n";
+        }
+    } 
+    elsif($type eq "SDX") {
+	my $server;
+	#SDX, xap instance, object name, psixc server name
+        ($address, $name, $server, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+       if( ! $packages{SysDiag_xAP}++ ) {   # first time for this object type?
+            $code .= "use SysDiag_xAP;\n";
+        }
+        if($other){
+            $object = "SysDiag_xAP('$address', '$server', $other)";
+        }
+        else{
+            $object = "SysDiag_xAP('$address', '$server')";
         }
     } 
     elsif($type eq "BSC") {
