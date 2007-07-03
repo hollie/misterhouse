@@ -656,7 +656,8 @@ sub _process_incoming_xpl_data {
                        }
                    }
                }
-               $state_value = $$o{changed} unless defined $state_value;
+               # assign the "summary" of the message to state_value unless state_monitor is being used
+               $state_value = $$o{changed} unless $$o{state_monitor};
 	       print "db3 xpl set: n=$name to state=$state_value\n\n" if $main::Debug{xpl};# and $main::Debug{xpl} == 3;
 #	       $$o{state} = $$o{state_now} = $$o{said} == $state_value if defined $state_value;
 # Can not use Generic_Item set method, as state_next_path only carries state, not all other $section data, to the next pass
@@ -778,7 +779,7 @@ sub _process_incoming_xap_data {
                    }
                }
 
-               $state_value = $$o{changed} unless defined $state_value;
+               $state_value = $$o{changed} unless $$o{state_monitor};
       	       print "db3 xap set: n=$name to state=$state_value\n\n" if $main::Debug{xap} and $main::Debug{xap} == 3;
 #	       $$o{state} = $$o{state_now} = $$o{said} == $state_value if defined $state_value;
 # Can not use Generic_Item set method, as state_next_path only carries state, not all other $section data, to the next pass
