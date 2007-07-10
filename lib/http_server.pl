@@ -754,7 +754,8 @@ sub test_file_req {
     $get_req =~ s#//+#/#g;                                      # // -> /
     1 while( $get_req =~ s#/(?!\.\.)[^/]+/\.\.(/|$)#$1# );      # /foo/../ -> /
     # if there is a .. at this point, it's a bad thing. Also stop if path contains exploitable characters
-    if ($get_req =~ m#/\.\.|[\|\`;><\000]# ) {
+#   if ($get_req =~ m#/\.\.|[\|\`;><\000]# ) {
+    if ($get_req =~  m#\.\.|[\|\`;><\000]# ) {
         print $socket &html_page("Error", "Access denied: $_[1]");
         return 0;
     }
