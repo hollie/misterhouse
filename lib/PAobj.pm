@@ -198,7 +198,13 @@ sub set_xpl {
     for my $room (@speakers) {
 	my $ref = &::get_object_by_name("paxpl_$room");
 	if ($ref) {
-	    $ref->send_cmnd($ref->target_address, $ref->class_name => {speech => $voiceparms{text}, voice => $voiceparms{voice} });
+            my $max_length = $::config_parms{"paxpl_$room" . "_maxlength"};
+            $max_length = 0 unless $max_length;
+            my $text = $voiceparms{text};
+            if ($max_length) {
+               $text = substr($text, 0, $max_length) if $max_length < length($text);
+            }
+	    $ref->send_cmnd($ref->class_name => {speech => $text, voice => $voiceparms{voice} });
             print "db pa xpl cmd: $ref->{object_name} is sending voice text: $voiceparms{text}\n" if $main::Debug{pa};
 	} else {
 	    print "unable to locate object: paxpl_$room\n" if $main::Debug{pa};
