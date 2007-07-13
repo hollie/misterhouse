@@ -594,23 +594,25 @@ sub _process_incoming_xpl_data {
 	       # otherwise, we check the target for a cmnd
 	       # NOTE: the object's hash reference for "source" is "address"
                my $regex_address = &wildcard_2_regex($$o{address});
-               if ($msg_type eq 'cmnd') {
+               if ($$o{set_state_on_cmnd} and $msg_type eq 'cmnd') {
                   my $regex_target = &wildcard_2_regex($target);
 		  next unless ($target =~ /$regex_address/i) or ($$o{address} =~ /$regex_target/i);
 	       } else {
-	          next unless $source =~ /$regex_address/i;
+	          if ( $source =~ /$regex_address/i) {
+    	             # handle hbeat data
+                     for my $section (keys %{$xpl_data}) {
+	                if ($section =~ /^hbeat./i) {
+		           if (lc $section eq 'hbeat.app') {
+		               $o->_handle_alive_app();
+		           } else {
+		               $o->_handle_dead_app();
+		           }
+	                }
+	             }
+                  } else {
+                     next;
+                  }
  	       }
-
-	       # handle hbeat data
-               for my $section (keys %{$xpl_data}) {
-	          if ($section =~ /^hbeat./i) {
-		     if (lc $section eq 'hbeat.app') {
-		         $o->_handle_alive_app();
-		     } else {
-		         $o->_handle_dead_app();
-		     }
-	          }
-	       }
 
 	       my $className;
 	       # look at each section name; any that don't match the header titles is the classname
@@ -625,6 +627,14 @@ sub _process_incoming_xpl_data {
                    my $regex_class = &wildcard_2_regex($$o{class});
 		   next unless $className =~ /$regex_class/i;
 		}
+
+                # check if device monitoring is enabled
+                if (!($className =~ /hbeat./i) && defined $$o{_device_id}) {
+                   my $device_id_key = $$o{_device_id_key};
+                   print "Device monitoring enabled: key=$device_id_key, id=$$o{_device_id}, tested value="
+                      . $$xpl_data{$className}{$device_id_key} . "\n" if $main::Debug{xpl};
+                   next unless $$o{_device_id} eq lc $$xpl_data{$className}{$device_id_key};
+                }
 
                                   # Find and set the state variable
                my $state_value;
@@ -1080,7 +1090,7 @@ sub sendXpl {
 	  }
 	  $msg .= "}\n";
        }
-       print "db5 xpl msg: $msg" if $main::Debug{xpl} and $main::Debug{xpl} == 5;
+       print "db5 xpl msg: $msg" if $main::Debug{xpl}; # and $main::Debug{xpl} == 5;
        if ($xpl_send) {
                                 # check to see if the socket is still valid
            if (!($::Socket_Ports{'xpl_send'}{socka})) {
@@ -1315,6 +1325,20 @@ sub device_name {
     return $$self{m_device_name};
 }
 
+sub on_set_message {
+    my ($self, @data) = @_;
+    while (@data) {
+        my $section = shift @data;
+        my $ptr = shift @data;
+        my %parms = %$ptr;
+        for my $key (sort keys %parms) {
+            my $value = $parms{$key};
+            $$self{_on_set_message}{$section}{$key} = $value;
+        }
+    }
+    return $$self{_on_set_message};
+}
+
 sub uid {
     my ($self, $p_uid) = @_;
     $$self{m_uid} = $p_uid if $p_uid;
@@ -1415,10 +1439,10 @@ sub default_setstate {
 
     # sending stat info about ourselves?
     if (lc $$self{source} eq &xAP::get_xap_mh_source_info()) {
-        &xAP::sendXap('*', @parms, $$self{class});
+        &xAP::sendXap('*', $$self{class}, @parms);
     } else {
 	# must be cmnd info to another device addressed by source
-        &xAP::sendXap($$self{source}, @parms, $$self{class});
+        &xAP::sendXap($$self{source}, $$self{class}, @parms);
     }
 }
 
@@ -1474,6 +1498,22 @@ sub tie_value_convertor {
 
 package xPL_Item;
 
+=begin comment
+
+   IMPORTANT: Mark uses of following methods if for init purposes w/ # noloop.  Sample use follows:
+
+   $mySqueezebox = new xPL_Item('slimdev-slimserv.squeezebox');
+   $mySqueezebox->manage_heartbeat_timeout(360, "speak 'Squeezebox is not reporting'",1); # noloop
+
+   If # noloop is not used on manage_heartbeat_timeout, you will see many attempts to start the timer
+
+   device_monitor(deviceinfo): constrains state updates to only messages w/ a devicekey=devicevalue
+       pair. A common example is where deviceinfo is set to 'someid'.  In this case, state updates
+       are constrained to occur only when a message constains "device=someid".  deviceinfo can also
+       take the literal 'somekey = someid' for messages that use a key other than the literal: 'device'.
+
+=cut
+
 @xPL_Item::ISA = ('xAP_Item');
 
 
@@ -1510,27 +1550,59 @@ sub source {
     return $$self{address};
 }
 
+sub device_monitor {
+    my ($self, $monitor_info) = @_;
+    if ($monitor_info) {
+       my ($key,$value) = $monitor_info =~ /(.+)\s*=\s*(.+)/;
+       if (!($value or $value =~ /^0/)) {
+          $value = ($key) ? $key : $monitor_info;
+          $key = 'device';
+       }
+       $$self{_device_id} = lc $value;
+       $$self{_device_id_key} = lc $key;
+    }
+    if (defined $$self{_device_id}) {
+       return (($$self{_device_id_key}) ? $$self{_device_id_key} : 'device') . $$self{_device_id};
+    } else {
+       return;
+    }
+}
+
 sub default_setstate {
     my ($self, $state, $substate, $set_by) = @_;
 
                                 # Send data, unless we are processing incoming data
     return if $set_by =~ /^xpl/i;
 
-    my ($section, $key) = $$self{state_monitor} =~ /(.+) : (.+)/;
-    $$self{$section}{$key} = $state;
-
     my @parms;
-    for my $section (sort keys %{$$self{sections}}) {
-        next unless $$self{sections}{$section} eq 'send'; # Do not echo received data
-        push @parms, $section, $$self{$section};
+
+    if ($$self{_on_set_message}) {
+       for my $class_name (sort keys %{$$self{_on_set_message}}) {
+          my $block;
+          for my $msg_key (sort keys %{$$self{_on_set_message}{$class_name}}) {
+             my $field_value = eval($$self{_on_set_message}{$class_name}{$msg_key});
+             $block->{$msg_key} = $field_value;
+          }
+          push @parms, $class_name, $block;
+       }
+    } else {
+       my ($section, $key) = $$self{state_monitor} =~ /(.+) : (.+)/;
+       $$self{$section}{$key} = $state;
+
+       for my $section (sort keys %{$$self{sections}}) {
+          next unless $$self{sections}{$section} eq 'send'; # Do not echo received data
+          push @parms, $section, $$self{$section};
+       }
     }
 
-    # sending stat info about ourselves?
-    if (lc $$self{source} eq &xAP::get_xpl_mh_source_info()) {
-        &xAP::sendXpl('*', @parms, 'stat');
-    } else {
-    # must be cmnd info to another device addressed by address
-        &xAP::sendXpl($$self{address}, @parms, 'cmnd');
+    if (@parms) {
+       # sending stat info about ourselves?
+       if (lc $$self{source} eq &xAP::get_xpl_mh_source_info()) {
+           $self->send_trig(@parms);
+       } else {
+       # must be cmnd info to another device addressed by address
+           $self->send_cmnd(@parms);
+       }
     }
 }
 
@@ -1546,28 +1618,49 @@ sub state_now_msg_type {
 # Instead, DO use either send_cmnd, send_trig or send_stat
 sub send_message {
     my ($self, $p_strTarget, @p_data) = @_;
-    $self->send_cmnd($p_strTarget, @p_data, $p_strTarget);
+    $self->send_cmnd(@p_data);
 }
 
 sub send_cmnd {
-    my ($self, $p_strTarget, @p_data) = @_;
-    my $m_strTarget = $p_strTarget if defined $p_strTarget;
-    $m_strTarget = $$self{target_address} if !$p_strTarget;
-    &xAP::sendXpl($m_strTarget, 'cmnd', @p_data);
+    my ($self, @p_data) = @_;
+    if (defined $$self{_device_id}) {
+       my $classname = shift @p_data;
+       my $ptr = shift @p_data;
+       my @new_data = ();
+       $ptr->{$$self{_device_id_key}} = $$self{_device_id};
+       push @new_data, $classname, $ptr;
+       &xAP::sendXpl($self->source, 'cmnd', @new_data);
+    } else {
+       &xAP::sendXpl($self->source, 'cmnd', @p_data);
+    }
 }
 
 sub send_stat {
-    my ($self, $p_strTarget, @p_data) = @_;
-    my $m_strTarget = $p_strTarget if defined $p_strTarget;
-    $m_strTarget = $$self{target_address} if !$p_strTarget;
-    &xAP::sendXpl($m_strTarget, 'stat', @p_data);
+    my ($self, @p_data) = @_;
+    if (defined $$self{_device_id}) {
+       my $classname = shift @p_data;
+       my $ptr = shift @p_data;
+       my @new_data = ();
+       $ptr->{$$self{_device_id_key}} = $$self{_device_id};
+       push @new_data, $classname, $ptr;
+       &xAP::sendXpl('*', 'stat', @new_data);
+    } else {
+       &xAP::sendXpl('*', 'stat', @p_data);
+    }
 }
 
 sub send_trig {
-    my ($self, $p_strTarget, @p_data) = @_;
-    my $m_strTarget = $p_strTarget if defined $p_strTarget;
-    $m_strTarget = $$self{target_address} if !$p_strTarget;
-    &xAP::sendXpl($m_strTarget, 'trig', @p_data);
+    my ($self, @p_data) = @_;
+    if (defined $$self{_device_id}) {
+       my $classname = shift @p_data;
+       my $ptr = shift @p_data;
+       my @new_data = ();
+       $ptr->{$$self{_device_id_key}} = $$self{_device_id};
+       push @new_data, $classname, $ptr;
+       &xAP::sendXpl('*', 'trig', @new_data);
+    } else {
+       &xAP::sendXpl('*', 'trig', @p_data);
+    }
 }
 
 package xPL_Rio;
