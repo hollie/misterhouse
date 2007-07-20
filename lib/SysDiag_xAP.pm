@@ -79,8 +79,13 @@ sub new {
 	$$self{instance} = $instance;
 	$$self{instance} = "house" unless (defined $instance);
 	$$self{server} = $server;
-	my $xap_address = "hpgl.psixc.$instance:" . lc $server;
+	my $xap_address = "hpgl.psixc.$instance";
+        if ($instance =~ /^\S*\.\S*/) {
+		$xap_address = $instance;
+	}
+        $xap_address = $xap_address . ":" . lc $server;
 	my $xap_item = new xAP_Item('sysdiag.*', $xap_address);
+	print "Adding xAP_Item to SysDiag_xAP instance with address: $xap_address\n" if $::Debug{sysdiag};
         my $friendly_name = "xap_sysdiag_$instance" . "_$server";
         &main::store_object_data($xap_item, 'xAP_Item', $friendly_name, $friendly_name);
         $$self{xap_item} = $xap_item;
