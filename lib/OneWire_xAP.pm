@@ -32,9 +32,9 @@ Usage:
      Declaration:
 
         If declaring via .mht:
-        OWX,  house,   house_owx
+        OWX,  liming.oxc.house,   house_owx
 
-        Where 'house' is the xap instance name and 'house_owx' is the object
+        Where 'liming.oxc.house' is the xAP source address and 'house_owx' is the object
 
 	# declare the oxc "conduit" object
         $oxc = new OneWire_xAP;
@@ -80,16 +80,22 @@ sub new {
 sub add {
 
 	my ($self, $device) = @_;
-	my $instance_name = "house"; # need to make this configurable
         if ($device) {
 		push @{$$self{m_devices}}, $device;
                 my $xap_address = $$self{m_base_address};
-                $xap_address = "liming.oxc.$instance_name" unless $xap_address;
+                if ($xap_address) {
+			if ($xap_address !~ /^\S*\.\S*/) {
+				$xap_address = "liming.oxc.$xap_address";
+			}
+		} else {
+                	$xap_address = "liming.oxc.house"; 
+		}
                 if ($device->id !~ /^\S*\.\S*/) {
 			$xap_address = $xap_address . ':' . lc $device->type . "." . $device->id;
                 } else {
 			$xap_address = $xap_address . ':' . $device->id;
 		}
+		print "Adding BSC_Item to a OneWire_xAP instance with address: $xap_address\n" if $::Debug{onewire};
 		my $xap_item = new BSC_Item($xap_address);
 		$$self{source_map}{$xap_item} = $device;
 		$self->SUPER::add($xap_item); # add it so that it can set this obejct
