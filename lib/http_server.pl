@@ -686,8 +686,6 @@ sub http_get_local_file {
             undef $file;
         }
     }
-    $file = "$main::config_parms{'html_dir2' . $Http{format}}/$get_req" if ! $file and 
-      -f "$main::config_parms{'html_dir2' . $Http{format}}/$get_req";
     $file = "$main::config_parms{'html_dir' . $Http{format}}/$get_req" unless $file;
 
                                # Goofy audrey can add a / suffix to a file request
