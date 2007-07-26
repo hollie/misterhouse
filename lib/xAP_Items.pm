@@ -528,7 +528,7 @@ sub _process_incoming_xap_hub_data {
     for $port (keys %hub_ports) {
        # don't echo back the sender's own data
 #       if ($hub_ports{$port} ne $source) {
-       if (!($source =~ /^$hub_ports{$port}/)) {
+       if (!($source =~ /^$hub_ports{$port}/) or $::config_parms{'xap_hub_echo'}) {
           my $sock = $::Socket_Ports{"xap_send_$port"}{sock};
           print "db2 xap hub: sending $protocol data to p=$port s=$sock d=\n$data.\n" if $main::Debug{xap} and $main::Debug{xap} == 2;
           print $sock $data if defined($sock);
@@ -583,7 +583,7 @@ sub _process_incoming_xpl_data {
    $target = '*' if !($target);
 
 	# continue processing unless we are the source (e.g., heart-beat)
-	if (!($source eq &xAP::get_xpl_mh_source_info())) {
+	if (!($source eq &xAP::get_xpl_mh_source_info()) or $::config_parms{'xpl_hub_echo'}) {
                                   # Set states in matching xPL objects
            for my $name (&::list_objects_by_type('xPL_Item')) {
                my $o = &main::get_object_by_name($name);
