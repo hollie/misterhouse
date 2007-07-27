@@ -40,10 +40,10 @@ $xapctrl->init() if $Reload;
 $xplctrl->init() if $Reload;
 
 # Stuff to flag which rooms to turn on based on "rooms=" parm in speak command
-&Speak_pre_add_hook(\&pa_control_stub) if $Reload;
-&Play_pre_add_hook (\&pa_control_stub) if $Reload;
+&Speak_pre_add_hook(\&xap_pa_control_stub) if $Reload;
+&Play_pre_add_hook (\&xap_pa_control_stub) if $Reload;
 
-sub pa_control_stub {
+sub xap_pa_control_stub {
     my (%parms) = @_;
 
     return unless $parms{text};
