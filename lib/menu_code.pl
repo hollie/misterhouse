@@ -318,7 +318,10 @@ sub menu_run {
     if ($action) {
         my $msg = "menu_run: g=$menu_group m=$menu i=$item s=$state => action: $action";
         print_log  $msg;
-        unless (&run_voice_cmd($cmd)) {
+        my $setby = (lc $format =~ /^h/i) ? 'web' : 'notweb';
+        $setby .= " [$Socket_Ports{http}{client_ip_address}]" 
+           if $Socket_Ports{http}{client_ip_address} and $setby eq 'web'; 
+        unless (($setby eq 'notweb') ? &run_voice_cmd($cmd) : &run_voice_cmd($cmd,'mh',$setby)) {
 #           package main;   # Need this if we had this code in a package
             eval $action;
             print "Error in menu_run: m=$menu i=$item s=$state action=$action error=$@\n" if $@;
