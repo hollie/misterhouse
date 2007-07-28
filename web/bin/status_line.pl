@@ -17,7 +17,7 @@ $fontsize = 3 unless $fontsize;
 $color = $1 if $parms =~ /color=(\S+)/;
 
 my $fontstart=qq[<font size=${fontsize}>];
-my $fontstart=qq[<font size=${fontsize} face="${fontname}">] if $fontname;
+$fontstart=qq[<font size=${fontsize} face="${fontname}">] if $fontname;
 
 #color = '#cccdcc';
 $color = '#9999cc' unless $color;
