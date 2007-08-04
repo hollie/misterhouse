@@ -20,7 +20,8 @@ License:
 
 Usage:
 	Documentation on installing/configuring oxc is found in the oxc distribution.
-	(Note: oxc currently relies on digitemp (www.digitemp.com).
+	oxc now uses digitemp (www.digitemp.com) or one-wire file system 
+        (owfs; see - www.owfs.org).
 
         The xAP message convention assumes that the one-wire xAP connector, oxc,
         is addressed via the target: liming.oxc.house 
