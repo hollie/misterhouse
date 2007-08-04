@@ -193,7 +193,7 @@ sub find_members {
 	my @l_found;
 	my @l_objects = @{$$self{m_objects}};
 	for my $l_object (@l_objects) {
-		if ($l_object->isa($p_type)) {
+		if (!$p_type or ($l_object->isa($p_type))) {
 			push @l_found, $l_object;
 		}
 	}
