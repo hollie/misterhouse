@@ -24,6 +24,7 @@ if (@ARGV > 2) {
     for (@ARGV) {
         $_ =~ s/^\S+?=//;
         if ($resp) {
+	    $_ =~ s/'/\\'/g; # added to escape single quotes
             $args .= "'$_',";
         }
         elsif ($func) {

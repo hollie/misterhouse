@@ -14,6 +14,9 @@ if ($state = said $v_phone_log) {
     display text =>  &phone_log('out',999, 'text'), font => 'fixed' if $state eq 'outgoing' or $state eq ' ';
 }
 
+# reload file if changed
+&Caller_ID::read_callerid_list() if (file_changed $config_parms{caller_id_file});
+
 
 
                                 # This function returns phone logs to menus
@@ -53,9 +56,10 @@ sub read_phone_logs2 {
                                 # Sort by date, so most recent file is first
     my (@calls);
     my $count2 = 1;
-#   print "Reading @files\n";
+
+   print "Reading @files\n" if $Debug{phone};
     for my $log_file (@files) {
-#       print "db lf=$log_file\n";
+       print "db lf=$log_file\n"  if $Debug{phone};
         $log_file = "$phone_dir/logs/$log_file";
         open (PLOG, $log_file) or die "Error, could not open file $log_file: $!\n";
         binmode PLOG;       # In case bad (binary) data is logged
@@ -67,7 +71,7 @@ sub read_phone_logs2 {
 
         			#save A reference copy
             my $refdata = $_ ;
-            #print_log "REF data $refdata";
+            print_log "DB REF data $refdata"  if $Debug{phone};
 
             my($time_date, $number, $name, $line, $type );
                                 # Incoming
@@ -80,7 +84,7 @@ sub read_phone_logs2 {
                 ($time_date, $number, $name) = $_ =~ /(.+?) (\d\d\d\d\d\d\d\d\d\d)(\s\w+\s\w+\s\w+\s)/ unless $name;
                 ($time_date, $number, $name) = $_ =~ /(.+?) (\d\d\d\-?\d\d\d\d)/ unless $name; # AC is optional
 
-		#print_log" CID $time_date, $number, $name, $line, $type";
+		print_log "DB CID $time_date, $number, $name, $line, $type"  if $Debug{phone};
                                 # Deal with "private, 'out of area', and bad data" calls
                 unless ($name) {
                     ($name) = $_ =~ /name=(.+)/;
@@ -113,17 +117,17 @@ sub read_phone_logs2 {
                            # if we use mixed 10 digit dialing we need to check
                 if ( substr($number,0,1) eq '1') {
     	    	    $number = substr($number, 1);
-                    #print_log " Num > 10 Now it's $number";
+                    print_log "DB Num > 10 Now it's $number"  if $Debug{phone};
                 }
 
                 $number_length = length($number);
 
-                #print_log "Our incoming string is $number_length";
+                print_log "Our incoming string is $number_length"  if $Debug{phone};
                            # if we got extra digits ignore them and make it 10
                 if ($number_length > 10) {
                     $number = substr($number,0,9);
                     $number_length = length($number) ;
-                    #print_log " Num Still >10 mow = $number";
+                    print_log " Num Still >10 mow = $number"  if $Debug{phone};
                 }
                                 # and format the whole thing
                 #    $number =~ s/(\d\d\d)(\d\d\d)(\d\d\d\d)/$1-$2-$3/;
@@ -140,7 +144,7 @@ sub read_phone_logs2 {
                 %callerid_by_number = dbm_read("$config_parms{data_dir}/phone/callerid.dbm") unless %callerid_by_number;
 #               my $data = dbm_read("$config_parms{data_dir}/phone/callerid.dbm", $number);
                 my $data = $callerid_by_number{$number};
-
+		print_log "DB data= $data"  if $Debug{phone};
                 my ($calls, $time, $date, $name2) = $data =~ /^(\d+) +(.+), (.+) name=(.+)/ if $data;
                 $name = $name2;
 	    }
@@ -164,8 +168,8 @@ sub read_phone_logs2 {
         			#Break it up for the Extended records
             my ( $ph_time, $ph_num, $ph_name, $ph_ext, $ph_line, $ph_type );
             ( $ph_time, $ph_num, $ph_name, $ph_ext, $ph_line, $ph_type ) = $refdata =~ /(.+?) O(\S+) name=(\S+) ext=(\S+) line=(\S+) type=(\S+)/;
-#	print_log "REAL data $time_date, $number, $name2, $line, $type";
-#	print_log "REF2 data $refdata";
+	print_log "REAL data $time_date, $number, $name2, $line, $type"  if $Debug{phone};
+	print_log "REF2 data $refdata"  if $Debug{phone};
 		    # Now do substitutions for teh extended format
             $type = $ph_type if $ph_type ;		# detailed data is replaced here
             $type = 'out' unless $type;		# Unless there isn't any then make a default
@@ -188,8 +192,8 @@ sub read_phone_logs2 {
 #		$number = substr($number,0,9);
 #	    }
 #	}
-	#print_log "split test  $time_date, $number, $name2, $ph_ext, $line, $type ";
-	#print_log "split test  $time_date, $number, $name2";
+	print_log "split test  $time_date, $number, $name2, $ph_ext, $line, $type "  if $Debug{phone};
+	print_log "split test  $time_date, $number, $name2"  if $Debug{phone};
 
             push @calls, sprintf("date=%20s number=%-12s name=%s line=%s type=%s dur=%8s ext=%s ",  $time_date, $number, $name2, $line, $type, $ph_name, $ph_ext);
             last if ++$count2 > $count1;
@@ -197,6 +201,6 @@ sub read_phone_logs2 {
         }
         close PLOG;
     }
-#   print "Read ", scalar @calls, " calls\n";
+   print "Read ", scalar @calls, " calls\n"  if $Debug{phone};
     return @calls;
 }

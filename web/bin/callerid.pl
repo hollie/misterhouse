@@ -3,12 +3,18 @@
 
 This code is used to list and manipulate the callerid list.
 
-  http://localhost:8080/bin/callerid.pl
+  http://mh/bin/callerid.pl
+
+
+# config_parms: phone_auth_group = additional user to admin call records
 
 =cut
 
 use strict;
 $^W = 0;                        # Avoid redefined sub msgs
+my $authorized = '';
+$authorized = $::config_parms{phone_auth_group} if $::config_parms{phone_auth_group};
+#$::Debug{Phone} = 1;
 
 return &web_callerid_list();
 
@@ -27,17 +33,12 @@ function delconfirm(num) {
 </script>
 </HEAD><BODY>\n<a name='Top'></a>$html
 Use this page to review or update your $::config_parms{caller_id_file} file.|;
-    $html .= qq|<br><font color=red><b>Read-Only</b>: <a href="/bin/SET_PASSWORD">Login as admin</a> to edit</font>| unless $Authorized eq 'admin';
+    $html .= qq|<br><font color=red><b>Read-Only</b>: <a href="/bin/SET_PASSWORD">Login as admin| unless (($Authorized eq $authorized) or ($Authorized eq 'admin'));
+    $html .= qq|or $authorized| if $authorized and (($Authorized ne $authorized) and ($Authorized ne 'admin'));
+    $html .= qq|</a> to edit</font>| unless (($Authorized eq $authorized) or ($Authorized eq 'admin'));
     $html .= qq|A backup is made and comments and record order are preserved.
-To update existing entries, enter/change the field and hit Enter.| if $Authorized eq 'admin';
-    $html .= qq|
+To update existing entries, enter/change the field and hit Enter.| if (($Authorized eq $authorized) or ($Authorized eq 'admin'));
 
-<script>
-function openparmhelp(parm1){
-  window.open("RUN;&web_callerid_help('" + parm1 + "')","help","width=200,height=200,left=0,top=0,scrollbars=1,resizable=0")
-}
-</script>
-|;
 
     # Get parameters, make available for processing
     my %request;
@@ -51,21 +52,50 @@ function openparmhelp(parm1){
     my $c_name='John Doe';
     my $c_wav='*';
     my $c_group='*';
+    my $display_help = "";
 
     $c_number=$request{cidnumber} if $request{cidnumber} ne '';
     $c_name=$request{cidname} if $request{cidname} ne '';
+    $c_wav=$Caller_ID::wav_by_number{$c_number} if $Caller_ID::wav_by_number{$c_number} ne '';
+    $c_group=$Caller_ID::group_by_number{$c_number} if $Caller_ID::group_by_number{$c_number} ne '';
+    $display_help=$request{help} if $request{help} ne '';
+ 
+    #use only the 'new format' tab delimited fields
+    my @headers = ("Number", "Name", "Wav", "Group");
+    my $headers = @headers;
 
-    $html .= qq|<tr>
-<form action='/bin/set_func.pl' method=post><td>
-<input type=submit value='Create'>
+    #display help on top, not pop-up to prevent audrey from dying
+    if ($display_help)  {
+
+      $html .= "<br><br><font color=blue><b>HELP Information on $display_help field:</b><br><i>";
+      $html .= &web_callerid_help($display_help);
+      $html .= "</i><br>\n";
+
+    }    
+
+    if (($Authorized eq $authorized) or ($Authorized eq 'admin')) {
+    $html .= "<table border>\n";    
+    $html .= "<tr><td></td>";
+    for my $header ('', @headers) {
+       $html .= qq[<td><a href="/bin/callerid.pl?help=$header&cidnumber=$c_number&cidname=$c_name];
+       $html .= "&showlist=0" if $request{showlist} eq '0';
+       $html .= qq[">$header</a></td>];
+    }
+    $html .="</tr>\n";
+
+    $html .= qq|<tr><td>
+<form action='/bin/set_func.pl' method=post>
+<td><input type=submit value='Create'></td>
 <input name='func' value="web_callerid_add"  type='hidden'>
 <input name='resp' value="/bin/callerid.pl" type='hidden'>
-<input type=input name=number   size=12 value='$c_number'>
-<input type=input name=name     size=15 value='$c_name'>
-<input type=input name=wav      size=20 value='*'>
-<input type=input name=group    size=10 value='*'>
-<td></form><tr>
-| if $Authorized eq 'admin';
+<td><input type=input name=number   size=12 value='$c_number'></td>
+<td><input type=input name=name     size=15 value='$c_name'></td>
+<td><input type=input name=wav      size=20 value='$c_wav'></td>
+<td><input type=input name=group    size=10 value='$c_group'></td>
+</td></tr></form></table><br>
+|;
+
+}
 
                             # Parse table data
     undef @file_data;
@@ -77,7 +107,6 @@ function openparmhelp(parm1){
         unless ($record =~ /^\s*\#/ or $record =~ /^\s*$/ or $record =~ /^Format *=/) {
             my(@cid_info) = split(',|\t+', $record);
             my($number,$name,$wavfile,$group) = @cid_info;
-            $group='~Old_Format' unless ($record =~ /,|\t/);
             $group =~ s/\s*$//;
             push @{$cid_pos{$group}}, $pos;
         }
@@ -92,14 +121,11 @@ function openparmhelp(parm1){
     }
     $html .= "</td></tr></table>\n";
 
-                                # Define fields by type
-    my %headers = ( default => [qw(Number Name Wav Group)] );
-    $headers{'~Old_Format'} = [qw(Number Name/Wav)];
 
                                 # Sort in type order
     for my $type (sort keys %cid_pos) {
     
-        my @headers = ($headers{$type}) ? @{$headers{$type}} : @{$headers{default}};
+        my @headers = ("Number", "Name", "Wav", "Group");
         my $headers = @headers;
         
         $html .= "<table border><tr><td colspan=$headers><B>$type</B>\n";
@@ -107,22 +133,18 @@ function openparmhelp(parm1){
 
         $html .= "<tr>";
         for my $header ('', @headers) {
-            $html .= qq[<td><a href="javascript:openparmhelp('$header')">$header</a></td>];
-#           $html .= "<th>$header</th> ";
+            $html .= qq[<td><a href="/bin/callerid.pl?help=$header">$header</a></td>];
         }
         $html .="</tr>\n";
 
         for my $pos (@{$cid_pos{$type}}) {
             my $record = $file_data[$pos];
             my @cid_info = split(',|\t+', $record, $headers);
-            if ($type eq '~Old_Format') {
-                @cid_info = split('\s+', $record, 2);
-            }
+
             $html .= "<tr>";
             $html .= "<td>";
-            $html .= "    <a href=\"/SUB;/bin/callerid.pl?web_callerid_delete($pos)\" onclick=\"return delconfirm('$cid_info[0]');\"><img border=0 src='/graphics/ico_recycle.gif' alt2='Delete'></a>&nbsp;" if $Authorized eq 'admin';
+            $html .= "    <a href=\"/SUB;/bin/callerid.pl?web_callerid_delete($pos)\" onclick=\"return delconfirm('$cid_info[0]');\"><img border=0 src='/graphics/ico_recycle.gif' alt2='Delete'></a>&nbsp;" if (($Authorized eq $authorized) or ($Authorized eq 'admin'));
             $html .= "</td> ";
-#            $html .= "<td>$cid_info[0]</td> ";
             for my $field (0 .. $headers - 1) {
                 $html .= &html_form_input_set_func('web_callerid_set_field', "/bin/callerid.pl", "$pos,$field", $cid_info[$field]);
             }
@@ -138,7 +160,7 @@ function openparmhelp(parm1){
 sub web_callerid_set_field {
     my ($pos_field, $data) = @_;
     my $sep="\t";
-    return &html_page('', 'Not authorized to make updates') unless $Authorized eq 'admin';
+    return &html_page('', 'Not authorized to make updates') unless (($Authorized eq $authorized) or ($Authorized eq 'admin'));
     my ($pos, $field) = $pos_field =~ /(\d+),(\d+)/;
 
     my $record = @file_data[$pos];
@@ -158,7 +180,7 @@ sub web_callerid_set_field {
     }
     
     $file_data[$pos] = $record;
-    print "db2 p=$pos f=$field d=$data r=$record\n";
+    print_log "callerid.pl  p=$pos f=$field d=$data r=$record\n" if $::Debug{Phone};
 
     &cid_file_write($::config_parms{caller_id_file}, \@file_data);
     return 0;
@@ -166,7 +188,7 @@ sub web_callerid_set_field {
 
 sub web_callerid_delete {
     my ($pos) = @_;
-    return &html_page('', 'Not authorized to make updates') unless $Authorized eq 'admin';
+    return &html_page('', 'Not authorized to make updates') unless (($Authorized eq $authorized) or ($Authorized eq 'admin'));
     my $pos2 = @file_data;
     $file_data[$pos] = '';
     &cid_file_write($::config_parms{caller_id_file}, \@file_data);
@@ -176,16 +198,21 @@ sub web_callerid_delete {
 sub web_callerid_add {
     my (@parms) = @_;
                                 # Allow un-authorized users to browse only (if listed in password_allow)
-    return &html_page('', 'Not authorized to make updates') unless $Authorized eq 'admin';
+    return &html_page('', 'Not authorized to make updates') unless (($Authorized eq $authorized) or ($Authorized eq 'admin'));
 
                                 # Process form
     if (@parms) {
         my $record;
+	print "db " if $::Debug{Phone};
         for my $p (@parms) {
             $record .= "$p\t";
+	    print "[$p]\\t"; 
         }
-       print "db r=$record\n";
-        $file_data[@file_data] = $record;
+       chop $record; # get rid of last tab
+       #$record .= "\n";
+       print "\n" if $::Debug{Phone};
+       print "db [r=$record]\n" if $::Debug{Phone};
+	push (@file_data,$record);
         &cid_file_write($::config_parms{caller_id_file}, \@file_data);
     }
     return 0;
@@ -210,5 +237,6 @@ sub cid_file_write {
     print "Writing out to callerid file $file\n";
     &file_backup($file);
     &file_write($file, join("\n", @$data_ptr));
+
 }
 
