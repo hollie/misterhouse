@@ -23,6 +23,9 @@
 #  V0.18 Pete Flaherty - updated parse, eliminates text part getting called
 #	now it only sends out by IP
 
+#  V0.19 H.Plato - added options to prevent Audrey reboots, voice command responding,
+#       and to point the music to the mp3_stream_server_port if defined.
+
 =begin comment
 
 The following comments are from the original code
@@ -45,6 +48,10 @@ or update your DNS server / local hosts file.
 
 On windows boxes the hosts file is windows\system32\drivers\etc\hosts
 On unix, it is in /etc/hosts
+
+V0.19 Added to more options
+Audrey_no_reboot_on_startup to prevent Audrey's from rebooting when MH starts
+Audrey_no_voice_respond to prevent confirmation speech when the Audrey's voice commands are executed
 
 =cut
 
@@ -107,104 +114,104 @@ $v_audrey_reboot  = new Voice_Cmd("Reboot [". $listNM . "] Audrey");
 
 if (said $v_audrey_top_led_on) {
 	my $state = $v_audrey_top_led_on->{state};
-	$v_audrey_top_led_on->respond("Turning $state Audrey top light on.");
+	$v_audrey_top_led_on->respond("Turning $state Audrey top light on.") unless $config_parms{Audrey_no_voice_respond};
 	&audrey('top_led', 'on', $state);
 }
 
 if (said $v_audrey_top_led_off) {
 	my $state = $v_audrey_top_led_off->{state};
-	$v_audrey_top_led_off->respond("Turning $state Audrey top light off.");
+	$v_audrey_top_led_off->respond("Turning $state Audrey top light off.") unless $config_parms{Audrey_no_voice_respond};
 	&audrey('top_led', 'off', $state);
 }
 
 if (said $v_audrey_top_led_blink) {
 	my $state = $v_audrey_top_led_blink->{state};
-	$v_audrey_top_led_blink->respond("Blinking $state Audrey top light.");
+	$v_audrey_top_led_blink->respond("Blinking $state Audrey top light.") unless $config_parms{Audrey_no_voice_respond};
 	&audrey('top_led', 'blink', $state);
 }
 
 if (said $v_audrey_mail_led_on) {
 	my $state = $v_audrey_mail_led_on->{state};
-	$v_audrey_top_led_on->respond("Turning $state Audrey mail light on.");
+	$v_audrey_top_led_on->respond("Turning $state Audrey mail light on.") unless $config_parms{Audrey_no_voice_respond};
 	&audrey('mail_led', 'on', $state);
 }
 
 if (said $v_audrey_mail_led_off) {
 	my $state = $v_audrey_mail_led_off->{state};
-	$v_audrey_mail_led_off->respond("Turning $state Audrey mail light off.");
+	$v_audrey_mail_led_off->respond("Turning $state Audrey mail light off.") unless $config_parms{Audrey_no_voice_respond};
 	&audrey('mail_led', 'off', $state);
 }
 
 if (said $v_audrey_mail_led_blink) {
 	my $state = $v_audrey_mail_led_blink->{state};
-	$v_audrey_mail_led_blink->respond("Blinking $state Audrey mail light.");
+	$v_audrey_mail_led_blink->respond("Blinking $state Audrey mail light.") unless $config_parms{Audrey_no_voice_respond};
 	&audrey('mail_led', 'blink', $state);
 }
 
 
 if (said $v_audrey_both_leds_on) {
 	my $state = $v_audrey_both_leds_on->{state};
-	$v_audrey_both_leds_on->respond("Turning $state Audrey lights on.");
+	$v_audrey_both_leds_on->respond("Turning $state Audrey lights on.") unless $config_parms{Audrey_no_voice_respond};
 	&audrey('both_leds', 'on', $state);
 }
 
 if (said $v_audrey_both_leds_off) {
 	my $state = $v_audrey_both_leds_off->{state};
-	$v_audrey_both_leds_off->respond("Turning $state Audrey lights off.");
+	$v_audrey_both_leds_off->respond("Turning $state Audrey lights off.") unless $config_parms{Audrey_no_voice_respond};
 	&audrey('both_leds', 'off', $state);
 }
 
 if (said $v_audrey_both_leds_blink) {
 	my $state = $v_audrey_both_leds_blink->{state};
-	$v_audrey_both_leds_blink->respond("Blinking $state Audrey lights.");
+	$v_audrey_both_leds_blink->respond("Blinking $state Audrey lights.") unless $config_parms{Audrey_no_voice_respond};
 	&audrey('both_leds', 'blink', $state)
 }
 
 if (said $v_audrey_music_on) {
 	my $state = $v_audrey_music_on->{state};
-	$v_audrey_music_on->respond("Turning $state Audrey music on.");
+	$v_audrey_music_on->respond("Turning $state Audrey music on.") unless $config_parms{Audrey_no_voice_respond};
 	&audrey('music', 'Play', $state)
 }
 
 if (said $v_audrey_music_off) {
 	my $state = $v_audrey_music_off->{state};
-	$v_audrey_music_off->respond("Turning $state Audrey music off.");
+	$v_audrey_music_off->respond("Turning $state Audrey music off.") unless $config_parms{Audrey_no_voice_respond};
 	&audrey('music', 'Stop', $state)
 }
 
 if (said $v_audrey_volume_0) {
 	my $state = $v_audrey_volume_0->{state};
-	$v_audrey_volume_0->respond("Setting $state Audrey volume to 0.");
+	$v_audrey_volume_0->respond("Setting $state Audrey volume to 0.") unless $config_parms{Audrey_no_voice_respond};
 	&audrey('volume', '0', $state)
 }
 
 if (said $v_audrey_volume_20) {
 	my $state = $v_audrey_volume_20->{state};
-	$v_audrey_volume_20->respond("Setting $state Audrey volume to 20.");
+	$v_audrey_volume_20->respond("Setting $state Audrey volume to 20.") unless $config_parms{Audrey_no_voice_respond};
 	&audrey('volume', '20', $state)
 }
 
 if (said $v_audrey_volume_50) {
 	my $state = $v_audrey_volume_50->{state};
-	$v_audrey_volume_50->respond("Setting $state Audrey volume to 50.");
+	$v_audrey_volume_50->respond("Setting $state Audrey volume to 50.") unless $config_parms{Audrey_no_voice_respond};
 	&audrey('volume', '50', $state)
 }
 
 if (said $v_audrey_volume_75) {
 	my $state = $v_audrey_volume_75->{state};
-	$v_audrey_volume_75->respond("Setting $state Audrey volume to 75.");
+	$v_audrey_volume_75->respond("Setting $state Audrey volume to 75.") unless $config_parms{Audrey_no_voice_respond};
 	&audrey('volume', '75', $state)
 }
 
 if (said $v_audrey_volume_100) {
 	my $state = $v_audrey_volume_100->{state};
-	$v_audrey_volume_100->respond("Setting $state Audrey volume to 100.");
+	$v_audrey_volume_100->respond("Setting $state Audrey volume to 100.") unless $config_parms{Audrey_no_voice_respond};
 	&audrey('volume', '100', $state)
 }
 
 if (said $v_audrey_reboot) {
 	my $state = $v_audrey_reboot->{state};
-	$v_audrey_reboot->respond("Rebooting $state Audrey.");
+	$v_audrey_reboot->respond("Rebooting $state Audrey.") unless $config_parms{Audrey_no_voice_respond};
 	&audrey('reboot', undef, $state)
 }
 
@@ -212,26 +219,26 @@ if (said $v_audrey_reboot) {
 
 if (said $v_audrey_screen_on) {
 	my $state = $v_audrey_screen_on->{state};
-	$v_audrey_screen_on->respond("Turning $state Audrey screen on.");
+	$v_audrey_screen_on->respond("Turning $state Audrey screen on.") unless $config_parms{Audrey_no_voice_respond};
 	&audrey('screen', 'on', $state)
 }
 
 if (said $v_audrey_screen_off) {
 	my $state = $v_audrey_screen_off->{state};
-	$v_audrey_screen_off->respond("Turning $state Audrey screen off.");
+	$v_audrey_screen_off->respond("Turning $state Audrey screen off.") unless $config_parms{Audrey_no_voice_respond};
 	&audrey('screen', 'off', $state)
 }
 
 if (said $v_audrey_photos) {
 	my $state = $v_audrey_photos->{state};
-	$v_audrey_photos->respond("Showing photos on $state Audrey.");
+	$v_audrey_photos->respond("Showing photos on $state Audrey.") unless $config_parms{Audrey_no_voice_respond};
 	&audrey('photos', undef, $state)
 }
 
 
 if (said $v_audrey_wav) {
     my $state = $v_audrey_wav->{state};
-    $v_audrey_wav->respond("Playing sound on $state Audrey.");
+    $v_audrey_wav->respond("Playing sound on $state Audrey.") unless $config_parms{Audrey_no_voice_respond};
     play address => &audrey_ip($state), file => '../sounds/hello_from_bruce.wav';
 #   get "http://$state/cgi-bin/SendMessage?M=GOTO_URL&S=http://$Info{Machine}:$config_parms{http_port}/sounds/hello_from_bruce.wav";
 }
@@ -239,7 +246,7 @@ if (said $v_audrey_wav) {
 if (said $v_audrey_tagline) {
 	my $state = $v_audrey_tagline->{state};
 	speak address => &audrey_ip($state), text => (read_next $house_tagline);
-	$v_audrey_tagline->respond("Reading house tag line on $state Audrey.");
+	$v_audrey_tagline->respond("Reading house tag line on $state Audrey.") unless $config_parms{Audrey_no_voice_respond};
 }
 
 # if ($state = said $v_audrey_music_on) {
@@ -361,7 +368,11 @@ sub audrey {
             $state = 0 if $astate eq 'Stop';
             $state = 1 if $astate eq 'Play';
             #get "http://$address/cgi-bin/mpctrl?action=$astate&file=http://192.168.0.150:8010";
-            $audrey_cmd = "http://$address/cgi-bin/mpctrl?action=$astate&file=http://192.168.0.150:8010";
+	    if ($config_parms{mp3_stream_server_port}) {
+               $audrey_cmd = "http://$address/cgi-bin/mpctrl?action=$astate&file=$config_parms{mp3_stream_server_port}";
+             } else {
+               $audrey_cmd = "http://$address/cgi-bin/mpctrl?action=$astate&file=http://192.168.0.150:8010";
+	     }
         }
 	elsif ($mode eq 'volume') {
             $state = $astate;
@@ -444,6 +455,6 @@ sub audrey {
 
 # We restart the audries once MH is up, so everything is in sync
 
-if ( $Startup ) {
+if (( $Startup ) and (!$config_parms{Audrey_no_reboot_on_startup})) {
     run_voice_cmd 'reboot all audrey';
 }

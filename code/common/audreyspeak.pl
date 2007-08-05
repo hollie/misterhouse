@@ -152,6 +152,7 @@ sub speak_to_Audrey {
     $parms{rooms} = @rooms;
     $parms{audreyIndex}=$audreyIndex;
     $parms{async}=1;
+    $parms{async}=0 if $config_parms{Audrey_speak_sync};
     $speakRooms[$audreyIndex] = \@rooms;
     &print_log("generating audrey file $audreyIndex (via TTS)");
     &Voice_Text::speak_text(%parms);
