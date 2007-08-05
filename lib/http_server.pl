@@ -251,14 +251,8 @@ sub http_process_request {
         my $cl = $Http{'Content-Length'} || $Http{'Content-length'}; # Netscape uses lower case l
         print "http POST query has $cl bytes of args\n" if $main::Debug{http};
         my $buf;
-#        read $socket, $buf, $cl;
-        my $buf_size = 1500;
-        my $timeout = $config_parms{http_timeout};
-	$timeout = 0.5 unless $timeout; # allow for laggards
-        while (&main::socket_has_data($socket, $timeout)) { # read until timeout
-  	   $socket->recv($buf,$buf_size,0);
-           $get_arg .= $buf;
-	}
+        read $socket, $buf, $cl;
+        $get_arg .= $buf;
 #       shutdown($socket->fileno(), 0);   # "how":  0=no more receives, 1=sends, 2=both
     }
 
