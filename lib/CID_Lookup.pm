@@ -296,6 +296,11 @@ sub parse_name
 		if (length($l_middle) > 1) {
 			$l_last=$l_middle;
 			$l_middle='';
+			if ($::config_parms{cid_reverse_names}) {
+				my $temp = $l_last;
+				$l_last = $l_first;
+				$l_first = $temp;
+			}
 		}
 	}
 
