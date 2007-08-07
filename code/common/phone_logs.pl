@@ -80,6 +80,7 @@ sub read_phone_logs2 {
 
             if ($log_file =~ /callerid/) {
                 ($time_date, $number, $name, $line, $type) = $_ =~ /(.+?) (1?\-?\d\d\d\-?\d\d\d\-?\d\d\d\d)\s+name=(.+)\s+line=(.+)\s+type=(.+)/ ;
+                ($time_date, $number, $name, $line, $type) = $_ =~ /(.+?) (\d{3,})\s+name=(.+)\s+line=(.+)\s+type=(.+)/ unless $name;
                 ($time_date, $number, $name) = $_ =~ /(.+?) (\d\d\d\-?\d\d\d\-?\d\d\d\d) name=(.+)/ unless $name;
                 ($time_date, $number, $name) = $_ =~ /(.+?) (\d\d\d\d\d\d\d\d\d\d)(\s\w+\s\w+\s\w+\s)/ unless $name;
                 ($time_date, $number, $name) = $_ =~ /(.+?) (\d\d\d\-?\d\d\d\d)/ unless $name; # AC is optional
