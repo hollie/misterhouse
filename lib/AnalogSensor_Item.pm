@@ -413,6 +413,7 @@ sub check_tied_event_conditions {
             . " condition: $condition; $@");
          $self->untie_state_condition($condition);
       } elsif ($result) {
+         package main; # needed to do this to allow usercode callbacks and vars to be used w/o needing main::
          my $code = "no strict; ";
          $code .= $$self{tied_event_conditions}{$condition};
          eval($code);
@@ -420,6 +421,7 @@ sub check_tied_event_conditions {
             &::print_log("Problem encountered when executing event for " . 
                $self->{object_name} . " and code: $code; $@");
          } 
+         package AnalogSensor_Item;
       }
    }
 }
