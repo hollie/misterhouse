@@ -217,6 +217,7 @@ sub measurement {
 		$main::Weather{$self->map_to_weather} = $p_measurement 
                        if (defined($p_measurement) && ($self->map_to_weather));
 		$self->check_tied_state_conditions();
+		$self->check_tied_event_conditions();
 	}
 
 	return $$self{m_measurement};
@@ -412,11 +413,12 @@ sub check_tied_event_conditions {
             . " condition: $condition; $@");
          $self->untie_state_condition($condition);
       } elsif ($result) {
-         my $code = $$self{tied_event_conditions}{$condition};
+         my $code = "no strict; ";
+         $code .= $$self{tied_event_conditions}{$condition};
          eval($code);
          if ($@) {
             &::print_log("Problem encountered when executing event for " . 
-               $self->{object_name} . " and condition: $condition");
+               $self->{object_name} . " and code: $code; $@");
          } 
       }
    }
