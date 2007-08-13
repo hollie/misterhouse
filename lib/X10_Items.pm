@@ -397,12 +397,13 @@ package X10_Appliance;
 
 sub new {
     my ($class, $id, $interface) = @_;
-    my $self = {};
+#   my $self = {};
+    my $self  = $class->Generic_Item::new();
     $$self{state} = '';
 
     bless $self, $class;
 
-	$self->set_interface($interface,$id);
+    $self->set_interface($interface,$id);
 
 #   print "\n\nWarning: duplicate ID codes on different X10_Appliance objects: id=$id\n\n" if $serial_item_by_id{$id};
 
@@ -415,6 +416,11 @@ sub new {
     $id = "X$id";
     $self->{x10_id} = $id;
     $self->{interface}->{x10_id} = $id;
+    $self->{resume} = 100;
+
+                                # level variable stores current brightness level 
+                                # undef means off, 100 is on 
+    restore_data $self ('level'); # Save brightness level between restarts
 
     $self-> add ($id . $hc . 'J', 'on');
     $self-> add ($id . $hc . 'K', 'off');
