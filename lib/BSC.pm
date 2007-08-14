@@ -51,16 +51,13 @@ package BSC_Item;
 #Initialize class
 sub new
 {
-   my ($class,$p_source_name, $p_target_name) = @_;
+   my ($class,$p_source_name, $p_writable) = @_;
    my $self={};
    bless $self, $class;
 
    $$self{m_xap} = new xAP_Item('xAPBSC.*', $p_source_name);
-   $$self{m_xap}->target_address($p_target_name) if $p_target_name;
-   $$self{m_always_set_state} = 1;
-   $$self{m_allow_local_set_state} = 1;
-#   $$self{m_xap}->class_name('xAPBSC.*');
    $self->_initialize();
+   $self->writable($p_writable) if defined $p_writable;
    $self->set_casesensitive();
    my $friendly_name = "bsc_$p_source_name";
    &main::store_object_data($$self{m_xap},'xAP_Item',$friendly_name,$friendly_name);
@@ -73,6 +70,9 @@ sub new
 sub _initialize
 {
    my ($self) = @_;
+   $$self{m_always_set_state} = 1;
+   $$self{m_allow_local_set_state} = 1;
+   $$self{m_write} = 1;
    $$self{m_registered_objects} = ();
    $$self{pending_device_state_mode} = ();
    $$self{pending_device_state} = ();
@@ -116,6 +116,12 @@ sub always_set_state {
    return $$self{m_always_set_state};
 }
 
+sub writable {
+   my ($self, $p_write) = @_;
+   $$self{m_write} = $p_write if defined $p_write;
+   return $$self{m_write};
+}
+
 #
 # allow_local_set_state(flag) - sets the local flag to either 1 (true) or 0 (false);
 #         the default is true.  If flag is true, then the item's state is changed
@@ -136,9 +142,6 @@ sub set
    my $state = $p_state;
    my ($xap_subaddress) = $$self{m_xap}->source =~ /.+\:(.+)/;
    if ($p_setby eq $$self{m_xap}) {
-      $$self{device_target} = $$self{m_xap}{target_address};
-      my ($xap_target_subaddress) = $$self{m_xap}{target_address} =~ /.+\:(.+)/;
-      $$self{device_subaddress_target} = $xap_target_subaddress;
       my $sender_class = $$p_setby{'xap-header'}{class};
       if (lc $sender_class eq 'xapbsc.cmd') {
          # handle command
