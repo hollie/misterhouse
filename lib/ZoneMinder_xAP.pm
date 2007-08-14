@@ -234,9 +234,11 @@ sub add_item {
    if ($p_object->isa('ZM_ZoneItem')) {
       push @{$$self{m_zones}}, $p_object;
    } elsif ($p_object->isa('Light_Item') or $p_object->isa('Photocell_Item')) {
-      &::print_log("Adding " . $p_object->{object_name} . " to " . $self->name . " for use in suspend/resume motion analysis");
+      print "Adding " . $p_object->{object_name} . " to " . $self->name . " for use in suspend/resume motion analysis\n"
+          if $main::Debug{zone_minder};
    } else {
-     &::print_log("WARNING!! objects of type " . ref($p_object) . " cannot be added to ZM_MonitorItems!");
+      print "WARNING!! objects of type " . ref($p_object) . " cannot be added to ZM_MonitorItems!" 
+          if $main::Debug{zone_minder};
    }
    $self->SUPER::add_item($p_object);
    
