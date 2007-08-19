@@ -18,6 +18,9 @@ Notes:
 Authors:
  09/09/2005  Created by Peter Sjödin peter@sjodin.net
 
+ $Date$
+ $Revision$
+
 =cut
 
 use strict;
@@ -731,6 +734,25 @@ sub decode {
     $mant = -~($mant - 1) if $sign != 0;
     $res = (1 << $exp) * 0.01 * $mant;
     return $res;
+}
+
+sub encode {
+    my ($self, $state) = @_;
+    my $data;
+
+    my $sign = ($state <0 ? 0x8000 : 0);
+    my $exp  = 0;
+    my $mant = 0;
+
+    $mant = int($state * 100.0);
+    while (abs($mant) > 2047) {
+        $mant = $mant >> 1;
+        $exp++;
+    }
+
+    $data = $sign | ($exp << 11) | ($mant & 0x07ff);
+
+    return([0, $data >> 8, $data & 0xff]);
 }
 
 # EIB6_Item: "scaling". Relative values 0-100% with 8 bit resolution
