@@ -709,6 +709,103 @@ sub eis_type {
     return '2.3';
 }
 
+# EIB3_Item:  Uhrzeit
+
+package EIB3_Item;
+
+@EIB3_Item::ISA = ('EIB_Item');
+
+my @DoW = qw(Sun Mon Tue Wed Thu Fri Sat Sun);
+
+sub eis_type {
+  return '3';
+}
+
+sub decode {
+  my ($self, @data) = @_;
+  my $res;
+
+  unless ($#data == 3) {
+    &main::print_log("Not EIS type 3 data received for $self->{groupaddr}: \[@data\]") if $main::config_parms{eib_errata} >= 3;
+    return;
+  }
+  my $weekday = ($data[1] & 0xE0) >> 5;
+  my $hour    = $data[1] & 0x1F;
+  my $minute  = $data[2] & 0x1F;
+  my $second  = $data[3] & 0x1F;
+
+  $res = sprintf("%s, %02i:%02i:%02i",$DoW[$weekday],$hour,$minute,$second);
+  &main::print_log("EIS3 for $self->{groupaddr}: >$res<") if $main::config_parms{eib_errata} >= 3;
+  return $res;
+}
+
+sub encode {
+  my ($self, $state) = @_;
+  my $time = &main::my_str2time($state);
+  my ($sec, $min, $hour, $mday, $mon, $year, $wday) = localtime($time);
+  my $res1 = sprintf("%s, %02i:%02i:%02i",$DoW[$wday],$hour,$min,$sec);
+  my @res = (0);
+
+  if ($wday == 0) { $wday = 7; }
+
+  push (@res, $wday << 5 | $hour);
+  push (@res, $min );
+  push (@res, $sec );
+
+  my $res = '[' . join(" ",@res) . ']';
+  
+  &main::print_log("EIS3 for $self->{groupaddr}: >$res< >$res1<") if $main::config_parms{eib_errata} >= 3;
+  return \@res;
+
+}
+
+# EIB4_Item:  Uhrzeit
+
+package EIB4_Item;
+
+@EIB4_Item::ISA = ('EIB_Item');
+
+my @DoW = qw(Sun Mon Tue Wed Thu Fri Sat Sun);
+
+sub eis_type {
+  return '3';
+}
+
+sub decode {
+  my ($self, @data) = @_;
+  my $res;
+
+  unless ($#data == 3) {
+    &main::print_log("Not EIS type 4 data received for $self->{groupaddr}: \[@data\]") if $main::config_parms{eib_errata} >= 3;
+    return;
+  }
+  my $mday    = $data[1] & 0x1F;
+  my $mon     = $data[2] & 0x0F;
+  my $year    = $data[3] & 0x7F;
+
+  $res = sprintf("%02i/%02i/%02i",$mon,$mday,($year+2000) % 100);
+  &main::print_log("EIS4 for $self->{groupaddr}: >$res<") if $main::config_parms{eib_errata} >= 2;
+  return $res;
+}
+
+sub encode {
+  my ($self, $state) = @_;
+  my $time = &main::my_str2time($state);
+  my ($sec, $min, $hour, $mday, $mon, $year, $wday) = localtime($time);
+  my $res1 = sprintf("%02i/%02i/%02i",$mon + 1,$mday,$year % 100 );
+  my @res = (0);
+
+  push (@res, $mday);
+  push (@res, $mon + 1);
+  push (@res, $year - 100);
+
+  my $res = '[' . join(" ",@res) . ']';
+  
+  &main::print_log("EIS4 for $self->{groupaddr}: >$res< >$res1<") if $main::config_parms{eib_errata} >= 3;
+  return \@res;
+
+}
+
 # EIS 5: Value
 # Represents real values
 package EIB5_Item;
