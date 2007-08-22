@@ -53,23 +53,16 @@ sub init {
                         my $flag = 0;
                         for my $card (split ',', $main::config_parms{voice_text_cards}) {
                             if ($i eq $card or $des =~ /$card/i) {
-                            	print "matched this card: $card\n" if $::Debug{voice};
                                 $flag = 1;
                                 $VTxt_cards{$card} = $i;
                             }
-
                         }
-                        if (!$flag) {
-                        	print "didn't match any cards\n" if $::Debug{voice};
-                        	next;
-                        }
+                        next unless $flag;
                     }
                     $VTxt[$i] = Win32::OLE->new('Sapi.SpVoice');
-                    print "Audio card description is $des\n" if $::Debug{voice};
-                    print "Return code from Sapi creation is: ".Win32::OLE->LastError()."\n" if $::Debug{voice};
                     $VTxt[$i] ->{AudioOutput} = $object;
                                 # Pick the default card, if specified
-                    $VTxt[0] = $VTxt[$i] if $des =~ /$main::config_parms{voice_text_card}/i or $i == $main::config_parms{voice_text_card};
+                    $VTxt[0] = $VTxt[$i] if $des =~ /$main::config_parms{voice_text_card}/i or !$VTxt[0];
                 }
                 $VTxt[0] = $VTxt[1] unless $VTxt[0]; # Default to the first card if specified one not found
 
@@ -250,29 +243,23 @@ sub speak_text {
             $parms{to_file} = "$main::Pgm_Path/$1" if $parms{to_file} =~ /^\.\/(.+)/;
             $parms{text} = qq[(utt.save.wave (utt.synth (Utterance Text "$parms{text}")) "$parms{to_file}" "riff")];
             if ($VTxt_festival and active $VTxt_festival) {
-                print "using VTxt_festival ".&gettimeofday."\n";
                 $parms{text} =~ s/<\/?speaker.*?>//ig; # Server does not do sable
                 print "Voice_text TTS:  Festival saving to file via server: $parms{to_file}\n" if $main::Debug{voice};
                 set $VTxt_festival $parms{text};
-                print "just sent data to socket ".&gettimeofday."\n";
 
                 my $fork=1 if $parms{async};
 
                 if ($fork) {
-                    print "going to fork ".&gettimeofday."\n";
             	    my $pid = fork;
-                    print "forked ".&gettimeofday."\n";
 
 					# we are the parent
                     if ($fork and $pid) {
-                    	print "I'm the parent, done working ".&gettimeofday."\n";
                     	return; # nothing else to do, the child is looking after the rest of the work
 					}
                 }
                 # Wait for server to respond that it is done
                 my $sock = $main::Socket_Ports{festival}{sock};
                 my $i;
-                print "main worker waiting for socket to report done ".&gettimeofday."\n";
                 while ($i++ < 100) {
                     print '-';
                     select undef, undef, undef, .1;
@@ -280,43 +267,30 @@ sub speak_text {
                            last;
                        }
                 }
-                print "main worker socket reports done ".&gettimeofday."\n";
                 if (defined $parms{audreyIndex}) {
-                    print "main worker telling audrey the file is ready ".&gettimeofday."\n";
                     &::file_ready_for_audrey($parms{audreyIndex});
-                    print "main worker audrey finished ".&gettimeofday."\n";
    				}
 			    if ($fork) {
-                	print "forked child exitting ".&gettimeofday."\n";
 				    exit; # nothing left for the child to do
 			    }
            }
             else {
-                print "NOT using VTxt_festival ".&gettimeofday."\n";
                 my $file = "$main::config_parms{data_dir}/mh_temp.festival.txt";
                 &main::file_write($file, $parms{text});
                 print "Voice_text TTS: Festival saving to file: $file\n" if $main::Debug{voice};
                 my $fork = $parms{async};
                 if ($fork) {
-                    print "going to fork ".&gettimeofday."\n";
                 	my $pid = fork;
-                    print "forked ".&gettimeofday."\n";
                 	# we are the parnet
                 	if ($fork and $pid) {
-                    	print "I'm the parent, done working ".&gettimeofday."\n";
                 		return; # the child will look after the real work
 					}
 				}
-                print "about to call festival ".&gettimeofday."\n";
                 system("$main::config_parms{voice_text_festival} -b $file");
-                print "returned from festival ".&gettimeofday."\n";
                 if (defined $parms{audreyIndex}) {
-                    print "main worker telling audrey the file is ready ".&gettimeofday."\n";
                     &::file_ready_for_audrey($parms{audreyIndex});
-                    print "main worker audrey done ".&gettimeofday."\n";
    				}
 			    if ($fork) {
-                	print "forked child exitting ".&gettimeofday."\n";
 				    exit; # nothing left for the child to do
 			    }
             }
@@ -630,7 +604,7 @@ sub speak_text {
             else {
 #               $vtxt_card->Speak($parms{text}, 1 + 2 + 8); # Flags: 1=async  2=purge  8=XML
                 unless ($vtxt_card->Speak($parms{text}, 1 +     8)) {
-                    print "Voice_Text error (".Win32::OLE->LastError()."): parms=@_\n";
+                    print "Voice_Text error: parms=@_\n";  #  error=" .  Win32::OLE->LastError() . "\n";
                 }
             }
         }
