@@ -2305,6 +2305,7 @@ sub html_item_state {
 
     @states = qw(on off) if UNIVERSAL::isa($object, 'X10_Appliance');
     @states = qw(on off) if UNIVERSAL::isa($object, 'EIB1_Item');
+    @states = qw(up down stop) if UNIVERSAL::isa($object, 'EIB7_Item');
 
     my $use_select = 1 if @states > 2 and length("@states") > $config_parms{'html_select_length' . $Http{format}};
 

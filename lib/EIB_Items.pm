@@ -9,11 +9,14 @@ EIB/KNX website:
 
 Notes:
     The following EIB types are supported:
-    EIS 1: Switches
-    EIS 2: Dimmers
-    EIS 5: Values (weather stations etc)
-    EIS 6: Scaling (0 - 100%)
-    EIS 7: Motor drives
+    EIS  1: Switches
+    EIS  2: Dimmers
+    EIS  3: Time
+    EIS  4: Date
+    EIS  5: Values (weather stations etc)
+    EIS  6: Scaling (0 - 100%)
+    EIS  7: Motor drives
+    EIS 15: 14 byte text messages
 
 Authors:
  09/09/2005  Created by Peter Sjödin peter@sjodin.net
@@ -1092,3 +1095,37 @@ sub encode {
 
     return ([0]);
 }
+
+# EIB15_Item: 14-Byte Text Message
+
+package EIB15_Item;
+
+@EIB15_Item::ISA = ('EIB_Item');
+
+sub eis_type {
+    return '15';
+}
+
+sub decode {
+    my ($self, @data) = @_;
+    my $res;
+
+    unless ($#data == 14) {
+	&main::print_log("Not EIS type 15 data received for $self->{groupaddr}: \[@data\]") if $main::config_parms{eib_errata} >= 2;
+	return;
+    }
+    $res = pack ("xC*", @data);
+    &main::print_log("EIS15 for $self->{groupaddr}: >$res<");
+    return $res;
+}
+
+sub encode {
+    my ($self, $state) = @_;
+    my $newstate;
+    $newstate = sprintf ("%-14.14s", $state);
+    my @res = (0);
+    push (@res, unpack ("C*", $newstate));
+    return \@res;
+}
+
+
