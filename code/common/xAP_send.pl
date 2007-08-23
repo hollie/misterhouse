@@ -7,6 +7,8 @@
 #@ the standard tts.speak xAP schema (that non-mh apps use).  xap_echo_mhspeech allows peer-based, speech
 #@ proxies.
 
+use Weather_Common;
+
 # default to echoing to all clients (possible not a smart idea)
 my $xap_echo_all = $config_parms{xap_echo_all};
 $xap_echo_all = 1 unless defined $xap_echo_all;
@@ -81,6 +83,16 @@ sub xAP_send_x10 {
 
 
 sub xAP_send_tts_speak {
+   my (%parms) = @_;
+   my $mode = $parms{mode};
+   unless ($mode) {
+      if (defined $mode_mh) {
+         $mode = state $mode_mh;
+      } else {
+         $mode = $Save{mode};
+      }
+   }
+   return if $mode eq 'mute';
    &xAP_send_speak('tts.speak',@_);
 }
 
