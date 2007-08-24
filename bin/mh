@@ -7057,7 +7057,7 @@ sub tk_command_list {
 }
 
 sub tk_scalebar {
-  return unless $Reload;  # a crutch for ailing code that creates widgets at the wrong time (better to let them break!)
+  return unless $Reload and $Tk_objects{grid};  # a crutch for ailing code that creates widgets at the wrong time (better to let them break!)
   my $tk;
   my ($pvar, $col, $label, $from, $to, $row, $show_label) = @_;
 
