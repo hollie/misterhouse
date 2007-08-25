@@ -1,0 +1,12 @@
+#type	URL	Options
+#ical	http://www/ical/ical1.ics
+#ical	http://www/ical/ical2.ics	speak_todos
+
+#ical	http://username:mysecret@www.scheduleworld.com/sw/webDAVDir/123456.ics	name=test
+
+#required for ical2vsdb to run as a Process_Item. 
+sleep_delay	0
+
+#optional config items
+#days_after	120
+#days_before	35

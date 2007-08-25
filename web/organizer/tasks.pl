@@ -1,7 +1,4 @@
 #!/usr/local/bin/perl -w
-# 
-# $Date$
-# $Revision$
 # ----------------------------------------------------------------------------
 # tasks.pl
 # Copyright (c) 2001 Jason M. Hinkle. All rights reserved. This script is
@@ -15,6 +12,8 @@
 # or indirectly caused by this software.
 # 
 # Version History
+# 1.4.8-4 - 08/19/07 - iCal2vsdb integration (requires v2104 database)
+# 1.4.8-3 - 04/29/07 - minor fixes
 # 1.4.8-2 - 08/30/06 - minor fixes
 # 1.4.8-1 - 07/24/06 - added control over speech events
 # 1.4.8   - 05/06/06 - added vsPS for changing page size
@@ -23,7 +22,7 @@
 # 1.4.5   - 08/22/01 - added file locking
 # 1.4.4   - 08/05/01 - handle missing datafiles gracefully 
 # ----------------------------------------------------------------------------
-my $VERSION = "1.4.8-2";
+my $VERSION = "1.4.8-4";
 
 BEGIN {
 #	$SIG{__WARN__} = \&FatalError;
@@ -138,7 +137,7 @@ my ($filePath) = $ENV{"CWD"} . "/" . $fileName;
 $filePath = "$config_parms{organizer_dir}/$fileName";
 my ($activePage) = $objCGI->param('vsAP') || "1";
 my ($sortField) = $objCGI->param('vsSORT') || "";
-my ($pageSize) = $objCGI->param('vsPS') if $objCGI->param('vsPS');
+$pageSize = $objCGI->param('vsPS') if $objCGI->param('vsPS');
 
 
 print "<form action='" . $scriptName . "' method='post'>\n";
@@ -166,6 +165,8 @@ if ($command eq "EDIT") {
 	$objDB->RemoveFilter;
 	$objDB->MoveFirst;
 	PrintAllRecords($objDB);
+        print "<b><font face='arial' size='2'><a href='$scriptName" . PassThrough("vsCOM","ADD") . "'>Add New Task</a></font></b>\n";
+
 } elsif ($command eq "DELETE") {
 	$objDB->Filter("ID","eq",$idNum);
 	$objDB->Delete;
@@ -173,6 +174,8 @@ if ($command eq "EDIT") {
 	$objDB->RemoveFilter;
 	$objDB->MoveFirst;
 	PrintAllRecords($objDB);
+        print "<b><font face='arial' size='2'><a href='$scriptName" . PassThrough("vsCOM","ADD") . "'>Add New Task</a></font></b>\n";
+
 } elsif ($command eq "ADD") {
 	PrintBlankRecord($objDB);
 } elsif ($command eq "INSERT") {
@@ -183,6 +186,8 @@ if ($command eq "EDIT") {
 	UpdateCurrentRecord($objDB,$objCGI);
 	$objDB->MoveFirst;
 	PrintAllRecords($objDB);
+        print "<b><font face='arial' size='2'><a href='$scriptName" . PassThrough("vsCOM","ADD") . "'>Add New Task</a></font></b>\n";
+
 } else {
 	PrintAllRecords($objDB);
         print "<b><font face='arial' size='2'><a href='$scriptName" . PassThrough("vsCOM","ADD") . "'>Add New Task</a></font></b>\n";
@@ -237,6 +242,7 @@ sub PrintAllRecords {
 		print "<td><b><font face='arial' size='2'><a href='$scriptName?vsSORT=$fieldName&vsPS=$pageSize&vsSC=$showCompleted'>" . $fieldName . "</a></font></b></td>\n";
 	}
 	print "</tr>\n";
+print "Already at EOF!" if $objMyDB->EOF;
 	while (!$objMyDB->EOF && $count < $pageSize) {
 		print "<tr valign='top' bgcolor='$dataLightColor'>\n";
 		print "<td><font face='arial' size='1'><a href='" . $scriptName . "?vsSORT=$sortField&vsPS=$pageSize&vsAP=$activePage&vsCOM=EDIT&vsID=" . $objMyDB->FieldValue("ID") . "'><img src='$detailIcon' alt='Details' border='0'></a></font></td>\n";
@@ -246,14 +252,9 @@ sub PrintAllRecords {
 			if ($fieldName eq "SpecialField") {
 				# not used at the moment, but maybe later...
 				print "<td><font face='arial' size='2'>" . $fieldValue . "</font></td>\n";
-			} elsif ($fieldName eq "Speak") {
-				print "<td><font face='arial' size='2'>";
-				if ($fieldValue eq "on") {
-					print "Yes";
-				} else {
-					print "No";
-				}
-				print "</font></td>\n";
+			} elsif (lc $fieldName eq "SPEAK") {
+				print "<td><font face='arial' size='2'>" . $fieldValue . "</font></td>\n";
+			} elsif ($fieldName eq "SOURCE") {
 			} else {
 				print "<td><font face='arial' size='2'>" . $fieldValue . "</font></td>\n";
 			}
@@ -281,13 +282,14 @@ sub PrintAllRecords {
 sub PrintCurrentRecord {
 	my ($objMyDB) = shift;
 	my ($fieldName, $fieldValue);
+	my $source;
 	print "<table cellspacing='2' cellpadding='2' border='0'>\n";
 	foreach $fieldName ($objMyDB->FieldNames) {
 		if ($fieldName eq "ID") {
 		    print "<input type='hidden' name='vsID' value='" . $objMyDB->FieldValue("ID") . "'>\n";
 		} else {
 		    print "<tr valign='top' bgcolor='$dataLightColor'>\n";
-		    print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n";
+		    print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n" if ($fieldName ne "SOURCE");
 			if ($fieldName eq "Complete") {
 				my ($yes) = "";
 				my ($no) = "";
@@ -298,19 +300,24 @@ sub PrintCurrentRecord {
 				print "<input type=\"radio\" name=\"Complete\" value=\"No\" $no>No\n";
 				print "</font></td>";
 			} elsif ($fieldName eq "Notes") {
-				print "<td><textarea name='Notes' cols='38' rows='3'>";
+				print "<td><textarea name='Notes' cols='47' rows='8'>";
 				$fieldValue = $objMyDB->FieldValue("Notes");
 				$fieldValue =~ s/\"/&quot;/g;		
 				print $fieldValue . "</textarea></td>\n";
-			} elsif (lc $fieldName eq "speak") {
+			} elsif ($fieldName eq "SPEAK") {
 		    		$fieldValue = $objMyDB->FieldValue($fieldName);
-		    		print "<td><input name='Speak' type=\"checkbox\" value=\"on\" ";
-		    		if ($fieldValue eq "on") { 
+		    		print "<td><input name='SPEAK' type=\"checkbox\" value=\"Yes\" ";
+		    		if ($fieldValue eq "Yes") { 
 					print "CHECKED > ";
 				} else {
 					print "> ";
 				}
-		    		print "</tr>\n";
+
+			} elsif ($fieldName eq "SOURCE") {
+		    		$fieldValue = $objMyDB->FieldValue($fieldName);
+		    		$source = $fieldValue;
+		    		$source = "local" if (!$source);
+
 			} else {
 				print "<td><input size=\"50\" name=\"" . $fieldName . "\" value=\"";
 				$fieldValue = $objMyDB->FieldValue($fieldName);
@@ -320,6 +327,7 @@ sub PrintCurrentRecord {
 		    print "</tr>\n";
 		}
 	}
+	if ($source eq "local" ) {
 	print "</table>\n";
 	print "<p>\n";
 	print "<input type='hidden' name='vsSC' value='$showCompleted'>\n";
@@ -327,10 +335,18 @@ sub PrintCurrentRecord {
 	print "<input type='hidden' name='vsSORT' value='$sortField'>\n";
 	print "<input type='hidden' name='vsPS' value='$pageSize'>\n";
 	print "<input type='hidden' name='vsCOM' value='UPDATE'>\n";
+	print "<input type='hidden' name='SOURCE' value='local'>\n";
 	print "<input type='submit' value='Update' >\n";
 	print "<input style=\"COLOR: maroon;\" type='reset' value='Delete'  onclick=\"if (confirm('Permenantly delete this task?')) {self.location='$scriptName?vsSORT=$sortField&vsAP=$activePage&vsPS=$pageSize&vsSC=$showCompleted&vsCOM=DELETE&vsID=" . $objMyDB->FieldValue("ID") . "';return false;} else {return false;};\">\n";
 	print "<input type='reset' value='Cancel' onclick=\"window.history.go(-1);return false;\">\n";
 	print "<p>\n";
+	} else {
+         $source =~ /^ical=(\S*)\ssync=(.*)/;
+	 my $icalname = $1;
+	 my $icalsync = $2;
+	 print "<tr><td colspan=4><font face='arial' size='2'>iCal2vsdb (ical $icalname) $icalsync\n";
+	 print "</font></td></tr></table>\n";
+	}
 }
 
 #_____________________________________________________________________________
@@ -349,9 +365,10 @@ sub PrintBlankRecord {
 				print "</font></td>";
 			} elsif ($fieldName eq "Notes") {
 				print "<td><textarea name='Notes' cols='38' rows='3'></textarea></td>\n";
-			} elsif ($fieldName eq "Speak") {
-		    		print "<td><input name='Speak' type=\"checkbox\" value=\"on\" >";
+			} elsif (lc $fieldName eq "SPEAK") {
+		    		print "<td><input name='SPEAK' type=\"checkbox\" value=\"Yes\" >";
 		    		print "</tr>\n";
+			} elsif ($fieldName eq "SOURCE") { #do nothing
 			} else {
 				print "<td><input size=\"50\" name=\"" . $fieldName . "\" value=\"\"></td>\n";
 		    }
@@ -364,6 +381,7 @@ sub PrintBlankRecord {
 	print "<input type='hidden' name='vsAP' value='$activePage'>\n";
 	print "<input type='hidden' name='vsSORT' value='$sortField'>\n";
 	print "<input type='hidden' name='vsPS' value='$pageSize'>\n";
+	print "<input type='hidden' name='SOURCE' value='local'>\n";
 	print "<input type='hidden' name='vsCOM' value='INSERT'>\n";
 	print "<input type='submit' value='Add'>\n";
 	print "<input type='reset' value='Cancel' onclick=\"window.history.go(-1);return false;\">\n";
@@ -377,7 +395,7 @@ sub UpdateCurrentRecord {
 	my ($fieldName,$fieldValue);
 	foreach $fieldName ($objMyDB->FieldNames) {
 		$fieldValue = $objMyCGI->param($fieldName);
-		$fieldValue = "off" if (($fieldName eq "Speak" ) and (not ($fieldValue eq "on")));
+		$fieldValue = "No" if (($fieldName eq "SPEAK" ) and (not ($fieldValue eq "Yes")));
 #print "db: fn=$fieldName fv=$fieldValue\n";
 		$objMyDB->FieldValue($fieldName,$fieldValue);
 	}

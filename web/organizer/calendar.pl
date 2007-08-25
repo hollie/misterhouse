@@ -15,6 +15,7 @@
 # or indirectly caused by this software.
 # 
 # Version History
+# 1.5.7-4 - 08/12/07 - Added ical2vsdb integration (needs v2104 vsdb database)
 # 1.5.7-3 - 08/25/06 - Added 'vacation' checkbox
 # 1.5.7-2 - 07/25/06 - Added 'holiday' checkbox
 # 1.5.7-1 - 09/04/05 - Added Audrey (640x480) specific layout
@@ -26,7 +27,7 @@
 # 1.5.2   - 08/22/01 - added file locking
 # ----------------------------------------------------------------------------
 
-my $VERSION = "1.5.7-3";
+my $VERSION = "1.5.7-4";
 
 BEGIN {
 #	$SIG{__WARN__} = \&FatalError;
@@ -487,6 +488,7 @@ sub GetMonthInfo {
 sub PrintCurrentRecord {
 	my ($objMyDB) = shift;
 	my ($fieldName, $fieldValue);
+	my $source;
 	print "<form action='$scriptName' method='post'>\n";
 	print "<p>\n";
 	print "<b>Update This Event:</b><br>\n";
@@ -501,12 +503,12 @@ sub PrintCurrentRecord {
 		} elsif ($fieldName eq "DETAILS") {
 		    print "<tr valign='top' bgcolor='#DDDDDD'>\n";
 		    print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n";
-		    print "<td><textarea name='DETAILS' cols='30' rows='3'>";
+		    print "<td colspan=3><textarea name='DETAILS' cols='35' rows='3'>";
 		    $fieldValue = $objMyDB->FieldValue($fieldName);
 		    $fieldValue =~ s/\"/&quot;/g;		
 		    print $fieldValue . "</textarea></td>\n";
 		    print "</tr>\n";
-
+# should clean this row up
 		} elsif ($fieldName eq "HOLIDAY") {
 		    print "<tr valign='top' bgcolor='#DDDDDD'>\n";
 		    print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n";
@@ -514,10 +516,8 @@ sub PrintCurrentRecord {
 		    print "<td><input name='HOLIDAY' type=\"checkbox\" value=\"on\" ";
 		    print "checked " if ($fieldValue eq "on");
 		    print ">";
-		    print "</tr>\n";
 
 		} elsif ($fieldName eq "VACATION") {
-		    print "<tr valign='top' bgcolor='#DDDDDD'>\n";
 		    print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n";
 		    $fieldValue = $objMyDB->FieldValue($fieldName);
 		    print "<td><input name='VACATION' type=\"checkbox\" value=\"on\" ";
@@ -525,32 +525,46 @@ sub PrintCurrentRecord {
 		    print ">";
 		    print "</tr>\n";
 
+		} elsif ($fieldName eq "SOURCE") {
+		    $fieldValue = $objMyDB->FieldValue($fieldName);
+		    $source = $fieldValue;
+		    $source = "local" if (!$source);
+
 		} else {
 		    print "<tr valign='top' bgcolor='#DDDDDD'>\n";
 		    print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n";
-		    print "<td><input size=\"40\" name=\"" . $fieldName . "\" value=\"";
+		    print "<td colspan=3><input size=\"40\" name=\"" . $fieldName . "\" value=\"";
 		    $fieldValue = $objMyDB->FieldValue($fieldName);
 		    $fieldValue =~ s/\"/&quot;/g;		
 		    print $fieldValue . "\"></td>\n";
 		    print "</tr>\n";
 		}
 	}
+	if ($source eq "local" ) {
 	print "</table>\n";
 	print "<p>\n";
 	print "<input type='hidden' name='vsSD' value='$showDayDetails'>\n";
 	print "<input type='hidden' name='vsDay' value='$day'>\n";
 	print "<input type='hidden' name='vsMonth' value='$month'>\n";
 	print "<input type='hidden' name='vsYear' value='$year'>\n";
-	if ($objMyDB->FieldValue("ID")) {
+	print "<input type='hidden' name='source' value='local'>\n";
+	 if ($objMyDB->FieldValue("ID")) {
 	    print "<input type='hidden' name='vsCOM' value='UPDATE'>\n";
 	    print "<input type='submit' value='Update'>\n";
 	    print "<input type='submit' value='Delete' onclick=\"if (confirm('Delete This Record?')) {self.location='$scriptName?vsCOM=DELETE&vsSD=$showDayDetails&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year&vsDay=$day&vsID=" . $objMyDB->FieldValue("ID") . "';return false;} else {return false;};\">\n";
-	} else {
+	 } else {
 		print "<input type='hidden' name='DATE' value='$year.$month.$day'>\n";
 	    print "<input type='hidden' name='vsCOM' value='INSERT'>\n";
 	    print "<input type='submit' value='Add'>\n";
+	 }
+	 print "<input type='reset' value='Cancel' onclick=\"window.history.go(-1);return false;\">\n";
+	} else {
+         $source =~ /^ical=(\S*)\ssync=(.*)/;
+	 my $icalname = $1;
+	 my $icalsync = $2;
+	 print "<tr><td colspan=4><font face='arial' size='2'>iCal2vsdb (ical $icalname) $icalsync\n";
+	 print "</font></td></tr></table>\n";
 	}
-	print "<input type='reset' value='Cancel' onclick=\"window.history.go(-1);return false;\">\n";
 	print "</form>\n";
 }	
 
@@ -571,6 +585,7 @@ sub UpdateCurrentRecord {
 		$fieldValue = $objMyCGI->param($fieldName);
 		$fieldValue = "off" if (($fieldName eq "HOLIDAY" ) and (not ($fieldValue eq "on")));
 		$fieldValue = "off" if (($fieldName eq "VACATION" ) and (not ($fieldValue eq "on")));
+		$fieldValue = "no" if (($fieldName eq "allday" ) and (not (lc $fieldValue eq "yes")));
 #print "db: fn=$fieldName fv=$fieldValue\n";
 		$objMyDB->FieldValue($fieldName,$fieldValue);
 	}
