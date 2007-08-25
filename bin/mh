@@ -6112,9 +6112,7 @@ sub route_display_rooms {
            for my $group_room (keys %groups) {
              if (!(exists($targets{$group_room}))) { # prevent duplicates on expansion
                 my %room_parms = &parse_func_parms($display_rooms{$group_room});
-                $targets{$group_room}{device} = $room_parms{device};
-                $targets{$group_room}{address} = $room_parms{address} if $room_parms{address};
-                $targets{$group_room}{schema} = $room_parms{schema} if $room_parms{schema};
+                %{$targets{$group_room}} =%room_parms;
              }
           }
        } elsif ($room eq 'all') {
@@ -6122,17 +6120,13 @@ sub route_display_rooms {
           for my $all_room (keys %display_rooms) {
              if (!(exists($targets{$all_room}))) { # prevent duplicates on expansion
                 my %room_parms = &parse_func_parms($display_rooms{$all_room});
-                $targets{$all_room}{device} = $room_parms{device};
-                $targets{$all_room}{address} = $room_parms{address} if $room_parms{address};
-                $targets{$all_room}{schema} = $room_parms{schema} if $room_parms{schema};
+                %{$targets{$all_room}} = %room_parms;
              }
           }
        } else {
           if (!(exists($targets{$room}))) { # prevent duplicates on expansion
              my %room_parms = &parse_func_parms($display_rooms{$room});
-             $targets{$room}{device} = $room_parms{device};
-             $targets{$room}{address} = $room_parms{address} if $room_parms{address};
-             $targets{$room}{schema} = $room_parms{schema} if $room_parms{schema};
+             %{$targets{$room}} = %room_parms;
           }
        }
     }
@@ -6143,9 +6137,8 @@ sub route_display_rooms {
           $return_tk = 1;
        } else {
           my $func = "display_$targets{$target_room}{device}";
-          $parms{address} = $targets{$target_room}{address};
-          if ($targets{$target_room}{device} eq 'xap' or $targets{$target_room}{device} eq 'xpl') {
-             $parms{schema} = $targets{$target_room}{schema};
+          foreach my $key (keys %{$targets{$target_room}}) {
+             $parms{$key} = $targets{$target_room}{$key} unless $key eq 'device' or $key eq 'text';
           }
           if ($main::{$func}) {
               no strict 'refs';
