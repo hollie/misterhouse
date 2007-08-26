@@ -403,7 +403,7 @@ sub parse_cal {
             $duedate = $todo->{DUE}->{local_c}->{month} . "/" . $todo->{DUE}->{local_c}->{day} 
                       . "/" . $todo->{DUE}->{local_c}->{year};
         }
-        if ($todo->{DTSTART}->{local_c}->{day} and $todo->{DTSTArT}->{local_c}->{month} and $todo->{DTSTART}->{local_c}->{year}) {
+        if ($todo->{DTSTART}->{local_c}->{day} and $todo->{DTSTART}->{local_c}->{month} and $todo->{DTSTART}->{local_c}->{year}) {
            if ($date_format =~ /ddmm/i) {
               $startdate = $todo->{DTSTART}->{local_c}->{day} . "/" . $todo->{DTSTART}->{local_c}->{month}
                       . "/" . $todo->{DTSTART}->{local_c}->{year};
@@ -457,6 +457,7 @@ sub parse_cal {
       $out_todos[$count]->{SOURCE} = $source;
       $out_todos[$count]->{REMINDER} = $reminder;
       $out_todos[$count]->{STARTDATE} = $startdate . (($starttime) ? ' ' . $starttime : '');
+      $out_todos[$count]->{CATEGORY} = $todo->{CATEGORIES};
       $count++;
   }
   print "db: $count todo records processed\n" if $DB;
