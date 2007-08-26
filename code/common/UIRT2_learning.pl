@@ -27,6 +27,7 @@ $config_parms{uirt2_module} $config_parms{uirt2_port} $config_parms{uirt2_baudra
 my (@devices, @functions, $prev_device, $current_device, $current_function, $ofa_html);
 use vars '$uirt2_function_pcode';
 
+use UIRT2;
 use IR_Utils; 
 
 if ($Reload) {

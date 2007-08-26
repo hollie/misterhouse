@@ -27,6 +27,7 @@ $config_parms{usb_uirt_module} $config_parms{usb_uirt_port}
 my (@devices, @functions, $prev_device, $current_device, $current_function, $ofa_html);
 use vars '$usb_uirt_function_code';
 
+use USB_UIRT;
 use IR_Utils; 
 
 if ($Reload) {
