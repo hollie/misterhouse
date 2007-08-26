@@ -27,23 +27,16 @@ if ($Reload) {
 	$Included_HTML{'Internet'} .= qq(<h3>Versalink Throughput<p><img src='sub;?graph_versalink_rrd()'><p>\n\n\n);
 }
 
-# *** Might cause unexplained pauses every minute and nobody will know what it is! :)
-# *** Should be configurable
-
 if (new_minute) {
 	unlink $f_versalink;
 	$p_get_versalink -> start;
 }
-
-# *** A blank response?
 
 if (said $v_read_versalink) {
 	my $state = $v_read_versalink->{state};
 	my $text; 
 	$v_read_versalink->respond("app=network $text"); 
 }
-
-# *** The dreaded TE object. What does this data look like when stripped of tags?
 
 my $kbx = (8 / 60) / 1024;
 if (done_now $p_get_versalink) {
