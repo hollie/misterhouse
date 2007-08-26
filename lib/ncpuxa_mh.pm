@@ -149,7 +149,7 @@ my %funcs = (
 	'All Lights On', 'O', 'All Units Off', 'P', 'On', 'J', 'Off', 'K', 'Bright', 'L', 'Dim', 'M', 
 	'Preset Dim 0', 'PRESET_DIM1', 'Preset Dim 1', 'PRESET_DIM2', 
 	'All Lights Off', 'P', 'Extended Code', 'EXTENDED_CODE', 
-	'Hail Request', 'HAIL_REQUEST', 'Hail Ack', 'HAIL_ACK', 'Extended Code', 'EXTENDED_DATA', 
+	'Hail Request', 'HAIL_REQUEST', 'Hail Ack', 'HAIL_ACK', 'Extended Data', 'EXTENDED_DATA', 
 	'Status On', 'STATUS_ON', 'Status Off', 'STATUS_OFF', 'Status', 'STATUS' 
 );
 
@@ -160,9 +160,9 @@ sub read {
 	return unless $data = ncpuxa::cpuxa_process_monitor($monitorsock{$hostport});
 	#foreach (keys %funcs) {print "db k=$_ v=$funcs{$_} data=$data-\n";}
 	return if $data =~ /^X-10 Rx: no data available/;
-	return if $data =~ /^X-10 Tx:/;
+	return if $data =~ /^X-10 .x: .\/Extended/;
 	return if $data =~ /^IR Tx:/;
-	if (my ($house, $func) = $data =~ /^X-10 Rx: ([A-P])\/(.*)/) {
+	if (my ($house, $func) = $data =~ /^X-10 [RT]x: ([A-P])\/(.*)/) {
 		#print "db data=$data h=$house f=$func fs=$funcs{$func}\n";
 		$code = "X" . $house . $funcs{$func};
 		return $code;
