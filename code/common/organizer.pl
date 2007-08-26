@@ -188,7 +188,7 @@ if ($Reload) {
    $_upd_cal{v2104} = "SOURCE,REMINDER,ENDTIME";
 
    $_upd_todo{v2103} = "SPEAK";
-   $_upd_todo{v2104} = "SOURCE,REMINDER,STARTDATE";
+   $_upd_todo{v2104} = "SOURCE,REMINDER,STARTDATE,CATEGORY";
 
    &update_vsdb(\%_upd_cal,$_organizer_cal->name,"Calendar");
    &update_vsdb(\%_upd_todo,$_organizer_todo->name,"Todo"); 
@@ -308,6 +308,9 @@ if (said $organizer_check or ($New_Minute and changed $_organizer_todo)) {
         $data{description}  = $objDB->FieldValue('Description');
         $data{notes}        = $objDB->FieldValue('Notes');
         $data{speak}        = $objDB->FieldValue('SPEAK');
+        $data{startdt}      = $objDB->FieldValue('STARTDATE');
+        $data{category}     = $objDB->FieldValue('CATEGORY');
+        $data{enddt}        = $data{date} . ' ' . $data{time};
         $objDB->MoveNext;
         next if lc $complete =~ /^y/i;
         next unless $data{name} or $data{description};
@@ -374,6 +377,27 @@ sub generate_code {
     my $default_reminder = $main::config_parms{organizer_reminder};
     $default_reminder = '15m' unless $default_reminder;
     $data{reminder} = $default_reminder unless $data{reminder} or $data{allday} =~ /^y/i;
+    my $task_flag = $main::config_parms{organizer_vc_category};
+    if (($task_flag) && ($data{type} eq 'task') && 
+       (($data{category} and ($data{category} =~ /^$task_flag/i)) or ($data{description} =~ /^$task_flag/i))) {
+       my $cmd = $data{description};
+       $task_flag .= ":";
+       $cmd =~ s/$task_flag\s*//; # trim of the prefix/identifier if it exists
+       my $vc = '';
+       eval { $vc = &Voice_Cmd::voice_item_by_text("$cmd"); };
+       if ($vc) {
+          my $offcmd = $cmd;
+          $offcmd =~ s/(\s+)on(\s*)/$1off$2/;
+print "offcmd:$offcmd and enddt:$data{enddt}\n";
+          if ($data{startdt}) {
+             print MYCODE "   if (time_now '$data{startdt}') { &main::run_voice_cmd('$cmd'); };\n";
+          }
+          if ($data{enddt} and $offcmd) {
+             print MYCODE "   if (time_now '$data{enddt}') { &main::run_voice_cmd('$offcmd'); };\n";
+          }
+       }
+       return;
+    }
     if ($data{reminder} and !(time_greater_than($data{time_date}) or $data{reminder} eq 'none')) {
        my @reminders = split(/,/,$data{reminder});
        for my $reminder_info (@reminders) {
