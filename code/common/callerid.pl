@@ -14,7 +14,7 @@ use Telephony_Item;
 #@ Add these entries to your mh.ini file:
 #@  callerid_port   = COM1
 #@  callerid_name   = line 1 (or match serial_xyz name if using a proxy)
-#@  callerid_type   = type (e.g. netcallerid, rockwell, zyxel)  See lib/Telephony_Interface.pm for options.
+#@  callerid_type   = type (e.g. netcallerid, rockwell, zyxel, ncid)  See lib/Telephony_Interface.pm for options.
 #@  callerid_format =      (number only)
 #@ The NetCallerID device
 #@ available <a href="http://www.electronicdiscountsales.com/shop/pub/1154299397_44598505.htm">here</a>
