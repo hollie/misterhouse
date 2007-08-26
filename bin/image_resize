@@ -89,7 +89,7 @@ use File::Find;
 use Getopt::Long;
 
                                 # Declare parms and defaults
-my($size, $dir, $exts, $border, $replace, $annotate, $prefix, $skip, $help, $verbose, $colorfill) =
+my ($size, $dir, $exts, $border, $replace, $annotate, $prefix, $skip, $help, $verbose, $colorfill) =
     ('640x480', '', 'bmp,gif,jpg,jpeg,mng,pcd,pcx,png,tga,tiff,xpm', 1, 0, 0, 'sm1', '', 0, 0, 'black');
 my (%exts, $rc, %counts, $file_in, $file_out, $outdir);
 $counts{resized} = $counts{existed} = 0;
@@ -116,26 +116,33 @@ if ($file_in and $file_out) {
     &resize_img($file_in, $file_out);
 }
 else {
-    find(\&get_img, $dir);
+    find({wanted => \&get_img, no_chdir => 1}, $dir);
 }
 print " - Resized $counts{resized} images ($counts{existed} images not replaced)\n";
 
 sub get_img() {
-    my ($file) = $_;
-    if (-f $file) {
+    my $full_file = $_;
+    if (-f $full_file) {
+        my $subdir = $File::Find::dir;
+        my $file = $full_file;
+        $file =~ s/^$subdir//;
         my ($root, $ext) = $file =~ /(.+)\.(.+)/;
-        my $file_new = "${prefix}_$root.$ext";
+        $root = '' unless $root;
+        $ext = '' unless $ext;
+        my $file_new = $prefix eq '' ? "$root.$ext" : "${prefix}_$root.$ext";
         if ($outdir) {
-            my $dir = "$outdir/$File::Find::dir";
-            $file_new = "$dir/$file_new";
-            my @dirs = split '/', $dir;
+            $subdir =~ s/^$dir//;
+            $file_new = "$outdir$subdir/$file_new";
+            my @dirs = split '/', "$outdir$subdir";
             my $dir2 = shift @dirs;
             while (@dirs) {
                 my $dir3 = shift @dirs;
                 $dir2 .= "/$dir3";
                 mkdir $dir2, 0777 unless -d $dir2;
             }
-        } 
+        } else {
+            $file_new = "$subdir/$file_new";
+        }
         return unless $ext and $exts{lc $ext};
         return if $root =~ /^${prefix}_/;
         return if $skip and $root =~ /^${skip}/;
@@ -145,9 +152,9 @@ sub get_img() {
             return;
         }
         $counts{resized}++;
-        &resize_img($file, $file_new);
+        &resize_img($full_file, $file_new);
                                 # Change time-date stampe to match the original file
-        my ($atime, $mtime) = (stat($file))[8,9];
+        my ($atime, $mtime) = (stat($full_file))[8,9];
         utime($atime, $mtime, $file_new);    
     }
 }

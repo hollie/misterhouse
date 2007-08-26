@@ -3,8 +3,8 @@
 #@ This code reads directories of photos to create an index which is 
 #@ used by web browsers working as picture frames.
 #@
-#@ Review and update the photo_* parameters in your mh.private.ini 
-#@ file, then run the command 'Reindex the photo album'.  Then point 
+#@ Review and update the html_alias_photos and photo_* parameters in your private ini 
+#@ file, and run the command 'Reindex the photo album'.  Then point 
 #@ your web browser to <a href=/bin/photos.pl> http://localhost:8080/bin/photos.pl</a>.
 #@ You can also use <a href="SUB;photo_html">this link</a> to set the photo_dirs parm to a specific dir.
 
@@ -12,9 +12,10 @@
 
 # Example mh.ini parms
 #  html_alias_photos     = c:/pictures_small
-#  html_alias_photos_dad = c:/pictures_small/dad/Slides
-#  photo_dirs   = /photos,/photos_dad
-#  photo_index  = /misterhouse/data/photo_index.txt
+#  html_alias_photos_big = c:/pictures_big
+#  photo_dirs            = /photos
+#  photo_big_dirs        = /photos_big
+#  photo_index           = /misterhouse/data/photo_index.txt
 
 
 =begin comment
@@ -34,7 +35,7 @@ $v_photo_reindex->set_info("Re-creates a photo index for all the photos under $c
                                 # Resize new photos using image_resize
 $v_photo_resize = new Voice_Cmd 'Resize new photo album pictures';
 $v_photo_resize ->set_info("Re-sizes any new photos in the photo album directories");
-$p_photo_resize = new Process_Item 'd:/pictures/resize_images.bat';
+$p_photo_resize = new Process_Item;
 
 my @subdirs; 
 $photo_subdir = new Generic_Item;
@@ -60,7 +61,7 @@ sub photo_index {
     my ($sequence) = @_;
     $sequence = $config_parms{photo_sequence} unless $sequence;
 
-    print_log "Reading photos that match photo_filer parm $config_parms{photo_filter} from photo_dirs parm $config_parms{photo_dirs}";
+    print_log "Reading photos that match photo_filter parm $config_parms{photo_filter} from photo_dirs parm $config_parms{photo_dirs}";
     &read_parms;                # Re-read parms, if they have changes
     undef @photos;
     for my $dir (split ',', $config_parms{photo_dirs}) {
@@ -85,12 +86,19 @@ sub photo_index {
 
 sub photo_dir {
     my ($dir) = @_;
-    my ($dir2) = &http_get_local_file($dir);
-    print "  - Listing files from $dir -> $dir2\n";
-    opendir(DIR, $dir2) or print "Error in opening $dir2\n";
+ 
+    my ($realdir);
+    ($realdir) = &http_get_local_file($dir);
+    unless ($realdir) {
+        print_log "can't find real directory associated with web directory $dir, skipping";
+        return; 
+    }
+
+    print_log "  - Listing files from $dir -> $realdir";
+    opendir(DIR, $realdir) or print "Error in opening $realdir\n";
     for (readdir(DIR)) {
         next if /^\.+$/;
-        &photo_dir("$dir/$_") if -d "$dir2/$_"; # Recurse through subdirs
+        &photo_dir("$dir/$_") if -d "$realdir/$_"; # Recurse through subdirs
         next unless /.+\.(jpg|jpeg|gif|png)$/i;
         next if $config_parms{photo_filter} and $_ !~ /$config_parms{photo_filter}/i;
         push @photos, "$dir/$_";
@@ -111,7 +119,34 @@ if (my $string = quotemeta $Tk_results{'Photo Search'}) { # *** This is very odd
 
 if (said $v_photo_resize) {
 	$v_photo_resize->respond('app=photos Resizing photos...');
-	start $p_photo_resize;
+	my $next; 
+	my @bigs = split /\s*,\s*/, $config_parms{photo_big_dirs};
+	foreach my $webdir (split /\s*,\s*/, $config_parms{photo_dirs}) {
+		my ($realdir, $realdir2, $originals);
+		($realdir) = &http_get_local_file($webdir);
+		unless ($realdir) {
+			print_log "can't find real directory associated with web directory $webdir, skipping";
+			next; 
+		}
+		$originals = $bigs[$next];
+		unless ($originals or $config_parms{photo_prefix}) {
+			print_log "can't find webdir where your originals are located for $webdir, skipping";
+			next; 
+		}
+		($realdir2) = &http_get_local_file($originals);
+		$realdir2 = "" if $realdir eq $realdir2;
+		unless ($realdir2 or $config_parms{photo_prefix}) {
+			print_log "can't find real directory associated with web directory $originals, skipping";
+			next; 
+		}
+		my $cmd = "image_resize --size 640x480 -d "; 
+		$cmd .= $realdir2 ? "$realdir2 -outdir $realdir -P ''" : "$realdir -P '$config_parms{photo_prefix}'";
+		print_log "resize command is '$cmd'";
+		$next ? add $p_photo_resize $cmd : set $p_photo_resize $cmd;
+		$next++;
+	}
+	print_log "No photo directories found to resize" unless $next; 
+	start $p_photo_resize if $next;
 }
 
 $v_photo_resize->respond('app=photos connected=0 Photo resizing done') if done_now $p_photo_resize;

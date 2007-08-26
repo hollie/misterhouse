@@ -76,18 +76,44 @@ $photo     =~  s/\#/%23/g;
 $photo     =~  s/\'/%27/g;
 my $big_photo  = $photo;
 
+# change the big photo link to not include the filter if required 
+
 if (my $filter = $config_parms{photo_filter}) {
     $filter =~ s|\^||;
-    $big_photo  =~ s/$filter//;
-    $photo_name =~ s/$filter//;
-    $photo_name = '...' . substr($photo_name, -60) if $browser_size < 800 and length $photo_name > 60;
+    my $tmp = $big_photo;
+    my $tmp2 = $photo_name;
+    if ($tmp =~ s/$filter//) {
+        $tmp2 =~ s/$filter//;
+        my $realdir; 
+        ($realdir) = &http_get_local_file($tmp2);
+        if ($realdir) {
+            $big_photo = $tmp;
+            $photo_name = $tmp2;
+        }
+    }
 }
 
-if (my $filter = $config_parms{photo_filter2}) {
-    my @filter = split ' ', $filter;
-    $big_photo  =~ s/$filter[0]/$filter[1]/;
-    $photo_name =~ s/$filter[0]/$filter[1]/;
+# change the big photo link to point to the originals directory if it exists 
+
+my $next; 
+my @bigs = split /\s*,\s*/, $config_parms{photo_big_dirs};
+foreach my $webdir (split /\s*,\s*/, $config_parms{photo_dirs}) {
+    my $tmp = $big_photo;
+    my $tmp2 = $photo_name;
+    if ($tmp =~ s/^$webdir/$bigs[$next]/) {
+        $tmp2 =~ s/$webdir/$bigs[$next]/;
+        my $realdir; 
+        ($realdir) = &http_get_local_file($tmp2);
+        if ($realdir) {
+            $big_photo = $tmp;
+            $photo_name = $tmp2;
+            last;
+        }
+    }
+    $next++;
 }
+
+$photo_name = '...' . substr($photo_name, -60) if $browser_size < 800 and length $photo_name > 60;
 
                                 # Set up refresh control
 #$time = 10;
