@@ -80,8 +80,8 @@ sub new {
 
 sub add {
 
-	my ($self, $device) = @_;
-        if ($device) {
+	my ($self, @devices) = @_;
+        foreach my $device (@devices) {
 		push @{$$self{m_devices}}, $device;
                 my $xap_address = $$self{m_base_address};
                 if ($xap_address) {
