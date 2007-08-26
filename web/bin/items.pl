@@ -57,11 +57,18 @@ function openparmhelp(parm1){
                                 # Create form to add an item
     my $form_type =
       &html_form_select('type', 0, 'X10 Light (X10I)',
+                        'Analog Sensor (ANALOG_SENSOR)', 'AUDIOTRON', 'COMPOOL', 
+                        'EIB Switch (EIB1)', 'EIB Switch Group (EIB1G)', 'EIB Dimmer (EIB2)', 
+                        'EIB Value (EIB5)', 'EIB Drive (EIB7)',
+                        'GENERIC', 'IBUTTON', 'MP3PLAYER', 'One-Wire xAP Connector (OWX)', 'RF', 'SERIAL', 
+                        'SG485LCD', 'SG485RCSTHRM', 'STARGATEDIN', 'STARGATEVAR', 
+                        'STARGATEFLAG', 'STARGATERELAY', 'STARGATETHERM', 'STARGATEPHONE', 
+                        'VOICE', 'WEATHER', 
                         'X10 Appliance (X10A)', 'X10 Light (X10I)', 'X10 Ote (X10O)',
                         'X10 SwitchLinc (X10SL)', 'X10 Garage Door (X10G)', 'X10 Irrigation (X10S)',
                         'X10 RCS (X10T)',  'X10 Motion Sensor (X10MS)', 'X10 6 Button Remote (X106BUTTON)',
-                        'EIB Switch (EIB1)', 'EIB Switch Group (EIB1G)', 'EIB Dimmer (EIB2)', 'EIB Value (EIB5)', 'EIB Drive (EIB7)',
-                        qw(SERIAL VOICE IBUTTON  GENERIC COMPOOL MP3PLAYER AUDIOTRON WEATHER SG485LCD SG485RCSTHRM STARGATEDIN STARGATEVAR STARGATEFLAG STARGATERELAY STARGATETHERM STARGATEPHONE XANTECH RF));
+                        'XANTECH', 
+      );
 
 #form action='/bin/items.pl?add' method=post>
     $html .= qq|<tr>
@@ -103,21 +110,24 @@ $form_type
     $html .= "</td></tr></table>\n";
 
                                 # Define fields by type
-    my %headers = ( X10A    => [qw(Address Name Groups Interface)],
+    my %headers = ( 
+                    ANALOG_SENSOR => ['Identifier', 'Name', 'Conduit', 'Groups', 'Type', 'Tokens'],
+                    EIB1    => ['Address', 'Name', 'Groups', 'Mode'],
+                    EIB1G   => ['Address', 'Name', 'Groups', 'Addresses'],
+                    EIB2    => ['Address', 'Name', 'Groups'],
+                    EIB5    => [qw(Address Name Groups Mode)],
+                    EIB7    => ['Address', 'Name', 'Groups'],
+                    GENERIC => [qw(Name Groups)],
+                    IBUTTON => [qw(ID Name Port Channel)],
+                    SERIAL  => [qw(String Name Groups State Port)],
+                    VOICE   => [qw(Item Phrase)],
+                    X10A    => [qw(Address Name Groups Interface)],
                     X10I    => [qw(Address Name Groups Interface Options)],
                     X10SL   => [qw(Address Name Groups Interface Options)],
                     X10MS   => [qw(Address Name Groups Type)],
                     X106BUTTON => [qw(Address Name)],
-                    GNERIC => [qw(Name Groups)],
-                    SERIAL  => [qw(String Name Groups State Port)],
-                    IBUTTON => [qw(ID Name Port Channel)],
-                    VOICE   => [qw(Item Phrase)],
-                    EIB1    => ['Address', 'Name', 'Groups', 'Mode'],
-                    EIB1G    => ['Address', 'Name', 'Groups', 'Addresses'],
-                    EIB2    => ['Address', 'Name', 'Groups'],
-                    EIB5    => [qw(Address Name Groups Mode)],
-                    EIB7    => ['Address', 'Name', 'Groups'],
-                    default => [qw(Address Name Groups Other)] );
+                    default => [qw(Address Name Groups Other)]
+    );
 
                                 # Sort in type order
     for my $type (sort keys %item_pos) {
