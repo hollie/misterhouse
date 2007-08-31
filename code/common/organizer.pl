@@ -335,9 +335,9 @@ sub get_speak_code {
         $speak_code .= $data{notes} if $data{notes};
    } else {
       if  ($data{allday} =~ /^y/i){
-         if ($data{reminder_diff} = 1) {
+         if ($data{reminder_diff} == 1) {
             $speak_code = "Calendar notice.  Tomorrow: $data{description}.";
-         } elsif ($data{reminder_diff} = 0) {
+         } elsif ($data{reminder_diff} == 0) {
             $speak_code = "Calendar notice.  Today: $data{description}.";
          } else {
             $speak_code = "Calendar notice.  In $data{reminder_diff} days: $data{description}.";
@@ -388,7 +388,6 @@ sub generate_code {
        if ($vc) {
           my $offcmd = $cmd;
           $offcmd =~ s/(\s+)on(\s*)/$1off$2/;
-print "offcmd:$offcmd and enddt:$data{enddt}\n";
           if ($data{startdt}) {
              print MYCODE "   if (time_now '$data{startdt}') { &main::run_voice_cmd('$cmd'); };\n";
           }
