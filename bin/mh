@@ -77,7 +77,7 @@ BEGIN {
 		close (ENTRIES);
     }
 
-	$Version = "mh 2.103";
+	$Version = "mh 2.104";
 	if ($revision) {
 		$Version.=" R${revision}";
 	}
