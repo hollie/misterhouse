@@ -96,10 +96,10 @@ sub set
       &::print_log("Motion_Item($$self{object_name})::set($p_state, $p_setby)") if $main::Debug{occupancy};
    }
 
-   # Hawkeye (MS13) motion detector
-   if ($p_state eq 'on') {
+   # Hawkeye (MS13) motion detector and security sensors
+   if (($p_state eq 'on') or ($p_state =~ /^alert/i)) {
       $p_state = 'motion';
-   } elsif ($p_state eq 'off') {
+   } elsif (($p_state eq 'off') or ($p_state =~ /^normal/i)) {
       $p_state = 'still';
    }
 
