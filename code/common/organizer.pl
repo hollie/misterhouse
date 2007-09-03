@@ -235,42 +235,45 @@ if ($Reload or said $organizer_check or ($New_Minute and changed $_organizer_cal
     print MYCODE "if (\$New_Minute) {\n";
     while (!$objDB->EOF) {
         my (%data);
-        $data{type}  = 'event';
-        my @date  = split '\.', $objDB->FieldValue('DATE');
-        $data{date} = ($config_parms{date_format} =~ /ddmm/) ? "$date[2]/$date[1]/$date[0]" 
-             : "$date[1]/$date[2]/$date[0]";
-        $data{time}  = $objDB->FieldValue('TIME');
-        if ($data{time}) {
-           # TO-DO: force time entry to be legitimate (i.e., no "24hr time"--only am/pm time)
-        } else {
-           $data{time} = "12:00 am";
-        }
-        $data{description} = $objDB->FieldValue('EVENT');
-        $data{reminder} = $objDB->FieldValue('REMINDER');
-        $data{category} = $objDB->FieldValue('CATEGORY');
-        $data{endtime} = $objDB->FieldValue('ENDTIME');
-        $data{endtime} = (!($data{endtime}) && $data{time}) ? $data{time} : $data{endtime};
-        $data{allday} = ($data{time} eq $data{endtime}) ? 'Yes' : 'No';
-        $data{notes} = $objDB->FieldValue('DETAILS');
-        $data{startdt} = $data{date} . ' ' . (($data{time}) ? $data{time} : "12:00 am");
-        $data{enddt} = $data{date} . ' ' 
-            . (($data{endtime} && $data{endtime} !~ /12:00 am/i) ? $data{time} : "11:59 pm");
-        foreach my $emailname (keys %_organizer_emails) {
-           $data{name} = $emailname;
-           last;
-        }
-        $objDB->MoveNext;
+        eval {
+           $data{type}  = 'event';
+           my @date  = split '\.', $objDB->FieldValue('DATE');
+           $data{date} = ($config_parms{date_format} =~ /ddmm/) ? "$date[2]/$date[1]/$date[0]" 
+                : "$date[1]/$date[2]/$date[0]";
+           $data{time}  = $objDB->FieldValue('TIME');
+           if ($data{time}) {
+              # TO-DO: force time entry to be legitimate (i.e., no "24hr time"--only am/pm time)
+           } else {
+              $data{time} = "12:00 am";
+           }
+           $data{description} = $objDB->FieldValue('EVENT');
+           $data{reminder} = $objDB->FieldValue('REMINDER');
+           $data{category} = $objDB->FieldValue('CATEGORY');
+           $data{endtime} = $objDB->FieldValue('ENDTIME');
+           $data{endtime} = (!($data{endtime}) && $data{time}) ? $data{time} : $data{endtime};
+           $data{allday} = ($data{time} eq $data{endtime}) ? 'Yes' : 'No';
+           $data{notes} = $objDB->FieldValue('DETAILS');
+           $data{startdt} = $data{date} . ' ' . (($data{time}) ? $data{time} : "12:00 am");
+           $data{enddt} = $data{date} . ' ' 
+               . (($data{endtime} && $data{endtime} !~ /12:00 am/i) ? $data{time} : "11:59 pm");
+           foreach my $emailname (keys %_organizer_emails) {
+              $data{name} = $emailname;
+              last;
+           }
+           if ($objDB->FieldValue('VACATION') =~ /on/i or $data{category} =~ /vacation/i) {
+              $organizer_vacation->add(%data);
+           } elsif ($objDB->FieldValue('HOLIDAY') =~ /on/i or $data{category} =~ /holiday/i) {
+              $organizer_holidays->add(%data);
+           } else {
+              $organizer_events->add(%data);
+           }
 
-        if ($objDB->FieldValue('VACATION') =~ /on/i or $data{category} =~ /vacation/i) {
-           $organizer_vacation->add(%data);
-        } elsif ($objDB->FieldValue('HOLIDAY') =~ /on/i or $data{category} =~ /holiday/i) {
-           $organizer_holidays->add(%data);
-        } else {
-           $organizer_events->add(%data);
-        }
+           $objDB->MoveNext;
 
-        my $fh = *MYCODE;
-        &generate_code($fh, %data);
+           my $fh = *MYCODE;
+           &generate_code($fh, %data);
+        };
+        print "Error encountered while processing calendar data: $@\n" if $@;
    }
     print MYCODE "}\n";
     close MYCODE;
@@ -295,30 +298,33 @@ if (said $organizer_check or ($New_Minute and changed $_organizer_todo)) {
     print MYCODE "if (\$New_Minute) {\n";
     while (!$objDB->EOF) {
         my (%data);
-        my $complete     = $objDB->FieldValue('Complete');
-        my $duedate = $objDB->FieldValue('DueDate');
-        my ($date,$time) = $duedate =~ /^(\S+)\s+(\S+\s+\S+)/;
-        $date = $duedate unless $date;
-        $data{type}         = 'task';
-        $data{date}         = $date;
-        $data{time}         = $time;
-        $data{allday}       = 'Yes' if $data{time} and $data{time} =~ /12:00 am/i;
-        $data{reminder}     = $objDB->FieldValue('REMINDER');
-        $data{name}         = $objDB->FieldValue('AssignedTo');
-        $data{description}  = $objDB->FieldValue('Description');
-        $data{notes}        = $objDB->FieldValue('Notes');
-        $data{speak}        = $objDB->FieldValue('SPEAK');
-        $data{startdt}      = $objDB->FieldValue('STARTDATE');
-        $data{category}     = $objDB->FieldValue('CATEGORY');
-        $data{enddt}        = $data{date} . ' ' . $data{time};
-        $objDB->MoveNext;
-        next if lc $complete =~ /^y/i;
-        next unless $data{name} or $data{description};
-        next unless $data{date};
-        my $evaldt = ($data{time}) ? $data{date} . ' ' . $data{time} : $data{date} . ' 12:00 am';
-        next unless time_less_than("$evaldt + 23:59");  # Skip past and invalid events
-        my $fh = *MYCODE;
-        &generate_code($fh, %data);
+        eval {
+           my $complete     = $objDB->FieldValue('Complete');
+           my $duedate = $objDB->FieldValue('DueDate');
+           my ($date,$time) = $duedate =~ /^(\S+)\s+(\S+\s+\S+)/;
+           $date = $duedate unless $date;
+           $data{type}         = 'task';
+           $data{date}         = $date;
+           $data{time}         = $time;
+           $data{allday}       = 'Yes' if $data{time} and $data{time} =~ /12:00 am/i;
+           $data{reminder}     = $objDB->FieldValue('REMINDER');
+           $data{name}         = $objDB->FieldValue('AssignedTo');
+           $data{description}  = $objDB->FieldValue('Description');
+           $data{notes}        = $objDB->FieldValue('Notes');
+           $data{speak}        = $objDB->FieldValue('SPEAK');
+           $data{startdt}      = $objDB->FieldValue('STARTDATE');
+           $data{category}     = $objDB->FieldValue('CATEGORY');
+           $data{enddt}        = $data{date} . ' ' . $data{time};
+           $objDB->MoveNext;
+           next if lc $complete =~ /^y/i;
+           next unless $data{name} or $data{description};
+           next unless $data{date};
+           my $evaldt = ($data{time}) ? $data{date} . ' ' . $data{time} : $data{date} . ' 12:00 am';
+           next unless time_less_than("$evaldt + 23:59");  # Skip past and invalid events
+           my $fh = *MYCODE;
+           &generate_code($fh, %data);
+       };
+       print "Error encountered while processing tasks: $@\n" if $@;
     }
     print MYCODE "\n#@ Speak tasks administratively disabled\n\n" if (!$speak_tasks);
     print MYCODE "}\n";
