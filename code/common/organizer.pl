@@ -527,7 +527,10 @@ sub update_vsdb {
          $vsdb->AddNewField($targetField);
       }
       $vsdb->Commit();
-
+      if ($vsdb->LastError) {
+         &main::print_log("Organizer (ERROR): " . $vsdb->LastError);
+         return 0;
+      }
    } else {
       &main::print_log("Organizer: $dbType matches target schema and does not require upgrading");
    }
