@@ -266,6 +266,15 @@ if ($calOk and ($Reload or said $organizer_check or ($New_Minute and changed $_o
 
            $objDB->MoveNext;
 
+           # protect against bad dates
+           if ($data{startdt} && !(&main::my_str2time($data{startdt}))) {
+              &main::print_log("Bad start time format: $data{startdt} encountered in calendar");
+              next;
+           }
+           if ($data{enddt} && !(&main::my_str2time($data{enddt}))) {
+              &main::print_log("Bad end time format: $data{enddt} encountered in calendar");
+              next;
+           }
            my $fh = *MYCODE;
            &generate_code($fh, %data);
         };
@@ -317,6 +326,15 @@ if ($todoOk and (said $organizer_check or ($New_Minute and changed $_organizer_t
            next unless $data{date};
            my $evaldt = ($data{time}) ? $data{date} . ' ' . $data{time} : $data{date} . ' 12:00 am';
            next unless time_less_than("$evaldt + 23:59");  # Skip past and invalid events
+           # protect against bad dates
+           if ($data{startdt} && !(&main::my_str2time($data{startdt}))) {
+              &main::print_log("Bad start time format: $data{startdt} encountered in tasks");
+              next;
+           }
+           if ($data{enddt} && !(&main::my_str2time($data{enddt}))) {
+              &main::print_log("Bad end time format: $data{enddt} encountered in tasks");
+              next;
+           }
            my $fh = *MYCODE;
            &generate_code($fh, %data);
        };
