@@ -158,8 +158,6 @@ my $speak_tasks = 1;
 
 $_organizer_cal  = new File_Item "$config_parms{organizer_dir}/calendar.tab";
 $_organizer_todo = new File_Item "$config_parms{organizer_dir}/tasks.tab";
-my %_upd_cal;
-my %_upd_todo;
 my %_organizer_emails;
 my @_organizer_announce_day_times = ('8 am','12 pm','7 pm');
 my @_organizer_announce_priorday_times = ('7 pm');
@@ -167,6 +165,8 @@ my @_organizer_announce_priorday_times = ('7 pm');
 my $_ical2db_output_dir = "$config_parms{organizer_dir}";
 my $_ical2db_config_path = "$_ical2db_output_dir/i2v.cfg";
 
+my $calOk = 0; # flag to indicate if the vsdb is ok
+my $todoOk = 0;
 
 if ($Reload) {
    set_watch $_organizer_cal;
@@ -183,15 +183,11 @@ if ($Reload) {
        if $main::config_parms{organizer_announce_priorday_times};
 
    #Check to see if calendar and organizer databases need upgrade
+   my @_upd_cal = ( 'DATE','TIME','EVENT','CATEGORY','DETAILS','HOLIDAY','VACATION','SOURCE','REMINDER','ENDTIME' );
+   $calOk = &update_vsdb('Calendar',$_organizer_cal->name,@_upd_cal);
 
-   $_upd_cal{v2103} = "HOLIDAY,VACATION";
-   $_upd_cal{v2104} = "SOURCE,REMINDER,ENDTIME";
-
-   $_upd_todo{v2103} = "SPEAK";
-   $_upd_todo{v2104} = "SOURCE,REMINDER,STARTDATE,CATEGORY";
-
-   &update_vsdb(\%_upd_cal,$_organizer_cal->name,"Calendar");
-   &update_vsdb(\%_upd_todo,$_organizer_todo->name,"Todo"); 
+   my @_upd_todo = ( 'Complete','Description','DueDate','AssignedTo','Notes','SPEAK','SOURCE','REMINDER','STARTDATE','CATEGORY' );
+   $todoOk = &update_vsdb('Todo',$_organizer_todo->name,@_upd_todo); 
 
 }
 
@@ -206,7 +202,7 @@ my $ical_read_interval = ($main::config_parms{ical_read_interval}) ? $main::conf
 if (said $v_get_ical_data or (($ical_read_interval) && new_minute($ical_read_interval))) {
 
    if (said $v_get_ical_data eq "Force") {
-	print_log "Organizer.pl: Forcing calendar update";
+	&main::print_log("Organizer: Forcing calendar update");
         if (unlink("$config_parms{organizer_dir}/ical2vsdb.md5")) {
         #   $v_get_ical_data->respond("iCal force successful. Data retrieval will occur on next scheduled.");
         } else {
@@ -217,21 +213,21 @@ if (said $v_get_ical_data or (($ical_read_interval) && new_minute($ical_read_int
    if ( -e $_ical2db_config_path) {
    	start $p_ical2vsdb;
    } else {
-	print_log "Organizer.pl: Cannot find configuration file!"
+	&main::print_log("Organizer: Cannot find configuration file!");
    }
 }
 
-if ($Reload or said $organizer_check or ($New_Minute and changed $_organizer_cal)) {
-    print_log 'Organizer.pl: Reading updated organizer calendar file now';
+if ($calOk and ($Reload or said $organizer_check or ($New_Minute and changed $_organizer_cal))) {
+    &main::print_log('Organizer: Reading updated organizer calendar file now');
     set_watch $_organizer_cal;  # Reset so changed function works
     my ($objDB) = new vsDB(file => $_organizer_cal->name, delimiter => '\t');
     # set objDB to sort on DATE
     $objDB->Sort('DATE');
     print $objDB->LastError unless $objDB->Open;
     my $mycode = "$Code_Dirs[0]/organizer_events.pl";
-    open(MYCODE, ">$mycode") or print_log "Organizer.pl: Error in open on $mycode: $!\n";
+    open(MYCODE, ">$mycode") or &main::print_log("Organizer: Error in open on $mycode: $!");
     print MYCODE "\n# Category = Time\n";
-    print MYCODE "\n#@ Auto-generated from Organizer.pl\n\n";
+    print MYCODE "\n#@ Auto-generated from Organizer\n\n";
     print MYCODE "if (\$New_Minute) {\n";
     while (!$objDB->EOF) {
         my (%data);
@@ -286,15 +282,15 @@ if ($Reload or said $organizer_check or ($New_Minute and changed $_organizer_cal
     do_user_file $mycode;
 }
 
-if (said $organizer_check or ($New_Minute and changed $_organizer_todo)) {
-    print_log 'Organizer.pl: Reading updated organizer todo file';
+if ($todoOk and (said $organizer_check or ($New_Minute and changed $_organizer_todo))) {
+    &main::print_log('Organizer: Reading updated organizer todo file');
     set_watch $_organizer_todo;  # Reset so changed function works
     my ($objDB) = new vsDB(file => $_organizer_todo->name, delimiter => '\t');
     print $objDB->LastError unless $objDB->Open;
     my $mycode = "$Code_Dirs[0]/organizer_tasks.pl";
-    open(MYCODE, ">$mycode") or print_log "Error in open on $mycode: $!\n";
+    open(MYCODE, ">$mycode") or &main::print_log("Error in open on $mycode: $!");
     print MYCODE "\n# Category = Time\n";
-    print MYCODE "\n#@ Auto-generated from Organizer.pl\n\n";
+    print MYCODE "\n#@ Auto-generated from Organizer\n\n";
     print MYCODE "if (\$New_Minute) {\n";
     while (!$objDB->EOF) {
         my (%data);
@@ -491,45 +487,52 @@ sub get_offset_date {
 
 sub update_vsdb {
 
-   my %upd_data = %{$_[0]};
-   my $filename = $_[1];
-   my $db = $_[2];
+   my ($dbType, $dbPath, @schemaNames) = @_;
+   return 0 unless $dbType and $dbPath and @schemaNames;
 
-   for  my $upgrade ( sort (keys(%upd_data))) {
+   # targetFields will hold the fieldNames to be appended
+   my @targetFields = ();
+   my $vsdb;
 
-      #print "u=$upd_data{$upgrade}\n";
-
-      my $file_chk  = $filename. "." . $upgrade;
-      my $file_skip  = $filename. "." . $upgrade . "skip";
-
-      if (-e $file_skip) {
-
-	print "Organizer.pl: Skipping $db $upgrade upgrade.\n";
-
-      } elsif (! -e $file_chk ) {
-
-	print "Organizer.pl: Upgrading $db to version $upgrade...\n";
-
-	my @upd_fields = split(/,/,$upd_data{$upgrade});
-	copy ($filename,$file_skip);
-        my ($objDB) = new vsDB(file => $filename);
-	
-	$objDB->Open;
-        my %fnames =();
-	my @fields = $objDB->FieldNames;
-	#@fields = map { lc } @fields;
-	#@upd_fields = map { lc } @upd_fields;
-	for (@fields) { $fnames{$_} = 1 }
-	foreach my $field (@upd_fields) {
-	   #print "field=$field\t a=$fnames{$field}\n";
-	   $objDB->AddNewField($field) if !$fnames{$field};
-	}
- 
-	$objDB->Commit;
-	$objDB->Close; 
-	rename ($file_skip, $file_chk); #should do some better error checking
+   if (! -e $dbPath) {
+      &main::print_log("Organizer (WARNING): $dbPath does not exist.  Now creating.");
+      push(@targetFields, 'ID'); # add the ID field in as it is not included in the schema names
+      push(@targetFields, @schemaNames); # order doesn't matter after ID
+      $vsdb = new vsDB(file => $dbPath);
+      $vsdb->Open();
+   } else {
+      my $ID_found = 0;
+      $vsdb = new vsDB(file => $dbPath);
+      $vsdb->Open();
+      foreach my $field ($vsdb->FieldNames) {
+          $ID_found = 1 if $field eq 'ID';
+          my @tmpFields = ();
+          foreach my $targetField (@schemaNames) {
+             push (@tmpFields, $targetField) unless $targetField eq $field;
+          }
+          @schemaNames = @tmpFields;
       }
+      if (!($ID_found)) {
+         &main::print_log("Organizer (WARNING): ID field not present in $dbPath.  Aborting continued use of $dbType.");
+         $vsdb->Close();
+         return 0;
+      }
+      push (@targetFields, @schemaNames) if @schemaNames;
    }
+
+   if (@targetFields) {
+      &main::print_log("Organizer: Now upgrading $dbType database");
+      foreach my $targetField (@targetFields) {
+         &main::print_log("Organizer: adding $targetField to the $dbType database");
+         $vsdb->AddNewField($targetField);
+      }
+      $vsdb->Commit();
+
+   } else {
+      &main::print_log("Organizer: $dbType matches target schema and does not require upgrading");
+   }
+   $vsdb->Close();
+   return 1;
 }
 
 
