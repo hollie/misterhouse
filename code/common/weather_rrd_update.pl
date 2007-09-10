@@ -385,7 +385,7 @@ sub update_graphs {
 		next if $key =~ /_MHINTERNAL_/; # not internal copies
 		my $element=$1;
 		my $color=$config_parms{"weather_rrd_color_".$element};
-		&print_log("weather_rrd: found element -$element- value is -$color-");
+		&print_log("weather_rrd: found element -$element- value is -$color-") if $Debug{weather_graph};
 		next if $color eq '';
 		print RRDDATATRANSFER qq:\$color$element='$color';\n:;
 	}
