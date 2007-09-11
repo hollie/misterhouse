@@ -92,6 +92,13 @@ sub read_table_A {
         $object = "UPB_Rain8(\$$object, $network,$address)";
     }
     # ----------------------------------------------------------------------
+    elsif($type eq "INSTEON_PLM") {
+        require 'Insteon_PLM.pm';
+        ($name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon_PLM('Insteon_PLM')";
+    }
+
     elsif($type eq 'FROG') {
         require 'FroggyRita.pm';
 	($address, $name, $grouplist, @other) = @item_info;
