@@ -291,7 +291,7 @@ if ($calOk and ($Reload or said $organizer_check or ($New_Minute and changed $_o
     do_user_file $mycode;
 }
 
-if ($todoOk and (said $organizer_check or ($New_Minute and changed $_organizer_todo))) {
+if ($todoOk and ($Reload or said $organizer_check or ($New_Minute and changed $_organizer_todo))) {
     &main::print_log('Organizer: Reading updated organizer todo file');
     set_watch $_organizer_todo;  # Reset so changed function works
     my ($objDB) = new vsDB(file => $_organizer_todo->name, delimiter => '\t');
