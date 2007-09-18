@@ -59,8 +59,10 @@ if (said $v_iButton_list) {
     $v_iButton_list->respond('Looking for iButtons...');
     my $results = &iButton::scan_report();
     $v_iButton_list->respond("List of iButtons:\n" . $results) if $results;
-    $results = &iButton::scan_report(undef, $config_parms{iButton_2_serial_port}) if $config_parms{iButton_2_serial_port};
-    $v_iButton_list->respond("List of iButtons:\n" . $results) if $results;
+    if ($config_parms{iButton_2_serial_port}) {
+        $results = &iButton::scan_report(undef, $config_parms{iButton_2_serial_port});
+        $v_iButton_list->respond("List of iButtons:\n" . $results) if $results;
+    }
 }
 
                                 # Pick how often to check the bus ... it takes about 6 ms per device.
