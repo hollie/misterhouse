@@ -117,7 +117,12 @@ sub add {
     #print "self not defined\n" if not defined $self;
     #print "interface not defined\n" if $self and not defined $self->{interface};
 
-    $self->{interface}->add($id, $state);
+    if ($$self{interface}->isa('Insteon_PLM')) # not sure if this is ever needed
+	{
+		$self->{interface}->add_id_state($id, $state);
+	} else {
+		$self->{interface}->add($id, $state);
+	}
     $self->SUPER::add($id, $state);
 }
 
@@ -125,6 +130,7 @@ sub add {
 sub set_interface {
     my ($self, $interface, $id) = @_;
     my $localDebug=0;
+	my $interface_object = eval('$::' . $interface);	
 
     # if an interface is specified, then we need to search through the
     # possible interface modules until we find one that will work with it
@@ -135,6 +141,10 @@ sub set_interface {
         } elsif (Serial_Item->supports($interface)) {
             print "for id $id, x10 interface supplied ($interface) and supported by Serial_Item\n" if $localDebug;
             $self->{interface}=new Serial_Item(undef,undef,$interface);
+        } elsif ( defined $interface_object and $interface_object->isa('Insteon_PLM')) {
+			&::print_log("PLM -------- $interface $interface_object");
+			$self->{interface} = $interface_object;
+			$self->{interface}->add($self);
         } else {
             # we can't find a real interface, so use a Dummy_Interface
             print "warning, using dummy interface for id $id and supplied interface $interface\n" if $localDebug;
@@ -157,7 +167,9 @@ sub set_interface {
     # tell our "generic" interface object the name of the actual interface to use
     # we could also call set_interface without an interface name but it would
     # just repeat the same search that we just did
+	if ($self->{interface}->can('set_interface')){
     $self->{interface}->set_interface($interface);
+	}
 
     # Set a placeholder object name for our contained interface class
     # This is to provide a more friendly log message when X10 data is received
@@ -251,8 +263,14 @@ sub set {
 
                                 # Send the command
     $self->SUPER::set($state, $set_by);
-    $self->{interface}->set($state, $set_by);
+	$set_by = $self if !defined $set_by;
 
+	#Insteon PLM needs calling object, dont care about who originated
+	if ($self->{interface}->isa("Insteon_PLM") ) {		
+	    $self->{interface}->set($state, $self);
+	} else {
+	    $self->{interface}->set($state, $set_by);
+	}
                                 # Some presetable devices, like the Leviton 6381, will remain addressed
                                 # after a preset command and will accept subsequent unrelated
                                 # commands unless they are set to ON.
