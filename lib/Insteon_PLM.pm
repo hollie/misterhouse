@@ -232,14 +232,18 @@ sub check_for_data {
       &::check_for_generic_serial_data($port_name) if $::Serial_Ports{$port_name}{object};
 #      my $data = $::Serial_Ports{$port_name}{data_record};
       my $data = $::Serial_Ports{$port_name}{data};
-    my $hex = unpack "H*", $data;
-#	&::print_log("PLM CFD2: $port_name:$hex:$data");
       next if !$data;
-	$::Serial_Ports{$port_name}{data} = undef;
-      main::print_log("PLM $port_name got:$hex: [$::Serial_Ports{$port_name}{data_record}]");
-      $Insteon_PLM_Data{$port_name}{'obj'}->_parse_data($data);
 
-      $main::Serial_Ports{$port_name}{data_record}='';
+	#lets turn this into Hex. I hate perl binary funcs
+    my $data = unpack "H*", $data;
+
+#	$::Serial_Ports{$port_name}{data} = undef;
+      main::print_log("PLM $port_name got:$data: [$::Serial_Ports{$port_name}{data}]");
+      my $processedNibs;
+		$processedNibs = $Insteon_PLM_Data{$port_name}{'obj'}->_parse_data($data);
+		
+		&::print_log("PLM Proc:$processedNibs:" . length($data));
+      $main::Serial_Ports{$port_name}{data}=pack("H*",substr($data,$processedNibs,length($data)-$processedNibs));
    }
 }
 
@@ -292,6 +296,9 @@ sub set
 	{
 		&::print_log("PLM: XSW");
 		$self->_xlate_mh_x10($p_state,$p_setby);
+	} elsif ($p_setby->isa("Insteon_Device")) {
+		&::print_log("PLM: IPLD:$p_state");
+		$self->send_plm_cmd(pack("H*",'0262' . $p_state));
 	}
 }
 
@@ -342,51 +349,63 @@ sub _parse_data {
    my ($name, $val);
 #   $data =~ s/^\s*//;
 #   $data =~ s/\s*$//;
-
-	#lets deal with hex strings instead of binary. I hate perl binary funcs
-	$data = unpack("H*",$data);
+	my $processedNibs=0;
 
 	&::print_log( "PLM: Parsing serial data: $data\n") unless $main::config_parms{no_log} =~/Insteon_PLM/;
 	
-	#get the command on the stack that was last sent (it should be echo'd back to us for an ack/err)
-	my $prev_cmd = pop(@{$$self{command_stack}});
-	if (defined $prev_cmd) 
+	foreach my $data_1 (split(/(0263\w{6})|(0252\w{4})|(0250\w{18})|(0251\w{46})/,$data))
 	{
-		#put the command back into the stack.. Its not our job to tamper with this array
-		push(@{$$self{command_stack}},$prev_cmd);
-	}
-	$prev_cmd = unpack("H*",$prev_cmd);
-	&::print_log("PLM: Prev command:$prev_cmd:");
+		#we found a matching command in stream, add to processed bytes
+		$processedNibs+=length($data_1);
 
-	#check to see if this is a ack/err from a previous command
-	if ($prev_cmd ne '' and substr($data,0,length($prev_cmd)) eq $prev_cmd) 
-	{
-		#it is
-		my $ret_code = substr($data,length($prev_cmd),2);
-		&::print_log("PLM: Return code $ret_code");
-		if ($ret_code eq '06') {
-			# command succeeded
-			&::print_log("PLM: Command succeeded: $data.");
-			$$self{xmit_in_progress} = 0;
-			pop(@{$$self{command_stack}});				
-			select(undef,undef,undef,.15);
-			$self->process_command_stack();
+		#get the command on the stack that was last sent (it should be echo'd back to us for an ack/err)
+		my $prev_cmd = pop(@{$$self{command_stack}});
+		if (defined $prev_cmd) 
+		{
+			#put the command back into the stack.. Its not our job to tamper with this array
+			push(@{$$self{command_stack}},$prev_cmd);
+		}
+		$prev_cmd = unpack("H*",$prev_cmd);
+		&::print_log("PLM: Prev command:$prev_cmd:");		
+
+		#check to see if this is a ack/err from a previous command
+		if ($prev_cmd ne '' and substr($data_1,0,length($prev_cmd)) eq $prev_cmd) 
+		{
+			#it is
+			my $ret_code = substr($data_1,length($prev_cmd),2);
+			&::print_log("PLM: Return code $ret_code");
+			if ($ret_code eq '06') {
+				# command succeeded
+				&::print_log("PLM: Command succeeded: $data_1.");
+				$$self{xmit_in_progress} = 0;
+				pop(@{$$self{command_stack}});				
+				select(undef,undef,undef,.15);
+				$self->process_command_stack();
+			} else {
+				# We have a problem (Usually we stepped on another X10 command)
+				&::print_log("PLM: Command error: $data_1.");
+				$$self{xmit_in_progress} = 0;
+				#move it off the top of the stack and re-transmit later!
+				#TODO: We should keep track of an errored command and kill it if it fails twice.  prevent an infinite loop here
+#				$self->send_plm_cmd(pop(@{$$self{command_stack}}));
+				pop(@{$$self{command_stack}});				
+				$self->process_command_stack();
+			}			
+		} elsif (substr($data_1,0,4) eq '0250') { #Insteon Standard Received
+			&::print_log("Insteon Received:$data_1");
+			$self->delegate($data_1);
+		} elsif (substr($data_1,0,4) eq '0251') { #Insteon Extended Received
+			&::print_log("Insteon Received:$data_1");
+#			&::process_serial_data($self->_xlate_x10_mh($data_1));	
+		} elsif (substr($data_1,0,4) eq '0252') { #X10 Received
+			&::print_log("X10 Received:$data_1");
+			&::process_serial_data($self->_xlate_x10_mh($data_1));	
 		} else {
-			# We have a problem (Usually we stepped on another X10 command)
-			&::print_log("PLM: Command error: $data.");
+			#for now anything not recognized, kill pending xmission
 			$$self{xmit_in_progress} = 0;
-			#move it off the top of the stack and re-transmit later!
-			#TODO: We should keep track of an errored command and kill it if it fails twice.  prevent an infinite loop here
-#			$self->send_plm_cmd(pop(@{$$self{command_stack}}));
-			pop(@{$$self{command_stack}});				
-			$self->process_command_stack();
-		}			
-	} elsif (substr($data,0,4) eq '0252') { #X10 Received
-		&::process_serial_data($self->_xlate_x10_mh($data));	
-	} else {
-		#for now anything not recognized, kill pending xmission
-		$$self{xmit_in_progress} = 0;
+		}
 	}
+	return $processedNibs;
 }
 
 sub process_command_stack
@@ -486,56 +505,18 @@ sub _xlate_x10_mh
 sub delegate
 {
 	my ($self,$p_data) = @_;
-	my $network=unpack("C",pack("H*",substr($p_data,4,2)));
-	my $destination=unpack("C",pack("H*",substr($p_data,6,2)));
-	my $source=unpack("C",pack("H*",substr($p_data,8,2)));
-	my $isLink = 0;	
-	my $transeq = unpack("C",pack("h*",substr($p_data,3,1)));
-	my $count = $transeq & 0b1100;
-	$count = $count>>2;
-	my $sequence = $transeq & 0b0011;
+	my $source=substr($p_data,4,6);
+	my $destination=substr($p_data,10,6);
 
-	if ( (8 & unpack("C",pack("h*",substr($p_data,0,1)))) ==8 )
-	{
-		$isLink=1;
-	}
-
-	# If a packet is being sent with a xmit count greater than 1
-    # then make sure we only delagate one packet and not the repeats
-	if ($count > 0) 
-	{
-		my $packet=substr($p_data,4,length($p_data)-6);
-		if ($packet ne $$self{last_command} or 
-		($packet eq $$self{last_command} && $sequence <= $$self{last_sequence} ) )
-		{
-			$$self{last_command} = $packet;
-			$$self{last_sequence} = $sequence;
-		} else {
-			&::print_log("PLM: duplicate packet, ignore!");
-			return;
-		}			
-	}
-
-#	&::print_log ("DELEGATE:$network:$source:$destination:$isLink:");
+	&::print_log ("DELEGATE:$source:$destination:$p_data:");
 	for my $obj (@{$$self{objects}})
 	{
 		#Match on Insteon objects only
-		if ($obj->isa("Insteon_Device") or $obj->isa("UPB_Link"))
+		if ($obj->isa("Insteon_Device"))
 		{
-			#networks match
-			if ($network == 0 or $obj->network_id() == $network)
+			if ($source eq 'FFFFFF' or $obj->device_id() eq $source)
 			{
-				if ($destination == 0 or $obj->device_id() == $destination)
-				{
-					#if UPB_Device
-					if ($obj->isa("UPB_Device") and $isLink == 0 )
-					{
-						$obj->set($p_data,$self);
-					} elsif ($obj->isa("UPB_Link") and $isLink == 1)
-					{
-						$obj->set($p_data,$self);
-					}
-				}
+				$obj->set(substr($p_data,4,length($p_data)-4),$self);
 			}
 		}
 	}
@@ -577,7 +558,7 @@ sub add_item
 	#request an initial state from the device
 	if (! $p_object->isa('UPB_Link') ) 
 	{	
-		$p_object->set("status_request");
+#		$p_object->set("status_request");
 	}
 	return $p_object;
 }
