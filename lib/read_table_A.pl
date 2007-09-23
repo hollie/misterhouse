@@ -98,7 +98,12 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon_PLM('Insteon_PLM')";
     }
-
+    elsif($type eq "IPLD") {
+        require 'Insteon_Device.pm';
+        ($name, $object, $address,$grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon_Device(\$$object, $address)";
+    }
     elsif($type eq 'FROG') {
         require 'FroggyRita.pm';
 	($address, $name, $grouplist, @other) = @item_info;
