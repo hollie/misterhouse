@@ -353,7 +353,7 @@ sub _parse_data {
 
 	&::print_log( "PLM: Parsing serial data: $data\n") unless $main::config_parms{no_log} =~/Insteon_PLM/;
 	
-	foreach my $data_1 (split(/(0263\w{6})|(0252\w{4})|(0250\w{18})|(0251\w{46})/,$data))
+	foreach my $data_1 (split(/(0263\w{6})|(0252\w{4})|(0250\w{18})|(0251\w{46})|(0262\w{14})/,$data))
 	{
 		#we found a matching command in stream, add to processed bytes
 		$processedNibs+=length($data_1);
@@ -403,6 +403,9 @@ sub _parse_data {
 		} else {
 			#for now anything not recognized, kill pending xmission
 			$$self{xmit_in_progress} = 0;
+			#drop latest
+			pop(@{$$self{command_stack}});				
+			
 		}
 	}
 	return $processedNibs;
