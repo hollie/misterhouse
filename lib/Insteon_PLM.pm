@@ -183,10 +183,10 @@ my %x10_commands = (
 );
 
 my %mh_commands = (
-						'2' => 'on',
-						'3' => 'off',
-						'5' => 'bright',
-						'4' => 'dim',
+						'2' => 'J',
+						'3' => 'K',
+						'5' => 'L',
+						'4' => 'M',
 						'a' => 'preset_dim1',
 						'b' => 'preset_dim2',
 						'0' => 'all_off',
@@ -477,18 +477,31 @@ sub _xlate_x10_mh
 {
 	my ($self,$data) = @_;
 
-	my $msg;
-	$msg = "X";
-	$msg.= uc($mh_house_codes{substr($data,4,1)});
-	$msg.= uc($mh_unit_codes{substr($data,5,1)});
-&::print_log("PLM: XMH:$data:$msg:");
-	
-	for (my $index =6; $index<length($data)-2; $index+=2)
+	my $msg=undef;
+	if (uc(substr($data,length($data)-2,2)) eq '00')
 	{
-            $msg.= uc($mh_house_codes{substr($data,$index,1)});
-	    $msg.= uc($mh_commands{substr($data,$index+1,1)});
+		$msg = "X";
+		$msg.= uc($mh_house_codes{substr($data,4,1)});
+		$msg.= uc($mh_unit_codes{substr($data,5,1)});
+		for (my $index =6; $index<length($data)-2; $index+=2)
+		{
+   	        $msg.= uc($mh_house_codes{substr($data,$index,1)});
+		    $msg.= uc($mh_commands{substr($data,$index+1,1)});
+		}
+		&::print_log("PLM: X10 address:$data:$msg:");
+	} elsif (uc(substr($data,length($data)-2,2)) eq '80')
+	{
+		$msg = "X";
+		$msg.= uc($mh_house_codes{substr($data,4,1)});
+		$msg.= uc($mh_commands{substr($data,5,1)});
+		for (my $index =6; $index<length($data)-2; $index+=2)
+		{
+   	        $msg.= uc($mh_house_codes{substr($data,$index,1)});
+		    $msg.= uc($mh_commands{substr($data,$index+1,1)});
+		}
+		&::print_log("PLM: X10 command:$data:$msg:");
 	}
-
+	
 &::print_log("PLM:2XMH:$data:$msg:");
 	return $msg;
 }
