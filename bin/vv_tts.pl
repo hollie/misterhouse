@@ -6,7 +6,7 @@
 # File: vv_tts.pl
 #     
 # Description: Perl wrapper script for Misterhouse and ViaVoiceTTS 
-# Author: Dave Lounsberry, dbl@dittos.yi.org 
+# Author: Dave Lounsberry, dave.lounsberry@gmail.com
 # Change log:
 #
 # $Date$
@@ -23,7 +23,8 @@ BEGIN {
     ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
     $Pgm_Root = "$Pgm_Path/..";
-    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # Use BEGIN eval to keep perl2exe happy }
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # Use BEGIN eval to keep perl2exe happy 
+}
 
 
 use Getopt::Long;
@@ -46,7 +47,7 @@ $Pgm_Name (version $Version) perl wrapper for TTS
       -help                 => This help text
       -debug                => Turn on some debugging messages
       -text "xxx"           => text to speak
-      -engine xxx           => backend TTS engine (viavoice | festival | theta)
+      -engine xxx           => backend TTS engine (viavoice | festival | theta | swift)
       -playcmd xxx          => full path to play command
       -default_sound xxx    => default sound file 
       -default_volume xxx   => default volume when -volume not set
@@ -187,7 +188,7 @@ sub play_sound() {
 	return;
 }
 
-sub speak_text() {
+sub speak_text {
 	if ($parms{text}) {
 		if ($have_mixer) {
 			if ($parms{voice_volume}) {
@@ -231,13 +232,14 @@ sub speak_text() {
 				print FEST qq[$parms{text}];
 				close(FEST);
 			}
-		} elsif ($parms{engine} =~ /theta/i) {
+		} elsif ($parms{engine} =~ /theta|swift/i) {
 			if ($parms{to_file}) {
 				unlink $parms{to_file};
 				# I'm not sure what needs to go here
 			} else {
-				printf ("%s: running theta tts engine\n",$Pgm_Name) if $parms{debug};
-				system("theta \'$parms{text}\'");
+				printf ("%s: running $parms{engine} tts engine\n",$Pgm_Name) if $parms{debug};
+                        	system("$parms{engine} \'$parms{text}\'");
+
 			}
 		}
 	}
