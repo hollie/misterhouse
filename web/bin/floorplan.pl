@@ -162,6 +162,9 @@ sub web_fp_item #render all items based on type
 	if ($p_obj->isa('Light_Item') or
 	$p_obj->isa('Fan_Light') or
 	$p_obj->isa('Weeder_Light') or
+	$p_obj->isa('UPB_Device') or
+	$p_obj->isa('Insteon_Device') or
+	$p_obj->isa('UPB_Link') or
         $p_obj->isa('X10_Item')) {
 	        if ($p_obj->state eq 'off') {
 			$l_image='fp-light-off.gif';
