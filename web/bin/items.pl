@@ -126,6 +126,11 @@ $form_type
                     X10SL   => [qw(Address Name Groups Interface Options)],
                     X10MS   => [qw(Address Name Groups Type)],
                     X106BUTTON => [qw(Address Name)],
+					UPBPIM	=> [qw(Name NetworkID Password Address)],
+					UPBD 	=> [qw(Name Interface NetworkID Address Groups)],
+					UPBL	=> [qw(Name Interface NetworkID Address Groups)],
+					INSTEON_PLM 	=> [qw(Name)],
+					IPLD	=> [qw(Name Interface Address Groups)],
                     default => [qw(Address Name Groups Other)]
     );
 
