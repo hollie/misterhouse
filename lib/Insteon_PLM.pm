@@ -287,11 +287,17 @@ sub set
 	&::print_log("PLM xmit:" , $p_setby->{object_name} . ":$p_state:$p_setby");
 	
 	#identify the type of device that sent the request
-	if ($p_setby->isa("X10_Item") or $p_setby->isa("X10_Switchlinc"))
+	if (
+		$p_setby->isa("X10_Item") or 
+		$p_setby->isa("X10_Switchlinc") or
+		$p_setby->isa("X10_Appliance")
+		)
 	{
 		$self->_xlate_mh_x10($p_state,$p_setby);
 	} elsif ($p_setby->isa("Insteon_Device")) {
 		$self->send_plm_cmd('0262' . $p_state);
+	} else {
+		$self->_xlate_mh_x10($p_state,$p_setby);
 	}
 }
 
