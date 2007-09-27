@@ -102,7 +102,7 @@ sub read_table_A {
         require 'Insteon_Device.pm';
         ($name, $object, $address,$grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "Insteon_Device(\$$object, $address)";
+        $object = "Insteon_Device(\$$object, \'$address\')";
     }
     elsif($type eq 'FROG') {
         require 'FroggyRita.pm';
