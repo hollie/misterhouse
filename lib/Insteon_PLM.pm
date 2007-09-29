@@ -233,11 +233,11 @@ sub check_for_data {
     my $data = unpack "H*", $data;
 
 #	$::Serial_Ports{$port_name}{data} = undef;
-      main::print_log("PLM $port_name got:$data: [$::Serial_Ports{$port_name}{data}]");
+#      main::print_log("PLM $port_name got:$data: [$::Serial_Ports{$port_name}{data}]");
       my $processedNibs;
 		$processedNibs = $Insteon_PLM_Data{$port_name}{'obj'}->_parse_data($data);
 		
-		&::print_log("PLM Proc:$processedNibs:" . length($data));
+#		&::print_log("PLM Proc:$processedNibs:" . length($data));
       $main::Serial_Ports{$port_name}{data}=pack("H*",substr($data,$processedNibs,length($data)-$processedNibs));
    }
 }
@@ -284,7 +284,7 @@ sub set
 	my ($self,$p_state,$p_setby,$p_response) = @_;
 
 	my ($package, $filename, $line) = caller;
-	&::print_log("PLM xmit:" , $p_setby->{object_name} . ":$p_state:$p_setby");
+#	&::print_log("PLM xmit:" , $p_setby->{object_name} . ":$p_state:$p_setby");
 	
 	#identify the type of device that sent the request
 	if (
@@ -307,7 +307,7 @@ sub send_plm_cmd
 	#queue any new commands
 	if (defined $cmd and $cmd ne '')
 	{
-		&::print_log("PLM Add Command:" . $cmd . ":XmitInProgress:" . $$self{xmit_in_progress} . ":" );
+#		&::print_log("PLM Add Command:" . $cmd . ":XmitInProgress:" . $$self{xmit_in_progress} . ":" );
 		unshift(@{$$self{command_stack}},$cmd);
 
 	}
@@ -332,7 +332,7 @@ sub _send_cmd {
 	my ($self, $cmd) = @_;
 	my $instance = $$self{port_name};
 
-	&::print_log("PLM: Executing command:$cmd:") unless $main::config_parms{no_log} =~/Insteon_PLM/;
+#	&::print_log("PLM: Executing command:$cmd:") unless $main::config_parms{no_log} =~/Insteon_PLM/;
 	my $data = pack("H*",$cmd);
 	$main::Serial_Ports{$instance}{object}->write($data);
 ### Dont overrun the controller.. Its easy, so lets wait a bit
@@ -362,21 +362,21 @@ sub _parse_data {
 		my $prev_cmd = lc(pop(@{$$self{command_stack}}));
 		if (defined $prev_cmd and $prev_cmd ne '') 
 		{
-			&::print_log("PLM: Defined:$prev_cmd");
+#			&::print_log("PLM: Defined:$prev_cmd");
 			#put the command back into the stack.. Its not our job to tamper with this array
 			push(@{$$self{command_stack}},$prev_cmd);
 		}
-		&::print_log("PLM: Current Command:$data_1: Prev command:$prev_cmd:". length($prev_cmd) . ":");		
+#		&::print_log("PLM: Current Command:$data_1: Prev command:$prev_cmd:". length($prev_cmd) . ":");		
 
 		#check to see if this is a ack/err from a previous command
 		if ($prev_cmd ne '' and substr($data_1,0,length($prev_cmd)) eq $prev_cmd) 
 		{
 			#it is
 			my $ret_code = substr($data_1,length($prev_cmd),2);
-			&::print_log("PLM: Return code $ret_code");
+#			&::print_log("PLM: Return code $ret_code");
 			if ($ret_code eq '06') {
 				# command succeeded
-				&::print_log("PLM: Command succeeded: $data_1.");
+#				&::print_log("PLM: Command succeeded: $data_1.");
 				$$self{xmit_in_progress} = 0;
 				pop(@{$$self{command_stack}});				
 				select(undef,undef,undef,.15);
@@ -392,13 +392,14 @@ sub _parse_data {
 				$self->process_command_stack();
 			}			
 		} elsif (substr($data_1,0,4) eq '0250') { #Insteon Standard Received
-			&::print_log("Insteon Received:$data_1");
+#			&::print_log("Insteon Received:$data_1");
 			$self->delegate($data_1);
 		} elsif (substr($data_1,0,4) eq '0251') { #Insteon Extended Received
-			&::print_log("Insteon Received:$data_1");
+#			&::print_log("Insteon Received:$data_1");
 #			&::process_serial_data($self->_xlate_x10_mh($data_1));	
+			$self->delegate($data_1);
 		} elsif (substr($data_1,0,4) eq '0252') { #X10 Received
-			&::print_log("X10 Received:$data_1");
+#			&::print_log("X10 Received:$data_1");
 			&::process_serial_data($self->_xlate_x10_mh($data_1));	
 		} elsif (substr($data_1,0,2) eq '15') { #X10 Received
 			&::print_log("PLM Interface extremely busy.");
@@ -466,7 +467,7 @@ sub _xlate_mh_x10
 
 		#look for an explicit command
 		$ecmd = substr($id,$pos,length($id)-$pos);
-		&::print_log("PLM:PAIR:$id:$pos:$ecmd:");
+#		&::print_log("PLM:PAIR:$id:$pos:$ecmd:");
 		if (defined $x10_commands{$ecmd} )
 		{
 			$msg.= substr(unpack("H*",pack("C",$x10_commands{$ecmd})),1,1);
@@ -494,7 +495,7 @@ sub _xlate_x10_mh
    	        $msg.= uc($mh_house_codes{substr($data,$index,1)});
 		    $msg.= uc($mh_commands{substr($data,$index+1,1)});
 		}
-		&::print_log("PLM: X10 address:$data:$msg:");
+#		&::print_log("PLM: X10 address:$data:$msg:");
 	} elsif (uc(substr($data,length($data)-2,2)) eq '80')
 	{
 		$msg = "X";
@@ -505,10 +506,10 @@ sub _xlate_x10_mh
    	        $msg.= uc($mh_house_codes{substr($data,$index,1)});
 		    $msg.= uc($mh_commands{substr($data,$index+1,1)});
 		}
-		&::print_log("PLM: X10 command:$data:$msg:");
+#		&::print_log("PLM: X10 command:$data:$msg:");
 	}
 	
-&::print_log("PLM:2XMH:$data:$msg:");
+#&::print_log("PLM:2XMH:$data:$msg:");
 	return $msg;
 }
 
@@ -519,7 +520,7 @@ sub delegate
 	my $source=substr($p_data,4,6);
 	my $destination=substr($p_data,10,6);
 
-	&::print_log ("DELEGATE:$source:$destination:$p_data:");
+#	&::print_log ("DELEGATE:$source:$destination:$p_data:");
 	for my $obj (@{$$self{objects}})
 	{
 		#Match on Insteon objects only
