@@ -121,11 +121,11 @@ sub set
 		if ( $source eq $self->device_id() or $destination eq 'FFFFFF' )
 		{
 			$p_state = $self->_xlate_insteon_mh($l_state);
-		    &::print_log($self->get_object_name() . "::set($p_state, $p_setby)");
+#		    &::print_log($self->get_object_name() . "::set($p_state, $p_setby)");
 		}
 	} else {
 		$$self{interface}->set($self->_xlate_mh_insteon($p_state),$self);
-	    &::print_log($self->get_object_name() . "::set($p_state, $p_setby)");
+#	    &::print_log($self->get_object_name() . "::set($p_state, $p_setby)");
 	}
 	$self->SUPER::set($p_state,$p_setby,$p_response) if defined $p_state;
 }
@@ -142,11 +142,11 @@ sub _xlate_insteon_mh
 	my $state=undef;
 	my $level = undef;
 
-	&::print_log("XLATE:$cmd1:");
+#	&::print_log("XLATE:$cmd1:");
 	for my $key (keys %message_types){
 		if (pack("C",$message_types{$key}) eq pack("H*",$cmd1))
 		{
-			&::print_log("FOUND: $key");
+#			&::print_log("FOUND: $key");
 			$state=$key;
 			last;
 		}
