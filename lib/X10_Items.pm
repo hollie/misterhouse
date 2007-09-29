@@ -142,7 +142,6 @@ sub set_interface {
             print "for id $id, x10 interface supplied ($interface) and supported by Serial_Item\n" if $localDebug;
             $self->{interface}=new Serial_Item(undef,undef,$interface);
         } elsif ( defined $interface_object and $interface_object->isa('Insteon_PLM')) {
-			&::print_log("PLM -------- $interface $interface_object");
 			$self->{interface} = $interface_object;
 			$self->{interface}->add($self);
         } else {
@@ -266,6 +265,7 @@ sub set {
 	$set_by = $self if !defined $set_by;
 
 	#Insteon PLM needs calling object, dont care about who originated
+
 	if ($self->{interface}->isa("Insteon_PLM") ) {		
 	    $self->{interface}->set($state, $self);
 	} else {
