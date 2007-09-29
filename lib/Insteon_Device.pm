@@ -33,6 +33,7 @@ package Insteon_Device;
 @Insteon_Device::ISA = ('Generic_Item');
 
 my %message_types = (
+						status_level => 0x00,
 						assign_to_group => 0x01,
 						delete_from_group => 0x02,
 						ping => 0x10,
@@ -71,6 +72,7 @@ sub new
 sub initialize
 {
 	my ($self) = @_;
+	$$self{m_write} = 1;
 }
 
 sub interface
@@ -138,6 +140,7 @@ sub _xlate_insteon_mh
 	my $cmd1 = substr($p_state,14,2);
 	my $cmd2 = substr($p_state,16,2);
 	my $state=undef;
+	my $level = undef;
 
 	&::print_log("XLATE:$cmd1:");
 	for my $key (keys %message_types){
@@ -148,7 +151,18 @@ sub _xlate_insteon_mh
 			last;
 		}
 	}
-
+	if ($state eq 'status_level')
+	{
+		if (lc($cmd2) eq 'ff')
+		{
+			$state = 'on';
+		} elsif (lc($cmd2) eq '00') {
+			$state = 'off';
+		} else {
+			$level = unpack("C",pack("H*",$cmd2)) / 2.5;
+			$state = "$level%";
+		}
+	}
 	return $state;
 }
 
@@ -206,4 +220,17 @@ sub _xlate_mh_insteon
 	}
 	return $cmd;
 }
+
+sub writable {
+       my ($self, $p_write) = @_;
+       if (defined $p_write) {
+               if ($p_write =~ /r/i or $p_write =~/^0/) {
+                       $$self{m_write} = 0;
+               } else {
+                       $$self{m_write} = 1;
+               }
+       }
+       return $$self{m_write};
+}
+
 1;
