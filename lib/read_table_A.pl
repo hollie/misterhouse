@@ -100,7 +100,7 @@ sub read_table_A {
     }
     elsif($type eq "IPLD") {
         require 'Insteon_Device.pm';
-        ($name, $object, $address,$grouplist, @other) = @item_info;
+        ($address, $name, $grouplist, $object, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon_Device(\$$object, \'$address\')";
     }
