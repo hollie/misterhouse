@@ -243,7 +243,7 @@ sub check_for_data {
 }
 
 sub new {
-   my ($class, $port_name) = @_;
+   my ($class, $port_name, $p_deviceid) = @_;
    $port_name = 'Insteon_PLM' if !$port_name;
 
    my $self = {};
@@ -256,6 +256,15 @@ sub new {
 	@{$$self{command_stack}} = ();
    bless $self, $class;
    $Insteon_PLM_Data{$port_name}{'obj'} = $self;
+   $self->device_id($p_deviceid) if defined $p_deviceid;
+
+	$$self{xmit_delay} = $::config_parms{Insteon_PLM_xmit_delay};
+	$$self{xmit_delay} = 0.125 unless defined $$self{xmit_delay};
+	&::print_log("Insteon_PLM: setting default xmit delay to: $$self{xmit_delay}");
+	$$self{xmit_x10_delay} = $::config_parms{Insteon_PLM_xmit_x10_delay};
+	$$self{xmit_x10_delay} = 0.5 unless defined $$self{xmit_x10_delay};
+	&::print_log("Insteon_PLM: setting x10 xmit delay to: $$self{xmit_x10_delay}");
+	
 #   $Insteon_PLM_Data{$port_name}{'send_count'} = 0;
 #   push(@{$$self{states}}, 'on', 'off');
 #   $self->_poll();
@@ -301,6 +310,25 @@ sub set
 	}
 }
 
+sub initiate_linking_as_responder
+{
+	my ($self, $group) = @_;
+
+	# it is not clear that group should be anything as the group will be taken from the controller
+	$group = '01' unless $group;
+	# set up the PLM as the responder
+	my $cmd = '0264'; # start all linking
+	$cmd .= '00'; # responder code
+	$cmd .= $group; # WARN - must be 2 digits and in hex!!
+	$self->send_plm_cmd($cmd);
+}
+
+sub cancel_linking
+{
+	my ($self) = @_;
+	$self->send_plm_cmd('0265');
+}
+
 sub send_plm_cmd
 {
 	my ($self, $cmd) = @_;
@@ -338,7 +366,15 @@ sub _send_cmd {
 ### Dont overrun the controller.. Its easy, so lets wait a bit
 #	select(undef,undef,undef,0.15);
     #X10 is sloooooow
-	select(undef,undef,undef,0.5);
+	# however, the ack/nack processing seems to allow some comms (notably insteon) to proceed
+	# much faster--hence the ability to overide the slow default of 0.5 seconds
+	my $delay = $$self{xmit_delay};
+	if (substr($cmd,0,4) eq '0263') { # is x10; so, be slow
+		$delay = $$self{xmit_x10_delay};
+	}
+	if ($delay) {
+		select(undef,undef,undef,$delay);
+	}
    	$$self{'last_change'} = $main::Time;
 }
 
@@ -349,9 +385,9 @@ sub _parse_data {
 
 	my $processedNibs=0;
 
-	&::print_log( "PLM: Parsing serial data: $data") unless $main::config_parms{no_log} =~/Insteon_PLM/;
+	&::print_log( "Insteon_PLM: Parsing serial data: $data") if $main::Debug{insteon};
 	
-	foreach my $data_1 (split(/(0263\w{6})|(0252\w{4})|(0250\w{18})|(0251\w{46})|(0262\w{14})/,$data))
+	foreach my $data_1 (split(/(0263\w{6})|(0252\w{4})|(0250\w{18})|(0251\w{46})|(0261\w{6})!(0262\w{14})|(0253\w{16})|(0256\w{8})|(0257\w{16})|(0258\w{2})/,$data))
 	{
 		#ignore blanks.. the split does odd things
 		next if $data_1 eq '';
@@ -401,7 +437,22 @@ sub _parse_data {
 		} elsif (substr($data_1,0,4) eq '0252') { #X10 Received
 #			&::print_log("X10 Received:$data_1");
 			&::process_serial_data($self->_xlate_x10_mh($data_1));	
-		} elsif (substr($data_1,0,2) eq '15') { #X10 Received
+		} elsif (substr($data_1,0,4) eq '0253') { #ALL-Linking Completed
+			&::print_log("ALL-Linking Completed:$data_1") if $main::Debug{insteon};
+#			$self->delegate($data_1);
+		} elsif (substr($data_1,0,4) eq '0256') { #ALL-Link Cleanup Failure Report
+			&::print_log("ALL-Link Cleanup Failure Report:$data_1") if $main::Debug{insteon};
+#			$self->delegate($data_1);
+		} elsif (substr($data_1,0,4) eq '0257') { #ALL-Link Record Response
+			&::print_log("ALL-Link Record Response:$data_1") if $main::Debug{insteon};
+#			$self->delegate($data_1);
+		} elsif (substr($data_1,0,4) eq '0258') { #ALL-Link Cleanup Status Report
+			&::print_log("ALL-Link Cleanup Status Report:$data_1") if $main::Debug{insteon};
+#			$self->delegate($data_1);
+		} elsif (substr($data_1,0,4) eq '0261') { #ALL-Link Broadcast 
+			&::print_log("ALL-Link Broadcast:$data_1") if $main::Debug{insteon};
+#			$self->delegate($data_1);
+		} elsif (substr($data_1,0,2) eq '15') { #NAK Received
 			&::print_log("PLM Interface extremely busy.");
 			#retry
 			$$self{xmit_in_progress} = 0;
@@ -420,14 +471,14 @@ sub _parse_data {
 sub process_command_stack
 {
 	my ($self) = @_;
-			## send any remaining commands in stack
-			my $stack_count = @{$$self{command_stack}};
+	## send any remaining commands in stack
+	my $stack_count = @{$$self{command_stack}};
 #			&::print_log("UPB Command stack2:$stack_count:@{$$self{command_stack}}:");
-			if ($stack_count> 0 ) 
-			{
-				#send any remaining commands.
-				$self->send_plm_cmd();
-			}			
+	if ($stack_count> 0 ) 
+	{
+		#send any remaining commands.
+		$self->send_plm_cmd();
+	}			
 }
 
 sub _xlate_mh_x10
@@ -517,24 +568,48 @@ sub _xlate_x10_mh
 sub delegate
 {
 	my ($self,$p_data) = @_;
-	my $source=substr($p_data,4,6);
-	my $destination=substr($p_data,10,6);
 
-#	&::print_log ("DELEGATE:$source:$destination:$p_data:");
+	my $data = substr($p_data,4,length($p_data)-4);
+	my %msg = &Insteon_Device::xlate_insteon_mh($data);
+
+	&::print_log ("Insteon_PLM: DELEGATE:$msg{source}:$msg{destination}:$data:") if $main::Debug{insteon};
+
+	# get the matching object
+	my $object = $self->get_object($msg{source}, $msg{group});
+	$object->process_message($self, %msg) if defined $object;
+
+}
+
+sub get_object
+{
+	my ($self, $p_deviceid, $p_group) = @_;
+
+	my $retObj = undef;
+
 	for my $obj (@{$$self{objects}})
 	{
 		#Match on Insteon objects only
 		if ($obj->isa("Insteon_Device"))
 		{
-			if ($source eq 'FFFFFF' or $obj->device_id() eq $source)
+			if (lc $obj->device_id() eq $p_deviceid)
 			{
-				$obj->set(substr($p_data,4,length($p_data)-4),$self);
+				if ($p_group)
+				{
+					if ($p_group eq $obj->group)
+					{
+						$retObj = $obj;
+						last;
+					}
+				} else {
+					$retObj = $obj;
+					last;
+				}
 			}
 		}
 	}
+
+	return $retObj;
 }
-
-
 
 
 sub add_id_state
@@ -639,6 +714,12 @@ sub find_members {
 		}
 	}
 	return @l_found;
+}
+
+sub device_id {
+	my ($self, $p_deviceid) = @_;
+	$$self{deviceid} = $p_deviceid if defined $p_deviceid;
+	return $$self{deviceid};
 }
 
 =begin
