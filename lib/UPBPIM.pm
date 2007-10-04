@@ -469,10 +469,10 @@ sub delegate
 				if ($destination == 0 or $obj->device_id() == $destination)
 				{
 					#if UPB_Device
-					if ($obj->isa("UPB_Device") and $isLink == 0 )
+					if ($obj->isa("UPB_Link") and $isLink == 1 )
 					{
 						$obj->set($p_data,$self);
-					} elsif ($obj->isa("UPB_Link") and $isLink == 1)
+					} elsif (!$obj->isa("UPB_Link") and $isLink == 0)
 					{
 						$obj->set($p_data,$self);
 					}
