@@ -660,7 +660,7 @@ sub _process_incoming_xpl_data {
                        $$o{changed} .= "$section : $key = $value | "
                            unless $section eq 'xpl-stat' or $section eq 'xpl-trig' or $section eq 'xpl-cmnd'; # or ($section =~ /^hbeat./i and !($$o{class} =~ /^hbeat.app/i));
                        print "db3 xpl state check m=$$o{state_monitor} key=$section : $key  value=$value\n" if $main::Debug{xpl};# and $main::Debug{xpl} == 3;
-                       if ($$o{state_monitor} and "$section : $key" eq $$o{state_monitor} and defined $value) {
+                       if ($$o{state_monitor} and $$o{state_monitor} =~ /$section\s*[:=]\s*$key/i and defined $value) {
                            print "db3 xpl setting state to $value\n" if $main::Debug{xpl} and $main::Debug{xpl} == 3;
                            $state_value = $value;
                        }
@@ -1428,7 +1428,7 @@ sub default_setstate {
                                 # Send data, unless we are processing incoming data
     return if $set_by =~ /^xap/i;
 
-    my ($section, $key) = $$self{state_monitor} =~ /(.+) : (.+)/;
+    my ($section, $key) = $$self{state_monitor} =~ /(\S+)\s*[:=]\s*(\S+)/;
     $$self{$section}{$key} = $state;
 
     my @parms;
@@ -1553,7 +1553,7 @@ sub source {
 sub device_monitor {
     my ($self, $monitor_info) = @_;
     if ($monitor_info) {
-       my ($key,$value) = $monitor_info =~ /(.+)\s*=\s*(.+)/;
+       my ($key,$value) = $monitor_info =~ /(\S+)\s*[:=]\s*(\S+)/;
        if (!($value or $value =~ /^0/)) {
           $value = ($key) ? $key : $monitor_info;
           $key = 'device';
@@ -1586,7 +1586,7 @@ sub default_setstate {
           push @parms, $class_name, $block;
        }
     } else {
-       my ($section, $key) = $$self{state_monitor} =~ /(.+) : (.+)/;
+       my ($section, $key) = $$self{state_monitor} =~ /(\S+)\s*[:=]\s*(\S+)/;
        $$self{$section}{$key} = $state;
 
        for my $section (sort keys %{$$self{sections}}) {

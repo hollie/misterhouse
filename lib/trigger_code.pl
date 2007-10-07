@@ -212,9 +212,9 @@ sub trigger_run {
 	}
 	&trigger_expire($name) if $expire;
     my ($trigger, $code, $type, $triggered) = trigger_get($name);
-    &print_log ("Running trigger code for: $name");
+    &print_log ("Running trigger code for: $name") if $Debug{trigger};
     eval $code;
-    &print_log ("Finished running trigger code for: $name");
+    &print_log ("Finished running trigger code for: $name") if $Debug{trigger};
     if ($@) {
 	    &print_log("Error: trigger '$name' failed to run cleanly");
 	    &print_log("  Code = $code");

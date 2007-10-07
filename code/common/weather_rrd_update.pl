@@ -607,7 +607,7 @@ sub update_csv {
 sub analyze_rrd_rain {
 	my $RRD = "$config_parms{weather_data_rrd}";
 
-	&print_log('analyze_rrd_rain: updating $Weather{RainLast{x}Hours}');
+	&print_log('analyze_rrd_rain: updating $Weather{RainLast{x}Hours}') if $::Debug{weather_graph};
 
 	my @hours=(1,2,6,12,18,24,48,72,168);
 	my $resolution=18*60;  # using 18 minute datapoints - don't change this unless you know what you're doing
@@ -701,7 +701,7 @@ sub analyze_rrd_rain {
 		# fix it by copying the smaller amount onto the larger amount
 		$Weather{"RainLast${shorter}Hours"}=$Weather{"RainLast${longer}Hours"};
 	}
-	&print_log('analyze_rrd_rain: complete');
+	&print_log('analyze_rrd_rain: complete') if $::Debug{weather_graph};
 }
 
 # Allow for sending graphs via email
