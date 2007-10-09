@@ -81,7 +81,7 @@ sub set
 			    Phone => $p_setby->formated_number(), Name => $p_setby->cid_name(),
 			    RNNumber => 'Available', RNName => 'Available', 
 			    Formatted_Date => $::Date_Now, Formatted_Time => $::Time_Now});
-		&xAP::send('xPL', '*.*', 'CID.BASIC' => 
+		&xPL::sendXpl('*.*', 'CID.BASIC' => 
 			   {CallType => 'INBOUND',
 			    Phone => $p_setby->formated_number(), CLN => $p_setby->cid_name()
 			    });
