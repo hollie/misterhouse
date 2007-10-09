@@ -28,8 +28,8 @@ package xAP;
 
 #se IO::Socket::INET;           # Gives us the INADDR constants, but not in perl 5.0 :(
 
-my ($started, $xap_listen, $xap_hub_listen, $xap_send, %hub_ports, $xpl_listen, $xpl_hub_listen, $xpl_send, %xpl_hub_ports, %xap_uids, %xap_virtual_devices, $xap_hbeat_interval, $xap_hbeat_counter, $xpl_hbeat_interval, $xpl_hbeat_counter);
-use vars '$xap_data','$xpl_data';
+my (@xap_item_names, $started, $xap_listen, $xap_hub_listen, $xap_send, %hub_ports, %xap_uids, %xap_virtual_devices, $xap_hbeat_interval, $xap_hbeat_counter);
+use vars '$xap_data';
 
 # XAP_REAL_DEVICE_NAME is the default device name that appears in the last field of the primary source address
 use constant XAP_REAL_DEVICE_NAME => 'core';
@@ -39,18 +39,15 @@ sub startup {
     return if $started++;       # Allows us to call with $Reload or with xap_module mh.ini parm
 
                                 # In case you don't want xap for some reason
-    return if $::config_parms{xap_disable} and $::config_parms{xpl_disable};
+    return if $::config_parms{xap_disable};
 
+    @xap_item_names = ();
     my ($port);
 
     # init the hbeat intervals and counters
     $xap_hbeat_interval = $::config_parms{xap_hbeat_interval};
     $xap_hbeat_interval = 1 unless $xap_hbeat_interval;
     $xap_hbeat_counter = $xap_hbeat_interval;
-
-    $xpl_hbeat_interval = $::config_parms{xpl_hbeat_interval};
-    $xpl_hbeat_interval = 5 unless $xpl_hbeat_interval;
-    $xpl_hbeat_counter = $xpl_hbeat_interval;
 
     if (!($::config_parms{xap_disable})) {
 	#$last_xap_subaddress_uid = 0;
@@ -78,47 +75,6 @@ sub startup {
 #	&xAP::send_heartbeat('xAP') if $xap_send;
         &init_xap_virtual_device(XAP_REAL_DEVICE_NAME);
     }
-
-    # now, do the same for xpl
-    if (!($::config_parms{xpl_disable})) {
-    	undef $port;
-    	$port = $::config_parms{xpl_port};
-    	$port = 3865 unless $port;
-
-	# open the sending port
-    	&open_port($port, 'send', 'xpl_send', 0, 1);
-	$xpl_send   = new Socket_Item(undef, undef, 'xpl_send');
-	# and send the heartbeat
-
-        # Find and use the first open port
-    	my $port_listen;
-    	for my $p (49152 .. 65535) {
-        	$port_listen = $p;
-        	last if &open_port($port_listen, 'listen', 'xpl_listen', 1, 1);
-    	}
-    	$xpl_listen = new Socket_Item(undef, undef, 'xpl_listen');
-
-	# initialize the hub (listen) port
-        if ($::config_parms{xpl_nohub}) {
-	   $xpl_hub_listen = undef;
- 	} else {
-	   if (&open_port($port, 'listen', 'xpl_hub_listen', 0, 1)) {
-	      $xpl_hub_listen = new Socket_Item(undef, undef, 'xpl_hub_listen');
-	      print " - mh in xPL Hub mode\n";
-              # now set up the hub port that will send to mh
-	      $xpl_hub_ports{$port_listen} = &xAP::get_xpl_mh_source_info();
-              my $port_name = "xpl_send_$port_listen";
-              &open_port($port_listen, 'send', $port_name, 1, 1);
-	   } else {
-              print " - mh automatically switching out of xPL Hub mode.  Another application is binding to the hub port ($port)\n";
-	   }
-	}
-
-        # now that a listen port exists, advertise it w/ the first hbeat msg
-	&xAP::send_xpl_heartbeat() if $xpl_send;
-
-    }
-
 
     &::MainLoop_pre_add_hook(\&xAP::check_for_data, 1 );
 }
@@ -154,39 +110,6 @@ sub init_xap_virtual_device {
       }
    }
 
-}
-
-sub main::display_xpl
-{
-   my (%args) = @_;
-   my $schema = lc ${args}{schema};
-   $schema = 'osd.basic' unless $schema;
-   if ($schema eq 'osd.basic') {
-      &main::display_xpl_osd_basic(%args);
-   } else {
-      &main::print_log("Display support for the schema, $schema, does not yet exist");
-   }
-}
-
-sub main::display_xpl_osd_basic
-{
-   my (%args) = @_;
-   my ($text, $duration, $address);
-   $text = $args{raw_text};
-   $text = $args{text} unless $text;
-   $text =~ s/[\n\r ]+/ /gm; # strip out new lines and extra space
-   $text =~ s/\n/\\n/gm; # escape new lines
-   $duration = $args{duration};
-   $duration = $args{display} unless $duration; # this apparently is the original param?
-   $duration = 10 unless $duration; # default to 10 sec display
-   $address = $args{to};
-   $address = $args{address} unless $address;
-   $address = '*' unless $address;
-   # auto pre-pend text w/ a newline if it target a squeezebox and doesn't already have one
-   if ($address =~ /^slimdev-slimserv/i) {
-      $text = "\\n$text" unless $text =~ /\\n\S+/i;
-   }
-   &xAP::send('xPL', $address, 'osd.basic' => { command => 'write', delay => $duration, text => $text });
 }
 
 sub main::display_xap
@@ -315,49 +238,35 @@ sub open_port {
         my $dest_address;
 #       $dest_address = inet_ntoa(INADDR_BROADCAST);
         $dest_address = $::config_parms{'ipaddress_xap_broadcast'} if $port_name =~ /^xap/i;
-        $dest_address = $::config_parms{'ipaddress_xpl_broadcast'} if $port_name =~ /^xpl/i;
         $dest_address = '255.255.255.255' unless $dest_address;
 	if ($local) {
-		if ($port_name =~ /^xpl/i) {
-			$dest_address = $::config_parms{'ipaddress_xpl'};
-        		$dest_address = $::config_parms{'xpl_address'} unless $dest_address;
-		        $dest_address = $::Info{IPAddress_local} unless $dest_address;
- 		} else {
-        		$dest_address = 'localhost';
-		}
+       		$dest_address = 'localhost';
 	}
         $sock = new IO::Socket::INET->new(PeerPort => $port, Proto => 'udp',
                                           PeerAddr => $dest_address, Broadcast => 1);
     }
     else {
-        my $listen_address;
-	if ($port_name =~ /^xap/i) {
-	        $listen_address = $::config_parms{'ipaddress_xap'}; 
-	} elsif ($port_name =~ /^xpl/i) {
-        	$listen_address = $::config_parms{'ipaddress_xpl'};
-        	$listen_address = $::config_parms{'xpl_address'} unless $listen_address;
-	        $listen_address = $::Info{IPAddress_local} unless $listen_address;
- 	}
+        my $listen_address = $::config_parms{'ipaddress_xap'}; 
         if ($main::OS_win) {
             $listen_address = $::Info{IPAddress_local} unless $listen_address;
         } else {
            # can't get *nix to bind to a specific address; defaults to kernel assigned default IP
             $listen_address = '0.0.0.0';
         }
-        $listen_address = 'localhost' if $local and $port_name =~ /^xap/i;
+        $listen_address = 'localhost' if $local;
         $sock = new IO::Socket::INET->new(LocalPort => $port, Proto => 'udp',
                                           LocalAddr => $listen_address, Broadcast => 1);
 #                                          LocalAddr => '0.0.0.0', Broadcast => 1);
 #                                         LocalAddr => inet_ntoa(INADDR_ANY), Broadcast => 1);
     }
     unless ($sock) {
-        print "\nError:  Could not start a udp xAP/xPL send server on $port: $@\n\n" if $send_listen eq 'send';
+        print "\nError:  Could not start a udp xAP send server on $port: $@\n\n" if $send_listen eq 'send';
         return 0;
     }
 
     printf " - creating %-15s on %3s %5s %s\n", $port_name, 'udp', $port, $send_listen if $verbose;
 
-    print "db xAP_Items open_port: p=$port pn=$port_name l=$local s=$sock\n" if $main::Debug{xap} or $main::Debug{xpl};
+    print "db xAP_Items open_port: p=$port pn=$port_name l=$local s=$sock\n" if $main::Debug{xap};
 
     $::Socket_Ports{$port_name}{protocol} = 'udp';
     $::Socket_Ports{$port_name}{datatype} = 'raw';
@@ -383,13 +292,6 @@ sub check_for_data {
        }
     }
 
-    if ($xpl_hub_listen && (my $xpl_hub_data = said $xpl_hub_listen)) {
-	&_process_incoming_xpl_hub_data($xpl_hub_data);
-    }
-    if ($xpl_listen && (my $xpl_data = said $xpl_listen)) {
-	&_process_incoming_xpl_data($xpl_data);
-    }
-
     # check to see if hbeats need to be sent
     if ($::New_Minute) {
        if ($xap_send) {
@@ -400,14 +302,6 @@ sub check_for_data {
              $xap_hbeat_counter = $xap_hbeat_interval;
           } else {
              $xap_hbeat_counter = $xap_hbeat_counter - 1;
-          }
-       }
-       if ($xpl_send) {
-          if ($xpl_hbeat_counter == 5) {
-	     &xAP::send_xpl_heartbeat();
-             $xpl_hbeat_counter = $xpl_hbeat_interval;
-          } else {
-             $xpl_hbeat_counter = $xpl_hbeat_counter - 1;
           }
        }
     }
@@ -423,9 +317,9 @@ sub parse_data {
                                   # Store xap-header, xap-heartbeat, and other data
         if (my ($key, $value) = $r =~ /(.+?)=(.*)/) {
             $key   = lc $key;
-            $value = lc $value if ($data_type =~ /^xap/ || $data_type =~ /^xpl/); # Do not lc real data;
+            $value = lc $value if ($data_type =~ /^xap/); # Do not lc real data;
             $d{$data_type}{$key} = $value;
-            print "db4 xap/xpl parsed c=$data_type k=$key v=$value\n" if ($main::Debug{xpl} and $main::Debug{xpl} == 4) or ($main::Debug{xap} and $main::Debug{xap} == 4);
+            print "db4 xap/xpl parsed c=$data_type k=$key v=$value\n" if ($main::Debug{xap} and $main::Debug{xap} == 4);
         }
                                   # data_type (e.g. xap-header, xap-heartbeat, source.instance
         else {
@@ -437,69 +331,6 @@ sub parse_data {
        $d{$data_type}{'_dummy'} = 1;
     }
     return \%d;
-}
-
-sub _process_incoming_xpl_hub_data {
-   my ($data) = @_;
-   my $ip_address = $::config_parms{'ipaddress_xpl'};
-   $ip_address = $::Info{IPAddress_local} unless $ip_address;
-
-
-   undef $xpl_data;
-   $xpl_data = &parse_data($data);
-
-   my ($protocol, $source, $class, $target, $msg_type);
-   $protocol = 'xPL';
-   if (defined $$xpl_data{'xpl-stat'}) {
-      $msg_type = 'stat';
-      $source = $$xpl_data{'xpl-stat'}{source};
-      $target = $$xpl_data{'xpl-stat'}{target};
-   } elsif ($$xpl_data{'xpl-cmnd'}) {
-      $msg_type = 'cmnd';
-      $source = $$xpl_data{'xpl-cmnd'}{source};
-      $target = $$xpl_data{'xpl-cmnd'}{target};
-   } else {
-      $msg_type = 'trig';
-      $source = $$xpl_data{'xpl-trig'}{source};
-      $target = $$xpl_data{'xpl-trig'}{target};
-   }
-
-#   print "db1 xpl hub check: p=$protocol s=$source c=$class t=$target d=$data\n" if $main::Debug{xpl} and $main::Debug{xpl} == 1;
-
-   return unless $source;
-
-   my ($port);
-                                  # As a hub, echo data to other xpl listeners unless it's our own transmission
-   for $port (keys %xpl_hub_ports) {
-       # don't echo back the sender's own data
-       if ($xpl_hub_ports{$port} ne $source) {
-          my $sock = $::Socket_Ports{"xpl_send_$port"}{sock};
-          print "db2 xpl hub: sending xpl data to p=$port destination=$xpl_hub_ports{$port} s=$sock d=\n$data.\n" if $main::Debug{xpl} and $main::Debug{xpl} == 2;
-          print $sock $data if defined($sock);
-        }
-   }
-
-   # Log hearbeats of other apps; ignore hbeat.basic messages as these should not be handled by the hub
-   if ($$xpl_data{'hbeat.app'}) {
-      # rely on the xPL-message's remote-ip attribute in the hbeat.app as the basis for performing IP comparisons
-#      my $sender_iaddr = $::Socket_Ports{'xpl_listen'}{from_ip};
-#      my $sender_ip_address = Socket::inet_ntoa($sender_iaddr) if $sender_iaddr;
-      my $sender_ip_address = $$xpl_data{'hbeat.app'}{'remote-ip'};
-      # Open/re-open the port on every hbeat if it posts a listening port.
-      # Skip if it is our own hbeat (port = listen port)
-      if (($sender_ip_address eq $ip_address)) {
-         $port = $$xpl_data{'hbeat.app'}{port};
-         if ($port) {
-            $xpl_hub_ports{$port} = $source;
-            my $port_name = "xpl_send_$port";
-            my $msg = ($::Socket_Ports{$port_name}{sock}) ? 'renewing' : 'registering';
-            print "db xpl $msg port=$port to xPL client $source" if $main::Debug{xpl};
-            # xPL apps want local
-            &open_port($port, 'send', $port_name, 1, $msg eq 'registering');
-         }
-      }
-   }
-
 }
 
 sub _process_incoming_xap_hub_data {
@@ -554,135 +385,6 @@ sub _process_incoming_xap_hub_data {
     }
 }
 
-sub _process_incoming_xpl_data {
-   my ($data) = @_;
-
-   undef $xpl_data;
-   $xpl_data = &parse_data($data);
-
-   my ($protocol, $source, $class, $target, $msg_type);
-   $protocol = 'xPL';
-   if (defined $$xpl_data{'xpl-stat'}) {
-      $msg_type = 'stat';
-      $source = $$xpl_data{'xpl-stat'}{source};
-      $target = $$xpl_data{'xpl-stat'}{target};
-   } elsif ($$xpl_data{'xpl-cmnd'}) {
-      $msg_type = 'cmnd';
-      $source = $$xpl_data{'xpl-cmnd'}{source};
-      $target = $$xpl_data{'xpl-cmnd'}{target};
-   } else {
-      $msg_type = 'trig';
-      $source = $$xpl_data{'xpl-trig'}{source};
-      $target = $$xpl_data{'xpl-trig'}{target};
-   }
-
-   print "db1 xpl check: p=$protocol s=$source c=$class t=$target d=$data\n" if $main::Debug{xpl} and $main::Debug{xpl} == 1;
-
-   return unless $source;
-   # define target as '*' if undefined
-   $target = '*' if !($target);
-
-	# continue processing unless we are the source (e.g., heart-beat)
-	if (!($source eq &xAP::get_xpl_mh_source_info()) or $::config_parms{'xpl_hub_echo'} or $main::Debug{xpl}) {
-                                  # Set states in matching xPL objects
-           for my $name (&::list_objects_by_type('xPL_Item')) {
-               my $o = &main::get_object_by_name($name);
-               $o = $name unless $o; # In case we stored object directly (e.g. lib/Telephony_xAP.pm)
-                   print "db3 xpl test  o=$name s=$source oa=$$o{source}\n" if $main::Debug{xpl} and $main::Debug{xpl} == 3;
-
-	       # skip this object unless the source matches if a stat or trig
-	       # otherwise, we check the target for a cmnd
-	       # NOTE: the object's hash reference for "source" is "address"
-               my $regex_address = &wildcard_2_regex($$o{address});
-               if ($$o{set_state_on_cmnd} and $msg_type eq 'cmnd') {
-                  my $regex_target = &wildcard_2_regex($target);
-		  next unless ($target =~ /$regex_address/i) or ($$o{address} =~ /$regex_target/i);
-	       } else {
-	          if ( $source =~ /$regex_address/i) {
-    	             # handle hbeat data
-                     for my $section (keys %{$xpl_data}) {
-	                if ($section =~ /^hbeat./i) {
-		           if (lc $section eq 'hbeat.app') {
-		               $o->_handle_alive_app();
-		           } else {
-		               $o->_handle_dead_app();
-		           }
-	                }
-	             }
-                  } else {
-                     next;
-                  }
- 	       }
-
-	       my $className;
-	       # look at each section name; any that don't match the header titles is the classname
-               #   since is there is only one "block" in an xPL message and its label is the classname
-	       for my $section (keys %{$xpl_data}) {
-		  if ($section) {
-		      $className = $section unless ($section eq 'xpl-stat' || $section eq 'xpl-cmnd' || $section eq 'xpl-trig');
-		  }
-	        }
-		# skip this object unless the classname matches
-		if ($className && $$o{class}) {
-                   my $regex_class = &wildcard_2_regex($$o{class});
-		   next unless $className =~ /$regex_class/i;
-		}
-
-                # check if device monitoring is enabled
-                if (!($className =~ /hbeat./i) && defined $$o{_device_id}) {
-                   my $device_id_key = $$o{_device_id_key};
-                   print "Device monitoring enabled: key=$device_id_key, id=$$o{_device_id}, tested value="
-                      . $$xpl_data{$className}{$device_id_key} . "\n" if $main::Debug{xpl};
-                   next unless $$o{_device_id} eq lc $$xpl_data{$className}{$device_id_key};
-                }
-
-                                  # Find and set the state variable
-               my $state_value;
-               $$o{changed} = '';
-               for my $section (keys %{$xpl_data}) {
-                   $$o{sections}{$section} = 'received' unless $$o{sections}{$section};
-                   for my $key (keys %{$$xpl_data{$section}}) {
-                       my $value = $$xpl_data{$section}{$key};
-                       # does a tied value convertor exist for this key and object?
-                       my $value_convertor = $$o{_value_convertors}{$key} if defined($$o{_value_convertors});
-                       if ($value_convertor) {
-                           print "db xpl: located value convertor: $value_convertor\n" if $main::Debug{xpl};
-                           my $converted_value = eval $value_convertor;
-                           if ($@) {
-                               print$@;
-                           } else {
-                               print "db xpl: converted value is: $converted_value\n" if $main::Debug{xpl};
-                           }
-                           $value = $converted_value if $converted_value;
-                       }
-                       $$o{$section}{$key} = $value;
-                                  # Monitor what changed (real data, and include hbeat as it may include useful info, e.g., slimserver).
-                       $$o{changed} .= "$section : $key = $value | "
-                           unless $section eq 'xpl-stat' or $section eq 'xpl-trig' or $section eq 'xpl-cmnd'; # or ($section =~ /^hbeat./i and !($$o{class} =~ /^hbeat.app/i));
-                       print "db3 xpl state check m=$$o{state_monitor} key=$section : $key  value=$value\n" if $main::Debug{xpl};# and $main::Debug{xpl} == 3;
-                       if ($$o{state_monitor} and $$o{state_monitor} =~ /$section\s*[:=]\s*$key/i and defined $value) {
-                           print "db3 xpl setting state to $value\n" if $main::Debug{xpl} and $main::Debug{xpl} == 3;
-                           $state_value = $value;
-                       }
-                   }
-               }
-               # assign the "summary" of the message to state_value unless state_monitor is being used
-               $state_value = $$o{changed} unless $$o{state_monitor};
-	       print "db3 xpl set: n=$name to state=$state_value\n\n" if $main::Debug{xpl};# and $main::Debug{xpl} == 3;
-#	       $$o{state} = $$o{state_now} = $$o{said} == $state_value if defined $state_value;
-# Can not use Generic_Item set method, as state_next_path only carries state, not all other $section data, to the next pass
-#              $o -> SUPER::set($state_value, 'xPL') if defined $state_value;
-               if (defined $state_value and $state_value ne '') {
-                  my $set_by_name = 'xPL';
-                  $set_by_name .= " [$source]"; # no longer needed: if ($::config_parms{'xap_use_to_target'});
-		  $o -> SUPER::set_now($state_value, $set_by_name);
-		  $o -> state_now_msg_type( "$msg_type" );
-	       }
-           }
-	}
-
-}
-
 sub _process_incoming_xap_data {
     my ($data, $device_name) = @_;
 	undef $xap_data;
@@ -700,6 +402,18 @@ sub _process_incoming_xap_data {
         }
         print "db1 xap check: p=$protocol s=$source c=$class t=$target d=$data\n" if $main::Debug{xap} and $main::Debug{xap} == 1;
 
+        # the first time that this sub is called, the xap_item_names array needs to be filled
+        if (!(@xap_item_names)) {
+           foreach my $object_type (&::list_object_types) {
+              foreach my $object_name (&::list_objects_by_type($object_type)) {
+                 my $object = &::get_object_by_name("$object_name");
+                 if ($object and $object->isa('xAP_Item')) {
+                    push @xap_item_names, $object_name;
+                 }
+              }
+           }
+        }
+
         return unless $source;
         # set target as a wildcard if unspecified
         $target = '*' if !($target);
@@ -707,7 +421,7 @@ sub _process_incoming_xap_data {
 	# continue processing if mh is not the source (e.g., heat-beats)
 	if (!($source eq &xAP::get_xap_mh_source_info())) {
                                   # Set states in matching xAP objects
-           for my $name (&::list_objects_by_type('xAP_Item')) {
+           for my $name (@xap_item_names) { #&::list_objects_by_type('xAP_Item')) {
                my $o = &main::get_object_by_name($name);
                $o = $name unless $o; # In case we stored object directly (e.g. lib/Telephony_xAP.pm)
 
@@ -779,7 +493,7 @@ sub _process_incoming_xap_data {
                        $$o{changed} .= "$section : $key = $value | "
                            unless $section eq 'xap-header'; # or ($section eq 'xap-hbeat' and !($$o{class} =~ /^xap-hbeat/i));
                        print "db3 xap state check m=$$o{state_monitor} key=$section : $key  value=$value\n" if $main::Debug{xap} and $main::Debug{xap} == 3;
-                       if ($$o{state_monitor} and "$section : $key" eq $$o{state_monitor} and defined $value) {
+                       if ($$o{state_monitor} and $$o{state_monitor} =~ /$section\s*[:=]\s*$key/i and defined $value) {
                            print "db3 xap setting state to $value\n" if $main::Debug{xap} and $main::Debug{xap} == 3;
                            $state_value = $value;
                        }
@@ -923,14 +637,6 @@ sub get_xap_mh_source_info {
    return &get_mh_vendor_info() . '.' . &get_mh_device_info() . '.' . $device . '.' . $instance;
 }
 
-sub get_xpl_mh_source_info {
-   my $instance = $::config_parms{xpl_title};
-   $instance = $::config_parms{title} unless $instance;
-   $instance = ($instance =~ /misterhouse(.*)pid/i) ? 'misterhouse' : $instance;
-   $instance = &xAP::get_ok_name_part($instance);
-   return &get_mh_vendor_info() . '-' . &get_mh_device_info() . '.' . $instance;
-}
-
 sub get_ok_name_part {
     my ($in_name) = @_;
     my $out_name = lc $in_name;
@@ -967,18 +673,13 @@ sub wildcard_2_regex {
 
 sub received_data {
     my ($protocol) = @_;
-    if ($protocol and $protocol eq 'xPL') {
-	return $xpl_data;
-    } else {
-        return $xap_data;
-    }
+    return $xap_data;
 }
 
 sub send {
     my ($protocol, $class_address, @data) = @_;
 #    print "db5 $protocol send: ca=$class_address d=@data xap_send=$xap_send\n" if ($main::Debug{xap} and $main::Debug{xap} == 5) or ($main::Debug{xpl} and $main::Debug{xpl} == 5);
 
-    if ($protocol eq 'xAP') {
 	my $target = '*';
         my @data2; # this will hold the "stripped" data after looking for a target arg
 	while (@data) {
@@ -990,10 +691,6 @@ sub send {
 	    }
 	}
 	&sendXap($target, $class_address, @data2);
-    } else {
-	my $target = $class_address;
-	&sendXpl($target, 'cmnd', @data);
-    }
 }
 
 sub sendXap {
@@ -1064,65 +761,6 @@ sub sendXapWithHeaderVars {
    }
 }
 
-sub sendXpl {
-    if (defined($xpl_send)) {
-       my ($target, $msg_type, @data) = @_;
-       my ($parms, $msg);
-       $msg  = "xpl-$msg_type\n{\nhop=1\nsource=" . &xAP::get_xpl_mh_source_info() . "\n";
-       if (defined($target)) {
-	  $msg .= "target=$target\n";
-       }
-       $msg .= "}\n";
-       while (@data) {
-	  my $section = shift @data;
-	  $msg .= "$section\n{\n";
-	  my $ptr = shift @data;
-	  my %parms = %$ptr;
-	  for my $key (sort keys %parms) {
-             # order is important for many xPL clients
-             # allow a sort key delimitted by ## to drive the order
-             my ($subkey1,$subkey2) = $key =~ /^(\S+)##(.*)/;
-             if (defined $subkey1 and defined $subkey2) {
-                $msg .= "$subkey2=$parms{$key}\n";
-             } else {
-	        $msg .= "$key=$parms{$key}\n";
-             }
-	  }
-	  $msg .= "}\n";
-       }
-       print "db5 xpl msg: $msg" if $main::Debug{xpl}; # and $main::Debug{xpl} == 5;
-       if ($xpl_send) {
-                                # check to see if the socket is still valid
-           if (!($::Socket_Ports{'xpl_send'}{socka})) {
-               &xAP::_handleStaleXplSockets();
-           }
-           $xpl_send->set($msg) if $::Socket_Ports{'xpl_send'}{socka};
-       }
-   } else {
-      print "WARNING! xAP is disabled and you are trying to send xPL data!! (xAP::sendXpl())\n";
-   }
-}
-
-sub send_xpl_heartbeat {
-    my ($protocol) = @_;
-    my $port = $::Socket_Ports{xpl_listen}{port};
-    my $ip_address = $::config_parms{'xpl_address'};
-    $ip_address = $::Info{IPAddress_local} unless $ip_address;
-
-    my $msg;
-    if ($xpl_send) {
-       $msg  = "xpl-stat\n{\nhop=1\nsource=" . &xAP::get_xpl_mh_source_info() . "\ntarget=*\n}\n";
-       $msg .= "hbeat.app\n{\ninterval=$xpl_hbeat_interval\nport=$port\nremote-ip=$ip_address\n}\n";
-                          # check to see if all of the sockets are still valid
-       &xAP::_handleStaleXplSockets();
-       $xpl_send->set($msg) if $::Socket_Ports{'xpl_send'}{socka};
-       print "db6 $protocol heartbeat: $msg.\n" if $main::Debug{xpl} and $main::Debug{xpl} == 6;
-    } else {
-       print "Error in xAP_Item::send_heartbeat.  xPL send socket not available.\n";
-       print "Either disable xPL (xpl_disable = 1) or resolve system network problem (UDP port 3865).\n";
-    }
-}
-
 sub send_xap_heartbeat {
       my ($port,$base_ref,$hbeat_type) = @_;
       if ($xap_send) {
@@ -1174,42 +812,6 @@ sub _handleStaleXapSockets {
             print "Notice. xAP socket ($port_name) had been closed and has been reopened\n";
          } else {
             print "WARNING! xAP socket ($port_name) had been closed and can not be reopened\n";
-         }
-      }
-      # no need to check each hub "responder" socket as it is automatically reopened on receipt
-      # of client's heartbeat
-   }
-}
-
-sub _handleStaleXplSockets {
-
-   # check main sending socket
-   my $port_name = 'xpl_send';
-   if (!($::Socket_Ports{$port_name}{socka})) {
-      if (&xAP::open_port($::Socket_Ports{$port_name}{port}, 'send', $port_name, 0, 1)) {
-         print "Notice. xPL socket ($port_name) had been closed and has been reopened\n";
-      } else {
-         print "WARNING! xPL socket ($port_name) had been closed and can not be reopened\n";
-      }
-   }
-   # check main listening socket
-   $port_name = 'xpl_listen';
-   if (!($::Socket_Ports{$port_name}{socka})) {
-      if (&xAP::open_port($::Socket_Ports{$port_name}{port}, 'listen', $port_name, 0, 1)) {
-         print "Notice. xPL socket ($port_name) had been closed and has been reopened\n";
-      } else {
-         print "WARNING! xPL socket ($port_name) had been closed and can not be reopened\n";
-      }
-   }
-
-   # check the hub listening socket if hub mode is enabled
-   if (!($::config_parms{xpl_nohub})) {
-      $port_name = 'xpl_hub_listen';
-      if (!($::Socket_Ports{$port_name}{socka})) {
-         if (&xAP::open_port($::Socket_Ports{$port_name}{port}, 'listen', $port_name, 0, 1)) {
-            print "Notice. xPL socket ($port_name) had been closed and has been reopened\n";
-         } else {
-            print "WARNING! xPL socket ($port_name) had been closed and can not be reopened\n";
          }
       }
       # no need to check each hub "responder" socket as it is automatically reopened on receipt
@@ -1493,197 +1095,6 @@ sub current_section_names {
 sub tie_value_convertor {
 	my ($self, $key_name, $convertor) = @_;
 	$$self{_value_convertors}{$key_name} = $convertor if (defined($key_name) && defined($convertor));
-
-}
-
-package xPL_Item;
-
-=begin comment
-
-   IMPORTANT: Mark uses of following methods if for init purposes w/ # noloop.  Sample use follows:
-
-   $mySqueezebox = new xPL_Item('slimdev-slimserv.squeezebox');
-   $mySqueezebox->manage_heartbeat_timeout(360, "speak 'Squeezebox is not reporting'",1); # noloop
-
-   If # noloop is not used on manage_heartbeat_timeout, you will see many attempts to start the timer
-
-   device_monitor(deviceinfo): constrains state updates to only messages w/ a devicekey=devicevalue
-       pair. A common example is where deviceinfo is set to 'someid'.  In this case, state updates
-       are constrained to occur only when a message constains "device=someid".  deviceinfo can also
-       take the literal 'somekey = someid' for messages that use a key other than the literal: 'device'.
-
-=cut
-
-@xPL_Item::ISA = ('xAP_Item');
-
-
-                                  # Support both send and receive objects
-sub new {
-    my ($object_class, $xpl_source, @data, $xpl_class) = @_;
-    my $self = {};
-    bless $self, $object_class;
-
-    $xpl_source = '*' if !$xpl_source or $xpl_source eq '*';
-
-    $$self{state}    = '';
-    $$self{address}  = $xpl_source; # left in place for legacy
-    $$self{address}  = '*' if !$xpl_source;
-    $$self{protocol} = 'xPL';
-    $$self{target_address}   = '*';
-    $$self{class}    = $xpl_class unless !$xpl_class;
-    $$self{m_timeoutHeartBeat} = 0;
-    $$self{m_appStatus} = 'unknown';
-    $$self{m_timerHeartBeat} = new Timer();
-    $$self{m_state_now_msg_type} = 'unknown';
-    $$self{m_allow_empty_state} = 0;
-
-    &xAP_Item::store_data($self, @data);
-
-    $self->state_overload('off'); # By default, do not process ~;: strings as substate/multistate
-
-    return $self;
-}
-
-sub source {
-    my ($self, $p_strSource) = @_;
-    $$self{address} = $p_strSource if defined $p_strSource;
-    return $$self{address};
-}
-
-sub device_monitor {
-    my ($self, $monitor_info) = @_;
-    if ($monitor_info) {
-       my ($key,$value) = $monitor_info =~ /(\S+)\s*[:=]\s*(\S+)/;
-       if (!($value or $value =~ /^0/)) {
-          $value = ($key) ? $key : $monitor_info;
-          $key = 'device';
-       }
-       $$self{_device_id} = lc $value;
-       $$self{_device_id_key} = lc $key;
-    }
-    if (defined $$self{_device_id}) {
-       return (($$self{_device_id_key}) ? $$self{_device_id_key} : 'device') . $$self{_device_id};
-    } else {
-       return;
-    }
-}
-
-sub default_setstate {
-    my ($self, $state, $substate, $set_by) = @_;
-
-                                # Send data, unless we are processing incoming data
-    return if $set_by =~ /^xpl/i;
-
-    my @parms;
-
-    if ($$self{_on_set_message}) {
-       for my $class_name (sort keys %{$$self{_on_set_message}}) {
-          my $block;
-          for my $msg_key (sort keys %{$$self{_on_set_message}{$class_name}}) {
-             my $field_value = eval($$self{_on_set_message}{$class_name}{$msg_key});
-             $block->{$msg_key} = $field_value;
-          }
-          push @parms, $class_name, $block;
-       }
-    } else {
-       my ($section, $key) = $$self{state_monitor} =~ /(\S+)\s*[:=]\s*(\S+)/;
-       $$self{$section}{$key} = $state;
-
-       for my $section (sort keys %{$$self{sections}}) {
-          next unless $$self{sections}{$section} eq 'send'; # Do not echo received data
-          push @parms, $section, $$self{$section};
-       }
-    }
-
-    if (@parms) {
-       # sending stat info about ourselves?
-       if (lc $$self{source} eq &xAP::get_xpl_mh_source_info()) {
-           $self->send_trig(@parms);
-       } else {
-       # must be cmnd info to another device addressed by address
-           $self->send_cmnd(@parms);
-       }
-    }
-}
-
-sub state_now_msg_type {
-    my ($self, $p_msgType) = @_;
-    $$self{m_state_now_msg_type} = $p_msgType if defined($p_msgType);
-    return $$self{m_state_now_msg_type};
-}
-
-# DO NOT use the following sub--it exists only because this class inherits from xAP_Item
-# This is largely because the concept of sending a message doesn't exist in xPL and more importantly,
-#    this overriden method uses different arguments
-# Instead, DO use either send_cmnd, send_trig or send_stat
-sub send_message {
-    my ($self, $p_strTarget, @p_data) = @_;
-    $self->send_cmnd(@p_data);
-}
-
-sub send_cmnd {
-    my ($self, @p_data) = @_;
-    if (defined $$self{_device_id}) {
-       my $classname = shift @p_data;
-       my $ptr = shift @p_data;
-       my @new_data = ();
-       $ptr->{$$self{_device_id_key}} = $$self{_device_id};
-       push @new_data, $classname, $ptr;
-       &xAP::sendXpl($self->source, 'cmnd', @new_data);
-    } else {
-       &xAP::sendXpl($self->source, 'cmnd', @p_data);
-    }
-}
-
-sub send_stat {
-    my ($self, @p_data) = @_;
-    if (defined $$self{_device_id}) {
-       my $classname = shift @p_data;
-       my $ptr = shift @p_data;
-       my @new_data = ();
-       $ptr->{$$self{_device_id_key}} = $$self{_device_id};
-       push @new_data, $classname, $ptr;
-       &xAP::sendXpl('*', 'stat', @new_data);
-    } else {
-       &xAP::sendXpl('*', 'stat', @p_data);
-    }
-}
-
-sub send_trig {
-    my ($self, @p_data) = @_;
-    if (defined $$self{_device_id}) {
-       my $classname = shift @p_data;
-       my $ptr = shift @p_data;
-       my @new_data = ();
-       $ptr->{$$self{_device_id_key}} = $$self{_device_id};
-       push @new_data, $classname, $ptr;
-       &xAP::sendXpl('*', 'trig', @new_data);
-    } else {
-       &xAP::sendXpl('*', 'trig', @p_data);
-    }
-}
-
-package xPL_Rio;
-
-@xPL_Rio::ISA = ('xPL_Item');
-
-                                  # Support both send and receive objects
-sub new {
-    my ($object_class, $xpl_source, $xpl_target) = @_;
-    my $self = {};
-    bless $self, $object_class;
-
-    $$self{state}    = '';
-    $$self{source}  = $xpl_source;
-    $$self{protocol} = 'xPL';
-    $$self{target_address}  =  $xpl_target unless !$xpl_target;
-
-    &xAP_Item::store_data($self, 'rio.basic' => {sel => '$state'});
-
-    @{$$self{states}} = ('play', 'stop', 'mute' , 'volume +20' , 'volume -20', 'volume 100' ,
-                         'skip', 'back', 'random' ,'power on', 'power off', 'light on', 'light off');
-
-    return $self;
 
 }
 
