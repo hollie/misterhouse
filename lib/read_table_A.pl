@@ -104,6 +104,17 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon_Device(\$$object, \'$address\')";
     }
+    elsif($type eq "IPLL") {
+        require 'Insteon_Link.pm';
+        ($address, $name, $grouplist, $object, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        my ($deviceid,$groupid) = $address =~ /(\S+):(\S+)/;
+        if ($deviceid =~ /$object/i) {
+           $object = "Insteon_Link(\$$object, \'00.00.00:$groupid\')";
+        } else {
+           $object = "Insteon_Link(\$$object, \'$address\')";
+        }
+    }
     elsif($type eq 'FROG') {
         require 'FroggyRita.pm';
 	($address, $name, $grouplist, @other) = @item_info;
