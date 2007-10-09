@@ -638,6 +638,7 @@ sub setup {
     use LCD;
     use xAP_Items;
     use xAP_Items;
+    use xPL_Items;
     use EIB_Items;
     use EIB_Device;
     eval "use BSC";
@@ -782,7 +783,8 @@ sub setup {
         &socket_open($port_name);
     }
 
-    &xAP::startup;              # Start the xAP/xPL sockets, in lib/xAP_Items.pm
+    &xAP::startup;              # Start the xAP sockets, in lib/xAP_Items.pm
+    &xPL::startup;              # Start the xPL sockets, in lib/xPL_Items.pm
     &EIB_Device::startup;       # Start the EIB device, in lib/EIB_Device.pm
 
 
@@ -1159,7 +1161,7 @@ sub set_by_to_target {
     }
 
     if (!($no_strip)) {
-        $set_by = $1 if ($set_by and $set_by =~ /(.*?) \[/); #web, email, im (and xap coming soon)
+        $set_by = $1 if ($set_by and $set_by =~ /(.*?) \[/); #web, email, im, xap, xpl
         $set_by = undef if ref $set_by;
     }
     return $set_by;
@@ -6628,7 +6630,7 @@ sub undo_last_action {
 
 	my $ref_type = ref $ref;
 
-	my $automation = (!$ref_set_by or $ref_set_by =~ /usercode/i or $ref_set_by =~ /unknown/i or $ref_set_by =~ /time/i or $ref_set_by =~ /^xap$/i or $ref_set_by =~ /^status$/i); # includes tie_time
+	my $automation = (!$ref_set_by or $ref_set_by =~ /usercode/i or $ref_set_by =~ /unknown/i or $ref_set_by =~ /time/i or $ref_set_by =~ /^xap$/i or $ref_set_by =~ /^xpl$/i or $ref_set_by =~ /^status$/i); # includes tie_time
 
         if (($ref->isa('X10_Item') or $ref->isa('Serial_Item') or $ref->isa('Voice_Cmd') or $ref->isa('IR_Item') or $ref->isa('Generic_Item')) and !$automation) {
             my $name = &pretty_object_name($ref->{object_name});
