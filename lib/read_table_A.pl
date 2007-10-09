@@ -627,6 +627,19 @@ sub read_table_A {
             $code .= "use BSC;\n";
         }
     } 
+    elsif($type eq "XPL_SENSOR") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if($other){
+            $object = "xPL_Sensor('$address',$other)";
+        }
+        else{
+            $object = "xPL_Sensor('$address')";
+        }
+        if( ! $packages{xPL_Items}++ ) {   # first time for this object type?
+            $code .= "use xPL_Items;\n";
+        }
+    } 
     elsif($type eq "X10_SCENE") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
