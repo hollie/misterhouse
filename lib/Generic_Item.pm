@@ -289,6 +289,10 @@ sub respond {
 		my ($address) = $set_by =~ /\[(.+)\]/;
 		$to = $address if !$parms{to};
 	}
+	elsif ($set_by =~ /^xpl/i) {
+		my ($address) = $set_by =~ /\[(.+)\]/;
+		$to = $address if !$parms{to};
+	}
 	elsif ($set_by =~ /^telnet/i) {
 		my ($address) = $set_by =~ /\[(.+)\]/;
 		$to = $address if !$parms{to};
