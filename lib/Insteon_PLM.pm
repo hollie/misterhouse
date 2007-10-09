@@ -209,7 +209,7 @@ sub serial_startup {
 	my $speed = 19200;
 
    $Insteon_PLM_Data{$instance}{'serial_port'} = $port;    
-	&::print_log("PLM:serial:$port:$speed");
+	&::print_log("[Insteon_PLM] serial:$port:$speed");
    &::serial_port_create($instance, $port, $speed,'none','raw');
 
   if (1==scalar(keys %Insteon_PLM_Data)) {  # Add hooks on first call only
@@ -260,10 +260,10 @@ sub new {
 
 	$$self{xmit_delay} = $::config_parms{Insteon_PLM_xmit_delay};
 	$$self{xmit_delay} = 0.125 unless defined $$self{xmit_delay};
-	&::print_log("Insteon_PLM: setting default xmit delay to: $$self{xmit_delay}");
+	&::print_log("[Insteon_PLM] setting default xmit delay to: $$self{xmit_delay}");
 	$$self{xmit_x10_delay} = $::config_parms{Insteon_PLM_xmit_x10_delay};
 	$$self{xmit_x10_delay} = 0.5 unless defined $$self{xmit_x10_delay};
-	&::print_log("Insteon_PLM: setting x10 xmit delay to: $$self{xmit_x10_delay}");
+	&::print_log("[Insteon_PLM] setting x10 xmit delay to: $$self{xmit_x10_delay}");
 	
 #   $Insteon_PLM_Data{$port_name}{'send_count'} = 0;
 #   push(@{$$self{states}}, 'on', 'off');
@@ -303,6 +303,8 @@ sub set
 		)
 	{
 		$self->_xlate_mh_x10($p_state,$p_setby);
+	} elsif ($p_setby->isa("Insteon_Link")) {
+		$self->send_plm_cmd('0261' . $p_state);
 	} elsif ($p_setby->isa("Insteon_Device")) {
 		$self->send_plm_cmd('0262' . $p_state);
 	} else {
@@ -322,6 +324,19 @@ sub initiate_linking_as_responder
 	$cmd .= $group; # WARN - must be 2 digits and in hex!!
 	$self->send_plm_cmd($cmd);
 }
+
+sub initiate_linking_as_controller
+{
+	my ($self, $group) = @_;
+
+	$group = 'FF' unless $group;
+	# set up the PLM as the responder
+	my $cmd = '0264'; # start all linking
+	$cmd .= '01'; # controller code
+	$cmd .= $group; # WARN - must be 2 digits and in hex!!
+	$self->send_plm_cmd($cmd);
+}
+
 
 sub cancel_linking
 {
@@ -385,7 +400,7 @@ sub _parse_data {
 
 	my $processedNibs=0;
 
-	&::print_log( "Insteon_PLM: Parsing serial data: $data") if $main::Debug{insteon};
+	&::print_log( "[Insteon_PLM] Parsing serial data: $data") if $main::Debug{insteon};
 	
 	foreach my $data_1 (split(/(0263\w{6})|(0252\w{4})|(0250\w{18})|(0251\w{46})|(0261\w{6})!(0262\w{14})|(0253\w{16})|(0256\w{8})|(0257\w{16})|(0258\w{2})/,$data))
 	{
@@ -408,7 +423,7 @@ sub _parse_data {
 		if ($prev_cmd ne '' and substr($data_1,0,length($prev_cmd)) eq $prev_cmd) 
 		{
 			#it is
-			my $ret_code = substr($data_1,length($prev_cmd),2);
+			my $ret_code = substr($data_1,length($data_1)-2,2);
 #			&::print_log("PLM: Return code $ret_code");
 			if ($ret_code eq '06') {
 				# command succeeded
@@ -417,9 +432,14 @@ sub _parse_data {
 				pop(@{$$self{command_stack}});				
 				select(undef,undef,undef,.15);
 				$self->process_command_stack();
+			} elsif ($ret_code eq '15') { #NAK Received
+				&::print_log("[Insteon_PLM] Interface extremely busy.");
+				#retry
+				$$self{xmit_in_progress} = 0;
+				$self->process_command_stack();			
 			} else {
 				# We have a problem (Usually we stepped on another X10 command)
-				&::print_log("PLM: Command error: $data_1.");
+				&::print_log("[Insteon_PLM] Command error: $data_1.");
 				$$self{xmit_in_progress} = 0;
 				#move it off the top of the stack and re-transmit later!
 				#TODO: We should keep track of an errored command and kill it if it fails twice.  prevent an infinite loop here
@@ -428,32 +448,28 @@ sub _parse_data {
 				$self->process_command_stack();
 			}			
 		} elsif (substr($data_1,0,4) eq '0250') { #Insteon Standard Received
-#			&::print_log("Insteon Received:$data_1");
 			$self->delegate($data_1);
 		} elsif (substr($data_1,0,4) eq '0251') { #Insteon Extended Received
-#			&::print_log("Insteon Received:$data_1");
-#			&::process_serial_data($self->_xlate_x10_mh($data_1));	
 			$self->delegate($data_1);
 		} elsif (substr($data_1,0,4) eq '0252') { #X10 Received
-#			&::print_log("X10 Received:$data_1");
 			&::process_serial_data($self->_xlate_x10_mh($data_1));	
 		} elsif (substr($data_1,0,4) eq '0253') { #ALL-Linking Completed
-			&::print_log("ALL-Linking Completed:$data_1") if $main::Debug{insteon};
+			&::print_log("[Insteon_PLM] ALL-Linking Completed:$data_1") if $main::Debug{insteon};
 #			$self->delegate($data_1);
 		} elsif (substr($data_1,0,4) eq '0256') { #ALL-Link Cleanup Failure Report
-			&::print_log("ALL-Link Cleanup Failure Report:$data_1") if $main::Debug{insteon};
+			&::print_log("[Insteon_PLM] ALL-Link Cleanup Failure Report:$data_1") if $main::Debug{insteon};
 #			$self->delegate($data_1);
 		} elsif (substr($data_1,0,4) eq '0257') { #ALL-Link Record Response
-			&::print_log("ALL-Link Record Response:$data_1") if $main::Debug{insteon};
+			&::print_log("[Insteon_PLM] ALL-Link Record Response:$data_1") if $main::Debug{insteon};
 #			$self->delegate($data_1);
 		} elsif (substr($data_1,0,4) eq '0258') { #ALL-Link Cleanup Status Report
-			&::print_log("ALL-Link Cleanup Status Report:$data_1") if $main::Debug{insteon};
+			&::print_log("[Insteon_PLM] ALL-Link Cleanup Status Report:$data_1") if $main::Debug{insteon};
 #			$self->delegate($data_1);
 		} elsif (substr($data_1,0,4) eq '0261') { #ALL-Link Broadcast 
-			&::print_log("ALL-Link Broadcast:$data_1") if $main::Debug{insteon};
+			&::print_log("[Insteon_PLM] ALL-Link Broadcast:$data_1") if $main::Debug{insteon};
 #			$self->delegate($data_1);
 		} elsif (substr($data_1,0,2) eq '15') { #NAK Received
-			&::print_log("PLM Interface extremely busy.");
+			&::print_log("[Insteon_PLM] Interface extremely busy.");
 			#retry
 			$$self{xmit_in_progress} = 0;
 			$self->process_command_stack();			
@@ -496,7 +512,7 @@ sub _xlate_mh_x10
 	my $uc = lc(substr($p_setby->{x10_id},2,1));
 
 	if ($hc eq undef) {
-		&::print_log("PLM: Object:$p_setby Doesnt have an x10 id (yet)");
+		&::print_log("[Insteon_PLM] Object:$p_setby Doesnt have an x10 id (yet)");
 		return undef;
 	}
 
@@ -564,19 +580,20 @@ sub _xlate_x10_mh
 	return $msg;
 }
 
-#Not used currently.. For direct object back delagation. Instead we are using process serial data
 sub delegate
 {
 	my ($self,$p_data) = @_;
 
 	my $data = substr($p_data,4,length($p_data)-4);
-	my %msg = &Insteon_Device::xlate_insteon_mh($data);
+	my %msg = &Insteon_Device::_xlate_insteon_mh($data);
 
-	&::print_log ("Insteon_PLM: DELEGATE:$msg{source}:$msg{destination}:$data:") if $main::Debug{insteon};
+	&::print_log ("[Insteon_PLM] DELEGATE:$msg{source}:$msg{destination}:$data:") if $main::Debug{insteon};
 
 	# get the matching object
 	my $object = $self->get_object($msg{source}, $msg{group});
-	$object->process_message($self, %msg) if defined $object;
+	&::print_log("[Insteon_PLM] Warn! Unable to locate object for source: $msg{source} and group; $msg{group}")
+		if (!(defined $object));
+	$object->_process_message($self, %msg) if defined $object;
 
 }
 
@@ -643,9 +660,11 @@ sub add_item
 #    $p_object->tie_items($self);
     push @{$$self{objects}}, $p_object;
 	#request an initial state from the device
-	if (! $p_object->isa('UPB_Link') ) 
-	{	
-#		$p_object->set("status_request");
+	if (!($p_object->isa('Insteon_Link')) and $p_object->isa('Insteon_Device')) 
+	{
+		# don't request status for objects associated w/ other than the primary group 
+		#    as they are psuedo links	
+		$p_object->request_status($p_object) if $p_object->group eq '01';
 	}
 	return $p_object;
 }

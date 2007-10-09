@@ -75,7 +75,7 @@ sub new
 	$self->rate(undef);
 	$$self{flag} = "0F";
 	$$self{ackMode} = "1";
-	$$self{interface}->add($self);
+	$self->interface()->add($self);
 	return $self;
 }
 
@@ -116,52 +116,6 @@ sub rate
 	return $$self{rate};
 }
 
-sub process_message
-{
-	my ($self,$p_setby,%msg) = @_;
-	my $p_state = undef;
-
-	# the current approach assumes that links from other controllers to some responder
-	# would be seen by the plm by also direct linking the controller as a responder
-	# and not putting the plm into monitor mode.  This means that updating the state
-	# of the responder based upon the link controller's request needs to be handled
-	# by Insteon_Link (or something else?).  TBD.
-	$$self{m_is_locally_set} = 1 if $msg{source} eq lc $self->device_id;
-	if ($msg{is_ack}) {
-		if ($$self{m_status_request_pending}) {
-			my $ack_on_level = hex($msg{extra});
-			## convert on level from hex to numerical
-			&::print_log("Insteon_Device: received status request report for " .
-				$self->{object_name} . " with on-level: $ack_on_level") if $main::Debug{insteon};
-			if ($ack_on_level == 0) {
-				$self->SUPER::set('off', $p_setby);
-			} elsif ($ack_on_level == 255) {
-				$self->SUPER::set('on', $p_setby);
-			} else {
-				$ack_on_level = $ack_on_level / 2.5;
-				$self->SUPER::set(sprintf("%d",$ack_on_level) . '%', $p_setby);
-			}
-			$$self{m_status_request_pending} = 0;
-		} else {
-		## should really consider not ignoring but rather using to confirm receipt
-			&::print_log("Insteon_Device: is an ack message for " . $self->{object_name} 
-				. " ... skipping") if $main::Debug{insteon};
-		}
-	} elsif ($msg{is_nack}) {
-		&::print_log("Insteon_Device: WARN!! ia a nack message for " . $self->{object_name} 
-			. " ... skipping");
-	} elsif ($msg{command} eq 'start_manual_change') {
-		# do nothing; although, maybe anticipate change? we should always get a stop
-	} elsif ($msg{command} eq 'stop_manual_change') {
-		$self->request_status();
-	} else {
-		## TO-DO: make sure that the state passed by command is something that is reasonable to set
-		$p_state = $msg{command};
-		$self->set($p_state, $p_setby);
-	}
-
-}
-
 sub set
 {
 	my ($self,$p_state,$p_setby,$p_response) = @_;
@@ -182,14 +136,93 @@ sub set
 			&::print_log("Insteon_Device: " . $self->get_object_name() 
 				. "::set($p_state, $p_setby)") if $main::Debug{insteon};
 	} else {
-		$$self{interface}->set($self->_xlate_mh_insteon($p_state),$self);
-	    &::print_log("Insteon_Device: " . $self->get_object_name() . "::set($p_state, $p_setby)")
-		if $main::Debug{insteon};
+		$self->interface()->set($self->_xlate_mh_insteon($p_state),$self);
+		&::print_log("Insteon_Device: " . $self->get_object_name() . "::set($p_state, $p_setby)")
+			if $main::Debug{insteon};
 	}
 	$self->SUPER::set($p_state,$p_setby,$p_response) if defined $p_state;
 }
 
-sub xlate_insteon_mh
+sub writable {
+	my ($self, $p_write) = @_;
+	if (defined $p_write) {
+		if ($p_write =~ /r/i or $p_write =~/^0/) {
+			$$self{m_write} = 0;
+		} else {
+			$$self{m_write} = 1;
+		}
+	}
+	return $$self{m_write};
+}
+
+sub is_locally_set {
+	my ($self) = @_;
+	return $$self{m_is_locally_set};
+}
+
+sub group
+{
+	my ($self, $p_group) = @_;
+	$$self{m_group} = $p_group if $p_group;
+	return $$self{m_group};
+}
+
+### WARN: Testing using the following does not produce results as expected.  Use at your own risk. [GL]
+sub remote_set_button_tap
+{
+	my ($self,$p_number_taps) = @_;
+	my $taps = ($p_number_taps =~ /2/) ? '02' : '01';
+	$self->interface()->set($self->_xlate_mh_insteon('remote_set_button_tap','standard',$taps),$self);
+}
+
+sub request_status
+{
+	my ($self) = @_;
+	$$self{m_status_request_pending} = 1;
+	$self->interface()->set($self->_xlate_mh_insteon('status_request'),$self);
+}
+
+
+sub _process_message
+{
+	my ($self,$p_setby,%msg) = @_;
+	my $p_state = undef;
+
+	# the current approach assumes that links from other controllers to some responder
+	# would be seen by the plm by also direct linking the controller as a responder
+	# and not putting the plm into monitor mode.  This means that updating the state
+	# of the responder based upon the link controller's request is handled
+	# by Insteon_Link.
+	$$self{m_is_locally_set} = 1 if $msg{source} eq lc $self->device_id;
+	if ($msg{is_ack}) {
+		if ($$self{m_status_request_pending}) {
+			my $ack_on_level = hex($msg{extra});
+			## convert on level from hex to numerical
+			&::print_log("Insteon_Device: received status request report for " .
+				$self->{object_name} . " with on-level: $ack_on_level") if $main::Debug{insteon};
+			$self->_on_status_request($ack_on_level, $p_setby);
+		} elsif ($msg{command} eq 'peek') {
+			$self->_on_peek(%msg);
+		} else {
+		## should really consider not ignoring but rather using to confirm receipt
+			&::print_log("Insteon_Device: is an ack message for " . $self->{object_name} 
+				. " ... skipping") if $main::Debug{insteon};
+		}
+	} elsif ($msg{is_nack}) {
+		&::print_log("Insteon_Device: WARN!! ia a nack message for " . $self->{object_name} 
+			. " ... skipping");
+	} elsif ($msg{command} eq 'start_manual_change') {
+		# do nothing; although, maybe anticipate change? we should always get a stop
+	} elsif ($msg{command} eq 'stop_manual_change') {
+		$self->request_status();
+	} else {
+		## TO-DO: make sure that the state passed by command is something that is reasonable to set
+		$p_state = $msg{command};
+		$self->set($p_state, $p_setby);
+	}
+}
+
+sub _xlate_insteon_mh
 {
 	my ($p_state) = @_;
 	my %msg = {};
@@ -199,7 +232,9 @@ sub xlate_insteon_mh
 	my $msgflag = hex(uc substr($p_state,12,1));
 	$msg{is_extended} = 0x01 & $msgflag;
 	if ($msg{is_extended}) {
-		&print_log("Insteon_Device: WARN !!!! Extended message encountered.  Support does not yet exist!!");
+		$msg{source} = substr($p_state,0,6);
+		$msg{destination} = substr($p_state,6,6);
+		$msg{extra} = substr($p_state,16,16);
 	} else {
 		$msg{source} = substr($p_state,0,6);
 		$msgflag = $msgflag >> 1;
@@ -231,26 +266,26 @@ sub xlate_insteon_mh
 				$msg{is_nack} = 1;
 			}
 		}
-		my $cmd1 = substr($p_state,14,2);
+	}
+	my $cmd1 = substr($p_state,14,2);
 
-		&::print_log("Insteon_Device: XLATE:$cmd1:") if (!($msg{is_ack} or $msg{is_nack}))
+	&::print_log("Insteon_Device: XLATE:$cmd1:") if (!($msg{is_ack} or $msg{is_nack}))
 			and $main::Debug{insteon};
-		for my $key (keys %message_types){
-			if (pack("C",$message_types{$key}) eq pack("H*",$cmd1))
-			{
-				&::print_log("Insteon_Device: FOUND: $key") 
-					if (!($msg{is_ack} or $msg{is_nack})) and $main::Debug{insteon};
-				$msg{command}=$key;
-				last;
-			}
+	for my $key (keys %message_types){
+		if (pack("C",$message_types{$key}) eq pack("H*",$cmd1))
+		{
+			&::print_log("Insteon_Device: FOUND: $key") 
+				if (!($msg{is_ack} or $msg{is_nack})) and $main::Debug{insteon};
+			$msg{command}=$key;
+			last;
 		}
 	}
-	return %msg;
+return %msg;
 }
 
 sub _xlate_mh_insteon
 {
-	my ($self,$p_state,$p_extra) = @_;
+	my ($self,$p_state,$p_type, $p_extra) = @_;
 	my $cmd;
 	my @args;
 	my $msg;
@@ -271,8 +306,13 @@ sub _xlate_mh_insteon
 			$level = 0;
 		} elsif ($msg=~/^([1]?[0-9]?[0-9])/)
 		{
-			$level = $1 * 2.5;
-			$msg='on';
+			if ($1 < 1) {
+				$msg='off';
+				$level = 0;
+			} else {
+				$level = $1 * 2.5;
+				$msg='on';
+			}
 		}
 	}
 
@@ -292,8 +332,16 @@ sub _xlate_mh_insteon
 #	$cmd="0262";
 
 	$cmd='';
-	$cmd.=$self->device_id();
-	$cmd.=$$self{flag};
+        if ($p_type =~ /broadcast/i) {
+		$cmd.=$self->group;
+	} else {
+		$cmd.=$self->device_id();
+		if ($p_type =~ /extended/i) {
+			$cmd.='1F';
+		} else {
+			$cmd.='0F';
+		}
+	}
 	$cmd.= unpack("H*",pack("C",$message_types{$msg}));
 	if ($p_extra)
 	{
@@ -309,48 +357,94 @@ sub _xlate_mh_insteon
 	return $cmd;
 }
 
-sub writable {
-	my ($self, $p_write) = @_;
-	if (defined $p_write) {
-		if ($p_write =~ /r/i or $p_write =~/^0/) {
-			$$self{m_write} = 0;
-		} else {
-			$$self{m_write} = 1;
-		}
+sub _on_status_request
+{
+	my ($self, $p_onlevel, $p_setby) = @_;
+	if ($p_onlevel == 0) {
+		$self->SUPER::set('off', $p_setby);
+	} elsif ($p_onlevel == 255) {
+		$self->SUPER::set('on', $p_setby);
+	} else {
+		$p_onlevel = $p_onlevel / 2.5;
+		$self->SUPER::set(sprintf("%d",$p_onlevel) . '%', $p_setby);
 	}
-	return $$self{m_write};
+	$$self{m_status_request_pending} = 0;
 }
 
-sub is_locally_set {
-	my ($self) = @_;
-	return $$self{m_is_locally_set};
-}
-
-sub group
+sub _on_peek
 {
-	my ($self, $p_group) = @_;
-	$$self{m_group} = $p_group if $p_group;
-	return $$self{m_group};
+	my ($self,%msg) = @_;
+	if ($msg{is_extended}) {
+		&::print_log("Insteon_Device: extended peek for " . $self->{object_name} 
+		. " is " . $msg{extra}) if $main::Debug{insteon};
+	} else {
+		if ($$self{m_peek_action} eq 'adlb_flag') {
+			$$self{pending_adlb}{flag} = $msg{extra};
+			## confirm that we have a high-water mark; otherwise stop
+			$$self{pending_adlb}{address} = $$self{m_peek_msb} . $$self{m_peek_lsb};
+			$$self{m_peek_lsb} = sprintf("%02X", hex($$self{m_peek_lsb}) + 1);
+			$$self{m_peek_action} = 'adlb_group';
+			$$self{interface}->set($self->_xlate_mh_insteon('peek','standard',$$self{m_peek_lsb}),$self);
+		} elsif ($$self{m_peek_action} eq 'adlb_group') {
+			$$self{pending_adlb}{group} = $msg{extra};
+			$$self{m_peek_lsb} = sprintf("%02X", hex($$self{m_peek_lsb}) + 1);
+			$$self{m_peek_action} = 'adlb_devhi';
+			$$self{interface}->set($self->_xlate_mh_insteon('peek','standard',$$self{m_peek_lsb}),$self);
+		} elsif ($$self{m_peek_action} eq 'adlb_devhi') {
+			$$self{pending_adlb}{deviceid} = $msg{extra};
+			$$self{m_peek_lsb} = sprintf("%02X", hex($$self{m_peek_lsb}) + 1);
+			$$self{m_peek_action} = 'adlb_devmid';
+			$$self{interface}->set($self->_xlate_mh_insteon('peek','standard',$$self{m_peek_lsb}),$self);
+		} elsif ($$self{m_peek_action} eq 'adlb_devmid') {
+			$$self{pending_adlb}{deviceid} .= $msg{extra};
+			$$self{m_peek_lsb} = sprintf("%02X", hex($$self{m_peek_lsb}) + 1);
+			$$self{m_peek_action} = 'adlb_devlo';
+			$$self{interface}->set($self->_xlate_mh_insteon('peek','standard',$$self{m_peek_lsb}),$self);
+		} elsif ($$self{m_peek_action} eq 'adlb_devlo') {
+			$$self{pending_adlb}{deviceid} .= $msg{extra};
+			$$self{m_peek_lsb} = sprintf("%02X", hex($$self{m_peek_lsb}) + 1);
+			$$self{m_peek_action} = 'adlb_data1';
+			$$self{interface}->set($self->_xlate_mh_insteon('peek','standard',$$self{m_peek_lsb}),$self);
+		} elsif ($$self{m_peek_action} eq 'adlb_data1') {
+			$$self{pending_adlb}{data1} .= $msg{extra};
+			$$self{m_peek_lsb} = sprintf("%02X", hex($$self{m_peek_lsb}) + 1);
+			$$self{m_peek_action} = 'adlb_data2';
+			$$self{interface}->set($self->_xlate_mh_insteon('peek','standard',$$self{m_peek_lsb}),$self);
+		} elsif ($$self{m_peek_action} eq 'adlb_data2') {
+			$$self{pending_adlb}{data2} .= $msg{extra};
+			$$self{m_peek_lsb} = sprintf("%02X", hex($$self{m_peek_lsb}) + 1);
+			$$self{m_peek_action} = 'adlb_data3';
+			$$self{interface}->set($self->_xlate_mh_insteon('peek','standard',$$self{m_peek_lsb}),$self);
+		} elsif ($$self{m_peek_action} eq 'adlb_data3') {
+			$$self{pending_adlb}{data3} .= $msg{extra};
+		}
+		&::print_log("Insteon_Device: peek for " . $self->{object_name} 
+		. " is " . $msg{extra}) if $main::Debug{insteon};
+	}	
 }
 
-#sub set_on_ramp_rate
-#{
-#	my ($self, $p_ramprate, $p_onlevel) = @_;
-#	my $onlevel = ($p_onlevel) ? $p_onlevel : 'F';
-#        $$self{interface}->send_plm_cmd('0262' . $self->_xlate_mh_insteon('on_at_ramp_rate',
-#		$onlevel . $p_ramprate));
-#}
-
-#sub set_off_ramp_rate
-#{
-#	my ($self, $p_ramprate) = @_;
-#}
-
-sub request_status
+sub set_receive
 {
-	my ($self) = @_;
-	$$self{m_status_request_pending} = 1;
-	$$self{interface}->send_plm_cmd('0262' . $self->_xlate_mh_insteon('status_request'));
+	my ($self, $p_state, $p_setby, $p_response) = @_;
+	$self->SUPER::set($p_state, $p_setby, $p_response);
 }
+
+sub _peek
+{
+	my ($self, $address, $extended) = @_;
+	my $msb = substr($address,0,2);
+	my $lsb = substr($address,2,2);
+	$$self{interface}->set($self->_xlate_mh_insteon('set_address_msb','standard',$msb),$self);
+	if ($extended) {
+		$$self{interface}->set($self->_xlate_mh_insteon('peek','extended',
+			$lsb . "0000000000000000000000000000"),$self);
+	} else {
+		$$self{m_peek_lsb} = $lsb;
+		$$self{m_peek_msb} = $msb;
+		$$self{m_peek_action} = 'adlb_flag';
+		$$self{interface}->set($self->_xlate_mh_insteon('peek','standard',$lsb),$self);
+	}
+}
+
 
 1;
