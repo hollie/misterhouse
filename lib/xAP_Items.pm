@@ -407,6 +407,7 @@ sub _process_incoming_xap_data {
            foreach my $object_type (&::list_object_types) {
               foreach my $object_name (&::list_objects_by_type($object_type)) {
                  my $object = &::get_object_by_name("$object_name");
+                 $object = $object_name unless $object;
                  if ($object and $object->isa('xAP_Item')) {
                     push @xap_item_names, $object_name;
                  }
