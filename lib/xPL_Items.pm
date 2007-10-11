@@ -35,9 +35,6 @@ sub startup {
 
 # determine our local ipaddress(es)
 my @ipaddresses = &::get_ip_address;
-foreach my $ipaddress (@ipaddresses) {
-   print "######### local ipaddress: $ipaddress\n";
-}
     @xpl_item_names = ();
     my ($port);
 
@@ -195,7 +192,7 @@ sub check_for_data {
     }
 
     # check to see if hbeats need to be sent
-    if ($::New_Minute) {
+    if (&::new_minute($xpl_hbeat_interval)) {
        if ($xpl_send) {
           if ($xpl_hbeat_counter == 5) {
 	     &xPL::send_xpl_heartbeat();
@@ -403,7 +400,7 @@ sub _process_incoming_xpl_data {
                        $$o{$section}{$key} = $value;
                                   # Monitor what changed (real data, and include hbeat as it may include useful info, e.g., slimserver).
                        $$o{changed} .= "$section : $key = $value | "
-                           unless $section eq 'xpl-stat' or $section eq 'xpl-trig' or $section eq 'xpl-cmnd'; # or ($section =~ /^hbeat./i and !($$o{class} =~ /^hbeat.app/i));
+                           unless $section eq 'xpl-stat' or $section eq 'xpl-trig' or $section eq 'xpl-cmnd' or ($section eq 'hbeat.app' and $key eq 'status');
                        print "db3 xpl state check m=$$o{state_monitor} key=$section : $key  value=$value\n" if $main::Debug{xpl};# and $main::Debug{xpl} == 3;
                        if ($$o{state_monitor} and $$o{state_monitor} =~ /$section\s*[:=]\s*$key/i and defined $value) {
                            print "db3 xpl setting state to $value\n" if $main::Debug{xpl} and $main::Debug{xpl} == 3;
