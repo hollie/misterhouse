@@ -33,6 +33,11 @@ sub startup {
                                 # In case you don't want xpl for some reason
     return if $::config_parms{xpl_disable};
 
+# determine our local ipaddress(es)
+my @ipaddresses = &::get_ip_address;
+foreach my $ipaddress (@ipaddresses) {
+   print "######### local ipaddress: $ipaddress\n";
+}
     @xpl_item_names = ();
     my ($port);
 
@@ -126,24 +131,30 @@ sub open_port {
     my $sock;
     if ($send_listen eq 'send') {
         my $dest_address;
-#       $dest_address = inet_ntoa(INADDR_BROADCAST);
-        $dest_address = $::config_parms{'ipaddress_xpl_broadcast'} if $port_name =~ /^xpl/i;
-        $dest_address = '255.255.255.255' unless $dest_address;
-	if ($local) {
-		if ($port_name =~ /^xpl/i) {
-			$dest_address = $::config_parms{'ipaddress_xpl'};
-        		$dest_address = $::config_parms{'xpl_address'} unless $dest_address;
-		        $dest_address = $::Info{IPAddress_local} unless $dest_address;
- 		} 
-	}
+        if ($local) {
+#           $dest_address = $::config_parms{'ipaddress_xpl'};
+#           $dest_address = $::config_parms{'xpl_address'} unless $dest_address;
+           if ($main::OS_win) {
+           $dest_address = $::Info{IPAddress_local} unless $dest_address;
+           } else {
+              $dest_address = '0.0.0.0';
+           }
+        } else {
+#          $dest_address = inet_ntoa(INADDR_BROADCAST);
+           $dest_address = $::config_parms{'ipaddress_xpl_broadcast'};
+           $dest_address = '255.255.255.255' unless $dest_address;
+        }
         $sock = new IO::Socket::INET->new(PeerPort => $port, Proto => 'udp',
                                           PeerAddr => $dest_address, Broadcast => 1);
-    }
+        print "db xPL_Items open_port: p=$port pn=$port_name l=$local a=$dest_address\n" if $sock and $main::Debug{xpl};
+
+   }
     else {
         my $listen_address;
-        $listen_address = $::config_parms{'ipaddress_xpl'};
-        $listen_address = $::config_parms{'xpl_address'} unless $listen_address;
-	$listen_address = $::Info{IPAddress_local} unless $listen_address;
+        if (!($local)) {
+           $listen_address = $::config_parms{'ipaddress_xpl'};
+           $listen_address = $::config_parms{'xpl_address'} unless $listen_address;
+        }
         if ($main::OS_win) {
             $listen_address = $::Info{IPAddress_local} unless $listen_address;
         } else {
@@ -154,15 +165,15 @@ sub open_port {
                                           LocalAddr => $listen_address, Broadcast => 1);
 #                                          LocalAddr => '0.0.0.0', Broadcast => 1);
 #                                         LocalAddr => inet_ntoa(INADDR_ANY), Broadcast => 1);
-    }
+        print "db xPL_Items open_port: p=$port pn=$port_name l=$local a=$listen_address\n" if $sock and $main::Debug{xpl};
+
+   }
     unless ($sock) {
         print "\nError:  Could not start a udp xPL send server on $port: $@\n\n" if $send_listen eq 'send';
         return 0;
     }
 
     printf " - creating %-15s on %3s %5s %s\n", $port_name, 'udp', $port, $send_listen if $verbose;
-
-    print "db xPL_Items open_port: p=$port pn=$port_name l=$local s=$sock\n" if $main::Debug{xpl};
 
     $::Socket_Ports{$port_name}{protocol} = 'udp';
     $::Socket_Ports{$port_name}{datatype} = 'raw';
@@ -523,7 +534,8 @@ sub send_xpl_heartbeat {
     my ($protocol) = @_;
     my $port = $::Socket_Ports{xpl_listen}{port};
     my $ip_address = $::config_parms{'xpl_address'};
-    $ip_address = $::Info{IPAddress_local} unless $ip_address;
+    $ip_address = $::config_parms{'ipaddress_xpl'} unless $ip_address;
+    $ip_address = $::Info{IPAddress_local} unless $ip_address and $ip_address ne '0.0.0.0';
 
     my $msg;
     if ($xpl_send) {
