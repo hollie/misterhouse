@@ -958,13 +958,15 @@ package xPL_Sensor;
 @xPL_Sensor::ISA = ('xPL_Item');
 
 sub new {
-    my ($class, $p_source, $p_type) = @_;
+    my ($class, $p_source, $p_type, $p_statekey) = @_;
     my ($source,$deviceid) = $p_source =~ /(\S+):(\S+)/;
     $source = $p_source unless $source;
     my $self = $class->SUPER::new($source);
     $$self{sensor_type} = $p_type if $p_type;
+    my $statekey = $p_statekey;
+    $statekey = 'current';
     $self->SUPER::class_name('sensor.basic');
-    $$self{state_monitor} = "sensor.basic : current";
+    $$self{state_monitor} = "sensor.basic : $statekey";
     $self->SUPER::device_monitor("device=$deviceid") if $deviceid;
     return $self;
 }
@@ -973,6 +975,11 @@ sub type {
     my ($self, $p_type) = @_;
     $$self{sensor_type} = $p_type if $p_type;
     return $$self{sensor_type};
+}
+
+sub current {
+    my ($self) = @_;
+    return $$self{'sensor.basic'}{current};
 }
 
 sub units {
