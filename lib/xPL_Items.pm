@@ -328,7 +328,7 @@ sub _process_incoming_xpl_data {
    $target = '*' if !($target);
 
 	# continue processing unless we are the source (e.g., heart-beat)
-	if (!($source eq &xPL::get_xpl_mh_source_info()) or $::config_parms{'xpl_hub_echo'} or $main::Debug{xpl}) {
+	if (!($source eq &xPL::get_xpl_mh_source_info())) {
                                   # Set states in matching xPL objects
            for my $name (@xpl_item_names) { #(&::list_objects_by_type('xPL_Item')) {
                my $o = &main::get_object_by_name($name);
@@ -378,7 +378,7 @@ sub _process_incoming_xpl_data {
                    next if $o->ignore_message($xpl_data);
                 }
 
-                                  # Find and set the state variable
+               # Find and set the state variable
                my $state_value;
                $$o{changed} = '';
                for my $section (keys %{$xpl_data}) {
@@ -400,11 +400,15 @@ sub _process_incoming_xpl_data {
                        $$o{$section}{$key} = $value;
                                   # Monitor what changed (real data, and include hbeat as it may include useful info, e.g., slimserver).
                        $$o{changed} .= "$section : $key = $value | "
-                           unless $section eq 'xpl-stat' or $section eq 'xpl-trig' or $section eq 'xpl-cmnd' or ($section eq 'hbeat.app' and $key eq 'status');
+                           unless $section eq 'xpl-stat' or $section eq 'xpl-trig' or $section eq 'xpl-cmnd' or ($section eq 'hbeat.app' and $key ne 'status');
                        print "db3 xpl state check m=$$o{state_monitor} key=$section : $key  value=$value\n" if $main::Debug{xpl};# and $main::Debug{xpl} == 3;
-                       if ($$o{state_monitor} and $$o{state_monitor} =~ /$section\s*[:=]\s*$key/i and defined $value) {
-                           print "db3 xpl setting state to $value\n" if $main::Debug{xpl} and $main::Debug{xpl} == 3;
-                           $state_value = $value;
+                       if ($$o{state_monitor}) {
+                          foreach my $state_monitor (split(/\|/, $$o{state_monitor})) {
+                             if ($state_monitor =~ /$section\s*[:=]\s*$key/i and defined $value) {
+                                print "db3 xpl setting state to $value\n" if $main::Debug{xpl} and $main::Debug{xpl} == 3;
+                                $state_value = $value;
+                             }
+                          }
                        }
                    }
                }
@@ -867,9 +871,12 @@ sub default_setstate {
           push @parms, $class_name, $block;
        }
     } else {
-       my ($section, $key) = $$self{state_monitor} =~ /(\S+)\s*[:=]\s*(\S+)/;
-       $$self{$section}{$key} = $state;
-
+       if ($$self{state_monitor}) {
+          foreach my $state_monitor (split(/\|/,$$self{state_monitor})) {
+             my ($section, $key) = $$self{state_monitor} =~ /(\S+)\s*[:=]\s*(\S+)/;
+             $$self{$section}{$key} = $state;
+          }
+       }
        for my $section (sort keys %{$$self{sections}}) {
           next unless $$self{sections}{$section} eq 'send'; # Do not echo received data
           push @parms, $section, $$self{$section};
@@ -1008,6 +1015,40 @@ sub request_stat {
     my ($self) = @_;
     $self->SUPER::send_cmnd('sensor.request' => { 'request' => 'current', 'type' => "'$$self{sensor_type}'"});
 }
+
+package xPL_UPS;
+
+@xPL_UPS::ISA = ('xPL_Item');
+
+sub new {
+    my ($class, $p_source, $p_statekey) = @_;
+    my ($source,$deviceid) = $p_source =~ /(\S+):(\S+)/;
+    $source = $p_source unless $source;
+    my $self = $class->SUPER::new($source);
+    my $statekey = $p_statekey;
+    $statekey = 'status';
+#    $self->SUPER::class_name('ups.basic');
+    $$self{state_monitor} = "ups.basic : $statekey|hbeat.app : $statekey";
+    $self->SUPER::device_monitor("device=$deviceid") if $deviceid;
+    return $self;
+}
+
+sub status {
+    my ($self, $p_status) = @_;
+    return ($$self{'ups.basic'}{status}) ? $$self{'ups.basic'}{status} : $$self{'hbeat.app'}{status};
+}
+
+sub event {
+    my ($self) = @_;
+    return $$self{'ups.basic'}{event};
+}
+
+sub ignore_message {
+    my ($self, $p_data) = @_;
+    return 1 if  $self->SUPER::ignore_message($p_data); # user xPL_Item's filter against deviceid
+    return ($$p_data{'ups.basic'} or $$p_data{'hbeat.app'}) ? 0 : 1;
+}
+
 
 package xPL_Rio;
 
