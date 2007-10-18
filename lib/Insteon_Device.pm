@@ -57,6 +57,41 @@ my %message_types = (
 						off_at_ramp_rate => 0x2f
 );
 
+my %ramp_h2n = (
+						'00' => 540,
+						'01' => 480,
+						'02' => 420,
+						'03' => 360,
+						'04' => 300,
+						'05' => 270,
+						'06' => 240,
+						'07' => 210,
+						'08' => 180,
+						'09' => 150,
+						'0a' => 120,
+						'0b' =>  90,
+						'0c' =>  60,
+						'0d' =>  47,
+						'0e' =>  43,
+						'0f' =>  39,
+						'10' =>  34,
+						'11' =>  32,
+						'12' =>  30,
+						'13' =>  28,
+						'14' =>  26,
+						'15' =>  23.5,
+						'16' =>  21.5,
+						'17' =>  19,
+						'18' =>   8.5,
+						'19' =>   6.5,
+						'1a' =>   4.5,
+						'1b' =>   2,
+						'1c' =>    .5,
+						'1d' =>    .3,
+						'1e' =>    .2,
+						'1f' =>    .1
+);
+
 sub new
 {
 	my ($class,$p_interface,$p_deviceid) = @_;
@@ -75,6 +110,12 @@ sub new
 	$self->rate(undef);
 	$$self{flag} = "0F";
 	$$self{ackMode} = "1";
+	$$self{awaiting_ack} = 0;
+	$$self{queue_timer} = new Timer();
+	$$self{max_queue_time} = $::config_parms{'Insteon_PLM_max_queue_time'};
+	$$self{max_queue_time} = 15 unless $$self{max_queue_time}; # 15 seconds is max time allowed in command stack
+	@{$$self{command_stack}} = ();
+	$$self{_retry_count} = 0; # num times that a command has been resent
 	$self->interface()->add($self);
 	return $self;
 }
@@ -122,25 +163,93 @@ sub set
 
     # prevent reciprocal sets that can occur because of this method's state
     # propogation
-    return if (ref $p_setby and $p_setby->can('get_set_by') and
-        $p_setby->{set_by} eq $self);
+#    return if (ref $p_setby and $p_setby->can('get_set_by') and
+#        $p_setby->{set_by} eq $self);
 
-
-	# always reset the is_locally_set property
-	$$self{m_is_locally_set} = 0;
-
-	if ($p_setby eq $self->interface())
-	{
-			# don't reset the object w/ the same state if set from the interface
-			return if lc $p_state eq lc $self->state;
-			&::print_log("Insteon_Device: " . $self->get_object_name() 
-				. "::set($p_state, $p_setby)") if $main::Debug{insteon};
+	# did the queue timer go off?
+	if (ref $p_setby and $p_setby eq $$self{queue_timer}) {
+		$self->_process_command_stack();
 	} else {
-		$self->interface()->set($self->_xlate_mh_insteon($p_state),$self);
-		&::print_log("Insteon_Device: " . $self->get_object_name() . "::set($p_state, $p_setby)")
-			if $main::Debug{insteon};
+		# always reset the is_locally_set property
+		$$self{m_is_locally_set} = 0;
+
+		if (ref $p_setby and (($p_setby eq $self->interface()) or ($p_setby->isa('Insteon_Device'))))
+		{
+				# don't reset the object w/ the same state if set from the interface
+				return if lc $p_state eq lc $self->state;
+				&::print_log("Insteon_Device: " . $self->get_object_name() 
+					. "::set($p_state, $p_setby)") if $main::Debug{insteon};
+		} else {
+			$self->_send_cmd(command => $p_state);
+			&::print_log("Insteon_Device: " . $self->get_object_name() . "::set($p_state, $p_setby)")
+				if $main::Debug{insteon};
+		}
+		$self->SUPER::set($p_state,$p_setby,$p_response) if defined $p_state;
 	}
-	$self->SUPER::set($p_state,$p_setby,$p_response) if defined $p_state;
+}
+
+sub _send_cmd
+{
+	my ($self, %msg) = @_;
+	$msg{type} = 'standard' unless $msg{type};
+	if ($msg{is_synchronous}) {
+		push(@{$$self{command_stack}}, \%msg);
+	} else {
+		unshift(@{$$self{command_stack}}, \%msg);
+	}
+	$self->_process_command_stack();
+}
+
+sub _process_command_stack
+{
+	my ($self, %ackmsg) = @_;
+	if (%ackmsg) { # which may also be something that can be interpretted as a "nack"
+		# determine whether to unset awaiting_ack
+		# for now, by "dumb" and just unset it
+		$$self{awaiting_ack} = 0;
+		# is there an "on_ack" command to now be performed?  if so, queue it
+		if ($ackmsg{on_ack}) {
+			# process the on_ack command
+			# any new command needs to be pushed on to the queue in front of other pending cmds
+		}
+	}
+	if ($$self{queue_timer}->expired or !($$self{awaiting_ack})) {
+		if ($$self{queue_timer}->expired) {
+			if ($$self{_prior_msg} and $$self{_retry_count} < 2) {
+				push(@{$$self{command_stack}}, \%{$$self{_prior_msg}});
+				&::print_log("[Insteon_Device] WARN: queue timer on " . $self->get_object_name . 
+				" expired. Attempting resend");
+			} else {
+				&::print_log("[Insteon_Device] WARN: queue timer on " . $self->get_object_name . 
+				" expired. Trying next command if queued.");
+				$$self{m_status_request_pending} = 0; # hack--need a better way
+			}
+		}
+		my $cmdptr = pop(@{$$self{command_stack}});
+		# convert ptr to cmd hash
+		if ($cmdptr) {
+			my %cmd = %$cmdptr;
+			# convert cmd to insteon message
+			my $insteonmsg = $self->_xlate_mh_insteon($cmd{command},$cmd{type},$cmd{extra});
+			$self->interface()->set($insteonmsg, $self);
+			# send msg
+			if ($cmd{is_synchronous}) {
+				$$self{awaiting_ack} = 1;
+			}
+			if ($$self{_prior_msg} and $$self{_prior_msg}{command} eq $cmd{command}) {
+				$$self{_retry_count} = ($$self{_retry_count}) ? $$self{_retry_count} + 1 : 1;
+			} else {
+				$$self{_retry_count} = 0;
+			}
+			%{$$self{_prior_msg}} = %cmd;
+			$$self{queue_timer}->set($$self{max_queue_time},$self);
+			# if is_synchronous, then no other command can be sent until an insteon ack or nack is received
+			# for this command
+		} else {
+			# always unset the timer if no more commands
+			$$self{queue_timer}->unset();
+		}
+	}
 }
 
 sub writable {
@@ -172,14 +281,14 @@ sub remote_set_button_tap
 {
 	my ($self,$p_number_taps) = @_;
 	my $taps = ($p_number_taps =~ /2/) ? '02' : '01';
-	$self->interface()->set($self->_xlate_mh_insteon('remote_set_button_tap','standard',$taps),$self);
+	$self->_send_cmd('command' => 'remote_set_button_tap', 'extra' => $taps);
 }
 
 sub request_status
 {
 	my ($self) = @_;
 	$$self{m_status_request_pending} = 1;
-	$self->interface()->set($self->_xlate_mh_insteon('status_request'),$self);
+	$self->_send_cmd('command' => 'status_request', 'is_synchronous' => 1);
 }
 
 
@@ -198,18 +307,22 @@ sub _process_message
 		if ($$self{m_status_request_pending}) {
 			my $ack_on_level = hex($msg{extra});
 			## convert on level from hex to numerical
-			&::print_log("Insteon_Device: received status request report for " .
+			&::print_log("[Insteon_Device] received status request report for " .
 				$self->{object_name} . " with on-level: $ack_on_level") if $main::Debug{insteon};
 			$self->_on_status_request($ack_on_level, $p_setby);
-		} elsif ($msg{command} eq 'peek') {
+			$self->_process_command_stack(%msg);
+		} elsif (($msg{command} eq 'peek') or ($msg{command} eq 'set_address_msb')) {
 			$self->_on_peek(%msg);
+			$self->_process_command_stack(%msg);
 		} else {
-		## should really consider not ignoring but rather using to confirm receipt
-			&::print_log("Insteon_Device: is an ack message for " . $self->{object_name} 
+			# signal receipt of message to the command stack in case commands are queued
+			$self->_process_command_stack(%msg);
+			# perhaps have a flag in the device that confirms receipt of message?
+			&::print_log("[Insteon_Device] is an ack message for " . $self->{object_name} 
 				. " ... skipping") if $main::Debug{insteon};
 		}
 	} elsif ($msg{is_nack}) {
-		&::print_log("Insteon_Device: WARN!! ia a nack message for " . $self->{object_name} 
+		&::print_log("[Insteon_Device] WARN!! ia a nack message for " . $self->{object_name} 
 			. " ... skipping");
 	} elsif ($msg{command} eq 'start_manual_change') {
 		# do nothing; although, maybe anticipate change? we should always get a stop
@@ -269,7 +382,7 @@ sub _xlate_insteon_mh
 	}
 	my $cmd1 = substr($p_state,14,2);
 
-	&::print_log("Insteon_Device: XLATE:$cmd1:") if (!($msg{is_ack} or $msg{is_nack}))
+	&::print_log("[Insteon_Device]  command:$cmd1; type:$msg{type}; group: $msg{group}") if (!($msg{is_ack} or $msg{is_nack}))
 			and $main::Debug{insteon};
 	for my $key (keys %message_types){
 		if (pack("C",$message_types{$key}) eq pack("H*",$cmd1))
@@ -378,48 +491,75 @@ sub _on_peek
 		&::print_log("Insteon_Device: extended peek for " . $self->{object_name} 
 		. " is " . $msg{extra}) if $main::Debug{insteon};
 	} else {
-		if ($$self{m_peek_action} eq 'adlb_flag') {
-			$$self{pending_adlb}{flag} = $msg{extra};
-			## confirm that we have a high-water mark; otherwise stop
-			$$self{pending_adlb}{address} = $$self{m_peek_msb} . $$self{m_peek_lsb};
-			$$self{m_peek_lsb} = sprintf("%02X", hex($$self{m_peek_lsb}) + 1);
-			$$self{m_peek_action} = 'adlb_group';
-			$$self{interface}->set($self->_xlate_mh_insteon('peek','standard',$$self{m_peek_lsb}),$self);
+		if ($$self{m_peek_action} eq 'adlb_peek') {
+			$$self{m_peek_action} = 'adlb_flag';
+			$self->_send_cmd('command' => 'peek', 'extra' => $$self{m_peek_lsb}, 'is_synchronous' => 1);
+		} elsif ($$self{m_peek_action} eq 'adlb_flag') {
+			my $flag = hex($msg{extra});
+			$$self{pending_adlb}{inuse} = 1 if $flag & 0x80;
+			$$self{pending_adlb}{is_controller} = 1 if $flag & 0x40;
+			$$self{pending_adlb}{highwater} = 1 if $flag & 0x02;
+			if (!($$self{pending_adlb}{highwater})) {
+				$$self{m_peek_action} = undef;
+				$self->on_adlb_scan();
+			} else {
+				$$self{pending_adlb}{flag} = $msg{extra};
+				## confirm that we have a high-water mark; otherwise stop
+				$$self{pending_adlb}{address} = $$self{m_peek_msb} . $$self{m_peek_lsb};
+				$$self{m_peek_lsb} = sprintf("%02X", hex($$self{m_peek_lsb}) + 1);
+				$$self{m_peek_action} = 'adlb_group';
+				$self->_send_cmd('command' => 'peek', 'extra' => $$self{m_peek_lsb}, 'is_synchronous' => 1);
+			}
 		} elsif ($$self{m_peek_action} eq 'adlb_group') {
 			$$self{pending_adlb}{group} = $msg{extra};
 			$$self{m_peek_lsb} = sprintf("%02X", hex($$self{m_peek_lsb}) + 1);
 			$$self{m_peek_action} = 'adlb_devhi';
-			$$self{interface}->set($self->_xlate_mh_insteon('peek','standard',$$self{m_peek_lsb}),$self);
+			$self->_send_cmd('command' => 'peek', 'extra' => $$self{m_peek_lsb}, 'is_synchronous' => 1);
 		} elsif ($$self{m_peek_action} eq 'adlb_devhi') {
 			$$self{pending_adlb}{deviceid} = $msg{extra};
 			$$self{m_peek_lsb} = sprintf("%02X", hex($$self{m_peek_lsb}) + 1);
 			$$self{m_peek_action} = 'adlb_devmid';
-			$$self{interface}->set($self->_xlate_mh_insteon('peek','standard',$$self{m_peek_lsb}),$self);
+			$self->_send_cmd('command' => 'peek', 'extra' => $$self{m_peek_lsb}, 'is_synchronous' => 1);
 		} elsif ($$self{m_peek_action} eq 'adlb_devmid') {
 			$$self{pending_adlb}{deviceid} .= $msg{extra};
 			$$self{m_peek_lsb} = sprintf("%02X", hex($$self{m_peek_lsb}) + 1);
 			$$self{m_peek_action} = 'adlb_devlo';
-			$$self{interface}->set($self->_xlate_mh_insteon('peek','standard',$$self{m_peek_lsb}),$self);
+			$self->_send_cmd('command' => 'peek', 'extra' => $$self{m_peek_lsb}, 'is_synchronous' => 1);
 		} elsif ($$self{m_peek_action} eq 'adlb_devlo') {
 			$$self{pending_adlb}{deviceid} .= $msg{extra};
 			$$self{m_peek_lsb} = sprintf("%02X", hex($$self{m_peek_lsb}) + 1);
 			$$self{m_peek_action} = 'adlb_data1';
-			$$self{interface}->set($self->_xlate_mh_insteon('peek','standard',$$self{m_peek_lsb}),$self);
+			$self->_send_cmd('command' => 'peek', 'extra' => $$self{m_peek_lsb}, 'is_synchronous' => 1);
 		} elsif ($$self{m_peek_action} eq 'adlb_data1') {
 			$$self{pending_adlb}{data1} .= $msg{extra};
 			$$self{m_peek_lsb} = sprintf("%02X", hex($$self{m_peek_lsb}) + 1);
 			$$self{m_peek_action} = 'adlb_data2';
-			$$self{interface}->set($self->_xlate_mh_insteon('peek','standard',$$self{m_peek_lsb}),$self);
+			$self->_send_cmd('command' => 'peek', 'extra' => $$self{m_peek_lsb}, 'is_synchronous' => 1);
 		} elsif ($$self{m_peek_action} eq 'adlb_data2') {
 			$$self{pending_adlb}{data2} .= $msg{extra};
 			$$self{m_peek_lsb} = sprintf("%02X", hex($$self{m_peek_lsb}) + 1);
 			$$self{m_peek_action} = 'adlb_data3';
-			$$self{interface}->set($self->_xlate_mh_insteon('peek','standard',$$self{m_peek_lsb}),$self);
+			$self->_send_cmd('command' => 'peek', 'extra' => $$self{m_peek_lsb}, 'is_synchronous' => 1);
 		} elsif ($$self{m_peek_action} eq 'adlb_data3') {
 			$$self{pending_adlb}{data3} .= $msg{extra};
+			# check the previous record if highwater is set
+			if ($$self{pending_adlb}{highwater}) {
+				if ($$self{pending_adlb}{inuse}) {
+				# save pending_adlb and then clear it out
+					my $adlbkey = $$self{pending_adlb}{deviceid} . $$self{pending_adlb}{group};
+					%{$$self{adlb}{$adlbkey}} = %{$$self{pending_adlb}};
+#					&::print_log("[Insteon_Device] adlb record for $$self{adlb}{$adlbkey}{deviceid}:" .
+#						"$$self{adlb}{$adlbkey}{group} is onlevel: $$self{adlb}{$adlbkey}{data1}" .##						" and ramp: $$self{adlb}{$adlbkey}{data2}") if $main::Debug{insteon};
+				} else {
+					# TO-DO: record the locations of deleted ADLB records for subsequent reuse
+				}
+				my $newaddress = sprintf("%04X", hex($$self{pending_adlb}{address}) - 8);
+				$$self{pending_adlb} = undef;
+				$self->_peek($newaddress);
+			} 
 		}
-		&::print_log("Insteon_Device: peek for " . $self->{object_name} 
-		. " is " . $msg{extra}) if $main::Debug{insteon};
+#		&::print_log("Insteon_Device: peek for " . $self->{object_name} 
+#		. " is " . $msg{extra}) if $main::Debug{insteon};
 	}	
 }
 
@@ -429,20 +569,56 @@ sub set_receive
 	$self->SUPER::set($p_state, $p_setby, $p_response);
 }
 
+sub scan_adlb
+{
+	my ($self) = @_;
+	$self->_peek('0FF8',0);
+}
+
+sub on_adlb_scan
+{
+	my ($self) = @_;
+	foreach my $adlbkey (keys %{$$self{adlb}}) {
+		my ($device);
+		if ($self->interface()->device_id() and ($self->interface()->device_id() eq $$self{adlb}{$adlbkey}{deviceid})) {
+			$device = $self->interface;
+		} else {
+			$device = $self->interface()->get_object($$self{adlb}{$adlbkey}{deviceid},'01');
+#				$$self{adlb}{$adlbkey}{group});
+		}
+		&::print_log("[Insteon_Device] adlb [0x" . $$self{adlb}{$adlbkey}{address} . "] " .
+			(($$self{adlb}{$adlbkey}{is_controller}) ? "controller($$self{adlb}{$adlbkey}{group}) record to "
+			. $device->get_object_name
+			: "responder record to " . $device->get_object_name . "($$self{adlb}{$adlbkey}{group})"
+			. ": onlevel=" . int((hex($$self{adlb}{$adlbkey}{data1})*100/255) + .5) . "%" .
+			" and ramp=" . $ramp_h2n{$$self{adlb}{$adlbkey}{data2}} . "s" )) if $main::Debug{insteon};
+	}
+}
+
+sub get_link_record
+{
+	my ($self,$link_key) = @_;
+	my %link_record = {};
+	%link_record = %{$$self{adlb}{$link_key}} if $$self{adlb}{$link_key};
+	return %link_record;
+}
+
 sub _peek
 {
 	my ($self, $address, $extended) = @_;
 	my $msb = substr($address,0,2);
 	my $lsb = substr($address,2,2);
-	$$self{interface}->set($self->_xlate_mh_insteon('set_address_msb','standard',$msb),$self);
+#	$$self{interface}->set($self->_xlate_mh_insteon('set_address_msb','standard',$msb),$self);
+	$self->_send_cmd('command' => 'set_address_msb', 'extra' => $msb, 'is_synchronous' => 1);
 	if ($extended) {
 		$$self{interface}->set($self->_xlate_mh_insteon('peek','extended',
 			$lsb . "0000000000000000000000000000"),$self);
 	} else {
 		$$self{m_peek_lsb} = $lsb;
 		$$self{m_peek_msb} = $msb;
-		$$self{m_peek_action} = 'adlb_flag';
-		$$self{interface}->set($self->_xlate_mh_insteon('peek','standard',$lsb),$self);
+		$$self{m_peek_action} = 'adlb_peek';
+#		$$self{interface}->set($self->_xlate_mh_insteon('peek','standard',$lsb),$self);
+#		$self->_send_cmd('command' => 'peek', 'extra' => $lsb, 'is_synchronous' => 1);
 	}
 }
 

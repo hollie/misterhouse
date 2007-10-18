@@ -227,6 +227,11 @@ sub check_for_data {
    for my $port_name (keys %Insteon_PLM_Data) {
       &::check_for_generic_serial_data($port_name) if $::Serial_Ports{$port_name}{object};
       my $data = $::Serial_Ports{$port_name}{data};
+      if (defined($Insteon_PLM_Data{$port_name}{'obj'}) and !($Insteon_PLM_Data{$port_name}{'obj'}->device_id)
+               and !($Insteon_PLM_Data{$port_name}{'obj'}{_id_check})) {
+         $Insteon_PLM_Data{$port_name}{'obj'}{_id_check} = 1;
+         $Insteon_PLM_Data{$port_name}{'obj'}->send_plm_cmd('0260');
+      }
       next if !$data;
 
 	#lets turn this into Hex. I hate perl binary funcs
@@ -400,9 +405,15 @@ sub _parse_data {
 
 	my $processedNibs=0;
 
+	# it is possible that a fragment exists from a previous attempt; so, if it exists, prepend it
+	if ($$self{_data_fragment}) {
+		&::print_log("[Insteon_PLM] Prepending prior data fragment: $$self{_data_fragment}");
+		$data = $$self{_data_fragment} . $data;
+		$$self{_data_fragment} = undef;
+	}
 	&::print_log( "[Insteon_PLM] Parsing serial data: $data") if $main::Debug{insteon};
 	
-	foreach my $data_1 (split(/(0263\w{6})|(0252\w{4})|(0250\w{18})|(0251\w{46})|(0261\w{6})!(0262\w{14})|(0253\w{16})|(0256\w{8})|(0257\w{16})|(0258\w{2})/,$data))
+	foreach my $data_1 (split(/(0263\w{6})|(0252\w{4})|(0250\w{18})|(0251\w{46})|(0260\w{14})|(0261\w{6}06)|(0261\w{6})!(0262\w{14})|(0253\w{16})|(0256\w{8})|(0257\w{16})|(0258\w{2})/,$data))
 	{
 		#ignore blanks.. the split does odd things
 		next if $data_1 eq '';
@@ -426,6 +437,13 @@ sub _parse_data {
 			my $ret_code = substr($data_1,length($data_1)-2,2);
 #			&::print_log("PLM: Return code $ret_code");
 			if ($ret_code eq '06') {
+				if (substr($data_1,0,4) eq '0260') {
+					$self->device_id(substr($data_1,4,6));
+					$self->firmware(substr($data_1,16,2));
+					&::print_log("[Insteon_PLM] PLM id: " . $self->device_id . 
+						" firmware: " . $self->firmware)
+						if $main::Debug{insteon};
+				}
 				# command succeeded
 #				&::print_log("PLM: Command succeeded: $data_1.");
 				$$self{xmit_in_progress} = 0;
@@ -435,6 +453,7 @@ sub _parse_data {
 			} elsif ($ret_code eq '15') { #NAK Received
 				&::print_log("[Insteon_PLM] Interface extremely busy.");
 				#retry
+				# TO-DO: limit # of retries
 				$$self{xmit_in_progress} = 0;
 				$self->process_command_stack();			
 			} else {
@@ -470,14 +489,19 @@ sub _parse_data {
 #			$self->delegate($data_1);
 		} elsif (substr($data_1,0,2) eq '15') { #NAK Received
 			&::print_log("[Insteon_PLM] Interface extremely busy.");
-			#retry
+			#retry after slight delay; perhaps this is better handled w/ a timer?
+			select(undef,undef,undef,0.15);
 			$$self{xmit_in_progress} = 0;
 			$self->process_command_stack();			
 		} else {
 			#for now anything not recognized, kill pending xmission
-			$$self{xmit_in_progress} = 0;
+			# NOOOO - it's probably a fragment; so, handle it
+			$$self{_data_fragment} = $data_1;
+#			&::print_log("[Insteon_PLM] WARNING!! An insteon message with message: $data_1 " 
+#				. "was received.  Aborting current transmission in progress");
+#			$$self{xmit_in_progress} = 0;
 			#drop latest
-			pop(@{$$self{command_stack}});				
+#			pop(@{$$self{command_stack}});				
 			
 		}
 	}
@@ -593,8 +617,10 @@ sub delegate
 	my $object = $self->get_object($msg{source}, $msg{group});
 	&::print_log("[Insteon_PLM] Warn! Unable to locate object for source: $msg{source} and group; $msg{group}")
 		if (!(defined $object));
-	$object->_process_message($self, %msg) if defined $object;
-
+	if (defined $object) {
+		&::print_log("[Insteon_PLM] Processing message for " . $object->get_object_name);
+		$object->_process_message($self, %msg);
+	}
 }
 
 sub get_object
@@ -739,6 +765,22 @@ sub device_id {
 	my ($self, $p_deviceid) = @_;
 	$$self{deviceid} = $p_deviceid if defined $p_deviceid;
 	return $$self{deviceid};
+}
+
+sub get_device 
+{
+	my ($self, $p_deviceid, $p_group) = @_;
+	foreach my $device ($self->find_members('Insteon_Device')) {
+		if ($device->device_id eq $p_deviceid and $device->group eq $p_group) {
+			return $device;
+		}
+	}
+}
+
+sub firmware {
+	my ($self, $p_firmware) = @_;
+	$$self{firmware} = $p_firmware if defined $p_firmware;
+	return $$self{firmware};
 }
 
 =begin
