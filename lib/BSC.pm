@@ -118,7 +118,13 @@ sub always_set_state {
 
 sub writable {
    my ($self, $p_write) = @_;
-   $$self{m_write} = $p_write if defined $p_write;
+   if (defined $p_write) {
+      if ($p_write =~ /^read/i or $p_write =~ /0/) {
+         $$self{m_write} = 0;
+      } else {
+         $$self{m_write} = 1;
+      }
+   }
    return $$self{m_write};
 }
 
