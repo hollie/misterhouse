@@ -505,17 +505,19 @@ sub sendXpl {
 	  my $section = shift @data;
 	  $msg .= "$section\n{\n";
 	  my $ptr = shift @data;
-	  my %parms = %$ptr;
-	  for my $key (sort keys %parms) {
-             # order is important for many xPL clients
-             # allow a sort key delimitted by ## to drive the order
-             my ($subkey1,$subkey2) = $key =~ /^(\S+)##(.*)/;
-             if (defined $subkey1 and defined $subkey2) {
-                $msg .= "$subkey2=$parms{$key}\n";
-             } else {
-	        $msg .= "$key=$parms{$key}\n";
-             }
-	  }
+          if ($ptr) {
+	     my %parms = %$ptr;
+	     for my $key (sort keys %parms) {
+                # order is important for many xPL clients
+                # allow a sort key delimitted by ## to drive the order
+                my ($subkey1,$subkey2) = $key =~ /^(\S+)##(.*)/;
+                if (defined $subkey1 and defined $subkey2) {
+                   $msg .= "$subkey2=$parms{$key}\n";
+                } else {
+	           $msg .= "$key=$parms{$key}\n";
+                }
+	     }
+          }
 	  $msg .= "}\n";
        }
        print "db5 xpl msg: $msg" if $main::Debug{xpl}; # and $main::Debug{xpl} == 5;
