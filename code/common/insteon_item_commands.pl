@@ -23,19 +23,20 @@ if ($Reload) {
               $cmd_states .= ',initiate linking as controller,cancel linking';
            }
            $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->interface()->initiate_linking_as_controller(\"$group\")', 'initiate linking as controller');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->initiate_linking_as_controller(\"$group\")', 'initiate linking as controller');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->interface()->cancel_linking','cancel linking');\n\n";
            $object_string .= "$object_name_v -> tie_items($object_name, 'on');\n\n";
            $object_string .= "$object_name_v -> tie_items($object_name, 'off');\n\n";
            $object_string .= &store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_link_commands');
         } elsif ($object->isa('Insteon_Device')) {
            $states = $insteon_menu_states if $insteon_menu_states;
-           my $cmd_states = "$states,status"; #,on level,ramp rate";
+           my $cmd_states = "$states,status,scan link table"; #,on level,ramp rate";
            $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
            foreach my $state (split(/,/,$states)) {
               $object_string .= "$object_name_v -> tie_items($object_name, '$state');\n\n";
            }
            $object_string .= "$object_name_v -> tie_event('$object_name->request_status','status');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->scan_adlb','scan link table');\n\n";
 # the remote_set_button_taps provide incorrect/inconsistent results
 #           $object_string .= "$object_name_v -> tie_event('$object_name->remote_set_button_tap(1)','on level');\n\n";
 #           $object_string .= "$object_name_v -> tie_event('$object_name->remote_set_button_tap(2)','ramp rate');\n\n";
