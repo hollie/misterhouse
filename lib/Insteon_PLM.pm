@@ -690,7 +690,9 @@ sub add_item
 	{
 		# don't request status for objects associated w/ other than the primary group 
 		#    as they are psuedo links	
-		$p_object->request_status($p_object) if $p_object->group eq '01';
+		my $scan_at_startup = $::config_parms{Insteon_PLM_scan_at_startup};
+		$scan_at_startup = 1 unless defined $scan_at_startup;
+		$p_object->request_status($p_object) if $p_object->group eq '01' and $scan_at_startup;
 	}
 	return $p_object;
 }
