@@ -15,6 +15,8 @@
 # or indirectly caused by this software.
 # 
 # Version History
+# 1.6.0-1 - 09/24/07 - Updated to organizer release 2.5.2 without admin login and ical customization
+#		       (1.6.0 added admin login & changed navigation)
 # 1.5.7-4 - 08/12/07 - Added ical2vsdb integration (needs v2104 vsdb database)
 # 1.5.7-3 - 08/25/06 - Added 'vacation' checkbox
 # 1.5.7-2 - 07/25/06 - Added 'holiday' checkbox
@@ -27,7 +29,7 @@
 # 1.5.2   - 08/22/01 - added file locking
 # ----------------------------------------------------------------------------
 
-my $VERSION = "1.5.7-4";
+my $VERSION = "1.6.0-1";
 
 BEGIN {
 #	$SIG{__WARN__} = \&FatalError;
@@ -119,6 +121,9 @@ my ($dataHighlightColor) = $objConfig->FieldValue("DataHighlightColor");
 ## --- Custom
 my ($dataHolidayColor) = "#90EE90";
 my ($dataVacationColor) = "#FFCC66";
+my ($dataMultipleColor) = "#66CCEE";
+my ($dataHighlightColorSpecial) = "#FCFCD4";
+
 ## --- Custom
 my ($detailIcon) = $objConfig->FieldValue("DetailIcon");
 my ($fileName) = $objConfig->FieldValue("FileName") || "calendar.tab";
@@ -141,7 +146,6 @@ print "
 	<table bgcolor='$headerColor' border='0' width='100%'><tr><td><b>$title</b></td></tr></table>
 	<p>
 ";
-
 my ($scriptName) = $ENV{'SCRIPT_NAME'} || "calendar.pl";
 my ($objCGI) = new CGI;
 my @dateArray = localtime(time);
@@ -151,9 +155,6 @@ my ($day) = $objCGI->param('vsDay') || $dateArray[3];
 my ($command) = $objCGI->param('vsCOM') || "";
 my ($id) = $objCGI->param('vsID') || "";
 my ($showDefault) = 0;
-
-#if (length($month) < 2) {$month = "0" . $month}
-#if (length($day) < 2) {$month = "0" . $day}
 
 ## --- Custom
 my ($showDayDetails) = $objCGI->param('vsSD') || 0;
@@ -166,7 +167,7 @@ $showDayDetails = 1 if ($showforAudrey);
 $noShowDayDetails = 0 if ($showDayDetails);
 ## --- Custom
 
-my ($nmonth, $nyear, $pmonth, $pyear, $highlightDate);
+#my ($nmonth, $nyear, $pmonth, $pyear, $highlightDate);
 
 my ($objDB) = new vsDB(
 	file => $filePath,
@@ -180,25 +181,6 @@ if ($useFileLocking) {
 }
 
 if (!$objDB->Open) {print $objDB->LastError;$objLock->unlock($filePath);die;};
-
-
-# show the default screen if specified
-
-# figure out following month & year    
-$nmonth = $month + 1;
-$nyear  = $year;
-if ($nmonth > 12) {
-    $nmonth = 1;
-    $nyear++;
-}
-# figure out previous month & year    
-$pmonth = $month - 1;
-$pyear  = $year;
-if ($pmonth < 1) {
-    $pmonth = 12;
-    $pyear--;
-}
-##$highlightDate = $year . "." . $month . "." . $day; ## Disabled 1.5.7-2 to only highlight today
 
 # --------- Main Logic --------------
 if ($command eq "UPDATE") {
@@ -232,11 +214,12 @@ if ($useFileLocking) {
 print "
 	</form>
 	<hr><font size='1'>
-	VerySimple Calendar $VERSION &copy 2002, <a href='http://www.verysimple.com/'>VerySimple</a> Modified<br>
+	VerySimple Calendar $VERSION &copy 2002, <a href='http://www.verysimple.com/'>VerySimple</a> MH Modified<br>
 ";
 print "vsDB Module Version " . $objDB->Version . "<br>";
 print "vsLock Module Version " . $objLock->Version;
 print "<br>MisterAudrey Version" if ($showforAudrey);
+print "<br>ical2vsdb sync 1.0";
 print "
 	</font><p>
 	</font>
@@ -254,15 +237,47 @@ sub PrintDefault {
     print "<td>\n";
     print "<font size='2' face='arial,helvetica'>\n";
 
-#print "h1=$highlightDate\n";
+	# figure out which day to highlight on the calendar
+	my ($highlightDate) = $year . "." . $month . "." . $day;
+	
+	# figure out following & previous month & year
+	my ($nmonth) = $month;
+	my ($nyear)  = $year;
+	NextMonth(\$nmonth,\$nyear);
+	my ($pmonth) = $month;
+	my ($pyear)  = $year;
+	PreviousMonth(\$pmonth,\$pyear);
+	
     &PrintMonth($month,$year,$objDB,$highlightDate);
     if (!$showDayDetails) {
     	&PrintMonth($nmonth,$nyear,$objDB,$highlightDate);
     }
 
-    print "<p>\n";
-    print "<a href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsMonth=$pmonth&vsYear=$pyear'>Previous Month</a>\n";
-    print "| <a href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsMonth=$nmonth&vsYear=$nyear'>Next Month</a>\n";
+# new navigation
+#    print "<p>\n";
+#    print "<a href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsMonth=$pmonth&vsYear=$pyear'>Previous Month</a>\n";
+#    print "| <a href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsMonth=$nmonth&vsYear=$nyear'>Next Month</a>\n";
+#
+
+	# display the navigation
+    print "<form><table width='100%' bgcolor='$dataDarkColor' border='1' cellspacing='0' cellpadding='2'><tr><td align='center'>\n";
+    print "<font size='2' face='arial,helvetica'><b>\n";
+    print "<a href='$scriptName?vsSD=$showDayDetails&vsMonth=$month&vsYear=" . ($year - 1) . "'>&lt;&lt;</a>\n";
+    print "&nbsp;<a href='$scriptName?vsSD=$showDayDetails&vsMonth=$pmonth&vsYear=$pyear'>&lt;</a>\n";
+	print "<select name='month' onchange=\"document.location='$scriptName?vsSD=$showDayDetails&' + this.options[this.selectedIndex].value;return true;\">\n";
+	print "<option value='vsMonth=$pmonth&vsYear=$pyear'>$pmonth / $pyear</option>\n";
+	print "<option value='vsMonth=$month&vsYear=$year' selected>$month / $year</option>\n";
+	my ($nM) = $month;
+	my ($nY) = $year;
+	for (my $count = 1;$count < 12;$count++) {
+		NextMonth(\$nM,\$nY);
+		print "<option value='vsMonth=$nM&vsYear=$nY'>$nM / $nY</option>\n";	
+	}	
+	print "</select>\n";
+    print " <a href='$scriptName?vsSD=$showDayDetails&vsMonth=$nmonth&vsYear=$nyear'>&gt;</a>\n";
+    print "&nbsp;<a href='$scriptName?vsSD=$showDayDetails&vsMonth=$month&vsYear=" . ($year + 1) . "'>&gt;&gt;</a>\n";
+	print "</b></font>\n";
+	print "</td></tr></table></form>";
 
     print "</font>\n";
 
@@ -276,6 +291,7 @@ sub PrintDefault {
 #     print "<br>\n";
     print "<font size='2' face='arial,helvetica'>\n";
 
+	# show the event details for the day
     &PrintDay($year,$month,$day,$objDB);
 
     print "<p>\n";    
@@ -285,6 +301,11 @@ sub PrintDefault {
     } else {
 	PrintBlankRecord($objDB);
     }    
+
+# Moved Navigation from right side to left side
+# ---
+# 
+
     print "</font>\n";
     print "</td>\n";
     print "</tr></table>\n";
@@ -311,15 +332,23 @@ sub PrintDay {
     print "<td width='75'><font size='2' face='arial,helvetica'><b>Time</b></font></td>\n";
     print "<td width='250'><font size='2' face='arial,helvetica'><b>Event</b></font></td></tr>\n";
 
+    if ($objMyDb->EOF) {
+		print "<tr><td colspan='3'><font size='2' face='arial,helvetica'>No Events</font></td></tr>\n";
+    }
+
     while (!$objMyDb->EOF) {
 	my $custcolor = "";
 	$custcolor = " bgcolor='$dataHolidayColor' " if ($objMyDb->FieldValue("HOLIDAY") eq "on");
-	$custcolor = " bgcolor='$dataVacationColor' " if (($objMyDb->FieldValue("VACATION") eq "on") and (!$custcolor)); # if a day is both vacation and holiday, holiday trumps vacation for display.
-	print "<tr $custcolor><td><a href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsCOM=EDIT&vsMonth=$month&vsYear=$year&vsDay=$day&vsID=" . $objMyDb->FieldValue("ID") . "'><img src='$detailIcon' border='0'></a></td>";
-	print "<td><font size='2' face='arial,helvetica'>" . $objMyDb->FieldValue("TIME") . "&nbsp;</font></td>";
-	print "<td><font size='2' face='arial,helvetica'>";
+	$custcolor = " bgcolor='$dataVacationColor' " if ($objMyDb->FieldValue("VACATION") eq "on");
+	$custcolor = " bgcolor='$dataMultipleColor' " if (($objMyDb->FieldValue("VACATION") eq "on") and ($objMyDb->FieldValue("HOLIDAY") eq "on")); # if a day is both vacation and holiday
 
-	print $objMyDb->FieldValue("EVENT") . "&nbsp;</font></td></tr>\n";
+    my $icon = $detailIcon;
+    my $source = $objMyDb->FieldValue("SOURCE");
+    $icon = "images/ical_1.jpg" if ($source =~ /^ical=/);
+    my $link = "<a href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsCOM=EDIT&vsMonth=$month&vsYear=$year&vsDay=$day&vsID=" . $objMyDb->FieldValue("ID") . "'>";
+	print "<tr $custcolor><td>" . $link . "<img src='$icon' border='0'></a></td>";
+	print "<td><font size='2' face='arial,helvetica'>" . $objMyDb->FieldValue("TIME") . "&nbsp;</font></td>";
+	print "<td>" . $link . "<font size='2' face='arial,helvetica'>" . $objMyDb->FieldValue("EVENT") . "&nbsp;</font></td></a></tr>\n";
 	$objMyDb->MoveNext;
     }
 
@@ -381,19 +410,22 @@ sub PrintMonth {
 		$objMyDb->RemoveFilter;	
 		$objMyDb->Filter("DATE","eq",$thisDate);
 
-if ($debug) {
-my $tmp=$objMyDb->FieldValue("HOLIDAY");
-print "\ndb: t=$thisDate,  fv=$tmp\n" unless ($tmp eq "EOF");
-}
+	    my $cust_color = 0;
 		my $bgcolor=undef;
 
 	        while (!$objMyDb->EOF) {
 		   if ($objMyDb->FieldValue("VACATION") eq "on") { 
 		   	$bgcolor=$dataVacationColor;
+		   	$cust_color++;
 		       }
 		   if ($objMyDb->FieldValue("HOLIDAY") eq "on") {
 		   	$bgcolor=$dataHolidayColor;
+		   	$cust_color++;
 		       }
+		   if ($cust_color > 1 ) {
+		   	$bgcolor=$dataMultipleColor;
+		       }
+		       
 		   $objMyDb->MoveNext;
 		}
 	
@@ -402,6 +434,7 @@ print "\ndb: t=$thisDate,  fv=$tmp\n" unless ($tmp eq "EOF");
 
 		if ($thisDate eq $highlightDate) {
 			$bgcolor=$dataHighlightColor;
+			$bgcolor=$dataHighlightColorSpecial if $cust_color;
 		}
 
 		if (defined $bgcolor) {
@@ -415,8 +448,6 @@ print "\ndb: t=$thisDate,  fv=$tmp\n" unless ($tmp eq "EOF");
 		} else {
 		    $style = "";
 		}		    
-
-
 
 		if ($objMyDb->EOF) {
 		    print "<a $style href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year&vsDay=$weekDayCount'>$weekDayCount</a><br>";
@@ -489,9 +520,12 @@ sub PrintCurrentRecord {
 	my ($objMyDB) = shift;
 	my ($fieldName, $fieldValue);
 	my $source;
+	my $date_entry;
+	my $time_entry;
+	my $endtime_entry;
 	print "<form action='$scriptName' method='post'>\n";
 	print "<p>\n";
-	print "<b>Update This Event:</b><br>\n";
+	print "<b>Event Details:</b><br>\n";
 	print "<table cellspacing='2' cellpadding='2' border='0'>\n";
 	foreach $fieldName ($objMyDB->FieldNames) {
 		if ($fieldName eq "ID") {
@@ -499,37 +533,45 @@ sub PrintCurrentRecord {
 		} elsif ($fieldName eq "DATE") {
 			if ($objMyDB->FieldValue("ID")) {
 				print "<input type='hidden' name='DATE' value='" . $objMyDB->FieldValue("DATE") . "'>\n";
+		        $date_entry = $objMyDB->FieldValue($fieldName);
 			}
 		} elsif ($fieldName eq "DETAILS") {
 		    print "<tr valign='top' bgcolor='#DDDDDD'>\n";
 		    print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n";
-		    print "<td colspan=3><textarea name='DETAILS' cols='35' rows='3'>";
+		    print "<td colspan=3><textarea name='DETAILS' cols='30' rows='3'>";
 		    $fieldValue = $objMyDB->FieldValue($fieldName);
 		    $fieldValue =~ s/\"/&quot;/g;		
 		    print $fieldValue . "</textarea></td>\n";
 		    print "</tr>\n";
 # should clean this row up
 		} elsif ($fieldName eq "HOLIDAY") {
-		    print "<tr valign='top' bgcolor='#DDDDDD'>\n";
-		    print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n";
+		    print "<tr valign='top' bgcolor='#DFDFDF'>\n";
+		    print "<td colspan=2>";
+		    print "<input name='HOLIDAY' type=\"checkbox\" value=\"on\" ";
 		    $fieldValue = $objMyDB->FieldValue($fieldName);
-		    print "<td><input name='HOLIDAY' type=\"checkbox\" value=\"on\" ";
 		    print "checked " if ($fieldValue eq "on");
 		    print ">";
+		    print "<font face='arial' size='2'>   " . $fieldName . "</font></td>";
 
 		} elsif ($fieldName eq "VACATION") {
-		    print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n";
 		    $fieldValue = $objMyDB->FieldValue($fieldName);
-		    print "<td><input name='VACATION' type=\"checkbox\" value=\"on\" ";
+		    print "<td colspan=2><input name='VACATION' type=\"checkbox\" value=\"on\" ";
 		    print "checked " if ($fieldValue eq "on");
 		    print ">";
+		    print "<font face='arial' size='2'>" . $fieldName . "</font></td>\n";
 		    print "</tr>\n";
 
 		} elsif ($fieldName eq "SOURCE") {
 		    $fieldValue = $objMyDB->FieldValue($fieldName);
 		    $source = $fieldValue;
 		    $source = "local" if (!$source);
-
+		    		
+		} elsif ($fieldName eq "TIME") {
+		    $time_entry = $objMyDB->FieldValue($fieldName);
+		
+		} elsif ($fieldName eq "ENDTIME") {
+		    $endtime_entry = $objMyDB->FieldValue($fieldName);
+		   
 		} else {
 		    print "<tr valign='top' bgcolor='#DDDDDD'>\n";
 		    print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n";
@@ -540,6 +582,97 @@ sub PrintCurrentRecord {
 		    print "</tr>\n";
 		}
 	}
+	#print time
+	my ($hour,$minute,$ampm) = $time_entry =~ /(\d+):(\d+)\s+(\S+)/;
+	$hour = 12 if !$hour;
+	$minute = 0 if !$minute;
+	$ampm = "am" if !$ampm;
+
+	print "<tr valign='top' bgcolor='#DDDDDD'>\n";
+    print "<td><font face='arial' size='2'>START</font></td>\n";
+	print "<td colspan=3><select name=\"TIME_hour\">";
+	for (my $count=1; $count <= 12; $count++) {
+         print "<option value=\"$count\"";
+	 print " selected" if ($count == $hour);
+	 print ">$count</option>\n";
+        }
+	print "</select>:";
+
+	print "<select name=\"TIME_minute\">";
+	for (my $count=0; $count <= 60; $count++) {
+	 my $countstr;
+	 if ($count < 10) {
+	   $countstr = "0" . $count;
+	 } else {
+	   $countstr = $count;
+         }
+         print "<option value=\"$countstr\"";
+	 print " selected" if ($count == $minute);
+	 print ">$countstr</option>\n";
+        }
+	print "</select> ";
+
+	print "<select name=\"TIME_ampm\">";
+	foreach my $count ("am","pm") {
+         print "<option value=\"$count\"";
+	 print " selected" if ($count eq $ampm);
+	 print ">$count</option>\n";
+        }
+	print "</select></td>\n ";
+
+	print "</tr>\n";
+	
+	#print end time
+	my ($hour,$minute,$ampm) = $endtime_entry =~ /(\d+):(\d+)\s+(\S+)/;
+	$hour = "--" if !$hour;
+	$minute = "--" if !$minute;
+	$ampm = "--" if !$ampm;
+
+	print "<tr valign='top' bgcolor='#DDDDDD'>\n";
+    print "<td><font face='arial' size='2'>END</font></td>\n";
+	print "<td colspan=3><select name=\"ENDTIME_hour\">";
+	print "<option value=\"--\"";
+	print " selected" if ($hour eq "--");
+	print ">--</option>\n";
+	for (my $count=1; $count <= 12; $count++) {
+         print "<option value=\"$count\"";
+	 print " selected" if ($count == $hour);
+	 print ">$count</option>\n";
+        }
+	print "</select>:";
+	print "<select name=\"ENDTIME_minute\">";
+    print "<option value=\"--\"";
+	print " selected" if ($minute eq "--");
+	print ">--</option>\n";
+	for (my $count=0; $count <= 60; $count++) {
+	 my $countstr;
+	 if ($count < 10) {
+	   $countstr = "0" . $count;
+	 } else {
+	   $countstr = $count;
+         }
+         print "<option value=\"$countstr\"";
+	 print " selected" if (($count == $minute) and ($minute ne "--"));
+	 print ">$countstr</option>\n";
+        }
+	print "</select> ";
+
+	print "<select name=\"ENDTIME_ampm\">";
+	print "<option value=\"--\"";
+	print " selected" if ($ampm eq "--");
+	print ">--</option>\n";
+	foreach my $count ("am","pm") {
+         print "<option value=\"$count\"";
+	 print " selected" if ($count eq $ampm);
+	 print ">$count</option>\n";
+        }
+	print "</select></td>\n ";
+
+
+
+	print "</tr>\n";
+	
+
 	if ($source eq "local" ) {
 	print "</table>\n";
 	print "<p>\n";
@@ -547,7 +680,7 @@ sub PrintCurrentRecord {
 	print "<input type='hidden' name='vsDay' value='$day'>\n";
 	print "<input type='hidden' name='vsMonth' value='$month'>\n";
 	print "<input type='hidden' name='vsYear' value='$year'>\n";
-	print "<input type='hidden' name='source' value='local'>\n";
+	print "<input type='hidden' name='SOURCE' value='local'>\n";
 	 if ($objMyDB->FieldValue("ID")) {
 	    print "<input type='hidden' name='vsCOM' value='UPDATE'>\n";
 	    print "<input type='submit' value='Update'>\n";
@@ -581,15 +714,127 @@ sub UpdateCurrentRecord {
 	my ($objMyDB) = shift;
 	my ($objMyCGI) = shift;
 	my ($fieldName,$fieldValue);
-	foreach $fieldName ($objMyDB->FieldNames) {
+	my ($starttime, $endtime);
+	my @fields = ("TIME_hour","TIME_minute","TIME_ampm","ENDTIME_hour","ENDTIME_minute","ENDTIME_ampm", "SOURCE");
+	push (@fields, $objMyDB->FieldNames);
+	foreach $fieldName (@fields) {
 		$fieldValue = $objMyCGI->param($fieldName);
 		$fieldValue = "off" if (($fieldName eq "HOLIDAY" ) and (not ($fieldValue eq "on")));
 		$fieldValue = "off" if (($fieldName eq "VACATION" ) and (not ($fieldValue eq "on")));
 		$fieldValue = "no" if (($fieldName eq "allday" ) and (not (lc $fieldValue eq "yes")));
-#print "db: fn=$fieldName fv=$fieldValue\n";
-		$objMyDB->FieldValue($fieldName,$fieldValue);
+
+		$starttime = $fieldValue if ($fieldName eq "TIME_hour");
+		$starttime .= ":" . $fieldValue if ($fieldName eq "TIME_minute");
+
+		$endtime = $fieldValue if ($fieldName eq "ENDTIME_hour");
+		$endtime .= ":" . $fieldValue if ($fieldName eq "ENDTIME_minute");
+
+		if ($fieldName eq "TIME_ampm") {
+		  $starttime .= " " . $fieldValue;
+		  $objMyDB->FieldValue("TIME",$starttime);
+		
+		} elsif ($fieldName eq "ENDTIME_ampm") {
+		  $endtime .= " " . $fieldValue;
+		  #if endtime isn't specified then don't put a stop date
+		  $endtime = "" if ($endtime =~ /--/);
+		  $objMyDB->FieldValue("ENDTIME",$endtime);
+		
+		} else {
+		   $objMyDB->FieldValue($fieldName,$fieldValue);
+		}
 	}
 	$objMyDB->Commit;
+}
+
+#_____________________________________________________________________________
+sub NextMonth {
+	#	NextMonth(\$month,\$year);
+	#  using slashed passed var by reference and values are modified by the sub
+	my ($nMonth) = shift || return 0;
+	my ($nYear) = shift || return 0;
+	$$nMonth++;
+	if ($$nMonth > 12) {
+		$$nMonth = 1;
+		$$nYear++;
+	}
+}
+
+#_____________________________________________________________________________
+sub PreviousMonth {
+	# PreviousMonth(\$month,\$year);
+	#  using slashed passed var by reference and values are modified by the sub
+	my ($nMonth) = shift || return 0;
+	my ($nYear) = shift || return 0;
+	$$nMonth--;
+	if ($$nMonth < 1) {
+		$$nMonth = 12;
+		$$nYear--;
+	}
+}
+
+#_____________________________________________________________________________
+sub PrintLogin {
+	print "<script>\n";
+	print "function ValidateForm(objForm) {\n";
+	print "	if (objForm.vsUserId.value == '' || objForm.vsPassword.value == '') {\n";
+	print "		alert('Please enter your User ID and Password.');\n";
+	print "		return false;\n";
+	print "	} else {\n";
+	print "		return true;\n";
+	print "	}\n";
+	print "}\n";
+	print "</script>\n";
+	print "<b>Please login to continue:</b>\n";
+	print "<p>\n";
+	print "<form action='$scriptName' method='post' onsubmit=\"return ValidateForm(this);\">\n";
+	print "<table border='0' cellspacing='1' cellpadding='2' style=\"FONT-SIZE: 10pt;FONT-FAMILY: 'Arial,Helvetica';\">\n";
+	print "<tr valign='top' bgcolor='$dataLightColor'>\n";
+	print "<td>User ID:</font></td>\n";
+	print "<td><input type='text' size='40' name='vsUserId'></td>\n";
+	print "</tr>\n";
+	print "<tr valign='top' bgcolor='$dataLightColor'>\n";
+	print "<td>Password:</font></td>\n";
+	print "<td><input type='password' size='40' name='vsPassword'></td>\n";
+	print "</tr>\n";
+	print "</table>\n";
+	print "<p>\n";
+	print "<input type='hidden' name='vsCOM' value='LOGIN'>\n";
+	print "<input type='hidden' name='vsSD' value='$showDayDetails'>\n";
+	print "<input type='submit' value='Login'> <input type='reset'>\n";
+	print "</form>\n";
+}
+
+#______________________________________________________________________________
+sub ProcessLogin {
+
+	my ($userId) =  shift || "";	
+	my ($password) =  shift || "";	
+
+	my ($cookie1) = $objCGI->cookie(
+		-name=>'vsUser',
+		-value=>$userId,
+		-expires=>'+1h',
+	);
+	my ($cookie2) = $objCGI->cookie(
+		-name=>'vsPass',
+		-value=>$password,
+		-expires=>'+1h',
+	);
+	print $objCGI->header(-cookie=>[$cookie1,$cookie2]);
+
+	Redirect($scriptName);
+}
+
+#_____________________________________________________________________________
+sub Redirect {
+	my ($rUrl) = shift || "";
+	print "One moment please...\n";
+	print "<p>\n";
+	print "(<a href='$rUrl'>click here</a> if you are not automatically redirected in 5 seconds.)\n";
+	print "<script>\n";
+	print "document.location='$rUrl';\n";
+	print "</script>\n";
+	exit 1;
 }
 
 #_____________________________________________________________________________

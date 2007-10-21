@@ -1,1 +1,0 @@
-Readme information can be found in the file organize.readme.html

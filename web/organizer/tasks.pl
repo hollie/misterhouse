@@ -12,6 +12,7 @@
 # or indirectly caused by this software.
 # 
 # Version History
+# 1.6.0-1 - 09/24/07 - Updated to Organizer release 2.5.2 (1.6.0 js fixes, added recordcount)
 # 1.4.8-4 - 08/19/07 - iCal2vsdb integration (requires v2104 database)
 # 1.4.8-3 - 04/29/07 - minor fixes
 # 1.4.8-2 - 08/30/06 - minor fixes
@@ -22,7 +23,7 @@
 # 1.4.5   - 08/22/01 - added file locking
 # 1.4.4   - 08/05/01 - handle missing datafiles gracefully 
 # ----------------------------------------------------------------------------
-my $VERSION = "1.4.8-4";
+my $VERSION = "1.6.0-1";
 
 BEGIN {
 #	$SIG{__WARN__} = \&FatalError;
@@ -165,8 +166,6 @@ if ($command eq "EDIT") {
 	$objDB->RemoveFilter;
 	$objDB->MoveFirst;
 	PrintAllRecords($objDB);
-        print "<b><font face='arial' size='2'><a href='$scriptName" . PassThrough("vsCOM","ADD") . "'>Add New Task</a></font></b>\n";
-
 } elsif ($command eq "DELETE") {
 	$objDB->Filter("ID","eq",$idNum);
 	$objDB->Delete;
@@ -174,8 +173,6 @@ if ($command eq "EDIT") {
 	$objDB->RemoveFilter;
 	$objDB->MoveFirst;
 	PrintAllRecords($objDB);
-        print "<b><font face='arial' size='2'><a href='$scriptName" . PassThrough("vsCOM","ADD") . "'>Add New Task</a></font></b>\n";
-
 } elsif ($command eq "ADD") {
 	PrintBlankRecord($objDB);
 } elsif ($command eq "INSERT") {
@@ -186,16 +183,8 @@ if ($command eq "EDIT") {
 	UpdateCurrentRecord($objDB,$objCGI);
 	$objDB->MoveFirst;
 	PrintAllRecords($objDB);
-        print "<b><font face='arial' size='2'><a href='$scriptName" . PassThrough("vsCOM","ADD") . "'>Add New Task</a></font></b>\n";
-
 } else {
 	PrintAllRecords($objDB);
-        print "<b><font face='arial' size='2'><a href='$scriptName" . PassThrough("vsCOM","ADD") . "'>Add New Task</a></font></b>\n";
-	if ($showCompleted) {
-	   print "| <b><font face='arial' size='2'><a href='$scriptName?vsSORT=$sortField&vsPS=$pageSize'>Hide Completed</a></font></b>\n";
-	} else {
-	   print "| <b><font face='arial' size='2'><a href='$scriptName?vsSORT=$sortField&vsSC=1&vsPS=$pageSize'>Show Completed</a></font></b>\n";
-	}
 }
 
 if ($useFileLocking) {
@@ -206,10 +195,11 @@ if ($useFileLocking) {
 print "
 	</form>
 	<hr><font size='1'>
-	VerySimple Task Editor $VERSION &copy 2001, <a href='http://www.verysimple.com/'>VerySimple</a> Modified<br>
+	VerySimple Task Editor $VERSION &copy 2001, <a href='http://www.verysimple.com/'>VerySimple</a> MH Modified<br>
 ";
 print "vsDB Module Version " . $objDB->Version . "<br>";
 print "vsLock Module Version " . $objLock->Version;
+print "<br>ical2vsdb sync 1.0";
 print "
 	</font><p>
 	</font>
@@ -232,31 +222,57 @@ sub PrintAllRecords {
 	$objMyDB->PageSize($pageSize);
 	$objMyDB->ActivePage($activePage);
 	
-	$activePage = $objMyDB->ActivePage; # (in case we specified one out of range) 
+	#$activePage = $objMyDB->ActivePage; # (in case we specified one out of range) 
 	my ($pageCount) = $objMyDB->PageCount;
 	
-	print "<table cellspacing='2' cellpadding='2' border='0'>\n";
+	print "<table cellspacing='2' cellpadding='2' border='0'><tr valign='middle'><td bgcolor='$dataDarkColor'>\n";
+	#if ($m_blnIsSysAdmin) {
+		print "<input type='submit' value='Add New Task' onclick=\"self.location='$scriptName" . PassThrough("vsCOM","ADD") . "';return false\">\n";
+	#	print "<input type='submit' value='Logout' onclick=\"if (confirm('Logout?')) {self.location='$scriptName?vsSC=$showCompleted&vsCOM=LOGOUT';return false;} else {return false;};\">\n" if ($m_strSysAdminUserId || $m_strSysAdminPassword);
+	#} else {
+	#	print "<input type='hidden' name='vsCOM' value='LOGINFORM'>\n";
+	#	print "<input type='submit' value='Login'>\n";
+	#}
+
+	if ($showCompleted) {
+		print " <input type='submit' value='Hide Completed' onclick=\"self.location='$scriptName?vsSORT=$sortField&vsPS=$pageSize';return false\">\n";
+	} else {
+		print " <input type='submit' value='Show Completed' onclick=\"self.location='$scriptName?vsSORT=$sortField&vsSC=1&vsPS=$pageSize';return false\">\n";
+	}
+	print "</td></tr></table>\n";
+
+	print "<p><table cellspacing='2' cellpadding='2' border='0'>\n";
 	print "<tr valign='top' bgcolor='#CCCCCC'>\n";
 	print "<td>&nbsp;</td>\n";
 	foreach $fieldName (@showFields) {
 		print "<td><b><font face='arial' size='2'><a href='$scriptName?vsSORT=$fieldName&vsPS=$pageSize&vsSC=$showCompleted'>" . $fieldName . "</a></font></b></td>\n";
 	}
 	print "</tr>\n";
-print "Already at EOF!" if $objMyDB->EOF;
+	my $link_open;
+	my $link_close;
 	while (!$objMyDB->EOF && $count < $pageSize) {
 		print "<tr valign='top' bgcolor='$dataLightColor'>\n";
-		print "<td><font face='arial' size='1'><a href='" . $scriptName . "?vsSORT=$sortField&vsPS=$pageSize&vsAP=$activePage&vsCOM=EDIT&vsID=" . $objMyDB->FieldValue("ID") . "'><img src='$detailIcon' alt='Details' border='0'></a></font></td>\n";
+		my $icon = $detailIcon;
+		my $source = $objMyDB->FieldValue("SOURCE");
+        	$icon = "images/ical_2.jpg" if ($source =~ /^ical=/);
+        $link_open = "<a href='" . $scriptName . "?vsSORT=$sortField&vsPS=$pageSize&vsAP=$activePage&vsCOM=EDIT&vsID=" . $objMyDB->FieldValue("ID") . "'>";
+        $link_close = "</a>";
+		print "<td>" . $link_open . "<img src='$icon' alt='Details' border='0'></font>" . $link_close . "</td>\n";
 		foreach $fieldName (@showFields) {
 			$fieldValue = $objMyDB->FieldValue($fieldName);
 			$fieldValue = "&nbsp;" if ($fieldValue eq "");
 			if ($fieldName eq "SpecialField") {
 				# not used at the moment, but maybe later...
-				print "<td><font face='arial' size='2'>" . $fieldValue . "</font></td>\n";
+				print "<td>" . $link_open . "<font face='arial' size='2'>" . $fieldValue . "</font>" . $link_close . "</td>\n";
 			} elsif (lc $fieldName eq "SPEAK") {
-				print "<td><font face='arial' size='2'>" . $fieldValue . "</font></td>\n";
+				print "<td>" . $link_open . "<font face='arial' size='2'>" . $fieldValue . "</font>" . $link_close . "</td>\n";
 			} elsif ($fieldName eq "SOURCE") {
 			} else {
-				print "<td><font face='arial' size='2'>" . $fieldValue . "</font></td>\n";
+			    if (($fieldName eq "AssignedTo") or ($fieldName eq "DueDate")) {
+			       $link_open = "";
+			       $link_close = "";
+			    }
+				print "<td>" . $link_open . "<font face='arial' size='2'>" . $fieldValue . "</font>" . $link_close . "</td>\n";
 			}
 		}
 		print "</tr>\n";
@@ -266,14 +282,19 @@ print "Already at EOF!" if $objMyDB->EOF;
 	print "</table>\n";
 	print "<p>\n";
 
-	print "Result Page " . $activePage . " of " . $pageCount;
-	if ($activePage > 1) {
-		print " <a href='$scriptName" . PassThrough("vsAP",$activePage - 1) . "'>Previous</a>";
+	print "Result Page ";
+
+	print "<select name='ap' onchange=\"document.location='" . $scriptName . PassThrough("vsAP") . "' + this.options[this.selectedIndex].value;return true;\">\n";
+	print "<option value='1'>1</option>";
+	for (my $x = 1; $x < $pageCount; $x++) {
+		print "<option value='" . ($x + 1) . "'";
+		print " selected" if ($activePage == ($x + 1));
+		print ">" . ($x + 1) . "</option>";
 	}
-	if ($activePage < $pageCount) {
-		print " <a href='$scriptName" . PassThrough("vsAP",$activePage + 1) . "'>Next</a>";
-	}
-	print " (" . $objMyDB->RecordCount . " Tasks)\n";
+	print "\n</select>\n";
+	
+	print " of $pageCount";
+	print " (" . $objMyDB->RecordCount . " Records)";
 	print "<p>\n";
 
 }
@@ -357,19 +378,22 @@ sub PrintBlankRecord {
 	foreach $fieldName ($objMyDB->FieldNames) {
 		if ($fieldName ne "ID") {
 			print "<tr valign='top' bgcolor='$dataLightColor'>\n";
-			print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n";
 			if ($fieldName eq "Complete") {
+			    print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n";
 				print "<td><font face='arial' size='2'>";
 				print "<input type=\"radio\" name=\"Complete\" value=\"Yes\">Yes\n";
 				print "<input type=\"radio\" name=\"Complete\" value=\"No\" checked>No\n";
 				print "</font></td>";
 			} elsif ($fieldName eq "Notes") {
+				print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n";
 				print "<td><textarea name='Notes' cols='38' rows='3'></textarea></td>\n";
-			} elsif (lc $fieldName eq "SPEAK") {
-		    		print "<td><input name='SPEAK' type=\"checkbox\" value=\"Yes\" >";
-		    		print "</tr>\n";
+			} elsif ($fieldName eq "SPEAK") {
+				print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n";
+		    	print "<td><input name='SPEAK' type=\"checkbox\" value=\"Yes\" >";
+		    	print "</tr>\n";
 			} elsif ($fieldName eq "SOURCE") { #do nothing
 			} else {
+				print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n";
 				print "<td><input size=\"50\" name=\"" . $fieldName . "\" value=\"\"></td>\n";
 		    }
 			print "</tr>\n";
@@ -405,21 +429,21 @@ sub UpdateCurrentRecord {
 #_____________________________________________________________________________
 sub PassThrough {
 	my ($fieldName) = shift || return '';
-	my ($fieldValue) = shift;
+	my ($fieldValue) = shift || "";
 	my (@params) = $objCGI->param;
 	my ($appendChar) = "?";
 	my ($param);
 	my ($queryString);
-
+	my ($val);
 	foreach $param (@params) {
 		unless ($fieldName eq $param) {
-			$queryString .= $appendChar . $param . "=" . $objCGI->param($param);
+			$val = $objCGI->param($param) || "";
+			$val =~s/([^a-zA-Z0-9_\-.])/uc sprintf("%%%02x",ord($1))/eg;
+			$queryString .= $appendChar . $param . "=" . $val;
 			$appendChar = "&";
 		}
 	}		
-
 	$queryString .= $appendChar . $fieldName . "=" . $fieldValue;
-
 	return $queryString;	
 }
 
