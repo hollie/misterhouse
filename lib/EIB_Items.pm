@@ -831,7 +831,7 @@ sub decode {
     my $exp = ($data[1] & 0x78) >> 3;
     my $mant = (($data[1] & 0x7) << 8) | $data[2];
 
-    $mant = -~($mant - 1) if $sign != 0;
+    $mant = -(~($mant - 1) & 0x7ff) if $sign != 0;
     $res = (1 << $exp) * 0.01 * $mant;
     return $res;
 }
