@@ -111,6 +111,7 @@ sub new
 	$$self{flag} = "0F";
 	$$self{ackMode} = "1";
 	$$self{awaiting_ack} = 0;
+	$$self{is_acknowledged} = 0;
 	$$self{queue_timer} = new Timer();
 	$$self{max_queue_time} = $::config_parms{'Insteon_PLM_max_queue_time'};
 	$$self{max_queue_time} = 15 unless $$self{max_queue_time}; # 15 seconds is max time allowed in command stack
@@ -157,6 +158,13 @@ sub rate
 	return $$self{rate};
 }
 
+sub is_acknowledged
+{
+	my ($self, $p_ack) = @_;
+	$$self{is_acknowledged} = $p_ack if defined $p_ack;
+	return $$self{is_acknowledged};
+}
+
 sub set
 {
 	my ($self,$p_state,$p_setby,$p_response) = @_;
@@ -177,7 +185,7 @@ sub set
 			or ($p_setby->isa('Insteon_Device') and &main::set_by_to_target($p_setby) eq $self->interface)))
 		{
 				# don't reset the object w/ the same state if set from the interface
-				return if lc $p_state eq lc $self->state;
+				return if (lc $p_state eq lc $self->state) and $self->is_acknowledged;
 				&::print_log("Insteon_Device: " . $self->get_object_name() 
 					. "::set($p_state, $p_setby)") if $main::Debug{insteon};
 		} else {
@@ -185,6 +193,7 @@ sub set
 				type => (($self->isa('Insteon_Link')) ? 'alllink' : 'standard'));
 			&::print_log("Insteon_Device: " . $self->get_object_name() . "::set($p_state, $p_setby)")
 				if $main::Debug{insteon};
+			$self->is_acknowledged(0);
 		}
 		$self->SUPER::set($p_state,$p_setby,$p_response) if defined $p_state;
 	}
@@ -225,7 +234,7 @@ sub _process_command_stack
 				} else {
 					push(@{$$self{command_stack}}, \%{$$self{_prior_msg}});
 					&::print_log("[Insteon_Device] WARN: queue timer on " . $self->get_object_name . 
-					" expired. Attempting resend");
+					" expired. Attempting resend: $$self{_prior_msg}{command}");
 				}
 			} else {
 				&::print_log("[Insteon_Device] WARN: queue timer on " . $self->get_object_name . 
@@ -243,6 +252,8 @@ sub _process_command_stack
 			# send msg
 			if ($cmd{is_synchronous}) {
 				$$self{awaiting_ack} = 1;
+			} else {
+				$$self{awaiting_ack} = 0;
 			}
 			if ($$self{_prior_msg} and $$self{_prior_msg}{command} eq $cmd{command}) {
 				$$self{_retry_count} = ($$self{_retry_count}) ? $$self{_retry_count} + 1 : 1;
@@ -256,6 +267,8 @@ sub _process_command_stack
 		} else {
 			# always unset the timer if no more commands
 			$$self{queue_timer}->unset();
+			# and, always clear awaiting_ack
+			$$self{awaiting_ack} = 0;
 		}
 	}
 }
@@ -323,11 +336,11 @@ sub _process_message
 			$self->_on_peek(%msg);
 			$self->_process_command_stack(%msg);
 		} else {
+			$self->is_acknowledged(1);
 			# signal receipt of message to the command stack in case commands are queued
 			$self->_process_command_stack(%msg);
-			# perhaps have a flag in the device that confirms receipt of message?
-			&::print_log("[Insteon_Device] is an ack message for " . $self->{object_name} 
-				. " ... skipping") if $main::Debug{insteon};
+			&::print_log("[Insteon_Device] received command/state acknolwedge from " . $self->{object_name} 
+				. ": $msg{command}") if $main::Debug{insteon};
 		}
 	} elsif ($msg{is_nack}) {
 		&::print_log("[Insteon_Device] WARN!! ia a nack message for " . $self->{object_name} 
@@ -489,6 +502,7 @@ sub _on_status_request
 		$p_onlevel = $p_onlevel / 2.5;
 		$self->SUPER::set(sprintf("%d",$p_onlevel) . '%', $p_setby);
 	}
+	$self->is_acknowledged(1);
 	$$self{m_status_request_pending} = 0;
 }
 
