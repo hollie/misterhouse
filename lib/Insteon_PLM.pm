@@ -259,6 +259,8 @@ sub new {
 	$$self{last_command} = '';
 	$$self{xmit_in_progress} = 0;
 	@{$$self{command_stack}} = ();
+	@{$$self{command_stack2}} = ();
+	$$self{_prior_data_fragment} = '';
    bless $self, $class;
    $Insteon_PLM_Data{$port_name}{'obj'} = $self;
    $self->device_id($p_deviceid) if defined $p_deviceid;
@@ -356,7 +358,11 @@ sub send_plm_cmd
 	if (defined $cmd and $cmd ne '')
 	{
 #		&::print_log("PLM Add Command:" . $cmd . ":XmitInProgress:" . $$self{xmit_in_progress} . ":" );
-		unshift(@{$$self{command_stack}},$cmd);
+		my %cmd_record = {};
+		$cmd_record{cmd} = $cmd;
+		$cmd_record{queue_time} = $::Time;
+#		unshift(@{$$self{command_stack}},$cmd);
+		unshift(@{$$self{command_stack2}},\%cmd_record);
 
 	}
 	#we dont transmit on top of another xmit
@@ -364,11 +370,20 @@ sub send_plm_cmd
 		$$self{xmit_in_progress} = 1;
 		#TODO: Should start a timer just in case PLM is not responding and we need to clear xmit_in_progress after a while.
 		#always send the oldest command first
-		$cmd = pop(@{$$self{command_stack}});
+#		$cmd = pop(@{$$self{command_stack}});
+		my $cmdptr = pop(@{$$self{command_stack2}});
+		my %cmd_record = {};
+		if ($cmdptr) {
+			%cmd_record = %$cmdptr;
+			$cmd = $cmd_record{cmd};
+		} else {
+			$cmd = '';
+		}
 		if (defined $cmd and $cmd ne '') 
 		{
 			#put the command back into the stack.. Its not our job to tamper with this array
-			push(@{$$self{command_stack}},$cmd);
+#			push(@{$$self{command_stack}},$cmd);
+			push(@{$$self{command_stack2}},\%cmd_record) if %cmd_record;
 			return $self->_send_cmd($cmd);
 		}
 	} else {
@@ -408,68 +423,87 @@ sub _parse_data {
 	# it is possible that a fragment exists from a previous attempt; so, if it exists, prepend it
 	if ($$self{_data_fragment}) {
 		&::print_log("[Insteon_PLM] Prepending prior data fragment: $$self{_data_fragment}");
+		$$self{_prior_data_fragment} = $$self{_data_fragment};
 		$data = $$self{_data_fragment} . $data;
 		$$self{_data_fragment} = undef;
 	}
 	&::print_log( "[Insteon_PLM] Parsing serial data: $data") if $main::Debug{insteon};
-	
-	foreach my $data_1 (split(/(0263\w{6})|(0252\w{4})|(0250\w{18})|(0251\w{46})|(0260\w{14})|(0261\w{6}06)|(0261\w{6})!(0262\w{14})|(0253\w{16})|(0256\w{8})|(0257\w{16})|(0258\w{2})/,$data))
+
+	# begin by pulling out any PLM ack/nacks
+	my $prev_cmd = ''; #lc(pop(@{$$self{command_stack}}));
+	my $cmdptr = pop(@{$$self{command_stack2}});
+	my %cmd_record = {};
+	if ($cmdptr) {
+		%cmd_record = %$cmdptr;
+		$prev_cmd = lc $cmd_record{cmd};
+	}
+	my $residue_data = '';
+	my $process_next_command = 0;
+	if (defined $prev_cmd and $prev_cmd ne '') 
+	{
+#		&::print_log("PLM: Defined:$prev_cmd");
+		my $ackcmd = $prev_cmd . '06';
+		my $nackcmd = $prev_cmd . '15';
+		foreach my $data_1 (split(/($ackcmd)|($nackcmd)|(0260\w{12}06)|(0260\w{12}15)/,$data))
+		{
+			#ignore blanks.. the split does odd things
+			next if $data_1 eq '';
+
+			if ($data_1 =~ /^($ackcmd)|($nackcmd)|(0260\w{12}06)|(0260\w{12}15)$/) {
+				$processedNibs+=length($data_1);
+				my $ret_code = substr($data_1,length($data_1)-2,2);
+#				&::print_log("PLM: Return code $ret_code");
+				if ($ret_code eq '06') {
+					if (substr($data_1,0,4) eq '0260') {
+						$self->device_id(substr($data_1,4,6));
+						$self->firmware(substr($data_1,14,2));
+						&::print_log("[Insteon_PLM] PLM id: " . $self->device_id . 
+							" firmware: " . $self->firmware)
+							if $main::Debug{insteon};
+					}
+					# command succeeded
+#					&::print_log("PLM: Command succeeded: $data_1.");
+					$$self{xmit_in_progress} = 0;
+					$process_next_command = 1;
+#					select(undef,undef,undef,.15);
+#					$self->process_command_stack();
+				} elsif ($ret_code eq '15') { #NAK Received
+					&::print_log("[Insteon_PLM] Interface extremely busy.");
+					# abort until retry limit is implemented
+					# TO-DO: limit # of retries
+#					push(@{$$self{command_stack}}, $prev_cmd);
+					$$self{xmit_in_progress} = 0;
+					$process_next_command = 1;
+#					$self->process_command_stack();			
+				} else {
+					# We have a problem (Usually we stepped on another X10 command)
+					&::print_log("[Insteon_PLM] Command error: $data_1.");
+					$$self{xmit_in_progress} = 0;
+					#move it off the top of the stack and re-transmit later!
+					#TODO: We should keep track of an errored command and kill it if it fails twice.  prevent an infinite loop here
+					$process_next_command = 1;
+#					$self->process_command_stack();
+				}
+			} else {
+				$residue_data .= $data_1;
+			}			
+		}
+	} else {
+		$residue_data = $data;
+	}
+
+
+	foreach my $data_1 (split(/(0263\w{6})|(0252\w{4})|(0250\w{18})|(0251\w{46})|(0261\w{6})|(0253\w{16})|(0256\w{8})|(0257\w{16})|(0258\w{2})/,$residue_data))
 	{
 		#ignore blanks.. the split does odd things
 		next if $data_1 eq '';
 		#we found a matching command in stream, add to processed bytes
 		$processedNibs+=length($data_1);
 
-		#get the command on the stack that was last sent (it should be echo'd back to us for an ack/err)
-		my $prev_cmd = lc(pop(@{$$self{command_stack}}));
-		if (defined $prev_cmd and $prev_cmd ne '') 
-		{
-#			&::print_log("PLM: Defined:$prev_cmd");
-			#put the command back into the stack.. Its not our job to tamper with this array
-			push(@{$$self{command_stack}},$prev_cmd);
-		}
-#		&::print_log("PLM: Current Command:$data_1: Prev command:$prev_cmd:". length($prev_cmd) . ":");		
-
-		#check to see if this is a ack/err from a previous command
-		if ($prev_cmd ne '' and substr($data_1,0,length($prev_cmd)) eq $prev_cmd) 
-		{
-			#it is
-			my $ret_code = substr($data_1,length($data_1)-2,2);
-#			&::print_log("PLM: Return code $ret_code");
-			if ($ret_code eq '06') {
-				if (substr($data_1,0,4) eq '0260') {
-					$self->device_id(substr($data_1,4,6));
-					$self->firmware(substr($data_1,16,2));
-					&::print_log("[Insteon_PLM] PLM id: " . $self->device_id . 
-						" firmware: " . $self->firmware)
-						if $main::Debug{insteon};
-				}
-				# command succeeded
-#				&::print_log("PLM: Command succeeded: $data_1.");
-				$$self{xmit_in_progress} = 0;
-				pop(@{$$self{command_stack}});				
-				select(undef,undef,undef,.15);
-				$self->process_command_stack();
-			} elsif ($ret_code eq '15') { #NAK Received
-				&::print_log("[Insteon_PLM] Interface extremely busy.");
-				#retry
-				# TO-DO: limit # of retries
-				$$self{xmit_in_progress} = 0;
-				$self->process_command_stack();			
-			} else {
-				# We have a problem (Usually we stepped on another X10 command)
-				&::print_log("[Insteon_PLM] Command error: $data_1.");
-				$$self{xmit_in_progress} = 0;
-				#move it off the top of the stack and re-transmit later!
-				#TODO: We should keep track of an errored command and kill it if it fails twice.  prevent an infinite loop here
-#				$self->send_plm_cmd(pop(@{$$self{command_stack}}));
-				pop(@{$$self{command_stack}});				
-				$self->process_command_stack();
-			}			
-		} elsif (substr($data_1,0,4) eq '0250') { #Insteon Standard Received
-			$self->delegate($data_1);
+		if (substr($data_1,0,4) eq '0250') { #Insteon Standard Received
+			$$self{_data_fragment} = $data_1 unless $self->delegate($data_1);
 		} elsif (substr($data_1,0,4) eq '0251') { #Insteon Extended Received
-			$self->delegate($data_1);
+			$$self{_data_fragment} = $data_1 unless $self->delegate($data_1);
 		} elsif (substr($data_1,0,4) eq '0252') { #X10 Received
 			&::process_serial_data($self->_xlate_x10_mh($data_1));	
 		} elsif (substr($data_1,0,4) eq '0253') { #ALL-Linking Completed
@@ -486,7 +520,7 @@ sub _parse_data {
 #			$self->delegate($data_1);
 		} elsif (substr($data_1,0,4) eq '0261') { #ALL-Link Broadcast 
 			&::print_log("[Insteon_PLM] ALL-Link Broadcast:$data_1") if $main::Debug{insteon};
-#			$self->delegate($data_1);
+#			$$self{_data_fragment} = $data_1 unless $self->delegate($data_1);
 		} elsif (substr($data_1,0,2) eq '15') { #NAK Received
 			&::print_log("[Insteon_PLM] Interface extremely busy.");
 			#retry after slight delay; perhaps this is better handled w/ a timer?
@@ -496,7 +530,7 @@ sub _parse_data {
 		} else {
 			#for now anything not recognized, kill pending xmission
 			# NOOOO - it's probably a fragment; so, handle it
-			$$self{_data_fragment} = $data_1;
+			$$self{_data_fragment} = $data_1 unless $data_1 eq $$self{_prior_data_fragment};
 #			&::print_log("[Insteon_PLM] WARNING!! An insteon message with message: $data_1 " 
 #				. "was received.  Aborting current transmission in progress");
 #			$$self{xmit_in_progress} = 0;
@@ -505,6 +539,12 @@ sub _parse_data {
 			
 		}
 	}
+
+	if ($process_next_command) {
+		select(undef,undef,undef,.15);
+		$self->process_command_stack();
+	}
+
 	return $processedNibs;
 }
 
@@ -512,7 +552,7 @@ sub process_command_stack
 {
 	my ($self) = @_;
 	## send any remaining commands in stack
-	my $stack_count = @{$$self{command_stack}};
+	my $stack_count = @{$$self{command_stack2}};
 #			&::print_log("UPB Command stack2:$stack_count:@{$$self{command_stack}}:");
 	if ($stack_count> 0 ) 
 	{
@@ -610,16 +650,22 @@ sub delegate
 
 	my $data = substr($p_data,4,length($p_data)-4);
 	my %msg = &Insteon_Device::_xlate_insteon_mh($data);
-
-	&::print_log ("[Insteon_PLM] DELEGATE:$msg{source}:$msg{destination}:$data:") if $main::Debug{insteon};
-
-	# get the matching object
-	my $object = $self->get_object($msg{source}, $msg{group});
-	&::print_log("[Insteon_PLM] Warn! Unable to locate object for source: $msg{source} and group; $msg{group}")
-		if (!(defined $object));
-	if (defined $object) {
-		&::print_log("[Insteon_PLM] Processing message for " . $object->get_object_name);
-		$object->_process_message($self, %msg);
+	if (%msg) {
+		&::print_log ("[Insteon_PLM] DELEGATE:$msg{source}:$msg{destination}:$data:") if $main::Debug{insteon};
+	
+		# get the matching object
+		my $object = $self->get_object($msg{source}, $msg{group});
+		&::print_log("[Insteon_PLM] Warn! Unable to locate object for source: $msg{source} and group; $msg{group}")
+			if (!(defined $object));
+		if (defined $object) {
+			&::print_log("[Insteon_PLM] Processing message for " . $object->get_object_name);
+			$object->_process_message($self, %msg);
+			return 1;
+		} else {
+			return 0;
+		}
+	} else {
+		return 0;
 	}
 }
 
