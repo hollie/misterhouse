@@ -173,14 +173,16 @@ sub set
 		# always reset the is_locally_set property
 		$$self{m_is_locally_set} = 0;
 
-		if (ref $p_setby and (($p_setby eq $self->interface()) or ($p_setby->isa('Insteon_Device'))))
+		if (ref $p_setby and (($p_setby eq $self->interface()) 
+			or ($p_setby->isa('Insteon_Device') and &main::set_by_to_target($p_setby) eq $self->interface)))
 		{
 				# don't reset the object w/ the same state if set from the interface
 				return if lc $p_state eq lc $self->state;
 				&::print_log("Insteon_Device: " . $self->get_object_name() 
 					. "::set($p_state, $p_setby)") if $main::Debug{insteon};
 		} else {
-			$self->_send_cmd(command => $p_state);
+			$self->_send_cmd(command => $p_state, 
+				type => (($self->isa('Insteon_Link')) ? 'alllink' : 'standard'));
 			&::print_log("Insteon_Device: " . $self->get_object_name() . "::set($p_state, $p_setby)")
 				if $main::Debug{insteon};
 		}
@@ -216,9 +218,15 @@ sub _process_command_stack
 	if ($$self{queue_timer}->expired or !($$self{awaiting_ack})) {
 		if ($$self{queue_timer}->expired) {
 			if ($$self{_prior_msg} and $$self{_retry_count} < 2) {
-				push(@{$$self{command_stack}}, \%{$$self{_prior_msg}});
-				&::print_log("[Insteon_Device] WARN: queue timer on " . $self->get_object_name . 
-				" expired. Attempting resend");
+				# first check to see if type is an alllink; if so, then don't keep retrying until
+				#   proper handling of alllink cleanup status is implemented in Insteon_PLM
+				if ($$self{_prior_msg}{type} eq 'alllink') {
+					# do nothing
+				} else {
+					push(@{$$self{command_stack}}, \%{$$self{_prior_msg}});
+					&::print_log("[Insteon_Device] WARN: queue timer on " . $self->get_object_name . 
+					" expired. Attempting resend");
+				}
 			} else {
 				&::print_log("[Insteon_Device] WARN: queue timer on " . $self->get_object_name . 
 				" expired. Trying next command if queued.");
