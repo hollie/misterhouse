@@ -214,7 +214,7 @@ sub serial_startup {
 
   if (1==scalar(keys %Insteon_PLM_Data)) {  # Add hooks on first call only
       &::MainLoop_pre_add_hook(\&Insteon_PLM::check_for_data, 1);
-   }
+  }
 }
 
 sub poll_all {
@@ -227,11 +227,6 @@ sub check_for_data {
    for my $port_name (keys %Insteon_PLM_Data) {
       &::check_for_generic_serial_data($port_name) if $::Serial_Ports{$port_name}{object};
       my $data = $::Serial_Ports{$port_name}{data};
-      if (defined($Insteon_PLM_Data{$port_name}{'obj'}) and !($Insteon_PLM_Data{$port_name}{'obj'}->device_id)
-               and !($Insteon_PLM_Data{$port_name}{'obj'}{_id_check})) {
-         $Insteon_PLM_Data{$port_name}{'obj'}{_id_check} = 1;
-         $Insteon_PLM_Data{$port_name}{'obj'}->send_plm_cmd('0260');
-      }
       next if !$data;
 
 	#lets turn this into Hex. I hate perl binary funcs
@@ -258,8 +253,10 @@ sub new {
    $$self{port_name} = $port_name;
 	$$self{last_command} = '';
 	$$self{xmit_in_progress} = 0;
-	@{$$self{command_stack}} = ();
+#	@{$$self{command_stack}} = ();
 	@{$$self{command_stack2}} = ();
+	@{$$self{command_history}} = ();
+	$$self{queue_timer} = new Timer();
 	$$self{_prior_data_fragment} = '';
    bless $self, $class;
    $Insteon_PLM_Data{$port_name}{'obj'} = $self;
@@ -303,19 +300,24 @@ sub set
 #	&::print_log("PLM xmit:" , $p_setby->{object_name} . ":$p_state:$p_setby");
 	
 	#identify the type of device that sent the request
-	if (
-		$p_setby->isa("X10_Item") or 
-		$p_setby->isa("X10_Switchlinc") or
-		$p_setby->isa("X10_Appliance")
-		)
-	{
-		$self->_xlate_mh_x10($p_state,$p_setby);
-	} elsif ($p_setby->isa("Insteon_Link")) {
-		$self->send_plm_cmd('0261' . $p_state);
-	} elsif ($p_setby->isa("Insteon_Device")) {
-		$self->send_plm_cmd('0262' . $p_state);
+	if (ref $p_setby and $p_setby eq $$self{queue_timer}) {
+		$$self{queue_timer}->unset();
+		$self->send_plm_cmd();
 	} else {
-		$self->_xlate_mh_x10($p_state,$p_setby);
+		if (
+			$p_setby->isa("X10_Item") or 
+			$p_setby->isa("X10_Switchlinc") or
+			$p_setby->isa("X10_Appliance")
+			)
+		{
+			$self->_xlate_mh_x10($p_state,$p_setby);
+		} elsif ($p_setby->isa("Insteon_Link")) {
+			$self->send_plm_cmd('0261' . $p_state);
+		} elsif ($p_setby->isa("Insteon_Device")) {
+			$self->send_plm_cmd('0262' . $p_state);
+		} else {
+			$self->_xlate_mh_x10($p_state,$p_setby);
+		}
 	}
 }
 
@@ -329,7 +331,7 @@ sub initiate_linking_as_responder
 	my $cmd = '0264'; # start all linking
 	$cmd .= '00'; # responder code
 	$cmd .= $group; # WARN - must be 2 digits and in hex!!
-	$self->send_plm_cmd($cmd);
+	$self->send_plm_cmd($cmd)
 }
 
 sub initiate_linking_as_controller
@@ -367,8 +369,7 @@ sub send_plm_cmd
 	}
 	#we dont transmit on top of another xmit
 	if ($$self{xmit_in_progress} != 1) {
-		$$self{xmit_in_progress} = 1;
-		#TODO: Should start a timer just in case PLM is not responding and we need to clear xmit_in_progress after a while.
+	#TODO: Should start a timer just in case PLM is not responding and we need to clear xmit_in_progress after a while.
 		#always send the oldest command first
 #		$cmd = pop(@{$$self{command_stack}});
 		my $cmdptr = pop(@{$$self{command_stack2}});
@@ -384,6 +385,28 @@ sub send_plm_cmd
 			#put the command back into the stack.. Its not our job to tamper with this array
 #			push(@{$$self{command_stack}},$cmd);
 			push(@{$$self{command_stack2}},\%cmd_record) if %cmd_record;
+			my $prior_cmd_time = pop(@{$$self{command_history}});
+			while ($prior_cmd_time) {
+				if ($::Time - $prior_cmd_time > 1) {
+					$prior_cmd_time = pop(@{$$self{command_history}});
+				} else {
+					# put it back on the queue; we're done
+					push(@{$$self{command_history}}, $prior_cmd_time);
+					$prior_cmd_time = 0;
+				}
+			}
+			my $past_cmds_in_history = @{$$self{command_history}};
+			# need logic to change based upon whether the command is x10 or not
+			&::print_log("[Insteon_PLM] num commands in past 1 seconds: $past_cmds_in_history") if $main::Debug{insteon};
+			if ($past_cmds_in_history > 3) {
+				$$self{queue_timer}->set(1,$self); # delay a second to throttle commands
+				return;
+			}
+#			unshift(@{$$self{command_history}},$cmd_record{queue_time})
+#				if $cmd_record{queue_time};
+			unshift(@{$$self{command_history}},$::Time);
+			$$self{xmit_in_progress} = 1;
+	
 			return $self->_send_cmd($cmd);
 		}
 	} else {
@@ -464,6 +487,8 @@ sub _parse_data {
 					# command succeeded
 #					&::print_log("PLM: Command succeeded: $data_1.");
 					$$self{xmit_in_progress} = 0;
+#					unshift(@{$$self{command_history}},$cmd_record{queue_time})
+#						if $cmd_record{queue_time};
 					$process_next_command = 1;
 #					select(undef,undef,undef,.15);
 #					$self->process_command_stack();
@@ -729,9 +754,13 @@ sub add_item
 {
     my ($self,$p_object) = @_;
 
-#    $p_object->tie_items($self);
-    push @{$$self{objects}}, $p_object;
-	#request an initial state from the device
+	push @{$$self{objects}}, $p_object;
+
+	if (!($self->device_id) and !($$self{_id_check})) {
+		$$self{_id_check} = 1;
+		$self->send_plm_cmd('0260');
+	}
+ 
 	if (!($p_object->isa('Insteon_Link')) and $p_object->isa('Insteon_Device')) 
 	{
 		# don't request status for objects associated w/ other than the primary group 
