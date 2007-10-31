@@ -253,11 +253,12 @@ sub new {
    $$self{port_name} = $port_name;
 	$$self{last_command} = '';
 	$$self{xmit_in_progress} = 0;
-#	@{$$self{command_stack}} = ();
+	$$self{xmit_timer} = new Timer();
 	@{$$self{command_stack2}} = ();
 	@{$$self{command_history}} = ();
 	$$self{queue_timer} = new Timer();
 	$$self{_prior_data_fragment} = '';
+	$$self{retry_count} = 0;
    bless $self, $class;
    $Insteon_PLM_Data{$port_name}{'obj'} = $self;
    $self->device_id($p_deviceid) if defined $p_deviceid;
@@ -303,6 +304,15 @@ sub set
 	if (ref $p_setby and $p_setby eq $$self{queue_timer}) {
 		$$self{queue_timer}->unset();
 		$self->send_plm_cmd();
+	} elsif (ref $p_setby and $p_setby eq $$self{xmit_timer}) {
+		$$self{xmit_timer}->unset();
+		if ($$self{xmit_in_progress}) {
+			&::print_log("[Insteon_PLM] WARN: Problem with your PLM requires forced abort of current command. Please investigate your environment.");
+			$$self{xmit_in_progress} = 0;
+			$self->send_plm_cmd();
+		} else {
+			&::print_log("[Insteon_PLM] PLM xmit timer expired but no transmission in place.  Moving on...") if $main::Debug{insteon};
+		}
 	} else {
 		if (
 			$p_setby->isa("X10_Item") or 
@@ -363,15 +373,18 @@ sub send_plm_cmd
 		my %cmd_record = {};
 		$cmd_record{cmd} = $cmd;
 		$cmd_record{queue_time} = $::Time;
-#		unshift(@{$$self{command_stack}},$cmd);
 		unshift(@{$$self{command_stack2}},\%cmd_record);
 
 	}
+#my $count = 1;
+#for my $command (@{$$self{command_stack2}}) {
+#   print "command[$count]: $$command{cmd}\n";
+#   $count++;
+#}
 	#we dont transmit on top of another xmit
-	if ($$self{xmit_in_progress} != 1) {
+	if (!($$self{xmit_in_progress}) and $$self{queue_timer}->inactive) {
 	#TODO: Should start a timer just in case PLM is not responding and we need to clear xmit_in_progress after a while.
 		#always send the oldest command first
-#		$cmd = pop(@{$$self{command_stack}});
 		my $cmdptr = pop(@{$$self{command_stack2}});
 		my %cmd_record = {};
 		if ($cmdptr) {
@@ -383,7 +396,6 @@ sub send_plm_cmd
 		if (defined $cmd and $cmd ne '') 
 		{
 			#put the command back into the stack.. Its not our job to tamper with this array
-#			push(@{$$self{command_stack}},$cmd);
 			push(@{$$self{command_stack2}},\%cmd_record) if %cmd_record;
 			my $prior_cmd_time = pop(@{$$self{command_history}});
 			while ($prior_cmd_time) {
@@ -397,8 +409,9 @@ sub send_plm_cmd
 			}
 			my $past_cmds_in_history = @{$$self{command_history}};
 			# need logic to change based upon whether the command is x10 or not
-			&::print_log("[Insteon_PLM] num commands in past 1 seconds: $past_cmds_in_history") if $main::Debug{insteon};
+#			&::print_log("[Insteon_PLM] num commands in past 1 seconds: $past_cmds_in_history") if $main::Debug{insteon};
 			if ($past_cmds_in_history > 3) {
+				&::print_log("[Insteon_PLM] num commands in 1 second exceeded threshold. Now delaying additional transmission for 1 second") if $main::Debug{insteon};
 				$$self{queue_timer}->set(1,$self); # delay a second to throttle commands
 				return;
 			}
@@ -406,10 +419,11 @@ sub send_plm_cmd
 #				if $cmd_record{queue_time};
 			unshift(@{$$self{command_history}},$::Time);
 			$$self{xmit_in_progress} = 1;
-	
+			$$self{xmit_timer}->set(3,$self);
 			return $self->_send_cmd($cmd);
 		}
 	} else {
+#		&::print_log("[Insteon_PLM] active transmission; moving on...") if $main::Debug{insteon};
 		return;
 	}
 }
@@ -453,7 +467,7 @@ sub _parse_data {
 	&::print_log( "[Insteon_PLM] Parsing serial data: $data") if $main::Debug{insteon};
 
 	# begin by pulling out any PLM ack/nacks
-	my $prev_cmd = ''; #lc(pop(@{$$self{command_stack}}));
+	my $prev_cmd = '';
 	my $cmdptr = pop(@{$$self{command_stack2}});
 	my %cmd_record = {};
 	if ($cmdptr) {
@@ -462,6 +476,8 @@ sub _parse_data {
 	}
 	my $residue_data = '';
 	my $process_next_command = 0;
+	my $delay_command = 0;
+	my $nack_count = 0;
 	if (defined $prev_cmd and $prev_cmd ne '') 
 	{
 #		&::print_log("PLM: Defined:$prev_cmd");
@@ -487,31 +503,38 @@ sub _parse_data {
 					# command succeeded
 #					&::print_log("PLM: Command succeeded: $data_1.");
 					$$self{xmit_in_progress} = 0;
-#					unshift(@{$$self{command_history}},$cmd_record{queue_time})
-#						if $cmd_record{queue_time};
+					$$self{xmit_timer}->unset();
 					$process_next_command = 1;
-#					select(undef,undef,undef,.15);
-#					$self->process_command_stack();
+					$$self{retry_count} = 0;
 				} elsif ($ret_code eq '15') { #NAK Received
-					&::print_log("[Insteon_PLM] Interface extremely busy.");
+					&::print_log("[Insteon_PLM] Interface extremely busy. Resending command.");
+					$nack_count++;
 					# abort until retry limit is implemented
 					# TO-DO: limit # of retries
-#					push(@{$$self{command_stack}}, $prev_cmd);
+					$$self{retry_count} += 1;
+					if ($$self{retry_count} < 3) {
+						push(@{$$self{command_stack2}}, \%cmd_record);
+					}
 					$$self{xmit_in_progress} = 0;
+					$$self{xmit_timer}->unset();
+					$delay_command = 1;
 					$process_next_command = 1;
-#					$self->process_command_stack();			
 				} else {
 					# We have a problem (Usually we stepped on another X10 command)
 					&::print_log("[Insteon_PLM] Command error: $data_1.");
 					$$self{xmit_in_progress} = 0;
+					$$self{xmit_timer}->unset();
 					#move it off the top of the stack and re-transmit later!
 					#TODO: We should keep track of an errored command and kill it if it fails twice.  prevent an infinite loop here
 					$process_next_command = 1;
-#					$self->process_command_stack();
 				}
 			} else {
 				$residue_data .= $data_1;
 			}			
+		}
+		if (!($process_next_command)) {
+			# then, didn't get a match and need to push the command back on the stack
+			push(@{$$self{command_stack2}}, \%cmd_record);
 		}
 	} else {
 		$residue_data = $data;
@@ -533,41 +556,45 @@ sub _parse_data {
 			&::process_serial_data($self->_xlate_x10_mh($data_1));	
 		} elsif (substr($data_1,0,4) eq '0253') { #ALL-Linking Completed
 			&::print_log("[Insteon_PLM] ALL-Linking Completed:$data_1") if $main::Debug{insteon};
-#			$self->delegate($data_1);
 		} elsif (substr($data_1,0,4) eq '0256') { #ALL-Link Cleanup Failure Report
 			&::print_log("[Insteon_PLM] ALL-Link Cleanup Failure Report:$data_1") if $main::Debug{insteon};
-#			$self->delegate($data_1);
 		} elsif (substr($data_1,0,4) eq '0257') { #ALL-Link Record Response
 			&::print_log("[Insteon_PLM] ALL-Link Record Response:$data_1") if $main::Debug{insteon};
-#			$self->delegate($data_1);
 		} elsif (substr($data_1,0,4) eq '0258') { #ALL-Link Cleanup Status Report
 			&::print_log("[Insteon_PLM] ALL-Link Cleanup Status Report:$data_1") if $main::Debug{insteon};
-#			$self->delegate($data_1);
 		} elsif (substr($data_1,0,4) eq '0261') { #ALL-Link Broadcast 
 			&::print_log("[Insteon_PLM] ALL-Link Broadcast:$data_1") if $main::Debug{insteon};
 #			$$self{_data_fragment} = $data_1 unless $self->delegate($data_1);
 		} elsif (substr($data_1,0,2) eq '15') { #NAK Received
-			&::print_log("[Insteon_PLM] Interface extremely busy.");
-			#retry after slight delay; perhaps this is better handled w/ a timer?
-			select(undef,undef,undef,0.15);
-			$$self{xmit_in_progress} = 0;
-			$self->process_command_stack();			
+			if (!($nack_count)) {
+				&::print_log("[Insteon_PLM] Interface extremely busy. Resending command.");
+				$$self{retry_count} += 1;
+				if ($$self{retry_count} < 3) {
+					push(@{$$self{command_stack2}}, \%cmd_record);
+				}
+				$$self{xmit_in_progress} = 0;
+				$$self{xmit_timer}->unset();
+				$delay_command = 1;
+				$process_next_command = 1;
+				$nack_count++;
+			}
 		} else {
-			#for now anything not recognized, kill pending xmission
-			# NOOOO - it's probably a fragment; so, handle it
+			# it's probably a fragment; so, handle it
 			$$self{_data_fragment} = $data_1 unless $data_1 eq $$self{_prior_data_fragment};
-#			&::print_log("[Insteon_PLM] WARNING!! An insteon message with message: $data_1 " 
-#				. "was received.  Aborting current transmission in progress");
-#			$$self{xmit_in_progress} = 0;
-			#drop latest
-#			pop(@{$$self{command_stack}});				
-			
 		}
 	}
 
 	if ($process_next_command) {
-		select(undef,undef,undef,.15);
-		$self->process_command_stack();
+		if ($delay_command) {
+			&::print_log("[Insteon_PLM] Now delaying additional transmission for 1 second") if $main::Debug{insteon};
+			$$self{queue_timer}->set(1,$self); # delay a second to throttle commands
+		} else {
+			select(undef,undef,undef,.15);
+			$self->process_command_stack();
+		}
+	} else {
+#		my $queued_command_count = @{$$self{command_stack2}};
+#		&::print_log("### Remaining queued commands: $queued_command_count");
 	}
 
 	return $processedNibs;
@@ -578,7 +605,7 @@ sub process_command_stack
 	my ($self) = @_;
 	## send any remaining commands in stack
 	my $stack_count = @{$$self{command_stack2}};
-#			&::print_log("UPB Command stack2:$stack_count:@{$$self{command_stack}}:");
+#			&::print_log("UPB Command stack2:$stack_count:@{$$self{command_stack2}}:");
 	if ($stack_count> 0 ) 
 	{
 		#send any remaining commands.
