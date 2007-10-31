@@ -267,9 +267,12 @@ sub _process_command_stack
 		} else {
 			# always unset the timer if no more commands
 			$$self{queue_timer}->unset();
-			# and, always clear awaiting_ack
+			# and, always clear awaiting_ack and _prior_msg
 			$$self{awaiting_ack} = 0;
+			$$self{_prior_msg} = undef;
 		}
+	} else {
+		&::print_log("[Insteon_Device] Command queued but not yet sent; awaiting ack from prior command");
 	}
 }
 
@@ -339,7 +342,7 @@ sub _process_message
 			$self->is_acknowledged(1);
 			# signal receipt of message to the command stack in case commands are queued
 			$self->_process_command_stack(%msg);
-			&::print_log("[Insteon_Device] received command/state acknolwedge from " . $self->{object_name} 
+			&::print_log("[Insteon_Device] received command/state acknowledge from " . $self->{object_name} 
 				. ": $msg{command}") if $main::Debug{insteon};
 		}
 	} elsif ($msg{is_nack}) {
