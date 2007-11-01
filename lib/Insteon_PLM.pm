@@ -12,8 +12,8 @@ Description:
 		http://www.smarthome.com/manuals/2412sdevguide.pdf
 
 Author(s):
-    Jason Sharpee
-    jason@sharpee.com
+	    Jason Sharpee / jason@sharpee.com
+	    Gregg Liming / gregg@limings.net
 
 License:
     This free software is licensed under the terms of the GNU public license. GPLv2
