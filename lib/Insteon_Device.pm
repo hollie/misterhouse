@@ -8,8 +8,8 @@ Description:
 	Generic class implementation of an Insteon Device.
 
 Author:
-	Jason Sharpee
-	jason@sharpee.com
+            Jason Sharpee / jason@sharpee.com
+            Gregg Liming / gregg@limings.net
 
 License:
 	This free software is licensed under the terms of the GNU public license.
