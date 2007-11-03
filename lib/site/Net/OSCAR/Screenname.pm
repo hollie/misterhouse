@@ -14,8 +14,8 @@ will be true.
 
 package Net::OSCAR::Screenname;
 
-$VERSION = '1.907';
-$REVISION = '$Revision$';
+$VERSION = '1.925';
+$REVISION = '$Revision: 1.24 $';
 
 use strict;
 use vars qw($VERSION);
@@ -31,8 +31,8 @@ sub new($$) {
 	return $_[1] if ref($_[0]) or UNIVERSAL::isa($_[1], "Net::OSCAR::Screenname");
 	my $class = ref($_[0]) || $_[0] || "Net::OSCAR::Screenname";
 	shift;
-	my $name = "$_[0]"; # Make doubleplus sure that name isn't one of us
-	my $self = \$name;
+	my $name = $_[0];
+	my $self = ref($name) eq "SCALAR" ? $name : \"$name";
 	bless $self, $class;
 	return $self;
 }

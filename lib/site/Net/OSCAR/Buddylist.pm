@@ -1,6 +1,7 @@
 =pod
 
 Net::OSCAR::Buddylist -- tied hash class whose keys are Net::OSCAR::Screennames
+and which also maintains the ordering of its keys.
 
 OSCAR screennames don't compare like normal scalars; they're case and whitespace-insensitive.
 This is a tied hash class that has that behavior for its keys.
@@ -9,8 +10,8 @@ This is a tied hash class that has that behavior for its keys.
 
 package Net::OSCAR::Buddylist;
 
-$VERSION = '1.907';
-$REVISION = '$Revision$';
+$VERSION = '1.925';
+$REVISION = '$Revision: 1.37 $';
 
 use strict;
 use vars qw($VERSION);
@@ -73,6 +74,12 @@ sub DELETE {
 		next unless $key eq $self->{ORDERFORM}->[$i];
 		$foo = 1;
 		splice(@{$self->{ORDERFORM}}, $i, 1);
+
+		# What if the user deletes a key while iterating?  We need to correct for the new index.
+		if($self->{CURRKEY} != -1 and $i <= $self->{CURRKEY}) {
+			$self->{CURRKEY}--;
+		}
+
 		last;
 	}
 	return $retval;

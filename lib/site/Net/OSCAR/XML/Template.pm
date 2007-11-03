@@ -57,7 +57,7 @@ sub unpack($$) {
 		## Figure out how much input data this datum is dealing with
 
 		if($datum->{prefix} and $datum->{prefix} eq "count") {
-			($count) = unpack($datum->{prefix_packlet}, substr($packet, 0, $datum->{prefix_len}, ""));
+			($count) = unpack($datum->{prefix_packlet}, substr($packet, 0, $datum->{prefix_len}, "")) || 0;
 		}
 
 		my $size = undef;
@@ -98,10 +98,14 @@ sub unpack($$) {
 		if($datum->{type} eq "num") {
 			for(my $i = 0; ($input ne "") and ($count == -1 or $i < $count); $i++) {
 				push @results, unpack($datum->{packlet}, substr($input, 0, $datum->{len}, ""));
+
+				if(exists($datum->{enum_byval}) and exists($datum->{enum_byval}->{$results[-1]})) {
+					$results[-1] = $datum->{enum_byval}->{$results[-1]};
+				}
 			}
 		} elsif($datum->{type} eq "data" or $datum->{type} eq "ref") {
 			# If we just have simple, no preset length, no subitems, raw data, it can't have a repeat count, since the first repetition will gobble up everything
-			assert($datum->{type} ne "data" or @{$datum->{items}} or defined($size) or $count == 1 or $datum->{null_terminated});
+			assert($datum->{type} ne "data" or ($datum->{items} and @{$datum->{items}}) or defined($size) or $count == 1 or $datum->{null_terminated});
 
 			# We want:
 			#	<data length_prefix="num" />
@@ -138,7 +142,7 @@ sub unpack($$) {
 						$subinput =~ s/$pad*$//;
 					}
 
-					if(@{$datum->{items}}) {
+					if($datum->{items} and @{$datum->{items}}) {
 						assert(!$datum->{null_terminated});
 						(%tmp) = $self->new($datum->{items})->unpack(\$subinput);
 						$input = $subinput unless $datum->{len};
@@ -174,7 +178,7 @@ sub unpack($$) {
 			for(my $i = 0; $input and ($count == -1 or $i < $count); $i++) {
 				my %tlv;
 				if($datum->{subtyped}) {
-					(%tlv) = protoparse($oscar, "subtyped TLV")->unpack(\$input);
+					(%tlv) = protoparse($oscar, "subtyped_TLV")->unpack(\$input);
 				} else {
 					(%tlv) = protoparse($oscar, "TLV")->unpack(\$input);
 				}
@@ -289,7 +293,7 @@ sub unpack($$) {
 				} else {
 					if(exists($val->{name})) {
 						push @results, {
-							$val->{name} => @{$val->{outdata}}
+							$val->{name} => $val->{outdata}->[0]
 						};
 					} else {
 						push @results, $val->{outdata}->[0];
@@ -309,7 +313,7 @@ sub unpack($$) {
 		## Okay, we have the results from this datum, store them away.
 
 		if($datum->{name}) {
-			if($datum->{count}) {
+			if($datum->{count} or ($datum->{prefix} and $datum->{prefix} eq "count")) {
 				$data{$datum->{name}} = \@results;
 			} elsif(
 			  $datum->{type} eq "ref" or
@@ -347,15 +351,16 @@ sub pack($%) {
 	assert(ref($template) eq "ARRAY");
 	foreach my $datum (@$template) {
 		my $output = undef;
-		my $max_count = exists($datum->{count}) ? $datum->{count} : 1;
-		my $count = 0;
-
 
 		## Figure out what we're packing
 		my $value = undef;
 		$value = $data{$datum->{name}} if $datum->{name};
 		$value = $datum->{value} if !defined($value);
 		my @valarray = ref($value) eq "ARRAY" ? @$value : ($value); # Don't modify $value in-place!
+
+		$datum->{count} = @valarray if $datum->{prefix} and $datum->{prefix} eq "count";
+		my $max_count = exists($datum->{count}) ? $datum->{count} : 1;
+		my $count = 0;
 
 		assert($max_count == -1 or @valarray <= $max_count);
 
@@ -366,6 +371,9 @@ sub pack($%) {
 
 			for($count = 0; ($max_count == -1 or $count < $max_count) and @valarray; $count++) {
 				my $val = shift @valarray;
+				if(exists($datum->{enum_byname}) and exists($datum->{enum_byname}->{$val})) {
+					$val = $datum->{enum_byname}->{$val};
+				}
 
 				$output .= pack($datum->{packlet}, $val);
 			}
@@ -433,7 +441,7 @@ sub pack($%) {
 					assert(exists($tlv->{subtype}));
 					$subtype = $tlv->{subtype} if $tlv->{subtype} != -1;
 
-					$output .= protoparse($oscar, "subtyped TLV")->pack(
+					$output .= protoparse($oscar, "subtyped_TLV")->pack(
 						type => $tlv->{num},
 						subtype => $subtype,
 						data => $_

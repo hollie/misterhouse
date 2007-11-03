@@ -6,8 +6,8 @@ Net::OSCAR::Constants -- internal Net::OSCAR constants
 
 package Net::OSCAR::Constants;
 
-$VERSION = '1.907';
-$REVISION = '$Revision$';
+$VERSION = '1.925';
+$REVISION = '$Revision: 1.11 $';
 
 use strict;
 use vars qw(@ISA @EXPORT $VERSION);
@@ -18,8 +18,7 @@ require Exporter;
 
 @EXPORT = qw(
 	FLAP_CHAN_NEWCONN FLAP_CHAN_SNAC FLAP_CHAN_ERR FLAP_CHAN_CLOSE
-	CONNTYPE_LOGIN CONNTYPE_BOS CONNTYPE_ADMIN CONNTYPE_CHAT CONNTYPE_CHATNAV CONNTYPE_ICON CONNTYPE_DIRECT_IN CONNTYPE_DIRECT_OUT
-	MODBL_ACTION_ADD MODBL_ACTION_DEL MODBL_WHAT_BUDDY MODBL_WHAT_GROUP MODBL_WHAT_PERMIT MODBL_WHAT_DENY
+	CONNTYPE_LOGIN CONNTYPE_BOS CONNTYPE_ADMIN CONNTYPE_CHAT CONNTYPE_CHATNAV CONNTYPE_ICON CONNTYPE_DIRECT_IN CONNTYPE_DIRECT_OUT CONNTYPE_SERVER
 	OSCAR_CAPS OSCAR_CAPS_INVERSE OSCAR_CAPS_SHORT_INVERSE OSCAR_TOOLDATA
 	GROUP_PERMIT GROUP_DENY BUDTYPES ERRORS
 
@@ -40,14 +39,7 @@ use constant CONNTYPE_CHATNAV => dualvar(0xD, "chat navigator");
 use constant CONNTYPE_ICON => dualvar(0x10, "icon service");
 use constant CONNTYPE_DIRECT_IN => dualvar(0xfe, "direct connect listener");
 use constant CONNTYPE_DIRECT_OUT => dualvar(0xff, "direct connect connection");
-
-use constant MODBL_ACTION_ADD => 0x1;
-use constant MODBL_ACTION_DEL => 0x2;
-
-use constant MODBL_WHAT_BUDDY => 0x1;
-use constant MODBL_WHAT_GROUP => 0x2;
-use constant MODBL_WHAT_PERMIT => 0x3;
-use constant MODBL_WHAT_DENY => 0x4;
+use constant CONNTYPE_SERVER => dualvar(0xfd, "OSCAR server");
 
 use constant GROUP_PERMIT => 0x0002;
 use constant GROUP_DENY   => 0x0003;

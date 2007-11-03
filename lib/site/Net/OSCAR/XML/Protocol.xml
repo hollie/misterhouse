@@ -25,7 +25,7 @@
 		<word name="type" />
 		<data length_prefix="word" name="data" />
 	</define>
-	<define name="subtyped TLV">
+	<define name="subtyped_TLV">
 		<word name="type" />
 		<byte name="subtype" />
 		<data length_prefix="byte" name="data" />
@@ -72,7 +72,7 @@
 
 	<!-- Random protocol crap -->
 
-	<define name="service request" family="1" subtype="4">
+	<define name="service_request" family="1" subtype="4">
 		<word name="type" />
 
 		<!-- Chat extra -->
@@ -90,7 +90,7 @@
 			<tlv type="4"><data name="error_details" /></tlv>
 		</tlvchain>
 	</define>
-	<define name="service redirect response" family="1" subtype="5">
+	<define name="service_redirect_response" family="1" subtype="5">
 		<tlvchain>
 			<tlv type="13"><word name="service_type" /></tlv>
 			<tlv type="6"><data name="auth_cookie" /></tlv>
@@ -101,7 +101,7 @@
 
 	<!-- Signing on -->
 
-	<define name="BOS signon" family="0" subtype="1" channel="1" flags2="6">
+	<define name="BOS_signon" family="0" subtype="1" channel="1" flags2="6">
 		<data name="cookie" />
 	</define>
 
@@ -132,12 +132,12 @@
 			<tlv type="74"><byte>1</byte></tlv>
 		</tlvchain>
 	</define>
-	<define name="ICQ signon request" channel="1">
+	<define name="ICQ_signon_request" channel="1">
 		<dword>1</dword>
 		<ref name="signon" />
 	</define>
 
-	<define name="initial signon request" family="23" subtype="6">
+	<define name="initial_signon_request" family="23" subtype="6">
 		<tlvchain>
 			<tlv type="1"><data name="screenname" /></tlv>
 			<tlv type="75" default_generate="yes" />
@@ -146,12 +146,12 @@
 	</define>
 
 	<!-- How server sends challenge for challenge/response authentication to client -->
-	<define name="authentication key" family="23" subtype="7">
+	<define name="authentication_key" family="23" subtype="7">
 		<data name="key" length_prefix="word" />
 	</define>
 
 	<!-- Random crap that's part of signon, protocol negotiation -->
-	<define name="authorization response" family="23" subtype="3">
+	<define name="authorization_response" family="23" subtype="3">
 		<tlvchain>
 			<!-- If there's an error -->
 			<tlv type="8"><word name="error" /></tlv>
@@ -168,36 +168,92 @@
 			<tlv type="84"><data name="password_change_url" /></tlv>
 		</tlvchain>
 	</define>
-	<define name="rate info response" family="1" subtype="7" />
-	<define name="rate acknowledgement" family="1" subtype="8">
-		<word>1</word>
-		<word>2</word>
-		<word>3</word>
-		<word>4</word>
-		<word>5</word>
+	<define name="rate_class_info">
+		<word name="class_id" />
+		<dword name="window_size" />
+		<data name="levels">
+			<dword name="clear" />
+			<dword name="alert" />
+			<dword name="limit" />
+			<dword name="disconnect" />
+			<dword name="current" />
+			<dword name="max" />
+		</data>
+		<dword name="last_time" />
+		<byte name="current_state" />
 	</define>
-	<define name="personal info request" family="1" subtype="14" />
-	<define name="buddylist rights request" family="19" subtype="2" />
-	<define name="buddylist request" family="19" subtype="4" />
-	<define name="locate rights request" family="2" subtype="2" />
-	<define name="locate rights response" family="2" subtype="3" />
-	<define name="buddy rights request" family="3" subtype="2" />
-	<define name="buddy rights response" family="3" subtype="3" />
-	<define name="IM parameter request" family="4" subtype="4" />
-	<define name="IM parameter response" family="4" subtype="5" />
-	<define name="BOS rights request" family="9" subtype="2" />
-	<define name="BOS rights response" family="9" subtype="3" />
-	<define name="self information" family="1" subtype="15"><ref name="userinfo" /></define>
-	<define name="minimum report interval" family="11" subtype="2" />
+	<define name="rate_info_response" family="1" subtype="7">
+		<data count_prefix="word" name="classes">
+			<ref name="rate_class_info" />
+		</data>
+		<data count="-1" name="classmembers">
+			<word name="class_id" />
+			<data count_prefix="word" name="snacs">
+				<word name="family" />
+				<word name="subtype" />
+			</data>
+		</data>
+	</define>
+	<define name="rate_acknowledgement" family="1" subtype="8">
+		<word count="-1" name="classes" />
+	</define>
+	<define name="personal_info_request" family="1" subtype="14" />
+	<define name="buddylist_rights_request" family="19" subtype="2" />
+	<define name="buddylist_request" family="19" subtype="4" />
+
+	<define name="locate_rights_request" family="2" subtype="2" />
+	<define name="locate_rights_response" family="2" subtype="3">
+		<tlvchain>
+			<tlv type="1"><word name="max_profile_len">1024</word></tlv>
+			<tlv type="2"><word name="max_capabilities">16</word></tlv>
+			<tlv type="3"><word>10</word></tlv>
+			<tlv type="4"><word>4096</word></tlv>
+		</tlvchain>
+	</define>
+
+	<define name="buddy_rights_request" family="3" subtype="2" />
+	<define name="buddy_rights_response" family="3" subtype="3">
+		<tlvchain>
+			<tlv type="1"><word name="maxbuddies">600</word></tlv>
+			<tlv type="2"><word name="maxwatchers">750</word></tlv>
+			<tlv type="3"><word name="maxnotifies">512</word></tlv>
+		</tlvchain>
+	</define>
+
+	<define name="IM_parameters">
+		<word name="channel">0</word>
+		<dword name="flags">3</dword>
+		<word name="max_size">8000</word>
+		<word name="max_send_warn">999</word>
+		<word name="max_recv_warn">999</word>
+		<word name="min_msg_interval">0</word>
+		<word>0</word>
+	</define>
+	<define name="add_IM_parameters" family="4" subtype="2"><ref name="IM_parameters" /></define>
+	<define name="IM_parameter_request" family="4" subtype="4"><ref name="IM_parameters" /></define>
+	<define name="IM_parameter_response" family="4" subtype="5"><ref name="IM_parameters" /></define>
+
+	<define name="BOS_rights_request" family="9" subtype="2" />
+	<define name="BOS_rights_response" family="9" subtype="3">
+		<tlvchain>
+			<tlv type="1"><word name="max_permits">200</word></tlv>
+			<tlv type="2"><word name="max_denies">200</word></tlv>
+		</tlvchain>
+	</define>
+
+	<define name="self_information" family="1" subtype="15"><ref name="userinfo" /></define>
+	<define name="minimum_report_interval" family="11" subtype="2" />
 	<define name="MOTD" family="1" subtype="19" />
-	<define name="server ready" family="1" subtype="3" />
-	<define name="set service versions" family="1" subtype="23">
+	<define name="server_ready" family="1" subtype="3">
+		<word count="-1" name="families" />
+	</define>
+	<define name="set_service_versions" family="1" subtype="23">
 		<data count="-1" name="service">
 			<word name="service_id" />
 			<word name="service_version" />
 		</data>
 	</define>
-	<define name="set tool versions" family="1" subtype="2">
+	<define name="set_tool_versions" family="1" subtype="2">
 		<data count="-1" name="service">
 			<word name="service_id" />
 			<word name="service_version" />
@@ -205,85 +261,96 @@
 			<word name="tool_version" />
 		</data>
 	</define>
-	<define name="rate info request" family="1" subtype="6" />
-	<define name="rate change" family="1" subtype="10">
-		<word />
-		<word name="group" />
-		<dword name="window" />
-		<dword name="clear" />
-		<dword name="alert" />
-		<dword name="limit" />
-		<dword name="disconnect" />
-		<dword name="current" />
-		<dword name="max" />
+	<define name="rate_info_request" family="1" subtype="6" />
+	<define name="rate_change" family="1" subtype="10">
+		<enum type="word" name="message_type">
+			<edef name="change" value="1" />
+			<edef name="warning" value="2" />
+			<edef name="alert" value="3" />
+			<edef name="clear" value="4" />
+		</enum>
+		<ref name="rate_class_info" />
 	</define>
-	<define name="outgoing warning" family="4" subtype="8">
+	<define name="outgoing_warning" family="4" subtype="8">
 		<word name="is_anonymous" />
 		<data name="screenname" length_prefix="byte" />
 	</define>
-	<define name="incoming warning" family="1" subtype="16">
+	<define name="incoming_warning" family="1" subtype="16">
 		<word name="new_level" />
 		<ref name="userinfo" />
 	</define>
-	<define name="memory request" family="1" subtype="31" /> <!-- This was an attempt to block third-party clients by requesting MD5s of portions of the AIM.EXE binary; it is no longer used, huzzah -->
-	<define name="host versions" family="1" subtype="24" />
-	<define name="session was opened elsewhere" family="9" subtype="2" /> <!-- Before routing (multiple signons of the same screenname) support was added, this error would be sent when the screenname was signed on elsewhere -->
-	<define name="add IM parameters" family="4" subtype="2">
-		<word name="channel">0</word>
-		<dword name="flags">11</dword>
-		<word name="max_msg_len">8000</word>
-		<word name="max_sender_warn">999</word>
-		<word name="max_rcpt_warn">999</word>
-		<dword name="min_msg_interval">0</dword>
+	<define name="memory_request" family="1" subtype="31" /> <!-- This was an attempt to block third-party clients by requesting MD5s of portions of the AIM.EXE binary; it is no longer used, huzzah -->
+	<define name="host_versions" family="1" subtype="24">
+		<data count="-1" name="server">
+			<word name="service_id" />
+			<word name="service_version" />
+		</data>
 	</define>
-	<define name="buddylist done" family="19" subtype="7" />
+	<define name="buddylist_done" family="19" subtype="7" />
 
 
 
 	<!-- Buddylist stuff -->
 
-	<define name="buddylist 3 response" family="19" subtype="3" />
+	<define name="buddylist_3_response" family="19" subtype="3">
+		<tlvchain>
+			<tlv type="4"><word count="-1" name="maximums" /></tlv>
+			<tlv type="2"><word>254</word></tlv>
+			<tlv type="3"><word>508</word></tlv>
+			<tlv type="5"><word>0</word></tlv>
+			<tlv type="6"><word>97</word></tlv>
+			<tlv type="7"><word>10</word></tlv>
+		</tlvchain>
+	</define>
 	<define name="buddylist" family="19" subtype="6"> <!-- This is supremely weird and fucked up, no bloody way we'll be able to get it in the XML; notably, it is split across multiple SNACs, but not on any sort of coherent boundary, and you have to slice random bits off the front and back...  See OSCAR/Callbacks.pm handler for this protobit. -->
 		<data name="data" />		
 	</define>
-	<define name="buddylist modification acknowledgement" family="19" subtype="14">
+	<define name="buddylist_modification_acknowledgement" family="19" subtype="14">
 		<word name="error" count="-1" />
 	</define>
-	<define name="buddylist error" family="19" subtype="15">
+	<define name="buddylist_error" family="19" subtype="15">
 		<data name="data" />
 	</define>
 
 	<!-- Packets are limited to 8k in size, which we could exceed if we try to put too many
 		modifications into one packet.  Since we need to flatten one modification at a time
 		and stop when we hit the size cap, this stuff is a bit peculiar. -->
-	<define name="buddylist modification">
+	<define name="buddylist_modification">
 		<data name="entry_name" length_prefix="word" />
 		<word name="group_id" />
 		<word name="buddy_id" />
 		<word name="entry_type" />
 		<data name="entry_data" length_prefix="word" />
 	</define>
-	<define name="buddylist add" family="19" subtype="8"><data name="mods" /></define>
-	<define name="buddylist modify" family="19" subtype="9"><data name="mods" /></define>
-	<define name="buddylist delete" family="19" subtype="10"><data name="mods" /></define>
-	<define name="start buddylist modifications" family="19" subtype="17" />
-	<define name="end buddylist modifications" family="19" subtype="18" />
+	<define name="buddylist_add" family="19" subtype="8"><data name="mods" /></define>
+	<define name="buddylist_modify" family="19" subtype="9"><data name="mods" /></define>
+	<define name="buddylist_delete" family="19" subtype="10"><data name="mods" /></define>
+
+	<!-- We also provide this more regular version for use in parsing changes sent by the server -->
+	<define name="buddylist_change">
+		<data name="changes" count="-1">
+			<ref name="buddylist_modification" />
+		</data>
+	</define>
+
+	<define name="start_buddylist_modifications" family="19" subtype="17" />
+	<define name="end_buddylist_modifications" family="19" subtype="18" />
 	
 
 
 	<!-- User information -->
 
-	<define name="get info" family="2" subtype="21">
+	<define name="get_info" family="2" subtype="21">
 		<word>0</word>
 		<word>1</word>
 		<data length_prefix="byte" name="screenname" />
 	</define>
-	<define name="get away" family="2" subtype="21">
+	<define name="get_away" family="2" subtype="21">
 		<word>0</word>
 		<word>3</word>
 		<data length_prefix="byte" name="screenname" />
 	</define>
-	<define name="incoming profile" family="2" subtype="6">
+	<define name="incoming_profile" family="2" subtype="6">
 		<ref name="userinfo" />
 		<tlvchain>
 			<tlv type="2"><data name="profile" /></tlv>
@@ -291,7 +358,7 @@
 		</tlvchain>
 	</define>
 
-	<define name="set info" family="2" subtype="4">
+	<define name="set_info" family="2" subtype="4">
 		<tlvchain>
 			<tlv type="1"><data name="profile_mimetype" /></tlv>
 			<tlv type="2"><data name="profile" /></tlv>
@@ -306,13 +373,13 @@
 		</tlvchain>
 	</define>
 
-	<define name="set idle" family="1" subtype="17">
+	<define name="set_idle" family="1" subtype="17">
 		<dword name="duration" />
 	</define>
 
 	<!-- Extended information -->
 
-	<define name="typing notification" family="4" subtype="20">
+	<define name="typing_notification" family="4" subtype="20">
 		<dword>0</dword>
 		<dword>0</dword>
 		<word>1</word>
@@ -320,7 +387,7 @@
 		<word name="typing_status" />
 	</define>
 
-	<define name="incoming extended information" family="1" subtype="33">
+	<define name="incoming_extended_information" family="1" subtype="33">
 		<!-- Gee, thank you for this wonderful structure, AOL...  Love you too. -->
 		<!-- Only one item in the TLV chain will be present, client should key off of which one -->
 		<tlvchain subtyped="yes">
@@ -334,7 +401,7 @@
 		</tlvchain>
 	</define>
 
-	<define name="set extended status" family="1" subtype="30">
+	<define name="set_extended_status" family="1" subtype="30">
 		<tlvchain>
 			<tlv type="29" name="status_message">
 				<word>2</word>
@@ -354,7 +421,7 @@
 		</tlvchain>
 	</define>
 
-	<define name="icon upload" family="16" subtype="2">
+	<define name="icon_upload" family="16" subtype="2">
 		<tlvchain>
 			<tlv type="1"><data name="icon" /></tlv>
 		</tlvchain>
@@ -364,22 +431,21 @@
 
 	<!-- Buddylist -->
 
-	<define name="buddy status update" family="3" subtype="11">
+	<define name="buddy_status_update" family="3" subtype="11">
 		<ref name="userinfo" />
 	</define>
-	<define name="buddy signoff" family="3" subtype="12">
+	<define name="buddy_signoff" family="3" subtype="12">
 		<data length_prefix="byte" name="screenname" />
 	</define>
 
 
-
 	<!-- IMs -->
 
-	<define name="standard IM header">
+	<define name="standard_IM_header">
 		<data length="8" name="cookie" />
 		<word name="channel">1</word>
 	</define>
-	<define name="standard IM footer">
+	<define name="standard_IM_footer">
 		<tlvchain>
 			<tlv type="2">
 				<tlvchain>
@@ -405,11 +471,14 @@
 			</tlv>
 		</tlvchain>
 	</define>
-	<define name="rendezvous IM">
+	<define name="rendezvous_IM">
 		<tlvchain>
 			<tlv type="5">
-				<!-- 0=propose, 1=cancel, 2=accept -->
-				<word name="status" /> 
+				<enum type="word" name="status"> 
+					<edef name="propose" value="0" />
+					<edef name="cancel" value="1" />
+					<edef name="accept" value="2" />
+				</enum>
 
 				<data length="8" name="cookie" />
 
@@ -443,18 +512,18 @@
 		</tlvchain>
 	</define>
 
-	<define name="incoming IM" family="4" subtype="7">
-		<ref name="standard IM header" />
+	<define name="incoming_IM" family="4" subtype="7">
+		<ref name="standard_IM_header" />
 		<ref name="userinfo" />
 		<data name="message_body" />
 	</define>
-	<define name="outgoing IM" family="4" subtype="6">
-		<ref name="standard IM header" />
+	<define name="outgoing_IM" family="4" subtype="6">
+		<ref name="standard_IM_header" />
 		<data name="screenname" length_prefix="byte" />
 		<data name="message_body" />
 	</define>
 
-	<define name="IM acknowledgement" family="4" subtype="12">
+	<define name="IM_acknowledgement" family="4" subtype="12">
 		<data length="8" name="cookie" />
 		<word name="channel" />
 		<data length_prefix="byte" name="screenname" />
@@ -464,13 +533,13 @@
 
 	<!-- Chat -->
 
-	<define name="chat invitation accept" family="13" subtype="4">
+	<define name="chat_invitation_accept" family="13" subtype="4">
 		<word name="exchange">4</word>
 		<data length_prefix="byte" name="url" />
 		<word>0</word>
 		<byte>2</byte>
 	</define>
-	<define name="chat invitation decline" family="4" subtype="11">
+	<define name="chat_invitation_decline" family="4" subtype="11">
 		<data length="8" name="cookie" />
 		<word name="channel">2</word>
 		<data length_prefix="byte" name="screenname" />
@@ -480,12 +549,12 @@
 		</tlvchain>
 	</define>
 
-	<define name="chat navigator rights request" family="13" subtype="2" />
-	<define name="chat navigator room create" family="13" subtype="8">
-		<ref name="chat room info" />
+	<define name="chat_navigator_rights_request" family="13" subtype="2" />
+	<define name="chat_navigator_room_create" family="13" subtype="8">
+		<ref name="chat_room_info" />
 	</define>
 
-	<define name="chat data">
+	<define name="chat_data">
 		<tlvchain count_prefix="word">
 			<tlv type="106"><data name="name" /></tlv>
 			<tlv type="111"><word name="occupant_count" /></tlv>
@@ -500,12 +569,12 @@
 			<tlv type="219"><data name="encoding" /></tlv>
 		</tlvchain>
 	</define>
-	<define name="chat room info">
+	<define name="chat_room_info">
 		<word name="exchange" />
 		<data length_prefix="byte" name="url">create</data>
 		<word name="instance">65535</word>
 		<byte name="detail_level">1</byte>
-		<ref name="chat data" />
+		<ref name="chat_data" />
 	</define>
 		<word />
 		<data length_prefix="byte">
@@ -524,37 +593,37 @@
 		</tlvchain>
 
 
-	<define name="chat navigator response" family="13" subtype="9">
+	<define name="chat_navigator_response" family="13" subtype="9">
 		<tlvchain>
 			<!-- These two come from the 'chat navigator rights request' -->
 			<tlv type="2"><byte name="max_concurrent_rooms" /></tlv>
 			<tlv type="3" count="-1" name="exchange">
 				<word name="exchange" />
-				<ref name="chat data" />
+				<ref name="chat_data" />
 			</tlv>
 
 			<!-- These two come from the create room request -->
 			<tlv type="4" count="-1" name="room">
-				<ref name="chat room info" />
+				<ref name="chat_room_info" />
 			</tlv>
 		</tlvchain>
 	</define>
 
 
-	<define name="chat room status" family="14" subtype="2">
-		<ref name="chat room info" />
+	<define name="chat_room_status" family="14" subtype="2">
+		<ref name="chat_room_info" />
 	</define>
-	<define name="chat buddy arrival" family="14" subtype="3">
+	<define name="chat_buddy_arrival" family="14" subtype="3">
 		<data name="arrivals" count="-1">
 			<ref name="userinfo" />
 		</data>
 	</define>
-	<define name="chat buddy departure" family="14" subtype="4">
+	<define name="chat_buddy_departure" family="14" subtype="4">
 		<data name="departures" count="-1" length_prefix="byte" />
 	</define>
 
 
-	<define name="chat IM">
+	<define name="chat_IM">
 		<data length="8" name="cookie" />
 		<word>3</word> <!-- channel -->
 		<tlvchain>
@@ -573,14 +642,14 @@
 			</tlv>
 		</tlvchain>
 	</define>
-	<define name="outgoing chat IM" family="14" subtype="5"><ref name="chat IM" /></define>
-	<define name="incoming chat IM" family="14" subtype="6"><ref name="chat IM" /></define>
+	<define name="outgoing_chat_IM" family="14" subtype="5"><ref name="chat_IM" /></define>
+	<define name="incoming_chat_IM" family="14" subtype="6"><ref name="chat_IM" /></define>
 
 
 
 	<!-- Administrative services -->
 
-	<define name="admin request response" family="7" subtype="5">
+	<define name="admin_request_response" family="7" subtype="5">
 		<word name="request_type" />
 		<tlvchain count_prefix="word">
 			<tlv type="1"><data name="new_screenname" /></tlv>
@@ -590,15 +659,15 @@
 			<tlv type="3"><word name="subrequest" /></tlv>
 		</tlvchain>
 	</define>
-	<define name="buddy icon uploaded" family="16" subtype="3" />
-	<define name="buddy icon download" family="16" subtype="4">
+	<define name="buddy_icon_uploaded" family="16" subtype="3" />
+	<define name="buddy_icon_download" family="16" subtype="4">
 		<data name="screenname" length_prefix="byte" />
 		<byte>1</byte>
 		<word>1</word>
 		<byte>1</byte>
 		<data name="md5sum" length_prefix="byte" />
 	</define>
-	<define name="buddy icon downloaded" family="16" subtype="5">
+	<define name="buddy_icon_downloaded" family="16" subtype="5">
 		<data name="screenname" length_prefix="byte" />
 		<word name="flags" />
 		<byte name="number" />
@@ -606,13 +675,13 @@
 		<data name="icon" length_prefix="word" />
 	</define>
 
-	<define name="confirm account request" family="7" subtype="6" />
-	<define name="confirm account response" family="7" subtype="7">
+	<define name="confirm_account_request" family="7" subtype="6" />
+	<define name="confirm_account_response" family="7" subtype="7">
 		<!-- If present and 19, indicates error, otherwise success -->
 		<word name="status" />
 	</define>
 
-	<define name="change account info" family="7" subtype="4">
+	<define name="change_account_info" family="7" subtype="4">
 		<!-- Not all of these need to be present. -->
 		<tlvchain>
 			<tlv type="1"><data name="new_screenname" /></tlv>
@@ -627,7 +696,7 @@
 
 	<!-- ICQ -->
 
-	<define name="ICQ meta">
+	<define name="ICQ_meta">
 		<tlvchain>
 			<tlv type="1">
 				<data length_prefix="word" prefix_order="vax" >
@@ -639,18 +708,18 @@
 			</tlv>
 		</tlvchain>
 	</define>
-	<define name="ICQ meta request" family="21" subtype="2"><ref name="ICQ meta" /></define>
-	<define name="ICQ meta response" family="21" subtype="3"><ref name="ICQ meta" /></define>
+	<define name="ICQ_meta_request" family="21" subtype="2"><ref name="ICQ_meta" /></define>
+	<define name="ICQ_meta_response" family="21" subtype="3"><ref name="ICQ_meta" /></define>
 
 	<!-- Type 2000 -->
-	<define name="ICQ meta info request">
+	<define name="ICQ_meta_info_request">
 		<word name="subtype" order="vax">1202</word>
 		<dword name="uin" order="vax" />
 	</define>
 
 
 	<!-- Type 2010 -->
-	<define name="ICQ meta info response">
+	<define name="ICQ_meta_info_response">
 		<word name="subtype" order="vax" />
 
 		<!-- 10 == success -->
@@ -662,7 +731,7 @@
 	<!-- Type 2010 subtypes -->
 
 	<!-- 200 -->
-	<define name="ICQ meta info response: basic">
+	<define name="ICQ_meta_info_response:_basic">
 		<data name="nickname" length_prefix="word" prefix_order="vax" null_terminated="yes" />
 		<data name="firstname" length_prefix="word" prefix_order="vax" null_terminated="yes" />
 		<data name="lastname" length_prefix="word" prefix_order="vax" null_terminated="yes" />
@@ -686,7 +755,7 @@
 		<byte name="publish_primary_email" />
 	</define>
 	<!-- 210 -->
-	<define name="ICQ meta info response: office">
+	<define name="ICQ_meta_info_response:_office">
 		<data name="city" length_prefix="word" prefix_order="vax" null_terminated="yes" />
 		<data name="state" length_prefix="word" prefix_order="vax" null_terminated="yes" />
 		<data name="phone_num" length_prefix="word" prefix_order="vax" null_terminated="yes" />
@@ -702,7 +771,7 @@
 		<data name="office_website" length_prefix="word" prefix_order="vax" null_terminated="yes" />
 	</define>
 	<!-- 220 -->
-	<define name="ICQ meta info response: background">
+	<define name="ICQ_meta_info_response:_background">
 		<word name="age" order="vax" />
 		<byte name="gender" />
 		<data name="homepage" length_prefix="word" prefix_order="vax" null_terminated="yes" />
@@ -719,25 +788,25 @@
 		<byte name="marital_status" />
 	</define>
 	<!-- 230 -->
-	<define name="ICQ meta info response: notes">
+	<define name="ICQ_meta_info_response:_notes">
 		<data name="notes" length_prefix="word" prefix_order="vax" null_terminated="yes" />
 	</define>
 	<!-- 235 -->
-	<define name="ICQ meta info response: email">
+	<define name="ICQ_meta_info_response:_email">
 		<data count_prefix="byte" name="addresses">
 			<byte name="publish" />
 			<data name="address" length_prefix="word" prefix_order="vax" null_terminated="yes" />
 		</data>
 	</define>
 	<!-- 240 -->
-	<define name="ICQ meta info response: interests">
+	<define name="ICQ_meta_info_response:_interests">
 		<data count_prefix="byte" name="interests">
 			<word name="category" order="vax" />
 			<data name="interest" length_prefix="word" prefix_order="vax" null_terminated="yes" />
 		</data>
 	</define>
 	<!-- 250 -->
-	<define name="ICQ meta info response: affiliations">
+	<define name="ICQ_meta_info_response:_affiliations">
 		<data count_prefix="byte" name="past_affiliations">
 			<word name="category" order="vax" />
 			<data name="keyword" length_prefix="word" prefix_order="vax" null_terminated="yes" />
@@ -748,7 +817,7 @@
 		</data>
 	</define>
 	<!-- 270 -->
-	<define name="ICQ meta info response: homepage">
+	<define name="ICQ_meta_info_response:_homepage">
 		<byte name="enabled" />
 		<word name="category" order="vax" />
 		<data name="keywords" length_prefix="word" prefix_order="vax" null_terminated="yes" />
@@ -757,22 +826,30 @@
 
 
 	<!-- Rendezvous service-specific data -->
-	<define name="chat invite rendezvous data">
+	<define name="chat_invite_rendezvous_data">
 		<word name="exchange">4</word>
 		<data length_prefix="byte" name="url" />
 		<word>0</word>
 	</define>
-	<define name="file transfer rendezvous data">
+	<define name="file_transfer_rendezvous_data">
 		<!-- 1 if only sending a single file, otherwise 2 -->
 		<word name="file_count_status" />
 		<word name="file_count" />
 		<dword name="size" />
 		<data count="-1" null_terminated="yes" name="files" />
 	</define>
+	<define name="buddy_list_transfer_rendezvous_data">
+		<data count="-1" name="group">
+			<data length_prefix="word" name="name" />
+			<data count_prefix="word" name="buddies">
+				<data length_prefix="word" name="name" />
+			</data>
+		</data>
+	</define>
 
 
 	<!-- Direct-connect and file transfer stuff -->
-	<define name="file transfer header">
+	<define name="file_transfer_header">
 		<data length="4">OFT2</data>
 		<word name="header_length">256</word>
 
@@ -806,6 +883,46 @@
 		<word name="encoding">0</word>
 		<word name="language">0</word>
 		<data length="64" pad="0" name="filename" />
+	</define>
+
+
+	<!-- Migration: See http://iserverd1.khstu.ru/oscar/sequences.html#migration -->
+	<define name="pause" family="1" subtype="11" />
+	<define name="pause_ack" family="1" subtype="12">
+		<word count="-1" name="families" />
+	</define>
+	<define name="unpause" family="1" subtype="13" />
+	<define name="migrate" family="1" subtype="18">
+		<word count_prefix="word" name="families" />
+		<tlvchain>
+			<tlv type="5"><data name="peer" /></tlv>
+			<tlv type="6"><data name="cookie" /></tlv>
+		</tlvchain>
+	</define>
+
+
+	<!-- Direct connect proxy -->
+	<!-- In front of any of these is a 16-bit network order length -->
+	<define name="direct_connect_proxy_hdr">
+		<word name="magic">1098</word>
+		<word name="msg_type" />
+		<dword>0</dword>
+		<data name="data" />
+	</define>
+	<define name="direct_connect_proxy_init"> <!-- msg_type 2 -->
+		<ref name="direct_connect_proxy_hdr" />
+		<word>0</word>
+		<data length_prefix="byte" name="screenname" />
+		<data length="8" name="cookie" />
+		<tlvchain>
+			<tlv type="1"><data name="capability" /></tlv>
+		</tlvchain>
+	</define>
+	<define name="direct_connect_proxy_reply"> <!-- msg_type 3 -->
+		<ref name="direct_connect_proxy_hdr" />
+		<word>544</word>
+		<word name="port" />
+		<dword name="ip" />
 	</define>
 </oscar>
 

@@ -6,8 +6,8 @@ Net::OSCAR::Utility -- internal utility functions for Net::OSCAR
 
 package Net::OSCAR::Utility;
 
-$VERSION = '1.907';
-$REVISION = '$Revision$';
+$VERSION = '1.925';
+$REVISION = '$Revision: 1.29 $';
 
 use strict;
 use vars qw(@ISA @EXPORT $VERSION);
@@ -22,8 +22,19 @@ require Exporter;
 @ISA = qw(Exporter);
 @EXPORT = qw(
 	randchars log_print log_printf log_print_cond log_printf_cond hexdump normalize tlv_decode tlv_encode send_error bltie
-	signon_tlv encode_password send_versions
+	signon_tlv encode_password send_versions hash_iter_reset millitime
 );
+
+eval {
+	require Time::HiRes;
+};
+our $finetime = $@ ? 0 : 1;
+
+
+sub millitime() {
+	my $time = $finetime ? Time::HiRes::time() : time();
+	return int($time * 1000);
+}
 
 sub randchars($) {
 	my $count = shift;
@@ -50,7 +61,7 @@ sub log_print($$@) {
 	}
 }
 
-sub log_printf($$$@) {
+sub log_printf($$@) {
 	my($obj, $level, $fmtstr) = (shift, shift, shift);
 
 	$obj->log_print($level, sprintf($fmtstr, @_));
@@ -239,12 +250,12 @@ sub encode_password($$;$) {
 	}
 }
 
-sub send_versions($$) {
-	my($connection, $send_tools) = @_;
+sub send_versions($$;$) {
+	my($connection, $send_tools, $server) = @_;
 	my $conntype = $connection->{conntype};
 	my @services;
 
-	if($conntype != CONNTYPE_BOS) {
+	if($conntype != CONNTYPE_BOS and !$server) {
 		@services = (1, $conntype);
 	} else {
 		@services = sort {$b <=> $a} grep {not OSCAR_TOOLDATA()->{$_}->{nobos}} keys %{OSCAR_TOOLDATA()};
@@ -265,10 +276,19 @@ sub send_versions($$) {
 	}
 
 	if($send_tools) {
-		$connection->proto_send(protobit => "set tool versions", protodata => \%protodata);
+		$connection->proto_send(protobit => "set_tool_versions", protodata => \%protodata, nopause => 1);
+	} elsif($server) {
+		$connection->proto_send(protobit => "host_versions", protodata => \%protodata, nopause => 1);
 	} else {
-		$connection->proto_send(protobit => "set service versions", protodata => \%protodata);
+		$connection->proto_send(protobit => "set_service_versions", protodata => \%protodata, nopause => 1);
 	}
+}
+
+# keys(%foo) in void context, the standard way of reseting
+# a hash iterator, appears to leak memory.
+#
+sub hash_iter_reset($) {
+	while((undef, undef) = each(%{$_[0]})) {}
 }
 
 1;

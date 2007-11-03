@@ -9,8 +9,8 @@ This class also preserves the ordering of its keys.
 
 package Net::OSCAR::TLV;
 
-$VERSION = '1.907';
-$REVISION = '$Revision$';
+$VERSION = '1.925';
+$REVISION = '$Revision: 1.31 $';
 
 use strict;
 use vars qw($VERSION @EXPORT @ISA);
@@ -92,6 +92,12 @@ sub DELETE {
 	for(my $i = 0; $i < scalar @{$self->{ORDER}}; $i++) {
 		next unless $packedkey eq $self->{ORDER}->[$i];
 		splice(@{$self->{ORDER}}, $i, 1);
+
+		# What if the user deletes a key while iterating?  We need to correct for the new index.
+		if($self->{CURRKEY} != -1 and $i <= $self->{CURRKEY}) {
+			$self->{CURRKEY}--;
+		}
+
 		last;
 	}
 }
@@ -116,17 +122,16 @@ sub FIRSTKEY {
 }
 
 sub NEXTKEY {
-	my ($self, $currkey) = @_;
-	$currkey = ++$self->{CURRKEY};
-	my ($packedkey) = pack("n", $currkey);
+	my ($self) = @_;
 
+	my $currkey = ++$self->{CURRKEY};
 	if($currkey >= scalar @{$self->{ORDER}}) {
 		return wantarray ? () : undef;
-	} else {
-		my $packedkey = $self->{ORDER}->[$currkey];
-		($currkey) = unpack("n", $packedkey);
-		return wantarray ? ($currkey, $self->{DATA}->{$packedkey}) : $currkey;
 	}
+
+	my $packedkey = $self->{ORDER}->[$currkey];
+	my($key) = unpack("n", $packedkey);
+	return wantarray ? ($key, $self->{DATA}->{$packedkey}) : $key;
 }
 
 

@@ -687,7 +687,7 @@ sub main::get_oscar_connection {
 
     print "Logging onto $network with name=$name ... \n";
 
-    eval 'use Net::OSCAR';
+    eval 'use Net::OSCAR qw(:standard :loglevels)';
     if ($@) {
         print "Net::OSCAR use error: $@\n";
         return;
@@ -707,11 +707,15 @@ sub main::get_oscar_connection {
     $im_connection -> set_callback_buddylist_ok(\&oscar::cb_buddylistok);
 #   $im_connection -> set_callback_buddylist_changed(\&oscar::cb_buddylistchanged);
     $im_connection -> set_callback_buddylist_error(\&oscar::cb_buddylisterror);
-    $im_connection->  set_callback_typing_status(\&oscar::typing_status);
-    $im_connection->  set_callback_extended_status(\&oscar::extended_status);
+    $im_connection -> set_callback_typing_status(\&oscar::cb_typing_status);
+    $im_connection -> set_callback_extended_status(\&oscar::cb_extended_status);
+    $im_connection -> set_callback_log(\&oscar::cb_log);
 
 
-#$im_connection->loglevel(5);
+  #my %level_map=(0=>'NONE', 1=>'WARN', 2=>'INFO', 3=>'SIGNON', 4=>'NOTICE', 6=>'DEBUG', 10=>'PACKETS',30=>'XML', 35=>'XML2');
+  # for some reason the package constants do not get correctly imported.
+  # uncomment the following line to get DEBUG level messages
+  # $im_connection->loglevel(6,1);
 
     unless (defined($im_connection->signon (screenname => $name,
 					    password =>$password))) {
@@ -756,12 +760,12 @@ sub main::net_im_signoff {
 my %buddies_status;
 # IM_IN MisterHouse F <HTML><BODY BGCOLOR="#ffffff"><FONT>hiho</FONT></BODY></HTML>
 
-sub oscar::typing_status {
+sub oscar::cb_typing_status {
 	my ($oscar, $who, $status) = @_;
 	# print "We received typing status $status from $who.\n";
 }
 
-sub oscar::extended_status {
+sub oscar::cb_extended_status {
 	my ($oscar, $status) = @_;
 	print "Our extended status is $status.\n" if $status;
 }
@@ -833,6 +837,17 @@ sub oscar::cb_buddylisterror {
   print(uc($net) . " buddy list error: $what\n");
 }
 
+sub oscar::cb_log {
+  my ($oscar, $level, $message) = @_;
+
+  my $net=oscar::get_net($oscar);
+
+  my %level_map=(0=>'NONE', 1=>'WARN', 2=>'INFO', 3=>'SIGNON', 4=>'NOTICE', 6=>'DEBUG', 10=>'PACKETS',30=>'XML', 35=>'XML2');
+
+  my $level_string=$level_map{$level};
+
+  print (uc($net) . " log $level_string :" . $message . "\n");
+}
 
 sub oscar::cb_signondone {
   my ($oscar)=@_;

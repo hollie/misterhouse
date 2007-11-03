@@ -17,8 +17,8 @@ use Net::OSCAR::TLV;
 use Net::OSCAR::XML;
 
 use vars qw($VERSION $REVISION);
-$VERSION = '1.907';
-$REVISION = '$Revision$';
+$VERSION = '1.925';
+$REVISION = '$Revision: 1.56 $';
 
 sub init_entry($$$$) {
 	my($blinternal, $type, $gid, $bid) = @_;
@@ -28,6 +28,29 @@ sub init_entry($$$$) {
 	$blinternal->{$type}->{$gid}->{$bid} ||= {};
 	$blinternal->{$type}->{$gid}->{$bid}->{name} ||= "";
 	$blinternal->{$type}->{$gid}->{$bid}->{data} ||= tlv();
+	$blinternal->{$type}->{$gid}->{$bid}->{__BLI_DIRTY} = 1;
+	$blinternal->{$type}->{$gid}->{$bid}->{__BLI_DELETED} = 0;
+}
+
+sub blentry_clear($%) {
+	my($session, %data) = @_;
+
+	if(chain_exists($session->{blinternal}, $data{entry_type}, $data{group_id}, $data{buddy_id})) {
+		$session->{blinternal}->{$data{entry_type}}->{$data{group_id}}->{$data{buddy_id}}->{__BLI_DELETED} = 1;
+	}
+}
+
+sub blentry_set($%) {
+	my($session, %data) = @_;
+
+	init_entry($session->{blinternal}, $data{entry_type}, $data{group_id}, $data{buddy_id});
+	my $typedata = tlv_decode($data{entry_data});
+
+	$session->{blinternal}->{$data{entry_type}}->{$data{group_id}}->{$data{buddy_id}}->{name} = $data{entry_name} if $data{entry_name};
+	while(my($key, $value) = each %$typedata) {
+		$session->{blinternal}->{$data{entry_type}}->{$data{group_id}}->{$data{buddy_id}}->{data}->{$key} = $value;
+	}
+	$session->log_printf_cond(OSCAR_DBG_DEBUG, sub { "Got BLI entry %s 0x%04X/0x%04X/0x%04X with %d bytes of data:%s", $data{entry_name}, $data{entry_type}, $data{group_id}, $data{buddy_id}, length($typedata), hexdump($data{entry_data}) });
 }
 
 sub blparse($$) {
@@ -42,17 +65,17 @@ sub blparse($$) {
 		my($name) = unpack("n/a*", $data);
 		substr($data, 0, 2+length($name)) = "";
 		my($gid, $bid, $type, $sublen) = unpack("n4", substr($data, 0, 8, ""));
-		init_entry($session->{blinternal}, $type, $gid, $bid);
-		my $typedata = tlv_decode(substr($data, 0, $sublen, ""));
-
-		$session->{blinternal}->{$type}->{$gid}->{$bid}->{name} = $name if $name;
-		while(my($key, $value) = each %$typedata) {
-			$session->{blinternal}->{$type}->{$gid}->{$bid}->{data}->{$key} = $value;
-		}
-		$session->log_printf_cond(OSCAR_DBG_DEBUG, sub { "Got BLI entry %s 0x%04X/0x%04X/0x%04X with %d bytes of data:%s", $name, $type, $gid, $bid, $sublen, hexdump(tlv_encode($typedata)) });
+		my $typedata = substr($data, 0, $sublen, "");
+		blentry_set($session, 
+			entry_type => $type,
+			group_id => $gid,
+			buddy_id => $bid,
+			entry_name => $name,
+			entry_data => $typedata
+		);
 	}
 
-	return BLI_to_NO($session);
+	BLI_to_NO($session);
 }
 
 # Buddylist-Internal -> Net::OSCAR
@@ -64,46 +87,56 @@ sub BLI_to_NO($) {
 
 	delete $session->{blinternal_visbid};
 	delete $session->{blinternal_iconbid};
-	delete $session->{buddies};
-	delete $session->{permit};
-	delete $session->{deny};
-	delete $session->{visibility};
-	delete $session->{groupperms};
-	delete $session->{profile};
-	delete $session->{appdata};
 
-	$session->{buddies} = bltie(1);
-	$session->{permit} = bltie;
-	$session->{deny} = bltie;
+	$session->{buddies} ||= bltie(1);
+	$session->{buddies}->{__BLI_DIRTY} = 0;
+
+	$session->{permit} ||= bltie;
+	$session->{deny} ||= bltie;
 
 
-	if(exists $bli->{2}) {
-		foreach my $bid(keys(%{$bli->{2}->{0}})) {
-			$session->{permit}->{$bli->{2}->{0}->{$bid}->{name}} = {buddyid => $bid};
+	foreach my $type ([2, "permit"], [3, "deny"]) {
+		my($num, $name) = @$type;
+
+		if(exists $bli->{$num}) {
+			foreach my $bid(keys(%{$bli->{$num}->{0}})) {
+				my $item = $bli->{$num}->{0}->{$bid};
+
+				if($item->{__BLI_DELETED}) {
+					delete $session->{$name}->{$item->{name}};
+					delete $bli->{$num}->{0}->{$bid};
+				} elsif($item->{__BLI_DIRTY}) {
+					$session->{$name}->{$item->{name}} = {buddyid => $bid};
+					$item->{__BLI_DIRTY} = 0;
+				}
+			}
 		}
 	}
 
-	if(exists $bli->{3}) {
-		foreach my $bid(keys(%{$bli->{3}->{0}})) {
-			$session->{deny}->{$bli->{3}->{0}->{$bid}->{name}} = {buddyid => $bid};
-		}
+
+	foreach my $type (4, 5, 0x14) {
+		delete $bli->{$type}->{0}->{$_} foreach grep { $bli->{$type}->{0}->{$_}->{__BLI_DELETED} } keys %{$bli->{$type}->{0}};
 	}
 
 	if(exists $bli->{4} and exists $bli->{4}->{0} and (my($visbid) = grep {exists($bli->{4}->{0}->{$_}->{data}->{0xCB})} keys %{$bli->{4}->{0}})) {
 		$session->{blinternal_visbid} = $visbid;
 		my $typedata = $bli->{4}->{0}->{$visbid}->{data};
-		($session->{visibility}) = unpack("C", $typedata->{0xCA}) if $typedata->{0xCA};
+		if($bli->{4}->{0}->{$visbid}->{__BLI_DIRTY}) {
+			($session->{visibility}) = unpack("C", $typedata->{0xCA}) if $typedata->{0xCA};
 
-		my $groupperms = $typedata->{0xCB};
-		($session->{groupperms}) = unpack("N", $groupperms) if $groupperms;
-		$session->{profile} = $typedata->{0x0100} if exists($typedata->{0x0100});
-		($session->{icon_checksum}) = unpack("n", $typedata->{0x0101}) if exists($typedata->{0x0101});
-		($session->{icon_timestamp}) = unpack("N", $typedata->{0x0102}) if exists($typedata->{0x0102});
-		($session->{icon_length}) = unpack("N", $typedata->{0x0103}) if exists($typedata->{0x0103});
+			my $groupperms = $typedata->{0xCB};
+			($session->{groupperms}) = unpack("N", $groupperms) if $groupperms;
+			$session->{profile} = $typedata->{0x0100} if exists($typedata->{0x0100});
+			($session->{icon_checksum}) = unpack("n", $typedata->{0x0101}) if exists($typedata->{0x0101});
+			($session->{icon_timestamp}) = unpack("N", $typedata->{0x0102}) if exists($typedata->{0x0102});
+			($session->{icon_length}) = unpack("N", $typedata->{0x0103}) if exists($typedata->{0x0103});
 
-		$session->{appdata} = $typedata;
+			$session->{appdata} = $typedata;
 
-		$session->set_info($session->{profile}) if exists($session->{profile});
+			$session->set_info($session->{profile}) if exists($session->{profile});
+
+			$bli->{4}->{0}->{$visbid}->{__BLI_DIRTY} = 0;
+		}
 	} else {
 		# No permit info - we permit everyone
 		$session->{visibility} = VISMODE_PERMITALL;
@@ -116,63 +149,75 @@ sub BLI_to_NO($) {
 		$session->{icon_md5sum} = $typedata->{0xD5};
 	}
 
-	my @gids = unpack("n*", (exists($bli->{1}) and exists($bli->{1}->{0}) and exists($bli->{1}->{0}->{0}) and exists($bli->{1}->{0}->{0}->{data}->{0xC8})) ? $bli->{1}->{0}->{0}->{data}->{0xC8} : "");
-	push @gids, grep { # Find everything...
-		my $ingrp = $_;
-		not grep { # That's not in the 0xC8 GID list...
-			$_ == $ingrp
-		} @gids
-	} grep { # Other than GID 0...
-		$_ != 0
-	} keys %{exists($bli->{1}) ? $bli->{1} : {}}; # That we have a type 1 entry for
 
-	foreach my $gid(@gids) {
-		next unless exists($bli->{1}->{$gid});
-		my $group = $bli->{1}->{$gid}->{0}->{name};
+	my @ret;
 
-		if(!$group) {
-			$bli->{1}->{$gid}->{0}->{name} = $group = sprintf "Group 0x%04X", $gid;
-			$session->log_printf(OSCAR_DBG_WARN, "Couldn't get group name for group 0x%04X", $gid);
-		}
-		$session->{buddies}->{$group} ||= {};
-		my $entry = $session->{buddies}->{$group};
+	foreach my $gid (keys %{$bli->{1}}) {
+		next unless exists $bli->{1}->{$gid}->{0};
+		my $item = $bli->{1}->{$gid}->{0};
 
-		$entry->{groupid} = $gid;
-		$entry->{members} = bltie unless $entry->{members};
-		$entry->{data} = $bli->{1}->{$gid}->{0}->{data};
+		if($item->{__BLI_DELETED}) {
+			delete $bli->{1}->{$gid}->{0};
+			next if $gid == 0 or !$item->{name};
 
-		my @bids = unpack("n*", $bli->{1}->{$gid}->{0}->{data}->{0xC8} || "");
+			delete $session->{buddies}->{$item->{name}};
+			push @ret, {type => MODBL_WHAT_GROUP, action => MODBL_ACTION_DEL, group => $item->{name}};
+		} elsif($item->{__BLI_DIRTY}) {
+			$item->{__BLI_DIRTY} = 0;
+			next if $gid == 0 or !$item->{name};
 
-		push @bids, grep { # Find everything...
-			my $inbud = $_;
-			not grep { # That's not in the 0xC8 BID list...
-				$_ == $inbud
-			} @bids
-		} keys %{exists($bli->{0}->{$gid}) ? $bli->{0}->{$gid} : {}}; # That we have a type 0 entry for in this GID
+			$session->{buddies}->{$item->{name}} ||= {};
+			my $entry = $session->{buddies}->{$item->{name}};
 
-		foreach my $bid(@bids) {
-			# Yeah, this next condition seems impossible, but I've seen it happen
-			next unless exists($bli->{0}->{$gid}) and exists($bli->{0}->{$gid}->{$bid});
+			$entry->{__BLI_DIRTY} = 0;
+			$entry->{__BLI_DELETED} = 0;
+			$entry->{groupid} = $gid;
+			$entry->{members} = bltie unless $entry->{members};
+			$entry->{data} = $item->{data};
 
-			my $buddy = $bli->{0}->{$gid}->{$bid};
-
-			my $comment = undef;
-			$comment = $buddy->{data}->{0x13C} if exists($buddy->{data}->{0x13C});
-
-			my $alias = undef;
-			$alias = $buddy->{data}->{0x131} if exists($buddy->{data}->{0x131});
-
-			$session->{buddies}->{$group}->{members}->{$buddy->{name}} ||= {};
-			my $entry = $session->{buddies}->{$group}->{members}->{$buddy->{name}};
-			$entry->{buddyid} = $bid;
-			$entry->{online} = 0 unless exists($entry->{online});
-			$entry->{comment} = $comment;
-			$entry->{alias} = $alias;
-			$entry->{data} = $buddy->{data};
+			push @ret, {type => MODBL_WHAT_GROUP, action => MODBL_ACTION_ADD, group => $item->{name}};
 		}
 	}
 
-	return 1;
+	foreach my $gid (keys %{$bli->{0}}) {
+		foreach my $bid (keys %{$bli->{0}->{$gid}}) {
+			my $item = $bli->{0}->{$gid}->{$bid};
+			my $group = "";
+			$group = $bli->{1}->{$gid}->{0}->{name} if chain_exists($bli, 1, $gid, 0);
+
+			if($item->{__BLI_DELETED}) {
+				delete $bli->{0}->{$gid}->{$bid};
+				next if $gid == 0 or !$group;
+
+				delete $session->{buddies}->{$group}->{members}->{$item->{name}} if $group;
+				push @ret, {type => MODBL_WHAT_BUDDY, action => MODBL_ACTION_DEL, group => $group, buddy => $item->{name}};
+			} elsif($item->{__BLI_DIRTY}) {
+				$item->{__BLI_DIRTY} = 0;
+				next if $gid == 0 or !$group;
+
+				my $comment = undef;
+				$comment = $item->{data}->{0x13C} if exists($item->{data}->{0x13C});
+
+				my $alias = undef;
+				$alias = $item->{data}->{0x131} if exists($item->{data}->{0x131});
+
+				$session->{buddies}->{$group}->{members}->{$item->{name}} ||= {};
+				my $entry = $session->{buddies}->{$group}->{members}->{$item->{name}};
+				$entry->{__BLI_DIRTY} = 0;
+				$entry->{__BLI_DELETED} = 0;
+				$entry->{buddyid} = $bid;
+				$entry->{online} = 0 unless exists($entry->{online});
+				$entry->{comment} = $comment;
+				$entry->{alias} = $alias;
+				$entry->{data} = $item->{data};
+				$entry->{screenname} = Net::OSCAR::Screenname->new($item->{name});
+
+				push @ret, {type => MODBL_WHAT_BUDDY, action => MODBL_ACTION_ADD, group => $group, buddy => $item->{name}};
+			}
+		}
+	}
+
+	return @ret;
 }
 
 # Gee, guess what this does?  Hint: see sub BLI_to_NO.
@@ -186,7 +231,7 @@ sub NO_to_BLI($) {
 	my $visbid = $session->{blinternal_visbid} || int(rand(30000)) + 1;
 	my $iconbid = $session->{blinternal_iconbid} || 0x51F4;
 	foreach my $type (keys %$oldbli) {
-		next if $type < 4;
+		next if $type == 2 or $type == 3;
 		foreach my $gid (keys %{$oldbli->{$type}}) {
 			foreach my $bid (keys %{$oldbli->{$type}->{$gid}}) {
 				next if $type == 4 and $bid == $visbid;
@@ -244,17 +289,47 @@ sub NO_to_BLI($) {
 	}
 
 	init_entry($bli, 1, 0, 0);
-	$bli->{1}->{0}->{0}->{data}->{0xC8} = pack("n*", map { $_->{groupid} } values %{$session->{buddies}});
-	foreach my $group(keys %{$session->{buddies}}) {
-		my $gid = $session->{buddies}->{$group}->{groupid};
+	if($session->{buddies}->{__BLI_DIRTY}) {
+		$bli->{1}->{0}->{0}->{data}->{0xC8} = pack("n*", map { $_->{groupid} } grep { ref($_) } values %{$session->{buddies}});
+		$session->{buddies}->{__BLI_DIRTY} = 0;
+	} else {
+		$bli->{1}->{0}->{0}->{__BLI_SKIP} = 1;
+		$oldbli->{1}->{0}->{0}->{__BLI_SKIP} = 1;
+	}
+
+	while(my($grpname, $grp) = each(%{$session->{buddies}})) {
+		next if $grpname eq "__BLI_DIRTY";
+
+		my $gid = $grp->{groupid};
+
+		if($grp->{__BLI_DELETED}) {
+			delete $session->{buddies}->{$grpname};
+			delete $bli->{1}->{$gid}->{0};
+			next;
+		}
+
+		if(not $grp->{__BLI_DIRTY}) {
+			$bli->{1}->{$gid}->{0}->{__BLI_SKIP} = 1;
+			$oldbli->{1}->{$gid}->{0}->{__BLI_SKIP} = 1;
+			next;
+		} else {
+			$grp->{__BLI_DIRTY} = 0;
+		}
+
 		init_entry($bli, 1, $gid, 0);
-		$bli->{1}->{$gid}->{0}->{name} = $group;
+		my $bligrp = $bli->{1}->{$gid}->{0};
+		$bligrp->{name} = $grpname;
+
+
+		# Clear out data, since the user may have deleted keys.
+		$bli->{1}->{$gid}->{0}->{data} = tlv();
 
 		# It seems that WinAIM can now have groups without 0xC8 data, and gets pissed if we create such data where it doesn't exist.
 		if(!exists($oldbli->{1}->{$gid}) or chain_exists($oldbli, 1, $gid, 0, "data", 0xC8)) {
-			$bli->{1}->{$gid}->{0}->{data}->{0xC8} = pack("n*",
+			$bligrp->{data}->{0xC8} = pack("n*",
 				map { $_->{buddyid} }
-				values %{$session->{buddies}->{$group}->{members}});
+				grep { not $_->{__BLI_DELETED} }
+				values %{$grp->{members}});
 		}
 
 		if(chain_exists($oldbli, 1, $gid, 0)) {
@@ -262,16 +337,35 @@ sub NO_to_BLI($) {
 			   foreach grep { $_ != 0xC8 } keys %{$oldbli->{1}->{$gid}->{0}->{data}};
 		}
 
-		foreach my $buddy(keys %{$session->{buddies}->{$group}->{members}}) {
-			my $bid = $session->{buddies}->{$group}->{members}->{$buddy}->{buddyid};
+
+		while(my($buddy, $bud) = each(%{$grp->{members}})) {
+			my $bid = $bud->{buddyid};
+
+			if($bud->{__BLI_DELETED}) {
+				delete $grp->{members}->{$buddy};
+				delete $bli->{0}->{$gid}->{$bid};
+				next;
+			}
+
+			if(not $bud->{__BLI_DIRTY}) {
+				$bli->{0}->{$gid}->{$bid}->{__BLI_SKIP} = 1;
+				$oldbli->{0}->{$gid}->{$bid}->{__BLI_SKIP} = 1;
+				next;
+			} else {
+				$bud->{__BLI_DIRTY} = 0;
+			}
+
 			next unless $bid;
 			init_entry($bli, 0, $gid, $bid);
-			$bli->{0}->{$gid}->{$bid}->{name} = $buddy;
-			while(my ($key, $value) = each(%{$session->{buddies}->{$group}->{members}->{$buddy}->{data}})) {
-				$bli->{0}->{$gid}->{$bid}->{data}->{$key} = $value;
+			my $blibud = $bli->{0}->{$gid}->{$bid};
+			$blibud->{name} = "$buddy"; # Make sure to get strinfied version of Screenname
+
+			$blibud->{data} = tlv();
+			while(my ($key, $value) = each(%{$bud->{data}})) {
+				$blibud->{data}->{$key} = $value;
 			}
-			$bli->{0}->{$gid}->{$bid}->{data}->{0x13C} = $session->{buddies}->{$group}->{members}->{$buddy}->{comment} if defined $session->{buddies}->{$group}->{members}->{$buddy}->{comment};
-			$bli->{0}->{$gid}->{$bid}->{data}->{0x131} = $session->{buddies}->{$group}->{members}->{$buddy}->{alias} if defined $session->{buddies}->{$group}->{members}->{$buddy}->{alias};
+			$blibud->{data}->{0x13C} = $bud->{comment} if defined $bud->{comment};
+			$blibud->{data}->{0x131} = $bud->{alias} if defined $bud->{alias};
 		}
 	}
 
@@ -299,6 +393,10 @@ sub BLI_to_OSCAR($$) {
 		foreach my $gid(keys %{$oldbli->{$type}}) {
 			foreach my $bid(keys %{$oldbli->{$type}->{$gid}}) {
 				my $oldentry = $oldbli->{$type}->{$gid}->{$bid};
+				if($oldentry->{__BLI_SKIP}) {
+					delete $oldentry->{__BLI_SKIP};
+					next;
+				}
 
 				my $olddata = tlv_encode($oldentry->{data});
 				$session->log_printf_cond(OSCAR_DBG_DEBUG, sub { "Old BLI entry %s 0x%04X/0x%04X/0x%04X with %d bytes of data:%s", $oldentry->{name}, $type, $gid, $bid, length($olddata), hexdump($olddata) });
@@ -358,8 +456,14 @@ sub BLI_to_OSCAR($$) {
 
 		foreach my $gid(keys %{$newbli->{$type}}) {
 			foreach my $bid(keys %{$newbli->{$type}->{$gid}}) {
-				next if exists($oldbli->{$type}) and exists($oldbli->{$type}->{$gid}) and exists($oldbli->{$type}->{$gid}->{$bid}) and $oldbli->{$type}->{$gid}->{$bid}->{name} eq $newbli->{$type}->{$gid}->{$bid}->{name};
 				my $entry = $newbli->{$type}->{$gid}->{$bid};
+				if($entry->{__BLI_SKIP}) {
+					delete $entry->{__BLI_SKIP};
+					next;
+				}
+
+				next if exists($oldbli->{$type}) and exists($oldbli->{$type}->{$gid}) and exists($oldbli->{$type}->{$gid}->{$bid}) and $oldbli->{$type}->{$gid}->{$bid}->{name} eq $newbli->{$type}->{$gid}->{$bid}->{name};
+
 				my $data = tlv_encode($entry->{data});
 
 				$session->log_printf_cond(OSCAR_DBG_DEBUG, sub { "New BLI entry %s 0x%04X/0x%04X/0x%04X with %d bytes of data:%s", $entry->{name}, $type, $gid, $bid, length($data), hexdump($data) });
@@ -386,7 +490,7 @@ sub BLI_to_OSCAR($$) {
 		my(@reqdata, @packets);
 		my $packet = "";
 		foreach my $change(@$changelist) {
-			$packet .= protoparse($session, "buddylist modification")->pack(%{$change->{protodata}});
+			$packet .= protoparse($session, "buddylist_modification")->pack(%{$change->{protodata}});
 			push @reqdata, $change->{reqdata};
 
 			if(length($packet) > 7*1024) {
@@ -411,14 +515,14 @@ sub BLI_to_OSCAR($$) {
 
 		push @{$session->{budmods}}, map {
 			{
-				protobit => "buddylist " . $_->{type},
+				protobit => "buddylist_" . $_->{type},
 				reqdata => $_->{reqdata},
 				protodata => {mods => $_->{data}}
 			};
 		} @packets;
 	}
 
-	push @{$session->{budmods}}, {protobit => "end buddylist modifications"}; # End BL mods
+	push @{$session->{budmods}}, {protobit => "end_buddylist_modifications"}; # End BL mods
 	#$session->log_print(OSCAR_DBG_INFO, "Adding terminator to blmod queue.");
 
 	$session->{blold} = $oldbli;
@@ -430,7 +534,7 @@ sub BLI_to_OSCAR($$) {
 		$session->callback_buddylist_ok();
 	} else {
 		#$session->log_print(OSCAR_DBG_INFO, "Non-empty blmod queue - sending initiator and first change packet.");
-		$session->svcdo(CONNTYPE_BOS, protobit => "start buddylist modifications");
+		$session->svcdo(CONNTYPE_BOS, protobit => "start_buddylist_modifications");
 		$session->svcdo(CONNTYPE_BOS, %{shift @{$session->{budmods}}}); # Send the first modification
 	}
 }
@@ -447,7 +551,7 @@ sub chain_exists($@) {
 		}
 	}
 
-	return $tlv ? 1 : 0;	
+	return defined($tlv) ? 1 : 0;	
 }
 
 1;

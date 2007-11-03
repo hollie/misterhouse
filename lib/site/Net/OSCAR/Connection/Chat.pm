@@ -6,8 +6,8 @@ Net::OSCAR::Connection::Chat -- OSCAR chat connections
 
 package Net::OSCAR::Connection::Chat;
 
-$VERSION = '1.907';
-$REVISION = '$Revision$';
+$VERSION = '1.925';
+$REVISION = '$Revision: 1.10 $';
 
 use strict;
 use Carp;
@@ -27,7 +27,7 @@ sub invite($$;$) {
 
 	$self->log_print(OSCAR_DBG_DEBUG, "Inviting $who to join us.");
 
-	my $svcdata = protoparse($self, "chat invite rendezvous data")->pack(
+	my $svcdata = protoparse($self, "chat_invite_rendezvous_data")->pack(
 		exchange => $self->{exchange},
 		url => $self->{url}
 	);
@@ -39,11 +39,11 @@ sub invite($$;$) {
 		cookie => $cookie,
 		invitation_msg => $message,
 		push_pull => 1,
-		status => 0,
+		status => "propose",
 		svcdata => $svcdata
 	);
 
-        return $self->{session}->send_message($who, 2, protoparse($self, "rendezvous IM")->pack(%rvdata), 0, $cookie);
+        return $self->{session}->send_message($who, 2, protoparse($self, "rendezvous_IM")->pack(%rvdata), 0, $cookie);
 }
 
 sub chat_send($$;$$) {
@@ -56,7 +56,7 @@ sub chat_send($$;$$) {
 	$protodata{reflect} = "" unless $noreflect;
 	$protodata{is_automatic} = "" if $away;
 
-	$self->proto_send(protobit => "outgoing chat IM", protodata => \%protodata);
+	$self->proto_send(protobit => "outgoing_chat_IM", protodata => \%protodata);
 }
 
 sub part($) { shift->disconnect(); }	

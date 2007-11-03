@@ -6,8 +6,8 @@ Net::OSCAR::Common -- Net::OSCAR public constants
 
 package Net::OSCAR::Common;
 
-$VERSION = '1.907';
-$REVISION = '$Revision$';
+$VERSION = '1.925';
+$REVISION = '$Revision: 1.67 $';
 
 use strict;
 use vars qw(@ISA @EXPORT_OK %EXPORT_TAGS $VERSION);
@@ -36,6 +36,12 @@ require Exporter;
 		VISMODE_PERMITSOME
 		VISMODE_DENYSOME
 		VISMODE_PERMITBUDS
+		MODBL_ACTION_ADD
+		MODBL_ACTION_DEL
+		MODBL_WHAT_BUDDY
+		MODBL_WHAT_GROUP
+		MODBL_WHAT_PERMIT
+		MODBL_WHAT_DENY
 		TYPINGSTATUS_STARTED
 		TYPINGSTATUS_TYPING
 		TYPINGSTATUS_FINISHED
@@ -43,6 +49,9 @@ require Exporter;
 		RATE_ALERT
 		RATE_LIMIT
 		RATE_DISCONNECT
+		OSCAR_RATE_MANAGE_NONE
+		OSCAR_RATE_MANAGE_AUTO
+		OSCAR_RATE_MANAGE_MANUAL
 		GROUPPERM_OSCAR
 		GROUPPERM_AOL
 		OSCAR_SVC_AIM
@@ -50,6 +59,10 @@ require Exporter;
 		OSCAR_DIRECT_IM
 		OSCAR_DIRECT_FILESHARE
 		OSCAR_DIRECT_FILEXFER
+		OSCAR_RV_AUTO
+		OSCAR_RV_NOPROXY
+		OSCAR_RV_NODIRECT
+		OSCAR_RV_MANUAL
 	)],
 	loglevels => [qw(
 		OSCAR_DBG_NONE
@@ -76,6 +89,14 @@ use constant OSCAR_DBG_DEBUG => 6;
 use constant OSCAR_DBG_PACKETS => 10;
 use constant OSCAR_DBG_XML => 30;
 use constant OSCAR_DBG_XML2 => 35;
+
+# Buddylist modification
+use constant MODBL_ACTION_ADD => dualvar(1, "add");
+use constant MODBL_ACTION_DEL => dualvar(2, "delete");
+use constant MODBL_WHAT_BUDDY => dualvar(1, "buddy");
+use constant MODBL_WHAT_GROUP => dualvar(2, "group");
+use constant MODBL_WHAT_PERMIT => dualvar(3, "permit");
+use constant MODBL_WHAT_DENY => dualvar(4, "deny");
 
 # Typing statuses
 use constant TYPINGSTATUS_STARTED => dualvar(2, "typing started");
@@ -105,6 +126,13 @@ use constant OSCAR_DIRECT_IM => dualvar(1, "direct IM");
 use constant OSCAR_DIRECT_FILESHARE => dualvar(2, "file sharing");
 use constant OSCAR_DIRECT_FILEXFER => dualvar(3, "file transfer");
 
+# Rendezvous autonegotiate modes
+use constant OSCAR_RV_AUTO => "auto";
+use constant OSCAR_RV_NOPROXY => "never proxy";
+use constant OSCAR_RV_NODIRECT => "always proxy";
+use constant OSCAR_RV_MANUAL => "manual negotiation";
+
+
 # Visibility modes
 use constant VISMODE_PERMITALL  => dualvar(0x1, "permit all");
 use constant VISMODE_DENYALL    => dualvar(0x2, "deny all");
@@ -117,6 +145,11 @@ use constant RATE_CLEAR => dualvar(1, "clear");
 use constant RATE_ALERT => dualvar(2, "alert");
 use constant RATE_LIMIT => dualvar(3, "limit");
 use constant RATE_DISCONNECT => dualvar(4, "disconnect");
+
+# Rate handling modes
+use constant OSCAR_RATE_MANAGE_NONE => dualvar(0, "none");
+use constant OSCAR_RATE_MANAGE_AUTO => dualvar(1, "auto");
+use constant OSCAR_RATE_MANAGE_MANUAL => dualvar(2, "manual");
 
 # Group permissions
 use constant GROUPPERM_OSCAR => dualvar(0x18, "AOL Instant Messenger users");
@@ -147,6 +180,6 @@ use constant OSCAR_SVC_ICQ => ( # Courtesy of SDiZ Cheng
 	subbuild => 0x55,
 	clistr => "ICQ Inc. - Product of ICQ (TM).2003a.5.45.1.3777.85",
 	hashlogin => 1,
-);
+);	
 
 1;

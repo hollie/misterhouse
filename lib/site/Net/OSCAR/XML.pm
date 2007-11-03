@@ -22,8 +22,8 @@ for every protocol element.
 
 package Net::OSCAR::XML;
 
-$VERSION = '1.907';
-$REVISION = '$Revision$';
+$VERSION = '1.925';
+$REVISION = '$Revision: 1.24 $';
 
 use strict;
 use vars qw(@ISA @EXPORT $VERSION);
@@ -90,15 +90,8 @@ sub load_xml(;$) {
 	parse_xml($xmlparse);
 }
 
-sub parse_xml($) {
+sub add_xml_data($) {
 	my $xmlparse = shift;
-
-	%xmlmap = ();
-	%xml_revmap = ();
-	# We set the autovivification so that keys of xml_revmap are Net::OSCAR::TLV hashrefs.
-	if(!tied(%xml_revmap)) {
-		tie %xml_revmap, "Net::OSCAR::TLV", 'tie %$value, ref($self)';
-	}
 
 	my @tags = @{$xmlparse->[1]}; # Get contents of <oscar>
 	shift @tags;
@@ -113,6 +106,19 @@ sub parse_xml($) {
 		$xml_revmap{$attrs{family}}->{$attrs{subtype}} = $attrs{name} if exists($attrs{family}) and exists($attrs{subtype});
 		$xmlmap{$attrs{name}} = \%protobit;
 	}
+}
+
+sub parse_xml($) {
+	my $xmlparse = shift;
+
+	%xmlmap = ();
+	%xml_revmap = ();
+	# We set the autovivification so that keys of xml_revmap are Net::OSCAR::TLV hashrefs.
+	if(!tied(%xml_revmap)) {
+		tie %xml_revmap, "Net::OSCAR::TLV", 'tie %$value, ref($self)';
+	}
+
+	add_xml_data($xmlparse);
 
 	return 1;
 }
@@ -137,7 +143,7 @@ sub _num_to_packlen($$) {
 		}
 	}
 
-	croak "Invalid num type: $type";
+	confess "Invalid num type: $type";
 }
 
 # Specification for OSCAR protocol template:
@@ -147,6 +153,8 @@ sub _num_to_packlen($$) {
 #		If type = "num":
 #			packlet: Pack template letter (C, n, N, v, V)
 #			len: Length of datum, in bytes
+#			enum_byname: If this is an enum, map of names to values.
+#			enum_byval: If this is an enum, map of values to names.
 #		If type = "data":
 #			Arbitrary data
 #			If prefix isn't present, all available data will be gobbled.
@@ -177,7 +185,6 @@ sub _xmlnode_to_template($$) {
 	$datum->{name} = $attrs->{name} if $attrs->{name};
 	$datum->{value} = "" if $attrs->{default_generate} and $attrs->{default_generate} ne "no";
 	$datum->{value} = $value->[1] if @$value and $value->[1] =~ /\S/;
-	$datum->{items} = [];
 
 	$datum->{count} = $attrs->{count} if $attrs->{count};
 	if($attrs->{count_prefix} || $attrs->{length_prefix}) {
@@ -190,14 +197,36 @@ sub _xmlnode_to_template($$) {
 
 	if($tag eq "ref") {
 		$datum->{type} = "ref";
-	} elsif($tag eq "byte" or $tag eq "word" or $tag eq "dword") {
+	} elsif($tag eq "byte" or $tag eq "word" or $tag eq "dword" or $tag eq "enum") {
 		$datum->{type} = "num";
+
+		my $enum = 0;
+		if($tag eq "enum") {
+			$tag = $attrs->{type};
+			$enum = 1;
+		}
 
 		my($packlet, $len) = _num_to_packlen($tag, $attrs->{order});
 		$datum->{packlet} = $packlet;
 		$datum->{len} = $len;
 
-		$datum->{value} = $value->[1] if @$value;
+		if($enum) {
+			$datum->{enum_byname} = {};
+			$datum->{enum_byval} = {};
+
+			while(@$value) {
+				my($subtag, $subval) = splice(@$value, 0, 2);
+				next if $subtag eq "0";
+
+				my $attrs = shift @$subval;
+				my($name, $value, $default) = ($attrs->{name}, $attrs->{value}, $attrs->{default});
+				$datum->{enum_byname}->{$name} = $value;
+				$datum->{enum_byval}->{$value} = $name;
+				$datum->{value} = $value if $default;
+			}
+		} else {
+			$datum->{value} = $value->[1] if @$value;
+		}
 	} elsif($tag eq "data") {
 		$datum->{type} = "data";
 		$datum->{len} = $attrs->{length} if $attrs->{length};
@@ -212,6 +241,7 @@ sub _xmlnode_to_template($$) {
 			}
 
 			my $item = _xmlnode_to_template($subtag, $subval);
+			$datum->{items} ||= [];
 			push @{$datum->{items}}, $item;
 		}
 	} elsif($tag eq "tlvchain") {
@@ -242,6 +272,7 @@ sub _xmlnode_to_template($$) {
 
 				push @{$item->{items}}, $tlvitem;
 			}
+
 
 			push @{$datum->{items}}, $item;
 		}

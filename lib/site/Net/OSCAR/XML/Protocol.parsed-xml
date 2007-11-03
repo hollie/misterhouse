@@ -161,7 +161,7 @@ $xmlparse = [
                 'define',
                 [
                   {
-                    'name' => 'subtyped TLV'
+                    'name' => 'subtyped_TLV'
                   },
                   0,
                   '
@@ -514,7 +514,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '4',
-                    'name' => 'service request',
+                    'name' => 'service_request',
                     'family' => '1'
                   },
                   0,
@@ -638,7 +638,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '5',
-                    'name' => 'service redirect response',
+                    'name' => 'service_redirect_response',
                     'family' => '1'
                   },
                   0,
@@ -712,7 +712,7 @@ $xmlparse = [
                   {
                     'subtype' => '1',
                     'flags2' => '6',
-                    'name' => 'BOS signon',
+                    'name' => 'BOS_signon',
                     'channel' => '1',
                     'family' => '0'
                   },
@@ -976,7 +976,7 @@ $xmlparse = [
                 'define',
                 [
                   {
-                    'name' => 'ICQ signon request',
+                    'name' => 'ICQ_signon_request',
                     'channel' => '1'
                   },
                   0,
@@ -1009,7 +1009,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '6',
-                    'name' => 'initial signon request',
+                    'name' => 'initial_signon_request',
                     'family' => '23'
                   },
                   0,
@@ -1070,7 +1070,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '7',
-                    'name' => 'authentication key',
+                    'name' => 'authentication_key',
                     'family' => '23'
                   },
                   0,
@@ -1096,7 +1096,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '3',
-                    'name' => 'authorization response',
+                    'name' => 'authorization_response',
                     'family' => '23'
                   },
                   0,
@@ -1244,10 +1244,202 @@ $xmlparse = [
                 'define',
                 [
                   {
+                    'name' => 'rate_class_info'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'class_id'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'window_size'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'levels'
+                    },
+                    0,
+                    '
+			',
+                    'dword',
+                    [
+                      {
+                        'name' => 'clear'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'dword',
+                    [
+                      {
+                        'name' => 'alert'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'dword',
+                    [
+                      {
+                        'name' => 'limit'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'dword',
+                    [
+                      {
+                        'name' => 'disconnect'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'dword',
+                    [
+                      {
+                        'name' => 'current'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'dword',
+                    [
+                      {
+                        'name' => 'max'
+                      }
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'last_time'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'byte',
+                  [
+                    {
+                      'name' => 'current_state'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
                     'subtype' => '7',
-                    'name' => 'rate info response',
+                    'name' => 'rate_info_response',
                     'family' => '1'
-                  }
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'count_prefix' => 'word',
+                      'name' => 'classes'
+                    },
+                    0,
+                    '
+			',
+                    'ref',
+                    [
+                      {
+                        'name' => 'rate_class_info'
+                      }
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'count' => '-1',
+                      'name' => 'classmembers'
+                    },
+                    0,
+                    '
+			',
+                    'word',
+                    [
+                      {
+                        'name' => 'class_id'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'data',
+                    [
+                      {
+                        'count_prefix' => 'word',
+                        'name' => 'snacs'
+                      },
+                      0,
+                      '
+				',
+                      'word',
+                      [
+                        {
+                          'name' => 'family'
+                        }
+                      ],
+                      0,
+                      '
+				',
+                      'word',
+                      [
+                        {
+                          'name' => 'subtype'
+                        }
+                      ],
+                      0,
+                      '
+			'
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
                 ],
                 0,
                 '
@@ -1256,7 +1448,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '8',
-                    'name' => 'rate acknowledgement',
+                    'name' => 'rate_acknowledgement',
                     'family' => '1'
                   },
                   0,
@@ -1264,45 +1456,10 @@ $xmlparse = [
 		',
                   'word',
                   [
-                    {},
-                    0,
-                    '1'
-                  ],
-                  0,
-                  '
-		',
-                  'word',
-                  [
-                    {},
-                    0,
-                    '2'
-                  ],
-                  0,
-                  '
-		',
-                  'word',
-                  [
-                    {},
-                    0,
-                    '3'
-                  ],
-                  0,
-                  '
-		',
-                  'word',
-                  [
-                    {},
-                    0,
-                    '4'
-                  ],
-                  0,
-                  '
-		',
-                  'word',
-                  [
-                    {},
-                    0,
-                    '5'
+                    {
+                      'count' => '-1',
+                      'name' => 'classes'
+                    }
                   ],
                   0,
                   '
@@ -1315,7 +1472,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '14',
-                    'name' => 'personal info request',
+                    'name' => 'personal_info_request',
                     'family' => '1'
                   }
                 ],
@@ -1326,7 +1483,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '2',
-                    'name' => 'buddylist rights request',
+                    'name' => 'buddylist_rights_request',
                     'family' => '19'
                   }
                 ],
@@ -1337,18 +1494,19 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '4',
-                    'name' => 'buddylist request',
+                    'name' => 'buddylist_request',
                     'family' => '19'
                   }
                 ],
                 0,
                 '
+
 	',
                 'define',
                 [
                   {
                     'subtype' => '2',
-                    'name' => 'locate rights request',
+                    'name' => 'locate_rights_request',
                     'family' => '2'
                   }
                 ],
@@ -1359,18 +1517,96 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '3',
-                    'name' => 'locate rights response',
+                    'name' => 'locate_rights_response',
                     'family' => '2'
-                  }
+                  },
+                  0,
+                  '
+		',
+                  'tlvchain',
+                  [
+                    {},
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '1'
+                      },
+                      'word',
+                      [
+                        {
+                          'name' => 'max_profile_len'
+                        },
+                        0,
+                        '1024'
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '2'
+                      },
+                      'word',
+                      [
+                        {
+                          'name' => 'max_capabilities'
+                        },
+                        0,
+                        '16'
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '3'
+                      },
+                      'word',
+                      [
+                        {},
+                        0,
+                        '10'
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '4'
+                      },
+                      'word',
+                      [
+                        {},
+                        0,
+                        '4096'
+                      ]
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
                 ],
                 0,
                 '
+
 	',
                 'define',
                 [
                   {
                     'subtype' => '2',
-                    'name' => 'buddy rights request',
+                    'name' => 'buddy_rights_request',
                     'family' => '3'
                   }
                 ],
@@ -1381,9 +1617,161 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '3',
-                    'name' => 'buddy rights response',
+                    'name' => 'buddy_rights_response',
                     'family' => '3'
-                  }
+                  },
+                  0,
+                  '
+		',
+                  'tlvchain',
+                  [
+                    {},
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '1'
+                      },
+                      'word',
+                      [
+                        {
+                          'name' => 'maxbuddies'
+                        },
+                        0,
+                        '600'
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '2'
+                      },
+                      'word',
+                      [
+                        {
+                          'name' => 'maxwatchers'
+                        },
+                        0,
+                        '750'
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '3'
+                      },
+                      'word',
+                      [
+                        {
+                          'name' => 'maxnotifies'
+                        },
+                        0,
+                        '512'
+                      ]
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+	',
+                'define',
+                [
+                  {
+                    'name' => 'IM_parameters'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'channel'
+                    },
+                    0,
+                    '0'
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'flags'
+                    },
+                    0,
+                    '3'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'max_size'
+                    },
+                    0,
+                    '8000'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'max_send_warn'
+                    },
+                    0,
+                    '999'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'max_recv_warn'
+                    },
+                    0,
+                    '999'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'min_msg_interval'
+                    },
+                    0,
+                    '0'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {},
+                    0,
+                    '0'
+                  ],
+                  0,
+                  '
+	'
                 ],
                 0,
                 '
@@ -1391,10 +1779,33 @@ $xmlparse = [
                 'define',
                 [
                   {
-                    'subtype' => '4',
-                    'name' => 'IM parameter request',
+                    'subtype' => '2',
+                    'name' => 'add_IM_parameters',
                     'family' => '4'
-                  }
+                  },
+                  'ref',
+                  [
+                    {
+                      'name' => 'IM_parameters'
+                    }
+                  ]
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '4',
+                    'name' => 'IM_parameter_request',
+                    'family' => '4'
+                  },
+                  'ref',
+                  [
+                    {
+                      'name' => 'IM_parameters'
+                    }
+                  ]
                 ],
                 0,
                 '
@@ -1403,18 +1814,25 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '5',
-                    'name' => 'IM parameter response',
+                    'name' => 'IM_parameter_response',
                     'family' => '4'
-                  }
+                  },
+                  'ref',
+                  [
+                    {
+                      'name' => 'IM_parameters'
+                    }
+                  ]
                 ],
                 0,
                 '
+
 	',
                 'define',
                 [
                   {
                     'subtype' => '2',
-                    'name' => 'BOS rights request',
+                    'name' => 'BOS_rights_request',
                     'family' => '9'
                   }
                 ],
@@ -1425,18 +1843,66 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '3',
-                    'name' => 'BOS rights response',
+                    'name' => 'BOS_rights_response',
                     'family' => '9'
-                  }
+                  },
+                  0,
+                  '
+		',
+                  'tlvchain',
+                  [
+                    {},
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '1'
+                      },
+                      'word',
+                      [
+                        {
+                          'name' => 'max_permits'
+                        },
+                        0,
+                        '200'
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '2'
+                      },
+                      'word',
+                      [
+                        {
+                          'name' => 'max_denies'
+                        },
+                        0,
+                        '200'
+                      ]
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
                 ],
                 0,
                 '
+
 	',
                 'define',
                 [
                   {
                     'subtype' => '15',
-                    'name' => 'self information',
+                    'name' => 'self_information',
                     'family' => '1'
                   },
                   'ref',
@@ -1453,7 +1919,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '2',
-                    'name' => 'minimum report interval',
+                    'name' => 'minimum_report_interval',
                     'family' => '11'
                   }
                 ],
@@ -1475,9 +1941,22 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '3',
-                    'name' => 'server ready',
+                    'name' => 'server_ready',
                     'family' => '1'
-                  }
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'count' => '-1',
+                      'name' => 'families'
+                    }
+                  ],
+                  0,
+                  '
+	'
                 ],
                 0,
                 '
@@ -1486,7 +1965,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '23',
-                    'name' => 'set service versions',
+                    'name' => 'set_service_versions',
                     'family' => '1'
                   },
                   0,
@@ -1531,7 +2010,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '2',
-                    'name' => 'set tool versions',
+                    'name' => 'set_tool_versions',
                     'family' => '1'
                   },
                   0,
@@ -1594,7 +2073,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '6',
-                    'name' => 'rate info request',
+                    'name' => 'rate_info_request',
                     'family' => '1'
                   }
                 ],
@@ -1605,86 +2084,69 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '10',
-                    'name' => 'rate change',
+                    'name' => 'rate_change',
                     'family' => '1'
                   },
                   0,
                   '
 		',
-                  'word',
+                  'enum',
                   [
-                    {}
+                    {
+                      'name' => 'message_type',
+                      'type' => 'word'
+                    },
+                    0,
+                    '
+			',
+                    'edef',
+                    [
+                      {
+                        'value' => '1',
+                        'name' => 'change'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'edef',
+                    [
+                      {
+                        'value' => '2',
+                        'name' => 'warning'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'edef',
+                    [
+                      {
+                        'value' => '3',
+                        'name' => 'alert'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'edef',
+                    [
+                      {
+                        'value' => '4',
+                        'name' => 'clear'
+                      }
+                    ],
+                    0,
+                    '
+		'
                   ],
                   0,
                   '
 		',
-                  'word',
+                  'ref',
                   [
                     {
-                      'name' => 'group'
-                    }
-                  ],
-                  0,
-                  '
-		',
-                  'dword',
-                  [
-                    {
-                      'name' => 'window'
-                    }
-                  ],
-                  0,
-                  '
-		',
-                  'dword',
-                  [
-                    {
-                      'name' => 'clear'
-                    }
-                  ],
-                  0,
-                  '
-		',
-                  'dword',
-                  [
-                    {
-                      'name' => 'alert'
-                    }
-                  ],
-                  0,
-                  '
-		',
-                  'dword',
-                  [
-                    {
-                      'name' => 'limit'
-                    }
-                  ],
-                  0,
-                  '
-		',
-                  'dword',
-                  [
-                    {
-                      'name' => 'disconnect'
-                    }
-                  ],
-                  0,
-                  '
-		',
-                  'dword',
-                  [
-                    {
-                      'name' => 'current'
-                    }
-                  ],
-                  0,
-                  '
-		',
-                  'dword',
-                  [
-                    {
-                      'name' => 'max'
+                      'name' => 'rate_class_info'
                     }
                   ],
                   0,
@@ -1698,7 +2160,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '8',
-                    'name' => 'outgoing warning',
+                    'name' => 'outgoing_warning',
                     'family' => '4'
                   },
                   0,
@@ -1731,7 +2193,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '16',
-                    'name' => 'incoming warning',
+                    'name' => 'incoming_warning',
                     'family' => '1'
                   },
                   0,
@@ -1763,7 +2225,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '31',
-                    'name' => 'memory request',
+                    'name' => 'memory_request',
                     'family' => '1'
                   }
                 ],
@@ -1774,96 +2236,39 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '24',
-                    'name' => 'host versions',
+                    'name' => 'host_versions',
                     'family' => '1'
-                  }
-                ],
-                0,
-                '
-	',
-                'define',
-                [
-                  {
-                    'subtype' => '2',
-                    'name' => 'session was opened elsewhere',
-                    'family' => '9'
-                  }
-                ],
-                0,
-                ' 
-	',
-                'define',
-                [
-                  {
-                    'subtype' => '2',
-                    'name' => 'add IM parameters',
-                    'family' => '4'
                   },
                   0,
                   '
 		',
-                  'word',
+                  'data',
                   [
                     {
-                      'name' => 'channel'
+                      'count' => '-1',
+                      'name' => 'server'
                     },
                     0,
-                    '0'
-                  ],
-                  0,
-                  '
-		',
-                  'dword',
-                  [
-                    {
-                      'name' => 'flags'
-                    },
+                    '
+			',
+                    'word',
+                    [
+                      {
+                        'name' => 'service_id'
+                      }
+                    ],
                     0,
-                    '11'
-                  ],
-                  0,
-                  '
-		',
-                  'word',
-                  [
-                    {
-                      'name' => 'max_msg_len'
-                    },
+                    '
+			',
+                    'word',
+                    [
+                      {
+                        'name' => 'service_version'
+                      }
+                    ],
                     0,
-                    '8000'
-                  ],
-                  0,
-                  '
-		',
-                  'word',
-                  [
-                    {
-                      'name' => 'max_sender_warn'
-                    },
-                    0,
-                    '999'
-                  ],
-                  0,
-                  '
-		',
-                  'word',
-                  [
-                    {
-                      'name' => 'max_rcpt_warn'
-                    },
-                    0,
-                    '999'
-                  ],
-                  0,
-                  '
-		',
-                  'dword',
-                  [
-                    {
-                      'name' => 'min_msg_interval'
-                    },
-                    0,
-                    '0'
+                    '
+		'
                   ],
                   0,
                   '
@@ -1876,7 +2281,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '7',
-                    'name' => 'buddylist done',
+                    'name' => 'buddylist_done',
                     'family' => '19'
                   }
                 ],
@@ -1892,9 +2297,113 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '3',
-                    'name' => 'buddylist 3 response',
+                    'name' => 'buddylist_3_response',
                     'family' => '19'
-                  }
+                  },
+                  0,
+                  '
+		',
+                  'tlvchain',
+                  [
+                    {},
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '4'
+                      },
+                      'word',
+                      [
+                        {
+                          'count' => '-1',
+                          'name' => 'maximums'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '2'
+                      },
+                      'word',
+                      [
+                        {},
+                        0,
+                        '254'
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '3'
+                      },
+                      'word',
+                      [
+                        {},
+                        0,
+                        '508'
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '5'
+                      },
+                      'word',
+                      [
+                        {},
+                        0,
+                        '0'
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '6'
+                      },
+                      'word',
+                      [
+                        {},
+                        0,
+                        '97'
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '7'
+                      },
+                      'word',
+                      [
+                        {},
+                        0,
+                        '10'
+                      ]
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
                 ],
                 0,
                 '
@@ -1926,7 +2435,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '14',
-                    'name' => 'buddylist modification acknowledgement',
+                    'name' => 'buddylist_modification_acknowledgement',
                     'family' => '19'
                   },
                   0,
@@ -1950,7 +2459,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '15',
-                    'name' => 'buddylist error',
+                    'name' => 'buddylist_error',
                     'family' => '19'
                   },
                   0,
@@ -1974,7 +2483,7 @@ $xmlparse = [
                 'define',
                 [
                   {
-                    'name' => 'buddylist modification'
+                    'name' => 'buddylist_modification'
                   },
                   0,
                   '
@@ -2034,7 +2543,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '8',
-                    'name' => 'buddylist add',
+                    'name' => 'buddylist_add',
                     'family' => '19'
                   },
                   'data',
@@ -2051,7 +2560,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '9',
-                    'name' => 'buddylist modify',
+                    'name' => 'buddylist_modify',
                     'family' => '19'
                   },
                   'data',
@@ -2068,7 +2577,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '10',
-                    'name' => 'buddylist delete',
+                    'name' => 'buddylist_delete',
                     'family' => '19'
                   },
                   'data',
@@ -2080,12 +2589,49 @@ $xmlparse = [
                 ],
                 0,
                 '
+
+	
+	',
+                'define',
+                [
+                  {
+                    'name' => 'buddylist_change'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'count' => '-1',
+                      'name' => 'changes'
+                    },
+                    0,
+                    '
+			',
+                    'ref',
+                    [
+                      {
+                        'name' => 'buddylist_modification'
+                      }
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
 	',
                 'define',
                 [
                   {
                     'subtype' => '17',
-                    'name' => 'start buddylist modifications',
+                    'name' => 'start_buddylist_modifications',
                     'family' => '19'
                   }
                 ],
@@ -2096,7 +2642,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '18',
-                    'name' => 'end buddylist modifications',
+                    'name' => 'end_buddylist_modifications',
                     'family' => '19'
                   }
                 ],
@@ -2112,7 +2658,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '21',
-                    'name' => 'get info',
+                    'name' => 'get_info',
                     'family' => '2'
                   },
                   0,
@@ -2154,7 +2700,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '21',
-                    'name' => 'get away',
+                    'name' => 'get_away',
                     'family' => '2'
                   },
                   0,
@@ -2196,7 +2742,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '6',
-                    'name' => 'incoming profile',
+                    'name' => 'incoming_profile',
                     'family' => '2'
                   },
                   0,
@@ -2260,7 +2806,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '4',
-                    'name' => 'set info',
+                    'name' => 'set_info',
                     'family' => '2'
                   },
                   0,
@@ -2395,7 +2941,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '17',
-                    'name' => 'set idle',
+                    'name' => 'set_idle',
                     'family' => '1'
                   },
                   0,
@@ -2421,7 +2967,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '20',
-                    'name' => 'typing notification',
+                    'name' => 'typing_notification',
                     'family' => '4'
                   },
                   0,
@@ -2482,7 +3028,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '33',
-                    'name' => 'incoming extended information',
+                    'name' => 'incoming_extended_information',
                     'family' => '1'
                   },
                   0,
@@ -2594,7 +3140,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '30',
-                    'name' => 'set extended status',
+                    'name' => 'set_extended_status',
                     'family' => '1'
                   },
                   0,
@@ -2704,7 +3250,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '2',
-                    'name' => 'icon upload',
+                    'name' => 'icon_upload',
                     'family' => '16'
                   },
                   0,
@@ -2748,7 +3294,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '11',
-                    'name' => 'buddy status update',
+                    'name' => 'buddy_status_update',
                     'family' => '3'
                   },
                   0,
@@ -2771,7 +3317,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '12',
-                    'name' => 'buddy signoff',
+                    'name' => 'buddy_signoff',
                     'family' => '3'
                   },
                   0,
@@ -2792,14 +3338,13 @@ $xmlparse = [
                 '
 
 
-
 	
 
 	',
                 'define',
                 [
                   {
-                    'name' => 'standard IM header'
+                    'name' => 'standard_IM_header'
                   },
                   0,
                   '
@@ -2832,7 +3377,7 @@ $xmlparse = [
                 'define',
                 [
                   {
-                    'name' => 'standard IM footer'
+                    'name' => 'standard_IM_footer'
                   },
                   0,
                   '
@@ -3024,7 +3569,7 @@ $xmlparse = [
                 'define',
                 [
                   {
-                    'name' => 'rendezvous IM'
+                    'name' => 'rendezvous_IM'
                   },
                   0,
                   '
@@ -3042,16 +3587,49 @@ $xmlparse = [
                       },
                       0,
                       '
-				
 				',
-                      'word',
+                      'enum',
                       [
                         {
-                          'name' => 'status'
-                        }
+                          'name' => 'status',
+                          'type' => 'word'
+                        },
+                        0,
+                        ' 
+					',
+                        'edef',
+                        [
+                          {
+                            'value' => '0',
+                            'name' => 'propose'
+                          }
+                        ],
+                        0,
+                        '
+					',
+                        'edef',
+                        [
+                          {
+                            'value' => '1',
+                            'name' => 'cancel'
+                          }
+                        ],
+                        0,
+                        '
+					',
+                        'edef',
+                        [
+                          {
+                            'value' => '2',
+                            'name' => 'accept'
+                          }
+                        ],
+                        0,
+                        '
+				'
                       ],
                       0,
-                      ' 
+                      '
 
 				',
                       'data',
@@ -3306,7 +3884,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '7',
-                    'name' => 'incoming IM',
+                    'name' => 'incoming_IM',
                     'family' => '4'
                   },
                   0,
@@ -3315,7 +3893,7 @@ $xmlparse = [
                   'ref',
                   [
                     {
-                      'name' => 'standard IM header'
+                      'name' => 'standard_IM_header'
                     }
                   ],
                   0,
@@ -3347,7 +3925,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '6',
-                    'name' => 'outgoing IM',
+                    'name' => 'outgoing_IM',
                     'family' => '4'
                   },
                   0,
@@ -3356,7 +3934,7 @@ $xmlparse = [
                   'ref',
                   [
                     {
-                      'name' => 'standard IM header'
+                      'name' => 'standard_IM_header'
                     }
                   ],
                   0,
@@ -3390,7 +3968,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '12',
-                    'name' => 'IM acknowledgement',
+                    'name' => 'IM_acknowledgement',
                     'family' => '4'
                   },
                   0,
@@ -3438,7 +4016,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '4',
-                    'name' => 'chat invitation accept',
+                    'name' => 'chat_invitation_accept',
                     'family' => '13'
                   },
                   0,
@@ -3491,7 +4069,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '11',
-                    'name' => 'chat invitation decline',
+                    'name' => 'chat_invitation_decline',
                     'family' => '4'
                   },
                   0,
@@ -3565,7 +4143,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '2',
-                    'name' => 'chat navigator rights request',
+                    'name' => 'chat_navigator_rights_request',
                     'family' => '13'
                   }
                 ],
@@ -3576,7 +4154,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '8',
-                    'name' => 'chat navigator room create',
+                    'name' => 'chat_navigator_room_create',
                     'family' => '13'
                   },
                   0,
@@ -3585,7 +4163,7 @@ $xmlparse = [
                   'ref',
                   [
                     {
-                      'name' => 'chat room info'
+                      'name' => 'chat_room_info'
                     }
                   ],
                   0,
@@ -3599,7 +4177,7 @@ $xmlparse = [
                 'define',
                 [
                   {
-                    'name' => 'chat data'
+                    'name' => 'chat_data'
                   },
                   0,
                   '
@@ -3757,7 +4335,7 @@ $xmlparse = [
                 'define',
                 [
                   {
-                    'name' => 'chat room info'
+                    'name' => 'chat_room_info'
                   },
                   0,
                   '
@@ -3808,7 +4386,7 @@ $xmlparse = [
                   'ref',
                   [
                     {
-                      'name' => 'chat data'
+                      'name' => 'chat_data'
                     }
                   ],
                   0,
@@ -3936,7 +4514,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '9',
-                    'name' => 'chat navigator response',
+                    'name' => 'chat_navigator_response',
                     'family' => '13'
                   },
                   0,
@@ -3986,7 +4564,7 @@ $xmlparse = [
                       'ref',
                       [
                         {
-                          'name' => 'chat data'
+                          'name' => 'chat_data'
                         }
                       ],
                       0,
@@ -4011,7 +4589,7 @@ $xmlparse = [
                       'ref',
                       [
                         {
-                          'name' => 'chat room info'
+                          'name' => 'chat_room_info'
                         }
                       ],
                       0,
@@ -4035,7 +4613,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '2',
-                    'name' => 'chat room status',
+                    'name' => 'chat_room_status',
                     'family' => '14'
                   },
                   0,
@@ -4044,7 +4622,7 @@ $xmlparse = [
                   'ref',
                   [
                     {
-                      'name' => 'chat room info'
+                      'name' => 'chat_room_info'
                     }
                   ],
                   0,
@@ -4058,7 +4636,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '3',
-                    'name' => 'chat buddy arrival',
+                    'name' => 'chat_buddy_arrival',
                     'family' => '14'
                   },
                   0,
@@ -4094,7 +4672,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '4',
-                    'name' => 'chat buddy departure',
+                    'name' => 'chat_buddy_departure',
                     'family' => '14'
                   },
                   0,
@@ -4120,7 +4698,7 @@ $xmlparse = [
                 'define',
                 [
                   {
-                    'name' => 'chat IM'
+                    'name' => 'chat_IM'
                   },
                   0,
                   '
@@ -4311,13 +4889,13 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '5',
-                    'name' => 'outgoing chat IM',
+                    'name' => 'outgoing_chat_IM',
                     'family' => '14'
                   },
                   'ref',
                   [
                     {
-                      'name' => 'chat IM'
+                      'name' => 'chat_IM'
                     }
                   ]
                 ],
@@ -4328,13 +4906,13 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '6',
-                    'name' => 'incoming chat IM',
+                    'name' => 'incoming_chat_IM',
                     'family' => '14'
                   },
                   'ref',
                   [
                     {
-                      'name' => 'chat IM'
+                      'name' => 'chat_IM'
                     }
                   ]
                 ],
@@ -4350,7 +4928,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '5',
-                    'name' => 'admin request response',
+                    'name' => 'admin_request_response',
                     'family' => '7'
                   },
                   0,
@@ -4460,7 +5038,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '3',
-                    'name' => 'buddy icon uploaded',
+                    'name' => 'buddy_icon_uploaded',
                     'family' => '16'
                   }
                 ],
@@ -4471,7 +5049,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '4',
-                    'name' => 'buddy icon download',
+                    'name' => 'buddy_icon_download',
                     'family' => '16'
                   },
                   0,
@@ -4532,7 +5110,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '5',
-                    'name' => 'buddy icon downloaded',
+                    'name' => 'buddy_icon_downloaded',
                     'family' => '16'
                   },
                   0,
@@ -4595,7 +5173,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '6',
-                    'name' => 'confirm account request',
+                    'name' => 'confirm_account_request',
                     'family' => '7'
                   }
                 ],
@@ -4606,7 +5184,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '7',
-                    'name' => 'confirm account response',
+                    'name' => 'confirm_account_response',
                     'family' => '7'
                   },
                   0,
@@ -4631,7 +5209,7 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '4',
-                    'name' => 'change account info',
+                    'name' => 'change_account_info',
                     'family' => '7'
                   },
                   0,
@@ -4721,7 +5299,7 @@ $xmlparse = [
                 'define',
                 [
                   {
-                    'name' => 'ICQ meta'
+                    'name' => 'ICQ_meta'
                   },
                   0,
                   '
@@ -4808,13 +5386,13 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '2',
-                    'name' => 'ICQ meta request',
+                    'name' => 'ICQ_meta_request',
                     'family' => '21'
                   },
                   'ref',
                   [
                     {
-                      'name' => 'ICQ meta'
+                      'name' => 'ICQ_meta'
                     }
                   ]
                 ],
@@ -4825,13 +5403,13 @@ $xmlparse = [
                 [
                   {
                     'subtype' => '3',
-                    'name' => 'ICQ meta response',
+                    'name' => 'ICQ_meta_response',
                     'family' => '21'
                   },
                   'ref',
                   [
                     {
-                      'name' => 'ICQ meta'
+                      'name' => 'ICQ_meta'
                     }
                   ]
                 ],
@@ -4843,7 +5421,7 @@ $xmlparse = [
                 'define',
                 [
                   {
-                    'name' => 'ICQ meta info request'
+                    'name' => 'ICQ_meta_info_request'
                   },
                   0,
                   '
@@ -4880,7 +5458,7 @@ $xmlparse = [
                 'define',
                 [
                   {
-                    'name' => 'ICQ meta info response'
+                    'name' => 'ICQ_meta_info_response'
                   },
                   0,
                   '
@@ -4927,7 +5505,7 @@ $xmlparse = [
                 'define',
                 [
                   {
-                    'name' => 'ICQ meta info response: basic'
+                    'name' => 'ICQ_meta_info_response:_basic'
                   },
                   0,
                   '
@@ -5141,7 +5719,7 @@ $xmlparse = [
                 'define',
                 [
                   {
-                    'name' => 'ICQ meta info response: office'
+                    'name' => 'ICQ_meta_info_response:_office'
                   },
                   0,
                   '
@@ -5295,7 +5873,7 @@ $xmlparse = [
                 'define',
                 [
                   {
-                    'name' => 'ICQ meta info response: background'
+                    'name' => 'ICQ_meta_info_response:_background'
                   },
                   0,
                   '
@@ -5444,7 +6022,7 @@ $xmlparse = [
                 'define',
                 [
                   {
-                    'name' => 'ICQ meta info response: notes'
+                    'name' => 'ICQ_meta_info_response:_notes'
                   },
                   0,
                   '
@@ -5469,7 +6047,7 @@ $xmlparse = [
                 'define',
                 [
                   {
-                    'name' => 'ICQ meta info response: email'
+                    'name' => 'ICQ_meta_info_response:_email'
                   },
                   0,
                   '
@@ -5516,7 +6094,7 @@ $xmlparse = [
                 'define',
                 [
                   {
-                    'name' => 'ICQ meta info response: interests'
+                    'name' => 'ICQ_meta_info_response:_interests'
                   },
                   0,
                   '
@@ -5564,7 +6142,7 @@ $xmlparse = [
                 'define',
                 [
                   {
-                    'name' => 'ICQ meta info response: affiliations'
+                    'name' => 'ICQ_meta_info_response:_affiliations'
                   },
                   0,
                   '
@@ -5647,7 +6225,7 @@ $xmlparse = [
                 'define',
                 [
                   {
-                    'name' => 'ICQ meta info response: homepage'
+                    'name' => 'ICQ_meta_info_response:_homepage'
                   },
                   0,
                   '
@@ -5700,7 +6278,7 @@ $xmlparse = [
                 'define',
                 [
                   {
-                    'name' => 'chat invite rendezvous data'
+                    'name' => 'chat_invite_rendezvous_data'
                   },
                   0,
                   '
@@ -5742,7 +6320,7 @@ $xmlparse = [
                 'define',
                 [
                   {
-                    'name' => 'file transfer rendezvous data'
+                    'name' => 'file_transfer_rendezvous_data'
                   },
                   0,
                   '
@@ -5789,6 +6367,64 @@ $xmlparse = [
                 ],
                 0,
                 '
+	',
+                'define',
+                [
+                  {
+                    'name' => 'buddy_list_transfer_rendezvous_data'
+                  },
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'count' => '-1',
+                      'name' => 'group'
+                    },
+                    0,
+                    '
+			',
+                    'data',
+                    [
+                      {
+                        'name' => 'name',
+                        'length_prefix' => 'word'
+                      }
+                    ],
+                    0,
+                    '
+			',
+                    'data',
+                    [
+                      {
+                        'count_prefix' => 'word',
+                        'name' => 'buddies'
+                      },
+                      0,
+                      '
+				',
+                      'data',
+                      [
+                        {
+                          'name' => 'name',
+                          'length_prefix' => 'word'
+                        }
+                      ],
+                      0,
+                      '
+			'
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
 
 
 	
@@ -5796,7 +6432,7 @@ $xmlparse = [
                 'define',
                 [
                   {
-                    'name' => 'file transfer header'
+                    'name' => 'file_transfer_header'
                   },
                   0,
                   '
@@ -6099,6 +6735,296 @@ $xmlparse = [
                       'pad' => '0',
                       'length' => '64',
                       'name' => 'filename'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+
+	
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '11',
+                    'name' => 'pause',
+                    'family' => '1'
+                  }
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '12',
+                    'name' => 'pause_ack',
+                    'family' => '1'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'count' => '-1',
+                      'name' => 'families'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '13',
+                    'name' => 'unpause',
+                    'family' => '1'
+                  }
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'subtype' => '18',
+                    'name' => 'migrate',
+                    'family' => '1'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'count_prefix' => 'word',
+                      'name' => 'families'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'tlvchain',
+                  [
+                    {},
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '5'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'peer'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '6'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'cookie'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+
+
+	
+	
+	',
+                'define',
+                [
+                  {
+                    'name' => 'direct_connect_proxy_hdr'
+                  },
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'magic'
+                    },
+                    0,
+                    '1098'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'msg_type'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {},
+                    0,
+                    '0'
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'data'
+                    }
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'name' => 'direct_connect_proxy_init'
+                  },
+                  0,
+                  ' 
+		',
+                  'ref',
+                  [
+                    {
+                      'name' => 'direct_connect_proxy_hdr'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {},
+                    0,
+                    '0'
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'name' => 'screenname',
+                      'length_prefix' => 'byte'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'data',
+                  [
+                    {
+                      'length' => '8',
+                      'name' => 'cookie'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'tlvchain',
+                  [
+                    {},
+                    0,
+                    '
+			',
+                    'tlv',
+                    [
+                      {
+                        'type' => '1'
+                      },
+                      'data',
+                      [
+                        {
+                          'name' => 'capability'
+                        }
+                      ]
+                    ],
+                    0,
+                    '
+		'
+                  ],
+                  0,
+                  '
+	'
+                ],
+                0,
+                '
+	',
+                'define',
+                [
+                  {
+                    'name' => 'direct_connect_proxy_reply'
+                  },
+                  0,
+                  ' 
+		',
+                  'ref',
+                  [
+                    {
+                      'name' => 'direct_connect_proxy_hdr'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {},
+                    0,
+                    '544'
+                  ],
+                  0,
+                  '
+		',
+                  'word',
+                  [
+                    {
+                      'name' => 'port'
+                    }
+                  ],
+                  0,
+                  '
+		',
+                  'dword',
+                  [
+                    {
+                      'name' => 'ip'
                     }
                   ],
                   0,
