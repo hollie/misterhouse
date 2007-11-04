@@ -15,6 +15,7 @@
 # or indirectly caused by this software.
 # 
 # Version History
+# 1.6.0-2 - 11/02/07 - minor bugfix to in icalsync name
 # 1.6.0-1 - 09/24/07 - Updated to organizer release 2.5.2 without admin login and ical customization
 #		       (1.6.0 added admin login & changed navigation)
 # 1.5.7-4 - 08/12/07 - Added ical2vsdb integration (needs v2104 vsdb database)
@@ -29,7 +30,7 @@
 # 1.5.2   - 08/22/01 - added file locking
 # ----------------------------------------------------------------------------
 
-my $VERSION = "1.6.0-1";
+my $VERSION = "1.6.0-2";
 
 BEGIN {
 #	$SIG{__WARN__} = \&FatalError;
@@ -692,7 +693,7 @@ sub PrintCurrentRecord {
 	 }
 	 print "<input type='reset' value='Cancel' onclick=\"window.history.go(-1);return false;\">\n";
 	} else {
-         $source =~ /^ical=(\S*)\ssync=(.*)/;
+         $source =~ /^ical=(.*)\ssync=(.*)/;
 	 my $icalname = $1;
 	 my $icalsync = $2;
 	 print "<tr><td colspan=4><font face='arial' size='2'>iCal2vsdb (ical $icalname) $icalsync\n";

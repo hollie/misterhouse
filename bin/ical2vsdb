@@ -30,13 +30,14 @@ use vsLock;
 # verify locking works as expected
 
 my $progname = "ical2vsdb";
-my $progver  = "v1.0 07-08-24";
+my $progver  = "v2.0 07-11-02";
 my $DB = 0;
 
 my $days_before = 0;
 my $days_after = 0;
 
 my $config_file= "";
+my $config_version = 2;
 my $vsdb_cal_file = "calendar.tab";
 my $vsdb_todo_file = "tasks.tab";
 my $sleep_time = 900;                #poll cycle default is 15 minutes
@@ -47,6 +48,9 @@ $config_file = $ARGV[0] if $ARGV[0];
 &help if ((lc $config_file eq "-h") or (lc $config_file eq "--h") or ($config_file eq ""));
 
 print "iCal to vsDB Misterhouse import ($progname $progver) starting...\n";
+
+&purge_icals if ($config_file eq "--purge-ical-info");
+
 print "Using configuration File: $config_file\n";
 
 my @ical_data = ();
@@ -91,24 +95,15 @@ while (1) {
    my @cal_data;
 
    my $calendar_loc = $ical_data[$loop]->{loc};
+   my $parser=iCal::Parser->new();
 
 # -------------- Calendar Scan -----------------------
 
 
    if (lc $ical_data[$loop]->{method} eq "file") {
         print "Opening File $calendar_loc...\n";
-	my $in;
-	open (FILE,$calendar_loc);	
-	while (<FILE>) {
-	   $in .= $_;
-	   if (/END:VCALENDAR/) {
-		push(@cal_data,$in);
-		$in = "";
-	   }
-	}
-	close (FILE);
-	$process = 1 if @cal_data;
-        print "@cal_data\n\n\n" if ($DB >2);
+	$process = $parser->parse("$calendar_loc");
+	$parser = $parser->calendar;
 
     } elsif ((lc $ical_data[$loop]->{method} eq "http") or (lc $ical_data[$loop]->{method} eq "webcal")) {
         print "Fetching http://$calendar_loc via LWP...\n";
@@ -122,10 +117,24 @@ while (1) {
            print "The calendar specified by $calendar_loc could not be retrieved: " . $results->status_line . "\n";
         } else {
            my $data = $results->content;
-	   push(@cal_data,$data);
+	   $parser->parse_strings($data);
+	   $parser = $parser->calendar;
 	   $process = 1;
         }
-        print "@cal_data\n\n\n" if ($DB > 2);
+
+   } elsif (lc $ical_data[$loop]->{method} eq "dir") {
+	my $d_parser = iCal::Parser->new();
+	my $count = 0;
+        print "Opening Directory $calendar_loc (multi-ical)...";
+	opendir (DIR, $calendar_loc);
+	my @directory = readdir(DIR);
+	closedir (DIR);
+	foreach my $filename (@directory) {
+	  $process =+ $d_parser->parse("$calendar_loc/$filename");
+	  $count++;
+	}
+	print "$count files parsed.\n";
+	$parser =$d_parser->calendar;
 
    } else {
 
@@ -138,7 +147,8 @@ while (1) {
 
   if ($process) {
 
-    my $data_string = join('',@cal_data);
+    #my $data_string = join('',@cal_data);
+    my $data_string = Dumper ($parser); 
     my $digest = md5_hex($data_string);
     print "Stored Hash=$ical_data[$loop]->{hash} File Hash=$digest\n" if ($DB > 2);
 
@@ -147,7 +157,7 @@ while (1) {
        print "Processing iCal $calendar_loc ...";
        print "[$ical_data[$loop]->{options}]" if $DB;
        $ical_data[$loop]->{hash} = $digest;
-       my ($data_info, $data_cals, $data_todos) = parse_cal(@cal_data, $ical_data[$loop]->{options});
+       my ($data_info, $data_cals, $data_todos) = parse_cal($parser, $ical_data[$loop]->{options});
 
        push (@changed_icals, @$data_info[0]);
        push (@master_cal, @$data_cals);
@@ -164,7 +174,7 @@ while (1) {
 #--------------- Update the vsdb database ------------------
 
   if (@changed_icals) {
-       print "Updating databases for @changed_icals ...";
+       print "Updating databases for @changed_icals ...\n";
 
 #print Dumper @master_cal;
        update_db("$output_dir/$vsdb_cal_file",\@changed_icals,\@master_cal);
@@ -257,7 +267,7 @@ sub parse_cal {
 #returned value is an array of hashes
 # @outcal[0]->{field}
 
-  my @strings = $_[0];
+  my $cal = $_[0];
   my $options = $_[1];
   my (@out_info, @out_cals, @out_todos);
 
@@ -267,16 +277,11 @@ sub parse_cal {
   my $opt_holiday = 0;
   my $opt_vacation = 0;
 
-  $opt_speak_cal = 1 if $options =~ /speak_cal/i;
-  $opt_speak_todo = 1 if $options =~ /speak_todo/i;
-  $opt_holiday = 1 if $options =~ /holiday/i;
-  $opt_vacation = 1 if $options =~ /vacation/i;
-  # the following is a bit of a hack as the options format doesn't implement a delimitter
-  #   and, therefore, the optional source name can't have embedded spaces, *AND*
-  #   it has to be the last option.  REALLY NEED TO MAKE OPTIONS PROPERLY PARSABLE
-  my ($opt_sourcename) = $options =~ /name=(\S+)/;
-
-  my $cal = iCal::Parser->new->parse_strings(@strings);
+  $opt_speak_cal = 1 if (defined $options->{speak_cal});
+  $opt_speak_todo = 1 if (defined $options->{speak_todo});
+  $opt_holiday = 1 if (defined $options->{holiday});
+  $opt_vacation = 1 if (defined $options->{vacation});
+  my ($opt_sourcename) = $options->{name} if (defined $options->{name});
 
   my $calname = $cal->{cals}->[0]->{'X-WR-CALNAME'};
   $calname = $opt_sourcename if $opt_sourcename;
@@ -467,6 +472,7 @@ sub parse_cal {
 sub init {
 
   my $count = 0;
+  my $version = 0;
   open (CFGFILE,$config_file) || die "Error: Cannot open config file $config_file!";
 
   while (<CFGFILE>) {
@@ -493,11 +499,16 @@ sub init {
 	} elsif (lc $type eq "md5file" ) {
 	  $md5file=$url;
 
+	} elsif (lc $type eq "cfg_version" ) {
+	  $version=$url;
 	
 	} else {
-
 	  $ical_data[$count]->{type} = $type;
-	  $ical_data[$count]->{options} = $options;
+	  foreach my $opt (split /,/,$options) {
+	    my ($key,$value) = split /=/,$opt;
+	    $ical_data[$count]->{options}->{$key} = $value;
+	    print "\$ical_data[$count]->{options}->{$key} = $value\n" if $DB;
+	  }
 	  $ical_data[$count]->{hash} = "none";
 	  
 	  my ($method, $loc) = split(/:\/\//,$url);
@@ -512,12 +523,17 @@ sub init {
           }
           print "db: method=$method, location=$loc\n" if ($DB > 2);
 	  $ical_data[$count]->{method} = $method;
+	  if ($method eq lc "dir") {
+		$loc = "/" . $loc if !($loc =~ /^\//);
+		chop $loc  if ($loc =~ /\/$/);
+	  }
 	  $ical_data[$count]->{loc} = $loc;
 	  $count++;
 	  }
   }
   close(CFGFILE);
 
+  die "Incompatible configuration file version!" if ($version != $config_version);
   # overwrite output_dir if passed in from command line
   $output_dir = $ARGV[1] if $ARGV[1];
   $date_format = $ARGV[2] if $ARGV[2];
@@ -543,8 +559,16 @@ sub init {
 
 sub help {
 
-  print "usage $progname CONFIGURATION_FILE OUTPUT_DIR\n";
+  print "usage\t$progname CONFIGURATION_FILE OUTPUT_DIR\n";
+  print " or\t$progname --purge-ical-info OUTPUT_DIR\n";
+  print "\n\n";
+  print " -- CONFIG FILE SYNTAX -- \n";
+  print "TYPE<tab>VALUE<tab>option\n\n";
+  print "TYPE = cfg_version|ical|days_before|days_after|sleep\n";
+  print "VALUE = parameter value or ical location (http://, file://, dir://)\n";
+  print "OPTION = comma delimited value pairs (holiday,name=Joe User,speak_todos,vacation)\n";
   print "\n";
+
   die;
 }
 
@@ -587,3 +611,39 @@ sub flush_md5file {
   close (MD5FILE);
 }
 
+sub purge_icals {
+
+  my $output_dir = $ARGV[1];
+  my @vsdb_files = ("$output_dir/$vsdb_cal_file","$output_dir/$vsdb_todo_file");
+
+  foreach my $filename (@vsdb_files) {
+  print "Purging iCal information from $filename...";
+   my ($objDB) = new vsDB(file => $filename);
+   my ($objLock) = new vsLock(-warn => 1, -max => 5, delay => 1);
+
+     if (!$objLock->lock($filename)) { print "Problem locking file";
+     } else {
+
+       if (!$objDB->Open) { print "Problem opening file!";
+       } else {
+
+         while (!$objDB->EOF) {
+            my $delete = 0;
+            my $source = $objDB->FieldValue('SOURCE');
+            ($delete) = $source =~ /ical=(.*)/;
+
+            if ($delete) {
+	       print "Deleting Record ID" . $objDB->FieldValue("ID") . " source=$delete\n";# if $DB;
+	       $objDB->Delete();
+            } else {
+               $objDB->MoveNext;
+            }
+         }
+       }
+      }
+      $objDB->Commit;
+      $objDB->Close;
+      $objLock->unlock($filename)
+      }
+die;
+}
