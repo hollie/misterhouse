@@ -75,6 +75,7 @@ This program works ok:  http://misterhouse.net/public/unzip.exe
 
 =cut
 
+
  - If using the tar file:
      cd to where you want it the mh directory created in (e.g. cd /projects/misterhouse)
      tar -xzvf misterhouse-#.##.tar.gz
