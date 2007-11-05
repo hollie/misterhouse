@@ -60,7 +60,10 @@ This program works ok:  http://misterhouse.net/public/unzip.exe
  - Download the the latest tar, or zip file
    from http://misterhouse.net/download
 
+
 =begin comment
+
+
  - If using the rpm file:
      rpm -i misterhouse-#.##-1.noarch.rpm
      docs are installed to /usr/doc/misterhouse-#.##, everything else is in /usr/local/mh
@@ -73,7 +76,7 @@ This program works ok:  http://misterhouse.net/public/unzip.exe
      dir and run mhe instead.  Note: one of the above files are still required,
      as they have the documentation and support files.
 
-=cut
+=end comment
 
 
  - If using the tar file:
@@ -333,7 +336,7 @@ This might be useful if you have troubles with the above CPAN installs or if you
 of perl that has some sort of problem (e.g. memory leak).
 
 
-=cut
+=end comment
 
 
 Dependencies for above modules:
