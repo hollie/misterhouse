@@ -12,17 +12,751 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 
 =begin html
 <p>The latest changelog for current test release
-(avalable via the <a href=https://svn.sourceforge.net/svnroot/misterhouse/trunk>SVN repository</a>
+(avalable via the <a href=http://misterhouse.svn.sourceforge.net/svnroot/misterhouse/trunk>SVN repository</a>
 or a <a href=http://misterhouse.net/public/misterhouse_src_test.zip>nightly compiled zip file</a> )
-can be found in <a href=http://svn.sourceforge.net/viewvc/misterhouse/trunk/?view=log>the SVN change log</a>
+can be found in <a href=http://misterhouse.svn.sourceforge.net/viewvc/misterhouse/trunk/?view=log>the SVN change log</a>
 with highlights listed in <a href=http://misterhouse.net/mh/docs/updates.html>the release notes</a>.
 
 
 =end html
 
-B<New Features:>
 
-B<Bug Fixes and Other Changes:>
+=head2 Version 2.104 posted on 11/04/2007
+
+Version 2.104 can be downloaded from here:
+
+  http://misterhouse.sf.net/download.html
+
+
+B<Detailed List of Changes from the SVN log:>
+
+Gregg Liming :: Fri Oct 5 2007
+ - Revised parsing of state_monitor and device_monitor so that they properly strip spaces and allow both colon and equals signs as delimitters.  Bug idenfified by Ron Klinkien.
+
+Matthew Williams :: Tue Sep 25 2007
+ - Made some print_logs dependent on Debug flags as per Chris Barrett's suggestion.
+
+Matthew Williams :: Tue Sep 25 2007
+ - Dave Lounsberry's patch to vv_tts.pl to fix a few problems:
+1. vv_tts.pl errors out on missing right bracket.
+# ./vv_tts.pl -help
+Missing right curly or square bracket at ./vv_tts.pl line 296, at end of line
+syntax error at ./vv_tts.pl line 296, at EOF
+Execution of ./vv_tts.pl aborted due to compilation errors.
+I noticed that sometime since 2.100 was released the end curly bracket for the BEGIN statement was moved up to the end of last line with text instead of on a line by itself. Moving the bracket back to a line by itself fix the error on what I run,  perl 5.8.8 on Linux/Ubuntu.  There is a comment on that line about making perl2exe happy. Maybe that change was required for perl2exe? Not sure.
+2. I use the swift TTS engine which was not released back when I wrote vv_tts a long time ago. Added swift as an -engine option along side theta. Also changed the debug line noting the engine used.
+3. Change some minor cosmetics and my email address.
+
+Matthew Williams :: Tue Sep 18 2007
+ - Fixing iButton list routine so that it doesn't repeat results twice if you don't have a second iButton serial port.  Bug report and fix supplied by Chris Barrett.
+
+Gregg Liming :: Wed Sep 12 2007
+ - Force reinit of organizer_tasks on reload in case reload action causes empty tasks.tab.
+
+Gregg Liming :: Mon Sep 10 2007
+ - Constrained output of element color to print_log to occur only if debug is set to weather_graph.  Bug and suggested fix provided by Chris Barrett.
+
+Gregg Liming :: Wed Sep 5 2007
+ - Protect against bad date formats (entered via web or perhaps from the flawed "stock" tab files).
+
+Gregg Liming :: Wed Sep 5 2007
+ - Trap write errors when upgrading vsDBs (if permissions or ownership is wrong).
+
+Gregg Liming :: Wed Sep 5 2007
+ - Rewrite vsdb upgrade function to be "safe" to include handling absent databases and databases w/ differing existing schemas.
+
+Gregg Liming :: Tue Sep 4 2007
+ - Ensure setby in set_receiver_RF_item is set to 'rf'.
+
+Gregg Liming :: Mon Sep 3 2007
+ - Wrap vsDB access code with eval to prevent errors from leaving incompletely generated organizer_*.pl code.
+
+Gregg Liming :: Fri Aug 31 2007
+ - Fix support for x10 security devices (e.g., ms10a).  Fix based on submission from James Armstrong.
+
+Gregg Liming :: Fri Aug 31 2007
+ - Fix proper generation of speak announcement for all day events.
+
+Gregg Liming :: Fri Aug 31 2007
+ - Update version id to 2.104.
+
+Matthew Williams :: Wed Aug 29 2007
+ - Copied from: trunk revision 1176
+Creating branch for 2.104 stabilization.
+
+Gregg Liming :: Sun Aug 26 2007
+ - Change add method to support adding an array of devices
+
+Gregg Liming :: Sun Aug 26 2007
+ - Add task category and exception driven scheduling (initial) support.
+
+Gregg Liming :: Sun Aug 26 2007
+ - Fix handling of startdate for tasks and add task category support.
+
+David Norwood :: Sun Aug 26 2007
+ - documentation updates 
+
+David Norwood :: Sun Aug 26 2007
+ - changed monitoring to include x10 commands transmitted by the Ocelot 
+
+David Norwood :: Sun Aug 26 2007
+ - downloaded latest area code list from internet 
+
+David Norwood :: Sun Aug 26 2007
+ - documentation updates
+
+David Norwood :: Sun Aug 26 2007
+ - Minor changes 
+
+David Norwood :: Sun Aug 26 2007
+ - I added support for ANALOG_SENSOR items.  
+
+David Norwood :: Sun Aug 26 2007
+ - I enabled the photo resize feature,  which was not functional before.  
+There are new ini parameters to control this.  See mh/bin/mh.ini for 
+details.   
+
+Howard Plato :: Sat Aug 25 2007
+ - Significant rewrite of the calendar and organizer code, allowing importing of iCal calendars directly into MH. To use edit the i2v.cfg and add the appropriate config_parms specified in organizer.pl. Kudos to Gregg for the huge assistance and contribution to making this work!
+The web scripts still need some work as data can be entered without format checking and will be updated at a later date.
+
+Gregg Liming :: Sat Aug 25 2007
+ - Forward on all "display_room" parms in route_display_rooms to allow extending to other device functions.
+
+Gregg Liming :: Fri Aug 24 2007
+ - Initial submission of the win32 wrapper to ical2vsdb.
+
+Gregg Liming :: Fri Aug 24 2007
+ - Protect against undefined Tk grid object.
+
+Gregg Liming :: Fri Aug 24 2007
+ - Libs needed for iCal support (see newest bin/ical2vsdb and code/common/organizer.pl)
+
+Matthew Williams :: Thu Aug 23 2007
+ - Mike Pieper's patch to add EIB15 support to EIB_Items and to add more detailed state support for EIB7 to http_server.pl.
+I also added descriptions for the recently added EIB3/4 stuff to the top of EIB_Items.pm
+
+Gregg Liming :: Thu Aug 23 2007
+ - Added use reference to Weather_Common.  Thanks to "declang" for the bug catch.
+
+Matthew Williams :: Wed Aug 22 2007
+ - Reverted r1158's patch to Voice_Text that I accidently included in the EIB patch.
+
+Matthew Williams :: Wed Aug 22 2007
+ - Added Ralf KlÃ¼be's enhancements that add EIB3 and EIB4 functionality.
+
+Matthew Williams :: Sun Aug 19 2007
+ - Added RK's patch to allow EIS5 values to be sent from MH to the bus.
+
+Gregg Liming :: Tue Aug 14 2007
+ - Force print statements at startup to be controlled by debug=zone_minder.
+
+Gregg Liming :: Tue Aug 14 2007
+ - Add "writable" method so that class works well with Base_Item.pm and other inherited classes.
+
+David Norwood :: Mon Aug 13 2007
+ - I fixed a bug that Matthew Williams found that caused X10_Appliance 
+items to always display as Off on the buttons web interface.  I 
+introduced the bug six months ago when I modified the interpretation of 
+the $level instance variable for dimmers, but forgot to also test 
+appliance items.  I also modified X10_Appliance so its on off status is 
+restored after a reload.   
+
+Gregg Liming :: Wed Aug 8 2007
+ - Wrapped event eval with pair of package statements so that evaluation occurred in main namespace and not AnalogSensor_Item.
+
+Gregg Liming :: Wed Aug 8 2007
+ - Add call to check_tied_event_conditions in measurement method to ensure that event conditions are evaluated.  Other minor errata improvements.  Changes prompted by Andy McCallum.
+
+Gregg Liming :: Tue Aug 7 2007
+ - Added ability to optionally flip first and last names (when no comma delim) based on ini param, cid_reverse_names set.  This is needed to compensate for certain US phone systems that can't/won't do things correctly.
+
+Gregg Liming :: Tue Aug 7 2007
+ - Allow non-US formatted phone numbers (such as VoIP extensions, etc.) to be parsed from callerid logs.
+
+Gregg Liming :: Sun Aug 5 2007
+ - Reverted to version prior to DOS attack fix due to problems encountered with POST.
+
+Howard Plato :: Sun Aug 5 2007
+ - added a file check to ensure that image files are not overwritten
+by 'file not found' message
+
+Howard Plato :: Sun Aug 5 2007
+ - Fixed minor spelling mistake on title window
+
+Howard Plato :: Sun Aug 5 2007
+ - Added config_parms to make 2.103 code act like 2.102 (async speech, no
+voice response to voice_cmd's)
+
+Howard Plato :: Sun Aug 5 2007
+ - Updated phone log system. caller id information is now updated while system
+is running, rather than reading in files at startup. Also includes wav and
+group functionality. Also includes updated set_func.pl by David S. that
+properly escapes single quotes
+
+Howard Plato :: Sat Aug 4 2007
+ - minor change to fix find_members that will work with SysDiag_xAP items
+
+Gregg Liming :: Sat Aug 4 2007
+ - Update reference to reliance of oxc to now include owfs.
+
+Howard Plato :: Sat Jul 28 2007
+ - Minor fix to allow fontsize if no $fontname. status_line now works for Audrey (font=1)
+
+Gregg Liming :: Sat Jul 28 2007
+ - Prevent remote DOS exploitation by sending false http header size value; instead, read socket data as it exists and failover accordingly.
+
+Gregg Liming :: Fri Jul 27 2007
+ - Setup setby as "web [ipaddress]" for voice command so that the respond will properly target the browser *if* the voice command menus are used in the context of web (vice nonweb).
+
+Gregg Liming :: Fri Jul 27 2007
+ - Rename pa_control_stub to xap_pa_control_stub so that this common code can coexist w/ pa_control.pl
+
+Gregg Liming :: Thu Jul 26 2007
+ - Alternatively, echo messages received by the hub from mh back to mh if debug=xap or debug=xpl
+
+Gregg Liming :: Thu Jul 26 2007
+ - Allow hub to echo mh generated xAP or xPL messages back to mh listener port if xap_hub_echo=1 or xpl_hub_echo=1
+
+Matthew Williams :: Wed Jul 25 2007
+ - Reverted part of David Norwood's r1101 patch to http_server.pl that inadvertantly introduced a security hole.  All users that are using r1101 or above are stronly advised to upgrade to this rev.  
+Many thanks Chris Barrett for discovering the problem.
+
+David Norwood :: Sat Jul 21 2007
+ - Committed a bunch of changes on behalf of Chris Barrett
+
+Gregg Liming :: Fri Jul 20 2007
+ - Allow use of simple "instance" names (e.g., "house) or fully qualified xAP source address to initialize attached xAP_Item as listener.
+
+Gregg Liming :: Fri Jul 20 2007
+ - Allow use of simple "instance" name (e.g., house) as xAP source address or fully qualified xAP source address when initializing attached BSC_Items (as listeners).
+
+Gregg Liming :: Fri Jul 13 2007
+ - Align xPL send methods to recent changes to xAP_Items.pm
+
+Gregg Liming :: Fri Jul 13 2007
+ - Added on_set_message to permit ease of automating xpl-cmnd messages sent when setting an xPL_Item. [based on requests by Andy McCallum].  Additional, misc. bug fixes.
+
+Bruce Winter :: Tue Jul 10 2007
+ - - generalize security check for ../ in url pats.
+
+Gregg Liming :: Tue Jul 3 2007
+ - Prevent "state_value" tracking from reverting to message summary if the tracked state_value key is missing from the message. Change resulting from testing/suggestion from Andy McCallum.
+
+Gregg Liming :: Thu Jun 21 2007
+ - Initial implementation provided by Howard Plato.  Provides support to collect systems informtation reported by psixc (also implemented by hplato).  psixc is available at http://limings.net/xap/psixc
+
+Gregg Liming :: Thu Jun 21 2007
+ - Added support for ANALOG_SENSOR_R items and update to include new separate AnalogSensor_Item lib
+
+Gregg Liming :: Thu Jun 21 2007
+ - Refactored AnalogSensor_Item out for use as a separate lib
+
+Gregg Liming :: Thu Jun 21 2007
+ - AnalogSensor_Item was refactored from OneWire_xAP to be more common and usable for other purposes.
+
+Gregg Liming :: Thu Jun 7 2007
+ - Don't send volume property in tts.speak if it is blank.
+
+David Norwood :: Mon Jun 4 2007
+ - updated documentation so it displays better on the common code 
+activation web interface 
+
+David Norwood :: Mon Jun 4 2007
+ - changed trigger code 
+
+David Norwood :: Mon Jun 4 2007
+ - fixed minor bug
+
+David Norwood :: Mon Jun 4 2007
+ - fixed minor bug
+
+Gregg Liming :: Mon Jun 4 2007
+ - Fix flaw with composing UID in query method
+
+Gregg Liming :: Mon Jun 4 2007
+ - Add support for xAP cid.incoming schema
+
+Gregg Liming :: Mon Jun 4 2007
+ - Add support for the param: callerid_raw_numbers such that the "raw" CID number string is spoken rather than "speakable" text.  This is useful when forwarding on to xAP speak.
+
+Gregg Liming :: Mon Jun 4 2007
+ - Add ability to support other xAP sources than oxc--specifically, allowing flexibility with source addressing
+
+Matthew Williams :: Fri May 11 2007
+ - Missing semicolon inserted.
+
+Matthew Williams :: Fri May 11 2007
+ - Previous attempt to fix the weather graph color problem caused a failure for default installations as the default apparent temperature was set to '' and there was no check for empty colors.
+
+Matthew Williams :: Tue May 8 2007
+ - Fixed problem where graph color customizations were ignored.  Bug and fix provided by Rick Steeves.
+
+Gregg Liming :: Wed Apr 25 2007
+ - Revised sending xAP weather messages to be more compliant (to include appropriate units switching) to the current schema
+
+Jason Sharpee :: Sun Apr 15 2007
+ - Add support for anti-water hammer zone overlap. ->zone_hammer(5); #5 second zone overlap
+
+Matthew Williams :: Sun Apr 8 2007
+ - Fixed rate rate calculation.  Bug and fix found by Greg Satz.
+
+David Norwood :: Fri Apr 6 2007
+ - added trigger
+
+Gregg Liming :: Thu Apr 5 2007
+ - Allow BSC_Items to represent "gateways" not just "endpoints".
+
+Gregg Liming :: Mon Apr 2 2007
+ - Extended manual method to allow optional on-state timer and off-state timer so that manual mode will revert to automatic mode after "x" seconds.  Added restrict_off property to control whether a Light_Restriction item will prevent a Light item from turning off.
+
+Jason Sharpee :: Sun Apr 1 2007
+ - - Generic Irrigation cycle logic
+
+Jason Sharpee :: Sun Apr 1 2007
+ - - Generic Irrigation cycle logic
+
+Jason Sharpee :: Tue Mar 27 2007
+ - - Add support for the WGL Designs Rain8 UPB sprinkler controller: http://www.wgldesigns.com/rain8upb.html
+
+Jason Sharpee :: Tue Mar 27 2007
+ - Add WGL Designs Rain8 UPB sprinkler controller support. http://www.wgldesigns.com/rain8upb.html
+
+David Norwood :: Mon Mar 26 2007
+ - added some sanity checks to the items web interface 
+
+David Norwood :: Mon Mar 26 2007
+ - modified the mh4 interface to work with internet explorer 7, including 
+changes to http_server.pl which fix "target" frame syntax for item 
+lists.  Also fixed some problems related to X10 brightness levels 
+displayed on the web interface 
+
+David Norwood :: Mon Mar 26 2007
+ - added a new resume instance variable to X10_Item to hold the level the 
+light will come back on at.  This was being stored in the level variable 
+but that meant we couldn't tell if the light was off in certain cases 
+
+Matthew Williams :: Sun Mar 25 2007
+ - Added CM11 macro clearing code copied from heyu along with the appropriate copyright notice.  This code is currently not proven.
+
+Matthew Williams :: Sun Mar 25 2007
+ - Added "--alt-y-grid" to parameters for generating pressure graphs to have saner y-axis grid spacing.
+
+Gregg Liming :: Tue Mar 20 2007
+ - Prevent errors thrown if no ZM_ZoneItems are attached to the monitor (credit to Bruce W. for identifying the fix)
+
+Gregg Liming :: Tue Mar 6 2007
+ - Minor annoyance fix: reduce debug verbosity for state_now section processing
+
+Matthew Williams :: Thu Mar 1 2007
+ - Applied Chris Barrett's patch to allow complete configuration of activity detection timers.  The configuration parameter MS13_Battery_timer now correctly controls activity timeouts.
+
+Matthew Williams :: Thu Mar 1 2007
+ - Disabled saving process states in Windows as we don't have a method for successfuly regaining visibility of Windows child processes.
+
+Jason Sharpee :: Mon Feb 26 2007
+ - CruiseControl Status Monitor Plugin for Misterhouse.
+http://ccnet.thoughtworks.com/
+
+Matthew Williams :: Sat Feb 24 2007
+ - Made "die" message more verbose when the rrd_dir can't be opened.
+
+Matthew Williams :: Sat Feb 17 2007
+ - Updated "creators" regex as "Archie" comic web page source changed.  The new regex is more forgiving.
+
+Matthew Williams :: Fri Feb 16 2007
+ - Patch to internet_im.pl to allow sessionless Jabber authorization.  This code allows {password_allow} regexes to match on the Jabber id stripped of its session. 
+Patched supplied by Brian Rudy.
+
+Gregg Liming :: Mon Feb 12 2007
+ - Add support for messenger.cmd/event xAP schema--the default for xAP Four and axc.
+
+Gregg Liming :: Mon Feb 12 2007
+ - Allow xAPSend to support a single value rather than a hash--as is needed to support sending xAPBSC.query messages.
+
+Matthew Williams :: Wed Feb 7 2007
+ - Fixed typos that referred to legacy {foobar_ws} weather elements instead of the new {foobar} weather elements.  Bug found by Mike Bahr.
+
+Gregg Liming :: Thu Jan 25 2007
+ - Added "allow_local_set_state(flag)" method to allow a change over the default behavior (which allows any programatic set to cause a state change) and instead (if flag set to 0) requires state change only on receipt of the device's BSC event or info message. Change resulting from need established by Martin Hagelin.
+
+Matthew Williams :: Sun Jan 21 2007
+ - Fixed some wonky html.  Problems found by Chris Barrett.
+
+Matthew Williams :: Sun Jan 21 2007
+ - Modified purging of old data to keep data from today through 7 days from now.  Change suggested by Jim Duda.
+
+Jim Duda :: Tue Jan 16 2007
+ - I qualified the print_log statement with $::Debug{network} in order to 
+remove some chatter from the log files.
+
+Jim Duda :: Tue Jan 16 2007
+ - I turned all the print statements into print statements with a $main::Debug{group}
+qualifier in order to remove some chatter from the log files.
+
+Matthew Williams :: Fri Jan 12 2007
+ - Updated rules for speed bump and archie.
+
+Gregg Liming :: Thu Jan 11 2007
+ - Remove check on setby == $self in BSC's set method.  Bug identified by Martin Hagelin
+
+Matthew Williams :: Thu Jan 11 2007
+ - Added new creators class to handle changes to the following comics:
+- B.C.
+- Andy Capp
+- Wizard of Id
+
+Bruce Winter :: Thu Jan 11 2007
+ - Mark Monnin updated lib/TI103 to Handle the limited transmit buffer and CRC messages and changed the support of PRESET_DIM1 and PRESET_DIM.
+
+David Norwood :: Wed Jan 10 2007
+ - added sanity checks for data input by user, spaces in item name 
+converted to underscores 
+
+David Norwood :: Sun Jan 7 2007
+ - Minor doc change
+
+David Norwood :: Sun Jan 7 2007
+ - Added "set ramp rate" and "set on level" states for SwitchLincs
+
+David Norwood :: Sun Jan 7 2007
+ - Fixed to work with item files that have spaces in name, will now create 
+item file if none exists.
+
+Matthew Williams :: Sun Jan 7 2007
+ - Moved all '<base target="...">' into <head> sections, creating new <head> sections where needed.  This is to fix frame issues with IE7.
+
+Matthew Williams :: Sun Jan 7 2007
+ - Moved mh/web/organzier/vsEmail.pm to mh/lib and removed mh/web/organizer/vsLock.pm as a duplicate version already exists in mh/lib.
+
+Matthew Williams :: Sun Jan 7 2007
+ - Removed v1.3.0 of vsDB.pm from mh/lib and moved v1.3.9 from mh/web/organizer to mh/lib.
+
+Matthew Williams :: Sat Jan 6 2007
+ - Changed foxtrot to use gocomic's DRM scheme.
+
+Matthew Williams :: Sat Jan 6 2007
+ - Added ability to specify font face in status lines.
+
+Matthew Williams :: Sat Jan 6 2007
+ - Modified "clearing" logic.  Instead of erasing old data from a single day only, it clears all old data, except the data from the past few days.
+
+Matthew Williams :: Sat Jan 6 2007
+ - Added logic to limit humidity to 100% when calculated from dew point and temperature.  If there are measurement errors or the sources for outdoor temp and dew point are different, then this is a possibility.
+
+Matthew Williams :: Sat Jan 6 2007
+ - Added a mh specified block that searches all @INC paths for libnet.cfg, allowing existing site specific network configs to be used
+
+Matthew Williams :: Sat Jan 6 2007
+ - Changed voice command "set the house mp3 player ..." to "set house mp3 player ..." to make it consistent with mp3.pl's "set house mp3 player to  playlist...".
+Change suggested by Rick Steeve's
+
+Matthew Williams :: Sat Jan 6 2007
+ - Corrected recognition of internet_internet_usgl.pl - Rick Steeven to internet_usgs.pl - Rick Steeve.
+
+Matthew Williams :: Sat Jan 6 2007
+ - Added support for Jabber services that require component_name to be set.  One example is Google Talk.  Code submitted by Brian Rudy.
+
+Matthew Williams :: Sat Jan 6 2007
+ - Fixed unintentional comment split typo.
+
+Matthew Williams :: Sat Jan 6 2007
+ - Added support for water sensor from ibuttonlink.  Code from Rick Steeves.
+
+Matthew Williams :: Mon Jan 1 2007
+ - Modified regexes for temperature, dew point and pressure as they were occasionally being triggered on the wrong data fields.  For example, the temperature/dew point regex was being triggered by "R32/6000FT/N"
+
+tbs007 :: Wed Dec 20 2006
+ - added 3 message types for the RCS UPB Thermostat
+
+Bruce Winter :: Sun Dec 17 2006
+ - John Wohlers added code/common/internet_weather_noaa.pl to collect and parse the XML weather data feeds from NOAA and populates the Weather_Common hash.
+
+Jim Duda :: Wed Dec 13 2006
+ - I updated the code module to attempt a restart of the ibws client every hour.
+
+Jim Duda :: Wed Dec 13 2006
+ - I'm restoring the changes I made to take advantage
+of the restore_string method.  I found the problem
+I introduced to this method.  I now have a proper
+method for handling the @cmd array.
+
+Matthew Williams :: Wed Dec 13 2006
+ - Two patches from Howard Plato.
+1. New parameter mp3_no_tkupdates that disables the tk interface from checking the mp3 playlist every second.
+2. New parameter net_mail_scan_timeout_cycles that allows internet_mail.pl to check VERY slow mail servers without prematurely timing out.
+
+Matthew Williams :: Wed Dec 13 2006
+ - Fixed some minor doc issues found by Rick Steeves.
+
+Matthew Williams :: Wed Dec 13 2006
+ - Forgot to increase the regex index in rev 1052.  This completes the patchs.
+
+Matthew Williams :: Wed Dec 13 2006
+ - Patch submitted by Gregg Liming.  Changed one of the regex patterns to allow PoPs to be reported as "near x percent".  
+
+Gregg Liming :: Wed Dec 13 2006
+ - Allow less restricted eval on checking tied conditions to permit references to undeclared refs.  In addition, include eval error in reported (printed) error.
+
+Gregg Liming :: Mon Dec 11 2006
+ - Modify handling of info_callback to ignore state=toggle (Submitted by Martin Hagelin)
+
+Jim Duda :: Mon Dec 11 2006
+ - I'm backing out the recent changes that I made to Process_Item.pl to use
+the restore_string method.  There is something wrong, causing duplicates
+in the process $cmd string.  I need to do better regression testing before
+pushing these changes.
+
+Matthew Williams :: Sun Dec 10 2006
+ - Made windows library paths absolute instead of relative.
+Commented out waitpid when sound_fork is used.  This is to prevent unnecessary pauses on Linux boxes.
+
+Gregg Liming :: Sat Dec 9 2006
+ - Adjusted parsing to accomodate extra LNs.  Altered URLs to match current preference.  Submission thanks to Winston Gadsby.
+
+Matthew Williams :: Thu Dec 7 2006
+ - Fixed small bug where a file handle wasn't being closed.
+
+Matthew Williams :: Thu Dec 7 2006
+ - Fixed bug found by Dan Stern with patch suggested by Jim Serack.  Added uppercase conversion to &X10_Interface::processData as there are cases (such as with x10_rf_relay) where incoming data may be in lower case and mh's X10 code relies on the data being uppercase..
+
+Gregg Liming :: Wed Dec 6 2006
+ - Force processing of respond targets if the object's target property or the target parm is declared.  Pass the app param as well.
+
+Matthew Williams :: Fri Nov 24 2006
+ - Modifed sensor validation regex to allow whitespace before and after sensor value.  This ability was requested by Jim Duda to support his weather_iB_OWW_client.pl changes.
+
+Jim Duda :: Fri Nov 24 2006
+ - I modified this code segment to use the latest %Weather hash values.
+This module now calls Weather_Common::weather_updated to annouce the updates.
+This module uses the weather_uom variables to do unit conversions.
+I removed the updates to windchill as those updates are done in Weather_Common
+now.
+
+Matthew Williams :: Wed Nov 22 2006
+ - Changed default file format for MS TTS generated files from 8 bit 8 kHz to 16 bit 16 kHz as the former wasn't being correctly written to the file.  Also added additional conditional debug statements.
+
+Jim Duda :: Mon Nov 20 2006
+ - I added the restore_active method to the restore_string method.  This is 
+necessary to add the process to the active_processes array upon restart.
+Failure to do so prevents a process to be harvested when it completes
+after a resart is executed.
+
+Gregg Liming :: Fri Nov 17 2006
+ - Added support for "peer-based" speech proxies so that individual mh instances can proxy speech for each other.
+In addition, added per-function parms to enable/disable operation.  Defaults to everything enabled.
+
+Gregg Liming :: Mon Nov 13 2006
+ - Fix faulty calculation of measurement change on submission of measurement
+
+Matthew Williams :: Thu Nov 9 2006
+ - Howard Plato's modified "newclock" that fits Audrey better and pulls the temperature directly from $Weather{TempOutdoor}.
+
+Matthew Williams :: Wed Nov 8 2006
+ - Howard Plato's improvements to the built-in calendar that allow days to be marked as holidays and/or vacations.
+organizer_vmode.pl will use this data to automatically set $mode_occupied to 'vacation' if today is a vacation day.
+
+Gregg Liming :: Mon Nov 6 2006
+ - Force measurement_change evaluation to absolute value
+
+Gregg Liming :: Mon Nov 6 2006
+ - Added measurement_change method to report latest change in measurement
+
+Matthew Williams :: Thu Nov 2 2006
+ - Upgraded all libwww related libraries.  We moved from v5.68 to v5.805.  This upgrade is intended to resolve incompatibilities between previously upgraded libraries.
+
+Jason Sharpee :: Tue Oct 31 2006
+ - Fix Default fade rate
+
+Matthew Williams :: Mon Oct 30 2006
+ - Committed Ben Griffith's updates to rrd_graph_web.  rrd_graph_web.pl was leaking memory due to a bug in the RRD library.  Ben has split off the graph generation stuff into a separate system call.  As well, the CSS file has been renamed as it was previously misspelled.
+
+Gregg Liming :: Mon Oct 30 2006
+ - Fix direct dim quoting in combo boxes
+
+Matthew Williams :: Sun Oct 29 2006
+ - Fixed logic in &state.  If $@ was set upon entry to &state, then a Weather_Item eval error would be printed if an undefined Weather item was being evaluated and $valid was set to 1.  
+In other words, a Weather_Item eval error would be printed even if it was a previous eval error that caused $@ to be populated.
+In the reworked logic, the print statement is only reached if an eval statement is actually executed and an error is generated by that eval statement.
+
+Matthew Williams :: Sun Oct 29 2006
+ - Modifed ia5 earthquake interface to use earthquakes.txt instead of earthquakes.finger.  Also added a default earthquakes.txt into standard data directory.
+
+Matthew Williams :: Sun Oct 29 2006
+ - Highly modified standard MD5.pm to always use the pure PERL interface, not the object file based interface.  This is to prevent incompatibilities with locally installed versions of object files.
+
+Matthew Williams :: Sun Oct 29 2006
+ - Added set_clock method to allow easier setting of the DSC system clock.
+
+Matthew Williams :: Sun Oct 29 2006
+ - Added sending of initial poll as sometimes the first command sent generates an API Command Syntax Error.  The poll is a NOP, so we use it to work around this problem before sending "real" commands.
+
+Matthew Williams :: Sat Oct 28 2006
+ - Updated LWP library.
+
+Matthew Williams :: Sat Oct 28 2006
+ - Changing case of mediatypes.pm to MediaTypes.pm to prepare for library upgrade.
+
+Matthew Williams :: Sat Oct 28 2006
+ - Added new config parms to more precisely control which weather elements are populated by each internet weather module.
+Fixed problem with wind gust handling in weather_aws.  Thanks to David Satterfield for reporting this bug.
+
+Matthew Williams :: Sat Oct 28 2006
+ - Added units to reported wind speeds.
+
+Matthew Williams :: Sat Oct 28 2006
+ - Fixed bug where negative numbers in sensors weren't supported.  Credit to Howard Plato for identifying the bug.
+
+Matthew Williams :: Sat Oct 28 2006
+ - Added ti103 and ncpuxa to @Serial_Item::supported_interfaces and @X10_Interface::X10_Interface_Names.
+Fixed small typo in comments within Device_Item.pm.
+
+Matthew Williams :: Thu Oct 26 2006
+ - Added configurable levels of warnings within Dummy_Interface to allow users to suppress warnings when Dummy_Interfaces are not a bad thing (rare, but possible).  One example of this situation is when there is no X10 transmitter present, only a receiver.  Each X10_Item will then have a Dummy_Interface as its {interface} as we can not transmit these codes.
+
+Matthew Williams :: Thu Oct 26 2006
+ - Modified definition of process item to use double quotes around URL, instead of single quotes, so that Windows doesn't choke on it.
+
+Gregg Liming :: Thu Oct 26 2006
+ - Enable an ability to prevent state updates to BSC items if the state value hasn't changed.  The default is to set state anytime a BSC info is received.  The method "always_set_state" can be used to disable this function.  Fix implemented based on suggestions from Martin Hagelin.
+
+Gregg Liming :: Tue Oct 24 2006
+ - Allow optional use of "tk" in device parm.  Also support tk, alpha, etc. devices in route_display_rooms as.  These and previous display related mods suggested as mod/bug fixes per David Satterfield.
+
+Gregg Liming :: Tue Oct 24 2006
+ - Removed extaneous return from main::display
+
+Matthew Williams :: Tue Oct 24 2006
+ - Modified @INC to make mh lib directories relative to $Pgm_Root (instead of the current directory) and changed call in comic_dailystrips.pl to include full path to mh.  This fixes the problem of dailystrips not being able to find its required libraries.  In particular, on my system, if I didn't have a non-mh copy of URI::_foreign.pm, then dailystrips would not work.
+More detail: one of the first things that dailystrips does is to change the CWD to 'basedir' which makes the current directory relative INC library paths no longer work.
+
+Gregg Liming :: Tue Oct 24 2006
+ - Correct main::display so that multiple devices will have their display functions called.
+
+Matthew Williams :: Tue Oct 24 2006
+ - Added recognition of mode=mute and mode=offline parameters to prevent Audrey from speaking.
+
+Matthew Williams :: Tue Oct 24 2006
+ - Added additional delays between each initialization command to prevent buffer overruns.
+
+Matthew Williams :: Tue Oct 24 2006
+ - Escaped URL in process definition as & was incorrectly being interpreted by the shell.  Bug report and fix from David Satterfield.
+
+Matthew Williams :: Mon Oct 23 2006
+ - Removed debug statement from handy_net_utilities.pl regarding loading the Jabber library.
+Added Digest::base - required by other Digest libraries.
+
+Gregg Liming :: Mon Oct 23 2006
+ - Ensure incoming data is defined (i.e., valid) before accepting for subsequent processing
+
+Matthew Williams :: Sat Oct 21 2006
+ - Changed some responds to speaks and fixed problem where rain would be reported when rain fall was 0.00 units (Perl treats '0.00' as a true value).
+
+Matthew Williams :: Sat Oct 21 2006
+ - Added TLS support to jabber.
+Updated Authen::SASL libraries and added Auth::SASL::Perl pod.
+
+Matthew Williams :: Sat Oct 21 2006
+ - Fixed typo in windchill calculation.
+
+Jason Sharpee :: Sat Oct 21 2006
+ - Remove debug prints
+
+Jason Sharpee :: Sat Oct 21 2006
+ - Handle retransmissions and drop duplicates.  Remove debuging print statements
+
+Gregg Liming :: Thu Oct 19 2006
+ - Fix ability for a BSC_Item to be set.  Set values are "folded" into one of state, level and/or text based on the state value passed to set.  Uid is automatically detected and persisted.
+
+Gregg Liming :: Thu Oct 19 2006
+ - Added uid method to xAP_Item and automatically extract xAP uid during data parse
+
+Jim Duda :: Wed Oct 18 2006
+ - I filled in the restore_item member function to allow the process id (pid)
+to be retained through a restart or code reload.  Before this change,
+any processes started before the reload would be orphaned to mh and
+could not be stopped.
+
+Jim Duda :: Wed Oct 18 2006
+ - I corrected a race condition which occured across a restart or a
+reload due to a timer update condition.  The timer was getting
+reset to the initial period value instead of the remaining value
+attached to the timer.
+
+Matthew Williams :: Tue Oct 17 2006
+ - Patched handy_net_utilities.pl to correctly access the Net::Jabber library.
+Upgraded Digest libraries to latest versions so that the Net::Jabber library works.
+
+Bruce Winter :: Tue Oct 17 2006
+ - Timo Sariwating sent in Nico's K8000.zip code for supporting the Vellman K8000 board
+
+Jason Sharpee :: Tue Oct 17 2006
+ - Push the speed of the interface up a little to the brink of failure ;)
+
+Jason Sharpee :: Sun Oct 15 2006
+ - Make the acknowledge mode configurable in derived classes.
+
+Jason Sharpee :: Sun Oct 15 2006
+ - Prevent loops on unavailable devices.  Slow up command stack processing to give the bus some time to respond to incoming messages.  Upon device add, query the devices initial status.
+
+Matthew Williams :: Sun Oct 15 2006
+ - Changed X10_Sensor constructor to not pass its $id to the X10_Item constructor to prevent the standard X10 states being added to the X10_Sensor object.  This was causing duplicate events.
+Thanks to Chris Barrett for reporting the bug and helping to diagnose the problem.
+
+Jason Sharpee :: Sat Oct 14 2006
+ - Optimize the state retrieving code
+
+Jason Sharpee :: Sat Oct 14 2006
+ - Turn on acknowledge confirmation.
+
+Jason Sharpee :: Sat Oct 14 2006
+ - Implement command queue system.  Implement Acknowledge messages.  Turn on acknowledge at protocol level.  Various fixes and code cleanups.
+
+Jason Sharpee :: Sat Oct 14 2006
+ - Set the default acknowledgement protocols off.  Make the 2way device support work for all other commands, not just lights.
+
+Jason Sharpee :: Sat Oct 14 2006
+ - Support UPB PIM 'busy signal' and resend command until it is processed.  Bug reported by Adam D. (thank you)
+
+Jason Sharpee :: Sat Oct 14 2006
+ - Created a generic 'Scene' object for MH such that any device can participate in a 'software' scene even if the hardware doesnt.
+
+Jason Sharpee :: Sat Oct 14 2006
+ - Created a generic 'Scene' object for MH such that any device can participate in a 'software' scene even if the hardware doesnt.
+
+Gregg Liming :: Thu Oct 12 2006
+ - Prefer raw_text to text in respond_telnet
+
+Gregg Liming :: Thu Oct 12 2006
+ - Make telnet server use tracked respond and allow telnet to be supported by speach echo tag
+
+Gregg Liming :: Thu Oct 12 2006
+ - Make $search_command_string use object's respond--not global respond
+
+Jason Sharpee :: Thu Oct 12 2006
+ - Add support for UPB_Link (UPBL) device definition:  UPBL, upb_family_movie, myPIM, 49,1
+
+Jason Sharpee :: Thu Oct 12 2006
+ - Add UPB_Link class.
+
+Jason Sharpee :: Thu Oct 12 2006
+ - Add support for UPB_Link sub class.  Add Support for 'status' generic command.  Fix: Argument parsing on device state report.
+
+Jason Sharpee :: Thu Oct 12 2006
+ - Fix: UPB Link recognition
+
+Matthew Williams :: Tue Oct 10 2006
+ - Added RainTotal and RainRate as valid internet sourced weather elements.
+
+Gregg Liming :: Tue Oct 10 2006
+ - Extend AnalogSensor_Item->map_to_weather to include an optional graph_title argument that will be used by RRDs when creating graphs.
+
+Matthew Williams :: Sun Oct 8 2006
+ - Added &:: in front of calls to convert_c2f.  Thanks to Chris Barrett for finding the first bug in 2.103!
+
+Gregg Liming :: Sun Oct 8 2006
+ - Modified to illustrate use of AnalogSensor_Item tokens
+
 
 
 =head2 Version 2.103 posted on 10/07/2006

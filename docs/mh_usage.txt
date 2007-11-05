@@ -1529,3 +1529,77 @@ Tue 09/26/06 22:30:19 city=chesterton state=in name=
 Wed 09/27/06 12:59:22 city=Sugar Land state=TX name=Chris
 Tue 10/03/06 14:38:31 city=tiel state=netherlands name=
 Wed 10/04/06 11:28:39 city=Sierra Madre state=CA name=Mark
+Sat 10/07/06 23:03:56 city=Saint Peters state=mo name=
+Mon 10/09/06 09:10:13 city=Frederick state=MD name=
+Tue 10/10/06 19:55:56 city=Hutto state=TX name=Kevin Langston
+Thu 10/12/06 15:28:23 city=cleveland state=Ohio name=
+Fri 10/13/06 17:20:50 city=Dallas state=TX name=Adam
+Thu 10/19/06 15:37:17 city=olympia state=wa name=don
+Wed 11/01/06 09:40:15 city=stavanger state=norway name=ti
+Wed 11/01/06 19:45:35 city=new york state=ny name=
+Thu 11/02/06 20:27:53 city=Ironton state=OH name=
+Sat 11/04/06 14:07:12 city=Bishops Waltham state=England name=Tony Heeley
+Sat 11/18/06 09:35:49 city=montreal state=qc name=
+Wed 11/22/06 06:19:50 city=Chattanooga state=TN name=Don
+Tue 11/28/06 06:58:05 city=paris state=france name=
+Sun 12/03/06 16:27:44 city=Oppdal state=No name=
+Wed 12/06/06 09:09:03 city=Sandusky state=Ohio name=Tim
+Thu 12/07/06 09:03:23 city=Nerac state=FR name=Ch Pointier
+Fri 12/08/06 21:56:10 city=otsego state=mn name=
+Thu 12/14/06 00:55:27 city=omaha state=NE name=
+Tue 12/19/06 06:53:00 city=Lincoln state=NE name=Jaymz R
+Wed 12/20/06 03:32:51 city=Vorwerk state=germany name=Joerg
+Wed 12/20/06 11:17:31 city=goochland state=va name=
+Fri 12/22/06 23:19:55 city=Lubbock state=TX name=
+Tue 12/26/06 12:54:33 city=Germantown state=WI name=Mike Bahr
+Sat 01/06/07 16:57:25 city=LESIGNY state=FRANCE name=JMC
+Sun 01/14/07 22:53:55 city=Boston state=MA name=Dan VK
+Sun 01/14/07 22:55:39 city=Boston state=MA name=Dan VK
+Sat 01/20/07 20:26:55 city=Winnipeg state=Canada name=Dan
+Sun 01/21/07 23:57:32 city=Washington state=DC name=
+Sun 01/21/07 23:57:38 city=Washington state=DC name=
+Tue 01/23/07 14:00:24 city=rochester state=ny name=
+Sat 01/27/07 14:30:51 city=MONTESSON state=FRANCE name=
+Thu 02/01/07 08:26:51 city=shah alam state=Malaysia name=rahman
+Sun 02/04/07 01:54:30 city=Altadena state=CA name=
+Mon 02/05/07 00:09:06 city=PERTH state=Australia name=Tim
+Thu 02/08/07 17:03:42 city=Orlans state=France name=cedriclocqueneux
+Wed 02/14/07 00:27:06 city=Springville state=UT name=
+Sat 02/17/07 03:34:47 city=St Jorioz state=France name=
+Sat 02/24/07 16:58:28 city=Milano state=Italy name=
+Sat 03/10/07 16:34:57 city=So Paulo state=Brazil name=J.C.
+Sun 03/18/07 20:41:03 city=charlotte state=nc name=
+Mon 03/19/07 03:08:52 city=cosenza state=IT name=gianfranco iannace
+Sat 03/24/07 16:56:14 city=Bakersfield state=CA name=Robert Mann
+Tue 03/27/07 10:32:54 city=colgate state=wi name=
+Wed 05/16/07 07:48:06 city=Westonzoyland state=Somerset name=Andrew Baker
+Fri 05/25/07 23:41:44 city=Lilburn state=GA name=J
+Sun 05/27/07 22:29:21 city=Edmond state=Oklahoma name=
+Fri 06/01/07 08:00:14 city=trappe state=PA name=
+Fri 06/08/07 11:12:55 city=Shasta Lake state=CA name=Chris
+Sat 06/09/07 12:27:06 city=Coral Springs state=FL name=Stride
+Mon 06/25/07 04:11:57 city=Duesseldorf state=Germany name=ralf klueber
+Sun 07/08/07 13:38:02 city=New Haven state=CT name=Alex
+Fri 07/13/07 11:19:26 city=Roebuck state=SC name=
+Thu 07/19/07 17:25:52 city=Bloomington state=MN name=Pierre Merlin
+Tue 08/07/07 11:15:48 city=Niederaula state=germany name=
+Wed 08/08/07 08:36:54 city=Concord state=NC name=MIke Gorman
+Fri 08/10/07 22:33:00 city=Nampa state=Idaho name=The Dude
+Sun 08/12/07 14:44:10 city=OKLAHOMA CITY state=OK name=Bob Alfson
+Sun 08/12/07 14:58:45 city=Waalre state=Netherlands name=Rudi
+Wed 08/22/07 01:48:19 city=Rennes state=France name=Bertrand L.
+Thu 08/23/07 22:23:29 city=Coppell state=Tx name=M.Jokela
+Sun 08/26/07 09:03:27 city=copenhagen state=denmark name=
+Thu 08/30/07 17:44:58 city=Gothenburg state=Sweden name=www.sysop.se
+Sun 09/02/07 15:09:45 city=Tifton state=GA name=Tim
+Sun 09/16/07 21:31:56 city=richmond state=VA name=Tna
+Wed 09/19/07 06:40:31 city=Suceava state=RO name=Bogdan Brezuica
+Wed 09/19/07 15:03:46 city=Mead state=CO name=Shaun Bruce
+Wed 09/19/07 16:22:32 city=Amarillo state=Tx name=Corey Elliott
+Thu 10/04/07 21:05:21 city=ruther glen state=va name=
+Fri 10/05/07 13:26:32 city=new york state=NY name=
+Sat 10/06/07 21:47:49 city=boise state=id name=
+Fri 10/12/07 19:46:01 city=Roanoke state=IN name=
+Sun 10/21/07 19:12:30 city=Northport state=MY name=Doug Munch
+Fri 10/26/07 10:48:15 city=Oxford state=NC name=Raymond McGill
+Sat 10/27/07 11:22:20 city=northport state=ny name=Doug Munch
