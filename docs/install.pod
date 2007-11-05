@@ -57,12 +57,23 @@ This program works ok:  http://misterhouse.net/public/unzip.exe
 
 =head2 Unix users
 
- - Download the the latest rpm, tar, or zip file
+ - Download the the latest tar, or zip file
    from http://misterhouse.net/download
 
+=begin comment
  - If using the rpm file:
      rpm -i misterhouse-#.##-1.noarch.rpm
      docs are installed to /usr/doc/misterhouse-#.##, everything else is in /usr/local/mh
+
+
+ - If are running with a recent Linux which has a recent libc.so
+     (ls -l /lib/libc.so* and look ver a version > 2.2.93, like on RH 8 or higher)
+     and don't want to bother with installing the various optional perl modules,
+     download and unzip the mhe file from misterhouse-#.##.linux.zip into the mh/bin
+     dir and run mhe instead.  Note: one of the above files are still required,
+     as they have the documentation and support files.
+
+=cut
 
  - If using the tar file:
      cd to where you want it the mh directory created in (e.g. cd /projects/misterhouse)
@@ -80,13 +91,6 @@ This program works ok:  http://misterhouse.net/public/unzip.exe
     - exit (to switch back from root)
 
  - ./mhl (if that doesn't work, try: mh or perl mh)
-
- - If are running with a recent Linux which has a recent libc.so
-     (ls -l /lib/libc.so* and look ver a version > 2.2.93, like on RH 8 or higher)
-     and don't want to bother with installing the various optional perl modules,
-     download and unzip the mhe file from misterhouse-#.##.linux.zip into the mh/bin
-     dir and run mhe instead.  Note: one of the above files are still required,
-     as they have the documentation and support files.
 
  - If you are running rh 8 or rh 9, you may see a memory leak which you can avoid with
    by setting this env var: export LANG=C   (set in the mhl script)
@@ -258,7 +262,7 @@ Another new source of greate voices is from Cepstral at http://www.cepstral.com 
 If you are running Debian, Russ Knize created a Debian package, available here: http://www.knizefamily.net/russ/software/misterhouse.html .
 Some have reported problems with this and have better luck with the standard tar file on Debian.
 
-Otherwise, download the rpm, tar, or zip file from http://misterhouse.net/download .
+Otherwise, download the tar, or zip file from http://misterhouse.net/download .
 
 Install the file as detailed in the quick install instructions.
 
@@ -319,11 +323,17 @@ behind some firewalls and/or if your ISP caches ftp sessions. By exporting
 the FTP_PASSIVE variable prior to running the CPAN installer session,
 passive connections will be used instead.
 
+=begin comment 
+
 If are running with a recent Linux which has a recent libc.so
 (ls -l /lib/libc.so* and look ver a version > 2.2.93, like on RH 8 or higher)
 you can also try the compiled version of mhe in misterhouse-#.##.linux.zip.
 This might be useful if you have troubles with the above CPAN installs or if you have a older (or newer) version
 of perl that has some sort of problem (e.g. memory leak).
+
+
+=cut
+
 
 Dependencies for above modules:
 	Tk requires an X-server be installed
