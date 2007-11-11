@@ -13,6 +13,8 @@
   audrey_callerid_ip_1     = 192.168.1.67
   audrey_callerid_ip_2     = 192.168.1.67:4550  (w/ optional port, dflt is 4550)
 
+$Date$
+$Revision$
 
 =cut
 
@@ -61,4 +63,8 @@ if($cid_number){ # did we get anything?
 # speak "Call from $caller"; # gv added & deleted previous and this statement
 speak voice => 'Female', text => $cid_string ;
       #  speak("rooms=all_and_out mode=unmuted $caller");
-        logit("$config_parms{data_dir}/phone/logs/caller
+        logit("$config_parms{data_dir}/phone/logs/callerid.$Year_Month_Now.log",
+              "$cid_number name=$cid_name data=NA line=W");
+        logit_dbm("$config_parms{data_dir}/phone/callerid.dbm", $cid_number, "$Time_Now $Date_Now $Year name=$cid_name");
+    }
+}
