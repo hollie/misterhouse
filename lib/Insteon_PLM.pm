@@ -12,8 +12,8 @@ Description:
 		http://www.smarthome.com/manuals/2412sdevguide.pdf
 
 Author(s):
-	    Jason Sharpee / jason@sharpee.com
-	    Gregg Liming / gregg@limings.net
+    Jason Sharpee
+    jason@sharpee.com
 
 License:
     This free software is licensed under the terms of the GNU public license. GPLv2
@@ -225,20 +225,38 @@ sub poll_all {
 sub check_for_data {
 
    for my $port_name (keys %Insteon_PLM_Data) {
+      my $plm = $Insteon_PLM_Data{$port_name}{'obj'};
       &::check_for_generic_serial_data($port_name) if $::Serial_Ports{$port_name}{object};
       my $data = $::Serial_Ports{$port_name}{data};
-      next if !$data;
-
-	#lets turn this into Hex. I hate perl binary funcs
-    my $data = unpack "H*", $data;
+      # always check for data first; if it exists, then process; otherwise check if pending commands exist
+      if ($data) {
+         #lets turn this into Hex. I hate perl binary funcs
+         my $data = unpack "H*", $data;
 
 #	$::Serial_Ports{$port_name}{data} = undef;
 #      main::print_log("PLM $port_name got:$data: [$::Serial_Ports{$port_name}{data}]");
-      my $processedNibs;
-		$processedNibs = $Insteon_PLM_Data{$port_name}{'obj'}->_parse_data($data);
-		
+         my $processedNibs;
+         $processedNibs = $plm->_parse_data($data);
+
 #		&::print_log("PLM Proc:$processedNibs:" . length($data));
-      $main::Serial_Ports{$port_name}{data}=pack("H*",substr($data,$processedNibs,length($data)-$processedNibs));
+         $main::Serial_Ports{$port_name}{data}=pack("H*",substr($data,$processedNibs,length($data)-$processedNibs));
+
+      # if no data being received, then check if any timeouts have expired
+      } elsif ($plm->_check_timeout('command') == 1) {
+         $plm->_clear_timeout('command');
+         if ($$plm{xmit_in_progress}) {
+            &::print_log("[Insteon_PLM] WARN: No acknowledgement from PLM to last command requires forced abort of current command."
+               . " This may reflect a problem with your environment.");
+            $$plm{xmit_in_progress} = 0;
+            pop(@{$$plm{command_stack2}}); # pop the active command off the queue
+            $plm->send_plm_cmd();
+         } else {
+            &::print_log("[Insteon_PLM] PLM xmit timer expired but no transmission in place.  Moving on...") if $main::Debug{insteon};
+         }
+      } elsif ($plm->_check_timeout('xmit') == 1) {
+         $plm->_clear_timeout('xmit');
+         $plm->send_plm_cmd();
+      }
    }
 }
 
@@ -253,10 +271,8 @@ sub new {
    $$self{port_name} = $port_name;
 	$$self{last_command} = '';
 	$$self{xmit_in_progress} = 0;
-	$$self{xmit_timer} = new Timer();
 	@{$$self{command_stack2}} = ();
 	@{$$self{command_history}} = ();
-	$$self{queue_timer} = new Timer();
 	$$self{_prior_data_fragment} = '';
 	$$self{retry_count} = 0;
    bless $self, $class;
@@ -264,33 +280,18 @@ sub new {
    $self->device_id($p_deviceid) if defined $p_deviceid;
 
 	$$self{xmit_delay} = $::config_parms{Insteon_PLM_xmit_delay};
-	$$self{xmit_delay} = 0.125 unless defined $$self{xmit_delay};
+	$$self{xmit_delay} = 0.25 unless defined $$self{xmit_delay} and $$self{xmit_delay} > 0.25;
 	&::print_log("[Insteon_PLM] setting default xmit delay to: $$self{xmit_delay}");
 	$$self{xmit_x10_delay} = $::config_parms{Insteon_PLM_xmit_x10_delay};
-	$$self{xmit_x10_delay} = 0.5 unless defined $$self{xmit_x10_delay};
+	$$self{xmit_x10_delay} = 0.5 unless defined $$self{xmit_x10_delay} and $$self{xmit_x10_delay} > 0.5;
 	&::print_log("[Insteon_PLM] setting x10 xmit delay to: $$self{xmit_x10_delay}");
-	
+	$self->_clear_timeout('xmit');
+	$self->_clear_timeout('command');
+
 #   $Insteon_PLM_Data{$port_name}{'send_count'} = 0;
 #   push(@{$$self{states}}, 'on', 'off');
-#   $self->_poll();
 
-#we just turned on the device, lets wait a bit
-#	$self->set_dtr(1);
-#   select(undef,undef,undef,0.15);
-	
    return $self;
-}
-
-sub get_firwmare_version
-{
-	my ($self) = @_;
-	return $self->get_register(10) . $self->get_register(11);
-}
-
-sub get_im_configuration
-{
-	my ($self) = @_;
-	return;
 }
 
 sub set
@@ -301,33 +302,19 @@ sub set
 #	&::print_log("PLM xmit:" , $p_setby->{object_name} . ":$p_state:$p_setby");
 	
 	#identify the type of device that sent the request
-	if (ref $p_setby and $p_setby eq $$self{queue_timer}) {
-		$$self{queue_timer}->unset();
-		$self->send_plm_cmd();
-	} elsif (ref $p_setby and $p_setby eq $$self{xmit_timer}) {
-		$$self{xmit_timer}->unset();
-		if ($$self{xmit_in_progress}) {
-			&::print_log("[Insteon_PLM] WARN: Problem with your PLM requires forced abort of current command. Please investigate your environment.");
-			$$self{xmit_in_progress} = 0;
-			$self->send_plm_cmd();
-		} else {
-			&::print_log("[Insteon_PLM] PLM xmit timer expired but no transmission in place.  Moving on...") if $main::Debug{insteon};
-		}
+	if (
+		$p_setby->isa("X10_Item") or 
+		$p_setby->isa("X10_Switchlinc") or
+		$p_setby->isa("X10_Appliance")
+		)
+	{
+		$self->_xlate_mh_x10($p_state,$p_setby);
+	} elsif ($p_setby->isa("Insteon_Link")) {
+		$self->send_plm_cmd('0261' . $p_state);
+	} elsif ($p_setby->isa("Insteon_Device")) {
+		$self->send_plm_cmd('0262' . $p_state);
 	} else {
-		if (
-			$p_setby->isa("X10_Item") or 
-			$p_setby->isa("X10_Switchlinc") or
-			$p_setby->isa("X10_Appliance")
-			)
-		{
-			$self->_xlate_mh_x10($p_state,$p_setby);
-		} elsif ($p_setby->isa("Insteon_Link")) {
-			$self->send_plm_cmd('0261' . $p_state);
-		} elsif ($p_setby->isa("Insteon_Device")) {
-			$self->send_plm_cmd('0262' . $p_state);
-		} else {
-			$self->_xlate_mh_x10($p_state,$p_setby);
-		}
+		$self->_xlate_mh_x10($p_state,$p_setby);
 	}
 }
 
@@ -344,6 +331,13 @@ sub initiate_linking_as_responder
 	$self->send_plm_cmd($cmd)
 }
 
+sub scan_link_table
+{
+	my ($self) = @_;
+	$$self{_mem_activity} = 'scan';
+	$self->get_first_alllink();
+}
+
 sub initiate_linking_as_controller
 {
 	my ($self, $group) = @_;
@@ -356,6 +350,29 @@ sub initiate_linking_as_controller
 	$self->send_plm_cmd($cmd);
 }
 
+sub initiate_unlinking_as_controller
+{
+	my ($self, $group) = @_;
+
+	$group = 'FF' unless $group;
+	# set up the PLM as the responder
+	my $cmd = '0264'; # start all linking
+	$cmd .= 'FF'; # controller code
+	$cmd .= $group; # WARN - must be 2 digits and in hex!!
+	$self->send_plm_cmd($cmd);
+}
+
+sub get_first_alllink
+{
+	my ($self) = @_;
+	$self->send_plm_cmd('0269');
+}
+
+sub get_next_alllink
+{
+	my ($self) = @_;
+	$self->send_plm_cmd('026A');
+}
 
 sub cancel_linking
 {
@@ -366,38 +383,44 @@ sub cancel_linking
 sub send_plm_cmd
 {
 	my ($self, $cmd) = @_;
+
+	return unless $cmd or !($$self{xmit_in_progress});
+
+	# get pending command record
+	my $cmdptr = pop(@{$$self{command_stack2}});
+	my %cmd_record = {};
+	my $pending_cmd = '';
+	if ($cmdptr) {
+		%cmd_record = %$cmdptr;
+		$pending_cmd = $cmd_record{cmd};
+		#put the command back into the stack.. Its not our job to tamper with this array
+		push(@{$$self{command_stack2}},\%cmd_record) if %cmd_record;
+	}
+
 	#queue any new commands
 	if (defined $cmd and $cmd ne '')
 	{
-#		&::print_log("PLM Add Command:" . $cmd . ":XmitInProgress:" . $$self{xmit_in_progress} . ":" );
-		my %cmd_record = {};
-		$cmd_record{cmd} = $cmd;
-		$cmd_record{queue_time} = $::Time;
-		unshift(@{$$self{command_stack2}},\%cmd_record);
-
-	}
-#my $count = 1;
-#for my $command (@{$$self{command_stack2}}) {
-#   print "command[$count]: $$command{cmd}\n";
-#   $count++;
-#}
-	#we dont transmit on top of another xmit
-	if (!($$self{xmit_in_progress}) and $$self{queue_timer}->inactive) {
-	#TODO: Should start a timer just in case PLM is not responding and we need to clear xmit_in_progress after a while.
-		#always send the oldest command first
-		my $cmdptr = pop(@{$$self{command_stack2}});
-		my %cmd_record = {};
-		if ($cmdptr) {
-			%cmd_record = %$cmdptr;
-			$cmd = $cmd_record{cmd};
+		# avoid duplicates on top of each other
+		if ($cmd eq $pending_cmd) {
+			&main::print_log("[Insteon_PLM] Attempt to queue command already in queue; skipping ...") if $main::Debug{insteon};
 		} else {
-			$cmd = '';
+			my $queue_size = @{$$self{command_stack2}};
+			&main::print_log("[Insteon_PLM] Command stack size: $queue_size") if $queue_size > 0 and $main::Debug{insteon};
+	#		&::print_log("PLM Add Command:" . $cmd . ":XmitInProgress:" . $$self{xmit_in_progress} . ":" );
+			my %cmd_record = {};
+			$cmd_record{cmd} = $cmd;
+			$cmd_record{queue_time} = $::Time;
+			# pending command becomes the newest queued command if stack is empty
+			$pending_cmd = $cmd unless $pending_cmd;
+			unshift(@{$$self{command_stack2}},\%cmd_record);
 		}
-		if (defined $cmd and $cmd ne '') 
+	}
+	#we dont transmit on top of another xmit
+	if (!($$self{xmit_in_progress})) {
+		#always send the oldest command first
+		if (defined $pending_cmd and $pending_cmd ne '') 
 		{
-			#put the command back into the stack.. Its not our job to tamper with this array
-			push(@{$$self{command_stack2}},\%cmd_record) if %cmd_record;
-			my $prior_cmd_time = pop(@{$$self{command_history}});
+		my $prior_cmd_time = pop(@{$$self{command_history}});
 			while ($prior_cmd_time) {
 				if ($::Time - $prior_cmd_time > 1) {
 					$prior_cmd_time = pop(@{$$self{command_history}});
@@ -412,15 +435,14 @@ sub send_plm_cmd
 #			&::print_log("[Insteon_PLM] num commands in past 1 seconds: $past_cmds_in_history") if $main::Debug{insteon};
 			if ($past_cmds_in_history > 3) {
 				&::print_log("[Insteon_PLM] num commands in 1 second exceeded threshold. Now delaying additional transmission for 1 second") if $main::Debug{insteon};
-				$$self{queue_timer}->set(1,$self); # delay a second to throttle commands
+				$self->_set_timeout('xmit',1000);
 				return;
 			}
-#			unshift(@{$$self{command_history}},$cmd_record{queue_time})
-#				if $cmd_record{queue_time};
-			unshift(@{$$self{command_history}},$::Time);
-			$$self{xmit_in_progress} = 1;
-			$$self{xmit_timer}->set(3,$self);
-			return $self->_send_cmd($cmd);
+			if (!($self->_check_timeout('xmit')==0)) {
+				return $self->_send_cmd($pending_cmd);
+			} else {
+				return;
+			}
 		}
 	} else {
 #		&::print_log("[Insteon_PLM] active transmission; moving on...") if $main::Debug{insteon};
@@ -430,6 +452,9 @@ sub send_plm_cmd
 
 sub _send_cmd {
 	my ($self, $cmd) = @_;
+	unshift(@{$$self{command_history}},$::Time);
+	$$self{xmit_in_progress} = 1;
+	$self->_set_timeout('command',3000); # a commmand needs to be PLM ack'd w/i 3 seconds or it gets dropped
 	my $instance = $$self{port_name};
 
 #	&::print_log("PLM: Executing command:$cmd:") unless $main::config_parms{no_log} =~/Insteon_PLM/;
@@ -445,7 +470,8 @@ sub _send_cmd {
 		$delay = $$self{xmit_x10_delay};
 	}
 	if ($delay) {
-		select(undef,undef,undef,$delay);
+		$self->_set_timeout('xmit',$delay * 1000);
+#		select(undef,undef,undef,$delay);
 	}
    	$$self{'last_change'} = $main::Time;
 }
@@ -462,7 +488,7 @@ sub _parse_data {
 		&::print_log("[Insteon_PLM] Prepending prior data fragment: $$self{_data_fragment}");
 		$$self{_prior_data_fragment} = $$self{_data_fragment};
 		$data = $$self{_data_fragment} . $data;
-		$$self{_data_fragment} = undef;
+		$$self{_data_fragment} = '';
 	}
 	&::print_log( "[Insteon_PLM] Parsing serial data: $data") if $main::Debug{insteon};
 
@@ -476,7 +502,6 @@ sub _parse_data {
 	}
 	my $residue_data = '';
 	my $process_next_command = 0;
-	my $delay_command = 0;
 	my $nack_count = 0;
 	if (defined $prev_cmd and $prev_cmd ne '') 
 	{
@@ -493,37 +518,38 @@ sub _parse_data {
 				my $ret_code = substr($data_1,length($data_1)-2,2);
 #				&::print_log("PLM: Return code $ret_code");
 				if ($ret_code eq '06') {
-					if (substr($data_1,0,4) eq '0260') {
+					my $record_type = substr($data_1,0,4);
+					if ($record_type eq '0260') {
 						$self->device_id(substr($data_1,4,6));
 						$self->firmware(substr($data_1,14,2));
 						&::print_log("[Insteon_PLM] PLM id: " . $self->device_id . 
 							" firmware: " . $self->firmware)
 							if $main::Debug{insteon};
+					} elsif ($record_type eq '0269' or $record_type eq '026A') {
+						$$self{_next_link_ok} = 1;
 					}
 					# command succeeded
 #					&::print_log("PLM: Command succeeded: $data_1.");
 					$$self{xmit_in_progress} = 0;
-					$$self{xmit_timer}->unset();
+					$self->_clear_timeout('command');
 					$process_next_command = 1;
 					$$self{retry_count} = 0;
 				} elsif ($ret_code eq '15') { #NAK Received
-					&::print_log("[Insteon_PLM] Interface extremely busy. Resending command.");
-					$nack_count++;
-					# abort until retry limit is implemented
-					# TO-DO: limit # of retries
-					$$self{retry_count} += 1;
-					if ($$self{retry_count} < 3) {
-						push(@{$$self{command_stack2}}, \%cmd_record);
+					&::print_log("[Insteon_PLM] Prior cmd failed");
+					my $record_type = substr($data_1,0,4);
+					if ($record_type eq '0269' or $record_type eq '026A') {
+						$$self{_next_link_ok} = 0;
 					}
 					$$self{xmit_in_progress} = 0;
-					$$self{xmit_timer}->unset();
-					$delay_command = 1;
+					$self->_clear_timeout('command');
 					$process_next_command = 1;
+					$$self{_mem_activity} = undef;
+					$self->log_alllink_table();
 				} else {
 					# We have a problem (Usually we stepped on another X10 command)
 					&::print_log("[Insteon_PLM] Command error: $data_1.");
 					$$self{xmit_in_progress} = 0;
-					$$self{xmit_timer}->unset();
+					$self->_clear_timeout('command');
 					#move it off the top of the stack and re-transmit later!
 					#TODO: We should keep track of an errored command and kill it if it fails twice.  prevent an infinite loop here
 					$process_next_command = 1;
@@ -549,9 +575,9 @@ sub _parse_data {
 		$processedNibs+=length($data_1);
 
 		if (substr($data_1,0,4) eq '0250') { #Insteon Standard Received
-			$$self{_data_fragment} = $data_1 unless $self->delegate($data_1);
+			$$self{_data_fragment} .= $data_1 unless $self->delegate($data_1);
 		} elsif (substr($data_1,0,4) eq '0251') { #Insteon Extended Received
-			$$self{_data_fragment} = $data_1 unless $self->delegate($data_1);
+			$$self{_data_fragment} .= $data_1 unless $self->delegate($data_1);
 		} elsif (substr($data_1,0,4) eq '0252') { #X10 Received
 			&::process_serial_data($self->_xlate_x10_mh($data_1));	
 		} elsif (substr($data_1,0,4) eq '0253') { #ALL-Linking Completed
@@ -560,6 +586,7 @@ sub _parse_data {
 			&::print_log("[Insteon_PLM] ALL-Link Cleanup Failure Report:$data_1") if $main::Debug{insteon};
 		} elsif (substr($data_1,0,4) eq '0257') { #ALL-Link Record Response
 			&::print_log("[Insteon_PLM] ALL-Link Record Response:$data_1") if $main::Debug{insteon};
+			$self->parse_alllink($data_1);
 		} elsif (substr($data_1,0,4) eq '0258') { #ALL-Link Cleanup Status Report
 			&::print_log("[Insteon_PLM] ALL-Link Cleanup Status Report:$data_1") if $main::Debug{insteon};
 		} elsif (substr($data_1,0,4) eq '0261') { #ALL-Link Broadcast 
@@ -567,31 +594,26 @@ sub _parse_data {
 #			$$self{_data_fragment} = $data_1 unless $self->delegate($data_1);
 		} elsif (substr($data_1,0,2) eq '15') { #NAK Received
 			if (!($nack_count)) {
-				&::print_log("[Insteon_PLM] Interface extremely busy. Resending command.");
+				&::print_log("[Insteon_PLM] Interface extremely busy. Resending command"
+					. " after delaying for 1 second") if $main::Debug{insteon};
+				$self->_set_timeout('xmit',1000);
 				$$self{retry_count} += 1;
 				if ($$self{retry_count} < 3) {
 					push(@{$$self{command_stack2}}, \%cmd_record);
 				}
 				$$self{xmit_in_progress} = 0;
-				$$self{xmit_timer}->unset();
-				$delay_command = 1;
-				$process_next_command = 1;
+				$self->_clear_timeout('command');
+				$process_next_command = 0;
 				$nack_count++;
 			}
 		} else {
 			# it's probably a fragment; so, handle it
-			$$self{_data_fragment} = $data_1 unless $data_1 eq $$self{_prior_data_fragment};
+			$$self{_data_fragment} .= $data_1 unless $data_1 eq $$self{_prior_data_fragment};
 		}
 	}
 
 	if ($process_next_command) {
-		if ($delay_command) {
-			&::print_log("[Insteon_PLM] Now delaying additional transmission for 1 second") if $main::Debug{insteon};
-			$$self{queue_timer}->set(1,$self); # delay a second to throttle commands
-		} else {
-			select(undef,undef,undef,.15);
-			$self->process_command_stack();
-		}
+		$self->process_command_stack();
 	} else {
 #		my $queued_command_count = @{$$self{command_stack2}};
 #		&::print_log("### Remaining queued commands: $queued_command_count");
@@ -720,6 +742,114 @@ sub delegate
 		return 0;
 	}
 }
+
+sub parse_alllink
+{
+	my ($self, $data) = @_;
+	my %link = {};
+	my $flag = substr($data,4,1);
+	$link{is_controller} = hex($flag) & 0x04;
+	$link{flags} = substr($data,4,2);
+	$link{group} = substr($data,6,2);
+	$link{deviceid} = substr($data,8,6);
+	$link{data1} = substr($data,14,2);
+	$link{data2} = substr($data,16,2);
+	$link{data3} = substr($data,18,2);
+	my $key = $link{deviceid} . $link{group};
+	%{$$self{links}{$key}} = %link;
+	$self->get_next_alllink();
+}
+
+sub restore_string
+{
+	my ($self) = @_;
+	my $restore_string = $self->SUPER::restore_string();
+	# ensure that the alllink table is not saved out during the middle of a scan
+	if ($$self{links} and !($$self{_mem_activity})) {
+		my $link = '';
+		foreach my $link_key (keys %{$$self{links}}) {
+			$link .= '|' if $link; # separate sections
+			my %link_record = %{$$self{links}{$link_key}};
+			my $record = '';
+			foreach my $record_key (keys %link_record) {
+				next unless $link_record{$record_key};
+				$record .= ',' if $record;
+				$record .= $record_key . '=' . $link_record{$record_key};
+			}
+			$link .= $record;
+		}
+#		&::print_log("[Insteon_PLM] AllLink restore string: $link") if $main::Debug{insteon};
+		$restore_string .= $self->{object_name} . "->restore_linktable(q~$link~);\n";
+	}
+	return $restore_string;
+}
+
+sub restore_linktable
+{
+	my ($self, $links) = @_;
+	if ($links) {
+		foreach my $link_section (split(/\|/,$links)) {
+			my %link_record = {};
+			my $deviceid = '';
+			my $groupid = '01';
+			foreach my $link_record (split(/,/,$link_section)) {
+				my ($key,$value) = split(/=/,$link_record);
+				$deviceid = $value if ($key eq 'deviceid');
+				$groupid = $value if ($key eq 'group');
+				$link_record{$key} = $value if $key and defined($value);
+			}
+			my $linkkey = $deviceid . $groupid;
+			%{$$self{links}{$linkkey}} = %link_record;
+		}
+		$self->log_alllink_table();
+	}
+}
+
+sub log_alllink_table
+{
+	my ($self) = @_;
+	foreach my $linkkey (keys %{$$self{links}}) {
+		my $device = $self->get_object($$self{links}{$linkkey}{deviceid},'01');
+		my $object_name = ($device) ? $device->get_object_name : $$self{links}{$linkkey}{deviceid};
+		&::print_log("[Insteon_PLM] link " .
+			(($$self{links}{$linkkey}{is_controller}) ? "controller($$self{links}{$linkkey}{group}) record to "
+			. $object_name
+			: "responder record to " . $object_name . "($$self{links}{$linkkey}{group})")
+			. " data1=$$self{links}{$linkkey}{data1}, data2=$$self{links}{$linkkey}{data2}")
+			if $main::Debug{insteon};
+	}
+}
+
+sub delete_orphan_links
+{
+	my ($self) = @_;
+	my $num_deleted = 0;
+	foreach my $linkkey (keys %{$$self{links}}) {
+		my $device = $self->get_object($$self{links}{$linkkey}{deviceid},'01');
+		if (!($device)) {
+			&::print_log("[Insteon_PLM] now deleting orphaned link w/ details: "
+				. (($$self{links}{$linkkey}{is_controller}) ? "controller" : "responder")
+				. ", deviceid=$$self{links}{$linkkey}{deviceid}, "
+				. "group=$$self{links}{$linkkey}{group}");
+			my $cmd = '026F' . '80'
+				. $$self{links}{$linkkey}{flags}
+				. $$self{links}{$linkkey}{group}
+				. $$self{links}{$linkkey}{deviceid}
+				. $$self{links}{$linkkey}{data1}
+				. $$self{links}{$linkkey}{data2}
+				. $$self{links}{$linkkey}{data3};
+			$self->send_plm_cmd($cmd);
+			$num_deleted++;
+		}
+	}
+	if ($num_deleted) {
+		&::print_log("A total of $num_deleted orphaned links were deleted.");
+		$self->scan_link_table();
+	} else {
+		&::print_log("No orphaned links were found.");
+	}
+}
+
 
 sub get_object
 {
@@ -879,6 +1009,30 @@ sub get_device
 			return $device;
 		}
 	}
+}
+
+sub _set_timeout
+{
+	my ($self, $timeout_name, $timeout_in_millis) = @_;
+	my $tickcount = &main::get_tickcount + $timeout_in_millis;
+	$tickcount += 2**32 if $tickcount < 0; # force a wrap; to be handleded by check timeout
+	$$self{"_timeout_$timeout_name"} = $tickcount;
+}
+
+sub _check_timeout
+{
+	my ($self, $timeout_name) = @_;
+	return 0 unless $timeout_name;
+	return -1 unless defined $$self{"_timeout_$timeout_name"};
+	my $current_tickcount = &main::get_tickcount;
+	return 0 if (($current_tickcount >= 2**7) and ($$self{"_timeout_$timeout_name"} < 2**7));
+	return ($current_tickcount > $$self{"_timeout_$timeout_name"}) ? 1 : 0;
+}
+
+sub _clear_timeout
+{
+	my ($self, $timeout_name) = @_;
+	$$self{"_timeout_$timeout_name"} = undef;
 }
 
 sub firmware {
