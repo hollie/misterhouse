@@ -8,8 +8,8 @@ Description:
 	Generic class implementation of an Insteon Device.
 
 Author:
-            Jason Sharpee / jason@sharpee.com
-            Gregg Liming / gregg@limings.net
+	Jason Sharpee
+	jason@sharpee.com
 
 License:
 	This free software is licensed under the terms of the GNU public license.
@@ -186,12 +186,12 @@ sub set
 		{
 				# don't reset the object w/ the same state if set from the interface
 				return if (lc $p_state eq lc $self->state) and $self->is_acknowledged;
-				&::print_log("Insteon_Device: " . $self->get_object_name() 
+				&::print_log("[Insteon_Device] " . $self->get_object_name() 
 					. "::set($p_state, $p_setby)") if $main::Debug{insteon};
 		} else {
 			$self->_send_cmd(command => $p_state, 
 				type => (($self->isa('Insteon_Link')) ? 'alllink' : 'standard'));
-			&::print_log("Insteon_Device: " . $self->get_object_name() . "::set($p_state, $p_setby)")
+			&::print_log("[Insteon_Device] " . $self->get_object_name() . "::set($p_state, $p_setby)")
 				if $main::Debug{insteon};
 			$self->is_acknowledged(0);
 		}
@@ -332,7 +332,8 @@ sub _process_message
 			my $ack_on_level = hex($msg{extra});
 			## convert on level from hex to numerical
 			&::print_log("[Insteon_Device] received status request report for " .
-				$self->{object_name} . " with on-level: $ack_on_level") if $main::Debug{insteon};
+				$self->{object_name} . " with on-level: $ack_on_level"
+				. ", hops left: $msg{hopsleft}") if $main::Debug{insteon};
 			$self->_on_status_request($ack_on_level, $p_setby);
 			$self->_process_command_stack(%msg);
 		} elsif (($msg{command} eq 'peek') or ($msg{command} eq 'set_address_msb')) {
@@ -509,6 +510,22 @@ sub _on_status_request
 	$$self{m_status_request_pending} = 0;
 }
 
+sub _on_poke
+{
+	my ($self,%msg) = @_;
+	if ($$self{_mem_action} eq 'adlb_data1') {
+		$$self{_mem_action} = 'adlb_data2';
+		$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+		$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+	} elsif ($$self{_mem_action} eq 'adlb_data2') {
+		$$self{_mem_action} = 'adlb_data3';
+		$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+		$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+	} elsif ($$self{_mem_action} eq 'adlb_data3') {
+	
+	} 
+}
+
 sub _on_peek
 {
 	my ($self,%msg) = @_;
@@ -516,56 +533,74 @@ sub _on_peek
 		&::print_log("Insteon_Device: extended peek for " . $self->{object_name} 
 		. " is " . $msg{extra}) if $main::Debug{insteon};
 	} else {
-		if ($$self{m_peek_action} eq 'adlb_peek') {
-			$$self{m_peek_action} = 'adlb_flag';
-			$self->_send_cmd('command' => 'peek', 'extra' => $$self{m_peek_lsb}, 'is_synchronous' => 1);
-		} elsif ($$self{m_peek_action} eq 'adlb_flag') {
+		if ($$self{_mem_action} eq 'adlb_peek') {
+			if ($$self{_mem_activity} eq 'scan') {
+				$$self{_mem_action} = 'adlb_flag';
+			} elsif ($$self{_mem_activity} eq 'update') {
+				$$self{_mem_action} = 'adlb_data1';
+			}
+			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+		} elsif ($$self{_mem_action} eq 'adlb_flag') {
 			my $flag = hex($msg{extra});
 			$$self{pending_adlb}{inuse} = 1 if $flag & 0x80;
 			$$self{pending_adlb}{is_controller} = 1 if $flag & 0x40;
 			$$self{pending_adlb}{highwater} = 1 if $flag & 0x02;
 			if (!($$self{pending_adlb}{highwater})) {
-				$$self{m_peek_action} = undef;
-				$self->on_adlb_scan();
+				$$self{_mem_action} = undef;
+				# clear out mem_activity flag
+				$$self{_mem_activity} = undef;
+				$self->log_adlb();
 			} else {
 				$$self{pending_adlb}{flag} = $msg{extra};
 				## confirm that we have a high-water mark; otherwise stop
-				$$self{pending_adlb}{address} = $$self{m_peek_msb} . $$self{m_peek_lsb};
-				$$self{m_peek_lsb} = sprintf("%02X", hex($$self{m_peek_lsb}) + 1);
-				$$self{m_peek_action} = 'adlb_group';
-				$self->_send_cmd('command' => 'peek', 'extra' => $$self{m_peek_lsb}, 'is_synchronous' => 1);
+				$$self{pending_adlb}{address} = $$self{_mem_msb} . $$self{_mem_lsb};
+				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+				$$self{_mem_action} = 'adlb_group';
+				$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
 			}
-		} elsif ($$self{m_peek_action} eq 'adlb_group') {
+		} elsif ($$self{_mem_action} eq 'adlb_group') {
 			$$self{pending_adlb}{group} = $msg{extra};
-			$$self{m_peek_lsb} = sprintf("%02X", hex($$self{m_peek_lsb}) + 1);
-			$$self{m_peek_action} = 'adlb_devhi';
-			$self->_send_cmd('command' => 'peek', 'extra' => $$self{m_peek_lsb}, 'is_synchronous' => 1);
-		} elsif ($$self{m_peek_action} eq 'adlb_devhi') {
+			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+			$$self{_mem_action} = 'adlb_devhi';
+			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+		} elsif ($$self{_mem_action} eq 'adlb_devhi') {
 			$$self{pending_adlb}{deviceid} = $msg{extra};
-			$$self{m_peek_lsb} = sprintf("%02X", hex($$self{m_peek_lsb}) + 1);
-			$$self{m_peek_action} = 'adlb_devmid';
-			$self->_send_cmd('command' => 'peek', 'extra' => $$self{m_peek_lsb}, 'is_synchronous' => 1);
-		} elsif ($$self{m_peek_action} eq 'adlb_devmid') {
+			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+			$$self{_mem_action} = 'adlb_devmid';
+			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+		} elsif ($$self{_mem_action} eq 'adlb_devmid') {
 			$$self{pending_adlb}{deviceid} .= $msg{extra};
-			$$self{m_peek_lsb} = sprintf("%02X", hex($$self{m_peek_lsb}) + 1);
-			$$self{m_peek_action} = 'adlb_devlo';
-			$self->_send_cmd('command' => 'peek', 'extra' => $$self{m_peek_lsb}, 'is_synchronous' => 1);
-		} elsif ($$self{m_peek_action} eq 'adlb_devlo') {
+			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+			$$self{_mem_action} = 'adlb_devlo';
+			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+		} elsif ($$self{_mem_action} eq 'adlb_devlo') {
 			$$self{pending_adlb}{deviceid} .= $msg{extra};
-			$$self{m_peek_lsb} = sprintf("%02X", hex($$self{m_peek_lsb}) + 1);
-			$$self{m_peek_action} = 'adlb_data1';
-			$self->_send_cmd('command' => 'peek', 'extra' => $$self{m_peek_lsb}, 'is_synchronous' => 1);
-		} elsif ($$self{m_peek_action} eq 'adlb_data1') {
-			$$self{pending_adlb}{data1} .= $msg{extra};
-			$$self{m_peek_lsb} = sprintf("%02X", hex($$self{m_peek_lsb}) + 1);
-			$$self{m_peek_action} = 'adlb_data2';
-			$self->_send_cmd('command' => 'peek', 'extra' => $$self{m_peek_lsb}, 'is_synchronous' => 1);
-		} elsif ($$self{m_peek_action} eq 'adlb_data2') {
-			$$self{pending_adlb}{data2} .= $msg{extra};
-			$$self{m_peek_lsb} = sprintf("%02X", hex($$self{m_peek_lsb}) + 1);
-			$$self{m_peek_action} = 'adlb_data3';
-			$self->_send_cmd('command' => 'peek', 'extra' => $$self{m_peek_lsb}, 'is_synchronous' => 1);
-		} elsif ($$self{m_peek_action} eq 'adlb_data3') {
+			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+			$$self{_mem_action} = 'adlb_data1';
+			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+		} elsif ($$self{_mem_action} eq 'adlb_data1') {
+			if ($$self{_mem_activity} eq 'scan') {
+				$$self{_mem_action} = 'adlb_data2';
+				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+				$$self{pending_adlb}{data1} .= $msg{extra};
+				$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+			} elsif ($$self{_mem_activity} eq 'update') {
+				# poke the new value
+				# TO-DO: get the new value
+				$self->_send_cmd('command' => 'poke', 'extra' => 'NEW VALUE', 'is_synchronous' => 1);
+			}
+		} elsif ($$self{_mem_action} eq 'adlb_data2') {
+			if ($$self{_mem_activity} eq 'scan') {
+				$$self{pending_adlb}{data2} .= $msg{extra};
+				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+				$$self{_mem_action} = 'adlb_data3';
+				$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+			} elsif ($$self{_mem_activity} eq 'update') {
+				# poke the new value
+				# TO-DO: get the new value
+				$self->_send_cmd('command' => 'poke', 'extra' => 'NEW VALUE', 'is_synchronous' => 1);
+			}
+		} elsif ($$self{_mem_action} eq 'adlb_data3') {
 			$$self{pending_adlb}{data3} .= $msg{extra};
 			# check the previous record if highwater is set
 			if ($$self{pending_adlb}{highwater}) {
@@ -573,8 +608,6 @@ sub _on_peek
 				# save pending_adlb and then clear it out
 					my $adlbkey = $$self{pending_adlb}{deviceid} . $$self{pending_adlb}{group};
 					%{$$self{adlb}{$adlbkey}} = %{$$self{pending_adlb}};
-#					&::print_log("[Insteon_Device] adlb record for $$self{adlb}{$adlbkey}{deviceid}:" .
-#						"$$self{adlb}{$adlbkey}{group} is onlevel: $$self{adlb}{$adlbkey}{data1}" .##						" and ramp: $$self{adlb}{$adlbkey}{data2}") if $main::Debug{insteon};
 				} else {
 					# TO-DO: record the locations of deleted ADLB records for subsequent reuse
 				}
@@ -588,6 +621,52 @@ sub _on_peek
 	}	
 }
 
+sub restore_string
+{
+	my ($self) = @_;
+	my $restore_string = $self->SUPER::restore_string();
+	# ensure that adlb restore string is not saved out during the middle of an adlb scan
+	if ($$self{adlb} and !($$self{_mem_activity})) {
+		my $adlb = '';
+		foreach my $adlb_key (keys %{$$self{adlb}}) {
+			next unless $$self{adlb}{$adlb_key}{inuse};
+			$adlb .= '|' if $adlb; # separate sections
+			my %adlb_record = %{$$self{adlb}{$adlb_key}};
+			my $record = '';
+			foreach my $record_key (keys %adlb_record) {
+				next unless $adlb_record{$record_key};
+				$record .= ',' if $record;
+				$record .= $record_key . '=' . $adlb_record{$record_key};
+			}
+			$adlb .= $record;
+		}
+#		&::print_log("[Insteon_Device] ADLB restore string: $adlb") if $main::Debug{insteon};
+		$restore_string .= $self->{object_name} . "->restore_adlb(q~$adlb~);\n";
+        }
+	return $restore_string;
+}
+
+sub restore_adlb
+{
+	my ($self,$adlb) = @_;
+	if ($adlb) {
+		foreach my $adlb_section (split(/\|/,$adlb)) {
+			my %adlb_record = {};
+			my $deviceid = '';
+			my $groupid = '01';
+			foreach my $adlb_record (split(/,/,$adlb_section)) {
+				my ($key,$value) = split(/=/,$adlb_record);
+				$deviceid = $value if ($key eq 'deviceid');
+				$groupid = $value if ($key eq 'group');
+				$adlb_record{$key} = $value if $key and defined($value);
+			}
+			my $adlbkey = $deviceid . $groupid;
+			%{$$self{adlb}{$adlbkey}} = %adlb_record;
+		}
+		$self->log_adlb();
+	}
+}
+
 sub set_receive
 {
 	my ($self, $p_state, $p_setby, $p_response) = @_;
@@ -597,10 +676,13 @@ sub set_receive
 sub scan_adlb
 {
 	my ($self) = @_;
+	# always reset the current cache in case memory changes
+	$$self{adlb} = undef;
+	$$self{_mem_activity} = 'scan';
 	$self->_peek('0FF8',0);
 }
 
-sub on_adlb_scan
+sub log_adlb
 {
 	my ($self) = @_;
 	foreach my $adlbkey (keys %{$$self{adlb}}) {
@@ -611,10 +693,12 @@ sub on_adlb_scan
 			$device = $self->interface()->get_object($$self{adlb}{$adlbkey}{deviceid},'01');
 #				$$self{adlb}{$adlbkey}{group});
 		}
+		my $object_name = ($device) ? $device->get_object_name : $$self{adlb}{$adlbkey}{deviceid};
+
 		&::print_log("[Insteon_Device] adlb [0x" . $$self{adlb}{$adlbkey}{address} . "] " .
 			(($$self{adlb}{$adlbkey}{is_controller}) ? "controller($$self{adlb}{$adlbkey}{group}) record to "
-			. $device->get_object_name
-			: "responder record to " . $device->get_object_name . "($$self{adlb}{$adlbkey}{group})"
+			. $object_name
+			: "responder record to " . $object_name . "($$self{adlb}{$adlbkey}{group})"
 			. ": onlevel=" . int((hex($$self{adlb}{$adlbkey}{data1})*100/255) + .5) . "%" .
 			" and ramp=" . $ramp_h2n{$$self{adlb}{$adlbkey}{data2}} . "s" )) if $main::Debug{insteon};
 	}
@@ -628,22 +712,32 @@ sub get_link_record
 	return %link_record;
 }
 
+sub update_link
+{
+	my ($self, $deviceid, $group, $data1, $data2, $data3) = @_;
+	my $address = $$self{adlb}{$deviceid . $group}{address};
+	if ($address) {
+		# change address for start of change to be address + offset
+		$address = sprintf('%04X',hex($address) + 5);
+		$$self{_mem_activity} = 'update';
+		$self->_peek($address);
+	}
+
+}
+
 sub _peek
 {
 	my ($self, $address, $extended) = @_;
 	my $msb = substr($address,0,2);
 	my $lsb = substr($address,2,2);
-#	$$self{interface}->set($self->_xlate_mh_insteon('set_address_msb','standard',$msb),$self);
 	$self->_send_cmd('command' => 'set_address_msb', 'extra' => $msb, 'is_synchronous' => 1);
 	if ($extended) {
 		$$self{interface}->set($self->_xlate_mh_insteon('peek','extended',
 			$lsb . "0000000000000000000000000000"),$self);
 	} else {
-		$$self{m_peek_lsb} = $lsb;
-		$$self{m_peek_msb} = $msb;
-		$$self{m_peek_action} = 'adlb_peek';
-#		$$self{interface}->set($self->_xlate_mh_insteon('peek','standard',$lsb),$self);
-#		$self->_send_cmd('command' => 'peek', 'extra' => $lsb, 'is_synchronous' => 1);
+		$$self{_mem_lsb} = $lsb;
+		$$self{_mem_msb} = $msb;
+		$$self{_mem_action} = 'adlb_peek';
 	}
 }
 
