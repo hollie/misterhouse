@@ -566,9 +566,11 @@ sub _parse_data {
 		$residue_data = $data;
 	}
 
+	my $entered_rcv_loop = 0;
 
 	foreach my $data_1 (split(/(0263\w{6})|(0252\w{4})|(0250\w{18})|(0251\w{46})|(0261\w{6})|(0253\w{16})|(0256\w{8})|(0257\w{16})|(0258\w{2})/,$residue_data))
 	{
+		$entered_rcv_loop = 1;
 		#ignore blanks.. the split does odd things
 		next if $data_1 eq '';
 		#we found a matching command in stream, add to processed bytes
@@ -611,6 +613,8 @@ sub _parse_data {
 			$$self{_data_fragment} .= $data_1 unless $data_1 eq $$self{_prior_data_fragment};
 		}
 	}
+
+	$$self{_data_fragment} = $residue_data unless $entered_rcv_loop or $$self{_data_fragment};
 
 	if ($process_next_command) {
 		$self->process_command_stack();
@@ -924,6 +928,7 @@ sub add_item
 		#    as they are psuedo links	
 		my $scan_at_startup = $::config_parms{Insteon_PLM_scan_at_startup};
 		$scan_at_startup = 1 unless defined $scan_at_startup;
+		$scan_at_startup = 0 unless $main::Save{mh_exit} eq 'normal';
 		$p_object->request_status($p_object) if $p_object->group eq '01' and $scan_at_startup;
 	}
 	return $p_object;
