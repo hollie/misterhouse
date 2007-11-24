@@ -32,7 +32,7 @@ package UPB_Device;
 
 @UPB_Device::ISA = ('Generic_Item');
 
-my %message_types = (
+our %message_types = (
 #UPB Core Command Set
 						null => 0x00,
 						write_enable => 0x01,
