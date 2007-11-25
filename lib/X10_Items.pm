@@ -142,8 +142,9 @@ sub set_interface {
             print "for id $id, x10 interface supplied ($interface) and supported by Serial_Item\n" if $localDebug;
             $self->{interface}=new Serial_Item(undef,undef,$interface);
         } elsif ( defined $interface_object and $interface_object->isa('Insteon_PLM')) {
-			$self->{interface} = $interface_object;
-			$self->{interface}->add($self);
+            print "for id $id, x10 interface supplied ($interface) and supported by an Insteon PLM\n" if $localDebug;
+            $self->{interface} = $interface_object;
+            $self->{interface}->add($self);
         } else {
             # we can't find a real interface, so use a Dummy_Interface
             print "warning, using dummy interface for id $id and supplied interface $interface\n" if $localDebug;
