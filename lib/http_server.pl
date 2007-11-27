@@ -2,6 +2,8 @@
 #  This lib provides the mister house web server routines
 #  Change log is at the bottom
 #---------------------------------------------------------------------------
+# $Date$
+# $Revision$
 
 use strict;
 require 'http_utils.pl';
@@ -2216,6 +2218,8 @@ sub html_command_table {
 
         $html .= qq[<b>$suffix</b>] if $suffix;
         push @htmls, qq[$html</td></FORM>\n];
+
+        $html='';
 
                                 # Do the states_log entry
         if ($main::config_parms{'html_category_states' . $Http{format}}) {
