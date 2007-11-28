@@ -5241,3 +5241,14 @@ strip mais
 	baseurl $homepage
 	provides latest
 end
+
+strip xkcd
+	name XKCD
+	homepage http://www.xkcd.com
+	artist Randall Munroe
+	baseurl http://imgs.xkcd.com
+	type search
+	searchpage http://www.xkcd.com/
+	searchpattern <img src="http://imgs.xkcd.com(/comics/.*\.png)" title=
+	provides latest
+end
