@@ -310,9 +310,11 @@ sub set
 	{
 		$self->_xlate_mh_x10($p_state,$p_setby);
 	} elsif ($p_setby->isa("Insteon_Link")) {
-		$self->send_plm_cmd('0261' . $p_state);
+		# return the size of the command stack
+		return $self->send_plm_cmd('0261' . $p_state);
+		# return the size of the command stack
 	} elsif ($p_setby->isa("Insteon_Device")) {
-		$self->send_plm_cmd('0262' . $p_state);
+		return $self->send_plm_cmd('0262' . $p_state);
 	} else {
 		$self->_xlate_mh_x10($p_state,$p_setby);
 	}
@@ -333,8 +335,9 @@ sub initiate_linking_as_responder
 
 sub scan_link_table
 {
-	my ($self) = @_;
+	my ($self,$callback) = @_;
 	$$self{_mem_activity} = 'scan';
+        $$self{_mem_callback} = ($callback) ? $callback : undef;
 	$self->get_first_alllink();
 }
 
@@ -397,11 +400,18 @@ sub send_plm_cmd
 		push(@{$$self{command_stack2}},\%cmd_record) if %cmd_record;
 	}
 
-	#queue any new commands
+	#queue any new command ($cmd)
 	if (defined $cmd and $cmd ne '')
 	{
-		# avoid duplicates on top of each other
-		if ($cmd eq $pending_cmd) {
+		my $duplicate_detected = 0;
+		# check for duplicates of $cmd already in command_stack and ignore if they exist
+		foreach my $cmdrec (@{$$self{command_stack2}}) {
+			if ($cmdrec->{cmd} eq $cmd) {
+				$duplicate_detected = 1;
+				last;
+			}
+		}
+		if ($duplicate_detected) {
 			&main::print_log("[Insteon_PLM] Attempt to queue command already in queue; skipping ...") if $main::Debug{insteon};
 		} else {
 			my $queue_size = @{$$self{command_stack2}};
@@ -448,6 +458,8 @@ sub send_plm_cmd
 #		&::print_log("[Insteon_PLM] active transmission; moving on...") if $main::Debug{insteon};
 		return;
 	}
+	my $command_queue_size = @{$$self{command_stack2}};
+	return $command_queue_size;
 }
 
 sub _send_cmd {
@@ -508,8 +520,10 @@ sub _parse_data {
 #		&::print_log("PLM: Defined:$prev_cmd");
 		my $ackcmd = $prev_cmd . '06';
 		my $nackcmd = $prev_cmd . '15';
+		my $entered_ack_loop = 0;
 		foreach my $data_1 (split(/($ackcmd)|($nackcmd)|(0260\w{12}06)|(0260\w{12}15)/,$data))
 		{
+			$entered_ack_loop = 1;
 			#ignore blanks.. the split does odd things
 			next if $data_1 eq '';
 
@@ -525,26 +539,31 @@ sub _parse_data {
 						&::print_log("[Insteon_PLM] PLM id: " . $self->device_id . 
 							" firmware: " . $self->firmware)
 							if $main::Debug{insteon};
-					} elsif ($record_type eq '0269' or $record_type eq '026A') {
+					} elsif ($record_type eq '0269' or $record_type eq '026a') {
 						$$self{_next_link_ok} = 1;
 					}
 					# command succeeded
 #					&::print_log("PLM: Command succeeded: $data_1.");
 					$$self{xmit_in_progress} = 0;
+					# check to see if it is an all-link and if so, then remember for "cleanup"
+					if ($data_1 =~ /0261\w{6}06/) {
+						$$self{pending_alllink} = $prev_cmd;
+					}
 					$self->_clear_timeout('command');
 					$process_next_command = 1;
 					$$self{retry_count} = 0;
 				} elsif ($ret_code eq '15') { #NAK Received
-					&::print_log("[Insteon_PLM] Prior cmd failed");
 					my $record_type = substr($data_1,0,4);
-					if ($record_type eq '0269' or $record_type eq '026A') {
+					if ($record_type eq '0269' or $record_type eq '026a') {
 						$$self{_next_link_ok} = 0;
+						$$self{_mem_activity} = undef;
+						eval ($$self{_mem_callback}) if defined $$self{_mem_callback};
+					} else {
+						&::print_log("[Insteon_PLM] Prior cmd failed");
 					}
 					$$self{xmit_in_progress} = 0;
 					$self->_clear_timeout('command');
 					$process_next_command = 1;
-					$$self{_mem_activity} = undef;
-					$self->log_alllink_table();
 				} else {
 					# We have a problem (Usually we stepped on another X10 command)
 					&::print_log("[Insteon_PLM] Command error: $data_1.");
@@ -562,6 +581,7 @@ sub _parse_data {
 			# then, didn't get a match and need to push the command back on the stack
 			push(@{$$self{command_stack2}}, \%cmd_record);
 		}
+		$residue_data = $data unless $entered_ack_loop;
 	} else {
 		$residue_data = $data;
 	}
@@ -590,7 +610,15 @@ sub _parse_data {
 			&::print_log("[Insteon_PLM] ALL-Link Record Response:$data_1") if $main::Debug{insteon};
 			$self->parse_alllink($data_1);
 		} elsif (substr($data_1,0,4) eq '0258') { #ALL-Link Cleanup Status Report
-			&::print_log("[Insteon_PLM] ALL-Link Cleanup Status Report:$data_1") if $main::Debug{insteon};
+			my $cleanup_ack = substr($data_1,4,2);
+			if ($cleanup_ack eq '15') {
+				&::print_log("[Insteon_PLM] All-Link Cleanup reports failure.  Attempting resend")
+					if $main::Debug{insteon};
+				$self->send_plm_cmd($$self{pending_alllink}) if $$self{pending_alllink};
+			} else {
+				&::print_log("[Insteon_PLM] ALL-Link Cleanup reports success") if $main::Debug{insteon};
+				# TO-DO: set validation flag on device
+			}
 		} elsif (substr($data_1,0,4) eq '0261') { #ALL-Link Broadcast 
 			&::print_log("[Insteon_PLM] ALL-Link Broadcast:$data_1") if $main::Debug{insteon};
 #			$$self{_data_fragment} = $data_1 unless $self->delegate($data_1);
@@ -768,8 +796,7 @@ sub restore_string
 {
 	my ($self) = @_;
 	my $restore_string = $self->SUPER::restore_string();
-	# ensure that the alllink table is not saved out during the middle of a scan
-	if ($$self{links} and !($$self{_mem_activity})) {
+	if ($$self{links}) {
 		my $link = '';
 		foreach my $link_key (keys %{$$self{links}}) {
 			$link .= '|' if $link; # separate sections
@@ -805,7 +832,7 @@ sub restore_linktable
 			my $linkkey = $deviceid . $groupid;
 			%{$$self{links}{$linkkey}} = %link_record;
 		}
-		$self->log_alllink_table();
+#		$self->log_alllink_table();
 	}
 }
 

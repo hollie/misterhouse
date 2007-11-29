@@ -49,8 +49,7 @@ sub new
 sub add 
 {
 	my ($self, $obj, $on_level, $ramp_rate) = @_;
-	if (ref $obj) {
-	# TO-DO prevent objects other than Insteon_Device and Light_Item from being members
+	if (ref $obj and ($obj->isa('Insteon_Device') or $obj->isa('Light_Item'))) {
 		if ($$self{members} && $$self{members}{$obj}) {
 			print "[Insteon_Link] An object (" . $obj->{object_name} . ") already exists "
 				. "in this scene.  Aborting add request.\n";
@@ -61,6 +60,29 @@ sub add
 		$$self{members}{$obj}{object} = $obj;
 		$ramp_rate =~ s/s$//i;
 		$$self{members}{$obj}{ramp_rate} = $ramp_rate if defined $ramp_rate;
+	} else {
+		&::print_log("[Insteon_Link] WARN: unable to add $obj as items of this type are not supported!");
+        }
+}
+
+sub sync_links
+{
+	my ($self) = @_;
+	if ($$self{members}) {
+		foreach my $member_ref (keys %{$$self{members}}) {
+			my $member = $$self{members}{$member_ref}{object};
+			if ($member->isa('Light_Item')) {
+				my @children = $member->find_members('Insteon_Device');
+				$member = $children[0];
+			}
+			my $controller = $self->interface;
+			if ($self->device_id ne '000000') {
+				$controller = $self->interface()->get_object($self->device_id);
+			}
+			my $tgt_on_level = $$self{members}{$member_ref}{on_level};
+			my $tgt_ramp_rate = $$self{members}{$member_ref}{ramp_rate};
+			$member->update_light_link($controller,$self->group, $tgt_on_level, $tgt_ramp_rate);
+		}
 	}
 }
 
@@ -87,6 +109,8 @@ sub set
 				my @lights = $member->find_members('Insteon_Device');
 				if (@lights) {
 					my $light = @lights[0];
+					# remember the current state to support resume
+					$$self{members}{$member_ref}{resume_state} = $light->state;
 					$member->manual($light, $ramp_rate);
 					$light->set_receive($local_state,$self);
 				} else {
@@ -94,6 +118,8 @@ sub set
 				}
 				$member->set_on_state($on_state);
 			} elsif ($member->isa('Insteon_Device')) {
+			# remember the current state to support resume
+				$$self{members}{$member_ref}{resume_state} = $member->state;
 			# if they are Insteon_Device objects, then simply set_receive their state to 
 			#   the member on level
 				$member->set_receive($local_state,$self);

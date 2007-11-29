@@ -92,6 +92,18 @@ my %ramp_h2n = (
 						'1f' =>    .1
 );
 
+sub convert_ramp
+{
+	my ($ramp_in_seconds) = @_;
+	if ($ramp_in_seconds) {
+		foreach my $rampkey (sort keys %ramp_h2n) {
+			return $rampkey if $ramp_in_seconds >= $ramp_h2n{$rampkey};
+		}
+	} else {
+		return '1f';
+	}
+}
+
 sub new
 {
 	my ($class,$p_interface,$p_deviceid) = @_;
@@ -248,7 +260,7 @@ sub _process_command_stack
 			my %cmd = %$cmdptr;
 			# convert cmd to insteon message
 			my $insteonmsg = $self->_xlate_mh_insteon($cmd{command},$cmd{type},$cmd{extra});
-			$self->interface()->set($insteonmsg, $self);
+			my $plm_queue_size = $self->interface()->set($insteonmsg, $self);
 			# send msg
 			if ($cmd{is_synchronous}) {
 				$$self{awaiting_ack} = 1;
@@ -261,6 +273,7 @@ sub _process_command_stack
 				$$self{_retry_count} = 0;
 			}
 			%{$$self{_prior_msg}} = %cmd;
+			# TO-DO: adjust timer based upon (1) type of message, (2) plm_queue_size and (3) retry_count
 			$$self{queue_timer}->set($$self{max_queue_time},$self);
 			# if is_synchronous, then no other command can be sent until an insteon ack or nack is received
 			# for this command
@@ -272,7 +285,7 @@ sub _process_command_stack
 			$$self{_prior_msg} = undef;
 		}
 	} else {
-		&::print_log("[Insteon_Device] Command queued but not yet sent; awaiting ack from prior command");
+		&::print_log("[Insteon_Device] " . $self->get_object_name . " command queued but not yet sent; awaiting ack from prior command");
 	}
 }
 
@@ -329,22 +342,25 @@ sub _process_message
 	$$self{m_is_locally_set} = 1 if $msg{source} eq lc $self->device_id;
 	if ($msg{is_ack}) {
 		if ($$self{m_status_request_pending}) {
-			my $ack_on_level = hex($msg{extra});
-			## convert on level from hex to numerical
+			my $ack_on_level = hex($msg{extra}) * 100 / 255;
 			&::print_log("[Insteon_Device] received status request report for " .
-				$self->{object_name} . " with on-level: $ack_on_level"
+				$self->{object_name} . " with on-level: " . 
+				sprintf("%d",$ack_on_level) . '%'
 				. ", hops left: $msg{hopsleft}") if $main::Debug{insteon};
 			$self->_on_status_request($ack_on_level, $p_setby);
 			$self->_process_command_stack(%msg);
 		} elsif (($msg{command} eq 'peek') or ($msg{command} eq 'set_address_msb')) {
 			$self->_on_peek(%msg);
 			$self->_process_command_stack(%msg);
+		} elsif (($msg{command} eq 'poke') or ($msg{command} eq 'set_address_msb')) {
+			$self->_on_poke(%msg);
+			$self->_process_command_stack(%msg);
 		} else {
 			$self->is_acknowledged(1);
 			# signal receipt of message to the command stack in case commands are queued
 			$self->_process_command_stack(%msg);
 			&::print_log("[Insteon_Device] received command/state acknowledge from " . $self->{object_name} 
-				. ": $msg{command}") if $main::Debug{insteon};
+				. ": $msg{command} and data: $msg{extra}") if $main::Debug{insteon};
 		}
 	} elsif ($msg{is_nack}) {
 		&::print_log("[Insteon_Device] WARN!! ia a nack message for " . $self->{object_name} 
@@ -407,12 +423,12 @@ sub _xlate_insteon_mh
 	}
 	my $cmd1 = substr($p_state,14,2);
 
-	&::print_log("[Insteon_Device]  command:$cmd1; type:$msg{type}; group: $msg{group}") if (!($msg{is_ack} or $msg{is_nack}))
+	&::print_log("[Insteon_Device] command:$cmd1; type:$msg{type}; group: $msg{group}") if (!($msg{is_ack} or $msg{is_nack}))
 			and $main::Debug{insteon};
 	for my $key (keys %message_types){
 		if (pack("C",$message_types{$key}) eq pack("H*",$cmd1))
 		{
-			&::print_log("Insteon_Device: FOUND: $key") 
+			&::print_log("[Insteon_Device] found: $key") 
 				if (!($msg{is_ack} or $msg{is_nack})) and $main::Debug{insteon};
 			$msg{command}=$key;
 			last;
@@ -522,7 +538,11 @@ sub _on_poke
 		$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
 		$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
 	} elsif ($$self{_mem_action} eq 'adlb_data3') {
-	
+		## update the adlb records w/ the changes that were made
+		my $adlbkey = $$self{pending_adlb}{deviceid} . $$self{pending_adlb}{group};
+		$$self{adlb}{$adlbkey}{data1} = $$self{pending_adlb}{data1};
+		$$self{adlb}{$adlbkey}{data2} = $$self{pending_adlb}{data2};
+		$$self{adlb}{$adlbkey}{data3} = $$self{pending_adlb}{data3};
 	} 
 }
 
@@ -549,7 +569,7 @@ sub _on_peek
 				$$self{_mem_action} = undef;
 				# clear out mem_activity flag
 				$$self{_mem_activity} = undef;
-				$self->log_adlb();
+				eval ($$self{_mem_callback}) if defined $$self{_mem_callback};
 			} else {
 				$$self{pending_adlb}{flag} = $msg{extra};
 				## confirm that we have a high-water mark; otherwise stop
@@ -587,7 +607,7 @@ sub _on_peek
 			} elsif ($$self{_mem_activity} eq 'update') {
 				# poke the new value
 				# TO-DO: get the new value
-				$self->_send_cmd('command' => 'poke', 'extra' => 'NEW VALUE', 'is_synchronous' => 1);
+				$self->_send_cmd('command' => 'poke', 'extra' => $$self{pending_adlb}{data1}, 'is_synchronous' => 1);
 			}
 		} elsif ($$self{_mem_action} eq 'adlb_data2') {
 			if ($$self{_mem_activity} eq 'scan') {
@@ -598,23 +618,29 @@ sub _on_peek
 			} elsif ($$self{_mem_activity} eq 'update') {
 				# poke the new value
 				# TO-DO: get the new value
-				$self->_send_cmd('command' => 'poke', 'extra' => 'NEW VALUE', 'is_synchronous' => 1);
+				$self->_send_cmd('command' => 'poke', 'extra' => $$self{pending_adlb}{data2}, 'is_synchronous' => 1);
 			}
 		} elsif ($$self{_mem_action} eq 'adlb_data3') {
-			$$self{pending_adlb}{data3} .= $msg{extra};
-			# check the previous record if highwater is set
-			if ($$self{pending_adlb}{highwater}) {
-				if ($$self{pending_adlb}{inuse}) {
-				# save pending_adlb and then clear it out
-					my $adlbkey = $$self{pending_adlb}{deviceid} . $$self{pending_adlb}{group};
-					%{$$self{adlb}{$adlbkey}} = %{$$self{pending_adlb}};
-				} else {
-					# TO-DO: record the locations of deleted ADLB records for subsequent reuse
+			if ($$self{_mem_activity} eq 'scan') {
+				$$self{pending_adlb}{data3} .= $msg{extra};
+				# check the previous record if highwater is set
+				if ($$self{pending_adlb}{highwater}) {
+					if ($$self{pending_adlb}{inuse}) {
+					# save pending_adlb and then clear it out
+						my $adlbkey = $$self{pending_adlb}{deviceid} . $$self{pending_adlb}{group};
+						%{$$self{adlb}{$adlbkey}} = %{$$self{pending_adlb}};
+					} else {
+						# TO-DO: record the locations of deleted ADLB records for subsequent reuse
+					}
+					my $newaddress = sprintf("%04X", hex($$self{pending_adlb}{address}) - 8);
+					$$self{pending_adlb} = undef;
+					$self->_peek($newaddress);
 				}
-				my $newaddress = sprintf("%04X", hex($$self{pending_adlb}{address}) - 8);
-				$$self{pending_adlb} = undef;
-				$self->_peek($newaddress);
-			} 
+			} elsif ($$self{_mem_activity} eq 'update') {
+				# poke the new value
+				# TO-DO: get the new value
+				$self->_send_cmd('command' => 'poke', 'extra' => $$self{pending_adlb}{data3}, 'is_synchronous' => 1);
+			}
 		}
 #		&::print_log("Insteon_Device: peek for " . $self->{object_name} 
 #		. " is " . $msg{extra}) if $main::Debug{insteon};
@@ -625,8 +651,7 @@ sub restore_string
 {
 	my ($self) = @_;
 	my $restore_string = $self->SUPER::restore_string();
-	# ensure that adlb restore string is not saved out during the middle of an adlb scan
-	if ($$self{adlb} and !($$self{_mem_activity})) {
+	if ($$self{adlb}) {
 		my $adlb = '';
 		foreach my $adlb_key (keys %{$$self{adlb}}) {
 			next unless $$self{adlb}{$adlb_key}{inuse};
@@ -663,7 +688,7 @@ sub restore_adlb
 			my $adlbkey = $deviceid . $groupid;
 			%{$$self{adlb}{$adlbkey}} = %adlb_record;
 		}
-		$self->log_adlb();
+#		$self->log_alllink_table();
 	}
 }
 
@@ -673,16 +698,17 @@ sub set_receive
 	$self->SUPER::set($p_state, $p_setby, $p_response);
 }
 
-sub scan_adlb
+sub scan_link_table
 {
-	my ($self) = @_;
+	my ($self,$callback) = @_;
 	# always reset the current cache in case memory changes
 	$$self{adlb} = undef;
 	$$self{_mem_activity} = 'scan';
+	$$self{_mem_callback} = ($callback) ? $callback : undef;
 	$self->_peek('0FF8',0);
 }
 
-sub log_adlb
+sub log_alllink_table
 {
 	my ($self) = @_;
 	foreach my $adlbkey (keys %{$$self{adlb}}) {
@@ -695,12 +721,25 @@ sub log_adlb
 		}
 		my $object_name = ($device) ? $device->get_object_name : $$self{adlb}{$adlbkey}{deviceid};
 
-		&::print_log("[Insteon_Device] adlb [0x" . $$self{adlb}{$adlbkey}{address} . "] " .
+		my $on_level = 'unknown';
+		if (defined $$self{adlb}{$adlbkey}{data1}) {
+			if ($$self{adlb}{$adlbkey}{data1}) {
+				$on_level = int((hex($$self{adlb}{$adlbkey}{data1})*100/255) + .5) . "%";
+			} else {
+				$on_level = '0%';
+			}
+		}
+
+		my $ramp_rate = 'unknown';
+		if ($$self{adlb}{$adlbkey}{data2}) {
+			$ramp_rate = $ramp_h2n{$$self{adlb}{$adlbkey}{data2}} . "s";
+		}
+
+		&::print_log("[Insteon_Device] " . $self->get_object_name . " adlb [0x" . $$self{adlb}{$adlbkey}{address} . "] " .
 			(($$self{adlb}{$adlbkey}{is_controller}) ? "controller($$self{adlb}{$adlbkey}{group}) record to "
 			. $object_name
 			: "responder record to " . $object_name . "($$self{adlb}{$adlbkey}{group})"
-			. ": onlevel=" . int((hex($$self{adlb}{$adlbkey}{data1})*100/255) + .5) . "%" .
-			" and ramp=" . $ramp_h2n{$$self{adlb}{$adlbkey}{data2}} . "s" )) if $main::Debug{insteon};
+			. ": onlevel=$on_level and ramp=$ramp_rate")) if $main::Debug{insteon};
 	}
 }
 
@@ -712,17 +751,39 @@ sub get_link_record
 	return %link_record;
 }
 
-sub update_link
+sub update_light_link
+{
+	my ($self, $insteon_object, $group, $on_level, $ramp_rate) = @_;
+	&::print_log("[Insteon_Device] updating " . $self->get_object_name . " light level controlled by " . $insteon_object->get_object_name
+		. " and group: $group with on level: $on_level and ramp rate: $ramp_rate") if $main::Debug{insteon};
+	# strip optional % sign to append on_level
+	$on_level =~ s/(\d)%?/$1/;
+	# strip optional s (seconds) to append ramp_rate
+	$ramp_rate =~ s/(\d)s?/$1/;
+	my $data1 = sprintf('%02X',$on_level * 2.55);
+	my $data2 = &Insteon_Device::convert_ramp($ramp_rate);
+	$self->_update_link($insteon_object->device_id, $group, $data1, $data2, '00');
+}
+
+sub _update_link
 {
 	my ($self, $deviceid, $group, $data1, $data2, $data3) = @_;
 	my $address = $$self{adlb}{$deviceid . $group}{address};
 	if ($address) {
+		&::print_log("[Insteon_Device] " . $self->get_object_name . " address: $address found for device: $deviceid and group: $group");
 		# change address for start of change to be address + offset
 		$address = sprintf('%04X',hex($address) + 5);
 		$$self{_mem_activity} = 'update';
+		$$self{pending_adlb}{deviceid} = $deviceid;
+		$$self{pending_adlb}{group} = $group;
+		$$self{pending_adlb}{data1} = (defined $data1) ? $data1 : '00';
+		$$self{pending_adlb}{data2} = (defined $data2) ? $data2 : '00';
+		$$self{pending_adlb}{data3} = (defined $data3) ? $data3 : '00';
 		$self->_peek($address);
+	} else {
+		&::print_log("[Insteon_Device] WARN: " . $self->get_object_name 
+			. " update_link failure: no address could be found for device: $deviceid and group: $group");
 	}
-
 }
 
 sub _peek
