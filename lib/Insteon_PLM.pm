@@ -599,37 +599,60 @@ sub _parse_data {
 		if (substr($data_1,0,4) eq '0250') { #Insteon Standard Received
 			if (length($data_1) != 22) {
 				$$self{_data_fragment} = $data_1;
-				last;
+			} else {
+				$$self{_data_fragment} .= $data_1 unless $self->delegate($data_1);
 			}
-			$$self{_data_fragment} .= $data_1 unless $self->delegate($data_1);
 		} elsif (substr($data_1,0,4) eq '0251') { #Insteon Extended Received
 			if (length($data_1) != 50) {
 				$$self{_data_fragment} = $data_1;
-				last;
-			}
-			$$self{_data_fragment} .= $data_1 unless $self->delegate($data_1);
-		} elsif (substr($data_1,0,4) eq '0252') { #X10 Received
-			&::process_serial_data($self->_xlate_x10_mh($data_1));	
-		} elsif (substr($data_1,0,4) eq '0253') { #ALL-Linking Completed
-			&::print_log("[Insteon_PLM] ALL-Linking Completed:$data_1") if $main::Debug{insteon};
-		} elsif (substr($data_1,0,4) eq '0256') { #ALL-Link Cleanup Failure Report
-			&::print_log("[Insteon_PLM] ALL-Link Cleanup Failure Report:$data_1") if $main::Debug{insteon};
-		} elsif (substr($data_1,0,4) eq '0257') { #ALL-Link Record Response
-			&::print_log("[Insteon_PLM] ALL-Link Record Response:$data_1") if $main::Debug{insteon};
-			$self->parse_alllink($data_1);
-		} elsif (substr($data_1,0,4) eq '0258') { #ALL-Link Cleanup Status Report
-			my $cleanup_ack = substr($data_1,4,2);
-			if ($cleanup_ack eq '15') {
-				&::print_log("[Insteon_PLM] All-Link Cleanup reports failure.  Attempting resend")
-					if $main::Debug{insteon};
-				$self->send_plm_cmd($$self{pending_alllink}) if $$self{pending_alllink};
 			} else {
-				&::print_log("[Insteon_PLM] ALL-Link Cleanup reports success") if $main::Debug{insteon};
-				# TO-DO: set validation flag on device
+				$$self{_data_fragment} .= $data_1 unless $self->delegate($data_1);
+			}
+		} elsif (substr($data_1,0,4) eq '0252') { #X10 Received
+			if (length($data_1) != 8) {
+				$$self{_data_fragment} = $data_1;
+			} else {
+				&::process_serial_data($self->_xlate_x10_mh($data_1));	
+			}
+		} elsif (substr($data_1,0,4) eq '0253') { #ALL-Linking Completed
+			if (length($data_1) != 20) {
+				$$self{_data_fragment} = $data_1;
+			} else {
+				&::print_log("[Insteon_PLM] ALL-Linking Completed:$data_1") if $main::Debug{insteon};
+			}
+		} elsif (substr($data_1,0,4) eq '0256') { #ALL-Link Cleanup Failure Report
+			if (length($data_1) != 12) {
+				$$self{_data_fragment} = $data_1;
+			} else {
+				&::print_log("[Insteon_PLM] ALL-Link Cleanup Failure Report:$data_1") if $main::Debug{insteon};
+			}
+		} elsif (substr($data_1,0,4) eq '0257') { #ALL-Link Record Response
+			if (length($data_1) != 20) {
+				$$self{_data_fragment} = $data_1;
+			} else {
+				&::print_log("[Insteon_PLM] ALL-Link Record Response:$data_1") if $main::Debug{insteon};
+				$self->parse_alllink($data_1);
+			}
+		} elsif (substr($data_1,0,4) eq '0258') { #ALL-Link Cleanup Status Report
+			if (length($data_1) != 6) {
+				$$self{_data_fragment} = $data_1;
+			} else {
+				my $cleanup_ack = substr($data_1,4,2);
+				if ($cleanup_ack eq '15') {
+					&::print_log("[Insteon_PLM] All-Link Cleanup reports failure.  Attempting resend")
+						if $main::Debug{insteon};
+					$self->send_plm_cmd($$self{pending_alllink}) if $$self{pending_alllink};
+				} else {
+					&::print_log("[Insteon_PLM] ALL-Link Cleanup reports success") if $main::Debug{insteon};
+					# TO-DO: set validation flag on device
+				}
 			}
 		} elsif (substr($data_1,0,4) eq '0261') { #ALL-Link Broadcast 
+			if (length($data_1) != 10) {
+				$$self{_data_fragment} = $data_1;
+			} else {
 			&::print_log("[Insteon_PLM] ALL-Link Broadcast:$data_1") if $main::Debug{insteon};
-#			$$self{_data_fragment} = $data_1 unless $self->delegate($data_1);
+			}
 		} elsif (substr($data_1,0,2) eq '15') { #NAK Received
 			if (!($nack_count)) {
 				&::print_log("[Insteon_PLM] Interface extremely busy. Resending command"
@@ -654,9 +677,6 @@ sub _parse_data {
 
 	if ($process_next_command) {
 		$self->process_command_stack();
-	} else {
-#		my $queued_command_count = @{$$self{command_stack2}};
-#		&::print_log("### Remaining queued commands: $queued_command_count");
 	}
 
 	return $processedNibs;
@@ -667,7 +687,6 @@ sub process_command_stack
 	my ($self) = @_;
 	## send any remaining commands in stack
 	my $stack_count = @{$$self{command_stack2}};
-#			&::print_log("UPB Command stack2:$stack_count:@{$$self{command_stack2}}:");
 	if ($stack_count> 0 ) 
 	{
 		#send any remaining commands.
@@ -700,6 +719,8 @@ sub _xlate_mh_x10
 	$msg.= substr(unpack("H*",pack("C",$x10_house_codes{substr($id,1,1)})),1,1);
 	$msg.= substr(unpack("H*",pack("C",$x10_unit_codes{substr($id,2,1)})),1,1);
 	$msg.= "00";
+	&main::print_log("[Insteon_PLM] x10 sending code: " . uc($hc . $uc) . " as insteon msg: "
+		. $msg) if $main::Debug{insteon};
 	$self->send_plm_cmd($msg);
 
 	my $ecmd;
@@ -713,14 +734,18 @@ sub _xlate_mh_x10
 		#look for an explicit command
 		$ecmd = substr($id,$pos,length($id)-$pos);
 #		&::print_log("PLM:PAIR:$id:$pos:$ecmd:");
+		my $x10_arg = $ecmd;
 		if (defined $x10_commands{$ecmd} )
 		{
 			$msg.= substr(unpack("H*",pack("C",$x10_commands{$ecmd})),1,1);
 			$pos+=length($id)-$pos-1;
 		} else {
+			$x10_arg = $x10_commands{substr($id,$pos,1)};
 			$msg.= substr(unpack("H*",pack("C",$x10_commands{substr($id,$pos,1)})),1,1);			
 		}
 		$msg.= "80";
+		&main::print_log("[Insteon_PLM] x10 sending code: " . uc($hc . $x10_arg) . " as insteon msg: "
+		. $msg) if $main::Debug{insteon};
 		$self->send_plm_cmd($msg);
 	}
 }
