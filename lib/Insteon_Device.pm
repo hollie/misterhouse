@@ -47,6 +47,7 @@ my %message_types = (
 						status_request => 0x19,
 						do_read_ee => 0x24,
 						remote_set_button_tap => 0x25,
+						set_led_status => 0x27,
 						set_address_msb => 0x28,
 						poke => 0x29,
 						poke_extended => 0x2a,
@@ -328,6 +329,17 @@ sub request_status
 	$self->_send_cmd('command' => 'status_request', 'is_synchronous' => 1);
 }
 
+sub ping
+{
+	my ($self) = @_;
+	$self->_send_cmd('command' => 'ping');
+}
+
+sub set_led_status
+{
+	my ($self, $status_mask) = @_;
+	$self->_send_cmd('command' => 'set_led_status', 'extra' => $status_mask);
+}
 
 sub _process_message
 {
@@ -347,7 +359,7 @@ sub _process_message
 				$self->{object_name} . " with on-level: " . 
 				sprintf("%d",$ack_on_level) . '%'
 				. ", hops left: $msg{hopsleft}") if $main::Debug{insteon};
-			$self->_on_status_request($ack_on_level, $p_setby);
+			$self->_on_status_request(hex($msg{extra}), $p_setby);
 			$self->_process_command_stack(%msg);
 		} elsif (($msg{command} eq 'peek') or ($msg{command} eq 'set_address_msb')) {
 			$self->_on_peek(%msg);
@@ -464,7 +476,7 @@ sub _xlate_mh_insteon
 				$msg='off';
 				$level = 0;
 			} else {
-				$level = $1 * 2.5;
+				$level = $1 * 2.55;
 				$msg='on';
 			}
 		}
@@ -519,7 +531,7 @@ sub _on_status_request
 	} elsif ($p_onlevel == 255) {
 		$self->SUPER::set('on', $p_setby);
 	} else {
-		$p_onlevel = $p_onlevel / 2.5;
+		$p_onlevel = $p_onlevel / 2.55;
 		$self->SUPER::set(sprintf("%d",$p_onlevel) . '%', $p_setby);
 	}
 	$self->is_acknowledged(1);
@@ -543,7 +555,12 @@ sub _on_poke
 		$$self{adlb}{$adlbkey}{data1} = $$self{pending_adlb}{data1};
 		$$self{adlb}{$adlbkey}{data2} = $$self{pending_adlb}{data2};
 		$$self{adlb}{$adlbkey}{data3} = $$self{pending_adlb}{data3};
-	} 
+	} elsif ($$self{_mem_action} eq 'local_onlevel') {
+		$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+		$$self{_mem_action} = 'local_ramprate';
+		$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+	}
+#
 }
 
 sub _on_peek
@@ -558,6 +575,8 @@ sub _on_peek
 				$$self{_mem_action} = 'adlb_flag';
 			} elsif ($$self{_mem_activity} eq 'update') {
 				$$self{_mem_action} = 'adlb_data1';
+			} elsif ($$self{_mem_activity} eq 'update_local') {
+				$$self{_mem_action} = 'local_onlevel';
 			}
 			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
 		} elsif ($$self{_mem_action} eq 'adlb_flag') {
@@ -641,8 +660,20 @@ sub _on_peek
 				# TO-DO: get the new value
 				$self->_send_cmd('command' => 'poke', 'extra' => $$self{pending_adlb}{data3}, 'is_synchronous' => 1);
 			}
+		} elsif ($$self{_mem_action} eq 'local_onlevel') {
+			my $on_level = $$self{_onlevel};
+			$on_level = 'ff' unless $on_level;
+			$self->_send_cmd('command' => 'poke', 'extra' => $on_level, 'is_synchronous' => 1);
+#			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+#			$$self{_mem_action} = 'local_ramprate';
+#			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+		} elsif ($$self{_mem_action} eq 'local_ramprate') {
+			my $ramp_rate = $$self{_ramprate};
+			$ramp_rate = '1f' unless $ramp_rate;
+			$self->_send_cmd('command' => 'poke', 'extra' => $ramp_rate, 'is_synchronous' => 1);
 		}
-#		&::print_log("Insteon_Device: peek for " . $self->{object_name} 
+#
+#			&::print_log("Insteon_Device: peek for " . $self->{object_name} 
 #		. " is " . $msg{extra}) if $main::Debug{insteon};
 	}	
 }
@@ -696,6 +727,18 @@ sub set_receive
 {
 	my ($self, $p_state, $p_setby, $p_response) = @_;
 	$self->SUPER::set($p_state, $p_setby, $p_response);
+}
+
+sub assign_to_group
+{
+	my ($self, $group) = @_;
+	$self->_send_cmd(command => 'assign_to_group', extra => $group);
+}
+
+sub delete_from_group
+{
+	my ($self, $group) = @_;
+	$self->_send_cmd(command => 'delete_from_group', extra => $group);
 }
 
 sub scan_link_table
@@ -763,6 +806,13 @@ sub update_light_link
 	my $data1 = sprintf('%02X',$on_level * 2.55);
 	my $data2 = &Insteon_Device::convert_ramp($ramp_rate);
 	$self->_update_link($insteon_object->device_id, $group, $data1, $data2, '00');
+}
+
+sub update_local_properties
+{
+	my ($self) = @_;
+	$$self{_mem_activity} = 'update_local';
+	$self->_peek('0320'); # 0320 is the address for the onlevel
 }
 
 sub _update_link
