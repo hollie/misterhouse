@@ -91,6 +91,12 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "UPB_Rain8(\$$object, $network,$address)";
     }
+    elsif($type eq "UPBT") {
+        require 'UPB_Thermostat.pm';
+        ($name, $object, $network, $address,$grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "UPB_Thermostat(\$$object, $network,$address)";
+    }
     # ----------------------------------------------------------------------
     elsif($type eq "INSTEON_PLM") {
         require 'Insteon_PLM.pm';
@@ -532,7 +538,7 @@ sub read_table_A {
            $code .= sprintf "\$%-35s -> add(\$%s);\n", $monitor_name, $name;
         }
         $object = '';
-    } 
+    }
     elsif($type eq "ZM_MONITOR") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
@@ -545,7 +551,7 @@ sub read_table_A {
         if( ! $packages{ZoneMinder_xAP}++ ) {   # first time for this object type?
             $code .= "use ZoneMinder_xAP;\n";
         }
-    } 
+    }
     elsif($type eq "ANALOG_SENSOR") {
         my $xc_name; #xap conduit
         my $sensor_type;
@@ -559,13 +565,13 @@ sub read_table_A {
             $name = $xc_name . "_" . $sensor_type . "_" . $address;
 	    $name =~ s/\./_/g; #strip out all the periods from xap names
         }
-        $code .= sprintf "\n\$%-35s = new AnalogSensor_Item('%s', '%s', %s);\n", 
+        $code .= sprintf "\n\$%-35s = new AnalogSensor_Item('%s', '%s', %s);\n",
                   $name, $address, $sensor_type, $other;
         if ($objects{$xc_name}) {
            $code .= sprintf "\$%-35s -> add(\$%s);\n", $xc_name, $name;
         }
         $object = '';
-    } 
+    }
     elsif($type eq "ANALOG_SENSOR_R") {
         my $xc_name; #xap conduit
         my $sensor_type;
@@ -579,13 +585,13 @@ sub read_table_A {
             $name = $xc_name . "_" . $sensor_type . "_" . $address;
 	    $name =~ s/\./_/g; #strip out all the periods from xap names
         }
-        $code .= sprintf "\n\$%-35s = new AnalogRangeSensor_Item('%s', '%s', %s);\n", 
+        $code .= sprintf "\n\$%-35s = new AnalogRangeSensor_Item('%s', '%s', %s);\n",
                   $name, $address, $sensor_type, $other;
         if ($objects{$xc_name}) {
            $code .= sprintf "\$%-35s -> add(\$%s);\n", $xc_name, $name;
         }
         $object = '';
-    } 
+    }
     elsif($type eq "OWX") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
@@ -598,7 +604,7 @@ sub read_table_A {
         if( ! $packages{OneWire_xAP}++ ) {   # first time for this object type?
             $code .= "use OneWire_xAP;\n";
         }
-    } 
+    }
     elsif($type eq "SDX") {
 	my $server;
 	#SDX, xap instance, object name, psixc server name
@@ -613,7 +619,7 @@ sub read_table_A {
         else{
             $object = "SysDiag_xAP('$address', '$server')";
         }
-    } 
+    }
     elsif($type eq "BSC") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
@@ -626,7 +632,7 @@ sub read_table_A {
         if( ! $packages{BSC}++ ) {   # first time for this object type?
             $code .= "use BSC;\n";
         }
-    } 
+    }
     elsif($type eq "XPL_SENSOR") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
@@ -639,7 +645,7 @@ sub read_table_A {
         if( ! $packages{xPL_Items}++ ) {   # first time for this object type?
             $code .= "use xPL_Items;\n";
         }
-    } 
+    }
     elsif($type eq "XPL_UPS") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
@@ -652,7 +658,7 @@ sub read_table_A {
         if( ! $packages{xPL_Items}++ ) {   # first time for this object type?
             $code .= "use xPL_Items;\n";
         }
-    } 
+    }
     elsif($type eq "X10_SCENE") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
@@ -665,7 +671,7 @@ sub read_table_A {
         if( ! $packages{X10_Scene}++ ) {   # first time for this object type?
             $code .= "use X10_Scene;\n";
         }
-    } 
+    }
     elsif($type eq "SCENE") {
         ($name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
@@ -678,7 +684,7 @@ sub read_table_A {
         if( ! $packages{Scene}++ ) {   # first time for this object type?
             $code .= "use Scene;\n";
         }
-    } 
+    }
     elsif($type eq "X10_SCENE_MEMBER") {
         my ($scene_name, $on_level, $ramp_rate);
         ($name, $scene_name, $on_level, $ramp_rate) = @item_info;
@@ -689,7 +695,7 @@ sub read_table_A {
         if (($objects{$scene_name}) and ($objects{$name})) {
            if ($on_level) {
               if ($ramp_rate) {
-                 $code .= sprintf "\$%-35s -> add(\$%s,'%s','%s');\n", 
+                 $code .= sprintf "\$%-35s -> add(\$%s,'%s','%s');\n",
                             $scene_name, $name, $on_level, $ramp_rate;
               } else {
                  $code .= sprintf "\$%-35s -> add(\$%s,'%s');\n", $scene_name, $name, $on_level;
@@ -710,7 +716,7 @@ sub read_table_A {
         if (($objects{$scene_name}) and ($objects{$name})) {
            if ($on_level) {
               if ($ramp_rate) {
-                 $code .= sprintf "\$%-35s -> add(\$%s,'%s','%s');\n", 
+                 $code .= sprintf "\$%-35s -> add(\$%s,'%s','%s');\n",
                             $scene_name, $name, $on_level, $ramp_rate;
               } else {
                  $code .= sprintf "\$%-35s -> add(\$%s,'%s');\n", $scene_name, $name, $on_level;
