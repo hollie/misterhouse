@@ -597,8 +597,16 @@ sub _parse_data {
 		$processedNibs+=length($data_1);
 
 		if (substr($data_1,0,4) eq '0250') { #Insteon Standard Received
+			if (length($data_1) != 22) {
+				$$self{_data_fragment} = $data_1;
+				last;
+			}
 			$$self{_data_fragment} .= $data_1 unless $self->delegate($data_1);
 		} elsif (substr($data_1,0,4) eq '0251') { #Insteon Extended Received
+			if (length($data_1) != 50) {
+				$$self{_data_fragment} = $data_1;
+				last;
+			}
 			$$self{_data_fragment} .= $data_1 unless $self->delegate($data_1);
 		} elsif (substr($data_1,0,4) eq '0252') { #X10 Received
 			&::process_serial_data($self->_xlate_x10_mh($data_1));	
