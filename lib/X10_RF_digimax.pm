@@ -38,11 +38,16 @@ sub rf_is_digimax210 {
 	$rbytes[$i] = ord(pack("b8", unpack("b*", $bytes[$i])));
     }
 
-    return (   (   ($rbytes[2] == 0x1e)		# state = fan on
-		|| ($rbytes[2] == 0x2d)		# state = fan off
-		|| ($rbytes[2] == 0x3c))	# state = initialising
-	    && (   ($rbytes[3] >=  0  )		# temp between 0 and
-		&& ($rbytes[3] <= 40  )));	#   40 degrees Celcius
+    my($B0H,$B0L,$B1H,$B1L,$B2H,$B2L,$Csum);
+    $B0H = $rbytes[0] >> 4;
+    $B0L = $rbytes[0] & 0x0F;
+    $B1H = $rbytes[1] >> 4;
+    $B1L = $rbytes[1] & 0x0F;
+    $B2H = $rbytes[2] >> 4;
+    $Csum = ((($B0H + $B0L + $B1H + $B1L + $B2H) & 0x0F) ^ 0xFF) & 0x0F;
+
+    $B2L = $rbytes[2] & 0x0F;
+    return ($Csum == $B2L);
 }
 
 #------------------------------------------------------------------------------
@@ -72,14 +77,16 @@ sub rf_process_digimax210 {
     # Unlike other X-10 security devices, the Digimax's ID is 2 bytes long
     $device_id = $rbytes[0] * 256 + $rbytes[1];
 
-    if ($rbytes[2] == 0x1e) {
+    if (($rbytes[2] >> 4) == 0x00) {      # device has no set temperature (set temp always 0x00) 
+	$state = "no set temp";
+    } elsif (($rbytes[2] >> 4) == 0x01) { # demand for heat
 	$state = "fan on";
-    } elsif ($rbytes[2] == 0x2d) {
+    } elsif (($rbytes[2] >> 4) == 0x02) { # no demand for heat
 	$state = "fan off";
-    } elsif ($rbytes[2] == 0x3c) {
+    } elsif (($rbytes[2] >> 4) == 0x03) { # initialising
 	$state = "initialising";
     } else {
-	$state = "unknown";	# this is redundant because of the test above.
+	$state = "unknown";	# We should hopefully never get to here!
     }
 
     $temperature = $rbytes[3];
