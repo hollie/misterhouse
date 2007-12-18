@@ -77,6 +77,14 @@ sub startup {
     }
 
     &::MainLoop_pre_add_hook(\&xAP::check_for_data, 1 );
+    # add exit hook so that xap-hbeat.stopped is sent
+    &::Exit_add_hook(\&xAP::exit_hook, 1);
+}
+
+sub exit_hook {
+   for my $virtual_device_name (keys %{xap_virtual_devices}) {
+        &send_xap_heartbeat($xap_virtual_devices{$virtual_device_name}{port}, $virtual_device_name, 'stopped');
+   }
 }
 
 sub init_xap_virtual_device {
