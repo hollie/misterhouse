@@ -60,7 +60,8 @@ function openparmhelp(parm1){
                         'Analog Sensor (ANALOG_SENSOR)', 'AUDIOTRON', 'COMPOOL', 
                         'EIB Switch (EIB1)', 'EIB Switch Group (EIB1G)', 'EIB Dimmer (EIB2)', 
                         'EIB Value (EIB5)', 'EIB Drive (EIB7)',
-                        'GENERIC', 'IBUTTON', 'INSTEON_PLM','IPLD','MP3PLAYER', 'One-Wire xAP Connector (OWX)', 'RF', 'SERIAL', 
+                        'GENERIC', 'IBUTTON', 'INSTEON_PLM','Insteon Device (IPLD)','Insteon Link (IPLL)', 
+                        'MP3PLAYER', 'One-Wire xAP Connector (OWX)', 'RF', 'SERIAL', 
                         'SG485LCD', 'SG485RCSTHRM', 'STARGATEDIN', 'STARGATEVAR', 
                         'STARGATEFLAG', 'STARGATERELAY', 'STARGATETHERM', 'STARGATEPHONE', 
                         'VOICE', 'WEATHER', 
@@ -131,6 +132,8 @@ $form_type
 					UPBL	=> [qw(Name Interface NetworkID Address Groups)],
 					INSTEON_PLM 	=> [qw(Name)],
 					IPLD	=> [qw(Address Name Groups Interface Options)],
+					IPLL	=> [qw(Address Name Groups Interface Options)],
+                    SCENE_MEMBER => [qw(MemberName LinkName OnLevel RampRate)],
                     default => [qw(Address Name Groups Other)]
     );
 
