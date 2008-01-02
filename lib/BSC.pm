@@ -70,7 +70,7 @@ sub new
 sub _initialize
 {
    my ($self) = @_;
-   $$self{m_always_set_state} = 1;
+   $$self{m_always_set_state} = 0;
    $$self{m_allow_local_set_state} = 1;
    $$self{m_write} = 1;
    $$self{m_registered_objects} = ();
