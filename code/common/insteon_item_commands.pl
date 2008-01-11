@@ -70,34 +70,47 @@ if ($Reload) {
            my $cmd_states = $states;
            if ($object->device_id eq '000000') {
               $cmd_states .= ',initiate linking as controller,cancel linking,sync links';
+           } else {
+              $cmd_states .= ",link to interface,unlink with interface";
            }
            $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->initiate_linking_as_controller(\"$group\")', 'initiate linking as controller');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->interface()->cancel_linking','cancel linking');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->sync_links()','sync links');\n\n";
+           if ($object->device_id eq '000000') {
+              $object_string .= "$object_name_v -> tie_event('$object_name->initiate_linking_as_controller(\"$group\")', 'initiate linking as controller');\n\n";
+              $object_string .= "$object_name_v -> tie_event('$object_name->interface()->cancel_linking','cancel linking');\n\n";
+              $object_string .= "$object_name_v -> tie_event('$object_name->sync_links()','sync links');\n\n";
+           } else {
+              $object_string .= "$object_name_v -> tie_event('$object_name->link_to_interface','link to interface');\n\n";
+              $object_string .= "$object_name_v -> tie_event('$object_name->unlink_to_interface','unlink with interface');\n\n";
+           }
            $object_string .= "$object_name_v -> tie_items($object_name, 'on');\n\n";
            $object_string .= "$object_name_v -> tie_items($object_name, 'off');\n\n";
            $object_string .= &store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_link_commands');
            push @_insteon_link, $object_name;
         } elsif ($object->isa('Insteon_Device')) {
            $states = $insteon_menu_states if $insteon_menu_states;
-           my $cmd_states = "$states,status,scan link table,log links"; #,on level,ramp rate";
+           my $cmd_states = "$states,status,scan link table,log links,update onlevel/ramprate"; #,on level,ramp rate";
+           $cmd_states .= ",link to interface,unlink with interface" if $object->is_controller;
            $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
            foreach my $state (split(/,/,$states)) {
               $object_string .= "$object_name_v -> tie_items($object_name, '$state');\n\n";
            }
            $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table()','log links');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->request_status','status');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->update_local_properties','update onlevel/ramprate');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','scan link table');\n\n";
+           if ($object->is_controller) {
+              $object_string .= "$object_name_v -> tie_event('$object_name->link_to_interface','link to interface');\n\n";
+              $object_string .= "$object_name_v -> tie_event('$object_name->unlink_to_interface','unlink with interface');\n\n";
+           }
 # the remote_set_button_taps provide incorrect/inconsistent results
 #           $object_string .= "$object_name_v -> tie_event('$object_name->remote_set_button_tap(1)','on level');\n\n";
 #           $object_string .= "$object_name_v -> tie_event('$object_name->remote_set_button_tap(2)','ramp rate');\n\n";
            $object_string .= &store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_item_commands');
            push @_insteon_device, $object_name if $group eq '01'; # don't allow non-base items to participate
         } elsif ($object->isa('Insteon_PLM')) {
-           my $cmd_states = "initiate linking as responder,cancel linking,delete link with PLM,scan link table,log links,delete orphan links";
+           my $cmd_states = "complete linking as responder,cancel linking,delete link with PLM,scan link table,log links,delete orphan links";
            $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->initiate_linking_as_responder','initiate linking as responder');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->complete_linking_as_responder','complete linking as responder');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->initiate_unlinking_to_plm','delete link with PLM');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->cancel_linking','cancel linking');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table','log links');\n\n";
