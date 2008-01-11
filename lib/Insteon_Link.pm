@@ -42,7 +42,8 @@ sub new
 	# note that $p_deviceid will be 00.00.00:<groupnum> if the link uses the interface as the controller
 	my $self = $class->SUPER::new($p_interface,$p_deviceid);
 	bless $self,$class;
-
+# don't apply ping timer to this class
+	$$self{ping_timer}->stop();
 	return $self;
 }
 
@@ -75,20 +76,36 @@ sub sync_links
 				my @children = $member->find_members('Insteon_Device');
 				$member = $children[0];
 			}
-			my $controller = $self->interface;
+			my $insteon_object = $self->interface;
 			if ($self->device_id ne '000000') {
-				$controller = $self->interface()->get_object($self->device_id);
+				$insteon_object = $self->interface()->get_object($self->device_id);
 			}
 			my $tgt_on_level = $$self{members}{$member_ref}{on_level};
 			my $tgt_ramp_rate = $$self{members}{$member_ref}{ramp_rate};
-			$member->update_light_link($controller,$self->group, $tgt_on_level, $tgt_ramp_rate);
+			# first, check existance for each link; if found, then perform an update (unless link is to PLM)
+			# if not, then add the link
+			if ($member->has_link($insteon_object, $self->group, 0)) {
+				# TO-DO: only update link if the on_level and ramp_rate are different
+				$member->update_link(object => $insteon_object, group => $self->group, is_controller => 0, 
+					on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate);
+			} else {
+				$member->add_link(object => $insteon_object, group => $self->group, is_controller => 0);
+			}
+			if (!($insteon_object->has_link($member, $self->group, 1))) {
+				$insteon_object->add_link(object => $member, group => $self->group, is_controller => 1);
+			}
 		}
 	}
+	# TO-DO: consult links table to determine if any "orphaned links" refer to this device; if so, then delete
+	# WARN: can't immediately do this as the link tables aren't finalized on the above operations
+	#    until the end of the actual insteon memory poke sequences; therefore, may need to handle separately
 }
 
 sub set
 {
 	my ($self, $p_state, $p_setby, $p_respond) = @_;
+	# prevent setby internal Insteon_Device timers
+	return if $p_setby eq $$self{ping_timer};
 	# iterate over the members
 	if ($$self{members}) {
 		foreach my $member_ref (keys %{$$self{members}}) {
@@ -96,8 +113,8 @@ sub set
 			my $on_state = $$self{members}{$member_ref}{on_level};
 			$on_state = '100%' unless $on_state;
 			my $local_state = $on_state;
-			$local_state = 'on' if $local_state = '100%';
-			$local_state = 'off' if $local_state = '0%';
+			$local_state = 'on' if $local_state eq '100%';
+			$local_state = 'off' if $local_state eq '0%';
 			if ($member->isa('Light_Item')) {
 			# if they are Light_Items, then set their on_dim attrib to the member on level
 			#   and then "blank" them via the manual method for a tad over the ramp rate
@@ -161,6 +178,30 @@ sub update_members
 	}
 }
 
+sub link_to_interface
+{
+	my ($self) = @_;
+	return if $self->device_id eq '000000'; # don't allow this to be used for PLM links
+	$self->SUPER::link_to_interface();
+	# get the object that this link corresponds to
+	my $device = $self->interface->get_object($self->device_id,'01');
+	if ($device) {
+	# next, if the link is a keypadlinc, then create the reverse link to permit
+	# control over the button's light
+		if ($$device{devcat} eq '0109') { # 0109 is a keypadlinc
+
+		}
+	}
+}
+
+sub unlink_to_interface
+{
+	my ($self) = @_;
+	return if $self->device_id eq '000000'; # don't allow this to be used for PLM links
+	$self->SUPER::unlink_to_interface();
+	# next, if the link is a keypadlinc, then delete the reverse link that permits
+	# control over the button's light
+}
 
 sub initiate_linking_as_controller
 {

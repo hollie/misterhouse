@@ -320,7 +320,14 @@ sub set
 	}
 }
 
-sub initiate_linking_as_responder
+sub has_link
+{
+	my ($self, $insteon_object, $group, $is_controller) = @_;
+	my $key = $insteon_object->device_id . $group . $is_controller;
+	return (defined $$self{links}{$key}) ? 1 : 0;
+}
+
+sub complete_linking_as_responder
 {
 	my ($self, $group) = @_;
 
@@ -336,6 +343,7 @@ sub initiate_linking_as_responder
 sub scan_link_table
 {
 	my ($self,$callback) = @_;
+	$$self{links} = undef; # clear out the old
 	$$self{_mem_activity} = 'scan';
         $$self{_mem_callback} = ($callback) ? $callback : undef;
 	$self->get_first_alllink();
@@ -523,9 +531,10 @@ sub _parse_data {
 		my $entered_ack_loop = 0;
 		foreach my $data_1 (split(/($ackcmd)|($nackcmd)|(0260\w{12}06)|(0260\w{12}15)/,$data))
 		{
-			$entered_ack_loop = 1;
 			#ignore blanks.. the split does odd things
 			next if $data_1 eq '';
+
+			$entered_ack_loop = 1;
 
 			if ($data_1 =~ /^($ackcmd)|($nackcmd)|(0260\w{12}06)|(0260\w{12}15)$/) {
 				$processedNibs+=length($data_1);
@@ -590,9 +599,11 @@ sub _parse_data {
 
 	foreach my $data_1 (split(/(0263\w{6})|(0252\w{4})|(0250\w{18})|(0251\w{46})|(0261\w{6})|(0253\w{16})|(0256\w{8})|(0257\w{16})|(0258\w{2})/,$residue_data))
 	{
-		$entered_rcv_loop = 1;
 		#ignore blanks.. the split does odd things
 		next if $data_1 eq '';
+
+		$entered_rcv_loop = 1;
+	
 		#we found a matching command in stream, add to processed bytes
 		$processedNibs+=length($data_1);
 
@@ -612,13 +623,16 @@ sub _parse_data {
 			if (length($data_1) != 8) {
 				$$self{_data_fragment} = $data_1;
 			} else {
-				&::process_serial_data($self->_xlate_x10_mh($data_1));	
+				my $x10_data = $self->_xlate_x10_mh($data_1);
+				&::print_log("[Insteon_PLM] received x10 data: $x10_data") if $main::Debug{insteon}
+				&::process_serial_data($x10_data,undef,$self);
 			}
 		} elsif (substr($data_1,0,4) eq '0253') { #ALL-Linking Completed
 			if (length($data_1) != 20) {
 				$$self{_data_fragment} = $data_1;
 			} else {
-				&::print_log("[Insteon_PLM] ALL-Linking Completed:$data_1") if $main::Debug{insteon};
+				my $link_address = substr($data_1,8,6);
+				&::print_log("[Insteon_PLM] ALL-Linking Completed with $link_address ($data_1)") if $main::Debug{insteon};
 			}
 		} elsif (substr($data_1,0,4) eq '0256') { #ALL-Link Cleanup Failure Report
 			if (length($data_1) != 12) {
@@ -639,9 +653,16 @@ sub _parse_data {
 			} else {
 				my $cleanup_ack = substr($data_1,4,2);
 				if ($cleanup_ack eq '15') {
-					&::print_log("[Insteon_PLM] All-Link Cleanup reports failure.  Attempting resend")
+					$$self{retry_count} += 1;
+					if ($$self{retry_count} < 3) {
+						&::print_log("[Insteon_PLM] All-Link Cleanup reports failure.  Attempting resend")
 						if $main::Debug{insteon};
-					$self->send_plm_cmd($$self{pending_alllink}) if $$self{pending_alllink};
+
+						$self->send_plm_cmd($$self{pending_alllink}) if $$self{pending_alllink};
+					} else {
+						# move on
+						$$self{retry_count} = 0;
+					}
 				} else {
 					&::print_log("[Insteon_PLM] ALL-Link Cleanup reports success") if $main::Debug{insteon};
 					# TO-DO: set validation flag on device
@@ -811,17 +832,19 @@ sub delegate
 sub parse_alllink
 {
 	my ($self, $data) = @_;
-	my %link = {};
-	my $flag = substr($data,4,1);
-	$link{is_controller} = hex($flag) & 0x04;
-	$link{flags} = substr($data,4,2);
-	$link{group} = substr($data,6,2);
-	$link{deviceid} = substr($data,8,6);
-	$link{data1} = substr($data,14,2);
-	$link{data2} = substr($data,16,2);
-	$link{data3} = substr($data,18,2);
-	my $key = $link{deviceid} . $link{group};
-	%{$$self{links}{$key}} = %link;
+	if (substr($data,8,6)) {
+		my %link = {};
+		my $flag = substr($data,4,1);
+		$link{is_controller} = hex($flag) & 0x04;
+		$link{flags} = substr($data,4,2);
+		$link{group} = substr($data,6,2);
+		$link{deviceid} = substr($data,8,6);
+		$link{data1} = substr($data,14,2);
+		$link{data2} = substr($data,16,2);
+		$link{data3} = substr($data,18,2);
+		my $key = $link{deviceid} . $link{group} . $link{is_controller};
+		%{$$self{links}{$key}} = %link;
+	}
 	$self->get_next_alllink();
 }
 
@@ -856,13 +879,15 @@ sub restore_linktable
 			my %link_record = {};
 			my $deviceid = '';
 			my $groupid = '01';
+			my $is_controller = 0;
 			foreach my $link_record (split(/,/,$link_section)) {
 				my ($key,$value) = split(/=/,$link_record);
 				$deviceid = $value if ($key eq 'deviceid');
 				$groupid = $value if ($key eq 'group');
+				$is_controller = $value if ($key eq 'is_controller');
 				$link_record{$key} = $value if $key and defined($value);
 			}
-			my $linkkey = $deviceid . $groupid;
+			my $linkkey = $deviceid . $groupid . $is_controller;
 			%{$$self{links}{$linkkey}} = %link_record;
 		}
 #		$self->log_alllink_table();
@@ -879,7 +904,8 @@ sub log_alllink_table
 			(($$self{links}{$linkkey}{is_controller}) ? "controller($$self{links}{$linkkey}{group}) record to "
 			. $object_name
 			: "responder record to " . $object_name . "($$self{links}{$linkkey}{group})")
-			. " data1=$$self{links}{$linkkey}{data1}, data2=$$self{links}{$linkkey}{data2}")
+			. " data1=$$self{links}{$linkkey}{data1}, data2=$$self{links}{$linkkey}{data2}, "
+			. "data3=$$self{links}{$linkkey}{data3}")
 			if $main::Debug{insteon};
 	}
 }
@@ -889,21 +915,63 @@ sub delete_orphan_links
 	my ($self) = @_;
 	my $num_deleted = 0;
 	foreach my $linkkey (keys %{$$self{links}}) {
-		my $device = $self->get_object($$self{links}{$linkkey}{deviceid},'01');
+		my $deviceid = $$self{links}{$linkkey}{deviceid};
+		my $device = $self->get_object($deviceid,'01');
+		# if a PLM link (regardless of responder or controller) exists to a device that is not known, then delete
 		if (!($device)) {
 			&::print_log("[Insteon_PLM] now deleting orphaned link w/ details: "
 				. (($$self{links}{$linkkey}{is_controller}) ? "controller" : "responder")
-				. ", deviceid=$$self{links}{$linkkey}{deviceid}, "
+				. ", deviceid=$deviceid, "
 				. "group=$$self{links}{$linkkey}{group}");
-			my $cmd = '026F' . '80'
-				. $$self{links}{$linkkey}{flags}
-				. $$self{links}{$linkkey}{group}
-				. $$self{links}{$linkkey}{deviceid}
-				. $$self{links}{$linkkey}{data1}
-				. $$self{links}{$linkkey}{data2}
-				. $$self{links}{$linkkey}{data3};
-			$self->send_plm_cmd($cmd);
+			$self->delete_link(deviceid => $deviceid, group => $$self{links}{$linkkey}{group}, 
+				is_controller => $$self{links}{$linkkey}{is_controller});
 			$num_deleted++;
+		} else {
+			my $is_invalid = 1;
+			my $link = undef;
+			if ($$self{links}{$linkkey}{is_controller}) {
+				# then, this is a PLM defined link; and, we won't care about responder links as we assume
+				# they're ok given that they reference known devices
+				$link = $self->get_object('000000',$$self{links}{$linkkey}{group});
+				if (!($link)) {
+					$is_invalid = 1;
+				} else {
+					foreach my $member_ref (keys %{$$link{members}}) {
+					my $member = $$link{members}{$member_ref}{object};
+						if ($member->isa('Light_Item')) {
+							my @lights = $member->find_members('Insteon_Device');
+							if (@lights) {
+								$member = @lights[0]; # pick the first
+							}
+						}
+						if ($member->isa('Insteon_Device')) {
+							if (lc $member->device_id eq $$self{links}{$linkkey}{deviceid}) {
+								$is_invalid = 0;
+								last;
+							}
+						} else {
+							$is_invalid = 0;
+						}
+					}
+				}
+				if ($is_invalid) {
+					&::print_log("[Insteon_PLM] now deleting orphaned link in PLM w/ details: "
+						. "controller"
+						. ", deviceid=$$self{links}{$linkkey}{deviceid},"
+						. "group=$$self{links}{$linkkey}{group}");
+					$self->delete_link(object => $device, group => $$self{links}{$linkkey}{group}, 
+						is_controller => $$self{links}{$linkkey}{is_controller});
+					$num_deleted++;
+				}
+			}
+		}
+	}
+	# iterate over all registered objects and compare whether the link tables match defined scene linkages in known Insteon_Links
+	for my $obj (@{$$self{objects}})
+	{
+		#Match on Insteon objects only
+		if ($obj->isa("Insteon_Device") and !($obj->isa("Insteon_Link")))
+		{
 		}
 	}
 	if ($num_deleted) {
@@ -914,6 +982,70 @@ sub delete_orphan_links
 	}
 }
 
+sub delete_link
+{
+	# linkkey is concat of: deviceid, group, is_controller
+	my ($self, %link_parms) = @_;
+	my $insteon_object = $link_parms{object};
+	my $deviceid = ($insteon_object) ? $insteon_object->device_id : $link_parms{deviceid};
+	my $group = $link_parms{group};
+	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
+	my $linkkey = lc $deviceid . $group . (($is_controller) ? '1' : '0');
+	if (defined $$self{links}{$linkkey}) {
+		my $cmd = '026F' . '80'
+			. $$self{links}{$linkkey}{flags}
+			. $$self{links}{$linkkey}{group}
+			. $$self{links}{$linkkey}{deviceid}
+			. $$self{links}{$linkkey}{data1}
+			. $$self{links}{$linkkey}{data2}
+			. $$self{links}{$linkkey}{data3};
+		$self->send_plm_cmd($cmd);
+		delete $$self{links}{$linkkey};
+	} else {
+		&::print_log("[Insteon_PLM] no entry in linktable could be found for linkkey: $linkkey");
+	}
+}
+
+sub add_link
+{
+	my ($self, %link_parms) = @_;
+	my $insteon_object = $link_parms{object};
+	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
+	my $group =  ($link_parms{group}) ? $link_parms{group} : '01';
+	# first, confirm that the link does not already exist
+	my $linkkey = lc $insteon_object->device_id . $group . $is_controller;
+	if (defined $$self{links}{$linkkey}) {
+		&print_log("[Insteon_PLM] WARN: attempt to add link to PLM that already exists! "
+			. "object=" . $insteon_object->get_object_name . ", group=$group, is_controller=$is_controller");
+	} else {
+		my $control_code = ($is_controller) ? '40' : '41';
+		# flags should be 'a2' for responder and 'e2' for controller
+		my $flags = ($is_controller) ? 'E2' : 'A2';
+		my $data1 = (defined $link_parms{data1}) ? $link_parms{data1} : (($is_controller) ? '01' : '00');
+		my $data2 = (defined $link_parms{data2}) ? $link_parms{data2} : '00';
+		my $data3 = (defined $link_parms{data3}) ? $link_parms{data3} : '00';
+		# from looking at manually linked records, data1 and data2 are both 00 for responder records
+		# and, data1 is 01 and usually data2 is 00 for controller records
+
+		my $cmd = '026F' 
+			. $control_code
+			. $flags
+			. $group
+			. $insteon_object->device_id
+			. $data1 
+			. $data2
+			. $data3;
+#	print "############ sending $cmd\n";
+		$self->send_plm_cmd($cmd);
+		$$self{links}{$linkkey}{flags} = lc $flags;
+		$$self{links}{$linkkey}{group} = lc $group;
+		$$self{links}{$linkkey}{is_controller} = $is_controller;
+		$$self{links}{$linkkey}{deviceid} = lc $insteon_object->device_id;
+		$$self{links}{$linkkey}{data1} = lc $data1;
+		$$self{links}{$linkkey}{data2} = lc $data2;
+		$$self{links}{$linkkey}{data3} = lc $data3;
+	}
+}
 
 sub get_object
 {

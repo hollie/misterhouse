@@ -114,6 +114,8 @@ sub new
 	$self->interface($p_interface) if defined $p_interface;
 	if (defined $p_deviceid) {
 		my ($deviceid, $group) = $p_deviceid =~ /(\w\w\.\w\w\.\w\w):?(.+)?/;
+		# if a group is passed in, then assume it can be a controller
+		$$self{is_controller} = ($group) ? 1 : 0;
 		$self->device_id($deviceid);
 		$group = '01' unless $group;
 		$group = '0' . $group if length($group) == 1;
@@ -139,6 +141,12 @@ sub initialize
 	my ($self) = @_;
 	$$self{m_write} = 1;
 	$$self{m_is_locally_set} = 0;
+	# persist local, simple attribs
+	$self->restore_data('devcat');
+	$$self{ping_timer} = new Timer();
+	$$self{ping_timerTime} = 300;
+	$$self{ping_timer}->set($$self{ping_timerTime} + (rand() * $$self{ping_timerTime}), $self) 
+		unless $self->group eq '01' and defined $$self{devcat};
 }
 
 sub interface
@@ -178,6 +186,12 @@ sub is_acknowledged
 	return $$self{is_acknowledged};
 }
 
+sub is_controller
+{
+	my ($self) = @_;
+	return $$self{is_controller};
+}
+
 sub set
 {
 	my ($self,$p_state,$p_setby,$p_response) = @_;
@@ -190,6 +204,12 @@ sub set
 	# did the queue timer go off?
 	if (ref $p_setby and $p_setby eq $$self{queue_timer}) {
 		$self->_process_command_stack();
+	} elsif (ref $p_setby and $p_setby eq $$self{ping_timer}) {
+		if (! (defined($$self{devcat}))) {
+			$self->ping();
+			# set the timer again in case nothing occurs
+			$$self{ping_timer}->set($$self{ping_timerTime} + (rand() * $$self{ping_timerTime}), $self);
+		}
 	} else {
 		# always reset the is_locally_set property
 		$$self{m_is_locally_set} = 0;
@@ -210,6 +230,23 @@ sub set
 		}
 		$self->SUPER::set($p_state,$p_setby,$p_response) if defined $p_state;
 	}
+}
+
+sub link_to_interface
+{
+	my ($self) = @_;
+	# add a link first to this device back to interface
+	# and, add a reference to creating a link from interface back to device via hook
+	$self->add_link(object => $self->interface, group => $self->group, is_controller => 1,
+			on_level => '100%', ramp_rate => '0.1s', 
+			callback => \$self->interface->add_link(object => $self, group => '01', is_controller => 0));
+}
+
+sub unlink_to_interface
+{
+	my ($self) = @_;
+	$self->delete_link(object => $self->interface, group => $self->group, is_controller => 1,
+		callback => \$self->interface->delete_link(object => $self, group => '01', is_controller => 0));
 }
 
 sub _send_cmd
@@ -381,10 +418,18 @@ sub _process_message
 		# do nothing; although, maybe anticipate change? we should always get a stop
 	} elsif ($msg{command} eq 'stop_manual_change') {
 		$self->request_status();
+	} elsif ($msg{type} eq 'broadcast') {
+		$$self{devcat} = $msg{devcat};
+		&::print_log("[Insteon_Device] device category: $msg{devcat} received for " . $self->{object_name});
+		# stop ping timer now that we have a devcat; possibly may want to change this behavior to allow recurring pings
+		$$self{ping_timer}->stop();
 	} else {
 		## TO-DO: make sure that the state passed by command is something that is reasonable to set
 		$p_state = $msg{command};
-		$self->set($p_state, $p_setby);
+		$$self{_pending_cleanup} = 1 if $msg{type} eq 'alllink';
+		$self->set($p_state, $p_setby) unless (lc($self->state) eq lc($p_state)) and 
+			($msg{type} eq 'cleanup' and $$self{_pending_cleanup});
+		$$self{_pending_cleanup} = 0 if $msg{type} eq 'cleanup';
 	}
 }
 
@@ -406,6 +451,10 @@ sub _xlate_insteon_mh
 		$msgflag = $msgflag >> 1;
 		if ($msgflag == 4) {
 			$msg{type} = 'broadcast';
+			$msg{devcat} = substr($p_state,6,4);
+			$msg{firmware} = substr($p_state,10,2);
+			$msg{is_master} = substr($p_state,16,2);
+			$msg{dev_attribs} = substr($p_state,18,2);
 		} elsif ($msgflag ==6) {
 			$msg{type} = 'alllink';
 			$msg{group} = substr($p_state,10,2);
@@ -435,15 +484,17 @@ sub _xlate_insteon_mh
 	}
 	my $cmd1 = substr($p_state,14,2);
 
-	&::print_log("[Insteon_Device] command:$cmd1; type:$msg{type}; group: $msg{group}") if (!($msg{is_ack} or $msg{is_nack}))
-			and $main::Debug{insteon};
-	for my $key (keys %message_types){
-		if (pack("C",$message_types{$key}) eq pack("H*",$cmd1))
-		{
-			&::print_log("[Insteon_Device] found: $key") 
-				if (!($msg{is_ack} or $msg{is_nack})) and $main::Debug{insteon};
-			$msg{command}=$key;
-			last;
+	if ($msg{type} ne 'broadcast') {
+		&::print_log("[Insteon_Device] command:$cmd1; type:$msg{type}; group: $msg{group}") if (!($msg{is_ack} or $msg{is_nack}))
+				and $main::Debug{insteon};
+		for my $key (keys %message_types){
+			if (pack("C",$message_types{$key}) eq pack("H*",$cmd1))
+			{
+				&::print_log("[Insteon_Device] found: $key") 
+					if (!($msg{is_ack} or $msg{is_nack})) and $main::Debug{insteon};
+				$msg{command}=$key;
+				last;
+			}
 		}
 	}
 return %msg;
@@ -532,6 +583,7 @@ sub _on_status_request
 		$self->SUPER::set('on', $p_setby);
 	} else {
 		$p_onlevel = $p_onlevel / 2.55;
+		$p_onlevel = 100 if $p_onlevel >= 99;
 		$self->SUPER::set(sprintf("%d",$p_onlevel) . '%', $p_setby);
 	}
 	$self->is_acknowledged(1);
@@ -541,24 +593,79 @@ sub _on_status_request
 sub _on_poke
 {
 	my ($self,%msg) = @_;
-	if ($$self{_mem_action} eq 'adlb_data1') {
-		$$self{_mem_action} = 'adlb_data2';
-		$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
-		$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
-	} elsif ($$self{_mem_action} eq 'adlb_data2') {
-		$$self{_mem_action} = 'adlb_data3';
-		$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
-		$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
-	} elsif ($$self{_mem_action} eq 'adlb_data3') {
-		## update the adlb records w/ the changes that were made
-		my $adlbkey = $$self{pending_adlb}{deviceid} . $$self{pending_adlb}{group};
-		$$self{adlb}{$adlbkey}{data1} = $$self{pending_adlb}{data1};
-		$$self{adlb}{$adlbkey}{data2} = $$self{pending_adlb}{data2};
-		$$self{adlb}{$adlbkey}{data3} = $$self{pending_adlb}{data3};
-	} elsif ($$self{_mem_action} eq 'local_onlevel') {
-		$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
-		$$self{_mem_action} = 'local_ramprate';
-		$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+	if (($$self{_mem_activity} eq 'update') or ($$self{_mem_activity} eq 'add')) {
+		if ($$self{_mem_action} eq 'adlb_flag') {
+			$$self{_mem_action} = 'adlb_group';
+			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+		} elsif ($$self{_mem_action} eq 'adlb_group') {
+			$$self{_mem_action} = 'adlb_devhi';
+			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+		} elsif ($$self{_mem_action} eq 'adlb_devhi') {
+			$$self{_mem_action} = 'adlb_devmid';
+			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+		} elsif ($$self{_mem_action} eq 'adlb_devmid') {
+			$$self{_mem_action} = 'adlb_devlo';
+			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+		} elsif ($$self{_mem_action} eq 'adlb_devlo') {
+			$$self{_mem_action} = 'adlb_data1';
+			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+		} elsif ($$self{_mem_action} eq 'adlb_data1') {
+			$$self{_mem_action} = 'adlb_data2';
+			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+		} elsif ($$self{_mem_action} eq 'adlb_data2') {
+			$$self{_mem_action} = 'adlb_data3';
+			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+		} elsif ($$self{_mem_action} eq 'adlb_data3') {
+			## update the adlb records w/ the changes that were made
+			my $adlbkey = $$self{pending_adlb}{deviceid} . $$self{pending_adlb}{group} . $$self{pending_adlb}{is_controller};
+			$$self{adlb}{$adlbkey}{data1} = $$self{pending_adlb}{data1};
+			$$self{adlb}{$adlbkey}{data2} = $$self{pending_adlb}{data2};
+			$$self{adlb}{$adlbkey}{data3} = $$self{pending_adlb}{data3};
+			if ($$self{_mem_activity} eq 'add') {
+				$$self{adlb}{$adlbkey}{is_controller} = $$self{pending_adlb}{is_controller};
+				$$self{adlb}{$adlbkey}{deviceid} = $$self{pending_adlb}{deviceid};
+				$$self{adlb}{$adlbkey}{group} = $$self{pending_adlb}{group};
+				$$self{adlb}{$adlbkey}{address} = $$self{pending_adlb}{address};
+				# on completion, check to see if the empty links list is now empty; if so, 
+				# then decrement the current address and add it to the list
+				if (!(@{$$self{adlb}{empty}})) {
+					my $address = $$self{adlb}{$adlbkey}{address};
+					$address = sprintf('%04X', hex($address) - 8);
+					unshift @{$$self{adlb}{empty}}, $address;
+				}
+			}
+			# clear out mem_activity flag
+			$$self{_mem_activity} = undef;
+			if (defined $$self{_mem_callback}) {
+				eval ($$self{_mem_callback});
+				$$self{_mem_callback} = undef;
+			}
+		}
+	} elsif ($$self{_mem_activity} eq 'update_local') {
+		if ($$self{_mem_action} eq 'local_onlevel') {
+			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+			$$self{_mem_action} = 'local_ramprate';
+			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+		}
+	} elsif ($$self{_mem_activity} eq 'delete') {
+		# clear out mem_activity flag
+		$$self{_mem_activity} = undef;
+		# add the address of the deleted link to the empty list
+		unshift @{$$self{adlb}{empty}}, $$self{pending_adlb}{address};
+		my $key = lc $$self{pending_adlb}{deviceid} . $$self{pending_adlb}{group} . $$self{pending_adlb}{is_controller};
+		delete $$self{adlb}{$key};
+	
+		if (defined $$self{_mem_callback}) {
+			eval ($$self{_mem_callback});
+			$$self{_mem_callback} = undef;
+		}
 	}
 #
 }
@@ -577,87 +684,125 @@ sub _on_peek
 				$$self{_mem_action} = 'adlb_data1';
 			} elsif ($$self{_mem_activity} eq 'update_local') {
 				$$self{_mem_action} = 'local_onlevel';
+			} elsif ($$self{_mem_activity} eq 'delete') {
+				$$self{_mem_action} = 'adlb_flag';
+			} elsif ($$self{_mem_activity} eq 'add') {
+				$$self{_mem_action} = 'adlb_flag';
 			}
 			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
 		} elsif ($$self{_mem_action} eq 'adlb_flag') {
-			my $flag = hex($msg{extra});
-			$$self{pending_adlb}{inuse} = 1 if $flag & 0x80;
-			$$self{pending_adlb}{is_controller} = 1 if $flag & 0x40;
-			$$self{pending_adlb}{highwater} = 1 if $flag & 0x02;
-			if (!($$self{pending_adlb}{highwater})) {
-				$$self{_mem_action} = undef;
-				# clear out mem_activity flag
-				$$self{_mem_activity} = undef;
-				eval ($$self{_mem_callback}) if defined $$self{_mem_callback};
-			} else {
-				$$self{pending_adlb}{flag} = $msg{extra};
-				## confirm that we have a high-water mark; otherwise stop
-				$$self{pending_adlb}{address} = $$self{_mem_msb} . $$self{_mem_lsb};
-				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
-				$$self{_mem_action} = 'adlb_group';
-				$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+			if ($$self{_mem_activity} eq 'scan') {
+				my $flag = hex($msg{extra});
+				$$self{pending_adlb}{inuse} = 1 if $flag & 0x80;
+				$$self{pending_adlb}{is_controller} = ($flag & 0x40) ? 1 : 0;
+				$$self{pending_adlb}{highwater} = 1 if $flag & 0x02;
+				if (!($$self{pending_adlb}{highwater})) {
+					# since this is the last unused memory location, then add it to the empty list
+					unshift @{$$self{adlb}{empty}}, $$self{_mem_msb} . $$self{_mem_lsb};
+					$$self{_mem_action} = undef;
+					# clear out mem_activity flag
+					$$self{_mem_activity} = undef;
+					if (defined $$self{_mem_callback}) {
+						eval ($$self{_mem_callback});
+						$$self{_mem_callback} = undef;
+					}
+				} else {
+					$$self{pending_adlb}{flag} = $msg{extra};
+					## confirm that we have a high-water mark; otherwise stop
+					$$self{pending_adlb}{address} = $$self{_mem_msb} . $$self{_mem_lsb};
+					$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+					$$self{_mem_action} = 'adlb_group';
+					$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+				}
+			} elsif ($$self{_mem_activity} eq 'add') {
+				my $flag = ($$self{pending_adlb}{is_controller}) ? 'E2' : 'A2';
+				$$self{pending_adlb}{flag} = $flag;
+				$self->_send_cmd('command' => 'poke', 'extra' => $flag, 'is_synchronous' => 1);
+			} elsif ($$self{_mem_activity} eq 'delete') {
+				$self->_send_cmd('command' => 'poke', 'extra' => '02', 'is_synchronous' => 1);
 			}
 		} elsif ($$self{_mem_action} eq 'adlb_group') {
-			$$self{pending_adlb}{group} = $msg{extra};
-			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
-			$$self{_mem_action} = 'adlb_devhi';
-			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+			if ($$self{_mem_activity} eq 'scan') {
+				$$self{pending_adlb}{group} = $msg{extra};
+				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+				$$self{_mem_action} = 'adlb_devhi';
+				$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 
+						'is_synchronous' => 1);
+			} else {
+				$self->_send_cmd('command' => 'poke', 'extra' => $$self{pending_adlb}{group},
+						'is_synchronous' => 1);
+			}
 		} elsif ($$self{_mem_action} eq 'adlb_devhi') {
-			$$self{pending_adlb}{deviceid} = $msg{extra};
-			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
-			$$self{_mem_action} = 'adlb_devmid';
-			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+			if ($$self{_mem_activity} eq 'scan') {
+				$$self{pending_adlb}{deviceid} = $msg{extra};
+				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+				$$self{_mem_action} = 'adlb_devmid';
+				$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+			} elsif ($$self{_mem_activity} eq 'add') {
+				my $devid = substr($$self{pending_adlb}{deviceid},0,2);
+				$self->_send_cmd('command' => 'poke', 'extra' => $devid, 'is_synchronous' => 1);
+			}
 		} elsif ($$self{_mem_action} eq 'adlb_devmid') {
-			$$self{pending_adlb}{deviceid} .= $msg{extra};
-			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
-			$$self{_mem_action} = 'adlb_devlo';
-			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+			if ($$self{_mem_activity} eq 'scan') {
+				$$self{pending_adlb}{deviceid} .= $msg{extra};
+				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+				$$self{_mem_action} = 'adlb_devlo';
+				$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+			} elsif ($$self{_mem_activity} eq 'add') {
+				my $devid = substr($$self{pending_adlb}{deviceid},2,2);
+				$self->_send_cmd('command' => 'poke', 'extra' => $devid, 'is_synchronous' => 1);
+			}
 		} elsif ($$self{_mem_action} eq 'adlb_devlo') {
-			$$self{pending_adlb}{deviceid} .= $msg{extra};
-			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
-			$$self{_mem_action} = 'adlb_data1';
-			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+			if ($$self{_mem_activity} eq 'scan') {
+				$$self{pending_adlb}{deviceid} .= $msg{extra};
+				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+				$$self{_mem_action} = 'adlb_data1';
+				$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+			} elsif ($$self{_mem_activity} eq 'add') {
+				my $devid = substr($$self{pending_adlb}{deviceid},4,2);
+				$self->_send_cmd('command' => 'poke', 'extra' => $devid, 'is_synchronous' => 1);
+			}
 		} elsif ($$self{_mem_action} eq 'adlb_data1') {
 			if ($$self{_mem_activity} eq 'scan') {
 				$$self{_mem_action} = 'adlb_data2';
 				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
-				$$self{pending_adlb}{data1} .= $msg{extra};
+				$$self{pending_adlb}{data1} = $msg{extra};
 				$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
-			} elsif ($$self{_mem_activity} eq 'update') {
+			} elsif ($$self{_mem_activity} eq 'update' or $$self{_mem_activity} eq 'add') {
 				# poke the new value
-				# TO-DO: get the new value
 				$self->_send_cmd('command' => 'poke', 'extra' => $$self{pending_adlb}{data1}, 'is_synchronous' => 1);
 			}
 		} elsif ($$self{_mem_action} eq 'adlb_data2') {
 			if ($$self{_mem_activity} eq 'scan') {
-				$$self{pending_adlb}{data2} .= $msg{extra};
+				$$self{pending_adlb}{data2} = $msg{extra};
 				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
 				$$self{_mem_action} = 'adlb_data3';
 				$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
-			} elsif ($$self{_mem_activity} eq 'update') {
+			} elsif ($$self{_mem_activity} eq 'update' or $$self{_mem_activity} eq 'add') {
 				# poke the new value
-				# TO-DO: get the new value
 				$self->_send_cmd('command' => 'poke', 'extra' => $$self{pending_adlb}{data2}, 'is_synchronous' => 1);
 			}
 		} elsif ($$self{_mem_action} eq 'adlb_data3') {
 			if ($$self{_mem_activity} eq 'scan') {
-				$$self{pending_adlb}{data3} .= $msg{extra};
+				$$self{pending_adlb}{data3} = $msg{extra};
 				# check the previous record if highwater is set
 				if ($$self{pending_adlb}{highwater}) {
 					if ($$self{pending_adlb}{inuse}) {
 					# save pending_adlb and then clear it out
-						my $adlbkey = $$self{pending_adlb}{deviceid} . $$self{pending_adlb}{group};
+						my $adlbkey = $$self{pending_adlb}{deviceid} 
+							. $$self{pending_adlb}{group}
+							. $$self{pending_adlb}{is_controller};
 						%{$$self{adlb}{$adlbkey}} = %{$$self{pending_adlb}};
 					} else {
 						# TO-DO: record the locations of deleted ADLB records for subsequent reuse
+						unshift @{$$self{adlb}{empty}}, $$self{pending_adlb}{address};
 					}
 					my $newaddress = sprintf("%04X", hex($$self{pending_adlb}{address}) - 8);
 					$$self{pending_adlb} = undef;
 					$self->_peek($newaddress);
 				}
-			} elsif ($$self{_mem_activity} eq 'update') {
+			} elsif ($$self{_mem_activity} eq 'update' or $$self{_mem_activity} eq 'add') {
 				# poke the new value
-				# TO-DO: get the new value
 				$self->_send_cmd('command' => 'poke', 'extra' => $$self{pending_adlb}{data3}, 'is_synchronous' => 1);
 			}
 		} elsif ($$self{_mem_action} eq 'local_onlevel') {
@@ -685,14 +830,22 @@ sub restore_string
 	if ($$self{adlb}) {
 		my $adlb = '';
 		foreach my $adlb_key (keys %{$$self{adlb}}) {
-			next unless $$self{adlb}{$adlb_key}{inuse};
+			next unless $adlb_key eq 'empty' || $$self{adlb}{$adlb_key}{inuse};
 			$adlb .= '|' if $adlb; # separate sections
-			my %adlb_record = %{$$self{adlb}{$adlb_key}};
 			my $record = '';
-			foreach my $record_key (keys %adlb_record) {
-				next unless $adlb_record{$record_key};
-				$record .= ',' if $record;
-				$record .= $record_key . '=' . $adlb_record{$record_key};
+			if ($adlb_key eq 'empty') {
+				foreach my $address (@{$$self{adlb}{empty}}) {
+					$record .= ';' if $record;
+					$record .= $address;
+				}
+				$record = 'empty=' . $record;
+			} else {
+				my %adlb_record = %{$$self{adlb}{$adlb_key}};
+				foreach my $record_key (keys %adlb_record) {
+					next unless $adlb_record{$record_key};
+					$record .= ',' if $record;
+					$record .= $record_key . '=' . $adlb_record{$record_key};
+				}
 			}
 			$adlb .= $record;
 		}
@@ -708,16 +861,27 @@ sub restore_adlb
 	if ($adlb) {
 		foreach my $adlb_section (split(/\|/,$adlb)) {
 			my %adlb_record = {};
+			my @adlb_empty = ();
 			my $deviceid = '';
 			my $groupid = '01';
+			my $is_controller = 0;
 			foreach my $adlb_record (split(/,/,$adlb_section)) {
 				my ($key,$value) = split(/=/,$adlb_record);
-				$deviceid = $value if ($key eq 'deviceid');
-				$groupid = $value if ($key eq 'group');
-				$adlb_record{$key} = $value if $key and defined($value);
+				if ($key eq 'empty') {
+					@adlb_empty = split(/;/,$value);
+				} else {
+					$deviceid = $value if ($key eq 'deviceid');
+					$groupid = $value if ($key eq 'group');
+					$is_controller = $value if ($key eq 'is_controller');
+					$adlb_record{$key} = $value if $key and defined($value);
+				}
 			}
-			my $adlbkey = $deviceid . $groupid;
-			%{$$self{adlb}{$adlbkey}} = %adlb_record;
+			if (@adlb_empty) {
+				@{$$self{adlb}{empty}} = @adlb_empty;
+			} else {
+				my $adlbkey = $deviceid . $groupid . $is_controller;
+				%{$$self{adlb}{$adlbkey}} = %adlb_record;
+			}
 		}
 #		$self->log_alllink_table();
 	}
@@ -729,32 +893,140 @@ sub set_receive
 	$self->SUPER::set($p_state, $p_setby, $p_response);
 }
 
-sub assign_to_group
-{
-	my ($self, $group) = @_;
-	$self->_send_cmd(command => 'assign_to_group', extra => $group);
-}
-
-sub delete_from_group
-{
-	my ($self, $group) = @_;
-	$self->_send_cmd(command => 'delete_from_group', extra => $group);
-}
-
 sub scan_link_table
 {
 	my ($self,$callback) = @_;
 	# always reset the current cache in case memory changes
 	$$self{adlb} = undef;
 	$$self{_mem_activity} = 'scan';
+	# reinit the empty address list
+	@{$$self{adlb}{empty}} = ();
 	$$self{_mem_callback} = ($callback) ? $callback : undef;
 	$self->_peek('0FF8',0);
 }
 
+sub delete_link
+{
+	my ($self, %link_parms) = @_;
+	my $insteon_object = $link_parms{object};
+	my $deviceid = ($insteon_object) ? $insteon_object->device_id : $link_parms{deviceid};
+	my $groupid = $link_parms{group};
+	$groupid = '01' unless $groupid;
+	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
+	# get the address via lookup into the hash
+	my $key = $deviceid . $groupid . $is_controller;
+	my $address = $$self{adlb}{$key}{address};
+	if ($address) {
+		&main::print_log("[Insteon_Device] Now deleting link [0x$address] with the following data"
+			. " deviceid=$deviceid, groupid=$groupid, is_controller=$is_controller");
+		# now, alter the flags byte such that the in_use flag is set to 0
+		$$self{_mem_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
+		$$self{_mem_activity} = 'delete';
+		$$self{pending_adlb}{deviceid} = $deviceid;
+		$$self{pending_adlb}{group} = $groupid;
+		$$self{pending_adlb}{is_controller} = $is_controller;
+		$$self{pending_adlb}{address} = $address;
+		$self->_peek($address,0);
+	} else {
+		&main::print_log('[Insteon_Device] WARN: attempt to delete link that does not exist!'
+			. " deviceid=$deviceid, groupid=$groupid, is_controller=$is_controller");
+		eval($link_parms{callback}) if $link_parms{callback};
+	}
+}
+
+sub delete_orphan_links
+{
+	my ($self) = @_;
+	my $num_deleted = 0;
+	foreach my $linkkey(keys %{$$self{adlb}}) {
+		my $deviceid = $$self{adlb}{$linkkey}{deviceid};
+		my $device = ($deviceid eq '000000') ? $self->interface
+				: $self->interface->get_object($deviceid,'01');
+		if (!($device)) {
+			&::print_log("[Insteon_Device] now deleting orphaned link w/ details: "
+				. (($$self{adlb}{$linkkey}{is_controller}) ? "controller" : "responder")
+				. ", deviceid=$$self{adlb}{$linkkey}{deviceid}, "
+				. "group=$$self{adlb}{$linkkey}{group}");
+#			$self->delete_link(deviceid => $deviceid, group => $$self{adlb}{$linkkey}{group},
+#				is_controller => $$self{adlb}{$linkkey}{is_controller});
+#			$num_deleted++;
+		} elsif ($device->isa("Insteon_PLM") and $$self{adlb}{$linkkey}{is_controller}) {
+			# ignore for now since this is just a link back to the PLM
+		} elsif ($device->isa("Insteon_PLM")) {
+			# TO-DO: check to see if there is a defined link back to this device
+		} else {
+
+		}
+	}
+}
+
+sub add_link
+{
+	my ($self, %link_parms) = @_;
+	my $insteon_object = $link_parms{object};
+	my $group = $link_parms{group};
+	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
+	# check whether the link already exists
+	my $key = $insteon_object->device_id . $group . $is_controller;
+	if (defined $$self{adlb}{$key}) {
+		&::print_log("[Insteon_Device] WARN: attempt to add link to " . $self->get_object_name . " that already exists! "
+			. "object=" . $insteon_object->get_object_name . ", group=$group, is_controller=$is_controller");
+		eval($link_parms{callback}) if $link_parms{callback};
+	} else {
+		# strip optional % sign to append on_level
+		my $on_level = $link_parms{on_level};
+		$on_level =~ s/(\d)%?/$1/;
+		$on_level = '100'; # 100% == on is the default
+		# strip optional s (seconds) to append ramp_rate
+		my $ramp_rate = $link_parms{ramp_rate};
+		$ramp_rate =~ s/(\d)s?/$1/;
+		$ramp_rate = '0.1' unless $ramp_rate; # 0.1s is the default
+		&::print_log("[Insteon_Device] adding link record " . $self->get_object_name 
+			. " light level controlled by " . $insteon_object->get_object_name
+			. " and group: $group with on level: $on_level and ramp rate: $ramp_rate") if $main::Debug{insteon};
+		my $data1 = sprintf('%02X',$on_level * 2.55);
+		my $data2 = &Insteon_Device::convert_ramp($ramp_rate);
+		my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
+		# get the first available memory location
+		my $address = pop @{$$self{adlb}{empty}};
+		# TO-DO: ensure that pop'd address is restored back to queue if the transaction fails
+		$$self{_mem_activity} = 'add';
+		$$self{_mem_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
+		$self->_write_link($address, $insteon_object->device_id, $group, $is_controller, $data1, $data2, $data3);
+	}
+}
+
+sub update_link
+{
+	my ($self, %link_parms) = @_;
+	my $insteon_object = $link_parms{object};
+	my $group = $link_parms{group};
+	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
+	# strip optional % sign to append on_level
+	my $on_level = $link_parms{on_level};
+	$on_level =~ s/(\d)%?/$1/;
+	# strip optional s (seconds) to append ramp_rate
+	my $ramp_rate = $link_parms{ramp_rate};
+	$ramp_rate =~ s/(\d)s?/$1/;
+	&::print_log("[Insteon_Device] updating " . $self->get_object_name . " light level controlled by " . $insteon_object->get_object_name
+		. " and group: $group with on level: $on_level and ramp rate: $ramp_rate") if $main::Debug{insteon};
+	my $data1 = sprintf('%02X',$on_level * 2.55);
+	my $data2 = &Insteon_Device::convert_ramp($ramp_rate);
+	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
+	my $deviceid = $insteon_object->device_id;
+	my $address = $$self{adlb}{$deviceid . $group . $is_controller}{address};
+	$$self{_mem_activity} = 'update';
+	$self->_write_link($address, $deviceid, $group, $is_controller, $data1, $data2, $data3);
+}
+
+
 sub log_alllink_table
 {
 	my ($self) = @_;
+	&::print_log("[Insteon_Device] link table for " . $self->get_object_name . " (devcat: $$self{devcat}):");
+
 	foreach my $adlbkey (keys %{$$self{adlb}}) {
+		next if $adlbkey eq 'empty';
 		my ($device);
 		if ($self->interface()->device_id() and ($self->interface()->device_id() eq $$self{adlb}{$adlbkey}{deviceid})) {
 			$device = $self->interface;
@@ -784,6 +1056,10 @@ sub log_alllink_table
 			: "responder record to " . $object_name . "($$self{adlb}{$adlbkey}{group})"
 			. ": onlevel=$on_level and ramp=$ramp_rate")) if $main::Debug{insteon};
 	}
+	foreach my $address (@{$$self{adlb}{empty}}) {
+		&::print_log("[Insteon_Device] " . $self->get_object_name . " adlb [0x$address] is empty");
+	}
+	
 }
 
 sub get_link_record
@@ -794,20 +1070,6 @@ sub get_link_record
 	return %link_record;
 }
 
-sub update_light_link
-{
-	my ($self, $insteon_object, $group, $on_level, $ramp_rate) = @_;
-	&::print_log("[Insteon_Device] updating " . $self->get_object_name . " light level controlled by " . $insteon_object->get_object_name
-		. " and group: $group with on level: $on_level and ramp rate: $ramp_rate") if $main::Debug{insteon};
-	# strip optional % sign to append on_level
-	$on_level =~ s/(\d)%?/$1/;
-	# strip optional s (seconds) to append ramp_rate
-	$ramp_rate =~ s/(\d)s?/$1/;
-	my $data1 = sprintf('%02X',$on_level * 2.55);
-	my $data2 = &Insteon_Device::convert_ramp($ramp_rate);
-	$self->_update_link($insteon_object->device_id, $group, $data1, $data2, '00');
-}
-
 sub update_local_properties
 {
 	my ($self) = @_;
@@ -815,24 +1077,40 @@ sub update_local_properties
 	$self->_peek('0320'); # 0320 is the address for the onlevel
 }
 
-sub _update_link
+sub has_link
 {
-	my ($self, $deviceid, $group, $data1, $data2, $data3) = @_;
-	my $address = $$self{adlb}{$deviceid . $group}{address};
+	my ($self, $insteon_object, $group, $is_controller) = @_;
+	my $key = $insteon_object->device_id . $group . $is_controller;
+	return (defined $$self{adlb}{$key}) ? 1 : 0;
+}
+
+sub _write_link
+{
+	my ($self, $address, $deviceid, $group, $is_controller, $data1, $data2, $data3) = @_;
 	if ($address) {
 		&::print_log("[Insteon_Device] " . $self->get_object_name . " address: $address found for device: $deviceid and group: $group");
 		# change address for start of change to be address + offset
-		$address = sprintf('%04X',hex($address) + 5);
-		$$self{_mem_activity} = 'update';
+		if ($$self{_mem_activity} eq 'update') {
+			$address = sprintf('%04X',hex($address) + 5);
+		}
+		$$self{pending_adlb}{address} = $address;
 		$$self{pending_adlb}{deviceid} = $deviceid;
 		$$self{pending_adlb}{group} = $group;
+		$$self{pending_adlb}{is_controller} = $is_controller;
 		$$self{pending_adlb}{data1} = (defined $data1) ? $data1 : '00';
 		$$self{pending_adlb}{data2} = (defined $data2) ? $data2 : '00';
+		# Note: if device is a KeypadLinc, then $data3 must be assigned the value of the applicable button (01)
+		if ($$self{devcat} eq '0109') {
+			&::print_log("[Insteon_Device] setting data3 to " . $self->group . " for this keypadlinc")
+				if $main::Debug{insteon};
+			$data3 = $self->group;
+		}
 		$$self{pending_adlb}{data3} = (defined $data3) ? $data3 : '00';
 		$self->_peek($address);
 	} else {
 		&::print_log("[Insteon_Device] WARN: " . $self->get_object_name 
-			. " update_link failure: no address could be found for device: $deviceid and group: $group");
+			. " write_link failure: no address could be found for device: $deviceid and group: $group" .
+				" and is_controller: $is_controller");;
 	}
 }
 
