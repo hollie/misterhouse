@@ -47,12 +47,9 @@ $f_weather_conditions = new File_Item($weather_conditions_path);
 $f_weather_forecast = new File_Item($weather_forecast_path);
 my $city = $config_parms{city};
 $city = $config_parms{nws_city} if defined $config_parms{nws_city};
-$p_weather_data = new Process_Item 
-  qq|get_weather -state $config_parms{state} -city "$city" -zone "$config_parms{zone}"|;
-$p_weather_conditions = new Process_Item 
-  qq|get_weather -state $config_parms{state} -city "$city" -zone "$config_parms{zone}" -data conditions|;
-$p_weather_forecast = new Process_Item 
-  qq|get_weather -state $config_parms{state} -city "$city" -zone "$config_parms{zone}" -data forecast|;
+$p_weather_data = new Process_Item; 
+$p_weather_conditions = new Process_Item; 
+$p_weather_forecast = new Process_Item; 
 #noloop=stop
 
 sub normalize_conditions {
@@ -68,6 +65,8 @@ sub normalize_conditions {
 
 if (said $v_get_internet_weather_data) {
     if (&net_connect_check) {
+        set $p_weather_data
+          qq|get_weather -state $config_parms{state} -city "$city" -zone "$config_parms{zone}"|;
         start $p_weather_data;
         $v_get_internet_weather_data->respond("app=weather Weather data requested for $city, $config_parms{state}" . (($config_parms{zone})?" Zone $config_parms{zone}":''));
     } else {
@@ -77,6 +76,8 @@ if (said $v_get_internet_weather_data) {
 
 if (said $v_get_internet_weather_conditions) {
     if (&net_connect_check) {
+        set $p_weather_conditions 
+          qq|get_weather -state $config_parms{state} -city "$city" -zone "$config_parms{zone}" -data conditions|;
         start $p_weather_conditions;
         $v_get_internet_weather_conditions->respond("app=weather Weather conditions requested for $city, $config_parms{state}" . (($config_parms{zone})?" Zone $config_parms{zone}":''));
     } else {
@@ -86,6 +87,8 @@ if (said $v_get_internet_weather_conditions) {
 
 if (said $v_get_internet_weather_forecast) {
     if (&net_connect_check) {
+        set $p_weather_forecast
+          qq|get_weather -state $config_parms{state} -city "$city" -zone "$config_parms{zone}" -data forecast|;
         start $p_weather_forecast;
         $v_get_internet_weather_forecast->respond("app=weather Weather forecast requested for $city, $config_parms{state}" . (($config_parms{zone})?" Zone $config_parms{zone}":''));
     } else {
