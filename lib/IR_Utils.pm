@@ -108,6 +108,7 @@ sub read_dvc_file {
 	my $file = shift; 
 	open DVC, "$devicelib_dir/$file";
 	my (%parms, %prontos, $in_keys);
+	$parms{repeat} = 3; 
 	while (<DVC>) {
 		chomp; 
 		s/\r//gs;
@@ -140,7 +141,7 @@ sub read_dvc_file {
 	$device = $parms{manufacturer} if $parms{manufacturer};
 	$device .= " $parms{model}" if $parms{model};
 	$device .= " $parms{device}" if $parms{device};
-	return uc $device, 3, %prontos; 
+	return uc $device, $parms{repeat}, %prontos; 
 }
 
 sub get_protocols {
