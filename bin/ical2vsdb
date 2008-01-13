@@ -28,9 +28,10 @@ use vsLock;
 # reminder logic
 # verify todos (uninitialized string message?)
 # verify locking works as expected
+# add local cache ability
 
 my $progname = "ical2vsdb";
-my $progver  = "v2.0 07-11-02";
+my $progver  = "v2.1 08-01-05";
 my $DB = 0;
 
 my $days_before = 0;
@@ -42,6 +43,8 @@ my $vsdb_cal_file = "calendar.tab";
 my $vsdb_todo_file = "tasks.tab";
 my $sleep_time = 900;                #poll cycle default is 15 minutes
 my $md5file = "";
+my $local_cache = "";
+my $local_data = "";
 
 $config_file = $ARGV[0] if $ARGV[0];
 
@@ -73,7 +76,7 @@ if ($count == 0) {
 # overwrite any initialized output dir if passed via the command line
 
 &read_md5file if ($md5file ne "");
-
+print "Writing http requests to local cache: $local_cache\n" if $local_cache;
 print "Processing $count iCals";
 print " up to $days_after future days" if $days_after;
 print " back $days_before in the past" if $days_before;
@@ -117,6 +120,7 @@ while (1) {
            print "The calendar specified by $calendar_loc could not be retrieved: " . $results->status_line . "\n";
         } else {
            my $data = $results->content;
+           $local_data = $data if $local_cache;
 	   $parser->parse_strings($data);
 	   $parser = $parser->calendar;
 	   $process = 1;
@@ -162,6 +166,7 @@ while (1) {
        push (@changed_icals, @$data_info[0]);
        push (@master_cal, @$data_cals);
        push (@master_todo, @$data_todos);
+       &cache_local($local_data,$ical_data[$loop]->{options}->{name}) if $local_cache;
        print "done\n";
        print "Calendar Info\n" if $DB;
        print @$data_info[0] . "," . @$data_info[1] . "\n" if $DB;
@@ -271,17 +276,20 @@ sub parse_cal {
   my $options = $_[1];
   my (@out_info, @out_cals, @out_todos);
 
-  print "options=$options\n" if $DB;
+  print "options\n" if $DB;
+  print Dumper $options if $DB;
+  print "\n---------\n" if $DB;
+
   my $opt_speak_cal = 0;
   my $opt_speak_todo = 0;
   my $opt_holiday = 0;
   my $opt_vacation = 0;
 
-  $opt_speak_cal = 1 if (defined $options->{speak_cal});
-  $opt_speak_todo = 1 if (defined $options->{speak_todo});
-  $opt_holiday = 1 if (defined $options->{holiday});
-  $opt_vacation = 1 if (defined $options->{vacation});
-  my ($opt_sourcename) = $options->{name} if (defined $options->{name});
+  $opt_speak_cal = 1 if (exists $options->{speak_cal});
+  $opt_speak_todo = 1 if (exists $options->{speak_todo});
+  $opt_holiday = 1 if (exists $options->{holiday});
+  $opt_vacation = 1 if (exists $options->{vacation});
+  my ($opt_sourcename) = $options->{name} if (exists $options->{name});
 
   my $calname = $cal->{cals}->[0]->{'X-WR-CALNAME'};
   $calname = $opt_sourcename if $opt_sourcename;
@@ -501,6 +509,9 @@ sub init {
 
 	} elsif (lc $type eq "cfg_version" ) {
 	  $version=$url;
+
+	} elsif (lc $type eq "local_cache_dir" ) {
+	  $local_cache=$url;
 	
 	} else {
 	  $ical_data[$count]->{type} = $type;
@@ -609,6 +620,20 @@ sub flush_md5file {
   }
   
   close (MD5FILE);
+}
+
+sub cache_local {
+
+  my ($data,$filename) = @_;
+  $filename =~ s/ /_/g;
+  unless ($data) { 
+   print "No data to write!\n";
+   return
+  }
+  open (CACHE,">$local_cache/$filename.ics") || warn "Error: Cannot write local cache file $local_cache/$filename.ics!";
+  print CACHE $data;
+ 
+  close (CACHE);
 }
 
 sub purge_icals {

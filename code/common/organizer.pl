@@ -57,7 +57,7 @@ other mh.ini options;
 
 ical_days_before	Number of days back in the past to import
 ical_days_after		Number of days in the future to import
-
+ical_local_cache_dir    Local cache directory
 
 iCal2vsDB uses iCal::Parser, which has several significant dependancies to operate correctly,
 these have been included in lib/site
@@ -229,6 +229,7 @@ if ($Reload) {
 	$data .= "\n#Options\n";
 	$data .= "days_before\t" . $config_parms{ical_days_before} . "\n" if $config_parms{ical_days_before};
 	$data .= "days_after\t" . $config_parms{ical_days_after} . "\n" if $config_parms{ical_days_after};
+	$data .= "local_cache_dir\t" . $config_parms{ical_local_cache_dir} . "\n" if $config_parms{ical_local_cache_dir};
     	$data .= "\n#Required\nsleep_delay\t0\n\n#\n# Autogeneration complete.\n#\n" if $data;
         &write_i2v($data);
      }
