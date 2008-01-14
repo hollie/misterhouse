@@ -414,7 +414,7 @@ sub send_plm_cmd
 		my $duplicate_detected = 0;
 		# check for duplicates of $cmd already in command_stack and ignore if they exist
 		foreach my $cmdrec (@{$$self{command_stack2}}) {
-			if ($cmdrec->{cmd} eq $cmd) {
+			if (($cmdrec->{cmd} eq $cmd) and ($cmd !~ /^0263/)) {
 				$duplicate_detected = 1;
 				last;
 			}
