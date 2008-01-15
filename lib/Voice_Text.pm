@@ -44,30 +44,42 @@ sub init {
 
                                 # Create objects for all available output cards
                 my $outputs = $test->GetAudioOutputs;
-                my $count   = $outputs->Count;
-                for my $i (1 .. $count) {
-                    my $object = $outputs->Item($i-1);
-                    my $des    = $object->GetDescription;
-                    print " - sound card $i: $des\n";
-                    if ($main::config_parms{voice_text_cards}) {
-                        my $flag = 0;
-                        for my $card (split ',', $main::config_parms{voice_text_cards}) {
-                            if ($i eq $card or $des =~ /$card/i) {
-                                $flag = 1;
-                                $VTxt_cards{$card} = $i;
+                if ($outputs) {
+                    my $count   = $outputs->Count;
+                    for my $i (1 .. $count) {
+                        my $object = $outputs->Item($i-1);
+                        my $des    = $object->GetDescription;
+                        print " - sound card $i: $des\n";
+                        if ($main::config_parms{voice_text_cards}) {
+                            my $flag = 0;
+                            for my $card (split ',', $main::config_parms{voice_text_cards}) {
+                                if ($i eq $card or $des =~ /$card/i) {
+                                    $flag = 1;
+                                    $VTxt_cards{$card} = $i;
+                                }
                             }
+                            next unless $flag;
                         }
-                        next unless $flag;
-                    }
-                    $VTxt[$i] = Win32::OLE->new('Sapi.SpVoice');
-                    $VTxt[$i] ->{AudioOutput} = $object;
+                        $VTxt[$i] = Win32::OLE->new('Sapi.SpVoice');
+                        $VTxt[$i] ->{AudioOutput} = $object;
                                 # Pick the default card, if specified
-                    $VTxt[0] = $VTxt[$i] if $des =~ /$main::config_parms{voice_text_card}/i or !$VTxt[0];
+                        $VTxt[0] = $VTxt[$i] if $des =~ /$main::config_parms{voice_text_card}/i or !$VTxt[0];
+                    }
+                } else {
+                    print " - WARN: no sound card outputs are available\n";
                 }
                 $VTxt[0] = $VTxt[1] unless $VTxt[0]; # Default to the first card if specified one not found
 
                                 # Create an object for to_file calls
                 $VTxt_stream1 = Win32::OLE->new('Sapi.SpVoice');
+                $VTxt_stream1 = undef unless defined $VTxt_stream1->GetVoices; # undef it if now voices exist
+                if (defined $VTxt_stream1) {
+                    for (my $VoiceCnt=0; $VoiceCnt < $VTxt_stream1->GetVoices->Count();$VoiceCnt++) {
+                       my $desc = $VTxt_stream1->GetVoices->Item($VoiceCnt)->GetDescription;
+             	       print " -- available voice: $desc\n";
+	            }
+                    &set_voice($main::config_parms{speak_voice}, undef, undef, $VTxt_stream1) if $main::config_parms{speak_voice};
+                }
 
             }
             else {
@@ -514,7 +526,7 @@ sub speak_text {
             }
         }
     }
-    elsif ($vtxt_card) {
+    elsif ($vtxt_card or $VTxt_stream1) {
         print "Voice_Text.pm ms_tts: v=$VTxt_version comp=$parms{compression} async=$parms{async} to_file=$parms{to_file} VTxt=$vtxt_card text=$parms{'text'}\n" if $main::Debug{voice};
         if ($VTxt_version eq 'msv5') {
                                 # Allow option to save speech to a wav file
@@ -582,28 +594,32 @@ sub speak_text {
                         return;
                     }
                 } else {
-                    $VTxt_stream2 = Win32::OLE->new('Sapi.SpFileStream');
-                    $VTxt_stream2->{Format}->{Type} = 22; # see table above for constant defs
-                    $VTxt_stream2->{Format}->{Type} = $parms{compression} if $parms{compression} =~ /^\d+$/;
-                    $VTxt_stream2->{Format}->{Type} = 20 if $parms{compression} eq 'low';
-                    $VTxt_stream2->{Format}->{Type} = 66 if $parms{compression} eq 'high';
-                    $VTxt_stream2->Open($parms{to_file}, 3, 0);
-                    $VTxt_stream1->SetProperty('AudioOutputStream',$VTxt_stream2);
-                    if ($parms{async}) {
-                        $VTxt_stream1->Speak($parms{text}, 1 + 8); # Flags: 1=async 8=XML
-                    } else {                     
-                        $VTxt_stream1->Speak($parms{text}, 8); # Flags: 8=XML (no async, so we can close)
-                        $VTxt_stream2->Close;
-                        undef $VTxt_stream2;
-                        &::file_ready_for_audrey($parms{audreyIndex}) if (defined $parms{audreyIndex});
-#                       &main::print_log("Text->wav file:  $parms{to_file}");
-#                       &main::play($parms{to_file});
+                    if ($VTxt_stream1) {
+                        $VTxt_stream2 = Win32::OLE->new('Sapi.SpFileStream');
+                        $VTxt_stream2->{Format}->{Type} = 22; # see table above for constant defs
+                        $VTxt_stream2->{Format}->{Type} = $parms{compression} if $parms{compression} =~ /^\d+$/;
+                        $VTxt_stream2->{Format}->{Type} = 20 if $parms{compression} eq 'low';
+                        $VTxt_stream2->{Format}->{Type} = 66 if $parms{compression} eq 'high';
+                        $VTxt_stream2->Open($parms{to_file}, 3, 0);
+                        $VTxt_stream1->SetProperty('AudioOutputStream',$VTxt_stream2);
+                        if ($parms{async}) {
+                            $VTxt_stream1->Speak($parms{text}, 1 + 8); # Flags: 1=async 8=XML
+                        } else {
+                            $VTxt_stream1->Speak($parms{text}, 8); # Flags: 8=XML (no async, so we can close)
+                            $VTxt_stream2->Close;
+                            undef $VTxt_stream2;
+                            &::file_ready_for_audrey($parms{audreyIndex}) if (defined $parms{audreyIndex});
+#                           &main::print_log("Text->wav file:  $parms{to_file}");
+#                           &main::play($parms{to_file});
+                        }
+                    } else {
+                        &main::print_log("WARN: no file could be produced for audrey.");
                     }
                 }
             }
             else {
 #               $vtxt_card->Speak($parms{text}, 1 + 2 + 8); # Flags: 1=async  2=purge  8=XML
-                unless ($vtxt_card->Speak($parms{text}, 1 +     8)) {
+                unless ($vtxt_card and $vtxt_card->Speak($parms{text}, 1 +     8)) {
                     print "Voice_Text error: parms=@_\n";  #  error=" .  Win32::OLE->LastError() . "\n";
                 }
             }
