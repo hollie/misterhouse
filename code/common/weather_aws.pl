@@ -5,9 +5,14 @@
 
 #@ This code will retrieve and parse data from an AWS weather station via
 #@ their website.
-#@
-#@ Check <a href="http://www.instaweather.com">http://www.instaweather.com</a>
-#@ for the nearest site's station id
+
+#@ Updated: 2008-01-16
+#@ The method for finding the station ID has changed:
+#@ Go to http://www.aws.com/aws_2001/broadcasters/asp/Online.asp and enter your zip code:  ie: 30005
+#@ It then brings up the following page:
+#@ http://weather.weatherbug.com/GA/Alpharetta-weather.html?zcode=z6169
+#@ View Source and search for stat=  (DNWDY is the station ID for my location)
+#@ The full URL that this code uses looks like: http://www.aws.com/full.asp?id=dnwdy
 #@ then add the id to the aws_id config parameter in your mh.ini or
 #@ mh.private.ini:<br><br>
 #@
@@ -84,7 +89,7 @@ my $AWS_ID_index=0;
 &set_aws_index($AWS_ID_index);
 
 my $prev_timestamp;
-my $AWSWeatherURL="http://www.aws.com/AWS/full.asp?id=";
+my $AWSWeatherURL="http://www.aws.com/full.asp?id=";
 $v_get_aws_weather = new Voice_Cmd('Get AWS weather data');
 my $f_awsweather_html;
 
