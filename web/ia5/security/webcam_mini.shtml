@@ -1,0 +1,24 @@
+<html>
+<head>
+<title>Mini-WEB-Cam</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+
+<script src="webcam_init.js"></script>
+<script src="webcam_settings.js"></script>
+<script src="webcam.js"></script>
+
+<!--#include file="/bin/wc_settings.pl"-->
+
+</head>
+
+<script>
+<!--
+
+document.write('<FRAMESET rows="100%">');
+document.write('	<FRAME src="' + wc_popupContentURL + document.location.search + '" scrolling="no" frameborder="0" marginwidth="0" marginheight="0">');
+document.write('</FRAMESET>');
+
+//-->
+</script>
+
+</html>

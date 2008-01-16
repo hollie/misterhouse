@@ -1,0 +1,124 @@
+<HTML>
+<HEAD>
+<TITLE>MisterHouse - WebCam View</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+
+<script src="webcam_init.js"></script>
+<script src="webcam_settings.js"></script>
+<script src="webcam.js"></script>
+<!--#include file="/bin/wc_settings.pl"-->
+
+
+
+<!-- MH integration by Pete Flaherty
+     pjf@cape.com
+     Dec, 2007
+	 Last Updated: December 2, 2007    -->
+	 
+
+
+<script>
+    <!--
+    function InitPost() {
+	webCamInit();
+    }
+    //-->
+</script>
+
+</HEAD>
+<!-- <BODY BGCOLOR=#142D2E text="#FFFFFF" leftmargin="0" topmargin="00" marginwidth="000" marginheight="0000" background="images/ckb_green_dark.gif" link="#F29E00" vlink="#F29E00" alink="#F29E00">
+-->
+<!-- <body BGCOLOR=#99ffcc> -->
+<body>
+<base target='output'>
+
+
+<!-- BEGIN CONTENT -->
+
+<!-- <h1>&nbsp;WebCams</h1> -->
+
+
+<table ALIGN='center' width='590' cellpadding='0' cellspacing='0' border='0'>
+  <tr>
+<!--    <td rowspan='5'>&nbsp;</td>
+-->
+    <td>
+    </td>
+  </tr>
+<!--   <tr>
+    <td><img src='images/spacer.gif' width='1' height='15'></td>
+  </tr>
+-->
+
+  <tr>
+    <td>
+	<script>
+	<!--
+	webCamDrawCkBpage();
+	//-->
+	</script>
+    </td>
+  </tr>
+
+  <tr>
+    <td><img src='images/spacer.gif' width='1' height='15'></td>
+  </tr>
+  <tr>
+    <td>
+      <p class='small'>Use the icon buttons to zoom in/out, display information, or popup a
+      portable version you can take with you! This page should reload every
+    <script>
+	document.write( webCamUpdateInterval + ' Secs.');
+    </script>
+      </p>
+      <p class='small'>If you want this webcam script for use on your personal webpage, just visit
+      <a href='http://www.cowboyscripts.org/?page=webcam' target='_blank'>CowboyScripts.org</a>
+      for the script and a tutorial! If you have problems viewing this page, let me know in the forums! - Cowboy</p></td>
+  </tr>
+
+  <tr>
+    <td><img src='images/spacer.gif' width='28' height='10'></td>
+    <td><img src='images/spacer.gif' width='577' height='1'></td>
+  </tr>
+</table>
+
+<!-- END CONTENT -->
+
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <!-- <p class="footer" align="center">&quot;Bob&quot; Logo &copy; 1996-99 <a href="http://www.shawnsclipart.com/" target="_blank">Shawn Kearney</a>, all other content &copy; 1999-2003 &quot;Cowboy&quot; Ben Alman<br>
+               Site graphics, design, and programming by &quot;Cowboy&quot; Ben Alman at <a href="http://www.rj3.net/">RJ3 Productions</a></p>
+            -->
+            </td>
+        </tr>
+      </table>
+    </td>
+    <td valign="top" bgcolor="#000000" background="images/ckb_bg_right.gif">
+      <table width="116" border="0" cellspacing="0" cellpadding="0">
+        <tr>
+          <td>
+          </td>
+        </tr>
+      </table>
+      <table width="102" border="0" cellspacing="0" cellpadding="0">
+        <tr>
+          <td align="center">
+
+          </td>
+        </tr>
+      </table>
+      <table width="102" border="0" cellspacing="0" cellpadding="4">
+        <tr>
+          <td align="center">
+            <p class="rightnav">&nbsp;</p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</BODY>
+</HTML>
+

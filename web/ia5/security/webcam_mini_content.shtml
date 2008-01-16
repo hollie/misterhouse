@@ -1,0 +1,59 @@
+<html>
+<head>
+<title>Mini-Cam-content</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+
+<script src="webcam_settings.js"></script>
+<script src="webcam_init.js"></script>
+<script src="webcam.js"></script>
+<!--#include file="/bin/wc_settings.pl"-->
+
+</head>
+<body BGCOLOR="#142D2E" text="#FFFFFF" leftmargin="0" topmargin="00" marginwidth="000" 
+      marginheight="0000" link="#F29E00" vlink="#F29E00" alink="#F29E00" scroll="no">
+
+<script>
+<!--
+
+//resizePopup('Mini-Web-Cam', wc_widthPopup, webCamHeight);
+
+//var winW = 630, winH = 460;
+
+
+//resizePopup( winW , winH );
+resizePopup();
+
+function InitPost() {
+	self.focus();
+	
+	webCamUpdateInterval = 2; 
+	webCamInit();
+}
+
+document.write('<table width="100%" height="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">');
+document.write('  <table bgcolor="#1A3B3C" width="' + (wc_widthPopup + wc_margin) + '" cellpadding="' + wc_padding + '" cellspacing="0" border="0"><tr><td>');
+
+var num = (typeof cam == "string") ? cam : 0;
+
+if (parseInt(navigator.appVersion)>3) {
+    if (navigator.appName=="Netscape") {
+	winW = window.innerWidth;
+        winH = window.innerHeight;
+    }
+    if (navigator.appName.indexOf("Microsoft")!=-1) {
+	winW = document.body.offsetWidth;
+        winH = document.body.offsetHeight;
+    }
+}
+
+
+webCamDrawCkBpic(num, "Popup");
+
+document.write('  </td></tr></table>');
+document.write('</td></tr></table>');
+
+//-->
+</script>
+
+</body>
+</html>
