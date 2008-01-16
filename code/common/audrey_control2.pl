@@ -26,6 +26,14 @@
 #  V0.19 H.Plato - added options to prevent Audrey reboots, voice command responding,
 #       and to point the music to the mp3_stream_server_port if defined.
 
+#  V0.20 Pete Flaherty - updated reboot option to be off by default, audrey_monitor module
+#	will actually check the Audreys and insure they are operational and reboot/power cycle
+#	as needed. Ini parameter audrey_reboot_on_startup
+
+#  V0.21 Pete Flaherty - commented read tagline code out so module does not fail dependencies 
+# 	when loading for first time (mh errors out if tagline is not selected ... my bad)
+#
+
 =begin comment
 
 The following comments are from the original code
@@ -243,11 +251,12 @@ if (said $v_audrey_wav) {
 #   get "http://$state/cgi-bin/SendMessage?M=GOTO_URL&S=http://$Info{Machine}:$config_parms{http_port}/sounds/hello_from_bruce.wav";
 }
 
-if (said $v_audrey_tagline) {
-	my $state = $v_audrey_tagline->{state};
-	speak address => &audrey_ip($state), text => (read_next $house_tagline);
-	$v_audrey_tagline->respond("Reading house tag line on $state Audrey.") unless $config_parms{Audrey_no_voice_respond};
-}
+# ready to go if tagline code is enabled
+#if (said $v_audrey_tagline) {
+#	my $state = $v_audrey_tagline->{state};
+#	speak address => &audrey_ip($state), text => (read_next $house_tagline);
+#	$v_audrey_tagline->respond("Reading house tag line on $state Audrey.") unless $config_parms{Audrey_no_voice_respond};
+#}
 
 # if ($state = said $v_audrey_music_on) {
 #     get "http://$state/cgi-bin/mpctrl?action=Play&file=http://205.188.245.133:8068" ;
@@ -390,71 +399,20 @@ sub audrey {
     }
 }
 
-                        # Periodically ping Audrey to see if she is responding
-#$audrey_power_Kitchen = new X10_Appliance 'B2';
-# $audrey_power_Piano   = new X10_Appliance 'C2';
-# $audrey_power_Bedroom = new X10_Appliance 'C3';
-#if (new_minute 10) {
-#if (time_now '4 pm') {
-#    for my $audrey (split ',', 'Kitchen,Piano') {
-#        if (!&net_ping(&audrey_ip($audrey))) {
-#            speak "$audrey Audrey not responding, resetting her power.";
-#           eval "set_with_timer \$audrey_power_$audrey OFF, 5";
-#        }
-#    }
-#}
 
+# We restart the audries once MH is up, and we want to so everything is in sync
+#  keeping no reboot ini for compatability
+if ($Startup) {
 
-#$audrey_power_kitchen_v = new Voice_Cmd 'Turn Kitchen Audrey [on,off]';
-#$audrey_power_kitchen_v-> tie_items($audrey_power_Kitchen);
+    my  $RebootMe = "YES" ;
+	$RebootMe = "NO"  unless  $config_parms{Audrey_reboot_on_startup}; 
+        $RebootMe = "YES" unless !$config_parms{Audrey_reboot_on_startup};
 
-# Reset periodically
-#set_with_timer $audrey_power_Kitchen OFF, 5 if time_now '10:50 pm';
+    if  (( $config_parms{Audrey_reboot_on_startup} eq "no" ) or ( $config_parms{Audrey_reboot_on_startup} eq "0" )){
+	    $RebootMe = "NO" ;
+    } 
 
-#get "http://kitchen/screen.shtml?1" if time_now  '6:50 am';
-#get "http://kitchen/screen.shtml?0" if time_now '11:20 pm';
-
-#get "http://piano/screen.shtml?1" if time_now  '6:40 am';
-#get "http://piano/screen.shtml?0" if time_now '11:00 pm';
-
-
-
-## Some sample Crom jobs for useful functionality
-
-				# Alarm clock for dad
-#if (time_cron '0 7 * * 1-5') {
-#    run_voice_cmd 'set Bedroom Audrey music on';
-#    run_voice_cmd 'set piano Audrey music on';
-#}
-				# Just in case I oversleep
-#if (time_cron '45 7 * * 1-5') {
-#    run_voice_cmd 'set Bedroom Audrey music off';
-#    run_voice_cmd 'set piano Audrey music off';
-#}
-                                # Restart slideshows
-#if (time_cron '1 10,17 * * *') {
-#     run_voice_cmd 'set piano audrey to photo screen';
-#    run_voice_cmd 'set kitchen audrey to photo screen';
-#}
-
-
-#				#We like to listen to a specific webcast on sat and sun
-#if (time_cron '0 17 * * 6,7') {
-#    run_voice_cmd 'set house mp3 player to wers';
-#    run_voice_cmd 'set the house mp3 player to Play';
-#    run_voice_cmd 'set all audrey volume to 20';
-#    run_voice_cmd 'set all audrey music on';
-#    get "http://192.168.0.142/cgi-bin/urgentMsg?message=The Playground is on";
-#
-#}
-				# and it comes to an end at 8
-#if (time_cron '0 20 * * 6,7') {
-#    run_voice_cmd 'set all audrey music off';
-#}
-
-
-# We restart the audries once MH is up, so everything is in sync
-
-if (( $Startup ) and (!$config_parms{Audrey_no_reboot_on_startup})) {
-    run_voice_cmd 'reboot all audrey';
+    if ( (!$config_parms{Audrey_no_reboot_on_startup}) or ($RebootMe eq "YES") ) {
+	run_voice_cmd 'reboot all audrey';
+    }
 }
