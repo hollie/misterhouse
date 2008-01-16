@@ -242,20 +242,22 @@ sub check_for_data {
          $main::Serial_Ports{$port_name}{data}=pack("H*",substr($data,$processedNibs,length($data)-$processedNibs));
 
       # if no data being received, then check if any timeouts have expired
-      } elsif ($plm->_check_timeout('command') == 1) {
-         $plm->_clear_timeout('command');
-         if ($$plm{xmit_in_progress}) {
-            &::print_log("[Insteon_PLM] WARN: No acknowledgement from PLM to last command requires forced abort of current command."
-               . " This may reflect a problem with your environment.");
-            $$plm{xmit_in_progress} = 0;
-            pop(@{$$plm{command_stack2}}); # pop the active command off the queue
+      } elsif (defined $plm) {
+            if ($plm->_check_timeout('command') == 1) {
+            $plm->_clear_timeout('command');
+            if ($$plm{xmit_in_progress}) {
+               &::print_log("[Insteon_PLM] WARN: No acknowledgement from PLM to last command requires forced abort of current command."
+                  . " This may reflect a problem with your environment.");
+               $$plm{xmit_in_progress} = 0;
+               pop(@{$$plm{command_stack2}}); # pop the active command off the queue
+               $plm->send_plm_cmd();
+            } else {
+               &::print_log("[Insteon_PLM] PLM xmit timer expired but no transmission in place.  Moving on...") if $main::Debug{insteon};
+            }
+         } elsif ($plm->_check_timeout('xmit') == 1) {
+            $plm->_clear_timeout('xmit');
             $plm->send_plm_cmd();
-         } else {
-            &::print_log("[Insteon_PLM] PLM xmit timer expired but no transmission in place.  Moving on...") if $main::Debug{insteon};
          }
-      } elsif ($plm->_check_timeout('xmit') == 1) {
-         $plm->_clear_timeout('xmit');
-         $plm->send_plm_cmd();
       }
    }
 }
