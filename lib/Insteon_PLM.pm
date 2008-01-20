@@ -12,8 +12,8 @@ Description:
 		http://www.smarthome.com/manuals/2412sdevguide.pdf
 
 Author(s):
-    Jason Sharpee
-    jason@sharpee.com
+    Jason Sharpee / jason@sharpee.com
+    Gregg Liming / gregg@limings.net
 
 License:
     This free software is licensed under the terms of the GNU public license. GPLv2
@@ -1017,7 +1017,7 @@ sub add_link
 	# first, confirm that the link does not already exist
 	my $linkkey = lc $insteon_object->device_id . $group . $is_controller;
 	if (defined $$self{links}{$linkkey}) {
-		&print_log("[Insteon_PLM] WARN: attempt to add link to PLM that already exists! "
+		&::print_log("[Insteon_PLM] WARN: attempt to add link to PLM that already exists! "
 			. "object=" . $insteon_object->get_object_name . ", group=$group, is_controller=$is_controller");
 	} else {
 		my $control_code = ($is_controller) ? '40' : '41';
