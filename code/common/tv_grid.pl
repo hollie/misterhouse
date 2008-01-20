@@ -2,10 +2,11 @@
 
 #@ This code will download TV schedules from the Internet and
 #@ optionally create events to remind you or your vcr to watch shows
-#@ Use <a href=/bin/set_parm_tv_provider.pl>/bin/set_parm_tv_provider.pl</a>,
-#@ or edit your mh.ini file, to set the mh.ini tv_provider parm.
 
-                                # Note: This $tv_grid is a special name, used by the get_tv_grid program.
+
+# updated for XMLTV  11/11/07
+
+                                # Note: This $tv_grid is a special name, used by the get_tv_grid_xmltv program.
                                 #       Do not change it.
 $tv_grid = new Generic_Item();
 
@@ -45,38 +46,40 @@ if (my $data = state_now $tv_grid) {
 }
 
                                 # This is what downloads tv data.  This needs to be forked/detatched, as it can take a while
-$v_get_tv_grid_data1 = new  Voice_Cmd('[Get,reget] tv grid data for today');
-$v_get_tv_grid_data2 = new  Voice_Cmd('[Get,reget] tv grid data for the next 2 weeks');
-$v_get_tv_grid_data1-> set_info('Updates the TV database with.  reget will reget html.  Get will only reget if the data is old.');
-if ($state = said  $v_get_tv_grid_data1 or $state = said  $v_get_tv_grid_data2) {
-    if (&net_connect_check) {
-        my $days = (said $v_get_tv_grid_data2) ? 14 : 1;
+$v_get_tv_grid_xmltv_data1 = new  Voice_Cmd('[Get,reget] TV XML data for today');
+$v_get_tv_grid_xmltv_data2 = new  Voice_Cmd('[Get,reget] all TV XML data');
+$v_get_tv_grid_xmltv_data1-> set_info('Updates the TV database from XMLTV data.  Get will only reget if the data is old.');
+if ($state = said  $v_get_tv_grid_xmltv_data1 or $state = said  $v_get_tv_grid_xmltv_data2) {
+        my $days = (said $v_get_tv_grid_xmltv_data2) ? 7 : 1;
         $state = ($state eq 'Get') ? '' : "-$state";
 
                                 # Call with -db sat to use sat_* parms instead of tv_* parms
                                 # Use mh_run so we can find mh libs and/or compiled mh.exe/mhe
 	my $label = ($config_parms{tv_label}) ? "-label $config_parms{tv_label}" : "";
-	my $pgm = "mh_run get_tv_grid $label -preserveRaw -db tv $state -days $days";
+	# my $pgm = "mh_run get_tv_grid_xmltv $label -preserveRaw -db tv $state -days $days";
+	my $pgm = "mh_run get_tv_grid_xmltv -db tv -infile $config_parms{tv_xml} -days $days";
 
                                 # Allow data to be stored wherever the alias points to
         my $tvdir = &html_alias('tv');
         $pgm .= qq[ -outdir "$tvdir"] if $tvdir;
 
-                                # If we have set the net_mail_send_account, send default web page via email
+        # If we have set the net_mail_send_account, send default web page via email
+		my $tv_mail		 = $config_parms{tv_mail};
         my $mail_account = $config_parms{net_mail_send_account};
         my $mail_server  = $main::config_parms{"net_mail_${mail_account}_server_send"};
         my $mail_to      = $main::config_parms{"net_mail_${mail_account}_address"};
-        if ($mail_to and $mail_server) {
-            $pgm .= " -mail_to $mail_to -mail_server $mail_server ";
-            $pgm .= " -mail_baseref $config_parms{http_server}:$config_parms{http_port} ";
-        }
-
+        if ($mail_to and $mail_server and $tv_mail) {
+                if (&net_connect_check) {   # We only need to net_connect_check here
+                							# because this will work off-line
+                							# with the XML file local
+					$pgm .= " -mail_to $mail_to -mail_server $mail_server ";
+            		$pgm .= " -mail_baseref $config_parms{http_server}:$config_parms{http_port} ";
+    			} else {
+	    			speak "Sorry, you must be logged onto the net to send TV Mail";
+    			}
+       }
         run $pgm;
         print_log "TV grid update started";
-    }
-    else {
-	    speak "Sorry, you must be logged onto the net";
-    }
 }
 
                                 # Set the default page to the current time
@@ -92,12 +95,3 @@ if (time_cron "50 * * * *") {
         copy "$tvdir/$tvfile", "$tvdir/index.html";
     }
 }
-
-# lets allow the user to control via triggers
-
-if ($Reload) { 
-	&trigger_set("time_cron '5 19 * * *'", 
-	  "run_voice_cmd 'Get tv grid data for the next 2 weeks'", 'NoExpire', 'get tv grids') 
-	  unless &trigger_get('get tv grids');
-}
-
