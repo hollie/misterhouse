@@ -22,6 +22,8 @@
 # 25/05/04   1.1   Dominique Benoliel
 # - use Time::Local (and not Time::local)
 # - change min, max, avg format
+# 03/01/08   1.2   Chris Barrett
+# - updated to respect the date_format parameter in mh.ini
 #####################################################################
 use Time::localtime;
 use CGI;
@@ -251,12 +253,21 @@ print $cgi->end_Tr;
 # Init tab of days, months and years
 print $cgi->start_Tr;
 print $cgi->start_td({-align=>'right',-width=>90});
-print '<B>Starting date (mm/dd/yyyy) </B>';
-print $cgi->end_td;
-print $cgi->start_td({-align=>'left'});
-print $cgi->popup_menu(-name=>'debmonth', -size=>1, -maxlength=>2, -value=>[1..12], -default=>'');
-print $cgi->b(" / ");
-print $cgi->popup_menu(-name=>'debday', -size=>1, -maxlength=>2, -value=>[1..31], -default=>'');
+if ($main::config_parms{date_format} =~ /^ddmmyy/) {
+  print '<B>Starting date (dd/mm/yyyy) </B>';
+  print $cgi->end_td;
+  print $cgi->start_td({-align=>'left'});
+  print $cgi->popup_menu(-name=>'debday', -size=>1, -maxlength=>2, -value=>[1..31], -default=>'');
+  print $cgi->b(" / ");
+  print $cgi->popup_menu(-name=>'debmonth', -size=>1, -maxlength=>2, -value=>[1..12], -default=>'');
+} else {
+  print '<B>Starting date (mm/dd/yyyy) </B>';
+  print $cgi->end_td;
+  print $cgi->start_td({-align=>'left'});
+  print $cgi->popup_menu(-name=>'debmonth', -size=>1, -maxlength=>2, -value=>[1..12], -default=>'');
+  print $cgi->b(" / ");
+  print $cgi->popup_menu(-name=>'debday', -size=>1, -maxlength=>2, -value=>[1..31], -default=>'');
+}
 print $cgi->b(" / ");
 print $cgi->popup_menu(-name=>'debyear', -size=>1, -maxlength=>4, -value=>[1999..2015], -default=>'');
 print $cgi->end_td;
@@ -264,12 +275,21 @@ print $cgi->end_td;
 # Choose ending date
 # Init tab of days, months and years
 print $cgi->start_td({-align=>'right',-width=>90});
-print '<B>Ending date (mm/dd/yyyy) </B>';
-print $cgi->end_td;
-print $cgi->start_td({-align=>'left'});
-print $cgi->popup_menu(-name=>'endmonth', -size=>1, -maxlength=>2, -value=>[1..12], -default=>'');
-print $cgi->b(" / ");
-print $cgi->popup_menu(-name=>'endday', -size=>1, -maxlength=>2, -value=>[1..31], -default=>'');
+if ($main::config_parms{date_format} =~ /^ddmmyy/) {
+  print '<B>Ending date (dd/mm/yyyy) </B>';
+  print $cgi->end_td;
+  print $cgi->start_td({-align=>'left'});
+  print $cgi->popup_menu(-name=>'endday', -size=>1, -maxlength=>2, -value=>[1..31], -default=>'');
+  print $cgi->b(" / ");
+  print $cgi->popup_menu(-name=>'endmonth', -size=>1, -maxlength=>2, -value=>[1..12], -default=>'');
+} else {
+  print '<B>Ending date (mm/dd/yyyy) </B>';
+  print $cgi->end_td;
+  print $cgi->start_td({-align=>'left'});
+  print $cgi->popup_menu(-name=>'endmonth', -size=>1, -maxlength=>2, -value=>[1..12], -default=>'');
+  print $cgi->b(" / ");
+  print $cgi->popup_menu(-name=>'endday', -size=>1, -maxlength=>2, -value=>[1..31], -default=>'');
+}
 print $cgi->b(" / ");
 print $cgi->popup_menu(-name=>'endyear', -size=>1, -maxlength=>4, -value=>[1999..2015], -default=>'');
 print $cgi->end_td;
