@@ -95,7 +95,7 @@ sub default_setstate
 {
     my ($self, $state, $substate, $set_by) = @_;
     if ($set_by =~ /^xpl/i) {
-    	if ($$self{changed} =~ /sprinkler\.gateinfo/) {
+    	if ($$self{changed} =~ /sprinklr\.gateinfo/) {
 	   &::print_log("[xPL_IrrigationGateway] Received sprinkler.gateinfo message."
            	. " Default queue id= " . $$self{'sprinkler.gateinfo'}{'default-queue-id'})
                 if $main::Debug{irrigation};
@@ -109,17 +109,17 @@ sub default_setstate
               @{$$self{'queue_id_list'}} = @list;
     	   }
            $self->SUPER::send_cmnd('sprinklr.request' => { 'request' => 'pumpinfo' });
-    	} elsif ($$self{changed} =~ /sprinkler\.pumpinfo/) {
+    	} elsif ($$self{changed} =~ /sprinklr\.pumpinfo/) {
     	   &::print_log("[xPL_IrrigationGateway] Received sprinkler.pumpinfo message: pump is "
            	. $$self{'sprinklr.pumpinfo'}{state}) if $main::Debug{irrigation};
            $$self{is_pump_running} = ($$self{'sprinklr.pumpinfo'}{state} =~ /^running/i) ? 1 : 0;
     	} elsif ($$self{changed} =~ /sprinkler\.gateway/) {
 		&::print_log("[xPL_IrrigationGateway] Received sprinkler.gateway message") if $main::Debug{irrigation};
-    	} elsif ($$self{changed} =~ /sprinkler\.pump/) {
+    	} elsif ($$self{changed} =~ /sprinklr\.pump/) {
     	   &::print_log("[xPL_IrrigationGateway] Received sprinkler.pumpinfo message: pump is "
            	. $$self{'sprinklr.pumpinfo'}{state}) if $main::Debug{irrigation};
            $$self{is_pump_running} = ($$self{'sprinklr.pumpinfo'}{state} =~ /^running/i) ? 1 : 0;
-    	} elsif ($$self{changed} =~ /sprinkler\.vrequest/) {
+    	} elsif ($$self{changed} =~ /sprinklr\.vrequest/) {
         	my $queue_id = $$self{'sprinklr.vrequest'}{'queue-id'};
         	my $request_index = $$self{'sprinklr.vrequest'}{'request-index'};
         	my $action = $$self{'sprinklr.vrequest'}{'action'};
@@ -132,7 +132,7 @@ sub default_setstate
                         . " valve_id=$valve_id, run_minutes=$run_minutes, remaining_minutes=$remaining_minutes")
                         if $main::Debug{irrigation};
 
-      	} elsif ($$self{changed} =~ /sprinkler\.rqstinfo/) {
+      	} elsif ($$self{changed} =~ /sprinklr\.rqstinfo/) {
 		&::print_log("[xPL_IrrigationGateway] Received sprinkler.rqstinfo message") if $main::Debug{irrigation};
     	}
     } else {
@@ -152,7 +152,9 @@ sub ignore_message {
 	my ($self, $p_data) = @_;
         my $ignore_message = 0;
         if (!(defined($$p_data{'sprinklr.gateinfo'}) or defined($$p_data{'sprinklr.pump'})
-        	or defined($$p_data{'sprinklr.gate'}))) {
+        	or defined($$p_data{'sprinklr.gate'}) or defined($$p_data{'sprinklr.pumpinfo'})
+        	or defined($$p_data{'sprinklr.vrequest'}) or defined($$p_data{'sprinklr.rqstinfo'})
+           )) {
             $ignore_message = 1;
         }
         return $ignore_message;
