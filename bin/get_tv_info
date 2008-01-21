@@ -12,6 +12,9 @@
 #      Clive Freedman  scf@fircone.co.uk
 #  Change log:
 #    07/04/99  Created.
+# 
+#  $Date$
+#  $Version$
 #
 #---------------------------------------------------------------------------
 
@@ -120,7 +123,7 @@ sub find_match {
         for my $time_start (@times) {
             for my $channel_number (@channels) {
                 my $db_key = join($;, $channel_number, $pgm_date, $time_start);
-#                print "key=$db_key.\n" if $parms{debug};
+                print "key=$db_key.\n" if $parms{debug};
 #               print "key=$db_key.  data=$DBM{$db_key}.\n" if $channel_number == 8 and $time_start eq '18:30';
                 if (my $db_data = $DBM{$db_key}) {
                 	print "db_data=$db_data\n" if $parms{debug};
@@ -161,7 +164,7 @@ sub find_match {
                         if ($pgm_name    =~ /\b$key/i or
                             ($pgm_desc    =~ /\b$key/i and !$parms{title_only})) {
                             $match_key = 1;
-                            print "$key ";
+                            print "$key " if $parms{debug};
 # The next 2 lines highlight the selected key-word(s), using the selected symbol in mh.ini
                             $pgm_desc =~ s/($key)/$symbol$symbol\1$symbol/gi;
                             $pgm_name =~ s/($key)/$symbol$symbol\1$symbol/gi;
@@ -197,7 +200,7 @@ sub find_match {
 			# *** change default to 6am to midnight, add early hours if indicated to make a 24 hour period (does not come close to working as is.  Looks at current day, not the next!)
 
 
-print "$show_ended $pgm_name" if $match_key;
+#print "$show_ended $pgm_name" if $match_key;
 
                     unless 	(@lengths and !$match_length or
                              ($show_ended) or
@@ -334,7 +337,8 @@ sub setup {
 
     my ($day, $month, $year) = (localtime(time))[3,4,5];
     $date_today = sprintf("%s/%02d", ++$month, $day);
-    $time_now = (localtime)[2].":".(localtime)[1];
+    $time_now = sprintf("%02d", (localtime)[2]) . ":" . (localtime)[1];
+    #$time_now = (localtime)[2].":".(localtime)[1];
     $min_now = &hour_to_min($time_now);
 
     $parms{name}     = 'TV'    	     unless $parms{name};
@@ -455,7 +459,7 @@ sub split_parm {
                         $hour++;
                         $hour = 0 if $hour > 23;
                     }
-                    $j = sprintf "%d:%02d", $hour, $min;
+                    $j = sprintf "%02d:%02d", $hour, $min;
                     push(@parms, $j);
                 }
             }
@@ -493,14 +497,16 @@ sub increment_date {
     return sprintf("%s/%02d", $dateholder[4]+1, $dateholder[3]);
 }
 sub format_date {
-    my ($month, $day) = @_[0] =~ /0?(\d+)\/(\d+)/; # Drop leading 0 from month
-    return sprintf("%s/%02d", $month, $day); # Add leading 0 to day
+    #my ($month, $day) = @_[0] =~ /0?(\d+)\/(\d+)/; # Drop leading 0 from month
+    my ($month, $day) = @_[0] =~ /(\d+)\/(\d+)/; # Drop year
+    #return sprintf("%s/%02d", $month, $day); # Add leading 0 to day
+    return sprintf("%02d/%02d", $month, $day); # 
 }
 sub min_to_hour {
     my ($min) = @_;
     my $hour = int($min / 60);
     $min = $min - $hour * 60;
-    return sprintf("%d:%02d", $hour, $min);
+    return sprintf("%02d:%02d", $hour, $min);
 }
 sub hour_to_min {
     my ($hour, $min) = split(':', @_[0]);
@@ -511,114 +517,26 @@ sub hour24_to_ampm {
     if ($hour >= 24) {
         $hour  = 12 if ($hour == 24 );
         $hour -= 24 if ($hour >  24 );
+        $hour = sprintf("%02d", $hour);
         return ($hour) . ":$min AM";
     }
     elsif ($hour >= 12) {
         $hour -= 12 if ($hour > 12 );
+        $hour = sprintf("%02d", $hour);
         return ($hour) . ":$min PM";
     }
     else {
         $hour = 12 if ($hour == 0 );
+        $hour = sprintf("%02d", $hour);
         return "$hour:$min AM";
     }
 }
-
-
 sub ampm_to_hour24 {
     my ($hour, $min, $ampm) = @_[0] =~ /(\d+):?(\d*) *(\S*)/;
     $hour += 12 if uc($ampm) eq 'PM' and $hour  < 12;
     $hour -= 12 if uc($ampm) eq 'AM' and $hour == 12;
+    $hour = sprintf("%02d", $hour);
     $min = "00" unless $min;
     $hour .= ":$min";
     return $hour;
 }
-
-#
-# $Log: get_tv_info,v $
-# Revision 1.28  2002/09/22 01:33:22  winter
-# - 2.71 release
-#
-# Revision 1.27  2002/07/01 22:25:25  winter
-# - 2.69 release
-#
-# Revision 1.26  2002/03/02 02:36:49  winter
-# - 2.65 release
-#
-# Revision 1.25  2002/01/23 01:50:33  winter
-# - 2.64 release
-#
-# Revision 1.24  2002/01/19 21:11:09  winter
-# - 2.63 release
-#
-# Revision 1.23  2001/12/16 21:48:40  winter
-# - 2.62 release
-#
-# Revision 1.22  2001/11/18 22:51:42  winter
-# - 2.61 release
-#
-# Revision 1.21  2001/10/21 01:22:31  winter
-# - 2.60 release
-#
-# Revision 1.20  2001/08/12 04:02:57  winter
-# - 2.57 update
-#
-# Revision 1.19  2001/05/06 21:07:25  winter
-# - 2.51 release
-#
-# Revision 1.18  2001/04/15 17:38:09  winter
-# - 2.49 release
-#
-# Revision 1.17  2001/04/15 16:17:20  winter
-# - 2.49 release
-#
-# Revision 1.14  2001/02/04 20:31:30  winter
-# - 2.43 release
-#
-# January 2001:
-# revised to add hypertext links for setting VCR, 
-# highlighting selected key-word, 
-# and early AM searching
-# debugged searching for shows in progress and UK dates 
-# changed plural and upper-case recognition 
-#
-# November 2000: 
-# revised to include processing of key-lists in files, 
-# case-sensitive searches for words starting with upper-case,
-# searches for whole words only, plus plurals,
-# 5 minute start increments, 
-# shows in progress, .html output
-#
-# Revision 1.11  2000/08/06 21:56:43  winter
-# - See 2.24 release notes.
-#
-# Revision 1.10  2000/04/25 12:43:36  winter
-# - add HTML::FormatText to drop html tags
-#
-# Revision 1.9  2000/04/09 18:03:19  winter
-# - 2.13 release
-#
-# Revision 1.8  2000/03/10 04:09:01  winter
-# - Add Ibutton support and more web changes
-#
-# Revision 1.7  2000/01/27 13:23:00  winter
-# - update version number
-#
-# Revision 1.6  2000/01/02 23:40:38  winter
-# - change email address
-#
-# Revision 1.5  1999/11/08 02:25:16  winter
-# - fix data_dir bug
-#
-# Revision 1.4  1999/10/16 22:46:19  winter
-# - added data_dir parm
-#
-# Revision 1.3  1999/09/12 16:15:38  winter
-# - fixed $Version bug
-#
-# Revision 1.2  1999/08/01 01:19:47  winter
-# - minor fixes
-#
-# Revision 1.1  1999/07/05 16:48:48  winter
-# - created
-#
-#

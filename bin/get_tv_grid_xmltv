@@ -51,13 +51,13 @@ use strict;
 #======================================================================
 my($Pgm_Path, $Pgm_Name, $Version);
 BEGIN {
-   ($Version) = q$Revision: 1084 $ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+   ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.*)\.?/;
    ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
 }
 
-use XMLTV::Version '$Id: tv_to_text,v 1.4 2003/06/29 15:53:51 epaepa Exp $ ';
+use XMLTV::Version '$Id$ ';
 use IO::File;
 use Date::Manip; Date_Init('TZ=UTC');
 use POSIX 'tmpnam';
@@ -73,7 +73,6 @@ use Time::Local;
 #
 #my ( %parms, $infile, %channels_skip, %channels_keep, $channel_data );
 my ( %parms, $infile, $channel_data );
-#my ($url, $cookie_jar, $req_get1, $req_get2, $req_post, $logged_in);
 my (@hours, @uas);
 my ($dbm_file, $dbm_file2);
 my (%DBM, %DBM2, %DBM_channel, %DBM_html, %DBM_index);  # DBM_html is extended data for HTML
@@ -228,7 +227,8 @@ sub setup
    use DB_File;
    tie (%DBM,  'DB_File',  $dbm_file,  O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file: $!";
    tie (%DBM2, 'DB_File',  $dbm_file2, O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file2: $!";
-   
+   #
+   #$parms{debug} = 1;
 }
 
 #======================================================================
@@ -749,7 +749,12 @@ sub fetchLoop
 			}
 		}
 		
-		my $pgm_name_full = "$pgm_name: $pgm_title" if defined $pgm_title;
+		my $pgm_name_full;
+		if ($pgm_title) {
+			$pgm_name_full = "$pgm_name: $pgm_title";
+		} else { $pgm_name_full = $pgm_name; };
+		
+		#my $pgm_name_full = "$pgm_name: $pgm_title" if defined $pgm_title;
 		$pgm_name_full =~ s/  / /g;     # Drop extra spaces
 		$pgm_name_full =~ s/\s+$//;     # remove trailing spaces
 		
@@ -758,14 +763,14 @@ sub fetchLoop
 		my $html_key = join($;, $channel_number, $pgm_date, $time_start_adj);
 		my $html_data = join($;, $time_end, $pgm_name, $pgm_title, $pgm_air, $time_start, $time_start_adj, $time_end_adj, $pgm_rating, $pgm_desc, $pgm_date_end, $epoch_start, $epoch_end, @pgm_category);
 		$DBM_html{$html_key} = $html_data;
-		# Remove the starting '0' for low channels
-		#$channel_number =~ s/^0//;
 		my $db_key = join($;, $channel_number, $pgm_date, $time_start);
+		#my $db_data= join($;, $time_end, $pgm_name_full, $pgm_desc);
 		my $db_data= join($;, $time_end, $pgm_name_full, 0);
 		$DBM{$db_key} = $db_data;
-		#print "DBM: db key=$db_key\ndata=$db_data.\n" if $parms{debug};
+		print "DBM: db key=$db_key\ndata=$db_data.\n" if $parms{debug};
 	}
 }
+
 
 # ========================================================
 # sub ampm_to_hour24 
