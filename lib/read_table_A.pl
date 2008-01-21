@@ -659,6 +659,45 @@ sub read_table_A {
             $code .= "use xPL_Items;\n";
         }
     }
+    elsif($type eq "XPL_IRRIGATEWAY") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if($other){
+            $object = "xPL_IrrigationGateway('$address',$other)";
+        }
+        else{
+            $object = "xPL_IrrigationGateway('$address')";
+        }
+        if( ! $packages{xPL_Irrigation}++ ) {   # first time for this object type?
+            $code .= "use xPL_Irrigation;\n";
+        }
+    }
+    elsif($type eq "XPL_IRRIVALVE") {
+        ($address, $name, $grouplist, $object, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if($other){
+            $object = "xPL_IrrigationValve('$address',\$$object,$other)";
+        }
+        else{
+            $object = "xPL_IrrigationValve('$address',\$$object)";
+        }
+        if( ! $packages{xPL_Irrigation}++ ) {   # first time for this object type?
+            $code .= "use xPL_Irrigation;\n";
+        }
+    }
+    elsif($type eq "XPL_IRRIQUEUE") {
+        ($address, $name, $grouplist, $object, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if($other){
+            $object = "xPL_IrrigationQueue('$address',\$$object,$other)";
+        }
+        else{
+            $object = "xPL_IrrigationQueue('$address',\$$object)";
+        }
+        if( ! $packages{xPL_Irrigation}++ ) {   # first time for this object type?
+            $code .= "use xPL_Irrigation;\n";
+        }
+    }
     elsif($type eq "X10_SCENE") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
