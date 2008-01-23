@@ -842,7 +842,7 @@ sub parse_alllink
 	if (substr($data,8,6)) {
 		my %link = {};
 		my $flag = substr($data,4,1);
-		$link{is_controller} = hex($flag) & 0x04;
+		$link{is_controller} = (hex($flag) & 0x04) ? 1 : 0;
 		$link{flags} = substr($data,4,2);
 		$link{group} = substr($data,6,2);
 		$link{deviceid} = substr($data,8,6);
@@ -923,28 +923,33 @@ sub delete_orphan_links
 	my $num_deleted = 0;
 	foreach my $linkkey (keys %{$$self{links}}) {
 		my $deviceid = $$self{links}{$linkkey}{deviceid};
+		my $group = $$self{links}{$linkkey}{group};
+		my $is_controller = $$self{links}{$linkkey}{is_controller};
 		my $device = $self->get_object($deviceid,'01');
 		# if a PLM link (regardless of responder or controller) exists to a device that is not known, then delete
 		if (!($device)) {
 			&::print_log("[Insteon_PLM] now deleting orphaned link w/ details: "
 				. (($$self{links}{$linkkey}{is_controller}) ? "controller" : "responder")
-				. ", deviceid=$deviceid, "
-				. "group=$$self{links}{$linkkey}{group}");
-			$self->delete_link(deviceid => $deviceid, group => $$self{links}{$linkkey}{group}, 
-				is_controller => $$self{links}{$linkkey}{is_controller});
+				. ", deviceid=$deviceid, group=$group");
+			$self->delete_link(deviceid => $deviceid, group => $group, 
+				is_controller => $is_controller);
 			$num_deleted++;
 		} else {
 			my $is_invalid = 1;
 			my $link = undef;
-			if ($$self{links}{$linkkey}{is_controller}) {
+			if ($is_controller) {
 				# then, this is a PLM defined link; and, we won't care about responder links as we assume
 				# they're ok given that they reference known devices
-				$link = $self->get_object('000000',$$self{links}{$linkkey}{group});
+				$link = $self->get_object('000000',$group);
 				if (!($link)) {
+					# a reference in the PLM's linktable does not match a scene member target
 					$is_invalid = 1;
 				} else {
+					# iterate over all of the members of the Insteon_Link item
 					foreach my $member_ref (keys %{$$link{members}}) {
-					my $member = $$link{members}{$member_ref}{object};
+						my $member = $$link{members}{$member_ref}{object};
+						# member will correspond to a scene member item
+						# and, if it is a light item, then get the real device
 						if ($member->isa('Light_Item')) {
 							my @lights = $member->find_members('Insteon_Device');
 							if (@lights) {
@@ -953,11 +958,22 @@ sub delete_orphan_links
 						}
 						if ($member->isa('Insteon_Device')) {
 							if (lc $member->device_id eq $$self{links}{$linkkey}{deviceid}) {
-								$is_invalid = 0;
+								# at this point, the forward link is ok; but, only if the reverse
+								# link also exists.  So, check:
+								if ($member->has_link($self, $group, 0)) {
+									$is_invalid = 0;
+								}
 								last;
 							}
 						} else {
 							$is_invalid = 0;
+						}
+					}
+					if ($is_invalid) {
+						# then, there is a good chance that a reciprocal link exists; if so, delet it too
+						if ($device->has_link($self,$group,0)) {
+							$device->delete_link(object => $self, group => $group,
+								is_controller => $is_controller);
 						}
 					}
 				}
@@ -965,10 +981,10 @@ sub delete_orphan_links
 					&::print_log("[Insteon_PLM] now deleting orphaned link in PLM w/ details: "
 						. "controller"
 						. ", deviceid=$$self{links}{$linkkey}{deviceid},"
-						. "group=$$self{links}{$linkkey}{group}");
-					$self->delete_link(object => $device, group => $$self{links}{$linkkey}{group}, 
-						is_controller => $$self{links}{$linkkey}{is_controller});
-					$num_deleted++;
+						. "group=$group");
+					if ($self->delete_link(object => $device, group => $group, is_controller => $is_controller)) {
+						$num_deleted++;
+					}
 				}
 			}
 		}
@@ -1008,8 +1024,10 @@ sub delete_link
 			. $$self{links}{$linkkey}{data3};
 		$self->send_plm_cmd($cmd);
 		delete $$self{links}{$linkkey};
+		return 1;
 	} else {
 		&::print_log("[Insteon_PLM] no entry in linktable could be found for linkkey: $linkkey");
+		return 0;
 	}
 }
 
