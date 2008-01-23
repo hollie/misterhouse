@@ -7,10 +7,9 @@ File:
 Description:
 	Generic class implementation of a Insteon Device.
 
-Author:
-	Gregg Liming w/ significant code reuse from:
-	Jason Sharpee
-	jason@sharpee.com
+Author(s):
+	Gregg Liming / gregg@limings.net
+	Jason Sharpee / jason@sharpee.com
 
 License:
 	This free software is licensed under the terms of the GNU public license.
@@ -106,40 +105,42 @@ sub set
 	my ($self, $p_state, $p_setby, $p_respond) = @_;
 	# prevent setby internal Insteon_Device timers
 	return if $p_setby eq $$self{ping_timer};
-	# iterate over the members
-	if ($$self{members}) {
-		foreach my $member_ref (keys %{$$self{members}}) {
-			my $member = $$self{members}{$member_ref}{object};
-			my $on_state = $$self{members}{$member_ref}{on_level};
-			$on_state = '100%' unless $on_state;
-			my $local_state = $on_state;
-			$local_state = 'on' if $local_state eq '100%';
-			$local_state = 'off' if $local_state eq '0%';
-			if ($member->isa('Light_Item')) {
-			# if they are Light_Items, then set their on_dim attrib to the member on level
-			#   and then "blank" them via the manual method for a tad over the ramp rate
-			#   In addition, locate the Light_Item's Insteon_Device member and do the 
-			#   same as if the member were an Insteon_Device
-				my $ramp_rate = $$self{members}{$member_ref}{ramp_rate};
-				$ramp_rate = 0 unless defined $ramp_rate;
-				$ramp_rate = $ramp_rate + 2;
-				my @lights = $member->find_members('Insteon_Device');
-				if (@lights) {
-					my $light = @lights[0];
-					# remember the current state to support resume
-					$$self{members}{$member_ref}{resume_state} = $light->state;
-					$member->manual($light, $ramp_rate);
-					$light->set_receive($local_state,$self);
-				} else {
-					$member->manual(1, $ramp_rate);
+	if (!($self->group eq '01')) {
+		# iterate over the members
+		if ($$self{members}) {
+			foreach my $member_ref (keys %{$$self{members}}) {
+				my $member = $$self{members}{$member_ref}{object};
+				my $on_state = $$self{members}{$member_ref}{on_level};
+				$on_state = '100%' unless $on_state;
+				my $local_state = $on_state;
+				$local_state = 'on' if $local_state eq '100%';
+				$local_state = 'off' if $local_state eq '0%';
+				if ($member->isa('Light_Item')) {
+				# if they are Light_Items, then set their on_dim attrib to the member on level
+				#   and then "blank" them via the manual method for a tad over the ramp rate
+				#   In addition, locate the Light_Item's Insteon_Device member and do the 
+				#   same as if the member were an Insteon_Device
+					my $ramp_rate = $$self{members}{$member_ref}{ramp_rate};
+					$ramp_rate = 0 unless defined $ramp_rate;
+					$ramp_rate = $ramp_rate + 2;
+					my @lights = $member->find_members('Insteon_Device');
+					if (@lights) {
+						my $light = @lights[0];
+						# remember the current state to support resume
+						$$self{members}{$member_ref}{resume_state} = $light->state;
+						$member->manual($light, $ramp_rate);
+						$light->set_receive($local_state,$self);
+					} else {
+						$member->manual(1, $ramp_rate);
+					}
+					$member->set_on_state($on_state);
+				} elsif ($member->isa('Insteon_Device')) {
+				# remember the current state to support resume
+					$$self{members}{$member_ref}{resume_state} = $member->state;
+				# if they are Insteon_Device objects, then simply set_receive their state to 
+				#   the member on level
+					$member->set_receive($local_state,$self);
 				}
-				$member->set_on_state($on_state);
-			} elsif ($member->isa('Insteon_Device')) {
-			# remember the current state to support resume
-				$$self{members}{$member_ref}{resume_state} = $member->state;
-			# if they are Insteon_Device objects, then simply set_receive their state to 
-			#   the member on level
-				$member->set_receive($local_state,$self);
 			}
 		}
 	}
