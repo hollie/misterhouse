@@ -96,8 +96,8 @@ sub default_setstate
     my ($self, $state, $substate, $set_by) = @_;
     if ($set_by =~ /^xpl/i) {
     	if ($$self{changed} =~ /sprinklr\.gateinfo/) {
-	   &::print_log("[xPL_IrrigationGateway] Received sprinkler.gateinfo message."
-           	. " Default queue id= " . $$self{'sprinkler.gateinfo'}{'default-queue-id'})
+	   &::print_log("[xPL_IrrigationGateway] Received sprinklr.gateinfo message."
+           	. " Default queue id= " . $$self{'sprinklr.gateinfo'}{'default-queue-id'})
                 if $main::Debug{irrigation};
            $$self{'default_queue_id'} = $$self{'sprinklr.gateinfo'}{'default-queue-id'};
            if ($$self{'sprinklr.gateinfo'}{'valve-id-list'}) {
@@ -116,9 +116,9 @@ sub default_setstate
     	} elsif ($$self{changed} =~ /sprinkler\.gateway/) {
 		&::print_log("[xPL_IrrigationGateway] Received sprinkler.gateway message") if $main::Debug{irrigation};
     	} elsif ($$self{changed} =~ /sprinklr\.pump/) {
-    	   &::print_log("[xPL_IrrigationGateway] Received sprinkler.pumpinfo message: pump is "
-           	. $$self{'sprinklr.pumpinfo'}{state}) if $main::Debug{irrigation};
-           $$self{is_pump_running} = ($$self{'sprinklr.pumpinfo'}{state} =~ /^running/i) ? 1 : 0;
+    	   &::print_log("[xPL_IrrigationGateway] Received sprinkler.pump message: pump is "
+           	. $$self{'sprinklr.pump'}{state}) if $main::Debug{irrigation};
+           $$self{is_pump_running} = ($$self{'sprinklr.pump'}{state} =~ /^running/i) ? 1 : 0;
     	} elsif ($$self{changed} =~ /sprinklr\.vrequest/) {
         	my $queue_id = $$self{'sprinklr.vrequest'}{'queue-id'};
         	my $request_index = $$self{'sprinklr.vrequest'}{'request-index'};
@@ -127,7 +127,7 @@ sub default_setstate
         	my $run_minutes = $$self{'sprinklr.vrequest'}{'run-minutes'};
         	my $remaining_minutes = $$self{'sprinklr.vrequest'}{'remaining-minutes'};
 
-		&::print_log("[xPL_IrrigationGateway] Received sprinkler.vrequest message."
+		&::print_log("[xPL_IrrigationGateway] Received sprinklr.vrequest message."
                 	. " queue_id=$queue_id, request_index=$request_index, action=$action,"
                         . " valve_id=$valve_id, run_minutes=$run_minutes, remaining_minutes=$remaining_minutes")
                         if $main::Debug{irrigation};
