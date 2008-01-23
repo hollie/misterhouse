@@ -705,7 +705,7 @@ sub reset_states2 {
                    {name => $$ref{object_name}, state => $state, state_prev => $$ref{state_prev}, set_by => $set_by, mh_target => $target});
     }
     if ($send_xpl and $set_by !~ /^xpl/i) {
-        &xAP::sendXpl('mhouse.item', 'xpl-stat', 'mhouse.item' =>
+        &xPL::sendXpl('mhouse.item', 'xpl-stat', 'mhouse.item' =>
                    {name => $$ref{object_name}, state => $state, state_prev => $$ref{state_prev}, set_by => $set_by, mh_target => $target});
     }
 
