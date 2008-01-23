@@ -329,8 +329,12 @@ sub default_setstate
     my ($self, $state, $substate, $set_by) = @_;
     if ($set_by =~ /^xpl/i) {
     	if ($$self{changed} =~ /sprinklr\.valvinfo/) {
+           &::print_log("[xPL_IrrigationValve] valve: " . $self->get_object_name
+                . " state is $state") if $main::Debug{irrigation};
     	   return -1 if $self->state eq $state; # don't propagate state unless it has changed
     	} elsif ($$self{changed} =~ /sprinklr\.valve/) {
+            &::print_log("[xPL_IrrigationValve] valve: " . $self->get_object_name
+                . " state is $state") if $main::Debug{irrigation};
     	   return -1 if $self->state eq $state; # don't propagate state unless it has changed
     	}
     } else {
