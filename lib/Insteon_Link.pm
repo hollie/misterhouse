@@ -181,27 +181,42 @@ sub update_members
 
 sub link_to_interface
 {
-	my ($self) = @_;
+	my ($self, $p_group) = @_;
+	my $group = $p_group;
+	$group = $self->group unless $group;
 	return if $self->device_id eq '000000'; # don't allow this to be used for PLM links
-	$self->SUPER::link_to_interface();
-	# get the object that this link corresponds to
-	my $device = $self->interface->get_object($self->device_id,'01');
-	if ($device) {
-	# next, if the link is a keypadlinc, then create the reverse link to permit
-	# control over the button's light
-		if ($$device{devcat} eq '0109') { # 0109 is a keypadlinc
+	# get the surrogate device for this if group is not '01'
+	if ($self->group ne '01') {
+		my $surrogate_obj = $self->interface->get_object($self->device_id,'01');
+		$surrogate_obj->link_to_interface($group);
+		# next, if the link is a keypadlinc, then create the reverse link to permit
+		# control over the button's light
+		if ($$surrogate_obj{devcat} eq '0109') { # 0109 is a keypadlinc
 
 		}
+	} else {
+		$self->SUPER::link_to_interface($group);
 	}
 }
 
 sub unlink_to_interface
 {
-	my ($self) = @_;
+	my ($self,$p_group) = @_;
+	my $group = $p_group;
+	$group = $self->group unless $group;
 	return if $self->device_id eq '000000'; # don't allow this to be used for PLM links
-	$self->SUPER::unlink_to_interface();
-	# next, if the link is a keypadlinc, then delete the reverse link that permits
-	# control over the button's light
+	# get the surrogate device for this if group is not '01'
+	if ($self->group ne '01') {
+		my $surrogate_obj = $self->interface->get_object($self->device_id,'01');
+		$surrogate_obj->unlink_to_interface($group);
+		# next, if the link is a keypadlinc, then delete the reverse link to permit
+		# control over the button's light
+		if ($$surrogate_obj{devcat} eq '0109') { # 0109 is a keypadlinc
+
+		}
+	} else {
+		$self->SUPER::unlink_to_interface($group);
+	}
 }
 
 sub initiate_linking_as_controller
@@ -224,7 +239,11 @@ sub initiate_linking_as_controller
 sub _xlate_mh_insteon
 {
 	my ($self, $p_state, $p_type, $p_extra) = @_;
-	return $self->SUPER::_xlate_mh_insteon($p_state, 'broadcast', $p_extra);
+	if ($self->group eq '01') {
+		return $self->SUPER::_xlate_mh_insteon($p_state, $p_type, $p_extra);
+	} else {
+		return $self->SUPER::_xlate_mh_insteon($p_state, 'broadcast', $p_extra);
+	}
 }
 
 sub request_status
