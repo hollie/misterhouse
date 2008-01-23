@@ -312,9 +312,14 @@ sub set
 	{
 		$self->_xlate_mh_x10($p_state,$p_setby);
 	} elsif ($p_setby->isa("Insteon_Link")) {
-		# return the size of the command stack
-		return $self->send_plm_cmd('0261' . $p_state);
-		# return the size of the command stack
+		# only send out as all-link if the link originates from the plm
+		if ($p_setby->device_id eq '000000') {
+			# return the size of the command stack
+			return $self->send_plm_cmd('0261' . $p_state);
+		} else {
+			# return the size of the command stack
+			return $self->send_plm_cmd('0262' . $p_state);
+		}
 	} elsif ($p_setby->isa("Insteon_Device")) {
 		return $self->send_plm_cmd('0262' . $p_state);
 	} else {
