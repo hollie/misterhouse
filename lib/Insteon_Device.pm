@@ -234,19 +234,23 @@ sub set
 
 sub link_to_interface
 {
-	my ($self) = @_;
+	my ($self,$p_group) = @_;
+	my $group = $p_group;
+	$group = '01' unless $group;
 	# add a link first to this device back to interface
 	# and, add a reference to creating a link from interface back to device via hook
-	$self->add_link(object => $self->interface, group => $self->group, is_controller => 1,
+	$self->add_link(object => $self->interface, group => $group, is_controller => 1,
 			on_level => '100%', ramp_rate => '0.1s', 
-			callback => \$self->interface->add_link(object => $self, group => '01', is_controller => 0));
+			callback => \$self->interface->add_link(object => $self, group => $group, is_controller => 0));
 }
 
 sub unlink_to_interface
 {
-	my ($self) = @_;
-	$self->delete_link(object => $self->interface, group => $self->group, is_controller => 1,
-		callback => \$self->interface->delete_link(object => $self, group => '01', is_controller => 0));
+	my ($self,$p_group) = @_;
+	my $group = $p_group;
+	$group = '01' unless $group;
+	$self->delete_link(object => $self->interface, group => $group, is_controller => 1,
+		callback => \$self->interface->delete_link(object => $self, group => $group, is_controller => 0));
 }
 
 sub _send_cmd
@@ -441,7 +445,7 @@ sub _xlate_insteon_mh
 	$msg{hopsleft} = $hopflag >> 2;
 	$msg{hopsmax} = $hopflag << 2;
 	my $msgflag = hex(uc substr($p_state,12,1));
-	$msg{is_extended} = 0x01 & $msgflag;
+	$msg{is_extended} = (0x01 & $msgflag) ? 1 : 0;
 	if ($msg{is_extended}) {
 		$msg{source} = substr($p_state,0,6);
 		$msg{destination} = substr($p_state,6,6);
