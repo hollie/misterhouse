@@ -535,15 +535,16 @@ sub _parse_data {
 #		&::print_log("PLM: Defined:$prev_cmd");
 		my $ackcmd = $prev_cmd . '06';
 		my $nackcmd = $prev_cmd . '15';
+		my $badcmd = $prev_cmd . '0f';
 		my $entered_ack_loop = 0;
-		foreach my $data_1 (split(/($ackcmd)|($nackcmd)|(0260\w{12}06)|(0260\w{12}15)/,$data))
+		foreach my $data_1 (split(/($ackcmd)|($nackcmd)|($badcmd)|(0260\w{12}06)|(0260\w{12}15)/,$data))
 		{
 			#ignore blanks.. the split does odd things
 			next if $data_1 eq '';
 
 			$entered_ack_loop = 1;
 
-			if ($data_1 =~ /^($ackcmd)|($nackcmd)|(0260\w{12}06)|(0260\w{12}15)$/) {
+			if ($data_1 =~ /^($ackcmd)|($nackcmd)|($badcmd)|(0260\w{12}06)|(0260\w{12}15)$/) {
 				$processedNibs+=length($data_1);
 				my $ret_code = substr($data_1,length($data_1)-2,2);
 #				&::print_log("PLM: Return code $ret_code");
@@ -568,7 +569,7 @@ sub _parse_data {
 					$self->_clear_timeout('command');
 					$process_next_command = 1;
 					$$self{retry_count} = 0;
-				} elsif ($ret_code eq '15') { #NAK Received
+				} elsif ($ret_code eq '15' or $ret_code eq '0f') { #NAK or "bad" command received
 					my $record_type = substr($data_1,0,4);
 					if ($record_type eq '0269' or $record_type eq '026a') {
 						$$self{_next_link_ok} = 0;
