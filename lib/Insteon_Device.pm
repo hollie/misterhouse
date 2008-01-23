@@ -7,9 +7,9 @@ File:
 Description:
 	Generic class implementation of an Insteon Device.
 
-Author:
-	Jason Sharpee
-	jason@sharpee.com
+Author(s):
+	Jason Sharpee / jason@sharpee.com
+	Gregg Liming / gregg@limings.net
 
 License:
 	This free software is licensed under the terms of the GNU public license.
@@ -223,7 +223,7 @@ sub set
 					. "::set($p_state, $p_setby)") if $main::Debug{insteon};
 		} else {
 			$self->_send_cmd(command => $p_state, 
-				type => (($self->isa('Insteon_Link')) ? 'alllink' : 'standard'));
+				type => (($self->isa('Insteon_Link') and ($self->group ne '01')) ? 'alllink' : 'standard'));
 			&::print_log("[Insteon_Device] " . $self->get_object_name() . "::set($p_state, $p_setby)")
 				if $main::Debug{insteon};
 			$self->is_acknowledged(0);
