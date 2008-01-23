@@ -2,7 +2,7 @@
 
 #@ This module creates voice commands for all Insteon_Device, Insteon_Link and Insteon_PLM items.
 
-my (@_insteon_plm,@_insteon_device,@_insteon_link);
+my (@_insteon_plm,@_insteon_device,@_insteon_link,@_scannable_link);
 $_scan_link_tables_v = new Voice_Cmd 'Scan all link tables';
 
 if ($_scan_link_tables_v->state_now()) {
@@ -15,6 +15,7 @@ sub _get_next_linkscan
     my @devices = ();
     push @devices,@_insteon_plm;
     push @devices,@_insteon_device;
+    push @devices,@_scannable_link;
     my $return_next = ($current_name) ? 0 : 1;
     my $next_name = undef;
     foreach my $name (@devices) {
@@ -73,6 +74,10 @@ if ($Reload) {
            } else {
               $cmd_states .= ",link to interface,unlink with interface";
            }
+           if ($object->group eq '01') {
+              $cmd_states .= ",scan link table";
+              push @_scannable_link, $object_name;
+           }
            $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
            if ($object->device_id eq '000000') {
               $object_string .= "$object_name_v -> tie_event('$object_name->initiate_linking_as_controller(\"$group\")', 'initiate linking as controller');\n\n";
@@ -81,6 +86,9 @@ if ($Reload) {
            } else {
               $object_string .= "$object_name_v -> tie_event('$object_name->link_to_interface','link to interface');\n\n";
               $object_string .= "$object_name_v -> tie_event('$object_name->unlink_to_interface','unlink with interface');\n\n";
+           }
+           if ($object->group eq '01') {
+              $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','scan link table');\n\n";
            }
            $object_string .= "$object_name_v -> tie_items($object_name, 'on');\n\n";
            $object_string .= "$object_name_v -> tie_items($object_name, 'off');\n\n";
