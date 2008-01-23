@@ -112,13 +112,13 @@ sub default_setstate
     	} elsif ($$self{changed} =~ /sprinklr\.pumpinfo/) {
     	   &::print_log("[xPL_IrrigationGateway] Received sprinkler.pumpinfo message: pump is "
            	. $$self{'sprinklr.pumpinfo'}{state}) if $main::Debug{irrigation};
-           $$self{is_pump_running} = ($$self{'sprinklr.pumpinfo'}{state} =~ /^running/i) ? 1 : 0;
+           $$self{pump_is_running} = ($$self{'sprinklr.pumpinfo'}{state} =~ /^running/i) ? 1 : 0;
     	} elsif ($$self{changed} =~ /sprinkler\.gateway/) {
 		&::print_log("[xPL_IrrigationGateway] Received sprinkler.gateway message") if $main::Debug{irrigation};
     	} elsif ($$self{changed} =~ /sprinklr\.pump/) {
     	   &::print_log("[xPL_IrrigationGateway] Received sprinkler.pump message: pump is "
            	. $$self{'sprinklr.pump'}{state}) if $main::Debug{irrigation};
-           $$self{is_pump_running} = ($$self{'sprinklr.pump'}{state} =~ /^running/i) ? 1 : 0;
+           $$self{pump_is_running} = ($$self{'sprinklr.pump'}{state} =~ /^running/i) ? 1 : 0;
     	} elsif ($$self{changed} =~ /sprinklr\.vrequest/) {
         	my $queue_id = $$self{'sprinklr.vrequest'}{'queue-id'};
         	my $request_index = $$self{'sprinklr.vrequest'}{'request-index'};
