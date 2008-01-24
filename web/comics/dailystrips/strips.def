@@ -5392,3 +5392,13 @@ strip lio
 	useclass gocomics-gen
 	$1 lio
 end
+
+strip delucq
+	name Delucq
+	artist Delucq
+	homepage http://www.delucq.com/dessin_jour/?date=%Y%m%d&cat=6
+	type search
+	baseurl  http://www.delucq.com/
+	searchpattern <img src="../(images/banque_dessins/.+?)"
+	provides latest
+end
