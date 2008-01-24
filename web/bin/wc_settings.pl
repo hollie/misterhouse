@@ -9,6 +9,8 @@
 #  the returned data should be formatted as a script and usable in the page when placed
 #  in the header of of the page.
 #
+# v 1.01 - Pete Flaherty - genericised parameters and we now start at camera 1 not 0
+#                          updated ini parameter defaults to look for _1 v _0
 
 #Referenc:
 #Javascript output
@@ -51,7 +53,7 @@ my  $across = 1 ;  # how many across are we now ?
 my  $wcMax = $config_parms{wc_max};		# max cams
     $wcMax = "4" unless $config_parms{wc_max};  # default it 
 
-my  $wcx="" unless $config_parms{wc_address_0};
+my  $wcx="" unless $config_parms{wc_address_1};
 
 my $wc_bg_color = $config_parms{wc_bg_color};
    $wc_bg_color = '0x333366' unless $config_parms{wc_bg_color};
