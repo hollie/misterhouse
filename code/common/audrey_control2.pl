@@ -248,7 +248,7 @@ if (said $v_audrey_wav) {
     my $state = $v_audrey_wav->{state};
     $v_audrey_wav->respond("Playing sound on $state Audrey.") unless $config_parms{Audrey_no_voice_respond};
     play address => &audrey_ip($state), file => '../sounds/hello_from_bruce.wav';
-#   get "http://$state/cgi-bin/SendMessage?M=GOTO_URL&S=http://$Info{Machine}:$config_parms{http_port}/sounds/hello_from_bruce.wav";
+#   get "http://$state/cgi-bin/SendMessage?M=GOTO_URL\\&S=http://$Info{Machine}:$config_parms{http_port}/sounds/hello_from_bruce.wav";
 }
 
 # ready to go if tagline code is enabled
@@ -371,16 +371,16 @@ sub audrey {
         }
         elsif ($mode eq 'photos') {
             #get "http://$address/cgi-bin/SendMessage?M=GOTO_URL&S=http://$Info{IPAddress_local}:$config_parms{http_port}/misc/photos.html";
-            $audrey_cmd = "http://$address/cgi-bin/SendMessage?M=GOTO_URL&S=http://$Info{IPAddress_local}:$config_parms{http_port}/misc/photos.html";
+            $audrey_cmd = "http://$address/cgi-bin/SendMessage?M=GOTO_URL\\&S=http://$Info{IPAddress_local}:$config_parms{http_port}/misc/photos.html";
         }
 	elsif ($mode eq 'music') {
             $state = 0 if $astate eq 'Stop';
             $state = 1 if $astate eq 'Play';
             #get "http://$address/cgi-bin/mpctrl?action=$astate&file=http://192.168.0.150:8010";
 	    if ($config_parms{mp3_stream_server_port}) {
-               $audrey_cmd = "http://$address/cgi-bin/mpctrl?action=$astate&file=$config_parms{mp3_stream_server_port}";
+               $audrey_cmd = "http://$address/cgi-bin/mpctrl?action=$astate\\&file=$config_parms{mp3_stream_server_port}";
              } else {
-               $audrey_cmd = "http://$address/cgi-bin/mpctrl?action=$astate&file=http://192.168.0.150:8010";
+               $audrey_cmd = "http://$address/cgi-bin/mpctrl?action=$astate\\&file=http://192.168.0.150:8010";
 	     }
         }
 	elsif ($mode eq 'volume') {
