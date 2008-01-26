@@ -135,10 +135,11 @@ sub addday {
       $dow = 0;}
     $day++;
     if ($day > $daysinmonth[$month]) {
-      $month++;
       if ($month eq 12) {
         $month = 1;
-        $year++;}
+        $year++;} else {
+	$month++;
+	}	
       $day = 1;}
     return ($dow, $month, $day, $year);
   }

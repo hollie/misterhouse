@@ -147,6 +147,12 @@ sub send {
     elsif ( $cmd eq 'K' ) {
         safeWrite( $hc, $last_dev{$hc}, 'off' );
     }
+    elsif ( $cmd eq 'O' ) {
+        safeWrite( $hc, $last_dev{$hc}, 'aon' );
+    }
+    elsif ( $cmd eq 'P' ) {
+        safeWrite( $hc, $last_dev{$hc}, 'aoff' );
+    }
     elsif ( $cmd ge '1' && $cmd le 'G' ) {
         $last_dev{$hc} = $cmd;
     }
@@ -164,7 +170,8 @@ sub send {
 sub write_dev {
     my ( $hc, $unit, $state ) = @_;
 
-    my $dev = "/dev/x10/\L$hc".$hex2int{$unit};
+#   my $dev = "/dev/x10/\L$hc".$hex2int{$unit};
+    my $dev = "/dev/x10/\L$hc".( defined($unit) ? $hex2int{$unit} : "" );
     &main::print_log("Wish::write_dev to $dev, data=$state") if checkDebug();
     if (!open( DEV, ">$dev" )) {
         &main::print_log("Failed to open $dev: $!");
