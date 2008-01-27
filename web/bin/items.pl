@@ -5,9 +5,13 @@ This code is used to list and manipulate mht (mh table) items.
 
   http://localhost:8080/bin/items.pl
 
+$Date$
+$Revision$
+
 =cut
 
 use strict;
+use File::Spec;
 $^W = 0;                        # Avoid redefined sub msgs
 
 return &web_items_list();
@@ -46,7 +50,8 @@ function openparmhelp(parm1){
         }
     }
 
-    push @file_paths, @Code_Dirs[0] . "items.mht" unless @file_paths[0];  # Create new items file if none
+    my $default = File::Spec->catfile(@Code_Dirs[0], "items.mht");
+    push @file_paths, $default unless @file_paths[0];  # Create new items file if none
     $web_item_file_name = @file_paths[0] unless $web_item_file_name;      # Default to first mht file found 
     $web_item_file_name = $1 if $ARGV[0] =~ /^file=(.+)$/;                # User selected another mht file  
 
