@@ -49,4 +49,14 @@ EIB5,     2/0/10,               Windspeed,         Weather,                     
 # The "address" of a type 7 item is the combination of two addresses: "move"|"stop/step".
 # Note that drives are not readable -- reading a drive may cause it to move!
 #
-EIB7,     2/1/0|2/1/1,          Kitchen_blinds,        Kitchen|All_Blinds
+# Usually EIB7-actuators can operate in two different operating modes: "shutter" or "blind"
+# "Other Info" specifies the operating mode. If omitted a shutter is assumed. 
+# Therefore, the two possibilities for shutters are as follows:
+# 
+EIB7,     2/1/0|2/1/1,          Kitchen_Shutter,        Kitchen|All_Blinds
+EIB7,     2/1/2|2/1/3,          Kitchen_Shutter,        Kitchen|All_Blinds, shutter
+#
+# If you have a blind instead, declare it like this:
+#
+EIB7,     2/1/4|2/1/5,          Kitchen_Blind,          Kitchen|All_Blinds, blind
+ 

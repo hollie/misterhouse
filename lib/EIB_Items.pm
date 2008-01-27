@@ -938,7 +938,7 @@ package EIB7_Item;
 @EIB7_Item::ISA = ('EIB_Item');
 
 sub new {
-    my ($class, $id) = @_;
+    my ($class, $id, $opmode) = @_;
     my @groups;
     my ($subid, $item);
 
@@ -950,6 +950,12 @@ sub new {
 	return;
     }
 
+    if (not defined $opmode) {
+	$self->{OperatingMode} = 'shutter';
+    } else {
+	$self->{OperatingMode} = $opmode;
+    }
+
     $subid = $groups[0];
     $self->{Move} = $subid;
     $item = new EIB71_Item($subid, "", $id);
@@ -958,11 +964,24 @@ sub new {
     $self->add($id . 'up', 'up');
     $self->add($id . 'down', 'down');
 
-    $subid = $groups[1];
-    $self->{Stop} = $subid;
-    $item = new EIB72_Item($subid, "", $id);
-    $item->add($subid . 'stop', 'stop');
-    $self->add($id . 'stop', 'stop');
+    if ($self->{OperatingMode} eq 'shutter') {
+        $subid = $groups[1];
+        $self->{Stop} = $subid;
+        $item = new EIB72_Item($subid, "", $id);
+        $item->add($subid . 'stop', 'stop');
+        $self->add($id . 'stop', 'stop');
+    } elsif ($self->{OperatingMode} eq 'blind') {
+        $subid = $groups[1];
+        $self->{Step} = $subid;
+        $item = new EIB73_Item($subid, "", $id);
+        $item->add($subid . 'step-up', 'step-up');
+        $item->add($subid . 'step-down', 'step-down');
+        $self->add($id . 'step-up', 'step-up');
+        $self->add($id . 'step-down', 'step-down');
+    } else {
+	print "Bad EIS 7 operating mode \'$self->{OperatingMode}\'";
+	return;
+    }
 
     return $self;
 }
@@ -985,8 +1004,11 @@ sub set {
     if ($state eq 'up' || $state eq 'down') {
 	$subitem = $self->{Move};
     }
-    elsif ($state eq 'stop' ) {
+    elsif ($state eq 'stop') {
 	$subitem = $self->{Stop};
+    }
+    elsif ($state eq 'step-up' || $state eq 'step-down') {
+	$subitem = $self->{Step};
     }
     else {
 	&main::print_log(" $self->{object_name}: Bad EIB drive state \'$state\'\n");
@@ -1094,6 +1116,43 @@ sub encode {
     my ($self, $state) = @_;
 
     return ([0]);
+}
+
+# EIS 73: Drive sub-function "step-up/step-down"
+
+package EIB73_Item;
+
+@EIB73_Item::ISA = ('EIB7_Subitem');
+
+
+sub eis_type {
+    return '7.3';
+}
+
+sub decode {
+    my ($self, @data) = @_;
+    unless ($#data == 0) {
+	&main::print_log("Not EIS type 73 data received for $self->{groupaddr}: \[@data\]") if $main::config_parms{eib_errata} >= 2;
+	return;
+    }
+    if ($data[0] == 0) {
+        return 'step-up';
+    } else {
+        return 'step-down';
+    }
+}
+
+sub encode {
+    my ($self, $state) = @_;
+
+    if ($state eq 'step-up') {
+        return ([0]);
+    } elsif ($state eq 'step-down') {
+        return ([1]);
+    } else {
+        print "Invalid state for EIS type 7.3: \'$state\'\n";
+        return;
+    }
 }
 
 # EIB15_Item: 14-Byte Text Message
