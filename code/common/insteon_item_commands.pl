@@ -67,10 +67,10 @@ if ($Reload) {
         my $states = 'on,off';
         my $group = ($object->isa('Insteon_PLM')) ? '' : $object->group;
         if ($object->isa('Insteon_Link')) {
-           $states = 'on,off'; #,resume,enroll,unenroll,manual'; 
+           $states = 'on,off,sync links'; #,resume,enroll,unenroll,manual'; 
            my $cmd_states = $states;
            if ($object->device_id eq '000000') {
-              $cmd_states .= ',initiate linking as controller,cancel linking,sync links';
+              $cmd_states .= ',initiate linking as controller,cancel linking';
            } else {
               $cmd_states .= ",link to interface,unlink with interface";
            }
@@ -82,8 +82,7 @@ if ($Reload) {
            if ($object->device_id eq '000000') {
               $object_string .= "$object_name_v -> tie_event('$object_name->initiate_linking_as_controller(\"$group\")', 'initiate linking as controller');\n\n";
               $object_string .= "$object_name_v -> tie_event('$object_name->interface()->cancel_linking','cancel linking');\n\n";
-              $object_string .= "$object_name_v -> tie_event('$object_name->sync_links()','sync links');\n\n";
-           } else {
+          } else {
               $object_string .= "$object_name_v -> tie_event('$object_name->link_to_interface','link to interface');\n\n";
               $object_string .= "$object_name_v -> tie_event('$object_name->unlink_to_interface','unlink with interface');\n\n";
            }
@@ -91,6 +90,7 @@ if ($Reload) {
               $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','scan link table');\n\n";
               $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table()','log links');\n\n";
            }
+           $object_string .= "$object_name_v -> tie_event('$object_name->sync_links()','sync links');\n\n";
            $object_string .= "$object_name_v -> tie_items($object_name, 'on');\n\n";
            $object_string .= "$object_name_v -> tie_items($object_name, 'off');\n\n";
            $object_string .= &store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_link_commands');
