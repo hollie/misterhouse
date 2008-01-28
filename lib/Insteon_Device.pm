@@ -105,13 +105,22 @@ sub convert_ramp
 	}
 }
 
+sub get_ramp_from_code
+{
+	my ($ramp_code) = @_;
+	if ($ramp_code) {
+		return $ramp_h2n{$ramp_code};
+	} else {
+		return 0;
+	}
+}
+
 sub new
 {
 	my ($class,$p_interface,$p_deviceid) = @_;
 	my $self={};
 	bless $self,$class;
 
-	$self->interface($p_interface) if defined $p_interface;
 	if (defined $p_deviceid) {
 		my ($deviceid, $group) = $p_deviceid =~ /(\w\w\.\w\w\.\w\w):?(.+)?/;
 		# if a group is passed in, then assume it can be a controller
@@ -132,7 +141,8 @@ sub new
 	$$self{max_queue_time} = 15 unless $$self{max_queue_time}; # 15 seconds is max time allowed in command stack
 	@{$$self{command_stack}} = ();
 	$$self{_retry_count} = 0; # num times that a command has been resent
-	$self->interface()->add($self);
+	$self->interface($p_interface) if defined $p_interface;
+#	$self->interface()->add_item_if_not_present($self);
 	return $self;
 }
 
@@ -239,9 +249,11 @@ sub link_to_interface
 	$group = '01' unless $group;
 	# add a link first to this device back to interface
 	# and, add a reference to creating a link from interface back to device via hook
+	my $callback_instance = $self->interface->get_object_name;
+	my $callback_info = "deviceid=" . lc $self->device_id . " group=$group is_controller=0";
 	$self->add_link(object => $self->interface, group => $group, is_controller => 1,
-			on_level => '100%', ramp_rate => '0.1s', 
-			callback => \$self->interface->add_link(object => $self, group => $group, is_controller => 0));
+		on_level => '100%', ramp_rate => '0.1s', 
+		callback => "$callback_instance->add_link('$callback_info')");
 }
 
 sub unlink_to_interface
@@ -249,8 +261,10 @@ sub unlink_to_interface
 	my ($self,$p_group) = @_;
 	my $group = $p_group;
 	$group = '01' unless $group;
+	my $callback_instance = $self->interface->get_object_name;
+	my $callback_info = "deviceid=" . lc $self->device_id . " group=$group is_controller=0";
 	$self->delete_link(object => $self->interface, group => $group, is_controller => 1,
-		callback => \$self->interface->delete_link(object => $self, group => $group, is_controller => 0));
+		callback => "$callback_instance->delete_link('$callback_info')");
 }
 
 sub _send_cmd
@@ -648,7 +662,11 @@ sub _on_poke
 			# clear out mem_activity flag
 			$$self{_mem_activity} = undef;
 			if (defined $$self{_mem_callback}) {
+				package main;
 				eval ($$self{_mem_callback});
+				package Insteon_Device;
+				&::print_log("[Insteon_Device] error in link callback: " . $@) 
+					if $@ and $main::Debug{insteon};
 				$$self{_mem_callback} = undef;
 			}
 		}
@@ -667,7 +685,9 @@ sub _on_poke
 		delete $$self{adlb}{$key};
 	
 		if (defined $$self{_mem_callback}) {
+			package main;
 			eval ($$self{_mem_callback});
+			package Insteon_Device;
 			$$self{_mem_callback} = undef;
 		}
 	}
@@ -699,7 +719,7 @@ sub _on_peek
 				my $flag = hex($msg{extra});
 				$$self{pending_adlb}{inuse} = 1 if $flag & 0x80;
 				$$self{pending_adlb}{is_controller} = ($flag & 0x40) ? 1 : 0;
-				$$self{pending_adlb}{highwater} = 1 if $flag & 0x02;
+				$$self{pending_adlb}{highwater} = ($flag & 0x02) ? 1 : 0;
 				if (!($$self{pending_adlb}{highwater})) {
 					# since this is the last unused memory location, then add it to the empty list
 					unshift @{$$self{adlb}{empty}}, $$self{_mem_msb} . $$self{_mem_lsb};
@@ -891,6 +911,21 @@ sub restore_adlb
 	}
 }
 
+sub is_dimmable
+{
+	my ($self) = @_;
+	if ($$self{devcat}) {
+		if ($$self{devcat} =~ /^01\d\d/) {
+			return 1;
+		} else {
+			return 0;
+		}
+	} else {
+		&::print_log("[Insteon_Device] WARN: making assumption that device is dimmable because devcat is not yet known");
+		return 1;
+	}
+}
+
 sub set_receive
 {
 	my ($self, $p_state, $p_setby, $p_response) = @_;
@@ -911,14 +946,21 @@ sub scan_link_table
 
 sub delete_link
 {
-	my ($self, %link_parms) = @_;
+	my ($self, $parms_text) = @_;
+	my %link_parms;
+	if (@_ > 2) {
+		shift @_;
+		%link_parms = @_;
+	} else {
+		%link_parms = &main::parse_func_parms($parms_text);
+	}
 	my $insteon_object = $link_parms{object};
 	my $deviceid = ($insteon_object) ? $insteon_object->device_id : $link_parms{deviceid};
 	my $groupid = $link_parms{group};
 	$groupid = '01' unless $groupid;
 	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
 	# get the address via lookup into the hash
-	my $key = $deviceid . $groupid . $is_controller;
+	my $key = lc $deviceid . $groupid . $is_controller;
 	my $address = $$self{adlb}{$key}{address};
 	if ($address) {
 		&main::print_log("[Insteon_Device] Now deleting link [0x$address] with the following data"
@@ -932,7 +974,7 @@ sub delete_link
 		$$self{pending_adlb}{address} = $address;
 		$self->_peek($address,0);
 	} else {
-		&main::print_log('[Insteon_Device] WARN: attempt to delete link that does not exist!'
+		&main::print_log('[Insteon_Device] WARN: (' . $self->get_object_name . ') attempt to delete link that does not exist!'
 			. " deviceid=$deviceid, groupid=$groupid, is_controller=$is_controller");
 		eval($link_parms{callback}) if $link_parms{callback};
 	}
@@ -942,40 +984,106 @@ sub delete_orphan_links
 {
 	my ($self) = @_;
 	my $num_deleted = 0;
-	foreach my $linkkey(keys %{$$self{adlb}}) {
-		my $deviceid = $$self{adlb}{$linkkey}{deviceid};
-		my $device = ($deviceid eq '000000') ? $self->interface
-				: $self->interface->get_object($deviceid,'01');
-		if (!($device)) {
-			&::print_log("[Insteon_Device] now deleting orphaned link w/ details: "
-				. (($$self{adlb}{$linkkey}{is_controller}) ? "controller" : "responder")
-				. ", deviceid=$$self{adlb}{$linkkey}{deviceid}, "
-				. "group=$$self{adlb}{$linkkey}{group}");
-#			$self->delete_link(deviceid => $deviceid, group => $$self{adlb}{$linkkey}{group},
-#				is_controller => $$self{adlb}{$linkkey}{is_controller});
-#			$num_deleted++;
-		} elsif ($device->isa("Insteon_PLM") and $$self{adlb}{$linkkey}{is_controller}) {
-			# ignore for now since this is just a link back to the PLM
-		} elsif ($device->isa("Insteon_PLM")) {
-			# TO-DO: check to see if there is a defined link back to this device
-		} else {
+	for my $linkkey (keys %{$$self{adlb}}) {
+		if ($linkkey ne 'empty') {
+			my $deviceid = $$self{adlb}{$linkkey}{deviceid};
+			my $group = $$self{adlb}{$linkkey}{group};
+			my $is_controller = $$self{adlb}{$linkkey}{is_controller};
+			my $device = ($deviceid eq $self->interface->device_id) ? $self->interface
+					: $self->interface->get_object($deviceid,'01');
+			if (!($device)) {
+				&::print_log("[Insteon_Device] " . $self->get_object_name . " now deleting orphaned link w/ details: "
+					. (($is_controller) ? "controller" : "responder")
+					. ", deviceid=$deviceid, group=$group");
+				$self->delete_link(deviceid => $deviceid, group => $group, is_controller => $is_controller);
+				$num_deleted++;
+			} elsif ($device->isa("Insteon_PLM") and $is_controller) {
+				# ignore since this is just a link back to the PLM
+			} elsif ($device->isa("Insteon_PLM")) {
+				if (!($device->has_link($self,$group,($is_controller) ? 0:1))) {
+					&::print_log("[Insteon_Device] " . $self->get_object_name . " now deleting orphaned link w/ details: "
+						. (($is_controller) ? "controller" : "responder")
+						. ", device=" . $device->get_object_name . ", group=$group");
+					$self->delete_link(deviceid => $deviceid, group => $group, is_controller => $is_controller);
+					$num_deleted++;
+				}
+				# TO-DO: check to see if there is a defined link back to this device
+			} else {
+				if (!($device->has_link($self,$group,($is_controller) ? 0:1))) {
+					&::print_log("[Insteon_Device] " . $self->get_object_name . " now deleting orphaned link w/ details: "
+						. (($is_controller) ? "controller" : "responder")
+						. ", device=" . $device->get_object_name . ", group=$group");
+					$self->delete_link(deviceid => $deviceid, group => $group, is_controller => $is_controller);
+					$num_deleted++;
+				} else {
+					my $is_invalid = 1;
+					my $link = ($is_controller) ? $self->interface->get_object($self->device_id,$group) 
+						: $self->interface->get_object($device->device_id,$group);
+					if ($link) {
+						foreach my $member_ref (keys %{$$link{members}}) {
+							my $member = $$link{members}{$member_ref}{object};
+							if ($member->isa('Light_Item')) {
+								my @lights = $member->find_members('Insteon_Device');
+								if (@lights) {
+									$member = @lights[0]; # pick the first
+								}
+							}
+							if ($member->isa('Insteon_Device') and !($is_controller) and ($member->device_id eq $self->device_id)) {
+								$is_invalid = 0;
+								last;
+							} elsif ($member->isa('Insteon_Device') and $is_controller and ($member->device_id eq $device->device_id)) {
+								$is_invalid = 0;
+								last;
+							}
 
+						}
+					}
+					if ($is_invalid) {
+						&::print_log("[Insteon_Device] " . $self->get_object_name . " now deleting orphaned link w/ details: "
+							. (($is_controller) ? "controller" : "responder")
+							. ", device=" . $device->get_object_name . ", group=$group");
+						$self->delete_link(deviceid => $deviceid, group => $group, is_controller => $is_controller);
+						$num_deleted++;
+					}
+				}
+			}
 		}
 	}
+	return $num_deleted;
 }
 
 sub add_link
 {
-	my ($self, %link_parms) = @_;
+	my ($self, $parms_text) = @_;
+	my %link_parms;
+	if (@_ > 2) {
+		shift @_;
+		%link_parms = @_;
+	} else {
+		%link_parms = &main::parse_func_parms($parms_text);
+	}
+	my $device_id;
 	my $insteon_object = $link_parms{object};
 	my $group = $link_parms{group};
+	if (!(defined($insteon_object))) {
+		$device_id = lc $link_parms{deviceid};
+		$insteon_object = $self->interface->get_object($device_id, $group);
+	} else {
+		$device_id = lc $insteon_object->device_id;
+	}
 	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
 	# check whether the link already exists
-	my $key = $insteon_object->device_id . $group . $is_controller;
+	my $key = $device_id . $group . $is_controller;
 	if (defined $$self{adlb}{$key}) {
 		&::print_log("[Insteon_Device] WARN: attempt to add link to " . $self->get_object_name . " that already exists! "
 			. "object=" . $insteon_object->get_object_name . ", group=$group, is_controller=$is_controller");
-		eval($link_parms{callback}) if $link_parms{callback};
+		if ($link_parms{callback}) {
+			package main;
+			eval($link_parms{callback});
+			&::print_log("[Insteon_Device] failure occurred in callback eval for " . $self->get_object_name . ":" . $@)
+				if $@ and $main::Debug{insteon};
+			package Insteon_Device;
+		}
 	} else {
 		# strip optional % sign to append on_level
 		my $on_level = $link_parms{on_level};
@@ -996,7 +1104,7 @@ sub add_link
 		# TO-DO: ensure that pop'd address is restored back to queue if the transaction fails
 		$$self{_mem_activity} = 'add';
 		$$self{_mem_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
-		$self->_write_link($address, $insteon_object->device_id, $group, $is_controller, $data1, $data2, $data3);
+		$self->_write_link($address, $device_id, $group, $is_controller, $data1, $data2, $data3);
 	}
 }
 
@@ -1008,18 +1116,19 @@ sub update_link
 	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
 	# strip optional % sign to append on_level
 	my $on_level = $link_parms{on_level};
-	$on_level =~ s/(\d)%?/$1/;
+	$on_level =~ s/(\d+)%?/$1/;
 	# strip optional s (seconds) to append ramp_rate
 	my $ramp_rate = $link_parms{ramp_rate};
 	$ramp_rate =~ s/(\d)s?/$1/;
 	&::print_log("[Insteon_Device] updating " . $self->get_object_name . " light level controlled by " . $insteon_object->get_object_name
 		. " and group: $group with on level: $on_level and ramp rate: $ramp_rate") if $main::Debug{insteon};
 	my $data1 = sprintf('%02X',$on_level * 2.55);
-	my $data2 = &Insteon_Device::convert_ramp($ramp_rate);
+	my $data2 = ($self->is_dimmable) ? &Insteon_Device::convert_ramp($ramp_rate) : '00';
 	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
 	my $deviceid = $insteon_object->device_id;
 	my $address = $$self{adlb}{$deviceid . $group . $is_controller}{address};
 	$$self{_mem_activity} = 'update';
+	$$self{_mem_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
 	$self->_write_link($address, $deviceid, $group, $is_controller, $data1, $data2, $data3);
 }
 
@@ -1051,7 +1160,16 @@ sub log_alllink_table
 
 		my $ramp_rate = 'unknown';
 		if ($$self{adlb}{$adlbkey}{data2}) {
-			$ramp_rate = $ramp_h2n{$$self{adlb}{$adlbkey}{data2}} . "s";
+			if (!($self->is_dimmable)) {
+				$ramp_rate = 'none';
+				if ($on_level eq '0%') {
+					$on_level = 'off';
+				} else {
+					$on_level = 'on';
+				}
+			} else {
+				$ramp_rate = $ramp_h2n{$$self{adlb}{$adlbkey}{data2}} . "s";
+			}
 		}
 
 		&::print_log("[Insteon_Device] " . $self->get_object_name . " adlb [0x" . $$self{adlb}{$adlbkey}{address} . "] " .
@@ -1084,7 +1202,7 @@ sub update_local_properties
 sub has_link
 {
 	my ($self, $insteon_object, $group, $is_controller) = @_;
-	my $key = $insteon_object->device_id . $group . $is_controller;
+	my $key = lc $insteon_object->device_id . $group . $is_controller;
 	return (defined $$self{adlb}{$key}) ? 1 : 0;
 }
 
