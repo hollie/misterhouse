@@ -330,7 +330,7 @@ sub set
 sub has_link
 {
 	my ($self, $insteon_object, $group, $is_controller) = @_;
-	my $key = $insteon_object->device_id . $group . $is_controller;
+	my $key = lc $insteon_object->device_id . $group . $is_controller;
 	return (defined $$self{links}{$key}) ? 1 : 0;
 }
 
@@ -819,8 +819,7 @@ sub delegate
 	my $data = substr($p_data,4,length($p_data)-4);
 	my %msg = &Insteon_Device::_xlate_insteon_mh($data);
 	if (%msg) {
-		&::print_log ("[Insteon_PLM] DELEGATE:$msg{source}:$msg{destination}:$data:") if $main::Debug{insteon};
-	
+#		&::print_log ("[Insteon_PLM] DELEGATE:$msg{source}:$msg{destination}:$data:") if $main::Debug{insteon};
 		# get the matching object
 		my $object = $self->get_object($msg{source}, $msg{group});
 		&::print_log("[Insteon_PLM] Warn! Unable to locate object for source: $msg{source} and group; $msg{group}")
@@ -991,16 +990,17 @@ sub delete_orphan_links
 		}
 	}
 	# iterate over all registered objects and compare whether the link tables match defined scene linkages in known Insteon_Links
-	for my $obj (@{$$self{objects}})
+	for my $obj ($self->find_members('Insteon_Device'))
 	{
-		#Match on Insteon objects only
-		if ($obj->isa("Insteon_Device") and !($obj->isa("Insteon_Link")))
+		#Match on real objects only
+		if (($obj->group eq '01'))
 		{
+			$num_deleted += $obj->delete_orphan_links();
 		}
 	}
 	if ($num_deleted) {
 		&::print_log("A total of $num_deleted orphaned links were deleted.");
-		$self->scan_link_table();
+#		$self->scan_link_table();
 	} else {
 		&::print_log("No orphaned links were found.");
 	}
@@ -1009,7 +1009,14 @@ sub delete_orphan_links
 sub delete_link
 {
 	# linkkey is concat of: deviceid, group, is_controller
-	my ($self, %link_parms) = @_;
+	my ($self, $parms_text) = @_;
+	my %link_parms;
+	if (@_ > 2) {
+		shift @_;
+		%link_parms = @_;
+	} else {
+		%link_parms = &main::parse_func_parms($parms_text);
+	}
 	my $insteon_object = $link_parms{object};
 	my $deviceid = ($insteon_object) ? $insteon_object->device_id : $link_parms{deviceid};
 	my $group = $link_parms{group};
@@ -1030,16 +1037,37 @@ sub delete_link
 		&::print_log("[Insteon_PLM] no entry in linktable could be found for linkkey: $linkkey");
 		return 0;
 	}
+	if ($link_parms{callback}) {
+		package main;
+		eval ($link_parms{callback});
+		&::print_log("[Insteon_PLM] error in delete link callback: " . $@)
+			if $@ and $main::Debug{insteon};
+		package Insteon_PLM;
+	}
 }
 
 sub add_link
 {
-	my ($self, %link_parms) = @_;
-	my $insteon_object = $link_parms{object};
-	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
+	my ($self, $parms_text) = @_;
+	my %link_parms;
+	if (@_ > 2) {
+		shift @_;
+		%link_parms = @_;
+	} else {
+		%link_parms = &main::parse_func_parms($parms_text);
+	}
+	my $device_id;
 	my $group =  ($link_parms{group}) ? $link_parms{group} : '01';
+	my $insteon_object = $link_parms{object};
+	if (!(defined($insteon_object))) {
+		$device_id = lc $link_parms{deviceid};
+		$insteon_object = $self->get_object($device_id, $group);
+	} else {
+		$device_id = lc $insteon_object->device_id;
+	}
+	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
 	# first, confirm that the link does not already exist
-	my $linkkey = lc $insteon_object->device_id . $group . $is_controller;
+	my $linkkey = lc $device_id . $group . $is_controller;
 	if (defined $$self{links}{$linkkey}) {
 		&::print_log("[Insteon_PLM] WARN: attempt to add link to PLM that already exists! "
 			. "object=" . $insteon_object->get_object_name . ", group=$group, is_controller=$is_controller");
@@ -1057,19 +1085,25 @@ sub add_link
 			. $control_code
 			. $flags
 			. $group
-			. $insteon_object->device_id
+			. $device_id
 			. $data1 
 			. $data2
 			. $data3;
-#	print "############ sending $cmd\n";
 		$self->send_plm_cmd($cmd);
 		$$self{links}{$linkkey}{flags} = lc $flags;
 		$$self{links}{$linkkey}{group} = lc $group;
 		$$self{links}{$linkkey}{is_controller} = $is_controller;
-		$$self{links}{$linkkey}{deviceid} = lc $insteon_object->device_id;
+		$$self{links}{$linkkey}{deviceid} = lc $device_id;
 		$$self{links}{$linkkey}{data1} = lc $data1;
 		$$self{links}{$linkkey}{data2} = lc $data2;
 		$$self{links}{$linkkey}{data3} = lc $data3;
+	}
+	if ($link_parms{callback}) {
+		package main;
+		eval ($link_parms{callback});
+		&::print_log("[Insteon_PLM] error in add link callback: " . $@)
+			if $@ and $main::Debug{insteon};
+		package Insteon_PLM;
 	}
 }
 
@@ -1084,7 +1118,7 @@ sub get_object
 		#Match on Insteon objects only
 		if ($obj->isa("Insteon_Device"))
 		{
-			if (lc $obj->device_id() eq $p_deviceid)
+			if (lc $obj->device_id() eq lc $p_deviceid)
 			{
 				if ($p_group)
 				{
