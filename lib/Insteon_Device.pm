@@ -1030,6 +1030,9 @@ sub delete_orphan_links
 									$member = @lights[0]; # pick the first
 								}
 							}
+							if ($member->isa('Insteon_Device') and $member->group ne '01') {
+								$member = $self->interface->get_object($member->device_id,'01');
+							}
 							if ($member->isa('Insteon_Device') and !($is_controller) and ($member->device_id eq $self->device_id)) {
 								$is_invalid = 0;
 								last;
