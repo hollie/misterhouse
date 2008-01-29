@@ -1174,7 +1174,7 @@ sub add_item
 		$self->send_plm_cmd('0260');
 	}
  
-	if (!($p_object->isa('Insteon_Link')) and $p_object->isa('Insteon_Device')) 
+	if ($p_object->isa('Insteon_Device') and $p_object->group eq '01') 
 	{
 		# don't request status for objects associated w/ other than the primary group 
 		#    as they are psuedo links	
