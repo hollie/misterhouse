@@ -331,8 +331,9 @@ sub _process_command_stack
 				$$self{_retry_count} = 0;
 			}
 			%{$$self{_prior_msg}} = %cmd;
-			# TO-DO: adjust timer based upon (1) type of message, (2) plm_queue_size and (3) retry_count
-			$$self{queue_timer}->set($$self{max_queue_time},$self);
+			# TO-DO: adjust timer based upon (1) type of message and (2) retry_count
+			my $queue_time = $$self{max_queue_time} + $plm_queue_size;
+			$$self{queue_timer}->set($queue_time,$self);
 			# if is_synchronous, then no other command can be sent until an insteon ack or nack is received
 			# for this command
 		} else {
@@ -362,6 +363,20 @@ sub writable {
 sub is_locally_set {
 	my ($self) = @_;
 	return $$self{m_is_locally_set};
+}
+
+sub is_root {
+	my ($self) = @_;
+	return ($self->group eq '01') ? 1 : 0;
+}
+
+sub get_root {
+	my ($self) = @_;
+	if ($self->is_root) {
+		return $self;
+	} else {
+		return $self->interface->get_object($self->device_id, '01');
+	}
 }
 
 sub group
@@ -648,6 +663,7 @@ sub _on_poke
 			$$self{adlb}{$adlbkey}{data1} = $$self{pending_adlb}{data1};
 			$$self{adlb}{$adlbkey}{data2} = $$self{pending_adlb}{data2};
 			$$self{adlb}{$adlbkey}{data3} = $$self{pending_adlb}{data3};
+			$$self{adlb}{$adlbkey}{inuse} = 1; # needed so that restore string will preserve record
 			if ($$self{_mem_activity} eq 'add') {
 				$$self{adlb}{$adlbkey}{is_controller} = $$self{pending_adlb}{is_controller};
 				$$self{adlb}{$adlbkey}{deviceid} = $$self{pending_adlb}{deviceid};
@@ -656,9 +672,19 @@ sub _on_poke
 				# on completion, check to see if the empty links list is now empty; if so, 
 				# then decrement the current address and add it to the list
 				if (!(@{$$self{adlb}{empty}})) {
-					my $address = $$self{adlb}{$adlbkey}{address};
-					$address = sprintf('%04X', hex($address) - 8);
-					unshift @{$$self{adlb}{empty}}, $address;
+					my $low_address = 0;
+					for my $key (keys %{$$self{adlb}}) {
+						next if $key eq 'empty';
+						my $new_address = hex($$self{adlb}{$key}{address});
+						if (!($low_address)) {
+							$low_address = $new_address;
+							next;
+						} else {
+							$low_address = $new_address if $new_address < $low_address;
+						}
+					}
+					$low_address = sprintf('%04X', hex($low_address) - 8);
+					unshift @{$$self{adlb}{empty}}, $low_address;
 				}
 			}
 			# clear out mem_activity flag
@@ -682,7 +708,7 @@ sub _on_poke
 		# clear out mem_activity flag
 		$$self{_mem_activity} = undef;
 		# add the address of the deleted link to the empty list
-		unshift @{$$self{adlb}{empty}}, $$self{pending_adlb}{address};
+		push @{$$self{adlb}{empty}}, $$self{pending_adlb}{address};
 		my $key = lc $$self{pending_adlb}{deviceid} . $$self{pending_adlb}{group} . $$self{pending_adlb}{is_controller};
 		delete $$self{adlb}{$key};
 	
@@ -728,8 +754,14 @@ sub _on_peek
 					$$self{_mem_action} = undef;
 					# clear out mem_activity flag
 					$$self{_mem_activity} = undef;
+					&::print_log("[Insteon_Device] " . $self->get_object_name . " completed link memory scan")
+						if $main::Debug{insteon};
 					if (defined $$self{_mem_callback}) {
+						package main;
 						eval ($$self{_mem_callback});
+						&::print_log("[Insteon_Device] " . $self->get_object_name . ": error during scan callback $@")
+							if $@ and $main::Debug{insteon};
+						package Insteon_Device;
 						$$self{_mem_callback} = undef;
 					}
 				} else {
@@ -1030,8 +1062,8 @@ sub delete_orphan_links
 									$member = @lights[0]; # pick the first
 								}
 							}
-							if ($member->isa('Insteon_Device') and $member->group ne '01') {
-								$member = $self->interface->get_object($member->device_id,'01');
+							if ($member->isa('Insteon_Device') and !($member->is_root)) {
+								$member = $member->get_root;
 							}
 							if ($member->isa('Insteon_Device') and !($is_controller) and ($member->device_id eq $self->device_id)) {
 								$is_invalid = 0;
@@ -1093,7 +1125,7 @@ sub add_link
 		# strip optional % sign to append on_level
 		my $on_level = $link_parms{on_level};
 		$on_level =~ s/(\d)%?/$1/;
-		$on_level = '100' unless $on_level; # 100% == on is the default
+		$on_level = '100' unless defined($on_level); # 100% == on is the default
 		# strip optional s (seconds) to append ramp_rate
 		my $ramp_rate = $link_parms{ramp_rate};
 		$ramp_rate =~ s/(\d)s?/$1/;
@@ -1181,13 +1213,15 @@ sub log_alllink_table
 			}
 		}
 
+		my $rspndr_group = $$self{adlb}{$adlbkey}{data3};
+		$rspndr_group = '01' if $rspndr_group eq '00';
 		&::print_log("[Insteon_Device] adlb [0x" . $$self{adlb}{$adlbkey}{address} . "] " .
-			(($$self{adlb}{$adlbkey}{is_controller}) ? "cntlr($$self{adlb}{$adlbkey}{group}) record to "
-			. $object_name . ", (d1:$$self{adlb}{$adlbkey}{data1}, d2:$$self{adlb}{$adlbkey}{data2}, d3:$$self{adlb}{$adlbkey}{data3})"
-			: "responder record to " . $object_name . "($$self{adlb}{$adlbkey}{group})"
-			. ": onlevel=$on_level and ramp=$ramp_rate")) if $main::Debug{insteon};
+			(($$self{adlb}{$adlbkey}{is_controller}) ? "contlr($$self{adlb}{$adlbkey}{group}) record to "
+			. $object_name . "($rspndr_group), (d1:$$self{adlb}{$adlbkey}{data1}, d2:$$self{adlb}{$adlbkey}{data2}, d3:$$self{adlb}{$adlbkey}{data3})"
+			: "rspndr($rspndr_group) record to " . $object_name . "($$self{adlb}{$adlbkey}{group})"
+			. ": onlevel=$on_level and ramp=$ramp_rate (d3:$$self{adlb}{$adlbkey}{data3})")) if $main::Debug{insteon};
 	}
-	foreach my $address (sort(@{$$self{adlb}{empty}})) {
+	foreach my $address (@{$$self{adlb}{empty}}) {
 		&::print_log("[Insteon_Device] adlb [0x$address] is empty");
 	}
 	
