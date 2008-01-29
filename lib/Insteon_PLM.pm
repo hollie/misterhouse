@@ -904,15 +904,15 @@ sub restore_linktable
 sub log_alllink_table
 {
 	my ($self) = @_;
-	foreach my $linkkey (keys %{$$self{links}}) {
+	foreach my $linkkey (sort(keys(%{$$self{links}}))) {
 		my $device = $self->get_object($$self{links}{$linkkey}{deviceid},'01');
 		my $object_name = ($device) ? $device->get_object_name : $$self{links}{$linkkey}{deviceid};
-		&::print_log("[Insteon_PLM] link " .
-			(($$self{links}{$linkkey}{is_controller}) ? "controller($$self{links}{$linkkey}{group}) record to "
+		&::print_log("[Insteon_PLM] " .
+			(($$self{links}{$linkkey}{is_controller}) ? "cntlr($$self{links}{$linkkey}{group}) record to "
 			. $object_name
 			: "responder record to " . $object_name . "($$self{links}{$linkkey}{group})")
-			. " data1=$$self{links}{$linkkey}{data1}, data2=$$self{links}{$linkkey}{data2}, "
-			. "data3=$$self{links}{$linkkey}{data3}")
+			. " (d1=$$self{links}{$linkkey}{data1}, d2=$$self{links}{$linkkey}{data2}, "
+			. "d3=$$self{links}{$linkkey}{data3})")
 			if $main::Debug{insteon};
 	}
 }
