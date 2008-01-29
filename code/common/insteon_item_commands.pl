@@ -75,7 +75,7 @@ if ($Reload) {
               $cmd_states .= ",link to interface,unlink with interface";
            }
            if ($object->group eq '01') {
-              $cmd_states .= ",scan link table,log links";
+              $cmd_states .= ",status,scan link table,log links";
               push @_scannable_link, $object_name;
            }
            $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
@@ -87,6 +87,7 @@ if ($Reload) {
               $object_string .= "$object_name_v -> tie_event('$object_name->unlink_to_interface','unlink with interface');\n\n";
            }
            if ($object->group eq '01') {
+              $object_string .= "$object_name_v -> tie_event('$object_name->request_status','status');\n\n";
               $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','scan link table');\n\n";
               $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table()','log links');\n\n";
            }
