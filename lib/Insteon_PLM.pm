@@ -957,6 +957,10 @@ sub delete_orphan_links
 							}
 						}
 						if ($member->isa('Insteon_Device')) {
+							# make sure that this is a root device
+							if ($member->group ne '01') {
+								$member = $self->interface->get_object($member->device_id,'01');
+							}
 							if (lc $member->device_id eq $$self{links}{$linkkey}{deviceid}) {
 								# at this point, the forward link is ok; but, only if the reverse
 								# link also exists.  So, check:
