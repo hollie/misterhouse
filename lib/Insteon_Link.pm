@@ -159,7 +159,10 @@ sub sync_links
 					group => $self->group, is_controller => 1, 
 					callback => "$self_link_name->_process_sync_queue()" );
 				# set data3 is device is a KeypadLinc
-				$link_req{data3} = $self->group if $$insteon_object{devcat} eq '0109';
+				if ($$member{devcat} eq '0109') {
+					my $linkmember = $$self{members}{$member_ref}{object};
+					$link_req{data3} = $linkmember->group;
+				}
 				push @{$$self{sync_queue}}, \%link_req;
 			}
 		}
@@ -251,18 +254,6 @@ sub set
 	}
 	$self->SUPER::set($p_state, $p_setby, $p_respond);
 }
-
-#sub restore_string
-#{
-#	my ($self) = @_;
-#	return $self->SUPER::restore_string();
-#}
-
-#sub restore_adlb
-#{
-#	my ($self,$adlb) = @_;
-#	return $self->SUPER::restore_adlb($adlb);
-#}
 
 sub update_members
 {
@@ -376,9 +367,13 @@ sub _xlate_mh_insteon
 sub request_status
 {
 	my ($self) = @_;
-	&::print_log("[Insteon_Link] requesting status for members of " . $$self{object_name});
-	foreach my $member (keys %{$$self{members}}) {
-		$$self{members}{$member}{object}->request_status($self);
+	if ($self->group ne '01') {
+		&::print_log("[Insteon_Link] requesting status for members of " . $$self{object_name});
+		foreach my $member (keys %{$$self{members}}) {
+			$$self{members}{$member}{object}->request_status();
+		}
+	} else {
+		$self->SUPER::request_status();
 	}
 }
 
