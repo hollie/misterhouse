@@ -402,7 +402,8 @@ sub send_plm_cmd
 {
 	my ($self, $cmd) = @_;
 
-	return unless $cmd or !($$self{xmit_in_progress});
+	my $command_queue_size = @{$$self{command_stack2}};
+	return $command_queue_size unless $cmd or !($$self{xmit_in_progress});
 
 	# get pending command record
 	my $cmdptr = pop(@{$$self{command_stack2}});
@@ -461,17 +462,19 @@ sub send_plm_cmd
 			if ($past_cmds_in_history > 3) {
 				&::print_log("[Insteon_PLM] num commands in 1 second exceeded threshold. Now delaying additional transmission for 1 second") if $main::Debug{insteon};
 				$self->_set_timeout('xmit',1000);
-				return;
+				my $command_queue_size = @{$$self{command_stack2}};
+				return $command_queue_size;
 			}
 			if (!($self->_check_timeout('xmit')==0)) {
-				return $self->_send_cmd($pending_cmd);
-			} else {
-				return;
-			}
+				$self->_send_cmd($pending_cmd);
+			} 
+			my $command_queue_size = @{$$self{command_stack2}};
+			return $command_queue_size;
 		}
 	} else {
 #		&::print_log("[Insteon_PLM] active transmission; moving on...") if $main::Debug{insteon};
-		return;
+		my $command_queue_size = @{$$self{command_stack2}};
+		return $command_queue_size;
 	}
 	my $command_queue_size = @{$$self{command_stack2}};
 	return $command_queue_size;
@@ -958,8 +961,8 @@ sub delete_orphan_links
 						}
 						if ($member->isa('Insteon_Device')) {
 							# make sure that this is a root device
-							if ($member->group ne '01') {
-								$member = $self->interface->get_object($member->device_id,'01');
+							if (!($member->is_root)) {
+								$member = $member->get_root;
 							}
 							if (lc $member->device_id eq $$self{links}{$linkkey}{deviceid}) {
 								# at this point, the forward link is ok; but, only if the reverse
@@ -977,7 +980,7 @@ sub delete_orphan_links
 						# then, there is a good chance that a reciprocal link exists; if so, delet it too
 						if ($device->has_link($self,$group,0)) {
 							$device->delete_link(object => $self, group => $group,
-								is_controller => $is_controller);
+								is_controller => 0);
 						}
 					}
 				}
@@ -986,7 +989,7 @@ sub delete_orphan_links
 						. "controller"
 						. ", deviceid=$$self{links}{$linkkey}{deviceid},"
 						. "group=$group");
-					if ($self->delete_link(object => $device, group => $group, is_controller => $is_controller)) {
+					if ($self->delete_link(object => $device, group => $group, is_controller => 1)) {
 						$num_deleted++;
 					}
 				}
@@ -997,7 +1000,7 @@ sub delete_orphan_links
 	for my $obj ($self->find_members('Insteon_Device'))
 	{
 		#Match on real objects only
-		if (($obj->group eq '01'))
+		if (($obj->is_root))
 		{
 			$num_deleted += $obj->delete_orphan_links();
 		}
