@@ -84,9 +84,14 @@ sub sync_links
 	if ($$self{members}) {
 		foreach my $member_ref (keys %{$$self{members}}) {
 			my $member = $$self{members}{$member_ref}{object};
+			# find real device if member is a Light_Item
 			if ($member->isa('Light_Item')) {
 				my @children = $member->find_members('Insteon_Device');
 				$member = $children[0];
+			}
+			# find real device if member's group is not '01'; for example, cross-linked KeypadLincs
+			if ($member->group ne '01') {
+				$member = $self->interface->get_object($member->device_id,'01');
 			}
 			my $tgt_on_level = $$self{members}{$member_ref}{on_level};
 			$tgt_on_level = '100%' unless defined $tgt_on_level;
@@ -143,6 +148,8 @@ sub sync_links
 				my %link_req = ( member => $insteon_object, cmd => 'add', object => $member, 
 					group => $self->group, is_controller => 1, 
 					callback => "$self_link_name->_process_sync_queue()" );
+				# set data3 is device is a KeypadLinc
+				$link_req{data3} = $self->group if $$insteon_object{devcat} eq '0109';
 				push @{$$self{sync_queue}}, \%link_req;
 			}
 		}
