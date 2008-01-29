@@ -244,16 +244,18 @@ sub set
 
 sub link_to_interface
 {
-	my ($self,$p_group) = @_;
+	my ($self,$p_group, $p_data3) = @_;
 	my $group = $p_group;
 	$group = '01' unless $group;
 	# add a link first to this device back to interface
 	# and, add a reference to creating a link from interface back to device via hook
 	my $callback_instance = $self->interface->get_object_name;
 	my $callback_info = "deviceid=" . lc $self->device_id . " group=$group is_controller=0";
-	$self->add_link(object => $self->interface, group => $group, is_controller => 1,
+	my %link_info = ( object => $self->interface, group => $group, is_controller => 1,
 		on_level => '100%', ramp_rate => '0.1s', 
 		callback => "$callback_instance->add_link('$callback_info')");
+	$link_info{data3} = $p_data3 if $p_data3;
+	$self->add_link(%link_info);
 }
 
 sub unlink_to_interface
@@ -1172,14 +1174,14 @@ sub log_alllink_table
 			}
 		}
 
-		&::print_log("[Insteon_Device] " . $self->get_object_name . " adlb [0x" . $$self{adlb}{$adlbkey}{address} . "] " .
+		&::print_log("[Insteon_Device] adlb [0x" . $$self{adlb}{$adlbkey}{address} . "] " .
 			(($$self{adlb}{$adlbkey}{is_controller}) ? "controller($$self{adlb}{$adlbkey}{group}) record to "
-			. $object_name
+			. $object_name . ", data1:$$self{adlb}{$adlbkey}{data1}, data2:$$self{adlb}{$adlbkey}{data2}, data3:$$self{adlb}{$adlbkey}{data3}"
 			: "responder record to " . $object_name . "($$self{adlb}{$adlbkey}{group})"
 			. ": onlevel=$on_level and ramp=$ramp_rate")) if $main::Debug{insteon};
 	}
 	foreach my $address (@{$$self{adlb}{empty}}) {
-		&::print_log("[Insteon_Device] " . $self->get_object_name . " adlb [0x$address] is empty");
+		&::print_log("[Insteon_Device] adlb [0x$address] is empty");
 	}
 	
 }
@@ -1219,15 +1221,15 @@ sub _write_link
 		$$self{pending_adlb}{deviceid} = $deviceid;
 		$$self{pending_adlb}{group} = $group;
 		$$self{pending_adlb}{is_controller} = $is_controller;
-		$$self{pending_adlb}{data1} = (defined $data1) ? $data1 : '00';
-		$$self{pending_adlb}{data2} = (defined $data2) ? $data2 : '00';
+		$$self{pending_adlb}{data1} = (defined $data1) ? lc $data1 : '00';
+		$$self{pending_adlb}{data2} = (defined $data2) ? lc $data2 : '00';
 		# Note: if device is a KeypadLinc, then $data3 must be assigned the value of the applicable button (01)
-		if ($$self{devcat} eq '0109') {
+		if (($$self{devcat} eq '0109') and ($data3 eq '00')) {
 			&::print_log("[Insteon_Device] setting data3 to " . $self->group . " for this keypadlinc")
 				if $main::Debug{insteon};
 			$data3 = $self->group;
 		}
-		$$self{pending_adlb}{data3} = (defined $data3) ? $data3 : '00';
+		$$self{pending_adlb}{data3} = (defined $data3) ? lc $data3 : '00';
 		$self->_peek($address);
 	} else {
 		&::print_log("[Insteon_Device] WARN: " . $self->get_object_name 

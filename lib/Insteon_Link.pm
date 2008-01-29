@@ -153,6 +153,7 @@ sub sync_links
 			my %link_req = ( member => $insteon_object, cmd => 'add', object => $self->interface, 
 				group => '01', is_controller => 1, 
 				callback => "$self_link_name->_process_sync_queue()" );
+			$link_req{data3} = $self->group if $$insteon_object{devcat} eq '0109';
 			push @{$$self{sync_queue}}, \%link_req;
 		}
 		if (!($self->interface->has_link($insteon_object,'01',0))) {
@@ -234,6 +235,18 @@ sub set
 	$self->SUPER::set($p_state, $p_setby, $p_respond);
 }
 
+#sub restore_string
+#{
+#	my ($self) = @_;
+#	return $self->SUPER::restore_string();
+#}
+
+#sub restore_adlb
+#{
+#	my ($self,$adlb) = @_;
+#	return $self->SUPER::restore_adlb($adlb);
+#}
+
 sub update_members
 {
 	my ($self) = @_;
@@ -268,21 +281,31 @@ sub update_members
 
 sub link_to_interface
 {
-	my ($self, $p_group) = @_;
+	my ($self, $p_group, $p_data3) = @_;
 	my $group = $p_group;
 	$group = $self->group unless $group;
 	return if $self->device_id eq '000000'; # don't allow this to be used for PLM links
 	# get the surrogate device for this if group is not '01'
 	if ($self->group ne '01') {
 		my $surrogate_obj = $self->interface->get_object($self->device_id,'01');
-		$surrogate_obj->link_to_interface($group);
+		if ($p_data3) {
+			$surrogate_obj->link_to_interface($group,$p_data3);
+		} elsif ($$surrogate_obj{devcat} eq '0109') {
+			$surrogate_obj->link_to_interface($group,$self->group);
+		} else {
+			$surrogate_obj->link_to_interface($group);
+		}
 		# next, if the link is a keypadlinc, then create the reverse link to permit
 		# control over the button's light
 		if ($$surrogate_obj{devcat} eq '0109') { # 0109 is a keypadlinc
 
 		}
 	} else {
-		$self->SUPER::link_to_interface($group);
+		if ($p_data3) {
+			$self->SUPER::link_to_interface($group, $p_data3);
+		} else {
+			$self->SUPER::link_to_interface($group);
+		}
 	}
 }
 
