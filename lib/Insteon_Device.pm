@@ -1090,7 +1090,7 @@ sub add_link
 		# strip optional % sign to append on_level
 		my $on_level = $link_parms{on_level};
 		$on_level =~ s/(\d)%?/$1/;
-		$on_level = '100'; # 100% == on is the default
+		$on_level = '100' unless $on_level; # 100% == on is the default
 		# strip optional s (seconds) to append ramp_rate
 		my $ramp_rate = $link_parms{ramp_rate};
 		$ramp_rate =~ s/(\d)s?/$1/;
@@ -1099,7 +1099,9 @@ sub add_link
 			. " light level controlled by " . $insteon_object->get_object_name
 			. " and group: $group with on level: $on_level and ramp rate: $ramp_rate") if $main::Debug{insteon};
 		my $data1 = sprintf('%02X',$on_level * 2.55);
-		my $data2 = &Insteon_Device::convert_ramp($ramp_rate);
+		$data1 = 'ff' if $on_level eq '100';
+		$data1 = '00' if $on_level eq '0';
+		my $data2 = ($self->is_dimmable) ? &Insteon_Device::convert_ramp($ramp_rate) : '00';
 		my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
 		# get the first available memory location
 		my $address = pop @{$$self{adlb}{empty}};
@@ -1125,6 +1127,8 @@ sub update_link
 	&::print_log("[Insteon_Device] updating " . $self->get_object_name . " light level controlled by " . $insteon_object->get_object_name
 		. " and group: $group with on level: $on_level and ramp rate: $ramp_rate") if $main::Debug{insteon};
 	my $data1 = sprintf('%02X',$on_level * 2.55);
+	$data1 = 'ff' if $on_level eq '100';
+	$data1 = '00' if $on_level eq '0';
 	my $data2 = ($self->is_dimmable) ? &Insteon_Device::convert_ramp($ramp_rate) : '00';
 	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
 	my $deviceid = $insteon_object->device_id;
@@ -1140,7 +1144,7 @@ sub log_alllink_table
 	my ($self) = @_;
 	&::print_log("[Insteon_Device] link table for " . $self->get_object_name . " (devcat: $$self{devcat}):");
 
-	foreach my $adlbkey (keys %{$$self{adlb}}) {
+	foreach my $adlbkey (sort(keys(%{$$self{adlb}}))) {
 		next if $adlbkey eq 'empty';
 		my ($device);
 		if ($self->interface()->device_id() and ($self->interface()->device_id() eq $$self{adlb}{$adlbkey}{deviceid})) {
@@ -1175,12 +1179,12 @@ sub log_alllink_table
 		}
 
 		&::print_log("[Insteon_Device] adlb [0x" . $$self{adlb}{$adlbkey}{address} . "] " .
-			(($$self{adlb}{$adlbkey}{is_controller}) ? "controller($$self{adlb}{$adlbkey}{group}) record to "
-			. $object_name . ", data1:$$self{adlb}{$adlbkey}{data1}, data2:$$self{adlb}{$adlbkey}{data2}, data3:$$self{adlb}{$adlbkey}{data3}"
+			(($$self{adlb}{$adlbkey}{is_controller}) ? "cntlr($$self{adlb}{$adlbkey}{group}) record to "
+			. $object_name . ", (d1:$$self{adlb}{$adlbkey}{data1}, d2:$$self{adlb}{$adlbkey}{data2}, d3:$$self{adlb}{$adlbkey}{data3})"
 			: "responder record to " . $object_name . "($$self{adlb}{$adlbkey}{group})"
 			. ": onlevel=$on_level and ramp=$ramp_rate")) if $main::Debug{insteon};
 	}
-	foreach my $address (@{$$self{adlb}{empty}}) {
+	foreach my $address (sort(@{$$self{adlb}{empty}})) {
 		&::print_log("[Insteon_Device] adlb [0x$address] is empty");
 	}
 	
