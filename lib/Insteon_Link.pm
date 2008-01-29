@@ -135,6 +135,11 @@ sub sync_links
 						group => $self->group, is_controller => 0, 
 						on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,
 						callback => "$self_link_name->_process_sync_queue()" );
+					# set data3 is device is a KeypadLinc
+					if ($$member{devcat} eq '0109') {
+						my $linkmember = $$self{members}{$member_ref}{object};
+						$link_req{data3} = $linkmember->group;
+					}
 					push @{$$self{sync_queue}}, \%link_req;
 				}
 			} else {
@@ -142,6 +147,11 @@ sub sync_links
 					group => $self->group, is_controller => 0, 
 					on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,
 					callback => "$self_link_name->_process_sync_queue()" );
+				# set data3 is device is a KeypadLinc
+				if ($$member{devcat} eq '0109') {
+					my $linkmember = $$self{members}{$member_ref}{object};
+					$link_req{data3} = $linkmember->group;
+				}
 				push @{$$self{sync_queue}}, \%link_req;
 			}
 			if (!($insteon_object->has_link($member, $self->group, 1))) {
