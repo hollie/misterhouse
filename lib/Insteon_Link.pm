@@ -213,6 +213,18 @@ sub set
 	my ($self, $p_state, $p_setby, $p_respond) = @_;
 	# prevent setby internal Insteon_Device timers
 	return if $p_setby eq $$self{ping_timer};
+	if (ref $p_setby and $p_setby eq $$self{queue_timer}) {
+		$self->_process_command_stack();
+		return;
+	}
+
+	my $link_state = 'on';
+	if ($p_state eq 'off') {
+		$link_state = 'off';
+	} elsif ($p_state =~ /\d+%?/) {
+		my ($dim_state) = $p_state =~ /(\d+)%?/;
+		$link_state = 'off' if $dim_state == 0;
+	}
 	if (!($self->group eq '01')) {
 		# iterate over the members
 		if ($$self{members}) {
@@ -222,7 +234,7 @@ sub set
 				$on_state = '100%' unless $on_state;
 				my $local_state = $on_state;
 				$local_state = 'on' if $local_state eq '100%';
-				$local_state = 'off' if $local_state eq '0%';
+				$local_state = 'off' if $local_state eq '0%' or $link_state eq 'off';
 				if ($member->isa('Light_Item')) {
 				# if they are Light_Items, then set their on_dim attrib to the member on level
 				#   and then "blank" them via the manual method for a tad over the ramp rate
@@ -241,7 +253,7 @@ sub set
 					} else {
 						$member->manual(1, $ramp_rate);
 					}
-					$member->set_on_state($on_state);
+					$member->set_on_state($local_state) unless $link_state eq 'off';
 				} elsif ($member->isa('Insteon_Device')) {
 				# remember the current state to support resume
 					$$self{members}{$member_ref}{resume_state} = $member->state;
@@ -252,7 +264,7 @@ sub set
 			}
 		}
 	}
-	$self->SUPER::set($p_state, $p_setby, $p_respond);
+	$self->SUPER::set((($self->is_root) ? $p_state : $link_state), $p_setby, $p_respond);
 }
 
 sub update_members
