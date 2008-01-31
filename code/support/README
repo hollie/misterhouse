@@ -1,0 +1,28 @@
+Misc scripts to help setup various components on your system.
+They are organized by platform nix, win, mac for Linux, Windows, and MAC
+
+These are supplied as-is to aid in the setup of supporting sub-system
+for your MisterHouse installation.
+
+DISCLAIMER:
+use at your own risk. These have been used by others and may not work
+as expected on your particular system
+
+COPYRIGHT:
+All files are supplied under GPL2
+
+*NIX USAGE:
+chmod +x scriptname
+then run the script
+
+
+---- SUPPORT SCRIPT FILES ----------------------------------------
+
+DIR	SCRIPT			Description
+---	------------------	-------------------------------------------
+nix	mh-pocketsphinx		This is a self installing script that will 
+				Download , compile and install pocketsphinx
+				and its associated dictionary files. 
+				MisterHouse should have the supporting 
+ 				routines to use it already installed.
+			
