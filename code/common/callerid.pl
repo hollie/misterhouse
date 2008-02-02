@@ -12,11 +12,10 @@ use Telephony_Item;
 
 #@ Uses a callerid device to announce and log incoming phone calls.
 #@ Add these entries to your mh.ini file:
-#@  callerid_port      = COM1
-#@  callerid_name      = line 1 (or match serial_xyz name if using a proxy)
-#@  callerid_type      = type (e.g. netcallerid, rockwell, zyxel, ncid)  See lib/Telephony_Interface.pm for options.
-#@  callerid_format    =      (number only)
-#@  callerid_handlers  = comma seperated list (e.g. default, stopper, outlook) See callerid.pl for options.
+#@  callerid_port   = COM1
+#@  callerid_name   = line 1 (or match serial_xyz name if using a proxy)
+#@  callerid_type   = type (e.g. netcallerid, rockwell, zyxel, ncid)  See lib/Telephony_Interface.pm for options.
+#@  callerid_format =      (number only)
 #@ The NetCallerID device
 #@ available <a href="http://www.electronicdiscountsales.com/shop/pub/1154299397_44598505.htm">here</a>
 #@ will also do call waiting callerid (caller id even while you are on the phone).
@@ -87,17 +86,8 @@ if (defined($state = state_now $cid_interface_test)) {
 }
 
                                 # Allow for user specified hooks
-if ($Reload) {
-    if (!$config_parms{callerid_handlers}) {
-        $config_parms{callerid_handlers} = "default,stopper";
-    }
-
-    for (split ',', $config_parms{callerid_handlers}) {
-        if (/stopper/i) { $cid_item -> tie_event('phonestopper($state, $object)', 'cid'); }
-        if (/outlook/i) { $cid_item -> tie_event('AddCidToOutlookContacts($state, $object)', 'cid'); }
-        if (/default/i) { $cid_item -> tie_event('cid_handler($state, $object)', 'cid'); }
-    }
-}
+$cid_item -> tie_event('cid_handler($state, $object)', 'cid') if $Reload;
+$cid_item -> tie_event('phonestopper($state, $object)', 'cid') if $Reload;
 
 sub phonestopper{
 	my ($p_state, $p_setby) = @_;
@@ -138,91 +128,3 @@ sub cid_handler {
 #   play $p_setby->file();
     $p_setby->ring_count(0);
 }
-
-
-#----------------------------------------------------------------------------
-# Look the caller ID number up in all telephone number fields of
-# the Outlook contacts database. If a matching contact is not found,
-# and the call type is not "reject", create a new Outlook contact entry.
-# 
-# Using this routine will make sure all phone numbers get entered into the 
-# Outlook contact database. 
-# 
-# History
-# 2007/11/22   Richard Shanks    First created
-#----------------------------------------------------------------------------
-sub AddCidToOutlookContacts($$) {
-   my ($p_state, $p_setby) = @_;
-
-   use Win32::OLE::Const 'Microsoft Outlook';
-      $Win32::OLE::Warn = 2;    # Warn on error 
-
-   # List of outlook fields that contain phone numbers
-   my @OutlookPhoneFields = qw( Business2TelephoneNumber
-                                BusinessTelephoneNumber
-                                CallbackTelephoneNumber
-                                CarTelephoneNumber
-                                CompanyMainTelephoneNumber
-                                Home2TelephoneNumber
-                                HomeTelephoneNumber
-                                MobileTelephoneNumber
-                                OtherTelephoneNumber
-                                PrimaryTelephoneNumber
-                              );
-
-   # Prefix to use on last name. Provides easy identification of new
-   # entries automatically added to Outlook contacts
-   my $CidPrefix = "__CID ";
-   my $CidNumber = $p_setby->cid_number();
-
-   my $Outlook = Win32::OLE->GetActiveObject('Outlook.Application')
-              || Win32::OLE->new('Outlook.Application', 'Quit');
-
-   my $Mapi     = $Outlook->GetNamespace('MAPI');
-   my $Contacts = $Mapi->GetDefaultFolder(olFolderContacts)->{Items};
-   my $Count    = $Contacts->{Count};
-
-   # For each contact
-   for my $i (1 .. $Count) {
-      my $Contact = $Contacts->Item($i);
-
-      # For each phone number field
-      for my $Field (@OutlookPhoneFields){
-         next unless ($Contact->{$Field});
-
-         my $Num = $Contact->{$Field};
-         $Num =~ s/[^\d]//g;        # Leave only digits
-
-         # Found a matching number? (Compare this way as country code has been stripped from CidNumber)
-         if ($Num =~ /$CidNumber/) {
-            my $LogString   = "Outlook: Contact found $Contact->{LastNameAndFirstName}   $Contact->{$Field}";
-            my $SpeakString = "Found Outlook contact $Contact->{FirstName} $Contact->{LastName}";
-            $Field =~ s/TelephoneNumber//;
-            $LogString   .= " $Field";
-            $SpeakString .= " $Field";
-            print_log $LogString;
-            speak $SpeakString;
-
-            # All done
-            return;
-         }
-      }
-   }
-
-   # Add number as a new contact
-   if ($p_setby->category() ne "reject"){
-      my $NewContact = $Mapi->GetDefaultFolder(olFolderContacts)->Items->Add();
-      $NewContact->{LastName}               = $CidPrefix.ucfirst(lc($p_setby->last()));
-      $NewContact->{FirstName}              = ucfirst(lc($p_setby->first()));
-      $NewContact->{MiddleName}             = uc($p_setby->middle());
-      $NewContact->{HomeTelephoneNumber}    = $p_setby->cid_number();
-      $NewContact->{HomeAddressCity}        = $p_setby->city();
-      $NewContact->{HomeAddressState}       = $p_setby->cid_state();
-      $NewContact->{SelectedMailingAddress} = 1;  # Select home address
-
-      $NewContact->Save();
-      print_log "Outlook: Added new Contact ".$p_setby->last()." ".$p_setby->first()." ".$p_setby->cid_number();
-      speak "Added new Outlook contact ".$p_setby->first()." ".$p_setby->last();
-   }
-}
-
