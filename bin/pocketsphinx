@@ -1,0 +1,256 @@
+#!/usr/bin/perl
+
+# $Date: $
+# $Revision: $
+#
+#---------------------------------------------------------------------------
+#  File:
+#      pocketsphinx
+#  Description:
+#      Runs an instance of the pocketsphinx voice recognition program.
+#  Author:
+#      Jim Duda    jim@duda.tzo.com
+#  Latest version:
+#      http://misterhouse.net/mh/bin
+#  Change log:
+#    01/27/08  Created.
+#
+#---------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------
+#  Purpose:
+#      This script runs an instance of the pocketsphinx voice recognition
+#      program using the language model and dicitionary provided on the 
+#      command line.  Recognized phrases are sent via a socket connection
+#      to the misterhouse application running on host/port.  This script
+#      can be run on any machine, not necessary to be run on the same 
+#      computer where misterhouse is running.
+#
+
+#---------------------------------------------------------------------------
+use strict;
+
+#======================================================================
+# Version info
+#======================================================================
+my($Pgm_Path, $Pgm_Name, $Version);
+BEGIN {
+   ($Version) = q$Revision: 1084 $ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+   ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.*)\.?/;
+   ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
+   eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
+}
+
+use Getopt::Long;
+use IO::Socket;
+
+#======================================================================
+# Variable declarations and other init
+#======================================================================
+# Globals
+#
+
+my %parms;
+my $listener_pid;
+my @child_pid;
+my @devices;
+
+#======================================================================
+# Gracefully exit on kill signal
+#======================================================================
+sub signal_handler {
+  kill ("TERM",$listener_pid);
+  foreach my $child (@child_pid) {
+    if ($child) {
+      kill ("TERM",$child);
+      waitpid ( $child, 0 );
+    }
+  }
+  exit;
+}
+$SIG{INT}  = \&signal_handler;  
+$SIG{TERM} = \&signal_handler;  
+$SIG{KILL} = \&signal_handler;  
+
+#======================================================================
+# Check invocation options, and print usage message if necessary
+#======================================================================
+if (!&GetOptions(\%parms, "h", "help", "host=s", "port", "log_file=s",
+   "sent_file=s", "lm_file=s", "dict_file=s", "hmm_file=s", "program=s",
+   "device=s", "sample=i") or ($parms{h} or $parms{help}))
+{
+   print<<eof;
+$Pgm_Name runs an instance of the pocketsphinx voice recognition program
+using the defined language model and dictionary.  Recognized phrases are
+sent to the misterhouse program listening on the defined host/post.  The
+audio device and sample rate are configurable on the command line.
+
+  Version: $Version
+  Usage:
+   $Pgm_Name [options]
+   -h             => This help text
+   -help          => This help text
+   -host xyz      => xyz is the host name of the computer running misterhouse
+   -port xyz      => xyz is the port which misterhouse is listening on (3245)
+   -log_file xyz  => log information is directed to this file
+   -sent_file xyz => xyz is the pocketsphinx sentence file
+   -lm_file xyz   => xyz is the pocketsphinx language model file
+   -dict_file xyx => xyz is the pocketsphinx dictionary file
+   -hmm_file xyz  => xyz is the pocketsphinx hidden markov model file
+   -program xyz   => xyz is the path to pocketsphinx_continuous program
+   -device xyz    => xyz is the alsa/oss listening device
+   -sample xyz    => xyz is the sampling rate (8000 or 16000)
+
+  Example:
+
+   $Pgm_Name -host localhost -port 3245 \
+             -log_file /misterhouse/data/pocketsphinx/pocketsphinx.log \
+             -sent_file /misterhouse/data/pocketsphinx/current.sent \
+             -lm_file /misterhouse/data/pocketsphinx/current.lm \
+             -dict_file /misterhouse/data/pocketsphinx/current.dic \
+             -hmm_file /usr/local/share/pocketsphinx/model/hmm/wsj1 \
+             -program /usr/local/bin/pocketsphinx_continuous \
+             -device default \
+             -sample 16000
+
+eof
+  exit;
+}
+
+&setup;
+
+# fork off multiple devices if necessary
+@devices = split(/\|/,$parms{device});
+@child_pid = ();
+if (@devices > 1) {
+  for (my $i = 0; $i < @devices; $i++) {
+    if (my $child = fork) {
+      $child_pid[$i] = $child;
+    } else {
+      &run ($devices[$i], $parms{log_file});
+      exit;
+    }
+  }
+  wait;
+  &signal_handler;
+} else {
+  &run ($parms{device}, $parms{log_file});
+}
+
+sub setup {
+   $parms{localhost} = "localhost" unless $parms{localhost};
+   $parms{localport} = 3235        unless $parms{localport};
+   $parms{program}   = "/usr/local/bin/pocketsphinx_continuous" unless $parms{program};
+   $parms{device}    = "default" unless $parms{device};
+   $parms{sample}    = 16000 unless $parms{sample};
+
+   $parms{device} =~ s/\{//;
+   $parms{device} =~ s/\}//;
+   $parms{device} =~ s/\(//;
+   $parms{device} =~ s/\)//;
+}
+
+sub run {
+  my $device = shift;
+
+  # strip leading/trailing whitespace
+  $device =~ s/^\s+//;
+  $device =~ s/\s+$//;
+
+  my $localhost = $parms{localhost};
+  my $localport = $parms{localport};
+  my $sent      = $parms{sent_file};
+  my $lm        = $parms{lm_file};
+  my $dict      = $parms{dict_file};
+  my $hmm       = $parms{hmm_file};
+  my $program   = $parms{program};
+  my $rate      = $parms{sample};
+
+  my $logfile   = $parms{log_file} . "\_$device" . ".log";
+
+  open LOGFILE, ">$logfile" || die "cannot open $logfile";
+  autoflush LOGFILE 1;
+
+  if (!-e $sent) {
+    die "Missing sent_file $sent !!";
+  }
+  if (!-e $lm) {
+    die "missing lm_file $lm !!";
+  }
+  if (!-e $dict) {
+    die "missing dict_file $dict !!";
+  }
+  if (!-e $hmm) {
+    die "missing hmm_file $hmm !!";
+  }
+  if (!-e $program) {
+    die "missing program $program !!";
+  }
+
+  print LOGFILE "localhost: $localhost\n";
+  print LOGFILE "localport: $localport\n";
+  print LOGFILE "sent: $sent\n";
+  print LOGFILE "lm: $lm\n";
+  print LOGFILE "dict: $dict\n";
+  print LOGFILE "hmm: $hmm\n";
+  print LOGFILE "program: $program\n";
+  print LOGFILE "device: $device\n";
+  print LOGFILE "rate: $rate\n";
+
+  my $socket = IO::Socket::INET->new(PeerAddr=>$localhost, PeerPort=>$localport, Proto=>'tcp', Type=> SOCK_STREAM) or die "\nCould not create socket: $!\n";
+
+  print LOGFILE "starting listener ...\n";
+  my $sphinx_command = join " ",
+        "$program",
+#        "-adcin yes",
+#        "-cepext .16k",
+#        "-agc none",
+        "-adcdev $device",
+        "-live yes",
+#        "-fwdflat yes",
+        "-bestpath yes",
+#        "-nfft 256",
+        "-cmn none",
+        "-agc emax",
+        "-lm $lm",
+        "-dict $dict",
+        "-hmm $hmm",
+        "-samprate $rate",
+#        "-dsratio 2",
+#        "-topn 2",
+#        "-wbeam 1e-30",
+#        "-pbeam 1e-40",
+#        "-lpbeam 1e-20",
+#        "-lponlybeam 1e-20",
+#        "-maxhmmpf 500",
+#        "-maxwpf 10",
+#        "-mmap yes"
+        ;
+
+  print LOGFILE "sphinx_command: $sphinx_command\n";
+
+  $listener_pid = open(LISTENER, $sphinx_command . "|");
+  print LOGFILE "sphinx:: child: $listener_pid\n";
+
+  while(my $msg = <LISTENER>){
+    chomp $msg;
+    print LOGFILE "sphinx:: msg: $msg\n";
+    if ( $msg =~ /^\d+\: / ) {
+      $msg =~ s/^\d+\: (.*) $/$1/;
+      print LOGFILE "sphinx:: found: $msg\n";
+      if (`grep \'$msg\' $sent`) {
+        $msg = uc $msg;
+        $msg =~ s/_/ /g;
+        if ($msg) {
+          print $socket "$msg\n";
+          print LOGFILE "sphinx:: cmd: $msg\n";
+        }
+      }
+    }
+  }
+
+  close ($socket);
+  close (LOGFILE);
+
+}
+
