@@ -9,6 +9,7 @@ if ($_scan_link_tables_v->state_now()) {
    &_get_next_linkscan();
 }
 
+my $scan_cnt;
 sub _get_next_linkscan
 {
     my ($current_name) = @_;
@@ -16,6 +17,7 @@ sub _get_next_linkscan
     push @devices,@_insteon_plm;
     push @devices,@_insteon_device;
     push @devices,@_scannable_link;
+    my $dev_cnt = @devices;
     my $return_next = ($current_name) ? 0 : 1;
     my $next_name = undef;
     foreach my $name (@devices) {
@@ -30,11 +32,14 @@ sub _get_next_linkscan
        my $obj = $objects_by_object_name{$next_name};
        if ($obj) {
           $current_name = $next_name;
-          &main::print_log("[Scan all link tables] Now scanning: " . $obj->get_object_name);
+          $scan_cnt = 1 if (@_insteon_plm[0] eq $current_name); # Reset in case of timeout during scanning
+          &main::print_log("[Scan all link tables] Now scanning: " . $obj->get_object_name . " ($scan_cnt of $dev_cnt)");
+          $scan_cnt++;
           $obj->scan_link_table('&main::_get_next_linkscan(\'' . $next_name . '\')');
        }
     } else {
        $current_name = undef;
+       $scan_cnt = undef;
        return undef;
     }
 }
@@ -69,24 +74,24 @@ if ($Reload) {
         if ($object->isa('Insteon_Link')) {
            $states = 'on,off,sync links'; #,resume,enroll,unenroll,manual'; 
            my $cmd_states = $states;
-           if ($object->device_id eq '000000') {
+           if ($object->is_plm_controlled) {
               $cmd_states .= ',initiate linking as controller,cancel linking';
            } else {
               $cmd_states .= ",link to interface,unlink with interface";
            }
-           if ($object->group eq '01') {
+           if ($object->is_root and !($object->is_plm_controlled)) {
               $cmd_states .= ",status,scan link table,log links";
               push @_scannable_link, $object_name;
            }
            $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
-           if ($object->device_id eq '000000') {
+           if ($object->is_plm_controlled) {
               $object_string .= "$object_name_v -> tie_event('$object_name->initiate_linking_as_controller(\"$group\")', 'initiate linking as controller');\n\n";
               $object_string .= "$object_name_v -> tie_event('$object_name->interface()->cancel_linking','cancel linking');\n\n";
-          } else {
+           } else {
               $object_string .= "$object_name_v -> tie_event('$object_name->link_to_interface','link to interface');\n\n";
               $object_string .= "$object_name_v -> tie_event('$object_name->unlink_to_interface','unlink with interface');\n\n";
            }
-           if ($object->group eq '01') {
+           if ($object->is_root and !($object->is_plm_controlled)) {
               $object_string .= "$object_name_v -> tie_event('$object_name->request_status','status');\n\n";
               $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','scan link table');\n\n";
               $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table()','log links');\n\n";
