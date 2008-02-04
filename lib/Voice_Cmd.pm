@@ -6,7 +6,7 @@ use strict;
 my ($cmd_num);
 my (%cmd_by_num, %cmd_state_by_num, %cmd_num_by_text, %cmd_text_by_num, %cmd_text_by_vocab);
 my (%cmd_word_list, %cmd_vocabs);
-my ($Vcmd_ms, $Vmenu_ms, $Vcmd_viavoice, $Vcmd_sphinx2);
+my ($Vcmd_ms, $Vmenu_ms, $Vcmd_viavoice, $Vcmd_sphinx2, $Vcmd_pocketsphinx);
 my ($last_cmd_time, $last_cmd_num, $last_cmd_num_confirm, $last_cmd_flag, $noise_this_pass );
 
 my $confirm_timer = &Timer::new();
@@ -51,7 +51,10 @@ sub init {
 
 }
 
-
+# The pocketsphinx code file provides a callback reference to fetch the next voice command
+sub init_pocketsphinx {
+    ($Vcmd_pocketsphinx) = @_;
+}
 
 sub reset {
     if ($Vcmd_viavoice) {
@@ -253,6 +256,13 @@ sub check_for_voice_cmd {
         print "db sphinx2: n=$number cmd=$cmd_heard text=$text.\n" if $main::config_parms{debug} eq 'voice';
     }
 
+    if ($Vcmd_pocketsphinx) {
+        my $text = &$Vcmd_pocketsphinx( );
+	$text =~ s/\n//g;#For some odd reason we get the odd \n stuck here.
+	$cmd_heard = lc $text;
+	$number = $cmd_num_by_text{$cmd_heard};
+        print "db pocketsphinx: n=$number cmd=$cmd_heard text=$text.\n" if $main::config_parms{debug} eq 'voice';
+    }
                                 # Set states, if a command was triggered
     $last_cmd_flag = 0;
 
