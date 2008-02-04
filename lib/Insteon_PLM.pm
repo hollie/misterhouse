@@ -833,10 +833,8 @@ sub delegate
 		if (defined $object) {
 			&::print_log("[Insteon_PLM] Processing message for " . $object->get_object_name);
 			$object->_process_message($self, %msg);
-			return 1;
-		} else {
-			return 0;
 		}
+		return 1; # treat the message as legitimate even if an object match did not occur
 	} else {
 		return 0;
 	}
