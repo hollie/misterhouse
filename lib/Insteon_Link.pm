@@ -65,13 +65,6 @@ sub add
         }
 }
 
-sub is_plm_controlled
-{
-	my ($self) = @_;
-	return $self->device_id eq '000000';
-}
-
-
 sub sync_links
 {
 	my ($self) = @_;
@@ -225,7 +218,7 @@ sub set
 		my ($dim_state) = $p_state =~ /(\d+)%?/;
 		$link_state = 'off' if $dim_state == 0;
 	}
-	if (!($self->group eq '01')) {
+	if ($self->is_plm_controlled or !($self->is_root)) {
 		# iterate over the members
 		if ($$self{members}) {
 			foreach my $member_ref (keys %{$$self{members}}) {
@@ -264,7 +257,7 @@ sub set
 			}
 		}
 	}
-	$self->SUPER::set((($self->is_root) ? $p_state : $link_state), $p_setby, $p_respond);
+	$self->SUPER::set((($self->is_root and !($self->is_plm_controlled)) ? $p_state : $link_state), $p_setby, $p_respond);
 }
 
 sub update_members
