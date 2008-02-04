@@ -313,12 +313,15 @@ sub set
 		$self->_xlate_mh_x10($p_state,$p_setby);
 	} elsif ($p_setby->isa("Insteon_Link")) {
 		# only send out as all-link if the link originates from the plm
-		if ($p_setby->device_id eq '000000') {
+		if ($p_setby->is_plm_controlled) {
 			# return the size of the command stack
 			return $self->send_plm_cmd('0261' . $p_state);
-		} else {
+		} elsif ($p_setby->is_root) {
 			# return the size of the command stack
 			return $self->send_plm_cmd('0262' . $p_state);
+		} else {
+			&::print_log("[Insteon_PLM] WARN: you may not attempt to set an Insteon_Link unless "
+				. "it is a root device (group = 01) or controlled by the PLM.  Set request now being ignored");
 		}
 	} elsif ($p_setby->isa("Insteon_Device")) {
 		return $self->send_plm_cmd('0262' . $p_state);
@@ -407,7 +410,7 @@ sub send_plm_cmd
 
 	# get pending command record
 	my $cmdptr = pop(@{$$self{command_stack2}});
-	my %cmd_record = {};
+	my %cmd_record = ();
 	my $pending_cmd = '';
 	if ($cmdptr) {
 		%cmd_record = %$cmdptr;
@@ -433,7 +436,7 @@ sub send_plm_cmd
 			my $queue_size = @{$$self{command_stack2}};
 			&main::print_log("[Insteon_PLM] Command stack size: $queue_size") if $queue_size > 0 and $main::Debug{insteon};
 	#		&::print_log("PLM Add Command:" . $cmd . ":XmitInProgress:" . $$self{xmit_in_progress} . ":" );
-			my %cmd_record = {};
+			my %cmd_record = ();
 			$cmd_record{cmd} = $cmd;
 			$cmd_record{queue_time} = $::Time;
 			# pending command becomes the newest queued command if stack is empty
@@ -525,7 +528,7 @@ sub _parse_data {
 	# begin by pulling out any PLM ack/nacks
 	my $prev_cmd = '';
 	my $cmdptr = pop(@{$$self{command_stack2}});
-	my %cmd_record = {};
+	my %cmd_record = ();
 	if ($cmdptr) {
 		%cmd_record = %$cmdptr;
 		$prev_cmd = lc $cmd_record{cmd};
@@ -843,7 +846,7 @@ sub parse_alllink
 {
 	my ($self, $data) = @_;
 	if (substr($data,8,6)) {
-		my %link = {};
+		my %link = ();
 		my $flag = substr($data,4,1);
 		$link{is_controller} = (hex($flag) & 0x04) ? 1 : 0;
 		$link{flags} = substr($data,4,2);
@@ -886,7 +889,7 @@ sub restore_linktable
 	my ($self, $links) = @_;
 	if ($links) {
 		foreach my $link_section (split(/\|/,$links)) {
-			my %link_record = {};
+			my %link_record = ();
 			my $deviceid = '';
 			my $groupid = '01';
 			my $is_controller = 0;
@@ -923,6 +926,8 @@ sub log_alllink_table
 sub delete_orphan_links
 {
 	my ($self) = @_;
+	@{$$self{delete_queue}} = (); # reset the work queue
+	my $selfname = $self->get_object_name;
 	my $num_deleted = 0;
 	foreach my $linkkey (keys %{$$self{links}}) {
 		my $deviceid = $$self{links}{$linkkey}{deviceid};
@@ -931,9 +936,6 @@ sub delete_orphan_links
 		my $device = $self->get_object($deviceid,'01');
 		# if a PLM link (regardless of responder or controller) exists to a device that is not known, then delete
 		if (!($device)) {
-			&::print_log("[Insteon_PLM] now deleting orphaned link w/ details: "
-				. (($$self{links}{$linkkey}{is_controller}) ? "controller" : "responder")
-				. ", deviceid=$deviceid, group=$group");
 			$self->delete_link(deviceid => $deviceid, group => $group, 
 				is_controller => $is_controller);
 			$num_deleted++;
@@ -979,19 +981,18 @@ sub delete_orphan_links
 					if ($is_invalid) {
 						# then, there is a good chance that a reciprocal link exists; if so, delet it too
 						if ($device->has_link($self,$group,0)) {
-							$device->delete_link(object => $self, group => $group,
-								is_controller => 0);
+							my %delete_req = (object => $self, group => $group, is_controller => 0,
+								callback => "$selfname->_process_delete_queue(1)",
+								linkdevice => $device);
+							push @{$$self{delete_queue}}, \%delete_req;
 						}
 					}
 				}
 				if ($is_invalid) {
-					&::print_log("[Insteon_PLM] now deleting orphaned link in PLM w/ details: "
-						. "controller"
-						. ", deviceid=$$self{links}{$linkkey}{deviceid},"
-						. "group=$group");
-					if ($self->delete_link(object => $device, group => $group, is_controller => 1)) {
-						$num_deleted++;
-					}
+					my %delete_req = (object => $device, group => $group, is_controller => 1,
+								callback => "$selfname->_process_delete_queue(1)",
+								linkdevice => $self);
+					push @{$$self{delete_queue}}, \%delete_req;
 				}
 			}
 		}
@@ -1002,15 +1003,41 @@ sub delete_orphan_links
 		#Match on real objects only
 		if (($obj->is_root))
 		{
-			$num_deleted += $obj->delete_orphan_links();
+#			$num_deleted += $obj->delete_orphan_links();
+			my %delete_req = ('root_object' => $obj, callback => "$selfname->_process_delete_queue()");
+			push @{$$self{delete_queue}}, \%delete_req;
 		}
 	}
-	if ($num_deleted) {
-		&::print_log("A total of $num_deleted orphaned links were deleted.");
-#		$self->scan_link_table();
+	$$self{delete_queue_processed} = 0; # reset the counter
+	$self->_process_delete_queue();
+}
+
+sub _process_delete_queue {
+	my ($self, $p_num_deleted) = @_;
+	$$self{delete_queue_processed} += $p_num_deleted if $p_num_deleted;
+	my $num_in_queue = @{$$self{delete_queue}};
+	if ($num_in_queue) {
+		my $delete_req_ptr = shift(@{$$self{delete_queue}});
+		my %delete_req = %$delete_req_ptr;
+		# distinguish between deleting PLM links and processing delete orphans for a root item
+		if ($delete_req{'root_object'}) {
+			$delete_req{'root_object'}->delete_orphan_links();
+		} else {
+			if ($delete_req{linkdevice} eq $self) {
+				&::print_log("[Insteon_PLM] now deleting orphaned link w/ details: "
+					. (($delete_req{is_controller}) ? "controller" : "responder")
+					. ", " . (($delete_req{object}) ? "object=" . $delete_req{object}->get_object_name
+					: "deviceid=$delete_req{deviceid}), group=$delete_req{group}"))
+					if $main::Debug{insteon};
+				$self->delete_link(%delete_req);
+			} elsif ($delete_req{linkdevice}) {
+				$delete_req{linkdevice}->delete_link(%delete_req);
+			}
+		}
 	} else {
-		&::print_log("No orphaned links were found.");
+		&::print_log("[Insteon_PLM] A total of $$self{delete_queue_processed} orphaned link records were deleted.");
 	}
+
 }
 
 sub delete_link
@@ -1024,6 +1051,7 @@ sub delete_link
 	} else {
 		%link_parms = &main::parse_func_parms($parms_text);
 	}
+	my $num_deleted = 0;
 	my $insteon_object = $link_parms{object};
 	my $deviceid = ($insteon_object) ? $insteon_object->device_id : $link_parms{deviceid};
 	my $group = $link_parms{group};
@@ -1039,10 +1067,9 @@ sub delete_link
 			. $$self{links}{$linkkey}{data3};
 		$self->send_plm_cmd($cmd);
 		delete $$self{links}{$linkkey};
-		return 1;
+		$num_deleted = 1;
 	} else {
 		&::print_log("[Insteon_PLM] no entry in linktable could be found for linkkey: $linkkey");
-		return 0;
 	}
 	if ($link_parms{callback}) {
 		package main;
@@ -1050,6 +1077,8 @@ sub delete_link
 		&::print_log("[Insteon_PLM] error in delete link callback: " . $@)
 			if $@ and $main::Debug{insteon};
 		package Insteon_PLM;
+	} else {
+		return $num_deleted;
 	}
 }
 

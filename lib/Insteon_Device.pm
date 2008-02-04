@@ -365,6 +365,11 @@ sub is_locally_set {
 	return $$self{m_is_locally_set};
 }
 
+sub is_plm_controlled {
+	my ($self) = @_;
+	return ($self->device_id eq '000000') ? 1 : 0;
+}
+
 sub is_root {
 	my ($self) = @_;
 	return ($self->group eq '01') ? 1 : 0;
@@ -471,10 +476,9 @@ sub _process_message
 sub _xlate_insteon_mh
 {
 	my ($p_state) = @_;
-	my %msg = {};
+	my %msg = ();
 	my $hopflag = hex(uc substr($p_state,13,1));
 	$msg{hopsleft} = $hopflag >> 2;
-	$msg{hopsmax} = $hopflag << 2;
 	my $msgflag = hex(uc substr($p_state,12,1));
 	$msg{is_extended} = (0x01 & $msgflag) ? 1 : 0;
 	if ($msg{is_extended}) {
@@ -918,7 +922,7 @@ sub restore_adlb
 	my ($self,$adlb) = @_;
 	if ($adlb) {
 		foreach my $adlb_section (split(/\|/,$adlb)) {
-			my %adlb_record = {};
+			my %adlb_record = ();
 			my @adlb_empty = ();
 			my $deviceid = '';
 			my $groupid = '01';
@@ -1017,6 +1021,8 @@ sub delete_link
 sub delete_orphan_links
 {
 	my ($self) = @_;
+	@{$$self{delete_queue}} = (); # reset the work queue
+	my $selfname = $self->get_object_name;
 	my $num_deleted = 0;
 	for my $linkkey (keys %{$$self{adlb}}) {
 		if ($linkkey ne 'empty') {
@@ -1029,25 +1035,25 @@ sub delete_orphan_links
 				&::print_log("[Insteon_Device] " . $self->get_object_name . " now deleting orphaned link w/ details: "
 					. (($is_controller) ? "controller" : "responder")
 					. ", deviceid=$deviceid, group=$group");
-				$self->delete_link(deviceid => $deviceid, group => $group, is_controller => $is_controller);
-				$num_deleted++;
+
+				my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
+							callback => "$selfname->_process_delete_queue()");
+				push @{$$self{delete_queue}}, \%delete_req;
 			} elsif ($device->isa("Insteon_PLM") and $is_controller) {
 				# ignore since this is just a link back to the PLM
 			} elsif ($device->isa("Insteon_PLM")) {
 				if (!($device->has_link($self,$group,($is_controller) ? 0:1))) {
-					&::print_log("[Insteon_Device] " . $self->get_object_name . " now deleting orphaned link w/ details: "
-						. (($is_controller) ? "controller" : "responder")
-						. ", device=" . $device->get_object_name . ", group=$group");
-					$self->delete_link(deviceid => $deviceid, group => $group, is_controller => $is_controller);
+					my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
+							callback => "$selfname->_process_delete_queue()", object => $device);
+					push @{$$self{delete_queue}}, \%delete_req;
 					$num_deleted++;
 				}
 				# TO-DO: check to see if there is a defined link back to this device
 			} else {
 				if (!($device->has_link($self,$group,($is_controller) ? 0:1))) {
-					&::print_log("[Insteon_Device] " . $self->get_object_name . " now deleting orphaned link w/ details: "
-						. (($is_controller) ? "controller" : "responder")
-						. ", device=" . $device->get_object_name . ", group=$group");
-					$self->delete_link(deviceid => $deviceid, group => $group, is_controller => $is_controller);
+					my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
+							callback => "$selfname->_process_delete_queue()", object => $device);
+					push @{$$self{delete_queue}}, \%delete_req;
 					$num_deleted++;
 				} else {
 					my $is_invalid = 1;
@@ -1076,17 +1082,34 @@ sub delete_orphan_links
 						}
 					}
 					if ($is_invalid) {
-						&::print_log("[Insteon_Device] " . $self->get_object_name . " now deleting orphaned link w/ details: "
-							. (($is_controller) ? "controller" : "responder")
-							. ", device=" . $device->get_object_name . ", group=$group");
-						$self->delete_link(deviceid => $deviceid, group => $group, is_controller => $is_controller);
+						my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
+							callback => "$selfname->_process_delete_queue()", object => $device);
+						push @{$$self{delete_queue}}, \%delete_req;
 						$num_deleted++;
 					}
 				}
 			}
 		}
 	}
+	$$self{delete_queue_processed} = 0;
+	$self->_process_delete_queue();
 	return $num_deleted;
+}
+
+sub _process_delete_queue {
+	my ($self) = @_;
+	if (@{$$self{delete_queue}}) {
+		my $delete_req_ptr = shift(@{$$self{delete_queue}});
+		my %delete_req = %$delete_req_ptr;
+		&::print_log("[Insteon_Device] " . $self->get_object_name . " now deleting orphaned link w/ details: "
+			. (($delete_req{is_controller}) ? "controller" : "responder")
+			. ", " . (($delete_req{object}) ? "device=" . $delete_req{object}->get_object_name 
+			: "deviceid=$delete_req{deviceid}") . ", group=$delete_req{group}");
+		$self->delete_link(%delete_req);
+		$$self{delete_queue_processed}++;
+	} else {
+		$self->interface->_process_delete_queue($$self{delete_queue_processed});
+	}
 }
 
 sub add_link
@@ -1178,9 +1201,11 @@ sub log_alllink_table
 {
 	my ($self) = @_;
 	&::print_log("[Insteon_Device] link table for " . $self->get_object_name . " (devcat: $$self{devcat}):");
-
+	my @recAddr;
 	foreach my $adlbkey (sort(keys(%{$$self{adlb}}))) {
 		next if $adlbkey eq 'empty';
+		# Add all addresses to @recAddr to be checked for duplicate records 
+		push (@recAddr,$$self{adlb}{$adlbkey}{address});
 		my ($device);
 		if ($self->interface()->device_id() and ($self->interface()->device_id() eq $$self{adlb}{$adlbkey}{deviceid})) {
 			$device = $self->interface;
@@ -1215,7 +1240,7 @@ sub log_alllink_table
 
 		my $rspndr_group = $$self{adlb}{$adlbkey}{data3};
 		$rspndr_group = '01' if $rspndr_group eq '00';
-		&::print_log("[Insteon_Device] adlb [0x" . $$self{adlb}{$adlbkey}{address} . "] " .
+		&::print_log("[Insteon_Device] aldb [0x" . $$self{adlb}{$adlbkey}{address} . "] " .
 			(($$self{adlb}{$adlbkey}{is_controller}) ? "contlr($$self{adlb}{$adlbkey}{group}) record to "
 			. $object_name . "($rspndr_group), (d1:$$self{adlb}{$adlbkey}{data1}, d2:$$self{adlb}{$adlbkey}{data2}, d3:$$self{adlb}{$adlbkey}{data3})"
 			: "rspndr($rspndr_group) record to " . $object_name . "($$self{adlb}{$adlbkey}{group})"
@@ -1223,14 +1248,40 @@ sub log_alllink_table
 	}
 	foreach my $address (@{$$self{adlb}{empty}}) {
 		&::print_log("[Insteon_Device] adlb [0x$address] is empty");
+		push (@recAddr,$address);
 	}
-	
+
+	# Check for duplicate records.
+	if ($$self{devcat}) {
+		my $saw_start;
+		my $prev_dec;
+		my $prev_addr;
+		&::print_log("[Insteon_Device] Checking " .$self->get_object_name ." for duplicate records") if $main::Debug{insteon};
+		foreach my $rec (reverse sort @recAddr) {
+			my $dec = hex $rec;
+			unless ($saw_start) { # Make sure first record is correct [0x0FF8]
+				$saw_start++;
+				unless ($dec == 4088) {
+					&::print_log("[Insteon_Device] WARN: " . $self->get_object_name 
+						. ". First memory address should be [0x0FF8] not [0x$rec]");
+				}
+				$prev_dec = ($dec + 8);
+			}
+			unless ($dec == ($prev_dec - 8)) {
+				&::print_log("[Insteon_Device] " . $self->get_object_name 
+					. " record gap in aldb between [0x$prev_addr] and [0x$rec]")
+					if $main::Debug{insteon};
+			}
+			$prev_addr = $rec;
+			$prev_dec  = $dec;
+		}
+	}
 }
 
 sub get_link_record
 {
 	my ($self,$link_key) = @_;
-	my %link_record = {};
+	my %link_record = ();
 	%link_record = %{$$self{adlb}{$link_key}} if $$self{adlb}{$link_key};
 	return %link_record;
 }
