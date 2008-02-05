@@ -67,8 +67,9 @@ sub add
 
 sub sync_links
 {
-	my ($self) = @_;
+	my ($self, $callback) = @_;
 	@{$$self{sync_queue}} = (); # reset the work queue
+	$$self{sync_queue_callback} = ($callback) ? $callback : undef;
 	my $insteon_object = $self->interface;
 	if (!($self->is_plm_controlled)) {
 		$insteon_object = $self->interface->get_object($self->device_id,'01');
@@ -162,23 +163,21 @@ sub sync_links
 	}
 	# if not a plm controlled link, then confirm that a link back to the plm exists
 	if (!($self->is_plm_controlled)) {
-		if (!($insteon_object->has_link($self->interface,'01',1))) {
+		if (!($insteon_object->has_link($self->interface,$self->group,1))) {
 			my %link_req = ( member => $insteon_object, cmd => 'add', object => $self->interface, 
-				group => '01', is_controller => 1, 
+				group => $self->group, is_controller => 1, 
 				callback => "$self_link_name->_process_sync_queue()" );
 			$link_req{data3} = $self->group if $$insteon_object{devcat} eq '0109';
 			push @{$$self{sync_queue}}, \%link_req;
 		}
-		if (!($self->interface->has_link($insteon_object,'01',0))) {
+		if (!($self->interface->has_link($insteon_object,$self->group,0))) {
 			my %link_req = ( member => $self->interface, cmd => 'add', object => $insteon_object, 
-				group => '01', is_controller => 0, 
+				group => $self->group, is_controller => 0, 
 				callback => "$self_link_name->_process_sync_queue()" );
 			push @{$$self{sync_queue}}, \%link_req;
 		}
 	}
-	if (@{$$self{sync_queue}}) {
-		$self->_process_sync_queue();
-	}
+	$self->_process_sync_queue();
 	
 	# TO-DO: consult links table to determine if any "orphaned links" refer to this device; if so, then delete
 	# WARN: can't immediately do this as the link tables aren't finalized on the above operations
@@ -188,7 +187,8 @@ sub sync_links
 sub _process_sync_queue {
 	my ($self) = @_;
 	# get next in queue if it exists
-	if (@{$$self{sync_queue}}) {
+	my $num_sync_queue = @{$$self{sync_queue}};
+	if ($num_sync_queue) {
 		my $link_req_ptr = shift(@{$$self{sync_queue}});
 		my %link_req = %$link_req_ptr;
 		if ($link_req{cmd} eq 'update') {
@@ -198,6 +198,13 @@ sub _process_sync_queue {
 			my $link_member = $link_req{member};
 			$link_member->add_link(%link_req);
 		} 
+	} elsif ($$self{sync_queue_callback}) {
+		package main;
+		eval ($$self{sync_queue_callback});
+		&::print_log("[Insteon_Link] error in sync links callback: " . $@)
+			if $@ and $main::Debug{insteon};
+		$$self{sync_queue_callback} = undef;
+		package Insteon_link;
 	}
 }
 
