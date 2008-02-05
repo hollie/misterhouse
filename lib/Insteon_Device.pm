@@ -39,7 +39,9 @@ my %message_types = (
 						unlinking_mode => 0x0A,
 						ping => 0x10,
 						on => 0x11,
+						on_fast => 0x12,
 						off => 0x13,
+						off_fast => 0x14,
 						bright => 0x15,
 						dim => 0x16,
 						start_manual_change => 0x17,
@@ -675,7 +677,8 @@ sub _on_poke
 				$$self{adlb}{$adlbkey}{address} = $$self{pending_adlb}{address};
 				# on completion, check to see if the empty links list is now empty; if so, 
 				# then decrement the current address and add it to the list
-				if (!(@{$$self{adlb}{empty}})) {
+				my $num_empty = @{$$self{adlb}{empty}};
+				if (!($num_empty)) {
 					my $low_address = 0;
 					for my $key (keys %{$$self{adlb}}) {
 						next if $key eq 'empty';
@@ -687,7 +690,7 @@ sub _on_poke
 							$low_address = $new_address if $new_address < $low_address;
 						}
 					}
-					$low_address = sprintf('%04X', hex($low_address) - 8);
+					$low_address = sprintf('%04X', $low_address - 8);
 					unshift @{$$self{adlb}{empty}}, $low_address;
 				}
 			}
@@ -767,6 +770,10 @@ sub _on_peek
 							if $@ and $main::Debug{insteon};
 						package Insteon_Device;
 						$$self{_mem_callback} = undef;
+					}
+					# ping the device as part of the scan if we don't already have a devcat
+					if (!($self->{devcat})) {
+						$self->ping();
 					}
 				} else {
 					$$self{pending_adlb}{flag} = $msg{extra};
