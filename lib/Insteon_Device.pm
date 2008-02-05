@@ -271,6 +271,13 @@ sub unlink_to_interface
 		callback => "$callback_instance->delete_link('$callback_info')");
 }
 
+sub queue_timer_callback
+{
+	my ($self, $callback) = @_;
+	$$self{queue_timer_callback} = $callback if $callback;
+	return $$self{queue_timer_callback};
+}
+
 sub _send_cmd
 {
 	my ($self, %msg) = @_;
@@ -297,6 +304,7 @@ sub _process_command_stack
 		}
 	}
 	if ($$self{queue_timer}->expired or !($$self{awaiting_ack})) {
+		my $callback = undef;
 		if ($$self{queue_timer}->expired) {
 			if ($$self{_prior_msg} and $$self{_retry_count} < 2) {
 				# first check to see if type is an alllink; if so, then don't keep retrying until
@@ -312,6 +320,7 @@ sub _process_command_stack
 				&::print_log("[Insteon_Device] WARN: queue timer on " . $self->get_object_name . 
 				" expired. Trying next command if queued.");
 				$$self{m_status_request_pending} = 0; # hack--need a better way
+				$callback = $self->queue_timer_callback if $self->queue_timer_callback;
 			}
 		}
 		my $cmdptr = pop(@{$$self{command_stack}});
@@ -344,6 +353,13 @@ sub _process_command_stack
 			# and, always clear awaiting_ack and _prior_msg
 			$$self{awaiting_ack} = 0;
 			$$self{_prior_msg} = undef;
+		}
+		if ($callback) {
+			package main;
+			eval ($callback);
+			&::print_log("[Insteon_Device] error in queue timer callback: " . $@)
+				if $@ and $main::Debug{insteon};
+			package Insteon_Device;
 		}
 	} else {
 		&::print_log("[Insteon_Device] " . $self->get_object_name . " command queued but not yet sent; awaiting ack from prior command");
@@ -672,8 +688,8 @@ sub _on_poke
 			$$self{adlb}{$adlbkey}{inuse} = 1; # needed so that restore string will preserve record
 			if ($$self{_mem_activity} eq 'add') {
 				$$self{adlb}{$adlbkey}{is_controller} = $$self{pending_adlb}{is_controller};
-				$$self{adlb}{$adlbkey}{deviceid} = $$self{pending_adlb}{deviceid};
-				$$self{adlb}{$adlbkey}{group} = $$self{pending_adlb}{group};
+				$$self{adlb}{$adlbkey}{deviceid} = lc $$self{pending_adlb}{deviceid};
+				$$self{adlb}{$adlbkey}{group} = lc $$self{pending_adlb}{group};
 				$$self{adlb}{$adlbkey}{address} = $$self{pending_adlb}{address};
 				# on completion, check to see if the empty links list is now empty; if so, 
 				# then decrement the current address and add it to the list
@@ -722,6 +738,8 @@ sub _on_poke
 		if (defined $$self{_mem_callback}) {
 			package main;
 			eval ($$self{_mem_callback});
+			&::print_log("[Insteon_Device] error in link callback: " . $@) 
+				if $@ and $main::Debug{insteon};
 			package Insteon_Device;
 			$$self{_mem_callback} = undef;
 		}
@@ -739,6 +757,14 @@ sub _on_peek
 		if ($$self{_mem_action} eq 'adlb_peek') {
 			if ($$self{_mem_activity} eq 'scan') {
 				$$self{_mem_action} = 'adlb_flag';
+				# if the device is responding to the peek, then init the link table
+				#   if at the very start of a scan
+				if (lc $$self{_mem_msb} eq '0f' and lc $$self{_mem_lsb} eq 'f8') {
+					# reinit the adlb hash as there will be a new one
+					$$self{adlb} = undef;
+					# reinit the empty address list
+					@{$$self{adlb}{empty}} = ();
+				}
 			} elsif ($$self{_mem_activity} eq 'update') {
 				$$self{_mem_action} = 'adlb_data1';
 			} elsif ($$self{_mem_activity} eq 'update_local') {
@@ -980,11 +1006,7 @@ sub set_receive
 sub scan_link_table
 {
 	my ($self,$callback) = @_;
-	# always reset the current cache in case memory changes
-	$$self{adlb} = undef;
 	$$self{_mem_activity} = 'scan';
-	# reinit the empty address list
-	@{$$self{adlb}{empty}} = ();
 	$$self{_mem_callback} = ($callback) ? $callback : undef;
 	$self->_peek('0FF8',0);
 }
@@ -1021,7 +1043,13 @@ sub delete_link
 	} else {
 		&main::print_log('[Insteon_Device] WARN: (' . $self->get_object_name . ') attempt to delete link that does not exist!'
 			. " deviceid=$deviceid, groupid=$groupid, is_controller=$is_controller");
-		eval($link_parms{callback}) if $link_parms{callback};
+		if ($link_parms{callback}) {
+			package main;
+			eval($link_parms{callback});
+			&::print_log("[Insteon_Device] error encountered during delete_link callback: " . $@)
+				if $@ and $main::Debug{insteon};
+			package Insteon_Device;
+		}
 	}
 }
 
@@ -1105,7 +1133,8 @@ sub delete_orphan_links
 
 sub _process_delete_queue {
 	my ($self) = @_;
-	if (@{$$self{delete_queue}}) {
+	my $num_in_queue = @{$$self{delete_queue}};
+	if ($num_in_queue) {
 		my $delete_req_ptr = shift(@{$$self{delete_queue}});
 		my %delete_req = %$delete_req_ptr;
 		&::print_log("[Insteon_Device] " . $self->get_object_name . " now deleting orphaned link w/ details: "
@@ -1317,8 +1346,8 @@ sub _write_link
 			$address = sprintf('%04X',hex($address) + 5);
 		}
 		$$self{pending_adlb}{address} = $address;
-		$$self{pending_adlb}{deviceid} = $deviceid;
-		$$self{pending_adlb}{group} = $group;
+		$$self{pending_adlb}{deviceid} = lc $deviceid;
+		$$self{pending_adlb}{group} = lc $group;
 		$$self{pending_adlb}{is_controller} = $is_controller;
 		$$self{pending_adlb}{data1} = (defined $data1) ? lc $data1 : '00';
 		$$self{pending_adlb}{data2} = (defined $data2) ? lc $data2 : '00';
