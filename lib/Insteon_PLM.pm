@@ -565,8 +565,6 @@ sub _parse_data {
 					} elsif ($record_type eq '0269' or $record_type eq '026a') {
 						$$self{_next_link_ok} = 1;
 					}
-					# command succeeded
-#					&::print_log("PLM: Command succeeded: $data_1.");
 					$$self{xmit_in_progress} = 0;
 					# check to see if it is an all-link and if so, then remember for "cleanup"
 					if ($data_1 =~ /0261\w{6}06/) {
@@ -575,8 +573,20 @@ sub _parse_data {
 					$self->_clear_timeout('command');
 					$process_next_command = 1;
 					$$self{retry_count} = 0;
+					if (($record_type eq '026f') and $$self{_mem_callback}) {
+						my $callback = $$self{_mem_callback};
+						$$self{_mem_callback} = undef;
+						package main;
+						eval ($callback);
+						&::print_log("[Insteon_PLM] error encountered during ack callback: " . $@)
+							if $@ and $main::Debug{insteon};
+						package Insteon_PLM;
+					}
 				} elsif ($ret_code eq '15' or $ret_code eq '0f') { #NAK or "bad" command received
 					my $record_type = substr($data_1,0,4);
+					$$self{xmit_in_progress} = 0;
+					$self->_clear_timeout('command');
+					$process_next_command = 1;
 					if ($record_type eq '0269' or $record_type eq '026a') {
 						$$self{_next_link_ok} = 0;
 						$$self{_mem_activity} = undef;
@@ -584,9 +594,6 @@ sub _parse_data {
 					} else {
 						&::print_log("[Insteon_PLM] Prior cmd failed");
 					}
-					$$self{xmit_in_progress} = 0;
-					$self->_clear_timeout('command');
-					$process_next_command = 1;
 				} else {
 					# We have a problem (Usually we stepped on another X10 command)
 					&::print_log("[Insteon_PLM] Command error: $data_1.");
@@ -934,9 +941,10 @@ sub delete_orphan_links
 		my $device = $self->get_object($deviceid,'01');
 		# if a PLM link (regardless of responder or controller) exists to a device that is not known, then delete
 		if (!($device)) {
-			$self->delete_link(deviceid => $deviceid, group => $group, 
-				is_controller => $is_controller);
-			$num_deleted++;
+			my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
+				callback => "$selfname->_process_delete_queue(1)",
+				linkdevice => $self);
+			push @{$$self{delete_queue}}, \%delete_req;
 		} else {
 			my $is_invalid = 1;
 			my $link = undef;
@@ -969,9 +977,9 @@ sub delete_orphan_links
 								# link also exists.  So, check:
 								if ($member->has_link($self, $group, 0)) {
 									$is_invalid = 0;
-								}
+								} 
 								last;
-							}
+							} 
 						} else {
 							$is_invalid = 0;
 						}
@@ -1025,7 +1033,7 @@ sub _process_delete_queue {
 				&::print_log("[Insteon_PLM] now deleting orphaned link w/ details: "
 					. (($delete_req{is_controller}) ? "controller" : "responder")
 					. ", " . (($delete_req{object}) ? "object=" . $delete_req{object}->get_object_name
-					: "deviceid=$delete_req{deviceid}), group=$delete_req{group}"))
+					: "deviceid=$delete_req{deviceid}") . ", group=$delete_req{group}")
 					if $main::Debug{insteon};
 				$self->delete_link(%delete_req);
 			} elsif ($delete_req{linkdevice}) {
@@ -1063,21 +1071,22 @@ sub delete_link
 			. $$self{links}{$linkkey}{data1}
 			. $$self{links}{$linkkey}{data2}
 			. $$self{links}{$linkkey}{data3};
-		$self->send_plm_cmd($cmd);
+		$$self{_mem_callback} = $link_parms{callback} if $link_parms{callback};
 		delete $$self{links}{$linkkey};
 		$num_deleted = 1;
+		$self->send_plm_cmd($cmd);
 	} else {
 		&::print_log("[Insteon_PLM] no entry in linktable could be found for linkkey: $linkkey");
 	}
-	if ($link_parms{callback}) {
-		package main;
-		eval ($link_parms{callback});
-		&::print_log("[Insteon_PLM] error in delete link callback: " . $@)
-			if $@ and $main::Debug{insteon};
-		package Insteon_PLM;
-	} else {
+#	if ($link_parms{callback}) {
+#		package main;
+#		eval ($link_parms{callback});
+#		&::print_log("[Insteon_PLM] error in delete link callback: " . $@)
+#			if $@ and $main::Debug{insteon};
+#		package Insteon_PLM;
+#	} else {
 		return $num_deleted;
-	}
+#	}
 }
 
 sub add_link
@@ -1123,7 +1132,7 @@ sub add_link
 			. $data1 
 			. $data2
 			. $data3;
-		$self->send_plm_cmd($cmd);
+		$$self{_mem_callback} = $link_parms{callback} if $link_parms{callback};
 		$$self{links}{$linkkey}{flags} = lc $flags;
 		$$self{links}{$linkkey}{group} = lc $group;
 		$$self{links}{$linkkey}{is_controller} = $is_controller;
@@ -1131,14 +1140,15 @@ sub add_link
 		$$self{links}{$linkkey}{data1} = lc $data1;
 		$$self{links}{$linkkey}{data2} = lc $data2;
 		$$self{links}{$linkkey}{data3} = lc $data3;
+		$self->send_plm_cmd($cmd);
 	}
-	if ($link_parms{callback}) {
-		package main;
-		eval ($link_parms{callback});
-		&::print_log("[Insteon_PLM] error in add link callback: " . $@)
-			if $@ and $main::Debug{insteon};
-		package Insteon_PLM;
-	}
+#	if ($link_parms{callback}) {
+#		package main;
+#		eval ($link_parms{callback});
+#		&::print_log("[Insteon_PLM] error in add link callback: " . $@)
+#			if $@ and $main::Debug{insteon};
+#		package Insteon_PLM;
+#	}
 }
 
 sub get_object
@@ -1156,7 +1166,7 @@ sub get_object
 			{
 				if ($p_group)
 				{
-					if ($p_group eq $obj->group)
+					if (lc $p_group eq lc $obj->group)
 					{
 						$retObj = $obj;
 						last;
