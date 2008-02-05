@@ -2,17 +2,22 @@
 
 #@ This module creates voice commands for all Insteon_Device, Insteon_Link and Insteon_PLM items.
 
-my (@_insteon_plm,@_insteon_device,@_insteon_link,@_scannable_link);
+my (@_insteon_plm,@_insteon_device,@_insteon_link,@_scannable_link,$_scan_cnt,$_scan_failure_cnt,$_sync_cnt,$_sync_failure_cnt);
+
 $_scan_link_tables_v = new Voice_Cmd 'Scan all link tables';
 
 if ($_scan_link_tables_v->state_now()) {
    &_get_next_linkscan();
 }
 
-my $scan_cnt;
 sub _get_next_linkscan
 {
-    my ($current_name) = @_;
+    my ($current_name, $prior_failure) = @_;
+    if ($prior_failure) {
+       $_scan_failure_cnt++;
+    } else {
+       $_scan_failure_cnt = 0;
+    }
     my @devices = ();
     push @devices,@_insteon_plm;
     push @devices,@_insteon_device;
@@ -20,29 +25,95 @@ sub _get_next_linkscan
     my $dev_cnt = @devices;
     my $return_next = ($current_name) ? 0 : 1;
     my $next_name = undef;
-    foreach my $name (@devices) {
-       if ($return_next) {
-          $next_name = $name;
-          last;
+
+    if ($current_name) {
+       for (my $i=0; $i<$dev_cnt; $i++) {
+          if ($devices[$i] eq $current_name) {
+             if ($_scan_failure_cnt < 2) { # allow up to 1 retry
+                # get the next
+                $next_name = $devices[$i+1] if $i+1 < $dev_cnt;
+             } else {
+                # skip because this is a repeat failure
+                $next_name = $devices[$i+2] if $i+2 < $dev_cnt;
+                $_scan_failure_cnt = 0; # reset failure counter
+             }
+          }
        }
-       $return_next = 1 if $current_name eq $name;
+    } else {
+       $next_name = $devices[0] if $dev_cnt;
     }
-    $return_next = 0 if !($next_name) or $current_name eq $next_name;
-    if ($return_next) {
+
+    if ($next_name) {
        my $obj = $objects_by_object_name{$next_name};
        if ($obj) {
           $current_name = $next_name;
-          $scan_cnt = 1 if (@_insteon_plm[0] eq $current_name); # Reset in case of timeout during scanning
-          &main::print_log("[Scan all link tables] Now scanning: " . $obj->get_object_name . " ($scan_cnt of $dev_cnt)");
-          $scan_cnt++;
+          $_scan_cnt = 1 if (@_insteon_plm[0] eq $current_name); # Reset in case of timeout during scanning
+          &main::print_log("[Scan all link tables] Now scanning: " . $obj->get_object_name . " ($_scan_cnt of $dev_cnt)");
+          $_scan_cnt++;
+          $obj->queue_timer_callback('&main::_get_next_linkscan(\'' . $next_name . '\')',1);
           $obj->scan_link_table('&main::_get_next_linkscan(\'' . $next_name . '\')');
        }
     } else {
        $current_name = undef;
-       $scan_cnt = undef;
+       $_scan_cnt = undef;
        return undef;
     }
 }
+
+$_sync_links_v = new Voice_Cmd 'Sync all links';
+
+if ($_sync_links_v->state_now()) {
+   &_process_sync_links();
+}
+
+sub _process_sync_links
+{
+    my ($current_name, $prior_failure) = @_;
+    if ($prior_failure) {
+       $_sync_failure_cnt++;
+    } else {
+       $_sync_failure_cnt = 0;
+    }
+    my @devices = ();
+    push @devices,@_insteon_link;
+    my $dev_cnt = @devices;
+    my $return_next = ($current_name) ? 0 : 1;
+    my $next_name = undef;
+
+    if ($current_name) {
+       for (my $i=0; $i<$dev_cnt; $i++) {
+          if ($devices[$i] eq $current_name) {
+             if ($_sync_failure_cnt < 2) { # allow up to 1 retry
+                # get the next
+                $next_name = $devices[$i+1] if $i+1 < $dev_cnt;
+             } else {
+                # skip because this is a repeat failure
+                $next_name = $devices[$i+2] if $i+2 < $dev_cnt;
+                $_sync_failure_cnt = 0; # reset failure counter
+             }
+          }
+       }
+    } else {
+       $next_name = $devices[0] if $dev_cnt;
+    }
+
+    if ($next_name) {
+       my $obj = $objects_by_object_name{$next_name};
+       if ($obj) {
+          $current_name = $next_name;
+          $_sync_cnt = 1 unless $_sync_cnt; # Reset in case of timeout during sync-ing
+          &main::print_log("[Sync all links] Now syncing links: " . $obj->get_object_name . " ($_sync_cnt of $dev_cnt)");
+          $_sync_cnt++;
+          $obj->queue_timer_callback('&main::_process_sync_links(\'' . $next_name . '\')',1);
+          $obj->sync_links('&main::_process_sync_links(\'' . $next_name . '\')');
+       }
+    } else {
+       $current_name = undef;
+       $_sync_cnt = undef;
+       return undef;
+    }
+}
+
 
 sub uninstall_insteon_item_commands {
     &trigger_delete('scan insteon link tables');
