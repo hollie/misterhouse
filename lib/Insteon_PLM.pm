@@ -462,7 +462,7 @@ sub send_plm_cmd
 			my $past_cmds_in_history = @{$$self{command_history}};
 			# need logic to change based upon whether the command is x10 or not
 #			&::print_log("[Insteon_PLM] num commands in past 1 seconds: $past_cmds_in_history") if $main::Debug{insteon};
-			if ($past_cmds_in_history > 3) {
+			if ($past_cmds_in_history > 3 and !($::config_parms{Insteon_PLM_disable_throttling})) {
 				&::print_log("[Insteon_PLM] num commands in 1 second exceeded threshold. Now delaying additional transmission for 1 second") if $main::Debug{insteon};
 				$self->_set_timeout('xmit',1000);
 				my $command_queue_size = @{$$self{command_stack2}};
@@ -590,9 +590,17 @@ sub _parse_data {
 					if ($record_type eq '0269' or $record_type eq '026a') {
 						$$self{_next_link_ok} = 0;
 						$$self{_mem_activity} = undef;
-						eval ($$self{_mem_callback}) if defined $$self{_mem_callback};
 					} else {
 						&::print_log("[Insteon_PLM] Prior cmd failed");
+					}
+					if ($$self{_mem_callback}) {
+						my $callback = $$self{_mem_callback};
+						$$self{_mem_callback} = undef;
+						package main;
+						eval ($callback);
+						&::print_log("[Insteon_PLM] error encountered during nack callback: " . $@)
+							if $@ and $main::Debug{insteon};
+						package Insteon_PLM;
 					}
 				} else {
 					# We have a problem (Usually we stepped on another X10 command)
@@ -1077,16 +1085,15 @@ sub delete_link
 		$self->send_plm_cmd($cmd);
 	} else {
 		&::print_log("[Insteon_PLM] no entry in linktable could be found for linkkey: $linkkey");
+		if ($link_parms{callback}) {
+			package main;
+			eval ($link_parms{callback});
+			&::print_log("[Insteon_PLM] error in add link callback: " . $@)
+				if $@ and $main::Debug{insteon};
+			package Insteon_PLM;
+		}
 	}
-#	if ($link_parms{callback}) {
-#		package main;
-#		eval ($link_parms{callback});
-#		&::print_log("[Insteon_PLM] error in delete link callback: " . $@)
-#			if $@ and $main::Debug{insteon};
-#		package Insteon_PLM;
-#	} else {
-		return $num_deleted;
-#	}
+	return $num_deleted;
 }
 
 sub add_link
@@ -1114,6 +1121,13 @@ sub add_link
 	if (defined $$self{links}{$linkkey}) {
 		&::print_log("[Insteon_PLM] WARN: attempt to add link to PLM that already exists! "
 			. "object=" . $insteon_object->get_object_name . ", group=$group, is_controller=$is_controller");
+		if ($link_parms{callback}) {
+			package main;
+			eval ($link_parms{callback});
+			&::print_log("[Insteon_PLM] error in add link callback: " . $@)
+				if $@ and $main::Debug{insteon};
+			package Insteon_PLM;
+		}
 	} else {
 		my $control_code = ($is_controller) ? '40' : '41';
 		# flags should be 'a2' for responder and 'e2' for controller
@@ -1142,13 +1156,6 @@ sub add_link
 		$$self{links}{$linkkey}{data3} = lc $data3;
 		$self->send_plm_cmd($cmd);
 	}
-#	if ($link_parms{callback}) {
-#		package main;
-#		eval ($link_parms{callback});
-#		&::print_log("[Insteon_PLM] error in add link callback: " . $@)
-#			if $@ and $main::Debug{insteon};
-#		package Insteon_PLM;
-#	}
 }
 
 sub get_object
@@ -1217,8 +1224,8 @@ sub add_item
 		$$self{_id_check} = 1;
 		$self->send_plm_cmd('0260');
 	}
- 
-	if ($p_object->isa('Insteon_Device') and $p_object->group eq '01') 
+
+	if ($p_object->isa('Insteon_Device') and $p_object->group eq '01' and $p_object->devcat ne '0005') 
 	{
 		# don't request status for objects associated w/ other than the primary group 
 		#    as they are psuedo links	
