@@ -50,7 +50,7 @@ sub _get_next_linkscan
           $_scan_cnt = 1 if (@_insteon_plm[0] eq $current_name); # Reset in case of timeout during scanning
           &main::print_log("[Scan all link tables] Now scanning: " . $obj->get_object_name . " ($_scan_cnt of $dev_cnt)");
           $_scan_cnt++;
-          $obj->queue_timer_callback('&main::_get_next_linkscan(\'' . $next_name . '\')',1);
+          $obj->queue_timer_callback('&main::_get_next_linkscan(\'' . $next_name . '\')',1) unless $obj->isa('Insteon_PLM');
           $obj->scan_link_table('&main::_get_next_linkscan(\'' . $next_name . '\')');
        }
     } else {
@@ -104,7 +104,7 @@ sub _process_sync_links
           $_sync_cnt = 1 unless $_sync_cnt; # Reset in case of timeout during sync-ing
           &main::print_log("[Sync all links] Now syncing links: " . $obj->get_object_name . " ($_sync_cnt of $dev_cnt)");
           $_sync_cnt++;
-          $obj->queue_timer_callback('&main::_process_sync_links(\'' . $next_name . '\')',1);
+          $obj->queue_timer_callback('&main::_process_sync_links(\'' . $next_name . '\')',1) unless $obj->isa('Insteon_PLM');
           $obj->sync_links('&main::_process_sync_links(\'' . $next_name . '\')');
        }
     } else {
