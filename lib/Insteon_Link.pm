@@ -36,10 +36,10 @@ package Insteon_Link;
 
 sub new
 {
-	my ($class,$p_interface,$p_deviceid) = @_;
+	my ($class,$p_interface,$p_deviceid,$p_devcat) = @_;
 
 	# note that $p_deviceid will be 00.00.00:<groupnum> if the link uses the interface as the controller
-	my $self = $class->SUPER::new($p_interface,$p_deviceid);
+	my $self = $class->SUPER::new($p_interface,$p_deviceid,$p_devcat);
 	bless $self,$class;
 # don't apply ping timer to this class
 	$$self{ping_timer}->stop();
