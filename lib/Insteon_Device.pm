@@ -119,7 +119,7 @@ sub get_ramp_from_code
 
 sub new
 {
-	my ($class,$p_interface,$p_deviceid) = @_;
+	my ($class,$p_interface,$p_deviceid,$p_devcat) = @_;
 	my $self={};
 	bless $self,$class;
 
@@ -131,6 +131,11 @@ sub new
 		$group = '01' unless $group;
 		$group = '0' . $group if length($group) == 1;
 		$self->group(uc $group);
+	}
+	if ($p_devcat) {
+		$self->devcat($p_devcat);
+	} else {
+		$self->restore_data('devcat');
 	}
 	$self->initialize();
 	$self->rate(undef);
@@ -154,11 +159,10 @@ sub initialize
 	$$self{m_write} = 1;
 	$$self{m_is_locally_set} = 0;
 	# persist local, simple attribs
-	$self->restore_data('devcat');
 	$$self{ping_timer} = new Timer();
 	$$self{ping_timerTime} = 300;
 	$$self{ping_timer}->set($$self{ping_timerTime} + (rand() * $$self{ping_timerTime}), $self) 
-		unless $self->group eq '01' and defined $$self{devcat};
+		unless $self->group eq '01' and defined $self->devcat;
 }
 
 sub interface
@@ -477,7 +481,7 @@ sub _process_message
 	} elsif ($msg{command} eq 'stop_manual_change') {
 		$self->request_status();
 	} elsif ($msg{type} eq 'broadcast') {
-		$$self{devcat} = $msg{devcat};
+		$self->devcat($msg{devcat});
 		&::print_log("[Insteon_Device] device category: $msg{devcat} received for " . $self->{object_name});
 		# stop ping timer now that we have a devcat; possibly may want to change this behavior to allow recurring pings
 		$$self{ping_timer}->stop();
@@ -980,6 +984,13 @@ sub restore_adlb
 		}
 #		$self->log_alllink_table();
 	}
+}
+
+sub devcat
+{
+	my ($self, $devcat) = @_;
+	$$self{devcat} = $devcat if $devcat;
+	return $$self{devcat};
 }
 
 sub is_dimmable
