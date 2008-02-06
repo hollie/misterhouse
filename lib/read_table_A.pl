@@ -108,7 +108,7 @@ sub read_table_A {
         require 'Insteon_Device.pm';
         ($address, $name, $grouplist, $object, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "Insteon_Device(\$$object, \'$address\')";
+        $object = "Insteon_Device(\$$object, \'$address\', $other)";
     }
     elsif($type eq "IPLL") {
         require 'Insteon_Link.pm';
@@ -116,9 +116,9 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         my ($deviceid,$groupid) = $address =~ /(\S+):(\S+)/;
         if ($deviceid =~ /$object/i) {
-           $object = "Insteon_Link(\$$object, \'00.00.00:$groupid\')";
+           $object = "Insteon_Link(\$$object, \'00.00.00:$groupid\', $other)";
         } else {
-           $object = "Insteon_Link(\$$object, \'$address\')";
+           $object = "Insteon_Link(\$$object, \'$address\', $other)";
         }
     }
     elsif($type eq 'FROG') {
