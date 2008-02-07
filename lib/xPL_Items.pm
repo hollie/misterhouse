@@ -976,7 +976,7 @@ sub new {
     $statekey = 'current';
     $self->SUPER::class_name('sensor.basic');
     $$self{state_monitor} = "sensor.basic : $statekey";
-    $self->SUPER::device_monitor("device=$deviceid") if $deviceid;
+    $self->SUPER::device_monitor("device=$deviceid") if defined $deviceid;
     return $self;
 }
 
@@ -1031,7 +1031,7 @@ sub new {
     $statekey = 'status';
 #    $self->SUPER::class_name('ups.basic');
     $$self{state_monitor} = "ups.basic : $statekey|hbeat.app : $statekey";
-    $self->SUPER::device_monitor("device=$deviceid") if $deviceid;
+    $self->SUPER::device_monitor("device=$deviceid") if defined $deviceid;
     return $self;
 }
 
