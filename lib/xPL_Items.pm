@@ -957,7 +957,7 @@ sub ignore_message {
     if ($$self{_device_id_key} and $self->class_name) {
        print "Device monitoring enabled: key=$$self{_device_id_key}, id=$$self{_device_id}, tested value="
           . $$p_data{$self->class_name}{$$self{_device_id_key}} . "\n" if $main::Debug{xpl};
-       $ignore_message = $$self{_device_id} ne lc $$p_data{$self->class_name}{$$self{_device_id_key}};
+       $ignore_message = ($$self{_device_id} ne lc $$p_data{$self->class_name}{$$self{_device_id_key}}) ? 1 : 0;
     }
     return $ignore_message;
 }
@@ -1010,7 +1010,7 @@ sub highest {
 sub ignore_message {
     my ($self, $p_data) = @_;
     return 1 if  $self->SUPER::ignore_message($p_data); # user xPL_Item's filter against deviceid
-    return $$p_data{'sensor.basic'}{type} ne $$self{sensor_type};
+    return ($$p_data{'sensor.basic'}{type} ne $$self{sensor_type}) ? 1 : 0;
 }
 
 sub request_stat {
