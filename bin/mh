@@ -5724,7 +5724,7 @@ sub socket_has_data {
        $loopmax--;
     } until ($loopmax == 0 or ($nfound >= 0));
 
-    &::print_log("WARN: socket_has_data encountered error condition: $!.  mh should recover from this.");
+    &::print_log("WARN: socket_has_data encountered error condition: $!.  mh should recover from this.") if $! and $main::Debug{socket};
 
     return $nfound;
 }
