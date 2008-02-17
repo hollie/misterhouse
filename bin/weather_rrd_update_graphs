@@ -276,8 +276,8 @@ for $celgtime (@$tabgtime) {
 	}
 	$datapoint = $#$array + 1;
     $footer1 = get_weather_footer1($start, $step, $datapoint);
-
-     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_tempout_$celgtime->[0].$rrd_format",
+     my $filename = "$rrd_graph_dir/weather_tempout_$celgtime->[0].$rrd_format";
+     $str_graph = qq^RRDs::graph("$filename.new",
 "--title", "$celgtime->[1]",
 "--height","$height",
 "--width", "$width",
@@ -354,13 +354,17 @@ for $celgtime (@$tabgtime) {
 . "\"COMMENT:$footer2\\\\c\""
 . ")";
 
-   print "\n$str_graph \n" if $debug;
-   eval $str_graph;
-   my $err=RRDs::error;
-	if ($err) {
-		print "ERROR : tempout RRDs::graph : $err\n";
-		return;
-	}
+    print "\n$str_graph \n" if $debug;
+    eval $str_graph;
+    my $err=RRDs::error;
+    if ($err) {
+       print "ERROR : tempout RRDs::graph : $err\n";
+       return;
+    } else {
+       rename($filename, "$filename.old") if (-e $filename);
+       rename("$filename.new",$filename) if (-e "$filename.new");
+       unlink("$filename.old") if (-e "$filename.old");
+    }
    }
   }
 }
@@ -439,8 +443,8 @@ for $celgtime (@$tabgtime) {
 	}
      $datapoint = $#$array + 1;
      $footer1 = get_weather_footer1($start, $step, $datapoint);
-
-     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_tempin_$celgtime->[0].$rrd_format",
+     my $filename = "$rrd_graph_dir/weather_tempin_$celgtime->[0].$rrd_format";
+     $str_graph = qq^RRDs::graph("$filename.new",
 "--title", "$celgtime->[1]",
 "--height","$height",
 "--width", "$width",
@@ -648,13 +652,18 @@ for $celgtime (@$tabgtime) {
 . "\"COMMENT:$footer2\\\\c\""
 . ")";
 
-   print "\n$str_graph \n" if $debug;
-   eval $str_graph;
-   my $err=RRDs::error;
-	if ($err) {
-		print "ERROR : tempin RRDs::graph : $err\n";
-		return;
-	}
+    print "\n$str_graph \n" if $debug;
+    eval $str_graph;
+    my $err=RRDs::error;
+    if ($err) {
+       print "ERROR : tempin RRDs::graph : $err\n";
+       return;
+    } else {
+       rename($filename, "$filename.old") if (-e $filename);
+       rename("$filename.new",$filename) if (-e "$filename.new");
+       unlink("$filename.old") if (-e "$filename.old");
+    }
+
    }
   }
 }
@@ -722,8 +731,8 @@ for $celgtime (@$tabgtime) {
 	}
      $datapoint = $#$array + 1;
      $footer1 = get_weather_footer1($start, $step, $datapoint);
-
-     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_winddir_$celgtime->[0].$rrd_format",
+     my $filename = "$rrd_graph_dir/weather_winddir_$celgtime->[0].$rrd_format";
+     $str_graph = qq^RRDs::graph("$filename.new",
 "--title", "$celgtime->[1]",
 "--height","$height",
 "--width", "$width",
@@ -777,7 +786,12 @@ for $celgtime (@$tabgtime) {
 	if ($err) {
 		print "ERROR : winddir RRDs::graph : $err\n";
 		return;
-	}
+	} else {
+       rename($filename, "$filename.old") if (-e $filename);
+       rename("$filename.new",$filename) if (-e "$filename.new");
+       unlink("$filename.old") if (-e "$filename.old");
+    }
+
    }
   }
 }
@@ -845,8 +859,8 @@ for $celgtime (@$tabgtime) {
 	}
      $datapoint = $#$array + 1;
      $footer1 = get_weather_footer1($start, $step, $datapoint);
-
-     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_humout_$celgtime->[0].$rrd_format",
+     my $filename = "$rrd_graph_dir/weather_humout_$celgtime->[0].$rrd_format";
+     $str_graph = qq^RRDs::graph("$filename.new",
 "--title", "$celgtime->[1]",
 "--height","$height",
 "--width", "$width",
@@ -896,7 +910,12 @@ for $celgtime (@$tabgtime) {
 	if ($err) {
 		print "ERROR : humout RRDs::graph : $err\n";
 		return;
-	}
+	} else {
+       rename($filename, "$filename.old") if (-e $filename);
+       rename("$filename.new",$filename) if (-e "$filename.new");
+       unlink("$filename.old") if (-e "$filename.old");
+    }
+
    }
   }
 }
@@ -975,8 +994,8 @@ for $celgtime (@$tabgtime) {
 	}
      $datapoint = $#$array + 1;
      $footer1 = get_weather_footer1($start, $step, $datapoint);
-
-     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_humin_$celgtime->[0].$rrd_format",
+     my $filename = "$rrd_graph_dir/weather_humin_$celgtime->[0].$rrd_format";
+     $str_graph = qq^RRDs::graph("$filename.new",
 "--title", "$celgtime->[1]",
 "--height","$height",
 "--width", "$width",
@@ -1137,7 +1156,12 @@ for $celgtime (@$tabgtime) {
 	if ($err) {
 		print "ERROR : humin RRDs::graph : $err\n";
 		return;
-	}
+	} else {
+       rename($filename, "$filename.old") if (-e $filename);
+       rename("$filename.new",$filename) if (-e "$filename.new");
+       unlink("$filename.old") if (-e "$filename.old");
+    }
+
    }
   }
 }
@@ -1205,8 +1229,8 @@ for $celgtime (@$tabgtime) {
 	}
      $datapoint = $#$array + 1;
      $footer1 = get_weather_footer1($start, $step, $datapoint);
-
-     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_press_$celgtime->[0].$rrd_format",
+     my $filename = "$rrd_graph_dir/weather_press_$celgtime->[0].$rrd_format";
+     $str_graph = qq^RRDs::graph("$filename.new",
 "--title", "$celgtime->[1]",
 "--height","$height",
 "--width", "$width",
@@ -1275,7 +1299,12 @@ for $celgtime (@$tabgtime) {
 	if ($err) {
 		print "ERROR : press RRDs::graph : $err\n";
 		return;
-	}
+	} else {
+       rename($filename, "$filename.old") if (-e $filename);
+       rename("$filename.new",$filename) if (-e "$filename.new");
+       unlink("$filename.old") if (-e "$filename.old");
+    }
+
    }
   }
 }
@@ -1343,8 +1372,8 @@ for $celgtime (@$tabgtime) {
 	}
      $datapoint = $#$array + 1;
      $footer1 = get_weather_footer1($start, $step, $datapoint);
-
-     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_windspeed_$celgtime->[0].$rrd_format",
+     my $filename = "$rrd_graph_dir/weather_windspeed_$celgtime->[0].$rrd_format";
+     $str_graph = qq^RRDs::graph("$filename.new",
 "--title", "$celgtime->[1]",
 "--height","$height",
 "--width", "$width",
@@ -1397,7 +1426,12 @@ for $celgtime (@$tabgtime) {
 	if ($err) {
 		print "ERROR : windspeed RRDs::graph : $err\n";
 		return;
-	}
+	} else {
+       rename($filename, "$filename.old") if (-e $filename);
+       rename("$filename.new",$filename) if (-e "$filename.new");
+       unlink("$filename.old") if (-e "$filename.old");
+    }
+
    }
   }
 }
@@ -1466,8 +1500,8 @@ for $celgtime (@$tabgtime) {
 	}
      $datapoint = $#$array + 1;
      $footer1 = get_weather_footer1($start, $step, $datapoint);
-
-     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_raintotal_$celgtime->[0].$rrd_format",
+     my $filename = "$rrd_graph_dir/weather_raintotal_$celgtime->[0].$rrd_format";
+     $str_graph = qq^RRDs::graph("$filename.new",
 "--title", "$celgtime->[1]",
 "--height","$height",
 "--width", "$width",
@@ -1523,7 +1557,12 @@ for $celgtime (@$tabgtime) {
 	if ($err) {
 		print "ERROR : raintotal RRDs::graph : $err\n";
 		return;
-	}
+	} else {
+       rename($filename, "$filename.old") if (-e $filename);
+       rename("$filename.new",$filename) if (-e "$filename.new");
+       unlink("$filename.old") if (-e "$filename.old");
+    }
+
    }
   }
 }
@@ -1593,8 +1632,8 @@ for $celgtime (@$tabgtime) {
 	}
      $datapoint = $#$array + 1;
      $footer1 = get_weather_footer1($start, $step, $datapoint);
-
-     $str_graph = qq^RRDs::graph("$rrd_graph_dir/weather_rainrate_$celgtime->[0].$rrd_format",
+     my $filename = "$rrd_graph_dir/weather_rainrate_$celgtime->[0].$rrd_format";
+     $str_graph = qq^RRDs::graph("$filename.new",
 "--title", "$celgtime->[1]",
 "--height","$height",
 "--width", "$width",
@@ -1650,7 +1689,12 @@ for $celgtime (@$tabgtime) {
 	if ($err) {
 		print "ERROR : rainrate RRDs::graph : $err\n";
 		return;
-	}
+	} else {
+       rename($filename, "$filename.old") if (-e $filename);
+       rename("$filename.new",$filename) if (-e "$filename.new");
+       unlink("$filename.old") if (-e "$filename.old");
+    }
+
    }
   }
 }
