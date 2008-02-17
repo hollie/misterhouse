@@ -275,7 +275,8 @@ sub speak_text {
                 while ($i++ < 100) {
                     print '-';
                     select undef, undef, undef, .1;
-                       if (my $nfound = &main::socket_has_data($sock)) {
+                    my $nfound = &main::socket_has_data($sock);
+                       if ($nfound > 0) {
                            last;
                        }
                 }
