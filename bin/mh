@@ -5712,7 +5712,7 @@ sub socket_restart {
                                 # and using $bit_out=$bit_in
 sub socket_has_data {
     my($sock, $timeout) = @_;
-#   return unless $sock;  # Should never happen
+    return unless $sock;  # Should never happen
     $timeout = 0 unless $timeout;
     my $rbit = '';
     vec($rbit, $sock->fileno(), 1) = 1; # This had an unintilized var??
@@ -5724,7 +5724,9 @@ sub socket_has_data {
        $loopmax--;
     } until ($loopmax == 0 or ($nfound >= 0));
 
-    &::print_log("WARN: socket_has_data encountered error condition: $!.  mh should recover from this.") if $! and $main::Debug{socket};
+    if ($nfound == -1 and !($!{EINTR})) {
+          &::print_log("WARN: socket_has_data encountered error condition: $!.  mh should recover from this.") if $main::Debug{socket};
+    }
 
     return $nfound;
 }
