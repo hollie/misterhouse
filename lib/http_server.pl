@@ -137,7 +137,8 @@ sub http_process_request {
     my $temp;
 
                                 # Must wait for the new socket to become active
-    return unless &socket_has_data($socket, .5);
+    my $nfound = &socket_has_data($socket, .5);
+    return unless $nfound > 0; # nfound == -1 means an error
     while (1) {
         $_ = <$socket>;
         last unless $_ and /\S/;
