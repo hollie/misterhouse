@@ -2170,7 +2170,7 @@ sub check_for_socket_data_http {
     while (1) {
                                 # See if there is a http request
         my $nfound = &socket_has_data($Socket_Ports{http}{sock});
-        last unless $nfound;
+        last unless $nfound > 0; # nfound = -1 means an error occurred
         my $sock = $Socket_Ports{http}{sock}->accept();
         last unless $sock; # Can be undef it socket was killed
         $sock->autoflush(1); # Not sure if this does anything?
@@ -2228,7 +2228,8 @@ sub check_for_socket_data {
             for my $ptr (@{$Socket_Ports{$port_name}{clients}}) {
                 my ($socka, $client_ip_address, $client_port, $data) = @{$ptr};
                 next unless $socka;
-                if (my $nfound = &socket_has_data($socka)) {
+                my $nfound = &socket_has_data($socka);
+                if ($nfound > 0) { # nfound = -1 means an error has occurred
                                 # Set default to active socket
                     $Socket_Ports{$port_name}{socka}             = $socka;
                     $Socket_Ports{$port_name}{client_number}     = $client_number;
@@ -2248,25 +2249,28 @@ sub check_for_socket_data {
                 $server_active = 1 if $Socket_Ports{$port_name}{socka};
             }
                                  # Else look for new clients
-            elsif (my $nfound = &socket_has_data($sock) and my $new_sock = $sock->accept()) {
-                $new_sock->autoflush(1); # Not sure if this does anything?
+            else {
+                my $nfound = &socket_has_data($sock);
+                if ($nfound > 0 and my $new_sock = $sock->accept()) { # nfound == -1 means an error
+                   $new_sock->autoflush(1); # Not sure if this does anything?
                                                # Log the address of the client
-                my $peer = $new_sock->peername;
-                my ($client_port, $iaddr) = unpack_sockaddr_in($peer) if $peer;
-                my $client_ip_address = inet_ntoa($iaddr) if $iaddr;
-                $Socket_Ports{$port_name}{client_ip_address} = $client_ip_address;
-                $Socket_Ports{$port_name}{client_port} = $client_port;
-                $Socket_Ports{$port_name}{socka} = $new_sock;
-                $Socket_Ports{$port_name}{active_this_pass_flag} = 1;
+                   my $peer = $new_sock->peername;
+                   my ($client_port, $iaddr) = unpack_sockaddr_in($peer) if $peer;
+                   my $client_ip_address = inet_ntoa($iaddr) if $iaddr;
+                   $Socket_Ports{$port_name}{client_ip_address} = $client_ip_address;
+                   $Socket_Ports{$port_name}{client_port} = $client_port;
+                   $Socket_Ports{$port_name}{socka} = $new_sock;
+                   $Socket_Ports{$port_name}{active_this_pass_flag} = 1;
 
-                push @{$Socket_Ports{$port_name}{clients}}, [$new_sock, $client_ip_address, $client_port, undef];
-                delete $Socket_Ports{$port_name}{data}; # Delete data from previous session
-                $Socket_Ports{$port_name}{client_number} = @{$Socket_Ports{$port_name}{clients}} - 1;
+                   push @{$Socket_Ports{$port_name}{clients}}, [$new_sock, $client_ip_address, $client_port, undef];
+                   delete $Socket_Ports{$port_name}{data}; # Delete data from previous session
+                   $Socket_Ports{$port_name}{client_number} = @{$Socket_Ports{$port_name}{clients}} - 1;
 
-                logit "$config_parms{data_dir}/logs/server.$Year_Month_Now.log",  "$port_name $client_ip_address";
-                print "\nsocket: $port_name active sock=$new_sock client=$client_ip_address.\n" if $Debug{$port_name};
+                   logit "$config_parms{data_dir}/logs/server.$Year_Month_Now.log",  "$port_name $client_ip_address";
+                   print "\nsocket: $port_name active sock=$new_sock client=$client_ip_address.\n" if $Debug{$port_name};
 
-                $server_active = 1;
+                   $server_active = 1;
+                }
             }
         }
         push(@active_ports, $port_name) if $server_active;
@@ -5712,7 +5716,16 @@ sub socket_has_data {
     $timeout = 0 unless $timeout;
     my $rbit = '';
     vec($rbit, $sock->fileno(), 1) = 1; # This had an unintilized var??
-    my ($nfound) = select($rbit, undef, undef, $timeout);
+    my $nfound = 0;
+    my $loopmax = 8;
+    do {
+       ($nfound) = select($rbit, undef, undef, $timeout);
+       last if $nfound == -1 and !($!{EINTR}); # break out of the retry loop if an error did occur but not EINTR
+       $loopmax--;
+    } until ($loopmax == 0 or ($nfound >= 0));
+
+    &::print_log("WARN: socket_has_data encountered error condition: $!.  mh should recover from this.");
+
     return $nfound;
 }
 
