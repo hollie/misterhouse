@@ -366,7 +366,7 @@ EOF
                 undef %Debug;
                 $Debug{debug_previous} = $config_parms{debug};
                                    # Allow for multiple debugs like serial;x10
-                for my $debug (split ';', lc $config_parms{debug}) {
+                for my $debug (split /[,|;]/, lc $config_parms{debug}) {
                                    # Allow for debug level like: x10:4
                     next unless $debug;
                     if ($debug =~ /(.+):(.+)/) {
