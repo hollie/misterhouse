@@ -215,7 +215,11 @@ sub parse_data {
         if (my ($key, $value) = $r =~ /(.+?)=(.*)/) {
             $key   = lc $key;
             $value = lc $value if ($data_type =~ /^xpl/); # Do not lc real data;
-            $d{$data_type}{$key} = $value;
+            if (exists($d{$data_type}{$key})) {
+               $d{$data_type}{$key} .= "," . $value; # xpl allows "continuation lines" by having more than one tag possible
+            } else {
+               $d{$data_type}{$key} = $value;
+            }
             print "db4 xpl parsed c=$data_type k=$key v=$value\n" if ($main::Debug{xpl} and $main::Debug{xpl} == 4);
         }
                                   # data_type (e.g. xpl-header, xpl-heartbeat, source.instance
