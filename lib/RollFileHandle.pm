@@ -58,7 +58,7 @@ import IO::Handle grep { !defined(&$_) } @EXPORT, @EXPORT_OK;
 ###################################################################
 my $sccs="@(#).RollFileHandle.pm         %I% %G% ";
 my $cur_stdout_obj;
-my $debug=1;
+my $debug=0;
 my %known_objects;
 sub new{
 	my ($class,$logbase)=@_;
