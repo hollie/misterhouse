@@ -673,7 +673,7 @@ sub read_table_A {
         }
     }
     elsif($type eq "XPL_IRRIVALVE") {
-        ($address, $name, $grouplist, $object, @other) = @item_info;
+        ($address, $name, $object, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         if($other){
             $object = "xPL_IrrigationValve('$address',\$$object,$other)";
@@ -696,6 +696,32 @@ sub read_table_A {
         }
         if( ! $packages{xPL_Irrigation}++ ) {   # first time for this object type?
             $code .= "use xPL_Irrigation;\n";
+        }
+    }
+    elsif($type eq "XPL_LIGHTGATEWAY") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if($other){
+            $object = "xPL_LightGateway('$address',$other)";
+        }
+        else{
+            $object = "xPL_LightGateway('$address')";
+        }
+        if( ! $packages{xPL_Lighting}++ ) {   # first time for this object type?
+            $code .= "use xPL_Lighting;\n";
+        }
+    }
+    elsif($type eq "XPL_LIGHT") {
+        ($address, $name, $object, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if($other){
+            $object = "xPL_Light('$address',\$$object,$other)";
+        }
+        else{
+            $object = "xPL_Light('$address',\$$object)";
+        }
+        if( ! $packages{xPL_Lighting}++ ) {   # first time for this object type?
+            $code .= "use xPL_Lighting;\n";
         }
     }
     elsif($type eq "X10_SCENE") {
