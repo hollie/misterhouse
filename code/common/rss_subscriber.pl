@@ -143,6 +143,8 @@ sub rss_file_process {
 					$link = $enc->url;
 					($file) = $link =~ /.*\/(.+?)$/;
 					$file =~ s/\.mp3\?(.+)/$1.mp3/;
+					# fix for mininova
+					$file = "$title.torrent" if $file =~ /^\d+$/;
 					print_log "$file currently downloading" if $current_file eq "$torrent_dir/$file";
 					print_log "$file already downloaded" if $DBM{"$torrent_dir/$file"};
 					print_log "$file already queued" if grep {$_ eq "'$link' '$torrent_dir/$file'"} @rss_file_download_queue;
@@ -167,7 +169,7 @@ sub rss_file_process {
 				# hack to fix torrentspy's links
 				$link =~ s|torrentspy.com/torrent/(\d+)/.*|torrentspy.com/download.asp?id=$1|;
 				# hack to fix newtorrents' links
-				$link =~ s|newtorrents.info/\?id|newtorrents.info/down.php?id|;
+				$link =~ s|newtorrents.info/torrent/(\d+)/.*|newtorrents.info/down.php?id=$1|;
 				# hack to fix seedler's links
 				$link =~ s|seedler.org/en/html/info/|seedler.org/download.x?id=|;
 				# hack to fix isohunt's links
