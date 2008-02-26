@@ -2290,6 +2290,7 @@ sub html_item_state {
     my $isa_X10 = UNIVERSAL::isa($object, 'X10_Item');
 #   my $isa_X10 = $object->isa('X10_Item');  # This will abend if object is not an object
     my $isa_EIB2 = UNIVERSAL::isa($object, 'EIB2_Item');
+    my $isa_insteon = UNIVERSAL::isa($object, 'Insteon_Device');
 
                                 # If not a state item, just list it
     unless ($isa_X10 or UNIVERSAL::isa($object, 'Group') or defined $object->{state} or $object->{states}) {
@@ -2307,6 +2308,7 @@ sub html_item_state {
 #   print "db on=$object_name ix10=$isa_X10 s=@states\n";
     @states = split ',', $config_parms{x10_menu_states} if $isa_X10;
     @states = split ',', $config_parms{eib2_menu_states} if $isa_EIB2;
+    @states = split ',', $config_parms{insteon_menu_states} if $isa_insteon;
 
     @states = qw(on off) if UNIVERSAL::isa($object, 'X10_Appliance');
     @states = qw(on off) if UNIVERSAL::isa($object, 'EIB1_Item');
