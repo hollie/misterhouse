@@ -1061,10 +1061,10 @@ end
 
 strip devilspanties
 	name The Devil's Panties
-	homepage http://devilspanties.keenspot.com
+	homepage http://www.thedevilspanties.com
 	type search
 	searchpattern <IMG.+?SRC="(/comics/.+?\..+?)"
-	baseurl http://devilspanties.keenspot.com
+	baseurl http://www.thedevilspanties.com
 	provides latest
 end
 
