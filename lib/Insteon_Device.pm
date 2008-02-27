@@ -21,6 +21,7 @@ Usage:
 	$ip_patio_light->set("ON");
 
 Special Thanks to:
+	Brian Warren for significant testing and patches
 	Bruce Winter - MH
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -135,10 +136,11 @@ sub new
 	if ($p_devcat) {
 		$self->devcat($p_devcat);
 	} else {
-		$self->restore_data('devcat');
+		$self->restore_data('devcat','level');
 	}
 	$self->initialize();
 	$self->rate(undef);
+	$$self{level} = undef;
 	$$self{flag} = "0F";
 	$$self{ackMode} = "1";
 	$$self{awaiting_ack} = 0;
@@ -208,6 +210,31 @@ sub is_controller
 	return $$self{is_controller};
 }
 
+sub level
+{
+	my ($self, $p_level) = @_;
+	if (defined $p_level) {
+		my $level = undef;
+		if ($p_level eq 'on')
+		{
+			$level=100;
+		} elsif ($p_level eq 'off')
+		{
+			$level = 0;
+		} elsif ($p_level =~ /^([1]?[0-9]?[0-9])%?$/)
+		{
+			if ($1 < 1) {
+				$level = 0;
+			} else {
+				$level = ($self->is_dimmable) ? $1 : 100;
+			}
+		}
+		$$self{level} = $level if defined $level;
+	}
+	return $$self{level};
+
+}
+
 sub set
 {
 	my ($self,$p_state,$p_setby,$p_response) = @_;
@@ -230,6 +257,11 @@ sub set
 		# always reset the is_locally_set property
 		$$self{m_is_locally_set} = 0;
 
+		# handle invalid state for non-dimmable devices
+		if (($p_state eq 'dim' or $p_state eq 'bright') and !($self->is_dimmable)) {
+			$p_state = 'on';
+		}
+
 		if (ref $p_setby and (($p_setby eq $self->interface()) 
 			or ($p_setby->isa('Insteon_Device') and &main::set_by_to_target($p_setby) eq $self->interface)))
 		{
@@ -244,6 +276,7 @@ sub set
 				if $main::Debug{insteon};
 			$self->is_acknowledged(0);
 		}
+		$self->level($p_state); # update the level value
 		$self->SUPER::set($p_state,$p_setby,$p_response) if defined $p_state;
 	}
 }
@@ -423,8 +456,8 @@ sub remote_set_button_tap
 
 sub request_status
 {
-	my ($self) = @_;
-	$$self{m_status_request_pending} = 1;
+	my ($self, $requestor) = @_;
+	$$self{m_status_request_pending} = ($requestor) ? $requestor : 1;
 	$self->_send_cmd('command' => 'status_request', 'is_synchronous' => 1);
 }
 
@@ -453,12 +486,13 @@ sub _process_message
 	$$self{m_is_locally_set} = 1 if $msg{source} eq lc $self->device_id;
 	if ($msg{is_ack}) {
 		if ($$self{m_status_request_pending}) {
-			my $ack_on_level = hex($msg{extra}) * 100 / 255;
+			my $ack_on_level = (hex($msg{extra}) >= 254) ? 100 : sprintf("%d", hex($msg{extra}) * 100 / 255);
+			
 			&::print_log("[Insteon_Device] received status request report for " .
-				$self->{object_name} . " with on-level: " . 
-				sprintf("%d",$ack_on_level) . '%'
-				. ", hops left: $msg{hopsleft}") if $main::Debug{insteon};
-			$self->_on_status_request(hex($msg{extra}), $p_setby);
+				$self->{object_name} . " with on-level: $ack_on_level%, "
+				. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
+			$self->_on_status_request($ack_on_level, 
+				(ref $$self{m_status_request_pending}) ? $$self{m_status_request_pending} : $p_setby);
 			$self->_process_command_stack(%msg);
 		} elsif (($msg{command} eq 'peek') or ($msg{command} eq 'set_address_msb')) {
 			$self->_on_peek(%msg);
@@ -479,7 +513,7 @@ sub _process_message
 	} elsif ($msg{command} eq 'start_manual_change') {
 		# do nothing; although, maybe anticipate change? we should always get a stop
 	} elsif ($msg{command} eq 'stop_manual_change') {
-		$self->request_status();
+		$self->request_status($self);
 	} elsif ($msg{type} eq 'broadcast') {
 		$self->devcat($msg{devcat});
 		&::print_log("[Insteon_Device] device category: $msg{devcat} received for " . $self->{object_name});
@@ -489,7 +523,8 @@ sub _process_message
 		## TO-DO: make sure that the state passed by command is something that is reasonable to set
 		$p_state = $msg{command};
 		$$self{_pending_cleanup} = 1 if $msg{type} eq 'alllink';
-		$self->set($p_state, $p_setby) unless (lc($self->state) eq lc($p_state)) and 
+#		$self->set($p_state, $p_setby) unless (lc($self->state) eq lc($p_state)) and 
+		$self->set($p_state, $self) unless (lc($self->state) eq lc($p_state)) and 
 			($msg{type} eq 'cleanup' and $$self{_pending_cleanup});
 		$$self{_pending_cleanup} = 0 if $msg{type} eq 'cleanup';
 	}
@@ -588,26 +623,11 @@ sub _xlate_mh_insteon
 				$msg='off';
 				$level = 0;
 			} else {
-				$level = $1 * 2.55;
+				$level = ($self->is_dimmable) ? $1 * 2.55 : 255;
 				$msg='on';
 			}
 		}
 	}
-
-=begin
-	#Fuzzy logic find message
-	for my $key (keys %message_types)
-	{
-		if ($key=~/$msg/i)
-		{
-			$msg = $message_types{$key};
-			last;
-		}
-	}
-=cut
-
-#####lets not be device specific
-#	$cmd="0262";
 
 	$cmd='';
         if ($p_type =~ /broadcast/i) {
@@ -638,14 +658,13 @@ sub _xlate_mh_insteon
 sub _on_status_request
 {
 	my ($self, $p_onlevel, $p_setby) = @_;
+	$self->level($p_onlevel); # update the level value
 	if ($p_onlevel == 0) {
 		$self->SUPER::set('off', $p_setby);
-	} elsif ($p_onlevel == 255) {
+	} elsif ($p_onlevel > 0 and !($self->is_dimmable)) {
 		$self->SUPER::set('on', $p_setby);
 	} else {
-		$p_onlevel = $p_onlevel / 2.55;
-		$p_onlevel = 100 if $p_onlevel >= 99;
-		$self->SUPER::set(sprintf("%d",$p_onlevel) . '%', $p_setby);
+		$self->SUPER::set($p_onlevel . '%', $p_setby);
 	}
 	$self->is_acknowledged(1);
 	$$self{m_status_request_pending} = 0;
@@ -908,9 +927,6 @@ sub _on_peek
 			my $on_level = $$self{_onlevel};
 			$on_level = 'ff' unless $on_level;
 			$self->_send_cmd('command' => 'poke', 'extra' => $on_level, 'is_synchronous' => 1);
-#			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
-#			$$self{_mem_action} = 'local_ramprate';
-#			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
 		} elsif ($$self{_mem_action} eq 'local_ramprate') {
 			my $ramp_rate = $$self{_ramprate};
 			$ramp_rate = '1f' unless $ramp_rate;
@@ -1003,7 +1019,8 @@ sub is_dimmable
 			return 0;
 		}
 	} else {
-		&::print_log("[Insteon_Device] WARN: making assumption that device is dimmable because devcat is not yet known");
+		&::print_log("[Insteon_Device] WARN: making assumption that " . $self->get_object_name . " is dimmable because devcat is not yet known")
+			if $main::Debug{insteon};
 		return 1;
 	}
 }
@@ -1011,6 +1028,7 @@ sub is_dimmable
 sub set_receive
 {
 	my ($self, $p_state, $p_setby, $p_response) = @_;
+	$self->level($p_state); # update the level value
 	$self->SUPER::set($p_state, $p_setby, $p_response);
 }
 
@@ -1337,7 +1355,7 @@ sub update_local_properties
 {
 	my ($self) = @_;
 	$$self{_mem_activity} = 'update_local';
-	$self->_peek('0320'); # 0320 is the address for the onlevel
+	$self->_peek('0020'); # 0320 is the address for the onlevel
 }
 
 sub has_link
