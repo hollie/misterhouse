@@ -21,6 +21,7 @@ Usage:
 	$insteon_familty_movie->set("on");
 
 Special Thanks to:
+	Brian Warren for signficant testing and patches
 	Bruce Winter - MH
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -378,14 +379,14 @@ sub _xlate_mh_insteon
 
 sub request_status
 {
-	my ($self) = @_;
+	my ($self,$requestor) = @_;
 	if ($self->group ne '01') {
 		&::print_log("[Insteon_Link] requesting status for members of " . $$self{object_name});
 		foreach my $member (keys %{$$self{members}}) {
-			$$self{members}{$member}{object}->request_status();
+			$$self{members}{$member}{object}->request_status($self);
 		}
 	} else {
-		$self->SUPER::request_status();
+		$self->SUPER::request_status($requestor);
 	}
 }
 
