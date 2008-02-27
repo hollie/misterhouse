@@ -344,7 +344,7 @@ sub set {
                for my $zone_name (@zone_names) {
                   if (@zones) {
                     for my $zone (@zones) {
-      	                if ($zone_name eq $zone->name) {
+      	                if (lc $zone_name eq lc $zone->name) {
                            $zone->set_alarm_event($id, $self, %zone_data);
                         }
                      }
