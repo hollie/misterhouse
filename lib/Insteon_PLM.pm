@@ -34,6 +34,7 @@ Usage:
 Notes:
 
 Special Thanks to:
+    Brian Warren for significant testing and patches
     Bruce Winter - MH
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -1232,7 +1233,7 @@ sub add_item
 		my $scan_at_startup = $::config_parms{Insteon_PLM_scan_at_startup};
 		$scan_at_startup = 1 unless defined $scan_at_startup;
 		$scan_at_startup = 0 unless $main::Save{mh_exit} eq 'normal';
-		$p_object->request_status($p_object) if $p_object->group eq '01' and $scan_at_startup;
+		$p_object->request_status() if $p_object->group eq '01' and $scan_at_startup;
 	}
 	return $p_object;
 }
