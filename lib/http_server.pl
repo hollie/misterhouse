@@ -1748,7 +1748,14 @@ sub html_find_icon_image {
     else {
         $name  = lc $object->{object_name};
         $state = lc $object->{state};
-        $state = lc $object->state_level() if ($type eq 'x10_item' or $type eq 'x10_switchlinc') ;
+        $state = lc $object->state_level() if ($type eq 'x10_item' or 
+            $type eq 'x10_switchlinc') ;
+        if ($type eq 'insteon_device') {
+            $state = lc $object->level();
+            $state = 'off' unless $state; 
+            $state = 'on' if $state == 100; 
+            $state = 'dim' if $state > 0 and $state < 100;
+        } 
         $name =~ s/^\$//;       # remove $ at front of objects
         $name =~ s/^v_//;       # remove v_ in voice commands
                                 # Use on/off icons for conditional Weather_Items
@@ -1766,6 +1773,7 @@ sub html_find_icon_image {
         for my $dir (@{$http_dirs{'/graphics'}}) {
             print "Reading html icons from $dir\n" if $main::Debug{http};
             opendir (ICONS, $dir);
+
             for $member (readdir ICONS) {
                 ($icon, $ext) = $member =~ /(\S+)\.(\S+)/;
                 $ext = lc $ext;
