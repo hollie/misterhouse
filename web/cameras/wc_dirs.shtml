@@ -1,0 +1,14 @@
+<html>
+<head>
+ <!-- include var="$config_parms{html_style}" -->
+<!--#include code="&html_header('View - Camera Capture Directory')" -->
+
+</head>
+<body VLINK="#000000" HLINK="#000000" ALINK="#000000">
+<base target ="output">
+
+<!--#include file="/bin/webcam_dirs.pl"-->
+
+
+</body>
+</html>
