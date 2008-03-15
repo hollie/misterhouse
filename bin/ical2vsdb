@@ -31,7 +31,7 @@ use vsLock;
 
 
 my $progname = "ical2vsdb";
-my $progver  = "v2.2 08-01-25";
+my $progver  = "v2.2a 08-03-15";
 my $DB = 0;
 
 my $days_before = 0;
@@ -82,7 +82,7 @@ print ", $days_after days in the future" if $days_after;
 my $abs_days_before = abs $days_before;
 print ", $abs_days_before in the past" if $abs_days_before;
 print "\nTarget vsdb directory is :$output_dir\n";
-print "MD5 temp file is .s:$md5file\n" if ($md5file ne "");
+print "MD5 temp file is :$md5file\n" if ($md5file ne "");
 
 
 #------------- Main Processing Loop -----------------
