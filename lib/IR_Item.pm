@@ -1,3 +1,5 @@
+# $Date$
+# $Revision$
 use strict;
 
 package IR_Item;
@@ -122,8 +124,10 @@ sub default_setstate {
             &UIRT2::set($device, $command);
         } elsif ($$self{interface} eq 'usb_uirt') {
             &USB_UIRT::set($device, $command);
+        } elsif ($$self{interface} eq 'lirc') {
+	    &lirc_mh::send($device, $command);
         } elsif ($$self{interface} eq 'ninja') {
-            &ninja_mh::send($device, $command);
+	    &ninja_mh::send($device, $command);
         } elsif ($$self{interface} eq 'xap') {
             &xAP::send('xAP', 'IR.Transmit', 'IR.Signal' => {Device => $device, Signal => $command});
         } else {
