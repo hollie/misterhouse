@@ -70,6 +70,8 @@ use strict;
 
 package PocketSphinx_Control;
 
+@PocketSphinx_Control::ISA = ('Generic_Item');
+
 use Process_Item;
 use Voice_Cmd;
 use Timer;
@@ -97,13 +99,19 @@ sub startup {
       $s_pocketsphinx = new Socket_Item(undef, undef, 'server_pocketsphinx');
 
       # Setup our callback to get voice commands from the socket
-      Voice_Cmd::init_pocketsphinx (\&pocketsphinx_check_for_voice_command);
+      Voice_Cmd::init_pocketsphinx (\&said);
       #$main::Debug{pocketsphinx} = 1;
       #$main::Debug{process} = 1;
       #$main::Debug{voice} = 1;
 
+      # we need to killall the pocketsphinx processes until I figure out how to get
+      # store_object_data working for library modules.
+      # system ("killall pocketsphinx");
+
       # Create some classes we need
       $p_sphinx = new Process_Item;
+      my $friendly_name = "PocketSphinx_Control_p_sphinx";
+      &main::store_object_data($p_sphinx, 'Process_Item', $friendly_name, $friendly_name);
       $PocketSphinx_state = "idle";
 
       # Now build the language models from the various voice commands.
@@ -123,8 +131,43 @@ sub startup {
    }
 }
 
+# Trim leading and trailing spaces
+sub _trim {
+    my $string = shift;
+    $string =~ s/^\s+//;
+    $string =~ s/\s+$//;
+    return $string;
+}
+
+# We need to save the persistent information for the Process_Item p_sphinx object between restart 
+# and startup such that we can safely kill any running pocketsphinx processes.  We'll save the
+# persistent information in restore_data and eval to play it out and restore the object 
+# information.
+sub restore_string {
+    &main::print_log ("PocketSphinx_Control:: restore_string called") if $main::Debug{pocketsphinx};
+    my ($self) = @_;
+    my $restore_string = '';
+    my $restore_data = &_trim( $self->{p_sphinx}->restore_string( ) );
+    $restore_data =~ s/\->/\$self\->{p_sphinx}\->/g;
+    $restore_string .= $self->{object_name} . "->{restore_data} = q#$restore_data#;\n";
+    $restore_string .= $self->{object_name} . "->restore();\n" if $self->{p_sphinx}->pid( );
+    return $restore_string;
+}
+
+# restore will be called on startup or restart such that we can play out the information
+# contained in p_shpinx_state, which represents the persistent data for the Process_Item
+# object.
+sub restore {
+    my ($self) = @_;
+    my $restore_data = $self->{restore_data};
+    &main::print_log ("PocketSphinx_Control:: restore_string: $restore_data") if $main::Debug{pocketsphinx};
+    eval $restore_data;
+    &main::print_log ("PocketSphinx_Control:: restore: Error in Persistent data restore: $@\n") if $@;
+    $self->{p_sphinx}->stop( );
+}
+
 # check for any new voice command from external pocketsphinx client(s)
-sub pocketsphinx_check_for_voice_command {
+sub said {
   my $text;
   if (my $tmp = said $s_pocketsphinx) {
     &main::print_log ("PocketSphinx_Control:: said: $tmp") if $main::Debug{pocketsphinx};
@@ -525,11 +568,14 @@ package PocketSphinx_Listener;
 
 @PocketSphinx_Listener::ISA = ('Generic_Item');
 
+# Constructor
 sub new
 {
    my ($class, $device,$sample_rate,$listening,$speak) = @_;
    my $self = {};
    bless $self,$class;
+
+   &main::print_log ("PocketSphinx_Listener:: initialization $device") if $main::Debug{pocketsphinx};
 
    # default the device if not defined
    if (not defined $device) {
@@ -543,20 +589,28 @@ sub new
      $sample_rate = "$main::config_parms{pocketsphinx_sample_rate}" if exists $main::config_parms{pocketsphinx_sample_rate};
    }
 
+   # load device and sample_rate parameters if available
    $self->{device} = $device;
    $self->{sample_rate} = $sample_rate;
 
+   # do we want to start listening upon startup?  we default to true
    if (defined $listening) {
      $self->{listening} = $listening;
    } else {
      $self->{listening} = 1;
    }
-   $self->{speak} = $speak;
 
-   $self->{disabled} = 0;
+   # do we want to speak when ready to accepts commands?  we default to false
+   if (defined $speak) {
+     $self->{speak} = $speak;
+   } else {
+     $self->{speak} = 0;
+   }
 
    # create some necessary classes
    $self->{p_sphinx} = new Process_Item;
+   my $friendly_name = "PocketSphinx_Listener_p_sphinx_$device";
+   &main::store_object_data($self->{p_sphinx}, 'Process_Item', $friendly_name, $friendly_name);
    $self->{t_crash_timer} = new Timer;
 
    # file names from the Control portion
@@ -565,30 +619,66 @@ sub new
    $self->{lm_file}         = "$main::config_parms{data_dir}/pocketsphinx/current.lm";
    $self->{dictionary_file} = "$main::config_parms{data_dir}/pocketsphinx/current.dic";
 
-   # run paramters
-   $self->{hmm_file}        = "/usr/local/share/pocketsphinx/model/hmm/wsj1";
-   $self->{continuous}      = "/usr/local/bin/pocketsphinx_continuous";
-   $self->{host}            = "localhost";
-   $self->{port}            = 3235;
-
+   # run parameters
+   $self->{hmm_file}    = "/usr/local/share/pocketsphinx/model/hmm/wsj1";
+   $self->{continuous}  = "/usr/local/bin/pocketsphinx_continuous";
+   $self->{host}        = "localhost";
+   $self->{port}        = 3235;
    $self->{hmm_file}    = "$main::config_parms{pocketsphinx_hmm}"         if exists $main::config_parms{pocketsphinx_hmm};
    $self->{continuous}  = "$main::config_parms{pocketsphinx_continuous}"  if exists $main::config_parms{pocketsphinx_continuous};
    $self->{port}        = "$main::config_parms{server_pocketsphinx_port}" if exists $main::config_parms{server_pocketsphinx_port};
 
+   # runtime maintenance
+   $self->{disabled} = 0;
    $self->{crash_cnt} = 0;
-
-  &main::print_log ("PocketSphinx_Listener:: initialization $device") if $main::Debug{pocketsphinx};
-  &::MainLoop_pre_add_hook(\&PocketSphinx_Listener::state_machine,'persistent',$self);
+   &::MainLoop_pre_add_hook(\&PocketSphinx_Listener::state_machine,'persistent',$self);
 
    return $self;
 }
 
+# Trim leading and trailing spaces
+sub _trim {
+    my $string = shift;
+    $string =~ s/^\s+//;
+    $string =~ s/\s+$//;
+    return $string;
+}
+
+# We need to save the persistent information for the Process_Item p_sphinx object between restart 
+# and startup such that we can safely kill any running pocketsphinx processes.  We'll save the
+# persistent information in restore_data and eval to play it out and restore the object 
+# information.
+sub restore_string {
+    &main::print_log ("PocketSphinx_Listener:: restore_string called") if $main::Debug{pocketsphinx};
+    my ($self) = @_;
+    my $restore_string = '';
+    my $restore_data = &_trim( $self->{p_sphinx}->restore_string( ) );
+    $restore_data =~ s/\->/\$self\->{p_sphinx}\->/g;
+    $restore_string .= $self->{object_name} . "->{restore_data} = q#$restore_data#;\n";
+    $restore_string .= $self->{object_name} . "->restore();\n" if $self->{p_sphinx}->pid( );
+    return $restore_string;
+}
+
+# restore will be called on startup or restart such that we can play out the information
+# contained in p_shpinx_state, which represents the persistent data for the Process_Item
+# object.
+sub restore {
+    my ($self) = @_;
+    my $restore_data = $self->{restore_data};
+    &main::print_log ("PocketSphinx_Listener:: restore_string: $restore_data") if $main::Debug{pocketsphinx};
+    eval $restore_data;
+    &main::print_log ("PocketSphinx_Listener:: restore: Error in Persistent data restore: $@\n") if $@;
+    $self->{p_sphinx}->stop( );
+}
+
+# Allow the listener to startup on the next pass of the state_machine maintenance thread.
 sub start_listener {
   my ($self) = @_;
   $self->{listening} = 1;
   &main::print_log ("PocketSphinx_Listener:: start_listener $self->{device}") if $main::Debug{pocketsphinx};
 }
 
+# Stop any active listener program currently running
 sub stop_listener {
   my ($self) = @_;
   $self->{p_sphinx}->stop( ) if (!$self->{p_sphinx}->done( ));
@@ -596,6 +686,9 @@ sub stop_listener {
   &main::print_log ("PocketSphinx_Listener:: stop_listener $self->{device}") if $main::Debug{pocketsphinx};
 }
 
+# The state_machine loop runs once each pass of misterhouse.  This is basically a maitanance thread
+# which insures that the listener is running, since it has been known to crash on its own.  We keep
+# a count of restarts to avoid thrashing since the crashes could be caused by bad configuration.
 sub state_machine {
   my ($self) = @_;
   # check to see of the pocketsphinx VR program has completed, check for short crashes (something is wrong)
