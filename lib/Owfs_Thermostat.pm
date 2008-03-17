@@ -17,6 +17,11 @@ Requirements:
 
 Setup:
 
+mh.private.ini
+
+owfs_on_timer_value = 3       # minimum A/C compressor ON time
+owfs_off_timer_value = 3      # minimum A/C compressor OFF time
+
 In your code module, instantation the Owfs_Thermostat class.  Next, 
 inform the Thermostat of the one-wire devices which control the various
 HVAC equipment, all of which are optional.
@@ -30,10 +35,6 @@ HVAC equipment, all of which are optional.
   set_fan_sensor  ( "<device_id>", "<location>", "<channel>");
 
 Usage:
-
-# noloop=start      This directive allows this code to be run on startup/reload
-OW::init ( 3030 );  # Initialize the OWFS perl interface ( server tcp port )
-# noloop=stop
 
 $thermostat = new Owfs_Thermostat ( );
 
@@ -61,12 +62,10 @@ package Owfs_Thermostat;
 
 use OW;
 use Owfs_Item;
-use Owfs_DS2450;
 
 sub new {
     my ($class, $interval) = @_;
-    my %myhash;
-    my $self = new Generic_Item; # \%myhash;
+    my $self = { };
     bless $self,$class;
 
     $interval = 10 unless $interval;
