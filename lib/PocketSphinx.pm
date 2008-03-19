@@ -75,6 +75,7 @@ package PocketSphinx_Control;
 use Process_Item;
 use Voice_Cmd;
 use Timer;
+use File::Compare;
 
 my $PocketSphinx_state;
 my $p_sphinx = undef;
@@ -127,6 +128,7 @@ sub startup {
         &main::print_log ("PocketSphinx_Control:: ERROR: file: $hmm_file MISSING!!");
       } else {
         &::MainLoop_pre_add_hook(\&PocketSphinx_Control::state_machine, 'persistent');
+        &::Reload_pre_add_hook(\&PocketSphinx_Control::restart, 'persistent');
       }
    }
 }
@@ -139,31 +141,9 @@ sub _trim {
     return $string;
 }
 
-# We need to save the persistent information for the Process_Item p_sphinx object between restart 
-# and startup such that we can safely kill any running pocketsphinx processes.  We'll save the
-# persistent information in restore_data and eval to play it out and restore the object 
-# information.
-sub restore_string {
-    &main::print_log ("PocketSphinx_Control:: restore_string called") if $main::Debug{pocketsphinx};
-    my ($self) = @_;
-    my $restore_string = '';
-    my $restore_data = &_trim( $self->{p_sphinx}->restore_string( ) );
-    $restore_data =~ s/\->/\$self\->{p_sphinx}\->/g;
-    $restore_string .= $self->{object_name} . "->{restore_data} = q#$restore_data#;\n";
-    $restore_string .= $self->{object_name} . "->restore();\n" if $self->{p_sphinx}->pid( );
-    return $restore_string;
-}
-
-# restore will be called on startup or restart such that we can play out the information
-# contained in p_shpinx_state, which represents the persistent data for the Process_Item
-# object.
-sub restore {
-    my ($self) = @_;
-    my $restore_data = $self->{restore_data};
-    &main::print_log ("PocketSphinx_Control:: restore_string: $restore_data") if $main::Debug{pocketsphinx};
-    eval $restore_data;
-    &main::print_log ("PocketSphinx_Control:: restore: Error in Persistent data restore: $@\n") if $@;
-    $self->{p_sphinx}->stop( );
+# Shut down the process before we restart
+sub restart {
+    $p_sphinx->stop( );
 }
 
 # check for any new voice command from external pocketsphinx client(s)
@@ -194,13 +174,22 @@ sub said {
 
 sub state_machine {
   if ($main::Startup or $main::Reload) {
+    # save old sentence file, compare with new to avoid reloading
+    rename ($sentence_file, "$sentence_file.bak");
     &build_sentence_file($sentence_file);
-    $PocketSphinx_state = "build_lm";
-    &main::print_log ("PocketSphinx_Control:: build_lm") if $main::Debug{pocketsphinx};
-    set_errlog $p_sphinx "";
-    set_output $p_sphinx "";
-    set $p_sphinx "&PocketSphinx_Control::build_lm ('$sentence_file','$lm_file','$lm_log_file')";
-    start $p_sphinx;
+    if ( (compare( $sentence_file, "$sentence_file.bak") == 0) &&
+	-e $lm_file && -e $dictionary_file) {
+      &main::print_log ("PocketSphinx_Control:: reusing language files") if $main::Debug{pocketsphinx};
+      
+      $PocketSphinx_state = "run_sphinx";
+    } else {    
+      $PocketSphinx_state = "build_lm";
+      &main::print_log ("PocketSphinx_Control:: build_lm") if $main::Debug{pocketsphinx};
+      set_errlog $p_sphinx "";
+      set_output $p_sphinx "";
+      set $p_sphinx "&PocketSphinx_Control::build_lm ('$sentence_file','$lm_file','$lm_log_file')";
+      start $p_sphinx;
+    }
   }
 
   # wait for build_lm to complete
@@ -226,6 +215,11 @@ sub state_machine {
 
 sub get_state {
     return $PocketSphinx_state;
+}
+
+sub reset_language_files {
+    unlink $sentence_file;
+    unlink "$sentence_file.bak";
 }
 
 #============================================================================================ 
@@ -631,7 +625,8 @@ sub new
    # runtime maintenance
    $self->{disabled} = 0;
    $self->{crash_cnt} = 0;
-   &::MainLoop_pre_add_hook(\&PocketSphinx_Listener::state_machine,'persistent',$self);
+   &::MainLoop_pre_add_hook(\&PocketSphinx_Listener::state_machine,undef,$self);
+   &::Reload_pre_add_hook(\&PocketSphinx_Listener::restart,undef,$self);
 
    return $self;
 }
@@ -668,6 +663,12 @@ sub restore {
     &main::print_log ("PocketSphinx_Listener:: restore_string: $restore_data") if $main::Debug{pocketsphinx};
     eval $restore_data;
     &main::print_log ("PocketSphinx_Listener:: restore: Error in Persistent data restore: $@\n") if $@;
+    $self->{p_sphinx}->stop( );
+}
+
+# Shut down the process before we restart
+sub restart {
+    my ($self) = @_;
     $self->{p_sphinx}->stop( );
 }
 
