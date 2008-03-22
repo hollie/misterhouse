@@ -34,6 +34,21 @@ sub read_table_A {
     if($record =~ /^#/ or $record =~ /^\s*$/) {
        return;
     }
+    # -[ ZWave ]----------------------------------------------------------
+    elsif($type eq "ZWAVE_LIGHT") {
+        require 'ZWave_Items.pm';
+        require 'ZWave_RZC0P.pm';
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "ZWave_Light_Item('$address', $other)";
+    }
+    elsif($type eq "ZWAVE_APPLIANCE") {
+        require 'ZWave_Items.pm';
+        require 'ZWave_RZC0P.pm';
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "ZWave_Appliance_Item('$address', $other)";
+    }
     # -[ Insteon ]----------------------------------------------------------
     elsif($type eq "INSTEON") {
         require 'Insteon_Item.pm';
