@@ -42,7 +42,8 @@ my @endDirs ="";					# We fill this as we find the ending dirs
 $html .= "<TABLE BORDER=2 BORDERCOLOR='#4169E1' BGCOLOR='#64 95 ED' ALIGN='center' NOWRAP>";
 
 my $mycol=1;					# table column counter
-my $columns =3;					#  and limits (width)
+#my $columns =3;					#  and limits (width)
+my $columns = wcMax -1 ;
 
 $html .= "<TR>"; 	                                           
 
