@@ -43,7 +43,7 @@ $html .= "<TABLE BORDER=2 BORDERCOLOR='#4169E1' BGCOLOR='#64 95 ED' ALIGN='cente
 
 my $mycol=1;					# table column counter
 #my $columns =3;					#  and limits (width)
-my $columns = wcMax -1 ;
+my $columns = $wcMax - 1 ;
 
 $html .= "<TR>"; 	                                           
 
