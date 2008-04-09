@@ -632,6 +632,7 @@ sub setup {
 #   &my_use("Serial_Item");  # So we can add debug to Serial_Item.pm when running mh.exe
     use Serial_Item;
     use vars '%Weather';
+    use vars '%Electric';
     use Weather_Item;   &Weather_Item::Init();
     use X10_Items;
     use iButton;
