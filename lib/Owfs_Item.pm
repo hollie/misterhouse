@@ -88,7 +88,7 @@ sub new {
     my $port = 3030;
     $port = "$main::config_parm{owfs_port}" if exists $main::config_parm{owfs_port};
     &main::print_log ("Owfs_Item:: Initializing port: $port $location") if $main::Debug{owfs};
-    OW::init ( $port );  
+    OW::init ( "$port" );
 
     return $self;
 }
@@ -97,7 +97,7 @@ sub set {
      my ($self, $token, $data) = @_;
      my $path = $self->{path} . $token;
      &main::print_log ("Owfs_Item::set $path $data") if $main::Debug{owfs};
-     my $result = OW::put($path, $data) or return ;
+     my $result = OW::put($path, "$data") or return ;
      return $result;
 }
 
@@ -105,7 +105,7 @@ sub set_root {
      my ($self, $token, $data) = @_;
      my $path = $self->{root} . $token;
      &main::print_log ("Owfs_Item::set_root $path $data") if $main::Debug{owfs};
-     my $result = OW::put($path, $data ) or return ;
+     my $result = OW::put($path, "$data" ) or return ;
      return $result;
 }
 
