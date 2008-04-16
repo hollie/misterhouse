@@ -62,6 +62,7 @@ sub new
    my $friendly_name = "bsc_$p_source_name";
    &main::store_object_data($$self{m_xap},'xAP_Item',$friendly_name,$friendly_name);
    $$self{m_xap}->tie_items($self);
+   $$self{source_name} = $p_source_name;
    $self->restore_data('m_xapuid','bsc_state','level','text','display_text');
 
    return $self;
@@ -318,19 +319,17 @@ sub info_callback {
    }
 }
 
-sub send_query {
-   my ($self, $family_name, $target);
-   $target = '*' unless $target; # this is probably a bad idea since wildcarding should only be done to endpoints
+sub query {
+   my ($self) = @_;
    my ($headerVars, @data2);
    $headerVars->{'class'} = 'xAPBSC.query';
-   $headerVars->{'target'} = $target;
-   $headerVars->{'source'} = &xAP::get_xap_mh_source_info($family_name);
-   $headerVars->{'uid'} = &xAP::get_xap_base_uid($family_name) . '00';
+   $headerVars->{'target'} = $$self{source_name};
+   $headerVars->{'source'} = &xAP::get_xap_mh_source_info(xAP::XAP_REAL_DEVICE_NAME);
+   $headerVars->{'uid'} = &xAP::get_xap_base_uid(xAP::XAP_REAL_DEVICE_NAME) . '00';
    push @data2, $headerVars;
    push @data2, 'request', ''; # hmmm, this could blow-up maybe? really only want a blank request block
 
    &xAP::sendXapWithHeaderVars(@data2);
-
 }
 
 
@@ -381,8 +380,7 @@ sub new
 
    &xAP::init_xap_virtual_device($p_device_family);
 
-   my $code = &main::store_object_data($$self{m_xap},'xAP_Item','xAP_Item','BSC.pm');
-   eval($code);
+   &main::store_object_data($$self{m_xap},'xAP_Item','xAP_Item','BSC.pm');
    $$self{m_xap}->tie_items($self);
    return $self;
 }
