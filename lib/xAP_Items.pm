@@ -439,7 +439,7 @@ sub _process_incoming_xap_data {
 
                print "db3 xap test  o=$name s=$source os=$$o{source} c=$class oc=$$o{class} \n" if $main::Debug{xap} and $main::Debug{xap} == 3;
                my $regex_source = &wildcard_2_regex($$o{source});
-               next unless $source  =~ /$regex_source/i;
+               next unless $source  =~ /^$regex_source$/i;
                # is current xap object a virtual device?
                my $objectIsVirtual = 0;
                # if so, is the source also from a virtual device?
@@ -461,7 +461,7 @@ sub _process_incoming_xap_data {
                   my $regex_ref_target = &wildcard_2_regex($$o{target_address});
                   my $regex_target = &wildcard_2_regex($target);
 
-                  next unless ($target =~ $regex_ref_target) or ($$o{target_address} =~ $regex_target);
+                  next unless ($target =~ /^$regex_ref_target$/) or ($$o{target_address} =~ /^$regex_target$/);
                }
                # check/handle hbeats
                for my $section (keys %{$xap_data}) {
@@ -476,7 +476,7 @@ sub _process_incoming_xap_data {
                    }
                }
                my $regex_class = &wildcard_2_regex($$o{class});
-               next unless $class   =~ /$regex_class/i;
+               next unless $class   =~ /^$regex_class$/i;
 
                                   # Find and set the state variable
                my $state_value;
