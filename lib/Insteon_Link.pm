@@ -234,7 +234,7 @@ sub set
 				my $on_state = $$self{members}{$member_ref}{on_level};
 				$on_state = '100%' unless $on_state;
 				my $local_state = $on_state;
-				$local_state = 'on' if $local_state eq '100%';
+#				$local_state = 'on' if $local_state eq '100%';
 				$local_state = 'off' if $local_state eq '0%' or $link_state eq 'off';
 				if ($member->isa('Light_Item')) {
 				# if they are Light_Items, then set their on_dim attrib to the member on level
