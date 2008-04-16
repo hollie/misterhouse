@@ -118,6 +118,22 @@ sub get_ramp_from_code
 	}
 }
 
+sub convert_level
+{
+	my ($on_level) = @_;
+	my $level = 'ff';
+	if (defined ($on_level)) {
+		if ($on_level eq '100') {
+			$level = 'ff';
+		} elsif ($on_level eq '0') {
+			$level = '00';
+		} else {
+			$level = sprintf('%02X',$on_level * 2.55);
+		}
+	}
+	return $level;
+}
+
 sub new
 {
 	my ($class,$p_interface,$p_deviceid,$p_devcat) = @_;
@@ -150,6 +166,7 @@ sub new
 	$$self{max_queue_time} = 15 unless $$self{max_queue_time}; # 15 seconds is max time allowed in command stack
 	@{$$self{command_stack}} = ();
 	$$self{_retry_count} = 0; # num times that a command has been resent
+	$$self{_onlevel} = undef;
 	$self->interface($p_interface) if defined $p_interface;
 #	$self->interface()->add_item_if_not_present($self);
 	return $self;
@@ -217,7 +234,10 @@ sub level
 		my $level = undef;
 		if ($p_level eq 'on')
 		{
-			$level=100;
+			# set the level based on any locally defined on level
+			$level = &Insteon_Device::local_onlevel;
+			# set to 100 if a local on level is not defined
+			$level=100 unless defined($level);
 		} elsif ($p_level eq 'off')
 		{
 			$level = 0;
@@ -263,7 +283,8 @@ sub set
 		}
 
 		if (ref $p_setby and (($p_setby eq $self->interface()) 
-			or ($p_setby->isa('Insteon_Device') and &main::set_by_to_target($p_setby) eq $self->interface)))
+			or ($p_setby->isa('Insteon_Device') and (($p_setby eq $self)
+			or (&main::set_by_to_target($p_setby) eq $self->interface)))))
 		{
 				# don't reset the object w/ the same state if set from the interface
 				return if (lc $p_state eq lc $self->state) and $self->is_acknowledged;
@@ -613,7 +634,12 @@ sub _xlate_mh_insteon
 	if (!(defined $p_extra)) {
 		if ($msg eq 'on')
 		{
-			$level=255;
+			if (defined $self->local_onlevel) {
+				$level = 2.55 * $self->local_onlevel;
+				$msg = 'on_fast';
+			} else {
+				$level=255;
+			}
 		} elsif ($msg eq 'off')
 		{
 			$level = 0;
@@ -924,8 +950,8 @@ sub _on_peek
 				$self->_send_cmd('command' => 'poke', 'extra' => $$self{pending_adlb}{data3}, 'is_synchronous' => 1);
 			}
 		} elsif ($$self{_mem_action} eq 'local_onlevel') {
-			my $on_level = $$self{_onlevel};
-			$on_level = 'ff' unless $on_level;
+			my $on_level = $self->local_onlevel;
+			$on_level = &Insteon_Device::convert_onlevel($on_level);
 			$self->_send_cmd('command' => 'poke', 'extra' => $on_level, 'is_synchronous' => 1);
 		} elsif ($$self{_mem_action} eq 'local_ramprate') {
 			my $ramp_rate = $$self{_ramprate};
@@ -1023,6 +1049,16 @@ sub is_dimmable
 			if $main::Debug{insteon};
 		return 1;
 	}
+}
+
+sub local_onlevel
+{
+	my ($self, $p_onlevel) = @_;
+	if (defined $p_onlevel) {
+		my ($onlevel) = $p_onlevel =~ /(\d+)%?/;
+		$$self{_onlevel} = $onlevel;
+	}
+	return $$self{_onlevel};
 }
 
 sub set_receive
@@ -1221,9 +1257,7 @@ sub add_link
 		&::print_log("[Insteon_Device] adding link record " . $self->get_object_name 
 			. " light level controlled by " . $insteon_object->get_object_name
 			. " and group: $group with on level: $on_level and ramp rate: $ramp_rate") if $main::Debug{insteon};
-		my $data1 = sprintf('%02X',$on_level * 2.55);
-		$data1 = 'ff' if $on_level eq '100';
-		$data1 = '00' if $on_level eq '0';
+		my $data1 = &Insteon_Device::convert_level($on_level);
 		my $data2 = ($self->is_dimmable) ? &Insteon_Device::convert_ramp($ramp_rate) : '00';
 		my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
 		# get the first available memory location
