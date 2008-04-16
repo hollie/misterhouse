@@ -100,7 +100,7 @@ sub add {
 		my $xap_item = new BSC_Item($xap_address);
 		$$self{source_map}{$xap_item} = $device;
 		$self->SUPER::add($xap_item); # add it so that it can set this obejct
-                $xap_item->send_query('core', $xap_address);
+                $xap_item->query();
 	}
 }
 
