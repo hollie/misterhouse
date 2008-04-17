@@ -84,14 +84,17 @@ sub add {
         foreach my $device (@devices) {
 		push @{$$self{m_devices}}, $device;
                 my $xap_address = $$self{m_base_address};
+		my $is_oxc = 1;
                 if ($xap_address) {
 			if ($xap_address !~ /^\S*\.\S*/) {
 				$xap_address = "liming.oxc.$xap_address";
+			} else {
+				$is_oxc = 0;
 			}
 		} else {
                 	$xap_address = "liming.oxc.house"; 
 		}
-                if ($device->id !~ /^\S*\.\S*/) {
+                if ($is_oxc and $device->id !~ /^\S*\.\S*/) {
 			$xap_address = $xap_address . ':' . lc $device->type . "." . $device->id;
                 } else {
 			$xap_address = $xap_address . ':' . $device->id;
