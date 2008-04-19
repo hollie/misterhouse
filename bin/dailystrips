@@ -987,6 +987,57 @@ sub get_strip {
 				}
 			}
 		}
+	} elsif ($defs{$strip}{'type'} eq "doublesearch") {
+		$page = &http_get($defs{$strip}{'searchpage'});
+
+		if ($page =~ /^ERROR/) {
+			if ($options{'verbose'}) {
+				warn "Error: $strip: could not download searchpage $defs{$strip}{'searchpage'}\n";
+			}
+			
+			$addr = "unavail-server";
+		} else {
+			$page =~ /$defs{$strip}{'searchpattern'}/si;
+			my @regexmatch;
+			for (1..9) {
+				$regexmatch[$_] = ${$_};
+				#warn "regex match #$_: ${$_}\n";	
+			}
+
+			unless ($regexmatch[2]) {
+				warn "didn't match\n";
+				if ($options{'verbose'}) {
+					warn "Error: $strip: searchpattern $defs{$strip}{'searchpattern'} did not match anything in searchpage $defs{$strip}{'searchpage'}\n";
+				}
+				
+				$addr = "unavail-nomatch";
+			} else {
+				$addr=$defs{$strip}{'baseurl'}.$regexmatch[1].$regexmatch[2];
+				$addr =~ s/%3D/=/g;
+				$addr =~ s/%26/&/g;
+				#warn "downloading $addr\n";
+				$page = &http_get($addr);
+				if ($page =~ /^ERROR/) {
+					warn "Error: $strip: can't download drmurl\n";
+					$addr = "unavail-server";
+				} else {
+					$regexmatch[1]='';
+					$page =~ /$defs{$strip}{'searchpattern2'}/si;
+					for (1..9) {
+						$regexmatch[$_] = ${$_};
+						#warn "regex match #$_: ${$_}\n";	
+					}
+					unless ($regexmatch[1]) {
+						warn "didn't match 2\n";
+						if ($options{'verbose'}) {
+							warn "Error: $strip: searchpattern $defs{$strip}{'searchpattern2'} did not match anything in searchpage $defs{$strip}{'baseurl'}.$regexmatch[1].$regexmatch[2]\n";
+						}
+					} else {
+						$addr=$regexmatch[1];
+					}
+				}
+			}
+		}
 	} elsif ($defs{$strip}{'type'} eq "search2pages") {
 		# Search pattern for when it takes two pages to get to the image file
 		# Pull down the first page
@@ -1109,7 +1160,7 @@ sub get_defs {
 					my $using_class = $defs{$strip}{'useclass'};
 					
 					# import vars from class
-					for (qw(homepage searchpage searchpattern baseurl imageurl urlsuffix referer prefetch artist drmurl)) {
+					for (qw(homepage searchpage searchpattern baseurl imageurl urlsuffix referer prefetch artist drmurl searchpattern2)) {
 						if ($classes{$using_class}{$_} and !$defs{$strip}{$_}) {
 							my $classvar = $classes{$using_class}{$_};
 							$classvar =~ s/(\$[0-9])/$defs{$strip}{$1}/g;
@@ -1306,7 +1357,7 @@ sub get_defs {
 			}
 			elsif (/^type\s+(.+)$/i)
 			{
-				unless ($1 =~ /^(search|generate|flashdrm|search2pages)$/i) {
+				unless ($1 =~ /^(search|generate|flashdrm|search2pages|doublesearch)$/i) {
 					die "Error: invalid 'type' at $defs_file line $line\n";
 				}
 				

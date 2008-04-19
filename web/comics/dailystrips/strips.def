@@ -1432,20 +1432,18 @@ strip drabble
 	useclass unitedmedia-srch-comics
 end
 
-#strip dilbert
-#	name Dilbert
-#	useclass unitedmedia-srch-comics
-#end
-
 strip dilbert
+	type doublesearch
 	name Dilbert
 	artist Scott Adams
-	homepage http://www.dilbert.com/comics/dilbert/
+	homepage http://www.dilbert.com
+	searchpage http://www.dilbert.com
+	searchpattern BasePath: '(.+?)'.+?QueryString: '(.+?)'
 	baseurl http://www.dilbert.com
-	type search
-	searchpattern <IMG SRC="(/comics/dilbert/archive/images/.+?\.(gif|jpg))"
+	searchpattern2 img src="(.+?)"
 	provides latest
 end
+
 
 strip fatcats
 	name Fat Cats
