@@ -78,7 +78,7 @@ for ( $wcx=1 ; $wcx<$wcMax + 1 ; $wcx++){
 	my ($wcURL,$wcDescr ) = split(/\,/, $wcURL );
 	$scriptlet .= "webCamRegisterCam(\"". $wcx.": $wcDescr\", \"$wcURL\", $wcx); \n";
 	
-	$html .= "<td BGCOLOR='" . $wc_bg_color . "'><CENTER><a href='/bin/wc_settings.pl/?1&" .  $wcURL . " target='output'><img src='$wcURL' width='176' height='144'><br>$wcx: $wcDescr</a></CENTER></td>" ;
+	$html .= "<td BGCOLOR='" . $wc_bg_color . "'><CENTER><a href='/bin/wc_settings.pl/?1&" .  $wcURL . "' target='output'><img src='$wcURL' width='176' height='144'><br>$wcx: $wcDescr</a></CENTER></td>" ;
 	
 	# add some breaks so we can specify how many wide
 	if ( ($outmode - $across) <= 0 ){
