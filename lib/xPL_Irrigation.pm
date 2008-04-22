@@ -388,7 +388,7 @@ sub new {
     # default the default run time as 5 minutes; possibly this should be longer?
     $$self{default_run_time} = 5;
     $$self{state_monitor} = "sprinklr.queinfo : state|sprinklr.queue : action";
-    $self->SUPER::device_monitor("queue-id=$id") if $id;
+    $self->SUPER::device_monitor("queue-id=$id") if defined $id;
 
     $self->state_overload('on');
 
