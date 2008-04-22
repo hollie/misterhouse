@@ -288,7 +288,7 @@ sub new {
     $self->SUPER::class_name('sprinklr.valv*');
     $$self{id} = $id;
     $$self{state_monitor} = "sprinklr.valvinfo : state|sprinklr.valve : action";
-    $self->SUPER::device_monitor("valve-id=$id") if $id;
+    $self->SUPER::device_monitor("valve-id=$id") if defined $id;
     # remap the state values to on and off
     $self->tie_value_convertor('state','($section eq "sprinklr.valvinfo" and $value eq "closed") ? "off" : "on"');
     $self->tie_value_convertor('action','($section eq "sprinklr.valve" and $value eq "closed") ? "off" : "on"');
