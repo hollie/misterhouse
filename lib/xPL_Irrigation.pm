@@ -462,7 +462,7 @@ sub clear {
     $cmd_block{'queue-id'} = $self->id;
     &::print_log("[xPL_IrrigationQueue] Received request to clear queue: "
     	. $self->id) if $main::Debug{irrigation};
-    $self->SUPER::send_cmnd('sprinklr.basic', %cmd_block);
+    $self->SUPER::send_cmnd('sprinklr.basic', $cmd_block);
 }
 
 sub hold {
@@ -472,7 +472,7 @@ sub hold {
     $cmd_block{'queue-id'} = $self->id;
     &::print_log("[xPL_IrrigationQueue] Received request to hold queue: "
     	. $self->id) if $main::Debug{irrigation};
-    $self->SUPER::send_cmnd('sprinklr.basic', %cmd_block);
+    $self->SUPER::send_cmnd('sprinklr.basic', $cmd_block);
 }
 
 sub release {
@@ -482,7 +482,7 @@ sub release {
     $cmd_block{'queue-id'} = $self->id;
     &::print_log("[xPL_IrrigationQueue] Received request to release queue: "
     	. $self->id) if $main::Debug{irrigation};
-    $self->SUPER::send_cmnd('sprinklr.basic', %cmd_block);
+    $self->SUPER::send_cmnd('sprinklr.basic', $cmd_block);
 }
 
 1;
