@@ -76,7 +76,8 @@ sub check_for_data {
     if (($time > ($self->{good_packet_time}+30)) and 
 	($time > ($self->{squawk_time}+10))) {
 	$self->{squawk_time} = $time;
-	&::print_log("TED: Haven't gotten a good packet from ted in 30 seconds, is something wrong? time: $time gpt:$self->{good_packet_time} st:$self->{squawk_time}") unless $::Startup;
+	my $last_good = $time - $self->{good_packet_time};
+	&::print_log("TED: Haven't gotten a good packet from ted in $last_good seconds, is something wrong? time: $time gpt:$self->{good_packet_time} st:$self->{squawk_time}") unless $::Startup;
     }
 }
 
@@ -91,37 +92,17 @@ sub process_incoming_data {
     for (my $i=0; $i < $#pkt-1; $i++)
     {
 	splice(@pkt, $i, 1) if ($pkt[$i] == 0x10 && $pkt[$i+1] == 0x10);
-    }	
+    }
 
     my $tedchars = $#pkt+3;
     printf("%02d:%02d:%02d TED chars: $tedchars\n",
 		$main::Hour, $main::Minute, $main::Second) if $main::Debug{ted};
-
-    my $output;
-    foreach my $i (@pkt) {
-	my $char=sprintf "%02x ", $i;
-	$output.=$char;
-    }
-
     my $tedstr = pack "CCCC", $pkt[113], $pkt[114], $pkt[115], $pkt[116];
     my $start  = pack "CC", $pkt[0], $pkt[1];    
 
-    my @values = split (/ /, $output);
+    print_pkt(@pkt) if $main::Debug{ted};
 
-    for my $i (0..13) {
-	my $line_index = $i*20;
-	my $prline = '';
-	for my $j (0..19) {
-	    my $char_index = $line_index + $j;
-	    if ($char_index <= $#values) {
-		my $char = $values[$char_index];
-		$prline .= $char . " ";
-	    }
-	}
-	printf "%3d:$prline\n", $line_index if $main::Debug{ted};
-    }
-    my $v;
-    if (($start eq "\cP\cD") and ($tedstr eq "TED ") and $#values == 277) {
+    if (($start eq "\cP\cD") and ($tedstr eq "TED ") and $tedchars == 280) {
         $main::Electric{Flags}       = (($pkt[3] * 256) + $pkt[2]);
         $main::Electric{FixMthChrg_1}= (($pkt[5] * 256) + $pkt[4])/100;
         $main::Electric{FixMthChrg_2}= (($pkt[7] * 256) + $pkt[6])/100;
@@ -162,6 +143,7 @@ sub process_incoming_data {
         $main::Electric{KwThresh4_4} = (($pkt[65] * 256) + $pkt[64]);
         $main::Electric{KwThresh4_5} = (($pkt[67] * 256) + $pkt[66]);
         $main::Electric{KwRate1_1}   = (($pkt[85] * 256) + $pkt[84])/10000;
+        $main::Electric{CurrentRate} = $main::Electric{KwRate1_1};
         $main::Electric{KwRate1_2}   = (($pkt[87] * 256) + $pkt[86])/10000;
         $main::Electric{KwRate1_3}   = (($pkt[89] * 256) + $pkt[88])/10000;
         $main::Electric{KwRate1_4}   = (($pkt[91] * 256) + $pkt[90])/10000;
@@ -175,39 +157,41 @@ sub process_incoming_data {
         $main::Electric{MeterRead}   =   $pkt[106] + 1;
 	$main::Electric{Calibrate}   = (($pkt[108] * 256) + $pkt[107])/1000;
 	$main::Electric{NumHouseCode}=   $pkt[109]+1;
-	$main::Electric{HouseCode}   =   $pkt[110]; # good
+	$main::Electric{HouseCode}   =   $pkt[110];
 	$main::Electric{HouseCode2}  =   $pkt[111];
 
         $main::Electric{DlrPkKwHAlarm} = (($pkt[123] * 256) + $pkt[122])/100;
         $main::Electric{PkKwAlarm}    = (($pkt[125] * 256) + $pkt[124])/100;
-        $main::Electric{DlrMthAlarm} = (($pkt[127] * 256) + $pkt[126])/10; 
-        $main::Electric{KwMtdAlarm}  = (($pkt[129] * 256) + $pkt[128]); 
-        $main::Electric{LoValarm}    = (($pkt[131] * 256) + $pkt[130])/10; 
-        $main::Electric{HiValarm}    = (($pkt[133] * 256) + $pkt[132])/10; 
-        $main::Electric{LoVrmsTdy}   = (($pkt[135] * 256) + $pkt[134])/10; 
-        $main::Electric{stLoVtimTdy} = &get_time((($pkt[137] * 256) + $pkt[136])); 
-	$main::Electric{HiVrmsTdy}   = (($pkt[139] * 256) + $pkt[138])/10; 
-	$main::Electric{stHiVtimTdy} = &get_time((($pkt[141] * 256) + $pkt[140])); 
-	$main::Electric{LoVrmsMtd}   = (($pkt[143] * 256) + $pkt[142])/10; 
-	$main::Electric{LoVrmsMtdFlg}=  ($pkt[144]); 
-	$main::Electric{HiVrmsMtd}   = (($pkt[146] * 256) + $pkt[145])/10; 
-	$main::Electric{HiVrmsMtdFlg}=  ($pkt[147]); 
-	$main::Electric{KwPeakTdy}   = (($pkt[149] * 256) + $pkt[148])/100; 
+        $main::Electric{DlrMthAlarm} = (($pkt[127] * 256) + $pkt[126])/10;
+        $main::Electric{KwMtdAlarm}  = (($pkt[129] * 256) + $pkt[128]);
+        $main::Electric{LoValarm}    = (($pkt[131] * 256) + $pkt[130])/10;
+        $main::Electric{HiValarm}    = (($pkt[133] * 256) + $pkt[132])/10;
+        $main::Electric{LoVrmsTdy}   = (($pkt[135] * 256) + $pkt[134])/10;
+        $main::Electric{stLoVtimTdy} = &get_time((($pkt[137] * 256) + $pkt[136]));
+	$main::Electric{HiVrmsTdy}   = (($pkt[139] * 256) + $pkt[138])/10;
+	$main::Electric{stHiVtimTdy} = &get_time((($pkt[141] * 256) + $pkt[140]));
+	$main::Electric{LoVrmsMtd}   = (($pkt[143] * 256) + $pkt[142])/10;
+	$main::Electric{LoVrmsMtdFlg}=  ($pkt[144]);
+	$main::Electric{HiVrmsMtd}   = (($pkt[146] * 256) + $pkt[145])/10;
+	$main::Electric{HiVrmsMtdFlg}=  ($pkt[147]);
+	$main::Electric{KwPeakTdy}   = (($pkt[149] * 256) + $pkt[148])/100;
 	$main::Electric{DlrPeakTdy}  = (($pkt[151] * 256) + $pkt[150])/100;
-	$main::Electric{KwPeakMtd}   = (($pkt[153] * 256) + $pkt[152])/100; 
+	$main::Electric{KwPeakMtd}   = (($pkt[153] * 256) + $pkt[152])/100;
 	$main::Electric{DlrPeakMtd}  = (($pkt[155] * 256) + $pkt[154])/100;
-	$main::Electric{DlrTdy}      = (($pkt[159] * 256 * 256 * 256) + 
+	$main::Electric{DlrTdySum}   = (($pkt[159] * 256 * 256 * 256) + 
 			                ($pkt[158] * 256 * 256) +
 			                ($pkt[157] * 256) + 
-			                ($pkt[156]))/600000;
-	$main::Electric{KwTdy}       = (($pkt[163] * 256 * 256 * 256) + 
-			                ($pkt[162] * 256 * 256) +
+			                ($pkt[156]));
+	$main::Electric{DlrTdy}      = $main::Electric{DlrTdySum}/600000; 
+	$main::Electric{WattTdySum}  = (($pkt[163] * 256 * 256 * 256) + 
+					($pkt[162] * 256 * 256) +
 					($pkt[161] * 256) + 
-					($pkt[160])) / 60000;
+					($pkt[160]));
+	$main::Electric{KwTdy}       = $main::Electric{WattTdySum} / 60000;
 	$main::Electric{KwhMtdCnt}   = (($pkt[167] * 256 * 256 * 256) + 
 			                ($pkt[166] * 256 * 256) +
 					($pkt[165] * 256) + 
-					($pkt[164]))/100;
+					($pkt[164]));
 	$main::Electric{KwhMtdSum}   = (($pkt[171] * 256 * 256 * 256) + 
 			                ($pkt[170] * 256 * 256) +
 					($pkt[169] * 256) + 
@@ -245,6 +229,7 @@ sub process_incoming_data {
 	    print "LoVrmsMtd:      $main::Electric{LoVrmsMtd}\n";
 	    print "HiVrmsMtd:      $main::Electric{HiVrmsMtd}\n";
 
+	    print "Current Rate:   $main::Electric{CurrentRate}\n";
 	    printf "DlrNow:         %.2f\n", $main::Electric{DlrNow};
 	    printf "DlrPeakTdy:     %.2f\n", $main::Electric{DlrPeakTdy};
 	    print "DlrPeakMtd:     $main::Electric{DlrPeakMtd}\n";
@@ -272,8 +257,8 @@ sub process_incoming_data {
 
     }
     else { 
-#	print "housecode:$pkt[110]\n"; # add some more recovery here...
-	print "bad ted pkt $#values \"$tedstr\"\n" if $::Debug{ted}; 
+	&::print_log("bad ted pkt, length $tedchars"); 
+	print_pkt(@pkt);
     }
     $main::Serial_Ports{$portname}{data_record} = undef;
 }
@@ -295,6 +280,31 @@ sub get_time {
     return $time;
 }
 
+sub print_pkt {
+    my (@pkt) = @_;
+
+    my $output;
+    foreach my $i (@pkt) {
+	my $char=sprintf "%x ", $i;
+	$output.=$char;
+    }
+
+    my @values = split (/ /, $output);
+
+    my $end = int ($#values/20);
+    for my $i (0..$end) {
+	my $line_index = $i*20;
+	my $prline = '';
+	for my $j (0..19) {
+	    my $char_index = $line_index + $j;
+	    if ($char_index <= $#values) {
+		my $char = $values[$char_index];
+		$prline .= $char . " ";
+	    }
+	}
+	printf "%3d:$prline\n", $line_index;
+    }
+}
 
 # do not remove the following line, packages must return a true value
 1;
@@ -304,4 +314,8 @@ sub get_time {
 #
 # Revision 1.1  -- 4/21/2008 -- Joe Blecher
 # - Fixed issue with decoding variable packet length. Decoded more fields
+#
+# Revision 1.3  -- 4/23/2008 -- David Satterfield
+# - Fixed divide by 100 error in WattTdySum, KWTdy, 
+#   added back WattTdySum, cleaned up code
 #
