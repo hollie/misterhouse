@@ -1,6 +1,9 @@
 
 # Category=Music
 
+# $Date$
+# $Revision$
+
 #@ This script controls the MPD Music Player Daemon for Linux. It<br />
 #@ handles operation of the mp3 player. Enable mp3.pl to manage the MP3 database.<br />
 #@ This script requires Audio::MPD.<br />
