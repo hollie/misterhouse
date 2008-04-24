@@ -313,7 +313,13 @@ EOF
             }
             else {
                 print "Output will be logged into $logfile\n";
-                open STDOUT, ">$logfile" or die "Error, could not open logfile $logfile: $!\n";
+                my $logfile_mode = $config_parms_startup{mode_log_file};
+                $logfile_mode = 'replace' unless $logfile_mode;
+                if ($logfile_mode eq 'append') {
+                    open STDOUT, ">>$logfile" or die "Error, could not open logfile $logfile: $!\n";
+                } else {
+                    open STDOUT, ">$logfile" or die "Error, could not open logfile $logfile: $!\n";
+                }
                 &print_version;
             }
         }
