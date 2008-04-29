@@ -172,7 +172,9 @@ my %x10_commands = (
 						preset_dim1 => 0xA,
 						preset_dim2 => 0xB,
 						all_off => 0x0,
+                                                p => 0x0,
 						all_lights_on => 0x1,
+                                                o => 0x1,
 						all_lights_off => 0x6,
 						status => 0xF,
 						status_on => 0xD,
@@ -753,51 +755,59 @@ sub _xlate_mh_x10
 	my $cmd=$p_state;
         $cmd=~ s/\:.*$//;
         $cmd=lc($cmd);
-
+	
 	my $id=lc($p_setby->{id_by_state}{$cmd});
 
 	my $hc = lc(substr($p_setby->{x10_id},1,1));
 	my $uc = lc(substr($p_setby->{x10_id},2,1));
 
 	if ($hc eq undef) {
-		&::print_log("[Insteon_PLM] Object:$p_setby Doesnt have an x10 id (yet)");
+	    &main::print_log("[Insteon_PLM] Object:$p_setby Doesnt have an x10 id (yet)");
 		return undef;
 	}
 
-	#Every X10 message starts with the House and unit code
-	$msg = "02";
-	$msg.= unpack("H*",pack("C",$plm_commands{x10_send}));
-	$msg.= substr(unpack("H*",pack("C",$x10_house_codes{substr($id,1,1)})),1,1);
-	$msg.= substr(unpack("H*",pack("C",$x10_unit_codes{substr($id,2,1)})),1,1);
-	$msg.= "00";
-	&main::print_log("[Insteon_PLM] x10 sending code: " . uc($hc . $uc) . " as insteon msg: "
-		. $msg) if $main::Debug{insteon};
-	$self->send_plm_cmd($msg);
-
+	if ($uc eq undef) {
+	    &main::print_log("[Insteon_PLM] Message is for entire HC") if $main::Debug{insteon};
+	}
+	else {
+	    
+	    #Every X10 message starts with the House and unit code
+	    $msg = "02";
+	    $msg.= unpack("H*",pack("C",$plm_commands{x10_send}));
+	    $msg.= substr(unpack("H*",pack("C",$x10_house_codes{substr($id,1,1)})),1,1);
+	    $msg.= substr(unpack("H*",pack("C",$x10_unit_codes{substr($id,2,1)})),1,1);
+	    $msg.= "00";
+	    &main::print_log("[Insteon_PLM] x10 sending code: " . uc($hc . $uc) . " as insteon msg: "
+			     . $msg) if $main::Debug{insteon};
+	    $self->send_plm_cmd($msg);
+	}
+	    
 	my $ecmd;
 	#Iterate through the rest of the pairs of nibbles
-	for (my $pos = 3; $pos<length($id); $pos++) {
-		$msg= "02";
-		$msg.= unpack("H*",pack("C",$plm_commands{x10_send}));
-		$msg.= substr(unpack("H*",pack("C",$x10_house_codes{substr($id,$pos,1)})),1,1);
-		$pos++;
-
-		#look for an explicit command
-		$ecmd = substr($id,$pos,length($id)-$pos);
-#		&::print_log("PLM:PAIR:$id:$pos:$ecmd:");
-		my $x10_arg = $ecmd;
-		if (defined $x10_commands{$ecmd} )
-		{
-			$msg.= substr(unpack("H*",pack("C",$x10_commands{$ecmd})),1,1);
-			$pos+=length($id)-$pos-1;
-		} else {
-			$x10_arg = $x10_commands{substr($id,$pos,1)};
-			$msg.= substr(unpack("H*",pack("C",$x10_commands{substr($id,$pos,1)})),1,1);			
-		}
-		$msg.= "80";
-		&main::print_log("[Insteon_PLM] x10 sending code: " . uc($hc . $x10_arg) . " as insteon msg: "
-		. $msg) if $main::Debug{insteon};
-		$self->send_plm_cmd($msg);
+	my $spos = 3;
+	if ($uc eq undef) {$spos=1;}
+#	&::print_log("PLM:PAIR:$id:$spos:$ecmd:");
+	for (my $pos = $spos; $pos<length($id); $pos++) {
+	    $msg= "02";
+	    $msg.= unpack("H*",pack("C",$plm_commands{x10_send}));
+	    $msg.= substr(unpack("H*",pack("C",$x10_house_codes{substr($id,$pos,1)})),1,1);
+	    $pos++;
+	    
+	    #look for an explicit command
+	    $ecmd = substr($id,$pos,length($id)-$pos);
+	    my $x10_arg = $ecmd;
+	    if (defined $x10_commands{$ecmd} )
+	    {
+		$msg.= substr(unpack("H*",pack("C",$x10_commands{$ecmd})),1,1);
+		$pos+=length($id)-$pos-1;
+	    } else {
+		$x10_arg = $x10_commands{substr($id,$pos,1)};
+		$msg.= substr(unpack("H*",pack("C",$x10_commands{substr($id,$pos,1)})),1,1);			
+	    }
+	    $msg.= "80";
+	    &main::print_log("[Insteon_PLM] x10 sending code: " . uc($hc . $x10_arg) . " as insteon msg: "
+			     . $msg) if $main::Debug{insteon};
+	    $self->send_plm_cmd($msg);
 	}
 }
 
