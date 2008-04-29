@@ -74,17 +74,12 @@ sub mpd_control {
 	my $data_dir = $main::config_parms{data_dir};
 	my $mpdStatus = "";
 	if ($state eq 'Restart'){
-	    $mpdStatus = `pidof $mp3_program`;
-	    chop $mpdStatus;
-	    unless ($mpdStatus eq ""){
+	    unless (&check_pid == 1){
 		`killall $mp3_program`;
 	        `$mp3_program $data_dir/mpd/mpd.conf`;
 	        #sleep 1 sec to let the process start
 	        sleep 1;
-	        # 09/05/05 dnorwood, took out the /sbin/ path to pidof, because it's in /bin on debian
-	        $mpdStatus = `pidof $mp3_program`;
-	        chop $mpdStatus;
-	        if ( $mpdStatus eq "" ) {
+	        if (  &check_pid != 1 ) {
 	            print_log "$mp3_program failed to start";
 	            return;
 	        }
@@ -313,18 +308,12 @@ sub mp3_running {
     }
 
     # if mpd is not running, we will start it
-    my $mpdStatus;
-    $mpdStatus = `pidof $mp3_program`;
-    chop $mpdStatus;
-    unless ( $mpdStatus ne "" ) {
+    unless ( &check_pid == 1) {
         print_log "$mp3_program is not running, attempting to start";
         `$mp3_program $data_dir/mpd/mpd.conf`;
         #sleep 1 sec to let the process start
         sleep 1;
-        # 09/05/05 dnorwood, took out the /sbin/ path to pidof, because it's in /bin on debian 
-        $mpdStatus = `pidof $mp3_program`;
-        chop $mpdStatus;
-        if ( $mpdStatus eq "" ) {
+        if (  &check_pid != 1 ) {
             print_log "Can't start $mp3_program";
             return 0;
         }
@@ -362,4 +351,21 @@ sub trim($)
         my $string = shift;
         $string =~ s/(^\s+|\s+$)//g;
         return $string;
+}
+
+sub check_pid{
+    my $data_dir = $main::config_parms{data_dir};
+    if ( -e "$data_dir/mpd/pid" ) {
+    	my $state;
+    	my $pid;
+    	open (MYFILE, "$data_dir/mpd/pid");
+    	while (<MYFILE>) {
+        	chomp;
+    		$pid = "$_\n";
+        }
+    	$state = kill 0, $pid;
+    	return $state;
+    } else {
+	return 0;
+    }
 }
