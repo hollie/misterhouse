@@ -69,6 +69,9 @@ sub new {
             $self->add ($id . 'L', 'brighten');
             $self->add ($id . 'M', 'dim');
             $self->add ($id . 'STATUS', 'status');
+	    $self->add ($hc . 'O', 'all_lights_on');
+	    $self->add ($hc . 'P', 'all_off');
+	    $self->add ($hc . 'ALL_LIGHTS_OFF', 'all_lights_off');
         }
                                 # Setup unit-command  codes:  e.g. XA1AJ, XA1AK, XA1+20
                                 # Note: The 0%->100% states are handled directly in Serial_Item.pm
@@ -136,31 +139,31 @@ sub set_interface {
     # possible interface modules until we find one that will work with it
     if ($interface) {
         if (X10_Interface->supports($interface)) {
-            print "for id $id, x10 interface supplied ($interface) and supported by X10_Interface\n" if $localDebug;
+            print "[X10] for id $id, x10 interface supplied ($interface) and supported by X10_Interface\n" if $localDebug;
             $self->{interface}=new X10_Interface(undef,undef,$interface);
         } elsif (Serial_Item->supports($interface)) {
-            print "for id $id, x10 interface supplied ($interface) and supported by Serial_Item\n" if $localDebug;
+            print "[X10] for id $id, x10 interface supplied ($interface) and supported by Serial_Item\n" if $localDebug;
             $self->{interface}=new Serial_Item(undef,undef,$interface);
         } elsif ( defined $interface_object and $interface_object->isa('Insteon_PLM')) {
-            print "for id $id, x10 interface supplied ($interface) and supported by an Insteon PLM\n" if $localDebug;
+            print "[X10] for id $id, x10 interface supplied ($interface) and supported by an Insteon PLM\n" if $localDebug;
             $self->{interface} = $interface_object;
             $self->{interface}->add($self);
         } else {
             # we can't find a real interface, so use a Dummy_Interface
-            print "warning, using dummy interface for id $id and supplied interface $interface\n" if $localDebug;
+            print "[X10] warning, using dummy interface for id $id and supplied interface $interface\n" if $localDebug;
             $self->{interface}=new Dummy_Interface($id, undef, $interface);
         }
     } else {
         # an interface wasn't specified, we'll use the first one that we find
         if ($interface=X10_Interface->lookup_interface){
-            print "for id $id, x10 interface not supplied, supported by X10_Interface $interface\n" if $localDebug;
+            print "[X10] for id $id, x10 interface not supplied, supported by X10_Interface $interface\n" if $localDebug;
             $self->{interface}=new X10_Interface(undef,undef,$interface);
         } elsif ($interface=Serial_Item->lookup_interface) {
-            print "for id $id, x10 interface not supplied, supported by Serial_Item $interface\n" if $localDebug;
+            print "[X10] for id $id, x10 interface not supplied, supported by Serial_Item $interface\n" if $localDebug;
             $self->{interface}=new Serial_Item(undef,undef,$interface);
         } else {
             # we can't find a real interface, so use a Dummy_Interface
-            print "warning, using dummy interface for id $id\n" if $localDebug;
+            print "[X10] warning, using dummy interface for id $id\n" if $localDebug;
             $self->{interface}=new Dummy_Interface($id);
         }
     }
@@ -199,7 +202,6 @@ sub set {
     $preset2 = 1 if $self->{type} and ($self->{type} =~ /\bpreset2\b/i);
     $preset3 = 1 if $self->{type} and ($self->{type} =~ /\bpreset3\b/i);
     $presetable = 1 if $self->{type} and ($self->{type} =~ /(lm14|preset)/i);
-    $presetable = 1 if $self->{type} and ($self->{type} =~ /(lm14|preset)/i);
 
                                 # Turn light off if on or dim, turn on if off 
     if ($state eq 'toggle') {
@@ -209,7 +211,7 @@ sub set {
         else {
             $state = 'on';
         }
-        &main::print_log("Toggling X10_Item object $self->{object_name} from $$self{state} to $state");
+        &main::print_log("[X10] Toggling X10_Item object $self->{object_name} from $$self{state} to $state") if $main::Debug{x10};
     }
 
                                 # Make sure we do the right thing if light was off
@@ -233,7 +235,7 @@ sub set {
         my $level_diff = int ($level_now * ($change / 100));
                                 # Round of to nearest 5 for dumb modules, since Serial Item rounds by 5
         $level_diff = 5 * int $level_diff/5 unless $presetable;
-        &main::print_log("Changing light by $level_diff ($level_now * $change%)") if $main::config_parms{x10_errata} >= 3;
+        &main::print_log("[X10] Changing light by $level_diff ($level_now * $change%)") if $main::config_parms{x10_errata} >= 3;
         $state = $level_diff;
     }
 
@@ -245,7 +247,7 @@ sub set {
         my $level_diff = $level - $level_now;
                                 # Round of to nearest 5 for dumb modules, since Serial Item rounds by 5
         $level_diff = 5 * int $level_diff/5;
-        &main::print_log("Changing light by $level_diff ($level - $level_now)") if $main::config_parms{x10_errata} >= 3;
+        &main::print_log("[X10] Changing light by $level_diff ($level - $level_now)") if $main::config_parms{x10_errata} >= 3;
         $state = $level_diff;
     }
 
@@ -261,13 +263,12 @@ sub set {
         $state = $level . '%';
     }
 
-                                # Send the command
+                               # Send the command
     $self->SUPER::set($state, $set_by);
 	$set_by = $self if !defined $set_by;
 
 	#Insteon PLM needs calling object, dont care about who originated
-
-	if ($self->{interface}->isa("Insteon_PLM") ) {		
+	if ($self->{interface}->isa("Insteon_PLM") ) {
 	    $self->{interface}->set($state, $self);
 	} else {
 	    $self->{interface}->set($state, $set_by);
@@ -280,8 +281,7 @@ sub set {
     }
 
                                 # Set objects that match House Code commands
-                                # we don't want to do this for all on or off
-    if (length($self->{x10_id}) == 2 and ($state ne 'on' and $state ne 'off')) {
+    if (length($self->{x10_id}) == 2) {
         my $hc = substr $self->{x10_id}, 1; # Drop the X prefix
         &set_by_housecode($hc, $state);
     }
@@ -289,6 +289,7 @@ sub set {
 
 sub set_receive {
     my ($self, $state, $set_by) = @_;
+
     &set_x10_level($self, $state);
     $self->SUPER::set_receive($state, $set_by);
     $self->{interface}->set_receive($state, $set_by);
@@ -394,17 +395,29 @@ sub state_level {
 
 sub set_by_housecode {
     my ($hc, $state) = @_;
+
+    # change the $state variable to either "on" or "off".
+    my $original_state = $state;
+    if( ($state eq 'all_off') or ($state eq 'all_lights_off') ) { $state = 'off'; }
+    if( ($state eq 'all_lights_on') ) { $state = 'on'; }
+    
+    print "[X10] Modifying non-appliance modules on $hc to state $state\n" if $main::Debug{x10};
     for my $object (@{$items_by_house_code{$hc}}) {
         next if $object->{type} =~ /transmit/i;  # Do not set transmitters
 #       next if $object->isa('X10_Transmitter'); # This would work also
-        print "Setting X10 House code $hc item $object to $state\n" if $main::Debug{x10};
+        print "[X10] Setting X10 House code $hc item $object to $state\n" if $main::Debug{x10};
         $object->set_receive($state, 'housecode');
     }
 
-    return if $state eq 'on';     # All lights on does not effect appliances
+    # All lights on/off does not effect appliances
+    if ( ($state eq 'on') or ($original_state eq 'all_lights_off') ) {
+        print "[X10] $original_state does not affect appliance modules\n" if $main::Debug{x10};
+	return;
+    }
 
+    print "[X10] Setting all appliance items on $hc to state $state\n" if $main::Debug{x10};
     for my $object (@{$appliances_by_house_code{$hc}}) {
-        print "Setting X10 House code $hc appliance $object to $state\n" if $main::Debug{x10};
+        print "[X10] Setting X10 House code $hc appliance $object to $state\n" if $main::Debug{x10};
         $object->set_receive($state, 'housecode');
     }
 
@@ -1224,7 +1237,7 @@ package X10_Sensor;
 @X10_Sensor::ISA = ('X10_Item');
 
 sub init {
-    &::print_log("Calling Serial_match_add_hook");
+    &::print_log("[X10_Sensor] Calling Serial_match_add_hook");
     &::Serial_match_add_hook( \&X10_Sensor::sensorhook);
     $sensorinit = 1;
 }
@@ -1264,7 +1277,7 @@ sub add {
         $id = 'X' . $id . $hc . 'J';
     }
 
-    &::print_log("Adding X10_Sensor timer for $id, name=$name type=$type")
+    &::print_log("[X10_Sensor] Adding X10_Sensor timer for $id, name=$name type=$type")
       if $main::Debug{x10_sensor};
 
                                 #24 hour countdown Timer
