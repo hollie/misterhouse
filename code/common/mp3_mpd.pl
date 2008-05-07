@@ -339,13 +339,6 @@ sub gen_mpd_conf{
 	close (MYFILE);
 }
 
-sub init_mpd_con{
-	eval{
-		my $mpd = Audio::MPD->new();
-		return $mpd;
-	};
-}
-
 sub trim($)
 {
         my $string = shift;
@@ -369,3 +362,11 @@ sub check_pid{
 	return 0;
     }
 }
+
+sub init_mpd_con{
+        eval{
+                my $mpd = Audio::MPD->new();
+                return $mpd;
+        };
+}
+
