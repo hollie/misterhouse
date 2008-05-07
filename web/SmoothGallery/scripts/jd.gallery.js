@@ -1,5 +1,5 @@
-$Date$
-$Revision$
+// $Date$
+// $Revision$
 
 /*
     This file is part of JonDesign's SmoothGallery v2.0.

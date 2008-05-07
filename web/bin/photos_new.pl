@@ -1,4 +1,5 @@
-# Authority: anyone
+# $Date$
+# $Revision$
 
 =begin comment
 

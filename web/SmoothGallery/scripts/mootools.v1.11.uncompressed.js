@@ -1,5 +1,5 @@
-$Date$
-$Revision$
+// $Date$
+// $Revision$
 /*
 Script: Core.js
 	Mootools - My Object Oriented javascript.
