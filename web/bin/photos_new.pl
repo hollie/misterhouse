@@ -30,6 +30,9 @@ foreach (@photos){
 	my $file = $_;
 	my $img = $file;
 	my @dirs = split(/,/, $config_parms{photo_dirs});
+	$file     =~  s/ /%20/g;
+	$file     =~  s/\#/%23/g;
+	$file     =~  s/\'/%27/g;
 	foreach (@dirs){
 		$img =~ s/$_//;
 	}
