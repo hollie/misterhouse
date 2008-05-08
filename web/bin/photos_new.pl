@@ -27,16 +27,21 @@ $time = 60 unless defined $time;
 $config_parms{photo_url}     = '/ia5'       unless $config_parms{photo_url};
 my $images = "";
 foreach (@photos){
-	my $img = $_;
-	$img =~ s/$config_parms{photo_dirs}\///;
-	$img =~ s/\.(...(.)?)//;
+	my $file = $_;
+	my $img = $file;
+	my @dirs = split(/,/, $config_parms{photo_dirs});
+	foreach (@dirs){
+		$img =~ s/$_//;
+	}
+	$img =~ m/(\/)?(.+)\.(\S+)/;
+	$img = $2;
 	$images .= <<eof;
 <div class="imageElement">
 	<h3>$img</h3>
 	<p></p>
-        <a href="$_" title="open image" class="open"></a>
-        <img src="$_" class="full" />
-        <img src="$_" class="thumbnail" />
+        <a href="$file" title="open image" class="open"></a>
+        <img src="$file" class="full" />
+        <img src="$file" class="thumbnail" />
 </div>
 eof
 }
