@@ -265,7 +265,7 @@ sub set
 			}
 		}
 	}
-	$self->SUPER::set((($self->is_root and !($self->is_plm_controlled)) ? $p_state : $link_state), $p_setby, $p_respond);
+	$self->SUPER::set((($self->is_root) ? $p_state : $link_state), $p_setby, $p_respond);
 }
 
 sub update_members
@@ -370,7 +370,7 @@ sub initiate_linking_as_controller
 sub _xlate_mh_insteon
 {
 	my ($self, $p_state, $p_type, $p_extra) = @_;
-	if ($self->group eq '01') {
+	if ($self->is_root) {
 		return $self->SUPER::_xlate_mh_insteon($p_state, $p_type, $p_extra);
 	} else {
 		return $self->SUPER::_xlate_mh_insteon($p_state, 'broadcast', $p_extra);

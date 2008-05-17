@@ -292,7 +292,7 @@ sub set
 					. "::set($p_state, $p_setby)") if $main::Debug{insteon};
 		} else {
 			$self->_send_cmd(command => $p_state, 
-				type => (($self->isa('Insteon_Link') and ($self->group ne '01')) ? 'alllink' : 'standard'));
+				type => (($self->isa('Insteon_Link') and !($self->is_root)) ? 'alllink' : 'standard'));
 			&::print_log("[Insteon_Device] " . $self->get_object_name() . "::set($p_state, $p_setby)")
 				if $main::Debug{insteon};
 			$self->is_acknowledged(0);
@@ -448,7 +448,7 @@ sub is_plm_controlled {
 
 sub is_root {
 	my ($self) = @_;
-	return ($self->group eq '01') ? 1 : 0;
+	return (($self->group eq '01') and !($self->is_plm_controlled)) ? 1 : 0;
 }
 
 sub get_root {
@@ -1038,16 +1038,20 @@ sub devcat
 sub is_dimmable
 {
 	my ($self) = @_;
-	if ($$self{devcat}) {
-		if ($$self{devcat} =~ /^01\d\d/) {
-			return 1;
-		} else {
-			return 0;
-		}
+	if (!($self->is_root)) {
+		return 0;
 	} else {
-		&::print_log("[Insteon_Device] WARN: making assumption that " . $self->get_object_name . " is dimmable because devcat is not yet known")
-			if $main::Debug{insteon};
-		return 1;
+		if ($$self{devcat}) {
+			if ($$self{devcat} =~ /^01\d\d/) {
+				return 1;
+			} else {
+				return 0;
+			}
+		} else {
+			&::print_log("[Insteon_Device] WARN: making assumption that " . $self->get_object_name . " is dimmable because devcat is not yet known")
+				if $main::Debug{insteon};
+			return 1;
+		}
 	}
 }
 
