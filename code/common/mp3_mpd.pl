@@ -139,9 +139,9 @@ sub mp3_control {
       $mpdconn->volume($vol);
     }
     elsif ($state eq 'Shuffle On') {
-      my $shufflestat = $mpdconn->status()->shuffle();
+      my $shufflestat = $mpdconn->status()->random();
       if (!$shufflestat) {
-        $mpdconn->shuffle(1);
+        $mpdconn->random(1);
       }
     }
     elsif ($state eq 'Shuffle Off') {
