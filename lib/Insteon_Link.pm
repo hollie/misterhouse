@@ -131,7 +131,7 @@ sub sync_links
 						on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,
 						callback => "$self_link_name->_process_sync_queue()" );
 					# set data3 is device is a KeypadLinc
-					if ($$member{devcat} eq '0109') {
+					if ($member->is_keypadlinc) {
 						my $linkmember = $$self{members}{$member_ref}{object};
 						$link_req{data3} = $linkmember->group;
 					}
@@ -143,7 +143,7 @@ sub sync_links
 					on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,
 					callback => "$self_link_name->_process_sync_queue()" );
 				# set data3 is device is a KeypadLinc
-				if ($$member{devcat} eq '0109') {
+				if ($member->is_keypadlinc) {
 					my $linkmember = $$self{members}{$member_ref}{object};
 					$link_req{data3} = $linkmember->group;
 				}
@@ -154,7 +154,7 @@ sub sync_links
 					group => $self->group, is_controller => 1, 
 					callback => "$self_link_name->_process_sync_queue()" );
 				# set data3 is device is a KeypadLinc
-				if ($$member{devcat} eq '0109') {
+				if ($member->is_keypadlinc) {
 					my $linkmember = $$self{members}{$member_ref}{object};
 					$link_req{data3} = $linkmember->group;
 				}
@@ -168,7 +168,7 @@ sub sync_links
 			my %link_req = ( member => $insteon_object, cmd => 'add', object => $self->interface, 
 				group => $self->group, is_controller => 1, 
 				callback => "$self_link_name->_process_sync_queue()" );
-			$link_req{data3} = $self->group if $$insteon_object{devcat} eq '0109';
+			$link_req{data3} = $self->group if $insteon_object->is_keypadlinc;
 			push @{$$self{sync_queue}}, \%link_req;
 		}
 		if (!($self->interface->has_link($insteon_object,$self->group,0))) {
@@ -311,14 +311,14 @@ sub link_to_interface
 		my $surrogate_obj = $self->interface->get_object($self->device_id,'01');
 		if ($p_data3) {
 			$surrogate_obj->link_to_interface($group,$p_data3);
-		} elsif ($$surrogate_obj{devcat} eq '0109') {
+		} elsif ($surrogate_obj->is_keypadlinc) {
 			$surrogate_obj->link_to_interface($group,$self->group);
 		} else {
 			$surrogate_obj->link_to_interface($group);
 		}
 		# next, if the link is a keypadlinc, then create the reverse link to permit
 		# control over the button's light
-		if ($$surrogate_obj{devcat} eq '0109') { # 0109 is a keypadlinc
+		if ($surrogate_obj->is_keypadlinc) { 
 
 		}
 	} else {
@@ -342,7 +342,7 @@ sub unlink_to_interface
 		$surrogate_obj->unlink_to_interface($group);
 		# next, if the link is a keypadlinc, then delete the reverse link to permit
 		# control over the button's light
-		if ($$surrogate_obj{devcat} eq '0109') { # 0109 is a keypadlinc
+		if ($surrogate_obj->is_keypadlinc) { 
 
 		}
 	} else {

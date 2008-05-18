@@ -227,6 +227,16 @@ sub is_controller
 	return $$self{is_controller};
 }
 
+sub is_keypadlinc
+{
+	my ($self) = @_;
+	if (($$self{devcat} eq '0109') or ($$self{devcat} =~ /020f/i)) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
 sub level
 {
 	my ($self, $p_level) = @_;
@@ -1419,7 +1429,7 @@ sub _write_link
 		$$self{pending_adlb}{data1} = (defined $data1) ? lc $data1 : '00';
 		$$self{pending_adlb}{data2} = (defined $data2) ? lc $data2 : '00';
 		# Note: if device is a KeypadLinc, then $data3 must be assigned the value of the applicable button (01)
-		if ((($$self{devcat} eq '0109') or ($$self{devcat} eq '020f')) and ($data3 eq '00')) {
+		if (($self->is_keypadlinc) and ($data3 eq '00')) {
 			&::print_log("[Insteon_Device] setting data3 to " . $self->group . " for this keypadlinc")
 				if $main::Debug{insteon};
 			$data3 = $self->group;
