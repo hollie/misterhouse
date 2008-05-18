@@ -937,14 +937,18 @@ sub log_alllink_table
 {
 	my ($self) = @_;
 	foreach my $linkkey (sort(keys(%{$$self{links}}))) {
-		my $device = $self->get_object($$self{links}{$linkkey}{deviceid},'01');
+		my $data3 = $$self{links}{$linkkey}{data3};
+		my $is_controller = $$self{links}{$linkkey}{is_controller};
+		my $group = ($is_controller) ? $data3 : $$self{links}{$linkkey}{group};
+		$group = '01' if $group == '00';
+		my $device = $self->get_object($$self{links}{$linkkey}{deviceid},$group);
 		my $object_name = ($device) ? $device->get_object_name : $$self{links}{$linkkey}{deviceid};
 		&::print_log("[Insteon_PLM] " .
-			(($$self{links}{$linkkey}{is_controller}) ? "cntlr($$self{links}{$linkkey}{group}) record to "
+			(($is_controller) ? "cntlr($$self{links}{$linkkey}{group}) record to "
 			. $object_name
 			: "responder record to " . $object_name . "($$self{links}{$linkkey}{group})")
 			. " (d1=$$self{links}{$linkkey}{data1}, d2=$$self{links}{$linkkey}{data2}, "
-			. "d3=$$self{links}{$linkkey}{data3})")
+			. "d3=$data3)")
 			if $main::Debug{insteon};
 	}
 }
