@@ -337,7 +337,7 @@ sub set
 
 sub has_link
 {
-	my ($self, $insteon_object, $group, $is_controller) = @_;
+	my ($self, $insteon_object, $group, $is_controller, $subaddress) = @_;
 	my $key = lc $insteon_object->device_id . $group . $is_controller;
 	return (defined $$self{links}{$key}) ? 1 : 0;
 }
@@ -882,7 +882,7 @@ sub parse_alllink
 		$link{data2} = substr($data,16,2);
 		$link{data3} = substr($data,18,2);
 		my $key = $link{deviceid} . $link{group} . $link{is_controller};
-		%{$$self{links}{$key}} = %link;
+		%{$$self{links}{lc $key}} = %link;
 	}
 	$self->get_next_alllink();
 }
@@ -927,7 +927,7 @@ sub restore_linktable
 				$link_record{$key} = $value if $key and defined($value);
 			}
 			my $linkkey = $deviceid . $groupid . $is_controller;
-			%{$$self{links}{$linkkey}} = %link_record;
+			%{$$self{links}{lc $linkkey}} = %link_record;
 		}
 #		$self->log_alllink_table();
 	}
@@ -963,12 +963,13 @@ sub delete_orphan_links
 		my $deviceid = $$self{links}{$linkkey}{deviceid};
 		my $group = $$self{links}{$linkkey}{group};
 		my $is_controller = $$self{links}{$linkkey}{is_controller};
+		my $data3 = $$self{links}{$linkkey}{data3};
 		my $device = $self->get_object($deviceid,'01');
 		# if a PLM link (regardless of responder or controller) exists to a device that is not known, then delete
 		if (!($device)) {
 			my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
 				callback => "$selfname->_process_delete_queue(1)",
-				linkdevice => $self);
+				linkdevice => $self, data3 => $data3);
 			push @{$$self{delete_queue}}, \%delete_req;
 		} else {
 			my $is_invalid = 1;
@@ -993,6 +994,7 @@ sub delete_orphan_links
 							}
 						}
 						if ($member->isa('Insteon_Device')) {
+							my $linkmember = $member;
 							# make sure that this is a root device
 							if (!($member->is_root)) {
 								$member = $member->get_root;
@@ -1000,7 +1002,7 @@ sub delete_orphan_links
 							if (lc $member->device_id eq $$self{links}{$linkkey}{deviceid}) {
 								# at this point, the forward link is ok; but, only if the reverse
 								# link also exists.  So, check:
-								if ($member->has_link($self, $group, 0)) {
+								if ($member->has_link($self, $group, 0, $data3)) {
 									$is_invalid = 0;
 								} 
 								last;
@@ -1011,10 +1013,10 @@ sub delete_orphan_links
 					}
 					if ($is_invalid) {
 						# then, there is a good chance that a reciprocal link exists; if so, delet it too
-						if ($device->has_link($self,$group,0)) {
+						if ($device->has_link($self,$group,0, $data3)) {
 							my %delete_req = (object => $self, group => $group, is_controller => 0,
 								callback => "$selfname->_process_delete_queue(1)",
-								linkdevice => $device);
+								linkdevice => $device, data3 => $data3);
 							push @{$$self{delete_queue}}, \%delete_req;
 						}
 					}
@@ -1022,24 +1024,26 @@ sub delete_orphan_links
 				if ($is_invalid) {
 					my %delete_req = (object => $device, group => $group, is_controller => 1,
 								callback => "$selfname->_process_delete_queue(1)",
-								linkdevice => $self);
+								linkdevice => $self, data3 => $data3);
 					push @{$$self{delete_queue}}, \%delete_req;
 				}
 			}
 		}
 	}
+
+	$$self{delete_queue_processed} = 0; # reset the counter
+
 	# iterate over all registered objects and compare whether the link tables match defined scene linkages in known Insteon_Links
 	for my $obj ($self->find_members('Insteon_Device'))
 	{
 		#Match on real objects only
 		if (($obj->is_root))
 		{
-#			$num_deleted += $obj->delete_orphan_links();
+			$num_deleted += $obj->delete_orphan_links();
 			my %delete_req = ('root_object' => $obj, callback => "$selfname->_process_delete_queue()");
 			push @{$$self{delete_queue}}, \%delete_req;
 		}
 	}
-	$$self{delete_queue_processed} = 0; # reset the counter
 	$self->_process_delete_queue();
 }
 
@@ -1330,7 +1334,7 @@ sub get_device
 {
 	my ($self, $p_deviceid, $p_group) = @_;
 	foreach my $device ($self->find_members('Insteon_Device')) {
-		if ($device->device_id eq $p_deviceid and $device->group eq $p_group) {
+		if (lc $device->device_id eq lc $p_deviceid and lc $device->group eq lc $p_group) {
 			return $device;
 		}
 	}

@@ -230,7 +230,8 @@ sub is_controller
 sub is_keypadlinc
 {
 	my ($self) = @_;
-	if (($$self{devcat} eq '0109') or ($$self{devcat} =~ /020f/i)) {
+	my $obj = $self->get_root;
+	if (($$obj{devcat} eq '0109') or ($$obj{devcat} =~ /010c/i) or ($$obj{devcat} =~ /020f/i)) {
 		return 1;
 	} else {
 		return 0;
@@ -741,6 +742,11 @@ sub _on_poke
 		} elsif ($$self{_mem_action} eq 'adlb_data3') {
 			## update the adlb records w/ the changes that were made
 			my $adlbkey = $$self{pending_adlb}{deviceid} . $$self{pending_adlb}{group} . $$self{pending_adlb}{is_controller};
+			# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
+			my $subaddress = $$self{pending_adlb}{data3};
+			if (($subaddress ne '00') and ($subaddress ne '01')) {
+				$adlbkey .= $subaddress;
+			}
 			$$self{adlb}{$adlbkey}{data1} = $$self{pending_adlb}{data1};
 			$$self{adlb}{$adlbkey}{data2} = $$self{pending_adlb}{data2};
 			$$self{adlb}{$adlbkey}{data3} = $$self{pending_adlb}{data3};
@@ -791,9 +797,16 @@ sub _on_poke
 		$$self{_mem_activity} = undef;
 		# add the address of the deleted link to the empty list
 		push @{$$self{adlb}{empty}}, $$self{pending_adlb}{address};
-		my $key = lc $$self{pending_adlb}{deviceid} . $$self{pending_adlb}{group} . $$self{pending_adlb}{is_controller};
-		delete $$self{adlb}{$key};
-	
+		if (exists $$self{pending_adlb}{deviceid}) {
+			my $key = lc $$self{pending_adlb}{deviceid} . $$self{pending_adlb}{group} . $$self{pending_adlb}{is_controller};
+			# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
+			my $subaddress = $$self{pending_adlb}{data3};
+			if ($subaddress ne '00' and $subaddress ne '01') {
+				$key .= $subaddress;
+			}
+			delete $$self{adlb}{$key};
+		}
+
 		if (defined $$self{_mem_callback}) {
 			package main;
 			eval ($$self{_mem_callback});
@@ -823,6 +836,8 @@ sub _on_peek
 					$$self{adlb} = undef;
 					# reinit the empty address list
 					@{$$self{adlb}{empty}} = ();
+					# and, also the duplicates list
+					@{$$self{adlb}{duplicates}} = ();
 				}
 			} elsif ($$self{_mem_activity} eq 'update') {
 				$$self{_mem_action} = 'adlb_data1';
@@ -837,7 +852,7 @@ sub _on_peek
 		} elsif ($$self{_mem_action} eq 'adlb_flag') {
 			if ($$self{_mem_activity} eq 'scan') {
 				my $flag = hex($msg{extra});
-				$$self{pending_adlb}{inuse} = 1 if $flag & 0x80;
+				$$self{pending_adlb}{inuse} = ($flag & 0x80) ? 1 : 0;
 				$$self{pending_adlb}{is_controller} = ($flag & 0x40) ? 1 : 0;
 				$$self{pending_adlb}{highwater} = ($flag & 0x02) ? 1 : 0;
 				if (!($$self{pending_adlb}{highwater})) {
@@ -943,10 +958,20 @@ sub _on_peek
 				if ($$self{pending_adlb}{highwater}) {
 					if ($$self{pending_adlb}{inuse}) {
 					# save pending_adlb and then clear it out
-						my $adlbkey = $$self{pending_adlb}{deviceid} 
+						my $adlbkey = lc $$self{pending_adlb}{deviceid} 
 							. $$self{pending_adlb}{group}
 							. $$self{pending_adlb}{is_controller};
-						%{$$self{adlb}{$adlbkey}} = %{$$self{pending_adlb}};
+						# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
+						my $subaddress = $$self{pending_adlb}{data3};
+						if ($subaddress ne '00' and $subaddress ne '01') {
+							$adlbkey .= $subaddress;
+						}
+						# check for duplicates
+						if (exists $$self{adlb}{$adlbkey}) {
+							unshift @{$$self{adlb}{duplicates}}, $$self{pending_adlb}{address};
+						} else {
+							%{$$self{adlb}{$adlbkey}} = %{$$self{pending_adlb}};
+						}
 					} else {
 						# TO-DO: record the locations of deleted ADLB records for subsequent reuse
 						unshift @{$$self{adlb}{empty}}, $$self{pending_adlb}{address};
@@ -981,7 +1006,7 @@ sub restore_string
 	if ($$self{adlb}) {
 		my $adlb = '';
 		foreach my $adlb_key (keys %{$$self{adlb}}) {
-			next unless $adlb_key eq 'empty' || $$self{adlb}{$adlb_key}{inuse};
+			next unless $adlb_key eq 'empty' || $adlb_key eq 'duplicates' || $$self{adlb}{$adlb_key}{inuse};
 			$adlb .= '|' if $adlb; # separate sections
 			my $record = '';
 			if ($adlb_key eq 'empty') {
@@ -990,6 +1015,13 @@ sub restore_string
 					$record .= $address;
 				}
 				$record = 'empty=' . $record;
+			} elsif ($adlb_key eq 'duplicates') {
+				my $duplicate_record = '';
+				foreach my $address (@{$$self{adlb}{duplicates}}) {
+					$duplicate_record .= ';' if $duplicate_record;
+					$duplicate_record .= $address;
+				}
+				$record = 'duplicates=' . $duplicate_record;
 			} else {
 				my %adlb_record = %{$$self{adlb}{$adlb_key}};
 				foreach my $record_key (keys %adlb_record) {
@@ -1013,24 +1045,35 @@ sub restore_adlb
 		foreach my $adlb_section (split(/\|/,$adlb)) {
 			my %adlb_record = ();
 			my @adlb_empty = ();
+			my @adlb_duplicates = ();
 			my $deviceid = '';
 			my $groupid = '01';
 			my $is_controller = 0;
+			my $subaddress = '00';
 			foreach my $adlb_record (split(/,/,$adlb_section)) {
 				my ($key,$value) = split(/=/,$adlb_record);
 				if ($key eq 'empty') {
 					@adlb_empty = split(/;/,$value);
+				} elsif ($key eq 'duplicates') {
+					@adlb_duplicates = split(/;/,$value);
 				} else {
 					$deviceid = $value if ($key eq 'deviceid');
 					$groupid = $value if ($key eq 'group');
 					$is_controller = $value if ($key eq 'is_controller');
+					$subaddress = $value if ($key eq 'data3');
 					$adlb_record{$key} = $value if $key and defined($value);
 				}
 			}
 			if (@adlb_empty) {
 				@{$$self{adlb}{empty}} = @adlb_empty;
+			} elsif (@adlb_duplicates) {
+				@{$$self{adlb}{duplicates}} = @adlb_duplicates;
 			} else {
 				my $adlbkey = $deviceid . $groupid . $is_controller;
+				# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
+				if ($subaddress ne '00' and $subaddress ne '01') {
+					$adlbkey .= $subaddress;
+				}
 				%{$$self{adlb}{$adlbkey}} = %adlb_record;
 			}
 		}
@@ -1100,34 +1143,47 @@ sub delete_link
 	} else {
 		%link_parms = &main::parse_func_parms($parms_text);
 	}
-	my $insteon_object = $link_parms{object};
-	my $deviceid = ($insteon_object) ? $insteon_object->device_id : $link_parms{deviceid};
-	my $groupid = $link_parms{group};
-	$groupid = '01' unless $groupid;
-	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
-	# get the address via lookup into the hash
-	my $key = lc $deviceid . $groupid . $is_controller;
-	my $address = $$self{adlb}{$key}{address};
-	if ($address) {
-		&main::print_log("[Insteon_Device] Now deleting link [0x$address] with the following data"
-			. " deviceid=$deviceid, groupid=$groupid, is_controller=$is_controller");
-		# now, alter the flags byte such that the in_use flag is set to 0
+	if ($link_parms{address}) {
 		$$self{_mem_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
 		$$self{_mem_activity} = 'delete';
-		$$self{pending_adlb}{deviceid} = $deviceid;
-		$$self{pending_adlb}{group} = $groupid;
-		$$self{pending_adlb}{is_controller} = $is_controller;
-		$$self{pending_adlb}{address} = $address;
-		$self->_peek($address,0);
+		$$self{pending_adlb}{address} = $link_parms{address};
+		$self->_peek($link_parms{address},0);
+	
 	} else {
-		&main::print_log('[Insteon_Device] WARN: (' . $self->get_object_name . ') attempt to delete link that does not exist!'
-			. " deviceid=$deviceid, groupid=$groupid, is_controller=$is_controller");
-		if ($link_parms{callback}) {
-			package main;
-			eval($link_parms{callback});
-			&::print_log("[Insteon_Device] error encountered during delete_link callback: " . $@)
-				if $@ and $main::Debug{insteon};
-			package Insteon_Device;
+		my $insteon_object = $link_parms{object};
+		my $deviceid = ($insteon_object) ? $insteon_object->device_id : $link_parms{deviceid};
+		my $groupid = $link_parms{group};
+		$groupid = '01' unless $groupid;
+		my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
+		my $subaddress = ($link_parms{data3}) ? $link_parms{data3} : '00';
+		# get the address via lookup into the hash
+		my $key = lc $deviceid . $groupid . $is_controller;
+		# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
+		if ($subaddress ne '00' and $subaddress ne '01') {
+			$key .= $subaddress;
+		}
+		my $address = $$self{adlb}{$key}{address};
+		if ($address) {
+			&main::print_log("[Insteon_Device] Now deleting link [0x$address] with the following data"
+				. " deviceid=$deviceid, groupid=$groupid, is_controller=$is_controller");
+			# now, alter the flags byte such that the in_use flag is set to 0
+			$$self{_mem_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
+			$$self{_mem_activity} = 'delete';
+			$$self{pending_adlb}{deviceid} = lc $deviceid;
+			$$self{pending_adlb}{group} = $groupid;
+			$$self{pending_adlb}{is_controller} = $is_controller;
+			$$self{pending_adlb}{address} = $address;
+			$self->_peek($address,0);
+		} else {
+			&main::print_log('[Insteon_Device] WARN: (' . $self->get_object_name . ') attempt to delete link that does not exist!'
+				. " deviceid=$deviceid, groupid=$groupid, is_controller=$is_controller");
+			if ($link_parms{callback}) {
+				package main;
+				eval($link_parms{callback});
+				&::print_log("[Insteon_Device] error encountered during delete_link callback: " . $@)
+					if $@ and $main::Debug{insteon};
+				package Insteon_Device;
+			}
 		}
 	}
 }
@@ -1139,34 +1195,73 @@ sub delete_orphan_links
 	my $selfname = $self->get_object_name;
 	my $num_deleted = 0;
 	for my $linkkey (keys %{$$self{adlb}}) {
-		if ($linkkey ne 'empty') {
-			my $deviceid = $$self{adlb}{$linkkey}{deviceid};
+		if ($linkkey ne 'empty' and $linkkey ne 'duplicates') {
+			my $deviceid = lc $$self{adlb}{$linkkey}{deviceid};
 			my $group = $$self{adlb}{$linkkey}{group};
 			my $is_controller = $$self{adlb}{$linkkey}{is_controller};
-			my $device = ($deviceid eq $self->interface->device_id) ? $self->interface
+			my $data3 = $$self{adlb}{$linkkey}{data3};
+			my $device = ($deviceid eq lc $self->interface->device_id) ? $self->interface
 					: $self->interface->get_object($deviceid,'01');
 			if (!($device)) {
-				&::print_log("[Insteon_Device] " . $self->get_object_name . " now deleting orphaned link w/ details: "
-					. (($is_controller) ? "controller" : "responder")
-					. ", deviceid=$deviceid, group=$group");
-
+#				&::print_log("[Insteon_Device] " . $self->get_object_name . " now deleting orphaned link w/ details: "
+#					. (($is_controller) ? "controller" : "responder")
+#					. ", deviceid=$deviceid, group=$group");
 				my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
-							callback => "$selfname->_process_delete_queue()");
+							callback => "$selfname->_process_delete_queue()", cause => "no device could be found");
 				push @{$$self{delete_queue}}, \%delete_req;
 			} elsif ($device->isa("Insteon_PLM") and $is_controller) {
 				# ignore since this is just a link back to the PLM
 			} elsif ($device->isa("Insteon_PLM")) {
-				if (!($device->has_link($self,$group,($is_controller) ? 0:1))) {
+				# does the PLM have a link point back?  If not, the delete this one
+				if (!($device->has_link($self,$group,1))) {
 					my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
-							callback => "$selfname->_process_delete_queue()", object => $device);
+							callback => "$selfname->_process_delete_queue()", object => $device, data3 => $data3);
 					push @{$$self{delete_queue}}, \%delete_req;
 					$num_deleted++;
 				}
-				# TO-DO: check to see if there is a defined link back to this device
+				# is there an entry in the items.mht that corresponds to this link?
+				if ($is_controller) {
+					# TO-DO: handle this case
+				} else {
+					my $plm_link = $device->get_device('000000',$group);
+					if ($plm_link) {
+						my $is_invalid = 1;
+						foreach my $member_ref (keys %{$$plm_link{members}}) {
+							my $member = $$plm_link{members}{$member_ref}{object};
+							if ($member->isa('Light_Item')) {
+								my @lights = $member->find_members('Insteon_Device');
+								if (@lights) {
+									$member = @lights[0]; # pick the first
+								}
+							}
+							if ($member->device_id eq $self->device_id) {
+								if ($data3 eq '00' or (lc $data3 eq lc $member->group)) {
+								$is_invalid = 0;
+								last;
+								}
+							}
+						}
+						if ($is_invalid) {
+							my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
+								callback => "$selfname->_process_delete_queue()", object => $device,
+								cause => "no link is defined for the plm controlled scene", data3 => $data3);
+							push @{$$self{delete_queue}}, \%delete_req;
+							$num_deleted++;
+						}
+					} else {
+						# delete the link since it doesn't exist
+						my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
+							callback => "$selfname->_process_delete_queue()", object => $device,
+							cause => "no plm link could be found", data3 => $data3);
+						push @{$$self{delete_queue}}, \%delete_req;
+						$num_deleted++;
+					}
+				}
 			} else {
-				if (!($device->has_link($self,$group,($is_controller) ? 0:1))) {
+				if (!($device->has_link($self,$group,($is_controller) ? 0:1, $data3))) {
 					my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
-							callback => "$selfname->_process_delete_queue()", object => $device);
+							callback => "$selfname->_process_delete_queue()", object => $device,
+							cause => "no link to the device could be found", data3 => $data3);
 					push @{$$self{delete_queue}}, \%delete_req;
 					$num_deleted++;
 				} else {
@@ -1197,11 +1292,22 @@ sub delete_orphan_links
 					}
 					if ($is_invalid) {
 						my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
-							callback => "$selfname->_process_delete_queue()", object => $device);
+							callback => "$selfname->_process_delete_queue()", object => $device,
+							cause => "no reverse link could be found", data3 => $data3);
 						push @{$$self{delete_queue}}, \%delete_req;
 						$num_deleted++;
 					}
 				}
+			}
+		} elsif ($linkkey eq 'duplicates') {
+			my $address = pop @{$$self{adlb}{duplicates}};
+			while ($address) {
+				my %delete_req = (address => $address,
+					callback => "$selfname->_process_delete_queue()", 
+					cause => "duplicate record found");
+				push @{$$self{delete_queue}}, \%delete_req;
+				$num_deleted++;
+				$address = pop @{$$self{adlb}{duplicates}};
 			}
 		}
 	}
@@ -1216,10 +1322,15 @@ sub _process_delete_queue {
 	if ($num_in_queue) {
 		my $delete_req_ptr = shift(@{$$self{delete_queue}});
 		my %delete_req = %$delete_req_ptr;
-		&::print_log("[Insteon_Device] " . $self->get_object_name . " now deleting orphaned link w/ details: "
-			. (($delete_req{is_controller}) ? "controller" : "responder")
-			. ", " . (($delete_req{object}) ? "device=" . $delete_req{object}->get_object_name 
-			: "deviceid=$delete_req{deviceid}") . ", group=$delete_req{group}");
+		if ($delete_req{address}) {
+			&::print_log("[Insteon_Device] " . $self->get_object_name . " now deleting duplicate record at address "
+				. $delete_req{address});
+		} else {
+			&::print_log("[Insteon_Device] " . $self->get_object_name . " now deleting orphaned link w/ details: "
+				. (($delete_req{is_controller}) ? "controller" : "responder")
+				. ", " . (($delete_req{object}) ? "device=" . $delete_req{object}->get_object_name 
+				: "deviceid=$delete_req{deviceid}") . ", group=$delete_req{group}, cause=$delete_req{cause}");
+		}
 		$self->delete_link(%delete_req);
 		$$self{delete_queue_processed}++;
 	} else {
@@ -1248,7 +1359,13 @@ sub add_link
 	}
 	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
 	# check whether the link already exists
-	my $key = $device_id . $group . $is_controller;
+	my $subaddress = ($link_parms{data3}) ? $link_parms{data3} : '00';
+	# get the address via lookup into the hash
+	my $key = lc $device_id . $group . $is_controller;
+	# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
+	if ($subaddress ne '00' and $subaddress ne '01') {
+		$key .= $subaddress;
+	}
 	if (defined $$self{adlb}{$key}) {
 		&::print_log("[Insteon_Device] WARN: attempt to add link to " . $self->get_object_name . " that already exists! "
 			. "object=" . $insteon_object->get_object_name . ", group=$group, is_controller=$is_controller");
@@ -1303,7 +1420,14 @@ sub update_link
 	my $data2 = ($self->is_dimmable) ? &Insteon_Device::convert_ramp($ramp_rate) : '00';
 	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
 	my $deviceid = $insteon_object->device_id;
-	my $address = $$self{adlb}{$deviceid . $group . $is_controller}{address};
+	my $subaddress = $data3;
+	# get the address via lookup into the hash
+	my $key = lc $deviceid . $group . $is_controller;
+	# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
+	if ($subaddress ne '00' and $subaddress ne '01') {
+		$key .= $subaddress;
+	}
+	my $address = $$self{adlb}{$key}{address};
 	$$self{_mem_activity} = 'update';
 	$$self{_mem_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
 	$self->_write_link($address, $deviceid, $group, $is_controller, $data1, $data2, $data3);
@@ -1314,17 +1438,14 @@ sub log_alllink_table
 {
 	my ($self) = @_;
 	&::print_log("[Insteon_Device] link table for " . $self->get_object_name . " (devcat: $$self{devcat}):");
-	my @recAddr;
 	foreach my $adlbkey (sort(keys(%{$$self{adlb}}))) {
-		next if $adlbkey eq 'empty';
-		# Add all addresses to @recAddr to be checked for duplicate records 
-		push (@recAddr,$$self{adlb}{$adlbkey}{address});
+		next if $adlbkey eq 'empty' or $adlbkey eq 'duplicates';
 		my ($device);
+		my $is_controller = $$self{adlb}{$adlbkey}{is_controller};
 		if ($self->interface()->device_id() and ($self->interface()->device_id() eq $$self{adlb}{$adlbkey}{deviceid})) {
 			$device = $self->interface;
 		} else {
 			$device = $self->interface()->get_object($$self{adlb}{$adlbkey}{deviceid},'01');
-#				$$self{adlb}{$adlbkey}{group});
 		}
 		my $object_name = ($device) ? $device->get_object_name : $$self{adlb}{$adlbkey}{deviceid};
 
@@ -1337,9 +1458,12 @@ sub log_alllink_table
 			}
 		}
 
+		my $rspndr_group = $$self{adlb}{$adlbkey}{data3};
+		$rspndr_group = '01' if $rspndr_group eq '00';
+	
 		my $ramp_rate = 'unknown';
 		if ($$self{adlb}{$adlbkey}{data2}) {
-			if (!($self->is_dimmable)) {
+			if (!($self->is_dimmable) or (!($is_controller) and ($rspndr_group != '01'))) {
 				$ramp_rate = 'none';
 				if ($on_level eq '0%') {
 					$on_level = 'off';
@@ -1351,8 +1475,6 @@ sub log_alllink_table
 			}
 		}
 
-		my $rspndr_group = $$self{adlb}{$adlbkey}{data3};
-		$rspndr_group = '01' if $rspndr_group eq '00';
 		&::print_log("[Insteon_Device] aldb [0x" . $$self{adlb}{$adlbkey}{address} . "] " .
 			(($$self{adlb}{$adlbkey}{is_controller}) ? "contlr($$self{adlb}{$adlbkey}{group}) record to "
 			. $object_name . "($rspndr_group), (d1:$$self{adlb}{$adlbkey}{data1}, d2:$$self{adlb}{$adlbkey}{data2}, d3:$$self{adlb}{$adlbkey}{data3})"
@@ -1361,34 +1483,12 @@ sub log_alllink_table
 	}
 	foreach my $address (@{$$self{adlb}{empty}}) {
 		&::print_log("[Insteon_Device] adlb [0x$address] is empty");
-		push (@recAddr,$address);
 	}
 
-	# Check for duplicate records.
-	if ($$self{devcat}) {
-		my $saw_start;
-		my $prev_dec;
-		my $prev_addr;
-		&::print_log("[Insteon_Device] Checking " .$self->get_object_name ." for duplicate records") if $main::Debug{insteon};
-		foreach my $rec (reverse sort @recAddr) {
-			my $dec = hex $rec;
-			unless ($saw_start) { # Make sure first record is correct [0x0FF8]
-				$saw_start++;
-				unless ($dec == 4088) {
-					&::print_log("[Insteon_Device] WARN: " . $self->get_object_name 
-						. ". First memory address should be [0x0FF8] not [0x$rec]");
-				}
-				$prev_dec = ($dec + 8);
-			}
-			unless ($dec == ($prev_dec - 8)) {
-				&::print_log("[Insteon_Device] " . $self->get_object_name 
-					. " record gap in aldb between [0x$prev_addr] and [0x$rec]")
-					if $main::Debug{insteon};
-			}
-			$prev_addr = $rec;
-			$prev_dec  = $dec;
-		}
+	foreach my $address (@{$$self{adlb}{duplicates}}) {
+		&::print_log("[Insteon_Device] adlb [0x$address] holds a duplicate entry");
 	}
+
 }
 
 sub get_link_record
@@ -1408,8 +1508,13 @@ sub update_local_properties
 
 sub has_link
 {
-	my ($self, $insteon_object, $group, $is_controller) = @_;
+	my ($self, $insteon_object, $group, $is_controller, $subaddress) = @_;
 	my $key = lc $insteon_object->device_id . $group . $is_controller;
+	$subaddress = '00' unless $subaddress;
+	# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
+	if ($subaddress ne '00' and $subaddress ne '01') {
+		$key .= $subaddress;
+	}
 	return (defined $$self{adlb}{$key}) ? 1 : 0;
 }
 
@@ -1448,7 +1553,6 @@ sub _peek
 	my ($self, $address, $extended) = @_;
 	my $msb = substr($address,0,2);
 	my $lsb = substr($address,2,2);
-	$self->_send_cmd('command' => 'set_address_msb', 'extra' => $msb, 'is_synchronous' => 1);
 	if ($extended) {
 		$$self{interface}->set($self->_xlate_mh_insteon('peek','extended',
 			$lsb . "0000000000000000000000000000"),$self);
@@ -1456,6 +1560,7 @@ sub _peek
 		$$self{_mem_lsb} = $lsb;
 		$$self{_mem_msb} = $msb;
 		$$self{_mem_action} = 'adlb_peek';
+		$self->_send_cmd('command' => 'set_address_msb', 'extra' => $msb, 'is_synchronous' => 1);
 	}
 }
 

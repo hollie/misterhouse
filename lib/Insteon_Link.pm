@@ -56,6 +56,14 @@ sub add
 				. "in this scene.  Aborting add request.\n";
 			return;
 		}
+		if ($on_level =~ /^sur/i) {
+			$on_level = '100%';
+			$$obj{surrogate} = $self;
+		} elsif (lc $on_level eq 'on') {
+			$on_level = '100%';
+		} elsif (lc $on_level eq 'off') {
+			$on_level = '0%';
+		}
 		$on_level = '100%' unless $on_level;
 		$$self{members}{$obj}{on_level} = $on_level;
 		$$self{members}{$obj}{object} = $obj;
@@ -84,6 +92,7 @@ sub sync_links
 				my @children = $member->find_members('Insteon_Device');
 				$member = $children[0];
 			}
+			my $linkmember = $member;
 			# find real device if member's group is not '01'; for example, cross-linked KeypadLincs
 			if ($member->group ne '01') {
 				$member = $self->interface->get_object($member->device_id,'01');
@@ -95,12 +104,15 @@ sub sync_links
 			$tgt_ramp_rate = '0' unless defined $tgt_ramp_rate;
 			# first, check existance for each link; if found, then perform an update (unless link is to PLM)
 			# if not, then add the link
-			if ($member->has_link($insteon_object, $self->group, 0)) {
+			if ($member->has_link($insteon_object, $self->group, 0, $linkmember->group)) {
 				# TO-DO: only update link if the on_level and ramp_rate are different
 				my $requires_update = 0;
 				$tgt_on_level =~ s/(\d+)%?/$1/;
 				$tgt_ramp_rate =~ s/(\d)s?/$1/;
 				my $adlbkey = lc $insteon_object->device_id . $self->group . '0';
+				if ($member->is_keypadlinc and $linkmember->group ne '01') {
+					$adlbkey .= $linkmember->group;
+				}
 				if (!($member->is_dimmable)) {
 					if ($tgt_on_level >= 1 and $$member{adlb}{$adlbkey}{data1} ne 'ff') {
 						$requires_update = 1;
@@ -116,9 +128,6 @@ sub sync_links
 					my $link_on_level = hex($$member{adlb}{$adlbkey}{data1})/2.55;
 					my $raw_ramp_rate = $$member{adlb}{$adlbkey}{data2};
 					my $link_ramp_rate = &Insteon_Device::get_ramp_from_code($raw_ramp_rate);
-#					&::print_log("[Insteon_Link] " . $self->get_object_name . ": " . $member->get_object_name 
-#						. " tgt_on_level=$tgt_on_level, link_on_level=$link_on_level, "
-#						. "tgt_ramp_rate=$tgt_ramp_rate, link_ramp_rate=$link_ramp_rate");
 					if ($link_ramp_rate != $tgt_ramp_rate) {
 						$requires_update = 1;
 					} elsif (($link_on_level > $tgt_on_level + 1) or ($link_on_level < $tgt_on_level -1)) {
@@ -132,7 +141,6 @@ sub sync_links
 						callback => "$self_link_name->_process_sync_queue()" );
 					# set data3 is device is a KeypadLinc
 					if ($member->is_keypadlinc) {
-						my $linkmember = $$self{members}{$member_ref}{object};
 						$link_req{data3} = $linkmember->group;
 					}
 					push @{$$self{sync_queue}}, \%link_req;
@@ -144,18 +152,16 @@ sub sync_links
 					callback => "$self_link_name->_process_sync_queue()" );
 				# set data3 is device is a KeypadLinc
 				if ($member->is_keypadlinc) {
-					my $linkmember = $$self{members}{$member_ref}{object};
 					$link_req{data3} = $linkmember->group;
 				}
 				push @{$$self{sync_queue}}, \%link_req;
 			}
-			if (!($insteon_object->has_link($member, $self->group, 1))) {
+			if (!($insteon_object->has_link($member, $self->group, 1, $linkmember->group))) {
 				my %link_req = ( member => $insteon_object, cmd => 'add', object => $member, 
 					group => $self->group, is_controller => 1, 
 					callback => "$self_link_name->_process_sync_queue()" );
 				# set data3 is device is a KeypadLinc
 				if ($member->is_keypadlinc) {
-					my $linkmember = $$self{members}{$member_ref}{object};
 					$link_req{data3} = $linkmember->group;
 				}
 				push @{$$self{sync_queue}}, \%link_req;
@@ -164,14 +170,14 @@ sub sync_links
 	}
 	# if not a plm controlled link, then confirm that a link back to the plm exists
 	if (!($self->is_plm_controlled)) {
-		if (!($insteon_object->has_link($self->interface,$self->group,1))) {
+		if (!($insteon_object->has_link($self->interface,$self->group,1,$self->group))) {
 			my %link_req = ( member => $insteon_object, cmd => 'add', object => $self->interface, 
 				group => $self->group, is_controller => 1, 
 				callback => "$self_link_name->_process_sync_queue()" );
 			$link_req{data3} = $self->group if $insteon_object->is_keypadlinc;
 			push @{$$self{sync_queue}}, \%link_req;
 		}
-		if (!($self->interface->has_link($insteon_object,$self->group,0))) {
+		if (!($self->interface->has_link($insteon_object,$self->group,0,$self->group))) {
 			my %link_req = ( member => $self->interface, cmd => 'add', object => $insteon_object, 
 				group => $self->group, is_controller => 0, 
 				callback => "$self_link_name->_process_sync_queue()" );
@@ -265,7 +271,14 @@ sub set
 			}
 		}
 	}
-	$self->SUPER::set((($self->is_root) ? $p_state : $link_state), $p_setby, $p_respond);
+	if ($self->is_keypadlinc and !($self->is_root)) {
+		if (ref $$self{surrogate} && $$self{surrogate}->isa('Insteon_Link')) {
+			$$self{surrogate}->SUPER::set($p_state, $p_setby, $p_respond);
+			$self->SUPER::set_receive($p_state, $p_setby, $p_respond);
+		}
+	} else {
+		$self->SUPER::set((($self->is_root) ? $p_state : $link_state), $p_setby, $p_respond);
+	}
 }
 
 sub update_members
