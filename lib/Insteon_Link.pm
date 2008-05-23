@@ -274,8 +274,8 @@ sub set
 	if ($self->is_keypadlinc and !($self->is_root)) {
 		if (ref $$self{surrogate} && $$self{surrogate}->isa('Insteon_Link')) {
 			$$self{surrogate}->SUPER::set($p_state, $p_setby, $p_respond);
-			$self->SUPER::set($p_state, $p_setby, $p_respond);
 		}
+		$self->SUPER::set($p_state, $p_setby, $p_respond);
 	} else {
 		$self->SUPER::set((($self->is_root) ? $p_state : $link_state), $p_setby, $p_respond);
 	}
