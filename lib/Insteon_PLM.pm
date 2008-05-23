@@ -325,8 +325,9 @@ sub set
 			# return the size of the command stack
 			return $self->send_plm_cmd('0262' . $p_state);
 		} else {
-			&::print_log("[Insteon_PLM] WARN: you may not attempt to set an Insteon_Link unless "
-				. "it is a root device (group = 01) or controlled by the PLM.  Set request now being ignored");
+			# silently ignore as this is now permitted if via "surrogate"
+#			&::print_log("[Insteon_PLM] WARN: you may not attempt to set an Insteon_Link unless "
+#				. "it is a root device (group = 01) or controlled by the PLM.  Set request now being ignored");
 		}
 	} elsif ($p_setby->isa("Insteon_Device")) {
 		return $self->send_plm_cmd('0262' . $p_state);
