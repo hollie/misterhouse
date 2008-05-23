@@ -273,7 +273,8 @@ sub set
 	}
 	if ($self->is_keypadlinc and !($self->is_root)) {
 		if (ref $$self{surrogate} && $$self{surrogate}->isa('Insteon_Link')) {
-			$$self{surrogate}->SUPER::set($p_state, $p_setby, $p_respond);
+			$$self{surrogate}->SUPER::set($p_state, $p_setby, $p_respond)
+				unless ref $p_setby and $p_setby eq $self;
 		}
 		$self->SUPER::set($p_state, $p_setby, $p_respond);
 	} else {
