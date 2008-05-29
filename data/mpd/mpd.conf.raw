@@ -83,7 +83,7 @@ bind_to_address                 "localhost"
 audio_output {
         type                    "alsa"
         name                    "Alsa Software Volume"
-	device			"mpdvol"
+	device			"default"
 }
 #
 # An example of an OSS output:

@@ -4,15 +4,17 @@
 # $Date$
 # $Revision$
 
-#@ This script controls the MPD Music Player Daemon for Linux. It<br />
-#@ handles operation of the mp3 player. Enable mp3.pl to manage the MP3 database.<br />
+#@ This script controls the MPD Music Player Daemon for Linux. It handles operation of the mp3 player. <br />
+#@ Enable mp3.pl to manage the MP3 database.<br />
 #@ This script requires Audio::MPD.<br />
 #@ Set mp3_program to where mpd is installed.  For example,<br />
-#@   mp3_program=/usr/bin/mpd<br />
+#@   <pre>mp3_program=/usr/bin/mpd</pre>
 #@ Make sure you have mp3_dir set so MPD knows where your Music files are. Example:<br />
-#@   mp3_dir=/home/mh/music<br />
-#@ Currently mp3_mpd.pl requires a subdirectory in your mp3_dir called "playlists"<br />
-#@   E.g. /home/mh/music/playlists<br />
+#@   <pre>mp3_dir=/home/mh/music</pre>
+#@ Currently mp3_mpd.pl requires a subdirectory in your mp3_dir called "playlists" and a <br />
+#@ symbolic link created to mp3_search_results.m3u in your data dir<br />
+#@   E.g. <pre>/home/mh/music/playlists</pre>and
+#@ <pre>/home/mh/music/playlists/mp3_search_results.m3u -> /home/mh/data/mp3_search_results.m3u</pre>
 #@ <strong>Please Note:</strong> If MPD dies, this script will keep attempting to start it until it successfully starts.<br />
 #@ If MPD is not running when Misterhouse is started, it will be started automatically<br />
 
