@@ -405,8 +405,13 @@ sub _process_command_stack
 			} else {
 				$$self{awaiting_ack} = 0;
 			}
+			# check to see if we are resending the same command; if so, then assume it is a retry and bump the counter
 			if ($$self{_prior_msg} and $$self{_prior_msg}{command} eq $cmd{command}) {
 				$$self{_retry_count} = ($$self{_retry_count}) ? $$self{_retry_count} + 1 : 1;
+				# unless there is a difference in the "extra" field which would be useful for something like repeat peeks
+				if (exists($$self{_prior_msg}{extra}) and exists($cmd{extra}) and ($$self{_prior_msg}{extra} ne $cmd{extra})) {
+					$$self{_retry_count} = 0;
+				}
 			} else {
 				$$self{_retry_count} = 0;
 			}
@@ -1560,6 +1565,7 @@ sub _peek
 		$$self{_mem_lsb} = $lsb;
 		$$self{_mem_msb} = $msb;
 		$$self{_mem_action} = 'adlb_peek';
+		&::print_log("[Insteon_Device] " . $self->get_object_name . " accessing memory at location: 0x" . $address);
 		$self->_send_cmd('command' => 'set_address_msb', 'extra' => $msb, 'is_synchronous' => 1);
 	}
 }
