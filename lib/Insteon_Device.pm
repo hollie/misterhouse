@@ -364,7 +364,7 @@ sub _process_command_stack
 	my ($self, %ackmsg) = @_;
 	if (%ackmsg) { # which may also be something that can be interpretted as a "nack"
 		# determine whether to unset awaiting_ack
-		# for now, by "dumb" and just unset it
+		# for now, be "dumb" and just unset it
 		$$self{awaiting_ack} = 0;
 		# is there an "on_ack" command to now be performed?  if so, queue it
 		if ($ackmsg{on_ack}) {
@@ -522,31 +522,44 @@ sub _process_message
 	# by Insteon_Link.
 	$$self{m_is_locally_set} = 1 if $msg{source} eq lc $self->device_id;
 	if ($msg{is_ack}) {
-		if ($$self{m_status_request_pending}) {
-			my $ack_on_level = (hex($msg{extra}) >= 254) ? 100 : sprintf("%d", hex($msg{extra}) * 100 / 255);
+		if ($$self{awaiting_ack}) {
+			my $pending_cmd = ($$self{_prior_msg}) ? $$self{_prior_msg}{command} : $msg{command};
+#			if ($$self{m_status_request_pending}) {
+			if ($pending_cmd eq 'status_request') {
+				my $ack_on_level = (hex($msg{extra}) >= 254) ? 100 : sprintf("%d", hex($msg{extra}) * 100 / 255);
 			
-			&::print_log("[Insteon_Device] received status request report for " .
-				$self->{object_name} . " with on-level: $ack_on_level%, "
-				. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
-			$self->_on_status_request($ack_on_level, 
-				(ref $$self{m_status_request_pending}) ? $$self{m_status_request_pending} : $p_setby);
-			$self->_process_command_stack(%msg);
-		} elsif (($msg{command} eq 'peek') or ($msg{command} eq 'set_address_msb')) {
-			$self->_on_peek(%msg);
-			$self->_process_command_stack(%msg);
-		} elsif (($msg{command} eq 'poke') or ($msg{command} eq 'set_address_msb')) {
-			$self->_on_poke(%msg);
-			$self->_process_command_stack(%msg);
+				&::print_log("[Insteon_Device] received status request report for " .
+					$self->{object_name} . " with on-level: $ack_on_level%, "
+					. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
+				$self->_on_status_request($ack_on_level, 
+					(ref $$self{m_status_request_pending}) ? $$self{m_status_request_pending} : $p_setby);
+				$self->_process_command_stack(%msg);
+			} elsif (($pending_cmd eq 'peek') or ($pending_cmd eq 'set_address_msb')) {
+				$self->_on_peek(%msg);
+				$self->_process_command_stack(%msg);
+			} elsif (($pending_cmd eq 'poke') or ($pending_cmd eq 'set_address_msb')) {
+				$self->_on_poke(%msg);
+				$self->_process_command_stack(%msg);
+			} else {
+				$self->is_acknowledged(1);
+				# signal receipt of message to the command stack in case commands are queued
+				$self->_process_command_stack(%msg);
+				&::print_log("[Insteon_Device] received command/state acknowledge from " . $self->{object_name} 
+					. ": $pending_cmd and data: $msg{extra}") if $main::Debug{insteon};
+			} 
 		} else {
 			$self->is_acknowledged(1);
 			# signal receipt of message to the command stack in case commands are queued
 			$self->_process_command_stack(%msg);
 			&::print_log("[Insteon_Device] received command/state acknowledge from " . $self->{object_name} 
-				. ": $msg{command} and data: $msg{extra}") if $main::Debug{insteon};
+				. ": " . (($msg{command}) ? $msg{command} : "(unknown)")
+				. " and data: $msg{extra}") if $main::Debug{insteon};
 		}
 	} elsif ($msg{is_nack}) {
 		&::print_log("[Insteon_Device] WARN!! ia a nack message for " . $self->{object_name} 
 			. " ... skipping");
+		$self->is_acknowledged(0);
+		$self->_process_command_stack(%msg);
 	} elsif ($msg{command} eq 'start_manual_change') {
 		# do nothing; although, maybe anticipate change? we should always get a stop
 	} elsif ($msg{command} eq 'stop_manual_change') {
