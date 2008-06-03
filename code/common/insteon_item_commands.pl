@@ -7,6 +7,8 @@ my (@_insteon_plm,@_insteon_device,@_insteon_link,@_scannable_link,$_scan_cnt,$_
 $_scan_link_tables_v = new Voice_Cmd 'Scan all link tables';
 
 if ($_scan_link_tables_v->state_now()) {
+   #reset scan counter
+   $_scan_cnt = 1;
    &_get_next_linkscan();
 }
 
@@ -55,7 +57,7 @@ sub _get_next_linkscan
        }
     } else {
        $current_name = undef;
-       $_scan_cnt = undef;
+       $_scan_cnt = 1;
        return undef;
     }
 }
