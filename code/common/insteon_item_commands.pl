@@ -7,9 +7,7 @@ my (@_insteon_plm,@_insteon_device,@_insteon_link,@_scannable_link,$_scan_cnt,$_
 $_scan_link_tables_v = new Voice_Cmd 'Scan all link tables';
 
 if ($_scan_link_tables_v->state_now()) {
-   #reset scan counter
-   $_scan_cnt = 1;
-   &_get_next_linkscan();
+   &_get_next_linkscan() unless $_scan_cnt; # prevent multiple concurrent scans
 }
 
 sub _get_next_linkscan
@@ -31,33 +29,51 @@ sub _get_next_linkscan
     if ($current_name) {
        for (my $i=0; $i<$dev_cnt; $i++) {
           if ($devices[$i] eq $current_name) {
-             if ($_scan_failure_cnt < 2) { # allow up to 1 retry
+             if ($_scan_failure_cnt == 0) {
                 # get the next
                 $next_name = $devices[$i+1] if $i+1 < $dev_cnt;
+                $_scan_cnt = $i + 2;
+                # remove the queue_timer_callback
+                my $current_obj = $objects_by_object_name{$current_name};
+                if (!($current_obj->isa('Insteon_PLM'))) {
+                   $current_obj->queue_timer_callback('');
+                }
+             } elsif ($_scan_failure_cnt == 1) { 
+                # try again
+                $next_name = $current_name;
+                &main::print_log("[Scan all link tables] WARN: failure occurred when scanning $current_name.  Trying again...");
+                $_scan_cnt = $i + 1;
              } else {
                 # skip because this is a repeat failure
-                $next_name = $devices[$i+2] if $i+2 < $dev_cnt;
+                $next_name = $devices[$i+1] if $i+1 < $dev_cnt;
+                &main::print_log("[Scan all link tables] WARN: failure occurred when scanning $current_name.  Moving on...");
                 $_scan_failure_cnt = 0; # reset failure counter
+                $_scan_cnt = $i + 2;
+                 # remove the queue_timer_callback
+                my $current_obj = $objects_by_object_name{$current_name};
+                if (!($current_obj->isa('Insteon_PLM'))) {
+                   $current_obj->queue_timer_callback('');
+                }
              }
+            last;
           }
        }
     } else {
-       $next_name = $devices[0] if $dev_cnt;
+       if ($dev_cnt) {
+          $next_name = $devices[0];
+          $_scan_cnt = 1;
+       }
     }
 
     if ($next_name) {
        my $obj = $objects_by_object_name{$next_name};
        if ($obj) {
-          $current_name = $next_name;
-          $_scan_cnt = 1 if (@_insteon_plm[0] eq $current_name); # Reset in case of timeout during scanning
           &main::print_log("[Scan all link tables] Now scanning: " . $obj->get_object_name . " ($_scan_cnt of $dev_cnt)");
-          $_scan_cnt++;
-          $obj->queue_timer_callback('&main::_get_next_linkscan(\'' . $next_name . '\')',1) unless $obj->isa('Insteon_PLM');
+          $obj->queue_timer_callback('&main::_get_next_linkscan(\'' . $next_name . '\',1)') unless $obj->isa('Insteon_PLM');
           $obj->scan_link_table('&main::_get_next_linkscan(\'' . $next_name . '\')');
        }
     } else {
-       $current_name = undef;
-       $_scan_cnt = 1;
+       $_scan_cnt = 0;
        return undef;
     }
 }
@@ -65,7 +81,7 @@ sub _get_next_linkscan
 $_sync_links_v = new Voice_Cmd 'Sync all links';
 
 if ($_sync_links_v->state_now()) {
-   &_process_sync_links();
+   &_process_sync_links() unless $_sync_cnt;
 }
 
 sub _process_sync_links
@@ -85,33 +101,48 @@ sub _process_sync_links
     if ($current_name) {
        for (my $i=0; $i<$dev_cnt; $i++) {
           if ($devices[$i] eq $current_name) {
-             if ($_sync_failure_cnt < 2) { # allow up to 1 retry
+             if ($_sync_failure_cnt ==0) {
                 # get the next
                 $next_name = $devices[$i+1] if $i+1 < $dev_cnt;
+                $_sync_cnt = $i + 2;
+                # remove the queue_timer_callback
+                my $current_obj = $objects_by_object_name{$current_name};
+                if (!($current_obj->isa('Insteon_PLM'))) {
+                   $current_obj->queue_timer_callback('');
+                }
+            } elsif ($_sync_cnt == 1) {
+                #try again
+                $next_name = $current_name;
+                &main::print_log("[Scan all link tables] WARN: failure occurred when syncing $current_name.  Trying again...");
+                $_sync_cnt = $i + 1;
              } else {
                 # skip because this is a repeat failure
-                $next_name = $devices[$i+2] if $i+2 < $dev_cnt;
+                $next_name = $devices[$i+1] if $i+1 < $dev_cnt;
+                &main::print_log("[Scan all link tables] WARN: failure occurred when syncing $current_name.  Moving on...");
                 $_sync_failure_cnt = 0; # reset failure counter
+                $_sync_cnt = $i + 2;
+                # remove the queue_timer_callback
+                my $current_obj = $objects_by_object_name{$current_name};
+                if (!($current_obj->isa('Insteon_PLM'))) {
+                   $current_obj->queue_timer_callback('');
+                }
              }
           }
        }
-    } else {
-       $next_name = $devices[0] if $dev_cnt;
+    } elsif ($dev_cnt) {
+       $next_name = $devices[0];
+       $_sync_cnt = 1;
     }
 
     if ($next_name) {
        my $obj = $objects_by_object_name{$next_name};
        if ($obj) {
-          $current_name = $next_name;
-          $_sync_cnt = 1 unless $_sync_cnt; # Reset in case of timeout during sync-ing
           &main::print_log("[Sync all links] Now syncing links: " . $obj->get_object_name . " ($_sync_cnt of $dev_cnt)");
-          $_sync_cnt++;
-          $obj->queue_timer_callback('&main::_process_sync_links(\'' . $next_name . '\')',1) unless $obj->isa('Insteon_PLM');
+          $obj->queue_timer_callback('&main::_process_sync_links(\'' . $next_name . '\',1)') unless $obj->isa('Insteon_PLM');
           $obj->sync_links('&main::_process_sync_links(\'' . $next_name . '\')');
        }
     } else {
-       $current_name = undef;
-       $_sync_cnt = undef;
+       $_sync_cnt = 0;
        return undef;
     }
 }
@@ -122,6 +153,10 @@ sub uninstall_insteon_item_commands {
 }
 
 if ($Reload) {
+
+    # initialize scan and sync counters
+    $_scan_cnt = 0;
+    $_sync_cnt = 0;
 
     # create trigger
     my $trig_cmd = "time_cron '00 02 * * *'";
