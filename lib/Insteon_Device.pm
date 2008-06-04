@@ -343,7 +343,7 @@ sub unlink_to_interface
 sub queue_timer_callback
 {
 	my ($self, $callback) = @_;
-	$$self{queue_timer_callback} = $callback if $callback;
+	$$self{queue_timer_callback} = $callback if defined $callback;
 	return $$self{queue_timer_callback};
 }
 
@@ -389,7 +389,14 @@ sub _process_command_stack
 				&::print_log("[Insteon_Device] WARN: queue timer on " . $self->get_object_name . 
 				" expired. Trying next command if queued.");
 				$$self{m_status_request_pending} = 0; # hack--need a better way
-				$callback = $self->queue_timer_callback if $self->queue_timer_callback;
+				if ($self->queue_timer_callback) {
+					if ($$self{_prior_msg} and ($$self{_prior_msg}{is_synchronous})) {
+						# get rid of any pending next command as we need to abort
+						pop(@{$$self{command_stack}});
+					}
+					$callback = $self->queue_timer_callback;
+					$self->queue_timer_callback(''); # reset to prevent repeat callbacks
+				}
 			}
 		}
 		my $cmdptr = pop(@{$$self{command_stack}});
@@ -544,7 +551,7 @@ sub _process_message
 				$self->is_acknowledged(1);
 				# signal receipt of message to the command stack in case commands are queued
 				$self->_process_command_stack(%msg);
-				&::print_log("[Insteon_Device] received command/state acknowledge from " . $self->{object_name} 
+				&::print_log("[Insteon_Device] received command/state (awaiting) acknowledge from " . $self->{object_name} 
 					. ": $pending_cmd and data: $msg{extra}") if $main::Debug{insteon};
 			} 
 		} else {
@@ -556,10 +563,15 @@ sub _process_message
 				. " and data: $msg{extra}") if $main::Debug{insteon};
 		}
 	} elsif ($msg{is_nack}) {
-		&::print_log("[Insteon_Device] WARN!! ia a nack message for " . $self->{object_name} 
-			. " ... skipping");
-		$self->is_acknowledged(0);
-		$self->_process_command_stack(%msg);
+		if ($$self{awaiting_ack}) {
+			&::print_log("[Insteon_Device] WARN!! encountered a nack message for " . $self->{object_name} 
+				. " ... waiting for retry");
+		} else {
+			&::print_log("[Insteon_Device] WARN!! encountered a nack message for " . $self->{object_name} 
+				. " ... skipping");
+			$self->is_acknowledged(0);
+			$self->_process_command_stack(%msg);
+		}
 	} elsif ($msg{command} eq 'start_manual_change') {
 		# do nothing; although, maybe anticipate change? we should always get a stop
 	} elsif ($msg{command} eq 'stop_manual_change') {
@@ -780,7 +792,7 @@ sub _on_poke
 				if (!($num_empty)) {
 					my $low_address = 0;
 					for my $key (keys %{$$self{adlb}}) {
-						next if $key eq 'empty';
+						next if $key eq 'empty' or $key eq 'duplicates';
 						my $new_address = hex($$self{adlb}{$key}{address});
 						if (!($low_address)) {
 							$low_address = $new_address;
