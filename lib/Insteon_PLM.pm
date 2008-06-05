@@ -877,8 +877,8 @@ sub parse_alllink
 		my $flag = substr($data,4,1);
 		$link{is_controller} = (hex($flag) & 0x04) ? 1 : 0;
 		$link{flags} = substr($data,4,2);
-		$link{group} = substr($data,6,2);
-		$link{deviceid} = substr($data,8,6);
+		$link{group} = lc substr($data,6,2);
+		$link{deviceid} = lc substr($data,8,6);
 		$link{data1} = substr($data,14,2);
 		$link{data2} = substr($data,16,2);
 		$link{data3} = substr($data,18,2);
@@ -961,7 +961,7 @@ sub delete_orphan_links
 	my $selfname = $self->get_object_name;
 	my $num_deleted = 0;
 	foreach my $linkkey (keys %{$$self{links}}) {
-		my $deviceid = $$self{links}{$linkkey}{deviceid};
+		my $deviceid = lc $$self{links}{$linkkey}{deviceid};
 		my $group = $$self{links}{$linkkey}{group};
 		my $is_controller = $$self{links}{$linkkey}{is_controller};
 		my $data3 = $$self{links}{$linkkey}{data3};
