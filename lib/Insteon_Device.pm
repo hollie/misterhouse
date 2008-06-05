@@ -1082,13 +1082,14 @@ sub restore_adlb
 			my $subaddress = '00';
 			foreach my $adlb_record (split(/,/,$adlb_section)) {
 				my ($key,$value) = split(/=/,$adlb_record);
+				next unless $key and defined($value) and $value ne '';
 				if ($key eq 'empty') {
 					@adlb_empty = split(/;/,$value);
 				} elsif ($key eq 'duplicates') {
 					@adlb_duplicates = split(/;/,$value);
 				} else {
-					$deviceid = $value if ($key eq 'deviceid');
-					$groupid = $value if ($key eq 'group');
+					$deviceid = lc $value if ($key eq 'deviceid');
+					$groupid = lc $value if ($key eq 'group');
 					$is_controller = $value if ($key eq 'is_controller');
 					$subaddress = $value if ($key eq 'data3');
 					$adlb_record{$key} = $value if $key and defined($value);
@@ -1099,6 +1100,7 @@ sub restore_adlb
 			} elsif (@adlb_duplicates) {
 				@{$$self{adlb}{duplicates}} = @adlb_duplicates;
 			} else {
+				next unless $deviceid;
 				my $adlbkey = $deviceid . $groupid . $is_controller;
 				# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
 				if ($subaddress ne '00' and $subaddress ne '01') {
@@ -1227,6 +1229,7 @@ sub delete_orphan_links
 	for my $linkkey (keys %{$$self{adlb}}) {
 		if ($linkkey ne 'empty' and $linkkey ne 'duplicates') {
 			my $deviceid = lc $$self{adlb}{$linkkey}{deviceid};
+			next unless $deviceid;
 			my $group = $$self{adlb}{$linkkey}{group};
 			my $is_controller = $$self{adlb}{$linkkey}{is_controller};
 			my $data3 = $$self{adlb}{$linkkey}{data3};
@@ -1505,7 +1508,7 @@ sub log_alllink_table
 			}
 		}
 
-		&::print_log("[Insteon_Device] aldb [0x" . $$self{adlb}{$adlbkey}{address} . "] " .
+		&::print_log("[Insteon_Device] aldb $adlbkey [0x" . $$self{adlb}{$adlbkey}{address} . "] " .
 			(($$self{adlb}{$adlbkey}{is_controller}) ? "contlr($$self{adlb}{$adlbkey}{group}) record to "
 			. $object_name . "($rspndr_group), (d1:$$self{adlb}{$adlbkey}{data1}, d2:$$self{adlb}{$adlbkey}{data2}, d3:$$self{adlb}{$adlbkey}{data3})"
 			: "rspndr($rspndr_group) record to " . $object_name . "($$self{adlb}{$adlbkey}{group})"
