@@ -808,12 +808,14 @@ sub _on_poke
 			# clear out mem_activity flag
 			$$self{_mem_activity} = undef;
 			if (defined $$self{_mem_callback}) {
+				my $callback = $$self{_mem_callback};
+				# clear it out *before* the eval
+				$$self{_mem_callback} = undef;
 				package main;
-				eval ($$self{_mem_callback});
+				eval ($callback);
 				package Insteon_Device;
 				&::print_log("[Insteon_Device] error in link callback: " . $@) 
 					if $@ and $main::Debug{insteon};
-				$$self{_mem_callback} = undef;
 			}
 		}
 	} elsif ($$self{_mem_activity} eq 'update_local') {
@@ -838,8 +840,11 @@ sub _on_poke
 		}
 
 		if (defined $$self{_mem_callback}) {
+			my $callback = $$self{_mem_callback};
+			# clear it out *before* the eval
+			$$self{_mem_callback} = undef;
 			package main;
-			eval ($$self{_mem_callback});
+			eval ($callback);
 			&::print_log("[Insteon_Device] error in link callback: " . $@) 
 				if $@ and $main::Debug{insteon};
 			package Insteon_Device;
