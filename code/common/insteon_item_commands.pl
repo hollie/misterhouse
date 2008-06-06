@@ -7,7 +7,7 @@ my (@_insteon_plm,@_insteon_device,@_insteon_link,@_scannable_link,$_scan_cnt,$_
 $_scan_link_tables_v = new Voice_Cmd 'Scan all link tables';
 
 if ($_scan_link_tables_v->state_now()) {
-   &_get_next_linkscan() unless $_scan_cnt; # prevent multiple concurrent scans
+   &_get_next_linkscan(); # unless $_scan_cnt; # prevent multiple concurrent scans
 }
 
 sub _get_next_linkscan
@@ -81,7 +81,7 @@ sub _get_next_linkscan
 $_sync_links_v = new Voice_Cmd 'Sync all links';
 
 if ($_sync_links_v->state_now()) {
-   &_process_sync_links() unless $_sync_cnt;
+   &_process_sync_links(); # unless $_sync_cnt;
 }
 
 sub _process_sync_links
