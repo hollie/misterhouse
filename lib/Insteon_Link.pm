@@ -82,8 +82,14 @@ sub sync_links
 	my $insteon_object = $self->interface;
 	if (!($self->is_plm_controlled)) {
 		$insteon_object = $self->interface->get_object($self->device_id,'01');
+		if (!(defined($insteon_object))) {
+			&main::print_log("[Insteon_Link] WARN!! A device w/ insteon address: " . $self->device_id . ":01 could not be found. "
+				. "Please double check your items.mht file.");
+		}
 	}
 	my $self_link_name = $self->get_object_name;
+	# abort if $insteon_object doesn't exist
+	$self->_process_sync_queue() unless $insteon_object;
 	if ($$self{members}) {
 		foreach my $member_ref (keys %{$$self{members}}) {
 			my $member = $$self{members}{$member_ref}{object};
