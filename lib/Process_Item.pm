@@ -197,7 +197,14 @@ sub start_next {
                 die "do nothing exec failed: $!";
             }
             else {
-                exec "$cmd_path $cmd_args";
+                # check if nice_level defined and if so, use it
+                my $nice_level = $self->nice_level;
+                if (defined $nice_level) {
+                   print "Process start: adjusting nice level to: $nice_level\n" if $main::Debug{process};
+                   exec "nice --adjustment=$nice_level $cmd_path $cmd_args";
+                } else {
+                   exec "$cmd_path $cmd_args";
+                }
             }
             die "Error in start Process exec for cmd=$cmd\n";
         }
@@ -327,6 +334,18 @@ sub results {
     my ($self) = @_;
 }
 
+# support for setting "nice" level; only useful for *nix
+sub nice_level {
+    my ($self, $nice_level) = @_;
+    $$self{nice_level} = $nice_level if defined $nice_level;
+    if (defined $$self{nice_level}) {
+       return $$self{nice_level};
+    } elsif (defined $main::config_parms{process_nice_level}) {
+       return $main::config_parms{process_nice_level};
+    } else {
+       return undef;
+    }
+}
 
 #
 # $Log: Process_Item.pm,v $
