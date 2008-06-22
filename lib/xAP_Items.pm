@@ -82,7 +82,7 @@ sub startup {
 }
 
 sub exit_hook {
-   return if $main::Save{mh_exit} = 'restart';
+   return if $main::Save{mh_exit} eq 'restart';
    for my $virtual_device_name (keys %{xap_virtual_devices}) {
         &send_xap_heartbeat($xap_virtual_devices{$virtual_device_name}{port}, $virtual_device_name, 'stopped');
    }
