@@ -163,7 +163,7 @@ sub set
                &::print_log($self->get_object_name() . "::set($p_state, $p_setby) -> $$obj{object_name}") if $main::Debug{occupancy};
 #					$obj->set($p_state,$p_setby,$p_response);
 					# don't attempt to set sensors
-					if (UNIVERSAL::isa($obj, 'X10_Sensor')) {
+					if (UNIVERSAL::isa($obj, 'X10_Sensor') or UNIVERSAL::isa($obj, 'RF_Item')) {
 						$obj->set_receive($p_state, $self, $p_response);
 					} else {
 					        $obj->set($p_state,$self,$p_response);
