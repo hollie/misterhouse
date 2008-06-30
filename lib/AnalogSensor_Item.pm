@@ -145,8 +145,9 @@ sub new {
 	bless $self, $class;
 	$self->id($p_id);
 	$self->type($p_type);
+	$$self{m_activityTime} = 24*3600;
 	# maintain measurement member as it is like state
-	$self->restore_data('m_measurement','m_timestamp','m_time_since_previous','m_measurement_change');
+	$self->restore_data('m_measurement','m_timestamp','m_time_since_previous','m_measurement_change','m_activityTime');
 	$$self{m_max_records} = 10;
         for my $token (@p_tokens) {
            my ($tag, $value) = split(/=/,$token);
@@ -156,6 +157,7 @@ sub new {
               $self->token($tag, $value);
            }
         }
+        $$self{m_timerCheck} = new Timer();
 	return $self;
 }
 
@@ -191,6 +193,8 @@ sub measurement {
 		$p_measurement += $self->apply_offset if $self->apply_offset;
 		$measurement_record->{measurement} = $p_measurement;
 		$measurement_record->{timestamp} = $p_timestamp;
+		# update the item's "set_time" hash member as it can be used to compute idle time
+		$self->{set_time} = $main::Time;
 		# if we have a prior record, then compute the deltas
 		if (!($p_skip_delta) && @measurement_records) {
 			my $last_index = 0; #scalar(@measurement_records)-1;
@@ -218,10 +222,35 @@ sub measurement {
                        if (defined($p_measurement) && ($self->map_to_weather));
 		$self->check_tied_state_conditions();
 		$self->check_tied_event_conditions();
+#                $self{m_timerCheck}->set($$self{'m_inactivityTime'}, $self);
 	}
 
 	return $$self{m_measurement};
 }
+
+sub set {
+   my ($self, $p_state, $p_setby) = @_;
+   if ($p_setby eq $$self{m_timerCheck}) {
+      if ($$self{'m_activityAction'}) {
+         package main;
+         eval $$self{'m_activityAction'};
+         package AnalogSensor_Item;
+      } else {
+         &print_log("$$self{object_name}->Has not received a measurement in $$self{'m_inactivityTime'} seconds");
+      }
+      $p_state = 'check';
+   }
+   $self->SUPER::set($p_state,$p_setby);
+
+}
+
+sub set_inactivity_alarm {
+   my ($self, $time, $action) = @_;
+   $$self{m_inactivityAction} = $action;
+   $$self{m_inactivityTime} = $time;
+   $$self{m_timerCheck}->set($time,$self);
+}
+
 
 sub get_average_change_rate {
 	my ($self, $max_samples) = @_;
