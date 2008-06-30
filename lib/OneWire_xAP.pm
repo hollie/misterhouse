@@ -101,6 +101,7 @@ sub add {
 		}
 		print "Adding BSC_Item to a OneWire_xAP instance with address: $xap_address\n" if $::Debug{onewire};
 		my $xap_item = new BSC_Item($xap_address);
+		$xap_item->always_set_state(1); # needed so that we always update from info or event messages
 		$$self{source_map}{$xap_item} = $device;
 		$self->SUPER::add($xap_item); # add it so that it can set this obejct
                 $xap_item->query();
