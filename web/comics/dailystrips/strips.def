@@ -46,8 +46,8 @@ class gocomics-gen
 	homepage http://www.gocomics.com/$strip/
 	type generate
 	imageurl http://images.ucomics.com/comics/$1/%Y/$1%y%m%d.gif
+# also at	imageurl http://picayune.uclick.com/comics/$1/%Y/$1%y%m%d.gif
 	provides any
-
 end
 
 class gocomics-flashdrm
@@ -1209,7 +1209,7 @@ end
 
 strip calvinandhobbes
 	name Calvin and Hobbes
-	useclass gocomics-flashdrm
+	useclass gocomics-gen
 	$1 ch
 end
 
@@ -1257,7 +1257,7 @@ end
 
 strip foxtrot
 	name FoxTrot
-	useclass gocomics-flashdrm
+	useclass gocomics-gen
 	$1 ft
 end
 
@@ -1269,7 +1269,7 @@ end
 
 strip garfield
 	name Garfield
-	useclass gocomics-flashdrm
+	useclass gocomics-gen
 	$1 ga
 end
 
