@@ -39,8 +39,10 @@ Usage:
      $auto_entry_light->add($front_door);
 	
 	Input states:
-      on/open/alertmin/alertmax: door opened
-      off/closed/normalmin/normalmax: door closed
+      on/open/alert*: door opened
+      off/closed/normal*: door closed
+      ("*" is a wildcard here; values of "alertmin", "alertmax", 
+       and "alertbattlowmin" will all indicate "door opened", for example)
 
 	Output states:
       open: door opened
@@ -109,9 +111,9 @@ sub set
       &::print_log("Door_Item($$self{object_name})::set($p_state, $p_setby)") if $main::Debug{occupancy};
    }
    # X10.com door/window security sensor
-   if (($p_state eq 'alertmin') or ($p_state eq 'alertmax')) {
+   if ($p_state =~ /^alert/) {
       $p_state = 'open';
-   } elsif (($p_state eq 'normalmin') or ($p_state eq 'normalmax')) {
+   } elsif ($p_state =~ /^normal/) {
       $p_state = 'closed';
    }
 
