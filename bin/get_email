@@ -17,6 +17,7 @@
 #
 #---------------------------------------------------------------------------
 
+
 use strict;
 
 #package get_mail;               # So we can do the faster 'do' from mh, and not mess it up.
@@ -53,13 +54,14 @@ eof
 &setup;
 &check_accounts;
 
-my (@email_accounts, %email_prev, $email_rule, $results_new, $results_unread, $results_unread2);
+my (@email_accounts, %email_prev, %email_type, $email_rule, $results_new, $results_unread, $results_unread2);
 sub setup {
 
     require 'handy_utilities.pl';
     require 'handy_net_utilities.pl';
 
     &main::read_mh_opts(\%config_parms, $Pgm_Path);
+
     for my $parm (keys %config_parms_startup) {
         $config_parms{$parm} = $config_parms_startup{$parm};
     }
@@ -70,7 +72,10 @@ sub setup {
     for my $parm (sort keys %config_parms) {
         next unless $config_parms{$parm}; # Ignore blank parms
         next if $parm =~ /net_mail_send/; # Ignore the send mail account
-        push(@email_accounts, $1) if $parm =~ /net_mail_(\S+)_server$/;
+	my ($name) =  $parm =~ /net_mail_(\S+)_server$/;
+        push(@email_accounts, $name) if $name;
+	$email_type{$name} = "pop3";
+	$email_type{$name} = $config_parms{"net_mail_${name}_type"} if defined($config_parms{"net_mail_${name}_type"});
     }
     print "Checking email accounts: @email_accounts\n" if $config_parms{debug};
 
@@ -99,6 +104,7 @@ sub setup {
 sub check_accounts {
 
     my $msg_inbox_total;
+    my $message_counts = "";
 
     unlink("$config_parms{data_dir}/email/summary.html");
     my ($email_file_data, $summary);
@@ -112,37 +118,70 @@ sub check_accounts {
 #   my $msgcnt_flag = 'Email:';
     my ($msgcnt_flag, $msg_latest);
     for my $account (@email_accounts) {
-        print "checking account=$account "  unless $config_parms{quiet};
+        print "checking $email_type{$account} account=$account "  unless $config_parms{quiet};
 
-         my ($msgcnt, $msgsize) = &net_mail_stats(account => $account, debug => $config_parms{debug});
+	my $msgcnt;
+	my $msgsize;
+	my $msgptr;
+	my $msg_unread;
+	my $msgcnt_prev;
 
-        $summary .= qq[&nbsp;&nbsp;&nbsp;$msgcnt messages ($msgsize bytes) in ] .
-            qq[$account: $config_parms{"net_mail_${account}_address"}, $config_parms{"net_mail_${account}_user"}<BR>\n];
+	if (lc $email_type{$account} eq "imap") {
+	   eval "require 'imap_utils.pl'";
+           if ($@) {
+             print "Error in loading imap_utils: $@\n";
+             print "To use imap, you need check the dependancies\n";
+             die;
+           }
+	   print "\nAccessing IMAP account $account...\n" unless $config_parms{quiet};
+	   ($msgcnt, $msgsize, $msg_unread, $msgptr) = &get_imap(account => $account, 
+							  age => $config_parms{net_mail_scan_age},
+							  quiet =>  $config_parms{quiet},
+							  debug => $config_parms{debug});
+	   if ($msgcnt) {
+   	       $msg_inbox_total = $msgcnt;
+               print "There are $msgcnt mail messages for $account\n"  unless $config_parms{quiet};
+	   }  
 
-                                # If count is < last time, assume we have read previous messages and reset for next pass
-                                # If count is > last time, read only new messages
-        my $msgcnt_prev = @{$email_prev{$account}} if $email_prev{$account};
-        if (defined $msgcnt and $msgcnt < $msgcnt_prev) {
-            delete $email_prev{$account};
-            unlink("$config_parms{data_dir}/email/latest.html");
+	} else {
+           ($msgcnt, $msgsize) = &net_mail_stats(account => $account, debug => $config_parms{debug});
 
-
-            $msgcnt = 0;
-        }
-        elsif ($msgcnt > $msgcnt_prev) {
-   	    $msg_inbox_total = $msgcnt;
-            print "There are $msgcnt mail messages for $account\n"  unless $config_parms{quiet};
-
-            my $msgptr = &net_mail_summary(account => $account,
+           # If count is < last time, assume we have read previous messages and reset for next pass
+           # If count is > last time, read only new messages
+           $msgcnt_prev = @{$email_prev{$account}} if $email_prev{$account};
+           if (defined $msgcnt and $msgcnt < $msgcnt_prev) {
+               delete $email_prev{$account};
+               unlink("$config_parms{data_dir}/email/latest.html");
+               $msgcnt = 0;
+           } elsif ($msgcnt > $msgcnt_prev) {
+   	       $msg_inbox_total = $msgcnt;
+               print "There are $msgcnt mail messages for $account\n"  unless $config_parms{quiet};
+               $msgptr = &net_mail_summary(account => $account,
                                            first => 1, last => $msgcnt,
                                            age   => $config_parms{net_mail_scan_age},
                                            debug => $config_parms{debug});
 
                                 # If you leave mail in the mailbox and use scan_age, we need to
                                 # reset this to only report new msgs, not total msgs
-            if ($config_parms{net_mail_scan_age}) {
-                $msgcnt = ($$msgptr{from_name}) ? @{$$msgptr{from_name}} : 0;
-            }         
+	       $msg_unread = $msgcnt;
+               if ($config_parms{net_mail_scan_age}) {
+                   $msg_unread = ($$msgptr{from_name}) ? @{$$msgptr{from_name}} : 0;
+               }         
+	   }
+	}
+	#print "Building HTML Code...\n" unless $config_parms{quiet};
+	   if ($msgsize) {
+	     my $nice_size;
+	     $nice_size = "($msgsize bytes)" if ($msgsize < 1024);
+	     $nice_size = sprintf ("(%.2f kB)",$msgsize / 1024) if ($msgsize >= 1024);
+	     $nice_size = sprintf ("(%.2f MB)",$msgsize / 1024 / 1024)  if ($msgsize >= (1024 * 1024));
+	     $nice_size = sprintf ("(%.2f GB)",$msgsize / 1024 / 1024 / 1024) if ($msgsize >= (1024 * 1024 * 1024));
+	     $msgsize = $nice_size;
+	   }
+	   my $message_s = "s";
+	   $message_s = "" if ($msgcnt == 1);
+           $summary .= qq[&nbsp;&nbsp;&nbsp;$msgcnt message$message_s ($msg_unread unread) $msgsize in ] .
+            qq[$account: $config_parms{"net_mail_${account}_address"}, $config_parms{"net_mail_${account}_user"}<BR>\n];
 
             if ($$msgptr{from_name}) {
       my @list = @{$$msgptr{from_name}};
@@ -252,15 +291,18 @@ sub check_accounts {
                 $results_new .= &make_name_list($account, @{$email_prev{$account}});
 
             }
-        }
+        #}?
 
+#-----
         if ($msg_latest) {
                                 # If new mail is age based, need to reset latest.html every time
             unlink("$config_parms{data_dir}/email/latest.html") if $config_parms{net_mail_scan_age};
             logit("$config_parms{data_dir}/email/latest.html", $msg_latest, 0);
         }
 
-        $msgcnt_flag .= sprintf("%3d", ($config_parms{net_mail_scan_age})?$msg_inbox_total:$msgcnt);
+#        $msgcnt_flag .= sprintf("%3d", ($config_parms{net_mail_scan_age})?$msg_inbox_total:$msgcnt);
+# gmail can have thousands of messages, instead, just add a space...
+       $message_counts .= " " . ($config_parms{net_mail_scan_age}?$msg_inbox_total:$msgcnt);
 
         my $temp = &make_name_list($account, @{$email_prev{$account}});
         $results_unread  .= $temp;
@@ -277,7 +319,7 @@ sub check_accounts {
     &file_write("$config_parms{data_dir}/get_email.data", $email_file_data);
     &file_write("$config_parms{data_dir}/get_email.txt",  $results_new);
     &file_write("$config_parms{data_dir}/get_email2.txt", $results_unread);
-    &file_write("$config_parms{data_dir}/get_email.flag", $msgcnt_flag);
+    &file_write("$config_parms{data_dir}/get_email.flag", $message_counts);
 
     $results_unread =~ s/account /<P>Account /gs;
 
@@ -316,6 +358,7 @@ sub make_name_list {
 #   return ("Email account $account2 has " . plural($cnt, 'new email message') .
 
 }
+
 
 #
 # $Log: get_email,v $

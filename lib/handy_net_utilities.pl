@@ -1152,7 +1152,7 @@ sub main::net_mail_send_old {
 
 sub main::net_mail_send {
     my %parms = @_;
-    my ($from, $to, $subject, $text, $server, $port, $smtp, $account, $mime, $baseref, $file, $filename);
+    my ($from, $to, $subject, $text, $server, $port, $smtp, $account, $mime, $baseref, $file, $filename, $service);
     my ($smtpusername, $smtppassword, $smtpencrypt );
 
     $server  = $parms{server};
@@ -1183,6 +1183,8 @@ sub main::net_mail_send {
     $to      = $main::config_parms{"net_mail_${account}_address"} unless $to;
     $subject = "Email from Misterhouse"                          unless $subject;
 #    $baseref = 'localhost'                                        unless $baseref;
+    $service    = $main::config_parms{"net_mail_${account}_service"};
+    $service    = "smtp" unless $service;
 
     my $timeout = $main::config_parms{"net_mail_${account}_server_send_timeout"};
     $timeout = 20 unless $timeout;
@@ -1202,8 +1204,8 @@ sub main::net_mail_send {
     }
 
 
-    print "Sending mail with account $account from $from to $to on $server $port\n";
-
+    print "Sending $service mail with account $account from $from to $to on $server $port\n";
+ 
     print "net_mail_send error: 'server' parm missing (check net_mail_server in mh.ini)\n" unless $server;
     print "net_mail_send error: 'to' parm missing\n" unless $to;
 
@@ -1301,6 +1303,26 @@ sub main::net_mail_send {
         $mime_message = $message->as_string;
     }
 
+    if (lc $service eq "gmail") {
+     print "Sending message via Gmail...\n";
+     print "Only text messages supported at this time.\n" if ($mime_message);
+     eval "require 'net_gmail_utils.pl'";
+        if ($@) {
+            print "Error in require net_gmail_utils: $@\n";
+            print "To use gmail send, you need to install dependancies\n";
+            return;
+        }
+
+     &net_gmail_utils::send_gmail(
+	account => $account,
+	gmail_account => $smtpusername,
+	password => $smtppassword,
+	to => $to,
+	text => $text,
+	subject => $subject);   
+
+    } else {
+
     eval "use Net::SMTP_auth"; # Not on all installs, so eval to avoid errors
     print "NET::SMTP_auth eval error: $@\n" if $@;
 
@@ -1326,8 +1348,8 @@ sub main::net_mail_send {
         $smtp->data("X-Priority: $priority\n", "Subject: $subject\n", "To: $to\n", "From: $from\n\n", $text);
     }
     $smtp->quit;
+   }
 }
-
 
 sub main::net_mail_login {
     my %parms = @_;
