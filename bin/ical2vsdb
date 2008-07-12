@@ -16,8 +16,8 @@ use strict;
 use lib '../lib', '../lib/site';
 use iCal::Parser;
 use DateTime;
-use Data::Dumper;
 use Digest::MD5 qw(md5 md5_hex);
+use Data::Dumper;
 use Date::Calc qw(Delta_Days);
 use LWP::Simple;
 use LWP::UserAgent;
@@ -31,7 +31,7 @@ use vsLock;
 
 
 my $progname = "ical2vsdb";
-my $progver  = "v2.2a 08-03-15";
+my $progver  = "v3.0 08-07-09";
 my $DB = 0;
 
 my $days_before = 0;
@@ -44,7 +44,7 @@ my $vsdb_todo_file = "tasks.tab";
 my $sleep_time = 900;                #poll cycle default is 15 minutes
 my $md5file = "";
 my $local_cache = "";
-my $local_data = "";
+my $data = "";
 
 $config_file = $ARGV[0] if $ARGV[0];
 
@@ -69,7 +69,7 @@ my $date_format = 'ddmm';
 
 $count = &init;
 
-if ($count == 0) {
+if (($count == 0) or ($output_dir eq "")) {
 	die "Error with Config File. Exiting";
 }
 
@@ -104,10 +104,11 @@ while (1) {
 
    if (lc $ical_data[$loop]->{method} eq "file") {
         print "Opening File $calendar_loc...";
-	$process = $parser->parse("$calendar_loc");
-	print "...";
-	$parser = $parser->calendar;
+	open ICALFILE, $calendar_loc or die "Couldn't open file: $!"; 
+	$data= join("", <ICALFILE>); 
+	close ICALFILE;
 	print "done\n";
+	$process = 1;
 
     } elsif ((lc $ical_data[$loop]->{method} eq "http") or (lc $ical_data[$loop]->{method} eq "webcal")) {
         print "Fetching http://$calendar_loc via LWP...";
@@ -120,12 +121,9 @@ while (1) {
         if (!($results->is_success)) {
            print "Error.\nThe calendar specified by $calendar_loc could not be retrieved: " . $results->status_line . "\n";
         } else {
-           my $data = $results->content;
-           $local_data = $data if $local_cache;
-	   $parser->parse_strings($data);
-	   $parser = $parser->calendar;
-	   $process = 1;
+           $data = $results->content;
 	   print "done\n";
+	   $process = 1;
         }
 
    } elsif (lc $ical_data[$loop]->{method} eq "dir") {
@@ -141,6 +139,7 @@ while (1) {
 	}
 	print "done. $count files parsed.\n";
 	$parser =$d_parser->calendar;
+	$data = Dumper $parser;
 
    } else {
 
@@ -153,23 +152,27 @@ while (1) {
 
   if ($process) {
 
-    #my $data_string = join('',@cal_data);
-    my $data_string = Dumper ($parser); 
-    my $digest = md5_hex($data_string);
+    my $digest = md5_hex($data);
 
     if (!(defined $ical_data[$loop]->{hash}) or ($ical_data[$loop]->{hash} ne $digest)) {
-       print "Processing iCal $calendar_loc ...";
+       print "Processing $calendar_loc ..";
+       if ($ical_data[$loop]->{method} ne "dir") {
+	   $parser->parse_strings($data);
+	   $parser = $parser->calendar;
+       }
+       print "..";
        $ical_data[$loop]->{hash} = $digest;
        my ($data_info, $data_cals, $data_todos) = parse_cal($parser, $ical_data[$loop]->{options});
        push (@changed_icals, @$data_info[0]);
        push (@master_cal, @$data_cals);
        push (@master_todo, @$data_todos);
-       &cache_local($local_data,$ical_data[$loop]->{options}->{name}) if $local_cache;
+       print "..";
+       &cache_local($data,$ical_data[$loop]->{options}->{name}) if $local_cache;
        print "done\n";
        print "Calendar Info:" if $DB;
        print @$data_info[0] . "," . @$data_info[1] . "\n" if $DB;
        } else {
-       print "iCal $calendar_loc hasn't changed in poll period, skipping processing....\n";
+       print "Unchanged iCal $calendar_loc: skipping processing....\n";
        }
     }
  }
@@ -646,3 +649,4 @@ sub purge_icals {
       }
 die;
 }
+
