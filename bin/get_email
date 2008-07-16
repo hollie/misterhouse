@@ -249,13 +249,11 @@ sub check_accounts {
                     my $href_next = $href + 1 unless $cnt == $#list;
                     $href_prev = 'top' unless $href_prev; # No easy way to track prev href
 
-                    my $msgcnt2 = sprintf "%02d", $msgcnt_prev + $cnt + 1;
                     my $time_date = &time_date_stamp(14, time);
                     my $html;
 #                   $html = 'Date: ' . &time_date_stamp($config_parms{time_format_log} , time) . "<br>\n";
 #                   $html = 'Date: ' . &time_date_stamp(14, time) . "<br>\n"; # Log format same as .scan logit
-                    $html  = "($msgcnt2) <a name='$href' href='#top'>Back to Index</a> , ";
-                    $html .= "<a href='#$href_prev'>Previous</a> , ";
+                    $html = "<a href='#$href_prev'>Previous</a> , ";
                     $html .= "<a href='#$href_next'>Next</a>\n" if $href_next;
                     $html .= "<br><b>Date:</b> $time_date<br>\n"; # Log format same as .scan logit
                     $html .= "<b>To:</b>$to<br>\n<b>From:</b> <a href='mailto:$from'>$name</a><br>\n<b>Reply to:</b> <a href='mailto:$replyto'>$replyto</a><br>\n<b>Subject:</b>$subject<br>\n";
@@ -278,6 +276,17 @@ sub check_accounts {
                         $html2 .= qq[<!--\#include file="/email/${account}_${day}_index.html"-->\n</table>\n<hr>\n];
                         logit($log, $html2, 0);
                     }
+
+		    #if msgcnt_prev is undefined then the message numbers will never be right
+		    #in that case, read in the last line to see what the last msg # was
+		    my $lastline;
+		    $lastline = file_tail($logi,1) unless (defined $msgcnt_prev);
+
+	            ($msgcnt_prev) = $lastline =~ /\<tr\>\<td\>(\d+)\<\/td\>/ unless (defined $msgcnt_prev);
+		    $msgcnt_prev = 0 unless (defined $msgcnt_prev);
+                    my $msgcnt2 = sprintf ("%02d", $msgcnt_prev + $cnt + 1);
+	            $html  = "($msgcnt2) <a name='$href' href='#top'>Back to Index</a> , " . $html;
+
                     logit($log, $html, 0);
 
                     my $index = "<tr><td>$msgcnt2</td><td><a href='#$href'>$time_date</a></td><td><a href='mailto:$from'>$name</a>";
