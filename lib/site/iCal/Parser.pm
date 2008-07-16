@@ -1,9 +1,9 @@
-# $Id: Parser.pm 170 2006-10-19 22:18:35Z rick $
+# $Id: Parser.pm 464 2008-05-30 23:49:01Z rick $
 package iCal::Parser;
 use strict;
 
 # Get version from subversion url of tag or branch.
-our $VERSION= do {(q$URL: svn+ssh://xpc/var/lib/svn/rick/perl/ical/iCal-Parser/tags/1.14/lib/iCal/Parser.pm $=~ m$.*/(?:tags|branches)/([^/ \t]+)$)[0] || "0.0"};
+our $VERSION= do {(q$URL: svn+ssh://xpc/var/lib/svn/rick/perl/ical/iCal-Parser/tags/1.16/lib/iCal/Parser.pm $=~ m$.*/(?:tags|branches)/([^/ \t]+)$)[0] || "0.01"};
 
 our @ISA = qw (Exporter);
 
@@ -72,6 +72,7 @@ sub VCALENDAR {
     my($self,$cal,$file)=@_;
 
     my %props=();
+    $self->{recurrences}=[];
     $self->map_properties(\%props,$cal);
     $props{'X-WR-TIMEZONE'}||=$self->{tz};
     $props{index}=++$self->{_calid};
@@ -111,8 +112,10 @@ sub VEVENT {
     $e{allday}=1 if _param($event,'DTSTART','VALUE')||'' eq 'DATE';
 
     #is it a rule that an event must contain either a duration or end?
+    # answer: no, it's not (cpan bug #25232)
     my $end=$e{DTEND};
-    my $duration=delete $e{DURATION}||$end-$start;
+    my $duration=$end ? $end-$start : delete $e{DURATION};
+    $duration ||= DateTime::Duration->new(days=> $e{allday} ? 1 : 0);
     $e{DTEND}||=$start+$duration;
     $e{hours}=_hours($duration) unless $e{allday};
 
@@ -188,6 +191,7 @@ sub VALARM {
     $a{when}=ref $a{TRIGGER} eq 'DateTime::Duration'
         ? $e->{"DT$which"}+delete $a{TRIGGER}
             : delete $a{TRIGGER};
+
     push @{$e->{VALARM}},\%a;
 }
 sub _fix_alarms {
@@ -230,7 +234,7 @@ sub convert_value {
     if ($type eq 'TRIGGER') {
         #can be date or duration!
         return $dfmt->parse_duration($value) if $value =~/^[-+]?P/;
-	    return $dfmt->parse_datetime($value)->set_time_zone($self->{tz});
+        return $dfmt->parse_datetime($value)->set_time_zone($self->{tz});
     }
     if ($TYPES{hash}{$type}) {
         my %h=(value=>$value);

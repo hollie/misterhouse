@@ -31,11 +31,11 @@ use vsLock;
 
 
 my $progname = "ical2vsdb";
-my $progver  = "v3.0 08-07-09";
+my $progver  = "v3.1 08-07-14";
 my $DB = 0;
 
-my $days_before = 0;
-my $days_after = 0;
+my $days_before = 180; # defaults to avoid large vsdb databases, can be overriden
+my $days_after = 180;  #
 
 my $config_file= "";
 my $config_version = 2;
@@ -54,7 +54,7 @@ print "iCal to vsDB Misterhouse import ($progname $progver) starting...\n";
 
 &purge_icals if ($config_file eq "--purge-ical-info");
 
-print "Using configuration File: $config_file\n";
+print "Using configuration File: $config_file\n" if ($DB);
 
 my @ical_data = ();
 my @master_cal;
@@ -81,8 +81,8 @@ print "Processing $count iCals";
 print ", $days_after days in the future" if $days_after;
 my $abs_days_before = abs $days_before;
 print ", $abs_days_before in the past" if $abs_days_before;
-print "\nTarget vsdb directory is :$output_dir\n";
-print "MD5 temp file is :$md5file\n" if ($md5file ne "");
+print "\nTarget vsdb directory is :$output_dir\n" if ($DB);
+print "MD5 temp file is :$md5file\n" if ($md5file ne "" and $DB);
 
 
 #------------- Main Processing Loop -----------------
@@ -101,9 +101,15 @@ while (1) {
 
 # -------------- Calendar Scan -----------------------
 
+   print "\nProcessing Calendar: ";
+   if (defined $ical_data[$loop]->{options}->{name}) {
+      print "$ical_data[$loop]->{options}->{name} ...\n";
+   } else {
+      print "$calendar_loc ...\n";
+   }
 
    if (lc $ical_data[$loop]->{method} eq "file") {
-        print "Opening File $calendar_loc...";
+        print "Opening File...";
 	open ICALFILE, $calendar_loc or die "Couldn't open file: $!"; 
 	$data= join("", <ICALFILE>); 
 	close ICALFILE;
@@ -111,7 +117,7 @@ while (1) {
 	$process = 1;
 
     } elsif ((lc $ical_data[$loop]->{method} eq "http") or (lc $ical_data[$loop]->{method} eq "webcal")) {
-        print "Fetching http://$calendar_loc via LWP...";
+        print "Fetching via LWP...";
         my $ua = new LWP::UserAgent;
 	my $req = new HTTP::Request GET => "http://" . $calendar_loc;
         if ($ical_data[$loop]->{username}) {
@@ -129,7 +135,7 @@ while (1) {
    } elsif (lc $ical_data[$loop]->{method} eq "dir") {
 	my $d_parser = iCal::Parser->new();
 	my $count = 0;
-        print "Opening Directory $calendar_loc (multi-ical)...";
+        print "Opening Directory (multi-ical)...";
 	opendir (DIR, $calendar_loc);
 	my @directory = readdir(DIR);
 	closedir (DIR);
@@ -152,27 +158,33 @@ while (1) {
 
   if ($process) {
 
+    if ($ical_data[$loop]->{options}->{sync_dtstamp}) {
+	print "Syncing DTSTAMP attributes from CREATED...\n";
+        $data =~ s/DTSTAMP:(.*)\n//g;
+        $data =~ s/CREATED:(.*)\n/CREATED:$1\nDTSTAMP:$1\n/g;
+    }
+
     my $digest = md5_hex($data);
 
     if (!(defined $ical_data[$loop]->{hash}) or ($ical_data[$loop]->{hash} ne $digest)) {
-       print "Processing $calendar_loc ..";
+       print "New Calendar entries. Processing iCal...";
        if ($ical_data[$loop]->{method} ne "dir") {
 	   $parser->parse_strings($data);
 	   $parser = $parser->calendar;
        }
-       print "..";
+       print ".";
        $ical_data[$loop]->{hash} = $digest;
        my ($data_info, $data_cals, $data_todos) = parse_cal($parser, $ical_data[$loop]->{options});
        push (@changed_icals, @$data_info[0]);
        push (@master_cal, @$data_cals);
        push (@master_todo, @$data_todos);
-       print "..";
+       print ".";
        &cache_local($data,$ical_data[$loop]->{options}->{name}) if $local_cache;
        print "done\n";
        print "Calendar Info:" if $DB;
        print @$data_info[0] . "," . @$data_info[1] . "\n" if $DB;
        } else {
-       print "Unchanged iCal $calendar_loc: skipping processing....\n";
+       print "iCal unchanged, no processing required.\n";
        }
     }
  }
@@ -357,7 +369,7 @@ sub parse_cal {
                    $description =~ s/\\//g;
                 }
                 my $location = $event_ref->{LOCATION};
-                $description .= ' location: ' . $location if $location && $description !~ /$location/;
+                $description .= ' location: ' . $location if $location && $description !~ /\Q$location\E/;
 
 		#package all the ical data up in a hash
 
@@ -496,8 +508,9 @@ sub init {
 	
 	} else {
 	  $ical_data[$count]->{type} = $type;
-	  foreach my $opt (split /,/,$options) {
+	  foreach my $opt (split /,/,lc $options) {
 	    my ($key,$value) = split /=/,$opt;
+	    $value = 1 unless (defined $value);
 	    $ical_data[$count]->{options}->{$key} = $value;
 	  }
 	  $ical_data[$count]->{hash} = "none";
@@ -557,7 +570,7 @@ sub help {
   print "TYPE<tab>VALUE<tab>option\n\n";
   print "TYPE = cfg_version|ical|days_before|days_after|sleep\n";
   print "VALUE = parameter value or ical location (http://, file://, dir://)\n";
-  print "OPTION = comma delimited value pairs (holiday,name=Joe User,speak_todos,vacation)\n";
+  print "OPTION = comma delimited values (holiday,name=Joe User,speak_todos,vacation,sync_dtstamp)\n";
   print "\n";
 
   die;
