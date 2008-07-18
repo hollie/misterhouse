@@ -313,6 +313,26 @@ sub set
 	}
 }
 
+sub set_with_timer {
+	my ($self, $state, $time, $return_state, $additional_return_states) = @_;
+	return if &main::check_for_tied_filters($self, $state);
+
+	$self->set($state) unless $state eq '';
+
+	return unless $time;
+
+	my $state_change = ($state eq 'off') ? 'on' : 'off';
+	$state_change = $return_state if defined $return_state;
+	$state_change = $self->{state} if $return_state and lc $return_state eq 'previous';
+
+	$state_change .= ';' . $additional_return_states if $additional_return_states;
+
+	$$self{timer} = &Timer::new() unless $$self{timer};
+	my $object = $self->{object_name};
+	my $action = "set $object '$state_change'";
+	&Timer::set($$self{timer}, $time, $action);
+}
+
 sub link_to_interface
 {
 	my ($self,$p_group, $p_data3) = @_;
@@ -443,7 +463,7 @@ sub _process_command_stack
 			package Insteon_Device;
 		}
 	} else {
-		&::print_log("[Insteon_Device] " . $self->get_object_name . " command queued but not yet sent; awaiting ack from prior command");
+		&::print_log("[Insteon_Device] " . $self->get_object_name . " command queued but not yet sent; awaiting ack from prior command") if $main::Debug{insteon};
 	}
 }
 
@@ -927,7 +947,7 @@ sub _on_peek
 			}
 		} elsif ($$self{_mem_action} eq 'adlb_group') {
 			if ($$self{_mem_activity} eq 'scan') {
-				$$self{pending_adlb}{group} = $msg{extra};
+				$$self{pending_adlb}{group} = lc $msg{extra};
 				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
 				$$self{_mem_action} = 'adlb_devhi';
 				$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 
@@ -938,7 +958,7 @@ sub _on_peek
 			}
 		} elsif ($$self{_mem_action} eq 'adlb_devhi') {
 			if ($$self{_mem_activity} eq 'scan') {
-				$$self{pending_adlb}{deviceid} = $msg{extra};
+				$$self{pending_adlb}{deviceid} = lc $msg{extra};
 				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
 				$$self{_mem_action} = 'adlb_devmid';
 				$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
@@ -948,7 +968,7 @@ sub _on_peek
 			}
 		} elsif ($$self{_mem_action} eq 'adlb_devmid') {
 			if ($$self{_mem_activity} eq 'scan') {
-				$$self{pending_adlb}{deviceid} .= $msg{extra};
+				$$self{pending_adlb}{deviceid} .= lc $msg{extra};
 				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
 				$$self{_mem_action} = 'adlb_devlo';
 				$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
@@ -958,7 +978,7 @@ sub _on_peek
 			}
 		} elsif ($$self{_mem_action} eq 'adlb_devlo') {
 			if ($$self{_mem_activity} eq 'scan') {
-				$$self{pending_adlb}{deviceid} .= $msg{extra};
+				$$self{pending_adlb}{deviceid} .= lc $msg{extra};
 				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
 				$$self{_mem_action} = 'adlb_data1';
 				$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
