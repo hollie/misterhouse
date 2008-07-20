@@ -5,7 +5,7 @@ File:
 	UPB_Thermostat.pm
 
 Description:
-	Implimentation of the RCS UPB thermostat (TU16)
+	Implementation of the RCS UPB thermostat (TU16)
 
 Author:
 	Tim Spaulding
@@ -15,13 +15,15 @@ License:
 
 Definition:
   (.pl code file)
-	$upb_thermostat = new UPB_Device($myPIM,<networkid>,<deviceid>);
+	$thermostat = new UPB_Thermostat($myPIM,<networkid>,<deviceid>);
 
   (.mht file)
-  UPBT, upb_thermostat, <interface object name>, <networkid>, <deviceid>
+  UPBT, thermostat, <interface object name>, <networkid>, <deviceid>
 Usage:
+  use the methodes mode, cool_sp, heat_sp to set values;
+  calling these methods with no parameters will return the current value
 
-	$upb_thermostat->set(<add this later>);
+  see mh\code\publc\hvac_upb_thermostat.pl for some examples
 
 Special Thanks to:
 	Bruce Winter - MH
@@ -39,17 +41,18 @@ package UPB_Thermostat;
 use UPB_Device;
 
 my %modes = (off => 0, heat => 1, cool => 2, auto => 3);
-my @modes = ['off', 'heat', 'cool', 'auto'];
+my @modes = ('off', 'heat', 'cool', 'auto');
 my %setback_modes = (
-  0 => 'OFF',
-  1 => 'NIGHT',   #(NOT supported this rev)
-  2 => 'AWAY',   #(NOT supported this rev)
-  3 => 'VACATION',   #(NOT supported this rev)
-  4 => 'SPECIAL',   #(NOT supported this rev)
-  5 => 'SYSTEM_SETBACK',   #- SAME AS AWAY
-  6 => 'ZONE_SETBACK',
-  7 => 'REMOTE' #FLAG ONLY
+  'off' => 0,
+  'night' => 1,   #(NOT supported this rev)
+  'away' => 2,   #(NOT supported this rev)
+  'vacation' => 3,   #(NOT supported this rev)
+  'special' => 4,   #(NOT supported this rev)
+  'system_setback' => 5,   #- SAME AS AWAY
+  'zone_setback' => 6,
+  'remote' => 7 #FLAG ONLY
 );
+my @setback_modes = ('off', 'night', 'away', 'vacation', 'special', 'system_setback', 'zone_setback', 'remote');
 
 # Variable 18 (operating mode)
 use constant OPERATING_MODE_H1A => 0x01;
@@ -76,6 +79,7 @@ sub new
 	$self->network_id($p_networkid) if defined $p_networkid;
 	$self->device_id($p_deviceid) if defined $p_deviceid;
 	$self->initialize();
+	$self->state_overload('off');
 #	$self->rate(undef);
 	$$self{firstOctet} = "0";
 	$$self{ackMode} = "1";
@@ -109,6 +113,8 @@ sub device_id
 	return $$self{device_id};
 }
 
+# use the set method from UPB_Device for which this object is inherited
+=begin
 sub set
 {
 	my ($self,$p_state,$p_setby,$p_response) = @_;
@@ -137,17 +143,17 @@ sub set
 				if (!($source != $self->device_id() and $msg >= 0x80))
 				{
 					$p_state = $self->_xlate_upb_mh($l_state);
-#				    &::print_log($self->get_object_name() . "::set($p_state, $p_setby)");
+				    &::print_log($self->get_object_name() . "::set($p_state, $p_setby)");
 				}
 			}
 		}
 	} else {
 		$$self{interface}->set($self->_xlate_mh_upb($p_state));
-#	    &::print_log($self->get_object_name() . "::set($p_state, $p_setby)");
+	    &::print_log($self->get_object_name() . "::set($p_state, $p_setby)");
 	}
-#	$self->SUPER::set($p_state,$p_setby,$p_response) if defined $p_state;
+	$self->SUPER::set($p_state,$p_setby,$p_response) if defined $p_state;
 }
-
+=cut
 sub _xlate_upb_mh
 {
 	my ($self,$p_state) = @_;
@@ -158,10 +164,10 @@ sub _xlate_upb_mh
   my $msgid = unpack("C",pack("H*",substr($p_state,10,2)));
   my $msgdata = substr($p_state,12,length($p_state)-14);
   my @args = unpack("C*",pack("H*",$msgdata));
-  my $msg=undef;
+#  my $msg=undef;
   my $state = undef;
 #  &::print_log("UPBT: msgid:$msgid msgdata:$msgdata args:@args");
-
+=begin
 	for my $key (keys %UPB_Device::message_types){
 		if ($UPB_Device::message_types{$key} == $msgid)
 		{
@@ -170,36 +176,44 @@ sub _xlate_upb_mh
 			last;
 		}
 	}
-
-	$state=$msg;
+=cut
+#	$state=$msg;
 	#Device report.
 	if ($UPB_Device::message_types{device_variable_report} == $msgid and
 		$source == $self->device_id())
 	{
-		if ($args[0]==9) { #temperature report
-			$$self{temp}=sprintf("%d", $args[1]);
-			&::print_log("UPBT:xlate_upb_mh: temp is " . $$self{temp}) if $main::Debug{UPBT};
+		if ($args[0]==9) { #inside temperature report
+			$$self{inside_temp}=sprintf("%d", $args[1]);
+			$state = sprintf("inside_temp: %d", $args[1]);
+			&::print_log("UPBT:xlate_upb_mh: inside temp is " . $$self{inside_temp}) if $main::Debug{upbt};
 		} elsif ($args[0]==10) { #outside temperature
 			$$self{outside_temp}=sprintf("%d", $args[1]);
-			&::print_log("UPBT:xlate_upb_mh: outside temp is " . $$self{outside_temp}) if $main::Debug{UPBT};
+			$state = sprintf("outside_temp: %d", $args[1]);
+			&::print_log("UPBT:xlate_upb_mh: outside temp is " . $$self{outside_temp}) if $main::Debug{upbt};
 		} elsif ($args[0]==11) { #heat setpoint temperature
 			$$self{heat_sp_temp}=sprintf("%d", $args[1]);
-			&::print_log("UPBT:xlate_upb_mh: heat sp temp is " . $$self{heat_sp_temp}) if $main::Debug{UPBT};
+			$state = sprintf("heat_sp_temp: %d", $args[1]);
+			&::print_log("UPBT:xlate_upb_mh: heat sp temp is " . $$self{heat_sp_temp}) if $main::Debug{upbt};
 		} elsif ($args[0]==12) { #cool setpoint temperature
 			$$self{cool_sp_temp}=sprintf("%d", $args[1]);
-			&::print_log("UPBT:xlate_upb_mh: cool sp temp is " . $$self{cool_sp_temp}) if $main::Debug{UPBT};
+			$state = sprintf("cool_sp_temp: %d", $args[1]);
+			&::print_log("UPBT:xlate_upb_mh: cool sp temp is " . $$self{cool_sp_temp}) if $main::Debug{upbt};
 		} elsif ($args[0]==13) { #system mode
       $$self{mode}=$modes[$args[1]];
-      &::print_log("UPBT:xlate_upb_mh: mode " . $$self{mode}) if $main::Debug{UPBT};
+      $state = "mode: " . $modes[$args[1]];
+      &::print_log("UPBT:xlate_upb_mh: mode " . $$self{mode}) if $main::Debug{upbt};
 		} elsif ($args[0]==14) { #fan mode
 		  $$self{fan}= ($args[1] == 0) ? 'Auto' : 'On';
-		  &::print_log("UPBT:xlate_upb_mh: fan") if $main::Debug{UPBT};
+		  $state = "fan: " . ($args[1] == 0) ? 'Auto' : 'On';
+		  &::print_log("UPBT:xlate_upb_mh: fan") if $main::Debug{upbt};
 		} elsif ($args[0]==15) { #setback mode
 		  $$self{setback_mode}=$setback_modes{$args[1]};
-		  &::print_log("UPBT:xlate_upb_mh: Setback mode") if $main::Debug{UPBT};
+		  $state = "setback: " . $setback_modes[$args[1]];
+		  &::print_log("UPBT:xlate_upb_mh: Setback mode") if $main::Debug{upbt};
 		} elsif ($args[0]==16) { #display lockout
 		  $$self{display_lockout}= ($args[1] == 0) ? 'Unlocked' : 'Locked';
-		  &::print_log("UPBT:xlate_upb_mh: Display Lockout $args[1]") if $main::Debug{UPBT};
+		  $state = "display_lockout: " . ($args[1] == 0) ? 'Unlocked' : 'Locked';
+		  &::print_log("UPBT:xlate_upb_mh: Display Lockout $args[1]") if $main::Debug{upbt};
 		} elsif ($args[0]==17) { #send stat status
 		# 6 bytes, Temp, Heat SP, Cool SP, H/C Mode, Fan mode, Outside Temp, (temp of 191= not valid)
 		$$self{temp}=sprintf("%d", $args[1]);
@@ -208,27 +222,30 @@ sub _xlate_upb_mh
 		$$self{mode}=$modes[$args[4]];
 		$$self{fan}= ($args[5] == 0) ? 'Auto' : 'On';
 		$$self{outside_temp}=sprintf("%d", $args[6]) if (defined($args[6]));
-		my $msg = "Current temp is: $$self{temp} ";
-  $msg .= "Current heat sp is: $$self{heat_sp_temp} ";
-  $msg .= "Current cool sp is: $$self{cool_sp_temp} ";
-  $msg .= "Current mode is: $$self{mode} ";
-  $msg .= "Current fan is: $$self{fan} ";
-  $msg .= " Current outside temp is: $$self{outside_temp}" if defined($$self{outside_temp});
+		my $msg_text = "Current temp is: $$self{temp} ";
+  $msg_text .= "Current heat sp is: $$self{heat_sp_temp} ";
+  $msg_text .= "Current cool sp is: $$self{cool_sp_temp} ";
+  $msg_text .= "Current mode is: $$self{mode} ";
+  $msg_text .= "Current fan is: $$self{fan} ";
+  $msg_text .= " Current outside temp is: $$self{outside_temp}" if defined($$self{outside_temp});
 
-		&::print_log("UPBT:xlate_UPB_MH: $msg") if $main::Debug{UPBT};
+		&::print_log("UPBT:xlate_UPB_MH: $msg_text") if $main::Debug{upbt};
+		$state = "thermostat_status:";
 		} elsif ($args[0]==18) { #send operating mode status
 		# 1 byte, bit encoded, B0= H1A, B1= H2A, B2= H3A, B4= C1A, B5= C2A, B6=FA
-		&::print_log("UPBT:xlate_upb_mh: send operating mode status @args") if $main::Debug{UPBT};
-		$$self{operating_mode} = "heating, stage 1" if ($args[1] & OPERATING_MODE_H1A);
-		$$self{operating_mode} = "heating, stage 2" if ($args[1] & OPERATING_MODE_H2A);
-		$$self{operating_mode} = "heating, stage 3" if ($args[1] & OPERATING_MODE_H3A);
-		$$self{operating_mode} = "cooling, stage 1" if ($args[1] & OPERATING_MODE_C1A);
-		$$self{operating_mode} = "cooling, stage 2" if ($args[1] & OPERATING_MODE_C2A);
-		&::print_log("UPBT:XLATE_UPB_MH current operating mode is: $$self{operating_mode}"); #if $main::Debug{UPBT};
+		&::print_log("UPBT:xlate_upb_mh: send operating mode status @args") if $main::Debug{upbt};
+		$$self{operating_mode} = "Off" if ($args[1] == 0);
+		$$self{operating_mode} = "fan blowing" if ($args[1] & OPERATING_MODE_FA);
+		$$self{operating_mode} .= "|heating, stage 1" if ($args[1] & OPERATING_MODE_H1A);
+		$$self{operating_mode} .= "|heating, stage 2" if ($args[1] & OPERATING_MODE_H2A);
+		$$self{operating_mode} .= "|heating, stage 3" if ($args[1] & OPERATING_MODE_H3A);
+		$$self{operating_mode} .= "|cooling, stage 1" if ($args[1] & OPERATING_MODE_C1A);
+		$$self{operating_mode} .= "|cooling, stage 2" if ($args[1] & OPERATING_MODE_C2A);
+		&::print_log("UPBT:XLATE_UPB_MH current operating mode is: $$self{operating_mode}") if $main::Debug{upbt};
+		$state = "operating_mode_status: $$self{operating_mode}";
 		} elsif ($args[0]==19) { #send relay mode status
+		$state = undef; #"relay_mode_status"
 		}
-
-
 	}
 	return $state;
 }
@@ -236,6 +253,7 @@ sub _xlate_upb_mh
 sub _xlate_mh_upb
 {
 	my ($self,$p_state) = @_;
+	$p_state = "request_rcs_variable:17" if ($p_state =~ /^report/i);
 	my $cmd;
 	my @args;
 	my $msg;
@@ -248,7 +266,7 @@ sub _xlate_mh_upb
 	$msg=lc($msg);
 #	&::print_log("XLATE:$msg:$p_state:");
 	$msg = $UPB_Device::message_types{$msg};
-	&::print_log("UPBT: message_type: $p_state found value: $msg");
+#	&::print_log("UPBT: message_type: $p_state found value: $msg");
 
 	#control word
 #	$cmd=$$self{firstOctet} . "970";
@@ -279,28 +297,28 @@ sub _xlate_mh_upb
 
 	#set length
 	substr($cmd,1,1,sprintf("%X",(length($cmd)/2)+1));
-&::print_log ("UPBT: command I am sending to interface: $cmd");
+#&::print_log ("UPBT: command I am sending to interface: $cmd");
 	return $cmd;
 }
 
-sub temp
+sub inside_temp
 {
   my ($self) = @_;
 
   # this is a read only value
-  return $$self{temp};
+  return $$self{inside_temp};
 }
 
-sub outdoor_temp
+sub outside_temp
 {
   my ($self) = @_;
 
   # return a value of 191 if it is not defined
-  # if it is not defined, then you probably don't have an outdoor temp sensor
-  return '191' unless defined($$self{outdoor_temp});
+  # if it is not defined, then you probably don't have an outside temp sensor
+  return '191' unless defined($$self{outside_temp});
 
   # there is a real value, return it
-  return $$self{outdoor_temp};
+  return $$self{outside_temp};
 }
 
 sub heat_sp
@@ -333,7 +351,13 @@ sub mode
 
   if (defined($state))
   {
-    $self->set("set_rcs_variable:13 $modes{$state}");
+    if ($state =~ /@modes/)
+    {
+      &::print_log("invalid mode request. Vallid modes are: " . @modes);
+      return;
+    }
+#    $self->set("set_rcs_variable:13 $modes{lc($state)}");
+    &::print_log("setting mode with command: set_rcs_variable:13 $modes{lc($state)}");
     return;
   }
   return $$self{mode};
@@ -352,7 +376,8 @@ sub setback_mode
 
   if (defined($state))
   {
-#    $self->set("set_rcs_variable:15 $state");
+#    $self->set("set_rcs_variable:15 $setback_modes{$state}");
+    &::print_log("setting setbck_mode with command: set_rcs_variable:15 $setback_modes{$state}");
     return;
   }
   return $$self{setback_mode};
@@ -364,7 +389,7 @@ sub display_lockout
 
   if (defined($state))
   {
-#    $self->set("set_rcs_variable:16 $state");
+#    $self->set("set_rcs_variable:16 " . ($state =~ /on/i) ? '1' : '0');
     return;
   }
   return $$self{display_lockout};
