@@ -166,6 +166,9 @@ while (1) {
 
     my $digest = md5_hex($data);
 
+    print "Debug: MD5=$digest\n";
+    print "Debug: Hash=$ical_data[$loop]->{hash}\n" if (defined $ical_data[$loop]->{hash});
+
     if (!(defined $ical_data[$loop]->{hash}) or ($ical_data[$loop]->{hash} ne $digest)) {
        print "New Calendar entries. Processing iCal...";
        if ($ical_data[$loop]->{method} ne "dir") {
