@@ -43,6 +43,10 @@ http://user@pass:server/file.ics
 ical2vsdb_<name>_options = comma delimited list of ical processing options
 
 Options available:
+sync_dtstamp	some calendars (ie google) update the dtstamp field each time the calendar
+		is downloaded, such that it is processed each time. Setting this option
+		syncs the dtstamp field with created, ensuring that ical2vsdb only runs when
+		the calendar has changed.
 speak_cal 	to speak calendar entries
 speak_todo 	to speak task entries
 holiday		calendar entries should be treated as holiday time
