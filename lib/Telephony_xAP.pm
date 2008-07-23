@@ -129,12 +129,16 @@ sub meteor_out_complete_hook
 {
 	my ($self,$p_xap)= @_;
 	
-        $self->cid_number($$p_xap{'outgoing.callcomplete'}{phone});
+	my $cidname = $$p_xap{'outgoing.callcomplete'}{name};
+	$cidname = '' unless $cidname;
+	my $cidphone = $$p_xap{'outgoing.callcomplete'}{phone};
+	$cidphone = '' unless $cidphone;
+	$self->cid_name($cidname);
+        $self->cid_number($cidphone);
         $self->call_duration($$p_xap{'outgoing.callcomplete'}{duration});
 #	$self->call_type('POTS'); # need to make this be dynamically defined
 	$self->extension($self->get_extension($p_xap));
 	$self->address($self->get_line($p_xap));
-	$self->cid_name($$p_xap{'outgoing.callcomplete'}{name});
 	$self->cid_type('N');
 
 	return 'dialed';
@@ -161,11 +165,13 @@ sub callerid_hook
 sub meteor_in_cid_hook
 {
 	my ($self,$p_xap,$block_name)= @_;
-	$self->cid_name('');
-	$self->cid_number('');
+	my $cidname = $$p_xap{'incoming.callwithcid'}{name};
+	$cidname = '' unless $cidname;
+	my $cidphone = $$p_xap{'incoming.callwithcid'}{phone};
+	$cidphone = '' unless $cidphone;
 	$self->cid_type('');
-	$self->cid_name($$p_xap{'incoming.callwithcid'}{name});
-        $self->cid_number($$p_xap{'incoming.callwithcid'}{phone});
+	$self->cid_name($cidname);
+        $self->cid_number($cidphone);
         $self->cid_type('N'); # N-Normal, P-Private/Blocked, U-Unknown;
 	if (uc $$p_xap{'incoming.callwithcid'}{rnnumber} eq 'UNAVAILABLE' or 
 		uc $$p_xap{'incoming.callwithcid'}{rnnumber} eq 'WITHHELD' ) {
@@ -391,6 +397,7 @@ sub mwi
    if (defined($p_totalmessages) && defined($p_readmessages)) {
       $$self{vm}{changed} = undef;
       if (!(exists($$self{vm}{$p_mailbox}))
+          || !(exists($$self{vm}{changed}))
           || ($$self{vm}{$p_mailbox}{totalmessages} != $p_totalmessages)
           || ($$self{vm}{$p_mailbox}{readmessages} != $p_readmessages)
       ) {
@@ -420,7 +427,7 @@ sub cti_mwi_hook
         my $mailboxlabel = $mailboxname . '@' . $group;
         my $totalmessages = $$p_xap{messages}{totalmessages};
         my $readmessages = $$p_xap{messages}{readmessages};
-        if (($totalmessages) && ($readmessages)) {
+        if (defined ($totalmessages)) {
            $self->mwi($mailboxlabel, $totalmessages, $readmessages);
            return defined($self->mwi_changed()) ? $mailboxname : 'unknown';
         } else {
