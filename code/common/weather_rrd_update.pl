@@ -405,7 +405,7 @@ sub update_graphs {
 	}
 
 	close (RRDDATATRANSFER);
-	&print_log("weather_rrd: updating weather graphs");
+	&print_log("weather_rrd: updating weather graphs") if $Debug{weather_graph};
 	start $p_weather_graph; # We are now safe to do this in Windows as all of the processing is done in an external file
   }
 
