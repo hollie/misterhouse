@@ -6132,8 +6132,8 @@ sub route_display_rooms {
     for my $room (split(/[,;|]/,$parms{display_rooms})) {
        if (exists($display_groups{$room})) {
           # then expand the group
-           my %groups = &parse_func_parms($display_groups{$room});
-           for my $group_room (keys %groups) {
+           my @groups = split(/[,;|]/, $display_groups{$room});
+           for my $group_room (@groups) {
              if (!(exists($targets{$group_room}))) { # prevent duplicates on expansion
                 my %room_parms = &parse_func_parms($display_rooms{$group_room});
                 %{$targets{$group_room}} =%room_parms;
