@@ -83,7 +83,7 @@ sub add {
 
 	my ($self, @devices) = @_;
         foreach my $device (@devices) {
-		unless ($self->is_member($device)) {
+		unless ($self->is_member_device($device)) {
 			push @{$$self{m_devices}}, $device;
 			my $xap_address = $$self{m_base_address};
 			my $is_oxc = 1;
@@ -105,13 +105,13 @@ sub add {
 			my $xap_item = new BSC_Item($xap_address);
 			$xap_item->always_set_state(1); # needed so that we always update from info or event messages
 			$$self{source_map}{$xap_item} = $device;
-			$self->SUPER::add($xap_item); # add it so that it can set this obejct
+			$self->SUPER::add_item_if_not_present($xap_item); # add it so that it can set this obejct
 			$xap_item->query();
 		}
 	}
 }
 
-sub is_member {
+sub is_member_device {
 	my ($self, $device) = @_;
 	my @devices = @{$$self{m_devices}};
 	for my $ref_device (@devices) {
