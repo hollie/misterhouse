@@ -34,14 +34,15 @@ use vars '$xap_data';
 # XAP_REAL_DEVICE_NAME is the default device name that appears in the last field of the primary source address
 use constant XAP_REAL_DEVICE_NAME => 'core';
 
-                                # Create sockets and add hook to check incoming data
+                               # Create sockets and add hook to check incoming data
 sub startup {
+
     return if $started++;       # Allows us to call with $Reload or with xap_module mh.ini parm
 
+    @xap_item_names = ();
                                 # In case you don't want xap for some reason
     return if $::config_parms{xap_disable};
 
-    @xap_item_names = ();
     my ($port);
 
     # init the hbeat intervals and counters
@@ -79,6 +80,12 @@ sub startup {
     &::MainLoop_pre_add_hook(\&xAP::check_for_data, 1 );
     # add exit hook so that xap-hbeat.stopped is sent
     &::Exit_add_hook(\&xAP::exit_hook, 1);
+    # add reload hook so that xap_item_names list is reset
+    &::Reload_pre_add_hook(\&xAP::reload_hook, 1);
+}
+
+sub reload_hook {
+  @xap_item_names = ();
 }
 
 sub exit_hook {
