@@ -1,5 +1,10 @@
 # Category=Home_Network
 #
+#
+# Subversion $Date:$
+# Subversion $Revision:$
+# 
+#
 #@ Send OSD message to MythTV (displayed when Live TV or Recordings are being viewed.)
 #@ Uses the "notify_alert_text" or "notify_cid_info" OSD container.
 #@
