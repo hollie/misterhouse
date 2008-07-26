@@ -83,6 +83,12 @@ my @ipaddresses = &::get_ip_address;
     }
 
     &::MainLoop_pre_add_hook(\&xPL::check_for_data, 1 );
+    # add reload hook so that xpl_item_names list is reset
+    &::Reload_pre_add_hook(\&xPL::reload_hook,1);
+}
+
+sub reload_hook {
+   @xpl_item_names = ();
 }
 
 sub main::display_xpl
@@ -345,9 +351,9 @@ sub _process_incoming_xpl_data {
                my $regex_address = &wildcard_2_regex($$o{address});
                if ($$o{set_state_on_cmnd} and $msg_type eq 'cmnd') {
                   my $regex_target = &wildcard_2_regex($target);
-		  next unless ($target =~ /$regex_address/i) or ($$o{address} =~ /$regex_target/i);
+		  next unless ($target =~ /^$regex_address$/i) or ($$o{address} =~ /^$regex_target$/i);
 	       } else {
-	          if ( $source =~ /$regex_address/i) {
+	          if ( $source =~ /^$regex_address$/i) {
     	             # handle hbeat data
                      for my $section (keys %{$xpl_data}) {
 	                if ($section =~ /^hbeat./i) {
@@ -374,7 +380,7 @@ sub _process_incoming_xpl_data {
 		# skip this object unless the classname matches
 		if ($className && $$o{class}) {
                    my $regex_class = &wildcard_2_regex($$o{class});
-		   next unless $className =~ /$regex_class/i;
+		   next unless $className =~ /^$regex_class$/i;
 		}
 
                 # check if device monitoring is enabled
