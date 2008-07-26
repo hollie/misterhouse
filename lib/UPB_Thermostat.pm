@@ -84,12 +84,29 @@ sub new
 	$$self{firstOctet} = "0";
 	$$self{ackMode} = "1";
 	$$self{interface}->add($self);
+	$self->EnableAutoSend();
 	return $self;
 }
 
 sub initialize
 {
 	my ($self) = @_;
+}
+
+sub EnableAutoSend
+{
+  my ($self, $state) = @_;
+# right now, always enable autosend mode on the thermostat; this allows eh thermostat to send changes
+# when they happen either at the display or temperature change
+# leave mechanism to make this configurable
+
+#  if (defined($state))
+#  {
+    $self->set("set_rcs_variable:6 1"); # . ($state =~ /on/i) ? '1' : '0');
+#    &::print_log($self->get_object_name() . "enabling AutoSend mode on thermostat");
+    return;
+#  }
+#  return $$self{auto_send};
 }
 
 sub interface
@@ -154,6 +171,7 @@ sub set
 	$self->SUPER::set($p_state,$p_setby,$p_response) if defined $p_state;
 }
 =cut
+
 sub _xlate_upb_mh
 {
 	my ($self,$p_state) = @_;
@@ -182,7 +200,11 @@ sub _xlate_upb_mh
 	if ($UPB_Device::message_types{device_variable_report} == $msgid and
 		$source == $self->device_id())
 	{
-		if ($args[0]==9) { #inside temperature report
+		if ($args[0]==6) { # AutoSend variable
+			$$self{auto_send}=sprintf("%d", $args[1]);
+			$state = sprintf("auto_send: %d", $args[1]);
+			&::print_log("UPBT:xlate_upb_mh: auto_send is " . $$self{auto_send}) if $main::Debug{upbt};
+		} elsif ($args[0]==9) { #inside temperature report
 			$$self{inside_temp}=sprintf("%d", $args[1]);
 			$state = sprintf("inside_temp: %d", $args[1]);
 			&::print_log("UPBT:xlate_upb_mh: inside temp is " . $$self{inside_temp}) if $main::Debug{upbt};
