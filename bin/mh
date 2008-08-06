@@ -394,7 +394,7 @@ EOF
 
                                  # Find local code dirs, so we can add to INC path
         $config_parms{code_dir}        = "./../code"        unless $config_parms{code_dir};
-        $config_parms{code_dir_common} = "./../code_common" unless $config_parms{code_dir_common};
+        $config_parms{code_dir_common} = "./../code/common" unless $config_parms{code_dir_common};
         @Code_Dirs = split ',', $config_parms{code_dir};
         push @Code_Dirs, $config_parms{code_dir_common};
         for (@Code_Dirs) { s/^\s*//; s/\s*$//; }; # Drop leading and trailing blanks
