@@ -455,11 +455,11 @@ sub build_cbus_file {
                 'oneshot'     =>'on'        # FIXME check with RichardM
             );
     
-    # If $debug is true, run in debug mode, otherwise run as normal
-    my $debug = $_[0];
+    # If $cbus_build_debug is true, run in debug mode, otherwise run as normal
+    my $cbus_build_debug = $_[0];
 
     # Setup output filename
-    if ($debug) {
+    if ($cbus_build_debug) {
         print_log "CBus: Builder - Start CBus build in TEST mode";
         $cbus_file = $config_parms{code_dir} . "/cbus_procedures.pl.test";
     
@@ -1145,14 +1145,14 @@ if (my $cbus_data = said $cbus_talker) {
             delete $addr_not_sync{$addr};  # Remove from not sync'ed list
             my $name = $cbus_def->{group}{$addr}{name};
             print_log "CBus: $name is $cbus_state"  if $cbus_state ne OFF;
-            print_log "CBus: $name ($addr) is $cbus_state"  if ($debug);
+            print_log "CBus: $name ($addr) is $cbus_state"  if $Debug{cbus};
 
         } else {
             print_log "CBus: UNEXPECTED 300 msg \"$cbus_data\"";
         }
 
     } elsif ($msg_code == 200) {
-        print_log "CBus: Cmd OK - $cbus_data" if ($debug);
+        print_log "CBus: Cmd OK - $cbus_data" if $Debug{cbus};
 
     } elsif ($msg_code == 201) {
         print_log "CBus: Comms established - $cbus_data";
