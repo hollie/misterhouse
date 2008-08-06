@@ -14,6 +14,7 @@ my %table = (default     => ['ATE1V1X4&C1&D2S0=0+VCID=1',          38400, 'dtr']
              powerbit    => ['ATE1V1X4&C1&D2S0=0#CID=1',           38400, 'dtr'],
              rockwell    => ['ATE1V1X4&C1&D2S0=0#CID=1',           38400, 'dtr'],
              supra       => ['ats0=0#cid=1',                       38400, 'dtr'],
+             cirruslogic => ['ats0=0+vcid=1',                      38400, 'dtr'],
              zyxel       => ['ATE1V1S40.2=1S41.6=1S42.2=1&L1M3N1', 38400, 'dtr'],
              netcallerid => ['', 4800, '']);
 
