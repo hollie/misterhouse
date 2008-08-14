@@ -58,7 +58,19 @@ my %message_types = (
 						peek_internal => 0x2c,
 						poke_internal => 0x2d,
 						on_at_ramp_rate => 0x2e,
-						off_at_ramp_rate => 0x2f
+						off_at_ramp_rate => 0x2f,
+						sprinkler_valve_on => 0x40,
+						sprinkler_valve_off => 0x41,
+						sprinkler_program_on => 0x42,
+						sprinkler_program_off => 0x43,
+						sprinkler_control => 0x44,
+						sprinkler_timers_request => 0x45
+						thermostat_temp_up => 0x68,
+						thermostat_temp_down => 0x69,
+						thermostat_zone_info => 0x6a,
+						thermostat_control => 0x6b,
+						thermostat_setpoint_cool => 0x6c,
+						thermostat_setpoint_heat => 0x6d
 );
 
 my %ramp_h2n = (
@@ -445,7 +457,11 @@ sub _process_command_stack
 			%{$$self{_prior_msg}} = %cmd;
 			# TO-DO: adjust timer based upon (1) type of message and (2) retry_count
 			my $queue_time = $$self{max_queue_time} + $plm_queue_size;
-			$$self{queue_timer}->set($queue_time,$self);
+			unless ($self->get_object_name) {
+				# needed because the initial startup scan occurs before names are assigned
+				$self->set_retry_timeout($queue_time);
+			}
+#			$$self{queue_timer}->set($queue_time,$self);
 			# if is_synchronous, then no other command can be sent until an insteon ack or nack is received
 			# for this command
 		} else {
@@ -465,6 +481,14 @@ sub _process_command_stack
 	} else {
 		&::print_log("[Insteon_Device] " . $self->get_object_name . " command queued but not yet sent; awaiting ack from prior command") if $main::Debug{insteon};
 	}
+}
+
+sub set_retry_timeout {
+	my ($self, $timeout) = @_;
+#print "########## now setting " . $self->get_object_name . " retry timeout to $$self{max_queue_time} seconds\n";
+	my $timer_value = $timeout;
+	$timer_value = $$self{max_queue_time} unless $timer_value;
+	$$self{queue_timer}->set($timer_value,$self);
 }
 
 sub writable {
@@ -683,14 +707,12 @@ sub _xlate_mh_insteon
 	my ($self,$p_state,$p_type, $p_extra) = @_;
 	my $cmd;
 	my @args;
-	my $msg;
 	my $level;
 
 	#msg id
-	$msg=$p_state;
-	$msg=~ s/\:.*$//;
+	my ($msg, $substate) = split(/:/, $p_state, 2);
 	$msg=lc($msg);
-#	&::print_log("XLATE:$msg:$p_state:");
+#	&::print_log("XLATE:$msg:$substate:$p_state:");
 
 	if (!(defined $p_extra)) {
 		if ($msg eq 'on')
@@ -731,6 +753,8 @@ sub _xlate_mh_insteon
 	if ($p_extra)
 	{
 		$cmd.= $p_extra;
+	} elsif ($substate) {
+		$cmd.= $substate;
 	} else {
 		if ($msg eq 'on')
 		{

@@ -219,11 +219,29 @@ sub serial_startup {
 
   if (1==scalar(keys %Insteon_PLM_Data)) {  # Add hooks on first call only
       &::MainLoop_pre_add_hook(\&Insteon_PLM::check_for_data, 1);
+      &::Reload_post_add_hook(\&Insteon_PLM::poll_all, 1);
   }
 }
 
-sub poll_all {
 
+sub poll_all {
+   my $scan_at_startup = $::config_parms{Insteon_PLM_scan_at_startup};
+   $scan_at_startup = 1 unless defined $scan_at_startup;
+   $scan_at_startup = 0 unless $main::Save{mh_exit} eq 'normal';
+   if ($scan_at_startup) {
+   for my $port_name (keys %Insteon_PLM_Data) {
+      my $plm = $Insteon_PLM_Data{$port_name}{'obj'};
+      for my $insteon_device ($plm->find_members('Insteon_Device')) {
+         if ($insteon_device and $insteon_device->is_root and $insteon_device->devcat ne '0005') 
+         {
+            # don't request status for objects associated w/ other than the primary group 
+            #    as they are psuedo links	
+            $insteon_device->request_status() if $insteon_device->group eq '01';
+         }
+       }
+   }
+   }
+	
 }
 
 
@@ -320,17 +338,17 @@ sub set
 		# only send out as all-link if the link originates from the plm
 		if ($p_setby->is_plm_controlled) {
 			# return the size of the command stack
-			return $self->send_plm_cmd('0261' . $p_state);
+			return $self->send_plm_cmd('0261' . $p_state, $p_setby);
 		} elsif ($p_setby->is_root) {
 			# return the size of the command stack
-			return $self->send_plm_cmd('0262' . $p_state);
+			return $self->send_plm_cmd('0262' . $p_state, $p_setby);
 		} else {
 			# silently ignore as this is now permitted if via "surrogate"
 #			&::print_log("[Insteon_PLM] WARN: you may not attempt to set an Insteon_Link unless "
 #				. "it is a root device (group = 01) or controlled by the PLM.  Set request now being ignored");
 		}
 	} elsif ($p_setby->isa("Insteon_Device")) {
-		return $self->send_plm_cmd('0262' . $p_state);
+		return $self->send_plm_cmd('0262' . $p_state, $p_setby);
 	} else {
 		$self->_xlate_mh_x10($p_state,$p_setby);
 	}
@@ -409,7 +427,7 @@ sub cancel_linking
 
 sub send_plm_cmd
 {
-	my ($self, $cmd) = @_;
+	my ($self, $cmd, $p_setby) = @_;
 
 	my $command_queue_size = @{$$self{command_stack2}};
 	return $command_queue_size unless $cmd or !($$self{xmit_in_progress});
@@ -418,9 +436,11 @@ sub send_plm_cmd
 	my $cmdptr = pop(@{$$self{command_stack2}});
 	my %cmd_record = ();
 	my $pending_cmd = '';
+	my $pending_callback = '';
 	if ($cmdptr) {
 		%cmd_record = %$cmdptr;
 		$pending_cmd = $cmd_record{cmd};
+		$pending_callback = $cmd_record{callback};
 		#put the command back into the stack.. Its not our job to tamper with this array
 		push(@{$$self{command_stack2}},\%cmd_record) if %cmd_record;
 	}
@@ -445,8 +465,16 @@ sub send_plm_cmd
 			my %cmd_record = ();
 			$cmd_record{cmd} = $cmd;
 			$cmd_record{queue_time} = $::Time;
+			if ($p_setby and ref($p_setby) and $p_setby->can('set_retry_timeout')
+                           and $p_setby->get_object_name) {
+				$cmd_record{callback} = $p_setby->get_object_name . "->set_retry_timeout()";
+#print "setting callback to $cmd_record{callback}\n";
+			}
 			# pending command becomes the newest queued command if stack is empty
-			$pending_cmd = $cmd unless $pending_cmd;
+			unless ($pending_cmd) {
+				$pending_cmd = $cmd;
+				$pending_callback = $cmd_record{callback};
+			}
 			unshift(@{$$self{command_stack2}},\%cmd_record);
 		}
 	}
@@ -476,6 +504,12 @@ sub send_plm_cmd
 			}
 			if (!($self->_check_timeout('xmit')==0)) {
 				$self->_send_cmd($pending_cmd);
+				if ($pending_callback) {
+					package main;
+					eval $pending_callback;
+					&::print_log("[Insteon_PLM] problem w/ retry callback: $@") if $@;
+					package Insteon_PLM;
+				}
 			} 
 			my $command_queue_size = @{$$self{command_stack2}};
 			return $command_queue_size;
@@ -1247,15 +1281,15 @@ sub add_item
 		$self->send_plm_cmd('0260');
 	}
 
-	if ($p_object->isa('Insteon_Device') and $p_object->is_root and $p_object->devcat ne '0005') 
-	{
+#	if ($p_object->isa('Insteon_Device') and $p_object->is_root and $p_object->devcat ne '0005') 
+#	{
 		# don't request status for objects associated w/ other than the primary group 
 		#    as they are psuedo links	
-		my $scan_at_startup = $::config_parms{Insteon_PLM_scan_at_startup};
-		$scan_at_startup = 1 unless defined $scan_at_startup;
-		$scan_at_startup = 0 unless $main::Save{mh_exit} eq 'normal';
-		$p_object->request_status() if $p_object->group eq '01' and $scan_at_startup;
-	}
+#		my $scan_at_startup = $::config_parms{Insteon_PLM_scan_at_startup};
+#		$scan_at_startup = 1 unless defined $scan_at_startup;
+#		$scan_at_startup = 0 unless $main::Save{mh_exit} eq 'normal';
+#		$p_object->request_status() if $p_object->group eq '01' and $scan_at_startup;
+#	}
 	return $p_object;
 }
 
