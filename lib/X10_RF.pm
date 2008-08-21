@@ -166,6 +166,7 @@ sub rf_set_RF_Item {
     my($module, $desc, $no_match_text, $item_id, $class_id, $state) = @_;
 
     my $uc_module = uc $module;
+    my $lc_module = lc $module;
 
     my $matched;
     for my $name (&main::list_objects_by_type('RF_Item')) {
@@ -174,7 +175,9 @@ sub rf_set_RF_Item {
         if ($id eq $item_id or (defined $class_id and $id eq $class_id)) {
             $object->set($state,'rf');
             $matched = 1;
-            &::print_log ("$item_id: " . substr($name, 1) . " $state");
+            if ($main::Debug{$lc_module}) {
+                 &::print_log ("$item_id: " . substr($name, 1) . " $state");
+            }
         }
     }
     unless ($matched) {
