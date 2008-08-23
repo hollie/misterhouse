@@ -279,6 +279,24 @@ Make sure you run the configure script, even if you used the rpm file.
 This will convert C serial headers to perl headers and (if you used the zip file)
 delete dos/windows only files, and 'chmod +x' on the files in the bin directory.
 
+If you get a "could not find ioctl" message when starting mh, that indicates
+that an include file (or one of its dependencies) defining some of the serial 
+port details could not be found. 
+These definitions are in different files for different distributions and the
+configuration script has logic to look for many of them.  Note that the
+configuration script may generate errors finding some files that are not
+actually needed and can be ignored.    If mh does output "could not find
+ioctl" after running the configuration script then debug can be turned on
+(edit the mh/lib/site/Device/SerialPort.pm file and make $DEBUG=1) and the
+program will then output which files it cannot find when mh is run.  Note
+that this may also generate errors for files that are not on your system and
+not required.  Probably, only ONE of the files needs to be found.  The needed file
+will have the same name but a .h extension rather than .ph.  The .ph file
+can be generated from the .h file with h2ph.  (need to put in a few more
+notes or a link to info on h2ph about where it should be run from and where
+it gets its input file and puts the output file)  If the config script does
+not work properly on your system please report it to the list.
+
 To allow non-root users to run the bin/set_clock function, run this command:
 
  chmod ug+s /bin/date
