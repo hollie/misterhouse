@@ -16,7 +16,7 @@ if (done_now $p_get_email and -e $get_email_scan_file) {
             $body =~ s/Full story on .+//i;
             $body =~ s/Watch CNN .+//i;
             $body =~ s/Log on to .+//i;
-            $body =~ s/\*+/\*/g;  # In case we somehow miss a line of these
+            $body =~ s/\>\+.*//g;
             my $msg = "Notice, just received news item: $subject.\n  $body";
             display $msg, 0;
             speak   rooms => 'all', text => substr $msg, 0, 200;
@@ -31,30 +31,24 @@ if (done_now $p_get_email and -e $get_email_scan_file) {
 From:    BreakingNews@CNN.COM
 Subject: CNN Breaking News
 Body: 
-BREAKING NEWS from CNN.com
+-- CNN confirms Sen. Barack Obama has chosen Delaware Sen. Joe Biden to be his vice-presidential running mate.
 
--- Vice President Al Gore withdraws from race; George W.Bush
-becomes president-elect
-
-For complete coverage of this story visit:
-http://www.CNN.com
-
-
--- German court sentences ...
-Watch CNN or log on to http://CNN.com /AOL Keyword: CNN for the latest news.
-
-*******************************************************************
-JOIN THE CONVERSATION - Click here and try 4 Risk-FREE
-issues of TIME magazine & get a FREE Gift!
-https://subs.timeinc.net/CampaignHandler/tdcnn?source_id=15
-*******************************************************************
-
-
-To unsubscribe from CNN.com's Breaking News E-Mail Alert, log on to:
-http://cnn.com/EMAIL/breakingnews.html, go to http://cnn.com/email to
-sign up for additional e-mail products
+>+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=
+CNN covers the conventions: the Democrats live from Denver starting
+Monday and the Republicans live from Minneapolis-St. Paul starting
+September 1 on CNN and CNN.com. http://www.cnnpolitics.com
+>+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=
 
 
 
+You have opted-in in to receive this e-mail from CNN.com.
+To unsubscribe from Breaking News e-mail alerts, go to: http://cgi.cnn.com/m/clik?l=textbreakingnews.
+
+One CNN Center Atlanta, GA 30303
+(c) & (r) 2008 Cable News Network
+
+
+
+CNN Interactive email id:138970049022650840
 
 =cut
