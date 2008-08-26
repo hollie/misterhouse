@@ -36,7 +36,7 @@ $v_stock_quote = new Voice_Cmd '[Get,Read,Check,Mail,SMS] stock quotes', 0;
 $v_stock_quote-> set_info("Gets stock market info from yahoo for these stocks: $config_parms{stocks}");
 $v_stock_quote-> set_authority('anyone');
 $f_stock_quote = new File_Item "$config_parms{data_dir}/web/stocks.html";
-$p_stock_quote = new Process_Item("get_url $stock_url " . $f_stock_quote->name);
+$p_stock_quote = new Process_Item;
 
 $state = said $v_stock_quote;
 
@@ -62,6 +62,7 @@ elsif ($state) {
 
     $v_stock_quote->respond("app=stocks Retrieving stock quotes for $stocks");
     unlink $f_stock_quote->name;
+    set $p_stock_quote ("get_url $stock_url " . $f_stock_quote->name);
     start $p_stock_quote;
 
 }
@@ -103,6 +104,8 @@ if (done_now $p_stock_quote) {
     my @html = $f_stock_quote->read_all;
 
     delete $Save{stock_alert};
+    delete $Save{stock_results};
+
     foreach (@html) {
         tr/\"//d;          # Drop quotes
         my @data = split ',';
@@ -156,42 +159,35 @@ if (done_now $p_stock_quote) {
 
     }
     if ($Save{stock_alert}) {
-	$v_stock_quote->respond("app=stocks connected=0 important=1 $Save{stock_alert}");
+	  $v_stock_quote->respond("app=stocks connected=0 important=1 $Save{stock_alert}");
+    }
+    $position = rindex($download_date, "/");
+    $month = substr($download_date ,0, $position);
+    $day = substr($download_date , $position + 1);
+    $Save{stock_results} = 'On ' . $months[$month-1] . ' ' . $day . ",\n " . $results;
+
+    if ($v_stock_quote->{state} eq 'Check') {
+        $v_stock_quote->respond("app=stocks connected=0 $Save{stock_results}.");
+    }
+    elsif ($v_stock_quote->{state} eq 'Mail') {
+        my $to = $config_parms{stocks_sendto} || "";
+        $v_stock_quote->respond("app=stocks connected=0 image=mail Sending stock quotes to " . (($to)?$to:$config_parms{net_mail_send_account}) . '.');
+        &net_mail_send(subject => "Stock quotes", to => $to, text => $Save{stock_results});
+    }
+    elsif ($v_stock_quote->{state} eq 'SMS') {
+        my $to = $config_parms{cell_phone};
+        if ($to) {
+            $v_stock_quote->respond("connected=0 image=mail Sending stock quotes to cell phone.");
+            # *** Try to respond via email or SMS and warn if they return false
+            &net_mail_send(subject => "Stock quotes", to => $to, text => $Save{stock_results});
+        }
+        else {
+            $v_stock_quote->respond("connected=0 app=error Mobile phone email address not found!");
+        }
+
     }
     else {
-	$position = rindex($download_date, "/");
-	$month = substr($download_date ,0, $position);
-	$day = substr($download_date , $position + 1);
-	$Save{stock_results} = 'On ' . $months[$month-1] . ' ' . $day . ",\n " . $results;
-
-	if ($v_stock_quote->{state} eq 'Check') {
-	        $v_stock_quote->respond("app=stocks connected=0 $Save{stock_results}.");
-	}
-	elsif ($v_stock_quote->{state} eq 'Mail') {
-
-	    my $to = $config_parms{stocks_sendto} || "";
-	    $v_stock_quote->respond("app=stocks connected=0 image=mail Sending stock quotes to " . (($to)?$to:$config_parms{net_mail_send_account}) . '.');
-	    &net_mail_send(subject => "Stock quotes", to => $to, text => $Save{stock_results});
-
-
-	}
-	elsif ($v_stock_quote->{state} eq 'SMS') {
-
-
-	    my $to = $config_parms{cell_phone};
-	    if ($to) {
-		    $v_stock_quote->respond("connected=0 image=mail Sending stock quotes to cell phone.");
-			# *** Try to respond via email or SMS and warn if they return false
-		    &net_mail_send(subject => "Stock quotes", to => $to, text => $Save{stock_results});
-	    }
-	    else {
-		    $v_stock_quote->respond("connected=0 app=error Mobile phone email address not found!");
-	    }
-
-	}
-	else {
-	        $v_stock_quote->respond("app=stocks connected=0 Stock quotes retrieved.");
-	}
+        $v_stock_quote->respond("app=stocks connected=0 Stock quotes retrieved.");
     }
 }
 
