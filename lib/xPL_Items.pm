@@ -1061,6 +1061,55 @@ sub ignore_message {
     return ($$p_data{'ups.basic'} or $$p_data{'hbeat.app'}) ? 0 : 1;
 }
 
+package xPL_X10Security;
+
+@xPL_X10Security::ISA = ('xPL_Item');
+
+sub new {
+    my ($class, $p_source, $p_type, $p_statekey) = @_;
+    my ($source,$deviceid) = $p_source =~ /(\S+):(\S+)/;
+    $source = $p_source unless $source;
+    my $self = $class->SUPER::new($source);
+    $$self{type} = $p_type if $p_type;
+    my $statekey = $p_statekey;
+    $statekey = 'command';
+    $self->SUPER::class_name('x10.security');
+    $$self{state_monitor} = "x10.security : $statekey";
+    $self->SUPER::device_monitor("device=$deviceid") if defined $deviceid;
+    return $self;
+}
+
+sub type {
+    my ($self, $p_type) = @_;
+    $$self{type} = $p_type if $p_type;
+    return $$self{type};
+}
+
+sub tamper {
+    my ($self) = @_;
+    return $$self{'x10.security'}{tamper};
+}
+
+sub low_battery {
+    my ($self) = @_;
+    return $$self{'x10.security'}{'low-battery'};
+}
+
+sub delay {
+    my ($self) = @_;
+    return $$self{'x10.security'}{delay};
+}
+
+sub ignore_message {
+    my ($self, $p_data) = @_;
+    return 1 if  $self->SUPER::ignore_message($p_data); # user xPL_Item's filter against deviceid
+    if ($$self{type}) {
+       return ($$p_data{'x10.security'}{type} ne $$self{type}) ? 1 : 0;
+    } else {
+       return 0;
+    }
+}
+
 
 package xPL_Rio;
 

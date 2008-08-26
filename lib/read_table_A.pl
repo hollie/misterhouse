@@ -674,6 +674,19 @@ sub read_table_A {
             $code .= "use xPL_Items;\n";
         }
     }
+    elsif($type eq "XPL_X10SECURITY") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if($other){
+            $object = "xPL_X10Security('$address',$other)";
+        }
+        else{
+            $object = "xPL_X10Security('$address')";
+        }
+        if( ! $packages{xPL_Items}++ ) {   # first time for this object type?
+            $code .= "use xPL_Items;\n";
+        }
+    }
     elsif($type eq "XPL_IRRIGATEWAY") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
