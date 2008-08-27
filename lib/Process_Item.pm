@@ -57,7 +57,7 @@ sub restore_string {
     if ($self->{cmds} and my $cmds = join($;, @{$self->{cmds}})) {
         $cmds =~ s/\n/ /g; # Avoid new-lines on restored vars
         $cmds =~ s/~/\\~/g;
-        $restore_string .= '@{' . $self->{object_name} . "->{cmds}} = split(\$;, q~$cmds~);";
+        $restore_string .= '@{' . $self->{object_name} . "->{cmds}} = split(\$;, q~$cmds~) if (!exists(" . $self->{object_name} . "->{cmds}));";
     }
     $restore_string .= $self->{object_name} . "->{cmd_index} = q~$self->{cmd_index}~;\n" if $self->{cmd_index};
     $restore_string .= $self->{object_name} . "->{timeout} = q~$self->{timeout}~;\n"     if $self->{timeout};
