@@ -231,14 +231,16 @@ sub poll_all {
    if ($scan_at_startup) {
    for my $port_name (keys %Insteon_PLM_Data) {
       my $plm = $Insteon_PLM_Data{$port_name}{'obj'};
-      for my $insteon_device ($plm->find_members('Insteon_Device')) {
-         if ($insteon_device and $insteon_device->is_root and $insteon_device->devcat ne '0005') 
-         {
-            # don't request status for objects associated w/ other than the primary group 
-            #    as they are psuedo links	
-            $insteon_device->request_status() if $insteon_device->group eq '01';
+      if (defined $plm) {
+         for my $insteon_device ($plm->find_members('Insteon_Device')) {
+            if ($insteon_device and $insteon_device->is_root and $insteon_device->devcat ne '0005') 
+            {
+               # don't request status for objects associated w/ other than the primary group 
+               #    as they are psuedo links	
+               $insteon_device->request_status() if $insteon_device->group eq '01';
+            }
          }
-       }
+      }
    }
    }
 	
