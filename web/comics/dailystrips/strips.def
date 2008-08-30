@@ -1433,14 +1433,13 @@ strip drabble
 end
 
 strip dilbert
-	type doublesearch
+	type search
 	name Dilbert
 	artist Scott Adams
 	homepage http://www.dilbert.com
 	searchpage http://www.dilbert.com
-	searchpattern BasePath: '(.+?)'.+?QueryString: '(.+?)'
+	searchpattern "(/dyn/str_strip[/\d]+?\d+.strip.gif)"
 	baseurl http://www.dilbert.com
-	searchpattern2 img src="(.+?)"
 	provides latest
 end
 
