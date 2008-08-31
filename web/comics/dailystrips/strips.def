@@ -1438,7 +1438,7 @@ strip dilbert
 	artist Scott Adams
 	homepage http://www.dilbert.com
 	searchpage http://www.dilbert.com
-	searchpattern "(/dyn/str_strip[/\d]+?\d+.strip.gif)"
+	searchpattern "(/dyn/str_strip[/\d]+?\d+.strip(.sunday)?.gif)"
 	baseurl http://www.dilbert.com
 	provides latest
 end
