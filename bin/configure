@@ -21,50 +21,52 @@ cd /usr/include
 
 case `uname -a` in
  Linux*)
-   h2ph features.h
-   h2ph termios.h
-   h2ph asm/termios.h
-   h2ph asm/termbits.h
-   h2ph asm/posix_types.h
-   h2ph asm/ioctls.h
-   h2ph asm/ioctl.h
-   h2ph bits/termios.h
-   h2ph gnu/stubs.h
-   h2ph linux/posix_types.h
-   h2ph linux/stddefs.h
-   h2ph linux/stddef.h
-   h2ph linux/compiler.h
+   h2ph -a termios.h
+   h2ph -a asm/termios.h
+   h2ph -a features.h
+   h2ph -a asm/termbits.h
+   h2ph -a asm/posix_types.h
+   h2ph -a asm/ioctls.h
+   h2ph -a asm/ioctl.h
+   h2ph -a bits/termios.h
+   h2ph -a gnu/stubs.h
+   h2ph -a linux/posix_types.h
+   h2ph -a linux/stddefs.h
+   h2ph -a linux/stddef.h
+   h2ph -a linux/compiler.h
  ;;
  FreeBSD*)
-   h2ph sys/termios.h
-   h2ph sys/ioctl.h
+   h2ph -a sys/termios.h
+   h2ph -a sys/ioctl.h
  ;;
  BSD/OS*)
-   h2ph sys/termios.h
-   h2ph sys/ioctl.h
+   h2ph -a sys/termios.h
+   h2ph -a sys/ioctl.h
  ;;
  *) echo "Warning: Untested platform! Check this script first."
  ;;
 esac
 
 if [ `uname -m` = 'sparc' ] ; then                                            
-  h2ph asm-sparc64/termios.h                                                  
-  h2ph asm-sparc/termios.h                                                    
-  h2ph asm-sparc64/termbits.h                                                 
-  h2ph asm-sparc/termbits.h                                                   
-  h2ph asm-sparc64/posix_types.h                                              
-  h2ph asm-sparc/posix_types.h                                                
-  h2ph asm-sparc64/ioctls.h                                                   
-  h2ph asm-sparc/ioctls.h                                                     
-  h2ph asm-sparc64/ioctl.h                                                    
-  h2ph asm-sparc/ioctl.h                                                      
-  h2ph asm-sparc64/stddefs.h
-  h2ph asm-sparc/stddefs.h
+  h2ph -a asm-sparc64/termios.h                                                  
+  h2ph -a asm-sparc/termios.h                                                    
+  h2ph -a asm-sparc64/termbits.h                                                 
+  h2ph -a asm-sparc/termbits.h                                                   
+  h2ph -a asm-sparc64/posix_types.h                                              
+  h2ph -a asm-sparc/posix_types.h                                                
+  h2ph -a asm-sparc64/ioctls.h                                                   
+  h2ph -a asm-sparc/ioctls.h                                                     
+  h2ph -a asm-sparc64/ioctl.h                                                    
+  h2ph -a asm-sparc/ioctl.h                                                      
+  h2ph -a asm-sparc64/stddefs.h
+  h2ph -a asm-sparc/stddefs.h
 fi                                                                            
 
 cd $curdir
 
 echo
-echo All done.  See docs/README.html and docs/mh.html for more info.
+echo All done.  This script is meant to work on various OSs and distributions.
+echo Errors about missing files are not necessarily a problem.   
+echo See docs/install.html for more info.
 echo Run mh with: ./mh
 echo
