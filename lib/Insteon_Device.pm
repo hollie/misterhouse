@@ -67,8 +67,12 @@ my %message_types = (
 						sprinkler_timers_request => 0x45,
 						thermostat_temp_up => 0x68,
 						thermostat_temp_down => 0x69,
-						thermostat_zone_info => 0x6a,
+						thermostat_get_zone_temp => 0x6a,
+						thermostat_get_zone_setpoint => 0x6a,
+						thermostat_get_zone_humidity => 0x6a,
 						thermostat_control => 0x6b,
+						thermostat_get_mode => 0x6b,
+						thermostat_get_temp => 0x6b,
 						thermostat_setpoint_cool => 0x6c,
 						thermostat_setpoint_heat => 0x6d
 );
@@ -561,6 +565,29 @@ sub set_led_status
 	$self->_send_cmd('command' => 'set_led_status', 'extra' => $status_mask);
 }
 
+sub _is_info_request
+{
+	my ($self, $cmd, $ack_setby, %msg) = @_;
+	my $is_info_request = ($cmd eq 'status_request') ? 1 : 0;
+#print "cmd: $cmd; is_info_request: $is_info_request\n";
+	if ($is_info_request) {
+		my $ack_on_level = (hex($msg{extra}) >= 254) ? 100 : sprintf("%d", hex($msg{extra}) * 100 / 255);
+		&::print_log("[Insteon_Device] received status request report for " .
+			$self->{object_name} . " with on-level: $ack_on_level%, "
+			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
+		$self->level($ack_on_level); # update the level value
+		if ($ack_on_level == 0) {
+			$self->SUPER::set('off', $ack_setby);
+		} elsif ($ack_on_level > 0 and !($self->is_dimmable)) {
+			$self->SUPER::set('on', $ack_setby);
+		} else {
+			$self->SUPER::set($ack_on_level . '%', $ack_setby);
+		}
+	}
+	return $is_info_request;
+
+}
+
 sub _process_message
 {
 	my ($self,$p_setby,%msg) = @_;
@@ -575,15 +602,11 @@ sub _process_message
 	if ($msg{is_ack}) {
 		if ($$self{awaiting_ack}) {
 			my $pending_cmd = ($$self{_prior_msg}) ? $$self{_prior_msg}{command} : $msg{command};
-#			if ($$self{m_status_request_pending}) {
-			if ($pending_cmd eq 'status_request') {
-				my $ack_on_level = (hex($msg{extra}) >= 254) ? 100 : sprintf("%d", hex($msg{extra}) * 100 / 255);
-			
-				&::print_log("[Insteon_Device] received status request report for " .
-					$self->{object_name} . " with on-level: $ack_on_level%, "
-					. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
-				$self->_on_status_request($ack_on_level, 
-					(ref $$self{m_status_request_pending}) ? $$self{m_status_request_pending} : $p_setby);
+			my $ack_setby = (ref $$self{m_status_request_pending}) 
+				? $$self{m_status_request_pending} : $p_setby;
+			if ($self->_is_info_request($pending_cmd,$ack_setby,%msg)) {
+				$self->is_acknowledged(1);
+				$$self{m_status_request_pending} = 0;
 				$self->_process_command_stack(%msg);
 			} elsif (($pending_cmd eq 'peek') or ($pending_cmd eq 'set_address_msb')) {
 				$self->_on_peek(%msg);
@@ -764,21 +787,6 @@ sub _xlate_mh_insteon
 		}
 	}
 	return $cmd;
-}
-
-sub _on_status_request
-{
-	my ($self, $p_onlevel, $p_setby) = @_;
-	$self->level($p_onlevel); # update the level value
-	if ($p_onlevel == 0) {
-		$self->SUPER::set('off', $p_setby);
-	} elsif ($p_onlevel > 0 and !($self->is_dimmable)) {
-		$self->SUPER::set('on', $p_setby);
-	} else {
-		$self->SUPER::set($p_onlevel . '%', $p_setby);
-	}
-	$self->is_acknowledged(1);
-	$$self{m_status_request_pending} = 0;
 }
 
 sub _on_poke
