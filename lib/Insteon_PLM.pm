@@ -356,6 +356,28 @@ sub set
 	}
 }
 
+# the following is only intended for diagnostic purposes; use at your own risk
+sub reset_serial_object {
+
+   my ($self) = @_;
+
+   for my $port_name (keys %Insteon_PLM_Data) {
+      my $plm_obj = $Insteon_PLM_Data{$port_name}{'obj'};
+      next unless $plm_obj eq $self;
+      my $port = $Insteon_PLM_Data{$port_name}{'serial_port'};
+      # delete out the current serial port
+      my $port_key = $::Serial_Ports{$port_name}{port};
+      if ($port_key) {
+          &::print_log("[Insteon_PLM] clearing serial port: $port_key");
+          $::Serial_Ports{object_by_port}{$port_key} = undef;
+      }
+      &::print_log("[Insteon_PLM] creating new serial port for $port_name");
+      &::serial_port_create($port_name, $port, 19200, 'none', 'raw');
+   }
+   return;
+}
+
+
 sub has_link
 {
 	my ($self, $insteon_object, $group, $is_controller, $subaddress) = @_;
@@ -1391,7 +1413,7 @@ sub _check_timeout
 	return 0 unless $timeout_name;
 	return -1 unless defined $$self{"_timeout_$timeout_name"};
 	my $current_tickcount = &main::get_tickcount;
-	return 0 if (($current_tickcount >= 2**7) and ($$self{"_timeout_$timeout_name"} < 2**7));
+	return 0 if (($current_tickcount >= 2**16) and ($$self{"_timeout_$timeout_name"} < 2**16));
 	return ($current_tickcount > $$self{"_timeout_$timeout_name"}) ? 1 : 0;
 }
 
