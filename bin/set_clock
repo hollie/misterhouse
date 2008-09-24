@@ -70,7 +70,7 @@ eof
   exit;
 }
 
-$parms{server} = 'time-a.timefreq.bldrdoc.gov:14' unless $parms{server};
+$parms{server} = 'time-a.timefreq.bldrdoc.gov:13' unless $parms{server};
 $parms{method} = 'socket' unless $parms{method};
 
 $parms{ignore} = 10 unless defined $parms{ignore};
