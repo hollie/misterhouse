@@ -1301,7 +1301,46 @@ sub main::write_mh_opts {
     }
 }
 
+# returns a sorted array of hashes containing idle time data for
+# items of the type (or inherited type) that is passed in
+sub main::get_idle_item_data
+{
+   my ($idle_types) = @_;
+   my $time = $main::Time;
+   my %idle_items = {};
+   for my $object_type (&main::list_object_types) {
+      for my $object_name (&main::list_objects_by_type($object_type)) {
+         my $object = (ref $object_name) ? $object_name : &main::get_object_by_name($object_name);
+         foreach my $idle_type (split(/,/,$idle_types)) {
+            if ($object->isa($idle_type)) {
+               my $name = $object->get_object_name;
+               $name =~ s/^\$//; # strip the $
+               my $idleduration = $object->get_idle_time;
+               my $idlehours = sprintf("%d",$idleduration / (60 * 60));
+               my $idleminutes = sprintf("%d",($idleduration % (60* 60)) / 60);
+               my $idleseconds = ($idleduration % (60*60)) % 60;
+               my $timeidle = $idleseconds . " seconds" if defined($idleduration);
+               $timeidle = $idleminutes . " minutes and " . $timeidle if $idleminutes;
+               $timeidle = $idlehours . " hours and " . $timeidle if $idlehours;
+               $timeidle = "(unknown)" unless $timeidle;
 
+               $idle_items{$name}{name} = $name;
+               $idle_items{$name}{idle} = $idleduration;
+               $idle_items{$name}{idle_text} = $timeidle;
+            }
+         }
+      }
+   }
+
+   my @idle_data = sort { $idle_items{$a}{idle} <=> $idle_items{$b}{idle} } keys %idle_items;
+   my @results = ();
+
+   foreach my $key (@idle_data) {
+      push @results, \%{$idle_items{$key}};
+   }
+
+   return @results;
+}
 
 #print " done\n";
 
