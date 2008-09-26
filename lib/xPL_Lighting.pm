@@ -206,7 +206,7 @@ sub new {
     $$self{state_monitor} = "lighting.devinfo : level|lighting.device : level";
     $self->SUPER::device_monitor("device=$id") if $id;
     # remap the state values to on and off
-    $self->tie_value_convertor('level','($section =~ /^lighting.dev/ and $value eq "0") ? "off" : "$value"');
+    $self->tie_value_convertor('level','($section =~ /^lighting\.dev/ and $value eq "0") ? "off" : "$value"');
 
     $self->state_overload('on');
     $self->restore_data('ramp_rate'); # keep track
