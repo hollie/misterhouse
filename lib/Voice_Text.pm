@@ -972,18 +972,18 @@ sub force_pronounce {
 
     print "input  phrase is '$phrase'\n" if $main::Debug{voice};
 
-	if (not $$parmsRef{raw_numbers}) {
-		# convert long numbers to their text equivalent
-		while ($phrase =~ /^(.*?)(\d{3,})(.*?)$/) {
-			$phrase=$1.&num_to_text($2).$3;
-		}
-	}
+    if (not $parmsRef->{raw_numbers}) {
+        # convert long numbers to their text equivalent
+        while ($phrase =~ /^(.*?)(\d{3,})(.*?)$/) {
+            $phrase = $1.&num_to_text($2).$3;
+        }
+    }
 
     for my $word (keys %pronouncable) {
-                                # Allow for regexs
-        if ($word =~ /^regex/) {
+        if ($word =~ /^regex/) {                     # Allow for regexs
             eval "\$phrase =~ $pronouncable{$word}";
-        } else {
+        }
+        else {
             $phrase =~ s/\b$word\b/$pronouncable{$word}/gi;
         }
     }
@@ -993,17 +993,15 @@ sub force_pronounce {
 }
 
 sub num_to_text {
-	my ($num)=@_;
+    my $num = shift;
 
-	my $language=$::config_parms{language};
+    my $lang = $::config_parms{language}
+               || 'en';
 
-	$language='en' unless $language;
+    my $text = Lingua::Num2Word::cardinal($lang, $num)
+               || 'num to text error';
 
-	my $text=Lingua::Num2Word::cardinal($language, $num);
-
-	$text="num to text error" unless $text;
-
-	return $text;
+    return $text;
 }
 
 1;
