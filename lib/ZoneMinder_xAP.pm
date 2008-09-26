@@ -232,16 +232,21 @@ sub new {
 sub add_item {
    my ($self, $p_object) = @_;
    if ($p_object->isa('ZM_ZoneItem')) {
-      push @{$$self{m_zones}}, $p_object;
-   } elsif ($p_object->isa('Light_Item') or $p_object->isa('Photocell_Item')) {
+#      push @{$$self{m_zones}}, $p_object;
+      $self->SUPER::add_item($p_object);
+   } elsif ($p_object->isa('Light_Item')) {
       print "Adding " . $p_object->{object_name} . " to " . $self->name . " for use in suspend/resume motion analysis\n"
           if $main::Debug{zone_minder};
+      $p_object->tie_items($self); # tie--don't add since we don't need to do lookup and don't want to cascade state
+   } elsif ($p_object->isa('Photocell_Item')) {
+      print "Adding " . $p_object->{object_name} . " to " . $self->name . " for use in suspend/resume motion analysis\n"
+          if $main::Debug{zone_minder};
+      $self->SUPER::add_item($p_object);
    } else {
       print "WARNING!! objects of type " . ref($p_object) . " cannot be added to ZM_MonitorItems!" 
           if $main::Debug{zone_minder};
    }
-   $self->SUPER::add_item($p_object);
-   
+  
 }
 
 sub light_blanking_duration {
@@ -319,7 +324,8 @@ sub set {
             if ($$p_setby{'alarm'}{cause} eq 'Motion') {
                my $id = $$p_setby{'alarm'}{alarmid};
                my (@zone_names) = split(/,/, $$p_setby{'alarm'}{zonedata}) if $$p_setby{'alarm'}{zonedata};
-               my (@zones) = @{$$self{m_zones}} if $$self{m_zones};
+#               my (@zones) = @{$$self{m_zones}} if $$self{m_zones};
+               my @zones = $self->find_members('ZM_ZoneItem');
                if (!(@zone_names) && @zones) {
                   push @zone_names, $zones[0]->name;
                }
@@ -392,8 +398,9 @@ sub set {
       $self->resume_motion_analysis();
    } elsif ($p_setby eq $$self{m_auto_off_timer}) {
       $state = 'idle';
-      for my $zone (@{$$self{m_zones}}) {
-         $zone->set('still', $self);
+#      for my $zone (@{$$self{m_zones}}) {
+      for my $zone ($self->find_members('ZM_ZoneItem')) {
+         $zone->set('still', $self) if $zone;
       }
    } else {
       $state = 'unknown';
