@@ -582,7 +582,7 @@ sub _parse_data {
 
 	# it is possible that a fragment exists from a previous attempt; so, if it exists, prepend it
 	if ($$self{_data_fragment}) {
-		&::print_log("[Insteon_PLM] Prepending prior data fragment: $$self{_data_fragment}");
+		&::print_log("[Insteon_PLM] Prepending prior data fragment: $$self{_data_fragment}") if $main::Debug{insteon};
 		$$self{_prior_data_fragment} = $$self{_data_fragment};
 		$data = $$self{_data_fragment} . $data;
 		$$self{_data_fragment} = '';
