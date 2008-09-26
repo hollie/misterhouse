@@ -93,6 +93,11 @@ sub bsc_state {
    }
 }
 
+sub source {
+    my ($self) = @_;
+    return $$self{m_xap}->source;
+}
+
 sub level {
    my ($self, $p_level) = @_;
    $$self{level} = $p_level if defined $p_level;
@@ -207,7 +212,7 @@ sub set
 #   }
    
    # Always pass along the state to base class
-   $self->SUPER::set($state,$p_setby, $p_respond) 
+   $self->SUPER::set_now($state,$p_setby, $p_respond) 
       unless ($state eq '_unknown' or $state eq '_unchanged' or $state eq '_masked');
    return;
 }
