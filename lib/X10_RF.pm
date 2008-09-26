@@ -130,10 +130,12 @@ sub decode_rf_bytes {
     # If we made it to here, then we don't know what to do with the command.
     if (!$initial_checksum_good) {
 	&::print_log(  "${uc_module}: bad initial checksum: "
-		     . "$bbytes[0] $bbytes[1] $bbytes[2] $bbytes[3]");
+		     . "$bbytes[0] $bbytes[1] $bbytes[2] $bbytes[3]")
+		     if $main::Debug{$lc_module};
     } else {
 	&::print_log(  "${uc_module}: bad checksum: "
-		     . "$bbytes[0] $bbytes[1] $bbytes[2] $bbytes[3]");
+		     . "$bbytes[0] $bbytes[1] $bbytes[2] $bbytes[3]")
+		     if $main::Debug{$lc_module};
     }
 
     return "BADCHECKSUM";
