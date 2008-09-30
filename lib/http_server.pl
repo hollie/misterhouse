@@ -2647,7 +2647,8 @@ sub quote_attribute {
 
 sub escape {
     ($_)=@_;
-    s/([^a-zA-Z0-9_\-.])/uc sprintf("%%%02x",ord($1))/eg;
+    s/ /\+/g;
+    s/([^a-zA-Z0-9_\-.\+])/uc sprintf("%%%02x",ord($1))/eg;
     $_;
 }
 
