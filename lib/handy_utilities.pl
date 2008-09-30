@@ -1336,7 +1336,9 @@ sub main::get_idle_item_data
    my @results = ();
 
    foreach my $key (@idle_data) {
-      push @results, \%{$idle_items{$key}};
+      if ($key) {
+         push @results, \%{$idle_items{$key}};
+      }
    }
 
    return @results;
