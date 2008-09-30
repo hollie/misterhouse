@@ -110,6 +110,7 @@ sub read_dvc_file {
 	my (%parms, %prontos, $in_keys);
 	$parms{repeat} = 3; 
 	while (<DVC>) {
+		next if /^#/;
 		chomp; 
 		s/\r//gs;
 		$in_keys = 1 if /\[Key Codes\]/;
