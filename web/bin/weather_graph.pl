@@ -25,6 +25,7 @@
 # Principal script
 #==============================================================================
 my $typegraph = shift;
+$typegraph = "tempout" unless $typegraph;
 return &select_weather_graph;
 
 #==============================================================================
