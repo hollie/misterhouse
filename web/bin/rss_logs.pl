@@ -29,7 +29,10 @@ Point your RSS reader to urls like this:
 
    http://localhost:8080/bin/rss_logs.pl?phone
    http://localhost:8080/bin/rss_logs.pl?speak
-   http://localhost:8080/bin/rss_logs.pl?print
+   http://localhost:8080/bin/rss_logs.pl?print (default)
+
+You must enable the phone_logs.pl common code script before you can view the 
+phone logs rss feed.   
 
 If you want static files, (e.g. serving files from another web server), you can
 create static xml feeds with code like this:
@@ -58,11 +61,18 @@ else {
 
 sub rss_log {
     my ($log) = @_;
+			# take off the cache buster added by google gadgets 
+    $log =~ s/\?.*//;
+    $log = "print" unless $log;
 
     $config_parms{rss_maxitems} = 100 unless $config_parms{rss_maxitems};
-#   $config_parms{rss_image}    = "http://misterhouse.net/mh/web/ia5/images/mhlogo.gif" unless $config_parms{rss_image};
-    $config_parms{rss_image}    = "http://$config_parms{http_server}:$config_parms{http_port}/ia5/images/mhlogo.gif"
-	unless $config_parms{rss_image};
+    $config_parms{rss_image}    = 
+      "http://misterhouse.sourceforge.net/mh_logo.gif" 
+      unless $config_parms{rss_image};
+    $config_parms{rss_image}    = "http://$config_parms{http_server}" .
+      ":$config_parms{http_port}/ia5/images/mhlogo.gif"
+	if $config_parms{http_server} and $config_parms{http_port} and 
+      not $config_parms{rss_image};
 
     use XML::RSS;  
     my $rss = new XML::RSS (version => '2.0');
@@ -113,6 +123,7 @@ sub rss_log {
     else {
                           # Reverse logdata to show newest items first
         for my $line (reverse file_read "$config_parms{data_dir}/logs/$log.log") {
+          next unless $line; 
 	    $article++;
 	    my($time_date, $data) = $line =~ /(.+ [AP]M) (.+)$/;
 	    my $time_date2 = &str2time($time_date);
