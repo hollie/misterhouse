@@ -2,7 +2,7 @@
 
 #@ This script collects and graphs traffic data from an actiontec mi424 wr router used by Verizon FIOS.   
 #@ Once this script is activated, <a href='sub;?graph_actiontec_rrd()'>
-#@ this graph </a> or <a href='sub;?/misc/actiontec_traffic.html'>
+#@ this graph </a> or <a href='/misc/actiontec_traffic.html'>
 #@ this page </a> will show your Internet traffic.   
 
 # 09/11/08 created by David Norwood 
@@ -39,14 +39,14 @@ if ($Reload) {
 	$p_get_actiontec->start;
 }
 
-if (new_minute and $stage eq 'ready' and $p_get_actiontec->done) {
+if (new_minute and ($stage eq 'ready' or $stage eq 'authen') and $p_get_actiontec->done) {
 	unlink $f_actiontec;
 	$p_get_actiontec->start;
 }
 
 if (said $v_read_actiontec) {
 	my $state = $v_read_actiontec->{state};
-	my $text; 
+	my $text = "Internet download bit rate: " . $Save{actiontec_rx} . " Mbps  upload: " . $Save{actiontec_tx} . " Mbps" ; 
 	$v_read_actiontec->respond("app=network $text"); 
 }	
 
@@ -150,13 +150,13 @@ if (done_now $p_get_actiontec) {
 		my $te = HTML::TableExtract->new( headers => ["1 Minute"]);
 		$te->parse($html);
 		my @cell = $te->rows;
-		my $actiontec_rx = $cell[1][0] / 1000;
-		my $actiontec_tx = $cell[0][0] / 1000;
+		$Save{actiontec_rx} = $cell[1][0] / 1000;
+		$Save{actiontec_tx} = $cell[0][0] / 1000;
 
-		if ($actiontec_rx and $actiontec_tx) {
-			&update_actiontec_rrd($Time, $actiontec_rx, $actiontec_tx);
-			print_log "Internet download bit rate: " . $actiontec_rx . 
-			  " Mbps  upload: " . $actiontec_tx . " Mbps" if $debug; 
+		if ($Save{actiontec_rx} and $Save{actiontec_tx}) {
+			&update_actiontec_rrd($Time, $Save{actiontec_rx}, $Save{actiontec_tx});
+			print_log "Internet download bit rate: " . $Save{actiontec_rx} . 
+			  " Mbps  upload: " . $Save{actiontec_tx} . " Mbps" if $debug; 
 		} else {
 			$stage = 'authen';
 			print_log "didnt see expected html";
