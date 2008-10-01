@@ -48,6 +48,8 @@ my %message_types = (
 						start_manual_change => 0x17,
 						stop_manual_change => 0x18,
 						status_request => 0x19,
+						get_operating_flags => 0x1f,
+						set_operating_flags => 0x20,
 						do_read_ee => 0x24,
 						remote_set_button_tap => 0x25,
 						set_led_status => 0x27,
@@ -75,6 +77,29 @@ my %message_types = (
 						thermostat_get_temp => 0x6b,
 						thermostat_setpoint_cool => 0x6c,
 						thermostat_setpoint_heat => 0x6d
+);
+
+my %operating_flags = (
+						'program_lock_on' => '00',
+						'program_lock_off' => '01',
+						'led_on_during_tx' => '02',
+						'led_off_during_tx' => '03',
+						'resume_dim_on' => '04',
+						'beeper_enabled' => '04',
+						'resume_dim_off' => '05',
+						'beeper_off' => '05',
+						'eight_key_kpl' => '06',
+						'load_sense_on' => '06',
+						'six_key_kpl' => '07',
+						'load_sense_off' => '07',
+						'led_backlight_off' => '08',
+						'led_off' => '08',
+						'led_backlight_on' => '09',
+						'led_enabled' => '09',
+						'key_beep_enabled' => '0a',
+						'one_minute_warn_disabled' => '0a',
+						'key_beep_off' => '0b',
+						'one_minute_warn_enabled' => '0b'
 );
 
 my %ramp_h2n = (
@@ -487,6 +512,36 @@ sub _process_command_stack
 	}
 }
 
+sub set_operating_flag {
+	my ($self, $flag) = @_;
+
+	if (!(exists($operating_flags{$flag}))) {
+		&::print_log("[Insteon_Device] $flag is not a support operating flag");
+		return;
+	}
+
+	if ($self->is_root and !($self->is_plm_controlled)) {
+		# TO-DO: check devcat to determine if the action is supported by the device
+		$self->_send_cmd('command' => 'set_operating_flags', 'extra' => $operating_flags{$flag});
+        } else {
+		&::print_log("[Insteon_Device] " . $self->get_object_name . " is either not a root device or is a plm controlled scene");
+		return;
+	}
+}
+
+sub get_operating_flag {
+	my ($self) = @_;
+
+	if ($self->is_root and !($self->is_plm_controlled)) {
+		# TO-DO: check devcat to determine if the action is supported by the device
+		$self->_send_cmd('command' => 'get_operating_flags');
+        } else {
+		&::print_log("[Insteon_Device] " . $self->get_object_name . " is either not a root device or is a plm controlled scene");
+		return;
+	}
+}
+
+
 sub set_retry_timeout {
 	my ($self, $timeout) = @_;
 #print "########## now setting " . $self->get_object_name . " retry timeout to $$self{max_queue_time} seconds\n";
@@ -876,6 +931,10 @@ sub _on_poke
 			$$self{_mem_action} = 'local_ramprate';
 			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
 		}
+	} elsif ($$self{_mem_activity} eq 'update_flags') {
+		# do nothing for now
+		# update from eeprom--only a kpl issue
+		$self->_send_cmd('command' => 'do_read_ee','is_synchronous' => 1);
 	} elsif ($$self{_mem_activity} eq 'delete') {
 		# clear out mem_activity flag
 		$$self{_mem_activity} = undef;
@@ -930,6 +989,8 @@ sub _on_peek
 				$$self{_mem_action} = 'adlb_data1';
 			} elsif ($$self{_mem_activity} eq 'update_local') {
 				$$self{_mem_action} = 'local_onlevel';
+			} elsif ($$self{_mem_activity} eq 'update_flags') {
+				$$self{_mem_action} = 'update_flags';
 			} elsif ($$self{_mem_activity} eq 'delete') {
 				$$self{_mem_action} = 'adlb_flag';
 			} elsif ($$self{_mem_activity} eq 'add') {
@@ -1079,6 +1140,9 @@ sub _on_peek
 			my $ramp_rate = $$self{_ramprate};
 			$ramp_rate = '1f' unless $ramp_rate;
 			$self->_send_cmd('command' => 'poke', 'extra' => $ramp_rate, 'is_synchronous' => 1);
+		} elsif ($$self{_mem_action} eq 'update_flags') {
+			my $flags = $$self{_operating_flags};
+			$self->_send_cmd('command' => 'poke', 'extra' => $flags, 'is_synchronous' => 1);
 		}
 #
 #			&::print_log("Insteon_Device: peek for " . $self->{object_name} 
@@ -1595,6 +1659,21 @@ sub update_local_properties
 	$$self{_mem_activity} = 'update_local';
 	$self->_peek('0020'); # 0320 is the address for the onlevel
 }
+
+sub update_flags
+{
+	my ($self, $flags) = @_;
+	if (!($self->is_keypadlinc)) {
+		&::print_log("[Insteon_Device] Operating flags may only be revised on keypadlincs!");
+		return;
+	}
+	return unless defined $flags;
+
+	$$self{_mem_activity} = 'update_flags';
+	$$self{_operating_flags} = $flags;
+	$self->_peek('0023'); 
+}
+
 
 sub has_link
 {
