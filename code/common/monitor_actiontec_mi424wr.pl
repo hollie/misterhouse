@@ -13,8 +13,8 @@ use RRDs;
 my $actiontec_host = '192.168.1.1';
 my $actiontec_username = 'admin';
 my $actiontec_password = 'password1';
-my $actiontec_download_mbps = 5;
-my $actiontec_upload_mbps = 2;
+my $actiontec_download_mbps = 5.0;
+my $actiontec_upload_mbps = 2.0;
 my $actiontec_url;
 my $f_actiontec = "$config_parms{data_dir}/web/actiontec.html";
 $v_get_actiontec = new Voice_Cmd 'Get actiontec info';
@@ -267,7 +267,7 @@ sub graph_actiontec_rrd {
 	my ($graph, $x, $y) = RRDs::graph("$config_parms{data_dir}/rrd/actiontec.png",
 	  "--start=$ago", "--end=$Time",
 	  "--width=$width", "--height=$height",
-	  "--lower-limit=-$actiontec_upload_mbps", "--upper-limit=actiontec_download_mbps",
+	  "--lower-limit=-$actiontec_upload_mbps", "--upper-limit=$actiontec_download_mbps",
 	  "--vertical-label=Mb/s",
 	  "DEF:rxmbps=$RRD:rxmbps:AVERAGE",
 	  "AREA:rxmbps#2000FF:In traffic",
