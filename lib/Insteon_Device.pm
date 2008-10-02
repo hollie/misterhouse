@@ -927,12 +927,16 @@ sub _on_poke
 		}
 	} elsif ($$self{_mem_activity} eq 'update_local') {
 		if ($$self{_mem_action} eq 'local_onlevel') {
-			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+			$$self{_mem_lsb} = '21';
 			$$self{_mem_action} = 'local_ramprate';
 			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
+		} elsif ($$self{_mem_action} eq 'local_ramprate') {
+			if ($self->is_keypadlinc) {
+				# update from eeprom--only a kpl issue
+				$self->_send_cmd('command' => 'do_read_ee','is_synchronous' => 1);
+			}
 		}
 	} elsif ($$self{_mem_activity} eq 'update_flags') {
-		# do nothing for now
 		# update from eeprom--only a kpl issue
 		$self->_send_cmd('command' => 'do_read_ee','is_synchronous' => 1);
 	} elsif ($$self{_mem_activity} eq 'delete') {
@@ -1134,7 +1138,7 @@ sub _on_peek
 			}
 		} elsif ($$self{_mem_action} eq 'local_onlevel') {
 			my $on_level = $self->local_onlevel;
-			$on_level = &Insteon_Device::convert_onlevel($on_level);
+			$on_level = &Insteon_Device::convert_level($on_level);
 			$self->_send_cmd('command' => 'poke', 'extra' => $on_level, 'is_synchronous' => 1);
 		} elsif ($$self{_mem_action} eq 'local_ramprate') {
 			my $ramp_rate = $$self{_ramprate};
@@ -1269,6 +1273,16 @@ sub local_onlevel
 		$$self{_onlevel} = $onlevel;
 	}
 	return $$self{_onlevel};
+}
+
+sub local_ramprate
+{
+	my ($self, $p_ramprate) = @_;
+	if (defined $p_ramprate) {
+		$$self{_ramprate} = &Insteon_Device::convert_ramp($p_ramprate);
+	}
+	return $$self{_ramprate};
+
 }
 
 sub set_receive
@@ -1657,7 +1671,7 @@ sub update_local_properties
 {
 	my ($self) = @_;
 	$$self{_mem_activity} = 'update_local';
-	$self->_peek('0020'); # 0320 is the address for the onlevel
+	$self->_peek('0032'); # 0032 is the address for the onlevel
 }
 
 sub update_flags
