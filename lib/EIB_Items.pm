@@ -734,8 +734,8 @@ sub decode {
   }
   my $weekday = ($data[1] & 0xE0) >> 5;
   my $hour    = $data[1] & 0x1F;
-  my $minute  = $data[2] & 0x1F;
-  my $second  = $data[3] & 0x1F;
+  my $minute  = $data[2] & 0xFF;
+  my $second  = $data[3] & 0xFF;
 
   $res = sprintf("%s, %02i:%02i:%02i",$DoW[$weekday],$hour,$minute,$second);
   &main::print_log("EIS3 for $self->{groupaddr}: >$res<") if $main::config_parms{eib_errata} >= 3;
@@ -1155,6 +1155,139 @@ sub encode {
     }
 }
 
+# EIB9_Item: 32-bit float
+
+package EIB9_Item;
+
+@EIB9_Item::ISA = ('EIB_Item');
+
+sub eis_type {
+    return '9';
+}
+
+sub decode {
+    my ($self, @data) = @_;
+    my $res;
+
+    unless ($#data == 4) {
+        &main::print_log("Not EIS type 9 data received for $self->{groupaddr}: \[@data\]") if $main::config_parms{eib_errata} >= 2;
+        return;
+    }
+    my $res = unpack "f", pack "L", (($data[1] << 24 ) | ($data[2] << 16 ) | ($data[3] << 8 ) | $data[4]);
+    
+#    &main::print_log("EIS9 for $self->{groupaddr}: >$res<");
+    return $res;
+}
+
+sub encode {
+    my ($self, $state) = @_;
+    my $res;
+    $res = unpack "L", pack "f", $state;
+    #&main::print_log("Res: $res State: $state \n");
+    return([0, ($res & 0xff000000) >> 24, ($res & 0xff0000) >> 16, ($res & 0xff00) >> 8, $res & 0xff]);
+}
+
+# EIB10_Item: 16-bit unsigned integer
+package EIB10_Item;
+
+@EIB10_Item::ISA = ('EIB_Item');
+
+sub eis_type {
+    return '10';
+}
+
+sub decode {
+    my ($self, @data) = @_;
+    my $res;
+
+    unless ($#data == 2) {
+        &main::print_log("Not EIS type 10 data received for $self->{groupaddr}: \[@data\]") if $main::config_parms{eib_errata} >= 2;
+        return;
+    }
+    my $res = ($data[1] << 8) | $data[2];
+
+#    &main::print_log("EIS10 for $self->{groupaddr}: >$res<");
+    return $res;
+}
+
+sub encode {
+    my ($self, $state) = @_;
+
+    return([0, ($state & 0xff00) >> 8, $state & 0xff]);
+}
+
+# EIB11_Item: 32-bit unsigned integer
+
+package EIB11_Item;
+
+@EIB11_Item::ISA = ('EIB_Item');
+
+sub eis_type {
+    return '11';
+}
+
+sub decode {
+    my ($self, @data) = @_;
+    my $res;
+
+    unless ($#data == 4) {
+	&main::print_log("Not EIS type 11 data received for $self->{groupaddr}: \[@data\]") if $main::config_parms{eib_errata} >= 2;
+	return;
+    }
+    my $res = ($data[1] << 24 ) | ($data[2] << 16 ) | ($data[3] << 8 ) | $data[4];
+
+#    &main::print_log("EIS11 for $self->{groupaddr}: >$res<");
+    return $res;
+}
+
+sub encode {
+    my ($self, $state) = @_;
+
+    return([0, ($state & 0xff000000) >> 24, ($state & 0xff0000) >> 16, ($state & 0xff00) >> 8, $state & 0xff]);
+}
+
+# EIB11S_Item: 32-bit _S_IGNED integer
+
+package EIB11S_Item;
+
+@EIB11S_Item::ISA = ('EIB_Item');
+
+sub eis_type {
+    return '11';
+}
+
+sub decode {
+    my ($self, @data) = @_;
+    my $res;
+
+    unless ($#data == 4) {
+        &main::print_log("Not EIS type 11 data received for $self->{groupaddr}: \[@data\]") if $main::config_parms{eib_errata} >= 2;
+        return;
+    }
+    my $res = ($data[1] << 24 ) | ($data[2] << 16 ) | ($data[3] << 8 ) | $data[4];
+    
+#    &main::print_log("EIS11 for $self->{groupaddr}: >$res<");
+    if ($data[1] < 128) { 
+        return $res;
+        }
+    else{
+        return (0-(0xFFFFFFFF-$res+1));
+    }
+}
+
+sub encode {
+    my ($self, $state) = @_;
+    my $res;
+    if (int($state) < 0) {
+        $res = ($state + 0xFFFFFFFF +1);
+        }
+    else {
+        $res = $state;
+        }
+    #&main::print_log("Res: $res State: $state \n");
+    return([0, ($res & 0xff000000) >> 24, ($res & 0xff0000) >> 16, ($res & 0xff00) >> 8, $res & 0xff]);
+}
+
 # EIB15_Item: 14-Byte Text Message
 
 package EIB15_Item;
@@ -1187,4 +1320,128 @@ sub encode {
     return \@res;
 }
 
+
+package EIBW_Item;
+
+@EIBW_Item::ISA = ('EIB_Item');
+
+# new: create an EIBW_Item. Instantiate the three underlying items.
+sub new {
+    my ($class, $id) = @_;
+    my @groups;
+    my ($subid, $item);
+
+    my $self  = $class->SUPER::new($id);
+
+    @groups = split(/\|/, $id);
+    print "Two group addresses required for window. Found $#groups in $id\n" if ($#groups != 1);
+
+    $subid = $groups[0];
+    $item = new EIBW1_Item($subid, "R", $id);
+    $item->add($subid . 'on', 'on');
+    $item->add($subid . 'off', 'off');
+
+    $self->{Top} = $subid;
+
+    if ($groups[0] ne $groups[1]) {
+      $subid = $groups[1];
+      $item = new EIBW1_Item($subid, "", $id);
+      $item->add($subid . 'on', 'on');
+      $item->add($subid . 'off', 'off');
+    }
+
+    $self->{Bottom} = $subid;
+    
+    $self->add($id . 'open', 'open');
+    $self->add($id . 'tilt', 'tilt');
+    $self->add($id . 'close', 'close');
+
+    return $self;
+}
+
+sub eis_type {
+    return 'w';
+}
+
+# position: return "position" sub-item
+sub top {
+    my ($self) = @_;
+    my $subitem;
+
+    return unless defined $self->{Top};
+    return $eib_item_by_id{$self->{Top}};
+}
+
+# control: return "control" sub-item
+sub bottom {
+    my ($self) = @_;
+    my $subitem;
+
+    return unless defined $self->{Bottom};
+    return $eib_item_by_id{$self->{Bottom}};
+}
+
+# set_receive: received an event from one of the sub_items.
+
+sub set_receive {
+    my ($self, $state, $set_by, $target) = @_;
+
+    my $top    = $self->top()->state_final();
+    my $bottom = $self->bottom()->state_final();
+
+    $state = "closed";
+    $state = "tilt"  if ($top eq "on" && $bottom eq "off");
+    $state = "open" if ($top eq "on" && $bottom eq "on");
+
+    #&main::print_log("################### t:$top b:$bottom w:$state ");
+
+    $self->SUPER::set_receive($state, $set_by, $target);
+}
+
+# EIS 2 subitem: generic class for the three dimming sub-functions
+
+package EIBW_Subitem;
+
+@EIBW_Subitem::ISA = ('EIB_Item');
+
+sub new {
+    my ($class, $id, $mode, $windowid) = @_;
+    my @args;
+
+    my $self  = $class->SUPER::new($id, $mode);
+    $self->{'Window'} = $windowid;
+    return $self;
+}
+
+sub window {
+    my ($self) = @_;
+    my $subitem;
+
+    return unless defined $self->{Window};
+    return $eib_item_by_id{$self->{Window}};
+ }
+
+# set_receive: forward to meta-item
+sub set_receive {
+    my ($self, $state, $set_by, $target) = @_;
+
+    $self->SUPER::set_receive($state, $set_by, $target);
+    my $window = window $self;
+    if (defined $window) {
+	$window->set_receive($state, $set_by, $target);
+    }
+    else {
+	&main::print_log("No window defined for window subitem $self->{groupaddr}");
+    }
+}
+
+package EIBW1_Item;
+
+# Multiple inheritance -- use encode/decode methods from EIB1_Item, and the rest from
+# EIBW_Subitem
+@EIBW1_Item::ISA = ('EIBW_Subitem', 'EIB1_Item'); # order is important!
+
+sub eis_type {
+    return 'w.3';
+}
 

@@ -1,0 +1,99 @@
+<html><head><title>MrHouse Menu</title>
+<!--#include var="$config_parms{html_style}" -->
+<script language=JavaScript>
+<!--
+function MM_swapImgRestore() { //v3.0
+  var i,x,a=document.MM_sr; for(i=0;a&&i<a.length&&(x=a[i])&&x.oSrc;i++) x.src=x.oSrc;
+}
+function MM_preloadImages() { //v3.0
+  var d=document; if(d.images){ if(!d.MM_p) d.MM_p=new Array();
+    var i,j=d.MM_p.length,a=MM_preloadImages.arguments; for(i=0; i<a.length; i++)
+    if (a[i].indexOf("#")!=0){ d.MM_p[j]=new Image; d.MM_p[j++].src=a[i];}}
+}
+function MM_findObj(n, d) { //v3.0
+  var p,i,x;  if(!d) d=document; if((p=n.indexOf("?"))>0&&parent.frames.length) {
+    d=parent.frames[n.substring(p+1)].document; n=n.substring(0,p);}
+  if(!(x=d[n])&&d.all) x=d.all[n]; for (i=0;!x&&i<d.forms.length;i++) x=d.forms[i][n];
+  for(i=0;!x&&d.layers&&i<d.layers.length;i++) x=MM_findObj(n,d.layers[i].document); return x;
+}
+function MM_swapImage() { //v3.0
+  var i,j=0,x,a=MM_swapImage.arguments; document.MM_sr=new Array; for(i=0;i<(a.length-2);i+=3)
+   if ((x=MM_findObj(a[i]))!=null){document.MM_sr[j++]=x; if(!x.oSrc) x.oSrc=x.src; x.src=a[i+2];}
+}
+//-->
+</script></head>
+<body bgcolor="#ffffff" onload="MM_preloadImages('images/house2.gif','images/news2.gif','images/modes2.gif','images/lights2.gif','images/outside2.gif','images/security2.gif','images/phone2.gif','images/entertain2.gif','images/speak2.gif','images/pictures2.gif','images/calendar2.gif','images/statistics2.gif','images/shoppinglist2.gif')">
+<base target="main">
+<center>
+<table align="center" width="95%" border="0" cellspacing="0" cellpadding="0">
+<tr>
+ <td rowspan="8" width="10%">&nbsp;</td>
+ <td colspan="5">&nbsp;</td>
+</tr>
+<tr>
+<td width="18%">
+<a href="house/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image1','','images/house2.gif',1)"><img src="images/house1.gif" alt='MisterHouse' border="0" name="Image1"></a>
+</td>
+<td width="12%">&nbsp;</td>
+<td width="18%">
+<a href="news/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image2','','images/news2.gif',1)"><img src="images/news1.gif" alt='Mail and News' border="0" name="Image2"></a>
+</td>
+<td width="12%">&nbsp;</td>
+<td width="18%">
+<a href="modes/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image3','','images/modes2.gif',1)"><img src="images/modes1.gif" alt='Modes' border="0" name="Image3"></a>
+</td>
+</tr>
+<tr>
+<td colspan="5">&nbsp;</td>
+  </tr>
+<tr>
+<td width="12%">
+<a href="lights/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image4','','images/lights2.gif',1)"><img src="images/lights1.gif" alt='Lights and Appliances' border="0" name="Image4"></a>
+</td>
+<td width="12%">&nbsp;</td>
+<td width="18%">
+<a href="rrd/housestats.shtml" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image5','','images/outside2.gif',1)"><img src="images/outside1.gif" alt='HVAC and Weather' border="0" name="Image5"></a>
+</td>
+<td width="12%">&nbsp;</td>
+<td width="18%">
+<a href="security/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image6','','images/security2.gif',1)"><img src="images/security1.gif" alt='Security' border="0" name="Image6"></a>
+</td>
+</tr>
+<tr>
+<td colspan="5">&nbsp;</td>
+  </tr>
+<tr>
+<td width="18%">
+<a href="phone/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image7','','images/phone2.gif',1)"><img src="images/phone1.gif" alt='Phone' border="0" name="Image7"></a>
+</td>
+<td width="12%">&nbsp;</td>
+<td width="18%">
+<a href="entertain/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image8','','images/entertain2.gif',1)"><img src="images/entertain1.gif" alt='Entertainment' border="0" name="Image8"></a>
+</td>
+<td width="12%">&nbsp;</td>
+<td width="18%">
+<a href="speak/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image9','','images/speak2.gif',1)"><img src="images/speak1.gif" alt='Speech' border="0" name="Image9"></a>
+</td>
+</tr>
+ <tr>
+ <td colspan="5">&nbsp;</td>
+ </tr>
+<tr>
+<td width="18%">
+<a href="pictures/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image10','','images/pictures2.gif',1)"><img src="images/pictures1.gif" alt='Comics and Pictures' border="0" name="Image10"></a>
+</td>
+<td width="12%">&nbsp;</td>
+<td width="18%">
+<a href="calendar/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image11','','images/calendar2.gif',1)"><img src="images/calendar1.gif" alt='Calendar' border="0" name="Image11"></a>
+</td>
+<td width="12%">&nbsp;</td>
+<td width="18%">
+<a href="statistics/index.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('Image12','','images/statistics2.gif',1)"><img src="images/statistics1.gif" alt='Statistics' border="0" name="Image12"></a>
+</td>
+</tr>
+</table><br>
+<font size="-1"><!--#include file="/bin/tagline.pl"--><br>
+<!--#include file="/bin/uptime.pl"-->
+&nbsp;&nbsp;<!--#include file="$config_parms{web_href_counter}"-->
+</font>
+</center></body></html>

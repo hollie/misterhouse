@@ -23,5 +23,5 @@ call pod2text updates.pod > updates.txt
 
 perl ..\bin\authors updates.pod > authors.html
 
-copy \data\mh_usage.txt .
-perl ..\bin\mh_users_table.pl mh_usage.txt > mh_usage_table.html
+@rem copy \data\mh_usage.txt .
+@rem perl ..\bin\mh_users_table.pl mh_usage.txt > mh_usage_table.html

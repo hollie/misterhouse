@@ -402,7 +402,7 @@ sub set_group_items {
 
 
 sub list {
-    my ($self, $memberList, $groupList) = @_;
+    my ($self, $memberList, $groupList, $no_child_members ) = @_;
 
     # Not sure if we need to initialize these array refs, but it seems like
     # a good practice to me.
@@ -424,7 +424,12 @@ sub list {
 			push (@$groupList, $member);
 			# recursive call, passing along the members that we know about already
 			# and the groups that we have looked at
-    		$member->list($memberList,$groupList);
+		if ($no_child_members) {
+		    push (@$memberList, $member);
+		}
+		else {
+		    $member->list($memberList,$groupList);
+		}
 		} else {
     		# if the item is already in the list, then we don't need to add it again!
 	    	if (grep {$_ == $member} @$memberList) {

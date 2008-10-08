@@ -1,0 +1,55 @@
+<html>
+    <head>
+        <title>MrHouse</title>
+	<meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;" />
+	<link rel="stylesheet" href="./WebApp/Design/Render.css" />
+	<script type="text/javascript" src="./WebApp/Action/Logic.js"></script>
+        <META HTTP-EQUIV="Content-type" CONTENT="text/html; charset=iso-8859-i">
+    </head>
+
+    <body>
+
+      <script type="text/javascript">
+        addEventListener("load", function() { setTimeout(hideURLbar, 0); }, false);
+
+        function hideURLbar(){
+          window.scrollTo(0,1);
+
+        }
+
+        function ChangeState(request) {
+            WA.Request("../SET?" + request, null, null);
+        }
+      </script>
+
+    <div id="WebApp">
+        <div id="iHeader">
+            <a href="#" id="waBackButton">Back</a>
+            <span id="waHeadTitle">Hauptmen&uuml;</span>
+        </div>
+
+        <div id="iGroup">
+          <div id="iLoader">Loading, please wait...</div>
+
+          <div class="iLayer" id="waEG_Arbeiten" title="Arbeitszimmer">
+            <div class="iMenu">
+              <ul class="iArrow">
+                <li>
+		  <input type="checkbox" id="Arbeiten" class="iToggle" title="I|O" checked="checked" 
+		         onclick="ChangeState('<write><object id='arbeiten' value='off'/></write>')"/> 
+		  <label>Arbeitszimmer<br/>
+		    <small>Deckenlicht</small>
+		  </label></a>
+		</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="iFooter">
+          &copy;2008 RaK, all rights reserved.
+        </div>
+    </div>
+    </body>
+</html>
+

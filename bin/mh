@@ -77,7 +77,7 @@ BEGIN {
 		close (ENTRIES);
     }
 
-	$Version = "mh 2.104";
+	$Version = "mh 2.105";
 	if ($revision) {
 		$Version.=" R${revision}";
 	}
@@ -3197,11 +3197,11 @@ sub list_objects_by_type2 {
 
 
 sub list_objects_by_group {
-    my ($group_name) = @_;
+    my ($group_name, $no_child_members) = @_;
     $group_name = '$' . $group_name unless $group_name =~ /^\$/;
     if (my $object = &get_object_by_name($group_name)) {
-        my @objects = list $object;
-        return (map {$_->{object_name}} @objects);
+        my @objects = $object->list(undef, undef, $no_child_members) if $object->can('list');
+        return (map {$_->{object_name}} @objects);2
     }
 }
 

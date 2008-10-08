@@ -244,6 +244,8 @@ sub http_process_request {
     my ($req_typ, $get_req, $get_arg) = $header =~ m|^(GET\|POST) (\/[^ \?]*)\??(\S+)? HTTP|;
     $get_arg = '' unless defined $get_arg;
 
+    $get_arg =~ s/(.*)\&__async.*/$1/;  # RaK: Fast hack to ensure async requests
+
     logit "$config_parms{data_dir}/logs/server_header.$Year_Month_Now.log",  "$header data:$temp"
         if $main::Debug{http};
     print "http: gr=$get_req ga=$get_arg " .
@@ -1747,7 +1749,8 @@ sub html_find_icon_image {
     }
     else {
         $name  = lc $object->{object_name};
-        $state = lc $object->{state};
+#       $state = lc $object->{state};
+        $state = lc $object->state();
         $state = lc $object->state_level() if ($type eq 'x10_item' or 
             $type eq 'x10_switchlinc') ;
         if ($type eq 'insteon_device') {
@@ -1762,6 +1765,9 @@ sub html_find_icon_image {
         $state = ($state) ? 'on' : 'off' if $type eq 'weather_item' and ($object->{comparison});
                                 # Allow for set_icon to set the icon directly
         $name = $object->{icon} if $object->{icon};
+        if ($type eq 'eibrb_item') { 
+          $state = sprintf("%.0f",$state / 10 ) * 10; 
+        }
         return '' if $name eq 'none';
     }
 
@@ -3139,7 +3145,6 @@ Content-Type: text/vnd.wap.wml
 eof
     return $wml;
 }
-
 
 
 return 1;           # Make require happy

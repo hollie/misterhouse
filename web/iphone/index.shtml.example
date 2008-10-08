@@ -1,0 +1,103 @@
+<html>
+    <head>
+        <title>MrHouse</title>
+        <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;" />
+        <link rel="stylesheet" href="./WebApp/Design/Render.css" />
+        <script type="text/javascript" src="./WebApp/Action/Logic.js"></script>
+        <META HTTP-EQUIV="Content-type" CONTENT="text/html; charset=iso-8859-i">
+    </head>
+
+<body>
+
+  <script type="text/javascript">
+        addEventListener("load", function() { setTimeout(hideURLbar, 0); }, false);
+
+        function hideURLbar(){
+          window.scrollTo(0,1);
+
+        }
+
+        function ChangeState(request) {
+            WA.Request(request, null, null);
+        }
+      </script>
+
+    <link rel="apple-touch-icon" href="/graphics/mrhouse.png"/>
+    <div id="WebApp">
+
+        <div id="iHeader">
+            <a href="#" id="waBackButton">Back</a>
+            <a href="#" id="waHomeButton">Home</a>
+            <span id="waHeadTitle">Hauptmenü</span>
+        </div>
+
+        <div id="iGroup">
+          <div id="iLoader">Loading, please wait...</div>
+
+          <div class="iLayer" id="waHome" title="Home">
+            <div class="iMenu">
+              <ul class="iArrow">
+		<li><a href="#_gEG"><img src="/graphics/geg.png" width=29 height=29 />Erdgeschoß</a></li>
+		<li><a href="#_gOG"><img src="/graphics/gog.png" width=29 height=29 />Obergeschoß</a></li>
+		<li><a href="#_Beleuchtung"><img src="/graphics/eib1_item-on.png" width=29 height=29 />Beleuchtung</a></li>
+		<li><a href="#_Rollladen"><img src="/graphics/rolllaeden.png" width=29 height=29 />Rollläden</a></li>
+		<li><a href="#_Fensterkontakte"><img src="/graphics/eibw_item-open.png" width=29 height=29 />Fenster</a></li>
+		<li><a href="#_Temp"><img src="/graphics/chart.png" width=29 height=29 />Charts</a></li>
+		<li><a href="#_Verschiedenes"><img src="/graphics/verschiedenes.png" width=29 height=29 />Verschiedenes</a></li>
+              </ul>
+            </div>
+          <!--#include code="&iphoneWebApp('Status','iMenu')"-->
+
+          </div>
+
+          <div class="iLayer" id="wagEG" title="Erdgeschoss">
+	    <!--#include code="&iphoneWebApp('EG_Wohnen','iMenu')"-->
+	    <!--#include code="&iphoneWebApp('EG_Arbeiten','iMenu')"-->
+	    <!--#include code="&iphoneWebApp('EG_Flur','iMenu')"-->
+	    <!--#include code="&iphoneWebApp('EG_Kueche','iMenu')"-->
+	  </div>
+
+          <div class="iLayer" id="wagOG" title="Obergeschoss">
+	    <!--#include code="&iphoneWebApp('OG_Lena','iMenu')"-->
+	    <!--#include code="&iphoneWebApp('OG_Franka','iMenu')"-->
+	    <!--#include code="&iphoneWebApp('OG_Eltern','iMenu')"-->
+	    <!--#include code="&iphoneWebApp('OG_Bad','iMenu')"-->
+	    <!--#include code="&iphoneWebApp('OG_Flur','iMenu')"-->
+	  </div>
+
+          <div class="iLayer" id="waBeleuchtung" title="Beleuchtung">
+	    <!--#include code="&iphoneWebApp('EG_Beleuchtung','iMenu')"-->
+	    <!--#include code="&iphoneWebApp('OG_Beleuchtung','iMenu')"-->
+	  </div>
+
+          <!--#include code="&iphoneWebApp('gOG','iLayer')"-->
+          <!--#include code="&iphoneWebApp('Rollladen','iLayer')"-->
+          <!--#include code="&iphoneWebApp('Fensterkontakte','iLayer')"-->
+          <!--#include code="&iphoneWebApp('Verschiedenes','iLayer')"-->
+
+          <div class="iLayer" id="waTemp" title="Temperatur">
+            <div class="iBlock">
+              <h1>Strom</h1>
+              <p>
+                Verbrauch<br/>
+                <img src="/ia5/rrd/graphs/strom.gif" style="margin:4px"/>
+              </p><br/>
+              <h1>Temperatur</h1>
+              <p>
+                Küche<br/>
+                <img src="/ia5/rrd/graphs/kueche.gif" style="margin:4px"/>
+                <br/>Bad<br/>
+                <img src="/ia5/rrd/graphs/bad.gif" style="margin:4px"/>
+              </p>
+
+            </div>
+          </div>
+        </div>
+
+        <div class="iFooter">
+          &copy;2008 RaK, all rights reserved.
+        </div>
+    </div>
+    </body>
+</html>
+

@@ -1,0 +1,44 @@
+<html>
+    <head>
+        <title>MrHouse</title>
+        <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;" />
+        <link rel="stylesheet" href="./WebApp/Design/Render.css" />
+        <script type="text/javascript" src="./WebApp/Action/Logic.js"></script>
+        <META HTTP-EQUIV="Content-type" CONTENT="text/html; charset=iso-8859-i">
+    </head>
+
+    <body>
+
+      <script type="text/javascript">
+        addEventListener("load", function() { setTimeout(hideURLbar, 0); }, false);
+
+        function hideURLbar(){
+          window.scrollTo(0,1);
+
+        }
+
+        function ChangeState(request) {
+            WA.Request(request, null, null);
+        }
+      </script>
+
+    <link rel="apple-touch-icon" href="/graphics/mrhouse.png"/>
+    <div id="WebApp">
+
+        <div id="iHeader">
+            <a href="#" id="waBackButton">Back</a>
+            <span id="waHeadTitle">Hauptmenü</span>
+        </div>
+
+        <div id="iGroup">
+          <div id="iLoader">Loading, please wait...</div>
+          <!--#include code="&iphoneWebApp('Main','iLayer')"-->
+        </div>
+
+        <div class="iFooter">
+          &copy;2008 RaK, all rights reserved.
+        </div>
+    </div>
+    </body>
+</html>
+

@@ -13,12 +13,1034 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 =begin html
 <p>The latest changelog for current test release
 (avalable via the <a href=http://misterhouse.svn.sourceforge.net/svnroot/misterhouse/trunk>SVN repository</a>
-or a <a href=http://misterhouse.net/public/misterhouse_src_test.zip>nightly compiled zip file</a> )
 can be found in <a href=http://misterhouse.svn.sourceforge.net/viewvc/misterhouse/trunk/?view=log>the SVN change log</a>
 with highlights listed in <a href=http://misterhouse.net/mh/docs/updates.html>the release notes</a>.
 
-
 =end html
+
+
+=head2 Version 2.105 posted on 10/12/2007
+
+Version 2.105 can be downloaded from here:
+
+  http://misterhouse.sf.net/download.html
+
+
+B<Detailed List of Changes from the SVN log:>
+
+
+Gregg Liming :: Thu, 02 Oct 2008
+ - Added ability to set local onlevel and ramprate via properties: local_onlevel and local_ramprate.
+Settings are written to device memory via method: update_localproperties.
+
+Gregg Liming :: Wed, 01 Oct 2008
+ - Added support to change the operating flags of a keypadlinc via method: update_flags.
+Pass in a two digit hex string that corresponds to the bit flags for a kpl.
+
+David Norwood :: Tue, 30 Sep 2008
+ - fixed read voice command 
+
+David Norwood :: Tue, 30 Sep 2008
+ - fixed scalding problem in graphs 
+
+David Norwood :: Tue, 30 Sep 2008
+ - change url uncoding of space to +
+
+David Norwood :: Tue, 30 Sep 2008
+ - allow for comments in dvc files 
+
+David Norwood :: Tue, 30 Sep 2008
+ - minor changes
+
+David Norwood :: Tue, 30 Sep 2008
+ - added default graph to display 
+
+David Norwood :: Tue, 30 Sep 2008
+ - added pronto codes for three new devices 
+
+David Norwood :: Tue, 30 Sep 2008
+ - added debugging information
+
+David Norwood :: Tue, 30 Sep 2008
+ - added a new script and web page to monitor and graph internet traffic from an Actiontec MI424-WR used by Verizon FIOS 
+
+Gregg Liming :: Mon, 29 Sep 2008
+ - Ensure get_idle_item_data doesn't return an empty hash if no valid types are requested.
+
+Gregg Liming :: Sun, 28 Sep 2008
+ - 
+Gregg Liming :: Fri, 26 Sep 2008
+ - Ensure debug info is only printed w/ appropriate module's debug flag enabled.
+
+Gregg Liming :: Fri, 26 Sep 2008
+ - Rewrote logic to track timing of each received message and to use this info to guard against "hangs".
+
+Gregg Liming :: Fri, 26 Sep 2008
+ - Fix regex on handling names with periods.
+
+Gregg Liming :: Fri, 26 Sep 2008
+ - Bug fix on light blanking function.
+
+Gregg Liming :: Fri, 26 Sep 2008
+ - Use super::set_now not super::set to ensure proper state propagation.
+
+Gregg Liming :: Fri, 26 Sep 2008
+ - Ensure debug output is enabled through debug option instead of prevented regardless.
+
+Gregg Liming :: Fri, 26 Sep 2008
+ - Added main::get_idle_item_data which will return a sorted array of hashes containing
+idle time data for items of the type (or inherited type) that is passed in
+as a comma-delimitted string.
+
+PetaMem Research :: Fri, 26 Sep 2008
+ - minor reformatting, mainly svn commit test
+
+Gregg Liming :: Tue, 23 Sep 2008
+ - Change server's default port from tcp 14 (incorrect and unknown?) to the correct one: 13.
+
+Matthew Williams :: Sat, 13 Sep 2008
+ - Removed one line from default shopping_list.txt to confirm that sourceforge write access is working.
+
+Gregg Liming :: Thu, 11 Sep 2008
+ - Added reset serial capability to the PLM.
+
+Gregg Liming :: Thu, 11 Sep 2008
+ - Implement more generic framework for intercepting/parsing "info request" style messages.
+Especially useful for new classes that inherit from Insteon_Device.
+
+David Norwood :: Tue, 02 Sep 2008
+ - dded the "-a" option to the h2ph commands in the configure script to hopefully convert all the needed include files for the ioctl definitions.
+
+Matthew Williams :: Sun, 31 Aug 2008
+ - Additional change to strips.def to support Dilbert Sunday comic.
+
+Matthew Williams :: Sat, 30 Aug 2008
+ - Updated Dilbert pattern in strips.def.
+
+Gregg Liming :: Sat, 30 Aug 2008
+ - Ensure that reference to PLM in poll_members is not undefined.
+
+Jim Duda :: Tue, 26 Aug 2008
+ - I changed the restore_string such that it will only reload the cmds array if a cmds array hasn't been previously defined by the new initilization call.  This bug caused the persistant value to override any changed value defined in the new call.  For example, a code change with a new cmds parameter to new will never take affect because the persistance value would override it.
+
+Gregg Liming :: Tue, 26 Aug 2008
+ - Add support for xPL_X10Security items which implement the x10.security schema.
+
+David Norwood :: Tue, 26 Aug 2008
+ - I fixed the problem Rick Bolen found in the stocks script.  It appears that the command of a process item is being reset by the item state restore mechanism in misterhouse, even if the command is set at startup.  I also fixed a problem that caused some commands not to work properly if there was a stock alert.
+
+David Norwood :: Mon, 25 Aug 2008
+ - fixed the breaking news script so it doesn't say "plus equals" over and over 
+
+David Norwood :: Fri, 22 Aug 2008
+ - Added Jim Skinner's comments about diagnosing problems with the configure script.   
+
+Jim Duda :: Wed, 20 Aug 2008
+ - I simply qualified a print_log with Debug to avoid chatter in the log file.
+
+Gregg Liming :: Thu, 14 Aug 2008
+ - Correct typo in state verbs specific to thermostat adapter.
+
+Gregg Liming :: Thu, 14 Aug 2008
+ - Adjust queueing logic so that the retry timeouts only start when the command is actually sent to the PLM
+insteon of when it is received by the PLM queue.  This should improve responsiveness and also avoid
+accidental retries.  In addition, add state "verbs" to support the EzRain and Thermostat Adapter.
+
+Matthew Williams :: Wed, 06 Aug 2008
+ - Adding support for Cirrus Logic chipset.  Patch supplied by Daniel Arnold
+
+Matthew Williams :: Wed, 06 Aug 2008
+ - Fixed default location for common code files.  Patch supplied by Daniel Arnold.
+
+Andrew McLaren :: Wed, 06 Aug 2008
+ - Move debug flag to use mh.ini parameter "debug=cbus".
+
+Gregg Liming :: Sun, 27 Jul 2008
+ - Remove check on isa RF_Item in set method since it does not have set_receive method.
+
+Tim Spaulding :: Sat, 26 Jul 2008
+ - Enabling AutoSend feature on the thermostat
+
+Gregg Liming :: Sat, 26 Jul 2008
+ - Add reload_hook to reset xpl_item_names (cached item names); otherwise, xPL items can "go deaf" on a reload (vice restart).
+
+Andrew McLaren :: Fri, 25 Jul 2008
+ - Change Subversion properties and add Subversion keywords to comments at top of file to conform to MH standard.
+
+Gregg Liming :: Fri, 25 Jul 2008
+ - Reset xap_item_names on reload so that new references to xAP_Items will be populated.  Otherwise, 
+the result will be old references to previous items and code that relies on xAP_Items will go deaf.
+
+Gregg Liming :: Fri, 25 Jul 2008
+ - Rename is_member to is_member_device so as to not conflict with inherited method from Base_Item.  Also, use add_item_if_not_present to avoid duplicate member additions.
+
+Andrew McLaren :: Thu, 24 Jul 2008
+ - Make the print_log "updating weather graphs" a debug level message.
+
+Andrew McLaren :: Thu, 24 Jul 2008
+ - Fixed config parameter "display_groups" handling. It now accepts lists of rooms delimited by the standard ",;|" options. (Same delimiters as used by the "display_apps" parameter.)
+
+Andrew McLaren :: Wed, 23 Jul 2008
+ - New function to allow use of config parameter "display_rooms" to 
+configure a MythTV device as a room display.
+Allow use of either the "notify_alert_text" or "notify_cid_info" MythTV 
+OSD container.
+
+Gregg Liming :: Tue, 22 Jul 2008
+ - Remove excess restrictions on when an MWI_xAP instance can report a proper state.
+
+Howard Plato :: Mon, 21 Jul 2008
+ - Updated to reflect new option sync_dtstamp. For use with calendar servers (ie google), which updates this field each time the calendar is downloaded.
+
+Tim Spaulding :: Sun, 20 Jul 2008
+ - updated UPB_Thermostat.pm module and a example .pl for usage
+
+Howard Plato :: Sun, 20 Jul 2008
+ - Added some debug to track down MD5 issue
+
+Andrew McLaren :: Fri, 18 Jul 2008
+ - Major changes to Clipsal CBus interface to make it capable with the latest CGate protocol.
+Interface can now automatically scan the CBus network and self configure.
+Configuration file format changed.
+The original code architecture has been retained.
+A rewrite is required to fully integrate CBus to the level of X10, etc.
+
+Gregg Liming :: Thu, 17 Jul 2008
+ - Add support for set_with_timer.  Method must override Generic_Item because setby can't be self.
+
+Howard Plato :: Tue, 15 Jul 2008
+ - Fixed a bug? message numbers were showing as 01 all the time as $msgcnt_prev wasn't being updated for imap or if pop3 left mail on the server
+
+Howard Plato :: Tue, 15 Jul 2008
+ - Updated ical2vsdb to add the sync_dtstamp option. Google calendar updates the timestamp for calendars as they are read. This defeats the ability to MD5 the string to see if the iCal changed. This should have a significantly lower CPU load for google calendar users as iCal::Parser is no longer invoked if the iCal hasn't changed.
+Update iCal::Parser to the latest
+
+Howard Plato :: Sat, 12 Jul 2008
+ - Modified script to only process iCal if changed in poll period. As iCal::Parse is very CPU intensive, this should reduce some of the load of using ical2vsdb
+
+Howard Plato :: Sat, 12 Jul 2008
+ - get_email can now access imap mailboxes, both over standard imap and imap-over-ssl (ie Gmail). This update requires several dependancies, which are described in the libs. handy_net_utilities has also been modified to send mail through gmail is it is a gmail account. Lastly, some minor cosmetic fixes to get_email.
+
+Gregg Liming :: Thu, 10 Jul 2008
+ - Fix problem w/ aliased AnalogSensor_Items occurring on reload (not restart).  Problem identified by Andy McCallum.
+Also, fixed ability to fully qualify the sourcename in items.mht for all sources (including oxc).
+
+Gregg Liming :: Thu, 10 Jul 2008
+ - Allow Alert* and Normal* patterns to accomodate embdded chars like "lowbattery" within the expression.
+Patch supplied by Jason Horne.
+
+Matthew Williams :: Thu, 03 Jul 2008
+ - Changed some gocomics strips back from DRM to "gen" as the DRM scheme seems to have been abandoned.  These strips include foxtrot, garfield and calvin and hobbes.
+
+Gregg Liming :: Mon, 30 Jun 2008
+ - Set the embedded BSC_Items to always report state--even if identical--so that idle tracking can occur.
+
+Gregg Liming :: Mon, 30 Jun 2008
+ - Set the "set_time" hash member so that idle time can be determined.
+
+Gregg Liming :: Wed, 25 Jun 2008
+ - Extend check during set of child objects to include RF_Items--which should only be set_receive.
+
+Gregg Liming :: Sun, 22 Jun 2008
+ - Fix previous check on mh_exit.
+
+Gregg Liming :: Sun, 22 Jun 2008
+ - Don't send xap-hbeat.stopped on reload--only on exit.
+
+Gregg Liming :: Fri, 20 Jun 2008
+ - Added support to adjust "nice" level to process items when they fork an external program (*nix only).
+Allows global ini parm: process_nice_level=x and individual process item control: $some_proc->nice_level(x).
+
+Gregg Liming :: Thu, 19 Jun 2008
+ - Implement reset method so that memory is not leaked everytime that a tab file is modified.
+
+Gregg Liming :: Fri, 06 Jun 2008
+ - Clear out callback record before the evaluation to prevent subsequent link add/update/link transaction's callback from being cleared.
+
+Gregg Liming :: Thu, 05 Jun 2008
+ - Protect against conditions where a user does not define the root device (:01) when also definining a non-root device (:0x).
+Usually, this would occur from a typo when entering insteon addresses for keypadlincs.
+
+Gregg Liming :: Thu, 05 Jun 2008
+ - Drop flag to prevent multiple scan all or sync all attempts as a stall situation can occur and will otherwise force a reload.
+
+Gregg Liming :: Thu, 05 Jun 2008
+ - Fix case sensitivity bug.
+
+Gregg Liming :: Thu, 05 Jun 2008
+ - Fix restore and case sensitivity bugs.
+
+Gregg Liming :: Wed, 04 Jun 2008
+ - Adjust scan/sync all output to rely on real indices.  Improve error handling for scan/sync all.
+
+Gregg Liming :: Wed, 04 Jun 2008
+ - Address bug introduced by duplicated processing.  Improve NACK handling for synchronous messaging (e.g., peeks/pokes).
+
+Gregg Liming :: Tue, 03 Jun 2008
+ - Adjust ack message routing to use cached prior command rather than use (unreliable) parsed command from insteon message.
+
+Gregg Liming :: Tue, 03 Jun 2008
+ - Reset scan counter.
+
+Gregg Liming :: Mon, 02 Jun 2008
+ - Reset retry counter if the "extra" field does not match.  This prevents premature command retry aborts if a sequence of similar commands (e.g., peeks during a memory scan).
+
+Ryan Davies :: Thu, 29 May 2008
+ - Modified mpe_mpd.pl to include additional documentation. Changed mpd.conf.raw to be more generic
+
+Gregg Liming :: Fri, 23 May 2008
+ - Prevent double-set (via surrogate) if setby self.
+
+Gregg Liming :: Fri, 23 May 2008
+ - Remove warning when setting non-root (e.g., keypadlinc buttons) devices.
+
+Gregg Liming :: Fri, 23 May 2008
+ - Resolve bug when case when keypadlinc button does not have an attached surrogate link.
+
+Gregg Liming :: Fri, 23 May 2008
+ - Fix bug introduced by latest keypadlinc button state changes.
+
+Gregg Liming :: Thu, 22 May 2008
+ - Provide improved support for controlling light state of Keypadlinc buttons.  Resolve case sensitivity bugs.  Implement duplicate link detection and removal.
+
+Gregg Liming :: Sun, 18 May 2008
+ - Improve logging output for keypadlincs.
+
+Gregg Liming :: Sun, 18 May 2008
+ - Encapsultate detection of keypadlinc.
+
+Ryan Davies :: Sun, 18 May 2008
+ - Fixed typo on Shuffle (Sub call should have been random, not shuffle)
+
+Gregg Liming :: Sat, 17 May 2008
+ - Support keypadlincs with devcat of 020f.  Thanks to Brandon Powers for the new devcat.
+
+Gregg Liming :: Sat, 17 May 2008
+ - Fix bug (reported by Brandon Powers) when group is '01' and controlled by the plm.
+
+Ryan Davies :: Thu, 08 May 2008
+ - Copied code from mh/web/bin/photos.pl to make image names more HTML complient e.g. replace space with %20
+
+Ryan Davies :: Thu, 08 May 2008
+ - Fixed Minor bug. Photo viewer wasn't stripping file names correctly for captions in custom folders.
+
+Ryan Davies :: Wed, 07 May 2008
+ - Accidently created Syntax Errors adding Date/Revision information
+
+Ryan Davies :: Wed, 07 May 2008
+ - Added SmoothGallery image slideshow/viewer and web/bin/photos_new.pl
+
+Troy Carpenter :: Fri, 02 May 2008
+ - Change X10 code created from Insteon PLM receive to properly report "all_off"
+and "all_lights_on" correctly so upper level X10 code will recognize the command
+and set the value of items on the house code correctly.
+
+Troy Carpenter :: Tue, 29 Apr 2008
+ - Change handling of all_[off|lights_off|lights|on] commands.  Improve X10 debug output.
+
+Troy Carpenter :: Tue, 29 Apr 2008
+ - Add support for sending X10 all_(off|lights_off|lights_on).
+
+Ryan Davies :: Mon, 28 Apr 2008
+ - Modified mp3_mpd.pl to use perl's KILL command to check if the mpd process is running. Noticable CPU usage drop has been noted becaus of this modification
+
+Howard Plato :: Thu, 24 Apr 2008
+ - Web Interface to show status of Network_Items.
+
+Ryan Davies :: Thu, 24 Apr 2008
+ - Forgot to set properties as states on the wiki (in Style)
+
+Ryan Davies :: Thu, 24 Apr 2008
+ - Added mpd directory to data dir with initial Config file. Added MPD Playback support.
+
+Gregg Liming :: Wed, 23 Apr 2008
+ - Support ability to append log files via -mode_log_file command line argument.  Thanks to Andy M for the suggestion.
+
+David Satterfield :: Wed, 23 Apr 2008
+ - Fixed divide by 100 error in Kwtdy, cleaned up code
+
+Gregg Liming :: Tue, 22 Apr 2008
+ - Support queues with ID=0
+
+Gregg Liming :: Tue, 22 Apr 2008
+ - Properly support valve's with ID=0.
+
+Gregg Liming :: Tue, 22 Apr 2008
+ - Continuation of prior fix.
+
+Gregg Liming :: Tue, 22 Apr 2008
+ - Bug fix to resolve errors thrown when calling queue->clear.  Thanks to Andy M. for identifying the bug.
+
+Matthew Williams :: Mon, 21 Apr 2008
+ - Adding missing ' from generate HTML.  Fix from Chris Barrett.
+
+Joe Blecher :: Mon, 21 Apr 2008
+ - Fixed issue with decoding variable packet length. 
+Decoded more fields
+-This line, and those below, will be ignored--
+M    TED.pm
+
+Matthew Williams :: Sat, 19 Apr 2008
+ - Updated dailystrips with new type "doublesearch" that searches one page to generate a URL, then retrieves and searches that second page to get the image url.
+Dilbert requires this special handling.
+
+Gregg Liming :: Thu, 17 Apr 2008
+ - Do not automatically insert sensor type into the subaddress unless the connecting conduit is oxc.
+
+Gregg Liming :: Wed, 16 Apr 2008
+ - Adjust call to BSC->send_query to the new BSC->query.
+
+Gregg Liming :: Wed, 16 Apr 2008
+ - Implement query method to allow BSC item states to be more easily queried.
+
+Gregg Liming :: Wed, 16 Apr 2008
+ - Fix regex comparison problem where partial matches were allowed.  Thanks to Steve Bauer for discovering the bug.
+
+Gregg Liming :: Wed, 16 Apr 2008
+ - Prevent resend of command if received from same Insteon_Device (or _Link) item.  Add support for local on level via "local_onlevel" property.
+
+Gregg Liming :: Wed, 16 Apr 2008
+ - Pass real member on level--don't interpret 100% as 'on'.
+
+Jim Duda :: Mon, 14 Apr 2008
+ - I updated the perl bindings to OWFS to use strings instead of ints to match the latest version of the OWFS software.
+
+David Satterfield :: Tue, 08 Apr 2008
+ - David Satterfield added support for TED (The Energy Detective)
+
+David Satterfield :: Tue, 08 Apr 2008
+ - David Sattefield added %Electric hash in support of Ted
+
+Matthew Williams :: Sat, 29 Mar 2008
+ - Modified regex for creator class of comics as some of these have moved from .gif to .jpg.
+
+Pete Flaherty :: Wed, 26 Mar 2008
+ - Pete Flaherty update camera dir listing to align colums to wc_max parameter and a typo too
+
+Pete Flaherty :: Wed, 26 Mar 2008
+ - Pete Flaherty update camera dir listing to align colums to wc_max parameter
+
+David Satterfield :: Sat, 22 Mar 2008
+ - added zwave items
+
+Jim Duda :: Wed, 19 Mar 2008
+ - I added a new voice command which allows the pocketsphinx language files to get reset to force a rebuild on the next restart.
+
+Jim Duda :: Wed, 19 Mar 2008
+ - I updated the pocketsphinx module to avoid rebuilding the language model files if the files are available and no new voice commands have been created since the files were last built.  This saves some compute time during mh startup inside a forked thread.
+
+Jim Duda :: Sun, 16 Mar 2008
+ - I cleaned up some of the example code and removed some confusing code snipets.
+
+Jim Duda :: Sun, 16 Mar 2008
+ - I made some enhancements to avoid unattended pocketsphinx programs from running between restarts and reloads.
+
+Jim Duda :: Sun, 16 Mar 2008
+ - I moved the DS2450 package into the Owfs_Item.pm file.  To avoid clutter, all the OWFS modules can live in the same Owfs_Item file.
+
+David Satterfield :: Sun, 16 Mar 2008
+ - added lirc target
+
+David Satterfield :: Sun, 16 Mar 2008
+ - first commit for lirc support in mh
+
+Howard Plato :: Sat, 15 Mar 2008
+ - Fix minor typo in print statement
+
+Pete Flaherty :: Sat, 15 Mar 2008
+ - Pete Flaherty added camera snapshot directory (web/cameras), updated common code stub for settings, added support pls for dynamic slidshow/movie player and support in web/bin corrected typo added missing
+
+Gregg Liming :: Fri, 14 Mar 2008
+ - 
+Jim Duda :: Fri, 14 Mar 2008
+ - I added configuration parameters for pocketsphinx.
+
+Jim Duda :: Mon, 10 Mar 2008
+ - Updated version with bulk of the control software pushed down to PocketSphinx.pm library module.
+
+Jim Duda :: Mon, 10 Mar 2008
+ - Initial file revision, modules to interface with OWFS.
+
+Jim Duda :: Mon, 10 Mar 2008
+ - Initial file submission.  Library module for Pocketsphinx voice recognition.
+
+Jim Duda :: Mon, 10 Mar 2008
+ - Initial submission. OWFS perl API interface.
+
+Jim Duda :: Mon, 10 Mar 2008
+ - Initial file submission.  One Wire File system code module example.
+
+Jim Duda :: Mon, 10 Mar 2008
+ - Initial file submission.  One Wire File system cgi perl script for thermostat.
+
+Pete Flaherty :: Mon, 03 Mar 2008
+ - Pete Flaherty added camera snapshot directory (web/cameras), updated common code stub for settings, added support pls for dynamic slidshow/movie player and support in web/bin
+
+David Norwood :: Sun, 02 Mar 2008
+ - removed "status" from the insteon_menu_states ini parameter, since it's added automatically 
+
+David Norwood :: Wed, 27 Feb 2008
+ - updated the "list" web function so it displays the correct image for Insteon devices based on their current light level 
+
+Gregg Liming :: Wed, 27 Feb 2008
+ - Adjust calls to request_status to reflect requestor (to support proper tracking).
+
+Gregg Liming :: Wed, 27 Feb 2008
+ - Added level property (to support web pages) and adjusted status_request calls and state updates to reflect originator.
+
+Gregg Liming :: Wed, 27 Feb 2008
+ - Remove ref on call to status_request (to be consistent with status_request tracking).
+
+Gregg Liming :: Wed, 27 Feb 2008
+ - Ensure that zone name matching when processing zone updates are case insensitive.
+
+Matthew Williams :: Tue, 26 Feb 2008
+ - Updated URLs for The Devil's Panties comic.
+
+David Norwood :: Mon, 25 Feb 2008
+ - added support for insteon_menu_commands to the "list" web function 
+
+David Norwood :: Mon, 25 Feb 2008
+ - minor changes
+
+Gregg Liming :: Thu, 21 Feb 2008
+ - Added XPL_LIGHTGATEWAY and XPL_LIGHT tags to support the new xPL Lighting classes.
+
+Gregg Liming :: Thu, 21 Feb 2008
+ - Initial submission of support for the xPL lighting schema.
+
+Matthew Williams :: Tue, 19 Feb 2008
+ - Changed debug=1 to debug=1 as requested by Andy M.
+
+Gregg Liming :: Mon, 18 Feb 2008
+ - Allow support for xPL's concept of "continuation lines" where additional items are continued across multiple tags with the same tag name.
+
+Gregg Liming :: Mon, 18 Feb 2008
+ - Allow both commas and semi-colons to delimit multiple debug options.
+
+Gregg Liming :: Sun, 17 Feb 2008
+ - Properly qualify debug statement in socket_has_data.
+
+Gregg Liming :: Sun, 17 Feb 2008
+ - Make socket warn statement in socket_has_data conditional on debug=socket
+
+Gregg Liming :: Sun, 17 Feb 2008
+ - Use temporary files to write graph data to--swapping on completing a graph.
+
+Gregg Liming :: Sun, 17 Feb 2008
+ - Update call to socket_has_data to avoid errors.
+
+Gregg Liming :: Sun, 17 Feb 2008
+ - Update call to socket_has_data in http_process_request to not continue if an error is returned (negative value).  This resolves problems encountered by Andy M. with system "hangs".
+
+Gregg Liming :: Sun, 17 Feb 2008
+ - Update socket_has_data to retry if EINTR (system interrupt encountered).  Update all calls to socket_has_data to only continue processing if returned value is greater than 0 (ignoring errors).
+
+Howard Plato :: Sun, 10 Feb 2008
+ - Minor bugfixes and cleaned up debug output. Thanks to Troy for testing!
+
+Pete Flaherty :: Sat, 09 Feb 2008
+ - Pete Flaherty added code support directory and file structure
+committed mh-pocketsphinx automated dl,compile,install scriptt for Linux
+
+Gregg Liming :: Wed, 06 Feb 2008
+ - Ensure returned values for "ignore_message" method return either 1 or 0.
+
+Gregg Liming :: Wed, 06 Feb 2008
+ - Ensure that deviceid=0 can be used for device monitor in xPL_SensorBasic.
+
+Gregg Liming :: Wed, 06 Feb 2008
+ - Support use of Insteon_PLM_disable_throttling config parm to speed things up for firmware > 62.  Adjusted callback evaluation code.  Omitted RemoteLinc devices from startup scan.
+
+Gregg Liming :: Wed, 06 Feb 2008
+ - Pass optional arguments to the Insteon_Device and Insteon_Link constructors.
+
+Gregg Liming :: Wed, 06 Feb 2008
+ - Support passing devcat in the constructor to support (usually) "deaf" devices like the RemoteLinc.
+
+Gregg Liming :: Wed, 06 Feb 2008
+ - Allow devcat to be passed in to the constructor to support (usually) "deaf" devices like the RemoteLinc.
+
+Gregg Liming :: Wed, 06 Feb 2008
+ - Prevent setting queue_timer_callback for the plm items.
+
+Gregg Liming :: Tue, 05 Feb 2008
+ - Add "sync all links" voice command.
+
+Gregg Liming :: Tue, 05 Feb 2008
+ - Correct add_link parameter references.
+
+Gregg Liming :: Tue, 05 Feb 2008
+ - Implement queue timer callback.
+
+Gregg Liming :: Tue, 05 Feb 2008
+ - Defer callback eval until after insteon ack. Ensure get_object's group evaluation is case insensitive.
+
+Gregg Liming :: Tue, 05 Feb 2008
+ - Fix problem with incorrect selection of next available address on add_link.
+
+Gregg Liming :: Mon, 04 Feb 2008
+ - Prevent retaining valid message as a fragment if no match against deviceid and group to a defined mh item.
+
+Gregg Liming :: Mon, 04 Feb 2008
+ - Handle special case of plm-controlled links with group = 01.
+
+Gregg Liming :: Mon, 04 Feb 2008
+ - Handle special case of plm link with group = 01.
+
+Gregg Liming :: Mon, 04 Feb 2008
+ - Implemented queued link delete operations so that delete orphans processing is serialized.
+
+Jim Duda :: Mon, 04 Feb 2008
+ - I added support for the pocketsphinx voice recognition system.
+
+Jim Duda :: Sun, 03 Feb 2008
+ - Initial file submission of the control module for the pocketsphinx voice recognition system.
+
+Jim Duda :: Sun, 03 Feb 2008
+ - Initial file submission of the pocketsphinx script.  This script runs as a
+a separte process from mh.  It spawns off more processes, one for each 
+seperate listening device.  Each process starts up one instance of the
+pocketsphinx_continous program and waits (blocking) for utterances from
+the pocketsphinx_continous program, then forwards the resulting values
+to mh via a tcp socket.
+
+Matthew Williams :: Fri, 01 Feb 2008
+ - Backing out r1295 as it prevents callerid.pl from being used in non Windows environments.
+
+Gregg Liming :: Thu, 31 Jan 2008
+ - Avoid repeat (accidental) set state by processing queue timer.
+
+Pete Flaherty :: Wed, 30 Jan 2008
+ - updated language to be GPL2 unless otherwise noted
+
+Pete Flaherty :: Wed, 30 Jan 2008
+ - Pete Flaherty added code support directory and file structure
+committed mh-pocketsphinx automated dl,compile,install scriptt for Linux
+
+Gregg Liming :: Tue, 29 Jan 2008
+ - Support adaptive queue timeouts. Miscellaneous link management bug-fixes.
+
+Gregg Liming :: Tue, 29 Jan 2008
+ - Allow request_status to revert to Insteon_Device if link is a root device.
+
+Gregg Liming :: Tue, 29 Jan 2008
+ - Support adaptive queue lengths. Miscellaneous link management bug fixes.
+
+Gregg Liming :: Tue, 29 Jan 2008
+ - Ensure that delete_orphan_links always uses root device (not logic/link device).
+
+Gregg Liming :: Tue, 29 Jan 2008
+ - Ensure that delete_orphans always uses root device (not logical/link device).
+
+Gregg Liming :: Tue, 29 Jan 2008
+ - Fix additional cases specific to KeypadLincs.
+
+Gregg Liming :: Tue, 29 Jan 2008
+ - Handle additional cases specific to KeypadLincs.
+
+Gregg Liming :: Tue, 29 Jan 2008
+ - Improve logging readability. Fix bug in add_link where on_level arbitrarily set to 100.
+
+Gregg Liming :: Tue, 29 Jan 2008
+ - Improve logging readability.
+
+Gregg Liming :: Tue, 29 Jan 2008
+ - Minor revisions to adjust link records for Keypadlinc originated links for buttons other than A.
+
+Gregg Liming :: Tue, 29 Jan 2008
+ - Add status function to IPLL items whose group = '01'.
+
+Gregg Liming :: Mon, 28 Jan 2008
+ - Ensure Insteon_Link items w/ group = '01' are also interrogated at startup.
+
+Gregg Liming :: Mon, 28 Jan 2008
+ - Include sync links function for non-PLM (in addition to PLM) controlled links.
+
+Gregg Liming :: Mon, 28 Jan 2008
+ - Numerous link management improvements and bug-fixes.
+
+Gregg Liming :: Mon, 28 Jan 2008
+ - Significantly improve coverage (scope) of delete_orphaned_links.
+
+Gregg Liming :: Mon, 28 Jan 2008
+ - Implemented queued linking; improved sync link processing by only updating changes.
+
+Peter Sjï¿½din :: Sun, 27 Jan 2008
+ - Support for EIS 7 blinds, by Thomas H”rndlein
+
+Matthew Williams :: Sun, 27 Jan 2008
+ - Steve Goldman's patch to items.pl to allow for a previously non-existant items.mht.
+
+Matthew Williams :: Sat, 26 Jan 2008
+ - Merging in Bruce's accidental commit to the 2.104 branch (r1319):
+Log Message:
+Adding example code from Rick Bassett on interfacing to sensorts from eEsensors.com
+Added Paths:
+    branches/v2-104/code/public/Esensor_EM01.pl
+
+Matthew Williams :: Fri, 25 Jan 2008
+ - A few patches from David Worenklein including fixes for a small patch issue and adding additional command support for X10_Wish.
+
+Pete Flaherty :: Fri, 25 Jan 2008
+ - Pete Flaherty supurfluous file removed
+
+Pete Flaherty :: Fri, 25 Jan 2008
+ - Chris Barrett found a minor bug that caused the process to fork prematurely
+Needed to double escape the & in the url
+
+Matthew Williams :: Thu, 24 Jan 2008
+ - Adding definition for "Delucq".
+
+Pete Flaherty :: Wed, 23 Jan 2008
+ - Update to start at camera 1 not 0. makes assignments consistant from ini to display
+
+Gregg Liming :: Wed, 23 Jan 2008
+ - Added support to detect and process "bad" commands--indicated by a '0f' appended to the returned message.
+
+Gregg Liming :: Wed, 23 Jan 2008
+ - Increase scope of delete orphan links to include reverse references.
+
+Gregg Liming :: Wed, 23 Jan 2008
+ - Allow group number to be passed into link_to_interface and unlink_to_interface methods.
+
+Gregg Liming :: Wed, 23 Jan 2008
+ - Adjust logic in link_to_interface and unlink_to_interface to find appropriate "surrogate" object to perform functions when group number is not '01'.  Similarly, revised xlate_mh_insteon to only perform automatic broadcast commands if group is not '01'.
+
+Gregg Liming :: Wed, 23 Jan 2008
+ - Add support for log links to IPLL (Insteon_Links) whose group number is 01/
+
+Gregg Liming :: Wed, 23 Jan 2008
+ - Avoid all-link command prefixing if setby is an Insteon_Link and group is '01'.
+
+Gregg Liming :: Wed, 23 Jan 2008
+ - Ensure that device commands are adjusted to be "standard" vice "alllink" if an Insteon_Link's group is '01'.
+
+Gregg Liming :: Wed, 23 Jan 2008
+ - Only iterate over members in set method if group is not '01'.
+
+Gregg Liming :: Wed, 23 Jan 2008
+ - Provide support for scan links for IPLL (Insteon Links) whose group is is 01.
+
+Gregg Liming :: Wed, 23 Jan 2008
+ - Fix pump_is_running method.
+
+Gregg Liming :: Wed, 23 Jan 2008
+ - Added debug lines for valve state tracking.
+
+Gregg Liming :: Wed, 23 Jan 2008
+ - Fix sprinklr.pump and default-queue-id tracking.  Fix based on assistance from Andy M.
+
+Gregg Liming :: Wed, 23 Jan 2008
+ - Fix reference to xPL lib. Bug fix contributed by Andy M.
+
+Matthew Williams :: Mon, 21 Jan 2008
+ - Rick Steeve's changed to get_tv_grid_* so that it works for single digit months.
+
+Gregg Liming :: Mon, 21 Jan 2008
+ - Fix typos in references to sprinklr schema.  Update xPL_Irrigation_Gateway's ignore_message method to prevent excluding request messages. 
+
+Gregg Liming :: Mon, 21 Jan 2008
+ - Initial support for the xPL sprinklr.basic schema and gateway.
+
+Gregg Liming :: Sun, 20 Jan 2008
+ - Correct reference to print_log.  Bug fix submitted by Brian Warren.
+
+Matthew Williams :: Sun, 20 Jan 2008
+ - Chris Barrett's patch to weather_graph_zoom.pl to respect the format of mh.ini->date_format.
+
+Matthew Williams :: Sun, 20 Jan 2008
+ - Adding Jo Shanks' modifications to callerid to allow an Outlook contact database to be used (Windows only!).
+
+Matthew Williams :: Sun, 20 Jan 2008
+ - Adding Lio comic courtesy of Pete Flaherty
+
+Matthew Williams :: Sun, 20 Jan 2008
+ - Adding Tom's (SkaBoyTD) yahoo traffic script.
+
+Matthew Williams :: Sun, 20 Jan 2008
+ - Adding Rick Steeve's new XMLTV based tv grid stuff.
+
+Matthew Williams :: Sun, 20 Jan 2008
+ - Adding additional comics courtesy of Dan Rich.
+
+Gregg Liming :: Wed, 16 Jan 2008
+ - Updates to reflect AWS URL changes.  Contributed by Brian Rudy.
+
+Gregg Liming :: Wed, 16 Jan 2008
+ - Check existance of PLM object in check_for_data before accessing methods.
+
+Pete Flaherty :: Tue, 15 Jan 2008
+ - Adding webcam functioality and settings
+
+Pete Flaherty :: Tue, 15 Jan 2008
+ - Adding webcam functioality and settings
+
+Pete Flaherty :: Tue, 15 Jan 2008
+ - Adding webcam functioality and settings
+
+Pete Flaherty :: Tue, 15 Jan 2008
+ - Adding webcam functioality and settings
+
+Pete Flaherty :: Tue, 15 Jan 2008
+ - Update to comment out tagline dependent code, keeping mh from crashing when loading without tagline enabled
+
+Pete Flaherty :: Tue, 15 Jan 2008
+ - Audrey monitiring for ping and http with item related power cycle
+
+Gregg Liming :: Tue, 15 Jan 2008
+ - Trap errors caused by unavailable SAPI voices.  Interrogate available SAPI voices at startup.  Added additional debug statements.
+
+Gregg Liming :: Sun, 13 Jan 2008
+ - Disable duplicate message checking in main queue for x10 as house codes may be duplicates
+
+Howard Plato :: Sun, 13 Jan 2008
+ - Fixed a bug where holiday's weren't processed correctly. Added an option to locally cache icals fetched over http.
+
+David Norwood :: Sat, 12 Jan 2008
+ - minor changes
+
+David Norwood :: Fri, 11 Jan 2008
+ - There was a strange bug in the internet weather script that kept changes to the city, state, and zone parameters from being recognized.  
+
+Gregg Liming :: Fri, 11 Jan 2008
+ - Added ability to link/unlink back to the interface for Insteon_Device and Insteon_Links.  This facilitates creating the "link back" for SwitchLinc and KeypadLinc devices.
+
+Gregg Liming :: Fri, 11 Jan 2008
+ - Added support for add and delete link records. Extended "sync_links" to include addition of link (and not just updates). Various bug-fixes.
+
+Gregg Liming :: Wed, 02 Jan 2008
+ - Change default "always_set_state" to be 0 (off). This is more intuitive behavior given that sets otherwise occur on info messages.
+
+Gregg Liming :: Fri, 21 Dec 2007
+ - Add pull-down support for IPLL (Insteon Link) as well as column definitions for IPLL and SCENE_MEMBER.
+
+Gregg Liming :: Tue, 18 Dec 2007
+ - Ensure that xap-hbeat.stopped is sent on exit so that external hubs know to release mh's hub port.
+
+Gregg Liming :: Sun, 16 Dec 2007
+ - Updated code to detect and process commands based on better protocol documentation for the Digimax 210 (courtesy of Chris Barrett).
+
+Gregg Liming :: Fri, 14 Dec 2007
+ - Replace with proper "off" image per David Satterfield.
+
+Tim Spaulding :: Tue, 11 Dec 2007
+ - Initial implementation of the RCS UPB Thermostat
+
+Gregg Liming :: Mon, 10 Dec 2007
+ - Fix status request bug (double conversion to percent).  Added ability to set local on level and ramp rate.
+
+Gregg Liming :: Mon, 10 Dec 2007
+ - Added x10 transmission debug statements.
+
+Gregg Liming :: Sun, 09 Dec 2007
+ - Detect fragments that lead w/ valid insteon code [courtesy of log file provided by DeanJunk].
+
+Tim Spaulding :: Sun, 09 Dec 2007
+ - Add support for "UPBT" RCS UPB Thermostat
+
+Gregg Liming :: Thu, 29 Nov 2007
+ - Added ability to perform full device scans for all defined devices.  Added ability to sync link data.
+
+Gregg Liming :: Thu, 29 Nov 2007
+ - Added support for updating link records in devices.  Improved overall support for linking and resolved various link-related bugs.
+
+Matthew Williams :: Wed, 28 Nov 2007
+ - Added XKCD comic definition as supplied by Rick Steeves.
+
+Matthew Williams :: Tue, 27 Nov 2007
+ - Dave Lounsberry's fix to the web server to clear out the $html variable between runs regardless of user client settings.
+
+Matthew Williams :: Sun, 25 Nov 2007
+ - Added debug line to &X10_Item::set_interface.
+
+Tim Spaulding :: Sat, 24 Nov 2007
+ - Made the $message_type hash available outside this package
+
+Gregg Liming :: Mon, 19 Nov 2007
+ - Only allow device scans on restart after mh normally exits.  Prevent rescans on reloads.
+
+Gregg Liming :: Fri, 16 Nov 2007
+ - Added ability to save/restore contents of AllLink table so that it will persist across restarts.
+
+Gregg Liming :: Fri, 16 Nov 2007
+ - Replace all occurances of timer objects and blocking selects with high-res timeout counters.  Fixed flaw with fragment processing that would allow one fragment of multiple to be lost.  Implemented ability to scan AllLink table and persist it as part of the object (during save/restore).
+
+Gregg Liming :: Wed, 14 Nov 2007
+ - Replace bad dates with good ones (prior to 2038).
+
+Matthew Williams :: Sun, 11 Nov 2007
+ - Merging in changes from 2.104 branch, revs 1213:1253.
+
+Matthew Williams :: Sun, 11 Nov 2007
+ - Pete (pjf) discovered that audrey_cid.pl was corrupted in rev 347.  This version repairs the corruption while keeping the intended changes applied in rev 347.
+
+Howard Plato :: Sun, 04 Nov 2007
+ - Updated organizer system. Options are now a comma delimited list, and ical2vsdb can read a directory of icals (collection). Calendar.pl quick bug fix to properly parse ical names
+
+Matthew Williams :: Sat, 03 Nov 2007
+ - Updated Net::OSCAR to v1.925 and added debug support to AIM/ICQ (OSCAR) connections in handy_net_utilities.
+
+Jason Sharpee :: Thu, 01 Nov 2007
+ - Update the authors
+
+Jason Sharpee :: Thu, 01 Nov 2007
+ - Update the authors
+
+Gregg Liming :: Wed, 31 Oct 2007
+ - Fixed a problem w/ loss of commands from the command stack.  Implemented timeout on non-ack'd messages.
+
+Gregg Liming :: Wed, 31 Oct 2007
+ - Clear prior command buffer and minor debug statement additions/revisions.
+
+Gregg Liming :: Tue, 30 Oct 2007
+ - Ensure awaiting_ack flag is always cleared unless synch is set.
+
+Gregg Liming :: Tue, 30 Oct 2007
+ - Implement basic throttling of send messages when excess number is transmitted.
+
+Gregg Liming :: Tue, 30 Oct 2007
+ - Bug fixes related to resent timeouts and all linking.
+
+Gregg Liming :: Tue, 30 Oct 2007
+ - Numerous bug fixes and improvements on ack and fragment handling.
+
+Howard Plato :: Sun, 21 Oct 2007
+ - iCal based Holiday generation code for different regions. Regional holidays are specified in data/holidays.* and an apple ical/ms outlook compatible ical file will be created at the root of the web server. This file can be imported into a calendar tool or imported back into MH via the organizer ical2vsdb parser. Setting that file's option to holiday enables the organizer.pl's holiday functionality.
+Lots of dependencies, so if anyone wants to test this out see the requirements in bin/holical. If this is useful system-wide, it may be worthwhile to add the dependancies to lib/site (similar to what was done for ical2vsdb)
+
+Howard Plato :: Sun, 21 Oct 2007
+ - organizer ical graphics
+
+Howard Plato :: Sun, 21 Oct 2007
+ - pretty major change to the organizer web interface. Updated all code to latest release (2.5.2). Added drop downs for date processing to ensure quality data for organizer.pl, removed scripts that were not accessed by the web interface (setup.pl would crash MH for me), and lastly added some snazzy ical graphics to show which items were sync'd via ical2vsdb.
+
+Howard Plato :: Sun, 21 Oct 2007
+ - Added ability to create i2v.cfg config file based on mh.ini param entries. Also minor bugfix to allow notification emails to be sent to multiple accounts
+
+Gregg Liming :: Fri, 19 Oct 2007
+ - Added Insteon_PLM_scan_at_startup as a means of disabling the automatic scan by settting the parm to 0.
+
+Gregg Liming :: Thu, 18 Oct 2007
+ - Protect xPL send from poorly formed arguments.
+
+Gregg Liming :: Thu, 18 Oct 2007
+ - Added support for scanning link table and initiating links to PLM as a controller.
+
+Gregg Liming :: Thu, 18 Oct 2007
+ - Add writable method.
+
+Gregg Liming :: Thu, 18 Oct 2007
+ - Various Insteon ALL-link improvements--including the ability to sync Light_Items.
+
+Gregg Liming :: Sat, 13 Oct 2007
+ - Add support for xPL_UPS.
+
+Gregg Liming :: Fri, 12 Oct 2007
+ - Allow state monitor override parameter in xPL_Sensor's constructor.
+
+Gregg Liming :: Thu, 11 Oct 2007
+ - Trap status attributes from hbeat.app messages.  Fix mh's hbeat sending so that it observes the specified interval (default is 5 minutes).
+
+Gregg Liming :: Thu, 11 Oct 2007
+ - Simplified open_port function and made heartbeat sending use xpl_address and then ipaddress_xpl as possible overrides for remoteip attrib in heartbeat message.
+
+Gregg Liming :: Tue, 09 Oct 2007
+ - Object scan failed to catch embedded xAP objects like those used in BSC.
+
+Gregg Liming :: Tue, 09 Oct 2007
+ - Fix reference to xAP:send that is specific to xPL so that it uses the new xPL package.
+
+Gregg Liming :: Tue, 09 Oct 2007
+ - Add support for xPL_Sensor via XPL_SENSOR tag.
+
+Gregg Liming :: Tue, 09 Oct 2007
+ - Added xpl as a valid "conduit".
+
+Gregg Liming :: Tue, 09 Oct 2007
+ - Add appropriate references to the new xPL_Items.pm module and related params.
+
+Gregg Liming :: Tue, 09 Oct 2007
+ - Repackage all xPL-specific logic from the original xAP_Items.pm  Add new package: xPL_Sensor that implements sensor.basic scheme.
+
+Gregg Liming :: Tue, 09 Oct 2007
+ - Split out xPL specific logic so that it will be in its own set of packages and files (xPL_Items.pm).
+
+Gregg Liming :: Tue, 09 Oct 2007
+ - Adds voice commands for all Insteon_Device, Insteon_Link and Insteon_PLM items.  These can be used to perform "assisted" link enrollment.
+
+Gregg Liming :: Tue, 09 Oct 2007
+ - Add support for Insteon_Links (ALL-Linking) via tag IPLL.
+
+Gregg Liming :: Tue, 09 Oct 2007
+ - Added additional support for ALL-links where PLM is both responder or controller and for link state updates to cross-linked responders.
+
+Matthew Williams :: Sun, 07 Oct 2007
+ - merging in changes from 2.104 branch.  Revs 1189:1213
+
+Jason Sharpee :: Wed, 03 Oct 2007
+ - fix incorrect delegation to link.
+
+Gregg Liming :: Wed, 03 Oct 2007
+ - Added support to receive insteon messages; accelerate sending (if insteon); initial all-link support (via reception); automatic state syncing if manual state change detected.
+
+Jason Sharpee :: Sat, 29 Sep 2007
+ - remove debug messages
+
+Jason Sharpee :: Sat, 29 Sep 2007
+ - remove debug messages
+
+Jason Sharpee :: Sat, 29 Sep 2007
+ - remove debug message
+
+Jason Sharpee :: Sat, 29 Sep 2007
+ - Re-order parameters to be more like X10.  Add Insteon to create list
+
+Jason Sharpee :: Sat, 29 Sep 2007
+ - Re-order paramters to be more like X10
+
+Jason Sharpee :: Sat, 29 Sep 2007
+ - Add support for status request. Add code for LOMP objects (Gregg L.)
+
+Jason Sharpee :: Wed, 26 Sep 2007
+ - fix quoting issue on insteon'
+
+Jason Sharpee :: Wed, 26 Sep 2007
+ - Add support for X10_Appliance
+
+Jason Sharpee :: Wed, 26 Sep 2007
+ - Add UPB and Insteon support
+
+Jason Sharpee :: Wed, 26 Sep 2007
+ - Add support for UPB and Insteon Items
+
+Jason Sharpee :: Mon, 24 Sep 2007
+ - Fix X10 receive issues
+
+Jason Sharpee :: Mon, 24 Sep 2007
+ - Queue Reliability Issues.  Fix X10 receive
+
+Jason Sharpee :: Sun, 23 Sep 2007
+ - Forgot a message type to include in the templates
+
+Jason Sharpee :: Sun, 23 Sep 2007
+ - Add in Insteon_Device code.  Refactoring for jumbled messages.
+
+Jason Sharpee :: Sun, 23 Sep 2007
+ - Add support for Insteon_Device.pm
+
+Jason Sharpee :: Sun, 23 Sep 2007
+ - Initial Insteon Device
+
+Jason Sharpee :: Fri, 21 Sep 2007
+ - Initial Version for Insteon_PLM support
+
+Jason Sharpee :: Fri, 21 Sep 2007
+ - Initial Version for X10 support
+
+Matthew Williams :: Tue, 18 Sep 2007
+ - Merged in patches from 2.104 branch - revs 1177:1189.
+
 
 
 =head2 Version 2.104 posted on 11/04/2007

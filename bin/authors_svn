@@ -1,15 +1,18 @@
 #!/usr/bin/perl
 use strict;
 
-# Reads an svn change log from: http://misterhouse.svn.sourceforge.net/viewvc/misterhouse/branches/v2-104/?view=log
+# Reads an svn change log from: http://misterhouse.svn.sourceforge.net/viewvc/misterhouse/branches/v2-104/?view=log  or from:  svn log
 # Creats a pod file to be added to docs/updates.pod, which translates to docs/updates.txt.
 # Updates.txt then gets parsed by mh/bin/authors.
 
 my ($author, $date, $changes);
 
-my %names = (dnorwood2 => 'David Norwood', gliming => 'Gregg Liming', hplato => 'Howard Plato', jduda => 'Jim Duda', mattrwilliams => 'Matthew Williams', winter => 'Bruce Winter', zonyl => 'Jason Sharpee');
+my %names = (dnorwood2 => 'David Norwood', gliming => 'Gregg Liming', hplato => 'Howard Plato', jduda => 'Jim Duda', mattrwilliams => 'Matthew Williams', winter => 'Bruce Winter', 
+	     zonyl => 'Jason Sharpee', andymc => 'Andrew McLaren', blecher => 'Joe Blecher', david_mrhouse => 'David Satterfield', 'i-owns-u' => 'Ryan Davies', petamem => 'PetaMem Research', 
+	     pjf02536 => 'Pete Flaherty', posjodin => 'Peter Sj�din', tbs007 => 'Tim Spaulding', troycarpenter => 'Troy Carpenter');
 
 while (<>) {
+				# viewvc html format
     if (/^Modified (.+?) \S+ (\S+) UTC.+ (\S+)$/) {
 	print "$author :: $date\n - $changes\n" if $author;
 	$changes = '';
@@ -17,7 +20,31 @@ while (<>) {
         $author = $names{$author} if $names{$author};
 	next;
     }
-    next if /^Revision / or /^Original Path/ or /^ *$/;
+				# svn log format
+    if (/^r\d+ \| (\S+) .+\((.+)\)/) {
+	print "$author :: $date\n - $changes\n" if $author;
+	$changes = '';
+	$author = $1;  $date = $2;
+        $author = $names{$author} if $names{$author};
+	next;
+    }
+
+    next if /^Revision / or /^Original Path/ or /^ *$/ or /^---/;
     $changes .= $_;
 }
 
+
+__END__
+
+------------------------------------------------------------------------
+r1528 | gliming | 2008-10-01 15:38:12 -0400 (Wed, 01 Oct 2008) | 3 lines
+
+Added support to change the operating flags of a keypadlinc via method: update_flags.
+Pass in a two digit hex string that corresponds to the bit flags for a kpl.
+
+------------------------------------------------------------------------
+r1527 | dnorwood2 | 2008-09-30 21:52:19 -0400 (Tue, 30 Sep 2008) | 2 lines
+
+fixed read voice command 
+
+------------------------------------------------------------------------

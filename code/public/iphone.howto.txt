@@ -1,0 +1,50 @@
+/1/ Apply the diff for Groups.pm to be able to define Groups of Groups and get rid of the sort.
+/2/ copy the iphone directory into your web directory so that it is reached as http://ip:8080/iphone
+/3/ Apply the diff for http_server.pm
+/4/ Copy iphone.pl into a code directory of your choice.
+
+Think of the following tree syntax of a possible menu as an example
+
+* First Floor
+** kitchen
+** living room
+** ...
+* Second Floor
+** Bedroom1
+** Bedroom2
+** Masterbedroom
+** Bathroom
+
+To define that use the default group functionality within Misterhouse. Prerequisit is that you defined a group per room with the on board methods from Misterhouse. In this example you have defined already groups like FF_kitchen, FF_livingroom, SF_bedroom1, SF_bedroom2, SF_masterbedroom, SF_bathroom, ...) If you are not familiar with Groups, pls. read the manual.
+
+Do that in your user code directory f.e. in a file called groups.pl:
+<pre>
+$gFF               = new Group;
+$gFF               -> add($FF_kitchen);
+$gFF               -> add($FF_livingroom);
+
+$gSF               = new Group;
+$gSF               -> add($SF_bedroom1);
+$gSF               -> add($SF_bedroom2);
+$gSF               -> add($SF_masterbedroom);
+$gSF               -> add($SF_bathroom);
+
+$Main              = new Group;
+$Main              -> add($gFF);
+$Main              -> add($gSF);
+</pre>
+
+in the web/iphone directory you find index.shtml. The group name Main is there referenced in the line
+
+<pre>
+<!--#include code="&iphoneWebApp('Main','iLayer')"-->
+</pre>
+Feel free to use another Group name as Main, but take care in index.shtml to reference the same Group.
+
+This should be enough to get the basic functionality running. More is documented in the Wiki in the near future.
+
+If you want more now, pls study the labels.pl.example code and adapt it to your environment the index.shtml.example or write me an email r(at)lf-klueber(dot)de
+
+To see whats possible have a look at
+http://ralfathome.dyndns.org/apache2-default/iphoneskin.html
+

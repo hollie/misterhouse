@@ -1,0 +1,46 @@
+<html>
+    <head>
+        <title>MrHouse</title>
+        <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;" />
+        <link rel="stylesheet" href="./WebApp/Design/Render.css" />
+        <script type="text/javascript" src="./WebApp/Action/Logic.js"></script>
+        <META HTTP-EQUIV="Content-type" CONTENT="text/html; charset=iso-8859-i">
+    </head>
+
+    <body>
+
+    <div id="WebApp">
+
+        <div id="iHeader">
+            <a href="index.shtml">Back</a>
+            <span id="waHeadTitle">Logfiles</span>
+        </div>
+
+        <div id="iGroup">
+          <div id="iLoader">Loading, please wait...</div>
+
+          <div class="iLayer" id="waHome" title="Home">
+            <div class="iMenu">
+              <ul class="iArrow">
+		<li><a href="#_SpeechLog">Speech</a></li>
+		<li><a href="#_PrintLog">Print</a></li>
+		<li><a href="#_ErrorLog">Error</a></li>
+		<li><a href="#_DisplayLog">Display</a></li>
+              </ul>
+            </div>
+          </div>
+
+          <!--#include code="&iphoneLog('Speech',10)"-->
+          <!--#include code="&iphoneLog('Print',10)"-->
+          <!--#include code="&iphoneLog('Error',10)"-->
+          <!--#include code="&iphoneLog('Display',10)"-->
+
+        </div>
+
+        <div class="iFooter">
+          &copy;2008 RaK, all rights reserved.
+        </div>
+    </div>
+    </body>
+</html>
+
