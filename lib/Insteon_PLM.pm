@@ -755,10 +755,25 @@ sub _parse_data {
 					} else {
 						# move on
 						$$self{retry_count} = 0;
+						$$self{pending_alllink} = undef;
 					}
 				} else {
 					&::print_log("[Insteon_PLM] ALL-Link Cleanup reports success") if $main::Debug{insteon};
-					# TO-DO: set validation flag on device
+					# attempt to process the message by the link object; this acknowledgement will reset
+					#   the auto-retry timer
+					if ($$self{pending_alllink}) {
+						my $group = substr($$self{pending_alllink},4,2);
+						my $link = $self->get_object('000000',$group);
+						if ($link) {
+							my %msg = ('type' => 'cleanup',
+								'group' => $group,
+								'is_ack' => 1,
+								'command' => 'cleanup'
+							);
+							$link->_process_message($self, %msg);
+							$$self{pending_alllink} = undef; # clear it
+						}
+					}
 				}
 			}
 		} elsif (substr($data_1,0,4) eq '0261') { #ALL-Link Broadcast 

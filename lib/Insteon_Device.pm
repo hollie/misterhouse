@@ -439,7 +439,7 @@ sub _process_command_stack
 			if ($$self{_prior_msg} and $$self{_retry_count} < 2) {
 				# first check to see if type is an alllink; if so, then don't keep retrying until
 				#   proper handling of alllink cleanup status is implemented in Insteon_PLM
-				if ($$self{_prior_msg}{type} eq 'alllink') {
+				if ($$self{_prior_msg}{type} eq 'alllink' and (!($self->is_plm_controlled))) {
 					# do nothing
 				} else {
 					push(@{$$self{command_stack}}, \%{$$self{_prior_msg}});
@@ -1670,8 +1670,12 @@ sub get_link_record
 sub update_local_properties
 {
 	my ($self) = @_;
-	$$self{_mem_activity} = 'update_local';
-	$self->_peek('0032'); # 0032 is the address for the onlevel
+	if ($self->is_dimmable) {
+		$$self{_mem_activity} = 'update_local';
+		$self->_peek('0032'); # 0032 is the address for the onlevel
+	} else {
+		&::print_log("[Insteon_Device] update_local_properties may only be applied to dimmable devices!");
+	}
 }
 
 sub update_flags
