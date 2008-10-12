@@ -1327,6 +1327,7 @@ sub main::get_idle_item_data
                $idle_items{$name}{name} = $name;
                $idle_items{$name}{idle} = $idleduration;
                $idle_items{$name}{idle_text} = $timeidle;
+	       $idle_items{$name}{class} = $idle_type;
             }
          }
       }
