@@ -183,10 +183,10 @@ class sev-comics
 end
 
 class creators
-	homepage http://featurepage.creators.com/comics/$1.html
+	homepage http://www.creators.com/comics/$1.html
 	type search
 	searchpattern (/comics/\d+/\d+_image.(gif|jpg))
-	baseurl http://featurepage.creators.com
+	baseurl http://www.creators.com
 	provides latest
 end
 
