@@ -284,7 +284,12 @@ sub speak_text {
                     &::file_ready_for_audrey($parms{audreyIndex});
    				}
 			    if ($fork) {
-				    exit; # nothing left for the child to do
+                          if ($main::OS_win) {
+                             exec 'true';
+                          } else {
+                             &POSIX::_exit(0);
+                          }
+# 			    exit; # nothing left for the child to do
 			    }
            }
             else {
@@ -304,7 +309,12 @@ sub speak_text {
                     &::file_ready_for_audrey($parms{audreyIndex});
    				}
 			    if ($fork) {
-				    exit; # nothing left for the child to do
+	                    if ($main::OS_win) {
+                               exec 'true';
+                            } else {
+                               &POSIX::_exit(0);
+                            }
+# 			    exit; # nothing left for the child to do
 			    }
             }
             select undef, undef, undef, .2; # Need this ?
@@ -344,7 +354,12 @@ sub speak_text {
                  &::file_ready_for_audrey($parms{audreyIndex});
    			}
 			if ($fork) {
-			    exit; # nothing left for the child to do
+                        if ($main::OS_win) {
+                           exec 'true';
+                        } else {
+                           &POSIX::_exit(0);
+                        }
+# 		    exit; # nothing left for the child to do
 			}
         }
         else {
@@ -364,7 +379,12 @@ sub speak_text {
 			}
             set $VTxt_festival qq[(SayText "$text")];
 			if ($fork) {
-			    exit; # nothing left for the child to do
+                   if ($main::OS_win) {
+                      exec 'true';
+                   } else {
+                      &POSIX::_exit(0);
+                   }
+# 		    exit; # nothing left for the child to do
 			}
         }
     }
@@ -502,7 +522,14 @@ sub speak_text {
                 open  VOICE, "| $speak_pgm $speak_pgm_arg";
                 print VOICE $parms{text};
                 close VOICE ;
-                exit 0 if $fork;
+#                exit 0 if $fork;
+                if ($fork) {
+                   if ($main::OS_win) {
+                      exec 'true';
+                   } else {
+                      &POSIX::_exit(0);
+                   }
+                }
             }
             elsif ($fork) {
                 system qq[$speak_pgm $speak_pgm_arg];
@@ -512,8 +539,13 @@ sub speak_text {
 			#	}
                 if (defined $parms{audreyIndex}) {
                 	&::file_ready_for_audrey($parms{audreyIndex});
-				}
-				exit;
+                }
+                if ($main::OS_win) {
+                   exec 'true';
+                } else {
+                   &POSIX::_exit(0);
+                }
+#				exit;
 #                system qq[$speak_pgm $speak_pgm_arg];
 #                &main::copy("$main::config_parms{wine_path_temp}/mh_voice_text.wav", $parms{to_file})
 #                  if $parms{to_file} and $speak_engine =~ /naturalvoicewine/i;
