@@ -41,6 +41,8 @@ sub new {
 
     $self->{update_time} = time;
     $self->{good_packet_time} = time;
+    $self->{squawk_time} = 0;
+    $self->{last_report} = 0;
 
     $TED_Data{$portname}{'obj'} = $self;
 
@@ -73,20 +75,23 @@ sub check_for_data {
 	$ted->{update_time} = $time;
     }
     
-    if ($time > ($ted->{update_time}+10)) {
+    if (($time > ($ted->{update_time}+10)) and ($time > $ted->{last_report} + 10)) {
+	$ted->{last_report} = $time;
+	my $time_missing = $time - $ted->{update_time};
 	&::print_log("TED: Haven't heard from ted in 10 seconds, is something wrong?");
 	return;
 #	my $port = $::Serial_Ports{$portname}{port};
 #	my $serial_port = $::Serial_Ports{object_by_port}{$port};
 #	$serial_port->close();
 #	&::serial_port_create($portname, $port, '19200', 'none', 'record');
+#	&serial_startup; # will this help with unresponsive ted?
     }
 
-    if (($time > ($ted->{good_packet_time}+30)) and 
+    elsif (($time > ($ted->{good_packet_time}+30)) and 
 	($time > ($ted->{squawk_time}+10))) {
 	$ted->{squawk_time} = $time;
 	my $last_good = $time - $ted->{good_packet_time};
-	&::print_log("TED: Haven't gotten a good packet from ted in $last_good seconds, is something wrong? time: $time gpt:$ted->{good_packet_time} st:$ted->{squawk_time}") unless $::Startup;
+	&::print_log("TED: Haven't gotten a good packet from ted in $last_good seconds, is something wrong?") unless $::Startup;
     }
 }
 
