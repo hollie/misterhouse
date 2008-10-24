@@ -26,6 +26,7 @@ package TED;
 @TED::ISA=('Serial_Item');
 
 my $portname = 'TED';
+my %TED_Data;
 
 sub new {
 
@@ -38,20 +39,28 @@ sub new {
 
     bless $self, $class;
 
-    &::MainLoop_pre_add_hook(\&TED::check_for_data,   1, $self);
     $self->{update_time} = time;
     $self->{good_packet_time} = time;
+
+    $TED_Data{$portname}{'obj'} = $self;
 
     return $self;
 }
 
 sub serial_startup {
-    my $port  = $main::config_parms{TED_serial_port};
+    my $port  = $main::config_parms{$portname . "_serial_port"};
     &::serial_port_create($portname, $port, '19200', 'none', 'record');
+    $TED_Data{$portname}{'serial_port'} = $port;
+
+    if (1==scalar(keys %TED_Data)) { # add hooks on first call only - even though only one for now
+      &::MainLoop_pre_add_hook(\&TED::check_for_data, 1);
+    }
 }
 
 sub check_for_data {
-    my ($self) = @_;
+
+    my $ted = $TED_Data{$portname}{'obj'};
+    return unless $ted;
 
     # check for data
     &main::check_for_generic_serial_data($portname);
@@ -60,11 +69,11 @@ sub check_for_data {
 
     if ($main::Serial_Ports{$portname}{data_record}) {
 	# go get and process the data
-	&process_incoming_data($self);
-	$self->{update_time} = $time;
+	&process_incoming_data($ted);
+	$ted->{update_time} = $time;
     }
     
-    if ($time > ($self->{update_time}+10)) {
+    if ($time > ($ted->{update_time}+10)) {
 	&::print_log("TED: Haven't heard from ted in 10 seconds, is something wrong?");
 	return;
 #	my $port = $::Serial_Ports{$portname}{port};
@@ -73,11 +82,11 @@ sub check_for_data {
 #	&::serial_port_create($portname, $port, '19200', 'none', 'record');
     }
 
-    if (($time > ($self->{good_packet_time}+30)) and 
-	($time > ($self->{squawk_time}+10))) {
-	$self->{squawk_time} = $time;
-	my $last_good = $time - $self->{good_packet_time};
-	&::print_log("TED: Haven't gotten a good packet from ted in $last_good seconds, is something wrong? time: $time gpt:$self->{good_packet_time} st:$self->{squawk_time}") unless $::Startup;
+    if (($time > ($ted->{good_packet_time}+30)) and 
+	($time > ($ted->{squawk_time}+10))) {
+	$ted->{squawk_time} = $time;
+	my $last_good = $time - $ted->{good_packet_time};
+	&::print_log("TED: Haven't gotten a good packet from ted in $last_good seconds, is something wrong? time: $time gpt:$ted->{good_packet_time} st:$ted->{squawk_time}") unless $::Startup;
     }
 }
 
