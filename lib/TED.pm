@@ -4,7 +4,7 @@
 
 From David Satterfield <david_misterhouse@yahoo.com>
 
-# Serial port that the RZC0P is connected to. Put this in your mh.private.ini.
+# Serial/USB port that the TED is connected to. Put this in your mh.private.ini.
 TED_serial_port = /dev/ttyUSB0
 
 Then, add this to your user code (I put it in ted.pl)
