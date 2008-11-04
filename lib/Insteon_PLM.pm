@@ -239,11 +239,14 @@ sub poll_all {
                #    as they are psuedo links	
                $insteon_device->request_status() if $insteon_device->group eq '01';
             }
+            if ($insteon_device->devcat) {
+               # reset devcat so as to trigger any device specific properties
+               $insteon_device->devcat($insteon_device->devcat);
+            }
          }
       }
    }
    }
-	
 }
 
 
@@ -933,7 +936,7 @@ sub delegate
 		&::print_log("[Insteon_PLM] Warn! Unable to locate object for source: $msg{source} and group; $msg{group}")
 			if (!(defined $object));
 		if (defined $object) {
-			&::print_log("[Insteon_PLM] Processing message for " . $object->get_object_name);
+			&::print_log("[Insteon_PLM] Processing message for " . $object->get_object_name) if $main::Debug{insteon};
 			$object->_process_message($self, %msg);
 		}
 		return 1; # treat the message as legitimate even if an object match did not occur

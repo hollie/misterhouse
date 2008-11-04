@@ -1241,8 +1241,27 @@ sub restore_adlb
 sub devcat
 {
 	my ($self, $devcat) = @_;
-	$$self{devcat} = $devcat if $devcat;
+	if ($devcat) {
+		$$self{devcat} = $devcat;
+		if (($$self{devcat} =~ /^01\w\w/) or ($$self{devcat} =~ /^02\w\w/) && !($self->states)) {
+			$self->states( 'on,off' );
+		}
+	}
 	return $$self{devcat};
+}
+
+sub states
+{
+	my ($self, $states) = @_;
+	if ($states) {
+		@{$$self{states}} = split(/,/,$states);
+	}
+	if ($$self{states}) {
+		return @{$$self{states}};
+	} else {
+		return undef;
+	}
+
 }
 
 sub is_dimmable
@@ -1252,7 +1271,7 @@ sub is_dimmable
 		return 0;
 	} else {
 		if ($$self{devcat}) {
-			if ($$self{devcat} =~ /^01\d\d/) {
+			if ($$self{devcat} =~ /^01\w\w/) {
 				return 1;
 			} else {
 				return 0;
