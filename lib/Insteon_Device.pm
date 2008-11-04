@@ -1190,7 +1190,23 @@ sub restore_string
 #		&::print_log("[Insteon_Device] ADLB restore string: $adlb") if $main::Debug{insteon};
 		$restore_string .= $self->{object_name} . "->restore_adlb(q~$adlb~);\n";
         }
+	if ($$self{states}) {
+		my $states = '';
+		foreach my $state (@{$$self{states}}) {
+			$states .= '|' if $states;
+			$states .= $state;
+		}
+		$restore_string .= $self->{object_name} . "->restore_states(q~$states~);\n";
+	}
 	return $restore_string;
+}
+
+sub restore_states
+{
+	my ($self, $states) = @_;
+	if ($states) {
+		@{$$self{states}} = split(/\|/,$states);
+	}
 }
 
 sub restore_adlb
