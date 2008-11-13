@@ -208,7 +208,7 @@ sub new
 	@{$$self{command_stack}} = ();
 	$$self{_retry_count} = 0; # num times that a command has been resent
 	$$self{_onlevel} = undef;
-	if ($p_devcat and (($p_devcat eq '0005') or ($p_devcat eq '0101'))) {
+	if ($p_devcat and (($p_devcat eq '0005') or ($p_devcat eq '1001'))) {
 		$$self{is_responder} = 0;
 	} else {
 		$$self{is_responder} = 1;
