@@ -208,6 +208,11 @@ sub new
 	@{$$self{command_stack}} = ();
 	$$self{_retry_count} = 0; # num times that a command has been resent
 	$$self{_onlevel} = undef;
+	if ($p_devcat and (($p_devcat eq '0005') or ($p_devcat eq '0101'))) {
+		$$self{is_responder} = 0;
+	} else {
+		$$self{is_responder} = 1;
+	}
 	$self->interface($p_interface) if defined $p_interface;
 #	$self->interface()->add_item_if_not_present($self);
 	return $self;
@@ -268,6 +273,13 @@ sub is_controller
 	return $$self{is_controller};
 }
 
+sub is_responder
+{
+	my ($self,$is_responder) = @_;
+	$$self{is_responder} = $is_responder if defined $is_responder;
+	return $$self{is_responder};
+}
+
 sub is_keypadlinc
 {
 	my ($self) = @_;
@@ -310,6 +322,12 @@ sub level
 sub set
 {
 	my ($self,$p_state,$p_setby,$p_response) = @_;
+
+	if (!($self->is_responder)) {
+		# if it can't be controlled (i.e., a responder), then don't send out any signals
+		$self->set_receive($p_state,$p_setby);
+		return;
+	}
 
     # prevent reciprocal sets that can occur because of this method's state
     # propogation

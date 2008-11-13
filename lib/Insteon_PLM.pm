@@ -233,7 +233,7 @@ sub poll_all {
       my $plm = $Insteon_PLM_Data{$port_name}{'obj'};
       if (defined $plm) {
          for my $insteon_device ($plm->find_members('Insteon_Device')) {
-            if ($insteon_device and $insteon_device->is_root and $insteon_device->devcat ne '0005') 
+            if ($insteon_device and $insteon_device->is_root and $insteon_device->is_responder) 
             {
                # don't request status for objects associated w/ other than the primary group 
                #    as they are psuedo links	
