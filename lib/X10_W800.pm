@@ -97,7 +97,7 @@ sub check_for_data {
        #       make sure that doesn't become a problem.
        if (&X10_W800::is_within_timeout($time, $new_data_time, 2000)) {
           my $hex = unpack "H*", $main::Serial_Ports{W800}{data};
-          &::print_log("W800: flushing incomplete data: $hex");
+          &::print_log("W800: flushing incomplete data: $hex") if $main::Debug{w800};
 
           if ($prev_bad_checksums != 0) {
              &::print_log(  "W800: failed to recover from bad checksums "
@@ -223,7 +223,7 @@ sub duplicate_count
 sub add_data
 {
     my ($data) = @_;
-    my %msg = {};
+    my %msg = ();
     $msg{data} = $data;
     $msg{time} = &main::get_tickcount;
 
