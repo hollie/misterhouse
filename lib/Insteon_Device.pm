@@ -343,7 +343,7 @@ sub set
 			# set the timer again in case nothing occurs
 			$$self{ping_timer}->set($$self{ping_timerTime} + (rand() * $$self{ping_timerTime}), $self);
 		}
-	} else {
+	} elsif ($self->_is_valid_state($p_state)) {
 		# always reset the is_locally_set property
 		$$self{m_is_locally_set} = 0;
 
@@ -484,6 +484,9 @@ sub _process_command_stack
 			my %cmd = %$cmdptr;
 			# convert cmd to insteon message
 			my $insteonmsg = $self->_xlate_mh_insteon($cmd{command},$cmd{type},$cmd{extra});
+			if (!(defined($insteonmsg))) {
+				return;
+			}
 			my $plm_queue_size = $self->interface()->set($insteonmsg, $self);
 			# send msg
 			if ($cmd{is_synchronous}) {
@@ -636,6 +639,33 @@ sub set_led_status
 {
 	my ($self, $status_mask) = @_;
 	$self->_send_cmd('command' => 'set_led_status', 'extra' => $status_mask);
+}
+
+sub _is_valid_state
+{
+	my ($self,$state) = @_;
+	if (!(defined($state)) or $state eq '') {
+		return 0;
+	}
+
+	my ($msg, $substate) = split(/:/, $state, 2);
+	$msg=lc($msg);
+
+	if ($msg=~/^([1]?[0-9]?[0-9])/)
+	{
+		if ($1 < 1) {
+			$msg='off';
+		} else {
+			$msg='on';
+		}
+	}
+
+	# confirm that the resulting $msg is legitimate
+	if (!(defined($message_types{$msg}))) {
+		return 0;
+	} else {
+		return 1;
+	}
 }
 
 sub _is_info_request
@@ -832,6 +862,12 @@ sub _xlate_mh_insteon
 				$msg='on';
 			}
 		}
+	}
+
+	# confirm that the resulting $msg is legitimate
+	if (!(defined($message_types{$msg}))) {
+		&::print_log("[Insteon_Device] invalid state=$msg") if $main::Debug{insteon};
+		return undef;
 	}
 
 	$cmd='';
