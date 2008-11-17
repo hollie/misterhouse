@@ -265,9 +265,13 @@ sub check_for_data {
 #      main::print_log("PLM $port_name got:$data: [$::Serial_Ports{$port_name}{data}]");
          my $processedNibs;
          $processedNibs = $plm->_parse_data($data);
-
+         $processedNibs = 0 unless $processedNibs;
 #		&::print_log("PLM Proc:$processedNibs:" . length($data));
-         $main::Serial_Ports{$port_name}{data}=pack("H*",substr($data,$processedNibs,length($data)-$processedNibs));
+         if (length($data) > $processedNibs) {
+            $main::Serial_Ports{$port_name}{data}=pack("H*",substr($data,$processedNibs,length($data)-$processedNibs));
+         } else {
+            $main::Serial_Ports{$port_name}{data} = '';
+         }
 
       # if no data being received, then check if any timeouts have expired
       } elsif (defined $plm) {
@@ -693,7 +697,7 @@ sub _parse_data {
 
 	my $entered_rcv_loop = 0;
 
-	foreach my $data_1 (split(/(0263\w{6})|(0252\w{4})|(0250\w{18})|(0251\w{46})|(0261\w{6})|(0253\w{16})|(0256\w{8})|(0257\w{16})|(0258\w{2})/,$residue_data))
+	foreach my $data_1 (split(/(0252\w{4})|(0250\w{18})|(0251\w{46})|(0253\w{16})|(0256\w{8})|(0257\w{16})|(0258\w{2})/,$residue_data))
 	{
 		#ignore blanks.. the split does odd things
 		next if $data_1 eq '';
@@ -778,12 +782,6 @@ sub _parse_data {
 						}
 					}
 				}
-			}
-		} elsif (substr($data_1,0,4) eq '0261') { #ALL-Link Broadcast 
-			if (length($data_1) != 10) {
-				$$self{_data_fragment} = $data_1;
-			} else {
-			&::print_log("[Insteon_PLM] ALL-Link Broadcast:$data_1") if $main::Debug{insteon};
 			}
 		} elsif (substr($data_1,0,2) eq '15') { #NAK Received
 			if (!($nack_count)) {
