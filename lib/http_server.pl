@@ -90,6 +90,8 @@ sub http_read_parms {
 #   $config_parms{http_fork} = 1 if ($config_parms{http_fork} ne '0') and (!$OS_win or $OS_win and Win32::IsWinNT);
     $config_parms{http_fork} = 1 if ($config_parms{http_fork} eq '')  and (!$OS_win or $OS_win and Win32::IsWinNT);
 
+    $main::config_parms{http_client_timeout} = 0.5 unless $main::config_parms{http_client_timeout};
+
 #html_user_agents    = Windows CE=>1,whatever=>2
     &read_parm_hash(\%http_agent_formats,  $main::config_parms{html_browser_formats}, 1);
     &read_parm_hash(\%http_agent_sizes,    $main::config_parms{html_browser_sizes}, 1);
@@ -137,7 +139,7 @@ sub http_process_request {
     my $temp;
 
                                 # Must wait for the new socket to become active
-    my $nfound = &socket_has_data($socket, .5);
+    my $nfound = &socket_has_data($socket, $main::config_parms{http_client_timeout});
     return unless $nfound > 0; # nfound == -1 means an error
     while (1) {
         $_ = <$socket>;
@@ -1842,7 +1844,8 @@ sub button_action {
     my ($x, $y) = $xy =~ /(\d+)\|(\d+)/;
 
                                 # Do not dim the dishwasher :)
-    unless (eval qq|UNIVERSAL::isa($object_name, 'X10_Appliance')|) {
+    unless (eval qq|UNIVERSAL::isa($object_name, 'X10_Appliance')|
+         or eval qq|ref($object_name) && $object_name->can('is_dimmable') && !($object_name->is_dimmable)|) {
         $state = 'dim'      if $x < 30;   # Left  side of image
         $state = 'brighten' if $x > 70;  # Right side of image
     }
