@@ -23,15 +23,15 @@ use warnings;
 
 package TED;
 
-@TED::ISA=('Serial_Item');
+@TED::ISA = ('Serial_Item');
 
 my $portname = 'TED';
 my %TED_Data;
 
 sub new {
+    my $class     = shift;
+    my $port_name = shift || 'TED';
 
-    my ($class, $port_name)=@_;
-    $port_name = 'TED' if !$port_name;
     $main::config_parms{"TED_break"} = "\cP\cC";
 
     my $self = {};
@@ -39,12 +39,12 @@ sub new {
 
     bless $self, $class;
 
-    $self->{update_time} = time;
+    $self->{update_time}      = time;
     $self->{good_packet_time} = time;
-    $self->{squawk_time} = 0;
-    $self->{last_report} = 0;
+    $self->{squawk_time}      = 0;
+    $self->{last_report}      = 0;
 
-    $TED_Data{$portname}{'obj'} = $self;
+    $TED_Data{$portname}{obj} = $self;
 
     return $self;
 }
@@ -278,20 +278,16 @@ sub process_incoming_data {
 }
 
 sub get_time {
-    my ($minutes) = @_;
-    my $hours = int ($minutes / 60);
-    my $mins = $minutes % 60;
-    my $suffix = 'am';
-    if ($hours > 12) {
-	$hours = $hours - 12;
-	$suffix = 'pm';
-    }
-    $hours = 12 if $hours == 0;
+    my $minutes = shift;
 
-    $mins=sprintf "%02d ", $mins;    
-	
-    my $time = "${hours}:${mins}$suffix";
-    return $time;
+    my $hours  = int ($minutes / 60);
+    my $mins   = sprintf "%02d ", ($minutes % 60);
+    my $suffix = ($hours > 12) ? 'pm' : 'am';
+
+    $hours -= 12 if ($suffix eq 'pm');
+    $hours  = 12 if !$hours;
+
+    return "$hours:$mins$suffix";
 }
 
 sub print_pkt {
