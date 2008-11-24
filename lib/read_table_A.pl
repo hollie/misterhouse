@@ -607,6 +607,21 @@ sub read_table_A {
         }
         $object = '';
     }
+    elsif($type eq "ANALOG_AVERAGE") {
+        my $sensor_name;
+	#ANALOG_SENSOR, xap source, object name, xap conduit name, groups, xap sensor type, tokens...
+        ($sensor_name, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if( ! $packages{AnalogSensor_Item}++ ) {   # first time for this object type?
+            $code .= "use AnalogSensor_Item;\n";
+        }
+        $code .= sprintf "\n\$%-35s = new AnalogAveraging_Item(\$%s, %s);\n",
+                  $name, $sensor_name, $other;
+        if ($objects{$name}) {
+           $code .= sprintf "\$%-35s -> add(\$%s);\n", $name, $sensor_name;
+        }
+        $object = '';
+    }
     elsif($type eq "OWX") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data

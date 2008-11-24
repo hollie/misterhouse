@@ -23,7 +23,7 @@ Usage:
      Declaration:
 
         If declaring via .mht:
-       
+
         ANALOG_SENSOR, indoor-t, indoor_temp, house_owx, Sensors, temp, hot_alarm=85, cold_alarm=62
 
  	'indoor-t' is an identifier for the sensor that some other software will
@@ -43,7 +43,7 @@ Usage:
 		data maintained by this item if measurement, etc are provided;
 		otherwise the last measurement value is returned.
 
-	map_to_weather(weather_hash_memberi, graph_title) - copies any measurement 
+	map_to_weather(weather_hash_memberi, graph_title) - copies any measurement
                 update to the Weather hash specified by weather_hash_member.
                 If graph_title is supplied, it will replace the default graph title
                 used by code/common/weather_rrd_update.pl to display titles.
@@ -57,7 +57,7 @@ Usage:
 		measurement can make the change rate artificially high.
 		Specifying longer numbers will provide more smoothing.  If
 		fewer samples exist than number_samples, the existing number will
-		be used. 
+		be used.
 
 	apply_offset(offset) - applies an offset to the measurement value.  Enter
 		a negative number to apply a negative offset.  This is useful to
@@ -66,7 +66,7 @@ Usage:
         token(tag,value) - adds "value" as a "token" to be evaluated during state
                 and/or event condition checks; or, returns "token" if only "tag"
                 is supplied.  A token is referenced in a condition
-                using the syntax: $token_<tag> where <tag> is tag.  See 
+                using the syntax: $token_<tag> where <tag> is tag.  See
                 tie_state_condition example below.
 
 	remove_token(tag) - removes the token from use. IMPORTANT: do not remove
@@ -87,7 +87,7 @@ Usage:
 		$indoor_temp->tie_state_condition('$measurement > $token_danger_sp',dangerhot);
 
 		In the above example, the state is changed to hot if it is not already hot AND
-		the mesaurement is between 81 and 84. Similarly, the state is change to 
+		the mesaurement is between 81 and 84. Similarly, the state is change to
 		dangerhot if the state is not already dangerhot and exceeds 85 degrees.
 		Note that the state will not change if the measurement is greater than 84
 		degrees--which is the "hot" condition--until it reaches the "dangerhot"
@@ -110,7 +110,7 @@ Usage:
 
         measurement_change - returns the most current change of measurement values
 
-	untie_state_condition(condition) - unregisters condition.  Unregisters all 
+	untie_state_condition(condition) - unregisters condition.  Unregisters all
 		conditions if condition is not provided.
 
 	tie_event_condition(condition,event) - registers a condition and an event.
@@ -186,7 +186,7 @@ sub measurement {
 			$measurement_record->{timestamp} = $$self{m_timestamp};
 			unshift @measurement_records, $measurement_record;
 			$$self{m_measurement_records} = [ @ measurement_records ];
-		}	
+		}
 	}
 	if (defined($p_measurement)) {
 		$p_timestamp = gettimeofday() unless $p_timestamp; # get a timestamp if one not procided
@@ -218,11 +218,20 @@ sub measurement {
 		$$self{m_measurement_records} = [ @measurement_records ];
 		$$self{m_measurement} = $p_measurement;
 		$$self{m_timestamp} = $p_timestamp;
-		$main::Weather{$self->map_to_weather} = $p_measurement 
+		$main::Weather{$self->map_to_weather} = $p_measurement
                        if (defined($p_measurement) && ($self->map_to_weather));
 		$self->check_tied_state_conditions();
 		$self->check_tied_event_conditions();
 #                $self{m_timerCheck}->set($$self{'m_inactivityTime'}, $self);
+
+                # update all "tied" AnalogAveraging_Items
+                if ($$self{m_objects}) {
+                   for my $averager (@{$$self{m_objects}}) {
+                      if ($averager && $averager->can('update_measurement')) {
+                         $averager->update_measurement($self, $p_measurement, $p_timestamp);
+                      }
+                   }
+                }
 	}
 
 	return $$self{m_measurement};
@@ -311,7 +320,7 @@ sub weather_to_rrd {
    } elsif ($weather_ref eq 'raintotal') {
        $rrd_ref = 'rain';
    }
-   return $rrd_ref; 
+   return $rrd_ref;
 }
 
 sub map_to_weather {
@@ -365,7 +374,7 @@ sub tie_state_condition {
 sub untie_state_condition {
    my ($self, $condition) = @_;
    if ($condition) {
-      delete $self->{tied_state_conditions}{$condition}; 
+      delete $self->{tied_state_conditions}{$condition};
    }
    else {
       delete $self->{tied_state_conditions}; # Untie em all
@@ -381,7 +390,7 @@ sub check_tied_state_conditions {
    }
    print "[AnalogSensor] token_string: $token_string\n" if ($token_string) && $main::Debug{analogsensor};
    for my $condition (keys %{$$self{tied_state_conditions}}) {
-      next if (defined $self->state && $$self{tied_state_conditions}{$condition} eq $self->state); 
+      next if (defined $self->state && $$self{tied_state_conditions}{$condition} eq $self->state);
       # expose vars for evaluating the condition
       my $measurement = $self->measurement;
       my $measurement_change = abs($self->{m_measurement_change});
@@ -411,7 +420,7 @@ sub tie_event_condition {
 sub untie_event_condition {
    my ($self, $condition) = @_;
    if ($condition) {
-      delete $self->{tied_event_conditions}{$condition}; 
+      delete $self->{tied_event_conditions}{$condition};
    }
    else {
       delete $self->{tied_event_conditions}; # Untie em all
@@ -427,7 +436,7 @@ sub check_tied_event_conditions {
    }
    print "[AnalogSensor] token_string: $token_string\n" if ($token_string) && $main::Debug{analogsensor};
    for my $condition (keys %{$$self{tied_event_conditions}}) {
-      next if (defined $self->state && $$self{tied_event_conditions}{$condition} eq $self->state); 
+      next if (defined $self->state && $$self{tied_event_conditions}{$condition} eq $self->state);
       # expose vars for evaluating the condition
       my $measurement = $self->measurement;
       my $measurement_change = abs($self->{m_measurement_change});
@@ -447,13 +456,21 @@ sub check_tied_event_conditions {
          $code .= $$self{tied_event_conditions}{$condition};
          eval($code);
          if ($@) {
-            &::print_log("Problem encountered when executing event for " . 
+            &::print_log("Problem encountered when executing event for " .
                $self->{object_name} . " and code: $code; $@");
-         } 
+         }
          package AnalogSensor_Item;
       }
    }
 }
+
+sub add
+{
+    my ($self,$p_object) = @_;
+
+    push @{$$self{m_objects}}, $p_object if $p_object->isa('AnalogAveraging_Item');
+}
+
 =begin comment
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
@@ -477,7 +494,7 @@ Usage:
 
         'attribute' is an identifier for the sensor that some other software will
         require to associate sensor data to this item.  'type' is the sensor
-        type.  Currently, only 'temp' and 'humid' are supported from owx, and 
+        type.  Currently, only 'temp' and 'humid' are supported from owx, and
 	disk, network, cpu, temps, swap, and memory from sdx. Additional
         types will be added in the future. xap instance is the xap "conduit" that
         populates AnalogRangeSensor_Items.  group is a group. The ranges work out as follows:
@@ -497,7 +514,7 @@ Usage:
 	$server_load = new AnalogRangeSensor_Item('loadavg1', 'cpu', , , 4, 6);
 
 	TODO: More generic states if requested
- 
+
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 =cut
 
@@ -527,10 +544,10 @@ sub new {
    # it would also be good to pass along other tokens specified
 
    # down the road, would be nice to make configurable.
-   # ..., normal => 3-5, warning => 2-6, critical => x-10, error => 1-x 
+   # ..., normal => 3-5, warning => 2-6, critical => x-10, error => 1-x
 
    # five states supported for now
-   # 
+   #
    # alert low  | warning low |  normal  | warning high |  alert high
    # ----------------------------------------------------------------
    #
@@ -603,5 +620,116 @@ print "[AnalogRangeSensor_Item] Condition Normal: $condition \n" if $main::Debug
    return $self;
 }
 
+
+=begin comment
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+Description:
+
+        This package provides an ability to average measurement reports from multiple
+        AnalogSensor_Items.  Because it inherits from AnalogSensor_Items, all operations
+        that AnalogSensor_Item permits are also supported.
+
+
+     Declaration:
+
+        If declaring via .mht:
+
+        # first declare the sensors
+        ANALOG_SENSOR, indoor1-t, indoor_temp1, house_owx, Sensors, temp
+        ANALOG_SENSOR, indoor2-t, indoor_tem2p, house_owx, Sensors, temp
+
+        # then, declare the averaging item:
+        ANALOG_AVERAGE, indoor_temp1, indoor_temp, hot_alarm=85, cold_alarm=62
+        ANALOG_AVERAGE, indoor_temp2, indoor_temp
+
+ 	Note that the use of tokens is applied on only the first declaration.
+        Any token use on subsequent declarations is ignored.
+
+
+     Operations:
+
+	sensor_timeout(timeout) - changes the default timeout from 3600 seconds to
+        	<timeout> seconds.  Any measurement report that exceeds the timeout
+                is ignored for the purpose of averaging.  This keeps "stale"
+                measurements from adversely impacting averaging
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=cut
+
+package AnalogAveraging_Item;
+
+@AnalogAveraging_Item::ISA = ('AnalogSensor_Item');
+
+sub new
+{
+
+	my ($class, $p_sensor_item, @p_tokens) = @_;
+
+	my $self={};
+	bless $self, $class;
+	$$self{m_activityTime} = 24*3600;
+        $$self{m_sensorTimeout} = 3600;  # ignore any sensors whose value is 1 hr old
+        $self->id('');
+        $self->type('averaging');
+	# maintain measurement member as it is like state
+	$self->restore_data('m_measurement','m_timestamp','m_time_since_previous','m_measurement_change','m_activityTime');
+	$$self{m_max_records} = 10;
+
+        if ($p_sensor_item && $p_sensor_item->isa('AnalogSensor_Item')) {
+           $self->add($p_sensor_item);
+
+           for my $token (@p_tokens) {
+              my ($tag, $value) = split(/=/,$token);
+              if (defined($tag) and defined($value)) {
+                 print "[AnalogAveraging_Item] Adding analog averager token: $tag "
+                     . "having value: $value\n" if $main::Debug{analogsensor};
+                 $self->token($tag, $value);
+              }
+           }
+        }
+        $$self{m_timerCheck} = new Timer();
+	return $self;
+
+}
+
+sub add
+{
+    my ($self,$p_object) = @_;
+
+    $p_object->add($self);
+#    $$self{m_measurements}{$p_object} = undef;
+}
+
+sub sensor_timeout
+{
+   my ($self, $timeout) = @_;
+   $$self{m_sensorTimeout} = $timeout if defined $timeout;
+   return $$self{m_sensorTimeout};
+}
+
+sub update_measurement
+{
+   my ($self, $p_object, $p_measurement, $p_timestamp) = @_;
+   $$self{m_measurements}{$p_object}{measurement} = $p_measurement;
+   $$self{m_measurements}{$p_object}{timestamp} = $p_timestamp;
+
+   my $measurement_accumulator = 0;
+   my $measurement_count = 0;
+
+   for my $measurement_key (keys %{$$self{m_measurements}}) {
+      if (($p_timestamp - $$self{m_measurements}{$measurement_key}{timestamp}) < $self->sensor_timeout) {
+         $measurement_accumulator += $$self{m_measurements}{$measurement_key}{measurement};
+         $measurement_count++;
+      }
+   }
+
+   if ($measurement_count) {
+      my $average = $measurement_accumulator/$measurement_count;
+      &::print_log("[AnalogAveraging_Item] average value for " . $self->get_object_name
+         . " is $average using a total of $measurement_count individual sensors") if $main::Debug{analogsensor};
+      $self->measurement($average);
+   }
+}
 
 1;
