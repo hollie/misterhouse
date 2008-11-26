@@ -342,7 +342,7 @@ sub _process_incoming_xpl_data {
                                   # Set states in matching xPL objects
            for my $name (@xpl_item_names) { #(&::list_objects_by_type('xPL_Item')) {
                my $o = &main::get_object_by_name($name);
-               $o = $name unless $o; # In case we stored object directly 
+               $o = $name unless $o; # In case we stored object directly
                    print "db3 xpl test  o=$name s=$source oa=$$o{source}\n" if $main::Debug{xpl} and $main::Debug{xpl} == 3;
 
 	       # skip this object unless the source matches if a stat or trig
@@ -1083,6 +1083,11 @@ sub type {
     my ($self, $p_type) = @_;
     $$self{type} = $p_type if $p_type;
     return $$self{type};
+}
+
+sub command {
+    my ($self) = @_;
+    return $$self{'x10.security'}{command};
 }
 
 sub tamper {
