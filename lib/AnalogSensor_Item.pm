@@ -262,23 +262,21 @@ sub set_inactivity_alarm {
 
 
 sub get_average_change_rate {
-	my ($self, $max_samples) = @_;
-	my $subtotal = 0;
-	my $duration = 0;
-        my $max = $max_samples;
-        $max = 1 unless $max_samples;
-        my $index = 1;
-	for my $measurement_record (@{$$self{m_measurement_records}}) {
-		$subtotal += $measurement_record->{measurement_change};
-		$duration += $measurement_record->{time_since_previous};
-                last if $index = $max;
-                $index++;
-	}
-	if ($duration != 0) {
-		return ($subtotal/$duration);
-	} else {
-		return undef;
-	}
+    my $self = shift;
+    my $max  = shift || 1;
+
+    my $subtotal = 0;
+    my $duration = 0;
+    my $index    = 1;
+
+    for my $measurement_record (@{$$self{m_measurement_records}}) {
+        $subtotal += $measurement_record->{measurement_change};
+        $duration += $measurement_record->{time_since_previous};
+        last if ($index++ == $max);
+    }
+
+    return  $subtotal / $duration if ($duration);
+    return;
 }
 
 sub measurement_change {
