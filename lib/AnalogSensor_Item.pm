@@ -287,40 +287,33 @@ sub measurement_change {
 }
 
 sub weather_to_rrd {
-   my ($weather_ref) = @_;
-   my $rrd_ref = lc $weather_ref;
+   my $weather_ref = shift;
+   my $rrd_ref     = lc $weather_ref;
+
    # this is totally ridiculous that RRD names are not the same as Weather hash refs
-   # somebody was definitely not thinking
-   if ($weather_ref eq 'tempoutdoor') {
-       $rrd_ref = 'temp';
-   } elsif ($weather_ref eq 'humidoutdoor') {
-       $rrd_ref = 'humid';
-   } elsif ($weather_ref eq 'tempindoor') {
-       $rrd_ref = 'intemp';
-   } elsif ($weather_ref eq 'humidindoor') {
-       $rrd_ref = 'inhumid';
-   } elsif ($weather_ref eq 'dewindoor') {
-       $rrd_ref = 'indew';
-   } elsif ($weather_ref eq 'dewoutdoor') {
-       $rrd_ref = 'dew';
-   } elsif ($weather_ref eq 'barom') {
-       $rrd_ref = 'pressure';
-   } elsif ($weather_ref eq 'windavgdir') {
-       $rrd_ref = 'avgdir';
-   } elsif ($weather_ref eq 'windgustdir') {
-       $rrd_ref = 'dir';
-   } elsif ($weather_ref eq 'windavgspeed') {
-       $rrd_ref = 'avgspeed';
-   } elsif ($weather_ref eq 'windgustspeed') {
-       $rrd_ref = 'speed';
-   } elsif ($weather_ref eq 'tempoutdoorapparent') {
-       $rrd_ref = 'apparent';
-   } elsif ($weather_ref eq 'rainrate') {
-       $rrd_ref = 'rate';
-   } elsif ($weather_ref eq 'raintotal') {
-       $rrd_ref = 'rain';
-   }
-   return $rrd_ref;
+   # somebody was definitely not thinking, so we implement a small transformation hash:
+   my %rrd_name_of = (
+       # weather hash         RRD name
+       barom               => 'pressure',
+       dewindoor           => 'indew',
+       dewoutdoor          => 'dew',
+       humidindoor         => 'inhumid',
+       humidoutdoor        => 'humid',
+       rainrate            => 'rate',
+       raintotal           => 'rain',
+       tempindoor          => 'intemp',
+       tempoutdoor         => 'temp',
+       tempoutdoorapparent => 'apparent',
+       windavgdir          => 'avgdir',
+       windavgspeed        => 'avgspeed',
+       windgustdir         => 'dir',
+       windgustspeed       => 'speed',
+   );
+
+   # so if our weather hash ref is known, return its RRD name, else return
+   # the weather hash name in lower case
+   return defined $rrd_name_of{$weather_ref} ? $rrd_name_of{$weather_ref}
+                                             : lc $weather_ref;
 }
 
 sub map_to_weather {

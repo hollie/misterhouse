@@ -1,15 +1,33 @@
 #!/usr/bin/perl
+
+use warnings;
 use strict;
 
-# Reads an svn change log from: http://misterhouse.svn.sourceforge.net/viewvc/misterhouse/branches/v2-104/?view=log  or from:  svn log
-# Creats a pod file to be added to docs/updates.pod, which translates to docs/updates.txt.
-# Updates.txt then gets parsed by mh/bin/authors.
+# Reads an svn change log from:
+# http://misterhouse.svn.sourceforge.net/viewvc/misterhouse/branches/v2-104/?view=log
+# or from: svn log Creates a pod file to be added to docs/updates.pod,
+# which translates to docs/updates.txt.  Updates.txt then gets parsed
+# by mh/bin/authors.
 
 my ($author, $date, $changes);
 
-my %names = (dnorwood2 => 'David Norwood', gliming => 'Gregg Liming', hplato => 'Howard Plato', jduda => 'Jim Duda', mattrwilliams => 'Matthew Williams', winter => 'Bruce Winter', 
-	     zonyl => 'Jason Sharpee', andymc => 'Andrew McLaren', blecher => 'Joe Blecher', david_mrhouse => 'David Satterfield', 'i-owns-u' => 'Ryan Davies', petamem => 'PetaMem Research', 
-	     pjf02536 => 'Pete Flaherty', posjodin => 'Peter Sj�din', tbs007 => 'Tim Spaulding', troycarpenter => 'Troy Carpenter');
+my %names = (andymc        => 'Andrew McLaren',
+             blecher       => 'Joe Blecher',
+             david_mrhouse => 'David Satterfield',
+             dnorwood2     => 'David Norwood',
+             gliming       => 'Gregg Liming', 
+             hplato        => 'Howard Plato',
+             'i-owns-u'    => 'Ryan Davies',
+             jduda         => 'Jim Duda',
+             mattrwilliams => 'Matthew Williams',
+             petamem       => 'PetaMem Research', 
+	     pjf02536      => 'Pete Flaherty',
+             posjodin      => 'Peter Sj�din',
+             tbs007        => 'Tim Spaulding',
+             troycarpenter => 'Troy Carpenter',
+             winter        => 'Bruce Winter', 
+	     zonyl         => 'Jason Sharpee',
+    );
 
 while (<>) {
 				# viewvc html format

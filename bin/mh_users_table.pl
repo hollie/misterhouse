@@ -1,5 +1,9 @@
+#!/usr/bin/perl
+
 use strict;
+
 my (%data, $i, $j);
+
 while (<>) {
     chomp;
     my ($city, $state);
