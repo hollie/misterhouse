@@ -615,12 +615,14 @@ sub read_table_A {
         if( ! $packages{AnalogSensor_Item}++ ) {   # first time for this object type?
             $code .= "use AnalogSensor_Item;\n";
         }
-        $code .= sprintf "\n\$%-35s = new AnalogAveraging_Item(\$%s, %s);\n",
-                  $name, $sensor_name, $other;
+    #    $code .= sprintf "\n\$%-35s = new AnalogAveraging_Item(\$%s, %s);\n",
+    #              $name, $sensor_name, $other;
         if ($objects{$name}) {
            $code .= sprintf "\$%-35s -> add(\$%s);\n", $name, $sensor_name;
+           $object = '';
+        } else {
+           $object = "AnalogAveraging_Item(\$$sensor_name,$other)";
         }
-        $object = '';
     }
     elsif($type eq "OWX") {
         ($address, $name, $grouplist, @other) = @item_info;
