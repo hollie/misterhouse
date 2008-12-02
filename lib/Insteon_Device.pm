@@ -264,6 +264,12 @@ sub is_acknowledged
 {
 	my ($self, $p_ack) = @_;
 	$$self{is_acknowledged} = $p_ack if defined $p_ack;
+	if ($p_ack) {
+		$self->SUPER::set($$self{pending_state},$$self{pending_setby}, $$self{pending_response}) if defined $$self{pending_state};
+		$$self{pending_state} = undef;
+		$$self{pending_setby} = undef;
+		$$self{pending_response} = undef;
+	}
 	return $$self{is_acknowledged};
 }
 
@@ -325,7 +331,8 @@ sub set
 
 	if (!($self->is_responder)) {
 		# if it can't be controlled (i.e., a responder), then don't send out any signals
-		$self->set_receive($p_state,$p_setby);
+		# motion sensors seem to get multiple fast reports; don't trigger on both
+		$self->set_receive($p_state,$p_setby) unless $self->get_idle_time <= 1;
 		return;
 	}
 
@@ -344,8 +351,8 @@ sub set
 			$$self{ping_timer}->set($$self{ping_timerTime} + (rand() * $$self{ping_timerTime}), $self);
 		}
 	} elsif ($self->_is_valid_state($p_state)) {
-		# always reset the is_locally_set property
-		$$self{m_is_locally_set} = 0;
+		# always reset the is_locally_set property unless set_by is the device
+		$$self{m_is_locally_set} = 0 unless ref $p_setby and $p_setby eq $self;
 
 		# handle invalid state for non-dimmable devices
 		if (($p_state eq 'dim' or $p_state eq 'bright') and !($self->is_dimmable)) {
@@ -356,19 +363,23 @@ sub set
 			or ($p_setby->isa('Insteon_Device') and (($p_setby eq $self)
 			or (&main::set_by_to_target($p_setby) eq $self->interface)))))
 		{
-				# don't reset the object w/ the same state if set from the interface
-				return if (lc $p_state eq lc $self->state) and $self->is_acknowledged;
-				&::print_log("[Insteon_Device] " . $self->get_object_name() 
-					. "::set($p_state, $p_setby)") if $main::Debug{insteon};
+			# don't reset the object w/ the same state if set from the interface
+			return if (lc $p_state eq lc $self->state) and $self->is_acknowledged;
+			&::print_log("[Insteon_Device] " . $self->get_object_name() 
+				. "::set($p_state, $p_setby)") if $main::Debug{insteon};
+			$self->SUPER::set($p_state,$p_setby,$p_response) if defined $p_state;
 		} else {
 			$self->_send_cmd(command => $p_state, 
 				type => (($self->isa('Insteon_Link') and !($self->is_root)) ? 'alllink' : 'standard'));
 			&::print_log("[Insteon_Device] " . $self->get_object_name() . "::set($p_state, $p_setby)")
 				if $main::Debug{insteon};
 			$self->is_acknowledged(0);
-		}
+			$$self{pending_state} = $p_state;
+			$$self{pending_setby} = $p_setby;
+			$$self{pending_response} = $p_response;
+	}
 		$self->level($p_state); # update the level value
-		$self->SUPER::set($p_state,$p_setby,$p_response) if defined $p_state;
+#		$self->SUPER::set($p_state,$p_setby,$p_response) if defined $p_state;
 	}
 }
 
@@ -825,7 +836,7 @@ sub _xlate_insteon_mh
 			}
 		}
 	}
-return %msg;
+	return %msg;
 }
 
 sub _xlate_mh_insteon
