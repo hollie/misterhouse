@@ -19,7 +19,7 @@ with highlights listed in <a href=http://misterhouse.net/mh/docs/updates.html>th
 =end html
 
 
-=head2 Version 2.105 posted on 10/12/2007
+=head2 Version 2.105 posted on 12/01/2008
 
 Version 2.105 can be downloaded from here:
 
