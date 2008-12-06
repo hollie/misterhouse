@@ -17,6 +17,11 @@ Requirements:
  Download and install PocketSphinx 
  http://cmusphinx.sourceforge.net
 
+These versions of pocketsphinx are supported:
+
+  Sphinxbase: 0.3
+  Pocketsphinx: 0.4.1
+
  You need to install both SphinxBase and PocketSphinx.  When building SphinxBase, it will
  default to OSS, if you want ALSA (recommended) then you need to add --with-alsa to the 
  configure command.
