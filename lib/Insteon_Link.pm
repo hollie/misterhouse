@@ -246,7 +246,7 @@ sub set
 				my $on_state = $$self{members}{$member_ref}{on_level};
 				$on_state = '100%' unless $on_state;
 				my $local_state = $on_state;
-#				$local_state = 'on' if $local_state eq '100%';
+				$local_state = 'on' if $local_state eq '100%' and !($member->is_root);
 				$local_state = 'off' if $local_state eq '0%' or $link_state eq 'off';
 				if ($member->isa('Light_Item')) {
 				# if they are Light_Items, then set their on_dim attrib to the member on level
@@ -279,10 +279,12 @@ sub set
 	}
 	if ($self->is_keypadlinc and !($self->is_root)) {
 		if (ref $$self{surrogate} && $$self{surrogate}->isa('Insteon_Link')) {
-			$$self{surrogate}->SUPER::set($p_state, $p_setby, $p_respond)
+			$$self{surrogate}->set($link_state, $p_setby, $p_respond)
 				unless ref $p_setby and $p_setby eq $self;
+		} else {
+			&::print_log("[Insteon_Link] You may not directly attempt to set a keypadlinc's button "
+				. " unless you have defined a reverse link with the \"surrogate\" keyword");
 		}
-		$self->SUPER::set($p_state, $p_setby, $p_respond);
 	} else {
 		$self->SUPER::set((($self->is_root) ? $p_state : $link_state), $p_setby, $p_respond);
 	}
