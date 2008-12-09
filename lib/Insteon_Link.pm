@@ -279,11 +279,11 @@ sub set
 		}
 	}
 	if ($self->is_keypadlinc and !($self->is_root)) {
-		if (ref $$self{surrogate} && $$self{surrogate}->isa('Insteon_Link')) {
+		if (ref $p_setby and $p_setby->isa('Insteon_Device')) {
+			$self->SUPER::set($p_state, $p_setby, $p_respond);
+		} elsif (ref $$self{surrogate} && $$self{surrogate}->isa('Insteon_Link')) {
 			$$self{surrogate}->set($link_state, $p_setby, $p_respond)
 				unless ref $p_setby and $p_setby eq $self;
-		} elsif (ref $p_setby and $p_setby->isa('Insteon_Device')) {
-			$self->SUPER::set($p_state, $p_setby, $p_respond);
 		} else {
 			&::print_log("[Insteon_Link] You may not directly attempt to set a keypadlinc's button "
 				. " unless you have defined a reverse link with the \"surrogate\" keyword");
