@@ -79,6 +79,8 @@ sub initialize
 #	$$self{m_timerCheck}->set(24*60*60,$self);
    # Default to a print_log message after 24 hours of inactivity
    $$self{'inactivity_time'} = 24*3600;
+   # initialize states array
+   @{$$self{states}} = ('motion','still');
 }
 
 sub set
