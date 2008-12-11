@@ -169,7 +169,10 @@ $$self{m_idleActiveState} = undef;
 	$$self{state}='off';
 	$$self{m_always_set_state} = 1; # the default is to set state regardless of change
         $$self{m_restrict_off} = 0; # disable light restrictions items from preventing off states
+        # defined possible states
+        @{$$self{states}} = ('on','off');
 }
+
 
 sub set
 {
