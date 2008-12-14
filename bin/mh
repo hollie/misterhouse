@@ -705,6 +705,7 @@ sub setup {
     $SIG{INT}   = \&sig_handler;              # Exit cleanly with CTL-C
     $SIG{BREAK} = \&exit_pgm    if  $OS_win;  # Exit less cleanly with BREAK
     $SIG{KILL}  = \&sig_handler;              # Exit cleanly with a kill signal
+    $SIG{TERM}  = \&sig_handler;              # Exit cleanly with a kill signal
     $SIG{HUP}   = \&read_code   if !$OS_win;  # Reload code (alias mhreload per info in mh.ini file)
     $SIG{PIPE}  = \&sig_handler_pipe;         # Web browsers can shut down sockets while we are sending data
 #   $SIG{CHLD}  = 'IGNORE';                   # So we don't create zombies when forking
