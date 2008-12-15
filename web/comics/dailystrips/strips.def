@@ -68,6 +68,15 @@ class unitedmedia-srch-comics
 	provides any
 end
 
+class comicscom-srch
+	homepage http://www.comics.com/$1/
+	type search
+	searchpage http://www.comics.com/$1/%Y-%m-%d/
+	searchpattern (/dyn/str_strip[/\d]+?\d+.full.gif)
+	baseurl http://assets.comics.com
+	provides any
+end
+
 class unitedmedia-srch-comics-lag
 	homepage http://www.unitedmedia.com/comics/$strip/
 	type search
@@ -258,8 +267,8 @@ end
 class graphicsmash
 	type search
 	homepage http://www.graphicsmash.com/series.php?name=$1
-	searchpage http://www.moderntales.com/tooncast.php?series=$1
-	searchpattern <img.+?src=(.+?)>
+	searchpage http://www.graphicsmash.com/series.php?name=$1
+	searchpattern <a name="strip1"><img.+?src="(http://www.graphicsmash.com/memberimages/[^"]+)"
 	provides latest
 end
 
@@ -346,6 +355,7 @@ end
 
 strip megatokyo
 	name MegaTokyo
+	artist Fred Gallagher
 	homepage http://www.megatokyo.com/
 	type search
 	searchpattern <IMG.+?SRC="(/?strips/\d+\..+?)"
@@ -382,10 +392,12 @@ end
 
 strip pvp
 	name Player vs. Player
+	artist Scott R. Kurtz
 	homepage http://www.pvponline.com/
-	type generate
-	imageurl http://www.pvponline.com/archive/%Y/pvp%Y%m%d.gif
-	provides any
+	type search
+	searchpattern <img.+?src=["'].+?/(comics/pvp.+?\..+?)["']
+	baseurl $homepage
+	provides latest
 end
 
 strip pvpcurrent
@@ -415,18 +427,21 @@ end
 
 strip sinfest
 	name Sinfest
+	artist Tatsuya Ishida
 	homepage http://sinfest.net
 	type generate
-	imageurl http://sinfest.net/comics/sf%Y%m%d.gif
+	imageurl http://sinfest.net/comikaze/comics/%Y-%m-%d.gif
 	provides any
 end
 
 strip sluggy
 	name Sluggy Freelance
+	artist Pete Abrams
 	homepage http://www.sluggy.com/
 	type search
 	searchpage http://www.sluggy.com/daily.php?date=%y%m%d
-	searchpattern <img.+?src="?(http://pics\.sluggy\.com/comics/%y%m%d.+?\.(gif|jpg))
+	searchpattern <img.+?src=".+?(/images/comics/.+?\..+?)"
+	baseurl http://sluggy.com/
 	provides any
 end
 
@@ -456,6 +471,7 @@ end
 
 strip userfriendly
 	name User Friendly
+	artist Illiad
 	homepage http://www.userfriendly.org/static/
 	type search
 	searchpage http://ars.userfriendly.org/cartoons/?id=%Y%m%d&mode=classic
@@ -527,9 +543,11 @@ end
 
 strip crfh
 	name College Roomies from Hell
-	homepage http://www.crfh.net
-	type generate
-	imageurl http://www.crfh.net/comics/crfh%Y%m%d.png
+	artist Maritza Campos
+	homepage http://www.crfh.net/
+	type search
+	searchpattern <IMG.+?SRC="(/*%Y/crfh%Y%m%d\.(png|jpg))"
+	baseurl $homepage
 	provides any
 end
 
@@ -544,10 +562,11 @@ end
 
 strip dorktower
 	name Dork Tower
+	artist John Kovalic
 	homepage http://www.dorktower.com/
 	type search
-	searchpattern <img.+?src="(/?images/comics/.+?\..+?)"
-	baseurl http://www.gamespy.com/comics/dorktower/
+	searchpattern <img.+?src=".*(/?images/comics/.+?\..+?)"
+	baseurl http://dorktower.com/
 	provides latest
 end
 
@@ -561,6 +580,7 @@ end
 
 strip kevinandkell
 	name Kevin and Kell
+	artist Bill Holbrook
 	homepage http://www.kevinandkell.com/
 	type generate
 	imageurl http://www.kevinandkell.com/%Y/strips/kk%Y%m%d.gif
@@ -836,9 +856,11 @@ end
 
 strip schlockmercenary
 	name Schlock Mercenary
-	type generate
+	artist Howard Tayler
+	type search
 	homepage http://www.schlockmercenary.com/
-	imageurl http://www.schlockmercenary.com/comics/schlock%Y%m%d.png
+	searchpattern <img src="(/comics/schlock\d+\.(png|jpg))"
+	baseurl $homepage
 	provides any
 end
 
@@ -1201,6 +1223,12 @@ strip thebigpicture
 	$1 bi
 end
 
+strip bloomcounty
+	name Bloom County
+	useclass gocomics-gen
+	$1 blm
+end
+
 strip boondocks
 	name The Boondocks
 	useclass gocomics-gen
@@ -1379,32 +1407,38 @@ end
 # unitedmedia.com strips
 strip alleyoop
 	name Alley Oop
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 sheldon
 end
 
 strip arlonjanis
 	name Arlo & Janis
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 arlo&janis
 end
 
 strip betty
 	name Betty
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 betty
 end
 
 strip bignate
 	name Big Nate
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 big_nate
 end
 
 strip bornloser
 	name The Born Loser
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 the_born_loser
 end
 
 strip buckets
 	name The Buckets
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 the_buckets
 end
 
 strip bullsnbears
@@ -1414,22 +1448,26 @@ end
 
 strip cheapthrills
 	name Cheap Thrills
-	useclass unitedmedia-srch-wash
+	useclass comicscom-srch
+	$1 cheap_thrills
 end
 
 strip chickweed
 	name 9 Chickweed Lane
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 9_chickweed_lane
 end
 
 strip committed
 	name Committed
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 comitted
 end
 
 strip drabble
 	name Drabble
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 drabble
 end
 
 strip dilbert
@@ -1446,42 +1484,49 @@ end
 
 strip fatcats
 	name Fat Cats
-	useclass unitedmedia-srch-comics-lag
+	useclass comicscom-srch
+	$1 fat_cats_classics
 end
 
 strip ferdnand
 	name Ferd'nand
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 ferdnand
 end
 
 strip forbetter
-       name For Better or For Worse
-       homepage http://www.fborfw.com/strip_fix/
-       type search
-       searchpattern <img.+?src="(/strip_fix/.+?\d{6}.{3}\.(gif|jpg))"
-       baseurl http://www.fborfw.com
-       provides latest
+	name For Better or For Worse
+	artist Lynn Johnson
+	homepage http://www.fborfw.com/strip_fix/
+	type search
+	searchpattern <img.+?src="(/strip_fix/.+?\d{6}.{3}\.(gif|jpg))"
+	baseurl http://www.fborfw.com
+	provides latest
 end
 
 
 strip franknernest
 	name Frank & Ernest
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 frank&ernest
 end
 
 strip frazz
 	name Frazz
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 frazz
 end
 
 strip geech
 	name Geech
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 geech_classics
 end
 
 strip getfuzzy
 	name Get Fuzzy
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 get_fuzzy
 end
 
 strip gingermeggs
@@ -1491,42 +1536,50 @@ end
 
 strip graffiti
 	name Graffiti
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 graffiti
 end
 
 strip grandave
 	name Grand Avenue
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 grand_avenue
 end
 
 strip grizzwells
 	name The Grizzwells
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 grizzwells
 end
 
 strip hedge
 	name Over the Hedge
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 over_the_hedge
 end
 
 strip herman
 	name Herman
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 herman
 end
 
 strip janesworld
 	name Jane's World
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 janes_world
 end
 
 strip jumpstart
 	name Jump Start
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 jump_start
 end
 
 strip kitncarlyle
 	name Kit 'N' Carlyle
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 kit_n_carlyle
 end
 
 #can't use the class - dates are 53 years ago
@@ -1541,7 +1594,8 @@ end
 
 strip luann
 	name Luann
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 luann
 end
 
 strip lupo
@@ -1551,7 +1605,8 @@ end
 
 strip marmaduke
 	name Marmaduke
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 marmaduke
 end
 
 strip meatloaf
@@ -1561,27 +1616,33 @@ end
 
 strip meg
 	name Meg!
-	useclass unitedmedia-srch-comics-lag
+	useclass comicscom-srch
+	$1 meg_classics
 end
 
 strip motley
 	name Motley
-	useclass unitedmedia-srch-comics-lag
+	useclass comicscom-srch
+	$1 motley_classics
 end
 
 strip nancy
 	name Nancy
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 nancy
 end
 
 strip peanuts
 	name Peanuts
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 peanuts
 end
 
 strip pearls
 	name Pearls Before Swine
-	useclass unitedmedia-srch-comics
+	artist Stephan Pastis
+	useclass comicscom-srch
+	$1 pearls_before_swine
 end
 
 strip pibgorn
@@ -1591,7 +1652,8 @@ end
 
 strip pickles
 	name Pickles
-	useclass unitedmedia-srch-wash
+	useclass comicscom-srch
+	$1 pickles
 end
 
 strip potluck
@@ -1601,42 +1663,50 @@ end
 
 strip raisingduncan
 	name Raising Duncan
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 raising_duncan_classics
 end
 
 strip reality
 	name Reality Check
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 reality_check
 end
 
 strip redandrover
 	name Red and Rover
-	useclass unitedmedia-srch-wash
+	useclass comicscom-srch
+	$1 red&rover
 end
 
 strip ripleys
 	name Ripley's Believe It or Not!
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 ripleys_believe_it_or_not
 end
 
 strip monty
 	name Monty
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 monty
 end
 
 strip roseisrose
 	name Rose Is Rose
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 rose_is_rose
 end
 
 strip shirleynson
 	name Shirley And Son
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 shirley_and_son_classics
 end
 
 strip soup2nutz
 	name Soup To Nutz
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 soup_to_nutz
 end
 
 strip stockcartoons
@@ -1648,12 +1718,14 @@ end
 
 strip tarzan
 	name Tarzan
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 tarzan_classics
 end
 
 strip thatslife
 	name That's Life
-	useclass unitedmedia-srch-wash
+	useclass comicscom-srch
+	$1 thats_life
 end
 
 strip topofworld
@@ -1663,12 +1735,14 @@ end
 
 strip workingdaze
 	name Working Daze
-	useclass unitedmedia-srch-comics
+	useclass comicscom-srch
+	$1 working_daze
 end
 
 strip pcnpixel
 	name PC and Pixel
-	useclass unitedmedia-srch-wash
+	useclass comicscom-srch
+	$1 pc_and_pixel
 	provides latest
 end
 
@@ -4093,7 +4167,7 @@ strip ctrlaltdel
 	artist Tim Buckley
 	homepage http://www.ctrlaltdel-online.com/
 	type generate
-	imageurl http://www.ctrlaltdel-online.com/images/comics/%Y%m%d.jpg
+	imageurl http://www.ctrlaltdel-online.com/comics/%Y%m%d.jpg
 	provides any
 end
 
@@ -5023,9 +5097,10 @@ end
 
 strip somethingpositive
 	name Something Positive
+	artist R K Milholland
 	homepage http://www.somethingpositive.net/
 	type search
-	searchpattern <img.+?src="(arch/sp\d+\.gif)"
+	searchpattern <img.+?src="/*(arch/sp\d+\.gif)"
 	baseurl http://www.somethingpositive.net/
 	provides latest
 end
@@ -5130,20 +5205,30 @@ end
 
 # works. current.
 strip suburbanjungle
-    name Suburban Jungle
-    homepage http://www.suburbanjungle.com/
-    type generate
-    imageurl http://http://www.suburbanjungle.com/comics/sj%Y%m%d.gif
-    provides any
+	name Suburban Jungle
+	artist John Robey
+	homepage http://www.suburbanjungle.com/
+	type generate
+	imageurl http://www.suburbanjungle.com/comics/sj%Y%m%d.gif
+	provides any
 end
 
+strip nevernever
+	name Never Never
+	homepage http://www.mopsy.com/
+	type generate
+	imageurl http://www.mopsy.com/comics/nn%Y%m%d.jpg
+	provides any
+end
+
+
 strip freefall
-    name Freefall
-    homepage http://freefall.purrsia.com
-    type search
-    searchpattern <img.+?src="(/ff.+?/.+?\..+?)"
-    baseurl $homepage
-    provides latest
+	name Freefall
+	homepage http://freefall.purrsia.com
+	type search
+	searchpattern <img.+?src="(/ff.+?/.+?\..+?)"
+	baseurl $homepage
+	provides latest
 end
 
 strip daybyday
@@ -5205,7 +5290,7 @@ strip questionablecontent
 	homepage http://www.questionablecontent.net/
 	type search
 	provides latest
-	searchpattern <img.+?src="\./(comics/\d+\..{3})">
+	searchpattern <img.+?src="[^"]*/(comics/\d+\..{3})">
 	baseurl $homepage
 end
 
