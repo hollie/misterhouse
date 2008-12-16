@@ -18,6 +18,8 @@
 #	 11/--/07  Jim Duda changed to work with XMLTV and schedulesdirect.org
 #	 11/--/07  Rick Steeves (misterhouse@corwyn.net) updated to build 
 #			   ia5 web pages from the XMLTV data 
+#   05/--/08 Some general updates to fix requiring an .ini entry
+#	12/--/08 Incorporated Rick Bolen's changes for subchannels
 #---------------------------------------------------------------------------
 
 #---------------------------------------------------------------------------
@@ -37,7 +39,7 @@
 #
 #	Requires that a current XML files exists pulled from schedulesdirect.org
 # 	using XMLTV. This file needs to be updated by running xmltv on a daily 
-#	basis for udpates.
+#	basis for updates.
 #	The file location should be defined in mh.private.ini as tv_xml.
 #	Example:
 #		tv_xml= f:/temp/tv.xml
@@ -71,17 +73,12 @@ use Time::Local;
 #======================================================================
 # Globals
 #
-#my ( %parms, $infile, %channels_skip, %channels_keep, $channel_data );
 my ( %parms, $infile, $channel_data );
 my (@hours, @uas);
 my ($dbm_file, $dbm_file2);
 my (%DBM, %DBM2, %DBM_channel, %DBM_html, %DBM_index);  # DBM_html is extended data for HTML
 my (%showtimes);
 my @weekday  = qw (Sun Mon Tue Wed Thu Fri Sat);
-
-#Disabled because this comes from Schedulesdirect.org anyway
-#%channels_skip = ();
-#%channels_keep = ();
 
 #======================================================================
 # Check invocation options, and print usage message if necessary
@@ -183,9 +180,8 @@ sub setup
    $parms{hour}    = $config_parms{$parms{db}.'_hours'} unless $parms{hour};
 
     $parms{hour} = '6pm' unless $parms{hour};
-    if (lc($parms{hour}) eq 'all') {
-        @hours = qw(02 06 10 14 18 22);
-			%showtimes = (
+    @hours = qw(02 06 10 14 18 22);
+	 %showtimes = (
 			$hours[0] => ['02:00 AM', '02:30 AM', '03:00 AM', '03:30 AM', '04:00 AM', '04:30 AM', '05:00 AM', '05:30 AM'],
 			$hours[1] => ['06:00 AM', '06:30 AM', '07:00 AM', '07:30 AM', '08:00 AM', '08:30 AM', '09:00 AM', '09:30 AM'],
 			$hours[2] => ['10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '12:00 PM', '12:30 PM', '1:00 PM', '1:30 PM'],
@@ -193,24 +189,7 @@ sub setup
 			$hours[4] => ['6:00 PM', '6:30 PM', '7:00 PM', '7:30 PM', '8:00 PM', '8:30 PM', '9:00 PM', '9:30 PM'],
 			$hours[5] => ['10:00 PM', '10:30 PM', '11:00 PM', '11:30 PM', '00:00 AM', '00:30 AM', '01:00 AM', '01:30 AM'],
 		);
-    }
-    elsif (lc($parms{hour}) eq 'all_by_3') {
-        @hours = qw(02 05 08 11 14 17 20 23);
-    }
-    elsif (1 < (@hours = split(',', $parms{hour}))) {
-        for (@hours) {
-            $_ = sprintf("%02d", $_);         # force hour to be  zero padded
-        }
-    }
-    elsif (1 < (@hours = split(',', $parms{hour}))) {
-    }
-    else {
-        my ($hour, $am_pm) = $parms{hour} =~ /(\d+) *(\S*)/;
-        $hour += 12 unless lc($am_pm) eq 'am' or $hour == 12;
-        @hours = (sprintf("%02d", $hour));
-    }
 
-   $parms{duration}= $config_parms{$parms{db}.'_duration'} if ( $config_parms{$parms{db}.'_duration'} );
    $parms{duration}= 4 unless ( $parms{duration} );
 
    $parms{label} = "VCR" unless $parms{label};  # This can also be an image link
@@ -227,8 +206,7 @@ sub setup
    use DB_File;
    tie (%DBM,  'DB_File',  $dbm_file,  O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file: $!";
    tie (%DBM2, 'DB_File',  $dbm_file2, O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file2: $!";
-   #
-   #$parms{debug} = 1;
+   
 }
 
 #======================================================================
@@ -360,8 +338,6 @@ eof
 					# if past midnight adjust the date to "tomorrow"
 					my ($channel_number, $channel_name, $channel_affiliate, $channel_image, $channel_ID) = split($;, $DBM_channel{$key});
 					my $channel_number_display = $channel_number;
-					# pull out the zero for the low channels - needed it for the sort tho
-					#$channel_number_display =~ s/^0//;
 					my $show_found = 0;  # when the beginning of the channel
     											# has nothing in it, to fill in the blanks
 					my $colspan = 0;  # keep track of how wide a show is
@@ -514,7 +490,8 @@ sub make_index {
    #  be the friendliest way to do this (in my own humble opinion.)
    #  Feel free to change this if you like.
    #----------------------------------------------------------------------
-   print OUT "<SELECT NAME=url onchange=window.open(this.options[this.selectedIndex].value,'main')>\n";
+   print OUT "<SELECT NAME=url onchange=window.open(this.options[this.selectedIndex].value,'output')>\n";
+   #print OUT "<SELECT NAME=url onchange=window.open(this.options[this.selectedIndex].value,'menu')>\n";
    #my $dow_start = -$down - 7;
    my $dow_start =  -$parms{purge};
    my $dow_stop  = 7;
@@ -529,7 +506,7 @@ sub make_index {
        print OUT ">$dow2, $month2/$day2\n";
    }
    print OUT "</select>\n";
-   print OUT "<SELECT NAME=tvtime onchange=window.open(this.options[this.selectedIndex].value,'main')>\n";
+   print OUT "<SELECT NAME=tvtime onchange=window.open(this.options[this.selectedIndex].value,'output')>\n";
 
    for my $hour2 (@hours) {
        my $hour2_ampm;
@@ -546,16 +523,12 @@ sub make_index {
        else {
            $hour2_ampm = $hour2 + 0 . " am";
        }
-#       $hour2_24 = '0' . $hour2 if $hour2 < 10;
-
         print OUT "<option value='/" . $parms{db} . "/${day}_${hour2}.html'";
         if ($hour2 == $hour)  {
           print OUT " Selected ";
         }
 
         print OUT ">$hour2_ampm\n";
-
-#        print OUT "<td align=center bgcolor=white><a href=/tv/${day}_${hour2}.html>$hour2_ampm</a><td>\n";
    }
    print OUT "</select>\n</td>\n";
    print OUT "</tr>\n</form></table></center>\n";
@@ -653,6 +626,13 @@ sub fetchLoop
 		# Pick the best name for the channel
 		my ($channel, $lang) = @{XMLTV::best_name($langs, $_->{'display-name'})};
 		my ($channel_number, $channel_name) = $channel =~ /^(.*) (.*)/;
+# rbmod check if channel name has a number at the end...
+#       append the tailing number to $channel_number as a decimal
+	        my $subchannel = '';
+	        $subchannel = $channel_name =~ /^.*(\d)$/;
+#	        print "fetchloop: subchnl=$subchannel, chnl_name=$channel_name, $1\n" if $parms(debug);
+	        $channel_number = $channel_number . '.' . $1 if ($subchannel);
+# rbmod_end
 		# Check to see if the station is a network affiliate. 
 		foreach my $key (@{$_->{'display-name'}}) {
 			my $key2 = "@$key";
@@ -686,9 +666,6 @@ sub fetchLoop
 
 		$DBM2{$channel_number} = $channel_name;
 			
-		# set the channel length to 2 characters for HTML sorting. 
-		# needs to be longer for > 100 channels
-		#$channel_number = sprintf("%02s", $channel_number);
 		my $db_data = join($;, $channel_number, $channel_name, $channel_affiliate, $channel_image, $channel_ID);
  		$DBM_channel{$channel_number} = $db_data;
  		# DBM_index cross references between channels and programs
@@ -749,12 +726,7 @@ sub fetchLoop
 			}
 		}
 		
-		my $pgm_name_full;
-		if ($pgm_title) {
-			$pgm_name_full = "$pgm_name: $pgm_title";
-		} else { $pgm_name_full = $pgm_name; };
-		
-		#my $pgm_name_full = "$pgm_name: $pgm_title" if defined $pgm_title;
+		my $pgm_name_full = "$pgm_name: $pgm_title" if defined $pgm_title;
 		$pgm_name_full =~ s/  / /g;     # Drop extra spaces
 		$pgm_name_full =~ s/\s+$//;     # remove trailing spaces
 		
@@ -764,13 +736,11 @@ sub fetchLoop
 		my $html_data = join($;, $time_end, $pgm_name, $pgm_title, $pgm_air, $time_start, $time_start_adj, $time_end_adj, $pgm_rating, $pgm_desc, $pgm_date_end, $epoch_start, $epoch_end, @pgm_category);
 		$DBM_html{$html_key} = $html_data;
 		my $db_key = join($;, $channel_number, $pgm_date, $time_start);
-		#my $db_data= join($;, $time_end, $pgm_name_full, $pgm_desc);
 		my $db_data= join($;, $time_end, $pgm_name_full, 0);
 		$DBM{$db_key} = $db_data;
-		print "DBM: db key=$db_key\ndata=$db_data.\n" if $parms{debug};
+		#print "DBM: db key=$db_key\ndata=$db_data.\n" if $parms{debug};
 	}
 }
-
 
 # ========================================================
 # sub ampm_to_hour24 
@@ -831,7 +801,6 @@ sub convert_epoch_to_time {
 	my ($Second, $Minute, $Hour, $DayofMonth, $WrongMonth, $WrongYear, $WeekDay, $DayofYear, $IsDST) = localtime($epoch); 
 	my $Month = $WrongMonth+1;
 	my $Year = $WrongYear + 1900;
-	#return ($Second, $Minute, $Hour, $DayofMonth, $Month, $Year, $WeekDay, $DayofYear);
 	return (sprintf('%02d/%02d', $Month, $DayofMonth),sprintf('%02d:%02d', $Hour, $Minute));
 }
 
