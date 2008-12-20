@@ -146,7 +146,7 @@ sub handle_vacancy {
 }
 
 sub process_count {
-   my ($self, $l_count) = @_;
+   my ($self, $l_count, $p_setby) = @_;
    my $p_state = undef;
    if ($l_count < 0 and ($self->state() eq 'occupied' or $self->state() eq 'vacant')) { 
       #start the timer for prediction
@@ -155,11 +155,12 @@ sub process_count {
    } elsif ($l_count >= 1) {
       $p_state = 'occupied';
       $$self{m_timerCancelPredict}->stop();
-      if (defined $$self{m_occupancy_expire}) {
-         $$self{m_timerOccupancyExpire}->set($$self{m_occupancy_expire}, $self);
-      } else {
+      if (defined $$self{m_occupancy_expire} && ref $p_setby && ref $p_setby->get_set_by
+            && $p_setby->get_set_by eq $$self{m_obj} && $$self{m_obj}->state eq 'motion') {
+            $$self{m_timerOccupancyExpire}->set($$self{m_occupancy_expire}, $self);
+      } elsif (!(defined $$self{m_occupany_expire})) {
          $$self{m_timerOccupancyExpire}->stop();
-      }		
+      }
       $self->handle_presence();
    } elsif ($l_count == 0 or $l_count eq '' or (($l_count > 0) and ($l_count < 1))) {
       $p_state = 'vacant';
@@ -213,7 +214,6 @@ sub set
 {
 	my ($self, $p_state, $p_setby, $p_response) = @_;
 
-	my $l_count = $$self{m_OM}->sensor_count($$self{m_obj});
 	#we dont care about $p_state as we derive it from the sensor count.  one way only.
 		
 	#Timer expired.  Reset predict state
@@ -232,7 +232,8 @@ sub set
       #&::print_log("$$self{object_name}: occupancy timer expired, marking room as vacant");
       $self->handle_vacancy();
 	} else {
-      $p_state = $self->process_count($l_count);
+	my $l_count = $$self{m_OM}->sensor_count($$self{m_obj});
+      $p_state = $self->process_count($l_count,$p_setby);
    }
 
    if (defined $p_state and $p_state ne $self->state()) {
