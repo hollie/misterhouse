@@ -158,7 +158,7 @@ sub process_count {
       if (defined $$self{m_occupancy_expire} && ref $p_setby && ref $p_setby->get_set_by
             && $p_setby->get_set_by eq $$self{m_obj} && $$self{m_obj}->state eq 'motion') {
             $$self{m_timerOccupancyExpire}->set($$self{m_occupancy_expire}, $self);
-      } elsif (!(defined $$self{m_occupany_expire})) {
+      } elsif (!(defined $$self{m_occupancy_expire})) {
          $$self{m_timerOccupancyExpire}->stop();
       }
       $self->handle_presence();
