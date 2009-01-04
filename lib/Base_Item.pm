@@ -161,7 +161,7 @@ sub set
             #&::print_log($self->get_object_name() . "::checking($p_state, $p_setby) -> $$obj{object_name}") if $main::Debug{occupancy};
 				if ( ( $obj->can('writable') and $obj->writable ) or
 					( ! $obj->can('writable') ) ) { #check for "settable" objects
-               &::print_log($self->get_object_name() . "::set($p_state, $p_setby) -> $$obj{object_name}") if $main::Debug{occupancy};
+               &::print_log($self->get_object_name() . "::set($p_state, $$p_setby{object_name}) -> $$obj{object_name}") if $main::Debug{occupancy};
 #					$obj->set($p_state,$p_setby,$p_response);
 					# don't attempt to set sensors
 					if (UNIVERSAL::isa($obj, 'X10_Sensor')) {
