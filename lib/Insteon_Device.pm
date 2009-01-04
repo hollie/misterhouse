@@ -329,17 +329,18 @@ sub set
 {
 	my ($self,$p_state,$p_setby,$p_response) = @_;
 
+	# Override any set_with_timer requests
+	if ($$self{set_timer}) {
+		&Timer::unset($$self{set_timer});
+		delete $$self{set_timer};
+	}
+
 	if (!($self->is_responder)) {
 		# if it can't be controlled (i.e., a responder), then don't send out any signals
 		# motion sensors seem to get multiple fast reports; don't trigger on both
 		$self->set_receive($p_state,$p_setby) unless $self->get_idle_time <= 1;
 		return;
 	}
-
-    # prevent reciprocal sets that can occur because of this method's state
-    # propogation
-#    return if (ref $p_setby and $p_setby->can('get_set_by') and
-#        $p_setby->{set_by} eq $self);
 
 	# did the queue timer go off?
 	if (ref $p_setby and $p_setby eq $$self{queue_timer}) {
@@ -380,6 +381,8 @@ sub set
 	}
 		$self->level($p_state); # update the level value
 #		$self->SUPER::set($p_state,$p_setby,$p_response) if defined $p_state;
+	} else {
+		&::print_log("[Insteon_Device] failed state validation with state=$p_state");
 	}
 }
 
@@ -397,10 +400,10 @@ sub set_with_timer {
 
 	$state_change .= ';' . $additional_return_states if $additional_return_states;
 
-	$$self{timer} = &Timer::new() unless $$self{timer};
-	my $object = $self->{object_name};
-	my $action = "set $object '$state_change'";
-	&Timer::set($$self{timer}, $time, $action);
+	$$self{set_timer} = &Timer::new() unless $$self{set_timer};
+	my $object_name = $self->{object_name};
+	my $action = "$object_name->set('$state_change')";
+	$$self{set_timer}->set($time, $action);
 }
 
 sub link_to_interface
