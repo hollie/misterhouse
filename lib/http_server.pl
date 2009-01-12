@@ -1316,6 +1316,24 @@ sub html_form_select {
     return $form;
 }
 
+sub html_form_select_set_func {
+    my ($func, $resp, $var1, $default, @values) = @_;
+    my $form .= qq|<form action='/bin/set_func.pl' method=post><td>\n|;
+    $form .= qq|<input name='func' value="$func"  type='hidden'>\n|;
+    $form .= qq|<input name='resp' value="$resp"  type='hidden'>\n|;
+    $form .= qq|<input name='var1' value="$var1"  type='hidden'>\n|;
+    $form .= qq|<select name='var2' onChange='form.submit()'>\n|;
+    for my $value (@values) {
+        my $selected = ($value eq $default) ? 'selected' : '';
+        my $option = $value;
+        $option =~ s/&/&#38;/g;
+        $option =~ s/'/&#39;/g;
+        $form .= qq|<option value='$option' $selected>$value</option>\n|;
+    }
+    $form .= "</select></td></form>\n";
+    return $form;
+}
+
 
 sub html_form_select_set_var {
     my ($var, $default, @values) = @_;
