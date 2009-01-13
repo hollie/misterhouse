@@ -297,6 +297,7 @@ sub read_reg{
   if ($count == '') {
     $count = 1;
     }
+  my $ncount=$count;    
   $count = sprintf("0x%02x",$count);
   $cmd[0] = sprintf("0x%02x", $addr);
   $cmd[1] = "0x20";
@@ -304,8 +305,9 @@ sub read_reg{
   $cmd[3] = $count;
   @cmd=add_checksum(@cmd);
   $regraw = &Omnistat::send_cmd(@cmd);
-  $reg = substr ($regraw, 15, $count * 5);
-  #print "$::Time_Date: Omnistat->read_reg: reg=$reg\n" unless $main::config_parms{no_log} =~/omnistat/ ;
+  $reg = substr ($regraw, 15, $ncount * 5);
+  #print "  $regraw , $ncount\n";
+  #print "$::Time_Date: Omnistat->read_reg: reg=$reg  raw=$regraw\n" unless $main::config_parms{no_log} =~/omnistat/ ;
   return $reg;
   }
 
@@ -330,7 +332,7 @@ sub read_group1{
   if ($hold == 0)   { $hold = 'off';}
   if ($hold == 255) { $hold = 'on';}
   $current = &Omnistat::translate_temp($current);
-  #print "$::Time_Date: Omnistat->read_group1:$cool_set,$heat_set,$mode,$fan,$hold,$current\n" unless $main::config_parms{no_log} =~/omnistat/ ;
+  #print "$::Time_Date: Omnistat->read_group1:$cool_set,$heat_set,$mode,Fan>>$fan,$hold,$current\n" unless $main::config_parms{no_log} =~/omnistat/ ;
   return ($cool_set,$heat_set,$mode,$fan,$hold,$current);
   }
 
@@ -341,6 +343,7 @@ sub read_group1{
 
 # send command to thermostat
 sub send_cmd{
+  
   my (@string) = @_;
   my ($byte, $cmd);
   $cmd = '';
@@ -352,8 +355,7 @@ sub send_cmd{
   # send it to thermostat
   $main::Serial_Ports{Omnistat}{object}->write($cmd);
   # need to wait a bit for the reply
-  sleep 2;
-  # read response
+  sleep 1 ; #really only 90ms
   &main::check_for_generic_serial_data('Omnistat');
   my $temp=$main::Serial_Ports{Omnistat}{data};
   $main::Serial_Ports{Omnistat}{data} = '';
