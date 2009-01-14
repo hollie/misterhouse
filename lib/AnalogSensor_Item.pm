@@ -140,16 +140,22 @@ use Time::HiRes qw(gettimeofday);
 
 sub new {
 
-	my ($class, $p_id, $p_type, @p_tokens) = @_;
-	my $self={};
-	bless $self, $class;
-	$self->id($p_id);
-	$self->type($p_type);
+	my $self = bless {}, shift;
+	my $object = shift;
+	my @args = @_;
+	if (ref $object) {
+		$$self{object} = $object;
+		# now, tie it
+		$object->tie_items($self);
+	} else {
+		$self->id($object);
+		$self->type(shift @args);
+	}
 	$$self{m_activityTime} = 24*3600;
 	# maintain measurement member as it is like state
 	$self->restore_data('m_measurement','m_timestamp','m_time_since_previous','m_measurement_change','m_activityTime');
 	$$self{m_max_records} = 10;
-        for my $token (@p_tokens) {
+        for my $token (@args) {
            my ($tag, $value) = split(/=/,$token);
            if (defined($tag) and defined($value)) {
               print "[AnalogSensor_Item] Adding analog sensor token: $tag "
@@ -248,9 +254,10 @@ sub set {
          &print_log("$$self{object_name}->Has not received a measurement in $$self{'m_inactivityTime'} seconds");
       }
       $p_state = 'check';
+      $self->SUPER::set($p_state,$p_setby);
+   } elsif ($p_setby eq $$self{object}) {
+      $self->measurement($$self{object}->state);
    }
-   $self->SUPER::set($p_state,$p_setby);
-
 }
 
 sub set_inactivity_alarm {
@@ -514,12 +521,21 @@ package AnalogRangeSensor_Item;
 @AnalogRangeSensor_Item::ISA = ('AnalogSensor_Item');
 
 sub new {
-   my ($class, $id, $sensor_type, @r_tokens ) = @_;
-   my $self = &AnalogSensor_Item::new($class, $id, $sensor_type);
+#   my ($class, $id, $sensor_type, @r_tokens ) = @_;
+   my $self;
+   my $class = shift;
+   my $object = shift;
+   my @args = @_;
+   if (ref $object) {
+     $self = &AnalogSensor_Item::new($class, $object);
+   } else {
+     my $sensor_type = shift @args;
+     $self = &AnalogSensor_Item::new($class, $object, $sensor_type);
+   }
 
    my %states;
    my %diag_config;
-        for my $token (@r_tokens) {
+        for my $token (@args) {
            my ($tag, $value) = split(/=/,$token);
            if (defined($tag) and defined($value)) {
               print "[AnalogRangeSensor_Item] Adding analog sensor token: $tag "

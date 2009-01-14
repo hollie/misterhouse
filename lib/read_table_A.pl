@@ -571,19 +571,29 @@ sub read_table_A {
         my $xc_name; #xap conduit
         my $sensor_type;
 	#ANALOG_SENSOR, xap source, object name, xap conduit name, groups, xap sensor type, tokens...
-        ($address, $name, $xc_name, $grouplist, $sensor_type, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other); # Quote data
         if( ! $packages{AnalogSensor_Item}++ ) {   # first time for this object type?
-            $code .= "use AnalogSensor_Item;\n";
+           $code .= "use AnalogSensor_Item;\n";
         }
-        if ( lc $name eq 'auto' ) {   #new
-            $name = $xc_name . "_" . $sensor_type . "_" . $address;
-	    $name =~ s/\./_/g; #strip out all the periods from xap names
-        }
-        $code .= sprintf "\n\$%-35s = new AnalogSensor_Item('%s', '%s', %s);\n",
-                  $name, $address, $sensor_type, $other;
-        if ($objects{$xc_name}) {
-           $code .= sprintf "\$%-35s -> add(\$%s);\n", $xc_name, $name;
+        $address = shift @item_info;
+        if ($objects{$address}) {
+           # then, this is a more simple way of associating an analog sensor item to an existing object
+           $xc_name = $address;
+           ($name, $grouplist, @other) = @item_info;
+           $other = join ', ', (map {"'$_'"} @other); # Quote data
+           $code .= sprintf "\n\$%-35s = new AnalogSensor_Item(\$%s, %s);\n",
+                     $name, $xc_name, $other;
+        } else {
+           ($name, $xc_name, $grouplist, $sensor_type, @other) = @item_info;
+           $other = join ', ', (map {"'$_'"} @other); # Quote data
+           if ( lc $name eq 'auto' ) {   #new
+              $name = $xc_name . "_" . $sensor_type . "_" . $address;
+              $name =~ s/\./_/g; #strip out all the periods from xap names
+           }
+           $code .= sprintf "\n\$%-35s = new AnalogSensor_Item('%s', '%s', %s);\n",
+                     $name, $address, $sensor_type, $other;
+           if ($objects{$xc_name}) {
+              $code .= sprintf "\$%-35s -> add(\$%s);\n", $xc_name, $name;
+           }
         }
         $object = '';
     }
@@ -591,19 +601,29 @@ sub read_table_A {
         my $xc_name; #xap conduit
         my $sensor_type;
 	#ANALOG_SENSOR_R, xap source, object name, xap conduit name, groups, xap sensor type, tokens...
-        ($address, $name, $xc_name, $grouplist, $sensor_type, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other); # Quote data
         if( ! $packages{AnalogSensor_Item}++ ) {   # first time for this object type?
-            $code .= "use AnalogSensor_Item;\n";
+           $code .= "use AnalogSensor_Item;\n";
         }
-        if ( lc $name eq 'auto' ) {   #new
-            $name = $xc_name . "_" . $sensor_type . "_" . $address;
-	    $name =~ s/\./_/g; #strip out all the periods from xap names
-        }
-        $code .= sprintf "\n\$%-35s = new AnalogRangeSensor_Item('%s', '%s', %s);\n",
-                  $name, $address, $sensor_type, $other;
-        if ($objects{$xc_name}) {
-           $code .= sprintf "\$%-35s -> add(\$%s);\n", $xc_name, $name;
+        $address = shift @item_info;
+        if ($objects{$address}) {
+           # then, this is a more simple way of associating an analog sensor item to an existing object
+           $xc_name = $address;
+           ($name, $grouplist, @other) = @item_info;
+           $other = join ', ', (map {"'$_'"} @other); # Quote data
+           $code .= sprintf "\n\$%-35s = new AnalogRangeSensor_Item(\$%s, %s);\n",
+                     $name, $xc_name, $other;
+        } else {
+           ($name, $xc_name, $grouplist, $sensor_type, @other) = @item_info;
+           $other = join ', ', (map {"'$_'"} @other); # Quote data
+           if ( lc $name eq 'auto' ) {   #new
+              $name = $xc_name . "_" . $sensor_type . "_" . $address;
+              $name =~ s/\./_/g; #strip out all the periods from xap names
+           }
+           $code .= sprintf "\n\$%-35s = new AnalogRangeSensor_Item('%s', '%s', %s);\n",
+                     $name, $address, $sensor_type, $other;
+           if ($objects{$xc_name}) {
+              $code .= sprintf "\$%-35s -> add(\$%s);\n", $xc_name, $name;
+           }
         }
         $object = '';
     }
