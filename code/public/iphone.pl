@@ -1,4 +1,7 @@
-# Put that in a code directory
+# Category = Interfaces
+
+#@  iPhone/iPod Touch interface v0.2.
+#@  Todo: AJAX dyanimc objects, some code cleanup
 
 # noloop=start
 my $list_name = "";
@@ -46,7 +49,7 @@ sub iphoneWebApp {
   my $html_refrate = $config_parms{html_refresh};
   $html_refrate = '' unless $html_refrate;
 
-  my ($html, $html_group, $htm_hdr, $i, @objects);
+  my ($html, $html_group, $html_groups, $htm_hdr, $i, @objects);
   $html = ""; $html_group = "";
 
                                 # Request by type or by group name?
@@ -70,8 +73,8 @@ sub iphoneWebApp {
 	} elsif ($object->can('state')) {
 		$state = $object->state();
 	}
-    $state = 'unbekannt' unless $state;
-    $state = 'unbekannt' if ($state eq "");
+    $state = 'unknown' unless $state;
+    $state = 'unknown' if ($state eq "");
 
     my $state_new = (!defined $state or $state eq 'off') ? 'on' : 'off';
 
@@ -107,7 +110,7 @@ sub iphoneWebApp {
     my $icon;
     if (1) {
         ($icon) = &html_find_icon_image($object, ref($object));
-        $icon = "<img src=\"$icon\" width=29 height=29 class=\"iFull\" />" if ($icon ne "");
+        $icon = "<img src=\"$icon\" width=32 height=20 class=\"iFull\" />" if ($icon ne "");
       if ($object->isa('EIB1_Item')) {
         $html .= "                <li>";
         $html .= '<input type="checkbox" id="' . $item2. '" class="iToggle" title="I|O"';
@@ -145,6 +148,90 @@ sub iphoneWebApp {
         $name =~ s/^://;
         $html .= "                <li><span>" . sprintf($einheit,$state) . "</span>$icon$name</li>";
       } elsif ($object->isa('Network_Item')) {
+         $html .= "                <li";
+	 $html .= " style=\"background-color:#CCFF99\"" if ($state eq "up");
+	 $html .= ">$name<span>$state</span></li> ";
+      } elsif ($object->isa('AnalogSensor_Item')) {
+         $html .= "                <li";
+	 if ($state eq "alert") {
+	   $html .= " style=\"background-color:#FF0000\"";
+	   } elsif ($state eq "high") {
+	   $html .= " style=\"background-color:#CC3333\"";
+	   } elsif ($state eq "low") {
+	   $html .= " style=\"background-color:#6699CC\"";
+	 }
+	 my $temp = $object->measurement;
+	 $html .= ">$name<span>$temp</span></li> ";
+      }elsif ($object->isa('X10_Switchlinc')) {
+        $html .= "                <li><a href='#_$item2'>$icon$name<span>$state</span></a></li> ";
+
+        $html_groups= "                	<li>";
+        $html_groups .= '<input type="checkbox" id="' . $item2. '" class="iToggle" title="I|O"';
+        if ($state ne 'off') { $html_groups .= ' checked="checked" '; }
+        $html_groups .= " onclick=\"ChangeState('../SET?$item2=toggle')\"";
+        $html_groups .= '/><label>' . $name . ' </label></li>
+';
+#  ------------------------------------------------
+#  A range control would look a lot more iphone-ish
+#  ------------------------------------------------
+#	$html_groups .= "			<li>";
+#	$html_groups .= '<form>0%<input type="range" name="' . $item2. '_dim" min="0" max="100" step="10"';
+#	if ($state eq 'on') {
+#	  $html_groups .=' value="100"';
+#	} elsif ($state eq 'off') {
+#	  $html_groups .= ' value="0"';
+#	} elsif ($state =~ m/\d*\%/ ) {
+#	  my ($value) = $state =~ /(\d*)\%/;
+#	  $html_groups .= ' value="$value"';
+#	}  #onformchange... instead of action
+#       $html_groups .= " action=\"ChangeState('../SET?$item2?\"form." . $item2 . "_dim.value\"%')\""; #need to figure out how to action it.
+#        $html_groups .= '>100%</form></li>
+#';
+#  ------------------------------------------------
+	$html_groups .= "			<li>";
+	$html_groups .= "<form action=\"/SET;referer?\" method=\"get\">";
+	$html_groups .= "<INPUT type=\"hidden\" name=\"select_item\" value=\"$item\">";
+	$html_groups .= "<label>Dim Level</label><span>";
+	$html_groups .= "<SELECT name=\"select_state\" onChange=\"form.submit()\">\n";
+	my ($value) = $state =~ /(\d*)%/;
+	$html_groups .= "\t\t\t<option value=\"\" ";
+	$html_groups .= "SELECTED" if !$value;
+	$html_groups .= "></option>\n";
+
+	for (my $dim_level = 10; $dim_level < 100; $dim_level=$dim_level+10) {
+		$html_groups .= "\t\t\t<option value=\"$dim_level%\"";
+		$html_groups .= " SELECTED" if ($value && $value >= $dim_level - 10 && $value < $dim_level);
+		$html_groups .= ">    $dim_level%    </option>\n";
+	}
+	$html_groups .= "\t\t\t</SELECT></form></span></li>\n"; 
+	  
+	$html_groups .= "			</ul><ul class=\"iArrow\"><li><a href='#_" . $item2 . "_advanced'>Advanced</a></li>";
+		my $html_groups1 = "";
+          	my @advanced_states = @{$object->{states}};
+		for my $s1 (@advanced_states) {
+		next if (($s1 eq "on") or ($s1 eq "off") or ($s1 eq "dim") or ($s1 =~ m/\d*%/));
+            	$html_groups1 .= "                <li><a href='../SET;&referer(/iphone/index.shtml%23_$item2)?$item2=$s1'>$s1</a></li>
+";
+          	}
+
+          	$html_group .= '
+          <div class="iLayer" id="wa'.$item2.'_advanced" title="'.$name.' Advanced">
+            <div class="iMenu">
+              <ul class="iArrow">
+' . $html_groups1 . '
+              </ul>
+            </div>
+          </div>
+';
+          $html_group .= '
+          <div class="iLayer" id="wa'.$item2.'" title="'.$name.'">
+            <div class="iMenu">
+              <ul class="iArrow">
+' . $html_groups . '
+              </ul>
+            </div>
+          </div>
+';
       } elsif ($object->isa('EIBW_Item')) {
         $name =~ s/^://;
         $einheit = "%s";
@@ -177,24 +264,25 @@ sub iphoneWebApp {
           $html_group .= iphoneWebApp($o,'iLayer');
         }
       } else {
-        my @item_states = @{$object->{states}};
+        my @item_states = ();
+	@item_states = @{$object->{states}} if (defined $object->{states});
         if ($name =~ s/^:// || !@item_states ) {
           $html .= "                <li>$icon$name<span>$state</span></li> ";
         } else {
           $html .= "                <li><a href='#_$item2'>$icon$name<span>$state</span></a></li> ";
-          $html_group = "";
+          $html_groups = "";
           my @item_states = @{$object->{states}};
           for my $s (@item_states) {
             next if ($s =~ m:\d*/\d*.*:);
-            $html_group .= "                <li><a href='../SET;&referer(/iphone/%23_$item2)?$item2=$s'>$s</a></li>
+            $html_groups .= "                <li><a href='../SET;&referer(/iphone/index.shtml%23_$item2)?$item2=$s'>$s</a></li>
 ";
           }
           my $r = ref $object;
-          $html_group = '
+          $html_group .= '
           <div class="iLayer" id="wa'.$item2.'" title="'.$name.'">
             <div class="iMenu">
               <ul class="iArrow">
-' . $html_group . '
+' . $html_groups . '
               </ul>
               Sorry, ' . $r . ' currently not fully supported
             </div>
@@ -285,6 +373,7 @@ $html = '
         </div>
         <div class="iFooter">
           &copy;2008 RaK, all rights reserved.
+	  <br><!--#include var="$Version"-->
         </div>
     </div>
     </body>

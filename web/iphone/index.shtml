@@ -2,6 +2,8 @@
     <head>
         <title>MrHouse</title>
         <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;" />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-status-bar-style" content="black" />
         <link rel="stylesheet" href="./WebApp/Design/Render.css" />
         <script type="text/javascript" src="./WebApp/Action/Logic.js"></script>
         <META HTTP-EQUIV="Content-type" CONTENT="text/html; charset=iso-8859-i">
@@ -22,12 +24,14 @@
         }
       </script>
 
-    <link rel="apple-touch-icon" href="/graphics/mrhouse.png"/>
+        <link rel="apple-touch-icon" href="/iphone/apple-touch-icon.png"/>
+
+
     <div id="WebApp">
 
         <div id="iHeader">
             <a href="#" id="waBackButton">Back</a>
-            <span id="waHeadTitle">Hauptmenü</span>
+            <span id="waHeadTitle">HauptmenÃ¼</span>
         </div>
 
         <div id="iGroup">
@@ -37,6 +41,7 @@
 
         <div class="iFooter">
           &copy;2008 RaK, all rights reserved.
+	  <br><!--#include var="$Version"-->
         </div>
     </div>
     </body>
