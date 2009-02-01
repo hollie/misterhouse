@@ -66,7 +66,7 @@ sub signal_handler {
       waitpid ( $child, 0 );
     }
   }
-  exit;
+  exit 0;
 }
 $SIG{INT}  = \&signal_handler;  
 $SIG{TERM} = \&signal_handler;  
@@ -206,22 +206,22 @@ sub run {
 #        "-cepext .16k",
 #        "-agc none",
         "-adcdev $device",
-        "-live yes",
+#        "-live yes",
 #        "-fwdflat yes",
-        "-bestpath yes",
+#        "-bestpath yes",
 #        "-nfft 256",
-        "-cmn none",
-        "-agc emax",
+#        "-cmn none",
+#        "-agc emax",
         "-lm $lm",
         "-dict $dict",
         "-hmm $hmm",
         "-samprate $rate",
 #        "-dsratio 2",
 #        "-topn 2",
-#        "-wbeam 1e-30",
+#        "-wbeam 1e-35",
 #        "-pbeam 1e-40",
-#        "-lpbeam 1e-20",
-#        "-lponlybeam 1e-20",
+#        "-lpbeam 1e-30",
+#        "-lponlybeam 1e-30",
 #        "-maxhmmpf 500",
 #        "-maxwpf 10",
 #        "-mmap yes"
@@ -235,8 +235,8 @@ sub run {
   while(my $msg = <LISTENER>){
     chomp $msg;
     print LOGFILE "sphinx:: msg: $msg\n";
-    if ( $msg =~ /^\d+\: / ) {
-      $msg =~ s/^\d+\: (.*) $/$1/;
+    if ( $msg =~ /^\d+\: (.*) \(.*\)$/ ) {
+      $msg = $1;
       print LOGFILE "sphinx:: found: $msg\n";
       if (`grep \'$msg\' $sent`) {
         $msg = uc $msg;
