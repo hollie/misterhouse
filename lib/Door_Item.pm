@@ -51,8 +51,9 @@ Usage:
 
    Optional Door-Open Alarm:
       If you want to be alerted when the door is left open too long, you
-      can set an alarm (time is in seconds):
-         $front_door->set_alarm(300, "speak('front door left open');");
+      can set an alarm (time is in seconds; an optional repeat_time can
+      force repeat actions):
+         $front_door->set_alarm(300, "speak('front door left open');",120);
 
    Optional Inactivity Alarm:
       If you want to be alerted when the door hasn't been opened for
@@ -89,9 +90,10 @@ sub initialize
 # If an alarm is set, the specified action is executed if the 
 # door was left open for the specified amount of time
 sub set_alarm($$$) {
-   my ($self, $time, $action) = @_;
+   my ($self, $time, $action, $repeat_time) = @_;
    $$self{'alarm_action'} = $action;
    $$self{'alarm_time'} = $time;
+   $$self{'alarm_repeat_time'} = $repeat_time if defined $repeat_time;
 }
 
 # If an inactivity alarm is set, the specified action is executed 
@@ -105,48 +107,58 @@ sub set_inactivity_alarm($$$) {
 sub set
 {
    my ($self,$p_state,$p_setby) = @_;
-   if (ref $p_setby and $p_setby->can('get_set_by')) {
-      &::print_log("Door_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name} was set by " . $p_setby->get_set_by) if $main::Debug{occupancy};
+
+   if (ref $p_setby and $p_setby eq $$self{m_timerAlarm}) {
+      package main;
+      eval $$self{'alarm_action'};
+      package Door_Item;
+      if ($$self{'alarm_repeat_time'}) {
+         $$self{m_timerAlarm}->set($$self{'alarm_repeat_time'}, $self);
+      }
    } else {
-      &::print_log("Door_Item($$self{object_name})::set($p_state, $p_setby)") if $main::Debug{occupancy};
-   }
-   # X10.com door/window security sensor
-   if ($p_state =~ /^alert/) {
-      $p_state = 'open';
-   } elsif ($p_state =~ /^normal/) {
-      $p_state = 'closed';
-   }
-
-   # Other door sensors?
-   if ($p_state eq 'on') {
-      $p_state = 'open';
-   } elsif ($p_state eq 'off') {
-      $p_state = 'closed';
-   }
-
-  if ($p_state ne $self->{state}) {  #added this if clause
-   if ($p_state eq 'open') {
-      if ($$self{'alarm_action'}) {
-         $$self{m_timerAlarm}->set($$self{'alarm_time'}, $$self{'alarm_action'});
-      }
-      $$self{m_timerCheck}->set($$self{'inactivity_time'}, $self);
-      $$self{last_open} = $::Time;
-   } elsif ($p_setby eq $$self{m_timerCheck}) { # Check timer expired
-      if ($$self{'inactivity_action'}) {
-         package main;
-         eval $$self{'inactivity_action'};
-         package Motion_Item;
+      if (ref $p_setby and $p_setby->can('get_set_by')) {
+         &::print_log("Door_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name} was set by " . $p_setby->get_set_by) if $main::Debug{occupancy};
       } else {
-         &::print_log("$$self{object_name} has not reported in 24 hours.");
+         &::print_log("Door_Item($$self{object_name})::set($p_state, $p_setby)") if $main::Debug{occupancy};
       }
-      $p_state = 'check';
-   } elsif ($p_state eq 'closed') {
-      $$self{m_timerAlarm}->stop();
-      $$self{last_closed} = $::Time;
-   }
-  }
+      # X10.com door/window security sensor
+      if ($p_state =~ /^alert/) {
+         $p_state = 'open';
+      } elsif ($p_state =~ /^normal/) {
+         $p_state = 'closed';
+      }
 
-   $self->SUPER::set($p_state,$p_setby);
+      # Other door sensors?
+      if ($p_state eq 'on') {
+         $p_state = 'open';
+      } elsif ($p_state eq 'off') {
+         $p_state = 'closed';
+      }
+
+      if ($p_state ne $self->{state}) {  #added this if clause
+         if ($p_state eq 'open') {
+            if ($$self{'alarm_action'}) {
+               $$self{m_timerAlarm}->set($$self{'alarm_time'}, $self);
+            }
+            $$self{m_timerCheck}->set($$self{'inactivity_time'}, $self);
+            $$self{last_open} = $::Time;
+         } elsif ($p_setby eq $$self{m_timerCheck}) { # Check timer expired
+            if ($$self{'inactivity_action'}) {
+               package main;
+               eval $$self{'inactivity_action'};
+               package Door_Item;
+            } else {
+               &::print_log("$$self{object_name} has not reported in 24 hours.");
+            }
+            $p_state = 'check';
+         } elsif ($p_state eq 'closed') {
+            $$self{m_timerAlarm}->stop();
+            $$self{last_closed} = $::Time;
+         }
+      }
+
+      $self->SUPER::set($p_state,$p_setby);
+   }
 }
 
 sub get_last_close_time {
