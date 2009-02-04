@@ -75,7 +75,8 @@ if (done_now $p_get_actiontec) {
 			$p_get_actiontec->start;
 		} else {
 			$stage = 'authen';
-			print_log "didnt see expected html";
+			print_log "actiontec: didnt see expected html";
+			set $p_get_actiontec qq|get_url $actiontec_url $f_actiontec|;
 		}
 	}
 	elsif ($stage eq 'get_main') {
@@ -92,7 +93,8 @@ if (done_now $p_get_actiontec) {
 			$p_get_actiontec->start;
 		} else {
 			$stage = 'authen';
-			print_log "didnt see expected html";
+			print_log "actiontec: didnt see expected html";
+			set $p_get_actiontec qq|get_url $actiontec_url $f_actiontec|;
 		}
 	}
 	elsif ($stage eq 'get_monitoring') {
@@ -109,7 +111,8 @@ if (done_now $p_get_actiontec) {
 			$p_get_actiontec->start;
 		} else {
 			$stage = 'authen';
-			print_log "didnt see expected html";
+			print_log "actiontec: didnt see expected html";
+			set $p_get_actiontec qq|get_url $actiontec_url $f_actiontec|;
 		}
 	}
 	elsif ($stage eq 'get_nag') {
@@ -126,7 +129,8 @@ if (done_now $p_get_actiontec) {
 			$p_get_actiontec->start;
 		} else {
 			$stage = 'authen';
-			print_log "didnt see expected html";
+			print_log "actiontec: didnt see expected html";
+			set $p_get_actiontec qq|get_url $actiontec_url $f_actiontec|;
 		}
 	}
 	elsif ($stage eq 'get_adv_monitoring') {
@@ -143,7 +147,8 @@ if (done_now $p_get_actiontec) {
 			$p_get_actiontec->start;
 		} else {
 			$stage = 'authen';
-			print_log "didnt see expected html";
+			print_log "actiontec: didnt see expected html";
+			set $p_get_actiontec qq|get_url $actiontec_url $f_actiontec|;
 		}
 	}
 	elsif ($stage eq 'ready') {
@@ -159,7 +164,8 @@ if (done_now $p_get_actiontec) {
 			  " Mbps  upload: " . $Save{actiontec_tx} . " Mbps" if $debug; 
 		} else {
 			$stage = 'authen';
-			print_log "didnt see expected html";
+			print_log "actiontec: didnt see expected html";
+			set $p_get_actiontec qq|get_url $actiontec_url $f_actiontec|;
 		}
 	}
 }
