@@ -44,7 +44,7 @@ my $rss_feeds = '
 	my $regexps = 'family.guy,daily.show';
 	my $regexps_reject='spanish,french,perditos,season';
 	my $rss_dbm_file ="$config_parms{data_dir}/rss_file_downloads.dbm";
-
+				
 	$p_rss_file_feed = new Process_Item;
 	$p_rss_file_download = new Process_Item;
 	$v_rss_file_feed =  new  Voice_Cmd('Get RSS subscribed files');
@@ -82,6 +82,8 @@ my (@rss_file_download_queue, $current_file);
 if (done_now $p_rss_file_download) {
 	dbm_write($rss_dbm_file, $current_file, time) if -f "$current_file" and not -z "$current_file";
 }
+
+$p_rss_file_download->stop if $Reload;
 
 if (@rss_file_download_queue and done $p_rss_file_download) {
 	my $args = shift @rss_file_download_queue;
