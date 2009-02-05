@@ -172,6 +172,8 @@ if ($Reload) {
     for my $object_name (keys %objects_by_object_name) {
         my $object = $objects_by_object_name{$object_name};
         next unless $object->isa('Insteon_Device') or $object->isa('Insteon_Link') or $object->isa('Insteon_PLM');
+        # ignore the thermostat
+        next if $object->isa('Insteon_Thermostat');
         my $command = $object_name;
         $command =~ s/^\$//;
         $command =~ tr/_/ /;
@@ -234,7 +236,7 @@ if ($Reload) {
            my $cmd_states = "complete linking as responder,cancel linking,delete link with PLM,scan link table,log links,delete orphan links,reset serial";
            $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->complete_linking_as_responder','complete linking as responder');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->initiate_unlinking_to_plm','delete link with PLM');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->initiate_unlinking_as_controller','initiate unlinking');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->cancel_linking','cancel linking');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table','log links');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','scan link table');\n\n";
