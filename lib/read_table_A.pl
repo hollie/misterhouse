@@ -136,6 +136,12 @@ sub read_table_A {
            $object = "Insteon_Link(\$$object, \'$address\', $other)";
         }
     }
+    elsif($type eq 'IPLT') {
+        require 'Insteon_Thermostat.pm';
+        ($address, $name, $grouplist, $object, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon_Thermostat(\$$object, \'$address\', $other)";
+    }
     elsif($type eq 'FROG') {
         require 'FroggyRita.pm';
 	($address, $name, $grouplist, @other) = @item_info;
