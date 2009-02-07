@@ -1,5 +1,6 @@
 #!/bin/sh
 
+# these will get recreated if you are running svn, oh well
 echo
 echo Deleting Windows-only files...
 rm -f RasDial.txt rasdial.*
@@ -17,6 +18,13 @@ chmod +x *
 #  
 echo Converting C headers to Perl headers for mh/lib/site/Device/SerialPort.pm
 curdir=`pwd`
+
+# the next line was added because Fedora 10 has an old buggy version of h2ph, 
+# so I included the h2ph from Ubuntu Ibex 
+# if this problem gets resolved in the future, you can remove h2ph from 
+# Misterhouse and remove these lines 
+export PATH=$curdir:$PATH
+
 cd /usr/include
 
 case `uname -a` in
