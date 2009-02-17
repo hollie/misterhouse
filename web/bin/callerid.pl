@@ -89,7 +89,7 @@ To update existing entries, enter/change the field and hit Enter.| if (($Authori
 <input name='func' value="web_callerid_add"  type='hidden'>
 <input name='resp' value="/bin/callerid.pl" type='hidden'>
 <td><input type=input name=number   size=12 value='$c_number'></td>
-<td><input type=input name=name     size=15 value='$c_name'></td>
+<td><input type=input name=name     size=15 value="$c_name"></td>
 <td><input type=input name=wav      size=20 value='$c_wav'></td>
 <td><input type=input name=group    size=10 value='$c_group'></td>
 </td></tr></form></table><br>
