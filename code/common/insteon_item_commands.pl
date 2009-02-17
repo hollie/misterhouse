@@ -38,6 +38,14 @@ sub _get_next_linkscan
                 if (!($current_obj->isa('Insteon_PLM'))) {
                    $current_obj->queue_timer_callback('');
                 }
+                # don't try to scan devices that are not responders
+                my $next_obj = $objects_by_object_name{$next_name};
+                if (ref $next_obj and $next_obj->isa('Insteon_Device') 
+                     and !($next_obj->is_responder)) {
+                   $current_name = $next_name;
+                   # move on
+                   next;
+                }
              } elsif ($_scan_failure_cnt == 1) { 
                 # try again
                 $next_name = $current_name;
@@ -109,6 +117,14 @@ sub _process_sync_links
                 my $current_obj = $objects_by_object_name{$current_name};
                 if (!($current_obj->isa('Insteon_PLM'))) {
                    $current_obj->queue_timer_callback('');
+                }
+                 # don't try to scan devices that are not responders
+                my $next_obj = $objects_by_object_name{$next_name};
+                if (ref $next_obj and $next_obj->isa('Insteon_Device') 
+                     and !($next_obj->is_responder)) {
+                   $current_name = $next_name;
+                   # move on
+                   next;
                 }
             } elsif ($_sync_cnt == 1) {
                 #try again
