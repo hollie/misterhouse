@@ -456,6 +456,20 @@ sub cancel_linking
 	$self->send_plm_cmd('0265');
 }
 
+sub _is_duplicate
+{
+	my ($self, $cmd) = @_;
+	my $duplicate_detected = 0;
+	# check for duplicates of $cmd already in command_stack and ignore if they exist
+	foreach my $cmdrec (@{$$self{command_stack2}}) {
+		if (($cmdrec->{cmd} eq $cmd) and ($cmd !~ /^0263/)) {
+			$duplicate_detected = 1;
+			last;
+		}
+	}
+	return $duplicate_detected;
+}
+
 sub send_plm_cmd
 {
 	my ($self, $cmd, $p_setby) = @_;
@@ -479,15 +493,7 @@ sub send_plm_cmd
 	#queue any new command ($cmd)
 	if (defined $cmd and $cmd ne '')
 	{
-		my $duplicate_detected = 0;
-		# check for duplicates of $cmd already in command_stack and ignore if they exist
-		foreach my $cmdrec (@{$$self{command_stack2}}) {
-			if (($cmdrec->{cmd} eq $cmd) and ($cmd !~ /^0263/)) {
-				$duplicate_detected = 1;
-				last;
-			}
-		}
-		if ($duplicate_detected) {
+		if ($self->_is_duplicate($cmd)) {
 			&main::print_log("[Insteon_PLM] Attempt to queue command already in queue; skipping ...") if $main::Debug{insteon};
 		} else {
 			my $queue_size = @{$$self{command_stack2}};
@@ -688,7 +694,9 @@ sub _parse_data {
 		}
 		if (!($process_next_command)) {
 			# then, didn't get a match and need to push the command back on the stack
-			push(@{$$self{command_stack2}}, \%cmd_record);
+			unless ($self->_is_duplicate($cmd_record{cmd})) {
+				push(@{$$self{command_stack2}}, \%cmd_record);
+			}
 		}
 		$residue_data = $data unless $entered_ack_loop;
 	} else {
@@ -790,7 +798,9 @@ sub _parse_data {
 				$self->_set_timeout('xmit',1000);
 				$$self{retry_count} += 1;
 				if ($$self{retry_count} < 3) {
-					push(@{$$self{command_stack2}}, \%cmd_record);
+					unless ($self->_is_duplicate($cmd_record{cmd})) {
+						push(@{$$self{command_stack2}}, \%cmd_record);
+					}
 				}
 				$$self{xmit_in_progress} = 0;
 				$self->_clear_timeout('command');
