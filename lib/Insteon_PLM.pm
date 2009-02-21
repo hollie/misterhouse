@@ -314,7 +314,7 @@ sub new {
    $self->device_id($p_deviceid) if defined $p_deviceid;
 
 	$$self{xmit_delay} = $::config_parms{Insteon_PLM_xmit_delay};
-	$$self{xmit_delay} = 0.25 unless defined $$self{xmit_delay} and $$self{xmit_delay} > 0.25;
+	$$self{xmit_delay} = 0.25 unless defined $$self{xmit_delay}; # and $$self{xmit_delay} > 0.125;
 	&::print_log("[Insteon_PLM] setting default xmit delay to: $$self{xmit_delay}");
 	$$self{xmit_x10_delay} = $::config_parms{Insteon_PLM_xmit_x10_delay};
 	$$self{xmit_x10_delay} = 0.5 unless defined $$self{xmit_x10_delay} and $$self{xmit_x10_delay} > 0.5;
@@ -793,9 +793,10 @@ sub _parse_data {
 			}
 		} elsif (substr($data_1,0,2) eq '15') { #NAK Received
 			if (!($nack_count)) {
+				my $nack_delay = ($::config_parms{Insteon_PLM_disable_throttling}) ? 0.3 : 1.0;
 				&::print_log("[Insteon_PLM] Interface extremely busy. Resending command"
-					. " after delaying for 1 second") if $main::Debug{insteon};
-				$self->_set_timeout('xmit',1000);
+					. " after delaying for $nack_delay second") if $main::Debug{insteon};
+				$self->_set_timeout('xmit',$nack_delay * 1000);
 				$$self{retry_count} += 1;
 				if ($$self{retry_count} < 3) {
 					unless ($self->_is_duplicate($cmd_record{cmd})) {
