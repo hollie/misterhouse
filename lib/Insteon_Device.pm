@@ -725,8 +725,8 @@ sub _process_message
 	# by Insteon_Link.
 	$$self{m_is_locally_set} = 1 if $msg{source} eq lc $self->device_id;
 	if ($msg{is_ack}) {
+		my $pending_cmd = ($$self{_prior_msg}) ? $$self{_prior_msg}{command} : $msg{command};
 		if ($$self{awaiting_ack}) {
-			my $pending_cmd = ($$self{_prior_msg}) ? $$self{_prior_msg}{command} : $msg{command};
 			my $ack_setby = (ref $$self{m_status_request_pending}) 
 				? $$self{m_status_request_pending} : $p_setby;
 			if ($self->_is_info_request($pending_cmd,$ack_setby,%msg)) {
@@ -747,6 +747,8 @@ sub _process_message
 					. ": $pending_cmd and data: $msg{extra}") if $main::Debug{insteon};
 			} 
 		} else {
+			# allow non-synchronous messages to also use the _is_info_request hook
+			$self->_is_info_request($pending_cmd,$p_setby,%msg);
 			$self->is_acknowledged(1);
 			# signal receipt of message to the command stack in case commands are queued
 			$self->_process_command_stack(%msg);
@@ -1195,7 +1197,7 @@ sub _on_peek
 							$adlbkey .= $subaddress;
 						}
 						# check for duplicates
-						if (exists $$self{adlb}{$adlbkey}) {
+						if (exists $$self{adlb}{$adlbkey} && $$self{adlb}{$adlbkey}{inuse}) {
 							unshift @{$$self{adlb}{duplicates}}, $$self{pending_adlb}{address};
 						} else {
 							%{$$self{adlb}{$adlbkey}} = %{$$self{pending_adlb}};
@@ -1297,8 +1299,8 @@ sub restore_adlb
 			my $groupid = '01';
 			my $is_controller = 0;
 			my $subaddress = '00';
-			foreach my $adlb_record (split(/,/,$adlb_section)) {
-				my ($key,$value) = split(/=/,$adlb_record);
+			foreach my $adlb_entry (split(/,/,$adlb_section)) {
+				my ($key,$value) = split(/=/,$adlb_entry);
 				next unless $key and defined($value) and $value ne '';
 				if ($key eq 'empty') {
 					@adlb_empty = split(/;/,$value);
@@ -1316,7 +1318,7 @@ sub restore_adlb
 				@{$$self{adlb}{empty}} = @adlb_empty;
 			} elsif (@adlb_duplicates) {
 				@{$$self{adlb}{duplicates}} = @adlb_duplicates;
-			} else {
+			} elsif (scalar %adlb_record) {
 				next unless $deviceid;
 				my $adlbkey = $deviceid . $groupid . $is_controller;
 				# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
@@ -1645,7 +1647,7 @@ sub add_link
 	if ($subaddress ne '00' and $subaddress ne '01') {
 		$key .= $subaddress;
 	}
-	if (defined $$self{adlb}{$key}) {
+	if (defined $$self{adlb}{$key}{inuse}) {
 		&::print_log("[Insteon_Device] WARN: attempt to add link to " . $self->get_object_name . " that already exists! "
 			. "object=" . $insteon_object->get_object_name . ", group=$group, is_controller=$is_controller");
 		if ($link_parms{callback}) {
@@ -1841,7 +1843,7 @@ sub _write_link
 		$self->_peek($address);
 	} else {
 		&::print_log("[Insteon_Device] WARN: " . $self->get_object_name 
-			. " write_link failure: no address could be found for device: $deviceid and group: $group" .
+			. " write_link failure: no address available for record to device: $deviceid and group: $group" .
 				" and is_controller: $is_controller");;
 	}
 }
