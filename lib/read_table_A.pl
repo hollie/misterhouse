@@ -27,15 +27,17 @@ sub read_table_init_A {
 sub read_table_A {
     my ($record) = @_;
 
+    if($record =~ /^#/ or $record =~ /^\s*$/) {
+       return;
+    }
+    $record =~ s/\s*#.*$//;
+
     my ($code, $address, $name, $object, $grouplist, $comparison, $limit, @other, $other, $vcommand, $occupancy,$network,$password);
     my(@item_info) = split(',\s*', $record);
     my $type = uc shift @item_info;
 
-    if($record =~ /^#/ or $record =~ /^\s*$/) {
-       return;
-    }
     # -[ ZWave ]----------------------------------------------------------
-    elsif($type eq "ZWAVE_LIGHT") {
+    if($type eq "ZWAVE_LIGHT") {
         require 'ZWave_Items.pm';
         require 'ZWave_RZC0P.pm';
         ($address, $name, $grouplist, @other) = @item_info;
