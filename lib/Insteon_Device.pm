@@ -283,7 +283,7 @@ sub is_responder
 {
 	my ($self,$is_responder) = @_;
 	$$self{is_responder} = $is_responder if defined $is_responder;
-	return $$self{is_responder};
+	return ($self->is_root) ? $$self{is_responder} : $self->get_root()->is_responder;
 }
 
 sub is_keypadlinc
