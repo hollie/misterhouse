@@ -47,11 +47,11 @@ Note that all those marked as default are in mh.ini and need not be loaded unles
  pocketsphinx_asleep_response=Ok, later.                       # optional
  pocketsphinx_timeout_response=Later.                          # optional
 
- pocketsphinx_cmudict     = "/usr/local/share/pocketsphinx/model/lm/cmudict/cmudict.0.6d"   # default
- pocketsphinx_hmm         = "/usr/local/share/pocketsphinx/model/hmm/wsj1"                  # default
- pocketsphinx_rate        = 16000                                                           # default
- pocketsphinx_continuous  = "/usr/local/bin/pocketsphinx_continuous"                        # default
- pocketsphinx_dev         = "default"                                                       # default
+ pocketsphinx_cmudict     = /usr/local/share/pocketsphinx/model/lm/cmudict/cmudict.0.6d   # default
+ pocketsphinx_hmm         = /usr/local/share/pocketsphinx/model/hmm/wsj1                  # default
+ pocketsphinx_rate        = 16000                                                         # default
+ pocketsphinx_continuous  = /usr/local/bin/pocketsphinx_continuous                        # default
+ pocketsphinx_dev         = default                                                       # default
 
  Note: If using OSS instead of ALSA, pocketsphinx_device needs to be "/dev/dsp" or similiar.
 
