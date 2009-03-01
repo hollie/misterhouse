@@ -1,5 +1,17 @@
 =begin comment
 
+Joel Davidson  February 2009
+Corrected bad syntax in mode comparison logic in read_group1.
+
+Joel Davidson  December 2005
+
+Re-ordered routines to avoid run-time error from prototyped subroutines.
+Modified comparison values in read_group1 tests to fix users problem with
+incorrect compare results.  Added additional comments.  Added addressing
+mods to support multiple thermostats.  Removed calls to set_time and
+display in serial_startup since they cause a funky runtime error.
+
+
 Joel Davidson  June 2004
 
 Modified checksum() to return 8 bit checksum.  Fixed set_time.
@@ -67,8 +79,10 @@ package Omnistat;
 
 @Omnistat::ISA = ('Serial_Item');
 
-# get address for this thermostat from the argument
-# address defaults to 1 if no argument
+# ********************************************************
+# * Get address for this thermostat from the argument.
+# * Address defaults to 1 if no argument.
+# ********************************************************
 sub new {
   my ($class, $address) = @_;
   $address = 1 unless $address;
@@ -78,99 +92,84 @@ sub new {
   return $self;
   }
 
-sub serial_startup {
-  &main::serial_port_create('Omnistat', $main::config_parms{Omnistat_serial_port}, 300, 'none','raw');
-  &::MainLoop_pre_add_hook( \&Omnistat::check_for_data, 1 );
-  &Omnistat::display;
-  &Omnistat::set_time;
+# *************************************
+# * Add the checksum to the cmd array.
+# *************************************
+sub add_checksum {
+	my (@array) = @_;
+	my @modarr = @array;
+	my $value=0;
+	foreach  (@modarr) {
+		s/^0x//g;
+		$_=hex($_);
+		$value=$value+$_;
+	}
+	$value = $value % 256;
+	$array[$#array+1] = sprintf("0x%02x",$value);
+	return @array;
+}
+
+# **************************************
+# * Send the command to the thermostat.
+# **************************************
+sub send_cmd{
+  my (@string) = @_;
+  my ($byte, $cmd);
+  $cmd = '';
+  #print "$::Time_Date: Omnistat->send_cmd string=@string\n" unless $main::config_parms{no_log} =~/omnistat/ ;
+  foreach $byte (@string) {
+    $byte =~ s/0x//;			# strip off the 0x
+    $cmd = $cmd . pack "H2", $byte;	# pack it into 8 bits
+    }
+  # send it to thermostat
+  $main::Serial_Ports{Omnistat}{object}->write($cmd);
+  # need to wait a bit for the reply
+  sleep 2;
+  # read response
+  &main::check_for_generic_serial_data('Omnistat');
+  my $temp=$main::Serial_Ports{Omnistat}{data};
+  $main::Serial_Ports{Omnistat}{data} = '';
+  my $len = length($temp);
+  $temp = unpack("H*", $temp);
+  my ($i);
+  my $rcvd = '';
+  for ($i=0; $i < $len; $i++) {
+    $rcvd = $rcvd . sprintf("0x%s ", substr($temp, $i*2, 2));
+    }
+  return $rcvd;
   }
 
+# ******************************
+# * check for returned data.
+# ******************************
 sub check_for_data {
   &main::check_for_generic_serial_data('Omnistat');
   }
 
-sub hold{
-  my ($self,$state) = @_;
-  $state = lc($state);
+# *************************************************
+# * Set the thermostat clock to the current time.
+# *************************************************
+sub set_time {
+  my ($self) = @_;
   my $addr = $$self{address};
-  #print "$::Time_Date: Omnistat -> Hold $state\n" unless $main::config_parms{no_log} =~/omnistat/ ;
-  my @cmd;
-  if ($state eq "off") {
-    @cmd = qw(0x00 0x21 0x3f 0x00);
-  } elsif ($state eq "on") {
-    @cmd = qw(0x00 0x21 0x3f 0xff);
-  } else {
-    print "Omnistat: Invalid Hold state: $state\n";
-    }
+  #print "$::Time_Date: Omnistat -> Setting time/day of week\n" unless $main::config_parms{no_log} =~/omnistat/ ;
+  my @cmd = qw(0x01 0x41 0x41);
   $cmd[0] = sprintf("0x%02x", $addr);
+  @cmd[3] = sprintf("0x%02x",$::Second);
+  @cmd[4] = sprintf("0x%02x",$::Minute);
+  @cmd[5] = sprintf("0x%02x",$::Hour);
+  @cmd=add_checksum(@cmd);
+  &Omnistat::send_cmd(@cmd);
+  @cmd = qw(0x01 0x21 0x3a);
+  $cmd[0] = sprintf("0x%02x", $addr);
+  @cmd[3] = sprintf("0x%02x", $::Wday?$::Wday-1:6);
   @cmd = add_checksum(@cmd);
   &Omnistat::send_cmd(@cmd);
   }
 
-# Translate Temperature between Fahrenheit and Omni values
-sub translate_temp {
-  my ($settemp) = @_;
-  my ($omnitemp);
-  # temp translates fahrenheit to omni
-  my %temp=(51=>"0x65", 52=>"0x66", 53=>"0x67", 54=>"0x68", 55=>"0x69", 
-            56=>"0x6b", 57=>"0x6c", 58=>"0x6d", 59=>"0x6e", 60=>"0x6f", 
-            61=>"0x70", 62=>"0x71", 63=>"0x72", 64=>"0x74", 65=>"0x75", 
-            66=>"0x76", 67=>"0x77", 68=>"0x78", 69=>"0x79", 70=>"0x7a", 
-            71=>"0x7b", 72=>"0x7c", 73=>"0x7d", 74=>"0x7f", 75=>"0x80", 
-            76=>"0x81", 77=>"0x82", 78=>"0x83", 79=>"0x84", 80=>"0x85", 
-            81=>"0x86", 82=>"0x87", 83=>"0x89", 84=>"0x8a", 85=>"0x8b", 
-            86=>"0x8c", 87=>"0x8d", 88=>"0x8e", 89=>"0x8f", 90=>"0x90", 
-            91=>"0x91", 92=>"0x93", 93=>"0x94", 94=>"0x95", 95=>"0x96");
-  # reversetemp translates omni to fahrenheit
-  my %reversetemp = reverse %temp;
-  if (substr($settemp,0,2) eq '0x') {	# if it starts with 0x, reverse xlate
-    $omnitemp = $reversetemp{$settemp};
-    } else {				# xlate from Fahrenheit
-    $omnitemp = $temp{$settemp};
-    }
-  return $omnitemp;
-  }
-
-sub mode{
-  my ($self,$state) = @_;
-  $state = lc($state);
-  #print "$::Time_Date: Omnistat -> Mode $state\n" unless $main::config_parms{no_log} =~/omnistat/ ;
-  my $addr = $$self{address};
-  my @cmd;
-  if ($state eq "off") {
-    @cmd = qw(0x01 0x21 0x3d 0x00);
-    } elsif ($state eq "heat") {
-    @cmd = qw(0x01 0x21 0x3d 0x01);
-    } elsif ($state eq "cool") {
-    @cmd = qw(0x01 0x21 0x3d 0x02);
-    } elsif ($state eq "auto") {
-    @cmd = qw(0x01 0x21 0x3d 0x03);
-    } else {
-    print "Omnistat: Invalid Mode state: $state\n";
-  }
-  $cmd[0] = sprintf("0x%02x", $addr);
-  @cmd = add_checksum(@cmd);
-  &Omnistat::send_cmd(@cmd);
-  }
-
-sub fan{
-  my ($self,$state) = @_;
-  $state = lc($state);
-  my $addr = $$self{address};
-  my @cmd;
-  #print "$::Time_Date: Omnistat -> Fan $state\n" unless $main::config_parms{no_log} =~/omnistat/ ;
-  if ($state eq "on") {
-    @cmd = qw(0x01 0x21 0x3e 0x01);
-    } elsif ($state eq "auto") {
-    @cmd = qw(0x01 0x21 0x3e 0x00);
-    } else {
-    print "Omnistat: Invalid Fan state: $state\n";
-    }
-  $cmd[0] = sprintf("0x%02x", $addr);
-  @cmd = add_checksum(@cmd);
-  &Omnistat::send_cmd(@cmd);
-  }
-
+# *******************************************
+# * Set the display mode of the thermostat.
+# *******************************************
 sub display{
   my ($self) = @_;
   my $addr = $$self{address};
@@ -205,6 +204,110 @@ sub display{
   &Omnistat::send_cmd(@cmd);
   }
 
+# *********************************************
+# * Create the Omnistat device on serial port.
+# *********************************************
+sub serial_startup {
+  &main::serial_port_create('Omnistat', $main::config_parms{Omnistat_serial_port}, 300, 'none','raw');
+  &::MainLoop_pre_add_hook( \&Omnistat::check_for_data, 1 );
+  }
+
+# ********************************
+# * Set the hold mode on or off.
+# ********************************
+sub hold{
+  my ($self,$state) = @_;
+  $state = lc($state);
+  my $addr = $$self{address};
+  #print "$::Time_Date: Omnistat -> Hold $state\n" unless $main::config_parms{no_log} =~/omnistat/ ;
+  my @cmd;
+  if ($state eq "off") {
+    @cmd = qw(0x00 0x21 0x3f 0x00);
+  } elsif ($state eq "on") {
+    @cmd = qw(0x00 0x21 0x3f 0xff);
+  } else {
+    print "Omnistat: Invalid Hold state: $state\n";
+    }
+  $cmd[0] = sprintf("0x%02x", $addr);
+  @cmd = add_checksum(@cmd);
+  &Omnistat::send_cmd(@cmd);
+  }
+
+# *************************************************************
+# * Translate Temperature between Fahrenheit and Omni values.
+# *************************************************************
+sub translate_temp {
+  my ($settemp) = @_;
+  my ($omnitemp);
+  # temp translates fahrenheit to omni
+  my %temp=(51=>"0x65", 52=>"0x66", 53=>"0x67", 54=>"0x68", 55=>"0x69", 
+            56=>"0x6b", 57=>"0x6c", 58=>"0x6d", 59=>"0x6e", 60=>"0x6f", 
+            61=>"0x70", 62=>"0x71", 63=>"0x72", 64=>"0x74", 65=>"0x75", 
+            66=>"0x76", 67=>"0x77", 68=>"0x78", 69=>"0x79", 70=>"0x7a", 
+            71=>"0x7b", 72=>"0x7c", 73=>"0x7d", 74=>"0x7f", 75=>"0x80", 
+            76=>"0x81", 77=>"0x82", 78=>"0x83", 79=>"0x84", 80=>"0x85", 
+            81=>"0x86", 82=>"0x87", 83=>"0x89", 84=>"0x8a", 85=>"0x8b", 
+            86=>"0x8c", 87=>"0x8d", 88=>"0x8e", 89=>"0x8f", 90=>"0x90", 
+            91=>"0x91", 92=>"0x93", 93=>"0x94", 94=>"0x95", 95=>"0x96");
+  # reversetemp translates omni to fahrenheit
+  my %reversetemp = reverse %temp;
+  if (substr($settemp,0,2) eq '0x') {	# if it starts with 0x, reverse xlate
+    $omnitemp = $reversetemp{$settemp};
+    } else {				# xlate from Fahrenheit
+    $omnitemp = $temp{$settemp};
+    }
+  return $omnitemp;
+  }
+
+# *****************************************************************
+# * Change the mode of the thermostat between off/auto/heat/cool.
+# *****************************************************************
+sub mode{
+  my ($self,$state) = @_;
+  $state = lc($state);
+  #print "$::Time_Date: Omnistat -> Mode $state\n" unless $main::config_parms{no_log} =~/omnistat/ ;
+  my $addr = $$self{address};
+  my @cmd;
+  if ($state eq "off") {
+    @cmd = qw(0x01 0x21 0x3d 0x00);
+    } elsif ($state eq "heat") {
+    @cmd = qw(0x01 0x21 0x3d 0x01);
+    } elsif ($state eq "cool") {
+    @cmd = qw(0x01 0x21 0x3d 0x02);
+    } elsif ($state eq "auto") {
+    @cmd = qw(0x01 0x21 0x3d 0x03);
+    } else {
+    print "Omnistat: Invalid Mode state: $state\n";
+  }
+  $cmd[0] = sprintf("0x%02x", $addr);
+  @cmd = add_checksum(@cmd);
+  &Omnistat::send_cmd(@cmd);
+  }
+
+# ************************************
+# * Set the fan mode to on/off/auto.
+# ************************************
+sub fan{
+  my ($self,$state) = @_;
+  $state = lc($state);
+  my $addr = $$self{address};
+  my @cmd;
+  #print "$::Time_Date: Omnistat -> Fan $state\n" unless $main::config_parms{no_log} =~/omnistat/ ;
+  if ($state eq "on") {
+    @cmd = qw(0x01 0x21 0x3e 0x01);
+    } elsif ($state eq "auto") {
+    @cmd = qw(0x01 0x21 0x3e 0x00);
+    } else {
+    print "Omnistat: Invalid Fan state: $state\n";
+    }
+  $cmd[0] = sprintf("0x%02x", $addr);
+  @cmd = add_checksum(@cmd);
+  &Omnistat::send_cmd(@cmd);
+  }
+
+# **************************
+# * Set the cool setpoint.
+# **************************
 sub cool_setpoint{
   my ($self,$settemp) = @_;
   my $addr = $$self{address};
@@ -216,6 +319,9 @@ sub cool_setpoint{
   &Omnistat::send_cmd(@cmd);
   }
 
+# **************************
+# * Set the heat setpoint.
+# **************************
 sub heat_setpoint{
   my ($self,$settemp) = @_;
   my $addr = $$self{address};
@@ -227,24 +333,9 @@ sub heat_setpoint{
   &Omnistat::send_cmd(@cmd);
   }
 
-sub set_time {
-  my ($self) = @_;
-  my $addr = $$self{address};
-  #print "$::Time_Date: Omnistat -> Setting time/day of week\n" unless $main::config_parms{no_log} =~/omnistat/ ;
-  my @cmd = qw(0x01 0x41 0x41);
-  $cmd[0] = sprintf("0x%02x", $addr);
-  @cmd[3] = sprintf("0x%02x",$::Second);
-  @cmd[4] = sprintf("0x%02x",$::Minute);
-  @cmd[5] = sprintf("0x%02x",$::Hour);
-  @cmd=add_checksum(@cmd);
-  &Omnistat::send_cmd(@cmd);
-  @cmd = qw(0x01 0x21 0x3a);
-  $cmd[0] = sprintf("0x%02x", $addr);
-  @cmd[3] = sprintf("0x%02x", $::Wday?$::Wday-1:6);
-  @cmd = add_checksum(@cmd);
-  &Omnistat::send_cmd(@cmd);
-  }
-
+# *******************************
+# * Set the heating cycle time.
+# *******************************
 sub heating_cycle_time{
   my ($self,$time) = @_;
   my $addr = $$self{address};
@@ -256,6 +347,9 @@ sub heating_cycle_time{
   &Omnistat::send_cmd(@cmd);
   }
 
+# *******************************
+# * Set the cooling cycle time.
+# *******************************
 sub cooling_cycle_time{
   my ($self,$time) = @_;
   my $addr = $$self{address};
@@ -267,6 +361,9 @@ sub cooling_cycle_time{
   &Omnistat::send_cmd(@cmd);
   }
 
+# **************************************
+# * Set the cooling anticipator time.
+# **************************************
 sub cooling_anticipator{
   my ($self,$value)=@_;
   my $addr = $$self{address};
@@ -278,6 +375,9 @@ sub cooling_anticipator{
   &Omnistat::send_cmd(@cmd);
   }
 
+# **************************************
+# * Set the heating anticipator time.
+# **************************************
 sub heating_anticipator{
   my ($self,$value)=@_;
   my $addr = $$self{address};
@@ -289,7 +389,9 @@ sub heating_anticipator{
   &Omnistat::send_cmd(@cmd);
   }
 
-# read specified register(s) from Omnistat
+# *********************************************
+# * Read specified register(s) from Omnistat.
+# *********************************************
 sub read_reg{
   my ($self, $register, $count) = @_;
   my $addr = $$self{address};
@@ -297,21 +399,20 @@ sub read_reg{
   if ($count == '') {
     $count = 1;
     }
-  my $ncount=$count;    
-  $count = sprintf("0x%02x",$count);
   $cmd[0] = sprintf("0x%02x", $addr);
   $cmd[1] = "0x20";
   $cmd[2] = $register;
-  $cmd[3] = $count;
+  $cmd[3] = sprintf("0x%02x",$count);
   @cmd=add_checksum(@cmd);
   $regraw = &Omnistat::send_cmd(@cmd);
-  $reg = substr ($regraw, 15, $ncount * 5);
-  #print "  $regraw , $ncount\n";
-  #print "$::Time_Date: Omnistat->read_reg: reg=$reg  raw=$regraw\n" unless $main::config_parms{no_log} =~/omnistat/ ;
+  $reg = substr ($regraw, 15, $count * 5);
+  #print "$::Time_Date: Omnistat->read_reg: reg=$reg\n" unless $main::config_parms{no_log} =~/omnistat/ ;
   return $reg;
   }
 
-# read Group 1 data from Omnistat
+# ************************************
+# * Read Group 1 data from Omnistat.
+# ************************************
 sub read_group1{
   my ($self) = @_;
   my $addr = $$self{address};
@@ -323,65 +424,17 @@ sub read_group1{
   ($c,$r,$cool_set,$heat_set,$mode,$fan,$hold,$current) = split ' ', $group1raw;
   $cool_set = &Omnistat::translate_temp($cool_set);
   $heat_set = &Omnistat::translate_temp($heat_set);
-  if ($mode == 0) { $mode = 'off'; }
-  if ($mode == 1) { $mode = 'heat';}
-  if ($mode == 2) { $mode = 'cool';}
-  if ($mode == 3) { $mode = 'auto';}
-  if ($fan  == 0) { $fan = 'auto';}
-  if ($fan  == 1) { $fan = 'on';}
-  if ($hold == 0)   { $hold = 'off';}
-  if ($hold == 255) { $hold = 'on';}
+  if ($mode eq "0x00") { $mode = 'off'; }
+  if ($mode eq "0x01") { $mode = 'heat';}
+  if ($mode eq "0x02") { $mode = 'cool';}
+  if ($mode eq "0x03") { $mode = 'auto';}
+  if ($fan  eq "0x00") { $fan = 'auto';}
+  if ($fan  eq "0x01") { $fan = 'on';}
+  if ($hold eq "0x00") { $hold = 'off';}
+  if ($hold eq "0xff") { $hold = 'on';}
   $current = &Omnistat::translate_temp($current);
-  #print "$::Time_Date: Omnistat->read_group1:$cool_set,$heat_set,$mode,Fan>>$fan,$hold,$current\n" unless $main::config_parms{no_log} =~/omnistat/ ;
+  #print "$::Time_Date: Omnistat->read_group1:$cool_set,$heat_set,$mode,$fan,$hold,$current\n" unless $main::config_parms{no_log} =~/omnistat/ ;
   return ($cool_set,$heat_set,$mode,$fan,$hold,$current);
   }
-
-
-# *****************
-# * support stuff *
-# *****************
-
-# send command to thermostat
-sub send_cmd{
-  
-  my (@string) = @_;
-  my ($byte, $cmd);
-  $cmd = '';
-  #print "$::Time_Date: Omnistat->send_cmd string=@string\n" unless $main::config_parms{no_log} =~/omnistat/ ;
-  foreach $byte (@string) {
-    $byte =~ s/0x//;			# strip off the 0x
-    $cmd = $cmd . pack "H2", $byte;	# pack it into 8 bits
-    }
-  # send it to thermostat
-  $main::Serial_Ports{Omnistat}{object}->write($cmd);
-  # need to wait a bit for the reply
-  sleep 1 ; #really only 90ms
-  &main::check_for_generic_serial_data('Omnistat');
-  my $temp=$main::Serial_Ports{Omnistat}{data};
-  $main::Serial_Ports{Omnistat}{data} = '';
-  my $len = length($temp);
-  $temp = unpack("H*", $temp);
-  my ($i);
-  my $rcvd = '';
-  for ($i=0; $i < $len; $i++) {
-    $rcvd = $rcvd . sprintf("0x%s ", substr($temp, $i*2, 2));
-    }
-  return $rcvd;
-  }
-
-sub add_checksum {
-	my (@array) = @_;
-	my @modarr = @array;
-	my $value=0;
-	foreach  (@modarr) {
-		s/^0x//g;
-		$_=hex($_);
-		$value=$value+$_;
-	}
-	$value = $value % 256;
-	$array[$#array+1] = sprintf("0x%02x",$value);
-	return @array;
-}
-
 
 1;
