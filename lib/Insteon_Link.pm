@@ -34,6 +34,9 @@ package Insteon_Link;
 
 @Insteon_Link::ISA = ('Insteon_Device');
 
+my %message_types = (
+	%SUPER::message_types,
+);
 
 sub new
 {
@@ -176,14 +179,15 @@ sub sync_links
 	}
 	# if not a plm controlled link, then confirm that a link back to the plm exists
 	if (!($self->is_plm_controlled)) {
-		if (!($insteon_object->has_link($self->interface,$self->group,1,$self->group))) {
+		my $subaddress = ($self->is_keypadlinc) ? $self->group : '00';
+		if (!($insteon_object->has_link($self->interface,$self->group,1,$subaddress))) {
 			my %link_req = ( member => $insteon_object, cmd => 'add', object => $self->interface, 
 				group => $self->group, is_controller => 1, 
 				callback => "$self_link_name->_process_sync_queue()" );
 			$link_req{data3} = $self->group if $insteon_object->is_keypadlinc;
 			push @{$$self{sync_queue}}, \%link_req;
 		}
-		if (!($self->interface->has_link($insteon_object,$self->group,0,$self->group))) {
+		if (!($self->interface->has_link($insteon_object,$self->group,0,$subaddress))) {
 			my %link_req = ( member => $self->interface, cmd => 'add', object => $insteon_object, 
 				group => $self->group, is_controller => 0, 
 				callback => "$self_link_name->_process_sync_queue()" );
