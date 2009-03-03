@@ -862,6 +862,8 @@ sub read_table_A {
            } else {
               $code .= sprintf "\$%-35s -> add(\$%s);\n", $scene_name, $name;
            }
+        } else {
+           print "\nThere is no object called $scene_name defined.  Ignoring SCENE_MEMBER entry.\n";
         }
         $object = '';
     } else {
