@@ -1,5 +1,128 @@
 =begin comment
 
+Dan Arnold February 2009
+Added function to set registers
+Added time translation for thermostat programming (12h or 24h format based on Omnistat_24hr config param)
+Added ability to set outside temp to display on thermostat
+Added the ability to translate to/from Celcius (depends on the Omnistat_celcius config param)
+Modified set procedures to use reg_set
+Modified temp translation to use math rather than a lookup table (needed to cover possible outside temps)
+Fixed a bug in read_reg
+TODO: Modify reg_set to accept muliple registers
+
+Below is a list of registers for reference:
+
+INTERNAL REGISTERS (RO = READ ONLY)
+0 (00) - Thermostat address (ro) (1 - 127)
+1 (01) - Communications mode (ro) (0, 1, 8 or 24)
+2 (02) - System options (ro)
+3 (03) - Display options
+4 (04) - Calibration offset (1 to 59, 30=no change - ½ C units)
+5 (05) - Cool setpoint low limit (Omnitemp units)
+6 (06) - Heat setpoint high limit (Omnitemp units)
+7 (07) - Reserved
+8 (08) - Reserved
+9 (09) - Cooling anticipator (0 to 30) (RC-80, -81, -90, -91 only)
+10 (0A) - Heating anticipator (0 to 30) (RC-80, -81, -90, -91 only), Stage 2 differential (RC-112)
+11 (0B) - Cooling cycle time (2 - 30 minutes)
+12 (0C) - Heating cycle time (2 - 30 minutes)
+13 (0D) - Aux heat differential, (RC-100, -101, -112), Stage 2 differential (RC-120, -121, -122)  (Omnitemp units)
+14 (0E) - Clock adjust (seconds/day) 1=-29, 30=0, 59=+29
+15 (0F) - Days remaining until filter reminder
+16 (10) - System run time, current week - hours
+17 (11) - System run time, last week - hours
+
+Registers 18 - 20 are used only in models with real time pricing.
+18 (12) - Real time pricing setback - Mid (Omnitemp units)
+19 (13) - High
+20 (14) - Critical
+
+Programming registers
+21 (15) - weekday morning time
+22 (16) - cool setpoint
+23 (17) - heat setpoint
+24 (18) - weekday day     time
+25 (19) - cool setpoint
+26 (1A) - heat setpoint
+27 (1B) - weekday evening time
+28 (1C) - cool setpoint
+29 (1D) - heat setpoint
+30 (1E) - weekday night   time
+31 (1F) - cool setpoint
+32 (20) - heat setpoint
+33 (21) - Saturday morning time
+34 (22) - cool setpoint
+35 (23) - heat setpoint
+36 (24)  - Saturday day time
+37 (25)  - cool setpoint
+38 (26) - heat setpoint
+39 (27) - Saturday evening time
+40 (28) - cool setpoint
+41 (29) - heat setpoint
+42 (2A) - Saturday night time
+43 (2B) - cool setpoint
+44 (2C) - heat setpoint
+45 (2D) - Sunday morning time
+46 (2E) - cool setpoint
+47 (2F) - heat setpoint
+48 (30) - Sunday day time
+49 (31) - cool setpoint
+50 (32) - heat setpoint
+51 (33) - Sunday evening time
+52 (34) - cool setpoint
+53 (35) - heat setpoint
+54 (36) - Sunday night time
+55 (37) - cool setpoint
+56 (38) - heat setpoint
+57 (39) - Reserved - do not write
+58 (3A) - Day of week (0=Monday - 6=Sunday)
+59 (3B) - Cool setpoint
+60 (3C) - Heat setpoint
+61 (3D) - Thermostat mode (0=off, 1=heat, 2=cool, 3=auto) (4=Emerg heat: RC-100, -101, -112 only)
+62 (3E) - Fan status (0=auto 1=on)
+63 (3F) - Hold (0=off 255=on)
+64 (40) - Actual temperature in Omni format
+65 (41) - Seconds 0 - 59
+66 (42) - Minutes 0 - 59
+67 (43) - Hours    0 - 23
+68 (44) - Outside temperature
+69 (45) - Reserved
+70 (46) - Real time pricing mode (0=lo, 1=mid, 2=high, 3=critical) (RC-81, -91, -101, -121 only)
+71 (47) - (ro) current mode (0=off 1=heat 2=cool)
+72 (48) - (ro) output status
+73 (49) - (ro) model of thermostat
+
+Output status register: reflects the positions of the control relays on the thermostat.
+bit 0: heat/cool bit - set for heat, clear for cool
+bit 1: auxiliary heat bit - set for on, clear for off (RC-100, -101, -112 only)
+bit 2: stage 1 run bit - set for on, clear for off
+bit 3: fan bit - set for on, clear for off
+bit 4: stage 2 run bit: set for on, clear for off (RC-112, 120, 121, 122 only)
+
+Model register: indicates thermostat model
+Thermostat model Model register
+RC-80 0
+RC-81 1
+RC-90 8
+RC-91 9
+RC-100 16
+RC-101 17
+RC-112 34
+RC-120 48
+RC-121 49
+RC-122 50
+
+Outside Temperature: writing to the outside temperature register will cause the thermostat to display the 
+outside temperature every 4 seconds. The thermostat will stop displaying the outside temperature if this
+register is not refreshed at least every 5 minutes.
+
+Display Options:
+bit 0: set for Fahrenheit, clear for Celsius
+bit 1: set for 24 hour time display, clear for AM/PM
+bit 2: set for non-programmable, clear for programmable (disables internal programs in thermostat)
+bit 3: set for real time pricing (RTP) mode, clear for no RTP (RC-81, -91, -101, -121 only)
+bit 4: set to hide clock, RTP and filter display, clear to show them.
+
 Joel Davidson  February 2009
 Corrected bad syntax in mode comparison logic in read_group1.
 
@@ -154,17 +277,18 @@ sub set_time {
   my $addr = $$self{address};
   #print "$::Time_Date: Omnistat -> Setting time/day of week\n" unless $main::config_parms{no_log} =~/omnistat/ ;
   my @cmd = qw(0x01 0x41 0x41);
+  
+  #set the time
   $cmd[0] = sprintf("0x%02x", $addr);
   @cmd[3] = sprintf("0x%02x",$::Second);
   @cmd[4] = sprintf("0x%02x",$::Minute);
   @cmd[5] = sprintf("0x%02x",$::Hour);
   @cmd=add_checksum(@cmd);
   &Omnistat::send_cmd(@cmd);
-  @cmd = qw(0x01 0x21 0x3a);
-  $cmd[0] = sprintf("0x%02x", $addr);
-  @cmd[3] = sprintf("0x%02x", $::Wday?$::Wday-1:6);
-  @cmd = add_checksum(@cmd);
-  &Omnistat::send_cmd(@cmd);
+
+  #set the weekday
+  $self->set_reg("0x3a",$::Wday?$::Wday-1:6);
+
   }
 
 # *******************************************
@@ -197,11 +321,8 @@ sub display{
   if ($main::config_parms{Omnistat_hide_clock}) {
     $DISPLAY_BITS = $DISPLAY_BITS+16;
     }
-  my @cmd = qw(0x01 0x21 0x03); 
-  $cmd[0] = sprintf("0x%02x", $addr);
-  @cmd[3] = sprintf("0x%02x",$DISPLAY_BITS);
-  @cmd = add_checksum(@cmd);
-  &Omnistat::send_cmd(@cmd);
+    
+  $self->set_reg("0x03",sprintf("0x%02x",$DISPLAY_BITS));
   }
 
 # *********************************************
@@ -215,48 +336,128 @@ sub serial_startup {
 # ********************************
 # * Set the hold mode on or off.
 # ********************************
-sub hold{
+sub hold {
   my ($self,$state) = @_;
+  my ($value);
   $state = lc($state);
   my $addr = $$self{address};
   #print "$::Time_Date: Omnistat -> Hold $state\n" unless $main::config_parms{no_log} =~/omnistat/ ;
   my @cmd;
   if ($state eq "off") {
-    @cmd = qw(0x00 0x21 0x3f 0x00);
+    $self->set_reg("0x3f","0x00");
   } elsif ($state eq "on") {
-    @cmd = qw(0x00 0x21 0x3f 0xff);
+    $self->set_reg("0x3f","0xff");
   } else {
     print "Omnistat: Invalid Hold state: $state\n";
-    }
-  $cmd[0] = sprintf("0x%02x", $addr);
-  @cmd = add_checksum(@cmd);
-  &Omnistat::send_cmd(@cmd);
+  }
+  
   }
 
 # *************************************************************
-# * Translate Temperature between Fahrenheit and Omni values.
+# * Translate Temperature between Fahrenheit/Celcius and Omni values.
 # *************************************************************
 sub translate_temp {
   my ($settemp) = @_;
   my ($omnitemp);
-  # temp translates fahrenheit to omni
-  my %temp=(51=>"0x65", 52=>"0x66", 53=>"0x67", 54=>"0x68", 55=>"0x69", 
-            56=>"0x6b", 57=>"0x6c", 58=>"0x6d", 59=>"0x6e", 60=>"0x6f", 
-            61=>"0x70", 62=>"0x71", 63=>"0x72", 64=>"0x74", 65=>"0x75", 
-            66=>"0x76", 67=>"0x77", 68=>"0x78", 69=>"0x79", 70=>"0x7a", 
-            71=>"0x7b", 72=>"0x7c", 73=>"0x7d", 74=>"0x7f", 75=>"0x80", 
-            76=>"0x81", 77=>"0x82", 78=>"0x83", 79=>"0x84", 80=>"0x85", 
-            81=>"0x86", 82=>"0x87", 83=>"0x89", 84=>"0x8a", 85=>"0x8b", 
-            86=>"0x8c", 87=>"0x8d", 88=>"0x8e", 89=>"0x8f", 90=>"0x90", 
-            91=>"0x91", 92=>"0x93", 93=>"0x94", 94=>"0x95", 95=>"0x96");
-  # reversetemp translates omni to fahrenheit
-  my %reversetemp = reverse %temp;
+
+  #Calculate conversion mathmatically rather than using a table so all temps will work (needed for outside temperature
   if (substr($settemp,0,2) eq '0x') {	# if it starts with 0x, reverse xlate
-    $omnitemp = $reversetemp{$settemp};
-    } else {				# xlate from Fahrenheit
-    $omnitemp = $temp{$settemp};
+    $omnitemp = hex ($settemp);
+    $omnitemp = -40 + .5 * $omnitemp; #degrees Celcius
+    if (!($main::config_parms{Omnistat_celcius})) {
+      $omnitemp = 32 + 1.8 * $omnitemp; # degrees Fahrenheit
+      $omnitemp = int($omnitemp + .5 * ($omnitemp <=> 0)); #round
     }
+  } else {				# xlate from Fahrenheit/Celcius
+    if (!($main::config_parms{Omnistat_celcius})) {
+      $omnitemp = ($settemp - 32) / 1.8; #Fahrenheit to Celcius
+    }
+    $omnitemp = ($omnitemp + 40 ) / .5; #omnistat degrees
+    $omnitemp = int($omnitemp + .5 * ($omnitemp <=> 0)); #round
+    $omnitemp = sprintf("0x%x", $omnitemp);
+  }
+  
   return $omnitemp;
+  }
+
+
+# *************************************************************
+# * Translate Time between readable and Omni values.
+# *************************************************************
+sub translate_time {
+  my ($settime) = @_;
+  my ($hours,$minutes,$ampm);
+  my ($omnitime);
+  
+  if (substr($settime,0,2) eq '0x') { #Translate omnitime to readable time
+      if ($settime eq '0x60') { #if it's set to 24hrs past midnight, time is blank
+        $omnitime = ''; 
+      } else { 
+        $minutes = hex($settime) * 15; #Omnistat is stored as 15 minute time periods pas midnight
+        $hours = int($minutes / 60);
+        $minutes = $minutes % 60; #minutes past hour
+        if ($main::config_parms{Omnistat_24hr}) {
+          #Translate to 24hr time
+          $omnitime =  sprintf ('%02s:%02s',$hours,$minutes);
+        } else {
+          #Translate omni to AM/PM
+          if ($hours == 0) {
+            $hours = 12;
+            $ampm = 'PM';
+          } elsif ($hours > 12) {
+            $ampm = 'PM';
+            $hours -= 12;
+          } else {
+            $ampm = 'AM';
+          }
+          $omnitime =  sprintf ('%02s:%02s %s',$hours,$minutes,$ampm);
+        }
+       }
+  } else { #Translate readable to omnistat time
+    if ($settime eq '0') {#set to 0 to clear time, or 24:00 if using 24h time
+      $omnitime = '0x60';
+    } elsif ($main::config_parms{Omnistat_24hr}) {
+      #convert 24h time
+      if ($settime =~ /^([0-1][0-9]|[2][0-4]):([0-5][0-9])$/) {
+        #valid time
+        $hours = $1;
+        $minutes = $2;
+        $minutes = $minutes + $hours * 60;
+        $omnitime = $minutes / 15;
+        $omnitime = sprintf("0x%x", $omnitime);
+      } else {
+        #invalid time
+        $omnitime = '';
+      }
+    } else {
+      #convert am/pm time
+      if ($settime =~ /^(1[0-2]|[1-9]):([0-5][0-9]) *(AM|PM)$/) {
+        #valid time
+        $hours = $1;
+        $minutes = $2;
+        $ampm = $3;
+        
+        #PM we may need to add 12 hours (unless it's midnight), AM is already right
+        if ($ampm == 'PM') {        
+          if ($hours == 12) { 
+            $hours = 0;
+          } else {
+            $hours = $hours + 12;
+          }
+        }
+          
+        $minutes = $minutes + $hours * 60;
+        $omnitime = $minutes / 15;
+        $omnitime = sprintf("0x%x", $omnitime);
+      } else {
+        #invalid time
+        $omnitime = '';
+      }
+    }
+    
+  }
+  
+  return $omnitime;
   }
 
 # *****************************************************************
@@ -269,19 +470,17 @@ sub mode{
   my $addr = $$self{address};
   my @cmd;
   if ($state eq "off") {
-    @cmd = qw(0x01 0x21 0x3d 0x00);
+    $self->set_reg("0x3d","0x00");
     } elsif ($state eq "heat") {
-    @cmd = qw(0x01 0x21 0x3d 0x01);
+    $self->set_reg("0x3d","0x01");
     } elsif ($state eq "cool") {
-    @cmd = qw(0x01 0x21 0x3d 0x02);
+    $self->set_reg("0x3d","0x02");
     } elsif ($state eq "auto") {
-    @cmd = qw(0x01 0x21 0x3d 0x03);
+    $self->set_reg("0x3d","0x03");
     } else {
     print "Omnistat: Invalid Mode state: $state\n";
   }
-  $cmd[0] = sprintf("0x%02x", $addr);
-  @cmd = add_checksum(@cmd);
-  &Omnistat::send_cmd(@cmd);
+  
   }
 
 # ************************************
@@ -294,15 +493,12 @@ sub fan{
   my @cmd;
   #print "$::Time_Date: Omnistat -> Fan $state\n" unless $main::config_parms{no_log} =~/omnistat/ ;
   if ($state eq "on") {
-    @cmd = qw(0x01 0x21 0x3e 0x01);
+    $self->set_reg("0x3e","0x01");
     } elsif ($state eq "auto") {
-    @cmd = qw(0x01 0x21 0x3e 0x00);
+    $self->set_reg("0x3e","0x00");
     } else {
     print "Omnistat: Invalid Fan state: $state\n";
     }
-  $cmd[0] = sprintf("0x%02x", $addr);
-  @cmd = add_checksum(@cmd);
-  &Omnistat::send_cmd(@cmd);
   }
 
 # **************************
@@ -310,13 +506,7 @@ sub fan{
 # **************************
 sub cool_setpoint{
   my ($self,$settemp) = @_;
-  my $addr = $$self{address};
-  #print "$::Time_Date: Omnistat -> Cool setpoint $settemp\n" unless $main::config_parms{no_log} =~/omnistat/ ;
-  my @cmd = qw(0x01 0x21 0x3b);
-  $cmd[0] = sprintf("0x%02x", $addr);
-  @cmd[3] = &Omnistat::translate_temp($settemp);
-  @cmd = add_checksum(@cmd);
-  &Omnistat::send_cmd(@cmd);
+  $self->set_reg("0x3b",&Omnistat::translate_temp($settemp));
   }
 
 # **************************
@@ -324,13 +514,16 @@ sub cool_setpoint{
 # **************************
 sub heat_setpoint{
   my ($self,$settemp) = @_;
+  $self->set_reg("0x3c",&Omnistat::translate_temp($settemp));
+  }
+
+# **************************************
+# * Set the outdoor temperature
+# **************************************
+sub outdoor_temp{
+  my ($self,$settemp)=@_;
   my $addr = $$self{address};
-  #print "$::Time_Date: Omnistat -> Heat setpoint $settemp\n" unless $main::config_parms{no_log} =~/omnistat/ ;
-  my @cmd=qw(0x01 0x21 0x3c);
-  $cmd[0] = sprintf("0x%02x", $addr);
-  @cmd[3]=&Omnistat::translate_temp($settemp);
-  @cmd=add_checksum(@cmd);
-  &Omnistat::send_cmd(@cmd);
+  $self->set_reg("0x44",&Omnistat::translate_temp($settemp));
   }
 
 # *******************************
@@ -340,11 +533,7 @@ sub heating_cycle_time{
   my ($self,$time) = @_;
   my $addr = $$self{address};
   #print "$::Time_Date: Omnistat -> Heat cycle time $time\n" unless $main::config_parms{no_log} =~/omnistat/ ;
-  my @cmd = qw(0x01 0x21 0x0c);
-  $cmd[0] = sprintf("0x%02x", $addr);
-  $cmd[3] = sprintf("0x%02x",$time);
-  @cmd = add_checksum(@cmd);
-  &Omnistat::send_cmd(@cmd);
+  $self->set_reg("0x0c",sprintf("0x%02x",$time));
   }
 
 # *******************************
@@ -354,11 +543,7 @@ sub cooling_cycle_time{
   my ($self,$time) = @_;
   my $addr = $$self{address};
   #print "$::Time_Date: Omnistat -> Cool cycle time $time\n" unless $main::config_parms{no_log} =~/omnistat/ ;
-  my @cmd = qw(0x01 0x21 0x0c);
-  $cmd[0] = sprintf("0x%02x", $addr);
-  $cmd[3] = sprintf("0x%02x",$time);
-  @cmd = add_checksum(@cmd);
-  &Omnistat::send_cmd(@cmd);
+  $self->set_reg("0x0b",sprintf("0x%02x",$time));
   }
 
 # **************************************
@@ -368,11 +553,7 @@ sub cooling_anticipator{
   my ($self,$value)=@_;
   my $addr = $$self{address};
   #print "$::Time_Date: Omnistat -> Cooling Anticipator $value\n" unless $main::config_parms{no_log} =~/omnistat/ ;
-  my @cmd=qw(0x01 0x21 0x09);
-  $cmd[0] = sprintf("0x%02x", $addr);
-  $cmd[3]=sprintf("0x%02x",$value);
-  @cmd=add_checksum(@cmd);
-  &Omnistat::send_cmd(@cmd);
+  $self->set_reg("0x09",sprintf("0x%02x",$value));
   }
 
 # **************************************
@@ -382,11 +563,7 @@ sub heating_anticipator{
   my ($self,$value)=@_;
   my $addr = $$self{address};
   #print "$::Time_Date: Omnistat -> Heating Anticipator $value\n" unless $main::config_parms{no_log} =~/omnistat/ ;
-  my @cmd=qw(0x01 0x21 0x0a);
-  $cmd[0] = sprintf("0x%02x", $addr);
-  $cmd[3]=sprintf("0x%02x",$value);
-  @cmd=add_checksum(@cmd);
-  &Omnistat::send_cmd(@cmd);
+  $self->set_reg("0x0a",sprintf("0x%02x",$value));
   }
 
 # *********************************************
@@ -399,6 +576,7 @@ sub read_reg{
   if ($count == '') {
     $count = 1;
     }
+    
   $cmd[0] = sprintf("0x%02x", $addr);
   $cmd[1] = "0x20";
   $cmd[2] = $register;
@@ -408,6 +586,22 @@ sub read_reg{
   $reg = substr ($regraw, 15, $count * 5);
   #print "$::Time_Date: Omnistat->read_reg: reg=$reg\n" unless $main::config_parms{no_log} =~/omnistat/ ;
   return $reg;
+  }
+
+# *********************************************
+# * Write specified register to Omnistat.
+# *********************************************
+#TODO: add ability to set multiple registers at once
+sub set_reg{
+  my ($self, $register, $value) = @_;
+  my $addr = $$self{address};
+  my (@cmd);
+  $cmd[0] = sprintf("0x%02x", $addr);
+  $cmd[1] = "0x21";
+  $cmd[2] = $register;
+  $cmd[3] = $value;
+  @cmd=add_checksum(@cmd);
+  &Omnistat::send_cmd(@cmd);  
   }
 
 # ************************************
