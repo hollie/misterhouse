@@ -283,7 +283,12 @@ sub is_responder
 {
 	my ($self,$is_responder) = @_;
 	$$self{is_responder} = $is_responder if defined $is_responder;
-	return ($self->is_root) ? $$self{is_responder} : $self->get_root()->is_responder;
+	if ($self->is_root) {
+		return $$self{is_responder};
+	} else {
+		my $root_obj = $self->get_root();
+		return (ref $root_obj) ? $$root_obj{is_responder} : 0;
+	}
 }
 
 sub is_keypadlinc
@@ -291,6 +296,17 @@ sub is_keypadlinc
 	my ($self) = @_;
 	my $obj = $self->get_root;
 	if (($$obj{devcat} eq '0109') or ($$obj{devcat} =~ /010c/i) or ($$obj{devcat} =~ /020f/i)) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+sub is_remotelinc
+{
+	my ($self) = @_;
+	my $obj = $self->get_root;
+	if ($$obj{devcat} eq '0005') {
 		return 1;
 	} else {
 		return 0;
