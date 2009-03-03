@@ -35,7 +35,7 @@ package Insteon_Link;
 @Insteon_Link::ISA = ('Insteon_Device');
 
 my %message_types = (
-	%SUPER::message_types,
+	%SUPER::message_types
 );
 
 sub new
@@ -53,7 +53,7 @@ sub new
 sub add 
 {
 	my ($self, $obj, $on_level, $ramp_rate) = @_;
-	if (ref $obj and ($obj->isa('Insteon_Device') or $obj->isa('Light_Item'))) {
+	if (ref $obj and (($obj->isa('Insteon_Device') and !($obj->is_plm_controlled)) or $obj->isa('Light_Item'))) {
 		if ($$self{members} && $$self{members}{$obj}) {
 			print "[Insteon_Link] An object (" . $obj->{object_name} . ") already exists "
 				. "in this scene.  Aborting add request.\n";
