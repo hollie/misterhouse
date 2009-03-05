@@ -65,7 +65,7 @@ sub main::get_imap {
       return;
    }
     
-    $port    = $main::config_parms{"net_mail_${mhaccount}_server_send_port"} unless $port;
+    $port    = $main::config_parms{"net_mail_${mhaccount}_server_port"} unless $port;
     unless ($port) {
 	if ($ssl) {
          $port    = 993;
@@ -188,12 +188,18 @@ if ($client->IsAuthenticated()) {
 	my $cc = $client->get_header($msgid, "CC");
 	my $msgdate = $client->get_header($msgid, "Date");
 	$from =~ s/\"//g;
-	decode("MIME-Header", $from) if ($from =~ m/=\?/);
+	if ($from =~ m/=\?/) {
+	   print "Unicode detected. Decoding MIME-Header from $from to " if $debug;
+	   $from = decode("MIME-Header", $from);
+	   print "$from.\n" if $debug;
+	} 
+#	decode("MIME-Header", $from) if ($from =~ m/=\?/);
 	$email_addresses{$from}++;
 	my $name = $from;
-	$name =~ s/\s\<.*\>//g;
+	$name =~ s/\<.*\>//g;
 	$name = $from if !$name;
 	$name =~ s/\<|>//g;
+	$name =~ s/\s$//g;
 	$email_names{$name}++;
 
 	my $subject= $client->get_header($msgid, "Subject");

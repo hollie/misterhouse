@@ -29,7 +29,7 @@ use strict;
 use HTML::FormatText;
 use HTML::Parse;
 use LWP::Simple;
-
+use Encode qw(encode decode);
 
 #require "$main::Pgm_Root/lib/site/HTML/Formatter.pm";
 
@@ -1479,6 +1479,13 @@ sub main::net_mail_summary {
         }
         $date_received = $date unless $date_received;
 
+	# Parse any unicode from headers...
+	$from =~ s/\"//g;
+	if ($from =~ m/=\?/) {
+	   print "Unicode detected. Decoding MIME-Header from $from to " if $parms{debug} or $main::Debug{net};
+	   $from = decode("MIME-Header", $from);
+	   print "$from.\n" if $parms{debug} or $main::Debug{net};
+	} 
                                 # Process 'from' into speakable name
         ($from_name) = $from =~ /\((.+)\)/;
         ($from_name) = $from =~ / *(.+?) *</ unless $from_name;
