@@ -6390,8 +6390,14 @@ sub help_about {
 
 sub tk_setup_windows {
                                 # See perl/bin/widget.bat for lots of examples
-    print " - setting up main window\n";
-    $MW = MainWindow->new;
+    print " - setting up the main window\n";
+    eval { $MW = MainWindow->new('junk'); };
+    if ($@) {
+       print " - WARN: failed to setup main window.  This may be a x-windows permissions problem,\n";
+       print " -        a ssh forwarding problem or some other x-windows related problem.\n";
+       print " -        You may wish to try \"wish\" to debug.  If using ssh, look into ForwardX11Trusted option\n";
+       return;
+    }
     $MW->withdraw;              # Hide the window until we are all set up
 				# doesn't quite work on XP :(
 
