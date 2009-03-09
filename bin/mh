@@ -6391,7 +6391,7 @@ sub help_about {
 sub tk_setup_windows {
                                 # See perl/bin/widget.bat for lots of examples
     print " - setting up the main window\n";
-    eval { $MW = MainWindow->new('junk'); };
+    eval { $MW = MainWindow->new(); };
     if ($@) {
        print " - WARN: failed to setup main window.  This may be a x-windows permissions problem,\n";
        print " -        a ssh forwarding problem or some other x-windows related problem.\n";
