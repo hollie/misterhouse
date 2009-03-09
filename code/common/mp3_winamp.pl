@@ -72,7 +72,7 @@ $mp3_host = $config_parms{mp3_program_host} if $config_parms{mp3_program_host};
 # noloop=stop
 
 # Add Player Commands
-$v_mp3_control1 = new Voice_Cmd("Set house mp3 player to [$mp3_states]");
+$v_mp3_control1 = new Voice_Cmd("Set the house mp3 player to [$mp3_states]");
 $v_mp3_control2 = new Voice_Cmd("Set music to [$mp3_states]");
 &mp3_control($state, $mp3_host)  if $state = said $v_mp3_control1 or $state = said $v_mp3_control2;
 
