@@ -192,8 +192,9 @@ sub new
 	}
 	if ($p_devcat) {
 		$self->devcat($p_devcat);
+		$self->restore_data('level','send_synchronously');
 	} else {
-		$self->restore_data('devcat','level');
+		$self->restore_data('devcat','level','send_synchronously');
 	}
 	$self->initialize();
 	$self->rate(undef);
@@ -204,7 +205,7 @@ sub new
 	$$self{is_acknowledged} = 0;
 	$$self{queue_timer} = new Timer();
 	$$self{max_queue_time} = $::config_parms{'Insteon_PLM_max_queue_time'};
-	$$self{max_queue_time} = 15 unless $$self{max_queue_time}; # 15 seconds is max time allowed in command stack
+	$$self{max_queue_time} = 10 unless $$self{max_queue_time}; # 10 seconds is max time allowed in command stack
 	@{$$self{command_stack}} = ();
 	$$self{_retry_count} = 0; # num times that a command has been resent
 	$$self{_onlevel} = undef;
@@ -214,13 +215,13 @@ sub new
 		$$self{is_responder} = 1;
 	}
 	$self->interface($p_interface) if defined $p_interface;
-#	$self->interface()->add_item_if_not_present($self);
 	return $self;
 }
 
 sub initialize
 {
 	my ($self) = @_;
+        $$self{send_synchronously} = undef;
 	$$self{m_write} = 1;
 	$$self{m_is_locally_set} = 0;
 	# persist local, simple attribs
@@ -259,6 +260,20 @@ sub rate
 	$$self{rate} = $p_rate if defined $p_rate;
 	return $$self{rate};
 }
+
+sub send_synchronously
+{
+	my ($self, $p_send_sync) = @_;
+	$$self{send_synchronously} = $p_send_sync if defined $p_send_sync;
+	if (defined $$self{send_synchronously}) {
+		return $$self{send_synchronously};
+	} elsif ($main::config_parms{Insteon_send_synchronously}) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
 
 sub is_acknowledged
 {
@@ -395,7 +410,8 @@ sub set
 			$self->SUPER::set($p_state,$p_setby,$p_response) if defined $p_state;
 		} else {
 			$self->_send_cmd(command => $p_state, 
-				type => (($self->isa('Insteon_Link') and !($self->is_root)) ? 'alllink' : 'standard'));
+				type => (($self->isa('Insteon_Link') and !($self->is_root)) ? 'alllink' : 'standard'),
+				'is_synchronous' => $self->send_synchronously);
 			&::print_log("[Insteon_Device] " . $self->get_object_name() . "::set($p_state, $p_setby)")
 				if $main::Debug{insteon};
 			$self->is_acknowledged(0);
