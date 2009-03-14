@@ -366,7 +366,7 @@ sub set
 		delete $$self{set_timer};
 	}
 
-	if (!($self->is_responder)) {
+	if (!($self->is_plm_controlled) && !($self->is_responder)) {
 		# if it can't be controlled (i.e., a responder), then don't send out any signals
 		# motion sensors seem to get multiple fast reports; don't trigger on both
 		if (not defined($self->get_idle_time) or $self->get_idle_time > 1) {
