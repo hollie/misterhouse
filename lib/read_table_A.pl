@@ -144,6 +144,13 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon_Thermostat(\$$object, \'$address\', $other)";
     }
+    elsif($type eq "INSTEON_IRRIGATION") {
+        require 'Insteon_Irrigation.pm';
+        ($address, $name, $grouplist, $object, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon_Irrigation(\$$object, \'$address\', $other)";
+    }
+    # ----------------------------------------------------------------------
     elsif($type eq 'FROG') {
         require 'FroggyRita.pm';
 	($address, $name, $grouplist, @other) = @item_info;

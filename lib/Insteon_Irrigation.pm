@@ -2,91 +2,57 @@
 
 AUTHORS
 Gregg Liming <gregg@limings.net>
+David Norwood <dnorwood2@yahoo.com>
 
 INITIAL CONFIGURATION
 In user code:
+
+   use Insteon_Irrigation;
    $irrigation = new Insteon_Irrigation($myPLM, '12.34.56');
 
 In items.mht:
 
-INSTEON_IRRIGATION, 12.34.56, irr_gateway, Irrigation, plm
+INSTEON_IRRIGATION, 12.34.56, irrigation, Irrigation, myPLM
 
 BUGS
 
+Requesting valve status currently doesn't work.   
+
 
 EXAMPLE USAGE
-see TBD for more.
 
 Creating the object:
-
+   use Insteon_Irrigation;
    $irrigation = new Insteon_Irrigation($myPLM, '12.34.56');
 
-
-Poll for temperature changes.
-
-   if ( new_minute 5 && $Hour != 2 ) { # Skip the ALDB scanning hour
-         $thermostat->poll_temp();
+Turning on a valve: 
+   $v_valve_on = new Voice_Cmd "Turn on valve [1,2,3,4,5,6,7,8]"; 
+   if (my $valve = state_now $v_valve_on) {	
+   	$valve--;
+	set_valve $irrigation "0$valve", "on";
+   }
+ 
+Turning off a valve: 
+   $v_valve_off = new Voice_Cmd "Turn off valve [1,2,3,4,5,6,7,8]"; 
+   if (my $valve = state_now $v_valve_off) {	
+	$valve--;
+	set_valve $irrigation "0$valve", "off";
+   }
+ 
+Requesting valve status:
+   $v_valve_status = new Voice_Cmd "Request valve status"; 
+   if (state_now $v_valve_status) {
+	poll_valve_status $irrigation;
    }
 
+NOTES 
 
-Watch for temperature changes.
-
-   if (state_now $thermostat eq 'temp_change') {
-      my $temp = $thermostat->get_temp();
-      print "Got new thermostat temperature: $temp\n";
-   }
-
-And, you can set the temperature and mode at will...
-
-   if (state_changed $mode_vacation eq 'all') {
-      $thermostat->mode('auto');
-      $thermostat->heat_setpoint(60);
-      $thermostat->cool_setpoint(89);
-   }
-
-All of the states that may be set:
-   temp_change: Inside temperature changed
-      (call get_temp() to get value)
-   heat_sp_change: Heat setpoint was changed
-      (call get_heat_sp() to get value).
-   cool_sp_change: Cool setpoint was changed
-      (call get_cool_sp() to get value).
-   mode_change: System mode changed
-      (call get_mode() to get value).
-   fan_mode_change: Fan mode changed
-      (call get_fan_mode() to get value).
-
-All of the functions available:
-   mode():
-      Sets system mode to argument: 'off', 'heat', 'cool', 'auto',
-      'program_heat', 'program_cool', 'program_auto'
-   poll_mode():
-      Causes thermostat to return mode; detected as state change if mode changes
-   get_mode():
-      Returns the last mode returned by poll_mode().
-   fan():
-      Sets fan to 'on' or 'auto'
-   get_fan_mode():
-      Returns the current fan mode (fan_on or fan_auto)
-   poll_setpoint():
-      Causes thermostat to return setpoint(s); detected as state change if setpoint changes
-      Returns setpoint based on mode, auto modes return both heat and cool.
-   cool_setpoint():
-      Sets a new cool setpoint.
-   get_cool_sp():
-      Returns the current cool setpoint.
-   heat_setpoint():
-      Sets a new heat setpoint.
-   get_heat_sp():
-      Returns the current heat setpoint.
-   poll_temp():
-      Causes thermostat to return temp; detected as state change
-   get_temp():
-      Returns the current temperature at the thermostat.
+This module works with the EzFlora (aka EzRain) sprinkler controller, documented
+here http://www.simplehomenet.com/Downloads/EZRain%20Command%20Set.pdf
 
 
 #TODO
- - Manage aldb - should be able to intitialize programs. <- may be overkill
+ - Should be able to intitialize programs.
 =cut
 
 use strict;
@@ -117,7 +83,7 @@ sub new {
 sub poll_valve_status {
    my ($self) = @_;
    my $subcmd = '02';
-   $self->_send_cmd(command => 'sprinkler_get_valve_status', type => 'standard', extra => $subcmd, 'is_synchronous' => 1);
+   $self->_send_cmd(command => 'sprinkler_control', type => 'standard', extra => $subcmd, 'is_synchronous' => 1);
    return;
 }
 
