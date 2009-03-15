@@ -359,6 +359,7 @@ sub level
 sub set
 {
 	my ($self,$p_state,$p_setby,$p_response) = @_;
+	return if &main::check_for_tied_filters($self, $p_state);
 
 	# Override any set_with_timer requests
 	if ($$self{set_timer}) {
