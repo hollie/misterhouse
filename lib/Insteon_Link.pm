@@ -195,12 +195,12 @@ sub sync_links
 		}
 	}
 	my $num_sync_queue = @{$$self{sync_queue}};
-	if ($num_sync_queue) {
-		$self->_process_sync_queue();
-	} else {
+	if (!($num_sync_queue)) {
 		&::print_log("[Insteon_Link] Nothing to do when syncing links for " . $self->get_object_name)
 			if $main::Debug{insteon};
 	}
+	$self->_process_sync_queue();
+	
 	# TO-DO: consult links table to determine if any "orphaned links" refer to this device; if so, then delete
 	# WARN: can't immediately do this as the link tables aren't finalized on the above operations
 	#    until the end of the actual insteon memory poke sequences; therefore, may need to handle separately
