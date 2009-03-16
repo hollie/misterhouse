@@ -41,7 +41,8 @@ sub _get_next_linkscan
                 # don't try to scan devices that are not responders
                 my $next_obj = $objects_by_object_name{$next_name};
                 if (ref $next_obj and $next_obj->isa('Insteon_Device') 
-                     and !($next_obj->is_responder)) {
+                     and !($next_obj->is_responder) and !($next_obj->is_plm_controlled)) {
+                   &main::print_log("[Scan all link tables] $next_name is not a candidate for scanning.  Moving to next");
                    $current_name = $next_name;
                    # move on
                    next;
@@ -121,7 +122,8 @@ sub _process_sync_links
                  # don't try to scan devices that are not responders
                 my $next_obj = $objects_by_object_name{$next_name};
                 if (ref $next_obj and $next_obj->isa('Insteon_Device') 
-                     and !($next_obj->is_responder)) {
+                     and !($next_obj->is_responder) and !($next_obj->is_plm_controlled)) {
+                   &main::print_log("[Sync all links] $next_name is not a candidate for syncing.  Moving to next");
                    $current_name = $next_name;
                    # move on
                    next;
@@ -129,12 +131,12 @@ sub _process_sync_links
             } elsif ($_sync_cnt == 1) {
                 #try again
                 $next_name = $current_name;
-                &main::print_log("[Scan all link tables] WARN: failure occurred when syncing $current_name.  Trying again...");
+                &main::print_log("[Sync all links] WARN: failure occurred when syncing $current_name.  Trying again...");
                 $_sync_cnt = $i + 1;
              } else {
                 # skip because this is a repeat failure
                 $next_name = $devices[$i+1] if $i+1 < $dev_cnt;
-                &main::print_log("[Scan all link tables] WARN: failure occurred when syncing $current_name.  Moving on...");
+                &main::print_log("[Sync all links] WARN: failure occurred when syncing $current_name.  Moving on...");
                 $_sync_failure_cnt = 0; # reset failure counter
                 $_sync_cnt = $i + 2;
                 # remove the queue_timer_callback
