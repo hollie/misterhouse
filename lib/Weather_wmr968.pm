@@ -114,7 +114,7 @@ sub update_wmr968_weather {
     my $debug = 1 if $main::Debug{weather};
     my $remainder = &read_wmr968($data, \%main::Weather, $debug);
     set_data $wmr968_port $remainder if $remainder;
-    &weather_updated;
+    &main::&weather_updated;
 }
 
 # Category=Weather
@@ -420,7 +420,7 @@ unless ($skip{Barom}) {
    $xb = &wx_b968;
    $$wptr{Barom} = sprintf('%.2f',($xb + 600));
 
-	$$wptr{BaromSea} = convert_local_barom_to_sea_mb($$wptr{Barom});
+	$$wptr{BaromSea} = &main::convert_local_barom_to_sea_mb($$wptr{Barom});
 	if ($main::config_parms{weather_uom_baro} eq 'in') {
 		grep {$_=&main::convert_mb2in($_);} (
 			$$wptr{Barom},
