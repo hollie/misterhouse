@@ -249,7 +249,7 @@ sub set
 		my ($dim_state) = $p_state =~ /(\d+)%?/;
 		$link_state = 'off' if $dim_state == 0;
 	}
-	if ($self->is_plm_controlled or !($self->is_root)) {
+#	if ($self->is_plm_controlled or !($self->is_root)) {
 		# iterate over the members
 		if ($$self{members}) {
 			foreach my $member_ref (keys %{$$self{members}}) {
@@ -288,7 +288,7 @@ sub set
 				}
 			}
 		}
-	}
+#	}
 	if ($self->is_keypadlinc and !($self->is_root)) {
 		if (ref $p_setby and $p_setby->isa('Insteon_Device')) {
 			$self->SUPER::set($p_state, $p_setby, $p_respond);
@@ -416,12 +416,16 @@ sub _xlate_mh_insteon
 sub request_status
 {
 	my ($self,$requestor) = @_;
-	if ($self->group ne '01') {
+#	if ($self->group ne '01') {
+	if ($$self{members}) {
 		&::print_log("[Insteon_Link] requesting status for members of " . $$self{object_name});
 		foreach my $member (keys %{$$self{members}}) {
 			$$self{members}{$member}{object}->request_status($self);
 		}
-	} else {
+	}
+	# the following has bad assumptions in that we don't always know if a device is a responder
+	#    since it could be a (no load) slave
+	if ($self->is_root && $self->is_responder) {
 		$self->SUPER::request_status($requestor);
 	}
 }
