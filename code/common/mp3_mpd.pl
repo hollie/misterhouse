@@ -23,6 +23,7 @@
  mp3_mpd.pl
 
  V1.0 Taken mp3 control code from mp3_xmms.pl. Modified to use Audio::MPD
+ V1.1 Remote Server Functionality has been added
 
 =cut
 
