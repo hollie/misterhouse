@@ -1,28 +1,36 @@
-# $Date$
-# $Revision$
-
-# Authority: anyone
-
-=begin comment
-
-	Useful for generating thumbnails for Slideshows
-
-	Todo: Add caching so that thumbnails arn't generated everytime a page is loaded.
-
-	Requires GD and Image::Resize
-=cut
-
-
 use Image::Resize;
 my $url;
 foreach my $argnum (0 .. $#ARGV) {
    $url .= "$ARGV[$argnum] ";
 }
+chop($url);
+my $image_file=$url;
 unless ($url =~ m/^\//){
 	$url = "/".$url;
 }
-chop($url);
-$url = $config_parms{html_alias_photos} .$url;
-my $image = Image::Resize->new($url);
-my $gd = $image->resize(50, 50);
-return $gd->jpeg();
+$image_file =~ s/^\///;
+$image_file =~ s/:/-/g;
+$image_file =~ s/\//-/g;
+$image_file =~ s/(.+)\.(.+)$/$1/;
+my $img;
+my $nocache = 0;
+#$nocache = 1;
+$image_file = "$config_parms{data_dir}/cache/$image_file.jpg";
+print $image_file ."\n";
+unless (-e "$image_file" or $nocache) {
+	$url = $config_parms{html_alias_photos} .$url;
+	my $image = Image::Resize->new($url);
+	my $gd = $image->resize(50, 50);
+	$img = $gd->jpeg();
+	open(FH, ">$image_file");
+    	print FH $img;
+    	close(FH);
+} else {
+	open(FH, $image_file);
+	binmode FH;
+	my ($buf, $data, $n); 
+	while (($n = read FH, $data, 4) != 0) { 
+		$img .= $data;
+	} 
+}
+return $img;
