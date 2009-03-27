@@ -38,4 +38,4 @@ unless (-e "$image_file" or $nocache) {
 	}
 	close(FH);
 }
-return $img;
+return &mime_header($image_file, 1, length $img) . $img;
