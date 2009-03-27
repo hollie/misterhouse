@@ -39,7 +39,7 @@ Slideshow = new Class({
 		overlap: true,
 		paused: false,
 		random: false,
-		replace: [/(\.[^\.]+)$/, 't$1'],
+		replace: [/^\/(.+)$/, '../bin/resizephoto.pl?$1'],
 		resize: 'width',
 		slide: 0,
 		thumbnails: false,

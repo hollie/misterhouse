@@ -8,6 +8,7 @@ $Revision$
 		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
 		<title>Misterhouse image viewer</title>
 		<link rel="stylesheet" href="css/layout.css" type="text/css" media="screen" charset="utf-8" />
+		<link rel="stylesheet" href="css/jd.gallery.css" type="text/css" media="screen" charset="utf-8" />
 		<link rel="stylesheet" type="text/css" href="css/slideshow.css" media="screen" />
 		<script type="text/javascript" src="js/mootools.js"></script>
 		<script type="text/javascript" src="js/slideshow.js"></script>
@@ -16,6 +17,21 @@ $Revision$
 		<script type="text/javascript" src="js/slideshow.kenburns.js"></script>
 		<script type="text/javascript" src="js/slideshow.push.js"></script>
 		<script type="text/javascript" src="/bin/photos_slideshow.pl"></script>
+
+		<style type="text/css">
+	 	   /* Overriding the default Slideshow thumbnails for the vertical presentation */
+		    .slideshow-thumbnails {
+		    	height: 480px;
+		    	left: auto;
+		    	right: -80px;
+		    	top: 0;
+		    	width: 70px;
+		    }
+		    .slideshow-thumbnails ul {
+		    	height: 500px;
+		    	width: 70px;
+		    }    
+	</style>
 
 	</head>
 	<body>
