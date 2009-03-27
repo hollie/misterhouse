@@ -1,3 +1,8 @@
+# $Date$
+# $Revision$
+
+# Authority: anyone
+
 use Image::Resize;
 my $url;
 foreach my $argnum (0 .. $#ARGV) {
@@ -16,12 +21,11 @@ my $img;
 my $nocache = 0;
 #$nocache = 1;
 $image_file = "$config_parms{data_dir}/cache/$image_file.jpg";
-print $image_file ."\n";
 unless (-e "$image_file" or $nocache) {
 	$url = $config_parms{html_alias_photos} .$url;
 	my $image = Image::Resize->new($url);
 	my $gd = $image->resize(50, 50);
-	$img = $gd->jpeg();
+	$img .= $gd->jpeg();
 	open(FH, ">$image_file");
     	print FH $img;
     	close(FH);
@@ -31,6 +35,7 @@ unless (-e "$image_file" or $nocache) {
 	my ($buf, $data, $n); 
 	while (($n = read FH, $data, 4) != 0) { 
 		$img .= $data;
-	} 
+	}
+	close(FH);
 }
 return $img;
