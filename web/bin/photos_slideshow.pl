@@ -32,6 +32,10 @@ my $time = $config_parms{photo_time};
 $time = 60 unless defined $time;
 my $effect = $config_parms{photo_effect};
 $effect = "none" unless defined $effect;
+my $thumbs = $config_parms{photo_thumbnails};
+$thumbs = 0 unless defined $thumbs;
+my $captions = $config_parms{photo_captions};
+$captions = 0 unless defined $captions;
 my $images = "";
 foreach (@photos){
 	my $file = $_;
@@ -64,7 +68,15 @@ if ($effect eq 'flash'){
 } elsif ($effect eq 'kenburns') {
 	$sseffect.=".KenBurns";
 } 
-$sseffect.="('show', data, { captions: true, controller: true, delay: ${time}000, duration: 1000, height: 480, hu: '$config_parms{photo_big_dirs}', thumbnails: true, width: 640 });";
+$sseffect.="('show', data, { ";
+if ($captions ne '0'){
+	$sseffect .= "captions: true, ";
+}
+$sseffect .="controller: true, delay: ${time}000, duration: 1000, height: 480, hu: '$config_parms{photo_big_dirs}', ";
+if ($thumbs ne '0'){
+        $sseffect .= "thumbnails: true, ";
+}
+$sseffect .="width: 640 });";
 
 my $js = <<eof;
 HTTP/1.0 200 OK
