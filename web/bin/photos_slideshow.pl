@@ -36,11 +36,14 @@ my $thumbs = $config_parms{photo_thumbnails};
 $thumbs = 0 unless defined $thumbs;
 my $captions = $config_parms{photo_captions};
 $captions = 0 unless defined $captions;
+$config_parms{photo_size} =~ m/(\d+)[x|X](\d+)/;
+my $width=$1;
+my $height=$2;
 my $images = "";
 foreach (@photos){
 	my $file = $_;
 	my $img = $file;
-	my @dirs = split(/,/, $config_parms{photo_dirs});
+	my @dirs = split(/,/, $config_parms{photo_big_dirs});
 	$file     =~  s/ /%20/g;
 	$file     =~  s/\#/%23/g;
         $file     =~  s/&/%26/g;
@@ -72,11 +75,11 @@ $sseffect.="('show', data, { ";
 if ($captions ne '0'){
 	$sseffect .= "captions: true, ";
 }
-$sseffect .="controller: true, delay: ${time}000, duration: 1000, height: 480, hu: '$config_parms{photo_big_dirs}', ";
+$sseffect .="controller: true, delay: ${time}000, duration: 1000, height: $height, hu: '$config_parms{photo_big_dirs}', ";
 if ($thumbs ne '0'){
         $sseffect .= "thumbnails: true, ";
 }
-$sseffect .="width: 640 });";
+$sseffect .="width: $width });";
 
 my $js = <<eof;
 HTTP/1.0 200 OK

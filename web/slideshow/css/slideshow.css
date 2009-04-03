@@ -56,8 +56,8 @@ Notes:
 */
 
 .slideshow-images {
-	height: 300px;
-	width: 400px;
+	height: 640px;
+	width: 480px;
 }		
 .slideshow-images-visible { 
 	opacity: 1;
@@ -286,12 +286,4 @@ Notes:
 .slideshow-thumbnails-inactive {
 	background-color: #FFF;
 	opacity: .5;
-}
-
-#show
-{
-	width: 640px;
-	height: 480px;
-	z-index:5;
-	border: 1px solid #000;
 }
