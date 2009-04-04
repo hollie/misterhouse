@@ -114,7 +114,7 @@ sub update_wmr968_weather {
     my $debug = 1 if $main::Debug{weather};
     my $remainder = &read_wmr968($data, \%main::Weather, $debug);
     set_data $wmr968_port $remainder if $remainder;
-    &main::&weather_updated;
+    &main::weather_updated;
 }
 
 # Category=Weather
