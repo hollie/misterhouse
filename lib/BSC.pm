@@ -179,7 +179,8 @@ sub set
             $subuid = substr($self->uid, 6) if length($self->uid) == 8;
             print "[BSC] " . $self->{object_name} . " extracting subaddress uid = $subuid\n" if $main::Debug{bsc};
          } else {
-            print "[BSC] " . $self->{object_name} . " does not have a xAP uid!\n" if $main::Debug{bsc};
+            print "[BSC] ERROR: " . $self->{object_name} . " does not have a registered xAP uid! Ignoring attempt to set object.\n";
+            return;
          }
          $id = $subuid if defined($subuid);
       } 
@@ -201,7 +202,9 @@ sub set
             $bsc_block->{'text'} = $p_state;
          } 
       }
-      &xAP::sendXap($$self{m_xap}{source}, 'xapbsc.cmd', 'output.state.1' => $bsc_block);
+      my $target_address = $$self{m_xap}{source};
+      $target_address =~ s/(\:.*)/\:\>/;
+      &xAP::sendXap($target_address, 'xapbsc.cmd', 'output.state.1' => $bsc_block);
       # if allow_local_set_state is set false, then don't propogate the state
       # and instead only allow the device to acknowledge it's state change via info or event
       $state = '_masked' if !($$self{m_allow_local_set_state});
