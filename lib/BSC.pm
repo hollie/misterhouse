@@ -172,11 +172,12 @@ sub set
       }
    } else {
       my $bsc_block;
-      my $id = '*';
+      my $id = undef;
       if ($xap_subaddress) {
-         my $subuid = '';
+         my $subuid = undef;
          if ($self->uid) {
-            $subuid = substr($self->uid, 6) if length($self->uid) == 8;
+            ($subuid) = $self->uid =~ /^F\S\.\S\S\S\S\:(\S\S)$/;
+            $subuid = substr($self->uid, 6) if !(defined $subuid) and length($self->uid) == 8;
             print "[BSC] " . $self->{object_name} . " extracting subaddress uid = $subuid\n" if $main::Debug{bsc};
          } else {
             print "[BSC] ERROR: " . $self->{object_name} . " does not have a registered xAP uid! Ignoring attempt to set object.\n";
@@ -184,7 +185,7 @@ sub set
          }
          $id = $subuid if defined($subuid);
       } 
-      $bsc_block->{'id'} = $id;
+      $bsc_block->{'id'} = $id if defined $id;
       if ($p_state eq 'off') {
          $bsc_block->{'state'} = 'off';
       } elsif ($p_state eq 'on') {
