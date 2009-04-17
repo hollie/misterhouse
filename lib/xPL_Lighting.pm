@@ -65,7 +65,7 @@ sub default_setstate
                 if $main::Debug{xpl_light};
            $$self{'preferred-net'} = $$self{'lighting.gateinfo'}{'preferred-net'};
            # send out a request to get info about the supported device list
-           $self->SUPER::send_cmnd('lighting.request' => { 'request' => 'dev-list' });
+           $self->SUPER::send_cmnd('lighting.request' => { 'request' => 'devlist' });
     	} elsif ($$self{changed} =~ /lighting\.devlist/) {
     	   &::print_log("[xPL_LightGateway] Received lighting.devlist message: status "
            	. $$self{'lighting.devlist'}{status}) if $main::Debug{xpl_light};
