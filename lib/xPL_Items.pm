@@ -850,7 +850,7 @@ sub tie_value_convertor {
 sub device_monitor {
     my ($self, $monitor_info) = @_;
     if ($monitor_info) {
-       my ($key,$value) = $monitor_info =~ /(\S+)\s*[:=]\s*(\S+)/;
+       my ($key,$value) = $monitor_info =~ /(\S+)\s*=\s*(\S+)/;
        if (!($value or $value =~ /^0/)) {
           $value = ($key) ? $key : $monitor_info;
           $key = 'device';
@@ -978,12 +978,12 @@ package xPL_Sensor;
 
 sub new {
     my ($class, $p_source, $p_type, $p_statekey) = @_;
-    my ($source,$deviceid) = $p_source =~ /(\S+):(\S+)/;
+    my ($source,$deviceid) = $p_source =~ /(\S+):([\S ]+)/;
     $source = $p_source unless $source;
     my $self = $class->SUPER::new($source);
     $$self{sensor_type} = $p_type if $p_type;
-    my $statekey = $p_statekey;
-    $statekey = 'current';
+    my $statekey = 'current';
+    $statekey = $p_statekey if $p_statekey;
     $self->SUPER::class_name('sensor.basic');
     $$self{state_monitor} = "sensor.basic : $statekey";
     $self->SUPER::device_monitor("device=$deviceid") if defined $deviceid;
