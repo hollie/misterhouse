@@ -176,7 +176,7 @@ sub set
       if ($xap_subaddress) {
          my $subuid = undef;
          if ($self->uid) {
-            ($subuid) = $self->uid =~ /^F\S\.\S\S\S\S\:(\S\S)$/;
+            ($subuid) = $self->uid =~ /^\S\S\.\S\S\S\S\:(\S\S)$/;
             $subuid = substr($self->uid, 6) if !(defined $subuid) and length($self->uid) == 8;
             print "[BSC] " . $self->{object_name} . " extracting subaddress uid = $subuid\n" if $main::Debug{bsc};
          } else {
