@@ -16,8 +16,6 @@ INSTEON_IRRIGATION, 12.34.56, irrigation, Irrigation, myPLM
 
 BUGS
 
-Requesting valve status currently doesn't work.   
-
 
 EXAMPLE USAGE
 
@@ -25,27 +23,27 @@ Creating the object:
    use Insteon_Irrigation;
    $irrigation = new Insteon_Irrigation($myPLM, '12.34.56');
 
-Turning on a valve: 
-   $v_valve_on = new Voice_Cmd "Turn on valve [1,2,3,4,5,6,7,8]"; 
-   if (my $valve = state_now $v_valve_on) {	
+Turning on a valve:
+   $v_valve_on = new Voice_Cmd "Turn on valve [1,2,3,4,5,6,7,8]";
+   if (my $valve = state_now $v_valve_on) {
    	$valve--;
 	set_valve $irrigation "0$valve", "on";
    }
- 
-Turning off a valve: 
-   $v_valve_off = new Voice_Cmd "Turn off valve [1,2,3,4,5,6,7,8]"; 
-   if (my $valve = state_now $v_valve_off) {	
+
+Turning off a valve:
+   $v_valve_off = new Voice_Cmd "Turn off valve [1,2,3,4,5,6,7,8]";
+   if (my $valve = state_now $v_valve_off) {
 	$valve--;
 	set_valve $irrigation "0$valve", "off";
    }
- 
+
 Requesting valve status:
-   $v_valve_status = new Voice_Cmd "Request valve status"; 
+   $v_valve_status = new Voice_Cmd "Request valve status";
    if (state_now $v_valve_status) {
 	poll_valve_status $irrigation;
    }
 
-NOTES 
+NOTES
 
 This module works with the EzFlora (aka EzRain) sprinkler controller, documented
 here http://www.simplehomenet.com/Downloads/EZRain%20Command%20Set.pdf
@@ -61,12 +59,6 @@ package Insteon_Irrigation;
 
 @Insteon_Irrigation::ISA = ('Insteon_Device');
 
-# override Insteon_Device's message_types
-
-my %message_types = (
-   %SUPER::message_types,
-   sprinkler_get_valve_status => 0x44
-);
 
 # -------------------- START OF SUBROUTINES --------------------
 # --------------------------------------------------------------
@@ -76,7 +68,12 @@ sub new {
 
    my $self = $class->SUPER::new($p_interface, $p_deviceid, $p_devcat);
    bless $self, $class;
-#   $self->restore_data('stuff');
+   $$self{active_valve_id} = undef;
+   $$self{active_program_number} = undef;
+   $$self{program_is_running} = undef;
+   $$self{pump_enabled} = undef;
+   $$self{valve_is_running} = undef;
+   $self->restore_data('active_valve_id', 'active_program_number', 'program_is_running', 'pump_enabled', 'valve_is_running');
    return $self;
 }
 
@@ -123,27 +120,50 @@ sub set_program {
    return;
 }
 
+sub get_active_valve_id() {
+   my ($self) = @_;
+   return $$self{'active_valve_id'};
+}
+
+sub get_valve_is_running() {
+   my ($self) = @_;
+   return $$self{'valve_is_running'};
+}
+
+sub get_active_program_number() {
+   my ($self) = @_;
+   return $$self{'active_program_number'};
+}
+
+sub get_program_is_running() {
+   my ($self) = @_;
+   return $$self{'program_is_running'};
+}
+
+sub get_pump_enabled() {
+   my ($self) = @_;
+   return $$self{'pump_enabled'};
+}
+
 sub _is_info_request {
    my ($self, $cmd, $ack_setby, %msg) = @_;
    my $is_info_request = 0;
-   if ($cmd eq 'sprinkler_get_valve_status'
+   if ($cmd eq 'sprinkler_control'
         or $cmd eq 'sprinkler_valve_on'
         or $cmd eq 'sprinkler_valve_off'
         or $cmd eq 'sprinkler_program_on'
         or $cmd eq 'sprinkler_program_off') {
       $is_info_request = 1;
-      my $val = $msg{extra};
+      my $val = hex($msg{extra});
       &::print_log("[Insteon_Irrigation] Processing data for $cmd with value: $val") if $main::Debug{insteon};
-      my $active_valve_id = $val >> 3;
-      my $active_program_number = $val >> 2;
-      my $program_is_running = $val >> 1;
-      my $pump_enabled = $val >> 1;
-      my $valve_is_running = $val >> 1;
-      &::print_log("[Insteon_Irrigation] active_valve_id: $active_valve_id,"
-        . " valve_is_running: $valve_is_running, active_program: $active_program_number,"
-        . " program_is_running: $program_is_running, pump_enabled: $pump_enabled") if $main::Debug{insteon};
-      # now, do something w/ the above vars--likely putting them into item properties, like:
-
+      $$self{'active_valve_id'} = ($val & 7) + 1;
+      $$self{'active_program_number'} = (($val >> 3) & 3) + 1;
+      $$self{'program_is_running'} = ($val >> 5) & 1;
+      $$self{'pump_enabled'} = ($val >> 6) & 1;
+      $$self{'valve_is_running'} = ($val >> 7) & 1;
+      &::print_log("[Insteon_Irrigation] active_valve_id: $$self{'active_valve_id'},"
+        . " valve_is_running: $$self{'valve_is_running'}, active_program: $$self{'active_program_number'},"
+        . " program_is_running: $$self{'program_is_running'}, pump_enabled: $$self{'pump_enabled'}") if $main::Debug{insteon};
    }
 
    return $is_info_request;
