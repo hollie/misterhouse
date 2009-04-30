@@ -3,6 +3,7 @@
 AUTHORS
 Gregg Liming <gregg@limings.net>
 David Norwood <dnorwood2@yahoo.com>
+Evan P. Hall <evan@netmagic.net>
 
 INITIAL CONFIGURATION
 In user code:
@@ -57,7 +58,7 @@ use strict;
 
 package Insteon_Irrigation;
 
-@Insteon_Irrigation::ISA = ('Insteon_Device');
+@Insteon_Irrigation::ISA = ('Insteon_Link');
 
 
 # -------------------- START OF SUBROUTINES --------------------
@@ -174,4 +175,4 @@ sub _is_info_request {
 # Overload methods we don't use, but would otherwise cause Insteon traffic.
 sub request_status { return 0 }
 
-1;
+	1;
