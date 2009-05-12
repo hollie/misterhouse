@@ -2,8 +2,7 @@
 #
 # Subversion $Date$
 # Subversion $Revision$
-#
-# TS=4
+# vim:ts=4:expandtab:
 #
 # Copyright 2002: Richard Morgan  omegaATbigpondDOTnetDOT.au    
 # Copyright 2008: Andrew McCallum, Mandoon Technologies andyATmandoonDOTcomDOTau
@@ -16,6 +15,18 @@
 #        On Windows:        run 'ppm',  then type 'install XML::Simple' 
 #                                FIXME is the windows command correct??
 #
+#   ******* IMPORTANT *******
+#   ***
+#   *** You must change the C-Gate configuration files found under the 'config' directory.
+#   ***
+#   *** In C-GateConfig.txt: Change global-event-level from 5 to 7, the new line will be:
+#   ***	    "global-event-level=7"
+#   ***
+#   *** In access.txt: Add a new line with your subnet, 
+#   *** eg. if your IP address is 192.168.72.42, then add the following line:
+#   ***	    "interface 192.168.72.255 Program"
+#   ***
+#   ******* IMPORTANT *******
 #
 # Revision History: 
 #    03-12-2001
@@ -996,12 +1007,17 @@ sub start_level_sync {
 # 
 sub attempt_level_sync {
     my @count = keys %addr_not_sync;
-    if ($#count < 1) {
+    print_log "CBus: attempt_level_sync() count=".@count if $Debug{cbus};
+
+    if (not %addr_not_sync) {
         print_log "CBus: Sync to CGate complete";
         $CBus_Sync = 1;
         $sync_in_progress = 0;
+
     } else {
-        foreach my $addr (keys %{ %addr_not_sync } )  {
+	print_log "CBus: attempt_level_sync() list:@count" if $Debug{cbus};
+
+        foreach my $addr (keys %addr_not_sync)  {
             # Skip if CBus scene group address
             if ($addr =~ /\/\/.+\/\d+\/202\/\d+/ or
                 $addr =~ /\/\/.+\/\d+\/203\/\d+/    ) {
@@ -1010,6 +1026,7 @@ sub attempt_level_sync {
             }
             set $cbus_talker "[MisterHouse $addr] get $addr level";    
         }
+
         eval_with_timer 'attempt_level_sync()', $DELAY_CHECK_SYNC;
     }
 }
