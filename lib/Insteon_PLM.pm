@@ -620,14 +620,14 @@ sub _parse_data {
 		my $nackcmd = $prev_cmd . '15';
 		my $badcmd = $prev_cmd . '0f';
 		my $entered_ack_loop = 0;
-		foreach my $data_1 (split(/($ackcmd)|($nackcmd)|($badcmd)|(0260\w{12}06)|(0260\w{12}15)/,$data))
+		foreach my $data_1 (split(/($ackcmd)|($nackcmd)|(0260\w{12}06)|(0260\w{12}15)|($badcmd)/,$data))
 		{
 			#ignore blanks.. the split does odd things
 			next if $data_1 eq '';
 
 			$entered_ack_loop = 1;
 
-			if ($data_1 =~ /^($ackcmd)|($nackcmd)|($badcmd)|(0260\w{12}06)|(0260\w{12}15)$/) {
+			if ($data_1 =~ /^($ackcmd)|($nackcmd)|(0260\w{12}06)|(0260\w{12}15)|($badcmd)$/) {
 				$processedNibs+=length($data_1);
 				my $ret_code = substr($data_1,length($data_1)-2,2);
 #				&::print_log("PLM: Return code $ret_code");
