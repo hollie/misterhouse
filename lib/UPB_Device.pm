@@ -130,7 +130,7 @@ sub set
     return if (ref $p_setby and $p_setby->can('get_set_by') and
         $p_setby->{set_by} eq $self);
 
-#   &::print_log($self->get_object_name() . "::set($p_state, $p_setby)");
+#   &::print_log($self->get_object_name() . "::set($p_state, $p_setby)") if $main::Debug{upbd};
 
 	if ($p_setby eq $self->interface())
 	{
@@ -147,13 +147,13 @@ sub set
 				if (!($source != $self->device_id() and $msg >= 0x80))
 				{
 					$p_state = $self->_xlate_upb_mh($l_state);
-				    &::print_log($self->get_object_name() . "::set($p_state, $p_setby)");
+				    &::print_log($self->get_object_name() . "::set($p_state, $p_setby)") if $main::Debug{upbd};
 				}
 			}
 		}
 	} else {
 		$$self{interface}->set($self->_xlate_mh_upb($p_state));
-	    &::print_log($self->get_object_name() . "::set($p_state, $p_setby)");
+	    &::print_log($self->get_object_name() . "::set($p_state, $p_setby)") if $main::Debug{upbd};
 	}
 	$self->SUPER::set($p_state,$p_setby,$p_response) if defined $p_state;
 }
@@ -174,7 +174,7 @@ sub _xlate_upb_mh
 	for my $key (keys %message_types){
 		if ($message_types{$key} == $msgid)
 		{
-#			&::print_log("FOUND: $key");
+			&::print_log("FOUND: $key") if $main::Debug{upbd};
 			$msg=$key;
 			last;
 		}
@@ -210,7 +210,7 @@ sub _xlate_mh_upb
 	$msg=$p_state;
 	$msg=~ s/\:.*$//;
 	$msg=lc($msg);
-#	&::print_log("XLATE:$msg:$p_state:");
+	&::print_log("XLATE:$msg:$p_state:") if $main::Debug{upbd};
 	if (uc($msg) eq 'ON')
 	{
 #		$msg = "fade_start";
@@ -276,7 +276,7 @@ sub _xlate_mh_upb
 	$cmd.= sprintf("%02X",$msg);
 	for my $arg (@args)
 	{
-#		&::print_log("XLATE3:$arg:@args:");
+		&::print_log("XLATE3:$arg:@args:") if $main::Debug{upbd};
 
 		$cmd.= sprintf("%02X",$arg);
 	}
