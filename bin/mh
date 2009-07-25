@@ -2424,7 +2424,7 @@ sub check_for_tied_events {
                     &print_log($log_msg) unless $log_msg eq '1';
 #                   $state2 = $state1 unless defined $state2;
                     $state2 = $state1 if $state2 eq 'all_states';
-                    if ($object2->can('set')) {
+                    if (ref $object2 && $object2->can('set')) {
                                 # Make sure we don't get into a loop with cross-tied objects
                         unless ($object1->{set_by} and
                                 ($object1->{set_by} eq $object2 or
@@ -3229,7 +3229,15 @@ sub list_voice_cmds_match {
     }
 }
 
-                                 # These functions can be used to change .mht entries
+sub list_all_object_names {
+    return keys(%objects_by_object_name);
+}
+
+sub list_all_objects {
+    return values(%objects_by_object_name);
+}
+
+                                # These functions can be used to change .mht entries
 sub mht_item_copy {
     my ($file, $pos) = @_;
     my @file_data = &file_read($file);
@@ -3690,6 +3698,9 @@ sub phrase_match {
 
 sub play {
     my %parms;
+
+    # honor ability to prevent local sound
+    return if $config_parms{disable_local_sound};
 
     if (@_ == 1) {              # Simple way ... no parms
         $parms{file} = $_[0];
@@ -4938,6 +4949,11 @@ sub read_user_code {
     @Object_Types = sort keys %object_names_by_type;
 }
 
+sub register_object_by_name {
+    my ($object_name, $object) = @_;
+    $objects_by_object_name{$object_name} = $object;
+}
+
 sub store_object_data {
     my ($object, $type, $webname, $member_name) = @_;
     my $code;
@@ -4949,7 +4965,8 @@ sub store_object_data {
 
                                # Now generate code for on-they-fly stored data
                                # because we don't get object reference till code is evaluated
-    $code  = qq[\$objects_by_object_name{'$object'} = $object;\n];
+#    $code  = qq[\$objects_by_object_name{'$object'} = $object;\n];
+    $code .= qq[&main::register_object_by_name('$object',$object);\n];
     $code .= $object . qq[->{category} = "$webname";\n];
     $code .= $object . qq[->{filename} = "$member_name";\n];
     $code .= $object . qq[->{object_name} = '$object';\n];
