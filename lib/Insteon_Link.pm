@@ -50,7 +50,7 @@ sub new
 	return $self;
 }
 
-sub add 
+sub add
 {
 	my ($self, $obj, $on_level, $ramp_rate) = @_;
 	if (ref $obj and (($obj->isa('Insteon_Device') and !($obj->is_plm_controlled)) or $obj->isa('Light_Item'))) {
@@ -144,8 +144,8 @@ sub sync_links
 					}
 				}
 				if ($requires_update) {
-					my %link_req = ( member => $member, cmd => 'update', object => $insteon_object, 
-						group => $self->group, is_controller => 0, 
+					my %link_req = ( member => $member, cmd => 'update', object => $insteon_object,
+						group => $self->group, is_controller => 0,
 						on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,
 						callback => "$self_link_name->_process_sync_queue()" );
 					# set data3 is device is a KeypadLinc
@@ -155,8 +155,8 @@ sub sync_links
 					push @{$$self{sync_queue}}, \%link_req;
 				}
 			} else {
-				my %link_req = ( member => $member, cmd => 'add', object => $insteon_object, 
-					group => $self->group, is_controller => 0, 
+				my %link_req = ( member => $member, cmd => 'add', object => $insteon_object,
+					group => $self->group, is_controller => 0,
 					on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,
 					callback => "$self_link_name->_process_sync_queue()" );
 				# set data3 is device is a KeypadLinc
@@ -166,8 +166,8 @@ sub sync_links
 				push @{$$self{sync_queue}}, \%link_req;
 			}
 			if (!($insteon_object->has_link($member, $self->group, 1, $linkmember->group))) {
-				my %link_req = ( member => $insteon_object, cmd => 'add', object => $member, 
-					group => $self->group, is_controller => 1, 
+				my %link_req = ( member => $insteon_object, cmd => 'add', object => $member,
+					group => $self->group, is_controller => 1,
 					callback => "$self_link_name->_process_sync_queue()" );
 				# set data3 is device is a KeypadLinc
 				if ($member->is_keypadlinc) {
@@ -181,15 +181,15 @@ sub sync_links
 	if (!($self->is_plm_controlled)) {
 		my $subaddress = ($self->is_keypadlinc) ? $self->group : '00';
 		if (!($insteon_object->has_link($self->interface,$self->group,1,$subaddress))) {
-			my %link_req = ( member => $insteon_object, cmd => 'add', object => $self->interface, 
-				group => $self->group, is_controller => 1, 
+			my %link_req = ( member => $insteon_object, cmd => 'add', object => $self->interface,
+				group => $self->group, is_controller => 1,
 				callback => "$self_link_name->_process_sync_queue()" );
 			$link_req{data3} = $self->group if $insteon_object->is_keypadlinc;
 			push @{$$self{sync_queue}}, \%link_req;
 		}
 		if (!($self->interface->has_link($insteon_object,$self->group,0,$subaddress))) {
-			my %link_req = ( member => $self->interface, cmd => 'add', object => $insteon_object, 
-				group => $self->group, is_controller => 0, 
+			my %link_req = ( member => $self->interface, cmd => 'add', object => $insteon_object,
+				group => $self->group, is_controller => 0,
 				callback => "$self_link_name->_process_sync_queue()" );
 			push @{$$self{sync_queue}}, \%link_req;
 		}
@@ -200,7 +200,7 @@ sub sync_links
 			if $main::Debug{insteon};
 	}
 	$self->_process_sync_queue();
-	
+
 	# TO-DO: consult links table to determine if any "orphaned links" refer to this device; if so, then delete
 	# WARN: can't immediately do this as the link tables aren't finalized on the above operations
 	#    until the end of the actual insteon memory poke sequences; therefore, may need to handle separately
@@ -219,7 +219,7 @@ sub _process_sync_queue {
 		} elsif ($link_req{cmd} eq 'add') {
 			my $link_member = $link_req{member};
 			$link_member->add_link(%link_req);
-		} 
+		}
 	} elsif ($$self{sync_queue_callback}) {
 		package main;
 		eval ($$self{sync_queue_callback});
@@ -257,13 +257,13 @@ sub set
 				my $on_state = $$self{members}{$member_ref}{on_level};
 				$on_state = '100%' unless $on_state;
 				my $local_state = $on_state;
-				$local_state = 'on' if $local_state eq '100%' 
+				$local_state = 'on' if $local_state eq '100%'
 					&& $member->isa('Insteon_Device') && !($member->is_root);
 				$local_state = 'off' if $local_state eq '0%' or $link_state eq 'off';
 				if ($member->isa('Light_Item')) {
 				# if they are Light_Items, then set their on_dim attrib to the member on level
 				#   and then "blank" them via the manual method for a tad over the ramp rate
-				#   In addition, locate the Light_Item's Insteon_Device member and do the 
+				#   In addition, locate the Light_Item's Insteon_Device member and do the
 				#   same as if the member were an Insteon_Device
 					my $ramp_rate = $$self{members}{$member_ref}{ramp_rate};
 					$ramp_rate = 0 unless defined $ramp_rate;
@@ -282,7 +282,7 @@ sub set
 				} elsif ($member->isa('Insteon_Device')) {
 				# remember the current state to support resume
 					$$self{members}{$member_ref}{resume_state} = $member->state;
-				# if they are Insteon_Device objects, then simply set_receive their state to 
+				# if they are Insteon_Device objects, then simply set_receive their state to
 				#   the member on level
 					$member->set_receive($local_state,$self);
 				}
@@ -321,7 +321,7 @@ sub update_members
 				my @lights = $member->find_members('Insteon_Device');
 				if (@lights) {
 					$device = @lights[0];
-				} 
+				}
 			} elsif ($member->isa('Insteon_Device')) {
 				$device = $member;
 			}
@@ -354,7 +354,7 @@ sub link_to_interface
 		}
 		# next, if the link is a keypadlinc, then create the reverse link to permit
 		# control over the button's light
-		if ($surrogate_obj->is_keypadlinc) { 
+		if ($surrogate_obj->is_keypadlinc) {
 
 		}
 	} else {
@@ -378,7 +378,7 @@ sub unlink_to_interface
 		$surrogate_obj->unlink_to_interface($group);
 		# next, if the link is a keypadlinc, then delete the reverse link to permit
 		# control over the button's light
-		if ($surrogate_obj->is_keypadlinc) { 
+		if ($surrogate_obj->is_keypadlinc) {
 
 		}
 	} else {
@@ -397,7 +397,7 @@ sub initiate_linking_as_controller
 			# if they are Light_Items, then set them to manual to avoid automation
 			#   while manually setting light parameters
 				$member->manual(1,120,120); # 120 seconds should be enough
-			} 
+			}
 		}
 	}
 	$self->interface()->initiate_linking_as_controller($p_group);
@@ -416,7 +416,7 @@ sub _xlate_mh_insteon
 sub request_status
 {
 	my ($self,$requestor) = @_;
-	if ($self->group ne '01') {
+	if (!($self->is_root) and (!(ref $requestor) or ($requestor eq $self))) {
 		&::print_log("[Insteon_Link] requesting status for members of " . $$self{object_name});
 		foreach my $member (keys %{$$self{members}}) {
 			$$self{members}{$member}{object}->request_status($self);
