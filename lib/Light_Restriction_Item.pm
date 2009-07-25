@@ -26,7 +26,7 @@ Usage:
 
       $om_auto_master_bath_light->add($om_motion_master_bath,
          $om_presence_master_bath, $only_when_dark);
-	
+
 	Input states:
       # To enable the tied light
       set $test_restrict ON;
@@ -43,7 +43,7 @@ Usage:
       You can attach to a scalar to automatically allow or disallow lights
       based on its value.  Any number of "light ok" values are allowed:
 
-         # Light can turn on when $Dark is true 
+         # Light can turn on when $Dark is true
          # (defaults to true when no OK values are given)
          $only_when_dark->attach_scalar(\$Dark);
 
@@ -51,7 +51,7 @@ Usage:
          $test_restrict->attach_scalar(\$Second, 0, 1, 2, 3, 4, 5, 6 , 7, 8, 9);
 
       Obviously the scalar could be your own variable and you can use
-      whatever logic you desire to determine its value and whatever 
+      whatever logic you desire to determine its value and whatever
       frequency you desire.  The value is checked once every second.
 
 	Attaching to a hash:
@@ -65,11 +65,11 @@ Usage:
 
          $only_when_dark->attach_hash_key(\%hash_name, 'hash_key');
 
-      As with the functions above and below, these parameters can be 
+      As with the functions above and below, these parameters can be
       followed by a list of any number of "okay" values.
 
 	Attaching to an object:
-      You can attach to another object to automatically allow or disallow 
+      You can attach to another object to automatically allow or disallow
       lights based on its state.  Any number of "light ok" values are allowed:
 
          # Only allow lights to turn on when mode_occupied is 'home'
@@ -78,7 +78,7 @@ Usage:
          # Only allow lights to turn on when mode_sleeping is 'nobody'
          $only_when_awake->attach_object($mode_sleeping, 'nobody');
 
-Special Thanks to: 
+Special Thanks to:
 	Jason Sharpee
 	jason@sharpee.com
    (for Occupancy_Monitor.pm, Light_Item.pm, Presence_Item.pm, etc)
@@ -110,7 +110,7 @@ sub initialize
 }
 
 sub _check_values {
-   if ($main::Startup) {
+   if ($main::Startup or $main::Reload) {
       foreach (@CheckStartup) {
          if ($$_{'attached_object'}) {
             &::print_log("$$_{object_name}: Checking attached object after startup") if $main::Debug{occupancy};
@@ -242,4 +242,3 @@ sub set
 }
 
 1;
-
