@@ -87,8 +87,8 @@ sub set
 {
 	my ($self,$p_state,$p_setby) = @_;
 
-   # Ignore the dark/light states
-   if (($p_state eq 'dark') or ($p_state eq 'light')) {
+   # Ignore the dark/light and normal states
+   if (($p_state eq 'dark') or ($p_state eq 'light') or ($p_state =~ /^normal/i)) {
       return;
    }
 
@@ -101,7 +101,7 @@ sub set
    # Hawkeye (MS13) motion detector and security sensors
    if (($p_state eq 'on') or ($p_state =~ /^alert/i)) {
       $p_state = 'motion';
-   } elsif (($p_state eq 'off') or ($p_state =~ /^normal/i)) {
+   } elsif (($p_state eq 'off')) { #or ($p_state =~ /^normal/i)) {
       $p_state = 'still';
    }
 
