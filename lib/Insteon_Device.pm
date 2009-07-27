@@ -227,7 +227,7 @@ sub initialize
 	# persist local, simple attribs
 	$$self{ping_timer} = new Timer();
 	$$self{ping_timerTime} = 300;
-	$$self{ping_timer}->set($$self{ping_timerTime} + (rand() * $$self{ping_timerTime}), $self) 
+	$$self{ping_timer}->set($$self{ping_timerTime} + (rand() * $$self{ping_timerTime}), $self)
 		unless $self->group eq '01' and defined $self->devcat;
 }
 
@@ -371,12 +371,12 @@ sub set
 		# if it can't be controlled (i.e., a responder), then don't send out any signals
 		# motion sensors seem to get multiple fast reports; don't trigger on both
 		if (not defined($self->get_idle_time) or $self->get_idle_time > 1) {
-			&::print_log("[Insteon_Device] " . $self->get_object_name() 
+			&::print_log("[Insteon_Device] " . $self->get_object_name()
 				. "::set_receive($p_state, $p_setby)") if $main::Debug{insteon};
 			$self->set_receive($p_state,$p_setby);
 		} else {
-			&::print_log("[Insteon_Device] " . $self->get_object_name() 
-				. "::set_receive($p_state, $p_setby) deferred due to repeat within 1 second") 
+			&::print_log("[Insteon_Device] " . $self->get_object_name()
+				. "::set_receive($p_state, $p_setby) deferred due to repeat within 1 second")
 				if $main::Debug{insteon};
 		}
 		return;
@@ -400,17 +400,18 @@ sub set
 			$p_state = 'on';
 		}
 
-		if (ref $p_setby and (($p_setby eq $self->interface()) 
+		if (ref $p_setby and (($p_setby eq $self->interface())
 			or ($p_setby->isa('Insteon_Device') and (($p_setby eq $self)
 			or (&main::set_by_to_target($p_setby) eq $self->interface)))))
 		{
 			# don't reset the object w/ the same state if set from the interface
-			return if (lc $p_state eq lc $self->state) and $self->is_acknowledged;
-			&::print_log("[Insteon_Device] " . $self->get_object_name() 
+			return if (lc $p_state eq lc $self->state) and $self->is_acknowledged
+                        	and not (($p_setby->isa('Insteon_Device') and (($p_setby eq $self))));
+			&::print_log("[Insteon_Device] " . $self->get_object_name()
 				. "::set($p_state, $p_setby)") if $main::Debug{insteon};
 			$self->SUPER::set($p_state,$p_setby,$p_response) if defined $p_state;
 		} else {
-			$self->_send_cmd(command => $p_state, 
+			$self->_send_cmd(command => $p_state,
 				type => (($self->isa('Insteon_Link') and !($self->is_root)) ? 'alllink' : 'standard'),
 				'is_synchronous' => $self->send_synchronously);
 			&::print_log("[Insteon_Device] " . $self->get_object_name() . "::set($p_state, $p_setby)")
@@ -457,7 +458,7 @@ sub link_to_interface
 	my $callback_instance = $self->interface->get_object_name;
 	my $callback_info = "deviceid=" . lc $self->device_id . " group=$group is_controller=0";
 	my %link_info = ( object => $self->interface, group => $group, is_controller => 1,
-		on_level => '100%', ramp_rate => '0.1s', 
+		on_level => '100%', ramp_rate => '0.1s',
 		callback => "$callback_instance->add_link('$callback_info')");
 	$link_info{data3} = $p_data3 if $p_data3;
 	$self->add_link(%link_info);
@@ -516,11 +517,11 @@ sub _process_command_stack
 					# do nothing
 				} else {
 					push(@{$$self{command_stack}}, \%{$$self{_prior_msg}});
-					&::print_log("[Insteon_Device] WARN: queue timer on " . $self->get_object_name . 
+					&::print_log("[Insteon_Device] WARN: queue timer on " . $self->get_object_name .
 					" expired. Attempting resend: $$self{_prior_msg}{command}");
 				}
 			} else {
-				&::print_log("[Insteon_Device] WARN: queue timer on " . $self->get_object_name . 
+				&::print_log("[Insteon_Device] WARN: queue timer on " . $self->get_object_name .
 				" expired. Trying next command if queued.");
 				$$self{m_status_request_pending} = 0; # hack--need a better way
 				if ($self->queue_timer_callback) {
@@ -760,7 +761,7 @@ sub _process_message
 	if ($msg{is_ack}) {
 		my $pending_cmd = ($$self{_prior_msg}) ? $$self{_prior_msg}{command} : $msg{command};
 		if ($$self{awaiting_ack}) {
-			my $ack_setby = (ref $$self{m_status_request_pending}) 
+			my $ack_setby = (ref $$self{m_status_request_pending})
 				? $$self{m_status_request_pending} : $p_setby;
 			if ($self->_is_info_request($pending_cmd,$ack_setby,%msg)) {
 				$self->is_acknowledged(1);
@@ -776,25 +777,25 @@ sub _process_message
 				$self->is_acknowledged(1);
 				# signal receipt of message to the command stack in case commands are queued
 				$self->_process_command_stack(%msg);
-				&::print_log("[Insteon_Device] received command/state (awaiting) acknowledge from " . $self->{object_name} 
+				&::print_log("[Insteon_Device] received command/state (awaiting) acknowledge from " . $self->{object_name}
 					. ": $pending_cmd and data: $msg{extra}") if $main::Debug{insteon};
-			} 
+			}
 		} else {
 			# allow non-synchronous messages to also use the _is_info_request hook
 			$self->_is_info_request($pending_cmd,$p_setby,%msg);
 			$self->is_acknowledged(1);
 			# signal receipt of message to the command stack in case commands are queued
 			$self->_process_command_stack(%msg);
-			&::print_log("[Insteon_Device] received command/state acknowledge from " . $self->{object_name} 
+			&::print_log("[Insteon_Device] received command/state acknowledge from " . $self->{object_name}
 				. ": " . (($msg{command}) ? $msg{command} : "(unknown)")
 				. " and data: $msg{extra}") if $main::Debug{insteon};
 		}
 	} elsif ($msg{is_nack}) {
 		if ($$self{awaiting_ack}) {
-			&::print_log("[Insteon_Device] WARN!! encountered a nack message for " . $self->{object_name} 
+			&::print_log("[Insteon_Device] WARN!! encountered a nack message for " . $self->{object_name}
 				. " ... waiting for retry");
 		} else {
-			&::print_log("[Insteon_Device] WARN!! encountered a nack message for " . $self->{object_name} 
+			&::print_log("[Insteon_Device] WARN!! encountered a nack message for " . $self->{object_name}
 				. " ... skipping");
 			$self->is_acknowledged(0);
 			$self->_process_command_stack(%msg);
@@ -812,8 +813,8 @@ sub _process_message
 		## TO-DO: make sure that the state passed by command is something that is reasonable to set
 		$p_state = $msg{command};
 		$$self{_pending_cleanup} = 1 if $msg{type} eq 'alllink';
-#		$self->set($p_state, $p_setby) unless (lc($self->state) eq lc($p_state)) and 
-		$self->set($p_state, $self) unless (lc($self->state) eq lc($p_state)) and 
+#		$self->set($p_state, $p_setby) unless (lc($self->state) eq lc($p_state)) and
+		$self->set($p_state, $self) unless (lc($self->state) eq lc($p_state)) and
 			($msg{type} eq 'cleanup' and $$self{_pending_cleanup});
 		$$self{_pending_cleanup} = 0 if $msg{type} eq 'cleanup';
 	}
@@ -875,7 +876,7 @@ sub _xlate_insteon_mh
 		for my $key (keys %message_types){
 			if (pack("C",$message_types{$key}) eq pack("H*",$cmd1))
 			{
-				&::print_log("[Insteon_Device] found: $key") 
+				&::print_log("[Insteon_Device] found: $key")
 					if (!($msg{is_ack} or $msg{is_nack})) and $main::Debug{insteon};
 				$msg{command}=$key;
 				last;
@@ -1004,7 +1005,7 @@ sub _on_poke
 				$$self{adlb}{$adlbkey}{deviceid} = lc $$self{pending_adlb}{deviceid};
 				$$self{adlb}{$adlbkey}{group} = lc $$self{pending_adlb}{group};
 				$$self{adlb}{$adlbkey}{address} = $$self{pending_adlb}{address};
-				# on completion, check to see if the empty links list is now empty; if so, 
+				# on completion, check to see if the empty links list is now empty; if so,
 				# then decrement the current address and add it to the list
 				my $num_empty = @{$$self{adlb}{empty}};
 				if (!($num_empty)) {
@@ -1032,7 +1033,7 @@ sub _on_poke
 				package main;
 				eval ($callback);
 				package Insteon_Device;
-				&::print_log("[Insteon_Device] error in link callback: " . $@) 
+				&::print_log("[Insteon_Device] error in link callback: " . $@)
 					if $@ and $main::Debug{insteon};
 			}
 		}
@@ -1071,7 +1072,7 @@ sub _on_poke
 			$$self{_mem_callback} = undef;
 			package main;
 			eval ($callback);
-			&::print_log("[Insteon_Device] error in link callback: " . $@) 
+			&::print_log("[Insteon_Device] error in link callback: " . $@)
 				if $@ and $main::Debug{insteon};
 			package Insteon_Device;
 			$$self{_mem_callback} = undef;
@@ -1084,7 +1085,7 @@ sub _on_peek
 {
 	my ($self,%msg) = @_;
 	if ($msg{is_extended}) {
-		&::print_log("Insteon_Device: extended peek for " . $self->{object_name} 
+		&::print_log("Insteon_Device: extended peek for " . $self->{object_name}
 		. " is " . $msg{extra}) if $main::Debug{insteon};
 	} else {
 		if ($$self{_mem_action} eq 'adlb_peek') {
@@ -1158,7 +1159,7 @@ sub _on_peek
 				$$self{pending_adlb}{group} = lc $msg{extra};
 				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
 				$$self{_mem_action} = 'adlb_devhi';
-				$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 
+				$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb},
 						'is_synchronous' => 1);
 			} else {
 				$self->_send_cmd('command' => 'poke', 'extra' => $$self{pending_adlb}{group},
@@ -1221,7 +1222,7 @@ sub _on_peek
 				if ($$self{pending_adlb}{highwater}) {
 					if ($$self{pending_adlb}{inuse}) {
 					# save pending_adlb and then clear it out
-						my $adlbkey = lc $$self{pending_adlb}{deviceid} 
+						my $adlbkey = lc $$self{pending_adlb}{deviceid}
 							. $$self{pending_adlb}{group}
 							. $$self{pending_adlb}{is_controller};
 						# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
@@ -1260,9 +1261,9 @@ sub _on_peek
 			$self->_send_cmd('command' => 'poke', 'extra' => $flags, 'is_synchronous' => 1);
 		}
 #
-#			&::print_log("Insteon_Device: peek for " . $self->{object_name} 
+#			&::print_log("Insteon_Device: peek for " . $self->{object_name}
 #		. " is " . $msg{extra}) if $main::Debug{insteon};
-	}	
+	}
 }
 
 sub restore_string
@@ -1461,7 +1462,7 @@ sub delete_link
 		$$self{_mem_activity} = 'delete';
 		$$self{pending_adlb}{address} = $link_parms{address};
 		$self->_peek($link_parms{address},0);
-	
+
 	} else {
 		my $insteon_object = $link_parms{object};
 		my $deviceid = ($insteon_object) ? $insteon_object->device_id : $link_parms{deviceid};
@@ -1580,7 +1581,7 @@ sub delete_orphan_links
 					$num_deleted++;
 				} else {
 					my $is_invalid = 1;
-					my $link = ($is_controller) ? $self->interface->get_object($self->device_id,$group) 
+					my $link = ($is_controller) ? $self->interface->get_object($self->device_id,$group)
 						: $self->interface->get_object($device->device_id,$group);
 					if ($link) {
 						foreach my $member_ref (keys %{$$link{members}}) {
@@ -1617,7 +1618,7 @@ sub delete_orphan_links
 			my $address = pop @{$$self{adlb}{duplicates}};
 			while ($address) {
 				my %delete_req = (address => $address,
-					callback => "$selfname->_process_delete_queue()", 
+					callback => "$selfname->_process_delete_queue()",
 					cause => "duplicate record found");
 				push @{$$self{delete_queue}}, \%delete_req;
 				$num_deleted++;
@@ -1642,7 +1643,7 @@ sub _process_delete_queue {
 		} else {
 			&::print_log("[Insteon_Device] " . $self->get_object_name . " now deleting orphaned link w/ details: "
 				. (($delete_req{is_controller}) ? "controller" : "responder")
-				. ", " . (($delete_req{object}) ? "device=" . $delete_req{object}->get_object_name 
+				. ", " . (($delete_req{object}) ? "device=" . $delete_req{object}->get_object_name
 				: "deviceid=$delete_req{deviceid}") . ", group=$delete_req{group}, cause=$delete_req{cause}");
 		}
 		$self->delete_link(%delete_req);
@@ -1699,7 +1700,7 @@ sub add_link
 		my $ramp_rate = $link_parms{ramp_rate};
 		$ramp_rate =~ s/(\d)s?/$1/;
 		$ramp_rate = '0.1' unless $ramp_rate; # 0.1s is the default
-		&::print_log("[Insteon_Device] adding link record " . $self->get_object_name 
+		&::print_log("[Insteon_Device] adding link record " . $self->get_object_name
 			. " light level controlled by " . $insteon_object->get_object_name
 			. " and group: $group with on level: $on_level and ramp rate: $ramp_rate") if $main::Debug{insteon};
 		my $data1 = &Insteon_Device::convert_level($on_level);
@@ -1774,7 +1775,7 @@ sub log_alllink_table
 
 		my $rspndr_group = $$self{adlb}{$adlbkey}{data3};
 		$rspndr_group = '01' if $rspndr_group eq '00';
-	
+
 		my $ramp_rate = 'unknown';
 		if ($$self{adlb}{$adlbkey}{data2}) {
 			if (!($self->is_dimmable) or (!($is_controller) and ($rspndr_group != '01'))) {
@@ -1835,7 +1836,7 @@ sub update_flags
 
 	$$self{_mem_activity} = 'update_flags';
 	$$self{_operating_flags} = $flags;
-	$self->_peek('0023'); 
+	$self->_peek('0023');
 }
 
 
@@ -1875,7 +1876,7 @@ sub _write_link
 		$$self{pending_adlb}{data3} = (defined $data3) ? lc $data3 : '00';
 		$self->_peek($address);
 	} else {
-		&::print_log("[Insteon_Device] WARN: " . $self->get_object_name 
+		&::print_log("[Insteon_Device] WARN: " . $self->get_object_name
 			. " write_link failure: no address available for record to device: $deviceid and group: $group" .
 				" and is_controller: $is_controller");;
 	}
