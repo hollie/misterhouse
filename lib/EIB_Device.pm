@@ -16,11 +16,14 @@ Notes:
         Red Hat 9 (linux kernel version 2.4.20-8), EIB driver version 0.2.4
         Fedora Core 3 (linux kernel version 2.6.13), EIB driver version 0.2.6.2
     eibd tested with BCU2 backend on
-        Gentoo Linux (kernel 2.6.14), bcusdk-0.0.1
+        Gentoo Linux (kernel 2.6.23), bcusdk-0.0.3
 
 Authors:
  09/09/2005  Created by Peter Sjödin peter@sjodin.net
  20060205    Added EIB access via eibd by Mike Pieper eibdmh@pieper-family.de
+ 20090721    Overworked eibd communication by Mike Pieper eibdmh@pieper-family.de
+             eib_device --> eib_connection to avoid clash with generic device
+             using only one group socket
 
 =cut
 
@@ -38,13 +41,15 @@ my $EibdProtoInfo;  # Protocol specific info
 
 sub startup {
     return if $started++;
-    return unless my $dev = $::config_parms{eib_device}; # Is EIB enabled?
+    die "Parameter eib_device has changed to eib_connection!\nPlease change ini file!\n\n" if $::config_parms{eib_device};
+    return unless my $dev = $::config_parms{eib_connection}; # Is EIB enabled?
+    printf " - initializing EIB connection to '$dev' ...";
     if ($dev =~ /(.+):(.+)/) {
                                 # Using eibd communication
         die "EIB: Only ip supported on eibd communication" unless $1 eq "ip";
         $EibdProto = $1;
         $EibdProtoInfo = $2;
-        die "Can't communicate with EIB" unless openMonitor ();
+        die "Can't communicate with EIB" unless openEIBSocket ();
         &::MainLoop_pre_add_hook(\&EIB_Device::check_for_eibddata, 1);
     } else {
                                 # Using direct BCU1 communication
@@ -53,7 +58,7 @@ sub startup {
         &::Exit_add_hook(\&EIB_Device::resetdevice, 1);
         &::MainLoop_pre_add_hook(\&EIB_Device::check_for_data, 1);
     }
-   &main::print_log( "EIB device \"$dev\" initialized");
+    printf (" ok\n");
 }
 
 # Initialize BCU device
@@ -213,13 +218,15 @@ sub encode {
 #
 # eibd communication part
 #
-my $MonSock;
+my $EIBSock;
 my $EibdConnectionError = 0;
 
-sub openMonitor {
-    # Connect to eibd to listen on the bus
-    if ($MonSock = connectEIB ()) {
-	openVBusmonitor ($MonSock);
+sub openEIBSocket {
+    # Connect to eibd to listen for group communication
+    &main::print_log("Opening EIB connection") if $main::config_parms{eib_errata} >= 9;
+    if($EIBSock = connectEIB ()) {
+      &main::print_log("Opening group socket") if $main::config_parms{eib_errata} >= 9;
+      openGroupSocket ($EIBSock);
     }
 }
 
@@ -229,20 +236,15 @@ sub writeeibd {
 
     my ($src, $dst, $daf, $bytes) = unpack ("xxnnCa*", $data);
 
-    return unless my $Sock = connectEIB();
-
     if ($daf & 0x80) {
 	# Group communication
 
 	my $srctxt = addr2str ($src);
 	my $dsttxt = addr2str ($dst, 1);
 
-	openT_Group ($Sock, $dst);
-	sendAPDU ($Sock, $bytes);
+	sendGroup ($EIBSock, $dst, $bytes);
     } else {
-	printf "Physical destination address not tested\n";
-	openT_TPDU ($Sock, 0);
-	sendTPDU ($Sock, $dst, $bytes);
+	print "Only group communication is supported!\n";
     }
 }
 
@@ -267,114 +269,59 @@ sub connectEIB {
     }
 }
 
-# Open group
-sub openT_Group {
+# Functions four group socket communication
+# Open a group socket for group communication
+# openGroupSocket SOCK
+sub openGroupSocket {
     my $Sock = shift;
-    my $destAddr = shift;
 
-    # print "openT_Group\n";
-
-    my @msg = (0x0022,			# EIB_OPEN_T_GROUP
-	       $destAddr,
-	       0x00);
-    sendRequest ($Sock, pack ("nnC", @msg));
+    my @msg = (0x0026,0x0000,0x00);			# EIB_OPEN_GROUPCON
+    sendRequest ($Sock, pack "nnC" ,@msg);
     goto error unless my $answer = getRequest ($Sock);
     my $head = unpack ("n", $answer);
-    goto error unless $head == 0x0022;
+    goto error unless $head == 0x0026;
     return 1;
 
   error:
-    printf "openT_Group failed\n";
+    print "openGroupSocket failed\n";
     return undef;
 }
 
-# Open layer 4 connection
-# Expects source address
-sub openT_TPDU {
+# Send group data
+# sendGroup SOCK DEST DATA
+sub sendGroup {
     my $Sock = shift;
-    my $srcAddr = shift;
-
-    # print "OpenT_TPDU\n";
-
-    my @msg = (0x0024,			# EIB_OPEN_T_TPDU
-	       $srcAddr,
-	       0x00);
-    sendRequest ($Sock, pack ("nnC" ,@msg));
-    goto error unless my $answer = getRequest ($Sock);
-    my $head = unpack ("n", $answer);
-    goto error unless $head == 0x0024;
-    return 1;
-
-  error:
-    print "openT_TPDU failed\n";
-    return undef;
-}
-
-# Activate virtual bus monitor
-# openVBusmonitor SOCK
-sub openVBusmonitor {
-    my $Sock = shift;
-
-    # print "OpenVBusmonitor\n";
-
-    my @msg = (0x0012);			# EIB_OPEN_T_TPDU
-    sendRequest ($Sock, pack "n" ,@msg);
-    goto error unless my $answer = getRequest ($Sock);
-    my $head = unpack ("n", $answer);
-    goto error unless $head == 0x0012;
-    return 1;
-
-  error:
-    print "openVBusmonitor failed\n";
-    return undef;
-}
-
-# Send an APDU packet
-# sendAPDU DATA
-sub sendAPDU {
-    my $Sock = shift;
+    my $Dest = shift;
     my ($str) = @_;
 
-    my @msg = (0x0025);			# EIB_APDU_PACKET
-    push @msg, $str;
+    #print "SendGroupPacket: ", unpack("H*",$str), "\n";
 
-    sendRequest ($Sock, pack "na*", @msg);
+    my @msg = (0x0027,$Dest);			# EIB_GROUP_PACKET
+    push @msg, $str;
+    sendRequest ($Sock, pack "nna*", @msg);
+    goto error unless my $answer = getRequest ($Sock);
+    my $head = unpack ("n", $answer);
+    goto error unless $head == 0x0027;
+    return 1;
+
+  error:
+    print "sendGroup failed\n";
+    return undef;
 }
 
-# Send a TPDU packet
-# Expects destAddr, data
-sub sendTPDU {
-    my $Sock = shift;
-    my $destAddr = shift;
-    my ($str) = @_;
-
-    # my $strDestAddr = addr2str ($destAddr, 1);
-    # print "sendTPDU to $strDestAddr\n";
-
-    my @msg = (0x0025,			# EIB_APDU_PACKET
-	       $destAddr);
-    push @msg, $str;
-
-    sendRequest ($Sock, pack "nnC*", @msg);
-}
-
-# Gets a packet from bus monitor
-# DATA = getBusmonitorPacket SOCK
-sub getBusmonitorPacket {
+# Receive group data
+# getGroup_Src SOCK
+sub getGroup_Src {
     my $Sock = shift;
 
     goto error unless my $buf = getRequest ($Sock);
     my ($head, $data) = unpack ("na*", $buf);
-    goto error unless $head == 0x0014;
-
-    # Modify data to make it compatible to data from BCU1
-    my @tmpdat = unpack ("C" . (bytes::length($data)-1), $data);
-    $data = pack "CCC" . $#tmpdat, $tmpdat[0], 0, @tmpdat[1..$#tmpdat];
+    goto error unless $head == 0x0027;
 
     return $data;
 
   error:
-    print "getBusmonitorPacket failed\n";
+    print "getGroup_Src failed\n";
     return undef;
 }
 
@@ -383,6 +330,7 @@ sub getBusmonitorPacket {
 sub sendRequest {
     my $Sock = shift;
     my ($str) = @_;
+    #print "Sending packet: ", unpack("H*",$str), "\n";
     my $size = bytes::length($str);
     my @head = (($size >> 8) & 0xff, $size & 0xff);
     return undef unless syswrite $Sock, (pack "CC", @head);
@@ -397,6 +345,7 @@ sub getRequest {
     goto error unless sysread $Sock, $data, 2;
     my $size = unpack ("n", $data);
     goto error unless sysread $Sock, $data, $size;
+    #print "Received packet: ", unpack("H*",$data), "\n";
     return $data;
 
   error:
@@ -412,31 +361,42 @@ sub check_for_eibddata {
     my ($buf);
 
 
-    openMonitor () unless $MonSock;
-    if ($MonSock) {
+    openEIBSocket () unless $EIBSock;
+    if ($EIBSock) {
 	# Check for input
 	$rin = $win = $ein = '';
-	vec($rin, fileno($MonSock), 1) = 1;
+	vec($rin, fileno($EIBSock), 1) = 1;
 	$ein = $rin;
 	($nfound) = select($rout=$rin, undef,  undef, 0);
 	if ($nfound > 0) {
-	    if (my $buf = getBusmonitorPacket ($MonSock)) {
-		my $msg = decode($buf);
+	    if (my $buf = getGroup_Src ($EIBSock)) {
+    		# Modify data to make it compatible to data from BCU1
+    		my @tmpdat = unpack ("nna*", $buf);
+		my $data = pack "CCnnCa*", 0xbc, 0x00, $tmpdat[0], $tmpdat[1], 0xe1, $tmpdat[2];
+                #print "Modified packet: ", unpack("H*",$data), "\n";
+		my $msg = decode($data);
 		EIB_Item::receive_msg($msg);
 	    } else {
 		# Close socket in case of errors
-		close $MonSock;
-		$MonSock = undef;
+		close $EIBSock;
+		$EIBSock = undef;
 	    }
 	}
     }
 
-    # Check for output
-    $count++ unless $count > $::config_parms{eib_send_interval};
-    if (($#outqueue >= 0) && $count >= $::config_parms{eib_send_interval}) {
-	$count = 0;
-	my $mref = shift @outqueue;
-	writeeibd(encode ($mref));
+    openEIBSocket () unless $EIBSock;
+    if ($EIBSock) {
+        # Check for output
+        $count++ unless $count > $::config_parms{eib_send_interval};
+        if (($#outqueue >= 0) && $count >= $::config_parms{eib_send_interval}) {
+	    $count = 0;
+	    my $mref = shift @outqueue;
+	    if (!writeeibd(encode ($mref))) {
+		# Close socket in case of errors
+		close $EIBSock;
+		$EIBSock = undef;
+	    }
+        }
     }
 }
 
