@@ -9,17 +9,32 @@ EIB/KNX website:
 
 Notes:
     The following EIB types are supported:
-    EIS  1: Switches
-    EIS  2: Dimmers
-    EIS  3: Time
-    EIS  4: Date
-    EIS  5: Values (weather stations etc)
-    EIS  6: Scaling (0 - 100%)
-    EIS  7: Motor drives
-    EIS 15: 14 byte text messages
+   (MH Klassname, DPT Type, EIS Type, Description)
+
+    EIB1:    DPT  1.001, EIS 1,      Switches
+    EIB2:    NA,         EIS 2,      Dimmers
+    EIB3:    DPT 10.000, EIS 3,      Time
+    EIB4:    DPT 11.000, EIS 4,      Date
+    EIB5:    DPT  9.000, EIS 5,      Values (weather stations etc)
+    EIB6:    DPT  5.001, EIS 6,      Scaling (0 - 100%)
+    EIB7:    NA,         EIS 7,      Motor drives
+    EIB8:    DPT  2.001, EIS 8,      forced control 2 bit
+    EIB9:    DPT 14.00x, EIS 9,      32-bit float
+    EIB10:   DPT  7.001, EIS 10,     16-bit unsigned integer
+    EIB10_1: DPT  8.001, EIS 10.001, 16-bit   signed integer
+    EIB11:   DPT 12.001, EIS 11,     32-bit unsigned integer
+    EIB11_1: DPT 13.001, EIS 11.001, 32-bit   signed integer
+    EIB14:   DPT  6.001, EIS 14,      8-bit   signed integer
+    EIB14_1: DPT  5.010, EIS 14.1;    8-bit unsigned integer
+    EIB15:   DPT 16.000, EIS 15,     14 byte text messages
+
+    EIBW:    NA,         NA,         summary object for 2 EIS1 Objects 
+                                     to define the state of a window
+                                     (closed, tilt, open)
 
 Authors:
  09/09/2005  Created by Peter Sjödin peter@sjodin.net
+ 06/01/2009  Enhanced by Ralf Klueber r(at)lf-klueber.de
 
  $Date$
  $Revision$
@@ -924,6 +939,352 @@ sub set_receive {
     }
 }
 
+# EIB8_Item: "forced control". 2 bit
+# Enforcement  ON  + Turn Device ON  (11)
+# Enforcement  ON  + Turn Device OFF (10)
+# Enforcement  OFF + Turn Device OFF (00)
+# Enforcement  OFF + Turn Device ON  (01)
+
+package EIB8_Item;
+
+@EIB8_Item::ISA = ('EIB_Item');
+
+sub new {
+    my ($class, $id, $mode) = @_;
+
+    my $self  = $class->SUPER::new($id, $mode);
+    $self->add($id . '00', '00');
+    $self->add($id . '01', '01');
+    $self->add($id . '10', '10');
+    $self->add($id . '11', '11');
+    return $self;
+}
+
+sub eis_type {
+    return '8';
+}
+
+sub decode {
+    my ($self, @data) = @_;
+    my $res;
+
+    unless ($#data == 0) {
+	&main::print_log("Not EIS type 8 data received for $self->{groupaddr}: \[@data\]") if $main::config_parms{eib_errata} >= 2;
+	return;
+    }
+    if (($data[0] & 0x03) == 0) {
+        return '00';
+    } elsif (($data[0] & 0x03) == 1) {
+        return '01';
+    } elsif (($data[0] & 0x03) == 2) {
+        return '10';
+    } else {
+        return '11';
+    }
+
+}
+
+sub encode {
+    my ($self, $state) = @_;
+
+    if ($state eq '00') {
+        return ([0]);
+    } elsif ($state eq '01') {
+        return ([1]);
+    } elsif ($state eq '10') {
+        return ([2]);
+    } elsif ($state eq '11') {
+        return ([3]);
+    }
+    else {
+        print "Invalid state for EIS type 8: \'$state\'\n";
+        return;
+    }
+}
+
+# EIB9_Item: 32-bit float
+
+package EIB9_Item;
+
+@EIB9_Item::ISA = ('EIB_Item');
+
+sub eis_type {
+    return '9';
+}
+
+sub decode {
+    my ($self, @data) = @_;
+    my $res;
+
+    unless ($#data == 4) {
+        &main::print_log("Not EIS type 9 data received for $self->{groupaddr}: \[@data\]") if $main::config_parms{eib_errata} >= 2;
+        return;
+    }
+    my $res = unpack "f", pack "L", (($data[1] << 24 ) | ($data[2] << 16 ) | ($data[3] << 8 ) | $data[4]);
+    
+#    &main::print_log("EIS9 for $self->{groupaddr}: >$res<");
+    return $res;
+}
+
+sub encode {
+    my ($self, $state) = @_;
+    my $res;
+    $res = unpack "L", pack "f", $state;
+    #&main::print_log("Res: $res State: $state \n");
+    return([0, ($res & 0xff000000) >> 24, ($res & 0xff0000) >> 16, ($res & 0xff00) >> 8, $res & 0xff]);
+}
+
+# EIB10_Item: 16-bit unsigned integer
+package EIB10_Item;
+
+@EIB10_Item::ISA = ('EIB_Item');
+
+sub eis_type {
+    return '10';
+}
+
+sub decode {
+    my ($self, @data) = @_;
+    my $res;
+
+    unless ($#data == 2) {
+        &main::print_log("Not EIS type 10 data received for $self->{groupaddr}: \[@data\]") if $main::config_parms{eib_errata} >= 2;
+        return;
+    }
+    my $res = ($data[1] << 8) | $data[2];
+
+#    &main::print_log("EIS10 for $self->{groupaddr}: >$res<");
+    return $res;
+}
+
+sub encode {
+    my ($self, $state) = @_;
+
+    return([0, ($state & 0xff00) >> 8, $state & 0xff]);
+}
+
+# EIB10.1_Item: 16-bit signed integer
+
+package EIB10_1_Item;
+
+@EIB10_1_Item::ISA = ('EIB_Item');
+
+sub eis_type {
+    return '10.1';
+}
+
+sub decode {
+    my ($self, @data) = @_;
+    my $res;
+
+    unless ($#data == 2) {
+        &main::print_log("Not EIS type 10.1 data received for $self->{groupaddr}: \[@data\]") if $main::config_parms{eib_errata} >= 2;
+        return;
+    }
+    my $res = ($data[1] << 8 ) | $data[2];
+    
+    if ($data[1] < 128) { 
+        return $res;
+        }
+    else{
+        return (0-(0xFFFF-$res+1));
+    }
+}
+
+sub encode {
+    my ($self, $state) = @_;
+    my $res;
+    if (int($state) < 0) {
+        $res = ($state + 0xFFFF +1);
+        }
+    else {
+        $res = $state;
+        }
+    return([0, ($res & 0xff00) >> 8, $res & 0xff]);
+}
+
+# EIB11_Item: 32-bit unsigned integer
+
+package EIB11_Item;
+
+@EIB11_Item::ISA = ('EIB_Item');
+
+sub eis_type {
+    return '11';
+}
+
+sub decode {
+    my ($self, @data) = @_;
+    my $res;
+
+    unless ($#data == 4) {
+	&main::print_log("Not EIS type 11 data received for $self->{groupaddr}: \[@data\]") if $main::config_parms{eib_errata} >= 2;
+	return;
+    }
+    my $res = ($data[1] << 24 ) | ($data[2] << 16 ) | ($data[3] << 8 ) | $data[4];
+
+#    &main::print_log("EIS11 for $self->{groupaddr}: >$res<");
+    return $res;
+}
+
+sub encode {
+    my ($self, $state) = @_;
+
+    return([0, ($state & 0xff000000) >> 24, ($state & 0xff0000) >> 16, ($state & 0xff00) >> 8, $state & 0xff]);
+}
+
+# EIB11.1_Item: 32-bit signed integer
+
+package EIB11_1_Item;
+
+@EIB11_1_Item::ISA = ('EIB_Item');
+
+sub eis_type {
+    return '11';
+}
+
+sub decode {
+    my ($self, @data) = @_;
+    my $res;
+
+    unless ($#data == 4) {
+        &main::print_log("Not EIS type 11 data received for $self->{groupaddr}: \[@data\]") if $main::config_parms{eib_errata} >= 2;
+        return;
+    }
+    my $res = ($data[1] << 24 ) | ($data[2] << 16 ) | ($data[3] << 8 ) | $data[4];
+    
+#    &main::print_log("EIS11 for $self->{groupaddr}: >$res<");
+    if ($data[1] < 128) { 
+        return $res;
+        }
+    else{
+        return (0-(0xFFFFFFFF-$res+1));
+    }
+}
+
+sub encode {
+    my ($self, $state) = @_;
+    my $res;
+    if (int($state) < 0) {
+        $res = ($state + 0xFFFFFFFF +1);
+        }
+    else {
+        $res = $state;
+        }
+    #&main::print_log("Res: $res State: $state \n");
+    return([0, ($res & 0xff000000) >> 24, ($res & 0xff0000) >> 16, ($res & 0xff00) >> 8, $res & 0xff]);
+}
+
+# EIB14_Item: 8-bit signed integer
+
+package EIB14_Item;
+
+@EIB14_Item::ISA = ('EIB_Item');
+
+sub eis_type {
+    return '14';
+}
+
+sub decode {
+    my ($self, @data) = @_;
+    my $res;
+
+    unless ($#data == 1) {
+        &main::print_log("Not EIS type 14 data received for $self->{groupaddr}: \[@data\]") if $main::config_parms{eib_errata} >= 2;
+        return;
+    }
+    my $res = $data[1];
+    
+    if ($data[1] < 128) { 
+        return $res;
+        }
+    else{
+        return (0-(0xFF-$res+1));
+    }
+}
+
+sub encode {
+    my ($self, $state) = @_;
+    my $res;
+    if (int($state) < 0) {
+        $res = ($state + 0xFF +1);
+        }
+    else {
+        $res = $state;
+        }
+    #&main::print_log("Res: $res State: $state \n");
+    return([0, $res & 0xff]);
+}
+
+# EIB14.1_Item: "scaling". Relative values 0-255 with 8 bit resolution
+
+package EIB14_1_Item;
+
+@EIB14_1_Item::ISA = ('EIB_Item');
+
+sub eis_type {
+    return '14.1';
+}
+
+sub decode {
+    my ($self, @data) = @_;
+    my $res;
+
+    unless ($#data == 1) {
+	&main::print_log("Not EIS type 14.1 data received for $self->{groupaddr}: \[@data\]") if $main::config_parms{eib_errata} >= 2;
+	return;
+    }
+    $res = sprintf("%.0f", $data[1]);
+    return $res;
+}
+
+sub encode {
+    my ($self, $state) = @_;
+    my $newval;
+    if ($state =~ /^(\d+)$/) {
+	$newval = $1;
+    }
+    elsif ($state =~ /^\+(\d+)$/) {
+	$newval = $self->{state} + $1;
+	$newval = 255 if ($newval > 255);
+    }
+    elsif ($state =~ /^\-(\d+)$/) {
+	if ($self->{state} < $1) {
+	    $newval = 0;
+	}
+	else {
+	    $newval = $self->{state} - $1;
+	}
+    }
+    elsif ($state =~ /^(\d+)\%$/) {
+	$newval = $1;
+    }
+    else {
+	print "Invalid state for EIS type 14.1: \'$state\'\n";
+	return;
+    }
+    my $byte = sprintf ("%.0f", $newval);
+    return([0, int $byte]);
+}
+
+
+# set receive -- detected a "read" or "write" message on the bus.  For
+# readable actuators, don't trust the values in "write" messages, as
+# they may not have been accepted by the actuator. So if it is a
+# write, and the actuator is readable, generate a read request to
+# obtain the actual value from the actuator
+
+sub set_receive {
+    my ($self, $state, $set_by, $target, $read) = @_;
+
+    if (!$read && $self->{readable}) {
+	$self->delayed_read_request();
+    }
+    else {
+	$self->SUPER::set_receive($state, $set_by, $target);
+    }
+}
+#----
 # EIS 7: Drive control
 # Blinds, windows, etc
 # Drives can be controlled in two different ways:
@@ -1155,139 +1516,6 @@ sub encode {
     }
 }
 
-# EIB9_Item: 32-bit float
-
-package EIB9_Item;
-
-@EIB9_Item::ISA = ('EIB_Item');
-
-sub eis_type {
-    return '9';
-}
-
-sub decode {
-    my ($self, @data) = @_;
-    my $res;
-
-    unless ($#data == 4) {
-        &main::print_log("Not EIS type 9 data received for $self->{groupaddr}: \[@data\]") if $main::config_parms{eib_errata} >= 2;
-        return;
-    }
-    my $res = unpack "f", pack "L", (($data[1] << 24 ) | ($data[2] << 16 ) | ($data[3] << 8 ) | $data[4]);
-    
-#    &main::print_log("EIS9 for $self->{groupaddr}: >$res<");
-    return $res;
-}
-
-sub encode {
-    my ($self, $state) = @_;
-    my $res;
-    $res = unpack "L", pack "f", $state;
-    #&main::print_log("Res: $res State: $state \n");
-    return([0, ($res & 0xff000000) >> 24, ($res & 0xff0000) >> 16, ($res & 0xff00) >> 8, $res & 0xff]);
-}
-
-# EIB10_Item: 16-bit unsigned integer
-package EIB10_Item;
-
-@EIB10_Item::ISA = ('EIB_Item');
-
-sub eis_type {
-    return '10';
-}
-
-sub decode {
-    my ($self, @data) = @_;
-    my $res;
-
-    unless ($#data == 2) {
-        &main::print_log("Not EIS type 10 data received for $self->{groupaddr}: \[@data\]") if $main::config_parms{eib_errata} >= 2;
-        return;
-    }
-    my $res = ($data[1] << 8) | $data[2];
-
-#    &main::print_log("EIS10 for $self->{groupaddr}: >$res<");
-    return $res;
-}
-
-sub encode {
-    my ($self, $state) = @_;
-
-    return([0, ($state & 0xff00) >> 8, $state & 0xff]);
-}
-
-# EIB11_Item: 32-bit unsigned integer
-
-package EIB11_Item;
-
-@EIB11_Item::ISA = ('EIB_Item');
-
-sub eis_type {
-    return '11';
-}
-
-sub decode {
-    my ($self, @data) = @_;
-    my $res;
-
-    unless ($#data == 4) {
-	&main::print_log("Not EIS type 11 data received for $self->{groupaddr}: \[@data\]") if $main::config_parms{eib_errata} >= 2;
-	return;
-    }
-    my $res = ($data[1] << 24 ) | ($data[2] << 16 ) | ($data[3] << 8 ) | $data[4];
-
-#    &main::print_log("EIS11 for $self->{groupaddr}: >$res<");
-    return $res;
-}
-
-sub encode {
-    my ($self, $state) = @_;
-
-    return([0, ($state & 0xff000000) >> 24, ($state & 0xff0000) >> 16, ($state & 0xff00) >> 8, $state & 0xff]);
-}
-
-# EIB11S_Item: 32-bit _S_IGNED integer
-
-package EIB11S_Item;
-
-@EIB11S_Item::ISA = ('EIB_Item');
-
-sub eis_type {
-    return '11';
-}
-
-sub decode {
-    my ($self, @data) = @_;
-    my $res;
-
-    unless ($#data == 4) {
-        &main::print_log("Not EIS type 11 data received for $self->{groupaddr}: \[@data\]") if $main::config_parms{eib_errata} >= 2;
-        return;
-    }
-    my $res = ($data[1] << 24 ) | ($data[2] << 16 ) | ($data[3] << 8 ) | $data[4];
-    
-#    &main::print_log("EIS11 for $self->{groupaddr}: >$res<");
-    if ($data[1] < 128) { 
-        return $res;
-        }
-    else{
-        return (0-(0xFFFFFFFF-$res+1));
-    }
-}
-
-sub encode {
-    my ($self, $state) = @_;
-    my $res;
-    if (int($state) < 0) {
-        $res = ($state + 0xFFFFFFFF +1);
-        }
-    else {
-        $res = $state;
-        }
-    #&main::print_log("Res: $res State: $state \n");
-    return([0, ($res & 0xff000000) >> 24, ($res & 0xff0000) >> 16, ($res & 0xff00) >> 8, $res & 0xff]);
-}
-
 # EIB15_Item: 14-Byte Text Message
 
 package EIB15_Item;
@@ -1320,6 +1548,9 @@ sub encode {
     return \@res;
 }
 
+# EIBW: Windows type of object wich uses 2 underlaying EIB1 Items (Top and Bottom)
+# Definition as follows
+# EIBW , GA1|GA2, Name, nameforOffOf|nameOffOn|NameOnOff|NameOnOn
 
 package EIBW_Item;
 
@@ -1327,7 +1558,7 @@ package EIBW_Item;
 
 # new: create an EIBW_Item. Instantiate the three underlying items.
 sub new {
-    my ($class, $id) = @_;
+    my ($class, $id, $mode) = @_;
     my @groups;
     my ($subid, $item);
 
@@ -1345,16 +1576,21 @@ sub new {
 
     if ($groups[0] ne $groups[1]) {
       $subid = $groups[1];
-      $item = new EIBW1_Item($subid, "", $id);
+      $item = new EIBW1_Item($subid, "R", $id);
       $item->add($subid . 'on', 'on');
       $item->add($subid . 'off', 'off');
     }
 
+    $mode = "closed|tilt|tilt|open" if (!(defined $mode));
+    $self->{Modes} = $mode;
+    my @modes =  split(/\|/, $mode);
+    print "Four states required for window. Found $#modes in $id\n" if ($#modes != 3);
+
     $self->{Bottom} = $subid;
-    
-    $self->add($id . 'open', 'open');
-    $self->add($id . 'tilt', 'tilt');
-    $self->add($id . 'close', 'close');
+    # remove duplicates
+    for my $s ( keys %{{ map { $_ => 1 } @modes }} ) {
+      $self->add($id . $s, $s);
+    }
 
     return $self;
 }
@@ -1388,10 +1624,12 @@ sub set_receive {
 
     my $top    = $self->top()->state_final();
     my $bottom = $self->bottom()->state_final();
-
-    $state = "closed";
-    $state = "tilt"  if ($top eq "on" && $bottom eq "off");
-    $state = "open" if ($top eq "on" && $bottom eq "on");
+    
+    my @modes = split(/\|/, $self->{Modes});
+    $state = $modes[0];
+    $state = $modes[1] if ($top eq "on" && $bottom eq "off");
+    $state = $modes[2] if ($top eq "off" && $bottom eq "on");
+    $state = $modes[3] if ($top eq "on" && $bottom eq "on");
 
     #&main::print_log("################### t:$top b:$bottom w:$state ");
 
