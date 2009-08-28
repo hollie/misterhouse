@@ -491,7 +491,7 @@ sub http_process_request {
 #       print "Error, no SET argument: $header\n" unless $get_arg;
 
                                 # Change select_item=$item&select_state=abc to $item=abc
-        $get_arg =~ s/select_item=(\S+)\&&select_state=/$1=/;
+										        $get_arg =~ s/select_item=(\S+)\&&select_state=/$1=/;
 
                                 # Drop the &&x=n&&y=n that is tacked on (before or after) when doing image form submits
                                 # Do the same in RUN above
@@ -1773,7 +1773,7 @@ sub html_find_icon_image {
         $state = lc $object->state();
         $state = lc $object->state_level() if ($type eq 'x10_item' or 
             $type eq 'x10_switchlinc') ;
-        if ($type eq 'insteon_device') {
+        if ($type eq 'insteon_device' or $type eq 'insteon_link') {
             $state = lc $object->level();
             $state = 'off' unless $state; 
             $state = 'on' if $state == 100; 
