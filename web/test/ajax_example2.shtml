@@ -1,0 +1,111 @@
+<html>
+<head>
+<title>Ajax Example #2</title>
+
+<script language="Javascript">
+
+function xmlhttpGet(strURL) {
+	var xmlHttpReq = false;
+	var self = this; 
+	// Mozilla/Safari
+	if (window.XMLHttpRequest) {
+		self.xmlHttpReq = new XMLHttpRequest();
+	} 
+	// IE
+	else if (window.ActiveXObject) {
+		self.xmlHttpReq = new ActiveXObject("Microsoft.XMLHTTP");
+	}
+	strURL = strURL.replace(/SID/, Math.random());
+	self.xmlHttpReq.open('GET', strURL, true);
+	self.xmlHttpReq.onreadystatechange = function() {
+		if (self.xmlHttpReq.readyState == 4) {
+			var i;
+			var elmntName = '';
+			var x = self.xmlHttpReq.responseXML.getElementsByTagName('weather');
+			for (i = 0; i < x[0].childNodes.length; i++) {
+				var e;
+				if (x[0].childNodes[i].nodeType != 1) {
+					continue;
+				}
+				elmntName = x[0].childNodes[i].nodeName; 
+				e = document.getElementById(elmntName);
+
+				// Skip over any result elements that aren't defined on our page
+				if (e) {
+					if (x[0].childNodes[i].firstChild) {
+						e.innerHTML = x[0].childNodes[i].firstChild.nodeValue;
+					}
+					else { 
+						e.innerHTML = '';
+					}
+				}
+			}
+		}
+	}
+	self.xmlHttpReq.send(null);
+}
+
+</script>
+</head>
+
+<body>
+<h3 align="center">Weather</h3>
+
+<p>This is a very simple example of using Ajax technology with Misterhouse.  It doesn't use 
+any special javascript library, but it does assume you are running a script that populates 
+the Misterhouse %Weather hash.  This script gets its data from <a href="/sub?xml(weather)">the Misterhouse XML server</a>
+every ten seconds.</p>
+
+<table>
+<tr>
+<td>
+<div id="weather" class="datapod">
+<div class="datapodspace">
+Outside Temperature: <span id="TempOutdoor"></span>º
+ <!--#include var="$config_parms{weather_uom_temp}"-->
+<br />
+Outside Humidity: <span id="HumidOutdoor"></span>%
+<br />
+Dew Point: <span id="DewOutdoor"></span>º
+ <!--#include var="$config_parms{weather_uom_temp}"-->
+<br />
+Rain Total: <span id="RainTotal"></span> 
+ <!--#include var="$config_parms{weather_uom_rain}"-->
+<br />
+Rain Rate: <span id="RainRate"></span> 
+ <!--#include var="$config_parms{weather_uom_rainrate}"-->
+<br />
+Wind Speed: <span id="WindAvgSpeed"></span> 
+ <!--#include var="$config_parms{weather_uom_wind}"-->
+<br />
+Wind Direction: <span id="WindAvgDir"></span>º 
+<br />
+Wind Chill: <span id="WindChill"></span>º
+ <!--#include var="$config_parms{weather_uom_temp}"-->
+<br />
+Barometer: <span id="Barom"></span> 
+ <!--#include var="$config_parms{weather_uom_baro}"-->
+<br />
+Indoor Temperature: <span id="TempIndoor"></span>º
+ <!--#include var="$config_parms{weather_uom_temp}"-->
+<br />
+Indoor Humidity: <span id="HumidIndoor"></span>%
+<br />
+</div>
+</div>
+<td>
+</tr>
+</table>
+<script>
+
+var url = "/sub?xml(weather,SID)";
+
+window.onload = function() {
+	xmlhttpGet(url);
+	setInterval("xmlhttpGet(url)", 10000);
+}
+
+</script>
+</body>
+</html>
+

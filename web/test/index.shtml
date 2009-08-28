@@ -1,0 +1,12 @@
+<html>
+<title>MisterHouse web/test Directory</title>
+<link rel="STYLESHEET" href="/default.css" type="text/css">
+</head>
+
+<body>
+<h3>MisterHouse mh/test Directory</h3>
+
+<!--#include code="&dir_index('/test')"-->
+
+</body> 
+</html>

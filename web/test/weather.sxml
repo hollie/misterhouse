@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+<response>
+<TempOutdoor><!--#include var="$Weather{TempOutdoor}"--></TempOutdoor>
+<HumidOutdoor><!--#include var="$Weather{HumidOutdoor}"--></HumidOutdoor>
+<TempIndoor><!--#include var="$Weather{TempIndoor}"--></TempIndoor>
+<HumidIndoor><!--#include var="$Weather{HumidIndoor}"--></HumidIndoor>
+<DewOutdoor><!--#include var="$Weather{DewOutdoor}"--></DewOutdoor>
+<WindAvgSpeed><!--#include var="$Weather{WindAvgSpeed}"--></WindAvgSpeed>
+<WindAvgDir><!--#include var="$Weather{WindAvgDir}"--></WindAvgDir>
+<WindChill><!--#include var="$Weather{WindChill}"--></WindChill>
+<Barom><!--#include var="$Weather{Barom}"--></Barom>
+<RainTotal><!--#include var="$Weather{RainTotal}"--></RainTotal>
+<RainRate><!--#include var="$Weather{RainRate}"--></RainRate>
+</response>

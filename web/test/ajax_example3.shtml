@@ -1,0 +1,77 @@
+
+<html>
+<head>
+<title>Ajax Example #3</title>
+
+<script language="Javascript">
+
+var prev_html; 
+
+function xmlhttpGet(strURL) {
+	var xmlHttpReq = false;		
+	var self = this; 
+	// Mozilla/Safari
+	if (window.XMLHttpRequest) {
+		self.xmlHttpReq = new XMLHttpRequest();
+	} 
+	// IE
+	else if (window.ActiveXObject) {
+		self.xmlHttpReq = new ActiveXObject("Microsoft.XMLHTTP");
+	}
+	strURL = strURL.replace(/SID/, Math.random());
+	self.xmlHttpReq.open('GET', strURL, true);
+	self.xmlHttpReq.onreadystatechange = function() {
+		if (self.xmlHttpReq.readyState == 4) {
+			var i;
+			var elmntName = '';
+			var html = '<table>';
+			var x = self.xmlHttpReq.responseXML.getElementsByTagName('object');
+			for (i = 0; i < x.length; i++) {
+				var e;
+				if (x[i].nodeType != 1) {
+					continue;
+				}
+				elmntName = x[i].getElementsByTagName("name")[0].text; 
+				html += '<tr id="' + elmntName + '">';
+				html += x[i].getElementsByTagName("html")[0].firstChild.nodeValue;
+				html += '</tr>';
+			}
+			html += '</table>';
+			if (prev_html != html) {
+				document.getElementById("lights").innerHTML = html;
+				prev_html = html;
+			}
+		}
+	}
+	self.xmlHttpReq.send(null);
+}
+
+</script>
+</head>
+
+<body>
+<h3 align="center">Lights</h3>
+
+<p>This is a very simple example of using Ajax technology with Misterhouse.  It doesn't use 
+any special javascript library, but it does assume you have an All_Lights group defined in your 
+pl or mht files and that group contains one or more lights.  This web page has been tested with
+Insteon lights, but should work with other light items as well (X10, UPB, etc.)
+This script gets its data from <a href="/sub?xml(groups=$All_Lights,fields=html,SID)">the Misterhouse XML server</a>
+every ten seconds.</p>
+
+<div id='lights'>
+</div>
+<script>
+
+var url = "/sub?xml(groups=$All_Lights,fields=html,SID)";
+
+window.onload = function() {
+	xmlhttpGet(url);
+	setInterval("xmlhttpGet(url)", 10000);
+}
+
+</script>
+
+</body>
+</html>
+
