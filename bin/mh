@@ -3850,7 +3850,7 @@ sub play {
                                 # Some linux guys had problems with problems with rc being mis-set
                                 # with the fork, so default to system calls
 
-            if (($main::Info{OS_name} eq "OSX") or  $config_parms{sound_fork} eq "fork") {
+            if (($main::Info{OS_name} eq "darwin") or ($config_parms{sound_fork} eq "fork") or ($config_parms{sound_fork} == 1)) {
                 print_log ("Playing sound file $file with $sound_program") if $Debug{play};
                 my $kid = fork;
                 warn "Cannot fork in &play: $!" unless defined $kid;
