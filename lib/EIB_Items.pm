@@ -35,6 +35,7 @@ Notes:
 Authors:
  09/09/2005  Created by Peter Sjödin peter@sjodin.net
  06/01/2009  Enhanced by Ralf Klueber r(at)lf-klueber.de
+ 08/01/2009  Listening addresses by Mike Pieper mptei@sourceforge.net
 
  $Date$
  $Revision$
@@ -46,34 +47,50 @@ use strict;
 package EIB_Item;
 @EIB_Item::ISA = ('Generic_Item');
 
-my %eib_item_by_id;
+my %eib_items_by_id;
 
 sub reset {
-    undef %eib_item_by_id;   # Reset on code re-load
+    undef %eib_items_by_id;   # Reset on code re-load
 }
 
 # Lookup EIB_Item with the given address
-sub eib_item_by_id {
+sub eib_items_by_id {
     my($id) = @_;
-    return $eib_item_by_id{$id};
+    &main::print_log ("eib_items_by_id: asking for \'$id\'") if $main::config_parms{eib_errata} >= 8;
+    return unless defined $eib_items_by_id{$id};
+    return @{ $eib_items_by_id{$id} };
 }
 
 # Generic EIB_Item class. This class is not instantiated directly. It is used to inherit common
 # EIB properties
 sub new {
-    my ($class, $id, $mode) =  @_;
+    my ($class, $idstr, $mode) =  @_;
     my $self  = $class->SUPER::new();
 
-   print "\n\nWarning: duplicate ID codes on different EIB_Item objects:\n " .
-         "id=$id states=@{${eib_item_by_id($id)}{states}}\n\n" if (eib_item_by_id($id));
-
-    add($self, $id);
     bless $self, $class;
-    $self->{groupaddr} = $id if $id;
 
-    if (defined $mode) {
-	$self->{readable} = 1 if (index($mode, "R") != -1 || index($mode, "r") != -1);
+    if ($idstr =~ /\|/) {
+      &main::print_log ("EIB_Item: '$idstr' is a combined address vector. Ignore it") if $main::config_parms{eib_errata} >= 3;
+    } else {
+      my @ids = split /\+/, $idstr;
+      &main::print_log ("EIB_Item: '$idstr' is splitted into '@ids'") if $main::config_parms{eib_errata} >= 3;
+      $self->{groupaddr} = $ids[0];
+      map { $self->addEIBAddress ($_) } @ids;
     }
+
+    $self->{readable} = 0;
+    $self->{displayonly} = 0;
+    map {
+    	if ($_ eq "R" || $_ eq "r") {
+		$self->{readable} = 1;
+	} elsif ($_ eq "DO" || $_ eq "do") {
+		$self->{displayonly} = 1;
+	} elsif ($_ =~ /^label=(.*)$/) {
+		$self->set_label ($1);
+	} elsif ($_ =~ /^icon=(.*)$/) {
+		$self->set_icon ($1);
+	}
+    }  split(/\|/, $mode) if (defined $mode);
     if ($self->{readable}) {
 	# trigger future EIB read command
 	$self->read_request();
@@ -81,16 +98,15 @@ sub new {
     return $self;
 }
 
-sub add {
-    my ($self, $id, $state) = @_;
-    $state = $id  unless (defined $state && $state ne '');
+sub addStates {
+  my $self = shift;
+  push(@{$$self{states}}, @_) unless $self->{displayonly};
+}
 
-    $$self{state_by_id}{$id} = $state if defined $id;
-    $$self{id_by_state}{$state} = $id if defined $state;
-    push(@{$$self{states}}, $state) if defined $state;
-    print "**** WARNING **** Duplicated state \'$state\' for id \'$id\'\n", $state, $id
-	if ($id && eib_item_by_id($id));
-    $eib_item_by_id{$id} = $self;
+sub addEIBAddress {
+	my ($self, $addr) = @_;
+	&main::print_log ("addEIBAddress: registering $addr for $self") if $main::config_parms{eib_errata} >= 3;
+    	push (@{$eib_items_by_id{$addr}}, $self);
 }
 
 # Item name to appear in logs etc
@@ -98,8 +114,14 @@ sub printname {
     my($name) = @_;
 
     if ($name =~ /\d+\/\d+\/\d+/) {
-	my $item = eib_item_by_id($name);
-	$name = $item->{object_name} if (defined $item && defined $item->{object_name});
+	my @eib_items = EIB_Item::eib_items_by_id($name);
+        if (@eib_items) {
+		$name = "";
+		map {  
+			my $eib_item = $_;
+			$name = $name . $eib_item->{object_name} . " " if (defined $eib_item && defined $eib_item->{object_name});
+		} @eib_items;
+	}
     }
     return $name;
 }
@@ -109,6 +131,7 @@ sub printname {
 sub set_receive {
     my ($self, $state, $set_by, $target) = @_;
 
+    &main::print_log ("EIB_Item::set_receive: state '$state' for $self") if $main::config_parms{eib_errata} >= 3;
     return if &main::check_for_tied_filters($self, $state, $set_by);
     # Set target to symbolic item name, if possible
     $target = $self->{groupaddr} unless (defined $target);
@@ -118,6 +141,8 @@ sub set_receive {
 
 sub set {
     my ($self, $state, $set_by, $target) = @_;
+
+    &main::print_log ("EIB_Item::set: state '$state' for '$self->{object_name}'") if $main::config_parms{eib_errata} >= 3;
 
     return 0 if &main::check_for_tied_filters($self, $state, $set_by);
 
@@ -138,7 +163,12 @@ sub set {
     $target = $self->{groupaddr} unless (defined $target);
     $target = &printname($target);
 
-    &Generic_Item::set_states_for_next_pass($self, $state, $set_by, $target);
+    # Find all items which receives the groupaddr and notify them (including myself)
+    my @eib_items = EIB_Item::eib_items_by_id($self->{groupaddr});
+    if (@eib_items) {
+         map { $_->set_receive ($state, $set_by, $target);
+	 } @eib_items;
+    }
 
     return 1 if     $main::Save{mode} eq 'offline';
 
@@ -171,6 +201,8 @@ sub send_read_msg {
     my ($self, $data) = @_;
     my $msg;
 
+    &main::print_log ("EIB_Item::send_read_msg: Send read message to $self->{groupaddr}") if $main::config_parms{eib_errata} >= 3;
+
     $msg->{'type'} = 'read';
     $msg->{'dst'} = $self->{groupaddr};
     $msg->{'data'} = [0];
@@ -181,6 +213,7 @@ sub send_read_msg {
 sub receive_write_msg {
     my ($self, $state, $set_by, $target) = @_;
 
+    &main::print_log("EIB_Item::receive_write_msg: new state $state set on $self") if $main::config_parms{eib_errata} >= 3;
     $self->set_receive($state, $set_by, $target);
 }
 
@@ -194,7 +227,7 @@ sub receive_reply_msg {
     $self->set_receive($state, $set_by, $target, 1);
 }
 
-# receive_msg: entry point from device interace. Analyse message and call appropriate receive_*_msg
+# receive_msg: entry point from device interface. Analyse message and call appropriate receive_*_msg
 # handler
 sub receive_msg {
     my ($msg) = @_;
@@ -202,24 +235,29 @@ sub receive_msg {
     my $addr = $msg->{'dst'};
     my $op = $msg->{'type'};
     my @data = @{$msg->{'data'}};
-    my $eib_item = EIB_Item::eib_item_by_id($addr);
-    my $state = decode $eib_item @data if ($eib_item && $op ne 'read');
+    my @eib_items = EIB_Item::eib_items_by_id($addr);
+    if (@eib_items) {
+    	map {
+        	my $eib_item = $_;
+		if (defined $eib_item->can("decode")) {
+        	    my $state = decode $eib_item @data if ($op ne 'read');
 
 
-    if ($eib_item) {
-	&main::print_log("EIB $op from $msg->{'src'} to $msg->{'dst'}",
-			 $op eq 'read' ? "" : defined $state ? ": \"$state\"" : ": \"[@data]\"")
-	    if $main::config_parms{eib_errata} >= 3;
-	if ($op eq 'write') {
-	    $eib_item->receive_write_msg($state, $msg->{'src'}, $msg->{'dst'});
-	}
-	elsif ($op eq 'reply') {
-	    $eib_item->receive_reply_msg($state, $msg->{'src'}, $msg->{'dst'});
-	}
+		    &main::print_log("EIB $op from $msg->{'src'} to $msg->{'dst'}",
+			     $op eq 'read' ? "" : defined $state ? ": \"$state\"" : ": \"[@data]\"")
+	    	    if $main::config_parms{eib_errata} >= 3;
+		    if ($op eq 'write') {
+	    		    $eib_item->receive_write_msg($state, $msg->{'src'}, $msg->{'dst'});
+		    }
+		    elsif ($op eq 'reply') {
+	    		    $eib_item->receive_reply_msg($state, $msg->{'src'}, $msg->{'dst'});
+		    }
+		}
+    	} @eib_items;
     }
     else {
 	&main::print_log("EIB $op from $msg->{'src'} to $msg->{'dst'}",
-			 $op eq 'read' ? "" : defined $state ? ": \"$state\"" : ": \"[@data]\"", ". Item not found.") if $main::config_parms{eib_errata} >= 2;
+			 ". Item not found.") if $main::config_parms{eib_errata} >= 2;
 ;
     }
 }
@@ -284,11 +322,11 @@ package EIB1_Item;
 @EIB1_Item::ISA = ('EIB_Item');
 
 sub new {
-    my ($class, $id, $mode) = @_;
+    my ($class, $idstr, $mode) = @_;
+    my $self  = $class->SUPER::new($idstr, $mode);
 
-    my $self  = $class->SUPER::new($id, $mode);
-    $self->add($id . 'on', 'on');
-    $self->add($id . 'off', 'off');
+    $self->addStates ('on', 'off');
+
     return $self;
 }
 
@@ -314,6 +352,7 @@ sub decode {
 # encode: translate state to EIS 1 data
 sub encode {
     my ($self, $state) = @_;
+    &main::print_log ("EIS1::encode: state '$state' for '$self->{object_name}'") if $main::config_parms{eib_errata} >= 3;
 
     if ($state eq 'on') {
 	return ([1]);
@@ -339,6 +378,8 @@ sub new {
     my ($class, $id, $groupstr) = @_;
     my @groups = split /\|/, $groupstr;
 
+    &main::print_log ("You are using deprecated EIB1G! Better use listening group addresses.");
+
     my $self  = $class->SUPER::new($id);
     $self->{'linked_groups'} = \@groups;
     return $self;
@@ -352,9 +393,13 @@ sub set_receive {
     my ($self, $state, $set_by, $target) = @_;
 
     $self->SUPER::set_receive($state, $set_by, $target);
-    map { my $ei = EIB_Item::eib_item_by_id($_);
-	  $ei->set_receive($state, $set_by, $target);
-      } @{$self->{'linked_groups'}};
+    map { 
+    	my @eib_items = EIB_Item::eib_items_by_id($_);
+    	if (@eib_items) {
+         	map { $_->set_receive ($state, $set_by, $target);
+	 	} @eib_items;
+    	}
+    } @{$self->{'linked_groups'}};
 }
 
 # EIS 2: Dimming
@@ -378,38 +423,33 @@ package EIB2_Item;
 
 # new: create an EIB2_Item. Instantiate the three underlying items.
 sub new {
-    my ($class, $id) = @_;
+    my ($class, $id, $mode) = @_;
     my @groups;
     my ($subid, $item);
 
-    my $self  = $class->SUPER::new($id);
+    my $self  = $class->SUPER::new($id,$mode);
 
     @groups = split(/\|/, $id);
     print "Three group addresses required for dimmer. Found $#groups in $id\n" if ($#groups != 2);
 
     $subid = $groups[0];
-    $self->{Position} = $subid;
-    $item = new EIB23_Item($subid, "R", $id);
-    $item->add($subid . 'on', 'on');
-    $item->add($subid . 'off', 'off');
-    $self->add($id . 'on', 'on');
-    $self->add($id . 'off', 'off');
+    $item = new EIB23_Item($subid, $mode, $self);
+    $self->{Position} = $item;
 
     $subid = $groups[1];
-    $self->{Control} = $subid;
-    $item = new EIB21_Item($subid, "", $id);
-    $item->add($subid . 'brighten', 'brighten');
-    $item->add($subid . 'dim', 'dim');
-    $item->add($subid . 'stop', 'stop');
-    $self->add($id . 'brighten', 'brighten');
-    $self->add($id . 'dim', 'dim');
-    $self->add($id . 'stop', 'stop');
+    $item = new EIB21_Item($subid, "", $self);
+    $self->{Control} = $item;
 
     $subid = $groups[2];
-    $self->{Value} = $subid;
-    $item = new EIB22_Item($subid, "R", $id);
+    $item = new EIB22_Item($subid, $mode, $self);
+    $self->{Value} = $item;
 
-     return $self;
+    if ($main::config_parms{eib2_menu_states}) {
+    	$self->addStates (split ',', $main::config_parms{eib2_menu_states});
+    } else {
+    	$self->addStates ('on', 'off', 'brighten', 'dim', 'stop', '5%', '30%', '60%', '100%');
+    }
+    return $self;
 }
 
 sub eis_type {
@@ -422,7 +462,7 @@ sub position {
     my $subitem;
 
     return unless defined $self->{Position};
-    return $eib_item_by_id{$self->{Position}};
+    return $self->{Position};
 }
 
 # control: return "control" sub-item
@@ -431,15 +471,15 @@ sub control {
     my $subitem;
 
     return unless defined $self->{Control};
-    return $eib_item_by_id{$self->{Control}};
-			}
+    return $self->{Control};
+}
 # value: return "value" sub-item
 sub value {
     my ($self) = @_;
     my $subitem;
 
     return unless defined $self->{Value};
-    return $eib_item_by_id{$self->{Value}};
+    return $self->{Value};
  }
 
 # Set EIB2 item.
@@ -448,9 +488,6 @@ sub value {
 sub set {
     my ($self, $state, $set_by, $target) = @_;
     my $subitem;
-
-    my $ret = $self->SUPER::set($state, $set_by, $target);
-    return 0 unless $ret;
 
     if ($state eq 'toggle' ||
 	$state eq 'on' ||
@@ -482,22 +519,29 @@ sub set_receive {
     my ($self, $state, $set_by, $target) = @_;
     my $onoff;
 
+    &main::print_log("EIB2_Item::set_receive: new state $state") if $main::config_parms{eib_errata} >= 3;
+
+    my $newstate = $state;	# set SUPER state after all sub settings
+
     if ($state =~ /(\d+)/) {
 	$self->{level} = $1;
+	$newstate = $1."%";
 	if ($1 eq '0') {
 	    $onoff = 'off';
+	    $newstate = 'off';
 	}
 	else {
 	    $onoff = 'on';
+	    if ($1 eq '100') {
+	        $newstate = 'on';
+	    }
 	}
-	$self->SUPER::set_receive($onoff, $set_by, $target);
 	my $pos = $self->position();
 	if (defined $pos && $pos->state_final() ne $onoff) {
 	    $pos->set_receive($onoff, $set_by, $target);
 	}
     }
     elsif ($state eq 'on' || $state eq 'off') {
-	$self->SUPER::set_receive($state, $set_by, $target);
 	if ($state eq 'off') {
 	    $self->{level} = 0;
 	    my $val = $self->value();
@@ -505,11 +549,12 @@ sub set_receive {
 		$val->set_receive(0, $set_by, $target);
 	    }
 	}
+        if ($state eq 'on') {
+	    my $val = $self->value();
+	    delayed_read_request $val if (defined $val && $val->{readable});
+        }
     }
-    if ($state eq 'on') {
-	my $value = value $self;
-	delayed_read_request $value if (defined $value);
-    }
+    $self->SUPER::set_receive($newstate, $set_by, $target);
 }
 
 # state_level: return 'on', 'off' or 'dim', depending on current setting
@@ -545,26 +590,28 @@ package EIB2_Subitem;
 @EIB2_Subitem::ISA = ('EIB_Item');
 
 sub new {
-    my ($class, $id, $mode, $dimmerid) = @_;
+    my ($class, $id, $mode, $dimmer) = @_;
     my @args;
 
     my $self  = $class->SUPER::new($id, $mode);
-    $self->{'Dimmer'} = $dimmerid;
+    $self->{'Dimmer'} = $dimmer;
     return $self;
 }
 
 # dimmer: return "dimmer" meta-item
 sub dimmer {
     my ($self) = @_;
-    my $subitem;
 
     return unless defined $self->{Dimmer};
-    return $eib_item_by_id{$self->{Dimmer}};
+    return $self->{Dimmer};
  }
 
 # set_receive: forward to meta-item
 sub set_receive {
     my ($self, $state, $set_by, $target) = @_;
+
+
+    &main::print_log("EIB2_Subitem::set_receive: new state $state") if $main::config_parms{eib_errata} >= 3;
 
     $self->SUPER::set_receive($state, $set_by, $target);
     my $dimmer = dimmer $self;
@@ -637,6 +684,7 @@ sub decode {
 sub encode {
     my ($self, $state) = @_;
 
+    &main::print_log ("EIS21::encode: state '$state' for '$self->{object_name}'") if $main::config_parms{eib_errata} >= 3;
     if ($state eq 'stop') {
 	return ([0]);
     }
@@ -706,6 +754,7 @@ sub set_receive {
     my ($self, $state, $set_by, $target, $read) = @_;
 
     if (!$read && $self->{readable}) {
+        &main::print_log("EIB22_Item::set_receive: read_request for $self->{groupaddr}") if $main::config_parms{eib_errata} >= 3;
 	$self->delayed_read_request();
     }
     else {
@@ -855,6 +904,7 @@ sub encode {
     my ($self, $state) = @_;
     my $data;
 
+    &main::print_log ("EIS5::encode: state '$state' for '$self->{object_name}'") if $main::config_parms{eib_errata} >= 3;
     my $sign = ($state <0 ? 0x8000 : 0);
     my $exp  = 0;
     my $mant = 0;
@@ -894,6 +944,7 @@ sub decode {
 
 sub encode {
     my ($self, $state) = @_;
+    &main::print_log ("EIS6::encode: state '$state' for '$self->{object_name}'") if $main::config_parms{eib_errata} >= 3;
     my $newval;
     if ($state =~ /^(\d+)$/) {
 	$newval = $1;
@@ -930,6 +981,8 @@ sub encode {
 
 sub set_receive {
     my ($self, $state, $set_by, $target, $read) = @_;
+
+    &main::print_log("EIB6_Item::set_receive: new state $state") if $main::config_parms{eib_errata} >= 3;
 
     if (!$read && $self->{readable}) {
 	$self->delayed_read_request();
@@ -1311,34 +1364,30 @@ sub new {
 	return;
     }
 
-    if (not defined $opmode) {
-	$self->{OperatingMode} = 'shutter';
-    } else {
-	$self->{OperatingMode} = $opmode;
-    }
+
+    $self->{OperatingMode} = 'shutter';
+    map {
+    	if ($_ eq "blind") {
+		$self->{OperatingMode} = $_;
+	}
+    }  split(/\|/, $opmode) if (defined $opmode);
+
+    $self->addStates ('up', 'down');
 
     $subid = $groups[0];
-    $self->{Move} = $subid;
-    $item = new EIB71_Item($subid, "", $id);
-    $item->add($subid . 'up', 'up');
-    $item->add($subid . 'down', 'down');
-    $self->add($id . 'up', 'up');
-    $self->add($id . 'down', 'down');
+    $item = new EIB71_Item($subid, $opmode, $self);
+    $self->{Move} = $item;
 
     if ($self->{OperatingMode} eq 'shutter') {
         $subid = $groups[1];
-        $self->{Stop} = $subid;
-        $item = new EIB72_Item($subid, "", $id);
-        $item->add($subid . 'stop', 'stop');
-        $self->add($id . 'stop', 'stop');
+        $item = new EIB72_Item($subid, $opmode, $self);
+        $self->{Stop} = $item;
+	$self->addStates ('stop');
     } elsif ($self->{OperatingMode} eq 'blind') {
         $subid = $groups[1];
-        $self->{Step} = $subid;
-        $item = new EIB73_Item($subid, "", $id);
-        $item->add($subid . 'step-up', 'step-up');
-        $item->add($subid . 'step-down', 'step-down');
-        $self->add($id . 'step-up', 'step-up');
-        $self->add($id . 'step-down', 'step-down');
+        $item = new EIB73_Item($subid, $opmode, $self);
+        $self->{Step} = $item;
+	$self->addStates ('step_up', 'step_down');
     } else {
 	print "Bad EIS 7 operating mode \'$self->{OperatingMode}\'";
 	return;
@@ -1375,12 +1424,7 @@ sub set {
 	&main::print_log(" $self->{object_name}: Bad EIB drive state \'$state\'\n");
 	return;
     }
-    if (my $ref = $eib_item_by_id{$subitem}) {
-	$ref->set($state, $set_by, $target);
-    }
-    else {
-	&main::print_log("$self->{object_name}: No subitem for EIB drive state \'$state\'\n");
-    }
+    $subitem->set($state, $set_by, $target);
     return 1;
 }
 
@@ -1408,7 +1452,7 @@ sub set_receive {
 
     $self->SUPER::set_receive($state, $set_by, $target);
     if (defined $self->{Drive}) {
-	if (my $drive = $eib_item_by_id{$self->{Drive}}) {
+	if (my $drive = $self->{Drive}) {
 	    $drive->set_receive($state, $set_by, $target);
 	}
     }
@@ -1534,8 +1578,10 @@ sub decode {
 	&main::print_log("Not EIS type 15 data received for $self->{groupaddr}: \[@data\]") if $main::config_parms{eib_errata} >= 2;
 	return;
     }
-    $res = pack ("xC*", @data);
-    &main::print_log("EIS15 for $self->{groupaddr}: >$res<");
+    shift (@data);
+    $res = pack ("C*", @data);
+    my $hex = unpack('H*', "$res");
+    &main::print_log("EIS15 for $self->{groupaddr}: >$res< ($hex) (@data");
     return $res;
 }
 
@@ -1568,30 +1614,23 @@ sub new {
     print "Two group addresses required for window. Found $#groups in $id\n" if ($#groups != 1);
 
     $subid = $groups[0];
-    $item = new EIBW1_Item($subid, "R", $id);
-    $item->add($subid . 'on', 'on');
-    $item->add($subid . 'off', 'off');
+    $item = new EIBW1_Item($subid, "R", $self);
 
-    $self->{Top} = $subid;
+    $self->{Top} = $item;
 
     if ($groups[0] ne $groups[1]) {
       $subid = $groups[1];
-      $item = new EIBW1_Item($subid, "R", $id);
-      $item->add($subid . 'on', 'on');
-      $item->add($subid . 'off', 'off');
+      $item = new EIBW1_Item($subid, "R", $self);
     }
 
     $mode = "closed|tilt|tilt|open" if (!(defined $mode));
     $self->{Modes} = $mode;
     my @modes =  split(/\|/, $mode);
     print "Four states required for window. Found $#modes in $id\n" if ($#modes != 3);
+    $self->addStates(@modes);
 
-    $self->{Bottom} = $subid;
-    # remove duplicates
-    for my $s ( keys %{{ map { $_ => 1 } @modes }} ) {
-      $self->add($id . $s, $s);
-    }
-
+    $self->{Bottom} = $item;
+    
     return $self;
 }
 
@@ -1605,7 +1644,7 @@ sub top {
     my $subitem;
 
     return unless defined $self->{Top};
-    return $eib_item_by_id{$self->{Top}};
+    return $self->{Top};
 }
 
 # control: return "control" sub-item
@@ -1614,7 +1653,7 @@ sub bottom {
     my $subitem;
 
     return unless defined $self->{Bottom};
-    return $eib_item_by_id{$self->{Bottom}};
+    return $self->{Bottom};
 }
 
 # set_receive: received an event from one of the sub_items.
@@ -1643,11 +1682,11 @@ package EIBW_Subitem;
 @EIBW_Subitem::ISA = ('EIB_Item');
 
 sub new {
-    my ($class, $id, $mode, $windowid) = @_;
+    my ($class, $id, $mode, $window) = @_;
     my @args;
 
     my $self  = $class->SUPER::new($id, $mode);
-    $self->{'Window'} = $windowid;
+    $self->{'Window'} = $window;
     return $self;
 }
 
@@ -1656,7 +1695,7 @@ sub window {
     my $subitem;
 
     return unless defined $self->{Window};
-    return $eib_item_by_id{$self->{Window}};
+    return $self->{Window};
  }
 
 # set_receive: forward to meta-item
