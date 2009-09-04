@@ -31,6 +31,7 @@ my %mime_types = (
                   'css'   => 'text/css',
                   'png'   => 'image/png',
                   'gif'   => 'image/gif',
+                  'ico'   => 'image/gif',
                   'jpg'   => 'image/jpeg',
                   'jpeg'  => 'image/jpeg',
                   'js'    => 'application/x-javascript',
@@ -1603,6 +1604,12 @@ sub html_page {
                                 # Allow for fully formated html
     if ($body =~ /^\s*<(!doctype\s*)?(html|\?xml)/i) {
         $body =~ s/\n/\n\r/g;   # Bill S. says this is required to be standards compiliant
+			
+			my $contenttype = "text/html"; # Default value if no other information is found
+			
+			if($body =~ /^\s*<(\?xml)/i) {
+				$contenttype = "text/xml";
+			}
 
 # Content-Length is only for binary data!
 #        my $length = length $body;
@@ -1613,7 +1620,7 @@ sub html_page {
 HTTP/1.0 200 OK
 Server: MisterHouse
 Date: $date
-Content-Type: text/html
+Content-Type: $contenttype
 Cache-Control: no-cache
 
 $body
