@@ -62,13 +62,18 @@ sub main::batch {
 sub main::file_backup {
     my ($file, $mode) = @_;
                                 # Back it up if it is older than a few minutes old
-    if (($mode and $mode eq 'force') or ($main::Time - (stat $file)[9]) > 60*10) {
+    if (($mode and ($mode eq 'force' or $mode eq 'copy')) or ($main::Time - (stat $file)[9]) > 60*10) {
         print  "Backing up file: $file to $file.backup\n";
         unlink "$file.backup4" if -e "$file.backup4";
         rename "$file.backup3", "$file.backup4" if -e "$file.backup4";
         rename "$file.backup2", "$file.backup3" if -e "$file.backup2";
         rename "$file.backup1", "$file.backup2" if -e "$file.backup1";
-        rename $file, "$file.backup1";
+        if ($mode eq 'copy') {
+            main::file_cat($file, "$file.backup1") if -e "$file";
+        }
+        else {
+            rename "$file", "$file.backup1" if -e "$file";
+        }
     }
 }
 
@@ -1248,8 +1253,8 @@ sub main::write_mh_opts {
         $parm_file = "$pgm_root/bin/mh.private.ini" unless $parm_file;
     }
 
-    print "Reading config_file $parm_file\n" unless $debug == 0;
-    open (INI_PARMS, "$parm_file") or print "\nError, could not read config file: $parm_file\n";
+    print "Reading config_file $parm_file\n" if $debug;
+    open (INI_PARMS, "$parm_file") or print "\nError, could not read config file: $parm_file\n", return 0;
 
     my ($key, @parms, @done, $in_multiline);
     while (my $line = <INI_PARMS>) {
@@ -1283,17 +1288,17 @@ sub main::write_mh_opts {
     close INI_PARMS;
 
                                 # Re-write entire file if changes effect existing entries
-    &main::file_backup($parm_file);
+    &main::file_backup($parm_file, "copy");
     if (@done) {
-        print "Writing config_file $parm_file\n" unless defined $debug and $debug == 0;
-        open (INI_PARMS, ">$parm_file") or print "\nError, could not write config file: $parm_file\n";
+        print "Writing config_file $parm_file\n" if $debug;
+        open (INI_PARMS, ">$parm_file") or print "\nError, could not write config file: $parm_file\n", return 0;
         print INI_PARMS @parms;
         close INI_PARMS;
     }
                                 # Append any new parameters
     if (%$ref_parms) {
-        print "Appending to config_file $parm_file\n" unless defined $debug and $debug == 0;
-        open (INI_PARMS, ">>$parm_file") or print "\nError, could not append to config file: $parm_file\n";
+        print "Appending to config_file $parm_file\n" if $debug;
+        open (INI_PARMS, ">>$parm_file") or print "\nError, could not append to config file: $parm_file\n", return 0;
         foreach $key (keys %$ref_parms) {
             print INI_PARMS "$key=$$ref_parms{$key}\n";
         }

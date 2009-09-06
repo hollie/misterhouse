@@ -2476,6 +2476,52 @@ Use this to run some code after some delay.
 If you want to do this with an object state, use the set_with_timer method.
 
 
+=item file_backup
+
+Renames or optionally copies a file to the same name with the "backup1"
+extension.  If the backup1 file already exists, it is renamed to backup2
+first, backup2 is renamed to backup3, backup3 is renamed to backup4, and 
+backup4 is deleted.
+
+  Examples:
+
+    file_backup $log_file, "force";
+    file_backup $parm_file, "copy";
+
+Normally, this function will only run if the file is older than ten minutes.   
+Use the "force" option if you want to override this behavior.  Use the "copy"
+option if you want to copy the file instead of renaming it.  The "copy"
+option implies "force".
+
+
+
+=item file_cat
+
+Concatonates data from one file onto another.  If an optional 3rd parm of 'top' is specified,
+the first files is added to the top of the 2nd file.  If not, then it is added to the bottom.
+
+  Examples:
+
+    file_cat $file, $file_total;
+
+    file_cat "$config_parms{html_dir}/aprs/week2.html",
+             "$config_parms{html_dir}/aprs/old/${Year_Month_Now}.html",
+             'top';
+
+
+
+=item file_changed (or older name of file_change)
+
+Returns 1 if the specified file has change since last checked.
+Returns 0 if the file has not changed.
+Returns undef if we don't know (i.e. first check after mh was started).
+
+  Example:
+
+    print_log "File $file has change" if file_changed($file);
+
+
+
 =item file_default
 
 Checks to see if a file exists, and if not, returns a default file instead.
@@ -2490,36 +2536,6 @@ Checks to see if a file exists, and if not, returns a default file instead.
                                "$config_parms{data_dir}/remarks/insults1.txt"));
 
 
-=item file_size
-
-Returns the size of a file, in bytes.
-
-
-=item file_changed (or older name of file_change)
-
-Returns 1 if the specified file has change since last checked.
-Returns 0 if the file has not changed.
-Returns undef if we don't know (i.e. first check after mh was started).
-
-  Example:
-
-    print_log "File $file has change" if file_changed($file);
-
-=item file_unchanged
-
-Returns 0 if the specified file has change since last checked.
-Returns 1 if the file has not changed.
-Returns undef if we don't know (i.e. first check after mh was started).
-
-  Example:
-
-    my $watchdog_file = '//dm/d/misterhouse/mh/data/mh.time';
-    if (file_unchanged $watchdog_file) {
-        speak "MisterHouse has stopped running on the Nick's box";
-        set_with_timer $watchdog_light '20%', 5;
-    }
-
-
 =item file_diff
 
 Returns true if the contents of the 2 specified files are different.
@@ -2527,6 +2543,24 @@ Returns true if the contents of the 2 specified files are different.
   Example:
 
     print_log "Files are different" if file_diff($file1, $file2);
+
+
+=item file_head
+
+Returns the first few lines of a file
+
+  Example:
+
+     @data = file_head($file, $lines);
+
+   If $lines is not specified, the default is 3.
+   If used in a list context, a list is returned,
+   otherwise a string of all the requested lines is returned.
+
+
+=item file_size
+
+Returns the size of a file, in bytes.
 
 
 =item file_read
@@ -2553,6 +2587,34 @@ Returns a member => full_path hash for all members in all dirs passed to it.
     }
 
 
+=item file_tail
+
+Returns the last few lines of a file
+
+  Example:
+
+     $data = file_tail($file, $lines);
+
+   If $lines is not specified, the default is 3.
+   If used in a list context, a list is returned,
+   otherwise a string of all the requested lines is returned.
+
+
+=item file_unchanged
+
+Returns 0 if the specified file has change since last checked.
+Returns 1 if the file has not changed.
+Returns undef if we don't know (i.e. first check after mh was started).
+
+  Example:
+
+    my $watchdog_file = '//dm/d/misterhouse/mh/data/mh.time';
+    if (file_unchanged $watchdog_file) {
+        speak "MisterHouse has stopped running on the Nick's box";
+        set_with_timer $watchdog_light '20%', 5;
+    }
+
+
 =item file_write
 
 Writes data into a file.  Like logit, except it writes over, rather than appends to, a file.
@@ -2560,35 +2622,6 @@ Writes data into a file.  Like logit, except it writes over, rather than appends
   Examples:
 
      file_write($file, $data);
-
-
-=item file_cat
-
-Concatonates data from one file onto another.  If an optional 3rd parm of 'top' is specified,
-the first files is added to the top of the 2nd file.  If not, then it is added to the bottom.
-
-  Examples:
-
-    file_cat $file, $file_total;
-
-    file_cat "$config_parms{html_dir}/aprs/week2.html",
-             "$config_parms{html_dir}/aprs/old/${Year_Month_Now}.html",
-             'top';
-
-
-
-=item file_head file_tail
-
-Returns the first/last few lines of a file
-
-  Examples:
-
-     @data = file_head($file, $lines);
-     $data = file_tail($file, $lines);
-
-   If $lines is not specified, the default is 3.
-   If used in a list context, a list is returned,
-   otherwise a string of all the requested lines is returned.
 
 
 =item filter_cr
@@ -3413,6 +3446,22 @@ Here are the valid trigger types:
   NoExpire => Runs on every event and never expires.
 
   Disabled => Will stay in your triggers.mph file, but will not run.
+
+
+
+=item write_mh_opts
+
+This function will add or edit Misterhouse parameters in the user's ini file. 
+It will make a backup of the ini file, and it doesn't remove any comments 
+in the file.  The first argument is a hash of parameters to set.  The second 
+(optional) argument is the ini file you want to modify, and the third 
+(optional) argument is set to 1 if you want to log the change. 
+
+  Examples:
+
+    write_mh_opts({"photo_dir" -> $state}, undef, 1);
+    write_mh_opts(%parms);
+
 
 
 
