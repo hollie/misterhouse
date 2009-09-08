@@ -648,6 +648,7 @@ sub setup {
     use xPL_Items;
     use EIB_Items;
     use EIB_Device;
+    use ajax;
     eval "use BSC";
 
                                 # Base_Items
@@ -794,6 +795,7 @@ sub setup {
     &xAP::startup;              # Start the xAP sockets, in lib/xAP_Items.pm
     &xPL::startup;              # Start the xPL sockets, in lib/xPL_Items.pm
     &EIB_Device::startup;       # Start the EIB device, in lib/EIB_Device.pm
+    &ChangeChecker::startup;    # Start the change tracker
 
 
     for my $port_name (@Generic_Serial_Ports) {

@@ -22,7 +22,9 @@ use strict;
 # There should be a way to override the default xsl file 
 
 use HTML::Entities; # So we can encode characters like <>& etc
- 
+
+my ($updates_only, %prev_weather);
+
 sub xml {		
 	my ($request, $options) = @_;
 	my ($xml, $xml_types, $xml_groups, $xml_categories, $xml_widgets, $xml_vars, $xml_objects);
@@ -41,7 +43,10 @@ sub xml {
 		$options{$k}{active} = 1;
 		$options{$k}{members} = [ split /\|/, $v ] if $k and $v;
 	}
-	  
+
+	$updates_only = 0;
+	$updates_only = 1 if $options{updates_only};
+
 	my %fields; 
 	if (exists $options{fields}{members}) {
 		foreach (@{ $options{fields}{members} }) {
@@ -51,32 +56,46 @@ sub xml {
 
 			# List objects by type
 	if ($request{types}) {
-		$xml .= "\t<types>\n";
+		my ($tmp_xml, $tmp_xml2);
 		for my $object_type (sort @Object_Types) {
 			next if exists $request{types}{members} and (not grep {$_ eq $object_type} @{ $request{types}{members} });
-			$xml .= "\t\t<type>\n\t\t\t<name>$object_type</name>\n";
 			foreach (sort &list_objects_by_type($object_type)) {	
 				$_ = &get_object_by_name($_);
-				$xml .= &object_detail($_, %fields);
+				$tmp_xml .= &object_detail($_, $updates_only, %fields);
 			}
-			$xml .= "\t\t</type>\n";
+			if (! $updates_only or $tmp_xml) {
+				$tmp_xml2 .= "\t\t<type>\n\t\t\t<name>$object_type</name>\n";
+				$tmp_xml2 .= $tmp_xml;
+				$tmp_xml2 .= "\t\t</type>\n";
+			}
 		}
-		$xml .= "\t</types>\n";
+		if (! $updates_only or $tmp_xml2) {
+			$xml .= "\t<types>\n";
+			$xml .= $tmp_xml2;
+			$xml .= "\t</types>\n";
+		}
 	}
 
 			# List objects by groups
 	if ($request{groups}) {
-		$xml .= "\t<groups>\n";
+		my ($tmp_xml, $tmp_xml2);
 		for my $group (sort &list_objects_by_type('Group')) {
 			next if exists $request{groups}{members} and (not grep {$_ eq $group} @{ $request{groups}{members} });
 			my $group_object = &get_object_by_name($group);
-			$xml .= "\t\t<group>\n\t\t\t<name>$group</name>\n";
 			foreach (list $group_object) {
-				$xml .= &object_detail($_, %fields);
+				$tmp_xml .= &object_detail($_, $updates_only, %fields);
 			}
-			$xml .= "\t\t</group>\n";
+			if (! $updates_only or $tmp_xml) {
+				$tmp_xml2 .= "\t\t<group>\n\t\t\t<name>$group</name>\n";
+				$tmp_xml2 .= $tmp_xml;
+				$tmp_xml2 .= "\t\t</group>\n";
+			}
 		}
-		$xml .= "\t</groups>\n";
+		if (! $updates_only or $tmp_xml2) {
+			$xml .= "\t<groups>\n";
+			$xml .= $tmp_xml2;
+			$xml .= "\t</groups>\n";
+		}
 	}
 
 			# List voice commands by category
@@ -88,7 +107,7 @@ sub xml {
 			$xml .= "\t\t<category>\n\t\t\t<name>$category</name>\n";
 			foreach (sort &list_objects_by_webname($category)) {
 				$_ = &get_object_by_name($_);
-				$xml .= &object_detail($_, %fields);
+				$xml .= &object_detail($_, $updates_only, %fields);
 			}
 			$xml .= "\t\t</category>\n";
 		}
@@ -97,17 +116,20 @@ sub xml {
 
 			# List objects
 	if ($request{objects}) {
+		my ($tmp_xml, $tmp_xml2);
 		for my $object_type (@Object_Types) {
-			$xml_objects .= "  <object_type>\n	<name>$object_type</name>\n";
 			if (my @object_list = sort &list_objects_by_type($object_type)) {
-		for my $object (map{&get_object_by_name($_)} @object_list) {
-					next if $object->{hidden};
-					$xml_objects .= &object_detail($object, %fields);
+				foreach (map{&get_object_by_name($_)} @object_list) {
+					next if $_->{hidden};
+					$tmp_xml .= &object_detail($_, $updates_only, %fields);
 				}
 			}
-			$xml_objects .= "  </object_type>\n";
 		}
-		$xml .= "<objects>\n$xml_objects</objects>\n";
+		if (! $updates_only or $tmp_xml) {
+			$xml .= "\t<objects>\n";
+			$xml .= $tmp_xml;
+			$xml .= "\t</objects>\n";
+		}
 	}
 
 			# List widgets
@@ -117,14 +139,22 @@ sub xml {
 
 			# List Weather hash values 
 	if ($request{weather}) {
-		$xml .= "  <weather>\n";
+		my $tmp_xml;
 		foreach my $key (sort keys %Weather) { 
+			next if exists $request{weather}{members} and (not grep {$_ eq $key} @{ $request{weather}{members} });
 			my $tkey = $key; 
 			$tkey =~ s/ /_/g;
 			$tkey =~ s/#//g;
-			$xml .= "   <$tkey>" . $Weather{$key} . "</$tkey>\n";
+			if (! $updates_only or ! exists $prev_weather{$key} or $prev_weather{$key} ne $Weather{$key}) {
+				$tmp_xml .= "   <$tkey>" . $Weather{$key} . "</$tkey>\n";
+				$prev_weather{$key} = $Weather{$key} if $updates_only;
+			}
 		}
-		$xml .= "  </weather>\n";
+		if (! $updates_only or $tmp_xml) {
+			$xml .= "  <weather>\n";
+			$xml .= $tmp_xml;
+			$xml .= "  </weather>\n";
+		}
 	}
 
 			# List config_parms hash values 
@@ -182,13 +212,13 @@ sub xml {
 	$xml = encode_entities($xml, "\200-\377&");
 #   $xml =~ s/\+/\%2B/g; # Use hex 2B = +, as + will be translated to blanks
 	
-	$xml  = "<misterhouse>\n$xml</misterhouse>";
 	return &xml_page($xml);
 }
 
 sub object_detail {
-	my ($object, %fields) = @_;
+	my ($object, $updates_only, %fields) = @_;
 	return if $fields{none};
+	return if ($updates_only and ! $object->{state_now});
 	my $object_name = $object->{object_name};
 	my $xml_objects  = "\t\t\t<object>\n";
 	$xml_objects .= "\t\t\t\t<name>$object_name</name>\n";
@@ -211,6 +241,7 @@ sub object_detail {
 
 sub xml_page {
 	my ($xml) = @_;
+	return if ($updates_only and ! $xml);
 
 #<!DOCTYPE document SYSTEM "misterhouse.dtd">
 #<?xml version="1.0" standalone="no" ?>
@@ -222,7 +253,8 @@ Content-type: text/xml
 
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <?xml-stylesheet type="text/xsl" href="/default.xsl"?>
-$xml
+<misterhouse>
+$xml</misterhouse>
 
 eof
 

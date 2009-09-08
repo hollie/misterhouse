@@ -43,8 +43,8 @@ my %mime_types = (
                   'snd'   => 'audio/basic',
                   'wav'   => 'audio/x-wav',
                   'mp3'   => 'audio/x-mp3',
-		  'ogm'   => 'application/ogg',
-		  'mjpg'  => 'video/x-motion-jpeg',
+                  'ogm'   => 'application/ogg',
+                  'mjpg'  => 'video/x-motion-jpeg',
                   'wml'   => 'text/vnd.wap.wml',
                   'wmls'  => 'text/vnd.wap.wmlscript',
                   'wmlc'  => 'application/vnd.wap.wmlc',
@@ -576,6 +576,12 @@ sub http_process_request {
             }
         }
 
+    }
+                                # Test for ajax "long poll" subroutine call.  Note, the response option is not supported 
+    elsif  ($get_req =~ /\/LONG_POLL$/i) {
+        &html_ajax_long_poll($socket, $get_req, $get_arg);
+        $leave_socket_open_passes = -1; # don't close the socket
+        return:
     }
                                 # See if request was for an auto-generated page
     elsif (my ($html, $style) = &html_mh_generated($get_req, $get_arg, 1)) {
@@ -2349,12 +2355,9 @@ sub html_item_state {
     @states = @{$object->{states}} if $object->{states};
 #   print "db on=$object_name ix10=$isa_X10 s=@states\n";
     @states = split ',', $config_parms{x10_menu_states} if $isa_X10;
-    @states = split ',', $config_parms{eib2_menu_states} if $isa_EIB2;
     @states = split ',', $config_parms{insteon_menu_states} if $isa_insteon;
 
     @states = qw(on off) if UNIVERSAL::isa($object, 'X10_Appliance');
-    @states = qw(on off) if UNIVERSAL::isa($object, 'EIB1_Item');
-    @states = qw(up down stop) if UNIVERSAL::isa($object, 'EIB7_Item');
 
     my $use_select = 1 if @states > 2 and length("@states") > $config_parms{'html_select_length' . $Http{format}};
 

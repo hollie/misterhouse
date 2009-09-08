@@ -31,6 +31,20 @@
 											</xsl:attribute>
 											<xsl:value-of select="name"/>
 										</xsl:element>
+										<ul>
+											<xsl:for-each select="./*">
+												<li>
+													<xsl:element name="a">
+														<xsl:attribute name="href">
+															<xsl:text>sub?xml(groups=</xsl:text>
+															<xsl:value-of select="."/>
+															<xsl:text>)</xsl:text>
+														</xsl:attribute>
+														<xsl:value-of select="local-name()"/>: <xsl:value-of select="."/>
+													</xsl:element>
+												</li>
+											</xsl:for-each>
+										</ul>
 									</li>
 								</xsl:for-each>
 							</ul>
@@ -71,6 +85,20 @@
 											</xsl:attribute>
 											<xsl:value-of select="name"/>
 										</xsl:element>
+										<ul>
+											<xsl:for-each select="./*">
+												<li>
+													<xsl:element name="a">
+														<xsl:attribute name="href">
+															<xsl:text>sub?xml(groups=</xsl:text>
+															<xsl:value-of select="."/>
+															<xsl:text>)</xsl:text>
+														</xsl:attribute>
+														<xsl:value-of select="."/>
+													</xsl:element>
+												</li>
+											</xsl:for-each>
+										</ul>
 									</li>
 								</xsl:for-each>
 							</ul>
@@ -111,9 +139,50 @@
 											</xsl:attribute>
 											<xsl:value-of select="name"/>
 										</xsl:element>
+										<ul>
+											<xsl:for-each select="./*">
+												<li>
+													<xsl:element name="a">
+														<xsl:attribute name="href">
+															<xsl:text>sub?xml(groups=</xsl:text>
+															<xsl:value-of select="."/>
+															<xsl:text>)</xsl:text>
+														</xsl:attribute>
+														<xsl:value-of select="."/>
+													</xsl:element>
+												</li>
+											</xsl:for-each>
+										</ul>
 									</li>
 								</xsl:for-each>
 							</ul>
+						</li>
+					</xsl:for-each>
+				</ul>
+			</body>
+		</html>
+	</xsl:template>
+
+	<xsl:template match="/misterhouse/weather">
+		<html>
+			<head>
+				<link rel="stylesheet" href="/default.css" type="text/css" />
+				<base target='control'></base>
+			</head>
+
+			<body>
+				<ul>
+					<xsl:for-each select="/misterhouse/weather/*">
+						<li>
+							<xsl:element name="a">
+								<xsl:attribute name="href">
+									<xsl:text>sub?xml(categories=</xsl:text>
+									<xsl:value-of select="name"/>
+									<xsl:text>)</xsl:text>
+								</xsl:attribute>
+								<xsl:value-of select="local-name()"/>:
+								<xsl:value-of select="."/>
+							</xsl:element>
 						</li>
 					</xsl:for-each>
 				</ul>
