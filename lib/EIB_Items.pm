@@ -91,7 +91,7 @@ sub new {
 		$self->set_icon ($1);
 	}
     }  split(/\|/, $mode) if (defined $mode);
-    if ($self->{readable}) {
+    if ($self->{readable} && defined $self->{groupaddr}) {
 	# trigger future EIB read command
 	$self->read_request();
     }
@@ -378,8 +378,6 @@ sub new {
     my ($class, $id, $groupstr) = @_;
     my @groups = split /\|/, $groupstr;
 
-    &main::print_log ("You are using deprecated EIB1G! Better use listening group addresses.");
-
     my $self  = $class->SUPER::new($id);
     $self->{'linked_groups'} = \@groups;
     return $self;
@@ -433,7 +431,7 @@ sub new {
     print "Three group addresses required for dimmer. Found $#groups in $id\n" if ($#groups != 2);
 
     $subid = $groups[0];
-    $item = new EIB23_Item($subid, $mode, $self);
+    $item = new EIB23_Item($subid, "R", $self);
     $self->{Position} = $item;
 
     $subid = $groups[1];
@@ -441,7 +439,7 @@ sub new {
     $self->{Control} = $item;
 
     $subid = $groups[2];
-    $item = new EIB22_Item($subid, $mode, $self);
+    $item = new EIB22_Item($subid, "R", $self);
     $self->{Value} = $item;
 
     if ($main::config_parms{eib2_menu_states}) {
@@ -985,6 +983,7 @@ sub set_receive {
     &main::print_log("EIB6_Item::set_receive: new state $state") if $main::config_parms{eib_errata} >= 3;
 
     if (!$read && $self->{readable}) {
+        &main::print_log("EIB6_Item::set_receive: read_request for $self->{groupaddr}") if $main::config_parms{eib_errata} >= 3;
 	$self->delayed_read_request();
     }
     else {
@@ -1331,6 +1330,7 @@ sub set_receive {
     my ($self, $state, $set_by, $target, $read) = @_;
 
     if (!$read && $self->{readable}) {
+        &main::print_log("EIB14_1_Item::set_receive: read_request for $self->{groupaddr}") if $main::config_parms{eib_errata} >= 3;
 	$self->delayed_read_request();
     }
     else {
