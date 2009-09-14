@@ -1,12 +1,9 @@
 =begin comment
 
-
-************* TEMPORARY COMMENT : NEW LINES ARE PRECEDED BY # scf
-
 iniedit.pl - a CGIish script for editing Misterhouse configuration parameters
 
 10/12/2001  Created by David Norwood and Bruce Winter
-Modified by Steve Switzer on Dec 4, 2002 (edit_list sub added to support links from select_code*.pl. Added alternating bgcolors for table rows, removed table borders.)
+12/04/2002  Modified by Steve Switzer (edit_list sub added to support links from select_code*.pl. Added alternating bgcolors for table rows, removed table borders.)
 
 =cut
 
@@ -26,7 +23,7 @@ Cache-control: no-cache
 <HEAD>
 <TITLE>Misterhouse Configuration Parameters</TITLE>
 </HEAD>
-<LINK REL="STYLESHEET" HREF="default.css" TYPE="text/css">
+<LINK REL="STYLESHEET" HREF="/default.css" TYPE="text/css">
 <BODY>
 
 <DIV ID="overDiv" STYLE="position:absolute; visibility:hide; z-index:1;"></DIV>
@@ -46,7 +43,6 @@ my $tail = '
 </HTML>
 ';
 
-# scf
 return localize() if $testing and !@ARGV;  # For testing only
 
 my (%dparms, %cparms, @order, %pparms, %categories, @catorder, %changed, %help);
@@ -108,7 +104,6 @@ elsif (defined $args{MakeDoc}) {
 elsif (defined $args{edit_list}) {
     return edit_list();
 }
-# scf new
 elsif (defined $args{Select}) {
     &select;
     return advice();
@@ -157,8 +152,6 @@ sub commit {
 }
 
 sub edit {
-# scf
-# 'Note' had to be moved to here
     my $data = '
        <br>';
     $data .= '<font color=red><b>Read-Only</b>: <a href="/bin/SET_PASSWORD">Login as admin</a> to edit</font><br>' unless $Authorized eq 'admin';
@@ -378,7 +371,6 @@ sub my_read_opts {
         }
         else {
             $help{$key} = $help if $help;
-# scf temp
 # print_log "Same: $key $value <BR> " if $$ref_parms{$key} eq $value and $value;
             $$ref_parms{$key}  = $value;
             if (! grep /^$key$/, @$ref_order) {
@@ -392,7 +384,6 @@ sub my_read_opts {
     return sort keys %{$ref_parms};
 }
 
-# scf
 #  If no mh.private.ini is found, then offer a choice of mh.somewhere.ini files
 # (contained in $Pgm_Root/data/ini)
 sub localize {
