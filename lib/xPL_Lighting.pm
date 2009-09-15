@@ -71,7 +71,7 @@ sub default_setstate
            	. $$self{'lighting.devlist'}{status}) if $main::Debug{xpl_light};
            if ($$self{'lighting.devlist'}{'device'}) {
     	      my @list = split(/,/,$$self{'lighting.devlist'}{'device'});
-              @{$$self{'device_id_list'}} = @list;
+              @{$$self{'device_id_list'}} = (@{$$self{'device_id_list'}}, @list);
     	   }
     	} elsif ($$self{changed} =~ /lighting\.netlist/) {
 		&::print_log("[xPL_LightGateway] Received lighting.netlist message") if $main::Debug{xpl_light};

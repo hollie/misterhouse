@@ -804,6 +804,45 @@ sub read_table_A {
             $code .= "use xPL_Lighting;\n";
         }
     }
+    elsif($type eq "XPL_SECURITYGATEWAY") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if($other){
+            $object = "xPL_SecurityGateway('$address',$other)";
+        }
+        else{
+            $object = "xPL_SecurityGateway('$address')";
+        }
+        if( ! $packages{xPL_Security}++ ) {   # first time for this object type?
+            $code .= "use xPL_Security;\n";
+        }
+    }
+    elsif($type eq "XPL_ZONE") {
+        ($address, $name, $object, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if($other){
+            $object = "xPL_Zone('$address',\$$object,$other)";
+        }
+        else{
+            $object = "xPL_Zone('$address',\$$object)";
+        }
+        if( ! $packages{xPL_Security}++ ) {   # first time for this object type?
+            $code .= "use xPL_Security;\n";
+        }
+    }
+    elsif($type eq "XPL_AREA") {
+        ($address, $name, $object, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if($other){
+            $object = "xPL_Area('$address',\$$object,$other)";
+        }
+        else{
+            $object = "xPL_Area('$address',\$$object)";
+        }
+        if( ! $packages{xPL_Security}++ ) {   # first time for this object type?
+            $code .= "use xPL_Security;\n";
+        }
+    }
     elsif($type eq "X10_SCENE") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
