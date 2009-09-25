@@ -1,12 +1,14 @@
 =begin comment
 
-This routine contains common code used by the X10_MR26.pm and X10_W800.pm
-(which is actually for the W800RF32 as opposed to the W800).  modules to
-decode RF data and set the appropriate states.
+This module contains common code used by the X10_MR26.pm and X10_W800.pm
+(which is actually for the W800RF32 as opposed to the W800).  This module 
+calls routines to identity and decode RF data and set the appropriate 
+states.  To debug this code, add either "mr26" or "w800" to your debug 
+ini parameter.   
 
 It can read powerline control data via RF, TV/VCR control data via RF,
-and security data via RF.  Note that W800RF32 can read the security data
-but the MR26A cannot.
+and security data via RF.  Note that W800RF32 can reads X10 security,
+digimax, and rfxsensor data, but the MR26A cannot.
 
 To monitor keys from an X10 TV/VCR RF remote (UR47A, UR51A, J20A, etc.),
 (e.g. Play,Pause, etc), you can use something like this:
@@ -49,6 +51,7 @@ use X10_RF_powerline;
 use X10_RF_security;
 use X10_RF_tv_remote;
 use X10_RF_digimax;
+use X10_RF_rfxsensor;
 
 #------------------------------------------------------------------------------
 
@@ -107,22 +110,30 @@ sub decode_rf_bytes {
 		             $nbytes[0], $nbytes[1], $nbytes[2], $nbytes[3]);
     }
 
-    # The first two bytes are always complements (Except for Digimax).
+    # The first two bytes are always complements (Except for Digimax and rfxsensor).
     my $initial_checksum_good = (($nbytes[0] ^ $nbytes[1]) == 0xff);
 
     # Determine what type of device this command appears to have come from.
     if (&rf_is_powerline($initial_checksum_good, @nbytes)) {
+	&::print_log("$lc_module: this is x10 powerline data") if ($main::Debug{$lc_module});
 	return &rf_process_powerline($module, @nbytes, @bbytes);
 
     } elsif (&rf_is_tv_remote($initial_checksum_good, @nbytes)) {
+	&::print_log("$lc_module: this is tv remote data") if ($main::Debug{$lc_module});
 	return &rf_process_tv_remote($module, @nbytes, @bbytes);
 
     } elsif ($lc_module ne 'mr26') { # Can't receive the following with an MR26
 
 	if (&rf_is_security($initial_checksum_good, @nbytes)) {
+          &::print_log("$lc_module: this is x10 security data") if ($main::Debug{$lc_module});
 	    return &rf_process_security($module, @nbytes, @bbytes);
 
+	} elsif (&rf_is_rfxsensor(@bytes)) {
+          &::print_log("$lc_module: this is rfxsensor data") if ($main::Debug{$lc_module});
+	    return &rf_process_rfxsensor($module, @bytes);
+
 	} elsif (&rf_is_digimax210(@bytes)) {
+          &::print_log("$lc_module: this is digimax data") if ($main::Debug{$lc_module});
 	    return &rf_process_digimax210($module, @bytes);
 	}
     }

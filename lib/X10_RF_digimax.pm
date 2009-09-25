@@ -47,7 +47,9 @@ sub rf_is_digimax210 {
     $Csum = ((($B0H + $B0L + $B1H + $B1L + $B2H) & 0x0F) ^ 0xFF) & 0x0F;
 
     $B2L = $rbytes[2] & 0x0F;
-    return ($Csum == $B2L);
+
+    my $found = ($Csum == $B2L);
+    return $found;
 }
 
 #------------------------------------------------------------------------------
