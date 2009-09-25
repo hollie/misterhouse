@@ -16,7 +16,8 @@ See mh/code/public/audible_menu.pl for example usage.
 
 use strict ;
 
-package Audible_Menu ;
+package Audible_Menu;
+@Audible_Menu::ISA = ('Generic_Item');
 
 
 sub new {
