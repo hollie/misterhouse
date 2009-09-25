@@ -1796,6 +1796,8 @@ sub html_find_icon_image {
         $name =~ s/^v_//;       # remove v_ in voice commands
                                 # Use on/off icons for conditional Weather_Items
         $state = ($state) ? 'on' : 'off' if $type eq 'weather_item' and ($object->{comparison});
+                                # Remove min/max from normal and alert states on RF_Items
+        $state =~ s/(normal|alert)(min|max)$/$1/i;
                                 # Allow for set_icon to set the icon directly
         $name = $object->{icon} if $object->{icon};
         if ($type eq 'eibrb_item') { 
