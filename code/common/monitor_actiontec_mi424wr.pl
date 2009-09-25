@@ -13,7 +13,7 @@ use RRDs;
 my $actiontec_host = '192.168.1.1';
 my $actiontec_username = 'admin';
 my $actiontec_password = 'password1';
-my $actiontec_download_mbps = 5.0;
+my $actiontec_download_mbps = 10.0;
 my $actiontec_upload_mbps = 2.0;
 my $actiontec_url;
 my $f_actiontec = "$config_parms{data_dir}/web/actiontec.html";
