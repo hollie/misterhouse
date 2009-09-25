@@ -502,7 +502,7 @@ sub create_rrd {
     'RRA:AVERAGE:0.5:8640:334',
     'RRA:MAX:0.5:8640:334';
 
-    die "unable to create $RRD: $err\n" if $err = RRDs::error;
+    die "weather_rrd_update : unable to create $RRD: $err\n" if $err = RRDs::error;
 }
 #==============================================================================
 # Update base RRD
