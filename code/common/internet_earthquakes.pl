@@ -1,31 +1,54 @@
 # Category = Informational
 
-#@ This module checks the USGS National Earthquake Information Center
+#@ This script checks the USGS National Earthquake Information Center
 #@ to get the most recent earthquakes that have occurred and presents
 #@ those that were at least the minimum magnitude(s) specified. You'll
-#@ need to have your latitude and longitude parameters set properly.
-#@
+#@ need to have your latitude and longitude parameters set properly.<BR>
+#@<BR>
 #@ If you want to customize your magnitude thresholds, set a variable
-#@ like this in your ini file:
-#@
-#@ Earthquake_Magnitudes = 99999 5.5 3000 3.5 100 0
-#@
-#@ If you prefer kilometers to miles, set Earthquake_Units to metric
-#@ e.g. Earthquake_Units=metric
-#@
-#@ You can also set a variable to limit the number of quakes to display.
-#@ To show only the two most recent quakes, regardless of magnitude, set
-#@ the following variables in your ini file:
-#@
-#@ Earthquake_Magnitudes = 99999 0
-#@ Earthquake_Count = 2
+#@ like this in your ini file.  You can specify any number of distance, 
+#@ magnitude pairs:<BR>
+#@     Earthquake_Magnitudes = 99999 5.5 3000 3.5 100 0<BR>
+#@<BR>
+#@ If you prefer kilometers to miles, set Earthquake_Units to metric<BR>
+#@     Earthquake_Units=metric<BR>
+#@<BR>
+#@ You can also set a variable to limit the number of quakes to speak.<BR>
+#@     Earthquake_Count = 2<BR>
+#@<BR>
+#@ Finally, this script creates a listing of earthquakes with the most recent
+#@ on top.  The page is linked into the web UI under Weather / Earthquakes.  
+#@ The default is to list all of the earthquakes, more than 2000.  However, 
+#@ you can set the following parameter to filter that list using the same 
+#@ Earthquakes_Magnitudes thresholds used for speech.<BR>
+#@     Earthquake_Display = filtered | all<BR>
+
 
 # $Revision$
 # $Date$
 
 =begin comment
 
-internet_quakes.pl
+code/common/internet_quakes.pl, bin/get_earthquakes
+ 1.5 This is a major rewrite triggered because the USGS stopped 
+     updating the previous file cnss/quake.  The only sutiable file 
+     contains all magnitudes making it much larger (2000+ lines).  
+     This resulted in the need to parse the file in a background 
+     Process_Item to prevent pauses and to reconsider how earthquakes
+     are stored between calls.  Major changes include:
+     - Implemented bin/get_earthquakes to retrieve and parse the 
+       data file.  This script also gets the map image of the latest
+       event.  Much of the existing code was moved to that script.
+     - Implemented a DBM file structure (with DB_File) for storing 
+       earthquake data in {data_dir}/web/earthquakes.dbm
+     - bin/get_earthquakes writes the {data_dir}/web/earthquakes.txt
+       file for viewing in the web interface and also retrieves the map 
+       image of the latest earthquake as {data_dir}/web/earthquakes.gif.
+     The new data source has a slightly different format and contains over 
+     2000 earthquake events including the smaller magnitudes retrieved 
+     with internet_quakes_cal.pl.  It might be possible now to use 
+     this file rather than the CA specific version.
+     - Michael Stovenour - 3/1/2009
  1.4 Switched back to get_url after finger stopped working.  Added a
      process to automatically download an image showing where the
      latest quake was - David Norwood - 1/14/2004
@@ -40,26 +63,9 @@ internet_quakes.pl
  1.0 Original version by Tim Doyle <tim@greenscourt.com>
      using news_yahoo.pl as an example - 2/15/2001
 
-This script checks the USGS National Earthquake Information Center
-via ftp to get the last twenty one earthquakes that have occurred
-in the world and presents those that were at least the minimum
-magnitude(s) specified.
-
 When quakes are read, the date/time and location information are converted
 to relative units (i.e. 3 hours ago, yesterday at 5pm, 53 miles away) and
-and those that don't meet magnitude thresholds are omitted.
-
-If you want to customize your magnitude thresholds, set a variable
-like this in your ini file:
-
-  Earthquake_Magnitudes = 99999 5.5 3000 3.5 100 0
-
-You can also set a variable to limit the number of quakes to display.
-To show only the two most recent quakes, regardless of magnitude, set
-the following variables in your ini file:
-
-  Earthquake_Magnitudes = 99999 0
-  Earthquake_Count = 2
+and those that don't meet magnitude thresholds are not spoken.
 
 Note: If you live in the western hemisphere, this script needs your
 longitude .ini variable to be negative.
@@ -71,43 +77,36 @@ if ($Reload) {
     $Included_HTML{'Informational'} .= qq(<h3>Latest Earthquake<p><img src='/data/web/earthquakes.gif?<!--#include code="int(100000*rand)"-->'><p>\n\n\n);
 }
 
-# Default Magnitude Thresholds
-my %Magnitude_thresholds = (
-    99999,  5.5,     # show anything anywhere over 5.5
-    500,    3.5,     # show anything within 500 miles over 3.5
-    100,    0,       # show anything within 100 miles any size
-);
+#The variables below are used by the get_earthquakes script called below 
+#as a background Process_Item.  These empty references cause the .ini parms 
+#to show up in the code activation screens.
+#TODO - modify the code activation screens so that they can be 
+#explicitly "told" about an .ini parm using some form of perl comment  
+my $dummy = $config_parms{Earthquake_Magnitudes};
+$dummy = $config_parms{Earthquake_Display};
+$dummy = $config_parms{latitude};
+$dummy = $config_parms{longitude};
 
-if ($config_parms{Earthquake_Magnitudes}) {
-  %Magnitude_thresholds = split ' ', $config_parms{Earthquake_Magnitudes};
-}
 
-my $Earthquake_Units=$config_parms{Earthquake_Units};
-$Earthquake_Units='imperial' unless $Earthquake_Units;
-
-my $Earthquake_Unit_Name='';
+#TODO - Why doesn't the .ini file just say kilometers if user wants kilometers?
+my $Earthquake_Units = lc($config_parms{Earthquake_Units});
+$Earthquake_Units='miles' unless $Earthquake_Units;
+my $Earthquake_Unit_Name = 'miles';     #default to miles
 if ($Earthquake_Units eq 'metric') {
-	$Earthquake_Unit_Name='kilometers';
-} else {
-	$Earthquake_Unit_Name='miles';
+	$Earthquake_Unit_Name = 'kilometers';
+} elsif ($Earthquake_Units eq 'kilometers') {
+	$Earthquake_Unit_Name = 'kilometers';
 }
-
-# Maximum number of quakes to show
+# Maximum number of quakes to speak
 my $Earthquake_Count = 5;
-
 if ($config_parms{Earthquake_Count}) {
   $Earthquake_Count = $config_parms{Earthquake_Count};
 }
 
-$f_earthquakes_txt = new File_Item("$config_parms{data_dir}/web/earthquakes.txt");
-$f_earthquakes_gif = new File_Item("$config_parms{data_dir}/web/earthquakes.gif");
-
-my $image;
 my $speech;
-
-$p_earthquakes_image = new Process_Item;
-$p_earthquakes = new Process_Item("get_url ftp://hazards.cr.usgs.gov/cnss/quake " . $f_earthquakes_txt->name);
-
+my $f_earthquakes_dbm = "$config_parms{data_dir}/web/earthquakes.dbm";
+my $get_cmd = "get_earthquakes" . ($Debug{earthquakes} ? ' -v' : '');
+$p_earthquakes = new Process_Item($get_cmd);
 $v_earthquakes =  new  Voice_Cmd('[Get,Read,Clear] recent earthquakes');
 $v_earthquakes -> set_info('Display recent earthquake information');
 $v_earthquakes -> set_authority('anyone');
@@ -115,109 +114,100 @@ $v_earthquakes -> set_authority('anyone');
 $state = said $v_earthquakes;
 
 if ( $state eq 'Get' ) {
-  unlink $f_earthquakes_txt->name;
   if (&net_connect_check) {
-    $v_earthquakes->respond("app=earthquakes Checking for recent earthquakes...");
-
-    # Use start instead of run so we can detect when it is done
-    start $p_earthquakes;
+    if( !$p_earthquakes->done()) {
+      $v_earthquakes->respond("app=earthquakes Can not get earthquakes. Get earthquakes is already running...");
+    } else {
+      start $p_earthquakes;
+      $v_earthquakes->respond("app=earthquakes Checking for recent earthquakes...");
+    }
   }
 }
 elsif ( $state eq 'Clear' ) {
-  $v_earthquakes->respond("app=earthquakes Clearing recent earthquakes ...");
-  $Save{quakes} = "";
+  if( !$p_earthquakes->done()) {
+    $v_earthquakes->respond("app=earthquakes Can not clear earthquakes. Get earthquakes is running...");
+  } else {
+    $v_earthquakes->respond("app=earthquakes Clearing recent earthquakes ...");
+    unlink $f_earthquakes_dbm;
+    delete $Save{quakes};  #Delete the old save var if it exists
+  }
 }
 elsif ( $state eq 'Read' ) {
-  my $quake;
-  my $num = 0;
-  $speech = '';
-  foreach (split /\t/, $Save{quakes}) {
-    $quake = $_;
-    last unless $num < $Earthquake_Count;
-    $num += parse_quake($quake);
-  }
-  if ($speech) {
-     $v_earthquakes->respond("app=earthquakes $speech");
-  }
-  else {
-     $v_earthquakes->respond('app=earthquakes No recent earthquakes to report.');
+  if ($speech = earthquake_read('all', $f_earthquakes_dbm, $Earthquake_Count, $Earthquake_Unit_Name)) {
+    $v_earthquakes->respond("app=earthquakes $speech");
+  } else {
+    $v_earthquakes->respond('app=earthquakes No recent earthquakes to report.');
   }
 }
 
 if (done_now $p_earthquakes) {
-
-  $v_earthquakes->respond("connected=0 Earthquake data retrieved");
-  my $new_quakes = "";
-  my ($quake, $search);
-  my $num = 0;
-
-  #The data returned has oldest on top, and we need to look at the newest data first
-  #The following reads the data into an array and then pops lines off the bottom
-  my @txtFile = $f_earthquakes_txt->read_all;
-  while ($_ = pop @txtFile) {
-    #Only look at lines with quake data on them
-    if (/^(\S+)\s+(\S+)\s+(\S+)([NS])\s+(\S+)([EW])\s+(\S+)\s+(\S+)M\s+(\S)?\s+(.+)/ ) {
-      $search = $quake = $_;
-      if ($Save{quakes} !~ /$search/) {
-        $new_quakes = $new_quakes . $quake . "\t";
-      }
-    }
-  }
-  if ($new_quakes) {
-    $Save{quakes} = $new_quakes . $Save{quakes};
-#   $Save{quakes} =~ s/^(([^\t]*\t){1,1000}).*/$1/;
-    $Save{quakes} =~ s/^(([^\t]*\t){1,21}).*/$1/;   # Save last 21 quakes
-    $image = '';
-    foreach (split /\t/, $new_quakes) {
-      $quake = $_;
-      last unless $num < $Earthquake_Count;
-      $num += parse_quake($quake);
-    }
-    set $p_earthquakes_image "get_url $image " . $f_earthquakes_gif->name;
-    start $p_earthquakes_image if $image;
-    $v_earthquakes->respond("app=earthquakes connected=0 important=1 $speech") if $speech ne '';
-    $speech='';
+  if( $speech = earthquake_read('new', $f_earthquakes_dbm, $Earthquake_Count, $Earthquake_Unit_Name)) {
+    $v_earthquakes->respond("app=earthquakes connected=0 important=1 $speech");
   }
 }
 
-use Math::Trig;
 
-sub calc_distance {
-    my ($lat1, $lon1, $lat2, $lon2) = @_;
-    my ($c, $d);
-    $c = 57.3; # radian conversion factor
+sub earthquake_read {
+  my ($scope, $f_dbm, $countMax) = @_;
+  
+  my $speech = '';
+  
+  my %DBM;
+  if(!tie( %DBM, 'DB_File', $f_dbm, O_RDWR|O_CREAT, 0666)) {
+    print_log( "internet_earthquake: Can not open dbm file $f_dbm: $!");
+    return $speech;
+  }
+  
+  my @keysSpeak;
+  my @dbmEvent;
+  if( $scope eq 'all') {
+    @keysSpeak = grep {@dbmEvent=split($;, $DBM{$_}); $dbmEvent[8]} keys(%DBM);
+  } else {
+    @keysSpeak = grep {@dbmEvent=split($;, $DBM{$_}); $dbmEvent[8]&&!$dbmEvent[9]} keys(%DBM);
+  }
+  #  0   1   2    3      4        5      6         7       8     9
+  #[gmt,lat,lon,depth,magnitude,source,location,distance,speak,spoken]
+  
+  my $key;
+  my $count = 0;
+  print_log( "internet_earthquakes: Found " . scalar(@keysSpeak) . " quakes to speak") if $Debug{earthquakes};
+  foreach $key (@keysSpeak) {
+    @dbmEvent = split($;, $DBM{$key});
+    
+    #Create the speech for matching items
+    my $qloca = lc($dbmEvent[6]);
+    $qloca =~ s/\b(\w)/uc($1)/eg;
+    $speech .= &calc_earthquake_age($dbmEvent[0]) 
+        . " a magnitude " . $dbmEvent[4] . " earthquake occurred "
+        . $dbmEvent[7] . " $Earthquake_Unit_Name away " 
+        . (($qloca =~ /^near/i)?'':'near ') . "$qloca. ";
+    
+    #Update the spoken flag
+    $dbmEvent[9] = 1;
+    $DBM{$key} = join( $;, @dbmEvent );
+    
+    last unless $count < $countMax;
+    $count++;
+  }
 
-    $lat1 /= $c;
-    $lat2 /= $c;
-    $lon1 /= $c;
-    $lon2 /= $c;
-    $d = 2*Math::Trig::asin(sqrt((sin(($lat1-$lat2)/2))**2 + 	cos($lat1)*cos($lat2)*(sin(($lon1-$lon2)/2))**2));
-
-	if ($Earthquake_Units eq 'metric') {
-		return $d*6378; # convert to kilometers and return
-	}
-    return $d*(.5*7915.6);  # convert to miles and return
+  untie %DBM;
+  return $speech;
 }
+
 
 sub calc_earthquake_age {
-    #Get the time sent in. This is UTC
-    my $time = shift;
-    #Split it up
-    my ($qyear, $qmnth, $qdate, $qhour, $qminu, $qseco) = $time =~ m!(\S+)/(\S+)/(\S+)\s+(\S+):(\S+):(\S+)!;
-    #Merge it
-    my $qtime = timegm($qseco,$qminu,$qhour,$qdate,$qmnth-1,$qyear);
+    #Get the time sent in. This is UTC epoc seconds
+    my $qtimeUTC = shift;
+	# print ("UTC:" . $qtimeUTC . "\n");
 
-	# print ("UTC:" . $qtime . "\n");
-
-    #Split it again - these are now local time, not UTC
-    ($qseco,$qminu,$qhour,$qdate,$qmnth,$qyear) = localtime($qtime);
+    #Split it - these are now local time, not UTC
+    my ($qseco,$qminu,$qhour,$qdate,$qmnth,$qyear) = localtime($qtimeUTC);
     $qmnth += 1;
     #Merge it again - this is now local time, not UTC
-    $qtime = timelocal($qseco,$qminu,$qhour,$qdate,$qmnth-1,$qyear);
-
-
+    my $qtime = timelocal($qseco,$qminu,$qhour,$qdate,$qmnth-1,$qyear);
     my $midnight = timelocal(0, 0, 0, $Mday, $Month - 1, $Year - 1900);
-    my $diff = (time - timelocal($qseco,$qminu,$qhour,$qdate,$qmnth-1,$qyear));
+    
+    my $diff = (time() - $qtime);
 
     return int($diff/60) . " minutes ago " if ($diff < 60*120);
     return int($diff/(60*60)) . " hours ago " if ($qtime > $midnight);
@@ -232,32 +222,8 @@ sub calc_earthquake_age {
     return  "$days_ago day" . (($days_ago > 1)?'s':'') . " ago at $hour";
 }
 
-# 03/12/30 15:32:35 34.20N 139.13E 33.0 4.4M B NEAR S. COAST OF HONSHU, JAPAN
-
-sub parse_quake {
-    if (my ($qdate, $qtime, $qlatd, $qnoso, $qlong, $qeawe, $qdept, $qmagn, $qqual, $qloca) =
-        $_ =~ m!^(\S+)\s+(\S+)\s+(\S+)([NS])\s+(\S+)([EW])\s+(\S+)\s+(\S+)M\s+(\S)?\s+(.+)! ) {
-      $qlatd *= -1 if ( $qnoso eq "S" );
-      $qlong *= -1 if ( $qeawe eq "W" );
-      my $distance = sprintf "%d", calc_distance($config_parms{latitude},
-        $config_parms{longitude}, $qlatd, $qlong) + .5;
-      for (keys %Magnitude_thresholds) {
-        if ( $distance <= $_ and $qmagn >= $Magnitude_thresholds{$_}) {
-          my $long_reso = abs(5 * round($qlatd/5)) > 45 ? (abs(5 * round($qlatd/5)) > 65 ? 20 : 10) : 5;
-          $image = 'http://earthquake.usgs.gov/recenteqsww/Maps/10/' . $long_reso * round(($qlong < 0 ? 360 + $qlong : $qlong)/$long_reso) . '_' . 5 * round($qlatd/5) . '.gif';
-	  $qloca = lc($qloca);
-	  $qloca =~ s/\b(\w)/uc($1)/eg;
-
-          $speech .= &calc_earthquake_age("$qdate $qtime") . " a magnitude $qmagn earthquake occurred $distance $Earthquake_Unit_Name away " . (($qloca =~ /^near/i)?'':'near ') . "$qloca. ";
-          return 1;
-        }
-      }
-    }
-    return 0;
-}
 
 # lets allow the user to control via triggers
-
 if ($Reload) {
     &trigger_set('$New_Hour and net_connect_check', "run_voice_cmd 'Get recent earthquakes'", 'NoExpire', 'get earthquakes')
       unless &trigger_get('get earthquakes');
