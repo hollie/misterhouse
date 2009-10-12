@@ -15,7 +15,9 @@ use strict;
 use warnings;
 
 BEGIN {
-	use Exporter ();
+	use Exporter;
+
+	our @ISA=qw(Exporter);
 
 	our @EXPORT = qw(
 		weather_updated
