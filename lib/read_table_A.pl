@@ -804,6 +804,32 @@ sub read_table_A {
             $code .= "use xPL_Lighting;\n";
         }
     }
+    elsif($type eq "XPL_PLUGWISEGATEWAY") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if($other){
+            $object = "xPL_PlugwiseGateway('$address',$other)";
+        }
+        else{
+            $object = "xPL_PlugwiseGateway('$address')";
+        }
+        if( ! $packages{xPL_Plugwise}++ ) {   # first time for this object type?
+            $code .= "use xPL_Plugwise;\n";
+        }
+    }
+    elsif($type eq "XPL_PLUGWISE") {
+        ($address, $name, $object, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if($other){
+            $object = "xPL_Plugwise('$address',\$$object,$other)";
+        }
+        else{
+            $object = "xPL_Plugwise('$address',\$$object)";
+        }
+        if( ! $packages{xPL_Plugwise}++ ) {   # first time for this object type?
+            $code .= "use xPL_Plugwise;\n";
+        }
+    }    
     elsif($type eq "XPL_SECURITYGATEWAY") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
