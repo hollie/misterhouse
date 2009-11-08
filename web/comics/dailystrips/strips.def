@@ -69,11 +69,10 @@ class unitedmedia-srch-comics
 end
 
 class comicscom-srch
-	homepage http://www.comics.com/$1/
+	homepage http://comics.com/$1/
 	type search
 	searchpage http://www.comics.com/$1/%Y-%m-%d/
-	searchpattern (/dyn/str_strip[/\d]+?\d+.full.gif)
-	baseurl http://assets.comics.com
+	searchpattern (http://c\d+.cdn.cloudfiles.rackspacecloud.com/dyn/str_strip[/\d]+?\d+.full.gif)
 	provides any
 end
 
