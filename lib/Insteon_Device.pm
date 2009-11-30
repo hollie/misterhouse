@@ -310,7 +310,7 @@ sub is_keypadlinc
 {
 	my ($self) = @_;
 	my $obj = $self->get_root;
-	if (($$obj{devcat} eq '0109') or ($$obj{devcat} =~ /010c/i) or ($$obj{devcat} =~ /020f/i)) {
+	if (($$obj{devcat} eq '0109') or ($$obj{devcat} =~ /010c/i) or ($$obj{devcat} =~ /020f/i) ($$obj{devcat} eq '011b')) {
 		return 1;
 	} else {
 		return 0;
