@@ -51,38 +51,6 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "ZWave_Appliance_Item('$address', $other)";
     }
-    # -[ Insteon ]----------------------------------------------------------
-    elsif($type eq "INSTEON") {
-        require 'Insteon_Item.pm';
-        ($address, $name, $grouplist, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "Insteon_Item('$address', $other)";
-    }
-    elsif($type eq "IPLC") {
-        require 'Insteon_Item.pm';
-        ($address, $name, $grouplist, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "Insteon_Item('$address', $other)";
-    }
-    elsif($type eq "IPLCI") {
-        require 'Insteon_Item.pm';
-        ($address, $name, $grouplist, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "Insteon_Item('$address', $other)";
-    }
-    elsif($type eq "IPLCA") {
-        require 'Insteon_Item.pm';
-        ($address, $name, $grouplist, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "Insteon_Appliance('$address', $other)";
-    }
-    elsif($type eq "IPLCL") {
-        require 'Insteon_Item.pm';
-        ($address, $name, $grouplist, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "Insteon_Lamp('$address', $other)";
-    }
-    # ----------------------------------------------------------------------
     # -[ UPB ]----------------------------------------------------------
     elsif($type eq "UPBPIM") {
         require 'UPBPIM.pm';

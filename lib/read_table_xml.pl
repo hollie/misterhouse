@@ -75,12 +75,6 @@ my $twig_code_accum;
 my %itemtype;
 
 # Insteon Items
-#itemtype{"INSTEON"} = {object=>"Insteon_Item"};
-$itemtype{"IPLC"}    = {object=>"Insteon_Item"};
-$itemtype{"IPLCA"}   = {object=>"Insteon_Appliance"};
-$itemtype{"IPLCL"}   = {object=>"Insteon_Lamp"};
-$itemtype{"IPLCI"}   = {object=>"Insteon_Item"};
-
 $itemtype{"X10I"} = {object=>"X10_Item"};
 $itemtype{"X10A"} = {object=>"X10_Appliance"};
 $itemtype{"X10O"} = {object=>"X10_Ote"};
