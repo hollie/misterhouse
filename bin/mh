@@ -975,15 +975,6 @@ sub setup {
         &serial_port_create('cm17', $config_parms{cm17_port});
     }
 
-                                 # I guess there is not really much to do here
-    if ($config_parms{iplcs_port}) {
-        require 'iplcs.pm';
-        if (&serial_port_create('iplcs', $config_parms{iplcs_port}, 4800, 'none')) {
-            #$iplcs_objects{timer} = new Timer;
-            #$iplcs_objects{active} = new Generic_Item;
-        }
-    }
-
 
                                 # Store boot time in seconds since epoc
     if ($OS_win) {
