@@ -11,7 +11,7 @@ use Device_Item;
 our @supported_interfaces=();
 
 my @X10_Interface_Names=qw!cm11 bx24 homevision homebase stargate houselinc
-	marrick ncpuxa cm17 lynx10plc weeder wish iplcs w800 ti103 ncpuxa!;
+	marrick ncpuxa cm17 lynx10plc weeder wish w800 ti103 ncpuxa!;
 
 @X10_Interface::ISA=('Device_Item');
 

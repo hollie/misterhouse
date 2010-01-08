@@ -11,7 +11,7 @@ our $mainHash=\%::Serial_Ports;
 
 @Serial_Item::ISA = ('X10_Interface');
 our @supported_interfaces=qw!cm11 BX24 Homevision HomeBase Stargate HouseLinc
-	Marrick cm17 Lynx10PLC weeder wish iplcs ti103 ncpuxa!;
+	Marrick cm17 Lynx10PLC weeder wish ti103 ncpuxa!;
 
 sub new {
 	my ($class, $id, $state, $device_name) = @_;
@@ -279,16 +279,6 @@ sub send_x10_data {
                                 # wish wants individual codes without X
         &main::print_log("Using wish to send: $serial_data");
         &X10_Wish::send(substr($serial_data, 1));
-    }
-    elsif ($interface eq 'iplcs') {
-                                # ncpuxa wants individual codes with X
-        &main::print_log("Using iplcs to send: $serial_data");
-        &iplcs::send($main::Serial_Ports{iplcs}{object}, $serial_data);
-    }
-    elsif ($interface eq 'iplcu') {
-                                # ncpuxa wants individual codes with X
-        &main::print_log("Using iplcu to send: $serial_data");
-        &iplcs::send($main::config_parms{iplcu_port}, $serial_data);
     }
     else {
         print "\nError, X10 interface not found: interface=$interface, data=$serial_data\n";
