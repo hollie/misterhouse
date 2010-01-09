@@ -1,0 +1,4 @@
+You should copy this directory under misterhouse/web/hai (the same directory that has ia5)
+and add
+html_alias_my_mh = /path/to/misterhouse/web/hai/
+to your mh.private.ini

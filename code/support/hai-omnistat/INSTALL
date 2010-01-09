@@ -1,0 +1,29 @@
+Based on work from several others (see credits in source files) 
+For tracking/changelog purposes, this is version 2.0 from Marc MERLIN 2010/01/09
+
+edit mh.private.ini and set some variables (see Omnistat.pm for options
+available).  Mine are:
+----------------------------------------------------------------------------
+#debug=omnistat
+Omnistat_serial_port=/dev/ttyUSB0
+Omnistat_24hr=1
+Omnistat_stat_log=9
+# Setting new temperature and settings only works until the next
+# programmed change unset this for changes to set the stat to 'hold'
+# mode where it'll keep your setting forever
+Omnistat_set_does_not_hold=1
+----------------------------------------------------------------------------
+
+omnistat.pl should go to your mh/code/omnistat.pl and you should edit it to 
+setup your thermostat(s)
+
+Make sure your files in mh/web/hai are readable by the mh user. If not,
+you may get a file download request by your browser (untarring and
+copying the files with proper permissions should do this for you)
+
+After this, you should be able to access
+http://server:8080/hai/
+http://server:8080/hai/omnistat_sched_web.pl
+http://server:8080/hai/omnistat_setup.pl
+and even
+http://server:8080/hai/omnistat_setup.pl?location=mystat2
