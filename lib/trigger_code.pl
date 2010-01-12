@@ -18,6 +18,7 @@ my $script_file  = "$::Code_Dirs[0]/triggers.mhp";
 &::Exit_add_hook         (\&triggers_save, 1);
 
 sub triggers_loop { 
+    &triggers_read      if $Reload and -e $trigger_file;
     $prev_triggers = &file_read($trigger_file) if $Reload and -e $trigger_file;
     $prev_script   = &file_read($script_file)  if $Reload and -e $script_file;
     &triggers_save      if new_minute 5;

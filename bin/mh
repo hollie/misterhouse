@@ -745,11 +745,6 @@ sub setup {
         &Voice_Text::init;
     }
 
-    # This was taken from lib/trigger_code.pl so that libraries involved with serial ports
-    # and sockets could create new triggers.  See lib/Weather_daviswm2.pm for an example of
-    # why this is a good idea.
-    &triggers_read;
-
                                 # Find all defined socket and serial ports
     for my $parm (sort keys %config_parms) {
         next unless $config_parms{$parm}; # Ingore blank parms

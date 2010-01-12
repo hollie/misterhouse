@@ -160,7 +160,7 @@ sub web_trigger_add {
             $code = $p{code2};
         }
 #       print "db t=$trigger c=$code\n";
-        &trigger_set($trigger, $code, 'OneShot', $p{name});
+        &trigger_set($trigger, $code, $p{type}, $p{name});
         return &http_redirect('/bin/triggers.pl');
     }
                                 # Create form
