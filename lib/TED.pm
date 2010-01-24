@@ -7,6 +7,9 @@ From David Satterfield <david_misterhouse@yahoo.com>
 # Serial/USB port that the TED is connected to. Put this in your mh.private.ini.
 TED_serial_port = /dev/ttyUSB0
 
+If your ted firmware version is > 8.01U, you need this parm in your mh.private.ini as well. New versions of firmware won't send data unless prompted.
+TED_ask_for_data = 1
+
 Then, add this to your user code (I put it in ted.pl)
 use TED;
 $ted_interface = new TED;
@@ -14,7 +17,7 @@ $ted_interface = new TED;
 That's it! Your %Electric hash should start getting filled in.
 
 Known Issues:
-It seems that TED packets can vary in size. This module only handles 280 byte packets at this point.
+
 
 =cut
 
@@ -36,6 +39,7 @@ sub new {
 
     my $self = {};
     $self->{port_name} = $port_name;
+    $self->{device_name} = $port_name;
 
     bless $self, $class;
 
@@ -61,8 +65,16 @@ sub serial_startup {
 
 sub check_for_data {
 
+
     my $ted = $TED_Data{$portname}{'obj'};
     return unless $ted;
+
+    if ($main::New_Second && 
+	$main::config_parms{$portname . "_ask_for_data"}) {
+
+	print "sending data to ted\n" if $main::Debug{ted};
+	$ted->write_data(pack "C", 0xAA) ;
+    }
 
     # check for data
     &main::check_for_generic_serial_data($portname);
@@ -116,7 +128,10 @@ sub process_incoming_data {
 
     print_pkt(@pkt) if $main::Debug{ted};
 
-    if (($start eq "\cP\cD") and ($tedstr eq "TED ") and $tedchars == 280) {
+    # new versions starting at 9.01 have two extra bytes in packet
+    my $tedcount = $main::config_parms{$portname . "_ask_for_data"} ? 282 : 280;
+
+    if (($start eq "\cP\cD") and ($tedstr eq "TED ") and $tedchars == $tedcount) {
         $main::Electric{Flags}       = (($pkt[3] * 256) + $pkt[2]);
         $main::Electric{FixMthChrg_1}= (($pkt[5] * 256) + $pkt[4])/100;
         $main::Electric{FixMthChrg_2}= (($pkt[7] * 256) + $pkt[6])/100;
@@ -329,3 +344,8 @@ sub print_pkt {
 # - Fixed divide by 100 error in WattTdySum, KWTdy, 
 #   added back WattTdySum, cleaned up code
 #
+# Revision 1.4  -- 1/21/2010 -- David Satterfield
+# - Added support for firmare v9.01U (use _ask_for_data parm)
+#   
+#
+
