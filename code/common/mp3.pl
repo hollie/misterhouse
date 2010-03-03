@@ -41,7 +41,7 @@ if ('Build' eq said $v_mp3_build_list) {
     my @dirs = split ',', $config_parms{mp3_dir};
     print_log "Updating mp3 database for @dirs";
     set   $p_mp3_build_list "get_mp3_data -dbm $mp3_file @dirs";
-    eval 'untie %mp3_dbm';       # eval in cause db_file is not installed
+    untie %mp3_dbm;
     start $p_mp3_build_list;
 }
 
