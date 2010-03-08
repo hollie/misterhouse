@@ -73,7 +73,7 @@ sub restore_string {
     my ($self) = @_;
 
     my $expire_time = $self->{expire_time};
-    return unless $self->{time} or ($expire_time and $expire_time > main::get_tickcount);
+    return unless $self->{time} or ($expire_time and $expire_time > &main::get_tickcount);
 
     my $restore_string  = "set $self->{object_name} $self->{period}" if $self->{period};
     $restore_string .= ", q|$self->{action}|"  if $self->{action};
@@ -84,7 +84,6 @@ sub restore_string {
     $restore_string .= $self->{object_name} . "->{time} = q~$self->{time}~;\n" if $self->{time};
     $restore_string .= $self->{object_name} . "->{time_pause} = q~$self->{time_pause}~;\n"  if $self->{time_pause};
     $restore_string .= $self->{object_name} . "->{time_adjust} = q~$self->{time_adjust}~;\n" if $self->{time_adjust};
-
     return $restore_string;
 }
 
@@ -119,7 +118,6 @@ sub set {
     $repeat = 0 unless defined $repeat;
 #   print "db1 $main::Time_Date running set s=$self s=$state a=$action t=$self->{text} c=@c\n";
     return if &main::check_for_tied_filters($self, $state);
-
                                 # Set states for NEXT pass, so expired, active, etc,
                                 # checks are consistent for one pass.
     push @sets_from_previous_pass, $self;
@@ -143,7 +141,7 @@ sub set_from_last_pass {
     }
                                 # Turn a timer on
     else {
-        $self->{expire_time} = ($state * 1000) + main::get_tickcount;
+        $self->{expire_time} = ($state * 1000) + &main::get_tickcount;
         $self->{period}      = $state;
         $self->{repeat}      = $repeat;
         if ($action) {
@@ -211,7 +209,7 @@ sub expired {
     ($self) = @_;
 #   print "db $self->{expire_time} $self->{pass_triggered}\n";
     if ($self->{expire_time} and
-        $self->{expire_time} < main::get_tickcount) {
+        $self->{expire_time} < &main::get_tickcount) {
 #       print "db expired1 loop=$self->{pass_triggered} lc= $main::Loop_Count\n";
 
                                 # Reset if we finished the trigger pass
@@ -235,14 +233,14 @@ sub expired {
 sub hours_remaining {
     ($self) = @_;
     return if inactive $self;
-    my $diff = $self->{expire_time} - main::get_tickcount;
+    my $diff = $self->{expire_time} - &main::get_tickcount;
 #   print "d=$diff s=$self st=", $self->{expire_time}, "\n";
     return sprintf("%3.1f", $diff/(60*60000));
 }
 sub hours_remaining_now {
     ($self) = @_;
     return if inactive $self;
-    my $hours_left = int(.5 + ($self->{expire_time} - main::get_tickcount) / (60*60000));
+    my $hours_left = int(.5 + ($self->{expire_time} - &main::get_tickcount) / (60*60000));
     if ($hours_left and
         $self->{hours_remaining} != $hours_left) {
         $self->{hours_remaining}  = $hours_left;
@@ -256,14 +254,14 @@ sub hours_remaining_now {
 sub minutes_remaining {
     ($self) = @_;
     return if inactive $self;
-    my $diff = $self->{expire_time} - main::get_tickcount;
+    my $diff = $self->{expire_time} - &main::get_tickcount;
 #   print "d=$diff s=$self st=", $self->{expire_time}, "\n";
     return sprintf("%3.1f", $diff/60000);
 }
 sub minutes_remaining_now {
     ($self) = @_;
     return if inactive $self;
-    my $minutes_left = int(.5 + ($self->{expire_time} - main::get_tickcount) / 60000);
+    my $minutes_left = int(.5 + ($self->{expire_time} - &main::get_tickcount) / 60000);
     if ($minutes_left and
         $self->{minutes_remaining} != $minutes_left) {
         $self->{minutes_remaining}  = $minutes_left;
@@ -277,13 +275,13 @@ sub minutes_remaining_now {
 sub seconds_remaining {
     ($self) = @_;
     return if inactive $self;
-    my $diff = $self->{expire_time} - main::get_tickcount;
+    my $diff = $self->{expire_time} - &main::get_tickcount;
     return sprintf("%3.1f", $diff/1000);
 }
 sub seconds_remaining_now {
     ($self) = @_;
     return if inactive $self;
-    my $seconds_left = int(.5 + ($self->{expire_time} - main::get_tickcount) / 1000);
+    my $seconds_left = int(.5 + ($self->{expire_time} - &main::get_tickcount) / 1000);
     if ($seconds_left and
         $self->{seconds_remaining} != $seconds_left) {
         $self->{seconds_remaining}  = $seconds_left;
@@ -298,7 +296,7 @@ sub seconds_remaining_now {
 sub active {
     ($self) = @_;
     if (($self->{expire_time} and
-         $self->{expire_time} >= main::get_tickcount) or
+         $self->{expire_time} >= &main::get_tickcount) or
         ($self->{set_next_pass})) {
         return 1;
     }

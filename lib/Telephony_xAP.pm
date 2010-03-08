@@ -148,10 +148,11 @@ sub meteor_out_complete_hook
 sub callerid_hook
 {
 	my ($self,$p_xap)= @_;
-	$self->cid_name('');
+	my $cidname = $$p_xap{'incoming.callwithcid'}{name};
+	$cidname = '' unless $cidname;
 	$self->cid_number('');
 	$self->cid_type('');
-	$self->cid_name($$p_xap{'incoming.callwithcid'}{name});
+	$self->cid_name($cidname);
         $self->cid_number($$p_xap{'incoming.callwithcid'}{phone});
         $self->cid_type('N'); # N-Normal, P-Private/Blocked, U-Unknown;
 	if (uc $$p_xap{'incoming.callwithcid'}{rnnumber} eq 'UNAVAILABLE' or 
@@ -166,7 +167,7 @@ sub meteor_in_cid_hook
 {
 	my ($self,$p_xap,$block_name)= @_;
 	my $cidname = $$p_xap{'incoming.callwithcid'}{name};
-	$cidname = '' unless $cidname;
+	$cidname = '' unless $cidname && $$p_xap{'incoming.callwithcid'}{rnname} ne 'Unavailable';
 	my $cidphone = $$p_xap{'incoming.callwithcid'}{phone};
 	$cidphone = '' unless $cidphone;
 	$self->cid_type('');

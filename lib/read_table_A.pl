@@ -14,7 +14,7 @@ use strict;
 
 #print_log "Using read_table_A.pl";
 
-my (%groups, %objects, %packages);
+my (%groups, %objects, %packages, %addresses);
 
 sub read_table_init_A {
                                 # reset known groups
@@ -22,6 +22,7 @@ sub read_table_init_A {
 	%groups=();
 	%objects=();
 	%packages=();
+        %addresses=();
 }
 
 sub read_table_A {
@@ -32,7 +33,7 @@ sub read_table_A {
     }
     $record =~ s/\s*#.*$//;
 
-    my ($code, $address, $name, $object, $grouplist, $comparison, $limit, @other, $other, $vcommand, $occupancy,$network,$password);
+    my ($code, $address, $name, $object, $grouplist, $comparison, $limit, @other, $other, $vcommand, $occupancy,$network,$password, $interface);
     my(@item_info) = split(',\s*', $record);
     my $type = uc shift @item_info;
 
@@ -84,29 +85,71 @@ sub read_table_A {
     }
     # ----------------------------------------------------------------------
     elsif($type eq "INSTEON_PLM") {
-        require 'Insteon_PLM.pm';
+        require Insteon_PLM;
         ($name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "Insteon_PLM('Insteon_PLM')";
+        $object = "Insteon_PLM('Insteon_PLM',$other)";
     }
-    elsif($type eq "IPLD") {
-        require 'Insteon_Device.pm';
-        ($address, $name, $grouplist, $object, @other) = @item_info;
+    elsif($type eq "INSTEON_LAMPLINC") {
+        require Insteon::Lighting;
+        ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "Insteon_Device(\$$object, \'$address\', $other)";
+        $object = "Insteon::LampLinc(\'$address\',$other)";
     }
-    elsif($type eq "IPLL") {
-        require 'Insteon_Link.pm';
-        ($address, $name, $grouplist, $object, @other) = @item_info;
+    elsif($type eq "INSTEON_APPLIANCELINC") {
+        require Insteon::Lighting;
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon::ApplianceLinc(\'$address\',$other)";
+    }
+    elsif($type eq "INSTEON_SWITCHLINC") {
+        require Insteon::Lighting;
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon::SwitchLinc(\'$address\',$other)";
+    }
+    elsif($type eq "INSTEON_SWITCHLINCRELAY") {
+        require Insteon::Lighting;
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon::SwitchLincRelay(\'$address\',$other)";
+    }
+    elsif($type eq "INSTEON_KEYPADLINC") {
+        require Insteon::Lighting;
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon::KeyPadLinc(\'$address\', $other)";
+    }
+    elsif($type eq "INSTEON_KEYPADLINCRELAY") {
+        require Insteon::Lighting;
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon::KeyPadLincRelay(\'$address\', $other)";
+    }
+    elsif($type eq "INSTEON_REMOTELINC") {
+        require Insteon::Controller;
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon::RemoteLinc(\'$address\', $other)";
+    }
+    elsif($type eq "INSTEON_MOTIONSENSOR") {
+        require Insteon::Security;
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon::MotionSensor(\'$address\', $other)";
+    }
+    elsif($type eq "INSTEON_ICONTROLLER") {
+        require Insteon::BaseInsteon;
+        ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         my ($deviceid,$groupid) = $address =~ /(\S+):(\S+)/;
-        if ($deviceid =~ /$object/i) {
-           $object = "Insteon_Link(\$$object, \'00.00.00:$groupid\', $other)";
+        if ($groupid) {
+           $object = "Insteon::InterfaceController(\'00.00.00:$groupid\', $other)";
         } else {
-           $object = "Insteon_Link(\$$object, \'$address\', $other)";
+           $object = "Insteon::InterfaceController(\'00.00.00:$address\', $other)";
         }
     }
-    elsif($type eq 'IPLT') {
+    elsif($type eq 'IPLT' or $type eq 'INSTEON_THERMOSTAT') {
         require 'Insteon_Thermostat.pm';
         ($address, $name, $grouplist, $object, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
@@ -797,7 +840,7 @@ sub read_table_A {
         if( ! $packages{xPL_Plugwise}++ ) {   # first time for this object type?
             $code .= "use xPL_Plugwise;\n";
         }
-    }    
+    }
     elsif($type eq "XPL_SECURITYGATEWAY") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
