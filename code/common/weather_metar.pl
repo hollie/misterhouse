@@ -187,7 +187,7 @@ sub process_metar {
 		grep {$metar{$_}=convert_nm2km($metar{$_})} qw(WindAvgSpeed WindGustSpeed);
 	}
 
-	$metar{Barom}=convert_sea_barom_to_local_mb($metar{BaromSea});
+	$metar{Barom}=&Weather_Common::convert_sea_barom_to_local_mb($metar{BaromSea});
 
 	if ($config_parms{weather_uom_baro} eq 'in') {
 		grep {$metar{$_}=convert_mb2in($metar{$_})} qw(Barom BaromSea);
@@ -208,8 +208,8 @@ sub process_metar {
 		}
 	}
 
-	&populate_internet_weather(\%metar, $config_parms{weather_internet_elements_metar});
-	&weather_updated;
+	&Weather_Common::populate_internet_weather(\%metar, $config_parms{weather_internet_elements_metar});
+	&Weather_Common::weather_updated;
 }
 
 # useful for debugging
