@@ -26,3 +26,7 @@ nix	mh-pocketsphinx		This is a self installing script that will
 				MisterHouse should have the supporting 
  				routines to use it already installed.
 			
+
+all	hai-omnistat		Support files for HAI Omnistats (RC-80 and 
+				others).
+				See http://misterhouse.wikispaces.com/hai_stats
