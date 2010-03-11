@@ -428,11 +428,19 @@ sub new {
     $$self{cache_agelimit}{$reg} = 10;   # CACHE_TIMEOUT_VERYSHORT
   }
 
-
   #The next line is an experiment with http_server.pm to allow other objects to show up in the web interface
   $$self{html_text}       = "<a href=/hai/omnistat_web.pl>Set Thermostat</a>";
+
   omnistat_debug("Omnistat[$$self{address}] object created");
   bless $self,$class;
+
+  # This is to work around a timing bug where the first query doesn't get a proper ack
+  # we just "prime" the device and connection by making one query to it where we ignore the answer
+  # no idea why this is needed, but it works for me and things are stable afterwards -- merlin
+  $self->{'PRIME'}=1;
+  $self->send_cmd("0x01 0x20 0x40 0x01 0x62", 1);
+  $self->{'PRIME'}=0;
+
   return $self;
 }
 
@@ -516,6 +524,12 @@ sub send_cmd {
     $rcvd = $rcvd . sprintf( "0x%s ", substr( $temp, $i * 2, 2 ) );
   }
   my $rcvd_ack = hex(substr($rcvd, 0 , 4));
+
+  if ($self->{'PRIME'})
+  {
+      omnistat_debug("Omnistat[$$self{address}]->send_cmd skipping error check and return value during prime");
+      return;
+  }
 
   # FIXME? Those two dies aren't ideal, but it happens that you get corruption or bad data on a reply.
   # Expected for 01 20 3b 0e 6a is something like
