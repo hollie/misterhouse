@@ -86,7 +86,7 @@ sub new {
 
     # Initialize the OWFS perl interface ( server tcp port )
     my $port = 3030;
-    $port = "$main::config_parm{owfs_port}" if exists $main::config_parm{owfs_port};
+    $port = "$main::config_parms{owfs_port}" if exists $main::config_parms{owfs_port};
     &main::print_log ("Owfs_Item:: Initializing port: $port $location") if $main::Debug{owfs};
     OW::init ( "$port" );
 
@@ -201,6 +201,88 @@ sub _remove {
   for my $key (keys %$self) {
     delete $$self{$key};
   }
+}
+
+#=======================================================================================
+#
+# Owfs_DS18S20
+#
+# This package specifically handles the DS18S20 Thermometer
+#
+#=======================================================================================
+
+=begin comment
+
+Usage:
+
+ $sensor = new Owfs_DS18S20 ( "<device_id>", <location>, <interval> );
+
+ <device_id> - of the form family.address; identifies the one-wire device
+ <location>  - ASCII string identifier providing a useful name for device_id
+ <interval>  - seconds between acquisitions
+
+ Example:
+
+ $ds18S20 = new Owfs_DS18S20 ( "10.DB2506000000", "Living Room", 2 );
+ 
+ my $temperature = get_temperature $ds18S20;
+
+=cut
+
+use strict;
+
+package Owfs_DS18S20;
+
+@Owfs_DS18S20::ISA = ('Owfs_Item');
+
+sub new {
+    my ($class, $ds18S20, $location, $interval) = @_;
+    my $self = new Owfs_Item ( $ds18S20, $location );
+    bless $self,$class;
+
+    $interval = 10 unless $interval;
+    $interval = 10 if ($interval < 10);
+    $self->{interval} = $interval;
+
+    $self->{timer} = new Timer;
+    $self->{timer}->set($self->{interval}, sub {&Owfs_DS18S20::run_loop($self)});
+    $self->{temperature} = 0;
+    $self->{index} = 0;
+    return $self;
+}
+
+sub get_temperature {
+  my $self = shift;
+  return ($self->{temperature});
+}
+
+sub state {
+  my $self = shift;
+  return ($self->{temperature});
+}
+
+sub run_loop {
+  my $self = shift;
+  my $index = $self->{index};
+  &main::print_log ( "Owfs_DS18S20:: index: $index") if $main::Debug{owfs};
+
+  # issue simultaneous to start a conversion
+  if ($self->{index} == 0) {
+    $self->set_root ( "simultaneous/temperature", "1" );
+  } else {
+    $self->{temperature} = $self->get ( "temperature");
+    $self->SUPER::set($$self{temperature});
+    &main::print_log ("Owfs_DS18S20 temperature: $$self{temperature}") if $main::Debug{owfs};
+  }
+
+  # udpate the index
+  $self->{index} += 1;
+  if ($self->{index} >= 2) {
+    $self->{index} = 0;
+  }
+
+  # reschedule the timer for next pass
+  $self->{timer}->set($self->{interval}, sub {&Owfs_DS18S20::run_loop($self)});
 }
 
 #=======================================================================================
