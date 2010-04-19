@@ -10,7 +10,7 @@ offering a simple PERL API interface.
 
 Requirements:
 
- Download and install OWFS
+ Download and install OWFS  (tested against release owfs-2.7p21) 
  http://www.owfs.org
 
 Setup:
