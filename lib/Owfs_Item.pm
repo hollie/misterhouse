@@ -18,9 +18,10 @@ Setup:
 In your code module, instantation the Owfs_Item class to interface with some
 one-wire element.  The one-wire device can be found using the OWFS html interface.
 
-configure mh.privite.ini
+configure mh.private.ini
 
 owfs_port = 3030    # defined port where the owfs server is listening
+		    # (owserver defaults to 4304)
 
 Example Usage:
 
