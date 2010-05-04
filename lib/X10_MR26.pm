@@ -92,7 +92,7 @@ sub check_for_data {
     my(@bytes);
     if (($bytes[0], $bytes[2]) = $data =~ /^\xd5\xaa(.)(.)$/) {
 
-	my $state = X10_RF::decode_rf_bytes('mr26', @bytes);
+	my $state = X10_RF::decode_rf_bytes('MR26', @bytes);
 
 	# If we got a bad checksum, throw out the rest of the data in the
 	# buffer since we probably have a corrupt data stream.
