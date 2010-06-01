@@ -101,7 +101,7 @@ if (done_now $p_USGS_list) {
 	my $USGS_Message = "";
      foreach $USGS_River (@USGS_RiverList) {
 	@USGS_RiverValues = split("\t", $USGS_River);
-	$USGS_Level{"@USGS_RiverValues[1]"} = @USGS_RiverValues[6];
+	$USGS_Level{"@USGS_RiverValues[1]"} = @USGS_RiverValues[7];
 	$USGS_Name{"@USGS_RiverValues[1]"} = @USGS_RiverValues[2];
 	if ($USGS_Level{"@USGS_RiverValues[1]"} >= $USGS_Notify{"@USGS_RiverValues[1]"} ) {
 		$USGS_Message .= $USGS_Name{"@USGS_RiverValues[1]"} . " is at " . $USGS_Level{"@USGS_RiverValues[1]"} . ".\n";
