@@ -52,6 +52,7 @@ speak_todo 	to speak task entries
 holiday		calendar entries should be treated as holiday time
 vacation	calendar entries should be treated as vacation time
 name=XXXX	set source name to XXX rather than parse it from inside the ical
+dcsfix		might be needed to parse calendars using the Darwin Calendar Server
 
 ie
 ical2vsdb_account1 = http://house/holical.ics

@@ -13,6 +13,10 @@ use strict;
 ## All other libs should exist w/i the core mh lib/site dir structure
 ##
 
+## Changelog 3.4 10-04-06: for some reason ical parser is adding an 'ical' level in the
+##  ical parse hash from a Darwin Calendar Server. Added a dcsfix option
+
+
 use lib '../lib', '../lib/site';
 use iCal::Parser;
 use DateTime;
@@ -31,7 +35,7 @@ use vsLock;
 
 
 my $progname = "ical2vsdb";
-my $progver  = "v3.1 08-07-14";
+my $progver  = "v3.4 10-04-06";
 my $DB = 0;
 
 my $days_before = 180; # defaults to avoid large vsdb databases, can be overriden
@@ -164,6 +168,10 @@ while (1) {
         $data =~ s/CREATED:(.*)\n/CREATED:$1\nDTSTAMP:$1\n/g;
     }
 
+# Ical:DateTime chokes on trigger appointments with 0 time
+    $data =~ s/TRIGGER:P(.*)0(.*)\n/TRIGGER:-PT1M\n/g;
+#print "\n\n$data\n";
+
     my $digest = md5_hex($data);
 
 #    print "Debug: MD5=$digest\n";
@@ -172,21 +180,27 @@ while (1) {
     if (!(defined $ical_data[$loop]->{hash}) or ($ical_data[$loop]->{hash} ne $digest)) {
        print "New Calendar entries. Processing iCal...";
        if ($ical_data[$loop]->{method} ne "dir") {
-	   $parser->parse_strings($data);
-	   $parser = $parser->calendar;
+	   eval {$parser->parse_strings($data); };
        }
-       print ".";
-       $ical_data[$loop]->{hash} = $digest;
-       my ($data_info, $data_cals, $data_todos) = parse_cal($parser, $ical_data[$loop]->{options});
-       push (@changed_icals, @$data_info[0]);
-       push (@master_cal, @$data_cals);
-       push (@master_todo, @$data_todos);
-       print ".";
-       &cache_local($data,$ical_data[$loop]->{options}->{name}) if $local_cache;
-       print "done\n";
-       print "Calendar Info:" if $DB;
-       print @$data_info[0] . "," . @$data_info[1] . "\n" if $DB;
+       if ($@) {
+	print "Error parsing strings. ICal ignored\n";
+	print "Error: $@\n";
        } else {
+	$parser = $parser->calendar unless $ical_data[$loop]->{method} ne "dir";
+        print ".";
+#print Dumper $parser;
+        $ical_data[$loop]->{hash} = $digest;
+        my ($data_info, $data_cals, $data_todos) = parse_cal($parser, $ical_data[$loop]->{options});
+        push (@changed_icals, @$data_info[0]);
+        push (@master_cal, @$data_cals);
+        push (@master_todo, @$data_todos);
+        print ".";
+        &cache_local($data,$ical_data[$loop]->{options}->{name}) if $local_cache;
+        print "done\n";
+        print "Calendar Info:" if $DB;
+        print @$data_info[0] . "," . @$data_info[1] . "\n" if $DB;
+      }
+    } else {
        print "iCal unchanged, no processing required.\n";
        }
     }
@@ -291,7 +305,8 @@ sub parse_cal {
   $opt_holiday = 1 if (exists $options->{holiday});
   $opt_vacation = 1 if (exists $options->{vacation});
   my ($opt_sourcename) = $options->{name} if (defined $options->{name});
-
+  $cal = $cal->{ical} if (exists $options->{dcsfix});
+  print "Fixing Darwin Calendar Server Settings...\n" if ($DB and (exists $options->{dcsfix}));
   my $calname = $cal->{cals}->[0]->{'X-WR-CALNAME'};
   $calname = $opt_sourcename if $opt_sourcename;
 
@@ -312,6 +327,7 @@ sub parse_cal {
   push @out_info, $caldesc;
   my $count = 0;
 
+#print Dumper $cal;
   while (my $year = each %{$cal->{events}}) {
     while (my $month = each %{$cal->{events}->{$year}}) {
        while (my $day = each %{$cal->{events}->{$year}->{$month}}) {
@@ -400,7 +416,16 @@ sub parse_cal {
   $count = 0;
   foreach my $todo (@{$cal->{todos}}) {
       my $completed = "No";
-      $completed = "Yes" if ($todo->{STATUS} && $todo->{STATUS} eq "COMPLETED");
+      if (defined $todo->{STATUS}) {
+        $completed = "Yes" if ($todo->{STATUS} eq "COMPLETED");
+      }
+      $completed = "Yes" if (defined $todo->{COMPLETED}); #some older ical servers don't have status
+      print "db: task=" . $todo->{SUMMARY} . " status=" if ($DB);
+      print  $todo->{STATUS} if ((defined $todo->{STATUS}) and ($DB));
+      print " complete=" if ($DB);
+      print  $todo->{COMPLETED} if ((defined $todo->{COMPLETED}) and ($DB));
+      print " completed=$completed\n" if ($DB);
+
       my $duedate = '';
       my $duetime = '';
       my $startdate = '';
