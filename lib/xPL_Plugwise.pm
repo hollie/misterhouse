@@ -94,6 +94,7 @@ sub request_stat {
 	    my $name =  $circle->get_object_name();
 	    &::print_log("[xPL_PlugwiseGateway] Requesting state for $name over xPL") if $main::Debug{xpl_plugwise};
 	    $circle->request_stat();
+	    sleep(1);
         }
     }
 }
@@ -263,15 +264,19 @@ sub ignore_message {
 sub default_setstate
 {
     my ($self, $state, $substate, $set_by) = @_;
+    
+    #&::print_log("[xPL_Plugwise] setstate: $state");
+    
     if ($set_by =~ /^xpl/i) {
     	if ($$self{changed} =~ /plugwise\.basic/) {
            &::print_log("[xPL_Plugwise] " . $self->get_object_name
                 . " state is $state") if $main::Debug{xpl_plugwise};
            # TO-DO: process all of the other pertinent attributes available
     	   return -1 if $self->state eq $state; # don't propagate state unless it has changed
-	}
+		}
     } else {
-    	my $cmnd = ($state =~ /^off/i) ? 'off' : 'on';
+    	
+   		my $cmnd = ($state =~ /^off/i) ? 'off' : 'on';
     	
     	return -1 if ($self->state eq $state); # Don't propagate state unless it has changed.
         &::print_log("[xPL_Plugwise] Request " . $self->get_object_name
