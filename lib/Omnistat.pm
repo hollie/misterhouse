@@ -423,9 +423,10 @@ sub new {
   foreach my $reg (0x3b .. 0x3f) {
     $$self{cache_agelimit}{$reg} = 54;  # CACHE_TIMEOUT_SHORT
   }
-  # temperatures and what the stat outputs, we only cache 10 seconds
+  # temperatures and what the stat outputs, we only cache 9 seconds 
+  # to allow for 10 sec refresh rate.
   foreach my $reg (0x40, 0x44, 0x48) {
-    $$self{cache_agelimit}{$reg} = 10;   # CACHE_TIMEOUT_VERYSHORT
+    $$self{cache_agelimit}{$reg} = 9;   # CACHE_TIMEOUT_VERYSHORT
   }
 
   #The next line is an experiment with http_server.pm to allow other objects to show up in the web interface
@@ -1019,7 +1020,7 @@ sub get_stat_output {
   my ( $self ) = @_;
   my $reg48 = hex( $self->read_cached_reg("0x48",1) );
 
-  return self->translate_stat_output($reg48);
+  return $self->translate_stat_output($reg48);
 }
 
 # **************************************
