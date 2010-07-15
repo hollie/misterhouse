@@ -423,8 +423,8 @@ sub new {
   foreach my $reg (0x3b .. 0x3f) {
     $$self{cache_agelimit}{$reg} = 54;  # CACHE_TIMEOUT_SHORT
   }
-  # temperatures and what the stat outputs, we only cache 9 seconds 
-  # to allow for 10 sec refresh rate.
+  # temperatures and what the stat outputs, we only cache 9 seconds
+  # to allow for a 10 second refresh rate.
   foreach my $reg (0x40, 0x44, 0x48) {
     $$self{cache_agelimit}{$reg} = 9;   # CACHE_TIMEOUT_VERYSHORT
   }
@@ -775,7 +775,7 @@ sub translate_time {
 sub translate_stat_output {
   my ( $self, $reg48 ) = @_;
 
-  die "Omnistat::translate_stat_output got non hex value in $reg48" unless (is_hex($reg48));
+  die "Omnistat::translate_stat_output got non hex value in '$reg48'" unless (is_hex($reg48));
   # see reg 0x48 / output register at the top of this file
   my $output = "off";
   $output = "fan" if (hex($reg48) & 8);
@@ -1018,7 +1018,7 @@ sub get_temp {
 # ********************************************************
 sub get_stat_output {
   my ( $self ) = @_;
-  my $reg48 = hex( $self->read_cached_reg("0x48",1) );
+  my $reg48 = $self->read_cached_reg("0x48",1);
 
   return $self->translate_stat_output($reg48);
 }
@@ -1316,6 +1316,7 @@ sub read_cached_reg {
 
     # if one cache value was stale, retrieve the whole list now
     $value = $self->read_reg($register, $count, "true") if (not defined $regval);
+    $value =~ s/\s+$//;
 
     omnistat_debug("Omnistat[$$self{address}]->read_cached_reg: reg=$register count=$count value=$value");
 
