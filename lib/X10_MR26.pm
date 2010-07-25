@@ -58,8 +58,9 @@ sub check_for_data {
     &main::check_for_generic_serial_data('MR26');
     my $data = $main::Serial_Ports{MR26}{data_record};
     $main::Serial_Ports{MR26}{data_record} = undef;
+    #&main::main::print_log("MR26 entered read loop data\n") if (&main::main::new_second(10));
     return unless $data;
-
+    &main::main::print_log("MR26 got data") if $main::Debug{mr26};
                                 # Data gets sent multiple times
                                 #  - Check time and loop count.  If mh paused (e.g. sending ir data)
                                 #    then we better also check loop count.
@@ -68,6 +69,7 @@ sub check_for_data {
     my $repeat_time = $main::config_parms{MR26_multireceive_delay} or 400;
     my $repeat_data = ($data eq $prev_data) && ($time < $prev_time + $repeat_time or $main::Loop_Count < $prev_loop + 7);
     return if $repeat_data and $prev_done;
+    &main::main::print_log("MR26 data is not dupe") if $main::Debug{mr26};
     $prev_data = $data;
     $prev_time = $time;
     $prev_loop = $main::Loop_Count;
