@@ -26,7 +26,7 @@ sub _get_next_linkscan
     }
     if (!(scalar(@_scan_devices))) {
        push @_scan_devices, &Insteon::active_interface;
-       push @_scan_devices, &Insteon::find_members("Insteon::Insteon_Device");
+       push @_scan_devices, &Insteon::find_members("Insteon::BaseDevice");
        $_scan_cnt = 0;
     }
 
@@ -327,7 +327,6 @@ sub get_object
 
         my $insteon_manager = InsteonManager->instance();
         my @search_objects = ();
-        push @search_objects, $insteon_manager->find_members('Insteon::Insteon_Device');
         push @search_objects, $insteon_manager->find_members('Insteon::BaseObject');
 	for my $obj (@search_objects)
 	{
