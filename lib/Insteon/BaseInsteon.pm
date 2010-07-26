@@ -990,7 +990,7 @@ sub add
 	my ($self, $obj, $on_level, $ramp_rate) = @_;
 	if (ref $obj and ($obj->isa('Light_Item') or $obj->isa('Insteon::BaseDevice'))) {
 		if ($$self{members} && $$self{members}{$obj}) {
-			print "[Insteon_Link] An object (" . $obj->{object_name} . ") already exists "
+			print "[Insteon::BaseController] An object (" . $obj->{object_name} . ") already exists "
 				. "in this scene.  Aborting add request.\n";
 			return;
 		}
@@ -1008,7 +1008,7 @@ sub add
 		$ramp_rate =~ s/s$//i;
 		$$self{members}{$obj}{ramp_rate} = $ramp_rate if defined $ramp_rate;
 	} else {
-		&::print_log("[Insteon_Link] WARN: unable to add $obj as items of this type are not supported!");
+		&::print_log("[Insteon::BaseController] WARN: unable to add $obj as items of this type are not supported!");
         }
 }
 
@@ -1021,7 +1021,7 @@ sub sync_links
 	if (!($self->isa('Insteon::InterfaceController'))) {
 		$insteon_object = &Insteon::get_object($self->device_id,'01');
 		if (!(defined($insteon_object))) {
-			&main::print_log("[Insteon_Link] WARN!! A device w/ insteon address: " . $self->device_id . ":01 could not be found. "
+			&main::print_log("[Insteon::BaseController] WARN!! A device w/ insteon address: " . $self->device_id . ":01 could not be found. "
 				. "Please double check your items.mht file.");
 		}
 	}
@@ -1132,7 +1132,7 @@ sub sync_links
 	}
 	my $num_sync_queue = @{$$self{sync_queue}};
 	if (!($num_sync_queue)) {
-		&::print_log("[Insteon_Link] Nothing to do when syncing links for " . $self->get_object_name)
+		&::print_log("[Insteon::BaseController] Nothing to do when syncing links for " . $self->get_object_name)
 			if $main::Debug{insteon};
 	}
 	$self->_process_sync_queue();
@@ -1159,7 +1159,7 @@ sub _process_sync_queue {
 	} elsif ($$self{sync_queue_callback}) {
 		package main;
 		eval ($$self{sync_queue_callback});
-		&::print_log("[Insteon_Link] error in sync links callback: " . $@)
+		&::print_log("[Insteon::BaseController] error in sync links callback: " . $@)
 			if $@ and $main::Debug{insteon};
 		$$self{sync_queue_callback} = undef;
 		package Insteon::Insteon_link;
@@ -1227,11 +1227,11 @@ sub set
 	if (($self->isa("Insteon::KeyPadLinc") or $self->isa("Insteon::KeyPadLincRelay"))and !($self->is_root)) {
 		if (ref $p_setby and $p_setby->isa('Insteon::BaseDevice')) {
 			$self->Insteon::BaseObject::set($p_state, $p_setby, $p_respond);
-		} elsif (ref $$self{surrogate} && ($$self{surrogate}->isa('Insteon::Insteon_Link') or $$self{surrogate}->isa('Insteon::InterfaceController'))) {
+		} elsif (ref $$self{surrogate} && ($$self{surrogate}->isa('Insteon::InterfaceController'))) {
 			$$self{surrogate}->set($link_state, $p_setby, $p_respond)
 				unless ref $p_setby and $p_setby eq $self;
 		} else {
-			&::print_log("[Insteon_Link] You may not directly attempt to set a keypadlinc's button "
+			&::print_log("[Insteon::BaseController] You may not directly attempt to set a keypadlinc's button "
 				. " unless you have defined a reverse link with the \"surrogate\" keyword");
 		}
 	} else {
@@ -1263,7 +1263,7 @@ sub update_members
 			if ($device) {
 				my %current_record = $device->get_link_record($self->device_id . $self->group);
 				if (%current_record) {
-					&::print_log("[Insteon_Link] remote record: $current_record{data1}")
+					&::print_log("[Insteon::BaseController] remote record: $current_record{data1}")
 						if $::Debug{insteon};
 				}
 			}
@@ -1328,12 +1328,17 @@ sub request_status
 {
 	my ($self,$requestor) = @_;
 #	if ($self->group ne '01') {
-	if ($$self{members} and !($self->isa('Insteon::InterfaceController'))) {
-		&::print_log("[Insteon_Link] requesting status for members of " . $$self{object_name});
+	if ($$self{members} and !($self->isa('Insteon::InterfaceController'))
+             and (!(ref $requestor) or ($requestor eq $self))) {
+		&::print_log("[Insteon::DeviceController] requesting status for members of " . $$self{object_name});
 		foreach my $member (keys %{$$self{members}}) {
-			next if $requestor eq $$self{members}{$member}{object};
-                        if ($$self{members}{$member}{object}->isa('Insteon::BaseDevice')) {
-			   $$self{members}{$member}{object}->request_status($self);
+			next unless $member->isa('Insteon::BaseObject');
+			my $member_obj = $$self{members}{$member}{object};
+			next if $requestor eq $member_obj;
+                        if ($member_obj->isa('Insteon::BaseDevice')) {
+			   &::print_log("[Insteon::DeviceController] checking status of " . $member_obj->get_object_name() 
+				. " for requestor " . $requestor->get_object_name());
+			   $member_obj->request_status($self);
                         }
 		}
 	}
