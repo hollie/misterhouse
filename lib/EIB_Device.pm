@@ -44,6 +44,7 @@ sub startup {
     die "Parameter eib_device has changed to eib_connection!\nPlease change ini file!\n\n" if $::config_parms{eib_device};
     return unless my $dev = $::config_parms{eib_connection}; # Is EIB enabled?
     printf " - initializing EIB connection to '$dev' ...";
+    &main::print_log ("Initializing EIB connection");
     if ($dev =~ /(.+):(.+)/) {
                                 # Using eibd communication
         die "EIB: Only ip supported on eibd communication" unless $1 eq "ip";
@@ -299,9 +300,6 @@ sub sendGroup {
     my @msg = (0x0027,$Dest);			# EIB_GROUP_PACKET
     push @msg, $str;
     sendRequest ($Sock, pack "nna*", @msg);
-    goto error unless my $answer = getRequest ($Sock);
-    my $head = unpack ("n", $answer);
-    goto error unless $head == 0x0027;
     return 1;
 
   error:
@@ -375,7 +373,7 @@ sub check_for_eibddata {
 		my $data = pack "CCnnCa*", 0xbc, 0x00, $tmpdat[0], $tmpdat[1], 0xe1, $tmpdat[2];
                 #print "Modified packet: ", unpack("H*",$data), "\n";
 		my $msg = decode($data);
-		EIB_Item::receive_msg($msg);
+		EIB_Item::receive_msg($msg) unless $msg->{'src'} eq "0.0.0";
 	    } else {
 		# Close socket in case of errors
 		close $EIBSock;

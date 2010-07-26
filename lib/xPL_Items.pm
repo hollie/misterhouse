@@ -8,11 +8,57 @@ Info:
     http://www.xplproject.org.uk
     http://www.xaphal.com
 
-
-
 Authors:
  10/26/2002  Created by Bruce Winter bruce@misterhouse.net
 
+
+xPL works by using the xPL Hub built in misterhouse and listening for
+xPL connections. See:
+http://misterhouse.wikispaces.com/xAP+and+xPL+-+Getting+Started
+
+Relevant variables for mh.private.ini are:
+#ipaddress_xpl_broadcast = 192.168.205.255
+#ipaddress_xpl = 192.168.205.3
+#xpl_disable = 1
+#xpl_nohub = 1
+
+You can disable the mh internal xPL hub if you are running a more capable one.
+To get data input, you can use something like 
+
+xpl-rfxcom-rx --verbose --rfxcom-rx-verbose --rfxcom-rx-tty /dev/rfxcom --interface eth1
+
+from xPL-Perl. Then watch for sensor updates passing by and paste their info
+in your device table, like so:
+XPL_SENSOR, bnz-rfxcomrx.gargamel:bthr918n.e6, oregon_intemp, XPL_temp, temp
+
+Another option to figure out the name to use in XPL_SENSOR is to use 
+xpl-logger -head -body -i ethx 2>&1 | grep "xpl-trig\/"
+(or without the grep for more details on which field is called what).
+
+A few samples:
+XPL_SENSOR, iranger-rfx.*:WGR918, oregon_winddir, , direction
+XPL_SENSOR, iranger-rfx.*:BHTR968, oregon_intemp, , temp
+XPL_SENSOR, bnz-owfs.*:10.2223EF010800, owfs_temp, , temp
+XPL_SENSOR, bnz-owfs.*:26.2E4DF5000000, owfs_humidity, , humidity
+XPL_SENSOR, bnz-owfs.*:26.2E4DF5000000.1, owfs_humidity1, , humidity
+XPL_X10SECURITY, iranger-rfx.*:F8, x10sec_garage1, , ds10
+
+Note that XPL_SENSOR should just be used for XPL messages of the x10.basic
+type. XPL_X10SECURITY is for x10.security schema, while there is no way to currently
+read x10.basic messages (see this file for more supported schemas).
+
+Once it is running, objects get variables including these (gathered with Data::Dumper)
+'state' => '17.9',
+'states_nosubstate' => 1,
+'states_substate' ?
+'address' => 'bnz-rfxcomrx.gargamel',
+'states_nomultistate' => 1,
+'states_multistate' ?
+'target_address' => '*',
+'_device_id' => 'bthr918n.e6'
+
+So, you would write this to print temperature:
+print_log $oregon_intemp->state
 =cut
 
 use strict;

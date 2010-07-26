@@ -423,16 +423,25 @@ sub new {
   foreach my $reg (0x3b .. 0x3f) {
     $$self{cache_agelimit}{$reg} = 54;  # CACHE_TIMEOUT_SHORT
   }
-  # temperatures and what the stat outputs, we only cache 10 seconds
+  # temperatures and what the stat outputs, we only cache 9 seconds
+  # to allow for a 10 second refresh rate.
   foreach my $reg (0x40, 0x44, 0x48) {
-    $$self{cache_agelimit}{$reg} = 10;   # CACHE_TIMEOUT_VERYSHORT
+    $$self{cache_agelimit}{$reg} = 9;   # CACHE_TIMEOUT_VERYSHORT
   }
-
 
   #The next line is an experiment with http_server.pm to allow other objects to show up in the web interface
   $$self{html_text}       = "<a href=/hai/omnistat_web.pl>Set Thermostat</a>";
+
   omnistat_debug("Omnistat[$$self{address}] object created");
   bless $self,$class;
+
+  # This is to work around a timing bug where the first query doesn't get a proper ack
+  # we just "prime" the device and connection by making one query to it where we ignore the answer
+  # no idea why this is needed, but it works for me and things are stable afterwards -- merlin
+  $self->{'PRIME'}=1;
+  $self->send_cmd("0x01 0x20 0x40 0x01 0x62", 1);
+  $self->{'PRIME'}=0;
+
   return $self;
 }
 
@@ -516,6 +525,12 @@ sub send_cmd {
     $rcvd = $rcvd . sprintf( "0x%s ", substr( $temp, $i * 2, 2 ) );
   }
   my $rcvd_ack = hex(substr($rcvd, 0 , 4));
+
+  if ($self->{'PRIME'})
+  {
+      omnistat_debug("Omnistat[$$self{address}]->send_cmd skipping error check and return value during prime");
+      return;
+  }
 
   # FIXME? Those two dies aren't ideal, but it happens that you get corruption or bad data on a reply.
   # Expected for 01 20 3b 0e 6a is something like
@@ -760,7 +775,7 @@ sub translate_time {
 sub translate_stat_output {
   my ( $self, $reg48 ) = @_;
 
-  die "Omnistat::translate_stat_output got non hex value in $reg48" unless (is_hex($reg48));
+  die "Omnistat::translate_stat_output got non hex value in '$reg48'" unless (is_hex($reg48));
   # see reg 0x48 / output register at the top of this file
   my $output = "off";
   $output = "fan" if (hex($reg48) & 8);
@@ -1003,9 +1018,9 @@ sub get_temp {
 # ********************************************************
 sub get_stat_output {
   my ( $self ) = @_;
-  my $reg48 = hex( $self->read_cached_reg("0x48",1) );
+  my $reg48 = $self->read_cached_reg("0x48",1);
 
-  return self->translate_stat_output($reg48);
+  return $self->translate_stat_output($reg48);
 }
 
 # **************************************
@@ -1301,6 +1316,7 @@ sub read_cached_reg {
 
     # if one cache value was stale, retrieve the whole list now
     $value = $self->read_reg($register, $count, "true") if (not defined $regval);
+    $value =~ s/\s+$//;
 
     omnistat_debug("Omnistat[$$self{address}]->read_cached_reg: reg=$register count=$count value=$value");
 

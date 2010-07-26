@@ -95,7 +95,7 @@ sub check_for_data {
        # data from a corrupt data stream.
        # NOTE: get_tickcount wraps, so $time < $new_data_time test is to
        #       make sure that doesn't become a problem.
-       if (&X10_W800::is_within_timeout($time, $new_data_time, 2000)) {
+       if (not &X10_W800::is_within_timeout($time, $new_data_time, 2000)) {
           my $hex = unpack "H*", $main::Serial_Ports{W800}{data};
           &::print_log("W800: flushing incomplete data: $hex") if $main::Debug{w800};
 
@@ -145,7 +145,7 @@ sub check_for_data {
          # have checksums at all.  See X10_RF.pm for more details.
          my @bytes = $data =~ /^(.)(.)(.)(.)$/s;
 
-         my $state = X10_RF::decode_rf_bytes('w800', @bytes);
+         my $state = X10_RF::decode_rf_bytes('W800', @bytes);
 
          # If the decode_rf_bytes routine didn't like the data that it got,
          # strip the first byte off and let the rest be resubmitted in case a
