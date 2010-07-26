@@ -243,7 +243,7 @@ sub send_timeout
                 {
                 	return   2690;
                 }
-                elsif ($self->send_attempts = 3)
+                elsif ($self->send_attempts == 3)
                 {
                 	return   3000;
                 }
@@ -262,7 +262,7 @@ sub send_timeout
                 {
                 	return   1700;
                 }
-                elsif ($self->send_attempts = 3)
+                elsif ($self->send_attempts == 3)
                 {
                 	return   1900;
                 }
