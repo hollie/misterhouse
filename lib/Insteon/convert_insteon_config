@@ -1,0 +1,40 @@
+#!/usr/bin/perl -w
+
+use strict;
+
+# Simple insteon.mht syntax converter by Marc MERLIN <marc_soft@merlins.org>
+# This is not even close to being foolproof but it may just work for you, or
+# you can tweak the regexes a bit to make it work for you. 
+# If it breaks, you get to keep both pieces :)
+
+# Run:
+# convert_insteon_config < old_items.mht > new_items.mht
+# If you are upgrading from the old insteon code, you will also need 
+# to delete data/mh_temp.saved_states and mh_temp.saved_states.unused
+
+while (<>)
+{
+	# these work for all, but don't know what insteon device to set
+	s#IPLL,\s*PLM:(\d+),\s*#INSTEON_ICONTROLLER, $1, #i;
+	s#IPLL,#INSTEON_SWITCHLINC|SWITCHLINCRELAY|KEYPADLINC|REMOTELINC,#i;
+	s#IPLD,#INSTEON_LAMPLINC|APPLIANCELINC|MOTIONSENSOR,#i;
+
+	# those are local hacks to do the right replaces with my config file
+	s#INSTEON_SWITCHLINC\|SWITCHLINCRELAY\|KEYPADLINC\|REMOTELINC(.*switchlin. dimmer)#INSTEON_SWITCHLINC$1#i;
+	s#INSTEON_SWITCHLINC\|SWITCHLINCRELAY\|KEYPADLINC\|REMOTELINC(.*switchlin. relay)#INSTEON_SWITCHLINCRELAY$1#i;
+	s#INSTEON_SWITCHLINC\|SWITCHLINCRELAY\|KEYPADLINC\|REMOTELINC(.*_kpl)#INSTEON_KEYPADLINC$1#i;
+	s#INSTEON_SWITCHLINC\|SWITCHLINCRELAY\|KEYPADLINC\|REMOTELINC(.*rlink)#INSTEON_REMOTELINC$1#i;
+
+	s#INSTEON_LAMPLINC\|APPLIANCELINC\|MOTIONSENSOR(.*lamplin)#INSTEON_LAMPLINC$1#i;
+	s#INSTEON_LAMPLINC\|APPLIANCELINC\|MOTIONSENSOR(.*appliance lin)#INSTEON_APPLIANCELINC$1#i;
+	s#INSTEON_LAMPLINC\|APPLIANCELINC\|MOTIONSENSOR(.*_mos\d+)#INSTEON_MOTIONSENSOR$1#i;
+
+	# obviously, the idea is that if you have any of those INSTEON_A|B|C left over
+	# after the regexes above, you need to fix them yourself or add more regexes.
+
+	s#,\s*plm,?(?:\d+)?##i;
+	# restore 'plm' on the one line we need it on.
+	s/INSTEON_PLM/INSTEON_PLM, PLM/;
+
+	print;
+}
