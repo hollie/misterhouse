@@ -230,7 +230,8 @@ sub send_timeout
 	my ($self, $ignore) = @_;
         if ($self->command_type eq 'all_link_send')
         {
-        	return 2000;
+        	# note, the following was set to 2000 and that was insufficient
+        	return 3000;
         }
         elsif ($self->command_type eq 'insteon_ext_send')
         {
@@ -242,7 +243,11 @@ sub send_timeout
                 {
                 	return   2690;
                 }
-                elsif ($self->send_attempts >= 3)
+                elsif ($self->send_attempts = 3)
+                {
+                	return   3000;
+                }
+                elsif ($self->send_attempts >= 4)
                 {
                 	return   3170;
                 }
@@ -251,13 +256,17 @@ sub send_timeout
         {
         	if ($self->send_attempts == 1)
                 {
-                	return   1700;
+                	return   1400;
                 }
                 elsif ($self->send_attempts == 2)
                 {
+                	return   1700;
+                }
+                elsif ($self->send_attempts = 3)
+                {
                 	return   1900;
                 }
-                elsif ($self->send_attempts >= 3)
+                elsif ($self->send_attempts >= 4)
                 {
                 	return   2000;
                 }
@@ -551,12 +560,12 @@ sub generate_commands
 	my $uc = lc(substr($p_setby->{x10_id},2,1));
 
 	if ($hc eq undef) {
-	    &main::print_log("[Insteon_PLM] Object:$p_setby Doesnt have an x10 id (yet)");
+	    &main::print_log("[Insteon::Message] Object:$p_setby Doesnt have an x10 id (yet)");
 		return undef;
 	}
 
 	if ($uc eq undef) {
-	    &main::print_log("[Insteon_PLM] Message is for entire HC") if $main::Debug{insteon};
+	    &main::print_log("[Insteon::Message] Message is for entire HC") if $main::Debug{insteon};
 	}
 	else {
 
