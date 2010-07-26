@@ -4,7 +4,7 @@ use strict;
 
 # Category=Insteon
 
-#@ This module creates voice commands for all Insteon_Device, Insteon_Link and Insteon_PLM items.
+#@ This module creates voice commands for all insteon related items.
 
 my (@_insteon_plm,@_insteon_device,@_insteon_link,@_scannable_link,$_scan_cnt,$_scan_failure_cnt,$_sync_cnt,$_sync_failure_cnt);
 my $init_complete;
@@ -58,7 +58,7 @@ sub _get_next_linkscan
                 }
                 # don't try to scan devices that are not responders
 #                my $next_obj = &main::get_object_by_name($next_name);
-                while (ref $next_obj and $next_obj->isa('Insteon::Insteon_Device')
+                while (ref $next_obj and $next_obj->isa('Insteon::BaseDevice')
                      and !($next_obj->is_responder) and !($next_obj->isa('Insteon::InterfaceController'))) {
                    &main::print_log("[Scan all link tables] " . $next_obj->get_object_name . " is not a candidate for scanning.  Moving to next");
                    $next_obj = shift @_scan_devices;
@@ -139,7 +139,7 @@ sub _process_sync_links
                 }
                  # don't try to scan devices that are not responders
                 my $next_obj = &main::get_object_by_name($next_name);
-                if (ref $next_obj and $next_obj->isa('Insteon::Insteon_Device')
+                if (ref $next_obj and $next_obj->isa('Insteon::BaseDevice')
                      and !($next_obj->is_responder) and !($next_obj->isa('Insteon::InterfaceController'))) {
                    &main::print_log("[Sync all links] $next_name is not a candidate for syncing.  Moving to next");
                    $current_name = $next_name;
