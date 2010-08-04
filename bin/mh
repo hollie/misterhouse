@@ -121,7 +121,7 @@ my ($Loop_Speed, @Loop_Speeds, $Loop_Sleep_Time, $Loop_Tk_Passes);
 my (@Requested_Files, @Print_Log, @Display_Log, @Speak_Log, @Error_Log);
 
 my ($exit_flag, $xcmd_file, %file_code_times, %file_code_times2, %file_change_times);
-my (@Loop_Code, @Sub_Code, %Sub_Code, %Run_Members, %Benchmark_Members, @Item_Code, @Item_Code_Objects);
+my (@Loop_Code, @Sub_Code, %Sub_Code, %Run_Members, %Run_Members_Error_Count, %Benchmark_Members, @Item_Code, @Item_Code_Objects);
 my %custom_child_windows; #subs by window_name, display sub checks and calls sub to create window
 my ($user_code, $user_code_last_good);
 my (%objects_by_object_name, %file_by_object_name, %files_by_webname);
@@ -2866,12 +2866,12 @@ sub eval_user_code_loop {
     eval "&loop_code";          # Not too much slower ... catches more errors
     if ($@) {
                                 # Display usercode errors only once
-        if ($usercode_error_flag) {
-            print "Error in user code: $@";
+        if ($usercode_error_flag and not $main::config_parms{"show_all_errors"} eq "yes") {
+            print "Error in user code shown in short form (set show_all_errors=yes in mh.private.init to get in full form each time):\n$@";
         }
         else {
             $usercode_error_flag++;
-            my $error = "Error found in user code file: $config_parms{data_dir}/mh_temp.user_code\n\n";
+            my $error = "Error found in user code file: $config_parms{data_dir}/mh_temp.user_code (error_count $usercode_error_flag)\n\n";
             $error .= &eval_user_code_error($@, $user_code);
             print $error;
 
@@ -4964,14 +4964,26 @@ sub store_object_data {
 sub read_user_code_loopcode {
     my ($member_name, $code) = @_;
     my $sub_name = "${member_name}_loopcode";
+    my $allowed_errors;
+
+    # Allows to set omnistat_allowed_errors = 1000000 in config file to keep running despite errors
+    $allowed_errors = $main::config_parms{${member_name}."_allowed_errors"};
+    if (not defined $allowed_errors) {
+	$allowed_errors = 10;
+    } else {
+	print_log "$member_name has $allowed_errors allowed errors before being disabled";
+    }
     $sub_name =~ s/[- ]/_/g;   # Legalize sub name
     my $debug_print = '';
     $debug_print = "print '   $member_name' if \$Debug{user_code};\n";
     return ($sub_name, "#-------------------------------------------------\n\n" .
         "sub $sub_name {\n $debug_print" .
-        "   if (\$Run_Members{'$member_name'} > 10) { # Check for too many eval errors\n" .
+        "   if (\$Run_Members{'$member_name'} > $allowed_errors) { # Check for too many eval errors\n" .
         "        display('Multiple eval errors in $member_name.  Code was disabled', 0);" .
-        "   \$Run_Members{'$member_name'} = 0; return;\n   }\n" .
+        "        \$Run_Members{'$member_name'} = 0; return;\n }".
+	"   elsif (\$Run_Members{'$member_name'} > 2 and \$Run_Members{'$member_name'} != \$Run_Members_Error_Count{$member_name} )  {\n".
+	"        display(\$Run_Members{'$member_name'}.' eval errors in $member_name out of $allowed_errors allowed before disable') }\n".
+    	"  \$Run_Members_Error_Count{$member_name} = \$Run_Members{'$member_name'};\n".
         "   my \$benchmark_tickcount = &get_tickcount if \$Benchmark_Members{on_off_flag};\n" .
 #       " print \"db rl=\$Reload m=$member_name\n\" if \$Reload;\n" .
         $code .
