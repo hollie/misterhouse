@@ -12,6 +12,15 @@ Omnistat_stat_log=9
 # programmed change unset this for changes to set the stat to 'hold'
 # mode where it'll keep your setting forever
 Omnistat_set_does_not_hold=1
+
+# These options tell misterhouse not to disable code/foo.pl modules
+# if they trigger occasional errors in this module (they can happen since
+# serial port communication is not fully reliable).
+omnistat_allowed_errors = 999999999999
+hvac_allowed_errors = 999999999999
+# This tells bin/mh to show the full error each time there is a die, this helps
+# keeping track of serial port burps.
+show_all_errors = yes
 ----------------------------------------------------------------------------
 
 omnistat.pl should go to your mh/code/omnistat.pl and you should edit it to 

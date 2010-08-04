@@ -13,6 +13,7 @@ Newer Omnistat2 thermostats have a slightly different protocol and may need
 some work. They look nicer, but they are pricier (vs $50 for an RC-80 on ebay)
 and don't offer functionality that's useful to most people -- merlin
 
+Have a look at http://misterhouse.wikispaces.com/hai_stats and 
 
 ###################
 
@@ -38,6 +39,16 @@ Omnistat_no_stat_log=[0,1,2,3]
 # For debugging, add omnistat to debug in mh.private.ini, as in
 debug=insteon,omnistat
 # instead of debug=insteon
+
+# These options tell misterhouse not to disable code/foo.pl modules
+# if they trigger occasional errors in this module (they can happen since
+# serial port communication is not fully reliable).
+omnistat_allowed_errors = 999999999999
+hvac_allowed_errors = 999999999999
+# This tells bin/mh to show the full error each time there is a die, this helps
+# keeping track of serial port burps.
+show_all_errors = yes
+
 
 This module is used 2 ways
 1) from a web interface
