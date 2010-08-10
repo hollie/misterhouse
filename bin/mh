@@ -115,6 +115,7 @@ use vars qw($Season $Weekday $Weekend $Dark $Holiday $Time_Of_Day);
 use vars qw($Startup $Reload $Reread $Loop_Count $Loop_Count_Reload $Last_Response $Category $Respond_Target $Set_By $Invalidate_Window);
 use vars qw($Version_tk $DelayOccured %Debug $Authorized);
 use vars qw(%User_Code @Code_Dirs @Generic_Serial_Ports %Misc);
+use vars qw(%Run_Members);
 
 my ($Pgm_PathU);
 my ($Loop_Speed, @Loop_Speeds, $Loop_Sleep_Time, $Loop_Tk_Passes);
