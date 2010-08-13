@@ -150,7 +150,8 @@ sub set
 		if (($p_state eq 'dim' or $p_state eq 'bright') and !($self->isa('Insteon::DimmableLight'))) {
 			$p_state = 'on';
 		}
-
+                my $setby_name = $p_setby;
+                $setby_name = $p_setby->get_object_name() if (ref $p_setby and $p_setby->can('get_object_name'));
 		if (ref $p_setby and (($p_setby eq $self->interface())
 			or (($p_setby->isa('Insteon::BaseObject'))
                         and (($p_setby eq $self)
@@ -160,7 +161,7 @@ sub set
 			return if (lc $p_state eq lc $self->state) and $self->is_acknowledged
 				and not(($p_setby->isa('Insteon::BaseObject') and ($p_setby eq $self)));
 			&::print_log("[Insteon::BaseObject] " . $self->get_object_name()
-				. "::set($p_state, $p_setby)") if $main::Debug{insteon};
+				. "::set($p_state, $setby_name)") if $main::Debug{insteon};
 			$self->set_receive($p_state,$p_setby,$p_response) if defined $p_state;
 		} else {
                         my $message = $self->derive_message($p_state);
@@ -168,7 +169,7 @@ sub set
 
 #			$self->_send_cmd(command => $p_state,
 #				type => (($self->isa('Insteon::Insteon_Link') and !($self->is_root)) ? 'alllink' : 'standard'));
-			&::print_log("[Insteon::BaseObject] " . $self->get_object_name() . "::set($p_state, $p_setby)")
+			&::print_log("[Insteon::BaseObject] " . $self->get_object_name() . "::set($p_state, $setby_name)")
 				if $main::Debug{insteon};
 			$self->is_acknowledged(0);
 			$$self{pending_state} = $p_state;
@@ -794,6 +795,49 @@ sub get_root {
 	}
 }
 
+sub has_link
+{
+	my ($self, $insteon_object, $group, $is_controller, $subaddress) = @_;
+        my $aldb = $self->get_root()->_aldb;
+        if ($aldb)
+        {
+        	return $aldb->has_link($insteon_object, $group, $is_controller, $subaddress);
+        }
+        else
+        {
+        	return 0;
+        }
+
+}
+
+sub add_link
+{
+	my ($self, $parms_text) = @_;
+        my $aldb = $self->get_root()->_aldb;
+        if ($aldb)
+        {
+        	my %link_parms;
+		if (@_ > 2) {
+			shift @_;
+			%link_parms = @_;
+		} else {
+			%link_parms = &main::parse_func_parms($parms_text);
+		}
+        	$aldb->add_link(%link_parms);
+        }
+
+}
+
+sub scan_link_table
+{
+	my ($self, $callback) = @_;
+        my $aldb = $self->get_root()->_aldb;
+        if ($aldb)
+        {
+        	return $aldb->scan_link_table($callback);
+	}
+
+}
 
 ### WARN: Testing using the following does not produce results as expected.  Use at your own risk. [GL]
 sub remote_set_button_tap
@@ -1336,7 +1380,7 @@ sub request_status
 			my $member_obj = $$self{members}{$member}{object};
 			next if $requestor eq $member_obj;
                         if ($member_obj->isa('Insteon::BaseDevice')) {
-			   &::print_log("[Insteon::DeviceController] checking status of " . $member_obj->get_object_name() 
+			   &::print_log("[Insteon::DeviceController] checking status of " . $member_obj->get_object_name()
 				. " for requestor " . $requestor->get_object_name());
 			   $member_obj->request_status($self);
                         }

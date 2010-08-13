@@ -54,7 +54,7 @@ sub _get_next_linkscan
                 # remove the queue_timer_callback
 #                my $current_obj = &main::get_object_by_name($current_name);
                 if (!($current_obj->isa('Insteon_PLM'))) {
-                   $current_obj->queue_timer_callback('');
+#                   $current_obj->queue_timer_callback('');
                 }
                 # don't try to scan devices that are not responders
 #                my $next_obj = &main::get_object_by_name($next_name);
@@ -79,7 +79,7 @@ sub _get_next_linkscan
                  # remove the queue_timer_callback
 #                my $current_obj = &main::get_object_by_name($current_name);
                 if (!($current_obj->isa('Insteon_PLM'))) {
-                   $current_obj->queue_timer_callback('');
+#                   $current_obj->queue_timer_callback('');
                 }
              }
 #            last;
@@ -96,7 +96,7 @@ sub _get_next_linkscan
 #       my $obj = &main::get_object_by_name($next_name);
        if ($next_obj) {
           &main::print_log("[Scan all link tables] Now scanning: " . $next_obj->get_object_name . " ($_scan_cnt of ?)");
-          $next_obj->queue_timer_callback('&Insteon::_get_next_linkscan(\'' . $next_obj->get_object_name . '\',1)') unless $next_obj->isa('Insteon_PLM');
+#          $next_obj->queue_timer_callback('&Insteon::_get_next_linkscan(\'' . $next_obj->get_object_name . '\',1)') unless $next_obj->isa('Insteon_PLM');
           $next_obj->scan_link_table('&Insteon::_get_next_linkscan(\'' . $next_obj->get_object_name . '\')');
        }
     } else {
@@ -135,7 +135,7 @@ sub _process_sync_links
                 # remove the queue_timer_callback
                 my $current_obj = &main::get_object_by_name($current_name);
                 if (!($current_obj->isa('Insteon_PLM'))) {
-                   $current_obj->queue_timer_callback('');
+#                   $current_obj->queue_timer_callback('');
                 }
                  # don't try to scan devices that are not responders
                 my $next_obj = &main::get_object_by_name($next_name);
@@ -160,7 +160,7 @@ sub _process_sync_links
                 # remove the queue_timer_callback
                 my $current_obj = &main::get_object_by_name($current_name);
                 if (!($current_obj->isa('Insteon_PLM'))) {
-                   $current_obj->queue_timer_callback('');
+#                   $current_obj->queue_timer_callback('');
                 }
              }
           }
@@ -174,8 +174,8 @@ sub _process_sync_links
        my $obj = &main::get_object_by_name($next_name);
        if ($obj) {
           &main::print_log("[Sync all links] Now syncing links: " . $obj->get_object_name . " ($_sync_cnt of $dev_cnt)");
-          $obj->queue_timer_callback('&main::_process_sync_links(\'' . $next_name . '\',1)') unless $obj->isa('Insteon_PLM');
-          $obj->sync_links('&main::_process_sync_links(\'' . $next_name . '\')');
+#          $obj->queue_timer_callback('&main::_process_sync_links(\'' . $next_name . '\',1)') unless $obj->isa('Insteon_PLM');
+          $obj->sync_links('&Insteon::_process_sync_links(\'' . $next_name . '\')');
        }
     } else {
        $_sync_cnt = 0;
@@ -359,7 +359,7 @@ sub active_interface
    my $insteon_manager = InsteonManager->instance();
 
    $insteon_manager->_active_interface($interface) if $interface;
-#print "############### active interface is: " . $insteon_manager->_active_interface->get_object_name . "\n";
+print "############### active interface is: " . $insteon_manager->_active_interface->get_object_name . "\n";
    return $insteon_manager->_active_interface;
 
 }

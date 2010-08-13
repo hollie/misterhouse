@@ -196,7 +196,6 @@ sub check_for_data {
            		$self->_clear_timeout('xmit');
          		if (!($$self{xmit_in_progress}))
                         {
-         print "################ xmit timer\n";
             			$self->process_queue();
                		}
             	}
@@ -238,7 +237,9 @@ sub log_alllink_table
 sub scan_link_table
 {
 	my ($self,$callback) = @_;
-	$$self{links} = undef; # clear out the old
+	#$$self{links} = undef; # clear out the old
+        $$self{adlb} = undef;
+        $$self{aldb} = new Insteon::ALDB_PLM($self);
 	$$self{_mem_activity} = 'scan';
         $$self{_mem_callback} = ($callback) ? $callback : undef;
 	$self->_aldb->get_first_alllink();

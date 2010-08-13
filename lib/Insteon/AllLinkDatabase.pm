@@ -879,7 +879,7 @@ sub log_alllink_table
 					$on_level = 'on';
 				}
 			} else {
-				$ramp_rate = &Insteon::LampLinc::get_ramp_from_code($$self{aldb}{$aldbkey}{data2}) . "s";
+				$ramp_rate = &Insteon::DimmableLight::get_ramp_from_code($$self{aldb}{$aldbkey}{data2}) . "s";
 			}
 		}
 
@@ -1082,9 +1082,20 @@ sub log_alllink_table
 		my $data3 = $$self{aldb}{$linkkey}{data3};
 		my $is_controller = $$self{aldb}{$linkkey}{is_controller};
 		my $group = ($is_controller) ? $data3 : $$self{aldb}{$linkkey}{group};
-		$group = '01' if $group == '00';
-		my $device = &Insteon::get_object($$self{aldb}{$linkkey}{deviceid},$group);
-		my $object_name = ($device) ? $device->get_object_name : $$self{aldb}{$linkkey}{deviceid};
+		$group = '01' if $group eq '00';
+                my $deviceid = $$self{aldb}{$linkkey}{deviceid};
+		my $device = &Insteon::get_object($deviceid,$group);
+		my $object_name = '';
+                if ($device)
+                {
+                	$object_name = $device->get_object_name;
+                }
+                else
+                {
+                        $object_name = uc substr($deviceid,0,2) . '.' .
+                        	       uc substr($deviceid,2,2) . '.' .
+                                       uc substr($deviceid,4,2);
+                }
 		&::print_log("[Insteon::ALDB_PLM] " .
 			(($is_controller) ? "cntlr($$self{aldb}{$linkkey}{group}) record to "
 			. $object_name
@@ -1098,16 +1109,17 @@ sub log_alllink_table
 sub parse_alllink
 {
 	my ($self, $data) = @_;
-	if (substr($data,4,6)) {
+#        &::print_log("[DEBUG] $data");
+	if (substr($data,0,6)) {
 		my %link = ();
-		my $flag = substr($data,4,1);
+		my $flag = substr($data,0,1);
 		$link{is_controller} = (hex($flag) & 0x04) ? 1 : 0;
-		$link{flags} = substr($data,4,2);
-		$link{group} = lc substr($data,6,2);
-		$link{deviceid} = lc substr($data,8,6);
-		$link{data1} = substr($data,14,2);
-		$link{data2} = substr($data,16,2);
-		$link{data3} = substr($data,18,2);
+		$link{flags} = substr($data,0,2);
+		$link{group} = lc substr($data,2,2);
+		$link{deviceid} = lc substr($data,4,6);
+		$link{data1} = substr($data,10,2);
+		$link{data2} = substr($data,12,2);
+		$link{data3} = substr($data,14,2);
 		my $key = $link{deviceid} . $link{group} . $link{is_controller};
 		%{$$self{aldb}{lc $key}} = %link;
 	}
