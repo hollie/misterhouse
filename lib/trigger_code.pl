@@ -73,7 +73,7 @@ sub triggers_save {
         if (trigger_expired($name) and ($triggers{$name}{triggered} + 60*60*24*7) < $Time) {
             $data2 .= $data . "\n";
             $i2++;
-            trigger_delete{$name};
+            trigger_delete($name);
         }
         else {
             $data1 .= $data . "\n";
