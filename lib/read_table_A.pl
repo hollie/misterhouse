@@ -798,6 +798,19 @@ sub read_table_A {
             $code .= "use xPL_Plugwise;\n";
         }
     }    
+    elsif($type eq "XPL_SQUEEZEBOX") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if($other){
+            $object = "xPL_Squeezebox('$address',$other)";
+        }
+        else{
+            $object = "xPL_Squeezebox('$address')";
+        }
+        if( ! $packages{xPL_Squeezebox}++ ) {   # first time for this object type?
+            $code .= "use xPL_Squeezebox;\n";
+        }
+    }    
     elsif($type eq "XPL_SECURITYGATEWAY") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data

@@ -65,8 +65,8 @@ sub new {
     my ($class, $p_source) = @_;
     my $source = 'slimdev-slimserv.' . $p_source;
     my $self = $class->SUPER::new($source);
-    $self->SUPER::class_name('audio.bas*');
-    $$self{state_monitor} = "audio.basic : status";
+    $self->SUPER::class_name('audio.basic');
+    $$self{state_monitor} = "audio.basic : status | hbeat.app : status";
 
 	# Ensure we can turn the SB on and off
 	$self->addStates ('on', 'off');
@@ -93,8 +93,8 @@ sub addStates {
 sub ignore_message {
     my ($self, $p_data) = @_;
     my $ignore_msg = 0;
-    if (!(defined($$p_data{'audio.basic'}))){
-	$ignore_msg = 1;
+    if (!(defined($$p_data{'audio.basic'})) || ! defined($$p_data{'hbeat.app'})){
+		$ignore_msg = 1;
     }
     return $ignore_msg;
 }
