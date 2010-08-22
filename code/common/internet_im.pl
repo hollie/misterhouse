@@ -161,6 +161,11 @@ sub im_message {
 
     $authority = $Password_Allow{$text} unless $authority;
 
+	if ($text eq "") {
+		print "IM: received empty text, discarding\n" if $main::Debug{im};
+		return;
+	}
+
     print "IM: RUN a=$authority,$im_data{password_allow}{$from} from=$from text=$text\n"  if $main::Debug{im};
     return if $text =~ /^i\'m away/i;
     return if $text =~ /^Sorry, I ran out for a bit/i;
