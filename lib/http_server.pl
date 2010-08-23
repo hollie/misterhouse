@@ -1786,12 +1786,8 @@ sub html_find_icon_image {
         $state = lc $object->state();
         $state = lc $object->state_level() if ($type eq 'x10_item' or 
             $type eq 'x10_switchlinc') ;
-        if ($type eq 'insteon_device' or $type eq 'insteon_link') {
-            $state = lc $object->level();
-            $state = 'off' unless $state; 
-            $state = 'on' if $state == 100; 
-            $state = 'dim' if $state > 0 and $state < 100;
-        } 
+        $state = 'on' if $state eq '100%'; 
+        $state = 'dim' if $state =~ /^\d\d?%$/; 
         $name =~ s/^\$//;       # remove $ at front of objects
         $name =~ s/^v_//;       # remove v_ in voice commands
                                 # Use on/off icons for conditional Weather_Items
