@@ -147,9 +147,12 @@ sub default_setstate
         &::print_log("[xPL_Squeezebox] Request " . $self->get_object_name
 		     . " turn " . $cmnd 
 	    ) if $main::Debug{xpl_squeezebox};
-        my $cmd_block;
         
-    	$self->SUPER::send_cmnd('audio.slimserv' => {'command' => $cmnd});
+		if ($cmnd eq 'stop') {
+	    	$self->SUPER::send_cmnd('audio.slimserv' => {'extended' => 'power 0'});
+	    } else {	
+    		$self->SUPER::send_cmnd('audio.slimserv' => {'command' => $cmnd});
+    	}
 
     	return;
     }
