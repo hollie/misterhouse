@@ -74,8 +74,7 @@ if ( $state = said $v_http_control) {
 # Check the http port, so we can restart it if down.
 run_voice_cmd 'Check the http server', undef, 'time', 1 if new_minute 1;
 
-$http_monitor = new Socket_Item( undef, undef,
-    "$config_parms{http_server}:$config_parms{http_port}" );
+$http_monitor = new Socket_Item( undef, undef, "$config_parms{http_server}:$config_parms{http_port}" );
 if ( ( said $v_http_control eq 'Check' ) ) {
     unless ( start $http_monitor) {
         my $msg =
@@ -97,9 +96,7 @@ if ( ( said $v_http_control eq 'Check' ) ) {
 }
 
 $v_restart_mh = new Voice_Cmd 'Restart Mister House';
-$v_restart_mh->set_info(
-'Restarts Misterhouse.  This will only work if you are start with mh/bin/mhl'
-) if !$OS_win;
+$v_restart_mh->set_info( 'Restarts Misterhouse.  This will only work if you are start with mh/bin/mhl') if !$OS_win;
 $v_restart_mh->set_info('Restarts Misterhouse.') if $OS_win;
 
 &exit_pgm(1) if said $v_restart_mh;
@@ -187,15 +184,7 @@ if ( said $v_reboot_abort and $OS_win ) {
     }
 }
 
-$v_debug = new Voice_Cmd(
-    "Set debug for ["
-      . (
-        ( $config_parms{debug_options} )
-        ? $config_parms{debug_options}
-        : "X10,serial,http,misc,startup,socket,password,user_code,weather"
-      )
-      . ',none]'
-);
+$v_debug = new Voice_Cmd( "Set debug for [" . ( ( $config_parms{debug_options} ) ? $config_parms{debug_options} : "X10,serial,http,misc,startup,socket,password,user_code,weather") . ',none]');
 $v_debug->set_info('Adds the given module to the current set of debug flags');
 if ( $state = said $v_debug) {
     if ( $state eq 'none' ) {
@@ -211,15 +200,7 @@ if ( $state = said $v_debug) {
     }
 }
 
-$v_debug_toggle = new Voice_Cmd(
-    "Toggle debug for ["
-      . (
-        ( $config_parms{debug_options} )
-        ? $config_parms{debug_options}
-        : "X10,serial,http,misc,startup,socket,password,user_code,weather"
-      )
-      . ']'
-);
+$v_debug_toggle = new Voice_Cmd( "Toggle debug for [" . ( ( $config_parms{debug_options} ) ? $config_parms{debug_options} : "X10,serial,http,misc,startup,socket,password,user_code,weather") . ']');
 $v_debug_toggle->set_info(
     'Toggles what kind of debugging information is logged');
 
@@ -262,9 +243,7 @@ sub update_config_parms_debug {
 }
 
 $v_mode = new Voice_Cmd("Put house in [normal,mute,offline] mode");
-$v_mode->set_info(
-'mute mode disables all speech and sound.  offline disables all serial control'
-);
+$v_mode->set_info( 'mute mode disables all speech and sound.  offline disables all serial control');
 if ( $state = said $v_mode) {
     $Save{mode} = $state;
     set $mode_mh $state, $v_mode;
@@ -292,8 +271,8 @@ if ( said $v_mode_toggle) {
 # Search for strings in user code
 #&tk_entry('Code Search', $search_code_string) if $Run_Members{mh_control};
 
-$search_code_string =
-  new Generic_Item;    # Set from web menu mh/web/ia5/house/search.shtml
+# Set from web menu mh/web/ia5/house/search.shtml
+$search_code_string = new Generic_Item;
 
 if ( $temp = state_now $search_code_string) {
     print "Searching for code $temp\n";
@@ -333,8 +312,7 @@ display join "\n", &Voice_Cmd::voice_items if said $v_list_voice_cmds;
 
 # Create a list by X10 Addresses
 $v_list_x10_items = new Voice_Cmd 'List {X 10,X10} items', 0;
-$v_list_x10_items->set_info(
-    'Generates a report fo all X10 items, sorted by device code');
+$v_list_x10_items->set_info('Generates a report fo all X10 items, sorted by device code');
 if ( said $v_list_x10_items) {
     print_log "Listing X10 items";
     my @object_list = (
@@ -364,8 +342,7 @@ if ( said $v_list_x10_items) {
 
 # Create a list by Serial States
 $v_list_serial_items = new Voice_Cmd 'List serial items';
-$v_list_serial_items->set_info(
-    'Generates a report of all Serial_Items, sorted by serial state');
+$v_list_serial_items->set_info('Generates a report of all Serial_Items, sorted by serial state');
 if ( said $v_list_serial_items) {
     print_log "Listing serial items";
     my @object_list = &list_objects_by_type('Serial_Item');
@@ -404,9 +381,7 @@ if ( said $v_list_serial_items) {
 
 # Find a list of debug options code for $Debug{xyz}
 $v_list_debug_options = new Voice_Cmd 'List debug options';
-$v_list_debug_options->set_info(
-'Generates a list of the various -debug options you can use to get debug errata'
-);
+$v_list_debug_options->set_info('Generates a list of the various -debug options you can use to get debug errata');
 
 if ( said $v_list_debug_options) {
 
@@ -515,8 +490,7 @@ if ($ControlX10::CM11::BACKLOG) {
 }
 
 # Repeat last spoken
-$v_repeat_last_spoken =
-  new Voice_Cmd '{Repeat your last message,What did you say}', '';
+$v_repeat_last_spoken = new Voice_Cmd '{Repeat your last message,What did you say}', '';
 if ( said $v_repeat_last_spoken) {
     ( $temp = $Speak_Log[0] ) =~ s/^.+?: //s;
     ( $temp = $temp ) =~
@@ -550,8 +524,7 @@ if ($New_Month) {
 }
 
 # Allow for commands to be entered via tk or web
-$run_command =
-  new Generic_Item;    # Set from web menu mh/web/ia5/house/search.shtml
+$run_command = new Generic_Item;    # Set from web menu mh/web/ia5/house/search.shtml
 
 #&tk_entry('Run Command', $run_command) if $Run_Members{mh_control};
 
@@ -561,8 +534,7 @@ if ( $temp = state_now $run_command) {
     &process_external_command( $temp, 1, $set_by );
 }
 
-$search_command_string =
-  new Generic_Item;    # Set from web menu mh/web/ia5/house/search.shtml
+$search_command_string = new Generic_Item;    # Set from web menu mh/web/ia5/house/search.shtml
 if ( $temp = state_now $search_command_string) {
     my @match   = &phrase_match($temp);
     my $results = "Matches for $temp:\n";
@@ -577,8 +549,7 @@ if ( $temp = state_now $search_command_string) {
 }
 
 $v_undo_last_change = new Voice_Cmd 'Undo the last action';
-$v_undo_last_change->set_info(
-    'Changes the most recently changed item back to its previous state');
+$v_undo_last_change->set_info('Changes the most recently changed item back to its previous state');
 
 if ( said $v_undo_last_change) {
     &undo_last_action($v_undo_last_change);
