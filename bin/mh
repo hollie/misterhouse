@@ -4859,7 +4859,7 @@ sub read_user_code {
                                 #     Can also do a return if $Reload in the method, and leave it in the loop
 
             if ($object or
-                $record =~ / # *noloop *$/i or        # noloop record comment
+                $record =~ /#\s*noloop\s*$/i or       # noloop record comment
                 $record =~ /^my[\s\(]/ or             # Global 'my'
                 $record =~ /^our[\s\(]/ or            # Global 'our'
                 $record =~ /^use +vars\s/ or          # Global 'use vars'
