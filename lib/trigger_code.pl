@@ -170,7 +170,7 @@ sub trigger_write_code {
     }
 }
 
-                                # this routine does all the heavy lifting re modifying, renaming, copying  triggers
+                                # this routine does all the heavy lifting re modifying, renaming, copying triggers
 sub trigger_set {
     my ($trigger, $code, $type, $name, $replace, $triggered, $new_name) = @_;
 
@@ -294,7 +294,7 @@ sub trigger_set_type {
     my $code      = $triggers{$name}{code};
     my $type      = shift;
     my $replace   = 1;
-    my $triggered = $triggers{$name}{triggerd};
+    my $triggered = $triggers{$name}{triggered};
     trigger_set($trigger, $code, $type, $name, $replace, $triggered);
     return;
 }
@@ -320,6 +320,7 @@ sub trigger_run {
     my ($trigger, $code, $type, $triggered) = trigger_get($name);
     &print_log ("trigger_run: running trigger code for: $name") if $Debug{trigger};
     eval $code;
+    trigger_set($trigger, $code, $type, $name, 1, $Time);
     &print_log ("trigger_run: finished running trigger code for: $name") if $Debug{trigger};
     if ($@) {
 	    &print_log("Error: trigger '$name' failed to run cleanly");
