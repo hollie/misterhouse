@@ -1710,7 +1710,7 @@ sub html_category {
     my $h_index;
 
     $h_index = qq[<DIV ID="overDiv" STYLE="position:absolute; visibility:hide; z-index:1;"></DIV>\n] .
-        qq[<SCRIPT LANGUAGE="JavaScript" SRC="/overlib.js"></SCRIPT>\n] if $html_info_overlib;
+        qq[<SCRIPT LANGUAGE="JavaScript" SRC="/lib/overlib.js"></SCRIPT>\n] if $html_info_overlib;
 
     for my $category (&list_code_webnames('Voice_Cmd')) {
         next if $category =~ /^none$/;
@@ -2296,7 +2296,7 @@ sub html_command_table {
                                 # moved the target option down to form and a tags to be compatible with IE7, dn
 #   $html = "<BASE TARGET='" . $config_parms{'html_target_speech' . $Http{format}}. "'>\n";
     $html = qq[<DIV ID="overDiv" STYLE="position:absolute; visibility:hide; z-index:1;"></DIV>\n] .
-            qq[<SCRIPT LANGUAGE="JavaScript" SRC="/overlib.js"></SCRIPT>\n] .
+            qq[<SCRIPT LANGUAGE="JavaScript" SRC="/lib/overlib.js"></SCRIPT>\n] .
                 $html if $html_info_overlib;
 
     if ($Http{'User-Agent'} =~ /^MS/ and $Cookies{msagent} and $main::config_parms{'html_msagent_script_vr' . $Http{format}}) {
