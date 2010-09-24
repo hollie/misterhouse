@@ -1,0 +1,1536 @@
+
+=pod
+
+=head2 List of items and their methods
+
+=over
+
+=head3 Generic_Item
+
+You can use this object to store and query arbitrary data.
+This is more useful than 'my' variables, if you need to share data between
+code files, since 'my' variables are local to a code file.
+States of these items are also saved/restored when
+mh is stopped/started.
+
+All other items that have states (e.g. X10_Item, Serial_Item, iButton, Voice_Cmd, Group) inherit all Generic_Item methods.
+
+  Methods:
+     new           :  Creates an object of the specified name
+
+     state         :  Returns the state (e.g. on, off)
+     state_now     :  True only for one pass after object state is set.
+     state_changed :  True only for one pass after object state changes.
+                      Unlike state_now, state_changed will return undef (false) if
+                      the item is set to the same state it is currently in.
+     state_final   :  Returns the state the object will be in after all queued
+                      state changes have been processed.
+
+     set($state)   :  Places the value into the state field (e.g. set $light on)
+                      Note: states are set at the start of the next mh pass.
+     set_now($state) :  Like set, except states are set when called, not on the next pass.
+     set_with_timer($state, $time, $return_state)
+                   :  Like set, but will return to $return_state after $time.
+                      If $return_state is not specified, it toggles $state.
+                      If $return_state is previous, it returns to the previous state.
+                      If set is called before the timer expires, the timer will be unset.
+
+        You can also stack a series of set_with_timer calls with one set call like this:
+
+           set('s1~t1~s2~t2...sn');
+
+        where s1, s2, ... sn are various states, and t1, t2 ... tn are the times to
+        wait between states.  See example below.
+
+        If you want to stack a set of states without delays, you use ; like this:
+
+           set('on~2~random:on;repeat:on;play');
+
+        See mh/code/examples/test_states_stacked.pl for a complete example.
+        Note, this is turnded off by default for Serial_Item objects.
+        To enable, run:   $object -> state_overload(ON);
+
+     set_casesensitive   : By default, states are all lowercased, to allow for case
+                           insensitive tests.  To avoid this (for example on Serial Interfaces
+                           that are case sensitive), call this method.
+
+     hidden(1/0)         : If set to 1, the object will not show up on Tk or Web menus.
+
+     tie_items($item)    : If the state of the generic_item changes, then
+                           the state of $item will be set to that same state
+     untie_items($item)  : Untie $item
+
+     tie_event($code)   : It the state of the generic_item changes, then
+                           Code string $code will trigger, with the variable
+                           $state getting expanded.
+     untie_items($code)  : Untie $code
+
+     tie_filter($filter) : Use this to disable control of the item whenever
+                           $filter returns true.   Variables $state and $set_by
+                           can be used in the $filter test.
+
+     untie_filter($filter):Untie $filter
+
+     tie_time($time,$state): Sets item to $state if the $time string evaluates true.
+                           $time can be in either time_cron or time_now format.
+     untie_time($time)   : Untie $time
+
+     time_idle($time)    : Returns true when the object has had no state changes
+                           since the specified time. $time can be be in seconds,
+                           minutes, hours, or days (e.g. '90 s' or '7 days').
+                           Optionally, $time can also specify a spefic state (e.g. '4 m on')
+
+     set_by              : allows setting a description of why the last state change
+                             - motion, sunrise, manual, serial,    etc..  any string
+                               is allowed value is returned by get_set_by below.
+
+     get_idle_time       : Returns number of seconds since the last state change
+
+     get_set_by          : Returns what caused this object to change.  Values either:
+                            - Name of the object
+                            - web, tk, telnet, vr, xcmd, serial
+                           An example is in mh/code/examples/test_set_by.pl
+
+
+     set_states(@states) : Sets valid states to @states
+     add_states(@states) : Adds @states to the list of valid states
+     get_states          : Returns the list of valid states
+
+     restore_data(@vars) : Specifies which variables should be saved/restored between
+                           mh reload/restarts.  The state var is always saved.
+
+     set_authority('anyone') : Bypasses password control
+
+     set_icon : Point to the icon member you want the web interface to use.
+                See the 'Customizing the web interface' section of this document for details.
+
+     set_info : Adds additional information.  This will show up as a popup window
+                on the web interface, when the mouse hovers over the command text.
+
+     set_label: Specify a text label, useful for creating touch screen interfaces.
+
+     set_web_style: Contols the style of we form used.  Can be dropdown, radio, or url.
+                    See mh/code/examples/test_web_styles.pl
+
+     set_count   : Use these methods to control a count variable.
+     get_count
+     incr_count
+     reset_count
+
+
+The tie/untie methods can be done conditionally, so you can change what is tied to what on the fly.
+If you do this, however, you need to also make sure you also make the tie* method call
+on $Reload, as the objects tie items/events are currently not stored between reloads.
+
+The tie_* methods can also take 2 optional arguments.  The first is the state you want the
+tie to apply to.  If not specified, it defaults to all states.  This is required for tie_time.
+
+The 2nd optional tie_* argument is a print_log message you want whenever the tie_ event triggers.
+
+  Examples:
+     $tv_grid = new Generic_Item;
+     set $tv_grid 'channel 2 from 7:00 to 8:00 on 1/24 for This Old House';
+     speak "tv set to $state" if $state = state_now $tv_grid;
+
+     $wakeup_time = new Generic_Item;
+     speak "Your wakeup time is set for $state" if $state = state_now $wakeup_time;
+     speak "Time to wake up" if time_now state $wakeup_time;
+
+   # Since Voice_Cmd objects inherit Generic_Items methods, we can
+   # use tie_items and tie_event like this:
+
+     $indoor_fountain    = new X10_Appliance('OB');
+     $v_indoor_fountain  = new Voice_Cmd 'Indoor fountain [on,off]';
+     $v_indoor_fountain -> tie_items($indoor_fountain);
+     $v_indoor_fountain -> tie_event('speak "Ok, fountain was turned $state"');
+
+     if ($state = state_now $test_button) {
+        my $ref = get_set_by $test_button;
+        print_log "Test button's was set to $state by $ref->{object_name}" if $ref;
+     }
+
+                           # This shows how to set states
+    $TV  = new IR_Item 'TV';
+    my  $tv_states = 'power,on,off,mute,vol+,vol-,ch+,ch-';
+    set_states  $TV split ',', $tv_states;  # causes $tv_states to be split into array
+                                                           values via the split command deliminated by the ,
+    $v_tv_control = new  Voice_Cmd("tv [$tv_states]");
+
+                           # This shows how to save persistant arbitrary data
+    $Test = new Generic_Item;
+    $Test->{junk_data1} = $Time_Now if $Reload;
+    $Test->{junk_data2} = $Month    if $Reload;
+    $Test->restore_data('junk_data1', 'junk_data2');
+
+                           # Here are some tie* examples
+    $fountain -> tie_filter('state $windy eq ON', ON,
+                            'Overriding item1 ON command because of wind');
+
+    $fountain -> tie_time('10PM', OFF, 'Fountain turned off');
+
+                           # Disable an item when we are away
+    $item1 -> tie_filter('state $status_away eq ON');
+    $item1 -> tie_event('print_log "item1 toggled to $state"');
+
+                           # Ignore RF sourced (e.g. W800 or MR26) X10 data
+    $light1 -> tie_filter('$set_by eq "rf"', , 'Ignoring x10 rf data');
+
+                           # Disable callerid announcements when we are not at home
+    $cid_announce -> tie_filter('state $mode_occupied ne "home"');
+
+                           # Set an item to multiple states, with 5 second a delay between states
+    $test_set1  = new Generic_Item;
+    $test_set1 -> set('0%~5~30%~5~60%~5~100%') if new_second 20;
+    $test_set1 -> tie_event('print_log "test set $state"');
+
+    print 'Item is idle' if $test_set1 -> time_idle('4 seconds');
+
+
+See mh/code/examples/generic_item.pl for more examples,
+test_tie.pl for more examples on how to tie/untie items/events, and
+test_idle.pl for more examples on testing idle times.
+
+
+=head3 Group
+
+You can use this object to group and operate on groups of items:
+
+  Methods:
+     new(@item_list)
+     add(@item_list)
+     list
+     set
+
+     state
+     state_now    :  Like the Generic_Item methods, these return
+                     the last state that the group was set to.
+                     If a group member changed, these methods will
+                     return 'member $state_name' rather than just '$state_name'.
+                     You can use the member_changed or get_set_by methods
+                     to see which member changed.
+
+
+     state_log    : Returns a list array of the last max_state_log_entries (mh.ini parm)
+                    time_date stamped states.
+
+     member_changed:      Returns a member object name whenever one changes
+     member_changed_log:  Returns a list of recenty changed members.
+                          The first one was the most recently changed.
+
+     remove       : Remove an item from a group
+
+  Examples:
+     $outside_lights = new Group($light1, $light2, $light3);
+     $outside_lights-> add($light4, $light5);
+     $outside_lights-> add($light6);
+     set $outside_lights ON if time_now("$Time_Sunset + 0:15");
+
+     for my $item (list $outside_lights) {
+         print "member = $item->{object_name}\n";
+     }
+
+     if (my $member_name = member_changed $outside_lights) {
+        my $member = &get_object_by_name($member_name);
+        print_log "Group member $member_name changed to $member->{state}"
+     }
+
+     my @members = member_changed_log $sensors;
+
+     # turn off all but the bedroom light when we are getting ready for bed
+     if( state_now $bedroom_control eq ON ) {
+        my $all = new Group(list $All_Lights);
+        $all -> remove ( $master_bedroom );
+        set $master_bedroom ON;
+        set $all OFF;
+     }
+
+
+See mh/code/examples/test_group.pl and mh/code/public/monitor_occupancy_jason.pl for more examples.
+
+
+=head3 iButton_Item
+
+This is used to query and/or control an iButton device (for more info on iButton, see the hardware section).
+To enable iButton support in mh, set the mh.ini parm ibutton_serial_port.
+
+  Methods:
+     new $id, $port, $channel
+       If $port is not specified, the port of the first iButton::connect
+       will be used.
+       $channel (used for switches like the DS2406) defaults to A
+
+     set $state   : Sets the item to the specified state.
+
+     state        : Returns the last state that was received or sent
+
+     state_now    : Returns the state that was received or sent in the current pass.
+
+     state_log    : Returns a list array of the last max_state_log_entries (mh.ini parm)
+                    time_date stamped states.
+
+     read_temp    : Returns the temperature of temperature devices.
+
+     read_switch  : Reads iButton switch data
+
+     read_windspeed : Reads iButton weather station wind speed
+     read_dir       : Reads iButton weather station wind direction
+
+
+In addition to the above, all of the methods provided by the Hardware/iButton/Device.pm
+module are available (documented in mh/lib/site/Hardware/iButton/Device.pm).
+
+These functions are also part of the iButton module, but not associated with an object:
+
+     scan        $family, $port : Returns a object list of iButton devices that match $family
+     scan_report $family, $port : Returns a report of      iButton devices that match $family
+
+     monitor $family, $port : Checks the one wire bus for iButton activity
+
+     connect $port       : Connect to the one wire bus.  Note you can now have multiple
+                           iButton interfaces on multiple COM ports.
+
+     disconnect          : Disconnect to the one wire bus
+
+Note, all of these functions take an optional $port parm (required for connect).
+If not specified, the port of the first connect record will be used.
+
+The $id required when creating new iButton_Item is the 16 hex character (64 bit) iButton id that
+is unique to every device.  This is often printed on the larger devices.  If not, you can use:
+
+    $v_iButton_list      = new Voice_Cmd "List all the iButton buttons";
+    print_log &iButton::scan_report if said $v_iButton_list;
+
+The last 2 characters are CRC bits and are optional.  If missing (i.e. you only specify
+the first 14 characters), mh will calculate it.
+
+The first 2 characters are the iButton family type.  Here is a list of family types:
+
+     Field Index:
+      ------------
+      (1) Family code in hex
+      (2) Number of regular memory pages
+      (3) Length of regular memory page in bytes
+      (4) Number of status memory pages
+      (5) Length of status memory page in bytes
+      (6) Max communication speed (0 regular, 1 Overdrive)
+      (7) Memory type (see below)
+      (8) Part number in iButton package
+      (9) Part number in non-iButton package
+      (10) Brief descriptions
+
+      (1)   (2)  (3)  (4)  (5)  (6)  (7)   (8)   (9)   (10)
+      -------------------------------------------------------
+      01,    0,   0,   0,   0,   1,   0, DS1990A,DS2401,Unique Serial Number
+      02,    0,   0,   0,   0,   0,   0, DS1991,DS1205, MultiKey iButton
+      04,   16,  32,   0,   0,   0,   1, DS1994,DS2404,4K-bit NVRAM with Clock
+      05,    0,   0,   0,   0,   0,   0, DS2405,,Single Addressable Switch
+      06,   16,  32,   0,   0,   0,   1, DS1993,DS2403,4K-bit NVRAM
+      08,    4,  32,   0,   0,   0,   1, DS1992,DS2402,1K-bit NVRAM
+      09,    4,  32,   1,   8,   1,   2, DS1982,DS2502,1K-bit EPROM
+      0A,   64,  32,   0,   0,   1,   1, DS1995,DS2416,16K-bit NVRAM
+      0B,   64,  32,  40,   8,   1,   3, DS1985,DS2505,16K-bit EPROM
+      0C,  256,  32,   0,   0,   1,   1, DS1996,DS2464,64K-bit NVRAM
+      0F,  256,  32,  64,   8,   1,   3, DS1986,DS2506,64K-bit EPROM
+      10,    0,   0,   0,   0,   0,   0, DS1920,DS1820,Temperature iButton with Trips
+      11,    2,  32,   1,   8,   0,   2, DS1981,DS2501,512-bit EPROM
+      12,    4,  32,   1,   8,   0,   4, DS2407,,Dual Addressable Switch
+      13,   16,  32,  34,   8,   0,   3, DS1983,DS2503,4K-bit EPROM
+      14,    1,  32,   0,   0,   0,   5, DS1971,DS2430A,256-bit EEPROM, plus
+      64-bit
+      OTP
+      15,    0,   0,   0,   0,   1,   0, DS87C900,,Lock Processor
+      16,    0,   0,   0,   0,   0,   0, DS1954,,Crypto iButton
+      18,    4,  32,   0,   0,   1,   6, DS1963S,4K-bit Transaction iButton with
+      SHA
+      1A,   16,  32,   0,   0,   1,   6, DS1963,,4K-bit Transaction iButton
+      1C,    4,  32,   0,   0,   1,   6, DS2422,,1K-bit EconoRAM with Counter
+      Input
+      1D,   16,  32,   0,   0,   1,   6, DS2423,,4K-bit EconoRAM with Counter
+      Input
+      1F,    0,  32,   0,   0,   0,   0, DS2409,,One-Wire Net Coupler
+      20,    3,   8,   0,   0,   1,   9, DS2450,,Quad A-D Converter
+      21,   16,  32,   0,   0,   1,   8, DS1921,,Temperature Recorder iButton
+      23,   16,  32,   0,   0,   1,   7, DS1973,DS2433,4K-bit EEPROM
+      22                                 DS1822 temperature button
+      40,   16,  32,   0,   0,   0,   1, DS1608,,Battery Pack Clock
+
+
+  Examples:
+
+    $v_iButton_connect = new Voice_Cmd "[Connect,Disconnect] to the iButton bus";
+    if ($state = said $v_iButton_connect) {
+      if ($state eq 'Connect') {
+        print_log &iButton::connect($config_parms{iButton_serial_port});
+        print_log &iButton::connect($config_parms{iButton_2_serial_port});
+      }
+      else {
+        print_log &iButton::disconnect;
+        print_log &iButton::disconnect, $config_parms{iButton_2_serial_port};
+      }
+    }
+
+    $ib_bruce  = new iButton '010000012345ef';
+    speak 'Hi Bruce'  if ON  eq state_now $ib_bruce;
+    speak 'Later'     if OFF eq state_now $ib_bruce;
+
+    $ib_relay1 = new iButton '12000000123456ff', undef, 'A';
+    $ib_relay2 = new iButton '12000000123456ff', undef, 'B';
+    $v_iButton_relay1    = new Voice_Cmd "Turn relay1 [on,off]";
+    if ($state = said $v_iButton_relay1) {
+       print_log "Setting iButton relay1 to $state";
+       set $ib_relay1 $state;
+    }
+
+    $ib_temp1  = new iButton '1000000029a14f', $config_parms{iButton_2_serial_port};
+    $ib_temp2  = new iButton '1000000029f5d6';
+    my @ib_temps = ($ib_temp1, $ib_temp2);
+
+    $v_iButton_readtemp  = new Voice_Cmd "Read the iButton temperature [1,2]";
+    if ($state = said $v_iButton_readtemp) {
+       my $b = $ib_temps[$state-1];
+       my $temp = read_temp $b;
+       print_log "Temp for sensor $state: $temp F";
+       logit("$config_parms{data_dir}/iButton_temps.log",  "$state: $temp");
+    }
+    if ($New_Second and !($Minute % 5)) {
+       run_voice_cmd 'Read the iButton temperature 1' if $Second == 11;
+       run_voice_cmd 'Read the iButton temperature 2' if $Second == 22;
+    }
+
+
+=head3 HVweb_Item
+
+This object allows control of Homevision controller via the Homevision web server.
+Set homevision_url=<your homevision web server URL> in mh.ini.
+See the Homevision documentation for complete list of command formats.
+Configure Homevision Webserver to report command results.
+
+  Examples:
+     $kitchen_light    =  new HVweb_Item('On',    'X10 G1 On');
+     $kitchen_light    -> add           ('Off',   'X10 G1 Off');
+     $vcr              =  new HVweb_Item('Power', 'IR 45 1 time');
+     $vcr              -> add           ('Play',  'IR 46 1 time');
+
+     set $kitchen_light 'On';
+     set $vcr 'Play';
+
+
+=head3 IR_Item
+
+This object controls IR transmiters. The devices currently supported are the
+X10 IR Commander, HomeVision, CPU-XA/Ocelot/Leopard, and UIRT2 (http://www.fukushima.us/UIRT2/).
+
+The X10 IR Commander (http://www.x10.com/products/ux17a_bj2.htm) receives
+commands from the wireless CM17 (firecracker) interface. Currently, you must
+use the X10 supplied software (http://www.x10.com/commander.htm and/or
+ftp://ftp.x10.com/pub/applications/commander/) to program the IR Commander to
+use the codes for your various remotes.
+
+  Methods:
+     new $type, $code, $interface, $mapref : Creates a new Item.
+
+        $type is the type of device being controlled.  Default is TV.
+        Here are the only valid types for the X10 IR Commander:
+           TV, VCR, CAB, CD, SAT, DVD
+
+        $code specifies how numbers will be treated.  Default is 2digit.
+           noPad   : numbers are not modified
+           2digit  : single digits will be padded with a leading zero
+           3digit  : numbers will be padded to 3 digits with leading zeros
+           addEnter: adds an ENTER command after any numbers, to make
+                     changing channels faster on devices that wait for a
+                     timeout (e.g. Sony TVs).
+
+        $interface is the transmitter to be used.  Default is cm17.
+           cm17    : X10 IR Commander
+           homevision: HomeVision
+           ncpuxa  : CPU-XA/Ocelot/Leopard
+           uirt2   : UIRT2 (http://www.fukushima.us/UIRT2/)
+           xAP     : Sends / receives data via the xAP protocol.
+
+        $mapref is a reference to a hash that specifies commands to be
+           mapped to other commands.  This is useful for transmitters
+           like the Ocelot which use slot numbers instead of device and
+             function name pairs.  Default is a reference to a hash containing
+                ON  => POWER,
+                OFF => POWER
+             Which you would not want if you had descrete ON and OFF codes.
+
+     state        : Returns the last state that was sent
+     state_now    : Returns the state that was sent in the current pass.
+     state_log    : Returns a list array of the last max_state_log_entries (mh.ini parm)
+                    time_date stamped states.
+
+     set $command : Sends out commands to the IR device.  Here is a list of valid commands for the X10 IR Commander::
+                    Note:  Commands are not case insensitive
+        POWER      MUTE
+        CH+        CH-
+        VOL+       VOL-
+        1          2
+        3          4
+        5          6
+        7          8
+        9          0
+        MENU       ENTER
+        FF         REW
+        RECORD     PAUSE
+        PLAY       STOP
+        AVSWITCH   DISPLAY
+        UP         DOWN
+        LEFT       RIGHT
+        SKIPDOWN   SKIPUP
+        TITLE      SUBTITLE
+        EXIT       OK
+        RETURN
+
+
+  Examples:
+
+    $TV = new IR_Item 'TV';
+    $v_tv_control = new  Voice_Cmd("tv [power,on,off,mute,vol+,vol-,ch+,ch-]");
+    set $TV $state if $state = said $v_tv_control;
+
+    $VCR = new IR_Item 'vcr', '3digit';
+    set $VCR "12,RECORD" if time_cron('59 19 * * 3');
+    set $VCR "STOP"      if time_cron('00 20 * * 3');
+
+
+=head3 LCD
+
+This object is used to send and receive data to LCD type displays with keypads.
+An example is in mh/code/bruce/lcd.pl.
+To use simulate an LCD keypad with your pc keyboard, use mh/code/bruce/lcd_keyboard.pl.
+
+  Methods:
+     new $type, $port, $size, $menu_group, $keymap
+
+       $type:  Either lcdproc or keyboard.
+       $port:  The ip:port of where lcdproc is running.
+       $size:  ROWSxCOLUMNS of the LCD display.
+       $menu_group:  The menu parsed by menu_parse (see Menu section of this doc).
+       $keymap: A has that translates keys to usable names.
+
+     start        => Connect to the LCD.  Automatically called on startup
+     stop         => Disconnect the LCD.
+     load $menu   => Load menu $menu.  Default menu is the first one.
+     check_key    => Returns whatever key is keyed in
+     set @data    => Sends @data to the LCD, one line per list element
+     set_key $key => Simulates the keyboard being pressed with $key
+     inactive     => Returns true if no key has been pressed in 10 seconds.
+
+  Examples:
+
+     my %lcd_keymap1 = ( N => 'up', I => 'down', M => 'left', H => 'right',
+                         F => 'exit', K => 'enter', L => 'left', G => 'right');
+     my %lcd_keymap2 = ( 38=> 'up', 40=> 'down', 37=> 'left',
+                         39=> 'right', 17=> 'exit', 96=> 'enter') ;
+
+    $lcd1 = new LCD  'lcdproc', '192.168.0.5:13666', '4x20', 'default', \%lcd_keymap1;
+    $lcd2 = new LCD 'keyboard',               undef, '4x20', 'mh',      \%lcd_keymap2;
+
+
+=head3 Network_Item
+
+This module doesn't do much yet.  Currently uses ping to detect when specified ip address is up.
+
+  Methods:
+     new $address, $interval
+
+       $address:  Ip address of the box you want to ping
+       $interval: How often to ping (in seconds)
+
+  Examples:
+
+    $network_house = new Network_Item('192.168.0.2',  10);
+    $network_hp    = new Network_Item('192.168.0.66', 20);
+
+    print_log "house just changed to $state" if      $state = state_changed $network_house;
+    print_log "house is $state" if new_second 15 and $state = state $network_house;
+
+
+
+=head3 Process_Item
+
+You can use this object to run external programs.  On Win32 systems, the Win32::Process function is used.
+On Unix systems, the fork function is used.  On either system, the following methods work in the same way:
+
+  Methods:
+     new('program1 arguments', 'program2 arguments', ...)
+     set('program1 arguments', 'program2 arguments', ...)
+     add('program3 arguments', 'program4 arguments', ...)
+
+        If you specify more than one program, they are run sequentially.  done_now returns
+        1 after the last program is done.
+
+        If program starts with &, then 'program arguments' is eval-ed as an internal mh function.
+        Otherwise, 'program arguments' is run as an external command.
+
+        On Windows, the &-> eval trick is supposed to work with perl 5.6+ (which has fork), but
+        unfortunately, it causes perl to crash often, so is probably not useful yet.
+
+     set_timeout $timeout     : Process will timeout after $timeout seconds
+     set_output  $output_file : Program STDOUT errata goes to $output_file
+     set_errlog  $errlog_file : Program STDERR errata goes to $errlog_file
+
+     start          : Starts the process.
+     start 'program arg'  : Starts the process with program arg
+
+     stop           : Stops the process. If called as a stand alone function
+                      (not as an object method), all active Process_Items are stopped.
+
+     done           : Returns the time (seconds since epoch) that the process finished.  If
+                      the process has been started, but has not yet finished, it returns 0.
+
+     done_now       : Is true for the pass that the process finished on.
+
+     pid            : Returns the process id
+
+     timed_out      : Returns the time when the process timed out.
+                      done_now will still trigger for a timed_out process.
+
+  Examples:
+     my $slashdot_news = "$Pgm_Root/data/web/slashdot_news.txt";
+     $p_slashdot_news = new Process_Item("get_slashdot_news > $slashdot_news");
+     start $p_slashdot_news if time_now('6:30 AM');
+     display $slashdot_news if done_now $p_slashdot_news;
+
+     $p_report_weblog = new Process_Item;
+     $p_report_weblog ->set_output("$config_parms{data_dir}/weblog_results.txt");
+     if (time_now '2 AM') {
+         set   $p_report_weblog "report_weblog /mh/data/logs/server.$Year_Month_Now.log";
+         start $p_report_weblog;
+     }
+
+                    # Example of multiple commands
+     $test_process1 = new Process_Item;
+     set $test_process1 'sleep 1', 'sleep 2';
+     add $test_process1 'sleep 1';
+
+                    # Example of running an internal mh subroutine
+    $v_test_ftp = new Voice_Cmd 'Test background ftp [get,put]';
+    $p_test_ftp = new Process_Item;
+    if ($state = said $v_test_ftp) {
+      set $p_test_ftp "&main::net_ftp(file => '/tmp/junk1.txt', " .
+                      "file_remote => 'incoming/junk1.txt'," .
+                      "command => '$state')";
+      set_timeout $p_test_ftpb 60*2;
+      start $p_test_ftpb;
+    }
+    print_log "Ftp command done" if done_now $p_test_ftp;
+
+
+More examples are in mh/code/examples/test_process.pl
+
+
+
+=head3 RF_Item
+
+An RF_item is created to receive states from X10 security devices and RF
+TV style remote through a W800RF32 module or an MR26A module (the MR26A
+only passes TV remote style data through, it does not pass security data).
+
+To configure the W800 or MR26 interfaces, see the comments at the top of
+mh/lib/X10_MR26.pm  and mh/lib/X10_W800.pm.
+
+RF items can be created in the items.mht in the following manner:
+
+     RF,     68,     keychain_remote,                Security
+     RF,     System, security_system,                Security
+     RF,     Sensor, security_sensors,               Security
+     RF,     81,     door_sensor,                    Security
+     RF,     Remote, tv_remote,                      TV
+
+RF Items can be manually created in the following manner:
+
+     $keychain_remote  = new RF_Item('68'    , 'keychain_remote' );
+     $security_system  = new RF_Item('system', 'security_system' );
+     $security_sensors = new RF_Item('sensor', 'security_sensors');
+     $door_sensor      = new RF_Item('81'    , 'door_sensor'     );
+     $tv_remote        = new RF_Item('remote', 'tv_remote'       );
+
+The 2nd column the items.mht file (or the 1st parameter when manually
+creating a new RF_Item) is the 2 digit hexadecimal unit id of the
+particular transmitter or one of the following classes:
+
+     system     Any device that change the state of the security system.
+                States from any transmitters that go into this class are:
+                armawaymin, armawaymax, armhomemin, armhomemax, disarm, panic
+     sensor     Any device that changes a sensor state.
+                States from any transmitters that go into this class are:
+                normal, normalmax, normalmin, alert, alertmin, alertmax
+     control    Any device that changes some general feature:
+                States from any transmitter that go into this class are:
+                lightson, lightsoff
+     remote     Any TV style remote control (UR51A, etc.).
+                States from any transmitter that go into this class are:
+                Power PC Title Display Enter Return Up Down Left Right Menu
+                Exit Rew Play FF Record Stop Pause Recall 0 1 2 3 4 5 6 7 8 9
+                AB Ch+ Ch- Vol- Vol+ Mute
+
+Some transmitters have a min and max switch that cause the transmitter
+to send different states depending on that switch.  If you don't care
+about the full detail of the state, you can do a test like:
+
+    if (my $state = state_now $door_sensor =~ /^alert/) { ... }
+
+To determine what the 2 digit hexadecimal unit id for a particular
+security transmetter is, press the button on the transmitter (or
+open/close the sensor) and look at the misterhouse log to find the id
+that the unit transmitted.
+
+
+
+=head3 Serial_Item
+
+Serial_Item is used whenever you want read or write serial port data.
+Like most mh objects, it inherits all the Generic_Item methods.
+
+  Methods:
+     new('data_stream', 'state_name', 'serial_port')
+     add('data_stream', 'state_name')
+
+        If 'serial_port' is not specified, then:
+           For outgoing X10 data, the first valid port from this list is used:
+               cm11, cm17, homevision, homebase, Weeder, serial1, serial2, ...
+           For other outgoing data, the first valid port from this list is used:
+               Weeder, serial1, serial2, ...
+
+           For incoming data, the 'serial_port' parm is not important, as
+           data from the cm11, homebase, and Weeder ports is processed in the same way.
+
+           For the generic ports (serial1, serial2, ...), incoming data is processed
+           only by user specified 'said' methods.
+
+     state        : Returns the last state that was received or sent
+
+     state_now    : Returns the state that was received or sent in the current pass.
+                    Note that the a 'set' will trigger a state_now one the next pass.
+
+     state_log    : Returns a list array of the last max_state_log_entries (mh.ini parm)
+                    time_date stamped states.
+
+     set_dtr      : Sets/resets the DTR line
+     set_rcs      : Sets/resets the RCS line.  For example:
+
+                      set_dtr $port 1;
+                      set_rcs $port 0;
+
+     set          : Sets the item to the specified state.
+                     - If the specified state has not been defined with 'new' or 'add',
+                       the state data is sent.  Otherwise the data_stream associated
+                       with that state is sent.
+
+     set_data     : Use this to put data back into the serial read buffer.  Typically used
+                    when you have processed only some of the serial data, and you want to
+                    put the rest back because it is incomplete.  Here is an example:
+
+                   if (my $data = said $wx200_port) {
+                      my $remainder = &read_wx200($data, \%weather);
+                      set_data $wx200_port $remainder if $remainder;
+                   }
+
+
+     said         : Returns a data record received by the port.
+                     - Characters are spooled into one record until a '\n' (newline) is
+                       received.  Only then does 'said $item' become valid, and it is
+                       reset as soon as the said method is executed.
+
+                     - Note: If you want to process binary serial data, specify
+                             serial#_datatype=raw in the mh.ini file.  This
+                             will cause said to return any data read immediately,
+                             rather than buffering up data until a newline is read.
+
+     start        : Re-starts the serial port after a stop command or after starting
+                    with the port already in use.
+
+     stop         : Stops using the serial port for this item.  That allows other programs
+                    to share the port (e.g. let mh use the modem for caller ID, but turn
+                    that function off when using the modem to call out).
+
+     is_stopped   : True if the port is not active
+     is_available : True if the port is not in used by another program
+
+     set_icon : Point to the icon member you want the web interface to use.
+                See the 'Customizing the web interface' section of this document for details.
+
+     set_info : Adds additional information.  This will show up as a popup window
+                on the web interface, when the mouse hovers over the command text.
+                will show up as a popup window on the web interface,
+                when the mouse hovers over the command text.
+
+  Examples:
+     $garage_movement = new Serial_Item('XI2');
+     speak "Someone is in the garage" if state_now $garage_movement;
+
+     $tnc_output = new Serial_Item ('CONV', 'converse', 'serial1');
+     $tnc_output -> add            ('?WX?', 'wxquery');
+     set $tnc_output 'converse';
+     set $tnc_output "EMAIL    :userid\@computers.com Test E-Mail - $CurrentTemp deg.{0";
+     my $serial_data = said $tnc_output;
+
+     $v_tnc_close = new  Voice_Cmd("close the tnc serial port");
+     stop  $tnc_output if said $v_tnc_close;
+     start $tnc_output if $New_Minute and is_stopped $tnc_output
+                          and is_available $tnc_output;
+
+     $serial_tom10port = new  Serial_Item(undef, undef, 'serial_tom10');
+     $serial_tom10port -> set_casesensitive;     # TOM10 needs lowercase commands
+
+
+See mh/code/examples/serial_port_examples.pl for more Serial_Item examples.
+
+
+
+=head3 Weather_Item
+
+This object can be used to track data stored in the global %Weather array.
+
+
+  Methods:
+     new $type
+        $type is the name of the %Weather index you want to monitor
+
+        $type can also have a =<> comparison operator in it so
+        you can make the object a true/false test.
+
+     state        : Returns the last state, or 1/0 if $comparition and $limit were used.
+     state_now    : Returns the state only when the weather data changed.
+
+     It also inherits the Generic_Item methods.
+
+  Examples:
+
+   $WindSpeed = new Weather_Item 'WindSpeed';
+   $WindSpeed-> tie_event('print_log "Wind speed is now at $state"');
+
+   $freezing = new Weather_Item 'TempOutdoor < 32';
+   if (state_now $fountain eq ON and state $freezing) {
+     speak "Sorry fountains don't work too well when frozen";
+     set $fountain OFF
+   }
+
+   $Windy = new Weather_Item 'WindSpeed > 15';
+   speak "Wind is gusting at $Weather{WindSpeed} mph" if state $Windy;
+
+                  # For current state, easiest to use it directly
+   speak "Outdoor temperature is $Weather{TempOutdoor} degrees";
+
+
+For examples on interface code that stores data into %Weather,
+see mh/code/bruce/weather_monitor.pl (uses mh/lib/Weather_wx200.pm),
+mh/code/public/iButton_ws_client.pl,
+and mh/code/public/weather_com.pl
+
+
+
+=head3 X10_Item
+
+This item is for controling X10 lamp modules and light switches.  It is derived from Serial_Item 
+and the strings it sends are like Serial Items, except an 'X' prefix is prepended to indicate an 
+X10 command.  The X strings are converted by one of the various X10 interfaces into the appropriate 
+commands for that interface.   
+
+  Methods:
+
+     new('house code[unit number]' [, 'interface'|undef [, 'option flags']])
+
+        'house code[unit number]'  The first argument is required and is either a house 
+                        code by itself or a house code and unit number.
+                        Note that the X10 unit code is numbered either 1->16 or 1->9,A->G.  
+                        For example device 16 in house code P could be P16 or PG
+
+        'interface'     Optional, specifies which X10 interface to use 
+
+        'option flags'  Optional, specifies one or more module options (see below) 
+
+     state        : Returns the last state that was received or sent
+
+     state_now    : Returns the state that was received or sent in the current pass
+
+     level        : Returns the current brightness level of the item, 0->100
+
+     set_receive  : Update the state and level when X10 commands are received 
+
+     set_x10_level: Recalculates state whenever state is changed
+
+     set('state') : Sets the item to the specified state
+
+        'on'
+
+        'off'
+
+        'toggle'     - toggles between on and off 
+
+        'brighten'
+
+        'dim'
+
+        '+##'        - increase brightness by ## points 
+
+        '-##'        - decrease brightness by ## points 
+
+        '##%'        - set brightness to ## percent 
+
+        '+##%'       - increase brightness by ## percent 
+
+        '-##%'       - decrease brightness by ## percent 
+
+        'double on'  - on some modules this sets full brightness at ramp rate
+
+        'double off' - on some modules this sets 0 brightness immediately 
+
+        'triple on'  - same as double on, but immediate 
+
+        'triple off' - same as double off 
+
+        'status'     - requests status from a two-way capable module 
+
+        'manual'     - sends house code and unit number without a command 
+ 
+        '&P##', 'PRESET_DIM1', 'PRESET_DIM2', 'ALL_LIGHTS_OFF', 'HAIL_REQUEST', 
+        'HAIL_ACK', 'EXTENDED_CODE', 'EXTENDED_DATA', 'STATUS_ON', 'STATUS_OFF', 'Z##'
+                     - these states are rarely used and provided for special cases 
+
+Note: not all states are supported by all lamp modules and X10 interfaces. 
+
+X10 items can be created in the items.mht in the following manner:
+
+   X10I, A1, Test_light, Bedroom, cm11, preset resume=80
+
+If a single character is used (e.g. X10_Item 'D'), commands apply to all X10_Items with that house code.   
+The 'on' and 'off' states are translated to ALL_ON and ALL_OFF commands for that house code.  
+For example:
+
+   $v_test_lights = new Voice_Cmd 'All lights [on,off]';
+   $test_lights   = new X10_Item 'O';
+   set $test_lights $state if $state = said $v_test_lights;
+
+The toggle and various brightness commands can be sent to a house code only item.   
+The command will be sent to each X10_Item defined with the same house code.  This might 
+produce undesired results, particularly when changing brightness levels.  See the Group item for 
+a better way to do that.  
+
+If you are using more than one X10 interface and you want to control an X10_Item with a specific 
+interface, use the optional interface argument.  For example, if you want to control the
+local module on a RF Transceiver, you can tell mh to use the RF CM17 interface, like this:
+
+    $test_light = new X10_Item('A1', 'CM17');
+
+The various brightness commands (60%, +20, -50%) all work even on dumb modules that only support 
+on, off, dim, and brighten.  X10_Item keeps track of changes it makes to the brightness level
+and converts any absolute brightness settings into relative changes.
+Since these dumb modules typically don't have two-way capability, the item will be out of sync 
+if changes are made locally at the switch.   
+Also, if the module was off, it will first be turned to full on, since the
+older modules can not be dimmed from an off state.
+
+After doing one or more bright/dim/on/off commands, you can query the current brightness level
+of a device with the level method.  For example:
+
+   if ($state = state_now $pedestal_light) {
+      my $level = level $pedestal_light;
+      print_log "Pedestal light state=$state, level=$level"
+   }
+
+It is much better to use one the newer (more expensive) direct dim and two-way capable modules,
+such as the X10 LM14A lamp module.  The X10_Item supports both the newer extended data dim commands 
+used by the LM14 and Leviton switches (64 brightness levels), and the older preset dim commands used 
+by PCS and Switchlinc switches (32 brightness levels).   
+
+Set the 3rd X10_Item parm to specify the option flags that correspond to your lamp module or switch. 
+Valid flags are: 
+
+   'lm14'        - for X10 LM14, uses extended data dim commands, remembers dim level when off 
+   'preset'      - same as lm14 
+   'preset2'     - same as lm14 and preset, except send on after direct dims, required by some Leviton switches 
+   'preset3'     - same as lm14 and preset, except uses older preset dim commands, for Switchlinc and PCS 
+   'resume=##'   - module resumes from off at ## percent 
+   'transmitter' - special case, see X10_Transmitter 
+
+Option flags are case insensitive.  Separate multiple option flags with a space. 
+
+For example:
+
+  $test_light2 = new X10_Item('O7', undef, 'preset resume=81');
+  $v_test_light2 = new Voice_Cmd("Set test light to [on,off,bright,dim,5%,10%,20%,30%,40%,50%,60%,70%,80%,90%]");
+  set $test_light2 $state if $state = said $v_test_light2;
+
+If the newer extended data dim commands are to be used, then the brightness level is converted into a &P##
+command and passed to the X10 interface.  You can also use them directly, using &P## (## = 1->64) as shown in this example:
+
+  $test_light1 = new X10_Item('O7', 'CM11', 'LM14');
+  $v_test_light1 = new Voice_Cmd("Set test light to [on,off,bright,dim,&P3,&P10,&P30,&P40,&P50,&P60]");
+  set $test_light1 $state if $state = said $v_test_light1;
+
+Note: not all of the X10 interfaces support this command.  
+
+The older direct dim method used the two Preset Dim X10 commands. 
+The 32 brightness levels are sent by combining a house code with one of the two Preset Dim commands, 
+using the following table:
+
+  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15   PRESET_DIM1
+  M  N  O  P  C  D  A  B  E  F  G  H  K  L  I  J
+
+  16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31  PRESET_DIM2
+  M  N  O  P  C  D  A  B  E  F  G  H  K  L  I  J
+
+Note: not all of the X10 interfaces support this command.  
+
+Since this item is inherits from Generic_Item,
+you can use the set_with_timer method.  For example,
+this event will turn on a on a warning light to 20% for 5 seconds:
+
+   set_with_timer $watchdog_light '20%', 5 if file_unchanged $watchdog_file;
+
+
+=head3 X10_Appliance
+
+Same as X10_Item, except it has only has pre-defined states 'on' and 'off'
+
+=head3 X10_Garage_Door;
+
+For the Stanley Garage Door status transmitter.  See mh/code/public/Danal/Garage_Door.pl
+
+=head3 X10_IrrigationController;
+
+For this sprinkler device:  http://ourworld.compuserve.com/homepages/rciautomation/p6.htm
+which looks the same as the IrrMaster 4-zone sprinkler controller
+listed here: http://www.homecontrols.com/product.html?prodnum=HCLC4&id_hci=0920HC569027
+
+
+=head3 X10_Switchlinc;
+
+For the Switchlinc controllers:
+
+Inherts all the functionality from X10_Item and adds the following states: 
+
+   'clear'
+   'setramprate'
+   'setonlevel'
+   'addscenemembership'
+   'deletescenemembership'
+   'setsceneramprate'
+   'disablex10transmit'
+   'enablex10transmit'
+
+See the <a href="http://www.smarthome.com/manuals/2380_web.pdf>Switchlinc 2380 manual</a> for more information.   
+
+For example: 
+
+     # Just picked this device to use to send the clear
+  $Office_Light_Torch->set("clear");
+     # Send a command to each group member to make it listen
+  $SwitchlincDisable->set("off");
+     # Just picked this device item to send the command
+  $Office_Light_Torch->set("disablex10transmit");
+
+Also sets the 'preset3' X10_Item option which causes the older Preset Dim commands to be used for 
+setting the brightness level directly.   
+
+=head3 X10_Ote;
+
+This supports the OTE X10 themostat from Ouellet Canada.
+
+=head3 X10_TempLinc
+
+
+=head3 X10_Sensor
+
+Do you have any of those handy little X10 MS12A battery-powered motion sensors?
+Here's your answer - use the X10_Sensor instead of the Serial_Item when you define
+it, and your house will notice when your sensor hasn't been tripped in 24 hours,
+allowing you to check on the batteries.
+
+If you have an sensor that detects and sends codes for daytime and nighttime (light and dark levels),
+pass in a optional type MS13, Motion, or Brightness.  For the id, you can use the 2 character, or 5 character X10 code.
+Here are some examples:
+
+  $sensor_hall = new X10_Sensor('A4', 'sensor_hall', 'MS13');
+  $work_room_motion = new X10_Sensor('CA', 'work_room_motion', 'motion');
+  $work_room_bright = new X10_Sensor('CB', 'work_room_bright', 'brightness');
+
+ .mht table examples:
+
+   X10MS,      XA2AJ,  sensor_bathroom,       Sensors|Upstairs
+   X10MS,       A4,    sensor_hall,           Sensors|Downstairs,  MS13
+
+   X10MS,      CA,    work_room_motion,       Sensors|Motion_Sensors,      Motion
+   X10MS,      CB,    work_room_brightness,   Sensors|Brighness_Sensors,   Brightness
+   X10MS,      CA,    work_room_sensors,      Sensors,                  MS13    # This detects both motion and brightness
+
+With MS13 specified, it will return states named motion,still,light, and dark.
+With Motion specified, it will return only the motion and still states.
+With Brightness specified, it will return only the light and dark states.
+In all cases, methods light and dark will return the current light/dark state.
+
+Examples:
+
+ set_with_timer  $light1 ON, 600 if $work_room_motion eq 'motion';
+
+ speak 'It is dark downstairs' if dark $sensor_downstairs;
+
+Without the MS13 or Brightness type, the light/dark codes will be ignored.
+
+
+=head3 X10_Transmitter
+
+Like an X10_Item, but will not be set by incoming X10 data.  Simulates transmit only devices like keypads.
+Can be used in place of X10_Item if you have complicated code that might get into a loop
+because we are not ignoring incoming X10 data for transmit-only devices.
+
+
+=head3 RCS_TX15
+
+Craig is working on this one.
+
+
+=head3 Socket_Item
+
+You can use the Socket_Item object to read and/or write to TCP/IP socket ports.
+
+Server socket ports are specified with mh.ini parms (see 'server options' in mh.ini)
+
+  Methods:
+
+     new('data_stream', 'state_name', 'host_port', 'name', 'host_protocol', 'datatype', 'break_char')
+     add('data_stream', 'state_name')
+
+        'host_port' must be of the form ip_address:port (when creating a client) or
+        it must match a server_* parm in mh.ini (when creating a server) (e.g. server_telnet_port).
+
+        'host_protocol' can be 'tcp' or 'udp'.  Default is 'tcp'
+
+        'datatype'      can be 'raw', 'rawout', or 'record'.  If 'raw', the said
+                        method returns data as read.  If record,
+                        said only returns data when reaching a newline.
+                        When writing to the port, a newline is added unless
+                        datatype is 'raw' or 'rawout'.
+
+        'break_char'    This will be added to data sent with set and, unless datatype=raw,
+                        will be used to break incoming data into state_now records.
+                        Default is \n\r.
+
+        'name' is optional.  If used you can set debug to this string
+        to turn on debug for just this socket data.
+
+     is_available : Returns 1 if the socket is available, 0 if not
+
+     set_port     : Allows you to change the server_name/port.
+
+     state        : Returns the last state that was received or sent
+
+     state_now    : Returns the state that was received or sent in the current pass.
+
+     set          : Sets the item to the specified state.
+                     - If the specified state has not been defined with 'new' or 'add',
+                       the state data is sent.  Otherwise the data_stream associated
+                       with that state is sent.
+                     - If there is more than one client connected to this port, an
+                       optional 2nd parm can be used to pick which client set to.
+                       Values are:
+                          - 'all' (send to all connected clients),
+                          - ip_address (a regular expresion of the ip address(s) you want to send to
+                          - client_number (which client to send to, 0 .. #).  Note this
+                            can change as clients are added and dropped.
+                          - socket hash name, which can be captured when reading
+                            data from the port with this:
+                               $client = $Socket_Ports{$port_name}{socka};
+
+
+     set_echo     : Use this to control echoing of incoming characters:
+                     set_echo $my_socket 0   -> Do not echo incoming characters
+                     set_echo $my_socket 1   -> echo incoming characters
+                     set_echo $my_socket '*' -> echo incoming characters with *
+
+     set_expect   : Used to send a series of strings to the port, waiting for
+                    a specified prompt for each string.  This is useful for
+                    walking through menus.  The arguments passed to set_expect
+                    are pairs of 'prompt' => 'response' strings.  See example below.
+
+     said         : Returns a data record received by the port.
+                     - Note: If you want to process binary socket data, specify
+                             server_*_datatype = raw in the mh.ini file.  This
+                             will cause said to return any data read immediately,
+                             rather than buffering up data until a newline is read.
+
+     said_next    : Reads and returns the next record from the socket handle
+
+     handle       : Returns the socket handle, so you can loop on reading/writing data
+                    to it directly.
+
+     start        : Connect to the specified port.  This allows mh to act as a client,
+                    rather than a server, and initiate communications with a server.
+
+     stop         : This will drop the client or server from mh and free up the port.
+
+
+     active       : True if the port is active
+     active_now   : True for the mh pass that the socket first becomes active.
+     inactive_now : True for the mh pass that the socket first becomes inactive.
+
+  Examples:
+
+                  # An example of a server socket
+                  # Add this mh.ini parm:  server_speak_port = 8090
+    $socket_server = new  Socket_Item(undef, undef, 'server_speak');
+    if (my $data = said $socket_server) {
+       print "speak_server socket data: $data\n";
+       speak $data;
+    }
+
+                  # An example of a client socket
+    my $lcdproc_address = 'misterhouse:13666';
+    $lcdproc = new  Socket_Item(undef, undef, $lcdproc_address, 'lcdproc');
+
+    $Vcmd_viavoice = new  main::Socket_Item(undef, undef, 'localhost:3234', 'viavoice');
+
+                                 # This example walks the reboot menu of a router
+    $router_reboot = new Voice_Cmd 'Reboot the router';
+    $router_client = new Socket_Item(undef, undef, $config_parms{router_address} . ":23",
+                                     'router', 'tcp', 'raw');
+    set_expect $router_client (Password => $config_parms{router_password}, Number => 24,
+                               Number => 4, Number => 11) if said $router_reboot;
+
+
+                  # Example of sending a message to all clients
+    set $telnet_server "Hi to all clients", 'all';
+
+More examples are in mh/code/bruce/telnet.pl,
+mh/code/examples/socket_test*.pl,
+mh/code/bruce/monitor_shoutcast.pl, bruce/wxserver_server.pl, and bruce/monitor_router.pl
+
+
+=head3 Text_Cmd
+
+Use this object if you want to fire events based on text entered.  Unlike the Voice_Cmd item, you can
+use Text_Cmd to capture arbitrary text, using a regular expression.
+
+Like Voice_Cmd items, all text passed to the run_voice_cmd and process_external_command functions
+will be tested against all Text_Cmd items.  All items that match will fire their state_now methods.
+
+  Methods:
+
+     new($re_string);
+
+       $re_string is any valid regular expresion.  Use the () grouping to
+       pick the data that will be returned with the state_now method.
+
+
+     state      : Returns the text from the () match in the $re_string.
+                  If there was not () grouping, it returns 1.
+                  If there is more than one () grouping, the resulting
+                  matches are concatonated together with | as a separator.
+
+     state_now  : Returns the state that was received or sent in the current pass.
+
+     Like most items, this inherits all Generic_Item methods.
+
+  Examples:
+
+                    # Create a widget for inputing text commands
+   $Text_Input = new Generic_Item;
+   &tk_entry("Text Input", $Text_Input, "tcmd1", $tcmd1);
+
+   if ($state = state_now $Text_Input) {
+      my $set_by = get_set_by $Text_Input;
+      print_log "Text_Input set_by $set_by typed $state";
+      run_voice_cmd($state, undef, $set_by);
+   }
+                    # Create commands
+   $tcmd1 = new Text_Cmd('hi (a|b|c)');
+   $tcmd2 = new Text_Cmd('bye *(.*)');
+   $tcmd3 = new Text_Cmd('(hi.*) (bye.*)');
+
+                    # Fire events if the commands match text input
+   $tcmd1->tie_event('print_log "tcmd1 state: $state"');
+   print_log "tcmd2 state=$state" if $state = state_now $tcmd2;
+   print_log "tcmd3 state=$state set_by=$tcmd3->{set_by}, target=$tcmd3->{target}" if $state = state_now $tcmd3;
+
+
+=head3 Timer
+
+The Timer object can be used to run an action one or more times, at a specified interval.
+
+  Methods:
+
+   These methods apply to a count down timer
+
+    new        : Used to create the object.
+
+    set($period, $action, $cycles)
+        $period is the timer period in seconds
+        $action (optional) is the code (either a string or a code
+                 reference) to run when the timer expires
+        $cycles (optional) is how many times to repeat the timer.
+                 Set to -1 to repeat forever.
+
+    unset      : Unset the timer.  'set $my_timer 0' has the same effect.
+
+    active     : Returns true if the timer is still running.
+    inactive   : Returns true if the timer is has expired or has not been set.
+    expired    : Returns true for the one pass after the timer has expired.
+
+    run_action : Runs the timers action, even if the timer has not expired.
+
+    hours_remaining,   hours_remaining_now
+    minutes_remaining, minutes_remaining_now
+    seconds_remaining, seconds_remaining_now
+
+        These methods return the hours, minutes or seconds remaining on the timer.
+        The _now methods only return the remaining time on the hour, minute,
+        or second boundary.
+
+   These methods apply to using it as a count up, or stopwatch, timer
+
+    start      : Starts the timer
+    restart    : Restarts the timer (start on an active timer does nothing)
+    stop       : Stops a timer
+    pause      : Pauses
+    resume     : Bet you can guess :)
+    query      : Returns the seconds on the timer.
+
+  Examples:
+
+    $timer_laundary = new  Timer;
+    $v_laundary_timer = new  Voice_Cmd('Laundary timer [on,off]');
+    if ($state =  said $v_laundary_timer) {
+       if ($state eq ON) {
+          play('rooms' => 'shop', 'file' => 'cloths_started.wav');
+          set $timer_laundary 35*60, 'speak "rooms=all The laundary clothes done"', 4;
+       }
+       else {
+          speak 'rooms=shop The laundry timer has been turned off.';
+          unset $timer_laundary;
+       }
+    }
+
+
+                   # This example uses an anonymous subroutine
+    $v_test_delay = new  Voice_Cmd 'Test timer with [1,5,10] seconds';
+    if ($state = said $v_test_delay) {
+       print_log "Starting $state second timer test";
+       my  $timer = new Timer;
+       set $timer $state, sub {
+          print_log "Ending $state second timer test";
+       }
+#      set $timer $state, "print_log 'Ending $state second timer test'";
+    }
+
+
+    See mh/code/bruce/timers.pl for more examples
+
+
+=head3 Voice_Cmd
+
+Use the Voice_Cmd object to create voice commands.  Even without a Voice Recognition engine installed,
+this is useful as these commands can also be run from the Tk, web, telnet, and file interfaces.
+
+  Methods:
+     new($command, $response, $confirm, $vocabulary)
+
+        $command can be a simple string (e.g. 'What time is it') or it can
+        include a list of 'states' (e.g. 'Turn the light [on,off]').  The state
+        enumeration group is a comma delimited string surrounded with [].
+
+        In addition to one state enumeration group, you can specify any number
+        of phrase enumeration groups.  These are comma delimited strings
+        surrounded by {} (e.g. 'Turn the {family room,downstairs} TV [on,off]').
+        Use this when you have several different ways to describe the same thing.
+
+        $response is the text or wave file that will be played back when the
+        VR engine detects this command.  If not defined, the mh.ini parm
+        voice_cmd_response parm is used (default is "Ok, %HEARD%").
+
+        You can put %STATE%, %HEARD%, or any variable in the response string and
+        have it substituted/evaluated when the response is spoken.
+
+        $confirm is either 0 or 1 (default is 0).  If set to 1, then mh will
+        ask 'Confirm with a yes or a no'.  If yes or no is not heard within
+        10 seconds, the command is aborted.
+
+        $vocabulary allows you to define multiple vocabularies.  You
+        can then use these functions to enable and disable the vocabularies:
+
+             &Voice_Cmd::enablevocab($vocabulary)
+             &Voice_Cmd::disablevocab($vocabulary)
+
+        Vocabularies are enabled by default.  The default vocabulary
+        is 'misterhouse'.  See mh/code/bruce/viavoice_control.pl for examples.
+        This code allows you to switch between 'awake', 'asleep', and 'off' VR modes.
+
+        NOTE:
+           Currently only the viavoice VR engine (mh.ini parm voice_cmd=viavoice)
+           will use the $response, $confirm, and $vocabulary_name options.
+           We may be able to create a viavoice_server for windows, but that would
+           probably not be free like it is on linux.  If you have a linux box
+           on your network, you can have your windows mh use the linux
+           viavoice_server process.
+
+
+     said  : Is true for the one pass after the command was issued.
+             If the command was built from a list of possible states,
+             then said returns the state that matches.
+
+     state : Returns the same thing as said, except it is valid for all passes,
+             not just the pass after the command was issued.
+
+     set_icon : Point to the icon member you want the web interface to use.
+                See the 'Customizing the web interface' section of this document for details.
+
+     set_order: Contols the order that the commands are listed in web Category list.
+                The default is alphabetically by file, then by name.
+
+  Examples:
+    $v_backyard_light = new  Voice_Cmd 'Backyard Light [on,off]';
+    set $backyard_light $state if $state = said $v_backyard_light;
+
+    $v_test1 = new Voice_Cmd '{turn,set} the {living,famliy} room {light,lights} [on,off]';
+    $v_test2 = new Voice_Cmd '{Please, } tell me the time';
+    $v_test3 = new Voice_Cmd '{What time is it,Tell me the time}';
+    $v_fan   = new Voice_Cmd 'Fan [on,off]', 'Ok, I turned the fan $v_indoor_fountain->{said}';
+    $v_fan   = new Voice_Cmd 'Fan [on,off]', 'Ok, I turned the fan %STATE%';
+
+See mh/code/examples/Voice_Cmd_enumeration.pl for more Voice_Cmd examples
+
+In addition to the said command on a specific object, you can use
+&Voice_Cmd::said_this_pass  to detect which command was spoken this pass and
+&Voice_Cmd::noise_this_pass to detect if noise was detected this pass
+(this function currently only works with viavoice).
+
+  Examples:
+
+   if (my $speak_num = &Voice_Cmd::said_this_pass) {
+      my $text = &Voice_Cmd::text_by_num($speak_num);
+      print_log "spoken text: $speak_num, $text";
+   }
+
+   if (my $text = &Voice_Cmd::noise_this_pass) {
+      print_log "Noise detected" if $text eq 'Noise';
+   }
+
+See mh/code/bruce/lcdproc.pl for more examples.
+
+=head3 DSC_Alarm
+
+DSC_Alarm module supports the DSC PC5400 serial printer interface. This allows mh
+to be aware of events that DSC alarm systems log to their event buffers.
+
+  Required mh.ini entries:
+    DSC_Alarm_serial_port=COM1 or /dev/ttys0
+    DSC_Alarm_baudrate=4800
+
+  Multiple instances may be supported by adding instance
+  numbers to the parms as in:
+    DSC_Alarm:1_serial_port=COMx or /dev/ttysX
+    DSC_Alarm:1_baudrate=4800
+    DSC_Alarm:2_serial_port=COMy or /dev/ttysY
+    DSC_Alarm:2_baudrate=4800
+
+  Optional mh.ini entries:
+    DSC_Alarm_user_40=Jane Doe
+    DSC_Alarm_user_1=Bob Smith
+
+    See the "user" method below for a description.
+
+  Methods:
+     new('alarm-name')
+
+        Where 'alarm-name' is the prefix used in the mh.ini entry 'DSC_Alarm_serial_port=xyz'.
+        The 'alarm-name' argument defaults to 'DSC_Alarm' if not specified.
+
+     said         : Returns the last serial data received.  Valid for 1 pass only.
+
+     Important Note:  Due to mh internals, the "said" method and the "state" method (and
+     all "state" derived methods) lag each other's values by 1 pass through the user scripts.
+     As such, any given script should use "said" or "state", but should NOT mix the two!
+
+     state        : Returns last state of alarm system from following values:
+                    Armed    = System is closed and armed.
+                    Disarmed = System is opened.
+                    Alarm    = System is alarming.
+
+     state_now    : Same as state, but valid for 1 pass only.
+
+     user         : User number of last code used to arm/disarm system.
+
+                    If present, mh.ini parm DSC_Alarm_user_nn=xyz will cause "user"
+                    to return string "xyz" from the parm.
+
+     alarm_now    : True when system enters Alarm state.  Valid for 1 pass only.
+
+     zone         : Zone number that caused Alarm. Valid only when alarm_now is true.
+
+     mode         : Returns arming mode. Valid only when state = Armed.
+                    Stay = System armed in stay mode; User pressed F1 key before arming.
+                    Away = System armed in away mode; User pressed F2 key (or nothing) before arming
+
+                    Note: Most DSC systems will not arm in "Stay" mode unless at least one zone
+                          is defined as a "Stay/Away" zone.  Also, even when "Away" mode is requested
+                          system will be in "Stay" mode unless a delay zone is violated during the
+                          exit delay.
+
+     Most other Generic_Item methods, such as "state_log", are valid.
+
+  Logging:
+     The internal support module for DSC_Alarm (DSC_Alarm.pm) maintains a log of
+     all serial data received from the DSC PC5400 interface.  This log is placed
+     in /mh.ini parm data_dir/logs/$port_name.YYYY_MM.log; for example, the log
+     entries shown below would be in file '/mh/data/logs/DSC_Alarm.2000_10.log'.
+     This implies a new log will be started each month.
+
+  DSC User Codes:
+     40 = Master code (can arm/disarm, change codes, any keypad function)
+     41 = Supervisor code (can arm/disarm, change codes)
+     42 = Supervisor code (can arm/disarm, change codes)
+     01-32 = User codes (can arm/disarm, can be associated to individual wireless keys)
+     33 = Duress code (can arm/disarm + sends duress code to master station)
+     34 = Duress code (can arm/disarm + sends duress code to master station)
+
+     The above information derived from PC1555 master panel; please see the installer
+     manual for your particular panel for further information.
+
+     Duress code reporting is NOT reflected via states as of December 2000.
+     Coming soon...
+
+  Examples:
+    mh.ini entry of 'DSC_Alarm_serial_port=com2'
+
+    $DSC_Alarm = new DSC_Alarm;
+    if (my $log = said $DSC_Alarm) {
+       print_log "Alarm system data = $log\n";
+    }
+
+    mh.ini entry of 'DSC_Alarm:2_serial_port=com5'
+
+    $DSC_test = new DSC_Alarm('DSC_Alarm:2');
+    if (my $state = state $DSC_test) {
+       print_log "Alarm system state change, state = $state\n";
+    }
+
+  Examples of typical DSC alarm system event/log entries:
+
+Mon 10/09/00 17:09:00 DSC_Alarm.pm Initialized
+Mon 10/09/00 17:10:16  17:10 10/09/00 System         [*1] Access by User
+Mon 10/09/00 17:12:28  17:12 10/09/00 System         Partial Closing
+Mon 10/09/00 17:12:28  17:12 10/09/00 System         Bypass Zone     1
+Mon 10/09/00 17:12:28  17:12 10/09/00 System         Bypass Zone     2
+Mon 10/09/00 17:12:28  17:12 10/09/00 System         Bypass Zone     4
+Mon 10/09/00 17:12:29  17:12 10/09/00 System         Closing by User Code 40
+Mon 10/09/00 17:12:29  17:12 10/09/00 System         Armed in Away Mode
+Mon 10/09/00 17:12:45  17:12 10/09/00 System         Opening by User Code 2
+Mon 10/09/00 17:14:42  17:14 10/09/00 System         Closing by User Code 40
+Mon 10/09/00 17:14:43  17:14 10/09/00 System         Armed in Away Mode
+Mon 10/09/00 17:14:47  17:14 10/09/00 System         Opening by User Code 40
+Mon 10/09/00 17:22:28  17:22 10/09/00 System         [*1] Access by User
+Mon 10/09/00 17:33:39 DSC_Alarm.pm Initialized
+Tue 10/10/00 09:47:38  09:47 10/10/00 System         Closing by User Code 40
+Tue 10/10/00 09:47:38  09:47 10/10/00 System         Armed in Away Mode
+Tue 10/10/00 17:48:42  17:48 10/10/00 System         Opening by User Code 40
+Tue 10/10/00 23:37:33  23:37 10/10/00 System         Closing by User Code 40
+Tue 10/10/00 23:37:33  23:37 10/10/00 System         Armed in Away Mode
+Wed 10/11/00 07:38:11  07:38 10/11/00 System         Opening by User Code 40
+
+=back
+
+=cut
+

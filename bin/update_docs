@@ -1,28 +1,280 @@
-#!/bin/sh
-cd ../docs
+#!/usr/bin/perl
 
-pod2html mh.pod > mh.html
-pod2text mh.pod > mh.txt
+=head1 NAME
 
-pod2html install.pod > install.html
-pod2text install.pod > install.txt
+update_docs - convert Misterhouse's documentation to html
 
-pod2html faq.pod > faq.html
-pod2text faq.pod > faq.txt
+=head1 DESCRIPTION
 
-pod2html faq_frs.pod > faq_frs.html
-pod2text faq_frs.pod > faq_frs.txt
+Converts the Misterhouse pod format documentation into html.  It is
+recommended that documentation be created along side the code it relates to.
 
-pod2html faq_ia.pod > faq_ia.html
-pod2text faq_ia.pod > faq_ia.txt
+=head1 INI PARAMETERS
 
-pod2text faq_mhmedia.pod > faq_mhmedia.txt
-pod2html faq_mhmedia.pod > faq_mhmedia.html
+=over
 
-pod2html updates.pod > updates.html
-pod2text updates.pod > updates.txt
+=item html_alias_docs
+
+This script will write its output to the directory specified in
+C<html_alias_docs>, otherwise it will write to C<../docs>.
+
+=back
+
+=head1 TODO
+
+- Move some of the information that is better suited to the wiki out of 
+the mh/docs directory.  This includes most of the html files in that 
+directory.  Hopefully, this will inspire users to keep them up to date.   
+ 
+- Try to standardize on pod format in mh/docs and make sure everything is 
+linked from someplace else.  Many of the files in mh/docs are orphans.   
+ 
+- Perhaps we should move some of the other documentation (like for global 
+variables and functions) out of the pod files and into the actual scripts 
+where they exist.  The idea here is it is more likely the documentation 
+will be more up to date if it's close to the source code.  Does anyone 
+know if there is a performance hit including documentation in-line?   
+ 
+- Create an items.xml file that contains all the information required by 
+read_table_A.pl, read_table_xml.pl, and the item editor web interface.  
+Currently, it's a pain to add support for new items to these scripts and 
+often only read_table_A.pl gets updated.  This should make it easier add 
+new items and improve the documentation of items.   
+ 
+=head1 AUTHOR
+
+David Norwood <dnorwood2@yahoo.com>
+
+=cut
+
+# get our name and path, set library path
+my ( $Pgm_Path, $Pgm_Name );
+
+BEGIN {
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.*)\.?/;
+    ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
+    eval
+      "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
+}
+
+use strict;
+use warnings;
+use Pod::Html;
+
+# Get parms from mh.ini
+require 'handy_utilities.pl';
+my ( %config_parms, %parms );
+&main::read_mh_opts( \%config_parms, $Pgm_Path );
+
+my $docs = "../docs";
+my $out  = $config_parms{html_alias2_docs};
+my $lib  = '../lib';
+$out = '../docs' unless $out and -d $out;
+
+-d $docs || die "directory $docs doesn't exist";
+-d $out  || die "directory $out doesn't exist";
+-d $lib  || die "directory $lib doesn't exist";
+-r $docs || die "directory $docs isn't readable";
+-r $out  || die "directory $out isn't readable";
+-r $lib  || die "directory $lib isn't readable";
+-w $out  || die "directory $out isn't writeable";
+mkdir "$out/lib" unless -d "$out/lib";
+
+# make list of pm files so we can extract pod doc later
+my %modfiles;
+opendir LIB, $lib || die "can't open $lib directory: $!";
+
+foreach ( readdir LIB ) {
+    $modfiles{$_}{exists} = 1 if /\.pm$/i;
+}
+
+closedir LIB;
+
+# make list of lib html files so we can delete obsolete ones
+my %htmlfiles;
+opendir OUT, "$out/lib" || die "can't open $out/lib directory: $!";
+
+foreach ( readdir OUT ) {
+    $htmlfiles{$_}{exists} = 1 if /\.html$/i;
+}
+
+closedir OUT;
+
+# convert the pod doc in each changed pm file into html
+my $changes = 0;
+foreach my $pm ( keys %modfiles ) {
+    my $modfile  = "$lib/$pm";
+    my $htmlfile = "$out/lib/$pm";
+    $htmlfile =~ s/\.pm$/.html/i;
+    $modfiles{$pm}{html} = $htmlfile;
+
+    my $mdate = ( stat($modfile) )[9];
+    my $hdate = ( stat($htmlfile) )[9];
+
+    #print "mdate $mdate hdate $hdate $modfile\n";
+    if ( !-e $htmlfile or $mdate > $hdate ) {
+        print "converting $modfile to $htmlfile\n";
+        $changes++;
+        pod2html(
+            "--title=$pm",         "--infile=$modfile",
+            "--outfile=$htmlfile", "--header",
+            "--htmlroot=/docs",    "--htmldir=$out/..",
+            "--podroot=$docs",     "--podpath=.",
+            "--css=/lib/pod.css",
+        );
+    }
+}
+
+# check for deleted module files
+foreach ( keys %htmlfiles ) {
+    my $htmlfile = "$out/lib/$_";
+    s/\.html$/.pm/i;
+    $changes++, print "deleting $htmlfile\n", unlink $htmlfile
+      unless $modfiles{$_}{exists};
+}
+
+# write out items and modules lists if any pm files changed
+my ( $ipod, $mpod );
+if ($changes) {
+    my %packages;
+    foreach my $pm ( keys %modfiles ) {
+        my $html = $pm;
+        $html =~ s/\.pm$/.html/i;
+        my $noext = $pm;
+        $noext =~ s/\.pm$//i;
+        my $modfile  = "$lib/$pm";
+        my $htmlfile = "$out/lib/$html";
+
+        open( my $fh, $modfile ) or die "can't open $modfile: $!";
+        my $current_p;
+        while ( my $l = <$fh> ) {
+            if ( $l =~ /^package ([^;]+);/ ) {
+                $current_p = $1;
+
+                #print "found package $current_p in $pm\n";
+                $packages{$current_p}{pm}    = $pm;
+                $packages{$current_p}{html}  = $html;
+                $packages{$current_p}{noext} = $noext;
+            }
+            elsif ( $l =~ /^sub new / ) {
+
+                #print "found 'new' method in package $current_p in $pm\n";
+                $packages{$current_p}{isitem} = 1 if $current_p;
+            }
+            elsif ( $l =~ /^=head/ ) {
+
+                #print "found pod directive in package $current_p in $pm\n";
+                $packages{$current_p}{haspod} = 1 if $current_p;
+            }
+        }
+        print "didn't find any packages in $pm\n" unless $current_p;
+        close $fh;
+    }
+
+    foreach ( sort keys %packages ) {
+
+        #print "package: $_\n";
+        s/\//::/g;
+        my $pod = "=item $_\n\n";
+        if ( $packages{$_}{haspod} ) {
+            $pod .= "L<$_|lib::" . $packages{$_}{noext} . "/$_>\n\n";
+        }
+        else {
+            $pod .= "package $_ in $packages{$_}{pm} isn't documented yet\n\n";
+        }
+        if ( $packages{$_}{isitem} ) {
+            $ipod .= $pod;
+        }
+        else {
+            $mpod .= $pod;
+        }
+    }
+}
+
+if ($ipod) {
+    print "writing $out/items.pod file\n";
+    open TAR, "> $out/items.pod";
+    print TAR "\n=head1 Items\n\n=over\n\n$ipod\n=back\n\n=cut\n";
+    close TAR;
+}
+
+if ($mpod) {
+    print "writing $out/modules.pod file\n";
+    open TAR, "> $out/modules.pod";
+    print TAR "\n=head1 Modules\n\n=over\n\n$mpod\n=back\n\n=cut\n";
+    close TAR;
+}
+
+# make list of pod files so we can convert them to html
+my %podfiles;
+opendir POD, $docs || die "can't open $docs directory: $!";
+
+foreach ( readdir POD ) {
+    $podfiles{$_}{exists} = 1 if /\.pod$/i;
+}
+
+$podfiles{'items.pod'}{exists}   = 1 if -f "$out/items.pod";
+$podfiles{'modules.pod'}{exists} = 1 if -f "$out/modules.pod";
+closedir POD;
+
+# delete html files from docs dir if out dir is diff and pod ex
+my $docsi = ( stat($docs) )[1];
+my $outi  = ( stat($out) )[1];
+if ( $docsi eq $outi ) {
+    print
+"you should set the html_alias_docs directory to a place outside the mh distribution";
+}
+else {
+    foreach ( keys %podfiles ) {
+        s/\.pod$/.html/i;
+        print("deleting $docs/$_\n"), unlink "$docs/$_" if -e "$docs/$_";
+    }
+    foreach ( keys %modfiles ) {
+        s/\.pm$/.html/i;
+        print("deleting $docs/lib/$_\n"), unlink "$docs/lib/$_"
+          if -e "$docs/lib/$_";
+    }
+    print("deleting $docs/lib/\n"), rmdir "$docs/lib" if -d "$docs/lib";
+    print("deleting $docs/modules.pod\n"), unlink "$docs/modules.pod"
+      if -w "$docs/modules.pod";
+    print("deleting $docs/items.pod\n"), unlink "$docs/items.pod"
+      if -w "$docs/items.pod";
+}
+
+# convert any modified pod files to html
+foreach my $doc ( keys %podfiles ) {
+    my $podfile = "$docs/$doc";
+    my $ind     = "";
+    if ( $doc eq "items.pod" or $doc eq "modules.pod" ) {
+        $podfile = "$out/$doc";
+        $ind     = "--noindex";
+    }
+    $doc =~ s/\.pod$//i;
+    my $htmlfile = "$out/$doc.html";
+    my $pdate    = 0;
+    my $hdate    = 0;
+    $pdate = ( stat($podfile) )[9]  if -f $podfile;
+    $hdate = ( stat($htmlfile) )[9] if -f $htmlfile;
+
+    #print "pdate $pdate hdate $hdate : $doc\n";
+    if ( !-e "$out/$doc.html" or $pdate > $hdate ) {
+        print "pod2html $podfile > $htmlfile\n";
+
+        #`pod2html --htmlroot $out $docs/$doc.pod > $out/$doc.html`;
+        pod2html(
+            "--infile=$podfile", "--outfile=$htmlfile",
+            "--noheader",        "--htmlroot=/docs",
+            "--htmldir=$out/..", "--podroot=$docs",
+            "--podpath=.",       "--css=/lib/pod.css",
+            $ind
+        );
+    }
+}
+
+=begin comment
 
 perl ../bin/authors updates.pod > authors.html
 
 # mh_users_table.pl is currently missing
 # perl ../bin/mh_users_table.pl mh_usage.txt > mh_usage_table.html
+=end
