@@ -21,7 +21,7 @@
 </tr>
 </table>
 
-<iframe name="response" src="/empty.html" width=500 height=100></iframe>
+<iframe name="response" src="empty.html" width=500 height=100></iframe>
 
 </center>
 </body>
