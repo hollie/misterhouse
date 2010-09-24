@@ -1,0 +1,137 @@
+hr, big {
+	visibility: hidden;
+}
+
+body {
+/*
+	background-color: #004065;
+*/
+	margin-left: 50px;
+	margin-right: 50px;
+	font-family: "Helvetica Neue", Arial, Helvetica, Geneva, sans-serif;
+}
+
+p {
+	margin: 0;
+	padding-top: 5px;
+	padding-bottom: 5px;
+}
+
+
+div#body {
+	padding-top: 0px;
+	background: url(main_bg.png) repeat-y;
+}
+
+ul.f1 {
+	list-style-type: none;
+	margin: 0;
+	float: right;
+	padding: 8px 0 0;
+}
+
+ul.f1 li {
+	float: left;
+	color: #414141;
+	font-size: .8em;
+	text-align: right;
+	padding-left: 40px;
+}
+
+ul.f2 {
+	list-style-type: none;
+	text-align: right;
+	margin: 3px 0 0;
+	padding: 0;
+}
+
+ul.f2 li {
+	float: none;
+	font-size: 1em;
+	margin: 0;
+	padding: 0;
+}
+
+ul.f2 li a {
+	text-decoration: none;
+	color: #858585;
+}
+
+ul.f2 li a:hover {
+	color: #515151;
+}
+
+div#content_body {
+	padding-right: 30px;
+	padding-left: 30px;
+	font-size: .8em;
+	color: #515151;
+	position: relative;
+	top: 0px;
+	background-image: url(content_bg.png);
+	background-color: #fff;
+}
+
+h1 {
+	font: 1.4em "ITC Garamond", Garamond, Georgia, "Times New Roman", Times, serif;
+	color: #36497d;
+	background: url(h2_bg.png) no-repeat -2px 29px;
+
+	padding-left: 0px;
+	padding-top: 6px;
+	padding-bottom: 8px;
+	margin-top: 0px;
+	margin-bottom: 0;
+}
+
+h2 {
+	font: 1.0em "ITC Garamond", Garamond, Georgia, "Times New Roman", Times, serif;
+	color: #36497d;
+	padding-top: 12px;
+	margin: 0;
+	background: url(h2_bg.png) no-repeat -2px 30px;
+	padding-bottom: 4px;
+	padding-left: 0;
+}
+
+h3 {
+	font: 0.8em "ITC Garamond", Garamond, Georgia, "Times New Roman", Times, serif;
+	color: #36497d;
+	margin-top: 9px;
+	margin-bottom: 3px;	
+}
+
+p {
+	margin-top: 0px;
+	margin-bottom: 0px;
+}
+
+ul li {
+	padding-bottom: 3px;
+}
+
+dt {
+       font-weight: bold;      
+}
+
+a:link, a:active {
+  color: #36415c;
+}
+
+a:visited {
+  color: #666666;
+}
+
+a:hover {
+  color: #888;
+}
+
+pre {
+  background: #eeeeee;
+  border: 1px solid #888888;
+  color: black;
+  padding: 1em;
+  white-space: pre;
+}
+
+

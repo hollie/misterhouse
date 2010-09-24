@@ -215,25 +215,61 @@ sub xml {
 	return &xml_page($xml);
 }
 
+sub item_watcher {
+	my $item_list = shift; 
+	my $field = shift; 
+
+	my @items = split ',', $item_list; 
+	my ($xml, $tmp_xml); 
+	foreach (@items) {
+		next unless my ($item, $state) = m/(.+)=(.*)/;
+		my $object  = &get_object_by_name($item);
+		if ($state ne $object->state) {
+			$tmp_xml .= &object_detail($object, 0, state => 1, $field => 1);
+		}
+
+	}
+	if ($tmp_xml) {
+		$xml .= "\t<objects>\n$tmp_xml\t</objects>\n";
+			# Translate special characters
+		$xml = encode_entities($xml, "\200-\377&");
+		$xml = &xml_page($xml);
+	}
+	return $xml; 
+}
+
 sub object_detail {
 	my ($object, $updates_only, %fields) = @_;
-	return if $fields{none};
+	return if defined $fields{none} and $fields{none};
+	$fields{all} = 1 unless %fields;
 	return if ($updates_only and ! $object->{state_now});
 	my $object_name = $object->{object_name};
 	my $xml_objects  = "\t\t\t<object>\n";
 	$xml_objects .= "\t\t\t\t<name>$object_name</name>\n";
-	$xml_objects .= "\t\t\t\t<filename>$object->{filename}</file>\n" 			if $fields{all} or $fields{filename};
-	$xml_objects .= "\t\t\t\t<category>$object->{category}</category>\n"		if $fields{all} or $fields{category};
+	$xml_objects .= "\t\t\t\t<filename>$object->{filename}</filename>\n" 			if $fields{all} or $fields{filename};
+	$xml_objects .= "\t\t\t\t<category>$object->{category}</category>\n"		
+		if ($fields{all} or $fields{category})		and exists $object->{category};
+	$xml_objects .= "\t\t\t\t<rf_id>$object->{rf_id}</rf_id>\n"		
+		if ($fields{all} or $fields{rf_id})			and exists $object->{rf_id};
 	my $state = encode_entities($object->{state}, "\200-\377&<>");
 	$xml_objects .= "\t\t\t\t<state>$state</state>\n"					if $fields{all} or $fields{state};
-#	$xml_objects .= "\t\t\t\t<set_by>" . $object->get_set_by . "</set_by>\n" if defined &$object->get_set_by;
+	$xml_objects .= "\t\t\t\t<set_by>" . $object->get_set_by . "</set_by>\n"	
+		if ($fields{all} or $fields{set_by})		and exists $object->{get_set_by};
 	$xml_objects .= "\t\t\t\t<type>$object->{get_type}</type>\n"			if $fields{all} or $fields{type};
-	$xml_objects .= "\t\t\t\t<states>@{$object->{states}}</states>\n"			if $fields{all} or $fields{states};
+	$xml_objects .= "\t\t\t\t<states>$object->{get_states}}</states>\n"			if $fields{all} or $fields{states};
+	$xml_objects .= "\t\t\t\t<idle_time>" . $object->get_idle_time . "</idle_time>\n"	
+		if ($fields{all} or $fields{idle_time})		and exists $object->{get_idle_time};
 	$xml_objects .= "\t\t\t\t<text>$object->{text}</text>\n"				if $fields{all} or $fields{text};
 	$xml_objects .= "\t\t\t\t<html><!\[CDATA\[" . &html_item_state($object, $object->{get_type}) . "\]\]>\n\t\t\t\t</html>\n"
 														if $fields{all} or $fields{html};
-	if ($object->{get_type} eq 'Timer') {
-		$xml_objects .= "\t\t\t\t<seconds_remaining>" . $object->seconds_remaining . "</seconds_remaining>\n";
+
+	my @alt_fields = qw(seconds_remaining level);
+	foreach my $field (@alt_fields) {
+		next unless $fields{all} or $fields{$field};
+		my $method = $field; 
+		$method = 'get_' . $method unless exists $object->{$method};
+		next unless exists $object->{$method};
+		$xml_objects .= "\t\t\t\t<$field>$object->{$method}</$field>\n";
 	}
 	$xml_objects .= "\t\t\t</object>\n";
 	return $xml_objects; 
@@ -243,16 +279,13 @@ sub xml_page {
 	my ($xml) = @_;
 	return if ($updates_only and ! $xml);
 
-#<!DOCTYPE document SYSTEM "misterhouse.dtd">
-#<?xml version="1.0" standalone="no" ?>
-
 	return <<eof;
 HTTP/1.0 200 OK
 Server: MisterHouse
 Content-type: text/xml
 
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<?xml-stylesheet type="text/xsl" href="/default.xsl"?>
+<?xml-stylesheet type="text/xsl" href="/lib/default.xsl"?>
 <misterhouse>
 $xml</misterhouse>
 

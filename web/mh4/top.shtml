@@ -7,7 +7,7 @@
 <body>
 
 <DIV ID="overDiv" STYLE="position:absolute; visibility:hide; z-index:1;"></DIV>
-<SCRIPT LANGUAGE="JavaScript" SRC="/overlib.js"></SCRIPT>
+<SCRIPT LANGUAGE="JavaScript" SRC="/lib/overlib.js"></SCRIPT>
 
   <table border="0" cellspacing="0">
     <tr>
