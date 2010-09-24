@@ -3,7 +3,8 @@
 # $Date$
 # $Revision$
 
-#@ Adds mh widgets to the tk interface
+#@ Adds mh widgets to the tk and web interfaces.  You must enable the 
+#@ mh_control.pl script if you enable this one.
 
 # Position=2                    Load after tk_frames
 
