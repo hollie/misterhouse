@@ -146,6 +146,14 @@ sub get_pump_enabled() {
    return $$self{'pump_enabled'};
 }
 
+sub get_timers() {
+   my ($self) = @_;
+   my $cmd = 'sprinkler_timers_request';
+   my $subcmd = 0x1;
+   $self->_send_cmd(command => $cmd, type => 'extended', extra => $subcmd, 'is_synchronous' => 0);
+   return;
+}
+
 sub _is_info_request {
    my ($self, $cmd, $ack_setby, %msg) = @_;
    my $is_info_request = 0;
