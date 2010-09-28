@@ -158,7 +158,7 @@ sub set {
 
    if ($p_setby and $$self{m_setby}) {
       foreach (@{$$self{m_setby}}) {
-         if ($p_setby->get_set_by() eq $_) {
+         if (($p_setby->get_set_by() eq $_) or ($p_setby->get_set_by() and $p_setby eq $p_setby->get_set_by())) {
             &::print_log("Light_Switch_Item($$self{object_name}): setting state to 'pressed'") if $main::Debug{occupancy};
             $self->SUPER::set('pressed', $p_setby);
             last;
