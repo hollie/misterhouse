@@ -682,8 +682,9 @@ sub translate_temp {
       $omnitemp = int( $omnitemp + .5 * ( $omnitemp <=> 0 ) );    #round
     }
   } else {    # xlate from Fahrenheit/Celcius
+    $omnitemp = $settemp;
     if ( !( $main::config_parms{Omnistat_celcius} ) ) {
-      $omnitemp = ( $settemp - 32 ) / 1.8;    #Fahrenheit to Celcius
+      $omnitemp = ( $omnitemp - 32 ) / 1.8;    #Fahrenheit to Celcius
     }
     $omnitemp = ( $omnitemp + 40 ) / .5;                       #omnistat degrees
     $omnitemp = int( $omnitemp + .5 * ( $omnitemp <=> 0 ) );   #round
