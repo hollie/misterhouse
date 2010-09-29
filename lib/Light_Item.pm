@@ -7,7 +7,7 @@ File:
 Description:
    An abstract object that represents a light that can be automatically
    controlled by Door_Items, Motion_Items, Presence_Monitors, Photocell_Items,
-   Light_Restriction_Items, and Light_Switch_Items.  
+   Light_Restriction_Items, and Light_Switch_Items.
 
    Often times, Door_Items and Motion_Items are also used by the Occupancy
    Monitor which in turn manages the state of the Presence_Monitor objects.
@@ -15,7 +15,7 @@ Description:
 Author(s):
 	Jason Sharpee  - jason@sharpee.com
 	Kirk Bauer - kirk@kaybee.org
-	
+
 License:
 	This free software is licensed under the terms of the GNU public license.
 
@@ -34,7 +34,7 @@ Usage:
       objects of type: Door_Item, Motion_Item, Photocell_Item, Presence_Item,
       and Light_Restriction_Item.  You used the add() function:
 
-         $om_auto_hall_bath_light->add($om_motion_hall_bath, 
+         $om_auto_hall_bath_light->add($om_motion_hall_bath,
             $om_presence_hall_bath, $only_when_home);
 
    Other configuration:
@@ -42,14 +42,14 @@ Usage:
          (i.e. door, motion, occupancy) occurs.  The light will not turn off
          as long as occupancy remains true.  If this is set to 0, the light
          will never turn off based on a timer (but could still turn off
-         because of a Photocell_Item/Light_Restriction_Item or if 
+         because of a Photocell_Item/Light_Restriction_Item or if
          door_auto_off() is enabled.
       x10_sync(): Pass in a 1 to enable x10 sync, 0 to disable.  Currently
          this will make sure lights that are supposed to be off really are
          off around once per hour.  The default is enabled.
-      set_on_state(): Pass in another state besides the default of ON to 
+      set_on_state(): Pass in another state besides the default of ON to
          use when turning "on" the light.  Set to empty ('') to prevent
-         this light from turning on automatically (but it will still 
+         this light from turning on automatically (but it will still
          turn off automatically).
       set_predict_off_time(): You can override the default 60-second off time
          when a light is predictively turned on but nobody actually enters
@@ -70,7 +70,7 @@ Usage:
          any light restriction objects (and possibly a Light_Switch_Object).
       manual(X,time_on,time_off): Set X to 1 to set the light into a full manual mode where
          it will never be turned on or off automatically unless optional time_on or
-         time_off are set.  Set X to the physical light to ensure that 
+         time_off are set.  Set X to the physical light to ensure that
          the light_item tracks the state of the physical light while
          in manual mode.  Assign time_on and optionally time_off to time
          in secs for manual mode to be set until resuming to automatic
@@ -88,7 +88,7 @@ Usage:
          no_light: Light can not be turned on (will not affect current state)
       From a Presence_Monitor:
          occupied: Turns on light if photocell object(s) say it is dark
-            and there are no active restrictions.  
+            and there are no active restrictions.
          vacant: Light will turn off after the delay set by delay_off() unless
             the Presence_Monitor has a delay that was set by delay_off() in
             which case that delay is used.
@@ -99,9 +99,9 @@ Usage:
             else (presence, motion, etc) causes light to remain on.
       From a Motion_Item or a Door_Item:
          on: Turns on light if photocell object(s) say it is dark
-            and there are no active restrictions.  Light will turn off after 
-            delay set by predict_off_time() or the default of 60 seconds 
-            unless something else (presence, motion, etc) causes light to 
+            and there are no active restrictions.  Light will turn off after
+            delay set by predict_off_time() or the default of 60 seconds
+            unless something else (presence, motion, etc) causes light to
             remain on.  EXCEPTION: Light will not turn off if there is an
             attached Presence_Monitor that indicates somebody is present.
       From a Photocell_Item:
@@ -109,9 +109,9 @@ Usage:
             light to be turned on.  No immediate action will be taken unless
             there are no Motion_Items, Door_Items, AND Presence_Monitors
             attached to the light, in which case the light will imediately
-            turn on if there are no active restrictions (Light_Restriction_Item) 
+            turn on if there are no active restrictions (Light_Restriction_Item)
       From internal timer object:
-         When this internal timer object triggers, if the light is supposed to 
+         When this internal timer object triggers, if the light is supposed to
          be off, then it will be re-set to off to make sure it really is off.
 
 	Output states:
@@ -119,7 +119,7 @@ Usage:
       'on': Light is on (note: if set_on_state() was called then this will
          instead be whatever state specified in that function call)
 
-Special Thanks to: 
+Special Thanks to:
 	Bruce Winter - MH
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -194,7 +194,7 @@ sub set
         ### allow "automatic resume from manual" if a timer has been set
         if ((ref $p_setby) && ($p_setby eq $$self{m_manualTimer})) {
           # reset the current state to what is in $$self{_automation_state} ???
-           if ((($self->state eq 'off') and  $$self{m_manual_auto_off}) or 
+           if ((($self->state eq 'off') and  $$self{m_manual_auto_off}) or
                  (($self->state ne 'off') and $$self{m_manual_auto_on})) {
               if ($self->allow_set_state($$self{_automation_state}, $p_setby)) {
                      &::print_log("Light_Item($$self{object_name}):: manual state reverting to tracked state: "
@@ -217,7 +217,7 @@ sub set
 	### Manual shutoff (unless set by the manually controlled light) ###
 #	return if ($self->manual() && !((ref $p_setby) && (ref $self->manual) && ($self->manual eq $p_setby)));
 
-	
+
 ######### EVENTS
 	#Determine what type of event this is ON/OFF
 	if ($self->is_on_event($p_state,$p_setby)) {
@@ -312,7 +312,7 @@ sub allow_set_state
         my $allow_set = 1;
         # always allow set states if setby is the timerSync
 	if (!($self->always_set_state()) and ($p_setby ne $$self{m_timerSync})) {
-        	if (($self->state() eq $p_final_state) 
+        	if (($self->state() eq $p_final_state)
 			or ($self->state() eq '100%' and $p_final_state eq 'on')
 			or ($self->state() eq 'on' and $p_final_state eq '100%')) {
 			$allow_set = 0;
@@ -353,14 +353,14 @@ sub get_off_delay_effective
 
 	my $l_delay=undef;
 	# use the parent delay off if specified
-	if (	defined($p_setby) and 
-		$p_setby->can('delay_off') and 
-		defined($p_setby->delay_off()) ) {	
+	if (	defined($p_setby) and
+		$p_setby->can('delay_off') and
+		defined($p_setby->delay_off()) ) {
 		$l_delay=$p_setby->delay_off();
 	}
 	if (!defined($l_delay) and $self->can('delay_off') and defined($self->delay_off()) ) {
 		$l_delay=$self->delay_off();
-	}		
+	}
 	if ($self->predict_off_time() != 0 and $p_state eq 'predict') { #Predict delay instead of default
 		$l_delay=$self->predict_off_time();
 	}
@@ -411,12 +411,12 @@ sub do_off_delay
 {
 	my ($self,$p_state,$p_setby,$p_event_state) = @_;
 	my $l_delay;
-	
+
 	$l_delay = $self->get_off_delay_effective($p_state,$p_setby);
 #	&::print_log("Delay$$self{object_name}:$l_delay");
 	if ($l_delay >0 ) { #Delay off is enabled
 		#ON EVENT
-		if ($p_event_state eq 'on') { 
+		if ($p_event_state eq 'on') {
 			#These are considered "Temporary" ON state sets
 			if (defined($p_setby) and ( $p_setby->isa('Motion_Item') or
 				($p_setby->isa('Presence_Monitor') and $p_state eq 'predict') )) { #These are subject to a delay off timer upon turning on (temporary state)
@@ -436,8 +436,8 @@ sub do_off_delay
 				$$self{m_timerOff}->stop();
 			}
 		### OFF EVENT
-		} elsif ($p_event_state eq 'off') { 
-			if (defined($p_setby) and 
+		} elsif ($p_event_state eq 'off') {
+			if (defined($p_setby) and
 				($p_setby->isa('Motion_Item') or
 				$p_setby->isa('Presence_Monitor') or
 				$p_setby->isa('Photocell_Item') or
@@ -452,9 +452,9 @@ sub do_off_delay
 					$$self{m_timerOff}->stop();
 				}
 				$p_event_state=undef;
-			} 
+			}
 		}
-	
+
 	}
 #	&::print_log("Delayout:$p_event_state");
 	return $p_event_state;
@@ -486,7 +486,7 @@ sub is_on_event
 
 	if (defined $p_setby and ref $p_setby) {
 	    #Criteria Qualifying to turn the light on
-	    
+
 	    if ( $p_setby->isa('Motion_Item') ) {
 		if ($p_state eq 'motion' ) { $l_qualified=1; }
 	    }	elsif ($p_setby->isa('Door_Item') ) {
@@ -508,10 +508,10 @@ sub is_on_event
 		if ($self->idle_state() ne 'off') { #Only if the idle state is considered on
 			$l_qualified = 1;
 		}
-	    }	elsif ($p_setby eq $$self{m_timerSync} ) { #Todo: Eventually this should probably sync ON states as well.. 
+	    }	elsif ($p_setby eq $$self{m_timerSync} ) { #Todo: Eventually this should probably sync ON states as well..
 		$l_qualified = 0;
 	    }	elsif ($p_setby eq $$self{m_timerOn} ) { #Timeout occurs then go
-		if ($p_state eq 'off' and $self->delay_on() >0 ) { $l_qualified=1; } 
+		if ($p_state eq 'off' and $self->delay_on() >0 ) { $l_qualified=1; }
 	    }	elsif ($p_setby eq $$self{m_timerOff} ) {
 		$l_qualified = 0;
 	    }	elsif ($p_setby eq $$self{m_timerUnlock} ) {
@@ -535,22 +535,22 @@ sub is_on_restriction
 	}
 	my $l_qualified=0;
 	#restrictions
-	if ( ! $self->is_change_allowed() or 
+	if ( ! $self->is_change_allowed() or
 	       $self->manual()) { #restrictions
 	       $l_qualified=1;
 	}
 	if ( defined($p_setby) ) {
 		#Automatic on events are no allowed to shutoff lights if someone is here
-		if ( $p_setby->isa('Light_Restriction') ) {
+		if ( $p_setby->isa('Light_Restriction_Item') ) {
 			if ( ! ($self->is_somebody_present($p_setby, $p_state) ) ) { #If someone is in the room, allow the light on!
 				$l_qualified=1;
 			}
-		}	
-	} 
+		}
+	}
 	if ( lc($self->get_photo()) eq 'light' ) {
 		# if we think it is light, then dont let these objects set to on
-		if (defined($p_setby) and 
-			( $p_setby->isa('Motion_Item') or 
+		if (defined($p_setby) and
+			( $p_setby->isa('Motion_Item') or
 			$p_setby->isa('Door_Item') or
 			$p_setby->isa('Presence_Monitor') or
 			$p_setby eq $$self{m_idleTimer}) ){
@@ -559,11 +559,11 @@ sub is_on_restriction
 		#Any other object / user can toggle light state
 	}
 #	if ($self->is_on_event($p_state,$p_setby) and $self->state() eq 'on') {
-	if ($p_state eq $self->state() ) { #Dont bother setting the state if it already is	
+	if ($p_state eq $self->state() ) { #Dont bother setting the state if it already is
 		$l_qualified=1;
 	}
 	if ($self->state() eq 'on' and (
-		$p_state eq 'motion' or 
+		$p_state eq 'motion' or
 		$p_state eq 'open') ) { #Dont want to spam these on states if not necessary
 		$l_qualified=1;
 	}
@@ -577,7 +577,7 @@ sub is_off_event
 
 	if (defined $p_setby) {
 	    #Criteria Qualifying to turn the light off
-	    
+
 	    if ( $p_setby->isa('Motion_Item') ) { #Motion Item off event (usually not used by itself, but with a delay
 		my @l_objects = $self->find_members('Presence_Monitor');
 		if (@l_objects==0) { $l_qualified=1; } # Generate this event _only_ if occupancy system is not used
@@ -585,7 +585,7 @@ sub is_off_event
 		if ($p_state eq 'closed') { $l_qualified=1; }
 	    }	elsif ($p_setby->isa('Presence_Monitor') ) { #Vacancy will turn off
 		if ($p_state eq 'vacant') { $l_qualified=1; }
-	    }	elsif ($p_setby->isa('Light_Restriction_Item') ) { #We cant be on anymore, so turn off 
+	    }	elsif ($p_setby->isa('Light_Restriction_Item') ) { #We cant be on anymore, so turn off
 		if ($p_state eq 'no_light' ) { $l_qualified=1; }
 	    }	elsif ($p_setby->isa('Photocell_Item') ) { #If a photocell is attached and shows us that it is light, then turn off the lights
 		if ($p_state eq 'light' ) { $l_qualified = 1; }
@@ -594,11 +594,11 @@ sub is_off_event
 			$l_qualified = 1;
 		}
 	    }	elsif ($p_setby eq $$self{m_timerSync} ) { #Make sure devices that are thought of in MH as off stay off.
-		if ($self->x10_sync() and 
-			$self->state() eq $p_state and 
+		if ($self->x10_sync() and
+			$self->state() eq $p_state and
 			$p_state eq 'off' and
-			!$$self{m_timerSync}->active()) { 
-			$l_qualified = 1; 
+			!$$self{m_timerSync}->active()) {
+			$l_qualified = 1;
 #			&::print_log("$$self{object_name}:X10syncEnd:Off");
 		}
 	    }	elsif ($p_setby eq $$self{m_timerOn} ) { #Does not apply
@@ -640,8 +640,8 @@ sub is_off_restriction
 			if ( $self->is_somebody_present($p_setby, $p_state) ) { #If someone is in the room, dont turn the light off!
 				$l_qualified=1;
 			}
-		}	
-	} 
+		}
+	}
 	if ($self->door_always_on() and !$self->are_all_doors_closed()) { #If door always on is enabled
 		$l_qualified=1;
 	}
@@ -830,7 +830,7 @@ sub start_delay_off {
       # know the light is on
       return if ($self->state eq 'off');
    }
-   # Return if it wouldn't be okay to turn on the light 
+   # Return if it wouldn't be okay to turn on the light
    return unless ($self->is_change_allowed());
    # Don't set timer if it is already active
    return if ($$self{m_timerOff}->active);
@@ -844,7 +844,7 @@ sub start_delay_off {
 sub restore_string
 {
 	my ($self) = @_;
-	my $l_restore_string = undef;	
+	my $l_restore_string = undef;
 	#We dont want MH saving our state.. Start new everytime! :)
 
 #	$l_restore_string = $self->SUPER::restore_string;
