@@ -120,7 +120,7 @@
 #
 #    When MH starts up, the cbus code will automatically attempt to sync MH to the current
 #    state of CGate. CGate of course, will reflect the physical state of the CBus network.
-#    When the sync is complete, the $CBus_Sync will be set true. 
+#    When the sync is complete, the $CBus_Sync will be set ON. 
 #
 #    mh.private.ini Settings
 #    ===============
@@ -186,7 +186,7 @@ my $last_talk_state;
 my $cmd_counter = 0;
 my @cmd_list = ();
 
-my $CBus_Sync = 0;
+my $CBus_Sync = new Generic_Item;
 my $sync_in_progress = 0;
 my %addr_not_sync = ();
 my $cbus_def_filename;
@@ -896,7 +896,7 @@ sub cbus_talker_start {
         speak("C-Bus talker is already running");
 
     } else {
-        $CBus_Sync = 0;
+        set $CBus_Sync OFF;
         $cbus_talker_retry = 0;
         if (start $cbus_talker) {
             print_log "CBus: Talker started";
@@ -910,7 +910,7 @@ sub cbus_talker_start {
 sub cbus_talker_stop {
     # Stops the CBus command driver (Talker)
 
-    $CBus_Sync = 0;
+    set $CBus_Sync OFF;
     return if not active $cbus_talker;
     print_log "CBus: Talker stopping";
     stop  $cbus_talker;
@@ -995,7 +995,7 @@ sub start_level_sync {
 
     print_log "CBus: Syncing MisterHouse to CBus (Off groups not displayed)";
 
-    $CBus_Sync = 0;
+    set $CBus_Sync OFF;
     $sync_in_progress = 1;
     %addr_not_sync = %{ $cbus_def->{group} };
 
@@ -1011,7 +1011,7 @@ sub attempt_level_sync {
 
     if (not %addr_not_sync) {
         print_log "CBus: Sync to CGate complete";
-        $CBus_Sync = 1;
+        set $CBus_Sync ON;
         $sync_in_progress = 0;
 
     } else {
