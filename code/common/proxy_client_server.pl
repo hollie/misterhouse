@@ -122,7 +122,7 @@ sub proxy_speak_play {
                                 # Filter out the blank parms
         %parms = map {$_, $parms{$_}} grep $parms{$_} =~ /\S+/, keys %parms;
         undef $parms{room};
-        undef $parms{voice};  # MY ADD HERE
+#        undef $parms{voice};  # MY ADD HERE
         &main::proxy_send($address, $mode, %parms);
     }
 }
@@ -214,7 +214,7 @@ if ($state = said $proxy_server) {
         my (%parms) = &parse_func_parms(@data);
 	$parms{room} = '';
 	$parms{rooms} = $config_parms{speak_mh_room};
-	$parms{voice} = $config_parms{speak_voice};
+	$parms{voice} = $config_parms{speak_voice} if !defined($parms{voice});
         speak %parms;
     }
     elsif ($function eq 'play') {
