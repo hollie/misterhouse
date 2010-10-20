@@ -4073,7 +4073,7 @@ sub process_external_command {
     return 1;
 }
 
-my (@prev_x10_events, %prev_x10_units, $prev_x10_units_reset);
+my (@prev_x10_events, %prev_x10_units, $prev_x10_units_reset, %x10_dim_bright_last_housecode_device);
 sub process_serial_data {
     my ($event_data, $prev_pass, $source) = @_;
 
@@ -4198,7 +4198,8 @@ sub process_serial_data {
     if (@refs = &Device_Item::items_by_id($event_data)) {
         $matched = 1;
         for $ref (@refs) {
-#           print "db et=$event_type ed=$event_data o=$ref->{object_name}\n";
+	    #print "db et=$event_type ed=$event_data o=$ref->{object_name}\n";
+	    #outputs: db et=X ed=XA1AK o=$testx10
             if ($state = $$ref{state_by_id}{$event_data}) {
                 set_receive $ref $state, $source;
                 print "Serial event=$event_data state=$state\n" if $Debug{serial};
@@ -4224,16 +4225,51 @@ sub process_serial_data {
 
         print_log "X10: Incoming data=$event_data" if $config_parms{x10_errata} >= 4;
 
-                                # Track last selected items list (reset if a non-unit code string is found)
-                                #  - For example:  XA1A2ALxx would set both units A1 and A2 to dim level xx
-                                #    Not yet used for on/off codes: XA1A2AJ would set A1 to manual, and A2 to off
-                                #    To handle on/off codes, it looks like this would be a bit messy, as these are set
-                                #    above or in x10_chunks.  Maybe better to re-write all this code?? 07/2002
+
+	# X10RF remotes/senders like HR12A and  SS13A do not actually send XA2AL unfortunately,
+	# they only send XAL/XAM and this code has to remember which device was last used and assign
+	# the dim/brighten command to that code (Excellent design, isn't it? :( ) -- merlin 2010/10/10
+	# If the code below captured the last device for this housecode, we use this partial
+	# dim/brighten code and pretend we got a full XA2AL instead of XA2AK some time in the past
+	# and then XAL now.
+	# Note that this will NOT work if your X10 device isn't defined as an X10SL or some other X10
+	# device that defines XA1A[LM] codes.
+        if ($event_data =~ /^X([A-P])([LM])$/) {
+	    my ($housecode, $dim_bright_c) = ($1, $2);
+	    my $dim_bright = ($dim_bright_c eq "M") ? "dim" : "brighten";
+	    my $device = $x10_dim_bright_last_housecode_device{$housecode};
+	    my $X10_device = "X$housecode$device";
+
+	    if ($device) {
+		$event_data = "$X10_device$housecode$dim_bright_c";
+
+		print_log "X10: House code $housecode got $dim_bright for reconstituted last used device $device from $source, pretending we received $event_data" if $config_parms{x10_errata} >= 2;
+	    }
+	    else
+	    {
+		print_log "X10: Got $event_data, but cannot $dim_bright anything because no prior device was actuated for house code $housecode" if $config_parms{x10_errata} >= 2;
+	    }
+        }
+
+        # As mentionned above, the simple X10 dim/bright commands from X10RF remotes only send a house code and 
+	# dim (L) or bright (M) like so: XAL to dim the last device used on house code A. 
+	# So, we keep track of the last device used on each house code in case we get dim/bright later. -- merlin
+        if ($event_data =~ /^X([A-P])([0-9A-G])[A-P][JK]$/) {
+	    my ($housecode, $device) = ($1, $2);
+
+	    $x10_dim_bright_last_housecode_device{$housecode} = $device
+        }
+
+				# Track last selected items list (reset if a non-unit code string is found)
+				#  - For example:  XA1A2ALxx would set both units A1 and A2 to dim level xx
+				#    Not yet used for on/off codes: XA1A2AJ would set A1 to manual, and A2 to off
+				#    To handle on/off codes, it looks like this would be a bit messy, as these are set
+				#    above or in x10_chunks.  Maybe better to re-write all this code?? 07/2002
         my $length = length $event_data;
         my $pos = 1;
         while ($pos < $length) {
-       last if $event_data =~ /PRESET_DIM/;  # The DIM1 and DIM2 strings would get parsed as M1 and M2
-       my $unit = substr($event_data, $pos, 2);
+            last if $event_data =~ /PRESET_DIM/;  # The DIM1 and DIM2 strings would get parsed as M1 and M2
+            my $unit = substr($event_data, $pos, 2);
             if ($unit =~ /([A-P][1-9A-G])/) {
                 undef %prev_x10_units if $prev_x10_units_reset;
                 $prev_x10_units_reset = 0;
@@ -4291,7 +4327,6 @@ sub process_serial_data {
             }
 
         }
-
                                 # Check for multi-key X10 commands (e.g. XA1 XAJ -> XA1AJ)
                                 # Optional, to allow for external code to take care of this
 
@@ -4303,6 +4338,14 @@ sub process_serial_data {
                 $prev_x10_event = $prev_x10_events[$i]{data} . $prev_x10_event;
             }
         }
+
+
+	# items_by_id isn't very documented, but depending on which kind of X10 device is defined, it 
+	# contains a bunch of keys for which X10 commands that device can be responsible for (since you
+	# can have more than one device linked to the same X10 code).
+	# For instance, if you have an X10 device defined as X10SL, device_Item defines a lot of keys like these:
+	# XA2 XA2AJAJ XA2AKAK XA2AJAJAJ XA2AKAKAK XA2AM XA2ASTATUS XA2ASTATUS_ON XA2ASTATUS_OFF (...)
+	# A device that can't emit dimmable codes for instance would be missing those keys: XA2AL XA2AM
         if ($prev_x10_event) {
             my $event_data2 = 'X' . $prev_x10_event . substr($event_data, 1);
             print_log "X10: Merged string data=$event_data2" if $Debug{x10} or $config_parms{x10_errata} >= 3;
@@ -8119,3 +8162,4 @@ __END__
 # - add Revision to header
 #
 #
+# vim:sts=4:sw=4
