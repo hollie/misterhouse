@@ -5025,9 +5025,9 @@ sub read_user_code_loopcode {
         "   if (\$Run_Members{'$member_name'} > $allowed_errors) { # Check for too many eval errors\n" .
         "        display('Multiple eval errors in $member_name.  Code was disabled', 0);" .
         "        \$Run_Members{'$member_name'} = 0; return;\n }".
-	"   elsif (\$Run_Members{'$member_name'} > 2 and \$Run_Members{'$member_name'} != \$Run_Members_Error_Count{$member_name} )  {\n".
+	"   elsif (\$Run_Members{'$member_name'} > 2 and \$Run_Members{'$member_name'} != \$Run_Members_Error_Count{'$member_name'} )  {\n".
 	"        display(\$Run_Members{'$member_name'}.' eval errors in $member_name out of $allowed_errors allowed before disable') }\n".
-    	"  \$Run_Members_Error_Count{$member_name} = \$Run_Members{'$member_name'};\n".
+    	"  \$Run_Members_Error_Count{'$member_name'} = \$Run_Members{'$member_name'};\n".
         "   my \$benchmark_tickcount = &get_tickcount if \$Benchmark_Members{on_off_flag};\n" .
 #       " print \"db rl=\$Reload m=$member_name\n\" if \$Reload;\n" .
         $code .
