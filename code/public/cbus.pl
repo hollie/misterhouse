@@ -400,6 +400,7 @@ sub write_def_file {
                                 category	=> "CBus Lights",
                                 type		=> "relay",
                                 speak_name	=> "AAA is example",
+                                label	    => "Label Name (->set_label) used by iPhone interface",
                                 log_label	=> "AAA Example",
                                 announce	=> "1",
                                 web_icon	=> "Some icon specification",
@@ -487,13 +488,17 @@ sub build_cbus_file {
         or print_log "CBus: Builder - Could not open $cbus_file: $!";
     
     print CF "# Category=CBus_Items\n#\n#\n";
-    print CF "# Created: $Time_Now, from cbus.xml file: \"".
-                "$config_parms{cbus_dat_file}\"\n";
-    print CF "# This file is automatically created with the CBus command ".
-                "RUN_BUILDER";
-    print CF "#\n#\n# ---- DO NOT EDIT ----\n\n";
-
-    print CF "#\n# Cbus Device Summary List\n#\n";
+    print CF "# Created: $Time_Now, from cbus.xml file: \"$config_parms{cbus_dat_file}\"\n";
+    print CF "#\n";
+    print CF "# This file is automatically created with the CBus command RUN_BUILDER\n";
+    print CF "#\n";
+    print CF "#\n";
+    print CF "# -------------- DO NOT EDIT --------------\n";
+    print CF "# ---- CHANGES WILL BE LOST ON REBUILD ----\n";
+    print CF "#\n";
+    print CF "\n";
+    print CF "\n";
+    print CF "# Cbus Device Summary List\n#\n";
     my $cbus_prefix = $config_parms{cbus_category_prefix};
     my %item_name = ();
     foreach my $address (sort keys %{ $cbus_def->{group} }  ) {
@@ -512,10 +517,18 @@ sub build_cbus_file {
         $item = $item_name{$address};
         next if not defined $item;
         $name = $cbus_def->{group}{$address}{name};
+        my $pretty_name = $cbus_def->{group}{$address}{label};
+        if (not defined $pretty_name) {
+            $pretty_name = $name;
+            $pretty_name =~ s/(\w)([A-Z])/$1 $2/g;
+        }
         my $v_item = '$v_' . $item;
 
         # Create CBus_Item
         print CF "\$$item = new Generic_Item;\n";
+        
+        # Set label for CBus group
+        print CF "\$$item -> set_label('$pretty_name');\n";
         
         # Determine type of CBus group
         my $type = $cbus_def->{group}{$address}{type};
