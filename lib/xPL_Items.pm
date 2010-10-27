@@ -519,6 +519,7 @@ sub _process_incoming_xpl_data {
             # only carries state, not all other $section data, to the next pass
 #           $o -> SUPER::set($state_value, 'xPL') if defined $state_value;
 
+            $o->received( $data );
             if ( defined $state_value and $state_value ne '' ) {
                 my $set_by_name = 'xPL';
                 $set_by_name .= " [$source]";
@@ -853,6 +854,12 @@ sub target_address {
     return $$self{target_address};
 }
 
+sub received {
+    my ( $self, $received ) = @_;
+    $$self{received} = $received if defined $received;
+    return $$self{received};
+}
+
 sub device_name {
     my ( $self, $p_strDeviceName ) = @_;
     $$self{m_device_name} = $p_strDeviceName if $p_strDeviceName;
@@ -966,8 +973,8 @@ sub state_now {
                 }
             }
         }
-        print
-"db xPL_Item:state_now: section data for $section_name is: $section_state_now\n"
+        print "db xPL_Item:state_now: section data for $section_name is: "
+          . "$section_state_now\n"
           if $main::Debug{xpl} and $section_state_now;
         $state_now = $section_state_now;
     }
