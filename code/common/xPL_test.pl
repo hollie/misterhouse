@@ -6,6 +6,9 @@
 #@ Rio and TTS xPL clients are available from
 #@ <a href=http://www.xplhal.com>Tony's page</a>.
 
+
+# noloop = start
+
 #
 # Examples of how to Monitor generic xPL data
 #
@@ -26,11 +29,10 @@ $xpl_monitor2->tie_event('print_log "xpl CLOCK sourced data: $state"');
 # Note how $state is used to flag the field that state will correlate to.
 #
 $xpl_speak1_v = new Voice_Cmd 'Test speech to an xpl client [1,2]';
-$xpl_speak1 =
-  new xPL_Item( 'tonyt-tts.voice1', 'tts.basic' => { speech => '$state' } );
-$xpl_speak2 =
-  new xPL_Item( 'tonyt-ttsagent.agent1',
-    'tts.basic' => { speech => '$state' } );
+$xpl_speak1 = new xPL_Item( 'tonyt-tts.voice1',
+  'tts.basic' => { speech => '$state' } );
+$xpl_speak2 = new xPL_Item( 'tonyt-ttsagent.agent1',
+  'tts.basic' => { speech => '$state' } );
 set $xpl_speak1 "xpl client says the time is $Time_Now"
   if state_now $xpl_speak1_v == 1;
 set $xpl_speak2 "Hi, I'm an agent.   Today is $Date_Now"
@@ -39,18 +41,19 @@ set $xpl_speak2 "Hi, I'm an agent.   Today is $Date_Now"
 #
 # Test X10 data. Note:  Not yet tested with any X10 clients yet
 #
-$outside_light_xpl =
-  new xPL_Item( 'ACME-LAMP.outside', 'lamp.basic' => { action => '$state' } );
+$outside_light_xpl = new xPL_Item( 'ACME-LAMP.outside' ,
+  'lamp.basic' => { action => '$state' } );
 $outside_light_xpl->tie_event(
-    'print_log "xpl says outside light was set to $state"');
+  'print_log "xpl says outside light was set to $state"');
 
 #
 # Test the Tony's nifty RIO xPL client
 #
-#rio_kitchen = new xPL_Item('tonyt-rio.unit100', 'rio.basic' => {sel => '$state'});
+$rio_kitchen = new xPL_Item('tonyt-rio.unit100' ,
+  'rio.basic' => {sel => '$state'});
 $rio_kitchen = new xPL_Rio('tonyt-rio.unit100');
 
-my $rio_states = join ',', @{ $$rio_kitchen{states} };    # noloop
+my $rio_states = join ',', @{ $$rio_kitchen{states} };
 $rio_cmds = new Voice_Cmd "Set kitchen rio to [$rio_states]";
 $rio_cmds->tie_items($rio_kitchen);
 
@@ -58,6 +61,9 @@ $rio_cmds->tie_items($rio_kitchen);
 # Other xPL test
 #
 $xpl_test = new Voice_Cmd 'Test xpl send [0,1,2,3,4,5,6]';
+
+# noloop = stop 
+
 if ( defined( $state = said $xpl_test) ) {
     print_log "Running xpl send tset $state";
 
