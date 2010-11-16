@@ -1,7 +1,7 @@
 <html>
 <meta http-equiv="Refresh" content="30;URL=/mh/statuspanel.shtml">
 <title>Main Status</title>
-<body background="cmc11.jpg">
+<body background="/mh/cmc11.jpg">
 <!--#include file="/mh/statuspanel.pl"-->
 </body>
 </html>
