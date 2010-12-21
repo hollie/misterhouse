@@ -11,6 +11,9 @@ Author:
 	Pierrick DINTRAT
 	pierrick.dintrat@laposte.net
 
+Contributor:
+	Neil Cherry <ncherry@linuxha.com>
+
 License:
 	This free software is licensed under the terms of the GNU public license.
 
@@ -40,11 +43,10 @@ my $svg = SVG->new('xmlns:xlink'	=> 'http://www.w3.org/1999/xlink',
 		   viewBox		=> "0 0 1200 800", #
                    preserveAspectRatio	=> "none",
 		   -indent		=> '  ',
+		   onload		=> "window.setTimeout('window.location.reload()', 10000 )",
 );
 
 my $top=$svg->group( id => 'group_top',style=> { stroke=>'green', fill=>'black' });
-
-#return &svg_error('FloorPlan', "No $object_name Group found to generate a floorplan from") unless $object;
 
 #&draw_top($top);
 &web_fp($object);
@@ -64,7 +66,7 @@ sub web_fp #render table representation of objects and their co-ordinates
 	my $l_obj;
 	my $l_xscale=12;
 	my $l_yscale=5;
-	use vars qw($i $j); 
+	our ($i, $j, $k); 
 
         # I know I need this but I'm not sure as to the what or the why - njc
         my $xOffset =  20; # Mine 105, his 110
@@ -73,7 +75,8 @@ sub web_fp #render table representation of objects and their co-ordinates
         my $units = 10;         # 15px = 1 ft
 
 	$i=1;
-	$j=125;
+	$j=0;
+	$k=0;
 
 	my $l_bcolor='#CCCCCC';
 	my $l_acolor='#00FF00';
@@ -99,22 +102,49 @@ sub web_fp #render table representation of objects and their co-ordinates
 			if ($l_x ne "") 
 			{ 
 				$y->rectangle(x=>$l_x, y=>$l_y,width =>$l_w, height => $l_h,ry=> 0,fill=>'lightgray',id=> "rect_y-$i" );
-				my $group_name=$svg->text(id=>"room_name_$i",x=>$l_x+16,y=>$l_y+16)->cdata(web_fp_filter_name($obj->{object_name}));
+				my $group_name=$svg->text(id=>"room_name_$i",x=>$l_x+4,y=>$l_y+16)->cdata(web_fp_filter_name($obj->{object_name}));
 				$i++;
-				$j=125;
 			} 
 			@n_objs = @{$$obj{members}}; # This is the Devices within the Room
 			for my $item (@n_objs) {
+				my ($width, $height);
+				my $ob = Ob($item);
+
 				my ($l_x_item,$l_y_item) = $item->get_fp_location();
+
+				# If group is defined as just Group_X instead of Group_X(x;y)
+				# the device ends up at 0,0. If more than one device has the
+				# same definition they overlap. This code *mostly* takes care
+				# of that (we really need to figure out collisions and this
+				# doesn't do that)
+				if(($l_x_item eq '' && $l_y_item eq '') || ($l_x_item == 0 && $l_y_item == 0)) {
+					$l_x_item += $j;
+					$j++;
+				}
 
 				$l_x_item *= $units;
 				$l_x_item += $l_x;
 				$l_y_item *= $units;
 				$l_y_item += $l_y;
 
+				if(defined($ob->{fp_icon_w})) {
+					$width  = $ob->{fp_icon_w}; # In pixels
+					$height = $ob->{fp_icon_h};
+				} else {
+					$width  = 16;
+					$height = 16;
+				}
+
 				my ($l_text,$l_state,$l_image) = web_fp_item($item);
 
-				$svg->anchor(-href=>"/bin/SET;referer?$l_text")->image(x=>$l_x_item,y=>$l_y_item,width=>15,height=>15,'-href'=>"$l_image");
+				$svg->anchor(-href=>"/bin/SET;referer?$l_text")->image(	x	=> $l_x_item,
+											y	=> $l_y_item,
+											width	=> $width,
+											height	=> $height,
+											'-href'	=> "$l_image",
+											id      => "i${k}" . "$ob->{object_name}",
+											title   => "$ob->{object_name}: $ob->{state}");
+				$k++;
 			}
 		}
 	} 
@@ -138,8 +168,18 @@ sub web_fp_item #render all items based on type
 	my $l_image;
 
 	$l_text=$$p_obj{object_name} . "=" . $p_obj->state;
-	if ($p_obj->isa('Light_Item') or 
-	    $p_obj->isa('Fan_Light') or
+	if ($p_obj->isa('Light_Item')     or 
+	    $p_obj->isa('Fan_Light')      or
+	    $p_obj->isa('Weeder_Light')   or
+	    $p_obj->isa('UPB_Device')     or
+	    $p_obj->isa('Insteon_Device') or
+	    $p_obj->isa('UPB_Link')       or
+	    $p_obj->isa('EIB_Item')       or
+	    $p_obj->isa('EIB1GItem')      or
+	    $p_obj->isa('EIB2_Item')      or
+	    $p_obj->isa('EIO_Item')       or
+	    $p_obj->isa('UIO_Item')       or
+	    $p_obj->isa('Generic_Item')   or
 	    $p_obj->isa('X10_Item')) {
 		if ($p_obj->state eq 'off') {
 			$l_image='/graphics/fp-light-off.gif';
@@ -203,6 +243,14 @@ sub web_fp_item #render all items based on type
 		$l_text.=':' . $p_obj->state();
 	}
 
+	# Check for custom icons
+	my %icons = $p_obj->get_fp_icons();
+
+	if ((keys %icons) and $icons{$p_obj->state}) {
+		$l_image = '/graphics/' . $icons{$p_obj->state};
+		$l_text  = $$p_obj{object_name} . "=" . $l_state;
+	}
+
 	return ($l_text,$l_state,$l_image);
 }
 
@@ -238,4 +286,8 @@ sub draw_top
 
 }
 
+sub Ob {
+    my ($obj) = @_;
+    return $obj;
+}
 
