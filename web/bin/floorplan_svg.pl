@@ -43,10 +43,36 @@ my $svg = SVG->new('xmlns:xlink'	=> 'http://www.w3.org/1999/xlink',
 		   viewBox		=> "0 0 1200 800", #
                    preserveAspectRatio	=> "none",
 		   -indent		=> '  ',
-		   onload		=> "window.setTimeout('window.location.reload()', 10000 )",
+                   onload               => 'init();',
 );
 
-my $top=$svg->group( id => 'group_top',style=> { stroke=>'green', fill=>'black' });
+my $top = $svg->group( id => 'group_top',style=> { stroke=>'green', fill=>'black' });
+
+my $tag = $svg->script(type=>"text/ecmascript");
+
+# I need to catch the a URL problem (such as when MH reboots) so I need to
+# use a catch try which mean I need to move the javascript from the above
+# onload to here where it can be more complex than a quick one liner
+$tag->CDATA('
+function init() {
+  var i;
+
+  i = 10;
+
+  while(i) {
+    //window.status = "Reload ... ";
+
+    try {
+      window.setTimeout(\'window.location.reload()\', 10000 )
+      i = 0;
+      //window.status = "Done!";
+    } catch (e) {
+      window.status = "URL error, retrying";
+      i--; // if after 10 tries we can not get back in then give up!
+    }
+  }
+}
+');
 
 #&draw_top($top);
 &web_fp($object);
@@ -286,6 +312,9 @@ sub draw_top
 
 }
 
+# Return the obj
+# Yes I know this is stupid but I can't figure out how else to tell Perl
+# that a $obj really is a $$obj (I get errors). This fakes Perl out.
 sub Ob {
     my ($obj) = @_;
     return $obj;
