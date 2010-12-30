@@ -1333,9 +1333,15 @@ sub main::net_mail_send {
         print "Unable to Authenticate on mail server $server $port: $@\n";
         return;
     }
-    print 'Authenticating SMTP using encryption ' , $smtpencrypt , " for username ", $smtpusername, "\n" if $parms{debug};
-				# set SMTP username and password if we have them
-    $smtp->auth($smtpencrypt, $smtpusername, $smtppassword) if ($smtpusername and $smtppassword);
+    print 'Authenticating SMTP using encryption ' , $smtpencrypt
+      , " for username ", $smtpusername, "\n" if $parms{debug};
+ 
+    # set SMTP username and password if we have them
+    $smtp->auth($smtpencrypt, $smtpusername, $smtppassword) 
+      if ($smtpusername and $smtppassword);
+
+    use Email::Date::Format qw(email_date);
+    my $emaildate = email_date; #use current local time
 
     $smtp->mail($from) if $from;
     $smtp->to($to);
@@ -1345,7 +1351,8 @@ sub main::net_mail_send {
         $smtp->dataend();
     }
     else {
-        $smtp->data("X-Priority: $priority\n", "Subject: $subject\n", "To: $to\n", "From: $from\n\n", $text);
+        $smtp->data("X-Priority: $priority\n", "Subject: $subject\n",
+          "To: $to\n", "From: $from\n", "Date: $emaildate\n\n", $text);
     }
     $smtp->quit;
    }
