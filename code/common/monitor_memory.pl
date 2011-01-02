@@ -11,6 +11,8 @@ my $memory_leak_log = "$config_parms{data_dir}/logs/monitor_memory_leak.log";
 logit $memory_leak_log, "-- Restarted --.  Perl version:  $Info{Perl_version}" if $Startup;
 #noloop=stop
 
+logit $memory_leak_log, '   ReLoad' if $Reload;
+
                                 # Ignore startup memory stats
 if ($Time_Uptime_Seconds > 600) {
     if (!$Info{memory_virtual_prev}) {
@@ -18,8 +20,6 @@ if ($Time_Uptime_Seconds > 600) {
         $Info{memory_virtual_prev}    = $Info{memory_virtual};
         $Info{memory_virtual_time}    = $Time;
     }
-
-    logit $memory_leak_log, '   ReLoad'     if ($Reload);
 
     if (new_minute 10) {
         my $memory_diff = $Info{memory_virtual} - $Info{memory_virtual_prev};
