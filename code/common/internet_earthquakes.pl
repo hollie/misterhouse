@@ -205,26 +205,13 @@ sub calc_earthquake_age {
     $qmnth += 1;
     #Merge it again - this is now local time, not UTC
     my $qtime = timelocal($qseco,$qminu,$qhour,$qdate,$qmnth-1,$qyear);
-    my $midnight = timelocal(0, 0, 0, $Mday, $Month - 1, $Year - 1900);
-    
-    my $diff = (time() - $qtime);
-
-    return int($diff/60) . " minutes ago " if ($diff < 60*120);
-    return int($diff/(60*60)) . " hours ago " if ($qtime > $midnight);
-    my $hour;
-    $qhour =~ s!^0!!;
-    if ($qhour == 0) {$hour = "12 AM"}
-    elsif ($qhour < 12) {$hour = "$qhour AM"}
-    elsif ($qhour == 12) {$hour = "12 PM"}
-    else {$hour = $qhour - 12 . " PM"}
-    return "Yesterday at $hour " if ($qtime > $midnight - 60*60*24);
-    my $days_ago = int($diff/(60*60*24) + .5);
-    return  "$days_ago day" . (($days_ago > 1)?'s':'') . " ago at $hour";
+    return time_date_stamp( 23, $qtime );
 }
 
 
 # lets allow the user to control via triggers
-if ($Reload) {
-    &trigger_set('$New_Hour and net_connect_check', "run_voice_cmd 'Get recent earthquakes'", 'NoExpire', 'get earthquakes')
-      unless &trigger_get('get earthquakes');
-}
+# noloop=start
+&trigger_set('$New_Hour and net_connect_check', 
+  "run_voice_cmd 'Get recent earthquakes'", 'NoExpire', 'get earthquakes')
+  unless &trigger_get('get earthquakes');
+# noloop=stop
