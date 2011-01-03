@@ -12,7 +12,7 @@ mh - MisterHouse Home Automation Program
 B<mh> is a perl program for time, event, web, socket, and voice based home control functions.  It currently
 runs on Windows 95/98/NT and on Unix platforms, including Linux and Mac OSX.
 
-perl objects are used for various types of objects to give a powerful but
+perl objects are used for various types of items to give a powerful but
 concise programming interface.  Here is some example code:
 
    $dishwasher = new X10_Item 'B1';         # B1 is the dishwasher X10 code
@@ -120,9 +120,9 @@ Here are the basic steps of the mh program:
 
    1: Read config files and initialize things
 
-       Setup the OLE Text To Speech (TTS) object or Festival socket port
-       Setup the OLE Voice Recognition object or socket to the viavoice_server on linux
-       Setup the serial objects
+       Setup the OLE Text To Speech (TTS) item or Festival socket port
+       Setup the OLE Voice Recognition item or socket to the viavoice_server on linux
+       Setup the serial items
        Setup the tcp socket ports
 
    2: Read and evaluate/compile the user event code into the mh_temp.user_code file:
@@ -201,7 +201,7 @@ Here are a few of them:
    If tests are == (or !=) for numeric data and eq (or ne) for string data.
 
    Object methods can be specified 2 ways.
-   Here are both examples on how use the method 'set' for an X10 object:
+   Here are both examples on how use the method 'set' for an X10 item:
 
       set $dishwasher ON;    # Indirect object form
       $dishwasher->set(ON);  # Classic 'object oriented' form
@@ -404,7 +404,7 @@ The list of modules that are not items is L<here|::modules>.
 Assigns a sound file to an event name.  This allows us to create and review event sounds.
 See mh/code/common/event_sounds.pl for an example.
 
-  Example:
+Example:
 
     add_sound barcode_scan => 'sound_nature/bird.wav', volume => 20 if $Reload;
     if ($state = state_now $barcode_scan) {
@@ -416,7 +416,7 @@ See mh/code/common/event_sounds.pl for an example.
 
 Calls up the web browser defined my the mh.ini browser parm
 
-  Examples:
+Examples:
 
     browser 'http://misterhouse.net';
     browser "$config_parms{tracking_dir}/today.html" if said $v_show_tracking;
@@ -429,7 +429,7 @@ Calls up the web browser defined my the mh.ini browser parm
 
 Converts from degrees Kelvin/Centigrade to Farenheight
 
-  Example:
+Example:
 
     $weather{TempF} = convert_c2f($weather{TempC});
 
@@ -454,7 +454,7 @@ Here is a complete list of conversion functions:
 
 Converts 0->360 degrees into north, north east, east, etc
 
-  Example:
+Example:
 
     speak "Wind speed is " . round($weather{WindAvgSpeed}) .
           " from the " . convert_wind_direction($weather{WindAvgDir});
@@ -473,7 +473,7 @@ are useful if you want to store key-value data or hash arrays onto disk for late
   dbm_write simply stores data as is:    $dbm_file{$log_key}=$log_data
   logit_dbm also stores an access count: $dbm_file{$log_key}="$access_count $log_data"
 
-  Examples:
+Examples:
 
     logit_dbm("$Pgm_Root/data/phone/callerid.dbm",
               $cid_number, "$Time_Now $Date_Now $Year name=$cid_name");
@@ -529,7 +529,7 @@ Displays the specified text string, text file contents, or bitmap (.gif or .jpg)
       app     This uses the parms defined in the  the mh.ini display_app parm.
               This allows us to use custom parms with generic, common code.
 
-  Examples:
+Examples:
 
     display "Internet message: $msg", 300, 'Internet message';
     display $f_trivia_answer;
@@ -559,12 +559,12 @@ Use this to run some code after some delay.
 
      eval_with_timer $code, $time;
 
-  Examples:
+Examples:
 
     eval_with_timer 'print_log "hi from the past"', 60;
     eval_with_timer '$Misc{insult}{flag} = 1', 2;  # Sets flag after 2 seconds
 
-If you want to do this with an object state, use the set_with_timer method.
+If you want to do this with an item state, use the set_with_timer method.
 
 
 =item file_backup
@@ -574,7 +574,7 @@ extension.  If the backup1 file already exists, it is renamed to backup2
 first, backup2 is renamed to backup3, backup3 is renamed to backup4, and 
 backup4 is deleted.
 
-  Examples:
+Examples:
 
     file_backup $log_file, "force";
     file_backup $parm_file, "copy";
@@ -591,7 +591,7 @@ option implies "force".
 Concatonates data from one file onto another.  If an optional 3rd parm of 'top' is specified,
 the first files is added to the top of the 2nd file.  If not, then it is added to the bottom.
 
-  Examples:
+Examples:
 
     file_cat $file, $file_total;
 
@@ -607,7 +607,7 @@ Returns 1 if the specified file has change since last checked.
 Returns 0 if the file has not changed.
 Returns undef if we don't know (i.e. first check after mh was started).
 
-  Example:
+Example:
 
     print_log "File $file has change" if file_changed($file);
 
@@ -621,7 +621,7 @@ Checks to see if a file exists, and if not, returns a default file instead.
 
      file_default $file, $default;
 
-  Examples:
+Examples:
 
     $f_insult = new  File_Item(&check_default_file($config_parms{speak_insult_file},
                                "$config_parms{data_dir}/remarks/insults1.txt"));
@@ -631,7 +631,7 @@ Checks to see if a file exists, and if not, returns a default file instead.
 
 Returns true if the contents of the 2 specified files are different.
 
-  Example:
+Example:
 
     print_log "Files are different" if file_diff($file1, $file2);
 
@@ -640,7 +640,7 @@ Returns true if the contents of the 2 specified files are different.
 
 Returns the first few lines of a file
 
-  Example:
+Example:
 
      @data = file_head($file, $lines);
 
@@ -659,7 +659,7 @@ Returns the size of a file, in bytes.
 Reads data from a file.
 If used in a list context, a list is returned, otherwise a string of all the lines.
 
-  Examples:
+Examples:
 
      @data = file_read($file);
      $data = file_read($file);
@@ -669,7 +669,7 @@ If used in a list context, a list is returned, otherwise a string of all the lin
 
 Returns a member => full_path hash for all members in all dirs passed to it.
 
-  Examples:
+Examples:
 
     my %file_paths = &file_read_dir(@Code_Dirs);
     for my $member (keys %file_paths) {
@@ -682,7 +682,7 @@ Returns a member => full_path hash for all members in all dirs passed to it.
 
 Returns the last few lines of a file
 
-  Example:
+Example:
 
      $data = file_tail($file, $lines);
 
@@ -697,7 +697,7 @@ Returns 0 if the specified file has change since last checked.
 Returns 1 if the file has not changed.
 Returns undef if we don't know (i.e. first check after mh was started).
 
-  Example:
+Example:
 
     my $watchdog_file = '//dm/d/misterhouse/mh/data/mh.time';
     if (file_unchanged $watchdog_file) {
@@ -710,7 +710,7 @@ Returns undef if we don't know (i.e. first check after mh was started).
 
 Writes data into a file.  Like logit, except it writes over, rather than appends to, a file.
 
-  Examples:
+Examples:
 
      file_write($file, $data);
 
@@ -719,7 +719,7 @@ Writes data into a file.  Like logit, except it writes over, rather than appends
 
 Returns the given string, with carriage returns and line feeds filtered out
 
-  Examples:
+Examples:
 
     print_log filter_cr get "$URL/play?p=$config_parms{mp3_program_password}";
 
@@ -743,7 +743,7 @@ Appends data into a log file.  Use file_write to write over a file.
       $head_tail     =>  If 1, data is logged to the top of the file, otherwise
                          it is added to the bottom.
 
-  Examples:
+Examples:
 
    logit("$Pgm_Root/data/logs/wx200.$Year_Month_Now.log",  $data, 0);
    logit("$Pgm_Root/data/phone/logs/callerid.$Year_Month_Now.log", "$cid_number $cid_name");
@@ -882,9 +882,9 @@ and on Unix, the program is forked with &.
 If you specify 'inline' as the first argument, the program will not be a background process/forked.
 mh will pause until the program is done.
 
-If you want to track when the process finishes, use a Process_Item object instead.
+If you want to track when the process finishes, use a Process_Item instead.
 
-  Examples:
+Examples:
      run('IR_cmd VCR,3,6,RECORD');  # Start a VCR recording
      run 'rasdial /disconnect';     # Log off from the net (on Windows)
      run 'inline', 'some_fast_command_here';
@@ -1268,12 +1268,11 @@ These return true if the specified time is greater, less than, or equal to the c
 same sorts of offsets as described in time_now below.  Note unlike time_now which is only true once,
 these functions will return a true value for every pass that they are true.
 
-   Example:
+Example:
 
       curtain_on('bedroom', OPEN) if
                     time_cron('22 6 * * 1-5') and
                     time_greater_than("$Time_Sunrise + 0:15");
-
 
 =item time_between
 
@@ -1282,13 +1281,11 @@ Returns true if the current time is between the 2 specified times.
 If the end time happens to be earlier than the start_time, then it tests if the start-time is more than
 12 hours in the future.  If so, it subtracts 24 hours from the start-time, otherwise it adds 24 hours to the end-time.
 
-   Example:
+Example:
 
        speak 'Who goes there' if
             state_now $motion_sensor and
             time_between '10 pm', '6 am';
-
-
 
 =item time_now
 
@@ -1303,7 +1300,7 @@ If this is set to '*', it returns true for all passes for the minute that it mat
 The best way to see how it works is to look the following examples:
 
    Examples:
-
+  
      run_voice_cmd 'close the living room curtains'  if time_now $Time_Sunset;
      set $backyard_light ON if time_now("$Time_Sunset + 0:15");
      set $left_bedroom_light +50 if $Weekday and time_now "$wakeup_time - 0:01";
@@ -1319,22 +1316,21 @@ Frequency is the average number of minutes between occurrences.
 
   Usage:
      time_random($cron_spec, $frequency)
-
-  Examples:
-
+  
+Examples:
+  
               # Speak something goofy once an hour on weekends
     speak(read_next $april_fools) if time_random('* 8-22 * * 0,6', 60);
-
+  
               # Toggle a light on an off randomly every 30 minutes
     if (time_random('* 18-22 * * *', 30)) {
       $state = (ON eq state $bedroom_light) ? OFF : ON;
       set $bedroom_light $state;
     }
-
+  
     print 'test value=2'  if time_random '* * * * *',  2; # Fires every other minute;
     print 'test value=10' if time_random '* * * * *', 10; # Fires every other 10th minute;
     print 'test value=1'  if time_random '* * * * *',  1; # Fires every minute (not useful)
-
 
 =item time_random_offset
 
@@ -1349,196 +1345,12 @@ specified and the random offset, it won't fire.
 
   Usage:
      time_random_offset($time_now_spec, $offset)
-
-  Examples:
-
+  
+Examples:
+  
     speak "random test" if &time_random_offset('1:20 pm', '1:23');
-
+  
     set $light ON if &time_random_offset(&time_add("$Time_Sunset + :15"), 15));
-
-
-=back
-
-
-=head2 List of tk widget functions
-
-=over 4
-
-
-=item tk_button tk_mbutton
-
-Use these functions to add a Tk button widget to the mh tk grid (tk_button) or the tk menu_bar (tk_mbutton).
-&tk_button will accept multiple variables, displaying them in a row in the grid.
-
-   Usage:
-    &tk_mbutton('Button Name', \&subroutine);
-    &tk_button('Button1', \&sub1);
-    &tk_button('Button1', \&sub1, 'Button2', \&sub2,'Button3', \&sub3);
-
-   Examples:
-
-    &tk_mbutton('Help', \&help);
-    &tk_button('Reload(F1)', \&read_code, 'Pause (F2)', \&pause,
-               ' Exit (F3) ', \&sig_handler, 'Debug(F4)',  \&toggle_debug,
-               'Log(F5)', \&toggle_log);
-
-
-=item tk_checkbutton
-
-tk_checkbutton adds a Tk checkbutton widget to the mh tk grid.
-It will accept multiple variables, displaying them in a row in the grid.
-
-   Usage:
-    &tk_checkbutton('text',  \&var1);
-    &tk_checkbutton('test1', \&var1, 'text22', \&var22, 'text3', \&var33);
-
-   Examples:
-
-    &tk_checkbutton('Debug on', \$config_parms{debug});
-    &tk_checkbutton('Sleeping Parents', \$Save{sleeping_parents},
-                    'Sleeping Kids', \$Save{sleeping_kids});
-
-
-=item tk_entry
-
-Use this function to allow for arbitrary data to be entered via the mh tk grid.
-
-   Usage:
-    &tk_entry('Entry label:', $state_based_object);
-    &tk_entry('Entry label:', \$variable);
-    &tk_entry('Entry label:', \$variable, 'Entry label2:, \$variable2);
-
-   Example:
-    &tk_entry('Sleep time:', \$Loop_Sleep_Time);
-    &tk_entry('Test in 1', \$Save{test_input1}, 'Test in 2', \$Save{test_input2});
-
-
-Note:  The $variable reflects the data, as it is being entered.  If you want to test on the data
-only after the RETURN key has been hit, use %Tk_results array.
-The $variable is copied to $Tk_results{'Entry label:'} only after the RETURN key has been entered.
-
-Now you can now also use a state based object (like Generic_Item) to store/monitor/change the tk_entry text.
-
-   Examples:
-
-    &tk_entry('TV search', \$Save{tv_search});
-    if ($state = $Tk_results{'TV search'}) {
-       run qq[get_tv_info -times all -keys "$state"];
-       set_watch $f_tv_file;
-       undef $Tk_results{'TV search'};
-    }
-
-
-   $mp3_search_text =  new Generic_Item;
-   $mp3_search_text -> tie_event('print_log "mp3 search text is now $state"');
-   &tk_entry('mp3 Search', $mp3_search_text);
-
-
-
-=item tk_label tk_mlabel
-
-Use these functions to add a Tk label widget to the mh tk grid (tk_label) or the tk menu_bar (tk_mlabel).
-To avoid duplicate labels after a reload, pass a label name as a 2nd parm.
-
-   Usage:
-
-     &tk_mlabel(\$variable, $label);
-
-
-   Example:
-
-     &tk_mlabel(\$Save{email_flag}, 'email flag');
-
-
-=item tk_radiobutton
-
-Use this function to create radio buttons in the mh tk grid.  If labels are not specified, the values are displayed.
-
-   Usage:
-    &tk_radiobutton('Button label:', $state_based_object, ['value1', 'value2', 'value3']);
-    &tk_radiobutton('Button label:', \$variable, ['value1', 'value2', 'value3']);
-    &tk_radiobutton('Button label:', \$variable, ['value1', 'value2', 'value3'],
-                                                 ['label1', 'label2', 'label3']);
-
-   Examples:
-
-    &tk_radiobutton('Mode',  \$Save{mode}, ['normal', 'mute', 'offline']);
-    &tk_radiobutton('Debug', \$config_parms{debug}, [1, 0], ['On', 'Off']);
-    &tk_radiobutton('Tracking', \$config_parms{tracking_speakflag}, [0,1,2,3],
-                    ['None', 'GPS', 'WX', 'All']);
-
-
-
-    my $alarm_states = "Disarmed,Disarming,Arming,Armed,Violated,Exit Delay,Entry Delay";
-    my @alarm_states = split ',', $alarm_states;
-    $alarm_status    = new Generic_Item;
-    &tk_radiobutton('Security Status', $alarm_status, [@alarm_states]);
-
-    $v_alarm_status  = new Voice_Cmd "Set the alarm to [$alarm_states]";
-    $v_alarm_status -> tie_items($alarm_status);
-
-    print_log "Alarm status changed to $state" if $state = state_now $alarm_status;
-
-
-=item trigger_set
-
-=item trigger_get
-
-You can create triggers to easily run mh code on specified events.  When you create a trigger
-with trigger_set, mh will create or modify the code_dir/triggers.mhp file.
-
-Use the web interface at http://localhost:8080/bin/triggers.pl
-(also under the ia5 MrHouse Home button) to view and update triggers.
-
-Trigger functions are:
-
-  trigger_set($trigger, $code, $type, $name, $replace)
-
-    Creates or modified an existing trigger.  Only $trigger and $code are
-    required.  $type defaults to OneShot (runs only once) and $name
-    will default to an unique auto-generated name.  If $name is specified
-    and already exists, $name will be incremented, unless $replace=1.
-
-    Example:
-
-      &trigger_set("time_now '$date $time - 00:02'",
-                   "speak 'Something cool happens in 2 minutes'");
-
-      &trigger_set("time_now '$Save{wakeup_time}'",
-                   "speak 'Time to wake up'", "NoExpire", "Wakeup Trigger", 1);
-
-      Another example of using triggers is in mh/code/common/tv_grid.pl
-
-
-  trigger_get($name}
-    Returns ($trigger, $code, $type, $triggered).
-    $triggered is the epoc seconds when the trigger was
-    last tirggered, 0 if it has not been triggered.
-
-  trigger_list
-    Returns a list of trigger names.
-
-  trigger_delete($name}
-  trigger_copy($name}
-    Delete or copies the specified trigger.
-
-  trigger_active($name)
-  trigger_expired($name)
-    Returns true if the trigger is active or expired.
-
-
-Here are the valid trigger types:
-
-  OneShot  => The trigger will run once, then changed type to Expired
-
-  Expired  => Will be pruned from the triggers.mhp file after one week
-              and archived in data_dir/triggers.expired.
-
-  NoExpire => Runs on every event and never expires.
-
-  Disabled => Will stay in your triggers.mph file, but will not run.
-
-
 
 =item write_mh_opts
 
@@ -1548,17 +1360,37 @@ in the file.  The first argument is a hash of parameters to set.  The second
 (optional) argument is the ini file you want to modify, and the third 
 (optional) argument is set to 1 if you want to log the change. 
 
-  Examples:
-
+Examples:
+  
     write_mh_opts({"photo_dir" -> $state}, undef, 1);
     write_mh_opts(%parms);
 
+=item new_second
 
+=item new_minute
+
+=item new_hour
+
+These functions are like the $New_Second/Minute/Hour variables, except they can return true
+only on the nth second/minute/hour.
+
+Examples:
+
+    print_log "This occurs every 10th second" if new_second 10;
+    print_log "This occurs once every even hour" if new_second 2;
+
+If you pass no argument, it defaults to 1 (i.e. the same as the $New_* variables).
 
 
 =back
 
-See mh/code/examples/tk_examples.pl for more tk_*  examples.
+=head2 List of tk widget functions
+
+The tk widget functions are documented L<here|lib::handy_tk_utilities>.
+
+=head2 List of trigger functions
+
+The trigger functions are documented L<here|lib::trigger_code>.
 
 =head2 List of Internet functions
 
@@ -1571,7 +1403,7 @@ If the web page is large or the site is slow, you may want to use a Process_Item
 call to the get_url program, so the request can be done as a separate process
 and mh will not get hung up while waiting.
 
-  Examples:
+Examples:
 
     my $html = get 'http://marketing.cbs.com/lateshow/topten';
 
@@ -1582,7 +1414,7 @@ and mh will not get hung up while waiting.
 Returns the numeric IP address of the specified hostname.  If hostname is blank, localhost is used.
 If used in a list context, all associated IP address are returned (e.g. dial up address and local address).
 
-  Examples:
+Examples:
 
     print_log "Current IP address " . get_ip_address;
 
@@ -1596,23 +1428,6 @@ If used in a list context, all associated IP address are returned (e.g. dial up 
 =item html_unescape
 
 Un-escapes "%xx" data back into the original characters.  Use on HTML FORM data.
-
-=item new_second
-
-=item new_minute
-
-=item new_hour
-
-These functions are like the $New_Second/Minute/Hour variables, except they can return true
-only on the nth second/minute/hour.
-
-  Examples:
-
-    print_log "This occurs every 10th second" if new_second 10;
-    print_log "This occurs once every even hour" if new_second 2;
-
-If you pass no argument, it defaults to 1 (i.e. the same as the $New_* variables).
-
 
 =item net_domain_name 'address'
 
@@ -1636,7 +1451,7 @@ that the net_domain_name_done test gets the correct results.
 The data is cached.  If the domain has already been searched, net_domain_name_start will
 return the same results as net_domain_name_done.
 
-  Examples:
+Examples:
 
                            # Run in the foreground
    my $domain_name = net_domain_name 'http';
@@ -1654,7 +1469,7 @@ return the same results as net_domain_name_done.
 
 Checks to see if an IP address is available.    Returns true if pingable.
 
-  Example:
+Example:
 
     &net_ping($host);           #  Default protocol is specified in mh.ini
     &net_ping($host, $protocol);
@@ -1721,7 +1536,7 @@ Returns true if the specified host:port is avilable, 0 otherwise.
 
     net_socket_check($host_port, $protocol);
 
-  Examples:
+Examples:
 
     return &net_socket_check("$host:$port");
 
@@ -1761,7 +1576,7 @@ Subsequent messages use the same signon, so are sent much faster.
 Once you have been logged in, mh will also display incoming messages.  This code has lots of
 other possibilites that can be added, since jabber is XML based and very flexable.
 
-  Example:
+Example:
 
     net_im_send(pgm => 'jabber', text => "Stock summary\n  $Save{stock_data1}\n  $Save{stock_data2}")
 
@@ -1815,7 +1630,7 @@ causes mh to pause.
 
         priority    Can be 1->5 (1 is high, 5 is low).  Default is 3.
 
-  Example:
+Example:
 
     net_mail_send(text => "Test email sent at $Time_Now\n\n");
 
@@ -1853,7 +1668,7 @@ Returns the number of email message on the specified account.
                     It defaults to the mh.ini parm net_mail_send_account.
 
 
-  Example:
+Example:
 
     my $count = net_mail_count(account => 'Bruce');
     speak "Email account Bruce has $count new email messages";
@@ -1903,7 +1718,7 @@ most of these programs with the -h option (e.g. get_tv_grid -h).
       -pin xyz        => pin number
       -message xyz    => text of message to send
 
-  Example:
+Example:
     alpha_page -pin 123456 -message 'Bring home bread and milk'
     alpha_page -name craig -message 'Bring home bread and milk'
 
@@ -1930,7 +1745,7 @@ backup_data walks directories and stores selected files to gziped tar files.
                  then external tar and gzip programs.  This is slower
                  and users more memory (> the data being tared).
 
-  Examples:
+Examples:
     backup_data /www
     backup_data -size 10 -no_zip -int /usr/local/bin
     backup_data -file /backup/misc /bin //misterhouse.net/bin
@@ -1951,7 +1766,7 @@ Use this to display a string of text or the contents of a file using a Tk window
     -font  xyz to pick the font
     -title xyz to set the window title
 
-  Examples:
+Examples:
     display weather_forcast.txt
     display -title 'triva answer' c:/data/triva_answer.txt
     display "Remember to take out the garbage" -time 0
@@ -1980,7 +1795,7 @@ find_files finds files on shared networked Windows and samba directories
     -dirs  x,y,z => Search only dirs x,y, and z.  Defaults to all.
     -skip  x,y,z => Ignore files/dirs with strings x,y, and z.
 
-  Examples:
+Examples:
     find_files mp3
     find_files -v -boxes "house,dm,c2" mp3
     find_files -dirs "//house/c,//dm/d" mp3
@@ -2002,7 +1817,7 @@ Requires WMI to be installed on both/all computers.
     -h or -help  => This help text
     -all         => Show/search all programs
 
-  Examples:
+Examples:
     find_programs house
     find_programs "house,dm,c2" quake
     find_programs -all "house,dm,c2"
@@ -2074,7 +1889,7 @@ tag data, file names, and playlist files.
 
     -dbm  xyz => Stores the data in dbm file xyz.
 
-  Examples:
+Examples:
     get_mp3_data c:\mp3 d:\mp3
     get_mp3_data -dbm e:\mh\data\mp3_dbm c:\mp3
 
@@ -2117,7 +1932,7 @@ Creates a DBM for use by get_tv_info.
     -mail_server  xyz => xyz is the SMTP host.  Default is localhost
     -mail_baseref xyz => xyz is the http address of your mh server.  Needed if
                          you want to control mh from the emailed web page
-  Example:
+Example:
     get_tv_grid -day 25 -hour 4pm -outfile my_tv.html
     get_tv_grid -days 7 -hour all
     get_tv_grid -email bruce@misterhouse.net -mail_baseref misterhouse.net:8090
@@ -2163,7 +1978,7 @@ Creates a DBM for use by get_tv_info.
     -mail_baseref xyz => xyz is the http address of your mh server.  Needed if you want to
                          control mh from the emailed web page
 
-  Examples:
+Examples:
     get_tv_grid -day 25 -hour 4pm -outfile my_tv.html
     get_tv_grid -days 7 -hour all
     get_tv_grid -email bruce\@misterhouse.net -mail_baseref misterhouse.net:8090
@@ -2216,7 +2031,7 @@ See mh/code/bruce/tv_info.pl for examples on how to use this from mh.
     -debug        => turn on debug info
     -quiet        => turn off normal errata
 
-  Examples:
+Examples:
     get_tv_info -channels "4-12" -lengths 2
     get_tv_info -channels "4,6,12" -times "7 pm"
     get_tv_info -dates "7/4-7/11" -keys "star trek, er ,dilbert"
@@ -2258,7 +2073,7 @@ get_url gets a web page and echoes it to STDOUT or a local file.
      -header 'header_file': HTTP headers from the server are stored in this file
 
 
-  Examples:
+Examples:
     get_url http://marketing.cbs.com/lateshow/topten/ $f_top10_html;
 
 
@@ -2285,7 +2100,7 @@ get_weather gets weather info NOAA web servers.
     -no_log       => Unless this option is used, the results also get filed
                      into the mh/data/web directory
 
-  Example:
+Example:
     get_weather -city Rochester -state MN
 
 Here is an example mh event for calling get_weather as a background process using the 'run' function:
@@ -2309,13 +2124,14 @@ This is a simple shell that echoes whatever you type into the 'xcmd_file'.
 The name of the 'xcmd_file' is specified in mh.ini.  If mh detects this
 file, it will read and execute its contents, then delete it.
 
-  Examples:
+Examples:
     house speak hi there
     house display c:\autoexec.bat
     house Turn the backyard light on
     house XA1AJ
 
-The last example will fire trigger an X10 command, but only if you have an object defined that matches that data (e.g. X10 A1 in the above example).
+The last example will fire trigger an X10 command, but only if you have an 
+item defined that matches that data (e.g. X10 A1 in the above example).
 
 
 =item ical_load
@@ -2350,7 +2166,7 @@ See outlook_read for a Windows solution.
     -date mm/dd/yy    -> Get data with a start_time on date.  Default is today.
     -days ###         -> Look out ### days from -date.  Default is none, today only.
 
-  Examples:
+Examples:
     ical_load -help
     ical_load -calendar_file /home/dbl/.calendar -pl_file /projects/mhcode/calendar_events.pl
     ical_load -calendar_file /home/dbl/.calendar -date 11/07/00 -days 2
@@ -2388,7 +2204,7 @@ it directly from mh.
        passive         0/1.  Default is 0
        timeout         Defaults to 20 (seconds)
 
-  Example:
+Example:
     net_ftp -command put -file junk1.txt -file_remote /tmp/junk1.txt
 
 =item outlook_read
@@ -2428,7 +2244,7 @@ See ical_load for a Unix solution.
     -days xyz    -> Look out xyz days from -date.  Default is 1 day.
 
 
-  Examples:
+Examples:
     outlook_read -help
     outlook_read -date 1/17
     outlook_read -date 12/25/97 -days 2
@@ -2456,7 +2272,7 @@ Usage:
     -runid      xyz => All graphs will have xyz as a prefix.  Default is blank.
     -outdir     xyz => All graphs be stored in directory xyz.  Default is .
 
-  Examples:
+Examples:
     report_weblog -mailto 'bruce@misterhouse.net' /var/log/httpd/access_log
     report_weblog -mailto winters@home.net -mailserver 24.2.1.70 e:/mh/data/logs/server.1999_07.log
 
@@ -2509,7 +2325,7 @@ Usage:
     -mh_port   xyz => The ip port you set mh.ini server_speak to.
     -ignore    xyz => A comma-delimited list of ip address to ignore.
 
-  Examples:
+Examples:
     monitor_weblog -mh_server house -ignore 'house,10.0.0.1' /var/log/httpd/access_log
 
 =item set_clock
@@ -2538,7 +2354,7 @@ set to.
                     time.nist.gov:??
                     time-nw.nist.gov:??
 
-  Example:
+Example:
     set_clock
     set_clock -server time-a.timefreq.bldrdoc.gov:14
 
@@ -2557,11 +2373,14 @@ Here is an example call from mh.  Since this is typically quick, we do it here w
 
 =item set_password
 
-set_password creates and/or queries the mh password file, using the crypt function.
-If this password is set, then various menus (e.g. web, telnet, wap) will prompt for it.
+set_password creates and/or queries the mh password file, using the crypt 
+function.
+If this password is set, then various menus (e.g. web, telnet, wap) will 
+prompt for it.
 By default, the mh setup web pages can only be controled with the admin logon,
-but you can add/delete other commands by adding authority=admin to the password_allow_file.
-You can also specify authority with the set_authority object method,
+but you can add/delete other commands by adding authority=admin to the 
+password_allow file.
+You can also specify authority with the set_authority item method,
 or by adding it to your web/bin xyz.pl file # Authority=user  comment.
 
 The crypt function limits the password to 8 characters.
@@ -2584,22 +2403,20 @@ If -user is not specified, it defaults to family.
     -pw_file xyz  => xyz is the file that the crypt-ed password is read/written to.
                      Default is mh/data/.password
 
-  Examples:
+Examples:
+
     set_password  -user admin
     set_password  -user family -password xyz
-
-
 
 =item speak
 
 speak will pass the file or text to mh.  It simply runs the house program.
 
-  Example:
+Example:
+
     speak "Boo, did I scare you?"
 
-
 =back
-
 
 =head2 Authentication
 
@@ -2844,9 +2661,9 @@ Files, under "Check for new versions of stored pages" select the option "Every v
 
 
 
-The web Items and Groups displays will use icons to indicate the object state.
+The web Items and Groups displays will use icons to indicate the item state.
 Icons will be searched for in the mh/graphics directory according to
-the objects icon method, the object name, the object state, and the object type.
+the item icon method, the item name, the item state, and the item type.
 For example, given this code:
 
     $fountain = new X10_Appliance('C3');
@@ -2859,7 +2676,8 @@ The search order for the ON state will be:
     x10_appliance-on.gif
     on.gif
 
-The web Category display will try to match icons to Voice_Cmd objects using the icon method, object name,
+The web Category display will try to match icons to Voice_Cmd items
+ using the icon method, item name,
 voice command text, and filename.
 For example, given this code from the member internet_data.pl:
 
@@ -2909,13 +2727,13 @@ You can use the following html addresses to have mh return dynamically generated
     This will return all the Group Items
 
   /group?$group_name
-    This will return all the objects in $group_name
+    This will return all the items in $group_name
 
   /items
-    This will return all the non Voice Objects (e.g. X10_Items)
+    This will return all the non Voice items (e.g. X10_Items)
 
-  /items?object_type
-    This will return all the objects of type object_type
+  /items?item_type
+    This will return all the items of type item_type
 
   /widgets
     This lists all the Tk widgets.
@@ -3014,7 +2832,8 @@ Or with this:
 
  http://localhost:8080/SET;&web_func2(myarg1,myarg2)
 
-One example of a built in function is html_item, which will return html for one object.  For example:
+One example of a built in function is html_item, which will return html for 
+one item.  For example:
 
   <!--#include code="&html_item('v_what_speed')"-->
   <!--#include code="&html_item('mode_mh')"-->
@@ -3038,18 +2857,19 @@ RUN and SET (or SET_VAR) URL keywords to control mh.  Here are a few examples:
  <a href=http://localhost:8080/SET?$Save{test_input1}?abc >Load test_input1 with abc</a>
  <a href=http://localhost:8080/RUN?WebCam_light_on >WebCam light on</a>
 
-The SET (or SET_VAR ... they are now the same) command can set any object or variable defined in your user code.
+The SET (or SET_VAR ... they are now the same) command can set any item
+or variable defined in your user code.
 The RUN command can run any voice command.
 Use '_' to replace blanks in the command string.
 
 SET, RUN, or SUB can use an optional h_response field to decide what html will be returned:
 
   Format:
-   SET;h_response?$object?value
+   SET;h_response?$item?value
    RUN;h_response?command
    SUB;h_response?sub_name(arg1,arg2)
 
-  $var and $object are the variable and object names, with or without the $ prefix.
+  $var and $item are the variable and item names, with or without the $ prefix.
 
   h_response is optional and can be one of the following:
    &function        The results of &function will be returned
@@ -3106,7 +2926,7 @@ Here are some examples demonstrating these options:
 
 
  This will redirect the browser back to the calling page
- (note the $ from the $camera_light object is optional):
+ (note the $ from the $camera_light item is optional):
 
   <a HREF="http://misterhouse.net:8090/SET;Referer?camera_light=on">Light on</a>
 
@@ -3240,7 +3060,7 @@ Tested interfaces include
 cm11, cm17, iButton, weeder, mr26, wx200 weather, modem, netcallerid, and ham tnc.
 
 If you want to put an iButton port on a proxy, you will need to also run a code file
-on the proxy that defines all the iButtons you will use on that port.  These iButton object names
+on the proxy that defines all the iButtons you will use on that port.  These iButton item names
 must match those on in your real code on your main mh box.  One way to do this is to
 share the same iButton.pl code file on your proxy as you use on your main mh box,
 using the mh.ini/mh.proxy.ini code_dir and load_code parms.  For example:
@@ -3278,7 +3098,7 @@ If you are getting the message "Out of environment space" try adding these recor
   config.sys:   shell=command.com /e:8000 /p
   autoexec.bat: set comspec=c:\command.com
 
-By default, declaration code like '$object = new ...', or 'my $var = ...' is pulled
+By default, declaration code like '$item = new ...', or 'my $var = ...' is pulled
 out of the user loop code and put in the startup code, so it is only run once.
 If you want to force additional code out of the loop code, you can use add # noloop=start/stop
 comments before and after the code segment, or you can add a # noloop comment to the
@@ -3338,8 +3158,8 @@ Here is a list of all the code hook locations:
   MainLoop_pre   => Run before user code
   MainLoop_post  => Run before user code
   Serial_data    => Run on any incoming serial data
-  Serial_match   => Run when incoming serial data matches and object
-  State_change   => Run when objects change states
+  Serial_match   => Run when incoming serial data matches and item
+  State_change   => Run when items change states
   Play_parms     => Run before playing wav files, so you can set play parms
   Play_pre       => Run before playing wav files
   Play_post      => Run after  playing wav files
@@ -3616,7 +3436,7 @@ you will get too far (grin).
 # - 2.45 release
 #
 # Revision 1.37  2001/02/07 01:18:10  danal
-# Documented "mode" method for DSC_Alarm objects
+# Documented "mode" method for DSC_Alarm items
 #
 # Revision 1.36  2001/02/04 20:31:31  winter
 # - 2.43 release
@@ -3628,7 +3448,7 @@ you will get too far (grin).
 # - 2.38 release
 #
 # Revision 1.33  2000/12/12 22:04:47  danal
-# DSC_Alarm object methods such as "state" documented
+# DSC_Alarm item methods such as "state" documented
 #
 # Revision 1.32  2000/12/03 19:38:54  winter
 # - 2.36 release

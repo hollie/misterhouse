@@ -2,6 +2,14 @@ hr, big {
 	visibility: hidden;
 }
 
+code {
+	font-family: "Helvetica Neue", Arial, Helvetica, Geneva, sans-serif;
+	font-weight: bold;      
+}
+
+a.item {
+}
+
 body {
 /*
 	background-color: #004065;
@@ -111,7 +119,7 @@ ul li {
 }
 
 dt {
-       font-weight: bold;      
+	margin-top: 15px;
 }
 
 a:link, a:active {
