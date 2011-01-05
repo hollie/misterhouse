@@ -40,6 +40,24 @@ our %message_types = (
 						off => 0x13
 );
 
+sub derive_link_state
+{
+	my ($p_state) = @_;
+
+	my $link_state = 'on';
+	if ($p_state eq 'off') 
+	{
+		$link_state = 'off';
+	} 
+	elsif ($p_state =~ /\d+%?/) 
+	{
+		my ($dim_state) = $p_state =~ /(\d+)%?/;
+		$link_state = 'off' if $dim_state == 0;
+	}
+
+	return $link_state;
+}
+
 sub new
 {
 	my ($class,$p_deviceid,$p_interface) = @_;
@@ -1214,74 +1232,93 @@ sub set
 {
 	my ($self, $p_state, $p_setby, $p_respond) = @_;
 	# prevent reciprocal setby loops
-	return if (ref $p_setby and ($p_setby ne $self) and $p_setby->can('get_set_by') and
+	return -1 if (ref $p_setby and ($p_setby ne $self) and $p_setby->can('get_set_by') and
            $p_setby->{set_by} eq $self);
-	return if &main::check_for_tied_filters($self, $p_state);
+	return -1 if &main::check_for_tied_filters($self, $p_state);
 
 	# prevent setby internal Insteon_Device timers
-	return if $p_setby eq $$self{ping_timer};
+	return -1 if $p_setby eq $$self{ping_timer};
 
-	my $link_state = 'on';
-	if ($p_state eq 'off') {
-		$link_state = 'off';
-	} elsif ($p_state =~ /\d+%?/) {
-		my ($dim_state) = $p_state =~ /(\d+)%?/;
-		$link_state = 'off' if $dim_state == 0;
-	}
-#	if ($self->isa('Insteon::InterfaceController') or !($self->is_root)) {
-		# iterate over the members
-		if ($$self{members}) {
-			foreach my $member_ref (keys %{$$self{members}}) {
-				my $member = $$self{members}{$member_ref}{object};
-				my $on_state = $$self{members}{$member_ref}{on_level};
-				$on_state = '100%' unless $on_state;
-				my $local_state = $on_state;
-				$local_state = 'on' if $local_state eq '100%'
-					&& $member->isa('Insteon::BaseDevice') && !($member->is_root);
-				$local_state = 'off' if $local_state eq '0%' or $link_state eq 'off';
-				if ($member->isa('Light_Item')) {
-				# if they are Light_Items, then set their on_dim attrib to the member on level
-				#   and then "blank" them via the manual method for a tad over the ramp rate
-				#   In addition, locate the Light_Item's Insteon_Device member and do the
-				#   same as if the member were an Insteon_Device
-					my $ramp_rate = $$self{members}{$member_ref}{ramp_rate};
-					$ramp_rate = 0 unless defined $ramp_rate;
-					$ramp_rate = $ramp_rate + 2;
-					my @lights = $member->find_members('Insteon::BaseDevice');
-					if (@lights) {
-						my $light = @lights[0];
-						# remember the current state to support resume
-						$$self{members}{$member_ref}{resume_state} = $light->state;
-						$member->manual($light, $ramp_rate);
-						$light->set_receive($local_state,$self);
-					} else {
-						$member->manual(1, $ramp_rate);
-					}
-					$member->set_on_state($local_state) unless $link_state eq 'off';
-				} elsif ($member->isa('Insteon::BaseDevice')) {
-				# remember the current state to support resume
-					$$self{members}{$member_ref}{resume_state} = $member->state;
-				# if they are Insteon_Device objects, then simply set_receive their state to
-				#   the member on level
-					$member->set_receive($local_state,$self);
+	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
+
+	$self->set_linked_devices($link_state);
+
+	return 0;
+}
+
+sub set_linked_devices
+{
+	my ($self, $link_state) = @_;
+	# iterate over the members
+	if ($$self{members}) 
+	{
+		foreach my $member_ref (keys %{$$self{members}}) 
+		{
+			my $member = $$self{members}{$member_ref}{object};
+			my $on_state = $$self{members}{$member_ref}{on_level};
+			$on_state = '100%' unless $on_state;
+			my $local_state = $on_state;
+			$local_state = 'on' if $local_state eq '100%'
+				&& $member->isa('Insteon::BaseDevice') && !($member->is_root);
+			$local_state = 'off' if $local_state eq '0%' or $link_state eq 'off';
+			if ($member->isa('Light_Item')) 
+			{
+			# if they are Light_Items, then set their on_dim attrib to the member on level
+			#   and then "blank" them via the manual method for a tad over the ramp rate
+			#   In addition, locate the Light_Item's Insteon_Device member and do the
+			#   same as if the member were an Insteon_Device
+				my $ramp_rate = $$self{members}{$member_ref}{ramp_rate};
+				$ramp_rate = 0 unless defined $ramp_rate;
+				$ramp_rate = $ramp_rate + 2;
+				my @lights = $member->find_members('Insteon::BaseDevice');
+				if (@lights) 
+				{
+					my $light = @lights[0];
+					# remember the current state to support resume
+					$$self{members}{$member_ref}{resume_state} = $light->state;
+					$member->manual($light, $ramp_rate);
+					$light->set_receive($local_state,$self);
+				} 
+				else 
+				{
+					$member->manual(1, $ramp_rate);
 				}
+				$member->set_on_state($local_state) unless $link_state eq 'off';
+			} 
+			elsif ($member->isa('Insteon::BaseDevice')) 
+			{
+			# remember the current state to support resume
+				$$self{members}{$member_ref}{resume_state} = $member->state;
+			# if they are Insteon_Device objects, then simply set_receive their state to
+			#   the member on level
+				$member->set_receive($local_state,$self);
 			}
 		}
-#	}
-	if (($self->isa("Insteon::KeyPadLinc") or $self->isa("Insteon::KeyPadLincRelay"))and !($self->is_root)) {
-		if (ref $p_setby and $p_setby->isa('Insteon::BaseDevice')) {
-			$self->Insteon::BaseObject::set($p_state, $p_setby, $p_respond);
-		} elsif (ref $$self{surrogate} && ($$self{surrogate}->isa('Insteon::InterfaceController'))) {
-			$$self{surrogate}->set($link_state, $p_setby, $p_respond)
-				unless ref $p_setby and $p_setby eq $self;
-		} else {
-			&::print_log("[Insteon::BaseController] You may not directly attempt to set a keypadlinc's button "
-				. " unless you have defined a reverse link with the \"surrogate\" keyword");
-		}
-	} else {
-		$self->Insteon::BaseObject::set((($self->is_root) ? $p_state : $link_state), $p_setby, $p_respond);
 	}
+
+
 }
+
+sub set_with_timer {
+	my ($self, $state, $time, $return_state, $additional_return_states) = @_;
+	return if &main::check_for_tied_filters($self, $state);
+
+	$self->set($state) unless $state eq '';
+
+	return unless $time;
+
+	my $state_change = ($state eq 'off') ? 'on' : 'off';
+	$state_change = $return_state if defined $return_state;
+	$state_change = $self->{state} if $return_state and lc $return_state eq 'previous';
+
+	$state_change .= ';' . $additional_return_states if $additional_return_states;
+
+	$$self{set_timer} = &Timer::new() unless $$self{set_timer};
+	my $object_name = $self->{object_name};
+	my $action = "$object_name->set('$state_change')";
+	$$self{set_timer}->set($time, $action);
+}
+
 
 sub update_members
 {
@@ -1387,6 +1424,21 @@ sub new
 	return $self;
 }
 
+sub set
+{
+	my ($self, $p_state, $p_setby, $p_respond) = @_;
+
+	my $rslt_code = $self->Insteon::BaseController::set($p_state, $p_setby, $p_respond);
+	return $rslt_code if $rslt_code;
+
+	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
+
+	$self->Insteon::BaseObject::set((($self->is_root) ? $p_state : $link_state), $p_setby, $p_respond);
+
+	return 0;
+}
+
+
 sub request_status
 {
 	my ($self,$requestor) = @_;
@@ -1484,6 +1536,18 @@ sub new
 	my $self = new Insteon::BaseObject($p_deviceid,$p_interface);
 	bless $self,$class;
 	return $self;
+}
+
+sub set
+{
+	my ($self, $p_state, $p_setby, $p_respond) = @_;
+
+	my $rslt_code = $self->Insteon::BaseController::set($p_state, $p_setby, $p_respond);
+	return $rslt_code if $rslt_code;
+
+	$self->Insteon::BaseObject::set($p_state, $p_setby, $p_respond);
+
+	return 0;
 }
 
 sub is_root
