@@ -23,7 +23,7 @@ Relevant variables for mh.private.ini are:
 #xpl_nohub = 1
 
 You can disable the mh internal xPL hub if you are running a more capable one.
-To get data input, you can use something like 
+To get data input, you can use something like
 
 xpl-rfxcom-rx --verbose --rfxcom-rx-verbose --rfxcom-rx-tty /dev/rfxcom --interface eth1
 
@@ -31,7 +31,7 @@ from xPL-Perl. Then watch for sensor updates passing by and paste their info
 in your device table, like so:
 XPL_SENSOR, bnz-rfxcomrx.gargamel:bthr918n.e6, oregon_intemp, XPL_temp, temp
 
-Another option to figure out the name to use in XPL_SENSOR is to use 
+Another option to figure out the name to use in XPL_SENSOR is to use
 xpl-logger -head -body -i ethx 2>&1 | grep "xpl-trig\/"
 (or without the grep for more details on which field is called what).
 
@@ -648,12 +648,21 @@ sub _handleStaleXplSockets {
 
 
 package xPL_Item;
-=begin comment
+
+=head1 NAME
+
+xPL_Item - Misterhouse base xPL Item
+
+=head1 SYNOPSIS
 
    IMPORTANT: Mark uses of following methods if for init purposes w/ # noloop.  Sample use follows:
 
    $mySqueezebox = new xPL_Item('slimdev-slimserv.squeezebox');
    $mySqueezebox->manage_heartbeat_timeout(360, "speak 'Squeezebox is not reporting'",1); # noloop
+
+=head1 DESCRIPTION
+=begin comment
+
 
    If # noloop is not used on manage_heartbeat_timeout, you will see many attempts to start the timer
 
@@ -710,6 +719,13 @@ package xPL_Item;
 
 
 @xPL_Item::ISA = ('Generic_Item');
+
+=item $h = xPL_Item->new('tag', 'attrname' => 'value',...)
+
+The object constructor.  Takes a tag name as argument. Optionally,
+allows you to specify initial attributes at object creation time.
+
+=cut
 
 
                                   # Support both send and receive objects
@@ -1024,7 +1040,7 @@ package xPL_Sensor;
 
 sub new {
     my ($class, $p_source, $p_type, $p_statekey) = @_;
-    my ($source,$deviceid) = $p_source =~ /(\S+):([\S ]+)/;
+    my ($source,$deviceid) = $p_source =~ /(\S+)?:([\S ]+)/;
     $source = $p_source unless $source;
     my $self = $class->SUPER::new($source);
     $$self{sensor_type} = $p_type if $p_type;

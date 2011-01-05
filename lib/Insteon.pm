@@ -359,7 +359,6 @@ sub active_interface
    my $insteon_manager = InsteonManager->instance();
 
    $insteon_manager->_active_interface($interface) if $interface;
-print "############### active interface is: " . $insteon_manager->_active_interface->get_object_name . "\n";
    return $insteon_manager->_active_interface;
 
 }

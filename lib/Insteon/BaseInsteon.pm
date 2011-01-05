@@ -1343,6 +1343,25 @@ sub derive_message
 	}
 }
 
+sub find_members
+{
+	my ($self,$p_type) = @_;
+	
+	my @l_found;
+	if ($$self{members})
+	{
+		foreach my $member_ref (keys %{$$self{members}})
+		{
+			my $member = $$self{members}{$member_ref}{object};
+			if ($member->isa($p_type))
+			{
+				push @l_found, $member;
+			}
+		}
+	}
+	return @l_found;
+
+}
 
 ####################################
 ###            #####################

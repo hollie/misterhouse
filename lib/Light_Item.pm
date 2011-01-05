@@ -541,7 +541,7 @@ sub is_on_restriction
 	}
 	if ( defined($p_setby) ) {
 		#Automatic on events are no allowed to shutoff lights if someone is here
-		if ( $p_setby->isa('Light_Restriction') ) {
+		if ( $p_setby->isa('Light_Restriction_Item') ) {
 			if ( ! ($self->is_somebody_present($p_setby, $p_state) ) ) { #If someone is in the room, allow the light on!
 				$l_qualified=1;
 			}

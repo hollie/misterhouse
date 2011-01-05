@@ -929,7 +929,12 @@ sub get_link_record
 sub has_link
 {
 	my ($self, $insteon_object, $group, $is_controller, $subaddress) = @_;
-	my $key = lc $insteon_object->device_id . $group . $is_controller;
+	my $key = "";
+	if ($insteon_object->isa('Insteon::BaseObject')) {
+            lc $insteon_object->device_id . $group . $is_controller;
+	} else {
+            lc $$insteon_object{device}->device_id . $group . $is_controller;
+	}
 	$subaddress = '00' unless $subaddress;
 	# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
 	if ($subaddress ne '00' and $subaddress ne '01') {
@@ -1209,7 +1214,7 @@ sub delete_orphan_links
 					my %delete_req = (object => $device, group => $group, is_controller => 1,
 								callback => "$selfname->_process_delete_queue(1)",
 								linkdevice => $self, data3 => $data3);
-					push @{$$self{delete_queue}}, \%delete_req;
+#					push @{$$self{delete_queue}}, \%delete_req;
 				}
 			}
 		}
@@ -1218,14 +1223,14 @@ sub delete_orphan_links
 	$$self{delete_queue_processed} = 0; # reset the counter
 
 	# iterate over all registered objects and compare whether the link tables match defined scene linkages in known Insteon_Links
-	for my $obj ($self->find_members('Insteon::BaseObject'))
+	for my $obj (&Insteon::find_members('Insteon::BaseObject'))
 	{
 		#Match on real objects only
 		if (($obj->is_root))
 		{
-			$num_deleted += $obj->delete_orphan_links();
-			my %delete_req = ('root_object' => $obj, callback => "$selfname->_process_delete_queue()");
-			push @{$$self{delete_queue}}, \%delete_req;
+#			$num_deleted += $obj->delete_orphan_links();
+#			my %delete_req = ('root_object' => $obj, callback => "$selfname->_process_delete_queue()");
+#			push @{$$self{delete_queue}}, \%delete_req;
 		}
 	}
 	$self->_process_delete_queue();
@@ -1364,6 +1369,18 @@ sub add_link
                 $message->interface_data($cmd);
 		$$self{device}->queue_message($message);
 	}
+}
+
+sub has_link
+{
+	my ($self, $insteon_object, $group, $is_controller, $subaddress) = @_;
+	my $key = lc $insteon_object->device_id . $group . $is_controller;
+	$subaddress = '00' unless $subaddress;
+	# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
+	if ($subaddress ne '00' and $subaddress ne '01') {
+		$key .= $subaddress;
+	}
+	return (defined $$self{aldb}{$key}) ? 1 : 0;
 }
 
 
