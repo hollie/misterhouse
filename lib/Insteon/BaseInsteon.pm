@@ -969,7 +969,7 @@ sub local_ramprate
 {
 	my ($self, $p_ramprate) = @_;
 	if (defined $p_ramprate) {
-		$$self{_ramprate} = &Insteon::BaseDevice::convert_ramp($p_ramprate);
+		$$self{_ramprate} = &Insteon::DimmableLight::convert_ramp($p_ramprate);
 	}
 	return $$self{_ramprate};
 
@@ -1134,7 +1134,7 @@ sub sync_links
 					$tgt_ramp_rate = 0.1 unless $tgt_ramp_rate;
 					my $link_on_level = hex($$member{adlb}{$adlbkey}{data1})/2.55;
 					my $raw_ramp_rate = $$member{adlb}{$adlbkey}{data2};
-					my $raw_tgt_ramp_rate = &Insteon::BaseDevice::convert_ramp($tgt_ramp_rate);
+					my $raw_tgt_ramp_rate = &Insteon::DimmableLight::convert_ramp($tgt_ramp_rate);
 					if ($raw_ramp_rate != $raw_tgt_ramp_rate) {
 						$requires_update = 1;
 					} elsif (($link_on_level > $tgt_on_level + 1) or ($link_on_level < $tgt_on_level -1)) {
