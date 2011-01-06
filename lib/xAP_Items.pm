@@ -28,7 +28,7 @@ package xAP;
 
 #se IO::Socket::INET;           # Gives us the INADDR constants, but not in perl 5.0 :(
 
-my (@xap_item_names, $started, $xap_listen, $xap_hub_listen, $xap_send, %hub_ports, %xap_uids, %xap_virtual_devices, $xap_hbeat_interval, $xap_hbeat_counter);
+my (@xap_item_names, $started, $xap_listen, $xap_hub_listen, $xap_send, %hub_ports, %xap_uids, %xap_virtual_devices, $xap_hbeat_interval, $xap_hbeat_counter, @send_queue, %timeouts, $send_queue_timeout);
 use vars '$xap_data';
 
 # XAP_REAL_DEVICE_NAME is the default device name that appears in the last field of the primary source address
@@ -40,6 +40,8 @@ sub startup {
     return if $started++;       # Allows us to call with $Reload or with xap_module mh.ini parm
 
     @xap_item_names = ();
+    @send_queue = ();
+    %timeouts = {};
                                 # In case you don't want xap for some reason
     return if $::config_parms{xap_disable};
 
@@ -51,6 +53,11 @@ sub startup {
     $xap_hbeat_counter = $xap_hbeat_interval;
 
     if (!($::config_parms{xap_disable})) {
+
+    	$send_queue_timeout = $::config_parms{xap_send_interval};
+        $send_queue_timeout = 50 unless $send_queue_timeout;
+        &_set_timeout('send_queue',$send_queue_timeout);
+
 	#$last_xap_subaddress_uid = 0;
     	$port = $::config_parms{xap_port};
     	$port = 3639 unless $port;
@@ -192,7 +199,7 @@ sub main::display_xap_osd_display_tivo
    my ($text_block, @xap_data);
    my $text = ($args{raw_text}) ? $args{raw_text} : $args{text};
    $text =~ s/[\n\r ]+/ /gm; # strip out new lines and extra space
-   $text_block->{text} = 
+   $text_block->{text} =
    $duration = $args{duration};
    $duration = $args{display} unless $duration; # this apparently is the original param?
    $duration = 10 unless $duration; # default to 10 sec display
@@ -262,7 +269,7 @@ sub open_port {
                                           PeerAddr => $dest_address, Broadcast => 1);
     }
     else {
-        my $listen_address = $::config_parms{'ipaddress_xap'}; 
+        my $listen_address = $::config_parms{'ipaddress_xap'};
         if ($main::OS_win) {
             $listen_address = $::Info{IPAddress_local} unless $listen_address;
         } else {
@@ -320,6 +327,21 @@ sub check_for_data {
              $xap_hbeat_counter = $xap_hbeat_counter - 1;
           }
        }
+    }
+
+    # check to see if any xAP message need to be sent
+    if (&_check_timeout('send_queue') == 1)
+    {
+       my $message_count = @send_queue;
+       if ($xap_send && $message_count) {
+                                # check to see if the socket is still valid
+	   my $msg = shift @send_queue;
+           if (!($::Socket_Ports{'xap_send'}{socka})) {
+               &xAP::_handleStaleXapSockets();
+           }
+           $xap_send->set($msg) if $::Socket_Ports{'xap_send'}{socka};
+       }
+       &_set_timeout('send_queue',$send_queue_timeout);
     }
 }
 
@@ -766,13 +788,15 @@ sub sendXapWithHeaderVars {
           $msg .= "}\n";
        }
        print "db5 xap msg: $msg" if $main::Debug{xap} and $main::Debug{xap} == 5;
-       if ($xap_send) {
+#       if ($xap_send) {
                                 # check to see if the socket is still valid
-           if (!($::Socket_Ports{'xap_send'}{socka})) {
-               &xAP::_handleStaleXapSockets();
-           }
-           $xap_send->set($msg) if $::Socket_Ports{'xap_send'}{socka};
-       }
+#           if (!($::Socket_Ports{'xap_send'}{socka})) {
+#               &xAP::_handleStaleXapSockets();
+#           }
+#           $xap_send->set($msg) if $::Socket_Ports{'xap_send'}{socka};
+#       }
+       push @send_queue, $msg;
+
    } else {
       print "WARNING! xAP is disabled and you are trying to send xAP data!! (xAP::sendXapWIthHeaderVars())\n";
    }
@@ -792,10 +816,39 @@ sub send_xap_heartbeat {
       $msg .= "source=" . &xAP::get_xap_mh_source_info($base_ref) . "\n";
       $msg .= "interval=$xap_hbeat_interval_in_secs\nport=$port\npid=$$\n}\n";
                           # check to see if all of the sockets are still valid
-      &xAP::_handleStaleXapSockets();
-      $xap_send->set($msg) if $::Socket_Ports{'xap_send'}{socka};
+#      &xAP::_handleStaleXapSockets();
+#      $xap_send->set($msg) if $::Socket_Ports{'xap_send'}{socka};
+      push @send_queue, $msg;
       print "db6 xap heartbeat: $msg.\n" if $main::Debug{xap} and $main::Debug{xap} == 6;
    }
+}
+
+  #################################
+ ### INTERNAL METHODS/FUNCTION ###
+#################################
+
+sub _set_timeout
+{
+	my ($timeout_name, $timeout_in_millis) = @_;
+	my $tickcount = &main::get_tickcount + $timeout_in_millis;
+	$tickcount += 2**32 if $tickcount < 0; # force a wrap; to be handleded by check timeout
+	$timeouts{$timeout_name} = $tickcount;
+}
+
+sub _check_timeout
+{
+	my ($timeout_name) = @_;
+	return 0 unless $timeout_name;
+	return -1 unless defined $timeouts{$timeout_name};
+	my $current_tickcount = &main::get_tickcount;
+	return 0 if (($current_tickcount >= 2**16) and ($timeouts{$timeout_name} < 2**16));
+	return ($current_tickcount > $timeouts{$timeout_name}) ? 1 : 0;
+}
+
+sub _clear_timeout
+{
+	my ($timeout_name) = @_;
+	$timeouts{$timeout_name} = undef;
 }
 
 sub _handleStaleXapSockets {

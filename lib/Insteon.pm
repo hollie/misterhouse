@@ -34,22 +34,9 @@ sub _get_next_linkscan
 
     my $current_obj = $_scan_devices[0];
     my $next_obj = $current_obj;
-#    my @devices = ();
-#    push @devices,@_insteon_plm;
-#    push @devices,@_insteon_device;
-#    push @devices,@_scannable_link;
-#    my $dev_cnt = @devices;
-#    my $return_next = ($current_name) ? 0 : 1;
-#    my $next_name = undef;
-
-#    if ($current_name) {
-#       for (my $i=0; $i<$dev_cnt; $i++) {
-#          if ($devices[$i] eq $current_name) {
-             if ($_scan_failure_cnt == 0) {
+    if ($_scan_failure_cnt == 0) {
                 # get the next
-#                $next_name = $devices[$i+1] if $i+1 < $dev_cnt;
 		 $next_obj = shift @_scan_devices;
-#                $_scan_cnt = $i + 2;
 		$_scan_cnt += 1;
                 # remove the queue_timer_callback
 #                my $current_obj = &main::get_object_by_name($current_name);
@@ -57,7 +44,6 @@ sub _get_next_linkscan
 #                   $current_obj->queue_timer_callback('');
                 }
                 # don't try to scan devices that are not responders
-#                my $next_obj = &main::get_object_by_name($next_name);
                 while (ref $next_obj and $next_obj->isa('Insteon::BaseDevice')
                      and !($next_obj->is_responder) and !($next_obj->isa('Insteon::InterfaceController'))) {
                    &main::print_log("[Scan all link tables] " . $next_obj->get_object_name . " is not a candidate for scanning.  Moving to next");
@@ -207,6 +193,11 @@ sub init {
     @_insteon_plm = ();
     @_insteon_device = ();
     @_insteon_link = ();
+
+}
+
+sub generate_voice_commands
+{
 
     my $insteon_menu_states = $main::config_parms{insteon_menu_states} if $main::config_parms{insteon_menu_states};
     &main::print_log("Generating Voice commands for all Insteon objects");
@@ -386,6 +377,7 @@ sub _active_interface
       &main::Reload_post_add_hook(\&Insteon::BaseInterface::poll_all, 1);
       $Insteon::init_complete = 0;
       &main::MainLoop_pre_add_hook(\&Insteon::init, 1);
+      &main::Reload_post_add_hook(\&Insteon::generate_voice_commands, 1);
    }
    $$self{active_interface} = $interface if $interface;
    return $$self{active_interface};
