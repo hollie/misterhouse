@@ -4706,6 +4706,8 @@ sub read_table_files {
                     print TABLE_OUT $_;
                     next;
                 }
+                $_ =~ s/#.*//;      # Strip off comments                                                
+                next if (/^\s*$/);  # Skip blank lines
         }
             if ($format) {
                                 # These code reading subroutines are in mh/lib/read_table.pl
