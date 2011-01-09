@@ -9,7 +9,7 @@
 <input type='submit' border='1' value='Set Alarm'>
 </form>
 
-<iframe name="response" src="/empty.html" width=500 height=100></iframe>
+<iframe name="response" src="empty.html" width=500 height=100></iframe>
 
 <br><a href=/bin/triggers.pl>Edit alarms</a>
 

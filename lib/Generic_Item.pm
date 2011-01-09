@@ -9,23 +9,112 @@ require Tie::Hash;
 sub STORE {
     my $oldValue = $_[0][0]{$_[1]};
     $_[0][0]{$_[1]} = $_[2];
-
-				# Call property_changed if old and new are different
-				# Hmmm, maybe call any time data is stored, even if the data is the same.
-				# This way X10_Item can react correctly to things like 2 consecutive dim commands
-#   if((defined($oldValue) != defined($_[2])) or (defined $oldValue and $oldValue ne $_[2])) {
-        $_[0][1]->property_changed($_[1],$_[2], $oldValue);
-#   }
+    $_[0][1]->property_changed($_[1],$_[2], $oldValue);
 }
-
-
-# This is the parent object for all state-based mh objects.
-# It can also be used stand alone.
 
 package Generic_Item;
 
+=head1 NAME
+
+B<Generic_Item> - This is the parent object for all state-based mh objects, 
+and can be used by itself.
+
+=head1 SYNOPSIS
+
+     $tv_grid = new Generic_Item;
+     set $tv_grid 'channel 2 from 7:00 to 8:00 on 1/24 for This Old House';
+     speak "tv set to $state" if $state = state_now $tv_grid;
+  
+     $wakeup_time = new Generic_Item;
+     speak "Your wakeup time is set for $state" 
+       if $state = state_now $wakeup_time;
+     speak "Time to wake up" if time_now state $wakeup_time;
+  
+   # Since Voice_Cmd objects inherit Generic_Items methods, we can
+   # use tie_items and tie_event like this:
+  
+     $indoor_fountain    = new X10_Appliance('OB');
+     $v_indoor_fountain  = new Voice_Cmd 'Indoor fountain [on,off]';
+     $v_indoor_fountain -> tie_items($indoor_fountain);
+     $v_indoor_fountain -> tie_event('speak "Ok, fountain was turned $state"');
+  
+     if ($state = state_now $test_button) {
+        my $ref = get_set_by $test_button;
+        print_log "Test button's was set to $state by $ref->{object_name}" 
+          if $ref;
+     }
+  
+                           # This shows how to set states
+    $TV  = new IR_Item 'TV';
+    my  $tv_states = 'power,on,off,mute,vol+,vol-,ch+,ch-';
+                           # causes $tv_states to be split into array
+                           # values deliminated by ,
+    set_states  $TV split ',', $tv_states;
+    $v_tv_control = new  Voice_Cmd("tv [$tv_states]");
+  
+                           # This shows how to save persistant arbitrary data
+    $Test = new Generic_Item;
+    $Test->{junk_data1} = $Time_Now if $Reload;
+    $Test->{junk_data2} = $Month    if $Reload;
+    $Test->restore_data('junk_data1', 'junk_data2');
+  
+                           # Here are some tie* examples
+    $fountain -> tie_filter('state $windy eq ON', ON,
+                            'Overriding item1 ON command because of wind');
+  
+    $fountain -> tie_time('10PM', OFF, 'Fountain turned off');
+  
+                           # Disable an item when we are away
+    $item1 -> tie_filter('state $status_away eq ON');
+    $item1 -> tie_event('print_log "item1 toggled to $state"');
+  
+                           # Ignore RF sourced (e.g. W800 or MR26) X10 data
+    $light1 -> tie_filter('$set_by eq "rf"', , 'Ignoring x10 rf data');
+  
+                           # Disable callerid announcements when we are not
+                           # at home
+    $cid_announce -> tie_filter('state $mode_occupied ne "home"');
+    
+                           # Set an item to multiple states, with a 5 second
+                           # delay between states
+    $test_set1  = new Generic_Item;
+    $test_set1 -> set('0%~5~30%~5~60%~5~100%') if new_second 20;
+    $test_set1 -> tie_event('print_log "test set $state"');
+  
+    print 'Item is idle' if $test_set1 -> time_idle('4 seconds');
+
+See C<mh/code/examples/generic_item.pl> for more examples,
+C<test_tie.pl> for more examples on how to tie/untie items/events, and
+C<test_idle.pl> for more examples on testing idle times.
+
+=head1 DESCRIPTION
+
+You can use this object to store and query arbitrary data.
+This is more useful than 'my' variables, if you need to share data between
+code files, since 'my' variables are local to a code file.
+States of these items are also saved/restored when
+mh is stopped/started.
+
+=head1 INHERITS
+
+This item inherits nothing, but
+all other mh items that have states (e.g. X10_Item, Serial_Item, iButton,
+Voice_Cmd, Group) inherit all Generic_Item methods.
+
+=cut
+
 my (@reset_states, @states_from_previous_pass, @recently_changed);
 use vars qw(@items_with_tied_times);
+
+=head1 METHODS
+
+=over
+
+=item C<new()>
+
+Instantiation method.
+
+=cut
 
 sub new {
     my ($class) = @_;
@@ -42,26 +131,114 @@ sub new {
     return $self;
 }
 
+=item C<property_changed(property, new_value, old_value)>
+
+This method is called internally whenever a property (instance variable)
+is changed.  It only logs the property, new_value, and old_value, but can
+be overridden to do more (see X10_Item).
+
+=cut
+
 sub property_changed {
     my ($self, $property, $new_value, $old_value) = @_;
-    print "s=$self: property_changed: $property ='$new_value' (was '$old_value')\n" if $::Debug{store};
+    print "s=$self: property_changed: $property ='$new_value' (was"
+      . " '$old_value')\n" if $::Debug{store};
 }
 
+=item C<set(state, set_by, respond)>
+
+Places the value into the state field (e.g. set $light on)
+at the start of the next mh pass.
+
+(optional) set_by overrides the defeult set_by value.
+
+(optional) respond overrides the defeult respond value.
+
+=cut
+
 sub set {
-    my ($self, $state, $set_by, $respond) = &set_process(@_);
+    my ($self, $state, $set_by, $respond) = &_set_process(@_);
     &set_states_for_next_pass($self, $state, $set_by, $respond) if $self;
 }
 
+=item C<set_now(state, set_by, respond)>
+
+Like set, except states are set when called, not on the next pass.
+
+=cut
+
 sub set_now {
-    my ($self, $state, $set_by, $respond) = &set_process(@_);
+    my ($self, $state, $set_by, $respond) = &_set_process(@_);
     &set_states_for_this_pass($self, $state, $set_by, $respond) if $self;
     push @reset_states, $self;
 }
 
-sub set_process {
+=item C<set_with_timer(state, time, return_state, additional_return_states)>
+
+Like set, but will return to return_state after time.
+If return_state is not specified and state is 'off', it sets state to 'on'
+after time.
+If return_state is not specified and state is missing or something other than
+'off', it sets state to 'on' after time.
+If return_state is 'previous', it returns to the previous state after time.
+(optional) additional_return_states lets you specify one or more extra 
+states to set after time (separate states with ';').
+If set is called before the timer expires, the timer will
+be unset, and return_state not set..
+
+You can also stack a series of set_with_timer calls with one set call like this:
+
+    set('s1~t1~s2~t2...sn');
+
+where s1, s2, ... sn are various states, and t1, t2 ... tn are the times to
+wait between states.  See example below.
+
+If you want to stack a set of states without delays, you use ; like this:
+
+    set('on~2~random:on;repeat:on;play');
+
+See mh/code/examples/test_states_stacked.pl for a complete example.
+Note, this is turnded off by default for Serial_Item objects.
+
+To enable, run:
+
+    $object -> state_overload(ON);
+
+=cut
+
+sub set_with_timer {
+    my ($self, $state, $time, $return_state, $additional_return_states) = @_;
+    return if &main::check_for_tied_filters($self, $state);
+
+                                # If blank state, then set the return_state only
+    $self->set($state, $self) unless $state eq '';
+
+    return unless $time;
+                                # If off, timeout to on, else timeout to off
+    my $state_change;
+    $state_change = ($state eq 'off') ? 'on' : 'off';
+    $state_change = $return_state if defined $return_state;
+    $state_change = $self->{state} 
+      if $return_state and lc $return_state eq 'previous';
+
+                                # Handle additoinal return states if requested 
+                                # (this is done so we don't need to parse for
+                                # ; seperators in this function, that work has 
+                                # already been done in MH)
+    $state_change .= ';' . $additional_return_states 
+      if $additional_return_states;
+
+                                # Reuse timer for this object if it exists
+    $$self{timer} = &Timer::new() unless $$self{timer};
+    my $object = $self->{object_name};
+    my $action = "set $object '$state_change', $object"; # Set set_by to itself?
+    &Timer::set($$self{timer}, $time, $action);
+}
+
+sub _set_process {
     my ($self, $state, $set_by, $respond) = @_;
 
-    print "db set_process: s=$state sb=$set_by r=$respond\n" if $::Debug{set};
+    print "db _set_process: s=$state sb=$set_by r=$respond\n" if $::Debug{set};
 
     # Check for tied or repeated states.
     return if &main::check_for_tied_filters($self, $state, $set_by);
@@ -72,8 +249,8 @@ sub set_process {
         delete $$self{timer};
     }
 
-    # Some devices may need to see states and substates in a case sensitive manner
-    # this flg allows them to do so.
+    # Some devices may need to see states and substates in a case sensitive 
+    # manner.  This flag allows them to do so.
     $state = lc($state) unless $self->{states_casesensitive};
 
     if ($state and lc($state) eq 'toggle') {
@@ -93,39 +270,44 @@ sub set_process {
         else {
             $state = ($state_current eq 'on') ? 'off' : 'on';
         }
-        &main::print_log("Toggling $self->{object_name} from $state_current to $state");
+        &main::print_log("Toggling $self->{object_name} from $state_current "
+          . "to $state");
     }
 
-	#  Respond_Target is write-only from here (and its use for speech chimes and lazy automated targeting is deprecated)
-	#  Undefined respond target is explicitly allowed (and uses Respond_Target anyway!)
-#    $respond = $main::Respond_Target unless $respond;
+    # Respond_Target is write-only from here (and its use for speech chimes
+    # and lazy automated targeting is deprecated)
 
                                 # Handle overloaded state processing
     unless ($self->{states_nosubstate}) {
         my ($primarystate, $substate) = split(/:/, $state, 2);
         my $setcall = 'setstate_' . lc($primarystate);
         if($self->can($setcall)) {
-                          # Some devices may need to wait for the set to occur
-                          # (for example the Compool which doesn't actually change a state
-                          # until the device has confirmed the requested action has been performed)
+            # Some devices may need to wait for the set to occur
+            # (for example the Compool which doesn't actually change a state
+            # until the device has confirmed the requested action has been
+            # performed)
             return if $self->$setcall($substate, $set_by, $respond) == -1;
         }
         elsif($self->can('default_setstate')) {
-            my $test = $self->default_setstate($primarystate, $substate, $set_by, $respond);
+            my $test = $self->default_setstate($primarystate, $substate,  
+              $set_by, $respond);
             return if $test and $test == -1;
         }
         elsif ($self->can('default_setrawstate')) {
-            return if $self->default_setrawstate($state, $set_by, $respond) == -1;
+            return if $self->default_setrawstate($state, $set_by, $respond)
+              == -1;
         }
     }
                                 # Allow for default setstate methods
     else {
         if ($self->can('default_setstate')) {
-            my $test = $self->default_setstate($state, undef, $set_by, $respond);
+            my $test = $self->default_setstate($state, undef, $set_by,
+              $respond);
             return if $test and $test == -1;
         }
         elsif ($self->can('default_setrawstate')) {
-            return if $self->default_setrawstate($state, $set_by, $respond) == -1;
+            return if $self->default_setrawstate($state, $set_by, $respond)
+              == -1;
         }
     }
 
@@ -133,36 +315,89 @@ sub set_process {
 
 }
 
+=item C<get_object_name()>
+
+Returns the object name.
+
+=cut
+
 sub get_object_name {
     return $_[0]->{object_name};
 }
+
+=item C<set_by(set_by)>
+
+Allows setting a description of what caused the last state change.
+For example, motion, sunrise, manual, serial, etc.  Any string is allowed.
+
+Value is returned by get_set_by below.
+
+=cut
+
 sub set_by {
     $_[0]->{set_by} = $_[1];
 }
+
+=item C<get_set_by()>
+
+Returns what caused this object to change.  Standard values are
+web, tk, telnet, vr, xcmd, serial, xap, and xpl.
+
+An example is in mh/code/examples/test_set_by.pl
+
+=cut
+
 sub get_set_by {
     return $_[0]->{set_by};
 }
+
+=item C<set_target(target)>
+
+Sets the target instance variable to target.
+
+=cut
+
 sub set_target {
     $_[0]->{target} = $_[1];
 }
+
+=item C<get_target()>
+
+Returns the current target.
+
+=cut
+
 sub get_target {
     return $_[0]->{target};
 }
-sub get_changed_by {            # Grandfathered old syntax
-    return $_[0]->{set_by};
-}
+
+=item C<get_idle_time()>
+
+Returns number of seconds since the last state change.
+
+=cut
 
 sub get_idle_time {
     return undef unless  $_[0]->{set_time};
     return $main::Time - $_[0]->{set_time};
 }
 
+=item C<time_idle(time)>
+
+Returns true when the object has had no state changes
+since the specified time. time can be be in seconds,
+minutes, hours, or days (e.g. '90 s' or '7 days').
+Defaults to seconds.  Only the first of the unit word is checked and it is
+case-insensitive.
+
+(optional) time can also specify a spefic state (e.g. '4 m on')
+
+=cut
+
 sub time_idle {
     my ($self, $idle_spec) = @_;
-                                # Defaults to seconds if idletimetype is not specified
-                                # Defaults to all states if currentstate is not given.
-                                # Examples: '10 minutes', '2 seconds off', '24 h', '7 days', '1 hour on'
-    if (my ($idle_time, $idle_type, $idle_state) = $idle_spec =~ /^(\d+)\s*(D|H|M|S)*\w*\s*(\S*)/i) {
+    if (my ($idle_time, $idle_type, $idle_state) = 
+      $idle_spec =~ /^(\d+)\s*(D|H|M|S)*\w*\s*(\S*)/i) {
         my $state = $self->state();
         if ($idle_state eq undef or $idle_state eq $state) {
             my $scale = 1;
@@ -177,32 +412,52 @@ sub time_idle {
     return 0;
 }
 
-                                # This is called by mh on exit to save persistant data
+=item C<restore_string()>
+
+This is called by mh on exit to save persistant data.
+
+=cut
+
 sub restore_string {
     my ($self) = @_;
 
     my $state       = $self->{state};
     $state =~ s/~/\\~/g if $state;
     my $restore_string;
-    $restore_string .= $self->{object_name} . "->{state} = q~$state~;\n" if defined $state;
-    $restore_string .= $self->{object_name} . "->{count} = q~$self->{count}~;\n" if $self->{count};
-    $restore_string .= $self->{object_name} . "->{set_time} = q~$self->{set_time}~;\n" if $self->{set_time};
-    $restore_string .= $self->{object_name} . "->{states_casesensitive} = 1;\n" if $self->{states_casesensitive};
+    $restore_string .= $self->{object_name} . "->{state} = q~$state~;\n"
+      if defined $state;
+    $restore_string .= $self->{object_name} . "->{count} = q~$self->{count}~;\n"
+      if $self->{count};
+    $restore_string .= $self->{object_name} . "->{set_time} ="
+      . " q~$self->{set_time}~;\n" if $self->{set_time};
+    $restore_string .= $self->{object_name} . "->{states_casesensitive} = 1;\n"
+      if $self->{states_casesensitive};
 
-    if ($self->{state_log} and my $state_log = join($;, @{$self->{state_log}})) {
+    if ($self->{state_log} and my $state_log = join $;, @{$self->{state_log}}) {
         $state_log =~ s/\n/ /g; # Avoid new-lines on restored vars
         $state_log =~ s/~/\\~/g;
-        $restore_string .= '@{' . $self->{object_name} . "->{state_log}} = split(\$;, q~$state_log~);";
+
+        $restore_string .= '@{' . $self->{object_name} . "->{state_log}} ="
+          . " split(\$;, q~$state_log~);";
     }
 
                                 # Allow for dynamicaly/user defined save data
     for my $restore_var (@{$$self{restore_data}}) {
         my $restore_value = $self->{$restore_var};
-        $restore_string .= $self->{object_name} . "->{$restore_var} = q~$restore_value~;\n" if defined $restore_value;
+        $restore_string .= $self->{object_name} . "->{$restore_var} ="
+          . " q~$restore_value~;\n" if defined $restore_value;
     }
 
     return $restore_string;
 }
+
+=item C<restore_data(vars)>
+
+Specifies which variables should be saved/restored between
+mh reload/restarts.  The state var is always saved.
+Can only be run at startup or reload.
+
+=cut
 
 sub restore_data {
     return unless $main::Reload;
@@ -210,6 +465,12 @@ sub restore_data {
     push @{$$self{restore_data}}, @restore_vars;
 }
 
+=item C<hidden(1/0) >
+
+If set to 1, the object will not show up on Tk or Web menus.
+Can only be run at startup or reload.
+
+=cut
 
 sub hidden {
     return unless $main::Reload;
@@ -223,11 +484,26 @@ sub hidden {
     }
 }
 
+=item C<set_casesensitive()>
+
+By default, states are all lowercased, to allow for case
+insensitive tests.  To avoid this (for example on Serial Interfaces
+that are case sensitive), call this method.
+Can only be run at startup or reload.
+
+=cut
+
 sub set_casesensitive {
     return unless $main::Reload;
     my ($self) = @_;
     $self->{states_casesensitive} = 1;
 }
+
+=item C<state()>
+
+Returns the state (e.g. on, off).
+
+=cut
 
 sub state {
     my ($self, $state) = @_;
@@ -245,130 +521,48 @@ sub state {
     return $self->{state};
 }
 
-# NOTE: No need to pass target parameter(s) to this method! (Targeting is automatic.)
-# TODO: pass hash instead of string
+=item C<state_now()>
 
-sub respond {
-	my $object = shift;
-	my $target;
-	my ($text) = @_;
-	my %parms = &::parse_func_parms($text);
-	my $set_by = $object->{set_by};
+Returns the current state only for one pass after object state is set.
+Unlike state_changed, will return the state even if the new state matches
+the previous one.
+Otherwise, returns null.
 
-	my ($to, $pgm); # latter for IM only
+=cut
 
-
-	$parms{connected} = 1 if !defined($parms{connected});
-
-	if (!defined($parms{target})) { # no target passed and we need one!
-		# Aquire target
-
-		$target = ($object->{target})?$object->{target}:&main::set_by_to_target($object->{set_by});
-	} else {
-		$target = $parms{target};
-	}
-
-        $set_by = &main::set_by_to_target($set_by, 1);
-	my $automation = (!$set_by or $set_by =~ /usercode/i or $set_by =~ /unknown/i or $set_by =~ /time/i or $set_by eq 'status');
-	# cancel automation (regardless) if an explicit target is set
-	$automation = 0 if $parms{target} or $object->{target};
-
-	# get user info
-
-	if ($set_by =~ /^im/i) {
-		my ($im_pgm,$address) = $set_by =~ /\[(.+?),(.+)\]/;
-
-		$to = $address if !$parms{to};
-		$pgm = $im_pgm if !$parms{pgm};
-	}
-	elsif ($set_by =~ /^email/i) {
-		my ($address) = $set_by =~ /\[(.+)\]/;
-		$to = $address if !$parms{to};
-	}
-	elsif ($set_by =~ /^xap/i) {
-		my ($address) = $set_by =~ /\[(.+)\]/;
-		$to = $address if !$parms{to};
-	}
-	elsif ($set_by =~ /^xpl/i) {
-		my ($address) = $set_by =~ /\[(.+)\]/;
-		$to = $address if !$parms{to};
-	}
-	elsif ($set_by =~ /^telnet/i) {
-		my ($address) = $set_by =~ /\[(.+)\]/;
-		$to = $address if !$parms{to};
-	}
-
-
-	# important messages are never diverted to log (even if automated)
-	# ex. new mh version available
-
-
-
-
-	if (!$automation or $parms{important}) {
-		my $extra;
-		if (!$parms{connected}) {
-			# don't override these if explicitly passed
-			# mute remote web responses (convert all Web to speech)
-			my $mode;			
-
-			if ($set_by =~ /^web/i) {
-				my ($address) = $set_by =~ /\[(.+)\]/;
-				# *** TODO:Set room from IP if local
-				$target = 'speak';
-				$mode = 'mute' if (!&main::is_local_address($address) and !$parms{mode});	
-			}
-			$extra .= "mode=$mode " if $mode;         #Used to mute remote Web speech
-		}
-
-		# Send dicrete chime parameters if none specified (we know what to do, no need to rely on global respond target.)
-
-		$extra .= "target=$target " if $target;
-		# include the app parm if it is passed
-		$extra .= "app=$parms{app} " if $parms{app};
-
-		if (!$parms{no_chime} and !$parms{force_chime}) {
-			$extra .= ($automation)?'force_chime=1 ':'no_chime=1 ';
-		}
-
-		# should do subject too (all of this can be accomplished with a weird target syntax too)  Better to leave the target empty (as it is in 99% of responses) unless the target needs to be something other than the default (which unravels set_by.)  Ex. tack on an email (or IM) target to an alarm response.
-
-		$extra .= "to=$to " if $to;               #Email/IM user
-		$extra .= "pgm=$pgm " if $pgm;            #IM program (AOL,ICQ,MSN,Jabber)
-
-		&main::respond("$extra$text");
-	}
-	else { #command run internally (by code, trigger, etc.}
-		&main::respond("target=log $parms{text}");		
-	}	
-}
-
-sub said {
-                                # Set (evil) global Respond_Target var, so (lazy) user code doesn't have to pay attention (bad practice and should be phased out!)
-    if ($_[0]->{target}) { # This needs to be phased out (who needs a global respond target?)
-	    $main::Respond_Target = $_[0]->{target};
-    }
-    else {
-	    $main::Respond_Target = $_[0]->{legacy_target};
-    }
-
-    return $_[0]->{said};
-}
-
-sub state_now { # This needs to be phased out (who needs a global respond target?)
+sub state_now {
     if ($_[0]->{target}) {
-	    $main::Respond_Target = $_[0]->{target};
+        $main::Respond_Target = $_[0]->{target};
     }
     else {
-	    $main::Respond_Target = $_[0]->{legacy_target};
+                                # This needs to be phased out 
+                                # (who needs a global respond target?)
+        $main::Respond_Target = $_[0]->{legacy_target};
     }
     return $_[0]->{state_now};
 }
+
+=item C<state_changed()>
+
+Returns the current state only for one pass after object state is set.
+Unlike state_now, will only return the state if the new state differs from
+the previous one.
+Otherwise, returns null.
+
+=cut
+
 sub state_changed {
     return $_[0]->{state_changed};
 }
-                                # Returns the objects final state that the object will
-                                # be in after all pending states are processed
+
+=item C<state_final()>
+
+Returns the state the object will be in after all queued
+state changes have been processed, if there is at least one state pending.
+Otherwise, returns null.
+
+=cut
+
 sub state_final {
     my ($self) = @_;
     if (ref $self->{state_next_pass} eq 'ARRAY') {
@@ -379,11 +573,178 @@ sub state_final {
     return $self->state();
 }
 
+=item C<respond()>
+
+This method sends a message back by whatever method was used to set this 
+object.  For example, if you use voice recognition to set an object 
+than the message will be emailed back to you. 
+
+This method is almost always used by Voice_Cmd items, which inherit it.  
+(maybe it should be moved there?) 
+
+No need to pass target parameter(s) to this method! (Targeting is automatic.)
+These are the targets derived from these set_by values:
+
+    set_by    target
+  
+    default   none
+    email     email
+    im        im
+    telnet    telnet
+    time      none
+    usercode  none
+    voice     speak
+    web       speak
+    xap       xap
+    xpl       xpl 
+
+These are the parameters you can specify in the argument string:
+
+    connected
+    target       - override the target derived from set_by 
+    important
+    to
+    pgm
+    mode
+    app
+    no_chime
+    force_chime
+    text 
+
+=cut
+
+# TODO: pass hash instead of string
+
+sub respond {
+    my $object = shift;
+    my $target;
+    my ($text) = @_;
+    my %parms = &::parse_func_parms($text);
+    my $set_by = $object->{set_by};
+
+    my ($to, $pgm); # latter for IM only
+
+    $parms{connected} = 1 if !defined($parms{connected});
+
+    if (!defined($parms{target})) { # no target passed and we need one!
+        # Aquire target
+        $target = ($object->{target}) ? $object->{target} :
+          &main::set_by_to_target($object->{set_by});
+    } else {
+        $target = $parms{target};
+    }
+
+    $set_by = &main::set_by_to_target($set_by, 1);
+    my $automation = (!$set_by or $set_by =~ /usercode/i or $set_by =~
+      /unknown/i or $set_by =~ /time/i or $set_by eq 'status');
+    # cancel automation (regardless) if an explicit target is set
+    $automation = 0 if $parms{target} or $object->{target};
+
+    # get user info or ip address
+    if ($set_by =~ /^im/i) {
+        my ($im_pgm,$address) = $set_by =~ /\[(.+?),(.+)\]/;
+        $to = $address if !$parms{to};
+        $pgm = $im_pgm if !$parms{pgm};
+    }
+    elsif ($set_by =~ /^email/i) {
+        my ($address) = $set_by =~ /\[(.+)\]/;
+        $to = $address if !$parms{to};
+    }
+    elsif ($set_by =~ /^xap/i) {
+        my ($address) = $set_by =~ /\[(.+)\]/;
+        $to = $address if !$parms{to};
+    }
+    elsif ($set_by =~ /^xpl/i) {
+        my ($address) = $set_by =~ /\[(.+)\]/;
+        $to = $address if !$parms{to};
+    }
+    elsif ($set_by =~ /^telnet/i) {
+        my ($address) = $set_by =~ /\[(.+)\]/;
+        $to = $address if !$parms{to};
+    }
+
+    # important messages are never diverted to log (even if automated)
+    # ex. new mh version available
+    if (!$automation or $parms{important}) {
+        my $extra;
+        if (!$parms{connected}) {
+            # don't override these if explicitly passed
+            # mute remote web responses (convert all Web to speech)
+            my $mode;
+
+            if ($set_by =~ /^web/i) {
+                my ($address) = $set_by =~ /\[(.+)\]/;
+                # *** TODO:Set room from IP if local
+                $target = 'speak';
+                $mode = 'mute'
+                  if (!&main::is_local_address($address) and !$parms{mode});
+            }
+            # Used to mute remote Web speech
+            $extra .= "mode=$mode " if $mode;
+        }
+
+        $extra .= "target=$target " if $target;
+        # include the app parm if it is passed
+        $extra .= "app=$parms{app} " if $parms{app};
+
+        # Send dicrete chime parameters if none specified (we know what
+        # to do, no need to rely on global respond target.)
+        if (!$parms{no_chime} and !$parms{force_chime}) {
+            $extra .= ($automation)?'force_chime=1 ':'no_chime=1 ';
+        }
+
+        # should do subject too (all of this can be accomplished with
+        # a weird target syntax too)  Better to leave the target empty
+        # (as it is in 99% of responses) unless the target needs to be
+        # something other than the default (which unravels set_by.) 
+        # Ex. tack on an email (or IM) target to an alarm response.
+        $extra .= "to=$to " if $to;         # Email/IM user
+        $extra .= "pgm=$pgm " if $pgm;      # IM program (AOL,ICQ,MSN,Jabber)
+
+        &main::respond("$extra$text");
+
+    }
+    else {
+        # command run internally (by code, trigger, etc.}
+        &main::respond("target=log $parms{text}");
+    }
+}
+
+=item C<said()>
+
+Same as C<state_now()>.
+
+=cut
+
+sub said {
+    # Set (evil) global Respond_Target var, so (lazy) user code doesn't 
+    # have to pay attention (bad practice and should be phased out!)
+    if ($_[0]->{target}) {
+         $main::Respond_Target = $_[0]->{target};
+    }
+    else {
+         $main::Respond_Target = $_[0]->{legacy_target};
+    }
+
+    return $_[0]->{said};
+}
+
+=item C<state_log()>
+
+TODO
+
+=cut
 
 sub state_log {
     my ($self) = @_;
     return @{$$self{state_log}} if $$self{state_log};
 }
+
+=item C<state_overload()>
+
+TODO
+
+=cut
 
                                 # Allow for turning off ~;: state processing
 sub state_overload {
@@ -398,6 +759,15 @@ sub state_overload {
     }
 }
 
+=item C<set_icon(icon)>
+
+Point to the icon member you want the web interface to use.
+See the 'Customizing the web interface' section of the documentation 
+for details.
+Can only be run at startup or reload.
+
+=cut
+
 sub set_icon {
     return unless $main::Reload;
     my ($self, $icon) = @_;
@@ -409,6 +779,14 @@ sub set_icon {
         return $self->{icon};
     }
 }
+
+=item C<set_info(info)>
+
+Adds additional information.  This will show up as a popup window
+on the web interface, when the mouse hovers over the command text.
+Can only be run at startup or reload.
+
+=cut
 
 sub set_info {
     return unless $main::Reload;
@@ -423,35 +801,11 @@ sub set_info {
 }
 
 
-sub set_with_timer {
-    my ($self, $state, $time, $return_state, $additional_return_states) = @_;
-    return if &main::check_for_tied_filters($self, $state);
+=item C<incr_count()>
 
-                                # If blank state, then we wanted the timed return_state only
-    $self->set($state, $self) unless $state eq '';
+TODO
 
-    return unless $time;
-                                # If off, timeout to on, otherwise timeout to off
-    my $state_change;
-    $state_change = ($state eq 'off') ? 'on' : 'off';
-    $state_change = $return_state if defined $return_state;
-    $state_change = $self->{state} if $return_state and lc $return_state eq 'previous';
-
-    # Handle additoinal return states if requested (this is done so we don't need to parse for
-    # ; seperators in this function, that work has already been done in MH)
-    $state_change .= ';' . $additional_return_states if $additional_return_states;
-
-
-                                # Reuse timer for this object if it exists
-    $$self{timer} = &Timer::new() unless $$self{timer};
-    my $object = $self->{object_name};
-#   my $action = "set $object '$state_change'";
-    my $action = "set $object '$state_change', $object";  # Set set_by to  itself??
-#   my $action = "&X10_Items::set($object, '$state_change')";
-#   print "db in set_with_timer: state=$state rs=$return_state t=$time self=$self o=$object time=$time action=$action\n";
-#   $x10_timer->set($time, $action);
-    &Timer::set($$self{timer}, $time, $action);
-}
+=cut
 
 sub incr_count {
     my ($self) = @_;
@@ -459,11 +813,23 @@ sub incr_count {
     return;
 }
 
+=item C<reset_count()>
+
+TODO
+
+=cut
+
 sub reset_count {
     my ($self) = @_;
     $self->{count} = 0;
     return;
 }
+
+=item C<set_count()>
+
+TODO
+
+=cut
 
 sub set_count {
     my ($self,$val) = @_;
@@ -475,6 +841,12 @@ sub set_count {
         return $self->{count};
     }
 }
+
+=item C<get_count()>
+
+TODO
+
+=cut
 
 sub get_count {
     my ($self,$val) = @_;
@@ -488,6 +860,13 @@ sub get_count {
 }
 
 
+=item C<set_label(label)>
+
+Specify a text label, useful for creating touch screen interfaces.
+Can only be run at startup or reload.
+
+=cut
+
 sub set_label {
     return unless $main::Reload;
     my ($self, $label) = @_;
@@ -500,30 +879,66 @@ sub set_label {
     }
 }
 
+=item C<set_authority(who)>
+
+Sets authority for this object to who.  
+Setting who to 'anyone' bypasses password control.
+Can only be run at startup or reload.
+
+=cut
+
 sub set_authority {
     return unless $main::Reload;
     my ($self, $who) = @_;
     $self->{authority} = $who;
 }
+=item C<get_authority()>
+
+TODO
+
+=cut
+
 sub get_authority {
     return $_[0]->{authority};
 }
+
+=item C<set_type()>
+
+TODO
+
+=cut
 
 sub set_type {
     my ($self, $type) = @_;
     $$self{type}=$type;
 }
 
+=item C<get_type()>
+
+TODO
+
+=cut
+
 sub get_type {
     return $_[0]->{type};
 }
 
+=item C<set_fp_location()>
+
+TODO
+
+=cut
 
 sub set_fp_location {
     my ($self, @location) = @_;
     @{$$self{location}}=@location;
 }
 
+=item C<get_fp_location()>
+
+TODO
+
+=cut
 
 sub get_fp_location {
     my ($self) = @_;
@@ -531,21 +946,46 @@ sub get_fp_location {
     return @{$$self{location}};
 }
 
+=item C<set_fp_nodes()>
+
+TODO
+
+=cut
+
 sub set_fp_nodes {
     my ($self, @nodes) = @_;
     @{$$self{nodes}}=@nodes;
 }
+
+=item C<get_fp_nodes()>
+
+TODO
+
+=cut
 
 sub get_fp_nodes {
     my ($self) = @_;
     return @{$$self{nodes}};
 }
 
+=item C<set_fp_icons()>
+
+TODO
+Can only be run at startup or reload.
+
+=cut
+
 sub set_fp_icons {
     return unless $main::Reload;
     my ($self, %icons) = @_;
     %{$$self{fp_icons}}=%icons;
 }
+
+=item C<get_fp_icons()>
+
+TODO
+
+=cut
 
 sub get_fp_icons {
     my ($self) = @_;
@@ -556,20 +996,49 @@ sub get_fp_icons {
     }
 }
 
+=item C<set_states(states)>
+
+Sets valid states to states, which is a list or array.
+Can only be run at startup or reload.
+
+
+TODO
+
+=cut
+
 sub set_states {
     return unless $main::Reload;
     my ($self, @states) = @_;
     @{$$self{states}} = @states;
 }
+=item C<add_states(states)>
+
+Adds states to the list of valid states.  
+Can only be run at startup or reload.
+
+=cut
+
 sub add_states {
     return unless $main::Reload;
     my ($self, @states) = @_;
     push @{$$self{states}}, @states;
 }
+=item C<get_states()>
+
+Returns the list of valid states.
+
+=cut
+
 sub get_states {
     my ($self) = @_;
     return @{$$self{states}};
 }
+
+=item C<set_states_for_this_pass()>
+
+TODO
+
+=cut
 
 sub set_states_for_this_pass {
     my ($self, $state, $set_by, $target) = @_;
@@ -581,9 +1050,16 @@ sub set_states_for_this_pass {
 }
 
 
+=item C<set_states_for_next_pass()>
+
+TODO
+
+=cut
+
 sub set_states_for_next_pass {
     my ($self, $state, $set_by, $target) = @_;
-    print "db set_states_for_next_pass: s=$state sb=$set_by t=$target\n" if $::Debug{set};
+    print "db set_states_for_next_pass: s=$state sb=$set_by t=$target\n"
+      if $::Debug{set};
 
                 # Log states, process set_by and target
     ($set_by, $target) = &set_state_log($self, $state, $set_by, $target);
@@ -597,76 +1073,57 @@ sub set_states_for_next_pass {
     push @{$self->{target_next_pass}}, $target;
 }
 
+=item C<set_state_log(set_by, target)>
+
+When a state is set, it (along with a timestamp and who set it) are logged
+to the state_log array by this method.
+The number of log entries kept is set by the max_state_log_entries ini 
+parameter.
+
+=cut
 
 sub set_state_log {
     my ($self, $state, $set_by, $target) = @_;
     my $set_by_name; # Must preserve set_by objects!
 
-                                # Used in get_idle_time
+    # Used in get_idle_time
     $self->{set_time} = $main::Time;
 
-                                # If set by another object, find/use object name
+    # If set by another object, find/use object name
     my $set_by_type = ref($set_by);
-    $set_by_name = $set_by->{object_name} if $set_by_type and $set_by_type ne 'SCALAR';
+    $set_by_name = $set_by->{object_name}
+      if $set_by_type and $set_by_type ne 'SCALAR';
     $set_by_name = $set_by unless $set_by_name;
 
-
-                                # Else set to Usercode [calling code file]
+    # Else set to Usercode [calling code file]
     $set_by = &main::get_calling_sub() unless $set_by;
     $set_by = $main::Set_By if !$set_by and $main::Set_By;
 
-	# We do not want to step on target with set_by
-	# If target is missing (allowed), response method figures it out
-	# Deprecated $Respond_Target var changed to work the same way
+    # We do not want to step on target with set_by
+    # If target is missing (allowed), response method figures it out
+    # Deprecated $Respond_Target var changed to work the same way
 
-#    $target = $set_by unless defined $target;
+#   $target = $set_by unless defined $target;
 
-                                # Set the state_log ... log non-blank states
-                                # Avoid -w unintialized variable errors
+    # Set the state_log ... log non-blank states
+    # Avoid -w unintialized variable errors
     $state  = '' unless defined $state;
     $set_by_name = '' unless defined $set_by_name;
     $target = '' unless defined $target;
-    unshift(@{$$self{state_log}}, "$main::Time_Date $state set_by=$set_by_name" . (($target)?"target=$target":''))
+    unshift(@{$$self{state_log}}, "$main::Time_Date $state set_by=$set_by_name"
+      . (($target)?"target=$target":''))
       if $state or (ref $self) eq 'Voice_Cmd';
-    pop @{$$self{state_log}} if $$self{state_log} and @{$$self{state_log}} > $main::config_parms{max_state_log_entries};
+    pop @{$$self{state_log}} if $$self{state_log} and @{$$self{state_log}}
+      > $main::config_parms{max_state_log_entries};
 
     return ($set_by, $target);
 }
 
+=item C<reset_states2()>
 
-                                # You can use this for an undo function
-sub recently_changed {
-    return wantarray ? @recently_changed : $recently_changed[0];
-}
+TODO
 
-                                # Reset, then set, states from previous pass.  Called from bin/mh.
-sub reset_states {
-    my $ref;
-    while ($ref = shift @reset_states) {
-        undef $ref->{state_now};
-        undef $ref->{state_changed};
-        undef $ref->{said};
-    }
-
-                                # Allow for multiple sets from the same pass
-                                #  - each will get run, one per subsequent pass
-    my @items_with_more_states;
-    while ($ref = shift @states_from_previous_pass) {
-        my $state  = shift @{$ref->{state_next_pass}};
-        push @reset_states, $ref;
-        push @items_with_more_states, $ref if @{$ref->{state_next_pass}};
-
-        my $set_by = shift @{$ref->{setby_next_pass}};
-
-        my $target = shift @{$ref->{target_next_pass}};
-
-        &reset_states2($ref, $state, $set_by, $target);
-
-#	$ref->set_by($set_by);
-
-    }
-    @states_from_previous_pass = @items_with_more_states;
-}
+=cut
 
 sub reset_states2 {
     my ($ref, $state, $set_by, $target) = @_;
@@ -688,13 +1145,13 @@ sub reset_states2 {
         unshift @recently_changed, $ref;
         pop     @recently_changed if @recently_changed > 20;
     }
-                                # Set/fire tied objects/events
-                                #  - do it in main, so eval works ok
 
+    # Set/fire tied objects/events
+    #  - do it in main, so eval works ok
     &main::check_for_tied_events($ref);
 
-
-                                # Send out to xAP/xPL.  Avoid loops on mirrored mh systems by checking $set_by.
+    # Send out to xAP/xPL.
+    # Avoid loops on mirrored mh systems by checking $set_by.
     my ($send_xap, $send_xpl);
     $send_xap = 1 if $main::config_parms{xap_enable_items} or $$ref{xap_enable};
     $send_xap = 0 if defined $$ref{xap_enable} and $$ref{xap_enable} == 0;
@@ -711,11 +1168,25 @@ sub reset_states2 {
 
 }
 
+=item C<xAP_enable()>
+
+TODO
+Can only be run at startup or reload.
+
+=cut
+
 sub xAP_enable {
     return unless $main::Reload;
     my ($self, $enable) = @_;
     $self->{xap_enable} = $enable;
 }
+
+=item C<xPL_enable()>
+
+TODO
+Can only be run at startup or reload.
+
+=cut
 
 sub xPL_enable {
     return unless $main::Reload;
@@ -723,41 +1194,39 @@ sub xPL_enable {
     $self->{xpl_enable} = $enable;
 }
 
-sub tie_items {
-#   return unless $main::Reload;
-    my ($self, $object, $state, $desiredstate, $log_msg) = @_;
-    $state         = 'all_states' unless defined $state;
-    $desiredstate  = $state       unless defined $desiredstate;
-    $log_msg = 1                  unless $log_msg;
-    return if $$self{tied_objects}{$object}{$state}{$desiredstate};
-    $$self{tied_objects}{$object}{$state}{$desiredstate} = [$object, $log_msg];
-}
+
+=item C<tie_event(code, state, log_msg)>
+
+If the state of the generic_item changes, then code will trigger, 
+with the variable $state getting expanded.
+
+(optional) Setting state limits this tied code to run only when the given
+state is set.
+
+(optional) Setting log_msg causes the message to be logged when 
+this tied code is run.
+
+=cut
 
 sub tie_event {
-#   return unless $main::Reload;
-    my ($self, $event, $state, $log_msg) = @_;
+    my ($self, $code, $state, $log_msg) = @_;
     $state   = 'all_states' unless defined $state;
     $log_msg = 1            unless $log_msg;
-    $$self{tied_events}{$event}{$state} = $log_msg;
+    $$self{tied_events}{$code}{$state} = $log_msg;
 }
 
-sub untie_items {
-    my ($self, $object, $state) = @_;
-#   $state = 'all_states' unless $state;
-    if ($state) {
-        delete $self->{tied_objects}{$object}{$state};
-    }
-    elsif ($object) {
-        delete $self->{tied_objects}{$object}; # Untie all states
-    }
-    else {
-        delete $self->{tied_objects}; # Untie em all
-    }
-}
+=item C<untie_event(code, state)>
+
+Remove the tie to code.  If you don't specify a code string, all tied code is
+removed.
+
+(optional) Setting state removes the tied code previously associated with
+that state.
+
+=cut
 
 sub untie_event {
     my ($self, $event, $state) = @_;
-#   $state = 'all_states' unless $state;
     if ($state) {
         delete $self->{tied_events}{$event}{$state};
     }
@@ -769,13 +1238,74 @@ sub untie_event {
     }
 }
 
-sub tie_filter {
+=item C<tie_items(item)>
+
+If the state of the generic_item changes, then
+the state of $item will be set to that same state.
+
+=cut
+
+sub tie_items {
 #   return unless $main::Reload;
+    my ($self, $object, $state, $desiredstate, $log_msg) = @_;
+    $state         = 'all_states' unless defined $state;
+    $desiredstate  = $state       unless defined $desiredstate;
+    $log_msg = 1                  unless $log_msg;
+    return if $$self{tied_objects}{$object}{$state}{$desiredstate};
+    $$self{tied_objects}{$object}{$state}{$desiredstate} = [$object, $log_msg];
+}
+
+=item C<untie_items(item, state)>
+
+Remove the tie to item.  If you don't specify an item, all tied items are 
+removed.
+
+(optional) Setting state removes the tied item and state combination.
+
+=cut
+
+sub untie_items {
+    my ($self, $object, $state) = @_;
+    if ($state) {
+        delete $self->{tied_objects}{$object}{$state};
+    }
+    elsif ($object) {
+        delete $self->{tied_objects}{$object}; # Untie all states
+    }
+    else {
+        delete $self->{tied_objects}; # Untie em all
+    }
+}
+
+=item C<tie_filter(filter, state, log_msg)>
+
+Use this to disable control of the item whenever filter returns true.  
+Variables $state and $set_by can be used in the filter test.
+
+(optional) Setting state limits this tied filter code to run only when the given
+state is set.
+
+(optional) Setting log_msg causes the message to be logged when 
+this filter is run.
+
+=cut
+
+sub tie_filter {
     my ($self, $filter, $state, $log_msg) = @_;
     $state   = 'all_states' unless defined $state;
     $log_msg = 1            unless $log_msg;
     $$self{tied_filters}{$filter}{$state} = $log_msg;
 }
+
+=item C<untie_filter(filter, state)>
+
+Remove the tie to filter.  If you don't specify a filter, all tied filters are 
+removed.
+
+(optional) Setting state removes the tied filter and state combination.
+
+=cut
+
 sub untie_filter {
     my ($self, $filter, $state) = @_;
     if ($state) {
@@ -789,6 +1319,17 @@ sub untie_filter {
     }
 }
 
+=item C<tie_time(time, state, log_msg)>
+
+Sets item to state if the time string evaluates true.  state defaults to 'on'
+if undefined.
+time can be in either time_cron or time_now format.
+
+(optional) Setting log_msg causes the message to be logged when 
+the time string evaluates true.
+
+=cut
+
 sub tie_time {
     my ($self, $time, $state, $log_msg) = @_;
     $state   = 'on' unless defined $state;
@@ -796,6 +1337,16 @@ sub tie_time {
     push @items_with_tied_times, $self unless $$self{tied_times};
     $$self{tied_times}{$time}{$state} = $log_msg;
 }
+
+=item C<untie_time(time, state)>
+
+Remove the tie to time.  If you don't specify a time, all tied times are 
+removed.
+
+(optional) Setting state removes the tied time and state combination.
+
+=cut
+
 sub untie_time {
     my ($self, $time, $state) = @_;
     if ($state) {
@@ -808,9 +1359,16 @@ sub untie_time {
         delete $self->{tied_times}; # Untie em all
     }
 }
-sub delete_old_tied_times {
-    undef @items_with_tied_times;
-}
+
+=item C<set_web_style(style)>
+
+Contols the style of we form used when displaying states of this item on a 
+web page.  
+Can be 'dropdown', 'radio', or 'url'.
+
+See mh/code/examples/test_web_styles.pl
+
+=cut
 
 sub set_web_style {
     my ( $self, $style ) = @_;
@@ -818,12 +1376,19 @@ sub set_web_style {
     my %valid_styles = map { $_ => 1 } qw( dropdown radio url );
 
     if ( !$valid_styles{ lc( $style ) } ) {
-        &main::print_log( "Invalid style ($style) passed to set_web_style.  Valid choices are: " . join( ", ", sort keys %valid_styles ) );
+        &main::print_log( "Invalid style ($style) passed to set_web_style.  " .
+          "Valid choices are: " . join( ", ", sort keys %valid_styles ) );
         return;
     }
 
     $self->{ web_style } = lc( $style );
 }
+
+=item C<get_web_style>
+
+Returns the web style associated with this item.
+
+=cut
 
 sub get_web_style {
     my $self = shift;
@@ -831,10 +1396,114 @@ sub get_web_style {
     return $self->{ web_style };
 }
 
+=item C<user_data>
+
+Returns the user data associated with this item.
+
+=cut
+
 sub user_data {
     my $self = shift;
     return \%{$$self{user_data}};
 }
+
+=back
+
+=head1 PACKAGE FUNCTIONS
+
+=over
+
+=item C<delete_old_tied_times()>
+
+TODO
+
+=cut
+
+sub delete_old_tied_times {
+    undef @items_with_tied_times;
+}
+
+=item C<recently_changed()>
+
+TODO
+
+=cut
+
+# You can use this for an undo function
+sub recently_changed {
+    return wantarray ? @recently_changed : $recently_changed[0];
+}
+
+=item C<reset_states()>
+
+TODO
+
+=cut
+
+# Reset, then set, states from previous pass.  Called from bin/mh.
+sub reset_states {
+    my $ref;
+    while ($ref = shift @reset_states) {
+        undef $ref->{state_now};
+        undef $ref->{state_changed};
+        undef $ref->{said};
+    }
+
+    # Allow for multiple sets from the same pass
+    #  - each will get run, one per subsequent pass
+    my @items_with_more_states;
+    while ($ref = shift @states_from_previous_pass) {
+        my $state  = shift @{$ref->{state_next_pass}};
+        push @reset_states, $ref;
+        push @items_with_more_states, $ref if @{$ref->{state_next_pass}};
+
+        my $set_by = shift @{$ref->{setby_next_pass}};
+
+        my $target = shift @{$ref->{target_next_pass}};
+
+        &reset_states2($ref, $state, $set_by, $target);
+    }
+    @states_from_previous_pass = @items_with_more_states;
+}
+
+
+=head1 INI PARAMETERS
+
+=over
+
+=item C<debug>
+
+Include C<set> and C<store> in the comma seperated list of debug keywords
+to produce debugging output from this item. 
+
+=back
+
+=head1 AUTHOR
+
+Bruce Winter
+
+=head1 SEE ALSO
+
+None
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, 
+MA  02110-1301, USA.
+
+=cut
 
 #
 # $Log: Generic_Item.pm,v $

@@ -172,7 +172,7 @@ sub rf_set_receiver {
 
 #------------------------------------------------------------------------------
 
-# Subroutine: rf_set_receiver
+# Subroutine: rf_set_RF_Item
 #	Set the state of any items or classes associated with this device.
 
 sub rf_set_RF_Item {
@@ -189,13 +189,43 @@ sub rf_set_RF_Item {
             $object->set($state,'rf');
             $matched = 1;
             if ($main::Debug{$lc_module}) {
-                 &::print_log ("$item_id: " . substr($name, 1) . " $state");
+                 &::print_log ("$item_id: " . substr($name, 1) . " set $state");
             }
         }
     }
     unless ($matched) {
         &::print_log("${uc_module}: ${desc}: $no_match_text (state = $state)");
     }
+}
+
+#------------------------------------------------------------------------------
+
+# Subroutine: rf_get_RF_Item
+#	Get the state of the item with the given id.
+
+sub rf_get_RF_Item {
+    my($module, $desc, $no_match_text, $item_id) = @_;
+
+    my $uc_module = uc $module;
+    my $lc_module = lc $module;
+
+    my $matched;
+    for my $name (&main::list_objects_by_type('RF_Item')) {
+        my $object = &main::get_object_by_name($name);
+        my $id     = $object->{rf_id};
+        if ($id eq $item_id) {
+            my $state = $object->state;
+            $matched = 1;
+            if ($main::Debug{$lc_module}) {
+                 &::print_log ("$item_id: " . substr($name, 1) . " get $state");
+            }
+            return $state;
+        }
+    }
+    unless ($matched) {
+        &::print_log("${uc_module}: ${desc}: $no_match_text");
+    }
+    return undef;
 }
 
 #------------------------------------------------------------------------------

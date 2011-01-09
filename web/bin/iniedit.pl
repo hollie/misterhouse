@@ -27,7 +27,7 @@ Cache-control: no-cache
 <BODY>
 
 <DIV ID="overDiv" STYLE="position:absolute; visibility:hide; z-index:1;"></DIV>
-<SCRIPT LANGUAGE="JavaScript" SRC="/overlib.js"></SCRIPT>
+<SCRIPT LANGUAGE="JavaScript" SRC="/lib/overlib.js"></SCRIPT>
 
 <script>
 function openparmhelp(parm1){
@@ -429,7 +429,6 @@ $local_opts
 </form>
 
 |;
-&file_write("$config_parms{html_dir}/temp_local_opts.html", $data);
 
     return $head . $data . $tail;
 }

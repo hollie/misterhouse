@@ -46,10 +46,10 @@ if ($Reload) {
     %stations = split ' ', $config_parms{v4l_radio_stations} if defined $config_parms{v4l_radio_stations};
     set $v4l_radio_streamer_process 'killall ffserver', 'ffserver';
     set $v4l_radio_encoder_process 'killall ffmpeg', 'sleep 2', 'ffmpeg -vn  http://localhost:8090/feed1.ffm';
-    $Included_HTML{Radio} = '<a href="/shoutcast-playlist.pls">Start listening</a>';
+    $Included_HTML{Radio} = '<a href="/data/shoutcast-playlist.pls">Start listening</a>';
     my $ip = `/sbin/ifconfig eth0`;
     my ($address) = $ip =~ /.*inet addr:([0-9\.]*)\s.*/;
-    open PLS, "> $config_parms{html_dir}/shoutcast-playlist.pls";
+    open PLS, "> $config_parms{data_dir}/shoutcast-playlist.pls";
     print PLS "
 [playlist]
 numberofentries=1

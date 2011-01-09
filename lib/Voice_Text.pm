@@ -320,9 +320,9 @@ sub speak_text {
             select undef, undef, undef, .2; # Need this ?
         }
 		 # Check for sable requests.  Server does not do sable
-        elsif (!$VTxt_festival and
-	       ($parms{voice} or $parms{volume} or
-		$parms{rate} or  $parms{text} =~ /<sable>i/)) {
+        elsif (!$VTxt_festival or
+	       $parms{voice} or $parms{volume} or
+	       $parms{rate} or  $parms{text} =~ /<sable>i/) {
             my $text = $parms{text};
             unless ($text =~ /<sable>i/) {
                 $parms{rate}   = '-50%'  if $parms{rate}   eq 'slow';

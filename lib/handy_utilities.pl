@@ -505,6 +505,24 @@ sub main::plural_check {
     return $text;
 }
 
+=over 4
+
+=item write_mh_opts
+
+This function will add or edit Misterhouse parameters in the user's ini file. 
+It will make a backup of the ini file, and it doesn't remove any comments 
+in the file.  The first argument is a hash of parameters to set.  The second 
+(optional) argument is the ini file you want to modify, and the third 
+(optional) argument is set to 1 if you want to log the change. 
+
+  Examples:
+  
+    write_mh_opts({"photo_dir" -> $state}, undef, 1);
+    write_mh_opts(%parms);
+
+=back
+
+=cut
 
 sub main::read_mh_opts {
     my($ref_parms, $pgm_path, $debug, $parm_file) = @_;
@@ -1015,6 +1033,7 @@ sub main::time_date_stamp {
 # 20:  YYYYMMDDHHMMSS
 # 21:  12:52 Sun 25 (For short time/date displays)
 # 22:  Sun, Dec 25 1:52 PM
+# 23:  relative to now (eg, 6 seconds ago, 4 hours from now, yesterday, etc)
 
     my($style, $time_or_file) = @_;
     my $time;
@@ -1069,8 +1088,6 @@ sub main::time_date_stamp {
 
     if ($style == 1) {$time_date_stamp = sprintf("%s, %02d/%02d/$year_format  %02d:%02d %s",
                                $day_long, @day_month, $year, $hour, $min, $ampm) }
-    elsif ($style == 19) {$time_date_stamp = sprintf("%s, %2d %s %4d %02d:%02d:%02d GMT",
-                               $day, $mday, $month, $year_full, $hour, $min, $sec) }
     elsif ($style == 2) {$time_date_stamp = sprintf("%s %s %02d %02d:%02d %s",
                                $day_long, $month, $mday, $hour, $min, $year_full) }
     elsif ($style == 3) {$time_date_stamp = sprintf("%s, %s %02d at %2d %s",
@@ -1103,30 +1120,128 @@ sub main::time_date_stamp {
                           $year_full, $mon, $mday, $hour, $min, $sec) }
     elsif ($style == 18)  {$time_date_stamp = sprintf("%04d%02d%02d",
                                                       $year_full, $mon, $mday) }
+    elsif ($style == 19) {$time_date_stamp = sprintf("%s, %2d %s %4d %02d:%02d:%02d GMT",
+                               $day, $mday, $month, $year_full, $hour, $min, $sec) }
     elsif ($style == 20)  {$time_date_stamp = sprintf("%04d%02d%02d%02d%02d%02d",
                                                       $year_full, $mon, $mday, $hour, $min, $sec) }
     elsif ($style == 21) {$time_date_stamp = sprintf("%2d:%02d $day $mday",
                                $hour, $min) }
     elsif ($style == 22) {$time_date_stamp = sprintf("%s, %s %2d %2d:%02d%s",
                                $day, $month, $mday, $hour, $min, $ampm) }
+    elsif ($style == 23) {
+        my $diff = $time - $main::Time;
+        my $past;
+        $past = 1 if $diff < 0;
+        $diff = abs $diff;
+        my $a_day = 24 * 60 * 60;
+        my $a_week = 7 * $a_day;
+        my $a_month = 30 * $a_day;
+        my $a_year = 365 * $a_day;
+        my ($now_sec, $now_min, $now_hour, $now_mday, $now_mon, $now_year,
+          $now_wday) = localtime();
+        my $today = &::timelocal(0, 0, 0, $now_mday, $now_mon, $now_year);
+        my $tomorrow = $today + $a_day;
+        my $twodayshence = $today + 2 * $a_day;
+        my $yesterday = $today - $a_day;
+        my $thisweek = $today - $now_wday * $a_day;
+        my $nextweek = $thisweek + $a_week;
+        my $twoweekshence = $thisweek + 2 * $a_week;
+        my $lastweek = $thisweek - $a_week;
+        my $thismonth = &::timelocal(0, 0, 0, 1, $now_mon, $now_year);
+        my $nextmonth = $thismonth + $a_month;
+        my $twomonthshence = $thismonth + 2 * $a_month;
+        my $lastmonth = $thismonth - $a_month;
+        my $thisyear = &::timelocal(0, 0, 0, 1, 0, $now_year);
+        my $nextyear = $thisyear + $a_year;
+        my $twoyearshence = $thisyear + 2 * $a_year;
+        my $lastyear = $thisyear - $a_year;
+
+        if ($diff < 60) {
+            $time_date_stamp = "$diff Seconds " . ($past ? "ago" : "from now");
+        }
+        elsif ($diff < 120) {
+            $time_date_stamp = "1 Minute " . ($past ? "ago" : "from now");
+        }
+        elsif ($diff < 60 * 70) {
+            my $t = &::round($diff/60);
+            $time_date_stamp = "$t Minutes " . ($past ? "ago" : "from now");
+        }
+        elsif (($time > $today and $time < $tomorrow)
+          or $diff < 12 * 60 * 60) {
+            my $t = &::round($diff/(60*60));
+            $time_date_stamp = "$t Hour" . ($t != 1 ? "s " : " ")
+              . ($past ? "ago" : "from now");
+        }
+        elsif ($past and $time > $yesterday) {
+            $time_date_stamp = "Yesterday at " . sprintf("%2d:%02d %s",
+              $hour, $min, $ampm);
+        }
+        elsif (not $past and $time < $twodayshence) {
+            $time_date_stamp = "Tomorrow at " . sprintf("%2d:%02d %s",
+              $hour, $min, $ampm);
+        }
+        elsif (($time > $thisweek and $time < $nextweek)
+          or $diff < 4 * $a_day) {
+            my $t = int( $diff/( $a_day ) + 1 );
+            $time_date_stamp = "$t Day" . ($t != 1 ? "s " : " ")
+              . ($past ? "ago" : "from now");
+        }
+        elsif ($past and $time > $lastweek) {
+            $time_date_stamp = "Last Week";
+        }
+        elsif (not $past and $time < $twoweekshence) {
+            $time_date_stamp = "Next Week";
+        }
+        elsif (($time > $thismonth and $time < $nextmonth)
+          or $diff < 3 * $a_week) {
+            my $t = int( $diff/( $a_week ) + 1 );
+            $time_date_stamp = "$t Week" . ($t != 1 ? "s " : " ")
+              . ($past ? "ago" : "from now");
+        }
+        elsif ($past and $time > $lastmonth) {
+            $time_date_stamp = "Last Month";
+        }
+        elsif (not $past and $time < $twomonthshence) {
+            $time_date_stamp = "Next Month";
+        }
+        elsif (($time > $thisyear and $time < $nextyear)
+          or $diff < 4 * $a_month) {
+            my $t = int( $diff/( $a_month ) + 1 );
+            $time_date_stamp = "$t Month" . ($t != 1 ? "s " : " ")
+              . ($past ? "ago" : "from now");
+        }
+        elsif ($past and $time > $lastyear) {
+            $time_date_stamp = "Last Year";
+        }
+        elsif (not $past and $time < $twoyearshence) {
+            $time_date_stamp = "Next Year";
+        }
+        else {
+            my $t = int( $diff/( $a_year ) + 1 );
+            $time_date_stamp = "$t Year" . ($t != 1 ? "s " : " ")
+              . ($past ? "ago" : "from now");
+        }
+    }
     else {
         $time_date_stamp = "time_date_stamp format=$style not recognized";
     }
-
-    return wantarray ? ($time_date_stamp, $sec, $min, $hour, $ampm, $day_long, $mon, $mday, $year) : $time_date_stamp;
+    return wantarray ? ($time_date_stamp, $sec, $min, $hour, $ampm,
+      $day_long, $mon, $mday, $year) : $time_date_stamp;
 }
 
 sub main::time_add {
     my ($time_date) = @_;
     my $time2 = &main::my_str2time($time_date);
-    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($time2);
+    my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst)
+      = localtime($time2);
     $time_date = sprintf("%d:%02d", $hour, $min);
     return $time_date;
 }
 
 sub main::time_diff {
-    my($time1, $time2, $nearest_unit, $format) = @_;
-    my($diff, $nu, $seconds, $minutes, $hours, $days, $weeks, $years, @diff, $last, $string);
+    my ($time1, $time2, $nearest_unit, $format) = @_;
+    my ($diff, $nu, $seconds, $minutes, $hours, $days, $weeks, $years,
+      @diff, $last, $string);
     $diff = abs($time2 - $time1);
 
     undef $nu;
@@ -1171,7 +1286,8 @@ sub main::time_diff {
     $weeks   -= 52 * $years;
 
     if ($format eq 'numeric') {
-        $string = sprintf("%3d days %02d:%02d:%02d", 7*(52*$years + $weeks) + $days, $hours, $minutes, $seconds);
+        $string = sprintf("%3d days %02d:%02d:%02d",
+          7 * (52 * $years + $weeks) + $days, $hours, $minutes, $seconds);
     }
     else {
         undef @diff;
@@ -1193,7 +1309,8 @@ sub main::time_diff {
     }
 
 #   $string .= ($time2 > $time1) ? ' ago' : ' from now';
-    $string = "unknown time.  time2=$time2 time1=$time1 diff=$diff" unless $string;  # debug
+    $string = "unknown time.  time2=$time2 time1=$time1 diff=$diff"
+      unless $string;  # debug
     return $string;
 }
 

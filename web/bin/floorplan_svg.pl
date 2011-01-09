@@ -11,6 +11,9 @@ Author:
 	Pierrick DINTRAT
 	pierrick.dintrat@laposte.net
 
+Contributor:
+	Neil Cherry <ncherry@linuxha.com>
+
 License:
 	This free software is licensed under the terms of the GNU public license.
 
@@ -33,12 +36,45 @@ $^W = 0;
 my $object_name = shift || '$Property';
 my $object = &get_object_by_name($object_name);
 
-my $svg= SVG->new(viewBox=>"0 0 1200 800",preserveAspectRatio=>"none");
-my $top=$svg->group( id => 'group_top',style=> { stroke=>'green', fill=>'black' });
+# This was giving Firefox fits until I change it to this setup
+# create an SVG object
+my $svg = SVG->new('xmlns:xlink'	=> 'http://www.w3.org/1999/xlink',
+		   xmlns		=> 'http://www.w3.org/2000/svg',
+		   viewBox		=> "0 0 1200 800", #
+                   preserveAspectRatio	=> "none",
+		   -indent		=> '  ',
+                   onload               => 'init();',
+);
 
-#return &svg_error('FloorPlan', "No $object_name Group found to generate a floorplan from") unless $object;
+my $top = $svg->group( id => 'group_top',style=> { stroke=>'green', fill=>'black' });
 
-&draw_top($top);
+my $tag = $svg->script(type=>"text/ecmascript");
+
+# I need to catch the a URL problem (such as when MH reboots) so I need to
+# use a catch try which mean I need to move the javascript from the above
+# onload to here where it can be more complex than a quick one liner
+$tag->CDATA('
+function init() {
+  var i;
+
+  i = 10;
+
+  while(i) {
+    //window.status = "Reload ... ";
+
+    try {
+      window.setTimeout(\'window.location.reload()\', 10000 )
+      i = 0;
+      //window.status = "Done!";
+    } catch (e) {
+      window.status = "URL error, retrying";
+      i--; // if after 10 tries we can not get back in then give up!
+    }
+  }
+}
+');
+
+#&draw_top($top);
 &web_fp($object);
 &svg_page($svg->xmlify);
 
@@ -47,6 +83,7 @@ sub web_fp #render table representation of objects and their co-ordinates
 	my ($p_obj) = @_;
 
 	my @l_objs;
+	my @n_objs;
 	my $l_html;
 	my @l_fp;
 	my ($l_x,$l_y,$l_w,$l_h);
@@ -55,9 +92,17 @@ sub web_fp #render table representation of objects and their co-ordinates
 	my $l_obj;
 	my $l_xscale=12;
 	my $l_yscale=5;
-	use vars qw($i $j); 
+	our ($i, $j, $k); 
+
+        # I know I need this but I'm not sure as to the what or the why - njc
+        my $xOffset =  20; # Mine 105, his 110
+        my $yOffset =  20; # Mine 120, his 110
+
+        my $units = 10;         # 15px = 1 ft
+
 	$i=1;
-	$j=125;
+	$j=0;
+	$k=0;
 
 	my $l_bcolor='#CCCCCC';
 	my $l_acolor='#00FF00';
@@ -69,32 +114,63 @@ sub web_fp #render table representation of objects and their co-ordinates
 	if ($p_obj->isa('Group')) 
 	{
 		@l_objs=@{$$p_obj{members}};
-		for my $obj (list $p_obj) 
-		{
+		for my $obj (@l_objs) { # Rooms
 			($l_x,$l_y,$l_w,$l_h) = $obj->get_fp_location();
-			# Just for keep floorplan.pl coordonates
-			$l_x*=10;
-			$l_y*=10;
-			$l_w*=10;
-			$l_h*=10;
+
+			# Just for keeping floorplan.pl coordonates
+			# It was 10, I'm not sure that 12 is correct
+			# times 10, the rooms are given in feet (I guess)
+			$l_x *= 12; $l_x += $xOffset;	# Corrective offset to move it of the right edge of the display area
+			$l_y *= 12; $l_y += $yOffset;    	# Corrective offset to move it of the top edge of the display area
+			$l_w *= 12;
+			$l_h *= 12;
 
 			if ($l_x ne "") 
 			{ 
-				$y->rectangle(x=>$l_x+100, y=>$l_y+100,width =>$l_w, height => $l_h,ry=> 0,fill=>'lightgray',id=> "rect_y-$i" );
-				my $group_name=$svg->text(id=>"room_name_$i",x=>$l_x+110,y=>$l_y+110)->cdata(web_fp_filter_name($obj->{object_name}));
+				$y->rectangle(x=>$l_x, y=>$l_y,width =>$l_w, height => $l_h,ry=> 0,fill=>'lightgray',id=> "rect_y-$i" );
+				my $group_name=$svg->text(id=>"room_name_$i",x=>$l_x+4,y=>$l_y+16)->cdata(web_fp_filter_name($obj->{object_name}));
 				$i++;
-				$j=125;
 			} 
-			for my $item (list $obj) 
-			{
+			@n_objs = @{$$obj{members}}; # This is the Devices within the Room
+			for my $item (@n_objs) {
+				my ($width, $height);
+				my $ob = Ob($item);
+
 				my ($l_x_item,$l_y_item) = $item->get_fp_location();
-				$l_x_item*=10;
-				$l_x_item+=$l_x;
-				$l_y_item*=10;
-				$l_y_item+=$l_y;
+
+				# If group is defined as just Group_X instead of Group_X(x;y)
+				# the device ends up at 0,0. If more than one device has the
+				# same definition they overlap. This code *mostly* takes care
+				# of that (we really need to figure out collisions and this
+				# doesn't do that)
+				if(($l_x_item eq '' && $l_y_item eq '') || ($l_x_item == 0 && $l_y_item == 0)) {
+					$l_x_item += $j;
+					$j++;
+				}
+
+				$l_x_item *= $units;
+				$l_x_item += $l_x;
+				$l_y_item *= $units;
+				$l_y_item += $l_y;
+
+				if(defined($ob->{fp_icon_w})) {
+					$width  = $ob->{fp_icon_w}; # In pixels
+					$height = $ob->{fp_icon_h};
+				} else {
+					$width  = 16;
+					$height = 16;
+				}
+
 				my ($l_text,$l_state,$l_image) = web_fp_item($item);
-				#$svg->text(x=>$l_x_item+110,y=>$l_y_item+110)->cdata("$l_text");
-				$svg->anchor(-href=>"/bin/SET;referer?$l_text")->image(x=>$l_x_item+80,y=>$l_y_item+120,width=>15,height=>15,'-href'=>"$l_image");
+
+				$svg->anchor(-href=>"/bin/SET;referer?$l_text")->image(	x	=> $l_x_item,
+											y	=> $l_y_item,
+											width	=> $width,
+											height	=> $height,
+											'-href'	=> "$l_image",
+											id      => "i${k}" . "$ob->{object_name}",
+											title   => "$ob->{object_name}: $ob->{state}");
+				$k++;
 			}
 		}
 	} 
@@ -118,8 +194,18 @@ sub web_fp_item #render all items based on type
 	my $l_image;
 
 	$l_text=$$p_obj{object_name} . "=" . $p_obj->state;
-	if ($p_obj->isa('Light_Item') or 
-	    $p_obj->isa('Fan_Light') or
+	if ($p_obj->isa('Light_Item')     or 
+	    $p_obj->isa('Fan_Light')      or
+	    $p_obj->isa('Weeder_Light')   or
+	    $p_obj->isa('UPB_Device')     or
+	    $p_obj->isa('Insteon_Device') or
+	    $p_obj->isa('UPB_Link')       or
+	    $p_obj->isa('EIB_Item')       or
+	    $p_obj->isa('EIB1GItem')      or
+	    $p_obj->isa('EIB2_Item')      or
+	    $p_obj->isa('EIO_Item')       or
+	    $p_obj->isa('UIO_Item')       or
+	    $p_obj->isa('Generic_Item')   or
 	    $p_obj->isa('X10_Item')) {
 		if ($p_obj->state eq 'off') {
 			$l_image='/graphics/fp-light-off.gif';
@@ -183,6 +269,14 @@ sub web_fp_item #render all items based on type
 		$l_text.=':' . $p_obj->state();
 	}
 
+	# Check for custom icons
+	my %icons = $p_obj->get_fp_icons();
+
+	if ((keys %icons) and $icons{$p_obj->state}) {
+		$l_image = '/graphics/' . $icons{$p_obj->state};
+		$l_text  = $$p_obj{object_name} . "=" . $l_state;
+	}
+
 	return ($l_text,$l_state,$l_image);
 }
 
@@ -218,4 +312,11 @@ sub draw_top
 
 }
 
+# Return the obj
+# Yes I know this is stupid but I can't figure out how else to tell Perl
+# that a $obj really is a $$obj (I get errors). This fakes Perl out.
+sub Ob {
+    my ($obj) = @_;
+    return $obj;
+}
 

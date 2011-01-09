@@ -80,6 +80,8 @@ Usage:
          with the same value.
       retrict_off(X): set X to 0 to prevent any attached light restriction
          items from preventing off states.  The default is "0".
+      save_state(X): set X to 1 to force Light_Item states to be saved and
+         restored across a restart.  The default is "0".
 
 	Input states:
       From a Light_Restriction_Item:
@@ -145,30 +147,31 @@ package Light_Item;
 sub initialize
 {
 	my ($self) = @_;
-   $$self{m_write} = 1;
+	$$self{m_write} = 1;
 	$$self{m_timerSync} = new Timer();
 	$$self{m_timerSyncTime}=1800;
 	$$self{m_timerSync}->set($$self{m_timerSyncTime} + (rand() * $$self{m_timerSyncTime}), $self); #random off command
 	$$self{m_timerOff} = new Timer();
 	$$self{m_timerUnlock} = new Timer();
 	$$self{m_timerOn} = new Timer();
-   $$self{m_predict_off_time} = 60;  # Default predict off time of 60 seconds
+	$$self{m_predict_off_time} = 60;  # Default predict off time of 60 seconds
 	$$self{m_on_state} = 'on'; # Turn on to "on" by default
 	$$self{m_predict} = 0; # Turn off prediction by default
 	$$self{m_sync} = 1; # Turn on X10 sync
 	$$self{m_door_auto_off} = 0;
 	$$self{m_door_always_on} = 0;
-   $$self{m_pending_lock} = 0;
-   $$self{m_delay_on} = 0;
-   $$self{m_manual} = undef;
-   $$self{m_manualTimer} = new Timer();
-$$self{m_idleTimer} = new Timer();
-$$self{m_idleAmount} = 0;
-$$self{m_idleState} = undef;
-$$self{m_idleActiveState} = undef;
+	$$self{m_pending_lock} = 0;
+	$$self{m_delay_on} = 0;
+	$$self{m_manual} = undef;
+	$$self{m_manualTimer} = new Timer();
+	$$self{m_idleTimer} = new Timer();
+	$$self{m_idleAmount} = 0;
+	$$self{m_idleState} = undef;
+	$$self{m_idleActiveState} = undef;
 	$$self{state}='off';
 	$$self{m_always_set_state} = 1; # the default is to set state regardless of change
         $$self{m_restrict_off} = 0; # disable light restrictions items from preventing off states
+	$$self{m_save_state} = 0;  # allow states to be restored across restarts
         # defined possible states
         @{$$self{states}} = ('on','off');
 }
@@ -335,6 +338,13 @@ sub restrict_off
         return $$self{m_restrict_off};
 }
 
+sub save_state
+{
+	my ($self, $p_save_state) = @_;
+        $$self{m_save_state} = $p_save_state if defined($p_save_state);
+        return $$self{m_save_state};
+}
+
 sub get_handler_state
 {
 	my ($self,$p_handler_state,$p_event_state,$p_origHandler_state) = @_;
@@ -420,7 +430,7 @@ sub do_off_delay
 			#These are considered "Temporary" ON state sets
 			if (defined($p_setby) and ( $p_setby->isa('Motion_Item') or
 				($p_setby->isa('Presence_Monitor') and $p_state eq 'predict') )) { #These are subject to a delay off timer upon turning on (temporary state)
-				if (! $self->is_somebody_present($p_state,$p_setby)) { #only start the timer if no one is here
+				if (! $self->is_somebody_present($p_setby,$p_state)) { #only start the timer if no one is here
 #					&::print_log("$$self{object_name}:Delay Start:$l_delay");
 					$$self{m_timerOff}->set($l_delay, $self);
 				} else { #stop the timer if this is true
@@ -442,7 +452,7 @@ sub do_off_delay
 				$p_setby->isa('Presence_Monitor') or
 				$p_setby->isa('Photocell_Item') or
 				$p_setby->isa('Door_Item') ) ) { # Do not immediately turn off for these devices. Qualify for delay override
-				if (! $self->is_somebody_present($p_state,$p_setby) ) {
+				if (! $self->is_somebody_present($p_setby,$p_state) ) {
 					if (!$$self{m_timerOn}->active()) { #only reset if we arent previously running
 #						&::print_log("$$self{object_name}:Delay Start:$l_delay");
 						$$self{m_timerOff}->set($l_delay, $self);
@@ -622,7 +632,7 @@ sub is_off_restriction
 	my ($self,$p_state,$p_setby) = @_;
 	my $setby_conduit = &main::set_by_to_target($p_setby);
 	if ( ( $setby_conduit =~ /^serial|xpl|xap|web|telnet/i ) or ($main::Reload and ( $p_setby eq 'init' ) ) ) {
-		print "No off restrictions permitted when set by non-automation device\n" if $main::Debug{occupancy};
+		&::print_log("No off restrictions permitted when set by non-automation device ($setby_conduit)") if $main::Debug{light_item};
 		return 0;
 	}
 	my $l_qualified=0;
@@ -780,11 +790,11 @@ sub manual {
            $$self{m_manual_auto_off} = 1 if $autoOffFlag;
            $$self{m_manualTimer}->unset();
            if (($self->state eq 'off') or ($self->state eq '') or ($self->state eq '0%')) {
-              &::print_log("Light_Item($$self{object_name}):: setting mode to manual"
+              &::print_log("Light_Item($$self{object_name}):: setting mode to manual (off)"
                  . (($$self{m_manual_auto_off}) ? "[auto]" : "") . "; reverting in $offTime seconds") if $main::Debug{light_item};
               $$self{m_manualTimer}->set($offTime, $self);
            } else {
-              &::print_log("Light_Item($$self{object_name}):: setting mode to manual"
+              &::print_log("Light_Item($$self{object_name}):: setting mode to manual (on)"
                  . (($$self{m_manual_auto_on}) ? "[auto]" : "") . "; reverting in $onTime seconds") if $main::Debug{light_item};
               $$self{m_manualTimer}->set($onTime, $self);
            }
@@ -847,9 +857,11 @@ sub restore_string
 	my $l_restore_string = undef;	
 	#We dont want MH saving our state.. Start new everytime! :)
 
-#	$l_restore_string = $self->SUPER::restore_string;
-#	$l_restore_string =~ s/-\>{state}=(.*);/-\>{state}='off'/ig;
-#	&::print_log("Restore:::$l_restore_string:");
+	if ($$self{m_save_state}) {
+	    $l_restore_string = $self->SUPER::restore_string;
+	    $l_restore_string =~ s/-\>{state}=(.*);/-\>{state}='off'/ig;
+            #&::print_log("Restore:::$l_restore_string:");
+	}
 
 	return $l_restore_string;
 }

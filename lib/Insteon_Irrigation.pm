@@ -3,6 +3,7 @@
 AUTHORS
 Gregg Liming <gregg@limings.net>
 David Norwood <dnorwood2@yahoo.com>
+Evan P. Hall <evan@netmagic.net>
 
 INITIAL CONFIGURATION
 In user code:
@@ -57,7 +58,7 @@ use strict;
 
 package Insteon_Irrigation;
 
-@Insteon_Irrigation::ISA = ('Insteon_Device');
+@Insteon_Irrigation::ISA = ('Insteon_Link');
 
 
 # -------------------- START OF SUBROUTINES --------------------
@@ -143,6 +144,14 @@ sub get_program_is_running() {
 sub get_pump_enabled() {
    my ($self) = @_;
    return $$self{'pump_enabled'};
+}
+
+sub get_timers() {
+   my ($self) = @_;
+   my $cmd = 'sprinkler_timers_request';
+   my $subcmd = 0x1;
+   $self->_send_cmd(command => $cmd, type => 'extended', extra => $subcmd, 'is_synchronous' => 0);
+   return;
 }
 
 sub _is_info_request {

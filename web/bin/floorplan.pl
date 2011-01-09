@@ -13,7 +13,7 @@ Author:
 	jason@sharpee.com
 
 Contributors:
-
+	Neil Cherry <ncherry@linuxha.com>
 
 License:
 	This free software is licensed under the terms of the GNU public license.
@@ -159,22 +159,32 @@ sub web_fp_item #render all items based on type
 
 #	print "--$p_obj:". $p_obj->state;
 	$l_text=$$p_obj{object_name} . ":" . $p_obj->state;
-	if ($p_obj->isa('Light_Item') or
-	$p_obj->isa('Fan_Light') or
-	$p_obj->isa('Weeder_Light') or
-	$p_obj->isa('UPB_Device') or
-	$p_obj->isa('Insteon_Device') or
-	$p_obj->isa('UPB_Link') or
-        $p_obj->isa('X10_Item')) {
-	        if ($p_obj->state eq 'off') {
+	if ($p_obj->isa('Group')) {
+		# Leave Group First as it is a Generic_Item too and we don't
+		# want an Icon for the Group (how would you deal with On/Off
+		# state of a group with mixed on and off device states?)
+		$l_text=web_fp_filter_name($p_obj->{object_name});
+	} elsif ($p_obj->isa('Light_Item')     or
+		 $p_obj->isa('Fan_Light')      or
+		 $p_obj->isa('Weeder_Light')   or
+		 $p_obj->isa('UPB_Device')     or
+		 $p_obj->isa('Insteon_Device') or
+		 $p_obj->isa('UPB_Link')       or
+		 $p_obj->isa('EIB_Item')       or
+		 $p_obj->isa('EIB1GItem')      or
+		 $p_obj->isa('EIB2_Item')      or
+		 $p_obj->isa('EIO_Item')       or
+		 $p_obj->isa('UIO_Item')       or
+		 $p_obj->isa('Generic_Item')   or
+		 $p_obj->isa('X10_Item')
+		 ) {
+		if ($p_obj->state eq 'off') {
 			$l_image='fp-light-off.gif';
 			$l_state='on';
 		} else {
 			$l_image='fp-light-on.gif';
 			$l_state='off';
 		}
-	} elsif ($p_obj->isa('Group')) {
-		$l_text=web_fp_filter_name($p_obj->{object_name});
 	} elsif ($p_obj->isa('Motion_Item') || $p_obj->isa('X10_Sensor') ) {
 		$l_state='motion';
 		if (lc($p_obj->state) eq 'motion') {
@@ -254,7 +264,8 @@ sub web_fp_item #render all items based on type
    }
 
 	if ($l_state ne '') {
-		$l_html.= "<a href='/bin/SET;referer?" . $p_obj->{object_name} . "=$l_state'>";
+		my ($l_str) = $l_text =~ /\$(.*)/;
+		$l_html.= "<a href='/bin/SET;referer?" . $p_obj->{object_name} . "=$l_state' title='" . $l_str . "'>";
 	}
 	if ($l_image ne '') {
 		$l_html.="<img src='/graphics/$l_image' border=0 alt='$l_text'>";

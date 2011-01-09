@@ -160,7 +160,7 @@ if (done_now $p_weather_data or done_now $p_weather_conditions) {
 		}
 		$w{WindGustSpeed}=$w{WindAvgSpeed};
 	    $w{WindGustSpeed} = $1 if $conditions =~ /gusts\s+up\s+to\s+(\d+)\s+mph/;
-		$w{DewOutdoor}=convert_humidity_to_dewpoint($w{HumidOutdoor},convert_f2c($w{TempOutdoor})); # DewOutdoor is in Celsius at this point
+		$w{DewOutdoor}=&Weather_Common::convert_humidity_to_dewpoint($w{HumidOutdoor},convert_f2c($w{TempOutdoor})); # DewOutdoor is in Celsius at this point
 
 		# Who needs a sun sensor?
 
@@ -173,7 +173,7 @@ if (done_now $p_weather_data or done_now $p_weather_conditions) {
 			$w{Clouds} = lc($1);
 		}
 
-		$w{WindAvgDir}=convert_wind_dir_text_to_num($w{WindAvgDir});
+		$w{WindAvgDir}=&Weather_Common::convert_wind_dir_text_to_num($w{WindAvgDir});
 		$w{WindGustDir}=$w{WindAvgDir};
 
 		if ($config_parms{weather_uom_wind} eq 'kph') {
@@ -210,8 +210,8 @@ if (done_now $p_weather_data or done_now $p_weather_conditions) {
 			}
 		}
 
-		&populate_internet_weather(\%w, $config_parms{weather_internet_elements_noaa});
-		&weather_updated;
+		&Weather_Common::populate_internet_weather(\%w, $config_parms{weather_internet_elements_noaa});
+		&Weather_Common::weather_updated;
 	}
 	if (done_now $p_weather_data) {
 		$v_get_internet_weather_data->respond('app=weather connected=0 Weather data retrieved.');

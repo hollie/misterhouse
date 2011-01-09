@@ -7,7 +7,7 @@ File:
 
 Description:
 	This is the base interface class for Universal Powerline Bus (UPB), Powerline
-	Interface Module (PIM).  
+	Interface Module (PIM).
 
 	For more information about the UPB protocol:
 		http://www.pcslighting.com/downloads.html
@@ -46,10 +46,10 @@ Usage:
 		$myPIM->send_upb_cmd("09004466FF230000");
 		#Turn Light Module ID #0x66 to 50% dim
 		$myPIM->send_upb_cmd("09004466FF233200");
-	
+
 Notes:
     - However this code does establish communication sucessfully with the PIM,
-      and adding functionality at this point will be somewhat trivial. 
+      and adding functionality at this point will be somewhat trivial.
       ( The exhausting hardware / serial part for me is seemingly over ;) )
 
 Special Thanks to:
@@ -73,7 +73,7 @@ sub serial_startup {
 
    my $port       = $::config_parms{$instance . "_serial_port"};
    my $speed      = $::config_parms{$instance . "_baudrate"};
-   $UPBPIM_Data{$instance}{'serial_port'} = $port;    
+   $UPBPIM_Data{$instance}{'serial_port'} = $port;
 
    &::serial_port_create($instance, $port, $speed);
   if (1==scalar(keys %UPBPIM_Data)) {  # Add hooks on first call only
@@ -146,7 +146,7 @@ sub new {
 #we just turned on the device, lets wait a bit
 	$self->set_dtr(1);
    select(undef,undef,undef,0.15);
-	
+
 	$self->set_message_mode();
 	$self->network_id($network_id) if defined $network_id;
 	$self->network_password($network_password) if defined $network_password;
@@ -159,7 +159,7 @@ sub set_message_mode
 {
 	my ($self) = @_;
 	return $self->_send_cmd("\x1770028E\x0D");
-	
+
 }
 sub update_registers
 {
@@ -181,7 +181,7 @@ sub get_register
 	my $response;
 	for (my $index=$start;$index<$start+$end;$index++)
 	{
-		$response.=sprintf("%02X",@{$$self{'registers'}}->[$index]);		
+		$response.=sprintf("%02X",@{$$self{'registers'}}->[$index]);
 	}
 	return $response;
 }
@@ -203,7 +203,7 @@ sub send_upb_cmd
 		$$self{xmit_in_progress} = 1;
 		#always send the oldest command first
 		$cmd = pop(@{$$self{command_stack}});
-		if (defined $cmd) 
+		if (defined $cmd)
 		{
 			#put the command back into the stack.. Its not our job to tamper with this array
 			push(@{$$self{command_stack}},$cmd);
@@ -231,21 +231,21 @@ sub network_id
 {
 	my ($self, $val) = @_;
 	$self->set_register(0,$val) if defined $val;
-	return $self->get_register(0);	
+	return $self->get_register(0);
 }
 
 sub device_id
 {
 	my ($self, $val) = @_;
 	$self->set_register(1,$val) if defined $val;
-	return $self->get_register(1);	
+	return $self->get_register(1);
 }
 
 sub network_password
 {
 	my ($self, $val) = @_;
 	$self->set_register(2,$val) if defined $val;
-	return $self->get_register(2);	
+	return $self->get_register(2);
 }
 
 sub _send_cmd {
@@ -290,7 +290,7 @@ sub _parse_data {
 				$offset = substr($data,2,2);
 				$offset = hex($offset);
 				if ($offset != 0)
-				{	
+				{
 					# Im too lazy to store this at an offset instead of replacing it entirely
 					&::print_log("Partial Register update not supported");
 				} else {
@@ -301,10 +301,10 @@ sub _parse_data {
 					@{$$self{'registers'}} = @Registers;
 				}
 			}
-			#UPB Incoming Message 
+			#UPB Incoming Message
 			elsif (uc(substr($data,1,1)) eq 'U') {
 				$self->delegate(substr($data,2,length($data)));
-			}				
+			}
 			#UPB Accept command
 			elsif (uc(substr($data,1,1)) eq 'A') {
 				#dont really care
@@ -316,7 +316,7 @@ sub _parse_data {
 			#UPB Acknowledgement
 			elsif (uc(substr($data,1,1)) eq 'K') {
 				$$self{xmit_in_progress} = 0;
-				pop(@{$$self{command_stack}});				
+				pop(@{$$self{command_stack}});
   select(undef,undef,undef,.15);
 				$self->process_command_stack();
 			}
@@ -338,11 +338,11 @@ sub process_command_stack
 			## send any remaining commands in stack
 			my $stack_count = @{$$self{command_stack}};
 #			&::print_log("UPB Command stack2:$stack_count:@{$$self{command_stack}}:");
-			if ($stack_count> 0 ) 
+			if ($stack_count> 0 )
 			{
 				#send any remaining commands.
 				$self->send_upb_cmd();
-			}			
+			}
 }
 
 sub add
@@ -370,8 +370,8 @@ sub add_item
 #    $p_object->tie_items($self);
     push @{$$self{objects}}, $p_object;
 	#request an initial state from the device
-	if (! $p_object->isa('UPB_Link') ) 
-	{	
+	if (! $p_object->isa('UPB_Link') )
+	{
 		$p_object->set("report");
 	}
 	return $p_object;
@@ -430,7 +430,7 @@ sub delegate
 	my $network=unpack("C",pack("H*",substr($p_data,4,2)));
 	my $destination=unpack("C",pack("H*",substr($p_data,6,2)));
 	my $source=unpack("C",pack("H*",substr($p_data,8,2)));
-	my $isLink = 0;	
+	my $isLink = 0;
 	my $transeq = unpack("C",pack("h*",substr($p_data,3,1)));
 	my $count = $transeq & 0b1100;
 	$count = $count>>2;
@@ -443,18 +443,18 @@ sub delegate
 
 	# If a packet is being sent with a xmit count greater than 1
     # then make sure we only delagate one packet and not the repeats
-	if ($count > 0) 
+	if ($count > 0)
 	{
 		my $packet=substr($p_data,4,length($p_data)-6);
-		if ($packet ne $$self{last_command} or 
+		if ($packet ne $$self{last_command} or
 		($packet eq $$self{last_command} && $sequence <= $$self{last_sequence} ) )
 		{
 			$$self{last_command} = $packet;
 			$$self{last_sequence} = $sequence;
 		} else {
-			&::print_log("UPBPIM: duplicate packet, ignore!");
+#			&::print_log("UPBPIM: duplicate packet, ignore!");
 			return;
-		}			
+		}
 	}
 
 #	&::print_log ("DELEGATE:$network:$source:$destination:$isLink:");
@@ -490,7 +490,7 @@ sub sset
 =begin
     # prevent reciprocal sets that can occur because of this method's state
     # propogation
-	return if (ref $p_setby and $p_setby->can('get_set_by') and 
+	return if (ref $p_setby and $p_setby->can('get_set_by') and
         $p_setby->{set_by} eq $self);
 =cut
 #  	&::print_log($self->get_object_name() . "::set($p_state, $p_setby)");
@@ -513,10 +513,10 @@ sub sset
 		}
 	}
 =cut
-	
+
 	$self->SUPER::set($p_state,$p_setby,$p_response);
 	## if we called ourselves, then dont send the command out on the bus
-	return if (ref $p_setby and $p_setby->can('get_set_by') and 
+	return if (ref $p_setby and $p_setby->can('get_set_by') and
         $p_setby->{set_by} eq $self);
 	$self->send_upb_cmd($p_state);
 }

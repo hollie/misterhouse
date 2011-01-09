@@ -76,9 +76,22 @@ sub weather_updated {
 	$dewpoint=$$w{DewIndoor} unless defined $dewpoint;
 	$dewpoint='unknown' unless defined $dewpoint;
 
+	my $humidity=$$w{HumidOutdoor};
+	$humidity=$$w{HumidIndoor} unless defined $humidity;
+	$humidity='unknown' unless defined $humidity;
+
+
+
 	# need temp and dewpoint in Celsius for formulas to work
 	if ($main::config_parms{weather_uom_temp} eq 'F') {
 		grep {$_=&::convert_f2c($_) if $_ ne 'unknown' } ($temp,$dewpoint);
+	}
+
+	# calculate dew point if missing, but we have temp and humid
+	if ($temp ne 'unknown' and $humidity ne 'unknown' and $dewpoint eq 'unknown') {
+		my $humidity=$$w{HumidOutdoor};
+		$dewpoint=convert_humidity_to_dewpoint($humidity ,$temp); # $dewpoint is in Celsius at this point
+		$$w{DewOutdoor}=$main::config_parms{weather_uom_temp} eq 'F' ? &::convert_c2f($dewpoint) : $dewpoint;
 	}
 
 	if ($windSpeed ne 'unknown' and $temp ne 'unknown') {
@@ -119,7 +132,6 @@ sub weather_updated {
 		}
 
 		my $tempF=&::convert_c2f($temp); # heat index works with fahrenheit temperatures
-		my $humidity=$$w{HumidOutdoor}; # heat index uses humidity in %
 
 		# the heat index formula is only valid when Temp >= 80 deg F and Humidity >= 40%
 		if ($tempF >= 80 and $humidity >= 40) {
@@ -278,9 +290,17 @@ sub convert_sea_barom_to_local {
 sub convert_humidity_to_dewpoint {
 	my ($humidity,$temp_celsius)=@_;
 
-	my $dew_point = 1 - $humidity / 100;
-	$dew_point = (14.55 + .114 * $temp_celsius) * $dew_point + ((2.5 + .007 * $temp_celsius) * $dew_point ** 3)  + ((15.9 + .117 * $temp_celsius) * $dew_point ** 14);
-	$dew_point = $temp_celsius - $dew_point;
+	return unless defined $humidity and defined $temp_celsius;
+
+	# http://en.wikipedia.org/wiki/Dew_point
+	my $gamma = ( (17.271 * $temp_celsius) / (237.7 + $temp_celsius) ) + log($humidity/100);
+	my $dew_point = (237.7 * $gamma) / (17.271 - $gamma);
+
+        # old calculations
+	#my $dew_point = 1 - $humidity / 100;
+	#$dew_point = (14.55 + .114 * $temp_celsius) * $dew_point + ((2.5 + .007 * $temp_celsius) * $dew_point ** 3)  + ((15.9 + .117 * $temp_celsius) * $dew_point ** 14);
+	#$dew_point = $temp_celsius - $dew_point;
+
 	return sprintf('%.1f',$dew_point);
 }
 
@@ -411,7 +431,7 @@ sub populate_internet_weather {
 		}
 	}
 
-	# Some weather stations can't measure dewpoint/humidity below a 
+	# Some weather stations can't measure dewpoint/humidity below a
 	# certain temperature.  They will set DewOutdoorUnder if this is the case.
 	# So, let's automatically add HumidOutdoor and DewOutdoor to the list of
 	# keys if this happens.

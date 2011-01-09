@@ -11,7 +11,7 @@ my ($state, $x, $y) = $state_xy =~ /(\S+)\?(\d+),(\d+)/;
 #print "db ln=$list_name, i=$item, s=$state_xy xy=$x,$y\n";
 
                                 # Do not dim the dishwasher :)
-unless (eval qq|$item->isa('X10_Appliance') or $item->isa('Fan_Motor')|) {
+unless (eval qq|$item->isa('X10_Appliance') or $item->isa('Fan_Motor') or $item->isa('Insteon_Device')|) {
     $state = 'dim'      if $x < 40;   # Left  side of image
     $state = 'brighten' if $x > 110;  # Right side of image
 }
@@ -22,6 +22,9 @@ if (eval qq|$item->isa('EIB7_Item')|) { # Motor/drive states are stop/up/down
     $state = 'up' if $x > 110;          # Right side of image
 }
 
+#if (eval qq|$item->isa('Insteon_Device'|) {
+#    $state = "toggle";
+#}
 
 eval qq|$item->set("$state", 'web')|;
 print "button_action.pl eval error: $@\n" if $@;

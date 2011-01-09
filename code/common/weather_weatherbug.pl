@@ -150,7 +150,7 @@ if ($weatherbug_state = $v_weatherbug ->{said}) {
 if (done_now $p_weather_weatherbug_liveweather) {
 	$Weather{weatherbug_obsv_valid} = 0; #Set to not valid unless proven
   	my $weatherbug_xml=file_read $weatherbug_obs_file;
-	print_log "Weatherbug location liveweather\n";
+	print_log "Weatherbug location liveweather.";
 	# should do a check on the api version <aws:api version="2.0" />
         my $pattern= '<aws:ob>(.*?)</aws:ob>';
         my($f_observation)= $weatherbug_xml =~ /$pattern/;
@@ -404,10 +404,10 @@ if (done_now $p_weather_weatherbug_citycode) {
 		my($f_zipcode)= $weatherbug_location =~ /$pattern/;
 		my $pattern= 'citycode="(\d+)"';
 		my($f_citycode)= $weatherbug_location =~ /$pattern/;
-		print_log "Citycode=$f_citycode for $f_cityname,$f_statename,$f_countryname.\n" if ($f_citycode!=0);
-		print_log "Zipcode=$f_zipcode for $f_cityname,$f_statename,$f_countryname.\n" if ($f_zipcode!=0);
+		print_log "Citycode=$f_citycode for $f_cityname,$f_statename,$f_countryname." if ($f_citycode!=0);
+		print_log "Zipcode=$f_zipcode for $f_cityname,$f_statename,$f_countryname." if ($f_zipcode!=0);
 	}
-	print_log "Weatherbug location search result \n";
+	print_log "Weatherbug location search result.";
 	}
         else { # the test for locations failed
                 print_log "weatherbug: Error Did not find locations.";

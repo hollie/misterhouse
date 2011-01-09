@@ -1710,7 +1710,7 @@ sub html_category {
     my $h_index;
 
     $h_index = qq[<DIV ID="overDiv" STYLE="position:absolute; visibility:hide; z-index:1;"></DIV>\n] .
-        qq[<SCRIPT LANGUAGE="JavaScript" SRC="/overlib.js"></SCRIPT>\n] if $html_info_overlib;
+        qq[<SCRIPT LANGUAGE="JavaScript" SRC="/lib/overlib.js"></SCRIPT>\n] if $html_info_overlib;
 
     for my $category (&list_code_webnames('Voice_Cmd')) {
         next if $category =~ /^none$/;
@@ -1786,12 +1786,8 @@ sub html_find_icon_image {
         $state = lc $object->state();
         $state = lc $object->state_level() if ($type eq 'x10_item' or 
             $type eq 'x10_switchlinc') ;
-        if ($type eq 'insteon_device' or $type eq 'insteon_link') {
-            $state = lc $object->level();
-            $state = 'off' unless $state; 
-            $state = 'on' if $state == 100; 
-            $state = 'dim' if $state > 0 and $state < 100;
-        } 
+        $state = 'on' if $state eq '100%'; 
+        $state = 'dim' if $state =~ /^\d\d?%$/; 
         $name =~ s/^\$//;       # remove $ at front of objects
         $name =~ s/^v_//;       # remove v_ in voice commands
                                 # Use on/off icons for conditional Weather_Items
@@ -2300,7 +2296,7 @@ sub html_command_table {
                                 # moved the target option down to form and a tags to be compatible with IE7, dn
 #   $html = "<BASE TARGET='" . $config_parms{'html_target_speech' . $Http{format}}. "'>\n";
     $html = qq[<DIV ID="overDiv" STYLE="position:absolute; visibility:hide; z-index:1;"></DIV>\n] .
-            qq[<SCRIPT LANGUAGE="JavaScript" SRC="/overlib.js"></SCRIPT>\n] .
+            qq[<SCRIPT LANGUAGE="JavaScript" SRC="/lib/overlib.js"></SCRIPT>\n] .
                 $html if $html_info_overlib;
 
     if ($Http{'User-Agent'} =~ /^MS/ and $Cookies{msagent} and $main::config_parms{'html_msagent_script_vr' . $Http{format}}) {

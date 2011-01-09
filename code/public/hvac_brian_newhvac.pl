@@ -176,7 +176,7 @@ print "Content-Type: text/html\n\n";
 print "<html>\n<body>\n";
 print "<link REL=\"STYLESHEET\" HREF=\"/default.css\" TYPE=\"text/css\" />\n";
 print "<div ID=\"overDiv\" STYLE=\"position:absolute; visibility:hide; z-index:1;\" />\n";
-#print "<script LANGUAGE=\"JavaScript\" SRC=\"/overlib.js\" />\n";
+#print "<script LANGUAGE=\"JavaScript\" SRC=\"/lib/overlib.js\" />\n";
 #print "<base TARGET='speech' />\n";
 
 if ( !$ARGS{ SETUP } && !$ARGS{ ZONE } ) {

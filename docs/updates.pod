@@ -12,7 +12,7 @@ This is a copy of the mh update announcements made to MisterHouse mailing list, 
 
 =begin html
 <p>The latest changelog for current test release
-(avalable via the <a href=http://misterhouse.svn.sourceforge.net/svnroot/misterhouse/trunk>SVN repository</a>
+(available via the <a href=http://misterhouse.svn.sourceforge.net/svnroot/misterhouse/trunk>SVN repository</a>
 can be found in <a href=http://misterhouse.svn.sourceforge.net/viewvc/misterhouse/trunk/?view=log>the SVN change log</a>
 with highlights listed in <a href=http://misterhouse.net/mh/docs/updates.html>the release notes</a>.
 
@@ -44,7 +44,7 @@ David Norwood :: Tue, 30 Sep 2008
  - fixed scalding problem in graphs 
 
 David Norwood :: Tue, 30 Sep 2008
- - change url uncoding of space to +
+ - change url encoding of space to +
 
 David Norwood :: Tue, 30 Sep 2008
  - allow for comments in dvc files 
@@ -121,7 +121,7 @@ Gregg Liming :: Sat, 30 Aug 2008
  - Ensure that reference to PLM in poll_members is not undefined.
 
 Jim Duda :: Tue, 26 Aug 2008
- - I changed the restore_string such that it will only reload the cmds array if a cmds array hasn't been previously defined by the new initilization call.  This bug caused the persistant value to override any changed value defined in the new call.  For example, a code change with a new cmds parameter to new will never take affect because the persistance value would override it.
+ - I changed the restore_string such that it will only reload the cmds array if a cmds array hasn't been previously defined by the new initialization call.  This bug caused the persistent value to override any changed value defined in the new call.  For example, a code change with a new cmds parameter to new will never take affect because the persistence value would override it.
 
 Gregg Liming :: Tue, 26 Aug 2008
  - Add support for xPL_X10Security items which implement the x10.security schema.
