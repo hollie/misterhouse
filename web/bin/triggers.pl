@@ -23,7 +23,7 @@ else {
 
 sub web_trigger_list {
 
-    &triggers_save;             # Check for changes to write out
+    &_triggers_save;             # Check for changes to write out
 
                                 # Create header and 'add a trigger' form
     my $html = &html_header('Triggers Menu');
