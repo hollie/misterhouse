@@ -1,7 +1,8 @@
 
 =begin comment
 
-This code is used to list and manipulate triggers.  See mh/doc/mh.* set_trigger for more info.
+This code is used to list and manipulate triggers.  See 
+<a href="/docs/trigger_code.html">the trigger documentation</a> for more info.
 
   http://localhost:8080/bin/triggers.pl
 
