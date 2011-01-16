@@ -11,7 +11,7 @@ http://www.homeauto.com/Products/HAIAccessories/Omnistat/rc80.htm
 
 Newer Omnistat2 thermostats have a slightly different protocol and may need
 some work. They look nicer, but they are pricier (vs $50 for an RC-80 on ebay)
-and don't offer functionality that's useful to most people -- merlin
+and don't offer additional functionality that's useful to most people -- merlin
 
 Have a look at http://misterhouse.wikispaces.com/hai_stats and 
 
@@ -59,17 +59,33 @@ This module is used 2 ways
 TODOs
 ================================================================================
 
-TODO: Add hooks for caching instead of relying on pl file
-TODO: ini parameter for range of registers to read (default to temp)
 TODO: Adjust clock speed? Not sure if possible (reg 14), may need to be done in pl
 TODO: Modify set_reg to accept muliple registers (hasn't been really needed so far)
-TODO: Ini Parameter to turn on/off set outdoor temp (may be in pl)
 TODO: The sleep situation has been much improved, but if someone smart could replace
       the sleep with a proper callback so as not to stall mh, that would rule
 
 ================================================================================
 Changelog
 ================================================================================
+
+2010/07/26 - Marc MERLIN
+========================
+Minor fixes, but the biggest was modifying bin/mh to support code that occasionally dies
+(mh would disable that code after it died 9 times, which is not so good since it killed
+all temp and stat logging if you were using that).
+It is just hard to never trigger die code, in my case I sometimes have:
+Omnistat[1]->send_cmd did not get expected first byte (0x81) in ack reply to command 01 20 48
+ 01 6a (got 0x82 in 0x82 0x22 0x48 0x00 0xec 0x81 0x22 0x48 0x00 0xeb ) at ../lib/Omnistat.pm line 544.
+this shows that I got a reply from stat #2 when I was expecting a reply from stat #1.
+It happens rarely, and it's likely mostly serial port issues that I can't easily fix nor really
+care to since they're rare and the code just deals with them.
+
+As a result, you should put this in mh,private.ini:
+omnistat_allowed_errors = 999999999999
+hvac_allowed_errors = 999999999999
+replacing the first word (hvac/omnistat) by your code/module.pl names that use this library.
+This will stop mh from disabling your code if the libraries dies every so often.
+
 
 2009/08/03 - Marc MERLIN
 ========================
@@ -1096,6 +1112,12 @@ sub get_filter_reminder {
   my $days = $self->read_cached_reg("0x0f",1);
   return hex($days);
 }
+
+sub set_filter_reminder {
+  my ( $self, $days ) = @_;
+  $self->set_reg( "0x0f", sprintf( "0x%02x", $days) );
+}
+
 
 # **************************************
 # * Get and translate type of thermostat
