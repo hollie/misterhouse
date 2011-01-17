@@ -771,7 +771,7 @@ sub add_link
 	# get the address via lookup into the hash
 	my $key = lc $device_id . $group . $is_controller;
 	# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
-	if ($subaddress ne '00' and $subaddress ne '01') {
+	if !($subaddress eq '00' or $subaddress eq '01') {
 		$key .= $subaddress;
 	}
 	if (defined $$self{aldb}{$key}{inuse}) {
@@ -832,7 +832,7 @@ sub update_link
 	# get the address via lookup into the hash
 	my $key = lc $deviceid . $group . $is_controller;
 	# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
-	if ($subaddress ne '00' and $subaddress ne '01') {
+	if !($subaddress eq '00' or $subaddress eq '01') {
 		$key .= $subaddress;
 	}
 	my $address = $$self{aldb}{$key}{address};
@@ -930,14 +930,14 @@ sub has_link
 {
 	my ($self, $insteon_object, $group, $is_controller, $subaddress) = @_;
 	my $key = "";
-	if ($insteon_object->isa('Insteon::BaseObject')) {
-            lc $insteon_object->device_id . $group . $is_controller;
+	if ($insteon_object->isa('Insteon::BaseObject') || $insteon_object->isa('Insteon::BaseInterface')) {
+            $key = lc $insteon_object->device_id . $group . $is_controller;
 	} else {
-            lc $$insteon_object{device}->device_id . $group . $is_controller;
+            $key = lc $$insteon_object{device}->device_id . $group . $is_controller;
 	}
 	$subaddress = '00' unless $subaddress;
 	# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
-	if ($subaddress ne '00' and $subaddress ne '01') {
+	if !($subaddress eq '00' or $subaddress eq '01') {
 		$key .= $subaddress;
 	}
 	return (defined $$self{aldb}{$key}) ? 1 : 0;
