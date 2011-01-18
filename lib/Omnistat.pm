@@ -10,10 +10,9 @@ Specifically written with/for RC-80 but should work with any of them.
 http://www.homeauto.com/Products/HAIAccessories/Omnistat/rc80.htm
 
 Newer Omnistat2 thermostats have a slightly different protocol and may need
-some work. They look nicer, but they are pricier (vs $50 for an RC-80 on ebay)
-and don't offer additional functionality that's useful to most people -- merlin
+some work. They look nicer, but they are pricier (vs $50 for an RC-80 on ebay).
 
-Have a look at http://misterhouse.wikispaces.com/hai_stats and 
+Have a look at http://misterhouse.wikispaces.com/hai_stats
 
 ###################
 
@@ -33,7 +32,7 @@ Omnistat_non_program=[0,1]
 Omnistat_rtp_mode=[0,1]
 # hide clock on thermostat
 Omnistat_hide_clock=[0,1]
-# You can set how much gets logged 
+# You can set how much gets logged
 Omnistat_no_stat_log=[0,1,2,3]
 
 # For debugging, add omnistat to debug in mh.private.ini, as in
@@ -67,6 +66,42 @@ TODO: The sleep situation has been much improved, but if someone smart could rep
 ================================================================================
 Changelog
 ================================================================================
+
+2010/07/26 - Marc MERLIN
+========================
+Minor fixes, but the biggest was modifying bin/mh to support code that occasionally dies
+(mh would disable that code after it died 9 times, which is not so good since it killed
+all temp and stat logging if you were using that).
+It is just hard to never trigger die code, in my case I sometimes have:
+Omnistat[1]->send_cmd did not get expected first byte (0x81) in ack reply to command 01 20 48
+ 01 6a (got 0x82 in 0x82 0x22 0x48 0x00 0xec 0x81 0x22 0x48 0x00 0xeb ) at ../lib/Omnistat.pm line 544.
+this shows that I got a reply from stat #2 when I was expecting a reply from stat #1.
+It happens rarely, and it's likely mostly serial port issues that I can't easily fix nor really
+care to since they're rare and the code just deals with them.
+
+As a result, you should put this in mh,private.ini:
+omnistat_allowed_errors = 999999999999
+hvac_allowed_errors = 999999999999
+replacing the first word (hvac/omnistat) by your code/module.pl names that use this library.
+This will stop mh from disabling your code if the libraries dies every so often.
+
+
+2011/01/09 - Mickey Argo/Karl Suchy/Marc MERLIN
+================================================
+Mickey did the original work to port the code to Omnistat2.
+Karl ported the code for inclusion with the svn Omnistat code
+I (Marc), reviewed the code and modified it for inclusion so that it didn't break existing users.
+
+- Added "Vacation" hold mode, and modified "on" hold mode to 0x01 from 0xff
+- Added "Cycle" to fan mode
+- Added "vacation" to occupancy mode
+- Added a few other get registers that are not on the original Omnistat's but will not effect the operation of them
+- Added "Vacation" to get_mode()
+- Added "cycle" to get_fan_mode()
+- Added "Vacation" to get_occupancy_mode()
+- Added RC-1000 and RC-2000 to type of thermostat table
+- Added "vacation" to read group 1 data sub
+
 
 2010/07/26 - Marc MERLIN
 ========================
@@ -562,7 +597,7 @@ sub send_cmd {
   # FIXME? Those two dies aren't ideal, but it happens that you get corruption or bad data on a reply.
   # Expected for 01 20 3b 0e 6a is something like
   # 0x81 0xf2 0x3b 0x7c 0x71 0x03 0x00 0x00 0x7d 0x07 0x1e 0x0f 0x00 0x00 0x00 0x02 0x0c 0x5d
-  # but I have seen replies like 
+  # but I have seen replies like
   # 0x03 0xf2 0x3b 0x7c 0x71 0x03 0x00 0x00 0x7d 0x00 0x1c 0x0f 0x00 0x00 0x00 0x02 0x0c 0x54  (0x81 ack byte is wrong)
   # or sync issues like
   # 0x64 0x82 0xf2 0x3b 0x8e 0x64 0x00 0x00 0x00 0x7d 0x20 0x29 0x0f 0x60 0x00 0x00 0x00 0x00 0xd6 (0x64 shouldn't be here)
@@ -660,13 +695,18 @@ sub hold {
   if ( $state eq "off" ) {
     $new_hold = "0x00";
   } elsif ( $state eq "on" ) {
-    $new_hold = "0xff";
+    if ( $self->is_omnistat2() )
+      { $new_hold = "0x01" ; }
+    else
+      { $new_hold = "0xff" ; }
+  } elsif ( $state eq "vacation" and $self->is_omnistat2() ) {
+    $new_hold = "0x02";
   } else {
-    print "$::Time_Date: Omnistat[$$self{address}]: Invalid Hold state: $state\n";
+    &::print_log("Omnistat[$$self{address}]: Invalid Hold state: $state\n");
     return;
   }
 
-  # obviously there is a small race condition here, if hold was changed in the last minute from the panel, 
+  # obviously there is a small race condition here, if hold was changed in the last minute from the panel,
   # we could fail to set it when it needs to be, but that should be quite rare, and avoiding all the repeated
   # hold set to off before changing other values is worth it -- merlin
   if ($cur_hold ne $new_hold) {
@@ -851,7 +891,7 @@ sub mode {
     $self->set_reg( "0x3d", "0x03" );
     $self->set_reg( "0x3f", "0x00" );
   } else {
-    print "$::Time_Date: Omnistat: Invalid Mode state: $state\n";
+    &::print_log("Omnistat: Invalid Mode state: $state\n");
   }
 }
 
@@ -893,52 +933,49 @@ sub restore_setpoints {
   } else {		    # Weekday
     $register = 0x1e;	    # Weekday night time
   }
-  
+
   # Check for setpoints for that day, need to consider what time it is
   for ( $setpointnum = 0 ; $setpointnum < 4 ; $setpointnum++ ) {
-    # FIXME: make sure I didn't break this (test it) and remove my FIXME -- merlin
     if ( hex($self->read_cached_reg( sprintf( "0x%02x", $register - 3 * $setpointnum))) < $time ) {
       $point = $register - 3 * $setpointnum;
       last;
     }
   }
-  
+
   #Check for setpoints on previous days, don't need to consider the time, any setpoint will do
   if ( $point == 0 ) {
 
     #Loop days
     for ( $daynum = 0 ; $daynum < 3 ; $daynum++ ) {
-      if ($day > 0 && $day < 5 && $daynum == 0) { 
-        #Weekday, previous day is also a weekday for first loop          
+      if ($day > 0 && $day < 5 && $daynum == 0) {
+        #Weekday, previous day is also a weekday for first loop
       }
       else {
         #Get the previous day
-        $register = $register - 12;    
+        $register = $register - 12;
       }
-      
+
       if ( $register < 30 ) { $register = 54; } #Previous to weekday is sunday
-      
+
       #Loop setpoints
       for ( $setpointnum = 0 ; $setpointnum < 4 ; $setpointnum++ ) {
-        # FIXME: make sure I didn't break this (test it) and remove my FIXME -- merlin
         if ( hex($self->read_cached_reg( sprintf( "0x%02x", $register - 3 * $setpointnum))) != 96 )
         {
-          #If the setpoint has a time set, use the setpoint 
+          #If the setpoint has a time set, use the setpoint
           $point = $register - 3 * $setpointnum;
           last;
         }
       }
     }
   }
-  
+
   if ( $point != 0 ) {
     my $heat_sp = $self->read_cached_reg( sprintf( "0x%02x", $point + 2));
     my $cool_sp = $self->read_cached_reg( sprintf( "0x%02x", $point + 1));
 
-    # FIXME: make sure I didn't break this (test it) and remove my FIXME -- merlin
     # Set the setpoints (setting the registers avoids converting the temp only to convert it back)
-    print "$::Time_Date: Omnistat: Heat Set to " . &Omnistat::translate_temp($heat_sp) . "\n";
-    print "$::Time_Date: Omnistat: Cool Set to " . &Omnistat::translate_temp($cool_sp) . "\n";
+    &::print_log("Omnistat: Heat Set to " . &Omnistat::translate_temp($heat_sp) . "\n");
+    &::print_log("Omnistat: Cool Set to " . &Omnistat::translate_temp($cool_sp) . "\n");
     $self->set_reg( "0x3c", $heat_sp );
     $self->set_reg( "0x3b", $cool_sp );
   }
@@ -947,7 +984,7 @@ sub restore_setpoints {
 
 
 # ************************************
-# * Set the fan mode to on/off/auto.
+# * Set the fan mode to on/off/auto/cycle.
 # ************************************
 sub fan {
   my ( $self, $state ) = @_;
@@ -960,8 +997,96 @@ sub fan {
     $self->set_reg( "0x3e", "0x01" );
   } elsif ( $state eq "auto" ) {
     $self->set_reg( "0x3e", "0x00" );
+  } elsif ( $state eq "cycle" ) {
+    $self->set_reg( "0x3e", "0x02" );
   } else {
-    print "$::Time_Date: Omnistat: Invalid Fan state: $state\n";
+    &::print_log("Omnistat: Invalid Fan state: $state\n");
+  }
+}
+
+# ************************
+# * Is this an Omnistat2 ?
+# ************************
+sub is_omnistat2 {
+  my ( $self ) = @_;
+  my $stat = $self->get_stat_type();
+
+  if ($stat eq "RC-1000" or $stat eq "RC-2000")
+  {
+    omnistat_debug("Omnistat[$$self{address}] -> is_omnistat2: yes");
+    return 1;
+  }
+  omnistat_debug("Omnistat[$$self{address}] -> is_omnistat2: no");
+  return 0;
+}
+
+# ********************************
+# * Set Omnistat2 background color
+# ********************************
+sub set_background_color {
+  my ( $self, $state ) = @_;
+  $state = lc($state);
+
+  my $background_hex = "0x00";
+  if ($state = 'blue'){
+	  $background_hex = "0x44";
+  } elsif ($state = 'green'){
+	  $background_hex = "0x25";
+  } elsif ($state = 'purple'){
+	  $background_hex = "0x5a";
+  } elsif ($state = 'red'){
+	  $background_hex = "0x01";
+  } elsif ($state = 'orange'){
+	  $background_hex = "0x03";
+  } elsif ($state = 'yellow'){
+	  $background_hex = "0x05";
+  } else {
+    &::print_log("Omnistat: Invalid Background Color: $state\n");
+  }
+  $self->set_reg("0x8c", $background_hex);
+}
+
+# **************************************
+# * Set the occupancy mode
+# **************************************
+sub set_occupancy_mode {
+  my ( $self, $state ) = @_;
+  $state = lc($state);
+  my $addr = $$self{address};
+  my @cmd;
+
+  omnistat_debug("Omnistat[$$self{address}] -> occupancy $state");
+  if ( $state eq "day" ) {
+    $self->set_reg( "0xa1", "0x00" );
+  } elsif ( $state eq "night" ) {
+    $self->set_reg( "0xa1", "0x01" );
+  } elsif ( $state eq "away" ) {
+    $self->set_reg( "0xa1", "0x02" );
+  } elsif ( $state eq "vacation" ) {
+    $self->set_reg( "0xa1", "0x03" );
+  } else {
+    &::print_log("Omnistat: Invalid Occupancy state: $state\n");
+  }
+}
+
+# **************************************
+# * Set the program mode
+# **************************************
+sub set_program_mode {
+  my ( $self, $state ) = @_;
+  $state = lc($state);
+  my $addr = $$self{address};
+  my @cmd;
+
+  omnistat_debug("Omnistat[$$self{address}] -> program $state");
+  if ( $state eq "none" ) {
+    $self->set_reg( "0x83", "0x00" );
+  } elsif ( $state eq "schedule" ) {
+    $self->set_reg( "0x83", "0x01" );
+  } elsif ( $state eq "occupancy" ) {
+    $self->set_reg( "0x83", "0x02" );
+  } else {
+    &::print_log("Omnistat: Invalid Program state: $state\n");
   }
 }
 
@@ -984,6 +1109,94 @@ sub heat_setpoint {
   # hold has to be removed for this command to go through.
   $self->hold('off');
   $self->set_reg( "0x3c", &Omnistat::translate_temp($settemp) );
+  $self->hold('on') unless $main::config_parms{Omnistat_set_does_not_hold};
+}
+
+# **************************
+# * Set the day cool setpoint.
+# **************************
+sub day_cool_setpoint {
+  my ( $self, $settemp ) = @_;
+  # hold has to be removed for this command to go through.
+  $self->hold('off');
+  $self->set_reg( "0x7b", &Omnistat::translate_temp($settemp) );
+  $self->hold('on') unless $main::config_parms{Omnistat_set_does_not_hold};
+}
+
+# **************************
+# * Set the day heat setpoint.
+# **************************
+sub day_heat_setpoint {
+  my ( $self, $settemp ) = @_;
+  # hold has to be removed for this command to go through.
+  $self->hold('off');
+  $self->set_reg( "0x7c", &Omnistat::translate_temp($settemp) );
+  $self->hold('on') unless $main::config_parms{Omnistat_set_does_not_hold};
+}
+
+# **************************
+# * Set the night cool setpoint.
+# **************************
+sub night_cool_setpoint {
+  my ( $self, $settemp ) = @_;
+  # hold has to be removed for this command to go through.
+  $self->hold('off');
+  $self->set_reg( "0x7d", &Omnistat::translate_temp($settemp) );
+  $self->hold('on') unless $main::config_parms{Omnistat_set_does_not_hold};
+}
+
+# **************************
+# * Set the night heat setpoint.
+# **************************
+sub night_heat_setpoint {
+  my ( $self, $settemp ) = @_;
+  # hold has to be removed for this command to go through.
+  $self->hold('off');
+  $self->set_reg( "0x7e", &Omnistat::translate_temp($settemp) );
+  $self->hold('on') unless $main::config_parms{Omnistat_set_does_not_hold};
+}
+
+# **************************
+# * Set the away cool setpoint.
+# **************************
+sub away_cool_setpoint {
+  my ( $self, $settemp ) = @_;
+  # hold has to be removed for this command to go through.
+  $self->hold('off');
+  $self->set_reg( "0x7f", &Omnistat::translate_temp($settemp) );
+  $self->hold('on') unless $main::config_parms{Omnistat_set_does_not_hold};
+}
+
+# **************************
+# * Set the away heat setpoint.
+# **************************
+sub away_heat_setpoint {
+  my ( $self, $settemp ) = @_;
+  # hold has to be removed for this command to go through.
+  $self->hold('off');
+  $self->set_reg( "0x80", &Omnistat::translate_temp($settemp) );
+  $self->hold('on') unless $main::config_parms{Omnistat_set_does_not_hold};
+}
+
+# **************************
+# * Set the vacation cool setpoint.
+# **************************
+sub vaca_cool_setpoint {
+  my ( $self, $settemp ) = @_;
+  # hold has to be removed for this command to go through.
+  $self->hold('off');
+  $self->set_reg( "0x81", &Omnistat::translate_temp($settemp) );
+  $self->hold('on') unless $main::config_parms{Omnistat_set_does_not_hold};
+}
+
+# **************************
+# * Set the vacation heat setpoint.
+# **************************
+sub vaca_heat_setpoint {
+  my ( $self, $settemp ) = @_;
+  # hold has to be removed for this command to go through.
+  $self->hold('off');
+  $self->set_reg( "0x82", &Omnistat::translate_temp($settemp) );
   $self->hold('on') unless $main::config_parms{Omnistat_set_does_not_hold};
 }
 
@@ -1041,6 +1254,16 @@ sub get_temp {
   return translate_temp($temp);
 }
 
+# **************************************
+# * Get the indoor humidity
+# **************************************
+sub get_humidity {
+  my ( $self) = @_;
+  my $temp = $self->read_cached_reg("0xa2",1);
+  my $translated = translate_temp($temp);
+  return translate_temp($temp);
+}
+
 # ********************************************************
 # * Get the current command output by the stat to the HVAC
 # ********************************************************
@@ -1070,6 +1293,78 @@ sub get_cool_sp {
 }
 
 # **************************************
+# * Get the programming day cool setpoint
+# **************************************
+sub get_program_day_cool_sp {
+  my ( $self) = @_;
+  my $temp = $self->read_cached_reg("0x7b",1);
+  return translate_temp($temp);
+}
+
+# **************************************
+# * Get the programming day heat setpoint
+# **************************************
+sub get_program_day_heat_sp {
+  my ( $self) = @_;
+  my $temp = $self->read_cached_reg("0x7c",1);
+  return translate_temp($temp);
+}
+
+# **************************************
+# * Get the programming night cool setpoint
+# **************************************
+sub get_program_night_cool_sp {
+  my ( $self) = @_;
+  my $temp = $self->read_cached_reg("0x7d",1);
+  return translate_temp($temp);
+}
+
+# **************************************
+# * Get the programming night heat setpoint
+# **************************************
+sub get_program_night_heat_sp {
+  my ( $self) = @_;
+  my $temp = $self->read_cached_reg("0x7e",1);
+  return translate_temp($temp);
+}
+
+# **************************************
+# * Get the programming away cool setpoint
+# **************************************
+sub get_program_away_cool_sp {
+  my ( $self) = @_;
+  my $temp = $self->read_cached_reg("0x7f",1);
+  return translate_temp($temp);
+}
+
+# **************************************
+# * Get the programming away heat setpoint
+# **************************************
+sub get_program_away_heat_sp {
+  my ( $self) = @_;
+  my $temp = $self->read_cached_reg("0x80",1);
+  return translate_temp($temp);
+}
+
+# **************************************
+# * Get the programming vacation cool setpoint
+# **************************************
+sub get_program_vaca_cool_sp {
+  my ( $self) = @_;
+  my $temp = $self->read_cached_reg("0x81",1);
+  return translate_temp($temp);
+}
+
+# **************************************
+# * Get the programming vacation heat setpoint
+# **************************************
+sub get_program_vaca_heat_sp {
+  my ( $self) = @_;
+  my $temp = $self->read_cached_reg("0x82",1);
+  return translate_temp($temp);
+}
+
+# **************************************
 # * Get the mode
 # **************************************
 sub get_mode {
@@ -1077,18 +1372,21 @@ sub get_mode {
   # system mode to argument: 'off', 'heat', 'cool', 'auto','program_heat', 'program_cool', 'program_auto'
   my ( $self ) = @_;
   my $mode = $self->read_cached_reg("0x3d",1);
-  my $hold = $self->read_cached_reg("0x3f",1);  
+  my $hold = $self->read_cached_reg("0x3f",1);
 
-  $hold = $hold eq "0x00" ? 'off' : 'on';
-  
+  if ($hold eq "0x00") { $hold = 'off'; }
+  if ($hold eq "0x01") { $hold = 'on'; }  # Omnistat2
+  if ($hold eq "0x02") { $hold = 'vacation'; }
+  if ($hold eq "0xff") { $hold = 'on'; }  # RCxx
+
   # if hold is off, mode is program heat/cool/auto, if hold is on, mode is heat/cool/auto
-  if ($hold eq 'on') 
+  if ($hold eq 'on')
   {
     $mode = ['off', 'heat', 'cool', 'auto']->[hex($mode)];
   } else  {
     $mode = ['off', 'program_heat', 'program_cool', 'program_auto']->[hex($mode)];
   }
-  
+
   return $mode;
 }
 
@@ -1100,8 +1398,31 @@ sub get_fan_mode {
   my $fan = $self->read_cached_reg("0x3e",1);
   if ( $fan  eq "0x00" ) { $fan  = 'auto'; }
   if ( $fan  eq "0x01" ) { $fan  = 'on'; }
-  
+  if ( $fan  eq "0x02" ) { $fan  = 'cycle'; }
+
   return $fan;
+}
+
+# **************************************
+# * Get the occupancy mode
+# **************************************
+sub get_occupancy_mode {
+  my ( $self ) = @_;
+  my $occupancy_mode = $self->read_reg("0xa1",1);
+  $occupancy_mode = ['day', 'night', 'away', 'vacation']->[hex($occupancy_mode)];
+
+  return $occupancy_mode;
+}
+
+# **************************************
+# * Get the program mode
+# **************************************
+sub get_program_mode {
+  my ( $self ) = @_;
+  my $program_mode = $self->read_cached_reg("0x83",1);
+  $program_mode = ['none', 'schedule', 'occupancy']->[hex($program_mode)];
+
+  return $program_mode;
 }
 
 # **************************************
@@ -1124,7 +1445,7 @@ sub set_filter_reminder {
 # **************************************
 sub get_stat_type {
   my ( $self ) = @_;
-  
+
   my $stat = $self->read_cached_reg("0x49",1);
   my %stat_table = ( 0  => "RC-80",
 		     1  => "RC-81",
@@ -1135,7 +1456,9 @@ sub get_stat_type {
 		     34 => "RC-112",
 		     48 => "RC-120",
 		     49 => "RC-121",
-		     50 => "RC-122", );
+		     50 => "RC-122",
+		     110 => "RC-1000",
+		     120 => "RC-2000", );
 
   return $stat_table{hex($stat)} ? $stat_table{hex($stat)} : "RC-unknown";
 }
@@ -1400,8 +1723,13 @@ sub read_group1 {
   $heat_set = &Omnistat::translate_temp($heat_set);
 
   $mode = ['off', 'heat', 'cool', 'auto']->[hex($mode)];
-  $fan = $fan eq "0x00" ? 'auto' : 'on';
-  $hold = $hold eq "0x00" ? 'off' : 'on';
+  if ( $fan  eq "0x00" ) { $fan  = 'auto'; }
+  if ( $fan  eq "0x01" ) { $fan  = 'on'; }
+  if ( $fan  eq "0x02" ) { $fan  = 'cycle'; }
+  if ($hold eq "0x00") { $hold = 'off'; }
+  if ($hold eq "0x01") { $hold = 'on'; }	# Omnistat2
+  if ($hold eq "0x02") { $hold = 'vacation'; }
+  if ($hold eq "0xff") { $hold = 'on'; }	# RC-xx
 
   $cur = &Omnistat::translate_temp($cur);
 

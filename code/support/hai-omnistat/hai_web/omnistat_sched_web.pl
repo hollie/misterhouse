@@ -4,11 +4,14 @@
 # 3456789112345678921234567893123456789412345678951234567896123456789712345678981234567899123456789012345678911234567892123456789312
 
 =begin comment
-This page can be used to program Omnistats. 
+This page can be used to program Omnistats.
 You can also call it as http://server:8080/hai/omnistat_sched_web.pl?location=mbr_stat
 
 Originally by Joel Davidson, Daniel Arnold et al
 The HTML of this page is based on work by Kent Noonan.
+
+2011/01/09 -- Mickey Argo/Karl Suchy/Marc MERLIN
+- Added Omnistat2 code
 
 2009/08/03 -- merlin
 - cleanups, added debugging, logging and comments
@@ -24,6 +27,7 @@ The HTML of this page is based on work by Kent Noonan.
 # Authority: admin
 my $html;
 my @days;
+my @vaca;
 my $reg;
 my $i;
 my $location;
@@ -72,6 +76,9 @@ if (not $stat) {
   Omnistat::omnistat_debug("$NAME: will work with stat $location");
 }
 
+my $IsOmnistat2 = 0;
+$IsOmnistat2 = 1 if ($stat->is_omnistat2);
+
 #Loop through the arguments passed
 for ( $i = 1 ; $i <= $#ARGV ; $i++ ) {
   Omnistat::omnistat_debug("$NAME: looking at arg# $i: $ARGV[$i]");
@@ -104,6 +111,7 @@ for ( $i = 1 ; $i <= $#ARGV ; $i++ ) {
   }
 }
 
+# Weekday (RC-xx) or Monday (Omnistat2)
 my ( $wmt, $wmc, $wmh, $wdt, $wdc, $wdh, $wet, $wec, $weh, $wnt, $wnc, $wnh ) =
   split ' ', $stat->read_cached_reg( "0x15", 12 );
 $days[0][0][0] = &Omnistat::translate_time($wmt);
@@ -118,34 +126,107 @@ $days[0][2][2] = &Omnistat::translate_temp($weh);
 $days[0][3][0] = &Omnistat::translate_time($wnt);
 $days[0][3][1] = &Omnistat::translate_temp($wnc);
 $days[0][3][2] = &Omnistat::translate_temp($wnh);
+
+# Tuesday to Friday for Omnistat2
+my $weekday_or_monday = 'Weekday';
+if ($IsOmnistat2) 
+{
+    # Used later down to display Monday or Weekday for the first day.
+    $weekday_or_monday = 'Monday';
+    ( $wmt, $wmc, $wmh, $wdt, $wdc, $wdh, $wet, $wec, $weh, $wnt, $wnc, $wnh ) =
+      split ' ', $stat->read_cached_reg( "0x4B", 12 );
+    $days[1][0][0] = &Omnistat::translate_time($wmt);
+    $days[1][0][1] = &Omnistat::translate_temp($wmc);
+    $days[1][0][2] = &Omnistat::translate_temp($wmh);
+    $days[1][1][0] = &Omnistat::translate_time($wdt);
+    $days[1][1][1] = &Omnistat::translate_temp($wdc);
+    $days[1][1][2] = &Omnistat::translate_temp($wdh);
+    $days[1][2][0] = &Omnistat::translate_time($wet);
+    $days[1][2][1] = &Omnistat::translate_temp($wec);
+    $days[1][2][2] = &Omnistat::translate_temp($weh);
+    $days[1][3][0] = &Omnistat::translate_time($wnt);
+    $days[1][3][1] = &Omnistat::translate_temp($wnc);
+    $days[1][3][2] = &Omnistat::translate_temp($wnh);
+      split ' ', $stat->read_cached_reg( "0x57", 12 );
+    $days[2][0][0] = &Omnistat::translate_time($wmt);
+    $days[2][0][1] = &Omnistat::translate_temp($wmc);
+    $days[2][0][2] = &Omnistat::translate_temp($wmh);
+    $days[2][1][0] = &Omnistat::translate_time($wdt);
+    $days[2][1][1] = &Omnistat::translate_temp($wdc);
+    $days[2][1][2] = &Omnistat::translate_temp($wdh);
+    $days[2][2][0] = &Omnistat::translate_time($wet);
+    $days[2][2][1] = &Omnistat::translate_temp($wec);
+    $days[2][2][2] = &Omnistat::translate_temp($weh);
+    $days[2][3][0] = &Omnistat::translate_time($wnt);
+    $days[2][3][1] = &Omnistat::translate_temp($wnc);
+    $days[2][3][2] = &Omnistat::translate_temp($wnh);
+      split ' ', $stat->read_cached_reg( "0x63", 12 );
+    $days[3][0][0] = &Omnistat::translate_time($wmt);
+    $days[3][0][1] = &Omnistat::translate_temp($wmc);
+    $days[3][0][2] = &Omnistat::translate_temp($wmh);
+    $days[3][1][0] = &Omnistat::translate_time($wdt);
+    $days[3][1][1] = &Omnistat::translate_temp($wdc);
+    $days[3][1][2] = &Omnistat::translate_temp($wdh);
+    $days[3][2][0] = &Omnistat::translate_time($wet);
+    $days[3][2][1] = &Omnistat::translate_temp($wec);
+    $days[3][2][2] = &Omnistat::translate_temp($weh);
+    $days[3][3][0] = &Omnistat::translate_time($wnt);
+    $days[3][3][1] = &Omnistat::translate_temp($wnc);
+    $days[3][3][2] = &Omnistat::translate_temp($wnh);
+      split ' ', $stat->read_cached_reg( "0x6F", 12 );
+    $days[4][0][0] = &Omnistat::translate_time($wmt);
+    $days[4][0][1] = &Omnistat::translate_temp($wmc);
+    $days[4][0][2] = &Omnistat::translate_temp($wmh);
+    $days[4][1][0] = &Omnistat::translate_time($wdt);
+    $days[4][1][1] = &Omnistat::translate_temp($wdc);
+    $days[4][1][2] = &Omnistat::translate_temp($wdh);
+    $days[4][2][0] = &Omnistat::translate_time($wet);
+    $days[4][2][1] = &Omnistat::translate_temp($wec);
+    $days[4][2][2] = &Omnistat::translate_temp($weh);
+    $days[4][3][0] = &Omnistat::translate_time($wnt);
+    $days[4][3][1] = &Omnistat::translate_temp($wnc);
+    $days[4][3][2] = &Omnistat::translate_temp($wnh);
+}
+
+# Saturday/Sunday (all stats)
 ( $wmt, $wmc, $wmh, $wdt, $wdc, $wdh, $wet, $wec, $weh, $wnt, $wnc, $wnh ) =
   split ' ', $stat->read_cached_reg( "0x21", 12 );
-$days[1][0][0] = &Omnistat::translate_time($wmt);
-$days[1][0][1] = &Omnistat::translate_temp($wmc);
-$days[1][0][2] = &Omnistat::translate_temp($wmh);
-$days[1][1][0] = &Omnistat::translate_time($wdt);
-$days[1][1][1] = &Omnistat::translate_temp($wdc);
-$days[1][1][2] = &Omnistat::translate_temp($wdh);
-$days[1][2][0] = &Omnistat::translate_time($wet);
-$days[1][2][1] = &Omnistat::translate_temp($wec);
-$days[1][2][2] = &Omnistat::translate_temp($weh);
-$days[1][3][0] = &Omnistat::translate_time($wnt);
-$days[1][3][1] = &Omnistat::translate_temp($wnc);
-$days[1][3][2] = &Omnistat::translate_temp($wnh);
+$days[5][0][0] = &Omnistat::translate_time($wmt);
+$days[5][0][1] = &Omnistat::translate_temp($wmc);
+$days[5][0][2] = &Omnistat::translate_temp($wmh);
+$days[5][1][0] = &Omnistat::translate_time($wdt);
+$days[5][1][1] = &Omnistat::translate_temp($wdc);
+$days[5][1][2] = &Omnistat::translate_temp($wdh);
+$days[5][2][0] = &Omnistat::translate_time($wet);
+$days[5][2][1] = &Omnistat::translate_temp($wec);
+$days[5][2][2] = &Omnistat::translate_temp($weh);
+$days[5][3][0] = &Omnistat::translate_time($wnt);
+$days[5][3][1] = &Omnistat::translate_temp($wnc);
+$days[5][3][2] = &Omnistat::translate_temp($wnh);
 ( $wmt, $wmc, $wmh, $wdt, $wdc, $wdh, $wet, $wec, $weh, $wnt, $wnc, $wnh ) =
   split ' ', $stat->read_cached_reg( "0x2d", 12 );
-$days[2][0][0] = &Omnistat::translate_time($wmt);
-$days[2][0][1] = &Omnistat::translate_temp($wmc);
-$days[2][0][2] = &Omnistat::translate_temp($wmh);
-$days[2][1][0] = &Omnistat::translate_time($wdt);
-$days[2][1][1] = &Omnistat::translate_temp($wdc);
-$days[2][1][2] = &Omnistat::translate_temp($wdh);
-$days[2][2][0] = &Omnistat::translate_time($wet);
-$days[2][2][1] = &Omnistat::translate_temp($wec);
-$days[2][2][2] = &Omnistat::translate_temp($weh);
-$days[2][3][0] = &Omnistat::translate_time($wnt);
-$days[2][3][1] = &Omnistat::translate_temp($wnc);
-$days[2][3][2] = &Omnistat::translate_temp($wnh);
+$days[6][0][0] = &Omnistat::translate_time($wmt);
+$days[6][0][1] = &Omnistat::translate_temp($wmc);
+$days[6][0][2] = &Omnistat::translate_temp($wmh);
+$days[6][1][0] = &Omnistat::translate_time($wdt);
+$days[6][1][1] = &Omnistat::translate_temp($wdc);
+$days[6][1][2] = &Omnistat::translate_temp($wdh);
+$days[6][2][0] = &Omnistat::translate_time($wet);
+$days[6][2][1] = &Omnistat::translate_temp($wec);
+$days[6][2][2] = &Omnistat::translate_temp($weh);
+$days[6][3][0] = &Omnistat::translate_time($wnt);
+$days[6][3][1] = &Omnistat::translate_temp($wnc);
+$days[6][3][2] = &Omnistat::translate_temp($wnh);
+
+#Vacation Mode Data (test)
+#my ( $vsc, $vsh ) =
+#  split ' ', $stat->read_cached_reg( "0x81", 2 );
+#my ( $ved, $veh ) =
+#  split ' ', $stat->read_cached_reg( "0x95", 2 );
+#$vaca[0][0] = &Omnistat::translate_temp($vsc);
+#$vaca[0][1] = &Omnistat::translate_temp($vsh);
+#$vaca[1][0] = &Omnistat::translate_time($ved);
+#$vaca[1][1] = &Omnistat::translate_time($veh);
 
 my $pretty_name = &pretty_object_name($location)." (".$stat->get_stat_type().")";
 
@@ -178,12 +259,12 @@ if ( $#locations > 0 ) {
   $html = $html . "</select>";
 } else {
   Omnistat::omnistat_debug("$NAME: Got single location $location, skipping drop down menu");
-  $html = $html . $pretty_name; 
+  $html = $html . $pretty_name;
   $html = $html . "<input name='location' value='$location' type='hidden'>";
 }
 
-$html = $html . "
-  
+$html .= "
+
 &nbsp; <input value='Refresh' type='submit'> &nbsp; <input
  value='Send to stat' type='submit'>&nbsp;&nbsp; <input type='reset'> </small>
   <table style='text-align: left; width: 560px; height: 355px;'
@@ -227,7 +308,7 @@ $html = $html . "
         <td colspan='1' rowspan='4'
  style='vertical-align: top; text-align: center;'><small>&nbsp;<br>
         <br>
-Weekday<br>
+$weekday_or_monday<br>
         </small></td>
         <td style='vertical-align: top; text-align: center;'><small>Morning<br>
         </small></td>
@@ -295,8 +376,11 @@ Weekday<br>
       <tr>
         <td colspan='1' rowspan='4'
  style='vertical-align: top; text-align: center;'><small>&nbsp;<br>
-        <br>
-Saturday<br>
+        <br> ";
+
+if ($IsOmnistat2) {
+$html .= "
+Tuesday<br>
         </small></td>
         <td style='vertical-align: top; text-align: center;'><small>Morning<br>
         </small></td>
@@ -365,7 +449,7 @@ Saturday<br>
         <td colspan='1' rowspan='4'
  style='vertical-align: top; text-align: center;'><small>&nbsp;<br>
         <br>
-Sunday<br>
+Wednesday<br>
         </small></td>
         <td style='vertical-align: top; text-align: center;'><small>Morning<br>
         </small></td>
@@ -430,7 +514,285 @@ Sunday<br>
         <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
  maxlength='2' size='2' type='text'></small></td>
       </tr>
+       <tr>
+        <td colspan='1' rowspan='4'
+ style='vertical-align: top; text-align: center;'><small>&nbsp;<br>
+        <br>
+Thursday<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small>Morning<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[3][0][0]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_time'
+ maxlength='8' size='8' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[3][0][1]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[3][0][2]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+      </tr>
+      <tr>
+        <td style='vertical-align: top; text-align: center;'><small>Day<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[3][1][0]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_time'
+ maxlength='8' size='8' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[3][1][1]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[3][1][2]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+      </tr>
+      <tr>
+        <td style='vertical-align: top; text-align: center;'><small>Evening<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[3][2][0]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_time'
+ maxlength='8' size='8' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[3][2][1]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[3][2][2]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+      </tr>
+      <tr>
+        <td style='vertical-align: top; text-align: center;'><small>Night<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[3][3][0]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_time'
+ maxlength='8' size='8' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[3][3][1]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[3][3][2]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+      </tr>
+       <tr>
+        <td colspan='1' rowspan='4'
+ style='vertical-align: top; text-align: center;'><small>&nbsp;<br>
+        <br>
+Friday<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small>Morning<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[4][0][0]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_time'
+ maxlength='8' size='8' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[4][0][1]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[4][0][2]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+      </tr>
+      <tr>
+        <td style='vertical-align: top; text-align: center;'><small>Day<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[4][1][0]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_time'
+ maxlength='8' size='8' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[4][1][1]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[4][1][2]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+      </tr>
+      <tr>
+        <td style='vertical-align: top; text-align: center;'><small>Evening<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[4][2][0]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_time'
+ maxlength='8' size='8' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[4][2][1]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[4][2][2]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+      </tr>
+      <tr>
+        <td style='vertical-align: top; text-align: center;'><small>Night<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[4][3][0]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_time'
+ maxlength='8' size='8' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[4][3][1]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[4][3][2]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+      </tr>
+       <tr>
+        <td colspan='1' rowspan='4'
+ style='vertical-align: top; text-align: center;'><small>&nbsp;<br>
+        <br>";
+}
 
+$html .= "
+Saturday<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small>Morning<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[5][0][0]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_time'
+ maxlength='8' size='8' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[5][0][1]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[5][0][2]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+      </tr>
+      <tr>
+        <td style='vertical-align: top; text-align: center;'><small>Day<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[5][1][0]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_time'
+ maxlength='8' size='8' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[5][1][1]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[5][1][2]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+      </tr>
+      <tr>
+        <td style='vertical-align: top; text-align: center;'><small>Evening<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[5][2][0]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_time'
+ maxlength='8' size='8' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[5][2][1]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[5][2][2]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+      </tr>
+      <tr>
+        <td style='vertical-align: top; text-align: center;'><small>Night<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[5][3][0]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_time'
+ maxlength='8' size='8' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[5][3][1]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[5][3][2]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+      </tr>
+       <tr>
+        <td colspan='1' rowspan='4'
+ style='vertical-align: top; text-align: center;'><small>&nbsp;<br>
+        <br>
+Sunday<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small>Morning<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[6][0][0]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_time'
+ maxlength='8' size='8' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[6][0][1]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[6][0][2]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+      </tr>
+      <tr>
+        <td style='vertical-align: top; text-align: center;'><small>Day<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[6][1][0]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_time'
+ maxlength='8' size='8' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[6][1][1]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[6][1][2]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+      </tr>
+      <tr>
+        <td style='vertical-align: top; text-align: center;'><small>Evening<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[6][2][0]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_time'
+ maxlength='8' size='8' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[6][2][1]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[6][2][2]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+      </tr>
+      <tr>
+        <td style='vertical-align: top; text-align: center;'><small>Night<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[6][3][0]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_time'
+ maxlength='8' size='8' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[6][3][1]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+        <td style='vertical-align: top; text-align: center;'><small>$days[6][3][2]<br>
+        </small></td>
+        <td style='vertical-align: top; text-align: center;'><small><input name='heat_temp'
+ maxlength='2' size='2' type='text'></small></td>
+      </tr>
     </tbody>
   </table>
 </form>
@@ -441,4 +803,5 @@ $debug
 </body>
 </html>
 ";
+
 return &html_page( '', $html );

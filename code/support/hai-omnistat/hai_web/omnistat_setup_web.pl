@@ -7,6 +7,9 @@
 Originally by Joel Davidson, Daniel Arnold et al
 The HTML of this page is based on work by Kent Noonan.
 
+2011/01/09 -- Mickey Argo/Karl Suchy/Marc MERLIN
+- Added Omnistat2 code
+
 2009/08/03 -- merlin
 - cleanups, added debugging, logging and comments
 - added code to report stat not found errors as opposed to outputting perl errors
@@ -70,6 +73,14 @@ if (not $stat) {
   }
 } else {
   Omnistat::omnistat_debug("$NAME: will work with stat $location");
+}
+
+my $print_cycle = "";
+my $print_vacation = "";
+
+if ($stat->is_omnistat2) {
+  $print_cycle = "<option value='cycle'>Cycle</option>";
+  $print_vacation = "<option value='vacation'>Vacation</option>";
 }
 
 if ($submit eq 'reset stat to scheduled values') {
@@ -169,7 +180,7 @@ $html = $html
 <p align=center><table border='1' cellpadding='2' cellspacing='2'>
 <tr>
 <th>Mode</th><td><em>$stat_mode</em></td>
-<td><select name='mode' class='dropDown' style='vertical-align: top; font-size: 85%;' onChange='this.form.submit();'>>
+<td>	      <select name='mode' class='dropDown' style='vertical-align: top; font-size: 85%;' onChange='this.form.submit();'>>
               <option value=''>No Change</option>
               <option value='off'>Off</option>
               <option value='cool'>Cool</option>
@@ -183,15 +194,17 @@ $html = $html
               <option value=''>No Change</option>
               <option value='on'>On</option>
               <option value='auto'>Auto</option>
+              $print_cycle
               </select>
               <br>
 </td></tr>
 
 <th>Hold</th><td><em>$stat_hold</em></td>
-<td>           <select name='hold' class='dropDown' style='vertical-align: top; font-size: 85%;' onChange='this.form.submit();'>>
+<td>          <select name='hold' class='dropDown' style='vertical-align: top; font-size: 85%;' onChange='this.form.submit();'>>
               <option value=''>No Change</option>
               <option value='on'>On</option>
               <option value='off'>Off</option>
+              $print_vacation
               </select>
 </td></tr></table></p>
 
