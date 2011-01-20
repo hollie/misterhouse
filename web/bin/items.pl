@@ -99,6 +99,7 @@ $form_type
     for my $record (@file_data) {
                                 # Do not list comments
         unless ($record =~ /^\s*\#/ or $record =~ /^\s*$/ or $record =~ /^Format *=/) {
+	    $record =~ s/#.*//;  # Ignore comments
             $record =~ s/,? *$//;
             my(@item_info) = split(',\s*', $record);
             my $type = shift @item_info;

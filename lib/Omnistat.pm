@@ -12,11 +12,7 @@ http://www.homeauto.com/Products/HAIAccessories/Omnistat/rc80.htm
 Newer Omnistat2 thermostats have a slightly different protocol and may need
 some work. They look nicer, but they are pricier (vs $50 for an RC-80 on ebay).
 
-<<<<<<< .mine
 Have a look at http://misterhouse.wikispaces.com/hai_stats
-=======
-Have a look at http://misterhouse.wikispaces.com/hai_stats and 
->>>>>>> .r1810
 
 ###################
 
