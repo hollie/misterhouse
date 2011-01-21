@@ -51,6 +51,24 @@ sub new
    return $self;
 }
 
+sub equals
+{
+	my ($self, $compare_object) = @_;
+        # make sure that the compare_object is legitimate
+        return 0 unless $compare_object && ref $compare_object && $compare_object->isa('Insteon::BaseInterface');
+        return 1 if $compare_object eq $self;
+        # if they don't both have device_ids then treat them as identical
+        return 1 unless $compare_object->device_id && $self->device_id;
+        if ($compare_object->device_id eq $self->device_id)
+        {
+        	return 1;
+        }
+        else
+        {
+        	return 0;
+        }
+}
+
 sub _is_duplicate
 {
 	my ($self, $cmd) = @_;
@@ -156,6 +174,8 @@ sub process_queue
                                         	. $self->active_message->send_attempts
                        				. ") for " . $self->active_message->to_string()
                                                 . " exceeds limit.  Now moving on...") if $main::Debug{insteon};
+                                        # !!!!!!!!! TO-DO - handle failure timeout ???
+
                 			# clear active message and try again
                 			$self->clear_active_message();
                 			$self->process_queue();

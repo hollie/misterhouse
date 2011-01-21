@@ -45,11 +45,11 @@ sub derive_link_state
 	my ($p_state) = @_;
 
 	my $link_state = 'on';
-	if ($p_state eq 'off') 
+	if ($p_state eq 'off')
 	{
 		$link_state = 'off';
-	} 
-	elsif ($p_state =~ /\d+%?/) 
+	}
+	elsif ($p_state =~ /\d+%?/)
 	{
 		my ($dim_state) = $p_state =~ /(\d+)%?/;
 		$link_state = 'off' if $dim_state == 0;
@@ -140,6 +140,20 @@ sub group
 	my ($self, $p_group) = @_;
 	$$self{m_group} = $p_group if $p_group;
 	return $$self{m_group};
+}
+
+sub equals
+{
+	my ($self, $compare_object) = @_;
+        # make sure that the compare_object is legitimate
+        return 0 unless $compare_object && ref $compare_object && $compare_object->isa('Insteon::BaseObject');
+        return 1 if $compare_object eq $self;
+        # self and compare_object need to have device_ids and groups to be equal
+        return 0 unless $self->device_id && $self->group && $compare_object->device_id && $compare_object->group;
+        return 1 if (($compare_object->device_id eq $self->device_id)
+        	&& ($compare_object->group eq $self->group));
+	# default to false;
+        return 0;
 }
 
 sub set
@@ -1250,9 +1264,9 @@ sub set_linked_devices
 {
 	my ($self, $link_state) = @_;
 	# iterate over the members
-	if ($$self{members}) 
+	if ($$self{members})
 	{
-		foreach my $member_ref (keys %{$$self{members}}) 
+		foreach my $member_ref (keys %{$$self{members}})
 		{
 			my $member = $$self{members}{$member_ref}{object};
 			my $on_state = $$self{members}{$member_ref}{on_level};
@@ -1261,7 +1275,7 @@ sub set_linked_devices
 			$local_state = 'on' if $local_state eq '100%'
 				&& $member->isa('Insteon::BaseDevice') && !($member->is_root);
 			$local_state = 'off' if $local_state eq '0%' or $link_state eq 'off';
-			if ($member->isa('Light_Item')) 
+			if ($member->isa('Light_Item'))
 			{
 			# if they are Light_Items, then set their on_dim attrib to the member on level
 			#   and then "blank" them via the manual method for a tad over the ramp rate
@@ -1271,21 +1285,21 @@ sub set_linked_devices
 				$ramp_rate = 0 unless defined $ramp_rate;
 				$ramp_rate = $ramp_rate + 2;
 				my @lights = $member->find_members('Insteon::BaseDevice');
-				if (@lights) 
+				if (@lights)
 				{
 					my $light = @lights[0];
 					# remember the current state to support resume
 					$$self{members}{$member_ref}{resume_state} = $light->state;
 					$member->manual($light, $ramp_rate);
 					$light->set_receive($local_state,$self);
-				} 
-				else 
+				}
+				else
 				{
 					$member->manual(1, $ramp_rate);
 				}
 				$member->set_on_state($local_state) unless $link_state eq 'off';
-			} 
-			elsif ($member->isa('Insteon::BaseDevice')) 
+			}
+			elsif ($member->isa('Insteon::BaseDevice'))
 			{
 			# remember the current state to support resume
 				$$self{members}{$member_ref}{resume_state} = $member->state;
@@ -1383,7 +1397,7 @@ sub derive_message
 sub find_members
 {
 	my ($self,$p_type) = @_;
-	
+
 	my @l_found;
 	if ($$self{members})
 	{
