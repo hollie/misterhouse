@@ -10,85 +10,97 @@ my (@_insteon_plm,@_insteon_device,@_insteon_link,@_scannable_link,$_scan_cnt,$_
 my $init_complete;
 my (@_scan_devices);
 
-#my $_scan_link_tables_v = new Voice_Cmd 'Scan all link tables';
+sub scan_all_linktables
+{
+        my @candidate_devices = ();
+        # clear @_scan_devices
+        @_scan_devices = ();
+        # alwayws include the active interface (e.g., plm)
+       	push @_scan_devices, &Insteon::active_interface;
 
-#if ($_scan_link_tables_v->state_now()) {
-#   &_get_next_linkscan(); # unless $_scan_cnt; # prevent multiple concurrent scans
-#}
+       	push @candidate_devices, &Insteon::find_members("Insteon::BaseDevice");
+
+        # don't try to scan devices that are not responders
+        foreach (@candidate_devices)
+        {
+        	my $candidate_object = $_;
+        	if (!($candidate_object->isa('Insteon::RemoteLinc')
+                	or $candidate_object->isa('Insteon::InterfaceController')
+                	or $candidate_object->isa('Insteon::MotionSensor')))
+                {
+			push @_scan_devices, $candidate_object;
+        	}
+                else
+                {
+                	&main::print_log("[Scan all linktables] Note: "
+                        	. $candidate_object->get_object_name
+                        	. " is not a candidate for scanning.");
+                }
+	}
+        $_scan_cnt = scalar @_scan_devices;
+
+        $_scan_failure_cnt = 0;
+        &_get_next_linkscan();
+
+}
 
 sub _get_next_linkscan
 {
-    my ($current_name, $prior_failure) = @_;
-    if ($prior_failure) {
-       $_scan_failure_cnt++;
-    } else {
-       $_scan_failure_cnt = 0;
-    }
-    if (!(scalar(@_scan_devices))) {
-       push @_scan_devices, &Insteon::active_interface;
-       push @_scan_devices, &Insteon::find_members("Insteon::BaseDevice");
-       $_scan_cnt = 0;
-    }
+	my ($prior_failure) = @_;
+    	if ($prior_failure)
+        {
+      		$_scan_failure_cnt++;
+    	}
+        else
+        {
+       		$_scan_failure_cnt = 0;
+    	}
 
-    return unless scalar(@_scan_devices);
 
-    my $current_obj = $_scan_devices[0];
-    my $next_obj = $current_obj;
-    if ($_scan_failure_cnt == 0) {
+    	my $current_obj = $_scan_devices[0];
+   	my $next_obj = $current_obj;
+    	if ($_scan_failure_cnt == 0)
+        {
                 # get the next
-		 $next_obj = shift @_scan_devices;
-		$_scan_cnt += 1;
+		$next_obj = shift @_scan_devices;
                 # remove the queue_timer_callback
-#                my $current_obj = &main::get_object_by_name($current_name);
-                if (!($current_obj->isa('Insteon_PLM'))) {
+		if (!($current_obj->isa('Insteon_PLM')))
+                {
 #                   $current_obj->queue_timer_callback('');
                 }
-                # don't try to scan devices that are not responders
-                while (ref $next_obj and $next_obj->isa('Insteon::BaseDevice')
-                     and !($next_obj->is_responder) and !($next_obj->isa('Insteon::InterfaceController'))) {
-                   &main::print_log("[Scan all link tables] " . $next_obj->get_object_name . " is not a candidate for scanning.  Moving to next");
-                   $next_obj = shift @_scan_devices;
-                }
-             } elsif ($_scan_failure_cnt == 1) {
+	}
+        elsif ($_scan_failure_cnt == 1)
+        {
                 # try again
 #                $next_name = $current_name;
 		$next_obj = $current_obj;
-                &main::print_log("[Scan all link tables] WARN: failure occurred when scanning " . $current_obj->get_object_name . ".  Trying again...");
+                &main::print_log("[Scan all link tables] WARN: failure occurred when scanning "
+                	. $current_obj->get_object_name . ".  Trying again...");
 #                $_scan_cnt = $i + 1;
-             } else {
+	}
+        else
+        {
                 # skip because this is a repeat failure
-#                $next_name = $devices[$i+1] if $i+1 < $dev_cnt;
 		$next_obj = shift @_scan_devices;
-                &main::print_log("[Scan all link tables] WARN: failure occurred when scanning " . $current_obj->get_object_name . ".  Moving on...");
+                &main::print_log("[Scan all link tables] WARN: failure occurred when scanning "
+                	. $current_obj->get_object_name . ".  Moving on...");
                 $_scan_failure_cnt = 0; # reset failure counter
-#                $_scan_cnt += $i + 2;
                  # remove the queue_timer_callback
-#                my $current_obj = &main::get_object_by_name($current_name);
                 if (!($current_obj->isa('Insteon_PLM'))) {
 #                   $current_obj->queue_timer_callback('');
                 }
-             }
-#            last;
-#          }
-#       }
-#    } else {
-#       if ($dev_cnt) {
-#          $next_name = $devices[0];
-#          $_scan_cnt = 1;
-#       }
-#    }
+	}
 
-    if ($next_obj) {
-#       my $obj = &main::get_object_by_name($next_name);
-       if ($next_obj) {
-          &main::print_log("[Scan all link tables] Now scanning: " . $next_obj->get_object_name . " ($_scan_cnt of ?)");
-#          $next_obj->queue_timer_callback('&Insteon::_get_next_linkscan(\'' . $next_obj->get_object_name . '\',1)') unless $next_obj->isa('Insteon_PLM');
-          $next_obj->scan_link_table('&Insteon::_get_next_linkscan(\'' . $next_obj->get_object_name . '\')');
-       }
-    } else {
-       $_scan_cnt = 0;
-       return undef;
-    }
+	if ($next_obj)
+        {
+          	&main::print_log("[Scan all link tables] Now scanning: "
+                	. $next_obj->get_object_name . " ("
+                        . ($_scan_cnt - scalar @_scan_devices)
+                        . " of $_scan_cnt)");
+          	$next_obj->scan_link_table('&Insteon::_get_next_linkscan()');
+    	} else {
+       		return undef;
+    	}
 }
 
 #my $_sync_links_v = new Voice_Cmd 'Sync all links';
@@ -187,7 +199,7 @@ sub init {
 
     # create trigger
     my $trig_cmd = "time_cron '00 02 * * *'";
-    &main::trigger_set($trig_cmd,'&_get_next_linkscan()','NoExpire','scan insteon link tables')
+    &main::trigger_set($trig_cmd,'&Insteon::scan_all_linktables()','NoExpire','scan insteon link tables')
        unless &main::trigger_get('scan insteon link tables');
 
     @_insteon_plm = ();
@@ -273,7 +285,7 @@ sub generate_voice_commands
            $object_string .= "$object_name_v -> tie_event('$object_name->delete_orphan_links','delete orphan links');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->debug(1)','debug on');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->debug(0)','debug off');\n\n";
-           $object_string .= "$object_name_v -> tie_event('&Insteon::_get_next_linkscan','scan all link tables');\n\n";
+           $object_string .= "$object_name_v -> tie_event('&Insteon::scan_all_linktables','scan all link tables');\n\n";
            $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_PLM_commands');
            push @_insteon_plm, $object_name;
         }
@@ -344,7 +356,8 @@ sub active_interface
    my ($interface) = @_;
    my $insteon_manager = InsteonManager->instance();
 
-   $insteon_manager->_active_interface($interface) if $interface;
+   $insteon_manager->_active_interface($interface)
+   	if $interface && ref $interface && $interface->isa('Insteon::BaseInterface');
 #print "############### active interface is: " . $insteon_manager->_active_interface->get_object_name . "\n";
    return $insteon_manager->_active_interface;
 
@@ -435,10 +448,10 @@ sub add_item_if_not_present {
 
 sub remove_item {
    my ($self, $p_object) = @_;
-
+   return 0 unless $p_object and ref $p_object;
    if (ref $$self{objects}) {
       for (my $i = 0; $i < scalar(@{$$self{objects}}); $i++) {
-         if ($$self{objects}->[$i] eq $p_object) {
+         if ($p_object->equals($$self{objects}->[$i])) {
             splice @{$$self{objects}}, $i, 1;
             return 1;
          }
