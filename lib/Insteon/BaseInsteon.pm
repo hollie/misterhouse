@@ -566,7 +566,7 @@ sub _is_valid_state
 	}
 
 	# confirm that the resulting $msg is legitimate
-	if (!(defined($message_types{$msg}))) {
+	if (!(defined($$self{message_types}{$msg}))) {
 		return 0;
 	} else {
 		return 1;
@@ -987,13 +987,6 @@ sub local_ramprate
 	}
 	return $$self{_ramprate};
 
-}
-
-
-sub scan_link_table
-{
-	my ($self,$callback) = @_;
-        $self->_aldb->scan_link_table($callback) if $self->_aldb;
 }
 
 sub delete_orphan_links

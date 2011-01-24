@@ -175,10 +175,23 @@ sub process_queue
                        				. ") for " . $self->active_message->to_string()
                                                 . " exceeds limit.  Now moving on...") if $main::Debug{insteon};
                                         # !!!!!!!!! TO-DO - handle failure timeout ???
-
-                			# clear active message and try again
+                                        my $failed_message = $self->active_message;
+                			# clear active message
                 			$self->clear_active_message();
+
+                                        # may instead want a "failure" callback separate from success callback
+					if ($failed_message->callback) {
+		       				package main;
+						eval $failed_message->callback;
+						&::print_log("[Insteon::BaseInterface] problem w/ retry callback: $@") if $@;
+						package Insteon::BaseInterface;
+					}
+
                 			$self->process_queue();
+                                }
+                                else
+                                {
+                                	# may want to move "success" callback handling from message to here
                                 }
 			}
 			my $command_queue_size = @{$$self{command_stack2}};

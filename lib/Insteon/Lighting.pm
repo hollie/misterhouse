@@ -203,6 +203,7 @@ use Insteon::BaseInsteon;
 
 @Insteon::SwitchLincRelay::ISA = ('Insteon::DeviceController','Insteon::BaseLight');
 
+
 sub new
 {
 	my ($class,$p_deviceid,$p_interface) = @_;
@@ -236,6 +237,7 @@ use strict;
 use Insteon::BaseInsteon;
 
 @Insteon::KeyPadLincRelay::ISA = ('Insteon::DeviceController', 'Insteon::BaseLight');
+
 
 sub new
 {
@@ -288,6 +290,7 @@ use strict;
 use Insteon::BaseInsteon;
 
 @Insteon::KeyPadLinc::ISA = ('Insteon::DeviceController', 'Insteon::DimmableLight');
+
 
 sub new
 {
