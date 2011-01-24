@@ -105,8 +105,8 @@ sub new {
 	$$self{xmit_in_progress} = 0;
 	$$self{_prior_data_fragment} = '';
    bless $self, $class;
+   $self->restore_data('debug');
    $$self{aldb} = new Insteon::ALDB_PLM($self);
-   $self->debug(0);
 
    &Insteon::add($self);
 
@@ -124,15 +124,6 @@ sub new {
    return $self;
 }
 
-sub debug
-{
-	my ($self, $debug) = @_;
-        if (defined $debug)
-        {
-        	$$self{debug} = $debug;
-        }
-        return $$self{debug};
-}
 
 sub restore_string
 {
@@ -238,7 +229,6 @@ sub scan_link_table
 {
 	my ($self,$callback) = @_;
 	#$$self{links} = undef; # clear out the old
-        $$self{adlb} = undef;
         $$self{aldb} = new Insteon::ALDB_PLM($self);
 	$$self{_mem_activity} = 'scan';
         $$self{_mem_callback} = ($callback) ? $callback : undef;
@@ -328,12 +318,12 @@ sub _parse_data {
 
 	# it is possible that a fragment exists from a previous attempt; so, if it exists, prepend it
 	if ($$self{_data_fragment}) {
-		&::print_log("[Insteon_PLM] Prepending prior data fragment: $$self{_data_fragment}") if $self->debug or $main::Debug{insteon};
+		&::print_log("[Insteon_PLM] DEBUG: Prepending prior data fragment: $$self{_data_fragment}") if $self->debug or $main::Debug{insteon};
 		$$self{_prior_data_fragment} = $$self{_data_fragment};
 		$data = $$self{_data_fragment} . $data;
 		$$self{_data_fragment} = '';
 	}
-	&::print_log( "[Insteon_PLM] Parsing serial data: $data") if $self->debug;
+	&::print_log( "[Insteon_PLM] DEBUG: Parsing serial data: $data") if $self->debug;
 
 	# begin by pulling out any PLM ack/nacks
 	my $prev_cmd = '';

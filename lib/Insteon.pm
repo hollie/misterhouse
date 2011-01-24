@@ -41,7 +41,6 @@ sub scan_all_linktables
 
         $_scan_failure_cnt = 0;
         &_get_next_linkscan();
-
 }
 
 sub _get_next_linkscan
@@ -56,40 +55,17 @@ sub _get_next_linkscan
        		$_scan_failure_cnt = 0;
     	}
 
-
     	my $current_obj = $_scan_devices[0];
-   	my $next_obj = $current_obj;
-    	if ($_scan_failure_cnt == 0)
+   	my $next_obj = shift @_scan_devices;
+    	if ($_scan_failure_cnt > 0)
         {
-                # get the next
-		$next_obj = shift @_scan_devices;
-                # remove the queue_timer_callback
-		if (!($current_obj->isa('Insteon_PLM')))
-                {
-#                   $current_obj->queue_timer_callback('');
-                }
-	}
-        elsif ($_scan_failure_cnt == 1)
-        {
-                # try again
-#                $next_name = $current_name;
-		$next_obj = $current_obj;
-                &main::print_log("[Scan all link tables] WARN: failure occurred when scanning "
-                	. $current_obj->get_object_name . ".  Trying again...");
-#                $_scan_cnt = $i + 1;
-	}
-        else
-        {
-                # skip because this is a repeat failure
-		$next_obj = shift @_scan_devices;
                 &main::print_log("[Scan all link tables] WARN: failure occurred when scanning "
                 	. $current_obj->get_object_name . ".  Moving on...");
-                $_scan_failure_cnt = 0; # reset failure counter
-                 # remove the queue_timer_callback
-                if (!($current_obj->isa('Insteon_PLM'))) {
-#                   $current_obj->queue_timer_callback('');
-                }
 	}
+        # remove the queue_timer_callback
+#        if (!($current_obj->isa('Insteon_PLM'))) {
+#           $current_obj->queue_timer_callback('');
+#        }
 
 	if ($next_obj)
         {
@@ -103,11 +79,6 @@ sub _get_next_linkscan
     	}
 }
 
-#my $_sync_links_v = new Voice_Cmd 'Sync all links';
-
-#if ($_sync_links_v->state_now()) {
-#   &_process_sync_links(); # unless $_sync_cnt;
-#}
 
 sub _process_sync_links
 {
@@ -181,11 +152,6 @@ sub _process_sync_links
     }
 }
 
-
-sub uninstall_insteon_item_commands {
-    &main::trigger_delete('scan insteon link tables');
-}
-
 sub init {
 
     # only run once
@@ -196,6 +162,12 @@ sub init {
     $_scan_cnt = 0;
     $_sync_cnt = 0;
     @_scan_devices = ();
+
+    # delete the existing trigger if it exists
+    if (&main::trigger_get('scan insteon link tables'))
+    {
+    	&main::trigger_delete('scan insteon link tables');
+    }
 
     # create trigger
     my $trig_cmd = "time_cron '00 02 * * *'";
@@ -275,17 +247,17 @@ sub generate_voice_commands
            $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_item_commands');
            push @_insteon_device, $object_name if $group eq '01'; # don't allow non-base items to participate
         } elsif ($object->isa('Insteon_PLM')) {
-           my $cmd_states = "complete linking as responder,cancel linking,delete link with PLM,scan link table,log links,delete orphan links,scan all link tables,debug on, debug off";
+           my $cmd_states = "this: complete linking as responder,this: cancel linking,this: delete link with PLM,this: scan link table,this: show link table to log,this: messaging debug on,this: messaging debug off,all: delete orphan links,all: scan link tables";
            $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->complete_linking_as_responder','complete linking as responder');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->initiate_unlinking_as_controller','initiate unlinking');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->cancel_linking','cancel linking');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table','log links');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','scan link table');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->delete_orphan_links','delete orphan links');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->debug(1)','debug on');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->debug(0)','debug off');\n\n";
-           $object_string .= "$object_name_v -> tie_event('&Insteon::scan_all_linktables','scan all link tables');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->complete_linking_as_responder','this: complete linking as responder');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->initiate_unlinking_as_controller','this: initiate unlinking');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->cancel_linking','this: cancel linking');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table','this: show link table to log');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','this: scan link table');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->delete_orphan_links','all: delete orphan links');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->debug(1)','this: messaging debug on');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->debug(0)','this: messaging debug off');\n\n";
+           $object_string .= "$object_name_v -> tie_event('&Insteon::scan_all_linktables','all: scan link tables');\n\n";
            $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_PLM_commands');
            push @_insteon_plm, $object_name;
         }
@@ -437,7 +409,7 @@ sub add_item_if_not_present {
 
    if (ref $$self{objects}) {
       foreach (@{$$self{objects}}) {
-         if ($_ eq $p_object) {
+         if ($_->equals($p_object)) {
             return 0;
          }
       }
@@ -466,7 +438,7 @@ sub is_member {
 
     my @l_objects = @{$$self{objects}};
     for my $l_object (@l_objects) {
-	if ($l_object eq $p_object) {
+	if ($l_object->equals($p_object)) {
 	    return 1;
 	}
     }
