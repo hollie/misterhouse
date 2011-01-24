@@ -41,14 +41,14 @@ sub poll_all {
 
 sub new
 {
-   my ($class) = @_;
+	my ($class) = @_;
 
-   my $self = {};
-   @{$$self{command_stack2}} = ();
-   @{$$self{command_history}} = ();
-   bless $self, $class;
-#   &Insteon::add($self);
-   return $self;
+	my $self = {};
+	@{$$self{command_stack2}} = ();
+	@{$$self{command_history}} = ();
+	bless $self, $class;
+#   	$self->debug(0) unless $self->debug;
+	return $self;
 }
 
 sub equals
@@ -67,6 +67,16 @@ sub equals
         {
         	return 0;
         }
+}
+
+sub debug
+{
+	my ($self, $debug) = @_;
+        if (defined $debug)
+        {
+        	$$self{debug} = $debug;
+        }
+        return $$self{debug};
 }
 
 sub _is_duplicate
@@ -232,7 +242,7 @@ sub restore_string
 {
 	my ($self) = @_;
 	my $restore_string = $self->SUPER::restore_string();
-	$restore_string .= $self->_adlb->restore_string();
+	$restore_string .= $self->_aldb->restore_string();
 	return $restore_string;
 }
 

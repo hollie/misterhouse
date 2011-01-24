@@ -1122,25 +1122,25 @@ sub sync_links
 				my $requires_update = 0;
 				$tgt_on_level =~ s/(\d+)%?/$1/;
 				$tgt_ramp_rate =~ s/(\d)s?/$1/;
-				my $adlbkey = lc $insteon_object->device_id . $self->group . '0';
+				my $aldbkey = lc $insteon_object->device_id . $self->group . '0';
 				if (($member->isa('Insteon::KeyPadLincRelay') or $member->isa('Insteon::KeyPadLinc'))
                                 	 and $linkmember->group ne '01') {
-					$adlbkey .= $linkmember->group;
+					$aldbkey .= $linkmember->group;
 				}
 				if (!($member->isa('Insteon::DimmableLight'))) {
-					if ($tgt_on_level >= 1 and $$member{adlb}{$adlbkey}{data1} ne 'ff') {
+					if ($tgt_on_level >= 1 and $$member{aldb}{$aldbkey}{data1} ne 'ff') {
 						$requires_update = 1;
 						$tgt_on_level = 100;
-					} elsif ($tgt_on_level == 0 and $$member{adlb}{$adlbkey}{data1} ne '00') {
+					} elsif ($tgt_on_level == 0 and $$member{aldb}{$aldbkey}{data1} ne '00') {
 						$requires_update = 1;
 					}
-					if ($$member{adlb}{$adlbkey}{data2} ne '00') {
+					if ($$member{aldb}{$aldbkey}{data2} ne '00') {
 						$tgt_ramp_rate = 0;
 					}
 				} else {
 					$tgt_ramp_rate = 0.1 unless $tgt_ramp_rate;
-					my $link_on_level = hex($$member{adlb}{$adlbkey}{data1})/2.55;
-					my $raw_ramp_rate = $$member{adlb}{$adlbkey}{data2};
+					my $link_on_level = hex($$member{aldb}{$aldbkey}{data1})/2.55;
+					my $raw_ramp_rate = $$member{aldb}{$aldbkey}{data2};
 					my $raw_tgt_ramp_rate = &Insteon::DimmableLight::convert_ramp($tgt_ramp_rate);
 					if ($raw_ramp_rate != $raw_tgt_ramp_rate) {
 						$requires_update = 1;

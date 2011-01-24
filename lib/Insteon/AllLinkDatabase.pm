@@ -76,7 +76,7 @@ sub restore_string
 			$aldb .= $record;
 		}
 #		&::print_log("[AllLinkDataBase] aldb restore string: $aldb") if $main::Debug{insteon};
-		$restore_string .= $$self{device}->get_object_name . "->_adlb->restore_aldb(q~$aldb~) if " . $$self{device}->get_object_name . "->_adlb;\n";
+		$restore_string .= $$self{device}->get_object_name . "->_aldb->restore_aldb(q~$aldb~) if " . $$self{device}->get_object_name . "->_adlb;\n";
         }
 	return $restore_string;
 }
@@ -771,7 +771,7 @@ sub add_link
 	# get the address via lookup into the hash
 	my $key = lc $device_id . $group . $is_controller;
 	# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
-	if (!($subaddress eq '00' or $subaddress eq '01')) {
+	if !($subaddress eq '00' or $subaddress eq '01') {
 		$key .= $subaddress;
 	}
 	if (defined $$self{aldb}{$key}{inuse}) {
@@ -832,7 +832,7 @@ sub update_link
 	# get the address via lookup into the hash
 	my $key = lc $deviceid . $group . $is_controller;
 	# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
-	if (!($subaddress eq '00' or $subaddress eq '01')) {
+	if !($subaddress eq '00' or $subaddress eq '01') {
 		$key .= $subaddress;
 	}
 	my $address = $$self{aldb}{$key}{address};
@@ -937,7 +937,7 @@ sub has_link
 	}
 	$subaddress = '00' unless $subaddress;
 	# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
-	if (!($subaddress eq '00' or $subaddress eq '01')) {
+	if !($subaddress eq '00' or $subaddress eq '01') {
 		$key .= $subaddress;
 	}
 	return (defined $$self{aldb}{$key}) ? 1 : 0;
