@@ -247,17 +247,17 @@ sub generate_voice_commands
            $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_item_commands');
            push @_insteon_device, $object_name if $group eq '01'; # don't allow non-base items to participate
         } elsif ($object->isa('Insteon_PLM')) {
-           my $cmd_states = "this: complete linking as responder,this: cancel linking,this: delete link with PLM,this: scan link table,this: show link table to log,this: messaging debug on,this: messaging debug off,all: delete orphan links,all: scan link tables";
+           my $cmd_states = "complete linking as responder,cancel linking,delete link with PLM,scan link table,show link table to log,messaging debug on,messaging debug off,delete orphan links,scan link tables";
            $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->complete_linking_as_responder','this: complete linking as responder');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->initiate_unlinking_as_controller','this: initiate unlinking');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->cancel_linking','this: cancel linking');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table','this: show link table to log');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','this: scan link table');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->delete_orphan_links','all: delete orphan links');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->debug(1)','this: messaging debug on');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->debug(0)','this: messaging debug off');\n\n";
-           $object_string .= "$object_name_v -> tie_event('&Insteon::scan_all_linktables','all: scan link tables');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->complete_linking_as_responder','complete linking as responder');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->initiate_unlinking_as_controller','initiate unlinking');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->cancel_linking','cancel linking');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table','show link table to log');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','scan link table');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->delete_orphan_links','delete orphan links');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->debug(1)','messaging debug on');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->debug(0)','messaging debug off');\n\n";
+           $object_string .= "$object_name_v -> tie_event('&Insteon::scan_all_linktables','scan link tables');\n\n";
            $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_PLM_commands');
            push @_insteon_plm, $object_name;
         }
