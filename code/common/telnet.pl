@@ -158,12 +158,15 @@ if (defined($datapart = said $telnet_server)) {
                 $telnet_flags{$client}{auth} = 'set_password';
                 set_echo $telnet_server '*';
             }
-            elsif ($telnet_flags{$client}{data} =~ /^help/) {
+            elsif ($telnet_flags{$client}{data} =~ /^(help|\?)/) {
                 $msg  = "Type any of the following:\n\r";
-                $msg .= "  logon  => logon with password\n\r" if !$telnet_flags{$client}{auth} && !&password_check( undef, 'server_telnet');
-                $msg .= "  find:  xyz  => finds commands that match xyz\n\r";
+                $msg .= "  logon       => logon with password\n\r" if !$telnet_flags{$client}{auth} && !&password_check( undef, 'server_telnet');
+                $msg .= "  find:  xyz  => find and report commands that match xyz\n\r";
                 $msg .= "  log:   xyz  => xyz is a filter of what to log.  Can print, speak, play, speak|play, all, and stop\n\r";
-                $msg .= "  any valid MisterHouse voice command(e.g. What time is it)\n\r";
+                $msg .= "  whoami:     => display currently logged in user\n\r";
+                $msg .= "  exit|bye:   => exit from admin or family mode, or close telnet connection\n\r";
+                $msg .= "  help|?:     => this help text\n\r";
+                $msg .= "  any valid MisterHouse voice command (e.g. What time is it)\n\r";
             }    
             elsif ($telnet_flags{$client}{data} =~ /^find:(.+)/) {
                 my $search = $1;
