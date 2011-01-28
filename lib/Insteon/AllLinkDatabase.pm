@@ -76,7 +76,7 @@ sub restore_string
 			$aldb .= $record;
 		}
 #		&::print_log("[AllLinkDataBase] aldb restore string: $aldb") if $main::Debug{insteon};
-		$restore_string .= $$self{device}->get_object_name . "->_aldb->restore_aldb(q~$aldb~) if " . $$self{device}->get_object_name . "->_adlb;\n";
+		$restore_string .= $$self{device}->get_object_name . "->_aldb->restore_aldb(q~$aldb~) if " . $$self{device}->get_object_name . "->_aldb;\n";
         }
 	return $restore_string;
 }
@@ -845,58 +845,93 @@ sub update_link
 sub log_alllink_table
 {
 	my ($self) = @_;
+	my %aldb;
+
 	&::print_log("[Insteon::ALDB_i1] link table for " . $$self{device}->get_object_name . " (devcat: $$self{devcat}):");
-	foreach my $aldbkey (sort(keys(%{$$self{aldb}}))) {
-		next if $aldbkey eq 'empty' or $aldbkey eq 'duplicates';
-		my ($device);
-		my $is_controller = $$self{aldb}{$aldbkey}{is_controller};
-		if ($$self{device}->interface()->device_id() and ($$self{device}->interface()->device_id() eq $$self{aldb}{$aldbkey}{deviceid})) {
-			$device = $$self{device}->interface;
+
+	# We want to log links sorted by ALDB address. Since the ALDB
+	# addresses are scattered throughout the %{$$self{aldb}} hash,
+	# and it is not easy to obtain them in a linear manner,
+	# we build a new data structure that will allow us to easily
+	# traverse the ALDB by address in a sorted manner. The new
+	# data structure is a bidimensional hash (%aldb) where rows
+	# are the ALDB addresses and the columns can be "empty"
+	# (indicates that the ALDB at the corresponding address is
+	# empty), "duplicate" (indicates that the ALDB at the
+	# corresponding address is a duplicate), or a hash key (which
+	# indicates that the ALDB at corresponding address contains
+	# a link).
+	foreach my $aldbkey (keys %{$$self{aldb}}) {
+	    if ($aldbkey eq "empty") {
+		foreach my $address (@{$$self{aldb}{empty}}) {
+		    $aldb{$address}{empty} = undef; # Any value will do
+		}
+	    } elsif ($aldbkey eq "duplicates") {
+		foreach my $address (@{$$self{aldb}{duplicates}}) {
+		    $aldb{$address}{duplicate} = undef; # Any value will do
+		}
+	    } else {
+		$aldb{$$self{aldb}{$aldbkey}{address} }{$aldbkey} = $$self{aldb}{$aldbkey};
+	    }
+	}
+
+	# Finally traverse the ALDB, but this time sorted by ALDB address
+	foreach my $address (sort keys %aldb) {
+		my $log_msg = "[Insteon::ALDB_i1] [0x$address] ";
+
+		if (exists $aldb{$address}{empty}) {
+		    $log_msg .= "is empty";
+		} elsif (exists $aldb{$address}{duplicate}) {
+		    $log_msg .= "holds a duplicate entry";
 		} else {
-			$device = &Insteon::get_object($$self{aldb}{$aldbkey}{deviceid},'01');
+		    my ($key) = keys %{$aldb{$address} }; # There's only 1 key
+		    my $aldb_entry = $aldb{$address}{$key};
+		    my $is_controller = $aldb_entry->{is_controller};
+		    my $device;
+
+		    if ($$self{device}->interface()->device_id()
+			&& $$self{device}->interface()->device_id() eq $aldb_entry->{deviceid}) {
+			    $device = $$self{device}->interface;
+		    } else {
+			    $device = &Insteon::get_object($aldb_entry->{deviceid},'01');
+		    }
+		    my $object_name = ($device) ? $device->get_object_name : $aldb_entry->{deviceid};
+
+		    my $on_level = 'unknown';
+		    if (defined $aldb_entry->{data1}) {
+			    if ($aldb_entry->{data1}) {
+				    $on_level = int((hex($aldb_entry->{data1})*100/255) + .5) . "%";
+			    } else {
+				    $on_level = '0%';
+			    }
+		    }
+
+		    my $rspndr_group = $aldb_entry->{data3};
+		    $rspndr_group = '01' if $rspndr_group eq '00';
+
+		    my $ramp_rate = 'unknown';
+		    if ($aldb_entry->{data2}) {
+			    if (!($$self{device}->isa('Insteon::DimmableLight')) or (!$is_controller and ($rspndr_group != '01'))) {
+				    $ramp_rate = 'none';
+				    $on_level = $on_level eq '0%' ? 'off' : 'on';
+			    } else {
+				    $ramp_rate = &Insteon::DimmableLight::get_ramp_from_code($aldb_entry->{data2}) . "s";
+			    }
+		    }
+
+		    $log_msg .= $is_controller ? "contlr($aldb_entry->{group}) "
+				    . "record to $object_name ($rspndr_group), "
+				    . "(d1:$aldb_entry->{data1}, "
+				    . "d2:$aldb_entry->{data2}, "
+				    . "d3:$aldb_entry->{data3})"
+				: "rspndr($rspndr_group) record to $object_name "
+				    . "($aldb_entry->{group}): onlevel=$on_level "
+				    . "and ramp=$ramp_rate "
+				    . "(d3:$aldb_entry->{data3})";
 		}
-		my $object_name = ($device) ? $device->get_object_name : $$self{aldb}{$aldbkey}{deviceid};
 
-		my $on_level = 'unknown';
-		if (defined $$self{aldb}{$aldbkey}{data1}) {
-			if ($$self{aldb}{$aldbkey}{data1}) {
-				$on_level = int((hex($$self{aldb}{$aldbkey}{data1})*100/255) + .5) . "%";
-			} else {
-				$on_level = '0%';
-			}
-		}
-
-		my $rspndr_group = $$self{aldb}{$aldbkey}{data3};
-		$rspndr_group = '01' if $rspndr_group eq '00';
-
-		my $ramp_rate = 'unknown';
-		if ($$self{aldb}{$aldbkey}{data2}) {
-			if (!($$self{device}->isa('Insteon::DimmableLight')) or (!($is_controller) and ($rspndr_group != '01'))) {
-				$ramp_rate = 'none';
-				if ($on_level eq '0%') {
-					$on_level = 'off';
-				} else {
-					$on_level = 'on';
-				}
-			} else {
-				$ramp_rate = &Insteon::DimmableLight::get_ramp_from_code($$self{aldb}{$aldbkey}{data2}) . "s";
-			}
-		}
-
-		&::print_log("[Insteon::ALDB_i1] [0x" . $$self{aldb}{$aldbkey}{address} . "] " .
-			(($$self{aldb}{$aldbkey}{is_controller}) ? "contlr($$self{aldb}{$aldbkey}{group}) record to "
-			. $object_name . "($rspndr_group), (d1:$$self{aldb}{$aldbkey}{data1}, d2:$$self{aldb}{$aldbkey}{data2}, d3:$$self{aldb}{$aldbkey}{data3})"
-			: "rspndr($rspndr_group) record to " . $object_name . "($$self{aldb}{$aldbkey}{group})"
-			. ": onlevel=$on_level and ramp=$ramp_rate (d3:$$self{aldb}{$aldbkey}{data3})")) if $main::Debug{insteon};
+		&::print_log($log_msg);
 	}
-	foreach my $address (@{$$self{aldb}{empty}}) {
-		&::print_log("[Insteon::ALDB_i1] [0x$address] is empty");
-	}
-
-	foreach my $address (@{$$self{aldb}{duplicates}}) {
-		&::print_log("[Insteon::ALDB_i1] [0x$address] holds a duplicate entry");
-	}
-
 }
 
 sub update_local_properties
