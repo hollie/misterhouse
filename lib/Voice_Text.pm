@@ -456,6 +456,7 @@ sub speak_text {
                 $speak_pgm_arg .= qq[ "$parms{text}"];
             }
             elsif ($speak_pgm =~ /flite/) {
+                $speak_pgm_arg .= ' -voice '     . "'$parms{voice}'"  if $parms{voice};
                 $speak_pgm_arg .= " -o $parms{to_file}" if $parms{to_file};
                 $speak_pgm_arg .= qq[ -t "$parms{text}"];
             }
