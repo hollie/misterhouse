@@ -546,6 +546,8 @@ $search_command_string = new Generic_Item;
 $search_command_string->tie_event( # noloop
   '&handle_search_command_string_state()'); # noloop
 sub handle_search_command_string_state() {
+    # this next line shouldn't be neccessary, but it is
+    my $state = state $search_command_string;
     my @match   = &phrase_match($state);
     my $results = "Matches for $state:\n";
     my $i       = 1;
