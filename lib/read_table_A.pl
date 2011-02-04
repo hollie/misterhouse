@@ -223,8 +223,9 @@ sub read_table_A {
         $object = "X10_Garage_Door('$address', $other)";
     }
     elsif($type eq "X10S") {
-        ($address, $name, $grouplist) = @item_info;
-        $object = "X10_IrrigationController('$address')";
+	($address, $name, $grouplist, @other) = @item_info;
+	$other = join ', ', (map {"'$_'"} @other); # Quote data
+	$object = "X10_IrrigationController('$address', $other)";
     }
    elsif($type eq "X10T") {
         require 'RCS_Item.pm';
@@ -251,6 +252,12 @@ sub read_table_A {
     elsif($type eq "GENERIC") {
         ($name, $grouplist) = @item_info;
         $object = "Generic_Item";
+    }
+    elsif($type eq "CODE") {
+	# This is for simple one line additions such as setting an attribute or adding an image.
+	($object) = "$record" =~ /CODE,\s+(.*)/;
+	$code = "$object\n";
+	$object = '';
     }
     elsif($type eq "LIGHT") {
         require 'Light_Item.pm';
@@ -281,7 +288,7 @@ sub read_table_A {
         ($object, $name, $grouplist, @other) = @item_info;
         $object = "Photocell_Item(\$$object, $other)";
     }
-	elsif($type eq 'IRRIGATION') {
+    elsif($type eq 'IRRIGATION') {
         require 'Irrigation_Item.pm';
         ($object, $name, $grouplist, @other) = @item_info;
         $object = "Irrigation_Item(\$$object, $other)";
@@ -841,6 +848,19 @@ sub read_table_A {
             $code .= "use xPL_Plugwise;\n";
         }
     }
+    elsif($type eq "XPL_SQUEEZEBOX") {
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if($other){
+            $object = "xPL_Squeezebox('$address',$other)";
+        }
+        else{
+            $object = "xPL_Squeezebox('$address')";
+        }
+        if( ! $packages{xPL_Squeezebox}++ ) {   # first time for this object type?
+            $code .= "use xPL_Squeezebox;\n";
+        }
+    }    
     elsif($type eq "XPL_SECURITYGATEWAY") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data

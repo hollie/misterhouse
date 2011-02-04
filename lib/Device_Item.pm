@@ -256,6 +256,8 @@ sub lookup_interface {
 		}
 	}
 
+	$interface = '' unless defined $interface;
+
 	return lc($interface);
 }
 

@@ -31,7 +31,7 @@ if (expired $timer_speed_check) {
     $Loop_Sleep_Time = $config_parms{sleep_time};
     $Loop_Tk_Passes  = $config_parms{tk_passes};
     print "Speeds2 = @Loop_Speeds\n";
-    $v_what_speed->respond("app=pc $Info{cpu_used}% of cpu, $Info{loop_speed} mips, and " . (int $Info{memory_real}) . " megabytes");
+    $v_what_speed->respond("app=pc $Info{cpu_used}% of cpu, $Info{loop_speed} loops/sec, and " . (int $Info{memory_real}) . " megabytes");
 }
 
 my $speed_benchmark_count = 0;

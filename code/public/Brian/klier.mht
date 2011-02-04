@@ -1,0 +1,124 @@
+Format = A
+#
+# See mh/lib/read_table_A.pl  for definition of Format=A items
+#
+#
+# Type  	Address	Name					Groups				Other Info
+#
+GROUP,              Garage,             Property(0;0;20;20)
+GROUP, Living_Room, Property(20;0;30;20)
+GROUP, Bedroom,     Property(50;0;20;20)
+GROUP, Backyard,    Property(0;20;70;15)
+GROUP, Computer_Room, Property(0;40;70;15)
+GROUP, Kitchen,     Property(0;60;70;15)
+
+###OCCUPANCY,	        om,
+
+VOICE,			All_Lights,				All Lights [on,off]
+
+##### A house code - North Motion Detectors (+ setback)
+X10A,		A1,	unused_xcvr,				Appliances
+VOICE,			unused_xcvr,				Unused Transceiver [on,off]
+X10MS,              A2,                 motion_detector_backdoor, Sensors|Kitchen,    MS13
+MOTION,			motion_detector_backdoor,		motion_backdoor,	Kitchen
+X10MS,              A5,                 motion_detector_kitchen, Sensors|Kitchen,    MS13
+MOTION,			motion_detector_kitchen,		motion_kitchen,		Kitchen
+#SERIAL,		XA6BJ,	low_light_kitchen,			,on
+#SERIAL,		XA6BK,	low_light_kitchen,			,off
+PHOTOCELL,          	motion_detector_kitchen, low_light_kitchen,  Sensors|Kitchen
+# A11
+X10MS,              AB,                 motion_detector_trailer, Sensors|Backyard,   MS13
+MOTION,			motion_detector_trailer,		motion_trailer,		Backyard
+# A16
+X10A,		AG,	thermostat_setback,			Appliances|HVAC|Living_Room(5;12)
+VOICE,			thermostat_setback,			Thermostat Setback [on,off]
+
+##### B house code - Lighting and HVAC Control
+X10I,		B1,	living_room_light,			All_Lights|ambient_lights|Living_Room
+VOICE,			living_room_light,			Living Room Light [on,off]
+X10I,		B2,	bedroom_light,				All_Lights|ambient_lights|Bedroom
+VOICE,			bedroom_light,				Bedroom Light [on,off]
+X10I,		B3,	computer_room_light,			All_Lights|ambient_lights|Computer_Room
+VOICE,                  computer_room_light,                    Computer Room Light [on,off]
+SERIAL,		XB4BJ,	request_time_stuff,			HIDDEN,on
+SERIAL,		XB4BK,	request_time_stuff,			HIDDEN,off
+X10A,               B5,                 boombox_bedroom,    HIDDEN|Appliances|Bedroom
+VOICE,			boombox_bedroom,			Boombox [on,off]
+SERIAL,		XB6BJ,	morning_alarm_buttons,			HIDDEN,on
+SERIAL,		XB6BK,	morning_alarm_buttons,			HIDDEN,off
+SERIAL,             XB7BJ,              request_music_stuff, HIDDEN,             on
+SERIAL,             XB7BK,              request_music_stuff, HIDDEN,             off
+SERIAL,		XB8BJ,	request_wx_stuff,			HIDDEN,on
+SERIAL,		XB8BK,	request_wx_stuff,			HIDDEN,off
+X10A,		B9,	circ_fan,				Appliances|Bedroom
+VOICE,			circ_fan,				Circulation Fan [on,off]
+# B10
+X10I,               BA,                 kitchen_light,      All_Lights|Kitchen
+VOICE,			kitchen_light,				Kitchen Light [on,off]
+# B11
+X10A,		BB,	bed_heater,				Appliances|HVAC|Bedroom
+VOICE,			bed_heater,				Bed Heater [on,off]
+# B12
+SERIAL,		XBCBJ,	whats_on_tv,				HIDDEN,on
+SERIAL,		XBCBK,	whats_on_tv,				HIDDEN,off
+# B13
+X10A,               BD,                 projector,          HIDDEN|Appliances|Living_Room
+VOICE,			projector,				Projector [on,off]
+# B14
+X10A,		BE,	air_cond_fan,				Appliances|HVAC|Living_Room
+VOICE,			air_cond_fan,				Air Conditioner Fan [on,off]
+# B15
+X10I,		BF,	back_porch_light,			All_Lights|Backyard
+VOICE,			back_porch_light,			Back Porch Light [on,off]
+# B16
+SERIAL,             XBGBJ,              come_home_stuff,    HIDDEN,             on
+SERIAL,             XBGBK,              come_home_stuff,    HIDDEN,             off
+
+##### C house code - Garage
+X10I,           C1,     garage_light,                            All_Lights|Garage
+VOICE,                  garage_light,                           Garage Light [on,off]
+X10MS,              C2,                 motion_detector_garage, Sensors|Garage,     MS13
+MOTION,			motion_detector_garage,			motion_garage,		Garage
+# C3
+#SERIAL,		XC3BJ,	low_light_garage,			,on
+#SERIAL,		XC3BK,	low_light_garage,			,off
+PHOTOCELL,	        motion_detector_garage, low_light_garage,   Sensors|Garage
+
+##### D house code - Security Cameras
+X10A,		D1,	security_camera_backdoor,		HIDDEN|Security|security_cameras
+X10A,		D2,	security_camera_garage,			HIDDEN|Security|security_cameras
+X10A,		D3,	security_camera_frontdoor,		HIDDEN|Security|security_cameras
+X10A,		D4,	security_camera_driveway,		HIDDEN|Security|security_cameras
+
+##### E house code - Christmas Lights
+X10I,		E1,	christmas_lights,			Christmas|Backyard
+VOICE,			christmas_lights,			Christmas Lights [on,off]
+X10I,		E2,	christmas_tree,				Christmas|Living_Room
+VOICE,			christmas_tree,				Christmas Tree [on,off]
+
+##### F house code - South Motion Detectors
+X10MS,              F2,                 motion_detector_living_room, Sensors|Living_Room, MS13
+MOTION,			motion_detector_living_room,		motion_living_room,	Living_Room
+#SERIAL,		XF3BJ,	low_light_living_room,			,on
+#SERIAL,		XF3BK,	low_light_living_room,			,off
+PHOTOCELL,		motion_detector_living_room, low_light_living_room, Sensors|Living_Room
+X10MS,              F4,                 motion_detector_frontdoor, Sensors|Computer_Room, MS13
+MOTION,			motion_detector_frontdoor,		motion_frontdoor,	Computer_Room
+#SERIAL,		XF5BJ,	low_light_frontdoor,			,on
+#SERIAL,		XF5BK,	low_light_frontdoor,			,off
+PHOTOCELL,	        motion_detector_frontdoor, low_light_frontdoor, Sensors|Computer_Room
+
+##### O house code - Alarm System
+SERIAL,		XO1BJ,	alarm_lights,				HIDDEN,on
+SERIAL,		XO1BK,	alarm_lights,				HIDDEN,off
+SERIAL,		XO2BJ,	alarm_detected,				HIDDEN,on
+SERIAL,		XO2BK,	alarm_detected,				HIDDEN,off
+X10A,		O5,	cctv_record_alarm,			HIDDEN|Security
+
+#LIGHT,			kitchen_light,				x10_kitchen_light,		Kitchen
+#MOTION,			motion_detector_kitchen,		x10_motion_detector_kitchen,	Kitchen
+#PRESENCE,		x10_motion_detector_kitchen,		om,				presence_kitchen
+
+#LIGHT,			back_porch_light,			x10_back_porch_light,		Backyard
+#MOTION,			motion_detector_backdoor,		x10_motion_detector_backdoor,	Backyard
+#PRESENCE,		x10_motion_detector_backdoor,		om,				presence_backdoor

@@ -1,0 +1,13 @@
+
+BODY {color: yellow; background: black }
+FONT {font-family: Verdana, Arial, Helvetica; font-size:8pt}
+P {font-family: Verdana, Arial, Helvetica; font-size:8pt}
+LI {font-family: Verdana, Arial, Helvetica; font-size:8pt}
+
+A:link { color: white; }
+A:active { color: white; } 
+A:hover { color: red; }
+
+A.blue { color: white; }
+A.green { color: lime; }
+
