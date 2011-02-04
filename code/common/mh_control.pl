@@ -321,6 +321,24 @@ $v_list_voice_cmds = new Voice_Cmd 'List voice commands';
 $v_list_voice_cmds->set_info('Display a list of valid voice commands');
 display join "\n", &Voice_Cmd::voice_items if said $v_list_voice_cmds;
 
+# Display the info text (set via the set_info() method) of all voice commands
+$v_voice_cmds_help = new Voice_Cmd 'Voice commands help';
+$v_voice_cmds_help->set_info('Display help text for all voice commands');
+$v_voice_cmds_help->tie_event('&handle_voice_cmds_help_state()'); # noloop
+sub handle_voice_cmds_help_state()
+{
+    my @voice_commands = &Voice_Cmd::voice_items();
+    my $msg;
+
+    foreach my $voice_command (@voice_commands) {
+		my ($category, $cmd) = split ': ', $voice_command;
+		my ($ref, $said, $vocab_cmd) = &Voice_Cmd::voice_item_by_text($cmd);
+		$msg .= "$voice_command: $ref->{info}\n" if $ref->{info};
+    }
+
+    $v_voice_cmds_help->respond($msg);
+}
+
 # Create a list by X10 Addresses
 $v_list_x10_items = new Voice_Cmd 'List {X 10,X10} items', 0;
 $v_list_x10_items->set_info(
