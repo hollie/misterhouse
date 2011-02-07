@@ -182,6 +182,18 @@ sub set
 		if (($p_state eq 'dim' or $p_state eq 'bright') and !($self->isa('Insteon::DimmableLight'))) {
 			$p_state = 'on';
 		}
+                elsif ($p_state eq 'toggle')
+                {
+                	if ($self->state_now eq 'on')
+                        {
+                        	$p_state = 'off';
+                        }
+                        elsif ($self->state_now eq 'off')
+                        {
+                        	$p_state = 'on';
+                        }
+                }
+
                 my $setby_name = $p_setby;
                 $setby_name = $p_setby->get_object_name() if (ref $p_setby and $p_setby->can('get_object_name'));
 		if (ref $p_setby and (($p_setby eq $self->interface())
@@ -564,6 +576,17 @@ sub _is_valid_state
 			$msg='on';
 		}
 	}
+        elsif ($msg eq 'toggle')
+        {
+        	if ($self->state_now eq 'on')
+                {
+                	$msg = 'off';
+                }
+                elsif ($self->state_now eq 'off')
+                {
+                	$msg = 'on';
+                }
+        }
 
 	# confirm that the resulting $msg is legitimate
 	if (!(defined($$self{message_types}{$msg}))) {
@@ -757,7 +780,8 @@ sub unlink_to_interface
 sub _aldb
 {
    my ($self) = @_;
-   return $$self{aldb};
+   my $root_obj = $self->get_root();
+   return $$root_obj{aldb};
 }
 
 
@@ -1128,19 +1152,21 @@ sub sync_links
 					$aldbkey .= $linkmember->group;
 				}
 				if (!($member->isa('Insteon::DimmableLight'))) {
-					if ($tgt_on_level >= 1 and $$member{aldb}{$aldbkey}{data1} ne 'ff') {
+                                	my $member_aldb = $member->_aldb;
+					if ($tgt_on_level >= 1 and $$member_aldb{$aldbkey}{data1} ne 'ff') {
 						$requires_update = 1;
 						$tgt_on_level = 100;
-					} elsif ($tgt_on_level == 0 and $$member{aldb}{$aldbkey}{data1} ne '00') {
+					} elsif ($tgt_on_level == 0 and $$member_aldb{$aldbkey}{data1} ne '00') {
 						$requires_update = 1;
 					}
-					if ($$member{aldb}{$aldbkey}{data2} ne '00') {
+					if ($$member_aldb{$aldbkey}{data2} ne '00') {
 						$tgt_ramp_rate = 0;
 					}
 				} else {
+                                	my $member_aldb = $member->_aldb;
 					$tgt_ramp_rate = 0.1 unless $tgt_ramp_rate;
-					my $link_on_level = hex($$member{aldb}{$aldbkey}{data1})/2.55;
-					my $raw_ramp_rate = $$member{aldb}{$aldbkey}{data2};
+					my $link_on_level = hex($$member_aldb{$aldbkey}{data1})/2.55;
+					my $raw_ramp_rate = $$member_aldb{$aldbkey}{data2};
 					my $raw_tgt_ramp_rate = &Insteon::DimmableLight::convert_ramp($tgt_ramp_rate);
 					if ($raw_ramp_rate != $raw_tgt_ramp_rate) {
 						$requires_update = 1;
