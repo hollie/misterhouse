@@ -15,6 +15,9 @@ sub new
 
 	my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
 	bless $self,$class;
+        # include very basic states
+        @{$$self{states}} = ('on','off');
+
 	return $self;
 }
 
