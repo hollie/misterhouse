@@ -184,11 +184,11 @@ sub set
 		}
                 elsif ($p_state eq 'toggle')
                 {
-                	if ($self->state_now eq 'on')
+                	if ($self->state eq 'on')
                         {
                         	$p_state = 'off';
                         }
-                        elsif ($self->state_now eq 'off')
+                        elsif ($self->state eq 'off')
                         {
                         	$p_state = 'on';
                         }
@@ -578,11 +578,11 @@ sub _is_valid_state
 	}
         elsif ($msg eq 'toggle')
         {
-        	if ($self->state_now eq 'on')
+        	if ($self->state eq 'on')
                 {
                 	$msg = 'off';
                 }
-                elsif ($self->state_now eq 'off')
+                elsif ($self->state eq 'off')
                 {
                 	$msg = 'on';
                 }
