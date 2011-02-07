@@ -107,9 +107,9 @@ sub http_read_parms {
     for my $parm (grep /^html_.*[^\d]$/, keys %main::config_parms) {
         next if $parm =~ /_MHINTERNAL_/;
         next if $parm =~ /^html_alias/;
-        $main::config_parms{$parm . '1'} = $main::config_parms{$parm} unless defined $main::config_parms{$parm . '1'};
-        $main::config_parms{$parm . '2'} = $main::config_parms{$parm} unless defined $main::config_parms{$parm . '2'};
-        $main::config_parms{$parm . '3'} = $main::config_parms{$parm} unless defined $main::config_parms{$parm . '3'};
+        $main::config_parms{$parm . '1'} = $main::config_parms{$parm} unless exists $main::config_parms{$parm . '1'};
+        $main::config_parms{$parm . '2'} = $main::config_parms{$parm} unless exists $main::config_parms{$parm . '2'};
+        $main::config_parms{$parm . '3'} = $main::config_parms{$parm} unless exists $main::config_parms{$parm . '3'};
     }
 
 }
@@ -1032,7 +1032,7 @@ sub http_speak_to_wav_start {
     my $webmute;
                                 # This defaults to local speech
     $webmute = 1 if ($Socket_Ports{http}{client_ip_address} eq '127.0.0.1') or !$tts_text;
-    if (defined $Cookies{webmute}) {
+    if (exists $Cookies{webmute}) {
         $webmute = $Cookies{webmute};
     }
     else {
@@ -2078,7 +2078,7 @@ sub html_command_table {
                                 # Sort by sort field, then filename, then object name
     for my $object (sort {($a->{order} and $b->{order} and $a->{order} cmp $b->{order}) or
                           ($a->{filename} cmp $b->{filename}) or
-                          (defined $a->{text} and defined $b->{text} and $a->{text} cmp $b->{text})} @objects) {
+                          (exists $a->{text} and exists $b->{text} and $a->{text} cmp $b->{text})} @objects) {
         my $object_name = $object->{object_name};
         my $state_now   = $object->{state};
         my $filename    = $object->{filename};
@@ -2339,7 +2339,7 @@ sub html_item_state {
     my $isa_insteon = UNIVERSAL::isa($object, 'Insteon_Device');
 
                                 # If not a state item, just list it
-    unless ($isa_X10 or UNIVERSAL::isa($object, 'Group') or defined $object->{state} or $object->{states}) {
+    unless ($isa_X10 or UNIVERSAL::isa($object, 'Group') or exists $object->{state} or $object->{states}) {
         return qq[<td></td><td align="left"><b>$object_name2</b></td>\n];
     }
 
@@ -2769,32 +2769,6 @@ sub vars_global {
     my @table_items;
     unless ($Authorized or $main::config_parms{password_protect} !~ /vars/i) {
         return "<h4>Not Authorized to view Variables</h4>";
-    }
-
-    for my $key (sort keys %main::) {
-                                # Assume all the global vars we care about are $Ab...
-        next if $key !~ /^[A-Z][a-z]/ or $key =~ /\:/;
-        next if $key eq 'Save' or $key eq 'Tk_objects'; # Covered elsewhere
-        next if $key eq 'Socket_Ports';
-        next if $key eq 'User_Code';
-
-        no strict 'refs';
-        if (defined ${$key}) {
-           my $value = ${$key};
-#          next unless defined $value;
-           next if $value =~ /HASH/; # Skip object pointers
-           next if $key eq 'Password';
-           push @table_items, "<td align='left'><b>\$$key:</b> $value</td>";
-        }
-        elsif (defined %{$key}) {
-            for my $key2 (sort eval "keys \%$key") {
-                my $value = eval "\$$key\{'$key2'\}\n";
-#               next unless defined $value;
-                $value = '' unless $value; # Avoid -w uninitialized value msg
-                next if $value =~ /HASH/; # Skip object pointers
-                push @table_items, "<td align='left'><b>\$$key\{$key2\}:</b> $value</td>";
-            }
-        }
     }
     return &html_header("List Global Variables") . &table_it(2, 1, 1, @table_items);
 }
