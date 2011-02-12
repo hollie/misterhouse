@@ -415,7 +415,14 @@ sub _parse_data {
 							if $@ and $main::Debug{insteon};
 							package Insteon_PLM;
 						}
-					} else {
+                                        }
+                                        elsif ($record_type eq $prefix{all_link_send})
+                                        {
+                                            &::print_log("[Insteon_PLM] WARN: PLM memory does not contain link for: "
+                                            	. $pending_message->to_string . $@)
+                                        }
+                                        else
+                                        {
 						&::print_log("[Insteon_PLM] WARN: received NACK for "
                                                 	. $pending_message->to_string()
                                                         . ". If this is a light fixture, check bulb");
@@ -447,7 +454,7 @@ sub _parse_data {
 
         my $entered_rcv_loop = 0;
 
-	foreach my $data_1 (split(/($prefix{x10_received}\w{4})|($prefix{insteon_received}\w{18})|($prefix{insteon_ext_received}\w{46})|($prefix{all_link_complete}\w{16})|($prefix{all_link_clean_failed}\w{8})|($prefix{all_link_record}\w{16})|($prefix{all_link_clean_status}\w{2})/,$residue_data))
+	foreach my $data_1 (split(/($prefix{x10_received}\w{4})|($prefix{insteon_received}\w{18})|($prefix{insteon_ext_received}\w{46})|($prefix{all_link_complete}\w{16})|($prefix{all_link_clean_failed}\w{8})|($prefix{all_link_record}\w{16})|($prefix{all_link_clean_status}\w{2})|($prefix{plm_button_event}\w{2})/,$residue_data))
 	{
 		#ignore blanks.. the split does odd things
 		next if $data_1 eq '';
