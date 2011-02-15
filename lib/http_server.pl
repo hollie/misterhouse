@@ -659,9 +659,9 @@ sub html_unauthorized {
     }
     else {
 #       my $msg = "<a href=speech>Refresh Recently Spoken Text</a><br>\n";
-        my $msg .= &html_header ("<b>Unauthorized Mode</b>&nbsp;&nbsp;&nbsp;&nbsp;" . &html_authorized);
+        my $msg .= &html_header("<b>Unauthorized Mode</b>&nbsp;&nbsp;&nbsp;&nbsp;" . &html_authorized, $action);
         $msg .= "<li>" . $action . "</li>";
-        $msg .= "<br>Status: <b><a href=SET_PASSWORD yet>Not Logged In</a></b><br>";
+        $msg .= "<br>Status: <b><a href=SET_PASSWORD yet>Not Logged In</a></b></body></html>";
         return $msg;
     }
 }
@@ -1888,13 +1888,18 @@ sub button_action {
 }
 
 sub html_header {
-    my ($text) = @_;
+    my ($text, $title) = @_;
     $text = 'Generic Header' unless $text;
+    $title = 'Misterhouse' unless $title;
 
     my $color = $config_parms{html_color_header};
     $color = '#9999cc' unless $color;
 
-return qq[
+return qq[<html>
+<head>
+<title>$title</title>
+</head>
+<body>
 $config_parms{html_style}
 <table width=100% bgcolor='$color'>
 <td><center>
@@ -1902,7 +1907,7 @@ $config_parms{html_style}
 $text
 </b></font></center>
 </td>
-</table><br>
+</table>
 ];
 }
 
