@@ -65,7 +65,7 @@ Content-type: text/html
 		<script src="/SmoothGallery/scripts/jd.gallery.js" type="text/javascript"></script>
 	</head>
 	<body>
-		<div align="center"><h3>Mister<span class="company">house</span> image viewer</h3></div>
+		<div align="center"><h3><a href="/" target="_top" style="color:#FFFFFF; text-decoration: none;">Mister<span class="company">house</span></a> image viewer</h3></div>
 		<script type="text/javascript">
 			function startGallery() {
 				var myGallery = new gallery(\$('myGallery'), {
