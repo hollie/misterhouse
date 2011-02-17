@@ -310,6 +310,15 @@ end
 #	provides latest
 #end
 
+strip cyanideandhappiness
+	name Cyanide and Happiness
+	homepage http://www.explosm.net/comics/new/
+	type search
+	searchpattern <img.+?src="(http://www.explosm.net/db/files/Comics/.+?)"
+	provides latest
+end
+
+
 strip drfun
 	name Doctor Fun
 	homepage http://www.ibiblio.org/Dave/Dr-Fun/html/
