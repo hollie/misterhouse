@@ -24,7 +24,7 @@ Example mh.ini parms:
 Acceptable effects are kenburns, push, fold, flash and none.
 =cut
 
-use vars '@photos';             # This will be persistent across passes and code reloads
+use vars '@photos';    # This will be persistent across passes and code reloads
 @photos = file_read $config_parms{photo_index} unless @photos;
 
 # Set up defaults
@@ -37,19 +37,20 @@ $thumbs = 0 unless defined $thumbs;
 my $captions = $config_parms{photo_captions};
 $captions = 0 unless defined $captions;
 $config_parms{photo_size} =~ m/(\d+)[x|X](\d+)/;
-my $width=$1;
-my $height=$2;
+my $width  = $1;
+my $height = $2;
 my $images = "";
-foreach (@photos){
+
+foreach (@photos) {
 	my $file = $_;
-	my $img = $file;
-	my @dirs = split(/,/, $config_parms{photo_big_dirs});
-	$file     =~  s/ /%20/g;
-	$file     =~  s/\#/%23/g;
-        $file     =~  s/&/%26/g;
-	$file     =~  s/\'/%27/g;
-	$file	  =~  s/\/photos//g;
-	foreach (@dirs){
+	my $img  = $file;
+	my @dirs = split( /,/, $config_parms{photo_big_dirs} );
+	$file =~ s/ /%20/g;
+	$file =~ s/\#/%23/g;
+	$file =~ s/&/%26/g;
+	$file =~ s/\'/%27/g;
+	$file =~ s/\/photos//g;
+	foreach (@dirs) {
 		$img =~ s/$_//;
 	}
 	$img =~ m/(\/)?(.+)\.(\S+)/;
@@ -61,25 +62,29 @@ eof
 
 $images =~ s/\},$/}/;
 
-my $sseffect="var myShow = new Slideshow";
-if ($effect eq 'flash'){
-	$sseffect.=".Flash";
-} elsif ($effect eq 'fold'){
-	$sseffect.=".Fold";
-} elsif ($effect eq 'push'){
-	$sseffect.=".Push";
-} elsif ($effect eq 'kenburns') {
-	$sseffect.=".KenBurns";
-} 
-$sseffect.="('show', data, { ";
-if ($captions ne '0'){
+my $sseffect = "var myShow = new Slideshow";
+if ( $effect eq 'flash' ) {
+	$sseffect .= ".Flash";
+}
+elsif ( $effect eq 'fold' ) {
+	$sseffect .= ".Fold";
+}
+elsif ( $effect eq 'push' ) {
+	$sseffect .= ".Push";
+}
+elsif ( $effect eq 'kenburns' ) {
+	$sseffect .= ".KenBurns";
+}
+$sseffect .= "('show', data, { ";
+if ( $captions ne '0' ) {
 	$sseffect .= "captions: true, ";
 }
-$sseffect .="controller: true, delay: ${time}000, duration: 1000, height: $height, hu: '$config_parms{photo_big_dirs}', ";
-if ($thumbs ne '0'){
-        $sseffect .= "thumbnails: true, ";
+$sseffect .=
+"controller: true, delay: ${time}000, duration: 1000, height: $height, hu: '$config_parms{photo_big_dirs}', ";
+if ( $thumbs ne '0' ) {
+	$sseffect .= "thumbnails: true, ";
 }
-$sseffect .="width: $width });";
+$sseffect .= "width: $width });";
 
 my $js = <<eof;
 HTTP/1.0 200 OK

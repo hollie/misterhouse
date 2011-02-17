@@ -6,7 +6,7 @@ $Revision$
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
         <title>Misterhouse image viewer</title>
-		<link rel="stylesheet" href="css/layout.css" type="text/css" media="screen" charset="utf-8" />
+        <link rel="stylesheet" href="css/layout.css" type="text/css" media="screen" charset="utf-8" />
         <link rel="stylesheet" type="text/css" href="css/slideshow.css" media="screen" />
         <link rel="stylesheet" type="text/css" href="/bin/photos_slideshow_css.pl" media="screen" />
         <script type="text/javascript" src="js/mootools.js">
@@ -26,7 +26,7 @@ $Revision$
     </head>
     <body>
         <div align="center">
-            <h3>Mister<span class="company">house</span> image viewer</h3>
+            <h3><a href="<!--#include var="$config_parms{'photo_url'}"-->" target="_top" style="color:#FFFFFF; text-decoration: none;">Mister<span class="company">house</span></a> image viewer</h3>
         </div>
         <div class="content">
             <div id="show" class="slideshow">
