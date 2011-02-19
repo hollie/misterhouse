@@ -50,6 +50,14 @@ for my $item (sort @objects) {
       }
     }
 
+	if ($object->isa('Network_Item')){
+		if ($state eq 'up') {
+			$state_new = 'down';
+		} else {
+			$state_new = 'start';
+		}
+	}
+
     my $name   = &pretty_object_name($item);
 
     my $icon;

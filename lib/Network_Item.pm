@@ -52,11 +52,22 @@ sub ping_check {
     my $ping_test_file  = "$::config_parms{data_dir}/ping_results.$address.txt";
     if (-e $ping_test_file) {
         my $ping_results = &::file_read($ping_test_file);
-#       print "db ping_results for $address f=$ping_test_file: $ping_results\n";
-        my $state = ($ping_results =~ /ttl=/i) ? 'up' : 'down';
+        print "db ping_results for $address f=$ping_test_file: $ping_results\n" if $::Debug{network};
+        my $state = ($ping_results =~ /ttl=/i) ? 'Up' : 'Down';
         $self->set($state);
     }
 
     $self->{process}->start();
 
+}
+
+sub default_setstate
+{
+    my ($self, $state) = @_;
+    if ($state !~ m/^up|down|start$/i){
+    	&::print_log("Invalid State") if $::Debug{network};
+    	return -1;
+    } else {
+    	&::print_log("Setting " .$self->{address}." as " .$state) if $::Debug{network};
+    }
 }
