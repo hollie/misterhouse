@@ -53,7 +53,9 @@ for my $item (sort @objects) {
 	if ($object->isa('Network_Item')){
 		if ($state eq 'up') {
 			$state_new = 'down';
-		} else {
+		} elsif ($state eq 'start'){
+			$state = 'starting';
+		}else {
 			$state_new = 'start';
 		}
 	}
