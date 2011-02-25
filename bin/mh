@@ -3863,7 +3863,14 @@ sub play {
                 print_log ("$file has played") if $Debug{play};
             }
             else {
-                if ($sound_program =~ /play$/) {
+		if ($sound_program =~ /paplay$/) {
+		    if (defined $parms{volume}) {
+                        my $pervol = $parms{volume} / 100;
+			my $pulsevol = 65535 * $pervol;
+                        $sound_program .= " --volume=$pulsevol";
+                    }
+		}
+		elsif ($sound_program =~ /play$/) {
                     if (defined $parms{volume}) {
                         my $pervol = $parms{volume} / 100;
                         $sound_program .= " -v $pervol";
