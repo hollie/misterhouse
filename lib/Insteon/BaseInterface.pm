@@ -180,12 +180,14 @@ sub process_queue
 
                                 if ($self->active_message->send($self) == 0)
                                 {
-                                	&::print_log("[Insteon_PLM] WARN: number of retries ("
+                                	&::print_log("[Insteon::BaseInterface] WARN: number of retries ("
                                         	. $self->active_message->send_attempts
                        				. ") for " . $self->active_message->to_string()
                                                 . " exceeds limit.  Now moving on...") if $main::Debug{insteon};
                                         # !!!!!!!!! TO-DO - handle failure timeout ???
                                         my $failed_message = $self->active_message;
+                                        # make sure to let the sending object know!!!
+                                        $failed_message->setby->is_acknowledged(0);
                 			# clear active message
                 			$self->clear_active_message();
 
@@ -294,7 +296,7 @@ sub on_standard_insteon_received
                 	if ($msg{type} ne 'broadcast')
                         {
                 		$msg{command} = $object->message_type($msg{cmd_code});
-		      		&::print_log("[Insteon::Message] command:$msg{command}; type:$msg{type}; group: $msg{group}")
+		      		&::print_log("[Insteon::BaseInterface] command:$msg{command}; type:$msg{type}; group: $msg{group}")
                         		if (!($msg{is_ack} or $msg{is_nack})) and $main::Debug{insteon};
                    	}
 #		   	&::print_log("[Insteon_PLM] Processing message for " . $object->get_object_name) if $main::Debug{insteon};
@@ -306,7 +308,7 @@ sub on_standard_insteon_received
 		}
                 else
                 {
-         		&::print_log("[Insteon_PLM] Warn! Unable to locate object for source: $msg{source} and group: $msg{group}");
+         		&::print_log("[Insteon::BaseInterface] Warn! Unable to locate object for source: $msg{source} and group: $msg{group}");
 		}
 		# treat the message as legitimate even if an object match did not occur
 	}
@@ -325,10 +327,10 @@ sub on_extended_insteon_received
                 	if ($msg{type} ne 'broadcast')
                         {
                 		$msg{command} = $object->message_type($msg{cmd_code});
-		      		&::print_log("[Insteon::Message] command:$msg{command}; type:$msg{type}; group: $msg{group}")
+		      		&::print_log("[Insteon::BaseInterface] command:$msg{command}; type:$msg{type}; group: $msg{group}")
                         		if (!($msg{is_ack} or $msg{is_nack})) and $main::Debug{insteon};
                    	}
-		   	&::print_log("[Insteon_PLM] Processing message for " . $object->get_object_name) if $main::Debug{insteon};
+		   	&::print_log("[Insteon::BaseInterface] Processing message for " . $object->get_object_name) if $main::Debug{insteon};
 		   	$object->_process_message($self, %msg);
                    	if ($msg{is_ack} or $msg{is_nack})
                    	{
@@ -337,7 +339,7 @@ sub on_extended_insteon_received
 		}
                 else
                 {
-         		&::print_log("[Insteon_PLM] Warn! Unable to locate object for source: $msg{source} and group: $msg{group}");
+         		&::print_log("[Insteon::BaseInterface] Warn! Unable to locate object for source: $msg{source} and group: $msg{group}");
 		}
 		# treat the message as legitimate even if an object match did not occur
 	}
