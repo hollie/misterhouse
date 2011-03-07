@@ -362,14 +362,14 @@ EOF
             $config_parms{$parm} = $config_parms_startup{$parm};
         }
 
-        $config_parms{debug} = $config_parms{debug_old} if defined $config_parms{debug_old};
+        $config_parms{debug} = $config_parms{debug_old} if exists $config_parms{debug_old};
         &set_debug_data;                        # Populate %Debug
 
     }
 
     sub set_debug_data {
-        if (defined $config_parms{debug}) {
-            if (!defined $Debug{debug_previous} or $config_parms{debug} ne $Debug{debug_previous}) {
+        if (exists $config_parms{debug}) {
+            if (!exists $Debug{debug_previous} or $config_parms{debug} ne $Debug{debug_previous}) {
                 undef %Debug;
                 $Debug{debug_previous} = $config_parms{debug};
                                    # Allow for multiple debugs like serial;x10
@@ -1007,8 +1007,8 @@ sub setup {
 
 
     $exit_flag = 0;
-    $config_parms{sleep_time}    = 50 unless defined $config_parms{sleep_time};
-    $config_parms{sleep_count}   =  2 unless defined $config_parms{sleep_count};
+    $config_parms{sleep_time}    = 50 unless exists $config_parms{sleep_time};
+    $config_parms{sleep_count}   =  2 unless exists $config_parms{sleep_count};
     $config_parms{tk_passes}     = 10 unless $config_parms{tk_passes};
 
     # NOTE: on Windows, default is best left empty for tk_font (inherits font from OS display scheme)
@@ -1081,8 +1081,8 @@ sub setup {
                                 # Perl 5.004+ will self-randomize
 #   srand(time() ^ ($$ + ($$ << 15)) ); # Set the random number seed, used in time_random;
 
-    $config_parms{max_log_entries} = 50 unless defined $config_parms{max_log_entries};
-    $config_parms{max_state_log_entries} = 10 unless defined $config_parms{max_state_log_entries};
+    $config_parms{max_log_entries} = 50 unless exists $config_parms{max_log_entries};
+    $config_parms{max_state_log_entries} = 10 unless exists $config_parms{max_state_log_entries};
     $config_parms{time_format_log} = 12 unless $config_parms{time_format_log};
 
     print "Done with setup\n\n";
@@ -1186,7 +1186,7 @@ sub register_custom_window {
 		$Tk_objects{"menu_view_" . $app . "_" . $window} = $Tk_objects{menu_view}->command(-label => $label, -command => $sub) unless $Tk_objects{"menu_view_" . $app . "_" . $window};
 	}
 
-	$custom_child_windows{"$app $window"} = (defined $custom_child_windows{"$app $window"})?$custom_child_windows{"$app $window"} + 1:1;
+	$custom_child_windows{"$app $window"} = (exists $custom_child_windows{"$app $window"})?$custom_child_windows{"$app $window"} + 1:1;
 	warn 'Duplicate window registration' if $custom_child_windows{"$app $window"} > 1;
 }
 
@@ -1311,7 +1311,7 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
        $type = '0' unless $type;
        $type = 'persistent' if $type eq '1'; # Grandfathered syntax
 
-       unless( defined( $hook_locations{$location} ) ){
+       unless( exists( $hook_locations{$location} ) ){
            print "add_hook: Invalid hook location, loc=$location hook=$hook\n";
            return 0;
        }
@@ -1321,7 +1321,7 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
            return 0;
        }
 
-       $hook_pointers{$location} = [] unless defined ($hook_pointers{$location});
+       $hook_pointers{$location} = [] unless exists ($hook_pointers{$location});
 
        if ($type =~ /first/) {
            unshift( @{$hook_pointers{$location}}, [$hook, $type, @parms] );
@@ -1336,12 +1336,12 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
    sub drop_hook_ {
        my($location, $hook ) = @_;
 
-       unless( defined( $hook_locations{$location} ) ){
+       unless( exists( $hook_locations{$location} ) ){
            print "drop_hook: Invalid hook location, loc=$location hook=$hook\n";
            return 0;
        }
 
-       if( defined ($hook_pointers{$location}) ){
+       if( exists ($hook_pointers{$location}) ){
            my($h)=$hook_pointers{$location};
            my($i)=-1;
 
@@ -1362,7 +1362,7 @@ sub ${location}_hooks     { return run_hooks_( '$location', \@_ ) }
 
    sub get_hooks_ {
        my($location) = @_;
-       return defined $hook_pointers{$location} ? @{$hook_pointers{$location}} : ();
+       return exists $hook_pointers{$location} ? @{$hook_pointers{$location}} : ();
    }
 
                                 # call all hooks with user specified args, if any
@@ -1526,7 +1526,7 @@ sub check_for_action {
 
             for (sort keys %Run_Members) {
 			$Tk_objects{menu_modules}->checkbutton(-label => $_, -variable => \$Run_Members{$_});
-			last if $i++ > ((defined $config_parms{tk_module_menu_max} and $config_parms{tk_module_menu_max})?$config_parms{tk_module_menu_max}:50);
+			last if $i++ > ((exists $config_parms{tk_module_menu_max} and $config_parms{tk_module_menu_max})?$config_parms{tk_module_menu_max}:50);
 	    }
 
 
@@ -1844,8 +1844,8 @@ sub check_for_generic_serial_data {
         if defined $data and ($Debug{serial} or $Debug{$port_name});
 
                                 # Check to see if we have a carrage return yet
-    if (defined $Serial_Ports{$port_name}{data}) {
-        if (defined($Serial_Ports{$port_name}{datatype}) and $Serial_Ports{$port_name}{datatype} eq 'raw') {
+    if (exists $Serial_Ports{$port_name}{data}) {
+        if (exists($Serial_Ports{$port_name}{datatype}) and $Serial_Ports{$port_name}{datatype} eq 'raw') {
             &Serial_data_hooks($Serial_Ports{$port_name}{data}, $port_name);   # Created by &add_hooks
         }
         else {
@@ -1946,7 +1946,7 @@ sub check_for_keyboard_input {
                   '1b5b31357e' => 'F5',  '1b5b31377e' => 'F6',  '1b5b31387e' => 'F7',  '1b5b31397e' => 'F8',
                   '1b5b32317e' => 'F10', '1b5b32337e' => 'F11', '1b5b32347e' => 'F12'
                   );
-    $Keyboard = $keymap{$Keyboard} if defined $keymap{$Keyboard};
+    $Keyboard = $keymap{$Keyboard} if exists $keymap{$Keyboard};
 
                                 # This can not be called from mh_control when in paused mode
     if ($Keyboard eq 'F2' and $pause_mode) {
@@ -2023,7 +2023,7 @@ sub add_proxy {
 }
 
 sub drop_proxy {
-    if (defined $proxy_servers{$_[0]}) {
+    if (exists $proxy_servers{$_[0]}) {
         $proxy_servers{$_[0]}->stop;
         delete $proxy_servers{$_[0]};
         &print_log("Removed proxy server: " . $_[0]);
@@ -2063,8 +2063,8 @@ sub check_for_proxy_data {
             if ($type eq 'serial') {
                     # If port was named, store in that hash, otherwise process
                 if ($data[1]) {
-#           if (defined($Serial_Ports{$data[1]}{object})   and $Serial_Ports{$data[1]}{object} eq 'proxy') {
-            if (defined($Serial_Ports{$data[1]}{datatype}) and $Serial_Ports{$data[1]}{datatype} eq 'raw') {
+#           if (exists($Serial_Ports{$data[1]}{object})   and $Serial_Ports{$data[1]}{object} eq 'proxy') {
+            if (exists($Serial_Ports{$data[1]}{datatype}) and $Serial_Ports{$data[1]}{datatype} eq 'raw') {
             $Serial_Ports{$data[1]}{data} = $data[0];
             }
             else {
@@ -2462,7 +2462,7 @@ sub check_for_tied_filters {
 
     if ($$self{tied_filters}) {
         my $searchstate = $state;
-        $searchstate = lc($searchstate) unless defined $self->{states_casesensitive};
+        $searchstate = lc($searchstate) unless exists $self->{states_casesensitive};
         for my $filter (keys %{$$self{tied_filters}}) {
             my $log_msg;
             if ($log_msg = $$self{tied_filters}{$filter}{$searchstate} or
@@ -2670,7 +2670,7 @@ sub convert_direction {
 sub display {
     my %parms = &parse_func_parms(@_);
 
-    unless (defined $parms{text} and $parms{text} ne '') {
+    unless (exists $parms{text} and $parms{text} ne '') {
         ($parms{text}, $parms{time}, $parms{title}, $parms{font},
          $parms{window_name}, $parms{append}) = @_;
     }
@@ -2723,7 +2723,7 @@ sub display {
     $Last_Response = 'display' unless $Last_Response eq 'speak';
     $leave_socket_open_passes = 1 if $leave_socket_open_passes;
 
-    return if ($leave_socket_open_passes and !defined $parms{time} and defined $parms{target} and $parms{target} =~ /^web/);
+    return if ($leave_socket_open_passes and !exists $parms{time} and exists $parms{target} and $parms{target} =~ /^web/);
 	# *** For legacy modules (what is left of them)
 
     return if (!$parms{target} and $Respond_Target =~ /^web/);
@@ -2739,7 +2739,7 @@ sub display {
 
 
 
-	if (defined($parms{window_name}) and $custom_child_windows{"$parms{app} $parms{window_name}"}) {
+	if (exists($parms{window_name}) and $custom_child_windows{"$parms{app} $parms{window_name}"}) {
 		# Try to create custom window
 		eval "\$return_object = &open_$parms{app}_$parms{window_name}_window()";
 	}
@@ -3006,7 +3006,7 @@ sub file_changed {
 #    print "Warning, file_change file does not exist: $file\n" unless -e $file;
     print "db file_change file=$file time=$file_time time_old=$file_change_times{$file}\n" if $Debug{file};
                                 # 1st time we look at a file, return 'unknown' (-1)
-    unless (defined $file_change_times{$file}) {
+    unless (exists $file_change_times{$file}) {
         $file_change_times{$file} = $file_time;
         return undef;
     }
@@ -3433,7 +3433,7 @@ sub object_states_save {
 
 #    for $var (keys %Save) {
 #        no strict 'refs';
-#        if (defined $Save{$var}) {
+#        if (exists $Save{$var}) {
 #            $restore_state .= &object_states_save_check("\$Save{q~$var~} = q~$Save{$var}~;") . "\n";
 #        }
 #        print "Saving state for Save{$var} = $state\n" if $Debug{save};
@@ -3871,7 +3871,7 @@ sub play {
                     }
 		}
 		elsif ($sound_program =~ /play$/) {
-                    if (defined $parms{volume}) {
+                    if (exists $parms{volume}) {
                         my $pervol = $parms{volume} / 100;
                         $sound_program .= " -v $pervol";
                     }
@@ -4950,7 +4950,7 @@ sub read_user_code {
 
                                 # Default the order of user files after common files,
                                 # so we can override functions if neede
-        unless (defined $member_sort_order{$member_name}) {
+        unless (exists $member_sort_order{$member_name}) {
             $member_sort_order{$member_name} = ($file =~ /$config_parms{code_dir_common}/) ? 8 : 9;
         }
 
@@ -6028,7 +6028,7 @@ sub speak {
                                 # Allow for defaults to be specified in parmfile
     for my $parm (@speak_parms) {
         my $value = $config_parms{"speak_$parm"};
-        $parms{$parm} = $value if defined $value and !defined $parms{$parm};
+        $parms{$parm} = $value if defined $value and !exists $parms{$parm};
     }
 
     if ($phrase =~ /\.wav$/) {
@@ -6483,7 +6483,7 @@ sub toggle_security_mode {
 
 sub ras_connect {
 
-	if (defined $config_parms{net_connect_entry} and $config_parms{net_connect_entry}) {
+	if (exists $config_parms{net_connect_entry} and $config_parms{net_connect_entry}) {
         	print_log "Dialing the internet with $config_parms{net_connect_entry}";
 
 		# *** This is awful (good thing most won't use it!)

@@ -192,6 +192,7 @@ $v_debug = new Voice_Cmd("Set debug for [$debug_str,none]");
 $v_debug->set_info('Adds the given module to the current set of debug flags');
 $v_debug->tie_event('&handle_debug_state()'); # noloop
 sub handle_debug_state() {
+    my $state = state $v_debug;
     if ( $state eq 'none' ) {
         $config_parms{debug} = '';
         undef %Debug;
