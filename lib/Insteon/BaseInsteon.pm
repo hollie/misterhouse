@@ -230,13 +230,23 @@ sub set
 sub is_acknowledged
 {
 	my ($self, $p_ack) = @_;
-	$$self{is_acknowledged} = $p_ack if defined $p_ack;
-	if ($p_ack) {
-		$self->set_receive($$self{pending_state},$$self{pending_setby}, $$self{pending_response}) if defined $$self{pending_state};
+        if (defined $p_ack)
+        {
+       		if ($p_ack)
+                {
+			$self->set_receive($$self{pending_state},$$self{pending_setby}, $$self{pending_response}) if defined $$self{pending_state};
+		}
+                else
+                {
+                	# if we are not acknowledged, then clear the awaiting acknowledgement flag
+                        #   we won't do the converse as it is set in _process_command_stack
+                	$$self{awaiting_ack} = 0;
+                }
+		$$self{is_acknowledged} = $p_ack;
 		$$self{pending_state} = undef;
 		$$self{pending_setby} = undef;
 		$$self{pending_response} = undef;
-	}
+        }
 	return $$self{is_acknowledged};
 }
 
@@ -430,27 +440,37 @@ sub _process_message
 	$$self{m_is_locally_set} = 1 if $msg{source} eq lc $self->device_id;
 	if ($msg{is_ack}) {
 		my $pending_cmd = ($$self{_prior_msg}) ? $$self{_prior_msg}->command : $msg{command};
-		if ($$self{awaiting_ack}) {
+		if ($$self{awaiting_ack})
+                {
 			my $ack_setby = (ref $$self{m_status_request_pending})
 				? $$self{m_status_request_pending} : $p_setby;
-			if ($self->_is_info_request($pending_cmd,$ack_setby,%msg)) {
+			if ($self->_is_info_request($pending_cmd,$ack_setby,%msg))
+                        {
 				$self->is_acknowledged(1);
 				$$self{m_status_request_pending} = 0;
 				$self->_process_command_stack(%msg);
-			} elsif (($pending_cmd eq 'peek') or ($pending_cmd eq 'set_address_msb')) {
+			}
+                        elsif (($pending_cmd eq 'peek') or ($pending_cmd eq 'set_address_msb'))
+                        {
 				$self->_aldb->_on_peek(%msg) if $self->_aldb;
 				$self->_process_command_stack(%msg);
-			} elsif (($pending_cmd eq 'poke') or ($pending_cmd eq 'set_address_msb')) {
+			}
+                        elsif (($pending_cmd eq 'poke') or ($pending_cmd eq 'set_address_msb'))
+                        {
 				$self->_aldb->_on_poke(%msg) if $self->_aldb;
 				$self->_process_command_stack(%msg);
-			} else {
+			}
+                        else
+                        {
 				$self->is_acknowledged(1);
 				# signal receipt of message to the command stack in case commands are queued
 				$self->_process_command_stack(%msg);
 				&::print_log("[Insteon::BaseObject] received command/state (awaiting) acknowledge from " . $self->{object_name}
 					. ": $pending_cmd and data: $msg{extra}") if $main::Debug{insteon};
 			}
-		} else {
+		}
+                else
+                {
 			# allow non-synchronous messages to also use the _is_info_request hook
 			$self->_is_info_request($pending_cmd,$p_setby,%msg);
 			$self->is_acknowledged(1);
@@ -460,12 +480,17 @@ sub _process_message
 				. ": " . (($msg{command}) ? $msg{command} : "(unknown)")
 				. " and data: $msg{extra}") if $main::Debug{insteon};
 		}
-	} elsif ($msg{is_nack}) {
-		if ($$self{awaiting_ack}) {
+	}
+        elsif ($msg{is_nack})
+        {
+#		if ($$self{awaiting_ack})
+#                {
 		# NOTE!!! NACKs are usually a sign of a burnt-out bulb!!
-			&::print_log("[Insteon::BaseObject] WARN!! encountered a nack message for " . $self->{object_name}
-				. " ... waiting for retry");
-		} else {
+#			&::print_log("[Insteon::BaseObject] WARN!! encountered a nack message for " . $self->{object_name}
+#				. " ... waiting for retry");
+#		}
+#                else
+#                {
                 	if ($self->isa('Insteon::BaseLight'))
                         {
 				&::print_log("[Insteon::BaseObject] WARN!! encountered a nack message for " . $self->{object_name}
@@ -478,8 +503,10 @@ sub _process_message
                         }
 			$self->is_acknowledged(0);
 			$self->_process_command_stack(%msg);
-		}
-	} elsif ($msg{command} eq 'start_manual_change') {
+#		}
+	}
+        elsif ($msg{command} eq 'start_manual_change')
+        {
 		# do nothing; although, maybe anticipate change? we should always get a stop
 	} elsif ($msg{command} eq 'stop_manual_change') {
 		# request status so that the final state can be known
