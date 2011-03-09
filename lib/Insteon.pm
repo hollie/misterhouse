@@ -163,16 +163,31 @@ sub init {
     $_sync_cnt = 0;
     @_scan_devices = ();
 
-    # delete the existing trigger if it exists
-    if (&main::trigger_get('scan insteon link tables'))
-    {
-    	&main::trigger_delete('scan insteon link tables');
+    #################################################################
+    ## Trigger creation
+    #################################################################
+    my ($trigger_event, $trigger_code, $trigger_type);
+
+    my @trigger_info = &main::trigger_get('scan insteon link tables');
+    if (@trigger_info) {
+	# Trigger exists; modify just the minimum so the trigger continues
+	# to work if we change the trigger code, but respect everything
+	# else (trigger type and time to run). This prevents unconditionally
+	# re-enabling the trigger if the user has disabled it.
+	$trigger_event = $trigger_info[0];
+	$trigger_type = $trigger_info[2];
+    } else {
+	# Trigger does not exist; create one with our default values.
+	$trigger_event = "time_cron '00 02 * * *'";
+	$trigger_type = 'NoExpire';
     }
 
-    # create trigger
-    my $trig_cmd = "time_cron '00 02 * * *'";
-    &main::trigger_set($trig_cmd,'&Insteon::scan_all_linktables()','NoExpire','scan insteon link tables')
-       unless &main::trigger_get('scan insteon link tables');
+    $trigger_code = '&Insteon::scan_all_linktables()';
+
+    # Create/update trigger for a nightly link table scan
+    &main::trigger_set($trigger_event, $trigger_code, $trigger_type,
+		       'scan insteon link tables', 1);
+    #################################################################
 
     @_insteon_plm = ();
     @_insteon_device = ();
