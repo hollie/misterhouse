@@ -705,7 +705,7 @@ sub _parse_data {
 
 	my $entered_rcv_loop = 0;
 
-	foreach my $data_1 (split(/(0252\w{4})|(0250\w{18})|(0251\w{46})|(0253\w{16})|(0256\w{8})|(0257\w{16})|(0258\w{2})/,$residue_data))
+	foreach my $data_1 (split(/(0252\w{4})|(0250\w{18})|(0251\w{46})|(0253\w{16})|(0256\w{8})|(0257\w{16})|(0258\w{2})|(0254\w{2})/,$residue_data))
 	{
 		#ignore blanks.. the split does odd things
 		next if $data_1 eq '';
@@ -791,6 +791,8 @@ sub _parse_data {
 					}
 				}
 			}
+		} elsif (substr($data_1,0,4) eq '0254') { # Button Event Report
+			# ignore; do nothing
 		} elsif (substr($data_1,0,2) eq '15') { #NAK Received
 			if (!($nack_count)) {
 				my $nack_delay = ($::config_parms{Insteon_PLM_disable_throttling}) ? 0.3 : 1.0;
