@@ -21,7 +21,7 @@
 #  photo_dirs            = /photos
 #  photo_big_dirs        = /photos_big
 #  photo_index           = /misterhouse/data/photo_index.txt
-
+#  photo_viewer          = /slideshow
 
 =begin comment
 
@@ -50,6 +50,8 @@ set_casesensitive $photo_subdir;
 # The include will take too long if there are lots of files/dirs, so use a link instead
 $Included_HTML{Photos} .= '<br><a href="SUB;photo_html" target=control>Pick a photo subdirectory to index</a>' . "\n";
 
+# Just a reference to $config_parms{photo_viewer} so it shows up in the code_select list
+
 #noloop=stop
                                 # Search for photos from console
 &tk_entry('Photo Search', \$Save{photo_search}) if $Reload;
@@ -64,7 +66,6 @@ if (said $v_photo_reindex) {
 sub photo_index {
     my ($sequence) = @_;
     $sequence = $config_parms{photo_sequence} unless $sequence;
-
     print_log "Reading photos that match photo_filter parm $config_parms{photo_filter} from photo_dirs parm $config_parms{photo_dirs}";
     &read_parms;                # Re-read parms, if they have changes
     undef @photos;

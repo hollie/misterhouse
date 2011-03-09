@@ -2,7 +2,7 @@
 <meta name="robots" content="noindex, nofollow">
 </head>
 <frameset rows="*,20" framespacing=0 border=0>
- <frame src="/bin/photos.pl"  name="main"   marginheight="0" marginwidth="0" border="0" frameborder="0">
+ <frame src="<!--#include var="$config_parms{'photo_viewer'}"-->"  name="main"   marginheight="0" marginwidth="0" border="0" frameborder="0">
  <frame src='<!--#include var="$config_parms{'html_status_line' . $Http{format}}"-->'  name='status' marginheight='0' marginwidth='0' border='0' frameborder='0' scrolling='no'>
 </frameset>
 </html>

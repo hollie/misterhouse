@@ -15,17 +15,16 @@ if (said $v_Geat_Header_Files){
 	my $rootdir = "$Pgm_Path";
 	$rootdir =~ s/\/bin//;
 	print "myroot:$rootdir\n";
-	if ($config_parms{html_dir} =~ /.\/../){
+	if ($config_parms{html_dir} =~ /\.\/\.\./){
 		print "Non hardcoded web directory";
 		my $roothtmldir = $config_parms{html_dir};
-		$roothtmldir =~ s/.\/..//;
+		$roothtmldir =~ s/\.\/\.\.//;
 
 		$codedhtmlrootdir = "$rootdir$roothtmldir";
 		print "$codedhtmlrootdir\n";
 	}else{
 		$codedhtmlrootdir = "$config_parms{html_dir}";
 	}
-
 	if (-e "$config_parms{data_dir}/headerallow.tab"){
 		#speak "Warning, Deleted header control file";
 		print_log "Warning, Deleted header control file";
@@ -33,6 +32,7 @@ if (said $v_Geat_Header_Files){
 	}
 	find(\&GenerateHeaderFiles, "$codedhtmlrootdir");#Need PGM ROOT!
 	file_write ("$config_parms{data_dir}/headerallow.tab", $TmpData)
+	&main::speak "Header control file generation is complete";
 }
 
 sub Search_Header_Allow {

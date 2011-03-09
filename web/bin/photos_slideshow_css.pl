@@ -12,15 +12,14 @@ This file is called from /slideshow/ with:
 and is responsible for generating the css needed to show the photo album with correct picture frames.
 
 More info on creating the photo list can be found in mh/code/common/photo_index.pl
-
 Example mh.ini parms:
   photo_size = 1024x768
 
 =cut
 
 $config_parms{photo_size} =~ m/(\d+)[x|X](\d+)/;
-my $width=$1 ."px";
-my $height=$2 ."px";
+my $width  = $1 . "px";
+my $height = $2 . "px";
 
 my $css = <<eof;
 HTTP/1.0 200 OK
