@@ -1199,6 +1199,7 @@ sub xPL_enable {
 
 If the state of the generic_item changes, then code will trigger, 
 with the variable $state getting expanded.
+The code is a string that will be eval'd.
 
 (optional) Setting state limits this tied code to run only when the given
 state is set.
