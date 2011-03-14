@@ -187,7 +187,15 @@ sub process_queue
                                         # !!!!!!!!! TO-DO - handle failure timeout ???
                                         my $failed_message = $self->active_message;
                                         # make sure to let the sending object know!!!
-                                        $failed_message->setby->is_acknowledged(0);
+					if (defined($failed_message->setby) and $failed_message->can('is_acknowledged'))
+					{
+                                        	$failed_message->setby->is_acknowledged(0);
+					}
+					else
+					{
+						&main::print_log("[Insteon::BaseInterface] WARN! Unable to clear acknowledge for "
+							. ((defined($failed_message->setby)) ? $failed_message->setby->get_object_name : "undefined"));
+					}
                 			# clear active message
                 			$self->clear_active_message();
 
