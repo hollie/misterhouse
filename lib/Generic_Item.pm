@@ -1198,8 +1198,10 @@ sub xPL_enable {
 =item C<tie_event(code, state, log_msg)>
 
 If the state of the generic_item changes, then code will trigger, 
-with the variable $state getting expanded.
-The code is a string that will be eval'd.
+with the lexical variables $state and $object getting set.
+The code is a string that will be eval'd and the variables are available to 
+it, but not to any subroutines called by it unless you pass them.
+You can also set the state variable explicitly since you usually know the item.
 
 (optional) Setting state limits this tied code to run only when the given
 state is set.

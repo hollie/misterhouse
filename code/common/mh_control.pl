@@ -4,7 +4,7 @@
 # $Revision$
 
 #@ Core MisterHouse commands e.g. reload code, list x10 items, rotate logs, 
-#@ update docs.
+#@ update docs.  This script also defines and lets you set the various modes.
 
 # Reload MisterHouse
 $v_reload_code  = new Voice_Cmd("[Reload,re load] code");
@@ -21,6 +21,7 @@ $v_reload_code2->tie_event('push(@Nextpass_Actions, # noloop
 $v_listen = new Voice_Cmd( "[Start,Stop] listening", 0 );
 $v_listen->tie_event('&handle_listen_state()'); # noloop
 sub handle_listen_state() {
+    my $state = state $v_listen;
     if ( $state eq 'Start' ) {
         if ( $v_listen->{set_by} =~ '^vr' ) {
             &Voice_Cmd::wait_for_command(0);
@@ -41,6 +42,7 @@ $v_read_tables->tie_event('&read_table_files()'); # noloop
 $v_set_password = new Voice_Cmd("Set the [guest,family,admin] password");
 $v_set_password->tie_event('&handle_set_password_state()'); # noloop
 sub handle_set_password_state() {
+    my $state = state $v_set_password;
     @ARGV = ( -user => $state );
     print_log "Setting $state password with: @ARGV";
     do "set_password";
@@ -68,6 +70,7 @@ $v_http_control->tie_event('&handle_http_control_state()'); # noloop
 $http_monitor = new Socket_Item( undef, undef, 
   "$config_parms{http_server}:$config_parms{http_port}" );
 sub handle_http_control_state() {
+    my $state = state $v_http_control;
     #   print_log "${state}ing the http server";
     socket_open 'http'    if $state eq 'Open';
     socket_close 'http'   if $state eq 'Close';
@@ -121,6 +124,7 @@ $v_reboot = new Voice_Cmd '[Reboot,Shut Down] the computer';
 $v_reboot->set_info('Do this only if you really mean it!  Windows only');
 $v_reboot->tie_event('&handle_reboot_state()'); # noloop
 sub handle_reboot_state() {
+    my $state = state $v_reboot;
     return unless $OS_win;
     respond "$state the computer";
     if ( $Info{OS_name} eq 'Win95' ) {
@@ -195,7 +199,7 @@ sub handle_debug_state() {
     my $state = state $v_debug;
     if ( $state eq 'none' ) {
         $config_parms{debug} = '';
-        undef %Debug;
+        %Debug = {};
         $v_debug->respond("Debugging completely turned off");
     }
     else {
@@ -212,6 +216,7 @@ $v_debug_toggle->set_info(
   'Toggles what kind of debugging information is logged');
 $v_debug_toggle->tie_event('&handle_debug_toggle_state()'); # noloop
 sub handle_debug_toggle_state() {
+    my $state = state $v_debug_toggle;
     if ( $Debug{$state} ) {
         $Debug{$state} = 0;
         &update_config_parms_debug;
@@ -256,7 +261,6 @@ $v_mode->set_info( 'mute mode disables all speech and sound.  ' .
   'offline disables all serial control');
 $v_mode->tie_event('&handle_mode_state()'); # noloop
 sub handle_mode_state() {
-    # this next line shouldn't be neccessary, but it is
     my $state = state $v_mode;
     $Save{mode} = $state;
     set $mode_mh $state, $v_mode;
@@ -287,7 +291,6 @@ $search_code_string = new Generic_Item;
 $search_code_string->set_icon('mh.jpg'); # noloop
 $search_code_string->tie_event('&handle_search_code_string_state()'); # noloop
 sub handle_search_code_string_state() {
-    # this next line shouldn't be neccessary, but it is
     my $state = state $search_code_string;
     print "Searching for code $state\n";
     my ( $results, $count, %files );
@@ -554,6 +557,7 @@ if ($New_Month) {
 $run_command = new Generic_Item;
 $run_command->tie_event('&handle_run_command_state()'); # noloop
 sub handle_run_command_state() {
+    my $state = state $run_command;
     my $set_by = get_set_by $run_command;
     print_log "Running External $set_by command: $state";
     &process_external_command( $state, 1, $set_by );
@@ -597,7 +601,6 @@ $mode_mh = new Generic_Item;
 $mode_mh->set_states( 'normal', 'mute', 'offline' );
 $mode_mh->tie_event('&handle_mode_mh_state()'); # noloop
 sub handle_mode_mh_state() {
-    # this next line shouldn't be neccessary, but it is
     my $state = state $mode_mh;
     $Save{mode} = $state;
     $mode_mh->respond("mode=unmuted app=control Changed to $Save{mode} mode.");
@@ -607,8 +610,7 @@ $mode_security = new Generic_Item;
 $mode_security->set_states( 'armed', 'unarmed' );
 $mode_security->tie_event('&handle_mode_security_state()'); # noloop
 sub handle_mode_security_state() {
-    # this next line shouldn't be neccessary, but it is
-    my $state = state $mode_mh;
+    my $state = state $mode_security;
     $Save{security} = $state;
     $mode_security->respond("mode=unmuted app=control Security $state.");
 }
@@ -620,8 +622,7 @@ $mode_sleeping = new Generic_Item;
 $mode_sleeping->set_states( 'nobody', 'parents', 'kids', 'all' );
 $mode_sleeping->tie_event('&handle_mode_sleeping_state()'); # noloop
 sub handle_mode_sleeping_state() {
-    # this next line shouldn't be neccessary, but it is
-    my $state = state $mode_mh;
+    my $state = state $mode_sleeping;
     $Save{sleeping_parents} =
       ( $state eq 'parents' or $state eq 'all' ) ? 1 : 0;
     $Save{sleeping_kids} = ( $state eq 'kids' or $state eq 'all' ) ? 1 : 0;
