@@ -25,18 +25,16 @@ owfs_port = 3030    # defined port where the owfs server is listening
 
 Example Usage:
 
- $item = new Owfs_Item ( "<device_id>", <location>, <port>, <channel> );
+ $item = new Owfs_Item ( "<device_id>", <location> );
 
  <device_id> - of the form family.address; identifies the one-wire device
  <location>  - ASCII string identifier providing a useful name for device_id
- <port>      - used for devices with multiple ports
- <channel>   - used for devices with multiple channels 
 
- $frontDoorBell = new Owfs_Item ( "12.487344000000", "Front DoorBell", undef, "A");
+ $frontDoorBell = new Owfs_Item ( "12.487344000000", "Front DoorBell");
  $sensor        = new Owfs_Item ( "05.4D212A000000");
 
  Owfs_Item can be used as a baseclass and extended for specific one wire devices.
- For example, refer to Owfs_DS2450.pm which describes a one wire A/D device.
+ For example, refer to package Owfs_DS2450 which describes a one wire A/D device.
 
  Any of the fields in the one-wire device can be access via the set and get methods.
 
@@ -55,41 +53,42 @@ Example Usage:
 
 package Owfs_Item;
 
-@Owfs::ISA = ('Generic_Item');
+@Owfs_Item::ISA = ('Generic_Item');
 
 use OW;
 
 my (%objects_by_id);
+my $port = undef;
 
 sub new {
-    my ($class, $device, $location, $port, $channel) = @_;
+    my ($class, $device, $location) = @_;
     my $self = { };
     bless $self,$class;
     $device =~ /(.*)\.(.*)/;
     my $family = $1;
     my $id = $2;
+
+    # Initialize the OWFS perl interface ( server tcp port )
+
+    if (!defined $port) {
+        $port = 3030;
+        $port = "$main::config_parms{owfs_port}" if exists $main::config_parms{owfs_port};
+        &main::print_log ("Owfs_Item:: Initializing port: $port $location") if $main::Debug{owfs};
+        OW::init ( "$port" );
+    }
+
     $self->{device}   = $device;
     $self->{location} = $location;
-    $self->{port}     = $port;
-    $self->{channel}  = $channel;
+    $self->{present}  = undef;
     $self->{root}     = &_find ( $family, $id, 0, "/" );
     $self->{path}     = $self->{root} . $family . "." . $id . "/";
     if (defined $self->{path}) {
-      $objects_by_id{path} = $self;
-      &_load ( $self, $self->{path} );
+        $objects_by_id{path} = $self;
+        &_load ( $self, $self->{path} );
     }
     $$self{state}     = '';     # Will only be listed on web page if state is defined
-    if ($self->{type} eq 'DS2405' ) {
-        push(@{$$self{states}}, 'on', 'off');
-    }
 
     &dump ( $self ) if ($main::Debug{owfs});
-
-    # Initialize the OWFS perl interface ( server tcp port )
-    my $port = 3030;
-    $port = "$main::config_parms{owfs_port}" if exists $main::config_parms{owfs_port};
-    &main::print_log ("Owfs_Item:: Initializing port: $port $location") if $main::Debug{owfs};
-    OW::init ( "$port" );
 
     return $self;
 }
@@ -116,6 +115,12 @@ sub get {
      my $result = OW::get($path) or return ;
      &main::print_log ("Owfs_Item::get $path $result") if $main::Debug{owfs};
      return $result;
+}
+
+sub get_present {
+     my ($self) = @_;
+     $self->{present} = $self->get("present");
+     return $self->{present};
 }
 
 sub get_root {
@@ -149,11 +154,11 @@ sub get_location {
 sub dump {
   my $self = shift;
   &main::print_log ( "\n") if $main::Debug{owfs};
-  &main::print_log ( "root: \t\t$$self{root}\n") if $main::Debug{owfs};
-  &main::print_log ( "path: \t\t$$self{path}\n") if $main::Debug{owfs};
-  &main::print_log ( "family: \t$$self{family}\n") if $main::Debug{owfs};
-  &main::print_log ( "id: \t\t$$self{id}\n") if $main::Debug{owfs};
-  &main::print_log ( "type: \t\t$$self{type}\n") if $main::Debug{owfs};
+  &main::print_log ( "root: \t\t$$self{root}") if $main::Debug{owfs};
+  &main::print_log ( "path: \t\t$$self{path}") if $main::Debug{owfs};
+  &main::print_log ( "family: \t$$self{family}") if $main::Debug{owfs};
+  &main::print_log ( "id: \t\t$$self{id}") if $main::Debug{owfs};
+  &main::print_log ( "type: \t\t$$self{type}") if $main::Debug{owfs};
 
   for my $key (sort keys %$self) {
     next if ($key eq "root");
@@ -161,7 +166,7 @@ sub dump {
     next if ($key eq "family");
     next if ($key eq "id");
     next if ($key eq "type");
-    &main::print_log ( "$key:\t\t$$self{$key}\n") if $main::Debug{owfs};
+    &main::print_log ( "$key:\t\t$$self{$key}") if $main::Debug{owfs};
   }
   &main::print_log ( "\n") if $main::Debug{owfs};
 }
@@ -169,7 +174,7 @@ sub dump {
 sub _find {
   my ($family, $id,$lev,$path) = @_;
   my $result = OW::get($path) or return ;
-#  &main::print_log ( "_find:: family: $family id: $id lev: $lev path: $path\n") if $main::Debug{owfs};
+  #&main::print_log ( "_find:: family: $family id: $id lev: $lev path: $path") if $main::Debug{owfs};
   my @tokens = split(',',$result);
   foreach my $token (@tokens) {
     if ( $token =~ /\/$/ ) {
@@ -189,7 +194,7 @@ sub _find {
 
 sub _load {
   my ($self, $path) = @_;
-#  &main::print_log ( "_load:: path: $path\n") if $main::Debug{owfs};
+#  &main::print_log ( "_load:: path: $path") if $main::Debug{owfs};
   my $result = OW::get($path) or return ;
   my @tokens = split(',',$result);
   foreach my $token (@tokens) {
@@ -220,7 +225,7 @@ Usage:
 
  <device_id> - of the form family.address; identifies the one-wire device
  <location>  - ASCII string identifier providing a useful name for device_id
- <interval>  - seconds between acquisitions
+ <interval>  - Optional (defaults to 10).  Number of seconds between measurements.
 
  Example:
 
@@ -236,54 +241,295 @@ package Owfs_DS18S20;
 
 @Owfs_DS18S20::ISA = ('Owfs_Item');
 
+my @clients = ();
+my $index = 0;
+my $timer = undef;
+
 sub new {
     my ($class, $ds18S20, $location, $interval) = @_;
-    my $self = new Owfs_Item ( $ds18S20, $location );
+    my $self = new Owfs_Item ( $ds18S20, $location, $interval );
     bless $self,$class;
 
-    $interval = 10 unless $interval;
-    $interval = 10 if ($interval < 10);
-    $self->{interval} = $interval;
+    $self->{interval} = 10;
+    if (defined $interval && ($interval > 1)) {
+        $self->{interval} = $interval;
+    }
+    $self->{present} = 0;
+    $self->{temperature} = undef;
 
-    $self->{timer} = new Timer;
-    $self->{timer}->set($self->{interval}, sub {&Owfs_DS18S20::run_loop($self)});
-    $self->{temperature} = 0;
-    $self->{index} = 0;
+    if (!defined $timer) {
+        &::Reload_pre_add_hook(\&Owfs_DS18S20::reload_hook, 1);
+	$index = 0;
+        $timer = new Timer;
+        $timer->set($self->{interval}, sub {&Owfs_DS18S20::run_loop});
+    }
+
+    push (@clients,$self);
+
+    if ($self->{interval} < $clients[0]->get_interval( )) {
+	$clients[0]->set_interval($self->{interval});
+    }
+
     return $self;
 }
 
-sub get_temperature {
-  my $self = shift;
-  return ($self->{temperature});
+sub get_present {
+     my ($self) = @_;
+     return $self->{present};
 }
 
-sub state {
-  my $self = shift;
-  return ($self->{temperature});
+sub set_interval {
+    my ($self,$interval) = @_;
+    $self->{interval} = $interval if defined $interval;
+}
+
+sub get_interval {
+    my ($self) = @_;
+    return $self->{interval};
+}
+
+sub get_temperature {
+    my $self = shift;
+    return ($self->{temperature});
+}
+
+sub reload_hook {
+    @clients = ();
+    my $num = @clients;
+    &main::print_log( "Owfs_DS18S20::reload_hook $num") if $main::Debug{owfs};
+    $timer->set(10, sub {&Owfs_DS18S20::run_loop});
 }
 
 sub run_loop {
-  my $self = shift;
-  my $index = $self->{index};
-  &main::print_log ( "Owfs_DS18S20:: index: $index") if $main::Debug{owfs};
+
+  # exit if we don't have any clients.
+  return unless @clients;
 
   # issue simultaneous to start a conversion
-  if ($self->{index} == 0) {
-    $self->set_root ( "simultaneous/temperature", "1" );
+  if ($index == 0) {
+      my $self = $clients[0];
+      &main::print_log ( "Owfs_DS18S20:: $index simultaneous") if $main::Debug{owfs};
+      $self->set_root ( "simultaneous/temperature", "1" );
   } else {
-    $self->{temperature} = $self->get ( "temperature");
-    $self->SUPER::set($$self{temperature});
-    &main::print_log ("Owfs_DS18S20 temperature: $$self{temperature}") if $main::Debug{owfs};
+      my $self = $clients[$index-1];
+      $self->{present} = $self->get("present");
+      my $temperature = $self->get("temperature");
+      $self->{temperature} = $temperature;
+      if ($main::Debug{owfs}) {
+	  my $device = $self->{device};
+	  my $location = $self->{location};
+	  &main::print_log ("Owfs_DS18S20 $index $device $location temperature: $temperature") if $main::Debug{owfs};
+      }
   }
 
   # udpate the index
-  $self->{index} += 1;
-  if ($self->{index} >= 2) {
-    $self->{index} = 0;
+  $index += 1;
+  if ($index > @clients) {
+      $index = 0;
   }
 
   # reschedule the timer for next pass
-  $self->{timer}->set($self->{interval}, sub {&Owfs_DS18S20::run_loop($self)});
+  $timer->set($clients[0]->get_interval( ), sub {&Owfs_DS18S20::run_loop});
+}
+
+#=======================================================================================
+#
+# Owfs_DS2405
+#
+# This package specifically handles the DS2405 Relay / IO controller.
+#
+#=======================================================================================
+
+=begin comment
+
+Usage:
+
+ $sensor = new Owfs_DS2405 ( "<device_id>", <location> );
+
+ <device_id> - of the form family.address; identifies the one-wire device
+ <location>  - ASCII string identifier providing a useful name for device_id
+
+ Examples:
+
+ my $relay = new Owfs_DS2405 ( "20.DB2506000000", "Some Relay", "0" );
+ 
+ // Turn on relay
+ $relay->set_pio("1");
+
+ // Turn off relay
+ $realy->set_pio("0");
+
+ // Detect input transition
+ my $doorbell = new Owfs_DS2405 ( "20.DB2506000000", "Front Door Bell", "1", 1 );
+ if ($doorbell->get_latch( )) {
+  print_log ("notice,,, someone is at the front door");
+  speak (rooms=>"all", text=> "notice,,, someone is at the front door");
+}
+
+=cut
+
+use strict;
+
+package Owfs_DS2405;
+
+@Owfs_DS2405::ISA = ('Owfs_Item');
+
+sub new {
+    my ($class, $ds2405, $location ) = @_;
+    my $self = new Owfs_Item ( $ds2405, $location );
+    bless $self,$class;
+    return $self;
+}
+
+sub set_pio {
+    my ($self,$value) = @_;
+    $self->set ("PIO", $value);
+}
+
+sub get_pio {
+    my ($self) = @_;
+    my $channel = $self->{channel};
+    return ($self->get ("PIO"));
+}
+
+
+#=======================================================================================
+#
+# Owfs_DS2408
+#
+# This package specifically handles the DS2408 Relay / IO controller.
+#
+#=======================================================================================
+
+=begin comment
+
+Usage:
+
+ $sensor = new Owfs_DS2408 ( "<device_id>", <location>, <channel>, <interval> );
+
+ <device_id> - of the form family.address; identifies the one-wire device
+ <location>  - ASCII string identifier providing a useful name for device_id
+ <channel>   - "0", "1", "2", "3", "4", "5", "6", "7"
+ <interval>  - Optional (defaults to 10).  Number of seconds between input samples.
+
+ Examples:
+
+ my $relay = new Owfs_DS2408 ( "20.DB2506000000", "Some Relay", "0" );
+ 
+ // Turn on relay
+ $relay->set_pio("1");
+
+ // Turn off relay
+ $realy->set_pio("0");
+
+ // Detect input transition
+ my $doorbell = new Owfs_DS2408 ( "20.DB2506000000", "Front Door Bell", "1", 1 );
+ if ($doorbell->get_latch( )) {
+  print_log ("notice,,, someone is at the front door");
+  speak (rooms=>"all", text=> "notice,,, someone is at the front door");
+}
+
+=cut
+
+use strict;
+
+package Owfs_DS2408;
+
+@Owfs_DS2408::ISA = ('Owfs_Item');
+
+sub new {
+    my ($class, $ds2408, $location, $channel, $interval) = @_;
+    my $self = new Owfs_Item ( $ds2408, $location );
+    bless $self,$class;
+
+    $self->{interval} = 10;
+    if (defined $interval && ($interval >= 1)) {
+        $self->{interval} = $interval;
+    }
+    $self->{present} = 0;
+    $self->{latch} = 0;
+    $self->{pass_triggered} = 0;
+    $self->{sensed} = undef;
+    $self->{channel} = $channel;
+
+    $self->restore_data('latch'); 
+
+    &::Reload_pre_add_hook(\&Owfs_DS2408::reload_hook, 1);
+
+    $self->{timer} = new Timer;
+    $self->{timer}->set($self->{interval}, sub {&Owfs_DS2408::run_loop($self)});
+
+    return $self;
+}
+
+sub get_present {
+     my ($self) = @_;
+     return $self->{present};
+}
+
+sub set_interval {
+    my ($self,$interval) = @_;
+    $self->{interval} = $interval if defined $interval;
+}
+
+sub get_interval {
+    my ($self) = @_;
+    return $self->{interval};
+}
+
+sub set_pio {
+    my ($self,$value) = @_;
+    my $channel = $self->{channel};
+    $self->set ("PIO.$channel", $value);
+}
+
+sub get_pio {
+    my ($self) = @_;
+    my $channel = $self->{channel};
+    return ($self->get ("PIO.$channel"));
+}
+
+sub get_latch {
+    my ($self) = @_;
+    my $latch = $self->{latch};
+    if ($latch) {
+        $self->{latch} = 0;
+        $self->{pass_triggered} = 0;
+    }
+    return ($latch);
+}
+
+sub get_sensed {
+    my $self = shift;
+    return ($self->{sensed});
+}
+
+sub reload_hook {
+}
+
+sub run_loop {
+    my $self = shift;
+    my $channel = $self->{channel};
+    my $latch = $self->get ("latch.$channel");
+    $self->{present} = $self->get("present");
+    $self->{sensed} = $self->get ("sensed.$channel");
+    if ($latch) {
+        $self->{pass_triggered} = $main::Loop_Count;
+	$self->{latch} = $latch;
+	$self->set("latch.$channel", "0");
+    } elsif ($self->{pass_triggered} && $self->{pass_triggered} < $main::Loop_Count) {
+	$self->{latch} = 0;
+        $self->{pass_triggered} = 0;
+    }
+	
+    if ($main::Debug{owfs}) {
+	my $device = $self->{device};
+	my $location = $self->{location};
+	&main::print_log ("Owfs_DS2408 $index $device $location $channel latch: $latch");
+    }
+
+    # reschedule the timer for next pass
+    $self->{timer}->set($self->get_interval( ), sub {&Owfs_DS2408::run_loop($self)});
 }
 
 #=======================================================================================
@@ -303,13 +549,13 @@ Usage:
  <device_id> - of the form family.address; identifies the one-wire device
  <location>  - ASCII string identifier providing a useful name for device_id
  <channel>   - "A", "B", "C", or "D"
- <interval>  - seconds between acquisitions
+ <interval>  - Optional (defaults to 10).  Number of seconds between measurements.
 
  Example:
 
- $ds2350 = new Owfs_DS2350 ( "20.DB2506000000", "Furnace Sensor", "A", 2 );
+ $ds2450 = new Owfs_DS2450 ( "20.DB2506000000", "Furnace Sensor", "A" );
  
- my $voltage = get_voltage $ds2350;
+ my $voltage = $ds2450->get_voltage( );
 
 =cut
 
@@ -319,62 +565,103 @@ package Owfs_DS2450;
 
 @Owfs_DS2450::ISA = ('Owfs_Item');
 
+my @clients = ();
+my $index = 0;
+my $timer = undef;
+
 sub new {
     my ($class, $ds2450, $location, $channel, $interval) = @_;
     my $self = new Owfs_Item ( $ds2450, $location );
     bless $self,$class;
 
-    $interval = 10 unless $interval;
-    $interval = 10 if ($interval < 10);
-    $self->{interval} = $interval;
-
-    $self->{timer} = new Timer;
-    $self->{timer}->set($self->{interval}, sub {&Owfs_DS2450::run_loop($self)});
-
+    $self->{interval} = 10;
+    if (defined $interval && ($interval > 1)) {
+        $self->{interval} = $interval if defined $interval;
+    }
+    $self->{present} = 0;
+    $self->{voltage} = undef;
     $self->{channel} = $channel;
+
+    if (!defined $timer) {
+        &::Reload_pre_add_hook(\&Owfs_DS2450::reload_hook, 1);
+	$index = 0;
+        $timer = new Timer;
+        $timer->set($self->{interval}, sub {&Owfs_DS2450::run_loop});
+    }
+
+    push (@clients,$self);
+
+    if ($self->{interval} < $clients[0]->get_interval( )) {
+	$clients[0]->set_interval($self->{interval});
+    }
 
     $self->set ( "set_alarm/voltlow.$channel", "1.0" );
     $self->set ( "set_alarm/low.$channel", "1" );
     $self->set ( "power", "1" );
-    $self->{voltage} = 0;
-
-    $self->{index} = 0;
+    $self->set ( "PIO.$channel", "1" );
 
     return $self;
 }
 
+sub get_present {
+     my ($self) = @_;
+     return $self->{present};
+}
+
+sub set_interval {
+    my ($self,$interval) = @_;
+    $self->{interval} = $interval if defined $interval;
+}
+
+sub get_interval {
+    my ($self) = @_;
+    return $self->{interval};
+}
+
 sub get_voltage {
-  my $self = shift;
-  return ($self->{voltage});
+    my $self = shift;
+    return ($self->{voltage});
+}
+
+sub reload_hook {
+    @clients = ();
+    my $num = @clients;
+    &main::print_log( "Owfs_DS2450::reload_hook $num") if $main::Debug{owfs};
+    $timer->set(10, sub {&Owfs_DS2450::run_loop});
 }
 
 sub run_loop {
-  my $self = shift;
-  my $channel = $self->{channel};
-  my $index = $self->{index};
-  &main::print_log ( "Owfs_DS2450:: channel: $channel index: $index") if $main::Debug{owfs};
 
-  # issue simultaneous to start a conversion
-  if ($self->{index} == 0) {
-    $self->set_root ( "simultaneous/voltage", "1" );
-  } else {
-    my $token = "alarm/volt.$channel";
-    my $voltage = $self->get ( "volt.$channel");
-    $self->{voltage} = $voltage;
-    &main::print_log ("Owfs_DS2450 $channel $token volt: $voltage") if $main::Debug{owfs};
-    my $token = "alarm/low.$channel";
-    my $trigger = $self->get ( $token );
-    &main::print_log ("Owfs_DS2450 $channel $token alarm low: $trigger") if $main::Debug{owfs};
-  }
-
-  # udpate the index
-  $self->{index} += 1;
-  if ($self->{index} >= 2) {
-    $self->{index} = 0;
-  }
-
-  # reschedule the timer for next pass
-  $self->{timer}->set($self->{interval}, sub {&Owfs_DS2450::run_loop($self)});
+    # exit if we don't have any clients.
+    return unless @clients;
+    
+    # issue simultaneous to start a conversion
+    if ($index == 0) {
+        my $self = $clients[0];
+        my $channel = $self->{channel};
+        &main::print_log ( "Owfs_DS2450:: $index simultaneous: $channel index: $index") if $main::Debug{owfs};
+        $self->set_root ( "simultaneous/voltage", "1" );
+    } else {
+        my $self = $clients[$index-1];
+        my $channel = $self->{channel};
+        my $voltage = $self->get ("volt.$channel");
+        $self->{present} = $self->get("present");
+        $self->{voltage} = $voltage;
+        if ($main::Debug{owfs}) {
+    	  my $device = $self->{device};
+    	  my $location = $self->{location};
+    	  &main::print_log ("Owfs_DS2450 $index $device $location $channel volt: $voltage");
+        }
+    }
+    
+    # udpate the index
+    $index += 1;
+    if ($index > @clients) {
+      $index = 0;
+    }
+    
+    # reschedule the timer for next pass
+    $timer->set($clients[0]->get_interval( ), sub {&Owfs_DS2450::run_loop});
 }
 
 1;
