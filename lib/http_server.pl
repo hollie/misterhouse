@@ -25,6 +25,7 @@ my %mime_types = (
                   'vxml'  => 'text/html',
                   'xml'   => 'text/xml',
                   'xsl'   => 'text/xml',
+                  'xslt'  => 'text/xml',
                   'sxml'  => 'text/xml',
                   'txt'   => 'text/plain',
 #                 'htc'   => 'text/plain',
