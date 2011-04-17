@@ -1021,7 +1021,7 @@ sub http_speak_to_wav_start {
 
                                 # Try to To minimized the problem of multiple web browsers
                                 # talking at the same time by using a semi-random .wav file name
-    my $wav_file = "cache/http_server." . int(($Second * rand) * 10000) . ".wav";
+    my $wav_file = "http_server." . int(($Second * rand) * 10000) . ".wav";
 
                                 # Skip if on the local box or empty text (why is empty text passed at all?)
 
@@ -1046,14 +1046,14 @@ sub http_speak_to_wav_start {
 
     $tts_text = substr($tts_text, 0, 500) . '.  Stopped. Speech Truncated.' if length $tts_text > 500;
     ($compression = (&is_local_address()) ? 'low' : 'high') unless $compression;
-    &Voice_Text::speak_text(voice => $voice, to_file => "$config_parms{html_dir}/$wav_file",
+    &Voice_Text::speak_text(voice => $voice, to_file => &html_alias('/cache') . "/$wav_file",
                             text => $tts_text, compression => $compression, async => 1) unless $webmute;
 
                    # Some browsers (e.g. Audrey) do not echo port in Host data
     my $ref = "http://$Http{Host}";
 #   $ref .= ":$config_parms{http_port}" if $config_parms{http_port} and $ref !~/$config_parms{http_port}$/;
     $ref .= ":$config_parms{http_port}" if $config_parms{http_port} and $ref !~ /\:/;
-    $ref .= "/$wav_file";
+    $ref .= "/cache/$wav_file";
 
    return $ref;
 }
