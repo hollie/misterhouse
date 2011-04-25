@@ -65,7 +65,7 @@ sub default_setstate
 {
     my ($self, $state) = @_;
     if ($state !~ m/^up|down|start$/i){
-    	&::print_log("Invalid State") if $::Debug{network};
+    	&::print_log("Invalid state for Network_Item: $state") if $::Debug{network};
     	return -1;
     } else {
     	&::print_log("Setting " .$self->{address}." as " .$state) if $::Debug{network};

@@ -59,7 +59,7 @@ sub handle_uptime_state() {
     my $uptime_pgm      = &time_diff( $Time_Startup_time, time );
     my $uptime_computer = &time_diff( $Time_Boot_time,    $Time );
     respond(
-      "I was started $uptime_pgm ago." .
+      "I was started $uptime_pgm ago. " .
       "The computer was booted $uptime_computer ago."
     );
 }
