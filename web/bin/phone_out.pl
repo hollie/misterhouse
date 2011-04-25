@@ -17,7 +17,7 @@ for my $r (@calls) {
     $name = '' unless $name;
     next unless $num;
     #print_log "phoneOUT $r";
-
+    $name =~ s/_/ /g;
     if ( $type eq 'VOIP' ) {
 	$color = "<FONT Color='#008800'>" ;
 	$voip_time = time_add " $voip_time + $dur " ;
