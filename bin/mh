@@ -698,6 +698,7 @@ sub setup {
 #   require 'console_utils.pl';
     require 'http_server.pl';
     require 'xml_server.pl';
+    require 'json_server.pl';
     require 'menu_code.pl';
     require 'trigger_code.pl';
 

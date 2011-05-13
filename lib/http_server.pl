@@ -51,6 +51,7 @@ my %mime_types = (
                   'wmlc'  => 'application/vnd.wap.wmlc',
                   'wmlsc' => 'application/vnd.wap.wmlscriptc',
                   'wrl'   => 'x-world/x-vrml',
+                  'json'  => 'application/json',
 );
 
 
