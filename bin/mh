@@ -698,9 +698,16 @@ sub setup {
 #   require 'console_utils.pl';
     require 'http_server.pl';
     require 'xml_server.pl';
-    require 'json_server.pl';
     require 'menu_code.pl';
     require 'trigger_code.pl';
+
+    eval "use JSON"; # Used in mh/lib/json_server.pl JSON Web Attributes
+    if ($@) {
+    	print "\nJSON not installed or didnt correctly initialize... JSON is disabled\n\n";
+    }
+    else {
+	require 'json_server.pl';
+    }
 
     if ($OS_win) {
         no strict 'subs';   # For non-win OS
