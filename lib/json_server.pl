@@ -155,7 +155,7 @@ sub json {
 				eval "\$ref = \\$member";
 				print_log "json subs error: $@" if $@;
 				$json{subs}{$member} = &json_walk_var( $ref, $member, ('CODE') );
-				print_log Dumper(%json);
+				print_log Dumper(%json) if $Debug{json};
 			}
 		}
 		else {
@@ -205,17 +205,36 @@ sub json {
 				no strict 'refs';
 				my ( $type, $name ) = $member =~ /^([\$\@\%\&])?(.+)/;
 				my $ref;
-				my $rtype = eval "ref \$$name if defined \$$name";
-				print_log "json: ref eval error = $@" if $@;
-
+				my @types = ("\$","\@","\%", "\&");
+				my $rtype;
+				my $var;
+				my $valid=0;
+				foreach (@types){
+					$type = $_;
+					$var = $_ .$name;
+					if (eval "defined $var"){
+						$rtype = eval "ref $var";
+						$member = $var;
+						$valid=1;
+						last;
+					}
+				}
+				unless( $valid == 1 ){
+					$json{vars}{$name} = "Undefined";
+					$type=undef;
+					$rtype=undef;
+				}
 				if ( $rtype and $type ) {
 					eval "\$ref = \\$type\{ \$$name \}";
 					$json{vars} = &json_walk_var( $ref, $name ) if $ref;
 				}
 				elsif ($type) {
 					eval "\$ref = \\$member";
-					$json{vars}{$member} = &json_walk_var( $ref, $name )
-					  if $ref;
+					my %res;
+					if ($ref){
+						 my ($k, $r) = &json_walk_var( $ref, $name );
+						 $json{vars}{$k} = $r;
+					}
 				}
 				elsif ( $member =~ /.+::$/ ) {
 					eval "\$ref = \\\%$member";
@@ -224,7 +243,7 @@ sub json {
 						qw( SCALAR ARRAY HASH CODE ) )
 					  if $ref;
 				}
-				else {
+				elsif ($valid == 1) {
 					eval "\$ref = $member";
 					$json{vars} = &json_walk_var( $ref, $name ) if $ref;
 				}
@@ -446,7 +465,7 @@ sub json_object_detail {
 sub json_page {
 	my ($json) = @_;
 
-	my $style;
+	$json =~ s/\$|\%|\&|\@//g;
 	return <<eof;
 HTTP/1.0 200 OK
 Server: MisterHouse
