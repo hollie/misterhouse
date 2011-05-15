@@ -187,7 +187,8 @@ sub json {
 				next unless $key =~ /.+::$/;
 				next if $key eq 'main::';
 				my $iref = ${$ref}{$key};
-				$json{packages}{$key} = &json_walk_var( $iref, $key, qw( SCALAR ARRAY HASH CODE ) );
+				my ($k, $r) = &json_walk_var( $iref, $key, qw( SCALAR ARRAY HASH CODE ) );
+				$json{packages}{$k} = $r if $k ne "";
 			}
 		}
 	}
@@ -300,6 +301,7 @@ sub json_walk_var {
 	print_log "json: r $ref n $name t $type rt $rtype" if $Debug{json};
 	return if $type eq 'REF';
 
+
 	if ( $type eq 'GLOB' or $rtype eq 'GLOB' ) {
 		foreach my $slot (@types) {
 			my $iref = *{$ref}{$slot};
@@ -325,6 +327,9 @@ sub json_walk_var {
 	elsif ( $type eq 'SCALAR' ) {
 		my $value = $$ref;
 		$value                = undef unless defined $value;
+		if ($name =~ m/::(.*?)$/){
+			$name = $1;
+		}
 		if ($name =~ m/\[(\d+?)\]$/) {
 			my $index = $1;
 			return $index, $value;
@@ -336,7 +341,6 @@ sub json_walk_var {
 					$value = "Unusable Object" if ref $value;
 					return $val, $value;
 				}
-				print "------\n";	
 			} else {
 				return "$cls", $value;
 			}
@@ -350,7 +354,7 @@ sub json_walk_var {
             $iref  = ${$ref}{$key};
             $iref  = \${$ref}{$key} unless ref $iref;
             my ($k, $r) = &json_walk_var( $iref, $iname, @types );
-            $json_vars{$name}{$k} = $r;
+            $json_vars{$name} = $r if $k ne "";
         }
     }
     elsif ( $type eq 'ARRAY' ) {
