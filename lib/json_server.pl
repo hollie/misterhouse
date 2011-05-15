@@ -19,7 +19,6 @@ use strict;
 
 use HTML::Entities;    # So we can encode characters like <>& etc
 use JSON;
-use Data::Dumper;
 
 sub json {
 	my ( $request, $options ) = @_;
@@ -155,14 +154,15 @@ sub json {
 				my $ref;
 				eval "\$ref = \\$member";
 				print_log "json subs error: $@" if $@;
-				$json{subs} = &json_walk_var( $ref, $member, ('CODE') );
+				$json{subs}{$member} = &json_walk_var( $ref, $member, ('CODE') );
+				print_log Dumper(%json);
 			}
 		}
 		else {
 			my $ref = \%::;
 			foreach my $key ( sort { lc $a cmp lc $b } keys %$ref ) {
 				my $iref = ${$ref}{$key};
-				$json{subs} = &json_walk_var( $iref, $key, ('CODE') );
+				$json{subs}{$key} = &json_walk_var( $iref, $key, ('CODE') );
 			}
 		}
 	}
@@ -177,7 +177,7 @@ sub json {
 				my $ref;
 				eval "\$ref = \\$member";
 				print_log "json packages error: $@" if $@;
-				$json{packages} =
+				$json{packages}{$member} =
 				  &json_walk_var( $ref, $member, qw( SCALAR ARRAY HASH CODE ) );
 			}
 		}
@@ -187,8 +187,7 @@ sub json {
 				next unless $key =~ /.+::$/;
 				next if $key eq 'main::';
 				my $iref = ${$ref}{$key};
-				$json{packages} =
-				  &json_walk_var( $iref, $key, qw( SCALAR ARRAY HASH CODE ) );
+				$json{packages}{$key} = &json_walk_var( $iref, $key, qw( SCALAR ARRAY HASH CODE ) );
 			}
 		}
 	}
@@ -288,9 +287,9 @@ sub json {
 			$json{$req} = \%temp; 
 		}
 	}
-
+    $json = JSON->new->allow_nonref;
 	# Translate special characters
-	$json = encode_json \%json;
+	$json = $json->pretty->encode( \%json );
 	return &json_page($json);
 }
 
@@ -324,15 +323,17 @@ sub json_walk_var {
 
 	if ( $type eq '' ) {
 		my $value = $ref;
-		$value            = 'undef' unless defined $value;
+		$value            = 'No Value' unless defined $value;
 		$value            = encode_entities($value);
 		$json_vars{$name} = $value;
 	}
 	elsif ( $type eq 'SCALAR' ) {
 		my $value = $$ref;
-		$value                = 'undef' unless defined $value;
+		$value                = 'No Value' unless defined $value;
 		$value                = encode_entities($value);
-		return $value;
+		$name =~ s/.*\{'(.*?)'\}$/$1/i;
+		if ($name =~ m/\[\d+\]/i){ return $value; }
+		$json_vars{$name} = $value;
 	}
 	elsif ( $name =~ /.::$/ ) {
 		foreach my $key ( sort keys %$ref ) {
@@ -355,14 +356,14 @@ sub json_walk_var {
 			$iname = "$name\{'$key'\}";
 			$iref  = \${$ref}{$key};
 			$iref  = ${$ref}{$key} if ref $iref eq 'REF';
-			$json_vars{$name}{$key} = &json_walk_var( $iref, $iname );
 			
+			return &json_walk_var( $iref, $iname );			
 		}
 	}
 	elsif ( $type eq 'CODE' ) {
 		$json_vars{"\&$name"} = undef;
 	}
-	print_log Dumper(%json_vars);
+	#print_log " - Ref:" .$ref ." - Name: " .$name ." - Type: " .$type ." - ".Dumper(%json_vars);# if $Debug{json};
 	return %json_vars;
 }
 
