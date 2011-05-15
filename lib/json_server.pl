@@ -207,7 +207,6 @@ sub json {
 				my $rtype = eval "ref \$$name if defined \$$name";
 				print_log "json: ref eval error = $@" if $@;
 
-				#print_log "json: $type $name $member $rtype";
 				if ( $rtype and $type ) {
 					eval "\$ref = \\$type\{ \$$name \}";
 					$json{vars} = &json_walk_var( $ref, $name ) if $ref;
@@ -276,17 +275,14 @@ sub json {
 		if ( $request{$req}{members} and @{ $request{$req}{members} } ) {
 			foreach my $member ( @{ $request{$req}{members} } ) {
 				my $iref = \${$ref}{$hash}{$member};
-
-				#$iref = \$iref unless ref $iref;
-				my %temp = &json_walk_var( $iref, "$hash\{$member\}" );
-				$json{$req} = \%temp;
+				%json = &json_walk_var( $iref, "$hash\{$member\}" );
 			}
 		}
 		else {
-			my %temp = &json_walk_var( ${$ref}{$hash}, $hash );
-			$json{$req} = \%temp; 
+			%json = &json_walk_var( ${$ref}{$hash}, $hash );
 		}
 	}
+	print_log Dumper(%json) if $Debug{json};
     $json = JSON->new->allow_nonref;
 	# Translate special characters
 	$json = $json->pretty->encode( \%json );
@@ -312,7 +308,7 @@ sub json_walk_var {
 				and not defined $$iref
 				and ( *{$ref}{ARRAY} or *{$ref}{CODE} or *{$ref}{HASH} ) )
 			{
-				%json_vars = &json_walk_var( $iref, $name, @types );
+					%json_vars = &json_walk_var( $iref, $name, @types );
 			}
 		}
 		return %json_vars;
@@ -323,47 +319,56 @@ sub json_walk_var {
 
 	if ( $type eq '' ) {
 		my $value = $ref;
-		$value            = 'No Value' unless defined $value;
-		$value            = encode_entities($value);
-		$json_vars{$name} = $value;
+		$value            = undef unless defined $value;
+		return ( "$name", $value );
 	}
 	elsif ( $type eq 'SCALAR' ) {
 		my $value = $$ref;
-		$value                = 'No Value' unless defined $value;
-		$value                = encode_entities($value);
-		$name =~ s/.*\{'(.*?)'\}$/$1/i;
-		if ($name =~ m/\[\d+\]/i){ return $value; }
-		$json_vars{$name} = $value;
-	}
-	elsif ( $name =~ /.::$/ ) {
-		foreach my $key ( sort keys %$ref ) {
-			$iname = "$name$key";
-			$iref  = ${$ref}{$key};
-			$iref  = \${$ref}{$key} unless ref $iref;
-			$json_vars{$name}{$key} = &json_walk_var( $iref, $iname );
+		$value                = undef unless defined $value;
+		if ($name =~ m/\[(\d+?)\]$/) {
+			my $index = $1;
+			return $index, $value;
+		} elsif ($name =~ m/.*\{'(.*?)'\}$/) {
+			my $cls = $1;
+			return "$cls", $value;
+		} else {
+			return ( "$name", $value );
 		}
 	}
-	elsif ( $type eq 'ARRAY' ) {
-		foreach my $key ( 0 .. @$ref - 1 ) {
-			$iname = "$name\[$key\]";
-			$iref  = \${$ref}[$key];
-			$iref  = ${$ref}[$key] if ref $iref eq 'REF';
-			$json_vars{$name}{$key} = &json_walk_var( $iref, $iname );
-		}
-	}
-	elsif ( $type eq 'HASH' ) {
-		foreach my $key ( sort keys %$ref ) {
-			$iname = "$name\{'$key'\}";
-			$iref  = \${$ref}{$key};
-			$iref  = ${$ref}{$key} if ref $iref eq 'REF';
-			
-			return &json_walk_var( $iref, $iname );			
-		}
-	}
+    elsif ( $name =~ /.::$/ ) {
+        foreach my $key ( sort keys %$ref ) {
+            $iname = "$name$key";
+            $iref  = ${$ref}{$key};
+            $iref  = \${$ref}{$key} unless ref $iref;
+            my ($k, $r) = &json_walk_var( $iref, $iname, @types );
+            $json_vars{$name}{$k} = $r;
+        }
+    }
+    elsif ( $type eq 'ARRAY' ) {
+        foreach my $key ( 0 .. @$ref - 1 ) {
+            $iname = "$name\[$key\]";
+            $iref  = \${$ref}[$key];
+            $iref  = ${$ref}[$key] if ref $iref eq 'REF';
+            my ($k, $r) = &json_walk_var( $iref, $iname, @types );
+           	$json_vars{$name}{$k} = $r;
+        }
+    }
+    elsif ( $type eq 'HASH' ) {
+        foreach my $key ( sort keys %$ref ) {
+            $iname = "$name\{'$key'\}";
+            $iref  = \${$ref}{$key};
+            $iref  = ${$ref}{$key} if ref $iref eq 'REF';
+           	my ($k, $r) = &json_walk_var( $iref, $iname, @types );
+           	$json_vars{$name}{$key} = $r;
+           	if ($name eq "Serial_Ports"){
+           		print_log Dumper($key);
+           	}
+           	
+        }
+    }
 	elsif ( $type eq 'CODE' ) {
-		$json_vars{"\&$name"} = undef;
 	}
-	#print_log " - Ref:" .$ref ." - Name: " .$name ." - Type: " .$type ." - ".Dumper(%json_vars);# if $Debug{json};
+	print_log Dumper(%json_vars ) if $Debug{json};
 	return %json_vars;
 }
 
@@ -417,7 +422,7 @@ sub json_object_detail {
 		if ( ref $value eq 'ARRAY' ) {
 			my $i = 0;
 			foreach (@$value) {
-				$_ = 'undef' unless defined $_;
+				$_ = 'No Value' unless defined $_;
 				$json_objects{$f}{$i} = $_;
 				$i = $i + 1;
 			}
@@ -472,9 +477,7 @@ eof
 	my %options = (
 		fields => {
 			applyto => 'types|groups|categories|objects',
-			example => 'state|set_by',
 		},
-		truncate => { applyto => 'types|groups|categories', },
 	);
 	foreach my $r (@requests) {
 		my $url = "/sub?json($r)";
