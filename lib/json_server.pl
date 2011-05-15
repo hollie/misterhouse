@@ -328,9 +328,18 @@ sub json_walk_var {
 		if ($name =~ m/\[(\d+?)\]$/) {
 			my $index = $1;
 			return $index, $value;
-		} elsif ($name =~ m/.*\{'(.*?)'\}$/) {
+		} elsif ($name =~ m/.*?\{'(.*?)'\}$/) {
 			my $cls = $1;
-			return "$cls", $value;
+			if ($cls =~ m/\}\{/){
+				my @values = split('\'}{\'', $cls);
+				foreach my $val (@values) {
+					$value = "Unusable Object" if ref $value;
+					return $val, $value;
+				}
+				print "------\n";	
+			} else {
+				return "$cls", $value;
+			}
 		} else {
 			return ( "$name", $value );
 		}
@@ -359,11 +368,7 @@ sub json_walk_var {
             $iref  = \${$ref}{$key};
             $iref  = ${$ref}{$key} if ref $iref eq 'REF';
            	my ($k, $r) = &json_walk_var( $iref, $iname, @types );
-           	$json_vars{$name}{$key} = $r;
-           	if ($name eq "Serial_Ports"){
-           		print_log Dumper($key);
-           	}
-           	
+           	$json_vars{$name}{$key} = $r;       	
         }
     }
 	elsif ( $type eq 'CODE' ) {
