@@ -38,7 +38,7 @@
 			function weatherCallBack(weather){
 				$("#weather-div").removeClass("ui-state-hover");
 				$("#weather-div").effect("highlight");
-				if (weather.weather == undefined) {
+				if (weather.Weather == undefined) {
 					$("#weather-div").addClass("ui-state-error");
 					$("#weather-icon").removeClass("ui-icon-clock");
 					$("#weather-icon").addClass("ui-icon-alert");
@@ -46,10 +46,10 @@
 					setTimeout("loadWeather();", 10000);
 				} else {
 					
-					var wind = weather.weather.Wind;
-					var humidity = weather.weather.Humidex;
-					var outdoor_temp = weather.weather.TempOutdoor;
-					var conditions = weather.weather.Conditions;
+					var wind = weather.Weather.Wind;
+					var humidity = weather.Weather.Humidex;
+					var outdoor_temp = weather.Weather.TempOutdoor;
+					var conditions = weather.Weather.Conditions;
 					
 					var html = "Wind: " + wind +"<br />"
 					+ "Humidity Index: " + humidity + "<br />"
