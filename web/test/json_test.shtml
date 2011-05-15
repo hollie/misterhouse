@@ -15,8 +15,17 @@
 			}
 			$(document).ready(function() {
 				fireJSON();
-				setTimeout("loadWeather();", 3000);
-				
+
+				$("#weather-button").click(function() {
+					loadWeather();
+				});
+				$("#moon-button").click(function() {
+					$("#moon-information").dialog({ title: 'Moon Information'});
+					loadMoon();
+				});
+				$("#moon-button2").click(function() {
+					loadMoon();
+				});
 			});
 			function fireJSON(){
 				// get the JSON Data
@@ -41,8 +50,7 @@
 					$("#weather-div").addClass("ui-state-error");
 					$("#weather-icon").removeClass("ui-icon-clock");
 					$("#weather-icon").addClass("ui-icon-alert");
-					$("#Weather").html("Unable to load Weather - No Weather response from JSON<br />Please check that you have some weather code running.<br /><br />Automatic Re-attempt in 10 seconds.");
-					setTimeout("loadWeather();", 10000);
+					$("#Weather").html("Unable to load Weather - No Weather response from JSON<br />Please check that you have some weather code running.");
 				} else {
 					
 					var wind = weather.Weather.Wind;
@@ -55,11 +63,31 @@
 					+ "Humidity Index: " + humidity + "<br />"
 					+ "Outdoor Temp: " + outdoor_temp + "<br />"
 					+ "Conditions: " + conditions + "<br />"
-					+ "Summary: " + summary + "<br />Automatic Refresh in 60 seconds.";
+					+ "Summary: " + summary;
 					$("#weather-div").addClass("ui-state-active");
 					$("#Weather").html(html);
-					setTimeout("loadWeather();", 60000);
 				}
+			}
+			
+			function loadMoon(){
+				$("#moon-load-button").html("LOADING");
+				$.getJSON("/bin/json.pl",
+				  { vars: "" },
+				  moonCallback
+				);
+			}
+			
+			function moonCallback(data){
+				if (data.vars.Moon == undefined) {
+					$("#moon-information-div").html("An error occured loading Moon Information");
+				} else {
+					var html = "Phase: " + data.vars.Moon.phase +"<br />"
+					+ "Age: " + data.vars.Moon.age +"<br />"
+					+ "Brightness: " + data.vars.Moon.brightness + "<br /><br />"
+					+ "MH Uptime: " + data.vars.Tk_objects.label_uptime_mh;
+					$("#moon-information-div").html(html);
+				}
+				$("#moon-load-button").html("Reload");
 			}
 		</script>
 	</head>
@@ -74,13 +102,24 @@
 			Memory Used: <span id="mem" class="mem"></span><br />
 		</p>
 		<p>
-			Weather information below will load dynamically after 5 seconds.
+			Weather information below will load when you click <button id="weather-button" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" aria-disabled="false"><span class="ui-button-text">load</span></button>.
 			<div id="weather-div" class="ui-state-hover ui-corner-all" style="margin-top: 20px; padding: 0 .7em; width: 400px;"> 
 				<p><span id="weather-icon" class="ui-icon ui-icon-clock" style="float: left; margin-right: .3em;"></span>
 					<div id="Weather">
 						Waiting...
 					</div>
 				</p>
+			</div>
+		</p>
+		<p>
+			<button id="moon-button" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" aria-disabled="false"><span class="ui-button-text">Show me some Moon Information</span></button>
+			<div id="moon-information" style="display:none;">
+				<div id="moon-information-div">
+					Fetching
+				</div>
+				<div align="center"><br /><br />
+					<button id="moon-button2" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" aria-disabled="false"><span id="moon-load-button" class="ui-button-text">Reload</span></button>
+				</div>
 			</div>
 		</p>
 	</body>
