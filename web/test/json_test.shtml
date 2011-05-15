@@ -29,7 +29,6 @@
 			}
 			
 			function loadWeather(){
-				$("#Weather").html("Loading Weather Information");
 				$.getJSON("/bin/json.pl",
 				  { weather: "" },
 				  weatherCallBack
@@ -50,14 +49,16 @@
 					var humidity = weather.Weather.Humidex;
 					var outdoor_temp = weather.Weather.TempOutdoor;
 					var conditions = weather.Weather.Conditions;
+					var summary = weather.Weather.Summary_Long;
 					
 					var html = "Wind: " + wind +"<br />"
 					+ "Humidity Index: " + humidity + "<br />"
 					+ "Outdoor Temp: " + outdoor_temp + "<br />"
-					+ "Conditions: " + conditions + "<br /><br />Reload in 10 seconds.";
+					+ "Conditions: " + conditions + "<br />"
+					+ "Summary: " + summary + "<br />Automatic Refresh in 60 seconds.";
 					$("#weather-div").addClass("ui-state-active");
 					$("#Weather").html(html);
-					setTimeout("loadWeather();", 10000);
+					setTimeout("loadWeather();", 60000);
 				}
 			}
 		</script>
