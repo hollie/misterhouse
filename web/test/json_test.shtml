@@ -30,7 +30,7 @@
 			function fireJSON(){
 				// get the JSON Data
 				$.getJSON("/bin/json.pl",
-				  { vars: "" },
+				  { vars: "Tk_objects" },
 				  ajaxCallBack
 				);
 				// Update the data every 5 seconds (CAN CAUSE ALOT OF JSON CALLS, IN HERE FOR TESTING)
@@ -39,7 +39,7 @@
 			
 			function loadWeather(){
 				$.getJSON("/bin/json.pl",
-				  { weather: "" },
+				  { weather: "Wind|Humidex|TempOutdoor|Conditions|Summary_Long" },
 				  weatherCallBack
 				);
 			}
@@ -72,7 +72,7 @@
 			function loadMoon(){
 				$("#moon-load-button").html("LOADING");
 				$.getJSON("/bin/json.pl",
-				  { vars: "" },
+				  { vars: "Moon|Tk_objects" },
 				  moonCallback
 				);
 			}

@@ -295,7 +295,8 @@ sub json {
 		if ( $request{$req}{members} and @{ $request{$req}{members} } ) {
 			foreach my $member ( @{ $request{$req}{members} } ) {
 				my $iref = \${$ref}{$hash}{$member};
-				%json = &json_walk_var( $iref, "$hash\{$member\}" );
+				my ($k, $r) = &json_walk_var( $iref, "$hash\{$member\}" );
+				$json{$hash}{$member} = $r;
 			}
 		}
 		else {
