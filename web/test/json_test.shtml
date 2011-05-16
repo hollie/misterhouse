@@ -14,6 +14,11 @@
 			    $(".mem").html(data.vars.Tk_objects.label_memory_used);
 			}
 			$(document).ready(function() {
+				$.getJSON("/bin/json.pl",
+				  { config_parms: "holiday_dates" },
+				  holidayCallback
+				);
+				
 				fireJSON();
 
 				$("#weather-button").click(function() {
@@ -68,6 +73,13 @@
 					$("#Weather").html(html);
 				}
 			}
+			function holidayCallback(data){
+				if (data.config_parms.holiday_dates == undefined) {
+					$("#Holiday").html("An error occured loading Holiday Information");
+				} else {
+					$("#Holiday").html(data.config_parms.holiday_dates);
+				}
+			}
 			
 			function loadMoon(){
 				$("#moon-load-button").html("LOADING");
@@ -95,6 +107,12 @@
 		<p>
 			This example uses Javascript (jQuery) and JSON to receive data from the Misterhouse server
 		</p>
+		
+		<p>
+			<strong>This is loaded only ONCE - On Page Load</strong><br />Defined Holidays:
+			<div id="Holiday" style="border: 1px solid #000000;">Holidays</div>
+		</p>
+		
 		<p>
 			<strong>These update every 5 seconds, regardless of other json calls.</strong><br />
 			Date / Time: <span id="time_now" class="time_now"></span><br />
