@@ -14,11 +14,8 @@
 			    $(".mem").html(data.vars.Tk_objects.label_memory_used);
 			}
 			$(document).ready(function() {
-				$.getJSON("/bin/json.pl",
-				  { config_parms: "holiday_dates" },
-				  holidayCallback
-				);
 				
+				setTimeout("loadHols();", 3000)
 				fireJSON();
 
 				$("#weather-button").click(function() {
@@ -49,15 +46,20 @@
 				);
 			}
 			function weatherCallBack(weather){
-				$("#weather-div").removeClass("ui-state-hover");
+				$("#weather-div").removeClass("ui-state-highlight");
+				$("#weather-div").removeClass("ui-state-active");
+				$("#weather-div").removeClass("ui-state-error");
+				$("#weather-icon").removeClass("ui-icon-clock");
+				$("#weather-icon").removeClass("ui-icon-alert");
+				$("#weather-icon").removeClass("ui-icon-check");
 				$("#weather-div").effect("highlight");
 				if (weather.Weather == undefined) {
 					$("#weather-div").addClass("ui-state-error");
-					$("#weather-icon").removeClass("ui-icon-clock");
 					$("#weather-icon").addClass("ui-icon-alert");
 					$("#Weather").html("Unable to load Weather - No Weather response from JSON<br />Please check that you have some weather code running.");
 				} else {
-					
+					$("#weather-icon").addClass("ui-icon-check");
+					$("#weather-div").addClass("ui-state-active");
 					var wind = weather.Weather.Wind;
 					var humidity = weather.Weather.Humidex;
 					var outdoor_temp = weather.Weather.TempOutdoor;
@@ -69,7 +71,6 @@
 					+ "Outdoor Temp: " + outdoor_temp + "<br />"
 					+ "Conditions: " + conditions + "<br />"
 					+ "Summary: " + summary;
-					$("#weather-div").addClass("ui-state-active");
 					$("#Weather").html(html);
 				}
 			}
@@ -101,6 +102,13 @@
 				}
 				$("#moon-load-button").html("Reload");
 			}
+			
+			function loadHols(){
+				$.getJSON("/bin/json.pl",
+				  { config_parms: "holiday_dates" },
+				  holidayCallback
+				);
+			}
 		</script>
 	</head>
 	<body>
@@ -109,8 +117,8 @@
 		</p>
 		
 		<p>
-			<strong>This is loaded only ONCE - On Page Load</strong><br />Defined Holidays:
-			<div id="Holiday" style="border: 1px solid #000000;">Holidays</div>
+			<strong>This is loaded only ONCE - After 3 seconds from Page Load</strong><br />Defined Holidays:
+			<div id="Holiday" style="border: 1px solid #000000;">Waiting for Timeout Event</div>
 		</p>
 		
 		<p>
@@ -120,11 +128,12 @@
 			Memory Used: <span id="mem" class="mem"></span><br />
 		</p>
 		<p>
-			Weather information below will load when you click <button id="weather-button" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" aria-disabled="false"><span class="ui-button-text">load</span></button>.
-			<div id="weather-div" class="ui-state-hover ui-corner-all" style="margin-top: 20px; padding: 0 .7em; width: 400px;"> 
+			Weather information below will load when you click "Load Weather".
+			<div id="weather-div" class="ui-state-highlight ui-corner-all" style="margin-top: 20px; padding: 0 .7em; width: 400px;"> 
 				<p><span id="weather-icon" class="ui-icon ui-icon-clock" style="float: left; margin-right: .3em;"></span>
-					<div id="Weather">
-						Waiting...
+					<div id="Weather"></div>
+					<div align="center">
+						<button id="weather-button" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" aria-disabled="false"><span class="ui-button-text">Load Weather</span></button>
 					</div>
 				</p>
 			</div>
