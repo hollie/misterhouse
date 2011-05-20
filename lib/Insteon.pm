@@ -6,15 +6,23 @@ use strict;
 
 #@ This module creates voice commands for all insteon related items.
 
-my (@_insteon_plm,@_insteon_device,@_insteon_link,@_scannable_link,$_scan_cnt,$_scan_failure_cnt,$_sync_cnt,$_sync_failure_cnt);
+my (@_insteon_plm,@_insteon_device,@_insteon_link,@_scannable_link,$_scan_cnt,$_sync_cnt,$_sync_failure_cnt);
 my $init_complete;
-my (@_scan_devices);
+my (@_scan_devices,@_scan_device_failures,$current_scan_device);
 
 sub scan_all_linktables
 {
+	if ($current_scan_device)
+        {
+        	&main::print_log("[Scan all linktables] WARN: link already underway. Ignoring request for new scan ...");
+                return;
+        }
+
         my @candidate_devices = ();
         # clear @_scan_devices
         @_scan_devices = ();
+        @_scan_device_failures = ();
+        $current_scan_device = undef;
         # alwayws include the active interface (e.g., plm)
        	push @_scan_devices, &Insteon::active_interface;
 
@@ -24,58 +32,62 @@ sub scan_all_linktables
         foreach (@candidate_devices)
         {
         	my $candidate_object = $_;
-        	if (!($candidate_object->isa('Insteon::RemoteLinc')
+        	if ($candidate_object->is_root and
+                	!($candidate_object->isa('Insteon::RemoteLinc')
                 	or $candidate_object->isa('Insteon::InterfaceController')
                 	or $candidate_object->isa('Insteon::MotionSensor')))
                 {
 			push @_scan_devices, $candidate_object;
+                	&main::print_log("[Scan all linktables] INFO: "
+                        	. $candidate_object->get_object_name
+                        	. " will be scanned.") if $main::Debug{insteon};
         	}
                 else
                 {
-                	&main::print_log("[Scan all linktables] Note: "
+                	&main::print_log("[Scan all linktables] INFO: !!! "
                         	. $candidate_object->get_object_name
-                        	. " is not a candidate for scanning.");
+                        	. " is NOT a candidate for scanning.");
                 }
 	}
         $_scan_cnt = scalar @_scan_devices;
 
-        $_scan_failure_cnt = 0;
         &_get_next_linkscan();
+}
+
+sub _get_next_linkscan_failure
+{
+        push @_scan_device_failures, $current_scan_device;
+        &main::print_log("[Scan all link tables] WARN: failure occurred when scanning "
+                	. $current_scan_device->get_object_name . ".  Moving on...");
+        &_get_next_linkscan();
+
 }
 
 sub _get_next_linkscan
 {
-	my ($prior_failure) = @_;
-    	if ($prior_failure)
-        {
-      		$_scan_failure_cnt++;
-    	}
-        else
-        {
-       		$_scan_failure_cnt = 0;
-    	}
+   	$current_scan_device = shift @_scan_devices;
 
-    	my $current_obj = $_scan_devices[0];
-   	my $next_obj = shift @_scan_devices;
-    	if ($_scan_failure_cnt > 0)
-        {
-                &main::print_log("[Scan all link tables] WARN: failure occurred when scanning "
-                	. $current_obj->get_object_name . ".  Moving on...");
-	}
-        # remove the queue_timer_callback
-#        if (!($current_obj->isa('Insteon_PLM'))) {
-#           $current_obj->queue_timer_callback('');
-#        }
-
-	if ($next_obj)
+	if ($current_scan_device)
         {
           	&main::print_log("[Scan all link tables] Now scanning: "
-                	. $next_obj->get_object_name . " ("
+                	. $current_scan_device->get_object_name . " ("
                         . ($_scan_cnt - scalar @_scan_devices)
                         . " of $_scan_cnt)");
-          	$next_obj->scan_link_table('&Insteon::_get_next_linkscan()');
+                # pass first the success callback followed by the failure callback
+          	$current_scan_device->scan_link_table('&Insteon::_get_next_linkscan()','&Insteon::_get_next_linkscan_failure()');
     	} else {
-       		return undef;
+          	&main::print_log("[Scan all link tables] All tables have completed scanning");
+                my $_scan_failure_cnt = scalar @_scan_device_failures;
+                if ($_scan_failure_cnt)
+                {
+          	  &main::print_log("[Scan all link tables] However, some failures were noted:");
+                  for my $failed_obj (@_scan_device_failures)
+                  {
+        		&main::print_log("[Scan all link tables] WARN: failure occurred when scanning "
+                	. $failed_obj->get_object_name);
+                  }
+                }
+
     	}
 }
 
