@@ -187,7 +187,7 @@ sub process_queue
                                         # !!!!!!!!! TO-DO - handle failure timeout ???
                                         my $failed_message = $self->active_message;
                                         # make sure to let the sending object know!!!
-					if (defined($failed_message->setby) and $failed_message->can('is_acknowledged'))
+					if (defined($failed_message->setby) and $failed_message->setby->can('is_acknowledged'))
 					{
                                         	$failed_message->setby->is_acknowledged(0);
 					}
@@ -200,9 +200,11 @@ sub process_queue
                 			$self->clear_active_message();
 
                                         # may instead want a "failure" callback separate from success callback
-					if ($failed_message->callback) {
+					if ($failed_message->failure_callback) {
+                                        	&::print_log("[Insteon::BaseInterface] WARN: Now calling callback: " .
+                                                	$failed_message->failure_callback) if $main::Debug{insteon};
 		       				package main;
-						eval $failed_message->callback;
+						eval $failed_message->failure_callback;
 						&::print_log("[Insteon::BaseInterface] problem w/ retry callback: $@") if $@;
 						package Insteon::BaseInterface;
 					}
