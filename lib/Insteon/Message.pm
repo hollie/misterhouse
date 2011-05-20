@@ -45,6 +45,16 @@ sub callback
         return $$self{callback};
 }
 
+sub failure_callback
+{
+	my ($self, $callback) = @_;
+        if ($callback)
+        {
+        	$$self{failure_callback} = $callback;
+        }
+        return $$self{failure_callback};
+}
+
 sub send_attempts
 {
 	my ($self, $send_attempts) = @_;
