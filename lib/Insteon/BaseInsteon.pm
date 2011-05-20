@@ -913,11 +913,11 @@ sub add_link
 
 sub scan_link_table
 {
-	my ($self, $callback) = @_;
+	my ($self, $success_callback, $failure_callback) = @_;
         my $aldb = $self->get_root()->_aldb;
         if ($aldb)
         {
-        	return $aldb->scan_link_table($callback);
+        	return $aldb->scan_link_table($success_callback, $failure_callback);
 	}
 
 }
