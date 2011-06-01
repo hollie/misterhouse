@@ -1165,7 +1165,19 @@ sub new {
     my ( $source, $deviceid ) = $p_source =~ /(\S+)?:([\S ]+)/;
     $source = $p_source unless $source;
     my $self = $class->SUPER::new($source);
-    $$self{sensor_type} = $p_type if $p_type;
+    if ($p_type)
+    {
+       $$self{sensor_type} = $p_type;
+       if ($p_type eq 'output') # define a default message to be sent out on a call to the "set" method
+       {
+         # the following can always be overwritten
+          $self->on_set_message('control.basic' => { 'current' => '$state' });
+       }
+    }
+    else
+    {
+       $$self{sensor_type} = 'input'; # set a default
+    }
     my $statekey = 'current';
     $statekey = $p_statekey if $p_statekey;
     $self->SUPER::class_name('sensor.basic');
