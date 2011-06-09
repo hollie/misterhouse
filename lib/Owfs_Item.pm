@@ -501,7 +501,7 @@ sub get_latch {
 
 sub get_sensed {
     my $self = shift;
-    return ($self->{sensed});
+    return ($self->{sensed} eq 1 ? 1 : 0);
 }
 
 sub reload_hook {
@@ -521,7 +521,7 @@ sub run_loop {
 	$self->{latch} = 0;
         $self->{pass_triggered} = 0;
     }
-	
+
     if ($main::Debug{owfs}) {
 	my $device = $self->{device};
 	my $location = $self->{location};
