@@ -10,8 +10,8 @@
 				// Called from fireJSON's getJSON
 				// This function could also just store them in JS vars.
 				$(".time_now").html(data.vars.Tk_objects.label_time);
-			    $(".cpu").html(data.vars.Tk_objects.label_cpu_used);
-			    $(".mem").html(data.vars.Tk_objects.label_memory_used);
+			    	$(".cpu").html(data.vars.Tk_objects.label_cpu_used);
+			    	$(".mem").html(data.vars.Tk_objects.label_memory_used);
 			}
 			$(document).ready(function() {
 				
