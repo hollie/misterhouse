@@ -97,8 +97,43 @@ sub _is_duplicate
 sub has_link
 {
 	my ($self, $insteon_object, $group, $is_controller, $subaddress) = @_;
-	my $key = lc $insteon_object->device_id . $group . $is_controller;
-	return (defined $$self{links}{$key}) ? 1 : 0;
+        if ($self->_aldb)
+        {
+           return $self->_aldb->has_link($insteon_object, $group, $is_controller, $subaddress);
+        }
+	return 0;
+}
+
+sub add_link
+{
+	my ($self, $parms_text) = @_;
+        if ($self->_aldb)
+        {
+		my %link_parms;
+		if (@_ > 2) {
+			shift @_;
+			%link_parms = @_;
+		} else {
+			%link_parms = &main::parse_func_parms($parms_text);
+		}
+           	$self->_aldb->add_link(%link_parms);
+        }
+}
+
+sub delete_link
+{
+	my ($self, $parms_text) = @_;
+        if ($self->_aldb)
+        {
+		my %link_parms;
+		if (@_ > 2) {
+			shift @_;
+			%link_parms = @_;
+		} else {
+			%link_parms = &main::parse_func_parms($parms_text);
+		}
+           	$self->_aldb->delete_link(%link_parms);
+        }
 }
 
 sub active_message
@@ -240,16 +275,6 @@ sub device_id {
 	return $$self{deviceid};
 }
 
-sub get_device
-{
-	my ($self, $p_deviceid, $p_group) = @_;
-	foreach my $device (&Insteon::find_members('Insteon::BaseDevice')) {
-		if (lc $device->device_id eq lc $p_deviceid and lc $device->group eq lc $p_group) {
-			return $device;
-		}
-	}
-}
-
 sub restore_string
 {
 	my ($self) = @_;
@@ -275,8 +300,8 @@ sub log_alllink_table
 
 sub delete_orphan_links
 {
-	my ($self) = @_;
-        return $self->_aldb->delete_orphan_links if $self->_aldb;
+	my ($self, $audit_mode) = @_;
+        return $self->_aldb->delete_orphan_links($audit_mode) if $self->_aldb;
 }
 
   ######################
