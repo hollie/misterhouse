@@ -295,7 +295,14 @@ sub to_string
         {
         	$result .= '; ';
         }
-        $result .= 'command=' . $self->command;
+        if ($self->command)
+        {
+        	$result .= 'command=' . $self->command;
+        }
+        else
+        {
+        	$result .= 'interface_data=' . $self->interface_data;
+        }
         if ($self->extra)
         {
         	$result .= '; extra=' . $self->extra;
