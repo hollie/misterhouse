@@ -627,7 +627,7 @@ sub delete_link
 
 sub delete_orphan_links
 {
-	my ($self) = @_;
+	my ($self, $audit_mode) = @_;
 	@{$$self{delete_queue}} = (); # reset the work queue
 	my $selfname = $$self{device}->get_object_name;
 	my $num_deleted = 0;
@@ -638,30 +638,49 @@ sub delete_orphan_links
 			my $group = $$self{aldb}{$linkkey}{group};
 			my $is_controller = $$self{aldb}{$linkkey}{is_controller};
 			my $data3 = $$self{aldb}{$linkkey}{data3};
+                        # $device is the object that is referenced by the ALDB record's deviceid
 			my $device = ($deviceid eq lc $$self{device}->interface->device_id) ? $$self{device}->interface
 					: &Insteon::get_object($deviceid,'01');
 			if (!($device)) {
-#				&::print_log("[AllLinkDataBase] " . $self->get_object_name . " now deleting orphaned link w/ details: "
-#					. (($is_controller) ? "controller" : "responder")
-#					. ", deviceid=$deviceid, group=$group");
-				my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
+                        	# no device is known by mh with the ADLB record's deviceid
+                        	if ($audit_mode)
+                                {
+					&::print_log("[Insteon::ALDB_i1] (AUDIT) " . $$self{device}->get_object_name . " now deleting orphaned link w/ details: "
+						. (($is_controller) ? "controller" : "responder")
+						. ", deviceid=$deviceid, group=$group");
+                                }
+                                else
+                                {
+			       		my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
 							callback => "$selfname->_process_delete_queue()", cause => "no device could be found");
-				push @{$$self{delete_queue}}, \%delete_req;
+			       		push @{$$self{delete_queue}}, \%delete_req;
+                                }
 			} elsif ($device->isa("Insteon::BaseInterface") and $is_controller) {
 				# ignore since this is just a link back to the PLM
 			} elsif ($device->isa("Insteon::BaseInterface")) {
 				# does the PLM have a link point back?  If not, the delete this one
-				if (!($device->has_link($self,$group,1))) {
-					my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
-							callback => "$selfname->_process_delete_queue()", object => $device, data3 => $data3);
-					push @{$$self{delete_queue}}, \%delete_req;
-					$num_deleted++;
+				if (!($device->has_link($$self{device},$group,1))) {
+                                	if ($audit_mode)
+                                        {
+						&::print_log("[Insteon::ALDB_i1] (AUDIT) " . $device->get_object_name .
+                                                	" now deleting orphaned link w/ details: "
+							. (($is_controller) ? "controller" : "responder")
+							. ", deviceid=$deviceid, group=$group, data=$data3");
+                                        }
+                                        else
+                                        {
+				       		my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
+							callback => "$selfname->_process_delete_queue()", object => $device, data3 => $data3,
+                                                        cause => 'PLM does not have a link pointing back to device');
+						push @{$$self{delete_queue}}, \%delete_req;
+						$num_deleted++;
+                                        }
 				}
 				# is there an entry in the items.mht that corresponds to this link?
 				if ($is_controller) {
 					# TO-DO: handle this case
 				} else {
-					my $plm_link = $device->get_device('000000',$group);
+					my $plm_link = &Insteon::get_object('000000', $group);
 					if ($plm_link) {
 						my $is_invalid = 1;
 						foreach my $member_ref (keys %{$$plm_link{members}}) {
@@ -672,7 +691,7 @@ sub delete_orphan_links
 									$member = @lights[0]; # pick the first
 								}
 							}
-							if ($member->device_id eq $self->device_id) {
+							if ($member->device_id eq $$self{device}->device_id) {
 								if ($data3 eq '00' or (lc $data3 eq lc $member->group)) {
 								$is_invalid = 0;
 								last;
@@ -680,31 +699,62 @@ sub delete_orphan_links
 							}
 						}
 						if ($is_invalid) {
-							my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
-								callback => "$selfname->_process_delete_queue()", object => $device,
-								cause => "no link is defined for the plm controlled scene", data3 => $data3);
-							push @{$$self{delete_queue}}, \%delete_req;
-							$num_deleted++;
+                                                	if ($audit_mode)
+                                                        {
+								&::print_log("[Insteon::ALDB_i1] (AUDIT) Delete orphan link because none defined for PLM controlled scene "
+                                                                	. $device->get_object_name .
+                                                			" details: "
+									. (($is_controller) ? "controller" : "responder")
+									. ", deviceid=$deviceid, group=$group, data=$data3");
+                                                        }
+                                                        else
+                                                        {
+								my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
+									callback => "$selfname->_process_delete_queue()", object => $device,
+									cause => "no link is defined for the plm controlled scene", data3 => $data3);
+						       		push @{$$self{delete_queue}}, \%delete_req;
+								$num_deleted++;
+                                                        }
 						}
 					} else {
-						# delete the link since it doesn't exist
-						my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
-							callback => "$selfname->_process_delete_queue()", object => $device,
-							cause => "no plm link could be found", data3 => $data3);
-						push @{$$self{delete_queue}}, \%delete_req;
-						$num_deleted++;
+                                        	if ($audit_mode)
+                                                {
+							&::print_log("[Insteon::ALDB_i1] (AUDIT) Delete orphan because no PLM link defined to: "
+								. (($is_controller) ? "controller" : "responder")
+								. "=$selfname" . "($group), data=$data3");
+                                                }
+                                                else
+                                                {
+							# delete the link since it doesn't exist
+							my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
+								callback => "$selfname->_process_delete_queue()", object => $device,
+								cause => "no plm link could be found", data3 => $data3);
+							push @{$$self{delete_queue}}, \%delete_req;
+							$num_deleted++;
+                                                }
 					}
 				}
 			} else {
 				if (!($device->has_link($self,$group,($is_controller) ? 0:1, $data3))) {
-					my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
+                                	if ($audit_mode)
+                                        {
+					&::print_log("[Insteon::ALDB_i1] (AUDIT) Delete orphan because no PLM link defined "
+                                        	. $device->get_object_name .
+                                                " details: "
+						. (($is_controller) ? "controller" : "responder")
+						. ", deviceid=$deviceid, group=$group, data=$data3");
+                                        }
+                                        else
+                                        {
+						my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
 							callback => "$selfname->_process_delete_queue()", object => $device,
 							cause => "no link to the device could be found", data3 => $data3);
-					push @{$$self{delete_queue}}, \%delete_req;
-					$num_deleted++;
+						push @{$$self{delete_queue}}, \%delete_req;
+						$num_deleted++;
+                                        }
 				} else {
 					my $is_invalid = 1;
-					my $link = ($is_controller) ? &Insteon::get_object($self->device_id,$group)
+					my $link = ($is_controller) ? &Insteon::get_object($$self{device}->device_id,$group)
 						: &Insteon::get_object($device->device_id,$group);
 					if ($link) {
 						foreach my $member_ref (keys %{$$link{members}}) {
@@ -715,36 +765,62 @@ sub delete_orphan_links
 									$member = @lights[0]; # pick the first
 								}
 							}
-							if ($member->isa('Insteon::BaseDevice') and !($member->is_root)) {
+							if ($member->isa('Insteon::BaseDevice') && !($member->is_root))
+                                                        {
 								$member = $member->get_root;
 							}
-							if ($member->isa('Insteon::BaseDevice') and !($is_controller) and ($member->device_id eq $self->device_id)) {
-								$is_invalid = 0;
-								last;
-							} elsif ($member->isa('Insteon::BaseDevice') and $is_controller and ($member->device_id eq $device->device_id)) {
+
+							if ($member->isa('Insteon::BaseDevice') && !($is_controller)
+                                                        	&& ($member->device_id eq $$self{device}->device_id))
+                                                        {
 								$is_invalid = 0;
 								last;
 							}
-
+                                                        elsif ($member->isa('Insteon::BaseDevice') && $is_controller
+                                                        	&& ($member->device_id eq $device->device_id))
+                                                	{
+								$is_invalid = 0;
+								last;
+							}
 						}
 					}
 					if ($is_invalid) {
-						my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
-							callback => "$selfname->_process_delete_queue()", object => $device,
-							cause => "no reverse link could be found", data3 => $data3);
-						push @{$$self{delete_queue}}, \%delete_req;
-						$num_deleted++;
+                                        	if ($audit_mode)
+                                                {
+							&::print_log("[Insteon::ALDB_i1] (AUDIT ) Delete orphan because no reverse link could be found "
+                                        			. $device->get_object_name .
+                                                		" details: "
+								. (($is_controller) ? "controller" : "responder")
+								. ", deviceid=$deviceid, group=$group, data=$data3");
+                                                }
+                                                else
+                                                {
+					       		my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
+								callback => "$selfname->_process_delete_queue()", object => $device,
+						       		cause => "no reverse link could be found", data3 => $data3);
+							push @{$$self{delete_queue}}, \%delete_req;
+							$num_deleted++;
+                                                }
 					}
 				}
 			}
 		} elsif ($linkkey eq 'duplicates') {
 			my $address = pop @{$$self{aldb}{duplicates}};
 			while ($address) {
-				my %delete_req = (address => $address,
-					callback => "$selfname->_process_delete_queue()",
-					cause => "duplicate record found");
-				push @{$$self{delete_queue}}, \%delete_req;
-				$num_deleted++;
+                        	if ($audit_mode)
+                                {
+					&::print_log("[Insteon::ALDB_i1] (AUDIT) Delete orphan because duplicate found "
+                                        	. $$self{device}->get_object_name
+						. " address=$address");
+                                }
+                                else
+                                {
+			       		my %delete_req = (address => $address,
+						callback => "$selfname->_process_delete_queue()",
+						cause => "duplicate record found");
+					push @{$$self{delete_queue}}, \%delete_req;
+					$num_deleted++;
+                                }
 				$address = pop @{$$self{aldb}{duplicates}};
 			}
 		}
@@ -757,23 +833,26 @@ sub delete_orphan_links
 sub _process_delete_queue {
 	my ($self) = @_;
 	my $num_in_queue = @{$$self{delete_queue}};
-	if ($num_in_queue) {
+	if ($num_in_queue)
+        {
 		my $delete_req_ptr = shift(@{$$self{delete_queue}});
 		my %delete_req = %$delete_req_ptr;
 		if ($delete_req{address}) {
-			&::print_log("[AllLinkDataBase] " . $$self{device}->get_object_name . " now deleting duplicate record at address "
+			&::print_log("[Insteon::ALDB_i1] " . $$self{device}->get_object_name . " now deleting duplicate record at address "
 				. $delete_req{address});
 		} else {
-			&::print_log("[AllLinkDataBase] " . $$self{device}->get_object_name . " now deleting orphaned link w/ details: "
+			&::print_log("[Insteon::ALDB_i1] " . $$self{device}->get_object_name . " now deleting orphaned link w/ details: "
 				. (($delete_req{is_controller}) ? "controller" : "responder")
 				. ", " . (($delete_req{object}) ? "device=" . $delete_req{object}->get_object_name
 				: "deviceid=$delete_req{deviceid}") . ", group=$delete_req{group}, cause=$delete_req{cause}");
 		}
-		$self->delete_link(%delete_req);
+#		$self->delete_link(%delete_req);
 		$$self{delete_queue_processed}++;
-	} else {
-		$self->interface->_process_delete_queue($$self{delete_queue_processed});
 	}
+#        else
+#        {
+#		$$self{device}->interface->_aldb->_process_delete_queue($$self{delete_queue_processed});
+#	}
 }
 
 sub add_link
@@ -827,7 +906,7 @@ sub add_link
 			. " light level controlled by " . $insteon_object->get_object_name
 			. " and group: $group with on level: $on_level and ramp rate: $ramp_rate") if $main::Debug{insteon};
 		my $data1 = &Insteon::DimmableLight::convert_level($on_level);
-		my $data2 = ($self->isa('Insteon::DimmableLight')) ? &Insteon::DimmableLight::convert_ramp($ramp_rate) : '00';
+		my $data2 = ($$self{device}->isa('Insteon::DimmableLight')) ? &Insteon::DimmableLight::convert_ramp($ramp_rate) : '00';
 		my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
 		# get the first available memory location
 		my $address = pop @{$$self{aldb}{empty}};
@@ -855,7 +934,7 @@ sub update_link
 	my $data1 = sprintf('%02X',$on_level * 2.55);
 	$data1 = 'ff' if $on_level eq '100';
 	$data1 = '00' if $on_level eq '0';
-	my $data2 = ($self->isa('Insteon::DimmableLight')) ? &Insteon::DimmableLight::convert_ramp($ramp_rate) : '00';
+	my $data2 = ($$self{device}->isa('Insteon::DimmableLight')) ? &Insteon::DimmableLight::convert_ramp($ramp_rate) : '00';
 	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
 	my $deviceid = $insteon_object->device_id;
 	my $subaddress = $data3;
@@ -997,7 +1076,7 @@ sub has_link
 	my $key = "";
 	if ($insteon_object->isa('Insteon::BaseObject') || $insteon_object->isa('Insteon::BaseInterface')) {
             $key = lc $insteon_object->device_id . $group . $is_controller;
-	} else {
+	} elsif ($insteon_object->isa('Insteon::AllLinkDatabase')) {
             $key = lc $$insteon_object{device}->device_id . $group . $is_controller;
 	}
 	$subaddress = '00' unless $subaddress;
@@ -1210,7 +1289,7 @@ sub get_next_alllink
 
 sub delete_orphan_links
 {
-	my ($self) = @_;
+	my ($self, $audit_mode) = @_;
 	@{$$self{delete_queue}} = (); # reset the work queue
 	my $selfname = $$self{device}->get_object_name;
 	my $num_deleted = 0;
@@ -1222,10 +1301,20 @@ sub delete_orphan_links
 		my $device = &Insteon::get_object($deviceid,'01');
 		# if a PLM link (regardless of responder or controller) exists to a device that is not known, then delete
 		if (!($device)) {
-			my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
-				callback => "$selfname->_process_delete_queue(1)",
-				linkdevice => $self, data3 => $data3);
-			push @{$$self{delete_queue}}, \%delete_req;
+                	if ($audit_mode)
+                        {
+                        &::print_log("[Insteon::ALDB_PLM] (AUDIT) Delete Orphan Link to non-existant device " .
+                        	" device: " .
+                                $deviceid . "; group: $group; is_controller: $is_controller, data: $data3")
+                                if $main::Debug{insteon};
+                        }
+                        else
+                        {
+				my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
+					callback => "$selfname->_process_delete_queue(1)",
+					linkdevice => $self, data3 => $data3);
+				push @{$$self{delete_queue}}, \%delete_req;
+                        }
 		} else {
 			my $is_invalid = 1;
 			my $link = undef;
@@ -1235,53 +1324,79 @@ sub delete_orphan_links
 				$link = &Insteon::get_object('000000',$group);
 				if (!($link)) {
 					# a reference in the PLM's linktable does not match a scene member target
-					$is_invalid = 1;
-				} else {
+                                	if ($audit_mode)
+                                        {
+	                                        &::print_log("[Insteon::ALDB_PLM] (AUDIT) Delete Orphan PLM controller link ($group) to: "
+                                                        . $device->get_object_name() . "($data3)")
+                                                        if $main::Debug{insteon};
+                                        }
+                                        else
+                                        {
+				       		my %delete_req = (object => $device, group => $group, is_controller => 1,
+								callback => "$selfname->_process_delete_queue(1)",
+								linkdevice => $self, data3 => $data3);
+						push @{$$self{delete_queue}}, \%delete_req;
+					}
+				}
+                                else
+                                {
 					# iterate over all of the members of the Insteon_Link item
-					foreach my $member_ref (keys %{$$link{members}}) {
+					foreach my $member_ref (keys %{$$link{members}})
+                                        {
 						my $member = $$link{members}{$member_ref}{object};
 						# member will correspond to a scene member item
 						# and, if it is a light item, then get the real device
-						if ($member->isa('Light_Item')) {
+						if ($member->isa('Light_Item'))
+                                                {
 							my @lights = $member->find_members('Insteon::BaseLight');
-							if (@lights) {
+							if (@lights)
+                                                        {
 								$member = @lights[0]; # pick the first
 							}
 						}
-						if ($member->isa('Insteon::BaseDevice')) {
+						if ($member->isa('Insteon::BaseDevice'))
+                                                {
 							my $linkmember = $member;
 							# make sure that this is a root device
-							if (!($member->is_root)) {
+							if (!($member->is_root))
+                                                        {
 								$member = $member->get_root;
 							}
-							if (lc $member->device_id eq $$self{aldb}{$linkkey}{deviceid}) {
+							if (lc $member->device_id eq $$self{aldb}{$linkkey}{deviceid})
+                                                        {
 								# at this point, the forward link is ok; but, only if the reverse
 								# link also exists.  So, check:
-								if ($member->has_link($self, $group, 0, $data3)) {
+								if ($member->has_link($self, $group, 0, $data3))
+                                                                {
 									$is_invalid = 0;
 								}
 								last;
 							}
-						} else {
+						}
+                                                else
+                                                {
 							$is_invalid = 0;
 						}
-					}
+					} # foreach $$link{members}
 					if ($is_invalid) {
 						# then, there is a good chance that a reciprocal link exists; if so, delet it too
 						if ($device->has_link($self,$group,0, $data3)) {
-							my %delete_req = (object => $self, group => $group, is_controller => 0,
-								callback => "$selfname->_process_delete_queue(1)",
-								linkdevice => $device, data3 => $data3);
-							push @{$$self{delete_queue}}, \%delete_req;
+                                                	if ($audit_mode)
+                                                        {
+                                                                &::print_log("[Insteon::ALDB_PLM] (AUDIT) Delete Orphan PLM responder link ($group) from: " .
+                                                                        $device->get_object_name() . "($data3)")
+                                                                        if $main::Debug{insteon};
+                                                        }
+                                                        else
+                                                        {
+						       		my %delete_req = (object => $self, group => $group, is_controller => 0,
+							       		callback => "$selfname->_process_delete_queue(1)",
+									linkdevice => $device, data3 => $data3);
+								push @{$$self{delete_queue}}, \%delete_req;
+                                                        }
 						}
-					}
-				}
-				if ($is_invalid) {
-					my %delete_req = (object => $device, group => $group, is_controller => 1,
-								callback => "$selfname->_process_delete_queue(1)",
-								linkdevice => $self, data3 => $data3);
-#					push @{$$self{delete_queue}}, \%delete_req;
-				}
+					}  # if $is_invalid
+				} # else
 			}
 		}
 	}
@@ -1289,14 +1404,14 @@ sub delete_orphan_links
 	$$self{delete_queue_processed} = 0; # reset the counter
 
 	# iterate over all registered objects and compare whether the link tables match defined scene linkages in known Insteon_Links
-	for my $obj (&Insteon::find_members('Insteon::BaseObject'))
+	for my $obj (&Insteon::find_members('Insteon::BaseDevice'))
 	{
 		#Match on real objects only
 		if (($obj->is_root))
 		{
-#			$num_deleted += $obj->delete_orphan_links();
-#			my %delete_req = ('root_object' => $obj, callback => "$selfname->_process_delete_queue()");
-#			push @{$$self{delete_queue}}, \%delete_req;
+			$num_deleted += $obj->delete_orphan_links($audit_mode);
+			my %delete_req = ('root_object' => $obj, callback => "$selfname->_process_delete_queue()");
+			push @{$$self{delete_queue}}, \%delete_req;
 		}
 	}
 	$self->_process_delete_queue();
@@ -1398,7 +1513,7 @@ sub add_link
 	my $linkkey = lc $device_id . $group . $is_controller;
 	if (defined $$self{aldb}{$linkkey}) {
 		&::print_log("[Insteon::ALDB_PLM] WARN: attempt to add link to PLM that already exists! "
-			. "object=" . $insteon_object->get_object_name . ", group=$group, is_controller=$is_controller");
+			. "deviceid=" . $device_id . ", group=$group, is_controller=$is_controller");
 		if ($link_parms{callback}) {
 			package main;
 			eval ($link_parms{callback});
