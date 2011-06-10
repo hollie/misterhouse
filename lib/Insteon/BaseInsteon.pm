@@ -120,6 +120,10 @@ sub interface
         if (defined $p_interface) {
 		$$self{interface} = $p_interface;
         }
+        elsif (!($$self{interface}))
+        {
+        	$$self{interface} = &Insteon::active_interface;
+        }
 	return $$self{interface};
 }
 
@@ -911,6 +915,40 @@ sub add_link
 
 }
 
+sub update_link
+{
+	my ($self, $parms_text) = @_;
+        my $aldb = $self->get_root()->_aldb;
+        if ($aldb)
+        {
+        	my %link_parms;
+		if (@_ > 2) {
+			shift @_;
+			%link_parms = @_;
+		} else {
+			%link_parms = &main::parse_func_parms($parms_text);
+		}
+        	$aldb->update_link(%link_parms);
+        }
+}
+
+sub delete_link
+{
+	my ($self, $parms_text) = @_;
+        my $aldb = $self->get_root()->_aldb;
+        if ($aldb)
+        {
+        	my %link_parms;
+		if (@_ > 2) {
+			shift @_;
+			%link_parms = @_;
+		} else {
+			%link_parms = &main::parse_func_parms($parms_text);
+		}
+        	$aldb->delete_link(%link_parms);
+        }
+}
+
 sub scan_link_table
 {
 	my ($self, $success_callback, $failure_callback) = @_;
@@ -974,6 +1012,7 @@ sub restore_string
 		}
 		$restore_string .= $self->{object_name} . "->restore_states(q~$states~);\n";
 	}
+
 	return $restore_string;
 }
 
@@ -1042,8 +1081,8 @@ sub local_ramprate
 
 sub delete_orphan_links
 {
-	my ($self) = @_;
-        return $self->_aldb->delete_orphan_links if $self->_aldb;
+	my ($self, $audit_mode) = @_;
+        return $self->_aldb->delete_orphan_links($audit_mode) if $self->_aldb;
 }
 
 sub _process_delete_queue {
