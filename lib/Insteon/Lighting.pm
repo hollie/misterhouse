@@ -204,7 +204,7 @@ package Insteon::SwitchLincRelay;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::SwitchLincRelay::ISA = ('Insteon::DeviceController','Insteon::BaseLight');
+@Insteon::SwitchLincRelay::ISA = ('Insteon::BaseLight','Insteon::DeviceController');
 
 
 sub new
@@ -222,7 +222,7 @@ package Insteon::SwitchLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::SwitchLinc::ISA = ('Insteon::DeviceController','Insteon::DimmableLight');
+@Insteon::SwitchLinc::ISA = ('Insteon::DimmableLight','Insteon::DeviceController');
 
 sub new
 {
@@ -292,7 +292,7 @@ package Insteon::KeyPadLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::KeyPadLinc::ISA = ('Insteon::DeviceController', 'Insteon::DimmableLight');
+@Insteon::KeyPadLinc::ISA = ('Insteon::DimmableLight','Insteon::DeviceController');
 
 
 sub new
