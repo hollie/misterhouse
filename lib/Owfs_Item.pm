@@ -392,7 +392,6 @@ sub get_pio {
     return ($self->get ("PIO"));
 }
 
-
 #=======================================================================================
 #
 # Owfs_DS2408
@@ -530,6 +529,145 @@ sub run_loop {
 
     # reschedule the timer for next pass
     $self->{timer}->set($self->get_interval( ), sub {&Owfs_DS2408::run_loop($self)});
+}
+
+#=======================================================================================
+#
+# Owfs_DS2413
+#
+# This package specifically handles the DS2413 Dual Channel Addressable Switch.
+#
+#=======================================================================================
+
+=begin comment
+
+Usage:
+
+ $sensor = new Owfs_DS2413 ( "<device_id>", <location>, <channel> , <interval> );
+
+ <device_id> - of the form family.address; identifies the one-wire device
+ <location>  - ASCII string identifier providing a useful name for device_id
+ <channel>   - Channel identifier, "A" or "B"
+ <interval>  - Optional (defaults to 10).  Number of seconds between input samples.
+
+ Examples:
+
+ my $switch = new Owfs_DS2413 ( "20.DB2506000000", "Some Switch", "A" );
+
+ // Turn on switch
+ $switch->set_pio("1");
+
+ // Turn off switch
+ $switch->set_pio("0");
+
+ // Detect input transition
+ my $doorbell = new Owfs_DS2413 ( "20.DB2506000000", "Front Door Bell", "A", 1 );
+ if ($doorbell->get_latch( )) {
+  print_log ("notice,,, someone is at the front door");
+  speak (rooms=>"all", text=> "notice,,, someone is at the front door");
+}
+
+=cut
+
+use strict;
+
+package Owfs_DS2413;
+
+@Owfs_DS2413::ISA = ('Owfs_Item');
+
+sub new {
+    my ($class, $ds2413, $location, $channel, $interval) = @_;
+    my $self = new Owfs_Item ( $ds2413, $location );
+    bless $self,$class;
+
+    $self->{interval} = 10;
+    if (defined $interval && ($interval >= 1)) {
+        $self->{interval} = $interval;
+    }
+    $self->{present} = 0;
+    $self->{latch} = 0;
+    $self->{pass_triggered} = 0;
+    $self->{sensed} = undef;
+    $self->{channel} = $channel;
+
+    $self->restore_data('latch');
+
+    &::Reload_pre_add_hook(\&Owfs_DS2413::reload_hook, 1);
+
+    $self->{timer} = new Timer;
+    $self->{timer}->set($self->{interval}, sub {&Owfs_DS2413::run_loop($self)});
+
+    return $self;
+}
+
+sub get_present {
+     my ($self) = @_;
+     return $self->{present};
+}
+
+sub set_interval {
+    my ($self,$interval) = @_;
+    $self->{interval} = $interval if defined $interval;
+}
+
+sub get_interval {
+    my ($self) = @_;
+    return $self->{interval};
+}
+
+sub set_pio {
+    my ($self,$value) = @_;
+    my $channel = $self->{channel};
+    $self->set ("PIO.$channel", $value);
+}
+
+sub get_pio {
+    my ($self) = @_;
+    my $channel = $self->{channel};
+    return ($self->get ("PIO.$channel"));
+}
+
+sub get_latch {
+    my ($self) = @_;
+    my $latch = $self->{latch};
+    if ($latch) {
+        $self->{latch} = 0;
+        $self->{pass_triggered} = 0;
+    }
+    return ($latch);
+}
+
+sub get_sensed {
+    my $self = shift;
+    return ($self->{sensed} eq 1 ? 1 : 0);
+}
+
+sub reload_hook {
+}
+
+sub run_loop {
+    my $self = shift;
+    my $channel = $self->{channel};
+    my $latch = $self->get ("latch.$channel");
+    $self->{present} = $self->get("present");
+    $self->{sensed} = $self->get ("sensed.$channel");
+    if ($latch) {
+        $self->{pass_triggered} = $main::Loop_Count;
+	$self->{latch} = $latch;
+	$self->set("latch.$channel", "0");
+    } elsif ($self->{pass_triggered} && $self->{pass_triggered} < $main::Loop_Count) {
+	$self->{latch} = 0;
+        $self->{pass_triggered} = 0;
+    }
+
+    if ($main::Debug{owfs}) {
+	my $device = $self->{device};
+	my $location = $self->{location};
+	&main::print_log ("Owfs_DS2413 $index $device $location $channel latch: $latch");
+    }
+
+    # reschedule the timer for next pass
+    $self->{timer}->set($self->get_interval( ), sub {&Owfs_DS2413::run_loop($self)});
 }
 
 #=======================================================================================
