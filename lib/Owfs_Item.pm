@@ -585,12 +585,8 @@ sub new {
         $self->{interval} = $interval;
     }
     $self->{present} = 0;
-    $self->{latch} = 0;
-    $self->{pass_triggered} = 0;
     $self->{sensed} = undef;
     $self->{channel} = $channel;
-
-    $self->restore_data('latch');
 
     &::Reload_pre_add_hook(\&Owfs_DS2413::reload_hook, 1);
 
@@ -627,16 +623,6 @@ sub get_pio {
     return ($self->get ("PIO.$channel"));
 }
 
-sub get_latch {
-    my ($self) = @_;
-    my $latch = $self->{latch};
-    if ($latch) {
-        $self->{latch} = 0;
-        $self->{pass_triggered} = 0;
-    }
-    return ($latch);
-}
-
 sub get_sensed {
     my $self = shift;
     return ($self->{sensed} eq 1 ? 1 : 0);
@@ -648,22 +634,13 @@ sub reload_hook {
 sub run_loop {
     my $self = shift;
     my $channel = $self->{channel};
-    my $latch = $self->get ("latch.$channel");
     $self->{present} = $self->get("present");
     $self->{sensed} = $self->get ("sensed.$channel");
-    if ($latch) {
-        $self->{pass_triggered} = $main::Loop_Count;
-	$self->{latch} = $latch;
-	$self->set("latch.$channel", "0");
-    } elsif ($self->{pass_triggered} && $self->{pass_triggered} < $main::Loop_Count) {
-	$self->{latch} = 0;
-        $self->{pass_triggered} = 0;
-    }
 
     if ($main::Debug{owfs}) {
 	my $device = $self->{device};
 	my $location = $self->{location};
-	&main::print_log ("Owfs_DS2413 $index $device $location $channel latch: $latch");
+	&main::print_log ("Owfs_DS2413 $index $device $location $channel");
     }
 
     # reschedule the timer for next pass
