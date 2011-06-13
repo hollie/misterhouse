@@ -1,0 +1,153 @@
+<html>
+	<head>
+		<title>JSON Test</title>
+		<script src="/js/jquery.min.js" type="text/javascript"></script>
+		<script src="/js/jquery-ui.min.js" type="text/javascript"></script>
+		<link rel="STYLESHEET" type="text/css" href="/css/smoothness/jquery-ui.css" />
+		<script type="text/javascript">
+			function ajaxCallBack(data) {
+				// Updated the required Classes
+				// Called from fireJSON's getJSON
+				// This function could also just store them in JS vars.
+				$(".time_now").html(data.vars.Tk_objects.label_time);
+			    	$(".cpu").html(data.vars.Tk_objects.label_cpu_used);
+			    	$(".mem").html(data.vars.Tk_objects.label_memory_used);
+			}
+			$(document).ready(function() {
+				
+				setTimeout("loadHols();", 3000)
+				fireJSON();
+
+				$("#weather-button").click(function() {
+					loadWeather();
+				});
+				$("#moon-button").click(function() {
+					$("#moon-information").dialog({ title: 'Moon Information'});
+					loadMoon();
+				});
+				$("#moon-button2").click(function() {
+					loadMoon();
+				});
+			});
+			function fireJSON(){
+				// get the JSON Data
+				$.getJSON("/bin/json.pl",
+				  { vars: "Tk_objects" },
+				  ajaxCallBack
+				);
+				// Update the data every 5 seconds (CAN CAUSE ALOT OF JSON CALLS, IN HERE FOR TESTING)
+				setTimeout("fireJSON();", 5000);
+			}
+			
+			function loadWeather(){
+				$.getJSON("/bin/json.pl",
+				  { weather: "Wind|Humidex|TempOutdoor|Conditions|Summary_Long" },
+				  weatherCallBack
+				);
+			}
+			function weatherCallBack(weather){
+				$("#weather-div").removeClass("ui-state-highlight");
+				$("#weather-div").removeClass("ui-state-active");
+				$("#weather-div").removeClass("ui-state-error");
+				$("#weather-icon").removeClass("ui-icon-clock");
+				$("#weather-icon").removeClass("ui-icon-alert");
+				$("#weather-icon").removeClass("ui-icon-check");
+				$("#weather-div").effect("highlight");
+				if (weather.Weather == undefined) {
+					$("#weather-div").addClass("ui-state-error");
+					$("#weather-icon").addClass("ui-icon-alert");
+					$("#Weather").html("Unable to load Weather - No Weather response from JSON<br />Please check that you have some weather code running.");
+				} else {
+					$("#weather-icon").addClass("ui-icon-check");
+					$("#weather-div").addClass("ui-state-active");
+					var wind = weather.Weather.Wind;
+					var humidity = weather.Weather.Humidex;
+					var outdoor_temp = weather.Weather.TempOutdoor;
+					var conditions = weather.Weather.Conditions;
+					var summary = weather.Weather.Summary_Long;
+					
+					var html = "Wind: " + wind +"<br />"
+					+ "Humidity Index: " + humidity + "<br />"
+					+ "Outdoor Temp: " + outdoor_temp + "<br />"
+					+ "Conditions: " + conditions + "<br />"
+					+ "Summary: " + summary;
+					$("#Weather").html(html);
+				}
+			}
+			function holidayCallback(data){
+				if (data.config_parms.holiday_dates == undefined) {
+					$("#Holiday").html("An error occured loading Holiday Information");
+				} else {
+					$("#Holiday").html(data.config_parms.holiday_dates);
+				}
+			}
+			
+			function loadMoon(){
+				$("#moon-load-button").html("LOADING");
+				$.getJSON("/bin/json.pl",
+				  { vars: "Moon|Tk_objects" },
+				  moonCallback
+				);
+			}
+			
+			function moonCallback(data){
+				if (data.vars.Moon == undefined) {
+					$("#moon-information-div").html("An error occured loading Moon Information");
+				} else {
+					var html = "Phase: " + data.vars.Moon.phase +"<br />"
+					+ "Age: " + data.vars.Moon.age +"<br />"
+					+ "Brightness: " + data.vars.Moon.brightness + "<br /><br />"
+					+ "MH Uptime: " + data.vars.Tk_objects.label_uptime_mh;
+					$("#moon-information-div").html(html);
+				}
+				$("#moon-load-button").html("Reload");
+			}
+			
+			function loadHols(){
+				$.getJSON("/bin/json.pl",
+				  { config_parms: "holiday_dates" },
+				  holidayCallback
+				);
+			}
+		</script>
+	</head>
+	<body>
+		<p>
+			This example uses Javascript (jQuery) and JSON to receive data from the Misterhouse server
+		</p>
+		
+		<p>
+			<strong>This is loaded only ONCE - After 3 seconds from Page Load</strong><br />Defined Holidays:
+			<div id="Holiday" style="border: 1px solid #000000;">Waiting for Timeout Event</div>
+		</p>
+		
+		<p>
+			<strong>These update every 5 seconds, regardless of other json calls.</strong><br />
+			Date / Time: <span id="time_now" class="time_now"></span><br />
+			<span id="cpu" class="cpu"></span><br />
+			Memory Used: <span id="mem" class="mem"></span><br />
+		</p>
+		<p>
+			Weather information below will load when you click "Load Weather".
+			<div id="weather-div" class="ui-state-highlight ui-corner-all" style="margin-top: 20px; padding: 0 .7em; width: 400px;"> 
+				<p><span id="weather-icon" class="ui-icon ui-icon-clock" style="float: left; margin-right: .3em;"></span>
+					<div id="Weather"></div>
+					<div align="center">
+						<button id="weather-button" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" aria-disabled="false"><span class="ui-button-text">Load Weather</span></button>
+					</div>
+				</p>
+			</div>
+		</p>
+		<p>
+			<button id="moon-button" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" aria-disabled="false"><span class="ui-button-text">Show me some Moon Information</span></button>
+			<div id="moon-information" style="display:none;">
+				<div id="moon-information-div">
+					Fetching
+				</div>
+				<div align="center"><br /><br />
+					<button id="moon-button2" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" aria-disabled="false"><span id="moon-load-button" class="ui-button-text">Reload</span></button>
+				</div>
+			</div>
+		</p>
+	</body>
+</html>

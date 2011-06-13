@@ -53,8 +53,9 @@ sub ping_check {
     if (-e $ping_test_file) {
         my $ping_results = &::file_read($ping_test_file);
         print "db ping_results for $address f=$ping_test_file: $ping_results\n" if $::Debug{network};
-        my $state = ($ping_results =~ /ttl=/i) ? 'Up' : 'Down';
-        $self->set($state);
+        my $state = ($ping_results =~ /ttl=/i) ? 'up' : 'down';
+	if ($self->state ne $state) { $self->set($state); };
+	unlink $ping_test_file;
     }
 
     $self->{process}->start();
@@ -65,7 +66,7 @@ sub default_setstate
 {
     my ($self, $state) = @_;
     if ($state !~ m/^up|down|start$/i){
-    	&::print_log("Invalid State") if $::Debug{network};
+    	&::print_log("Invalid state for Network_Item: $state") if $::Debug{network};
     	return -1;
     } else {
     	&::print_log("Setting " .$self->{address}." as " .$state) if $::Debug{network};

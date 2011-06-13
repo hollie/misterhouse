@@ -171,7 +171,7 @@ sub set_volume2 {
     if ($Info{Volume_Control} eq 'Command Line') {
         $volume_previous = `$config_parms{volume_get_cmd}`;
         chomp $volume_previous;
-        my $r = system eval qq("$config_parms{volume_set_cmd}");
+        my $r = system eval qq("$config_parms{volume_set_cmd} $volume");
     }
     elsif ($Info{Volume_Control} eq 'Win32::Sound' and !$config_parms{sound_volume_skip}            ) {
 

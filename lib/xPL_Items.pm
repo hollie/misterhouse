@@ -45,7 +45,7 @@ XPL_SENSOR, bnz-owfs.*:26.2E4DF5000000.1, owfs_humidity1, , humidity
 XPL_X10SECURITY, iranger-rfx.*:F8, x10sec_garage1, , ds10
 
 Note that XPL_SENSOR should just be used for XPL messages of the x10.basic
-type. XPL_X10SECURITY is for x10.security schema, while there is no way to 
+type. XPL_X10SECURITY is for x10.security schema, while there is no way to
 currently read x10.basic messages (see this file for more supported schemas).
 
 Once it is running, objects get variables including these:
@@ -106,7 +106,7 @@ sub startup {
 
         # Find and use the first open port
         my $port_listen;
-        for my $p ( 49152 .. 65535 ) {
+        for my $p ( 49352 .. 65535 ) {
             $port_listen = $p;
             last if &open_port( $port_listen, 'listen', 'xpl_listen', 1, 1 );
         }
@@ -130,6 +130,7 @@ sub startup {
             else {
                 print " - mh automatically switching out of xPL Hub mode.  " .
                   "Another application is binding to the hub port ($port)\n";
+		$xpl_hub_listen = undef;
             }
         }
 
@@ -230,7 +231,7 @@ sub open_port {
             $listen_address = $::Info{IPAddress_local} unless $listen_address;
         }
         else {
-            # can't get *nix to bind to a specific address; defaults to 
+            # can't get *nix to bind to a specific address; defaults to
             # kernel assigned default IP
             $listen_address = '0.0.0.0';
         }
@@ -343,7 +344,7 @@ sub _process_incoming_xpl_hub_data {
         # don't echo back the sender's own data
         if ( $xpl_hub_ports{$port} ne $source ) {
             my $sock = $::Socket_Ports{"xpl_send_$port"}{sock};
-            print "db2 xpl hub: sending xpl data to p=$port destination=" . 
+            print "db2 xpl hub: sending xpl data to p=$port destination=" .
               "$xpl_hub_ports{$port} s=$sock d=\n$data.\n"
               if $main::Debug{xpl} and $main::Debug{xpl} == 2;
             print $sock $data if defined($sock);
@@ -705,7 +706,7 @@ sub _handleStaleXplSockets {
     }
 
     # check the hub listening socket if hub mode is enabled
-    if ( !( $::config_parms{xpl_nohub} ) ) {
+    if ( !( $::config_parms{xpl_nohub} ) and defined($xpl_hub_listen) ) {
         $port_name = 'xpl_hub_listen';
         if ( !( $::Socket_Ports{$port_name}{socka} ) ) {
             if (
@@ -1032,10 +1033,8 @@ sub device_monitor {
 
 sub default_setstate {
     my ( $self, $state, $substate, $set_by ) = @_;
-
     # Send data, unless we are processing incoming data
-    return if $set_by =~ /^xpl/i;
-
+    return if !(ref $set_by) and $set_by =~ /^xpl/i;
     my @parms;
 
     if ( $$self{_on_set_message} ) {
@@ -1165,7 +1164,19 @@ sub new {
     my ( $source, $deviceid ) = $p_source =~ /(\S+)?:([\S ]+)/;
     $source = $p_source unless $source;
     my $self = $class->SUPER::new($source);
-    $$self{sensor_type} = $p_type if $p_type;
+    if ($p_type)
+    {
+       $$self{sensor_type} = $p_type;
+       if ($p_type eq 'output') # define a default message to be sent out on a call to the "set" method
+       {
+         # the following can always be overwritten
+          $self->on_set_message('control.basic' => { 'current' => '$state' });
+       }
+    }
+    else
+    {
+       $$self{sensor_type} = 'input'; # set a default
+    }
     my $statekey = 'current';
     $statekey = $p_statekey if $p_statekey;
     $self->SUPER::class_name('sensor.basic');

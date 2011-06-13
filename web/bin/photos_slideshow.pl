@@ -44,7 +44,7 @@ my $images = "";
 foreach (@photos) {
 	my $file = $_;
 	my $img  = $file;
-	my @dirs = split( /,/, $config_parms{photo_big_dirs} );
+	my @dirs = split( /,/, $config_parms{photo_dirs} );
 	$file =~ s/ /%20/g;
 	$file =~ s/\#/%23/g;
 	$file =~ s/&/%26/g;
@@ -80,7 +80,7 @@ if ( $captions ne '0' ) {
 	$sseffect .= "captions: true, ";
 }
 $sseffect .=
-"controller: true, delay: ${time}000, duration: 1000, height: $height, hu: '$config_parms{photo_big_dirs}', ";
+"controller: true, delay: ${time}000, duration: 1000, height: $height, hu: '$config_parms{photo_dirs}', ";
 if ( $thumbs ne '0' ) {
 	$sseffect .= "thumbnails: true, ";
 }

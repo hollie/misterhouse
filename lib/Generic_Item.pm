@@ -128,6 +128,7 @@ sub new {
     $$self{said}          = undef;
     $$self{state_now}     = undef;
     $$self{state_changed} = undef;
+    $$self{type}          = 'clas';
     return $self;
 }
 
@@ -731,7 +732,7 @@ sub said {
 
 =item C<state_log()>
 
-TODO
+Returns the current state log.
 
 =cut
 
@@ -1011,6 +1012,7 @@ sub set_states {
     my ($self, @states) = @_;
     @{$$self{states}} = @states;
 }
+
 =item C<add_states(states)>
 
 Adds states to the list of valid states.  
@@ -1023,6 +1025,7 @@ sub add_states {
     my ($self, @states) = @_;
     push @{$$self{states}}, @states;
 }
+
 =item C<get_states()>
 
 Returns the list of valid states.
@@ -1031,7 +1034,7 @@ Returns the list of valid states.
 
 sub get_states {
     my ($self) = @_;
-    return @{$$self{states}};
+    return @{$$self{states}} if defined $$self{states};
 }
 
 =item C<set_states_for_this_pass()>
@@ -1073,7 +1076,7 @@ sub set_states_for_next_pass {
     push @{$self->{target_next_pass}}, $target;
 }
 
-=item C<set_state_log(set_by, target)>
+=item C<set_state_log(state, set_by, target)>
 
 When a state is set, it (along with a timestamp and who set it) are logged
 to the state_log array by this method.
@@ -1198,7 +1201,10 @@ sub xPL_enable {
 =item C<tie_event(code, state, log_msg)>
 
 If the state of the generic_item changes, then code will trigger, 
-with the variable $state getting expanded.
+with the lexical variables $state and $object getting set.
+The code is a string that will be eval'd and the variables are available to 
+it, but not to any subroutines called by it unless you pass them.
+You can also set the state variable explicitly since you usually know the item.
 The code is a string that will be eval'd.
 
 (optional) Setting state limits this tied code to run only when the given

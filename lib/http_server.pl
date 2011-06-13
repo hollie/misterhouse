@@ -25,6 +25,7 @@ my %mime_types = (
                   'vxml'  => 'text/html',
                   'xml'   => 'text/xml',
                   'xsl'   => 'text/xml',
+                  'xslt'  => 'text/xml',
                   'sxml'  => 'text/xml',
                   'txt'   => 'text/plain',
 #                 'htc'   => 'text/plain',
@@ -50,6 +51,7 @@ my %mime_types = (
                   'wmlc'  => 'application/vnd.wap.wmlc',
                   'wmlsc' => 'application/vnd.wap.wmlscriptc',
                   'wrl'   => 'x-world/x-vrml',
+                  'json'  => 'application/json',
 );
 
 

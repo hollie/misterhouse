@@ -144,7 +144,11 @@ if (said $v_photo_resize) {
 			print_log "can't find real directory associated with web directory $originals, skipping";
 			next; 
 		}
-		my $cmd = "image_resize --size 640x480 -d "; 
+		$config_parms{photo_size} =~ m/(\d+)[x|X](\d+)/;
+		my $width  = $1;
+		my $height = $2;
+		my $cmd = "image_resize --size ";
+		$cmd .= $width ."x" .$height ." -d "; 
 		$cmd .= $realdir2 ? "$realdir2 -outdir $realdir -P ''" : "$realdir -P '$config_parms{photo_prefix}'";
 		print_log "resize command is '$cmd'";
 		$next ? add $p_photo_resize $cmd : set $p_photo_resize $cmd;
