@@ -738,11 +738,23 @@ sub delete_orphan_links
 				if (!($device->has_link($self,$group,($is_controller) ? 0:1, $data3))) {
                                 	if ($audit_mode)
                                         {
-					&::print_log("[Insteon::ALDB_i1] (AUDIT) Delete orphan because no PLM link defined "
-                                        	. $device->get_object_name .
-                                                " details: "
-						. (($is_controller) ? "controller" : "responder")
-						. ", deviceid=$deviceid, group=$group, data=$data3");
+                                        	if ($is_controller)
+                                                {
+                                                	&::print_log("[Insteon::ALDB_i1] (AUDIT) Delete orphan because no reciprocal link defined for: "
+                                        			. $$self{device}->get_object_name
+                                                		. "($group) as controller and "
+                                        			. $device->get_object_name .  "(" . (($data3 eq '00') ? '01' : $data3) . ")"
+							);
+                                                }
+                                                else
+                                                {
+                                                	&::print_log("[Insteon::ALDB_i1] (AUDIT) Delete orphan because no reverse link defined for: "
+                                        			. $$self{device}->get_object_name
+                                                		. "(" . (($data3 eq '00') ? '01' : $data3) . ") as responder and "
+                                        			. $device->get_object_name . "($group)"
+							);
+                                                }
+
                                         }
                                         else
                                         {
@@ -1104,7 +1116,7 @@ sub _write_link
 		$$self{pending_aldb}{data2} = (defined $data2) ? lc $data2 : '00';
 		# Note: if device is a KeypadLinc, then $data3 must be assigned the value of the applicable button (01)
 		if (($$self{device}->isa('Insteon::KeyPadLincRelay') or $$self{device}->isa('Insteon::KeyPadLinc')) and ($data3 eq '00')) {
-			&::print_log("[Insteon::ALDB_i1] setting data3 to " . $self->group . " for this keypadlinc")
+			&::print_log("[Insteon::ALDB_i1] setting data3 to " . $$self{device}->group . " for this keypadlinc")
 				if $main::Debug{insteon};
 			$data3 = $self->group;
 		}
