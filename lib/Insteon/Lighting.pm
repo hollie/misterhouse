@@ -216,6 +216,14 @@ sub new
 	return $self;
 }
 
+sub set
+{
+	my ($self, $p_state, $p_setby, $p_respond) = @_;
+
+	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
+
+	return $self->Insteon::DeviceController::set($link_state, $p_setby, $p_respond);
+}
 
 package Insteon::SwitchLinc;
 
@@ -233,6 +241,12 @@ sub new
 	return $self;
 }
 
+sub set
+{
+	my ($self, $p_state, $p_setby, $p_respond) = @_;
+
+	return $self->Insteon::DeviceController::set($p_state, $p_setby, $p_respond);
+}
 
 package Insteon::KeyPadLincRelay;
 
