@@ -180,6 +180,14 @@ sub new
 	return $self;
 }
 
+sub set
+{
+	my ($self, $p_state, $p_setby, $p_respond) = @_;
+
+	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
+
+	return $self->Insteon::BaseDevice::set($link_state, $p_setby, $p_respond);
+}
 
 
 package Insteon::LampLinc;
