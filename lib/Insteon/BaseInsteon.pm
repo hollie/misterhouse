@@ -1390,6 +1390,10 @@ sub set_linked_devices
 				$$self{members}{$member_ref}{resume_state} = $member->state;
 			# if they are Insteon_Device objects, then simply set_receive their state to
 			#   the member on level
+                        	if (!($member->isa('Insteon::DimmableLight')) and $member->isa('Insteon::BaseLight'))
+                                {
+                                	$local_state =  &Insteon::BaseObject::derive_link_state($local_state);
+                                }
 				$member->set_receive($local_state,$self);
 			}
 		}
