@@ -261,7 +261,7 @@ package Insteon::KeyPadLincRelay;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::KeyPadLincRelay::ISA = ('Insteon::DeviceController', 'Insteon::BaseLight');
+@Insteon::KeyPadLincRelay::ISA = ('Insteon::BaseLight','Insteon::DeviceController');
 
 
 sub new
