@@ -405,6 +405,14 @@ sub _parse_data {
                                                 # we've reached the end of the memory
 						$$self{_next_link_ok} = 0;
 						$$self{_mem_activity} = undef;
+                                                if ($record_type eq $prefix{all_link_first_rec})
+                                                {
+                                                	$self->_aldb->health("empty");
+                                                }
+                                                else
+                                                {
+                                                	$self->_aldb->health("good");
+                                                }
 						if ($$self{_mem_callback})
                                         	{
 							my $callback = $$self{_mem_callback};
@@ -412,7 +420,7 @@ sub _parse_data {
 							package main;
 							eval ($callback);
 							&::print_log("[Insteon_PLM] error encountered during nack callback: " . $@)
-							if $@ and $main::Debug{insteon};
+								if $@ and $main::Debug{insteon};
 							package Insteon_PLM;
 						}
                                         }
