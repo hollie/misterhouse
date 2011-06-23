@@ -33,6 +33,7 @@ sub new
 	my $self={};
 	bless $self,$class;
         $$self{device} = $device;
+        $self->health("unknown"); # unknown
 	return $self;
 }
 
@@ -40,6 +41,24 @@ sub _send_cmd
 {
    my ($self, $msg) = @_;
    $$self{device}->_send_cmd($msg);
+}
+
+sub health
+{
+	# corrupt
+	# unknown
+        # empty
+        # good
+	my ($self, $health) = @_;
+        $$self{health} = $health if defined $health;
+        return $$self{health};
+}
+
+sub scandatetime
+{
+	my ($self, $scandatetime) = @_;
+        $$self{scandatetime} = $scandatetime if defined $scandatetime;
+        return $$self{scandatetime};
 }
 
 sub restore_string
@@ -76,6 +95,13 @@ sub restore_string
 			$aldb .= $record;
 		}
 #		&::print_log("[AllLinkDataBase] aldb restore string: $aldb") if $main::Debug{insteon};
+		if (defined $self->scandatetime)
+                {
+			$restore_string .= $$self{device}->get_object_name . "->_aldb->scandatetime(q~" . $self->scandatetime . "~) if "
+                        	. $$self{device}->get_object_name . "->_aldb;\n";
+                }
+		$restore_string .= $$self{device}->get_object_name . "->_aldb->health(q~" . $self->health . "~) if "
+                        	. $$self{device}->get_object_name . "->_aldb;\n";
 		$restore_string .= $$self{device}->get_object_name . "->_aldb->restore_aldb(q~$aldb~) if " . $$self{device}->get_object_name . "->_aldb;\n";
         }
 	return $restore_string;
@@ -350,6 +376,15 @@ sub _on_peek
 					$$self{_mem_action} = undef;
 					# clear out mem_activity flag
 					$$self{_mem_activity} = undef;
+                                   	if (lc $$self{_mem_msb} eq '0f' and lc $$self{_mem_lsb} eq 'f8') {
+                                        	# set health as empty for now
+                                        	$self->health("empty");
+					}
+                                        else
+                                        {
+                                        	$self->health("good");
+                                        }
+
 					&::print_log("[Insteon::ALDB_i1] " . $$self{device}->get_object_name . " completed link memory scan")
 						if $main::Debug{insteon};
 					if (defined $$self{_success_callback}) {
@@ -567,6 +602,8 @@ sub scan_link_table
 	$$self{_mem_activity} = 'scan';
 	$$self{_success_callback} = ($success_callback) ? $success_callback : undef;
 	$$self{_failure_callback} = ($failure_callback) ? $failure_callback : undef;
+        $self->scandatetime(&main::get_tickcount);
+        $self->health('corrupt'); # allow acknowledge to set otherwise
 	$self->_peek('0FF8',0);
 }
 
@@ -631,6 +668,17 @@ sub delete_orphan_links
 	@{$$self{delete_queue}} = (); # reset the work queue
 	my $selfname = $$self{device}->get_object_name;
 	my $num_deleted = 0;
+
+        # first, make sure that the health of ALDB is ok
+        if ($self->health ne 'good')
+        {
+        	&::print_log("[Insteon::ALDB_i1] Delete orphan links: skipping $selfname because health: "
+                	. $self->health . ". Please rescan this device!!")
+                	if ($self->health ne 'empty');
+
+                return $num_deleted; # no links deleted
+        }
+
 	for my $linkkey (keys %{$$self{aldb}}) {
 		if ($linkkey ne 'empty' and $linkkey ne 'duplicates') {
 			my $deviceid = lc $$self{aldb}{$linkkey}{deviceid};
@@ -659,7 +707,8 @@ sub delete_orphan_links
 				# ignore since this is just a link back to the PLM
 			} elsif ($device->isa("Insteon::BaseInterface")) {
 				# does the PLM have a link point back?  If not, the delete this one
-				if (!($device->has_link($$self{device},$group,1))) {
+				if (!($device->has_link($$self{device},$group,1)))
+                                {
                                 	if ($audit_mode)
                                         {
 						&::print_log("[Insteon::ALDB_i1] (AUDIT) " . $device->get_object_name .
@@ -677,35 +726,41 @@ sub delete_orphan_links
                                         }
 				}
 				# is there an entry in the items.mht that corresponds to this link?
-				if ($is_controller) {
+				if ($is_controller)
+                                {
 					# TO-DO: handle this case
-				} else {
+				}
+                                else
+                                {
 					my $plm_link = &Insteon::get_object('000000', $group);
-					if ($plm_link) {
+					if ($plm_link)
+                                        {
 						my $is_invalid = 1;
 						foreach my $member_ref (keys %{$$plm_link{members}}) {
 							my $member = $$plm_link{members}{$member_ref}{object};
 							if ($member->isa('Light_Item')) {
 								my @lights = $member->find_members('Insteon::BaseLight');
-								if (@lights) {
+								if (@lights)
+                                                                {
 									$member = @lights[0]; # pick the first
 								}
 							}
 							if ($member->device_id eq $$self{device}->device_id) {
-								if ($data3 eq '00' or (lc $data3 eq lc $member->group)) {
-								$is_invalid = 0;
-								last;
+								if ($data3 eq '00' or (lc $data3 eq lc $member->group))
+                                                                {
+									$is_invalid = 0;
+							       		last;
 								}
 							}
 						}
 						if ($is_invalid) {
                                                 	if ($audit_mode)
                                                         {
-								&::print_log("[Insteon::ALDB_i1] (AUDIT) Delete orphan link because none defined for PLM controlled scene "
-                                                                	. $device->get_object_name .
-                                                			" details: "
-									. (($is_controller) ? "controller" : "responder")
-									. ", deviceid=$deviceid, group=$group, data=$data3");
+								&::print_log("[Insteon::ALDB_i1] (AUDIT) Delete orphan responder link from "
+                                                                	. $$self{device}->get_object_name
+                                                			. " to PLM because no SCENE_MEMBER entry could be found "
+                                                                        . "in items.mht for INSTEON_ICONTROLLER: "
+                                                                        . $plm_link->get_object_name);
                                                         }
                                                         else
                                                         {
@@ -733,92 +788,126 @@ sub delete_orphan_links
 							$num_deleted++;
                                                 }
 					}
-				}
-			} else {
-				if (!($device->has_link($self,$group,($is_controller) ? 0:1, $data3))) {
-                                	if ($audit_mode)
-                                        {
-                                        	if ($is_controller)
-                                                {
-                                                	&::print_log("[Insteon::ALDB_i1] (AUDIT) Delete orphan because no reciprocal link defined for: "
+				} # is not a controller
+			}
+                        else # is a non-PLM device
+                        {
+                        	if ($device->isa('Insteon::RemoteLinc') or $device->isa('Insteon::MotionSensor'))
+                                {
+                                	&::print_log("[Insteon::ALDB_i1] Delete orphan links: ignoring link from 'deaf' device: " . $device->get_object_name);
+                                }
+                                # make sure that the health of the device's ALDB is ok
+        			if ($device->_aldb->health ne 'good')
+       				{
+        				&::print_log("[Insteon::ALDB_i1] Delete orphan links: skipping check for reciprocal links from "
+                                        	. $device->get_object_name . " because health: "
+                				. $device->_aldb->health . ". Please rescan this device!!")
+                				if ($device->_aldb->health ne 'empty');
+        			}
+                                else
+                                {
+                               		# does the device fail to have a reciprocal link?
+                                	if (!($device->has_link($self,$group,($is_controller) ? 0:1, $data3)))
+                                	{
+                                		if ($audit_mode)
+                                        	{
+                                        		if ($is_controller)
+                                                	{
+                                                		&::print_log("[Insteon::ALDB_i1] (AUDIT) Delete orphan because no reciprocal link defined for: "
                                         			. $$self{device}->get_object_name
                                                 		. "($group) as controller and "
                                         			. $device->get_object_name .  "(" . (($data3 eq '00') ? '01' : $data3) . ")"
-							);
-                                                }
-                                                else
-                                                {
-                                                	&::print_log("[Insteon::ALDB_i1] (AUDIT) Delete orphan because no reverse link defined for: "
+								);
+                                                	}
+                                                	else # is a responder
+                                                	{
+                                                		&::print_log("[Insteon::ALDB_i1] (AUDIT) Delete orphan because no reverse link defined for: "
                                         			. $$self{device}->get_object_name
                                                 		. "(" . (($data3 eq '00') ? '01' : $data3) . ") as responder and "
                                         			. $device->get_object_name . "($group)"
-							);
-                                                }
+								);
+                                                	}
 
-                                        }
-                                        else
-                                        {
-						my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
+                                        	}
+                                        	else  # non-audit mode
+                                        	{
+					       		my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
 							callback => "$selfname->_process_delete_queue()", object => $device,
 							cause => "no link to the device could be found", data3 => $data3);
-						push @{$$self{delete_queue}}, \%delete_req;
-						$num_deleted++;
-                                        }
-				} else {
-					my $is_invalid = 1;
-					my $link = ($is_controller) ? &Insteon::get_object($$self{device}->device_id,$group)
-						: &Insteon::get_object($device->device_id,$group);
-					if ($link) {
-						foreach my $member_ref (keys %{$$link{members}}) {
-							my $member = $$link{members}{$member_ref}{object};
-							if ($member->isa('Light_Item')) {
-								my @lights = $member->find_members('Insteon::BaseLight');
-								if (@lights) {
-									$member = @lights[0]; # pick the first
-								}
-							}
-							if ($member->isa('Insteon::BaseDevice') && !($member->is_root))
-                                                        {
-								$member = $member->get_root;
-							}
-
-							if ($member->isa('Insteon::BaseDevice') && !($is_controller)
-                                                        	&& ($member->device_id eq $$self{device}->device_id))
-                                                        {
-								$is_invalid = 0;
-								last;
-							}
-                                                        elsif ($member->isa('Insteon::BaseDevice') && $is_controller
-                                                        	&& ($member->device_id eq $device->device_id))
-                                                	{
-								$is_invalid = 0;
-								last;
-							}
-						}
+					       		push @{$$self{delete_queue}}, \%delete_req;
+							$num_deleted++;
+                                        	}
 					}
-					if ($is_invalid) {
-                                        	if ($audit_mode)
-                                                {
-							&::print_log("[Insteon::ALDB_i1] (AUDIT ) Delete orphan because no reverse link could be found "
+                                	else # device does have reciprocal link
+                                	{
+				       		my $is_invalid = 1;
+						my $link = ($is_controller) ? &Insteon::get_object($$self{device}->device_id,$group)
+						: &Insteon::get_object($device->device_id,$group);
+						if ($link)
+                                        	{
+							foreach my $member_ref (keys %{$$link{members}})
+                                                	{
+						       		my $member = $$link{members}{$member_ref}{object};
+								if ($member->isa('Light_Item'))
+                                                        	{
+									my @lights = $member->find_members('Insteon::BaseLight');
+							       		if (@lights)
+                                                                	{
+										$member = @lights[0]; # pick the first
+									}
+								}
+								if ($member->isa('Insteon::BaseDevice') && !($member->is_root))
+                                                        	{
+									$member = $member->get_root;
+								}
+                        					if ($member->isa('Insteon::RemoteLinc') or $member->isa('Insteon::MotionSensor'))
+                                                        	{
+                                                               		&::print_log("[Insteon::ALDB_i1] ignoring link from " . $link->get_object_name . " to " .
+                                                               		$member->get_object_name);
+                                                               		$is_invalid = 0;
+                                                        	}
+                                                       		elsif ($member->isa('Insteon::BaseDevice') && !($is_controller)
+                                                        		&& ($member->device_id eq $$self{device}->device_id))
+                                                        	{
+									$is_invalid = 0;
+									last;
+								}
+                                                        	elsif ($member->isa('Insteon::BaseDevice') && $is_controller
+                                                        		&& ($member->device_id eq $device->device_id))
+                                                		{
+									$is_invalid = 0;
+									last;
+								}
+							} # foreach
+						}
+						if ($is_invalid)
+                                       		{
+                                        		if ($audit_mode)
+                                                	{
+								&::print_log("[Insteon::ALDB_i1] (AUDIT) Delete orphan because no reverse link could be found "
                                         			. $device->get_object_name .
                                                 		" details: "
 								. (($is_controller) ? "controller" : "responder")
 								. ", deviceid=$deviceid, group=$group, data=$data3");
-                                                }
-                                                else
-                                                {
-					       		my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
+                                                	}
+                                                	else
+                                                	{
+					       			my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
 								callback => "$selfname->_process_delete_queue()", object => $device,
 						       		cause => "no reverse link could be found", data3 => $data3);
-							push @{$$self{delete_queue}}, \%delete_req;
-							$num_deleted++;
-                                                }
-					}
+						       		push @{$$self{delete_queue}}, \%delete_req;
+						       		$num_deleted++;
+                                                	}
+						}
+                                        }
 				}
 			}
-		} elsif ($linkkey eq 'duplicates') {
+		}
+                elsif ($linkkey eq 'duplicates')
+                {
 			my $address = pop @{$$self{aldb}{duplicates}};
-			while ($address) {
+			while ($address)
+                        {
                         	if ($audit_mode)
                                 {
 					&::print_log("[Insteon::ALDB_i1] (AUDIT) Delete orphan because duplicate found "
@@ -968,7 +1057,9 @@ sub log_alllink_table
 	my ($self) = @_;
 	my %aldb;
 
-	&::print_log("[Insteon::ALDB_i1] link table for " . $$self{device}->get_object_name . " (devcat: $$self{devcat}):");
+	&::print_log("[Insteon::ALDB_i1] Link table for "
+        	. $$self{device}->get_object_name
+                . " health: " . $self->health);
 
 	# We want to log links sorted by ALDB address. Since the ALDB
 	# addresses are scattered throughout the %{$$self{aldb}} hash,
@@ -997,50 +1088,71 @@ sub log_alllink_table
 	}
 
 	# Finally traverse the ALDB, but this time sorted by ALDB address
-	foreach my $address (sort keys %aldb) {
-		my $log_msg = "[Insteon::ALDB_i1] [0x$address] ";
+        if ($self->health eq 'good')
+        {
+		foreach my $address (sort keys %aldb)
+           	{
+			my $log_msg = "[Insteon::ALDB_i1] [0x$address] ";
 
-		if (exists $aldb{$address}{empty}) {
-		    $log_msg .= "is empty";
-		} elsif (exists $aldb{$address}{duplicate}) {
-		    $log_msg .= "holds a duplicate entry";
-		} else {
-		    my ($key) = keys %{$aldb{$address} }; # There's only 1 key
-		    my $aldb_entry = $aldb{$address}{$key};
-		    my $is_controller = $aldb_entry->{is_controller};
-		    my $device;
+			if (exists $aldb{$address}{empty})
+                        {
+		    		$log_msg .= "is empty";
+			}
+                        elsif (exists $aldb{$address}{duplicate})
+                        {
+		    		$log_msg .= "holds a duplicate entry";
+			}
+                        else
+                        {
+		   		my ($key) = keys %{$aldb{$address} }; # There's only 1 key
+		    		my $aldb_entry = $aldb{$address}{$key};
+		    		my $is_controller = $aldb_entry->{is_controller};
+		    		my $device;
 
-		    if ($$self{device}->interface()->device_id()
-			&& $$self{device}->interface()->device_id() eq $aldb_entry->{deviceid}) {
-			    $device = $$self{device}->interface;
-		    } else {
-			    $device = &Insteon::get_object($aldb_entry->{deviceid},'01');
-		    }
-		    my $object_name = ($device) ? $device->get_object_name : $aldb_entry->{deviceid};
+		    		if ($$self{device}->interface()->device_id()
+					&& ($$self{device}->interface()->device_id()
+                                        eq $aldb_entry->{deviceid}))
+                                {
+			    		$device = $$self{device}->interface;
+		    		}
+                                else
+                                {
+			    		$device = &Insteon::get_object($aldb_entry->{deviceid},'01');
+		    		}
+		    		my $object_name = ($device) ? $device->get_object_name : $aldb_entry->{deviceid};
 
-		    my $on_level = 'unknown';
-		    if (defined $aldb_entry->{data1}) {
-			    if ($aldb_entry->{data1}) {
-				    $on_level = int((hex($aldb_entry->{data1})*100/255) + .5) . "%";
-			    } else {
-				    $on_level = '0%';
-			    }
-		    }
+		    		my $on_level = 'unknown';
+		    		if (defined $aldb_entry->{data1})
+                                {
+			    		if ($aldb_entry->{data1})
+                                        {
+				    		$on_level = int((hex($aldb_entry->{data1})*100/255) + .5) . "%";
+			    		}
+                                        else
+                                        {
+				    		$on_level = '0%';
+			    		}
+		    		}
 
-		    my $rspndr_group = $aldb_entry->{data3};
-		    $rspndr_group = '01' if $rspndr_group eq '00';
+		    		my $rspndr_group = $aldb_entry->{data3};
+		    		$rspndr_group = '01' if $rspndr_group eq '00';
 
-		    my $ramp_rate = 'unknown';
-		    if ($aldb_entry->{data2}) {
-			    if (!($$self{device}->isa('Insteon::DimmableLight')) or (!$is_controller and ($rspndr_group != '01'))) {
-				    $ramp_rate = 'none';
-				    $on_level = $on_level eq '0%' ? 'off' : 'on';
-			    } else {
-				    $ramp_rate = &Insteon::DimmableLight::get_ramp_from_code($aldb_entry->{data2}) . "s";
-			    }
-		    }
+		    		my $ramp_rate = 'unknown';
+		    		if ($aldb_entry->{data2})
+                                {
+			    		if (!($$self{device}->isa('Insteon::DimmableLight'))
+                                        	or (!$is_controller and ($rspndr_group != '01')))
+                                        {
+				    		$ramp_rate = 'none';
+				    		$on_level = $on_level eq '0%' ? 'off' : 'on';
+			    		}
+                                        else
+                                        {
+				    		$ramp_rate = &Insteon::DimmableLight::get_ramp_from_code($aldb_entry->{data2}) . "s";
+			    		}
+		    		}
 
-		    $log_msg .= $is_controller ? "contlr($aldb_entry->{group}) "
+		    		$log_msg .= $is_controller ? "contlr($aldb_entry->{group}) "
 				    . "record to $object_name ($rspndr_group), "
 				    . "(d1:$aldb_entry->{data1}, "
 				    . "d2:$aldb_entry->{data2}, "
@@ -1049,10 +1161,14 @@ sub log_alllink_table
 				    . "($aldb_entry->{group}): onlevel=$on_level "
 				    . "and ramp=$ramp_rate "
 				    . "(d3:$aldb_entry->{data3})";
-		}
+			}
 
-		&::print_log($log_msg);
-	}
+			&::print_log($log_msg);
+		}
+        }
+        else
+        {
+        }
 }
 
 sub update_local_properties
@@ -1211,6 +1327,13 @@ sub restore_string
 		}
 		$restore_string .= $$self{device}->get_object_name . "->_aldb->restore_linktable(q~$link~) if " . $$self{device}->get_object_name . "->_aldb;\n";
 	}
+	if (defined $self->scandatetime)
+        {
+		$restore_string .= $$self{device}->get_object_name . "->_aldb->scandatetime(q~" . $self->scandatetime . "~) if "
+                        	. $$self{device}->get_object_name . "->_aldb;\n";
+        }
+	$restore_string .= $$self{device}->get_object_name . "->_aldb->health(q~" . $self->health . "~) if "
+                        	. $$self{device}->get_object_name . "->_aldb;\n";
 	return $restore_string;
 }
 
@@ -1240,6 +1363,7 @@ sub restore_linktable
 sub log_alllink_table
 {
 	my ($self) = @_;
+        &::print_log("[Insteon::ALDB_PLM] Link table health: " . $self->health);
 	foreach my $linkkey (sort(keys(%{$$self{aldb}}))) {
 		my $data3 = $$self{aldb}{$linkkey}{data3};
 		my $is_controller = $$self{aldb}{$linkkey}{is_controller};
@@ -1263,8 +1387,7 @@ sub log_alllink_table
 			. $object_name
 			: "responder record to " . $object_name . "($$self{aldb}{$linkkey}{group})")
 			. " (d1=$$self{aldb}{$linkkey}{data1}, d2=$$self{aldb}{$linkkey}{data2}, "
-			. "d3=$data3)")
-			if $main::Debug{insteon};
+			. "d3=$data3)");
 	}
 }
 
@@ -1290,6 +1413,8 @@ sub parse_alllink
 sub get_first_alllink
 {
 	my ($self) = @_;
+        $self->scandatetime(&main::get_tickcount);
+        $self->health('corrupt'); # set as corrupt and allow acknowledge to set otherwise
 	$$self{device}->queue_message(new Insteon::InsteonMessage('all_link_first_rec', $$self{device}));
 }
 
@@ -1368,22 +1493,31 @@ sub delete_orphan_links
 						}
 						if ($member->isa('Insteon::BaseDevice'))
                                                 {
-							my $linkmember = $member;
-							# make sure that this is a root device
-							if (!($member->is_root))
+                                                	if ($member->isa('Insteon::RemoteLinc') or $member->isa('Insteon::MotionSensor'))
                                                         {
-								$member = $member->get_root;
-							}
-							if (lc $member->device_id eq $$self{aldb}{$linkkey}{deviceid})
+                                                               &::print_log("[Insteon::ALDB_PLM] ignoring link from PLM to " .
+                                                               		$member->get_object_name);
+                                                               $is_invalid = 0;
+                                                        }
+                                                        else
                                                         {
-								# at this point, the forward link is ok; but, only if the reverse
-								# link also exists.  So, check:
-								if ($member->has_link($self, $group, 0, $data3))
-                                                                {
-									$is_invalid = 0;
+						       		my $linkmember = $member;
+								# make sure that this is a root device
+								if (!($member->is_root))
+                                                        	{
+									$member = $member->get_root;
 								}
-								last;
-							}
+								if (lc $member->device_id eq $$self{aldb}{$linkkey}{deviceid})
+                                                        	{
+									# at this point, the forward link is ok; but, only if the reverse
+									# link also exists.  So, check:
+									if ($member->has_link($self, $group, 0, $data3))
+                                                                	{
+										$is_invalid = 0;
+									}
+							       		last;
+								}
+                                                        }
 						}
                                                 else
                                                 {
@@ -1395,9 +1529,12 @@ sub delete_orphan_links
 						if ($device->has_link($self,$group,0, $data3)) {
                                                 	if ($audit_mode)
                                                         {
-                                                                &::print_log("[Insteon::ALDB_PLM] (AUDIT) Delete Orphan PLM responder link ($group) from: " .
-                                                                        $device->get_object_name() . "($data3)")
-                                                                        if $main::Debug{insteon};
+                                                                &::print_log("[Insteon::ALDB_i1] (AUDIT) Delete orphan controller link from PLM to "
+                                                                	. $device->get_object_name()
+                                                			. " because no SCENE_MEMBER entry could be found "
+                                                                        . "in items.mht for INSTEON_ICONTROLLER: "
+                                                                        . $link->get_object_name());
+
                                                         }
                                                         else
                                                         {
@@ -1529,7 +1666,7 @@ sub add_link
 		if ($link_parms{callback}) {
 			package main;
 			eval ($link_parms{callback});
-			&::print_log("[Insteon_PLM] error in add link callback: " . $@)
+			&::print_log("[Insteon::ALDB_PLM] error in add link callback: " . $@)
 				if $@ and $main::Debug{insteon};
 			package Insteon_PLM;
 		}
