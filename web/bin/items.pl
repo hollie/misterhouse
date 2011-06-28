@@ -52,8 +52,8 @@ function openparmhelp(parm1){
 
     my $default = File::Spec->catfile(@Code_Dirs[0], "items.mht");
     push @file_paths, $default unless @file_paths[0];  # Create new items file if none
-    $web_item_file_name = @file_paths[0] unless $web_item_file_name;      # Default to first mht file found 
-    $web_item_file_name = $1 if $ARGV[0] =~ /^file=(.+)$/;                # User selected another mht file  
+    $web_item_file_name = @file_paths[0] unless $web_item_file_name;      # Default to first mht file found
+    $web_item_file_name = $1 if $ARGV[0] =~ /^file=(.+)$/;                # User selected another mht file
 
                                 # Create a form to pick which file
     $html .= "<table border><tr><form action=/bin/items.pl method=post><td>Which .mht file to edit?\n";
@@ -62,18 +62,20 @@ function openparmhelp(parm1){
                                 # Create form to add an item
     my $form_type =
       &html_form_select('type', 0, 'X10 Light (X10I)',
-                        'Analog Sensor (ANALOG_SENSOR)', 'AUDIOTRON', 'COMPOOL', 
-                        'EIB Switch (EIB1)', 'EIB Switch Group (EIB1G)', 'EIB Dimmer (EIB2)', 
+                        'Analog Sensor (ANALOG_SENSOR)', 'AUDIOTRON', 'COMPOOL',
+                        'EIB Switch (EIB1)', 'EIB Switch Group (EIB1G)', 'EIB Dimmer (EIB2)',
                         'EIB Value (EIB5)', 'EIB Drive (EIB7)',
-                        'GENERIC', 'IBUTTON', 'INSTEON_PLM','Insteon Device (IPLD)','Insteon Link (IPLL)', 
-                        'MP3PLAYER', 'One-Wire xAP Connector (OWX)', 'RF', 'SERIAL', 
-                        'SG485LCD', 'SG485RCSTHRM', 'STARGATEDIN', 'STARGATEVAR', 
-                        'STARGATEFLAG', 'STARGATERELAY', 'STARGATETHERM', 'STARGATEPHONE', 
-                        'VOICE', 'WEATHER', 
+                        'GENERIC', 'IBUTTON', 'INSTEON_PLM','INSTEON_LAMPLINC','INSTEON_APPLIANCELINC',
+                        'INSTEON_SWITCHLINC','INSTEON_SWITCHLINCRELAY','INSTEON_KEYPADLINC','INSTEON_KEYPADLINCRELAY',
+                        'INSTEON_REMOTELINC','INSTEON_MOTIONSENSOR','INSTEON_ICONTROLLER',
+                        'MP3PLAYER', 'One-Wire xAP Connector (OWX)', 'RF', 'SERIAL',
+                        'SG485LCD', 'SG485RCSTHRM', 'STARGATEDIN', 'STARGATEVAR',
+                        'STARGATEFLAG', 'STARGATERELAY', 'STARGATETHERM', 'STARGATEPHONE',
+                        'VOICE', 'WEATHER',
                         'X10 Appliance (X10A)', 'X10 Light (X10I)', 'X10 Ote (X10O)',
                         'X10 SwitchLinc (X10SL)', 'X10 Garage Door (X10G)', 'X10 Irrigation (X10S)',
                         'X10 RCS (X10T)',  'X10 Motion Sensor (X10MS)', 'X10 6 Button Remote (X106BUTTON)',
-                        'XANTECH', 
+                        'XANTECH',
       );
 
 #form action='/bin/items.pl?add' method=post>
@@ -117,7 +119,7 @@ $form_type
     $html .= "</td></tr></table>\n";
 
                                 # Define fields by type
-    my %headers = ( 
+    my %headers = (
                     ANALOG_SENSOR => ['Identifier', 'Name', 'Conduit', 'Groups', 'Type', 'Tokens'],
                     EIB1    => ['Address', 'Name', 'Groups', 'Mode'],
                     EIB1G   => ['Address', 'Name', 'Groups', 'Addresses'],
@@ -133,12 +135,19 @@ $form_type
                     X10SL   => [qw(Address Name Groups Interface Options)],
                     X10MS   => [qw(Address Name Groups Type)],
                     X106BUTTON => [qw(Address Name)],
-					UPBPIM	=> [qw(Name NetworkID Password Address)],
-					UPBD 	=> [qw(Name Interface NetworkID Address Groups)],
-					UPBL	=> [qw(Name Interface NetworkID Address Groups)],
-					INSTEON_PLM 	=> [qw(Name)],
-					IPLD	=> [qw(Address Name Groups Interface Options)],
-					IPLL	=> [qw(Address Name Groups Interface Options)],
+		    UPBPIM	=> [qw(Name NetworkID Password Address)],
+		    UPBD 	=> [qw(Name Interface NetworkID Address Groups)],
+		    UPBL	=> [qw(Name Interface NetworkID Address Groups)],
+		    INSTEON_PLM 		=> [qw(Name)],
+		    INSTEON_LAMPLINC		=> [qw(Address Name Groups)],
+		    INSTEON_APPLIANCELINC  	=> [qw(Address Name Groups)],
+		    INSTEON_SWITCHLINC  	=> [qw(Address Name Groups)],
+		    INSTEON_SWITCHLINCRELAY  	=> [qw(Address Name Groups)],
+		    INSTEON_KEYPADLINC  	=> [qw(Address Name Groups)],
+		    INSTEON_KEYPADLINCRELAY  	=> [qw(Address Name Groups)],
+		    INSTEON_REMOTELINC  	=> [qw(Address Name Groups)],
+		    INSTEON_MOTIONSENSOR  	=> [qw(Address Name Groups)],
+		    INSTEON_ICONTROLLER  	=> [qw(Address Name Groups)],
                     SCENE_MEMBER => [qw(MemberName LinkName OnLevel RampRate)],
                     default => [qw(Address Name Groups Other)]
     );
@@ -189,19 +198,19 @@ sub web_item_set_field {
     $data =~ s/\s*$//;
     $data =~ s/^\s*//;
     $data =~ s/,//g;
-    if ($field == 2) { # name 
+    if ($field == 2) { # name
         $data =~ s/ +/_/g;
         $data =~ s/[^a-z0-9_]//ig;
     }
 
-                                # Get current item record and split into fields 
+                                # Get current item record and split into fields
     my $record = @file_data[$pos];
     my @item_info = split(',\s*', $record);
 
-                                # Replace the updated field 
+                                # Replace the updated field
     $item_info[$field] = $data;
 
-                                # Rebuild the record with updated field 
+                                # Rebuild the record with updated field
     $record = '';
     while (@item_info) {
         my $item = shift @item_info;
@@ -210,7 +219,7 @@ sub web_item_set_field {
     }
     $record =~ s/ *$//;
 
-                                # Replace the updated record and write out mht file 
+                                # Replace the updated record and write out mht file
     $file_data[$pos] = $record;
 #   print "db2 p=$pos f=$field d=$data r=$record\n";
 
@@ -259,8 +268,8 @@ sub web_item_add {
     $name =~ s/[^a-z0-9_,]//ig;
     $other2 =~ s/,$//;
 
-                                # write out new record to mht file 
-    $file_data[@file_data] = sprintf("%-20s%-20s%-20s%-20s%-20s%s", 
+                                # write out new record to mht file
+    $file_data[@file_data] = sprintf("%-20s%-20s%-20s%-20s%-20s%s",
       $type, $address, $name, $group, $other1, $other2);
     &mht_item_file_write($web_item_file_name, \@file_data);
 
