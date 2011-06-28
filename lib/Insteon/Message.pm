@@ -88,7 +88,7 @@ sub respond
 sub send
 {
         my ($self, $interface) = @_;
-        if ($self->send_attempts < ($::config_parms{'Insteon_retry_count'} || 5)
+        if ($self->send_attempts < ($::config_parms{'Insteon_retry_count'} || 5))
         {
 
         	if ($self->send_attempts > 0)
