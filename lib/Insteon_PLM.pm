@@ -374,8 +374,6 @@ sub _parse_data {
 					}
                                         elsif ($record_type eq $prefix{all_link_start})
                                         {
-                                            	&::print_log("[Insteon_PLM] PLM successfully completed requested operation: "
-                                            		. $pending_message->to_string) if $main::Debug{insteon};
                                                 # clear the active message because we're done
                 				$self->clear_active_message();
                                         }
@@ -442,6 +440,41 @@ sub _parse_data {
                                             		. $pending_message->to_string . $@);
                                                 # clear the active message because we're done
                 				$self->clear_active_message();
+                                        }
+                                        elsif ($record_type eq $prefix{all_link_manage_rec})
+                                        {
+                                        	# parse out the data
+                                                my $failed_cmd_code = substr($pending_message->interface_data(),0,2);
+                                                my $failed_cmd = 'unknown';
+                                                if ($failed_cmd_code eq '40')
+                                                {
+                                                	$failed_cmd = 'update/add controller record';
+                                                }
+                                                elsif ($failed_cmd_code eq '41')
+                                                {
+                                                	$failed_cmd = 'update/add responder record';
+                                                }
+                                                elsif ($failed_cmd_code eq '80')
+                                                {
+                                                	$failed_cmd = 'delete record';
+                                                }
+                                                my $failed_group = substr($pending_message->interface_data(),4,2);
+                                                my $failed_deviceid = substr($pending_message->interface_data(),6,6);
+                                            	&::print_log("[Insteon_PLM] WARN: PLM unable to complete requested "
+                                                	. "PLM link table update ($failed_cmd) for "
+                                            		. "group: $failed_group and deviceid: $failed_deviceid" );
+                                                if ($$self{_mem_callback})
+                                        	{
+							my $callback = $$self{_mem_callback};
+							$$self{_mem_callback} = undef;
+							package main;
+							eval ($callback);
+							&::print_log("[Insteon_PLM] error encountered during ack callback: " . $@)
+								if $@ and $main::Debug{insteon};
+							package Insteon_PLM;
+						}
+                                                # clear the active message because we're done
+                				# $self->clear_active_message();
                                         }
                                         else
                                         {
