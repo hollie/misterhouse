@@ -716,7 +716,8 @@ sub delete_orphan_links
                                                 	. $$self{device}->get_object_name
                                                         . (($data3 eq '00' or $data3 eq '01') ? "" : " [button:" . $data3 . "]")
                                                 	. " because PLM does not have a corresponding controller record "
-                                                	. "with group ($group)");
+                                                	. "with group ($group).  Try resyncing the scene corresponding to PLM:$group "
+                                                        . "if the mht scene entry exists.");
                                         }
                                         else
                                         {
