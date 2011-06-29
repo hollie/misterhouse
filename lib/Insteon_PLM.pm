@@ -372,6 +372,13 @@ sub _parse_data {
                                         {
 						$$self{_next_link_ok} = 1;
 					}
+                                        elsif ($record_type eq $prefix{all_link_start})
+                                        {
+                                            	&::print_log("[Insteon_PLM] PLM successfully completed requested operation: "
+                                            		. $pending_message->to_string) if $main::Debug{insteon};
+                                                # clear the active message because we're done
+                				$self->clear_active_message();
+                                        }
                                         else
                                         {
                                         	&::print_log("[Insteon_PLM] DEBUG: received interface acknowledge: "
@@ -426,8 +433,15 @@ sub _parse_data {
                                         }
                                         elsif ($record_type eq $prefix{all_link_send})
                                         {
-                                            &::print_log("[Insteon_PLM] WARN: PLM memory does not contain link for: "
-                                            	. $pending_message->to_string . $@)
+                                            	&::print_log("[Insteon_PLM] WARN: PLM memory does not contain link for: "
+                                            		. $pending_message->to_string . $@)
+                                        }
+                                        elsif ($record_type eq $prefix{all_link_start})
+                                        {
+                                            	&::print_log("[Insteon_PLM] WARN: PLM unable to complete requested operation: "
+                                            		. $pending_message->to_string . $@);
+                                                # clear the active message because we're done
+                				$self->clear_active_message();
                                         }
                                         else
                                         {
