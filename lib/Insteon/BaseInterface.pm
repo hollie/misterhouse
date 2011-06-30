@@ -199,22 +199,23 @@ sub process_queue
 	# get pending command record
 	my $pending_message = $self->active_message;
 
-	if (!($pending_message)) {
+	if (!($pending_message))
+        { # no prior message remains; so, get one from the queue
         	$pending_message = pop(@{$$self{command_stack2}});
         	$self->active_message($pending_message) if $pending_message;
-		#put the command back into the stack.. Its not our job to tamper with this array
-	#	push(@{$$self{command_stack2}},$pending_message) if $pending_message;
 	}
 
 	#we dont transmit on top of another xmit
-	if (!($$self{xmit_in_progress})) { # && ($self->_check_timeout('command')!=0)) {
-		#always send the oldest command first
+	if (!($$self{xmit_in_progress}))
+        { # no transmission is progress that has not already been acked or nacked by the PLM
 		if ($pending_message)
-		{
-			if (!($self->_check_timeout('xmit')==0)) {
+		{ # a message exists to be sent (whether previously sent or queued)
+			if (!($self->_check_timeout('xmit')==0))
+                        { # only send a message if the xmit timer has timed out
 
                                 if ($self->active_message->send($self) == 0)
-                                {
+                                {  # this only occurs if the retry count has been exceeded
+                                   # which also means that there wasn't a message actually sent
                                 	&::print_log("[Insteon::BaseInterface] WARN: number of retries ("
                                         	. $self->active_message->send_attempts
                        				. ") for " . $self->active_message->to_string()
@@ -235,7 +236,8 @@ sub process_queue
                 			$self->clear_active_message();
 
                                         # may instead want a "failure" callback separate from success callback
-					if ($failed_message->failure_callback) {
+					if ($failed_message->failure_callback)
+                                        {
                                         	&::print_log("[Insteon::BaseInterface] WARN: Now calling callback: " .
                                                 	$failed_message->failure_callback) if $main::Debug{insteon};
 		       				package main;
@@ -250,17 +252,19 @@ sub process_queue
                                 {
                                 	# may want to move "success" callback handling from message to here
                                 }
-			}
+			}  # if xmit timer has expired
 			my $command_queue_size = @{$$self{command_stack2}};
 			return $command_queue_size;
 		}
-                else
+                else # no pending message
                 {
                	 	# clear the timer
                 	$self->_clear_timeout('command');
                         return 0;
                 }
-	} else {
+	}
+        else # transmit in progress
+        {
 #		&::print_log("[Insteon_PLM] active transmission; moving on...") if $main::Debug{insteon};
 		my $command_queue_size = @{$$self{command_stack2}};
 		return $command_queue_size;
@@ -393,6 +397,11 @@ sub _set_timeout
 	$$self{"_timeout_$timeout_name"} = $tickcount;
 }
 
+#
+# return -1 if timeout_name does not match an existing timer
+# return 0 if timer has not expired
+# return 1 if timer has expired
+#
 sub _check_timeout
 {
 	my ($self, $timeout_name) = @_;
