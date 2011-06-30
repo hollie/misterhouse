@@ -319,8 +319,11 @@ sub _parse_data {
 	# it is possible that a fragment exists from a previous attempt; so, if it exists, prepend it
 	if ($$self{_data_fragment}) {
 		&::print_log("[Insteon_PLM] DEBUG: Prepending prior data fragment: $$self{_data_fragment}") if $self->debug or $main::Debug{insteon};
+                # maintain a copy of the parsed data fragment
 		$$self{_prior_data_fragment} = $$self{_data_fragment};
-		$data = $$self{_data_fragment} . $data;
+                # append if not a repeat
+		$data = $$self{_data_fragment} . $data; # unless $$self{_data_fragment} eq $data;
+                # and, clear it out
 		$$self{_data_fragment} = '';
 	}
 	&::print_log( "[Insteon_PLM] DEBUG: Parsing serial data: $data") if $self->debug;
@@ -348,17 +351,17 @@ sub _parse_data {
 		my $ackcmd = $prev_cmd . '06';
 		my $nackcmd = $prev_cmd . '15';
 		my $badcmd = $prev_cmd . '0f';
-		foreach my $data_1 (split(/($ackcmd)|($nackcmd)|($prefix{plm_info}\w{12}06)|($prefix{plm_info}\w{12}15)|($badcmd)/,$data))
+		foreach my $parsed_data (split(/($ackcmd)|($nackcmd)|($prefix{plm_info}\w{12}06)|($prefix{plm_info}\w{12}15)|($badcmd)/,$data))
 		{
 			#ignore blanks.. the split does odd things
-			next if $data_1 eq '';
+			next if $parsed_data eq '';
                         $entered_ack_loop = 1;
-			if ($data_1 =~ /^($ackcmd)|($nackcmd)|($prefix{plm_info}\w{12}06)|($prefix{plm_info}\w{12}15)|($badcmd)$/)
+			if ($parsed_data =~ /^($ackcmd)|($nackcmd)|($prefix{plm_info}\w{12}06)|($prefix{plm_info}\w{12}15)|($badcmd)$/)
                         {
-				$processedNibs+=length($data_1);
-				my $ret_code = substr($data_1,length($data_1)-2,2);
-				my $record_type = substr($data_1,0,4);
-                                my $message_data = substr($data_1,4,length($data_1)-4);
+				$processedNibs+=length($parsed_data);
+				my $ret_code = substr($parsed_data,length($parsed_data)-2,2);
+				my $record_type = substr($parsed_data,0,4);
+                                my $message_data = substr($parsed_data,4,length($parsed_data)-4);
 				if ($ret_code eq '06')
                                 {
 					if ($record_type eq $prefix{plm_info})
@@ -383,7 +386,7 @@ sub _parse_data {
                                                 	. $pending_message->to_string) if $self->debug;
                                         }
 
-					if ($data_1 =~ /$prefix{x10_send}\w{4}06/)
+					if ($parsed_data =~ /$prefix{x10_send}\w{4}06/)
                                         {
                 				$self->clear_active_message();
 					}
@@ -438,8 +441,6 @@ sub _parse_data {
                                         {
                                             	&::print_log("[Insteon_PLM] WARN: PLM unable to complete requested operation: "
                                             		. $pending_message->to_string . $@);
-                                                # clear the active message because we're done
-                				$self->clear_active_message();
                                         }
                                         elsif ($record_type eq $prefix{all_link_manage_rec})
                                         {
@@ -486,7 +487,7 @@ sub _parse_data {
                                 else
                                 {
 					# We have a problem (Usually we stepped on another X10 command)
-					&::print_log("[Insteon_PLM] ERROR: encountered $data_1. "
+					&::print_log("[Insteon_PLM] ERROR: encountered $parsed_data. "
                                         	. $pending_message->to_string());
 #					$$self{xmit_in_progress} = 0;
 					$self->retry_active_message();
@@ -494,11 +495,19 @@ sub _parse_data {
 					#TODO: We should keep track of an errored command and kill it if it fails twice.  prevent an infinite loop here
 				}
 			}
-                        else
+                        else  # no match occurred--which is the "leftovers"
                         {
-				$residue_data .= $data_1;
+                        	# is $parsed_data an accidental anomoly? (there are other cases; but, this is a good start)
+                                if ($parsed_data =~ /^($prefix{insteon_send}\w{12}06)|($prefix{insteon_send}\w{12}15)$/)
+                                {
+                                        &::print_log("[Insteon_PLM] ERROR: encountered '$parsed_data' but expected '$ackcmd'.");
+                                }
+                                else
+                                {
+					$residue_data .= $parsed_data;
+                                }
 			}
-		}
+		}  #foreach - split across the incoming data
 
 		$residue_data = $data unless $entered_ack_loop or $residue_data;
 	}
@@ -509,20 +518,20 @@ sub _parse_data {
 
         my $entered_rcv_loop = 0;
 
-	foreach my $data_1 (split(/($prefix{x10_received}\w{4})|($prefix{insteon_received}\w{18})|($prefix{insteon_ext_received}\w{46})|($prefix{all_link_complete}\w{16})|($prefix{all_link_clean_failed}\w{8})|($prefix{all_link_record}\w{16})|($prefix{all_link_clean_status}\w{2})|($prefix{plm_button_event}\w{2})/,$residue_data))
+	foreach my $parsed_data (split(/($prefix{x10_received}\w{4})|($prefix{insteon_received}\w{18})|($prefix{insteon_ext_received}\w{46})|($prefix{all_link_complete}\w{16})|($prefix{all_link_clean_failed}\w{8})|($prefix{all_link_record}\w{16})|($prefix{all_link_clean_status}\w{2})|($prefix{plm_button_event}\w{2})/,$residue_data))
 	{
 		#ignore blanks.. the split does odd things
-		next if $data_1 eq '';
+		next if $parsed_data eq '';
 
                 $entered_rcv_loop = 1;
 
 		#we found a matching command in stream, add to processed bytes
-		$processedNibs+=length($data_1);
+		$processedNibs+=length($parsed_data);
 
-                my $parsed_prefix = substr($data_1,0,4);
-                my $message_length = length($data_1);
+                my $parsed_prefix = substr($parsed_data,0,4);
+                my $message_length = length($parsed_data);
 
-        	my $message_data = substr($data_1,4,length($data_1)-4);
+        	my $message_data = substr($parsed_data,4,length($parsed_data)-4);
 
 		if ($parsed_prefix eq $prefix{insteon_received} and ($message_length == 22))
                 { #Insteon Standard Received
@@ -605,8 +614,9 @@ sub _parse_data {
                                 $self->clear_active_message();
 			}
 		}
-                elsif (substr($data_1,0,2) eq '15')
-                { #NAK Received
+                elsif (substr($parsed_data,0,2) eq '15')
+                { # Indicates that the PLM can't receive more commands at the moment
+                  # so, slow things down
 			if (!($nack_count))
                         {
 				my $nack_delay = ($::config_parms{Insteon_PLM_disable_throttling}) ? 0.3 : 1.0;
@@ -623,7 +633,8 @@ sub _parse_data {
                 {
 			# it's probably a fragment; so, handle it
                         # it it's the same as last time, then drop it as we can't recover
-			$$self{_data_fragment} .= $data_1 unless $data_1 eq $$self{_prior_data_fragment};
+			$$self{_data_fragment} .= $parsed_data
+                        	unless (($parsed_data eq $$self{_prior_data_fragment}) or ($parsed_data eq $$self{_data_fragment}));
 		}
 	}
 
