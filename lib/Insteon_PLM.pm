@@ -288,6 +288,14 @@ sub _send_cmd {
 
         my $command = $message->interface_data;
 	my $delay = $$self{xmit_delay};
+
+        # determine the delay from the point that the message was created to
+        # the point that it is queued
+        my $incurred_delay_time = $message->seconds_delayed;
+        &main::print_log("[Insteon_PLM] DEBUG: Sending " . $message->to_string . " incurred delay of "
+        	. sprintf('%.2f',$incurred_delay_time) . " seconds; starting hop-count: "
+                . ((ref $message->setby && $message->setby->isa('Insteon::BaseObject')) ? $message->setby->default_hop_count : "?")) if $self->debug;
+
 	if ($message->isa('Insteon::X10Message')) { # is x10; so, be slow
         	$command = $prefix{x10_send} . $command;
 		$delay = $$self{xmit_x10_delay};
@@ -382,7 +390,7 @@ sub _parse_data {
                                         }
                                         else
                                         {
-                                        	&::print_log("[Insteon_PLM] DEBUG: received interface acknowledge: "
+                                        	&::print_log("[Insteon_PLM] DEBUG: Received PLM acknowledge: "
                                                 	. $pending_message->to_string) if $self->debug;
                                         }
 
