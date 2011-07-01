@@ -82,7 +82,7 @@ sub new
         	$self->interface(&Insteon::active_interface());
         }
 
-	$self->restore_data('level');
+	$self->restore_data('level','default_hop_count');
 
 	$self->initialize();
 	$$self{level} = undef;
@@ -95,6 +95,7 @@ sub new
 	@{$$self{command_stack}} = ();
 	$$self{_onlevel} = undef;
 	$$self{is_responder} = 1;
+        $$self{default_hop_count} = 1;
 
 	&Insteon::add($self);
 	return $self;
@@ -144,6 +145,13 @@ sub group
 	my ($self, $p_group) = @_;
 	$$self{m_group} = $p_group if $p_group;
 	return $$self{m_group};
+}
+
+sub default_hop_count
+{
+	my ($self, $hop_count) = @_;
+        $$self{default_hop_count} = $hop_count if $hop_count;
+        return $$self{default_hop_count};
 }
 
 sub equals
