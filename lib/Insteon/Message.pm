@@ -10,6 +10,7 @@ sub new
 	my $self={};
 	bless $self,$class;
 
+        $$self{queue_time} = &main::get_tickcount;
         $$self{send_attempts} = 0;
 
         return $self;
@@ -96,13 +97,26 @@ sub send
                 	&::print_log("[Insteon::BaseMessage] WARN: now resending "
                         	. $self->to_string() . " after " . $self->send_attempts
                         	. " attempts.") if $main::Debug{insteon};
+                        # revise default hop count to reflect retries
+                        if (ref $self->setby && $self->setby->isa('Insteon::BaseObject'))
+                        {
+                        	if (($self->send_attempts > $self->setby->default_hop_count)
+                                	and ($self->send_attempts <= 3))
+                                {
+                                	&main::print_log("[Insteon::Message] Now setting default hop count for "
+                                        	. $self->setby->get_object_name . " to "
+                                                . $self->send_attempts);
+                                	$self->setby->default_hop_count($self->send_attempts);
+                                }
+                        }
                 }
 
                 # need to set timeout as a function of retries; also need to alter hop count
 
                 $self->send_attempts($self->send_attempts + 1);
 		$interface->_send_cmd($self, $self->send_timeout);
-		if ($self->callback) {
+		if ($self->callback)
+                {
 			package main;
 			eval $self->callback;
 			&::print_log("[Insteon::BaseMessage] problem w/ retry callback: $@") if $@;
@@ -115,6 +129,20 @@ sub send
                 return 0;
         }
 
+}
+
+sub seconds_delayed
+{
+	my ($self) = @_;
+	my $current_tickcount = &main::get_tickcount;
+        my $delay_time = $current_tickcount - $self->queue_time;
+       	if ($self->queue_time > $current_tickcount)
+       	{
+        	return 'unknown';
+       	}
+
+        $delay_time = $delay_time / 1000;
+        return $delay_time;
 }
 
 sub send_timeout
@@ -150,7 +178,6 @@ sub new
 
         return $self;
 }
-
 
 sub command_to_hash
 {
@@ -238,6 +265,9 @@ sub send_timeout
 #  3       2.00       3.17
 
 	my ($self, $ignore) = @_;
+        my $hop_count = (ref $self->setby and $self->setby->isa('Insteon::BaseObject')) ?
+        			$self->send_attempts + $self->setby->default_hop_count - 1
+                                : $self->send_attempts;
         if ($self->command_type eq 'all_link_send')
         {
         	# note, the following was set to 2000 and that was insufficient
@@ -245,38 +275,38 @@ sub send_timeout
         }
         elsif ($self->command_type eq 'insteon_ext_send')
         {
-        	if ($self->send_attempts == 1)
+        	if ($hop_count == 1)
                 {
                 	return   2220;
                 }
-                elsif ($self->send_attempts == 2)
+                elsif ($hop_count == 2)
                 {
                 	return   2690;
                 }
-                elsif ($self->send_attempts == 3)
+                elsif ($hop_count == 3)
                 {
                 	return   3000;
                 }
-                elsif ($self->send_attempts >= 4)
+                elsif ($hop_count >= 4)
                 {
                 	return   3170;
                 }
         }
         else
         {
-        	if ($self->send_attempts == 1)
+        	if ($hop_count == 1)
                 {
                 	return   1400;
                 }
-                elsif ($self->send_attempts == 2)
+                elsif ($hop_count == 2)
                 {
                 	return   1700;
                 }
-                elsif ($self->send_attempts == 3)
+                elsif ($hop_count == 3)
                 {
                 	return   1900;
                 }
-                elsif ($self->send_attempts >= 4)
+                elsif ($hop_count >= 4)
                 {
                 	return   2000;
                 }
@@ -334,35 +364,42 @@ sub _derive_interface_data
 	my ($self) = @_;
 	my $cmd = '';
 	my $level;
-        if ($self->command_type =~ /all_link_send/i) {
+        if ($self->command_type =~ /all_link_send/i)
+        {
 		$cmd.=$self->setby->group;
-	} else {
+	}
+        else
+        {
+       		my $hop_count = $self->send_attempts + $self->setby->default_hop_count - 1;
 		$cmd.=$self->setby->device_id();
-		if ($self->command_type =~ /insteon_ext_send/i) {
-                        if ($self->send_attempts == 1)
+		if ($self->command_type =~ /insteon_ext_send/i)
+                {
+                        if ($hop_count == 1)
                         {
-			$cmd.='15';
+				$cmd.='15';
                         }
-                        elsif ($self->send_attempts == 2)
+                        elsif ($hop_count == 2)
                         {
-			$cmd.='1A';
+				$cmd.='1A';
                         }
-                        elsif ($self->send_attempts >= 3)
+                        elsif ($hop_count >= 3)
                         {
-			$cmd.='1F';
+				$cmd.='1F';
                         }
-		} else {
-                        if ($self->send_attempts == 1)
+		}
+                else
+                {
+                        if ($hop_count == 1)
                         {
-			$cmd.='05';
+				$cmd.='05';
                         }
-                        elsif ($self->send_attempts == 2)
+                        elsif ($hop_count == 2)
                         {
-			$cmd.='0A';
+				$cmd.='0A';
                         }
-                        elsif ($self->send_attempts >= 3)
+                        elsif ($hop_count >= 3)
                         {
-			$cmd.='0F';
+				$cmd.='0F';
                         }
 		}
 	}
