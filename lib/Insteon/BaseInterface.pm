@@ -174,12 +174,14 @@ sub queue_message
         	my $setby = $message->setby;
 		if ($self->_is_duplicate($message->interface_data) && !($message->isa('Insteon::X10Message'))) {
 			&main::print_log("[Insteon_PLM] Attempt to queue command already in queue; skipping ...") if $main::Debug{insteon};
-		} else {
+		}
+                else
+                {
 			my $queue_size = @{$$self{command_stack2}};
 #			&main::print_log("[Insteon_PLM] Command stack size: $queue_size") if $queue_size > 0 and $main::Debug{insteon};
-                        $message->queue_time($::Time);
 			if ($setby and ref($setby) and $setby->can('set_retry_timeout')
-                           and $setby->get_object_name) {
+                           and $setby->get_object_name)
+                        {
 				$message->callback($setby->get_object_name . "->set_retry_timeout()");
 			}
 			unshift(@{$$self{command_stack2}}, $message);
