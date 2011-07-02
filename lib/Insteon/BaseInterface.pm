@@ -344,7 +344,20 @@ sub on_standard_insteon_received
 		   	$object->_process_message($self, %msg);
                    	if ($msg{is_ack} or $msg{is_nack})
                    	{
-                   		$self->clear_active_message();
+                        	# need to confirm that this message corresponds to the current active one before clearing it
+                                # TO-DO!!! This is a brute force and poor compare technique; needs to be replaced by full compare
+                                if ($self->active_message && ref $self->active_message->setby)
+                                {
+                                	if (lc $self->active_message->setby->device_id eq lc $msg{source})
+                                	{
+                   				$self->clear_active_message();
+                                	}
+                                        else
+                                        {
+                                                &main::print_log("[Insteon::BaseInterface] WARN: deviceid of "
+                                                	. "active message != received message source") if $main::Debug{insteon};
+                                        }
+                        	}
                    	}
 		}
                 else
