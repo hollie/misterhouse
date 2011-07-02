@@ -285,7 +285,7 @@ sub generate_voice_commands
            $object_string .= "$object_name_v -> tie_event('$object_name->delete_orphan_links(1)','AUDIT - delete orphan links');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->debug(1)','messaging debug on');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->debug(0)','messaging debug off');\n\n";
-           $object_string .= "$object_name_v -> tie_event('&Insteon::scan_all_linktables','scan all devicelink tables');\n\n";
+           $object_string .= "$object_name_v -> tie_event('&Insteon::scan_all_linktables','scan all device link tables');\n\n";
            $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_PLM_commands');
            push @_insteon_plm, $object_name;
         }
