@@ -50,6 +50,7 @@ use X10_RF;
 @X10_CMxx::ISA = ('Generic_Item');
 
 my $fifo;
+my $fifo_opened = 0;
 
 sub open_fifo {
     close(X10_CMxx);
@@ -69,12 +70,13 @@ sub startup {
 	sleep 5;
 	return;
     }
-   if (not open_fifo()) {
-	warn ">>>>> Can't open fifo $fifo: $!. Disabling X10_CMxx module <<<<<\n";
+    if (not open_fifo()) {
+	&::print_log(">>>>> CMxx: still can't open fifo $fifo: $!. Will try again later <<<<<<");
 	sleep 5;
     } else {
-	&::MainLoop_pre_add_hook( \&X10_CMxx::check_for_data, 1 );
+	$fifo_opened = 1;
     }
+    &::MainLoop_pre_add_hook( \&X10_CMxx::check_for_data, 1 );
 }
 
 my ($prev_bad_checksums);
@@ -86,8 +88,18 @@ sub check_for_data {
 
     my $buffer;
     my $buffersize = 65536;
-    my $rv = sysread(X10_CMxx, $buffer, $buffersize);
+    my $rv;
 
+    if (not $fifo_opened and &::new_minute()) {
+	&::print_log(">>>>> CMxx: has not yet opened $fifo. Trying again now <<<<<<");
+	if (not open_fifo()) {
+	    &::print_log(">>>>> CMxx: still can't open fifo $fifo: $!. Will try again later <<<<<<");
+	} else {
+	    $fifo_opened = 1;
+	}
+    }
+
+    $rv = sysread(X10_CMxx, $buffer, $buffersize);
     # sysread returning undefined means fifo is ok, but no data received.
     return if (not defined($rv));
 
