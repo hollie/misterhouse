@@ -1174,7 +1174,7 @@ sub new {
        if ($p_type eq 'output') # define a default message to be sent out on a call to the "set" method
        {
          # the following can always be overwritten
-          $self->on_set_message('control.basic' => { 'current' => '$state' });
+          $self->on_set_message('control.basic' => { 'z##current' => '$state' });
        }
     }
     else
