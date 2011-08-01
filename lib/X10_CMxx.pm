@@ -9,9 +9,7 @@ program, mochad, which writes it to a fifo which this module reads.
 1) Download and install mochad: http://sourceforge.net/projects/mochad/
 
  Make sure that your version supports the --raw-data option.
- If your mochad is too old (or a version newer than 0.1.7 has not been
- released yet), apply this patch to mochad: X10_CMxx_mochad-0.1.7.diff
- and see the README.
+ If your mochad is too old, upgrade to something newer than 0.1.7.
 
 2) Use these mh.ini parameters to enable this code:
 
