@@ -13,12 +13,17 @@ program, mochad, which writes it to a fifo which this module reads.
 
 2) Use these mh.ini parameters to enable this code:
 
- CMxx_module = X10_CMxx
- CMxx_fifo   = /var/run/cm19a
+ X10_CMxx_module = X10_CMxx
+ X10_CMxx_fifo   = /var/run/cm19a
 
-The way this will work is that at least on linux udev will be configured
-to run mochad.scr, which in turn will run mochad and sent its output to
-a fifo: /var/run/cm19a, which this module reads from.
+The way this will work is that at least on linux you need to have a udev 
+rule that is configured to run mochad.scr, which in turn will run mochad
+and sent its output to a fifo: /var/run/cm19a, which this module reads
+from.
+On my system, I have this:
+cat /etc/udev/rules.d/91-usb-x10-controllers.rules
+SUBSYSTEM=="usb", ATTR{idVendor}=="0bc7", ATTR{idProduct}=="0001", RUN+="/usr/local/bin/mochad.scr"
+SUBSYSTEM=="usb", ATTR{idVendor}=="0bc7", ATTR{idProduct}=="0002", RUN+="/usr/local/bin/mochad.scr"
 
 
 To monitor keys from an X10 TV/VCR RF remote (UR47A, UR51A, J20A, etc.),
