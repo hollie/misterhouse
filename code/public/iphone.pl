@@ -111,7 +111,7 @@ sub iphoneWebApp {
     if (1) {
         ($icon) = &html_find_icon_image($object, ref($object));
         $icon = "<img src=\"$icon\" width=32 height=20 class=\"iFull\" />" if ($icon ne "");
-      if ($object->isa('EIB1_Item')) {
+      if ($object->isa('EIB1_Item') || $object->isa('xPL_Plugwise')) {
         $html .= "                <li>";
         $html .= '<input type="checkbox" id="' . $item2. '" class="iToggle" title="I|O"';
         if ($state eq 'on') { $html .= ' checked="checked" '; }
