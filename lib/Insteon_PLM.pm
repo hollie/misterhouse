@@ -147,23 +147,11 @@ sub check_for_data {
          	#lets turn this into Hex. I hate perl binary funcs
         	my $data = unpack "H*", $data;
 
-        	my $processedNibs;
-         	$processedNibs = $self->_parse_data($data);
-         	$processedNibs = 0 unless $processedNibs;
-#		&::print_log("PLM Proc:$processedNibs:" . length($data));
-         	if (length($data) > $processedNibs)
-                {
-            		$main::Serial_Ports{$port_name}{data}=pack("H*",substr($data,$processedNibs,length($data)-$processedNibs));
-         	}
-                else
-                {
-            		$main::Serial_Ports{$port_name}{data} = '';
-         	}
-
-      	# if no data being received, then check if any timeouts have expired
+         	$self->_parse_data($data);
       	}
         elsif (defined $self)
       	{
+      	# if no data being received, then check if any timeouts have expired
         	if ($self->_check_timeout('command') == 1)
                 {
             		$self->_clear_timeout('command');
@@ -322,8 +310,6 @@ sub _parse_data {
 	my ($self, $data) = @_;
    my ($name, $val);
 
-	my $processedNibs=0;
-
 	# it is possible that a fragment exists from a previous attempt; so, if it exists, prepend it
 	if ($$self{_data_fragment}) {
 		&::print_log("[Insteon_PLM] DEBUG: Prepending prior data fragment: $$self{_data_fragment}") if $self->debug or $main::Debug{insteon};
@@ -334,7 +320,7 @@ sub _parse_data {
                 # and, clear it out
 		$$self{_data_fragment} = '';
 	}
-	&::print_log( "[Insteon_PLM] DEBUG: Parsing serial data: $data") if $self->debug;
+	&::print_log( "[Insteon_PLM] DEBUG: Received raw PLM data: $data") if $self->debug;
 
 	# begin by pulling out any PLM ack/nacks
 	my $prev_cmd = '';
@@ -364,9 +350,8 @@ sub _parse_data {
 			#ignore blanks.. the split does odd things
 			next if $parsed_data eq '';
                         $entered_ack_loop = 1;
-			if ($parsed_data =~ /^($ackcmd)|($nackcmd)|($prefix{plm_info}\w{12}06)|($prefix{plm_info}\w{12}15)|($badcmd)$/)
+			if ($parsed_data =~ /^($ackcmd)|($nackcmd) |($prefix{plm_info}\w{12}06)|($prefix{plm_info}\w{12}15)|($badcmd)$/)
                         {
-				$processedNibs+=length($parsed_data);
 				my $ret_code = substr($parsed_data,length($parsed_data)-2,2);
 				my $record_type = substr($parsed_data,0,4);
                                 my $message_data = substr($parsed_data,4,length($parsed_data)-4);
@@ -401,6 +386,8 @@ sub _parse_data {
 
 					if (($record_type eq $prefix{all_link_manage_rec}) and $$self{_mem_callback})
                                         {
+                                                # clear the active message because we're done
+                				$self->clear_active_message();
 						my $callback = $$self{_mem_callback};
 						$$self{_mem_callback} = undef;
 						package main;
@@ -509,6 +496,7 @@ sub _parse_data {
                                 if ($parsed_data =~ /^($prefix{insteon_send}\w{12}06)|($prefix{insteon_send}\w{12}15)$/)
                                 {
                                         &::print_log("[Insteon_PLM] ERROR: encountered '$parsed_data' but expected '$ackcmd'.");
+					$residue_data .= $parsed_data;
                                 }
                                 else
                                 {
@@ -532,9 +520,6 @@ sub _parse_data {
 		next if $parsed_data eq '';
 
                 $entered_rcv_loop = 1;
-
-		#we found a matching command in stream, add to processed bytes
-		$processedNibs+=length($parsed_data);
 
                 my $parsed_prefix = substr($parsed_data,0,4);
                 my $message_length = length($parsed_data);
@@ -648,11 +633,22 @@ sub _parse_data {
 
 	$$self{_data_fragment} = $residue_data unless $entered_rcv_loop or $$self{_data_fragment};
 
+        # now, clear the serial port data so that any subsequent command processing doesn't result in an immediate filling/overwriting
+      	my $port_name = $$self{port_name};
+        if (length($residue_data))
+        {
+        	$main::Serial_Ports{$port_name}{data}=pack("H*",$$self{_data_fragment});
+        }
+        else
+        {
+        	$main::Serial_Ports{$port_name}{data} = '';
+        }
+
 	if ($process_next_command) {
  		$self->process_queue();
 	}
 
-	return $processedNibs;
+	return;
 }
 
 # dummy sub required to support the X10 integrtion
