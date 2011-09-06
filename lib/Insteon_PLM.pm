@@ -328,7 +328,7 @@ sub _parse_data {
                 # maintain a copy of the parsed data fragment
 		$$self{_prior_data_fragment} = $$self{_data_fragment};
                 # append if not a repeat
-		$data = $$self{_data_fragment} . $data; # unless $$self{_data_fragment} eq $data;
+		$data = $$self{_data_fragment} . $data unless $$self{_data_fragment} eq $data;
                 # and, clear it out
 		$$self{_data_fragment} = '';
 	}
@@ -362,7 +362,7 @@ sub _parse_data {
 			#ignore blanks.. the split does odd things
 			next if $parsed_data eq '';
                         $entered_ack_loop = 1;
-			if ($parsed_data =~ /^($ackcmd)|($nackcmd) |($prefix{plm_info}\w{12}06)|($prefix{plm_info}\w{12}15)|($badcmd)$/)
+			if ($parsed_data =~ /^($ackcmd)|($nackcmd)|($prefix{plm_info}\w{12}06)|($prefix{plm_info}\w{12}15)|($prefix{all_link_first_rec}15)|($prefix{all_link_next_rec}15)|($badcmd)$/)
                         {
 				my $ret_code = substr($parsed_data,length($parsed_data)-2,2);
 				my $record_type = substr($parsed_data,0,4);
