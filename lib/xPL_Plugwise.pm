@@ -94,7 +94,7 @@ sub request_stat {
 	    my $name =  $circle->get_object_name();
 	    &::print_log("[xPL_PlugwiseGateway] Requesting state for $name over xPL") if $main::Debug{xpl_plugwise};
 	    $circle->request_stat();
-	    sleep(1);
+	    #sleep(1);
         }
     }
 }

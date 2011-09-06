@@ -57,6 +57,10 @@ Once it is running, objects get variables including these:
 'states_multistate' ?
 'target_address' => '*',
 '_device_id' => 'bthr918n.e6'
+'set_time' => 1285555578,
+'m_timerHeartBeat' => bless( {}, 'Timer' ),
+'m_timeoutHeartBeat' => 0,
+
 
 So, you would write this to print temperature:
 print_log $oregon_intemp->state
@@ -1170,7 +1174,7 @@ sub new {
        if ($p_type eq 'output') # define a default message to be sent out on a call to the "set" method
        {
          # the following can always be overwritten
-          $self->on_set_message('control.basic' => { 'current' => '$state' });
+          $self->on_set_message('control.basic' => { 'z##current' => '$state' });
        }
     }
     else
