@@ -1263,7 +1263,7 @@ sub _write_link
 		if (($$self{device}->isa('Insteon::KeyPadLincRelay') or $$self{device}->isa('Insteon::KeyPadLinc')) and ($data3 eq '00')) {
 			&::print_log("[Insteon::ALDB_i1] setting data3 to " . $$self{device}->group . " for this keypadlinc")
 				if $main::Debug{insteon};
-			$data3 = $self->group;
+			$data3 = $$self{device}->group;
 		}
 		$$self{pending_aldb}{data3} = (defined $data3) ? lc $data3 : '00';
 		$self->_peek($address);
