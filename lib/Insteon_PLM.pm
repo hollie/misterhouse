@@ -144,6 +144,18 @@ sub check_for_data {
       	# always check for data first; if it exists, then process; otherwise check if pending commands exist
       	if ($data)
         {
+        	# now, clear the serial port data so that any subsequent command processing doesn't result in an immediate filling/overwriting
+	        if (length($$self{_data_fragment}))
+        	{
+#        		$main::Serial_Ports{$port_name}{data}=pack("H*",$$self{_data_fragment});
+			# always clear the buffer since we're maintaining the fragment separately
+               		$main::Serial_Ports{$port_name}{data} = '';
+       		}
+       		else
+        	{
+        		$main::Serial_Ports{$port_name}{data} = '';
+        	}
+
          	#lets turn this into Hex. I hate perl binary funcs
         	my $data = unpack "H*", $data;
 
@@ -632,17 +644,6 @@ sub _parse_data {
 	}
 
 	$$self{_data_fragment} = $residue_data unless $entered_rcv_loop or $$self{_data_fragment};
-
-        # now, clear the serial port data so that any subsequent command processing doesn't result in an immediate filling/overwriting
-      	my $port_name = $$self{port_name};
-        if (length($residue_data))
-        {
-        	$main::Serial_Ports{$port_name}{data}=pack("H*",$$self{_data_fragment});
-        }
-        else
-        {
-        	$main::Serial_Ports{$port_name}{data} = '';
-        }
 
 	if ($process_next_command) {
  		$self->process_queue();
