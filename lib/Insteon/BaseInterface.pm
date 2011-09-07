@@ -69,16 +69,6 @@ sub equals
         }
 }
 
-sub debug
-{
-	my ($self, $debug) = @_;
-        if (defined $debug)
-        {
-        	$$self{debug} = $debug;
-        }
-        return $$self{debug};
-}
-
 sub _is_duplicate
 {
 	my ($self, $cmd) = @_;
