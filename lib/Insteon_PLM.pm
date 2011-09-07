@@ -303,7 +303,10 @@ sub _send_cmd {
 	} else {
                 my $command_type = $message->command_type;
                 $command = $prefix{$command_type} . $command;
-         	$self->_set_timeout('command', $cmd_timeout); # a commmand needs to be PLM ack'd w/i 3 seconds or it gets dropped
+                if ($command_type eq 'all_link_send' or $command_type eq 'insteon_send' or $command_type eq 'insteon_ext_send')
+                {
+         		$self->_set_timeout('command', $cmd_timeout); # a commmand needs to be PLM ack'd w/i 3 seconds or it gets dropped
+                }
         }
 
         my $data = pack("H*",$command);
@@ -323,7 +326,8 @@ sub _parse_data {
    my ($name, $val);
 
 	# it is possible that a fragment exists from a previous attempt; so, if it exists, prepend it
-	if ($$self{_data_fragment}) {
+	if ($$self{_data_fragment})
+        {
 		&::print_log("[Insteon_PLM] DEBUG: Prepending prior data fragment: $$self{_data_fragment}") if $self->debug or $main::Debug{insteon};
                 # maintain a copy of the parsed data fragment
 		$$self{_prior_data_fragment} = $$self{_data_fragment};
@@ -332,6 +336,12 @@ sub _parse_data {
                 # and, clear it out
 		$$self{_data_fragment} = '';
 	}
+        else
+        {
+        	# clear the memory of any prior data fragment
+                $$self{_prior_data_fragment} = '';
+        }
+
 	&::print_log( "[Insteon_PLM] DEBUG: Received raw PLM data: $data") if $self->debug;
 
 	# begin by pulling out any PLM ack/nacks
@@ -396,17 +406,20 @@ sub _parse_data {
                 				$self->clear_active_message();
 					}
 
-					if (($record_type eq $prefix{all_link_manage_rec}) and $$self{_mem_callback})
+					if ($record_type eq $prefix{all_link_manage_rec})
                                         {
                                                 # clear the active message because we're done
                 				$self->clear_active_message();
-						my $callback = $$self{_mem_callback};
+						my $callback = $pending_message->callback(); #$$self{_mem_callback};
 						$$self{_mem_callback} = undef;
-						package main;
-						eval ($callback);
-						&::print_log("[Insteon_PLM] error encountered during ack callback: " . $@)
-							if $@ and $main::Debug{insteon};
-						package Insteon_PLM;
+                                                if ($callback)
+                                                {
+							package main;
+							eval ($callback);
+							&::print_log("[Insteon_PLM] error encountered during ack callback: " . $@)
+								if $@ and $main::Debug{insteon};
+							package Insteon_PLM;
+                                                }
 					}
 				}
                                 elsif ($ret_code eq '15' or $ret_code eq '0f')
@@ -615,8 +628,9 @@ sub _parse_data {
 							);
 						$link->_process_message($self, %msg);
 					}
+                                        # only clear the active message if this all_link_clean_status corresponds to a all_link_send message
+                                	$self->clear_active_message();
 				}
-                                $self->clear_active_message();
 			}
 		}
                 elsif (substr($parsed_data,0,2) eq '15')
