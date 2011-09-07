@@ -768,11 +768,16 @@ sub is_responder
 	$$self{is_responder} = $is_responder if defined $is_responder;
 	if ($self->is_root) {
 		return $$self{is_responder};
-	} else {
+	}
+        else
+        {
 		my $root_obj = $self->get_root();
-		if (ref $root_obj) {
+		if (ref $root_obj)
+                {
 			return $$root_obj{is_responder};
-		} else {
+		}
+                else
+                {
 			return 0;
 		}
 	}
@@ -793,7 +798,9 @@ sub link_to_interface
 	$link_info{data3} = $p_data3 if $p_data3;
         if ($self->_aldb) {
 	   $self->_aldb->add_link(%link_info);
-        } else {
+        }
+        else
+        {
            &main::print_log("[BaseInsteon] This item " . $self->get_object_name .
               " does not have an ALDB object.  Linking is not permitted.");
         }
@@ -809,7 +816,9 @@ sub unlink_to_interface
         if ($self->_aldb) {
 	   $self->_aldb->delete_link(object => $self->interface, group => $group, is_controller => 1,
 		callback => "$callback_instance->delete_link('$callback_info')");
-        } else {
+        }
+        else
+        {
            &main::print_log("[BaseInsteon] This item " . $self->get_object_name .
               " does not have an ALDB object.  Unlinking is not permitted.");
         }
@@ -827,18 +836,22 @@ sub _aldb
 sub set_operating_flag {
 	my ($self, $flag) = @_;
 
-	if (!(exists($operating_flags{$flag}))) {
+	if (!(exists($operating_flags{$flag})))
+        {
 		&::print_log("[Insteon::BaseDevice] $flag is not a support operating flag");
 		return;
 	}
 
-	if ($self->is_root and !($self->isa('Insteon::InterfaceController'))) {
+	if ($self->is_root and !($self->isa('Insteon::InterfaceController')))
+        {
 		# TO-DO: check devcat to determine if the action is supported by the device
                 my $message = new Insteon::InsteonMessage('insteon_send', $self, 'set_operating_flags');
                 $message->extra($operating_flags{$flag});
                 $self->_send_cmd($message);
 #		$self->_send_cmd('command' => 'set_operating_flags', 'extra' => $operating_flags{$flag});
-        } else {
+        }
+        else
+        {
 		&::print_log("[Insteon::BaseDevice] " . $self->get_object_name . " is either not a root device or is a plm controlled scene");
 		return;
 	}
@@ -847,12 +860,15 @@ sub set_operating_flag {
 sub get_operating_flag {
 	my ($self) = @_;
 
-	if ($self->is_root and !($self->isa('Insteon::InterfaceController'))) {
+	if ($self->is_root and !($self->isa('Insteon::InterfaceController')))
+        {
 		# TO-DO: check devcat to determine if the action is supported by the device
                 my $message = new Insteon::InsteonMessage('insteon_send', $self, 'get_operating_flags');
                 $self->_send_cmd($message);
 #		$self->_send_cmd('command' => 'get_operating_flags');
-        } else {
+        }
+        else
+        {
 		&::print_log("[Insteon::BaseDevice] " . $self->get_object_name . " is either not a root device or is a plm controlled scene");
 		return;
 	}
@@ -860,10 +876,14 @@ sub get_operating_flag {
 
 sub writable {
 	my ($self, $p_write) = @_;
-	if (defined $p_write) {
-		if ($p_write =~ /r/i or $p_write =~/^0/) {
+	if (defined $p_write)
+        {
+		if ($p_write =~ /r/i or $p_write =~/^0/)
+                {
 			$$self{m_write} = 0;
-		} else {
+		}
+                else
+                {
 			$$self{m_write} = 1;
 		}
 	}
@@ -883,9 +903,12 @@ sub is_root {
 
 sub get_root {
 	my ($self) = @_;
-	if ($self->is_root) {
+	if ($self->is_root)
+        {
 		return $self;
-	} else {
+	}
+        else
+        {
 		return &Insteon::get_object($self->device_id, '01');
 	}
 }
@@ -912,10 +935,13 @@ sub add_link
         if ($aldb)
         {
         	my %link_parms;
-		if (@_ > 2) {
+		if (@_ > 2)
+                {
 			shift @_;
 			%link_parms = @_;
-		} else {
+		}
+                else
+                {
 			%link_parms = &main::parse_func_parms($parms_text);
 		}
         	$aldb->add_link(%link_parms);
@@ -930,10 +956,13 @@ sub update_link
         if ($aldb)
         {
         	my %link_parms;
-		if (@_ > 2) {
+		if (@_ > 2)
+                {
 			shift @_;
 			%link_parms = @_;
-		} else {
+		}
+                else
+                {
 			%link_parms = &main::parse_func_parms($parms_text);
 		}
         	$aldb->update_link(%link_parms);
@@ -947,10 +976,13 @@ sub delete_link
         if ($aldb)
         {
         	my %link_parms;
-		if (@_ > 2) {
+		if (@_ > 2)
+                {
 			shift @_;
 			%link_parms = @_;
-		} else {
+		}
+                else
+                {
 			%link_parms = &main::parse_func_parms($parms_text);
 		}
         	$aldb->delete_link(%link_parms);
@@ -1009,12 +1041,15 @@ sub restore_string
 {
 	my ($self) = @_;
 	my $restore_string = $self->SUPER::restore_string();
-	if ($self->_aldb) {
+	if ($self->_aldb)
+        {
 		$restore_string .= $self->_aldb->restore_string();
         }
-	if ($$self{states}) {
+	if ($$self{states})
+        {
 		my $states = '';
-		foreach my $state (@{$$self{states}}) {
+		foreach my $state (@{$$self{states}})
+                {
 			$states .= '|' if $states;
 			$states .= $state;
 		}
@@ -1027,7 +1062,8 @@ sub restore_string
 sub restore_states
 {
 	my ($self, $states) = @_;
-	if ($states) {
+	if ($states)
+        {
 		@{$$self{states}} = split(/\|/,$states);
 	}
 }
@@ -1035,7 +1071,8 @@ sub restore_states
 sub restore_aldb
 {
 	my ($self,$aldb) = @_;
-	if ($self->_aldb and $aldb) {
+	if ($self->_aldb and $aldb)
+        {
            $self->_aldb->restore_aldb($aldb);
 	}
 }
@@ -1043,9 +1080,11 @@ sub restore_aldb
 sub devcat
 {
 	my ($self, $devcat) = @_;
-	if ($devcat) {
+	if ($devcat)
+        {
 		$$self{devcat} = $devcat;
-		if (($$self{devcat} =~ /^01\w\w/) or ($$self{devcat} =~ /^02\w\w/) && !($self->states)) {
+		if (($$self{devcat} =~ /^01\w\w/) or ($$self{devcat} =~ /^02\w\w/) && !($self->states))
+                {
 			$self->states( 'on,off' );
 		}
 	}
@@ -1055,10 +1094,12 @@ sub devcat
 sub states
 {
 	my ($self, $states) = @_;
-	if ($states) {
+	if ($states)
+        {
 		@{$$self{states}} = split(/,/,$states);
 	}
-	if ($$self{states}) {
+	if ($$self{states})
+        {
 		return @{$$self{states}};
 	} else {
 		return undef;
@@ -1070,7 +1111,8 @@ sub states
 sub local_onlevel
 {
 	my ($self, $p_onlevel) = @_;
-	if (defined $p_onlevel) {
+	if (defined $p_onlevel)
+        {
 		my ($onlevel) = $p_onlevel =~ /(\d+)%?/;
 		$$self{_onlevel} = $onlevel;
 	}
@@ -1107,9 +1149,12 @@ sub log_alllink_table
 sub update_local_properties
 {
 	my ($self) = @_;
-	if ($self->isa('Insteon::DimmableLight')) {
+	if ($self->isa('Insteon::DimmableLight'))
+        {
         	$self->_aldb->update_local_properties() if $self->_aldb;
-	} else {
+	}
+        else
+        {
 		&::print_log("[Insteon::BaseDevice] update_local_properties may only be applied to dimmable devices!");
 	}
 }
@@ -1117,7 +1162,8 @@ sub update_local_properties
 sub update_flags
 {
 	my ($self, $flags) = @_;
-	if (!($self->isa('Insteon::KeyPadLinc') or $self->isa('Insteon::KeyPadLincRelay'))) {
+	if (!($self->isa('Insteon::KeyPadLinc') or $self->isa('Insteon::KeyPadLincRelay')))
+        {
 		&::print_log("[Insteon::BaseDevice] Operating flags may only be revised on keypadlincs!");
 		return;
 	}
@@ -1155,18 +1201,25 @@ sub new
 sub add
 {
 	my ($self, $obj, $on_level, $ramp_rate) = @_;
-	if (ref $obj and ($obj->isa('Light_Item') or $obj->isa('Insteon::BaseDevice'))) {
-		if ($$self{members} && $$self{members}{$obj}) {
+	if (ref $obj and ($obj->isa('Light_Item') or $obj->isa('Insteon::BaseDevice')))
+        {
+		if ($$self{members} && $$self{members}{$obj})
+                {
 			print "[Insteon::BaseController] An object (" . $obj->{object_name} . ") already exists "
 				. "in this scene.  Aborting add request.\n";
 			return;
 		}
-		if ($on_level =~ /^sur/i) {
+		if ($on_level =~ /^sur/i)
+                {
 			$on_level = '100%';
 			$$obj{surrogate} = $self;
-		} elsif (lc $on_level eq 'on') {
+		}
+                elsif (lc $on_level eq 'on')
+                {
 			$on_level = '100%';
-		} elsif (lc $on_level eq 'off') {
+		}
+                elsif (lc $on_level eq 'off')
+                {
 			$on_level = '0%';
 		}
 		$on_level = '100%' unless $on_level;
@@ -1185,9 +1238,11 @@ sub sync_links
 	@{$$self{sync_queue}} = (); # reset the work queue
 	$$self{sync_queue_callback} = ($callback) ? $callback : undef;
 	my $insteon_object = $self->interface;
-	if (!($self->isa('Insteon::InterfaceController'))) {
+	if (!($self->isa('Insteon::InterfaceController')))
+        {
 		$insteon_object = &Insteon::get_object($self->device_id,'01');
-		if (!(defined($insteon_object))) {
+		if (!(defined($insteon_object)))
+                {
 			&main::print_log("[Insteon::BaseController] WARN!! A device w/ insteon address: " . $self->device_id . ":01 could not be found. "
 				. "Please double check your items.mht file.");
 		}
@@ -1195,17 +1250,21 @@ sub sync_links
 	my $self_link_name = $self->get_object_name;
 	# abort if $insteon_object doesn't exist
 	$self->_process_sync_queue() unless $insteon_object;
-	if ($$self{members}) {
-		foreach my $member_ref (keys %{$$self{members}}) {
+	if ($$self{members})
+        {
+		foreach my $member_ref (keys %{$$self{members}})
+                {
 			my $member = $$self{members}{$member_ref}{object};
 			# find real device if member is a Light_Item
-			if ($member->isa('Light_Item')) {
+			if ($member->isa('Light_Item'))
+                        {
 				my @children = $member->find_members('Insteon::BaseDevice');
 				$member = $children[0];
 			}
 			my $linkmember = $member;
 			# find real device if member's group is not '01'; for example, cross-linked KeypadLincs
-			if ($member->group ne '01') {
+			if ($member->group ne '01')
+                        {
 				$member = &Insteon::get_object($member->device_id,'01');
 			}
 			my $tgt_on_level = $$self{members}{$member_ref}{on_level};
@@ -1215,7 +1274,8 @@ sub sync_links
 			$tgt_ramp_rate = '0' unless defined $tgt_ramp_rate;
 			# first, check existance for each link; if found, then perform an update (unless link is to PLM)
 			# if not, then add the link
-			if ($member->has_link($insteon_object, $self->group, 0, $linkmember->group)) {
+			if ($member->has_link($insteon_object, $self->group, 0, $linkmember->group))
+                        {
 				# TO-DO: only update link if the on_level and ramp_rate are different
 				my $requires_update = 0;
 				$tgt_on_level =~ s/(\d+)%?/$1/;
@@ -1225,57 +1285,81 @@ sub sync_links
                                 	 and $linkmember->group ne '01') {
 					$aldbkey .= $linkmember->group;
 				}
-				if (!($member->isa('Insteon::DimmableLight'))) {
+				if (!($member->isa('Insteon::DimmableLight')))
+                                {
                                 	my $member_aldb = $member->_aldb;
-					if ($tgt_on_level >= 1 and $$member_aldb{$aldbkey}{data1} ne 'ff') {
+					if ($tgt_on_level >= 1 and $$member_aldb{aldb}{$aldbkey}{data1} ne 'ff')
+                                        {
 						$requires_update = 1;
 						$tgt_on_level = 100;
-					} elsif ($tgt_on_level == 0 and $$member_aldb{$aldbkey}{data1} ne '00') {
+					}
+                                        elsif ($tgt_on_level == 0 and $$member_aldb{aldb}{$aldbkey}{data1} ne '00')
+                                        {
 						$requires_update = 1;
 					}
-					if ($$member_aldb{$aldbkey}{data2} ne '00') {
+					if ($$member_aldb{aldb}{$aldbkey}{data2} ne '00')
+                                        {
 						$tgt_ramp_rate = 0;
 					}
-				} else {
+				}
+                                else
+                                {
                                 	my $member_aldb = $member->_aldb;
 					$tgt_ramp_rate = 0.1 unless $tgt_ramp_rate;
-					my $link_on_level = hex($$member_aldb{$aldbkey}{data1})/2.55;
-					my $raw_ramp_rate = $$member_aldb{$aldbkey}{data2};
+					my $link_on_level = hex($$member_aldb{aldb}{$aldbkey}{data1})/2.55;
+					my $raw_ramp_rate = $$member_aldb{aldb}{$aldbkey}{data2};
 					my $raw_tgt_ramp_rate = &Insteon::DimmableLight::convert_ramp($tgt_ramp_rate);
-					if ($raw_ramp_rate != $raw_tgt_ramp_rate) {
+					if ($raw_ramp_rate != $raw_tgt_ramp_rate)
+                                        {
 						$requires_update = 1;
-					} elsif (($link_on_level > $tgt_on_level + 1) or ($link_on_level < $tgt_on_level -1)) {
+                                                &::print_log("[Insteon::BaseController] DEBUG: flagging " . $self->get_object_name
+                                                	. " for update because existing ramp rate ($raw_ramp_rate) != target ($raw_tgt_ramp_rate)")
+							if $main::Debug{insteon};
+
+					}
+                                        elsif (($link_on_level > $tgt_on_level + 1) or ($link_on_level < $tgt_on_level -1))
+                                        {
 						$requires_update = 1;
+                                                &::print_log("[Insteon::BaseController] DEBUG: flagging " . $self->get_object_name
+                                                	. " for update because existing on level ($link_on_level) != target ($tgt_on_level)")
+							if $main::Debug{insteon};
 					}
 				}
-				if ($requires_update) {
+				if ($requires_update)
+                                {
 					my %link_req = ( member => $member, cmd => 'update', object => $insteon_object,
 						group => $self->group, is_controller => 0,
 						on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,
 						callback => "$self_link_name->_process_sync_queue()" );
 					# set data3 is device is a KeypadLinc
-					if ($member->isa('Insteon::KeyPadLincRelay') or $member->isa('Insteon::KeyPadLinc')) {
+					if ($member->isa('Insteon::KeyPadLincRelay') or $member->isa('Insteon::KeyPadLinc'))
+                                        {
 						$link_req{data3} = $linkmember->group;
 					}
 					push @{$$self{sync_queue}}, \%link_req;
 				}
-			} else {
+			}
+                        else
+                        {
 				my %link_req = ( member => $member, cmd => 'add', object => $insteon_object,
 					group => $self->group, is_controller => 0,
 					on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,
 					callback => "$self_link_name->_process_sync_queue()" );
 				# set data3 is device is a KeypadLinc
-				if ($member->isa('Insteon::KeyPadLincRelay') or $member->isa('Insteon::KeyPadLinc')) {
+				if ($member->isa('Insteon::KeyPadLincRelay') or $member->isa('Insteon::KeyPadLinc'))
+                                {
 					$link_req{data3} = $linkmember->group;
 				}
 				push @{$$self{sync_queue}}, \%link_req;
 			}
-			if (!($insteon_object->has_link($member, $self->group, 1, $linkmember->group))) {
+			if (!($insteon_object->has_link($member, $self->group, 1, $linkmember->group)))
+                        {
 				my %link_req = ( member => $insteon_object, cmd => 'add', object => $member,
 					group => $self->group, is_controller => 1,
 					callback => "$self_link_name->_process_sync_queue()" );
 				# set data3 is device is a KeypadLinc
-				if ($member->isa('Insteon::KeyPadLincRelay') or $member->isa('Insteon::KeyPadLinc')) {
+				if ($member->isa('Insteon::KeyPadLincRelay') or $member->isa('Insteon::KeyPadLinc'))
+                                {
 					$link_req{data3} = $linkmember->group;
 				}
 				push @{$$self{sync_queue}}, \%link_req;
@@ -1283,16 +1367,19 @@ sub sync_links
 		}
 	}
 	# if not a plm controlled link, then confirm that a link back to the plm exists
-	if (!($self->isa('Insteon::InterfaceController'))) {
+	if (!($self->isa('Insteon::InterfaceController')))
+        {
 		my $subaddress = ($self->isa('Insteon::KeyPadLincRelay') or $self->isa('Insteon::KeyPadLinc')) ? $self->group : '00';
-		if (!($insteon_object->has_link($self->interface,$self->group,1,$subaddress))) {
+		if (!($insteon_object->has_link($self->interface,$self->group,1,$subaddress)))
+                {
 			my %link_req = ( member => $insteon_object, cmd => 'add', object => $self->interface,
 				group => $self->group, is_controller => 1,
 				callback => "$self_link_name->_process_sync_queue()" );
 			$link_req{data3} = $self->group if $insteon_object->isa('Insteon::KeyPadLincRelay') or $insteon_object->isa('Insteon::KeyPadLinc');
 			push @{$$self{sync_queue}}, \%link_req;
 		}
-		if (!($self->interface->has_link($insteon_object,$self->group,0,$subaddress))) {
+		if (!($self->interface->has_link($insteon_object,$self->group,0,$subaddress)))
+                {
 			my %link_req = ( member => $self->interface, cmd => 'add', object => $insteon_object,
 				group => $self->group, is_controller => 0,
 				callback => "$self_link_name->_process_sync_queue()" );
@@ -1300,7 +1387,8 @@ sub sync_links
 		}
 	}
 	my $num_sync_queue = @{$$self{sync_queue}};
-	if (!($num_sync_queue)) {
+	if (!($num_sync_queue))
+        {
 		&::print_log("[Insteon::BaseController] Nothing to do when syncing links for " . $self->get_object_name)
 			if $main::Debug{insteon};
 	}
@@ -1509,6 +1597,20 @@ sub find_members
 	}
 	return @l_found;
 
+}
+
+sub has_member
+{
+	my ($self, $compare_object) = @_;
+	foreach my $member_ref (keys %{$$self{members}})
+	{
+		my $member = $$self{members}{$member_ref}{object};
+		if ($member eq $compare_object)
+		{
+			return 1;
+		}
+	}
+        return 0;
 }
 
 ####################################
