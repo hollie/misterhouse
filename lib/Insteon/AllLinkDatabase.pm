@@ -679,8 +679,10 @@ sub delete_orphan_links
                 return $num_deleted; # no links deleted
         }
 
-	for my $linkkey (keys %{$$self{aldb}}) {
-		if ($linkkey ne 'empty' and $linkkey ne 'duplicates') {
+	for my $linkkey (keys %{$$self{aldb}})
+        {
+		if ($linkkey ne 'empty' and $linkkey ne 'duplicates')
+                {
 			my $deviceid = lc $$self{aldb}{$linkkey}{deviceid};
 			next unless $deviceid;
 			my $group = $$self{aldb}{$linkkey}{group};
@@ -689,7 +691,8 @@ sub delete_orphan_links
                         # $device is the object that is referenced by the ALDB record's deviceid
 			my $device = ($deviceid eq lc $$self{device}->interface->device_id) ? $$self{device}->interface
 					: &Insteon::get_object($deviceid,'01');
-			if (!($device)) {
+			if (!($device))
+                        {
                         	# no device is known by mh with the ADLB record's deviceid
                         	if ($audit_mode)
                                 {
@@ -700,12 +703,16 @@ sub delete_orphan_links
                                 else
                                 {
 			       		my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
-							callback => "$selfname->_process_delete_queue()", cause => "no device could be found");
+							callback => "$selfname->_aldb->_process_delete_queue()", cause => "no device could be found");
 			       		push @{$$self{delete_queue}}, \%delete_req;
                                 }
-			} elsif ($device->isa("Insteon::BaseInterface") and $is_controller) {
+			}
+                        elsif ($device->isa("Insteon::BaseInterface") and $is_controller)
+                        {
 				# ignore since this is just a link back to the PLM
-			} elsif ($device->isa("Insteon::BaseInterface")) {
+			}
+                        elsif ($device->isa("Insteon::BaseInterface"))
+                        {
 				# does the PLM have a link point back?  If not, the delete this one
                                 # These are all responder links
 				if (!($device->has_link($$self{device},$group,1)))
@@ -722,7 +729,7 @@ sub delete_orphan_links
                                         else
                                         {
 				       		my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
-							callback => "$selfname->_process_delete_queue()", object => $device, data3 => $data3,
+							callback => "$selfname->_aldb->_process_delete_queue()", object => $device, data3 => $data3,
                                                         cause => 'PLM does not have a link pointing back to device');
 						push @{$$self{delete_queue}}, \%delete_req;
 						$num_deleted++;
@@ -774,7 +781,7 @@ sub delete_orphan_links
                                                         else
                                                         {
 								my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
-									callback => "$selfname->_process_delete_queue()", object => $device,
+									callback => "$selfname->_aldb->_process_delete_queue()", object => $device,
 									cause => "no link is defined for the plm controlled scene", data3 => $data3);
 						       		push @{$$self{delete_queue}}, \%delete_req;
 								$num_deleted++;
@@ -791,7 +798,7 @@ sub delete_orphan_links
                                                 {
 							# delete the link since it doesn't exist
 							my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
-								callback => "$selfname->_process_delete_queue()", object => $device,
+								callback => "$selfname->_aldb->_process_delete_queue()", object => $device,
 								cause => "no plm link could be found", data3 => $data3);
 							push @{$$self{delete_queue}}, \%delete_req;
 							$num_deleted++;
@@ -818,53 +825,117 @@ sub delete_orphan_links
                                		# does the device fail to have a reciprocal link?
                                 	if (!($device->has_link($self,$group,($is_controller) ? 0:1, $data3)))
                                 	{
+                                        	# this may be a case of an impartial link (not yet bidirectional)
+                                        	# BUT... if is_controller and $device is not a member of $$self{device}
+                                                #        if not is_controller and $$self{device} is not a member of $device,
+                                                #        then the dangling link needs to be deleted
                                 		if ($audit_mode)
                                         	{
                                         		if ($is_controller)
                                                 	{
-                                                		&::print_log("[Insteon::ALDB_i1] (AUDIT) WARNING: no reciprocal link defined for: "
-                                        			. $$self{device}->get_object_name
-                                                		. "($group) as controller and "
-                                        			. $device->get_object_name .  "(" . (($data3 eq '00') ? '01' : $data3) . ")"
-                                                                . " Please sync links with the applicable device; this link will not be deleted."
-								);
+                                                		my $reference_object = &Insteon::get_object($$self{device}->device_id, $group);
+                                                		my $reverse_object = &Insteon::get_object($device->device_id, ($data3 eq '00') ? '01' : $data3);
+                                                        	if (ref $reference_object and ref $reverse_object and $reference_object->isa("Insteon::BaseController") and $reference_object->has_member($reverse_object))
+                                                                {
+                                                			&::print_log("[Insteon::ALDB_i1] (AUDIT) WARNING: no reciprocal link defined for: "
+                                        				. $reference_object->get_object_name
+                                                			. " as controller and "
+                                        				. $reverse_object->get_object_name
+                                                                	. ". Please sync links with the applicable device; this link will not be deleted."
+							       		);
+                                                                }
+                                                                else
+                                                                {
+                                                			&::print_log("[Insteon::ALDB_i1] (AUDIT) Deleting link defined for: "
+                                        				. $$self{device}->get_object_name
+                                                			. "($group) as controller and "
+                                        				. $device->get_object_name .  "(" . (($data3 eq '00') ? '01' : $data3) . ")"
+                                                                	. " because no reciprocal link exists!"
+							       		);
+                                                                }
                                                 	}
                                                 	else # is a responder
                                                 	{
-                                                		&::print_log("[Insteon::ALDB_i1] (AUDIT) WARNING: no reverse link defined for: "
-                                        			. $$self{device}->get_object_name
-                                                		. "(" . (($data3 eq '00') ? '01' : $data3) . ") as responder and "
-                                        			. $device->get_object_name . "($group)"
-                                                                . " Please sync links with the applicable device; this link will not be deleted."
-								);
-                                                	}
-
+                                                		my $reference_object = &Insteon::get_object($$self{device}->device_id, ($data3 eq '00') ? '01' : $data3);
+                                                		my $reverse_object = &Insteon::get_object($device->device_id, $group );
+                                                        	if (ref $reference_object and ref $reverse_object and $reverse_object->isa("Insteon::BaseController") and $reverse_object->has_member($reference_object))
+                                                                {
+                                                			&::print_log("[Insteon::ALDB_i1] (AUDIT) WARNING: no reverse link defined for: "
+                                        				. $reference_object->get_object_name
+                                                			. " as responder and "
+                                        				. $reverse_object->get_object_name
+                                                                	. ". Please sync links with the applicable device; this link will not be deleted."
+									);
+                                                		}
+                                                                else
+                                                                {
+                                                			&::print_log("[Insteon::ALDB_i1] (AUDIT) Deleting link defined for: "
+                                        				. $$self{device}->get_object_name
+                                                			. "(" . (($data3 eq '00') ? '01' : $data3) . ") as responder and "
+                                        				. $device->get_object_name . "($group)"
+                                                                	. " because no reverse links exists!"
+									);
+                                                                }
+                                                        }
                                         	}
                                         	else  # non-audit mode
                                         	{
                                         		if ($is_controller)
                                                 	{
-                                                		&::print_log("[Insteon::ALDB_i1] WARNING: no reciprocal link defined for: "
-                                        			. $$self{device}->get_object_name
-                                                		. "($group) as controller and "
-                                        			. $device->get_object_name .  "(" . (($data3 eq '00') ? '01' : $data3) . ")"
-                                                                . " Please sync links with the applicable device; this link will not be deleted."
-								);
+                                                		my $reference_object = &Insteon::get_object($$self{device}->device_id, $group);
+                                                		my $reverse_object = &Insteon::get_object($device->device_id, ($data3 eq '00') ? '01' : $data3);
+                                                        	if (ref $reference_object and ref $reverse_object and $reverse_object->isa("Insteon::BaseController") and $reverse_object->has_member($reference_object))
+                                                                {
+                                                			&::print_log("[Insteon::ALDB_i1] WARNING: no reciprocal link defined for: "
+                                        				. $reference_object->get_object_name
+                                                			. " as controller and "
+                                        				. $reverse_object->get_object_name
+                                                                	. ". Please sync links with the applicable device; this link will not be deleted."
+							       		);
+                                                                }
+                                                                else
+                                                                {
+                                                			&::print_log("[Insteon::ALDB_i1] Deleting link defined for: "
+                                        				. $$self{device}->get_object_name
+                                                			. "($group) as controller and "
+                                        				. $device->get_object_name .  "(" . (($data3 eq '00') ? '01' : $data3) . ")"
+                                                                	. " because no reciprocal link exists!"
+							       		);
+					       				my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
+										callback => "$selfname->_process_delete_queue()", object => $device,
+										cause => "no link to the device could be found", data3 => $data3);
+					       				push @{$$self{delete_queue}}, \%delete_req;
+									$num_deleted++;
+                                                                }
                                                 	}
                                                 	else # is a responder
                                                 	{
-                                                		&::print_log("[Insteon::ALDB_i1] WARNING: no reverse link defined for: "
-                                        			. $$self{device}->get_object_name
-                                                		. "(" . (($data3 eq '00') ? '01' : $data3) . ") as responder and "
-                                        			. $device->get_object_name . "($group)"
-                                                                . " Please sync links with the applicable device; this link will not be deleted."
-								);
+                                                		my $reference_object = &Insteon::get_object($$self{device}->device_id, ($data3 eq '00') ? '01' : $data3);
+                                                		my $reverse_object = &Insteon::get_object($device->device_id, $group );
+                                                        	if (ref $reference_object and ref $reverse_object and $reverse_object->isa("Insteon::BaseController") and $reverse_object->has_member($reference_object))
+                                                                {
+                                                			&::print_log("[Insteon::ALDB_i1] WARNING: no reverse link defined for: "
+                                        				. $reference_object->get_object_name
+                                                			. " as responder and "
+                                        				. $reverse_object->get_object_name
+                                                                	. ". Please sync links with the applicable device; this link will not be deleted."
+									);
+                                                                }
+                                                                else
+                                                                {
+                                                			&::print_log("[Insteon::ALDB_i1] (AUDIT) Deleting link defined for: "
+                                        				. $$self{device}->get_object_name
+                                                			. "(" . (($data3 eq '00') ? '01' : $data3) . ") as responder and "
+                                        				. $device->get_object_name . "($group)"
+                                                                	. " because no reverse links exists!"
+									);
+					       				my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
+										callback => "$selfname->_process_delete_queue()", object => $device,
+										cause => "no link to the device could be found", data3 => $data3);
+					       				push @{$$self{delete_queue}}, \%delete_req;
+									$num_deleted++;
+                                                                }
                                                 	}
-#					       		my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
-#							callback => "$selfname->_process_delete_queue()", object => $device,
-#							cause => "no link to the device could be found", data3 => $data3);
-#					       		push @{$$self{delete_queue}}, \%delete_req;
-#							$num_deleted++;
                                         	}
 					}
                                 	else # device does have reciprocal link
@@ -922,7 +993,7 @@ sub delete_orphan_links
                                                 	else
                                                 	{
 					       			my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
-								callback => "$selfname->_process_delete_queue()", object => $device,
+								callback => "$selfname->_aldb->_process_delete_queue()", object => $device,
 						       		cause => "no reverse link could be found", data3 => $data3);
 						       		push @{$$self{delete_queue}}, \%delete_req;
 						       		$num_deleted++;
@@ -946,7 +1017,7 @@ sub delete_orphan_links
                                 else
                                 {
 			       		my %delete_req = (address => $address,
-						callback => "$selfname->_process_delete_queue()",
+						callback => "$selfname->_aldb->_process_delete_queue()",
 						cause => "duplicate record found");
 					push @{$$self{delete_queue}}, \%delete_req;
 					$num_deleted++;
@@ -976,7 +1047,7 @@ sub _process_delete_queue {
 				. ", " . (($delete_req{object}) ? "device=" . $delete_req{object}->get_object_name
 				: "deviceid=$delete_req{deviceid}") . ", group=$delete_req{group}, cause=$delete_req{cause}");
 		}
-#		$self->delete_link(%delete_req);
+		$self->delete_link(%delete_req);
 		$$self{delete_queue_processed}++;
 	}
 #        else
@@ -1477,7 +1548,7 @@ sub delete_orphan_links
                         else
                         {
 				my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
-					callback => "$selfname->_process_delete_queue(1)",
+					callback => "$selfname->_aldb->_process_delete_queue(1)",
 					linkdevice => $self, data3 => $data3);
 				push @{$$self{delete_queue}}, \%delete_req;
                         }
@@ -1499,7 +1570,7 @@ sub delete_orphan_links
                                         else
                                         {
 				       		my %delete_req = (object => $device, group => $group, is_controller => 1,
-								callback => "$selfname->_process_delete_queue(1)",
+								callback => "$selfname->_aldb->_process_delete_queue(1)",
 								linkdevice => $self, data3 => $data3);
 						push @{$$self{delete_queue}}, \%delete_req;
 					}
@@ -1568,7 +1639,7 @@ sub delete_orphan_links
                                                         else
                                                         {
 						       		my %delete_req = (object => $self, group => $group, is_controller => 0,
-							       		callback => "$selfname->_process_delete_queue(1)",
+							       		callback => "$selfname->_aldb->_process_delete_queue(1)",
 									linkdevice => $device, data3 => $data3);
 								push @{$$self{delete_queue}}, \%delete_req;
                                                         }
@@ -1588,7 +1659,7 @@ sub delete_orphan_links
 		if (($obj->is_root))
 		{
 			$num_deleted += $obj->delete_orphan_links($audit_mode);
-			my %delete_req = ('root_object' => $obj, callback => "$selfname->_process_delete_queue()");
+			my %delete_req = ('root_object' => $obj, callback => "$selfname->_aldb->_process_delete_queue()");
 			push @{$$self{delete_queue}}, \%delete_req;
 		}
 	}
@@ -1648,10 +1719,14 @@ sub delete_link
 			. $$self{aldb}{$linkkey}{data1}
 			. $$self{aldb}{$linkkey}{data2}
 			. $$self{aldb}{$linkkey}{data3};
-		$$self{_success_callback} = $link_parms{callback} if $link_parms{callback};
 		delete $$self{aldb}{$linkkey};
 		$num_deleted = 1;
                 my $message = new Insteon::InsteonMessage('all_link_manage_rec', $$self{device});
+                if ($link_parms{callback})
+                {
+			$$self{_success_callback} = $link_parms{callback};
+                        $message->callback($link_parms{callback});
+                }
                 $message->interface_data($cmd);
 		$$self{device}->queue_message($message);
 	} else {
@@ -1733,12 +1808,8 @@ sub add_link
 sub has_link
 {
 	my ($self, $insteon_object, $group, $is_controller, $subaddress) = @_;
+        # note, subaddress is IGNORED!!
 	my $key = lc $insteon_object->device_id . $group . $is_controller;
-	$subaddress = '00' unless $subaddress;
-	# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
-	if ($subaddress ne '00' and $subaddress ne '01') {
-		$key .= $subaddress;
-	}
 	return (defined $$self{aldb}{$key}) ? 1 : 0;
 }
 
