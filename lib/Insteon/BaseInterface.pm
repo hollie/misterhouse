@@ -348,14 +348,15 @@ sub on_standard_insteon_received
                                 # TO-DO!!! This is a brute force and poor compare technique; needs to be replaced by full compare
                                 if ($self->active_message && ref $self->active_message->setby)
                                 {
-                                	if (lc $self->active_message->setby->device_id eq lc $msg{source})
+                                	if ((lc $self->active_message->setby->device_id eq lc $msg{source}) and ($msg{type} eq 'direct'))
                                 	{
                    				$self->clear_active_message();
                                 	}
                                         else
                                         {
                                                 &main::print_log("[Insteon::BaseInterface] WARN: deviceid of "
-                                                	. "active message != received message source") if $main::Debug{insteon};
+                                                	. "active message != received message source")
+                                                        if $msg{type} eq 'direct' and $main::Debug{insteon};
                                         }
                         	}
                    	}
