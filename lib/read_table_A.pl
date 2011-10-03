@@ -419,15 +419,11 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "WakeOnLan('$address', $other)";
     }
-    ##NETWORK, ipaddress, Name, Grouplist, ping delay (seconds), on command (optional), off command (optional)
+    ##NETWORK, ipaddress, Name, Grouplist, ping delay (seconds), MAC Address (optional)
     elsif($type eq 'NETWORK') {
         require 'Network_Item.pm';
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
-	#not used...yet
-	#$grouplist .= "|network_items";
-	#$grouplist .= "|network_items_on"  if (@other[1]); #if on command present
-        #$grouplist .= "|network_items_off" if (@other[2]); #if off command present
         $object = "Network_Item('$address', $other)";
     }
     #YACCLIENT, machinename, Name, Grouplist
