@@ -17,7 +17,7 @@ sub scan_all_linktables
         	&main::print_log("[Scan all linktables] WARN: link already underway. Ignoring request for new scan ...");
                 return;
         }
-
+        print "######### GOT HERE #############\n";
         my @candidate_devices = ();
         # clear @_scan_devices
         @_scan_devices = ();
@@ -29,26 +29,33 @@ sub scan_all_linktables
        	push @candidate_devices, &Insteon::find_members("Insteon::BaseDevice");
 
         # don't try to scan devices that are not responders
-        foreach (@candidate_devices)
+        if (@candidate_devices)
         {
-        	my $candidate_object = $_;
-        	if ($candidate_object->is_root and
-                	!($candidate_object->isa('Insteon::RemoteLinc')
-                	or $candidate_object->isa('Insteon::InterfaceController')
-                	or $candidate_object->isa('Insteon::MotionSensor')))
-                {
-			push @_scan_devices, $candidate_object;
-                	&main::print_log("[Scan all linktables] INFO1: "
-                        	. $candidate_object->get_object_name
-                        	. " will be scanned.") if $main::Debug{insteon} >= 1;
-        	}
-                else
-                {
-                	&main::print_log("[Scan all linktables] INFO: !!! "
-                        	. $candidate_object->get_object_name
-                        	. " is NOT a candidate for scanning.");
-                }
-	}
+        	foreach (@candidate_devices)
+        	{
+        		my $candidate_object = $_;
+        		if ($candidate_object->is_root and
+                		!($candidate_object->isa('Insteon::RemoteLinc')
+                		or $candidate_object->isa('Insteon::InterfaceController')
+                       		or $candidate_object->isa('Insteon::MotionSensor')))
+                	{
+		       		push @_scan_devices, $candidate_object;
+                		&main::print_log("[Scan all linktables] INFO1: "
+                        		. $candidate_object->get_object_name
+                        		. " will be scanned.") if $main::Debug{insteon} >= 1;
+        		}
+                	else
+                	{
+                		&main::print_log("[Scan all linktables] INFO: !!! "
+                        		. $candidate_object->get_object_name
+                        		. " is NOT a candidate for scanning.");
+                	}
+		}
+        }
+        else
+        {
+        	&main::print_log("[Scan all linktables] WARN: No insteon devices could be found");
+        }
         $_scan_cnt = scalar @_scan_devices;
 
         &_get_next_linkscan();
@@ -283,7 +290,7 @@ sub generate_voice_commands
            $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','scan link table');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->delete_orphan_links','delete orphan links');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->delete_orphan_links(1)','AUDIT - delete orphan links');\n\n";
-           $object_string .= "$object_name_v -> tie_event('&Insteon::scan_all_linktables','scan all devicelink tables');\n\n";
+           $object_string .= "$object_name_v -> tie_event('&Insteon::scan_all_linktables','scan all device link tables');\n\n";
            $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_PLM_commands');
            push @_insteon_plm, $object_name;
         }
