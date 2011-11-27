@@ -9,8 +9,8 @@
 # Originally by Kent Noonan, Joel Davidson & Dan Arnold
 # Close to full rewrite/overhaul by Marc MERLIN 2009/07/22
 
-
-use vars qw(@omnilist @omnistat @omniname @omnioffset $stat_cool_temp $stat_heat_temp $stat_mode $stat_fan $stat_hold
+#
+use vars qw(%omnicache @omnilist @omnistat @omniname @omnioffset $stat_cool_temp $stat_heat_temp $stat_mode $stat_fan $stat_hold
   $stat_indoor_temp $cmd  $stat_model @v_omnistat_fan @v_omnistat_resume @v_omnistat_hold @v_omnistat_mode
   @v_omnistat_cool_sp @v_omnistat_heat_sp @v_omnistat_setting @stat_reset_timer $house_stat $mbr_stat $test_stat
   @v_omnistat_background);
@@ -104,6 +104,17 @@ foreach my $omnistat (@omnilist)
 	# we make the extended group1 call that also retreives the stat's output status
 	my ($cool_sp, $heat_sp, $mode, $fan, $hold, $temp, $output) = $omnistat[$omnistat]->read_group1("true");
 	my $stat_type = $omnistat[$omnistat]->get_stat_type;
+	# Remember this in our own cache so that we don't query this from other places unless
+        # necessary (this is important in a multiple thermostat sharing the same cable situation 
+	# where querying two stats in code later will cause collisions on the cable).
+	$omnicache{$omniname[$omnistat]}->{'cool_sp'} = $cool_sp;
+	$omnicache{$omniname[$omnistat]}->{'heat_sp'} = $heat_sp;
+	$omnicache{$omniname[$omnistat]}->{'mode'} = $mode;
+	$omnicache{$omniname[$omnistat]}->{'fan'} = $fan;
+	$omnicache{$omniname[$omnistat]}->{'hold'} = $hold;
+	$omnicache{$omniname[$omnistat]}->{'temp'} = $temp;
+	$omnicache{$omniname[$omnistat]}->{'output'} = $output;
+	$omnicache{$omniname[$omnistat]}->{'stat_type'} = $stat_type;
 
 	# This mashes $hold and $mode together from registers cached in the group1 call and outputs a combined string
 	$mode = $omnistat[$omnistat]->get_mode;
@@ -215,10 +226,14 @@ foreach my $omnistat (@omnilist)
 	}
     }
 
-    if ($state = $omnistat[$omnistat]->state_now) {
-	# this may or many not be useful to you, you can comment it out if you're not planning on using state changes for coding
-	Omnistat::omnistat_log("".$omniname[$omnistat]." Omnistat State set to: $state", 3);
-    }
+    # WARNING: Reading state_now here empties the 'state_now' flag. If you need it elsewhere, that won't work.
+    # For debugging, Omnistat.pl will also output state changes like so:
+    # 25/11/2011 23:30:37   Omnistat[2]->read_reg: set state->now to temp_change
+    
+    # If you plan on using state_now elsewhere in your code, you should leave this commented this out:
+    # if ($state = $omnistat[$omnistat]->state_now) {
+    # 	Omnistat::omnistat_log("".$omniname[$omnistat]." Omnistat State set to: $state", 3);
+    # }
 }
 
 #vim:sts=4:sw=4
