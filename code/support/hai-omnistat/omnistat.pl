@@ -104,8 +104,8 @@ foreach my $omnistat (@omnilist)
 	# we make the extended group1 call that also retreives the stat's output status
 	my ($cool_sp, $heat_sp, $mode, $fan, $hold, $temp, $output) = $omnistat[$omnistat]->read_group1("true");
 	my $stat_type = $omnistat[$omnistat]->get_stat_type;
-	# Remember this in our own cache so that we don't query this from other places unless
-        # necessary (this is important in a multiple thermostat sharing the same cable situation 
+	# Remember the queried values in our own cache so that we don't query this from other places unless
+	# necessary (this is important in a multiple thermostat sharing the same cable situation 
 	# where querying two stats in code later will cause collisions on the cable).
 	$omnicache{$omniname[$omnistat]}->{'cool_sp'} = $cool_sp;
 	$omnicache{$omniname[$omnistat]}->{'heat_sp'} = $heat_sp;
