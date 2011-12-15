@@ -176,7 +176,7 @@ sub _trigger_write_code {
     	}
     	else {
             # Must be done before the user code eval
-   	    print_log "trigger_write_code: trigger script $script_file"
+   	        print_log "trigger_write_code: trigger script $script_file"
               . " written, running read_code" if $Debug{'trigger'};
             push @Nextpass_Actions, \&read_code;
         }
@@ -409,10 +409,8 @@ sub trigger_run {
     my ($trigger, $code, $type, $triggered) = trigger_get($name);
     &print_log ("trigger_run: running trigger code for: $name")
       if $Debug{trigger};
-    eval $code;
     trigger_set($trigger, $code, $type, $name, 1, $Time);
-    &print_log ("trigger_run: finished running trigger code for: $name")
-      if $Debug{trigger};
+    eval $code;
     if ($@) {
 	    &print_log("Error: trigger '$name' failed to run cleanly");
 	    &print_log("  Code = $code");
@@ -426,6 +424,8 @@ sub trigger_run {
     } else {
 	    delete $triggers{$name}{code_error};
     }
+    &print_log ("trigger_run: finished running trigger code for: $name")
+      if $Debug{trigger};
     &trigger_expire($name) if $expire;
     return;
 }
