@@ -47,7 +47,7 @@ sub iphoneWebApp {
   }
 
   my $html_refrate = $config_parms{html_refresh};
-  $html_refrate = '' unless $html_refrate;
+  $html_refrate = '60' unless $html_refrate;
 
   my ($html, $html_group, $html_groups, $htm_hdr, $i, @objects);
   $html = ""; $html_group = "";
@@ -91,16 +91,16 @@ sub iphoneWebApp {
     }
 
     my $name;
-    my $einheit ;
+    my $unit ;
     $name = $object->{label};
      
     if ($name eq '' or $name eq undef) {
       $name = &pretty_object_name($item);
     } else {
-      $einheit = $name;
-      $einheit =~ s/.*\[(.*)\].*/$1/;
+      $unit = $name;
+      $unit =~ s/.*\[(.*)\].*/$1/;
       $name =~ s/(.*)\[.*/$1/;
-      if ($name eq $einheit) { $einheit = "%s";} 
+      if ($name eq $unit) { $unit = "%s";} 
       if ($name =~ m/(.*)_(.*)/) {
         $name = "$1 <small>[$2]</small>";
       }
@@ -135,22 +135,25 @@ sub iphoneWebApp {
 ";
       } elsif ($object->isa('EIB5_Item') || $object->isa('EIB6_Item')) {
         $name =~ s/^://;
-        $html .= "                <li><span>" . sprintf($einheit,$state) . "</span>$icon$name</li>";
+        $html .= "                <li><span>" . sprintf($unit,$state) . "</span>$icon$name</li>";
       } elsif ($object->isa('EIB3_Item')) {
         $name =~ s/^://;
         $state =~ s/.*([0-9]{2}):([0-9]{2}):[0-9]{2}/$1:$2h/;
-        $html .= "                <li><span>" . sprintf($einheit,$state) . "</span>$icon$name</li>";
+        $html .= "                <li><span>" . sprintf($unit,$state) . "</span>$icon$name</li>";
       } elsif ($object->isa('EIB4_Item')) {
         $name =~ s/^://;
         $state =~ s:([0-9]{2})/([0-9]{2})/([0-9]{2}):$2.$1.$3:;
-        $html .= "                <li><span>" . sprintf($einheit,$state) . "</span>$icon$name</li>";
+        $html .= "                <li><span>" . sprintf($unit,$state) . "</span>$icon$name</li>";
       } elsif ($object->isa('EIB10_Item') || $object->isa('EIB11_Item')) {
         $name =~ s/^://;
-        $html .= "                <li><span>" . sprintf($einheit,$state) . "</span>$icon$name</li>";
+        $html .= "                <li><span>" . sprintf($unit,$state) . "</span>$icon$name</li>";
       } elsif ($object->isa('Network_Item')) {
          $html .= "                <li";
 	 $html .= " style=\"background-color:#CCFF99\"" if ($state eq "up");
-	 $html .= ">$name<span>$state</span></li> ";
+	 $html .= ">$name<span>$state</span></li> " if ($state eq "up");
+#	 $html .= "><input type=\"button\" class=\"iPush iBWarn\" value=\"Start $name\" style=\"width:100%\" onclick=\"ChangeState('../SET?$item2=start')\" /></li>" if ($state ne "up");
+	 $html .= "><label>$name</label><input type=\"checkbox\" class=\"iToggle\" id=\"$name\" title=\"Start|down\" onclick=\"ChangeState('../SET?$item2=start')\" /></li>" if ($state ne "up");
+
       } elsif ($object->isa('AnalogSensor_Item')) {
          $html .= "                <li";
 	 if ($state eq "alert") {
@@ -234,13 +237,13 @@ sub iphoneWebApp {
 ';
       } elsif ($object->isa('EIBW_Item')) {
         $name =~ s/^://;
-        $einheit = "%s";
+        $unit = "%s";
         $state = "gekippt" if ($state eq "tilt");
         $state = "offen"   if ($state eq "open");
         $state = "zu"      if ($state eq "closed");
-        $html .= "                <li><span>" . sprintf($einheit,$state) . "</span>$icon$name</li>";
+        $html .= "                <li><span>" . sprintf($unit,$state) . "</span>$icon$name</li>";
       } elsif ($object->isa('EIBRB_Item')) {
-        $einheit = "%i%%" if ($einheit eq "%s" || $einheit eq "");
+        $unit = "%i%%" if ($unit eq "%s" || $unit eq "");
         if ($name =~ s/^://) {
           $html .= "                <li>$icon$name</li>";
         } else {

@@ -205,8 +205,8 @@ sub _xlate_upb_mh
 			$state = sprintf("auto_send: %d", $args[1]);
 			&::print_log("UPBT:xlate_upb_mh: auto_send is " . $$self{auto_send}) if $main::Debug{upbt};
 		} elsif ($args[0]==9) { #inside temperature report
-			$$self{inside_temp}=sprintf("%d", $args[1]);
-			$state = sprintf("inside_temp: %d", $args[1]);
+			$$self{temp}=sprintf("%d", $args[1]);
+			$state = $$self{temp} . " degrees";
 			&::print_log("UPBT:xlate_upb_mh: inside temp is " . $$self{inside_temp}) if $main::Debug{upbt};
 		} elsif ($args[0]==10) { #outside temperature
 			$$self{outside_temp}=sprintf("%d", $args[1]);
@@ -252,7 +252,8 @@ sub _xlate_upb_mh
   $msg_text .= " Current outside temp is: $$self{outside_temp}" if defined($$self{outside_temp});
 
 		&::print_log("UPBT:xlate_UPB_MH: $msg_text") if $main::Debug{upbt};
-		$state = "thermostat_status:";
+#		$state = "thermostat_status:";
+		$state = $$self{temp} . " degrees";
 		} elsif ($args[0]==18) { #send operating mode status
 		# 1 byte, bit encoded, B0= H1A, B1= H2A, B2= H3A, B4= C1A, B5= C2A, B6=FA
 		&::print_log("UPBT:xlate_upb_mh: send operating mode status @args") if $main::Debug{upbt};
@@ -323,12 +324,12 @@ sub _xlate_mh_upb
 	return $cmd;
 }
 
-sub inside_temp
+sub temp
 {
   my ($self) = @_;
 
   # this is a read only value
-  return $$self{inside_temp};
+  return $$self{temp};
 }
 
 sub outside_temp

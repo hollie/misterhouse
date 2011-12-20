@@ -1,12 +1,14 @@
 
 # This object simply pings the specified address and sets
 # its state according to status
+#
+# 2011-07-30 MKB Enhanced with WakeOnLan functionality
 
 package Network_Item;
 
 =begin comment
 
-This code is not well tuned or tested.  Here is an example:
+Here is an example:
 
 use Network_Item;
 
@@ -16,13 +18,22 @@ $network_hp    = new Network_Item('192.168.0.66', 20);
 print_log "house just changed to $state" if      $state = state_changed $network_house;
 print_log "house is $state" if new_second 15 and $state = state $network_house;
 
+Here is an example mht entry:
+#NETWORK	IP_ADDRESS	NAME		Grouplist	Interval	MAC_ADDRESS
+NETWORK,        192.168.4.25,   HTPC_Mini,      HTPC|HomeGym,   120,    00:1C:C0:AB:CD:AE
+
+
 =cut
 
 
 @Network_Item::ISA = ('Generic_Item');
 
+use IO::Socket qw(AF_INET SOCK_DGRAM SOL_SOCKET SO_BROADCAST);
+use Socket;
+
+
 sub new {
-    my ($class, $address, $interval) = @_;
+    my ($class, $address, $interval, $mac_address) = @_;
 	my $self={};
 	bless $self,$class;
 
@@ -31,6 +42,8 @@ sub new {
 
     $self->{address}  = $address;
     $self->{interval} = $interval;
+    $self->{mac_address} = $mac_address;
+    $self->add_states('start');
 
     $self->{timer} = new Timer;
     $self->{timer}-> set($self->{interval}, sub {&Network_Item::ping_check($self)}, -1);
@@ -38,7 +51,6 @@ sub new {
     $self->{process} = new Process_Item($ping_test_cmd . $address);
     $self->{process}-> set_output($ping_test_file);
     unlink $ping_test_file;
-
     return $self;
 }
 
@@ -72,3 +84,65 @@ sub default_setstate
     	&::print_log("Setting " .$self->{address}." as " .$state) if $::Debug{network};
     }
 }
+
+sub setstate_start
+{
+    my ($self, $substate, $state) = @_;
+    #
+    # wake
+    #
+    # The 'magic packet' consists of 6 times 0xFF followed by 16 times
+    # the hardware address of the NIC. This sequence can be encapsulated
+    # in any kind of packet, in this case UDP to the discard port (9).
+    #
+
+    my $hwaddr  = $self->{mac_address};
+    my $ipaddr  = '255.255.255.255';
+    my $port    = getservbyname('discard', 'udp');
+
+    my ($raddr, $them, $proto);
+    my ($hwaddr_re, $pkt);
+
+    # Validate hardware address (ethernet address)
+
+    $hwaddr_re = join(':', ('[0-9A-Fa-f]{1,2}') x 6);
+    if ($hwaddr !~ m/^$hwaddr_re$/)
+    {
+        warn "Invalid hardware address: $hwaddr\n";
+	&::print_log("Missing or invalid MAC address for " .$self->{address}." ( " .$hwaddr." )") if $::Debug{network};
+	$state='down';
+	$self->set_states_for_next_pass($state);
+	return -1;
+
+    }
+    # Generate magic sequence
+
+    foreach (split /:/, $hwaddr)
+    {
+        $pkt .= chr(hex($_));
+    }
+    $pkt = chr(0xFF) x 6 . $pkt x 16;
+
+    # Alocate socket and send packet
+
+    $raddr = gethostbyname($ipaddr);
+    $them = pack_sockaddr_in($port, $raddr);
+    $proto = getprotobyname('udp');
+
+    socket(S, AF_INET, SOCK_DGRAM, $proto) or die "socket : $!";
+    setsockopt(S, SOL_SOCKET, SO_BROADCAST, 1) or die "setsockopt : $!";
+
+    print "Sending magic packet to $ipaddr:$port with $hwaddr\n";
+
+    send(S, $pkt, 0, $them) or die "send : $!";
+    close S;
+
+    if ($self->state eq "start") { 
+	$state eq "down";
+	$self->set($state); };
+    &::print_log("Setting " .$self->{address}." substate as " .$state) if $::Debug{network};
+
+    &::print_log("Setting " .$self->{address}." state as " .$state) if $::Debug{network};
+
+}
+

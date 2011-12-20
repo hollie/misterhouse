@@ -164,6 +164,13 @@ if (done_now $p_weather_data or done_now $p_weather_conditions) {
 
 		# Who needs a sun sensor?
 
+                ########### Reset Variables to Null/0 before retrieving conditions ############
+                $w{Clouds} = '';
+                $w{IsRaining} = 0;
+                $w{IsSnowing} = 0;
+                #########################################
+
+
 		if ($conditions =~ /conditions were (foggy|light rain|heavy rain|light snow|heavy snow)/i) {
 			$w{Conditions} = lc($1);
 			$w{IsRaining} = ($Weather{Conditions} =~ /rain/i);
