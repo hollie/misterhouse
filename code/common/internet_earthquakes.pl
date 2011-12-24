@@ -22,6 +22,12 @@
 #@ you can set the following parameter to filter that list using the same 
 #@ Earthquakes_Magnitudes thresholds used for speech.<BR>
 #@     Earthquake_Display = filtered | all<BR>
+#@<BR>
+#@ You might also set get_url=useragent in your ini file.  This parameter
+#@ will permit get_url to timeout if there is a problem retrieving a 
+#@ file over the internet; otherwise the process might hang indefinitely.  
+#@ This affects all code that retrieves URLs so make sure you system is 
+#@ still working after setting this parameter.
 
 
 # $Revision$
@@ -30,6 +36,11 @@
 =begin comment
 
 code/common/internet_quakes.pl, bin/get_earthquakes
+ 1.6 Changed spoken quake count logic so that quakes exceeding the 
+     spoken limit will still be marked spoken.  Otherwise each hour
+     the remainder will be spoken.  It is possible for the old logic
+     to never catch up if count is too low. Added a note to use
+     get_url=useragent in the ini file to the code description. 
  1.5 This is a major rewrite triggered because the USGS stopped 
      updating the previous file cnss/quake.  The only sutiable file 
      contains all magnitudes making it much larger (2000+ lines).  
@@ -69,6 +80,9 @@ and those that don't meet magnitude thresholds are not spoken.
 
 Note: If you live in the western hemisphere, this script needs your
 longitude .ini variable to be negative.
+
+Use the following url to edit the dbm file after copying it to ~/data:
+http://localhost:8080/bin/dbmedit.cgi?file=earthquakes.dbm&columns=gmt%2Clat%2Clon%2Cdepth%2Cmagnitude%2Csource%2Clocation%2Cdistance%2Cspeak%2Cspoken&delim=28
 
 =cut
 
@@ -174,19 +188,22 @@ sub earthquake_read {
   foreach $key (@keysSpeak) {
     @dbmEvent = split($;, $DBM{$key});
     
-    #Create the speech for matching items
-    my $qloca = lc($dbmEvent[6]);
-    $qloca =~ s/\b(\w)/uc($1)/eg;
-    $speech .= &calc_earthquake_age($dbmEvent[0]) 
-        . " a magnitude " . $dbmEvent[4] . " earthquake occurred "
-        . $dbmEvent[7] . " $Earthquake_Unit_Name away " 
-        . (($qloca =~ /^near/i)?'':'near ') . "$qloca. ";
+    #Only speak countMax but mark them all spoken
+    if( $count < $countMax ) {
+
+      #Create the speech for matching items
+      my $qloca = lc($dbmEvent[6]);
+      $qloca =~ s/\b(\w)/uc($1)/eg;
+      $speech .= &calc_earthquake_age($dbmEvent[0]) 
+          . " a magnitude " . $dbmEvent[4] . " earthquake occurred "
+          . $dbmEvent[7] . " $Earthquake_Unit_Name away " 
+          . (($qloca =~ /^near/i)?'':'near ') . "$qloca. ";
+    }
     
     #Update the spoken flag
     $dbmEvent[9] = 1;
     $DBM{$key} = join( $;, @dbmEvent );
     
-    last unless $count < $countMax;
     $count++;
   }
 
