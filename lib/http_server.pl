@@ -2777,6 +2777,31 @@ sub vars_global {
     unless ($Authorized or $main::config_parms{password_protect} !~ /vars/i) {
         return "<h4>Not Authorized to view Variables</h4>";
     }
+    for my $key (sort keys %main::) {
+                                # Assume all the global vars we care about are $Ab...
+        next if $key !~ /^[A-Z][a-z]/ or $key =~ /\:/;
+        next if $key eq 'Save' or $key eq 'Tk_objects'; # Covered elsewhere
+        next if $key eq 'Socket_Ports';
+        next if $key eq 'User_Code';
+
+        my $glob = $main::{$key};
+        if (defined ${$glob}) {
+           my $value = ${$glob};
+#          next unless defined $value;
+           next if $value =~ /HASH/; # Skip object pointers
+           next if $key eq 'Password';
+           push @table_items, "<td align='left'><b>\$$key:</b> $value</td>";
+        }
+        elsif (defined %{$glob}) {
+            for my $key2 (sort keys %{$glob}) {
+                my $value = ${$glob}{$key2} . "\n";
+#               next unless defined $value;
+                $value = '' unless $value; # Avoid -w uninitialized value msg
+                next if $value =~ /HASH/; # Skip object pointers
+                push @table_items, "<td align='left'><b>\$$key\{$key2\}:</b> $value</td>";
+            }
+        }
+    }
     return &html_header("List Global Variables") . &table_it(2, 1, 1, @table_items);
 }
 
