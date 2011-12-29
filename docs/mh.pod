@@ -2717,22 +2717,22 @@ You can use the following html addresses to have mh return dynamically generated
     user code, or the value in the Category=value field specified in the user code.
     Items are also listed by Group, and Object Type
 
-  /list?Category
+  /list?category_name
     This can be used to list just the commands in the specified Category.
 
-  /list;h_response?Category
+  /list;h_response?category_name
     As above, but it also passes h_response to the RUN commands (see h_response below)
 
-  /group
+  /groups
     This will return all the Group Items
 
-  /group?$group_name
+  /list?group=$group_name
     This will return all the items in $group_name
 
   /items
     This will return all the non Voice items (e.g. X10_Items)
 
-  /items?item_type
+  /list?item_type
     This will return all the items of type item_type
 
   /widgets
@@ -2754,7 +2754,10 @@ You can use the following html addresses to have mh return dynamically generated
     This lists the most recently spoken text
 
   /print_log
-    This lists the most recently print_log text.
+    This lists the most recent print_log text
+
+  /error_log
+    This lists the most recent error_log text
 
 If you want to generate your own html on-the-fly (like a cgi program would), instead of pointing
 to a .html file or one of the above pre-defined mh-generated lists,
