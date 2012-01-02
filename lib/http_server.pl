@@ -2785,17 +2785,15 @@ sub vars_global {
         next if $key eq 'User_Code';
 
         my $glob = $main::{$key};
-        if (defined ${$glob}) {
+        if (${$glob}) {
            my $value = ${$glob};
-#          next unless defined $value;
            next if $value =~ /HASH/; # Skip object pointers
            next if $key eq 'Password';
            push @table_items, "<td align='left'><b>\$$key:</b> $value</td>";
         }
-        elsif (defined %{$glob}) {
+        elsif (%{$glob}) {
             for my $key2 (sort keys %{$glob}) {
                 my $value = ${$glob}{$key2} . "\n";
-#               next unless defined $value;
                 $value = '' unless $value; # Avoid -w uninitialized value msg
                 next if $value =~ /HASH/; # Skip object pointers
                 push @table_items, "<td align='left'><b>\$$key\{$key2\}:</b> $value</td>";
