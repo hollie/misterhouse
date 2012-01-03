@@ -15,18 +15,18 @@ function ajaxUpdate(){
 		refresh_frequency=10000;
 	} else {
 		// Loop through each ajax include
-		$(".ajax_update").each(function(){
+		$("span.ajax_update").each(function(){
 			// Get the url we use to update the data
 			var source_url = $(this).find("input:hidden").val();
-			// Get the div we should be updating
-			var div = $(this).find("div.content");
+			// Get the span we should be updating
+			var span = $(this).find("span.content");
 	
 			// Update the field
 			$.ajax({
 				url: source_url,
 				dataType: "html",
 				success: function(data){
-					div.html(data);
+					span.html(data);
 				}
 			});
 		});

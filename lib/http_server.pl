@@ -1486,8 +1486,8 @@ sub shtml_include {
 		print "Correcting AJAX URL\n" if $main::Debug{http};
 		$url = "/".$url;
             }
-	    my $ajax_start=qq[<div class="ajax_update"><input type="hidden" value="$url"><div class="content">];
-	    my $ajax_end=qq[</div></div>];
+	    my $ajax_start=qq[<span class="ajax_update"><input type="hidden" value="$url"><span class="content">];
+	    my $ajax_end=qq[</span></span>];
             eval "\$data = qq[$data]";  # Resolve $vars in file specs (e.g. config_parm{web_href...}
             my ($get_req, $get_arg) = $data =~ m|(\/?[^ \?]+)\??(\S+)?|;
             $get_arg = '' unless defined $get_arg; # Avoid uninitalized var msg
