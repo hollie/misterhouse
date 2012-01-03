@@ -36,6 +36,7 @@ my %mime_types = (
                   'jpg'   => 'image/jpeg',
                   'jpeg'  => 'image/jpeg',
                   'js'    => 'application/x-javascript',
+                  'sjs'    => 'application/x-javascript',
                   'wbmp'  => 'image/vnd.wap.wbmp',
                   'bmp'   => 'image/bmp',
                   'au'    => 'audio/basic',
@@ -1384,7 +1385,7 @@ sub html_file {
 
                                 # Allow for 'server side include' directives
                                 #  <!--#include file="whatever"-->
-    if ($file =~ /\.shtm?l?$/ or $file =~ /\.vxml?$/ or $file =~ /\.sxml?$/) {
+    if ($file =~ /\.shtm?l?$/ or $file =~ /\.vxml?$/ or $file =~ /\.sxml?$/ or $file =~ /\.sjs?$/) {
         print "Processing server side include file: $file\n" if $main::Debug{http};
         $html = &mime_header($file, 0) unless $no_header;
         while (my $r = <HTML>) {
@@ -1477,6 +1478,31 @@ sub shtml_include {
             }
             else {
                 print "Error, shtml file directive not recognized: data=$data req=$get_req arg=$get_arg\n";
+            }
+        }
+        elsif ($directive eq 'ajax') {
+	    my $url = $data;
+	    unless ($data =~ m/^\//) { 
+		print "Correcting AJAX URL\n" if $main::Debug{http};
+		$url = "/".$url;
+            }
+	    my $ajax_start=qq[<div class="ajax_update"><input type="hidden" value="$url"><div class="content">];
+	    my $ajax_end=qq[</div></div>];
+            eval "\$data = qq[$data]";  # Resolve $vars in file specs (e.g. config_parm{web_href...}
+            my ($get_req, $get_arg) = $data =~ m|(\/?[^ \?]+)\??(\S+)?|;
+            $get_arg = '' unless defined $get_arg; # Avoid uninitalized var msg
+            $get_arg =~ s/\&/&&/g; # translate & to &&, since we translate %##  to & before splitting
+            if (!$get_req) {
+            }
+            elsif (my $html_file = &test_for_file($socket, $get_req, $get_arg, 1, 1)) {
+                $html .= $ajax_start .$html_file .$ajax_end;
+            }
+            elsif (my ($html2, $style) = &html_mh_generated($get_req, $get_arg, 0)) {
+                $style = '' unless $style; # Avoid uninitalized var msg
+                $html .= $ajax_start .$style . $html2 .$ajax_end;
+            }
+            else {
+                print "Error, shtml ajax directive not recognized: data=$data req=$get_req arg=$get_arg\n";
             }
         }
         elsif ($directive =~ /^s?var$/ or $directive eq 'code') {

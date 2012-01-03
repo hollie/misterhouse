@@ -1,7 +1,7 @@
 
 # Authority: anyone
 
-# This code generates the status line at the bottom of some web pages.
+# This code generates the status panel on the left of some of the Improved UI web pages.
 # See bin/mh/mh.ini for more info
 
 my $argv = join '&', @ARGV;
@@ -11,9 +11,6 @@ my %parms = map {$_, 1} @parms;
 
 my $html = qq[];
 
-
-my $servertimestr = "$Date_Now $Year $Hour:$Minute:$Second";
-$servertimestr =~ s/^[^,]+,//;
 
 # Do parms in specified order
 for my $parm (@parms) {
@@ -59,22 +56,22 @@ for my $parm (@parms) {
     }
 
     elsif ($parm eq 'email') {
-        $Save{email_flag}= '' unless $Save{email_flag};
+        $Save{email_flag}= 'Unavailable' unless $Save{email_flag};
         $html .= qq[<p><b>Mail:</b> $Save{email_flag}</p>\n];
     }
 
     elsif ($parm eq 'weather') {
-        $Weather{Summary_Short} = '' unless $Weather{Summary_Short};
+        $Weather{Summary_Short} = 'Unavailable' unless $Weather{Summary_Short};
         $html .= qq[<p><b>Temp:</b> $Weather{Summary_Short}</p>\n];
     }
     elsif ($parm eq 'weather_long') {
-        $Weather{Summary} = '' unless $Weather{Summary};
+        $Weather{Summary} = 'Unavailable' unless $Weather{Summary};
         #$html .= qq[<p><b>Weather:</b> $Weather{Summary}</p>\n];
     }
 
     elsif ($parm eq 'wind') {
         my $html_wind = $Weather{Wind};
-        $html_wind = '' unless $html_wind;
+        $html_wind = 'Unavailable' unless $html_wind;
         $html_wind =~ s/from the/ /;
         $html .= qq[<p><b>Wind:</b> $html_wind</p>\n];
     }
@@ -87,10 +84,10 @@ for my $parm (@parms) {
 }
 
 if ($parms{date}) {
-    $html .= qq[<p><b>Date:</b> $Date_Now</p>\n];
+    $html .= qq[<p><b>Date:</b> $Date_Now, $Year</p>\n];
 }
 if ($parms{clock}) {
     $html .= qq[<p><b>Time:</b> $Time_Now</p>\n];
 }
 
-return &html_page('', $html, ' ');
+return $html;
