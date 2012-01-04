@@ -22,6 +22,7 @@ Relevant variables for mh.private.ini are:
 #ipaddress_xpl = 192.168.205.3
 #xpl_disable = 1
 #xpl_nohub = 1
+#xpl_enable_items = 1
 
 You can disable the mh internal xPL hub if you are running a more capable one.
 To get data input, you can use something like
@@ -88,7 +89,6 @@ sub startup {
     return if $::config_parms{xpl_disable};
 
     # determine our local ipaddress(es)
-    my @ipaddresses = &::get_ip_address;
     @xpl_item_names = ();
     my ($port);
 
@@ -106,14 +106,11 @@ sub startup {
         &open_port( $port, 'send', 'xpl_send', 0, 1 );
         $xpl_send = new Socket_Item( undef, undef, 'xpl_send' );
 
-        # and send the heartbeat
-
         # Find and use the first open port
+        # The socket code will select a free local port if given 0
         my $port_listen;
-        for my $p ( 49352 .. 65535 ) {
-            $port_listen = $p;
-            last if &open_port( $port_listen, 'listen', 'xpl_listen', 1, 1 );
-        }
+        &open_port( 0, 'listen', 'xpl_listen', 1, 1 );
+        $port_listen = $::Socket_Ports{'xpl_listen'}{port};
         $xpl_listen = new Socket_Item( undef, undef, 'xpl_listen' );
 
         # initialize the hub (listen) port
@@ -202,7 +199,7 @@ sub open_port {
     if ( $send_listen eq 'send' ) {
         my $dest_address;
         if ($local) {
-            if ($main::OS_win) {
+            if ($main::OS_win || $::Info{'OS_name'} eq 'cygwin') {
                 $dest_address = $::Info{IPAddress_local} unless $dest_address;
             }
             else {
@@ -219,10 +216,9 @@ sub open_port {
             PeerAddr  => $dest_address,
             Broadcast => 1
         );
-        print "db xPL_Items open_port: p=$port pn=$port_name l=$local " .
-          "a=$dest_address\n"
-          if $sock and $main::Debug{xpl};
 
+        print "db xPL_Items open_port: pn=$port_name l=$local PeerPort=$port " .
+          "PeerAddr=$dest_address" if $main::Debug{xpl};
     }
     else {
         my $listen_address;
@@ -231,7 +227,7 @@ sub open_port {
             $listen_address = $::config_parms{'xpl_address'}
               unless $listen_address;
         }
-        if ($main::OS_win) {
+        if ($main::OS_win || $::Info{'OS_name'} eq 'cygwin') {
             $listen_address = $::Info{IPAddress_local} unless $listen_address;
         }
         else {
@@ -245,17 +241,18 @@ sub open_port {
             LocalAddr => $listen_address,
             Broadcast => 1
         );
-
-        print "db xPL_Items open_port: p=$port pn=$port_name l=$local " .
-          "a=$listen_address\n"
-          if $sock and $main::Debug{xpl};
-
+        $port = $sock->sockport() if ($port == 0);
+		
+        print "db xPL_Items open_port: pn=$port_name l=$local LocalPort=$port " .
+          "LocalAddr=$listen_address" if $main::Debug{xpl};
     }
     unless ($sock) {
+        print " -- FAILED\n" if $main::Debug{xpl};
         print "\nError:  Could not start a udp xPL send server on $port: $@\n\n"
           if $send_listen eq 'send';
         return 0;
     }
+    print "\n" if $main::Debug{xpl};
 
     printf " - creating %-15s on %3s %5s %s\n", $port_name, 'udp', $port,
       $send_listen
@@ -343,18 +340,6 @@ sub _process_incoming_xpl_hub_data {
 
     my ($port);
 
-    # As a hub, echo data to other xpl listeners unless it's our transmission
-    for $port ( keys %xpl_hub_ports ) {
-        # don't echo back the sender's own data
-        if ( $xpl_hub_ports{$port} ne $source ) {
-            my $sock = $::Socket_Ports{"xpl_send_$port"}{sock};
-            print "db2 xpl hub: sending xpl data to p=$port destination=" .
-              "$xpl_hub_ports{$port} s=$sock d=\n$data.\n"
-              if $main::Debug{xpl} and $main::Debug{xpl} == 2;
-            print $sock $data if defined($sock);
-        }
-    }
-
     # Log hearbeats of other apps; ignore hbeat.basic messages as these
     # should not be handled by the hub
     if ( $$xpl_data{'hbeat.app'} ) {
@@ -373,7 +358,7 @@ sub _process_incoming_xpl_hub_data {
                   ( $::Socket_Ports{$port_name}{sock} )
                   ? 'renewing'
                   : 'registering';
-                print "db xpl $msg port=$port to xPL client $source"
+                print "db xpl $msg port=$port to xPL client $source\n"
                   if $main::Debug{xpl};
 
                 # xPL apps want local
@@ -381,6 +366,15 @@ sub _process_incoming_xpl_hub_data {
                     $msg eq 'registering' );
             }
         }
+    }
+
+    # As a hub, echo data to other xpl listeners unless it's our transmission
+    for $port ( keys %xpl_hub_ports ) {
+        my $sock = $::Socket_Ports{"xpl_send_$port"}{sock};
+        print "db2 xpl hub: sending xpl data to p=$port destination=" .
+          "$xpl_hub_ports{$port} s=$sock d=\n$data.\n"
+          if $main::Debug{xpl} and $main::Debug{xpl} == 2;
+        print $sock $data if defined($sock);
     }
 }
 
@@ -657,9 +651,13 @@ sub send_xpl_heartbeat {
 
         # check to see if all of the sockets are still valid
         &xPL::_handleStaleXplSockets();
-        $xpl_send->set($msg) if $::Socket_Ports{'xpl_send'}{socka};
-        print "db6 xPL heartbeat: $msg.\n"
-          if $main::Debug{xpl} and $main::Debug{xpl} == 6;
+        if ($::Socket_Ports{'xpl_send'}{socka}) {
+            $xpl_send->set($msg);
+            print "db6 xPL heartbeat: $msg.\n"
+              if $main::Debug{xpl} and $main::Debug{xpl} == 6;
+        } else {
+            print "Error in xPL_Item::send_heartbeat.  send socket not active\n";
+        }
     }
     else {
         print "Error in xPL_Item::send_heartbeat.  "
