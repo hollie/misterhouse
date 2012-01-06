@@ -34,3 +34,8 @@ function ajaxUpdate(){
 	// Restart the refresh timer
 	setTimeout("ajaxUpdate();", refresh_frequency);
 }
+
+jQuery.fn.vertCenter = function () {
+    this.css("top", ((jQuery(window).height() - this.outerHeight()) / 2) + jQuery(window).scrollTop() + "px");
+    return this;
+}

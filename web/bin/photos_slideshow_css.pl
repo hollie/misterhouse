@@ -35,14 +35,14 @@ Content-type: text/css
 	border-radius: 5px;
 }
 
-#main #show {
-	margin: 1em auto;
-        margin-top: -140px;
-}
-
 .slideshow-images {
 	height: $height;
 	width: $width;
+}
+
+.slideshow-images a img {
+	border: 1px solid #000;
+	border-radius: 6px;
 }
 
 /* Overriding the default Slideshow thumbnails for the vertical presentation */ 
@@ -56,6 +56,24 @@ Content-type: text/css
 .slideshow-thumbnails ul {
 	height: 100%;
 	width: 70px;
+}
+
+.status {
+	bottom: 1px;
+	left: 5px;
+	position: absolute;
+	line-height: .5em;
+}
+
+.title {
+	line-height: .5em;
+	position: absolute;
+	right: 0px;
+	bottom: 5px;
+}
+
+.title h3 {
+	margin: 5px;
 }
 eof
 return $css;
