@@ -35,7 +35,7 @@ $effect = "none" unless defined $effect;
 my $thumbs = $config_parms{photo_thumbnails};
 $thumbs = 0 unless defined $thumbs;
 my $captions = $config_parms{photo_captions};
-$captions = 0 unless defined $captions;
+$captions = 1 unless defined $captions;
 $config_parms{photo_size} =~ m/(\d+)[x|X](\d+)/;
 my $width  = $1;
 my $height = $2;
@@ -50,6 +50,7 @@ foreach (@photos) {
 	$file =~ s/&/%26/g;
 	$file =~ s/\'/%27/g;
 	$file =~ s/\/photos//g;
+	$file =~ s/^\///g;
 	foreach (@dirs) {
 		$img =~ s/$_//;
 	}

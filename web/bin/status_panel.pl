@@ -17,7 +17,7 @@ for my $parm (@parms) {
 
                      # Allow for a reference mintute, so we can verify against javaclock
     if ($parm eq 'minute') {
-        $html .= qq[<p><b>Minute:</b> $Minute</p>\n];
+        $html .= qq[<p><b>Current Minute:</b> $Minute</p>\n];
     }
                                # Allow for sun (auto-pick), sunrise, or sunset
     elsif ($parm =~ /sun/) {
@@ -45,7 +45,7 @@ for my $parm (@parms) {
 	use vars '$mh_volume';  # In case we don't have mh_sound
         if ($mh_volume) {
             my $sl_vol = state $mh_volume;
-            $html .= qq[ ($sl_vol%)];
+            $html .= qq[ (Vol: $sl_vol%)];
         }
         $html .= qq[</p>\n];
     }

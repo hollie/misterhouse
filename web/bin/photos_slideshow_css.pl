@@ -31,6 +31,13 @@ Content-type: text/css
 	border: 1px solid #000;
 	width: $width;
 	height: $height;
+        background-color: #fff;
+	border-radius: 5px;
+}
+
+#main #show {
+	margin: 1em auto;
+        margin-top: -140px;
 }
 
 .slideshow-images {
