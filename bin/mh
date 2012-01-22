@@ -192,8 +192,11 @@ BEGIN {
             elsif ($build < 800) {
                 push @INC, "${Pgm_Path}/../lib/site_win56";
             }
-            else {
+            elsif ($build < 900) {
                 push @INC, "${Pgm_Path}/../lib/site_win58";
+            }
+            elsif ($build < 1300 and $build > 1199) {
+                push @INC, "${Pgm_Path}/../lib/site_win512";
             }
         }
         require 'handy_utilities.pl';       # For misc. functions (e.g. time/date stamp routines)
