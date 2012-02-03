@@ -102,7 +102,6 @@ sub new {
    $$self{port_name} = $port_name;
    $$self{port} = $port;
 	$$self{last_command} = '';
-	$$self{xmit_in_progress} = 0;
 	$$self{_prior_data_fragment} = '';
    bless $self, $class;
    $self->restore_data('debug');
@@ -167,10 +166,9 @@ sub check_for_data {
         	if ($self->_check_timeout('command') == 1)
                 {
             		$self->_clear_timeout('command');
-            		if ($$self{xmit_in_progress}) {
+            		if ($self->transmit_in_progress) {
 #               &::print_log("[Insteon_PLM] WARN: No acknowledgement from PLM to last command requires forced abort of current command."
 #                  . " This may reflect a problem with your environment.");
-               			$$self{xmit_in_progress} = 0;
 #               pop(@{$$self{command_stack2}}); # pop the active command off the queue
 	       			$self->retry_active_message();
                			$self->process_queue();
@@ -185,7 +183,7 @@ sub check_for_data {
                 elsif ($self->_check_timeout('xmit') == 1)
                 {
            		$self->_clear_timeout('xmit');
-         		if (!($$self{xmit_in_progress}))
+         		if (!($self->transmit_in_progress))
                         {
             			$self->process_queue();
                		}
@@ -284,7 +282,7 @@ sub _send_cmd {
 		return;
 	}
 	unshift(@{$$self{command_history}},$::Time);
-	$$self{xmit_in_progress} = 1;
+	$self->transmit_in_progress(1);
 
         my $command = $message->interface_data;
 	my $delay = $$self{xmit_delay};
@@ -401,7 +399,9 @@ sub _parse_data {
                                                 	. $pending_message->to_string) if $main::Debug{insteon} >= 3;
                                         }
 
-					if ($parsed_data =~ /$prefix{x10_send}\w{4}06/)
+                                        # X10 messages don't ACK back on the powerline, so clear them if the PLM acknowledges
+                                        #   AND if the current, pending message is the X10 message
+					if (($parsed_data =~ /$prefix{x10_send}\w{4}06/) && ($pending_message->isa('Insteon::X10Message')))
                                         {
                 				$self->clear_active_message();
 					}
@@ -509,7 +509,6 @@ sub _parse_data {
 					# We have a problem (Usually we stepped on another X10 command)
 					&::print_log("[Insteon_PLM] ERROR: encountered $parsed_data. "
                                         	. $pending_message->to_string());
-#					$$self{xmit_in_progress} = 0;
 					$self->retry_active_message();
 					#move it off the top of the stack and re-transmit later!
 					#TODO: We should keep track of an errored command and kill it if it fails twice.  prevent an infinite loop here
@@ -580,7 +579,7 @@ sub _parse_data {
                         my $failure_group = substr($message_data,2,2);
                         my $failure_device = substr($message_data,4,6);
 
-			&::print_log("[Insteon_PLM] DEBUG2: Recieved all-link cleanup failure from device: "
+			&::print_log("[Insteon_PLM] DEBUG2: Received all-link cleanup failure from device: "
                         	. "$failure_device and group: failure_group") if $main::Debug{insteon} >= 2;
 		}
                 elsif ($parsed_prefix eq $prefix{all_link_record} and ($message_length == 20))
@@ -643,7 +642,6 @@ sub _parse_data {
 					. " after delaying for $nack_delay second") if $main::Debug{insteon} >= 3;
 				$self->_set_timeout('xmit',$nack_delay * 1000);
                                 $self->retry_active_message();
-#				$$self{xmit_in_progress} = 0;
 				$process_next_command = 0;
 				$nack_count++;
 			}
