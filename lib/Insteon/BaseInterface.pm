@@ -47,6 +47,7 @@ sub new
 	@{$$self{command_stack2}} = ();
 	@{$$self{command_history}} = ();
 	bless $self, $class;
+        $self->transmit_in_progress(0);
 #   	$self->debug(0) unless $self->debug;
 	return $self;
 }
@@ -141,14 +142,24 @@ sub clear_active_message
 	my ($self) = @_;
         $$self{active_message} = undef;
 #        $self->_clear_timeout('command');
-	$$self{xmit_in_progress} = 0;
+	$self->transmit_in_progress(0);
 }
 
 sub retry_active_message
 {
 	my ($self) = @_;
 #        $self->_clear_timeout('command');
-	$$self{xmit_in_progress} = 0;
+	$self->transmit_in_progress(0);
+}
+
+sub transmit_in_progress
+{
+	my ($self, $xmit_flag) = @_;
+        if (defined $xmit_flag)
+        {
+        	$$self{xmit_in_progress} = $xmit_flag;
+        }
+        return $$self{xmit_in_progress};
 }
 
 sub queue_message
@@ -186,7 +197,7 @@ sub process_queue
 	my ($self) = @_;
 
 	my $command_queue_size = @{$$self{command_stack2}};
-	return $command_queue_size unless !($$self{xmit_in_progress});
+	return $command_queue_size if $self->transmit_in_progress;
 
 	# get pending command record
 	my $pending_message = $self->active_message;
@@ -198,7 +209,7 @@ sub process_queue
 	}
 
 	#we dont transmit on top of another xmit
-	if (!($$self{xmit_in_progress}))
+	if (!($self->transmit_in_progress))
         { # no transmission is progress that has not already been acked or nacked by the PLM
 		if ($pending_message)
 		{ # a message exists to be sent (whether previously sent or queued)
