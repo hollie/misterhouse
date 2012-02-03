@@ -833,7 +833,9 @@ sub delete_orphan_links
                                         	{
                                         		if ($is_controller)
                                                 	{
+                                                        	# reference_object is the controller that is referenced by this ALDB's deviceid and the group
                                                 		my $reference_object = &Insteon::get_object($$self{device}->device_id, $group);
+                                                                # reverse_object is the responder referenced by the ALDB link and it's data3 content
                                                 		my $reverse_object = &Insteon::get_object($device->device_id, ($data3 eq '00') ? '01' : $data3);
                                                         	if (ref $reference_object and ref $reverse_object and $reference_object->isa("Insteon::BaseController") and $reference_object->has_member($reverse_object))
                                                                 {
@@ -856,7 +858,11 @@ sub delete_orphan_links
                                                 	}
                                                 	else # is a responder
                                                 	{
-                                                		my $reference_object = &Insteon::get_object($$self{device}->device_id, ($data3 eq '00') ? '01' : $data3);
+                                                        	# reference_object is the responder that is referenced by this ALDB's deviceid
+                                                                #   and the ALDB link's data3
+                                                		my $reference_object = &Insteon::get_object($$self{device}->device_id,
+                                                                                         ($data3 eq '00') ? '01' : $data3);
+                                                                # reverse_object is the controller referenced by the ALDB link and the group
                                                 		my $reverse_object = &Insteon::get_object($device->device_id, $group );
                                                         	if (ref $reference_object and ref $reverse_object and $reverse_object->isa("Insteon::BaseController") and $reverse_object->has_member($reference_object))
                                                                 {
