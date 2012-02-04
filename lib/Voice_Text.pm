@@ -8,13 +8,15 @@ use strict;
 use vars '$VTxt_version';
 my (@VTxt, $VTxt_stream1, $VTxt_stream2, %VTxt_cards, $VTxt_festival, $VTxt_mac);
 my ($save_mute_esd, $save_change_volume, %pronouncable);
-my (%voice_names, @voice_names, $voice_names_index, $VTxt_pid);
+my (%voice_names, @voice_names, $voice_names_index, $VTxt_pid, $web_index);
 
 
 my $is_speaking_timer = new Timer;
 
 sub init {
     my ($engine) = @_;
+
+    $web_index = 0;
 
 # The darwin hook is currently done in the main bin/mh code
 #    if ($main::Info{OS_name}=~ /darwin/i) {
@@ -70,7 +72,7 @@ sub init {
                 }
                 $VTxt[0] = $VTxt[1] unless $VTxt[0]; # Default to the first card if specified one not found
 
-                                # Create an object for to_file calls
+		# Create an object for to_file calls
                 $VTxt_stream1 = Win32::OLE->new('Sapi.SpVoice');
                 $VTxt_stream1 = undef unless defined $VTxt_stream1->GetVoices; # undef it if now voices exist
                 if (defined $VTxt_stream1) {
@@ -103,17 +105,30 @@ sub init {
 
 }
 
+# Execute callback for web based clients
+sub web_hook_callback {
+    my (%parms) = @_;
+    &main::print_log("web_hook_callback: $parms{web_file}");
+    return if ($parms{web_file} eq "web_file");
+    if (defined $parms{web_hook}) {
+	foreach my $web_hook (@{$parms{web_hook}}) {
+	    &$web_hook(%parms);
+	}
+    }
+}
+
 sub speak_text {
     my(%parms) = @_;
 
     if ($::Debug{voice}) {
-        print 'speak_text: parms are';
+        my $parmsdisplay;
 	foreach (sort(keys(%parms))) {
-            print " '$_'='$parms{$_}'";
+            $parmsdisplay .= " '$_'='$parms{$_}'";
         }
-        print "\n";
+        &main::print_log ("speak_text: parms are $parmsdisplay");
     }
-	# set a default voice, if configured
+
+    # set a default voice, if configured
     $parms{voice}=$::config_parms{voice_text_default_voice} unless $parms{voice};
     return if lc $parms{voice} eq 'none';
     return if !$parms{to_file} and $::config_parms{disable_local_sound};
@@ -135,7 +150,22 @@ sub speak_text {
         }
         return;
     }
-                                # Pick the correct card (default, if not specified).   Currently only engine=MS
+
+    # Support for audrey, android, and other web based clients which
+    # synthesized text to voice is provided for.  Make a recursive call
+    # to create the static file pushed to web devices.
+    if ($parms{web_file} eq "web_file") {
+	$parms{web_file} = "speakToWeb" . $web_index . ".wav";
+	my $to_file = $parms{to_file}; 
+	$parms{to_file} = $::config_parms{html_dir} . "/" . $parms{web_file};
+	$web_index++;
+	$web_index = $web_index % 10;
+        &speak_text(%parms);
+	$parms{to_file} = $to_file;
+        $parms{web_file} = "web_file";
+    }
+
+    # Pick the correct card (default, if not specified).   Currently only engine=MS
     my $vtxt_card = $VTxt[0];
     if ($parms{card}) {
         my $card = $parms{card};
@@ -235,6 +265,8 @@ sub speak_text {
         print "Voice_Text $speak_engine eval error: $@" if $@;
     }
     elsif ($speak_engine =~ /festival/i) {
+
+	# Initialize the festival server if necessary
         &init('festival') unless $VTxt_festival;
         if ($VTxt_festival and not active $VTxt_festival) {
             if (start $VTxt_festival) {
@@ -245,81 +277,93 @@ sub speak_text {
             }
         }
 
-
-				# Clear out buffer, so is_speaking works
+	# Clear out buffer, so is_speaking works
         $main::Socket_Ports{festival}{data_record} = '';
         $main::Socket_Ports{festival}{data}        = '';
 
+	# Send Voice Text to a file
         if ($parms{to_file}) {
-                                       # Change from relative to absolute path
+	    # Change from relative to absolute path
             $parms{to_file} = "$main::Pgm_Path/$1" if $parms{to_file} =~ /^\.\/(.+)/;
             $parms{text} = qq[(utt.save.wave (utt.synth (Utterance Text "$parms{text}")) "$parms{to_file}" "riff")];
+
+	    # Use the festival server
             if ($VTxt_festival and active $VTxt_festival) {
                 $parms{text} =~ s/<\/?speaker.*?>//ig; # Server does not do sable
-                print "Voice_text TTS:  Festival saving to file via server: $parms{to_file}\n" if $main::Debug{voice};
+                &main::print_log ("Voice_text TTS:  Festival saving to file via server: $parms{to_file}\n") if $main::Debug{voice};
                 set $VTxt_festival $parms{text};
 
                 my $fork=1 if $parms{async};
 
                 if ($fork) {
             	    my $pid = fork;
-
-					# we are the parent
+		    # we are the parent
                     if ($fork and $pid) {
                     	return; # nothing else to do, the child is looking after the rest of the work
-					}
+		    }
                 }
+
                 # Wait for server to respond that it is done
                 my $sock = $main::Socket_Ports{festival}{sock};
                 my $i;
                 while ($i++ < 100) {
-                    print '-';
+                    print '-' if $main::Debug{voice};
                     select undef, undef, undef, .1;
                     my $nfound = &main::socket_has_data($sock);
                        if ($nfound > 0) {
                            last;
                        }
                 }
-                if (defined $parms{audreyIndex}) {
-                    &::file_ready_for_audrey($parms{audreyIndex});
-   				}
-			    if ($fork) {
-                          if ($main::OS_win) {
-                             exec 'true';
-                          } else {
-                             &POSIX::_exit(0);
-                          }
-# 			    exit; # nothing left for the child to do
-			    }
-           }
+
+		# Send voice text to waiting web clients
+		&web_hook_callback(%parms);
+
+		# End the child if necessary
+		if ($fork) {
+		    if ($main::OS_win) {
+			exec 'true';
+		    } else {
+			&POSIX::_exit(0);
+		    }
+		    # 			    exit; # nothing left for the child to do
+		}
+	    }
+
+	    # Call festival directly
             else {
                 my $file = "$main::config_parms{data_dir}/mh_temp.festival.txt";
                 &main::file_write($file, $parms{text});
-                print "Voice_text TTS: Festival saving to file: $file\n" if $main::Debug{voice};
+                &main::print_log("Voice_text TTS: Festival saving to file: $file\n") if $main::Debug{voice};
                 my $fork = $parms{async};
                 if ($fork) {
-                	my $pid = fork;
-                	# we are the parnet
-                	if ($fork and $pid) {
-                		return; # the child will look after the real work
-					}
-				}
+		    my $pid = fork;
+		    # we are the parent
+		    if ($fork and $pid) {
+			return; # the child will look after the real work
+		    }
+		}
+
+		# Call festival
                 system("$main::config_parms{voice_text_festival} -b $file");
-                if (defined $parms{audreyIndex}) {
-                    &::file_ready_for_audrey($parms{audreyIndex});
-   				}
-			    if ($fork) {
-	                    if ($main::OS_win) {
-                               exec 'true';
-                            } else {
-                               &POSIX::_exit(0);
-                            }
-# 			    exit; # nothing left for the child to do
-			    }
+
+		# Send voice text to waiting web clients
+		&web_hook_callback(%parms);
+
+		# Clean up the child if necessary
+		if ($fork) {
+		    if ($main::OS_win) {
+			exec 'true';
+		    } else {
+			&POSIX::_exit(0);
+		    }
+		    # 			    exit; # nothing left for the child to do
+		}
             }
             select undef, undef, undef, .2; # Need this ?
         }
-		 # Check for sable requests.  Server does not do sable
+
+	# Speak Voice directly, not to a file
+	# Check for sable requests.  Server does not do sable
         elsif (!$VTxt_festival or
 	       $parms{voice} or $parms{volume} or
 	       $parms{rate} or  $parms{text} =~ /<sable>i/) {
@@ -346,21 +390,22 @@ sub speak_text {
              	my $pid = fork;
                	# we are the parnet
                	if ($fork and $pid) {
-               		return; # the child will look after the real work
-				}
-			}
+		    return; # the child will look after the real work
+		}
+	    }
             system("($main::config_parms{voice_text_festival} --tts $file ; rm $file) &");
-            if (defined $parms{audreyIndex}) {
-                 &::file_ready_for_audrey($parms{audreyIndex});
-   			}
-			if ($fork) {
-                        if ($main::OS_win) {
-                           exec 'true';
-                        } else {
-                           &POSIX::_exit(0);
-                        }
-# 		    exit; # nothing left for the child to do
-			}
+
+	    # Send voice text to waiting web clients
+	    &web_hook_callback(%parms);
+
+	    if ($fork) {
+		if ($main::OS_win) {
+		    exec 'true';
+		} else {
+		    &POSIX::_exit(0);
+		}
+		# 		    exit; # nothing left for the child to do
+	    }
         }
         else {
             my $text = $parms{text};
@@ -374,18 +419,18 @@ sub speak_text {
              	my $pid = fork;
                	# we are the parnet
                	if ($fork and $pid) {
-               		return; # the child will look after the real work
-				}
-			}
+		    return; # the child will look after the real work
+		}
+	    }
             set $VTxt_festival qq[(SayText "$text")];
-			if ($fork) {
-                   if ($main::OS_win) {
-                      exec 'true';
-                   } else {
-                      &POSIX::_exit(0);
-                   }
-# 		    exit; # nothing left for the child to do
-			}
+	    if ($fork) {
+		if ($main::OS_win) {
+		    exec 'true';
+		} else {
+		    &POSIX::_exit(0);
+		}
+		# 		    exit; # nothing left for the child to do
+	    }
         }
     }
     elsif ($speak_pgm) {
@@ -517,7 +562,7 @@ sub speak_text {
                 $speak_pgm_arg .= " -to_file $parms{to_file}" if $parms{to_file};
             }
 
-            print "Voice_text TTS: f=$fork stdin=$speak_pgm_use_stdin p=$speak_pgm a=$speak_pgm_arg ai=$parms{audreyIndex}\n" if $main::Debug{voice};
+            print "Voice_text TTS: f=$fork stdin=$speak_pgm_use_stdin p=$speak_pgm a=$speak_pgm_arg to_file=$parms{to_file}\n" if $main::Debug{voice};
 
             if ($speak_pgm_use_stdin) {
                 open  VOICE, "| $speak_pgm $speak_pgm_arg";
@@ -538,9 +583,9 @@ sub speak_text {
                # 	print "can't execute $speak_pgm $speak_pgm_arg: rc is $? and  $!\n";
                # 	exit;
 			#	}
-                if (defined $parms{audreyIndex}) {
-                	&::file_ready_for_audrey($parms{audreyIndex});
-                }
+		# Send voice text to waiting web clients
+		&web_hook_callback(%parms);
+
                 if ($main::OS_win) {
                    exec 'true';
                 } else {
@@ -554,9 +599,9 @@ sub speak_text {
             }
             else {
                 system qq[$speak_pgm $speak_pgm_arg];
-                if (defined $parms{audreyIndex}) {
-                	&::file_ready_for_audrey($parms{audreyIndex});
-				}
+
+		# Send voice text to waiting web clients
+		&web_hook_callback(%parms);
             }
         }
     }
@@ -565,18 +610,18 @@ sub speak_text {
         if ($VTxt_version eq 'msv5') {
                                 # Allow option to save speech to a wav file
             if ($parms{to_file}) {
-                my $audreyFork=0;
+                my $webFork=0;
                 # we only fork if we are asynchronously generating a file for Audrey.
                 # otherwise, we can just use the native async capability
 
-                $audreyFork=1 if ($parms{async} and defined $parms{audreyIndex});
+                $webFork=1 if ($parms{async} and defined $parms{to_file});
 
 				# this currently doesn't work - causes a strange "Bizarre SvType [92]" error at the fork line below
 				# This is due to Win32::OLE not supporting forks!  Known problem, not yet fixed.
                 # For now, force async=0 for Audrey on windows
                 # Hopefully this will work sometime in the future.  :-(
-                if ($audreyFork) {
-                	$audreyFork=0;
+                if ($webFork) {
+                	$webFork=0;
                 	$parms{async}=0;
                 }
 
@@ -600,7 +645,7 @@ sub speak_text {
                 # so that we can wait around for the file to get created.  Once created, we notify
                 # Audrey that the file is ready through &::file_ready_for_audrey
 
-                if ($audreyFork) {
+                if ($webFork) {
                     my $pid=fork;
                     # if we are the child
                     if (!defined($pid)) {
@@ -619,7 +664,9 @@ sub speak_text {
                         $VTxt_stream2->Close;
                         # at this point, the file _should_ be ready for Audrey
                         undef $VTxt_stream2;
-                        &::file_ready_for_audrey($parms{audreyIndex});
+
+			# Send voice text to waiting web clients
+			&web_hook_callback(%parms);
                         # child is done all its work
                         exec 'true';
                     } else  {
@@ -642,9 +689,8 @@ sub speak_text {
                             $VTxt_stream1->Speak($parms{text}, 8); # Flags: 8=XML (no async, so we can close)
                             $VTxt_stream2->Close;
                             undef $VTxt_stream2;
-                            &::file_ready_for_audrey($parms{audreyIndex}) if (defined $parms{audreyIndex});
-#                           &main::print_log("Text->wav file:  $parms{to_file}");
-#                           &main::play($parms{to_file});
+			    # Send voice text to waiting web clients
+			    &web_hook_callback(%parms);
                         }
                     } else {
                         &main::print_log("WARN: no file could be produced for audrey.");

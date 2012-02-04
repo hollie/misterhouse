@@ -118,7 +118,7 @@ use vars qw(%User_Code @Code_Dirs @Generic_Serial_Ports %Misc);
 use vars qw(%Run_Members);
 
 my ($Pgm_PathU);
-my ($Loop_Speed, @Loop_Speeds, $Loop_Sleep_Time, $Loop_Tk_Passes);
+my ($Loop_Speed, @Loop_Speeds, $Loop_Sleep_Time, $Loop_Tk_Passes, $Web_Play_Index);
 my (@Requested_Files, @Print_Log, @Display_Log, @Speak_Log, @Error_Log);
 
 my ($exit_flag, $xcmd_file, %file_code_times, %file_code_times2, %file_change_times);
@@ -1039,6 +1039,7 @@ sub setup {
 
     $Loop_Tk_Passes  = $config_parms{tk_passes};
     $Loop_Sleep_Time = $config_parms{sleep_time};
+    $Web_Play_Index = 0;
 
     $Time = time;
 
@@ -3818,7 +3819,7 @@ sub play {
                 }
             }
         }
-        print "playing file=$file parm=$play_parm\n" if $Debug{play};
+        &print_log ("playing file=$file parm=$play_parm") if $Debug{play};
 
 #       system($config_parms{sound_program_prescript}) if $config_parms{sound_program_prescript};
 
@@ -3842,6 +3843,22 @@ sub play {
             last;
         }
 
+	# Support for audrey, android, and other web based clients which 
+	# played wav files are provided for.
+	if ($parms{web_file} eq "web_file") {
+	    $parms{web_file} = "playToWeb" . $Web_Play_Index . ".wav";
+	    print_log("play: $parms{web_file}");
+	    my $toFile = $::config_parms{html_dir} . "/$parms{web_file}";
+	    copy $file, $toFile;
+	    if (defined $parms{web_hook}) {
+		foreach my $web_hook (@{$parms{web_hook}}) {
+		    &$web_hook(%parms);
+		}
+	    }
+	    $Web_Play_Index++;
+	    $Web_Play_Index = $Web_Play_Index % 10;
+	}
+
         if (!$OS_win) {
             next if $file =~ /^System/;
             if ($config_parms{sound_program} =~ /vv_tts/i) {    # use vv_tts for play also
@@ -3856,7 +3873,7 @@ sub play {
             if ($parms{sound_program} ) {
                 $sound_program = $parms{sound_program};
             }
-            print "running: $sound_program $file\n";
+            print_log ("running: $sound_program $file\n");
 
                                 # Greg Satz had problems with MAC OS X zombies with system call here
                                 # Some linux guys had problems with problems with rc being mis-set
