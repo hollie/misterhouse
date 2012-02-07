@@ -28,7 +28,7 @@ sub set
 
 	# if it can't be controlled (i.e., a responder), then don't send out any signals
 	# motion sensors seem to get multiple fast reports; don't trigger on both
-	if (not defined($self->get_idle_time) or $self->get_idle_time > 1) {
+	if (not defined($self->get_idle_time) or $self->get_idle_time > 1 or $self->state ne $p_state) {
 		&::print_log("[Insteon::MotionSensor] " . $self->get_object_name()
 			. "::set_receive($p_state, $p_setby)") if $main::Debug{insteon};
 		$self->set_receive($p_state,$p_setby);
