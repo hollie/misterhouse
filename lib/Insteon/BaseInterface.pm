@@ -11,30 +11,35 @@ sub check_for_data
    $interface->check_for_data();
 }
 
-sub poll_all {
+sub poll_all
+{
    my $scan_at_startup = $main::config_parms{Insteon_PLM_scan_at_startup};
    $scan_at_startup = 1 unless defined $scan_at_startup;
    $scan_at_startup = 0 unless $main::Save{mh_exit} eq 'normal';
       my $plm = &Insteon::active_interface();
-      if (defined $plm) {
-         if (!($plm->device_id) and !($$plm{_id_check})) {
+      if (defined $plm)
+      {
+         if (!($plm->device_id) and !($$plm{_id_check}))
+         {
 		$$plm{_id_check} = 1;
 		$plm->queue_message(new Insteon::InsteonMessage('plm_info', $plm));
          }
-         if ($scan_at_startup) {
+         if ($scan_at_startup)
+         {
 
-         for my $insteon_device (&Insteon::find_members('Insteon::BaseDevice')) {
-            if ($insteon_device and $insteon_device->is_root and $insteon_device->is_responder)
-            {
-               # don't request status for objects associated w/ other than the primary group
-               #    as they are psuedo links
-               $insteon_device->request_status();
-            }
-            if ($insteon_device->devcat) {
-               # reset devcat so as to trigger any device specific properties
-               $insteon_device->devcat($insteon_device->devcat);
-            }
-         }
+         	for my $insteon_device (&Insteon::find_members('Insteon::BaseDevice'))
+                {
+            		if ($insteon_device and $insteon_device->is_root and $insteon_device->is_responder)
+            		{
+               		# don't request status for objects associated w/ other than the primary group
+               		#    as they are psuedo links
+               			$insteon_device->request_status();
+            		}
+               		if ($insteon_device->devcat) {
+              		 # reset devcat so as to trigger any device specific properties
+               			$insteon_device->devcat($insteon_device->devcat);
+            		}
+         	}
          }
       }
 }
@@ -76,8 +81,10 @@ sub _is_duplicate
         return 1 if ($self->active_message && $self->active_message->interface_data eq $cmd);
 	my $duplicate_detected = 0;
 	# check for duplicates of $cmd already in command_stack and ignore if they exist
-	foreach my $message (@{$$self{command_stack2}}) {
-		if ($message->interface_data eq $cmd) {
+	foreach my $message (@{$$self{command_stack2}})
+        {
+		if ($message->interface_data eq $cmd)
+                {
 			$duplicate_detected = 1;
 			last;
 		}
@@ -101,10 +108,13 @@ sub add_link
         if ($self->_aldb)
         {
 		my %link_parms;
-		if (@_ > 2) {
+		if (@_ > 2)
+                {
 			shift @_;
 			%link_parms = @_;
-		} else {
+		}
+                else
+                {
 			%link_parms = &main::parse_func_parms($parms_text);
 		}
            	$self->_aldb->add_link(%link_parms);
@@ -117,10 +127,13 @@ sub delete_link
         if ($self->_aldb)
         {
 		my %link_parms;
-		if (@_ > 2) {
+		if (@_ > 2)
+                {
 			shift @_;
 			%link_parms = @_;
-		} else {
+		}
+                else
+                {
 			%link_parms = &main::parse_func_parms($parms_text);
 		}
            	$self->_aldb->delete_link(%link_parms);
@@ -173,8 +186,9 @@ sub queue_message
 	if (defined $message)
 	{
         	my $setby = $message->setby;
-		if ($self->_is_duplicate($message->interface_data) && !($message->isa('Insteon::X10Message'))) {
-			&main::print_log("[Insteon_PLM] Attempt to queue command already in queue; skipping ...") if $main::Debug{insteon};
+		if ($self->_is_duplicate($message->interface_data) && !($message->isa('Insteon::X10Message')))
+                {
+			&main::print_log("[Insteon::BaseInterface] Attempt to queue command already in queue; skipping ...") if $main::Debug{insteon};
 		}
                 else
                 {
