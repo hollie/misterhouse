@@ -711,20 +711,22 @@ sub delete_orphan_links
                         {
 				# ignore since this is just a link back to the PLM
 			}
-                        elsif ($device->isa("Insteon::BaseInterface"))
+                        elsif ($device->isa("Insteon::BaseInterface")) # and is a RESPONDER!!
                         {
-				# does the PLM have a link point back?  If not, the delete this one
+				# does the PLM have a link point back to it?  If not, the delete this one
                                 # These are all responder links
 				if (!($device->has_link($$self{device},$group,1)))
                                 {
                                 	if ($audit_mode)
                                         {
+                                        	my $plm_scene = &Insteon::get_object('000000',$group);
 						&::print_log("[Insteon::ALDB_i1] (AUDIT) Now deleting orphaned responder link in "
                                                 	. $$self{device}->get_object_name
                                                         . (($data3 eq '00' or $data3 eq '01') ? "" : " [button:" . $data3 . "]")
                                                 	. " because PLM does not have a corresponding controller record "
-                                                	. "with group ($group).  Try resyncing the scene corresponding to PLM:$group "
-                                                        . "if the mht scene entry exists.");
+                                                	. "with group ($group)." . (($plm_scene && ref $plm_scene) ? " Please resync "
+                                                        . $plm_scene->get_object_name . " before re-running in non-audit mode to restore PLM side"
+                                                        : ""));
                                         }
                                         else
                                         {
