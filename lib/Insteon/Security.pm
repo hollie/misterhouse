@@ -28,13 +28,15 @@ sub set
 
 	# if it can't be controlled (i.e., a responder), then don't send out any signals
 	# motion sensors seem to get multiple fast reports; don't trigger on both
+        my $setby_name = $p_setby;
+        $setby_name = $p_setby->get_object_name() if (ref $p_setby and $p_setby->can('get_object_name'));
 	if (not defined($self->get_idle_time) or $self->get_idle_time > 1 or $self->state ne $p_state) {
 		&::print_log("[Insteon::MotionSensor] " . $self->get_object_name()
-			. "::set_receive($p_state, $p_setby)") if $main::Debug{insteon};
+			. "::set_receive($p_state, $setby_name)") if $main::Debug{insteon};
 		$self->set_receive($p_state,$p_setby);
 	} else {
 		&::print_log("[Insteon::MotionSensor] " . $self->get_object_name()
-			. "::set_receive($p_state, $p_setby) deferred due to repeat within 1 second")
+			. "::set_receive($p_state, $setby_name) deferred due to repeat within 1 second")
 			if $main::Debug{insteon};
 	}
 	return;
