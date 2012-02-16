@@ -617,8 +617,9 @@ sub delete_link
 	} else {
 		%link_parms = &main::parse_func_parms($parms_text);
 	}
+	$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
+	$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
 	if ($link_parms{address}) {
-		$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
 		$$self{_mem_activity} = 'delete';
 		$$self{pending_aldb}{address} = $link_parms{address};
 		$self->_peek($link_parms{address},0);
@@ -641,7 +642,6 @@ sub delete_link
 			&main::print_log("[Insteon::ALDB_i1] Now deleting link [0x$address] with the following data"
 				. " deviceid=$deviceid, groupid=$groupid, is_controller=$is_controller");
 			# now, alter the flags byte such that the in_use flag is set to 0
-			$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
 			$$self{_mem_activity} = 'delete';
 			$$self{pending_aldb}{deviceid} = lc $deviceid;
 			$$self{pending_aldb}{group} = $groupid;
@@ -1148,6 +1148,7 @@ sub add_link
 			my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
 			$$self{_mem_activity} = 'add';
 			$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
+			$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
 			$self->_write_link($address, $device_id, $group, $is_controller, $data1, $data2, $data3);
 			# TO-DO: ensure that pop'd address is restored back to queue if the transaction fails
                 }
@@ -1193,6 +1194,7 @@ sub update_link
 	my $address = $$self{aldb}{$key}{address};
 	$$self{_mem_activity} = 'update';
 	$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
+	$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
 	$self->_write_link($address, $deviceid, $group, $is_controller, $data1, $data2, $data3);
 }
 
