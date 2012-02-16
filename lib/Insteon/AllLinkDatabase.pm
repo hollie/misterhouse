@@ -1137,6 +1137,8 @@ sub add_link
 		$ramp_rate = '0.1' unless $ramp_rate; # 0.1s is the default
 		# get the first available memory location
 		my $address = pop @{$$self{aldb}{empty}};
+		$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
+		$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
                 if ($address)
                 {
 			&::print_log("[Insteon::ALDB_i1] DEBUG2: adding link record " . $$self{device}->get_object_name
@@ -1147,8 +1149,6 @@ sub add_link
 			my $data2 = ($$self{device}->isa('Insteon::DimmableLight')) ? &Insteon::DimmableLight::convert_ramp($ramp_rate) : '00';
 			my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
 			$$self{_mem_activity} = 'add';
-			$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
-			$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
 			$self->_write_link($address, $device_id, $group, $is_controller, $data1, $data2, $data3);
 			# TO-DO: ensure that pop'd address is restored back to queue if the transaction fails
                 }
@@ -1159,6 +1159,16 @@ sub add_link
 				. " does not have a record of the first empty ALDB record."
                                 . " Please rescan this device's link table")
                                 if $main::Debug{insteon};
+
+                         if ($$self{_success_callback})
+                         {
+				package main;
+				eval ($$self{_success_callback});
+				&::print_log("[Insteon::ALDB_i1] WARN1: Error encountered during ack callback: " . $@)
+			 		if $@ and $main::Debug{insteon} >= 1;
+			 	package Insteon::AllLinkDatabase;
+                         }
+
                 }
 	}
 }
@@ -1406,6 +1416,14 @@ sub _write_link
 		&::print_log("[Insteon::ALDB_i1] WARN: " . $$self{device}->get_object_name
 			. " write_link failure: no address available for record to device: $deviceid and group: $group" .
 				" and is_controller: $is_controller");;
+                if ($$self{_success_callback})
+                {
+			package main;
+			eval ($$self{_success_callback});
+			&::print_log("[Insteon::ALDB_i1] WARN1: Error encountered during ack callback: " . $@)
+		 		if $@ and $main::Debug{insteon} >= 1;
+		 	package Insteon::AllLinkDatabase;
+                }
 	}
 }
 
@@ -1897,7 +1915,6 @@ sub add_link
 			. $data1
 			. $data2
 			. $data3;
-		$$self{_success_callback} = $link_parms{callback} if $link_parms{callback};
 		$$self{aldb}{$linkkey}{flags} = lc $flags;
 		$$self{aldb}{$linkkey}{group} = lc $group;
 		$$self{aldb}{$linkkey}{is_controller} = $is_controller;
@@ -1906,6 +1923,12 @@ sub add_link
 		$$self{aldb}{$linkkey}{data2} = lc $data2;
 		$$self{aldb}{$linkkey}{data3} = lc $data3;
                 my $message =  new Insteon::InsteonMessage('all_link_manage_rec', $$self{device});
+                $message->interface_data($cmd);
+                if ($link_parms{callback})
+                {
+			$$self{_success_callback} = $link_parms{callback};
+                        $message->callback($link_parms{callback});
+                }
                 $message->interface_data($cmd);
 		$$self{device}->queue_message($message);
 	}
