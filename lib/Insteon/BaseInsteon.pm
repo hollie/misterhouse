@@ -1234,7 +1234,7 @@ sub add
 
 sub sync_links
 {
-	my ($self, $callback) = @_;
+	my ($self, $audit_mode, $callback, $failure_callback) = @_;
 	@{$$self{sync_queue}} = (); # reset the work queue
 	$$self{sync_queue_callback} = ($callback) ? $callback : undef;
 	my $insteon_object = $self->interface;
@@ -1309,7 +1309,7 @@ sub sync_links
 					my $link_on_level = hex($$member_aldb{aldb}{$aldbkey}{data1})/2.55;
 					my $raw_ramp_rate = $$member_aldb{aldb}{$aldbkey}{data2};
 					my $raw_tgt_ramp_rate = &Insteon::DimmableLight::convert_ramp($tgt_ramp_rate);
-					if ($raw_ramp_rate != $raw_tgt_ramp_rate)
+					if (($raw_ramp_rate != $raw_tgt_ramp_rate) && ($raw_ramp_rate ne '00' and $raw_tgt_ramp_rate ne '1f'))
                                         {
 						$requires_update = 1;
                                                 &::print_log("[Insteon::BaseController] DEBUG: flagging " . $self->get_object_name
@@ -1327,42 +1327,71 @@ sub sync_links
 				}
 				if ($requires_update)
                                 {
-					my %link_req = ( member => $member, cmd => 'update', object => $insteon_object,
-						group => $self->group, is_controller => 0,
-						on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,
-						callback => "$self_link_name->_process_sync_queue()" );
-					# set data3 is device is a KeypadLinc
-					if ($member->isa('Insteon::KeyPadLincRelay') or $member->isa('Insteon::KeyPadLinc'))
+                                	if ($audit_mode)
                                         {
-						$link_req{data3} = $linkmember->group;
-					}
-					push @{$$self{sync_queue}}, \%link_req;
+                                               &::print_log("[Insteon::BaseController] (AUDIT) - updating responder record to "
+                                               		. $member->get_object_name . " for "
+                                               		. $insteon_object->get_object_name . " with group:" . $self->group
+                                                        . "; on_level:$tgt_on_level; ramp_rate:$tgt_ramp_rate");
+                                        }
+                                        else
+                                        {
+						my %link_req = ( member => $member, cmd => 'update', object => $insteon_object,
+							group => $self->group, is_controller => 0,
+							on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,
+							callback => "$self_link_name->_process_sync_queue()" );
+						# set data3 is device is a KeypadLinc
+						if ($member->isa('Insteon::KeyPadLincRelay') or $member->isa('Insteon::KeyPadLinc'))
+                                        	{
+							$link_req{data3} = $linkmember->group;
+						}
+				       		push @{$$self{sync_queue}}, \%link_req;
+                                        }
 				}
 			}
                         else
                         {
-				my %link_req = ( member => $member, cmd => 'add', object => $insteon_object,
-					group => $self->group, is_controller => 0,
-					on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,
-					callback => "$self_link_name->_process_sync_queue()" );
-				# set data3 is device is a KeypadLinc
-				if ($member->isa('Insteon::KeyPadLincRelay') or $member->isa('Insteon::KeyPadLinc'))
+                        	if ($audit_mode)
                                 {
-					$link_req{data3} = $linkmember->group;
-				}
-				push @{$$self{sync_queue}}, \%link_req;
+                                	&::print_log("[Insteon::BaseController] (AUDIT) - adding responder record to "
+                                        	. $member->get_object_name . " for "
+                                        	. $insteon_object->get_object_name . " with group:" . $self->group
+                                                . "; on_level:$tgt_on_level; ramp_rate:$tgt_ramp_rate");
+                                }
+                                else
+                                {
+					my %link_req = ( member => $member, cmd => 'add', object => $insteon_object,
+						group => $self->group, is_controller => 0,
+						on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,
+				       		callback => "$self_link_name->_process_sync_queue()" );
+			       		# set data3 is device is a KeypadLinc
+					if ($member->isa('Insteon::KeyPadLincRelay') or $member->isa('Insteon::KeyPadLinc'))
+                                	{
+						$link_req{data3} = $linkmember->group;
+					}
+					push @{$$self{sync_queue}}, \%link_req;
+                                }
 			}
 			if (!($insteon_object->has_link($member, $self->group, 1, $linkmember->group)))
                         {
-				my %link_req = ( member => $insteon_object, cmd => 'add', object => $member,
-					group => $self->group, is_controller => 1,
-					callback => "$self_link_name->_process_sync_queue()" );
-				# set data3 is device is a KeypadLinc
-				if ($member->isa('Insteon::KeyPadLincRelay') or $member->isa('Insteon::KeyPadLinc'))
+                        	if ($audit_mode)
                                 {
-					$link_req{data3} = $linkmember->group;
-				}
-				push @{$$self{sync_queue}}, \%link_req;
+                                	&::print_log("[Insteon::BaseController] (AUDIT) - adding controller record to "
+                                        	. $insteon_object->get_object_name . " for " . $member->get_object_name
+                                                . " with group:" . $self->group);
+                                }
+                                else
+                                {
+			       		my %link_req = ( member => $insteon_object, cmd => 'add', object => $member,
+						group => $self->group, is_controller => 1,
+						callback => "$self_link_name->_process_sync_queue()" );
+			       		# set data3 is device is a KeypadLinc
+					if ($member->isa('Insteon::KeyPadLincRelay') or $member->isa('Insteon::KeyPadLinc'))
+                                	{
+						$link_req{data3} = $linkmember->group;
+					}
+					push @{$$self{sync_queue}}, \%link_req;
+                                }
 			}
 		}
 	}
@@ -1372,18 +1401,36 @@ sub sync_links
 		my $subaddress = ($self->isa('Insteon::KeyPadLincRelay') or $self->isa('Insteon::KeyPadLinc')) ? $self->group : '00';
 		if (!($insteon_object->has_link($self->interface,$self->group,1,$subaddress)))
                 {
-			my %link_req = ( member => $insteon_object, cmd => 'add', object => $self->interface,
-				group => $self->group, is_controller => 1,
-				callback => "$self_link_name->_process_sync_queue()" );
-			$link_req{data3} = $self->group if $insteon_object->isa('Insteon::KeyPadLincRelay') or $insteon_object->isa('Insteon::KeyPadLinc');
-			push @{$$self{sync_queue}}, \%link_req;
+                	if ($audit_mode)
+                        {
+                               	&::print_log("[Insteon::BaseController] (AUDIT) - adding controller record to "
+                                	. $insteon_object->get_object_name . " for "
+                                       	. $self->interface->get_object_name . " with group:" . $self->group);
+                        }
+                        else
+                        {
+		       		my %link_req = ( member => $insteon_object, cmd => 'add', object => $self->interface,
+					group => $self->group, is_controller => 1,
+					callback => "$self_link_name->_process_sync_queue()" );
+				$link_req{data3} = $self->group if $insteon_object->isa('Insteon::KeyPadLincRelay') or $insteon_object->isa('Insteon::KeyPadLinc');
+				push @{$$self{sync_queue}}, \%link_req;
+                        }
 		}
 		if (!($self->interface->has_link($insteon_object,$self->group,0,$subaddress)))
                 {
-			my %link_req = ( member => $self->interface, cmd => 'add', object => $insteon_object,
-				group => $self->group, is_controller => 0,
-				callback => "$self_link_name->_process_sync_queue()" );
-			push @{$$self{sync_queue}}, \%link_req;
+                	if ($audit_mode)
+                        {
+                               	&::print_log("[Insteon::BaseController] (AUDIT) - adding responder record to "
+                                	. $self->interface->get_object_name . " for "
+                                       	. $insteon_object->get_object_name . " with group:" . $self->group);
+                        }
+                        else
+                        {
+				my %link_req = ( member => $self->interface, cmd => 'add', object => $insteon_object,
+					group => $self->group, is_controller => 0,
+			       		callback => "$self_link_name->_process_sync_queue()" );
+				push @{$$self{sync_queue}}, \%link_req;
+                        }
 		}
 	}
 	my $num_sync_queue = @{$$self{sync_queue}};
