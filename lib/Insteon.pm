@@ -9,6 +9,7 @@ use strict;
 my (@_insteon_plm,@_insteon_device,@_insteon_link,@_scannable_link,$_scan_cnt,$_sync_cnt,$_sync_failure_cnt);
 my $init_complete;
 my (@_scan_devices,@_scan_device_failures,$current_scan_device);
+my (@_sync_devices,@_sync_device_failures,$current_sync_device);
 
 sub scan_all_linktables
 {
@@ -17,7 +18,6 @@ sub scan_all_linktables
         	&main::print_log("[Scan all linktables] WARN: link already underway. Ignoring request for new scan ...");
                 return;
         }
-        print "######### GOT HERE #############\n";
         my @candidate_devices = ();
         # clear @_scan_devices
         @_scan_devices = ();
@@ -99,77 +99,75 @@ sub _get_next_linkscan
 }
 
 
-sub _process_sync_links
+sub sync_all_links
 {
-    my ($current_name, $prior_failure) = @_;
-    if ($prior_failure) {
-       $_sync_failure_cnt++;
-    } else {
-       $_sync_failure_cnt = 0;
-    }
-    my @devices = ();
-    push @devices,@_insteon_link;
-    my $dev_cnt = @devices;
-    my $return_next = ($current_name) ? 0 : 1;
-    my $next_name = undef;
+	my ($audit_mode) = @_;
+        &main::print_log("[Sync all links] Starting now!");
+        @_sync_devices = ();
+	# iterate over all registered objects and compare whether the link tables match defined scene linkages in known Insteon_Links
+	for my $obj (&Insteon::find_members('Insteon::BaseController'))
+	{
+		my %sync_req = ('sync_object' => $obj, 'audit_mode' => ($audit_mode) ? 1 : 0);
+                &main::print_log("[Sync all links] Adding " . $obj->get_object_name . " to sync queue");
+		push @_sync_devices, \%sync_req;
+	}
 
-    if ($current_name) {
-       for (my $i=0; $i<$dev_cnt; $i++) {
-          if ($devices[$i] eq $current_name) {
-             if ($_sync_failure_cnt ==0) {
-                # get the next
-                $next_name = $devices[$i+1] if $i+1 < $dev_cnt;
-                $_sync_cnt = $i + 2;
-                # remove the queue_timer_callback
-                my $current_obj = &main::get_object_by_name($current_name);
-                if (!($current_obj->isa('Insteon_PLM'))) {
-#                   $current_obj->queue_timer_callback('');
-                }
-                 # don't try to scan devices that are not responders
-                my $next_obj = &main::get_object_by_name($next_name);
-                if (ref $next_obj and $next_obj->isa('Insteon::BaseDevice')
-                     and !($next_obj->is_responder) and !($next_obj->isa('Insteon::InterfaceController'))) {
-                   &main::print_log("[Sync all links] $next_name is not a candidate for syncing.  Moving to next");
-                   $current_name = $next_name;
-                   # move on
-                   next;
-                }
-            } elsif ($_sync_cnt == 1) {
-                #try again
-                $next_name = $current_name;
-                &main::print_log("[Sync all links] WARN: failure occurred when syncing $current_name.  Trying again...");
-                $_sync_cnt = $i + 1;
-             } else {
-                # skip because this is a repeat failure
-                $next_name = $devices[$i+1] if $i+1 < $dev_cnt;
-                &main::print_log("[Sync all links] WARN: failure occurred when syncing $current_name.  Moving on...");
-                $_sync_failure_cnt = 0; # reset failure counter
-                $_sync_cnt = $i + 2;
-                # remove the queue_timer_callback
-                my $current_obj = &main::get_object_by_name($current_name);
-                if (!($current_obj->isa('Insteon_PLM'))) {
-#                   $current_obj->queue_timer_callback('');
-                }
-             }
-          }
-       }
-    } elsif ($dev_cnt) {
-       $next_name = $devices[0];
-       $_sync_cnt = 1;
-    }
+        $_sync_cnt = scalar @_sync_devices;
 
-    if ($next_name) {
-       my $obj = &main::get_object_by_name($next_name);
-       if ($obj) {
-          &main::print_log("[Sync all links] Now syncing links: " . $obj->get_object_name . " ($_sync_cnt of $dev_cnt)");
-#          $obj->queue_timer_callback('&main::_process_sync_links(\'' . $next_name . '\',1)') unless $obj->isa('Insteon_PLM');
-          $obj->sync_links('&Insteon::_process_sync_links(\'' . $next_name . '\')');
-       }
-    } else {
-       $_sync_cnt = 0;
-       return undef;
-    }
+        &_get_next_linksync();
 }
+
+sub _get_next_linksync
+{
+   	$current_scan_device = shift @_scan_devices;
+	my $sync_req_ptr = shift(@_sync_devices);
+        my %sync_req = ($sync_req_ptr) ? %$sync_req_ptr : undef;
+        if (%sync_req)
+        {
+
+        	$current_sync_device = $sync_req{'sync_object'};
+        }
+        else
+        {
+        	$current_sync_device = undef;
+        }
+
+	if ($current_sync_device)
+        {
+          	&main::print_log("[Sync all links] Now syncing: "
+                	. $current_sync_device->get_object_name . " ("
+                        . ($_sync_cnt - scalar @_sync_devices)
+                        . " of $_sync_cnt)");
+                # pass first the success callback followed by the failure callback
+          	$current_sync_device->sync_links($sync_req{'audit_mode'}, '&Insteon::_get_next_linksync()','&Insteon::_get_next_linksync_failure()');
+    	}
+        else
+        {
+          	&main::print_log("[Sync all links] All links have completed syncing");
+                my $_sync_failure_cnt = scalar @_sync_device_failures;
+                if ($_sync_failure_cnt)
+                {
+          	  	&main::print_log("[Sync all links] However, some failures were noted:");
+                  	for my $failed_obj (@_sync_device_failures)
+                  	{
+        			&main::print_log("[Sync all links] WARN: failure occurred when syncing "
+                		. $failed_obj->get_object_name);
+                  	}
+                }
+
+    	}
+
+}
+
+sub _get_next_linksync_failure
+{
+        push @_sync_device_failures, $current_sync_device;
+        &main::print_log("[Sync all links] WARN: failure occurred when scanning "
+                	. $current_sync_device->get_object_name . ".  Moving on...");
+        &_get_next_linksync();
+
+}
+
 
 sub init {
 
@@ -253,7 +251,7 @@ sub generate_voice_commands
               $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','scan link table');\n\n";
               $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table()','log links');\n\n";
            }
-           $object_string .= "$object_name_v -> tie_event('$object_name->sync_links()','sync links');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->sync_links(0)','sync links');\n\n";
            $object_string .= "$object_name_v -> tie_items($object_name, 'on');\n\n";
            $object_string .= "$object_name_v -> tie_items($object_name, 'off');\n\n";
            $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_link_commands');
@@ -281,7 +279,7 @@ sub generate_voice_commands
            $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_item_commands');
            push @_insteon_device, $object_name if $group eq '01'; # don't allow non-base items to participate
         } elsif ($object->isa('Insteon_PLM')) {
-           my $cmd_states = "complete linking as responder,cancel linking,delete link with PLM,scan link table,show link table to log,delete orphan links,AUDIT - delete orphan links,scan all device link tables";
+           my $cmd_states = "complete linking as responder,cancel linking,delete link with PLM,scan link table,show link table to log,delete orphan links,AUDIT - delete orphan links,scan all device link tables,AUDIT - sync all links";
            $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->complete_linking_as_responder','complete linking as responder');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->initiate_unlinking_as_controller','initiate unlinking');\n\n";
@@ -291,6 +289,7 @@ sub generate_voice_commands
            $object_string .= "$object_name_v -> tie_event('$object_name->delete_orphan_links','delete orphan links');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->delete_orphan_links(1)','AUDIT - delete orphan links');\n\n";
            $object_string .= "$object_name_v -> tie_event('&Insteon::scan_all_linktables','scan all device link tables');\n\n";
+           $object_string .= "$object_name_v -> tie_event('&Insteon::sync_all_links(1)','AUDIT - sync all links');\n\n";
            $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_PLM_commands');
            push @_insteon_plm, $object_name;
         }
