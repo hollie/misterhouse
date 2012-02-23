@@ -128,7 +128,6 @@ sub new {
     $$self{said}          = undef;
     $$self{state_now}     = undef;
     $$self{state_changed} = undef;
-    $$self{type}          = 'clas';
     return $self;
 }
 
@@ -903,25 +902,14 @@ sub get_authority {
     return $_[0]->{authority};
 }
 
-=item C<set_type()>
-
-TODO
-
-=cut
-
-sub set_type {
-    my ($self, $type) = @_;
-    $$self{type}=$type;
-}
-
 =item C<get_type()>
 
-TODO
+Returns the class (or type, in Misterhouse terminology) of this item.
 
 =cut
 
 sub get_type {
-    return $_[0]->{type};
+    return ref $_[0];
 }
 
 =item C<set_fp_location()>
