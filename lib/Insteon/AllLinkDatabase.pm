@@ -1071,10 +1071,10 @@ sub _process_delete_queue {
 		$self->delete_link(%delete_req);
 		$$self{delete_queue_processed}++;
 	}
-#        else
-#        {
-#		$$self{device}->interface->_aldb->_process_delete_queue($$self{delete_queue_processed});
-#	}
+        else
+        {
+		$$self{device}->interface->_aldb->_process_delete_queue($$self{delete_queue_processed});
+	}
 }
 
 sub add_link
@@ -1757,8 +1757,7 @@ sub delete_orphan_links
 		#Match on real objects only
 		if (($obj->is_root))
 		{
-			$num_deleted += $obj->delete_orphan_links($audit_mode);
-			my %delete_req = ('root_object' => $obj, callback => "$selfname->_aldb->_process_delete_queue()");
+			my %delete_req = ('root_object' => $obj, 'audit_mode' => $audit_mode);
 			push @{$$self{delete_queue}}, \%delete_req;
 		}
 	}
@@ -1774,8 +1773,9 @@ sub _process_delete_queue {
 		my $delete_req_ptr = shift(@{$$self{delete_queue}});
 		my %delete_req = %$delete_req_ptr;
 		# distinguish between deleting PLM links and processing delete orphans for a root item
-		if ($delete_req{'root_object'}) {
-			$delete_req{'root_object'}->delete_orphan_links();
+		if ($delete_req{'root_object'})
+                {
+			$delete_req{'root_object'}->delete_orphan_links($del_req{'audit_mode'});
 		}
                 else
                 {
