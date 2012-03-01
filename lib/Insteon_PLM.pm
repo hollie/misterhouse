@@ -360,15 +360,19 @@ sub _parse_data {
 	my $process_next_command = 1;
 	my $nack_count = 0;
         my $entered_ack_loop;
+        my $previous_parsed_data;
 	if (defined $prev_cmd and $prev_cmd ne '')
 	{
 		my $ackcmd = $prev_cmd . '06';
 		my $nackcmd = $prev_cmd . '15';
 		my $badcmd = $prev_cmd . '0f';
+                $previous_parsed_data = '';
 		foreach my $parsed_data (split(/($ackcmd)|($nackcmd)|($prefix{plm_info}\w{12}06)|($prefix{plm_info}\w{12}15)|($badcmd)/,$data))
 		{
 			#ignore blanks.. the split does odd things
 			next if $parsed_data eq '';
+                        next if $previous_parsed_data eq $parsed_data; # guard against repeats
+                        $previous_parsed_data = $parsed_data; # and, now reinitialize
                         $entered_ack_loop = 1;
 			if ($parsed_data =~ /^($ackcmd)|($nackcmd)|($prefix{plm_info}\w{12}06)|($prefix{plm_info}\w{12}15)|($prefix{all_link_first_rec}15)|($prefix{all_link_next_rec}15)|($badcmd)$/)
                         {
@@ -538,10 +542,14 @@ sub _parse_data {
 
         my $entered_rcv_loop = 0;
 
+        $previous_parsed_data = '';
+
 	foreach my $parsed_data (split(/($prefix{x10_received}\w{4})|($prefix{insteon_received}\w{18})|($prefix{insteon_ext_received}\w{46})|($prefix{all_link_complete}\w{16})|($prefix{all_link_clean_failed}\w{8})|($prefix{all_link_record}\w{16})|($prefix{all_link_clean_status}\w{2})|($prefix{plm_button_event}\w{2})/,$residue_data))
 	{
 		#ignore blanks.. the split does odd things
 		next if $parsed_data eq '';
+                next if $previous_parsed_data eq $parsed_data; # guard against repeats
+                $previous_parsed_data = $parsed_data; # and, now reinitialize
 
                 $entered_rcv_loop = 1;
 
