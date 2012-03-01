@@ -1775,7 +1775,7 @@ sub _process_delete_queue {
 		# distinguish between deleting PLM links and processing delete orphans for a root item
 		if ($delete_req{'root_object'})
                 {
-			$delete_req{'root_object'}->delete_orphan_links($del_req{'audit_mode'});
+			$delete_req{'root_object'}->delete_orphan_links($delete_req{'audit_mode'});
 		}
                 else
                 {
