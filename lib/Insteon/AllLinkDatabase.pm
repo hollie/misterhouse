@@ -672,10 +672,17 @@ sub delete_orphan_links
         # first, make sure that the health of ALDB is ok
         if ($self->health ne 'good')
         {
-        	&::print_log("[Insteon::ALDB_i1] Delete orphan links: skipping $selfname because health: "
-                	. $self->health . ". Please rescan this device!!")
-                	if ($self->health ne 'empty');
+        	if ($$self{device}->isa('Insteon::RemoteLinc') or $$self{device}->isa('Insteon::MotionSensor'))
+                {
+        		&::print_log("[Insteon::ALDB_i1] Delete orphan links: ignoring link from deaf device: $selfname");
 
+                }
+                else
+                {
+        		&::print_log("[Insteon::ALDB_i1] Delete orphan links: skipping $selfname because health: "
+                		. $self->health . ". Please rescan this device!!")
+                       		if ($self->health ne 'empty');
+                }
                 return $num_deleted; # no links deleted
         }
 
