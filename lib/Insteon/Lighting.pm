@@ -5,10 +5,6 @@ use Insteon::BaseInsteon;
 
 @Insteon::BaseLight::ISA = ('Insteon::BaseDevice');
 
-#my %message_types = (
-#	%SUPER::message_types
-#);
-
 sub new
 {
 	my ($class,$p_deviceid,$p_interface) = @_;
@@ -166,10 +162,6 @@ use strict;
 use Insteon::BaseInsteon;
 
 @Insteon::ApplianceLinc::ISA = ('Insteon::BaseLight');
-
-#my %message_types = (
-#	%SUPER::message_types
-#);
 
 sub new
 {
