@@ -666,6 +666,7 @@ sub delete_orphan_links
 {
 	my ($self, $audit_mode) = @_;
 	@{$$self{delete_queue}} = (); # reset the work queue
+	$$self{delete_queue_processed} = 0;
 	my $selfname = $$self{device}->get_object_name;
 	my $num_deleted = 0;
 
@@ -683,7 +684,8 @@ sub delete_orphan_links
                 		. $self->health . ". Please rescan this device!!")
                        		if ($self->health ne 'empty');
                 }
-                return $num_deleted; # no links deleted
+		$self->_process_delete_queue();
+                return;
         }
 
 	for my $linkkey (keys %{$$self{aldb}})
@@ -827,7 +829,7 @@ sub delete_orphan_links
                         {
                         	if ($linked_device->isa('Insteon::RemoteLinc') or $linked_device->isa('Insteon::MotionSensor'))
                                 {
-                                	&::print_log("[Insteon::ALDB_i1] Delete orphan links: ignoring link from 'deaf' device: " . $linked_device->get_object_name);
+                                	&::print_log("[Insteon::ALDB_i1] Delete orphan links: ignoring link from $selfname to 'deaf' device: " . $linked_device->get_object_name);
                                 }
                                 # make sure that the health of the device's ALDB is ok
         			elsif ($linked_device->_aldb->health ne 'good')
@@ -1051,9 +1053,8 @@ sub delete_orphan_links
 			}
 		}
 	}
-	$$self{delete_queue_processed} = 0;
 	$self->_process_delete_queue();
-	return $num_deleted;
+#	return $num_deleted;
 }
 
 sub _process_delete_queue {
@@ -1080,6 +1081,8 @@ sub _process_delete_queue {
 	}
         else
         {
+        	&::print_log("[Insteon::ALDB_i1] Nothing else to do for " . $$self{device}->get_object_name . " after deleting "
+                	. $$self{delete_queue_processed} . " links") if $main::Debug{insteon};
 		$$self{device}->interface->_aldb->_process_delete_queue($$self{delete_queue_processed});
 	}
 }
@@ -1625,6 +1628,9 @@ sub get_next_alllink
 sub delete_orphan_links
 {
 	my ($self, $audit_mode) = @_;
+
+        &::print_log("[Insteon::ALDB_PLM] #### NOW BEGINNING DELETE ORPHAN LINKS ####");
+
 	@{$$self{delete_queue}} = (); # reset the work queue
 	my $selfname = $$self{device}->get_object_name;
 	my $num_deleted = 0;
@@ -1768,6 +1774,7 @@ sub delete_orphan_links
 			push @{$$self{delete_queue}}, \%delete_req;
 		}
 	}
+
 	$self->_process_delete_queue();
 }
 
@@ -1804,6 +1811,7 @@ sub _process_delete_queue {
         else
         {
 		&::print_log("[Insteon::ALDB_PLM] A total of $$self{delete_queue_processed} orphaned link records were deleted.");
+        	&::print_log("[Insteon::ALDB_PLM] #### END DELETE ORPHAN LINKS ####");
 	}
 
 }
