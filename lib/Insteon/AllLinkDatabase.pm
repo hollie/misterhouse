@@ -711,8 +711,12 @@ sub delete_orphan_links
                                 }
                                 else
                                 {
-			       		my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
-							callback => "$selfname->_aldb->_process_delete_queue()", cause => "no device could be found");
+			       		my %delete_req = (deviceid => $deviceid,
+                                        		group => $group,
+                                                        is_controller => $is_controller,
+							callback => "$selfname->_aldb->_process_delete_queue()",
+                                                        data3 => $data3,
+                                                        cause => "no device could be found");
 			       		push @{$$self{delete_queue}}, \%delete_req;
                                 }
 			}
@@ -738,9 +742,13 @@ sub delete_orphan_links
                                         }
                                         else
                                         {
-				       		my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
-							callback => "$selfname->_aldb->_process_delete_queue()", object => $linked_device, data3 => $data3,
-                                                        cause => 'PLM does not have a link pointing back to device');
+				       		my %delete_req = (deviceid => $deviceid,
+                                                		group => $group,
+                                                                is_controller => $is_controller,
+								callback => "$selfname->_aldb->_process_delete_queue()",
+                                                                object => $linked_device,
+                                                                data3 => $data3,
+                                                        	cause => 'PLM does not have a link pointing back to device');
 						push @{$$self{delete_queue}}, \%delete_req;
 						$num_deleted++;
                                         }
@@ -928,9 +936,13 @@ sub delete_orphan_links
                                         				. $linked_device->get_object_name .  "(" . (($data3 eq '00') ? '01' : $data3) . ")"
                                                                 	. " because no reciprocal link exists!"
 							       		);
-					       				my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
-										callback => "$selfname->_process_delete_queue()", object => $linked_device,
-										cause => "no link to the device could be found", data3 => $data3);
+					       				my %delete_req = (deviceid => $deviceid,
+                                                                        		group => $group,
+                                                                                        is_controller => $is_controller,
+											callback => "$selfname->_process_delete_queue()",
+                                                                                        object => $linked_device,
+											cause => "no link to the device could be found",
+                                                                                        data3 => $data3);
 					       				push @{$$self{delete_queue}}, \%delete_req;
 									$num_deleted++;
                                                                 }
@@ -950,15 +962,19 @@ sub delete_orphan_links
                                                                 }
                                                                 else
                                                                 {
-                                                			&::print_log("[Insteon::ALDB_i1] (AUDIT) Deleting link defined for: "
+                                                			&::print_log("[Insteon::ALDB_i1] Deleting link defined for: "
                                         				. $$self{device}->get_object_name
                                                 			. "(" . (($data3 eq '00') ? '01' : $data3) . ") as responder and "
                                         				. $linked_device->get_object_name . "($group)"
                                                                 	. " because no reverse links exists!"
 									);
-					       				my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
-										callback => "$selfname->_process_delete_queue()", object => $linked_device,
-										cause => "no link to the device could be found", data3 => $data3);
+					       				my %delete_req = (deviceid => $deviceid,
+                                                                        		group => $group,
+                                                                                        is_controller => $is_controller,
+											callback => "$selfname->_process_delete_queue()",
+                                                                                        object => $linked_device,
+											cause => "no link to the device could be found",
+                                                                                        data3 => $data3);
 					       				push @{$$self{delete_queue}}, \%delete_req;
 									$num_deleted++;
                                                                 }
@@ -1019,9 +1035,13 @@ sub delete_orphan_links
                                                 	}
                                                 	else
                                                 	{
-					       			my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
-								callback => "$selfname->_aldb->_process_delete_queue()", object => $linked_device,
-						       		cause => "no reverse link could be found", data3 => $data3);
+					       			my %delete_req = (deviceid => $deviceid,
+                                                                		group => $group,
+                                                                                is_controller => $is_controller,
+										callback => "$selfname->_aldb->_process_delete_queue()",
+                                                                                object => $linked_device,
+						       				cause => "no reverse link could be found",
+                                                                                data3 => $data3);
 						       		push @{$$self{delete_queue}}, \%delete_req;
 						       		$num_deleted++;
                                                 	}
@@ -1032,29 +1052,30 @@ sub delete_orphan_links
 		}
                 elsif ($linkkey eq 'duplicates')
                 {
-			my $address = pop @{$$self{aldb}{duplicates}};
+                	my @duplicate_addresses = ();
+                        push @duplicate_addresses, @{$$self{aldb}{duplicates}};
+			my $address = pop @duplicate_addresses;
 			while ($address)
                         {
                         	if ($audit_mode)
                                 {
 					&::print_log("[Insteon::ALDB_i1] (AUDIT) Delete orphan because duplicate found "
-                                        	. $$self{device}->get_object_name
-						. " address=$address");
+                                        	. "$selfname, address=$address");
                                 }
                                 else
                                 {
 			       		my %delete_req = (address => $address,
-						callback => "$selfname->_aldb->_process_delete_queue()",
-						cause => "duplicate record found");
+							callback => "$selfname->_aldb->_process_delete_queue()",
+							cause => "duplicate record found");
 					push @{$$self{delete_queue}}, \%delete_req;
 					$num_deleted++;
                                 }
-				$address = pop @{$$self{aldb}{duplicates}};
+				$address = pop @duplicate_addresses;
 			}
 		}
 	}
 	$self->_process_delete_queue();
-#	return $num_deleted;
+        &::print_log("[Insteon::ALDB_i1] ## Begin processing delete queue for: $selfname");
 }
 
 sub _process_delete_queue {
@@ -1066,12 +1087,12 @@ sub _process_delete_queue {
 		my %delete_req = %$delete_req_ptr;
 		if ($delete_req{address})
                 {
-			&::print_log("[Insteon::ALDB_i1] " . $$self{device}->get_object_name . " now deleting duplicate record at address "
+			&::print_log("[Insteon::ALDB_i1] (#$num_in_queue) " . $$self{device}->get_object_name . " now deleting duplicate record at address "
 				. $delete_req{address});
 		}
                 else
                 {
-			&::print_log("[Insteon::ALDB_i1] " . $$self{device}->get_object_name . " now deleting orphaned link w/ details: "
+			&::print_log("[Insteon::ALDB_i1] (#$num_in_queue) " . $$self{device}->get_object_name . " now deleting orphaned link w/ details: "
 				. (($delete_req{is_controller}) ? "controller" : "responder")
 				. ", " . (($delete_req{object}) ? "device=" . $delete_req{object}->get_object_name
 				: "deviceid=$delete_req{deviceid}") . ", group=$delete_req{group}, cause=$delete_req{cause}");
