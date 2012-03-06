@@ -177,69 +177,82 @@ sub _on_poke
 {
 	my ($self,%msg) = @_;
         my $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'peek');
-	if (($$self{_mem_activity} eq 'update') or ($$self{_mem_activity} eq 'add')) {
-		if ($$self{_mem_action} eq 'aldb_flag') {
+	if (($$self{_mem_activity} eq 'update') or ($$self{_mem_activity} eq 'add'))
+        {
+		if ($$self{_mem_action} eq 'aldb_flag')
+                {
 			$$self{_mem_action} = 'aldb_group';
 			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
                         $message->extra($$self{_mem_lsb});
                         $message->failure_callback($$self{_failure_callback});
 			$self->_send_cmd($message);
-#			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
-		} elsif ($$self{_mem_action} eq 'aldb_group') {
+		}
+                elsif ($$self{_mem_action} eq 'aldb_group')
+                {
 			$$self{_mem_action} = 'aldb_devhi';
 			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
                         $message->extra($$self{_mem_lsb});
                         $message->failure_callback($$self{_failure_callback});
 			$self->_send_cmd($message);
-#			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
-		} elsif ($$self{_mem_action} eq 'aldb_devhi') {
+		}
+                elsif ($$self{_mem_action} eq 'aldb_devhi')
+                {
 			$$self{_mem_action} = 'aldb_devmid';
 			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
                         $message->extra($$self{_mem_lsb});
                         $message->failure_callback($$self{_failure_callback});
 			$self->_send_cmd($message);
-#			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
-		} elsif ($$self{_mem_action} eq 'aldb_devmid') {
+		}
+                elsif ($$self{_mem_action} eq 'aldb_devmid')
+                {
 			$$self{_mem_action} = 'aldb_devlo';
 			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
                         $message->extra($$self{_mem_lsb});
                         $message->failure_callback($$self{_failure_callback});
 			$self->_send_cmd($message);
-#			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
-		} elsif ($$self{_mem_action} eq 'aldb_devlo') {
+		}
+                elsif ($$self{_mem_action} eq 'aldb_devlo')
+                {
 			$$self{_mem_action} = 'aldb_data1';
 			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
                         $message->extra($$self{_mem_lsb});
                         $message->failure_callback($$self{_failure_callback});
 			$self->_send_cmd($message);
-#			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
-		} elsif ($$self{_mem_action} eq 'aldb_data1') {
+		}
+                elsif ($$self{_mem_action} eq 'aldb_data1')
+                {
 			$$self{_mem_action} = 'aldb_data2';
 			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
                         $message->extra($$self{_mem_lsb});
                         $message->failure_callback($$self{_failure_callback});
 			$self->_send_cmd($message);
-#			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
-		} elsif ($$self{_mem_action} eq 'aldb_data2') {
+		}
+                elsif ($$self{_mem_action} eq 'aldb_data2')
+                {
 			$$self{_mem_action} = 'aldb_data3';
 			$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
                         $message->extra($$self{_mem_lsb});
                         $message->failure_callback($$self{_failure_callback});
 			$self->_send_cmd($message);
-#			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
-		} elsif ($$self{_mem_action} eq 'aldb_data3') {
+		}
+                elsif ($$self{_mem_action} eq 'aldb_data3')
+                {
 			## update the aldb records w/ the changes that were made
-			my $aldbkey = $$self{pending_aldb}{deviceid} . $$self{pending_aldb}{group} . $$self{pending_aldb}{is_controller};
+			my $aldbkey = $$self{pending_aldb}{deviceid}
+                        		. $$self{pending_aldb}{group}
+                                        . $$self{pending_aldb}{is_controller};
 			# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
 			my $subaddress = $$self{pending_aldb}{data3};
-			if (($subaddress ne '00') and ($subaddress ne '01')) {
+			if (($subaddress ne '00') and ($subaddress ne '01'))
+                        {
 				$aldbkey .= $subaddress;
 			}
 			$$self{aldb}{$aldbkey}{data1} = $$self{pending_aldb}{data1};
 			$$self{aldb}{$aldbkey}{data2} = $$self{pending_aldb}{data2};
 			$$self{aldb}{$aldbkey}{data3} = $$self{pending_aldb}{data3};
 			$$self{aldb}{$aldbkey}{inuse} = 1; # needed so that restore string will preserve record
-			if ($$self{_mem_activity} eq 'add') {
+			if ($$self{_mem_activity} eq 'add')
+                        {
 				$$self{aldb}{$aldbkey}{is_controller} = $$self{pending_aldb}{is_controller};
 				$$self{aldb}{$aldbkey}{deviceid} = lc $$self{pending_aldb}{deviceid};
 				$$self{aldb}{$aldbkey}{group} = lc $$self{pending_aldb}{group};
@@ -247,15 +260,20 @@ sub _on_poke
 				# on completion, check to see if the empty links list is now empty; if so,
 				# then decrement the current address and add it to the list
 				my $num_empty = @{$$self{aldb}{empty}};
-				if (!($num_empty)) {
+				if (!($num_empty))
+                                {
 					my $low_address = 0;
-					for my $key (keys %{$$self{aldb}}) {
+					for my $key (keys %{$$self{aldb}})
+                                        {
 						next if $key eq 'empty' or $key eq 'duplicates';
 						my $new_address = hex($$self{aldb}{$key}{address});
-						if (!($low_address)) {
+						if (!($low_address))
+                                                {
 							$low_address = $new_address;
 							next;
-						} else {
+						}
+                                                else
+                                                {
 							$low_address = $new_address if $new_address < $low_address;
 						}
 					}
@@ -265,7 +283,8 @@ sub _on_poke
 			}
 			# clear out mem_activity flag
 			$$self{_mem_activity} = undef;
-			if (defined $$self{_success_callback}) {
+			if (defined $$self{_success_callback})
+                        {
 				my $callback = $$self{_success_callback};
 				# clear it out *before* the eval
 				$$self{_success_callback} = undef;
@@ -276,44 +295,56 @@ sub _on_poke
 					if $@ and $main::Debug{insteon};
 			}
 		}
-	} elsif ($$self{_mem_activity} eq 'update_local') {
-		if ($$self{_mem_action} eq 'local_onlevel') {
+	}
+        elsif ($$self{_mem_activity} eq 'update_local')
+        {
+		if ($$self{_mem_action} eq 'local_onlevel')
+                {
 			$$self{_mem_lsb} = '21';
 			$$self{_mem_action} = 'local_ramprate';
                         $message->extra($$self{_mem_lsb});
                         $message->failure_callback($$self{_failure_callback});
 			$self->_send_cmd($message);
-#			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
-		} elsif ($$self{_mem_action} eq 'local_ramprate') {
-			if ($$self{device}->isa('Insteon::KeyPadLincRelay') or $$self{device}->isa('Insteon::KeyPadLinc')) {
+		}
+                elsif ($$self{_mem_action} eq 'local_ramprate')
+                {
+			if ($$self{device}->isa('Insteon::KeyPadLincRelay') or $$self{device}->isa('Insteon::KeyPadLinc'))
+                        {
 				# update from eeprom--only a kpl issue
 				$message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'do_read_ee');
                                 $self->_send_cmd($message);
-#				$self->_send_cmd('command' => 'do_read_ee','is_synchronous' => 1);
 			}
 		}
-	} elsif ($$self{_mem_activity} eq 'update_flags') {
+	}
+        elsif ($$self{_mem_activity} eq 'update_flags')
+        {
 		# update from eeprom--only a kpl issue
 		$message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'do_read_ee');
                 $message->failure_callback($$self{_failure_callback});
                 $self->_send_cmd($message);
-#		$self->_send_cmd('command' => 'do_read_ee','is_synchronous' => 1);
-	} elsif ($$self{_mem_activity} eq 'delete') {
+	}
+        elsif ($$self{_mem_activity} eq 'delete')
+        {
 		# clear out mem_activity flag
 		$$self{_mem_activity} = undef;
 		# add the address of the deleted link to the empty list
 		push @{$$self{aldb}{empty}}, $$self{pending_aldb}{address};
-		if (exists $$self{pending_aldb}{deviceid}) {
-			my $key = lc $$self{pending_aldb}{deviceid} . $$self{pending_aldb}{group} . $$self{pending_aldb}{is_controller};
+		if (exists $$self{pending_aldb}{deviceid})
+                {
+			my $key = lc $$self{pending_aldb}{deviceid}
+                        		. $$self{pending_aldb}{group}
+                                        . $$self{pending_aldb}{is_controller};
 			# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
 			my $subaddress = $$self{pending_aldb}{data3};
-			if ($subaddress ne '00' and $subaddress ne '01') {
+			if ($subaddress ne '00' and $subaddress ne '01')
+                        {
 				$key .= $subaddress;
 			}
 			delete $$self{aldb}{$key};
 		}
 
-		if (defined $$self{_success_callback}) {
+		if (defined $$self{_success_callback})
+                {
 			my $callback = $$self{_success_callback};
 			# clear it out *before* the eval
 			$$self{_success_callback} = undef;
@@ -322,10 +353,8 @@ sub _on_poke
 			&::print_log("[Insteon::ALDB_i1] error in link callback: " . $@)
 				if $@ and $main::Debug{insteon};
 			package Insteon::ALDB_i1;
-			$$self{_success_callback} = undef;
 		}
 	}
-#
 }
 
 sub _on_peek
@@ -335,13 +364,18 @@ sub _on_peek
 	if ($msg{is_extended}) {
 		&::print_log("[Insteon::ALDB_i1]: extended peek for " . $$self{device}->{object_name}
 		. " is " . $msg{extra}) if $main::Debug{insteon};
-	} else {
-		if ($$self{_mem_action} eq 'aldb_peek') {
-			if ($$self{_mem_activity} eq 'scan') {
+	}
+        else
+        {
+		if ($$self{_mem_action} eq 'aldb_peek')
+                {
+			if ($$self{_mem_activity} eq 'scan')
+                        {
 				$$self{_mem_action} = 'aldb_flag';
 				# if the device is responding to the peek, then init the link table
 				#   if at the very start of a scan
-				if (lc $$self{_mem_msb} eq '0f' and lc $$self{_mem_lsb} eq 'f8') {
+				if (lc $$self{_mem_msb} eq '0f' and lc $$self{_mem_lsb} eq 'f8')
+                                {
 					# reinit the aldb hash as there will be a new one
 					$$self{aldb} = undef;
 					# reinit the empty address list
@@ -349,34 +383,48 @@ sub _on_peek
 					# and, also the duplicates list
 					@{$$self{aldb}{duplicates}} = ();
 				}
-			} elsif ($$self{_mem_activity} eq 'update') {
+			}
+                        elsif ($$self{_mem_activity} eq 'update')
+                        {
 				$$self{_mem_action} = 'aldb_data1';
-			} elsif ($$self{_mem_activity} eq 'update_local') {
+			}
+                        elsif ($$self{_mem_activity} eq 'update_local')
+                        {
 				$$self{_mem_action} = 'local_onlevel';
-			} elsif ($$self{_mem_activity} eq 'update_flags') {
+			}
+                        elsif ($$self{_mem_activity} eq 'update_flags')
+                        {
 				$$self{_mem_action} = 'update_flags';
-			} elsif ($$self{_mem_activity} eq 'delete') {
+			}
+                        elsif ($$self{_mem_activity} eq 'delete')
+                        {
 				$$self{_mem_action} = 'aldb_flag';
-			} elsif ($$self{_mem_activity} eq 'add') {
+			}
+                        elsif ($$self{_mem_activity} eq 'add')
+                        {
 				$$self{_mem_action} = 'aldb_flag';
 			}
                        	$message->extra($$self{_mem_lsb});
                         $message->failure_callback($$self{_failure_callback});
                        	$self->_send_cmd($message);
-#			$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
-		} elsif ($$self{_mem_action} eq 'aldb_flag') {
-			if ($$self{_mem_activity} eq 'scan') {
+		}
+                elsif ($$self{_mem_action} eq 'aldb_flag')
+                {
+			if ($$self{_mem_activity} eq 'scan')
+                        {
 				my $flag = hex($msg{extra});
 				$$self{pending_aldb}{inuse} = ($flag & 0x80) ? 1 : 0;
 				$$self{pending_aldb}{is_controller} = ($flag & 0x40) ? 1 : 0;
 				$$self{pending_aldb}{highwater} = ($flag & 0x02) ? 1 : 0;
-				if (!($$self{pending_aldb}{highwater})) {
+				if (!($$self{pending_aldb}{highwater}))
+                                {
 					# since this is the last unused memory location, then add it to the empty list
 					unshift @{$$self{aldb}{empty}}, $$self{_mem_msb} . $$self{_mem_lsb};
 					$$self{_mem_action} = undef;
 					# clear out mem_activity flag
 					$$self{_mem_activity} = undef;
-                                   	if (lc $$self{_mem_msb} eq '0f' and lc $$self{_mem_lsb} eq 'f8') {
+                                   	if (lc $$self{_mem_msb} eq '0f' and lc $$self{_mem_lsb} eq 'f8')
+                                        {
                                         	# set health as empty for now
                                         	$self->health("empty");
 					}
@@ -387,19 +435,20 @@ sub _on_peek
 
 					&::print_log("[Insteon::ALDB_i1] " . $$self{device}->get_object_name . " completed link memory scan")
 						if $main::Debug{insteon};
-					if (defined $$self{_success_callback}) {
+					if (defined $$self{_success_callback})
+                                        {
+						my $callback = $$self{_success_callback};
+						# clear it out *before* the eval
+						$$self{_success_callback} = undef;
 						package main;
-						eval ($$self{_success_callback});
+						eval ($callback);
 						&::print_log("[Insteon::ALDB_i1] " . $$self{device}->get_object_name . ": error during scan callback $@")
 							if $@ and $main::Debug{insteon};
 						package Insteon::ALDB_i1;
-						$$self{_success_callback} = undef;
 					}
-					# ping the device as part of the scan if we don't already have a devcat
-			      #		if (!($self->{devcat})) {
-				#		$self->ping();
-				 #	}
-				} else {
+				}
+                                else
+                                {
 					$$self{pending_aldb}{flag} = $msg{extra};
 					## confirm that we have a high-water mark; otherwise stop
 					$$self{pending_aldb}{address} = $$self{_mem_msb} . $$self{_mem_lsb};
@@ -408,148 +457,176 @@ sub _on_peek
                                 	$message->extra($$self{_mem_lsb});
                         		$message->failure_callback($$self{_failure_callback});
                                 	$self->_send_cmd($message);
-#					$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
 				}
-			} elsif ($$self{_mem_activity} eq 'add') {
+			}
+                        elsif ($$self{_mem_activity} eq 'add')
+                        {
 				my $flag = ($$self{pending_aldb}{is_controller}) ? 'E2' : 'A2';
 				$$self{pending_aldb}{flag} = $flag;
                                 $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'poke');
                                 $message->extra($flag);
                         	$message->failure_callback($$self{_failure_callback});
                                 $self->_send_cmd($message);
-#				$self->_send_cmd('command' => 'poke', 'extra' => $flag, 'is_synchronous' => 1);
-			} elsif ($$self{_mem_activity} eq 'delete') {
+			}
+                        elsif ($$self{_mem_activity} eq 'delete')
+                        {
                                 $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'poke');
                                 $message->extra('02');
                         	$message->failure_callback($$self{_failure_callback});
                                 $self->_send_cmd($message);
-#				$self->_send_cmd('command' => 'poke', 'extra' => '02', 'is_synchronous' => 1);
 			}
-		} elsif ($$self{_mem_action} eq 'aldb_group') {
-			if ($$self{_mem_activity} eq 'scan') {
+		}
+                elsif ($$self{_mem_action} eq 'aldb_group')
+                {
+			if ($$self{_mem_activity} eq 'scan')
+                        {
 				$$self{pending_aldb}{group} = lc $msg{extra};
 				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
 				$$self{_mem_action} = 'aldb_devhi';
                                	$message->extra($$self{_mem_lsb});
                         	$message->failure_callback($$self{_failure_callback});
                                	$self->_send_cmd($message);
-#				$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb},
-#						'is_synchronous' => 1);
-			} else {
+			}
+                        else
+                        {
                                 $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'poke');
                                 $message->extra($$self{pending_aldb}{group});
                         	$message->failure_callback($$self{_failure_callback});
                                 $self->_send_cmd($message);
-#				$self->_send_cmd('command' => 'poke', 'extra' => $$self{pending_aldb}{group},
-#						'is_synchronous' => 1);
 			}
-		} elsif ($$self{_mem_action} eq 'aldb_devhi') {
-			if ($$self{_mem_activity} eq 'scan') {
+		}
+                elsif ($$self{_mem_action} eq 'aldb_devhi')
+                {
+			if ($$self{_mem_activity} eq 'scan')
+                        {
 				$$self{pending_aldb}{deviceid} = lc $msg{extra};
 				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
 				$$self{_mem_action} = 'aldb_devmid';
                                	$message->extra($$self{_mem_lsb});
                         	$message->failure_callback($$self{_failure_callback});
                                	$self->_send_cmd($message);
-#				$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
-			} elsif ($$self{_mem_activity} eq 'add') {
+			}
+                        elsif ($$self{_mem_activity} eq 'add')
+                        {
 				my $devid = substr($$self{pending_aldb}{deviceid},0,2);
                                 $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'poke');
                                 $message->extra($devid);
                         	$message->failure_callback($$self{_failure_callback});
                                 $self->_send_cmd($message);
-#				$self->_send_cmd('command' => 'poke', 'extra' => $devid, 'is_synchronous' => 1);
 			}
-		} elsif ($$self{_mem_action} eq 'aldb_devmid') {
-			if ($$self{_mem_activity} eq 'scan') {
+		}
+                elsif ($$self{_mem_action} eq 'aldb_devmid')
+                {
+			if ($$self{_mem_activity} eq 'scan')
+                        {
 				$$self{pending_aldb}{deviceid} .= lc $msg{extra};
 				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
 				$$self{_mem_action} = 'aldb_devlo';
                                	$message->extra($$self{_mem_lsb});
                         	$message->failure_callback($$self{_failure_callback});
                                	$self->_send_cmd($message);
-#				$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
-			} elsif ($$self{_mem_activity} eq 'add') {
+			}
+                        elsif ($$self{_mem_activity} eq 'add')
+                        {
 				my $devid = substr($$self{pending_aldb}{deviceid},2,2);
                                 $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'poke');
                                 $message->extra($devid);
                         	$message->failure_callback($$self{_failure_callback});
                                 $self->_send_cmd($message);
-#				$self->_send_cmd('command' => 'poke', 'extra' => $devid, 'is_synchronous' => 1);
 			}
-		} elsif ($$self{_mem_action} eq 'aldb_devlo') {
-			if ($$self{_mem_activity} eq 'scan') {
+		}
+                elsif ($$self{_mem_action} eq 'aldb_devlo')
+                {
+			if ($$self{_mem_activity} eq 'scan')
+                        {
 				$$self{pending_aldb}{deviceid} .= lc $msg{extra};
 				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
 				$$self{_mem_action} = 'aldb_data1';
                                	$message->extra($$self{_mem_lsb});
                         	$message->failure_callback($$self{_failure_callback});
                                	$self->_send_cmd($message);
-#				$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
-			} elsif ($$self{_mem_activity} eq 'add') {
+			}
+                        elsif ($$self{_mem_activity} eq 'add')
+                        {
 				my $devid = substr($$self{pending_aldb}{deviceid},4,2);
                                 $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'poke');
                                 $message->extra($devid);
                         	$message->failure_callback($$self{_failure_callback});
                                 $self->_send_cmd($message);
-#				$self->_send_cmd('command' => 'poke', 'extra' => $devid, 'is_synchronous' => 1);
 			}
-		} elsif ($$self{_mem_action} eq 'aldb_data1') {
-			if ($$self{_mem_activity} eq 'scan') {
+		}
+                elsif ($$self{_mem_action} eq 'aldb_data1')
+                {
+			if ($$self{_mem_activity} eq 'scan')
+                        {
 				$$self{_mem_action} = 'aldb_data2';
 				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
 				$$self{pending_aldb}{data1} = $msg{extra};
                                	$message->extra($$self{_mem_lsb});
                         	$message->failure_callback($$self{_failure_callback});
                                	$self->_send_cmd($message);
-#				$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
-			} elsif ($$self{_mem_activity} eq 'update' or $$self{_mem_activity} eq 'add') {
+			}
+                        elsif ($$self{_mem_activity} eq 'update' or $$self{_mem_activity} eq 'add')
+                        {
 				# poke the new value
                                 $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'poke');
                                 $message->extra($$self{pending_aldb}{data1});
                         	$message->failure_callback($$self{_failure_callback});
                                 $self->_send_cmd($message);
-#				$self->_send_cmd('command' => 'poke', 'extra' => $$self{pending_aldb}{data1}, 'is_synchronous' => 1);
 			}
-		} elsif ($$self{_mem_action} eq 'aldb_data2') {
-			if ($$self{_mem_activity} eq 'scan') {
+		}
+                elsif ($$self{_mem_action} eq 'aldb_data2')
+                {
+			if ($$self{_mem_activity} eq 'scan')
+                        {
 				$$self{pending_aldb}{data2} = $msg{extra};
 				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
 				$$self{_mem_action} = 'aldb_data3';
                                	$message->extra($$self{_mem_lsb});
                         	$message->failure_callback($$self{_failure_callback});
                                	$self->_send_cmd($message);
-#				$self->_send_cmd('command' => 'peek', 'extra' => $$self{_mem_lsb}, 'is_synchronous' => 1);
-			} elsif ($$self{_mem_activity} eq 'update' or $$self{_mem_activity} eq 'add') {
+			}
+                        elsif ($$self{_mem_activity} eq 'update' or $$self{_mem_activity} eq 'add')
+                        {
 				# poke the new value
                                 $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'poke');
                                 $message->extra($$self{pending_aldb}{data2});
                         	$message->failure_callback($$self{_failure_callback});
                                 $self->_send_cmd($message);
-#				$self->_send_cmd('command' => 'poke', 'extra' => $$self{pending_aldb}{data2}, 'is_synchronous' => 1);
 			}
-		} elsif ($$self{_mem_action} eq 'aldb_data3') {
-			if ($$self{_mem_activity} eq 'scan') {
+		}
+                elsif ($$self{_mem_action} eq 'aldb_data3')
+                {
+			if ($$self{_mem_activity} eq 'scan')
+                        {
 				$$self{pending_aldb}{data3} = $msg{extra};
 				# check the previous record if highwater is set
-				if ($$self{pending_aldb}{highwater}) {
-					if ($$self{pending_aldb}{inuse}) {
+				if ($$self{pending_aldb}{highwater})
+                                {
+					if ($$self{pending_aldb}{inuse})
+                                        {
 					# save pending_aldb and then clear it out
 						my $aldbkey = lc $$self{pending_aldb}{deviceid}
 							. $$self{pending_aldb}{group}
 							. $$self{pending_aldb}{is_controller};
 						# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
 						my $subaddress = $$self{pending_aldb}{data3};
-						if ($subaddress ne '00' and $subaddress ne '01') {
+						if ($subaddress ne '00' and $subaddress ne '01')
+                                                {
 							$aldbkey .= $subaddress;
 						}
 						# check for duplicates
-						if (exists $$self{aldb}{$aldbkey} && $$self{aldb}{$aldbkey}{inuse}) {
+						if (exists $$self{aldb}{$aldbkey} && $$self{aldb}{$aldbkey}{inuse})
+                                                {
 							unshift @{$$self{aldb}{duplicates}}, $$self{pending_aldb}{address};
-						} else {
+						}
+                                                else
+                                                {
 							%{$$self{aldb}{$aldbkey}} = %{$$self{pending_aldb}};
 						}
-					} else {
+					}
+                                        else
+                                        {
 						# TO-DO: record the locations of deleted aldb records for subsequent reuse
 						unshift @{$$self{aldb}{empty}}, $$self{pending_aldb}{address};
 					}
@@ -557,37 +634,41 @@ sub _on_peek
 					$$self{pending_aldb} = undef;
 					$self->_peek($newaddress);
 				}
-			} elsif ($$self{_mem_activity} eq 'update' or $$self{_mem_activity} eq 'add') {
+			}
+                        elsif ($$self{_mem_activity} eq 'update' or $$self{_mem_activity} eq 'add')
+                        {
 				# poke the new value
                                 $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'poke');
                                 $message->extra($$self{pending_aldb}{data3});
                         	$message->failure_callback($$self{_failure_callback});
                                 $self->_send_cmd($message);
-#				$self->_send_cmd('command' => 'poke', 'extra' => $$self{pending_aldb}{data3}, 'is_synchronous' => 1);
 			}
-		} elsif ($$self{_mem_action} eq 'local_onlevel') {
+		}
+                elsif ($$self{_mem_action} eq 'local_onlevel')
+                {
 			my $on_level = $self->local_onlevel;
 			$on_level = &Insteon::DimmableLight::convert_level($on_level);
                         $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'poke');
                         $message->extra($on_level);
                         $message->failure_callback($$self{_failure_callback});
                         $self->_send_cmd($message);
-#			$self->_send_cmd('command' => 'poke', 'extra' => $on_level, 'is_synchronous' => 1);
-		} elsif ($$self{_mem_action} eq 'local_ramprate') {
+		}
+                elsif ($$self{_mem_action} eq 'local_ramprate')
+                {
 			my $ramp_rate = $$self{_ramprate};
 			$ramp_rate = '1f' unless $ramp_rate;
                         $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'poke');
                         $message->extra($ramp_rate);
                         $message->failure_callback($$self{_failure_callback});
                         $self->_send_cmd($message);
-#			$self->_send_cmd('command' => 'poke', 'extra' => $ramp_rate, 'is_synchronous' => 1);
-		} elsif ($$self{_mem_action} eq 'update_flags') {
+		}
+                elsif ($$self{_mem_action} eq 'update_flags')
+                {
 			my $flags = $$self{_operating_flags};
                         $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'poke');
                         $message->extra($flags);
                         $message->failure_callback($$self{_failure_callback});
                         $self->_send_cmd($message);
-#			$self->_send_cmd('command' => 'poke', 'extra' => $flags, 'is_synchronous' => 1);
 		}
 #
 #			&::print_log("AllLinkDataBase: peek for " . $self->{object_name}
@@ -611,20 +692,27 @@ sub delete_link
 {
 	my ($self, $parms_text) = @_;
 	my %link_parms;
-	if (@_ > 2) {
+	if (@_ > 2)
+        {
 		shift @_;
 		%link_parms = @_;
-	} else {
+	}
+        else
+        {
 		%link_parms = &main::parse_func_parms($parms_text);
 	}
 	$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
 	$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
-	if ($link_parms{address}) {
+	if ($link_parms{address})
+        {
+	   	&main::print_log("[Insteon::ALDB_i1] Now deleting link [0x$link_parms{address}]");
 		$$self{_mem_activity} = 'delete';
 		$$self{pending_aldb}{address} = $link_parms{address};
 		$self->_peek($link_parms{address},0);
 
-	} else {
+	}
+        else
+        {
 		my $insteon_object = $link_parms{object};
 		my $deviceid = ($insteon_object) ? $insteon_object->device_id : $link_parms{deviceid};
 		my $groupid = $link_parms{group};
@@ -634,11 +722,13 @@ sub delete_link
 		# get the address via lookup into the hash
 		my $key = lc $deviceid . $groupid . $is_controller;
 		# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
-		if ($subaddress ne '00' and $subaddress ne '01') {
+		if ($subaddress ne '00' and $subaddress ne '01')
+                {
 			$key .= $subaddress;
 		}
 		my $address = $$self{aldb}{$key}{address};
-		if ($address) {
+		if ($address)
+                {
 			&main::print_log("[Insteon::ALDB_i1] Now deleting link [0x$address] with the following data"
 				. " deviceid=$deviceid, groupid=$groupid, is_controller=$is_controller");
 			# now, alter the flags byte such that the in_use flag is set to 0
@@ -648,10 +738,13 @@ sub delete_link
 			$$self{pending_aldb}{is_controller} = $is_controller;
 			$$self{pending_aldb}{address} = $address;
 			$self->_peek($address,0);
-		} else {
+		}
+                else
+                {
 			&main::print_log('[Insteon::ALDB_i1] WARN: (' . $$self{device}->get_object_name . ') attempt to delete link that does not exist!'
 				. " deviceid=$deviceid, groupid=$groupid, is_controller=$is_controller");
-			if ($link_parms{callback}) {
+			if ($link_parms{callback})
+                        {
 				package main;
 				eval($link_parms{callback});
 				&::print_log("[Insteon::ALDB_i1] error encountered during delete_link callback: " . $@)
@@ -1074,8 +1167,11 @@ sub delete_orphan_links
 			}
 		}
 	}
+        if (!($audit_mode))
+        {
+        	&::print_log("[Insteon::ALDB_i1] ## Begin processing delete queue for: $selfname");
+        }
 	$self->_process_delete_queue();
-        &::print_log("[Insteon::ALDB_i1] ## Begin processing delete queue for: $selfname");
 }
 
 sub _process_delete_queue {
