@@ -257,29 +257,6 @@ sub _on_poke
 				$$self{aldb}{$aldbkey}{deviceid} = lc $$self{pending_aldb}{deviceid};
 				$$self{aldb}{$aldbkey}{group} = lc $$self{pending_aldb}{group};
 				$$self{aldb}{$aldbkey}{address} = $$self{pending_aldb}{address};
-				# on completion, check to see if the empty links list is now empty; if so,
-				# then decrement the current address and add it to the list
-				my $num_empty = @{$$self{aldb}{empty}};
-				if (!($num_empty))
-                                {
-					my $low_address = 0;
-					for my $key (keys %{$$self{aldb}})
-                                        {
-						next if $key eq 'empty' or $key eq 'duplicates';
-						my $new_address = hex($$self{aldb}{$key}{address});
-						if (!($low_address))
-                                                {
-							$low_address = $new_address;
-							next;
-						}
-                                                else
-                                                {
-							$low_address = $new_address if $new_address < $low_address;
-						}
-					}
-					$low_address = sprintf('%04X', $low_address - 8);
-					unshift @{$$self{aldb}{empty}}, $low_address;
-				}
 			}
 			# clear out mem_activity flag
 			$$self{_mem_activity} = undef;
@@ -328,7 +305,9 @@ sub _on_poke
 		# clear out mem_activity flag
 		$$self{_mem_activity} = undef;
 		# add the address of the deleted link to the empty list
-		push @{$$self{aldb}{empty}}, $$self{pending_aldb}{address};
+		$self->add_empty_address($$self{pending_aldb}{address});
+                # and, remove from the duplicates list (if it is a member)
+                $self->delete_duplicate_link_address($$self{pending_aldb}{address});
 		if (exists $$self{pending_aldb}{deviceid})
                 {
 			my $key = lc $$self{pending_aldb}{deviceid}
@@ -412,6 +391,9 @@ sub _on_peek
                 {
 			if ($$self{_mem_activity} eq 'scan')
                         {
+                        	&::print_log("[Insteon::ALDB_i1] DEBUG3: " . $$self{device}->get_object_name
+                                	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
+                                        . lc $msg{extra} . " for " .  $$self{_mem_action}) if  $main::Debug{insteon} >= 3;
 				my $flag = hex($msg{extra});
 				$$self{pending_aldb}{inuse} = ($flag & 0x80) ? 1 : 0;
 				$$self{pending_aldb}{is_controller} = ($flag & 0x40) ? 1 : 0;
@@ -419,7 +401,7 @@ sub _on_peek
 				if (!($$self{pending_aldb}{highwater}))
                                 {
 					# since this is the last unused memory location, then add it to the empty list
-					unshift @{$$self{aldb}{empty}}, $$self{_mem_msb} . $$self{_mem_lsb};
+					$self->add_empty_address($$self{_mem_msb} . $$self{_mem_lsb});
 					$$self{_mem_action} = undef;
 					# clear out mem_activity flag
 					$$self{_mem_activity} = undef;
@@ -461,6 +443,9 @@ sub _on_peek
 			}
                         elsif ($$self{_mem_activity} eq 'add')
                         {
+                        	# TO-DO!!! Eventually add the ability to set the highwater mark
+                                #  the below flags never reset the highwater mark so that
+                                #  the scanner will continue scanning extra empty records
 				my $flag = ($$self{pending_aldb}{is_controller}) ? 'E2' : 'A2';
 				$$self{pending_aldb}{flag} = $flag;
                                 $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'poke');
@@ -480,65 +465,71 @@ sub _on_peek
                 {
 			if ($$self{_mem_activity} eq 'scan')
                         {
+                        	&::print_log("[Insteon::ALDB_i1] DEBUG3: " . $$self{device}->get_object_name
+                                	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
+                                        . lc $msg{extra} . " for " .  $$self{_mem_action}) if  $main::Debug{insteon} >= 3;
 				$$self{pending_aldb}{group} = lc $msg{extra};
 				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
 				$$self{_mem_action} = 'aldb_devhi';
                                	$message->extra($$self{_mem_lsb});
-                        	$message->failure_callback($$self{_failure_callback});
-                               	$self->_send_cmd($message);
 			}
                         else
                         {
                                 $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'poke');
                                 $message->extra($$self{pending_aldb}{group});
-                        	$message->failure_callback($$self{_failure_callback});
-                                $self->_send_cmd($message);
 			}
+                        $message->failure_callback($$self{_failure_callback});
+                        $self->_send_cmd($message);
 		}
                 elsif ($$self{_mem_action} eq 'aldb_devhi')
                 {
 			if ($$self{_mem_activity} eq 'scan')
                         {
+                        	&::print_log("[Insteon::ALDB_i1] DEBUG3: " . $$self{device}->get_object_name
+                                	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
+                                        . lc $msg{extra} . " for " .  $$self{_mem_action}) if  $main::Debug{insteon} >= 3;
 				$$self{pending_aldb}{deviceid} = lc $msg{extra};
 				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
 				$$self{_mem_action} = 'aldb_devmid';
                                	$message->extra($$self{_mem_lsb});
-                        	$message->failure_callback($$self{_failure_callback});
-                               	$self->_send_cmd($message);
 			}
                         elsif ($$self{_mem_activity} eq 'add')
                         {
 				my $devid = substr($$self{pending_aldb}{deviceid},0,2);
                                 $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'poke');
                                 $message->extra($devid);
-                        	$message->failure_callback($$self{_failure_callback});
-                                $self->_send_cmd($message);
 			}
+                        $message->failure_callback($$self{_failure_callback});
+                        $self->_send_cmd($message);
 		}
                 elsif ($$self{_mem_action} eq 'aldb_devmid')
                 {
 			if ($$self{_mem_activity} eq 'scan')
                         {
+                        	&::print_log("[Insteon::ALDB_i1] DEBUG3: " . $$self{device}->get_object_name
+                                	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
+                                        . lc $msg{extra} . " for " .  $$self{_mem_action}) if  $main::Debug{insteon} >= 3;
 				$$self{pending_aldb}{deviceid} .= lc $msg{extra};
 				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
 				$$self{_mem_action} = 'aldb_devlo';
                                	$message->extra($$self{_mem_lsb});
-                        	$message->failure_callback($$self{_failure_callback});
-                               	$self->_send_cmd($message);
 			}
                         elsif ($$self{_mem_activity} eq 'add')
                         {
 				my $devid = substr($$self{pending_aldb}{deviceid},2,2);
                                 $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'poke');
                                 $message->extra($devid);
-                        	$message->failure_callback($$self{_failure_callback});
-                                $self->_send_cmd($message);
 			}
+                        $message->failure_callback($$self{_failure_callback});
+                        $self->_send_cmd($message);
 		}
                 elsif ($$self{_mem_action} eq 'aldb_devlo')
                 {
 			if ($$self{_mem_activity} eq 'scan')
                         {
+                        	&::print_log("[Insteon::ALDB_i1] DEBUG3: " . $$self{device}->get_object_name
+                                	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
+                                        . lc $msg{extra} . " for " .  $$self{_mem_action}) if  $main::Debug{insteon} >= 3;
 				$$self{pending_aldb}{deviceid} .= lc $msg{extra};
 				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
 				$$self{_mem_action} = 'aldb_data1';
@@ -559,6 +550,9 @@ sub _on_peek
                 {
 			if ($$self{_mem_activity} eq 'scan')
                         {
+                        	&::print_log("[Insteon::ALDB_i1] DEBUG3: " . $$self{device}->get_object_name
+                                	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
+                                        . lc $msg{extra} . " for " .  $$self{_mem_action}) if  $main::Debug{insteon} >= 3;
 				$$self{_mem_action} = 'aldb_data2';
 				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
 				$$self{pending_aldb}{data1} = $msg{extra};
@@ -579,6 +573,9 @@ sub _on_peek
                 {
 			if ($$self{_mem_activity} eq 'scan')
                         {
+                        	&::print_log("[Insteon::ALDB_i1] DEBUG3: " . $$self{device}->get_object_name
+                                	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
+                                        . lc $msg{extra} . " for " .  $$self{_mem_action}) if  $main::Debug{insteon} >= 3;
 				$$self{pending_aldb}{data2} = $msg{extra};
 				$$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
 				$$self{_mem_action} = 'aldb_data3';
@@ -599,6 +596,9 @@ sub _on_peek
                 {
 			if ($$self{_mem_activity} eq 'scan')
                         {
+                        	&::print_log("[Insteon::ALDB_i1] DEBUG3: " . $$self{device}->get_object_name
+                                	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
+                                        . lc $msg{extra} . " for " .  $$self{_mem_action}) if  $main::Debug{insteon} >= 3;
 				$$self{pending_aldb}{data3} = $msg{extra};
 				# check the previous record if highwater is set
 				if ($$self{pending_aldb}{highwater})
@@ -618,7 +618,7 @@ sub _on_peek
 						# check for duplicates
 						if (exists $$self{aldb}{$aldbkey} && $$self{aldb}{$aldbkey}{inuse})
                                                 {
-							unshift @{$$self{aldb}{duplicates}}, $$self{pending_aldb}{address};
+							$self->add_duplicate_link_address($$self{pending_aldb}{address});
 						}
                                                 else
                                                 {
@@ -627,8 +627,7 @@ sub _on_peek
 					}
                                         else
                                         {
-						# TO-DO: record the locations of deleted aldb records for subsequent reuse
-						unshift @{$$self{aldb}{empty}}, $$self{pending_aldb}{address};
+						$self->add_empty_address($$self{pending_aldb}{address});
 					}
 					my $newaddress = sprintf("%04X", hex($$self{pending_aldb}{address}) - 8);
 					$$self{pending_aldb} = undef;
@@ -1204,6 +1203,102 @@ sub _process_delete_queue {
 	}
 }
 
+sub add_duplicate_link_address
+{
+	my ($self, $address) = @_;
+
+        unshift @{$$self{aldb}{duplicates}}, $address;
+
+        # now, keep the list sorted!
+        @{$$self{adlb}{duplicates}} = sort(@{$$self{aldb}{duplicates}});
+
+}
+
+sub delete_duplicate_link_address
+{
+	my ($self, $address) = @_;
+        my $num_duplicate_link_addresses = @{$$self{aldb}{duplicates}};
+        if ($num_duplicate_link_addresses)
+        {
+        	my @temp_duplicates = ();
+        	foreach my $temp_address (@{$$self{aldb}{duplicates}})
+        	{
+                	if ($temp_address ne $address)
+                        {
+                        	push @temp_duplicates, $temp_address;
+                        }
+        	}
+                # keep it sorted
+                @{$$self{aldb}{duplicates}} = sort(@temp_duplicates);
+        }
+}
+
+sub add_empty_address
+{
+	my ($self, $address) = @_;
+        # before adding it, make sure that it isn't already in the list!!
+        my $num_addresses = @{$$self{aldb}{empty}};
+        my $exists = 0;
+        if ($num_addresses and $address)
+        {
+        	foreach my $temp_address (@{$$self{aldb}{empty}})
+        	{
+                	if ($temp_address eq $address)
+                        {
+                        	$exists = 1;
+                                last;
+                        }
+        	}
+        }
+        # add it to the list if it doesn't exist
+        if (!($exists) and $address)
+        {
+		unshift @{$$self{aldb}{empty}}, $address;
+        }
+
+        # now, keep the list sorted!
+        @{$$self{adlb}{empty}} = sort(@{$$self{aldb}{empty}});
+
+}
+
+sub get_first_empty_address
+{
+	my ($self) = @_;
+
+        # NOTE: The issue here is that we give up an address from the list
+        #   with the assumption that it will be made non-empty;
+        #   So, if there is a problem during update/add, then will have
+        #   a non-empty, but non-functional entry
+	my $first_address = pop @{$$self{aldb}{empty}};
+
+        if (!($first_address))
+        {
+        	# then, cycle through all of the existing non-empty addresses
+                # to find the lowest one and then decrement by 8
+                #
+                # TO-DO: factor in appropriate use of the "highwater" flag
+                #
+		my $low_address = 0;
+		for my $key (keys %{$$self{aldb}})
+                {
+			next if $key eq 'empty' or $key eq 'duplicates';
+			my $new_address = hex($$self{aldb}{$key}{address});
+			if (!($low_address))
+                        {
+				$low_address = $new_address;
+				next;
+			}
+                        else
+                        {
+				$low_address = $new_address if $new_address < $low_address;
+			}
+		}
+		$first_address = sprintf('%04X', $low_address - 8);
+	}
+
+        return $first_address;
+}
+
 sub add_link
 {
 	my ($self, $parms_text) = @_;
@@ -1263,7 +1358,7 @@ sub add_link
 		$ramp_rate =~ s/(\d)s?/$1/;
 		$ramp_rate = '0.1' unless $ramp_rate; # 0.1s is the default
 		# get the first available memory location
-		my $address = pop @{$$self{aldb}{empty}};
+		my $address = $self->get_first_empty_address();
 		$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
 		$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
                 if ($address)
