@@ -172,7 +172,9 @@ sub transmit_in_progress
         {
         	$$self{xmit_in_progress} = $xmit_flag;
         }
-        return $$self{xmit_in_progress};
+        # also factor in xmit timer since this must be honored to allow
+        #   adequate time to elapse
+        return $$self{xmit_in_progress} || ($self->_check_timeout('xmit')==0);
 }
 
 sub queue_message
@@ -211,67 +213,61 @@ sub process_queue
 	my ($self) = @_;
 
 	my $command_queue_size = @{$$self{command_stack2}};
-	return $command_queue_size if $self->transmit_in_progress;
 
-	# get pending command record
-	my $pending_message = $self->active_message;
-
-	if (!($pending_message))
-        { # no prior message remains; so, get one from the queue
-        	$pending_message = pop(@{$$self{command_stack2}});
-        	$self->active_message($pending_message) if $pending_message;
-	}
-
+	if ($self->transmit_in_progress)
+        {
+        	return $command_queue_size;
+        }
+        else
 	#we dont transmit on top of another xmit
-	if (!($self->transmit_in_progress))
         { # no transmission is progress that has not already been acked or nacked by the PLM
+		# get pending command record
+       		my $pending_message = $self->active_message;
+
+		if (!($pending_message))
+        	{ # no prior message remains; so, get one from the queue
+        		$pending_message = pop(@{$$self{command_stack2}});
+        		$self->active_message($pending_message) if $pending_message;
+		}
+
 		if ($pending_message)
 		{ # a message exists to be sent (whether previously sent or queued)
-			if (!($self->_check_timeout('xmit')==0))
-                        { # only send a message if the xmit timer has timed out
 
-                                if ($self->active_message->send($self) == 0)
-                                {  # this only occurs if the retry count has been exceeded
-                                   # which also means that there wasn't a message actually sent
-                                	&::print_log("[Insteon::BaseInterface] WARN: number of retries ("
-                                        	. $self->active_message->send_attempts
-                       				. ") for " . $self->active_message->to_string()
-                                                . " exceeds limit.  Now moving on...") if $main::Debug{insteon};
-                                        # !!!!!!!!! TO-DO - handle failure timeout ???
-                                        my $failed_message = $self->active_message;
-                                        # make sure to let the sending object know!!!
-					if (defined($failed_message->setby) and $failed_message->setby->can('is_acknowledged'))
-					{
-                                        	$failed_message->setby->is_acknowledged(0);
-					}
-					else
-					{
-						&main::print_log("[Insteon::BaseInterface] WARN! Unable to clear acknowledge for "
-							. ((defined($failed_message->setby)) ? $failed_message->setby->get_object_name : "undefined"));
-					}
-                			# clear active message
-                			$self->clear_active_message();
+	                if ($self->active_message->send($self) == 0)
+                        {  # this only occurs if the retry count has been exceeded
+        	                # which also means that there wasn't a message actually sent
+                               	&::print_log("[Insteon::BaseInterface] WARN: number of retries ("
+                                       	. $self->active_message->send_attempts
+                			. ") for " . $self->active_message->to_string()
+                                        . " exceeds limit.  Now moving on...") if $main::Debug{insteon};
+                                # !!!!!!!!! TO-DO - handle failure timeout ???
+                                my $failed_message = $self->active_message;
+                                # make sure to let the sending object know!!!
+				if (defined($failed_message->setby) and $failed_message->setby->can('is_acknowledged'))
+				{
+                                       	$failed_message->setby->is_acknowledged(0);
+				}
+				else
+				{
+					&main::print_log("[Insteon::BaseInterface] WARN! Unable to clear acknowledge for "
+						. ((defined($failed_message->setby)) ? $failed_message->setby->get_object_name : "undefined"));
+				}
+                		# clear active message
+                		$self->clear_active_message();
 
-                                        # may instead want a "failure" callback separate from success callback
-					if ($failed_message->failure_callback)
-                                        {
-                                        	&::print_log("[Insteon::BaseInterface] WARN: Now calling callback: " .
-                                                	$failed_message->failure_callback) if $main::Debug{insteon};
-		       				package main;
-						eval $failed_message->failure_callback;
-						&::print_log("[Insteon::BaseInterface] problem w/ retry callback: $@") if $@;
-						package Insteon::BaseInterface;
-					}
-
-                			$self->process_queue();
-                                }
-                                else
+                                # may instead want a "failure" callback separate from success callback
+				if ($failed_message->failure_callback)
                                 {
-                                	# may want to move "success" callback handling from message to here
-                                }
-			}  # if xmit timer has expired
-			my $command_queue_size = @{$$self{command_stack2}};
-			return $command_queue_size;
+                                       	&::print_log("[Insteon::BaseInterface] WARN: Now calling callback: " .
+                                               	$failed_message->failure_callback) if $main::Debug{insteon};
+		       			package main;
+					eval $failed_message->failure_callback;
+					&::print_log("[Insteon::BaseInterface] problem w/ retry callback: $@") if $@;
+					package Insteon::BaseInterface;
+				}
+
+                		$self->process_queue();
+                        }
 		}
                 else # no pending message
                 {
@@ -279,12 +275,6 @@ sub process_queue
                 	$self->_clear_timeout('command');
                         return 0;
                 }
-	}
-        else # transmit in progress
-        {
-#		&::print_log("[Insteon_PLM] active transmission; moving on...") if $main::Debug{insteon};
-		my $command_queue_size = @{$$self{command_stack2}};
-		return $command_queue_size;
 	}
 	my $command_queue_size = @{$$self{command_stack2}};
 	return $command_queue_size;
