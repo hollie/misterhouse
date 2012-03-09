@@ -379,8 +379,26 @@ sub on_standard_insteon_received
                         	}
                                 else
                                 {
-                                        &main::print_log("[Insteon::BaseInterface] WARN: received insteon ACK/NACK message from "
-                                        	. $object->get_object_name . " but cannot correlate to sent message! IGNORING received message!!");
+                                        if ($msg{type} eq 'direct')
+                                        {
+                                        	&main::print_log("[Insteon::BaseInterface] WARN: received insteon ACK/NACK message from "
+                                        		. $object->get_object_name . " but cannot correlate to sent message! IGNORING received message!!");
+                                        }
+                                        elsif ($msg{type} eq 'cleanup')
+                                        {
+                                                # for now, this is just going to be ignore since there is a virtual processing done
+                                                #   in the Insteon_PLM handler for cleanup messages.
+                                                #   but, this probably should be dealt with differently and explicitly
+                                                #   attempt to treat the message
+                                                &main::print_log("[Insteon::BaseInterface] DEBUG2: received cleanup message responding to "
+                                                	. "PLM controller group: $msg{extra}. Ignoring as this has already been processed (we hope)")
+                                                        if $main::Debug{insteon} >= 2;
+                                        }
+                                        else
+                                        {
+                        			# ask the object to process the received message and update its state
+		   				$object->_process_message($self, %msg);
+                                        }
                                 }
                    	}
                         else
