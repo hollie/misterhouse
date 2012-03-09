@@ -112,7 +112,6 @@ sub send
                 }
 
                 # need to set timeout as a function of retries; also need to alter hop count
-
                 $self->send_attempts($self->send_attempts + 1);
 		$interface->_send_cmd($self, $self->send_timeout);
 		if ($self->callback)
@@ -187,41 +186,60 @@ sub command_to_hash
 	$msg{hopsleft} = $hopflag >> 2;
 	my $msgflag = hex(uc substr($p_state,12,1));
 	$msg{is_extended} = (0x01 & $msgflag) ? 1 : 0;
-	if ($msg{is_extended}) {
+	if ($msg{is_extended})
+        {
 		$msg{source} = substr($p_state,0,6);
 		$msg{destination} = substr($p_state,6,6);
 		$msg{extra} = substr($p_state,16,16);
-	} else {
+	}
+        else
+        {
 		$msg{source} = substr($p_state,0,6);
 		$msgflag = $msgflag >> 1;
-		if ($msgflag == 4) {
+		if ($msgflag == 4)
+                {
 			$msg{type} = 'broadcast';
 			$msg{devcat} = substr($p_state,6,4);
 			$msg{firmware} = substr($p_state,10,2);
 			$msg{is_master} = substr($p_state,16,2);
 			$msg{dev_attribs} = substr($p_state,18,2);
-		} elsif ($msgflag ==6) {
+		}
+                elsif ($msgflag ==6)
+                {
 			$msg{type} = 'alllink';
 			$msg{group} = substr($p_state,10,2);
-		} else {
+		}
+                else
+                {
 			$msg{destination} = substr($p_state,6,6);
-			if ($msgflag == 2) {
+			if ($msgflag == 2)
+                        {
 				$msg{type} = 'cleanup';
 				$msg{group} = substr($p_state,16,2);
-			} elsif ($msgflag == 3) {
+			}
+                        elsif ($msgflag == 3)
+                        {
 				$msg{type} = 'cleanup';
 				$msg{is_ack} = 1;
-			} elsif ($msgflag == 7) {
+			}
+                        elsif ($msgflag == 7)
+                        {
 				$msg{type} = 'cleanup';
 				$msg{is_nack} = 1;
-			} elsif ($msgflag == 0) {
+			}
+                        elsif ($msgflag == 0)
+                        {
 				$msg{type} = 'direct';
 				$msg{extra} = substr($p_state,16,2);
-			} elsif ($msgflag == 1) {
+			}
+                        elsif ($msgflag == 1)
+                        {
 				$msg{type} = 'direct';
 				$msg{is_ack} = 1;
 				$msg{extra} = substr($p_state,16,2);
-			} elsif ($msgflag == 5) {
+			}
+                        elsif ($msgflag == 5)
+                        {
 				$msg{type} = 'direct';
 				$msg{is_nack} = 1;
 			}
