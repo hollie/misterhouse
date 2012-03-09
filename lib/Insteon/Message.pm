@@ -221,6 +221,8 @@ sub command_to_hash
                         {
 				$msg{type} = 'cleanup';
 				$msg{is_ack} = 1;
+                                # the "extra" value will contain the controller's group ID
+				$msg{extra} = substr($p_state,16,2);
 			}
                         elsif ($msgflag == 7)
                         {
