@@ -154,14 +154,12 @@ sub clear_active_message
 {
 	my ($self) = @_;
         $$self{active_message} = undef;
-#        $self->_clear_timeout('command');
 	$self->transmit_in_progress(0);
 }
 
 sub retry_active_message
 {
 	my ($self) = @_;
-#        $self->_clear_timeout('command');
 	$self->transmit_in_progress(0);
 }
 
@@ -345,26 +343,51 @@ sub on_standard_insteon_received
 		      		&::print_log("[Insteon::BaseInterface] command:$msg{command}; type:$msg{type}; group: $msg{group}")
                         		if (!($msg{is_ack} or $msg{is_nack})) and $main::Debug{insteon};
                    	}
-#		   	&::print_log("[Insteon_PLM] Processing message for " . $object->get_object_name) if $main::Debug{insteon};
-		   	$object->_process_message($self, %msg);
                    	if ($msg{is_ack} or $msg{is_nack})
                    	{
                         	# need to confirm that this message corresponds to the current active one before clearing it
                                 # TO-DO!!! This is a brute force and poor compare technique; needs to be replaced by full compare
                                 if ($self->active_message && ref $self->active_message->setby)
                                 {
-                                	if ((lc $self->active_message->setby->device_id eq lc $msg{source}) and ($msg{type} eq 'direct'))
-                                	{
-                   				$self->clear_active_message();
-                                	}
+                                        if ($self->active_message->send_attempts == 0)
+                                        {
+                                                &main::print_log("[Insteon::BaseInterface] WARN: received ACK/NACK message for "
+                                                	. $object->get_object_name . " but cannot correlate to sent message "
+                                                        . "(active but send attempts = 0).  IGNORING received message!!");
+                                        }
+                                        elsif ($msg{type} eq 'direct')
+                                        {
+                                        	if (lc $self->active_message->setby->device_id eq lc $msg{source})
+                                                {
+                        		       		# ask the object to process the received message and update its state
+		   					$object->_process_message($self, %msg);
+                   					$self->clear_active_message();
+                                                }
+                                                else
+                                                {
+                                                	&main::print_log("[Insteon::BaseInterface] WARN: deviceid of "
+                                                		. "active message != received message source ("
+                                                        	. $object->get_object_name() . "). IGNORING received message!!");
+                                                }
+                                        }
                                         else
                                         {
-                                                &main::print_log("[Insteon::BaseInterface] WARN: deviceid of "
-                                                	. "active message != received message source")
-                                                        if $msg{type} eq 'direct' and $main::Debug{insteon};
+                                                &main::print_log("[Insteon::BaseInterface] ERROR: received ACK/NACK message from "
+                                                	. $object->get_object_name . " but unable to process $msg{type} message type."
+                                                        . " IGNORING received message!!");
                                         }
                         	}
+                                else
+                                {
+                                        &main::print_log("[Insteon::BaseInterface] WARN: received insteon ACK/NACK message from "
+                                        	. $object->get_object_name . " but cannot correlate to sent message! IGNORING received message!!");
+                                }
                    	}
+                        else
+                        {
+                        	# ask the object to process the received message and update its state
+		   		$object->_process_message($self, %msg);
+                        }
 		}
                 else
                 {
