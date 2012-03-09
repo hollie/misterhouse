@@ -370,6 +370,17 @@ sub on_standard_insteon_received
                                                         	. $object->get_object_name() . "). IGNORING received message!!");
                                                 }
                                         }
+                                        elsif ($msg{type} eq 'cleanup')
+                                        {
+                                                $object = &Insteon::get_object('000000', $msg{extra});
+                                                my %cleanup_msg = ('type' => 'cleanup',
+								'group' => $msg{extra},
+								'is_ack' => 1,
+								'command' => 'cleanup'
+							);
+			       			$object->_process_message($self, %cleanup_msg);
+                                		$self->clear_active_message();
+                                        }
                                         else
                                         {
                                                 &main::print_log("[Insteon::BaseInterface] ERROR: received ACK/NACK message from "
@@ -386,13 +397,13 @@ sub on_standard_insteon_received
                                         }
                                         elsif ($msg{type} eq 'cleanup')
                                         {
-                                                # for now, this is just going to be ignore since there is a virtual processing done
+                                                # this is just going to be ignored since there is a virtual processing done
                                                 #   in the Insteon_PLM handler for cleanup messages.
-                                                #   but, this probably should be dealt with differently and explicitly
-                                                #   attempt to treat the message
-                                                &main::print_log("[Insteon::BaseInterface] DEBUG2: received cleanup message responding to "
-                                                	. "PLM controller group: $msg{extra}. Ignoring as this has already been processed (we hope)")
-                                                        if $main::Debug{insteon} >= 2;
+                                                #   however, if the virtual handler was not invoked due to receipt of the broadcast message
+                                                #   then, the above cleanup handler would be run
+                                                &main::print_log("[Insteon::BaseInterface] DEBUG3: received cleanup message responding to "
+                                                	. "PLM controller group: $msg{extra}. Ignoring as this has already been processed")
+                                                        if $main::Debug{insteon} >= 3;
                                         }
                                         else
                                         {
