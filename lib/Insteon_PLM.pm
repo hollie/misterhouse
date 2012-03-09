@@ -523,8 +523,26 @@ sub _parse_data {
                         	# is $parsed_data an accidental anomoly? (there are other cases; but, this is a good start)
                                 if ($parsed_data =~ /^($prefix{insteon_send}\w{12}06)|($prefix{insteon_send}\w{12}15)$/)
                                 {
-                                        &::print_log("[Insteon_PLM] ERROR: encountered '$parsed_data' but expected '$ackcmd'.");
-					$residue_data .= $parsed_data;
+                                	# first, parse the content to confirm that it could be a legitimate ACK
+                                        my $unknown_deviceid = substr($parsed_data,4,6);
+                                        my $unknown_msg_flags = substr($parsed_data,10,2);
+                                        my $unknown_command = substr($parsed_data,12,2);
+                                        my $unknown_data = substr($parsed_data,14,2);
+                                        my $unknown_obj = &Insteon::get_object($unknown_deviceid, '01');
+                                        if ($unknown_obj)
+                                        {
+                                        	&::print_log("[Insteon_PLM] WARN: encountered '$parsed_data' "
+                                                	. "from " . $unknown_obj->get_object_name()
+                                                        . " with command: $unknown_command, but expected '$ackcmd'.");
+				       		$residue_data .= $parsed_data;
+                                        }
+                                        else
+                                        {
+                                        	&::print_log("[Insteon_PLM] ERROR: encountered '$parsed_data' "
+                                                	. "that does not match any known device ID (expected '$ackcmd')."
+                                                        . " Discarding received data.");
+				       		#$residue_data .= $parsed_data;
+                                        }
                                 }
                                 else
                                 {
