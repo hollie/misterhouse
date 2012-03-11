@@ -359,6 +359,8 @@ sub on_standard_insteon_received
                                         {
                                         	if (lc $self->active_message->setby->device_id eq lc $msg{source})
                                                 {
+                                                	# prevent re-processing transmit queue until after clearing occurs
+                                                        $self->transmit_in_progress(1);
                         		       		# ask the object to process the received message and update its state
 		   					$object->_process_message($self, %msg);
                    					$self->clear_active_message();
@@ -378,6 +380,9 @@ sub on_standard_insteon_received
 								'is_ack' => 1,
 								'command' => 'cleanup'
 							);
+                                                # prevent re-processing transmit queue until after clearing occurs
+                                                $self->transmit_in_progress(1);
+                        		       	# ask the object to process the received message and update its state
 			       			$object->_process_message($self, %cleanup_msg);
                                 		$self->clear_active_message();
                                         }
