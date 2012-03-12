@@ -375,16 +375,25 @@ sub on_standard_insteon_received
                                         elsif ($msg{type} eq 'cleanup')
                                         {
                                                 $object = &Insteon::get_object('000000', $msg{extra});
-                                                my %cleanup_msg = ('type' => 'cleanup',
+                                                if ($object)
+                                                {
+                                                	my %cleanup_msg = ('type' => 'cleanup',
 								'group' => $msg{extra},
 								'is_ack' => 1,
 								'command' => 'cleanup'
 							);
-                                                # prevent re-processing transmit queue until after clearing occurs
-                                                $self->transmit_in_progress(1);
-                        		       	# ask the object to process the received message and update its state
-			       			$object->_process_message($self, %cleanup_msg);
-                                		$self->clear_active_message();
+                                                	# prevent re-processing transmit queue until after clearing occurs
+                                                	$self->transmit_in_progress(1);
+                        		       		# ask the object to process the received message and update its state
+			       				$object->_process_message($self, %cleanup_msg);
+                                			$self->clear_active_message();
+                                                }
+                                                else
+                                                {
+                                                	&main::print_log("[Insteon::BaseInterface] ERROR: received cleanup message "
+                                                             . "that does not correspond to a valid PLM group. Corrupted message is assumed "
+                                                             . "and will be skipped!");
+                                                }
                                         }
                                         else
                                         {
