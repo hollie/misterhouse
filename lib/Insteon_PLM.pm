@@ -640,7 +640,8 @@ sub _parse_data {
 
 				# attempt to process the message by the link object; this acknowledgement will reset
 				#   the auto-retry timer
-				if ($self->active_message && ($self->active_message->command_type == 'all_link_send'))
+				if ($self->active_message && $self->active_message->isa('Insteon::InsteonMessage')
+                                	&&($self->active_message->command_type == 'all_link_send'))
                                 {
 					my $group = substr($self->active_message->interface_data,0,2);
 					my $link = &Insteon::get_object('000000',$group);
@@ -651,7 +652,7 @@ sub _parse_data {
 								'is_ack' => 1,
 								'command' => 'cleanup'
 							);
-						$link->_process_message($self, %msg);
+			       			$link->_process_message($self, %msg);
 					}
                                         # only clear the active message if this all_link_clean_status corresponds to a all_link_send message
                                 	$self->clear_active_message();
