@@ -8,35 +8,28 @@
 
 pocketsphinx_control.pl 
 
-01/21/2007 Created by Jim Duda (jim@duda.tzo.com)
+03/11/2012 Created by Jim Duda (jim@duda.tzo.com)
 
 Use this module to control the PocketSphinx VR engine (currently Linux only)
 
-Requirements:
+RRequirements:
 
- Download and install PocketSphinx 
- http://cmusphinx.sourceforge.net
+ Download and install Sphinxbase, PocketSphinx, and CMU Language Toolkit
+ http://cmusphinx.sourceforge.net/wiki/download/
 
-These versions of pocketsphinx are supported:
+ Current Version Supported:
+ PocketSphinx: 0.7
+ SphinxBase:   0.7
+ Cmuclmtk:     0.7
 
-  Sphinxbase: 0.4.1
-  Pocketsphinx: 0.5.1
-
- You need to install both SphinxBase and PocketSphinx.  When building SphinxBase, it will
- default to OSS, if you want ALSA (recommended) then you need to add --with-alsa to the 
- configure command.
-
- Download the CMU Sphinx dictionary file from here: 
- https://cmusphinx.svn.sourceforge.net/svnroot/cmusphinx/trunk/SphinxTrain/test/res/cmudict.0.6d
-
- Install the dictionary file in some useful place 
- example: /usr/local/share/pocketsphinx/model/lm/cmudict/cmudict.0.6d
- pocketsphinx_cmudict must match the location where the file is installed.
+ When building SphinxBase, it will default to OSS, if you want ALSA (recommended) then you 
+ need to add --with-alsa to the configure command.
 
 Setup:
 
 Install and configure all the above software.  Set these values in your mh.private.ini file
 Note that all those marked as default are in mh.ini and need not be loaded unless truly different.
+Enable the pocket_sphinx_control module in misterhouse setup (code/common).
 
  voice_cmd                    = pocketsphinx                   # REQUIRED
  server_pocketsphinx_port     = 3235                           # REQUIRED
@@ -44,11 +37,10 @@ Note that all those marked as default are in mh.ini and need not be loaded unles
  pocketsphinx_awake_response  = "yes master?"                  # optional
  pocketsphinx_awake_time=300                                   # optional
  pocketsphinx_asleep_phrase={go to sleep,change to sleep mode} # optional
- pocketsphinx_asleep_response=Ok, later.                       # optional
- pocketsphinx_timeout_response=Later.                          # optional
+ pocketsphinx_asleep_response=Ok, later.
+ pocketsphinx_timeout_response=Later.
 
- pocketsphinx_cmudict     = /usr/local/share/pocketsphinx/model/lm/cmudict/cmudict.0.6d   # default
- pocketsphinx_hmm         = /usr/local/share/pocketsphinx/model/hmm/wsj1                  # default
+ pocketsphinx_hmm         = /usr/local/share/pocketsphinx/model/hmm/en_US/hub4wsj_sc_8k   # default
  pocketsphinx_rate        = 16000                                                         # default
  pocketsphinx_continuous  = /usr/local/bin/pocketsphinx_continuous                        # default
  pocketsphinx_dev         = default                                                       # default
@@ -68,10 +60,9 @@ Note that all those marked as default are in mh.ini and need not be loaded unles
 @                                     sleep mode
 @    - pocketsphinx_timeout_response: This is what is said (or played) when the awake
 @                                     timer expires.
-@    - pocketsphinx_cmudict           Pocketsphinx full english dictionary file location.
 @    - pocketsphinx_hmm               Pocketsphinx Human Markov Model directory location.
 @    - pocketsphinx_rate              Audio Sample rate
-@    - pocketsphinx_continuouts       Program location for pocketsphinx_continuous
+@    - pocketsphinx_continuous        Program location for pocketsphinx_continuous
 @    - pocketsphinx_dev               Audio device (multiple devices can be separated by "|")
 
 =cut

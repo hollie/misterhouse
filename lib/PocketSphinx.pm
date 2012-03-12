@@ -8,19 +8,16 @@ Use this module to control the PocketSphinx VR engine (currently Linux only)
 
 Requirements:
 
- Download and install PocketSphinx 
- http://cmusphinx.sourceforge.net
+ Download and install Sphinxbase, PocketSphinx, and CMU Language Toolkit
+ http://cmusphinx.sourceforge.net/wiki/download/
 
- You need to install both SphinxBase and PocketSphinx.  When building SphinxBase, it will
- default to OSS, if you want ALSA (recommended) then you need to add --with-alsa to the 
- configure command.
+ Current Version Supported:
+ PocketSphinx: 0.7
+ SphinxBase:   0.7
+ Cmuclmtk:     0.7
 
- Download the CMU Sphinx dictionary file from here: 
- https://cmusphinx.svn.sourceforge.net/svnroot/cmusphinx/trunk/SphinxTrain/test/res/cmudict.0.6d
-
- Install the dictionary file in some useful place 
- example: /usr/local/share/pocketsphinx/model/lm/cmudict/cmudict.0.6d
- pocketsphinx_cmudict must match the location where the file is installed.
+ When building SphinxBase, it will default to OSS, if you want ALSA (recommended) then you 
+ need to add --with-alsa to the configure command.
 
 Setup:
 
@@ -37,11 +34,10 @@ Enable the pocket_sphinx_control module in misterhouse setup (code/common).
  pocketsphinx_asleep_response=Ok, later.
  pocketsphinx_timeout_response=Later.
 
- pocketsphinx_cmudict     = "/usr/local/share/pocketsphinx/model/lm/cmudict/cmudict.0.6d"   # default
- pocketsphinx_hmm         = "/usr/local/share/pocketsphinx/model/hmm/wsj1"                  # default
- pocketsphinx_rate        = 16000                                                           # default
- pocketsphinx_continuous  = "/usr/local/bin/pocketsphinx_continuous"                        # default
- pocketsphinx_dev         = "default"                                                       # default
+ pocketsphinx_hmm         = /usr/local/share/pocketsphinx/model/hmm/en_US/hub4wsj_sc_8k   # default
+ pocketsphinx_rate        = 16000                                                         # default
+ pocketsphinx_continuous  = /usr/local/bin/pocketsphinx_continuous                        # default
+ pocketsphinx_dev         = default                                                       # default
 
  Note: If using OSS instead of ALSA, pocketsphinx_device needs to be "/dev/dsp" or similiar.
 
@@ -58,10 +54,9 @@ Enable the pocket_sphinx_control module in misterhouse setup (code/common).
 @                                     sleep mode
 @    - pocketsphinx_timeout_response: This is what is said (or played) when the awake
 @                                     timer expires.
-@    - pocketsphinx_cmudict           Pocketsphinx full english dictionary file location.
 @    - pocketsphinx_hmm               Pocketsphinx Human Markov Model directory location.
 @    - pocketsphinx_rate              Audio Sample rate
-@    - pocketsphinx_continues         Program location for pocketsphinx_continuous
+@    - pocketsphinx_continuous        Program location for pocketsphinx_continuous
 @    - pocketsphinx_dev               Audio device (multiple devices can be separated by "|")
 
 =cut
@@ -82,11 +77,9 @@ my $p_sphinx = undef;
 my $s_pocketsphinx = undef;
 
 my $sentence_file   = "$main::config_parms{data_dir}/pocketsphinx/current.sent";
-my $lm_file         = "$main::config_parms{data_dir}/pocketsphinx/current.lm";
-my $dictionary_file = "$main::config_parms{data_dir}/pocketsphinx/current.dic";
+my $lm_file         = "$main::config_parms{data_dir}/pocketsphinx/current.lm.DMP";
 my $lm_log_file     = "$main::config_parms{data_dir}/pocketsphinx/build_lm.log";
-my $cmu_dict        = "/usr/local/share/pocketsphinx/model/lm/cmudict/cmudict.0.6d";
-my $hmm_file        = "/usr/local/share/pocketsphinx/model/hmm/wsj1";
+my $hmm_file        = "/usr/local/share/pocketsphinx/model/hmm/en_US/hub4wsj_sc_8k";
 my $awake_time      = 300;
 
 sub startup {
@@ -120,11 +113,8 @@ sub startup {
       mkdir ("$main::config_parms{data_dir}/pocketsphinx", 0777) unless -d "$main::config_parms{data_dir}/pocketsphinx";
 
       # Insure we have all the files we need, if so, start the process
-      $cmu_dict = "$main::config_parms{pocketsphinx_cmudict}" if exists $main::config_parms{pocketsphinx_cmudict};
       $hmm_file = "$main::config_parms{pocketsphinx_hmm}"     if exists $main::config_parms{pocketsphinx_hmm};
-      if (!-e $cmu_dict) {
-        &main::print_log ("PocketSphinx_Control:: ERROR: file: $cmu_dict MISSING!!");
-      } elsif (!-e $hmm_file) {
+      if (!-e $hmm_file) {
         &main::print_log ("PocketSphinx_Control:: ERROR: file: $hmm_file MISSING!!");
       } else {
         &::MainLoop_pre_add_hook(\&PocketSphinx_Control::state_machine, 'persistent');
@@ -159,7 +149,7 @@ sub said {
         $token =~ s/^\s+//;
         $token =~ s/\s+$//;
         $token =~ s/[\{\}]//;
-        $token = uc($token);
+        $token = lc($token);
         if ($tmp eq $token) {
           $text = $tmp;
         }
@@ -173,42 +163,29 @@ sub said {
 }
 
 sub state_machine {
-  if ($main::Startup or $main::Reload) {
-    # save old sentence file, compare with new to avoid reloading
-    rename ($sentence_file, "$sentence_file.bak");
+  my ($self) = @_;
+  if ($main::Startup or $main::Reload or ($PocketSphinx_state eq "reset")) {
     &build_sentence_file($sentence_file);
-    if ( (compare( $sentence_file, "$sentence_file.bak") == 0) &&
-	-e $lm_file && -e $dictionary_file) {
-      &main::print_log ("PocketSphinx_Control:: reusing language files") if $main::Debug{pocketsphinx};
-      
-      $PocketSphinx_state = "run_sphinx";
-    } else {    
-      $PocketSphinx_state = "build_lm";
-      &main::print_log ("PocketSphinx_Control:: build_lm") if $main::Debug{pocketsphinx};
-      set_errlog $p_sphinx "";
-      set_output $p_sphinx "";
-      set $p_sphinx "&PocketSphinx_Control::build_lm ('$sentence_file','$lm_file','$lm_log_file')";
-      start $p_sphinx;
+    $PocketSphinx_state = "build_lm";
+    &main::print_log ("PocketSphinx_Control:: build_lm") if $main::Debug{pocketsphinx};
+    set_errlog $p_sphinx "$main::config_parms{data_dir}/pocketsphinx/build_lm.stderr";
+    set_output $p_sphinx "$main::config_parms{data_dir}/pocketsphinx/build_lm.stdout";
+    my $pgm_root = "/usr/local/bin";
+    if ($self->{continuous} =~ /(\S+)\/pocketsphinx/) {
+	$pgm_root = $1;
     }
+    my $data_root = "$main::config_parms{data_dir}/pocketsphinx/current";
+    set $p_sphinx "&PocketSphinx_Control::build_lm ('$pgm_root','$data_root','$lm_log_file')";
+    start $p_sphinx;
   }
 
   # wait for build_lm to complete
   if ($PocketSphinx_state eq "build_lm") {
     if (done $p_sphinx) {
-      &main::print_log ("PocketSphinx_Control:: build_dictionary") if $main::Debug{pocketsphinx};
-      $PocketSphinx_state = "build_dictionary";
-      set_errlog $p_sphinx "";
-      set_output $p_sphinx "";
-      set $p_sphinx "&PocketSphinx_Control::build_dictionary('$sentence_file','$cmu_dict','$dictionary_file')";
-      start $p_sphinx;
-    } 
-  }
-
-  # wait for build dictionary to be complete
-  if ($PocketSphinx_state eq "build_dictionary") {
-    if (done $p_sphinx) {
       &main::print_log ("PocketSphinx_Control:: run_sphinx") if $main::Debug{pocketsphinx};
       $PocketSphinx_state = "run_sphinx";
+      set_errlog $p_sphinx "";
+      set_output $p_sphinx "";
     }
   }
 }
@@ -218,8 +195,9 @@ sub get_state {
 }
 
 sub reset_language_files {
-    unlink $sentence_file;
-    unlink "$sentence_file.bak";
+    my ($self) = @_;
+    $PocketSphinx_state = "reset";
+    $self->{disabled} = 0;
 }
 
 #============================================================================================ 
@@ -229,333 +207,82 @@ sub build_sentence_file {
   my ($sentence_file) = @_;
   #first write the sentence file
   open(OUTPUT,">$sentence_file");
-  my @phrase_array =   &Voice_Cmd::voice_items('mh','no_category');
+  my @phrase_array = &Voice_Cmd::voice_items('mh','no_category');
+  @phrase_array = sort(@phrase_array);
   foreach my $cmd (@phrase_array) {
     chomp $cmd;
-    $cmd = uc($cmd);
+    $cmd = lc($cmd);
     print OUTPUT "<s> $cmd </s>\n";
   }
   close OUTPUT;
 }
 
 #============================================================================================ 
-# BUILD DICTIONARY FILE
-#============================================================================================ 
-sub build_dictionary {
-  my ($sentence_file,$cmu_dict,$dictionary_file) = @_;
-
-  #read the big dictionary into memory
-  open (DICT,"$cmu_dict");
-  my @dict;
-  while(<DICT>){
-    push(@dict,$_);
-  }
-  close (DICT);
-
-  my @already_added;
-  #now look for prounciations in the big dictionary
-  open (DOUT,">$dictionary_file");
-  open (DIN,"$sentence_file");
-  while (<DIN>) {
-    chomp $_;
-    next unless $_ =~ /^<s> (.*) </s>$/;
-    my $text=uc($1);
-    #added Nov 15 2003: Shane C. Masony 
-    #if there are multiple words in the text(like a phrase), we need to add them
-    #so first, split by space, then make sure that these words have not been added
-    #because identicle entries cause a hash error when sphinx loads them
-    my @elements=split(" ",$text);
-    foreach my $thisword (@elements){
-       my $exists_flag=0;
-       foreach my $existing_word (@already_added){
-         if($thisword eq $existing_word){
-           $exists_flag=1;
-         }
-       }
-       if(!$exists_flag){
-	 push(@already_added,$thisword);
-         foreach my $input (@dict){
-           if($input =~ /^$thisword[\s|\(]/){  #match $text\s and $text(
-	     $input =~ /^(\S*)\s*(.*)$/;
-             my $a = $1;
-             my $b = $2;
-             print DOUT "$a\t$b\n";
-           }
-         }
-       }
-    }
-  }
-  close (DIN);
-  close (DOUT);
-}
-
-#============================================================================================ 
 # BUILD LANGUAGE MODEL FILE
 #============================================================================================ 
+# 1) Prepare a reference text that will be used to generate the language model. 
+# The language model toolkit expects its input to be in the form of normalized text files, 
+# with utterances delimited by <s> and </s> tags. A number of input filters are available 
+# for specific corpora such as Switchboard, ISL and NIST meetings, and HUB5 transcripts. 
+# The result should be the set of sentences that are bounded by the start and end sentence 
+# markers: <s> and </s>. 
 
+# Here's an example:
+# <s> generally cloudy today with scattered outbreaks of rain and drizzle persistent and heavy at times </s>
+# <s> some dry intervals also with hazy sunshine especially in eastern parts in the morning </s>
+# <s> highest temperatures nine to thirteen Celsius in a light or moderate mainly east south east breeze </s>
+# <s> cloudy damp and misty today with spells of rain and drizzle in most places much of this rain will be 
+# light and patchy but heavier rain may develop in the west later </s>
+#
+# 2) Generate the vocabulary file. This is a list of all the words in the file:
+#    text2wfreq < weather.txt | wfreq2vocab > weather.tmp.vocab
+#
+# 3) You may want to edit the vocabulary file to remove words (numbers, misspellings, names). 
+# If you find misspellings, it is a good idea to fix them in the input transcript.
+#
+# 4) If you want a closed vocabulary language model (a language model that has no provisions 
+# for unknown words), then you should remove sentences from your input transcript that contain
+# words that are not in your vocabulary file.
 
-#/* ====================================================================
-# * Copyright (c) 1996-2002 Alexander I. Rudnicky and Carnegie Mellon University.
-# * All rights reserved.
-# *
-# * Redistribution and use in source and binary forms, with or without
-# * modification, are permitted provided that the following conditions
-# * are met:
-# *
-# * 1. Redistributions of source code must retain the above copyright
-# *    notice, this list of conditions and the following disclaimer.
-# *
-# * 2. Redistributions in binary form must reproduce the above copyright
-# *    notice, this list of conditions and the following disclaimer in
-# *    the documentation and/or other materials provided with the
-# *    distribution.
-# *
-# * 3. All copies, used or distributed, must preserve the original wording of
-# *    the copyright notice included in the output file.
-# *
-# * This work was supported in part by funding from the Defense Advanced
-# * Research Projects Agency and the CMU Sphinx Speech Consortium.
-# *
-# * THIS SOFTWARE IS PROVIDED BY CARNEGIE MELLON UNIVERSITY ``AS IS'' AND
-# * ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-# * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-# * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL CARNEGIE MELLON UNIVERSITY
-# * NOR ITS EMPLOYEES BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-# * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-# * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-# * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# *
-# * ====================================================================
-# *
-# */
+# 5) Generate the arpa format language model with the commands:
+# % text2idngram -vocab weather.vocab -idngram weather.idngram < weather.closed.txt
+# % idngram2lm -vocab_type 0 -idngram weather.idngram -vocab \
+#     weather.vocab -arpa weather.arpa
+#
+# 6) Generate the CMU binary form (DMP)
+# % sphinx_lm_convert -i weather.arpa -o weather.lm
 
-
-#Pretty Good Language Modeler, now with unigram vector augmentation!
-
-#The Pretty Good Language Modeler is intended for quick construction of small
-#language models, typically as might be needed in application development. Depending
-#on the version of Perl that you are running, a practical limitation is a
-#maximum vocabulary size on the order of 1000-2000 words. The limiting factor
-#is the number of n-grams observed, since each n-gram is stored as a hash key.
-#(So smaller vocabularies may turn out to be a problem as well.)
-
-#This package computes a stadard back-off language model. It differs in one significant
-#respect, which is the computation of the discount. We adopt a "proportional" (or ratio)
-#discount in which a certain percentage of probability mass is removed (typically 50%)
-#from observed n-grams and redistributed over unobserved n-grams.
-
-#Conventionally, an absolute discount would be used, however we have found that the
-#proportional discount appears to be robust for extremely small languages, as might be
-#prototyped by a developer, as opposed to based on a collected corpus. We have found that
-#absolute and proportional discounts produce comparable recognition results with perhaps
-#a slight advantage for proportional discounting. A more systematic investigation of
-#this technique would be desirable. In any case it also has the virtue of using a very
-#simple computation.
-
-
-
-# NOTE: this is by no means an efficient implementation and performance will
-# deteriorate rapidly as a function of the corpus size. Larger corpora should be
-# processed using the toolkit available at http://www.speech.cs.cmu.edu/SLM_info.html
-
-# [2feb96] (air)
-# cobbles together a language model from a set of exemplar sentences.
-# features: 1) uniform discounting, 2) no cutoffs
-# the "+" version allows insertion of extra words into the 1gram vector
-
-# [27nov97] (air)
-# bulletproof a bit for use in conjunction with a cgi script
-
-# [20000711] (air)
-# made visible the discount parmeter
-
-# [20011123] (air)
-# cleaned-up version for distribution
-
-
-#[20021130] Shane C. Mason (me@perlbox.org) 
-#added structure for -o output filename switch
+# /usr/local/bin/text2wfreq < current.sent | /usr/local/bin/wfreq2vocab > current.vocab
+# text2idngram -vocab current.vocab -idngram current.idngram < current.sent
+# /usr/local/bin/idngram2lm -vocab_type 0 -idngram current.idngram -vocab current.vocab -arpa current.arpa
+# /usr/local/bin/sphinx_lm_convert -i current.arpa -o current.lm
 
 sub build_lm {
 
   # input parameters
   # quick_lm -s <sentence_file> [-w <word_file>] [-d discount]\n"); }
-  my ($sentfile,$lm_file,$logfile,$wordfile,$discount) = @_;
-
-  my $wflag;
-  my $discount_mass;
-  my $deflator;
-  my $sent_cnt;
-  my @word;
-  my %unigram;
-  my %alpha;
-  my %bialpha;
-  my %trigram;
-  my %bigram;
-  my $new;
-  my %uniprob;
-  my %biprob;
-
-  $| = 1;  # always flush buffers
+  my ($pgm_root,$data_root,$logfile) = @_;
 
   open(LOG,">$logfile");
-  open(IN,"$sentfile") or die("can't open $sentfile!\n");
-  if (defined $wordfile) {
-    open(WORDS,"$wordfile");
-    $wflag = 1;
-  } else {
-    $wflag = 0; 
-  }
 
-  my $log10 = log(10.0);
+  my $cmd = "$pgm_root/text2wfreq < $data_root.sent | $pgm_root/wfreq2vocab > $data_root.vocab";
+  print LOG "$cmd\n";
+  system $cmd;
 
-  if (defined $discount) {
-    if (($discount<=0.0) or ($discount>=1.0)) {
-      print LOG "\discount value out of range: must be 0.0 < x < 1.0! ...using 0.5\n";
-      $discount_mass = 0.5;  # just use default
-    } else {
-      $discount_mass = $discount;
-    }
-  } else {
-    # Ben and Greg's experiments show that 0.5 is a way better default choice.
-    $discount_mass = 0.5;  # Set a nominal discount...
-  }
-  $deflator = 1.0 - $discount_mass;
+  $cmd = "$pgm_root/text2idngram -vocab $data_root.vocab -idngram $data_root.idngram < $data_root.sent";
+  print LOG "$cmd\n";
+  system $cmd;
 
-  # create count tables
-  $sent_cnt = 0;
-  while (<IN>) {
-    s/^\s*//; s/\s*$//;
-    if ( $_ eq "" ) { next; } else { $sent_cnt++; } # skip empty lines
-    @word = split(/\s/);
-    my $j;
-    for ($j=0;$j<($#word-1);$j++) {
-      $trigram{join(" ",$word[$j],$word[$j+1],$word[$j+2])}++;
-      $bigram{ join(" ",$word[$j],$word[$j+1])}++;
-      $unigram{$word[$j]}++;
-    }
-    # finish up the bi and uni's at the end of the sentence...
-    $bigram{join(" ",$word[$j],$word[$j+1])}++;
-    $unigram{$word[$j]}++;
+  $cmd = "$pgm_root/idngram2lm -vocab_type 0 -idngram $data_root.idngram -vocab $data_root.vocab -arpa $data_root.arpa";
+  print LOG "$cmd\n";
+  system $cmd;
 
-    $unigram{$word[$j+1]}++;
-  }
-  close(IN);
-  print LOG "$sent_cnt sentences found.\n";
+  $cmd = "$pgm_root/sphinx_lm_convert -i $data_root.arpa -o $data_root.lm.DMP";
+  print LOG "$cmd\n";
+  system $cmd;
 
-  # add in any words
-  if ($wflag) {
-    $new = 0; 
-    my $read_in = 0;
-    while (<WORDS>) {
-      s/^\s*//; s/\s*$//;
-      if ( $_ eq "" ) { next; }  else { $read_in++; }  # skip empty lines
-      if (! $unigram{$_}) { $unigram{$_} = 1; $new++; }
-    }
-    print LOG "tried to add $read_in word; $new were new words\n";
-    close (WORDS);
-  }
-  if ( ($sent_cnt==0) && ($new==0) ) {
-    print LOG "no input?\n";
-    exit;
-  }
+  close (LOG);
 
-  open(LM,">$lm_file") or die("can't open $lm_file for output!\n");   #scm -changed to lm_file
-
-  my $preface = "";
-  $preface .= "Language model created by QuickLM for perlbox-voice on ".`date`;
-  $preface .= "Copyright (c) 1996-2002\nCarnegie Mellon University and Alexander I. Rudnicky\n\n";
-  $preface .= "This model based on a corpus of $sent_cnt sentences and ".scalar (keys %unigram). " words\n";
-  $preface .= "The (fixed) discount mass is $discount_mass\n\n";
-
-  # compute counts
-  my $unisum = 0; 
-  my $uni_count = 0; 
-  my $bi_count = 0; 
-  my $tri_count = 0;
-  foreach my $x (keys(%unigram)) { $uni_count++; $unisum += $unigram{$x}; }
-  foreach my $x (keys(%bigram))  { $bi_count++; }
-  foreach my $x (keys(%trigram)) { $tri_count++; }
-
-  print LM $preface;
-  print LM "\\data\\\n";
-  print LM "ngram 1=$uni_count\n";
-  if ( $bi_count > 0 ) { print LM "ngram 2=$bi_count\n"; }
-  if ( $tri_count > 0 ) { print LM "ngram 3=$tri_count\n"; }
-  print LM "\n";
-
-  # compute uni probs
-  foreach my $x (keys(%unigram)) {
-    $uniprob{$x} = ($unigram{$x}/$unisum) * $deflator;
-  }
-
-  # compute alphas
-  foreach my $y (keys(%unigram)) {
-    my $w1 = $y;
-    my $sum_denom = 0.0;
-    foreach my $x (keys(%bigram)) {
-      if ( substr($x,0,rindex($x," ")) eq $w1 ) {
-        my $w2 = substr($x,index($x," ")+1);
-        $sum_denom += $uniprob{$w2};
-      }
-    }
-    $alpha{$w1} = $discount_mass / (1.0 - $sum_denom);
-  }
-
-  print LM "\\1-grams:\n";
-  foreach my $x (sort keys(%unigram)) {
-    printf LM "%6.4f %s %6.4f\n", log($uniprob{$x})/$log10, $x, log($alpha{$x})/$log10;
-  }
-  print LM "\n";
-
-  #compute bi probs
-  foreach my $x (keys(%bigram)) {
-    my $w1 = substr($x,0,rindex($x," "));
-    $biprob{$x} = ($bigram{$x}*$deflator)/$unigram{$w1};
-  }
-
-  #compute bialphas
-  foreach my $x (keys(%bigram)) {
-    my $w1w2 = $x;
-    my $sum_denom = 0.0;
-    foreach my $y (keys(%trigram)) {
-      if (substr($y,0,rindex($y," ")) eq $w1w2 ) {
-        my $w2w3 = substr($y,index($y," ")+1);
-        $sum_denom += $biprob{$w2w3};
-      }
-    }
-    $bialpha{$w1w2} = $discount_mass / (1.0 - $sum_denom);
-  }
-
-  # output the bigrams and trigrams (now that we have the alphas computed).
-  if ( $bi_count > 0 ) {
-    print LM "\\2-grams:\n";
-    foreach my $x (sort keys(%bigram)) {
-      printf LM "%6.4f %s %6.4f\n",
-        log($biprob{$x})/$log10, $x, log($bialpha{$x})/$log10;
-    }
-    print LM "\n";
-  }
-
-  if ($tri_count > 0 ) {
-    print LM "\\3-grams:\n";
-    foreach my $x (sort keys(%trigram)) {
-      my $w1w2 = substr($x,0,rindex($x," "));
-      printf LM "%6.4f %s\n",
-        log(($trigram{$x}*$deflator)/$bigram{$w1w2})/$log10, $x;
-    }
-    print LM "\n";
-  }
-
-  print LM "\\end\\\n";
-  close(LM);
-
-  print LOG "Language model completed at ",scalar localtime(),"\n";
-
-  return "build_lm:: complete";
 }
 
 package PocketSphinx_Listener;
@@ -606,15 +333,15 @@ sub new
    my $friendly_name = "PocketSphinx_Listener_p_sphinx_$device";
    &main::store_object_data($self->{p_sphinx}, 'Process_Item', $friendly_name, $friendly_name);
    $self->{t_crash_timer} = new Timer;
+   $self->{t_speak_timer} = new Timer;
 
    # file names from the Control portion
    $self->{log_file}        = "$main::config_parms{data_dir}/pocketsphinx/pocketsphinx";
    $self->{sentence_file}   = "$main::config_parms{data_dir}/pocketsphinx/current.sent";
-   $self->{lm_file}         = "$main::config_parms{data_dir}/pocketsphinx/current.lm";
-   $self->{dictionary_file} = "$main::config_parms{data_dir}/pocketsphinx/current.dic";
+   $self->{lm_file}         = "$main::config_parms{data_dir}/pocketsphinx/current.lm.DMP";
 
    # run parameters
-   $self->{hmm_file}    = "/usr/local/share/pocketsphinx/model/hmm/wsj1";
+   $self->{hmm_file}    = "/usr/local/share/pocketsphinx/model/hmm/en_US/hub4wsj_sc_8k";
    $self->{continuous}  = "/usr/local/bin/pocketsphinx_continuous";
    $self->{host}        = "localhost";
    $self->{port}        = 3235;
@@ -627,8 +354,20 @@ sub new
    $self->{crash_cnt} = 0;
    &::MainLoop_pre_add_hook(\&PocketSphinx_Listener::state_machine,undef,$self);
    &::Reload_pre_add_hook(\&PocketSphinx_Listener::restart,undef,$self);
+   &::Speak_parms_add_hook(\&PocketSphinx_Listener::speak, 0);
 
    return $self;
+}
+
+# Set functions
+sub set_hmm_file {
+   my ($self,$file) = @_;
+   $self->{hmm_file} = $file if -e $file;
+}
+
+sub set_sample_rate {
+   my ($self,$sample_rate) = @_;
+   $self->{sample_rate} = $sample_rate;
 }
 
 # Trim leading and trailing spaces
@@ -671,6 +410,38 @@ sub restart {
     my ($self) = @_;
     $self->{p_sphinx}->stop( );
 }
+
+# Update speak parameters based upon context
+sub speak {
+    my ($self,$parms_ref) = @_;
+    &main::print_log ("PocketSphinx_Listener::speak called!!") if $main::Debug{pocketsphinx};
+    my @rooms = split ',', lc $parms_ref->{rooms};
+    foreach my $room (@rooms) {
+      &main::print_log ("PocketSphinx_Listener::speak room: $room\n");
+    }
+    if (exists $self->{speak_room} ) {
+      if ( !$self->{t_crash_timer}->active( ) ) {
+	delete $self->{speak_room};
+      } else {
+        push @rooms, $self->{speak_room};
+        $parms_ref->{rooms} = join ",",@rooms;
+        my @rooms = split ',', lc $parms_ref->{rooms};
+        foreach my $room (@rooms) {
+          &main::print_log ("PocketSphinx_Listener::speak room: $room\n") if $main::Debug{pocketsphinx};
+        }
+        $self->{t_speak_timer}->set(60);
+      }
+    }
+}
+
+# Define the speaking room
+sub set_speak_room {
+    my ($self,$room) = @_;
+    $self->{speak_room} = $room;
+    &main::print_log ("PocketSphinx_Listener::set_speak_room room: $room\n") if $main::Debug{pocketsphinx};
+    $self->{t_speak_timer}->set(60);
+}
+
 
 # Allow the listener to startup on the next pass of the state_machine maintenance thread.
 sub start_listener {
@@ -724,7 +495,6 @@ sub state_machine {
                     "-log_file $self->{log_file}",
                     "-sent_file $self->{sentence_file}",
                     "-lm_file $self->{lm_file}",
-                    "-dict_file $self->{dictionary_file}",
                     "-hmm_file $self->{hmm_file}",
                     "-program $self->{continuous}",
                     "-device $self->{device}",
