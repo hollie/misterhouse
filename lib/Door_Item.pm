@@ -152,7 +152,7 @@ sub set
             }
             $p_state = 'check';
          } elsif ($p_state eq 'closed') {
-            $$self{m_timerAlarm}->stop();
+            $$self{m_timerAlarm}->unset();
             $$self{last_closed} = $::Time;
          }
       }
