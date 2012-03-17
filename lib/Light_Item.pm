@@ -172,74 +172,76 @@ sub initialize
 	$$self{m_always_set_state} = 1; # the default is to set state regardless of change
         $$self{m_restrict_off} = 0; # disable light restrictions items from preventing off states
 	$$self{m_save_state} = 0;  # allow states to be restored across restarts
+	$$self{debug} = $main::Debug{light_item};
         # defined possible states
         @{$$self{states}} = ('on','off');
 }
 
+sub set_debug {
+    my ($self, $debug) = @_;
+    $self->{debug} = $debug;
+}
 
-sub set
-{
-	my ($self,$p_state,$p_setby,$p_respond) = @_;
+sub set {
+    my ($self,$p_state,$p_setby,$p_respond) = @_;
 
 ############################################################################
 ## NEW Redesign
 ############################################################################
-	my $l_event_state=undef;
-	my $l_handler_state=undef;
-	my $l_final_state=undef;
-	my $l_temp_state=undef;
+    my $l_event_state=undef;
+    my $l_handler_state=undef;
+    my $l_final_state=undef;
+    my $l_temp_state=undef;
 
-	$p_state=lc($p_state);
+    $p_state=lc($p_state);
 
-	### prevent reciprocal sets ###
-	return if (ref $p_setby and $p_setby->can('get_set_by') and $p_setby->{set_by} eq $self);
+    ### prevent reciprocal sets ###
+    return if (ref $p_setby and $p_setby->can('get_set_by') and $p_setby->{set_by} eq $self);
 
-        ### allow "automatic resume from manual" if a timer has been set
-        if ((ref $p_setby) && ($p_setby eq $$self{m_manualTimer})) {
-          # reset the current state to what is in $$self{_automation_state} ???
-           if ((($self->state eq 'off') and  $$self{m_manual_auto_off}) or
-                 (($self->state ne 'off') and $$self{m_manual_auto_on})) {
-              if ($self->allow_set_state($$self{_automation_state}, $p_setby)) {
-                     &::print_log("Light_Item($$self{object_name}):: manual state reverting to tracked state: "
-                          . "$$self{_automation_state}") if $main::Debug{light_item};
+    ### allow "automatic resume from manual" if a timer has been set
+    if ((ref $p_setby) && ($p_setby eq $$self{m_manualTimer})) {
+	# reset the current state to what is in $$self{_automation_state} ???
+	if ((($self->state eq 'off') and  $$self{m_manual_auto_off}) or
+	    (($self->state ne 'off') and $$self{m_manual_auto_on})) {
+	    if ($self->allow_set_state($$self{_automation_state}, $p_setby)) {
+		&::print_log("Light_Item($$self{object_name}):: manual state reverting to tracked state: "
+			     . "$$self{_automation_state}") if $self->{debug};
+		$self->SUPER::set($$self{_automation_state},$p_setby,$p_respond);
+	    } else {
+		&::print_log("Light_Item($$self{object_name}):: resuming from manual to automatic mode") if $self->{debug};
+	    }
+	} else {
+	    &::print_log("Light_Item($$self{object_name}):: resuming from manual to automatic mode") if $self->{debug};
+	}
 
-                     $self->SUPER::set($$self{_automation_state},$p_setby,$p_respond);
-              } else {
-                 &::print_log("Light_Item($$self{object_name}):: resuming from manual to automatic mode") if $main::Debug{light_item};
-              }
-           } else {
-              &::print_log("Light_Item($$self{object_name}):: resuming from manual to automatic mode") if $main::Debug{light_item};
-           }
+	$self->manual(0);
+	$$self{m_manualTimer}->unset();
+	return;
+    }
 
-           $self->manual(0);
-           $$self{m_manualTimer}->unset();
-
-           return;
-        }
-
-	### Manual shutoff (unless set by the manually controlled light) ###
+    ### Manual shutoff (unless set by the manually controlled light) ###
 #	return if ($self->manual() && !((ref $p_setby) && (ref $self->manual) && ($self->manual eq $p_setby)));
 
 
 ######### EVENTS
-	#Determine what type of event this is ON/OFF
-	if ($self->is_on_event($p_state,$p_setby)) {
-		$l_event_state='on';
-	} elsif ($self->is_off_event($p_state,$p_setby)) {
-		$l_event_state='off';
-	}
+    #Determine what type of event this is ON/OFF
+    if ($self->is_on_event($p_state,$p_setby)) {
+	$l_event_state='on';
+    } elsif ($self->is_off_event($p_state,$p_setby)) {
+	$l_event_state='off';
+    }
 
     if ($self->manual && ((ref $p_setby) && (ref $self->manual) && ($self->manual eq $p_setby))) {
-        if ($l_event_state eq 'on') {
-           if ($p_state=~/^[+-]?\d?\d\%?/ or $p_state=~/^[+]?100\%?/) {
-              #Someone wants a pre-set dim or dimmed state
-              $l_final_state = $p_state;
-           } else {
-              $l_final_state = 'on';
-           }
-        } elsif ($l_event_state eq 'off') {
-           $l_final_state = 'off';
-        }
+	if ($l_event_state eq 'on') {
+	    if ($p_state=~/^[+-]?\d?\d\%?/ or $p_state=~/^[+]?100\%?/) {
+		#Someone wants a pre-set dim or dimmed state
+		$l_final_state = $p_state;
+	    } else {
+		$l_final_state = 'on';
+	    }
+	} elsif ($l_event_state eq 'off') {
+	    $l_final_state = 'off';
+	}
     } else {
 ######### HANDLERS
 	#IDLE Handler
@@ -253,7 +255,7 @@ sub set
 	$l_temp_state = $self->do_on_delay($p_state,$p_setby,$l_event_state);
 	$l_handler_state = $self->get_handler_state($l_temp_state,$l_event_state,$l_handler_state);
 
- 	#Delay OFF handler
+	#Delay OFF handler
 	$l_temp_state = $self->do_off_delay($p_state,$p_setby,$l_event_state);
 	$l_handler_state = $self->get_handler_state($l_temp_state,$l_event_state,$l_handler_state);
 
@@ -262,48 +264,48 @@ sub set
 	$l_handler_state = $self->get_handler_state($l_temp_state,$l_event_state,$l_handler_state);
 
 
-######### RESTRICTIONS
+	######### RESTRICTIONS
 	# Apply restrictions
 	#  ON
 	if (defined($l_handler_state) and $l_handler_state ne 'off') { #If we are on
-		if ($self->is_on_restriction($p_state,$p_setby) and !($self->manual)) { #if there is a restriction in place, dont do it
-			$l_final_state = undef;
+	    if ($self->is_on_restriction($p_state,$p_setby) and !($self->manual)) { #if there is a restriction in place, dont do it
+		$l_final_state = undef;
+	    } else {
+		if ($l_event_state ne $l_handler_state) { #If a handler modified the state, then use it instead
+		    $l_final_state = $l_handler_state;
+		} elsif ($p_state=~/^[+-]?\d?\d\%?/ or $p_state=~/^[+]?100\%?/) {
+		    #Someone wants a pre-set dim or dimmed state
+		    $l_final_state = $p_state;
 		} else {
-			if ($l_event_state ne $l_handler_state) { #If a handler modified the state, then use it instead
-				$l_final_state = $l_handler_state;
-			} elsif ($p_state=~/^[+-]?\d?\d\%?/ or $p_state=~/^[+]?100\%?/) {
-				#Someone wants a pre-set dim or dimmed state
-				$l_final_state = $p_state;
-			} else {
-				$l_final_state = $self->set_on_state();
-			}
+		    $l_final_state = $self->set_on_state();
 		}
+	    }
 	}
 	#  OFF
 	if (defined($l_handler_state) and $l_handler_state eq 'off') { #If we are off
-		if ($self->is_off_restriction($p_state,$p_setby) ) { #if there is a restriction in place, dont do it
-			$l_final_state = undef;
-		} else {
-			$l_final_state = $l_handler_state;
-		}
+	    if ($self->is_off_restriction($p_state,$p_setby) ) { #if there is a restriction in place, dont do it
+		$l_final_state = undef;
+	    } else {
+		$l_final_state = $l_handler_state;
+	    }
 	}
 
 
 ######## MAINTAIN STATE ###
-        if (defined($l_final_state)) {
-           $$self{_automation_state} = $l_final_state;
-           if ($self->manual) {
-              $l_final_state = undef; # don't set state if manual
-           }
-        }
+	if (defined($l_final_state)) {
+	    $$self{_automation_state} = $l_final_state;
+	    if ($self->manual) {
+		$l_final_state = undef; # don't set state if manual
+	    }
+	}
     }
     if (defined($l_final_state)) {
 	if ($self->allow_set_state($l_final_state, $p_setby)) {
 ######### LOG ##############
-           &::print_log("Light_Item($$self{object_name}):: State->$p_state Event->$l_event_state Handler->$l_handler_state Final->$l_final_state DelayOff->" . $$self{m_timerOff}->active() . " Setby->$p_setby (" . ( ref($p_setby) ? $$p_setby{object_name} :'') . ")") if $main::Debug{light_item};
+	    &::print_log("Light_Item($$self{object_name}):: State->$p_state Event->$l_event_state Handler->$l_handler_state Final->$l_final_state DelayOff->" . $$self{m_timerOff}->active() . " Setby->$p_setby (" . ( ref($p_setby) ? $$p_setby{object_name} :'') . ")") if $self->{debug};
 
 ######### SET LIGHT STATE ##############
-	   $self->SUPER::set($l_final_state,$p_setby,$p_respond);
+	    $self->SUPER::set($l_final_state,$p_setby,$p_respond);
 	}
     }
 }
@@ -387,7 +389,7 @@ sub do_X10_sync
 	if ($self->x10_sync() and $p_event_state eq 'off') { #if we have a qualified attempt to turn off
 		if ( ! $$self{m_timerOff}->active() ) { #if the off timer isnt already running
 			$$self{m_timerSync}->set($$self{m_timerSyncTime} + (rand() * $$self{m_timerSyncTime}), $self); #sync non-status reporting light status
-#			&::print_log("$$self{object_name}:X10Sync Start");
+			&::print_log("$$self{object_name}:X10Sync Start") if $self->{debug};
 		} elsif ($p_setby eq $$self{m_timerSync}) { #If delay_off timer is running and this is a Sync Event
 			$p_event_state=undef;
 		}
@@ -419,55 +421,55 @@ sub do_on_delay
 
 sub do_off_delay
 {
-	my ($self,$p_state,$p_setby,$p_event_state) = @_;
-	my $l_delay;
+    my ($self,$p_state,$p_setby,$p_event_state) = @_;
+    my $l_delay;
 
-	$l_delay = $self->get_off_delay_effective($p_state,$p_setby);
-#	&::print_log("Delay$$self{object_name}:$l_delay");
-	if ($l_delay >0 ) { #Delay off is enabled
-		#ON EVENT
-		if ($p_event_state eq 'on') {
-			#These are considered "Temporary" ON state sets
-			if (defined($p_setby) and ( $p_setby->isa('Motion_Item') or
-				($p_setby->isa('Presence_Monitor') and $p_state eq 'predict') )) { #These are subject to a delay off timer upon turning on (temporary state)
-				if (! $self->is_somebody_present($p_setby,$p_state)) { #only start the timer if no one is here
-#					&::print_log("$$self{object_name}:Delay Start:$l_delay");
-					$$self{m_timerOff}->set($l_delay, $self);
-				} else { #stop the timer if this is true
-					$$self{m_timerOff}->stop();
-#					&::print_log("$$self{object_name}:Delay Stop:$l_delay");
-				}
-			} elsif (defined($p_setby) and $p_setby eq $$self{m_idleTimer} ) {
-				#Ignore the Idle timer, it never causes a delay
-			} else {
-				# All other device states can turn on and stay on
-				#stop a delay off timer on any other device set
-#					&::print_log("$$self{object_name}:Delay Stop:$l_delay");
-				$$self{m_timerOff}->stop();
-			}
-		### OFF EVENT
-		} elsif ($p_event_state eq 'off') {
-			if (defined($p_setby) and
-				($p_setby->isa('Motion_Item') or
-				$p_setby->isa('Presence_Monitor') or
-				$p_setby->isa('Photocell_Item') or
-				$p_setby->isa('Door_Item') ) ) { # Do not immediately turn off for these devices. Qualify for delay override
-				if (! $self->is_somebody_present($p_setby,$p_state) ) {
-					if (!$$self{m_timerOn}->active()) { #only reset if we arent previously running
-#						&::print_log("$$self{object_name}:Delay Start:$l_delay");
-						$$self{m_timerOff}->set($l_delay, $self);
-					}
-				} else { #stop the timer if someone is here
-#					&::print_log("$$self{object_name}:Delay Stop:$l_delay");
-					$$self{m_timerOff}->stop();
-				}
-				$p_event_state=undef;
-			}
+    $l_delay = $self->get_off_delay_effective($p_state,$p_setby);
+    &::print_log("do_off_delay:$$self{object_name}:$l_delay") if $self->{debug};
+    if ($l_delay >0 ) { #Delay off is enabled
+	#ON EVENT
+	if ($p_event_state eq 'on') {
+	    #These are considered "Temporary" ON state sets
+	    if (defined($p_setby) and ( $p_setby->isa('Motion_Item') or
+					($p_setby->isa('Presence_Monitor') and $p_state eq 'predict') )) { #These are subject to a delay off timer upon turning on (temporary state)
+		if (! $self->is_somebody_present($p_setby,$p_state)) { #only start the timer if no one is here
+		    &::print_log("$$self{object_name}:Delay Start:$l_delay") if $self->{debug};
+		    $$self{m_timerOff}->set($l_delay, $self);
+		} else { #stop the timer if this is true
+		    $$self{m_timerOff}->unset();
+		    &::print_log("$$self{object_name}:Delay Stop:$l_delay") if $self->{debug};
 		}
-
+	    } elsif (defined($p_setby) and $p_setby eq $$self{m_idleTimer} ) {
+		#Ignore the Idle timer, it never causes a delay
+	    } else {
+		# All other device states can turn on and stay on
+		#stop a delay off timer on any other device set
+		&::print_log("$$self{object_name}:Delay Stop:$l_delay") if $self->{debug};
+		$$self{m_timerOff}->unset();
+	    }
+	    ### OFF EVENT
+	} elsif ($p_event_state eq 'off') {
+	    if (defined($p_setby) and
+		($p_setby->isa('Motion_Item') or
+		 $p_setby->isa('Presence_Monitor') or
+		 $p_setby->isa('Photocell_Item') or
+		 $p_setby->isa('Door_Item') ) ) { # Do not immediately turn off for these devices. Qualify for delay override
+		if (! $self->is_somebody_present($p_setby,$p_state) ) {
+		    if (!$$self{m_timerOn}->active()) { #only reset if we arent previously running
+			&::print_log("$$self{object_name}:Delay Start:$l_delay") if $self->{debug};
+			$$self{m_timerOff}->set($l_delay, $self);
+		    }
+		} else { #stop the timer if someone is here
+		    &::print_log("$$self{object_name}:Delay Stop:$l_delay") if $self->{debug};
+		    $$self{m_timerOff}->unset();
+		}
+		$p_event_state=undef;
+	    }
 	}
-#	&::print_log("Delayout:$p_event_state");
-	return $p_event_state;
+
+    }
+    &::print_log("$$self{object_name}:Delayout:$p_event_state") if $self->{debug};
+    return $p_event_state;
 }
 
 sub do_idle
@@ -505,7 +507,7 @@ sub is_on_event
 		if ($p_state eq 'occupied' ) { $l_qualified=1; }
 		if ($p_state eq 'predict' and $self->predict() ) { $l_qualified=1; }
 	    }	elsif ($p_setby->isa('Light_Restriction_Item') ) {
-		if ($p_state eq 'light_ok' ) { $l_qualified=1; }
+		if (($p_state eq 'light_ok' ) && ($self->is_somebody_present($p_setby, $p_state))) { $l_qualified=1; }
 	    }	elsif ($p_setby->isa('Photocell_Item') ) { #Photocell only triggers an ON event if there are no other devices attached
 		if ($p_state eq 'dark' ) {
 			if ( !(defined $self->find_members('Motion_Item') or
@@ -540,7 +542,7 @@ sub is_on_restriction
 	my ($self,$p_state,$p_setby) = @_;
 	my $setby_conduit = &main::set_by_to_target($p_setby);
 	if ( ( $setby_conduit =~ /^serial|xpl|xap|web|telnet/i ) or ($main::Reload and ( $p_setby eq 'init' ) ) ) {
-		print "No on restrictions permitted when set by non-automation device\n" if $main::Debug{occupancy};
+		&::print_log ("$$self{object_name}:No on restrictions permitted when set by non-automation device\n") if $self->{debug};
 		return 0;
 	}
 	my $l_qualified=0;
@@ -552,8 +554,8 @@ sub is_on_restriction
 	if ( defined($p_setby) ) {
 		#Automatic on events are no allowed to shutoff lights if someone is here
 		if ( $p_setby->isa('Light_Restriction_Item') ) {
-			if ( ! ($self->is_somebody_present($p_setby, $p_state) ) ) { #If someone is in the room, allow the light on!
-				$l_qualified=1;
+			if ( ($self->is_somebody_present($p_setby, $p_state) ) ) { #If someone is in the room, allow the light on!
+			    $l_qualified=1;
 			}
 		}
 	}
@@ -609,7 +611,7 @@ sub is_off_event
 			$p_state eq 'off' and
 			!$$self{m_timerSync}->active()) {
 			$l_qualified = 1;
-#			&::print_log("$$self{object_name}:X10syncEnd:Off");
+			&::print_log("$$self{object_name}:X10syncEnd:Off") if $self->{debug};
 		}
 	    }	elsif ($p_setby eq $$self{m_timerOn} ) { #Does not apply
 		$l_qualified=0;
@@ -632,7 +634,7 @@ sub is_off_restriction
 	my ($self,$p_state,$p_setby) = @_;
 	my $setby_conduit = &main::set_by_to_target($p_setby);
 	if ( ( $setby_conduit =~ /^serial|xpl|xap|web|telnet/i ) or ($main::Reload and ( $p_setby eq 'init' ) ) ) {
-		&::print_log("No off restrictions permitted when set by non-automation device ($setby_conduit)") if $main::Debug{light_item};
+		&::print_log("$$self{object_name}:No off restrictions permitted when set by non-automation device ($setby_conduit)") if $self->{debug};
 		return 0;
 	}
 	my $l_qualified=0;
@@ -667,14 +669,14 @@ sub is_change_allowed {
 	my @l_objects;
 	@l_objects = $self->find_members('Light_Restriction_Item');
 	for my $obj (@l_objects) {
-      &::print_log("Light_Item($$self{object_name}): Light_Restriction_Item $$obj{object_name}: " . $obj->state()) if $main::Debug{occupancy};
+      &::print_log("Light_Item($$self{object_name}): Light_Restriction_Item $$obj{object_name}: " . $obj->state()) if $self->{debug};
 		if ($obj->state() eq 'no_light') {
          return 0;
 		}
 	}
    # Only return 1 if no restrictions are active *and* no lock is pending
    if ($$self{m_pending_lock}) {
-      &::print_log("Light_Item($$self{object_name}): not allowing on because of pending lock") if $main::Debug{occupancy};
+      &::print_log("Light_Item($$self{object_name}): not allowing on because of pending lock") if $self->{debug};
       return 0;
    } else {
       return 1;
@@ -732,14 +734,14 @@ sub predict
 {
 	my ($self,$p_blnPredict) = @_;
 	$$self{m_predict} = $p_blnPredict if defined $p_blnPredict;
-#	&::print_log("InPredict:" . $$self{object_name} . ":" . $p_blnPredict . ":" . $$self{m_predict});
+	&::print_log("InPredict:" . $$self{object_name} . ":" . $p_blnPredict . ":" . $$self{m_predict}) if $self->{debug};
 	return $$self{m_predict};
 }
 
 sub set_on_state
 {
 	my ($self,$p_strOnState) = @_;
-#  &::print_log("set_on_state($self, $p_strOnState)");
+	&::print_log("$$self{object_name}:set_on_state($self, $p_strOnState)") if $self->{debug};
 	$$self{m_on_state} = $p_strOnState if defined $p_strOnState;
 	return $$self{m_on_state};
 }
@@ -791,11 +793,11 @@ sub manual {
            $$self{m_manualTimer}->unset();
            if (($self->state eq 'off') or ($self->state eq '') or ($self->state eq '0%')) {
               &::print_log("Light_Item($$self{object_name}):: setting mode to manual (off)"
-                 . (($$self{m_manual_auto_off}) ? "[auto]" : "") . "; reverting in $offTime seconds") if $main::Debug{light_item};
+                 . (($$self{m_manual_auto_off}) ? "[auto]" : "") . "; reverting in $offTime seconds") if $self->{debug};
               $$self{m_manualTimer}->set($offTime, $self);
            } else {
               &::print_log("Light_Item($$self{object_name}):: setting mode to manual (on)"
-                 . (($$self{m_manual_auto_on}) ? "[auto]" : "") . "; reverting in $onTime seconds") if $main::Debug{light_item};
+                 . (($$self{m_manual_auto_on}) ? "[auto]" : "") . "; reverting in $onTime seconds") if $self->{debug};
               $$self{m_manualTimer}->set($onTime, $self);
            }
         }
@@ -825,7 +827,7 @@ sub x10_sync
 	my ($self,$p_blnSync) = @_;
 	$$self{m_sync} = $p_blnSync if defined $p_blnSync;
 	if (! $$self{m_sync}) {
-		$$self{m_timerSync}->stop();
+		$$self{m_timerSync}->unset();
 	}
 	return $$self{m_sync};
 }
@@ -851,6 +853,7 @@ sub start_delay_off {
       return;
    }
 }
+
 sub restore_string
 {
 	my ($self) = @_;
@@ -860,7 +863,7 @@ sub restore_string
 	if ($$self{m_save_state}) {
 	    $l_restore_string = $self->SUPER::restore_string;
 	    $l_restore_string =~ s/-\>{state}=(.*);/-\>{state}='off'/ig;
-            #&::print_log("Restore:::$l_restore_string:");
+            #&::print_log("Restore:::$l_restore_string:") if $self->{debug};
 	}
 
 	return $l_restore_string;

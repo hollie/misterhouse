@@ -121,7 +121,7 @@ sub set
 	} elsif ($p_setby eq $$self{m_timeout}) { # Timer expired
 		$p_state='still';
 	} elsif ($p_state eq 'still') { # Motion OFF
-		$$self{m_timeout}->stop() if defined $$self{m_timeout}
+		$$self{m_timeout}->unset() if defined $$self{m_timeout}
 	}
 	$self->SUPER::set($p_state, $p_setby);
 }
