@@ -102,6 +102,9 @@ sub new
 	$$self{m_timerOccupancyExpire} = new Timer();
 	$$self{state}=0;
 	$$self{m_occupancy_expire} = 0;
+	$$self{wdog_interval} = 60;
+	$$self{m_timer_wdog} = new Timer;
+	$$self{m_timer_wdog}-> set($self->{wdog_interval}, sub {&Presence_Monitor::watch_dog($self)});
 	$$self{debug} = $main::Debug{presence};
 	return $self;
 }
@@ -109,6 +112,24 @@ sub new
 sub set_debug {
     my ($self, $debug) = @_;
     $self->{debug} = $debug;
+}
+
+# This watch_dog timer method will look for conditions where the room is occupied but no
+# occupancy expiration timer is in play. 
+sub watch_dog {
+   my ($self) = @_;
+   if ($self->state eq 'occupied') {
+       if (!$self->{m_timerOccupancyExpire}->active( )) {
+	   &::print_log("$$self{object_name}: watch_dog, occupied without timer!") if $self->{debug};
+	   if (defined $self->{m_occupancy_expire}) {
+	       &::print_log("$$self{object_name}: occupancy timer set $$self{m_occupancy_expire}, watchdog condition!") if $self->{debug};
+	       $self->{m_timerOccupancyExpire}->set($self->{m_occupancy_expire}, $self);
+	       $self->{wdog_interval} = $self->{m_occupancy_expire}+2;
+	   }
+       }
+   }
+   # reload the timer
+   $self->{m_timer_wdog}-> set($self->{wdog_interval}, sub {&Presence_Monitor::watch_dog($self)});
 }
 
 sub handle_presence {
@@ -163,6 +184,9 @@ sub process_count {
    } elsif ($l_count >= 1) {
       $p_state = 'occupied';
       $$self{m_timerCancelPredict}->unset();
+      my $m_state = $$self{m_obj}->state;
+      my $m_name = $$self{m_obj}->{object_name};
+      &::print_log("$$self{object_name}: room occupied $m_state $m_name") if $self->{debug};
       if (defined $$self{m_occupancy_expire} and $$self{m_obj}->state =~ /(motion|open)/i) {
 #            and ref $p_setby and ref $p_setby->get_set_by and $p_setby->get_set_by eq $$self{m_obj} 
             $$self{m_timerOccupancyExpire}->set($$self{m_occupancy_expire}, $self);
