@@ -3,6 +3,9 @@ package Voice_Cmd;
 @Voice_Cmd::ISA = ('Generic_Item');
 
 use strict;
+
+use HTML::Entities;    # So we can encode characters like <>& etc
+
 my ($cmd_num);
 my (%cmd_by_num, %cmd_state_by_num, %cmd_num_by_text, %cmd_text_by_num, %cmd_text_by_vocab);
 my (%cmd_word_list, %cmd_vocabs);
@@ -709,7 +712,42 @@ sub disablevocab {
     $Vcmd_viavoice->set('');
 }
 
-    
+# Return the number of tags which will be returned via android_xml
+sub android_query {
+    my ($self) = @_;
+    my $num_tags = $self->SUPER::android_query();
+    $num_tags += 1;
+    return $num_tags;
+}
+
+sub android_xml {
+    my ($self, $depth, %fields) = @_;
+    my $xml_objects = $self->SUPER::android_xml($depth, %fields);
+    my $prefix = '  ' x $depth;
+
+    my @f = qw( text );
+
+    foreach my $f ( @f ) {
+        next unless $fields{all} or $fields{$f};
+
+        my $method = $f;
+	my $value;
+        if ($self->can($method)
+            or ( ( $method = 'get_' . $method )
+                and $self->can($method) )
+          ) {
+	    $value = $self->$method;
+	    $value = encode_entities( $value, "\200-\377&<>" );
+	} elsif (exists $self->{$f}) {
+	    $value = $self->{$f};
+            $value = encode_entities( $value, "\200-\377&<>" );
+	}
+
+	$xml_objects .= $prefix . "<$f>$value</$f>\n";
+    }
+    return $xml_objects;
+}
+
 1;
 
 #
