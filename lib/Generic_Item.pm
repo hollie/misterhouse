@@ -14,6 +14,8 @@ sub STORE {
 
 package Generic_Item;
 
+use HTML::Entities;    # So we can encode characters like <>& etc
+
 =head1 NAME
 
 B<Generic_Item> - This is the parent object for all state-based mh objects, 
@@ -1473,6 +1475,87 @@ sub reset_states {
     @states_from_previous_pass = @items_with_more_states;
 }
 
+# Return the number of tags which will be returned via android_xml
+sub android_query {
+    my ($self) = @_;
+    my $num_tags = 2;  # name + state
+    my $log_size = 0;
+    $log_size = @{$$self{state_log}} if $$self{state_log} ;
+    if ($log_size > 0) {
+	$num_tags++;
+    }
+    return $num_tags;
+}
+
+sub android_xml {
+    my ($self, $depth, %fields) = @_;
+    my $xml_objects;
+    my $prefix = '  ' x $depth;
+
+    my @f = qw( name state state_log );
+
+    foreach my $f ( @f ) {
+        next unless $fields{all} or $fields{$f};
+
+        my $method = $f;
+	my $value;
+        if ($self->can($method)
+            or ( ( $method = 'get_' . $method )
+                and $self->can($method) )
+          ) {
+            if ( $f eq 'states' or $f eq 'state_log' ) {
+                my @a = $self->$method;
+                $value = \@a;
+	    } else {
+		$value = $self->$method;
+		$value = encode_entities( $value, "\200-\377&<>" );
+	    }
+	} elsif (exists $self->{$f}) {
+	    $value = $self->{$f};
+            $value = encode_entities( $value, "\200-\377&<>" );
+	}
+
+	if ($f eq "state") {
+	    my @states = $self->get_states( );
+	    my $numStates = @states;
+	    my $attribute = ' type="text"';
+	    if ($numStates eq 2) {
+		$attribute = ' type="toggle"';
+	    }
+	    if ($numStates > 2) {
+		$attribute = ' type="spinner"';
+	    }
+	    $attribute .= " value=\"$value\"";
+	    $xml_objects .= $prefix . "<state$attribute>\n";
+	    foreach (@states) {
+		$_ = 'undef' unless defined $_;
+		$value = $_;
+		$value = encode_entities( $value, "\200-\377&<>" );
+		my $selected = "";
+		#if ($_ eq $self->{state}) {
+		#    $selected = " selected=\"true\"";
+		#}
+		$xml_objects .= $prefix . "  <value$selected>$value</value>\n";
+	    }
+	    $xml_objects .= $prefix . "</state>\n";
+	} elsif ($f eq "state_log") {
+	    $xml_objects .= $prefix . "<state_log type=\"arrayList\">\n";
+	    my @state_log = @{$value};
+	    foreach (@state_log) {
+		$_ = 'undef' unless defined $_;
+		$value = $_;
+		$value = encode_entities( $value, "\200-\377&<>" );
+		$xml_objects .= $prefix . "  <value>$value</value>\n";
+	    }
+	    $xml_objects .= $prefix . "</state_log>\n";
+	} elsif ($f eq "name") {
+	    $xml_objects .= $prefix . "<name>$self->{object_name}</name>\n";
+	} else {
+	    $xml_objects .= $prefix . "<$f>$value</$f>\n";
+	}
+    }
+    return $xml_objects;
+}
 
 =head1 INI PARAMETERS
 
