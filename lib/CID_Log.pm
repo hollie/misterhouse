@@ -77,6 +77,8 @@ sub set
 {
 	my ($self,$p_state,$p_setby) = @_;
 #	&::print_log("CIDLOG $p_state, $p_setby");
+        return if ($p_setby->cid_name() =~ /MSG OFF/);
+        return if ($p_setby->cid_name() =~ /MSG WAITING/);
 	if ($p_state =~ /^CID/i)
 	{
 		$self->cid_name($p_setby->cid_name());
