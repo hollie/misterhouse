@@ -40,6 +40,14 @@ our %message_types = (
 						off => 0x13
 );
 
+our %nack_messages = (
+   fb => 'illegal_value_in_cmd',
+   fc => 'pre_nak_long_db_search',
+   fd => 'bad_checksum_or_unknown_cmd',
+   fe => 'load_sense_detects_no_load',
+   ff => 'sender_id_not_in_responder_aldb',
+);
+
 sub derive_link_state
 {
 	my ($p_state) = @_;
@@ -435,6 +443,19 @@ sub _is_info_request
 		}
 		# if this were a scene controller, then also propogate the result to all members
 	}
+   elsif ( $cmd eq 'get_engine_version' ) {
+      my $version = $msg{extra};
+      $version++; # version retuned in cmd2 is 0 indexed
+      if ( $version == 3 ) {
+         $version = 'I2CS';
+      }
+      else {
+         $version = 'I'. sprintf( "%1d",$version);
+      }
+      &::print_log("[Insteon::BaseObject] received engine version for " 
+         . $self->{object_name} . " of $version.");
+   }
+
 	return $is_info_request;
 
 }
@@ -503,16 +524,21 @@ sub _process_message
 #		}
 #                else
 #                {
-                	if ($self->isa('Insteon::BaseLight'))
-                        {
-				&::print_log("[Insteon::BaseObject] WARN!! encountered a nack message for " . $self->{object_name}
+         if ($self->isa('Insteon::BaseLight')) {
+
+            &::print_log("[Insteon::BaseObject] WARN!! encountered a nack message ("
+               . $self->get_nack_msg_for( $msg{extra} ) 
+               .") for " 
+               . $self->{object_name}
 					. ".  It may be unplugged or have a burned out bulb") if $main::Debug{insteon};
-                        }
-                        else
-                        {
-				&::print_log("[Insteon::BaseObject] WARN!! encountered a nack message for " . $self->{object_name}
+         }
+         else {
+            &::print_log("[Insteon::BaseObject] WARN!! encountered a nack message ("
+               . $self->get_nack_msg_for( $msg{extra} ) 
+               .") for " 
+               . $self->{object_name}
 					. " ... skipping");
-                        }
+         }
 			$self->is_acknowledged(0);
 			$self->_process_command_stack(%msg);
 #		}
@@ -635,6 +661,11 @@ sub _is_valid_state
 	}
 }
 
+# Provide human readable nack message.
+sub get_nack_msg_for {
+   my ($self,$msg) = @_;
+   return $nack_messages{ $msg };
+}
 
 ####################################
 ###            #####################
@@ -656,6 +687,7 @@ our %message_types = (
    delete_from_group => 0x02,
    linking_mode => 0x09,
    unlinking_mode => 0x0A,
+   get_engine_version => 0x0D,
    ping => 0x10,
    on_fast => 0x12,
    off_fast => 0x14,
@@ -1018,6 +1050,13 @@ sub request_status
         my $message = new Insteon::InsteonMessage('insteon_send', $self, 'status_request');
         $self->_send_cmd($message);
 #	$self->_send_cmd('command' => 'status_request', 'is_synchronous' => 1);
+}
+
+sub get_engine_version {
+   my ($self, $requestor) = @_;
+
+   my $message = new Insteon::InsteonMessage('insteon_send', $self, 'get_engine_version');
+   $self->_send_cmd($message);
 }
 
 sub ping

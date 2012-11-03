@@ -253,7 +253,7 @@ sub generate_voice_commands
               $cmd_states .= ",link to interface,unlink with interface";
            }
            if ($object->is_root and !($object->isa('Insteon::InterfaceController'))) {
-              $cmd_states .= ",status,scan link table,log links";
+              $cmd_states .= ",status,get engine version,scan link table,log links";
               push @_scannable_link, $object_name;
            }
            $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
@@ -261,6 +261,7 @@ sub generate_voice_commands
            $object_string .= "$object_name_v -> tie_event('$object_name->interface()->cancel_linking','cancel linking');\n\n";
            if ($object->is_root and !($object->isa('Insteon::InterfaceController'))) {
               $object_string .= "$object_name_v -> tie_event('$object_name->request_status','status');\n\n";
+              $object_string .= "$object_name_v -> tie_event('$object_name->get_engine_version','get engine version');\n\n";
               $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','scan link table');\n\n";
               $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table()','log links');\n\n";
            }
@@ -272,7 +273,7 @@ sub generate_voice_commands
         } elsif ($object->isa('Insteon::BaseDevice')) {
            $states = $insteon_menu_states if $insteon_menu_states
            	&& ($object->can('is_dimmable') && $object->is_dimmable);
-           my $cmd_states = "$states,status,scan link table,log links,update onlevel/ramprate"; #,on level,ramp rate";
+           my $cmd_states = "$states,status,get engine version,scan link table,log links,update onlevel/ramprate"; #,on level,ramp rate";
            $cmd_states .= ",link to interface,unlink with interface" if $object->isa("Insteon::BaseController") || $object->is_controller;
            $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
            foreach my $state (split(/,/,$states)) {
@@ -280,6 +281,7 @@ sub generate_voice_commands
            }
            $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table()','log links');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->request_status','status');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->get_engine_version','get engine version');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->update_local_properties','update onlevel/ramprate');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','scan link table');\n\n";
            if ($object->isa("Insteon::BaseController") || $object->is_controller) {
