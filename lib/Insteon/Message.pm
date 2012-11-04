@@ -228,6 +228,7 @@ sub command_to_hash
                         {
 				$msg{type} = 'cleanup';
 				$msg{is_nack} = 1;
+				$msg{extra} = substr($p_state,16,2);
 			}
                         elsif ($msgflag == 0)
                         {
@@ -244,6 +245,7 @@ sub command_to_hash
                         {
 				$msg{type} = 'direct';
 				$msg{is_nack} = 1;
+				$msg{extra} = substr($p_state,16,2);
 			}
 		}
 	}
