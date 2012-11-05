@@ -107,10 +107,15 @@ sub startup {
         $xpl_send = new Socket_Item( undef, undef, 'xpl_send' );
 
         # Find and use the first open port
-        # The socket code will select a free local port if given 0
         my $port_listen;
-        &open_port( 0, 'listen', 'xpl_listen', 1, 1 );
-        $port_listen = $::Socket_Ports{'xpl_listen'}{port};
+	for my $p (49352 .. 65535) {
+	    $port_listen = $p;
+	    last if &open_port( $port_listen, 'listen', 'xpl_listen', 1, 1);
+	}
+	# The socket code will select a free local port if given 0
+	# not working on ubuntu 12.04
+        #&open_port( 0, 'listen', 'xpl_listen', 1, 1 );
+        #$port_listen = $::Socket_Ports{'xpl_listen'}{port};
         $xpl_listen = new Socket_Item( undef, undef, 'xpl_listen' );
 
         # initialize the hub (listen) port
