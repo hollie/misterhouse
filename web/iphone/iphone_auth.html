@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>
+        </title>
+        <link rel="stylesheet" href="jquery/jquery.mobile-1.1.1.min.css" />
+        <link rel="stylesheet" href="my.css" />
+        <style>
+            /* App custom styles */
+        </style>
+        <script src="jquery/jquery.min.js">
+        </script>
+        <script src="jquery/jquery.mobile-1.1.1.min.js">
+        </script>
+        <script src="my.js">
+        </script>
+    </head>
+    <body>
+        <!-- Home -->
+        <div data-role="page" id="page1">
+            <div data-theme="a" data-role="header">
+                <h3>
+                    MisterHouse
+                </h3>
+            </div>
+            <div data-role="content">
+                <div id="num_keyb_div" data-role="fieldcontain">
+                    <fieldset data-role="controlgroup">
+                        <label for="password">
+                            Enter Password
+                        </label>
+                        <input name="" id="password_num" placeholder="" value="" type="tel" />
+                    </fieldset>
+                </div>
+                <div id="norm_keyb_div" data-role="fieldcontain" style="display: none;">
+                    <fieldset data-role="controlgroup">
+                        <label for="password">
+                            Enter Password
+                        </label>
+                        <input name="" id="password_normal" placeholder="" value="" type="password" />
+                    </fieldset>
+                </div>
+
+                <a id="submit_button" data-role="button" data-theme="b" href="#page1" >
+                    Submit
+                </a>
+                <div id="keyboard_selector" data-role="fieldcontain" style="padding-top: 1px; margin-top: 120px">
+                    <fieldset data-role="controlgroup" data-type="horizontal" data-mini="true">
+                        <legend>
+                            Keyboard
+                        </legend>
+                        <input id="num_selected" name="" value="1" type="radio" checked="checked" />
+                        <label for="num_selected">
+                            Numeric
+                        </label>
+                        <input id="radio4" name="" value="2" type="radio" />
+                        <label for="radio4">
+                            Normal
+                        </label>
+                    </fieldset>
+                </div>
+            </div>
+        </div>
+        <script>
+            $("input[type='radio']").bind( "change", function(event, ui) {
+               if(document.getElementById("num_selected").checked) {
+                    document.getElementById("num_keyb_div").style.display="block";
+                    document.getElementById("norm_keyb_div").style.display="none";
+               } else {
+                    document.getElementById("num_keyb_div").style.display="none";
+                    document.getElementById("norm_keyb_div").style.display="block";
+               }
+            });
+
+            $( "#submit_button" ).bind( "click", function(event, ui) {
+                AttemptLogin();
+            });
+
+            function AttemptLogin() {
+                if (document.getElementById("num_selected").checked) {
+                    var mypw = document.getElementById("password_num").value;
+                    document.getElementById("password_num").value = "";
+                } else {
+                    var mypw = document.getElementById("password_normal").value;
+                    document.getElementById("password_normal").value = "";
+                }
+                var request = new XMLHttpRequest();
+                var parameters="password="+mypw;
+                request.open("POST", "SET_PASSWORD_FORM", false);
+                request.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+                request.send(parameters);
+                var re = /password accepted/i;
+                if (re.test(request.responseText)) {
+                    document.location = "index.shtml";
+                } else {
+                    alert("Login Failed");
+                }
+
+            }
+
+
+        </script>
+    </body>
+</html>

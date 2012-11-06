@@ -12,16 +12,27 @@
     <body>
 
       <script type="text/javascript">
+        CheckLogin();
         addEventListener("load", function() { setTimeout(hideURLbar, 0); }, false);
 
         function hideURLbar(){
           window.scrollTo(0,1);
-
         }
 
         function ChangeState(request) {
             WA.Request(request, null, null);
         }
+
+        function CheckLogin() {
+            var request = new XMLHttpRequest();
+            request.open("GET", "auth_user.shtml", false);
+            request.send(null);
+            if (request.responseText != "family" && request.responseText != "admin")
+            { 
+                document.location = "iphone_auth.html";
+            }
+        }
+
       </script>
 
         <link rel="apple-touch-icon" href="/iphone/apple-touch-icon.png"/>
