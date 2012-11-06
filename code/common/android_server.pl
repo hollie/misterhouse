@@ -72,25 +72,7 @@ sub file_ready_for_android {
 	my $client = $androidClients{$client_ip}{client};
 	&print_log("file_ready_for_android ip: $client_ip room: $room client: $client") if $Debug{android};
 	if ( grep(/$room/, @{$parms{androidSpeakRooms}}) ) {
-	    # Check to see if the client/server is still active
-	    my $active = 0;
-	    for my $ptr (@{$main::Socket_Ports{server_android}{clients}}) {
-		my ($socka, $client_ip_address, $client_port, $data) = @{$ptr};
-		#&print_log("Testing socket client ip address: $client_ip_address:$client_port\n") if $main::Debug{android};
-		if ($socka and ($client_ip_address =~ /$client_ip/)) {
-		    $active = 1;
-		    last;
-		}
-	    }
-	    # If active, send, otherwise, delete from list
-            if ($active) {
-		my $function = "speak";
-		&print_log("file_ready_for_android:: ip: $client_ip client: $client room: $room") if $Debug{android};
-		$android_server->set( (join '?', $function, $speakFile), $client_ip);
-	    } else {
-		&print_log("client_ip: $client_ip inactive");
-		delete $androidClients{$client_ip};
-	    }
+            &android_send_message ( $client_ip, "speak", $speakFile );
 	}
     }
 }
@@ -167,6 +149,54 @@ sub pre_play_to_android {
     $parms_ref->{web_file} = "web_file";
     push(@{$parms_ref->{androidSpeakRooms}},@rooms);
     push(@{$parms_ref->{web_hook}},\&file_ready_for_android);
+}
+
+# This method provides the lowest level interface to send a message to 
+# a specific android device identified by a $client_ip address.
+sub android_send_message ( ) {
+    my ($client_ip, $function, $data) = @_;
+    # Check to see if the client/server is still active
+    my $active = 0;
+    for my $ptr (@{$main::Socket_Ports{server_android}{clients}}) {
+	my ($socka, $client_ip_address, $client_port, $data) = @{$ptr};
+	#&print_log("Testing socket client ip address: $client_ip_address:$client_port\n") if $main::Debug{android};
+	if ($socka and ($client_ip_address =~ /$client_ip/)) {
+	    $active = 1;
+	    last;
+	}
+    }
+    # If active, send, otherwise, delete from list
+    if ($active) {
+	&print_log("android_send_data:: ip: $client_ip") if $Debug{android};
+	$android_server->set( (join '?', $function, $data), $client_ip);
+    } else {
+	&print_log("client_ip: $client_ip inactive");
+	delete $androidClients{$client_ip};
+    }
+}
+
+$v_test_android_speak = new Voice_Cmd("test android speak");
+if (my $state = said $v_test_android_speak) {
+    &speak ( "hello from jim duda");
+}
+
+$v_test_android_play = new Voice_Cmd("test android play");
+if (my $state = said $v_test_android_play) {
+    &play ( "../sounds/sound_trek1.wav");
+}
+
+$v_test_android_callerid = new Voice_Cmd("test android caller id");
+if (my $state = said $v_test_android_callerid) {
+    &android_callerid ( "Jim Duda", "7813545048");
+}
+
+sub android_callerid {
+    my ($name, $number) = @_;
+    print_log "android_callerid: $name $number";
+    my $data = "{\"name\"" . ":" . "\"$name\"" . "," . "\"number\"" . ":" . "\"$number\"}";
+    foreach my $client_ip (keys %androidClients) {
+	&android_send_message ( $client_ip, "callerid", $data );
+    }
 }
 
 sub android_xml {
