@@ -192,8 +192,11 @@ BEGIN {
             elsif ($build < 800) {
                 push @INC, "${Pgm_Path}/../lib/site_win56";
             }
-            else {
+            elsif ($build < 900) {
                 push @INC, "${Pgm_Path}/../lib/site_win58";
+            }
+            elsif ($build < 1300 and $build > 1199) {
+                push @INC, "${Pgm_Path}/../lib/site_win512";
             }
         }
         require 'handy_utilities.pl';       # For misc. functions (e.g. time/date stamp routines)
@@ -992,7 +995,7 @@ sub setup {
     if ($OS_win) {
         $Time_Boot_time = time - &get_tickcount/1000;    # Gettickcount starts at computer boot
     }
-    elsif ($^O eq 'linux') {
+    elsif ($^O eq 'linux' or $^O eq 'cygwin') {
 
 # Linux output:
 # uptime: 2 hours 10:38pm  up  2:10,  6 users,  load average: 0.83, 0.45, 0.18
@@ -1017,6 +1020,10 @@ sub setup {
         use vars qw($sysctl);
         $sysctl = '/usr/sbin/sysctl';
         $Time_Boot_time = `$sysctl -n kern.boottime`;
+    }
+    else {
+        #Sets boot time to a sane value for unknown OSs
+        $Time_Boot_time = time;
     }
 
 

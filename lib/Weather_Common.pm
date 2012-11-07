@@ -41,7 +41,7 @@ our @weather_hooks;
 # this should be called whenever a client has FINISHED updating %main::Weather
 
 sub weather_updated {
-	# get a pointer to the main $w hash to make things easier to read (and type!)
+	# get a pointer to the main $Weather hash to make things easier to read (and type!)
 	my $w=\%main::Weather;
 
 	my $windSpeed=$$w{WindAvgSpeed};

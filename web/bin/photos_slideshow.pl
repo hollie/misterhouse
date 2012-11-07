@@ -31,11 +31,11 @@ use vars '@photos';    # This will be persistent across passes and code reloads
 my $time = $config_parms{photo_time};
 $time = 60 unless defined $time;
 my $effect = $config_parms{photo_effect};
-$effect = "none" unless defined $effect;
+$effect = "fade" unless defined $effect;
 my $thumbs = $config_parms{photo_thumbnails};
 $thumbs = 0 unless defined $thumbs;
 my $captions = $config_parms{photo_captions};
-$captions = 0 unless defined $captions;
+$captions = 1 unless defined $captions;
 $config_parms{photo_size} =~ m/(\d+)[x|X](\d+)/;
 my $width  = $1;
 my $height = $2;
@@ -43,20 +43,17 @@ my $images = "";
 
 foreach (@photos) {
 	my $file = $_;
-	my $img  = $file;
 	my @dirs = split( /,/, $config_parms{photo_dirs} );
 	$file =~ s/ /%20/g;
 	$file =~ s/\#/%23/g;
 	$file =~ s/&/%26/g;
 	$file =~ s/\'/%27/g;
 	$file =~ s/\/photos//g;
-	foreach (@dirs) {
-		$img =~ s/$_//;
-	}
-	$img =~ m/(\/)?(.+)\.(\S+)/;
-	$img = $2;
+	$file =~ s/^\///g;
+	my @caption = split(/\//, $file);
+	my $caption_text = pop @caption;
 	$images .= <<eof;
-	'$file': { caption: '$img' },
+	'$file': { caption: '$caption_text' },
 eof
 }
 

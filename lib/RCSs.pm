@@ -6,7 +6,7 @@ From Chris Witte <cwitte@xmlhq.com>
 
 Control RCS serial (rs232/rs485) thermostats.
 
-This module was shamelessly cloned from Kent Noonan's Omnistat.pm
+This module was shamelessly cloned from Kent Noonans Omnistat.pm
 Thanks for the starting point Kent.
 
 Use these mh.ini parameters to enable this code:
@@ -29,6 +29,7 @@ my %RCSs_Thermistat_Address;
 
 sub serial_startup {
     my ($instance) = @_;
+#    print "instance is $instance\n";
     my $count = 0;
     push(@RCSs_Thermistat_Ports, $instance);
 
@@ -43,6 +44,7 @@ sub serial_startup {
     }	
 
     if ($count == 1) {
+#	$main::config_parms{"RCSs_break"} = ' ';	
 	&::serial_port_create($instance, $port, $speed);
 	$count = 0;
     }
@@ -58,9 +60,20 @@ sub check_for_data {
       		&::check_for_generic_serial_data($port_name) if $::Serial_Ports{$port_name}{object};
       		my $data = $::Serial_Ports{$port_name}{data_record};
       		next if !$data;
-      		print "$port_name got: [$::Serial_Ports{$port_name}{data_record}]\n";
-      		$main::Serial_Ports{$port_name}{data_record}='';
+ #     		print "$port_name got: [$::Serial_Ports{$port_name}{data_record}]\n";
+#      		$main::Serial_Ports{$port_name}{data_record}='';
     	}
+}
+
+
+
+
+sub said {
+    my $port_name = $_[0]->{port_name};
+     my $retval = $main::Serial_Ports{$port_name}{data_record};    
+    $main::Serial_Ports{$port_name}{data_record} = undef;
+    return $retval;
+
 }
 
 
@@ -166,9 +179,9 @@ sub _setpoint{
 sub _poll{
 	my ($self,$temp)=@_;
 	my $instance = $self->{port_name};
-	my $cmd="A=$self->{thermaddress} R=1\r";
+	my $cmd="A=$self->{thermaddress} R=12\r";
 	$main::Serial_Ports{$instance}{object}->write($cmd);
-	print "$::Time_Date: RCSs::_poll (ing) [$self]\n";
+#	print "$::Time_Date: RCSs::_poll (ing) [$self]\n";
 }
 
 

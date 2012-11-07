@@ -65,7 +65,7 @@ function openparmhelp(parm1){
                         'Analog Sensor (ANALOG_SENSOR)', 'AUDIOTRON', 'COMPOOL',
                         'EIB Switch (EIB1)', 'EIB Switch Group (EIB1G)', 'EIB Dimmer (EIB2)',
                         'EIB Value (EIB5)', 'EIB Drive (EIB7)',
-                        'GENERIC', 'IBUTTON', 'INSTEON_PLM','INSTEON_LAMPLINC','INSTEON_APPLIANCELINC',
+                        'GENERIC', 'GROUP', 'IBUTTON', 'INSTEON_PLM','INSTEON_LAMPLINC','INSTEON_APPLIANCELINC',
                         'INSTEON_SWITCHLINC','INSTEON_SWITCHLINCRELAY','INSTEON_KEYPADLINC','INSTEON_KEYPADLINCRELAY',
                         'INSTEON_REMOTELINC','INSTEON_MOTIONSENSOR','INSTEON_ICONTROLLER',
                         'MP3PLAYER', 'One-Wire xAP Connector (OWX)', 'RF', 'SERIAL',
@@ -127,6 +127,7 @@ $form_type
                     EIB5    => [qw(Address Name Groups Mode)],
                     EIB7    => ['Address', 'Name', 'Groups'],
                     GENERIC => [qw(Name Groups)],
+                    GROUP   => [qw(Name FloorPlan Groups)],
                     IBUTTON => [qw(ID Name Port Channel)],
                     SERIAL  => [qw(String Name Groups State Port)],
                     VOICE   => [qw(Item Phrase)],
@@ -194,11 +195,15 @@ sub web_item_set_field {
     return &html_page('', 'Not authorized to make updates') unless $Authorized eq 'admin';
     my ($pos, $field) = $pos_field =~ /(\d+),(\d+)/;
 
+                                # Get current item record and split into fields 
+    my $record = @file_data[$pos];
+    my @item_info = split(',\s*', $record);
+
                                 # Sanitize the data input by user (also done in web_item_add)
     $data =~ s/\s*$//;
     $data =~ s/^\s*//;
     $data =~ s/,//g;
-    if ($field == 2) { # name
+    if ($field == 2 and $item_info[0] ne 'GROUP') { # name 
         $data =~ s/ +/_/g;
         $data =~ s/[^a-z0-9_]//ig;
     }
@@ -265,7 +270,11 @@ sub web_item_add {
     }
     $type =~ s/.+ \((\S+)\)/$1/;  # Change 'X10 Light (X10I)'  to X10I
     $name =~ s/ +/_/g;
-    $name =~ s/[^a-z0-9_,]//ig;
+    if ($type eq 'GROUP,' ) {
+        $name =~ s/[^a-z0-9_\(\);]//ig;
+    } else {
+        $name =~ s/[^a-z0-9_,]//ig;
+    }
     $other2 =~ s/,$//;
 
                                 # write out new record to mht file
@@ -295,6 +304,7 @@ sub web_item_help {
                 Phrase  => 'Voice_Cmd Text',
                 Mode    => '\'R\' (readable): generate read request to learn current state at initialization',
                 Options => 'List the device options separated by | (e.g. preset, resume=80)',
+                FloorPlan => 'Floor Plan location',
                 Other   => 'Other stuff :)');
 
     my $help = $help{$field};
