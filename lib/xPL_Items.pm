@@ -1020,7 +1020,7 @@ sub tie_value_convertor {
 sub device_monitor {
     my ( $self, $monitor_info ) = @_;
     if ($monitor_info) {
-	my ($key,$value) = $monitor_info =~ /(\S+)\s*[:=]\s*(.+)/;
+	my ($key,$value) = $monitor_info =~ /(\S+)\s*[:=]\s*(\S+)/;
         if ( !( $value or $value =~ /^0/ ) ) {
             $value = ($key) ? $key : $monitor_info;
             $key = 'device';
