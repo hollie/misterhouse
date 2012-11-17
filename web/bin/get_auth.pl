@@ -3,4 +3,4 @@
 
 # Authority: anyone
 
-return "$Authorized";
+return  (($Authorized)?"$Authorized":'none');
