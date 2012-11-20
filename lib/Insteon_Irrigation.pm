@@ -183,4 +183,4 @@ sub _is_info_request {
 # Overload methods we don't use, but would otherwise cause Insteon traffic.
 sub request_status { return 0 }
 
-	1;
+1;

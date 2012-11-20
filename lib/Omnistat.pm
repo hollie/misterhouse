@@ -67,23 +67,19 @@ TODO: The sleep situation has been much improved, but if someone smart could rep
 Changelog
 ================================================================================
 
-2010/07/26 - Marc MERLIN
+2011/11/24 - Marc MERLIN
 ========================
-Minor fixes, but the biggest was modifying bin/mh to support code that occasionally dies
-(mh would disable that code after it died 9 times, which is not so good since it killed
-all temp and stat logging if you were using that).
-It is just hard to never trigger die code, in my case I sometimes have:
-Omnistat[1]->send_cmd did not get expected first byte (0x81) in ack reply to command 01 20 48
- 01 6a (got 0x82 in 0x82 0x22 0x48 0x00 0xec 0x81 0x22 0x48 0x00 0xeb ) at ../lib/Omnistat.pm line 544.
-this shows that I got a reply from stat #2 when I was expecting a reply from stat #1.
-It happens rarely, and it's likely mostly serial port issues that I can't easily fix nor really
-care to since they're rare and the code just deals with them.
-
-As a result, you should put this in mh,private.ini:
-omnistat_allowed_errors = 999999999999
-hvac_allowed_errors = 999999999999
-replacing the first word (hvac/omnistat) by your code/module.pl names that use this library.
-This will stop mh from disabling your code if the libraries dies every so often.
+This has major improvements on serial port data handing to avoid the occasional dies due to poor timing.
+Details:
+- stop messing around, and just require Time::Hires (old code could limp around with just 'sleep', but as
+  a result it did a poor job of reliably getting data replies on some occasions).
+- instead of blindly sleeping for a pre-guessed time before reading a response, read data characters 
+- sleeps are now reduced to the bare minimum required (0.37s for typical reads to 0.80s for full register dumps).
+- No data gets dropped anymore without suitable logging and serial port
+  data is cleared before sending a command and waiting for an answer.
+- No more priming hack needed.
+- die resets cache data so that we don't end up with possible garbage data
+- state_now logic was improved somewhat.
 
 
 2011/01/09 - Mickey Argo/Karl Suchy/Marc MERLIN
@@ -404,32 +400,17 @@ package Omnistat;
 sub omnistat_debug {
   my ($mesg) = @_;
 
-  print "$::Time_Date: $mesg\n" if $::Debug{omnistat};
+  &::print_log("$mesg") if $::Debug{omnistat};
+  #print "$::Time_Date: $mesg\n" if $::Debug{omnistat};
 }
 
-# Load Time::HiRes if it's available
-use vars qw($USLEEP);
-eval { require Time::HiRes };
-if (not $@) {
-  Time::HiRes->import( qw(usleep) );
-  omnistat_debug("Omnistat found Time::Hires, will use usleep in omni_sleep");
-  $USLEEP=1;
-} else {
-  omnistat_debug("Omnistat did NOT find Time::Hires, will NOT use usleep in omni_sleep");
-  warn("Omnistat works much better with Time::HiRes, install it if you can");
-  $USLEEP=0;
-}
+use Time::HiRes;
 
 # --------------------------------------------------------------
 # -------------------- START OF SUBROUTINES --------------------
 # --------------------------------------------------------------
 
 @Omnistat::ISA = ('Serial_Item');
-
-sub omni_sleep() {
-  $USLEEP ? usleep($_[0]) : sleep(int($_[0] + 0.99999));
-}
-
 
 # My guess is that most people would want to have temperature logging, but you can turn it off with
 # Omnistat_stat_log=0 in mh.private.ini -- merlin
@@ -480,7 +461,7 @@ sub new {
   foreach my $reg (0x15..0x38, 0x0f, 0x49) {
     $$self{cache_agelimit}{$reg} = 3600 * 24;  # CACHE_TIMEOUT_DAILY
   }
-  # setpoints and modes are cached 53 secs so that they are pretty much
+  # setpoints and modes are cached 54 secs so that they are pretty much
   # guaranteed to be updated once a minute even with the random +10% offset
   foreach my $reg (0x3b .. 0x3f) {
     $$self{cache_agelimit}{$reg} = 54;  # CACHE_TIMEOUT_SHORT
@@ -497,14 +478,24 @@ sub new {
   omnistat_debug("Omnistat[$$self{address}] object created");
   bless $self,$class;
 
-  # This is to work around a timing bug where the first query doesn't get a proper ack
-  # we just "prime" the device and connection by making one query to it where we ignore the answer
-  # no idea why this is needed, but it works for me and things are stable afterwards -- merlin
-  $self->{'PRIME'}=1;
-  $self->send_cmd("0x01 0x20 0x40 0x01 0x62", 1);
-  $self->{'PRIME'}=0;
+  # Clean up left over data on the serial port.
+  &main::check_for_generic_serial_data('Omnistat');
+  $main::Serial_Ports{Omnistat}{data} = '';
+
+  &::print_log("HAI Thermostat $address initialized");
 
   return $self;
+}
+
+sub die_reset {
+  my ($self, $mesg) = @_;
+
+  $self->{cache} = {};
+  $self->{cache_updatetime} = {};
+
+  warn("Resetting cache for ".$self->{address}. " before die\n");
+  &::print_log($mesg);
+  die "$mesg";
 }
 
 # *************************************
@@ -524,6 +515,30 @@ sub add_checksum {
   return @array;
 }
 
+sub read_omnistat_serial_data {
+  my $serial_data;
+
+  &main::check_for_generic_serial_data('Omnistat');
+  $serial_data .= $main::Serial_Ports{Omnistat}{data};
+  $main::Serial_Ports{Omnistat}{data} = '';
+
+  return $serial_data;
+}
+
+sub convert_omnistat_serial_data {
+  my ($serial_data) = @_;
+  my $len = length($serial_data);
+
+  $serial_data = unpack( "H*", $serial_data );
+
+  my $rcvd = '';
+  for (my $i = 0 ; $i < $len ; $i++ ) {
+    $rcvd = $rcvd . sprintf( "0x%s ", substr( $serial_data, $i * 2, 2 ) );
+  }
+
+  return $rcvd;
+}
+
 # **************************************
 # * Send the command to the thermostat.
 # **************************************
@@ -533,77 +548,88 @@ sub add_checksum {
 # of 1.25s, that said it seems to work ok with the current timings and should work without resends unless your
 # serial cable wires are crap (use CAT-5) and/or very long -- merlin
 #
-# FIXME, 2-3 times, I had this bug right after starting mh:
-# 25/07/2009 10:15:30 : Omnistat[2]->read_cached_reg: reg=0x3b not cached, fetching
-# 25/07/2009 10:15:30 : Omnistat->send_cmd string=0x02 0x20 0x3b 0x0e 0x6b (with 833325,us reply delay (14 char(s) to read back))
-# 25/07/2009 10:15:30 : Omnistat->send_cmd got reply "0xff 0x82 0xf2 0x3b 0x8b 0x64 0x03 0x00 0x00 0x78 0x1e 0x0f 0x0a 0x60 0x00 0x00 0x02 0x00 0xb2 "
-# The 0xff in the reply didn't belong. No idea where it came from, especially because it was the first command and reply.
-# for now it makes the code die, the command fail and then things restart and continue -- merlin
 sub send_cmd {
   # if you want to default to a full 2sec wait, pass '-1' as reply_count
   my ($self, $reply_count, @string) = @_;
   my $addr = $$self{address};
   my $cmd = '';
-  # We try to calculate how long we wait for the reply, or default to 2 sec (2M usec)
-  my $reply_wait = 2000000;
+  # We try to calculate how long we wait for the reply, but 2sec max (time can be fractional seconds).
+  my $max_reply_wait = 2;
 
   # some experimentation shows on my system that we need to wait 0.3sec + 0.1sec for each 3 registers returned --merlin
   # 300bps is 30cps, which does equate to 0.0333333s per character. From experimentation, one needs to wait an extra
   # 11 characters in addition to the payload you're expecting back to get reliable replies (10 almost works but causes
   # occasional corruption due to timings). -- merlin
-  # (12+ chars wait instead of 11 might be needed for you. Please increase & let me know if this is too short for you).
-  my $REPLY_BASE_DELAY = 11;
 
-  # While we don't get as many bytes as we sent if we were to set several registers in a row (which is not currently
-  # supported in this code), the spec says to wait 30ms per register set, so the wait time ends up being able the same
-  # when setting data than when polling it.
-  $reply_wait = (33333*($reply_count + $REPLY_BASE_DELAY)) if ($reply_count > -1);
+  # Waiting a pre-calculated time turned out to still be a bit unrealiable. It's much better to know how many characters
+  # you're expecting back (4 chars of header/footer + reply payload).
+  # If no reply count was given, we'll pretend to wait for 20 chars of payload, which will cause the 2sec watchdog
+  # to kick in. Max reply length is 14 chars AFAIK.
+  $reply_count = 16 if ($reply_count == -1);
+  # Omnistat sends 4 bytes of header/footer + payload for a query, or only 3 for a write.
+  if ($reply_count == 0)
+  {
+    $reply_count += 3;
+  }
+  else
+  {
+    $reply_count += 4;
+  }
 
-  omnistat_debug("Omnistat[$$self{address}]->send_cmd string=@string (with $reply_wait,us reply delay ($reply_count char(s) to read back))");
+  # Delete any data that might be waiting on the serial port before we send our command.
+  $_ = convert_omnistat_serial_data( read_omnistat_serial_data() );
+  #omnistat_debug("Omnistat[$$self{address}]->send_cmd: Left over serial data before send_cmd (if any): $_");
+  if ($_)
+  {
+    &::print_log("Omnistat[$$self{address}]->send_cmd: Left over serial data before send_cmd (likely bug/dropped data): $_");
+    # I occasionally see this on restart, that's totally fine, it just cleans up leftover data on the port:
+    # Omnistat[2]->send_cmd: Left over serial data before send_cmd (likely bug/dropped data): 0xfe
+  }
+
+  omnistat_debug("Omnistat[$$self{address}]->send_cmd string=@string ($reply_count char(s) to read back)");
   foreach my $byte (@string) {
     $byte =~ s/0x//;    # strip off the 0x
     $cmd = $cmd . pack "H2", $byte;    # pack it into 8 bits
   }
 
-  # send it to thermostat
+  # Send it to thermostat
   #omnistat_debug("Omnistat->send_cmd will write $cmd");
   $main::Serial_Ports{Omnistat}{object}->write($cmd);
 
-  # need to wait a bit for the reply
-  # FIXME: sleep is bad, especially if you're not using usleep from Time::Hires, the only proper way to do this would be to
-  # have a request queue where one command gets processed every 1-2 seconds, but that would be a big rewrite -- merlin
-  &Omnistat::omni_sleep($reply_wait);
+  # Read response.
+  my $serial_data = "";
+  my $rcvd;
+  my $len;
+  my $before_time = Time::HiRes::time();
+  my $diff_time;
 
-  # read response
-  &main::check_for_generic_serial_data('Omnistat');
-  my $temp = $main::Serial_Ports{Omnistat}{data};
-  $main::Serial_Ports{Omnistat}{data} = '';
-  my $len = length($temp);
-  $temp = unpack( "H*", $temp );
-  my ($i);
-  my $rcvd = '';
-  my $ack_byte = 0x80 + $addr;
-  for ( $i = 0 ; $i < $len ; $i++ ) {
-    $rcvd = $rcvd . sprintf( "0x%s ", substr( $temp, $i * 2, 2 ) );
+  do
+  {
+    # Wait 33ms (to get at least one character).
+    Time::HiRes::usleep(33333);
+    $serial_data .= read_omnistat_serial_data();
+    $len = length($serial_data);
+    $diff_time = Time::HiRes::time() - $before_time;
+    omnistat_debug("Omnistat[$$self{address}]->send_cmd received $len chars back (waiting for $reply_count). $diff_time elapsed out of max $max_reply_wait secs");
   }
+  until ($len == $reply_count or $diff_time > $max_reply_wait);
+
+  $rcvd = convert_omnistat_serial_data($serial_data);
+  if ($diff_time > $max_reply_wait)
+  {
+    &::print_log("WARNING: Omnistat[$$self{address}]->send_cmd packet receive $diff_time exceeded ${max_reply_wait}sec, either a bug or misterhouse hung (Got $len out of $reply_count for command @string)");
+    # A long hang can happen if misterhouse hung due to the OS while it was processing the tight loop above. At least the code deal
+    # with it by reading multiple characters at the same time.
+    # 26/11/2011 05:04:37  Omnistat[2]->send_cmd received 5 chars back (waiting for 18). 0.368366956710815 elapsed out of max 2 secs
+    # 26/11/2011 05:04:37  Omnistat[2]->send_cmd received 18 chars back (waiting for 18). 4.18395900726318 elapsed out of max 2 secs
+    # 26/11/2011 05:04:37  Paused for 4 seconds
+  }
+
+  my $ack_byte = 0x80 + $addr;
   my $rcvd_ack = hex(substr($rcvd, 0 , 4));
 
-  if ($self->{'PRIME'})
-  {
-      omnistat_debug("Omnistat[$$self{address}]->send_cmd skipping error check and return value during prime");
-      return;
-  }
-
-  # FIXME? Those two dies aren't ideal, but it happens that you get corruption or bad data on a reply.
-  # Expected for 01 20 3b 0e 6a is something like
-  # 0x81 0xf2 0x3b 0x7c 0x71 0x03 0x00 0x00 0x7d 0x07 0x1e 0x0f 0x00 0x00 0x00 0x02 0x0c 0x5d
-  # but I have seen replies like
-  # 0x03 0xf2 0x3b 0x7c 0x71 0x03 0x00 0x00 0x7d 0x00 0x1c 0x0f 0x00 0x00 0x00 0x02 0x0c 0x54  (0x81 ack byte is wrong)
-  # or sync issues like
-  # 0x64 0x82 0xf2 0x3b 0x8e 0x64 0x00 0x00 0x00 0x7d 0x20 0x29 0x0f 0x60 0x00 0x00 0x00 0x00 0xd6 (0x64 shouldn't be here)
-  # On my system, this error only seems to happen soon after startup and doesn't seem to happen later -- merlin
-  die "$::Time_Date: Omnistat[$$self{address}]->send_cmd did not get ack reply to command @string ($rcvd)" unless (length($rcvd) > 3);
-  die "$::Time_Date: Omnistat[$$self{address}]->send_cmd did not get expected first byte (".sprintf("0x%02x",$ack_byte).") in ack reply to command @string (got ".sprintf("0x%02x", $rcvd_ack)." in $rcvd)" unless ($rcvd_ack eq $ack_byte);
+  $self->die_reset("$::Time_Date: Omnistat[$$self{address}]->send_cmd did not get ack reply to command @string (received: $rcvd). We were expecting $reply_count bytes back.") unless (length($rcvd) > 3);
+  $self->die_reset("$::Time_Date: Omnistat[$$self{address}]->send_cmd did not get expected first byte (".sprintf("0x%02x",$ack_byte).") in ack reply to command @string (got ".sprintf("0x%02x", $rcvd_ack)." in $rcvd)") unless ($rcvd_ack eq $ack_byte);
   omnistat_debug("Omnistat[$$self{address}]->send_cmd got reply \"$rcvd\"");
 
   return $rcvd;
@@ -726,7 +752,7 @@ sub translate_temp {
 
   # this is a good place to catch a 14 reg read that happens in read_group1 extended, being off by one character, or returning
   # bogus 0's.
-  die "$::Time_Date: Omnistat->translate_temp got an input temperature of 0 = -40F/C, this typically means serial port corruption, bad... You may want to increase REPLY_BASE_DELAY" if (not $settemp or $settemp eq "0x00");
+  die "$::Time_Date: Omnistat->translate_temp got an input temperature of 0 = -40F/C, this typically means serial port corruption, bad..." if (not $settemp or $settemp eq "0x00");
 
   # Calculate conversion mathematically rather than using a table so all temps will work (needed for outside temperature)
   if ( substr( $settemp, 0, 2 ) eq '0x' )
@@ -843,12 +869,14 @@ sub translate_time {
 sub translate_stat_output {
   my ( $self, $reg48 ) = @_;
 
-  die "Omnistat::translate_stat_output got non hex value in '$reg48'" unless (is_hex($reg48));
-  # see reg 0x48 / output register at the top of this file
+  $self->die_reset("Omnistat::translate_stat_output got non hex value in '$reg48'") unless (is_hex($reg48));
+
+  # see reg 0x48 / output register in the comments at the top of this file
+  # "0x0d" is turned into "fan/heat"
   my $output = "off";
   $output = "fan" if (hex($reg48) & 8);
 
-  # if stage 1 and stage 2 heat/cool are off, return here
+  # if stage 1 (heat/coot) and stage 2 are off, return here
   #&::print_log("pass1: reg48: $reg48, $output");
   return $output if (not hex($reg48) & (4+16));
 
@@ -1431,7 +1459,7 @@ sub get_program_mode {
 sub get_filter_reminder {
   my ( $self ) = @_;
   my $days = $self->read_cached_reg("0x0f",1);
-  return hex($days);
+  return (hex($days));
 }
 
 sub set_filter_reminder {
@@ -1476,28 +1504,77 @@ sub get_run_time_this_week {
 # * Get the run time for last week (in hours)
 # **************************************
 sub get_run_time_last_week {
-  my ( $self) = @_;
+  my ( $self ) = @_;
   my $hours = $self->read_cached_reg("0x11",1);
   return hex($hours);
+}
+
+# ***************************************************************************
+# * Update the object's state (query with omnistat->state_now to see changes) 
+# ***************************************************************************
+
+# Good news is that state changes stack up , i.e. the last change does not overwrite the previous one. 
+# omnistat->state_now will just unroll changes as a FIFO for situations like these:
+# 25/11/2011 23:30:37   Omnistat[2]->read_reg: set state->now to cool_sp_change
+# 25/11/2011 23:30:37   Omnistat[2]->read_reg: set state->now to heat_sp_change
+# 25/11/2011 23:30:37   Omnistat[2]->read_reg: set state->now to temp_change
+sub set_state_change_if_any {
+  # register MUST be an hex STRING (i.e. "0x21", not 0x21)
+  my ( $self, $register ) = @_;
+
+  if ($register eq "0x40") {
+    $self->set_receive('temp_change');
+    omnistat_log("Omnistat[$$self{address}]->state_now set to temp_change");
+  } elsif ($register eq "0x3b") {
+    $self->set_receive('cool_sp_change');
+    omnistat_log("Omnistat[$$self{address}]->state_now set to cool_sp_change");
+  } elsif ($register eq "0x3c") {
+    $self->set_receive('heat_sp_change');
+    omnistat_log("Omnistat[$$self{address}]->state_now set to heat_sp_change");
+  } elsif ($register eq "0x3d") {
+    $self->set_receive('mode_change');
+    omnistat_log("Omnistat[$$self{address}]->state_now set to mode_change");
+  } elsif ($register eq "0x3f") {
+    $self->set_receive('hold_change');
+    omnistat_log("Omnistat[$$self{address}]->state_now set to hold_change");
+  } elsif ($register eq "0x3e") {
+    $self->set_receive('fan_mode_change');
+    omnistat_log("Omnistat[$$self{address}]->state_now set to fan_mode_change");
+  } elsif ($register eq "0x0f") {
+    if ($self->get_filter_reminder eq 0) {
+      $self->set_receive('filter_reminder_now');
+      omnistat_log("Omnistat[$$self{address}]->state_now set to filter_reminder_now");
+    } else {
+      $self->set_receive('filter_reminder_change');
+      omnistat_log("Omnistat[$$self{address}]->state_now set to filter_reminder_change");
+
+    }
+  # We test this one last so that if multiple changes happen at once, ->state shows this as
+  # the last relevant state, which is typically more important than the other ones.
+  } elsif ($register eq "0x48") {  # this one is read only
+    $self->set_receive('current_output_change');
+    omnistat_log("Omnistat[$$self{address}]->state_now set to current_output_change");
+  }
 }
 
 # *********************************************
 # * Read specified register(s) from Omnistat.
 # *********************************************
 sub read_reg {
-  # register MUST be an hex STRING (i.e. "0x21", not 0x21)
   # I added a $whitelisted param to strongly hint that people use the caching call instead
   # but you can force a non caching call by just adding the whitelisted flag in the caller
   # yes, $count isn't optional anymore, sorry (but it is optional in read_cached_reg) -- merlin
+
+  # register MUST be an hex STRING (i.e. "0x21", not 0x21)
   my ( $self, $register, $count, $whitelisted ) = @_;
   my $addr = $$self{address};
   my ( @cmd, $regraw, $reg, $byte, $cnt );
   my $i;
   my @value;
 
-  die "Omnistat::read_reg got non hex value in $register" unless (is_hex($register));
+  $self->die_reset("Omnistat::read_reg got non hex value in $register") unless (is_hex($register));
   warn "You should call read_cached_reg instead of read_reg to avoid hang delays. Adjust CACHE_TIMEOUT_ values in new(), and/or set debug=omnistat in mh.private.ini to adjust caching" if (not $whitelisted);
-  die "You can only read 14 registers at a time, you asked for $count" if ($count >14);
+  $self->die_reset("You can only read 14 registers at a time, you asked for $count") if ($count >14);
 
   $count = 1 if (not $count);
 
@@ -1508,14 +1585,14 @@ sub read_reg {
   @cmd    = add_checksum(@cmd);
   $regraw = $self->send_cmd($count, @cmd);
   $reg = substr( $regraw, 15, $count * 5 );
-  die "Omnistat[$$self{address}]->read_reg: got empty response to @cmd (read $count regs from register offset $register), serial port send/read probably failed, check your configuration or you may have a timing issue and may need to increase REPLY_BASE_DELAY" if (not $reg);
+  $self->die_reset("Omnistat[$$self{address}]->read_reg: got incomplete response to @cmd: $regraw (read $count regs from register offset $register), serial port send/read probably failed, check your configuration or you may have a timing issue") if (not $reg);
 
   omnistat_debug("Omnistat[$$self{address}]->read_reg: reg[$register]=$reg");
 
   # Cache the value(s)
   @value = split ' ', $reg;
   for ( $i = 0 ; $i < $count ; $i++ ) {
-    die "Omnistat[$$self{address}]->read_reg: got partial response to @cmd (read $count from $register), response truncated at byte $i. You may have a timing issue and may need to increase REPLY_BASE_DELAY" if (not $value[$i]);
+    $self->die_reset("Omnistat[$$self{address}]->read_reg: got partial response to @cmd (read $count from $register), response truncated at byte $i. You may have a timing issue.") if (not $value[$i]);
 
     my $regoffset = sprintf( "0x%02x", hex($register) + $i);
 
@@ -1528,27 +1605,8 @@ sub read_reg {
         omnistat_debug("Omnistat[$$self{address}]->read_reg: reg[$regoffset]=$value[$i] updated in cache");
 	# Update the cache
 	$$self{cache}{hex($regoffset)} = $value[$i];
-
-        # see if it's a register we care about and register state change if so
-        if ($regoffset eq "0x40") {
-          $self->set_receive('temp_change');
-        } elsif ($regoffset eq "0x3b") {
-          $self->set_receive('cool_sp_change');
-        } elsif ($regoffset eq "0x3c") {
-          $self->set_receive('heat_sp_change');
-        } elsif ($regoffset eq "0x3d") {
-          $self->set_receive('mode_change');
-        } elsif ($regoffset eq "0x3f") {
-          $self->set_receive('hold_change');
-        } elsif ($regoffset eq "0x3e") {
-          $self->set_receive('fan_mode_change');
-        } elsif ($regoffset eq "0x48") {  # this one is read only
-          $self->set_receive('current_output_change');
-        } elsif ($regoffset eq "0x0f") {
-          if ($value[$i] eq "0x00") {
-            $self->set_receive('filter_reminder');
-          }
-        }
+	# Update state_now fifo.
+        $self->set_state_change_if_any($regoffset);
       } else {
         omnistat_debug("Omnistat[$$self{address}]->read_reg: reg[$regoffset]=$value[$i] current in cache");
       }
@@ -1569,14 +1627,14 @@ sub read_reg {
 # *********************************************
 # * Write specified register to Omnistat.
 # *********************************************
-#TODO: add ability to set multiple registers at once
+#TODO: add ability to set multiple registers at once (if ever needed, I don't have that need)
 sub set_reg {
   # register MUST be an hex STRING (i.e. "0x21", not 0x21)
   my ( $self, $register, $value ) = @_;
   my $addr = $$self{address};
   my (@cmd);
 
-  die "Omnistat::set_reg got non hex value in $register <- $value" unless (is_hex($register) and is_hex($value));
+  $self->die_reset("Omnistat::set_reg got non hex value in $register <- $value") unless (is_hex($register) and is_hex($value));
   $cmd[0] = sprintf( "0x%02x", $addr );
   $cmd[1] = "0x21";
   $cmd[2] = $register;
@@ -1589,25 +1647,8 @@ sub set_reg {
   {
     if ($$self{cache}{ hex($register) } ne $value)
     {
-      # TODO, merge with above, prevent duplication
       # register changed, check for state change
-      if ($register eq "0x40") {
-        $self->set_receive('temp_change');
-      } elsif ($register eq "0x3b") {
-        $self->set_receive('cool_sp_change');
-      } elsif ($register eq "0x3c") {
-        $self->set_receive('heat_sp_change');
-      } elsif ($register eq "0x3d") {
-        $self->set_receive('mode_change');
-      } elsif ($register eq "0x3f") {
-        $self->set_receive('hold_change');
-      } elsif ($register eq "0x3e") {
-        $self->set_receive('fan_mode_change');
-      } elsif ($register eq "0x0f") {
-        if ($value eq "0x00") {
-          $self->set_receive('filter_reminder');
-        }
-      }
+      $self->set_state_change_if_any($register);
     }
   }
 
@@ -1631,7 +1672,7 @@ sub read_cached_reg {
     my $value;
     my $regval;
 
-    die "Omnistat::read_cached_reg got non hex value in $register" unless (is_hex($register));
+    $self->die_reset("Omnistat::read_cached_reg got non hex value in $register") unless (is_hex($register));
     $count = 1 if (not $count);
 
     # First see if we can read from the cache
@@ -1709,6 +1750,9 @@ sub read_group1 {
   #  $group1raw = $self->send_cmd(6, @cmd);
 
 
+  # plus_output: Do we fetch enough registers to receive output register too?
+  # This forces us to fetch more data than needed, but it's not slower than
+  # querying group1 and then ouput separately. Too bad output isn't part of group1.
   if ($plus_output) {
     $group1 = $self->read_cached_reg("0x3b", 14, $maxcachetime);
     ( $cool_set, $heat_set, $mode, $fan, $hold, $cur, $_, $_, $_, $_, $_, $_, $_, $output ) = split(' ', $group1);
@@ -1743,3 +1787,4 @@ sub read_cached_group1 {
 
 
 1;
+# vim:sts=2:sw=2
