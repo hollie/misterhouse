@@ -65,7 +65,7 @@ sub open_port {
         $baudrate  = $table{$type}[1];
         $handshake = $table{$type}[2];
     }
-    print "Telephony_Interface port open:  n=$name t=$type p=$port b=$baudrate h=$handshake\n"
+    &::print_log ("Telephony_Interface port open:  n=$name t=$type p=$port b=$baudrate h=$handshake\n")
       if $main::Debug{phone};
     if ($port) {
         &::serial_port_create($name, $port, $baudrate, $handshake);
@@ -80,7 +80,7 @@ sub init {
     my $type = lc $$self{type};
     if ($table{$type} and my $init = $table{$type}[0]) {
         &Serial_Item::send_serial_data($name, $init);
-        &::print_log("$name interface, type=$type, has been initialized with $init");
+        &::print_log("$name interface, type=$type, has been initialized with $init") if $main::Debug{phone};
     }
 }
 
@@ -91,18 +91,19 @@ sub reload_reset {
 sub check_for_data {
     for my $port (@list_ports) {
         if (my $data = $main::Serial_Ports{$port}{data_record}) {
+            &::print_log("Telephony_Interface::check_for_data data:$data") if $main::Debug{phone};
             $main::Serial_Ports{$port}{data_record} = undef;
                                 # Ignore garbage data (ascii is between ! thru ~)
             $data = '' if $data !~ /^[\n\r\t !-~]+$/;
             $caller_id_data{$port} .= ' ' . $data;
-            print "Phone data: $data.\n" if $main::Debug{phone};
+            &::print_log ("Phone data: $data.\n") if $main::Debug{phone};
             if (($caller_id_data{$port} =~ /NAME.+NU?MBE?R/s) or
                 ($caller_id_data{$port} =~ /NU?MBE?R.+NAME/s) or
                 ($caller_id_data{$port} =~ /NU?MBE?R.+MESG/s) or
                 ($caller_id_data{$port} =~ /NU?MBE?R/ and $main::config_parms{caller_id_format} eq 'number only') or
                 ($caller_id_data{$port} =~ /END MSG/s) or         # UK format
                 ($caller_id_data{$port} =~ /FM:/)) {
-                &::print_log("Callerid: $caller_id_data{$port}");
+                &::print_log("Callerid: $caller_id_data{$port}") if $main::Debug{phone};
                 &process_cid_data($port, $caller_id_data{$port});
                 undef $caller_id_data{$port};
              }
@@ -118,7 +119,7 @@ sub process_phone_data {
     my ($port, $data) = @_;
                                 # Set all objects monitoring this port
     for my $object(@{$list_objects{$port}}) {
-        print "Setting Telephony_Interface object $$object{name} to $data.\n";
+        &::print_log ("Setting Telephony_Interface object $$object{name} to $data.\n") if $main::Debug{phone};
         $object->SUPER::set('ring') if $data eq 'ring';
 		$object->ring_count($object->ring_count()+1);  # Where/when does this get reset??
     }
@@ -135,7 +136,7 @@ sub process_cid_data {
                                 # Clean up Dock-N-Talk data
 #   ###DATE...NMBR5071234567...NAMEDock-N-Talk+++
 #   ###DATE...NMBR...NAME   -MSG OFF-+++
-    return if $data =~ /-MSG OFF-/;
+#    return if $data =~ /-MSG OFF-/;
     $data =~ s/Dock-N-Talk//;
 
     my $type = $type_by_port{$port};
@@ -184,7 +185,7 @@ sub process_cid_data {
     $number = '' unless $number;
 
     unless ($name or $number) {
-        print "\nCallerid data not parsed: p=$port t=$type d=$data date=$date time=$time number=$number name=$name\n";
+        &::print_log ("\nCallerid data not parsed: p=$port t=$type d=$data date=$date time=$time number=$number name=$name\n") if $main::Debug{phone};
         return;
     }
 
@@ -203,7 +204,7 @@ sub process_cid_data {
     $cid_type = 'N' if $number =~ /^[\d\- ]+$/;	  # Override the type if the number is known
 
 
-    print "Callerid data: port=$port type=$type cid_type=$cid_type name=$name number=$number date=$date time=$time\n   data=$data.\n"
+    &::print_log ("Callerid data: port=$port type=$type cid_type=$cid_type name=$name number=$number date=$date time=$time\n   data=$data.\n")
       if $main::Debug{phone};
 
                                 # Set all objects monitoring this port

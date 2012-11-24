@@ -75,6 +75,10 @@ sub new {
         $port = "$main::config_parms{owfs_port}" if exists $main::config_parms{owfs_port};
         &main::print_log ("Owfs_Item:: Initializing port: $port $location") if $main::Debug{owfs};
         OW::init ( "$port" );
+	# Do some dummy operation first
+	sleep (1);
+	my $pid = $self->get ( "/system/process/pid");
+	&main::print_log ("Owfs_Item:: port: $port pid: $pid");
     }
 
     $self->{device}   = $device;
@@ -112,6 +116,7 @@ sub set_root {
 sub get {
      my ($self, $token) = @_;
      my $path = $self->{path} . $token;
+     &main::print_log ("Owfs_Item::get $path") if $main::Debug{owfs};
      my $result = OW::get($path) or return ;
      &main::print_log ("Owfs_Item::get $path $result") if $main::Debug{owfs};
      return $result;
@@ -173,8 +178,9 @@ sub dump {
 
 sub _find {
   my ($family, $id,$lev,$path) = @_;
+  &main::print_log ( "_find:: family: $family id: $id lev: $lev path: $path") if $main::Debug{owfs};
   my $result = OW::get($path) or return ;
-  #&main::print_log ( "_find:: family: $family id: $id lev: $lev path: $path") if $main::Debug{owfs};
+  &main::print_log ( "_find:: family: $family id: $id lev: $lev path: $path result: $result") if $main::Debug{owfs};
   my @tokens = split(',',$result);
   foreach my $token (@tokens) {
     if ( $token =~ /\/$/ ) {
@@ -194,7 +200,7 @@ sub _find {
 
 sub _load {
   my ($self, $path) = @_;
-#  &main::print_log ( "_load:: path: $path") if $main::Debug{owfs};
+  &main::print_log ( "_load:: path: $path") if $main::Debug{owfs};
   my $result = OW::get($path) or return ;
   my @tokens = split(',',$result);
   foreach my $token (@tokens) {
@@ -419,7 +425,7 @@ Usage:
  $relay->set_pio("1");
 
  // Turn off relay
- $realy->set_pio("0");
+ $relay->set_pio("0");
 
  // Detect input transition
  my $doorbell = new Owfs_DS2408 ( "20.DB2506000000", "Front Door Bell", "1", 1 );

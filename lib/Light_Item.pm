@@ -173,6 +173,9 @@ sub initialize
         $$self{m_restrict_off} = 0; # disable light restrictions items from preventing off states
 	$$self{m_save_state} = 0;  # allow states to be restored across restarts
 	$$self{debug} = $main::Debug{light_item};
+#	$$self{wdog_interval} = 60;
+#	$$self{m_timer_wdog} = new Timer;
+#	$$self{m_timer_wdog}-> set($self->{wdog_interval}, sub {LightItem::watch_dog($self)});
         # defined possible states
         @{$$self{states}} = ('on','off');
 }
@@ -181,6 +184,24 @@ sub set_debug {
     my ($self, $debug) = @_;
     $self->{debug} = $debug;
 }
+
+# This watch_dog timer method will look for conditions where the room is occupied but no
+# occupancy expiration timer is in play. 
+#sub watch_dog {
+#   my ($self) = @_;
+#   if ($self->state eq 'occupied') {
+#       if (!$self->{m_timerOccupancyExpire}->active( )) {
+#	   &::print_log("$$self{object_name}: watch_dog, occupied without timer!") if $self->{debug};
+#	   if (defined $self->{m_occupancy_expire}) {
+#	       &::print_log("$$self{object_name}: occupancy timer set $$self{m_occupancy_expire}, watchdog condition!") if $self->{debug};
+#	       $self->{m_timerOccupancyExpire}->set($self->{m_occupancy_expire}, $self);
+#	       $self->{wdog_interval} = $self->{m_occupancy_expire}+2;
+#	   }
+#      }
+#   }
+#   # reload the timer
+#   $self->{m_timer_wdog}-> set($self->{wdog_interval}, sub {&Light_Item::watch_dog($self)});
+#}
 
 sub set {
     my ($self,$p_state,$p_setby,$p_respond) = @_;
