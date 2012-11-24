@@ -1,0 +1,127 @@
+diff -urN mochad-0.1.7.orig/apps/mochad.scr mochad-0.1.7/apps/mochad.scr
+--- mochad-0.1.7.orig/apps/mochad.scr	1969-12-31 16:00:00.000000000 -0800
++++ mochad-0.1.7/apps/mochad.scr	2011-07-02 12:51:46.502164447 -0700
+@@ -0,0 +1,29 @@
++#!/bin/bash
++
++# By marc_soft@merlins.org.
++
++# This script is designed to get mochad raw data to a fifo.
++# This is used as an input source for misterhouse, 
++# See misterhouse/lib/X10_CMxx.pm for more details.
++
++# For this script to be useful linux with udev, you'll want
++# to edit /etc/udev/rules.d/91-usb-x10-controllers.rules
++# and make sure this script is run instead of the mochad binary.
++
++FIFO=/var/run/CM19a
++
++# Kill left over daemon just in case.
++killall mochad 2>/dev/null
++
++/bin/rm $FIFO 2>/dev/null
++mkfifo $FIFO
++
++# mochad forks off.
++/usr/local/bin/mochad --raw-data
++
++( while :
++do
++	nc localhost 1099 > $FIFO
++	# This will restart nc as long as the mochad daemon is running.
++	pgrep -f '/usr/local/bin/mochad --raw-data' > /dev/null || break
++done ) &
+diff -urN mochad-0.1.7.orig/decode.c mochad-0.1.7/decode.c
+--- mochad-0.1.7.orig/decode.c	2011-03-27 16:20:49.000000000 -0700
++++ mochad-0.1.7/decode.c	2011-07-01 10:46:01.419570619 -0700
+@@ -875,8 +875,10 @@
+         *p = 0x5d;
+         memcpy(p+1, buf, len);
+         len++;
+-        cm15a_decode_rf(fd, p, len);
+-        return;
++    }
++
++    if (raw_data) {
++	mh_sockhexdump(fd, p, len);
+     }
+ 
+     switch (*p) 
+diff -urN mochad-0.1.7.orig/decode.h mochad-0.1.7/decode.h
+--- mochad-0.1.7.orig/decode.h	2011-03-20 22:58:48.000000000 -0700
++++ mochad-0.1.7/decode.h	2011-07-01 10:46:44.801939582 -0700
+@@ -17,6 +17,8 @@
+  * along with mochad.  If not, see <http://www.gnu.org/licenses/>.
+  */
+ 
++extern int raw_data;
++
+ const char *findSecEventName(unsigned char secev);
+ 
+ const char *findSecRemoteKeyName(unsigned char secev);
+diff -urN mochad-0.1.7.orig/mochad.c mochad-0.1.7/mochad.c
+--- mochad-0.1.7.orig/mochad.c	2011-03-21 03:19:43.000000000 -0700
++++ mochad-0.1.7/mochad.c	2011-07-01 10:46:58.343742575 -0700
+@@ -164,6 +164,16 @@
+     sockprintf(fd, "%s\n", buf);
+ }
+ 
++// Output Raw data with header for parsing by misterhouse
++void mh_sockhexdump(int fd, void *p, size_t len)
++{
++    char buf[(3*100)+1];
++
++    _hexdump(p, len, buf, sizeof(buf));
++    sockprintf(fd, "Raw data received: %s\n", buf);
++}
++
++
+ static int Do_exit = 0;
+ static int Reattach = 0;
+ 
+@@ -685,6 +695,9 @@
+     fflush(NULL);
+ }
+ 
++// This affects whether decode.c will show raw frame data for debugging RF connectivity
++// as well as providing raw data for parsing by users like misterhouse's X10_CMxx module.
++int raw_data = 0;
+ int main(int argc, char *argv[])
+ {
+     int rc, i;
+@@ -698,6 +711,8 @@
+     for (i = 1; i < argc; i++) {
+         if (strcmp(argv[i], "-d") == 0)
+             foreground = 1;
++        if (strcmp(argv[i], "--raw-data") == 0)
++            raw_data = 1;
+         else if (strcmp(argv[i], "--version") == 0) {
+             printf("%s\n", PACKAGE_STRING);
+             printcopy();
+diff -urN mochad-0.1.7.orig/README mochad-0.1.7/README
+--- mochad-0.1.7.orig/README	2010-12-21 17:45:11.000000000 -0800
++++ mochad-0.1.7/README	2011-07-01 23:35:09.255139648 -0700
+@@ -85,6 +85,23 @@
+ Please see http://sourceforge.net/apps/mediawiki/mochad/index.php?title=Main_Page
+ for more details on command and event messages.
+ 
++
++If you want to debug X10 RF, or gateway raw frames to another program, you can
++use the --raw-data argument.
++See apps/mochad.scr for an example on how to gateway frames with misterhouse.
++
++Another use is to simply be able to get all the raw RF frames to see if the
++multiple copies received are identical (good), off by a few bits (RF marginal),
++or nonsensical (bad).
++
++    07/01 23:34:42 Rx RF HouseUnit: A1 Func: Off
++    07/01 23:34:42 Raw data received: 5D 20 60 9F 20 DF 
++    07/01 23:34:42 Raw data received: 5D 20 60 9F 20 DF 
++    07/01 23:34:43 Raw data received: 5D 20 60 9F 20 DF 
++    07/01 23:34:43 Raw data received: 5D 20 60 9F 20 DF 
++    07/01 23:34:43 Raw data received: 5D 20 60 9F 20 DF
++
++
+ == Multiple controllers
+ 
+ The Perl program mochamon.pl shows how to monitor more than one instance of
