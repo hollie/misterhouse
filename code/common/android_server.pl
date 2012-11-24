@@ -35,20 +35,30 @@ android_use_rooms=1
 =cut
 
 use Voice_Text;
+use Voice_Cmd;
+use JSON::PP;
+use Android_Server;
 
 my (%androidClients);
+
+$android = new Android_Server( );
 
 #Tell MH to call our routine each time something is spoken
 if ($Startup or $Reload) {
     &Speak_parms_add_hook(\&pre_speak_to_android);
 }
 
+#
+# The android server socket listens for connection requests from android devices.
+# The server will authenticate with the android and remember them.  When speak
+# or play events are generated, or other events, these events are sent back
+# through the connections established.
+#
 $android_server = new Socket_Item(undef, undef, 'server_android');
 if ($state = said $android_server) {
     my ($pass, $android_device, $port, $room) = split /,/, $state;
     &print_log ("android_server pass: $pass android_device: $android_device, port: $port, room: $room") if $Debug{android};
-#    if (my $user = password_check $pass, 'server_android') {
-    my $user = "";
+    if (my $user = password_check $pass, 'server_android') {
         &print_log ("Android Connect accepted user: $user room: $room device: $android_device") if $Debug{android};
 	my $client_ip = $main::Socket_Ports{server_android}{client_ip_address};
 	my $client = $main::Socket_Ports{server_android}{socka};
@@ -56,12 +66,15 @@ if ($state = said $android_server) {
 	&print_log("android_register: ip: $client_ip client: $client room: $room") if $Debug{android};
 	$androidClients{$client_ip}{room} = $room;
 	$androidClients{$client_ip}{client} = $client;
-#    }
-#    else {
-#        &print_log ("Android Connect denied for: $room at $android_device") if $Debug{android};
-#    }
+    }
+    else {
+        &print_log ("Android Connect denied for: $room at $android_device") if $Debug{android};
+    }
 }
 
+# The file_ready_for_android method is called as a callback from the speak/play generation
+# subsystem.  This method will relay the events to all of the android devices through
+# the android server socket connections.
 sub file_ready_for_android {
     my (%parms) = @_;
     my $speakFile = $parms{web_file};
@@ -77,7 +90,7 @@ sub file_ready_for_android {
     }
 }
 
-#MH just said something. Generate the same thing to our file (which is monitored above)
+# MH just said something. Generate the same thing to our file (which is monitored above)
 sub pre_speak_to_android {
     my ($parms_ref) = @_;
     &print_log("pre_speak_to_android $parms_ref->{web_file}") if $Debug{android};
@@ -115,7 +128,7 @@ sub pre_speak_to_android {
     $parms_ref->{async} = 0 if $config_parms{Android_speak_sync};
 }
 
-#Tell MH to call our routine each time a wav file is played
+# Tell MH to call our routine each time a wav file is played
 &Play_parms_add_hook(\&pre_play_to_android) if $Reload;
 
 #MH just played a wav file. Copy it to our file (which is monitored above)
@@ -175,6 +188,27 @@ sub android_send_message ( ) {
     }
 }
 
+# Call this method to provide a large POP UP display to show CALLERID information.
+# This method will also provide a notification message for the Android.
+sub android_callerid {
+    my ($name, $number) = @_;
+    print_log "android_callerid: $name $number" if $Debug{android};
+    my $data = "{\"name\"" . ":" . "\"$name\"" . "," . "\"number\"" . ":" . "\"$number\"}";
+    foreach my $client_ip (keys %androidClients) {
+	&android_send_message ( $client_ip, "callerid", $data );
+    }
+}
+
+# Call this method to provide a 2 line notificaiton message for the Android.
+sub android_notification {
+    my ($line1, $line2) = @_;
+    print_log "android_notification: $line1 $line2" if $Debug{android};
+    my $data = "{\"line1\"" . ":" . "\"$line1\"" . "," . "\"line2\"" . ":" . "\"$line2\"}";
+    foreach my $client_ip (keys %androidClients) {
+	&android_send_message ( $client_ip, "notification", $data );
+    }
+}
+
 $v_test_android_speak = new Voice_Cmd("test android speak");
 if (my $state = said $v_test_android_speak) {
     &speak ( "hello from jim duda");
@@ -190,13 +224,9 @@ if (my $state = said $v_test_android_callerid) {
     &android_callerid ( "Jim Duda", "7813545048");
 }
 
-sub android_callerid {
-    my ($name, $number) = @_;
-    print_log "android_callerid: $name $number";
-    my $data = "{\"name\"" . ":" . "\"$name\"" . "," . "\"number\"" . ":" . "\"$number\"}";
-    foreach my $client_ip (keys %androidClients) {
-	&android_send_message ( $client_ip, "callerid", $data );
-    }
+$v_test_android_notification = new Voice_Cmd("test android notification");
+if (my $state = said $v_test_android_notification) {
+    &android_notification ( "This is notiication LINE 1", "And LINE 2");
 }
 
 sub android_xml {
@@ -227,7 +257,7 @@ sub android_xml {
     }
     $fields{all} = 1 unless %fields;
 
-    print_log "xml: request=$request options=$options" if $Debug{xml};
+    print_log "xml: request=$request options=$options" if $Debug{android};
 
     # List objects by type
     if ( $request{types} ) {
@@ -240,7 +270,7 @@ sub android_xml {
             @types = @Object_Types;
         }
         foreach my $type ( sort @types ) {
-            print_log "xml: type $type" if $Debug{xml};
+            print_log "xml: type $type" if $Debug{android};
             $xml .= "    <type>\n";
 	    if ($fields{all} || $fields{name}) {
 		$xml .= "      <name>$type</name>\n";
@@ -269,7 +299,7 @@ sub android_xml {
             @groups = &list_objects_by_type('Group');
         }
         foreach my $group ( sort @groups ) {
-            print_log "xml: group $group" if $Debug{xml};
+            print_log "xml: group $group" if $Debug{android};
             my $group_object = &get_object_by_name($group);
             next unless $group_object;
             $xml .= "    <group>\n";
@@ -301,7 +331,7 @@ sub android_xml {
             @categories = &list_code_webnames('Voice_Cmd');
         }
         for my $category ( sort @categories ) {
-            print_log "xml: cat $category" if $Debug{xml};
+            print_log "xml: cat $category" if $Debug{android};
             next if $category =~ /^none$/;
             $xml .= "    <category>\n";
 	    if ($fields{all} || $fields{name}) {
@@ -313,7 +343,7 @@ sub android_xml {
                     my ( $object, $type );
                     $object = &get_object_by_name($name);
                     $type   = ref $object;
-                    print_log "xml: o $name t $type" if $Debug{xml};
+                    print_log "xml: o $name t $type" if $Debug{android};
                     next unless $type eq 'Voice_Cmd';
                     $xml .= &android_object_detail( $object, 4, %fields );
                 }
@@ -340,7 +370,7 @@ sub android_xml {
             next unless $o;
             my $name = $o;
             $name = $o->get_object_name if $o->can("get_object_name");
-            print_log "xml: object name=$name ref=" . ref $o if $Debug{xml};
+            print_log "xml: object name=$name ref=" . ref $o if $Debug{android};
             $xml .= &android_object_detail( $o, 2, %fields );
         }
         $xml .= "  </objects>\n";
@@ -433,7 +463,7 @@ eof
                 $url = "/sub?android_xml($r,$opt";
                 if ( defined $options{$opt}{example} ) {
                     foreach ( split /\|/, $options{$opt}{example} ) {
-                        print_log "xml: r $r opt $opt ex $_" if $Debug{xml};
+                        print_log "xml: r $r opt $opt ex $_" if $Debug{android};
                         $html .= "<li><a href='$url=$_)'>$url=$_)</a></li>\n";
                     }
                 }
