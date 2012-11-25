@@ -161,7 +161,7 @@ if (my $data = said $ibws) {
   foreach my $key (@weather_vars) {
     print_log "Weather:: key: $key data: $Weather{$key}" if $Debug{oww};
   }
-  &weather_updated;
+  &Weather_Common::weather_updated;
 }
 # ----------------------------------------------------------------------------
 
