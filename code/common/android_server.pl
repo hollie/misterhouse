@@ -37,11 +37,8 @@ android_use_rooms=1
 use Voice_Text;
 use Voice_Cmd;
 use JSON::PP;
-use Android_Server;
 
 my (%androidClients);
-
-$android = new Android_Server( );
 
 #Tell MH to call our routine each time something is spoken
 if ($Startup or $Reload) {
