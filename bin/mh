@@ -4160,6 +4160,22 @@ sub process_serial_data {
 
             return;
         }
+	# By Brian Paulsen <brian@thepaulsens.com>
+	# This fixes some incomplete codes like: XB3: but1_1 manual
+	# You can receive a unit code and a house code with no command followed by a house
+	# code with no unit code and then the status.  
+	# Combine the two messages to successfully infer the status.
+	elsif ($event_data1 =~ /STATUS/) {
+	   &print_log("ed1:" . $event_data1 . " prev_units : " . join(",", keys %prev_x10_units));
+
+	   # new code here
+	   if ( $event_data1 !~ /(\S\S)STATUS_(\S+)/ ) {
+	       my @keys = keys %prev_x10_units;
+	       my ( $data ) = $event_data1 =~ /(STATUS_\S+)/;
+	       $event_data1 = $keys[0] . $data;
+	       %prev_x10_units = ();
+	   }
+	}
         elsif ($event_data1 =~ /&P/) {
             my ($house, $device, $house2, $level) = $event_data1 =~ /(\S)(\S)(\S)&P(.*)/;
             $level -= 128 if ($level > 128); #***move this to cm11 module
