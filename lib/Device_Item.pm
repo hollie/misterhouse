@@ -1,5 +1,5 @@
-# $Date$
-# $Revision$
+# $Date: 2011-02-04 17:17:12 -0500 (Fri, 04 Feb 2011) $
+# $Revision: 1833 $
 
 use strict;
 use warnings;
@@ -233,6 +233,7 @@ sub lookup_interface {
 	if ($interface and $interface ne '') {
 		return lc $interface;
 	}
+	$interface = '';
 
 	my $mainHash=undef;
 	my $supported_interfaces;
