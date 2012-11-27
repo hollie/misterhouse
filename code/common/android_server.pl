@@ -36,12 +36,12 @@ android_use_rooms=1
 
 use Voice_Text;
 use Voice_Cmd;
-use JSON::PP;
-use Android_Server;
+use JSON;
+use Android_Item;
 
 my (%androidClients);
 
-$android = new Android_Server( );
+$android = new Android_Item( );
 
 #Tell MH to call our routine each time something is spoken
 if ($Startup or $Reload) {
@@ -56,19 +56,108 @@ if ($Startup or $Reload) {
 #
 $android_server = new Socket_Item(undef, undef, 'server_android');
 if ($state = said $android_server) {
-    my ($pass, $android_device, $port, $room) = split /,/, $state;
-    &print_log ("android_server pass: $pass android_device: $android_device, port: $port, room: $room") if $Debug{android};
+    &print_log ("android_server:: state: $state") if $Debug{android};
+    my ($ref, $pass, $device, $room, %response_data, $client, $client_ip);
+
+    # Fetch socket and ip_address
+    $client = $main::Socket_Ports{server_android}{socka};
+    $client_ip = $main::Socket_Ports{server_android}{client_ip_address} . ":" . $main::Socket_Ports{server_android}{client_port};
+
+    # Check for JSON message
+    if ($state =~ /^{/) {
+	my $json = JSON->new->allow_nonref;
+	$ref = $json->decode( $state );
+    }
+
+    # Support new JSON method
+    if (ref $ref eq 'HASH') {
+	my ($version,$model,$serialNumber);
+	$pass = $ref->{pass} if exists $ref->{pass};
+	$device = $ref->{device} if exists $ref->{device};
+	$room = $ref->{room} if exists $ref->{room};
+	$version = $ref->{version} if exists $ref->{version};
+	$model = $ref->{model} if exists $ref->{model};
+	$serialNumber = $ref->{serialNumber} if exists $ref->{serialNumber};
+	&print_log ("android_server:: json_login_request:: pass: $pass version: $version room: $room model: $model device: $device serialNumber: $serialNumber") if $Debug{android};
+	$androidClients{$client_ip}{version} = $version;
+	$androidClients{$client_ip}{model} = $model;
+	$androidClients{$client_ip}{device} = $device;
+	$androidClients{$client_ip}{serialNumber} = $serialNumber;
+    }
+
+    # Older legacy method
+    else {
+	my $port;
+	($pass, $device, $port, $room) = split /,/, $state;
+	&print_log ("android_server:: legacy_login_request:: pass: $pass device: $device, port: $port, room: $room") if $Debug{android};
+	delete $androidClients{$client_ip}{version};
+    }
+
     if (my $user = password_check $pass, 'server_android') {
-        &print_log ("Android Connect accepted user: $user room: $room device: $android_device") if $Debug{android};
-	my $client_ip = $main::Socket_Ports{server_android}{client_ip_address};
-	my $client = $main::Socket_Ports{server_android}{socka};
 	$room = $client_ip unless defined $room;
-	&print_log("android_register: ip: $client_ip client: $client room: $room") if $Debug{android};
+        &print_log ("android_server:: login_accepted:: user: $user room: $room device: $device ip: $client_ip client: $client ") if $Debug{android};
 	$androidClients{$client_ip}{room} = $room;
 	$androidClients{$client_ip}{client} = $client;
+	$response_data{status} = "success";
     }
     else {
-        &print_log ("Android Connect denied for: $room at $android_device") if $Debug{android};
+        &print_log ("android_server:: login_denied:: room: $room device: $device ip: $client_ip") if $Debug{android};
+	delete $androidClients{$client_ip};
+	$response_data{status} = "failed";
+    }
+
+    # Send response to the client
+    &android_send_message ( $client_ip, "login", %response_data );
+}
+
+# This method provides the lowest level interface to send a message to 
+# a specific android device identified by a $client_ip address.
+sub android_send_message ( ) {
+    my ($client_ip, $function, %data) = @_;
+    my $client = undef;
+    $client = $androidClients{$client_ip}{client} if defined $androidClients{$client_ip}{client};
+
+    # Check to see if the client/server is still active
+    my $active = 0;
+    for my $ptr (@{$main::Socket_Ports{server_android}{clients}}) {
+	my ($socka, $client_ip_address, $client_port, $data) = @{$ptr};
+	my $ip = $client_ip_address . ":" .  $client_port;
+	&print_log("Testing socket: $socka ip: $ip against $client $client_ip") if $main::Debug{android};
+	if ($socka and ($socka eq $client) and ($ip eq $client_ip)) {
+	    $active = 1;
+	    last;
+	}
+    }
+    # If active, send, otherwise, delete from list
+    if ($active) {
+	&print_log("android_send_data:: ip: $client_ip") if $Debug{android};
+	$data{function} = $function;
+	$data{version} = $Version;
+	foreach my $key (keys %data) {
+	    &print_log("key: $key data: $data{$key}") if $Debug{android};
+	}
+
+	# Use new JSON method
+	if (exists $androidClients{$client_ip}{version}) {
+	    my $json = JSON->new->allow_nonref;
+	    # Translate special characters
+	    $json = $json->encode( \%data );
+	    &print_log("json: $json") if $Debug{android};
+	    $android_server->set( $json, $client);
+	}
+
+	# Use legacy method.  Only support speak/play
+	else {
+	    my $outData = "";
+	    if ($function eq "speak") {
+		$outData = $data{url};
+	    }
+	    &print_log("legacy function: $function data: $outData") if $Debug{android};
+	    $android_server->set( (join '?', $function, $outData), $client);
+	}
+    } else {
+	&print_log("client_ip: $client_ip inactive");
+	delete $androidClients{$client_ip};
     }
 }
 
@@ -84,8 +173,10 @@ sub file_ready_for_android {
         my $room = lc $androidClients{$client_ip}{room};
 	my $client = $androidClients{$client_ip}{client};
 	&print_log("file_ready_for_android ip: $client_ip room: $room client: $client") if $Debug{android};
+	my %data;
+	$data{url} = $speakFile;
 	if ( grep(/$room/, @{$parms{androidSpeakRooms}}) ) {
-            &android_send_message ( $client_ip, "speak", $speakFile );
+            &android_send_message ( $client_ip, "speak", %data );
 	}
     }
 }
@@ -164,38 +255,16 @@ sub pre_play_to_android {
     push(@{$parms_ref->{web_hook}},\&file_ready_for_android);
 }
 
-# This method provides the lowest level interface to send a message to 
-# a specific android device identified by a $client_ip address.
-sub android_send_message ( ) {
-    my ($client_ip, $function, $data) = @_;
-    # Check to see if the client/server is still active
-    my $active = 0;
-    for my $ptr (@{$main::Socket_Ports{server_android}{clients}}) {
-	my ($socka, $client_ip_address, $client_port, $data) = @{$ptr};
-	#&print_log("Testing socket client ip address: $client_ip_address:$client_port\n") if $main::Debug{android};
-	if ($socka and ($client_ip_address =~ /$client_ip/)) {
-	    $active = 1;
-	    last;
-	}
-    }
-    # If active, send, otherwise, delete from list
-    if ($active) {
-	&print_log("android_send_data:: ip: $client_ip") if $Debug{android};
-	$android_server->set( (join '?', $function, $data), $client_ip);
-    } else {
-	&print_log("client_ip: $client_ip inactive");
-	delete $androidClients{$client_ip};
-    }
-}
-
 # Call this method to provide a large POP UP display to show CALLERID information.
 # This method will also provide a notification message for the Android.
 sub android_callerid {
     my ($name, $number) = @_;
     print_log "android_callerid: $name $number" if $Debug{android};
-    my $data = "{\"name\"" . ":" . "\"$name\"" . "," . "\"number\"" . ":" . "\"$number\"}";
+    my %data;
+    $data{name} = $name;
+    $data{number} = $number;
     foreach my $client_ip (keys %androidClients) {
-	&android_send_message ( $client_ip, "callerid", $data );
+	&android_send_message ( $client_ip, "callerid", %data );
     }
 }
 
@@ -203,9 +272,11 @@ sub android_callerid {
 sub android_notification {
     my ($line1, $line2) = @_;
     print_log "android_notification: $line1 $line2" if $Debug{android};
-    my $data = "{\"line1\"" . ":" . "\"$line1\"" . "," . "\"line2\"" . ":" . "\"$line2\"}";
+    my %data;
+    $data{line1} = $line1;
+    $data{line2} = $line2;
     foreach my $client_ip (keys %androidClients) {
-	&android_send_message ( $client_ip, "notification", $data );
+	&android_send_message ( $client_ip, "notification", %data );
     }
 }
 
@@ -216,7 +287,7 @@ if (my $state = said $v_test_android_speak) {
 
 $v_test_android_play = new Voice_Cmd("test android play");
 if (my $state = said $v_test_android_play) {
-    &play ( "../sounds/sound_trek1.wav");
+    &play ( "../sounds/hello_from_bruce.wav");
 }
 
 $v_test_android_callerid = new Voice_Cmd("test android caller id");
@@ -232,8 +303,7 @@ if (my $state = said $v_test_android_notification) {
 sub android_xml {
 
     my ( $request, $options ) = @_;
-    my ( $xml, $xml_types, $xml_groups, $xml_categories, $xml_vars,
-        $xml_objects );
+    my ( $xml, $xml_types, $xml_groups, $xml_categories, $xml_vars, $xml_objects );
 
     return &android_usage unless $request;
 
@@ -251,11 +321,11 @@ sub android_xml {
         $options{$k}{members} = [ split /\|/, $v ] if $k and $v;
     }
 
-    my %fields;
+    my $fields = {};
     foreach ( @{ $options{fields}{members} } ) {
-        $fields{$_} = 1;
+        $fields->{$_} = 1;
     }
-    $fields{all} = 1 unless %fields;
+    $fields->{all} = 1 unless keys %$fields;
 
     print_log "xml: request=$request options=$options" if $Debug{android};
 
@@ -272,14 +342,14 @@ sub android_xml {
         foreach my $type ( sort @types ) {
             print_log "xml: type $type" if $Debug{android};
             $xml .= "    <type>\n";
-	    if ($fields{all} || $fields{name}) {
+	    if ($fields->{all} || $fields->{name}) {
 		$xml .= "      <name>$type</name>\n";
 	    }
             unless ( $options{truncate} ) {
                 $xml .= "      <objects>\n";
                 foreach my $o ( sort &list_objects_by_type($type) ) {
                     $o = &get_object_by_name($o);
-                    $xml .= &android_object_detail( $o, 4, %fields );
+                    $xml .= &android_object_detail( $o, 4, $fields );
                 }
                 $xml .= "      </objects>\n";
             }
@@ -303,13 +373,13 @@ sub android_xml {
             my $group_object = &get_object_by_name($group);
             next unless $group_object;
             $xml .= "    <group>\n";
-	    if ($fields{all} || $fields{name}) {
+	    if ($fields->{all} || $fields->{name}) {
 		$xml .= "      <name>$group</name>\n";
 	    }
             unless ( $options{truncate} ) {
                 $xml .= "      <objects>\n";
                 foreach my $object ( list $group_object) {
-                    $xml .= &android_object_detail( $object, 4, %fields );
+                    $xml .= &android_object_detail( $object, 4, $fields );
                 }
                 $xml .= "      </objects>\n";
             }
@@ -334,7 +404,7 @@ sub android_xml {
             print_log "xml: cat $category" if $Debug{android};
             next if $category =~ /^none$/;
             $xml .= "    <category>\n";
-	    if ($fields{all} || $fields{name}) {
+	    if ($fields->{all} || $fields->{name}) {
 		$xml .= "      <name>$category</name>\n";
 	    }
             unless ( $options{truncate} ) {
@@ -345,7 +415,7 @@ sub android_xml {
                     $type   = ref $object;
                     print_log "xml: o $name t $type" if $Debug{android};
                     next unless $type eq 'Voice_Cmd';
-                    $xml .= &android_object_detail( $object, 4, %fields );
+                    $xml .= &android_object_detail( $object, 4, $fields );
                 }
                 $xml .= "      </objects>\n";
             }
@@ -371,7 +441,7 @@ sub android_xml {
             my $name = $o;
             $name = $o->get_object_name if $o->can("get_object_name");
             print_log "xml: object name=$name ref=" . ref $o if $Debug{android};
-            $xml .= &android_object_detail( $o, 2, %fields );
+            $xml .= &android_object_detail( $o, 2, $fields );
         }
         $xml .= "  </objects>\n";
     }
@@ -385,24 +455,28 @@ sub android_xml {
 }
 
 sub android_object_detail {
-    my ( $object, $depth, %fields ) = @_;
-    return if exists $fields{none} and $fields{none};
+    my ( $object, $depth, $fields ) = @_;
+    return if exists $fields->{none} and $fields->{none};
     my $ref = ref \$object;
     return unless $ref eq 'REF';
+
+    # All android items must be rooted from Generic_Item
+    return unless $object->isa('Generic_Item');
     #return if $object->can('hidden') and $object->hidden;
-    $fields{all} = 1 unless %fields;
-    my $num_elements = 0;
-    if ($object->can('android_query')) {
-	$num_elements += $object->android_query( );
-    }
+
+    my $xml_objects;
+    $fields->{all} = 1 unless $fields;
+    my $attributes = {};
+    $attributes->{type} = ref $object;
+
     my $prefix = '  ' x $depth;
-    my $type = ref $object;
-    my $more = $num_elements > 2 ? " more=\"true\"" : "";
-    my $xml_objects = $prefix . "<object type=\"$type\"$more>\n";
     if ($object->can('android_xml')) {
-	$xml_objects .= $object->android_xml($depth+1, %fields);
+	$xml_objects .= $object->android_xml($depth+1, $fields, 0, $attributes);
+    } else {
+	$xml_objects .= $prefix . "<object>\n";
     }
     $xml_objects .= $prefix . "</object>\n";
+
     return $xml_objects;
 }
 
