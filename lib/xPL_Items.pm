@@ -788,7 +788,7 @@ xPL_Item - Misterhouse base xPL Item
       on expiration of a timer w/ no corresponding heart-beat messages.  Used to enable warnings/notices
       of absent heart-beats. See comments on using # noloop above.  Timeout should be set to a value
       greater than the actual device heartbeat interval. Action/timer is not repeated unless
-      repeat is 1 or true.
+      repeat is -1 (probably the only thing that makes sense for a heartbeat check).
 
    dead_action(action).  Sets/gets the action to be applied on receipt of a "dead" heartbeat (the app
       indicates that it is stopping/dying). Not all devices supply a "dead" heartbeat message;
