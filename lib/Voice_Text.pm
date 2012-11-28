@@ -155,9 +155,10 @@ sub speak_text {
     # synthesized text to voice is provided for.  Make a recursive call
     # to create the static file pushed to web devices.
     if ($parms{web_file} eq "web_file") {
-	$parms{web_file} = "speakToWeb" . $web_index . ".wav";
-	my $to_file = $parms{to_file}; 
-	$parms{to_file} = $::config_parms{html_dir} . "/" . $parms{web_file};
+	my $wavFile = "speakToWeb" . $web_index . ".wav";
+	$parms{web_file} = "web/" . $wavFile;
+	my $to_file = $parms{to_file};
+	$parms{to_file} = $::config_parms{html_alias_web} . "/" . $wavFile;
 	$web_index++;
 	$web_index = $web_index % 10;
         &speak_text(%parms);

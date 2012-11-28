@@ -3846,9 +3846,10 @@ sub play {
 	# Support for audrey, android, and other web based clients which 
 	# played wav files are provided for.
 	if ($parms{web_file} eq "web_file") {
-	    $parms{web_file} = "playToWeb" . $Web_Play_Index . ".wav";
+	    my $wavFile = "playToWeb" . $Web_Play_Index . ".wav";
+	    $parms{web_file} = "web/" . $wavFile;
 	    print_log("play: $parms{web_file}");
-	    my $toFile = $::config_parms{html_dir} . "/$parms{web_file}";
+	    my $toFile = $::config_parms{html_alias_web} . "/" . $wavFile;
 	    copy $file, $toFile;
 	    if (defined $parms{web_hook}) {
 		foreach my $web_hook (@{$parms{web_hook}}) {
