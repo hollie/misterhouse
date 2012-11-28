@@ -1463,27 +1463,26 @@ sub reset_states {
     @states_from_previous_pass = @items_with_more_states;
 }
 
-# Return the number of tags which will be returned via android_xml
-sub android_query {
-    my ($self) = @_;
-    my $num_tags = 2;  # name + state
-    my $log_size = 0;
-    $log_size = @{$$self{state_log}} if $$self{state_log} ;
-    if ($log_size > 0) {
-	$num_tags++;
-    }
-    return $num_tags;
-}
-
 sub android_xml {
-    my ($self, $depth, %fields) = @_;
+    my ($self, $depth, $fields, $num_tags, $attributes) = @_;
     my $xml_objects;
-    my $prefix = '  ' x $depth;
+
+    # Insert the initial "object" tag
+    my $prefix = '  ' x ($depth-1);
+    my $log_size = 0;
+    $log_size = scalar(@{$$self{state_log}}) if $$self{state_log} ;
+    if (($num_tags > 0) || ($log_size > 0)) {
+	$attributes->{more} = "true";
+    }
+
+    # Build the tag with attributes
+    $xml_objects .= $self->android_xml_tag ( $prefix, "object", $attributes );
 
     my @f = qw( name state state_log );
+    $prefix = '  ' x $depth;
 
     foreach my $f ( @f ) {
-        next unless $fields{all} or $fields{$f};
+        next unless $fields->{all} or $fields->{$f};
 
         my $method = $f;
 	my $value;
@@ -1541,6 +1540,25 @@ sub android_xml {
 	} else {
 	    $xml_objects .= $prefix . "<$f>$value</$f>\n";
 	}
+    }
+    return $xml_objects;
+}
+
+sub android_xml_tag {
+    my ($self, $prefix, $tag, $attributes, $value) = @_;
+    my $xml_objects = $prefix . "<$tag";
+    &::print_log("android_xml_tag: prefix: $prefix tag: $tag value: $value") if $::Debug{android};
+    foreach my $key ( keys %$attributes ) {
+	my $val = $attributes->{$key};
+	$xml_objects .= " " . $key . "=\"" . $attributes->{$key} . "\"";
+	&::print_log("android_xml_tag: attr:: key: $key value: $val") if $::Debug{android};
+	delete $attributes->{$key};
+    }
+    $xml_objects .= ">";
+    if (defined $value) {
+	$xml_objects .= $value . "</$tag>\n";
+    } else {
+	$xml_objects .= "\n";
     }
     return $xml_objects;
 }

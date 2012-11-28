@@ -712,23 +712,14 @@ sub disablevocab {
     $Vcmd_viavoice->set('');
 }
 
-# Return the number of tags which will be returned via android_xml
-sub android_query {
-    my ($self) = @_;
-    my $num_tags = $self->SUPER::android_query();
-    $num_tags += 1;
-    return $num_tags;
-}
-
 sub android_xml {
-    my ($self, $depth, %fields) = @_;
-    my $xml_objects = $self->SUPER::android_xml($depth, %fields);
+    my ($self, $depth, $fields, $num_tags, $attributes) = @_;
+    my @f = qw( text );
+    my $xml_objects = $self->SUPER::android_xml($depth, $fields, $num_tags + scalar(@f), $attributes);
     my $prefix = '  ' x $depth;
 
-    my @f = qw( text );
-
     foreach my $f ( @f ) {
-        next unless $fields{all} or $fields{$f};
+        next unless $fields->{all} or $fields->{$f};
 
         my $method = $f;
 	my $value;
@@ -743,7 +734,8 @@ sub android_xml {
             $value = encode_entities( $value, "\200-\377&<>" );
 	}
 
-	$xml_objects .= $prefix . "<$f>$value</$f>\n";
+	$value = "" unless defined $value;
+	$xml_objects .= $self->android_xml_tag ( $prefix, $f, $attributes, $value );
     }
     return $xml_objects;
 }
