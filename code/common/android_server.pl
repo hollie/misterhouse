@@ -41,7 +41,68 @@ use Android_Item;
 
 my (%androidClients);
 
+###########################################################################
+# THIS SECTION CONTAINS API CODE AND DEMONSTRATES ALL THAT CAN BE DONE
+# FROM USER CODE MODULES
+###########################################################################
+
+# Instantiate the Android_Item.  The Android_Item class demonstrates all
+# the Android type things which can be done with objects which inherit from
+# Generic_Item class.
 $android = new Android_Item( );
+
+# Example speak event to androids
+$v_test_android_speak = new Voice_Cmd("test android speak");
+if (my $state = said $v_test_android_speak) {
+    &speak ( "hello from jim duda");
+}
+
+# Example play event to androids
+$v_test_android_play = new Voice_Cmd("test android play");
+if (my $state = said $v_test_android_play) {
+    &play ( "../sounds/hello_from_bruce.wav");
+}
+
+# Example push of caller ID event to androids
+$v_test_android_callerid = new Voice_Cmd("test android caller id");
+if (my $state = said $v_test_android_callerid) {
+    &android_callerid ( "Jim Duda", "7813545048");
+}
+
+# Example push of notification event to androids
+$v_test_android_notification = new Voice_Cmd("test android notification");
+if (my $state = said $v_test_android_notification) {
+    &android_notification ( "This is notiication LINE 1", "And LINE 2");
+}
+
+# Dump the inventory of connected android devices to log file
+$v_test_android_inventory = new Voice_Cmd("dump android inventory to log file");
+if (my $state = said $v_test_android_inventory) {
+    foreach my $client_ip (keys %androidClients) {
+        my $room = lc $androidClients{$client_ip}{room};
+	my $device = $androidClients{$client_ip}{device};
+	my $version = $androidClients{$client_ip}{version};
+	my $model = $androidClients{$client_ip}{model};
+	my $serial = $androidClients{$client_ip}{serialNumber};
+	&print_log ("android_inventory::");
+	&print_log ("room:    $room");
+	&print_log ("ip:      $client_ip");
+	&print_log ("device:  $device");
+	&print_log ("version: $version");
+	&print_log ("model:   $model");
+	&print_log ("serial:  $serial");
+    }
+}
+
+$v_android_volume = new Voice_Cmd("Set Android Volume to [0,10,20,30,40,50,60,70,80,90,100]");
+if (defined said $v_android_volume) {
+    my $volume = $v_android_volume->state( );
+    &android_volume("all", $volume);
+}
+
+###########################################################################
+# CODE BELOW HERE IS CORE CODE FOR ANDROID SUPPORT
+###########################################################################
 
 #Tell MH to call our routine each time something is spoken
 if ($Startup or $Reload) {
@@ -268,7 +329,7 @@ sub android_callerid {
     }
 }
 
-# Call this method to provide a 2 line notificaiton message for the Android.
+# Call this method to provide a 2 line notification message for the Android.
 sub android_notification {
     my ($line1, $line2) = @_;
     print_log "android_notification: $line1 $line2" if $Debug{android};
@@ -280,24 +341,18 @@ sub android_notification {
     }
 }
 
-$v_test_android_speak = new Voice_Cmd("test android speak");
-if (my $state = said $v_test_android_speak) {
-    &speak ( "hello from jim duda");
-}
-
-$v_test_android_play = new Voice_Cmd("test android play");
-if (my $state = said $v_test_android_play) {
-    &play ( "../sounds/hello_from_bruce.wav");
-}
-
-$v_test_android_callerid = new Voice_Cmd("test android caller id");
-if (my $state = said $v_test_android_callerid) {
-    &android_callerid ( "Jim Duda", "7813545048");
-}
-
-$v_test_android_notification = new Voice_Cmd("test android notification");
-if (my $state = said $v_test_android_notification) {
-    &android_notification ( "This is notiication LINE 1", "And LINE 2");
+# Call this method to control the volume for the Android
+sub android_volume {
+    my ($room, $volume) = @_;
+    $room = "all" unless defined $room;
+    &print_log ("android_volume: $volume $room") if $Debug{android};
+    my %data;
+    $data{volume} = $volume;
+    foreach my $client_ip (keys %androidClients) {
+	if (($room eq "all") or ($androidClients{$client_ip}{room} eq $room)) {
+	    &android_send_message ( $client_ip, "volume", %data );
+	}
+    }
 }
 
 sub android_xml {
