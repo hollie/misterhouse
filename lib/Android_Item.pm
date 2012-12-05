@@ -44,10 +44,14 @@ sub new {
     &::MainLoop_pre_add_hook(\&Android_Item::state_machine, 'persistent', $self);
 
     $self->{toggle_item} = new Generic_Item( );
-    $self->{toggle_item}->set_states('off','on');
+    $self->{toggle_item}->set_states('on','off');
+    $self->{toggle_item}->android_set_name("toggle_item");
 
     $self->{spinner_item} = new Generic_Item( );
     $self->{spinner_item}->set_states('one', 'two', 'three');
+    $self->{spinner_item}->android_set_name("spinner_item");
+
+    $self->{text_item} = "Simple Text";
 
     return $self;
 }
@@ -68,9 +72,60 @@ sub print_log {
     return @last_printed;
 }
 
+sub set {
+    my ($self, $value) = @_;
+    &main::print_log ("set: $value");
+
+    # Check for JSON command
+    if ($value =~ /^{/) {
+	$value =~ s/\'/"/g;
+	&main::print_log ("Android_Item:: json: $value") if ($::Debug{android});
+	my $json = JSON->new->allow_nonref;
+	my $ref = $json->decode( $value );
+	if (ref $ref eq 'HASH') {
+	    if ($ref->{"toggle_item"}) {
+		my $value = $ref->{"toggle_item"};
+		&main::print_log ("Android_Item:: toggle_item: $value") if ($::Debug{android});
+		$self->{toggle_item}->set($value);
+	    }
+	    if ($ref->{"spinner_item"}) {
+		my $value = $ref->{"spinner_item"};
+		&main::print_log ("Android_Item:: spinner_item: $value") if ($::Debug{android});
+		$self->{spinner_item}->set($value);
+	    }
+	    if ($ref->{"image_button"} eq "true") {
+		&main::print_log ("Android_Item:: image_button activated!") if ($::Debug{android});
+	    }
+	} else {
+	    &main::print_log ("Android_Item:: json decode failed!") if ($::Debug{android});
+	}
+    }
+}
+
+sub get_array_example ( ) {
+    my ($self) = @_;
+    my @array;
+    push @array, 'Array Value 1';
+    push @array, 'Array Value 2';
+    push @array, 'Array Value 3';
+    push @array, 'Array Value N';
+    return @array;
+}
+
+sub get_hash_example ( ) {
+    my ($self) = @_;
+    my %hash;
+    $hash{"Key 1"} = "Data 1";
+    $hash{"Key 2"} = "Data 2";
+    $hash{"Key 3"} = "Data 3";
+    $hash{"Key 4"} = "Data 4";
+    $hash{"Key N"} = "Data N";
+    return %hash;
+}
+
 sub android_xml {
     my ($self, $depth, $fields, $num_tags, $attributes) = @_;
-    my @f = qw( speech_log print_log toggle_item spinner_item);
+    my @f = qw( speech_log print_log text_item toggle_item spinner_item image_button array_example hash_example);
 
     # Avoid filter due to no state
     $attributes->{noFilterState} = "true";
@@ -93,6 +148,12 @@ sub android_xml {
             } elsif ( $f eq 'print_log' ) {
                 my @a = $self->$method;
                 $value = \@a;
+	    } elsif ( $f eq 'array_example' ) {
+		my @a = $self->$method;
+		$value = \@a;
+	    } elsif ( $f eq 'hash_example' ) {
+		my %a = $self->$method;
+		$value = \%a;
 	    } else {
 		$value = $self->$method;
 		$value = encode_entities( $value, "\200-\377&<>" );
@@ -105,19 +166,44 @@ sub android_xml {
 	}
 
 	# Add alias to change display name on android list
+	if ($f eq 'text_item') {
+	    $attributes->{alias} = "Text Item";
+	}
+
+	# Display an example toggle
 	if ($f eq 'toggle_item') {
 	    $attributes->{alias} = "Toggle Item";
 	}
 
+	# Display an example spinner 
+	if ($f eq 'spinner_item') {
+	    $attributes->{alias} = "Spinner Item";
+	}
+
+	# Display an example image button
+	if ($f eq 'image_button') {
+	    $attributes->{alias} = "Image Button";
+	    $attributes->{type} = "image";
+	}
+
+	# Display an example array
+	if ($f eq 'array_example') {
+	    $attributes->{alias} = "Array Example";
+	}
+
+	# Display an example hash
+	if ($f eq 'hash_example') {
+	    $attributes->{alias} = "Hash Example";
+	}
+
+	# Insert the values for each key into xml structure
 	if ( ref $value eq 'Generic_Item') {
-	    if ($value->can('android_xml')) {
-		my $attributes = {};
-		$attributes->{type} = ref $value;
-		$xml_objects .= $value->android_xml($depth+1, $fields, 0, $attributes);
-	    } else {
-		$xml_objects .= $prefix . "<object>\n";
-	    }
-	    $xml_objects .= $prefix . "</object>\n";
+	    #my $attributes = {};
+	    $attributes->{object} = $value->{object_name};
+	    $attributes->{type} = ref $value;
+	    $attributes->{memberObject} = "true";
+	    $xml_objects .= $value->android_xml($depth+1, $fields, 0, $attributes);
+	    $xml_objects .= $prefix . "</$value->{object_name}>\n";
 	}
 
         elsif ( ref $value eq 'ARRAY' ) {
@@ -125,10 +211,10 @@ sub android_xml {
 	    $xml_objects .= $self->android_xml_tag ( $prefix, $f, $attributes );
 	    $prefix = '  ' x ($depth+1);
 	    foreach (@{$value}) {
-		$_ = 'undef' unless defined $_;
-		$value = $_;
-		$value = encode_entities( $value, "\200-\377&<>" );
-		$xml_objects .= $prefix . "  <value>$value</value>\n";
+		$_ = "" unless defined $_;
+		my $val = $_;
+		$val = encode_entities( $val, "\200-\377&<>" );
+		$xml_objects .= $self->android_xml_tag ( $prefix, "value", $attributes, $val );
 	    }
 	    $prefix = '  ' x $depth;
 	    $xml_objects .= $prefix . "</$f>\n";
@@ -140,18 +226,20 @@ sub android_xml {
 	    $prefix = '  ' x ($depth+1);
 	    foreach my $key (keys %{$value}) {
 		my $val = $value->{$key};
+		$val = "" unless defined $val;
+		$val = encode_entities( $val, "\200-\377&<>" );
 		$key = encode_entities( $key, "\200-\377&<>" );
 		$key =~ s/ /_/g;
 		$key =~ s/[\[\]]/_/g;
-		$val = encode_entities( $val, "\200-\377&<>" );
-		$xml_objects .= $prefix . "<$key>$val</$key>\n";
+		$xml_objects .= $self->android_xml_tag ( $prefix, $key, $attributes, $val );
 	    }
 	    $prefix = '  ' x $depth;
 	    $xml_objects .= $prefix . "</$f>\n";
 	}
 
 	else {
-	    $xml_objects .= $self->android_xml_tag ( $prefix, $f, $attributes );
+	    $value = "" unless defined $value;
+	    $xml_objects .= $self->android_xml_tag ( $prefix, $f, $attributes, $value  );
 	}
     }
     return $xml_objects;
