@@ -1463,11 +1463,16 @@ sub reset_states {
     @states_from_previous_pass = @items_with_more_states;
 }
 
+#-------------------------------------------------------------------------------
+#
+# The following methods are used for android support
+#
+#-------------------------------------------------------------------------------
 sub android_xml {
     my ($self, $depth, $fields, $num_tags, $attributes) = @_;
     my $xml_objects;
 
-    # Insert the initial "object" tag
+    # Determine how many tags this item has
     my $prefix = '  ' x ($depth-1);
     my $log_size = 0;
     $log_size = scalar(@{$$self{state_log}}) if $$self{state_log} ;
@@ -1475,10 +1480,23 @@ sub android_xml {
 	$attributes->{more} = "true";
     }
 
-    # Build the tag with attributes
-    $xml_objects .= $self->android_xml_tag ( $prefix, "object", $attributes );
+    # Insert the initial "object" tag
+    my $object = "object";
+    if (exists $attributes->{object}) {
+	$object = $attributes->{object};
+	delete $attributes->{object};
+    }
+    $xml_objects .= $self->android_xml_tag ( $prefix, $object, $attributes );
 
-    my @f = qw( name state state_log );
+    # Add tags name, state, and optional state_log
+    my @f = qw( name );
+    if (scalar($self->get_states( )) > 0) {
+	push @f, qw ( state );
+    }
+    if ($log_size > 0) {
+	push @f, qw ( state_log );
+    }
+
     $prefix = '  ' x $depth;
 
     foreach my $f ( @f ) {
@@ -1490,7 +1508,7 @@ sub android_xml {
             or ( ( $method = 'get_' . $method )
                 and $self->can($method) )
           ) {
-            if ( $f eq 'states' or $f eq 'state_log' ) {
+            if ( $f eq 'state_log' ) {
                 my @a = $self->$method;
                 $value = \@a;
 	    } else {
@@ -1505,53 +1523,69 @@ sub android_xml {
 	if ($f eq "state") {
 	    my @states = $self->get_states( );
 	    my $numStates = @states;
-	    my $attribute = ' type="text"';
+	    $attributes->{type} ="text";
 	    if ($numStates eq 2) {
-		$attribute = ' type="toggle"';
+		$attributes->{type} = "toggle";
 	    }
 	    if ($numStates > 2) {
-		$attribute = ' type="spinner"';
+		$attributes->{type} = "spinner";
 	    }
-	    $attribute .= " value=\"$value\"";
-	    $xml_objects .= $prefix . "<state$attribute>\n";
+	    foreach (@states) {
+		$_ = 'undef' unless defined $_;
+		if ($_ eq $value) {
+		    $attributes->{value} = encode_entities( $value, "\200-\377&<>" );
+		}
+	    }
+	    $xml_objects .= $self->android_xml_tag ( $prefix, $f, $attributes );
+	    $prefix = "  " x ($depth+1);
 	    foreach (@states) {
 		$_ = 'undef' unless defined $_;
 		$value = $_;
 		$value = encode_entities( $value, "\200-\377&<>" );
-		my $selected = "";
-		#if ($_ eq $self->{state}) {
-		#    $selected = " selected=\"true\"";
-		#}
-		$xml_objects .= $prefix . "  <value$selected>$value</value>\n";
+		$xml_objects .= $self->android_xml_tag ( $prefix, "value", $attributes, $value );
 	    }
-	    $xml_objects .= $prefix . "</state>\n";
+	    $prefix = '  ' x $depth;
+	    $xml_objects .= $prefix . "</$f>\n";
 	} elsif ($f eq "state_log") {
-	    $xml_objects .= $prefix . "<state_log type=\"arrayList\">\n";
+	    $attributes->{type} = "arrayList";
+	    $xml_objects .= $self->android_xml_tag ( $prefix, $f, $attributes );
 	    my @state_log = @{$value};
+	    $prefix = "  " x ($depth+1);
 	    foreach (@state_log) {
 		$_ = 'undef' unless defined $_;
 		$value = $_;
 		$value = encode_entities( $value, "\200-\377&<>" );
-		$xml_objects .= $prefix . "  <value>$value</value>\n";
+		$xml_objects .= $self->android_xml_tag ( $prefix, "value", $attributes, $value );
 	    }
-	    $xml_objects .= $prefix . "</state_log>\n";
+	    $prefix = '  ' x $depth;
+	    $xml_objects .= $prefix . "</$f>\n";
 	} elsif ($f eq "name") {
-	    $xml_objects .= $prefix . "<name>$self->{object_name}</name>\n";
+	    my $name = "";
+	    $name = $self->{object_name} if defined $self->{object_name};
+	    $xml_objects .= $self->android_xml_tag ( $prefix, $f, $attributes, $name );
 	} else {
-	    $xml_objects .= $prefix . "<$f>$value</$f>\n";
+	    $value = "" unless defined $value;
+	    $xml_objects .= $self->android_xml_tag ( $prefix, $f, $attributes, $value );
 	}
     }
     return $xml_objects;
 }
 
+sub android_set_name {
+    my ($self, $name) = @_;
+    if (!exists $self->{object_name}) {
+	$self->{object_name} = $name;
+    }
+}
+
 sub android_xml_tag {
     my ($self, $prefix, $tag, $attributes, $value) = @_;
     my $xml_objects = $prefix . "<$tag";
-    &::print_log("android_xml_tag: prefix: $prefix tag: $tag value: $value") if $::Debug{android};
+    #&::print_log("android_xml_tag: prefix: $prefix tag: $tag value: $value") if $::Debug{android};
     foreach my $key ( keys %$attributes ) {
 	my $val = $attributes->{$key};
 	$xml_objects .= " " . $key . "=\"" . $attributes->{$key} . "\"";
-	&::print_log("android_xml_tag: attr:: key: $key value: $val") if $::Debug{android};
+	#&::print_log("android_xml_tag: attr:: key: $key value: $val") if $::Debug{android};
 	delete $attributes->{$key};
     }
     $xml_objects .= ">";
