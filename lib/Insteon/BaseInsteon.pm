@@ -53,7 +53,7 @@ sub derive_link_state
 	my ($p_state) = @_;
 
 	my $link_state = 'on';
-	if ($p_state eq 'off')
+	if ($p_state eq 'off' or $p_state eq 'off_fast')
 	{
 		$link_state = 'off';
 	}
