@@ -645,7 +645,8 @@ sub _on_peek
 		}
                 elsif ($$self{_mem_action} eq 'local_onlevel')
                 {
-			my $on_level = $self->local_onlevel;
+			my $device = $$self{device};
+			my $on_level = $$device{_onlevel};
 			$on_level = &Insteon::DimmableLight::convert_level($on_level);
                         $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'poke');
                         $message->extra($on_level);
@@ -654,7 +655,8 @@ sub _on_peek
 		}
                 elsif ($$self{_mem_action} eq 'local_ramprate')
                 {
-			my $ramp_rate = $$self{_ramprate};
+                        my $device = $$self{device};
+			my $ramp_rate = $$device{_ramprate};
 			$ramp_rate = '1f' unless $ramp_rate;
                         $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'poke');
                         $message->extra($ramp_rate);
