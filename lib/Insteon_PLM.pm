@@ -308,7 +308,7 @@ sub _send_cmd {
         }
 
         my $data = pack("H*",$command);
-#	&::print_log("PLM: Executing command:$command:") unless $main::config_parms{no_log} =~/Insteon_PLM/;
+        &::print_log( "[Insteon_PLM] DEBUG3: Sending  PLM raw data: ".lc($command)) if $main::Debug{insteon} >= 3;
 	$main::Serial_Ports{$instance}{object}->write($data) if $main::Serial_Ports{$instance};
 
 
@@ -340,7 +340,7 @@ sub _parse_data {
                 $$self{_prior_data_fragment} = '';
         }
 
-	&::print_log( "[Insteon_PLM] DEBUG3: Received raw PLM data: $data") if $main::Debug{insteon} >= 3;
+	&::print_log( "[Insteon_PLM] DEBUG3: Received PLM raw data: $data") if $main::Debug{insteon} >= 3;
 
 	# begin by pulling out any PLM ack/nacks
 	my $prev_cmd = '';

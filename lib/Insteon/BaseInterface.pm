@@ -33,6 +33,7 @@ sub poll_all
             		{
                		# don't request status for objects associated w/ other than the primary group
                		#    as they are psuedo links
+                                $insteon_device->get_engine_version();
                			$insteon_device->request_status();
             		}
                		if ($insteon_device->devcat) {

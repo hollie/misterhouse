@@ -162,6 +162,13 @@ sub default_hop_count
         return $$self{default_hop_count};
 }
 
+sub engine_version
+{
+        my ($self, $p_engine_version) = @_;
+        $$self{engine_version} = $p_engine_version if $p_engine_version;
+        return $$self{engine_version};
+}
+
 sub equals
 {
 	my ($self, $compare_object) = @_;
@@ -452,6 +459,7 @@ sub _is_info_request
       else {
          $version = 'I'. sprintf( "%1d",$version);
       }
+      $self->engine_version($version);
       &::print_log("[Insteon::BaseObject] received engine version for " 
          . $self->{object_name} . " of $version.");
    }
