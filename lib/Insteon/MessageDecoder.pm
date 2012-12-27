@@ -442,7 +442,7 @@ sub plm_decode {
 #FSM:2 - Parse command from PLM (50-58)
 #FSM:3 - Parse command to PLM (60-73) and response 
 
-	my $plm_message = "PLM Message: $plm_string\n";
+	my $plm_message = '';
 	my $plm_cmd_id;
 
 	my $FSM = 0;

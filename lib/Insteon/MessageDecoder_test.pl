@@ -83,5 +83,6 @@ plm_decode_print('02511f058c1edc30112e000101000020201cfe3f0001000000');
 
 sub plm_decode_print {
 	my ($plm_string) = @_;
+	print( "PLM Message: $plm_string\n");
 	print( Insteon::MessageDecoder::plm_decode($plm_string)."\n");
 }

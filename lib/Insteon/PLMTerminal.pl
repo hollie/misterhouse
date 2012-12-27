@@ -14,7 +14,7 @@
 $| = 1;
 
 use strict;
-use lib '/usr/local/misterhouse/mh/lib', '/usr/local/misterhouse/mh/lib/site', '..';
+use lib '..';
 use Insteon::MessageDecoder;
 use Term::ReadKey;
 use constant {
