@@ -14,7 +14,7 @@
 $| = 1;
 
 use strict;
-use lib '..';
+use lib '..', '../site';
 use Insteon::MessageDecoder;
 use Term::ReadKey;
 use constant {
@@ -53,6 +53,7 @@ $device->handshake("none");
 $device->read_char_time(0);    # don't wait for each character
 $device->read_const_time(RX_BLOCKTIME); # wait RX_BLOCKTIME (ms) per unfulfilled "read" call
 $device->write_settings || die "Could not set up port\n";
+print "Done setting port parameters\n";
 
 our $ctlc = 0;
 $SIG{INT} = \&handler_ctlc;
@@ -110,6 +111,7 @@ while(!$ctlc) {
 	}
 } #while(!$ctlc)
 
+print "Closing device port\n";
 $device->close || die "\nclose problem with $port\n";
 
 sub plmValidMessage {
