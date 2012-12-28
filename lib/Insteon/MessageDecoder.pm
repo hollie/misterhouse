@@ -1,32 +1,50 @@
-use strict;
 package Insteon::MessageDecoder;
 
-
-
-
+use strict;
 
 =head1 NAME
 
-B<MessageDecoder> - This static class will decode PLM and Insteon messages
+B<Insteon::MessageDecoder> - Static class for decoding Insteon PLM messages
 
 =head1 SYNOPSIS
 
-
+    use Insteon::MessageDecoder;
+    my $decodedMessage = Insteon::MessageDecoder::plm_decode($plm_string);
 
 =head1 DESCRIPTION
 
+Insteon::MessageDecoder will decode Insteon PLM messages. Functions are 
+provided to decode the PLM envelope, X10 commands, Insteon flags, and 
+Insteon Cmd1/Cmd2 bytes.  User data (D1-D14) of extended messages is not 
+decoded but will be displayed.
 
+=head1 EXAMPLE
+
+    use Insteon::MessageDecoder;
+    my $plm_string;
+    
+    $plm_string = '02621f058c1f2e000100000000000000000000000000';
+    print( "PLM Message: $plm_string\n");
+    print( Insteon::MessageDecoder::plm_decode($plm_string)."\n");
+    
+    $plm_string = '02511f058c1edc30112e000101000020201cfe3f0001000000';
+    print( "PLM Message: $plm_string\n");
+    print( Insteon::MessageDecoder::plm_decode($plm_string)."\n");
 
 =head1 LIMITATIONS
 
 The message decoder is not perfect.  It does not keep message state and 
 several of the Insteon ACK message formats can "only" be decoded relative
 to the most recent command sent to the ACKing device.  Some ACK messages 
-will be incorrectly decoded as part of another Insteon message.
+will be incorrectly decoded as part of another Insteon message. For 
+example in the ACK for a "Light Status Request", cmd1 is the ALDB serial 
+number.  This serial number will be interpreted as another Insteon message
+where the serial number matches the cmd1 value.  Be aware of this and you 
+should still be able to intrepret the decided messages.
 
-Only the 2F extended message is decoded; other extended messages only 
-display the D1-D14 hex data.  You will need to manuall decode the 
-extended data.  Patches for decoding other messages are welcome.
+Extended messages are not decoded and only display the D1-D14 hex data.  
+You will need to manually decode the extended data.  Patches for decoding 
+one or more extended messages are welcome.
 
 =head1 BUGS
 
@@ -36,6 +54,10 @@ reviewing many message board discussions.  The decoder has not been
 tested with all devices (of all firmware revs) or all PLM combinations 
 (of all firmware revs).  There are bugs; please report them in the 
 misterhouse GitHub issues list.
+
+=head1 METHODS
+
+=over
 
 =cut
 
@@ -421,13 +443,9 @@ my %x10_commands = (
 );
 
 
-=head1 METHODS
+=item plm_decode(plm_string)
 
-=over
-
-=item C<plm_decode(plm_string)>
-
-Returns a string containing a decoded a PLM data packet
+Returns a string containing a decoded PLM data packet
 
 =cut
 sub plm_decode {
@@ -452,7 +470,7 @@ sub plm_decode {
 		if($FSM==0) {
 			#FSM:0 - Look for PLM STX
 			#Must start with STX or it is garbage
-			if(substr($plm_string,0,2) != '02') {
+			if(substr($plm_string,0,2) ne '02') {
 				$plm_message .= "Missing (02)STX: Invalid message\n";
 				$abort++;
 			} else {
@@ -653,9 +671,9 @@ sub plm_decode {
 }
 
 
-=item C<plm_x10_decode(x10_string)>
+=item plm_x10_decode(x10_string)
 
-Returns a string containing a decoded a PLM X10 data packet
+Returns a string containing a decoded PLM X10 data packet
 
 =cut
 sub plm_x10_decode {
@@ -672,9 +690,9 @@ sub plm_x10_decode {
 	return($x10_message);
 }
 
-=item C<insteon_message_flags_decode(flags_string)>
+=item insteon_message_flags_decode(flags_string)
 
-Returns a string containing a decoded a insteon message flags
+Returns a string containing decoded Insteon message flags
 
 =cut
 sub insteon_message_flags_decode {
@@ -700,9 +718,9 @@ sub insteon_message_flags_decode {
         return($flags_message);
 }
 
-=item C<insteon_decode(command_string)>
+=item insteon_decode(command_string)
 
-Returns a string containing a decoded a insteon message. Input
+Returns a string containing a decoded Insteon message. Input
 string should be the Insteon message starting with the 
 message flag byte.
 
@@ -819,15 +837,27 @@ sub insteon_decode_cmd {
 
 =back
 
+=head1 SUPPORT
+
+You can find documentation for this module with the perldoc command.
+
+    perldoc Insteon::MessageDecoder
+
+=head1 SEE ALSO
+
+L<Insteon Command Tables 20070925a|www.insteon.net/pdf/INSTEON_Command_Tables_20070925a.pdf>
+
+PLM command details can be found in the 2412S Developers Guide.  This 
+document is not supplied by SmartHome but may be available through an 
+internet search.
+
 =head1 AUTHOR
 
 Michael Stovenour
 
-=head1 SEE ALSO
+=head1 LICENSE AND COPYRIGHT
 
-None
-
-=head1 LICENSE
+Copyright 2012 Michael Stovenour
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
