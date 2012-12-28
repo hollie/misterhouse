@@ -687,4 +687,4 @@ sub generate_commands
         return @data;
 }
 
-1
+1;
