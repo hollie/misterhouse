@@ -49,16 +49,17 @@ If you do not get a response then you may be using the wrong serial
 port device or the PLM may not be working.  In the examples replace 
 xxyyzz with the device ID from the device label.
     
-    0260 - 
+    0260 - Get PLM Info
     0262xxyyzz0f0d00 - Get Insteon Engine Version of device with zzyyzz id
     0262xxyyzz1f2e000100000000000000000000000000 - Get config request
 
 =head1 BUGS
 
 There are probably many bugs.  The script was written and tested 
-with a 2413U PLM v1.7(9b) under Debian Woody linux.  It "should" 
-work with other PLMs but the decoder may not decode some messages 
-correctly.  For help undestanding the decoded PLM messages see the 
+with a 2413U PLM v1.7(9b) under Debian Woody linux (perl 5.10) and 
+under Windows ActiveState Perl (perl 5.12).  It "should" work with 
+other PLMs but the decoder may not decode some messages correctly.  
+For help undestanding the decoded PLM messages see the 
 Insteon::MessageDecoder documentation. 
 
 =head1 OPTIONS AND ARGUMENTS
@@ -102,8 +103,6 @@ use constant {
 	RX_BLOCKTIME => 100, #block for 100ms
 	RX_TIMEOUT => 20,    #100ms * 20 = 2 seconds
 };
-
-$| = 1;
 
 our $parms = getParameters();
 
@@ -150,6 +149,8 @@ print( "Ready to send command.  Looking for messages. Use Ctl-C to quit.\n\n");
 my $RxMessage='';
 my $RxTimeout=RX_TIMEOUT;
 my $TxMessage='';
+ReadMode(3);  #set a consistent readmode for both linux and windows
+$| = 1;
 while(!$ctlc) {
 	#Read data from serial port
 	#Blocks for RX_BLOCKTIME (ms); set above
@@ -183,20 +184,25 @@ while(!$ctlc) {
 	#Ignore zero length messages (i.e. user just hits enter)
 	my $key;
 	while( defined ($key = ReadKey(-1))) {
-		if( $key eq "\n" and $TxMessage ne '') { # enter
+#print("got key=>".ord($key)." as ascii=>$key\n");
+		if( $key eq "\n" or $key eq "\r" and $TxMessage ne '') { # enter
 			$TxMessage = insertChecksum($TxMessage) if( !$parms->{'nochecksum'});
-			print "PLM<=".$TxMessage."\n";
+			print "\nPLM<=".$TxMessage."\n";
 			print Insteon::MessageDecoder::plm_decode($TxMessage)."\n";
 			$device->write( pack( 'H*', $TxMessage));
 			$TxMessage = '';
 		} elsif( ($key =~ /[0-9a-fA-F]/)) {
 			$TxMessage .= $key;
-		} #else just drop the key
+			print $key;
+		} else { #else just drop the key
+#print("dropping key\n");
+		}
 	}
 } #while(!$ctlc)
 
 print "Closing device port\n";
 $device->close || die "\nclose problem with $port\n";
+ReadMode(0);
 
 sub plmValidMessage {
 	my ($message) = @_;
