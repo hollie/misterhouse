@@ -2972,9 +2972,9 @@ sub exit_pgm {
     }
 
 
-    if ($main::Info{OS_name}=~ /darwin/i) {  # Should go into Voice::Text?
-      Dispose_Speech_Channel();
-    }
+    #if ($main::Info{OS_name}=~ /darwin/i) {  # Should go into Voice::Text?
+    #  Dispose_Speech_Channel();
+    #}
     &Voice_Cmd::remove_voice_cmds if $config_parms{voice_cmd};
     &Exit_hooks();              # Allow user code exits
     &run_kill_processes;        # From handy_utilities ... kills anybody that isn't done yet
@@ -6067,11 +6067,11 @@ sub speak {
 #   print "Warning, speak control not recognized: key=$key value=$value\n"
 #            unless grep $key eq $_, @speak_parms;
 
-    if ($main::Info{OS_name}=~ /darwin/i) {   # Should go into Voice::Text? (YES!! It should.)
-      print "Trying to speak $phrase\n";
-      speak_mac ($phrase);
-      return;
-    }
+    #if ($main::Info{OS_name}=~ /darwin/i) {   # Should go into Voice::Text? (YES!! It should.)
+    #  print "Trying to speak $phrase\n";
+    #  speak_mac ($phrase);
+    #  return;
+    #}
 
     $parms{mode}  = '' unless $parms{mode};
     $parms{rooms} = $parms{room}    if $parms{room}; # Allow for room or rooms
