@@ -433,9 +433,9 @@ sub message_type
 sub _is_info_request
 {
 	my ($self, $cmd, $ack_setby, %msg) = @_;
-	my $is_info_request = ($cmd eq 'status_request') ? 1 : 0;
-#print "cmd: $cmd; is_info_request: $is_info_request\n";
-	if ($is_info_request) {
+	my $is_info_request = 0;
+	if ($cmd eq 'status_request') {
+		$is_info_request++;
 		my $ack_on_level = (hex($msg{extra}) >= 254) ? 100 : sprintf("%d", hex($msg{extra}) * 100 / 255);
 		&::print_log("[Insteon::BaseObject] received status for " .
 			$self->{object_name} . " with on-level: $ack_on_level%, "
@@ -450,22 +450,16 @@ sub _is_info_request
 		}
 		# if this were a scene controller, then also propogate the result to all members
 	}
-   elsif ( $cmd eq 'get_engine_version' ) {
-      my $version = $msg{extra};
-      $version++; # version retuned in cmd2 is 0 indexed
-      if ( $version == 3 ) {
-         $version = 'I2CS';
-      }
-      else {
-         $version = 'I'. sprintf( "%1d",$version);
-      }
-      $self->engine_version($version);
-      &::print_log("[Insteon::BaseObject] received engine version for " 
-         . $self->{object_name} . " of $version.");
-   }
-
+	elsif ( $cmd eq 'get_engine_version' ) {
+		$is_info_request++;
+		my @engine_types = (qw/I1 I2 I2CS/);
+		my $version = $engine_types[$msg{extra}];
+		$self->engine_version($version);
+		&::print_log("[Insteon::BaseObject] received engine version for " 
+			. $self->{object_name} . " of $version. "
+			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
+	}
 	return $is_info_request;
-
 }
 
 sub _process_message
@@ -598,6 +592,7 @@ sub _process_command_stack
                         if ($message->command eq 'peek'
                         	or $message->command eq 'poke'
                         	or $message->command eq 'status_request'
+                                or $message->command eq 'get_engine_version'
                                 or $message->command eq 'do_read_ee'
                                 or $message->command eq 'set_address_msb'
                                 )
@@ -693,6 +688,7 @@ our %message_types = (
    %Insteon::BaseObject::message_types,
    assign_to_group => 0x01,
    delete_from_group => 0x02,
+   link_cleanup_report => 0x06,
    linking_mode => 0x09,
    unlinking_mode => 0x0A,
    get_engine_version => 0x0D,
