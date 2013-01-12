@@ -103,6 +103,39 @@ my %plmcmd = (
 #create a backwards lookup on hex code
 my %plmcmd2string = reverse %plmcmd;
 
+my %plmcmdlen = (
+	'0250' => [11, 11],
+	'0251' => [25, 25],
+	'0252' => [4, 4],
+	'0253' => [10, 10],
+	'0254' => [3, 3],
+	'0255' => [2, 2],
+	'0256' => [13, 13],
+	'0257' => [10, 10],
+	'0258' => [3, 3],
+	'0260' => [2, 9],
+	'0261' => [5, 6],
+	'0262' => [8, 9], # could get 9 or 23 (Standard or Extended Message received)
+	'0263' => [4, 5],
+	'0264' => [4, 5],
+	'0265' => [2, 3],
+	'0266' => [5, 6],
+	'0267' => [2, 3],
+	'0268' => [3, 4],
+	'0269' => [2, 3],
+	'026A' => [2, 3],
+	'026B' => [3, 4],
+	'026C' => [2, 3],
+	'026D' => [2, 3],
+	'026E' => [2, 3],
+	'026F' => [11, 12],
+	'0270' => [3, 4],
+	'0271' => [4, 5],
+	'0272' => [2, 3],
+	'0273' => [5, 6],
+	);	
+
+
 #Mapping from message type bit field to acronyms used in
 #  the INSTEON Command Tables documentation
 #100 4 - SB: Standard Broadcast
@@ -485,7 +518,14 @@ sub plm_decode {
 				#include the STX for historical reasons
 				$plm_cmd_id = substr($plm_string,0,4);
 				$plm_message .= sprintf("%20s: (","PLM Command").$plm_cmd_id.") ".$plmcmd2string{$plm_cmd_id}."\n";
-				if(substr($plm_string,2,1) == '5') {
+				if(length($plm_string) < $plmcmdlen{$plm_cmd_id}->[0] * 2) {
+					$plm_message .= "        Message length too short for PLM command.  Not parsed\n";
+					$abort++;
+				} elsif(length($plm_string) > $plmcmdlen{$plm_cmd_id}->[0] * 2 
+						and length($plm_string) < $plmcmdlen{$plm_cmd_id}->[1] * 2) {
+					$plm_message .= "        Message length too short for PLM command.  Not parsed\n";
+					$abort++;
+				} elsif(substr($plm_string,2,1) == '5') {
 					#commands from PLM are 50-58
 					$FSM = 2;
 				} else {
