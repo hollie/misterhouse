@@ -41,6 +41,7 @@ Special Thanks to:
 package Insteon_PLM;
 
 use strict;
+use Insteon;
 use Insteon::BaseInterface;
 use Insteon::BaseInsteon;
 use Insteon::AllLinkDatabase;
@@ -591,7 +592,7 @@ sub _parse_data {
                 { #X10 Received
                        	my $x10_message = new Insteon::X10Message($message_data);
                         my $x10_data = $x10_message->get_formatted_data();
-			&::print_log("[Insteon_PLM] DEBUG3: received x10 data: $x10_data") if $main::Debug{insteon} >= 3
+			&::print_log("[Insteon_PLM] DEBUG3: received x10 data: $x10_data") if $main::Debug{insteon} >= 3;
 			&::process_serial_data($x10_data,undef,$self);
 		}
                 elsif ($parsed_prefix eq $prefix{all_link_complete} and ($message_length == 20))
@@ -680,12 +681,19 @@ sub _parse_data {
                 {
 			# it's probably a fragment; so, handle it
                         # it it's the same as last time, then drop it as we can't recover
-			$$self{_data_fragment} .= $parsed_data
-                        	unless (($parsed_data eq $$self{_prior_data_fragment}) or ($parsed_data eq $$self{_data_fragment}));
+                        unless (($parsed_data eq $$self{_prior_data_fragment}) or ($parsed_data eq $$self{_data_fragment})) {
+                        	$$self{_data_fragment} .= $parsed_data;
+				main::print_log("[Insteon_PLM] DEBUG3: Saving parsed data fragment: " 
+					. $parsed_data) if( $main::Debug{insteon} >= 3);
+                        }
 		}
 	}
 
-	$$self{_data_fragment} = $residue_data unless $entered_rcv_loop or $$self{_data_fragment};
+	unless( $entered_rcv_loop or $$self{_data_fragment}) {
+		$$self{_data_fragment} = $residue_data;
+		main::print_log("[Insteon_PLM] DEBUG3: Saving residue data fragment: " 
+			. $residue_data) if( $residue_data and $main::Debug{insteon} >= 3);
+	}
 
 	if ($process_next_command) {
  		$self->process_queue();

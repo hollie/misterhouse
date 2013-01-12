@@ -29,9 +29,9 @@ Special Thanks to:
 package Insteon::BaseObject;
 
 use strict;
-use Insteon;
+#use Insteon;
 use Insteon::AllLinkDatabase;
-use Insteon::Message;
+#use Insteon::Message;
 
 @Insteon::BaseObject::ISA = ('Generic_Item');
 
@@ -90,7 +90,7 @@ sub new
         	$self->interface(&Insteon::active_interface());
         }
 
-	$self->restore_data('level','default_hop_count');
+	$self->restore_data('default_hop_count', 'engine_version');
 
 	$self->initialize();
 	$$self{level} = undef;
@@ -551,6 +551,8 @@ sub _process_message
 	} elsif ($msg{command} eq 'stop_manual_change') {
 		# request status so that the final state can be known
 		$self->request_status($self);
+	} elsif ($msg{command} eq 'read_write_aldb') {
+		$self->_aldb->on_read_write_aldb(%msg) if $self->_aldb;
 	} elsif ($msg{type} eq 'broadcast') {
 		$self->devcat($msg{devcat});
 		&::print_log("[Insteon::BaseObject] device category: $msg{devcat} received for " . $self->{object_name});
@@ -568,6 +570,9 @@ sub _process_message
 			$self->set($p_state, $self); # unless (lc($self->state) eq lc($p_state)) and
 	       #		($msg{type} eq 'cleanup' and $$self{_pending_cleanup});
 			$$self{_pending_cleanup} = 0;
+                } else {
+			main::print_log("[Insteon::BaseObject] Ignoring unsupported command from " 
+				. $self->{object_name}) if $main::Debug{insteon};
                 }
 	}
 }
@@ -678,9 +683,9 @@ sub get_nack_msg_for {
 
 package Insteon::BaseDevice;
 
-use strict;
-use Insteon;
-use Insteon::AllLinkDatabase;
+#use strict;
+#use Insteon;
+#use Insteon::AllLinkDatabase;
 
 @Insteon::BaseDevice::ISA = ('Insteon::BaseObject');
 
@@ -708,7 +713,8 @@ our %message_types = (
    poke_extended => 0x2a,
    peek => 0x2b,
    peek_internal => 0x2c,
-   poke_internal => 0x2d
+   poke_internal => 0x2d,
+   read_write_aldb => 0x2f,
 );
 
 
@@ -1215,6 +1221,45 @@ sub update_flags
 	$self->_aldb->update_flags($flags) if $self->_aldb;
 }
 
+sub engine_version
+{
+	my ($self, $p_engine_version) = @_;
+	$self->{engine_version} = $self->SUPER::engine_version($p_engine_version) if $p_engine_version;
+
+	#Because of the way MH saves / restores states "after" object creation
+	#the aldb must be initially created before the engine_version is restored.
+	#It is therefore impossible to know the device is i2CS before creating
+	#the aldb object.  The solution is to keep the existing logic which assumes
+	#the device is peek/poke capable (i1 or i2) and then delete/recreate the 
+	#aldb object if it is later determined to be an i2CS device. 
+
+	if($self->{engine_version} eq 'I2CS' and ref($self->{aldb}) eq 'Insteon::ALDB_i1') {
+		main::print_log("[Insteon::BaseDevice] DEBUG4: \$self->{aldb} is a "
+			.ref($self->{aldb})." but device is ".$self->{engine_version}.
+			".  remapping aldb object to ALDB_i2") if $main::Debug{insteon} >= 4;
+		
+		my $restore_string = '';
+		if ($self->_aldb) {
+			$restore_string = $self->_aldb->restore_string();
+		}
+		
+		#While unreferencing the i1 object might cause the i1 oject to be 
+		#automatically garbage collected,  intentionally destryoing it 
+		#here so there will be a hard error if the object was somehow 
+		#stored and referenced somewhere else
+		undef $self->{aldb}; 
+	        $self->{aldb} = new Insteon::ALDB_i2($self);
+		
+		package main;
+		eval ($restore_string);
+		&::print_log("[Insteon::BaseDevice] error in eval creating ALDB object: " . $@)
+			if $@ and $main::Debug{insteon};
+		package Insteon::BaseDevice;
+	}
+
+	return $self->{engine_version};
+}
+
 
 ####################################
 ###                #################
@@ -1225,7 +1270,7 @@ sub update_flags
 package Insteon::BaseController;
 
 use strict;
-use Insteon;
+#use Insteon;
 
 @Insteon::BaseController::ISA = ('Generic_Item');
 
@@ -1713,7 +1758,7 @@ sub has_member
 package Insteon::DeviceController;
 
 use strict;
-use Insteon;
+#use Insteon;
 
 @Insteon::DeviceController::ISA = ('Insteon::BaseController');
 
@@ -1827,7 +1872,7 @@ sub unlink_to_interface
 package Insteon::InterfaceController;
 
 use strict;
-use Insteon;
+#use Insteon;
 
 @Insteon::InterfaceController::ISA = ('Insteon::BaseController','Insteon::BaseObject');
 

@@ -21,8 +21,8 @@ License:
 package Insteon::AllLinkDatabase;
 
 use strict;
-use Insteon;
-use Insteon::Lighting;
+#use Insteon;
+#use Insteon::Lighting;
 
 # @Insteon::AllLinkDatabase::ISA = ('Generic_Item');
 
@@ -143,6 +143,7 @@ sub restore_aldb
 				my $aldbkey = $deviceid . $groupid . $is_controller;
 				# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
 				if ($subaddress ne '00' and $subaddress ne '01') {
+
 					$aldbkey .= $subaddress;
 				}
 				%{$$self{aldb}{$aldbkey}} = %aldb_record;
@@ -158,9 +159,9 @@ sub restore_aldb
 package Insteon::ALDB_i1;
 
 use strict;
-use Insteon;
-use Insteon::Lighting;
-use Insteon::Message;
+#use Insteon;
+#use Insteon::Lighting;
+#use Insteon::Message;
 
 @Insteon::ALDB_i1::ISA = ('Insteon::AllLinkDatabase');
 
@@ -1682,8 +1683,8 @@ sub _peek
 package Insteon::ALDB_i2;
 
 use strict;
-use Insteon;
-use Insteon::Lighting;
+#use Insteon;
+#use Insteon::Lighting;
 
 @Insteon::ALDB_i2::ISA = ('Insteon::AllLinkDatabase');
 
@@ -1697,14 +1698,616 @@ sub new
 }
 
 
+sub scan_link_table
+{
+	my ($self,$success_callback,$failure_callback) = @_;
+	$$self{_mem_activity} = 'i2scan';
+	$$self{_success_callback} = ($success_callback) ? $success_callback : undef;
+	$$self{_failure_callback} = ($failure_callback) ? $failure_callback : undef;
+        $self->scandatetime(&main::get_tickcount);
+        $self->health('corrupt'); # allow acknowledge to set otherwise
+	$self->send_read_aldb('0000');
+}
+
+
+sub send_read_aldb
+{
+	my ($self, $address) = @_;
+
+	$$self{_mem_msb} = substr($address,0,2);
+	$$self{_mem_lsb} = substr($address,2,2);
+	$$self{_mem_action} = 'aldb_i2read';
+	main::print_log("[Insteon::ALDB_i2] " . $$self{device}->get_object_name . " reading ALDB at location: 0x" . $address);
+	my $message = new Insteon::InsteonMessage('insteon_ext_send', $$self{device}, 'read_write_aldb');
+	#cmd2.00.read_aldb_record.addr_msb.addr_lsb.record_count(0 for all).d6-d14 unused
+	$message->extra("00"."00"."00".$$self{_mem_msb}.$$self{_mem_lsb}."01"."000000000000000000");
+	$message->failure_callback($$self{_failure_callback});
+	$self->_send_cmd($message);
+}
+
+sub on_read_write_aldb
+{
+	my ($self, %msg) = @_;
+
+	&::print_log("[Insteon::ALDB_i2] DEBUG3: " . $$self{device}->get_object_name
+		. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
+		. lc $msg{extra} . " for " .  $$self{_mem_action}) if  $main::Debug{insteon} >= 3;
+
+	if ($$self{_mem_action} eq 'aldb_i2read')
+	{
+		if(length($msg{extra})<30)
+		{
+			&::print_log("[Insteon::ALDB_i2] WARNING: Corrupted I2 response not processed: "
+				. $$self{device}->get_object_name
+				. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
+				. lc $msg{extra} . " for " .  $$self{_mem_action}) if  $main::Debug{insteon} >= 3;
+			#_mem_lsb is not updated and will retry previous address again
+		} 
+		else
+		{
+			# init the link table if at the very start of a scan
+			if (lc $$self{_mem_msb} eq '00' and lc $$self{_mem_lsb} eq '00')
+			{
+				# reinit the aldb hash as there will be a new one
+				$$self{aldb} = undef;
+				# reinit the empty address list
+				@{$$self{aldb}{empty}} = ();
+				# and, also the duplicates list
+				@{$$self{aldb}{duplicates}} = ();
+			}
+
+			#$msg{extra} includes cmd2 at the beginning so cmd2.d1.d2.d3...
+			#e.g. 0001010fff00a2042042d3fe1c00cc
+			# 0:cmd2:00       - unused
+			# 2:  D1:01       - unused
+			# 4:  D2:01       - command (read aldb response)
+			# 6:  D3:0fff     - aldb address (first entry in this case)
+			#10:  D5:00       - unused in responses
+			#12:  D6:a2       - flags
+			#14:  D7:04       - group number
+			#16:  D8:11.31.a2 - device id
+			#22: D11:fe       - link data 1
+			#24: D12:1c       - link data 2
+			#26: D13:00       - link data 3 (unused)
+			#28: D14:cc       - unused in i2; checksum in i2CS
+			
+			$$self{pending_aldb}{address} = substr($msg{extra},6,4);
+			
+			my $flag = hex(substr($msg{extra},12,2));
+			$$self{pending_aldb}{flag} = $flag;
+			$$self{pending_aldb}{inuse} = ($flag & 0x80);
+			$$self{pending_aldb}{is_controller} = ($flag & 0x40);
+			$$self{pending_aldb}{highwater} = ($flag & 0x02);
+			unless($$self{pending_aldb}{highwater})
+			{
+				#highwater is set for every entry that has been used before
+				#highwater being 0 indicates entry has never been used (i.e. top of list)
+				# since this is the last unused memory location, then add it to the empty list
+				&::print_log("[Insteon::ALDB_i2] WARNING: highwater not set but marked inuse: "
+					. $$self{device}->get_object_name
+					. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
+					. lc $msg{extra} . " for " .  $$self{_mem_action}) 
+					if(($$self{pending_aldb}{inuse}) and $main::Debug{insteon} >= 3);
+				$self->add_empty_address($$self{_mem_msb} . $$self{_mem_lsb});
+				# scan done; clear out state flags
+				$$self{_mem_action} = undef;
+				$$self{_mem_activity} = undef;
+				if (lc $$self{_mem_msb} eq '0f' and lc $$self{_mem_lsb} eq 'ff')
+				{
+					# set health as empty for now
+					$self->health("empty");
+				}
+				else
+				{
+					$self->health("good");
+				}
+
+				&::print_log("[Insteon::ALDB_i2] " . $$self{device}->get_object_name . " completed aldb scan")
+					if $main::Debug{insteon};
+				if (defined $$self{_success_callback})
+				{
+					my $callback = $$self{_success_callback};
+					# clear it out *before* the eval
+					$$self{_success_callback} = undef;
+					package main;
+					eval ($callback);
+					&::print_log("[Insteon::ALDB_i2] " . $$self{device}->get_object_name . ": error during scan callback $@")
+						if $@ and $main::Debug{insteon};
+					package Insteon::ALDB_i2;
+				}
+			}
+			else #($$self{pending_aldb}{highwater})
+			{
+				unless($$self{pending_aldb}{inuse})
+				{
+					$self->add_empty_address($$self{pending_aldb}{address});
+				}
+				else
+				{
+					$$self{pending_aldb}{group} = lc substr($msg{extra},14,2);
+					$$self{pending_aldb}{deviceid} = lc substr($msg{extra},16,6);
+					$$self{pending_aldb}{data1} = lc substr($msg{extra},22,2);
+					$$self{pending_aldb}{data2} = lc substr($msg{extra},24,2);
+					$$self{pending_aldb}{data3} = lc substr($msg{extra},26,2);
+
+					# save pending_aldb and then clear it out
+					my $aldbkey = lc $$self{pending_aldb}{deviceid}
+						. $$self{pending_aldb}{group}
+						. $$self{pending_aldb}{is_controller};
+					# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
+					my $subaddress = $$self{pending_aldb}{data3};
+					if ($subaddress ne '00' and $subaddress ne '01')
+					{
+						$aldbkey .= $subaddress;
+					}
+					# check for duplicates
+					if (exists $$self{aldb}{$aldbkey} && $$self{aldb}{$aldbkey}{inuse})
+					{
+						$self->add_duplicate_link_address($$self{pending_aldb}{address});
+					}
+					else
+					{
+						%{$$self{aldb}{$aldbkey}} = %{$$self{pending_aldb}};
+					}
+				}
+
+				my $next_mem = sprintf("%04x", hex($$self{pending_aldb}{address}) - 8);
+				$$self{_mem_msb} = substr($next_mem,0,2);
+				$$self{_mem_lsb} = substr($next_mem,2,2);
+			
+			} #($$self{pending_aldb}{highwater})
+		} #else $msg{extra} !< 30
+
+		if($$self{_mem_activity} eq 'i2scan') {
+			#keep going; request the next record
+			$$self{_mem_action} = 'aldb_i2read';  #Read another entry
+			my $message = new Insteon::InsteonMessage('insteon_ext_send', $$self{device}, 'read_write_aldb');
+			$message->extra("00"."00"."00".$$self{_mem_msb}.$$self{_mem_lsb}."01"."000000000000000000");
+			$message->failure_callback($$self{_failure_callback});
+			$self->_send_cmd($message);
+		}
+	}
+	elsif ($$self{_mem_activity} eq 'aldb_i2add')
+	{
+		## update the aldb records w/ the changes that were made
+		my $aldbkey = $$self{pending_aldb}{deviceid}
+				. $$self{pending_aldb}{group}
+				. $$self{pending_aldb}{is_controller};
+		# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
+		my $subaddress = $$self{pending_aldb}{data3};
+		if (($subaddress ne '00') and ($subaddress ne '01'))
+		{
+			$aldbkey .= $subaddress;
+		}
+		$$self{aldb}{$aldbkey}{data1} = $$self{pending_aldb}{data1};
+		$$self{aldb}{$aldbkey}{data2} = $$self{pending_aldb}{data2};
+		$$self{aldb}{$aldbkey}{data3} = $$self{pending_aldb}{data3};
+		$$self{aldb}{$aldbkey}{inuse} = 1; # needed so that restore string will preserve record
+		if ($$self{_mem_activity} eq 'aldb_i2add')
+		{
+			$$self{aldb}{$aldbkey}{is_controller} = $$self{pending_aldb}{is_controller};
+			$$self{aldb}{$aldbkey}{deviceid} = lc $$self{pending_aldb}{deviceid};
+			$$self{aldb}{$aldbkey}{group} = lc $$self{pending_aldb}{group};
+			$$self{aldb}{$aldbkey}{address} = $$self{pending_aldb}{address};
+		}
+		if (defined $$self{_success_callback})
+		{
+			my $callback = $$self{_success_callback};
+			# clear it out *before* the eval
+			$$self{_success_callback} = undef;
+			package main;
+			eval ($callback);
+			package Insteon::ALDB_i2;
+			&::print_log("[Insteon::ALDB_i2] error in link callback: " . $@)
+				if $@ and $main::Debug{insteon};
+		}
+		$$self{_mem_activity} = undef;
+	}
+	else
+	{
+		main::print_log("[Insteon::ALDB_i2] " . $$self{device}->get_object_name 
+			. ": unhandled _mem_action=".$$self{_mem_action})
+			if $main::Debug{insteon};
+	}
+}
+
+sub add_empty_address
+{
+	my ($self, $address) = @_;
+        # before adding it, make sure that it isn't already in the list!!
+        my $num_addresses = @{$$self{aldb}{empty}};
+        my $exists = 0;
+        if ($num_addresses and $address)
+        {
+        	foreach my $temp_address (@{$$self{aldb}{empty}})
+        	{
+                	if ($temp_address eq $address)
+                        {
+                        	$exists = 1;
+                                last;
+                        }
+        	}
+        }
+        # add it to the list if it doesn't exist
+        if (!($exists) and $address)
+        {
+		unshift @{$$self{aldb}{empty}}, $address;
+        }
+
+        # now, keep the list sorted!
+        @{$$self{adlb}{empty}} = sort(@{$$self{aldb}{empty}});
+
+}
+
+sub add_duplicate_link_address
+{
+	my ($self, $address) = @_;
+
+        unshift @{$$self{aldb}{duplicates}}, $address;
+
+        # now, keep the list sorted!
+        @{$$self{adlb}{duplicates}} = sort(@{$$self{aldb}{duplicates}});
+
+}
+
+sub log_alllink_table
+{
+	my ($self) = @_;
+	my %aldb;
+
+	&::print_log("[Insteon::ALDB_i2] Link table for "
+        	. $$self{device}->get_object_name
+                . " health: " . $self->health);
+
+	# We want to log links sorted by ALDB address. Since the ALDB
+	# addresses are scattered throughout the %{$$self{aldb}} hash,
+	# and it is not easy to obtain them in a linear manner,
+	# we build a new data structure that will allow us to easily
+	# traverse the ALDB by address in a sorted manner. The new
+	# data structure is a bidimensional hash (%aldb) where rows
+	# are the ALDB addresses and the columns can be "empty"
+	# (indicates that the ALDB at the corresponding address is
+	# empty), "duplicate" (indicates that the ALDB at the
+	# corresponding address is a duplicate), or a hash key (which
+	# indicates that the ALDB at corresponding address contains
+	# a link).
+	foreach my $aldbkey (keys %{$$self{aldb}})
+        {
+	    if ($aldbkey eq "empty")
+            {
+		foreach my $address (@{$$self{aldb}{empty}})
+                {
+		    $aldb{$address}{empty} = undef; # Any value will do
+		}
+	    }
+            elsif ($aldbkey eq "duplicates")
+            {
+		foreach my $address (@{$$self{aldb}{duplicates}})
+                {
+		    $aldb{$address}{duplicate} = undef; # Any value will do
+		}
+	    }
+            else
+            {
+		$aldb{$$self{aldb}{$aldbkey}{address} }{$aldbkey} = $$self{aldb}{$aldbkey};
+	    }
+	}
+
+	# Finally traverse the ALDB, but this time sorted by ALDB address
+        if ($self->health eq 'good')
+        {
+		foreach my $address (sort keys %aldb)
+           	{
+			my $log_msg = "[Insteon::ALDB_i2] [0x$address] ";
+
+			if (exists $aldb{$address}{empty})
+                        {
+		    		$log_msg .= "is empty";
+			}
+                        elsif (exists $aldb{$address}{duplicate})
+                        {
+		    		$log_msg .= "holds a duplicate entry";
+			}
+                        else
+                        {
+		   		my ($key) = keys %{$aldb{$address} }; # There's only 1 key
+		    		my $aldb_entry = $aldb{$address}{$key};
+		    		my $is_controller = $aldb_entry->{is_controller};
+		    		my $device;
+
+		    		if ($$self{device}->interface()->device_id()
+					&& ($$self{device}->interface()->device_id()
+                                        eq $aldb_entry->{deviceid}))
+                                {
+			    		$device = $$self{device}->interface;
+		    		}
+                                else
+                                {
+			    		$device = &Insteon::get_object($aldb_entry->{deviceid},'01');
+		    		}
+		    		my $object_name = ($device) ? $device->get_object_name : $aldb_entry->{deviceid};
+
+		    		my $on_level = 'unknown';
+		    		if (defined $aldb_entry->{data1})
+                                {
+			    		if ($aldb_entry->{data1})
+                                        {
+				    		$on_level = int((hex($aldb_entry->{data1})*100/255) + .5) . "%";
+			    		}
+                                        else
+                                        {
+				    		$on_level = '0%';
+			    		}
+		    		}
+
+		    		my $rspndr_group = $aldb_entry->{data3};
+		    		$rspndr_group = '01' if $rspndr_group eq '00';
+
+		    		my $ramp_rate = 'unknown';
+		    		if ($aldb_entry->{data2})
+                                {
+			    		if (!($$self{device}->isa('Insteon::DimmableLight'))
+                                        	or (!$is_controller and ($rspndr_group != '01')))
+                                        {
+				    		$ramp_rate = 'none';
+				    		$on_level = $on_level eq '0%' ? 'off' : 'on';
+			    		}
+                                        else
+                                        {
+				    		$ramp_rate = &Insteon::DimmableLight::get_ramp_from_code($aldb_entry->{data2}) . "s";
+			    		}
+		    		}
+
+		    		$log_msg .= $is_controller ? "contlr($aldb_entry->{group}) "
+				    . "record to $object_name ($rspndr_group), "
+				    . "(d1:$aldb_entry->{data1}, "
+				    . "d2:$aldb_entry->{data2}, "
+				    . "d3:$aldb_entry->{data3})"
+				: "rspndr($rspndr_group) record to $object_name "
+				    . "($aldb_entry->{group}): onlevel=$on_level "
+				    . "and ramp=$ramp_rate "
+				    . "(d3:$aldb_entry->{data3})";
+			}
+
+			&::print_log($log_msg);
+		}
+        }
+        else
+        {
+        }
+}
+
+sub add_link
+{
+	my ($self, $parms_text) = @_;
+	my %link_parms;
+	if (@_ > 2)
+        {
+		shift @_;
+		%link_parms = @_;
+	}
+        else
+        {
+		%link_parms = &main::parse_func_parms($parms_text);
+	}
+	my $device_id;
+	my $insteon_object = $link_parms{object};
+	my $group = $link_parms{group};
+	if (!(defined($insteon_object)))
+        {
+		$device_id = lc $link_parms{deviceid};
+		$insteon_object = &Insteon::get_object($device_id, $group);
+	}
+        else
+        {
+		$device_id = lc $insteon_object->device_id;
+	}
+	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
+	# check whether the link already exists
+	my $subaddress = ($link_parms{data3}) ? $link_parms{data3} : '00';
+	# get the address via lookup into the hash
+	my $key = lc $device_id . $group . $is_controller;
+	# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
+	if (!($subaddress eq '00' or $subaddress eq '01'))
+        {
+		$key .= $subaddress;
+	}
+	if (defined $$self{aldb}{$key}{inuse})
+        {
+		&::print_log("[Insteon::ALDB_i2] WARN: attempt to add link to " . $$self{device}->get_object_name . " that already exists! "
+			. "object=" . $insteon_object->get_object_name . ", group=$group, is_controller=$is_controller");
+		if ($link_parms{callback})
+                {
+			package main;
+			eval($link_parms{callback});
+			&::print_log("[Insteon::ALDB_i2] failure occurred in callback eval for " . $$self{device}->get_object_name . ":" . $@)
+				if $@ and $main::Debug{insteon};
+			package Insteon::ALDB_i2;
+		}
+	}
+        else
+        {
+		# strip optional % sign to append on_level
+		my $on_level = $link_parms{on_level};
+		$on_level =~ s/(\d)%?/$1/;
+		$on_level = '100' unless defined($on_level); # 100% == on is the default
+		# strip optional s (seconds) to append ramp_rate
+		my $ramp_rate = $link_parms{ramp_rate};
+		$ramp_rate =~ s/(\d)s?/$1/;
+		$ramp_rate = '0.1' unless $ramp_rate; # 0.1s is the default
+		# get the first available memory location
+		my $address = $self->get_first_empty_address();
+		$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
+		$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
+                if ($address)
+                {
+			&::print_log("[Insteon::ALDB_i2] DEBUG2: adding link record " . $$self{device}->get_object_name
+				. " light level controlled by " . $insteon_object->get_object_name
+		       		. " and group: $group with on level: $on_level and ramp rate: $ramp_rate")
+                                if $main::Debug{insteon} >= 2;
+	       		my $data1 = &Insteon::DimmableLight::convert_level($on_level);
+			my $data2 = ($$self{device}->isa('Insteon::DimmableLight')) ? &Insteon::DimmableLight::convert_ramp($ramp_rate) : '00';
+			my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
+			$$self{_mem_activity} = 'aldb_i2add';
+			$self->_write_link($address, $device_id, $group, $is_controller, $data1, $data2, $data3);
+			# TO-DO: ensure that pop'd address is restored back to queue if the transaction fails
+                }
+                else
+                {
+			&::print_log("[Insteon::ALDB_i2] ERROR: adding link record failed because "
+                        	. $$self{device}->get_object_name
+				. " does not have a record of the first empty ALDB record."
+                                . " Please rescan this device's link table")
+                                if $main::Debug{insteon};
+
+                         if ($$self{_success_callback})
+                         {
+				package main;
+				eval ($$self{_success_callback});
+				&::print_log("[Insteon::ALDB_i2] WARN1: Error encountered during ack callback: " . $@)
+			 		if $@ and $main::Debug{insteon} >= 1;
+			 	package Insteon::ALDB_i2;
+                         }
+
+                }
+	}
+}
+
+
+sub get_first_empty_address
+{
+	my ($self) = @_;
+
+        # NOTE: The issue here is that we give up an address from the list
+        #   with the assumption that it will be made non-empty;
+        #   So, if there is a problem during update/add, then will have
+        #   a non-empty, but non-functional entry
+	my $first_address = pop @{$$self{aldb}{empty}};
+
+        if (!($first_address))
+        {
+        	# then, cycle through all of the existing non-empty addresses
+                # to find the lowest one and then decrement by 8
+                #
+                # TO-DO: factor in appropriate use of the "highwater" flag
+                #
+		my $low_address = 0;
+		for my $key (keys %{$$self{aldb}})
+                {
+			next if $key eq 'empty' or $key eq 'duplicates';
+			my $new_address = hex($$self{aldb}{$key}{address});
+			if (!($low_address))
+                        {
+				$low_address = $new_address;
+				next;
+			}
+                        else
+                        {
+				$low_address = $new_address if $new_address < $low_address;
+			}
+		}
+		$first_address = sprintf('%04X', $low_address - 8);
+	}
+
+        return $first_address;
+}
+
+sub _write_link
+{
+	my ($self, $address, $deviceid, $group, $is_controller, $data1, $data2, $data3) = @_;
+	if ($address)
+        {
+		&::print_log("[Insteon::ALDB_i2] " . $$self{device}->get_object_name . " address: $address found for device: $deviceid and group: $group");
+
+		my $message = new Insteon::InsteonMessage('insteon_ext_send', $$self{device}, 'read_write_aldb');
+
+		#cmd2.00.write_aldb_record.addr_msb.addr_lsb.byte_count.d6-d14 bytes to write
+		my $message_extra = '00'.'00'.'02';
+
+		$$self{pending_aldb}{address} = $address;
+		$message_extra .= $address;
+
+		$message_extra .= '08';  #write 8 bytes
+		
+		#D6-D13 aldb entry:  flags.group.deviceid(3).data1.data2.data3
+		#flags
+		$$self{pending_aldb}{is_controller} = $is_controller;
+		my $flag = ($$self{pending_aldb}{is_controller}) ? 'E2' : 'A2';
+		$$self{pending_aldb}{flag} = $flag;
+		$message_extra .= $flag;
+
+		#group
+		$$self{pending_aldb}{group} = lc $group;
+		$message_extra .= $$self{pending_aldb}{group};
+
+		#device ID
+		$$self{pending_aldb}{deviceid} = lc $deviceid;
+		$message_extra .= $$self{pending_aldb}{deviceid};
+
+		#data1 - data3
+		$$self{pending_aldb}{data1} = (defined $data1) ? lc $data1 : '00';
+		$message_extra .= $$self{pending_aldb}{data1}; 
+		$$self{pending_aldb}{data2} = (defined $data2) ? lc $data2 : '00';
+		$message_extra .= $$self{pending_aldb}{data2}; 
+		# Note: if device is a KeypadLinc, then $data3 must be assigned the value of the applicable button (01)
+		if (($$self{device}->isa('Insteon::KeyPadLincRelay') or $$self{device}->isa('Insteon::KeyPadLinc')) and ($data3 eq '00'))
+                {
+			&::print_log("[Insteon::ALDB_i2] setting data3 to " . $$self{device}->group . " for this keypadlinc")
+				if $main::Debug{insteon};
+			$data3 = $$self{device}->group;
+		}
+		$$self{pending_aldb}{data3} = (defined $data3) ? lc $data3 : '00';
+		$message_extra .= '00';  #byte 14
+		$message_extra .= $$self{pending_aldb}{data3}; 
+		$message->extra($message_extra);
+		$message->failure_callback($$self{_failure_callback});
+		$self->_send_cmd($message);
+	}
+        else
+        {
+		&::print_log("[Insteon::ALDB_i2] WARN: " . $$self{device}->get_object_name
+			. " write_link failure: no address available for record to device: $deviceid and group: $group" .
+				" and is_controller: $is_controller");;
+                if ($$self{_success_callback})
+                {
+			package main;
+			eval ($$self{_success_callback});
+			&::print_log("[Insteon::ALDB_i1] WARN1: Error encountered during ack callback: " . $@)
+		 		if $@ and $main::Debug{insteon} >= 1;
+		 	package Insteon::ALDB_i2;
+                }
+	}
+}
+
+sub has_link
+{
+	my ($self, $insteon_object, $group, $is_controller, $subaddress) = @_;
+	my $key = "";
+	if ($insteon_object->isa('Insteon::BaseObject') || $insteon_object->isa('Insteon::BaseInterface'))
+        {
+            $key = lc $insteon_object->device_id . $group . $is_controller;
+	}
+        elsif ($insteon_object->isa('Insteon::AllLinkDatabase'))
+        {
+            $key = lc $$insteon_object{device}->device_id . $group . $is_controller;
+	}
+	$subaddress = '00' unless $subaddress;
+	# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
+	if (!($subaddress eq '00' or $subaddress eq '01'))
+        {
+		$key .= $subaddress;
+	}
+	return (defined $$self{aldb}{$key}) ? 1 : 0;
+}
+
 
 
 
 package Insteon::ALDB_PLM;
 
 use strict;
-use Insteon;
-use Insteon::Lighting;
+#use Insteon;
+#use Insteon::Lighting;
 
 @Insteon::ALDB_PLM::ISA = ('Insteon::AllLinkDatabase');
 

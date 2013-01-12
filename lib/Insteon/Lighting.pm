@@ -187,7 +187,7 @@ package Insteon::LampLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::LampLinc::ISA = ('Insteon::DimmableLight');
+@Insteon::LampLinc::ISA = ('Insteon::DimmableLight','Insteon::DeviceController');
 
 
 sub new

@@ -2,7 +2,7 @@
 package Insteon::BaseMessage;
 
 use strict;
-use Insteon;
+#use Insteon;
 
 sub new
 {
@@ -159,7 +159,7 @@ sub to_string
 
 package Insteon::InsteonMessage;
 use strict;
-use Insteon;
+#use Insteon;
 
 @Insteon::InsteonMessage::ISA = ('Insteon::BaseMessage');
 
@@ -188,9 +188,10 @@ sub command_to_hash
 	$msg{is_extended} = (0x01 & $msgflag) ? 1 : 0;
 	if ($msg{is_extended})
         {
+		$msg{type} = 'direct';
 		$msg{source} = substr($p_state,0,6);
 		$msg{destination} = substr($p_state,6,6);
-		$msg{extra} = substr($p_state,16,16);
+		$msg{extra} = substr($p_state,16,length($p_state)-16);
 	}
         else
         {
@@ -435,13 +436,38 @@ sub _derive_interface_data
         	$cmd .= '00';
         }
 
+	$cmd = insert_checksum( $cmd) if( $self->command_type eq 'insteon_ext_send' 
+		and $self->setby->engine_version eq 'I2CS');
+
 	return $cmd;
 
 }
 
+sub insert_checksum {
+	my ($message) = @_;
+
+	#$message is the entire insteon command minus the 0262 command prefix
+	# i.e. '02622042d31f2e000107110000000000000000000000'
+	#                     111111111122222222223333333333
+	#           0123456789012345678901234567890123456789
+	#          '2042d31f2e000107110000000000000000000000'
+	#Verify it is an extended message and long enough
+	if( length($message) < 40 or !(hex(substr($message,6,1))&0b0001))
+	{
+		main::print_log("[Insteon::InsteonMessage] WARN: insert_checksum failed.  To short or extended flag not set");
+		return $message;	
+	}
+	#checksum should be from cmd1 through D13
+	my $sum = 0;
+	$sum += hex($_) for (unpack('(A2)*', substr($message,8,30)));
+	$sum = (~$sum + 1) & 0xff;
+	return substr($message,0,38).unpack( 'H2', chr($sum));
+}
+
+
 package Insteon::X10Message;
 use strict;
-use Insteon;
+#use Insteon;
 
 @Insteon::X10Message::ISA = ('Insteon::BaseMessage');
 
