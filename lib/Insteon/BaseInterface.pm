@@ -386,7 +386,20 @@ sub on_standard_insteon_received
                                                 	$self->transmit_in_progress(1);
                         		       		# ask the object to process the received message and update its state
 			       				$object->_process_message($self, %cleanup_msg);
-                                			$self->clear_active_message();
+							# Only clear active message if the cleanup received is really meant for the active message
+							if (($msg{extra} == $self->active_message->setby->group) 
+								&& ($object->message_type($msg{cmd_code}) eq $self->active_message->command)){
+								$self->clear_active_message();
+                                                                &main::print_log("[Insteon::BaseInterface] DEBUG3: Cleanup message received, "
+                                                                . "matched active message, cleared the active message") if $main::Debug{insteon} >= 3;
+							}
+							else {
+								&main::print_log("[Insteon::BaseInterface] DEBUG3: Cleanup message received, but "
+								. "active message not cleared b/c group/command in recent message " 
+								. $msg{extra}."/".$object->message_type($msg{cmd_code}). " did not match group in "
+								. "prior sent message group/command " . $self->active_message->setby->group
+								."/".$self->active_message->command) if $main::Debug{insteon} >= 3;
+                                			}
                                                 }
                                                 else
                                                 {

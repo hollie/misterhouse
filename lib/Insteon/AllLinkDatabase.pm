@@ -796,7 +796,7 @@ sub delete_orphan_links
 					: &Insteon::get_object($deviceid,'01');
 			if (!($linked_device))
                         {
-                        	# no device is known by mh with the ADLB record's deviceid
+                        	# no device is known by mh with the ALDB record's deviceid
                         	if ($audit_mode)
                                 {
 					&::print_log("[Insteon::ALDB_i1] (AUDIT) " . $selfname . " now deleting orphaned link w/ details: "
@@ -1212,14 +1212,14 @@ sub add_duplicate_link_address
         unshift @{$$self{aldb}{duplicates}}, $address;
 
         # now, keep the list sorted!
-        @{$$self{adlb}{duplicates}} = sort(@{$$self{aldb}{duplicates}});
+        @{$$self{aldb}{duplicates}} = sort(@{$$self{aldb}{duplicates}});
 
 }
 
 sub delete_duplicate_link_address
 {
 	my ($self, $address) = @_;
-        my $num_duplicate_link_addresses = @{$$self{aldb}{duplicates}};
+        my $num_duplicate_link_addresses = (defined $$self{aldb}{duplicates}) ? @{$$self{aldb}{duplicates}} : 0;
         if ($num_duplicate_link_addresses)
         {
         	my @temp_duplicates = ();
@@ -1239,7 +1239,7 @@ sub add_empty_address
 {
 	my ($self, $address) = @_;
         # before adding it, make sure that it isn't already in the list!!
-        my $num_addresses = @{$$self{aldb}{empty}};
+        my $num_addresses = (defined $$self{aldb}{empty}) ? @{$$self{aldb}{empty}} : 0;
         my $exists = 0;
         if ($num_addresses and $address)
         {
@@ -1259,7 +1259,7 @@ sub add_empty_address
         }
 
         # now, keep the list sorted!
-        @{$$self{adlb}{empty}} = sort(@{$$self{aldb}{empty}});
+        @{$$self{aldb}{empty}} = sort(@{$$self{aldb}{empty}});
 
 }
 
