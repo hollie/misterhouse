@@ -182,9 +182,9 @@ while(!$ctlc) {
 
 	#collect keypresses from user
 	#Ignore zero length messages (i.e. user just hits enter)
+	#  but print a new line for visual separation
 	my $key;
 	while( defined ($key = ReadKey(-1))) {
-#print("got key=>".ord($key)." as ascii=>$key\n");
 		if( $key eq "\n" or $key eq "\r" and $TxMessage ne '') { # enter
 			$TxMessage = insertChecksum($TxMessage) if( !$parms->{'nochecksum'});
 			print "\nPLM<=".$TxMessage."\n";
@@ -194,8 +194,9 @@ while(!$ctlc) {
 		} elsif( ($key =~ /[0-9a-fA-F]/)) {
 			$TxMessage .= $key;
 			print $key;
+		} elsif( $key eq "\n" or $key eq "\r") {
+			print "\n";
 		} else { #else just drop the key
-#print("dropping key\n");
 		}
 	}
 } #while(!$ctlc)
