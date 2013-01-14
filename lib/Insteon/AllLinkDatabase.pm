@@ -1219,7 +1219,9 @@ sub add_duplicate_link_address
 sub delete_duplicate_link_address
 {
 	my ($self, $address) = @_;
-        my $num_duplicate_link_addresses = (defined $$self{aldb}{duplicates}) ? @{$$self{aldb}{duplicates}} : 0;
+        my $num_duplicate_link_addresses = 0;
+        
+	$num_duplicate_link_addresses = @{$$self{aldb}{duplicates}} if (defined $$self{aldb}{duplicates});
         if ($num_duplicate_link_addresses)
         {
         	my @temp_duplicates = ();
@@ -1239,7 +1241,8 @@ sub add_empty_address
 {
 	my ($self, $address) = @_;
         # before adding it, make sure that it isn't already in the list!!
-        my $num_addresses = (defined $$self{aldb}{empty}) ? @{$$self{aldb}{empty}} : 0;
+	my $num_addresses = 0;
+	$num_addresses = @{$$self{aldb}{empty}} if (defined $$self{aldb}{empty});
         my $exists = 0;
         if ($num_addresses and $address)
         {
