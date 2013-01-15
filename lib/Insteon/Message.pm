@@ -397,7 +397,7 @@ sub _derive_interface_data
 		$cmd.=$self->setby->device_id();
 		if ($self->command_type =~ /insteon_ext_send/i)
                 {
-                        if ($hop_count == 1)
+                        if ($hop_count == 1 or $hop_count == 0)
                         {
 				$cmd.='15';
                         }
@@ -412,7 +412,7 @@ sub _derive_interface_data
 		}
                 else
                 {
-                        if ($hop_count == 1)
+                        if ($hop_count == 1 or $hop_count == 0)
                         {
 				$cmd.='05';
                         }
@@ -454,7 +454,8 @@ sub insert_checksum {
 	#Verify it is an extended message and long enough
 	if( length($message) < 40 or !(hex(substr($message,6,1))&0b0001))
 	{
-		main::print_log("[Insteon::InsteonMessage] WARN: insert_checksum failed.  To short or extended flag not set");
+		main::print_log("[Insteon::InsteonMessage] WARN: insert_checksum failed.  To short or extended flag not set\n"
+			. "Message: $message");
 		return $message;	
 	}
 	#checksum should be from cmd1 through D13

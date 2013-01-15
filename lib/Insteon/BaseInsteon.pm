@@ -315,6 +315,7 @@ sub _send_cmd
                	or $message->command eq 'status_request'
                 or $message->command eq 'do_read_ee'
                 or $message->command eq 'set_address_msb'
+                or $message->command eq 'read_write_aldb'
             )
 	{
         	push(@{$$self{command_stack}}, $message);
@@ -495,7 +496,11 @@ sub _process_message
 				$self->_aldb->_on_poke(%msg) if $self->_aldb;
 				$self->_process_command_stack(%msg);
 			}
-                        else
+			elsif ($pending_cmd eq 'read_write_aldb') {
+				$self->_aldb->on_read_write_aldb(%msg) if $self->_aldb;
+				$self->_process_command_stack(%msg);
+			}
+			else
                         {
 				$self->is_acknowledged(1);
 				# signal receipt of message to the command stack in case commands are queued
@@ -600,6 +605,7 @@ sub _process_command_stack
                                 or $message->command eq 'get_engine_version'
                                 or $message->command eq 'do_read_ee'
                                 or $message->command eq 'set_address_msb'
+                                or $message->command eq 'read_write_aldb'
                                 )
                         {
 				$$self{awaiting_ack} = 1;
@@ -1487,6 +1493,7 @@ sub sync_links
 	if (!($self->isa('Insteon::InterfaceController')))
         {
 		my $subaddress = ($self->isa('Insteon::KeyPadLincRelay') or $self->isa('Insteon::KeyPadLinc')) ? $self->group : '00';
+		#Make sure this device has a controller link to the PLM
 		if (!($insteon_object->has_link($self->interface,$self->group,1,$subaddress)))
                 {
                 	if ($audit_mode)
@@ -1504,6 +1511,7 @@ sub sync_links
 				push @{$$self{sync_queue}}, \%link_req;
                         }
 		}
+		#Make sure the PLM has a responder link to this device
 		if (!($self->interface->has_link($insteon_object,$self->group,0,$subaddress)))
                 {
                 	if ($audit_mode)
@@ -1554,7 +1562,7 @@ sub _process_sync_queue {
 		&::print_log("[Insteon::BaseController] error in sync links callback: " . $@)
 			if $@ and $main::Debug{insteon};
 		$$self{sync_queue_callback} = undef;
-		package Insteon::Insteon_link;
+		package Insteon::BaseController;
 	}
 }
 

@@ -6,10 +6,40 @@ use strict;
 
 #@ This module creates voice commands for all insteon related items.
 
+=head1 NAME
+
+B<Insteon> - This module .....
+
+=head1 SYNOPSIS
+
+
+=head1 DESCRIPTION
+
+
+=head1 INHERITS
+
+This module inherits nothing
+
+
+=head1 METHODS
+
+=over
+
+=cut
+
+
 my (@_insteon_plm,@_insteon_device,@_insteon_link,@_scannable_link,$_scan_cnt,$_sync_cnt,$_sync_failure_cnt);
 my $init_complete;
 my (@_scan_devices,@_scan_device_failures,$current_scan_device);
 my (@_sync_devices,@_sync_device_failures,$current_sync_device);
+
+=item C<scan_all_linktables()>
+
+Walks through every Insteon device calling the device's scan links command.
+Does not output anything but will recreate the device's aldb from the actual
+entries in the device.
+
+=cut
 
 sub scan_all_linktables
 {
@@ -98,6 +128,18 @@ sub _get_next_linkscan
     	}
 }
 
+=item C<sync_all_links()>
+
+Initiates a process that will walk through every device that is a Insteon::InterfaceController 
+calling the device's sync_links() command.  sync_all_links() loads up the module
+global variable @_sync_devices then kicks off the recursive call backs by calling
+_get_next_linksync.
+
+=item B<Parameter: audit_mode> - Causes sync to walk through but not actually 
+send any commands to the devices.  Useful with the insteon:3 debug setting for 
+troubleshooting. 
+ 
+=cut
 
 sub sync_all_links
 {
@@ -129,6 +171,15 @@ sub sync_all_links
 
         &_get_next_linksync();
 }
+
+=item C<_get_next_linksync()>
+
+Calls the sync_links() function for each device in the module global variable 
+@_sync_devices.  This function will be called recursively since the callback 
+passed to sync_links() is this function again.  Will also ask sync_links() to 
+call _get_next_linksync_failure() if sync_links() fails. 
+
+=cut
 
 sub _get_next_linksync
 {
@@ -171,6 +222,13 @@ sub _get_next_linksync
     	}
 
 }
+
+=item C<_get_next_linksync()>
+
+Called by the failure callback in a device's sync_links() function.  Will add
+the failed device to the module global variable @_sync_device_failures. 
+
+=cut
 
 sub _get_next_linksync_failure
 {
@@ -264,6 +322,8 @@ sub generate_voice_commands
               $object_string .= "$object_name_v -> tie_event('$object_name->get_engine_version','get engine version');\n\n";
               $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','scan link table');\n\n";
               $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table()','log links');\n\n";
+              $object_string .= "$object_name_v -> tie_event('$object_name->link_to_interface','link to interface');\n\n";
+              $object_string .= "$object_name_v -> tie_event('$object_name->unlink_to_interface','unlink with interface');\n\n";
            }
            $object_string .= "$object_name_v -> tie_event('$object_name->sync_links(0)','sync links');\n\n";
            $object_string .= "$object_name_v -> tie_items($object_name, 'on');\n\n";
@@ -294,12 +354,13 @@ sub generate_voice_commands
            $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_item_commands');
            push @_insteon_device, $object_name if $group eq '01'; # don't allow non-base items to participate
         } elsif ($object->isa('Insteon_PLM')) {
-           my $cmd_states = "complete linking as responder,cancel linking,delete link with PLM,scan link table,show link table to log,delete orphan links,AUDIT - delete orphan links,scan all device link tables,sync all links,AUDIT - sync all links";
+           my $cmd_states = "complete linking as responder,initiate linking as controller,cancel linking,delete link with PLM,scan link table,log links,delete orphan links,AUDIT - delete orphan links,scan all device link tables,sync all links,AUDIT - sync all links";
            $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->complete_linking_as_responder','complete linking as responder');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->initiate_linking_as_controller','initiate linking as controller');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->initiate_unlinking_as_controller','initiate unlinking');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->cancel_linking','cancel linking');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table','show link table to log');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table','log links');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','scan link table');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->delete_orphan_links','delete orphan links');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->delete_orphan_links(1)','AUDIT - delete orphan links');\n\n";
@@ -359,6 +420,9 @@ sub get_object
 					{
 						$retObj = $obj;
 						last;
+					} else {
+						#remember device match if all else fails but keep looking
+						$retObj = $obj;
 					}
 				} else {
 					$retObj = $obj;
@@ -404,7 +468,7 @@ sub _active_interface
       &main::print_log("[Insteon] Setting up initialization hooks") if $main::Debug{insteon};
       &main::MainLoop_pre_add_hook(\&Insteon::BaseInterface::check_for_data, 1);
       &main::Reload_post_add_hook(\&Insteon::BaseInterface::poll_all, 1);
-      $Insteon::init_complete = 0;
+      $init_complete = 0;
       &main::MainLoop_pre_add_hook(\&Insteon::init, 1);
       &main::Reload_post_add_hook(\&Insteon::generate_voice_commands, 1);
    }
@@ -506,4 +570,42 @@ sub find_members {
 	return @l_found;
 }
 
-1
+=head1 INI PARAMETERS
+
+=over
+
+=item C<debug>
+
+For debugging debug=insteon or debug=insteon:level where level is 1-4. 
+
+=back
+
+=head1 AUTHOR
+
+Bruce Winter
+
+=head1 SEE ALSO
+
+None
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, 
+MA  02110-1301, USA.
+
+=cut
+
+
+1;

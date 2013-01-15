@@ -797,7 +797,7 @@ sub delete_orphan_links
 					: &Insteon::get_object($deviceid,'01');
 			if (!($linked_device))
                         {
-                        	# no device is known by mh with the ADLB record's deviceid
+                        	# no device is known by mh with the ALDB record's deviceid
                         	if ($audit_mode)
                                 {
 					&::print_log("[Insteon::ALDB_i1] (AUDIT) " . $selfname . " now deleting orphaned link w/ details: "
@@ -1213,7 +1213,7 @@ sub add_duplicate_link_address
         unshift @{$$self{aldb}{duplicates}}, $address;
 
         # now, keep the list sorted!
-        @{$$self{adlb}{duplicates}} = sort(@{$$self{aldb}{duplicates}});
+        @{$$self{aldb}{duplicates}} = sort(@{$$self{aldb}{duplicates}});
 
 }
 
@@ -1260,7 +1260,7 @@ sub add_empty_address
         }
 
         # now, keep the list sorted!
-        @{$$self{adlb}{empty}} = sort(@{$$self{aldb}{empty}});
+        @{$$self{aldb}{empty}} = sort(@{$$self{aldb}{empty}});
 
 }
 
@@ -1735,6 +1735,10 @@ sub on_read_write_aldb
 
 	if ($$self{_mem_action} eq 'aldb_i2read')
 	{
+		$$self{_mem_action} = 'aldb_i2readack';
+	}
+	elsif ($$self{_mem_action} eq 'aldb_i2readack')
+	{
 		if(length($msg{extra})<30)
 		{
 			&::print_log("[Insteon::ALDB_i2] WARNING: Corrupted I2 response not processed: "
@@ -1773,11 +1777,11 @@ sub on_read_write_aldb
 			
 			$$self{pending_aldb}{address} = substr($msg{extra},6,4);
 			
-			my $flag = hex(substr($msg{extra},12,2));
-			$$self{pending_aldb}{flag} = $flag;
-			$$self{pending_aldb}{inuse} = ($flag & 0x80);
-			$$self{pending_aldb}{is_controller} = ($flag & 0x40);
-			$$self{pending_aldb}{highwater} = ($flag & 0x02);
+			$$self{pending_aldb}{flag} = substr($msg{extra},12,2);
+			my $flag = hex($$self{pending_aldb}{flag});
+			$$self{pending_aldb}{inuse} = ($flag & 0x80) ? 1 : 0;
+			$$self{pending_aldb}{is_controller} = ($flag & 0x40) ? 1 : 0;
+			$$self{pending_aldb}{highwater} = ($flag & 0x02) ? 1 : 0;
 			unless($$self{pending_aldb}{highwater})
 			{
 				#highwater is set for every entry that has been used before
@@ -1902,6 +1906,7 @@ sub on_read_write_aldb
 				if $@ and $main::Debug{insteon};
 		}
 		$$self{_mem_activity} = undef;
+		$$self{pending_aldb} = undef;
 	}
 	else
 	{
@@ -1935,7 +1940,7 @@ sub add_empty_address
         }
 
         # now, keep the list sorted!
-        @{$$self{adlb}{empty}} = sort(@{$$self{aldb}{empty}});
+        @{$$self{aldb}{empty}} = sort(@{$$self{aldb}{empty}});
 
 }
 
@@ -1946,7 +1951,7 @@ sub add_duplicate_link_address
         unshift @{$$self{aldb}{duplicates}}, $address;
 
         # now, keep the list sorted!
-        @{$$self{adlb}{duplicates}} = sort(@{$$self{aldb}{duplicates}});
+        @{$$self{aldb}{duplicates}} = sort(@{$$self{aldb}{duplicates}});
 
 }
 
@@ -2297,7 +2302,7 @@ sub has_link
         {
 		$key .= $subaddress;
 	}
-	return (defined $$self{aldb}{$key}) ? 1 : 0;
+	return (defined $$self{aldb}{$key});
 }
 
 
@@ -2754,6 +2759,9 @@ sub add_link
 		$$self{aldb}{$linkkey}{data1} = lc $data1;
 		$$self{aldb}{$linkkey}{data2} = lc $data2;
 		$$self{aldb}{$linkkey}{data3} = lc $data3;
+		$$self{aldb}{$linkkey}{inuse} = 1;
+		$self->health('good') if($self->health() eq 'empty');
+		
                 my $message =  new Insteon::InsteonMessage('all_link_manage_rec', $$self{device});
                 $message->interface_data($cmd);
                 if ($link_parms{callback})
