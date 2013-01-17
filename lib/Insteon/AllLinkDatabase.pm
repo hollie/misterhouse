@@ -1735,7 +1735,12 @@ sub on_read_write_aldb
 
 	if ($$self{_mem_action} eq 'aldb_i2read')
 	{
-		$$self{_mem_action} = 'aldb_i2readack';
+		#Only move to the next state if the received message is a device ack
+		#if the ack is dropped the retransmission logic will resend the request
+		if($msg{command_type} eq 'insteon_received' and $msg{command} eq 'read_write_aldb') {
+			$$self{_mem_action} = 'aldb_i2readack';
+		} #otherwise just ignore the message because it is out of sequence
+		
 	}
 	elsif ($$self{_mem_action} eq 'aldb_i2readack')
 	{
