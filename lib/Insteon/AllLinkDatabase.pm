@@ -796,7 +796,7 @@ sub delete_orphan_links
 					: &Insteon::get_object($deviceid,'01');
 			if (!($linked_device))
                         {
-                        	# no device is known by mh with the ADLB record's deviceid
+                        	# no device is known by mh with the ALDB record's deviceid
                         	if ($audit_mode)
                                 {
 					&::print_log("[Insteon::ALDB_i1] (AUDIT) " . $selfname . " now deleting orphaned link w/ details: "
@@ -1212,7 +1212,7 @@ sub add_duplicate_link_address
         unshift @{$$self{aldb}{duplicates}}, $address;
 
         # now, keep the list sorted!
-        @{$$self{adlb}{duplicates}} = sort(@{$$self{aldb}{duplicates}});
+        @{$$self{aldb}{duplicates}} = sort(@{$$self{aldb}{duplicates}});
 
 }
 
@@ -1262,7 +1262,7 @@ sub add_empty_address
         }
 
         # now, keep the list sorted!
-        @{$$self{adlb}{empty}} = sort(@{$$self{aldb}{empty}});
+        @{$$self{aldb}{empty}} = sort(@{$$self{aldb}{empty}});
 
 }
 
@@ -1298,7 +1298,7 @@ sub get_first_empty_address
 				$low_address = $new_address if $new_address < $low_address;
 			}
 		}
-		$first_address = sprintf('%04X', $low_address - 8);
+		$first_address = ($low_address > 0) ? sprintf('%04X', $low_address - 8) : 0;
 	}
 
         return $first_address;
