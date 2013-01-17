@@ -1296,7 +1296,7 @@ sub get_first_empty_address
 				$low_address = $new_address if $new_address < $low_address;
 			}
 		}
-		$first_address = sprintf('%04X', $low_address - 8);
+		$first_address = ($low_address > 0) ? sprintf('%04X', $low_address - 8) : 0;
 	}
 
         return $first_address;
@@ -2216,7 +2216,8 @@ sub get_first_empty_address
 				$low_address = $new_address if $new_address < $low_address;
 			}
 		}
-		$first_address = sprintf('%04X', $low_address - 8);
+		$first_address = ($low_address > 0) ? sprintf('%04X', $low_address - 8) : 0;
+		
 	}
 
         return $first_address;
