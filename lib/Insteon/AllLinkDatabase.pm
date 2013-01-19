@@ -1731,7 +1731,7 @@ sub on_read_write_aldb
 
 	&::print_log("[Insteon::ALDB_i2] DEBUG3: " . $$self{device}->get_object_name
 		. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
-		. lc $msg{extra} . " for " .  $$self{_mem_action}) if  $main::Debug{insteon} >= 3;
+		. lc $msg{extra} . " for _mem_action=" .  $$self{_mem_action}) if  $main::Debug{insteon} >= 3;
 
 	if ($$self{_mem_action} eq 'aldb_i2read')
 	{
@@ -1739,7 +1739,15 @@ sub on_read_write_aldb
 		#if the ack is dropped the retransmission logic will resend the request
 		if($msg{command_type} eq 'insteon_received' and $msg{command} eq 'read_write_aldb') {
 			$$self{_mem_action} = 'aldb_i2readack';
-		} #otherwise just ignore the message because it is out of sequence
+			&::print_log("[Insteon::ALDB_i2] DEBUG3: " . $$self{device}->get_object_name
+				. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received ack")
+				if  $main::Debug{insteon} >= 3;
+		} else {
+			#otherwise just ignore the message because it is out of sequence
+			&::print_log("[Insteon::ALDB_i2] DEBUG3: " . $$self{device}->get_object_name
+				. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] ack not received. "
+				. "ignoring message") if  $main::Debug{insteon} >= 3;
+		}
 		
 	}
 	elsif ($$self{_mem_action} eq 'aldb_i2readack')

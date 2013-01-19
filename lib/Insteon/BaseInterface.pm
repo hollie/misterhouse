@@ -341,11 +341,15 @@ sub on_standard_insteon_received
                 	if ($msg{type} ne 'broadcast')
                         {
                 		$msg{command} = $object->message_type($msg{cmd_code});
-		      		&::print_log("[Insteon::BaseInterface] command:$msg{command}; type:$msg{type}; group: $msg{group}")
+		      		main::print_log("[Insteon::BaseInterface] PLM command:$msg{command_type}; "
+		      			. "Device command:$msg{command}; type:$msg{type}; group: $msg{group}")
                         		if (!($msg{is_ack} or $msg{is_nack})) and $main::Debug{insteon};
                    	}
                    	if ($msg{is_ack} or $msg{is_nack})
                    	{
+		      		main::print_log("[Insteon::BaseInterface] DEBUG3: PLM command:$msg{command_type}; "
+		      			. "Device command:$msg{command}; type:$msg{type}; group: $msg{group}")
+                        		if $main::Debug{insteon} >=3;
                         	# need to confirm that this message corresponds to the current active one before clearing it
                                 # TO-DO!!! This is a brute force and poor compare technique; needs to be replaced by full compare
                                 if ($self->active_message && ref $self->active_message->setby)
@@ -454,8 +458,10 @@ sub on_extended_insteon_received
                 	if ($msg{type} ne 'broadcast')
                         {
                 		$msg{command} = $object->message_type($msg{cmd_code});
-		      		&::print_log("[Insteon::BaseInterface] command:$msg{command}; type:$msg{type}; group: $msg{group}")
-                        		if (!($msg{is_ack} or $msg{is_nack})) and $main::Debug{insteon};
+		      		main::print_log("[Insteon::BaseInterface] DEBUG: PLM command:$msg{command_type}; "
+		      			. "Device command:$msg{command}; type:$msg{type}; group: $msg{group}")
+                        		if( (!($msg{is_ack} or $msg{is_nack}) and $main::Debug{insteon}) 
+                        		or $main::Debug{insteon} >= 3);
                    	}
 		   	&::print_log("[Insteon::BaseInterface] Processing message for " . $object->get_object_name) if $main::Debug{insteon};
 		   	$object->_process_message($self, %msg);
