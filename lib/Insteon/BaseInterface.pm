@@ -341,13 +341,13 @@ sub on_standard_insteon_received
                 	if ($msg{type} ne 'broadcast')
                         {
                 		$msg{command} = $object->message_type($msg{cmd_code});
-		      		main::print_log("[Insteon::BaseInterface] PLM command:$msg{command_type}; "
+		      		main::print_log("[Insteon::BaseInterface] PLM command:insteon_received; "
 		      			. "Device command:$msg{command}; type:$msg{type}; group: $msg{group}")
                         		if (!($msg{is_ack} or $msg{is_nack})) and $main::Debug{insteon};
                    	}
                    	if ($msg{is_ack} or $msg{is_nack})
                    	{
-		      		main::print_log("[Insteon::BaseInterface] DEBUG3: PLM command:$msg{command_type}; "
+		      		main::print_log("[Insteon::BaseInterface] DEBUG3: PLM command:insteon_received; "
 		      			. "Device command:$msg{command}; type:$msg{type}; group: $msg{group}")
                         		if $main::Debug{insteon} >=3;
                         	# need to confirm that this message corresponds to the current active one before clearing it
@@ -458,7 +458,7 @@ sub on_extended_insteon_received
                 	if ($msg{type} ne 'broadcast')
                         {
                 		$msg{command} = $object->message_type($msg{cmd_code});
-		      		main::print_log("[Insteon::BaseInterface] DEBUG: PLM command:$msg{command_type}; "
+		      		main::print_log("[Insteon::BaseInterface] DEBUG: PLM command:insteon_ext_received; "
 		      			. "Device command:$msg{command}; type:$msg{type}; group: $msg{group}")
                         		if( (!($msg{is_ack} or $msg{is_nack}) and $main::Debug{insteon}) 
                         		or $main::Debug{insteon} >= 3);

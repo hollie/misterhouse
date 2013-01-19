@@ -1737,7 +1737,7 @@ sub on_read_write_aldb
 	{
 		#Only move to the next state if the received message is a device ack
 		#if the ack is dropped the retransmission logic will resend the request
-		if($msg{command_type} eq 'insteon_received' and $msg{command} eq 'read_write_aldb') {
+		if($msg{is_ack} and $msg{command} eq 'read_write_aldb') {
 			$$self{_mem_action} = 'aldb_i2readack';
 			&::print_log("[Insteon::ALDB_i2] DEBUG3: " . $$self{device}->get_object_name
 				. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received ack")
