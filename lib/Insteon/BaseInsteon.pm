@@ -537,7 +537,8 @@ sub _process_message
                . $self->get_nack_msg_for( $msg{extra} ) 
                .") for " 
                . $self->{object_name}
-					. ".  It may be unplugged or have a burned out bulb") if $main::Debug{insteon};
+					. ".  It may be unplugged, have a burned out bulb, or this may be a new I2CS ".
+					"type device that must first be manually linked to the PLM using the set button.") if $main::Debug{insteon};
          }
          else {
             &::print_log("[Insteon::BaseObject] WARN!! encountered a nack message ("
