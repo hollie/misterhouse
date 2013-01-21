@@ -1440,6 +1440,11 @@ sub sync_links
                                         	{
 							$link_req{data3} = $linkmember->group;
 						}
+						main::print_log("[Insteon::BaseController] DEBUG4: queuing update for responder record to "
+							. $member->get_object_name . " for "
+							. $insteon_object->get_object_name . " with group:" . $self->group
+							. "; on_level:$tgt_on_level; ramp_rate:$tgt_ramp_rate")
+							if $main::Debug{insteon} >= 4;
 				       		push @{$$self{sync_queue}}, \%link_req;
                                         }
 				}
@@ -1464,6 +1469,11 @@ sub sync_links
                                 	{
 						$link_req{data3} = $linkmember->group;
 					}
+					main::print_log("[Insteon::BaseController] DEBUG4: queuing add for responder record to "
+						. $member->get_object_name . " for "
+						. $insteon_object->get_object_name . " with group:" . $self->group
+						. "; on_level:$tgt_on_level; ramp_rate:$tgt_ramp_rate")
+						if $main::Debug{insteon} >= 4;
 					push @{$$self{sync_queue}}, \%link_req;
                                 }
 			}
@@ -1485,6 +1495,9 @@ sub sync_links
                                 	{
 						$link_req{data3} = $linkmember->group;
 					}
+					main::print_log("[Insteon::BaseController] DEBUG4: queuing add for controller record to "
+						. $insteon_object->get_object_name . " for " . $member->get_object_name 
+						. " with group:" . $self->group) if $main::Debug{insteon} >= 4;
 					push @{$$self{sync_queue}}, \%link_req;
                                 }
 			}
@@ -1509,6 +1522,10 @@ sub sync_links
 					group => $self->group, is_controller => 1,
 					callback => "$self_link_name->_process_sync_queue()" );
 				$link_req{data3} = $self->group if $insteon_object->isa('Insteon::KeyPadLincRelay') or $insteon_object->isa('Insteon::KeyPadLinc');
+				main::print_log("[Insteon::BaseController] DEBUG4: queuing add for controller record to "
+					. $insteon_object->get_object_name . " for "
+					. $self->interface->get_object_name . " with group:" . $self->group)
+					if $main::Debug{insteon} >= 4;
 				push @{$$self{sync_queue}}, \%link_req;
                         }
 		}
@@ -1526,6 +1543,10 @@ sub sync_links
 				my %link_req = ( member => $self->interface, cmd => 'add', object => $insteon_object,
 					group => $self->group, is_controller => 0,
 			       		callback => "$self_link_name->_process_sync_queue()" );
+				main::print_log("[Insteon::BaseController] DEBUG4: queuing add for responder record to "
+					. $self->interface->get_object_name . " for "
+					. $insteon_object->get_object_name . " with group:" . $self->group)
+					if $main::Debug{insteon} >= 4;
 				push @{$$self{sync_queue}}, \%link_req;
                         }
 		}

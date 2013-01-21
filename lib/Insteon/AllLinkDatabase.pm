@@ -1734,7 +1734,8 @@ sub on_read_write_aldb
 
 	&::print_log("[Insteon::ALDB_i2] DEBUG3: " . $$self{device}->get_object_name
 		. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
-		. lc $msg{extra} . " for _mem_action=" .  $$self{_mem_action}) if  $main::Debug{insteon} >= 3;
+		. lc $msg{extra} . " for _mem_activity=".$$self{_mem_activity}
+		 ." _mem_action=". $$self{_mem_action}) if  $main::Debug{insteon} >= 3;
 
 	if ($$self{_mem_action} eq 'aldb_i2read')
 	{
@@ -1768,6 +1769,8 @@ sub on_read_write_aldb
 			# init the link table if at the very start of a scan
 			if (lc $$self{_mem_msb} eq '00' and lc $$self{_mem_lsb} eq '00')
 			{
+				main::print_log("[Insteon::ALDB_i2] DEBUG4: Start of scan; initializing aldb structure") 
+					if  $main::Debug{insteon} >= 4;
 				# reinit the aldb hash as there will be a new one
 				$$self{aldb} = undef;
 				# reinit the empty address list
@@ -1808,6 +1811,9 @@ sub on_read_write_aldb
 					. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
 					. lc $msg{extra} . " for " .  $$self{_mem_action}) 
 					if(($$self{pending_aldb}{inuse}) and $main::Debug{insteon} >= 3);
+				main::print_log("[Insteon::ALDB_i2] DEBUG4: scan done; adding last address ["
+					. $$self{_mem_msb} . $$self{_mem_lsb} ."] to empty array") 
+					if  $main::Debug{insteon} >= 4;
 				$self->add_empty_address($$self{_mem_msb} . $$self{_mem_lsb});
 				# scan done; clear out state flags
 				$$self{_mem_action} = undef;
@@ -1822,7 +1828,8 @@ sub on_read_write_aldb
 					$self->health("good");
 				}
 
-				&::print_log("[Insteon::ALDB_i2] " . $$self{device}->get_object_name . " completed aldb scan")
+				&::print_log("[Insteon::ALDB_i2] " . $$self{device}->get_object_name 
+					. " completed aldb scan: status: " . $self->health())
 					if $main::Debug{insteon};
 				if (defined $$self{_success_callback})
 				{
@@ -1840,6 +1847,9 @@ sub on_read_write_aldb
 			{
 				unless($$self{pending_aldb}{inuse})
 				{
+					main::print_log("[Insteon::ALDB_i2] DEBUG4: inuse flag == false; adding address ["
+						. $$self{_mem_msb} . $$self{_mem_lsb} ."] to empty array") 
+						if  $main::Debug{insteon} >= 4;
 					$self->add_empty_address($$self{pending_aldb}{address});
 				}
 				else
@@ -1863,10 +1873,16 @@ sub on_read_write_aldb
 					# check for duplicates
 					if (exists $$self{aldb}{$aldbkey} && $$self{aldb}{$aldbkey}{inuse})
 					{
+						main::print_log("[Insteon::ALDB_i2] DEBUG4: duplicate link found; adding address ["
+							. $$self{_mem_msb} . $$self{_mem_lsb} ."] to duplicates array") 
+							if  $main::Debug{insteon} >= 4;
 						$self->add_duplicate_link_address($$self{pending_aldb}{address});
 					}
 					else
 					{
+						main::print_log("[Insteon::ALDB_i2] DEBUG4: active link found; adding address ["
+							. $$self{_mem_msb} . $$self{_mem_lsb} ."] to aldb") 
+							if  $main::Debug{insteon} >= 4;
 						%{$$self{aldb}{$aldbkey}} = %{$$self{pending_aldb}};
 					}
 				}
@@ -1880,7 +1896,7 @@ sub on_read_write_aldb
 
 		if($$self{_mem_activity} eq 'i2scan') {
 			#keep going; request the next record
-			$$self{_mem_action} = 'aldb_i2read';  #Read another entry
+			$$self{_mem_action} = 'aldb_i2read';
 			my $message = new Insteon::InsteonMessage('insteon_ext_send', $$self{device}, 'read_write_aldb');
 			$message->extra("00"."00"."00".$$self{_mem_msb}.$$self{_mem_lsb}."01"."000000000000000000");
 			$message->failure_callback($$self{_failure_callback});
@@ -1910,6 +1926,9 @@ sub on_read_write_aldb
 			$$self{aldb}{$aldbkey}{group} = lc $$self{pending_aldb}{group};
 			$$self{aldb}{$aldbkey}{address} = $$self{pending_aldb}{address};
 		}
+		main::print_log("[Insteon::ALDB_i2] DEBUG3: " . $$self{device}->get_object_name 
+			. " link write completed for [".$$self{aldb}{$aldbkey}{address}."]")
+			if $main::Debug{insteon} >= 3;
 		if (defined $$self{_success_callback})
 		{
 			my $callback = $$self{_success_callback};
@@ -1922,6 +1941,7 @@ sub on_read_write_aldb
 				if $@ and $main::Debug{insteon};
 		}
 		$$self{_mem_activity} = undef;
+		$$self{_mem_action} = undef;
 		$$self{pending_aldb} = undef;
 	}
 	else
@@ -2227,8 +2247,12 @@ sub get_first_empty_address
 				$low_address = $new_address if $new_address < $low_address;
 			}
 		}
-		$first_address = ($low_address > 0) ? sprintf('%04X', $low_address - 8) : 0;
-		
+		$first_address = ($low_address > 0) ? sprintf('%04x', $low_address - 8) : 0;
+		main::print_log("[Insteon::ALDB_i2] DEBUG4: No empty link entries; using next lowest link address ["
+			.$first_address."]") if $main::Debug{insteon} >= 4;
+	} else {
+		main::print_log("[Insteon::ALDB_i2] DEBUG4: Found empty address ["
+			.$first_address."] in empty array") if $main::Debug{insteon} >= 4;
 	}
 
         return $first_address;
@@ -2239,7 +2263,7 @@ sub _write_link
 	my ($self, $address, $deviceid, $group, $is_controller, $data1, $data2, $data3) = @_;
 	if ($address)
         {
-		&::print_log("[Insteon::ALDB_i2] " . $$self{device}->get_object_name . " address: $address found for device: $deviceid and group: $group");
+		&::print_log("[Insteon::ALDB_i2] " . $$self{device}->get_object_name . " writing address: $address for device: $deviceid and group: $group");
 
 		my $message = new Insteon::InsteonMessage('insteon_ext_send', $$self{device}, 'read_write_aldb');
 
@@ -2282,6 +2306,7 @@ sub _write_link
 		$message_extra .= '00';  #byte 14
 		$message_extra .= $$self{pending_aldb}{data3}; 
 		$message->extra($message_extra);
+		$$self{_mem_action} = 'aldb_i2writeack';
 		$message->failure_callback($$self{_failure_callback});
 		$self->_send_cmd($message);
 	}
