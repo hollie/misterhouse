@@ -396,7 +396,11 @@ sub _derive_interface_data
 		$cmd.=$self->setby->device_id();
 		if ($self->command_type =~ /insteon_ext_send/i)
                 {
-                        if ($hop_count == 1)
+                        if ($hop_count == 0)
+			{
+				$cmd.='10';
+			}
+			elsif ($hop_count == 1)
                         {
 				$cmd.='15';
                         }
@@ -411,7 +415,11 @@ sub _derive_interface_data
 		}
                 else
                 {
-                        if ($hop_count == 1)
+                        if ($hop_count == 0)
+			{
+				$cmd.='00';
+			}
+			elsif ($hop_count == 1)
                         {
 				$cmd.='05';
                         }
