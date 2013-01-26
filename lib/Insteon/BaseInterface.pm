@@ -333,6 +333,11 @@ sub on_standard_insteon_received
 	my %msg = &Insteon::InsteonMessage::command_to_hash($message_data);
 	if (%msg)
         {
+		if ($msg{hopsleft} > 0) {
+			&::print_log("[Insteon::BaseInterface] DEBUG2: Message received with $msg{hopsleft} hops left, delaying next "
+			."transmit to avoid collisions with remaining hops.") if $main::Debug{insteon} >= 2;
+			$self->_set_timeout('xmit', $msg{hopsleft} * 200) #Standard msgs should only take 50 millis.  This may be overkill;			
+		}
 		# get the matching object
 		my $object = &Insteon::get_object($msg{source}, $msg{group});
 		if (defined $object)
@@ -459,6 +464,11 @@ sub on_extended_insteon_received
 	my %msg = &Insteon::InsteonMessage::command_to_hash($message_data);
 	if (%msg)
         {
+		if ($msg{hopsleft} > 0) {
+			&::print_log("[Insteon::BaseInterface] DEBUG2: Message received with $msg{hopsleft} hops left, delaying next "
+			."transmit to avoid collisions with remaining hops.") if $main::Debug{insteon} >= 2;
+			$self->_set_timeout('xmit', $msg{hopsleft} * 400) #Extended msgs take longer to deliver;
+		}
 		# get the matching object
 		my $object = &Insteon::get_object($msg{source}, $msg{group});
 		if (defined $object)
