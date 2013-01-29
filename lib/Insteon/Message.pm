@@ -289,6 +289,10 @@ sub send_timeout
 	my ($self, $ignore) = @_;
         my $hop_count = (ref $self->setby and $self->setby->isa('Insteon::BaseObject')) ?
         			$self->setby->default_hop_count : $self->send_attempts;
+	if($self->command eq 'peek' || $self->command eq 'set_address_msb')
+	{
+		return 4000;
+	}
         if ($self->command_type eq 'all_link_send')
         {
         	# note, the following was set to 2000 and that was insufficient
