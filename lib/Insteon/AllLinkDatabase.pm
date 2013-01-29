@@ -1926,6 +1926,9 @@ sub on_read_write_aldb
 			$$self{aldb}{$aldbkey}{group} = lc $$self{pending_aldb}{group};
 			$$self{aldb}{$aldbkey}{address} = $$self{pending_aldb}{address};
 		}
+		$$self{_mem_activity} = undef;
+		$$self{_mem_action} = undef;
+		$$self{pending_aldb} = undef;
 		main::print_log("[Insteon::ALDB_i2] DEBUG3: " . $$self{device}->get_object_name 
 			. " link write completed for [".$$self{aldb}{$aldbkey}{address}."]")
 			if $main::Debug{insteon} >= 3;
@@ -1940,9 +1943,6 @@ sub on_read_write_aldb
 			&::print_log("[Insteon::ALDB_i2] error in link callback: " . $@)
 				if $@ and $main::Debug{insteon};
 		}
-		$$self{_mem_activity} = undef;
-		$$self{_mem_action} = undef;
-		$$self{pending_aldb} = undef;
 	}
 	else
 	{
