@@ -433,8 +433,20 @@ sub _is_info_request
                 	if ($self->_aldb->{aldb_delta_action} eq 'set'){
                 		$self->_aldb->aldb_delta($msg{cmd_code});
                 		&::print_log("[Insteon::BaseObject] The ALDB Delta for "
-                			. $self->{object_name} . " updated to " . $self->_aldb->aldb_delta());
-				## run callback
+                			. $self->{object_name} . " has been updated to " . $self->_aldb->aldb_delta());
+				# The only time this will be called is after scanning the
+				# device memory in some form, so we can just piggy back on 
+				# the already existing ALDB callback
+				if (defined $self->_aldb->{_success_callback}) {
+					my $callback = $self->_aldb->{_success_callback};
+					# clear it out *before* the eval
+					$self->_aldb->{_success_callback} = undef;
+					package main;
+					eval ($callback);
+					&::print_log("[Insteon::BaseObject] " . $self->get_object_name . ": error during scan callback $@")
+						if $@ and $main::Debug{insteon};
+					package Insteon::BaseObject;
+				}				
                 	} else {
                 		# Are the ALDB tables in sync?
                 		if ($self->_aldb->aldb_delta() eq $msg{cmd_code}){
