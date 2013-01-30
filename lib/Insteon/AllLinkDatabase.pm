@@ -61,6 +61,13 @@ sub scandatetime
         return $$self{scandatetime};
 }
 
+sub aldb_delta
+{
+        my ($self, $p_aldb_delta) = @_;
+        $$self{aldb_delta} = $p_aldb_delta if $p_aldb_delta;  
+        return $$self{aldb_delta};
+}
+
 sub restore_string
 {
 	my ($self) = @_;
@@ -98,6 +105,11 @@ sub restore_string
 		if (defined $self->scandatetime)
                 {
 			$restore_string .= $$self{device}->get_object_name . "->_aldb->scandatetime(q~" . $self->scandatetime . "~) if "
+                        	. $$self{device}->get_object_name . "->_aldb;\n";
+                }
+                if (defined $self->aldb_delta)
+                {
+			$restore_string .= $$self{device}->get_object_name . "->_aldb->aldb_delta(q~" . $self->aldb_delta . "~) if "
                         	. $$self{device}->get_object_name . "->_aldb;\n";
                 }
 		$restore_string .= $$self{device}->get_object_name . "->_aldb->health(q~" . $self->health . "~) if "
