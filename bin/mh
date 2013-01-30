@@ -27,6 +27,9 @@
 
 use strict;
 
+use Carp;
+$SIG{ __DIE__ } = sub { Carp::confess( @_ ) };
+
 my ($Pgm_Name, $Revision, $usage);
                 # So we can get at it from other packages
 use vars qw(%config_parms %config_parms_startup $Pgm_Path $Version $Version_date %Info);
