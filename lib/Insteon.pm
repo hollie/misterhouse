@@ -13,7 +13,8 @@ my (@_sync_devices,@_sync_device_failures,$current_sync_device);
 
 sub scan_all_linktables
 {
-	if ($current_scan_device)
+	my($skip_unchanged) = @_;
+        if ($current_scan_device)
         {
         	&main::print_log("[Scan all linktables] WARN: link already underway. Ignoring request for new scan ...");
                 return;
@@ -58,21 +59,34 @@ sub scan_all_linktables
         }
         $_scan_cnt = scalar @_scan_devices;
 
-        &_get_next_linkscan();
+        &_get_next_linkscan($skip_unchanged);
 }
 
 sub _get_next_linkscan_failure
 {
+        my($skip_unchanged) = @_;
         push @_scan_device_failures, $current_scan_device;
         &main::print_log("[Scan all link tables] WARN: failure occurred when scanning "
                 	. $current_scan_device->get_object_name . ".  Moving on...");
-        &_get_next_linkscan();
+        &_get_next_linkscan($skip_unchanged);
 
 }
 
 sub _get_next_linkscan
 {
-   	$current_scan_device = shift @_scan_devices;
+        my($skip_unchanged, $changed_device) = @_;
+        if ($skip_unchanged){
+                if (!defined($changed_device)){
+                        $current_scan_device = shift @_scan_devices;
+                        #set the call backs
+                        #run query_aldb_delta check
+                } else {
+                        #if a device is returned it needs to be scanned
+                        $current_scan_device = $object;
+                }
+        } else {
+   	        $current_scan_device = shift @_scan_devices;
+        }
 
 	if ($current_scan_device)
         {
