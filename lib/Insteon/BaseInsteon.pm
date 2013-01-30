@@ -426,22 +426,45 @@ sub message_type
 sub _is_info_request
 {
 	my ($self, $cmd, $ack_setby, %msg) = @_;
-	my $is_info_request = ($cmd eq 'status_request') ? 1 : 0;
-#print "cmd: $cmd; is_info_request: $is_info_request\n";
-	if ($is_info_request) {
-		my $ack_on_level = (hex($msg{extra}) >= 254) ? 100 : sprintf("%d", hex($msg{extra}) * 100 / 255);
-		&::print_log("[Insteon::BaseObject] received status for " .
-			$self->{object_name} . " with on-level: $ack_on_level%, "
-			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
-		$self->level($ack_on_level); # update the level value
-		if ($ack_on_level == 0) {
-			$self->SUPER::set('off', $ack_setby);
-		} elsif ($ack_on_level > 0 and !($self->isa('Insteon::DimmableLight'))) {
-			$self->SUPER::set('on', $ack_setby);
-		} else {
-			$self->SUPER::set($ack_on_level . '%', $ack_setby);
+	my $is_info_request;
+	if ($cmd eq 'status_request') {
+                if (defined($self->_aldb->{aldb_delta_action})){
+                	#This status request was requested by query_aldb_delta
+                	if ($self->_aldb->{aldb_delta_action} eq 'set'){
+                		$self->_aldb->aldb_delta($msg{cmd_code});
+                		&::print_log("[Insteon::BaseObject] The ALDB Delta for "
+                			. $self->{object_name} . " updated to " . $self->_aldb->aldb_delta());
+				## run callback
+                	} else {
+                		# Are the ALDB tables in sync?
+                		if ($self->_aldb->aldb_delta() eq $msg{cmd_code}){
+                			&::print_log("[Insteon::BaseObject] The ALDB Database for "
+                				. $self->{object_name} . " is in sync.");
+                			#Things in sync run unchanged callback
+                		} else {
+                			&::print_log("[Insteon::BaseObject] WARN The ALDB Database for "
+                				. $self->{object_name} . " is out of sync.");
+                			#things are out of sync run changed callback
+                		}
+                	}
+                	$self->_aldb->{aldb_delta_action} = undef;
+                } else {
+                	#This is a regular status_request
+			my $ack_on_level = (hex($msg{extra}) >= 254) ? 100 : sprintf("%d", hex($msg{extra}) * 100 / 255);
+			&::print_log("[Insteon::BaseObject] received status for " .
+				$self->{object_name} . " with on-level: $ack_on_level%, "
+				. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
+			$self->level($ack_on_level); # update the level value
+			if ($ack_on_level == 0) {
+				$self->SUPER::set('off', $ack_setby);
+			} elsif ($ack_on_level > 0 and !($self->isa('Insteon::DimmableLight'))) {
+				$self->SUPER::set('on', $ack_setby);
+			} else {
+				$self->SUPER::set($ack_on_level . '%', $ack_setby);
+			}
+			# if this were a scene controller, then also propogate the result to all members
 		}
-		# if this were a scene controller, then also propogate the result to all members
+                $is_info_request = 1;
 	}
    elsif ( $cmd eq 'get_engine_version' ) {
       my $version = $msg{extra};
@@ -454,6 +477,7 @@ sub _is_info_request
       }
       &::print_log("[Insteon::BaseObject] received engine version for " 
          . $self->{object_name} . " of $version.");
+      $is_info_request = 1;
    }
 
 	return $is_info_request;
