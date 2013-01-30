@@ -75,28 +75,42 @@ sub _get_next_linkscan_failure
 sub _get_next_linkscan
 {
         my($skip_unchanged, $changed_device) = @_;
-        if ($skip_unchanged){
-                if (!defined($changed_device)){
-                        $current_scan_device = shift @_scan_devices;
-                        #set the call backs
-                        #run query_aldb_delta check
-                } else {
-                        #if a device is returned it needs to be scanned
-                        $current_scan_device = $changed_device;
-                }
-        } else {
-   	        $current_scan_device = shift @_scan_devices;
-        }
-
-	if ($current_scan_device)
-        {
-          	&main::print_log("[Scan all link tables] Now scanning: "
-                	. $current_scan_device->get_object_name . " ("
+	## TODO skip checking ALDB_Delta for devices that are not healthy and force a scan
+	if ($skip_unchanged && $changed_device) {
+		## if a device's aldb_delta has changed it is returned as an object here
+		$current_scan_device = $changed_device;
+		&main::print_log("[Scan all link tables] Now scanning: "
+                        . $current_scan_device->get_object_name . " ("
                         . ($_scan_cnt - scalar @_scan_devices)
                         . " of $_scan_cnt)");
                 # pass first the success callback followed by the failure callback
-          	$current_scan_device->scan_link_table('&Insteon::_get_next_linkscan()','&Insteon::_get_next_linkscan_failure()');
-    	} else {
+                $current_scan_device->scan_link_table('&Insteon::_get_next_linkscan('.$skip_unchanged.')','&Insteon::_get_next_linkscan_failure('.$skip_unchanged.')');
+		return;
+	} else { 
+		$current_scan_device = shift @_scan_devices;
+	}
+	## Temporary Test to skip PLM and go faster
+	if (($skip_unchanged == 2) && ($current_scan_device == &Insteon::active_interface)){
+		_get_next_linkscan(2);
+		return;
+	}
+	if ($current_scan_device) {
+		if ($skip_unchanged){
+			## check if aldb_delta has changed;
+			if ($current_scan_device != &Insteon::active_interface){
+				$current_scan_device->_aldb->{_aldb_unchanged_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.')';
+				$current_scan_device->_aldb->{_aldb_changed_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.', '.$current_scan_device->get_object_name.')';
+				$current_scan_device->_aldb->query_aldb_delta("check");
+				return;
+			}
+		} 
+       		&main::print_log("[Scan all link tables] Now scanning: "
+              		. $current_scan_device->get_object_name . " ("
+                        . ($_scan_cnt - scalar @_scan_devices)
+       	                . " of $_scan_cnt)");
+               	# pass first the success callback followed by the failure callback
+          	$current_scan_device->scan_link_table('&Insteon::_get_next_linkscan('.$skip_unchanged.')','&Insteon::_get_next_linkscan_failure('.$skip_unchanged.')');
+	} else {
           	&main::print_log("[Scan all link tables] All tables have completed scanning");
                 my $_scan_failure_cnt = scalar @_scan_device_failures;
                 if ($_scan_failure_cnt)

@@ -429,6 +429,7 @@ sub _is_info_request
 	my $is_info_request;
 	if ($cmd eq 'status_request') {
                 if (defined($self->_aldb->{aldb_delta_action})){
+                	my $callback = undef;
                 	#This status request was requested by query_aldb_delta
                 	if ($self->_aldb->{aldb_delta_action} eq 'set'){
                 		$self->_aldb->aldb_delta($msg{cmd_code});
@@ -438,28 +439,35 @@ sub _is_info_request
 				# device memory in some form, so we can just piggy back on 
 				# the already existing ALDB callback
 				if (defined $self->_aldb->{_success_callback}) {
-					my $callback = $self->_aldb->{_success_callback};
-					# clear it out *before* the eval
+					$callback = $self->_aldb->{_success_callback};
 					$self->_aldb->{_success_callback} = undef;
-					package main;
-					eval ($callback);
-					&::print_log("[Insteon::BaseObject] " . $self->get_object_name . ": error during scan callback $@")
-						if $@ and $main::Debug{insteon};
-					package Insteon::BaseObject;
 				}				
                 	} else {
                 		# Are the ALDB tables in sync?
                 		if ($self->_aldb->aldb_delta() eq $msg{cmd_code}){
                 			&::print_log("[Insteon::BaseObject] The ALDB Database for "
                 				. $self->{object_name} . " is in sync.");
-                			#Things in sync run unchanged callback
+					if (defined $self->_aldb->{_aldb_unchanged_callback}) {
+						$callback = $self->_aldb->{_aldb_unchanged_callback};
+						$self->_aldb->{_aldb_unchanged_callback} = undef;
+					}
                 		} else {
                 			&::print_log("[Insteon::BaseObject] WARN The ALDB Database for "
                 				. $self->{object_name} . " is out of sync.");
-                			#things are out of sync run changed callback
+					if (defined $self->_aldb->{_aldb_changed_callback}) {
+						$callback = $self->_aldb->{_aldb_changed_callback};
+						$self->_aldb->{_aldb_changed_callback} = undef;
+					}
                 		}
                 	}
                 	$self->_aldb->{aldb_delta_action} = undef;
+                	if ($callback){
+				package main;
+				eval ($callback);
+				&::print_log("[Insteon::BaseObject] " . $self->get_object_name . ": error during scan callback $@")
+					if $@ and $main::Debug{insteon};
+				package Insteon::BaseObject;                		
+                	}
                 } else {
                 	#This is a regular status_request
 			my $ack_on_level = (hex($msg{extra}) >= 254) ? 100 : sprintf("%d", hex($msg{extra}) * 100 / 255);
