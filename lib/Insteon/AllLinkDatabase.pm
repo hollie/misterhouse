@@ -2153,7 +2153,8 @@ sub add_link
         {
 		$key .= $subaddress;
 	}
-	if (defined $$self{aldb}{$key}{inuse})
+	
+	if (defined $$self{aldb}{$key} && defined $$self{aldb}{$key}{inuse})
         {
 		&::print_log("[Insteon::ALDB_i2] WARN: attempt to add link to " . $$self{device}->get_object_name . " that already exists! "
 			. "object=" . $insteon_object->get_object_name . ", group=$group, is_controller=$is_controller");
@@ -2232,22 +2233,16 @@ sub get_first_empty_address
                 #
                 # TO-DO: factor in appropriate use of the "highwater" flag
                 #
-		my $low_address = 0;
+		my $high_address = 0xffff;
 		for my $key (keys %{$$self{aldb}})
                 {
 			next if $key eq 'empty' or $key eq 'duplicates';
 			my $new_address = hex($$self{aldb}{$key}{address});
-			if (!($low_address))
-                        {
-				$low_address = $new_address;
-				next;
-			}
-                        else
-                        {
-				$low_address = $new_address if $new_address < $low_address;
+			if( $new_address and $new_address < $high_address ) {
+				$high_address = $new_address;
 			}
 		}
-		$first_address = ($low_address > 0) ? sprintf('%04x', $low_address - 8) : 0;
+		$first_address = ($high_address > 0) ? sprintf('%04x', $high_address - 8) : 0;
 		main::print_log("[Insteon::ALDB_i2] DEBUG4: No empty link entries; using next lowest link address ["
 			.$first_address."]") if $main::Debug{insteon} >= 4;
 	} else {
