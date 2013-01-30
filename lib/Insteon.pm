@@ -82,7 +82,7 @@ sub _get_next_linkscan
                         #run query_aldb_delta check
                 } else {
                         #if a device is returned it needs to be scanned
-                        $current_scan_device = $object;
+                        $current_scan_device = $changed_device;
                 }
         } else {
    	        $current_scan_device = shift @_scan_devices;

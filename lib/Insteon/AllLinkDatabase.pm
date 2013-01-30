@@ -68,6 +68,15 @@ sub aldb_delta
         return $$self{aldb_delta};
 }
 
+sub query_aldb_delta
+{
+        my ($self, $action) = @_;
+        $$self{aldb_delta_action} = $action;
+        my $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'status_request');
+	if (defined($$self{_failure_callback})) {$message->failure_callback($$self{_failure_callback})};
+        $self->_send_cmd($message);
+}
+
 sub restore_string
 {
 	my ($self) = @_;
