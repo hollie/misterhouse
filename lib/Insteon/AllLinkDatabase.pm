@@ -1295,7 +1295,7 @@ sub get_first_empty_address
 			}
                         else
                         {
-				$low_address = $new_address if $new_address < $low_address;
+				$low_address = $new_address if (($new_address < $low_address) && ($new_address != 0));
 			}
 		}
 		$first_address = ($low_address > 0) ? sprintf('%04X', $low_address - 8) : 0;
