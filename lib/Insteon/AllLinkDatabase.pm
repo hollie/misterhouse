@@ -73,7 +73,7 @@ sub query_aldb_delta
         my ($self, $action) = @_;
         $$self{aldb_delta_action} = $action;
         my $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'status_request');
-	if (defined($$self{_failure_callback})) {$message->failure_callback($$self{_failure_callback})};
+        if (defined($$self{_failure_callback})) {$message->failure_callback($$self{_failure_callback})};
         $self->_send_cmd($message);
 }
 
@@ -705,7 +705,12 @@ sub delete_link
 {
 	my ($self, $parms_text) = @_;
 	my %link_parms;
-	if (@_ > 2)
+	if ($parms_text eq 'ok' or $parms_text eq 'fail'){
+		%link_parms = %{$self->{callback_parms}};
+		$$self{callback_parms} = undef;
+		$link_parms{aldb_check} = $parms_text;
+	} 
+	elsif (@_ > 2)
         {
 		shift @_;
 		%link_parms = @_;
@@ -716,6 +721,23 @@ sub delete_link
 	}
 	$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
 	$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
+	if (!defined($link_parms{aldb_check}) && (!$$self{device}->isa('Insteon_PLM'))){
+		## Check whether ALDB is in sync
+		$self->{callback_parms} = \%link_parms;
+		$$self{_aldb_unchanged_callback} = '&Insteon::ALDB_i1::add_link('.$$self{device}->{object_name}."->_aldb, 'ok')";
+		$$self{_aldb_changed_callback} = '&Insteon::ALDB_i1::add_link('.$$self{device}->{object_name}."->_aldb, 'fail')";
+		$self->query_aldb_delta("check");
+	} elsif ($link_parms{aldb_check} eq "fail"){
+		&::print_log("[Insteon::ALDB_i1] WARN: Link NOT added, please rescan this device and sync again.");
+		if ($link_parms{callback})
+		{
+			package main;
+			eval($link_parms{callback});
+			&::print_log("[Insteon::ALDB_i1] failure occurred in callback eval for " . $$self{device}->get_object_name . ":" . $@)
+				if $@ and $main::Debug{insteon};
+			package Insteon::ALDB_i1;
+		}
+	}
 	if ($link_parms{address})
         {
 	   	&main::print_log("[Insteon::ALDB_i1] Now deleting link [0x$link_parms{address}]");
