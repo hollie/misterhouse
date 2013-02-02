@@ -441,7 +441,7 @@ sub _on_peek
                                 	$self->_send_cmd($message);
 				} else {
 					$self->add_empty_address($$self{pending_aldb}{address});
-					if ($$self{_mem_activity} eq 'scan')
+					if ($$self{_mem_activity} eq 'scan'){
 						my $newaddress = sprintf("%04X", hex($$self{pending_aldb}{address}) - 8);
 						$$self{pending_aldb} = undef;
 						$self->_peek($newaddress);
