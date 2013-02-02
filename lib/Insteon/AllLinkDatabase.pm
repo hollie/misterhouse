@@ -72,9 +72,23 @@ sub query_aldb_delta
 {
         my ($self, $action) = @_;
         $$self{aldb_delta_action} = $action;
-        my $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'status_request');
-        if (defined($$self{_failure_callback})) {$message->failure_callback($$self{_failure_callback})};
-        $self->_send_cmd($message);
+        if ($action eq "check" && ($self->health ne "good" || $self->health ne "empty")){
+		&::print_log("[Insteon::BaseObject] WARN The link table for "
+			. $self->{object_name} . " is out-of-sync.");
+		if (defined $self->{_aldb_changed_callback}) {
+			package main;
+			my $callback = $self->{_aldb_changed_callback};
+			$self->{_aldb_changed_callback} = undef;
+			eval ($callback);
+			&::print_log("[Insteon::BaseObject] " . $self->{device}->get_object_name . ": error during scan callback $@")
+				if $@ and $main::Debug{insteon};
+			package Insteon::BaseObject;
+		}
+        } else {
+        	my $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'status_request');
+        	if (defined($$self{_failure_callback})) {$message->failure_callback($$self{_failure_callback})};
+        	$self->_send_cmd($message);
+        }
 }
 
 sub restore_string
