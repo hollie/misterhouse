@@ -306,19 +306,9 @@ sub _on_poke
 				$$self{aldb}{$aldbkey}{group} = lc $$self{pending_aldb}{group};
 				$$self{aldb}{$aldbkey}{address} = $$self{pending_aldb}{address};
 			}
-			# clear out mem_activity flag
-			$$self{_mem_activity} = undef;
-			if (defined $$self{_success_callback})
-                        {
-				my $callback = $$self{_success_callback};
-				# clear it out *before* the eval
-				$$self{_success_callback} = undef;
-				package main;
-				eval ($callback);
-				package Insteon::ALDB_i1;
-				&::print_log("[Insteon::ALDB_i1] error in link callback: " . $@)
-					if $@ and $main::Debug{insteon};
-			}
+			# set mem activity to scan one address
+			$$self{_mem_activity} = "scan_one";
+			$self->_peek($$self{pending_aldb}{address},0);
 		}
 	}
         elsif ($$self{_mem_activity} eq 'update_local')
@@ -396,12 +386,12 @@ sub _on_peek
         {
 		if ($$self{_mem_action} eq 'aldb_peek')
                 {
-			if ($$self{_mem_activity} eq 'scan')
+			if ($$self{_mem_activity} eq 'scan' || $$self{_mem_activity} eq 'scan_one')
                         {
 				$$self{_mem_action} = 'aldb_flag';
 				# if the device is responding to the peek, then init the link table
 				#   if at the very start of a scan
-				if (lc $$self{_mem_msb} eq '0f' and lc $$self{_mem_lsb} eq 'f8')
+				if (lc $$self{_mem_msb} eq '0f' and lc $$self{_mem_lsb} eq 'f8' and $$self{_mem_activity} ne 'scan_one')
                                 {
 					# reinit the aldb hash as there will be a new one
 					$$self{aldb} = undef;
@@ -437,7 +427,7 @@ sub _on_peek
 		}
                 elsif ($$self{_mem_action} eq 'aldb_flag')
                 {
-			if ($$self{_mem_activity} eq 'scan')
+			if ($$self{_mem_activity} eq 'scan' || $$self{_mem_activity} eq 'scan_one')
                         {
                         	&::print_log("[Insteon::ALDB_i1] DEBUG3: " . $$self{device}->get_object_name
                                 	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
@@ -502,7 +492,7 @@ sub _on_peek
 		}
                 elsif ($$self{_mem_action} eq 'aldb_group')
                 {
-			if ($$self{_mem_activity} eq 'scan')
+			if ($$self{_mem_activity} eq 'scan' || $$self{_mem_activity} eq 'scan_one')
                         {
                         	&::print_log("[Insteon::ALDB_i1] DEBUG3: " . $$self{device}->get_object_name
                                 	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
@@ -522,7 +512,7 @@ sub _on_peek
 		}
                 elsif ($$self{_mem_action} eq 'aldb_devhi')
                 {
-			if ($$self{_mem_activity} eq 'scan')
+			if ($$self{_mem_activity} eq 'scan' || $$self{_mem_activity} eq 'scan_one')
                         {
                         	&::print_log("[Insteon::ALDB_i1] DEBUG3: " . $$self{device}->get_object_name
                                 	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
@@ -543,7 +533,7 @@ sub _on_peek
 		}
                 elsif ($$self{_mem_action} eq 'aldb_devmid')
                 {
-			if ($$self{_mem_activity} eq 'scan')
+			if ($$self{_mem_activity} eq 'scan' || $$self{_mem_activity} eq 'scan_one')
                         {
                         	&::print_log("[Insteon::ALDB_i1] DEBUG3: " . $$self{device}->get_object_name
                                 	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
@@ -564,7 +554,7 @@ sub _on_peek
 		}
                 elsif ($$self{_mem_action} eq 'aldb_devlo')
                 {
-			if ($$self{_mem_activity} eq 'scan')
+			if ($$self{_mem_activity} eq 'scan' || $$self{_mem_activity} eq 'scan_one')
                         {
                         	&::print_log("[Insteon::ALDB_i1] DEBUG3: " . $$self{device}->get_object_name
                                 	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
@@ -587,7 +577,7 @@ sub _on_peek
 		}
                 elsif ($$self{_mem_action} eq 'aldb_data1')
                 {
-			if ($$self{_mem_activity} eq 'scan')
+			if ($$self{_mem_activity} eq 'scan' || $$self{_mem_activity} eq 'scan_one')
                         {
                         	&::print_log("[Insteon::ALDB_i1] DEBUG3: " . $$self{device}->get_object_name
                                 	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
@@ -610,7 +600,7 @@ sub _on_peek
 		}
                 elsif ($$self{_mem_action} eq 'aldb_data2')
                 {
-			if ($$self{_mem_activity} eq 'scan')
+			if ($$self{_mem_activity} eq 'scan' || $$self{_mem_activity} eq 'scan_one')
                         {
                         	&::print_log("[Insteon::ALDB_i1] DEBUG3: " . $$self{device}->get_object_name
                                 	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
@@ -633,7 +623,7 @@ sub _on_peek
 		}
                 elsif ($$self{_mem_action} eq 'aldb_data3')
                 {
-			if ($$self{_mem_activity} eq 'scan')
+			if ($$self{_mem_activity} eq 'scan' || $$self{_mem_activity} eq 'scan_one')
                         {
                         	&::print_log("[Insteon::ALDB_i1] DEBUG3: " . $$self{device}->get_object_name
                                 	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
@@ -668,9 +658,16 @@ sub _on_peek
                                         {
 						$self->add_empty_address($$self{pending_aldb}{address});
 					}
-					my $newaddress = sprintf("%04X", hex($$self{pending_aldb}{address}) - 8);
-					$$self{pending_aldb} = undef;
-					$self->_peek($newaddress);
+					if ($$self{_mem_activity} eq 'scan') {
+						my $newaddress = sprintf("%04X", hex($$self{pending_aldb}{address}) - 8);
+						$$self{pending_aldb} = undef;
+						$self->_peek($newaddress);
+					} elsif ($$self{_mem_activity} eq 'scan_one') {
+						$$self{_mem_activity} = undef;
+						# Put the new ALDB Delta into memory
+						$self->query_aldb_delta('set');
+						#query will call the succcess callback
+					}
 				}
 			}
                         elsif ($$self{_mem_activity} eq 'update' or $$self{_mem_activity} eq 'add')
