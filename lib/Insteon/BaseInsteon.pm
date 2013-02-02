@@ -433,6 +433,7 @@ sub _is_info_request
                 	#This status request was requested by query_aldb_delta
                 	if ($self->_aldb->{aldb_delta_action} eq 'set'){
                 		$self->_aldb->aldb_delta($msg{cmd_code});
+                		$self->_aldb->scandatetime(&main::get_tickcount);
                 		&::print_log("[Insteon::BaseObject] The Link Table Version for "
                 			. $self->{object_name} . " has been updated to version number " . $self->_aldb->aldb_delta());
 				# The only time this will be called is after scanning the
