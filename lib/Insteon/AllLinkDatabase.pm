@@ -359,18 +359,9 @@ sub _on_poke
 			}
 			delete $$self{aldb}{$key};
 		}
-
-		if (defined $$self{_success_callback})
-                {
-			my $callback = $$self{_success_callback};
-			# clear it out *before* the eval
-			$$self{_success_callback} = undef;
-			package main;
-			eval ($callback);
-			&::print_log("[Insteon::ALDB_i1] error in link callback: " . $@)
-				if $@ and $main::Debug{insteon};
-			package Insteon::ALDB_i1;
-		}
+		# set mem activity to scan one address
+		$$self{_mem_activity} = "scan_one";
+		$self->_peek($$self{pending_aldb}{address},0);
 	}
 }
 
