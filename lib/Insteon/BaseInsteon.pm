@@ -433,8 +433,8 @@ sub _is_info_request
                 	#This status request was requested by query_aldb_delta
                 	if ($self->_aldb->{aldb_delta_action} eq 'set'){
                 		$self->_aldb->aldb_delta($msg{cmd_code});
-                		&::print_log("[Insteon::BaseObject] The ALDB Delta for "
-                			. $self->{object_name} . " has been updated to " . $self->_aldb->aldb_delta());
+                		&::print_log("[Insteon::BaseObject] The Link Table Version for "
+                			. $self->{object_name} . " has been updated to version number " . $self->_aldb->aldb_delta());
 				# The only time this will be called is after scanning the
 				# device memory in some form, so we can just piggy back on 
 				# the already existing ALDB callback
@@ -445,15 +445,16 @@ sub _is_info_request
                 	} else {
                 		# Are the ALDB tables in sync?
                 		if ($self->_aldb->aldb_delta() eq $msg{cmd_code}){
-                			&::print_log("[Insteon::BaseObject] The ALDB Database for "
+                			&::print_log("[Insteon::BaseObject] The link table for "
                 				. $self->{object_name} . " is in sync.");
 					if (defined $self->_aldb->{_aldb_unchanged_callback}) {
 						$callback = $self->_aldb->{_aldb_unchanged_callback};
 						$self->_aldb->{_aldb_unchanged_callback} = undef;
 					}
                 		} else {
-                			&::print_log("[Insteon::BaseObject] WARN The ALDB Database for "
-                				. $self->{object_name} . " is out of sync.");
+                			&::print_log("[Insteon::BaseObject] WARN The link table for "
+                				. $self->{object_name} . " is out-of-sync.");
+                			$self->_aldb->health('out-of-sync');
 					if (defined $self->_aldb->{_aldb_changed_callback}) {
 						$callback = $self->_aldb->{_aldb_changed_callback};
 						$self->_aldb->{_aldb_changed_callback} = undef;
@@ -471,9 +472,11 @@ sub _is_info_request
                 } else {
                 	#This is a regular status_request
 			my $ack_on_level = (hex($msg{extra}) >= 254) ? 100 : sprintf("%d", hex($msg{extra}) * 100 / 255);
+			$self->_aldb->health('out-of-sync') if($self->_aldb->aldb_delta() ne $msg{cmd_code});
 			&::print_log("[Insteon::BaseObject] received status for " .
 				$self->{object_name} . " with on-level: $ack_on_level%, "
-				. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
+				. "link table health: " . $self->_aldb->health
+				. ", hops left: $msg{hopsleft}") if $main::Debug{insteon};
 			$self->level($ack_on_level); # update the level value
 			if ($ack_on_level == 0) {
 				$self->SUPER::set('off', $ack_setby);
