@@ -724,11 +724,11 @@ sub delete_link
 	if (!defined($link_parms{aldb_check}) && (!$$self{device}->isa('Insteon_PLM'))){
 		## Check whether ALDB is in sync
 		$self->{callback_parms} = \%link_parms;
-		$$self{_aldb_unchanged_callback} = '&Insteon::ALDB_i1::add_link('.$$self{device}->{object_name}."->_aldb, 'ok')";
-		$$self{_aldb_changed_callback} = '&Insteon::ALDB_i1::add_link('.$$self{device}->{object_name}."->_aldb, 'fail')";
+		$$self{_aldb_unchanged_callback} = '&Insteon::ALDB_i1::delete_link('.$$self{device}->{object_name}."->_aldb, 'ok')";
+		$$self{_aldb_changed_callback} = '&Insteon::ALDB_i1::delete_link('.$$self{device}->{object_name}."->_aldb, 'fail')";
 		$self->query_aldb_delta("check");
 	} elsif ($link_parms{aldb_check} eq "fail"){
-		&::print_log("[Insteon::ALDB_i1] WARN: Link NOT added, please rescan this device and sync again.");
+		&::print_log("[Insteon::ALDB_i1] WARN: Link NOT deleted, please rescan this device and sync again.");
 		if ($link_parms{callback})
 		{
 			package main;
@@ -737,16 +737,14 @@ sub delete_link
 				if $@ and $main::Debug{insteon};
 			package Insteon::ALDB_i1;
 		}
-	}
-	if ($link_parms{address})
+	} elsif ($link_parms{address} && $link_parms{aldb_check} eq "ok")
         {
 	   	&main::print_log("[Insteon::ALDB_i1] Now deleting link [0x$link_parms{address}]");
 		$$self{_mem_activity} = 'delete';
 		$$self{pending_aldb}{address} = $link_parms{address};
 		$self->_peek($link_parms{address},0);
 
-	}
-        else
+	} elsif ($link_parms{aldb_check} eq "ok")
         {
 		my $insteon_object = $link_parms{object};
 		my $deviceid = ($insteon_object) ? $insteon_object->device_id : $link_parms{deviceid};
@@ -1407,8 +1405,7 @@ sub add_link
 				if $@ and $main::Debug{insteon};
 			package Insteon::ALDB_i1;
 		}
-	}
-        else
+	} elsif ($link_parms{aldb_check} eq "ok")
         {
 		# strip optional % sign to append on_level
 		my $on_level = $link_parms{on_level};
