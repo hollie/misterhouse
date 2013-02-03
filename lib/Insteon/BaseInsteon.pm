@@ -1235,12 +1235,12 @@ sub engine_version
 
 	#Because of the way MH saves / restores states "after" object creation
 	#the aldb must be initially created before the engine_version is restored.
-	#It is therefore impossible to know the device is i2CS before creating
+	#It is therefore impossible to know the device is i2 before creating
 	#the aldb object.  The solution is to keep the existing logic which assumes
 	#the device is peek/poke capable (i1 or i2) and then delete/recreate the 
-	#aldb object if it is later determined to be an i2CS device. 
+	#aldb object if it is later determined to be an i2 device. 
 
-	if($self->{engine_version} eq 'I2CS' and ref($self->{aldb}) eq 'Insteon::ALDB_i1') {
+	if($self->{engine_version} ne 'I1' and ref($self->{aldb}) eq 'Insteon::ALDB_i1') {
 		main::print_log("[Insteon::BaseDevice] DEBUG4: \$self->{aldb} is a "
 			.ref($self->{aldb})." but device is ".$self->{engine_version}.
 			".  remapping aldb object to ALDB_i2") if $main::Debug{insteon} >= 4;
