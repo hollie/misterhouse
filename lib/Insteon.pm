@@ -322,8 +322,6 @@ sub generate_voice_commands
               $object_string .= "$object_name_v -> tie_event('$object_name->get_engine_version','get engine version');\n\n";
               $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','scan link table');\n\n";
               $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table()','log links');\n\n";
-              $object_string .= "$object_name_v -> tie_event('$object_name->link_to_interface','link to interface');\n\n";
-              $object_string .= "$object_name_v -> tie_event('$object_name->unlink_to_interface','unlink with interface');\n\n";
            }
            $object_string .= "$object_name_v -> tie_event('$object_name->sync_links(0)','sync links');\n\n";
            $object_string .= "$object_name_v -> tie_items($object_name, 'on');\n\n";
