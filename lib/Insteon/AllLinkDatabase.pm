@@ -440,9 +440,9 @@ sub _on_peek
                         		$message->failure_callback($$self{_failure_callback});
                                 	$self->_send_cmd($message);
 				} else {
-					$self->add_empty_address($$self{pending_aldb}{address});
+					$self->add_empty_address($$self{_mem_msb} . $$self{_mem_lsb});
 					if ($$self{_mem_activity} eq 'scan'){
-						my $newaddress = sprintf("%04X", hex($$self{pending_aldb}{address}) - 8);
+						my $newaddress = sprintf("%04X", hex($$self{_mem_msb} . $$self{_mem_lsb}) - 8);
 						$$self{pending_aldb} = undef;
 						$self->_peek($newaddress);
 					}
