@@ -334,6 +334,18 @@ sub on_standard_insteon_received
 	my %msg = &Insteon::InsteonMessage::command_to_hash($message_data);
 	if (%msg)
         {
+		if ($msg{hopsleft} > 0) {
+			&::print_log("[Insteon::BaseInterface] DEBUG2: Message received with $msg{hopsleft} hops left, delaying next "
+			."transmit to avoid collisions with remaining hops.") if $main::Debug{insteon} >= 2;
+			$self->_set_timeout('xmit', $msg{hopsleft} * 100) #Standard msgs should only take 50 millis;			
+		}
+		else {
+			#This prevents the majority of corrupt messages on aldb scans
+			#For some reason duplicate messages arrive with the same hop count
+			#My theory is that they are created by bridging the powerline and rf
+			#A mere 50 millisecond pause seems to fix everything.
+			$self->_set_timeout('xmit', 50);
+		}
 		# get the matching object
 		my $object = &Insteon::get_object($msg{source}, $msg{group});
 		if (defined $object)
@@ -464,6 +476,18 @@ sub on_extended_insteon_received
 	my %msg = &Insteon::InsteonMessage::command_to_hash($message_data);
 	if (%msg)
         {
+		if ($msg{hopsleft} > 0) {
+			&::print_log("[Insteon::BaseInterface] DEBUG2: Message received with $msg{hopsleft} hops left, delaying next "
+			."transmit to avoid collisions with remaining hops.") if $main::Debug{insteon} >= 2;
+			$self->_set_timeout('xmit', $msg{hopsleft} * 200) #Extended msgs take longer to deliver;
+		}
+                else {
+                        #This prevents the majority of corrupt messages on aldb scans
+                        #For some reason duplicate messages arrive with the same hop count
+                        #My theory is that they are created by bridging the powerline and rf
+                        #A mere 50 millisecond pause seems to fix everything.
+                        $self->_set_timeout('xmit', 50);
+                }
 		# get the matching object
 		my $object = &Insteon::get_object($msg{source}, $msg{group});
 		if (defined $object)

@@ -292,8 +292,11 @@ sub send_timeout
 
 	my ($self, $ignore) = @_;
         my $hop_count = (ref $self->setby and $self->setby->isa('Insteon::BaseObject')) ?
-        			$self->send_attempts + $self->setby->default_hop_count - 1
-                                : $self->send_attempts;
+        			$self->setby->default_hop_count : $self->send_attempts;
+	if($self->command eq 'peek' || $self->command eq 'set_address_msb')
+	{
+		return 4000;
+	}
         if ($self->command_type eq 'all_link_send')
         {
         	# note, the following was set to 2000 and that was insufficient
@@ -301,38 +304,38 @@ sub send_timeout
         }
         elsif ($self->command_type eq 'insteon_ext_send')
         {
-        	if ($hop_count == 1)
+        	if ($hop_count == 0)
                 {
                 	return   2220;
                 }
-                elsif ($hop_count == 2)
+                elsif ($hop_count == 1)
                 {
                 	return   2690;
                 }
-                elsif ($hop_count == 3)
+                elsif ($hop_count == 2)
                 {
                 	return   3000;
                 }
-                elsif ($hop_count >= 4)
+                elsif ($hop_count >= 3)
                 {
                 	return   3170;
                 }
         }
         else
         {
-        	if ($hop_count == 1)
+        	if ($hop_count == 0)
                 {
                 	return   1400;
                 }
-                elsif ($hop_count == 2)
+                elsif ($hop_count == 1)
                 {
                 	return   1700;
                 }
-                elsif ($hop_count == 3)
+                elsif ($hop_count == 2)
                 {
                 	return   1900;
                 }
-                elsif ($hop_count >= 4)
+                elsif ($hop_count >= 3)
                 {
                 	return   2000;
                 }
@@ -400,7 +403,11 @@ sub _derive_interface_data
 		$cmd.=$self->setby->device_id();
 		if ($self->command_type =~ /insteon_ext_send/i)
                 {
-                        if ($hop_count == 1 or $hop_count == 0)
+                        if ($hop_count == 0)
+			{
+				$cmd.='10';
+			}
+			elsif ($hop_count == 1)
                         {
 				$cmd.='15';
                         }
@@ -415,7 +422,11 @@ sub _derive_interface_data
 		}
                 else
                 {
-                        if ($hop_count == 1 or $hop_count == 0)
+                        if ($hop_count == 0)
+			{
+				$cmd.='00';
+			}
+			elsif ($hop_count == 1)
                         {
 				$cmd.='05';
                         }

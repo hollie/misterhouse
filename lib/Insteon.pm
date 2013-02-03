@@ -318,6 +318,8 @@ sub generate_voice_commands
            $object_string .= "$object_name_v -> tie_event('$object_name->initiate_linking_as_controller(\"$group\")', 'initiate linking as controller');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->interface()->cancel_linking','cancel linking');\n\n";
            if ($object->is_root and !($object->isa('Insteon::InterfaceController'))) {
+              $object_string .= "$object_name_v -> tie_event('$object_name->link_to_interface','link to interface');\n\n";
+              $object_string .= "$object_name_v -> tie_event('$object_name->unlink_to_interface','unlink with interface');\n\n";
               $object_string .= "$object_name_v -> tie_event('$object_name->request_status','status');\n\n";
               $object_string .= "$object_name_v -> tie_event('$object_name->get_engine_version','get engine version');\n\n";
               $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','scan link table');\n\n";

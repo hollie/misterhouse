@@ -1296,7 +1296,7 @@ sub get_first_empty_address
 			}
                         else
                         {
-				$low_address = $new_address if $new_address < $low_address;
+				$low_address = $new_address if (($new_address < $low_address) && ($new_address != 0));
 			}
 		}
 		$first_address = ($low_address > 0) ? sprintf('%04X', $low_address - 8) : 0;
@@ -2611,9 +2611,9 @@ sub delete_orphan_links
                                                         }
                                                         else
                                                         {
-						       		my %delete_req = (object => $self, group => $group, is_controller => 0,
+						       		my %delete_req = (object => $device, group => $group, is_controller => 1,
 							       		callback => "$selfname->_aldb->_process_delete_queue(1)",
-									linkdevice => $device, data3 => $data3);
+									linkdevice => $self, data3 => $data3);
 								push @{$$self{delete_queue}}, \%delete_req;
                                                         }
 						}
