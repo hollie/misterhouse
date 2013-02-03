@@ -1323,7 +1323,8 @@ sub add
 		$ramp_rate =~ s/s$//i;
 		$$self{members}{$obj}{ramp_rate} = $ramp_rate if defined $ramp_rate;
 	} else {
-		&::print_log("[Insteon::BaseController] WARN: unable to add $obj as items of this type are not supported!");
+		&::print_log("[Insteon::BaseController] WARN: unable to add ".$obj->{device_id}.":".$obj->{m_group}
+			." as items of type ".ref($obj)." are not supported!");
         }
 }
 
@@ -1585,6 +1586,8 @@ sub _process_sync_queue {
 			if $@ and $main::Debug{insteon};
 		$$self{sync_queue_callback} = undef;
 		package Insteon::BaseController;
+	} else {
+		main::print_log($self->get_object_name." completed sync links");
 	}
 }
 

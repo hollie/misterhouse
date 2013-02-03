@@ -186,12 +186,16 @@ sub command_to_hash
 	$msg{hopsleft} = $hopflag >> 2;
 	my $msgflag = hex(uc substr($p_state,12,1));
 	$msg{is_extended} = (0x01 & $msgflag) ? 1 : 0;
+	$msg{cmd_code} = substr($p_state,14,2);
 	if ($msg{is_extended})
         {
 		$msg{type} = 'direct';
 		$msg{source} = substr($p_state,0,6);
 		$msg{destination} = substr($p_state,6,6);
 		$msg{extra} = substr($p_state,16,length($p_state)-16);
+		$msg{crc_valid} = (calculate_checksum($msg{cmd_code}.$msg{extra}) eq '00');
+		main::print_log("[Insteon::InsteonMessage] WARN: Message has invalid checksum")
+			if( !($msg{crc_valid}) and $main::Debug{insteon});
 	}
         else
         {
@@ -250,7 +254,6 @@ sub command_to_hash
 			}
 		}
 	}
-	$msg{cmd_code} = substr($p_state,14,2);
 
 	return %msg;
 }
@@ -436,33 +439,39 @@ sub _derive_interface_data
         	$cmd .= '00';
         }
 
-	$cmd = insert_checksum( $cmd) if( $self->command_type eq 'insteon_ext_send' 
-		and $self->setby->engine_version eq 'I2CS');
+	if( $self->command_type eq 'insteon_ext_send' and $self->setby->engine_version eq 'I2CS') {
+	        #$message is the entire insteon command (no 0262 PLM command)
+	        # i.e. '02622042d31f2e000107110000000000000000000000'
+	        #                     111111111122222222223333333333
+	        #           0123456789012345678901234567890123456789
+	        #          '2042d31f2e000107110000000000000000000000'
+		if( length($cmd) < 40) {
+			main::print_log("[Insteon::InsteonMessage] WARN: insert_checksum "
+				. "failed; cmd to short: $cmd");
+		} else {
+			$cmd = substr($cmd,0,38).calculate_checksum(substr($cmd,8,30));
+		}
+	}
 
 	return $cmd;
 
 }
 
-sub insert_checksum {
-	my ($message) = @_;
+=item C<calculate_checksum( string )>
 
-	#$message is the entire insteon command minus the 0262 command prefix
-	# i.e. '02622042d31f2e000107110000000000000000000000'
-	#                     111111111122222222223333333333
-	#           0123456789012345678901234567890123456789
-	#          '2042d31f2e000107110000000000000000000000'
-	#Verify it is an extended message and long enough
-	if( length($message) < 40 or !(hex(substr($message,6,1))&0b0001))
-	{
-		main::print_log("[Insteon::InsteonMessage] WARN: insert_checksum failed.  To short or extended flag not set\n"
-			. "Message: $message");
-		return $message;	
-	}
-	#checksum should be from cmd1 through D13
+Calculates a checksum of all hex bytes in the string.  Returns two hex nibbles
+that represent the checksum in hex.  One useful characteristic of the checksum
+is that summing over all the bytes "including" the checksum will always equal 00. 
+This makes it very easy to validate a checksum.
+
+=cut
+sub calculate_checksum {
+	my ($string) = @_;
+
+	#returns 2 characters as hex nibbles (e.g. AA)
 	my $sum = 0;
-	$sum += hex($_) for (unpack('(A2)*', substr($message,8,30)));
-	$sum = (~$sum + 1) & 0xff;
-	return substr($message,0,38).unpack( 'H2', chr($sum));
+	$sum += hex($_) for (unpack('(A2)*', $string));
+	return unpack( 'H2', chr((~$sum + 1) & 0xff));
 }
 
 

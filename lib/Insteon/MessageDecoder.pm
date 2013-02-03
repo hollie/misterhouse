@@ -856,9 +856,26 @@ sub insteon_decode_cmd {
 	if($cmdDecoder1->{'Cmd2Flag'} eq 'Command') {
 		#2nd lookup with Cmd2
 		$cmdDecoder2 = $insteonCmd{$cmdLookup.$cmd1.$cmd2};
-		$insteon_message .= sprintf("%28s: (",'Cmd 1').$cmd1.") ".$cmdDecoder2->{'Cmd1Name'}."\n";
-		$insteon_message .= sprintf("%28s: (",'Cmd 2').$cmd2.") ".$cmdDecoder2->{'Cmd2Name'}."\n";
-		$insteon_message .= sprintf("%28s: ",'D1-D14').$Data."\n" if( $extended);
+		if(!defined($cmdDecoder2)) {
+			#lookup failed, if this is an ACK/NACK retry w/ direct version
+			if( $cmdLookup eq 'SDA') {
+				$cmdDecoder2 = $insteonCmd{'SD'.$cmd1};
+			} elsif( $cmdLookup eq 'EDA') {
+				$cmdDecoder2 = $insteonCmd{'ED'.$cmd1};
+			} elsif( $cmdLookup eq 'SCA') {
+				$cmdDecoder2 = $insteonCmd{'SC'.$cmd1};
+			}
+		}
+		if(!defined($cmdDecoder2)) {
+			#still not found so don't decode
+			$insteon_message .= sprintf("%28s: ",'Cmd 1').$cmd1." Insteon command not decoded\n";
+			$insteon_message .= sprintf("%28s: ",'Cmd 2').$cmd2."\n";
+			$insteon_message .= sprintf("%28s: ",'D1-D14').$Data."\n" if( $extended);
+		} else {
+			$insteon_message .= sprintf("%28s: (",'Cmd 1').$cmd1.") ".$cmdDecoder2->{'Cmd1Name'}."\n";
+			$insteon_message .= sprintf("%28s: (",'Cmd 2').$cmd2.") ".$cmdDecoder2->{'Cmd2Name'}."\n";
+			$insteon_message .= sprintf("%28s: ",'D1-D14').$Data."\n" if( $extended);
+		}
 	} elsif( $cmdDecoder1->{'Cmd2Flag'} eq 'Value') {
 		$insteon_message .= sprintf("%28s: (",'Cmd 1').$cmd1.") ".$cmdDecoder1->{'Cmd1Name'}."\n";
 		$insteon_message .= sprintf("%28s: (",'Cmd 2').$cmd2.") ".$cmdDecoder1->{'Cmd2Name'}."\n";

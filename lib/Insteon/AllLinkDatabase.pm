@@ -1777,6 +1777,8 @@ sub on_read_write_aldb
 				@{$$self{aldb}{empty}} = ();
 				# and, also the duplicates list
 				@{$$self{aldb}{duplicates}} = ();
+				$$self{_mem_msb} = substr($msg{extra},6,2);
+				$$self{_mem_lsb} = substr($msg{extra},8,2);
 			}
 
 			#$msg{extra} includes cmd2 at the beginning so cmd2.d1.d2.d3...
