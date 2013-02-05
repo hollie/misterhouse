@@ -2048,9 +2048,9 @@ sub delete_orphan_links
                                                         }
                                                         else
                                                         {
-						       		my %delete_req = (object => $self, group => $group, is_controller => 0,
+						       		my %delete_req = (object => $device, group => $group, is_controller => 1,
 							       		callback => "$selfname->_aldb->_process_delete_queue(1)",
-									linkdevice => $device, data3 => $data3);
+									linkdevice => $self, data3 => $data3);
 								push @{$$self{delete_queue}}, \%delete_req;
                                                         }
 						}
