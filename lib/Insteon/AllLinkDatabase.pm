@@ -465,6 +465,11 @@ sub _on_peek
 						my $newaddress = sprintf("%04X", hex($$self{_mem_msb} . $$self{_mem_lsb}) - 8);
 						$$self{pending_aldb} = undef;
 						$self->_peek($newaddress);
+					} elsif ($$self{_mem_activity} eq 'scan_one') {
+						$$self{_mem_activity} = undef;
+						# Put the new ALDB Delta into memory
+						$self->query_aldb_delta('set');
+						#query will call the succcess callback
 					}
 				}
 			}
