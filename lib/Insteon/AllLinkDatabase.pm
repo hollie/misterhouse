@@ -643,7 +643,8 @@ sub _on_peek
 							$aldbkey .= $subaddress;
 						}
 						# check for duplicates
-						if (exists $$self{aldb}{$aldbkey} && $$self{aldb}{$aldbkey}{inuse})
+						if (exists $$self{aldb}{$aldbkey} && $$self{aldb}{$aldbkey}{inuse} 
+							&& ($$self{aldb}{$aldbkey}{address} ne $$self{pending_aldb}{address}))
                                                 {
 							$self->add_duplicate_link_address($$self{pending_aldb}{address});
 						}
