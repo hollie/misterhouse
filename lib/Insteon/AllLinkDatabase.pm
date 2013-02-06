@@ -257,6 +257,7 @@ sub _on_poke
 				$$self{aldb}{$aldbkey}{deviceid} = lc $$self{pending_aldb}{deviceid};
 				$$self{aldb}{$aldbkey}{group} = lc $$self{pending_aldb}{group};
 				$$self{aldb}{$aldbkey}{address} = $$self{pending_aldb}{address};
+				$self->health("good");
 			}
 			# clear out mem_activity flag
 			$$self{_mem_activity} = undef;
