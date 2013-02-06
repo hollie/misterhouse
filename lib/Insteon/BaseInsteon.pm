@@ -432,17 +432,25 @@ sub _is_info_request
                 	my $callback = undef;
                 	#This status request was requested by query_aldb_delta
                 	if ($self->_aldb->{aldb_delta_action} eq 'set'){
-                		$self->_aldb->aldb_delta($msg{cmd_code});
-                		$self->_aldb->scandatetime(&main::get_tickcount);
-                		&::print_log("[Insteon::BaseObject] The Link Table Version for "
-                			. $self->{object_name} . " has been updated to version number " . $self->_aldb->aldb_delta());
-				# The only time this will be called is after scanning the
-				# device memory in some form, so we can just piggy back on 
-				# the already existing ALDB callback
-				if (defined $self->_aldb->{_success_callback}) {
-					$callback = $self->_aldb->{_success_callback};
-					$self->_aldb->{_success_callback} = undef;
-				}				
+                		if ($msg{cmd_code} eq "00") {
+					# Force a bump of aldb_delta
+					$self->_aldb->{_mem_activity} = 'bump_delta';
+					# Playing with an empty address should have the least chance for causing issues
+					$self->_aldb->{pending_aldb}{address} = $self->_aldb->get_first_empty_address();
+					$self->_aldb->_peek($self->_aldb->{pending_aldb}{address},0);
+                		} else {
+	                		$self->_aldb->aldb_delta($msg{cmd_code});
+	                		$self->_aldb->scandatetime(&main::get_tickcount);
+	                		&::print_log("[Insteon::BaseObject] The Link Table Version for "
+	                			. $self->{object_name} . " has been updated to version number " . $self->_aldb->aldb_delta());
+					# The only time this will be called is after scanning the
+					# device memory in some form, so we can just piggy back on 
+					# the already existing ALDB callback
+					if (defined $self->_aldb->{_success_callback}) {
+						$callback = $self->_aldb->{_success_callback};
+						$self->_aldb->{_success_callback} = undef;
+					}
+                		}
                 	} else {
                 		# Are the ALDB tables in sync?
                 		if ($self->_aldb->aldb_delta() eq $msg{cmd_code}){

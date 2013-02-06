@@ -363,6 +363,12 @@ sub _on_poke
 		$$self{_mem_activity} = "scan_one";
 		$self->_peek($$self{pending_aldb}{address},0);
 	}
+        elsif ($$self{_mem_activity} eq 'bump_delta')
+        {
+		# set mem activity to scan one address
+		$$self{_mem_activity} = "scan_one";
+		$self->_peek($$self{pending_aldb}{address},0);
+	}
 }
 
 sub _on_peek
@@ -409,6 +415,10 @@ sub _on_peek
 				$$self{_mem_action} = 'aldb_flag';
 			}
                         elsif ($$self{_mem_activity} eq 'add')
+                        {
+				$$self{_mem_action} = 'aldb_flag';
+			}
+			elsif ($$self{_mem_activity} eq 'bump_delta')
                         {
 				$$self{_mem_action} = 'aldb_flag';
 			}
@@ -491,6 +501,13 @@ sub _on_peek
                                 $message->extra('02');
                         	$message->failure_callback($$self{_failure_callback});
                                 $self->_send_cmd($message);
+			}
+                        elsif ($$self{_mem_activity} eq 'bump_delta')
+                        {
+				$message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'poke');
+				$message->extra($msg{extra});
+				$message->failure_callback($$self{_failure_callback});
+				$self->_send_cmd($message);
 			}
 		}
                 elsif ($$self{_mem_action} eq 'aldb_group')
