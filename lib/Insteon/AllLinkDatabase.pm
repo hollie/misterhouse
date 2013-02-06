@@ -429,7 +429,7 @@ sub _on_peek
 						package Insteon::ALDB_i1;
 					}
 				}
-                                else
+                                elsif ($$self{pending_aldb}{inuse})
                                 {
 					$$self{pending_aldb}{flag} = $msg{extra};
 					## confirm that we have a high-water mark; otherwise stop
@@ -439,6 +439,13 @@ sub _on_peek
                                 	$message->extra($$self{_mem_lsb});
                         		$message->failure_callback($$self{_failure_callback});
                                 	$self->_send_cmd($message);
+				} else {
+					$self->add_empty_address($$self{_mem_msb} . $$self{_mem_lsb});
+					if ($$self{_mem_activity} eq 'scan'){
+						my $newaddress = sprintf("%04X", hex($$self{_mem_msb} . $$self{_mem_lsb}) - 8);
+						$$self{pending_aldb} = undef;
+						$self->_peek($newaddress);
+					}
 				}
 			}
                         elsif ($$self{_mem_activity} eq 'add')
