@@ -328,6 +328,8 @@ sub _on_poke
 				# update from eeprom--only a kpl issue
 				$message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'do_read_ee');
                                 $self->_send_cmd($message);
+			} elsif ($self->health eq "good" || $self->health eq "empty") {
+				$self->query_aldb_delta('set');
 			}
 		}
 	}
@@ -1663,9 +1665,15 @@ sub log_alllink_table
 
 sub update_local_properties
 {
-	my ($self) = @_;
+	my ($self, $aldb_check) = @_;
+	if (defined($aldb_check)){
 		$$self{_mem_activity} = 'update_local';
 		$self->_peek('0032'); # 0032 is the address for the onlevel
+	} else {
+		$$self{_aldb_unchanged_callback} = '&Insteon::ALDB_i1::update_local_properties('.$$self{device}->{object_name}."->_aldb, 1)";
+		$$self{_aldb_changed_callback} = '&Insteon::ALDB_i1::update_local_properties('.$$self{device}->{object_name}."->_aldb, 1)";
+		$self->query_aldb_delta("check");
+	}
 }
 
 sub update_flags
