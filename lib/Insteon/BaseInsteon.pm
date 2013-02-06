@@ -551,6 +551,12 @@ sub _process_message
 			}
                         else
                         {
+				if (($pending_cmd eq 'do_read_ee') && 
+					($self->_aldb->health eq "good" || $self->_aldb->health eq "empty") &&
+					($self->isa('Insteon::KeyPadLincRelay') || $self->isa('Insteon::KeyPadLinc'))){
+					## Update_Flags ends up here, set aldb_delta to new value
+					$self->_aldb->query_aldb_delta("set");
+				}
 				$self->is_acknowledged(1);
 				# signal receipt of message to the command stack in case commands are queued
 				$self->_process_command_stack(%msg);
