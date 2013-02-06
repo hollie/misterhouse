@@ -371,11 +371,20 @@ sub on_standard_insteon_received
                                         {
                                         	if (lc $self->active_message->setby->device_id eq lc $msg{source})
                                                 {
-                                                	# prevent re-processing transmit queue until after clearing occurs
-                                                        $self->transmit_in_progress(1);
-                        		       		# ask the object to process the received message and update its state
-		   					$object->_process_message($self, %msg);
-                   					$self->clear_active_message();
+                                                	if ((($self->active_message->command eq 'peek') && ($msg{cmd_code} ne '2b')) 
+                                                		|| (($self->active_message->command eq 'set_address_msb') && ($msg{cmd_code} ne '28')))
+                                                	{
+								&main::print_log("[Insteon::BaseInterface] WARN: received a message from "
+									. $object->get_object_name . " in response to a "
+									. $self->active_message->command . " command, but the command code "
+									. $msg{cmd_code} . " is incorrect. Ignorring received message.");
+                                                	} else {
+	                                                	# prevent re-processing transmit queue until after clearing occurs
+	                                                        $self->transmit_in_progress(1);
+	                        		       		# ask the object to process the received message and update its state
+			   					$object->_process_message($self, %msg);
+	                   					$self->clear_active_message();
+                                                	}
                                                 }
                                                 else
                                                 {
