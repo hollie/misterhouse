@@ -471,7 +471,7 @@ sub _process_message
 	# of the responder based upon the link controller's request is handled
 	# by Insteon_Link.
 	$$self{m_is_locally_set} = 1 if $msg{source} eq lc $self->device_id;
-	$self->hop_history($msg{maxhops}-$msg{hopsleft});
+	$self->hop_history($msg{maxhops}-$msg{hopsleft}) if (!$self->isa('Insteon::InterfaceController'));
 	if ($msg{is_ack}) {
 		my $pending_cmd = ($$self{_prior_msg}) ? $$self{_prior_msg}->command : $msg{command};
 		if ($$self{awaiting_ack})
