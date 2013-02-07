@@ -309,7 +309,7 @@ sub _send_cmd {
         }
 
 	&::print_log( "[Insteon_PLM] DEBUG3: Sending  PLM raw data: ".lc($command)) if $main::Debug{insteon} >= 3;
-	&::print_log( "[Insteon_PLM] DEBUG4: " . substr(&main::get_tickcount-1,-6) . "\n" .Insteon::MessageDecoder::plm_decode($command)) if $main::Debug{insteon} >= 4;
+	&::print_log( "[Insteon_PLM] DEBUG4: Milliseconds " . substr(sprintf('%.2f', &main::get_tickcount),-6) . "\n" .Insteon::MessageDecoder::plm_decode($command)) if $main::Debug{insteon} >= 4;
 	my $data = pack("H*",$command);
 	$main::Serial_Ports{$instance}{object}->write($data) if $main::Serial_Ports{$instance};
 
@@ -343,7 +343,7 @@ sub _parse_data {
         }
 
 	&::print_log( "[Insteon_PLM] DEBUG3: Received PLM raw data: $data") if $main::Debug{insteon} >= 3;
-	&::print_log( "[Insteon_PLM] DEBUG4: ". substr(&main::get_tickcount-1,-6) . "\n" .Insteon::MessageDecoder::plm_decode($data)) if $main::Debug{insteon} >= 4;
+	&::print_log( "[Insteon_PLM] DEBUG4: Milliseconds ". substr(sprintf('%.2f', &main::get_tickcount),-6) . "\n" .Insteon::MessageDecoder::plm_decode($data)) if $main::Debug{insteon} >= 4;
 
 	# begin by pulling out any PLM ack/nacks
 	my $prev_cmd = '';
