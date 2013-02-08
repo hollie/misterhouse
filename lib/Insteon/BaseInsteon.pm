@@ -158,7 +158,14 @@ sub group
 sub default_hop_count
 {
 	my ($self, $hop_count) = @_;
-        $$self{default_hop_count} = $hop_count if defined($hop_count);
+	unshift(@{$$self{hop_array}}, $$self{default_hop_count}) if (!defined(@{$$self{hop_array}}));
+	unshift(@{$$self{hop_array}}, $hop_count) if defined($hop_count);
+	pop(@{$$self{hop_array}}) if (scalar(@{$$self{hop_array}}) >10);
+	my $high = 0;
+	foreach (@{$$self{hop_array}}){
+		$high = $_ if ($high < $_);;
+	}
+	$$self{default_hop_count} = $high;
         return $$self{default_hop_count};
 }
 
@@ -471,7 +478,7 @@ sub _process_message
 	# of the responder based upon the link controller's request is handled
 	# by Insteon_Link.
 	$$self{m_is_locally_set} = 1 if $msg{source} eq lc $self->device_id;
-	$self->hop_history($msg{maxhops}-$msg{hopsleft}) if (!$self->isa('Insteon::InterfaceController'));
+	$self->default_hop_count($msg{maxhops}-$msg{hopsleft}) if (!$self->isa('Insteon::InterfaceController'));
 	if ($msg{is_ack}) {
 		my $pending_cmd = ($$self{_prior_msg}) ? $$self{_prior_msg}->command : $msg{command};
 		if ($$self{awaiting_ack})
@@ -1059,18 +1066,6 @@ sub get_engine_version {
 
    my $message = new Insteon::InsteonMessage('insteon_send', $self, 'get_engine_version');
    $self->_send_cmd($message);
-}
-
-sub hop_history {
-	my ($self, $hops) = @_;
-	unshift(@{$$self{hop_array}}, $self->default_hop_count()) if (!defined(@{$$self{hop_array}}));
-	unshift(@{$$self{hop_array}}, $hops) if defined($hops);
-	pop(@{$$self{hop_array}}) if (scalar(@{$$self{hop_array}}) >10);
-	my $high = 0;
-	foreach (@{$$self{hop_array}}){
-		$high = $_ if ($high < $_);;
-	}
-	return $self->default_hop_count($high);
 }
 
 sub ping

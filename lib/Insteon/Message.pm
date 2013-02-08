@@ -102,7 +102,7 @@ sub send
                         {
                         	if ($self->setby->default_hop_count < 3)
                                 {
-                                	$self->setby->hop_history($self->setby->default_hop_count + 1);
+                                	$self->setby->default_hop_count($self->setby->default_hop_count + 1);
 					&main::print_log("[Insteon::Message] Now adding hop count of "
                                                 . $self->setby->default_hop_count . " to hop history of "
 						. $self->setby->get_object_name);
