@@ -257,6 +257,7 @@ sub _on_poke
 				$$self{aldb}{$aldbkey}{deviceid} = lc $$self{pending_aldb}{deviceid};
 				$$self{aldb}{$aldbkey}{group} = lc $$self{pending_aldb}{group};
 				$$self{aldb}{$aldbkey}{address} = $$self{pending_aldb}{address};
+				$self->health("good");
 			}
 			# clear out mem_activity flag
 			$$self{_mem_activity} = undef;
@@ -2075,7 +2076,6 @@ sub delete_link
                 if ($link_parms{callback})
                 {
 			$$self{_success_callback} = $link_parms{callback};
-                        $message->callback($link_parms{callback});
                 }
                 $message->interface_data($cmd);
 		$$self{device}->queue_message($message);
