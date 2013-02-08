@@ -1502,37 +1502,66 @@ sub add_link
 
 sub update_link
 {
-	my ($self, %link_parms) = @_;
-	my $insteon_object = $link_parms{object};
-	my $group = $link_parms{group};
-	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
-	# strip optional % sign to append on_level
-	my $on_level = $link_parms{on_level};
-	$on_level =~ s/(\d+)%?/$1/;
-	# strip optional s (seconds) to append ramp_rate
-	my $ramp_rate = $link_parms{ramp_rate};
-	$ramp_rate =~ s/(\d)s?/$1/;
-	&::print_log("[Insteon::ALDB_i1] updating " . $$self{device}->get_object_name . " light level controlled by " . $insteon_object->get_object_name
-		. " and group: $group with on level: $on_level and ramp rate: $ramp_rate") if $main::Debug{insteon};
-	my $data1 = sprintf('%02X',$on_level * 2.55);
-	$data1 = 'ff' if $on_level eq '100';
-	$data1 = '00' if $on_level eq '0';
-	my $data2 = ($$self{device}->isa('Insteon::DimmableLight')) ? &Insteon::DimmableLight::convert_ramp($ramp_rate) : '00';
-	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
-	my $deviceid = $insteon_object->device_id;
-	my $subaddress = $data3;
-	# get the address via lookup into the hash
-	my $key = lc $deviceid . $group . $is_controller;
-	# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
-	if (!($subaddress eq '00' or $subaddress eq '01'))
+	my ($self, $parms_text) = @_;
+	my %link_parms;
+	if ($parms_text eq 'ok' or $parms_text eq 'fail'){
+		%link_parms = %{$self->{callback_parms}};
+		$$self{callback_parms} = undef;
+		$link_parms{aldb_check} = $parms_text;
+	} else
         {
-		$key .= $subaddress;
+		shift @_;
+		%link_parms = @_;
 	}
-	my $address = $$self{aldb}{$key}{address};
-	$$self{_mem_activity} = 'update';
-	$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
-	$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
-	$self->_write_link($address, $deviceid, $group, $is_controller, $data1, $data2, $data3);
+	my $insteon_object = $link_parms{object};
+	if (!defined($link_parms{aldb_check}) && (!$$self{device}->isa('Insteon_PLM'))){
+		## Check whether ALDB is in sync
+		$self->{callback_parms} = \%link_parms;
+		$$self{_aldb_unchanged_callback} = '&Insteon::ALDB_i1::update_link('.$$self{device}->{object_name}."->_aldb, 'ok')";
+		$$self{_aldb_changed_callback} = '&Insteon::ALDB_i1::update_link('.$$self{device}->{object_name}."->_aldb, 'fail')";
+		$self->query_aldb_delta("check");
+	} elsif ($link_parms{aldb_check} eq "fail"){
+		&::print_log("[Insteon::ALDB_i1] WARN: Link NOT updated, please rescan this device and then run sync links again.");
+		if ($link_parms{callback})
+		{
+			package main;
+			eval($link_parms{callback});
+			&::print_log("[Insteon::ALDB_i1] failure occurred in callback eval for " . $$self{device}->get_object_name . ":" . $@)
+				if $@ and $main::Debug{insteon};
+			package Insteon::ALDB_i1;
+		}
+	} elsif ($link_parms{aldb_check} eq "ok") 
+	{
+		my $group = $link_parms{group};
+		my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
+		# strip optional % sign to append on_level
+		my $on_level = $link_parms{on_level};
+		$on_level =~ s/(\d+)%?/$1/;
+		# strip optional s (seconds) to append ramp_rate
+		my $ramp_rate = $link_parms{ramp_rate};
+		$ramp_rate =~ s/(\d)s?/$1/;
+		&::print_log("[Insteon::ALDB_i1] updating " . $$self{device}->get_object_name . " light level controlled by " . $insteon_object->get_object_name
+			. " and group: $group with on level: $on_level and ramp rate: $ramp_rate") if $main::Debug{insteon};
+		my $data1 = sprintf('%02X',$on_level * 2.55);
+		$data1 = 'ff' if $on_level eq '100';
+		$data1 = '00' if $on_level eq '0';
+		my $data2 = ($$self{device}->isa('Insteon::DimmableLight')) ? &Insteon::DimmableLight::convert_ramp($ramp_rate) : '00';
+		my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
+		my $deviceid = $insteon_object->device_id;
+		my $subaddress = $data3;
+		# get the address via lookup into the hash
+		my $key = lc $deviceid . $group . $is_controller;
+		# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
+		if (!($subaddress eq '00' or $subaddress eq '01'))
+	        {
+			$key .= $subaddress;
+		}
+		my $address = $$self{aldb}{$key}{address};
+		$$self{_mem_activity} = 'update';
+		$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
+		$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
+		$self->_write_link($address, $deviceid, $group, $is_controller, $data1, $data2, $data3);
+	}
 }
 
 
