@@ -258,6 +258,7 @@ sub _on_poke
 				$$self{aldb}{$aldbkey}{deviceid} = lc $$self{pending_aldb}{deviceid};
 				$$self{aldb}{$aldbkey}{group} = lc $$self{pending_aldb}{group};
 				$$self{aldb}{$aldbkey}{address} = $$self{pending_aldb}{address};
+				$self->health("good");
 			}
 			# clear out mem_activity flag
 			$$self{_mem_activity} = undef;
@@ -430,7 +431,7 @@ sub _on_peek
 						package Insteon::ALDB_i1;
 					}
 				}
-                                else
+                                elsif ($$self{pending_aldb}{inuse})
                                 {
 					$$self{pending_aldb}{flag} = $msg{extra};
 					## confirm that we have a high-water mark; otherwise stop
@@ -440,6 +441,13 @@ sub _on_peek
                                 	$message->extra($$self{_mem_lsb});
                         		$message->failure_callback($$self{_failure_callback});
                                 	$self->_send_cmd($message);
+				} else {
+					$self->add_empty_address($$self{_mem_msb} . $$self{_mem_lsb});
+					if ($$self{_mem_activity} eq 'scan'){
+						my $newaddress = sprintf("%04X", hex($$self{_mem_msb} . $$self{_mem_lsb}) - 8);
+						$$self{pending_aldb} = undef;
+						$self->_peek($newaddress);
+					}
 				}
 			}
                         elsif ($$self{_mem_activity} eq 'add')
@@ -2764,7 +2772,6 @@ sub delete_link
                 if ($link_parms{callback})
                 {
 			$$self{_success_callback} = $link_parms{callback};
-                        $message->callback($link_parms{callback});
                 }
                 $message->interface_data($cmd);
 		$$self{device}->queue_message($message);

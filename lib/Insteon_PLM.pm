@@ -418,15 +418,22 @@ sub _parse_data {
                                         {
                                                 # clear the active message because we're done
                 				$self->clear_active_message();
-						my $callback = $pending_message->callback(); #$$self{_mem_callback};
-						$$self{_mem_callback} = undef;
-                                                if ($callback)
+
+						my $callback;
+						if ($self->_aldb->{_success_callback}){
+							$callback = $self->_aldb->{_success_callback};
+							$self->_aldb->{_success_callback} = undef;
+						} elsif ($$self{_mem_callback})
                                                 {
+							$callback = $pending_message->callback(); #$$self{_mem_callback};
+							$$self{_mem_callback} = undef;
+                                                }
+                                                if ($callback){
 							package main;
 							eval ($callback);
 							&::print_log("[Insteon_PLM] WARN1: Error encountered during ack callback: " . $@)
 								if $@ and $main::Debug{insteon} >= 1;
-							package Insteon_PLM;
+							package Insteon_PLM;	
                                                 }
 					}
 				}
@@ -450,7 +457,7 @@ sub _parse_data {
                                                 	$self->_aldb->health("good");
                                                 }
 						if ($$self{_mem_callback})
-                                        	{
+						{
 							my $callback = $$self{_mem_callback};
 							$$self{_mem_callback} = undef;
 							package main;
