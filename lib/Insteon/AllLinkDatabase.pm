@@ -1905,7 +1905,7 @@ sub on_read_write_aldb
 			$self->_send_cmd($message);
 		}
 	}
-	elsif ($$self{_mem_activity} eq 'aldb_i2add')
+	elsif ($$self{_mem_action} eq 'aldb_i2writeack')
 	{
 		## update the aldb records w/ the changes that were made
 		my $aldbkey = $$self{pending_aldb}{deviceid}
@@ -2218,6 +2218,58 @@ sub add_link
 }
 
 
+sub update_link
+{
+	my ($self, %link_parms) = @_;
+	my $insteon_object = $link_parms{object};
+	my $group = $link_parms{group};
+	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
+	# strip optional % sign to append on_level
+	my $on_level = $link_parms{on_level};
+	$on_level =~ s/(\d+)%?/$1/;
+	# strip optional s (seconds) to append ramp_rate
+	my $ramp_rate = $link_parms{ramp_rate};
+	$ramp_rate =~ s/(\d)s?/$1/;
+	&::print_log("[Insteon::ALDB_i2] updating " . $$self{device}->get_object_name . " light level controlled by " . $insteon_object->get_object_name
+		. " and group: $group with on level: $on_level and ramp rate: $ramp_rate") if $main::Debug{insteon};
+	my $data1 = sprintf('%02X',$on_level * 2.55);
+	$data1 = 'ff' if $on_level eq '100';
+	$data1 = '00' if $on_level eq '0';
+	my $data2 = ($$self{device}->isa('Insteon::DimmableLight')) ? &Insteon::DimmableLight::convert_ramp($ramp_rate) : '00';
+	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
+	my $deviceid = $insteon_object->device_id;
+	my $subaddress = $data3;
+	# get the address via lookup into the hash
+	my $key = lc $deviceid . $group . $is_controller;
+	# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
+	if (!($subaddress eq '00' or $subaddress eq '01'))
+        {
+		$key .= $subaddress;
+	}
+	if(defined($$self{aldb}{$key})) {	
+		my $address = $$self{aldb}{$key}{address};
+		$$self{_mem_activity} = 'update';
+		$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
+		$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
+		$self->_write_link($address, $deviceid, $group, $is_controller, $data1, $data2, $data3);
+	} else {
+		&::print_log("[Insteon::ALDB_i2] ERROR: updating link record failed because "
+			. $$self{device}->get_object_name
+			. " does not have an existing ALDB entry key=$key")
+			if $main::Debug{insteon};
+
+		if ($$self{_success_callback})
+		{
+			package main;
+			eval ($$self{_success_callback});
+			&::print_log("[Insteon::ALDB_i2] WARN1: Error encountered during ack callback: " . $@)
+				if $@ and $main::Debug{insteon} >= 1;
+			package Insteon::ALDB_i2;
+		}
+	}
+}
+
+
 sub get_first_empty_address
 {
 	my ($self) = @_;
@@ -2300,8 +2352,8 @@ sub _write_link
 			$data3 = $$self{device}->group;
 		}
 		$$self{pending_aldb}{data3} = (defined $data3) ? lc $data3 : '00';
-		$message_extra .= '00';  #byte 14
 		$message_extra .= $$self{pending_aldb}{data3}; 
+		$message_extra .= '00';  #byte 14
 		$message->extra($message_extra);
 		$$self{_mem_action} = 'aldb_i2writeack';
 		$message->failure_callback($$self{_failure_callback});
