@@ -56,7 +56,7 @@ my %prefix = (
                         x10_received 		=> '0252',
                         all_link_complete 	=> '0253',
                         plm_button_event 	=> '0254',
-                        user_user_reset 	=> '0255',
+                        plm_user_reset		=> '0255',
                         all_link_clean_failed 	=> '0256',
                         all_link_record 	=> '0257',
                         all_link_clean_status 	=> '0258',
@@ -572,7 +572,7 @@ sub _parse_data {
 
         $previous_parsed_data = '';
 
-	foreach my $parsed_data (split(/($prefix{x10_received}\w{4})|($prefix{insteon_received}\w{18})|($prefix{insteon_ext_received}\w{46})|($prefix{all_link_complete}\w{16})|($prefix{all_link_clean_failed}\w{8})|($prefix{all_link_record}\w{16})|($prefix{all_link_clean_status}\w{2})|($prefix{plm_button_event}\w{2})/,$residue_data))
+	foreach my $parsed_data (split(/($prefix{x10_received}\w{4})|($prefix{insteon_received}\w{18})|($prefix{insteon_ext_received}\w{46})|($prefix{all_link_complete}\w{16})|($prefix{all_link_clean_failed}\w{8})|($prefix{all_link_record}\w{16})|($prefix{all_link_clean_status}\w{2})|($prefix{plm_button_event}\w{2})|($prefix{plm_user_reset})/,$residue_data))
 	{
 		#ignore blanks.. the split does odd things
 		next if $parsed_data eq '';
@@ -627,6 +627,10 @@ sub _parse_data {
                         $self->clear_active_message();
 
 			$self->_aldb->get_next_alllink();
+		}
+		elsif ($parsed_prefix eq $prefix{plm_user_reset} and ($message_length == 4))
+		{
+			main::print_log("[Insteon_PLM] Detected PLM user reset to factory defaults");
 		}
                 elsif ($parsed_prefix eq $prefix{all_link_clean_status} and ($message_length == 6))
                 { #ALL-Link Cleanup Status Report
@@ -687,12 +691,19 @@ sub _parse_data {
                 {
 			# it's probably a fragment; so, handle it
                         # it it's the same as last time, then drop it as we can't recover
-			$$self{_data_fragment} .= $parsed_data
-                        	unless (($parsed_data eq $$self{_prior_data_fragment}) or ($parsed_data eq $$self{_data_fragment}));
+			unless (($parsed_data eq $$self{_prior_data_fragment}) or ($parsed_data eq $$self{_data_fragment})) {
+				$$self{_data_fragment} .= $parsed_data;
+				main::print_log("[Insteon_PLM] DEBUG3: Saving parsed data fragment: " 
+					. $parsed_data) if( $main::Debug{insteon} >= 3);
+			}
 		}
 	}
 
-	$$self{_data_fragment} = $residue_data unless $entered_rcv_loop or $$self{_data_fragment};
+	unless( $entered_rcv_loop or $$self{_data_fragment}) {
+		$$self{_data_fragment} = $residue_data;
+		main::print_log("[Insteon_PLM] DEBUG3: Saving residue data fragment: " 
+			. $residue_data) if( $residue_data and $main::Debug{insteon} >= 3);
+	}
 
 	if ($process_next_command) {
  		$self->process_queue();
