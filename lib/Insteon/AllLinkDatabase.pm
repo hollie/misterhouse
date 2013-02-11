@@ -74,7 +74,7 @@ sub query_aldb_delta
         $$self{aldb_delta_action} = $action;
         if ($action eq "check" && $self->health ne "good" && $self->health ne "empty"){
 		&::print_log("[Insteon::BaseObject] WARN The link table for "
-			. $self->{object_name} . " is out-of-sync.");
+			. $self->{device}->get_object_name . " is out-of-sync.");
 		if (defined $self->{_aldb_changed_callback}) {
 			package main;
 			my $callback = $self->{_aldb_changed_callback};
@@ -87,7 +87,7 @@ sub query_aldb_delta
         } elsif ($action eq "check" && ((&main::get_tickcount - $self->scandatetime()) <= 2000)){
 		#if we just did a aldb_query less than 2 seconds ago, don't repeat
 		&::print_log("[Insteon::BaseObject] The link table for "
-			. $self->{object_name} . " is in sync.");
+			. $self->{device}->get_object_name . " is in sync.");
 		if (defined $self->{_aldb_unchanged_callback}) {
 			package main;
 			my $callback = $self->{_aldb_unchanged_callback};
