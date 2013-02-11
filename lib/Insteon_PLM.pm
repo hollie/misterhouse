@@ -514,9 +514,8 @@ sub _parse_data {
                                         }
                                         else
                                         {
-						&::print_log("[Insteon_PLM] WARN: received NACK for "
-                                                	. $pending_message->to_string());
-#"PLM" doesn't nack on bad bulbs; that's a device nack . ". If this is a light fixture, check bulb");
+						&::print_log("[Insteon_PLM] WARN: received NACK from PLM for "
+							. $pending_message->to_string());
 					}
 				}
                                 else
