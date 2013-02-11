@@ -143,7 +143,6 @@ sub restore_aldb
 				my $aldbkey = $deviceid . $groupid . $is_controller;
 				# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
 				if ($subaddress ne '00' and $subaddress ne '01') {
-
 					$aldbkey .= $subaddress;
 				}
 				%{$$self{aldb}{$aldbkey}} = %aldb_record;
@@ -2859,7 +2858,6 @@ sub add_link
 		$$self{aldb}{$linkkey}{data3} = lc $data3;
 		$$self{aldb}{$linkkey}{inuse} = 1;
 		$self->health('good') if($self->health() eq 'empty');
-		
                 my $message =  new Insteon::InsteonMessage('all_link_manage_rec', $$self{device});
                 $message->interface_data($cmd);
                 if ($link_parms{callback})

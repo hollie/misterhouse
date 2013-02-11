@@ -1405,7 +1405,7 @@ sub sync_links
 					my $link_on_level = hex($$member_aldb{aldb}{$aldbkey}{data1})/2.55;
 					my $raw_ramp_rate = $$member_aldb{aldb}{$aldbkey}{data2};
 					my $raw_tgt_ramp_rate = &Insteon::DimmableLight::convert_ramp($tgt_ramp_rate);
-					if (($raw_ramp_rate != $raw_tgt_ramp_rate) && ($raw_ramp_rate ne '00' and $raw_tgt_ramp_rate ne '1f'))
+					if (($raw_ramp_rate ne $raw_tgt_ramp_rate) && ($raw_ramp_rate ne '00' and $raw_tgt_ramp_rate ne '1f'))
                                         {
 						$requires_update = 1;
                                                 &::print_log("[Insteon::BaseController] DEBUG: flagging " . $self->get_object_name
