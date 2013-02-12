@@ -407,16 +407,16 @@ sub on_standard_insteon_received
                                                 	$self->transmit_in_progress(1);
                         		       		# ask the object to process the received message and update its state
 			       				$object->_process_message($self, %cleanup_msg);
-							# Only clear active message if the cleanup received is really meant for the active message
+							# Don't clear active message as ACK is only one of many
 							if (($msg{extra} == $self->active_message->setby->group) 
 								&& ($object->message_type($msg{cmd_code}) eq $self->active_message->command)){
-								$self->clear_active_message();
-                                                                &main::print_log("[Insteon::BaseInterface] DEBUG3: Cleanup message received, "
-                                                                . "matched active message, cleared the active message") if $main::Debug{insteon} >= 3;
+								#$self->clear_active_message();
+                                                                &main::print_log("[Insteon::BaseInterface] DEBUG3: Cleanup message received for scene "
+                                                                . $object->get_device_name . ", which matched active message.") if $main::Debug{insteon} >= 3;
 							}
 							else {
-								&main::print_log("[Insteon::BaseInterface] DEBUG3: Cleanup message received, but "
-								. "active message not cleared b/c group/command in recent message " 
+								&main::print_log("[Insteon::BaseInterface] DEBUG3: Cleanup message received for scene "
+								. $object->get_object_name . ", but group/command in recent message " 
 								. $msg{extra}."/".$object->message_type($msg{cmd_code}). " did not match group in "
 								. "prior sent message group/command " . $self->active_message->setby->group
 								."/".$self->active_message->command) if $main::Debug{insteon} >= 3;

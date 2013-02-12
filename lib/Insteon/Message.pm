@@ -296,7 +296,7 @@ sub send_timeout
         if ($self->command_type eq 'all_link_send')
         {
         	# note, the following was set to 2000 and that was insufficient
-        	return 3000;
+        	return 30000;
         }
         elsif ($self->command_type eq 'insteon_ext_send')
         {
