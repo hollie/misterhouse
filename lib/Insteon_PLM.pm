@@ -598,7 +598,7 @@ sub _parse_data {
                 { #X10 Received
                        	my $x10_message = new Insteon::X10Message($message_data);
                         my $x10_data = $x10_message->get_formatted_data();
-			&::print_log("[Insteon_PLM] DEBUG3: received x10 data: $x10_data") if $main::Debug{insteon} >= 3
+			&::print_log("[Insteon_PLM] DEBUG3: received x10 data: $x10_data") if $main::Debug{insteon} >= 3;
 			&::process_serial_data($x10_data,undef,$self);
 		}
                 elsif ($parsed_prefix eq $prefix{all_link_complete} and ($message_length == 20))
