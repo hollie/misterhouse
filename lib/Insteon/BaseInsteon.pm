@@ -1506,7 +1506,7 @@ sub _process_sync_queue {
 		&::print_log("[Insteon::BaseController] error in sync links callback: " . $@)
 			if $@ and $main::Debug{insteon};
 		$$self{sync_queue_callback} = undef;
-		package Insteon::Insteon_link;
+		package Insteon::BaseController;
 	}
 }
 
