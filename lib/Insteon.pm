@@ -13,7 +13,8 @@ my (@_sync_devices,@_sync_device_failures,$current_sync_device);
 
 sub scan_all_linktables
 {
-	my($skip_unchanged) = @_;
+	my $skip_unchanged = pop(@_);
+	$skip_unchanged = 0 if (ref $skip_unchanged || !defined($skip_unchanged));
         if ($current_scan_device)
         {
         	&main::print_log("[Scan all linktables] WARN: link already underway. Ignoring request for new scan ...");
