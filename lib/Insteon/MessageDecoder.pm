@@ -235,14 +235,14 @@ my %insteonCmd = (
 'SC21' => {Cmd1Name=>'ALL-Link Alias 5',Cmd2Flag=>'Value',Cmd2Value=>'',Cmd2Name=>'Group'},
 'SD22' => {Cmd1Name=>'Light Manually Turned Off',Cmd2Flag=>'NA',Cmd2Value=>'',Cmd2Name=>''},
 'SD23' => {Cmd1Name=>'Light Manually Turned On',Cmd2Flag=>'NA',Cmd2Value=>'',Cmd2Name=>''},
-'SD24' => {Cmd1Name=>'Reread Init Values(Depricated)',Cmd2Flag=>'NA',Cmd2Value=>'',Cmd2Name=>''},
+'SD24' => {Cmd1Name=>'Reread Init Values(Deprecated)',Cmd2Flag=>'NA',Cmd2Value=>'',Cmd2Name=>''},
 'SD25' => {Cmd1Name=>'Remote SET Button Tap',Cmd2Flag=>'Command',Cmd2Value=>'',Cmd2Name=>''},
 'SD2501' => {Cmd1Name=>'Remote SET Button Tap',Cmd2Flag=>'Command',Cmd2Value=>'0x01',Cmd2Name=>'1 Tap'},
 'SD2502' => {Cmd1Name=>'Remote SET Button Tap',Cmd2Flag=>'Command',Cmd2Value=>'0x02',Cmd2Name=>'2 Taps'},
 'SD27' => {Cmd1Name=>'Light Set Status',Cmd2Flag=>'Value',Cmd2Value=>'',Cmd2Name=>'On Level'},
 'SB27' => {Cmd1Name=>'Status Change',Cmd2Flag=>'Value',Cmd2Value=>'',Cmd2Name=>'Data'},
-'SD28' => {Cmd1Name=>'Set Address MSB(Depricated)',Cmd2Flag=>'Value',Cmd2Value=>'',Cmd2Name=>'MSB'},
-'SD29' => {Cmd1Name=>'Poke One Byte(Depricated)',Cmd2Flag=>'Value',Cmd2Value=>'',Cmd2Name=>'Data'},
+'SD28' => {Cmd1Name=>'Set Address MSB(Deprecated)',Cmd2Flag=>'Value',Cmd2Value=>'',Cmd2Name=>'MSB'},
+'SD29' => {Cmd1Name=>'Poke One Byte(Deprecated)',Cmd2Flag=>'Value',Cmd2Value=>'',Cmd2Name=>'Data'},
 'ED2a' => {Cmd1Name=>'Block Data Transfer',Cmd2Flag=>'Command',Cmd2Value=>'',Cmd2Name=>''},
 'ED2a00' => {Cmd1Name=>'Block Data Transfer',Cmd2Flag=>'Command',Cmd2Value=>'0x00',Cmd2Name=>'Transfer Failure'},
 'ED2a01' => {Cmd1Name=>'Block Data Transfer',Cmd2Flag=>'Command',Cmd2Value=>'0x01',Cmd2Name=>'Complete (1 byte)'},
@@ -259,11 +259,11 @@ my %insteonCmd = (
 'ED2a0c' => {Cmd1Name=>'Block Data Transfer',Cmd2Flag=>'Command',Cmd2Value=>'0x0c',Cmd2Name=>'Complete (12 bytes)'},
 'ED2a0d' => {Cmd1Name=>'Block Data Transfer',Cmd2Flag=>'Command',Cmd2Value=>'0x0d',Cmd2Name=>'Complete (13 bytes)'},
 'ED2aff' => {Cmd1Name=>'Block Data Transfer',Cmd2Flag=>'Command',Cmd2Value=>'0xff',Cmd2Name=>'Request Block Data Transfer'},
-'SD2b' => {Cmd1Name=>'Peek One Byte(Depricated)',Cmd2Flag=>'Value',Cmd2Value=>'',Cmd2Name=>'LSB of Address'},
-'SDA2b' => {Cmd1Name=>'Peek One Byte(Depricated)',Cmd2Flag=>'Value',Cmd2Value=>'',Cmd2Name=>'Peeked Byte'},
-'SD2c' => {Cmd1Name=>'Peek One Byte Internal(Depricated)',Cmd2Flag=>'Value',Cmd2Value=>'',Cmd2Name=>'LSB of Address'},
-'SDA2c' => {Cmd1Name=>'Peek One Byte Internal(Depricated)',Cmd2Flag=>'Value',Cmd2Value=>'',Cmd2Name=>'Peeked Byte'},
-'SD2d' => {Cmd1Name=>'Poke One Byte Internal(Depricated)',Cmd2Flag=>'Value',Cmd2Value=>'',Cmd2Name=>'Data'},
+'SD2b' => {Cmd1Name=>'Peek One Byte(Deprecated)',Cmd2Flag=>'Value',Cmd2Value=>'',Cmd2Name=>'LSB of Address'},
+'SDA2b' => {Cmd1Name=>'Peek One Byte(Deprecated)',Cmd2Flag=>'Value',Cmd2Value=>'',Cmd2Name=>'Peeked Byte'},
+'SD2c' => {Cmd1Name=>'Peek One Byte Internal(Deprecated)',Cmd2Flag=>'Value',Cmd2Value=>'',Cmd2Name=>'LSB of Address'},
+'SDA2c' => {Cmd1Name=>'Peek One Byte Internal(Deprecated)',Cmd2Flag=>'Value',Cmd2Value=>'',Cmd2Name=>'Peeked Byte'},
+'SD2d' => {Cmd1Name=>'Poke One Byte Internal(Deprecated)',Cmd2Flag=>'Value',Cmd2Value=>'',Cmd2Name=>'Data'},
 'SD2e' => {Cmd1Name=>'Light ON at Ramp Rate',Cmd2Flag=>'Value',Cmd2Value=>'',Cmd2Name=>'Level and Rate'},
 'ED2e' => {Cmd1Name=>'Extended Set/Get',Cmd2Flag=>'Command',Cmd2Value=>'',Cmd2Name=>''},
 'ED2e00' => {Cmd1Name=>'Extended Set/Get',Cmd2Flag=>'Command',Cmd2Value=>'0x00',Cmd2Name=>'Command in D2'},
@@ -403,7 +403,7 @@ my %insteonCmd = (
 'SD7001' => {Cmd1Name=>'Leak Detector Announce',Cmd2Flag=>'Command',Cmd2Value=>'0x01',Cmd2Name=>'No Leak Detected'},
 'SD7002' => {Cmd1Name=>'Leak Detector Announce',Cmd2Flag=>'Command',Cmd2Value=>'0x02',Cmd2Name=>'Battery Low'},
 'SD7003' => {Cmd1Name=>'Leak Detector Announce',Cmd2Flag=>'Command',Cmd2Value=>'0x03',Cmd2Name=>'Battery OK'},
-'SD81' => {Cmd1Name=>'Assign to Companion Group(Depricated)',Cmd2Flag=>'NA',Cmd2Value=>'',Cmd2Name=>''},
+'SD81' => {Cmd1Name=>'Assign to Companion Group(Deprecated)',Cmd2Flag=>'NA',Cmd2Value=>'',Cmd2Name=>''},
 'EDf0' => {Cmd1Name=>'Read or Write Registers',Cmd2Flag=>'Value',Cmd2Value=>'',Cmd2Name=>'Bit Field'},
 'SDf0' => {Cmd1Name=>'EZSnsRF Control',Cmd2Flag=>'Command',Cmd2Value=>'',Cmd2Name=>''},
 'SDf000' => {Cmd1Name=>'EZSnsRF Control',Cmd2Flag=>'Command',Cmd2Value=>'0x00',Cmd2Name=>'Load Initialization Values'},
@@ -856,9 +856,26 @@ sub insteon_decode_cmd {
 	if($cmdDecoder1->{'Cmd2Flag'} eq 'Command') {
 		#2nd lookup with Cmd2
 		$cmdDecoder2 = $insteonCmd{$cmdLookup.$cmd1.$cmd2};
-		$insteon_message .= sprintf("%28s: (",'Cmd 1').$cmd1.") ".$cmdDecoder2->{'Cmd1Name'}."\n";
-		$insteon_message .= sprintf("%28s: (",'Cmd 2').$cmd2.") ".$cmdDecoder2->{'Cmd2Name'}."\n";
-		$insteon_message .= sprintf("%28s: ",'D1-D14').$Data."\n" if( $extended);
+		if(!defined($cmdDecoder2)) {
+			#lookup failed, if this is an ACK/NACK retry w/ direct version
+			if( $cmdLookup eq 'SDA') {
+				$cmdDecoder2 = $insteonCmd{'SD'.$cmd1};
+			} elsif( $cmdLookup eq 'EDA') {
+				$cmdDecoder2 = $insteonCmd{'ED'.$cmd1};
+			} elsif( $cmdLookup eq 'SCA') {
+				$cmdDecoder2 = $insteonCmd{'SC'.$cmd1};
+			}
+		}
+		if(!defined($cmdDecoder2)) {
+			#still not found so don't decode
+			$insteon_message .= sprintf("%28s: ",'Cmd 1').$cmd1." Insteon command not decoded\n";
+			$insteon_message .= sprintf("%28s: ",'Cmd 2').$cmd2."\n";
+			$insteon_message .= sprintf("%28s: ",'D1-D14').$Data."\n" if( $extended);
+		} else {
+			$insteon_message .= sprintf("%28s: (",'Cmd 1').$cmd1.") ".$cmdDecoder2->{'Cmd1Name'}."\n";
+			$insteon_message .= sprintf("%28s: (",'Cmd 2').$cmd2.") ".$cmdDecoder2->{'Cmd2Name'}."\n";
+			$insteon_message .= sprintf("%28s: ",'D1-D14').$Data."\n" if( $extended);
+		}
 	} elsif( $cmdDecoder1->{'Cmd2Flag'} eq 'Value') {
 		$insteon_message .= sprintf("%28s: (",'Cmd 1').$cmd1.") ".$cmdDecoder1->{'Cmd1Name'}."\n";
 		$insteon_message .= sprintf("%28s: (",'Cmd 2').$cmd2.") ".$cmdDecoder1->{'Cmd2Name'}."\n";
