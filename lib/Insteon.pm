@@ -109,7 +109,7 @@ sub _get_next_linkscan
                         . ($_scan_cnt - scalar @_scan_devices)
        	                . " of $_scan_cnt)");
                	# pass first the success callback followed by the failure callback
-          	$current_scan_device->scan_link_table('&Insteon::_get_next_linkscan(0)','&Insteon::_get_next_linkscan_failure(0)');
+          	$current_scan_device->scan_link_table('&Insteon::_get_next_linkscan('.$skip_unchanged.')','&Insteon::_get_next_linkscan_failure('.$skip_unchanged.')');
 	} else {
           	&main::print_log("[Scan all link tables] All tables have completed scanning");
                 my $_scan_failure_cnt = scalar @_scan_device_failures;
