@@ -76,7 +76,6 @@ sub _get_next_linkscan_failure
 sub _get_next_linkscan
 {
         my($skip_unchanged, $changed_device) = @_;
-	## TODO skip checking ALDB_Delta for devices that are not healthy and force a scan
 	if ($skip_unchanged && $changed_device) {
 		## if a device's aldb_delta has changed it is returned as an object here
 		$current_scan_device = $changed_device;
@@ -90,7 +89,7 @@ sub _get_next_linkscan
 	} else { 
 		$current_scan_device = shift @_scan_devices;
 	}
-	## Temporary Test to skip PLM and go faster
+	# Calling scan_all_link(2) will skip scanning the PLM
 	if (($skip_unchanged == 2) && ($current_scan_device == &Insteon::active_interface)){
 		_get_next_linkscan(2);
 		return;
