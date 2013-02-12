@@ -2161,6 +2161,8 @@ sub add_link
 		$$self{aldb}{$linkkey}{data1} = lc $data1;
 		$$self{aldb}{$linkkey}{data2} = lc $data2;
 		$$self{aldb}{$linkkey}{data3} = lc $data3;
+		$$self{aldb}{$linkkey}{inuse} = 1;
+		$self->health('good') if($self->health() eq 'empty');
                 my $message =  new Insteon::InsteonMessage('all_link_manage_rec', $$self{device});
                 $message->interface_data($cmd);
                 if ($link_parms{callback})
