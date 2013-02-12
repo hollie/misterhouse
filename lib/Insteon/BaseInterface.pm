@@ -408,11 +408,10 @@ sub on_standard_insteon_received
                         		       		# ask the object to process the received message and update its state
 			       				$object->_process_message($self, %cleanup_msg);
 							# Don't clear active message as ACK is only one of many
-							if (($msg{extra} == $self->active_message->setby->group) 
-								&& ($object->message_type($msg{cmd_code}) eq $self->active_message->command)){
-								#$self->clear_active_message();
+							if (($msg{extra} == $self->active_message->setby->group)){
                                                                 &main::print_log("[Insteon::BaseInterface] DEBUG3: Cleanup message received for scene "
-                                                                . $object->get_device_name . ", which matched active message.") if $main::Debug{insteon} >= 3;
+                                                                . $object->get_object_name . ", which matched active message.") if $main::Debug{insteon} >= 3;
+                                                                # Add to array
 							}
 							else {
 								&main::print_log("[Insteon::BaseInterface] DEBUG3: Cleanup message received for scene "
@@ -420,6 +419,7 @@ sub on_standard_insteon_received
 								. $msg{extra}."/".$object->message_type($msg{cmd_code}). " did not match group in "
 								. "prior sent message group/command " . $self->active_message->setby->group
 								."/".$self->active_message->command) if $main::Debug{insteon} >= 3;
+								# Ignore failed messages, if we don't receive an ACK then we assume it was a NACK.
                                 			}
                                                 }
                                                 else
