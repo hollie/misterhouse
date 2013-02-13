@@ -1842,6 +1842,15 @@ sub set
 {
 	my ($self, $p_state, $p_setby, $p_respond) = @_;
 
+	if ($$self{members})
+        {
+		foreach my $member_ref (keys %{$$self{members}})
+                {
+			my $member = $$self{members}{$member_ref}{object};
+			&::print_log("[KRK] " . $member->get_object_name);
+                }
+        }
+
 	my $rslt_code = $self->Insteon::BaseController::set($p_state, $p_setby, $p_respond);
 	return $rslt_code if $rslt_code;
 
