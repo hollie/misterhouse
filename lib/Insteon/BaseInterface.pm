@@ -421,6 +421,9 @@ sub on_standard_insteon_received
 								."/".$self->active_message->command) if $main::Debug{insteon} >= 3;
 								# Ignore failed messages, if we don't receive an ACK then we assume it was a NACK.
                                 			}
+                                			# If ACK or NACK received then PLM is still working on the ALL Link Command
+                                			# Increase the command timeout to wait for next one
+                                			$self->_set_timeout('command', 3000);
                                                 }
                                                 else
                                                 {
