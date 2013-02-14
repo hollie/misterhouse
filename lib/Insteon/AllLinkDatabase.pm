@@ -45,7 +45,7 @@ sub _send_cmd
 
 sub health
 {
-	# corrupt
+	# out-of-sync
 	# unknown
         # empty
         # good
@@ -59,6 +59,49 @@ sub scandatetime
 	my ($self, $scandatetime) = @_;
         $$self{scandatetime} = $scandatetime if defined $scandatetime;
         return $$self{scandatetime};
+}
+
+sub aldb_delta
+{
+        my ($self, $p_aldb_delta) = @_;
+        $$self{aldb_delta} = $p_aldb_delta if defined($p_aldb_delta);  
+        return $$self{aldb_delta};
+}
+
+sub query_aldb_delta
+{
+        my ($self, $action) = @_;
+        $$self{aldb_delta_action} = $action;
+        if ($action eq "check" && $self->health ne "good" && $self->health ne "empty"){
+		&::print_log("[Insteon::BaseObject] WARN The link table for "
+			. $self->{device}->get_object_name . " is out-of-sync.");
+		if (defined $self->{_aldb_changed_callback}) {
+			package main;
+			my $callback = $self->{_aldb_changed_callback};
+			$self->{_aldb_changed_callback} = undef;
+			eval ($callback);
+			&::print_log("[Insteon::BaseObject] " . $self->{device}->get_object_name . ": error during scan callback $@")
+				if $@ and $main::Debug{insteon};
+			package Insteon::BaseObject;
+		}
+        } elsif ($action eq "check" && ((&main::get_tickcount - $self->scandatetime()) <= 2000)){
+		#if we just did a aldb_query less than 2 seconds ago, don't repeat
+		&::print_log("[Insteon::BaseObject] The link table for "
+			. $self->{device}->get_object_name . " is in sync.");
+		if (defined $self->{_aldb_unchanged_callback}) {
+			package main;
+			my $callback = $self->{_aldb_unchanged_callback};
+			$self->{_aldb_unchanged_callback} = undef;
+			eval ($callback);
+			&::print_log("[Insteon::BaseObject] " . $self->{device}->get_object_name . ": error during scan callback $@")
+				if $@ and $main::Debug{insteon};
+			package Insteon::BaseObject;
+		}
+        } else {
+        	my $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'status_request');
+        	if (defined($$self{_failure_callback})) {$message->failure_callback($$self{_failure_callback})};
+        	$self->_send_cmd($message);
+        }
 }
 
 sub restore_string
@@ -98,6 +141,11 @@ sub restore_string
 		if (defined $self->scandatetime)
                 {
 			$restore_string .= $$self{device}->get_object_name . "->_aldb->scandatetime(q~" . $self->scandatetime . "~) if "
+                        	. $$self{device}->get_object_name . "->_aldb;\n";
+                }
+                if (defined $self->aldb_delta)
+                {
+			$restore_string .= $$self{device}->get_object_name . "->_aldb->aldb_delta(q~" . $self->aldb_delta . "~) if "
                         	. $$self{device}->get_object_name . "->_aldb;\n";
                 }
 		$restore_string .= $$self{device}->get_object_name . "->_aldb->health(q~" . $self->health . "~) if "
@@ -259,19 +307,9 @@ sub _on_poke
 				$$self{aldb}{$aldbkey}{address} = $$self{pending_aldb}{address};
 				$self->health("good");
 			}
-			# clear out mem_activity flag
-			$$self{_mem_activity} = undef;
-			if (defined $$self{_success_callback})
-                        {
-				my $callback = $$self{_success_callback};
-				# clear it out *before* the eval
-				$$self{_success_callback} = undef;
-				package main;
-				eval ($callback);
-				package Insteon::ALDB_i1;
-				&::print_log("[Insteon::ALDB_i1] error in link callback: " . $@)
-					if $@ and $main::Debug{insteon};
-			}
+			# set mem activity to scan one address
+			$$self{_mem_activity} = "scan_one";
+			$self->_peek($$self{pending_aldb}{address},0);
 		}
 	}
         elsif ($$self{_mem_activity} eq 'update_local')
@@ -291,6 +329,8 @@ sub _on_poke
 				# update from eeprom--only a kpl issue
 				$message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'do_read_ee');
                                 $self->_send_cmd($message);
+			} elsif ($self->health eq "good" || $self->health eq "empty") {
+				$self->query_aldb_delta('set');
 			}
 		}
 	}
@@ -322,18 +362,15 @@ sub _on_poke
 			}
 			delete $$self{aldb}{$key};
 		}
-
-		if (defined $$self{_success_callback})
-                {
-			my $callback = $$self{_success_callback};
-			# clear it out *before* the eval
-			$$self{_success_callback} = undef;
-			package main;
-			eval ($callback);
-			&::print_log("[Insteon::ALDB_i1] error in link callback: " . $@)
-				if $@ and $main::Debug{insteon};
-			package Insteon::ALDB_i1;
-		}
+		# set mem activity to scan one address
+		$$self{_mem_activity} = "scan_one";
+		$self->_peek($$self{pending_aldb}{address},0);
+	}
+        elsif ($$self{_mem_activity} eq 'bump_delta')
+        {
+		# set mem activity to scan one address
+		$$self{_mem_activity} = "scan_one";
+		$self->_peek($$self{pending_aldb}{address},0);
 	}
 }
 
@@ -349,12 +386,12 @@ sub _on_peek
         {
 		if ($$self{_mem_action} eq 'aldb_peek')
                 {
-			if ($$self{_mem_activity} eq 'scan')
+			if ($$self{_mem_activity} eq 'scan' || $$self{_mem_activity} eq 'scan_one')
                         {
 				$$self{_mem_action} = 'aldb_flag';
 				# if the device is responding to the peek, then init the link table
 				#   if at the very start of a scan
-				if (lc $$self{_mem_msb} eq '0f' and lc $$self{_mem_lsb} eq 'f8')
+				if (lc $$self{_mem_msb} eq '0f' and lc $$self{_mem_lsb} eq 'f8' and $$self{_mem_activity} ne 'scan_one')
                                 {
 					# reinit the aldb hash as there will be a new one
 					$$self{aldb} = undef;
@@ -384,13 +421,17 @@ sub _on_peek
                         {
 				$$self{_mem_action} = 'aldb_flag';
 			}
+			elsif ($$self{_mem_activity} eq 'bump_delta')
+                        {
+				$$self{_mem_action} = 'aldb_flag';
+			}
                        	$message->extra($$self{_mem_lsb});
                         $message->failure_callback($$self{_failure_callback});
                        	$self->_send_cmd($message);
 		}
                 elsif ($$self{_mem_action} eq 'aldb_flag')
                 {
-			if ($$self{_mem_activity} eq 'scan')
+			if ($$self{_mem_activity} eq 'scan' || $$self{_mem_activity} eq 'scan_one')
                         {
                         	&::print_log("[Insteon::ALDB_i1] DEBUG3: " . $$self{device}->get_object_name
                                 	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
@@ -418,17 +459,8 @@ sub _on_peek
 
 					&::print_log("[Insteon::ALDB_i1] " . $$self{device}->get_object_name . " completed link memory scan")
 						if $main::Debug{insteon};
-					if (defined $$self{_success_callback})
-                                        {
-						my $callback = $$self{_success_callback};
-						# clear it out *before* the eval
-						$$self{_success_callback} = undef;
-						package main;
-						eval ($callback);
-						&::print_log("[Insteon::ALDB_i1] " . $$self{device}->get_object_name . ": error during scan callback $@")
-							if $@ and $main::Debug{insteon};
-						package Insteon::ALDB_i1;
-					}
+					# Put the new ALDB Delta into memory
+					$self->query_aldb_delta('set');
 				}
                                 elsif ($$self{pending_aldb}{inuse})
                                 {
@@ -446,6 +478,11 @@ sub _on_peek
 						my $newaddress = sprintf("%04X", hex($$self{_mem_msb} . $$self{_mem_lsb}) - 8);
 						$$self{pending_aldb} = undef;
 						$self->_peek($newaddress);
+					} elsif ($$self{_mem_activity} eq 'scan_one') {
+						$$self{_mem_activity} = undef;
+						# Put the new ALDB Delta into memory
+						$self->query_aldb_delta('set');
+						#query will call the succcess callback
 					}
 				}
 			}
@@ -468,10 +505,17 @@ sub _on_peek
                         	$message->failure_callback($$self{_failure_callback});
                                 $self->_send_cmd($message);
 			}
+                        elsif ($$self{_mem_activity} eq 'bump_delta')
+                        {
+				$message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'poke');
+				$message->extra($msg{extra});
+				$message->failure_callback($$self{_failure_callback});
+				$self->_send_cmd($message);
+			}
 		}
                 elsif ($$self{_mem_action} eq 'aldb_group')
                 {
-			if ($$self{_mem_activity} eq 'scan')
+			if ($$self{_mem_activity} eq 'scan' || $$self{_mem_activity} eq 'scan_one')
                         {
                         	&::print_log("[Insteon::ALDB_i1] DEBUG3: " . $$self{device}->get_object_name
                                 	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
@@ -491,7 +535,7 @@ sub _on_peek
 		}
                 elsif ($$self{_mem_action} eq 'aldb_devhi')
                 {
-			if ($$self{_mem_activity} eq 'scan')
+			if ($$self{_mem_activity} eq 'scan' || $$self{_mem_activity} eq 'scan_one')
                         {
                         	&::print_log("[Insteon::ALDB_i1] DEBUG3: " . $$self{device}->get_object_name
                                 	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
@@ -512,7 +556,7 @@ sub _on_peek
 		}
                 elsif ($$self{_mem_action} eq 'aldb_devmid')
                 {
-			if ($$self{_mem_activity} eq 'scan')
+			if ($$self{_mem_activity} eq 'scan' || $$self{_mem_activity} eq 'scan_one')
                         {
                         	&::print_log("[Insteon::ALDB_i1] DEBUG3: " . $$self{device}->get_object_name
                                 	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
@@ -533,7 +577,7 @@ sub _on_peek
 		}
                 elsif ($$self{_mem_action} eq 'aldb_devlo')
                 {
-			if ($$self{_mem_activity} eq 'scan')
+			if ($$self{_mem_activity} eq 'scan' || $$self{_mem_activity} eq 'scan_one')
                         {
                         	&::print_log("[Insteon::ALDB_i1] DEBUG3: " . $$self{device}->get_object_name
                                 	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
@@ -556,7 +600,7 @@ sub _on_peek
 		}
                 elsif ($$self{_mem_action} eq 'aldb_data1')
                 {
-			if ($$self{_mem_activity} eq 'scan')
+			if ($$self{_mem_activity} eq 'scan' || $$self{_mem_activity} eq 'scan_one')
                         {
                         	&::print_log("[Insteon::ALDB_i1] DEBUG3: " . $$self{device}->get_object_name
                                 	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
@@ -579,7 +623,7 @@ sub _on_peek
 		}
                 elsif ($$self{_mem_action} eq 'aldb_data2')
                 {
-			if ($$self{_mem_activity} eq 'scan')
+			if ($$self{_mem_activity} eq 'scan' || $$self{_mem_activity} eq 'scan_one')
                         {
                         	&::print_log("[Insteon::ALDB_i1] DEBUG3: " . $$self{device}->get_object_name
                                 	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
@@ -602,7 +646,7 @@ sub _on_peek
 		}
                 elsif ($$self{_mem_action} eq 'aldb_data3')
                 {
-			if ($$self{_mem_activity} eq 'scan')
+			if ($$self{_mem_activity} eq 'scan' || $$self{_mem_activity} eq 'scan_one')
                         {
                         	&::print_log("[Insteon::ALDB_i1] DEBUG3: " . $$self{device}->get_object_name
                                 	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
@@ -624,7 +668,8 @@ sub _on_peek
 							$aldbkey .= $subaddress;
 						}
 						# check for duplicates
-						if (exists $$self{aldb}{$aldbkey} && $$self{aldb}{$aldbkey}{inuse})
+						if (exists $$self{aldb}{$aldbkey} && $$self{aldb}{$aldbkey}{inuse} 
+							&& ($$self{aldb}{$aldbkey}{address} ne $$self{pending_aldb}{address}))
                                                 {
 							$self->add_duplicate_link_address($$self{pending_aldb}{address});
 						}
@@ -637,9 +682,16 @@ sub _on_peek
                                         {
 						$self->add_empty_address($$self{pending_aldb}{address});
 					}
-					my $newaddress = sprintf("%04X", hex($$self{pending_aldb}{address}) - 8);
-					$$self{pending_aldb} = undef;
-					$self->_peek($newaddress);
+					if ($$self{_mem_activity} eq 'scan') {
+						my $newaddress = sprintf("%04X", hex($$self{pending_aldb}{address}) - 8);
+						$$self{pending_aldb} = undef;
+						$self->_peek($newaddress);
+					} elsif ($$self{_mem_activity} eq 'scan_one') {
+						$$self{_mem_activity} = undef;
+						# Put the new ALDB Delta into memory
+						$self->query_aldb_delta('set');
+						#query will call the succcess callback
+					}
 				}
 			}
                         elsif ($$self{_mem_activity} eq 'update' or $$self{_mem_activity} eq 'add')
@@ -693,7 +745,7 @@ sub scan_link_table
 	$$self{_success_callback} = ($success_callback) ? $success_callback : undef;
 	$$self{_failure_callback} = ($failure_callback) ? $failure_callback : undef;
         $self->scandatetime(&main::get_tickcount);
-        $self->health('corrupt'); # allow acknowledge to set otherwise
+        $self->health('out-of-sync'); # allow acknowledge to set otherwise
 	$self->_peek('0FF8',0);
 }
 
@@ -701,7 +753,12 @@ sub delete_link
 {
 	my ($self, $parms_text) = @_;
 	my %link_parms;
-	if (@_ > 2)
+	if ($parms_text eq 'ok' or $parms_text eq 'fail'){
+		%link_parms = %{$self->{callback_parms}};
+		$$self{callback_parms} = undef;
+		$link_parms{aldb_check} = $parms_text;
+	} 
+	elsif (@_ > 2)
         {
 		shift @_;
 		%link_parms = @_;
@@ -712,15 +769,30 @@ sub delete_link
 	}
 	$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
 	$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
-	if ($link_parms{address})
+	if (!defined($link_parms{aldb_check}) && (!$$self{device}->isa('Insteon_PLM'))){
+		## Check whether ALDB is in sync
+		$self->{callback_parms} = \%link_parms;
+		$$self{_aldb_unchanged_callback} = '&Insteon::ALDB_i1::delete_link('.$$self{device}->{object_name}."->_aldb, 'ok')";
+		$$self{_aldb_changed_callback} = '&Insteon::ALDB_i1::delete_link('.$$self{device}->{object_name}."->_aldb, 'fail')";
+		$self->query_aldb_delta("check");
+	} elsif ($link_parms{aldb_check} eq "fail"){
+		&::print_log("[Insteon::ALDB_i1] WARN: Link NOT deleted, please rescan this device and sync again.");
+		if ($link_parms{callback})
+		{
+			package main;
+			eval($link_parms{callback});
+			&::print_log("[Insteon::ALDB_i1] failure occurred in callback eval for " . $$self{device}->get_object_name . ":" . $@)
+				if $@ and $main::Debug{insteon};
+			package Insteon::ALDB_i1;
+		}
+	} elsif ($link_parms{address} && $link_parms{aldb_check} eq "ok")
         {
 	   	&main::print_log("[Insteon::ALDB_i1] Now deleting link [0x$link_parms{address}]");
 		$$self{_mem_activity} = 'delete';
 		$$self{pending_aldb}{address} = $link_parms{address};
 		$self->_peek($link_parms{address},0);
 
-	}
-        else
+	} elsif ($link_parms{aldb_check} eq "ok")
         {
 		my $insteon_object = $link_parms{object};
 		my $deviceid = ($insteon_object) ? $insteon_object->device_id : $link_parms{deviceid};
@@ -1316,7 +1388,12 @@ sub add_link
 {
 	my ($self, $parms_text) = @_;
 	my %link_parms;
-	if (@_ > 2)
+    if ($parms_text eq 'ok' or $parms_text eq 'fail'){
+        %link_parms = %{$self->{callback_parms}};
+        $$self{callback_parms} = undef;
+        $link_parms{aldb_check} = $parms_text;
+    }
+	elsif (@_ > 2)
         {
 		shift @_;
 		%link_parms = @_;
@@ -1336,7 +1413,7 @@ sub add_link
         else
         {
 		$device_id = lc $insteon_object->device_id;
-	}
+	} 
 	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
 	# check whether the link already exists
 	my $subaddress = ($link_parms{data3}) ? $link_parms{data3} : '00';
@@ -1347,7 +1424,24 @@ sub add_link
         {
 		$key .= $subaddress;
 	}
-	if (defined $$self{aldb}{$key}{inuse})
+	if (!defined($link_parms{aldb_check}) && (!$$self{device}->isa('Insteon_PLM'))){
+		## Check whether ALDB is in sync
+        $self->{callback_parms} = \%link_parms;
+		$$self{_aldb_unchanged_callback} = '&Insteon::ALDB_i1::add_link('.$$self{device}->{object_name}."->_aldb, 'ok')";
+        $$self{_aldb_changed_callback} = '&Insteon::ALDB_i1::add_link('.$$self{device}->{object_name}."->_aldb, 'fail')";
+		$self->query_aldb_delta("check");
+	} elsif ($link_parms{aldb_check} eq "fail"){
+		&::print_log("[Insteon::ALDB_i1] WARN: Link NOT added, please rescan this device and sync again.");
+        if ($link_parms{callback})
+        {
+			package main;
+			eval($link_parms{callback});
+			&::print_log("[Insteon::ALDB_i1] failure occurred in callback eval for " . $$self{device}->get_object_name . ":" . $@)
+				if $@ and $main::Debug{insteon};
+			package Insteon::ALDB_i1;
+		}
+	}
+	elsif (defined $$self{aldb}{$key}{inuse})
         {
 		&::print_log("[Insteon::ALDB_i1] WARN: attempt to add link to " . $$self{device}->get_object_name . " that already exists! "
 			. "object=" . $insteon_object->get_object_name . ", group=$group, is_controller=$is_controller");
@@ -1359,8 +1453,7 @@ sub add_link
 				if $@ and $main::Debug{insteon};
 			package Insteon::ALDB_i1;
 		}
-	}
-        else
+	} elsif ($link_parms{aldb_check} eq "ok")
         {
 		# strip optional % sign to append on_level
 		my $on_level = $link_parms{on_level};
@@ -1410,37 +1503,66 @@ sub add_link
 
 sub update_link
 {
-	my ($self, %link_parms) = @_;
-	my $insteon_object = $link_parms{object};
-	my $group = $link_parms{group};
-	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
-	# strip optional % sign to append on_level
-	my $on_level = $link_parms{on_level};
-	$on_level =~ s/(\d+)%?/$1/;
-	# strip optional s (seconds) to append ramp_rate
-	my $ramp_rate = $link_parms{ramp_rate};
-	$ramp_rate =~ s/(\d)s?/$1/;
-	&::print_log("[Insteon::ALDB_i1] updating " . $$self{device}->get_object_name . " light level controlled by " . $insteon_object->get_object_name
-		. " and group: $group with on level: $on_level and ramp rate: $ramp_rate") if $main::Debug{insteon};
-	my $data1 = sprintf('%02X',$on_level * 2.55);
-	$data1 = 'ff' if $on_level eq '100';
-	$data1 = '00' if $on_level eq '0';
-	my $data2 = ($$self{device}->isa('Insteon::DimmableLight')) ? &Insteon::DimmableLight::convert_ramp($ramp_rate) : '00';
-	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
-	my $deviceid = $insteon_object->device_id;
-	my $subaddress = $data3;
-	# get the address via lookup into the hash
-	my $key = lc $deviceid . $group . $is_controller;
-	# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
-	if (!($subaddress eq '00' or $subaddress eq '01'))
+	my ($self, $parms_text) = @_;
+	my %link_parms;
+	if ($parms_text eq 'ok' or $parms_text eq 'fail'){
+		%link_parms = %{$self->{callback_parms}};
+		$$self{callback_parms} = undef;
+		$link_parms{aldb_check} = $parms_text;
+	} else
         {
-		$key .= $subaddress;
+		shift @_;
+		%link_parms = @_;
 	}
-	my $address = $$self{aldb}{$key}{address};
-	$$self{_mem_activity} = 'update';
-	$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
-	$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
-	$self->_write_link($address, $deviceid, $group, $is_controller, $data1, $data2, $data3);
+	my $insteon_object = $link_parms{object};
+	if (!defined($link_parms{aldb_check}) && (!$$self{device}->isa('Insteon_PLM'))){
+		## Check whether ALDB is in sync
+		$self->{callback_parms} = \%link_parms;
+		$$self{_aldb_unchanged_callback} = '&Insteon::ALDB_i1::update_link('.$$self{device}->{object_name}."->_aldb, 'ok')";
+		$$self{_aldb_changed_callback} = '&Insteon::ALDB_i1::update_link('.$$self{device}->{object_name}."->_aldb, 'fail')";
+		$self->query_aldb_delta("check");
+	} elsif ($link_parms{aldb_check} eq "fail"){
+		&::print_log("[Insteon::ALDB_i1] WARN: Link NOT updated, please rescan this device and then run sync links again.");
+		if ($link_parms{callback})
+		{
+			package main;
+			eval($link_parms{callback});
+			&::print_log("[Insteon::ALDB_i1] failure occurred in callback eval for " . $$self{device}->get_object_name . ":" . $@)
+				if $@ and $main::Debug{insteon};
+			package Insteon::ALDB_i1;
+		}
+	} elsif ($link_parms{aldb_check} eq "ok") 
+	{
+		my $group = $link_parms{group};
+		my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
+		# strip optional % sign to append on_level
+		my $on_level = $link_parms{on_level};
+		$on_level =~ s/(\d+)%?/$1/;
+		# strip optional s (seconds) to append ramp_rate
+		my $ramp_rate = $link_parms{ramp_rate};
+		$ramp_rate =~ s/(\d)s?/$1/;
+		&::print_log("[Insteon::ALDB_i1] updating " . $$self{device}->get_object_name . " light level controlled by " . $insteon_object->get_object_name
+			. " and group: $group with on level: $on_level and ramp rate: $ramp_rate") if $main::Debug{insteon};
+		my $data1 = sprintf('%02X',$on_level * 2.55);
+		$data1 = 'ff' if $on_level eq '100';
+		$data1 = '00' if $on_level eq '0';
+		my $data2 = ($$self{device}->isa('Insteon::DimmableLight')) ? &Insteon::DimmableLight::convert_ramp($ramp_rate) : '00';
+		my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
+		my $deviceid = $insteon_object->device_id;
+		my $subaddress = $data3;
+		# get the address via lookup into the hash
+		my $key = lc $deviceid . $group . $is_controller;
+		# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
+		if (!($subaddress eq '00' or $subaddress eq '01'))
+	        {
+			$key .= $subaddress;
+		}
+		my $address = $$self{aldb}{$key}{address};
+		$$self{_mem_activity} = 'update';
+		$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
+		$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
+		$self->_write_link($address, $deviceid, $group, $is_controller, $data1, $data2, $data3);
+	}
 }
 
 
@@ -1573,19 +1695,30 @@ sub log_alllink_table
 
 sub update_local_properties
 {
-	my ($self) = @_;
+	my ($self, $aldb_check) = @_;
+	if (defined($aldb_check)){
 		$$self{_mem_activity} = 'update_local';
 		$self->_peek('0032'); # 0032 is the address for the onlevel
+	} else {
+		$$self{_aldb_unchanged_callback} = '&Insteon::ALDB_i1::update_local_properties('.$$self{device}->{object_name}."->_aldb, 1)";
+		$$self{_aldb_changed_callback} = '&Insteon::ALDB_i1::update_local_properties('.$$self{device}->{object_name}."->_aldb, 1)";
+		$self->query_aldb_delta("check");
+	}
 }
 
 sub update_flags
 {
-	my ($self, $flags) = @_;
+	my ($self, $flags, $aldb_check) = @_;
 	return unless defined $flags;
-
-	$$self{_mem_activity} = 'update_flags';
-	$$self{_operating_flags} = $flags;
-	$self->_peek('0023');
+	if (defined($aldb_check)){
+		$$self{_mem_activity} = 'update_flags';
+		$$self{_operating_flags} = $flags;
+		$self->_peek('0023');
+	} else {
+		$$self{_aldb_unchanged_callback} = '&Insteon::ALDB_i1::update_flags('.$$self{device}->{object_name}."->_aldb, '$flags', 1)";
+		$$self{_aldb_changed_callback} = '&Insteon::ALDB_i1::update_flags('.$$self{device}->{object_name}."->_aldb, '$flags', 1)";
+		$self->query_aldb_delta("check");
+	}
 }
 
 sub get_link_record
@@ -1840,7 +1973,7 @@ sub get_first_alllink
 {
 	my ($self) = @_;
         $self->scandatetime(&main::get_tickcount);
-        $self->health('corrupt'); # set as corrupt and allow acknowledge to set otherwise
+        $self->health('out-of-sync'); # set as out-of-sync and allow acknowledge to set otherwise
 	$$self{device}->queue_message(new Insteon::InsteonMessage('all_link_first_rec', $$self{device}));
 }
 

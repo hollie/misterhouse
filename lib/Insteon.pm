@@ -13,7 +13,9 @@ my (@_sync_devices,@_sync_device_failures,$current_sync_device);
 
 sub scan_all_linktables
 {
-	if ($current_scan_device)
+	my $skip_unchanged = pop(@_);
+	$skip_unchanged = 0 if (ref $skip_unchanged || !defined($skip_unchanged));
+        if ($current_scan_device)
         {
         	&main::print_log("[Scan all linktables] WARN: link already underway. Ignoring request for new scan ...");
                 return;
@@ -58,31 +60,57 @@ sub scan_all_linktables
         }
         $_scan_cnt = scalar @_scan_devices;
 
-        &_get_next_linkscan();
+        &_get_next_linkscan($skip_unchanged);
 }
 
 sub _get_next_linkscan_failure
 {
+        my($skip_unchanged) = @_;
         push @_scan_device_failures, $current_scan_device;
         &main::print_log("[Scan all link tables] WARN: failure occurred when scanning "
                 	. $current_scan_device->get_object_name . ".  Moving on...");
-        &_get_next_linkscan();
+        &_get_next_linkscan($skip_unchanged);
 
 }
 
 sub _get_next_linkscan
 {
-   	$current_scan_device = shift @_scan_devices;
-
-	if ($current_scan_device)
-        {
-          	&main::print_log("[Scan all link tables] Now scanning: "
-                	. $current_scan_device->get_object_name . " ("
+        my($skip_unchanged, $changed_device) = @_;
+	if ($skip_unchanged && $changed_device) {
+		## if a device's aldb_delta has changed it is returned as an object here
+		$current_scan_device = $changed_device;
+		&main::print_log("[Scan all link tables] Now scanning: "
+                        . $current_scan_device->get_object_name . " ("
                         . ($_scan_cnt - scalar @_scan_devices)
                         . " of $_scan_cnt)");
                 # pass first the success callback followed by the failure callback
-          	$current_scan_device->scan_link_table('&Insteon::_get_next_linkscan()','&Insteon::_get_next_linkscan_failure()');
-    	} else {
+                $current_scan_device->scan_link_table('&Insteon::_get_next_linkscan('.$skip_unchanged.')','&Insteon::_get_next_linkscan_failure('.$skip_unchanged.')');
+		return;
+	} else { 
+		$current_scan_device = shift @_scan_devices;
+	}
+	# Calling scan_all_link(2) will skip scanning the PLM
+	if (($skip_unchanged == 2) && ($current_scan_device == &Insteon::active_interface)){
+		_get_next_linkscan(2);
+		return;
+	}
+	if ($current_scan_device) {
+		if ($skip_unchanged){
+			## check if aldb_delta has changed;
+			if ($current_scan_device != &Insteon::active_interface){
+				$current_scan_device->_aldb->{_aldb_unchanged_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.')';
+				$current_scan_device->_aldb->{_aldb_changed_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.', '.$current_scan_device->get_object_name.')';
+				$current_scan_device->_aldb->query_aldb_delta("check");
+				return;
+			}
+		} 
+       		&main::print_log("[Scan all link tables] Now scanning: "
+              		. $current_scan_device->get_object_name . " ("
+                        . ($_scan_cnt - scalar @_scan_devices)
+       	                . " of $_scan_cnt)");
+               	# pass first the success callback followed by the failure callback
+          	$current_scan_device->scan_link_table('&Insteon::_get_next_linkscan('.$skip_unchanged.')','&Insteon::_get_next_linkscan_failure('.$skip_unchanged.')');
+	} else {
           	&main::print_log("[Scan all link tables] All tables have completed scanning");
                 my $_scan_failure_cnt = scalar @_scan_device_failures;
                 if ($_scan_failure_cnt)
@@ -296,7 +324,7 @@ sub generate_voice_commands
            $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_item_commands');
            push @_insteon_device, $object_name if $group eq '01'; # don't allow non-base items to participate
         } elsif ($object->isa('Insteon_PLM')) {
-           my $cmd_states = "complete linking as responder,cancel linking,delete link with PLM,scan link table,show link table to log,delete orphan links,AUDIT - delete orphan links,scan all device link tables,sync all links,AUDIT - sync all links";
+           my $cmd_states = "complete linking as responder,cancel linking,delete link with PLM,scan link table,show link table to log,delete orphan links,AUDIT - delete orphan links,scan all device link tables,scan changed device link tables, sync all links,AUDIT - sync all links";
            $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->complete_linking_as_responder','complete linking as responder');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->initiate_unlinking_as_controller','initiate unlinking');\n\n";
@@ -306,6 +334,7 @@ sub generate_voice_commands
            $object_string .= "$object_name_v -> tie_event('$object_name->delete_orphan_links','delete orphan links');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->delete_orphan_links(1)','AUDIT - delete orphan links');\n\n";
            $object_string .= "$object_name_v -> tie_event('&Insteon::scan_all_linktables','scan all device link tables');\n\n";
+           $object_string .= "$object_name_v -> tie_event('&Insteon::scan_all_linktables(1)','scan changed device link tables');\n\n";
            $object_string .= "$object_name_v -> tie_event('&Insteon::sync_all_links(0)','sync all links');\n\n";
            $object_string .= "$object_name_v -> tie_event('&Insteon::sync_all_links(1)','AUDIT - sync all links');\n\n";
            $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_PLM_commands');

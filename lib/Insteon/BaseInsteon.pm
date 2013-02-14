@@ -426,22 +426,77 @@ sub message_type
 sub _is_info_request
 {
 	my ($self, $cmd, $ack_setby, %msg) = @_;
-	my $is_info_request = ($cmd eq 'status_request') ? 1 : 0;
-#print "cmd: $cmd; is_info_request: $is_info_request\n";
-	if ($is_info_request) {
-		my $ack_on_level = (hex($msg{extra}) >= 254) ? 100 : sprintf("%d", hex($msg{extra}) * 100 / 255);
-		&::print_log("[Insteon::BaseObject] received status for " .
-			$self->{object_name} . " with on-level: $ack_on_level%, "
-			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
-		$self->level($ack_on_level); # update the level value
-		if ($ack_on_level == 0) {
-			$self->SUPER::set('off', $ack_setby);
-		} elsif ($ack_on_level > 0 and !($self->isa('Insteon::DimmableLight'))) {
-			$self->SUPER::set('on', $ack_setby);
-		} else {
-			$self->SUPER::set($ack_on_level . '%', $ack_setby);
+	my $is_info_request;
+	if ($cmd eq 'status_request') {
+                if (defined($self->_aldb->{aldb_delta_action})){
+                	my $callback = undef;
+                	#This status request was requested by query_aldb_delta
+                	if ($self->_aldb->{aldb_delta_action} eq 'set'){
+                		if ($msg{cmd_code} eq "00") {
+					# Force a bump of aldb_delta
+					$self->_aldb->{_mem_activity} = 'bump_delta';
+					# Playing with an empty address should have the least chance for causing issues
+					$self->_aldb->{pending_aldb}{address} = $self->_aldb->get_first_empty_address();
+					$self->_aldb->_peek($self->_aldb->{pending_aldb}{address},0);
+                		} else {
+	                		$self->_aldb->aldb_delta($msg{cmd_code});
+	                		$self->_aldb->scandatetime(&main::get_tickcount);
+	                		&::print_log("[Insteon::BaseObject] The Link Table Version for "
+	                			. $self->{object_name} . " has been updated to version number " . $self->_aldb->aldb_delta());
+					# The only time this will be called is after scanning the
+					# device memory in some form, so we can just piggy back on 
+					# the already existing ALDB callback
+					if (defined $self->_aldb->{_success_callback}) {
+						$callback = $self->_aldb->{_success_callback};
+						$self->_aldb->{_success_callback} = undef;
+					}
+                		}
+                	} else {
+                		# Are the ALDB tables in sync?
+                		if ($self->_aldb->aldb_delta() eq $msg{cmd_code}){
+                			&::print_log("[Insteon::BaseObject] The link table for "
+                				. $self->{object_name} . " is in sync.");
+					if (defined $self->_aldb->{_aldb_unchanged_callback}) {
+						$callback = $self->_aldb->{_aldb_unchanged_callback};
+						$self->_aldb->{_aldb_unchanged_callback} = undef;
+					}
+                		} else {
+                			&::print_log("[Insteon::BaseObject] WARN The link table for "
+                				. $self->{object_name} . " is out-of-sync.");
+                			$self->_aldb->health('out-of-sync');
+					if (defined $self->_aldb->{_aldb_changed_callback}) {
+						$callback = $self->_aldb->{_aldb_changed_callback};
+						$self->_aldb->{_aldb_changed_callback} = undef;
+					}
+                		}
+                	}
+                	$self->_aldb->{aldb_delta_action} = undef;
+                	if ($callback){
+				package main;
+				eval ($callback);
+				&::print_log("[Insteon::BaseObject] " . $self->get_object_name . ": error during scan callback $@")
+					if $@ and $main::Debug{insteon};
+				package Insteon::BaseObject;                		
+                	}
+                } else {
+                	#This is a regular status_request
+			my $ack_on_level = (hex($msg{extra}) >= 254) ? 100 : sprintf("%d", hex($msg{extra}) * 100 / 255);
+			$self->_aldb->health('out-of-sync') if($self->_aldb->aldb_delta() ne $msg{cmd_code});
+			&::print_log("[Insteon::BaseObject] received status for " .
+				$self->{object_name} . " with on-level: $ack_on_level%, "
+				. "link table health: " . $self->_aldb->health
+				. ", hops left: $msg{hopsleft}") if $main::Debug{insteon};
+			$self->level($ack_on_level); # update the level value
+			if ($ack_on_level == 0) {
+				$self->SUPER::set('off', $ack_setby);
+			} elsif ($ack_on_level > 0 and !($self->isa('Insteon::DimmableLight'))) {
+				$self->SUPER::set('on', $ack_setby);
+			} else {
+				$self->SUPER::set($ack_on_level . '%', $ack_setby);
+			}
+			# if this were a scene controller, then also propogate the result to all members
 		}
-		# if this were a scene controller, then also propogate the result to all members
+                $is_info_request = 1;
 	}
    elsif ( $cmd eq 'get_engine_version' ) {
       my $version = $msg{extra};
@@ -454,6 +509,7 @@ sub _is_info_request
       }
       &::print_log("[Insteon::BaseObject] received engine version for " 
          . $self->{object_name} . " of $version.");
+      $is_info_request = 1;
    }
 
 	return $is_info_request;
@@ -495,6 +551,12 @@ sub _process_message
 			}
                         else
                         {
+				if (($pending_cmd eq 'do_read_ee') && 
+					($self->_aldb->health eq "good" || $self->_aldb->health eq "empty") &&
+					($self->isa('Insteon::KeyPadLincRelay') || $self->isa('Insteon::KeyPadLinc'))){
+					## Update_Flags ends up here, set aldb_delta to new value
+					$self->_aldb->query_aldb_delta("set");
+				}
 				$self->is_acknowledged(1);
 				# signal receipt of message to the command stack in case commands are queued
 				$self->_process_command_stack(%msg);
