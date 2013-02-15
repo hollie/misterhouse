@@ -373,7 +373,8 @@ sub interface_data
         if (!($result) &&
         	(($self->command_type eq 'insteon_send')
                 or ($self->command_type eq 'insteon_ext_send')
-                or ($self->command_type eq 'all_link_send')))
+                or ($self->command_type eq 'all_link_send')
+                or ($self->command_type eq 'all_link_direct_cleanup')))
         {
         	return $self->_derive_interface_data();
         }
@@ -414,6 +415,23 @@ sub _derive_interface_data
                         elsif ($hop_count >= 3)
                         {
 				$cmd.='1F';
+                        }
+		} elsif ($self->command_type =~ /all_link_direct_cleanup/i){
+			if ($hop_count == 0)
+			{
+				$cmd.='40';
+			}
+			elsif ($hop_count == 1)
+                        {
+				$cmd.='45';
+                        }
+                        elsif ($hop_count == 2)
+                        {
+				$cmd.='4A';
+                        }
+                        elsif ($hop_count >= 3)
+                        {
+				$cmd.='4F';
                         }
 		}
                 else

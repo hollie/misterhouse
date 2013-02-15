@@ -64,6 +64,7 @@ my %prefix = (
                         all_link_send 		=> '0261',
                         insteon_send 		=> '0262',
                         insteon_ext_send	=> '0262',
+                        all_link_direct_cleanup => '0262',
                         x10_send 		=> '0263',
                         all_link_start 		=> '0264',
                         all_link_cancel		=> '0265',
@@ -302,7 +303,7 @@ sub _send_cmd {
 	} else {
                 my $command_type = $message->command_type;
                 $command = $prefix{$command_type} . $command;
-                if ($command_type eq 'all_link_send' or $command_type eq 'insteon_send' or $command_type eq 'insteon_ext_send')
+                if ($command_type eq 'all_link_send' or $command_type eq 'insteon_send' or $command_type eq 'insteon_ext_send' or $command_type eq 'all_link_direct_cleanup')
                 {
          		$self->_set_timeout('command', $cmd_timeout); # a commmand needs to be PLM ack'd w/i 3 seconds or it gets dropped
                 }
@@ -609,14 +610,19 @@ sub _parse_data {
 		}
                 elsif ($parsed_prefix eq $prefix{all_link_clean_failed} and ($message_length == 12))
                 { #ALL-Link Cleanup Failure Report
-                        #$self->retry_active_message();
                         # extract out the pertinent parts of the message for display purposes
-                        # bytes 0-1 - ignore; 2-3 - group; 4-9 device address
+                        # bytes 0-1 - group; 2-7 device address
                         my $failure_group = substr($message_data,0,2);
                         my $failure_device = substr($message_data,2,6);
 
 			&::print_log("[Insteon_PLM] DEBUG2: Received all-link cleanup failure from device: "
                         	. "$failure_device and group: $failure_group") if $main::Debug{insteon} >= 2;
+                        
+                        my $failed_object = &Insteon::get_object($failure_device,'01');
+                        my $message = new Insteon::InsteonMessage('all_link_direct_cleanup', $failed_object, 'all_link_recall', $failure_group);
+                        push(@{$$failed_object{command_stack}}, $message);
+                        $failed_object->_process_command_stack();
+                        
 		}
                 elsif ($parsed_prefix eq $prefix{all_link_record} and ($message_length == 20))
                 { #ALL-Link Record Response
