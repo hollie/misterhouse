@@ -160,7 +160,7 @@ sub default_hop_count
 	my ($self, $hop_count) = @_;
 	unshift(@{$$self{hop_array}}, $$self{default_hop_count}) if (!defined(@{$$self{hop_array}}));
 	unshift(@{$$self{hop_array}}, $hop_count) if defined($hop_count);
-	pop(@{$$self{hop_array}}) if (scalar(@{$$self{hop_array}}) >10);
+	pop(@{$$self{hop_array}}) if (scalar(@{$$self{hop_array}}) >20);
 	my $high = 0;
 	foreach (@{$$self{hop_array}}){
 		$high = $_ if ($high < $_);;
