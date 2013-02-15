@@ -407,7 +407,8 @@ sub on_standard_insteon_received
                                                                 	. $object->get_object_name . " from source " . uc($msg{source}))
                                                                 	if $main::Debug{insteon} >= 3;
 							} elsif ($self->active_message->command_type eq 'all_link_direct_cleanup' &&
-								lc($self->active_message->setby->device_id) eq $msg{source}){
+								lc($self->active_message->setby->device_id) eq $msg{source}) 
+							{
 								&::print_log("[Insteon::BaseInterface] DEBUG2: ALL-Linking Direct Completed with ". $self->active_message->setby->get_object_name) if $main::Debug{insteon} >= 2;
 								$self->clear_active_message();
 							}
