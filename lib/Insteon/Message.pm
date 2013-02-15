@@ -100,13 +100,12 @@ sub send
                         # revise default hop count to reflect retries
                         if (ref $self->setby && $self->setby->isa('Insteon::BaseObject'))
                         {
-                        	if (($self->send_attempts > $self->setby->default_hop_count)
-                                	and ($self->send_attempts <= 3))
+                        	if ($self->setby->default_hop_count < 3)
                                 {
-                                	&main::print_log("[Insteon::Message] Now setting default hop count for "
-                                        	. $self->setby->get_object_name . " to "
-                                                . $self->send_attempts);
-                                	$self->setby->default_hop_count($self->send_attempts);
+                                	$self->setby->default_hop_count($self->setby->default_hop_count + 1);
+					&main::print_log("[Insteon::Message] Now adding hop count of "
+                                                . $self->setby->default_hop_count . " to hop history of "
+						. $self->setby->get_object_name);
                                 }
                         }
                 }
@@ -183,6 +182,7 @@ sub command_to_hash
 	my ($p_state) = @_;
 	my %msg = ();
 	my $hopflag = hex(uc substr($p_state,13,1));
+	$msg{maxhops} = $hopflag&0b0011;
 	$msg{hopsleft} = $hopflag >> 2;
 	my $msgflag = hex(uc substr($p_state,12,1));
 	$msg{is_extended} = (0x01 & $msgflag) ? 1 : 0;
