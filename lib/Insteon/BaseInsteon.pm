@@ -575,6 +575,9 @@ sub _process_message
 			$self->set($p_state, $self); # unless (lc($self->state) eq lc($p_state)) and
 	       #		($msg{type} eq 'cleanup' and $$self{_pending_cleanup});
 			$$self{_pending_cleanup} = 0;
+		} else {
+			main::print_log("[Insteon::BaseObject] Ignoring unsupported command from " 
+				. $self->{object_name}) if $main::Debug{insteon};
                 }
 	}
 }
@@ -1276,7 +1279,8 @@ sub add
 		$ramp_rate =~ s/s$//i;
 		$$self{members}{$obj}{ramp_rate} = $ramp_rate if defined $ramp_rate;
 	} else {
-		&::print_log("[Insteon::BaseController] WARN: unable to add $obj as items of this type are not supported!");
+		&::print_log("[Insteon::BaseController] WARN: unable to add ".$obj->{device_id}.":".$obj->{m_group}
+			." as items of type ".ref($obj)." are not supported!");
         }
 }
 
@@ -1515,6 +1519,8 @@ sub _process_sync_queue {
 			if $@ and $main::Debug{insteon};
 		$$self{sync_queue_callback} = undef;
 		package Insteon::BaseController;
+	} else {
+		main::print_log($self->get_object_name." completed sync links");
 	}
 }
 
