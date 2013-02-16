@@ -619,8 +619,8 @@ sub _parse_data {
                         	. "$failure_device and group: $failure_group") if $main::Debug{insteon} >= 2;
                         
                         my $failed_object = &Insteon::get_object($failure_device,'01');
-                        my $all_link_command = (lc($self->active_message->command) eq 'on') ? 'all_link_recall' : 'all_link_alias_1_low'; 
-                        my $message = new Insteon::InsteonMessage('all_link_direct_cleanup', $failed_object, $all_link_command, $failure_group);
+                        my $message = new Insteon::InsteonMessage('all_link_direct_cleanup', $failed_object, 
+                        	$self->active_message->command, $failure_group);
                         push(@{$$failed_object{command_stack}}, $message);
                         $failed_object->_process_command_stack();
                         
