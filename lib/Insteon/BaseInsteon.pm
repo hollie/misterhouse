@@ -158,7 +158,14 @@ sub group
 sub default_hop_count
 {
 	my ($self, $hop_count) = @_;
-        $$self{default_hop_count} = $hop_count if defined($hop_count);
+	unshift(@{$$self{hop_array}}, $$self{default_hop_count}) if (!defined(@{$$self{hop_array}}));
+	unshift(@{$$self{hop_array}}, $hop_count) if defined($hop_count);
+	pop(@{$$self{hop_array}}) if (scalar(@{$$self{hop_array}}) >20);
+	my $high = 0;
+	foreach (@{$$self{hop_array}}){
+		$high = $_ if ($high < $_);;
+	}
+	$$self{default_hop_count} = $high;
         return $$self{default_hop_count};
 }
 
@@ -474,6 +481,7 @@ sub _process_message
 	# of the responder based upon the link controller's request is handled
 	# by Insteon_Link.
 	$$self{m_is_locally_set} = 1 if $msg{source} eq lc $self->device_id;
+	$self->default_hop_count($msg{maxhops}-$msg{hopsleft}) if (!$self->isa('Insteon::InterfaceController'));
 	if ($msg{is_ack}) {
 		my $pending_cmd = ($$self{_prior_msg}) ? $$self{_prior_msg}->command : $msg{command};
 		if ($$self{awaiting_ack})
@@ -576,7 +584,7 @@ sub _process_message
 			$self->set($p_state, $self); # unless (lc($self->state) eq lc($p_state)) and
 	       #		($msg{type} eq 'cleanup' and $$self{_pending_cleanup});
 			$$self{_pending_cleanup} = 0;
-                } else {
+		} else {
 			main::print_log("[Insteon::BaseObject] Ignoring unsupported command from " 
 				. $self->{object_name}) if $main::Debug{insteon};
                 }

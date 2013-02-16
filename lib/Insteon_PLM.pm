@@ -628,10 +628,10 @@ sub _parse_data {
 
 			$self->_aldb->get_next_alllink();
 		}
-                elsif ($parsed_prefix eq $prefix{plm_user_reset} and ($message_length == 4))
-                {
-                	main::print_log("[Insteon_PLM] Detected PLM user reset to factory defaults");
-                }
+		elsif ($parsed_prefix eq $prefix{plm_user_reset} and ($message_length == 4))
+		{
+			main::print_log("[Insteon_PLM] Detected PLM user reset to factory defaults");
+		}
                 elsif ($parsed_prefix eq $prefix{all_link_clean_status} and ($message_length == 6))
                 { #ALL-Link Cleanup Status Report
 			my $cleanup_ack = substr($message_data,0,2);
@@ -691,11 +691,11 @@ sub _parse_data {
                 {
 			# it's probably a fragment; so, handle it
                         # it it's the same as last time, then drop it as we can't recover
-                        unless (($parsed_data eq $$self{_prior_data_fragment}) or ($parsed_data eq $$self{_data_fragment})) {
-                        	$$self{_data_fragment} .= $parsed_data;
+			unless (($parsed_data eq $$self{_prior_data_fragment}) or ($parsed_data eq $$self{_data_fragment})) {
+				$$self{_data_fragment} .= $parsed_data;
 				main::print_log("[Insteon_PLM] DEBUG3: Saving parsed data fragment: " 
 					. $parsed_data) if( $main::Debug{insteon} >= 3);
-                        }
+			}
 		}
 	}
 
