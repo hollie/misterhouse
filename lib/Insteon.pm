@@ -420,9 +420,6 @@ sub get_object
 					{
 						$retObj = $obj;
 						last;
-					} else {
-						#remember device match if all else fails but keep looking
-						$retObj = $obj;
 					}
 				} else {
 					$retObj = $obj;
