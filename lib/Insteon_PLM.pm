@@ -64,6 +64,7 @@ my %prefix = (
                         all_link_send 		=> '0261',
                         insteon_send 		=> '0262',
                         insteon_ext_send	=> '0262',
+                        all_link_direct_cleanup => '0262',
                         x10_send 		=> '0263',
                         all_link_start 		=> '0264',
                         all_link_cancel		=> '0265',
@@ -302,7 +303,7 @@ sub _send_cmd {
 	} else {
                 my $command_type = $message->command_type;
                 $command = $prefix{$command_type} . $command;
-                if ($command_type eq 'all_link_send' or $command_type eq 'insteon_send' or $command_type eq 'insteon_ext_send')
+                if ($command_type eq 'all_link_send' or $command_type eq 'insteon_send' or $command_type eq 'insteon_ext_send' or $command_type eq 'all_link_direct_cleanup')
                 {
          		$self->_set_timeout('command', $cmd_timeout); # a commmand needs to be PLM ack'd w/i 3 seconds or it gets dropped
                 }
@@ -606,16 +607,22 @@ sub _parse_data {
 			&::print_log("[Insteon_PLM] DEBUG2: ALL-Linking Completed with $link_address ($message_data)") if $main::Debug{insteon} >= 2;
                         $self->clear_active_message();
 		}
-                elsif ($parsed_prefix eq $prefix{all_link_clean_failed} and ($message_length == 14))
+                elsif ($parsed_prefix eq $prefix{all_link_clean_failed} and ($message_length == 12))
                 { #ALL-Link Cleanup Failure Report
-                        $self->retry_active_message();
                         # extract out the pertinent parts of the message for display purposes
-                        # bytes 0-1 - ignore; 2-3 - group; 4-9 device address
-                        my $failure_group = substr($message_data,2,2);
-                        my $failure_device = substr($message_data,4,6);
+                        # bytes 0-1 - group; 2-7 device address
+                        my $failure_group = substr($message_data,0,2);
+                        my $failure_device = substr($message_data,2,6);
 
 			&::print_log("[Insteon_PLM] DEBUG2: Received all-link cleanup failure from device: "
-                        	. "$failure_device and group: failure_group") if $main::Debug{insteon} >= 2;
+                        	. "$failure_device and group: $failure_group") if $main::Debug{insteon} >= 2;
+                        
+                        my $failed_object = &Insteon::get_object($failure_device,'01');
+                        my $message = new Insteon::InsteonMessage('all_link_direct_cleanup', $failed_object, 
+                        	$self->active_message->command, $failure_group);
+                        push(@{$$failed_object{command_stack}}, $message);
+                        $failed_object->_process_command_stack();
+                        
 		}
                 elsif ($parsed_prefix eq $prefix{all_link_record} and ($message_length == 20))
                 { #ALL-Link Record Response
@@ -636,40 +643,20 @@ sub _parse_data {
 			my $cleanup_ack = substr($message_data,0,2);
 			if ($cleanup_ack eq '15')
                         {
-                        	my $delay_in_seconds = 1.0;  # this may need to be tweaked
-				&::print_log("[Insteon_PLM] WARN1: Received all-link cleanup failure for current message."
-                                	. "  Attempting resend in " . $delay_in_seconds . " seconds.")
+				&::print_log("[Insteon_PLM] WARN1: All-link cleanup failure for scene: "
+                                	. $self->active_message->setby->get_object_name . ". Retrying in 1 second.")
 					if $main::Debug{insteon} >= 1;
                                 $self->retry_active_message();
                                 # except that we should cause a bit of a delay to let things settle out
-				$self->_set_timeout('xmit',$delay_in_seconds * 1000);
+				$self->_set_timeout('xmit', 1000);
 				$process_next_command = 0;
 			}
                         else
                         {
                         	my $message_to_string = ($self->active_message) ? $self->active_message->to_string() : "";
-				&::print_log("[Insteon_PLM] DEBUG2: Received all-link cleanup success: $message_to_string")
-                                	if $main::Debug{insteon} >= 2;
-
-				# attempt to process the message by the link object; this acknowledgement will reset
-				#   the auto-retry timer
-				if ($self->active_message && $self->active_message->isa('Insteon::InsteonMessage')
-                                	&&($self->active_message->command_type == 'all_link_send'))
-                                {
-					my $group = substr($self->active_message->interface_data,0,2);
-					my $link = &Insteon::get_object('000000',$group);
-					if ($link)
-                                        {
-						my %msg = ('type' => 'cleanup',
-								'group' => $group,
-								'is_ack' => 1,
-								'command' => 'cleanup'
-							);
-			       			$link->_process_message($self, %msg);
-					}
-                                        # only clear the active message if this all_link_clean_status corresponds to a all_link_send message
-                                	$self->clear_active_message();
-				}
+				&::print_log("[Insteon_PLM] Received all-link cleanup success: $message_to_string")
+                                	if $main::Debug{insteon};
+                                $self->clear_active_message();
 			}
 		}
                 elsif (substr($parsed_data,0,2) eq '15')

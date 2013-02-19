@@ -352,7 +352,8 @@ sub on_standard_insteon_received
                 	if ($msg{type} ne 'broadcast')
                         {
                 		$msg{command} = $object->message_type($msg{cmd_code});
-		      		&::print_log("[Insteon::BaseInterface] command:$msg{command}; type:$msg{type}; group: $msg{group}")
+		      		&::print_log("[Insteon::BaseInterface] Received message from: ". $object->get_object_name
+		      			."; command: $msg{command}; type: $msg{type}; group: $msg{group}")
                         		if (!($msg{is_ack} or $msg{is_nack})) and $main::Debug{insteon};
                    	}
                    	if ($msg{is_ack} or $msg{is_nack})
@@ -398,35 +399,36 @@ sub on_standard_insteon_received
                                                 $object = &Insteon::get_object('000000', $msg{extra});
                                                 if ($object)
                                                 {
-                                                	my %cleanup_msg = ('type' => 'cleanup',
-								'group' => $msg{extra},
-								'is_ack' => 1,
-								'command' => 'cleanup'
-							);
                                                 	# prevent re-processing transmit queue until after clearing occurs
                                                 	$self->transmit_in_progress(1);
-                        		       		# ask the object to process the received message and update its state
-			       				$object->_process_message($self, %cleanup_msg);
-							# Only clear active message if the cleanup received is really meant for the active message
-							if (($msg{extra} == $self->active_message->setby->group) 
-								&& ($object->message_type($msg{cmd_code}) eq $self->active_message->command)){
+							# Don't clear active message as ACK is only one of many
+							if (($msg{extra} == $self->active_message->setby->group)){
+                                                                &main::print_log("[Insteon::BaseInterface] DEBUG3: Cleanup message received for scene "
+                                                                	. $object->get_object_name . " from source " . uc($msg{source}))
+                                                                	if $main::Debug{insteon} >= 3;
+							} elsif ($self->active_message->command_type eq 'all_link_direct_cleanup' &&
+								lc($self->active_message->setby->device_id) eq $msg{source}) 
+							{
+								&::print_log("[Insteon::BaseInterface] DEBUG2: ALL-Linking Direct Completed with ". $self->active_message->setby->get_object_name) if $main::Debug{insteon} >= 2;
 								$self->clear_active_message();
-                                                                &main::print_log("[Insteon::BaseInterface] DEBUG3: Cleanup message received, "
-                                                                . "matched active message, cleared the active message") if $main::Debug{insteon} >= 3;
 							}
 							else {
-								&main::print_log("[Insteon::BaseInterface] DEBUG3: Cleanup message received, but "
-								. "active message not cleared b/c group/command in recent message " 
-								. $msg{extra}."/".$object->message_type($msg{cmd_code}). " did not match group in "
-								. "prior sent message group/command " . $self->active_message->setby->group
-								."/".$self->active_message->command) if $main::Debug{insteon} >= 3;
+								&main::print_log("[Insteon::BaseInterface] DEBUG3: Cleanup message received from "
+								. $msg{source} . " for scene "
+								. $object->get_object_name . ", but group in recent message " 
+								. $msg{extra}. " did not match group in "
+								. "prior sent message group " . $self->active_message->setby->group) 
+									if $main::Debug{insteon} >= 3;
                                 			}
+                                			# If ACK or NACK received then PLM is still working on the ALL Link Command
+                                			# Increase the command timeout to wait for next one
+                                			$self->_set_timeout('command', 3000);
                                                 }
                                                 else
                                                 {
-                                                	&main::print_log("[Insteon::BaseInterface] ERROR: received cleanup message "
-                                                             . "that does not correspond to a valid PLM group. Corrupted message is assumed "
-                                                             . "and will be skipped!");
+                                                	&main::print_log("[Insteon::BaseInterface] ERROR: received cleanup message from "
+                                                             . $msg{source} . "that does not correspond to a valid PLM group. Corrupted message is assumed "
+                                                             . "and will be skipped! Was group " . $msg{extra});
                                                 }
                                         }
                                         else
