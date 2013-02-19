@@ -110,7 +110,7 @@ my %plmcmdlen = (
 	'0253' => [10, 10],
 	'0254' => [3, 3],
 	'0255' => [2, 2],
-	'0256' => [13, 13],
+	'0256' => [6, 6],
 	'0257' => [10, 10],
 	'0258' => [3, 3],
 	'0260' => [2, 9],
@@ -567,8 +567,8 @@ sub plm_decode {
 			} elsif($plm_cmd_id eq '0255'){
 				#Nothing else to do
 			} elsif($plm_cmd_id eq '0256'){
-				$plm_message .= sprintf("%20s: ",'All-Link Group').substr($plm_string,6,2)."\n";
-				$plm_message .= sprintf("%20s: ",'Device').substr($plm_string,8,2).":".substr($plm_string,10,2).":".substr($plm_string,12,2)."\n";
+				$plm_message .= sprintf("%20s: ",'All-Link Group').substr($plm_string,4,2)."\n";
+				$plm_message .= sprintf("%20s: ",'Device').substr($plm_string,6,2).":".substr($plm_string,8,2).":".substr($plm_string,10,2)."\n";
 			} elsif($plm_cmd_id eq '0257'){
 				$plm_message .= sprintf("%20s: ",'All-Link Flags').substr($plm_string,4,2)."\n";
 				my $flags = hex(substr($plm_string,4,2));
