@@ -483,6 +483,11 @@ sub _process_message
 	# and not putting the plm into monitor mode.  This means that updating the state
 	# of the responder based upon the link controller's request is handled
 	# by Insteon_Link.
+
+	main::print_log("[Insteon::BaseObject] WARN: Message has invalid checksum")
+		if ($main::Debug{insteon} && !($msg{crc_valid}) 
+		&& $msg{is_extended} && $self->engine_version() eq 'I2CS');
+
 	my $clear_message = 0;
 	$$self{m_is_locally_set} = 1 if $msg{source} eq lc $self->device_id;
 	$self->default_hop_count($msg{maxhops}-$msg{hopsleft}) if (!$self->isa('Insteon::InterfaceController'));

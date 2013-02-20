@@ -187,6 +187,7 @@ sub command_to_hash
 	my $msgflag = hex(uc substr($p_state,12,1));
 	$msg{is_extended} = (0x01 & $msgflag) ? 1 : 0;
 	$msg{cmd_code} = substr($p_state,14,2);
+	$msg{crc_valid} = 1;
 	if ($msg{is_extended})
         {
 		$msg{type} = 'direct';
@@ -194,8 +195,6 @@ sub command_to_hash
 		$msg{destination} = substr($p_state,6,6);
 		$msg{extra} = substr($p_state,16,length($p_state)-16);
 		$msg{crc_valid} = (calculate_checksum($msg{cmd_code}.$msg{extra}) eq '00');
-		main::print_log("[Insteon::InsteonMessage] WARN: Message has invalid checksum")
-			if( !($msg{crc_valid}) and $main::Debug{insteon});
 	}
         else
         {
