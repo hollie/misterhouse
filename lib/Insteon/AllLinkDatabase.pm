@@ -1721,7 +1721,7 @@ sub on_read_write_aldb
 	{
 		#Only move to the next state if the received message is a device ack
 		#if the ack is dropped the retransmission logic will resend the request
-		if($msg{is_ack} and $msg{command} eq 'read_write_aldb') {
+		if($msg{is_ack}) {
 			$$self{_mem_action} = 'aldb_i2readack';
 			&::print_log("[Insteon::ALDB_i2] DEBUG3: " . $$self{device}->get_object_name
 				. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received ack")
@@ -1736,7 +1736,11 @@ sub on_read_write_aldb
 	}
 	elsif ($$self{_mem_action} eq 'aldb_i2readack')
 	{
-		if(length($msg{extra})<30)
+		if($msg{is_ack}) {
+			&::print_log("[Insteon::ALDB_i2] DEBUG3: " . $$self{device}->get_object_name
+				. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received duplicate ack. Ignoring.")
+				if  $main::Debug{insteon} >= 3;
+		} elsif(length($msg{extra})<30)
 		{
 			&::print_log("[Insteon::ALDB_i2] WARNING: Corrupted I2 response not processed: "
 				. $$self{device}->get_object_name
@@ -2692,7 +2696,6 @@ sub add_link
                 }
 	}
 }
-
 
 sub update_link
 {

@@ -376,20 +376,13 @@ sub on_standard_insteon_received
                                         {
                                         	if (lc $self->active_message->setby->device_id eq lc $msg{source})
                                                 {
-                                                	if ((($self->active_message->command eq 'peek') && ($msg{cmd_code} ne '2b')) 
-                                                		|| (($self->active_message->command eq 'set_address_msb') && ($msg{cmd_code} ne '28')))
-                                                	{
-								&main::print_log("[Insteon::BaseInterface] WARN: received a message from "
-									. $object->get_object_name . " in response to a "
-									. $self->active_message->command . " command, but the command code "
-									. $msg{cmd_code} . " is incorrect. Ignorring received message.");
-                                                	} else {
-	                                                	# prevent re-processing transmit queue until after clearing occurs
-	                                                        $self->transmit_in_progress(1);
-	                        		       		# ask the object to process the received message and update its state
-			   					$object->_process_message($self, %msg);
-	                   					$self->clear_active_message();
-                                                	}
+                                                	# prevent re-processing transmit queue until after clearing occurs
+                                                        $self->transmit_in_progress(1);
+                        		       		# ask the object to process the received message and update its state
+                        		       		# Object will return true if this is the end of the send transaction
+		   					if($object->_process_message($self, %msg)) {
+		   						$self->clear_active_message();
+		   					}
                                                 }
                                                 else
                                                 {
@@ -435,14 +428,14 @@ sub on_standard_insteon_received
                                                              . "and will be skipped! Was group " . $msg{extra});
                                                 }
                                         }
-                                        else
+                                        else #not direct or cleanup
                                         {
                                                 &main::print_log("[Insteon::BaseInterface] ERROR: received ACK/NACK message from "
                                                 	. $object->get_object_name . " but unable to process $msg{type} message type."
                                                         . " IGNORING received message!!");
                                         }
                         	}
-                                else
+                                else #does not correspond to current active message
                                 {
                                         if ($msg{type} eq 'direct')
                                         {
@@ -466,13 +459,13 @@ sub on_standard_insteon_received
                                         }
                                 }
                    	}
-                        else
+                        else # not ACK or NAK
                         {
                         	# ask the object to process the received message and update its state
 		   		$object->_process_message($self, %msg);
                         }
 		}
-                else
+                else 
                 {
          		&::print_log("[Insteon::BaseInterface] Warn! Unable to locate object for source: $msg{source} and group: $msg{group}");
 		}
@@ -511,11 +504,9 @@ sub on_extended_insteon_received
                         		or $main::Debug{insteon} >= 3);
                    	}
 		   	&::print_log("[Insteon::BaseInterface] Processing message for " . $object->get_object_name) if $main::Debug{insteon};
-		   	$object->_process_message($self, %msg);
-                   	if ($msg{is_ack} or $msg{is_nack})
-                   	{
-                   		$self->clear_active_message();
-                   	}
+			if($object->_process_message($self, %msg)) {
+				$self->clear_active_message();
+			}
 		}
                 else
                 {

@@ -415,10 +415,13 @@ sub derive_message
 sub message_type_code
 {
     my ($self, $msg) = @_;
-    my $msg_type_ptr = $$self{message_types};
-    my %msg_types = %$msg_type_ptr;
-    my $code = $msg_types{$msg};
-    return $code;
+    return $$self{message_types}->{$msg};
+}
+
+sub message_type_hex
+{
+    my ($self, $msg) = @_;
+    return unpack( 'H*', pack( 'c', $self->message_type_code($msg)));
 }
 
 sub message_type
@@ -480,9 +483,13 @@ sub _process_message
 	# and not putting the plm into monitor mode.  This means that updating the state
 	# of the responder based upon the link controller's request is handled
 	# by Insteon_Link.
+	my $clear_message = 0;
 	$$self{m_is_locally_set} = 1 if $msg{source} eq lc $self->device_id;
 	$self->default_hop_count($msg{maxhops}-$msg{hopsleft}) if (!$self->isa('Insteon::InterfaceController'));
 	if ($msg{is_ack}) {
+		#Default to clearing message transaction for ACK
+		$clear_message = 1;
+		my $corrupt_cmd = 0;
 		my $pending_cmd = ($$self{_prior_msg}) ? $$self{_prior_msg}->command : $msg{command};
 		if ($$self{awaiting_ack})
                 {
@@ -494,19 +501,48 @@ sub _process_message
 				$$self{m_status_request_pending} = 0;
 				$self->_process_command_stack(%msg);
 			}
-                        elsif (($pending_cmd eq 'peek') or ($pending_cmd eq 'set_address_msb'))
+                        elsif ($pending_cmd eq 'peek')
                         {
-				$self->_aldb->_on_peek(%msg) if $self->_aldb;
-				$self->_process_command_stack(%msg);
+                        	if ($msg{cmd_code} eq $self->message_type_hex($pending_cmd)) {
+					$self->_aldb->_on_peek(%msg) if $self->_aldb;
+					$self->_process_command_stack(%msg);
+                        	} else {
+                        		$corrupt_cmd = 1;
+                        		$clear_message = 0;
+                        	}
 			}
-                        elsif (($pending_cmd eq 'poke') or ($pending_cmd eq 'set_address_msb'))
+                        elsif ($pending_cmd eq 'set_address_msb')
                         {
-				$self->_aldb->_on_poke(%msg) if $self->_aldb;
-				$self->_process_command_stack(%msg);
+                        	if ($msg{cmd_code} eq $self->message_type_hex($pending_cmd)) {
+					$self->_aldb->_on_peek(%msg) if $self->_aldb;
+					$self->_process_command_stack(%msg);
+                        	} else {
+                        		$corrupt_cmd = 1;
+                        		$clear_message = 0;
+                        	}
+			}
+                        elsif (($pending_cmd eq 'poke'))
+                        {
+                        	if ($msg{cmd_code} eq $self->message_type_hex($pending_cmd)) {
+					$self->_aldb->_on_poke(%msg) if $self->_aldb;
+					$self->_process_command_stack(%msg);
+                        	} else {
+                        		$corrupt_cmd = 1;
+                        		$clear_message = 0;
+                        	}
 			}
 			elsif ($pending_cmd eq 'read_write_aldb') {
-				$self->_aldb->on_read_write_aldb(%msg) if $self->_aldb;
-				$self->_process_command_stack(%msg);
+                        	if ($msg{cmd_code} eq $self->message_type_hex($pending_cmd)) {
+					$self->_aldb->on_read_write_aldb(%msg) if $self->_aldb;
+					$self->_process_command_stack(%msg);
+					if (substr($msg{extra},4,2) eq '01') {
+						#ALDB Read: Keep waiting for extended direct message with aldb data
+						$clear_message = 0;
+					}
+                        	} else {
+                        		$corrupt_cmd = 1;
+                        		$clear_message = 0;
+                        	}
 			}
 			else
                         {
@@ -528,9 +564,17 @@ sub _process_message
 				. ": " . (($msg{command}) ? $msg{command} : "(unknown)")
 				. " and data: $msg{extra}") if $main::Debug{insteon};
 		}
+		if ($corrupt_cmd) {
+			main::print_log("[Insteon::BaseObject] WARN: received a message from "
+				. $self->get_object_name . " in response to a "
+				. $pending_cmd . " command, but the command code "
+				. $msg{cmd_code} . " is incorrect. Ignorring received message.");
+		}
 	}
         elsif ($msg{is_nack})
         {
+		#Default to clearing message transaction for NAK
+		$clear_message = 1;
 #		if ($$self{awaiting_ack})
 #                {
 		# NOTE!!! NACKs are usually a sign of a burnt-out bulb!!
@@ -589,6 +633,7 @@ sub _process_message
 				. $self->{object_name}) if $main::Debug{insteon};
                 }
 	}
+	return $clear_message;
 }
 
 sub _process_command_stack
