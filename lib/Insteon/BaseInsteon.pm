@@ -1107,6 +1107,20 @@ sub scan_link_table
 
 }
 
+sub log_aldb_status
+{
+	my ($self) = @_;
+	main::print_log( "     Hop Count: ".$self->default_hop_count());
+	main::print_log( "Engine Version: ".$self->engine_version());
+	my $aldb = $self->get_root()->_aldb;
+	if ($aldb)
+	{
+		main::print_log( "     ALDB Type: ".ref($aldb));
+		main::print_log( "   ALDB Health: ".$aldb->health());
+		main::print_log( "ALDB Scan Time: ".$aldb->scandatetime());
+	}
+}
+
 ### WARN: Testing using the following does not produce results as expected.  Use at your own risk. [GL]
 sub remote_set_button_tap
 {

@@ -240,6 +240,65 @@ sub _get_next_linksync_failure
 }
 
 
+=item C<log_all_ADLB_status()>
+
+Walks through every Insteon device and logs:
+
+=over(8)
+
+- Hop Count
+
+- Engine Version
+
+- ALDB Type
+
+- ALDB Health
+
+- ALDB Scan Time
+
+=back
+
+=cut
+
+sub log_all_ADLB_status
+{
+	my @_log_ALDB_devices = ();
+	# alwayws include the active interface (e.g., plm)
+#	push @_log_ALDB_devices, &Insteon::active_interface;
+
+	push @_log_ALDB_devices, Insteon::find_members("Insteon::BaseDevice");
+
+	# don't try to scan devices that are not responders
+	if (@_log_ALDB_devices)
+	{
+		my $log_ALDB_cnt = @_log_ALDB_devices;
+		my $count = 0;
+		foreach my $current_log_ALDB_device (@_log_ALDB_devices)
+		{
+			$count++;
+			if ($current_log_ALDB_device->is_root and
+				!($current_log_ALDB_device->isa('Insteon::InterfaceController')
+				or $current_log_ALDB_device->isa('Insteon::MotionSensor')))
+			{
+				&main::print_log("[log all device ALDB status] Now logging: "
+					. $current_log_ALDB_device->get_object_name()
+					. " ($count of $log_ALDB_cnt)");
+				$current_log_ALDB_device->log_aldb_status();
+			} else
+			{
+				main::print_log("[log all device ALDB status] INFO: !!! "
+					. $current_log_ALDB_device->get_object_name
+					. " is NOT a candidate for logging ($count of $log_ALDB_cnt)");
+			}
+		}
+		main::print_log("[log all device ALDB status] All devices have completed logging");
+	} else
+	{
+		main::print_log("[log all device ALDB status] WARN: No insteon devices could be found");
+	}
+}
+
+
 sub init {
 
     # only run once
@@ -355,6 +414,7 @@ sub generate_voice_commands
            push @_insteon_device, $object_name if $group eq '01'; # don't allow non-base items to participate
         } elsif ($object->isa('Insteon_PLM')) {
            my $cmd_states = "complete linking as responder,initiate linking as controller,cancel linking,delete link with PLM,scan link table,log links,delete orphan links,AUDIT - delete orphan links,scan all device link tables,sync all links,AUDIT - sync all links";
+           $cmd_states .= ",log all device ALDB status";
            $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->complete_linking_as_responder','complete linking as responder');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->initiate_linking_as_controller','initiate linking as controller');\n\n";
@@ -367,6 +427,7 @@ sub generate_voice_commands
            $object_string .= "$object_name_v -> tie_event('&Insteon::scan_all_linktables','scan all device link tables');\n\n";
            $object_string .= "$object_name_v -> tie_event('&Insteon::sync_all_links(0)','sync all links');\n\n";
            $object_string .= "$object_name_v -> tie_event('&Insteon::sync_all_links(1)','AUDIT - sync all links');\n\n";
+           $object_string .= "$object_name_v -> tie_event('&Insteon::log_all_ADLB_status','log all device ALDB status');\n\n";
            $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_PLM_commands');
            push @_insteon_plm, $object_name;
         }
