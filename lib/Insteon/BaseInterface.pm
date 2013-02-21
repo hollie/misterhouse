@@ -503,7 +503,7 @@ sub on_extended_insteon_received
                         		if( (!($msg{is_ack} or $msg{is_nack}) and $main::Debug{insteon}) 
                         		or $main::Debug{insteon} >= 3);
                    	}
-		   	&::print_log("[Insteon::BaseInterface] Processing message for " . $object->get_object_name) if $main::Debug{insteon};
+		   	&::print_log("[Insteon::BaseInterface] Processing message for " . $object->get_object_name) if $main::Debug{insteon} >=3;
 			if($object->_process_message($self, %msg)) {
 				$self->clear_active_message();
 			}

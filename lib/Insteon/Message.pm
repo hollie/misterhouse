@@ -476,6 +476,9 @@ sub _derive_interface_data
 		if( length($cmd) < 40) {
 			main::print_log("[Insteon::InsteonMessage] WARN: insert_checksum "
 				. "failed; cmd to short: $cmd");
+use Carp;
+print Carp::longmess();
+
 		} else {
 			$cmd = substr($cmd,0,38).calculate_checksum(substr($cmd,8,30));
 		}

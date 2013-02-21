@@ -1756,7 +1756,8 @@ sub on_read_write_aldb
 				. $$self{device}->get_object_name
 				. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
 				. lc $msg{extra} . " for " .  $$self{_mem_action}) if  $main::Debug{insteon} >= 3;
-			#_mem_lsb is not updated and will retry previous address again
+			#retry previous address again
+			$self->send_read_aldb(sprintf("%04x", hex($$self{pending_aldb}{address})));
 		} 
 		else
 		{
@@ -1883,21 +1884,11 @@ sub on_read_write_aldb
 					}
 				}
 
-				my $next_mem = sprintf("%04x", hex($$self{pending_aldb}{address}) - 8);
-				$$self{_mem_msb} = substr($next_mem,0,2);
-				$$self{_mem_lsb} = substr($next_mem,2,2);
-			
+				#keep going; request the next record
+				$self->send_read_aldb(sprintf("%04x", hex($$self{pending_aldb}{address}) - 8));
+				
 			} #($$self{pending_aldb}{highwater})
 		} #else $msg{extra} !< 30
-
-		if($$self{_mem_activity} eq 'scan') {
-			#keep going; request the next record
-			$$self{_mem_action} = 'aldb_i2read';
-			my $message = new Insteon::InsteonMessage('insteon_ext_send', $$self{device}, 'read_write_aldb');
-			$message->extra("00"."00"."00".$$self{_mem_msb}.$$self{_mem_lsb}."01"."000000000000000000");
-			$message->failure_callback($$self{_failure_callback});
-			$self->_send_cmd($message);
-		}
 	}
 	elsif ($$self{_mem_action} eq 'aldb_i2writeack')
 	{

@@ -277,8 +277,7 @@ sub log_all_ADLB_status
 		{
 			$count++;
 			if ($current_log_ALDB_device->is_root and
-				!($current_log_ALDB_device->isa('Insteon::InterfaceController')
-				or $current_log_ALDB_device->isa('Insteon::MotionSensor')))
+				!($current_log_ALDB_device->isa('Insteon::InterfaceController')))
 			{
 				&main::print_log("[log all device ALDB status] Now logging: "
 					. $current_log_ALDB_device->get_object_name()
