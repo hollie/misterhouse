@@ -505,6 +505,41 @@ sub active_interface
 
 }
 
+=item C<check_all_aldb_versions()>
+
+Walks through every Insteon device and checks the aldb object version for I1 vs. I2
+
+=cut
+
+sub check_all_aldb_versions
+{
+	main::print_log("[Insteon] DEBUG4 Checking aldb version of all devices") if ($main::Debug{insteon} >= 4);
+
+	my @ALDB_devices = ();
+	push @ALDB_devices, Insteon::find_members("Insteon::BaseDevice");
+	my $ALDB_cnt = @ALDB_devices;
+	my $count = 0;
+	foreach my $ALDB_device (@ALDB_devices)
+	{
+		$count++;
+		if ($ALDB_device->is_root and
+			!($ALDB_device->isa('Insteon::InterfaceController')))
+		{
+			main::print_log("[Insteon] DEBUG4 Checking aldb version for "
+				. $ALDB_device->get_object_name()
+				. " ($count of $ALDB_cnt)") if ($main::Debug{insteon} >= 4);
+			$ALDB_device->check_aldb_version();
+		} else
+		{
+			main::print_log("[Insteon] DEBUG4 " . $ALDB_device->get_object_name
+				. " does not have its own aldb ($count of $ALDB_cnt)")
+				if ($main::Debug{insteon} >= 4);
+		}
+	}
+	main::print_log("[Insteon] DEBUG4 Checking aldb version of all devices completed") if ($main::Debug{insteon} >= 4);
+}
+
+
 package InsteonManager;
 
 use strict;
@@ -525,6 +560,7 @@ sub _active_interface
    if (!($$self{active_interface}) and $interface) {
       &main::print_log("[Insteon] Setting up initialization hooks") if $main::Debug{insteon};
       &main::MainLoop_pre_add_hook(\&Insteon::BaseInterface::check_for_data, 1);
+      &main::Reload_post_add_hook(\&Insteon::check_all_aldb_versions, 1);
       &main::Reload_post_add_hook(\&Insteon::BaseInterface::poll_all, 1);
       $init_complete = 0;
       &main::MainLoop_pre_add_hook(\&Insteon::init, 1);

@@ -1303,8 +1303,13 @@ sub update_flags
 sub engine_version
 {
 	my ($self, $p_engine_version) = @_;
-	$self->{engine_version} = $self->SUPER::engine_version($p_engine_version) if $p_engine_version;
+	my $engine_version = $self->SUPER::engine_version($p_engine_version);
+	$self->check_aldb_version() if $p_engine_version;
+	return $engine_version;
+}
 
+sub check_aldb_version
+{
 	#Because of the way MH saves / restores states "after" object creation
 	#the aldb must be initially created before the engine_version is restored.
 	#It is therefore impossible to know the device is i2 before creating
@@ -1312,22 +1317,41 @@ sub engine_version
 	#the device is peek/poke capable (i1 or i2) and then delete/recreate the 
 	#aldb object if it is later determined to be an i2 device. 
 
-	if($self->{engine_version} ne 'I1' and ref($self->{aldb}) eq 'Insteon::ALDB_i1') {
-		main::print_log("[Insteon::BaseDevice] DEBUG4: \$self->{aldb} is a "
-			.ref($self->{aldb})." but device is ".$self->{engine_version}.
-			".  remapping aldb object to ALDB_i2") if $main::Debug{insteon} >= 4;
-		
+	#There is a use case where a device is initially I2 but the user replaces
+	#the device with an I1 device, reusing the same object name.  In this case
+	#the object state restore will build an I2 aldb object.  The user must 
+	#manually initiate the 'get engine version' voice command or stop/start
+	#MH so the initial poll will detect the change. 
+
+	#This is called anytime the engine_version is queried (initial startup poll) and
+	#in the Reload_post_hooks once object_states_restore completes
+
+	my ($self) = @_;
+
+	my $engine_version = $self->SUPER::engine_version();
+	my $new_version = "";
+	if($engine_version ne 'I1' and $self->_aldb->aldb_version() ne 'I2') {
+		$new_version = "I2";
+	}
+	elsif($engine_version eq 'I1' and $self->_aldb->aldb_version() ne 'I1') {
+		$new_version = "I1";
+	}
+	if ($new_version) {
+		main::print_log("[Insteon::BaseDevice] DEBUG4: aldb_version is "
+			.$self->_aldb->aldb_version()." but device is ".$engine_version.
+			".  Remapping aldb version to $new_version") if $main::Debug{insteon} >= 4;
 		my $restore_string = '';
 		if ($self->_aldb) {
 			$restore_string = $self->_aldb->restore_string();
 		}
-		
-		#While unreferencing the i1 object might cause the i1 oject to be 
-		#automatically garbage collected,  intentionally destryoing it 
-		#here so there will be a hard error if the object was somehow 
-		#stored and referenced somewhere else
-		undef $self->{aldb}; 
-	        $self->{aldb} = new Insteon::ALDB_i2($self);
+		undef $self->{aldb};
+
+		if ($new_version eq "I2") {
+			$self->{aldb} = new Insteon::ALDB_i2($self);
+		}
+		else {
+			$self->{aldb} = new Insteon::ALDB_i1($self);
+		} 
 		
 		package main;
 		eval ($restore_string);
@@ -1335,8 +1359,6 @@ sub engine_version
 			if $@ and $main::Debug{insteon};
 		package Insteon::BaseDevice;
 	}
-
-	return $self->{engine_version};
 }
 
 

@@ -34,6 +34,7 @@ sub new
 	bless $self,$class;
         $$self{device} = $device;
         $self->health("unknown"); # unknown
+	$self->aldb_version("I1");
 	return $self;
 }
 
@@ -41,6 +42,13 @@ sub _send_cmd
 {
    my ($self, $msg) = @_;
    $$self{device}->_send_cmd($msg);
+}
+
+sub aldb_version
+{
+	my ($self, $aldb_version) = @_;
+	$$self{aldb_version} = $aldb_version if defined $aldb_version;
+	return $$self{aldb_version};
 }
 
 sub health
@@ -170,6 +178,7 @@ sub new
 
 	my $self = new Insteon::AllLinkDatabase($device);
 	bless $self,$class;
+	$self->aldb_version("I1");
 	return $self;
 }
 
@@ -1704,6 +1713,7 @@ sub new
 
 	my $self = new Insteon::AllLinkDatabase($device);
 	bless $self,$class;
+	$self->aldb_version("I2");
 	return $self;
 }
 
