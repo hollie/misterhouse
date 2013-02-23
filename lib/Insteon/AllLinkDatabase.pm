@@ -3496,7 +3496,6 @@ sub add_link
                 if ($link_parms{callback})
                 {
 			$$self{_success_callback} = $link_parms{callback};
-                        $message->callback($link_parms{callback});
                 }
                 $message->interface_data($cmd);
 		$$self{device}->queue_message($message);
