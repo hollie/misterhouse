@@ -2853,7 +2853,7 @@ sub eval_user_code_load {
 
         exit 1 if !$user_code_last_good;
 
-        &print_log("Error in user code.\nLoading in previous user code\n");
+        &print_log("Error in user code.\nLoading in previous user code.");
         $user_code = $user_code_last_good;
         &eval_user_code_reset;
         eval $user_code;
