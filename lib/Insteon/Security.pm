@@ -12,6 +12,7 @@ sub new
 
 	my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
 	bless $self,$class;
+        @{$$self{states}} = ('motion','still');
 	return $self;
 }
 
