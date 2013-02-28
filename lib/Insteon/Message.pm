@@ -86,6 +86,16 @@ sub respond
         return $$self{respond};
 }
 
+sub no_hop_increase
+{
+	my ($self, $no_hop_increase) = @_;
+        if ($no_hop_increase)
+        {
+        	$$self{no_hop_increase} = $no_hop_increase;
+        }
+        return $$self{no_hop_increase};
+}
+
 sub send
 {
         my ($self, $interface) = @_;
@@ -98,15 +108,18 @@ sub send
                         	. $self->to_string() . " after " . $self->send_attempts
                         	. " attempts.") if $main::Debug{insteon};
                         # revise default hop count to reflect retries
-                        if (ref $self->setby && $self->setby->isa('Insteon::BaseObject'))
+                        if (ref $self->setby && $self->setby->isa('Insteon::BaseObject') 
+                        	&& !defined($$self{no_hop_increase}))
                         {
                         	if ($self->setby->default_hop_count < 3)
                                 {
                                 	$self->setby->default_hop_count($self->setby->default_hop_count + 1);
-					&main::print_log("[Insteon::Message] Now adding hop count of "
-                                                . $self->setby->default_hop_count . " to hop history of "
-						. $self->setby->get_object_name);
                                 }
+                        }
+                        elsif (defined($$self{no_hop_increase}) && $main::Debug{insteon}){
+                        	&main::print_log("[Insteon::BaseMessage] Hop count not increased for "
+                        		. $self->setby->get_object_name . " because no_hop_increase flag was set.");
+                        	$$self{no_hop_increase} = undef;
                         }
                 }
 
