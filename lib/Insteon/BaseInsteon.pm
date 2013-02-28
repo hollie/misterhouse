@@ -528,33 +528,22 @@ sub _process_message
 	}
         elsif ($msg{is_nack})
         {
-#		if ($$self{awaiting_ack})
-#                {
-		# NOTE!!! NACKs are usually a sign of a burnt-out bulb!!
-#			&::print_log("[Insteon::BaseObject] WARN!! encountered a nack message for " . $self->{object_name}
-#				. " ... waiting for retry");
-#		}
-#                else
-#                {
-         if ($self->isa('Insteon::BaseLight')) {
-
-            &::print_log("[Insteon::BaseObject] WARN!! encountered a nack message ("
-               . $self->get_nack_msg_for( $msg{extra} ) 
-               .") for " 
-               . $self->{object_name}
-					. ".  It may be unplugged, have a burned out bulb, or this may be a new I2CS ".
-					"type device that must first be manually linked to the PLM using the set button.") if $main::Debug{insteon};
-         }
-         else {
-            &::print_log("[Insteon::BaseObject] WARN!! encountered a nack message ("
-               . $self->get_nack_msg_for( $msg{extra} ) 
-               .") for " 
-               . $self->{object_name}
-					. " ... skipping");
-         }
-			$self->is_acknowledged(0);
-			$self->_process_command_stack(%msg);
-#		}
+		if ($self->isa('Insteon::BaseLight')) {
+			&::print_log("[Insteon::BaseObject] WARN!! encountered a nack message ("
+			. $self->get_nack_msg_for( $msg{extra} ) .") for " . $self->{object_name}
+			. ".  It may be unplugged, have a burned out bulb, or this may be a new I2CS "
+			. "type device that must first be manually linked to the PLM using the set button.") 
+			if $main::Debug{insteon};
+		}
+		else 
+		{
+			&::print_log("[Insteon::BaseObject] WARN!! encountered a nack message ("
+			. $self->get_nack_msg_for( $msg{extra} ) .") for " . $self->{object_name}
+			. " ... skipping");
+		}
+		$self->active_message->no_hop_increase(1);
+		$self->is_acknowledged(0);
+		$self->_process_command_stack(%msg);
 	}
         elsif ($msg{command} eq 'start_manual_change')
         {

@@ -379,6 +379,7 @@ sub on_standard_insteon_received
 									. $object->get_object_name . " in response to a "
 									. $self->active_message->command . " command, but the command code "
 									. $msg{cmd_code} . " is incorrect. Ignorring received message.");
+								$self->active_message->no_hop_increase(1);
                                                 	} else {
 	                                                	# prevent re-processing transmit queue until after clearing occurs
 	                                                        $self->transmit_in_progress(1);
@@ -436,6 +437,7 @@ sub on_standard_insteon_received
                                                 &main::print_log("[Insteon::BaseInterface] ERROR: received ACK/NACK message from "
                                                 	. $object->get_object_name . " but unable to process $msg{type} message type."
                                                         . " IGNORING received message!!");
+                                                $self->active_message->no_hop_increase(1);
                                         }
                         	}
                                 else
