@@ -309,19 +309,24 @@ sub _send_cmd {
                 }
         }
 
-	&::print_log( "[Insteon_PLM] DEBUG3: Sending  PLM raw data: ".lc($command)) if $main::Debug{insteon} >= 3;
 	if (length($command) != (Insteon::MessageDecoder::insteon_cmd_len(substr($command,0,4), 0)*2)){
-		&::print_log( "[Insteon_PLM]: ERROR!! Command sent to PLM is of an incorrect length.  Message not sent.");
-	};
-	&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($command)) if $main::Debug{insteon} >= 4;
-	my $data = pack("H*",$command);
-	$main::Serial_Ports{$instance}{object}->write($data) if $main::Serial_Ports{$instance};
-
-
-	if ($delay) {
-		$self->_set_timeout('xmit',$delay * 1000);
+		&::print_log( "[Insteon_PLM]: ERROR!! Command sent to PLM " . lc($command) 
+		. " is of an incorrect length.  Message not sent.");
+		$self->clear_active_message();
+	} 
+	else
+	{
+		&::print_log( "[Insteon_PLM] DEBUG3: Sending  PLM raw data: ".lc($command)) if $main::Debug{insteon} >= 3;
+		&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($command)) if $main::Debug{insteon} >= 4;
+		my $data = pack("H*",$command);
+		$main::Serial_Ports{$instance}{object}->write($data) if $main::Serial_Ports{$instance};
+	
+	
+		if ($delay) {
+			$self->_set_timeout('xmit',$delay * 1000);
+		}
+	   	$$self{'last_change'} = $main::Time;
 	}
-   	$$self{'last_change'} = $main::Time;
 }
 
 
