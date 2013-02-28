@@ -580,21 +580,17 @@ sub _process_message
         {
 		#Default to clearing message transaction for NAK
 		$clear_message = 1;
-		# NOTE!!! NACKs are usually a sign of a burnt-out bulb!!
 		if ($self->isa('Insteon::BaseLight')) {
-
 			&::print_log("[Insteon::BaseObject] WARN!! encountered a nack message ("
-				. $self->get_nack_msg_for( $msg{extra} )
-				.") for "
-				. $self->{object_name}
+				. $self->get_nack_msg_for( $msg{extra} ) .") for " . $self->{object_name}
 				. ".  It may be unplugged, have a burned out bulb, or this may be a new I2CS "
 				. "type device that must first be manually linked to the PLM using the set button.")
 				if $main::Debug{insteon};
-		} else {
+		}
+		else
+		{
 			&::print_log("[Insteon::BaseObject] WARN!! encountered a nack message ("
-				. $self->get_nack_msg_for( $msg{extra} )
-				.") for "
-				. $self->{object_name}
+				. $self->get_nack_msg_for( $msg{extra} ) .") for " . $self->{object_name}
 				. " ... skipping");
 		}
 		$self->is_acknowledged(0);
