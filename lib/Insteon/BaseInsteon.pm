@@ -613,7 +613,15 @@ sub _process_message
 		# request status so that the final state can be known
 		$self->request_status($self);
 	} elsif ($msg{command} eq 'read_write_aldb') {
-		$self->_aldb->on_read_write_aldb(%msg) if $self->_aldb;
+		if ($self->_aldb){
+			if ($self->_aldb->{_mem_action} = 'aldb_i2readack'){
+				#If not aldb_i2readack, then this is out of sequence
+				$self->is_acknowledged(0);
+				$clear_message = 1;
+			}
+			$self->_aldb->on_read_write_aldb(%msg);
+			$self->_process_command_stack(%msg);
+		}
 	} elsif ($msg{type} eq 'broadcast') {
 		$self->devcat($msg{devcat});
 		&::print_log("[Insteon::BaseObject] device category: $msg{devcat} received for " . $self->{object_name});
