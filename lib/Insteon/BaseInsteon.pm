@@ -538,9 +538,14 @@ sub _process_message
 			}
 			elsif ($pending_cmd eq 'read_write_aldb') {
                         	if ($msg{cmd_code} eq $self->message_type_hex($pending_cmd)) {
-					#This is an ACK. Will be followed by a Link Data message
-					$self->_aldb->on_read_write_aldb(%msg) if $self->_aldb;
-					$clear_message = 0;
+					if ($self->_aldb && $self->_aldb->{_mem_action} eq 'aldb_i2read'){
+						#This is an ACK. Will be followed by a Link Data message
+						$clear_message = 0;
+						$self->_aldb->on_read_write_aldb(%msg) if $self->_aldb;
+					} else {
+						$self->_aldb->on_read_write_aldb(%msg) if $self->_aldb;
+						$self->_process_command_stack(%msg);
+					}
                         	} else {
                         		$corrupt_cmd = 1;
                         		$clear_message = 0;
@@ -614,9 +619,8 @@ sub _process_message
 		$self->request_status($self);
 	} elsif ($msg{command} eq 'read_write_aldb') {
 		if ($self->_aldb){
-			if ($self->_aldb->{_mem_action} = 'aldb_i2readack'){
+			if ($self->_aldb->{_mem_action} eq 'aldb_i2readack'){
 				#If not aldb_i2readack, then this is out of sequence
-				$self->is_acknowledged(0);
 				$clear_message = 1;
 			}
 			$self->_aldb->on_read_write_aldb(%msg);
