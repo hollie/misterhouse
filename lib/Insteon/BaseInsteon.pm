@@ -620,11 +620,14 @@ sub _process_message
 	} elsif ($msg{command} eq 'read_write_aldb') {
 		if ($self->_aldb){
 			if ($self->_aldb->{_mem_action} eq 'aldb_i2readack'){
-				#If not aldb_i2readack, then this is out of sequence
+				#If aldb_i2readack is set then this is good
 				$clear_message = 1;
+				$self->_aldb->on_read_write_aldb(%msg);
+				$self->_process_command_stack(%msg);
+			} else {
+				#This is an out of sequence message
+				$self->_aldb->on_read_write_aldb(%msg);
 			}
-			$self->_aldb->on_read_write_aldb(%msg);
-			$self->_process_command_stack(%msg);
 		}
 	} elsif ($msg{type} eq 'broadcast') {
 		$self->devcat($msg{devcat});
