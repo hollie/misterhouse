@@ -538,7 +538,7 @@ sub _process_message
 			}
 			elsif ($pending_cmd eq 'read_write_aldb') {
                         	if ($msg{cmd_code} eq $self->message_type_hex($pending_cmd)) {
-					if ($self->_aldb && $self->_aldb->{_mem_action} eq 'aldb_i2read'){
+					if ($self->_aldb && $self->_aldb->{_mem_action} neq 'aldb_i2writeack'){
 						#This is an ACK. Will be followed by a Link Data message
 						$clear_message = 0;
 						$self->_aldb->on_read_write_aldb(%msg) if $self->_aldb;
