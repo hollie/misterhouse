@@ -541,7 +541,6 @@ sub _process_message
 			. $self->get_nack_msg_for( $msg{extra} ) .") for " . $self->{object_name}
 			. " ... skipping");
 		}
-		$self->active_message->no_hop_increase(1);
 		$self->is_acknowledged(0);
 		$self->_process_command_stack(%msg);
 	}
