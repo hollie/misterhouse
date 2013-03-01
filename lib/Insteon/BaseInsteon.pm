@@ -538,12 +538,9 @@ sub _process_message
 			}
 			elsif ($pending_cmd eq 'read_write_aldb') {
                         	if ($msg{cmd_code} eq $self->message_type_hex($pending_cmd)) {
+					#This is an ACK. Will be followed by a Link Data message
 					$self->_aldb->on_read_write_aldb(%msg) if $self->_aldb;
-					$self->_process_command_stack(%msg);
-					if (substr($msg{extra},4,2) eq '01') {
-						#ALDB Read: Keep waiting for extended direct message with aldb data
-						$clear_message = 0;
-					}
+					$clear_message = 0;
                         	} else {
                         		$corrupt_cmd = 1;
                         		$clear_message = 0;
