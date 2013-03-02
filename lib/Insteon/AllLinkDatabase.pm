@@ -755,6 +755,7 @@ sub delete_link
 			$$self{pending_aldb}{group} = $groupid;
 			$$self{pending_aldb}{is_controller} = $is_controller;
 			$$self{pending_aldb}{address} = $address;
+			$$self{pending_aldb}{data3} = $subaddress;
 			$self->_peek($address,0);
 		}
                 else
@@ -2033,6 +2034,7 @@ sub delete_link
 			$$self{pending_aldb}{group} = $groupid;
 			$$self{pending_aldb}{is_controller} = $is_controller;
 			$$self{pending_aldb}{address} = $address;
+			$$self{pending_aldb}{data3} = $subaddress;
 			$self->_write_delete($address);
 		}
                 else
