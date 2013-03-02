@@ -5,6 +5,38 @@ use strict;
 
 package Serial_Item;
 
+=head1 NAME
+
+B<Serial_Item> is used whenever you want read or write serial port data.
+
+=head1 SYNOPSIS
+
+  $garage_movement = new Serial_Item('XI2');
+    speak "Someone is in the garage" if state_now $garage_movement;
+
+  $tnc_output = new Serial_Item ('CONV', 'converse', 'serial1');
+  $tnc_output -> add            ('?WX?', 'wxquery');
+  set $tnc_output 'converse';
+  set $tnc_output "EMAIL    :userid\@computers.com Test E-Mail - $CurrentTemp deg.{0";
+  my $serial_data = said $tnc_output;
+
+  $v_tnc_close = new  Voice_Cmd("close the tnc serial port");
+  stop  $tnc_output if said $v_tnc_close;
+  start $tnc_output if $New_Minute and is_stopped $tnc_output
+       and is_available $tnc_output;
+
+  $serial_tom10port = new  Serial_Item(undef, undef, 'serial_tom10');
+  $serial_tom10port -> set_casesensitive;     # TOM10 needs lowercase commands
+
+See mh/code/examples/serial_port_examples.pl for more Serial_Item examples.
+
+=head1 INHERITS
+
+B<Generic_Item>
+
+
+=cut
+
 use X10_Interface;
 
 our $mainHash=\%::Serial_Ports;
@@ -12,6 +44,14 @@ our $mainHash=\%::Serial_Ports;
 @Serial_Item::ISA = ('X10_Interface');
 our @supported_interfaces=qw!cm11 BX24 Homevision HomeBase Stargate HouseLinc
 	Marrick cm17 Lynx10PLC weeder wish ti103 ncpuxa!;
+
+=head1 METHODS
+
+=over
+
+=item C<new('data_stream', 'state_name', 'serial_port')>
+
+=cut
 
 sub new {
 	my ($class, $id, $state, $device_name) = @_;
@@ -30,6 +70,12 @@ sub do_start {
 
 	return &::serial_port_open($self->{device_name});
 }
+
+=item C<stop>
+
+Stops using the serial port for this item.  That allows other programs to share the port (e.g. let mh use the modem for caller ID, but turn that function off when using the modem to call out).
+
+=cut
 
 sub stop {
     my ($self) = @_;
@@ -56,6 +102,12 @@ sub stop {
     }
 }
 
+=item C<set_dtr>
+
+Sets/resets the DTR line
+
+=cut
+
 sub set_dtr {
     my ($self, $state) = @_;
     my $port_name = $self->{port_name};
@@ -67,6 +119,17 @@ sub set_dtr {
         print "Error, serial port set_dtr for $port_name failed, port has not been set\n";
     }
 }
+
+=item C<set_rcs>
+
+Sets/resets the RCS line.
+For example:
+
+   set_dtr $port 1;
+   set_rcs $port 0;
+
+=cut
+
 sub set_rts {
     my ($self, $state) = @_;
     my $port_name = $self->{port_name};
@@ -299,3 +362,76 @@ sub serial_item_by_id {
 }
 
 1;
+
+=back
+
+=head1 INHERITED METHODS
+
+=over
+
+=item C<add('data_stream', 'state_name')>
+
+If 'serial_port' is not specified, then:
+-For outgoing X10 data, the first valid port from this list is used; cm11, cm17, homevision, homebase, Weeder, serial1, serial2, ...
+-For other outgoing data, the first valid port from this list is used; Weeder, serial1, serial2, ...
+
+For incoming data, the 'serial_port' parm is not important, as data from the cm11, homebase, and Weeder ports is processed in the same way.
+
+For the generic ports (serial1, serial2, ...), incoming data is processed only by user specified 'said' methods.
+
+=item C<state>
+
+Returns the last state that was received or sent
+
+=item C<state_now>
+
+Returns the state that was received or sent in the current pass.  Note that the a 'set' will trigger a state_now one the next pass.
+
+=item C<state_log>
+
+Returns a list array of the last max_state_log_entries (mh.ini parm) time_date stamped states.
+
+=item C<set>
+
+Sets the item to the specified state.  If the specified state has not been defined with 'new' or 'add', the state data is sent.  Otherwise the data_stream associated with that state is sent.
+
+=item C<set_data>
+
+Use this to put data back into the serial read buffer.  Typically used when you have processed only some of the serial data, and you want to put the rest back because it is incomplete.
+
+Here is an example:
+
+  if (my $data = said $wx200_port) {
+    my $remainder = &read_wx200($data, \%weather);
+    set_data $wx200_port $remainder if $remainder;
+  }
+
+=item C<said>
+
+Returns a data record received by the port.
+
+Characters are spooled into one record until a '\n' (newline) is received.  Only then does 'said $item' become valid, and it is reset as soon as the said method is executed.
+
+Note: If you want to process binary serial data, specify serial#_datatype=raw in the mh.ini file.  This will cause said to return any data read immediately, rather than buffering up data until a newline is read.
+
+=item C<start>
+
+Re-starts the serial port after a stop command or after starting with the port already in use.
+
+=item C<is_stopped>
+
+True if the port is not active
+
+=item C<is_available>
+
+True if the port is not in used by another program
+
+=item C<set_icon>
+
+Point to the icon member you want the web interface to use.  See the 'Customizing the web interface' section of this document for details.
+
+=item C<set_info>
+
+Adds additional information.  This will show up as a popup window on the web interface, when the mouse hovers over the command text.  Will show up as a popup window on the web interface, when the mouse hovers over the command text.
+
+=back
