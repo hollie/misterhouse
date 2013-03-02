@@ -130,7 +130,7 @@ sub poll_mode {
 sub mode{
 	my ($self, $state) = @_;
 	$state = lc($state);
-	print "$::Time_Date: Insteon_Thermostat -> Mode $state\n" unless $main::config_parms{no_log} =~/Insteon_Thermostat/;
+	main::print_log("[Insteon_Thermostat] Mode $state") if  $main::Debug{insteon};
 	my $mode;
 	if ($state eq 'off') {
 		$mode = "09";
@@ -147,7 +147,7 @@ sub mode{
 	} elsif ($state eq 'program_auto') {
 		$mode = "0c";
 	} else {
-		print "Insteon_Thermostat: Invalid Mode state: $state\n";
+		main::print_log("[Insteon_Thermostat] ERROR: Invalid Mode state: $state");
 		return();
 	}
    my $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'thermostat_control', $mode);
@@ -157,7 +157,7 @@ sub mode{
 sub fan{
 	my ($self, $state) = @_;
 	$state = lc($state);
-	print "$::Time_Date: Insteon_Thermostat -> Fan $state\n" unless $main::config_parms{no_log} =~/Insteon_Thermostat/;
+	main::print_log("[Insteon_Thermostat] Fan $state") if $main::Debug{insteon};
 	my $fan;
 	if (($state eq 'on') or ($state eq 'fan_on')) {
 		$fan = '07';
@@ -166,7 +166,7 @@ sub fan{
 		$fan = '08';
 		$state = 'fan_auto';
 	} else {
-		print "Insteon_Thermostat: Invalid Fan state: $state\n";
+		main::print_log("[Insteon_Thermostat] ERROR: Invalid Fan state: $state");
 		return();
 	}
    my $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'thermostat_control', $fan);
@@ -175,9 +175,9 @@ sub fan{
 
 sub cool_setpoint{
 	my ($self, $temp) = @_;
-      print "$::Time_Date: [Insteon_Thermostat] Cool setpoint -> $temp\n" unless $main::config_parms{no_log} =~/Insteon_Thermostat/;
+      main::print_log("[Insteon_Thermostat] Cool setpoint -> $temp") if $main::Debug{insteon};
       if($temp !~ /^\d+$/){
-         print "$::Time_Date: [Insteon_Thermostat] ERROR: cool_setpoint $temp not numeric\n";
+         main::print_log("[Insteon_Thermostat] ERROR: cool_setpoint $temp not numeric");
          return;
       }
 	my $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'thermostat_setpoint_cool', sprintf('%02X',($temp*2)));
@@ -186,9 +186,9 @@ sub cool_setpoint{
 
 sub heat_setpoint{
 	my ($self, $temp) = @_;
-	print "$::Time_Date: [Insteon_Thermostat] Heat setpoint -> $temp\n" unless $main::config_parms{no_log} =~/Insteon_Thermostat/;
+	main::print_log("[Insteon_Thermostat] Heat setpoint -> $temp") if $main::Debug{insteon};
 	if($temp !~ /^\d+$/){
-		print "$::Time_Date: [Insteon_Thermostat] ERROR: heat_setpoint $temp not numeric\n";
+		main::print_log("[Insteon_Thermostat] ERROR: heat_setpoint $temp not numeric");
 		return;
 	}
 	my $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'thermostat_setpoint_heat', sprintf('%02X',($temp*2)));
@@ -282,7 +282,7 @@ sub _is_info_request {
    	or $cmd eq 'thermostat_get_mode' or $cmd eq 'thermostat_get_temp') ? 1 : 0;
    if ($is_info_request) {
       my $val = $msg{extra};
-      &::print_log("[Insteon_Thermostat] Processing data for $cmd with value: $val") if $main::Debug{insteon}; 
+      main::print_log("[Insteon_Thermostat] Processing data for $cmd with value: $val") if $main::Debug{insteon}; 
       if ($cmd eq 'thermostat_get_temp' or $cmd eq 'thermostat_get_zone_temp') {
          $val = (hex $val) / 2; # returned value is twice the real value
          if (exists $$self{'temp'} and ($$self{'temp'} != $val)) {
