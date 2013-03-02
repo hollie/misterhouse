@@ -7,6 +7,169 @@ use strict;
 
 package iButton;
 
+=head1 NAME
+
+B<iButton_Item> - This is used to query and/or control an iButton device
+
+=head1 SYNOPSIS
+
+        $v_iButton_connect = new Voice_Cmd "[Connect,Disconnect] to the iButton bus";
+        if ($state = said $v_iButton_connect) {
+          if ($state eq 'Connect') {
+            print_log &iButton::connect($config_parms{iButton_serial_port});
+            print_log &iButton::connect($config_parms{iButton_2_serial_port});
+          }
+          else {
+            print_log &iButton::disconnect;
+            print_log &iButton::disconnect, $config_parms{iButton_2_serial_port};
+          }
+        }
+
+        $ib_bruce  = new iButton '010000012345ef';
+        speak 'Hi Bruce'  if ON  eq state_now $ib_bruce;
+        speak 'Later'     if OFF eq state_now $ib_bruce;
+
+        $ib_relay1 = new iButton '12000000123456ff', undef, 'A';
+        $ib_relay2 = new iButton '12000000123456ff', undef, 'B';
+        $v_iButton_relay1    = new Voice_Cmd "Turn relay1 [on,off]";
+        if ($state = said $v_iButton_relay1) {
+           print_log "Setting iButton relay1 to $state";
+           set $ib_relay1 $state;
+        }
+
+        $ib_temp1  = new iButton '1000000029a14f', $config_parms{iButton_2_serial_port};
+        $ib_temp2  = new iButton '1000000029f5d6';
+        my @ib_temps = ($ib_temp1, $ib_temp2);
+
+        $v_iButton_readtemp  = new Voice_Cmd "Read the iButton temperature [1,2]";
+        if ($state = said $v_iButton_readtemp) {
+           my $b = $ib_temps[$state-1];
+           my $temp = read_temp $b;
+           print_log "Temp for sensor $state: $temp F";
+           logit("$config_parms{data_dir}/iButton_temps.log",  "$state: $temp");
+        }
+        if ($New_Second and !($Minute % 5)) {
+           run_voice_cmd 'Read the iButton temperature 1' if $Second == 11;
+           run_voice_cmd 'Read the iButton temperature 2' if $Second == 22;
+        }
+
+=head1 DESCRIPTION
+
+For more information on iButton see the hardware section
+
+=head1 INHERITS
+
+B<Generic_Item>
+
+=head1 METHODS
+
+=over 
+
+=item C<new($id, $port, $channel)>
+
+If $port is not specified, the port of the first iButton::connect will be used.
+$channel (used for switches like the DS2406) defaults to A
+
+=item C<set($state)> - Sets the item to the specified state.
+
+=item C<state)> - Returns the last state that was received or sent
+
+=item C<state_now> - Returns the state that was received or sent in the current pass.
+
+=item C<state_log> - Returns a list array of the last max_state_log_entries (mh.ini parm) time_date stamped states.
+
+=item C<read_temp> - Returns the temperature of temperature devices.
+
+=item C<read_switch> - Reads iButton switch data
+
+=item C<read_windspeed> - Reads iButton weather station wind speed
+
+=item C<read_dir> - Reads iButton weather station wind direction
+
+=back
+
+In addition to the above, all of the methods provided by the Hardware/iButton/Device.pm module are available (documented in mh/lib/site/Hardware/iButton/Device.pm).
+
+These functions are also part of the iButton module, but not associated with an object:
+
+=over
+
+=item C<scan($family, $port)> - Returns a object list of iButton devices that match $family
+
+=item C<scan_report($family, $port)> - Returns a report of iButton devices that match $family
+
+=item C<monitor($family, $port)> - Checks the one wire bus for iButton activity
+
+=item C<connect($port)> - Connect to the one wire bus.  Note you can now have multiple iButton interfaces on multiple COM ports.
+
+=item C<disconnect> - Disconnect to the one wire bus
+
+=back
+
+Note, all of these functions take an optional $port parm (required for connect). If not specified, the port of the first connect record will be used.
+
+The $id required when creating new iButton_Item is the 16 hex character (64 bit) iButton id that is unique to every device. This is often printed on the larger devices. If not, you can use:
+
+        $v_iButton_list      = new Voice_Cmd "List all the iButton buttons";
+        print_log &iButton::scan_report if said $v_iButton_list;
+
+The last 2 characters are CRC bits and are optional. If missing (i.e. you only specify the first 14 characters), mh will calculate it.
+
+The first 2 characters are the iButton family type. Here is a list of family types:
+
+         Field Index:
+          ------------
+          (1) Family code in hex
+          (2) Number of regular memory pages
+          (3) Length of regular memory page in bytes
+          (4) Number of status memory pages
+          (5) Length of status memory page in bytes
+          (6) Max communication speed (0 regular, 1 Overdrive)
+          (7) Memory type (see below)
+          (8) Part number in iButton package
+          (9) Part number in non-iButton package
+          (10) Brief descriptions
+
+          (1)   (2)  (3)  (4)  (5)  (6)  (7)   (8)   (9)   (10)
+          -------------------------------------------------------
+          01,    0,   0,   0,   0,   1,   0, DS1990A,DS2401,Unique Serial Number
+          02,    0,   0,   0,   0,   0,   0, DS1991,DS1205, MultiKey iButton
+          04,   16,  32,   0,   0,   0,   1, DS1994,DS2404,4K-bit NVRAM with Clock
+          05,    0,   0,   0,   0,   0,   0, DS2405,,Single Addressable Switch
+          06,   16,  32,   0,   0,   0,   1, DS1993,DS2403,4K-bit NVRAM
+          08,    4,  32,   0,   0,   0,   1, DS1992,DS2402,1K-bit NVRAM
+          09,    4,  32,   1,   8,   1,   2, DS1982,DS2502,1K-bit EPROM
+          0A,   64,  32,   0,   0,   1,   1, DS1995,DS2416,16K-bit NVRAM
+          0B,   64,  32,  40,   8,   1,   3, DS1985,DS2505,16K-bit EPROM
+          0C,  256,  32,   0,   0,   1,   1, DS1996,DS2464,64K-bit NVRAM
+          0F,  256,  32,  64,   8,   1,   3, DS1986,DS2506,64K-bit EPROM
+          10,    0,   0,   0,   0,   0,   0, DS1920,DS1820,Temperature iButton with Trips
+          11,    2,  32,   1,   8,   0,   2, DS1981,DS2501,512-bit EPROM
+          12,    4,  32,   1,   8,   0,   4, DS2407,,Dual Addressable Switch
+          13,   16,  32,  34,   8,   0,   3, DS1983,DS2503,4K-bit EPROM
+          14,    1,  32,   0,   0,   0,   5, DS1971,DS2430A,256-bit EEPROM, plus
+          64-bit
+          OTP
+          15,    0,   0,   0,   0,   1,   0, DS87C900,,Lock Processor
+          16,    0,   0,   0,   0,   0,   0, DS1954,,Crypto iButton
+          18,    4,  32,   0,   0,   1,   6, DS1963S,4K-bit Transaction iButton with
+          SHA
+          1A,   16,  32,   0,   0,   1,   6, DS1963,,4K-bit Transaction iButton
+          1C,    4,  32,   0,   0,   1,   6, DS2422,,1K-bit EconoRAM with Counter
+          Input
+          1D,   16,  32,   0,   0,   1,   6, DS2423,,4K-bit EconoRAM with Counter
+          Input
+          1F,    0,  32,   0,   0,   0,   0, DS2409,,One-Wire Net Coupler
+          20,    3,   8,   0,   0,   1,   9, DS2450,,Quad A-D Converter
+          21,   16,  32,   0,   0,   1,   8, DS1921,,Temperature Recorder iButton
+          23,   16,  32,   0,   0,   1,   7, DS1973,DS2433,4K-bit EEPROM
+          22                                 DS1822 temperature button
+          40,   16,  32,   0,   0,   0,   1, DS1608,,Battery Pack Clock
+
+
+
+=cut
+
 @iButton::ISA = ('Generic_Item');
 
 my (%connections, %objects_by_id, %buttons_active);
@@ -541,6 +704,29 @@ memory
 
            16-bit CRC.
 ----------------------------------------------------------------------------
+
+
+=head1 INI PARAMETERS
+
+To enable iButton support in mh, set the mh.ini parm ibutton_serial_port.
+
+=head1 AUTHOR
+
+UNK
+
+=head1 SEE ALSO
+
+NONE
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 
 
 # $Log: iButton.pm,v $
