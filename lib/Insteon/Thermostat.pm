@@ -10,7 +10,7 @@ In user code:
 
 In items.mht:
 
-IPLT, 12.34.56, thermostat, HVAC, plm
+INSTEON_THERMOSTAT, 12.34.56, thermostat, HVAC
 
 BUGS
 
@@ -94,20 +94,21 @@ All of the functions available:
  - Manage aldb - should be able to adjust setpoints based on plm scene. <- may be overkill
 =cut
 
+package Insteon::Thermostat;
+
 use strict;
+use Insteon::BaseInsteon;
 
-package Insteon_Thermostat;
-
-@Insteon_Thermostat::ISA = ('Insteon_Device');
+@Insteon::Thermostat::ISA = ('Insteon::DeviceController','Insteon::BaseDevice');
 
 
 # -------------------- START OF SUBROUTINES --------------------
 # --------------------------------------------------------------
 
 sub new {
-   my ($class, $p_interface, $p_deviceid, $p_devcat) = @_;
+   my ($class, $p_deviceid, $p_interface) = @_;
 
-   my $self = $class->SUPER::new($p_interface, $p_deviceid, $p_devcat);
+   my $self = new Insteon::BaseDevice($p_deviceid,$p_interface)
    bless $self, $class;
    $$self{temp} = undef; 
    $$self{mode} = undef; 
