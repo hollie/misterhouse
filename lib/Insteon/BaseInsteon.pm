@@ -159,7 +159,11 @@ sub default_hop_count
 {
 	my ($self, $hop_count) = @_;
 	unshift(@{$$self{hop_array}}, $$self{default_hop_count}) if (!defined(@{$$self{hop_array}}));
-	unshift(@{$$self{hop_array}}, $hop_count) if defined($hop_count);
+	if (defined($hop_count)){
+		::print_log("[Insteon::BaseObject] DEBUG3: Adding hop count of " . $hop_count . " to hop_array of "
+			. $self->get_object_name) if $main::Debug{insteon} >= 3;
+		unshift(@{$$self{hop_array}}, $hop_count) 
+	}
 	pop(@{$$self{hop_array}}) if (scalar(@{$$self{hop_array}}) >20);
 	my $high = 0;
 	foreach (@{$$self{hop_array}}){
@@ -574,6 +578,7 @@ sub _process_message
 				. $self->get_object_name . " in response to a "
 				. $pending_cmd . " command, but the command code "
 				. $msg{cmd_code} . " is incorrect. Ignorring received message.");
+			$p_setby->active_message->no_hop_increase(1);
 		}
 	}
         elsif ($msg{is_nack})
@@ -593,6 +598,7 @@ sub _process_message
 			. $self->get_nack_msg_for( $msg{extra} ) .") for " . $self->{object_name}
 			. " ... skipping");
 		}
+		$p_setby->active_message->no_hop_increase(1);
 		$self->is_acknowledged(0);
 		$self->_process_command_stack(%msg);
 		if($p_setby->active_message->failure_callback)
@@ -604,6 +610,9 @@ sub _process_message
 			main::print_log("[Insteon::BaseObject] problem w/ retry callback: $@") if $@;
 			package Insteon::BaseObject;
 		}
+		$self->active_message->no_hop_increase(1);
+		$self->is_acknowledged(0);
+		$self->_process_command_stack(%msg);
 	}
         elsif ($msg{command} eq 'start_manual_change')
         {

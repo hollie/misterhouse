@@ -524,6 +524,7 @@ sub _parse_data {
 					# We have a problem (Usually we stepped on another X10 command)
 					&::print_log("[Insteon_PLM] ERROR: encountered $parsed_data. "
                                         	. $pending_message->to_string());
+                                        $self->active_message->no_hop_increase(1);
 					$self->retry_active_message();
 					#move it off the top of the stack and re-transmit later!
 					#TODO: We should keep track of an errored command and kill it if it fails twice.  prevent an infinite loop here
@@ -554,6 +555,7 @@ sub _parse_data {
                                                         . " Discarding received data.");
 				       		#$residue_data .= $parsed_data;
                                         }
+                                        $self->active_message->no_hop_increase(1);
                                 }
                                 else
                                 {
@@ -669,6 +671,7 @@ sub _parse_data {
 				&::print_log("[Insteon_PLM] DEBUG3: Interface extremely busy. Resending command"
 					. " after delaying for $nack_delay second") if $main::Debug{insteon} >= 3;
 				$self->_set_timeout('xmit',$nack_delay * 1000);
+				$self->active_message->no_hop_increase(1);
                                 $self->retry_active_message();
 				$process_next_command = 0;
 				$nack_count++;

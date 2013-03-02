@@ -433,6 +433,7 @@ sub on_standard_insteon_received
                                                 &main::print_log("[Insteon::BaseInterface] ERROR: received ACK/NACK message from "
                                                 	. $object->get_object_name . " but unable to process $msg{type} message type."
                                                         . " IGNORING received message!!");
+                                                $self->active_message->no_hop_increase(1);
                                         }
                         	}
                                 else #does not correspond to current active message
