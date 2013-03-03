@@ -43,6 +43,8 @@ entries in the device.
 
 sub scan_all_linktables
 {
+	my $skip_unchanged = pop(@_);
+	$skip_unchanged = 0 if (ref $skip_unchanged || !defined($skip_unchanged));
 	if ($current_scan_device)
         {
         	&main::print_log("[Scan all linktables] WARN: link already underway. Ignoring request for new scan ...");
@@ -88,7 +90,7 @@ sub scan_all_linktables
         }
         $_scan_cnt = scalar @_scan_devices;
 
-        &_get_next_linkscan();
+        &_get_next_linkscan($skip_unchanged);
 }
 
 sub _get_next_linkscan_failure
