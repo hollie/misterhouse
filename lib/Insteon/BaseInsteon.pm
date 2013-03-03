@@ -466,7 +466,7 @@ sub _is_info_request
 		# if this were a scene controller, then also propogate the result to all members
 		if ($self->_aldb->{aldb_delta_action} eq 'set'){
 			if ($msg{cmd_code} eq "00") {
-				$self->_aldb->{_mem_activity} = 'bump_delta';
+				$self->_aldb->{_mem_activity} = 'delete';
 				$self->_aldb->{pending_aldb}{address} = $self->_aldb->get_first_empty_address();
 				$self->_aldb->_peek($self->_aldb->{pending_aldb}{address},0);
 			} else {
