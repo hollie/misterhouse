@@ -95,10 +95,11 @@ sub scan_all_linktables
 
 sub _get_next_linkscan_failure
 {
+	my($skip_unchanged) = @_;
         push @_scan_device_failures, $current_scan_device;
         &main::print_log("[Scan all link tables] WARN: failure occurred when scanning "
                 	. $current_scan_device->get_object_name . ".  Moving on...");
-        &_get_next_linkscan();
+        &_get_next_linkscan($skip_unchanged);
 
 }
 
