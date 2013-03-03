@@ -1886,17 +1886,8 @@ sub on_read_write_aldb
 				&::print_log("[Insteon::ALDB_i2] " . $$self{device}->get_object_name 
 					. " completed aldb scan: status: " . $self->health())
 					if $main::Debug{insteon};
-				if (defined $$self{_success_callback})
-				{
-					my $callback = $$self{_success_callback};
-					# clear it out *before* the eval
-					$$self{_success_callback} = undef;
-					package main;
-					eval ($callback);
-					&::print_log("[Insteon::ALDB_i2] " . $$self{device}->get_object_name . ": error during scan callback $@")
-						if $@ and $main::Debug{insteon};
-					package Insteon::ALDB_i2;
-				}
+				# Put the new ALDB Delta into memory
+				$self->query_aldb_delta('set');
 			}
 			else #($$self{pending_aldb}{highwater})
 			{
