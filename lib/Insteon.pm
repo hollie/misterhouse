@@ -105,8 +105,20 @@ sub _get_next_linkscan_failure
 
 sub _get_next_linkscan
 {
-   	$current_scan_device = shift @_scan_devices;
-
+	my($skip_unchanged, $changed_device) = @_;
+	if ($changed_device) {
+		## if a device's aldb_delta has changed it is returned as an object here
+		$current_scan_device = $changed_device;
+	} else { 
+		$current_scan_device = shift @_scan_devices;
+	}
+	if ($skip_unchanged && ($current_scan_device != &Insteon::active_interface)){
+		## check if aldb_delta has changed;
+		$current_scan_device->_aldb->{_aldb_unchanged_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.')';
+		$current_scan_device->_aldb->{_aldb_changed_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.', '.$current_scan_device->get_object_name.')';
+		$current_scan_device->_aldb->query_aldb_delta("check");
+		$current_scan_device = undef;
+	} 
 	if ($current_scan_device)
         {
           	&main::print_log("[Scan all link tables] Now scanning: "
