@@ -105,6 +105,20 @@ use Insteon::BaseInsteon;
 # -------------------- START OF SUBROUTINES --------------------
 # --------------------------------------------------------------
 
+my %message_types = (
+	%Insteon::BaseDevice::message_types,
+	thermostat_temp_up => 0x68,
+	thermostat_temp_down => 0x69,
+	thermostat_get_zone_temp => 0x6a,
+	thermostat_get_zone_setpoint => 0x6a,
+	thermostat_get_zone_humidity => 0x6a,
+	thermostat_control => 0x6b,
+	thermostat_get_mode => 0x6b,
+	thermostat_get_temp => 0x6b,
+	thermostat_setpoint_cool => 0x6c,
+	thermostat_setpoint_heat => 0x6d
+);
+
 sub new {
    my ($class, $p_deviceid, $p_interface) = @_;
 
