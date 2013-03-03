@@ -48,7 +48,7 @@ sub aldb_version
 
 sub health
 {
-	# corrupt
+	# out-of-sync
 	# unknown
         # empty
         # good
@@ -210,7 +210,7 @@ sub scan_link_table
 	$$self{_success_callback} = ($success_callback) ? $success_callback : undef;
 	$$self{_failure_callback} = ($failure_callback) ? $failure_callback : undef;
 	$self->scandatetime(&main::get_tickcount);
-	$self->health('corrupt'); # allow acknowledge to set otherwise
+	$self->health('out-of-sync'); # allow acknowledge to set otherwise
 	if($self->isa('Insteon::ALDB_i1')) {
 		$self->_peek('0FF8',0);
 	} else {
@@ -2292,7 +2292,7 @@ sub get_first_alllink
 {
 	my ($self) = @_;
         $self->scandatetime(&main::get_tickcount);
-        $self->health('corrupt'); # set as corrupt and allow acknowledge to set otherwise
+        $self->health('out-of-sync'); # set as corrupt and allow acknowledge to set otherwise
 	$$self{device}->queue_message(new Insteon::InsteonMessage('all_link_first_rec', $$self{device}));
 }
 
