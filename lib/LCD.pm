@@ -26,7 +26,7 @@ NONE
 
 =over
 
-=item C<new($type, $port, $size, $menu_group, $keymap)
+=item C<new($type, $port, $size, $menu_group, $keymap)>
 
 $type:  Either lcdproc or keyboard.
 $port:  The ip:port of where lcdproc is running.

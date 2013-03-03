@@ -1597,6 +1597,8 @@ sub android_xml_tag {
     return $xml_objects;
 }
 
+=back 
+
 =head1 INI PARAMETERS
 
 =over
