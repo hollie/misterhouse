@@ -2,7 +2,60 @@ use strict;
 
 package Process_Item;
 
+=head1 NAME
+
+B<Process_Item> - Object to run external programs.
+
+=head1 SYNOPSIS
+
+  my $slashdot_news = "$Pgm_Root/data/web/slashdot_news.txt";
+  $p_slashdot_news = new Process_Item("get_slashdot_news > $slashdot_news");
+  start $p_slashdot_news if time_now('6:30 AM');
+  display $slashdot_news if done_now $p_slashdot_news;
+
+  $p_report_weblog = new Process_Item;
+  $p_report_weblog ->set_output("$config_parms{data_dir}/weblog_results.txt");
+  if (time_now '2 AM') {
+      set   $p_report_weblog "report_weblog /mh/data/logs/server.$Year_Month_Now.log";
+      start $p_report_weblog;
+  }
+
+Example of multiple commands
+
+  $test_process1 = new Process_Item;
+  set $test_process1 'sleep 1', 'sleep 2';
+  add $test_process1 'sleep 1';
+
+Example of running an internal mh subroutine
+  $v_test_ftp = new Voice_Cmd 'Test background ftp [get,put]';
+  $p_test_ftp = new Process_Item;
+  if ($state = said $v_test_ftp) {
+    set $p_test_ftp "&main::net_ftp(file => '/tmp/junk1.txt', " . "file_remote => 'incoming/junk1.txt'," . "command => '$state')";
+    set_timeout $p_test_ftpb 60*2;
+    start $p_test_ftpb;
+  }
+  print_log "Ftp command done" if done_now $p_test_ftp;
+
+More examples are in mh/code/examples/test_process.pl
+
+=head1 DESCRIPTION
+
+You can use this object to run external programs. On Win32 systems, the Win32::Process function is used. On Unix systems, the fork function is used. On either system, the following methods work in the same way:
+
+=head1 INHERITS
+
+NONE
+
+=head1 METHODS
+
+=over
+
+=cut
+
 my (@active_processes, @done_processes);
+
+=item C<new('program1 arguments', 'program2 arguments', ...)>
+=cut
 
 sub new {
     my ($class, @cmds) = @_;
@@ -12,21 +65,43 @@ sub new {
     return $self;
 }
 
+=item C<set('program1 arguments', 'program2 arguments', ...)>
+=cut
+
                                 # Allow for multiple, serially executed, commands
 sub set {
     my ($self, @cmds) = @_;
     @{$$self{cmds}} = @cmds;
 }
 
+=item C<set_timeout($timeout)>
+
+ Process will timeout after $timeout seconds
+
+=cut
+
 sub set_timeout {
     my ($self, $timeout) = @_;
     $$self{timeout} = $timeout;
 }
+
+=item C<set_output($output_file)>
+
+Program STDOUT errata goes to $output_file
+
+=cut
+
                                 # Allow for process STDOUT to go to a file
 sub set_output {
     my ($self, $file) = @_;
     $$self{output} = $file;
 }
+
+=item C<set_errlog($errlog_file)>
+
+Program STDERR errata goes to $errlog_file
+
+=cut
 
                                 # Allow for process STDERR to go to a file
 sub set_errlog {
@@ -38,6 +113,12 @@ sub set_killsig {
     my ($self, $killsig) = @_;
     $$self{killsig} = $killsig;
 }
+
+=item C<add('program3 arguments', 'program4 arguments', ...)>
+
+If you specify more than one program, they are run sequentially.  done_now returns 1 after the last program is done.  If program starts with &, then 'program arguments' is eval-ed as an internal mh function.  Otherwise, 'program arguments' is run as an external command.  On Windows, the &-> eval trick is supposed to work with perl 5.6+ (which has fork), but unfortunately, it causes perl to crash often, so is probably not useful yet.
+
+=cut
 
 sub add {
     my ($self, @cmds) = @_;
@@ -80,6 +161,11 @@ sub get_target {
     return $_[0]->{target};
 }
 
+=item C<start(OptionalArguements)>
+
+Starts the process with optional program arguements
+
+=cut
 
 sub start {
     my ($self, $cmd_override) = @_;
@@ -224,16 +310,33 @@ sub restore_active {
     push(@active_processes, $self);
 }
 
+=item C<done>
+
+Returns the time (seconds since epoch) that the process finished.  If the process has been started, but has not yet finished, it returns 0.
+
+=cut
+
 sub done {
     my ($self) = @_;
     return ($$self{pid}) ? 0 : 1;
 }
 
+=item C<pid>
+
+Returns the process id
+
+=cut
 
 sub pid {
     my ($self) = @_;
     return $$self{pid};
 }
+
+=item C<timed_out>
+
+Returns the time when the process timed out.  done_now will still trigger for a timed_out process.
+
+=cut
 
 sub timed_out {
     my ($self) = @_;
@@ -244,6 +347,12 @@ sub runtime {
     my ($self) = @_;
     return $$self{runtime};
 }
+
+=item C<done_now>
+
+Is true for the pass that the process finished on.
+
+=cut
 
 sub done_now {
     $main::Respond_Target = $_[0]->{target};
@@ -299,6 +408,12 @@ sub harvest {
     @active_processes = @active_processes2;
 }
 
+=item C<stop>
+
+Stops the process. If called as a stand alone function (not as an object method), all active Process_Items are stopped.
+
+=cut
+
 sub stop {
     my @process_list  = @_;
                                 # If none specified, kill em all!
@@ -346,6 +461,30 @@ sub nice_level {
        return undef;
     }
 }
+
+=back
+
+=head1 INI PARAMETERS
+
+NONE
+
+=head1 AUTHOR
+
+UNK
+
+=head1 SEE ALSO
+
+NONE
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 
 #
 # $Log: Process_Item.pm,v $
