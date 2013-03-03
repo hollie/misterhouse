@@ -122,7 +122,7 @@ my %message_types = (
 sub new {
    my ($class, $p_deviceid, $p_interface) = @_;
 
-   my $self = new Insteon::BaseDevice($p_deviceid,$p_interface)
+   my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
    bless $self, $class;
    $$self{temp} = undef; 
    $$self{mode} = undef; 
