@@ -146,6 +146,11 @@ sub restore_string
 			$restore_string .= $$self{device}->get_object_name . "->_aldb->scandatetime(q~" . $self->scandatetime . "~) if "
                         	. $$self{device}->get_object_name . "->_aldb;\n";
                 }
+		if (defined $self->aldb_delta)
+		{
+			$restore_string .= $$self{device}->get_object_name . "->_aldb->aldb_delta(q~" . $self->aldb_delta . "~) if "
+				. $$self{device}->get_object_name . "->_aldb;\n";
+		}
 		$restore_string .= $$self{device}->get_object_name . "->_aldb->health(q~" . $self->health . "~) if "
                         	. $$self{device}->get_object_name . "->_aldb;\n";
 		$restore_string .= $$self{device}->get_object_name . "->_aldb->restore_aldb(q~$aldb~) if " . $$self{device}->get_object_name . "->_aldb;\n";
