@@ -1,6 +1,53 @@
 use strict;
 package Timer;
 
+=head1 NAME
+
+B<Timer>
+
+=head1 SYNOPSIS
+
+  $timer_laundary = new  Timer;
+  $v_laundary_timer = new  Voice_Cmd('Laundary timer [on,off]');
+  if ($state =  said $v_laundary_timer) {
+    if ($state eq ON) {
+       play('rooms' => 'shop', 'file' => 'cloths_started.wav');
+       set $timer_laundary 35*60, 'speak "rooms=all The laundary clothes done"', 4;
+    }
+    else {
+      speak 'rooms=shop The laundry timer has been turned off.';
+      unset $timer_laundary;
+    }
+  }
+
+This example uses an anonymous subroutine
+
+  $v_test_delay = new  Voice_Cmd 'Test timer with [1,5,10] seconds';
+  if ($state = said $v_test_delay) {
+    print_log "Starting $state second timer test";
+    my  $timer = new Timer;
+    set $timer $state, sub {
+      print_log "Ending $state second timer test";
+    }
+    #      set $timer $state, "print_log 'Ending $state second timer test'";
+  }
+
+=head1 DESCRIPTION
+
+The Timer object can be used to run an action one or more times, at a specified interval.
+
+=head1 INHERITS
+
+B<>
+
+=head1 METHODS
+
+=over
+
+=cut
+
+
+
 my ($class, $self, $id, $state, $action, $repeat, @timers_with_actions, $resort_timers_with_actions, @sets_from_previous_pass);
 
 
@@ -60,6 +107,11 @@ sub delete_timer_with_action {
     }
 }
 
+=item C<new>
+
+Used to create the object.
+
+=cut
 
 sub new {
     my ($class, $id, $state) = @_;
@@ -111,6 +163,14 @@ sub state_log {
     my ($self) = @_;
     return @{$$self{state_log}} if $$self{state_log};
 }
+
+=item C<set($period, $action, $cycles)>
+
+$period is the timer period in seconds
+$action (optional) is the code (either a string or a code reference) to run when the timer expires
+$cycles (optional) is how many times to repeat the timer.  Set to -1 to repeat forever.
+
+=cut
 
 sub set {
     ($self, $state, $action, $repeat) = @_;
@@ -164,6 +224,12 @@ sub resort_timers_with_actions {
     $resort_timers_with_actions = 1;
 }
 
+=item C<unset>
+
+Unset the timer.  'set $my_timer 0' has the same effect.
+
+=cut
+
 sub unset {
     ($self) = @_;
     undef $self->{expire_time};
@@ -176,6 +242,11 @@ sub delete_old_timers {
     undef @timers_with_actions;
 }
 
+=item C<run_action>
+
+Runs the timers action, even if the timer has not expired.
+
+=cut
 
 sub run_action {
     ($self) = @_;
@@ -207,6 +278,12 @@ sub run_action {
     }
 }
 
+=item C<expired>
+
+Returns true for the one pass after the timer has expired.
+
+=cut
+
 sub expired {
     ($self) = @_;
 #   print "db $self->{expire_time} $self->{pass_triggered}\n";
@@ -231,6 +308,12 @@ sub expired {
         return 0;
     }
 }
+
+=item C<hours_remaining, hours_remaining_now, minutes_remaining, minutes_remaining_now, seconds_remaining, seconds_remaining_now>
+
+These methods return the hours, minutes or seconds remaining on the timer.  The _now methods only return the remaining time on the hour, minute, or second boundary.
+
+=cut
 
 sub hours_remaining {
     ($self) = @_;
@@ -294,6 +377,11 @@ sub seconds_remaining_now {
     }
 }
 
+=item C<active>
+
+Returns true if the timer is still running.
+
+=cut
 
 sub active {
     ($self) = @_;
@@ -306,10 +394,23 @@ sub active {
         return 0;
     }
 }
+
+=item C<inactive>
+
+Returns true if the timer is has expired or has not been set.
+
+=cut
+
 sub inactive {
     ($self) = @_;
     return !&active($self);
 }
+
+=item C<start>
+
+Starts the timer
+
+=cut
 
                                 # The reset of these methods apply to a countup/stopwatch type timer
 sub start {
@@ -321,6 +422,12 @@ sub start {
     $self->{time} = time;
     $self->{time_adjust} = 0;
 }
+
+=item C<restart>
+
+Restarts the timer (start on an active timer does nothing)
+
+=cut
 
 sub restart {
     ($self) = @_;
@@ -336,11 +443,23 @@ sub restart {
 
 }
 
+=item C<stop>
+
+Stops a timer.
+
+=cut
+
 sub stop {
     ($self) = @_;
     $self->{time} = undef;
     $self->{expire_time} = undef;
 }
+
+=item C<pause>
+
+Pauses
+
+=cut
 
 sub pause {
     ($self) = @_;
@@ -348,12 +467,24 @@ sub pause {
     $self->{time_pause} = time;
 }
 
+=item C<resume>
+
+Bet you can guess :)
+
+=cut
+
 sub resume {
     ($self) = @_;
     return unless $self->{time_pause}; # Not paused
     $self->{time_adjust} += (time - $self->{time_pause});
     $self->{time_pause} = 0;
 }
+
+=item C<query>
+
+Returns the seconds on the timer.
+
+=cut
 
 sub query {
     ($self) = @_;
@@ -366,6 +497,32 @@ sub query {
 }
 
 1;
+
+=back
+
+=head1 INI PARAMETERS
+
+NONE
+
+=head1 AUTHOR
+
+UNK
+
+=head1 SEE ALSO
+
+See mh/code/bruce/timers.pl for more examples
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
+
 
 #
 # $Log: Timer.pm,v $

@@ -1,5 +1,46 @@
-
 package Voice_Cmd;
+
+=head1 NAME
+
+B<Voice_Cmd>
+
+=head1 SYNOPSIS
+
+  $v_backyard_light = new  Voice_Cmd 'Backyard Light [on,off]';
+  set $backyard_light $state if $state = said $v_backyard_light;
+
+  $v_test1 = new Voice_Cmd '{turn,set} the {living,famliy} room {light,lights} [on,off]';
+  $v_test2 = new Voice_Cmd '{Please, } tell me the time';
+  $v_test3 = new Voice_Cmd '{What time is it,Tell me the time}';
+  $v_fan   = new Voice_Cmd 'Fan [on,off]', 'Ok, I turned the fan $v_indoor_fountain->{said}';
+  $v_fan   = new Voice_Cmd 'Fan [on,off]', 'Ok, I turned the fan %STATE%';
+
+In addition to the said command on a specific object, you can use &Voice_Cmd::said_this_pass to detect which command was spoken this pass and &Voice_Cmd::noise_this_pass to detect if noise was detected this pass (this function currently only works with viavoice).
+
+  if (my $speak_num = &Voice_Cmd::said_this_pass) {
+    my $text = &Voice_Cmd::text_by_num($speak_num);
+    print_log "spoken text: $speak_num, $text";
+  }
+
+  if (my $text = &Voice_Cmd::noise_this_pass) {
+    print_log "Noise detected" if $text eq 'Noise';
+  }
+
+=head1 DESCRIPTION
+
+Use the Voice_Cmd object to create voice commands. Even without a Voice Recognition engine installed, this is useful as these commands can also be run from the Tk, web, telnet, and file interfaces.
+
+=head1 INHERITS
+
+B<Generic_Item>
+
+=head1 METHODS
+
+=over
+
+=cut
+
+
 @Voice_Cmd::ISA = ('Generic_Item');
 
 use strict;
@@ -442,6 +483,24 @@ sub voice_items {
     return sort {uc $a cmp uc $b} @cmd_list2;
 }
 
+=item C<new($command, $response, $confirm, $vocabulary)>
+
+$command - can be a simple string (e.g. 'What time is it') or it can include a list of 'states' (e.g. 'Turn the light [on,off]').  The state enumeration group is a comma delimited string surrounded with [].  In addition to one state enumeration group, you can specify any number of phrase enumeration groups.  These are comma delimited strings surrounded by {} (e.g. 'Turn the {family room,downstairs} TV [on,off]').  Use this when you have several different ways to describe the same thing.
+
+$response - is the text or wave file that will be played back when the VR engine detects this command.  If not defined, the mh.ini parm voice_cmd_response parm is used (default is "Ok, %HEARD%").  You can put %STATE%, %HEARD%, or any variable in the response string and have it substituted/evaluated when the response is spoken.
+
+$confirm - is either 0 or 1 (default is 0).  If set to 1, then mh will ask 'Confirm with a yes or a no'.  If yes or no is not heard within 10 seconds, the command is aborted.
+
+$vocabulary - allows you to define multiple vocabularies.  You can then use these functions to enable and disable the vocabularies:
+
+  &Voice_Cmd::enablevocab($vocabulary)
+  &Voice_Cmd::disablevocab($vocabulary)
+
+Vocabularies are enabled by default.  The default vocabulary is 'misterhouse'.  See mh/code/bruce/viavoice_control.pl for examples.  This code allows you to switch between 'awake', 'asleep', and 'off' VR modes.
+
+NOTE: Currently only the viavoice VR engine (mh.ini parm voice_cmd=viavoice)  will use the $response, $confirm, and $vocabulary_name options.  We may be able to create a viavoice_server for windows, but that would probably not be free like it is on linux.  If you have a linux box on your network, you can have your windows mh use the linux viavoice_server process.
+
+=cut
 
 sub new {
     my ($class, $text, $response, $confirm, $vocab) = @_;
@@ -623,6 +682,12 @@ sub _clean_text_string {
     return $text;
 }
 
+=item C<set_order>
+
+Contols the order that the commands are listed in web Category list.  The default is alphabetically by file, then by name.
+
+=cut
+
 sub set_order {
     return unless $main::Reload;
     my ($self, $order) = @_;
@@ -741,6 +806,49 @@ sub android_xml {
 }
 
 1;
+
+=back
+
+=head1 INHERITED METHODS
+
+=over
+
+=item C<said>
+
+Is true for the one pass after the command was issued.  If the command was built from a list of possible states, then said returns the state that matches.
+
+=item C<state>
+
+Returns the same thing as said, except it is valid for all passes, not just the pass after the command was issued.
+
+=item C<set_icon>
+
+Point to the icon member you want the web interface to use.  See the 'Customizing the web interface' section of this document for details.
+
+=back
+
+=head1 INI PARAMETERS
+
+NONE
+
+=head1 AUTHOR
+
+UNK
+
+=head1 SEE ALSO
+
+See mh/code/examples/Voice_Cmd_enumeration.pl for more Voice_Cmd examples
+See mh/code/bruce/lcdproc.pl for more examples.
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 
 #
 # $Log: Voice_Cmd.pm,v $
