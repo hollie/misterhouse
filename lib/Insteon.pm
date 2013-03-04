@@ -120,10 +120,6 @@ sub _get_next_linkscan
 	} else {
 		$current_scan_device = $changed_device;
 	}
-if ($current_scan_device == &Insteon::active_interface){
-	Insteon::_get_next_linkscan($skip_unchanged);
-	return;
-}
 	if ($current_scan_device)
         {
           	&main::print_log("[Scan all link tables] Now scanning: "
