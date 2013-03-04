@@ -464,6 +464,7 @@ sub _is_info_request
 			$self->SUPER::set($ack_on_level . '%', $ack_setby);
 		}
 		# if this were a scene controller, then also propogate the result to all members
+		my $callback;
 		if ($self->_aldb->{aldb_delta_action} eq 'set'){
 			if ($msg{cmd_code} eq "00") {
 				$self->_aldb->{_mem_activity} = 'delete';
