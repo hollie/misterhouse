@@ -1014,7 +1014,24 @@ sub update_link
         {
 		$key .= $subaddress;
 	}
-	if(defined($$self{aldb}{$key})) {	
+	if (!defined($link_parms{aldb_check}) && (!$$self{device}->isa('Insteon_PLM'))){
+		## Check whether ALDB is in sync
+		$self->{callback_parms} = \%link_parms;
+		$$self{_aldb_unchanged_callback} = '&Insteon::AllLinkDatabase::update_link('.$$self{device}->{object_name}."->_aldb, 'ok')";
+		$$self{_aldb_changed_callback} = '&Insteon::AllLinkDatabase::update_link('.$$self{device}->{object_name}."->_aldb, 'fail')";
+		$self->query_aldb_delta("check");
+	} elsif ($link_parms{aldb_check} eq "fail"){
+		&::print_log("[Insteon::AllLinkDatabase] WARN: Cannot update link, please rescan this device and sync again.");
+		if ($link_parms{callback})
+		{
+			package main;
+			eval($link_parms{callback});
+			&::print_log("[Insteon::AllLinkDatabase] failure occurred in callback eval for " . $$self{device}->get_object_name . ":" . $@)
+				if $@ and $main::Debug{insteon};
+			package Insteon::AllLinkDatabase;
+		}
+	}
+	elsif (defined $$self{aldb}{$key} && $link_parms{aldb_check} eq "ok"){	
 		my $address = $$self{aldb}{$key}{address};
 		$$self{_mem_activity} = 'update';
 		$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
