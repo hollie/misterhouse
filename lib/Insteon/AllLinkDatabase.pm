@@ -1845,7 +1845,7 @@ sub on_read_write_aldb
 				}
 
 				&::print_log("[Insteon::ALDB_i2] " . $$self{device}->get_object_name 
-					. " completed aldb scan: status: " . $self->health())
+					. " completed link memory scan: status: " . $self->health())
 					if $main::Debug{insteon};
 				if (defined $$self{_success_callback})
 				{

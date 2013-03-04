@@ -457,6 +457,9 @@ sub _parse_data {
                                                 {
                                                 	$self->_aldb->health("good");
                                                 }
+						&::print_log("[Insteon_PLM] " . $self->get_object_name 
+							. " completed link memory scan: status: " . $self->_aldb->health())
+							if $main::Debug{insteon};
 						if ($$self{_mem_callback})
 						{
 							my $callback = $$self{_mem_callback};

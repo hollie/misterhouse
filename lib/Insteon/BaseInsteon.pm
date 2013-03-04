@@ -612,7 +612,7 @@ sub _process_message
 			main::print_log("[Insteon::BaseObject] problem w/ retry callback: $@") if $@;
 			package Insteon::BaseObject;
 		}
-		$self->active_message->no_hop_increase(1);
+		$p_setby->active_message->no_hop_increase(1);
 		$self->is_acknowledged(0);
 		$self->_process_command_stack(%msg);
 	}
