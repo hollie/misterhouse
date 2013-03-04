@@ -464,6 +464,55 @@ sub _is_info_request
 			$self->SUPER::set($ack_on_level . '%', $ack_setby);
 		}
 		# if this were a scene controller, then also propogate the result to all members
+		my $callback;
+		if ($self->_aldb->{aldb_delta_action} eq 'set'){
+			if ($msg{cmd_code} eq "00") {
+				$self->_aldb->{_mem_activity} = 'delete';
+				$self->_aldb->{pending_aldb}{address} = $self->_aldb->get_first_empty_address();
+				if($self->_aldb->isa('Insteon::ALDB_i1')) {
+					$self->_aldb->_peek($self->_aldb->{pending_aldb}{address},0);
+				} else {
+					$self->_aldb->_write_delete($self->_aldb->{pending_aldb}{address});
+				}
+			} else {
+				$self->_aldb->aldb_delta($msg{cmd_code});
+				$self->_aldb->scandatetime(&main::get_tickcount);
+				&::print_log("[Insteon::BaseObject] The Link Table Version for "
+					. $self->{object_name} . " has been updated to version number " . $self->_aldb->aldb_delta());
+				if (defined $self->_aldb->{_success_callback}) {
+					$callback = $self->_aldb->{_success_callback};
+					$self->_aldb->{_success_callback} = undef;
+				}
+			}
+		}
+		elsif ($self->_aldb->{aldb_delta_action} eq 'check')
+		{
+			if ($self->_aldb->aldb_delta() eq $msg{cmd_code}){
+				&::print_log("[Insteon::BaseObject] The link table for "
+					. $self->{object_name} . " is in sync.");
+				if (defined $self->_aldb->{_aldb_unchanged_callback}) {
+					$callback = $self->_aldb->{_aldb_unchanged_callback};
+					$self->_aldb->{_aldb_unchanged_callback} = undef;
+				}
+			} else {
+				&::print_log("[Insteon::BaseObject] WARN The link table for "
+					. $self->{object_name} . " is out-of-sync.");
+				$self->_aldb->health('out-of-sync');
+				if (defined $self->_aldb->{_aldb_changed_callback}) {
+					$callback = $self->_aldb->{_aldb_changed_callback};
+					$self->_aldb->{_aldb_changed_callback} = undef;
+				}
+			}
+		}
+		$self->_aldb->{aldb_delta_action} = undef;
+		$self->_aldb->health('out-of-sync') if($self->_aldb->aldb_delta() ne $msg{cmd_code});
+		if ($callback){
+			package main;
+			eval ($callback);
+			&::print_log("[Insteon::BaseObject] " . $self->get_object_name . ": error during scan callback $@")
+				if $@ and $main::Debug{insteon};
+			package Insteon::BaseObject;                		
+		}
 	}
 	elsif ( $cmd eq 'get_engine_version' ) {
 		$is_info_request++;
@@ -557,6 +606,12 @@ sub _process_message
 			}
 			else
                         {
+				if (($pending_cmd eq 'do_read_ee') && 
+					($self->_aldb->health eq "good" || $self->_aldb->health eq "empty") &&
+					($self->isa('Insteon::KeyPadLincRelay') || $self->isa('Insteon::KeyPadLinc'))){
+					## Update_Flags ends up here, set aldb_delta to new value
+					$self->_aldb->query_aldb_delta("set");
+				}
 				$self->is_acknowledged(1);
 				# signal receipt of message to the command stack in case commands are queued
 				$self->_process_command_stack(%msg);
