@@ -375,12 +375,54 @@ sub set
 	if ($self->is_root()){
 		return $self->Insteon::DeviceController::set($p_state, $p_setby, $p_respond);
 	} else {
+		if ($self->_is_valid_state($p_state)) {
+			# always reset the is_locally_set property unless set_by is the device
+			$$self{m_is_locally_set} = 0 unless ref $p_setby and $p_setby eq $self;
+
+			# handle invalid state for non-dimmable devices
+			my $level = $p_state;
+			if ($p_state eq 'dim' or $p_state eq 'bright') {
+				$p_state = 'on';
+			}
+			elsif ($p_state eq 'toggle')
+			{
+				$p_state = 'off' if ($self->state eq 'on');
+				$p_state = 'on' if ($self->state eq 'off');
+			}
+			$level = '00' if ($p_state eq 'off');
+			$level = 'ff' if ($p_state eq 'on');
+			# Setting Fan Level
+			my $setby_name = $p_setby;
+			$setby_name = $p_setby->get_object_name() if (ref $p_setby and $p_setby->can('get_object_name'));
+			my $parent = $self->get_root();
+			$level = ::Insteon::DimmableLight::convert_level($p_state) if ($p_state ne '00' && $p_state ne 'ff');
+			my $extra = $level ."0200000000000000000000000000";
+			my $message = new Insteon::InsteonMessage('insteon_ext_send', $parent, 'on', $extra);
+			$parent->_send_cmd($message);
+			::print_log("[Insteon::FanLinc] " . $self->get_object_name() . "::set($p_state, $setby_name)")
+				if $main::Debug{insteon};
+			$self->is_acknowledged(0);
+			$$self{pending_state} = $p_state;
+			$$self{pending_setby} = $p_setby;
+			$$self{pending_response} = $p_respond;
+			$$parent{child_pending_state} = $self->group();
+		} else {
+			::print_log("[Insteon::FanLinc] failed state validation with state=$p_state");
+		}	
+	}
+}
+
+sub request_status
+{
+	my ($self,$requestor) = @_;
+	if ($self->is_root()){
+		return $self->SUPER::request_status($requestor);
+	} else {
+		# Setting Fan Level
 		my $parent = $self->get_root();
-		#$$parent{child_status_request_pending} = $self->group;
-		#$$self{m_status_request_pending} = ($requestor) ? $requestor : 1;
-		my $extra = $p_state ."0200000000000000000000000000";
-		### need to convert $p_state to hexedecimal ###
-		my $message = new Insteon::InsteonMessage('insteon_ext_send', $parent, 'on', $extra);
+		$$parent{child_status_request_pending} = $self->group;
+		$$self{m_status_request_pending} = ($requestor) ? $requestor : 1;
+		my $message = new Insteon::InsteonMessage('insteon_send', $parent, 'status_request', '03');
 		$parent->_send_cmd($message);
 	}
 }
