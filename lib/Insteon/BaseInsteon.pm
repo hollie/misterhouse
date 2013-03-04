@@ -469,7 +469,11 @@ sub _is_info_request
 			if ($msg{cmd_code} eq "00") {
 				$self->_aldb->{_mem_activity} = 'delete';
 				$self->_aldb->{pending_aldb}{address} = $self->_aldb->get_first_empty_address();
-				$self->_aldb->_peek($self->_aldb->{pending_aldb}{address},0);
+				if($self->_aldb->isa('Insteon::ALDB_i1')) {
+					$self->_aldb->_peek($self->_aldb->{pending_aldb}{address},0);
+				} else {
+					$self->_aldb->_write_delete($self->_aldb->{pending_aldb}{address});
+				}
 			} else {
 				$self->_aldb->aldb_delta($msg{cmd_code});
 				$self->_aldb->scandatetime(&main::get_tickcount);
