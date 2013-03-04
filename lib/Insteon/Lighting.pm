@@ -427,4 +427,46 @@ sub request_status
 	}
 }
 
+sub _is_info_request
+{
+	my ($self, $cmd, $ack_setby, %msg) = @_;
+	my $is_info_request = 0;
+	my $parent = $self->get_root();
+	if ($$parent{child_status_request_pending}) {
+		$is_info_request++;
+		my $child_obj = Insteon::get_object($self->device_id, '02');
+		my $child_state = &Insteon::BaseObject::derive_link_state(hex($msg{extra}));
+		&::print_log("[Insteon::FanLinc] received status for " .
+			$child_obj->{object_name} . " of: $child_state "
+			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
+		$ack_setby = $$child_obj{m_status_request_pending} if ref $$child_obj{m_status_request_pending};
+		$child_obj->SUPER::set($child_state, $ack_setby);
+		delete($$parent{child_status_request_pending});
+	} else {
+		$is_info_request = $self->SUPER::_is_info_request($cmd, $ack_setby, %msg);
+	}
+	return $is_info_request;
+}
+
+sub is_acknowledged
+{
+	my ($self, $p_ack) = @_;
+	my $parent = $self->get_root();
+        if ($p_ack && $$parent{child_pending_state})
+        {
+        	my $child_obj = Insteon::get_object($self->device_id, '02');
+		$child_obj->set_receive($$child_obj{pending_state},$$child_obj{pending_setby}, $$child_obj{pending_response}) if defined $$child_obj{pending_state};
+		$$child_obj{is_acknowledged} = $p_ack;
+		$$child_obj{pending_state} = undef;
+		$$child_obj{pending_setby} = undef;
+		$$child_obj{pending_response} = undef;
+		$$parent{child_pending_state} = undef;
+		&::print_log("[Insteon::FanLinc] received command/state acknowledge from " . $child_obj->{object_name}) if $main::Debug{insteon};
+		return $$self{is_acknowledged};
+	} else {
+		return $self->SUPER::is_acknowledged($p_ack);
+	}
+}
+
+
 1
