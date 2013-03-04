@@ -1953,17 +1953,8 @@ sub on_read_write_aldb
 			main::print_log("[Insteon::ALDB_i2] DEBUG3: " . $$self{device}->get_object_name 
 				. " link write completed for [".$$self{aldb}{$aldbkey}{address}."]")
 				if $main::Debug{insteon} >= 3;
-			if (defined $$self{_success_callback})
-			{
-				my $callback = $$self{_success_callback};
-				# clear it out *before* the eval
-				$$self{_success_callback} = undef;
-				package main;
-				eval ($callback);
-				package Insteon::ALDB_i2;
-				&::print_log("[Insteon::ALDB_i2] error in link callback: " . $@)
-					if $@ and $main::Debug{insteon};
-			}
+			# Put the new ALDB Delta into memory
+			$self->query_aldb_delta('set');
 		} else {
 			# clear out mem_activity flag
 			$$self{_mem_activity} = undef;
@@ -1985,17 +1976,8 @@ sub on_read_write_aldb
 				delete $$self{aldb}{$key};
 			}
 
-			if (defined $$self{_success_callback})
-	                {
-				my $callback = $$self{_success_callback};
-				# clear it out *before* the eval
-				$$self{_success_callback} = undef;
-				package main;
-				eval ($callback);
-				&::print_log("[Insteon::ALDB_i2] error in link callback: " . $@)
-					if $@ and $main::Debug{insteon};
-				package Insteon::ALDB_i2;
-			}
+			# Put the new ALDB Delta into memory
+			$self->query_aldb_delta('set');
 		}
 	}
 	else
