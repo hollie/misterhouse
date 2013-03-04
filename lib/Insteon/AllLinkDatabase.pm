@@ -1247,17 +1247,8 @@ sub _on_poke
 			}
 			# clear out mem_activity flag
 			$$self{_mem_activity} = undef;
-			if (defined $$self{_success_callback})
-                        {
-				my $callback = $$self{_success_callback};
-				# clear it out *before* the eval
-				$$self{_success_callback} = undef;
-				package main;
-				eval ($callback);
-				package Insteon::ALDB_i1;
-				&::print_log("[Insteon::ALDB_i1] error in link callback: " . $@)
-					if $@ and $main::Debug{insteon};
-			}
+			# Put the new ALDB Delta into memory
+			$self->query_aldb_delta('set');
 		}
 	}
         elsif ($$self{_mem_activity} eq 'update_local')
@@ -1278,6 +1269,8 @@ sub _on_poke
 				$message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'do_read_ee');
                                 $self->_send_cmd($message);
 			}
+			# Put the new ALDB Delta into memory
+			$self->query_aldb_delta('set');
 		}
 	}
         elsif ($$self{_mem_activity} eq 'update_flags')
@@ -1309,17 +1302,8 @@ sub _on_poke
 			delete $$self{aldb}{$key};
 		}
 
-		if (defined $$self{_success_callback})
-                {
-			my $callback = $$self{_success_callback};
-			# clear it out *before* the eval
-			$$self{_success_callback} = undef;
-			package main;
-			eval ($callback);
-			&::print_log("[Insteon::ALDB_i1] error in link callback: " . $@)
-				if $@ and $main::Debug{insteon};
-			package Insteon::ALDB_i1;
-		}
+		# Put the new ALDB Delta into memory
+		$self->query_aldb_delta('set');
 	}
 }
 
