@@ -106,19 +106,24 @@ sub _get_next_linkscan_failure
 sub _get_next_linkscan
 {
 	my($skip_unchanged, $changed_device) = @_;
-	if ($changed_device) {
-		## if a device's aldb_delta has changed it is returned as an object here
-		$current_scan_device = $changed_device;
-	} else { 
+	my $checking = 0;
+	if (!defined($changed_device)) {
 		$current_scan_device = shift @_scan_devices;
+		if ($skip_unchanged && $current_scan_device && ($current_scan_device != &Insteon::active_interface)){
+			## check if aldb_delta has changed;
+			$current_scan_device->_aldb->{_aldb_unchanged_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.')';
+			$current_scan_device->_aldb->{_aldb_changed_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.', '.$current_scan_device->get_object_name.')';
+			$current_scan_device->_aldb->query_aldb_delta("check");
+			$current_scan_device = undef;
+			$checking = 1;
+		}
+	} else {
+		$current_scan_device = $changed_device;
 	}
-	if ($skip_unchanged && ($current_scan_device != &Insteon::active_interface)){
-		## check if aldb_delta has changed;
-		$current_scan_device->_aldb->{_aldb_unchanged_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.')';
-		$current_scan_device->_aldb->{_aldb_changed_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.', '.$current_scan_device->get_object_name.')';
-		$current_scan_device->_aldb->query_aldb_delta("check");
-		$current_scan_device = undef;
-	} 
+if ($current_scan_device == &Insteon::active_interface){
+	Insteon::_get_next_linkscan($skip_unchanged);
+	return;
+}
 	if ($current_scan_device)
         {
           	&main::print_log("[Scan all link tables] Now scanning: "
@@ -126,8 +131,9 @@ sub _get_next_linkscan
                         . ($_scan_cnt - scalar @_scan_devices)
                         . " of $_scan_cnt)");
                 # pass first the success callback followed by the failure callback
-          	$current_scan_device->scan_link_table('&Insteon::_get_next_linkscan()','&Insteon::_get_next_linkscan_failure()');
-    	} else {
+          	$current_scan_device->scan_link_table('&Insteon::_get_next_linkscan('.$skip_unchanged.')','&Insteon::_get_next_linkscan_failure('.$skip_unchanged.')');
+    	} elsif (scalar(@_scan_devices) == 0 && ($checking == 0))
+    	{
           	&main::print_log("[Scan all link tables] All tables have completed scanning");
                 my $_scan_failure_cnt = scalar @_scan_device_failures;
                 if ($_scan_failure_cnt)

@@ -1307,6 +1307,7 @@ sub _on_poke
 			}
 			# clear out mem_activity flag
 			$$self{_mem_activity} = undef;
+			$self->health("good");
 			# Put the new ALDB Delta into memory
 			$self->query_aldb_delta('set');
 		}
@@ -1361,7 +1362,7 @@ sub _on_poke
 			}
 			delete $$self{aldb}{$key};
 		}
-
+		$self->health("good");
 		# Put the new ALDB Delta into memory
 		$self->query_aldb_delta('set');
 	}
@@ -1448,6 +1449,7 @@ sub _on_peek
 
 					&::print_log("[Insteon::ALDB_i1] " . $$self{device}->get_object_name . " completed link memory scan")
 						if $main::Debug{insteon};
+					$self->health("good");
 					# Put the new ALDB Delta into memory
 					$self->query_aldb_delta('set');
 				}
@@ -1942,6 +1944,7 @@ sub on_read_write_aldb
 				&::print_log("[Insteon::ALDB_i2] " . $$self{device}->get_object_name 
 					. " completed aldb scan: status: " . $self->health())
 					if $main::Debug{insteon};
+				$self->health("good");
 				# Put the new ALDB Delta into memory
 				$self->query_aldb_delta('set');
 			}
@@ -2025,6 +2028,7 @@ sub on_read_write_aldb
 			main::print_log("[Insteon::ALDB_i2] DEBUG3: " . $$self{device}->get_object_name 
 				. " link write completed for [".$$self{aldb}{$aldbkey}{address}."]")
 				if $main::Debug{insteon} >= 3;
+			$self->health("good");
 			# Put the new ALDB Delta into memory
 			$self->query_aldb_delta('set');
 		} else {
@@ -2047,7 +2051,7 @@ sub on_read_write_aldb
 				}
 				delete $$self{aldb}{$key};
 			}
-
+			$self->health("good");
 			# Put the new ALDB Delta into memory
 			$self->query_aldb_delta('set');
 		}
