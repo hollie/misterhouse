@@ -143,6 +143,7 @@ sub read_table_A {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon::FanLinc(\'$address\', $other)";
+    }
     elsif($type eq "INSTEON_ICONTROLLER") {
         require Insteon::BaseInsteon;
         ($address, $name, $grouplist, @other) = @item_info;
