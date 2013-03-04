@@ -1709,19 +1709,31 @@ sub _on_peek
 
 sub update_local_properties
 {
-	my ($self) = @_;
+	my ($self, $aldb_check) = @_;
+	if (defined($aldb_check)){
 		$$self{_mem_activity} = 'update_local';
 		$self->_peek('0032'); # 0032 is the address for the onlevel
+	} else {
+		$$self{_aldb_unchanged_callback} = '&Insteon::ALDB_i1::update_local_properties('.$$self{device}->{object_name}."->_aldb, 1)";
+		$$self{_aldb_changed_callback} = '&Insteon::ALDB_i1::update_local_properties('.$$self{device}->{object_name}."->_aldb, 1)";
+		$self->query_aldb_delta("check");
+	}
 }
 
 sub update_flags
 {
 	my ($self, $flags) = @_;
+	my ($self, $flags, $aldb_check) = @_;
 	return unless defined $flags;
-
-	$$self{_mem_activity} = 'update_flags';
-	$$self{_operating_flags} = $flags;
-	$self->_peek('0023');
+	if (defined($aldb_check)){
+		$$self{_mem_activity} = 'update_flags';
+		$$self{_operating_flags} = $flags;
+		$self->_peek('0023');
+	} else {
+		$$self{_aldb_unchanged_callback} = '&Insteon::ALDB_i1::update_flags('.$$self{device}->{object_name}."->_aldb, '$flags', 1)";
+		$$self{_aldb_changed_callback} = '&Insteon::ALDB_i1::update_flags('.$$self{device}->{object_name}."->_aldb, '$flags', 1)";
+		$self->query_aldb_delta("check");
+	}
 }
 
 sub get_link_record
