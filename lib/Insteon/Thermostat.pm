@@ -130,13 +130,14 @@ sub new {
    $$self{heat_sp}  = undef; 
    $$self{cool_sp}  = undef; 
    $self->restore_data('temp','mode','fan_mode','heat_sp','cool_sp');
-   $$self{m_pending_setpoint} = undef; 
+   $$self{m_pending_setpoint} = undef;
+   $$self{message_types} = \%message_types;
    return $self;
 }
 
 sub poll_mode {
    my ($self) = @_;
-   my $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'thermostat_get_mode', '02');
+   my $message = new Insteon::InsteonMessage('insteon_send', $self, 'thermostat_get_mode', '02');
    $self->_send_cmd($message);
    return;
 }
@@ -164,7 +165,7 @@ sub mode{
 		main::print_log("[Insteon_Thermostat] ERROR: Invalid Mode state: $state");
 		return();
 	}
-   my $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'thermostat_control', $mode);
+   my $message = new Insteon::InsteonMessage('insteon_send', $self, 'thermostat_control', $mode);
    $self->_send_cmd($message);
 }
 
@@ -183,7 +184,7 @@ sub fan{
 		main::print_log("[Insteon_Thermostat] ERROR: Invalid Fan state: $state");
 		return();
 	}
-   my $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'thermostat_control', $fan);
+   my $message = new Insteon::InsteonMessage('insteon_send', $self, 'thermostat_control', $fan);
    $self->_send_cmd($message);
 }
 
@@ -194,7 +195,7 @@ sub cool_setpoint{
          main::print_log("[Insteon_Thermostat] ERROR: cool_setpoint $temp not numeric");
          return;
       }
-	my $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'thermostat_setpoint_cool', sprintf('%02X',($temp*2)));
+	my $message = new Insteon::InsteonMessage('insteon_send', $self, 'thermostat_setpoint_cool', sprintf('%02X',($temp*2)));
 	$self->_send_cmd($message);
 }
 
@@ -205,13 +206,13 @@ sub heat_setpoint{
 		main::print_log("[Insteon_Thermostat] ERROR: heat_setpoint $temp not numeric");
 		return;
 	}
-	my $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'thermostat_setpoint_heat', sprintf('%02X',($temp*2)));
+	my $message = new Insteon::InsteonMessage('insteon_send', $self, 'thermostat_setpoint_heat', sprintf('%02X',($temp*2)));
 	$self->_send_cmd($message);
 }
 
 sub poll_temp {
    my ($self) = @_;
-   my $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'thermostat_get_zone_temp', '00');
+   my $message = new Insteon::InsteonMessage('insteon_send', $self, 'thermostat_get_zone_temp', '00');
    $self->_send_cmd($message);
    return;
 }
@@ -228,7 +229,7 @@ sub get_temp() {
 sub poll_setpoint {
    my ($self) = @_;
    $self->poll_mode();
-   my $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'thermostat_get_zone_setpoint', '20');
+   my $message = new Insteon::InsteonMessage('insteon_send', $self, 'thermostat_get_zone_setpoint', '20');
    $self->_send_cmd($message);
    return;
 }

@@ -516,6 +516,7 @@ sub _process_message
 		}
                 else
                 {
+main::print_log("[krk2] " . $self->get_object_name);
 			# allow non-synchronous messages to also use the _is_info_request hook
 			$self->_is_info_request($pending_cmd,$p_setby,%msg);
 			$self->is_acknowledged(1);
@@ -597,6 +598,7 @@ sub _process_command_stack
                         	or $message->command eq 'status_request'
                                 or $message->command eq 'do_read_ee'
                                 or $message->command eq 'set_address_msb'
+                                or $message->command eq 'thermostat_get_mode'
                                 )
                         {
 				$$self{awaiting_ack} = 1;
