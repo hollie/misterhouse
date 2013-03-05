@@ -109,12 +109,8 @@ my %message_types = (
 	%Insteon::BaseDevice::message_types,
 	thermostat_temp_up => 0x68,
 	thermostat_temp_down => 0x69,
-	thermostat_get_zone_temp => 0x6a,
-	thermostat_get_zone_setpoint => 0x6a,
-	thermostat_get_zone_humidity => 0x6a,
+	thermostat_get_zone_info => 0x6a,
 	thermostat_control => 0x6b,
-	thermostat_get_mode => 0x6b,
-	thermostat_get_temp => 0x6b,
 	thermostat_setpoint_cool => 0x6c,
 	thermostat_setpoint_heat => 0x6d
 );
@@ -137,7 +133,8 @@ sub new {
 
 sub poll_mode {
    my ($self) = @_;
-   my $message = new Insteon::InsteonMessage('insteon_send', $self, 'thermostat_get_mode', '02');
+   $$self{_control_action} = "mode";
+   my $message = new Insteon::InsteonMessage('insteon_send', $self, 'thermostat_control', '02');
    $self->_send_cmd($message);
    return;
 }
@@ -212,7 +209,8 @@ sub heat_setpoint{
 
 sub poll_temp {
    my ($self) = @_;
-   my $message = new Insteon::InsteonMessage('insteon_send', $self, 'thermostat_get_zone_temp', '00');
+   $$self{_zone_action} = "temp";
+   my $message = new Insteon::InsteonMessage('insteon_send', $self, 'thermostat_get_zone_info', '00');
    $self->_send_cmd($message);
    return;
 }
@@ -229,7 +227,8 @@ sub get_temp() {
 sub poll_setpoint {
    my ($self) = @_;
    $self->poll_mode();
-   my $message = new Insteon::InsteonMessage('insteon_send', $self, 'thermostat_get_zone_setpoint', '20');
+   $$self{_zone_info} = "setpoint";
+   my $message = new Insteon::InsteonMessage('insteon_send', $self, 'thermostat_get_zone_info', '20');
    $self->_send_cmd($message);
    return;
 }
@@ -292,19 +291,18 @@ sub get_fan_mode() {
 
 sub _is_info_request {
    my ($self, $cmd, $ack_setby, %msg) = @_;
-   my $is_info_request = ($cmd eq 'thermostat_get_zone_temp'
-   	or $cmd eq 'thermostat_get_zone_setpoint' or $cmd eq 'thermostat_get_zone_humidity'
-   	or $cmd eq 'thermostat_get_mode' or $cmd eq 'thermostat_get_temp') ? 1 : 0;
+   my $is_info_request = ($cmd eq 'thermostat_get_zone_info'
+   	or $cmd eq 'thermostat_control') ? 1 : 0;
    if ($is_info_request) {
       my $val = $msg{extra};
       main::print_log("[Insteon_Thermostat] Processing data for $cmd with value: $val") if $main::Debug{insteon}; 
-      if ($cmd eq 'thermostat_get_temp' or $cmd eq 'thermostat_get_zone_temp') {
+      if ($$self{_zone_info} eq "temp") {
          $val = (hex $val) / 2; # returned value is twice the real value
          if (exists $$self{'temp'} and ($$self{'temp'} != $val)) {
             $self->set_receive('temp_change');
          }
          $$self{'temp'} = $val;
-      } elsif ($cmd eq 'thermostat_get_mode') {
+      } elsif ($$self{_control_action} eq "mode") {
          if ($val eq '00') {
             $self->_mode('off');
          } elsif ($val eq '01') {
@@ -324,7 +322,7 @@ sub _is_info_request {
          } elsif ($val eq '08') {
             $self->_fan_mode('fan_auto');
          }
-      } elsif ($cmd eq 'thermostat_get_zone_setpoint') {
+      } elsif ($$self{_zone_info} eq 'setpoint') {
          $val = (hex $val) / 2; # returned value is twice the real value
          # in auto modes, expect direct message with cool_setpoint to follow 
          if ($self->get_mode() eq 'auto' or 'program_auto') {
@@ -338,7 +336,8 @@ sub _is_info_request {
       }
 
    }
-
+   $$self{_control_action} = undef;
+   $$self{_zone_action} = undef;
    return $is_info_request;
 
 }
@@ -398,7 +397,7 @@ sub _process_message
       &::print_log("[Insteon_Thermostat] device category: $msg{devcat} received for " . $self->{object_name});
       #stop ping timer now that we have a devcat; possibly may want to change this behavior to allow recurring pings
       $$self{ping_timer}->stop();
-   } elsif ($msg{command} eq 'thermostat_get_zone_setpoint' && $$self{m_pending_setpoint}) {
+   } elsif ($$self{_zone_info} eq 'setpoint' && $$self{m_pending_setpoint}) {
       # we got our cool setpoint in auto mode
       my $val = (hex $msg{extra})/2;
       $self->_cool_sp($val);
