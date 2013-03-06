@@ -142,7 +142,7 @@ sub poll_mode {
 sub mode{
 	my ($self, $state) = @_;
 	$state = lc($state);
-	main::print_log("[Insteon_Thermostat] Mode $state") if  $main::Debug{insteon};
+	main::print_log("[Insteon::Thermostat] Mode $state") if  $main::Debug{insteon};
 	my $mode;
 	if ($state eq 'off') {
 		$mode = "09";
@@ -159,7 +159,7 @@ sub mode{
 	} elsif ($state eq 'program_auto') {
 		$mode = "0c";
 	} else {
-		main::print_log("[Insteon_Thermostat] ERROR: Invalid Mode state: $state");
+		main::print_log("[Insteon::Thermostat] ERROR: Invalid Mode state: $state");
 		return();
 	}
    my $message = new Insteon::InsteonMessage('insteon_send', $self, 'thermostat_control', $mode);
@@ -169,7 +169,7 @@ sub mode{
 sub fan{
 	my ($self, $state) = @_;
 	$state = lc($state);
-	main::print_log("[Insteon_Thermostat] Fan $state") if $main::Debug{insteon};
+	main::print_log("[Insteon::Thermostat] Fan $state") if $main::Debug{insteon};
 	my $fan;
 	if (($state eq 'on') or ($state eq 'fan_on')) {
 		$fan = '07';
@@ -178,7 +178,7 @@ sub fan{
 		$fan = '08';
 		$state = 'fan_auto';
 	} else {
-		main::print_log("[Insteon_Thermostat] ERROR: Invalid Fan state: $state");
+		main::print_log("[Insteon::Thermostat] ERROR: Invalid Fan state: $state");
 		return();
 	}
    my $message = new Insteon::InsteonMessage('insteon_send', $self, 'thermostat_control', $fan);
@@ -187,9 +187,9 @@ sub fan{
 
 sub cool_setpoint{
 	my ($self, $temp) = @_;
-      main::print_log("[Insteon_Thermostat] Cool setpoint -> $temp") if $main::Debug{insteon};
+      main::print_log("[Insteon::Thermostat] Cool setpoint -> $temp") if $main::Debug{insteon};
       if($temp !~ /^\d+$/){
-         main::print_log("[Insteon_Thermostat] ERROR: cool_setpoint $temp not numeric");
+         main::print_log("[Insteon::Thermostat] ERROR: cool_setpoint $temp not numeric");
          return;
       }
 	my $message = new Insteon::InsteonMessage('insteon_send', $self, 'thermostat_setpoint_cool', sprintf('%02X',($temp*2)));
@@ -198,9 +198,9 @@ sub cool_setpoint{
 
 sub heat_setpoint{
 	my ($self, $temp) = @_;
-	main::print_log("[Insteon_Thermostat] Heat setpoint -> $temp") if $main::Debug{insteon};
+	main::print_log("[Insteon::Thermostat] Heat setpoint -> $temp") if $main::Debug{insteon};
 	if($temp !~ /^\d+$/){
-		main::print_log("[Insteon_Thermostat] ERROR: heat_setpoint $temp not numeric");
+		main::print_log("[Insteon::Thermostat] ERROR: heat_setpoint $temp not numeric");
 		return;
 	}
 	my $message = new Insteon::InsteonMessage('insteon_send', $self, 'thermostat_setpoint_heat', sprintf('%02X',($temp*2)));
@@ -295,7 +295,7 @@ sub _is_info_request {
    	or $cmd eq 'thermostat_control') ? 1 : 0;
    if ($is_info_request) {
       my $val = $msg{extra};
-      main::print_log("[Insteon_Thermostat] Processing data for $cmd with value: $val") if $main::Debug{insteon}; 
+      main::print_log("[Insteon::Thermostat] Processing data for $cmd with value: $val") if $main::Debug{insteon}; 
       if ($$self{_zone_info} eq "temp") {
          $val = (hex $val) / 2; # returned value is twice the real value
          if (exists $$self{'temp'} and ($$self{'temp'} != $val)) {
@@ -349,7 +349,7 @@ sub _process_message
 {
 	my ($self,$p_setby,%msg) = @_;
 	my $p_state = undef;
-#   &::print_log("[Insteon_Thermostat] _process_message Type: ".$msg{type}.
+#   &::print_log("[Insteon::Thermostat] _process_message Type: ".$msg{type}.
 #         "  Command: (" . $msg{command} . "  CMD2: " .$msg{extra}) if $main::Debug{insteon}; #XXX
 
 	# the current approach assumes that links from other controllers to some responder
@@ -371,30 +371,30 @@ sub _process_message
 				$self->is_acknowledged(1);
 				# signal receipt of message to the command stack in case commands are queued
 				$self->_process_command_stack(%msg);
-				&::print_log("[Insteon_Thermostat] received command/state (awaiting) acknowledge from " . $self->{object_name} 
+				&::print_log("[Insteon::Thermostat] received command/state (awaiting) acknowledge from " . $self->{object_name} 
 					. ": $pending_cmd and data: $msg{extra}") if $main::Debug{insteon};
 			} 
 		} else {
 			$self->is_acknowledged(1);
 			# signal receipt of message to the command stack in case commands are queued
 			$self->_process_command_stack(%msg);
-			&::print_log("[Insteon_Thermostat] received command/state acknowledge from " . $self->{object_name} 
+			&::print_log("[Insteon::Thermostat] received command/state acknowledge from " . $self->{object_name} 
 				. ": " . (($msg{command}) ? $msg{command} : "(unknown)")
 				. " and data: $msg{extra}") if $main::Debug{insteon};
 		}
 	} elsif ($msg{is_nack}) {
 		if ($$self{awaiting_ack}) {
-			&::print_log("[Insteon_Thermostat] WARN!! encountered a nack message for " . $self->{object_name} 
+			&::print_log("[Insteon::Thermostat] WARN!! encountered a nack message for " . $self->{object_name} 
 				. " ... waiting for retry");
 		} else {
-			&::print_log("[Insteon_Thermostat] WARN!! encountered a nack message for " . $self->{object_name} 
+			&::print_log("[Insteon::Thermostat] WARN!! encountered a nack message for " . $self->{object_name} 
 				. " ... skipping");
 			$self->is_acknowledged(0);
 			$self->_process_command_stack(%msg);
 		}
    } elsif ($msg{type} eq 'broadcast') {
       $self->devcat($msg{devcat});
-      &::print_log("[Insteon_Thermostat] device category: $msg{devcat} received for " . $self->{object_name});
+      &::print_log("[Insteon::Thermostat] device category: $msg{devcat} received for " . $self->{object_name});
       #stop ping timer now that we have a devcat; possibly may want to change this behavior to allow recurring pings
       $$self{ping_timer}->stop();
    } elsif ($$self{_zone_info} eq 'setpoint' && $$self{m_pending_setpoint}) {
