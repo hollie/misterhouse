@@ -516,7 +516,6 @@ sub _process_message
 		}
                 else
                 {
-main::print_log("[krk2] " . $self->get_object_name);
 			# allow non-synchronous messages to also use the _is_info_request hook
 			$self->_is_info_request($pending_cmd,$p_setby,%msg);
 			$self->is_acknowledged(1);

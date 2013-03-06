@@ -334,86 +334,38 @@ sub _is_info_request {
             $self->_cool_sp($val);
          }
       }
-
+	$$self{_control_action} = undef;
+	$$self{_zone_action} = undef;
+   } 
+   else #This was not a thermostat info_request
+   {
+   	#Check if this was a generic info_request
+   	$is_info_request = $self->SUPER::_is_info_request($cmd, $ack_setby, %msg);
    }
-   $$self{_control_action} = undef;
-   $$self{_zone_action} = undef;
    return $is_info_request;
 
 }
 
-# Need to handle some of these messages differently than Insteon_Device
-# Trimming what I know we don't need, leaving what I'm unsure of. Still an excess
-# of duplicated code.
+## Unique messages handled first, non-unique sent to SUPER
 sub _process_message
 {
 	my ($self,$p_setby,%msg) = @_;
-	my $p_state = undef;
-#   &::print_log("[Insteon::Thermostat] _process_message Type: ".$msg{type}.
-#         "  Command: (" . $msg{command} . "  CMD2: " .$msg{extra}) if $main::Debug{insteon}; #XXX
-
-	# the current approach assumes that links from other controllers to some responder
-	# would be seen by the plm by also direct linking the controller as a responder
-	# and not putting the plm into monitor mode.  This means that updating the state
-	# of the responder based upon the link controller's request is handled
-	# by Insteon_Link.
-	$$self{m_is_locally_set} = 1 if $msg{source} eq lc $self->device_id;
-	if ($msg{is_ack}) {
-		if ($$self{awaiting_ack}) {
-			my $pending_cmd = ($$self{_prior_msg}) ? $$self{_prior_msg}{command} : $msg{command};
-			my $ack_setby = (ref $$self{m_status_request_pending}) 
-				? $$self{m_status_request_pending} : $p_setby;
-			if ($self->_is_info_request($pending_cmd,$ack_setby,%msg)) {
-				$self->is_acknowledged(1);
-				$$self{m_status_request_pending} = 0;
-				$self->_process_command_stack(%msg);
-			} else {
-				$self->is_acknowledged(1);
-				# signal receipt of message to the command stack in case commands are queued
-				$self->_process_command_stack(%msg);
-				&::print_log("[Insteon::Thermostat] received command/state (awaiting) acknowledge from " . $self->{object_name} 
-					. ": $pending_cmd and data: $msg{extra}") if $main::Debug{insteon};
-			} 
-		} else {
-			$self->is_acknowledged(1);
-			# signal receipt of message to the command stack in case commands are queued
-			$self->_process_command_stack(%msg);
-			&::print_log("[Insteon::Thermostat] received command/state acknowledge from " . $self->{object_name} 
-				. ": " . (($msg{command}) ? $msg{command} : "(unknown)")
-				. " and data: $msg{extra}") if $main::Debug{insteon};
-		}
-	} elsif ($msg{is_nack}) {
-		if ($$self{awaiting_ack}) {
-			&::print_log("[Insteon::Thermostat] WARN!! encountered a nack message for " . $self->{object_name} 
-				. " ... waiting for retry");
-		} else {
-			&::print_log("[Insteon::Thermostat] WARN!! encountered a nack message for " . $self->{object_name} 
-				. " ... skipping");
-			$self->is_acknowledged(0);
-			$self->_process_command_stack(%msg);
-		}
-   } elsif ($msg{type} eq 'broadcast') {
-      $self->devcat($msg{devcat});
-      &::print_log("[Insteon::Thermostat] device category: $msg{devcat} received for " . $self->{object_name});
-      #stop ping timer now that we have a devcat; possibly may want to change this behavior to allow recurring pings
-      $$self{ping_timer}->stop();
-   } elsif ($$self{_zone_info} eq 'setpoint' && $$self{m_pending_setpoint}) {
-      # we got our cool setpoint in auto mode
-      my $val = (hex $msg{extra})/2;
-      $self->_cool_sp($val);
-      $$self{m_setpoint_pending} = 0;
+	my $clear_message = 0;
+	if ($$self{_zone_info} eq 'setpoint' && $$self{m_pending_setpoint}) {
+		# we got our cool setpoint in auto mode
+		my $val = (hex $msg{extra})/2;
+		$self->_cool_sp($val);
+		$$self{m_setpoint_pending} = 0;
+		$clear_message = 1;
 	} else {
-		## TO-DO: make sure that the state passed by command is something that is reasonable to set
-		$p_state = $msg{command};
-		$$self{_pending_cleanup} = 1 if $msg{type} eq 'alllink';
-#		$self->set($p_state, $p_setby) unless (lc($self->state) eq lc($p_state)) and 
-		$self->set($p_state, $self) unless (lc($self->state) eq lc($p_state)) and 
-			($msg{type} eq 'cleanup' and $$self{_pending_cleanup});
-		$$self{_pending_cleanup} = 0 if $msg{type} eq 'cleanup';
+		$clear_message = $self->SUPER::_process_message($p_setby,%msg);
 	}
+	return $clear_message;
 }
 
 # Overload methods we don't use, but would otherwise cause Insteon traffic.
 sub request_status { return 0 }
+
+sub level { return 0 }
 
 1;
