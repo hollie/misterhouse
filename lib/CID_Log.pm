@@ -1,52 +1,66 @@
-use strict;
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 NAME
 
-File:
-	CID_Log.pm
+B<CID_Log>
 
-Description:
-	Logs a call
+=head1 SYNOPSIS
 
-Author:
-	Jason Sharpee
-	jason@sharpee.com
+Example initialization:
+  use CID_Log;
+  $cid = new CID_Log($telephony_driver);
 
-License:
-	This free software is licensed under the terms of the GNU public license.
+Constructor Parameters:
+  ex. $x = new CID_Log($y);
+  $x              - Reference to the class
+  $y              - Telephony driver reference
 
-Usage:
+Input states:
+  "cid"           - Caller ID event
+  "ring"          - Ring event 'to pass along to other consumers of this object'
 
-	Example initialization:
+Output states:
+  "cid"           - Caller ID event
+  "ring"          - Ring event 'to pass along to other consumers of this object'
 
-		use CID_Log;
-		$cid = new CID_Log($telephony_driver);		
+=head1 DESCRIPTION
 
-	Constructor Parameters:
-		ex. $x = new CID_Log($y);
-		$x		- Reference to the class
-		$y		- Telephony driver reference
+Logs a call
 
-	Input states:
-		"cid"	        - Caller ID event
-		"ring"     	- Ring event 'to pass along to other consumers of this object'
+=head1 INHERITS
 
-	Output states:
-		"cid"	        - Caller ID event
-		"ring"     	- Ring event 'to pass along to other consumers of this object'
+B<Telephony_Item>
 
-	For example see g_phone.pl
+=head1 METHODS
 
-Bugs:
-	There isnt a whole lot of error handling currently present in this version.  Drop me
-	an email if you are seeing something odd.
+NONE
 
-Special Thanks to: 
-	Bruce Winter - MH
-		
+=head1 INI PARAMETERS
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+NONE
+
+=head1 AUTHOR
+
+Jason Sharpee
+jason@sharpee.com
+
+Special Thanks to:
+Bruce Winter - MH
+
+=head1 SEE ALSO
+
+NONE
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
 =cut
+
+
+use strict;
 package CID_Log;
 
 @CID_Log::ISA = ('Telephony_Item');
