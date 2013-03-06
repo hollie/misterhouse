@@ -296,7 +296,7 @@ sub _is_info_request {
    if ($is_info_request) {
       my $val = $msg{extra};
       main::print_log("[Insteon::Thermostat] Processing data for $cmd with value: $val") if $main::Debug{insteon}; 
-      if ($$self{_zone_info} eq "temp") {
+      if ($$self{_zone_action} eq "temp") {
          $val = (hex $val) / 2; # returned value is twice the real value
          if (exists $$self{'temp'} and ($$self{'temp'} != $val)) {
             $self->set_receive('temp_change');
@@ -333,6 +333,11 @@ sub _is_info_request {
          } elsif ($self->get_mode() eq 'cool' or 'program_cool') {
             $self->_cool_sp($val);
          }
+      } elsif ($$self{'m_pending_setpoint'} == 1) {
+	#This is the second message with the cool_setpoint
+	$val = (hex $val) / 2;
+	$self->_cool_sp($val);
+	$$self{'m_pending_setpoint'} = undef;
       }
 	$$self{_control_action} = undef;
 	$$self{_zone_action} = undef;
