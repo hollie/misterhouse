@@ -2,6 +2,8 @@
 #
 #@ Sends Notification message to XBMC
 
+use LWP::UserAgent;
+
 $v_xbmc_osd = new  Voice_Cmd("Test XBMC Notify");
 
 
@@ -20,7 +22,10 @@ sub display_xbmcosd {
 	$title =~ s/ /%20/g;
 	$text =~ s/ /%20/g;
 
-	my $get_xbmc_cmd = 'get_url \'http://' .$config_parms{xbmc_notify_address}.'/jsonrpc?request={"jsonrpc":"2.0","method":"GUI.ShowNotification","params":{"title":"'.$title.'","message":"'.$text.'"},"id":1}\' /dev/null';
-	my $p_xbmc = new Process_Item($get_xbmc_cmd);
-	start $p_xbmc;
+	my $url = 'http://' .$config_parms{xbmc_notify_address}.'/jsonrpc?request={"jsonrpc":"2.0","method":"GUI.ShowNotification","params":{"title":"'.$title.'","message":"'.$text.'"},"id":1}';
+
+	my $ua = new LWP::UserAgent;
+	my $req = new HTTP::Request GET => $url;
+	my $res = $ua->request($req);
+
 }
