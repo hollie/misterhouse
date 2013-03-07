@@ -1,34 +1,24 @@
-=begin comment
+=head1 NAME
 
-AUTHORS 
-Gregg Liming <gregg@limings.net>
-Brian Warren <brian@7811.net>
+B<Thermostat.pm> - Insteon Thermostat
 
-INITIAL CONFIGURATION
+=head1 DESCRIPTION
+
+Enables support for an Insteon Thermostat.
+
+=head1 SYNOPSIS
+
 In user code:
-   $thermostat = new Insteon_Thermostat($myPLM, '12.34.56');
+	$thermostat = new Insteon_Thermostat($myPLM, '12.34.56');
 
 In items.mht:
-
-INSTEON_THERMOSTAT, 12.34.56, thermostat, HVAC
-
-BUGS
-
-
-EXAMPLE USAGE
-see code/examples/Insteon_thermostat.pl for more.
-
-Creating the object:
-
-   $thermostat = new Insteon_Thermostat($myPLM, '12.34.56');
-
+	INSTEON_THERMOSTAT, 12.34.56, thermostat, HVAC
 
 Poll for temperature changes.
 
    if ( new_minute 5 && $Hour != 2 ) { # Skip the ALDB scanning hour
          $thermostat->poll_temp();
    }
-
 
 Watch for temperature changes.
 
@@ -57,41 +47,42 @@ All of the states that may be set:
    fan_mode_change: Fan mode changed
       (call get_fan_mode() to get value).
 
-All of the functions available:
-   mode(): 
-      Sets system mode to argument: 'off', 'heat', 'cool', 'auto',
-      'program_heat', 'program_cool', 'program_auto'
-   poll_mode(): 
-      Causes thermostat to return mode; detected as state change if mode changes
-   get_mode(): 
-      Returns the last mode returned by poll_mode().
-   fan(): 
-      Sets fan to 'on' or 'auto'
-   get_fan_mode(): 
-      Returns the current fan mode (fan_on or fan_auto)
-   poll_setpoint(): 
-      Causes thermostat to return setpoint(s); detected as state change if setpoint changes
-      Returns setpoint based on mode, auto modes return both heat and cool.
-   cool_setpoint(): 
-      Sets a new cool setpoint.
-   get_cool_sp(): 
-      Returns the current cool setpoint.
-   heat_setpoint(): 
-      Sets a new heat setpoint.
-   get_heat_sp(): 
-      Returns the current heat setpoint.
-   poll_temp(): 
-      Causes thermostat to return temp; detected as state change
-   get_temp(): 
-      Returns the current temperature at the thermostat.
+see code/examples/Insteon_thermostat.pl for more.
 
+=head1 BUGS
 
-#TODO 
+Initial code for Venstar thermostats, which use Insteon engine version i1, only
+provided basic features.  The new Insteon 2441TH thermostats use the i2cs engine
+and only allow the polling, but not setting, of the thermostat attributes using
+i2 code.  As such, I am unable to test or provide enhancements to certain i1 
+only aspects.
+
+=head1 AUTHOR
+
+Initial Code by:
+Gregg Liming <gregg@limings.net>
+Brian Warren <brian@7811.net>
+
+Enhanced to i2 by:
+Kevin Rober Keegan <kevin@krkeegan.com>
+
+=head1 TODO
+
  - Look at possible bugs when starting from factory defaults
       There seemed to be an issue with the setpoints changing when changing modes until
       they were set programatically.
  - Test fan modes and associated state_changes
  - Manage aldb - should be able to adjust setpoints based on plm scene. <- may be overkill
+
+=head1 INHERITS
+
+B<Insteon::DeviceController>
+
+B<Insteon::BaseDevice>
+
+=head1 Methods
+
+=over
 =cut
 
 package Insteon::Thermostat;
@@ -131,6 +122,10 @@ sub new {
    return $self;
 }
 
+=item C<poll_mode()>
+
+Causes thermostat to return mode; detected as state change if mode changes
+=cut
 sub poll_mode {
    my ($self) = @_;
    $$self{_control_action} = "mode";
@@ -139,6 +134,11 @@ sub poll_mode {
    return;
 }
 
+=item C<mode()>
+
+Sets system mode to argument: 'off', 'heat', 'cool', 'auto', 'program_heat', 
+'program_cool', 'program_auto'
+=cut
 sub mode{
 	my ($self, $state) = @_;
 	$state = lc($state);
@@ -166,6 +166,10 @@ sub mode{
    $self->_send_cmd($message);
 }
 
+=item C<fan()>
+
+Sets fan to 'on' or 'auto'
+=cut
 sub fan{
 	my ($self, $state) = @_;
 	$state = lc($state);
@@ -185,6 +189,10 @@ sub fan{
    $self->_send_cmd($message);
 }
 
+=item C<cool_setpoint()>
+
+Sets a new cool setpoint.
+=cut
 sub cool_setpoint{
 	my ($self, $temp) = @_;
       main::print_log("[Insteon::Thermostat] Cool setpoint -> $temp") if $main::Debug{insteon};
@@ -196,6 +204,10 @@ sub cool_setpoint{
 	$self->_send_cmd($message);
 }
 
+=item C<heat_setpoint()>
+
+Sets a new heat setpoint.
+=cut
 sub heat_setpoint{
 	my ($self, $temp) = @_;
 	main::print_log("[Insteon::Thermostat] Heat setpoint -> $temp") if $main::Debug{insteon};
@@ -207,6 +219,10 @@ sub heat_setpoint{
 	$self->_send_cmd($message);
 }
 
+=item C<poll_temp()>
+
+Causes thermostat to return temp; detected as state change.
+=cut
 sub poll_temp {
    my ($self) = @_;
    $$self{_zone_action} = "temp";
@@ -215,11 +231,20 @@ sub poll_temp {
    return;
 }
 
+=item C<get_temp()>
+
+Returns the current temperature at the thermostat. 
+=cut
 sub get_temp() {
    my ($self) = @_;
    return $$self{'temp'};
 }
 
+=item C<poll_setpoint()>
+
+Causes thermostat to return setpoint(s); detected as state change if setpoint changes. 
+Returns setpoint based on mode, auto modes return both heat and cool. 
+=cut
 # The setpoint is returned in 2 messages while in the auto modes.
 # The heat setpoint is returned in the ACK, which is followed by 
 # a direct message containing the cool setpoint.  Because of this,
@@ -233,11 +258,19 @@ sub poll_setpoint {
    return;
 }
 
+=item C<get_heat_sp()>
+
+Returns the current heat setpoint. 
+=cut
 sub get_heat_sp() {
    my ($self) = @_;
    return $$self{'heat_sp'};
 }
 
+=item C<get_cool_sp()>
+
+Returns the current cool setpoint. 
+=cut
 sub get_cool_sp() {
    my ($self) = @_;
    return $$self{'cool_sp'};
@@ -279,11 +312,19 @@ sub _mode() {
    return $$self{'mode'};
 }
 
+=item C<get_mode()>
+
+Returns the last mode returned by C<poll_mode()>. 
+=cut
 sub get_mode() {
    my ($self) = @_;
    return $$self{'mode'};
 }
 
+=item C<get_fan_mode()>
+
+Returns the current fan mode (fan_on or fan_auto) 
+=cut
 sub get_fan_mode() {
    my ($self) = @_;
    return $$self{'fan_mode'};
@@ -374,3 +415,13 @@ sub request_status { return 0 }
 sub level { return 0 }
 
 1;
+=back
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+=cut
