@@ -22,7 +22,7 @@ sub display_xbmcosd {
 	$title =~ s/ /%20/g;
 	$text =~ s/ /%20/g;
 
-	my $url = 'http://' .$config_parms{xbmc_notify_address}.'/jsonrpc?request={"jsonrpc":"2.0","method":"GUI.ShowNotification","params":{"title":"'.$title.'","message":"'.$text.'"},"id":1}';
+	my $url = 'http://' .$config_parms{xbmc_notify_address}.':'.$config_parms{xbmc_notify_port}.'/jsonrpc?request={"jsonrpc":"2.0","method":"GUI.ShowNotification","params":{"title":"'.$title.'","message":"'.$text.'"},"id":1}';
 
 	my $ua = new LWP::UserAgent;
 	my $req = new HTTP::Request GET => $url;
