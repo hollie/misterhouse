@@ -137,7 +137,8 @@ sub poll_mode {
 =item C<mode()>
 
 Sets system mode to argument: 'off', 'heat', 'cool', 'auto', 'program_heat', 
-'program_cool', 'program_auto'
+'program_cool', 'program_auto'.  The 2441TH thermostat does not have program_heat
+ or program_cool.
 =cut
 sub mode{
 	my ($self, $state) = @_;
@@ -158,6 +159,7 @@ sub mode{
 		$mode = "0b";
 	} elsif ($state eq 'program_auto') {
 		$mode = "0c";
+		$mode = "0a" if $self->_aldb->isa('Insteon::ALDB_i2');
 	} else {
 		main::print_log("[Insteon::Thermostat] ERROR: Invalid Mode state: $state");
 		return();
@@ -248,7 +250,7 @@ Returns setpoint based on mode, auto modes return both heat and cool.
 sub poll_setpoint {
    my ($self) = @_;
    $self->poll_mode();
-   $$self{_zone_info} = "setpoint";
+   $$self{_zone_action} = "setpoint";
    my $message = new Insteon::InsteonMessage('insteon_send', $self, 'thermostat_get_zone_info', '20');
    $self->_send_cmd($message);
    return;
@@ -310,7 +312,7 @@ sub _mode() {
 
 =item C<get_mode()>
 
-Returns the last mode returned by C<poll_mode()>. 
+Returns the last mode returned by C<poll_mode()>  I2 devices will report auto for both auto and program_auto. 
 =cut
 sub get_mode() {
    my ($self) = @_;
@@ -359,7 +361,8 @@ sub _is_info_request {
          } elsif ($val eq '08') {
             $self->_fan_mode('fan_auto');
          }
-      } elsif ($$self{_zone_info} eq 'setpoint') {
+         $$self{_control_action} = undef;
+      } elsif ($$self{_zone_action} eq 'setpoint') {
          $val = (hex $val) / 2; # returned value is twice the real value
          # in auto modes, expect direct message with cool_setpoint to follow 
          if ($self->get_mode() eq 'auto' or 'program_auto') {
@@ -370,14 +373,13 @@ sub _is_info_request {
          } elsif ($self->get_mode() eq 'cool' or 'program_cool') {
             $self->_cool_sp($val);
          }
+         $$self{_zone_action} = undef;
       } elsif ($$self{'m_pending_setpoint'} == 1) {
 	#This is the second message with the cool_setpoint
 	$val = (hex $val) / 2;
 	$self->_cool_sp($val);
 	$$self{'m_pending_setpoint'} = undef;
       }
-	$$self{_control_action} = undef;
-	$$self{_zone_action} = undef;
    } 
    else #This was not a thermostat info_request
    {
@@ -393,7 +395,7 @@ sub _process_message
 {
 	my ($self,$p_setby,%msg) = @_;
 	my $clear_message = 0;
-	if ($$self{_zone_info} eq 'setpoint' && $$self{m_pending_setpoint}) {
+	if ($$self{_zone_action} eq 'setpoint' && $$self{m_pending_setpoint}) {
 		# we got our cool setpoint in auto mode
 		my $val = (hex $msg{extra})/2;
 		$self->_cool_sp($val);
