@@ -162,8 +162,13 @@ sub mode{
 		main::print_log("[Insteon::Thermostat] ERROR: Invalid Mode state: $state");
 		return();
 	}
-   my $message = new Insteon::InsteonMessage('insteon_send', $self, 'thermostat_control', $mode);
-   $self->_send_cmd($message);
+	if ($self->_aldb->isa('Insteon::ALDB_i2'){
+		my $extra = $mode . "00000000000000000000000000";
+		my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'thermostat_control', $extra);
+	} else {
+		my $message = new Insteon::InsteonMessage('insteon_send', $self, 'thermostat_control', $mode);
+	}
+	$self->_send_cmd($message);
 }
 
 =item C<fan()>
