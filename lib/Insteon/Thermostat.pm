@@ -162,13 +162,7 @@ sub mode{
 		main::print_log("[Insteon::Thermostat] ERROR: Invalid Mode state: $state");
 		return();
 	}
-	if ($self->_aldb->isa('Insteon::ALDB_i2'){
-		my $extra = $mode . "00000000000000000000000000";
-		my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'thermostat_control', $extra);
-	} else {
-		my $message = new Insteon::InsteonMessage('insteon_send', $self, 'thermostat_control', $mode);
-	}
-	$self->_send_cmd($message);
+	$self->_send_cmd($self->simple_message('thermostat_control', $mode));
 }
 
 =item C<fan()>
@@ -190,8 +184,7 @@ sub fan{
 		main::print_log("[Insteon::Thermostat] ERROR: Invalid Fan state: $state");
 		return();
 	}
-   my $message = new Insteon::InsteonMessage('insteon_send', $self, 'thermostat_control', $fan);
-   $self->_send_cmd($message);
+   $self->_send_cmd($self->simple_message('thermostat_control', $fan));
 }
 
 =item C<cool_setpoint()>
@@ -205,8 +198,7 @@ sub cool_setpoint{
          main::print_log("[Insteon::Thermostat] ERROR: cool_setpoint $temp not numeric");
          return;
       }
-	my $message = new Insteon::InsteonMessage('insteon_send', $self, 'thermostat_setpoint_cool', sprintf('%02X',($temp*2)));
-	$self->_send_cmd($message);
+	$self->_send_cmd($self->simple_message('thermostat_setpoint_cool', sprintf('%02X',($temp*2))));
 }
 
 =item C<heat_setpoint()>
@@ -220,8 +212,7 @@ sub heat_setpoint{
 		main::print_log("[Insteon::Thermostat] ERROR: heat_setpoint $temp not numeric");
 		return;
 	}
-	my $message = new Insteon::InsteonMessage('insteon_send', $self, 'thermostat_setpoint_heat', sprintf('%02X',($temp*2)));
-	$self->_send_cmd($message);
+	$self->_send_cmd($self->simple_message('thermostat_setpoint_heat', sprintf('%02X',($temp*2))));
 }
 
 =item C<poll_temp()>
@@ -412,6 +403,20 @@ sub _process_message
 		$clear_message = $self->SUPER::_process_message($p_setby,%msg);
 	}
 	return $clear_message;
+}
+
+## Creates either a Standard or Extended Message depending on the device type
+## Can be used to create different classes later
+sub simple_message {
+	my ($self,$type,$extra) = @_;
+	my $message;
+	if ($self->_aldb->isa('Insteon::ALDB_i2')){
+		$extra = $extra . "0000000000000000000000000000";
+		$message = new Insteon::InsteonMessage('insteon_ext_send', $self, $type, $extra);
+	} else {
+		$message = new Insteon::InsteonMessage('insteon_send', $self, $type, $extra);
+	}
+	return $message;
 }
 
 # Overload methods we don't use, but would otherwise cause Insteon traffic.
