@@ -7,7 +7,7 @@
 # su xyz 
 
 # Set current working directory to location of this script (bin/)
-cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$( cd "$( dirname "$0" )" && pwd )"
 
 while [ 1 = 1 ]; do 
 
