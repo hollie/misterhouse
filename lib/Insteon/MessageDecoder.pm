@@ -892,6 +892,13 @@ sub insteon_decode_cmd {
 }
 
 
+#Takes a 2 byte hex cmd, 0 for send, 1, for rec and returns expected byte length
+sub insteon_cmd_len{
+	my ($plm_cmd, $send_rec) = @_;
+	return $plmcmdlen{$plm_cmd}->[$send_rec]
+}
+
+
 =back
 
 =head1 SUPPORT
