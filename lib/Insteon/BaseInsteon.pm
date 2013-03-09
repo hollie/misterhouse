@@ -1434,6 +1434,13 @@ sub check_aldb_version
 			if $@ and $main::Debug{insteon};
 		package Insteon::BaseDevice;
 	}
+
+	if ($self->isa('Insteon::Thermostat')&& $self->_aldb->aldb_version() eq "I2"){
+		bless $self, 'Insteon::Thermo_i2';
+	}
+	elsif ($self->isa('Insteon::Thermostat')&& $self->_aldb->aldb_version() eq "I1"){
+		bless $self, 'Insteon::Thermo_i1';
+	}
 }
 
 

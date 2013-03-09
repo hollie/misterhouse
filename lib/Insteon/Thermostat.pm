@@ -108,7 +108,7 @@ my %message_types = (
 
 sub new {
    my ($class, $p_deviceid, $p_interface) = @_;
-
+print "[KRK] $class, $p_deviceid, $p_interface";
    my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
    bless $self, $class;
    $$self{temp} = undef; 
@@ -425,6 +425,19 @@ sub simple_message {
 sub request_status { return 0 }
 
 sub level { return 0 }
+
+
+package Insteon::Thermo_i1;
+use strict;
+
+@Insteon::Thermo_i1::ISA = ('Insteon::Thermostat');
+
+
+package Insteon::Thermo_i2;
+use strict;
+
+@Insteon::Thermo_i2::ISA = ('Insteon::Thermostat');
+
 
 1;
 =back
