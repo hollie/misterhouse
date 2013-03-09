@@ -738,6 +738,8 @@ sub _process_command_stack
                                 or $message->command eq 'do_read_ee'
                                 or $message->command eq 'set_address_msb'
                                 or $message->command eq 'read_write_aldb'
+                                or $message->command eq 'thermostat_control'
+                                or $message->command eq 'thermostat_get_zone_info'
                                 )
                         {
 				$$self{awaiting_ack} = 1;
