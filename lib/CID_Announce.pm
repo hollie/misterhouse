@@ -1,61 +1,75 @@
-use strict;
+=head1 NAME
 
-# $Revision$
-# $Date$
+B<CID_Announce>
 
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 SYNOPSIS
 
-File:
-	CID_Announce.pm
+Example initialization:
+  use CID_Announce;
+  $cid = new CID_Announce($telephony_driver,'Call from $name $snumber.');
 
-Description:
-	Announces a call.  CID with category of 'reject' will not be announced.
+Constructor Parameters:
+   ex. $x = new CID_Announce($y,$z);
+   $x              - Reference to the class
+   $y              - Telephony driver reference
+   $z              - Format for speaking
+        Following variables are substitued in ""
+        $name,$first,$middle,$last,$number,$fnumber
+        (formated),$snumber(speakable),$type,$category,$city,
+        $state,$time,$areacode,$prefix,$suffix,$soundfile
 
-Author:
-	Jason Sharpee
-	jason@sharpee.com
+Input states:
+  "cid"           - Caller ID event
+  "ring"          - Ring event 'to pass along to other consumers of this object'
 
-License:
-	This free software is licensed under the terms of the GNU public license.
+Output states:
+  "cid"  - Caller ID event
+  "ring" - Ring event 'to pass along to other consumers of this object'
 
-Usage:
+=head1 DESCRIPTION
 
-	Example initialization:
+Announces a call.  CID with category of 'reject' will not be announced.
 
-		use CID_Announce;
-		$cid = new CID_Announce($telephony_driver,'Call from $name $snumber.');
+=head1 INHERITS
 
-	Constructor Parameters:
-		ex. $x = new CID_Announce($y,$z);
-		$x		- Reference to the class
-		$y		- Telephony driver reference
-		$z		- Format for speaking
-				Following variables are substitued in ""
-				$name,$first,$middle,$last,$number,$fnumber
- 				(formated),$snumber(speakable),$type,$category,$city,
-				$state,$time,$areacode,$prefix,$suffix,$soundfile
+B<Telephony_Item>
 
-	Input states:
-		"cid"	        - Caller ID event
-		"ring"     	- Ring event 'to pass along to other consumers of this object'
+=head1 METHODS
 
-	Output states:
-		"cid"	        - Caller ID event
-		"ring"     	- Ring event 'to pass along to other consumers of this object'
+NONE
 
-	For example see g_phone.pl
+=head1 INI PARAMETERS
 
-Bugs:
-	There isnt a whole lot of error handling currently present in this version.  Drop me
-	an email if you are seeing something odd.
+NONE
+
+=head1 BUGS
+
+There isnt a whole lot of error handling currently present in this version.  Drop me an email if you are seeing something odd.
+
+=head1 AUTHOR
+
+Jason Sharpee
+jason@sharpee.com
 
 Special Thanks to:
-	Bruce Winter - MH
+Bruce Winter - MH
 
+=head1 SEE ALSO
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+For example see g_phone.pl
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
 =cut
+
+use strict;
+
 package CID_Announce;
 
 @CID_Announce::ISA = ('Telephony_Item');

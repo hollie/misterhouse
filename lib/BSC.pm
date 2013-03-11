@@ -1,30 +1,23 @@
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 NAME
 
-File:
-	BSC.pm
+B<BSC>
 
-Description:
-	xAP support for Basic Status and Control schema
+=head1 SYNOPSIS
 
-Author:
-	Gregg Liming
-	gregg@limings.net
+NONE
 
-License:
-	This free software is licensed under the terms of the GNU public license.
+=head1 DESCRIPTION
 
-Usage:
+xAP support for Basic Status and Control schema
 
-	Example initialization:
+=head1 INHERITS
 
+NONE
 
+=head1 METHODS
 
-Special Thanks to:
-	Bruce Winter - MH
+=over
 
-
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 =cut
 
 use strict;
@@ -48,7 +41,9 @@ package BSC_Item;
 @BSC_Item::ISA = ('Generic_Item');
 
 
-#Initialize class
+=item C<new> Initialize class
+=cut
+
 sub new
 {
    my ($class,$p_source_name, $p_writable) = @_;
@@ -80,8 +75,8 @@ sub _initialize
    $$self{device_state} = ();
 }
 
-# bsc_state is a very bad name and only exists to prevent overriding
-# mh's state member.  bsc_state maps to a BSC state
+=item C<bsc_state> bsc_state is a very bad name and only exists to prevent overriding mh's state member.  bsc_state maps to a BSC state
+=cut
 
 sub bsc_state {
    my ($self, $p_state) = @_;
@@ -134,13 +129,10 @@ sub writable {
    return $$self{m_write};
 }
 
-#
-# allow_local_set_state(flag) - sets the local flag to either 1 (true) or 0 (false);
-#         the default is true.  If flag is true, then the item's state is changed
-#         on a "programatic" set (i.e., local control).  If flag is false, then the
-#         item's state is changed only when the device acknowledges it's state change
-#         via a BSC event or info message
-#
+
+=item C<allow_local_set_state> allow_local_set_state(flag) - sets the local flag to either 1 (true) or 0 (false); the default is true.  If flag is true, then the item's state is changed on a "programatic" set (i.e., local control).  If flag is false, then the item's state is changed only when the device acknowledges it's state change via a BSC event or info message
+=cut
+
 sub allow_local_set_state {
    my ($self, $p_allow_local_set_state) = @_;
    $$self{m_allow_local_set_state} = $p_allow_local_set_state if defined $p_allow_local_set_state;
@@ -214,7 +206,7 @@ sub set
 #        print "Unable to process " . $self->{object_name} . "; state: $state\n" if $main::Debug{bsc};
 #        $state = '_unknown';
 #   }
-   
+
    # Always pass along the state to base class
    $self->SUPER::set_now($state,$p_setby, $p_respond) 
       unless ($state eq '_unknown' or $state eq '_unchanged' or $state eq '_masked');
@@ -341,6 +333,55 @@ sub query {
    &xAP::sendXapWithHeaderVars(@data2);
 }
 
+=back
+
+=head1 INI PARAMETERS
+
+NONE
+
+=head1 AUTHOR
+
+Gregg Liming
+gregg@limings.net
+
+Special Thanks to: Bruce Winter - MH
+
+=head1 SEE ALSO
+
+NONE
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+
+
+=head1 NAME
+
+B<BSCMH_Item>
+
+=head1 SYNOPSIS
+
+NONE
+
+=head1 DESCRIPTION
+
+NONE
+
+=head1 INHERITS
+
+NONE
+
+=head1 METHODS
+
+=over
+
+=cut
+
 
 package BSCMH_Item;
 
@@ -368,7 +409,9 @@ use constant OCCUPANCY_MONITOR         => 'Occupancy_Monitor';
 @BSCMH_Item::ISA = ('Generic_Item');
 
 
-#Initialize class
+=item C<new> Initialize class
+=cut
+
 sub new
 {
    my ($class,$p_device_family) = @_;
@@ -512,8 +555,9 @@ sub pending_device_state {
    }
 }
 
-# set's a device's state given the device's
-# ID, mode (input or output), state and optionally level and text
+=item C<set_device>  set's a device's state given the device's ID, mode (input or output), state and optionally level and text
+=cut
+
 sub set_device {
    my ($self, $id, $ref_state, $mode, $bsc_state, $bsc_level, $bsc_text) = @_;
    # set the device data in a "pending state" hash until it is committed
@@ -1038,3 +1082,31 @@ sub _init_object {
 }
 
 1;
+
+=back
+
+=head1 INI PARAMETERS
+
+NONE
+
+=head1 AUTHOR
+
+Gregg Liming
+gregg@limings.net
+
+Special Thanks to: Bruce Winter - MH
+
+=head1 SEE ALSO
+
+NONE
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
