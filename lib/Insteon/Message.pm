@@ -489,9 +489,6 @@ sub _derive_interface_data
 		if( length($cmd) < 40) {
 			main::print_log("[Insteon::InsteonMessage] WARN: insert_checksum "
 				. "failed; cmd to short: $cmd");
-use Carp;
-print Carp::longmess();
-
 		} else {
 			$cmd = substr($cmd,0,38).calculate_checksum(substr($cmd,8,30));
 		}
@@ -516,6 +513,42 @@ sub calculate_checksum {
 	my $sum = 0;
 	$sum += hex($_) for (unpack('(A2)*', $string));
 	return unpack( 'H2', chr((~$sum + 1) & 0xff));
+}
+
+=item C<calculate_crc16( string )>
+
+Calculates a two byte CRC value of string.  This two byte CRC differs from the 
+one byte checksum used in other extended commands. This CRC calculation is known
+to be used by the 2441TH Insteon Thermostat as well as the iMeter INSTEON device. 
+It may be used by other devices in the future.
+ 
+The calculation if the crc value involves data bytes from command 1 to the data 12 
+byte. This function will return two bytes, which are generally added to the 
+data 13 & 14 bytes in an extended message.
+
+=cut
+sub calculate_crc16
+{
+	#This function is nearly identical to the C++ sample provided by 
+	#smartlabs, with only minor modifications to make it work in perl
+	my ($string) = @_;
+	my $crc = 0;
+	for(unpack('(A2)*', $string))
+	{
+		my $byte = hex($_);
+	
+		for(my $bit = 0;$bit < 8;$bit++)
+		{ 
+			my $fb = $byte & 1;
+			$fb = ($crc & 0x8000) ? $fb ^ 1 : $fb;
+			$fb = ($crc & 0x4000) ? $fb ^ 1 : $fb;
+			$fb = ($crc & 0x1000) ? $fb ^ 1 : $fb;
+			$fb = ($crc & 0x0008) ? $fb ^ 1 : $fb;
+			$crc = (($crc << 1) & 0xFFFF) | $fb;
+			$byte = $byte >> 1;
+		}
+	}
+	return uc(sprintf("%x", $crc));
 }
 
 
