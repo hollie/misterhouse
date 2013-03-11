@@ -1,134 +1,98 @@
-# Package: AnalogSensor_Item
-# $Date$
-# $Revision$
+=head1 NAME
 
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+B<AnalogSensor_Item>
 
-Description:
+=head1 SYNOPSIS
 
-	This package provides a device-agnostic method of maintaining analog sensor
-        measurement collection, contains derivative utilities and mechanisms for
-        deriving state and/or associating action to sensor change.
+Declaration:
 
-Author:
-	Gregg Liming
-	gregg@limings.net
+- If declaring via .mht:
 
-License:
-	This free software is licensed under the terms of the GNU public license
+  ANALOG_SENSOR, indoor-t, indoor_temp, house_owx, Sensors, temp, hot_alarm=85, cold_alarm=62
 
-Usage:
+'indoor-t' is an identifier for the sensor that some other software will require to associate sensor data to this item.  'temp' is the sensor type.  Currently, only 'temp' and 'humid' are supported.  Additional types will be added in the future. house_owx is the one-wire "conduit" that populates AnalogSensor_Items.  Sensors is a group.  The tag=value data following "temp" are tokens.  More info on use of tokens is described below.
 
-     Declaration:
+- Alternatively, if declaring via code:
 
-        If declaring via .mht:
+  $indoor_temp = new AnalogSensor_Item('indoor-t', 'temp');
 
-        ANALOG_SENSOR, indoor-t, indoor_temp, house_owx, Sensors, temp, hot_alarm=85, cold_alarm=62
+=head1 DESCRIPTION
 
- 	'indoor-t' is an identifier for the sensor that some other software will
-        require to associate sensor data to this item.  'temp' is the sensor
-        type.  Currently, only 'temp' and 'humid' are supported.  Additional
-        types will be added in the future. house_owx is the one-wire "conduit" that
-        populates AnalogSensor_Items.  Sensors is a group.  The tag=value data
-        following "temp" are tokens.  More info on use of tokens is described below.
+This package provides a device-agnostic method of maintaining analog sensor measurement collection, contains derivative utilities and mechanisms for deriving state and/or associating action to sensor change.
 
-        Alternatively, if declaring via code:
+=head1 INHERITS
 
-	$indoor_temp = new AnalogSensor_Item('indoor-t', 'temp');
+B<Generic_Item>
 
-     Operations:
+=head1 METHODS
 
-	measurement(measurement,timestamp,skipdelta) - updates the measurement
-		data maintained by this item if measurement, etc are provided;
-		otherwise the last measurement value is returned.
+=over
 
-	map_to_weather(weather_hash_memberi, graph_title) - copies any measurement
-                update to the Weather hash specified by weather_hash_member.
-                If graph_title is supplied, it will replace the default graph title
-                used by code/common/weather_rrd_update.pl to display titles.
-                Note that if graph_title is used, then you must consistently use
-                this with all sensors or specify the titles via the ini parm:
-                weather_graph_sensor_names.
+=item C<measurement(measurement,timestamp,skipdelta)> updates the measurement data maintained by this item if measurement, etc are provided; otherwise the last measurement value is returned.
 
-	get_average_change_rate(number_samples) - returns the average change
-		rate over number_samples.  In general, number_samples should be
-		> 1 since a very low delta time between previous and current
-		measurement can make the change rate artificially high.
-		Specifying longer numbers will provide more smoothing.  If
-		fewer samples exist than number_samples, the existing number will
-		be used.
+=item C<map_to_weather(weather_hash_memberi, graph_title)> copies any measurement update to the Weather hash specified by weather_hash_member. If graph_title is supplied, it will replace the default graph title used by code/common/weather_rrd_update.pl to display titles.  Note that if graph_title is used, then you must consistently use this with all sensors or specify the titles via the ini parm: weather_graph_sensor_names.
 
-	apply_offset(offset) - applies an offset to the measurement value.  Enter
-		a negative number to apply a negative offset.  This is useful to
-		compensate for linear temperature shifts.
+=item C<get_average_change_rate(number_samples)> returns the average change rate over number_samples.  In general, number_samples should be > 1 since a very low delta time between previous and current measurement can make the change rate artificially high.  Specifying longer numbers will provide more smoothing.  If fewer samples exist than number_samples, the existing number will be used.
 
-        token(tag,value) - adds "value" as a "token" to be evaluated during state
-                and/or event condition checks; or, returns "token" if only "tag"
-                is supplied.  A token is referenced in a condition
-                using the syntax: $token_<tag> where <tag> is tag.  See
-                tie_state_condition example below.
+=item C<apply_offset(offset)> applies an offset to the measurement value.  Enter a negative number to apply a negative offset.  This is useful to compensate for linear temperature shifts.
 
-	remove_token(tag) - removes the token from use. IMPORTANT: do not remove
-                a token before first removing all conditions that depend on it.
+=item C<token(tag,value)> adds "value" as a "token" to be evaluated during state and/or event condition checks; or, returns "token" if only "tag" is supplied.  A token is referenced in a condition using the syntax: $token_<tag> where <tag> is tag.  See tie_state_condition example below.
 
-	tie_state_condition(condition,state) - registers a condition and state value
-		to be evaluated each measurement update.  If condition is true and
-		the current item's state value is not "state", then the state value
-		is changed to "state".  Note that tieing more than one condition
-		to the same state--while supported--is discouraged as the first
-		condition that "wins" is used; no mechanism exists to determine
-		the order of condition evaluation.
+=item C<remove_token(tag)> removes the token from use. IMPORTANT: do not remove a token before first removing all conditions that depend on it.
 
-		$indoor_temp->tie_state_condition('$measurement > 81 and $measurement < 84',hot);
+=item C<tie_state_condition(condition,state)> registers a condition and state value to be evaluated each measurement update.  If condition is true and the current item's state value is not "state", then the state value is changed to "state".  Note that tieing more than one condition to the same state--while supported--is discouraged as the first condition that "wins" is used; no mechanism exists to determine the order of condition evaluation.
 
-                # use tokens to that the condition isn't "hardwired" to a constant
-                $indoor_temp->token('danger_sp',85);
-		$indoor_temp->tie_state_condition('$measurement > $token_danger_sp',dangerhot);
+  $indoor_temp->tie_state_condition('$measurement > 81 and $measurement < 84',hot);
 
-		In the above example, the state is changed to hot if it is not already hot AND
-		the mesaurement is between 81 and 84. Similarly, the state is change to
-		dangerhot if the state is not already dangerhot and exceeds 85 degrees.
-		Note that the state will not change if the measurement is greater than 84
-		degrees--which is the "hot" condition--until it reaches the "dangerhot"
-		condition.  This example illustrates a 1 degree hysteresis (actually, greater
-		than 1 degree if the measurement updates do not provide tenths or greater
-		precision).
+  # use tokens to that the condition isn't "hardwired" to a constant
+  $indoor_temp->token('danger_sp',85);
+  $indoor_temp->tie_state_condition('$measurement > $token_danger_sp',dangerhot);
 
-		It is important to note in the above example that single quotes are used
-		since the string "$measurement" must not be evaluated until the state
-		condition is checked.  There are a number of "built-in" condition variables
-		which are referenced via tokens.  The current set of tokens is:
+In the above example, the state is changed to hot if it is not already hot AND the mesaurement is between 81 and 84. Similarly, the state is change to dangerhot if the state is not already dangerhot and exceeds 85 degrees. Note that the state will not change if the measurement is greater than 84 degrees--which is the "hot" condition--until it reaches the "dangerhot" condition.  This example illustrates a 1 degree hysteresis (actually, greater than 1 degree if the measurement updates do not provide tenths or greater precision).
 
-		$measurement - the current measurement value
-		$measurement_change - the difference between the previous value and the
-			most recent value.  Note that this may be 0.
-		$time_since_previous - the different in time between the previous value
-			and the most recent value.  The resolution is milliseconds.
-		$recent_change_rate - the average change rate over the last three samples
-		$state - the state of the item
+It is important to note in the above example that single quotes are used since the string "$measurement" must not be evaluated until the state condition is checked.  There are a number of "built-in" condition variables which are referenced via tokens.  The current set of tokens is:
 
-        measurement_change - returns the most current change of measurement values
+  $measurement - the current measurement value
+  $measurement_change - the difference between the previous value and the most recent value.  Note that this may be 0.
+  $time_since_previous - the different in time between the previous value and the most recent value.  The resolution is milliseconds.
+  $recent_change_rate - the average change rate over the last three samples
+  $state - the state of the item
 
-	untie_state_condition(condition) - unregisters condition.  Unregisters all
-		conditions if condition is not provided.
+=item C<measurement_change> returns the most current change of measurement values
 
-	tie_event_condition(condition,event) - registers a condition and an event.
-		See tie_state_condition for an explanation of condition.  event is
-		the code or code reference to be evaluated if condition is true.
-		Since tied event conditions are evaluated for every measurement update,
-		be careful that the condition relies on change-oriented variables
-		and/or that the internal logic of "event" ensure against more frequent
-		execution than is desired.
+=item C<untie_state_condition(condition)> unregisters condition.  Unregisters all conditions if condition is not provided.
 
-	untie_event_condition(condition) - same as untie_state_condition except applied
-		to tied event conditions.
+=item C<tie_event_condition(condition,event)> registers a condition and an event.  See tie_state_condition for an explanation of condition.  event is the code or code reference to be evaluated if condition is true.  Since tied event conditions are evaluated for every measurement update, be careful that the condition relies on change-oriented variables and/or that the internal logic of "event" ensure against more frequent execution than is desired.
 
-	id(id) - sets id to id.  Returns id if id not present.
+=item C<untie_event_condition(condition)> same as untie_state_condition except applied to tied event conditions.
 
-	type(type) - set type to type (temp or humid). Returns type if not present.
+=item C<id(id)> sets id to id.  Returns id if id not present.
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=item C<type(type)> set type to type (temp or humid). Returns type if not present.
+
+=back
+
+=head1 INI PARAMETERS
+
+NONE
+
+=head1 AUTHOR
+
+Gregg Liming
+gregg@limings.net
+
+=head1 SEE ALSO
+
+NONE
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
 =cut
 
 
@@ -469,51 +433,66 @@ sub add
     push @{$$self{m_objects}}, $p_object if $p_object->isa('AnalogAveraging_Item');
 }
 
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 NAME
 
-Description:
+B<AnalogRangeSensor_Item>
 
-        This package provides is a derivative AnalogSensor to provide 'range' type functionality.
+=head1 SYNOPSIS
 
-Author:
-        Gregg Liming / Howard Plato
-        gregg@limings.net
+If declaring via .mht:
 
-License:
-        This free software is licensed under the terms of the GNU public license
-Usage:
+  ANALOG_SENSOR_R, attribute, object, xap instance, group, type, alert_lo, warning_low, warning_high, alert_high
 
-     Declaration:
+'attribute' is an identifier for the sensor that some other software will require to associate sensor data to this item.  'type' is the sensor type.  Currently, only 'temp' and 'humid' are supported from owx, and disk, network, cpu, temps, swap, and memory from sdx. Additional types will be added in the future. xap instance is the xap "conduit" that populates AnalogRangeSensor_Items.  group is a group. The ranges work out as follows:
 
-        If declaring via .mht:
+  state = alert_low    if measurement < alert_low
+  state = warning_low  if alert_low < measurement < warning_low
+  state = normal       if warning_low < measurement < warning_high
+  state = warning_high if warning_high < measurement < alert_high
+  state = alert_high   if measurement > alert_high
 
-        ANALOG_SENSOR_R, attribute, object, xap instance, group, type, alert_lo, warning_low, warning_high, alert_high
+note if the sensor is not upper or lower bound, then the appropriate bounds should be omitted.
 
-        'attribute' is an identifier for the sensor that some other software will
-        require to associate sensor data to this item.  'type' is the sensor
-        type.  Currently, only 'temp' and 'humid' are supported from owx, and
-	disk, network, cpu, temps, swap, and memory from sdx. Additional
-        types will be added in the future. xap instance is the xap "conduit" that
-        populates AnalogRangeSensor_Items.  group is a group. The ranges work out as follows:
+Alternatively, if declaring via code:
 
-	state = alert_low    if measurement < alert_low
-	state = warning_low  if alert_low < measurement < warning_low
-	state = normal       if warning_low < measurement < warning_high
-	state = warning_high if warning_high < measurement < alert_high
-	state = alert_high   if measurement > alert_high
+  $server_hda1 = new AnalogRangeSensor_Item('sda1.free', 'disk', 50000, 100000);
+  $server_load = new AnalogRangeSensor_Item('loadavg1', 'cpu', , , 4, 6);
 
-	note if the sensor is not upper or lower bound, then the appropriate bounds should be
-	omitted.
+TODO: More generic states if requested
 
-        Alternatively, if declaring via code:
+=head1 DESCRIPTION
 
-        $server_hda1 = new AnalogRangeSensor_Item('sda1.free', 'disk', 50000, 100000);
-	$server_load = new AnalogRangeSensor_Item('loadavg1', 'cpu', , , 4, 6);
+This package provides is a derivative AnalogSensor to provide 'range' type functionality.
 
-	TODO: More generic states if requested
+=head1 INHERITS
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+B<AnalogSensor_Item>
+
+=head1 METHODS
+
+NONE
+
+=head1 INI PARAMETERS
+
+NONE
+
+=head1 AUTHOR
+
+Gregg Liming / Howard Plato
+gregg@limings.net
+
+=head1 SEE ALSO
+
+NONE
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
 =cut
 
 package AnalogRangeSensor_Item;
@@ -627,41 +606,60 @@ print "[AnalogRangeSensor_Item] Condition Normal: $condition \n" if $main::Debug
    return $self;
 }
 
+=head1 NAME
 
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+B<name> - desc
 
-Description:
+=head1 SYNOPSIS
 
-        This package provides an ability to average measurement reports from multiple
-        AnalogSensor_Items.  Because it inherits from AnalogSensor_Items, all operations
-        that AnalogSensor_Item permits are also supported.
+If declaring via .mht:
 
+  # first declare the sensors
+  ANALOG_SENSOR, indoor1-t, indoor_temp1, house_owx, Sensors, temp
+  ANALOG_SENSOR, indoor2-t, indoor_tem2p, house_owx, Sensors, temp
 
-     Declaration:
+  # then, declare the averaging item:
+  ANALOG_AVERAGE, indoor_temp1, indoor_temp, hot_alarm=85, cold_alarm=62
+  ANALOG_AVERAGE, indoor_temp2, indoor_temp
 
-        If declaring via .mht:
+Note that the use of tokens is applied on only the first declaration.  Any token use on subsequent declarations is ignored.
 
-        # first declare the sensors
-        ANALOG_SENSOR, indoor1-t, indoor_temp1, house_owx, Sensors, temp
-        ANALOG_SENSOR, indoor2-t, indoor_tem2p, house_owx, Sensors, temp
+=head1 DESCRIPTION
 
-        # then, declare the averaging item:
-        ANALOG_AVERAGE, indoor_temp1, indoor_temp, hot_alarm=85, cold_alarm=62
-        ANALOG_AVERAGE, indoor_temp2, indoor_temp
+This package provides an ability to average measurement reports from multiple AnalogSensor_Items.  Because it inherits from AnalogSensor_Items, all operations that AnalogSensor_Item permits are also supported.
 
- 	Note that the use of tokens is applied on only the first declaration.
-        Any token use on subsequent declarations is ignored.
+=head1 INHERITS
 
+B<AnalogSensor_Item>
 
-     Operations:
+=head1 METHODS
 
-	sensor_timeout(timeout) - changes the default timeout from 3600 seconds to
-        	<timeout> seconds.  Any measurement report that exceeds the timeout
-                is ignored for the purpose of averaging.  This keeps "stale"
-                measurements from adversely impacting averaging
+=over
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=item C<sensor_timeout(timeout)> changes the default timeout from 3600 seconds to <timeout> seconds.  Any measurement report that exceeds the timeout is ignored for the purpose of averaging.  This keeps "stale" measurements from adversely impacting averaging
+
+=back
+
+=head1 INI PARAMETERS
+
+NONE
+
+=head1 AUTHOR
+
+UNK
+
+=head1 SEE ALSO
+
+NONE
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
 =cut
 
 package AnalogAveraging_Item;
