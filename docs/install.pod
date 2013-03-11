@@ -1,91 +1,99 @@
 =pod
 
-=head1 Mister House Install Instructions
+=head1 MisterHouse Install Instructions
 
-=begin html
-This file (mh/docs/install.html) is for the installation instructions.
-The main Mister House documentation is in <a href="mh.html">mh.html</a>.
-A list of update announcements is in <a href="updates.html">updates.html</a>
-There is also a <a href="faq.html">faq.html</a> to cover misc. topics and a
-<a href=http://misterhouse.wikispaces.com>TWiki web-based collaboration site</a>
+This file (docs/install.html) is for the installation instructions.
+The main MisterHouse documentation is in L<mh|mh>.  
+A list of update announcements is in L<updates|updates>.  
+There is also a L<FAQ|faq> to cover misc. topics and a
+TWiki web-based collaboration site at L<http://misterhouse.wikispaces.com>
 for other user-supplied documentation.
 
-Gordon Meyer wrote a <a href="get_to_know_mh.html"> nice getting started article</a>.
+=begin html
 
+Gordon Meyer wrote a somewhat dated but still nice <a href="get_to_know_mh.html"> getting started article</a>.
 
 =end html
 
 =head1 System Requirements
 
-Mister House has been tested on all the Windows OSes (95, 98, ME, NT, 2000, XP)
+MisterHouse has been run on all the Windows OSes
 and the unix OSes Linux, FreeBSD, AIX, and Mac OSX.  In theory, much
-of the function should run on any platform that can run Perl.
+of the functionality should work on any platform that can run Perl.
 
-The core Mister House code will use between 10 and 30 Megabytes of memory.
-On Windows, the VR (Voice Recognition) function
-takes about 10 MB and the TTS (Text To Speech) function takes about 15 MB.  On Linux, the Festival TTS engine
-takes about 20-30 MB of memory.  So, with TTS enabled, on Windows you can get by with 32 Meg, but you will
-need 64 Meg or more to run with low speech latency.
-See FAQ question 1.2 for more info on memory usage.
-
-The cpu time used -vs- loops per second is controllable.  On a 100 MHz Pentium with a 100 ms sleep time,
-mh uses about 20% of the cpu and gets about 8 passes per second.
-
+In Windows L<http://www.activestate.com/activeperl/> from ActiveState is 
+known to be compatible.  The most recent version known to work is
+Perl 5.12 but later versions may work as well.  The minimum Perl version is 5.8.
 
 =head1 Quick Install Instructions
 
-These are the quick instructions for those of you who, like me, don't like to read instructions:
+These are the quick instructions for those of you who just want to kick the tires.  
+If you decide you want to use MisterHouse in a more meaningful way you should look 
+at the detailed instructions which covers, among other things, separating your local 
+files from the MisterHouse distribution to make upgrades easier.
 
 =head2 Windows users
 
- - Download the the misterhouse_src_###.zip and misterhouse_win_###.zip files
-   from  http://misterhouse.net/download
+=over
 
- - cd to where you want the mh directory created in (e.g. c:\misterhouse).
-   Avoid directories with spaces in the name (e.g. \program files\)
+=item *
 
- - unzip \downloads\misterhouse_src_###.zip (wherever you downloaded it to)
+Download the the MisterHouse stable zip file from the L<download page|download> 
 
- - unzip \downloads\misterhouse_win_###.zip (wherever you downloaded it to)
+=item *
 
- - cd mh\bin
+unzip the downloaded file with your favorite unzip tool or Windows explorer.  
+Avoid parent directories with spaces in the name (e.g. c:\program files\)
 
- - mh.bat (this will call mhe.exe if it exists or 'perl mh')
+=item *
+
+Open a Windows Command Prompt and cd into the C<\bin> directory where you unziped MisterHouse
+
+=item *
+
+C<cd misterhouse-stable\bin>
+
+=item *
+
+C<mh.bat> (this will call mhe.exe if it exists or 'perl mh')
+
+=back
+
+This is not the preferred way to run MisterHouse for long term use but will get you 
+started quickly if you just want to check out the capabilities.  Later you should 
+create separate code/* and data/* directories so that you can upgrade MisterHouse 
+without overwriting your own customizations.
 
 Note: Some old zip programs (e.g. winzip 5.6) may not preserve long file names.
 This program works ok:  http://misterhouse.net/public/unzip.exe
 
 =head2 Unix users
 
- - Download the the latest tar, or zip file
-   from http://misterhouse.net/download
+=over
 
+=item *
+
+Change into a base directory where you want MisterHouse to live
+
+=item *
+
+Download the the latest zip file from the L<download page|download>
 
 =begin comment
 
+- If using the rpm file:
 
- - If using the rpm file:
-     rpm -i misterhouse-#.##-1.noarch.rpm
-     docs are installed to /usr/doc/misterhouse-#.##, everything else is in /usr/local/mh
+C<rpm -i misterhouse-#.##-1.noarch.rpm>
 
-
- - If are running with a recent Linux which has a recent libc.so
-     (ls -l /lib/libc.so* and look ver a version > 2.2.93, like on RH 8 or higher)
-     and don't want to bother with installing the various optional perl modules,
-     download and unzip the mhe file from misterhouse-#.##.linux.zip into the mh/bin
-     dir and run mhe instead.  Note: one of the above files are still required,
-     as they have the documentation and support files.
+docs are installed to /usr/doc/misterhouse-#.##, everything else is in /usr/local/mh
 
 =end comment
 
+=item *
 
- - If using the tar file:
-     cd to where you want it the mh directory created in (e.g. cd /projects/misterhouse)
-     tar -xzvf misterhouse-#.##.tar.gz
+Unzip the file: C<unzip -aU stable.zip>
 
- - If using the zip file:
-     cd to where you want it the mh directory created in (e.g. cd /projects/misterhouse)
-     unzip -aU /downloads/misterhouse_src_###.zip (wherever you downloaded it to)
+=begin comment  I don't think this is needed anymore
 
  - Run Configure to convert C serial headers to perl headers:
     - cd mh/bin
@@ -94,107 +102,97 @@ This program works ok:  http://misterhouse.net/public/unzip.exe
     - ./configure
     - exit (to switch back from root)
 
- - ./mhl (if that doesn't work, try: mh or perl mh)
+=end comment
 
- - If you are running rh 8 or rh 9, you may see a memory leak which you can avoid with
-   by setting this env var: export LANG=C   (set in the mhl script)
+=item *
+
+C<cd misterhouse-stable/bin>
+
+=item *
+
+C<./mhl> (if that doesn't work, try: C<mh> or C<perl mh>)
+
+If you are running rh 8 or rh 9, you may see a memory leak which you can avoid with
+by setting this env var: C<export LANG=C>   (set in the mhl script)
+
+=item *
+
+C<ctl-c> will terminate the program
+
+=back
 
 =head2 Tips
 
 Point your web browser to http://localhost:8080 and try out a few commands.
 You can search or list commands using the 'Search String' menu from the
-Search icon in the upper right of the default /ia5 web page.  To list all commands, search on a blank string.
+Search icon in the upper right of the default C</ia5> web page.  To list all commands, search on a blank string.
 
 
-The default setup runs only a few core scripts from mh/code/common directory (listed in data_dir/code_select.txt).
+The default setup runs only a few core scripts from C<code/common> directory (listed in C<data_dir/code_select.txt>).
 You can use the http://localhost:8080/bin/code_select.pl menu
-(default web page -> MhHouse Home -> Setup MrHouse -> Common Code Activation) to select other standard code files you want to run.
+(default web page -> MrHouse Home -> Setup MrHouse -> Common Code Activation) to select other standard code files you want to run.
 
 To quickly test many of the code files, run:
 
   mh -code_select code_select_test.txt
 
 To use less memory and cpu, or if you get graphics related errors,
-you can run without the local gui inteface with:  mh -tk 0
+you can run without the local gui inteface with:  C<mh -tk 0>
 
-Also try 'telnet localhost 1234' and type one of the commands you saw on the
-web interface (e.g. 'say something mean' from mh/code/common/goofy.pl).
+Also try C<telnet localhost 1234> and type one of the commands you saw on the
+web interface (e.g. C<say something mean> from C<code/common/goofy.pl>).
 
-=begin html
-See <a href="#Coding_your_own_events">Coding your own events</a> for info on how to customized mh.
-<a href="updates.html">
-
-=end html
+See L</Coding your own events> for info on how to customized MisterHouse.
 
 =head1 Windows Detailed Install Instructions
 
-=head2 Windows Step 1, Download and Install Mister House
+=head2 Step 1: Download and Install MisterHouse
 
-I you already have perl installed, you only need to download the main misterhouse_src_###.zip package.  If you do not have perl
-installed, you will also need to download the compiled mhe.exe file, which is in the misterhouse_win_###.zip package.
-Both are available from http://misterhouse.net/download .
+I you already have perl installed, you only need to download the 
+stable zip file.  See the L<download page|download> for instructions.
 
-The 2 MB misterhouse_src_###.zip file installs into 5 MB of disk space.
-The misterhouse_win_###.zip takes an additional 3 MB of disk space.
-The compiled version is not any faster, it is just more convenient
-if you do not need Perl installed for any other programs.
+Change to the drive/directory you want MisterHouse installed to (e.g. C<c:\>). 
+Avoid directories with spaces in the name (e.g. C<c:\program files\>). 
+Files/dirs with spaces in them require special handling in perl code and 
+MisterHouse has not been written with this in mind. Now unzip the file(s) using your un-zipper of choice
+(use the C<-d> if using pkunzip to preserve the directory structure). 
+Look in the C<misterhouse-stable/lib> directory to
+make sure long file names were preserved (e.g. C<http_server.pl>).  If not, you can download unzip from
+L<http://misterhouse.net/public/unzip.exe>.
 
-Change to the drive/directory you want mh installed to (e.g. c:\misterhouse).
-Avoid directories with spaces in the name (e.g. \program files\).
-Files/dirs with spaces in them complicates perl code, as you have to then quote file names for the space valid.
-Now unzip the file(s) using your un-zipper of choice
-(use the -d if using pkunzip to preserve the directory structure).
-Look in the mh/lib directory to
-make sure long file names were preserved (e.g. http_server.pl).  If not, you can download unzip from
-http://misterhouse.net/public/unzip.exe .
-
-=head2 Windows Step 2, Download and Install Perl
-
-You can skip this step if you downloaded the compiled version of Mister House.
+=head2 Step 2: Download and Install Perl
 
 Download and install Perl version 5.8 (or higher) from
-http://www.activestate.com/ActivePerl .
-The 12 MB zip file installs into about 43 MB of disk space.
-The also have older vesions older versions available while will work, but 5.6 had a memory leak problem and 5.0 is, well, kind of old :)
+http://www.activestate.com/ActivePerl.
 
 After installing the core Perl package, you will likely want to install a few optional packages.
-mh will run without them, but they are easy to install and give it more function.
+MisterHouse will run without them, but they are easy to install and give it more functionality.
 Activestate has provided ppm (Perl Package Manager), a nifty way of automatically downloading and installing packages.
-Unfortunatly, some of the packages we need are not yet avaliable from ActiveState for perl version 5.8,
-but Randy Kobes has kindly made them available at his site. You can install them with the following:
+You will need to retrieve the following packages using the ActivePerl PPM:
 
-   > cd \perl\bin (modify to match your directory)
-   > ppm
-   ppm > repository add http://theoryx5.uwinnipeg.ca/ppms
-   ppm> install GD
-   ppm> install DB_File
-   ppm> install Tk-JPEG
-   ppm> install Win32-Setupsup
-   ppm> install DBI        (if you want to interface to a database server)
-   ppm> install DBD-mysql  (if you want to interface with a mysql server)
-   ppm> install Scalar-List-Utils (if you want AOL im)
-   ppm> exit
+   GD
+   DBI
+   DBD-mysql
+   Scalar-List-Utils (if you want AOL im)
+   Tk (if you want the Tk interface rather than the HTML interface)
+
+=begin comment
 
 The DB_File post-install script doesn't seem to work for most people, so you will need to copy the libdb.dll
-file from
-from http://theoryx5.uwinnipeg.ca/ppms/x86/DB_File.tar.gz or http://misterhouse.net/public/libdb.dll
-to your \perl\site\lib\auto direcotory, or some other directory in your path.
+file from http://misterhouse.net/public/libdb.dll to some other directory in your path.
 
-If you are behind a www proxy firewall, try setting the environment variable http_proxy=http://proxy-server:port
-If you have problems installing the files with ppm over the internet, you can download the files
-and install them from local storage. For example, to install the Tk package:
+=end comment
 
-  download and unzip Tk.zip from http://www.activestate.com/PPMPackages/zips to c:\temp
-  ppm install c:\temp\Tk.ppd
+All other required packages should either be in the MisterHouse distribution or is now installed by default in the
+standard Activestate distribution, including the Tk module (used to be separate).
 
-All other required packages should either be in the mh distribution or is now installed by default in the
-standard Activestate distribution, including the Tk module (used to be seperate).
+=head2 Step 3: Download and Install the Speech Engines
 
-
-=head2 Windows Step 3, Download and Install the Speech Engines
+NOTE:  This is old information for older versions of Windows.  Windows XP and later
+come with TTS installed.
 
 You can skip this step if you do not want to enable TTS and VR, but much of the fun of
-Mister House comes from the 2-way speech.
+MisterHouse comes from the 2-way speech.
 If you are running Windows 2000 or XP, the older V4 TTS engine is probably already installed.
 
 If you are running Win95, the Perl OLE interface to the MS speech engines
@@ -204,11 +202,11 @@ http://www.microsoft.com/com/dcom/dcom95/dcom1_3.asp .
 
 If you are running an older Win98, you will need the DCOM 1.3 update, available from:
 http://www.microsoft.com/com/dcom/dcom98/dcom1_3.asp .
-If you don't have this update, mh will run, but you may occasionally see windows (like control pannel or install shield)
+If you don't have this update, MisterHouse will run, but you may occasionally see windows (like control panel or install shield)
 not start right away, especially if you run without the Tk interface (mh -tk 0).
 
 You can use either the old 4.0 or new 5.1 or both Microsoft speech engines.
-The 5.1 VR engine does not work in mh yet, due to a perl problem handeling COM events.
+The 5.1 VR engine does not work in MisterHouse yet, due to a perl problem handling COM events.
 The 5.1 TTS engine has more options (e.g. on the fly voice selection, XML flag support),
 but does not work on Win 95.
 You can have both V4 and V5 TTS engines installed, and select which to use with the voice_text=MSV4 or MSV5 mh.ini parm.
@@ -253,42 +251,39 @@ The SDK comes with the voices  MS Mike, Sam, Mary, and (optional) Japanese and C
 
 The AT&T Natural Voices TTS engine ( http://www.naturalvoices.com ) is the best sounding TTS engine yet.
 AT&T no longer sells them from their site, but you can get 2 voices from http://www.nextup.com/attnv.html
-for abour $40 ($25 for the voices, $15 for a nextup product, required to qualify for the voices).
+for about $40 ($25 for the voices, $15 for a nextup product, required to qualify for the voices).
 Additional voices are $35.
 
-Another new source of greate voices is from Cepstral at http://www.cepstral.com . Lots of voices for Windows and linux for $30 each.
+Another new source of great voices is from Cepstral at http://www.cepstral.com . Lots of voices for Windows and Linux for $30 each.
 
 
 =head1 UNIX Detailed Install Instructions
 
-=head2 UNIX Step 1, Download and Install Mister House
+=head2 Step 1: Download and Install MisterHouse
 
-If you are running Debian, Russ Knize created a Debian package, available here: http://www.knizefamily.net/russ/software/misterhouse.html .
-Some have reported problems with this and have better luck with the standard tar file on Debian.
-
-Otherwise, download the tar, or zip file from http://misterhouse.net/download .
+Download the stable zip file.  See the L<download page|download> for instructions.
 
 Install the file as detailed in the quick install instructions.
 
-If you choose to use the zip file instead, make sure you
+Make sure you
 use the -a to automatically get rid of those pesky /r characters that DOS like to add to newlines.
 Also, the unzip -U switch (contrary to what the help text says),
 will be needed on newer versions of unzip to preserve case on filenames.
 
-Make sure you run the configure script, even if you used the rpm file.
+You may need to run the configure script, even if you used the rpm file.
 This will convert C serial headers to perl headers and (if you used the zip file)
 delete dos/windows only files, and 'chmod +x' on the files in the bin directory.
 
-If you get a "could not find ioctl" message when starting mh, that indicates
+If you get a "could not find ioctl" message when starting MisterHouse, that indicates
 that an include file (or one of its dependencies) defining some of the serial 
 port details could not be found. 
 These definitions are in different files for different distributions and the
 configuration script has logic to look for many of them.  Note that the
 configuration script may generate errors finding some files that are not
-actually needed and can be ignored.    If mh does output "could not find
+actually needed and can be ignored.    If MisterHouse does output "could not find
 ioctl" after running the configuration script then debug can be turned on
 (edit the mh/lib/site/Device/SerialPort.pm file and make $DEBUG=1) and the
-program will then output which files it cannot find when mh is run.  Note
+program will then output which files it cannot find when MisterHouse is run.  Note
 that this may also generate errors for files that are not on your system and
 not required.  Probably, only ONE of the files needs to be found.  The needed file
 will have the same name but a .h extension rather than .ph.  The .ph file
@@ -301,17 +296,15 @@ To allow non-root users to run the bin/set_clock function, run this command:
 
  chmod ug+s /bin/date
 
-There are various examples of how to start/stop mh in mh/bin/misterhouse*.rc
+There are various examples of how to start/stop MisterHouse in mh/bin/misterhouse*.rc
 
 
-=head2 UNIX Step 2, Download and Compile Perl
+=head2 Step 2: Download and Compile Perl
 
 Most, if not all, UNIX installations now have perl installed by default.  If for some reason, yours does not
 or if it is an older version of perl, you can downloaded the latest from http://www.perl.com .
 
-Run 'perl -v' to show your version ... anything above 5.005 should be fine.
-Redhat 5.2 comes with 5.004, which works OK, but we have had some problems
-compiling the Tk modules 5.004, so you may want to upgraded to 5.005 or higher.
+Run 'perl -v' to show your version ... anything at or above 5.8 should be fine.
 
 If you want to use
 the Tk interface (used to display logs and various pop-up messages), make sure that the perl Tk package is installed as well.
@@ -335,7 +328,7 @@ also try the CPAN installer like this:
   cpan> exit
 
 The first time you run the CPAN code, it creates a configuration file.
-The defaults (press enter a bunch of times) usually is good for all questinos except the one that ones
+The defaults (press enter a bunch of times) usually is good for all questions except the one that ones
 you to pick which site to download from.
 
 You may need to type "export FTP_PASSIVE=1"
@@ -345,16 +338,6 @@ behind some firewalls and/or if your ISP caches ftp sessions. By exporting
 the FTP_PASSIVE variable prior to running the CPAN installer session,
 passive connections will be used instead.
 
-=begin comment 
-
-If are running with a recent Linux which has a recent libc.so
-(ls -l /lib/libc.so* and look ver a version > 2.2.93, like on RH 8 or higher)
-you can also try the compiled version of mhe in misterhouse-#.##.linux.zip.
-This might be useful if you have troubles with the above CPAN installs or if you have a older (or newer) version
-of perl that has some sort of problem (e.g. memory leak).
-
-
-=end comment
 
 
 Dependencies for above modules:
@@ -369,13 +352,13 @@ The perl install files contain README files which explain their dependencies.
 
 There are some example start/stop/restart .rc files in mh/bin/misterhouse*.rc
 
-=head2 UNIX Step 3, Download and Install a Speech Engines
+=head2 Step 3: Download and Install a Speech Engines
 
 You can skip this step if you do not want to enable VR or TTS.
 
-The simplest and fastest TTS engine is flite, availale from http://www.speech.cs.cmu.edu/flite .
+The simplest and fastest TTS engine is flite, available from http://www.speech.cs.cmu.edu/flite .
 After compiling, point to where the flite binary is with the voice_text_file parm and set voice_text = flite.
-If on linux, you can pick up a copy (3 meg, 7 meg unziped) here: http://misterhouse.net/public/flite.gz
+If on Linux, you can pick up a copy (3 meg, 7 meg unziped) here: http://misterhouse.net/public/flite.gz
 
 The Festival Speech engine is available from
 http://www.cstr.ed.ac.uk/projects/festival/download.html .
@@ -408,7 +391,7 @@ http://tcts.fpms.ac.be/synthesis/mbrola.html
 that has a very nice US english male and female voice.
 Other source for festival voices can be found here:  http://festvox.org/contrib.html
 
-Once you have the festival server running, you can enable mh to use it with mh.ini parms voice_text and festival_port.
+Once you have the festival server running, you can enable MisterHouse to use it with mh.ini parms voice_text and festival_port.
 
 To set the default voices, find your siteinit.scm file and have fun with the following:
 
@@ -426,15 +409,15 @@ $30 per voice, for either Linux or Windows.
 Set mh.ini parm voice_text=swift and modify voice_text_swift to point to the swift binary.
 
 
-Prior to 11/2002, for $150, you can get 2 nice voices with AT&T Natural Voices TTS linux engine here:
+Prior to 11/2002, for $150, you can get 2 nice voices with AT&T Natural Voices TTS Linux engine here:
  http://www.naturalvoices.com (additional voices cost $70), but for some reason, they no longer sell them from there.
-Have not tried it, but this site is selling linux voices for $50 each:
+Have not tried it, but this site is selling Linux voices for $50 each:
  https://secure.wizzardsoftware.com/voice/wizzshop1/nvshoplinux2.asp
 
-If you have the linux binary, use the voice_text_naturalvoice parm to point to
+If you have the Linux binary, use the voice_text_naturalvoice parm to point to
 where you have it installed and set voice_text=naturalvoice.
 
-If you only have the windows binary, you can now use Wine to run it from linux.
+If you only have the windows binary, you can now use Wine to run it from Linux.
 On my 1.2 GHz Celeron, time-to-speech is about 1 second, -vs- about .4 seconds for the native Linux binary.
 See bin/mh.ini for examples on these parms: voice_text=NaturalVoiceWine,  voice_text_naturalvoice=path_to_windows_voices,
 wine_path=path_to_wine.
@@ -447,9 +430,9 @@ http://www.ecn.purdue.edu/~laird/Linux/ViaVoice/
 The TTS engines can also be found here:
 ftp://people.redhat.com/jlamb/
 
-To use it with mh, you need to install Brad Reed's ViaVoiceTTS.pm module from
+To use it with MisterHouse, you need to install Brad Reed's ViaVoiceTTS.pm module from
 http://www.reednet.org/ViaVoiceTTS  , then set your mh.ini voice_text=vv_tts or voice_text=viavoice
-(vv_tts is a bit fancier, queing up speech and has more mh.ini options).
+(vv_tts is a bit fancier, queuing up speech and has more mh.ini options).
 
 Download and install (as root) these rpms:
 
@@ -482,9 +465,9 @@ If that doesn't work, you can add a user with this command:
   source /usr/bin/vvsetenv
   /usr/lib/ViaVoice/bin/vvuser -userid winter -setdefault
 
-To enable viavoice from mh, review the viavoice_* parms in the mh.ini file
-(defaults should work if you run mh on the same box as the server), set parm voice_cmd=viavoice,
-run mh/bin/viavoice_server_start, start mh and enable the viavoice_control.pl from the 'Select Code' ia5 MhHouse web menu.
+To enable viavoice from MisterHouse, review the viavoice_* parms in the mh.ini file
+(defaults should work if you run MisterHouse on the same box as the server), set parm voice_cmd=viavoice,
+run mh/bin/viavoice_server_start, start MisterHouse and enable the viavoice_control.pl from the 'Select Code' ia5 MrHouse web menu.
 Use the Tk 'VR mode' button and/or the phrase(s) in viavoice_awake_phrase to enable the awake VR mode.
 
 The viavoice SDK FAQ can be found here at
@@ -497,7 +480,7 @@ For Apple OS X users, here are some hints from Jon Boehm:
 
  2. Upgrade Perl to 5.8 http://developer.apple.com/internet/macosx/perl.html
 
- 3. Install Perl modules required by Misterhouse.
+ 3. Install Perl modules required by MisterHouse.
     Some of the packages will not install nicely.  If something fails you
     will need to do Goggle searches like: "OSX GD" to get some help.
 
@@ -507,18 +490,18 @@ before GD.  Note: make sure XDarwin is running before you run "make test'
 for GD
 
 
-=head1 Testing Mister House
+=head1 Testing MisterHouse
 
-Edit mh/bin/mh.ini and change the appropriate parms.   It should run just fine with the
+Edit bin/mh.ini and change the appropriate parms.   It should run just fine with the
 default parms,  although your sunrise/sunset times will be for Rochester, MN :)
 
-If you decide to use mh, you will want to copy the parms you
+If you decide to use MisterHouse, you will want to copy the parms you
 change to your own parm file and point to that with the mh_parm environmental
 variable (see the mh.ini header for details).
 
-If you are on Windows and you are not using the compiled mhe.exe,
+If you are on Windows 
 you may need to edit the last record of the mh.bat file to point to the correct
-directories where Perl and the mh are installed.
+directories where Perl and the MisterHouse are installed.
 
 Next, cd to \mh\bin and then type: mh hello_print.pl. This will load the \mh\code\common\hello_print.pl
 file which is a simple event that prints some uptime info every 30 seconds.
@@ -534,10 +517,10 @@ If you are a Windows user and have the VR engine installed, make sure
 the green MSVoice V icon is in the "Listening for Voice Commands" mode, try saying, "What time is it?"
 You can list all the available commands by right clicking on the V and picking "What can I say?"
 
-To run all of the standard code in the mh/code/common directory, do not specify any files (e.g. just type mh).
+To run the standard code in the mh/code/common directory, do not specify any files (e.g. just type mh).
 Here are a few of the commands enabled by the mh/code/common files:
 
-  "What is the trivia question?" and "What is the triva answer?"
+  "What is the trivia question?" and "What is the trivia answer?"
   "Read the deep thought"
   "Say something nice"
   "Say something mean"
@@ -569,7 +552,7 @@ commands in the "xcmd_file", whose location is controlled with a mh.ini parm.  Y
 in this file as well.  Lastly, you can type all these commands via a telnet localhost session or via a socket port, if you have the telnet.pl
 member enabled.
 
-Here is a summary of the different ways you can control mh:
+Here is a summary of the different ways you can control MisterHouse:
 
   With a voice command
   Through a web browser and whatever html you want to set up.
@@ -578,7 +561,7 @@ Here is a summary of the different ways you can control mh:
   By having whatever program you want create a command in the xcmd_file
   By a TCP socket, for example, using telnet localhost
 
-Use your favorite editor to edit the example code in mh/code/test/my_test.pl. On the Mister House
+Use your favorite editor to edit the example code in mh/code/test/my_test.pl. On the MisterHouse
 window, use the F1 key to re-load your changed code. If you introduced an error, it will sound a long beep,
 spit out some errata showing the error, and then it re-loads the old error-free code.
 There is lots of other code you can peruse in the mh\code\bruce directory. This is all the code that runs our house!
@@ -586,8 +569,8 @@ There is lots of other code you can peruse in the mh\code\bruce directory. This 
 
 =head1 Installing Hardware
 
-Without any interface hardware, mh is pretty limited. It can do some simple time of day based events
-and voice based events, but that is about it. Currently, Mister House
+Without any interface hardware, MisterHouse is pretty limited. It can do some simple time of day based events
+and voice based events, but that is about it. Currently, MisterHouse
 supports the X10 CM11 (aka ActiveHome) and CM17 (aka Firecracker)
 interfaces and all the Weeder kits (analog, digital, x10, phone, available from from
 http://www.weedtech.com ).
@@ -608,7 +591,7 @@ that the CM11 does (e.g. preset dims).
 After plugging in the Weeder X10 kit or a CM11 interface into a free serial port, update the
 Weeder_port or cm11_port parm in the mh.ini file to point to that port and try a simple example, like test_x10.pl in the test directory.
 
-If you are getting 'bad checksum from cm11' messages, mh is haveing problems talking to your cm11.
+If you are getting 'bad checksum from cm11' messages, MisterHouse is having problems talking to your cm11.
 If on windows, make sure the X10 ActiveHome software works to verify you have the right port.
 If on unix, you can try heyu:  http://heyu.tanj.com
 
@@ -647,7 +630,7 @@ up your own code and data directories.  Here is an example:
                                  +--web
 
 
-Assuming you have mh installed in c:\misterhouse\mh, the steps might looks something like this
+Assuming you have MisterHouse installed in c:\misterhouse\mh, the steps might looks something like this
 (using the DOS commands, as I think unix guys can make the translation :):
 
  mkdir c:\misterhouse\code
@@ -672,7 +655,7 @@ Assuming you have mh installed in c:\misterhouse\mh, the steps might looks somet
  Note that you should use /, not \, on paths, on Windows, just like Unix.
 
  On windows, add this to your autoexec.bat:
-   set mh_parms=c:\misterHouse\mh.private.ini
+   set mh_parms=c:\misterhouse\mh.private.ini
 
  On unix, add this to /etc/profile or like place:
    export mh_parms=/prog/misterhouse/mh.private.ini
@@ -680,7 +663,7 @@ Assuming you have mh installed in c:\misterhouse\mh, the steps might looks somet
 
 You can add your own custom code files to your private \misterhouse\code directory.
 The first thing you will want to do is create an items.mht file that declares
-all your X10 items (see mh/code/bruce/items.mht for an example).  Alternativly, you
+all your X10 items (see mh/code/bruce/items.mht for an example).  Alternatively, you
 can declare each of your X10_items in any of the code members you use it in.  In either
 case you can use the "List X10 items" command created in mh_control.pl to review all
 your X10 items.
@@ -691,9 +674,9 @@ To enabled password protection, run mh/bin/set_password command like this:
  set_password -user admin  -password xyz2
 
 Note: only the first 8 characters are used.
-The admin password is required for controling the mh web setup menus (e.g. item and code selection menus).
+The admin password is required for controlling the MisterHouse web setup menus (e.g. item and code selection menus).
 
-When you want to upgrade to a newer verion of mh, follow these steps:
+When you want to upgrade to a newer version of MisterHouse, follow these steps:
 
  cd \misterhouse
  rename mh mh_old
