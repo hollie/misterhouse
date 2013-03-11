@@ -132,8 +132,14 @@ foreach ( keys %htmlfiles ) {
     my $pl = $_;
     $pm =~ s/\.html$/.pm/i;
     $pl =~ s/\.html$/.pl/i;
-    $changes++, print "deleting $htmlfile\n", unlink $htmlfile
-      unless ( $libfiles{$pm}{exists} or $libfiles{$pl}{exists} );
+    my $check;		#Don't invent keys that dont exist
+    $check = $pm if( exists( $libfiles{$pm}));
+    $check = $pl if( exists( $libfiles{$pl}));
+    if ( !$check or !$libfiles{$check}{exists}) {
+        $changes++;
+        print "deleting $htmlfile\n";
+        unlink $htmlfile;
+    }
 }
 
 # write out items and modules lists if any pm files changed
@@ -149,7 +155,11 @@ if ($changes) {
         my $modfile  = "$libdir/$pm";
         my $htmlfile = "$outdir/lib/$html";
 
-        open( my $fh, $modfile ) or die "can't open $modfile: $!";
+	my $fh;
+        unless( open( $fh, $modfile) ) {
+		print "Can't open $modfile, skipping: $!\n";
+		next;
+	}
         my $current_p;
         while ( my $l = <$fh> ) {
             if ( $l =~ /^package ([^;]+);/ ) {
@@ -267,8 +277,8 @@ foreach my $doc ( keys %podfiles ) {
         #`pod2html --htmlroot $outdir $docdir/$doc.pod > $outdir/$doc.html`;
         pod2html(
             "--infile=$podfile",    "--outfile=$htmlfile",
-            "--noheader",           "--htmlroot=/docs",
-            "--htmldir=$outdir/..", "--podroot=$docdir",
+            "--noheader",
+            "--htmldir=$outdir",    "--podroot=$docdir",
             "--podpath=.",          "--css=/lib/pod.css",
             $ind
         );
