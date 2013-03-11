@@ -1,86 +1,22 @@
-#$Id$
-=head1 DESCRIPTION
+=head1 B<Lynx10PLC>
 
-Module: Lynx10PLC.pm
+=head2 SYNOPSIS
 
-Copyright (c) 2001-2005 Joe Blecher. All rights reserved.
-This program is free software.  You may modify and/or
-distribute it under the same terms as Perl itself.
-This copyright notice must remain attached to the file.
+NONE
 
-Author: Joe Blecher  misterhouse@blecherfamily.net
+=head2 DESCRIPTION
 
-This module implements code to support the Marrick Lynx10-PLC
-controller. See http://www.marrickltd.com/LynX105.htm
+This module implements code to support the Marrick Lynx10-PLC controller. See http://www.marrickltd.com/LynX105.htm
 
-Note: This module adds additional capability to the MisterHouse
-	  application written by Bruce Winter (winter@misterhouse.net).
+Note: This module adds additional capability to the MisterHouse application written by Bruce Winter (winter@misterhouse.net).
 
+=head2 INHERITS
 
-LEGAL DISCLAIMER:
- This software is provided as-is.  Use it at your own risk.  The
- author takes no responsibility for any damages or losses directly
- or indirectly caused by this software.
+B<NONE>
 
-Revision History
+=head2 METHODS
 
- Version 1.0 12/4/2001 - Initial release
-
- Version 1.1 2/1/2002  - Added code to reconfigure the device if it
-						 is not responding to Lynx-Net commands. The
-						 device comes from the factory set at legacy
-						 lynx-10 protocol and 1200 baud. This change
-						 no longer requires that the device be programmed
-						 using the Lynx10-PLC Setup utility under windows
- Version 1.2 9/24/2002 - Changed logging to syslog for linux systems.
-						 Added parameters to set gains for transmit and receive.
- Version 1.3 2/25/2003 - Added two way support to module.
-						 Updated file to use new mh debug mechanism ($main::Debug)
-
- Version 1.4 4/25/2003 - Updates from Craig Schaeffer to support PRESET_DIM[12] commands.
-						 cmd2payld parser now expects XA1AK command format instead of
-						   previously wanting XA1K. (Need updated Serial_Item.pm)
-						 Added mode debug output.
-						 Moved stat counter update on the hour to Lynx10PLC.pl (code/common dir)
-						 Added support for Unit Address, and Extended Code 1
-						 Added a number of API methods to allow users to access low level
-						  commands on the Lynx10PLC without having to understand the devices
-						  API.
-
- Version 1.5 5/4/2003  - Fixed bug with DIM/BRIGHT command where level was parsed incorrectly after
-                          switching to the XA1AK command format.
-
- Version 1.6 11/10/2005- Added support for all EXTENDED_CODE_1 commands
-						 Added Lynx10PLC_MULTI_DELAY keyword and support that allows multiple packets
-						 to be combined together if they come in seperate, but within the specified
-						 time of each other.
-
- Version 1.7 5/18/2006 - Added support to handle individual commands instead of requiring pairs. This
-                         allows the module to support the "group" capability similar to the CM11.
-
-=head1 .INI PARAMETERS
-
-Use these mh.ini parameters to enable the code:
-
-  Lynx10PLC_module = Lynx10PLC
-  Lynx10PLC_port=/dev/ttyS0
-  Lynx10PLC_baudrate=19200
-
-These parameters allow you to override the default transmit and receive gain values
-
-  Lynx10PLC_XMIT_PWR=75
-  Lynx10PLC_RCVR_SENS=50
-
-This parameter will enable the module to log data using syslogd. This example will log
-data to local5 facility, with priority set to info
-
-  Lynx10PLC_LOGGER=/usr/bin/logger -p local5.info --
-
-This parameter will allow you to specify the amount of delay time after a packet has been
-received before sending it onto MH. This allows multiple commands to be glued together.
-This time is in milliseconds
-
-  Lynx10PLC_MULTI_DELAY = 250
+=over
 
 =cut
 
@@ -240,11 +176,12 @@ sub get_param
     return $Lynx10PLC{$param};
 }
 
-########################################################################
-#
-# This code create the serial port and registers the callbacks we need
-#
-########################################################################
+=item C<startup>
+
+This code create the serial port and registers the callbacks we need
+
+=cut
+
 sub startup
 {
 	$Lynx10PLC{SEQNUM} = 0;
@@ -410,20 +347,19 @@ sub check_for_data
 	}
 }
 
-#################################################################
-# Function: send_plc
-#
-# Description:
-#  This function is used convert an X10 ASCII string into a
-#  Lynx-Net packet, and then sends it to the PLC.
-#
-# Parameters:
-#  $serial_port : Interface to write the command to
-#  $cmd		 : ASCII string to parse
-#
-# Returns: X10 Command in ASCII format
-#
-#################################################################
+=item C<send_plc>
+
+This function is used convert an X10 ASCII string into a Lynx-Net packet, and then sends it to the PLC.
+
+Parameters:
+
+  $serial_port : Interface to write the command to
+  $cmd		 : ASCII string to parse
+
+Returns: X10 Command in ASCII format
+
+=cut
+
 sub send_plc
 {
 	# Make sure we are passed a pkt
@@ -446,19 +382,18 @@ sub send_plc
 	&send(NETID_X10, $payld);
 }
 
-#################################################################
-# Function: cmd2payld
-#
-# Description:
-#  This function is used to convert an ASCII command into the
-#  LynxNet command payload.
-#
-# Parameters:
-#  $cmd : ASCII command to convert
-#
-# Returns: LynxNet payload in "packed" format
-#
-#################################################################
+=item C<cmd2payld>
+
+This function is used to convert an ASCII command into the LynxNet command payload.
+
+Parameters:
+
+  $cmd : ASCII command to convert
+
+Returns: LynxNet payload in "packed" format
+
+=cut
+
 sub cmd2payld
 {
 	return undef unless ( 2 == @_ );
@@ -579,19 +514,18 @@ sub cmd2payld
 	return $payld;
 }
 
-#################################################################
-# Function: processPkt
-#
-# Description:
-#  This function is used to process a valid LynxNet packet
-#  received from the PLC
-#
-# Parameters:
-#  $pkt : Lynx-Net packet to process
-#
-# Returns: 1
-#
-#################################################################
+=item C<processPkt>
+
+This function is used to process a valid LynxNet packet received from the PLC
+
+Parameters:
+
+  $pkt : Lynx-Net packet to process
+
+Returns: 1
+
+=cut
+
 sub processPkt
 {
 	# Get pkt and pktlen
@@ -832,20 +766,19 @@ sub processPkt_X10
 	&::logit("$::config_parms{data_dir}/logs/x10.log", "in:  $_cmds, payld=" . unpack('H*', $_payld), "12") if $_cmds;
 }
 
-#############################################################
-# Function: splitPkt
-#
-# Description:
-#  This function is to extract all of the fields from a packet
-#  and store them in global variables. Because of this, the
-#  function is NOT re-entrant.
-#
-# Parameters:
-#  $pkt : Packet in "packed" format to anaylze
-#
-# Returns: nothing
-#
-#############################################################
+
+=item C<splitPkt>
+
+This function is to extract all of the fields from a packet and store them in global variables. Because of this, the function is NOT re-entrant.
+
+Parameters:
+
+  $pkt : Packet in "packed" format to anaylze
+
+Returns: nothing
+
+=cut
+
 sub splitPkt
 {
 	# Get pkt and pktlen
@@ -862,20 +795,19 @@ sub splitPkt
 	$_paycmd = unpack('C',$_payld) if $_paysz;
 }
 
-#############################################################
-# Function: checksum
-#
-# Description:
-#  This function is used to calculate a 8-bit checksum for
-#  a given buffer.
-#
-# Parameters:
-#  $buf  : Buffer in "packed" format to calculate checksum on
-#  $len  : number of bytes to calculate checksum on
-#
-# Returns: checksum
-#
-#############################################################
+=item C<checksum>
+
+This function is used to calculate a 8-bit checksum for a given buffer.
+
+Parameters:
+
+  $buf  : Buffer in "packed" format to calculate checksum on
+  $len  : number of bytes to calculate checksum on
+
+Returns: checksum
+
+=cut
+
 sub checksum
 {
 	my ($buf, $len) = @_;
@@ -891,20 +823,20 @@ sub checksum
 	return $sum & 0xff;
 }
 
-#############################################################
-# Function: buildPkt
-#
-# Description:
-#  This function is used to generate a LynxNet packet based
-#  upon the packet_type and payload.
-#
-# Parameters:
-#  $pkt_type	: Type of packet to send
-#  $payld	   : Lynx-Net payload
-#
-# Returns: packet in "pack" format
-#
-#############################################################
+
+=item C<buildPkt>
+
+This function is used to generate a LynxNet packet based upon the packet_type and payload.
+
+Parameters:
+
+  $pkt_type	: Type of packet to send
+  $payld	   : Lynx-Net payload
+
+Returns: packet in "pack" format
+
+=cut
+
 sub buildPkt
 {
 	my ($netid, $payld) = @_;
@@ -919,23 +851,19 @@ sub buildPkt
 	return $pkt;
 }
 
-#############################################################
-# Function: read
-#
-# Description:
-#  This function is used to read data from the serial
-#  interface, and will return with a complete Lynx-Net
-#  packet. If the checksum of the packet is bad, an
-#  error message is displayed, and the packet is tossed.
-#
-# Parameters:
-#  $no_block	: 0, timeout is 100*50msec=5secs
-#				 1, timeout is 0secs
-#
-# Returns: packet in pack format, or undef if no packet
-#		  was read.
-#
-#############################################################
+=item C<read>
+
+This function is used to read data from the serial interface, and will return with a complete Lynx-Net packet. If the checksum of the packet is bad, an error message is displayed, and the packet is tossed.
+
+Parameters:
+
+  $no_block	: 0, timeout is 100*50msec=5secs
+                  1, timeout is 0secs
+
+Returns: packet in pack format, or undef if no packet was read.
+
+=cut
+
 my $readBuf = ();
 sub read
 {
@@ -1023,26 +951,19 @@ sub read
 	return undef;
 }
 
-#############################################################
-# Function: send
-#
-# Description:
-#  This function is used to send a Lynx-Net packet to the
-#  serial interface. After the packet is sent, the function will
-#  wait for both the "received", and "completed" packets to return.
-#  If a packet other that these two are recieved, it will be
-#  processed at this time.
-#  If the packet is not completed within an defined timeout,
-#  it will be resent, and the process will repeat, until the
-#  retry limit has been exhausted.
-#
-# Parameters:
-#  $pkt_type	: Type of packet to send
-#  $payld	   : Lynx-Net payload to write
-#
-# Returns:  1 for SUCCESS, 0 for FAILURE
-#
-#############################################################
+=item C<send>
+
+This function is used to send a Lynx-Net packet to the serial interface. After the packet is sent, the function will wait for both the "received", and "completed" packets to return.  If a packet other that these two are recieved, it will be processed at this time.  If the packet is not completed within an defined timeout, it will be resent, and the process will repeat, until the retry limit has been exhausted.
+
+Parameters:
+
+  $pkt_type	: Type of packet to send
+  $payld	   : Lynx-Net payload to write
+
+Returns:  1 for SUCCESS, 0 for FAILURE
+
+=cut
+
 sub send
 {
 	my ($pkt_type, $payld) = @_;
@@ -1302,3 +1223,92 @@ sub sendUnitCode
     &send(NETID_X10, pack('C4', X10_UNITADDRESS, $hc, $uc, X10_EOL));
 }
 return 1;		   # for require
+
+=cut
+
+Revision History
+
+ Version 1.0 12/4/2001 - Initial release
+
+ Version 1.1 2/1/2002  - Added code to reconfigure the device if it
+                                                 is not responding to Lynx-Net commands. The
+                                                 device comes from the factory set at legacy
+                                                 lynx-10 protocol and 1200 baud. This change
+                                                 no longer requires that the device be programmed
+                                                 using the Lynx10-PLC Setup utility under windows
+ Version 1.2 9/24/2002 - Changed logging to syslog for linux systems.
+                                                 Added parameters to set gains for transmit and receive.
+ Version 1.3 2/25/2003 - Added two way support to module.
+                                                 Updated file to use new mh debug mechanism ($main::Debug)
+
+ Version 1.4 4/25/2003 - Updates from Craig Schaeffer to support PRESET_DIM[12] commands.
+                                                 cmd2payld parser now expects XA1AK command format instead of
+                                                   previously wanting XA1K. (Need updated Serial_Item.pm)
+                                                 Added mode debug output.
+                                                 Moved stat counter update on the hour to Lynx10PLC.pl (code/common dir)
+                                                 Added support for Unit Address, and Extended Code 1
+                                                 Added a number of API methods to allow users to access low level
+                                                  commands on the Lynx10PLC without having to understand the devices
+                                                  API.
+
+ Version 1.5 5/4/2003  - Fixed bug with DIM/BRIGHT command where level was parsed incorrectly after
+                          switching to the XA1AK command format.
+
+ Version 1.6 11/10/2005- Added support for all EXTENDED_CODE_1 commands
+                                                 Added Lynx10PLC_MULTI_DELAY keyword and support that allows multiple packets
+                                                 to be combined together if they come in seperate, but within the specified
+                                                 time of each other.
+
+ Version 1.7 5/18/2006 - Added support to handle individual commands instead of requiring pairs. This
+                         allows the module to support the "group" capability similar to the CM11.
+
+
+=back
+
+=head2 INI PARAMETERS
+
+Use these mh.ini parameters to enable the code:
+
+  Lynx10PLC_module = Lynx10PLC
+  Lynx10PLC_port=/dev/ttyS0
+  Lynx10PLC_baudrate=19200
+
+These parameters allow you to override the default transmit and receive gain values
+
+  Lynx10PLC_XMIT_PWR=75
+  Lynx10PLC_RCVR_SENS=50
+
+This parameter will enable the module to log data using syslogd. This example will log
+data to local5 facility, with priority set to info
+
+  Lynx10PLC_LOGGER=/usr/bin/logger -p local5.info --
+
+This parameter will allow you to specify the amount of delay time after a packet has been
+received before sending it onto MH. This allows multiple commands to be glued together.
+This time is in milliseconds
+
+  Lynx10PLC_MULTI_DELAY = 250
+
+=head2 AUTHOR
+
+Joe Blecher  misterhouse@blecherfamily.net
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+Copyright (c) 2001-2005 Joe Blecher. All rights reserved.
+This program is free software.  You may modify and/or
+distribute it under the same terms as Perl itself.
+This copyright notice must remain attached to the file.
+
+LEGAL DISCLAIMER:
+
+  This software is provided as-is.  Use it at your own risk.  The
+  author takes no responsibility for any damages or losses directly
+  or indirectly caused by this software.
+
+=cut
+

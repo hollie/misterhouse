@@ -1,20 +1,18 @@
-=head1 NAME
+=head1 B<BSC>
 
-B<BSC>
-
-=head1 SYNOPSIS
+=head2 SYNOPSIS
 
 NONE
 
-=head1 DESCRIPTION
+=head2 DESCRIPTION
 
 xAP support for Basic Status and Control schema
 
-=head1 INHERITS
+=head2 INHERITS
 
 NONE
 
-=head1 METHODS
+=head2 METHODS
 
 =over
 
@@ -41,7 +39,10 @@ package BSC_Item;
 @BSC_Item::ISA = ('Generic_Item');
 
 
-=item C<new> Initialize class
+=item C<new> 
+
+Initialize class
+
 =cut
 
 sub new
@@ -75,7 +76,10 @@ sub _initialize
    $$self{device_state} = ();
 }
 
-=item C<bsc_state> bsc_state is a very bad name and only exists to prevent overriding mh's state member.  bsc_state maps to a BSC state
+=item C<bsc_state> 
+
+bsc_state is a very bad name and only exists to prevent overriding mh's state member.  bsc_state maps to a BSC state
+
 =cut
 
 sub bsc_state {
@@ -130,7 +134,10 @@ sub writable {
 }
 
 
-=item C<allow_local_set_state> allow_local_set_state(flag) - sets the local flag to either 1 (true) or 0 (false); the default is true.  If flag is true, then the item's state is changed on a "programatic" set (i.e., local control).  If flag is false, then the item's state is changed only when the device acknowledges it's state change via a BSC event or info message
+=item C<allow_local_set_state> 
+
+allow_local_set_state(flag) - sets the local flag to either 1 (true) or 0 (false); the default is true.  If flag is true, then the item's state is changed on a "programatic" set (i.e., local control).  If flag is false, then the item's state is changed only when the device acknowledges it's state change via a BSC event or info message
+
 =cut
 
 sub allow_local_set_state {
@@ -335,22 +342,22 @@ sub query {
 
 =back
 
-=head1 INI PARAMETERS
+=head2 INI PARAMETERS
 
 NONE
 
-=head1 AUTHOR
+=head2 AUTHOR
 
 Gregg Liming
 gregg@limings.net
 
 Special Thanks to: Bruce Winter - MH
 
-=head1 SEE ALSO
+=head2 SEE ALSO
 
 NONE
 
-=head1 LICENSE
+=head2 LICENSE
 
 This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
 
@@ -360,23 +367,30 @@ You should have received a copy of the GNU General Public License along with thi
 
 
 
-=head1 NAME
 
-B<BSCMH_Item>
 
-=head1 SYNOPSIS
+
+
+
+
+
+
+
+=head1 B<BSCMH_Item>
+
+=head2 SYNOPSIS
 
 NONE
 
-=head1 DESCRIPTION
+=head2 DESCRIPTION
 
 NONE
 
-=head1 INHERITS
+=head2 INHERITS
 
 NONE
 
-=head1 METHODS
+=head2 METHODS
 
 =over
 
@@ -409,7 +423,10 @@ use constant OCCUPANCY_MONITOR         => 'Occupancy_Monitor';
 @BSCMH_Item::ISA = ('Generic_Item');
 
 
-=item C<new> Initialize class
+=item C<new> 
+
+Initialize class
+
 =cut
 
 sub new
@@ -555,7 +572,10 @@ sub pending_device_state {
    }
 }
 
-=item C<set_device>  set's a device's state given the device's ID, mode (input or output), state and optionally level and text
+=item C<set_device>
+
+set's a device's state given the device's ID, mode (input or output), state and optionally level and text
+
 =cut
 
 sub set_device {
@@ -1085,22 +1105,22 @@ sub _init_object {
 
 =back
 
-=head1 INI PARAMETERS
+=head2 INI PARAMETERS
 
 NONE
 
-=head1 AUTHOR
+=head2 AUTHOR
 
 Gregg Liming
 gregg@limings.net
 
 Special Thanks to: Bruce Winter - MH
 
-=head1 SEE ALSO
+=head2 SEE ALSO
 
 NONE
 
-=head1 LICENSE
+=head2 LICENSE
 
 This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
 

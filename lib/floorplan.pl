@@ -1,37 +1,32 @@
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 B<floorplan>
 
-File:
-	floorplan.pl
-	
-Description:
-	Provides a function to render an HTML table from the objects in the group
-	passed as a parameter.
+=head2 SYNOPSIS
 
-Author:
-	Jason Sharpee
-	jason@sharpee.com
+NONE
 
-License:
-	This free software is licensed under the terms of the GNU public license.
+=head2 DESCRIPTION
 
-Usage:
-    http://localhost:8080/bin/floorplan.pl
-    http://localhost:8080/bin/floorplan.pl?Property
-    http://localhost:8080/bin/floorplan.pl?Upstairs
-	
+Provides a function to render an HTML table from the objects in the group  passed as a parameter.
+
 Bugs:
-	-  Recursion is in use. Be carefull of problems with referencing the parent
-	group from a child element.  Someone could add a max_level in there to be safe.
 
-	-  If you overlap item co-ordinates, be carefull.  I dont have Z-order checking
-	in here either yet and can makes tables get goofy.   Your table will look correct if
-	all of your coords are correct. "Garbage in -> Garbage out"
-	
-Special Thanks to: 
-	Bruce Winter - MH
-		
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ -  Recursion is in use. Be carefull of problems with referencing the parent
+    group from a child element.  Someone could add a max_level in there to be safe.
+
+ -  If you overlap item co-ordinates, be carefull.  I dont have Z-order checking
+    in here either yet and can makes tables get goofy.   Your table will look correct if
+    all of your coords are correct. "Garbage in -> Garbage out"
+
+=head2 INHERITS
+
+B<NONE>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
 =cut
 
 $^W = 0;                        # Avoid redefined sub msgs
@@ -283,3 +278,35 @@ sub web_fp_filter_name
 	$p_text=~ s/_/ /g;
 	return $p_text;
 }
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Jason Sharpee
+jason@sharpee.com
+
+Special Thanks to:
+Bruce Winter - MH
+
+=head2 SEE ALSO
+
+   http://localhost:8080/bin/floorplan.pl
+   http://localhost:8080/bin/floorplan.pl?Property
+   http://localhost:8080/bin/floorplan.pl?Upstairs
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

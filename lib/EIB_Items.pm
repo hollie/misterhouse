@@ -1,15 +1,16 @@
-=begin comment
+=head1 B<EIB_Item>
 
-EIB_Item.pm - EIB (European Installation Bus) items.
+=head2 SYNOPSIS
 
-Info:
+NONE
 
-EIB/KNX website:
-    http://konnex.org
+=head2 DESCRIPTION
 
-Notes:
-    The following EIB types are supported:
-   (MH Klassname, DPT Type, EIS Type, Description)
+EIB (European Installation Bus) items.
+
+EIB/KNX website:  http://konnex.org
+
+The following EIB types are supported: (MH Klassname, DPT Type, EIS Type, Description)
 
     EIB1:    DPT  1.001, EIS 1,      Switches
     EIB2:    NA,         EIS 2,      Dimmers
@@ -28,17 +29,17 @@ Notes:
     EIB14_1: DPT  5.010, EIS 14.1;    8-bit unsigned integer
     EIB15:   DPT 16.000, EIS 15,     14 byte text messages
 
-    EIBW:    NA,         NA,         summary object for 2 EIS1 Objects 
+    EIBW:    NA,         NA,         summary object for 2 EIS1 Objects
                                      to define the state of a window
                                      (closed, tilt, open)
 
-Authors:
- 09/09/2005  Created by Peter Sjödin peter@sjodin.net
- 06/01/2009  Enhanced by Ralf Klueber r(at)lf-klueber.de
- 08/01/2009  Listening addresses by Mike Pieper mptei@sourceforge.net
+=head2 INHERITS
 
- $Date$
- $Revision$
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
 
 =cut
 
@@ -53,7 +54,12 @@ sub reset {
     undef %eib_items_by_id;   # Reset on code re-load
 }
 
-# Lookup EIB_Item with the given address
+=item C<eib_items_by_id>
+
+Lookup EIB_Item with the given address
+
+=cut
+
 sub eib_items_by_id {
     my($id) = @_;
     &main::print_log ("eib_items_by_id: asking for \'$id\'") if $main::config_parms{eib_errata} >= 8;
@@ -61,8 +67,12 @@ sub eib_items_by_id {
     return @{ $eib_items_by_id{$id} };
 }
 
-# Generic EIB_Item class. This class is not instantiated directly. It is used to inherit common
-# EIB properties
+=item C<new>
+
+Generic EIB_Item class. This class is not instantiated directly. It is used to inherit common EIB properties
+
+=cut
+
 sub new {
     my ($class, $idstr, $mode) =  @_;
     my $self  = $class->SUPER::new();
@@ -109,7 +119,12 @@ sub addEIBAddress {
     	push (@{$eib_items_by_id{$addr}}, $self);
 }
 
-# Item name to appear in logs etc
+=item C<printname>
+
+Item name to appear in logs etc
+
+=cut
+
 sub printname {
     my($name) = @_;
 
@@ -126,8 +141,12 @@ sub printname {
     return $name;
 }
 
-# set_receive: detected an EIB event on the bus
-# Update item state to reflect the value in the event
+=item C<set_receive>
+
+detected an EIB event on the bus.  Update item state to reflect the value in the event
+
+=cut
+
 sub set_receive {
     my ($self, $state, $set_by, $target) = @_;
 
@@ -185,7 +204,12 @@ sub readable {
     return (defined $self->{readable});
 }
 
-# send_write_msg: generate EIB message to set a value
+=item C<send_write_msg>
+
+generate EIB message to set a value
+
+=cut
+
 sub send_write_msg {
     my ($self, $data) = @_;
     my $msg;
@@ -196,7 +220,12 @@ sub send_write_msg {
     EIB_Device::send_msg($msg);
 }
 
-# send_read_msg: generate EIB message to read a value
+=item C<send_read_msg>
+
+generate EIB message to read a value
+
+=cut
+
 sub send_read_msg {
     my ($self, $data) = @_;
     my $msg;
@@ -209,7 +238,12 @@ sub send_read_msg {
     EIB_Device::send_msg($msg);
 }
 
-# receive_write_msg: process a message to set a value
+=item C<receive_write_msg>
+
+process a message to set a value
+
+=cut
+
 sub receive_write_msg {
     my ($self, $state, $set_by, $target) = @_;
 
@@ -217,7 +251,12 @@ sub receive_write_msg {
     $self->set_receive($state, $set_by, $target);
 }
 
-# receive_reply_msg: process a message with a reply value (read response)
+=item C<receive_reply_msg>
+
+process a message with a reply value (read response)
+
+=cut
+
 sub receive_reply_msg {
     my ($self, $state, $set_by, $target) = @_;
     my $t;
@@ -227,8 +266,12 @@ sub receive_reply_msg {
     $self->set_receive($state, $set_by, $target, 1);
 }
 
-# receive_msg: entry point from device interface. Analyse message and call appropriate receive_*_msg
-# handler
+=item C<receive_msg>
+
+entry point from device interface. Analyse message and call appropriate receive_*_msg handler
+
+=cut
+
 sub receive_msg {
     my ($msg) = @_;
 
@@ -262,7 +305,12 @@ sub receive_msg {
     }
 }
 
-# start_read_timer: set a timeout for waiting for read response
+=item C<start_read_timer>
+
+set a timeout for waiting for read response
+
+=cut
+
 sub start_read_timer {
     my ($self, $interval) = @_;
 
@@ -272,7 +320,12 @@ sub start_read_timer {
     $self->{get_timer}->start();
 }
 
-# stop_read_timer: disable timer
+=item C<stop_read_timer>
+
+disable timer
+
+=cut
+
 sub stop_read_timer {
     my ($self) = @_;
 
@@ -281,7 +334,12 @@ sub stop_read_timer {
     $self->{get_timer} = undef;
 }
 
-# read_timeout: No reply to read request. Retry or give up.
+=item C<read_timeout>
+
+No reply to read request. Retry or give up.
+
+=cut
+
 sub read_timeout {
     my ($self) = @_;
 
@@ -296,7 +354,12 @@ sub read_timeout {
     }
 }
 
-# read_request: send a read request, and start timer
+=item C<read_request>
+
+send a read request, and start timer
+
+=cut
+
 sub read_request {
     my ($self) = @_;
 
@@ -305,9 +368,12 @@ sub read_request {
     $self->start_read_timer();
 }
 
-# delayed_read_request: wait a while and then send a read request. If a read
-# request is sent too soon, the EIB actuator may not have obtained a stable value, so we want
-# to delay before sending the request.
+=item C<delayed_read_request> 
+
+wait a while and then send a read request. If a read request is sent too soon, the EIB actuator may not have obtained a stable value, so we want to delay before sending the request.
+
+=cut
+
 sub delayed_read_request {
     my ($self, $interval) = @_;
 
@@ -316,7 +382,44 @@ sub delayed_read_request {
     $self->start_read_timer($interval);
 }
 
-# EIB1_Item: switch items (on/off)
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+09/09/2005  Created by Peter Sjödin peter@sjodin.net
+06/01/2009  Enhanced by Ralf Klueber r(at)lf-klueber.de
+08/01/2009  Listening addresses by Mike Pieper mptei@sourceforge.net
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+
+
+=head1 B<EIB Sub-Items>
+
+=head2 INHERITS
+
+B<EIB_Item>
+
+=head2 EIB1_Item
+
+=over
+
+=cut
+
 package EIB1_Item;
 
 @EIB1_Item::ISA = ('EIB_Item');
@@ -334,7 +437,12 @@ sub eis_type {
     return '1';
 }
 
-# decode: translate EIS 1 data to state (on/off)
+=item C<decode>
+
+translate EIS 1 data to state (on/off)
+
+=cut
+
 sub decode {
     my ($self, @data) = @_;
     unless ($#data == 0) {
@@ -349,7 +457,12 @@ sub decode {
     }
 }
 
-# encode: translate state to EIS 1 data
+=item C<encode>
+
+translate state to EIS 1 data
+
+=cut
+
 sub encode {
     my ($self, $state) = @_;
     &main::print_log ("EIS1::encode: state '$state' for '$self->{object_name}'") if $main::config_parms{eib_errata} >= 3;
@@ -366,10 +479,14 @@ sub encode {
     }
 }
 
-# EIB1G_Item: a group of EIB1 items. Setting the value of an  EIB1 group will affect all members in the
-# group.
-# The class is used to keep track of EIB1 group memberships. If a write message is detected, all members
-# will be updated.
+=back
+
+=head2 EIG1G_Item
+
+A group of EIB1 items. Setting the value of an  EIB1 group will affect all members in the group.  The class is used to keep track of EIB1 group memberships. If a write message is detected, all members will be updated.
+
+=cut
+
 package EIB1G_Item;
 
 @EIB1G_Item::ISA = ('EIB1_Item');
@@ -400,26 +517,36 @@ sub set_receive {
     } @{$self->{'linked_groups'}};
 }
 
-# EIS 2: Dimming
-# EIB dimmers can be controlled in three different ways:
-# 1. "control": brighten, dim, stop. Handled by class EIB21_Item
-# 2. "value": numerical value: Handled by class EIB6_Item
-# 3. "position": on, off. Handled by class EIB1_Item
-#
-# Class EIB2_Item is a meta-item to represent dimmers, consist of the three underlying item.
-# The main purpose is to make a dimmer appear as a single item, while the real work is done
-# by the three underlying items.
-#
-# The identifier for the EIB2_Item is composed of the concatenation of the addresses of
-# the three underlying items, with '|' between them. For example, '1/0/90|1/0/91|1/4/1' is a dimmer
-# with control address 1/0/90, value address 1/0/91, and position address 1/4/1.
-#
+=head2 DIB2_Item
+
+ EIS 2: Dimming
+  EIB dimmers can be controlled in three different ways:
+  1. "control": brighten, dim, stop. Handled by class EIB21_Item
+  2. "value": numerical value: Handled by class EIB6_Item
+  3. "position": on, off. Handled by class EIB1_Item
+
+  Class EIB2_Item is a meta-item to represent dimmers, consist of the three underlying item.
+  The main purpose is to make a dimmer appear as a single item, while the real work is done
+  by the three underlying items.
+
+  The identifier for the EIB2_Item is composed of the concatenation of the addresses of
+  the three underlying items, with '|' between them. For example, '1/0/90|1/0/91|1/4/1' is a dimmer
+  with control address 1/0/90, value address 1/0/91, and position address 1/4/1.
+
+=over
+
+=cut
 
 package EIB2_Item;
 
 @EIB2_Item::ISA = ('EIB_Item');
 
-# new: create an EIB2_Item. Instantiate the three underlying items.
+=item C<new>
+
+create an EIB2_Item. Instantiate the three underlying items.
+
+=cut
+
 sub new {
     my ($class, $id, $mode) = @_;
     my @groups;
@@ -454,7 +581,12 @@ sub eis_type {
     return '2';
 }
 
-# position: return "position" sub-item
+=item C<position>
+
+return "position" sub-item
+
+=cut
+
 sub position {
     my ($self) = @_;
     my $subitem;
@@ -463,7 +595,12 @@ sub position {
     return $self->{Position};
 }
 
-# control: return "control" sub-item
+=item C<control>
+
+return "control" sub-item
+
+=cut
+
 sub control {
     my ($self) = @_;
     my $subitem;
@@ -471,7 +608,13 @@ sub control {
     return unless defined $self->{Control};
     return $self->{Control};
 }
-# value: return "value" sub-item
+
+=item C<value>
+
+return "value" sub-item
+
+=cut
+
 sub value {
     my ($self) = @_;
     my $subitem;
@@ -480,8 +623,11 @@ sub value {
     return $self->{Value};
  }
 
-# Set EIB2 item.
-# Parse state to determine the corresponding sub-item to call.
+=item C<set>
+
+Set EIB2 item.  Parse state to determine the corresponding sub-item to call.
+
+=cut
 
 sub set {
     my ($self, $state, $set_by, $target) = @_;
@@ -508,10 +654,11 @@ sub set {
     return 1;
 }
 
-# set_receive: received an event from one of the sub_items. If it
-# was a numerical value ("Value"), update the "Position" subitem to
-# 'on' or 'off'.  If the value was zero, also set self to 'off'.
-# Update level (0-100) to represent dimmer position
+=item C<set_receive>
+
+received an event from one of the sub_items. If it was a numerical value ("Value"), update the "Position" subitem to 'on' or 'off'.  If the value was zero, also set self to 'off'. Update level (0-100) to represent dimmer position
+
+=cut
 
 sub set_receive {
     my ($self, $state, $set_by, $target) = @_;
@@ -555,8 +702,12 @@ sub set_receive {
     $self->SUPER::set_receive($newstate, $set_by, $target);
 }
 
-# state_level: return 'on', 'off' or 'dim', depending on current setting
-# (as obtained from "value" sub-item)
+=item C<state_level>
+
+return 'on', 'off' or 'dim', depending on current setting (as obtained from "value" sub-item)
+
+=cut
+
 sub state_level {
     my ($self) = @_;
 
@@ -581,7 +732,15 @@ sub state_level {
     return $state;
 }
 
-# EIS 2 subitem: generic class for the three dimming sub-functions
+=back
+
+=head2 EIB2_Subitem
+
+A generic class for the three dimming sub-functions
+
+=over
+
+=cut
 
 package EIB2_Subitem;
 
@@ -596,7 +755,12 @@ sub new {
     return $self;
 }
 
-# dimmer: return "dimmer" meta-item
+=item C<dimmer>
+
+return "dimmer" meta-item
+
+=cut
+
 sub dimmer {
     my ($self) = @_;
 
@@ -604,7 +768,12 @@ sub dimmer {
     return $self->{Dimmer};
  }
 
-# set_receive: forward to meta-item
+=item C<set_receive>
+
+forward to meta-item
+
+=cut
+
 sub set_receive {
     my ($self, $state, $set_by, $target) = @_;
 
@@ -621,7 +790,15 @@ sub set_receive {
     }
 }
 
-# EIS 21: Dimming sub-function "control"
+=back
+
+=head2 EIB21_Item
+
+Dimming sub-function "control"
+
+=over
+
+=cut
 
 package EIB21_Item;
 
@@ -631,8 +808,12 @@ sub eis_type {
     return '2.1';
 }
 
-# dimmer_timeout: dimmer should have reached stable state. Issue a read request to obtain
-# current value
+=item C<dimmer_timeout>
+
+dimmer should have reached stable state. Issue a read request to obtain current value
+
+=cut
+
 sub dimmer_timeout {
     my ($self) = @_;
     my $value;
@@ -642,13 +823,12 @@ sub dimmer_timeout {
 }
 
 
-# set
-#
-# To allow adjusting dimmer value in real-time from for example web interface:
-# If state is set to same dim/brighten value twice before dimmer timer has expired,
-# it means "stop"
-# for example, first 'dim' means start dimming, second means stop dimming
-# (This behaviour is configurable via configuration parameter "eib_dim_stop_on_repeat")
+=item C<set>
+
+To allow adjusting dimmer value in real-time from for example web interface: If state is set to same dim/brighten value twice before dimmer timer has expired, it means "stop".  For example, first 'dim' means start dimming, second means stop dimming (This behaviour is configurable via configuration parameter "eib_dim_stop_on_repeat")
+
+=cut
+
 sub set {
     my ($self, $state, $set_by, $target) = @_;
     my $subitem;
@@ -698,8 +878,12 @@ sub encode {
     }
 }
 
-# set_receive: if it is a 'stop' event, generate a read request
-# for the 'Value' sub-item, to learn the actual dimmer setting
+=item C<set_receive>
+
+if it is a 'stop' event, generate a read request for the 'Value' sub-item, to learn the actual dimmer setting
+
+=cut
+
 sub set_receive {
     my ($self, $state, $set_by, $target) = @_;
     my ($dimmer, $value);
@@ -728,9 +912,17 @@ sub set_receive {
    }
 }
 
-# EIS 2.2: Dimming sub-function "value". Set dimmer to a given brightness level
-# (0-100) with 8 bit resolution
-# Values are coded according to EIS 6
+=back
+
+=head2 EIB22_Item
+
+Dimming sub-function "value". Set dimmer to a given brightness level
+(0-100) with 8 bit resolution
+Values are coded according to EIS 6
+
+=over
+
+=cut
 
 package EIB22_Item;
 
@@ -742,11 +934,11 @@ sub eis_type {
     return '2.2';
 }
 
-# set receive -- detected a "read" or "write" message on the bus.  For
-# readable actuators, don't trust the values in "write" messages, as
-# they may not have been accepted by the actuator. So if it is a
-# write, and the actuator is readable, generate a read request to
-# obtain the actual value from the actuator
+=item C<set_receive>
+
+detected a "read" or "write" message on the bus.  For readable actuators, don't trust the values in "write" messages, as they may not have been accepted by the actuator. So if it is a write, and the actuator is readable, generate a read request to obtain the actual value from the actuator
+
+=cut
 
 sub set_receive {
     my ($self, $state, $set_by, $target, $read) = @_;
@@ -760,9 +952,13 @@ sub set_receive {
     }
 }
 
+=back
 
-# EIS 2.3: Dimming sub-function "position". Set dimmer to on/off.
-# Values are coded according to EIS 1
+=head2 EIB23_Item
+
+Dimming sub-function "position". Set dimmer to on/off.  Values are coded according to EIS 1
+
+=cut
 
 package EIB23_Item;
 
@@ -774,7 +970,11 @@ sub eis_type {
     return '2.3';
 }
 
-# EIB3_Item:  Uhrzeit
+=head2 EIB3_Item
+
+Uhrzeit
+
+=cut
 
 package EIB3_Item;
 
@@ -824,7 +1024,11 @@ sub encode {
 
 }
 
-# EIB4_Item:  Uhrzeit
+=head2 EIB4_Item
+
+Uhrzeit
+
+=cut
 
 package EIB4_Item;
 
@@ -870,6 +1074,10 @@ sub encode {
   return \@res;
 
 }
+
+=head2 EIB5_Item
+
+=cut
 
 # EIS 5: Value
 # Represents real values
@@ -918,7 +1126,13 @@ sub encode {
     return([0, $data >> 8, $data & 0xff]);
 }
 
-# EIB6_Item: "scaling". Relative values 0-100% with 8 bit resolution
+=head2 EIB6_Item
+
+"scaling". Relative values 0-100% with 8 bit resolution
+
+=over
+
+=cut
 
 package EIB6_Item;
 
@@ -971,11 +1185,11 @@ sub encode {
 }
 
 
-# set receive -- detected a "read" or "write" message on the bus.  For
-# readable actuators, don't trust the values in "write" messages, as
-# they may not have been accepted by the actuator. So if it is a
-# write, and the actuator is readable, generate a read request to
-# obtain the actual value from the actuator
+=item C<set_receive>
+
+detected a "read" or "write" message on the bus.  For readable actuators, don't trust the values in "write" messages, as they may not have been accepted by the actuator. So if it is a write, and the actuator is readable, generate a read request to obtain the actual value from the actuator
+
+=cut
 
 sub set_receive {
     my ($self, $state, $set_by, $target, $read) = @_;
@@ -991,11 +1205,18 @@ sub set_receive {
     }
 }
 
-# EIB8_Item: "forced control". 2 bit
-# Enforcement  ON  + Turn Device ON  (11)
-# Enforcement  ON  + Turn Device OFF (10)
-# Enforcement  OFF + Turn Device OFF (00)
-# Enforcement  OFF + Turn Device ON  (01)
+=back
+
+=head2 EIB8_Item
+
+"forced control". 2 bit
+
+  Enforcement  ON  + Turn Device ON  (11)
+  Enforcement  ON  + Turn Device OFF (10)
+  Enforcement  OFF + Turn Device OFF (00)
+  Enforcement  OFF + Turn Device ON  (01)
+
+=cut
 
 package EIB8_Item;
 
@@ -1054,7 +1275,11 @@ sub encode {
     }
 }
 
-# EIB9_Item: 32-bit float
+=head2 EIB9_Item
+
+32-bit float
+
+=cut
 
 package EIB9_Item;
 
@@ -1086,7 +1311,12 @@ sub encode {
     return([0, ($res & 0xff000000) >> 24, ($res & 0xff0000) >> 16, ($res & 0xff00) >> 8, $res & 0xff]);
 }
 
-# EIB10_Item: 16-bit unsigned integer
+=head2 EIB10_Item
+
+16-bit unsigned integer
+
+=cut
+
 package EIB10_Item;
 
 @EIB10_Item::ISA = ('EIB_Item');
@@ -1115,7 +1345,11 @@ sub encode {
     return([0, ($state & 0xff00) >> 8, $state & 0xff]);
 }
 
-# EIB10.1_Item: 16-bit signed integer
+=head2 EIB10.1_Item
+
+16-bit signed integer
+
+=cut
 
 package EIB10_1_Item;
 
@@ -1155,7 +1389,11 @@ sub encode {
     return([0, ($res & 0xff00) >> 8, $res & 0xff]);
 }
 
-# EIB11_Item: 32-bit unsigned integer
+=head2 EIB11_Item
+
+32-bit unsigned integer
+
+=cut
 
 package EIB11_Item;
 
@@ -1185,7 +1423,11 @@ sub encode {
     return([0, ($state & 0xff000000) >> 24, ($state & 0xff0000) >> 16, ($state & 0xff00) >> 8, $state & 0xff]);
 }
 
-# EIB11.1_Item: 32-bit signed integer
+=head2 EIB11.1_Item
+
+32-bit signed integer
+
+=cut
 
 package EIB11_1_Item;
 
@@ -1227,7 +1469,11 @@ sub encode {
     return([0, ($res & 0xff000000) >> 24, ($res & 0xff0000) >> 16, ($res & 0xff00) >> 8, $res & 0xff]);
 }
 
-# EIB14_Item: 8-bit signed integer
+=head2 EIB14_Item
+
+8-bit signed integer
+
+=cut
 
 package EIB14_Item;
 
@@ -1268,7 +1514,13 @@ sub encode {
     return([0, $res & 0xff]);
 }
 
-# EIB14.1_Item: "scaling". Relative values 0-255 with 8 bit resolution
+=head2 EIB14_1_Item
+
+"scaling". Relative values 0-255 with 8 bit resolution
+
+=over
+
+=cut
 
 package EIB14_1_Item;
 
@@ -1319,12 +1571,11 @@ sub encode {
     return([0, int $byte]);
 }
 
+=item C<set_receive>
 
-# set receive -- detected a "read" or "write" message on the bus.  For
-# readable actuators, don't trust the values in "write" messages, as
-# they may not have been accepted by the actuator. So if it is a
-# write, and the actuator is readable, generate a read request to
-# obtain the actual value from the actuator
+detected a "read" or "write" message on the bus.  For readable actuators, don't trust the values in "write" messages, as they may not have been accepted by the actuator. So if it is a write, and the actuator is readable, generate a read request to obtain the actual value from the actuator
+
+=cut
 
 sub set_receive {
     my ($self, $state, $set_by, $target, $read) = @_;
@@ -1337,15 +1588,23 @@ sub set_receive {
 	$self->SUPER::set_receive($state, $set_by, $target);
     }
 }
-#----
-# EIS 7: Drive control
-# Blinds, windows, etc
-# Drives can be controlled in two different ways:
-# 1. "move": up/down
-# 2. "stop": stop/step movement
-#
-# NB EIS7 objects may not be read, since this can cause drive movements
-#
+
+=back
+
+=head2 EIB7_Item
+
+Drive control
+
+  Blinds, windows, etc
+  Drives can be controlled in two different ways:
+  1. "move": up/down
+  2. "stop": stop/step movement
+
+  NB EIS7 objects may not be read, since this can cause drive movements
+
+=over
+
+=cut
 
 package EIB7_Item;
 
@@ -1400,10 +1659,11 @@ sub eis_type {
     return '7';
 }
 
-# set EIB drive item. Parse state to determine the corresponding
-# sub-item to call.
-# Don't modify own state here -- that will be done later,
-# when/if the sub-items call set_receive for this item.
+=item C<set>
+
+set EIB drive item. Parse state to determine the corresponding sub-item to call.  Don't modify own state here -- that will be done later, when/if the sub-items call set_receive for this item.
+
+=cut
 
 sub set {
     my ($self, $state, $set_by, $target) = @_;
@@ -1428,14 +1688,25 @@ sub set {
     return 1;
 }
 
-# EIS 7 subitem: generic class for drive sub-functions
+=back
+
+=head2 EIB7_Subitem
+
+generic class for drive sub-functions
+
+=over
+
+=cut
 
 package EIB7_Subitem;
 
 @EIB7_Subitem::ISA = ('EIB_Item');
 
-# Instantiated with last args "driveid": the id of EIS7 item to which this
-# subitem belongs
+=item C<new>
+
+Instantiated with last args "driveid": the id of EIS7 item to which this subitem belongs
+
+=cut
 
 sub new {
     my ($class, $id, $mode, $driveid) = @_;
@@ -1446,7 +1717,12 @@ sub new {
     return $self;
 }
 
-# set_receive: forward to main Drive item (EIS7 item)
+=item C<set_receive>
+
+forward to main Drive item (EIS7 item)
+
+=cut
+
 sub set_receive {
     my ($self, $state, $set_by, $target) = @_;
 
@@ -1458,7 +1734,13 @@ sub set_receive {
     }
 }
 
-# EIS 71: Dimming sub-function "move"
+=back
+
+=head2 EIB71_Item
+
+Dimming sub-function "move"
+
+=cut
 
 package EIB71_Item;
 
@@ -1497,7 +1779,11 @@ sub encode {
     }
 }
 
-# EIS 72: Drive sub-function "stop"
+=head2 EIB72_Item
+
+Drive sub-function "stop"
+
+=cut
 
 package EIB72_Item;
 
@@ -1523,7 +1809,11 @@ sub encode {
     return ([0]);
 }
 
-# EIS 73: Drive sub-function "step-up/step-down"
+=head2 EIB73_Item
+
+Drive sub-function "step-up/step-down"
+
+=cut
 
 package EIB73_Item;
 
@@ -1560,7 +1850,11 @@ sub encode {
     }
 }
 
-# EIB15_Item: 14-Byte Text Message
+=head2 EIB15_Item
+
+14-Byte Text Message
+
+=cut
 
 package EIB15_Item;
 
@@ -1594,15 +1888,24 @@ sub encode {
     return \@res;
 }
 
-# EIBW: Windows type of object wich uses 2 underlaying EIB1 Items (Top and Bottom)
-# Definition as follows
-# EIBW , GA1|GA2, Name, nameforOffOf|nameOffOn|NameOnOff|NameOnOn
+=head2 EIBW_Item
+
+EIBW: Windows type of object wich uses 2 underlaying EIB1 Items (Top and Bottom) Definition as follows EIBW , GA1|GA2, Name, nameforOffOf|nameOffOn|NameOnOff|NameOnOn
+
+=over
+
+=cut
 
 package EIBW_Item;
 
 @EIBW_Item::ISA = ('EIB_Item');
 
-# new: create an EIBW_Item. Instantiate the three underlying items.
+=item C<new>
+
+create an EIBW_Item. Instantiate the three underlying items.
+
+=cut
+
 sub new {
     my ($class, $id, $mode) = @_;
     my @groups;
@@ -1656,7 +1959,11 @@ sub bottom {
     return $self->{Bottom};
 }
 
-# set_receive: received an event from one of the sub_items.
+=item C<set_receive>
+
+received an event from one of the sub_items.
+
+=cut
 
 sub set_receive {
     my ($self, $state, $set_by, $target) = @_;
@@ -1675,7 +1982,15 @@ sub set_receive {
     $self->SUPER::set_receive($state, $set_by, $target);
 }
 
-# EIS 2 subitem: generic class for the three dimming sub-functions
+=back
+
+=head2 EIBW_Subitem
+
+generic class for the three dimming sub-functions
+
+=over
+
+=cut
 
 package EIBW_Subitem;
 
@@ -1698,7 +2013,12 @@ sub window {
     return $self->{Window};
  }
 
-# set_receive: forward to meta-item
+=item C<set_receive>
+
+forward to meta-item
+
+=cut
+
 sub set_receive {
     my ($self, $state, $set_by, $target) = @_;
 
@@ -1712,6 +2032,12 @@ sub set_receive {
     }
 }
 
+=back
+
+=head2 EIBW1_Item
+
+=cut
+
 package EIBW1_Item;
 
 # Multiple inheritance -- use encode/decode methods from EIB1_Item, and the rest from
@@ -1721,4 +2047,26 @@ package EIBW1_Item;
 sub eis_type {
     return 'w.3';
 }
+
+
+
+=head2 AUTHOR
+
+  09/09/2005  Created by Peter Sjödin peter@sjodin.net
+  06/01/2009  Enhanced by Ralf Klueber r(at)lf-klueber.de
+  08/01/2009  Listening addresses by Mike Pieper mptei@sourceforge.net
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 

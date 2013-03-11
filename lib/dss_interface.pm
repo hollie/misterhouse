@@ -1,14 +1,25 @@
-=begin comment
+=head1 B<dss_interface>
 
-Use these mh.ini parameters to enable this code:
+=head2 SYNOPSIS
 
- dss_module = dss_interface
- dss_port   = /dev/ttyS7
- dss_type   = REGULAR or NEWRCA or AUTO
+NONE
 
-More info is in mh/code/public/dss_interface.pl
+=head2 DESCRIPTION
+
+NONE
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
 
 =cut
+
 
 use strict;
 
@@ -218,3 +229,31 @@ sub GetReply {
 }
 
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+  dss_module = dss_interface
+  dss_port   = /dev/ttyS7
+  dss_type   = REGULAR or NEWRCA or AUTO
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+More info is in mh/code/public/dss_interface.pl
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
