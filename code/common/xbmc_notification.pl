@@ -6,12 +6,11 @@ use LWP::UserAgent;
 
 $v_xbmc_osd = new  Voice_Cmd("Test XBMC Notify");
 
-
 if ($Startup) {
-	&display_xbmcosd("System Restarted", "Misterhouse has been restarted");
+	display_xbmcosd("System Restarted", "Misterhouse has been restarted");
 }
 
-if ($state = said $v_xbmc_osd) {
+if (said $v_xbmc_osd) {
 	#speak "Testing X B M C";
 	&display_xbmcosd("Test Notification", "This is a test notification!!");
 }
