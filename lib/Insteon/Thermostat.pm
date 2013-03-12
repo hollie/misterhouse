@@ -108,7 +108,6 @@ my %message_types = (
 
 sub new {
    my ($class, $p_deviceid, $p_interface) = @_;
-print "[KRK] $class, $p_deviceid, $p_interface";
    my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
    bless $self, $class;
    $$self{temp} = undef; 
@@ -438,6 +437,37 @@ use strict;
 
 @Insteon::Thermo_i2::ISA = ('Insteon::Thermostat');
 
+sub init {
+	my ($self) = @_;
+	my $dev_id = $self->device_id();
+	$dev_id =~ /(\w\w)(\w\w)(\w\w)/;
+	$dev_id = "$1.$2.$3";
+	$$self{bcast} = new Insteon::Thermo_bcast("$dev_id".':EF');
+	Insteon::add($$self{bcast});
+	
+	## Child objects
+	#my $obj_group = ::get_object_by_name('HVAC');
+	#$obj_group->add($$self{bcast});
+	#&main::register_object_by_name($self->get_object_name ."{bcast}",$$self{bcast});
+	#$$self{bcast}->{category} = "sample";
+	#$$self{bcast}->{filename} = "sample";
+	#$$self{bcast}->{object_name} = $self->get_object_name ."{bcast}";
+}
+
+package Insteon::Thermo_bcast;
+use strict;
+
+@Insteon::Thermo_bcast::ISA = ('Insteon::Thermostat');
+
+###This is basically a dummy object, it is designed to allow a link from group
+###EF to be added as part of sync links.
+
+sub new {
+   my ($class, $p_deviceid) = @_;
+   my $self = new Insteon::Thermostat($p_deviceid);
+   bless $self, $class;
+   return $self;
+}
 
 1;
 =back

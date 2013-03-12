@@ -556,6 +556,30 @@ sub check_all_aldb_versions
 	main::print_log("[Insteon] DEBUG4 Checking aldb version of all devices completed") if ($main::Debug{insteon} >= 4);
 }
 
+sub check_thermo_versions
+{
+	main::print_log("[Insteon] DEBUG4 Checking thermostat versions") if ($main::Debug{insteon} >= 4);
+
+	my @thermo_devices = ();
+	push @thermo_devices, Insteon::find_members("Insteon::Thermostat");
+	foreach my $thermo_device (@thermo_devices)
+	{
+		main::print_log("[Insteon] DEBUG4 Checking thermostat version for "
+			. $thermo_device->get_object_name()) 
+			if ($main::Debug{insteon} >= 4);
+		if ($thermo_device->isa('Insteon::Thermostat') && 
+			$thermo_device->_aldb->aldb_version() eq "I2"){
+			bless $thermo_device, 'Insteon::Thermo_i2';
+			$thermo_device->init();
+		}
+		elsif ($thermo_device->isa('Insteon::Thermostat')
+			&& $thermo_device->_aldb->aldb_version() eq "I1"){
+			bless $thermo_device, 'Insteon::Thermo_i1';
+		}
+	}
+	main::print_log("[Insteon] DEBUG4 Checking thermostat version of all devices completed") if ($main::Debug{insteon} >= 4);	
+}
+
 
 package InsteonManager;
 
@@ -582,6 +606,7 @@ sub _active_interface
       $init_complete = 0;
       &main::MainLoop_pre_add_hook(\&Insteon::init, 1);
       &main::Reload_post_add_hook(\&Insteon::generate_voice_commands, 1);
+      &main::Reload_post_add_hook(\&Insteon::check_thermo_versions, 1);
    }
    $$self{active_interface} = $interface if $interface;
    return $$self{active_interface};
