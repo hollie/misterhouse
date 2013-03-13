@@ -90,7 +90,7 @@ package Insteon::Thermostat;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::Thermostat::ISA = ('Insteon::DeviceController','Insteon::BaseDevice');
+@Insteon::Thermostat::ISA = ('Insteon::BaseDevice','Insteon::DeviceController');
 
 
 # -------------------- START OF SUBROUTINES --------------------
@@ -439,32 +439,40 @@ use strict;
 
 sub init {
 	my ($self) = @_;
+	
+	## Create the broadcast dummy item
 	my $dev_id = $self->device_id();
 	$dev_id =~ /(\w\w)(\w\w)(\w\w)/;
 	$dev_id = "$1.$2.$3";
-	$$self{bcast} = new Insteon::Thermo_bcast("$dev_id".':EF');
+	$$self{bcast} = new Insteon::Thermo_i2_bcast("$dev_id".':EF');
+	# Add bcast object to list of Insteon objects
 	Insteon::add($$self{bcast});
+	# Register bcast object with MH
+	&main::register_object_by_name('$' . $self->get_object_name ."{bcast}",$$self{bcast});
+	$$self{bcast}->{object_name} = '$' . $self->get_object_name ."{bcast}";
 	
-	## Child objects
+	## Create the child objects
+	my @child_objs = ("mode", "fan", "temp", "humidity", "setpoint_h", "setpoint_c");
 	#my $obj_group = ::get_object_by_name('HVAC');
 	#$obj_group->add($$self{bcast});
 	#&main::register_object_by_name($self->get_object_name ."{bcast}",$$self{bcast});
 	#$$self{bcast}->{category} = "sample";
 	#$$self{bcast}->{filename} = "sample";
-	#$$self{bcast}->{object_name} = $self->get_object_name ."{bcast}";
+	#$$self{bcast}->{object_name} = '$' . $self->get_object_name ."{bcast}";
 }
 
-package Insteon::Thermo_bcast;
+package Insteon::Thermo_i2_bcast;
 use strict;
 
-@Insteon::Thermo_bcast::ISA = ('Insteon::Thermostat');
+@Insteon::Thermo_i2_bcast::ISA = ('Insteon::BaseDevice', 'Insteon::DeviceController');
 
 ###This is basically a dummy object, it is designed to allow a link from group
-###EF to be added as part of sync links.
+###EF to be added as part of sync links.  Group EF is the broadcast group used
+###by the 2441th thermostat to announce changes.
 
 sub new {
    my ($class, $p_deviceid) = @_;
-   my $self = new Insteon::Thermostat($p_deviceid);
+   my $self = new Insteon::BaseDevice($p_deviceid);
    bless $self, $class;
    return $self;
 }
