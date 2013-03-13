@@ -6,6 +6,11 @@ use LWP::UserAgent;
 
 $v_xbmc_osd = new  Voice_Cmd("Test XBMC Notify");
 
+# noloop=start
+    # Set the default port to 8080 (XBMC Default) if not specified
+    $config_parms{xbmc_notify_port} = "8080" unless $config_parms{xbmc_notify_port};
+# noloop=stop
+
 if ($Startup) {
 	# Notify the on startup / restart
 	print_log("System Restarted, Notifying XBMC") if $Debug{xbmc};
@@ -25,9 +30,6 @@ sub display_xbmcosd {
 		print_log("xbmc_notify_address has not been set in mh.ini, Unable to notify XBMC.");
 		return;
 	}
-
-	# Set the default port to 8080 (XBMC Default) if not specified
-	$config_parms{xbmc_notify_port} = "8080" unless $config_parms{xbmc_notify_port};
 
 	# Change spaces to HTML space codes
 	$title =~ s/ /%20/g;
