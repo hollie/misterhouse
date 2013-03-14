@@ -475,6 +475,14 @@ sub init {
 		}
 	}
 }
+
+sub sync_links{
+	my ($self, $audit_mode, $callback, $failure_callback) = @_;
+	#Make sure thermostat is set to broadcast changes
+	::print_log("[Insteon::Thermo_i2] (sync_links) Enabling thermostat broadcast setting.") unless $audit_mode;
+	## send command unless $audit_mode;
+	# Call the main sync_links code
+	return $self->SUPER::sync_links($audit_mode, $callback, $failure_callback);
 }
 
 package Insteon::Thermo_i2_bcast;
