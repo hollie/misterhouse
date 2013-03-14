@@ -444,7 +444,7 @@ my %message_types = (
 
 sub init {
 	my ($self) = @_;
-	$$self{message_types} = \%message_types
+	$$self{message_types} = \%message_types;
 	
 	## Create the broadcast dummy item
 	my $dev_id = $self->device_id();
@@ -486,7 +486,9 @@ sub sync_links{
 	my ($self, $audit_mode, $callback, $failure_callback) = @_;
 	#Make sure thermostat is set to broadcast changes
 	::print_log("[Insteon::Thermo_i2] (sync_links) Enabling thermostat broadcast setting.") unless $audit_mode;
-	## send command unless $audit_mode;
+	my $extra = "000008000000000000000000000000";
+	my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
+	$self->_send_cmd($message);
 	# Call the main sync_links code
 	return $self->SUPER::sync_links($audit_mode, $callback, $failure_callback);
 }
