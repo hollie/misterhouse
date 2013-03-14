@@ -3183,12 +3183,12 @@ sub list_files_by_webname {
 }
 
 sub list_groups_by_object {
-    my ($object) = @_;
+    my ($object, $no_child_members) = @_;
     my @groups;
     for my $group_name (&list_objects_by_type('Group')) {
       my $group = &get_object_by_name($group_name);
 #     print "testing group=$group_name -> $group\n";
-      for my $object2 (list $group) {
+      for my $object2 ($group->list(undef, undef,$no_child_members)) {
     push @groups, $group if $object eq $object2;
       }
     }
