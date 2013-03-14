@@ -444,12 +444,14 @@ sub init {
 	my $dev_id = $self->device_id();
 	$dev_id =~ /(\w\w)(\w\w)(\w\w)/;
 	$dev_id = "$1.$2.$3";
-	$$self{bcast} = new Insteon::Thermo_i2_bcast("$dev_id".':EF');
+	$$self{bcast_item} = new Insteon::Thermo_i2_bcast("$dev_id".':EF');
+
 	# Add bcast object to list of Insteon objects
-	Insteon::add($$self{bcast});
+	Insteon::add($$self{bcast_item});
+
 	# Register bcast object with MH
-	&main::register_object_by_name('$' . $self->get_object_name ."{bcast}",$$self{bcast});
-	$$self{bcast}->{object_name} = '$' . $self->get_object_name ."{bcast}";
+	&main::register_object_by_name('$' . $self->get_object_name ."{bcast_item}",$$self{bcast_item});
+	$$self{bcast_item}->{object_name} = '$' . $self->get_object_name ."{bcast_item}";
 	
 	## Create the child objects
 	my @child_objs = ("mode", "fan", "temp", "humidity", "setpoint_h", "setpoint_c");
