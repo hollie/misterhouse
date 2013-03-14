@@ -479,6 +479,78 @@ sub new {
    return $self;
 }
 
+package Insteon::Thermo_i2_mode;
+use strict;
+
+@Insteon::Thermo_i2_mode::ISA = ('Generic_Item');
+
+sub new {
+	my ($class) = @_;
+	my $self = new Generic_Item();
+	bless $self, $class;
+	return $self;
+}
+
+package Insteon::Thermo_i2_fan;
+use strict;
+
+@Insteon::Thermo_i2_fan::ISA = ('Generic_Item');
+
+sub new {
+	my ($class) = @_;
+	my $self = new Generic_Item();
+	bless $self, $class;
+	return $self;
+}
+
+package Insteon::Thermo_i2_temp;
+use strict;
+
+@Insteon::Thermo_i2_temp::ISA = ('Generic_Item');
+
+sub new {
+	my ($class) = @_;
+	my $self = new Generic_Item();
+	bless $self, $class;
+	return $self;
+}
+
+package Insteon::Thermo_i2_humidity;
+use strict;
+
+@Insteon::Thermo_i2_humidity::ISA = ('Generic_Item');
+
+sub new {
+	my ($class) = @_;
+	my $self = new Generic_Item();
+	bless $self, $class;
+	return $self;
+}
+
+package Insteon::Thermo_i2_setpoint_h;
+use strict;
+
+@Insteon::Thermo_i2_setpoint_h::ISA = ('Generic_Item');
+
+sub new {
+	my ($class) = @_;
+	my $self = new Generic_Item();
+	bless $self, $class;
+	return $self;
+}
+
+package Insteon::Thermo_i2_setpoint_c;
+use strict;
+
+@Insteon::Thermo_i2_setpoint_c::ISA = ('Generic_Item');
+
+sub new {
+	my ($class) = @_;
+	my $self = new Generic_Item();
+	bless $self, $class;
+	return $self;
+}
+
 1;
 =back
 
