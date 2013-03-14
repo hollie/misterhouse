@@ -454,13 +454,27 @@ sub init {
 	$$self{bcast_item}->{object_name} = '$' . $self->get_object_name ."{bcast_item}";
 	
 	## Create the child objects
-	my @child_objs = ("mode", "fan", "temp", "humidity", "setpoint_h", "setpoint_c");
-	#my $obj_group = ::get_object_by_name('HVAC');
-	#$obj_group->add($$self{bcast});
-	#&main::register_object_by_name($self->get_object_name ."{bcast}",$$self{bcast});
-	#$$self{bcast}->{category} = "sample";
-	#$$self{bcast}->{filename} = "sample";
-	#$$self{bcast}->{object_name} = '$' . $self->get_object_name ."{bcast}";
+	my @child_objs = ('mode_item', 'fan_item', 'temp_item', 'humidity_item',
+		'setpoint_h_item', 'setpoint_c_item');
+	foreach my $obj (@child_objs) {
+		$$self{$obj} = new Insteon::Thermo_i2_mode() if ($obj eq 'mode_item');
+		$$self{$obj} = new Insteon::Thermo_i2_fan() if ($obj eq 'fan_item');
+		$$self{$obj} = new Insteon::Thermo_i2_temp() if ($obj eq 'temp_item');
+		$$self{$obj} = new Insteon::Thermo_i2_humidity() if ($obj eq 'humidity_item');
+		$$self{$obj} = new Insteon::Thermo_i2_setpoint_h() if ($obj eq 'setpoint_h_item');
+		$$self{$obj} = new Insteon::Thermo_i2_setpoint_c() if ($obj eq 'setpoint_c_item');
+
+		# Register child object with MH
+		&main::register_object_by_name('$' . $self->get_object_name ."{$obj}",$$self{$obj});
+		$$self{$obj}->{object_name} = '$' . $self->get_object_name ."{$obj}";
+		$$self{$obj}{parent} = $self;
+		
+		#Add child to the same groups as parent
+		foreach my $parent_group (::list_groups_by_object($self)){
+			$parent_group->add($$self{$obj});
+		}
+	}
+}
 }
 
 package Insteon::Thermo_i2_bcast;
