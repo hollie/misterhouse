@@ -96,7 +96,7 @@ use Insteon::BaseInsteon;
 # -------------------- START OF SUBROUTINES --------------------
 # --------------------------------------------------------------
 
-my %message_types = (
+our %message_types = (
 	%Insteon::BaseDevice::message_types,
 	thermostat_temp_up => 0x68,
 	thermostat_temp_down => 0x69,
@@ -437,7 +437,7 @@ use strict;
 
 @Insteon::Thermo_i2::ISA = ('Insteon::Thermostat');
 
-my %message_types = (
+our %message_types = (
 	%Insteon::Thermostat::message_types,
 	extended_set_get => 0x2e
 );
