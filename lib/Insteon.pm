@@ -558,26 +558,29 @@ sub check_all_aldb_versions
 
 sub check_thermo_versions
 {
-	main::print_log("[Insteon] DEBUG4 Checking thermostat versions") if ($main::Debug{insteon} >= 4);
+	#main::print_log("[Insteon] DEBUG4 Checking thermostat versions") if ($main::Debug{insteon} >= 4);
 
 	my @thermo_devices = ();
 	push @thermo_devices, Insteon::find_members("Insteon::Thermostat");
 	foreach my $thermo_device (@thermo_devices)
 	{
-		main::print_log("[Insteon] DEBUG4 Checking thermostat version for "
-			. $thermo_device->get_object_name()) 
-			if ($main::Debug{insteon} >= 4);
 		if ($thermo_device->isa('Insteon::Thermostat') && 
 			$thermo_device->_aldb->aldb_version() eq "I2"){
+			main::print_log("[Insteon] DEBUG4 Setting thermostat "
+				. $thermo_device->get_object_name() . " to i2") 
+			if ($main::Debug{insteon} >= 4);
 			bless $thermo_device, 'Insteon::Thermo_i2';
 			$thermo_device->init();
 		}
 		elsif ($thermo_device->isa('Insteon::Thermostat')
 			&& $thermo_device->_aldb->aldb_version() eq "I1"){
+			main::print_log("[Insteon] DEBUG4 Setting thermostat "
+				. $thermo_device->get_object_name() . " to i2") 
+			if ($main::Debug{insteon} >= 4);
 			bless $thermo_device, 'Insteon::Thermo_i1';
 		}
 	}
-	main::print_log("[Insteon] DEBUG4 Checking thermostat version of all devices completed") if ($main::Debug{insteon} >= 4);	
+	#main::print_log("[Insteon] DEBUG4 Checking thermostat version of all devices completed") if ($main::Debug{insteon} >= 4);	
 }
 
 
