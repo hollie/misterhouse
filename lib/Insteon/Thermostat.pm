@@ -474,7 +474,7 @@ sub init {
 		$$self{$obj}{parent} = $self;
 		
 		#Add child to the same groups as parent
-		foreach my $parent_group (::list_groups_by_object($self)){
+		foreach my $parent_group (::list_groups_by_object($self,1)){
 			$parent_group->add($$self{$obj});
 		}
 	}
