@@ -369,15 +369,11 @@ sub _is_info_request {
             $$self{'m_pending_setpoint'} = 1;
          } elsif ($self->get_mode() eq 'heat' or 'program_heat') {
             $self->_heat_sp($val);
+            $$self{_zone_action} = undef;
          } elsif ($self->get_mode() eq 'cool' or 'program_cool') {
             $self->_cool_sp($val);
+            $$self{_zone_action} = undef;
          }
-         $$self{_zone_action} = undef;
-      } elsif ($$self{'m_pending_setpoint'} == 1) {
-	#This is the second message with the cool_setpoint
-	$val = (hex $val) / 2;
-	$self->_cool_sp($val);
-	$$self{'m_pending_setpoint'} = undef;
       }
    } 
    else #This was not a thermostat info_request
@@ -396,9 +392,11 @@ sub _process_message
 	my $clear_message = 0;
 	if ($$self{_zone_action} eq 'setpoint' && $$self{m_pending_setpoint}) {
 		# we got our cool setpoint in auto mode
+		main::print_log("[Insteon::Thermostat] Processing data for $msg{command} with value: $msg{extra}") if $main::Debug{insteon};
 		my $val = (hex $msg{extra})/2;
 		$self->_cool_sp($val);
 		$$self{m_setpoint_pending} = 0;
+		$$self{_zone_action} = undef;
 		$clear_message = 1;
 	} else {
 		$clear_message = $self->SUPER::_process_message($p_setby,%msg);
@@ -480,6 +478,15 @@ sub init {
 			$parent_group->add($$self{$obj});
 		}
 	}
+	#Set child saved states
+	$$self{temp_item}->set($self->get_temp());
+	$$self{setpoint_h_item}->set($self->get_heat_sp());
+	$$self{setpoint_c_item}->set($self->get_cool_sp());
+	$$self{fan_item}->set($self->get_fan_mode());
+	$$self{mode_item}->set($self->get_mode());
+		
+	#Tie changes in parent item to children
+	$self -> tie_event ('Insteon::Thermo_i2::parent_event(\''.$$self{object_name} . '\', "$state")');
 }
 
 sub sync_links{
@@ -491,6 +498,26 @@ sub sync_links{
 	$self->_send_cmd($message);
 	# Call the main sync_links code
 	return $self->SUPER::sync_links($audit_mode, $callback, $failure_callback);
+}
+
+sub parent_event {
+	my ($self, $p_state) = @_;
+	$self = ::get_object_by_name($self);
+	if ($p_state eq 'temp_change'){
+		$$self{temp_item}->set($self->get_temp());
+	}
+	elsif ($p_state eq 'heat_setpoint_change'){
+		$$self{setpoint_h_item}->set($self->get_heat_sp());
+	}
+	elsif ($p_state eq 'cool_setpoint_change'){
+		$$self{setpoint_c_item}->set($self->get_cool_sp());
+	}
+	elsif ($p_state eq 'fan_mode_change'){
+		$$self{fan_item}->set($self->get_fan_mode());
+	}
+	elsif ($p_state eq 'mode_change'){
+		$$self{mode_item}->set($self->get_mode());
+	}
 }
 
 package Insteon::Thermo_i2_bcast;
@@ -518,6 +545,7 @@ sub new {
 	my ($class) = @_;
 	my $self = new Generic_Item();
 	bless $self, $class;
+	@{$$self{states}} = ('Off', 'Heat', 'Cool', 'Auto');
 	return $self;
 }
 
@@ -530,6 +558,7 @@ sub new {
 	my ($class) = @_;
 	my $self = new Generic_Item();
 	bless $self, $class;
+	@{$$self{states}} = ('Auto', 'On');
 	return $self;
 }
 
@@ -566,6 +595,7 @@ sub new {
 	my ($class) = @_;
 	my $self = new Generic_Item();
 	bless $self, $class;
+	@{$$self{states}} = ('Cooler' , 'Warmer');
 	return $self;
 }
 
@@ -578,6 +608,7 @@ sub new {
 	my ($class) = @_;
 	my $self = new Generic_Item();
 	bless $self, $class;
+	@{$$self{states}} = ('Cooler', 'Warmer');
 	return $self;
 }
 
