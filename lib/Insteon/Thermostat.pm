@@ -437,8 +437,14 @@ use strict;
 
 @Insteon::Thermo_i2::ISA = ('Insteon::Thermostat');
 
+my %message_types = (
+	%Insteon::Thermostat::message_types,
+	extended_set_get => 0x2e
+);
+
 sub init {
 	my ($self) = @_;
+	$$self{message_types} = \%message_types
 	
 	## Create the broadcast dummy item
 	my $dev_id = $self->device_id();
