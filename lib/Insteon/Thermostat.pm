@@ -437,7 +437,12 @@ use strict;
 
 our %message_types = (
 	%Insteon::Thermostat::message_types,
-	extended_set_get => 0x2e
+	extended_set_get => 0x2e,
+	status_temp	=> 0x6e,
+	status_humid	=> 0x6f,
+	status_mode	=> 0x70,
+	status_cool	=> 0x71,
+	status_heat	=> 0x72
 );
 
 sub init {
