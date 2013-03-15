@@ -590,6 +590,22 @@ sub dec_mode{
 	$mode = 'Program' if ($dec_mode == 4);
 	$self->_mode($mode);
 }
+
+sub status_mode{
+	my ($self, $status_mode) = @_;
+	my $mode;
+	my $conv_mode = (hex($status_mode)%16);
+	$mode = 'Off' if ($conv_mode == 0);
+	$mode = 'Heat' if ($conv_mode == 1); 
+	$mode = 'Cool' if ($conv_mode == 2); 
+	$mode = 'Auto' if ($conv_mode == 3);  
+	$mode = 'Program' if ($conv_mode == 4);
+	$self->_mode($mode);
+	my $fan_mode;
+	$fan_mode = (hex($status_mode) >= 16) ? 'Always On' : 'Auto';
+	$self->_fan_mode($fan_mode);
+}
+
 sub dec_fan{
 	my ($self, $dec_fan) = @_;
 	my $fan;
@@ -614,6 +630,13 @@ sub hex_long_temp{
 	$$self{temp} = (($temp_cel*9)/5 +32);
 	$self->set_receive('temp_change');
 }
+
+sub hex_short_temp{
+	my ($self, $hex_temp) = @_;
+	$$self{temp} = (hex($hex_temp)/2);
+	$self->set_receive('temp_change');
+}
+
 sub hex_status{
 	### Not sure about this one yet, was 80 when set to auto but no activity
 }
