@@ -518,6 +518,108 @@ sub parent_event {
 	elsif ($p_state eq 'mode_change'){
 		$$self{mode_item}->set($self->get_mode());
 	}
+	elsif ($p_state eq 'humid_change'){
+		$$self{humidity_item}->set($$self{humid});
+	}
+}
+
+sub poll_simple{
+	my ($self) = @_;
+	my $extra = "020000000000000000000000000000";
+	my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
+	$$message{add_crc16} = 1;
+	$self->_send_cmd($message);
+}
+
+sub _process_message {
+	my ($self,$p_setby,%msg) = @_;
+	my $clear_message = 0;
+	if ($msg{command} eq "extended_set_get" && $msg{is_ack}){
+		##Don't clear until data packet received
+		main::print_log("[Insteon::Thermo_i2] Extended Set/Get ACK Received for " . $self->get_object_name) if $main::Debug{insteon};
+	} 
+	elsif ($msg{command} eq "extended_set_get" && $msg{is_extended}) {
+		if (substr($msg{extra},0,4) eq "0201") {
+			main::print_log("[Insteon::Thermo_i2] Extended Set/Get Data ".
+				"Received for ". $self->get_object_name) if $main::Debug{insteon};
+			#0 = 2				#14 = Cool SP 
+			#2 = 1				#16 = humidity
+			#3 = day			#18 = temp in Celsius High byte
+			#6 = hour			#20 = temp low byte
+			#8 = minute			#22 = status flag
+			#10 = second			#24 = Heat SP
+			#12 = Sys_mode * 16 + Fan_mode
+			my $mode = hex(substr($msg{extra}, 12, 2)); 
+			my $fan_mode = ($mode % 16);
+			$self->dec_mode(($mode - $fan_mode) / 16);
+			$self->dec_fan($fan_mode);
+			$self->hex_cool(substr($msg{extra}, 14, 2));
+			$self->hex_humid(substr($msg{extra}, 16, 2));
+			$self->hex_long_temp(substr($msg{extra}, 18, 4));
+			$self->hex_status(substr($msg{extra}, 22, 2));
+			$self->hex_heat(substr($msg{extra}, 24, 2));			
+			$clear_message = 1;
+			$self->_process_command_stack(%msg);
+		} else {
+			main::print_log("[Insteon::Thermo_i2] WARN: Corrupt Extended "
+				."Set/Get Data Received for ". $self->get_object_name) if $main::Debug{insteon};
+		}
+	}
+	else {
+		$clear_message = $self->SUPER::_process_message($p_setby,%msg);
+	}
+	return $clear_message;
+}
+
+sub dec_mode{
+	my ($self, $dec_mode) = @_;
+	my $mode;
+	$mode = 'Off' if ($dec_mode == 0);
+	$mode = 'Auto' if ($dec_mode == 1); 
+	$mode = 'Heat' if ($dec_mode == 2); 
+	$mode = 'Cool' if ($dec_mode == 3);  
+	$mode = 'Program' if ($dec_mode == 4);
+	$self->_mode($mode);
+}
+sub dec_fan{
+	my ($self, $dec_fan) = @_;
+	my $fan;
+	$fan = 'Auto' if ($dec_fan == 0);
+	$fan = 'Always On' if ($dec_fan == 1); 
+	$self->_fan_mode($fan);
+}
+
+sub hex_cool{
+	my ($self, $hex_cool) = @_;
+	$self->_cool_sp(hex($hex_cool));
+}
+sub hex_humid{
+	my ($self, $hex_humid) = @_;
+	$self->_humid(hex($hex_humid));
+}
+sub hex_long_temp{
+	my ($self, $hex_temp) = @_;
+	my $temp_cel = (hex($hex_temp)/10);
+	## ATM I am going to assume farenheit b/c that is what I have
+	# in future, can pull setting bit from thermometer
+	$$self{temp} = (($temp_cel*9)/5 +32);
+	$self->set_receive('temp_change');
+}
+sub hex_status{
+	### Not sure about this one yet, was 80 when set to auto but no activity
+}
+sub hex_heat{
+	my ($self, $hex_heat) = @_;
+	$self->_heat_sp(hex($hex_heat));	
+}
+
+sub _humid {
+	my ($self,$p_state) = @_;
+	if ($p_state ne $$self{humid}) {
+		$$self{humid} = $p_state;
+		$self->set_receive('humid_change');
+	}
+	return $$self{humid};
 }
 
 package Insteon::Thermo_i2_bcast;
