@@ -478,12 +478,16 @@ sub init {
 			$parent_group->add($$self{$obj});
 		}
 	}
+	#Set saved state unique to i2
+	$self->restore_data('humid');
+
 	#Set child saved states
 	$$self{temp_item}->set($self->get_temp());
 	$$self{setpoint_h_item}->set($self->get_heat_sp());
 	$$self{setpoint_c_item}->set($self->get_cool_sp());
 	$$self{fan_item}->set($self->get_fan_mode());
 	$$self{mode_item}->set($self->get_mode());
+	$$self{humidity_item}->set($$self{humid});
 		
 	#Tie changes in parent item to children
 	$self -> tie_event ('Insteon::Thermo_i2::parent_event(\''.$$self{object_name} . '\', "$state")');
