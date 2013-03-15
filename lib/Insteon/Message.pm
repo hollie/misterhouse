@@ -480,7 +480,15 @@ sub _derive_interface_data
         	$cmd .= '00';
         }
 
-	if( $self->command_type eq 'insteon_ext_send' and $self->setby->engine_version eq 'I2CS') {
+	if( $self->command_type eq 'insteon_ext_send' and $$self{add_crc16}){
+		if( length($cmd) < 40) {
+			main::print_log("[Insteon::InsteonMessage] WARN: insert_crc16 "
+				. "failed; cmd to short: $cmd");
+		} else {
+			$cmd = substr($cmd,0,36).calculate_crc16(substr($cmd,8,28));
+		}
+	}
+	elsif( $self->command_type eq 'insteon_ext_send' and $self->setby->engine_version eq 'I2CS') {
 	        #$message is the entire insteon command (no 0262 PLM command)
 	        # i.e. '02622042d31f2e000107110000000000000000000000'
 	        #                     111111111122222222223333333333
