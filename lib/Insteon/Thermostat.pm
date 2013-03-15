@@ -574,6 +574,31 @@ sub _process_message {
 				."Set/Get Data Received for ". $self->get_object_name) if $main::Debug{insteon};
 		}
 	}
+	elsif ($msg{command} eq "status_temp" && !$msg{is_ack}){
+		main::print_log("[Insteon::Thermo_i2] Received Status Temp Message ".
+			"for ". $self->get_object_name) if $main::Debug{insteon};	
+		$self->hex_short_temp($msg{extra});
+	}
+	elsif ($msg{command} eq "status_mode" && !$msg{is_ack}){
+		main::print_log("[Insteon::Thermo_i2] Received Status Mode Message ".
+			"for ". $self->get_object_name) if $main::Debug{insteon};	
+		$self->status_mode($msg{extra});
+	}
+	elsif ($msg{command} eq "status_cool" && !$msg{is_ack}){
+		main::print_log("[Insteon::Thermo_i2] Received Status Cool Message ".
+			"for ". $self->get_object_name) if $main::Debug{insteon};	
+		$self->hex_cool($msg{extra});
+	}
+	elsif ($msg{command} eq "status_humid" && !$msg{is_ack}){
+		main::print_log("[Insteon::Thermo_i2] Received Status Humid Message ".
+			"for ". $self->get_object_name) if $main::Debug{insteon};	
+		$self->hex_humid($msg{extra});
+	}
+	elsif ($msg{command} eq "status_heat" && !$msg{is_ack}){
+		main::print_log("[Insteon::Thermo_i2] Received Status Heat Message ".
+			"for ". $self->get_object_name) if $main::Debug{insteon};	
+		$self->hex_heat($msg{extra});
+	}
 	else {
 		$clear_message = $self->SUPER::_process_message($p_setby,%msg);
 	}
