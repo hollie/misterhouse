@@ -18,15 +18,11 @@ sub init {
 
     $web_index = 0;
 
-# The darwin hook is currently done in the main bin/mh code
-#    if ($main::Info{OS_name}=~ /darwin/i) {
-#        &main::my_use("Mac::Sound");
-#		&main::my_use("Mac::Speech");
-#        my $voice = $main::config_parms{speak_voice};
-#        $voice = 'Albert' unless $voice;
-#        my $Mac_voice = $Mac::Speech::Voice{$voice};
-#        $VTxt_mac = NewSpeechChannel($Mac_voice); # Need a default voice here?
-#    }
+	# OS X
+    if ($main::Info{OS_name}=~ /darwin/i) {
+        my $voice = $main::config_parms{speak_voice};
+        $voice = 'Albert' unless $voice;
+    }
 
     if (($main::config_parms{voice_text} =~ /festival/i or $engine and $engine eq 'festival') and
         $main::config_parms{festival_host}) {
@@ -207,7 +203,7 @@ sub speak_text {
 #       $speak_pgm = "$path/bin/TTSDesktopPlayer      -data $path/data -xml";
     }
     elsif ($main::Info{OS_name}=~ /darwin/i) {
-        $speak_pgm = 'MacSpeech' unless $speak_pgm;
+        $speak_pgm = 'say' unless $speak_pgm;
 #       $speak_pgm = 'osascript' unless $speak_pgm;
     }
     elsif ($speak_engine =~ /viavoice/i or $speak_engine =~ /vv_tts/i) {
@@ -521,11 +517,12 @@ sub speak_text {
 
                 $speak_pgm .= " > /dev/null" unless $main::Debug{voice} and $main::Debug{voice} > 1;
             }
-            elsif ($speak_pgm eq 'MacSpeech') {
-                my $volume_reset = GetDefaultOutputVolume();
-                SetDefaultOutputVolume(2**$parms{volume}) if $parms{volume};
-                SpeakText($VTxt_mac, $parms{text});
-                SetDefaultOutputVolume(2**$volume_reset)  if $parms{volume};
+            elsif ($speak_pgm eq 'say') {
+            	system "say $parms{text}";
+                #my $volume_reset = GetDefaultOutputVolume();
+                #SetDefaultOutputVolume(2**$parms{volume}) if $parms{volume};
+                #SpeakText($VTxt_mac, $parms{text});
+                #SetDefaultOutputVolume(2**$volume_reset)  if $parms{volume};
 #               sleep 1 while SpeechBusy();
             }
             elsif ($speak_pgm eq 'osascript') {
