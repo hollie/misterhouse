@@ -524,7 +524,7 @@ sub _process_incoming_xpl_data {
 #           $o -> SUPER::set($state_value, 'xPL') if defined $state_value;
 
             $o->received( $data );
-            if ( defined $state_value and $state_value ne '' ) {
+            if ( defined $state_value and $state_value ne '' and $o->state() ne $state_value) {
                 my $set_by_name = 'xPL';
                 $set_by_name .= " [$source]";
                 $o->set_now( $state_value, $set_by_name );
