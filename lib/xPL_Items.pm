@@ -913,7 +913,6 @@ sub manage_heartbeat_timeout {
 
 sub dead_action {
     my ( $self, $p_actionDeadApp ) = @_;
-    $$self{m_app_Status} = 'dead';
     if ( defined $p_actionDeadApp ) {
         $$self{m_actionDeadApp} = $p_actionDeadApp;
     }
@@ -922,7 +921,8 @@ sub dead_action {
 
 sub _handle_dead_app {
     my ($self) = @_;
-    return eval $$self{m_actionDeadApp} if defined( $$self{m_actionDeadApp} );
+    $$self{m_appStatus} = 'dead';
+    return $$self{m_actionDeadApp}->() if defined( $$self{m_actionDeadApp} );
 }
 
 sub _handle_alive_app {
