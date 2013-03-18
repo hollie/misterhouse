@@ -753,6 +753,19 @@ sub read_table_A {
             $code .= "use xPL_Items;\n";
         }
     }
+     elsif($type eq "XPL_X10BASIC") {
+       ($address, $name, $grouplist, @other) = @item_info;
+       $other = join ', ', (map {"'$_'"} @other); # Quote data
+       if($other){
+           $object = "xPL_X10Basic('$address',$other)";
+       }
+       else{
+           $object = "xPL_X10Basic('$address')";
+       }
+       if( ! $packages{xPL_X10Basic}++ ) {   # first time for this objecttype?
+           $code .= "use xPL_X10Basic;\n";
+       }
+   }
     elsif($type eq "XPL_IRRIGATEWAY") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
