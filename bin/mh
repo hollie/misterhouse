@@ -54,34 +54,18 @@ BEGIN {
     }
     chdir $Pgm_Path;            # Base everything from the mh dir.
 
-	# Are we running from within a subversion repository?
-	my $entries='../.svn/entries';
-	my $revision=undef;
-	if (-r $entries) {
-		open (ENTRIES, $entries);
-		my $line1=<ENTRIES>;
-		# $entries can be either XML (svn < 1.4) or just text (svn >= 1.4)
-		if ($line1 =~ /xml/) {
-			while (<ENTRIES>) {
-				next unless /revision="(\d+)"/;
-		    	$revision=$1;
-				last;
-			}
-		} else  {
-			# the revision number is the 11th line.  We have already read 1 line
-			for (1..10) {
-				$revision=<ENTRIES>;
-			}
-			chomp $revision;
-		}
-		close (ENTRIES);
+    # Determine the VERSION
+    my $autover;
+
+    if (-e '../VERSION') {
+        open (VERSION, '../VERSION');
+	$autover = <VERSION>;
+	chomp $autover;
+	close (VERSION);
     }
 
-	$Version = "mh 2.105";
-	if ($revision) {
-		$Version.=" R${revision}";
-	}
-	$Version .= " (compiler: $Info{Perl_compiled})" if $Info{Perl_compiled};
+    $Version = $autover || 'unknown';
+    $Version .= " (compiler: $Info{Perl_compiled})" if $Info{Perl_compiled};
 
 #   $Pgm_Path = '.';
 
