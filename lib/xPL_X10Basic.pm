@@ -13,20 +13,16 @@ Usage:
 
  In your items.mht, add the squeezebox devices like this:
  
-   XPL_X10BASIC, xpl_device_id, object_name, group_name
+   XPL_X10BASIC, xpl_device_id:instance, object_name, group_name
    
  e.g.
-   XPL_X10BASIC, hollie-x10gate.uplight, uplight, Lights
+   XPL_X10BASIC, hollie-x10gate.downstairs:uplight, uplight, Lights
    
 License:
   This free software is licensed under the terms of the GNU public license.
 
 Authors:
   Roger Simon, added to git by Lieven Hollevoet based on a mail on the mailing list
-
-Credits:
-  Gregg Liming for the idea that we should not rely on the heartbeat messages to get the 
-     status of the Squeezebox.
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 =cut
