@@ -715,6 +715,21 @@ sub new {
 	return $self;
 }
 
+sub set {
+	my ($self, $p_state, $p_setby, $p_response) = @_;
+	my $found_state = 0;
+	foreach my $test_state (@{$$self{states}}){
+		if (lc($test_state) eq lc($p_state)){
+			$found_state = 1;
+		}
+	}
+	if ($found_state){
+		::print_log("[Insteon::Thermo_i2] Received set mode request to "
+			. $p_state . " for device " . $self->get_object_name);
+	}
+}
+
+
 package Insteon::Thermo_i2_fan;
 use strict;
 
@@ -726,6 +741,20 @@ sub new {
 	bless $self, $class;
 	@{$$self{states}} = ('Auto', 'On');
 	return $self;
+}
+
+sub set {
+	my ($self, $p_state, $p_setby, $p_response) = @_;
+	my $found_state = 0;
+	foreach my $test_state (@{$$self{states}}){
+		if (lc($test_state) eq lc($p_state)){
+			$found_state = 1;
+		}
+	}
+	if ($found_state){
+		::print_log("[Insteon::Thermo_i2] Received set mode request to "
+			. $p_state . " for device " . $self->get_object_name);
+	}
 }
 
 package Insteon::Thermo_i2_temp;
@@ -765,6 +794,20 @@ sub new {
 	return $self;
 }
 
+sub set {
+	my ($self, $p_state, $p_setby, $p_response) = @_;
+	my $found_state = 0;
+	foreach my $test_state (@{$$self{states}}){
+		if (lc($test_state) eq lc($p_state)){
+			$found_state = 1;
+		}
+	}
+	if ($found_state){
+		::print_log("[Insteon::Thermo_i2] Received set mode request to "
+			. $p_state . " for device " . $self->get_object_name);
+	}
+}
+
 package Insteon::Thermo_i2_setpoint_c;
 use strict;
 
@@ -776,6 +819,20 @@ sub new {
 	bless $self, $class;
 	@{$$self{states}} = ('Cooler', 'Warmer');
 	return $self;
+}
+
+sub set {
+	my ($self, $p_state, $p_setby, $p_response) = @_;
+	my $found_state = 0;
+	foreach my $test_state (@{$$self{states}}){
+		if (lc($test_state) eq lc($p_state)){
+			$found_state = 1;
+		}
+	}
+	if ($found_state){
+		::print_log("[Insteon::Thermo_i2] Received set mode request to "
+			. $p_state . " for device " . $self->get_object_name);
+	}
 }
 
 1;
