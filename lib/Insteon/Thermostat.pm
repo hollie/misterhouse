@@ -504,6 +504,7 @@ sub sync_links{
 	::print_log("[Insteon::Thermo_i2] (sync_links) Enabling thermostat broadcast setting.") unless $audit_mode;
 	my $extra = "000008000000000000000000000000";
 	my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
+	$$self{_ext_set_get_action} = 'set';
 	$self->_send_cmd($message);
 	# Call the main sync_links code
 	return $self->SUPER::sync_links($audit_mode, $callback, $failure_callback);
@@ -544,8 +545,14 @@ sub _process_message {
 	my ($self,$p_setby,%msg) = @_;
 	my $clear_message = 0;
 	if ($msg{command} eq "extended_set_get" && $msg{is_ack}){
-		##Don't clear until data packet received
+		#If this was a get request don't clear until data packet received
 		main::print_log("[Insteon::Thermo_i2] Extended Set/Get ACK Received for " . $self->get_object_name) if $main::Debug{insteon};
+		if ($$self{_ext_set_get_action} eq 'set'){
+			main::print_log("[Insteon::Thermo_i2] Clearing active message") if $main::Debug{insteon};
+			$clear_message = 1;
+			$$self{_ext_set_get_action} = undef;
+			$self->_process_command_stack(%msg);	
+		}
 	} 
 	elsif ($msg{command} eq "extended_set_get" && $msg{is_extended}) {
 		if (substr($msg{extra},0,4) eq "0201") {
