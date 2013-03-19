@@ -1729,7 +1729,6 @@ sub update_local_properties
 
 sub update_flags
 {
-	my ($self, $flags) = @_;
 	my ($self, $flags, $aldb_check) = @_;
 	return unless defined $flags;
 	if (defined($aldb_check)){
