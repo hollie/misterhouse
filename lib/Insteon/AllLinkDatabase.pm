@@ -989,10 +989,10 @@ sub add_link
 sub update_link
 {
 	my ($self, %link_parms) = @_;
-	if (@_[1] eq 'ok' or @_[1] eq 'fail'){
+	if ($_[1] eq 'ok' or $_[1] eq 'fail'){
 		%link_parms = %{$self->{callback_parms}};
 		$$self{callback_parms} = undef;
-		$link_parms{aldb_check} = @_[1];
+		$link_parms{aldb_check} = $_[1];
 	}
 	my $insteon_object = $link_parms{object};
 	my $group = $link_parms{group};
