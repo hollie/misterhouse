@@ -966,7 +966,21 @@ sub read_table_A {
            print "\nThere is no object called $name defined.  Ignoring SCENE_MEMBER entry.\n" unless $objects{$name};
         }
         $object = '';
-    } else {
+    }
+    elsif ($type eq "PHILIPS_HUE"){
+    	($address, $name, $grouplist, @other) = @item_info;
+    	$other = join ', ', (map {"'$_'"} @other); # Quote data
+        if($other){
+            $object = "Philips_Hue('$address',$other)";
+        }
+        else{
+            $object = "Philips_Hue('$address')";
+        }
+        if( ! $packages{Philips_Hue}++ ) {   # first time for this object type?
+            $code .= "use Philips_Hue;\n";
+        }
+    }
+    else {
         print "\nUnrecognized .mht entry: $record\n";
         return;
     }
