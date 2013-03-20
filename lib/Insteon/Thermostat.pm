@@ -133,39 +133,6 @@ sub poll_mode {
    return;
 }
 
-=item C<mode()>
-
-Sets system mode to argument: 'off', 'heat', 'cool', 'auto', 'program_heat', 
-'program_cool', 'program_auto'.  The 2441TH thermostat does not have program_heat
- or program_cool.
-=cut
-sub mode{
-	my ($self, $state) = @_;
-	$state = lc($state);
-	main::print_log("[Insteon::Thermostat] Mode $state") if  $main::Debug{insteon};
-	my $mode;
-	if ($state eq 'off') {
-		$mode = "09";
-	} elsif ($state eq 'heat') {
-		$mode = "04";
-	} elsif ($state eq 'cool') {
-		$mode = "05";
-	} elsif ($state eq 'auto') {
-		$mode = "06";
-	} elsif ($state eq 'program_heat') {
-		$mode = "0a";
-	} elsif ($state eq 'program_cool') {
-		$mode = "0b";
-	} elsif ($state eq 'program_auto') {
-		$mode = "0c";
-		$mode = "0a" if $self->_aldb->isa('Insteon::ALDB_i2');
-	} else {
-		main::print_log("[Insteon::Thermostat] ERROR: Invalid Mode state: $state");
-		return();
-	}
-	$self->_send_cmd($self->simple_message('thermostat_control', $mode));
-}
-
 =item C<fan()>
 
 Sets fan to 'on' or 'auto'
@@ -429,6 +396,39 @@ use strict;
 
 @Insteon::Thermo_i1::ISA = ('Insteon::Thermostat');
 
+=item C<mode()>
+
+Sets system mode to argument: 'off', 'heat', 'cool', 'auto', 'program_heat', 
+'program_cool', 'program_auto'.  The 2441TH thermostat does not have program_heat
+ or program_cool.
+=cut
+sub mode{
+	my ($self, $state) = @_;
+	$state = lc($state);
+	main::print_log("[Insteon::Thermostat] Mode $state") if  $main::Debug{insteon};
+	my $mode;
+	if ($state eq 'off') {
+		$mode = "09";
+	} elsif ($state eq 'heat') {
+		$mode = "04";
+	} elsif ($state eq 'cool') {
+		$mode = "05";
+	} elsif ($state eq 'auto') {
+		$mode = "06";
+	} elsif ($state eq 'program_heat') {
+		$mode = "0a";
+	} elsif ($state eq 'program_cool') {
+		$mode = "0b";
+	} elsif ($state eq 'program_auto') {
+		$mode = "0c";
+	} else {
+		main::print_log("[Insteon::Thermostat] ERROR: Invalid Mode state: $state");
+		return();
+	}
+	$$self{_control_action} = "mode";
+	$self->_send_cmd($self->simple_message('thermostat_control', $mode));
+}
+
 
 package Insteon::Thermo_i2;
 use strict;
@@ -686,6 +686,36 @@ sub _humid {
 	return $$self{humid};
 }
 
+=item C<mode()>
+
+Sets system mode to argument: 'off', 'heat', 'cool', 'auto', 'program_heat', 
+'program_cool', 'program_auto'.  The 2441TH thermostat does not have program_heat
+ or program_cool.
+=cut
+sub mode{
+	my ($self, $state) = @_;
+	$state = lc($state);
+	main::print_log("[Insteon::Thermostat] Mode $state") if  $main::Debug{insteon};
+	my $mode;
+	if ($state eq 'off') {
+		$mode = "09";
+	} elsif ($state eq 'heat') {
+		$mode = "04";
+	} elsif ($state eq 'cool') {
+		$mode = "05";
+	} elsif ($state eq 'auto') {
+		$mode = "06";
+	} elsif ($state eq 'program') {
+		$mode = "0a" if $self->_aldb->isa('Insteon::ALDB_i2');
+	} else {
+		main::print_log("[Insteon::Thermostat] ERROR: Invalid Mode state: $state");
+		return();
+	}
+	$$self{_control_action} = "mode";
+	$self->_send_cmd($self->simple_message('thermostat_control', $mode));
+}
+
+
 package Insteon::Thermo_i2_bcast;
 use strict;
 
@@ -711,7 +741,7 @@ sub new {
 	my ($class) = @_;
 	my $self = new Generic_Item();
 	bless $self, $class;
-	@{$$self{states}} = ('Off', 'Heat', 'Cool', 'Auto');
+	@{$$self{states}} = ('Off', 'Heat', 'Cool', 'Auto', 'Program');
 	return $self;
 }
 
