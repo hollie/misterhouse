@@ -361,20 +361,6 @@ sub _process_message
 	return $clear_message;
 }
 
-## Creates either a Standard or Extended Message depending on the device type
-## Can be used to create different classes later
-sub simple_message {
-	my ($self,$type,$extra) = @_;
-	my $message;
-	if ($self->_aldb->isa('Insteon::ALDB_i2')){
-		$extra = $extra . "0000000000000000000000000000";
-		$message = new Insteon::InsteonMessage('insteon_ext_send', $self, $type, $extra);
-	} else {
-		$message = new Insteon::InsteonMessage('insteon_send', $self, $type, $extra);
-	}
-	return $message;
-}
-
 # Overload methods we don't use, but would otherwise cause Insteon traffic.
 sub request_status { return 0 }
 
@@ -453,6 +439,14 @@ sub _is_info_request {
 		$is_info_request = $self->SUPER::_is_info_request($cmd, $ack_setby, %msg);
 	}
 	return $is_info_request;
+}
+
+## Creates a simple Standard Message
+sub simple_message {
+	my ($self,$type,$extra) = @_;
+	my $message;
+	$message = new Insteon::InsteonMessage('insteon_send', $self, $type, $extra);
+	return $message;
 }
 
 package Insteon::Thermo_i2;
@@ -768,6 +762,14 @@ sub mode{
 	$self->_send_cmd($self->simple_message('thermostat_control', $mode));
 }
 
+## Creates an Extended Message
+sub simple_message {
+	my ($self,$type,$extra) = @_;
+	my $message;
+	$extra = $extra . "0000000000000000000000000000";
+	$message = new Insteon::InsteonMessage('insteon_ext_send', $self, $type, $extra);
+	return $message;
+}
 
 package Insteon::Thermo_i2_bcast;
 use strict;
