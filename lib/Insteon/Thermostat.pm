@@ -500,12 +500,12 @@ sub init {
 	$self->restore_data('humid');
 
 	#Set child saved states
-	$$self{temp_item}->set($self->get_temp());
-	$$self{setpoint_h_item}->set($self->get_heat_sp());
-	$$self{setpoint_c_item}->set($self->get_cool_sp());
-	$$self{fan_item}->set($self->get_fan_mode());
-	$$self{mode_item}->set($self->get_mode());
-	$$self{humidity_item}->set($$self{humid});
+	$$self{temp_item}->set_receive($self->get_temp());
+	$$self{setpoint_h_item}->set_receive($self->get_heat_sp());
+	$$self{setpoint_c_item}->set_receive($self->get_cool_sp());
+	$$self{fan_item}->set_receive($self->get_fan_mode());
+	$$self{mode_item}->set_receive($self->get_mode());
+	$$self{humidity_item}->set_receive($$self{humid});
 		
 	#Tie changes in parent item to children
 	$self -> tie_event ('Insteon::Thermo_i2::parent_event(\''.$$self{object_name} . '\', "$state")');
@@ -527,22 +527,22 @@ sub parent_event {
 	my ($self, $p_state) = @_;
 	$self = ::get_object_by_name($self);
 	if ($p_state eq 'temp_change'){
-		$$self{temp_item}->set($self->get_temp());
+		$$self{temp_item}->set_receive($self->get_temp());
 	}
 	elsif ($p_state eq 'heat_setpoint_change'){
-		$$self{setpoint_h_item}->set($self->get_heat_sp());
+		$$self{setpoint_h_item}->set_receive($self->get_heat_sp());
 	}
 	elsif ($p_state eq 'cool_setpoint_change'){
-		$$self{setpoint_c_item}->set($self->get_cool_sp());
+		$$self{setpoint_c_item}->set_receive($self->get_cool_sp());
 	}
 	elsif ($p_state eq 'fan_mode_change'){
-		$$self{fan_item}->set($self->get_fan_mode());
+		$$self{fan_item}->set_receive($self->get_fan_mode());
 	}
 	elsif ($p_state eq 'mode_change'){
-		$$self{mode_item}->set($self->get_mode());
+		$$self{mode_item}->set_receive($self->get_mode());
 	}
 	elsif ($p_state eq 'humid_change'){
-		$$self{humidity_item}->set($$self{humid});
+		$$self{humidity_item}->set_receive($$self{humid});
 	}
 }
 
@@ -800,6 +800,10 @@ sub set {
 	}
 }
 
+sub set_receive {
+	my ($self, $p_state) = @_;
+	$self->SUPER::set($p_state);
+}
 
 package Insteon::Thermo_i2_fan;
 use strict;
@@ -828,6 +832,10 @@ sub set {
 	}
 }
 
+sub set_receive {
+	my ($self, $p_state) = @_;
+	$self->SUPER::set($p_state);
+}
 package Insteon::Thermo_i2_temp;
 use strict;
 
@@ -840,6 +848,10 @@ sub new {
 	return $self;
 }
 
+sub set_receive {
+	my ($self, $p_state) = @_;
+	$self->SUPER::set($p_state);
+}
 package Insteon::Thermo_i2_humidity;
 use strict;
 
@@ -850,6 +862,11 @@ sub new {
 	my $self = new Generic_Item();
 	bless $self, $class;
 	return $self;
+}
+
+sub set_receive {
+	my ($self, $p_state) = @_;
+	$self->SUPER::set($p_state);
 }
 
 package Insteon::Thermo_i2_setpoint_h;
@@ -879,6 +896,11 @@ sub set {
 	}
 }
 
+sub set_receive {
+	my ($self, $p_state) = @_;
+	$self->SUPER::set($p_state);
+}
+
 package Insteon::Thermo_i2_setpoint_c;
 use strict;
 
@@ -906,6 +928,10 @@ sub set {
 	}
 }
 
+sub set_receive {
+	my ($self, $p_state) = @_;
+	$self->SUPER::set($p_state);
+}
 1;
 =back
 
