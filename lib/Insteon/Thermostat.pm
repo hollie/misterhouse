@@ -797,6 +797,7 @@ sub set {
 	if ($found_state){
 		::print_log("[Insteon::Thermo_i2] Received set mode request to "
 			. $p_state . " for device " . $self->get_object_name);
+		$$self{parent}->mode($p_state);
 	}
 }
 
@@ -827,8 +828,9 @@ sub set {
 		}
 	}
 	if ($found_state){
-		::print_log("[Insteon::Thermo_i2] Received set mode request to "
+		::print_log("[Insteon::Thermo_i2] Received set fan to "
 			. $p_state . " for device " . $self->get_object_name);
+		$$self{parent}->fan($p_state);
 	}
 }
 
@@ -891,8 +893,14 @@ sub set {
 		}
 	}
 	if ($found_state){
-		::print_log("[Insteon::Thermo_i2] Received set mode request to "
+		::print_log("[Insteon::Thermo_i2] Received request to set heat setpoint "
 			. $p_state . " for device " . $self->get_object_name);
+		if (lc($p_state) eq 'cooler'){
+			$$self{parent}->heat_setpoint($$self{parent}->get_heat_sp - 1);
+		}
+		elsif (lc($p_state) eq 'warmer'){
+			$$self{parent}->heat_setpoint($$self{parent}->get_heat_sp + 1);
+		}
 	}
 }
 
@@ -923,8 +931,14 @@ sub set {
 		}
 	}
 	if ($found_state){
-		::print_log("[Insteon::Thermo_i2] Received set mode request to "
+		::print_log("[Insteon::Thermo_i2] Received request to set cool setpoint "
 			. $p_state . " for device " . $self->get_object_name);
+		if (lc($p_state) eq 'cooler'){
+			$$self{parent}->cool_setpoint($$self{parent}->get_cool_sp - 1);
+		}
+		elsif (lc($p_state) eq 'warmer'){
+			$$self{parent}->cool_setpoint($$self{parent}->get_cool_sp + 1);
+		}
 	}
 }
 
