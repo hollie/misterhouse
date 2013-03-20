@@ -335,7 +335,19 @@ sub _process_message
 {
 	my ($self,$p_setby,%msg) = @_;
 	my $clear_message = 0;
-	if ($$self{_zone_action} eq 'setpoint' && $$self{m_pending_setpoint}) {
+	if ($msg{command} eq "thermostat_setpoint_cool" && $msg{is_ack}){
+		main::print_log("[Insteon::Thermostat] Received ACK of cool setpoint ".
+			"for ". $self->get_object_name) if $main::Debug{insteon};	
+		$self->_cool_sp((hex($msg{extra})/2));
+		$clear_message = 1;
+	}
+	elsif ($msg{command} eq "thermostat_setpoint_heat" && $msg{is_ack}){
+		main::print_log("[Insteon::Thermostat] Received ACK of heat setpoint ".
+			"for ". $self->get_object_name) if $main::Debug{insteon};	
+		$self->_heat_sp((hex($msg{extra})/2));
+		$clear_message = 1;
+	}
+	elsif ($$self{_zone_action} eq 'setpoint' && $$self{m_pending_setpoint}) {
 		# we got our cool setpoint in auto mode
 		main::print_log("[Insteon::Thermostat] Processing data for $msg{command} with value: $msg{extra}") if $main::Debug{insteon};
 		my $val = (hex $msg{extra})/2;
