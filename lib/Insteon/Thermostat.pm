@@ -296,38 +296,16 @@ sub get_fan_mode() {
 
 sub _is_info_request {
    my ($self, $cmd, $ack_setby, %msg) = @_;
-   my $is_info_request = ($cmd eq 'thermostat_get_zone_info'
-   	or $cmd eq 'thermostat_control') ? 1 : 0;
+   my $is_info_request = ($cmd eq 'thermostat_get_zone_info') ? 1 : 0;
    if ($is_info_request) {
       my $val = $msg{extra};
-      main::print_log("[Insteon::Thermostat] Processing data for $cmd with value: $val") if $main::Debug{insteon}; 
+      main::print_log("[Insteon::Thermostat] Processing is_info_request for $cmd with value: $val") if $main::Debug{insteon}; 
       if ($$self{_zone_action} eq "temp") {
          $val = (hex $val) / 2; # returned value is twice the real value
          if (exists $$self{'temp'} and ($$self{'temp'} != $val)) {
             $self->set_receive('temp_change');
          }
          $$self{'temp'} = $val;
-      } elsif ($$self{_control_action} eq "mode") {
-         if ($val eq '00') {
-            $self->_mode('off');
-         } elsif ($val eq '01') {
-            $self->_mode('heat');
-         } elsif ($val eq '02') {
-            $self->_mode('cool');
-         } elsif ($val eq '03') {
-            $self->_mode('auto');
-         } elsif ($val eq '04') {
-            $self->_fan_mode('fan_on');
-         } elsif ($val eq '05') {
-            $self->_mode('program_auto');
-         } elsif ($val eq '06') {
-            $self->_mode('program_heat');
-         } elsif ($val eq '07') {
-            $self->_mode('program_cool');
-         } elsif ($val eq '08') {
-            $self->_fan_mode('fan_auto');
-         }
-         $$self{_control_action} = undef;
       } elsif ($$self{_zone_action} eq 'setpoint') {
          $val = (hex $val) / 2; # returned value is twice the real value
          # in auto modes, expect direct message with cool_setpoint to follow 
@@ -429,6 +407,41 @@ sub mode{
 	$self->_send_cmd($self->simple_message('thermostat_control', $mode));
 }
 
+sub _is_info_request {
+	my ($self, $cmd, $ack_setby, %msg) = @_;
+	my $is_info_request;
+	if ($cmd eq 'thermostat_control' && $$self{_control_action} eq "mode") {
+		my $val = $msg{extra};
+		main::print_log("[Insteon::Thermo_i1] Processing is_info_request for $cmd with value: $val") if $main::Debug{insteon}; 
+		if ($val eq '00') {
+			$self->_mode('off');
+		} elsif ($val eq '01') {
+			$self->_mode('heat');
+		} elsif ($val eq '02') {
+			$self->_mode('cool');
+		} elsif ($val eq '03') {
+			$self->_mode('auto');
+		} elsif ($val eq '04') {
+			$self->_fan_mode('fan_on');
+		} elsif ($val eq '05') {
+			$self->_mode('program_auto');
+		} elsif ($val eq '06') {
+			$self->_mode('program_heat');
+		} elsif ($val eq '07') {
+			$self->_mode('program_cool');
+		} elsif ($val eq '08') {
+			$self->_fan_mode('fan_auto');
+		}
+		$$self{_control_action} = undef;
+		$is_info_request = 1;
+	}
+	else #This was not a thermo_1 info_request
+	{
+		#Check if this was a generic info_request
+		$is_info_request = $self->SUPER::_is_info_request($cmd, $ack_setby, %msg);
+	}
+	return $is_info_request;
+}
 
 package Insteon::Thermo_i2;
 use strict;
@@ -610,6 +623,34 @@ sub _process_message {
 		$clear_message = $self->SUPER::_process_message($p_setby,%msg);
 	}
 	return $clear_message;
+}
+
+sub _is_info_request {
+	my ($self, $cmd, $ack_setby, %msg) = @_;
+	my $is_info_request;
+	if ($cmd eq 'thermostat_control' && $$self{_control_action} eq "mode") {
+		my $val = $msg{extra};
+		main::print_log("[Insteon::Thermo_i2] Processing is_info_request for $cmd with value: $val") if $main::Debug{insteon}; 
+		if ($val eq '09') {
+			$self->_mode('Off');
+		} elsif ($val eq '04') {
+			$self->_mode('Heat');
+		} elsif ($val eq '05') {
+			$self->_mode('Cool');
+		} elsif ($val eq '06') {
+			$self->_mode('Auto');
+		} elsif ($val eq '0a') {
+			$self->_mode('Program');
+		}
+		$$self{_control_action} = undef;
+		$is_info_request = 1;
+	}
+	else #This was not a thermo_i2 info_request
+	{
+		#Check if this was a generic info_request
+		$is_info_request = $self->SUPER::_is_info_request($cmd, $ack_setby, %msg);
+	}
+	return $is_info_request;
 }
 
 sub dec_mode{
