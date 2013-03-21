@@ -56,6 +56,25 @@ sub failure_callback
         return $$self{failure_callback};
 }
 
+=item C<failure_reason>
+
+Stores the resaon for the most recent message failure [NAK | timeout].  Used to 
+process message callbacks after a message fails.  If called with no parameter 
+returns the saved failure reason.
+
+Parameters:
+	reason: failure reason
+
+Returns: failure reason
+
+=cut 
+sub failure_reason
+{
+        my ($self, $reason) = @_;
+        $$self{failure_reason} = $reason if $reason;
+        return $$self{failure_reason};
+}
+
 sub send_attempts
 {
 	my ($self, $send_attempts) = @_;
