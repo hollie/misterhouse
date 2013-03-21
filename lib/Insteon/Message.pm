@@ -68,6 +68,7 @@ Parameters:
 Returns: failure reason
 
 =cut 
+
 sub failure_reason
 {
         my ($self, $reason) = @_;
@@ -533,6 +534,7 @@ is that summing over all the bytes "including" the checksum will always equal 00
 This makes it very easy to validate a checksum.
 
 =cut
+
 sub calculate_checksum {
 	my ($string) = @_;
 
@@ -554,6 +556,7 @@ byte. This function will return two bytes, which are generally added to the
 data 13 & 14 bytes in an extended message.
 
 =cut
+
 sub calculate_crc16
 {
 	#This function is nearly identical to the C++ sample provided by 
