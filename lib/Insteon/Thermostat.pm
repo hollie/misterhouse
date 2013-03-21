@@ -336,18 +336,21 @@ sub _process_message
 	my ($self,$p_setby,%msg) = @_;
 	my $clear_message = 0;
 	if ($msg{command} eq "thermostat_setpoint_cool" && $msg{is_ack}){
+		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
 		main::print_log("[Insteon::Thermostat] Received ACK of cool setpoint ".
 			"for ". $self->get_object_name) if $main::Debug{insteon};	
 		$self->_cool_sp((hex($msg{extra})/2));
 		$clear_message = 1;
 	}
 	elsif ($msg{command} eq "thermostat_setpoint_heat" && $msg{is_ack}){
+		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
 		main::print_log("[Insteon::Thermostat] Received ACK of heat setpoint ".
 			"for ". $self->get_object_name) if $main::Debug{insteon};	
 		$self->_heat_sp((hex($msg{extra})/2));
 		$clear_message = 1;
 	}
 	elsif ($$self{_zone_action} eq 'setpoint' && $$self{m_pending_setpoint}) {
+		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
 		# we got our cool setpoint in auto mode
 		main::print_log("[Insteon::Thermostat] Processing data for $msg{command} with value: $msg{extra}") if $main::Debug{insteon};
 		my $val = (hex $msg{extra})/2;
@@ -564,6 +567,7 @@ sub _process_message {
 	my ($self,$p_setby,%msg) = @_;
 	my $clear_message = 0;
 	if ($msg{command} eq "extended_set_get" && $msg{is_ack}){
+		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
 		#If this was a get request don't clear until data packet received
 		main::print_log("[Insteon::Thermo_i2] Extended Set/Get ACK Received for " . $self->get_object_name) if $main::Debug{insteon};
 		if ($$self{_ext_set_get_action} eq 'set'){
@@ -575,6 +579,7 @@ sub _process_message {
 	} 
 	elsif ($msg{command} eq "extended_set_get" && $msg{is_extended}) {
 		if (substr($msg{extra},0,4) eq "0201") {
+			$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
 			main::print_log("[Insteon::Thermo_i2] Extended Set/Get Data ".
 				"Received for ". $self->get_object_name) if $main::Debug{insteon};
 			#0 = 2				#14 = Cool SP 
@@ -621,26 +626,31 @@ sub _process_message {
 		}
 	}
 	elsif ($msg{command} eq "status_temp" && !$msg{is_ack}){
+		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
 		main::print_log("[Insteon::Thermo_i2] Received Status Temp Message ".
 			"for ". $self->get_object_name) if $main::Debug{insteon};	
 		$self->hex_short_temp($msg{extra});
 	}
 	elsif ($msg{command} eq "status_mode" && !$msg{is_ack}){
+		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
 		main::print_log("[Insteon::Thermo_i2] Received Status Mode Message ".
 			"for ". $self->get_object_name) if $main::Debug{insteon};	
 		$self->status_mode($msg{extra});
 	}
 	elsif ($msg{command} eq "status_cool" && !$msg{is_ack}){
+		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
 		main::print_log("[Insteon::Thermo_i2] Received Status Cool Message ".
 			"for ". $self->get_object_name) if $main::Debug{insteon};	
 		$self->hex_cool($msg{extra});
 	}
 	elsif ($msg{command} eq "status_humid" && !$msg{is_ack}){
+		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
 		main::print_log("[Insteon::Thermo_i2] Received Status Humid Message ".
 			"for ". $self->get_object_name) if $main::Debug{insteon};	
 		$self->hex_humid($msg{extra});
 	}
 	elsif ($msg{command} eq "status_heat" && !$msg{is_ack}){
+		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
 		main::print_log("[Insteon::Thermo_i2] Received Status Heat Message ".
 			"for ". $self->get_object_name) if $main::Debug{insteon};	
 		$self->hex_heat($msg{extra});
