@@ -600,7 +600,7 @@ sub _process_message {
 			$self->hex_heat(substr($msg{extra}, 24, 2));			
 			$clear_message = 1;
 			$self->_process_command_stack(%msg);
-			if ($$self{set_time}){
+			if ($$self{sync_time}){
 				#This poll was requested as part of sync_time
 				my $message;
 				my $extra;
@@ -609,7 +609,7 @@ sub _process_message {
 						$time_array[1], $time_array[0]);
 				my $time_str = '';
 				foreach (@req_items){
-					$time_str .= sprintf("%02d", $_);
+					$time_str .= sprintf("%02x", $_);
 				}
 				$extra = $extra . "0202". $time_str . substr($msg{extra}, 12, 18);
 				#This will include the prior CRC16 message, but it will
@@ -617,7 +617,7 @@ sub _process_message {
 				$message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
 				$$message{add_crc16} = 1;
 				$$self{_ext_set_get_action} = 'set';
-				$$self{set_time} = undef;
+				$$self{sync_time} = undef;
 				$self->_send_cmd($message);
 			}
 		} else {
@@ -806,7 +806,7 @@ sub sync_time {
 	#In order to set the time, we need to know the current value of other data
 	#points such as mode and what not becuase we can't just set the time without
 	#setting these variables too.
-	$$self{set_time} = 1;
+	$$self{sync_time} = 1;
 	$self->poll_simple();
 }
 
