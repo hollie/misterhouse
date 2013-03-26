@@ -251,7 +251,7 @@ sub set
 			$$self{pending_setby} = $p_setby;
 			$$self{pending_response} = $p_response;
 	}
-		$self->level($p_state) if $self->isa("Insteon::BaseDevice"); # update the level value
+		$self->level($p_state) if ($self->isa("Insteon::BaseDevice") && $self->can('level')); # update the level value
 #		$self->SUPER::set($p_state,$p_setby,$p_response) if defined $p_state;
 	} else {
 		&::print_log("[Insteon::BaseObject] failed state validation with state=$p_state");
@@ -444,7 +444,7 @@ sub _is_info_request
 		&::print_log("[Insteon::BaseObject] received status for " .
 			$self->{object_name} . " with on-level: $ack_on_level%, "
 			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
-		$self->level($ack_on_level); # update the level value
+		$self->level($ack_on_level) if $self->can('level'); # update the level value
 		if ($ack_on_level == 0) {
 			$self->SUPER::set('off', $ack_setby);
 		} elsif ($ack_on_level > 0 and !($self->isa('Insteon::DimmableLight'))) {
