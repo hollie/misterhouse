@@ -945,7 +945,12 @@ sub get_root {
 	}
         else
         {
-		return &Insteon::get_object($self->device_id, '01');
+		my $root_obj = &Insteon::get_object($self->device_id, '01');
+		::print_log ("[Insteon::BaseDevice] ERROR! Cannot find the root object for " 
+			. $self->get_object_name ". Please check your mht file to make sure "
+			"that device id " . $self->device_id . ":01 is defined.") 
+			if (!defined($root_obj));
+		return $root_obj;
 	}
 }
 
