@@ -1490,7 +1490,7 @@ sub android_xml {
 
     # Add tags name, state, and optional state_log
     my @f = qw( name );
-    if (scalar($self->get_states( )) > 0) {
+    if ( ((defined $self->{states}) && (scalar(@{$$self{states}}) > 0)) || (defined $self->state( ))) {
 	push @f, qw ( state );
     }
     if ($log_size > 0) {
@@ -1521,8 +1521,14 @@ sub android_xml {
 	}
 
 	if ($f eq "state") {
-	    my @states = $self->get_states( );
-	    my $numStates = @states;
+	    my @states = ();
+	    push (@states,@{$$self{states}}) if defined $self->{states};
+	    my $numStates = scalar(@states);
+	    my $state = $self->state( );
+	    &::print_log("android_xml: numStates: $numStates state: $state states: @states") if $::Debug{android};
+	    if (($numStates eq 0) && (defined $state) && (length($state) < 20)) {
+		push (@states, $state);
+	    }
 	    $attributes->{type} ="text";
 	    if ($numStates eq 2) {
 		$attributes->{type} = "toggle";
