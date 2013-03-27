@@ -851,10 +851,12 @@ use strict;
 @Insteon::Thermo_i2_mode::ISA = ('Generic_Item');
 
 sub new {
-	my ($class) = @_;
+	my ($class,$parent) = @_;
 	my $self = new Generic_Item();
 	bless $self, $class;
+	$$self{parent} = $parent;
 	@{$$self{states}} = ('Off', 'Heat', 'Cool', 'Auto', 'Program');
+	$self->set_receive($$self{parent}->get_mode());
 	return $self;
 }
 
@@ -884,10 +886,12 @@ use strict;
 @Insteon::Thermo_i2_fan::ISA = ('Generic_Item');
 
 sub new {
-	my ($class) = @_;
+	my ($class, $parent) = @_;
 	my $self = new Generic_Item();
 	bless $self, $class;
+	$$self{parent} = $parent;
 	@{$$self{states}} = ('Auto', 'On');
+	$self->set_receive($$self{parent}->get_fan_mode());
 	return $self;
 }
 
@@ -910,15 +914,18 @@ sub set_receive {
 	my ($self, $p_state) = @_;
 	$self->SUPER::set($p_state);
 }
+
 package Insteon::Thermo_i2_temp;
 use strict;
 
 @Insteon::Thermo_i2_temp::ISA = ('Generic_Item');
 
 sub new {
-	my ($class) = @_;
+	my ($class, $parent) = @_;
 	my $self = new Generic_Item();
 	bless $self, $class;
+	$$self{parent} = $parent;
+	$self->set_receive($$self{parent}->get_temp());
 	return $self;
 }
 
@@ -932,9 +939,11 @@ use strict;
 @Insteon::Thermo_i2_humidity::ISA = ('Generic_Item');
 
 sub new {
-	my ($class) = @_;
+	my ($class, $parent) = @_;
 	my $self = new Generic_Item();
 	bless $self, $class;
+	$$self{parent} = $parent;
+	$self->set_receive($$self{parent}{humid});
 	return $self;
 }
 
@@ -949,10 +958,12 @@ use strict;
 @Insteon::Thermo_i2_setpoint_h::ISA = ('Generic_Item');
 
 sub new {
-	my ($class) = @_;
+	my ($class, $parent) = @_;
 	my $self = new Generic_Item();
 	bless $self, $class;
+	$$self{parent} = $parent;
 	@{$$self{states}} = ('Cooler' , 'Warmer');
+	$self->set_receive($$self{parent}->get_heat_sp());
 	return $self;
 }
 
@@ -987,10 +998,12 @@ use strict;
 @Insteon::Thermo_i2_setpoint_c::ISA = ('Generic_Item');
 
 sub new {
-	my ($class) = @_;
+	my ($class, $parent) = @_;
 	my $self = new Generic_Item();
 	bless $self, $class;
+	$$self{parent} = $parent;
 	@{$$self{states}} = ('Cooler', 'Warmer');
+	$self->set_receive($$self{parent}->get_cool_sp());	
 	return $self;
 }
 
