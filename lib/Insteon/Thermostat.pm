@@ -470,8 +470,14 @@ our %message_types = (
 sub init {
 	my ($self) = @_;
 	$$self{message_types} = \%message_types;
+	#Set saved state unique to i2 devices
+	$self->restore_data('humid');
 	
-	## Create the broadcast dummy item
+	# Create the broadcast dummy item
+	# This may not belong here.  Maybe this should go into read table A?
+	# Otherwise, users cannot define insteon scenes containing this device.
+	# While rare a thermostat may be set to provide broadcast updates to
+	# another device
 	my $dev_id = $self->device_id();
 	$dev_id =~ /(\w\w)(\w\w)(\w\w)/;
 	$dev_id = "$1.$2.$3";
@@ -505,8 +511,6 @@ sub init {
 			$parent_group->add($$self{$obj});
 		}
 	}
-	#Set saved state unique to i2
-	$self->restore_data('humid');
 
 	#Set child saved states
 	$$self{temp_item}->set_receive($self->get_temp());
@@ -727,10 +731,12 @@ sub hex_cool{
 	my ($self, $hex_cool) = @_;
 	$self->_cool_sp(hex($hex_cool));
 }
+
 sub hex_humid{
 	my ($self, $hex_humid) = @_;
 	$self->_humid(hex($hex_humid));
 }
+
 sub hex_long_temp{
 	my ($self, $hex_temp) = @_;
 	my $temp_cel = (hex($hex_temp)/10);
@@ -749,6 +755,7 @@ sub hex_short_temp{
 sub hex_status{
 	### Not sure about this one yet, was 80 when set to auto but no activity
 }
+
 sub hex_heat{
 	my ($self, $hex_heat) = @_;
 	$self->_heat_sp(hex($hex_heat));	
@@ -769,6 +776,7 @@ Sets system mode to argument: 'off', 'heat', 'cool', 'auto', 'program_heat',
 'program_cool', 'program_auto'.  The 2441TH thermostat does not have program_heat
  or program_cool.
 =cut
+
 sub mode{
 	my ($self, $state) = @_;
 	$state = lc($state);
