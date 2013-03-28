@@ -85,6 +85,7 @@ sub initialize
    $$self{'alarm_action'} = '';
    $$self{last_open} = 0;
    $$self{last_closed} = 0;
+   @{$$self{states}} = ('open','closed');
 }
 
 # If an alarm is set, the specified action is executed if the 
