@@ -518,11 +518,11 @@ sub plm_decode {
 				#include the STX for historical reasons
 				$plm_cmd_id = substr($plm_string,0,4);
 				$plm_message .= sprintf("%20s: (","PLM Command").$plm_cmd_id.") ".$plmcmd2string{$plm_cmd_id}."\n";
-				if(length($plm_string) < $plmcmdlen{$plm_cmd_id}->[0] * 2) {
+				if(length($plm_string) < $plmcmdlen{uc($plm_cmd_id)}->[0] * 2) {
 					$plm_message .= "        Message length too short for PLM command.  Not parsed\n";
 					$abort++;
-				} elsif(length($plm_string) > $plmcmdlen{$plm_cmd_id}->[0] * 2 
-						and length($plm_string) < $plmcmdlen{$plm_cmd_id}->[1] * 2) {
+				} elsif(length($plm_string) > $plmcmdlen{uc($plm_cmd_id)}->[0] * 2 
+						and length($plm_string) < $plmcmdlen{uc($plm_cmd_id)}->[1] * 2) {
 					$plm_message .= "        Message length too short for PLM command.  Not parsed\n";
 					$abort++;
 				} elsif(substr($plm_string,2,1) == '5') {
@@ -895,7 +895,7 @@ sub insteon_decode_cmd {
 #Takes a 2 byte hex cmd, 0 for send, 1, for rec and returns expected byte length
 sub insteon_cmd_len{
 	my ($plm_cmd, $send_rec) = @_;
-	return $plmcmdlen{$plm_cmd}->[$send_rec]
+	return $plmcmdlen{uc($plm_cmd)}->[$send_rec]
 }
 
 
