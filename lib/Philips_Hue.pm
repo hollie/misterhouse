@@ -74,7 +74,7 @@ Disable the active effect
 =item C<bri>
 
 Control the brightness of a lamp in percentage. Supports values between 0 (off) and 100 (maximum)
-brightness. Note that value '0' does not turn the lamp off, but sets it to minimal brightness.
+brightness. Note that value '0' does turn the lamp off.
 
 =item C<ct_k>
 
@@ -86,6 +86,9 @@ Sets the hue/saturation values to determine the color of a lamp.
 The hue value is a wrapping value between 0 and 65535. Both 0 and 65535 are red, 25500 is green and 46920 is blue.
 For the saturation of the light, 255 is the most saturated (colored) and 0 is the least saturated (white).
 
+=item C<hsb>
+
+Combined hue, saturation, brightness command. For supported values, see the respective functions above.
 
 =back
 
@@ -190,15 +193,16 @@ sub bri
 		return;
 	}
 	
-	if ($value == 0){
+	my $res = $self->_calc_bri_command($value);
+	
+	if ($res->{'cmd'} eq 'off'){
 		::print_log('hue', "Turning lamp off (bri == 0)");
 		$self->set('off');
 	} else {
 		::print_log('hue', "Setting lamp to brightness level $value %");
 		# We need to pass a value between 1 and 255 to Device::Hue
-		my $scaled = int($value/100*255);
 		$self->set('on');
-		$$self{light}->bri($scaled);
+		$$self{light}->bri($res->{'bri'});
 	}
 }
 
@@ -228,6 +232,31 @@ sub hs
 
 	::print_log('hue', "Setting hue and saturation to $hue - $sat");
 
+}
+
+sub hsb
+{
+	my ($self, $hue, $sat, $bri) = @_;
+	
+	$self->hs($hue, $sat);
+	$self->bri($bri);
+
+}
+
+# Determine what command to send to the lamp depending on the requested brightness level
+# 0 = off
+# 100 = on, full brightness
+sub _calc_bri_command
+{
+	my ($self, $value) = @_;
+	
+	if ($value == 0){
+		return {'cmd' => 'off'};
+	} else {
+		# We need to pass a value between 1 and 255 to Device::Hue
+		my $scaled = int($value/100*255);
+		return {'cmd' => 'on', 'bri' => $scaled};
+	}
 }
 
 #sub transition_time
