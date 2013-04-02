@@ -24,10 +24,15 @@ Then in your code do something like:
       
    # Switch on the light if it is getting dark
    if (<condition_that_needs_to_be_met>) {
-     $kitchen_light>set("ON");
+     $kitchen_light>set('on');
    }
 
+To control the brightness and the color of the lamp, use the ->bri(xx) and the ->ct_k(xx) or ->hs(xx,yy) functions.
 
+E.g. to put the light in full brightness blue:
+   $light->hs(46920,255);
+   $light->bri(255);
+   
 =head3 Setup
  
 This module communicates with the Hue lights through the bridge device. You need to detect 
@@ -66,6 +71,21 @@ Disable the active effect
 
 =back
  
+=item C<bri>
+
+Control the brightness of a lamp in percentage. Supports values between 0 (off) and 100 (maximum)
+brightness. Note that value '0' does not turn the lamp off, but sets it to minimal brightness.
+
+=item C<ct_k>
+
+Sets the color temperature in Kelvin. For 2012 lamps the value should be between 2000 K and 6500 K
+
+=item C<hs>
+
+Sets the hue/saturation values to determine the color of a lamp.
+The hue value is a wrapping value between 0 and 65535. Both 0 and 65535 are red, 25500 is green and 46920 is blue.
+For the saturation of the light, 255 is the most saturated (colored) and 0 is the least saturated (white).
+
 
 =back
 
@@ -114,9 +134,7 @@ sub addStates {
 sub default_setstate
 {
     my ($self, $state, $substate, $set_by) = @_;
-    
-    #&::print_log("[xPL_Plugwise] setstate: $state");
-    
+        
     my $cmnd = ($state =~ /^off/i) ? 'off' : 'on';
     	
     return -1 if ($self->state eq $state); # Don't propagate state unless it has changed.
@@ -128,9 +146,9 @@ sub default_setstate
     if ($cmnd eq 'off') {
     	$self->effect('none');
     }
+    
     $$self{light}->$cmnd;
 
-	#if ()	    
 	return;
 	
 }
@@ -144,10 +162,7 @@ sub effect
 	::print_log('hue', "Effect '$effect' request, current lamp state is $light_state");
 
 	# Light needs to be on to be able to program an effect
-	if ($light_state ne 'on') {
-		::print_log('hue', 'First switching lamp on...');
-		$self->set('on');
-	}
+	$self->set('on');
 	
 	# Send effect command
 	::print_log('hue', "Sending effect command");
@@ -164,5 +179,72 @@ sub effect
 	}
 	
 }
+
+sub bri
+{
+	my ($self, $value) = @_;
+	
+	# Sanity check
+	if (!(($value =~ /\d+/) && ($value >= 0) && ($value <= 100))) {
+		::print_log("Brightness value should be in %, but you passed $value. Brightness not set");
+		return;
+	}
+	
+	if ($value == 0){
+		::print_log('hue', "Turning lamp off (bri == 0)");
+		$self->set('off');
+	} else {
+		::print_log('hue', "Setting lamp to brightness level $value %");
+		# We need to pass a value between 1 and 255 to Device::Hue
+		my $scaled = int($value/100*255);
+		$self->set('on');
+		$$self{light}->bri($scaled);
+	}
+}
+
+sub ct_k
+{
+	my ($self, $value) = @_;
+	
+	# Sanity check
+	if (!($value =~ /\d+/)) {
+		::print_log("Color temperature in Kelvin should be numeric, but you passed $value. Value not set");
+		return;
+	}
+	
+	$self->set('on');
+	$$self{light}->ct_k($value);
+
+	::print_log('hue', "Setting color temperature in Kelvin to $value");
+
+}
+
+sub hs
+{
+	my ($self, $hue, $sat) = @_;
+	
+	$self->set('on');
+	$$self{light}->set_state({'hue' => $hue, 'sat' => $sat});	
+
+	::print_log('hue', "Setting hue and saturation to $hue - $sat");
+
+}
+
+#sub transition_time
+#{
+#	my ($self, $value) = @_;
+#	
+#	# Sanity check
+#	if (!($value =~ /\d+/)) {
+#		::print_log('hue', "Transition time should be numeric");
+#		return;
+#	}
+#	
+#	my $scaled = $value*10;
+#	$$self{trans_time} = $scaled;
+#
+#	::print_log('hue', "Setting transition time to $value s for next command");
+#
+#}
 
 1;
