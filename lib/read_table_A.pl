@@ -156,7 +156,7 @@ sub read_table_A {
         $object = "Insteon_Thermostat(\$$object, \'$address\', $other)";
     }
     elsif($type eq "INSTEON_IRRIGATION") {
-        require 'Insteon::Irrigation';
+        require Insteon::Irrigation;
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon::Irrigation(\'$address\', $other)";
