@@ -86,6 +86,7 @@ sub new {
    $$self{pump_enabled} = undef;
    $$self{valve_is_running} = undef;
    $self->restore_data('active_valve_id', 'active_program_number', 'program_is_running', 'pump_enabled', 'valve_is_running');
+   $$self{message_types} = \%message_types;
    return $self;
 }
 
