@@ -4,16 +4,17 @@ AUTHORS
 Gregg Liming <gregg@limings.net>
 David Norwood <dnorwood2@yahoo.com>
 Evan P. Hall <evan@netmagic.net>
+Kevin R Keegan <kevin@krkeegan.com> - Updated to new Insteon code
 
 INITIAL CONFIGURATION
 In user code:
 
-   use Insteon_Irrigation;
-   $irrigation = new Insteon_Irrigation($myPLM, '12.34.56');
+   use Insteon::Irrigation;
+   $irrigation = new Insteon::Irrigation($myPLM, '12.34.56');
 
 In items.mht:
 
-INSTEON_IRRIGATION, 12.34.56, irrigation, Irrigation, myPLM
+INSTEON_IRRIGATION, 12.34.56, irrigation, Irrigation
 
 BUGS
 
@@ -21,8 +22,8 @@ BUGS
 EXAMPLE USAGE
 
 Creating the object:
-   use Insteon_Irrigation;
-   $irrigation = new Insteon_Irrigation($myPLM, '12.34.56');
+   use Insteon::Irrigation;
+   $irrigation = new Insteon::Irrigation($myPLM, '12.34.56');
 
 Turning on a valve:
    $v_valve_on = new Voice_Cmd "Turn on valve [1,2,3,4,5,6,7,8]";
