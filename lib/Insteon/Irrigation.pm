@@ -189,7 +189,10 @@ sub _is_info_request {
         . " valve_is_running: $$self{'valve_is_running'}, active_program: $$self{'active_program_number'},"
         . " program_is_running: $$self{'program_is_running'}, pump_enabled: $$self{'pump_enabled'}") if $main::Debug{insteon};
    }
-
+   else {
+      #Check if this was a generic info_request
+      $is_info_request = $self->SUPER::_is_info_request($cmd, $ack_setby, %msg);
+   }
    return $is_info_request;
 
 }
