@@ -62,6 +62,15 @@ package Insteon::Irrigation;
 
 @Insteon::Irrigation::ISA = ('Insteon::DeviceController','Insteon::BaseDevice');
 
+our %message_types = (
+	%Insteon::BaseDevice::message_types,
+	sprinkler_control => 0x44,
+	sprinkler_valve_on => 0x40,
+	sprinkler_valve_off => 0x41,
+	sprinkler_program_on => 0x42,
+	sprinkler_program_off => 0x43,
+	sprinkler_timers_request => 0x45
+);
 
 # -------------------- START OF SUBROUTINES --------------------
 # --------------------------------------------------------------
