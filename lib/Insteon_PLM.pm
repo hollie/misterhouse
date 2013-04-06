@@ -693,6 +693,13 @@ sub _parse_data {
 				}
 				$nack_count++;
 			}
+			#Remove the leading NACK bytes and place whatever remains into fragment for next read
+			$parsed_data =~ s/^(15)*//;
+			if ($parsed_data ne ''){
+				$$self{_data_fragment} .= $parsed_data;
+				::print_log("[Insteon_PLM] DEBUG3: Saving parsed data fragment: " 
+					. $parsed_data) if( $main::Debug{insteon} >= 3);
+			}
 		}
                 else
                 {
