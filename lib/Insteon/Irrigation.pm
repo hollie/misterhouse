@@ -83,7 +83,8 @@ sub new {
 sub poll_valve_status {
    my ($self) = @_;
    my $subcmd = '02';
-   $self->_send_cmd(command => 'sprinkler_control', type => 'standard', extra => $subcmd, 'is_synchronous' => 1);
+   my $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'sprinkler_control', $subcmd);
+   $self->_send_cmd($message);
    return;
 }
 
@@ -101,7 +102,8 @@ sub set_valve {
           if $main::Debug{insteon};
       return;
    }
-   $self->_send_cmd(command => $cmd, type => 'standard', extra => $subcmd, 'is_synchronous' => 1);
+   my $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, $cmd, $subcmd);
+   $self->_send_cmd($message);
    return;
 }
 
@@ -119,7 +121,8 @@ sub set_program {
           if $main::Debug{insteon};
       return;
    }
-   $self->_send_cmd(command => $cmd, type => 'standard', extra => $subcmd, 'is_synchronous' => 1);
+   my $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, $cmd, $subcmd);
+   $self->_send_cmd($message);
    return;
 }
 
@@ -152,7 +155,8 @@ sub get_timers() {
    my ($self) = @_;
    my $cmd = 'sprinkler_timers_request';
    my $subcmd = 0x1;
-   $self->_send_cmd(command => $cmd, type => 'extended', extra => $subcmd, 'is_synchronous' => 0);
+   my $message = new Insteon::InsteonMessage('insteon_ext_send', $$self{device}, $cmd, $subcmd);
+   $self->_send_cmd($message);
    return;
 }
 
