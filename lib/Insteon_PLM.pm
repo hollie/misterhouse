@@ -674,13 +674,18 @@ sub _parse_data {
                   # so, slow things down
 			if (!($nack_count))
                         {
-				my $nack_delay = ($::config_parms{Insteon_PLM_disable_throttling}) ? 0.3 : 1.0;
-				&::print_log("[Insteon_PLM] DEBUG3: Interface extremely busy. Resending command"
-					. " after delaying for $nack_delay second") if $main::Debug{insteon} >= 3;
-				$self->_set_timeout('xmit',$nack_delay * 1000);
-				$self->active_message->no_hop_increase(1);
-                                $self->retry_active_message();
-				$process_next_command = 0;
+				if ($self->active_message){
+					my $nack_delay = ($::config_parms{Insteon_PLM_disable_throttling}) ? 0.3 : 1.0;
+					&::print_log("[Insteon_PLM] DEBUG3: Interface extremely busy. Resending command"
+						. " after delaying for $nack_delay second") if $main::Debug{insteon} >= 3;
+					$self->_set_timeout('xmit',$nack_delay * 1000);
+					$self->active_message->no_hop_increase(1);
+                                	$self->retry_active_message();
+					$process_next_command = 0;
+				} else {
+					&::print_log("[Insteon_PLM] DEBUG3: Interface extremely busy."
+						. " No message to resend.") if $main::Debug{insteon} >= 3;
+				}
 				$nack_count++;
 			}
 		}
