@@ -10,7 +10,7 @@ INITIAL CONFIGURATION
 In user code:
 
    use Insteon::Irrigation;
-   $irrigation = new Insteon::Irrigation($myPLM, '12.34.56');
+   $irrigation = new Insteon::Irrigation('12.34.56', $myPLM);
 
 In items.mht:
 
@@ -23,7 +23,7 @@ EXAMPLE USAGE
 
 Creating the object:
    use Insteon::Irrigation;
-   $irrigation = new Insteon::Irrigation($myPLM, '12.34.56');
+   $irrigation = new Insteon::Irrigation('12.34.56', $myPLM);
 
 Turning on a valve:
    $v_valve_on = new Voice_Cmd "Turn on valve [1,2,3,4,5,6,7,8]";
@@ -67,9 +67,9 @@ package Insteon::Irrigation;
 # --------------------------------------------------------------
 
 sub new {
-   my ($class, $p_interface, $p_deviceid, $p_devcat) = @_;
+   my ($class, $p_deviceid, $p_interface) = @_;
 
-   my $self = $class->SUPER::new($p_interface, $p_deviceid, $p_devcat);
+   my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
    bless $self, $class;
    $$self{active_valve_id} = undef;
    $$self{active_program_number} = undef;
