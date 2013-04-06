@@ -619,19 +619,24 @@ sub _parse_data {
 		}
                 elsif ($parsed_prefix eq $prefix{all_link_clean_failed} and ($message_length == 12))
                 { #ALL-Link Cleanup Failure Report
-                        # extract out the pertinent parts of the message for display purposes
-                        # bytes 0-1 - group; 2-7 device address
-                        my $failure_group = substr($message_data,0,2);
-                        my $failure_device = substr($message_data,2,6);
+			if ($self->active_message){
+                        	# extract out the pertinent parts of the message for display purposes
+                        	# bytes 0-1 - group; 2-7 device address
+                        	my $failure_group = substr($message_data,0,2);
+                        	my $failure_device = substr($message_data,2,6);
 
-			&::print_log("[Insteon_PLM] DEBUG2: Received all-link cleanup failure from device: "
-                        	. "$failure_device and group: $failure_group") if $main::Debug{insteon} >= 2;
+				&::print_log("[Insteon_PLM] DEBUG2: Received all-link cleanup failure from device: "
+                        		. "$failure_device and group: $failure_group") if $main::Debug{insteon} >= 2;
                         
-                        my $failed_object = &Insteon::get_object($failure_device,'01');
-                        my $message = new Insteon::InsteonMessage('all_link_direct_cleanup', $failed_object, 
-                        	$self->active_message->command, $failure_group);
-                        push(@{$$failed_object{command_stack}}, $message);
-                        $failed_object->_process_command_stack();
+                        	my $failed_object = &Insteon::get_object($failure_device,'01');
+                        	my $message = new Insteon::InsteonMessage('all_link_direct_cleanup', $failed_object, 
+                        		$self->active_message->command, $failure_group);
+                        	push(@{$$failed_object{command_stack}}, $message);
+                        	$failed_object->_process_command_stack();
+			} else {
+				&::print_log("[Insteon_PLM] DEBUG2: Received all-link cleanup failure."
+                        		. " But there is no pending message.") if $main::Debug{insteon} >= 2;
+			}
                         
 		}
                 elsif ($parsed_prefix eq $prefix{all_link_record} and ($message_length == 20))
