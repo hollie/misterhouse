@@ -98,7 +98,7 @@ sub set_valve {
       $cmd = 'sprinkler_valve_off';
    }
    unless ($cmd and $subcmd) {
-      &::print_log("Insteon_Irrigation] ERROR: You must specify a valve number and a valid state (ON or OFF)")
+      &::print_log("Insteon::Irrigation] ERROR: You must specify a valve number and a valid state (ON or OFF)")
           if $main::Debug{insteon};
       return;
    }
@@ -117,7 +117,7 @@ sub set_program {
       $cmd = 'sprinkler_program_off';
    }
    unless ($cmd and $subcmd) {
-      &::print_log("Insteon_Irrigation] ERROR: You must specify a program number and a valid state (ON or OFF)")
+      &::print_log("Insteon::Irrigation] ERROR: You must specify a program number and a valid state (ON or OFF)")
           if $main::Debug{insteon};
       return;
    }
@@ -170,13 +170,13 @@ sub _is_info_request {
         or $cmd eq 'sprinkler_program_off') {
       $is_info_request = 1;
       my $val = hex($msg{extra});
-      &::print_log("[Insteon_Irrigation] Processing data for $cmd with value: $val") if $main::Debug{insteon};
+      &::print_log("[Insteon::Irrigation] Processing data for $cmd with value: $val") if $main::Debug{insteon};
       $$self{'active_valve_id'} = ($val & 7) + 1;
       $$self{'active_program_number'} = (($val >> 3) & 3) + 1;
       $$self{'program_is_running'} = ($val >> 5) & 1;
       $$self{'pump_enabled'} = ($val >> 6) & 1;
       $$self{'valve_is_running'} = ($val >> 7) & 1;
-      &::print_log("[Insteon_Irrigation] active_valve_id: $$self{'active_valve_id'},"
+      &::print_log("[Insteon::Irrigation] active_valve_id: $$self{'active_valve_id'},"
         . " valve_is_running: $$self{'valve_is_running'}, active_program: $$self{'active_program_number'},"
         . " program_is_running: $$self{'program_is_running'}, pump_enabled: $$self{'pump_enabled'}") if $main::Debug{insteon};
    }
