@@ -56,10 +56,11 @@ here http://www.simplehomenet.com/Downloads/EZRain%20Command%20Set.pdf
 =cut
 
 use strict;
+use Insteon::BaseInsteon;
 
-package Insteon_Irrigation;
+package Insteon::Irrigation;
 
-@Insteon_Irrigation::ISA = ('Insteon_Link');
+@Insteon::Irrigation::ISA = ('Insteon::DeviceController','Insteon::BaseDevice');
 
 
 # -------------------- START OF SUBROUTINES --------------------
