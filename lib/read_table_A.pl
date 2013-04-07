@@ -150,10 +150,10 @@ sub read_table_A {
         }
     }
     elsif($type eq 'IPLT' or $type eq 'INSTEON_THERMOSTAT') {
-        require 'Insteon_Thermostat.pm';
+        require Insteon::Thermostat;
         ($address, $name, $grouplist, $object, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "Insteon_Thermostat(\$$object, \'$address\', $other)";
+        $object = "Insteon::Thermostat(\'$address\', $other)";
     }
     elsif($type eq "INSTEON_IRRIGATION") {
         require 'Insteon_Irrigation.pm';
