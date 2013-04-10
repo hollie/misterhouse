@@ -507,10 +507,17 @@ sub _parse_data {
                                             	&::print_log("[Insteon_PLM] WARN: PLM unable to complete requested "
                                                 	. "PLM link table update ($failed_cmd) for "
                                             		. "group: $failed_group and deviceid: $failed_deviceid" );
-                                                if ($$self{_mem_callback})
-                                        	{
-							my $callback = $$self{_mem_callback};
+						my $callback;
+						if ($self->_aldb->{_success_callback}){
+							$callback = $self->_aldb->{_success_callback};
+							$self->_aldb->{_success_callback} = undef;
+						} elsif ($$self{_mem_callback})
+						{
+							$callback = $pending_message->callback(); #$$self{_mem_callback};
 							$$self{_mem_callback} = undef;
+						}
+                                                if ($callback)
+                                        	{
 							package main;
 							eval ($callback);
 							&::print_log("[Insteon_PLM] WARN1: Error encountered during ack callback: " . $@)
