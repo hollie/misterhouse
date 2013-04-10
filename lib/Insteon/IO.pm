@@ -125,8 +125,15 @@ Returns the current known hex value of the sensor identified by C<$sensor_id>.
 =cut
 
 sub get_sensor_status() {
-   my ($self) = @_;
-   return $$self{'sensor_status'};
+   my ($self, $sensor) = @_;
+   $sensor = sprintf "%02s", $sensor; #Pad 0 to left if not present
+   my @sensors = split(/,/, $sensor);
+   if ($sensor <= @sensors){
+   	return $sensors[$sensor];
+   }
+   else {
+   	&::print_log("[Insteon::IOLinc] Error no data for Sensor_Id: $sensor");
+   }
 }
 
 sub _is_info_request {
