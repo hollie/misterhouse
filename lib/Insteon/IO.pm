@@ -3,12 +3,12 @@
 INITIAL CONFIGURATION
 In user code:
 
-   use Insteon::IO;
-   $io_device = new Insteon::IO('12.34.56',$myPLM);
+   use Insteon::IOLinc;
+   $io_device = new Insteon::IOLinc('12.34.56',$myPLM);
 
 In items.mht:
 
-INSTEON_IO, 12.34.56, io_device, io
+INSTEON_IOLINC, 12.34.56, io_device, io
 
 BUGS
 
@@ -16,8 +16,8 @@ BUGS
 EXAMPLE USAGE
 
 Creating the object:
-   use Insteon::IO;
-   $io_device = new Insteon::IO('12.34.56',$myPLM);
+   use Insteon::IOLinc;
+   $io_device = new Insteon::IOLinc('12.34.56',$myPLM);
 
 Turning on a relay:
    $v_relay_on = new Voice_Cmd "Turn on relay [1,2]";
@@ -50,9 +50,9 @@ This module works with the Insteon IOLinc device from Smarthome
 use strict;
 use Insteon::BaseInsteon;
 
-package Insteon::IO;
+package Insteon::IOLinc;
 
-@Insteon::IO::ISA = ('Insteon::DeviceController','Insteon::BaseDevice');
+@Insteon::IOLinc::ISA = ('Insteon::DeviceController','Insteon::BaseDevice');
 
 our %message_types = (
 	%Insteon::BaseDevice::message_types,
@@ -93,7 +93,7 @@ sub set_relay {
       $cmd = 'relay_off';
    }
    unless ($cmd and $subcmd) {
-      &::print_log("Insteon::IO] ERROR: You must specify a relay number and a valid state (ON or OFF)")
+      &::print_log("Insteon::IOLinc] ERROR: You must specify a relay number and a valid state (ON or OFF)")
           if $main::Debug{insteon};
       return;
    }
@@ -113,9 +113,9 @@ sub _is_info_request {
    if ($cmd eq 'sensor_status') {
       $is_info_request = 1;
       my $val = hex($msg{extra});
-      &::print_log("[Insteon::IO] Processing data for $cmd with value: $val") if $main::Debug{insteon};
+      &::print_log("[Insteon::IOLinc] Processing data for $cmd with value: $val") if $main::Debug{insteon};
       $$self{'sensor_status'} = $val;
-      &::print_log("[Insteon::IO] sensor_status: $$self{'sensor_status'}") if $main::Debug{insteon};
+      &::print_log("[Insteon::IOLinc] sensor_status: $$self{'sensor_status'}") if $main::Debug{insteon};
    }
    else {
       #Check if this was a generic info_request
