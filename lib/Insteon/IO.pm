@@ -85,19 +85,18 @@ sub poll_sensor_status {
 
 sub set_relay {
    my ($self, $relay_id, $state) = @_;
-   my $subcmd = $relay_id;
    my $cmd = undef;
    if ($state eq 'on') {
       $cmd = 'relay_on';
    } elsif ($state eq 'off') {
       $cmd = 'relay_off';
    }
-   unless ($cmd and $subcmd) {
+   unless ($cmd and $relay_id) {
       &::print_log("Insteon::IOLinc] ERROR: You must specify a relay number and a valid state (ON or OFF)")
           if $main::Debug{insteon};
       return;
    }
-   my $message = new Insteon::InsteonMessage('insteon_send', $self, $cmd, $subcmd);
+   my $message = new Insteon::InsteonMessage('insteon_send', $self, $cmd, $relay_id);
    $self->_send_cmd($message);
    return;
 }
