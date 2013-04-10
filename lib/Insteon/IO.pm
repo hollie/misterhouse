@@ -87,6 +87,7 @@ the current known range of 00-07.
 sub poll_sensor_status {
    my ($self, $sensor) = @_;
    $sensor = sprintf "%02s", $sensor; #Pad 0 to left if not present
+   $$self{'sensor_id'} = $sensor;
    my $message = new Insteon::InsteonMessage('insteon_send', $self, 'sensor_status', $sensor);
    $self->_send_cmd($message);
    return;
@@ -131,10 +132,13 @@ sub get_sensor_status() {
 sub _is_info_request {
    my ($self, $cmd, $ack_setby, %msg) = @_;
    my $is_info_request = 0;
-   if ($cmd eq 'sensor_status') {
+   if ($cmd eq 'sensor_status' && $$self{'sensor_id'}) {
       $is_info_request = 1;
-      $$self{'sensor_status'} = $val;
-      &::print_log("[Insteon::IOLinc] sensor_status: $$self{'sensor_status'}") if $main::Debug{insteon};
+      my @sensors = split(/,/, $$self{'sensor_status'});
+      $sensors[$$self{'sensor_id'}] = $val;
+      $$self{'sensor_status'} = join(',', @sensors);
+      &::print_log("[Insteon::IOLinc] Received Status: $val for Sensor_Id: $$self{'sensor_id'}") if $main::Debug{insteon};
+      $$self{'sensor_id'} = undef;
    }
    else {
       #Check if this was a generic info_request
