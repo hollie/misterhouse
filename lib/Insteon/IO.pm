@@ -45,6 +45,7 @@ This module works with the Insteon IOLinc device from Smarthome
 
 #TODO
  - Should be able to intitialize programs.
+=over
 =cut
 
 use strict;
@@ -75,6 +76,14 @@ sub new {
    return $self;
 }
 
+=item C<poll_sensor_status($sensor_id)>
+
+Requests the status of a specific sensor which can then be read with 
+C<get_sensor_status($sensor_id)>. C<$sensor_id> is the sensor id number which could be in 
+the current known range of 00-07.
+
+=cut
+
 sub poll_sensor_status {
    my ($self, $sensor) = @_;
    $sensor = sprintf "%02s", $sensor; #Pad 0 to left if not present
@@ -82,6 +91,13 @@ sub poll_sensor_status {
    $self->_send_cmd($message);
    return;
 }
+
+=item C<set_relay($relay_id)>
+
+Sets the state if the identified relay. C<$relay_id> is the relay id number which could be in 
+the current known range of 00-07.
+
+=cut
 
 sub set_relay {
    my ($self, $relay_id, $state) = @_;
@@ -100,6 +116,12 @@ sub set_relay {
    $self->_send_cmd($message);
    return;
 }
+
+=item C<get_sensor_status($sensor_id)>
+
+Returns the current known hex value of the sensor identified by C<$sensor_id>.
+
+=cut
 
 sub get_sensor_status() {
    my ($self) = @_;
@@ -127,3 +149,5 @@ sub _is_info_request {
 sub request_status { return 0 }
 
 1;
+=back
+=cut
