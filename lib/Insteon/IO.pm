@@ -111,8 +111,6 @@ sub _is_info_request {
    my $is_info_request = 0;
    if ($cmd eq 'sensor_status') {
       $is_info_request = 1;
-      my $val = hex($msg{extra});
-      &::print_log("[Insteon::IOLinc] Processing data for $cmd with value: $val") if $main::Debug{insteon};
       $$self{'sensor_status'} = $val;
       &::print_log("[Insteon::IOLinc] sensor_status: $$self{'sensor_status'}") if $main::Debug{insteon};
    }
