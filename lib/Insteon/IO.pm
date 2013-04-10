@@ -142,9 +142,9 @@ sub _is_info_request {
    if ($cmd eq 'sensor_status' && $$self{'sensor_id'}) {
       $is_info_request = 1;
       my @sensors = split(/,/, $$self{'sensor_status'});
-      $sensors[$$self{'sensor_id'}] = $val;
+      $sensors[$$self{'sensor_id'}] = $msg{extra};
       $$self{'sensor_status'} = join(',', @sensors);
-      &::print_log("[Insteon::IOLinc] Received Status: $val for Sensor_Id: $$self{'sensor_id'}") if $main::Debug{insteon};
+      &::print_log("[Insteon::IOLinc] Received Status: $msg{extra} for Sensor_Id: $$self{'sensor_id'}") if $main::Debug{insteon};
       $$self{'sensor_id'} = undef;
    }
    else {
