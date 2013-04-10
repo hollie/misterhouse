@@ -36,7 +36,7 @@ Turning off a relay:
 Requesting sensor status:
    $v_sensor_status = new Voice_Cmd "Request sensor [1,2,3,4] status";
    if (state_now $v_sensor_status) {
-	poll_sensor_status $io_device;
+	poll_sensor_status $io_device, '01';
    }
 
 NOTES
@@ -76,9 +76,9 @@ sub new {
 }
 
 sub poll_sensor_status {
-   my ($self) = @_;
-   my $subcmd = '01';
-   my $message = new Insteon::InsteonMessage('insteon_send', $self, 'sensor_status', $subcmd);
+   my ($self, $sensor) = @_;
+   $sensor = sprintf "%02s", $sensor; #Pad 0 to left if not present
+   my $message = new Insteon::InsteonMessage('insteon_send', $self, 'sensor_status', $sensor);
    $self->_send_cmd($message);
    return;
 }
