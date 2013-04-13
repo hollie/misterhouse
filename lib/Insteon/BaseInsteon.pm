@@ -560,12 +560,17 @@ sub _process_message
 		$p_state = $msg{command};
                 if ($msg{type} eq 'alllink')
                 {
+			$self->set($p_state, $self);
 			$$self{_pending_cleanup} = 1;
                 }
                 elsif ($msg{type} eq 'cleanup')
                 {
-			$self->set($p_state, $self); # unless (lc($self->state) eq lc($p_state)) and
-	       #		($msg{type} eq 'cleanup' and $$self{_pending_cleanup});
+                	if (lc($self->state) eq lc($p_state) and $$self{_pending_cleanup}){
+				$self->set($p_state, $self);
+                	} else {
+				::print_log("[Insteon::BaseObject] Ignoring Received Direct AllLink Cleanup Message for " 
+					. $self->{object_name} . " since AllLink Broadcast Message was Received.") if $main::Debug{insteon};
+			}
 			$$self{_pending_cleanup} = 0;
 		} else {
 			main::print_log("[Insteon::BaseObject] Ignoring unsupported command from " 
