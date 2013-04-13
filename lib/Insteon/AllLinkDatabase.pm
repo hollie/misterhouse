@@ -1878,7 +1878,16 @@ sub on_read_write_aldb
 				. lc $msg{extra} . " for " .  $$self{_mem_action}) if  $main::Debug{insteon} >= 3;
 			#retry previous address again
 			$self->send_read_aldb(sprintf("%04x", hex($$self{pending_aldb}{address})));
-		} 
+		} elsif ($$self{_mem_msb} . $$self{_mem_lsb} ne '0000' and 
+				$$self{_mem_msb} . $$self{_mem_lsb} ne substr($msg{extra},6,4)){
+			::print_log("[Insteon::ALDB_i2] WARNING: Corrupted I2 response not processed, "
+				. " address received did not match address requested: "
+				. $$self{device}->get_object_name
+				. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
+				. lc $msg{extra} . " for " .  $$self{_mem_action}) if  $main::Debug{insteon} >= 3;
+			#retry previous address again
+			$self->send_read_aldb(sprintf("%04x", hex($$self{pending_aldb}{address})));
+		}
 		else
 		{
 			# init the link table if at the very start of a scan
