@@ -1,29 +1,34 @@
-=begin comment
+=head1 B<EIB_Device>
 
-EIB_Device.pm - Misterhouse EIB interface for the EIB Linux kernel driver
-                from TU Wien.
+=head2 SYNOPSIS
 
-Info:
+NONE
 
-EIB/KNX website:
-    http://konnex.org
+=head2 DESCRIPTION
 
-TU Wien, System Automation, Automation Systems Group:
-    http://www.auto.tuwien.ac.at/~mkoegler/index.php/eibd
+Misterhouse EIB interface for the EIB Linux kernel driver from TU Wien.
+
+EIB/KNX website: http://konnex.org
+
+TU Wien, System Automation, Automation Systems Group:  http://www.auto.tuwien.ac.at/~mkoegler/index.php/eibd
 
 Notes:
+
     Tested with BCU1 (Bus Coupling Unit 1) on the following platforms:
         Red Hat 9 (linux kernel version 2.4.20-8), EIB driver version 0.2.4
         Fedora Core 3 (linux kernel version 2.6.13), EIB driver version 0.2.6.2
     eibd tested with BCU2 backend on
         Gentoo Linux (kernel 2.6.23), bcusdk-0.0.3
 
-Authors:
- 09/09/2005  Created by Peter Sjödin peter@sjodin.net
- 20060205    Added EIB access via eibd by Mike Pieper eibdmh@pieper-family.de
- 20090721    Overworked eibd communication by Mike Pieper eibdmh@pieper-family.de
-             eib_device --> eib_connection to avoid clash with generic device
-             using only one group socket
+=head2 INHERITS
+
+B<NONE>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
 
 =cut
 
@@ -401,3 +406,33 @@ sub check_for_eibddata {
 
 
 return 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+  09/09/2005  Created by Peter Sjödin peter@sjodin.net
+  20060205    Added EIB access via eibd by Mike Pieper eibdmh@pieper-family.de
+  20090721    Overworked eibd communication by Mike Pieper eibdmh@pieper-family.de
+              eib_device --> eib_connection to avoid clash with generic device
+              using only one group socket
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

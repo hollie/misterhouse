@@ -1,14 +1,14 @@
-=head1 NAME
+=head1 B<CID_Announce>
 
-B<CID_Announce>
-
-=head1 SYNOPSIS
+=head2 SYNOPSIS
 
 Example initialization:
+
   use CID_Announce;
   $cid = new CID_Announce($telephony_driver,'Call from $name $snumber.');
 
 Constructor Parameters:
+
    ex. $x = new CID_Announce($y,$z);
    $x              - Reference to the class
    $y              - Telephony driver reference
@@ -19,52 +19,28 @@ Constructor Parameters:
         $state,$time,$areacode,$prefix,$suffix,$soundfile
 
 Input states:
+
   "cid"           - Caller ID event
   "ring"          - Ring event 'to pass along to other consumers of this object'
 
 Output states:
+
   "cid"  - Caller ID event
   "ring" - Ring event 'to pass along to other consumers of this object'
 
-=head1 DESCRIPTION
+=head2 DESCRIPTION
 
 Announces a call.  CID with category of 'reject' will not be announced.
 
-=head1 INHERITS
+=head2 INHERITS
 
 B<Telephony_Item>
 
-=head1 METHODS
+=head2 METHODS
 
-NONE
+=over
 
-=head1 INI PARAMETERS
-
-NONE
-
-=head1 BUGS
-
-There isnt a whole lot of error handling currently present in this version.  Drop me an email if you are seeing something odd.
-
-=head1 AUTHOR
-
-Jason Sharpee
-jason@sharpee.com
-
-Special Thanks to:
-Bruce Winter - MH
-
-=head1 SEE ALSO
-
-For example see g_phone.pl
-
-=head1 LICENSE
-
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+=item B<UnDoc>
 
 =cut
 
@@ -260,3 +236,32 @@ sub parse_format
 
 
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Jason Sharpee
+jason@sharpee.com
+
+Special Thanks to:
+Bruce Winter - MH
+
+=head2 SEE ALSO
+
+For example see g_phone.pl
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut

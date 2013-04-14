@@ -1,50 +1,30 @@
-#!/usr/bin/perl                                                                                 
+=head1 B<AudiotronPlayer>
 
-=head1 NAME
-
-B<AudiotronPlayer>
-
-=head1 SYNOPSIS
+=head2 SYNOPSIS
 
 NONE
 
-=head1 DESCRIPTION
+=head2 DESCRIPTION
 
 This uses only:
-- httpq  (a winamp plugin, available at: http://karv.dyn.dhs.org/winamp or http://gulf.uvic.ca/~karvanit/winamp/)
+
+  - httpq  (a winamp plugin, available at: http://karv.dyn.dhs.org/winamp or http://gulf.uvic.ca/~karvanit/winamp/)
 
 This just turns the player on,off,pause, etc.  Mp3Control.pm controls starting the mp3 player with a list of songs or a playlist
 
-=head1 INHERITS
+=head2 INHERITS
 
 B<Generic_Item>
 
-=head1 METHODS
+=head2 METHODS
 
-UnDoc
+=over
 
-=head1 INI PARAMETERS
-
-NONE
-
-=head1 AUTHOR
-
-bsobel@vipmail.com, August 15, 2000
-
-=head1 SEE ALSO
-
-NONE
-
-=head1 LICENSE
-
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+=item B<UnDoc>
 
 =cut
 
+#!/usr/bin/perl                                                                                 
 use strict;
 
 package AudiotronPlayer;
@@ -179,4 +159,28 @@ sub default_setstate
 
 
 1;
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+bsobel@vipmail.com, August 15, 2000
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 

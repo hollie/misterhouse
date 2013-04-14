@@ -1,8 +1,6 @@
-=head1 NAME
+=head1 B<Base_Item>
 
-B<Base_Item>
-
-=head1 SYNOPSIS
+=head2 SYNOPSIS
 
 Use one of the derived objects: Door_Item, Motion_Item, Presence_Item, Photocell_Item, and Light_Restriction_Item.
 
@@ -10,40 +8,19 @@ You can use the function delay_off() (also can be called as delay()) to set how 
 
 For example, if you have a Light_Object set with a delay_off(120), the light will turn off 2 minutes after the last event.  But, if it contains a motion detector with a delay_off(60), then the light will be turned off 60 seconds after the last motion was detected.
 
-=head1 DESCRIPTION
+=head2 DESCRIPTION
 
 The base object that Door_Item, Motion_Item, Presence_Item, Photocell_Item, and Light_Restriction_Item are derived from.  These are all used to provide predictive lighting when used along with Occupancy_Monitor.pm
 
-=head1 INHERITS
+=head2 INHERITS
 
 B<Generic_Item>
 
-=head1 METHODS
+=head2 METHODS
 
-UnDoc
+=over
 
-=head1 INI PARAMETERS
-
-NONE
-
-=head1 AUTHOR
-
-Jason Sharpee
-jason@sharpee.com
-
-Special Thanks to: Bruce Winter - MH
-
-=head1 SEE ALSO
-
-NONE
-
-=head1 LICENSE
-
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+=item B<UnDoc>
 
 =cut
 
@@ -235,11 +212,43 @@ sub delay
 	$$self{m_delay_off}=$p_delay if defined $p_delay;
 	return $$self{m_delay_off};
 }
-=begin
+
+=cut
+
 sub default_getstate
 {
 	my ($self,$p_state) = @_;
 	return $$self{m_obj}->state();
 }
 =cut
+
 1;
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Jason Sharpee
+jason@sharpee.com
+
+Special Thanks to: Bruce Winter - MH
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
+

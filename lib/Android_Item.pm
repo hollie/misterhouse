@@ -1,40 +1,20 @@
-=head1 NAME
+=head1 B<Android_Item>
 
-B<Android_Item>
-
-=head1 SYNOPSIS
+=head2 SYNOPSIS
 
 NONE
 
-=head1 DESCRIPTION
+=head2 DESCRIPTION
 
 This module allows MisterHouse to capture and send speech and played wav files to an Android unit.
 
-=head1 INHERITS
+=head2 INHERITS
 
 B<Generic_Item>
 
-=head1 METHODS
+=head2 METHODS
 
-NONE
-
-
-- mh.private.ini requirements
-
-Add "server_android_port" to your ini file.  The default port is 4444.
-The port number assigned to server_android_port must match the port
-configured in the android client.  The ports must match in order for
-the android device to receive speech events and notifications.
-
-server_android_port=4444
-
-By default, ALL speak and play events will be pushed to ALL android's
-regardless of the value in the speak/play "rooms" parameter.  If you
-want the android's to honor the rooms parameter, then you must define
-the android_use_rooms parameter in my.private.ini.  Each android declares
-a room name when the android registers with the server.
-
-android_use_rooms=1
+=item B<UnDoc>
 
 =cut
 
@@ -261,7 +241,9 @@ sub android_xml {
 
 1;
 
-=head1 INI PARAMETERS
+=back
+
+=head2 INI PARAMETERS
 
 Add "server_android_port" to your ini file.  The default port is 4444.  The port number assigned to server_android_port must match the port configured in the android client.  The ports must match in order for the android device to receive speech events and notifications.
 
@@ -271,15 +253,15 @@ By default, ALL speak and play events will be pushed to ALL android's regardless
 
   android_use_rooms=1
 
-=head1 AUTHOR
+=head2 AUTHOR
 
 UNK
 
-=head1 SEE ALSO
+=head2 SEE ALSO
 
 NONE
 
-=head1 LICENSE
+=head2 LICENSE
 
 This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
 

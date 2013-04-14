@@ -1,19 +1,22 @@
-#---------------------------------------------------------------------------
-#  File:
-#      handy_utilities.pl
-#  Description:
-#      Handy utilities of all shapes and sizes
-#  Author:
-#      Bruce Winter    bruce@misterhouse.net
-#  Latest version:
-#      http://misterhouse.net/mh/lib/handy_utilities.pl
-#  Change log:
-#    11/03/96  Created.
-#
-# $Date$
-# $Revision$
-#
-#---------------------------------------------------------------------------
+=head1 B<handy_utilities>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+Handy utilities of all shapes and sizes
+
+=head2 INHERITS
+
+B<NONE>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 #print "Creating handy utility functions ...";
 
@@ -505,8 +508,6 @@ sub main::plural_check {
     return $text;
 }
 
-=over 4
-
 =item write_mh_opts
 
 This function will add or edit Misterhouse parameters in the user's ini file. 
@@ -515,12 +516,10 @@ in the file.  The first argument is a hash of parameters to set.  The second
 (optional) argument is the ini file you want to modify, and the third 
 (optional) argument is set to 1 if you want to log the change. 
 
-  Examples:
-  
-    write_mh_opts({"photo_dir" -> $state}, undef, 1);
-    write_mh_opts(%parms);
+Examples:
 
-=back
+  write_mh_opts({"photo_dir" -> $state}, undef, 1);
+  write_mh_opts(%parms);
 
 =cut
 
@@ -1714,3 +1713,29 @@ sub main::get_idle_item_data
 # - do not override existing parm on ref_parms
 #
 #
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Bruce Winter    bruce@misterhouse.net
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

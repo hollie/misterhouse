@@ -1,20 +1,24 @@
-# $Id$
+=head1 B<Homevision>
 
+=head2 SYNOPSIS
 
+NONE
 
-# This module implements code to support the Homevision controller
-# http://www.csi3.com/homevis2.htm
+=head2 DESCRIPTION
 
-# By Ingo Dean, idean@iname.com
-#               for Misterhouse, http://www.misterhouse.net
-#               by Bruce Winter and many contributors
+This module implements code to support the Homevision controller http://www.csi3.com/homevis2.htm
 
-# To use this interface, add the following lines (localized, of course)
-# to your mh.ini file:
+=head2 INHERITS
 
-#Homevision_port=/dev/ttyS0
-#Homevision_baudrate=19200
+B<NONE>
 
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
+=cut
 
 
 use strict;
@@ -389,3 +393,32 @@ return 1;           # for require
 #
 #
 #
+
+
+=back
+
+=head2 INI PARAMETERS
+
+  Homevision_port=/dev/ttyS0
+  Homevision_baudrate=19200
+
+=head2 AUTHOR
+
+Ingo Dean, idean@iname.com
+for Misterhouse, http://www.misterhouse.net
+by Bruce Winter and many contributors
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

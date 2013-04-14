@@ -1,8 +1,6 @@
-=head1 NAME
+=head1 B<AnalogSensor_Item>
 
-B<AnalogSensor_Item>
-
-=head1 SYNOPSIS
+=head2 SYNOPSIS
 
 Declaration:
 
@@ -16,31 +14,45 @@ Declaration:
 
   $indoor_temp = new AnalogSensor_Item('indoor-t', 'temp');
 
-=head1 DESCRIPTION
+=head2 DESCRIPTION
 
 This package provides a device-agnostic method of maintaining analog sensor measurement collection, contains derivative utilities and mechanisms for deriving state and/or associating action to sensor change.
 
-=head1 INHERITS
+=head2 INHERITS
 
 B<Generic_Item>
 
-=head1 METHODS
+=head2 METHODS
 
 =over
 
-=item C<measurement(measurement,timestamp,skipdelta)> updates the measurement data maintained by this item if measurement, etc are provided; otherwise the last measurement value is returned.
+=item C<measurement(measurement,timestamp,skipdelta)> 
 
-=item C<map_to_weather(weather_hash_memberi, graph_title)> copies any measurement update to the Weather hash specified by weather_hash_member. If graph_title is supplied, it will replace the default graph title used by code/common/weather_rrd_update.pl to display titles.  Note that if graph_title is used, then you must consistently use this with all sensors or specify the titles via the ini parm: weather_graph_sensor_names.
+updates the measurement data maintained by this item if measurement, etc are provided; otherwise the last measurement value is returned.
 
-=item C<get_average_change_rate(number_samples)> returns the average change rate over number_samples.  In general, number_samples should be > 1 since a very low delta time between previous and current measurement can make the change rate artificially high.  Specifying longer numbers will provide more smoothing.  If fewer samples exist than number_samples, the existing number will be used.
+=item C<map_to_weather(weather_hash_memberi, graph_title)> 
 
-=item C<apply_offset(offset)> applies an offset to the measurement value.  Enter a negative number to apply a negative offset.  This is useful to compensate for linear temperature shifts.
+copies any measurement update to the Weather hash specified by weather_hash_member. If graph_title is supplied, it will replace the default graph title used by code/common/weather_rrd_update.pl to display titles.  Note that if graph_title is used, then you must consistently use this with all sensors or specify the titles via the ini parm: weather_graph_sensor_names.
 
-=item C<token(tag,value)> adds "value" as a "token" to be evaluated during state and/or event condition checks; or, returns "token" if only "tag" is supplied.  A token is referenced in a condition using the syntax: $token_<tag> where <tag> is tag.  See tie_state_condition example below.
+=item C<get_average_change_rate(number_samples)> 
 
-=item C<remove_token(tag)> removes the token from use. IMPORTANT: do not remove a token before first removing all conditions that depend on it.
+returns the average change rate over number_samples.  In general, number_samples should be > 1 since a very low delta time between previous and current measurement can make the change rate artificially high.  Specifying longer numbers will provide more smoothing.  If fewer samples exist than number_samples, the existing number will be used.
 
-=item C<tie_state_condition(condition,state)> registers a condition and state value to be evaluated each measurement update.  If condition is true and the current item's state value is not "state", then the state value is changed to "state".  Note that tieing more than one condition to the same state--while supported--is discouraged as the first condition that "wins" is used; no mechanism exists to determine the order of condition evaluation.
+=item C<apply_offset(offset)> 
+
+applies an offset to the measurement value.  Enter a negative number to apply a negative offset.  This is useful to compensate for linear temperature shifts.
+
+=item C<token(tag,value)> 
+
+adds "value" as a "token" to be evaluated during state and/or event condition checks; or, returns "token" if only "tag" is supplied.  A token is referenced in a condition using the syntax: $token_<tag> where <tag> is tag.  See tie_state_condition example below.
+
+=item C<remove_token(tag)> 
+
+removes the token from use. IMPORTANT: do not remove a token before first removing all conditions that depend on it.
+
+=item C<tie_state_condition(condition,state)> 
+
+registers a condition and state value to be evaluated each measurement update.  If condition is true and the current item's state value is not "state", then the state value is changed to "state".  Note that tieing more than one condition to the same state--while supported--is discouraged as the first condition that "wins" is used; no mechanism exists to determine the order of condition evaluation.
 
   $indoor_temp->tie_state_condition('$measurement > 81 and $measurement < 84',hot);
 
@@ -58,43 +70,31 @@ It is important to note in the above example that single quotes are used since t
   $recent_change_rate - the average change rate over the last three samples
   $state - the state of the item
 
-=item C<measurement_change> returns the most current change of measurement values
+=item C<measurement_change> 
 
-=item C<untie_state_condition(condition)> unregisters condition.  Unregisters all conditions if condition is not provided.
+returns the most current change of measurement values
 
-=item C<tie_event_condition(condition,event)> registers a condition and an event.  See tie_state_condition for an explanation of condition.  event is the code or code reference to be evaluated if condition is true.  Since tied event conditions are evaluated for every measurement update, be careful that the condition relies on change-oriented variables and/or that the internal logic of "event" ensure against more frequent execution than is desired.
+=item C<untie_state_condition(condition)> 
 
-=item C<untie_event_condition(condition)> same as untie_state_condition except applied to tied event conditions.
+unregisters condition.  Unregisters all conditions if condition is not provided.
 
-=item C<id(id)> sets id to id.  Returns id if id not present.
+=item C<tie_event_condition(condition,event)> 
 
-=item C<type(type)> set type to type (temp or humid). Returns type if not present.
+registers a condition and an event.  See tie_state_condition for an explanation of condition.  event is the code or code reference to be evaluated if condition is true.  Since tied event conditions are evaluated for every measurement update, be careful that the condition relies on change-oriented variables and/or that the internal logic of "event" ensure against more frequent execution than is desired.
 
-=back
+=item C<untie_event_condition(condition)> 
 
-=head1 INI PARAMETERS
+same as untie_state_condition except applied to tied event conditions.
 
-NONE
+=item C<id(id)> 
 
-=head1 AUTHOR
+sets id to id.  Returns id if id not present.
 
-Gregg Liming
-gregg@limings.net
+=item C<type(type)> 
 
-=head1 SEE ALSO
-
-NONE
-
-=head1 LICENSE
-
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+set type to type (temp or humid). Returns type if not present.
 
 =cut
-
 
 package AnalogSensor_Item;
 @AnalogSensor_Item::ISA = ('Generic_Item');
@@ -433,11 +433,38 @@ sub add
     push @{$$self{m_objects}}, $p_object if $p_object->isa('AnalogAveraging_Item');
 }
 
-=head1 NAME
+=back
 
-B<AnalogRangeSensor_Item>
+=head2 INI PARAMETERS
 
-=head1 SYNOPSIS
+NONE
+
+=head2 AUTHOR
+
+Gregg Liming
+gregg@limings.net
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+
+
+
+
+
+
+=head1 B<AnalogRangeSensor_Item>
+
+=head2 SYNOPSIS
 
 If declaring via .mht:
 
@@ -460,38 +487,19 @@ Alternatively, if declaring via code:
 
 TODO: More generic states if requested
 
-=head1 DESCRIPTION
+=head2 DESCRIPTION
 
 This package provides is a derivative AnalogSensor to provide 'range' type functionality.
 
-=head1 INHERITS
+=head2 INHERITS
 
 B<AnalogSensor_Item>
 
-=head1 METHODS
+=head2 METHODS
 
-NONE
+=over
 
-=head1 INI PARAMETERS
-
-NONE
-
-=head1 AUTHOR
-
-Gregg Liming / Howard Plato
-gregg@limings.net
-
-=head1 SEE ALSO
-
-NONE
-
-=head1 LICENSE
-
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+=item B<UnDoc>
 
 =cut
 
@@ -606,11 +614,38 @@ print "[AnalogRangeSensor_Item] Condition Normal: $condition \n" if $main::Debug
    return $self;
 }
 
-=head1 NAME
+=back
 
-B<name> - desc
+=head2 INI PARAMETERS
 
-=head1 SYNOPSIS
+NONE
+
+=head2 AUTHOR
+
+Gregg Liming / Howard Plato
+gregg@limings.net
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+
+
+
+
+
+
+=head1 B<AnalogAveraging_Item>
+
+=head2 SYNOPSIS
 
 If declaring via .mht:
 
@@ -624,41 +659,21 @@ If declaring via .mht:
 
 Note that the use of tokens is applied on only the first declaration.  Any token use on subsequent declarations is ignored.
 
-=head1 DESCRIPTION
+=head2 DESCRIPTION
 
 This package provides an ability to average measurement reports from multiple AnalogSensor_Items.  Because it inherits from AnalogSensor_Items, all operations that AnalogSensor_Item permits are also supported.
 
-=head1 INHERITS
+=head2 INHERITS
 
 B<AnalogSensor_Item>
 
-=head1 METHODS
+=head2 METHODS
 
 =over
 
-=item C<sensor_timeout(timeout)> changes the default timeout from 3600 seconds to <timeout> seconds.  Any measurement report that exceeds the timeout is ignored for the purpose of averaging.  This keeps "stale" measurements from adversely impacting averaging
+=item C<sensor_timeout(timeout)> 
 
-=back
-
-=head1 INI PARAMETERS
-
-NONE
-
-=head1 AUTHOR
-
-UNK
-
-=head1 SEE ALSO
-
-NONE
-
-=head1 LICENSE
-
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+changes the default timeout from 3600 seconds to <timeout> seconds.  Any measurement report that exceeds the timeout is ignored for the purpose of averaging.  This keeps "stale" measurements from adversely impacting averaging
 
 =cut
 
@@ -738,3 +753,28 @@ sub update_measurement
 }
 
 1;
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

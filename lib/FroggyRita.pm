@@ -1,6 +1,10 @@
-#$Id$
+=head1 B<FroggyRita>
 
-=head1 DESCRIPTION
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
 
 Module to interface with the little froggy named Rita from the company FroggyHome.
 
@@ -12,8 +16,6 @@ To see more information about it, please visit http://www.froggyhome.com
 
 I like to thanks support people who were kind to send me the protocol
 to write the module, especially Philippe Monceyron.
-
-=head1 FACTS 
 
 This device use serial port and operates at 300 baud, the module
 will provide a new measurement every minute.  It cannot produce at a faster rate.
@@ -41,16 +43,18 @@ time you ask the data.
 To get a good accuracy on pressure, you have to provide an altitude parameter.
 NOTE: altitude parameter is in meters.
 
-=head1 .INI PARAMETERS
+=head2 INHERITS
 
- FroggyRita_serial_port=/dev/ttyM7              # serial port
- FroggyRita_altitude=450                        # altitude in meters (feet*.3048)
+B<Generic_Item>
 
-=head1 EXAMPLES
+=head2 METHODS
 
- See froggy_rita.pl in code/common
+=over
+
+=item B<UnDoc>
 
 =cut
+
 use strict;
 
 package FroggyRita;
@@ -461,3 +465,30 @@ sub GenCxData {
 #Revision 1.1  2002/10/20 00:38:06  gaetan
 #Initial revision
 #
+
+
+=back
+
+=head2 INI PARAMETERS
+
+ FroggyRita_serial_port=/dev/ttyM7              # serial port
+ FroggyRita_altitude=450                        # altitude in meters (feet*.3048)
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+See froggy_rita.pl in code/common
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

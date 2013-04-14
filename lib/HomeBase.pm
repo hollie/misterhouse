@@ -1,3 +1,23 @@
+=head1 B<HomeBase>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+NONE
+
+=head2 INHERITS
+
+B<NONE>
+
+=head2 METHODS
+
+=over
+
+=cut
+
 
 use strict;
 
@@ -148,14 +168,18 @@ sub read_variables {
     }
 }
 
-# Set Time
-# this command was decoded empirically from Starate/WinEVM interaction
-# Homebase (Stargate) command is ##%05AAAALLLLTTSSYYMMDDRRHHMMCC
-# AAAA = Latitude, LLLL = Longitude, TT=Timezone (05=EST)
-# SS="Is daylight savings time used in your area?" (01=Yes)
-# YY=Year, MM=Month, DD=Day, RR=DOW (Seems to be ignored, but set as
-#       Th=01, Wen=02, Tu=04, Mo=08, Sun=10, Sat=20)
-# CC=00 (Checksum? doesn't appear to be used)
+=item C<set_time>
+
+this command was decoded empirically from Starate/WinEVM interaction
+
+  Homebase (Stargate) command is ##%05AAAALLLLTTSSYYMMDDRRHHMMCC
+  AAAA = Latitude, LLLL = Longitude, TT=Timezone (05=EST)
+  SS="Is daylight savings time used in your area?" (01=Yes)
+  YY=Year, MM=Month, DD=Day, RR=DOW (Seems to be ignored, but set as
+        Th=01, Wen=02, Tu=04, Mo=08, Sun=10, Sat=20)
+  CC=00 (Checksum? doesn't appear to be used)
+
+=cut
 
 sub set_time {
     my ($serial_port) = @_;
@@ -387,3 +411,29 @@ return 1;           # for require
 #
 #
 #
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

@@ -1,3 +1,23 @@
+=head1 B<caddx>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+NONE
+
+=head2 INHERITS
+
+B<NONE>
+
+=head2 METHODS
+
+=over
+
+=cut
+
 use IO::Socket;
 use IO::Select;
 package caddx;
@@ -14,12 +34,12 @@ sub BEGIN{
 	&main::MainLoop_pre_add_hook( \&poll_caddx, 'persistent' );
 }
 
-#############################################
-## udp_init will set up the udp listener.
-##  this code used to run from BEGIN, but we need
-##  to wait until main has loaded config_parms, so it
-##  is now deferred to first time thru in poll.
-#############################################
+=item C<udp_init>
+
+will set up the udp listener.  This code used to run from BEGIN, but we need to wait until main has loaded config_parms, so it is now deferred to first time thru in poll.
+
+=cut
+
 sub udp_init{
 	if($main::config_parms{caddx_listen}){
 		$caddx_listen=$main::config_parms{caddx_listen};
@@ -32,11 +52,13 @@ sub udp_init{
 
            $sel->add($sock);
 }
-#############################################
-## readd:
-##  select has reported a udp msg ready, so
-##    lets see what it is.
-#############################################
+
+=item C<read>
+
+select has reported a udp msg ready, so lets see what it is.
+
+=cut
+
 sub read{
 	my $data;
 
@@ -46,11 +68,13 @@ sub read{
 	}
 	return $data;
 }
-#############################################
-## poll_caddx is installed as a hook in mh
-##  so that we can keep an eye on the udp 
-##  msgs w/o modifying any user code.
-#############################################
+
+=item C<poll_caddx>
+
+is installed as a hook in mh so that we can keep an eye on the udp msgs w/o modifying any user code.
+
+=cut
+
 sub poll_caddx{
 	
 	&udp_init() unless ($sock);   ## need to wait for config_parms
@@ -67,11 +91,13 @@ sub poll_caddx{
 
 	} #while
 } #sub
-#############################################
-## process_msg will lookup the zone/partition
-##  related to the msg, and modify the object
-##  to reflect the new value reported by the caddx controller.
-#############################################
+
+=item C<process_msg>
+
+will lookup the zone/partition related to the msg, and modify the object to reflect the new value reported by the caddx controller.
+
+=cut
+
 sub process_msg{
 	my($msg)=@_;
 	my $obj;
@@ -129,6 +155,59 @@ sub process_msg{
 
 
 }
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+
+
+
+
+
+
+
+
+
+
+=head1 B<Sensor_Zone>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+NONE
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
+
 package Sensor_Zone;
 @ISA = ('Generic_Item');
 my %zone_xref;
@@ -148,10 +227,13 @@ sub new {
 	$zone_xref{$zone}=$self;  # stash away reference by zone 
 	return bless $self, $class;
 }
-###########################################
-##  Give the users an xref to find a zone
-##    if they just know the zone number.
-###########################################
+
+=item C<get_object_by_zone>
+
+Give the users an xref to find a zone if they just know the zone number.
+
+=cut
+
 sub get_object_by_zone  {
 	my ($zone)=@_;
 	my $obj=$zone_xref{$zone};
@@ -191,3 +273,29 @@ sub default_setstate{
 	#$self->SUPER::set($state);
 }
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
