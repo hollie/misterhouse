@@ -1,14 +1,6 @@
-use strict;
+=head1 B<DSC_Alarm>
 
-package DSC_Alarm;
-
-=head1 NAME
-
-B<DSC_Alarm>
-
-=head1 SYNOPSIS
-
-  mh.ini entry of 'DSC_Alarm_serial_port=com2'
+=head2 SYNOPSIS
 
   $DSC_Alarm = new DSC_Alarm;
   if (my $log = said $DSC_Alarm) {
@@ -22,7 +14,7 @@ B<DSC_Alarm>
     print_log "Alarm system state change, state = $state\n";
   }
 
-=head1 DESCRIPTION
+=head2 DESCRIPTION
 
 DSC_Alarm module supports the DSC PC5400 serial printer interface. This allows mh to be aware of events that DSC alarm systems log to their event buffers
 
@@ -43,6 +35,7 @@ The PC5400 works with: PC5010, PC1555, PC580, PC5015, and PC1575 main panels.
 Logging: The internal support module for DSC_Alarm (DSC_Alarm.pm) maintains a log of all serial data received from the DSC PC5400 interface.  This log is placed in /mh.ini parm data_dir/logs/$port_name.YYYY_MM.log; for example, the log entries shown below would be in file '/mh/data/logs/DSC_Alarm.2000_10.log'.  This implies a new log will be started each month.
 
 DSC User Codes:
+
   40 = Master code (can arm/disarm, change codes, any keypad function)
   41 = Supervisor code (can arm/disarm, change codes)
   42 = Supervisor code (can arm/disarm, change codes)
@@ -57,27 +50,31 @@ Duress code reporting is NOT reflected via states as of December 2000.  Coming s
 Examples of typical DSC alarm system event/log entries:
 Mon 10/09/00 17:09:00 DSC_Alarm.pm Initialized Mon 10/09/00 17:10:16 17:10 10/09/00 System [*1] Access by User Mon 10/09/00 17:12:28 17:12 10/09/00 System Partial Closing Mon 10/09/00 17:12:28 17:12 10/09/00 System Bypass Zone 1 Mon 10/09/00 17:12:28 17:12 10/09/00 System Bypass Zone 2 Mon 10/09/00 17:12:28 17:12 10/09/00 System Bypass Zone 4 Mon 10/09/00 17:12:29 17:12 10/09/00 System Closing by User Code 40 Mon 10/09/00 17:12:29 17:12 10/09/00 System Armed in Away Mode Mon 10/09/00 17:12:45 17:12 10/09/00 System Opening by User Code 2 Mon 10/09/00 17:14:42 17:14 10/09/00 System Closing by User Code 40 Mon 10/09/00 17:14:43 17:14 10/09/00 System Armed in Away Mode Mon 10/09/00 17:14:47 17:14 10/09/00 System Opening by User Code 40 Mon 10/09/00 17:22:28 17:22 10/09/00 System [*1] Access by User Mon 10/09/00 17:33:39 DSC_Alarm.pm Initialized Tue 10/10/00 09:47:38 09:47 10/10/00 System Closing by User Code 40 Tue 10/10/00 09:47:38 09:47 10/10/00 System Armed in Away Mode Tue 10/10/00 17:48:42 17:48 10/10/00 System Opening by User Code 40 Tue 10/10/00 23:37:33 23:37 10/10/00 System Closing by User Code 40 Tue 10/10/00 23:37:33 23:37 10/10/00 System Armed in Away Mode Wed 10/11/00 07:38:11 07:38 10/11/00 System Opening by User Code 40
 
-
-=head1 INHERITS
+=head2 INHERITS
 
 B<Generic_Item>
 
-=head1 METHODS
+=head2 METHODS
 
 =over
 
 =cut
 
+use strict;
+
+package DSC_Alarm;
 
 @DSC_Alarm::ISA = ('Generic_Item');
 
 my @DSC_Alarm_Ports;
 my %DSC_Alarm_Objects;
 
-#
-#  Create serial port(s) according to mh.ini
-#  Register hooks if any ports created.
-#
+=item C<serial_startup>
+
+Create serial port(s) according to mh.ini  Register hooks if any ports created.
+
+=cut
+
 sub serial_startup
 {
     my ($instance) = @_;
@@ -247,8 +244,9 @@ sub zone {
 =item C<mode>
 
 Returns arming mode. Valid only when state = Armed.
-Stay = System armed in stay mode; User pressed F1 key before arming.
-Away = System armed in away mode; User pressed F2 key (or nothing) before arming
+
+  Stay = System armed in stay mode; User pressed F1 key before arming.
+  Away = System armed in away mode; User pressed F2 key (or nothing) before arming
 
 Note: Most DSC systems will not arm in "Stay" mode unless at least one zone is defined as a "Stay/Away" zone.  Also, even when "Away" mode is requested system will be in "Stay" mode unless a delay zone is violated during the exit delay.
 
@@ -264,25 +262,27 @@ sub mode {
 
 =back
 
-=head1 INHERITED METHODS
+=head2 INHERITED METHODS
 
 =over
 
 =item C<state>
 
 Returns last state of alarm system from following values:
-Armed    = System is closed and armed.
-Disarmed = System is opened.
-Alarm    = System is alarming.
+
+  Armed    = System is closed and armed.
+  Disarmed = System is opened.
+  Alarm    = System is alarming.
 
 =item C<state_now>
 
 Same as state, but valid for 1 pass only.
 
-
 =back
 
-=head1 INI PARAMETERS
+=head2 INI PARAMETERS
+
+  DSC_Alarm_serial_port=com2
 
   DSC_Alarm_serial_port=COM1 or /dev/ttys0
   DSC_Alarm_baudrate=4800
@@ -299,7 +299,7 @@ Optional mh.ini entries:
   DSC_Alarm_user_40=Jane Doe
   DSC_Alarm_user_1=Bob Smith
 
-=head1 AUTHOR
+=head2 AUTHOR
 
 By: Danal Estes, N5SVV
 E-Mail: danal@earthling.net
@@ -307,11 +307,11 @@ E-Mail: danal@earthling.net
 Based on original code by Bill Sobel:
 bsobel@vipmail.com
 
-=head1 SEE ALSO
+=head2 SEE ALSO
 
 See mh/code/public/Danal/DSC_Alarm.pl for more info/examples
 
-=head1 LICENSE
+=head2 LICENSE
 
 This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
 
@@ -320,5 +320,3 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 =cut
-
-

@@ -1,15 +1,6 @@
-# $Revision$
-# $Date$
+=head1 B<Group>
 
-use strict;
-
-package Group;
-
-=head1 NAME
-
-B<Group> - You can use this object to group and operate on groups of items:
-
-=head1 SYNOPSIS
+=head2 SYNOPSIS
 
   $outside_lights = new Group($light1, $light2, $light3);
   $outside_lights-> add($light4, $light5);
@@ -37,21 +28,28 @@ B<Group> - You can use this object to group and operate on groups of items:
 
 See mh/code/examples/test_group.pl and mh/code/public/monitor_occupancy_jason.pl for more examples.
 
-=head1 DESCRIPTION
+=head2 DESCRIPTION
 
-=head1 INHERITS
+You can use this object to group and operate on groups of items:
+
+=head2 INHERITS
 
 B<Generic_Item>
 
-=head1 METHODS
+=head2 METHODS
 
 =over
 
 =cut
 
+use strict;
+
+package Group;
+
 @Group::ISA = ('Generic_Item');
 
 =item C<new(@item_list)>
+
 =cut
 
 sub new {
@@ -64,6 +62,7 @@ sub new {
 }
 
 =item C<add(@item_list)>
+
 =cut
 
 sub add {
@@ -147,6 +146,7 @@ sub include_in_group { #check if X10 item is affected by group
 
 
 =item C<set>
+
 =cut
 
 sub set {
@@ -454,6 +454,7 @@ sub set_group_items {
 }
 
 =item C<list>
+
 =cut
 
 sub list {
@@ -542,7 +543,7 @@ sub remove {
 
 =back
 
-=head1 INHERITED METHODS
+=head2 INHERITED METHODS
 
 =over
 
@@ -556,22 +557,21 @@ Like the Generic_Item methods, these return the last state that the group was se
 
 Returns a list array of the last max_state_log_entries (mh.ini parm) time_date stamped states.
 
-
 =back
 
-=head1 INI PARAMETERS
+=head2 INI PARAMETERS
 
 NONE
 
-=head1 AUTHOR
+=head2 AUTHOR
 
 UNK
 
-=head1 SEE ALSO
+=head2 SEE ALSO
 
 NONE
 
-=head1 LICENSE
+=head2 LICENSE
 
 This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
 

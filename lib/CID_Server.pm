@@ -1,35 +1,32 @@
-use strict;
+=head1 B<CID_Server>
 
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head2 SYNOPSIS
 
-File:
-	CID_Server.pm
+Example initialization:
 
-Description:
-	Takes caller ID information and transmits it to network aware CID clients
+  use CID_Server;
+  $cid_interface1 = new Telephony_Interface(...);
+  $cid_item       = new CID_Lookup($cid_interface1);
+  $cid_log        = new CID_Log($cid_item);
+  $cid_server     = new CID_Server($cid_item);
 
-Author:
-	Bill Sobel
-	bsobel@vipmail.com
+=head2 DESCRIPTION
 
-License:
-	This free software is licensed under the terms of the GNU public license.
+Takes caller ID information and transmits it to network aware CID clients
 
-Usage:
+=head2 INHERITS
 
-	Example initialization:
+B<Telephony_Item>
 
-		use CID_Server;
-        $cid_interface1 = new Telephony_Interface(...);
-        $cid_item       = new CID_Lookup($cid_interface1);
-        $cid_log        = new CID_Log($cid_item);
-        $cid_server     = new CID_Server($cid_item);
+=head2 METHODS
 
-	For example see code/common/callerid.pl
+=over
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=item B<UnDoc>
+
 =cut
+
+use strict;
 
 my (@CID_Server_yac_objects, $hooks_added);
 
@@ -158,3 +155,29 @@ sub setstate_cid
 #
 
 1;
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Bill Sobel
+bsobel@vipmail.com
+
+=head2 SEE ALSO
+
+For example see code/common/callerid.pl
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

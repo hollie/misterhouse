@@ -1,34 +1,37 @@
-use strict;
+=head1 B<HVweb_Item>
 
-package HVweb_Item;
+=head2 SYNOPSIS
 
-=head1 NAME
+  $kitchen_light    =  new HVweb_Item('On',    'X10 G1 On');
+  $kitchen_light    -> add           ('Off',   'X10 G1 Off');
+  $vcr              =  new HVweb_Item('Power', 'IR 45 1 time');
+  $vcr              -> add           ('Play',  'IR 46 1 time');
 
-B<HVweb_Item> -  Control Homevision controller via the Homevision web server
+  set $kitchen_light 'On';
+  set $vcr 'Play';
 
-=head1 SYNOPSIS
+=head2 DESCRIPTION
 
-    $kitchen_light    =  new HVweb_Item('On',    'X10 G1 On');
-    $kitchen_light    -> add           ('Off',   'X10 G1 Off');
-    $vcr              =  new HVweb_Item('Power', 'IR 45 1 time');
-    $vcr              -> add           ('Play',  'IR 46 1 time');
-
-    set $kitchen_light 'On';
-    set $vcr 'Play';
-
-
-
-=head1 DESCRIPTION
+Control Homevision controller via the Homevision web server
 
 See Homevision documentation for complete list of command formats
 Configure Homevision Webserver to report command results
 
-=head1 INHERITS
+=head2 INHERITS
 
 B<Generic_Item>
 
-=head1 METHODS
+=head2 METHODS
+
+=over
+
+=item <UnDoc>
+
 =cut
+
+use strict;
+
+package HVweb_Item;
 
 @HVweb_Item::ISA = ('Generic_Item');
 
@@ -109,19 +112,21 @@ sub list {       ### Some web functions (list_items.pl) need this routine
 
 return 1;
 
-=head1 INI PARAMETERS
+=back
+
+=head2 INI PARAMETERS
 
 Set homevision_url=<your homevision web server url> in mh.ini
 
-=head1 AUTHOR
+=head2 AUTHOR
 
 Joseph Gaston (gastoniere@yahoo.com)
 
-=head1 SEE ALSO
+=head2 SEE ALSO
 
 See Homevision documentation for complete list of command formats
 
-=head1 LICENSE
+=head2 LICENSE
 
 This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
 

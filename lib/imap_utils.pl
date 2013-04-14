@@ -1,22 +1,43 @@
+=head1 B<imap_utils>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+Adds IMAP message scan and gmail sending ability.
+
+Requires the following perl modules:
+
+  Mail::IMAPClient
+  IO::Socket::SSL
+  IO::Socket::INET
+  Time::Zone
+
+if the IMAP scan hangs before authenticating against the gmail account, reinstall the
+IO::Socket::SSL
+
+Todo: parse unread messages
+
+=head2 INHERITS
+
+B<NONE>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
+=cut
+
 #!/usr/bin/perl
 
 # v 0.1 - initial test concept, inspired by Pete's script - H. Plato - 2 June 2008
 # v 0.2 - added pete's gmail send function, gmail list folders, better error checking
 
 # v 0.3 - removed gmail send to it's own library, added ssl as an option.
-
-# Adds IMAP message scan and gmail sending ability.
-# Requires the following perl modules
-#   Mail::IMAPClient
-#   IO::Socket::SSL
-#   IO::Socket::INET
-#   Time::Zone
-#
-# if the IMAP scan hangs before authenticating against the gmail account, reinstall the
-# IO::Socket::SSL
-#
-# Todo: 
-# - parse unread messages
 
 package imap_utils;
 
@@ -358,3 +379,29 @@ return $return
 }
 
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

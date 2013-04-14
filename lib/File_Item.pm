@@ -1,13 +1,6 @@
+=head1 B<File_Item>
 
-use strict;
-
-package File_Item;
-
-=head1 NAME
-
-B<File_Item> - An item for reading and/or monitoring a file
-
-=head1 SYNOPSIS
+=head2 SYNOPSIS
 
      use File_Item;
      $f_deep_thoughts = new File_Item("$Pgm_Root/data/remarks/deep_thoughts.txt");
@@ -21,25 +14,33 @@ B<File_Item> - An item for reading and/or monitoring a file
      $shoutcast_log = new File_Item 'd:/shoutcast/sc_serv.log';
      print "Log data: $state" if $New_Second and $state = said $shoutcast_log;
 
-=head1 DESCRIPTION
+=head2 DESCRIPTION
+
+An item for reading and/or monitoring a file
 
 Use File_Item to read a line of (or all of the) data from a file, and/or 
 to monitor a file for changes.
+
 Note:  These methods currently read the entire file, so if have big files (say,
 >1 meg) we want to read, we should invent some new methods.
 
-=head1 INHERITS
+=head2 INHERITS
 
-none
+B<NONE>
 
-=head1 METHODS
+=head2 METHODS
 
 =over
 
-=item new('file_name')
+=cut
 
-Instantiation method.  'file_name' is the path and name of the file to
-read/monitor.
+use strict;
+
+package File_Item;
+
+=item C<new('file_name')>
+
+Instantiation method.  'file_name' is the path and name of the file to read/monitor.
 
 =cut
 
@@ -51,10 +52,9 @@ sub new {
     return $self;
 }
 
-=item name()
+=item C<name()>
 
-Returns the path and name of the file associated with this item.
-Slashes are translated to backslashes on Windows system.
+Returns the path and name of the file associated with this item.  Slashes are translated to backslashes on Windows system.
 
 =cut
 
@@ -65,11 +65,9 @@ sub name {
     return $filename;
 }
 
-=item restore_string()
+=item C<restore_string()>
 
-Returns a string used to restore the index after a restart. 
-bin/mh calls this method (for each item that has it) every 5 minutes to
-create mh_temp.saved_states in the data directory. 
+Returns a string used to restore the index after a restart. bin/mh calls this method (for each item that has it) every 5 minutes to create mh_temp.saved_states in the data directory. 
 
 =cut
 
@@ -82,7 +80,7 @@ sub restore_string {
     return $restore_string;
 }
 
-=item set_watch('flag')
+=item C<set_watch('flag')>
 
 Sets the 'changed' time check.
 
@@ -98,12 +96,9 @@ sub set_watch {
     print "File watch set for $file, flag=$flag. time=$self->{time}\n" if $main::Debug{file};
 }
 
-=item changed()
+=item C<changed()>
 
-Returns 0 if the file was not changed since the last set_watch call.
-When the file changes: if 'flag' was specified in the last set_watcn call,
-'flag' is returned, otherwise, it returns the number of seconds since the 
-last set_watch call.
+Returns 0 if the file was not changed since the last set_watch call.  When the file changes: if 'flag' was specified in the last set_watcn call, 'flag' is returned, otherwise, it returns the number of seconds since the last set_watch call.
 
 =cut
 
@@ -127,7 +122,7 @@ sub changed {
     }
 }
 
-=item exist()
+=item C<exist()>
 
 Returns 1 if the file exists, 0 otherwise.
 
@@ -139,7 +134,7 @@ sub exist {
     return -e $file;
 }
 
-=item exist_now()
+=item C<exist_now()>
 
 Returns 1 if the file was created since the last exist_now test, 0 otherwise.
 
@@ -161,10 +156,9 @@ sub exist_now {
 }
 
 
-=item read_all()
+=item C<read_all()>
 
-Returns contents for the file. If used in a list context,
-a list is returned, otherwise a string of all the lines.
+Returns contents for the file. If used in a list context, a list is returned, otherwise a string of all the lines.
 
 =cut
 
@@ -173,11 +167,9 @@ sub read_all {
     return &main::file_read($$self{file});
 }
 
-=item read_head(num)
+=item C<read_head(num)>
 
-Returns the first I<num> lines of a file.
-Defaults to ten lines if I<num> not given.
-See file_head.
+Returns the first I<num> lines of a file.  Defaults to ten lines if I<num> not given.  See file_head.
 
 =cut
 
@@ -187,11 +179,9 @@ sub read_head {
     return &main::file_head($$self{file}, $n);
 }
 
-=item read_tail(num)
+=item C<read_tail(num)>
 
-Returns the last I<num> lines of a file.
-Defaults to ten lines if I<num> not given.
-See file_tail.
+Returns the last I<num> lines of a file.  Defaults to ten lines if I<num> not given.  See file_tail.
 
 =cut
 
@@ -201,12 +191,9 @@ sub read_tail {
     return &main::file_tail($$self{file}, $n);
 }
 
-=item said()
+=item C<said()>
 
-Returns data added to a file since the last call.
-Only one record is returned per call.
-This is useful for monitoring log files.
-See mh/code/bruce/shoutcast_monitor.pl for an example. 
+Returns data added to a file since the last call.  Only one record is returned per call.  This is useful for monitoring log files.  See mh/code/bruce/shoutcast_monitor.pl for an example. 
 
 =cut
 
@@ -237,7 +224,7 @@ sub said {
     return $data;
 }
 
-=item read_random()
+=item C<read_random()>
 
 Reads a random record.  This also re-sets the index to the random position.
 
@@ -252,10 +239,9 @@ sub read_random {
     return $record;
 }
 
-=item read_next()
+=item C<read_next()>
 
-Reads the next record, according to the index.
-After reading the last record, it wraps back to the first.
+Reads the next record, according to the index.  After reading the last record, it wraps back to the first.
 
 =cut
 
@@ -270,10 +256,9 @@ sub read_next {
     return $record;
 }
 
-=item read_next_tail()
+=item C<read_next_tail()>
 
-Like read_next, except, it will not wrap back to the first record (i.e.
-after reaching the end of the file, it will alwasy return the last record).
+Like read_next, except, it will not wrap back to the first record (i.e. after reaching the end of the file, it will alwasy return the last record).
 
 =cut
 
@@ -288,7 +273,7 @@ sub read_next_tail {
     return $record;
 }
 
-=item read_current()
+=item C<read_current()>
 
 meads the current record, according to the index.
 
@@ -304,7 +289,7 @@ sub read_current {
     return $record;
 }
 
-=item index()
+=item C<index()>
 
 Deprecated.  Use get_index() instead.
 
@@ -315,12 +300,9 @@ sub index {
 	return $_[0]->{index};
 }
 
-=item get_index()
+=item C<get_index()>
 
-Which record (line) of the file was last read.  
-The index is saved between mh sessions.
-If you use a File_Item that does not yet have
-an index set, a random index will be used and stored.
+Which record (line) of the file was last read.  The index is saved between mh sessions.  If you use a File_Item that does not yet have an index set, a random index will be used and stored.
 
 =cut
 
@@ -328,7 +310,7 @@ sub get_index {
 	return $_[0]->{index};
 }
 
-=item set_index(num)
+=item C<set_index(num)>
 
 Set the index to line I<num>.  Defaults to 1 (first line) if I<num> not given.
 
@@ -342,26 +324,20 @@ sub set_index {
 
 =back
 
-=head1 INI PARAMETERS
+=head2 INI PARAMETERS
 
-=over
-
-=item debug
-
-Include C<file> in the comma seperated list of debug keywords to produce
+debug: Include C<file> in the comma seperated list of debug keywords to produce
 debugging output from this item. 
 
-=back
-
-=head1 AUTHOR
+=head2 AUTHOR
 
 Bruce Winter
 
-=head1 SEE ALSO
+=head2 SEE ALSO
 
 None
 
-=head1 LICENSE
+=head2 LICENSE
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License

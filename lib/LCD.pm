@@ -1,12 +1,6 @@
-use strict;
+=head1 B<LCD>
 
-package LCD;
-
-=head1 NAME
-
-B<LCD> - Send and receive data to LCD type displays with keypads
-
-=head1 SYNOPSIS
+=head2 SYNOPSIS
 
   my %lcd_keymap1 = ( N => 'up', I => 'down', M => 'left', H => 'right', F => 'exit', K => 'enter', L => 'left', G => 'right');
   my %lcd_keymap2 = ( 38=> 'up', 40=> 'down', 37=> 'left', 39=> 'right', 17=> 'exit', 96=> 'enter') ;
@@ -14,27 +8,31 @@ B<LCD> - Send and receive data to LCD type displays with keypads
   $lcd1 = new LCD  'lcdproc', '192.168.0.5:13666', '4x20', 'default', \%lcd_keymap1;
   $lcd2 = new LCD 'keyboard',               undef, '4x20', 'mh',      \%lcd_keymap2;
 
-=head1 DESCRIPTION
+=head2 DESCRIPTION
 
-An example is in mh/code/bruce/lcd.pl. To use simulate an LCD keypad with your pc keyboard, use mh/code/bruce/lcd_keyboard.pl.
+Send and receive data to LCD type displays with keypads
 
-=head1 INHERITS
+=head2 INHERITS
 
-NONE
+B<NONE>
 
-=head1 METHODS
+=head2 METHODS
 
 =over
 
 =item C<new($type, $port, $size, $menu_group, $keymap)>
 
-$type:  Either lcdproc or keyboard.
-$port:  The ip:port of where lcdproc is running.
-$size:  ROWSxCOLUMNS of the LCD display.
-$menu_group:  The menu parsed by menu_parse (see Menu section of this doc).
-$keymap: A has that translates keys to usable names.
+  $type:  Either lcdproc or keyboard.
+  $port:  The ip:port of where lcdproc is running.
+  $size:  ROWSxCOLUMNS of the LCD display.
+  $menu_group:  The menu parsed by menu_parse (see Menu section of this doc).
+  $keymap: A has that translates keys to usable names.
 
 =cut
+
+use strict;
+
+package LCD;
 
 sub new {
     my ($class, $type, $port, $size, $menu_group, $keymap_ptr) = @_;
@@ -229,6 +227,7 @@ sub set {
     @{$$self{display}} = @data;
     $$self{refresh} = 1;
 }
+
 =item C<set_key($key)>
 
 Simulates the keyboard being pressed with $key
@@ -293,19 +292,19 @@ sub process {
 
 =back
 
-=head1 INI PARAMETERS
+=head2 INI PARAMETERS
 
 NONE
 
-=head1 AUTHOR
+=head2 AUTHOR
 
 UNK
 
-=head1 SEE ALSO
+=head2 SEE ALSO
 
-NONE
+An example is in mh/code/bruce/lcd.pl. To use simulate an LCD keypad with your pc keyboard, use mh/code/bruce/lcd_keyboard.pl.
 
-=head1 LICENSE
+=head2 LICENSE
 
 This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
 
