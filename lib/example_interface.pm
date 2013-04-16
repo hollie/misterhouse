@@ -1,13 +1,6 @@
+=head1 B<example_interface>
 
-# This is an example of creating an object for a new interface
-
-=begin comment
-
-Use these mh.ini parameters to enable this code:
-
- example_interface_module = example_interface
- example_interface_port   = COM9
-
+=head2 SYNOPSIS
 
 Here is an example of reading/writing using this object:
 
@@ -31,15 +24,26 @@ Here is another example
 You could also query the incoming serial data directly:
 
  if (my $data = said $interface) {
-	print_log "Data from interface: $data";
+        print_log "Data from interface: $data";
  }
 
+=head2 DESCRIPTION
 
 Methods (sub) 'startup' or 'serial_startup' are automatically
 called by mh on startup.
 
+=head2 INHERITS
+
+B<Serial_Item>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
 
 =cut
+
 
 use strict;
 
@@ -79,3 +83,30 @@ sub set {
 }
 
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+ example_interface_module = example_interface
+ example_interface_port   = COM9
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

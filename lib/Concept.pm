@@ -1,37 +1,38 @@
-##############################################################################
-# Concept.pm - This is a Misterhouse module for handling input from the      #
-# Concept alarm system made by Inner Range. Details on the alarm system can  #
-# be found at www.innerrange.com.au                                          #
-#                                                                            #
-# At the moment the model expects the alarm system to be connected to one of #
-# the serial ports on the computer. The computer, which looks like a printer #
-# to the alarm system, will scan the lines recieved looking for key strings  #
-# and take the appropiate action if one is found.                            #
-#                                                                            #
-# Configuration parameters are;                                              #
-#    Concept_serial_port = COMx    # The serial port alarm system is on      #
-#                        = /dev/sttyx                                        #
-#    Concept_baudrate = [1200, 4800, 9600]   # The baudrate of the port      #
-#    debug = Concept    # Will turn dbuging information on if present        #
-#                                                                            #
-# The module will log everything recieved to;                                #
-#            {data_dir}/logs/ConceptYYYY_MM.log                              #
-# where YYYY is the year amd MM is the month                                 #
-#                                                                            #
-# This module is based on the DSC_Alarm module writen by Danal Estes         #
-#                                                                            #
-##############################################################################
-# 20020601 - Nick Maddock - Creation day                                     #
-# 20020609 - Nick Maddock - Tiedied up a lot of things                       #
-# 20020609 - Nick Maddock - Put handling to occupied in                      #
-# 20020609 - Nick Maddock - Put in change of logs every day                  #
-##############################################################################
-# Still to do                                                                #
-# - Handler for over alarm things                                            #
-# - Migrate to a better communication standard                               #
-# - Handling for alarm auxilaries                                            #
-# - Activation, Deactivation (???) of the alarm system                       #
-##############################################################################
+=head1 B<Concept>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+This is a Misterhouse module for handling input from the Concept alarm system made by Inner Range. Details on the alarm system can be found at www.innerrange.com.au  At the moment the model expects the alarm system to be connected to one of the serial ports on the computer. The computer, which looks like a printer to the alarm system, will scan the lines recieved looking for key strings and take the appropiate action if one is found.
+
+The module will log everything recieved to; {data_dir}/logs/ConceptYYYY_MM.log  where YYYY is the year amd MM is the month
+
+This module is based on the DSC_Alarm module writen by Danal Estes
+
+  20020601 - Nick Maddock - Creation day
+  20020609 - Nick Maddock - Tiedied up a lot of things
+  20020609 - Nick Maddock - Put handling to occupied in
+  20020609 - Nick Maddock - Put in change of logs every day
+
+Still to do
+
+  - Handler for over alarm things
+  - Migrate to a better communication standard
+  - Handling for alarm auxilaries
+  - Activation, Deactivation (???) of the alarm system
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 use strict;
 
@@ -43,10 +44,12 @@ my @Zone_Objects;    # Holds a list of all the zone objects to try match the to 
 my @timer_refs;	     # Hold the object instances for when timers are operating
 my $FirstCall = 0;   # Used to indicate to the serial_startup, the first time it is called.
 
-#
-#  Create serial port(s) according to mh.ini
-#  Register hooks if any ports created.
-#
+=item C<serial_startup> 
+
+Create serial port(s) according to mh.ini  Register hooks if any ports created.
+
+=cut
+
 sub serial_startup
 {
     my $port     = $::config_parms{"Concept_serial_port"};
@@ -89,7 +92,7 @@ sub UserCodePreHook
   {
       $::Year_Month_Day = &::time_date_stamp(18,time);  # Not yet set when we init.
   }
-  
+
 
   if($::New_Msecond_100) 
   {   
@@ -192,18 +195,82 @@ sub UserCodePostHook
 # End of system functions; start of functions called by user scripts.
 #
 
+=back
+
+=head2 INI PARAMETERS
+
+  Concept_serial_port = COMx    # The serial port alarm system is on
+                      = /dev/sttyx
+  Concept_baudrate = [1200, 4800, 9600]   # The baudrate of the port
+  debug = Concept    # Will turn dbuging information on if present
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+=head1 B<ConceptZone>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+NONE
+
+=head2 INHERITS
+
+B<Concept>
+
+=head2 METHODS
+
+=over
+
+=cut
+
 package ConceptZone;
 
 @ConceptiZone::ISA = ('Concept');
 
-###############################################################################
-# new - Cretes a new object of one of the alarm types. Takes                  #
-#          Class - The object class, well it's automatamiatically passed      #
-#          Zone Name - The zone name associated with this object              #
-#          Idle Timer - The amount of time the object should be restored for  #
-#                       before it is considered to be restored, this is for   #
-#                       occupancy on the motion sensors                       #
-###############################################################################
+=item C<new>
+
+Cretes a new object of one of the alarm types. Takes:
+
+  Class - The object class, well it's automatamiatically passed
+  Zone Name - The zone name associated with this object
+  Idle Timer - The amount of time the object should be restored for
+               before it is considered to be restored, this is for
+               occupancy on the motion sensors
+
+=cut
+
 sub new {
     my ($class, $zone_name, $idle_timer) = @_;
     my $self;
@@ -229,24 +296,24 @@ sub new {
     return $self;
 }
 
+=item C<zone_name>
 
-######################################################################
-# zone_name - Returns the Zone Name that the object is interested in #
-# this routine is used by the parent object so that it can find the  #
-# correct instance when it recieves and alarm or restore             #
-######################################################################
+Returns the Zone Name that the object is interested in this routine is used by the parent object so that it can find the correct instance when it recieves and alarm or restore
+
+=cut
+
 sub zone_name
 {
    my $self = shift();
    return $self->{ name }; 
 }
 
-######################################################################
-# alarm - Called by the parrent function when an alarm is recieved   #
-# for this object.                                                   #
-# This function should change the state to alarmed and stop the timer#
-# if it is running                                                   #
-######################################################################
+=item C<alarm>
+
+Called by the parrent function when an alarm is recieved for this object.  This function should change the state to alarmed and stop the timer if it is running
+
+=cut
+
 sub alarm
 {
    my $self = shift();
@@ -256,12 +323,12 @@ sub alarm
    return;
 }
 
+=item C<restore>
 
-#####################################################################
-# restore - Called by the parent object when a restore is recieved  #
-# for this input, This should change the state to not alarmed and   #
-# start a timer to clear the occupied flag                          #
-#####################################################################
+Called by the parent object when a restore is recieved for this input, This should change the state to not alarmed and start a timer to clear the occupied flag
+
+=cut
+
 sub restore
 {
    my $self = shift();
@@ -283,11 +350,12 @@ sub restore
    return;
 }
 
-##################################################################
-# timer_expired - This routine is run when the timer expires     #
-# it rests the occupied flag to indicate that the room isn't     #
-# occupied any longer                                            #
-##################################################################
+=item C<timer_expired>
+
+This routine is run when the timer expires it rests the occupied flag to indicate that the room isn't occupied any longer
+
+=cut
+
 sub timer_expired
 {
 
@@ -300,18 +368,24 @@ sub timer_expired
    return;
 }
 
-##############################################################
-# state - returns the current state of the zone object       #
-##############################################################
+=item C<state>
+
+returns the current state of the zone object
+
+=cut
+
 sub state
 {
    my $self = shift();
    return $self->{ state };
 }
 
-#############################################################
-# occupied - returns the current occupied state of the zone #
-#############################################################
+=item C<occupied>
+
+returns the current occupied state of the zone
+
+=cut
+
 sub occupied
 {
    my $self = shift();
@@ -329,4 +403,30 @@ sub said {
 
 
 1;
+
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 

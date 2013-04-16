@@ -1,44 +1,32 @@
+=head1 B<Acid>
 
-=begin comment
+=head2 SYNOPSIS
 
-From Andrew Drummond on 01/2003:
+NONE
+
+=head2 DESCRIPTION
 
 Sends callerid to Audrey acid program for dispaly.
 
 This is called from CID_Server, which is called from code/common/callerid.pl
 
-=cut
-
-use strict;
-use IO::Socket;
-use IO::Select;
-package Acid;
-
-=head1 NAME
-
-B<Acid>
-
-=head1 SYNOPSIS
+=head2 INHERITS
 
 NONE
 
-=head1 DESCRIPTION
-
-Sends callerid to Audrey acid program for dispaly.
-
-This is called from CID_Server, which is called from code/common/callerid.pl
-
-=head1 INHERITS
-
-NONE
-
-=head1 METHODS
+=head2 METHODS
 
 =over
 
 =item C<UnDoc>
 
 =cut
+
+
+use strict;
+use IO::Socket;
+use IO::Select;
+package Acid;
 
 
 my $sel;
@@ -141,19 +129,19 @@ sub CID_TYPE_TEST{return(5);}        # same syntax as subscribe (ping request)
 
 =back
 
-=head1 INI PARAMETERS
+=head2 INI PARAMETERS
 
 NONE
 
-=head1 AUTHOR
+=head2 AUTHOR
 
 Andrew Drummond on 01/2003
 
-=head1 SEE ALSO
+=head2 SEE ALSO
 
 NONE
 
-=head1 LICENSE
+=head2 LICENSE
 
 This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
 

@@ -1,89 +1,26 @@
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 B<Light_Item>
 
-File:
-	Light_Item.pm (version 0.9.2)
+=head2 SYNOPSIS
 
-Description:
-   An abstract object that represents a light that can be automatically
-   controlled by Door_Items, Motion_Items, Presence_Monitors, Photocell_Items,
-   Light_Restriction_Items, and Light_Switch_Items.
+Example initialization:
 
-   Often times, Door_Items and Motion_Items are also used by the Occupancy
-   Monitor which in turn manages the state of the Presence_Monitor objects.
+These are to be placed in a *.mht file in your user code directory.
 
-Author(s):
-	Jason Sharpee  - jason@sharpee.com
-	Kirk Bauer - kirk@kaybee.org
+First, define your actual light object:
 
-License:
-	This free software is licensed under the terms of the GNU public license.
+  X10I,      H2,     x10_hallway_lights
 
-Usage:
-	Example initialization:
-      These are to be placed in a *.mht file in your user code directory.
+Then, define the Light_Item and attach the real object:
 
-      First, define your actual light object:
-         X10I,      H2,     x10_hallway_lights
+  LIGHT, x10_hallway_lights, hallway_light
 
-      Then, define the Light_Item and attach the real object:
-         LIGHT, x10_hallway_lights, hallway_light
+Finally, in your user code, you need to add one or more objects that will determine how the light is controlled.  You can attach objects of type: Door_Item, Motion_Item, Photocell_Item, Presence_Item, and Light_Restriction_Item.  You used the add() function:
 
-      Finally, in your user code, you need to add one or more objects
-      that will determine how the light is controlled.  You can attach
-      objects of type: Door_Item, Motion_Item, Photocell_Item, Presence_Item,
-      and Light_Restriction_Item.  You used the add() function:
+  $om_auto_hall_bath_light->add($om_motion_hall_bath,
+  $om_presence_hall_bath, $only_when_home);
 
-         $om_auto_hall_bath_light->add($om_motion_hall_bath,
-            $om_presence_hall_bath, $only_when_home);
+Input states:
 
-   Other configuration:
-      delay_off(): How long the light should remain on after the last event
-         (i.e. door, motion, occupancy) occurs.  The light will not turn off
-         as long as occupancy remains true.  If this is set to 0, the light
-         will never turn off based on a timer (but could still turn off
-         because of a Photocell_Item/Light_Restriction_Item or if
-         door_auto_off() is enabled.
-      x10_sync(): Pass in a 1 to enable x10 sync, 0 to disable.  Currently
-         this will make sure lights that are supposed to be off really are
-         off around once per hour.  The default is enabled.
-      set_on_state(): Pass in another state besides the default of ON to
-         use when turning "on" the light.  Set to empty ('') to prevent
-         this light from turning on automatically (but it will still
-         turn off automatically).
-      set_predict_off_time(): You can override the default 60-second off time
-         when a light is predictively turned on but nobody actually enters
-         the room.
-      door_auto_off(X): Turn off this light X seconds after all attached doors
-         are closed UNLESS an attached occupancy monitor has a state of
-         'occupied'.  In that case, when the room is no longer occupied
-         and if all doors are closed the light will immediately turn off.
-         Set this to 0 to disable (default) or a number of seconds to wait
-         to establish occupancy before the light is turned off.
-      door_always_on(): This light should always be on whenever an attached
-         door is open, assuming any attached photocell items say it is dark
-         in the room and unless a light restriction item says otherwise.
-      delay_on(): The room must be continuously occupied for the specified
-         number of seconds before the light will come on.  Note that you
-         do NOT want to attach door objects and motion objects to the object
-         if using this feature -- just attach the presence object(s) and
-         any light restriction objects (and possibly a Light_Switch_Object).
-      manual(X,time_on,time_off): Set X to 1 to set the light into a full manual mode where
-         it will never be turned on or off automatically unless optional time_on or
-         time_off are set.  Set X to the physical light to ensure that
-         the light_item tracks the state of the physical light while
-         in manual mode.  Assign time_on and optionally time_off to time
-         in secs for manual mode to be set until resuming to automatic
-         mode.  time_off is assigned to time_on if uninitialized.
-      always_set_state(X): set X to 0 to only set state when the state
-         changes value.  The default is 1 and allows any number of sets
-         with the same value.
-      retrict_off(X): set X to 0 to prevent any attached light restriction
-         items from preventing off states.  The default is "0".
-      save_state(X): set X to 1 to force Light_Item states to be saved and
-         restored across a restart.  The default is "0".
-
-	Input states:
       From a Light_Restriction_Item:
          light_ok: Light can be turned on (light will immediately turn on
             if room is occupied AND no other restrictions are active)
@@ -116,15 +53,70 @@ Usage:
          When this internal timer object triggers, if the light is supposed to
          be off, then it will be re-set to off to make sure it really is off.
 
-	Output states:
+Output states:
+
       'off': Light is off
       'on': Light is on (note: if set_on_state() was called then this will
          instead be whatever state specified in that function call)
 
-Special Thanks to:
-	Bruce Winter - MH
+=head2 DESCRIPTION
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+An abstract object that represents a light that can be automatically controlled by Door_Items, Motion_Items, Presence_Monitors, Photocell_Items, Light_Restriction_Items, and Light_Switch_Items.
+
+Often times, Door_Items and Motion_Items are also used by the Occupancy Monitor which in turn manages the state of the Presence_Monitor objects.
+
+=head2 INHERITS
+
+B<Base_Item>
+
+=head2 METHODS
+
+=over
+
+=item C<delay_off()>
+
+How long the light should remain on after the last event (i.e. door, motion, occupancy) occurs.  The light will not turn off as long as occupancy remains true.  If this is set to 0, the light will never turn off based on a timer (but could still turn off because of a Photocell_Item/Light_Restriction_Item or if door_auto_off() is enabled.
+
+=item C<x10_sync()>
+
+Pass in a 1 to enable x10 sync, 0 to disable.  Currently this will make sure lights that are supposed to be off really are off around once per hour.  The default is enabled.
+
+=item C<set_on_state()>
+
+Pass in another state besides the default of ON to use when turning "on" the light.  Set to empty ('') to prevent this light from turning on automatically (but it will still turn off automatically).
+
+=item C<set_predict_off_time()>
+
+You can override the default 60-second off time when a light is predictively turned on but nobody actually enters the room.
+
+=item C<door_auto_off(X)>
+
+Turn off this light X seconds after all attached doors are closed UNLESS an attached occupancy monitor has a state of 'occupied'.  In that case, when the room is no longer occupied and if all doors are closed the light will immediately turn off.  Set this to 0 to disable (default) or a number of seconds to wait to establish occupancy before the light is turned off.
+
+=item C<door_always_on()>
+
+This light should always be on whenever an attached door is open, assuming any attached photocell items say it is dark in the room and unless a light restriction item says otherwise.
+
+=item C<delay_on()>
+
+The room must be continuously occupied for the specified number of seconds before the light will come on.  Note that you do NOT want to attach door objects and motion objects to the object if using this feature -- just attach the presence object(s) and any light restriction objects (and possibly a Light_Switch_Object).
+
+=item C<manual(X,time_on,time_off)>
+
+Set X to 1 to set the light into a full manual mode where it will never be turned on or off automatically unless optional time_on or time_off are set.  Set X to the physical light to ensure that the light_item tracks the state of the physical light while in manual mode.  Assign time_on and optionally time_off to time in secs for manual mode to be set until resuming to automatic mode.  time_off is assigned to time_on if uninitialized.
+
+=item C<always_set_state(X)>
+
+set X to 0 to only set state when the state changes value.  The default is 1 and allows any number of sets with the same value.
+
+=item C<retrict_off(X)>
+
+set X to 0 to prevent any attached light restriction items from preventing off states.  The default is "0".
+
+=item C<save_state(X)>
+
+set X to 1 to force Light_Item states to be saved and restored across a restart.  The default is "0".
+
 =cut
 
 use strict;
@@ -870,4 +862,34 @@ sub restore_string
 }
 
 1;
+
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Jason Sharpee  - jason@sharpee.com
+
+Kirk Bauer - kirk@kaybee.org
+
+Special Thanks to: Bruce Winter - MH
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 

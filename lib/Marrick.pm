@@ -1,19 +1,24 @@
-# Marrick.pm
-#
-# This module implements code to send/receive X10 data via 
-# the Marrick Lynx10 serial interface
-#
-# Modified by Rob Taylor Jan 27, 2005 - Added code for Receive
-# Modified by Rob Taylor Sep 22, 2005 - Added code for Preset dim
-#
-#
-# To use this interface, add the following lines (localized, of course)
-# to your mh.ini file:
-#
-#Lynx10_module=Lynx10
-#Lynx10_port=/dev/ttyS0
-#Lynx10_baudrate=1200
-#for debugging, set debug in mh.ini to include marrick
+=head1 B<Marrick>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+This module implements code to send/receive X10 data via the Marrick Lynx10 serial interface
+
+=head2 INHERITS
+
+B<NONE>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
+=cut
 
 use strict;
 
@@ -416,3 +421,37 @@ T :	X : Time since power up or RESET. (Returns length of time)
 # - 2.27 release
 #
 #
+
+# Modified by Rob Taylor Jan 27, 2005 - Added code for Receive
+# Modified by Rob Taylor Sep 22, 2005 - Added code for Preset dim
+
+=back
+
+=head2 INI PARAMETERS
+
+To use this interface, add the following lines (localized, of course) to your mh.ini file:
+
+  Lynx10_module=Lynx10
+  Lynx10_port=/dev/ttyS0
+  Lynx10_baudrate=1200
+
+for debugging, set debug in mh.ini to include marrick
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

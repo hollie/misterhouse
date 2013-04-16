@@ -263,6 +263,12 @@ sub build_lm {
   # quick_lm -s <sentence_file> [-w <word_file>] [-d discount]\n"); }
   my ($pgm_root,$data_root,$logfile) = @_;
 
+  my $binary = "$pgm_root/sphinx_lm_convert";
+  if (! -e $binary) {
+      &main::print_log ("PocketSphinx Control:: ERROR: file: $binary MISSING!!");
+      &main::print_log ("PocketSphinx Control:: Did you forget to install the Cmuclmtk?");
+  }
+
   open(LOG,">$logfile");
 
   my $cmd = "$pgm_root/text2wfreq < $data_root.sent | $pgm_root/wfreq2vocab > $data_root.vocab";

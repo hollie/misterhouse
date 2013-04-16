@@ -1,13 +1,27 @@
-# $Date$
-# $Revision$
+=head1 B<Dummy_Interface>
 
-# This is the Dummy_Interface class and is used as a placeholder interface.
-# It's entire job is to warn users that a real, working interface couldn't
-# be found.
-#
-# If you see Dummy_Interface warnings in your log, then look back to when the Dummy_Interface
-# was created and you'll see for which id, state and interface misterhouse couldn't find and active
-# interface
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+This is the Dummy_Interface class and is used as a placeholder interface.  It's entire job is to warn users that a real, working interface couldn't be found.
+
+If you see Dummy_Interface warnings in your log, then look back to when the Dummy_Interface was created and you'll see for which id, state and interface misterhouse couldn't find and active interface
+
+=head2 INHERITS
+
+B<Device_Item>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
+=cut
+
 
 package Dummy_Interface;
 
@@ -136,3 +150,29 @@ sub supports {
 
 # do not remove the following line, packages must return a true value
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
