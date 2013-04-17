@@ -4,16 +4,17 @@ AUTHORS
 Gregg Liming <gregg@limings.net>
 David Norwood <dnorwood2@yahoo.com>
 Evan P. Hall <evan@netmagic.net>
+Kevin R Keegan <kevin@krkeegan.com> - Updated to new Insteon code
 
 INITIAL CONFIGURATION
 In user code:
 
-   use Insteon_Irrigation;
-   $irrigation = new Insteon_Irrigation($myPLM, '12.34.56');
+   use Insteon::Irrigation;
+   $irrigation = new Insteon::Irrigation('12.34.56', $myPLM);
 
 In items.mht:
 
-INSTEON_IRRIGATION, 12.34.56, irrigation, Irrigation, myPLM
+INSTEON_IRRIGATION, 12.34.56, irrigation, Irrigation
 
 BUGS
 
@@ -21,8 +22,8 @@ BUGS
 EXAMPLE USAGE
 
 Creating the object:
-   use Insteon_Irrigation;
-   $irrigation = new Insteon_Irrigation($myPLM, '12.34.56');
+   use Insteon::Irrigation;
+   $irrigation = new Insteon::Irrigation('12.34.56', $myPLM);
 
 Turning on a valve:
    $v_valve_on = new Voice_Cmd "Turn on valve [1,2,3,4,5,6,7,8]";
@@ -55,19 +56,29 @@ here http://www.simplehomenet.com/Downloads/EZRain%20Command%20Set.pdf
 =cut
 
 use strict;
+use Insteon::BaseInsteon;
 
-package Insteon_Irrigation;
+package Insteon::Irrigation;
 
-@Insteon_Irrigation::ISA = ('Insteon_Link');
+@Insteon::Irrigation::ISA = ('Insteon::DeviceController','Insteon::BaseDevice');
 
+our %message_types = (
+	%Insteon::BaseDevice::message_types,
+	sprinkler_control => 0x44,
+	sprinkler_valve_on => 0x40,
+	sprinkler_valve_off => 0x41,
+	sprinkler_program_on => 0x42,
+	sprinkler_program_off => 0x43,
+	sprinkler_timers_request => 0x45
+);
 
 # -------------------- START OF SUBROUTINES --------------------
 # --------------------------------------------------------------
 
 sub new {
-   my ($class, $p_interface, $p_deviceid, $p_devcat) = @_;
+   my ($class, $p_deviceid, $p_interface) = @_;
 
-   my $self = $class->SUPER::new($p_interface, $p_deviceid, $p_devcat);
+   my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
    bless $self, $class;
    $$self{active_valve_id} = undef;
    $$self{active_program_number} = undef;
@@ -75,13 +86,15 @@ sub new {
    $$self{pump_enabled} = undef;
    $$self{valve_is_running} = undef;
    $self->restore_data('active_valve_id', 'active_program_number', 'program_is_running', 'pump_enabled', 'valve_is_running');
+   $$self{message_types} = \%message_types;
    return $self;
 }
 
 sub poll_valve_status {
    my ($self) = @_;
    my $subcmd = '02';
-   $self->_send_cmd(command => 'sprinkler_control', type => 'standard', extra => $subcmd, 'is_synchronous' => 1);
+   my $message = new Insteon::InsteonMessage('insteon_send', $self, 'sprinkler_control', $subcmd);
+   $self->_send_cmd($message);
    return;
 }
 
@@ -95,11 +108,12 @@ sub set_valve {
       $cmd = 'sprinkler_valve_off';
    }
    unless ($cmd and $subcmd) {
-      &::print_log("Insteon_Irrigation] ERROR: You must specify a valve number and a valid state (ON or OFF)")
+      &::print_log("Insteon::Irrigation] ERROR: You must specify a valve number and a valid state (ON or OFF)")
           if $main::Debug{insteon};
       return;
    }
-   $self->_send_cmd(command => $cmd, type => 'standard', extra => $subcmd, 'is_synchronous' => 1);
+   my $message = new Insteon::InsteonMessage('insteon_send', $self, $cmd, $subcmd);
+   $self->_send_cmd($message);
    return;
 }
 
@@ -113,11 +127,12 @@ sub set_program {
       $cmd = 'sprinkler_program_off';
    }
    unless ($cmd and $subcmd) {
-      &::print_log("Insteon_Irrigation] ERROR: You must specify a program number and a valid state (ON or OFF)")
+      &::print_log("Insteon::Irrigation] ERROR: You must specify a program number and a valid state (ON or OFF)")
           if $main::Debug{insteon};
       return;
    }
-   $self->_send_cmd(command => $cmd, type => 'standard', extra => $subcmd, 'is_synchronous' => 1);
+   my $message = new Insteon::InsteonMessage('insteon_send', $self, $cmd, $subcmd);
+   $self->_send_cmd($message);
    return;
 }
 
@@ -150,7 +165,8 @@ sub get_timers() {
    my ($self) = @_;
    my $cmd = 'sprinkler_timers_request';
    my $subcmd = 0x1;
-   $self->_send_cmd(command => $cmd, type => 'extended', extra => $subcmd, 'is_synchronous' => 0);
+   my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, $cmd, $subcmd);
+   $self->_send_cmd($message);
    return;
 }
 
@@ -164,17 +180,20 @@ sub _is_info_request {
         or $cmd eq 'sprinkler_program_off') {
       $is_info_request = 1;
       my $val = hex($msg{extra});
-      &::print_log("[Insteon_Irrigation] Processing data for $cmd with value: $val") if $main::Debug{insteon};
+      &::print_log("[Insteon::Irrigation] Processing data for $cmd with value: $val") if $main::Debug{insteon};
       $$self{'active_valve_id'} = ($val & 7) + 1;
       $$self{'active_program_number'} = (($val >> 3) & 3) + 1;
       $$self{'program_is_running'} = ($val >> 5) & 1;
       $$self{'pump_enabled'} = ($val >> 6) & 1;
       $$self{'valve_is_running'} = ($val >> 7) & 1;
-      &::print_log("[Insteon_Irrigation] active_valve_id: $$self{'active_valve_id'},"
+      &::print_log("[Insteon::Irrigation] active_valve_id: $$self{'active_valve_id'},"
         . " valve_is_running: $$self{'valve_is_running'}, active_program: $$self{'active_program_number'},"
         . " program_is_running: $$self{'program_is_running'}, pump_enabled: $$self{'pump_enabled'}") if $main::Debug{insteon};
    }
-
+   else {
+      #Check if this was a generic info_request
+      $is_info_request = $self->SUPER::_is_info_request($cmd, $ack_setby, %msg);
+   }
    return $is_info_request;
 
 }
