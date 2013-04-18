@@ -76,29 +76,29 @@ sub query_aldb_delta
         my ($self, $action) = @_;
         $$self{aldb_delta_action} = $action;
         if ($action eq "check" && $self->health ne "good" && $self->health ne "empty"){
-		&::print_log("[Insteon::BaseObject] WARN The link table for "
+		&::print_log("[Insteon::AllLinkDatabase] WARN The link table for "
 			. $self->{device}->get_object_name . " is out-of-sync.");
 		if (defined $self->{_aldb_changed_callback}) {
 			package main;
 			my $callback = $self->{_aldb_changed_callback};
 			$self->{_aldb_changed_callback} = undef;
 			eval ($callback);
-			&::print_log("[Insteon::BaseObject] " . $self->{device}->get_object_name . ": error during scan callback $@")
+			&::print_log("[Insteon::AllLinkDatabase] " . $self->{device}->get_object_name . ": error during scan callback $@")
 				if $@ and $main::Debug{insteon};
-			package Insteon::BaseObject;
+			package Insteon::AllLinkDatabase;
 		}
         } elsif ($action eq "check" && ((&main::get_tickcount - $self->scandatetime()) <= 2000)){
 		#if we just did a aldb_query less than 2 seconds ago, don't repeat
-		&::print_log("[Insteon::BaseObject] The link table for "
+		&::print_log("[Insteon::AllLinkDatabase] The link table for "
 			. $self->{device}->get_object_name . " is in sync.");
 		if (defined $self->{_aldb_unchanged_callback}) {
 			package main;
 			my $callback = $self->{_aldb_unchanged_callback};
 			$self->{_aldb_unchanged_callback} = undef;
 			eval ($callback);
-			&::print_log("[Insteon::BaseObject] " . $self->{device}->get_object_name . ": error during scan callback $@")
+			&::print_log("[Insteon::AllLinkDatabase] " . $self->{device}->get_object_name . ": error during scan callback $@")
 				if $@ and $main::Debug{insteon};
-			package Insteon::BaseObject;
+			package Insteon::AllLinkDatabase;
 		}
         } else {
         	my $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'status_request');
