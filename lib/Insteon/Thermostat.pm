@@ -489,50 +489,6 @@ sub init {
 	# Register bcast object with MH
 	&main::register_object_by_name('$' . $self->get_object_name ."{bcast_item}",$$self{bcast_item});
 	$$self{bcast_item}->{object_name} = '$' . $self->get_object_name ."{bcast_item}";
-	
-	# Define the child objects
-	# These we can create ourselves as they cannot be used in an insteon scene
-	my %child_objs = (
-		mode_item => "new Insteon::Thermo_i2_mode(".$self->get_object_name.")",
-		fan_item => "new Insteon::Thermo_i2_fan(".$self->get_object_name.")",
-		temp_item => "new Insteon::Thermo_i2_temp(".$self->get_object_name.")",
-		humidity_item => "new Insteon::Thermo_i2_humidity(".$self->get_object_name.")",
-		setpoint_h_item => "new Insteon::Thermo_i2_setpoint_h(".$self->get_object_name.")",
-		setpoint_c_item => "new Insteon::Thermo_i2_setpoint_c(".$self->get_object_name.")"
-	);
-
-	#Now create them
-	foreach my $child_type (keys %child_objs) {
-		#Name the Child Object
-		my $child_name = $self->get_object_name . "_" . $child_type;
-		
-		#Define the code to run in eval
-		my $eval_cmd;
-		$eval_cmd = "use vars '$child_name';\n";
-		$eval_cmd .= "$child_name = $child_objs{$child_type};\n";
-		# Register child object with MH
-		$eval_cmd .= "&main::register_object_by_name('$child_name',$child_name);\n";
-
-		#Run the eval command
-		package main; 
-			eval($eval_cmd);
-			if ($@) { 
-				::print_log( "[Insteon::Thermo_i2] Error in init eval command:\n $@ \n---\n $eval_cmd"); 
-			}
-		package Insteon::Thermo_i2;
-
-		#Get the newly created child object
-		$$self{$child_type} = ::get_object_by_name($child_name);
-		$$self{$child_type}->{object_name} = "$child_name";
-		
-		#Add child to the same groups as parent
-		foreach my $parent_group (::list_groups_by_object($self,1)){
-			$parent_group->add($$self{$child_type});
-		}
-	}
-
-	#Create tie so that changes in parent update the child
-	$self -> tie_event ('Insteon::Thermo_i2::parent_event(\''.$$self{object_name} . '\', "$state")');
 }
 
 sub sync_links{
