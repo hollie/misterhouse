@@ -364,6 +364,29 @@ sub _process_message
 	return $clear_message;
 }
 
+#Used to update the state of child objects
+sub parent_event {
+	my ($self, $p_state) = @_;
+	if ($p_state eq 'mode_change'){
+		$$self{child_mode}->set_receive($self->get_mode());
+	}
+	elsif ($p_state eq 'temp_change'){
+		$$self{child_temp}->set_receive($self->get_temp(), $self);
+	}
+	elsif ($p_state eq 'heat_setpoint_change'){
+		$$self{child_setpoint_h}->set_receive($self->get_heat_sp(), $self);
+	}
+	elsif ($p_state eq 'cool_setpoint_change'){
+		$$self{child_setpoint_c}->set_receive($self->get_cool_sp(), $self);
+	}
+	elsif ($p_state eq 'fan_mode_change'){
+		$$self{child_fan}->set_receive($self->get_fan_mode(), $self);
+	}
+	elsif ($p_state eq 'humid_change'){
+		$$self{child_humidity}->set_receive($$self{humid}, $self);
+	}
+}
+
 # Overload methods we don't use, but would otherwise cause Insteon traffic.
 sub request_status { return 0 }
 
