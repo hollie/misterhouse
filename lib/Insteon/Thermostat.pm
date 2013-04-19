@@ -503,29 +503,6 @@ sub sync_links{
 	return $self->SUPER::sync_links($audit_mode, $callback, $failure_callback);
 }
 
-sub parent_event {
-	my ($self, $p_state) = @_;
-	$self = ::get_object_by_name($self);
-	if ($p_state eq 'temp_change'){
-		$$self{temp_item}->set_receive($self->get_temp());
-	}
-	elsif ($p_state eq 'heat_setpoint_change'){
-		$$self{setpoint_h_item}->set_receive($self->get_heat_sp());
-	}
-	elsif ($p_state eq 'cool_setpoint_change'){
-		$$self{setpoint_c_item}->set_receive($self->get_cool_sp());
-	}
-	elsif ($p_state eq 'fan_mode_change'){
-		$$self{fan_item}->set_receive($self->get_fan_mode());
-	}
-	elsif ($p_state eq 'mode_change'){
-		$$self{mode_item}->set_receive($self->get_mode());
-	}
-	elsif ($p_state eq 'humid_change'){
-		$$self{humidity_item}->set_receive($$self{humid});
-	}
-}
-
 sub poll_simple{
 	my ($self) = @_;
 	my $extra = "020000000000000000000000000000";
