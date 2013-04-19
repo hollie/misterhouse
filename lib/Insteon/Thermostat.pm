@@ -812,7 +812,8 @@ sub new {
 	bless $self, $class;
 	$$self{parent} = $parent;
 	@{$$self{states}} = ('Off', 'Heat', 'Cool', 'Auto', 'Program');
-	$self->set_receive($$self{parent}->get_mode());
+	$$self{parent}{child_mode} = $self;
+	$$self{parent} -> tie_event ('$object->parent_event("$state")', "mode_change");
 	return $self;
 }
 
@@ -847,7 +848,8 @@ sub new {
 	bless $self, $class;
 	$$self{parent} = $parent;
 	@{$$self{states}} = ('Auto', 'On');
-	$self->set_receive($$self{parent}->get_fan_mode());
+	$$self{parent}{child_fan} = $self;
+	$$self{parent} -> tie_event ('$object->parent_event("$state")', "fan_mode_change");
 	return $self;
 }
 
@@ -881,7 +883,8 @@ sub new {
 	my $self = new Generic_Item();
 	bless $self, $class;
 	$$self{parent} = $parent;
-	$self->set_receive($$self{parent}->get_temp());
+	$$self{parent}{child_temp} = $self;
+	$$self{parent} -> tie_event ('$object->parent_event("$state")', "temp_change");
 	return $self;
 }
 
@@ -889,6 +892,7 @@ sub set_receive {
 	my ($self, $p_state) = @_;
 	$self->SUPER::set($p_state);
 }
+
 package Insteon::Thermo_humidity;
 use strict;
 
@@ -899,7 +903,8 @@ sub new {
 	my $self = new Generic_Item();
 	bless $self, $class;
 	$$self{parent} = $parent;
-	$self->set_receive($$self{parent}{humid});
+	$$self{parent}{child_humidity} = $self;
+	$$self{parent} -> tie_event ('$object->parent_event("$state")', "humid_change");
 	return $self;
 }
 
@@ -919,7 +924,8 @@ sub new {
 	bless $self, $class;
 	$$self{parent} = $parent;
 	@{$$self{states}} = ('Cooler' , 'Warmer');
-	$self->set_receive($$self{parent}->get_heat_sp());
+	$$self{parent}{child_setpoint_h} = $self;
+	$$self{parent} -> tie_event ('$object->parent_event("$state")', "heat_setpoint_change");
 	return $self;
 }
 
@@ -959,7 +965,8 @@ sub new {
 	bless $self, $class;
 	$$self{parent} = $parent;
 	@{$$self{states}} = ('Cooler', 'Warmer');
-	$self->set_receive($$self{parent}->get_cool_sp());	
+	$$self{parent}{child_setpoint_c} = $self;
+	$$self{parent} -> tie_event ('$object->parent_event("$state")', "cool_setpoint_change");
 	return $self;
 }
 
