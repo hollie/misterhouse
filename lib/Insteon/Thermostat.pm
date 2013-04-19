@@ -778,10 +778,10 @@ sub new {
    return $self;
 }
 
-package Insteon::Thermo_i2_mode;
+package Insteon::Thermo_mode;
 use strict;
 
-@Insteon::Thermo_i2_mode::ISA = ('Generic_Item');
+@Insteon::Thermo_mode::ISA = ('Generic_Item');
 
 sub new {
 	my ($class,$parent) = @_;
@@ -813,10 +813,10 @@ sub set_receive {
 	$self->SUPER::set($p_state);
 }
 
-package Insteon::Thermo_i2_fan;
+package Insteon::Thermo_fan;
 use strict;
 
-@Insteon::Thermo_i2_fan::ISA = ('Generic_Item');
+@Insteon::Thermo_fan::ISA = ('Generic_Item');
 
 sub new {
 	my ($class, $parent) = @_;
@@ -848,10 +848,10 @@ sub set_receive {
 	$self->SUPER::set($p_state);
 }
 
-package Insteon::Thermo_i2_temp;
+package Insteon::Thermo_temp;
 use strict;
 
-@Insteon::Thermo_i2_temp::ISA = ('Generic_Item');
+@Insteon::Thermo_temp::ISA = ('Generic_Item');
 
 sub new {
 	my ($class, $parent) = @_;
@@ -866,10 +866,10 @@ sub set_receive {
 	my ($self, $p_state) = @_;
 	$self->SUPER::set($p_state);
 }
-package Insteon::Thermo_i2_humidity;
+package Insteon::Thermo_humidity;
 use strict;
 
-@Insteon::Thermo_i2_humidity::ISA = ('Generic_Item');
+@Insteon::Thermo_humidity::ISA = ('Generic_Item');
 
 sub new {
 	my ($class, $parent) = @_;
@@ -885,10 +885,10 @@ sub set_receive {
 	$self->SUPER::set($p_state);
 }
 
-package Insteon::Thermo_i2_setpoint_h;
+package Insteon::Thermo_setpoint_h;
 use strict;
 
-@Insteon::Thermo_i2_setpoint_h::ISA = ('Generic_Item');
+@Insteon::Thermo_setpoint_h::ISA = ('Generic_Item');
 
 sub new {
 	my ($class, $parent) = @_;
@@ -925,10 +925,10 @@ sub set_receive {
 	$self->SUPER::set($p_state);
 }
 
-package Insteon::Thermo_i2_setpoint_c;
+package Insteon::Thermo_setpoint_c;
 use strict;
 
-@Insteon::Thermo_i2_setpoint_c::ISA = ('Generic_Item');
+@Insteon::Thermo_setpoint_c::ISA = ('Generic_Item');
 
 sub new {
 	my ($class, $parent) = @_;
