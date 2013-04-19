@@ -24,6 +24,7 @@ Special Thanks to:
 	Bruce Winter - MH
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=over 
 =cut
 
 package Insteon::BaseObject;
@@ -155,6 +156,28 @@ sub group
 	return $$self{m_group};
 }
 
+=item C<max_hops($int)>
+
+Sets the maximum number of hops that may be used in a message sent to the device.
+The default and maximum number is 3.  $int is an integer between 0-3.
+=cut
+sub max_hops {
+	my ($self, $hops) = @_;
+	$$self{max_hops} = $hops if $hops;
+	return $$self{max_hops};
+}
+
+=item C<min_hops($int)>
+
+Sets the minimum number of hops that may be used in a message sent to the device.
+The default and minimum number is 0.  $int is an integer between 0-3.
+=cut
+sub min_hops {
+	my ($self, $hops) = @_;
+	$$self{min_hops} = $hops if $hops;
+	return $$self{min_hops};
+}
+
 sub default_hop_count
 {
 	my ($self, $hop_count) = @_;
@@ -170,6 +193,10 @@ sub default_hop_count
 		$high = $_ if ($high < $_);;
 	}
 	$$self{default_hop_count} = $high;
+	$$self{default_hop_count} = $$self{max_hops} if ($$self{max_hops} &&
+		$$self{default_hop_count} > $$self{max_hops});
+	$$self{default_hop_count} = $$self{min_hops} if ($$self{min_hops} &&
+		$$self{default_hop_count} < $$self{min_hops});
         return $$self{default_hop_count};
 }
 
@@ -1872,3 +1899,5 @@ sub is_root
 }
 
 1;
+=back
+=cut
