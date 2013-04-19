@@ -24,6 +24,7 @@ Special Thanks to:
 	Bruce Winter - MH
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=over
 =cut
 
 package Insteon::BaseObject;
@@ -153,6 +154,20 @@ sub group
 	my ($self, $p_group) = @_;
 	$$self{m_group} = $p_group if $p_group;
 	return $$self{m_group};
+}
+
+=item C<timeout_factor($float)>
+
+Changes the amount of time MH will wait to receive a response from a device before
+resending the message.  The value set will be multiplied by the predefined value
+in MH.  $float can be set to any positive decimal number.  For example using 1.0
+will not change the preset values; 1.1 will increase the time MH waits by 10%; and
+0.9 will force MH to wait for only 90% of the predefined time.
+=cut
+sub timeout_factor {
+	my ($self, $factor) = @_;
+	$$self{timeout_factor} = $factor if $factor;
+	return $$self{timeout_factor};
 }
 
 sub default_hop_count
@@ -1872,3 +1887,5 @@ sub is_root
 }
 
 1;
+=back
+=cut

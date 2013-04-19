@@ -303,53 +303,58 @@ sub send_timeout
 	my ($self, $ignore) = @_;
         my $hop_count = (ref $self->setby and $self->setby->isa('Insteon::BaseObject')) ?
         			$self->setby->default_hop_count : $self->send_attempts;
+        my $timeout = 1400;
 	if($self->command eq 'peek' || $self->command eq 'set_address_msb')
 	{
-		return 4000;
+		$timeout = 4000;
 	}
-        if ($self->command_type eq 'all_link_send')
+        elsif ($self->command_type eq 'all_link_send')
         {
         	# note, the following was set to 2000 and that was insufficient
-        	return 3000;
+        	$timeout = 3000;
         }
         elsif ($self->command_type eq 'insteon_ext_send')
         {
         	if ($hop_count == 0)
                 {
-                	return   2220;
+                	$timeout = 2220;
                 }
                 elsif ($hop_count == 1)
                 {
-                	return   2690;
+                	$timeout = 2690;
                 }
                 elsif ($hop_count == 2)
                 {
-                	return   3000;
+                	$timeout = 3000;
                 }
                 elsif ($hop_count >= 3)
                 {
-                	return   3170;
+                	$timeout = 3170;
                 }
         }
         else
         {
         	if ($hop_count == 0)
                 {
-                	return   1400;
+                	$timeout = 1400;
                 }
                 elsif ($hop_count == 1)
                 {
-                	return   1700;
+                	$timeout = 1700;
                 }
                 elsif ($hop_count == 2)
                 {
-                	return   1900;
+                	$timeout = 1900;
                 }
                 elsif ($hop_count >= 3)
                 {
-                	return   2000;
+                	$timeout = 2000;
                 }
         }
+        if (ref $self->setby and $self->setby->isa('Insteon::BaseObject')){
+        	$timeout = int($timeout * $self->setby->timeout_factor);
+        }
+        return $timeout;
 }
 
 sub to_string
