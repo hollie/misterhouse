@@ -1,13 +1,13 @@
 # Category=HVAC
 
-$v_test_thermostat = new Voice_Cmd("Send Thermostat cmd [ping,poll_mode,mode_off,mode_heat,mode_cool,mode_auto,mode_pgm_heat,mode_pgm_cool,mode_pgm_auto,fan_on,fan_auto,poll_temp,poll_setpoint]");
+$v_test_thermostat = new Voice_Cmd("Send Thermostat cmd [poll_mode,mode_off,mode_heat,mode_cool,mode_auto,mode_pgm_heat,mode_pgm_cool,mode_pgm_auto,fan_on,fan_auto,poll_temp,poll_setpoint]");
 
 # Create the Object in user code:
 #use Insteon_Thermostat;
-#$thermostat = new Insteon_Thermostat($plm,'12.34.56');
+#$thermostat = new Insteon_Thermostat('12.34.56', $plm);
 
 # or in items.mht (read_table_A)
-#IPLT, 12.34.56,, thermostat, HVAC, plm
+#INSTEON_THERMOSTAT, 12.34.56,, thermostat, HVAC
 
 # poll_setpoint also runs poll_mode
 if ($Startup || $Reload) {
@@ -29,9 +29,7 @@ if (my $state = state_now $thermostat) {
 
 
 if (my $state = said $v_test_thermostat) {
-   if ($state eq 'ping') {
-      $thermostat->ping();
-   }elsif ($state eq 'poll_mode') {
+   if ($state eq 'poll_mode') {
       $thermostat->poll_mode();
    }elsif ($state eq 'poll_temp') {
       $thermostat->poll_temp();
