@@ -87,4 +87,58 @@ if (said $v_set_conserve_setpoints) {
    $thermostat->heat_setpoint(66);
    $thermostat->cool_setpoint(82);
    $thermostat->poll_setpoint();
-}   
+}
+
+## The examples show how a Generic Item can be Used to Track and Display
+## individual data points in the thermostat.
+
+#Define the Children
+$thermo_temp = new Insteon::Thermo_temp($thermostat);
+$thermo_fan = new Insteon::Thermo_fan($thermostat);
+$thermo_mode = new Insteon::Thermo_mode($thermostat);
+$thermo_humidity = new Insteon::Thermo_humidity($thermostat);
+$thermo_setpoint_h = new Insteon::Thermo_setpoint_h($thermostat);
+$thermo_setpoint_c = new Insteon::Thermo_setpoint_c($thermostat);
+
+#Add the Children to the HVAC Group
+$HVAC->add($thermo_temp);
+$HVAC->add($thermo_fan);
+$HVAC->add($thermo_mode);
+$HVAC->add($thermo_humidity);
+$HVAC->add($thermo_setpoint_h);
+$HVAC->add($thermo_setpoint_c);
+
+if ($Reload){
+	#Create tie so that changes in parent update the child
+	$thermostat -> tie_event ('::thermo_parent_event($object->get_object_name, "$state")');
+	
+	#set Children to initial states
+	$thermo_temp->set_receive($thermostat->get_temp());
+	$thermo_setpoint_h->set_receive($thermostat->get_heat_sp());
+	$thermo_setpoint_c->set_receive($thermostat->get_cool_sp());
+	$thermo_fan->set_receive($thermostat->get_fan_mode());
+	$thermo_mode->set_receive($thermostat->get_mode());
+}
+
+sub thermo_parent_event {
+	my ($self, $p_state) = @_;
+	$self = ::get_object_by_name($self);
+	if ($p_state eq 'temp_change'){
+		$thermo_temp->set_receive($self->get_temp(), $self);
+	}
+	elsif ($p_state eq 'heat_setpoint_change'){
+		$thermo_setpoint_h->set_receive($self->get_heat_sp(), $self);
+	}
+	elsif ($p_state eq 'cool_setpoint_change'){
+		$thermo_setpoint_c->set_receive($self->get_cool_sp(), $self);
+	}
+	elsif ($p_state eq 'fan_mode_change'){
+		$thermo_fan->set_receive($self->get_fan_mode(), $self);
+	}
+	elsif ($p_state eq 'mode_change'){
+		$thermo_mode->set_receive($self->get_mode(), $self);
+	}
+	elsif ($p_state eq 'humid_change'){
+		$thermo_humidity->set_receive($$self{humid}, $self);
+	}
+}
