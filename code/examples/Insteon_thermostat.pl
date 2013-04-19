@@ -89,8 +89,10 @@ if (said $v_set_conserve_setpoints) {
    $thermostat->poll_setpoint();
 }
 
-## The examples show how a Generic Item can be Used to Track and Display
-## individual data points in the thermostat.
+## The examples show how the defined child objects can be Used to Track and Display
+## individual data points in the thermostat.  Each of the child objects will 
+## display and permit the adjusting (if applicable) of one data point such as
+## fan mode or cool setpoint.
 
 #Define the Children
 $thermo_temp = new Insteon::Thermo_temp($thermostat);
