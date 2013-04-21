@@ -2,7 +2,6 @@
 package Insteon::BaseMessage;
 
 use strict;
-#use Insteon;
 
 sub new
 {
@@ -192,7 +191,6 @@ sub to_string
 
 package Insteon::InsteonMessage;
 use strict;
-#use Insteon;
 
 @Insteon::InsteonMessage::ISA = ('Insteon::BaseMessage');
 
@@ -585,7 +583,6 @@ sub calculate_crc16
 
 package Insteon::X10Message;
 use strict;
-#use Insteon;
 
 @Insteon::X10Message::ISA = ('Insteon::BaseMessage');
 

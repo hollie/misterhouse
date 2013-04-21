@@ -29,9 +29,7 @@ Special Thanks to:
 package Insteon::BaseObject;
 
 use strict;
-#use Insteon;
 use Insteon::AllLinkDatabase;
-#use Insteon::Message;
 
 @Insteon::BaseObject::ISA = ('Generic_Item');
 
@@ -827,9 +825,6 @@ sub get_nack_msg_for {
 
 package Insteon::BaseDevice;
 
-#use strict;
-#use Insteon;
-#use Insteon::AllLinkDatabase;
 
 @Insteon::BaseDevice::ISA = ('Insteon::BaseObject');
 
@@ -1507,7 +1502,6 @@ sub check_aldb_version
 package Insteon::BaseController;
 
 use strict;
-#use Insteon;
 
 @Insteon::BaseController::ISA = ('Generic_Item');
 
@@ -2021,7 +2015,6 @@ sub has_member
 package Insteon::DeviceController;
 
 use strict;
-#use Insteon;
 
 @Insteon::DeviceController::ISA = ('Insteon::BaseController');
 
@@ -2135,7 +2128,6 @@ sub unlink_to_interface
 package Insteon::InterfaceController;
 
 use strict;
-#use Insteon;
 
 @Insteon::InterfaceController::ISA = ('Insteon::BaseController','Insteon::BaseObject');
 

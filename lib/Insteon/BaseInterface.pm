@@ -193,8 +193,6 @@ sub queue_message
 		}
                 else
                 {
-#			my $queue_size = @{$$self{command_stack2}};
-#			&main::print_log("[Insteon_PLM] Command stack size: $queue_size") if $queue_size > 0 and $main::Debug{insteon};
 			if ($setby and ref($setby) and $setby->can('set_retry_timeout')
                            and $setby->get_object_name)
                         {
