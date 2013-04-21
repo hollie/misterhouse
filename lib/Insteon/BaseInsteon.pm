@@ -251,7 +251,7 @@ sub set
 			$$self{pending_setby} = $p_setby;
 			$$self{pending_response} = $p_response;
 	}
-		$self->level($p_state) if $self->isa("Insteon::BaseDevice"); # update the level value
+		$self->level($p_state) if ($self->isa("Insteon::BaseDevice") && $self->can('level')); # update the level value
 #		$self->SUPER::set($p_state,$p_setby,$p_response) if defined $p_state;
 	} else {
 		&::print_log("[Insteon::BaseObject] failed state validation with state=$p_state");
@@ -444,7 +444,7 @@ sub _is_info_request
 		&::print_log("[Insteon::BaseObject] received status for " .
 			$self->{object_name} . " with on-level: $ack_on_level%, "
 			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
-		$self->level($ack_on_level); # update the level value
+		$self->level($ack_on_level) if $self->can('level'); # update the level value
 		if ($ack_on_level == 0) {
 			$self->SUPER::set('off', $ack_setby);
 		} elsif ($ack_on_level > 0 and !($self->isa('Insteon::DimmableLight'))) {
@@ -528,33 +528,21 @@ sub _process_message
 	}
         elsif ($msg{is_nack})
         {
-#		if ($$self{awaiting_ack})
-#                {
-		# NOTE!!! NACKs are usually a sign of a burnt-out bulb!!
-#			&::print_log("[Insteon::BaseObject] WARN!! encountered a nack message for " . $self->{object_name}
-#				. " ... waiting for retry");
-#		}
-#                else
-#                {
-         if ($self->isa('Insteon::BaseLight')) {
-
-            &::print_log("[Insteon::BaseObject] WARN!! encountered a nack message ("
-               . $self->get_nack_msg_for( $msg{extra} ) 
-               .") for " 
-               . $self->{object_name}
-					. ".  It may be unplugged, have a burned out bulb, or this may be a new I2CS ".
-					"type device that must first be manually linked to the PLM using the set button.") if $main::Debug{insteon};
-         }
-         else {
-            &::print_log("[Insteon::BaseObject] WARN!! encountered a nack message ("
-               . $self->get_nack_msg_for( $msg{extra} ) 
-               .") for " 
-               . $self->{object_name}
-					. " ... skipping");
-         }
-			$self->is_acknowledged(0);
-			$self->_process_command_stack(%msg);
-#		}
+		if ($self->isa('Insteon::BaseLight')) {
+			&::print_log("[Insteon::BaseObject] WARN!! encountered a nack message ("
+			. $self->get_nack_msg_for( $msg{extra} ) .") for " . $self->{object_name}
+			. ".  It may be unplugged, have a burned out bulb, or this may be a new I2CS "
+			. "type device that must first be manually linked to the PLM using the set button.") 
+			if $main::Debug{insteon};
+		}
+		else 
+		{
+			&::print_log("[Insteon::BaseObject] WARN!! encountered a nack message ("
+			. $self->get_nack_msg_for( $msg{extra} ) .") for " . $self->{object_name}
+			. " ... skipping");
+		}
+		$self->is_acknowledged(0);
+		$self->_process_command_stack(%msg);
 	}
         elsif ($msg{command} eq 'start_manual_change')
         {
@@ -572,12 +560,17 @@ sub _process_message
 		$p_state = $msg{command};
                 if ($msg{type} eq 'alllink')
                 {
+			$self->set($p_state, $self);
 			$$self{_pending_cleanup} = 1;
                 }
                 elsif ($msg{type} eq 'cleanup')
                 {
-			$self->set($p_state, $self); # unless (lc($self->state) eq lc($p_state)) and
-	       #		($msg{type} eq 'cleanup' and $$self{_pending_cleanup});
+                	if (lc($self->state) eq lc($p_state) and $$self{_pending_cleanup}){
+				::print_log("[Insteon::BaseObject] Ignoring Received Direct AllLink Cleanup Message for " 
+					. $self->{object_name} . " since AllLink Broadcast Message was Received.") if $main::Debug{insteon};
+                	} else {
+				$self->set($p_state, $self);
+			}
 			$$self{_pending_cleanup} = 0;
 		} else {
 			main::print_log("[Insteon::BaseObject] Ignoring unsupported command from " 
@@ -957,7 +950,12 @@ sub get_root {
 	}
         else
         {
-		return &Insteon::get_object($self->device_id, '01');
+		my $root_obj = &Insteon::get_object($self->device_id, '01');
+		::print_log ("[Insteon::BaseDevice] ERROR! Cannot find the root object for " 
+			. $self->get_object_name . ". Please check your mht file to make sure "
+			. "that device id " . $self->device_id . ":01 is defined.") 
+			if (!defined($root_obj));
+		return $root_obj;
 	}
 }
 

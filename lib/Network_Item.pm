@@ -1,36 +1,51 @@
-
-# This object simply pings the specified address and sets
-# its state according to status
-#
-# 2011-07-30 MKB Enhanced with WakeOnLan functionality
-
 package Network_Item;
 
-=begin comment
+=head1 NAME
 
-Here is an example:
+B<Network_Item> - Uses ping to detect when specified ip address is up.
 
-use Network_Item;
+=head1 SYNOPSIS
 
-$network_house = new Network_Item('192.168.0.2',  10);
-$network_hp    = new Network_Item('192.168.0.66', 20);
+  use Network_Item;
 
-print_log "house just changed to $state" if      $state = state_changed $network_house;
-print_log "house is $state" if new_second 15 and $state = state $network_house;
+  $network_house = new Network_Item('192.168.0.2',  10);
+  $network_hp    = new Network_Item('192.168.0.66', 20);
 
-Here is an example mht entry:
-#NETWORK	IP_ADDRESS	NAME		Grouplist	Interval	MAC_ADDRESS
-NETWORK,        192.168.4.25,   HTPC_Mini,      HTPC|HomeGym,   120,    00:1C:C0:AB:CD:AE
+  print_log "house just changed to $state" if      $state = state_changed $network_house;
+  print_log "house is $state" if new_second 15 and $state = state $network_house;
 
+Example mht entry:
+
+  #NETWORK        IP_ADDRESS      NAME            Grouplist       Interval        MAC_ADDRESS
+  NETWORK,        192.168.4.25,   HTPC_Mini,      HTPC|HomeGym,   120,    00:1C:C0:AB:CD:AE
+
+=head1 DESCRIPTION
+
+This object simply pings the specified address and sets its state according to status
+
+2011-07-30 MKB Enhanced with WakeOnLan functionality
+
+=head1 INHERITS
+
+B<Generic_Item>
+
+=head1 METHODS
+
+=over
 
 =cut
-
 
 @Network_Item::ISA = ('Generic_Item');
 
 use IO::Socket qw(AF_INET SOCK_DGRAM SOL_SOCKET SO_BROADCAST);
 use Socket;
 
+=item C<new($address, $interval)>
+
+$address:  Ip address of the box you want to ping
+$interval: How often to ping (in seconds)
+
+=cut
 
 sub new {
     my ($class, $address, $interval, $mac_address) = @_;
@@ -145,4 +160,28 @@ sub setstate_start
     &::print_log("Setting " .$self->{address}." state as " .$state) if $::Debug{network};
 
 }
+
+=back
+
+=head1 INI PARAMETERS
+
+NONE
+
+=head1 AUTHOR
+
+UNK
+
+=head1 SEE ALSO
+
+NONE
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 

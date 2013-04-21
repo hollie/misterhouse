@@ -1,11 +1,56 @@
-# $Revision$
-# $Date$
+=head1 B<Group>
+
+=head2 SYNOPSIS
+
+  $outside_lights = new Group($light1, $light2, $light3);
+  $outside_lights-> add($light4, $light5);
+  $outside_lights-> add($light6);
+  set $outside_lights ON if time_now("$Time_Sunset + 0:15");
+
+  for my $item (list $outside_lights) {
+    print "member = $item->{object_name}\n";
+  }
+
+  if (my $member_name = member_changed $outside_lights) {
+    my $member = &get_object_by_name($member_name);
+    print_log "Group member $member_name changed to $member->{state}"
+  }
+
+  my @members = member_changed_log $sensors;
+
+  # turn off all but the bedroom light when we are getting ready for bed
+  if( state_now $bedroom_control eq ON ) {
+    my $all = new Group(list $All_Lights);
+    $all -> remove ( $master_bedroom );
+    set $master_bedroom ON;
+    set $all OFF;
+  }
+
+See mh/code/examples/test_group.pl and mh/code/public/monitor_occupancy_jason.pl for more examples.
+
+=head2 DESCRIPTION
+
+You can use this object to group and operate on groups of items:
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 use strict;
 
 package Group;
 
 @Group::ISA = ('Generic_Item');
+
+=item C<new(@item_list)>
+
+=cut
 
 sub new {
     my ($class, @items) = @_;
@@ -15,6 +60,10 @@ sub new {
     bless $self, $class;
     return $self;
 }
+
+=item C<add(@item_list)>
+
+=cut
 
 sub add {
     my ($self, @items) = @_;
@@ -95,6 +144,10 @@ sub include_in_group { #check if X10 item is affected by group
 	#check it is not a transmitter (?)
 }
 
+
+=item C<set>
+
+=cut
 
 sub set {
     my ($self, $state, $set_by) = @_;
@@ -400,6 +453,9 @@ sub set_group_items {
         }
 }
 
+=item C<list>
+
+=cut
 
 sub list {
     my ($self, $memberList, $groupList, $no_child_members ) = @_;
@@ -442,6 +498,11 @@ sub list {
     return sort @$memberList;  # Hmmm, to sort or not to sort.
 }
 
+=item C<member_changed>
+
+Returns a member object name whenever one changes
+
+=cut
 
 sub member_changed {
 	my ($self) = @_;
@@ -451,12 +512,23 @@ sub member_changed {
     }
 }
 
+=item C<member_changed_log>
+
+Returns a list of recenty changed members.  The first one was the most recently changed.
+
+=cut
+
 sub member_changed_log {
 	my ($self) = @_;
     return unless $$self{member_changed_log};
 	return @{$$self{member_changed_log}};
 }
 
+=item C<remove>
+
+Remove an item from a group
+
+=cut
 
 sub remove {
     my ($self, @items) = @_;
@@ -469,6 +541,45 @@ sub remove {
     }
 }
 
+=back
+
+=head2 INHERITED METHODS
+
+=over
+
+=item C<state>
+
+=item C<state_now>
+
+Like the Generic_Item methods, these return the last state that the group was set to.  If a group member changed, these methods will return 'member $state_name' rather than just '$state_name'.  You can use the member_changed or get_set_by methods to see which member changed.
+
+=item C<state_log>
+
+Returns a list array of the last max_state_log_entries (mh.ini parm) time_date stamped states.
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 
 #
 # $Log: Group.pm,v $

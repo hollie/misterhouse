@@ -1,22 +1,6 @@
-# K8055.pm
-# $Revision$
-# $Date$
-#
+=head1 B<K8055>
 
-=head1 Name
-
-K8055 daemon MisterHouse Interface
-
-  http://www.velleman.be/ot/en/product/view/?id=351346
-
-
-=head1 Credit
-
-Written by Matthew Williams
-
-Released under the GPL.
-
-=head1 Instructions
+=head2 SYNOPSIS
 
 This is the mh client interface for my K8055 interface board daemon.
 Once you have created a K8055 object, you must tell it which input ports you are interested in using the doUpdate... methods.
@@ -31,23 +15,19 @@ Whenever the value of these ports change, $k8055->state_now will return the name
 
 Use the write... methods to change the value of the output ports.
 
-=head1 mh.ini parameters
+=head2 DESCRIPTION
+
+K8055 daemon MisterHouse Interface  http://www.velleman.be/ot/en/product/view/?id=351346
+
+=head2 INHERITS
+
+B<>
+
+=head2 METHODS
 
 =over
 
-=item B<k8055_host>
-
-Hostname that is running k8055d.
-
-=item B<k8055_port>
-
-Port on hostname to which daemon is listening.
-
-=back
-
-=head1 Methods
-
-=over
+=cut
 
 =item B<state_now>
 
@@ -363,8 +343,6 @@ Sets how often we update the input port readings.  Defaults to 10 seconds.
   # input ports will be read every 2 seconds.
   $k8055->setUpdatePeriod(2);
 
-=back
-
 =cut
 
 sub setUpdatePeriod {
@@ -403,10 +381,29 @@ sub update {
 
 1;
 
-=head1 Version Info
+=back
 
-The following are automated subversion version strings:
-  $Revision$
-  $Date$
+=head2 INI PARAMETERS
+
+k8055_host - Hostname that is running k8055d.
+
+k8055_port - Port on hostname to which daemon is listening.
+
+=head2 AUTHOR
+
+Matthew Williams
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 =cut
+

@@ -1,15 +1,47 @@
-=begin comment
+=head1 B<Display_Alpha>
+
+=head2 SYNOPSIS
+
+Parameters:
+
+  mode - transition or special animation (see %modes and %special_modes)
+  color - text colot (see %colors)
+  font - small,large or fancy
+  fontsize - set to wide to double the number of fonts to 6
+  position - middle, top, bottom, fill or left seems to make no difference on Beta Brites
+  image - name of a BMP file* in ../data/alpha/images
+  imageposition - left or right
+  speed - usually best to use the default (slowest), makes little difference on Beta Brite
+  wait - Set to 1 to buffer the message (buffered sequence is sent to the sign on the next message without the wait flag)
+
+Examples:
+
+  &display(device=>'alpha', wait=>1, speed=>'slowest', text=>'You have mail!', app=>'mail', mode=>'hold',image=>'mail');
+  &display(device=>'alpha', wait=>1, text=>'Dog has left the yard!', app=>'dog' color=>'red', mode=>'runninganimal');
+  &display(device=>'alpha', text=>"Now playing in the den: $Save{now_playing}", app=>'music', image=>'cd', rooms='den');
+
+Note in the last line the presence of the rooms parameter and the abscence of the wait parameter.  This sends the entire sequence to the den sign.  Any room parameters defined by previous messages in the sequence are discarded.  The last message sent in a sequence defines the rooms that receive the message.  Consider this example:
+
+  &display(device=>'alpha', wait=>1, speed=>'slowest', text=>'You have mail.', color=>'green', mode=>'hold',image=>'mail');
+  &display(device=>'alpha', wait=>1, text=>'Dog has left the yard!', app=>'dog' color=>'red', mode=>'runninganimal');
+  &display(device=>'alpha', text=>"Now playing in the den: $Save{den_now_playing}.", app=>'music', image=>'cd');
+
+Note that the rooms parameter is removed from the last line.  This sequence will go to the rooms associated with the music application (or the default sign if none are defined.)  In most cases it will be clearer to override the rooms parameter on the last message (as in the first example.)  Also note that display_alpha is not called directly as it would bypass app parameter processing
+
+* Use standard 16 color bitmaps and realize that a one-to-one mapping is impossible, at least not on an eight color (nine counting black) Beta Brite.  Most models are 7 x 80 pixels.
+
+NOTE: Known issue (at least on older signs) - 2 bitmaps in a sequence will not display the second (1, 3, 4, 5+ in a sequence works fine) This is not a Misterhouse issue as it shows up at the command prompt with a stand-alone script.  Also note that each bitmap file counts once, regardless of how many times it is referenced in the sequence (each file is sent to the sign once.)
+
+=head2 DESCRIPTION
 
 Use this module to send text to the Alpha LED signs using a serial port.  Signs are available from:
 
   http://www.ams-i.com/
   http://alpha-american.com/
 
-I picked up the Alpha 213C (a.k.a. BetaBrite, 2" x 30", 14 character) from the local Sam's Club for $150.
-It displays in multiple colors, in either scrolling or fixed text.
-SamsClub.com only lists a bigger version, but info on BetaBrite I have can be seen here:
+I picked up the Alpha 213C (a.k.a. BetaBrite, 2" x 30", 14 character) from the local Sam's Club for $150.  It displays in multiple colors, in either scrolling or fixed text.  SamsClub.com only lists a bigger version, but info on BetaBrite I have can be seen here:
 
-   http://www.betabrite.com/Pages/betabrite.htm
+  http://www.betabrite.com/Pages/betabrite.htm
 
 The Alpha protocol is documented in its entirety here:
 
@@ -19,64 +51,15 @@ Some Beta Brite PERL examples can be found here:
 
   http://dens-site.net/betabrite/betabrite.htm
 
-sUse these mh.ini parameters to enable this code:
+=head2 INHERITS
 
- Display_Alpha_module = Display_Alpha
- Display_Alpha_port   = COM1
+B<NONE>
 
-If you have an older Beta Brite, include:
+=head2 METHODS
 
- Display_Alpha_type   = old
+=over
 
-If you have more than one display, point to the ports, and the rooms they are in, with this format:
-
- Display_Alpha_port   = COM1=>living, COM2=>bedroom
-
-Then use the display room= parm to pick the room.  If room is not used, it goes to all displays.
-
-Use the device parameter of the display function to direct text and/or graphics to the display.
-
- display device => 'alpha', mode => 'hold', color => 'amber', text => $Time_Now;
- display device => 'alpha', mode => 'rotate', color => 'green', text => $Weather{Summary};
- display "device=alpha $caller";
-
-The easiest method to maintain schemes of colors, modes, graphics, fonts, etc. is with the application display parameters:
-
- display_apps = control => color=amber mode=scrolldown, error => color=red mode=cherrybomb
-
-Parameters:
-
-mode - transition or special animation (see %modes and %special_modes)
-color - text colot (see %colors)
-font - small,large or fancy
-fontsize - set to wide to double the number of fonts to 6
-position - middle, top, bottom, fill or left seems to make no difference on Beta Brites
-image - name of a BMP file* in ../data/alpha/images
-imageposition - left or right
-speed - usually best to use the default (slowest), makes little difference on Beta Brite
-wait - Set to 1 to buffer the message (buffered sequence is sent to the sign on the next message without the wait flag)
-
-Examples:
-
-&display(device=>'alpha', wait=>1, speed=>'slowest', text=>'You have mail!', app=>'mail', mode=>'hold',image=>'mail');
-&display(device=>'alpha', wait=>1, text=>'Dog has left the yard!', app=>'dog' color=>'red', mode=>'runninganimal');
-&display(device=>'alpha', text=>"Now playing in the den: $Save{now_playing}", app=>'music', image=>'cd', rooms='den');
-
-Note in the last line the presence of the rooms parameter and the abscence of the wait parameter.  This sends the entire sequence to the den sign.  Any room parameters defined by previous messages in the sequence are discarded.  The last message sent in a sequence defines the rooms that receive the message.  Consider this example:
-
-&display(device=>'alpha', wait=>1, speed=>'slowest', text=>'You have mail.', color=>'green', mode=>'hold',image=>'mail');
-&display(device=>'alpha', wait=>1, text=>'Dog has left the yard!', app=>'dog' color=>'red', mode=>'runninganimal');
-&display(device=>'alpha', text=>"Now playing in the den: $Save{den_now_playing}.", app=>'music', image=>'cd');
-
-Note that the rooms parameter is removed from the last line.  This sequence will go to the rooms associated with the music application (or the default sign if none are defined.)  In most cases it will be clearer to override the rooms parameter on the last message (as in the first example.)
-Also note that display_alpha is not called directly as it would bypass app parameter processing
-
-* Use standard 16 color bitmaps and realize that a one-to-one mapping is impossible, at least not on an eight color (nine counting black) Beta Brite.  Most models are 7 x 80 pixels.
-NOTE: Known issue (at least on older signs) - 2 bitmaps in a sequence will not display the second (1, 3, 4, 5+ in a sequence works fine)
-      This is not a Misterhouse issue as it shows up at the command prompt with a stand-alone script.
-      Also note that each bitmap file counts once, regardless of how many times it is referenced in the sequence (each file is sent to the sign once.)
-
-More examples can be found in mh/code/bruce/display_alpha.pl
+=item B<UnDoc>
 
 =cut
 
@@ -658,3 +641,52 @@ sub GetBMPInfo ($) {
 
 
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+Use these mh.ini parameters to enable this code:
+
+ Display_Alpha_module = Display_Alpha
+ Display_Alpha_port   = COM1
+
+If you have an older Beta Brite, include:
+
+ Display_Alpha_type   = old
+
+If you have more than one display, point to the ports, and the rooms they are in, with this format:
+
+ Display_Alpha_port   = COM1=>living, COM2=>bedroom
+
+Then use the display room= parm to pick the room.  If room is not used, it goes to all displays.
+
+Use the device parameter of the display function to direct text and/or graphics to the display.
+
+ display device => 'alpha', mode => 'hold', color => 'amber', text => $Time_Now;
+ display device => 'alpha', mode => 'rotate', color => 'green', text => $Weather{Summary};
+ display "device=alpha $caller";
+
+The easiest method to maintain schemes of colors, modes, graphics, fonts, etc. is with the application display parameters:
+
+ display_apps = control => color=amber mode=scrolldown, error => color=red mode=cherrybomb
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+More examples can be found in mh/code/bruce/display_alpha.pl
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

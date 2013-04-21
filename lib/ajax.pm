@@ -1,3 +1,24 @@
+=head1 B<ChangeWaiter>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+A object to hold the update waiting information
+
+=head2 INHERITS
+
+NONE
+
+=head2 METHODS
+
+=over
+
+=cut
+
+
 # Here are the ajax support functions
 #
 
@@ -16,7 +37,6 @@ sub html_ajax_long_poll () {
   return 1;
 }
 
-# A object to hold the update waiting information
 package ChangeWaiter;
 
 sub new {
@@ -44,10 +64,12 @@ sub flagStateChange {
   ${$$self{changed}} = 1;
 }
 
-# Function to check for changes in the objects state
-# on change a message is sent to the socket, the socket is
-# closed and 1 is returned
-# else 0 is returne
+=item C<checkForUpdate>
+
+Function to check for changes in the objects state on change a message is sent to the socket, the socket is closed and 1 is returned else 0 is returne
+
+=cut
+
 sub checkForUpdate {		
   my ($self) = @_;
 
@@ -73,6 +95,58 @@ sub checkForUpdate {
   }
   return ${$$self{changed}};
 }
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+
+
+
+
+
+
+
+
+=head1 B<ChangeChecker>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+A class wich contains the checker for update waiter
+
+=head2 INHERITS
+
+NONE
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
+=cut
 
 # A class wich contains the checker for update waiter
 package ChangeChecker;
@@ -115,3 +189,28 @@ sub setWaiterToChanged {
 }
 
 1;
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

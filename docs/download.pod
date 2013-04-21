@@ -1,0 +1,45 @@
+=head1 Download Misterhouse
+
+=head1 Current 
+
+B<Version 2.200> - released on 03/02/2012
+
+=over
+
+=item * For Linux, Windows and MacOS: L<https://github.com/hollie/misterhouse/archive/stable.zip>
+
+=item * The Windows only compiled version of Misterhouse is sadly no longer supported.
+
+=item * Between formal releases, you can pick up the latest updates from: L<https://github.com/hollie/misterhouse> (not recommended for beginners!)
+
+=item * A large (30MB) zip of optional files (mainly sound files) is here: L<http://misterhouse.sf.net/misterhouse_misc.zip>
+
+=back
+
+=head1 Previous Stable
+
+B<Version 2.105> - released on 12/01/2008
+
+=over
+
+=item * L<http://prdownloads.sourceforge.net/misterhouse/misterhouse_src_2105.zip>
+
+=back
+
+=head1 Older Versions
+
+=over
+
+=item * You can get older versions from Sourceforge (not recommended): L<http://sourceforge.net/project/showfiles.php?group_id=1365&package_id=1347>
+
+=back
+
+=head1 Mailing List
+
+Subscribe to the Misterhouse release announcement mailing list here:  L<http://lists.sourceforge.net/mailman/listinfo/misterhouse-announce>
+
+Or join the Misterhouse community mailing list here: L<http://lists.sourceforge.net/mailman/listinfo/misterhouse-users>
+
+Last modified 03/02/2013 11:03:55
+
+=cut

@@ -1,5 +1,31 @@
-# $Date$
-# $Revision$
+=head1 B<IR_Item>
+
+=head2 SYNOPSIS
+
+  $TV = new IR_Item 'TV';
+  $v_tv_control = new  Voice_Cmd("tv [power,on,off,mute,vol+,vol-,ch+,ch-]");
+  set $TV $state if $state = said $v_tv_control;
+
+  $VCR = new IR_Item 'vcr', '3digit';
+  set $VCR "12,RECORD" if time_cron('59 19 * * 3');
+  set $VCR "STOP"      if time_cron('00 20 * * 3');
+
+=head2 DESCRIPTION
+
+This object controls IR transmiters. The devices currently supported are the X10 IR Commander, HomeVision, CPU-XA/Ocelot/Leopard, and UIRT2 (http://www.fukushima.us/UIRT2/).
+
+The X10 IR Commander (http://www.x10.com/products/ux17a_bj2.htm) receives commands from the wireless CM17 (firecracker) interface. Currently, you must use the X10 supplied software (http://www.x10.com/commander.htm and/or ftp://ftp.x10.com/pub/applications/commander/) to program the IR Commander to use the codes for your various remotes.
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
+
 use strict;
 
 package IR_Item;
@@ -12,6 +38,31 @@ my %default_map = qw(
 );
 
 my ($hooks_added, @objects_xap);
+
+=item C<new($type, $code, $interface, $mapref)>
+
+Creates a new Item.
+
+$type is the type of device being controlled.  Default is TV.  Here are the only valid types for the X10 IR Commander; TV, VCR, CAB, CD, SAT, DVD
+
+$code specifies how numbers will be treated.  Default is 2digit.
+
+  - noPad   : numbers are not modified
+  - 2digit  : single digits will be padded with a leading zero
+  - 3digit  : numbers will be padded to 3 digits with leading zeros
+  - addEnter: adds an ENTER command after any numbers, to make changing channels faster on devices that wait for a timeout (e.g. Sony TVs).
+
+$interface is the transmitter to be used.  Default is cm17.
+
+  - cm17    : X10 IR Commander
+  - homevision: HomeVision
+  - ncpuxa  : CPU-XA/Ocelot/Leopard
+  - uirt2   : UIRT2 (http://www.fukushima.us/UIRT2/)
+  - xAP     : Sends / receives data via the xAP protocol.
+
+$mapref is a reference to a hash that specifies commands to be mapped to other commands.  This is useful for transmitters like the Ocelot which use slot numbers instead of device and function name pairs.  Default is a reference to a hash containing ( ON  => POWER, OFF => POWER ) Which you would not want if you had descrete ON and OFF codes.
+
+=cut
 
 sub new {
     my ($class, $device, $code, $interface, $mapref) = @_;
@@ -135,6 +186,75 @@ sub default_setstate {
         }
     }
 }
+
+
+=back
+
+=head2 INHERITED METHODS
+
+=over
+
+=item C<state>
+
+Returns the last state that was sent
+
+=item C<state_now>
+
+Returns the state that was sent in the current pass.
+
+=item C<state_log>
+
+Returns a list array of the last max_state_log_entries (mh.ini parm) time_date stamped states.
+
+=item C<set($command)>
+
+Sends out commands to the IR device.  Here is a list of valid commands for the X10 IR Commander::
+Note:  Commands are not case insensitive
+
+        POWER      MUTE
+        CH+        CH-
+        VOL+       VOL-
+        1          2
+        3          4
+        5          6
+        7          8
+        9          0
+        MENU       ENTER
+        FF         REW
+        RECORD     PAUSE
+        PLAY       STOP
+        AVSWITCH   DISPLAY
+        UP         DOWN
+        LEFT       RIGHT
+        SKIPDOWN   SKIPUP
+        TITLE      SUBTITLE
+        EXIT       OK
+        RETURN
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
 
 #
 # $Log: IR_Item.pm,v $

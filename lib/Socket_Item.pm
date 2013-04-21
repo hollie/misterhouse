@@ -5,6 +5,48 @@ use strict;
 
 package Socket_Item;
 
+=head1 NAME
+
+B<Socket_Item> - You can use the Socket_Item object to read and/or write to TCP/IP socket ports.
+
+=head1 SYNOPSIS
+
+  # An example of a server socket
+  # Add this mh.ini parm:  server_speak_port = 8090
+  $socket_server = new  Socket_Item(undef, undef, 'server_speak');
+  if (my $data = said $socket_server) {
+    print "speak_server socket data: $data\n";
+    speak $data;
+    }
+
+  # An example of a client socket
+  my $lcdproc_address = 'misterhouse:13666';
+  $lcdproc = new  Socket_Item(undef, undef, $lcdproc_address, 'lcdproc');
+
+  $Vcmd_viavoice = new  main::Socket_Item(undef, undef, 'localhost:3234', 'viavoice');
+
+  # This example walks the reboot menu of a router
+  $router_reboot = new Voice_Cmd 'Reboot the router';
+  $router_client = new Socket_Item(undef, undef, $config_parms{router_address} . ":23", 'router', 'tcp', 'raw');
+  set_expect $router_client (Password => $config_parms{router_password}, Number => 24, Number => 4, Number => 11) if said $router_reboot;
+
+  # Example of sending a message to all clients
+  set $telnet_server "Hi to all clients", 'all';
+
+More examples are in mh/code/bruce/telnet.pl, mh/code/examples/socket_test*.pl, mh/code/bruce/monitor_shoutcast.pl, bruce/wxserver_server.pl, and bruce/monitor_router.pl
+
+
+=head1 DESCRIPTION
+
+=head1 INHERITS
+
+=head1 METHODS
+
+=over
+
+=cut
+
+
 @Socket_Item::ISA = ('Generic_Item');
 
 my (%socket_item_by_id);
@@ -17,6 +59,10 @@ sub socket_item_by_id {
     my($id) = @_;
     return $socket_item_by_id{$id};
 }
+
+=item C<new('data_stream', 'state_name', 'host_port', 'name', 'host_protocol', 'datatype', 'break_char')>
+
+=cut
 
 sub new {
     my ($class, $id, $state, $host_port, $port_name, $host_proto, $datatype, $break, $broadcast) = @_;
@@ -40,10 +86,30 @@ sub new {
     return $self;
 }
 
+=item C<set_port>
+
+Allows you to change the server_name/port.
+
+=cut
+
 sub set_port {
     my ($self, $host_port) = @_;
     $$self{host_port} = $host_port;
 }
+
+=item C<add('data_stream', 'state_name')>
+
+'host_port' - must be of the form ip_address:port (when creating a client) or it must match a server_* parm in mh.ini (when creating a server) (e.g. server_telnet_port).
+
+'host_protocol' - can be 'tcp' or 'udp'.  Default is 'tcp'
+
+'datatype' - can be 'raw', 'rawout', or 'record'.  If 'raw', the said method returns data as read.  If record, said only returns data when reaching a newline.  When writing to the port, a newline is added unless datatype is 'raw' or 'rawout'.
+
+'break_char' - This will be added to data sent with set and, unless datatype=raw, will be used to break incoming data into state_now records.  Default is \n\r.
+
+'name' - is optional.  If used you can set debug to this string to turn on debug for just this socket data.
+
+=cut
 
 sub add {
     my ($self, $id, $state) = @_;
@@ -53,6 +119,12 @@ sub add {
     $socket_item_by_id{$id} = $self if $id;
 #    print "db sid=", %socket_Item::socket_item_by_id, "\n";
 }
+
+=item C<start>
+
+Connect to the specified port.  This allows mh to act as a client, rather than a server, and initiate communications with a server.
+
+=cut
 
 sub start {
     my ($self) = @_;
@@ -92,11 +164,23 @@ sub start {
     return 0;
 }
 
+=item C<stop>
+
+This will drop the client or server from mh and free up the port.
+
+=cut
+
 sub stop {
     my ($self) = @_;
     my $port_name = $self->{port_name};
     &main::socket_close($port_name);
 }
+
+=item C<is_available>
+
+Returns 1 if the socket is available, 0 if not
+
+=cut
 
 sub is_available {
     my ($self) = @_;
@@ -105,16 +189,34 @@ sub is_available {
     return &net_socket_check($host_port, $host_proto);
 }
 
+=item C<active>
+
+True if the port is active.
+
+=cut
+
 sub active {
     my $port_name = $_[0]->{port_name};
     return $main::Socket_Ports{$port_name}{socka};
 #     or  scalar @{$main::Socket_Ports{$port_name}{clients}}
 }
 
+=item C<active_now>
+
+True for the mh pass that the socket first becomes active.
+
+=cut
+
 sub active_now {
     my $port_name = $_[0]->{port_name};
     return $main::Socket_Ports{$port_name}{active_this_pass};
 }
+
+=item C<inactive_now>
+
+True for the mh pass that the socket first becomes inactive.
+
+=cut
 
 sub inactive_now {
     my $port_name = $_[0]->{port_name};
@@ -177,6 +279,13 @@ sub peer {
 	return "That's unpossible";
 }
 
+=item C<said>
+
+Returns a data record received by the port.
+Note: If you want to process binary socket data, specify server_*_datatype = raw in the mh.ini file.  This will cause said to return any data read immediately, rather than buffering up data until a newline is read.
+
+=cut
+
 sub said {
     my $port_name = $_[0]->{port_name};
 
@@ -193,6 +302,12 @@ sub said {
     }
     return $data;
 }
+
+=item C<said_next>
+
+Reads and returns the next record from the socket handle
+
+=cut
 
 sub said_next {
     my $port_name = $_[0]->{port_name};
@@ -211,10 +326,25 @@ sub said_next {
     return $data;
 }
 
+=item C<handle>
+
+Returns the socket handle, so you can loop on reading/writing data to it directly.
+
+=cut
+
 sub handle {
     my $port_name = $_[0]->{port_name};
     return $main::Socket_Ports{$port_name}{socka};
 }
+
+=item C<set_echo>
+
+Use this to control echoing of incoming characters:
+- set_echo $my_socket 0   -> Do not echo incoming characters
+- set_echo $my_socket 1   -> echo incoming characters
+- set_echo $my_socket '*' -> echo incoming characters with *
+
+=cut
 
 sub set_echo {
     my ($self, $echo) = @_;
@@ -222,6 +352,19 @@ sub set_echo {
     $self->{echo} = $echo;      # Not used, but for easy references
     $main::config_parms{"${port_name}_echo"} = $echo; # THIS is what gets quered by mh
 }
+
+=item C<set>
+
+Sets the item to the specified state.
+- If the specified state has not been defined with 'new' or 'add', the state data is sent.  Otherwise the data_stream associated with that state is sent.
+- If there is more than one client connected to this port, an optional 2nd parm can be used to pick which client set to.
+Values are:
+- 'all' (send to all connected clients),
+- ip_address (a regular expresion of the ip address(s) you want to send to
+- client_number (which client to send to, 0 .. #).  Note this can change as clients are added and dropped.
+- socket hash name, which can be captured when reading data from the port with this: $client = $Socket_Ports{$port_name}{socka};
+
+=cut
 
 sub set {
     my ($self, $state, $ip_address) = @_;
@@ -299,7 +442,11 @@ sub set {
 
 }
 
-sub set_expect {
+=item C<set_expect>
+
+Used to send a series of strings to the port, waiting for a specified prompt for each string.  This is useful for walking through menus.  The arguments passed to set_expect are pairs of 'prompt' => 'response' strings.  See example below.
+
+  sub set_expect {
     my ($self, @set_expect_cmds) = @_;
     if (active $self) {
         &main::print_log("set_expect: $$self{port_name} is already active");
@@ -312,7 +459,9 @@ sub set_expect {
         $$self{set_expect_timer}-> set(10);
         &::MainLoop_pre_add_hook( \&Socket_Item::set_expect_check, 0, $self );
     }
-}
+  }
+
+=cut
 
 sub set_expect_check {
     my ($self) = @_;
@@ -338,7 +487,45 @@ sub set_expect_check {
     }
 }
 
+=back
 
+=head1 INHERITED METHODS
+
+=over
+
+=item C<state>
+
+Returns the last state that was received or sent
+
+=item C<state_now>
+
+Returns the state that was received or sent in the current pass.
+
+=back
+
+=head1 INI PARAMETERS
+
+Server socket ports are specified with mh.ini parms (see 'server options' in mh.ini)
+
+=head1 AUTHOR
+
+UNK
+
+=head1 SEE ALSO
+
+NONE
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
+1;
 
 #
 # $Log: Socket_Item.pm,v $
@@ -440,5 +627,3 @@ sub set_expect_check {
 # - created
 #
 #
-
-1;

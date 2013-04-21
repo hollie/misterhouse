@@ -1,3 +1,35 @@
+=head1 B<LCD>
+
+=head2 SYNOPSIS
+
+  my %lcd_keymap1 = ( N => 'up', I => 'down', M => 'left', H => 'right', F => 'exit', K => 'enter', L => 'left', G => 'right');
+  my %lcd_keymap2 = ( 38=> 'up', 40=> 'down', 37=> 'left', 39=> 'right', 17=> 'exit', 96=> 'enter') ;
+
+  $lcd1 = new LCD  'lcdproc', '192.168.0.5:13666', '4x20', 'default', \%lcd_keymap1;
+  $lcd2 = new LCD 'keyboard',               undef, '4x20', 'mh',      \%lcd_keymap2;
+
+=head2 DESCRIPTION
+
+Send and receive data to LCD type displays with keypads
+
+=head2 INHERITS
+
+B<NONE>
+
+=head2 METHODS
+
+=over
+
+=item C<new($type, $port, $size, $menu_group, $keymap)>
+
+  $type:  Either lcdproc or keyboard.
+  $port:  The ip:port of where lcdproc is running.
+  $size:  ROWSxCOLUMNS of the LCD display.
+  $menu_group:  The menu parsed by menu_parse (see Menu section of this doc).
+  $keymap: A has that translates keys to usable names.
+
+=cut
+
 use strict;
 
 package LCD;
@@ -36,6 +68,12 @@ sub new {
     return $self;
 }
 
+=item C<start>
+
+Connect to the LCD.  Automatically called on startup
+
+=cut
+
 sub start {
     my ($self) = @_;
     my $object = $$self{object};
@@ -56,6 +94,12 @@ sub start {
 
 }
 
+=item C<stop>
+
+Disconnect the LCD.
+
+=cut
+
 sub stop {
     my ($self) = @_;
     my $object = $$self{object};
@@ -67,10 +111,22 @@ sub stop {
     }
 }
 
+=item C<load($menu)>
+
+Load menu $menu.  Default menu is the first one.
+
+=cut
+
 sub load {
     my ($self, $menu) = @_;
     &main::menu_lcd_load($self, $menu);
 }
+
+=item C<check_key>
+
+Returns whatever key is keyed in
+
+=cut
 
                                 # Check for incoming key or info from the lcd
 sub check_key {
@@ -103,6 +159,7 @@ sub check_key {
     }
 
 }
+
                                 # Send display data to the lcd
 sub send_display {
     my ($self) = @_;
@@ -158,12 +215,25 @@ sub send_display {
     }
 }
 
+=item C<set(@data)>
+
+Sends @data to the LCD, one line per list element
+
+=cut
+
                                 # Set the data to display
 sub set {
     my ($self, @data) = @_;
     @{$$self{display}} = @data;
     $$self{refresh} = 1;
 }
+
+=item C<set_key($key)>
+
+Simulates the keyboard being pressed with $key
+
+=cut
+
                                 # Set the key entered
 sub set_key {
     my ($self, $data) = @_;
@@ -176,6 +246,13 @@ sub said_key {
     $$self{timer}->set(10) if defined $state;
     return $state;
 }
+
+=item C<inactive>
+
+Returns true if no key has been pressed in 10 seconds.
+
+=cut
+
                                 # Check for recent key activity
 sub inactive {
     my ($self) = @_;
@@ -213,6 +290,29 @@ sub process {
 
 1;
 
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+An example is in mh/code/bruce/lcd.pl. To use simulate an LCD keypad with your pc keyboard, use mh/code/bruce/lcd_keyboard.pl.
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 
 #
 # $Log: LCD.pm,v $

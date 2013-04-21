@@ -156,10 +156,10 @@ sub read_table_A {
         $object = "Insteon_Thermostat(\$$object, \'$address\', $other)";
     }
     elsif($type eq "INSTEON_IRRIGATION") {
-        require 'Insteon_Irrigation.pm';
-        ($address, $name, $grouplist, $object, @other) = @item_info;
+        require Insteon::Irrigation;
+        ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "Insteon_Irrigation(\$$object, \'$address\', $other)";
+        $object = "Insteon::Irrigation(\'$address\', $other)";
     }
     # ----------------------------------------------------------------------
     elsif($type eq 'FROG') {
@@ -753,6 +753,19 @@ sub read_table_A {
             $code .= "use xPL_Items;\n";
         }
     }
+     elsif($type eq "XPL_X10BASIC") {
+       ($address, $name, $grouplist, @other) = @item_info;
+       $other = join ', ', (map {"'$_'"} @other); # Quote data
+       if($other){
+           $object = "xPL_X10Basic('$address',$other)";
+       }
+       else{
+           $object = "xPL_X10Basic('$address')";
+       }
+       if( ! $packages{xPL_X10Basic}++ ) {   # first time for this objecttype?
+           $code .= "use xPL_X10Basic;\n";
+       }
+   }
     elsif($type eq "XPL_IRRIGATEWAY") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
@@ -966,7 +979,21 @@ sub read_table_A {
            print "\nThere is no object called $name defined.  Ignoring SCENE_MEMBER entry.\n" unless $objects{$name};
         }
         $object = '';
-    } else {
+    }
+    elsif ($type eq "PHILIPS_HUE"){
+    	($address, $name, $grouplist, @other) = @item_info;
+    	$other = join ', ', (map {"'$_'"} @other); # Quote data
+        if($other){
+            $object = "Philips_Hue('$address',$other)";
+        }
+        else{
+            $object = "Philips_Hue('$address')";
+        }
+        if( ! $packages{Philips_Hue}++ ) {   # first time for this object type?
+            $code .= "use Philips_Hue;\n";
+        }
+    }
+    else {
         print "\nUnrecognized .mht entry: $record\n";
         return;
     }
