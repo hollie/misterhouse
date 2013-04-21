@@ -1,149 +1,192 @@
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 B<AlsaPlayer>
 
-File:
-	AlsaPlayer.pm
+=head2 SYNOPSIS
 
-Description:
-   Allows the full creation and control of alsaplayer processes on your
-   system.  I use this with a M-Audio Delta 410 and the Linux ALSA drivers
-   to create up to four simultaneous stereo MP3 streams.  I then connect
-   those outputs to my Netstreams Musica whole-house audio system to
-   provide customized music throughout my house.
+Note that you can have as many AlsaPlayer objects as you want but each one must have a unique alsa device name.
 
-Author:
-	Kirk Bauer
-	kirk@kaybee.org
+  use AlsaPlayer;
+  my $mp3_player = new AlsaPlayer('mp3_player', 'alsa_device_name');
 
-   You can get the most current version of this file and other files related
-   whole-house music/speech setup here:
-     http://www.linux.kaybee.org:81/tabs/whole_house_audio/
+  use PlayList;
+  my $kirk_mp3s = new PlayList;
 
-License:
-	This free software is licensed under the terms of the GNU public license.
+  if ($Reload) {
+    # Starts the Alsaplayer process
+    $mp3_player->start();
+
+    # Populate the playlist
+    $kirk_mp3s->add_files('/mnt/mp3s/KirkAll.m3u');
+    $kirk_mp3s->add_files('/mnt/mp3s/blah/blah.mp3');
+    $kirk_mp3s->add_files('/mnt/mp3s/favorites/');
+
+    # Start playing the MP3s
+    $mp3_player->add_playlist($kirk_mp3s);
+    $mp3_player->unpause();
+  }
+
+If you want randomized playlist, you can call the randomize() function on the PlayList object before adding it to the player but after populating it with MP3s.  Instead (or in addition to), you can call shuffle(1) on AlsaPlayer before adding any playlists.  This requires you to have patched your AlsaPlayer as described just above the shuffle function in this module.
+
+=head2 DESCRIPTION
+
+Allows the full creation and control of alsaplayer processes on your system.  I use this with a M-Audio Delta 410 and the Linux ALSA drivers to create up to four simultaneous stereo MP3 streams.  I then connect those outputs to my Netstreams Musica whole-house audio system to provide customized music throughout my house.
+
+You can get the most current version of this file and other files related whole-house music/speech setup here: http://www.linux.kaybee.org:81/tabs/whole_house_audio/
 
 Alsaplayer:
-   This Misterhouse module assumes the 'alsaplayer' program is installed and
-   operational as the Misterhouse user.  Since I run mine in real-time mode,
-   and local security is not a big issue, I have my binary set setuid root
-   (owned by root and mode 4555).  You can help improve performance by telling
-   alsaplayer to not load ID3 tags from MP3s by modifying its configuration
-   file (.alsaplayer/config in your home directory) and setting 'mad.parse_id3'
-   to false.  I do this when I'm running MP3s off of a network drive.
 
-   You can change the default binary location and options by copying the
-   following lines into your mh.private.ini:
-
-      alsaplayer_binary=alsaplayer
-      alsaplayer_opts= -q --nosave -i daemon -P
-
-Example Usage:
-   Note that you can have as many AlsaPlayer objects as you want but each
-   one must have a unique alsa device name.
-
-      use AlsaPlayer;
-      my $mp3_player = new AlsaPlayer('mp3_player', 'alsa_device_name');
-
-      use PlayList;
-      my $kirk_mp3s = new PlayList;
-
-      if ($Reload) {
-         # Starts the Alsaplayer process
-         $mp3_player->start();
-
-         # Populate the playlist
-         $kirk_mp3s->add_files('/mnt/mp3s/KirkAll.m3u');
-         $kirk_mp3s->add_files('/mnt/mp3s/blah/blah.mp3');
-         $kirk_mp3s->add_files('/mnt/mp3s/favorites/');
-
-         # Start playing the MP3s
-         $mp3_player->add_playlist($kirk_mp3s);
-         $mp3_player->unpause();
-      }
-
-   If you want randomized playlist, you can call the randomize() function on
-   the PlayList object before adding it to the player but after populating
-   it with MP3s.  Instead (or in addition to), you can call shuffle(1) on
-   AlsaPlayer before adding any playlists.  This requires you to have patched
-   your AlsaPlayer as described just above the shuffle function in this module.
+This Misterhouse module assumes the 'alsaplayer' program is installed and operational as the Misterhouse user.  Since I run mine in real-time mode, and local security is not a big issue, I have my binary set setuid root (owned by root and mode 4555).  You can help improve performance by telling alsaplayer to not load ID3 tags from MP3s by modifying its configuration file (.alsaplayer/config in your home directory) and setting 'mad.parse_id3' to false.  I do this when I'm running MP3s off of a network drive.
 
 Usage Details:
-   Input States:
-      The object accepts the following input states:
-         next: Go to the next song
-         previous: Go to the previous song
-         pause: Pause the player
-         unpause: Resume the player
 
-   Output States:
-      You can watch for the following states from an AlsaPlayer object:
-         new_song: Player just started playing a new song.
-         playlist_loaded: Player just finished loading the current playlist
+Input States:  The object accepts the following input states:
 
-   Functions:
-      start(): Starts the process and/or resumes playing
-      stop(): Stops playing
-      remove_all_playlists(): removes all PlayList objects (and pauses the player).
-      add_playlist(obj): adds a PlayList object to this player's MP3 queue
-      remove_playlist(obj): removes a PlayList object from this player's MP3 queue
-      unpause(): Unpauses the player
-      pause(): Pauses the player
-      pause_toggle(): Pauses or unpauses the player
-      forward(seconds): Jumps forward the specified number of seconds.
-      rewind(seconds): Jumps back the specified number of seconds.
-      is_paused(): Returns current paused status
-      next_song(): Jump to the next song in the playlist
-      previous_song(): Return to the previous song in the playlist
-      volume(vol): Sets the volume ('1.0' is 100%) and/or returns the current volume.
-      shuffle(bool): Turns shuffle on or off -- should set before adding the MP3s and
-         this does require a patch to your AlsaPlayer as described below.
-      get_album(): Returns the current album title (only if ID3 tags are set to be
-         read in your alsaplayer config and the MP3 has ID3 tags).
-      get_title(): Returns the current song title (if ID3 tags are set to be
-         read in your alsaplayer config and the MP3 has ID3 tags) or the name of
-         the current MP3.
-      get_artist(): Returns the current artist name (only if ID3 tags are set to be
-         read in your alsaplayer config and the MP3 has ID3 tags).
-      get_path(): Returns the filename of the song currently being played.
-      get_playlist_length(): Returns number of songs in playlist.
-      is_busy(): Returns true if one or more commands are waiting to be
-         executed OR if songs are waiting to be added to the playlist.
-      add_files(): Adds arbitrary MP3s to this player
-      remove_files(): Removes arbitrary MP3s from this player
-      clear(): Removes all playlists and MP3s
-      get_playlist(): Returns current playlist
-      get_playlist_length(): Returns length current playlist
-      quit(): Shuts down the player (restart by calling start())
-      restart(): Restarts the player (I use this on my voice output channel...
-         once I play MP3s on that output, until I restart alsaplayer aplay
-         does not produce very good quality audio)
+ - next: Go to the next song
+ - previous: Go to the previous song
+ - pause: Pause the player
+ - unpause: Resume the player
+
+Output States: You can watch for the following states from an AlsaPlayer object:
+
+ - new_song: Player just started playing a new song.
+ - playlist_loaded: Player just finished loading the current playlist
 
 TODO:
-   - Have not implemented seeking/jumping to points in a MP3 (--seek and --relative)
-   - Have not implemented variable speed (--speed)
-   - Have not implemented the ability to jump straight to a specific track (--jump)
+
+ - Have not implemented seeking/jumping to points in a MP3 (--seek and --relative)
+ - Have not implemented variable speed (--speed)
+ - Have not implemented the ability to jump straight to a specific track (--jump)
 
 Notes:
-   - The alsaplayer processes are not stopped when Misterhouse exits, but you could
-   kill them by running 'killall alsaplayer' upon shutdown.  This module attempts
-   to reconnect with players through restarts, but if there are problems you may
-   want to do a 'killall alsaplayer' followed by a 'rm /tmp/alsaplayer*'.
+
+ - The alsaplayer processes are not stopped when Misterhouse exits, but you could kill them by running 'killall alsaplayer' upon shutdown.  This module attempts to reconnect with players through restarts, but if there are problems you may want to do a 'killall alsaplayer' followed by a 'rm /tmp/alsaplayer*'.
 
 Bugs:
-   - Since the command-line of Alsaplayer only has '--pause' (toggle) and --play,
-   this module attempts to keep track of the pause state, but sometimes it
-   can get it wrong.  So, it is best to set up a remote or voice command to
-   allow you to manually pause/resume the MP3s...
-   - I believe the file ~/.alsaplayer/alsaplayer.m3u will mess things up
-   and I recommend removing it before starting up Misterhouse.
 
-Special Thanks to:
-	Bruce Winter - Misterhouse
+ - Since the command-line of Alsaplayer only has '--pause' (toggle) and --play, this module attempts to keep track of the pause state, but sometimes it can get it wrong.  So, it is best to set up a remote or voice command to allow you to manually pause/resume the MP3s...
+ - I believe the file ~/.alsaplayer/alsaplayer.m3u will mess things up and I recommend removing it before starting up Misterhouse.
 
-See Also:
-   PlayList.pm
+Special Thanks to:  Bruce Winter - Misterhouse
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=item C<start()> 
+
+Starts the process and/or resumes playing
+
+=item C<stop()>
+
+Stops playing
+
+=item C<remove_all_playlists()> 
+
+removes all PlayList objects (and pauses the player).
+
+=item C<add_playlist(obj)> 
+
+adds a PlayList object to this player's MP3 queue
+
+=item C<remove_playlist(obj)> 
+
+removes a PlayList object from this player's MP3 queue
+
+=item C<unpause()> 
+
+Unpauses the player
+
+=item C<pause()> 
+
+Pauses the player
+
+=item C<pause_toggle()> 
+
+Pauses or unpauses the player
+
+=item C<forward(seconds)> 
+
+Jumps forward the specified number of seconds.
+
+=item C<rewind(seconds)> 
+
+Jumps back the specified number of seconds.
+
+=item C<is_paused()> 
+
+Returns current paused status
+
+=item C<next_song()> 
+
+Jump to the next song in the playlist
+
+=item C<previous_song()> 
+
+Return to the previous song in the playlist
+
+=item C<volume(vol)> 
+
+Sets the volume ('1.0' is 100%) and/or returns the current volume.
+
+=item C<shuffle(bool)> 
+
+Turns shuffle on or off -- should set before adding the MP3s and this does require a patch to your AlsaPlayer as described below.
+
+=item C<get_album()> 
+
+Returns the current album title (only if ID3 tags are set to be read in your alsaplayer config and the MP3 has ID3 tags).
+
+=item C<get_title()> 
+
+Returns the current song title (if ID3 tags are set to be read in your alsaplayer config and the MP3 has ID3 tags) or the name of the current MP3.
+
+=item C<get_artist()> 
+
+Returns the current artist name (only if ID3 tags are set to be read in your alsaplayer config and the MP3 has ID3 tags).
+
+=item C<get_path()> 
+
+Returns the filename of the song currently being played.
+
+=item C<get_playlist_length()> 
+
+Returns number of songs in playlist.
+
+=item C<is_busy()> 
+
+Returns true if one or more commands are waiting to be executed OR if songs are waiting to be added to the playlist.
+
+=item C<add_files()> 
+
+Adds arbitrary MP3s to this player
+
+=item C<remove_files()> 
+
+Removes arbitrary MP3s from this player
+
+=item C<clear()> 
+
+Removes all playlists and MP3s
+
+=item C<get_playlist()> 
+
+Returns current playlist
+
+=item C<get_playlist_length()> 
+
+Returns length current playlist
+
+=item C<quit()> 
+
+Shuts down the player (restart by calling start())
+
+=item C<restart()> 
+
+Restarts the player (I use this on my voice output channel... once I play MP3s on that output, until I restart alsaplayer aplay does not produce very good quality audio)
+
 =cut
 
 use strict;
@@ -701,6 +744,7 @@ sub volume {
 }
 
 =cut
+
 At least with Alsaplayer 0.99.76, there was no command-line
 option to enable shuffle-mode.  So this patch will add one:
 
@@ -838,3 +882,32 @@ sub start {
 }
 
 1;
+
+=back
+
+=head2 INI PARAMETERS
+
+You can change the default binary location and options by copying the following lines into your mh.private.ini:
+
+  alsaplayer_binary=alsaplayer
+  alsaplayer_opts= -q --nosave -i daemon -P
+
+=head2 AUTHOR
+
+Kirk Bauer
+kirk@kaybee.org
+
+=head2 SEE ALSO
+
+B<PlayList.pm>
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

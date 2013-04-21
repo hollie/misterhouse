@@ -16,12 +16,9 @@ package Generic_Item;
 
 use HTML::Entities;    # So we can encode characters like <>& etc
 
-=head1 NAME
+=head1 B<Generic_Item>
 
-B<Generic_Item> - This is the parent object for all state-based mh objects, 
-and can be used by itself.
-
-=head1 SYNOPSIS
+=head2 SYNOPSIS
 
      $tv_grid = new Generic_Item;
      set $tv_grid 'channel 2 from 7:00 to 8:00 on 1/24 for This Old House';
@@ -89,7 +86,10 @@ See C<mh/code/examples/generic_item.pl> for more examples,
 C<test_tie.pl> for more examples on how to tie/untie items/events, and
 C<test_idle.pl> for more examples on testing idle times.
 
-=head1 DESCRIPTION
+=head2 DESCRIPTION
+
+This is the parent object for all state-based mh objects,
+and can be used by itself.
 
 You can use this object to store and query arbitrary data.
 This is more useful than 'my' variables, if you need to share data between
@@ -97,7 +97,7 @@ code files, since 'my' variables are local to a code file.
 States of these items are also saved/restored when
 mh is stopped/started.
 
-=head1 INHERITS
+=head2 INHERITS
 
 This item inherits nothing, but
 all other mh items that have states (e.g. X10_Item, Serial_Item, iButton,
@@ -108,7 +108,7 @@ Voice_Cmd, Group) inherit all Generic_Item methods.
 my (@reset_states, @states_from_previous_pass, @recently_changed);
 use vars qw(@items_with_tied_times);
 
-=head1 METHODS
+=head2 METHODS
 
 =over
 
@@ -135,9 +135,7 @@ sub new {
 
 =item C<property_changed(property, new_value, old_value)>
 
-This method is called internally whenever a property (instance variable)
-is changed.  It only logs the property, new_value, and old_value, but can
-be overridden to do more (see X10_Item).
+This method is called internally whenever a property (instance variable) is changed.  It only logs the property, new_value, and old_value, but can be overridden to do more (see X10_Item).
 
 =cut
 
@@ -149,8 +147,7 @@ sub property_changed {
 
 =item C<set(state, set_by, respond)>
 
-Places the value into the state field (e.g. set $light on)
-at the start of the next mh pass.
+Places the value into the state field (e.g. set $light on) at the start of the next mh pass.
 
 (optional) set_by overrides the defeult set_by value.
 
@@ -177,16 +174,11 @@ sub set_now {
 
 =item C<set_with_timer(state, time, return_state, additional_return_states)>
 
-Like set, but will return to return_state after time.
-If return_state is not specified and state is 'off', it sets state to 'on'
-after time.
-If return_state is not specified and state is missing or something other than
-'off', it sets state to 'on' after time.
-If return_state is 'previous', it returns to the previous state after time.
-(optional) additional_return_states lets you specify one or more extra 
-states to set after time (separate states with ';').
-If set is called before the timer expires, the timer will
-be unset, and return_state not set..
+Like set, but will return to return_state after time.  
+
+If return_state is not specified and state is 'off', it sets state to 'on' after time.  If return_state is not specified and state is missing or something other than 'off', it sets state to 'on' after time.  If return_state is 'previous', it returns to the previous state after time.
+
+(optional) additional_return_states lets you specify one or more extra states to set after time (separate states with ';').  If set is called before the timer expires, the timer will be unset, and return_state not set..
 
 You can also stack a series of set_with_timer calls with one set call like this:
 
@@ -329,10 +321,7 @@ sub get_object_name {
 
 =item C<set_by(set_by)>
 
-Allows setting a description of what caused the last state change.
-For example, motion, sunrise, manual, serial, etc.  Any string is allowed.
-
-Value is returned by get_set_by below.
+Allows setting a description of what caused the last state change.  For example, motion, sunrise, manual, serial, etc.  Any string is allowed.  Value is returned by get_set_by below.
 
 =cut
 
@@ -342,8 +331,7 @@ sub set_by {
 
 =item C<get_set_by()>
 
-Returns what caused this object to change.  Standard values are
-web, tk, telnet, vr, xcmd, serial, xap, and xpl.
+Returns what caused this object to change.  Standard values are web, tk, telnet, vr, xcmd, serial, xap, and xpl.
 
 An example is in mh/code/examples/test_set_by.pl
 
@@ -386,11 +374,7 @@ sub get_idle_time {
 
 =item C<time_idle(time)>
 
-Returns true when the object has had no state changes
-since the specified time. time can be be in seconds,
-minutes, hours, or days (e.g. '90 s' or '7 days').
-Defaults to seconds.  Only the first of the unit word is checked and it is
-case-insensitive.
+Returns true when the object has had no state changes since the specified time. time can be be in seconds, minutes, hours, or days (e.g. '90 s' or '7 days').  Defaults to seconds.  Only the first of the unit word is checked and it is case-insensitive.
 
 (optional) time can also specify a spefic state (e.g. '4 m on')
 
@@ -455,9 +439,7 @@ sub restore_string {
 
 =item C<restore_data(vars)>
 
-Specifies which variables should be saved/restored between
-mh reload/restarts.  The state var is always saved.
-Can only be run at startup or reload.
+Specifies which variables should be saved/restored between mh reload/restarts.  The state var is always saved.  Can only be run at startup or reload.
 
 =cut
 
@@ -467,10 +449,9 @@ sub restore_data {
     push @{$$self{restore_data}}, @restore_vars;
 }
 
-=item C<hidden(1/0) >
+=item C<hidden(1/0)>
 
-If set to 1, the object will not show up on Tk or Web menus.
-Can only be run at startup or reload.
+If set to 1, the object will not show up on Tk or Web menus.  Can only be run at startup or reload.
 
 =cut
 
@@ -488,10 +469,7 @@ sub hidden {
 
 =item C<set_casesensitive()>
 
-By default, states are all lowercased, to allow for case
-insensitive tests.  To avoid this (for example on Serial Interfaces
-that are case sensitive), call this method.
-Can only be run at startup or reload.
+By default, states are all lowercased, to allow for case insensitive tests.  To avoid this (for example on Serial Interfaces that are case sensitive), call this method.  Can only be run at startup or reload.
 
 =cut
 
@@ -525,10 +503,7 @@ sub state {
 
 =item C<state_now()>
 
-Returns the current state only for one pass after object state is set.
-Unlike state_changed, will return the state even if the new state matches
-the previous one.
-Otherwise, returns null.
+Returns the current state only for one pass after object state is set.  Unlike state_changed, will return the state even if the new state matches the previous one.  Otherwise, returns null.
 
 =cut
 
@@ -546,10 +521,7 @@ sub state_now {
 
 =item C<state_changed()>
 
-Returns the current state only for one pass after object state is set.
-Unlike state_now, will only return the state if the new state differs from
-the previous one.
-Otherwise, returns null.
+Returns the current state only for one pass after object state is set.  Unlike state_now, will only return the state if the new state differs from the previous one.  Otherwise, returns null.
 
 =cut
 
@@ -559,9 +531,7 @@ sub state_changed {
 
 =item C<state_final()>
 
-Returns the state the object will be in after all queued
-state changes have been processed, if there is at least one state pending.
-Otherwise, returns null.
+Returns the state the object will be in after all queued state changes have been processed, if there is at least one state pending.  Otherwise, returns null.
 
 =cut
 
@@ -763,10 +733,7 @@ sub state_overload {
 
 =item C<set_icon(icon)>
 
-Point to the icon member you want the web interface to use.
-See the 'Customizing the web interface' section of the documentation 
-for details.
-Can only be run at startup or reload.
+Point to the icon member you want the web interface to use.  See the 'Customizing the web interface' section of the documentation for details.  Can only be run at startup or reload.
 
 =cut
 
@@ -784,9 +751,7 @@ sub set_icon {
 
 =item C<set_info(info)>
 
-Adds additional information.  This will show up as a popup window
-on the web interface, when the mouse hovers over the command text.
-Can only be run at startup or reload.
+Adds additional information.  This will show up as a popup window on the web interface, when the mouse hovers over the command text.  Can only be run at startup or reload.
 
 =cut
 
@@ -864,8 +829,7 @@ sub get_count {
 
 =item C<set_label(label)>
 
-Specify a text label, useful for creating touch screen interfaces.
-Can only be run at startup or reload.
+Specify a text label, useful for creating touch screen interfaces.  Can only be run at startup or reload.
 
 =cut
 
@@ -883,9 +847,7 @@ sub set_label {
 
 =item C<set_authority(who)>
 
-Sets authority for this object to who.  
-Setting who to 'anyone' bypasses password control.
-Can only be run at startup or reload.
+Sets authority for this object to who.  Setting who to 'anyone' bypasses password control.  Can only be run at startup or reload.
 
 =cut
 
@@ -894,6 +856,7 @@ sub set_authority {
     my ($self, $who) = @_;
     $self->{authority} = $who;
 }
+
 =item C<get_authority()>
 
 TODO
@@ -961,8 +924,7 @@ sub get_fp_nodes {
 
 =item C<set_fp_icons()>
 
-TODO
-Can only be run at startup or reload.
+TODO.  Can only be run at startup or reload.
 
 =cut
 
@@ -989,11 +951,7 @@ sub get_fp_icons {
 
 =item C<set_states(states)>
 
-Sets valid states to states, which is a list or array.
-Can only be run at startup or reload.
-
-
-TODO
+Sets valid states to states, which is a list or array.  Can only be run at startup or reload.  TODO
 
 =cut
 
@@ -1005,8 +963,7 @@ sub set_states {
 
 =item C<add_states(states)>
 
-Adds states to the list of valid states.  
-Can only be run at startup or reload.
+Adds states to the list of valid states.  Can only be run at startup or reload.
 
 =cut
 
@@ -1068,10 +1025,7 @@ sub set_states_for_next_pass {
 
 =item C<set_state_log(state, set_by, target)>
 
-When a state is set, it (along with a timestamp and who set it) are logged
-to the state_log array by this method.
-The number of log entries kept is set by the max_state_log_entries ini 
-parameter.
+When a state is set, it (along with a timestamp and who set it) are logged to the state_log array by this method.  The number of log entries kept is set by the max_state_log_entries ini parameter.
 
 =cut
 
@@ -1163,8 +1117,7 @@ sub reset_states2 {
 
 =item C<xAP_enable()>
 
-TODO
-Can only be run at startup or reload.
+TODO.  Can only be run at startup or reload.
 
 =cut
 
@@ -1176,8 +1129,7 @@ sub xAP_enable {
 
 =item C<xPL_enable()>
 
-TODO
-Can only be run at startup or reload.
+TODO.  Can only be run at startup or reload.
 
 =cut
 
@@ -1190,12 +1142,7 @@ sub xPL_enable {
 
 =item C<tie_event(code, state, log_msg)>
 
-If the state of the generic_item changes, then code will trigger, 
-with the lexical variables $state and $object getting set.
-The code is a string that will be eval'd and the variables are available to 
-it, but not to any subroutines called by it unless you pass them.
-You can also set the state variable explicitly since you usually know the item.
-The code is a string that will be eval'd.
+If the state of the generic_item changes, then code will trigger, with the lexical variables $state and $object getting set.  The code is a string that will be eval'd and the variables are available to it, but not to any subroutines called by it unless you pass them.  You can also set the state variable explicitly since you usually know the item.  The code is a string that will be eval'd.
 
 (optional) Setting state limits this tied code to run only when the given
 state is set.
@@ -1237,8 +1184,7 @@ sub untie_event {
 
 =item C<tie_items(item)>
 
-If the state of the generic_item changes, then
-the state of $item will be set to that same state.
+If the state of the generic_item changes, then the state of $item will be set to that same state.
 
 =cut
 
@@ -1254,8 +1200,7 @@ sub tie_items {
 
 =item C<untie_items(item, state)>
 
-Remove the tie to item.  If you don't specify an item, all tied items are 
-removed.
+Remove the tie to item.  If you don't specify an item, all tied items are removed.
 
 (optional) Setting state removes the tied item and state combination.
 
@@ -1276,8 +1221,7 @@ sub untie_items {
 
 =item C<tie_filter(filter, state, log_msg)>
 
-Use this to disable control of the item whenever filter returns true.  
-Variables $state and $set_by can be used in the filter test.
+Use this to disable control of the item whenever filter returns true.  Variables $state and $set_by can be used in the filter test.
 
 (optional) Setting state limits this tied filter code to run only when the given
 state is set.
@@ -1296,8 +1240,7 @@ sub tie_filter {
 
 =item C<untie_filter(filter, state)>
 
-Remove the tie to filter.  If you don't specify a filter, all tied filters are 
-removed.
+Remove the tie to filter.  If you don't specify a filter, all tied filters are removed.
 
 (optional) Setting state removes the tied filter and state combination.
 
@@ -1318,9 +1261,7 @@ sub untie_filter {
 
 =item C<tie_time(time, state, log_msg)>
 
-Sets item to state if the time string evaluates true.  state defaults to 'on'
-if undefined.
-time can be in either time_cron or time_now format.
+Sets item to state if the time string evaluates true.  state defaults to 'on' if undefined.  time can be in either time_cron or time_now format.
 
 (optional) Setting log_msg causes the message to be logged when 
 the time string evaluates true.
@@ -1337,8 +1278,7 @@ sub tie_time {
 
 =item C<untie_time(time, state)>
 
-Remove the tie to time.  If you don't specify a time, all tied times are 
-removed.
+Remove the tie to time.  If you don't specify a time, all tied times are removed.
 
 (optional) Setting state removes the tied time and state combination.
 
@@ -1359,11 +1299,7 @@ sub untie_time {
 
 =item C<set_web_style(style)>
 
-Contols the style of we form used when displaying states of this item on a 
-web page.  
-Can be 'dropdown', 'radio', or 'url'.
-
-See mh/code/examples/test_web_styles.pl
+Contols the style of we form used when displaying states of this item on a web page.  Can be 'dropdown', 'radio', or 'url'.  See mh/code/examples/test_web_styles.pl
 
 =cut
 
@@ -1406,7 +1342,7 @@ sub user_data {
 
 =back
 
-=head1 PACKAGE FUNCTIONS
+=head2 PACKAGE FUNCTIONS
 
 =over
 
@@ -1490,7 +1426,7 @@ sub android_xml {
 
     # Add tags name, state, and optional state_log
     my @f = qw( name );
-    if (scalar($self->get_states( )) > 0) {
+    if ( ((defined $self->{states}) && (scalar(@{$$self{states}}) > 0)) || (defined $self->state( ))) {
 	push @f, qw ( state );
     }
     if ($log_size > 0) {
@@ -1521,8 +1457,14 @@ sub android_xml {
 	}
 
 	if ($f eq "state") {
-	    my @states = $self->get_states( );
-	    my $numStates = @states;
+	    my @states = ();
+	    push (@states,@{$$self{states}}) if defined $self->{states};
+	    my $numStates = scalar(@states);
+	    my $state = $self->state( );
+	    &::print_log("android_xml: numStates: $numStates state: $state states: @states") if $::Debug{android};
+	    if (($numStates eq 0) && (defined $state) && (length($state) < 20)) {
+		push (@states, $state);
+	    }
 	    $attributes->{type} ="text";
 	    if ($numStates eq 2) {
 		$attributes->{type} = "toggle";
@@ -1597,26 +1539,22 @@ sub android_xml_tag {
     return $xml_objects;
 }
 
-=head1 INI PARAMETERS
+=back 
 
-=over
+=head2 INI PARAMETERS
 
-=item C<debug>
-
-Include C<set> and C<store> in the comma seperated list of debug keywords
+Debug:  Include C<set> and C<store> in the comma seperated list of debug keywords
 to produce debugging output from this item. 
 
-=back
-
-=head1 AUTHOR
+=head2 AUTHOR
 
 Bruce Winter
 
-=head1 SEE ALSO
+=head2 SEE ALSO
 
 None
 
-=head1 LICENSE
+=head2 LICENSE
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License

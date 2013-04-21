@@ -1,7 +1,20 @@
+=head1 B<handy_tk_utilities>
 
-=head1 List of tk widget functions
+=head2 SYNOPSIS
 
-=over 4
+NONE
+
+=head2 DESCRIPTION
+
+NONE
+
+=head2 INHERITS
+
+B<>
+
+=head2 METHODS
+
+=over
 
 =cut
 
@@ -323,17 +336,18 @@ sub tk_cascade_entry {
 Use these functions to add a Tk button widget to the mh tk grid (tk_button) or the tk menu_bar (tk_mbutton).
 &tk_button will accept multiple variables, displaying them in a row in the grid.
 
-   Usage:
-    &tk_mbutton('Button Name', \&subroutine);
-    &tk_button('Button1', \&sub1);
-    &tk_button('Button1', \&sub1, 'Button2', \&sub2,'Button3', \&sub3);
-  
-   Examples:
-  
-    &tk_mbutton('Help', \&help);
-    &tk_button('Reload(F1)', \&read_code, 'Pause (F2)', \&pause,
-               ' Exit (F3) ', \&sig_handler, 'Debug(F4)',  \&toggle_debug,
-               'Log(F5)', \&toggle_log);
+Usage:
+
+  &tk_mbutton('Button Name', \&subroutine);
+  &tk_button('Button1', \&sub1);
+  &tk_button('Button1', \&sub1, 'Button2', \&sub2,'Button3', \&sub3);
+
+Examples:
+
+  &tk_mbutton('Help', \&help);
+  &tk_button('Reload(F1)', \&read_code, 'Pause (F2)', \&pause,
+             ' Exit (F3) ', \&sig_handler, 'Debug(F4)',  \&toggle_debug,
+             'Log(F5)', \&toggle_log);
 
 =cut
 
@@ -383,15 +397,16 @@ sub tk_mbutton {
 tk_checkbutton adds a Tk checkbutton widget to the mh tk grid.
 It will accept multiple variables, displaying them in a row in the grid.
 
-   Usage:
-    &tk_checkbutton('text',  \&var1);
-    &tk_checkbutton('test1', \&var1, 'text22', \&var22, 'text3', \&var33);
-  
-   Examples:
-  
-    &tk_checkbutton('Debug on', \$config_parms{debug});
-    &tk_checkbutton('Sleeping Parents', \$Save{sleeping_parents},
-                    'Sleeping Kids', \$Save{sleeping_kids});
+Usage:
+
+  &tk_checkbutton('text',  \&var1);
+  &tk_checkbutton('test1', \&var1, 'text22', \&var22, 'text3', \&var33);
+
+Examples:
+
+  &tk_checkbutton('Debug on', \$config_parms{debug});
+  &tk_checkbutton('Sleeping Parents', \$Save{sleeping_parents},
+                  'Sleeping Kids', \$Save{sleeping_kids});
 
 =cut
 
@@ -607,14 +622,16 @@ sub tk_scalebar {
 
 Use this function to allow for arbitrary data to be entered via the mh tk grid.
 
-   Usage:
-    &tk_entry('Entry label:', $state_based_object);
-    &tk_entry('Entry label:', \$variable);
-    &tk_entry('Entry label:', \$variable, 'Entry label2:, \$variable2);
-  
-   Example:
-    &tk_entry('Sleep time:', \$Loop_Sleep_Time);
-    &tk_entry('Test in 1', \$Save{test_input1}, 'Test in 2', \$Save{test_input2});
+Usage:
+
+  &tk_entry('Entry label:', $state_based_object);
+  &tk_entry('Entry label:', \$variable);
+  &tk_entry('Entry label:', \$variable, 'Entry label2:, \$variable2);
+
+Example:
+
+  &tk_entry('Sleep time:', \$Loop_Sleep_Time);
+  &tk_entry('Test in 1', \$Save{test_input1}, 'Test in 2', \$Save{test_input2});
 
 
 Note:  The $variable reflects the data, as it is being entered.  If you want to test on the data
@@ -623,18 +640,18 @@ The $variable is copied to $Tk_results{'Entry label:'} only after the RETURN key
 
 Now you can now also use a state based object (like Generic_Item) to store/monitor/change the tk_entry text.
 
-   Examples:
-  
-    &tk_entry('TV search', \$Save{tv_search});
-    if ($state = $Tk_results{'TV search'}) {
-       run qq[get_tv_info -times all -keys "$state"];
-       set_watch $f_tv_file;
-       undef $Tk_results{'TV search'};
-    }
-  
-   $mp3_search_text =  new Generic_Item;
-   $mp3_search_text -> tie_event('print_log "mp3 search text is now $state"');
-   &tk_entry('mp3 Search', $mp3_search_text);
+Examples:
+
+  &tk_entry('TV search', \$Save{tv_search});
+  if ($state = $Tk_results{'TV search'}) {
+     run qq[get_tv_info -times all -keys "$state"];
+     set_watch $f_tv_file;
+     undef $Tk_results{'TV search'};
+  }
+
+  $mp3_search_text =  new Generic_Item;
+  $mp3_search_text -> tie_event('print_log "mp3 search text is now $state"');
+  &tk_entry('mp3 Search', $mp3_search_text);
 
 =cut
 
@@ -745,13 +762,13 @@ sub tk_label_new {
 Use these functions to add a Tk label widget to the mh tk grid (tk_label) or the tk menu_bar (tk_mlabel).
 To avoid duplicate labels after a reload, pass a label name as a 2nd parm.
 
-   Usage:
-  
-     &tk_mlabel(\$variable, $label);
-  
-   Example:
-  
-     &tk_mlabel(\$Save{email_flag}, 'email flag');
+Usage:
+
+  &tk_mlabel(\$variable, $label);
+
+Example:
+
+  &tk_mlabel(\$Save{email_flag}, 'email flag');
 
 =cut
 
@@ -927,28 +944,29 @@ sub tk_mlabel {
 
 Use this function to create radio buttons in the mh tk grid.  If labels are not specified, the values are displayed.
 
-   Usage:
-    &tk_radiobutton('Button label:', $state_based_object, ['value1', 'value2', 'value3']);
-    &tk_radiobutton('Button label:', \$variable, ['value1', 'value2', 'value3']);
-    &tk_radiobutton('Button label:', \$variable, ['value1', 'value2', 'value3'],
-                                                 ['label1', 'label2', 'label3']);
+Usage:
+
+  &tk_radiobutton('Button label:', $state_based_object, ['value1', 'value2', 'value3']);
+  &tk_radiobutton('Button label:', \$variable, ['value1', 'value2', 'value3']);
+  &tk_radiobutton('Button label:', \$variable, ['value1', 'value2', 'value3'],
+                                               ['label1', 'label2', 'label3']);
+
+Examples:
+
+  &tk_radiobutton('Mode',  \$Save{mode}, ['normal', 'mute', 'offline']);
+  &tk_radiobutton('Debug', \$config_parms{debug}, [1, 0], ['On', 'Off']);
+  &tk_radiobutton('Tracking', \$config_parms{tracking_speakflag}, [0,1,2,3],
+                  ['None', 'GPS', 'WX', 'All']);
   
-   Examples:
+  my $alarm_states = "Disarmed,Disarming,Arming,Armed,Violated,Exit Delay,Entry Delay";
+  my @alarm_states = split ',', $alarm_states;
+  $alarm_status    = new Generic_Item;
+  &tk_radiobutton('Security Status', $alarm_status, [@alarm_states]);
   
-    &tk_radiobutton('Mode',  \$Save{mode}, ['normal', 'mute', 'offline']);
-    &tk_radiobutton('Debug', \$config_parms{debug}, [1, 0], ['On', 'Off']);
-    &tk_radiobutton('Tracking', \$config_parms{tracking_speakflag}, [0,1,2,3],
-                    ['None', 'GPS', 'WX', 'All']);
+  $v_alarm_status  = new Voice_Cmd "Set the alarm to [$alarm_states]";
+  $v_alarm_status -> tie_items($alarm_status);
   
-    my $alarm_states = "Disarmed,Disarming,Arming,Armed,Violated,Exit Delay,Entry Delay";
-    my @alarm_states = split ',', $alarm_states;
-    $alarm_status    = new Generic_Item;
-    &tk_radiobutton('Security Status', $alarm_status, [@alarm_states]);
-  
-    $v_alarm_status  = new Voice_Cmd "Set the alarm to [$alarm_states]";
-    $v_alarm_status -> tie_items($alarm_status);
-  
-    print_log "Alarm status changed to $state" if $state = state_now $alarm_status;
+  print_log "Alarm status changed to $state" if $state = state_now $alarm_status;
 
 
 See mh/code/examples/tk_examples.pl for more tk_*  examples.
@@ -1294,8 +1312,30 @@ sub tk_setup_windows {
 
 }
 
+return 1;
+
+
 =back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 =cut
 
-return 1;

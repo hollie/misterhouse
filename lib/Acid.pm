@@ -1,18 +1,33 @@
+=head1 B<Acid>
 
-=begin comment
+=head2 SYNOPSIS
 
-From Andrew Drummond on 01/2003:
+NONE
+
+=head2 DESCRIPTION
 
 Sends callerid to Audrey acid program for dispaly.
 
 This is called from CID_Server, which is called from code/common/callerid.pl
 
+=head2 INHERITS
+
+NONE
+
+=head2 METHODS
+
+=over
+
+=item C<UnDoc>
+
 =cut
+
 
 use strict;
 use IO::Socket;
 use IO::Select;
 package Acid;
+
 
 my $sel;
 my $udp_fh;
@@ -111,3 +126,28 @@ sub CID_TYPE_ERROR_CALL {return(4);}     # Same as of ICallerIDNotify.OnError()
 sub CID_TYPE_TEST{return(5);}        # same syntax as subscribe (ping request)
 
 1;
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Andrew Drummond on 01/2003
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

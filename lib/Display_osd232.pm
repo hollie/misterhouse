@@ -1,27 +1,21 @@
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 B<Display_osd232>
 
-File:
-	osd232.pm
+=head2 SYNOPSIS
 
-Description:
-	Allows for displaying one or more pages of text on an Intuitive
-	Circuits OSD-232 On-screen display character overlay board with
-	RS-232 interface. It should also support their VideoStamp product
-	by simply setting the apprpriate baud rate, although I don't have
-	one to test.
+NONE
 
-	See http://www.icircuits.com/prod_osd232.html and
-	http://www.icircuits.com/prod_videostamp.html
+=head2 DESCRIPTION
 
-Author:
-	Brent DeShazer
-	brent@deshazer.net
+Allows for displaying one or more pages of text on an Intuitive Circuits OSD-232 On-screen display character overlay board with RS-232 interface. It should also support their VideoStamp product by simply setting the apprpriate baud rate, although I don't have one to test.
 
-License:
-	This free software is licensed under the terms of the GNU public license.
+=head2 INHERITS
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+B<NONE>
+
+=head2 METHODS
+
+=over
+
 =cut
 
 use strict;
@@ -96,9 +90,12 @@ sub _init {
     $this->reset();
 }
 
-# Add a page object
-#
-# $obj->addpage(NAME OF PAGE,REFERENCE TO PAGE OBJECT)
+=item C<addpage(NAME OF PAGE,REFERENCE TO PAGE OBJECT)>
+
+Add a page object
+
+=cut
+
 sub addpage {
     my $this = shift;
 
@@ -112,9 +109,12 @@ sub addpage {
     }
 }
 
-# Remove a page object
-#
-# $obj->deletepage(NAME OF PAGE)
+=item C<deletepage(NAME OF PAGE)>
+
+Remove a page object
+
+=cut
+
 sub deletepage {
     my $this = shift;
 
@@ -126,10 +126,12 @@ sub deletepage {
     }
 }
 
-# Print out an entire page
-# Used for testing
-#
-# $obj->printpage(NAME OF PAGE)
+=item C<printpage(NAME OF PAGE)>
+
+Print out an entire page. Used for testing
+
+=cut
+
 sub printpage {
     my $this = shift;
 
@@ -139,9 +141,12 @@ sub printpage {
     }
 }
 
-# Start flipping between the defined pages
-#
-# $obj->startflipping()
+=item C<startflipping()>
+
+Start flipping between the defined pages
+
+=cut
+
 sub startflipping {
     my $this = shift;
 
@@ -152,10 +157,12 @@ sub startflipping {
     }
 }
 
-# Stop flipping pages, the screen will be left on whatever
-# page was last displayed
-#
-# $obj->stopflipping()
+=item C<stopflipping()>
+
+Stop flipping pages, the screen will be left on whatever page was last displayed
+
+=cut
+
 sub stopflipping {
     my $this = shift;
 
@@ -165,11 +172,12 @@ sub stopflipping {
     &Timer::stop($this->{fliptimer});
 }
 
-# Flip to the next page
-#
-# (*** need option to flip to specific page)
-#
-# $obj->flippage()
+=item C<flippage()>
+
+Flip to the next page (*** need option to flip to specific page)
+
+=cut
+
 sub flippage{
     my $this = shift;
 
@@ -181,11 +189,12 @@ sub flippage{
     &Timer::set($this->{fliptimer},$this->currentfliprate());
 }
 
-# Get the length of time to display the current page we're
-# flipping to. This is either the pages custom flip rate or
-# the default flip rate if a custom one has not been defined
-#
-# $obj->currentfliprate()
+=item C<currentfliprate()>
+
+Get the length of time to display the current page we're flipping to. This is either the pages custom flip rate or the default flip rate if a custom one has not been defined
+
+=cut
+
 sub currentfliprate{
     my $this = shift;
     my $pagename=@{$this->{fliparray}}[$this->{currentpage}];
@@ -194,9 +203,12 @@ sub currentfliprate{
     return $this->{PAGES}->{$pagename}->fliprate();
 }
 
-# Set or return the name of the control port
-#
-# $obj->port([PORT NAME])
+=item C<port([PORT NAME])>
+
+Set or return the name of the control port
+
+=cut
+
 sub port {
     my $this = shift;
 
@@ -204,9 +216,12 @@ sub port {
     return $this->{PORT};
 }
 
-# Set or return the port port speed
-#
-# $obj->speed([PORT SPEED])
+=item C<speed([PORT SPEED])>
+
+Set or return the port port speed
+
+=cut
+
 sub speed {
     my $this = shift;
 
@@ -214,11 +229,12 @@ sub speed {
     return $this->{SPEED};
 }
 
-# Set or return the default page flip rate
-# This is the number of seconds we show pages
-# that don't have their own flip rate defined
-#
-# $obj->fliprate([PAGE FLIP RATE])
+=item C<fliprate([PAGE FLIP RATE])>
+
+Set or return the default page flip rate. This is the number of seconds we show pages that don't have their own flip rate defined
+
+=cut
+
 sub defaultfliprate {
     my $this = shift;
 
@@ -226,10 +242,12 @@ sub defaultfliprate {
     return $this->{FLIPRATE};
 }
 
-# Reset the osd232
-# requires minimum of 10ms delay after reset command
-#
-# $obj->reset()
+=item C<reset()>
+
+Reset the osd232 requires minimum of 10ms delay after reset command
+
+=cut
+
 sub reset {
     my $this = shift;
 
@@ -240,44 +258,55 @@ sub reset {
     $this->clearscreen();
 }
 
-# Clear the osd232 display
-# requires minimum of 10ms delay after command
-#
-# $obj->clearscreen();
+=item C<clearscreen()>
+
+Clear the osd232 display requires minimum of 10ms delay after command
+
+=cut
+
 sub clearscreen {
     $main::Serial_Ports{osd232}{object}->write(chr(osdCTLclear));
     select undef, undef, undef, 0.02; # delay 20ms just to be safe
 }
 
-# (***Combine showdisplay and hidedisplay to a single function with
-# a parameter determining whether to show or hide)
+=item C<showdisplay()>
 
-# $obj->showdisplay();
-#
-# show the current osd232 display text on the video output signal
+Show the current osd232 display text on the video output signal (***Combine showdisplay and hidedisplay to a single function with a parameter determining whether to show or hide)
+
+=cut
+
 sub showdisplay {
     $main::Serial_Ports{osd232}{object}->write(chr(osdCTLvisible).chr(1));
 }
 
-# $obj->hidedisplay();
-#
-# hide the current osd232 display text on the video output signal
+=item C<hidedisplay()>
+
+hide the current osd232 display text on the video output signal
+
+=cut
+
 sub hidedisplay {
     $main::Serial_Ports{osd232}{object}->write(chr(osdCTLvisible).chr(0));
 }
 
-# $obj->background(COLOR);
-#
-# set the display background color
+=item C<background(COLOR)>
+
+set the display background color
+
+=cut
+
 sub background {
     my ($this,$color) = @_;
 
     $main::Serial_Ports{osd232}{object}->write(chr(osdCTLbgcolor).chr($color));
 }
 
-# $obj->showpage(PAGE NAME)
-#
-# write a page of text to the osd232 buffer
+=item C<showpage(PAGE NAME)>
+
+write a page of text to the osd232 buffer
+
+=cut
+
 sub showpage {
     my ($this,$pagename)=@_;
 
@@ -290,22 +319,65 @@ sub showpage {
     }
 }
 
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Brent DeShazer
+brent@deshazer.net
+
+=head2 SEE ALSO
+
+See http://www.icircuits.com/prod_osd232.html and http://www.icircuits.com/prod_videostamp.html
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+
+
+=head1 B<Display_osd232page>
+
+=head2 SYNOPSIS
+
+Page parameters
+
+  PAGENAME - unique name of this page
+  BGCOLOR - background color of this page
+  FLIP - whether to display this page when doing timed flipping
+  FLIPRATE - over-ride default flip rate for this page
+
+Line parameters
+
+  TEXT - text to display
+  X - horizontal coordinate to display text at
+  Y - vertical coordinate to display text at
+  TEXTCOLOR - Color to display text in
+
+=head2 DESCRIPTION
+
+NONE
+
+=head2 INHERITS
+
+B<NONE>
+
+=head2 METHODS
+
+=over
+
+=cut
+
 package Display_osd232page;
 
-# Page parameters
-#
-# PAGENAME - unique name of this page
-# BGCOLOR - background color of this page
-# FLIP - whether to display this page when doing timed flipping
-# FLIPRATE - over-ride default flip rate for this page
-#
-# Line parameters
-#
-# TEXT - text to display
-# X - horizontal coordinate to display text at
-# Y - vertical coordinate to display text at
-# TEXTCOLOR - Color to display text in
-#
 sub new {
     my $classname  = shift;         # What class are we constructing?
     my $this = {};             # Allocate new memory
@@ -331,9 +403,12 @@ sub _init {
     $this->flip(1) unless $this->{FLIP};
 }
 
-# set or return name of the page
-#
-# $obj->pagename([NAME OF PAGE])
+=item C<pagename([NAME OF PAGE])>
+
+set or return name of the page
+
+=cut
+
 sub pagename {
     my $this = shift;
 
@@ -341,18 +416,24 @@ sub pagename {
     return $this->{PAGENAME};
 }
 
-# return an object reference to this page
-#
-# $obj->pageref()
+=item C<pageref()>
+
+return an object reference to this page
+
+=cut
+
 sub pageref {
     my $this = shift;
 
     return $this;
 }
 
-# set or return the bakcground color for this page
-#
-# $obj->bgcolor([COLOR])
+=item C<bgcolor([COLOR])>
+
+set or return the bakcground color for this page
+
+=cut
+
 sub bgcolor {
     my $this = shift;
 
@@ -360,9 +441,12 @@ sub bgcolor {
     return $this->{BGCOLOR};
 }
 
-# set or return whether this page is included in the flip rotation
-#
-# $obj->flip([0 - noflip, >=1 - flip])
+=item C<flip([0 - noflip, >=1 - flip])>
+
+set or return whether this page is included in the flip rotation
+
+=cut
+
 sub flip {
     my $this = shift;
 
@@ -370,9 +454,12 @@ sub flip {
     return $this->{FLIP};
 }
 
-# set or return the flip delay for this page
-#
-# $obj->fliprate([SECONDS])
+=item C<fliprate([SECONDS])>
+
+set or return the flip delay for this page
+
+=cut
+
 sub fliprate {
     my $this = shift;
 
@@ -380,9 +467,12 @@ sub fliprate {
     return $this->{FLIPRATE};
 }
 
-# add a line to this page
-#
-# $obj->addline(LINE NAME,PARM1=>VALUE,PARM2=>VALUE,...)
+=item C<addline(LINE NAME,PARM1=>VALUE,PARM2=>VALUE,...)>
+
+add a line to this page
+
+=cut
+
 sub addline {
     my $this = shift;
 
@@ -393,9 +483,12 @@ sub addline {
     }
 }
 
-# delete a line from this page
-#
-# $obj->deleteline(LINE NAME)
+=item C<deleteline(LINE NAME)>
+
+delete a line from this page
+
+=cut
+
 sub deleteline {
     my $this = shift;
 
@@ -404,10 +497,12 @@ sub deleteline {
         delete $this->{LINES}->{$linename} if exists $this->{LINES}->{$linename};
     }
 }
+=item C<values(LINE NAME,VALUE HASH KEY)>
 
-# set or return a value from a lines hash
-#
-# $obj->values(LINE NAME,VALUE HASH KEY)
+set or return a value from a lines hash
+
+=cut
+
 sub linekeyvalue {
     my $this = shift;
     my $line = shift;
@@ -417,19 +512,24 @@ sub linekeyvalue {
     return $this->{LINES}->{$line}->{$key};
 }
 
-# A convenience function to change the text of a line.
-#
-# $obj->settext("TEXT TO DISPLAY")
+=item C<settext("TEXT TO DISPLAY")>
+
+A convenience function to change the text of a line.
+
+=cut
+
 sub settext {
     my ($this,$line,$value)=@_;
 
     $this->linekeyvalue($line,"TEXT",$value);
 }
 
-# Print all the elements of all lines of this page
-# Used for testing
-#
-# $obj->print()
+=item C<print()>
+
+Print all the elements of all lines of this page. Used for testing
+
+=cut
+
 sub print {
     my $this = shift;
     my $line;
@@ -448,12 +548,13 @@ sub print {
     }
 }
 
-# Write the content of all lines to the osd232 display memory
-# Note that whether it actually shows on the screen is dependant
-# on whether we are currently hiding or showing the display!
-#
-# $obj->writedisplay()
-    sub writedisplay {
+=item C<writedisplay()>
+
+Write the content of all lines to the osd232 display memory.  Note that whether it actually shows on the screen is dependant on whether we are currently hiding or showing the display!
+
+=cut
+
+sub writedisplay {
     my $this=shift;
     my $line;
     my $outstring;
@@ -471,3 +572,30 @@ sub print {
 }
 
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Brent DeShazer
+brent@deshazer.net
+
+=head2 SEE ALSO
+
+See http://www.icircuits.com/prod_osd232.html and http://www.icircuits.com/prod_videostamp.html
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

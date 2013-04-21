@@ -3,8 +3,94 @@
 
 package X10_Item;
 
-#use strict;
+=head1 NAME
 
+B<X10_Item> - This item is for controling X10 lamp modules and light switches. It is derived from Serial_Item and the strings it sends are like Serial Items, except an 'X' prefix is prepended to indicate an X10 command. The X strings are converted by one of the various X10 interfaces into the appropriate commands for that interface.
+
+=head1 SYNOPSIS
+
+X10 items can be created in the items.mht in the following manner:
+
+  X10I, A1, Test_light, Bedroom, cm11, preset resume=80
+
+If a single character is used (e.g. X10_Item 'D'), commands apply to all X10_Items with that house code. The 'on' and 'off' states are translated to ALL_ON and ALL_OFF commands for that house code. For example:
+
+  $v_test_lights = new Voice_Cmd 'All lights [on,off]';
+  $test_lights   = new X10_Item 'O';
+  set $test_lights $state if $state = said $v_test_lights;
+
+The toggle and various brightness commands can be sent to a house code only item. The command will be sent to each X10_Item defined with the same house code. This might produce undesired results, particularly when changing brightness levels. See the Group item for a better way to do that.
+
+If you are using more than one X10 interface and you want to control an X10_Item with a specific interface, use the optional interface argument. For example, if you want to control the local module on a RF Transceiver, you can tell mh to use the RF CM17 interface, like this:
+
+  $test_light = new X10_Item('A1', 'CM17');
+
+The various brightness commands (60%, +20, -50%) all work even on dumb modules that only support on, off, dim, and brighten. X10_Item keeps track of changes it makes to the brightness level and converts any absolute brightness settings into relative changes. Since these dumb modules typically don't have two-way capability, the item will be out of sync if changes are made locally at the switch. Also, if the module was off, it will first be turned to full on, since the older modules can not be dimmed from an off state.
+
+After doing one or more bright/dim/on/off commands, you can query the current brightness level of a device with the level method. For example:
+
+  if ($state = state_now $pedestal_light) {
+    my $level = level $pedestal_light;
+    print_log "Pedestal light state=$state, level=$level"
+  }
+
+It is much better to use one the newer (more expensive) direct dim and two-way capable modules, such as the X10 LM14A lamp module. The X10_Item supports both the newer extended data dim commands used by the LM14 and Leviton switches (64 brightness levels), and the older preset dim commands used by PCS and Switchlinc switches (32 brightness levels).
+
+Set the 3rd X10_Item parm to specify the option flags that correspond to your lamp module or switch. Valid flags are:
+
+  'lm14'        - for X10 LM14, uses extended data dim commands, remembers dim level when off 
+  'preset'      - same as lm14 
+  'preset2'     - same as lm14 and preset, except send on after direct dims, required by some Leviton switches 
+  'preset3'     - same as lm14 and preset, except uses older preset dim commands, for Switchlinc and PCS 
+  'resume=##'   - module resumes from off at ## percent 
+  'transmitter' - special case, see X10_Transmitter
+
+Option flags are case insensitive. Separate multiple option flags with a space.
+
+For example:
+
+  $test_light2 = new X10_Item('O7', undef, 'preset resume=81');
+  $v_test_light2 = new Voice_Cmd("Set test light to [on,off,bright,dim,5%,10%,20%,30%,40%,50%,60%,70%,80%,90%]");
+  set $test_light2 $state if $state = said $v_test_light2;
+
+If the newer extended data dim commands are to be used, then the brightness level is converted into a &P## command and passed to the X10 interface. You can also use them directly, using &P## (## = 1->64) as shown in this example:
+
+  $test_light1 = new X10_Item('O7', 'CM11', 'LM14');
+  $v_test_light1 = new Voice_Cmd("Set test light to [on,off,bright,dim,&P3,&P10,&P30,&P40,&P50,&P60]");
+  set $test_light1 $state if $state = said $v_test_light1;
+
+Note: not all of the X10 interfaces support this command.
+
+The older direct dim method used the two Preset Dim X10 commands. The 32 brightness levels are sent by combining a house code with one of the two Preset Dim commands, using the following table:
+
+  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15   PRESET_DIM1
+  M  N  O  P  C  D  A  B  E  F  G  H  K  L  I  J
+
+  16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31  PRESET_DIM2
+  M  N  O  P  C  D  A  B  E  F  G  H  K  L  I  J
+
+Note: not all of the X10 interfaces support this command.
+
+Since this item is inherits from Generic_Item, you can use the set_with_timer method. For example, this event will turn on a on a warning light to 20% for 5 seconds:
+
+  set_with_timer $watchdog_light '20%', 5 if file_unchanged $watchdog_file;
+
+
+
+=head1 DESCRIPTION
+
+=head1 INHERITS
+
+B<X10_Interface>
+
+=head1 METHODS
+
+=over
+
+=cut
+
+
+#use strict;
 use X10_Interface;
 use Serial_Item;
 use Dummy_Interface;
@@ -21,6 +107,16 @@ sub reset {
 }
 
 @X10_Item::ISA = ('X10_Interface');
+
+=item C<new('house code[unit number]' [, 'interface'|undef [, 'option flags']])>
+
+house code[unit number] - The first argument is required and is either a house code by itself or a house code and unit number.  Note that the X10 unit code is numbered either 1->16 or 1->9,A->G.  For example device 16 in house code P could be P16 or PG
+
+interface - Optional, specifies which X10 interface to use
+
+option flags - Optional, specifies one or more module options (see below)
+
+=cut
 
 sub new {
     my ($class, $id, $interface, $type) = @_;
@@ -189,6 +285,36 @@ sub property_changed {
     }
 }
 
+=item C<set('state')>
+
+Sets the item to the specified state
+
+  'on'
+  'off'
+  'toggle'     - toggles between on and off
+  'brighten'
+  'dim'
+  '+##'        - increase brightness by ## points
+  '-##'        - decrease brightness by ## points
+  '##%'        - set brightness to ## percent
+  '+##%'       - increase brightness by ## percent
+  '-##%'       - decrease brightness by ## percent
+  'double on'  - on some modules this sets full brightness at ramp rate
+  'double off' - on some modules this sets 0 brightness immediately
+  'triple on'  - same as double on, but immediate
+  'triple off' - same as double off
+  'status'     - requests status from a two-way capable module
+  'manual'     - sends house code and unit number without a command 
+
+These states are rarely used and provided for special cases
+
+  '&P##', 'PRESET_DIM1', 'PRESET_DIM2', 'ALL_LIGHTS_OFF', 'HAIL_REQUEST', 
+  'HAIL_ACK', 'EXTENDED_CODE', 'EXTENDED_DATA', 'STATUS_ON', 'STATUS_OFF', 'Z##'
+
+Note: not all states are supported by all lamp modules and X10 interfaces.
+
+=cut
+
                                 # Check for toggle data
 sub set {
     my ($self, $state, $set_by) = @_;
@@ -287,6 +413,12 @@ sub set {
     }
 }
 
+=item C<set_receive>
+
+Update the state and level when X10 commands are received
+
+=cut
+
 sub set_receive {
     my ($self, $state, $set_by) = @_;
 
@@ -294,6 +426,12 @@ sub set_receive {
     $self->SUPER::set_receive($state, $set_by);
     $self->{interface}->set_receive($state, $set_by);
 }
+
+=item C<set_x10_level>
+
+Recalculates state whenever state is changed
+
+=cut
 
                                 # Try to keep track of X10 brightness level
 sub set_x10_level {
@@ -374,6 +512,12 @@ sub resume {
     return $_[0]->{resume};
 }
 
+=item C<level>
+
+Returns the current brightness level of the item, 0->100
+
+=cut
+
                                 # This returns current brightness level ... see above
 sub level {
 #   print "db2 l=$_[0]->{level} s=$_[0]->{state}\n";
@@ -423,7 +567,60 @@ sub set_by_housecode {
 
 }
 
+
+=back
+
+=head1 INHERITED METHODS
+
+=over
+
+=item C<state>
+
+Returns the last state that was received or sent
+
+=item C<state_now>
+
+Returns the state that was received or sent in the current pass
+
+=back
+
+=head1 INI PARAMETERS
+
+NONE
+
+=head1 AUTHOR
+
+UNK
+
+=head1 SEE ALSO
+
+NONE
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
 package X10_Appliance;
+
+=head1 NAME
+
+B<X10_Appliance>
+
+=head1 DESCRIPTION
+
+Same as X10_Item, except it has only has pre-defined states 'on' and 'off'
+
+=head1 INHERITS
+
+B<X10_Item>
+
+=cut
 
 @X10_Appliance::ISA = ('X10_Item');
 
@@ -465,6 +662,22 @@ sub new {
 
 package X10_Transmitter;
 
+=head1 NAME
+
+B<X10_Transmitter>
+
+=head1 SYNOPSIS
+
+=head1 DESCRIPTION
+
+Like an X10_Item, but will not be set by incoming X10 data. Simulates transmit only devices like keypads. Can be used in place of X10_Item if you have complicated code that might get into a loop because we are not ignoring incoming X10 data for transmit-only devices.
+
+=head1 INHERITS
+
+B<X10_Item>
+
+=cut
+
 @X10_Transmitter::ISA = ('X10_Item');
 
 sub new {
@@ -480,6 +693,16 @@ package X10_RF_Receiver;
 
 
 package X10_Garage_Door;
+
+=head1 NAME
+
+B<X10_Garage_Door> - For the Stanley Garage Door status transmitter. 
+
+=head1 INHERITS
+
+B<X10_Item>
+
+=cut
 
 @X10_Garage_Door::ISA = ('X10_Item');
 
@@ -684,7 +907,28 @@ sub new {
     return $self;
 }
 
+=head1 SEE ALSO
+
+See mh/code/public/Danal/Garage_Door.pl
+
+=cut
+
+
 package X10_IrrigationController;
+
+=head1 NAME
+
+B<X10_IrrigationController>
+
+=head1 DESCRIPTION
+
+For this sprinkler device: http://ourworld.compuserve.com/homepages/rciautomation/p6.htm which looks the same as the IrrMaster 4-zone sprinkler controller listed here: http://www.homecontrols.com/product.html?prodnum=HCLC4&id_hci=0920HC569027
+
+=head1 INHERITS
+
+B<X10_Item>
+
+=cut
 
 # More info at: http://ourworld.compuserve.com/homepages/rciautomation/p6.htm
 # This looks the same as the IrrMaster 4-zone sprinkler controller
@@ -933,23 +1177,49 @@ sub zone_delay
     return;
 }
 
+=head1 SEE ALSO
 
+More info at: http://ourworld.compuserve.com/homepages/rciautomation/p6.htm  This looks the same as the IrrMaster 4-zone sprinkler controller listed here: http://www.homecontrols.com/product.html?prodnum=HCLC4&id_hci=0920HC569027
+
+=cut
 
 package X10_Switchlinc;
 
-@X10_Switchlinc::ISA = ('X10_Item');
+=head1 NAME
 
-=begin comment
+B<X10_Switchlinc> - For the Switchlinc contrllers
 
- # Example usage
-                                # Just picked this device to use to send the clear
-$Office_Light_Torch->set("clear");
-                                # Send a command to each group member to make it listen
-$SwitchlincDisable->set("off");
-                                # Just picked this device item to send the command
-$Office_Light_Torch->set("disablex10transmit");
+=head1 SYNOPSIS
+
+  # Just picked this device to use to send the clear
+  $Office_Light_Torch->set("clear");
+  # Send a command to each group member to make it listen
+  $SwitchlincDisable->set("off");
+  # Just picked this device item to send the command
+  $Office_Light_Torch->set("disablex10transmit");
+
+=head1 DESCRIPTION
+
+Inherts all the functionality from X10_Item and adds the following states:
+
+  'clear'
+  'setramprate'
+  'setonlevel'
+  'addscenemembership'
+  'deletescenemembership'
+  'setsceneramprate'
+  'disablex10transmit'
+  'enablex10transmit'
+
+Also sets the 'preset3' X10_Item option which causes the older Preset Dim commands to be used for setting the brightness level directly.
+
+=head1 INHERITS
+
+B<X10_Item>
 
 =cut
+
+@X10_Switchlinc::ISA = ('X10_Item');
 
 sub new {
     my ($class, $id, $interface, $type) = @_;
@@ -992,6 +1262,11 @@ sub new {
     return $self;
 }
 
+=head1 SEE ALSO
+
+See the <a href="http://www.smarthome.com/manuals/2380_web.pdf>Switchlinc 2380 manual</a> for more information.
+
+=cut
 
 package X10_Keypadlinc;
 
@@ -1035,10 +1310,6 @@ sub new {
 package X10_Appliancelinc;
 
 @X10_Appliancelinc::ISA = ('X10_Item');
-
-=begin comment
-
-=cut
 
 @preset_dim_levels = qw(M  N  O  P  C  D  A  B  E  F  G  H  K  L  I  J);
 
@@ -1085,29 +1356,34 @@ sub new {
 
 package X10_TempLinc;
 
-@X10_TempLinc::ISA = ('X10_Item');
+=head1 NAME
 
-# this is smarthome.com part number 1625
-# it can be setup to request temperature with the STATUS state, or automatically
-# send out temperature change
-# it uses the same temperature translation that the RCS bi-directional
-# thermostat uses.
-# it should use its own house code because it needs unit codes 11-16
-# to be used to received the preset_dim commands for temperature degrees.
-# However, in theory, (I haen't ried it yet), you could used the same house code with unit codes
-# 1-10 if absolutely needed.
-#
-# Example:
-# $Garage_TempLinc = new X10_TempLinc('P')
-#
-# request current temperature
-# $Garage_TempLinc->set(STATUS);
-#
-# handle temperature changes as reported by the sensor
-# if (state_now $Garage_TempLinc)
-# {
-#    speak "The temperature in the garage is now $Garage_TempLinc->{state}";
-#  }
+B<X10_TempLinc>
+
+=head1 SYNOPSIS
+
+  $Garage_TempLinc = new X10_TempLinc('P')
+
+  request current temperature
+  $Garage_TempLinc->set(STATUS);
+
+  handle temperature changes as reported by the sensor
+  if (state_now $Garage_TempLinc)
+  {
+    speak "The temperature in the garage is now $Garage_TempLinc->{state}";
+  }
+
+=head1 DESCRIPTION
+
+This is smarthome.com part number 1625 it can be setup to request temperature with the STATUS state, or automatically send out temperature change it uses the same temperature translation that the RCS bi-directional thermostat uses.  It should use its own house code because it needs unit codes 11-16 to be used to received the preset_dim commands for temperature degrees.  However, in theory, (I haen't ried it yet), you could used the same house code with unit codes 1-10 if absolutely needed.
+
+=head1 INHERITS
+
+B<X10_Item>
+
+=cut
+
+@X10_TempLinc::ISA = ('X10_Item');
 
 sub new
 {
@@ -1160,6 +1436,17 @@ sub new
 
 #  Ote themostate from Ouellet Canada
 package X10_Ote;
+
+=head1 NAME
+
+B<X10_Ote> - Supports the OTE X10 themostat from Ouellet Canada.
+
+=head1 INHERITS
+
+B<X10_Item>
+
+=cut
+
 @X10_Ote::ISA = ('X10_Item');
 sub new {
     my ($class, $id, $interface) = @_;
@@ -1192,47 +1479,52 @@ sub new {
 }
 
 
-## X10_Sensor -- by Ingo Dean
-##
-## Do you have any of those handy little X10 MS12A battery-powered motion sensors?
-##
-## Ever have the battery die and you didn't notice for weeks?
-##
-## Here's your answer - use the X10_Sensor instead of the Serial_Item when you define
-## it, and your house will notice when your sensor hasn't been tripped in 24 hours,
-## allowing you to check on the batteries.
-##
-## Sensor Item can be created with a type to specify the sensors properties.
-## Ex:
-##	X10MS,      CA,    work_room_motion,       Sensors|Motion_Sensors,      Motion
-##	X10MS,      CB,    work_room_brightness,   Sensors|Brighness_Sensors,   Brightness
-##  or:
-##	X10MS,      CA,    work_room_sensors,      Sensors,      		MS13
-##
-## Ex:
-##	$work_room_motion     =  new X10_Sensor('CA', 'work_room_motion',     'Motion');
-##	$work_room_brightness =  new X10_Sensor('CB', 'work_room_brightness', 'Brightness');
-##  or:
-##	$work_room_sensors    =  new X10_Sensor('CA', 'work_room_sensors',    'MS13');
-##
-## The 'MS13' Sensor Item listens for x10 'CA' cmds for motion and x10 'CB' cmds for brightness
-## state changes. The brighness state is saved in a 'dark' private variable and can be fetched
-## with the dark() method. The 'MS13_Motion' type only listens for state changes on 'CA' cmds
-## and 'MS13_Brightness' only listens for state changes for 'CB'. An advantage to using two
-## X10 Sensor Items is that both states of the MS13 can be easily printed in log files:
-## Ex:
-##	print_log "state of work_room_motion = ", 	state $work_room_motion;
-## 	print_log "state of work_room_brightness = ",   state $work_room_brightness;
-
-
-
-
-##
 ## Todo:
 ##      + make the countdown time configurable per sensor
 ##      + make the action configurable per sensor
 
 package X10_Sensor;
+
+=head1 NAME
+
+B<X10_Sensor>
+
+=head1 SYNOPSIS
+
+  $sensor_hall = new X10_Sensor('A4', 'sensor_hall', 'MS13');
+  $work_room_motion = new X10_Sensor('CA', 'work_room_motion', 'motion');
+  $work_room_bright = new X10_Sensor('CB', 'work_room_bright', 'brightness');
+
+.mht table examples:
+
+  X10MS,      XA2AJ,  sensor_bathroom,       Sensors|Upstairs
+  X10MS,       A4,    sensor_hall,           Sensors|Downstairs,  MS13
+
+  X10MS,      CA,    work_room_motion,       Sensors|Motion_Sensors,      Motion
+  X10MS,      CB,    work_room_brightness,   Sensors|Brighness_Sensors,   Brightness
+  X10MS,      CA,    work_room_sensors,      Sensors,                  MS13    # This detects both motion and brightness
+
+With MS13 specified, it will return states named motion,still,light, and dark. With Motion specified, it will return only the motion and still states. With Brightness specified, it will return only the light and dark states. In all cases, methods light and dark will return the current light/dark state.
+
+Examples:
+
+  set_with_timer  $light1 ON, 600 if $work_room_motion eq 'motion';
+
+  speak 'It is dark downstairs' if dark $sensor_downstairs;
+
+Without the MS13 or Brightness type, the light/dark codes will be ignored.
+
+=head1 DESCRIPTION
+
+Do you have any of those handy little X10 MS12A battery-powered motion sensors? Here's your answer - use the X10_Sensor instead of the Serial_Item when you define it, and your house will notice when your sensor hasn't been tripped in 24 hours, allowing you to check on the batteries.
+
+If you have an sensor that detects and sends codes for daytime and nighttime (light and dark levels), pass in a optional type MS13, Motion, or Brightness. For the id, you can use the 2 character, or 5 character X10 code.
+
+=head1 INHERITS
+
+B<X10_Item>
+
+=cut
 
 @X10_Sensor::ISA = ('X10_Item');
 
@@ -1356,7 +1648,11 @@ sub dark {
     return  $_[0]->{dark};
 }
 
+=head1 AUTHOR
 
+Ingo Dean
+
+=cut
 
 package X10_Scenemaster;
 

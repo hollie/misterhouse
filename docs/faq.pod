@@ -1,25 +1,19 @@
 =pod
 
-
 =head1 1: MisterHouse operational questions
-
 
 =head2 1.1: What OSes can it run on?
 
-It has been tested on Windows 95, 98, NT 4.0, and 2K.  On Unix, it has been run on
-Linux, AIX, and Sun.
+It has been tested on Windows 95, 98, NT 4.0, 2K, XP, Vista (!) and 7.  
+On Unix, it has been run on Linux (Ubuntu, Debian, Fedora and others), AIX, and Sun.
 
-In theory, any OS that runs perl should be able to run mh.  In practice, some platforms
-will likely have strange Serial Interfaces (e.g. Mac?), so the Serial IO related
-function would take some work.
+In theory, any OS that runs perl should be able to run mh.  In practice, some platforms will likely have strange Serial Interfaces, so the Serial I/O related function would take some work.
 
 =head2 1.2: How can I make it run faster and use less memory?
 
-On my Celron 400 Mhz computer running Windows 98, using 60 code files with 6000 lines of code,
-mh takes 10% the cpu, running at 9 passes per second and using about 30 MB of memory.
+On my Celron 400 Mhz computer running Windows 98, using 60 code files with 6000 lines of code, mh takes 10% the cpu, running at 9 passes per second and using about 30 MB of memory.
 
-If you are happy with the Web interface and don't need the Tk interface, turn it off
-by editing the Tk mh.ini parm or run:
+If you are happy with the Web interface and don't need the Tk interface, turn it off by editing the Tk mh.ini parm or run:
 
    mh -tk 0
 
@@ -65,13 +59,9 @@ a different value, instead of editing your mh.ini, you can run:
 
   mh -myparm1 'd e f'
 
-Rather then edit the default mh.ini file, the best approach is to copy just
-the parms you want to change to your own .ini file (e.g. mh.private.ini), then
-set the environmental variable mh_parms to point where you keep that file
-(see the header of mh/bin/mh.ini for more detail).
+Rather then edit the default mh.ini file, the best approach is to copy just the parms you want to change to your own .ini file (e.g. mh.private.ini), then set the environmental variable mh_parms to point where you keep that file (see the header of mh/bin/mh.ini for more detail).
 
-While the %config_parms array IS refreshed on a mh Reload, some parms are only used
-on mh startup (e.g. http_port), so will only be reloaded when you re-start mh.
+While the %config_parms array IS refreshed on a mh Reload, some parms are only used on mh startup (e.g. http_port), so will only be reloaded when you re-start mh.
 
 =head2 1.5: Can I run run mh in a 'fast debug mode'?
 
@@ -85,30 +75,18 @@ in the mh.ini file.  Here are some examples:
 
 =head2 1.6: How are the X10 and Serial Items implemented, indpendent of the platform?
 
-This answer is authored by Bill Birthisel, author of the SerialPort and CommPort modules.
+The user works with an X10_Item which reflects physical hardware and the state of that hardware. The user "loop" code deals with the state and
+conditions which alter it. This code is independent of OS and specific to mh.
 
-The user works with an X10_Item which reflects physical hardware and
-the state of that hardware. The user "loop" code deals with the state and
-conditions which alter it. This code is independent of OS and specific to
-mh.
+X10_Items talk to Serial_Items which implement a software protocol required by the model and type of the actual hardware. The Serial_Items
+can use protocol translator modules such as CM11.pm, HomeBase.pm, and CM17.pm. But the output is platform-independent serial commands
+to the next layer. The protocol translator modules are publicly available outside mh and may be used by code other than Serial_Items. These modules will eventually be on CPAN. The code is still independent of OS. Other Serial_Item types, including "generic" read/write ports, also exist.
 
-X10_Items talk to Serial_Items which implement a software protocol
-required by the model and type of the actual hardware. The Serial_Items
-can use protocol translator modules such as CM11.pm, HomeBase.pm,
-and CM17.pm. But the output is platform-independent serial commands
-to the next layer. The protocol translator modules are publicly available
-outside mh and may be used by code other than Serial_Items. These modules will
-eventually be on CPAN. The code is still independent of OS.
-Other Serial_Item types, including "generic" read/write ports, also exist.
-
-Win32::SerialPort.pm and Device::SerialPort.pm are CPAN modules which
-actually implement the serial command interface. Device::SerialPort is a
-clone of its Win32 cousin. These modules handle high-level OS issues
-including device names, configuration files, and validation of port
+Win32::SerialPort.pm and Device::SerialPort.pm are CPAN modules which actually implement the serial command interface. Device::SerialPort is a
+clone of its Win32 cousin. These modules handle high-level OS issues including device names, configuration files, and validation of port
 settings.
 
-Each also calls a CPAN module to handle low-level interfacing to the OS
-and the serial driver: Win32API::CommPort.pm or POSIX.pm (you guessed
+Each also calls a CPAN module to handle low-level interfacing to the OS and the serial driver: Win32API::CommPort.pm or POSIX.pm (you guessed
 correctly ;-)
 
 
@@ -123,7 +101,6 @@ code in mh/code/common.  To run JUST a specific code member(s), specify
 it on the command line.  For example:
 
   mh test_x10.pl
-
 
 
 =head2 1.8: Is there a way I can have direct X10 control with a simple perl script?
@@ -193,10 +170,9 @@ You can also stack debug flags, using ; as a separator.  fro example:
   mh -debug "serial;x10"
 
 
-=head2 1.12: How can I debug time event problem?
+=head2 1.12: How can I debug timed event problem?
 
-One way is to create a code member that contains just the event you are trying to debug, then run mh on
-just that one member.  For example, create a member called \temp\test_time.pl with this code:
+One way is to create a code member that contains just the event you are trying to debug, then run mh on just that one member.  For example, create a member called \temp\test_time.pl with this code:
 
   print "min=$Minute\n" if $New_Minute;
   print "hour=$Hour\n"  if $New_Hour;
@@ -205,12 +181,11 @@ just that one member.  For example, create a member called \temp\test_time.pl wi
   print "debug3 it is now $Time_Now\n" if time_now "12:00 AM";
   print "debug4 it is now $Time_Now\n" if time_now "00:00";
 
-
 Then run mh using these parameters:
 
   mh -code_dir \temp -tk 0 -time_start '12/15 11:58 pm' -time_start '12/16 12:01 am'
 
-Note, you can run this test mh quickly without stoping your normal mh.
+Note, you can run this test mh quickly without stopping your normal mh.
 
 =head2 1.13: What are the advantages/disadvantages to running the compiled versions of mh?
 
@@ -340,18 +315,15 @@ From Harald Koch on 2/2002.
 
 There are (at least) three different locations for scripts:
 
-/mh/bin - standalone programs (such as get_weather, get_tv_grid); they
-    are called from the main MH process via "run" or a Process_Item;
-    they do not get any environment or variables from the main MH
-    program, and typically return results to MH by writing output files
+/mh/bin - standalone programs (such as get_weather, get_tv_grid); they are called from the main MH process via "run" or a Process_Item;
+    they do not get any environment or variables from the main MH program, and typically return results to MH by writing output files
     which MH later reads.
 
     MH typically looks for external programs here, and also programs
     here typically assume they're being run from this directory; they
     try to find files in ../lib, for example.
 
-$config_parms{code_dir} - scripts in this directory are (after some
-    parsing) loaded into the middle of the MH event loop, and the
+$config_parms{code_dir} - scripts in this directory are (after some parsing) loaded into the middle of the MH event loop, and the
     commands in them run constantly. They run within the MH environment,
     and can use all the variables available there.
 
@@ -691,8 +663,6 @@ housecode, unitcode, and command in one transmission.
 
 =head2 2.16: How are states set for each pass though the user code loop?
 
-From Bill Sobel on 02/2003:
-
 Misterhouse works on a multipass system where a state becomes 'new' for
 one (and only) one pass thru the system.  The actually timing of the
 passes varies (based on the machine, the load, the code, etc) but you
@@ -712,7 +682,7 @@ volume state would be 'new' during currentpass+1 and the treble state
 would be 'new' during currentpass+2.
 
 The reason the 'current' pass is never effected is that you don't always
-no where you are in the list of code looking at the time you make the
+know where you are in the list of code looking at the time you make the
 change.  If your in the 'middle' and set a state, code that already ran
 during that pass wouldn't have a chance to 'see' it before the pass
 ended.  By making states always start at the beginning of the next pass,
@@ -755,14 +725,12 @@ if (($state=$myLight->state_now) eq ON) # could be true as ON is the same as 'on
 
 =head1 3: Linux specific questions
 
-=head2 3.1: When I run Viavoice and festival at the same time I get "Can't open output file '/dev/dsp'"
-
-Answer complements of Brent L Johnson.
+=head2 3.1: Problem: When I run Viavoice and festival at the same time I get "Can't open output file '/dev/dsp'"
 
 The problem is, festival or another sound program, is locking your dsp device.
 The sound drivers that come stock in the Linux kernel do not allow more than one program to access the /dev/dsp at one time.
 If you are using RedHat, you can use ESD to multiplex the soundcard usage.
-The problem is, not all sound programs are esd aware. Festival and Viavoice  do not directly support esd.
+The problem is, not all sound programs are esd aware. Festival and Viavoice do not directly support esd.
 ESD does have a workaround that _sometimes_ works with non-esd aware programs.
 Try starting your sound programs, festival and viavoice under esddsp.
 For example: "esddsp festival --server &".
@@ -773,10 +741,8 @@ The ALSA drivers directly support multiplexing the dsp devices.
 The only problem is they currently support fewer cards than the OSS drivers that come with the Linux kernel.
 Check out the web page and see if your card is supported. If it is, the best avenue would be replacing OSS with ALSA.
 
-From Dave Lounsberry and Denis Cheong on 10/2001:
 
-Problem: The speech stutters and then stops half way through, and I end up with 'hung' vv_tts.pl
-processes that do not complete.
+=head2 3.1.1: Problem: The speech stutters and then stops half way through, and I end up with 'hung' vv_tts.pl processes that do not complete.
 
 Solution: You need to use ViaVoice_Outloud 5.0 with "any" ALSA driver.
 ViaVoice Outloud 5.1 does not work with ALSA, but it seems that downgrading to 5.0 fixes it.
@@ -789,7 +755,7 @@ http://www.reednet.org/ViaVoiceTTS/ViaVoiceTTS-0.02.tar.gz
 
 =head2 3.2 How can I set the default volume level for Festival?
 
-This might work ... it has not been tested.
+This might work... it has not been tested.
 
 You can globally increase the volume of all waveforms generated by
 festival by adding the following to your siteinit.scm.  Put that in
@@ -851,28 +817,19 @@ to only two serial ports. Put the following in a file called
   ----- clip here ----------------------------------------------
 
 
-Note that I am using irq 4 for my byterunner. Be careful that you don't
-have one of the built in serial ports on the same IRQ.
+Note that I am using irq 4 for my byterunner. Be careful that you don't have one of the built in serial ports on the same IRQ.
 
-You can probably take out the for loop in the bottom if you are running
-MH as root.
+You can probably take out the for loop in the bottom if you are running MH as root.
 
-Here is a link explaining the settings and jumpers (in more depth).
+Here is a link explaining the settings and jumpers (in more depth). 
 http://www.mail-archive.com/linux-hardware%40senator-bedfellow.mit.edu/msg01897.html
 
-Another good resource is always the Linux HOWTOs. The serial HOWTO can
-be found at http://www.ibiblio.org/mdw/HOWTO/Serial-HOWTO.html#toc5
+Another good resource is always the Linux HOWTOs. The serial HOWTO can be found at http://www.ibiblio.org/mdw/HOWTO/Serial-HOWTO.html#toc5
 
 
 Here is a followup from Nigel Titley:
 
-I have found that the linux serial card driver doesn't like the serial
-card to be on a shared interrupt (I assume your Byterunner is a PCI card and
-not ISA). I had exactly this problem and worked around it by using the BIOS
-to move interrupts around until the serial card set itself up on an unshared
-IRQ. Everything then worked. This does seem to be a Linux issue, and I haven't
-taken the plunge yet and tried to find out where in the serial port driver
-the bug exists (I guess I am hoping that someone else will do it).
+I have found that the linux serial card driver doesn't like the serial card to be on a shared interrupt (I assume your Byterunner is a PCI card and not ISA). I had exactly this problem and worked around it by using the BIOS to move interrupts around until the serial card set itself up on an unshared IRQ. Everything then worked. This does seem to be a Linux issue, and I haven't taken the plunge yet and tried to find out where in the serial port driver the bug exists (I guess I am hoping that someone else will do it).
 
 
 Here is some useful serial info from Bob Hughes:
@@ -903,32 +860,14 @@ Here is a good tutorial note from Mike Bruno  on 4/2002
 
 OK, here's the quick and dirty on startup scripts.
 
-(You also may wish to check out
-http://www.linux-mandrake.com/en/doc/82/en/ref.html/sysv.html
-which is where I pulled some of the stuff you'll
-find below)
+(You also may wish to check out http://www.linux-mandrake.com/en/doc/82/en/ref.html/sysv.html which is where I pulled some of the stuff you'll find below)
 
-Just for reference, there's two methodologies that
-are used for bringing up Unix systems: BSD and SysV.
-Mandrake uses SysV.  BSD is initially simpler, but
-the SysV method is more flexible.  The names of the
-methods and their merits should not really concern
-you at the moment, its just background in case
-someone jumps out of the woods and asks you.
+Just for reference, there's two methodologies that are used for bringing up Unix systems: BSD and SysV. Mandrake uses SysV.  BSD is initially simpler, but the SysV method is more flexible.  The names of the methods and their merits should not really concern you at the moment, its just background in case someone jumps out of the woods and asks you.
 
-I should also mention that there may be some sort
-of fancy graphical interface into all this.  But
-its much more satisfying to get your hands dirty
-and roll your own solution.
+I should also mention that there may be some sort of fancy graphical interface into all this.  But its much more satisfying to get your hands dirty and roll your own solution.
 
 
-The boot scripts are located in /etc/rc.d.  If you
-look in there, you'll find several subdirectories
-named init.d and rc0.d -> rc6.d.  The rc?.d directories
-correspond directly to the various runlevels that
-Unix supports.  Runlevel is a set of predefined modes
-that define what the system does.
-Mandrake has the runlevels defined as
+The boot scripts are located in /etc/rc.d.  If you look in there, you'll find several subdirectories named init.d and rc0.d -> rc6.d.  The rc?.d directories correspond directly to the various runlevels that Unix supports.  Runlevel is a set of predefined modes that define what the system does. Mandrake has the runlevels defined as
 
  0: complete machine stop;
 
@@ -945,35 +884,22 @@ Mandrake has the runlevels defined as
 
  6: restart.
 
-If your machine comes up and immediately goes into
-an X-Window interface, then its default runlevel is 5.
+If your machine comes up and immediately goes into an X-Window interface, then its default runlevel is 5.
 
-When you say 'reboot' or 'shutdown -r now', what you
-are really doing is putting the system into runlevel 6.
+When you say 'reboot' or 'shutdown -r now', what you are really doing is putting the system into runlevel 6.
 
-When things have gone completely to shreds (typically after
-hardware failure or severe operator error ;), you want to
-get the machine into runlevel 1 - there are minimal
-services running and only one person can be logged in
+When things have gone completely to shreds (typically after hardware failure or severe operator error ;), you want to get the machine into runlevel 1 - there are minimal services running and only one person can be logged in
 at a time.
 
 Now, on to the nitty-gritty.
 
-The init.d subdirectory is where all the startup/shutdown
-scripts are kept.  They are all text files, and you can
-get a good idea of their format by cracking one open
-(I'd recommend a short one) and looking at it.  You don't
-need to be an expert in shell programming to get the gist
-of it.
+The init.d subdirectory is where all the startup/shutdown scripts are kept.  They are all text files, and you can
+get a good idea of their format by cracking one open (I'd recommend a short one) and looking at it.  You don't
+need to be an expert in shell programming to get the gist of it.
 
-These scripts are called with one arguement (more on how
-that arguement gets supplied later).  Virtually all scripts
-have the start and stop arguement, most have a restart, and
-then some have all sorts of custom ones.  Lets look at a
-quick example.
+These scripts are called with one arguement (more on how that arguement gets supplied later).  Virtually all scripts have the start and stop arguement, most have a restart, and then some have all sorts of custom ones.  Lets look at a quick example.
 
-This is an init script for starting up Apache.
-Most are more cluttered, but not really more complicated.
+This is an init script for starting up Apache. Most are more cluttered, but not really more complicated.
 
  -----------------
  #!/bin/sh
@@ -1320,9 +1246,7 @@ or asynchronous modes are as easy as (audio_mode sync) or (audio_mode async)
 
 =head2 4.1: mh seems to cause some windows to hang
 
-If you are experiencing problems with windows not popping
-up when they should (e.g. control panel or install shield),
-you will want to install DCOM 1.3, available from here:
+If you are experiencing problems with windows not popping up when they should (e.g. control panel or install shield), you will want to install DCOM 1.3, available from here:
 
   http://www.microsoft.com/com/dcom/dcom98/dcom1_3.asp
 
@@ -1358,7 +1282,7 @@ Here is an example of registry entries after configuring my to run with srvany:
  HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\MisterHouse\Parameters Application   REG_SZ    c:\perl\bin\perl.exe -S c:\mh\bin\mh
 
 
-Rather than call mh as a service, many peopld have Windows do an auto-login and add mh to the startup.
+Rather than call mh as a service, many people have Windows do an auto-login and just add mh to the startup.
 
 
 =head1 5: Perl questions
@@ -1380,17 +1304,9 @@ A pre-compiled windows version can be found here: http://www.gnu.org/software/em
 Alan Jackson liks vim: http://www.vim.org. "Does syntax highlighting quite nicely for perl"
 
 Kieran Ames likes UltraEdit32: http://www.ultraedit.com.
-"I swear by UltraEdit32 available at
-It works fully functional for 30 days and then expires.
+"I swear by UltraEdit32 available at It works fully functional for 30 days and then expires.
 Registration goes for around $30. I'm coding Perl all day long and would die without it!
 Fairly thin and goes the distance with just about any language you'd want to use."
-
-Bill Sobel sent a pointer to J: http://www.armedbear.org/.
-"I was using notepad and switched to 'J' and open source development editor.
-The author, Peter Graves, is a
-coworker of mine and all around swell guy.  This java based editor already
-includes Perl syntax highlighting and Peter is pretty quick about
-fixes/changes."
 
 Mark Yocom writes "I myself have grown fond of PrimalSCRIPT, which handles Perl, Java (and
 JScript & JavaScript), HTML, ASP, LotusScript, Livewire, Python, SQL, Tcl,
@@ -1398,9 +1314,6 @@ REXX, VBScript, and good old fashioned .BAT/.CMD files.  In addition to the
 obligatory syntax coloring, it also has a number of other handy features.
 It's spendy, but a trial version is available at their website:
 http://www.sapien.com/PrimalSCRIPT.htm "
-
-Doug likes $20 shareware  CodeWhiz: http://www.incatec.com .   Colored commands, auto indent, auto remark/unremark, line #s, etc.
-
 
 =head2 5.3 When are you supposed to use '=>' as opposed to '->' ?
 
@@ -1441,7 +1354,7 @@ Here is a rough timeline of MisterHouse development:
  - 06/99 Article in HomeToys: http://hometoys.com/htinews/jun99/articles/winter/winter.htm
  - 08/99 Mailing list reaches 100 members
  - 09/99 Added LCDproc and IRman support
- - 10/99 Article in Circuit Cellar Ink: href=http://www.circuitcellar.com/pastissues/articles/winter111/winter.pdf
+ - 10/99 Article in Circuit Cellar Ink: http://www.circuitcellar.com/pastissues/articles/winter111/winter.pdf
  - 11/99 Linux VR using IBM's ViaVoice
  - 11/99 HomeVision support
  - 11/99 Mailing list reaches 200 members
@@ -1568,11 +1481,11 @@ Here are some useful/related Home Automation links:
 
 =head2 6.5: How do I contribute additions or updates to the mh code?
 
-The MisterHouse code is maintained via a SVN repository on sourceforge.
-Instructions on how to commit changes can are on the wiki here:
-http://misterhouse.wikispaces.com/Subversion
+The MisterHouse code is maintained via a GitHub repository.
+Instructions on how to commit changes can are here:
+https://github.com/hollie/misterhouse/wiki/Contributing
 
-If you have minor changes and don't want to bother with a sourceforge ID, feel free to mail them to Bruce or the mailing list.
+If you have minor changes and don't want to bother with a sourceforge ID, feel free to mail them to the mailing list.
 
 
 =head2 6.6 What is X10?
@@ -1772,35 +1685,6 @@ Kieran Ames has a nice writeup on how he used iButtons to log and plot his
 pond temperatures: http://ames.homeip.net:81/pages/My_iButtonVenture.htm
 
 
-=head2 6.8 What sort of hardware do you have in your house?
-
-This is what is currently (04/2001) in Bruce's house (see mh/docs/mh.* 'List of supported hardware interfaces' for more info):
-
- - Mh running on a dual 600 PIII Win 2K box great for quick mh debugging :)
- - SB Live Value sound card (supports simultaneous sound sources)
- - PCI ByteRunner 8 port serial card
- - PCI phone modem for callerid logging and announcements
- - Linux box for hosting misterhouse.net
- - 5 other networked computers for mp3 client/servers,
-   shoutcast server, games, writing, and work from home
- - Radio Shack PA amp with a PA speaker in each room
- - Wiring closet with 3 DIO weeder cards and 2 analog cards
- - 16 relay card from jameco for PA speaker switch
- - Home brew motor/relays for up/down control of 9 Window quilt curtains
- - RF sensor in the mailbox across the steet
- - WX200 weather station from Radio Shack
- - Relays controling garage door and furnace heat and fan
- - Digital input sensors on doors and garage door
- - A few iButtons for testing
- - X10 IR commander and CM17 for sending IR signals
- - X10 CM11 with X10 consoles in each room for control
- - X10 motion sensors, light, and appliance modules
- - Matrix-orbital LCD keypad for local output and control
- - WAP cell phone for remote queries and control
- - A ham radio TNC for tracking 2 GPS APRS equipped cars
- - NetGear router with mh monitored SYSLOG data for tracking internet traffic
- - MSVoice VR via a Andrea Desktop Array microphone
-
 =head1 7.0: Setup Questions
 
 =head2 7.1: Password Management
@@ -1902,150 +1786,4 @@ modify.
 =cut
 
 
-#
-# $Log: faq.pod,v $
-# Revision 1.48  2006/01/29 20:30:14  winter
-# *** empty log message ***
-#
-# Revision 1.47  2005/05/22 18:12:57  winter
-# *** empty log message ***
-#
-# Revision 1.46  2004/11/22 22:57:20  winter
-# *** empty log message ***
-#
-# Revision 1.45  2004/07/18 22:16:33  winter
-# *** empty log message ***
-#
-# Revision 1.44  2004/02/01 19:24:20  winter
-#  - 2.87 release
-#
-# Revision 1.43  2003/12/01 03:09:52  winter
-#  - 2.85 release
-#
-# Revision 1.42  2003/09/02 02:48:46  winter
-#  - 2.83 release
-#
-# Revision 1.41  2003/07/06 17:55:10  winter
-#  - 2.82 release
-#
-# Revision 1.40  2003/04/20 21:39:36  winter
-#  - 2.80 release
-#
-# Revision 1.39  2003/03/09 19:34:38  winter
-#  - 2.79 release
-#
-# Revision 1.38  2003/02/08 05:29:19  winter
-#  - 2.78 release
-#
-# Revision 1.37  2003/01/12 20:39:14  winter
-#  - 2.76 release
-#
-# Revision 1.36  2002/12/24 03:05:06  winter
-# - 2.75 release
-#
-# Revision 1.35  2002/11/10 01:59:56  winter
-# - 2.73 release
-#
-# Revision 1.34  2002/10/13 02:07:58  winter
-#  - 2.72 release
-#
-# Revision 1.33  2002/09/22 01:33:22  winter
-# - 2.71 release
-#
-# Revision 1.32  2002/08/22 04:33:20  winter
-# - 2.70 release
-#
-# Revision 1.31  2002/07/01 22:25:28  winter
-# - 2.69 release
-#
-# Revision 1.30  2002/05/28 13:07:49  winter
-# - 2.68 release
-#
-# Revision 1.29  2002/03/02 02:36:50  winter
-# - 2.65 release
-#
-# Revision 1.28  2002/01/19 21:11:11  winter
-# - 2.63 release
-#
-# Revision 1.27  2001/11/18 22:51:43  winter
-# - 2.61 release
-#
-# Revision 1.26  2001/10/21 01:22:32  winter
-# - 2.60 release
-#
-# Revision 1.25  2001/05/28 21:14:38  winter
-# - 2.52 release
-#
-# Revision 1.24  2001/05/06 21:07:25  winter
-# - 2.51 release
-#
-# Revision 1.23  2001/04/15 16:17:20  winter
-# - 2.49 release
-#
-# Revision 1.22  2001/02/24 23:26:39  winter
-# - 2.45 release
-#
-# Revision 1.21  2001/02/04 20:31:31  winter
-# - 2.43 release
-#
-# Revision 1.20  2001/01/20 17:47:50  winter
-# - 2.41 release
-#
-# Revision 1.19  2000/12/03 19:38:54  winter
-# - 2.36 release
-#
-# Revision 1.18  2000/10/22 16:48:29  winter
-# - 2.32 release
-#
-# Revision 1.17  2000/10/09 02:31:13  winter
-# - 2.30 update
-#
-# Revision 1.16  2000/08/19 01:22:35  winter
-# - 2.27 release
-#
-# Revision 1.15  2000/06/24 22:10:54  winter
-# - 2.22 release.  Changes to read_table, tk_*, tie_* functions, and hook_ code
-#
-# Revision 1.14  2000/05/27 16:40:09  winter
-# - 2.20 release
-#
-# Revision 1.13  2000/05/06 16:41:43  winter
-# - 2.15 release
-#
-# Revision 1.12  2000/04/09 18:03:19  winter
-# - 2.13 release
-#
-# Revision 1.11  2000/03/10 04:09:01  winter
-# - Add Ibutton support and more web changes
-#
-# Revision 1.10  2000/02/20 04:47:54  winter
-# -2.01 release
-#
-# Revision 1.9  2000/02/12 06:11:36  winter
-# - commit lots of changes, in preperation for mh release 2.0
-#
-# Revision 1.8  2000/01/27 13:36:11  winter
-# - update version number
-#
-# Revision 1.7  2000/01/13 13:36:34  winter
-# - add useful links
-#
-# Revision 1.6  2000/01/02 23:38:23  winter
-# - renumbered.  Added 1.13
-#
-# Revision 1.5  1999/12/12 23:51:34  winter
-# - added 'too compiliated', 'simple perl', 'commands via email'
-#
-# Revision 1.4  1999/11/21 02:54:11  winter
-# - add 'debug a problem', and 'stop telling time'.
-#
-# Revision 1.3  1999/11/08 02:11:28  winter
-# - add all lights, and save on exit questions
-#
-# Revision 1.2  1999/09/27 03:09:39  winter
-# - add pointer to DCOM 1.3 update
-#
-# Revision 1.1  1999/09/12 16:08:42  winter
-# - Created
-#
-#
+

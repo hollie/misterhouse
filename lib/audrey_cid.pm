@@ -1,12 +1,25 @@
-##########################################################
-## Lib code to register with an audrey running the acid
-##    program (v2.0), and receive updates via udp messages
-##    on the LAN.  will need to be invoked via user code
-##    to be activated.
-##
-## TODO: modify the status() approach to handle more than
-##   1 configured audrey.
-##########################################################
+=head1 B<audrey_cid>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+Lib code to register with an audrey running the acid program (v2.0), and receive updates via udp messages on the LAN.  will need to be invoked via user code to be activated.
+
+TODO: modify the status() approach to handle more than 1 configured audrey.
+
+=head2 INHERITS
+
+B<NONE>
+
+=head2 METHODS
+
+=over
+
+=cut
+
 use IO::Socket;
 use IO::Select;
 use strict;
@@ -21,10 +34,14 @@ my $status="";
 my $subscribe_interval=60;
 my @srvr_list;
 my $debug=0;
-#############################################
-## BEGIN: setup our udp filehandle for talking
-##   to audrey.
-#############################################
+
+
+=item C<BEGIN>
+
+setup our udp filehandle for talking to audrey.
+
+=cut
+
 sub BEGIN{
 	
 	## would like to let kernel pick the port, check syntax.
@@ -39,10 +56,13 @@ sub BEGIN{
 
 }
 
-#############################################
-## read: function to be called by the user_code
-##   to check for new messages.
-#############################################
+
+=item C<read>
+
+function to be called by the user_code to check for new messages.
+
+=cut
+
 sub read{
 	my $data;
 
@@ -73,12 +93,12 @@ sub read{
 	}
 }
 
+=item C<subscribe>
 
+function to be called to request updates from audrey.
 
-#############################################
-## subscribe: function to be called 
-##   to request updates from audrey.
-#############################################
+=cut
+
 sub subscribe{
 	if( $main::Startup || $main::Reload){ # (re)check config?
 		&build_srvr_list();
@@ -92,12 +112,13 @@ sub subscribe{
 	}
 	$last_subscribe=time();
 }
-#############################################
-## _ping_srvr: function to be request a reply from 
-##   audrey.  used to track the status of the
-##   acid program (up/down). 
-## Not intended for use by user code (lib only)
-#############################################
+
+=item C<_ping_srvr>
+
+function to be request a reply from audrey.  used to track the status of the acid program (up/down).  Not intended for use by user code (lib only)
+
+=cut
+
 sub _ping_srvr{
 	my ($paddr)=@_;
 	my $buf=&fmt_udp_msg(&CID_TYPE_TEST,$udp_fh->sockport());
@@ -107,10 +128,13 @@ sub _ping_srvr{
 	defined(send($udp_fh, $buf, 0, $paddr))    || die "send udp send failed: $!";
 
 }
-#############################################
-## status: function to be called 
-##   to request the status of the acid program (up/down)
-#############################################
+
+=item C<status>
+
+function to be called to request the status of the acid program (up/down)
+
+=cut
+
 sub status{
 
 	if($last_subscribe){
@@ -139,21 +163,26 @@ sub status{
 	}
 	return($status);
 }
-#############################################
-## fmt_udp_msg: function to be called 
-##   to format outbound messages
-#############################################
+
+=item C<fmt_udp_msg>
+
+function to be called to format outbound messages
+
+=cut
+
 sub fmt_udp_msg{
 	my ($type,$p1,$p2,$p3)=@_;
 	my $buf=pack("I I a64 a64",$type,$p1,$p2,$p3);
 	$debug && print STDERR "audrey_cid: fmt: type: $type, p1: $p1\n";
 	return $buf;
 }
-#############################################
-## unfmt_udp_msg: function to be called 
-##   to parse inbound msg from acid into its
-##   components.
-#############################################
+
+=item C<unfmt_udp_msg>
+
+function to be called to parse inbound msg from acid into its components.
+
+=cut
+
 sub unfmt_udp_msg{
 	my ($msg)=@_;
 	my ($type,$p1,$p2,$p3)=unpack("I I Z64 Z64",$msg);
@@ -161,11 +190,13 @@ sub unfmt_udp_msg{
 
 	return($type,$p1,$p2,$p3);
 }
-#############################################
-## build_srvr_list: build a list of paddr 
-##   structures for udp sendto() based on
-##   the configured ip addresses.
-#############################################
+
+=item C<build_srvr_list>
+
+build a list of paddr structures for udp sendto() based on the configured ip addresses.
+
+=cut
+
 sub build_srvr_list{
 
 	$debug && print "audrey_cid: build_srvr_list: starting\n";
@@ -192,16 +223,42 @@ sub build_srvr_list{
 	}
 
 }
-#############################################
-## CID_TYPE_XXXX():
-##   funtions that delineate the message types
-##   passed back and forth b/t acid client and 
-##   servers.
-#############################################
-#  Param1 contains client port for callback; Param2 is client computer name/address
+
+=item C<CID_TYPE_XXXX()>
+
+funtions that delineate the message types passed back and forth b/t acid client and servers.  Param1 contains client port for callback; Param2 is client computer name/address
+
+=cut
+
 sub CID_TYPE_SUBSCRIBE {return(1);}
 sub CID_TYPE_UNSUBSCRIBE {return(2);}# Param2 is client computer name/address
 sub CID_TYPE_INCOMING_CALL {return(3);}# Param2 is caller's name, Param3 is caller's phone #
 sub CID_TYPE_ERROR_CALL {return(4);} # Equivalent of ICallerIDNotify .OnError() - Param2 is error message 
 sub CID_TYPE_TEST{return(5);} # same syntax as subscribe (ping request)
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

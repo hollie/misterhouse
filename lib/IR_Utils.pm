@@ -1,7 +1,28 @@
-package IR_Utils;
+=head1 NAME
 
-# generate codes from IRD protocol specifications and OFA devices database 
-# by David Norwood (dnorwood2@yahoo.com) Dec, 2002
+B<IR_Utils>
+
+=head1 SYNOPSIS
+
+NONE
+
+=head1 DESCRIPTION
+
+generate codes from IRD protocol specifications and OFA devices database
+
+=head1 INHERITS
+
+B<NONE>
+
+=head1 METHODS
+
+=over
+
+=item B<UnDoc>
+
+=cut
+
+package IR_Utils;
 
 my $fields = 'Type	Sub	Code	?	P-id	Protocol	dev1	dev2	dev3	data1	data2	data3	Data	94	C7	P8	Mfgs	blank	0	1	2	3	4	5	6	7	8	9	VOL +	VOL -	MUTE	CH +	CH -	POWER	ENTER	TV/VCR	LAST	MENU	GUIDE	Up	Down	Left	Right	SELECT	SLEEP	PIP	DISPLAY	SWAP	MOVE	PLAY	PAUSE	REW	FFWD	STOP	REC	EXIT	SURR		bin1	bin2	bin3	332	TV0000';
 my $buttons = '0	1	2	3	4	5	6	7	8	9	VOL +	VOL -	MUTE	CH +	CH -	POWER	ENTER	TV/VCR	LAST	MENU	GUIDE	Up	Down	Left	Right	SELECT	SLEEP	PIP	DISPLAY	SWAP	MOVE	PLAY	PAUSE	REW	FFWD	STOP	REC	EXIT	SURR';
@@ -412,3 +433,29 @@ sub split_csv {
 	return @list; 
 }
 1; 
+
+
+=back
+
+=head1 INI PARAMETERS
+
+NONE
+
+=head1 AUTHOR
+
+David Norwood (dnorwood2@yahoo.com) Dec, 2002
+
+=head1 SEE ALSO
+
+NONE
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

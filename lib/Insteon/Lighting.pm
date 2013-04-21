@@ -107,6 +107,7 @@ sub convert_level
 	my ($on_level) = @_;
 	my $level = 'ff';
 	if (defined ($on_level)) {
+		$on_level =~ s/(\d+)%?/$1/;
 		if ($on_level eq '100') {
 			$level = 'ff';
 		} elsif ($on_level eq '0') {

@@ -6,6 +6,9 @@
 # Call Switch User if you call this script as root so mh does not run as root
 # su xyz 
 
+# Set current working directory to location of this script (bin/)
+cd "$( cd "$( dirname "$0" )" && pwd )"
+
 while [ 1 = 1 ]; do 
 
     echo

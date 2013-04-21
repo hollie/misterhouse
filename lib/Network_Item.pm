@@ -40,7 +40,7 @@ B<Generic_Item>
 use IO::Socket qw(AF_INET SOCK_DGRAM SOL_SOCKET SO_BROADCAST);
 use Socket;
 
-=item C<new($address, $interval)
+=item C<new($address, $interval)>
 
 $address:  Ip address of the box you want to ping
 $interval: How often to ping (in seconds)

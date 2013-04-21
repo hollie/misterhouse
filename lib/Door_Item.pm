@@ -1,73 +1,65 @@
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 B<Door_Item>
 
-File:
-	Door_Item.pm
+=head2 SYNOPSIS
 
-Description:
-   An abstract object that represents a door that you can add to a Light_Item.
-   You typically associate a real door item (i.e. an RF door sensor or a digital
-   input or the like) to this object.  It will also indicate the state of the
-   door on the web-based floorplan.pl.
+Example initialization:  These are to be placed in a *.mht file in your user code directory.
 
-   When attached to a Light_Item, it will cause the light to be turned on
-   whenever the door is opened.  Typically you attach several objects to
-   the same Light_Item.  See Light_Item.pm for various ways to control when
-   the light turns on and for how long.
+First, define your actual door object (these are just examples):
 
-Author(s):
-	Jason Sharpee - jason@sharpee.com
-	Kirk Bauer - kirk@kaybee.org
+  RF,          E1,     rf_front_door
+  STARGATEDIN, 7,      sg_patio_door
 
-License:
-	This free software is licensed under the terms of the GNU public license.
+Then, define the Door_Item and attach the real object:
 
-Usage:
-	Example initialization:
-      These are to be placed in a *.mht file in your user code directory.
+  # Object 'front_door' attached to existing object 'rf_front_door'
+  DOOR, rf_front_door, front_door
 
-      First, define your actual door object (these are just examples):
-         RF,          E1,     rf_front_door
-         STARGATEDIN, 7,      sg_patio_door
+Using from your user code:
 
-      Then, define the Door_Item and attach the real object:
-         # Object 'front_door' attached to existing object 'rf_front_door'
-         DOOR, rf_front_door, front_door
+  # Attaching to a Light_Item (automatically turns light on)
+  $auto_entry_light->add($front_door);
 
-   Using from your user code:
-     # Attaching to a Light_Item (automatically turns light on)
-     $auto_entry_light->add($front_door);
-	
-	Input states:
-      on/open/alert*: door opened
-      off/closed/normal*: door closed
-      ("*" is a wildcard here; values of "alertmin", "alertmax", 
-       and "alertbattlowmin" will all indicate "door opened", for example)
+Input states:
 
-	Output states:
-      open: door opened
-      closed: door closed
-      check: Inactivity timeout has occurred -- batteries may be dead?
+  on/open/alert*: door opened
+  off/closed/normal*: door closed
+  ("*" is a wildcard here; values of "alertmin", "alertmax",
+  and "alertbattlowmin" will all indicate "door opened", for example)
 
-   Optional Door-Open Alarm:
-      If you want to be alerted when the door is left open too long, you
-      can set an alarm (time is in seconds; an optional repeat_time can
-      force repeat actions):
-         $front_door->set_alarm(300, "speak('front door left open');",120);
+Output states:
 
-   Optional Inactivity Alarm:
-      If you want to be alerted when the door hasn't been opened for
-      a period of time (i.e. the batteries in the transmitter may be
-      dead) then do this (time is in hours):
-         $front_door->set_inactivity_alarm(
-            48,                                              # hours
-            "speak('front door battery may be dead');"       # command
-         );
+  open: door opened
+  closed: door closed
+  check: Inactivity timeout has occurred -- batteries may be dead?
 
-Special Thanks to: 
-	Bruce Winter - MH
+Optional Door-Open Alarm:  If you want to be alerted when the door is left open too long, you can set an alarm (time is in seconds; an optional repeat_time can force repeat actions):
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  $front_door->set_alarm(300, "speak('front door left open');",120);
+
+Optional Inactivity Alarm:
+
+If you want to be alerted when the door hasn't been opened for a period of time (i.e. the batteries in the transmitter may be dead) then do this (time is in hours):
+
+  $front_door->set_inactivity_alarm(
+     48,                                              # hours
+     "speak('front door battery may be dead');"       # command
+  );
+
+
+=head2 DESCRIPTION
+
+An abstract object that represents a door that you can add to a Light_Item.  You typically associate a real door item (i.e. an RF door sensor or a digital input or the like) to this object.  It will also indicate the state of the door on the web-based floorplan.pl.
+
+When attached to a Light_Item, it will cause the light to be turned on whenever the door is opened.  Typically you attach several objects to the same Light_Item.  See Light_Item.pm for various ways to control when the light turns on and for how long.
+
+=head2 INHERITS
+
+B<Base_Item>
+
+=head2 METHODS
+
+=over
+
 =cut
 
 use strict;
@@ -85,10 +77,15 @@ sub initialize
    $$self{'alarm_action'} = '';
    $$self{last_open} = 0;
    $$self{last_closed} = 0;
+   @{$$self{states}} = ('open','closed');
 }
 
-# If an alarm is set, the specified action is executed if the 
-# door was left open for the specified amount of time
+=item C<set_alarm($time,$action,$repeat_time)>
+
+If an alarm is set, the specified action is executed if the door was left open for the specified amount of time
+
+=cut
+
 sub set_alarm($$$) {
    my ($self, $time, $action, $repeat_time) = @_;
    $$self{'alarm_action'} = $action;
@@ -96,8 +93,12 @@ sub set_alarm($$$) {
    $$self{'alarm_repeat_time'} = $repeat_time if defined $repeat_time;
 }
 
-# If an inactivity alarm is set, the specified action is executed 
-# if no notification of the door being opened has occured for X hours
+=item C<set_inactivity_alarm($time,$action)>
+
+If an inactivity alarm is set, the specified action is executed if no notification of the door being opened has occured for X hours
+
+=cut
+
 sub set_inactivity_alarm($$$) {
    my ($self, $time, $action) = @_;
    $$self{'inactivity_action'} = $action;
@@ -172,4 +173,35 @@ sub get_last_open_time {
 }
 
 1;
+
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Jason Sharpee - jason@sharpee.com
+
+Kirk Bauer - kirk@kaybee.org
+
+Special Thanks to:
+Bruce Winter - MH
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 

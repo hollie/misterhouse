@@ -1,54 +1,45 @@
-use strict;
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 B<CID_Lookup>
 
-File:
-	CID_Lookup.pm
+=head2 SYNOPSIS
 
-Description:
-	Translates a caller name and number to more information based on file data
+Example initialization:
 
-Author:
-	Jason Sharpee
-	jason@sharpee.com
+  use CID_Lookup;
+  $cid = new CID_Lookup($telephony_driver);
 
-License:
-	This free software is licensed under the terms of the GNU public license.
+Constructor Parameters:
 
-Usage:
+  $x = new CID_lookup($y);
+  $x - Reference to the class
+  $y - Telephony driver reference
 
-	Example initialization:
+Input states:
 
-		use CID_Lookup;
-		$cid = new CID_Lookup($telephony_driver);
+  "cid"           - Caller ID event
+  "ring"          - Ring event 'to pass along to other consumers of this object'
 
-	Constructor Parameters:
-		ex. $x = new CID_lookup($y);
-		$x		- Reference to the class
-		$y		- Telephony driver reference
+Output states:
 
-	Input states:
-		"cid"	        - Caller ID event
-		"ring"     	- Ring event 'to pass along to other consumers of this object'
+  "cid"           - Caller ID event
+  "ring"          - Ring event 'to pass along to other consumers of this object'
 
-	Output states:
-		"cid"	        - Caller ID event
-		"ring"     	- Ring event 'to pass along to other consumers of this object'
+=head2 DESCRIPTION
 
-	For example see g_phone.pl
+Translates a caller name and number to more information based on file data
 
-Bugs:
-	There isnt a whole lot of error handling currently present in this version.  Drop me
-	an email if you are seeing something odd.
+=head2 INHERITS
 
-Special Thanks to:
-	Bruce Winter - MH
-	Tim Doyle - New Area Code format
-	Clive Freeman
+B<Telephony_Item>
 
+=head2 METHODS
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=over
+
+=item B<UnDoc>
+
 =cut
+
+use strict;
 package CID_Lookup;
 
 @CID_Lookup::ISA = ('Telephony_Item');
@@ -543,3 +534,34 @@ sub lookup_areacode
 }
 
 1;
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Jason Sharpee
+jason@sharpee.com
+
+Special Thanks to:
+Bruce Winter - MH
+Tim Doyle - New Area Code format
+Clive Freeman
+
+=head2 SEE ALSO
+
+For example see g_phone.pl
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

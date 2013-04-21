@@ -1,26 +1,20 @@
-=begin comment
+=head1 B<Android_Item>
 
-Android_Item.pm
+=head2 SYNOPSIS
 
-This module allows MisterHouse to capture and send speech and played
-wav files to an Android unit.
+NONE
 
-- mh.private.ini requirements
+=head2 DESCRIPTION
 
-Add "server_android_port" to your ini file.  The default port is 4444.
-The port number assigned to server_android_port must match the port
-configured in the android client.  The ports must match in order for
-the android device to receive speech events and notifications.
+This module allows MisterHouse to capture and send speech and played wav files to an Android unit.
 
-server_android_port=4444
+=head2 INHERITS
 
-By default, ALL speak and play events will be pushed to ALL android's
-regardless of the value in the speak/play "rooms" parameter.  If you
-want the android's to honor the rooms parameter, then you must define
-the android_use_rooms parameter in my.private.ini.  Each android declares
-a room name when the android registers with the server.
+B<Generic_Item>
 
-android_use_rooms=1
+=head2 METHODS
+
+=item B<UnDoc>
 
 =cut
 
@@ -246,3 +240,34 @@ sub android_xml {
 }
 
 1;
+
+=back
+
+=head2 INI PARAMETERS
+
+Add "server_android_port" to your ini file.  The default port is 4444.  The port number assigned to server_android_port must match the port configured in the android client.  The ports must match in order for the android device to receive speech events and notifications.
+
+  server_android_port=4444
+
+By default, ALL speak and play events will be pushed to ALL android's regardless of the value in the speak/play "rooms" parameter.  If you want the android's to honor the rooms parameter, then you must define the android_use_rooms parameter in my.private.ini.  Each android declares a room name when the android registers with the server.
+
+  android_use_rooms=1
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
