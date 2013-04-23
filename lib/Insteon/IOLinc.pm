@@ -53,7 +53,7 @@ use Insteon::BaseInsteon;
 
 package Insteon::IOLinc;
 
-@Insteon::IOLinc::ISA = ('Insteon::DeviceController','Insteon::BaseDevice');
+@Insteon::IOLinc::ISA = ('Insteon::BaseDevice','Insteon::DeviceController');
 
 our %message_types = (
 	%Insteon::BaseDevice::message_types,
