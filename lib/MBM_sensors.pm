@@ -1,3 +1,90 @@
+=head1 B<MBM_sensors>
+
+=head2 SYNOPSIS
+
+  require 5.003;
+  use Win32::MBM_sensors qw( :STAT 0.19 );
+  my %Sensors = &MBM_sensors::get;
+
+Key/Value pairs in resulting hash:
+
+  $Sensors{error}            char if successful, undef; if failure, reason.
+
+  $Sensors{version}          num  MBM version number
+  $Sensors{timestart}        char Date/time of MBM startup
+  $Sensors{timecurrent}      char Date/time of last update of all sensors
+  $Sensors{path}             char Working path for MBM
+
+  $Sensors{temperature}           Array of sensor hashes
+  $Sensors{voltage}               Array of sensor hashes
+  $Sensors{fan}                   Array of sensor hashes
+  $Sensors{MHZ}                   Array of sensor hashes
+  $Sensors{CPUbusy}               Array of sensor hashes
+
+Each sensor hash, regardless of type, is:
+
+  $Sensor{name}              char Name of sensor
+  $Sensor{current}           num  Most recent reading, degrees celsius for Temp, RPM for fan, etc.
+  $Sensor{low}               num  Minimum reading since MBM startup
+  $Sensor{high}              num  Maximum reading since MBM startup
+  $Sensor{count}             num  Number of times read since MBM startup
+  $Sensor{total}             num  Sum of all readings since MBM startup
+  $Sensor{alarm1}            num  Low alarm point for MBM action
+  $Sensor{alarm2}            num  High alarm point for MBM action
+
+Example of selecting the first temperature sensor as a complete hash:
+
+  %Sensor = $Sensors{temperature}[1];
+  print "Temp sensor 1 now $Sensor{current}";
+
+Example of selecting the current reading of the second temperature sensor:
+
+  print "Temp sensor 2 now $Sensors{temperature}[2]{current}";
+
+Constants taken from MBM sensors.c sample code
+
+  //    enum Bus
+  define BusType     char
+  define ISA         0
+  define SMBus       1
+  define VIA686Bus   2
+  define DirectIO    3
+
+  //    enum SMB
+  define SMBType         char
+  efine smtSMBIntel     0
+  define smtSMBAMD       1
+  define smtSMBALi       2
+  define smtSMBNForce    3
+  define smtSMBSIS       4
+
+  // enum Sensor Types
+  define SensorType      char
+  define stUnknown       0
+  define stTemperature   1
+  define stVoltage       2
+  define stFan           3
+  define stMhz           4
+  define stPercentage    5
+
+Except for items indicated as I<Experimental>, I do not expect functional changes which are not fully backwards compatible.
+
+=head2 DESCRIPTION
+
+This module provides an interface to MBM sensors.  MBM monitors Temperature, Voltage, Fans, etc. via sensors included in many motherboards.  MBM runs on MS Windows.  MBM available at http://mbm.livewiredev.com.  MBM must be installed and correctly configured.
+
+=head2 INHERITS
+
+B<NONE>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
+=cut
+
 package MBM_sensors;
 
 use Win32::API;
@@ -195,114 +282,27 @@ return %MBM_sensors;
 
 1;
 
-__END__
 
-=pod
+=back
 
-=head1 NAME
+=head2 INI PARAMETERS
 
-Win32::MBM_sensors - Perl interface to MBM (Mother Board Monitor) sensors
+NONE
 
-=head1 SYNOPSIS
-
-  require 5.003;
-  use Win32::MBM_sensors qw( :STAT 0.19 );
-  my %Sensors = &MBM_sensors::get;
-
-=head1 DESCRIPTION
-
-  This module provides an interface to MBM sensors
-  MBM monitors Temperature, Voltage, Fans, etc. via sensors included in many motherboards
-  MBM runs on MS Windows
-  MBM available at http://mbm.livewiredev.com
-  MBM must be installed and correctly configured.
-
-=head2 CALLING
-
-  my %Sensors = &MBM_sensors::get;
-
-  Key/Value pairs in resulting hash:
-  $Sensors{error}            char if successful, undef; if failure, reason.
-
-  $Sensors{version}          num  MBM version number
-  $Sensors{timestart}        char Date/time of MBM startup
-  $Sensors{timecurrent}      char Date/time of last update of all sensors
-  $Sensors{path}             char Working path for MBM
-
-  $Sensors{temperature}           Array of sensor hashes 
-  $Sensors{voltage}               Array of sensor hashes 
-  $Sensors{fan}                   Array of sensor hashes 
-  $Sensors{MHZ}                   Array of sensor hashes 
-  $Sensors{CPUbusy}               Array of sensor hashes 
-
-  Each sensor hash, regardless of type, is: 
-
-  $Sensor{name}              char Name of sensor
-  $Sensor{current}           num  Most recent reading, degrees celsius for Temp, RPM for fan, etc.
-  $Sensor{low}               num  Minimum reading since MBM startup
-  $Sensor{high}              num  Maximum reading since MBM startup
-  $Sensor{count}             num  Number of times read since MBM startup
-  $Sensor{total}             num  Sum of all readings since MBM startup
-  $Sensor{alarm1}            num  Low alarm point for MBM action
-  $Sensor{alarm2}            num  High alarm point for MBM action
-
-
-  Example of selecting the first temperature sensor as a complete hash:
-    %Sensor = $Sensors{temperature}[1]; 
-    print "Temp sensor 1 now $Sensor{current}";
-  Example of selecting the current reading of the second temperature sensor:
-    print "Temp sensor 2 now $Sensors{temperature}[2]{current}"; 
-
-=head2 Constants taken from MBM sensors.c sample code
-
-#//    enum Bus
-#define BusType     char
-#define ISA         0
-#define SMBus       1
-#define VIA686Bus   2
-#define DirectIO    3
-
-#//    enum SMB
-#define SMBType         char
-#define smtSMBIntel     0
-#define smtSMBAMD       1
-#define smtSMBALi       2
-#define smtSMBNForce    3
-#define smtSMBSIS       4
-
-#// enum Sensor Types
-#define SensorType      char
-#define stUnknown       0
-#define stTemperature   1
-#define stVoltage       2
-#define stFan           3
-#define stMhz           4
-#define stPercentage    5    
-
-=head1 BUGS
-
-__Please send comments and bug reports to danal@earthling.net
-
-
-=head1 AUTHORS
+=head2 AUTHOR
 
 Danal Estes, danal@earthling.net, http://www.desquared.org.
 
-=head1 SEE ALSO
+=head2 SEE ALSO
 
 Win32::API - Aldo Calpini's "Magic", http://www.divinf.it/dada/perl/
 
-=head1 COPYRIGHT
+=head2 LICENSE
 
 Copyright (C) 2003, Danal Estes. All rights reserved.
 
 This module is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
-
-=head2 COMPATIBILITY
-
-Except for items indicated as I<Experimental>, I do not expect functional
-changes which are not fully backwards compatible. 
 
 =cut
 
