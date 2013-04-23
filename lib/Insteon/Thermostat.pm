@@ -55,6 +55,8 @@ $thermo_humidity = new Insteon::Thermo_humidity($thermostat);
 $thermo_setpoint_h = new Insteon::Thermo_setpoint_h($thermostat);
 $thermo_setpoint_c = new Insteon::Thermo_setpoint_c($thermostat);
 
+where $thermostat is the parent object to track.
+
 see code/examples/Insteon_thermostat.pl for more.
 
 =head1 BUGS
@@ -522,7 +524,7 @@ sub init {
 
 sub sync_links{
 	my ($self, $audit_mode, $callback, $failure_callback) = @_;
-	if !($audit_mode){
+	if (!$audit_mode){
 		#Make sure thermostat is set to broadcast changes
 		::print_log("[Insteon::Thermo_i2] (sync_links) Enabling thermostat broadcast setting.") unless $audit_mode;
 		my $extra = "000008000000000000000000000000";
