@@ -47,6 +47,14 @@ All of the states that may be set:
    fan_mode_change: Fan mode changed
       (call get_fan_mode() to get value).
 
+Child objects which track the states of the thermostat can be created:
+$thermo_temp = new Insteon::Thermo_temp($thermostat);
+$thermo_fan = new Insteon::Thermo_fan($thermostat);
+$thermo_mode = new Insteon::Thermo_mode($thermostat);
+$thermo_humidity = new Insteon::Thermo_humidity($thermostat);
+$thermo_setpoint_h = new Insteon::Thermo_setpoint_h($thermostat);
+$thermo_setpoint_c = new Insteon::Thermo_setpoint_c($thermostat);
+
 see code/examples/Insteon_thermostat.pl for more.
 
 =head1 BUGS
@@ -68,11 +76,9 @@ Kevin Rober Keegan <kevin@krkeegan.com>
 
 =head1 TODO
 
- - Look at possible bugs when starting from factory defaults
-      There seemed to be an issue with the setpoints changing when changing modes until
-      they were set programatically.
- - Test fan modes and associated state_changes
  - Manage aldb - should be able to adjust setpoints based on plm scene. <- may be overkill
+ - Add ability to link devices to the I2 Thermostat groups 1-4
+ - Add ability to link other devices to the broadcast group.
 
 =head1 INHERITS
 
@@ -516,16 +522,23 @@ sub init {
 
 sub sync_links{
 	my ($self, $audit_mode, $callback, $failure_callback) = @_;
-	#Make sure thermostat is set to broadcast changes
-	::print_log("[Insteon::Thermo_i2] (sync_links) Enabling thermostat broadcast setting.") unless $audit_mode;
-	my $extra = "000008000000000000000000000000";
-	my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
-	$$self{_ext_set_get_action} = 'set';
-	$self->_send_cmd($message);
+	if !($audit_mode){
+		#Make sure thermostat is set to broadcast changes
+		::print_log("[Insteon::Thermo_i2] (sync_links) Enabling thermostat broadcast setting.") unless $audit_mode;
+		my $extra = "000008000000000000000000000000";
+		my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
+		$$self{_ext_set_get_action} = 'set';
+		$self->_send_cmd($message);
+	}
 	# Call the main sync_links code
 	return $self->SUPER::sync_links($audit_mode, $callback, $failure_callback);
 }
 
+=item C<poll_simple()>
+
+Requests the status of all Thermostat data points (temp, fan, mode ...) in a single
+request.  Only available for I2 devices.
+=cut
 sub poll_simple{
 	my ($self) = @_;
 	my $extra = "020000000000000000000000000000";
@@ -775,7 +788,10 @@ sub simple_message {
 	$message = new Insteon::InsteonMessage('insteon_ext_send', $self, $type, $extra);
 	return $message;
 }
+=item C<sync_time()>
 
+Sets the data and time of the thermostat based on the time of the MH server.
+=cut
 sub sync_time {
 	my ($self) = @_;
 	#In order to set the time, we need to know the current value of other data
