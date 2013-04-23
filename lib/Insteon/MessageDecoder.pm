@@ -481,6 +481,7 @@ my %x10_commands = (
 Returns a string containing a decoded PLM data packet
 
 =cut
+
 sub plm_decode {
 	my ($plm_string) = @_;
 	$plm_string = lc($plm_string);
@@ -716,6 +717,7 @@ sub plm_decode {
 Returns a string containing a decoded PLM X10 data packet
 
 =cut
+
 sub plm_x10_decode {
 	my ($x10_string) = @_;
 	$x10_string = lc($x10_string);
@@ -735,6 +737,7 @@ sub plm_x10_decode {
 Returns a string containing decoded Insteon message flags
 
 =cut
+
 sub insteon_message_flags_decode {
         my ($flags_string) = @_;
         $flags_string = lc($flags_string);
@@ -765,6 +768,7 @@ string should be the Insteon message starting with the
 message flag byte.
 
 =cut
+
 sub insteon_decode {
 	my ($command_string) = @_;
 #Mapping from message type bit field to acronyms used in

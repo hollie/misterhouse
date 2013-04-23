@@ -56,6 +56,26 @@ sub failure_callback
         return $$self{failure_callback};
 }
 
+=item C<failure_reason>
+
+Stores the resaon for the most recent message failure [NAK | timeout].  Used to 
+process message callbacks after a message fails.  If called with no parameter 
+returns the saved failure reason.
+
+Parameters:
+	reason: failure reason
+
+Returns: failure reason
+
+=cut 
+
+sub failure_reason
+{
+        my ($self, $reason) = @_;
+        $$self{failure_reason} = $reason if $reason;
+        return $$self{failure_reason};
+}
+
 sub send_attempts
 {
 	my ($self, $send_attempts) = @_;
@@ -514,6 +534,7 @@ is that summing over all the bytes "including" the checksum will always equal 00
 This makes it very easy to validate a checksum.
 
 =cut
+
 sub calculate_checksum {
 	my ($string) = @_;
 
@@ -535,6 +556,7 @@ byte. This function will return two bytes, which are generally added to the
 data 13 & 14 bytes in an extended message.
 
 =cut
+
 sub calculate_crc16
 {
 	#This function is nearly identical to the C++ sample provided by 

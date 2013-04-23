@@ -662,6 +662,7 @@ sub _process_message
 		{
 			main::print_log("[Insteon::BaseObject] WARN: Now calling message failure callback: "
 				. $p_setby->active_message->failure_callback) if $main::Debug{insteon};
+			$p_setby->active_message->failure_reason('NAK');
 			package main;
 			eval $p_setby->active_message->failure_callback;
 			main::print_log("[Insteon::BaseObject] problem w/ retry callback: $@") if $@;
@@ -1217,11 +1218,51 @@ sub request_status
 #	$self->_send_cmd('command' => 'status_request', 'is_synchronous' => 1);
 }
 
+=item C<get_engine_version>
+
+Queues a get engine version insteon message using L<Insteon::BaseObject::_send_cmd> 
+and sets a message failure callback to L<Insteon::BaseDevice::_get_engine_version_failure>.  
+Message response is processed in L<Insteon::BaseObject::_is_info_request>  
+
+Returns: nothing
+
+=cut 
+
 sub get_engine_version {
-   my ($self, $requestor) = @_;
+   my ($self) = @_;
 
    my $message = new Insteon::InsteonMessage('insteon_send', $self, 'get_engine_version');
+   my $self_object_name = $self->get_object_name;
+   $message->failure_callback("$self_object_name->_get_engine_version_failure()");
    $self->_send_cmd($message);
+}
+
+=item C<_get_engine_version_failure>
+
+Callback failure for L<Insteon::BaseDevice::get_engine_version>; called for NAK 
+and message timeout.  Will force engine_version to I2CS which will also remap 
+the aldb version if the device responds with a NAK. Does nothing for timeouts 
+except print a message. 
+
+Returns: nothing
+
+=cut 
+
+sub _get_engine_version_failure
+{
+	my ($self) = @_;
+	my $failure_reason = $self->interface->active_message->failure_reason();
+	
+	main::print_log("[Insteon::BaseDevice::_get_engine_version_failure] DEBUG4: "
+		."failure reason: $failure_reason") if $main::Debug{insteon} >= 4;
+	
+	if($failure_reason eq 'NAK')
+	{
+		#assume I2CS because no other device will NAK this command
+		main::print_log("[Insteon::BaseDevice] WARN: I2CS device is not "
+			."linked; Please use 'link to interface' voice command");
+		$self->engine_version('I2CS');
+	}
 }
 
 sub ping
@@ -1376,6 +1417,18 @@ sub update_flags
 	$self->_aldb->update_flags($flags) if $self->_aldb;
 }
 
+=item C<engine_version>
+
+Sets or gets the device object engine version.  If setting the engine version, 
+will also call check_aldb_version to map the aldb correctly for I2 devices. 
+
+Parameters:
+	p_engine_version: [I1|I2|I2CS] to set engine version
+
+Returns: engine version string [I1|I2|I2CS]
+
+=cut 
+
 sub engine_version
 {
 	my ($self, $p_engine_version) = @_;
@@ -1406,7 +1459,7 @@ sub check_aldb_version
 
 	my $engine_version = $self->SUPER::engine_version();
 	my $new_version = "";
-	if($engine_version ne 'I1' and $self->_aldb->aldb_version() ne 'I2') {
+	if($engine_version and $engine_version ne 'I1' and $self->_aldb->aldb_version() ne 'I2') {
 		$new_version = "I2";
 	}
 	elsif($engine_version eq 'I1' and $self->_aldb->aldb_version() ne 'I1') {
