@@ -959,8 +959,14 @@ sub add_link
 				. " light level controlled by " . $insteon_object->get_object_name
 		       		. " and group: $group with on level: $on_level and ramp rate: $ramp_rate")
                                 if $main::Debug{insteon} >= 2;
-	       		my $data1 = &Insteon::DimmableLight::convert_level($on_level);
-			my $data2 = ($$self{device}->isa('Insteon::DimmableLight')) ? &Insteon::DimmableLight::convert_ramp($ramp_rate) : '00';
+			my ($data1, $data2);
+			if($link_parms{is_controller}) {
+				$data1 = '03';  #application retries == 3
+				$data2 = '00';  #ignored for controller entries
+			} else {
+				$data1 = &Insteon::DimmableLight::convert_level($on_level);
+				$data2 = ($$self{device}->isa('Insteon::DimmableLight')) ? &Insteon::DimmableLight::convert_ramp($ramp_rate) : '00';
+			}
 			my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
 			$$self{_mem_activity} = 'add';
 			$self->_write_link($address, $device_id, $group, $is_controller, $data1, $data2, $data3);
@@ -1005,9 +1011,7 @@ sub update_link
 	$ramp_rate =~ s/(\d)s?/$1/;
 	&::print_log("[Insteon::AllLinkDatabase] updating " . $$self{device}->get_object_name . " light level controlled by " . $insteon_object->get_object_name
 		. " and group: $group with on level: $on_level and ramp rate: $ramp_rate") if $main::Debug{insteon};
-	my $data1 = sprintf('%02X',$on_level * 2.55);
-	$data1 = 'ff' if $on_level eq '100';
-	$data1 = '00' if $on_level eq '0';
+	my $data1 = &Insteon::DimmableLight::convert_level($on_level);
 	my $data2 = ($$self{device}->isa('Insteon::DimmableLight')) ? &Insteon::DimmableLight::convert_ramp($ramp_rate) : '00';
 	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
 	my $deviceid = $insteon_object->device_id;

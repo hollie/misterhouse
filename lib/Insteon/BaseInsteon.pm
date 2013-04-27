@@ -974,7 +974,7 @@ sub link_to_interface
 	my $callback_instance = $self->interface->get_object_name;
 	my $callback_info = "deviceid=" . lc $self->device_id . " group=$group is_controller=0";
 	my %link_info = ( object => $self->interface, group => $group, is_controller => 1,
-		on_level => '100%', ramp_rate => '0.1s',
+#		on_level => '100%', ramp_rate => '0.1s',  Controllers don't use on_level or ramp_rate
 		callback => "$callback_instance->add_link('$callback_info')");
 	$link_info{data3} = $p_data3 if $p_data3;
         if ($self->_aldb) {
