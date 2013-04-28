@@ -1,25 +1,27 @@
-package Slinke;
+=head1 B<Slinke>
 
-=head1 NAME
+=head2 SYNOPSIS
 
-Slinke - module to control the Slink-e product produced by Nirvis -
+  use Slinke;
+
+  # Create a Slinke and read from the infrared port
+  my $slinke = new Slinke;
+  my $data = $slinke->requestInput();
+
+  foreach my $i ( @$data ) {
+     print "$i\n";
+  }
+
+The different port names are exported.  These are the following:
+
+  PORT_SL0 PORT_SL1 PORT_SL2 PORT_SL3 PORT_IR PORT_PAR PORT_SER PORT_SYS
+
+=head2 DESCRIPTION
+
+Slink-e is a module to control the Slink-e product produced by Nirvis -
 visit Nirvis at http://www.nirvis.com
 
-=head1 SYNOPSIS
-
-    use Slinke;
-
-    # Create a Slinke and read from the infrared port
-    my $slinke = new Slinke;
-    my $data = $slinke->requestInput();
-
-    foreach my $i ( @$data ) {
-       print "$i\n";
-    }
-
-=head1 DESCRIPTION
-
-Slink-e is a product that can speak to many different Sony products over 
+Slink-e is a product that can speak to many different Sony products over
 the S-Link port.  Also, it can receive and transmit infrared signals over
 8 different transmitters/receivers.
 
@@ -29,9 +31,17 @@ of these infrared signals.
 Note that this code borrows heavily from C++ code from Colby Boles.  In
 fact, sometimes I just copied his code and comments verbatim.
 
-=head1 METHODS
+=head2 INHERITS
+
+B<NONE>
+
+=head2 METHODS
+
+=over
 
 =cut
+
+package Slinke;
 
 use strict;
 use Exporter;
@@ -40,14 +50,6 @@ use vars qw( @ISA $VERSION @EXPORT );
 
 $VERSION = 1.00;
 @ISA = qw(Exporter);
-
-=head2 EXPORT
-
-The different port names are exported.  These are the following:
-
- PORT_SL0 PORT_SL1 PORT_SL2 PORT_SL3 PORT_IR PORT_PAR PORT_SER PORT_SYS
-
-=cut
 
 @EXPORT = qw( PORT_SL0 PORT_SL1 PORT_SL2 PORT_SL3 PORT_IR PORT_PAR PORT_SER PORT_SYS decodeIR );
 
@@ -210,7 +212,9 @@ foreach my $i ( keys %Slinke::RESPONSES ) {
 		    RSP_SEEPROMWRERR        => [ "SEEPROM Write Error", 0 ],
 		  );
 
-=head2 $slinke = new Slinke( [ DEVICE => $device, SERIALPORT => $serialport ] );
+=item C<new>
+
+  $slinke = new Slinke( [ DEVICE => $device, SERIALPORT => $serialport ] );
 
 Returns a newly created C<Slinke> object.
 
@@ -602,7 +606,9 @@ sub rlcToInt8 {
     return @bin;
 }
 
-=head2 $slinke->requestInput();
+=item C<requestInput>
+
+  $slinke->requestInput();
 
 This function returns any input from the S-Link ports, the IR ports or the Parallel port
 
@@ -631,9 +637,11 @@ sub requestInput {
     return shift @{$this->{ RECEIVED }};
 }
 
-=head2 $slinke->requestSerialNumber()
+=item C<requestSerialNumber>
 
-This returns the 8 byte serial number of the Slink-e.
+  $slinke->requestSerialNumber()
+
+Returns the 8 byte serial number of the Slink-e.
 
 =cut
 
@@ -643,9 +651,11 @@ sub requestSerialNumber {
     return ($this->txrx( COMMAND => "CMD_GETSERIALNO" ))[2];
 }
 
-=head2 $slinke->requestBaud()
+=item C<requestBaud>
 
-This returns the baud rate in bps of the Slink-e.
+  $slinke->requestBaud()
+
+Returns the baud rate in bps of the Slink-e.
 
 =cut
 
@@ -681,9 +691,11 @@ sub requestBaud {
     return undef;
 }
 
-=head2 $slinke->setBaud()
+=item C<setBaud>
 
-This sets the baud rate in bps of the Slink-e.
+  $slinke->setBaud()
+
+Sets the baud rate in bps of the Slink-e.
 
 =cut
 
@@ -718,9 +730,11 @@ sub setBaud {
     return $data;
 }
 
-=head2 $slinke->requestFirmwareVersion()
+=item C<requestFirmwareVersion>
 
-This returns the firmware version of the Slink-e
+  $slinke->requestFirmwareVersion()
+
+Returns the firmware version of the Slink-e
 
 =cut
 
@@ -736,7 +750,9 @@ sub requestFirmwareVersion {
     return $data;
 }
 
-=head2 $slinke->enablePort( $port )
+=item C<enablePort>
+
+  $slinke->enablePort( $port )
 
 Enables reception on specified port.  If port == C<PORT_SYS> I<all ports are not enabled>,
 instead each port is returned to its enabled/disabled state previous to the global
@@ -771,7 +787,9 @@ sub enablePort {
     }
 }
 
-=head2 $slinke->disablePort( $port )
+=item C<disablePort>
+
+  $slinke->disablePort( $port )
 
 Disables reception on specified port.  If port == C<PORT_SYS>, all ports are
 disabled.  Disabling a port does not prevent the host from sending messages out
@@ -806,7 +824,9 @@ sub disablePort {
     }
 }
 
-=head2 $slinke->requestIRSamplingPeriod()
+=item C<requestIRSamplingPeriod>
+
+  $slinke->requestIRSamplingPeriod()
 
 This returns the infrared sampling period of the Slink-e.  Values can
 range from 50 microseconds to 1 millisecond.
@@ -838,7 +858,9 @@ sub requestIRSamplingPeriod {
     return $data;
 }
 
-=head2 $slinke->setIRSamplingPeriod( $time )
+=item C<setIRSamplingPeriod>
+
+  $slinke->setIRSamplingPeriod( $time )
 
 This sets the infrared sampling period of the Slink-e.  Values can
 range from 50 microseconds to 1 millisecond in 1/5 microsecond
@@ -909,7 +931,9 @@ sub setIRSamplingPeriod {
     return $data;
 }
 
-=head2 $slinke->requestIRCarrier()
+=item C<requestIRCarrier>
+
+  $slinke->requestIRCarrier()
 
 This returns the IR carrier frequency of the Slink-e.
 
@@ -936,7 +960,9 @@ sub requestIRCarrier {
     return $data;
 }
 
-=head2 $slinke->setIRCarrier( $frequency )
+=item C<setIRCarrier>
+
+  $slinke->setIRCarrier( $frequency )
 
 This sets the IR carrier frequency of the Slink-e.  Note that because
 of the way that the frequency gets set, it will be very unlikely that
@@ -1007,7 +1033,9 @@ sub setIRCarrier {
 
 }
 
-=head2 $slinke->requestIRTimeoutPeriod()
+=item C<requestIRTimeoutPeriod>
+
+ $slinke->requestIRTimeoutPeriod()
 
 This returns the IR timeout period of the Slink-e as measured in sample
 periods.  The timeout period defines how ling the IR receiver module must
@@ -1031,7 +1059,9 @@ sub requestIRTimeoutPeriod {
     return $data;
 }
 
-=head2 $slinke->setIRTimeoutPeriod( $sample_periods )
+=item C<setIRTimeoutPeriod>
+
+  $slinke->setIRTimeoutPeriod( $sample_periods )
 
 This returns the IR timeout period of the Slink-e as measured in sample
 periods.  The timeout period defines how ling the IR receiver module must
@@ -1086,7 +1116,9 @@ sub setIRTimeoutPeriod {
     return $data;
 }
 
-=head2 $slinke->requestIRMinimumLength()
+=item C<requestIRMinimumLength>
+
+  $slinke->requestIRMinimumLength()
 
 This returns the length of the shortest IR receive message in bytes which
 will be considered a valid message.  
@@ -1102,7 +1134,9 @@ sub requestIRMinimumLength {
     return $data;
 }
 
-=head2 $slinke->setIRMinimumLength( $bytes )
+=item C<setIRMinimumLength>
+
+  $slinke->setIRMinimumLength( $bytes )
 
 This set the length of the shortest IR receive message in bytes which
 will be considered a valid message.  IR receiver modules such as the one
@@ -1148,7 +1182,9 @@ sub setIRMinimumLength {
     return $data;
 }
 
-=head2 $slinke->requestIRTransmitPorts()
+=item C<requestIRTransmitPorts>
+
+  $slinke->requestIRTransmitPorts()
 
 This returns the value of the ports that the Slink-e uses for IR transmissions.
 The bits represent the 8 IR ports, IR0 being the LSB, IR7 the MSB.  A "1" indicates
@@ -1169,7 +1205,9 @@ sub requestIRTransmitPorts {
     return hex(($this->txrx( COMMAND => "CMD_GETIRTXPORTS" ))[2]);
 }
 
-=head2 $slinke->setIRTransmitPorts( $ports )
+=item C<setIRTransmitPorts>
+
+  $slinke->setIRTransmitPorts( $ports )
 
 This sets the ports that the Slink-e uses for IR transmissions.  The bits represent 
 the 8 IR ports, IR0 being the LSB, IR7 the MSB.  A "1" indicates the port will be used.
@@ -1198,7 +1236,9 @@ sub setIRTransmitPorts {
 
 }
 
-=head2 $slinke->requestIRPolarity()
+=item C<requestIRPolarity>
+
+  $slinke->requestIRPolarity()
 
 Reports the polarity sense of each of the IR ports. These settings will also 
 affect the IR routing system. The bits of the response represent the 8 IR ports, 
@@ -1226,7 +1266,9 @@ sub requestIRPolarity {
     return hex(($this->txrx( COMMAND => "CMD_GETIRRXPORTPOL" ))[2]);
 }
 
-=head2 $slinke->setIRPolarity( $ports )
+=item C<setIRPolarity>
+
+  $slinke->setIRPolarity( $ports )
 
 Sets the polarity sense of each of the IR ports. These settings will also affect 
 the IR routing system. The bits of $ports represent the 8 IR ports, IR0 being the LSB,
@@ -1271,7 +1313,9 @@ sub setIRPolarity {
     return $data;
 }
 
-=head2 $slinke->requestIRReceivePorts()
+=item C<requestIRReceivePorts>
+
+  $slinke->requestIRReceivePorts()
 
 This returns the value of the ports that the Slink-e uses for IR reception.
 The bits represent the 8 IR ports, IR0 being the LSB, IR7 the MSB.  A "1" indicates
@@ -1292,7 +1336,9 @@ sub requestIRReceivePorts {
     return hex(($this->txrx( COMMAND => "CMD_GETIRRXPORTEN" ))[2]);
 }
 
-=head2 $slinke->setIRReceivePorts( $ports )
+=item C<setIRReceivePorts>
+
+  $slinke->setIRReceivePorts( $ports )
 
 This sets the ports that the Slink-e uses for IR reception.  The bits represent 
 the 8 IR ports, IR0 being the LSB, IR7 the MSB.  A "1" indicates the port will be used.
@@ -1333,7 +1379,9 @@ sub setIRReceivePorts {
     return $data;
 }
 
-=head2 $slinke->requestIRRoutingTable()
+=item C<requestIRRoutingTable>
+
+  $slinke->requestIRRoutingTable()
 
 This response describes the IR routing table. The routelist byte for each 
 IRRX port specifies which IRTX ports the received signal will be echoed to. 
@@ -1374,7 +1422,9 @@ sub requestIRRoutingTable {
     return @data;
 }
 
-=head2 $slinke->setIRRoutingTable( @data )
+=item C<setIRRoutingTable>
+
+  $slinke->setIRRoutingTable( @data )
 
 This command sets up the IR routing table. The routelist byte for each 
 IRRX port specifies which IRTX ports the received signal will be echoed to. 
@@ -1449,7 +1499,9 @@ sub setIRRoutingTable {
     return @newdata;
 }
 
-=head2 $slinke->requestHandshaking()
+=item C<requestHandshaking>
+
+  $slinke->requestHandshaking()
 
 Reports the input and output handshaking mode for the Parallel Port. 
 
@@ -1489,7 +1541,9 @@ sub requestHandshaking {
     return hex(($this->txrx( COMMAND => "CMD_GETHSMODE" ))[2]);
 }
 
-=head2 $slinke->setHandshaking( $handshaking )
+=item C<setHandshaking>
+
+  $slinke->setHandshaking( $handshaking )
 
 Sets the input and output handshaking mode for the Parallel Port. 
 
@@ -1550,7 +1604,9 @@ sub setHandshaking {
     return $data;
 }
 
-=head2 $slinke->requestDirection()
+=item C<requestDirection>
+
+  $slinke->requestDirection()
 
 Reports which parallel port lines are inputs or outputs. The bits d7:d0 in 
 the output correspond 1 to 1 with the Parallel Port I/O lines DIO7:DIO0. 
@@ -1568,7 +1624,9 @@ sub requestDirection {
     return hex(($this->txrx( COMMAND => "CMD_GETDIR" ))[2]);
 }
 
-=head2 $slinke->setDirection( $direction )
+=item C<setDirection>
+
+  $slinke->setDirection( $direction )
 
 Configures the parallel port lines as inputs or outputs. The bits d7:d0 
 in the direction byte correspond 1 to 1 with the Parallel Port I/O lines 
@@ -1604,7 +1662,9 @@ sub setDirection {
     return $data;
 }
 
-=head2 $slinke->sampleParPort()
+=item C<sampleParPort>
+
+  $slinke->sampleParPort()
 
 Causes the Slink-e to sample the Parallel Port inputs just as if it had 
 seen a rising edge on DISTB when input handshaking is enabled. This command 
@@ -1622,7 +1682,9 @@ sub sampleParPort {
     $this->txrx( COMMAND => "CMD_SAMPLE" );
 }
 
-=head2 $slinke->sendIR( DATA => $data [, IRPORT => $ports ] )
+=item C<sendIR>
+
+  $slinke->sendIR( DATA => $data [, IRPORT => $ports ] )
 
 This function allows you to send IR signals.  The C<DATA> element should be
 an array reference of run length coded signals.  If you wish to send the
@@ -1683,7 +1745,9 @@ sub sendIR {
     }
 }
 
-=head2 $slinke->sendData( DATA => $data, PORT => $port )
+=item C<sendData>
+
+  $slinke->sendData( DATA => $data, PORT => $port )
 
 This allows data to be sent over a S-Link port or the parallel port.
 The C<PORT> element must be set to either C<PORT_SL0>, C<PORT_SL1>,
@@ -1785,7 +1849,9 @@ sub resume {
     $this->txrx( COMMAND => "CMD_RESUME" );
 }
 
-=head2 $slinke->reset()
+=item C<reset>
+
+  $slinke->reset()
 
 Warm-boots the Slink-e, resetting all defaults including the baud 
 rate. In version 2.0 or greater, these defaults are loaded from 
@@ -1800,7 +1866,9 @@ sub reset {
     $this->loadInternals;
 }
 
-=head2 $slinke->loadDefaults()
+=item C<loadDefaults>
+
+  $slinke->loadDefaults()
 
 Causes the Slink-e to load all of the current user settings from EEPROM 
 memory so that they are returned to their default values, Be wary of the 
@@ -1825,7 +1893,9 @@ sub loadDefaults {
     $this->loadInternals;
 }
 
-=head2 $slinke->saveDefaults()
+=item C<saveDefaults>
+
+  $slinke->saveDefaults()
 
 Causes the Slink-e to save all of the current user settings to EEPROM
 memory so that they will become the defaults the next time the Slink-e 
@@ -1847,7 +1917,9 @@ sub saveDefaults {
     $this->txrx( COMMAND => "CMD_SAVEDEFAULTS" );
 }
 
-=head2 decodeIR( @data )
+=item C<decodeIR>
+
+  decodeIR( @data )
 
 This will take the data returned by requestInput and attempt to convert it
 to a bit string.  This function returns a hash reference.
@@ -2077,21 +2149,26 @@ sub PORT_SYS { return "PORT_SYS"; }
 
 1;
 
-=head1 TODO
+=back
 
-Add bin mode for S-Link ports
+=head2 INI PARAMETERS
 
-=head1 AUTHOR
+NONE
+
+=head2 AUTHOR
 
 Brian Paulsen <Brian@ThePaulsens.com>
+
+=head2 SEE ALSO
+
+For further information about the Slink-e, visit http://www.nirvis.com
+
+=head2 LICENSE
 
 Copyright 2000, Brian Paulsen.  All rights reserved.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
 
-Bug reports and comments to Brian@ThePaulsens.com.
-
-For further information about the Slink-e, visit http://www.nirvis.com
-
 =cut
+

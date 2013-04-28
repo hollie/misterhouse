@@ -1,22 +1,29 @@
-# $Date$
-# $Revision$
-# SoapServer.pm
+=head1 B<SoapServer>
 
-=begin comment
--------------------------------------------------------------------------------
-Description:
-	This is the SOAP Transport for misterhouse.  It just subclasses the 
-	SOAP::Transport::HTTP::CGI class from SOAP::Lite.  The major difference
-	being that it reads from passed variables and returns the results 
-	instead	of using STDIN and STDOUT.
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+This is the SOAP Transport for misterhouse.  It just subclasses the
+SOAP::Transport::HTTP::CGI class from SOAP::Lite.  The major difference
+being that it reads from passed variables and returns the results
+instead of using STDIN and STDOUT.
 
 Requires:
-	SOAP::Lite - available from CPAN 
-	http://search.cpan.org/~byrne/SOAP-Lite-0.69/lib/OldDocs/SOAP/Lite.pm
-Authors:
-	Mike Wiebke mw65@yahoo.com
 
--------------------------------------------------------------------------------
+  SOAP::Lite - available from CPAN
+  http://search.cpan.org/~byrne/SOAP-Lite-0.69/lib/OldDocs/SOAP/Lite.pm
+
+=head2 INHERITS
+
+B<NONE>
+
+=head2 METHODS
+
+=over
+
 =cut
 
 package SoapServer;
@@ -26,10 +33,14 @@ use SOAP::Transport::HTTP;
 use vars qw(@ISA);
 @ISA = qw(SOAP::Transport::HTTP::CGI);
 
-# The handle method is the only thing that needs to be changed from the
-# standard CGI transport class.  Just get the request from passed variables
-# and return the results.  Everything else is almost identical to the parent 
-# class
+=item C<handle>
+
+The handle method is the only thing that needs to be changed from the
+standard CGI transport class.  Just get the request from passed variables
+and return the results.  Everything else is almost identical to the parent 
+class
+
+=cut
 
 sub handle {
   my $self = shift;
@@ -76,3 +87,29 @@ sub handle {
 }
 
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Mike Wiebke mw65@yahoo.com
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
