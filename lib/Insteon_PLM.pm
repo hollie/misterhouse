@@ -308,8 +308,8 @@ sub _send_cmd {
          		$self->_set_timeout('command', $cmd_timeout); # a commmand needs to be PLM ack'd w/i 3 seconds or it gets dropped
                 }
         }
-
-	if (length($command) != (Insteon::MessageDecoder::insteon_cmd_len(substr($command,0,4), 0)*2)){
+	my $is_extended = ($message->command_type eq "insteon_ext_send") ? 1 : 0;
+	if (length($command) != (Insteon::MessageDecoder::insteon_cmd_len(substr($command,0,4), 0, $is_extended)*2)){
 		&::print_log( "[Insteon_PLM]: ERROR!! Command sent to PLM " . lc($command) 
 		. " is of an incorrect length.  Message not sent.");
 		$self->clear_active_message();
