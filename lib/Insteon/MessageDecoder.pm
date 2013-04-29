@@ -115,7 +115,7 @@ my %plmcmdlen = (
 	'0258' => [3, 3],
 	'0260' => [2, 9],
 	'0261' => [5, 6],
-	'0262' => [8, 9], # could get 9 or 23 (Standard or Extended Message received)
+	'0262' => [8, 9, 22, 23], # could get 9 or 23 (Standard or Extended Message received)
 	'0263' => [4, 5],
 	'0264' => [4, 5],
 	'0265' => [2, 3],
@@ -892,10 +892,15 @@ sub insteon_decode_cmd {
 }
 
 
-#Takes a 2 byte hex cmd, 0 for send, 1, for rec and returns expected byte length
+#$plm_cmd is 2 byte hex cmd; $send_rec is 0 for send, 1, for rec; $is_extended is 1 if extended send
+#returns expected byte length
 sub insteon_cmd_len{
-	my ($plm_cmd, $send_rec) = @_;
-	return $plmcmdlen{$plm_cmd}->[$send_rec]
+	my ($plm_cmd, $send_rec, $is_extended) = @_;
+	if ($is_extended && $plmcmdlen{uc($plm_cmd)} > 2) {
+		return $plmcmdlen{uc($plm_cmd)}->[($send_rec+2)];
+	} else {
+		return $plmcmdlen{uc($plm_cmd)}->[$send_rec];
+	}
 }
 
 
