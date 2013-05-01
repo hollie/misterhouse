@@ -52,6 +52,7 @@ sub new
 	my $self = {};
 	@{$$self{command_stack2}} = ();
 	@{$$self{command_history}} = ();
+	$$self{received_commands} = {};
 	bless $self, $class;
         $self->transmit_in_progress(0);
 #   	$self->debug(0) unless $self->debug;
@@ -329,6 +330,7 @@ sub on_interface_info_received
 sub on_standard_insteon_received
 {
         my ($self, $message_data) = @_;
+	return if $self->_is_duplicate_received($message_data);
 	my %msg = &Insteon::InsteonMessage::command_to_hash($message_data);
 	if (%msg)
         {
@@ -475,6 +477,7 @@ sub on_standard_insteon_received
 sub on_extended_insteon_received
 {
         my ($self, $message_data) = @_;
+	return if $self->_is_duplicate_received($message_data);
 	my %msg = &Insteon::InsteonMessage::command_to_hash($message_data);
 	if (%msg)
         {
@@ -555,5 +558,46 @@ sub _aldb
    return $$self{aldb};
 }
 
+# Returns 1 if the received message is a duplicate message
+# See discussion at: https://github.com/hollie/misterhouse/issues/169
+sub _is_duplicate_received {
+	my ($self, $message_data) = @_;
+	my $is_duplicate;
+
+	#Current time in milliseconds
+	my $curr_milli = sprintf('%.0f', &main::get_tickcount);
+
+	#Key is the message with the hops_left portion zeroed out
+	my $key = $message_data;
+	substr($key,12,2) = substr($key,12,2) & 0xF3;
+	
+	#How long does it take to transmit each hop of this message
+	my $message_time = (length($message_data) > 18) ? 108 : 50;
+	
+	#Get hops left
+	my $hops_left = hex(substr($message_data,13,1)) >> 2;
+	
+	#Add additional delay to catch PLM delays or out of sync messages
+	my $delay = ($message_time * ($hops_left+2));
+
+	#Clean hash of outdated entries
+	for (keys $$self{received_commands}){
+		if ($$self{received_commands}{$_} < $curr_milli){
+			delete($$self{received_commands}{$_});
+		}
+	}
+
+	#Check if the message exists
+	if (exists($$self{received_commands}{$key})){
+		$is_duplicate = 1;
+		::print_log("[Insteon::BaseInterface] WARN! Dropped duplicate incoming message "
+			. $message_data) if $main::Debug{insteon};
+	} else {
+		#Message was not in hash, so add it
+		$$self{received_commands}{$key} = $curr_milli + $delay;
+	}
+
+	return $is_duplicate;
+}
 
 1
