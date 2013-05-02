@@ -8,7 +8,10 @@ In user code:
 
 In items.mht:
 
-INSTEON_IOLINC, 12.34.56, io_device, io
+INSTEON_IOLINC, 12.34.56:01, io_device, io_group
+INSTEON_IOLINC, 12.34.56:02, io_device_sensor, io_group
+
+Where io_device is the relay and io_device_sensor is the sensor
 
 BUGS
 
@@ -17,34 +20,22 @@ EXAMPLE USAGE
 
 Creating the object:
    use Insteon::IOLinc;
-   $io_device = new Insteon::IOLinc('12.34.56',$myPLM);
+   $io_device = new Insteon::IOLinc('12.34.56:01',$myPLM);
+   $io_device_sensor = new Insteon::IOLinc('12.34.56:02',$myPLM);
 
 Turning on a relay:
-   $v_relay_on = new Voice_Cmd "Turn on relay [1,2]";
-   if (my $relay = state_now $v_relay_on) {
-   	$relay--;
-	set_relay $io_device "0$relay", "on";
-   }
+
 
 Turning off a relay:
-   $v_relay_on = new Voice_Cmd "Turn off relay [1,2]";
-   if (my $relay = state_now $v_relay_off) {
-   	$relay--;
-	set_relay $io_device "0$relay", "off";
-   }
+
 
 Requesting sensor status:
-   $v_sensor_status = new Voice_Cmd "Request sensor [1,2,3,4] status";
-   if (state_now $v_sensor_status) {
-	poll_sensor_status $io_device, '01';
-   }
+
 
 NOTES
 
 This module works with the Insteon IOLinc device from Smarthome
 
-#TODO
- - Should be able to intitialize programs.
 =over
 =cut
 
@@ -53,111 +44,62 @@ use Insteon::BaseInsteon;
 
 package Insteon::IOLinc;
 
-@Insteon::IOLinc::ISA = ('Insteon::BaseDevice','Insteon::DeviceController');
-
-our %message_types = (
-	%Insteon::BaseDevice::message_types,
-	relay_on => 0x45,
-	relay_off => 0x46,
-	sensor_status => 0x4A,
-);
-
-# -------------------- START OF SUBROUTINES --------------------
-# --------------------------------------------------------------
+@Insteon::IOLinc::ISA = ('Insteon::BaseDevice', 'Insteon::DeviceController');
 
 sub new {
-   my ($class, $p_deviceid, $p_interface) = @_;
-
-   my $self = new Insteon::BaseDevice($p_deviceid, $p_interface);
-   bless $self, $class;
-   $$self{sensor_status} = undef;
-   $self->restore_data('sensor_status');
-   $$self{message_types} = \%message_types;
-   return $self;
+	my ($class, $p_deviceid, $p_interface) = @_;
+	my $self = new Insteon::BaseDevice($p_deviceid, $p_interface);
+	bless $self, $class;
+	if ($self->group ne '02' && !$self->is_root){
+		::print_log("[Insteon::IOLinc] Warning IOLincs with more than "
+			. " 1 input and 1 output are not yet supported by this code.");
+	}
+	return $self;
 }
 
-=item C<poll_sensor_status($sensor_id)>
-
-Requests the status of a specific sensor which can then be read with 
-C<get_sensor_status($sensor_id)>. C<$sensor_id> is the sensor id number which could be in 
-the current known range of 00-07.
-
-=cut
-
-sub poll_sensor_status {
-   my ($self, $sensor) = @_;
-   $sensor = sprintf "%02s", $sensor; #Pad 0 to left if not present
-   $$self{'sensor_id'} = $sensor;
-   my $message = new Insteon::InsteonMessage('insteon_send', $self, 'sensor_status', $sensor);
-   $self->_send_cmd($message);
-   return;
+sub set
+{
+	my ($self, $p_state, $p_setby, $p_respond) = @_;
+	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
+	return $self->Insteon::BaseDevice::set($link_state, $p_setby, $p_respond);
 }
 
-=item C<set_relay($relay_id)>
-
-Sets the state if the identified relay. C<$relay_id> is the relay id number which could be in 
-the current known range of 00-07.
-
-=cut
-
-sub set_relay {
-   my ($self, $relay_id, $state) = @_;
-   my $cmd = undef;
-   if ($state eq 'on') {
-      $cmd = 'relay_on';
-   } elsif ($state eq 'off') {
-      $cmd = 'relay_off';
-   }
-   unless ($cmd and $relay_id) {
-      &::print_log("Insteon::IOLinc] ERROR: You must specify a relay number and a valid state (ON or OFF)")
-          if $main::Debug{insteon};
-      return;
-   }
-   my $message = new Insteon::InsteonMessage('insteon_send', $self, $cmd, $relay_id);
-   $self->_send_cmd($message);
-   return;
+sub request_status 
+{
+	my ($self, $requestor) = @_;
+	if (!($self->is_root)) {
+		my $parent = $self->get_root();
+		$$parent{child_status_request_pending} = $self->group;
+		$$self{m_status_request_pending} = ($requestor) ? $requestor : 1;
+		my $message = new Insteon::InsteonMessage('insteon_send', $parent, 'status_request', '01');
+		$parent->_send_cmd($message);
+	} else {
+		$self->SUPER::request_status($requestor);
+	}
 }
 
-=item C<get_sensor_status($sensor_id)>
-
-Returns the current known hex value of the sensor identified by C<$sensor_id>.
-
-=cut
-
-sub get_sensor_status() {
-   my ($self, $sensor) = @_;
-   $sensor = sprintf "%02s", $sensor; #Pad 0 to left if not present
-   my @sensors = split(/,/, $sensor);
-   if ($sensor <= @sensors){
-   	return $sensors[$sensor];
-   }
-   else {
-   	&::print_log("[Insteon::IOLinc] Error no data for Sensor_Id: $sensor");
-   }
+sub _is_info_request
+{
+	my ($self, $cmd, $ack_setby, %msg) = @_;
+	my $is_info_request = 0;
+	my $parent = $self->get_root();
+	if ($$parent{child_status_request_pending}) {
+		$is_info_request++;
+		my $child_obj = Insteon::get_object($self->device_id, '02');
+		my $child_state = &Insteon::BaseObject::derive_link_state(hex($msg{extra}));
+		&::print_log("[Insteon::IOLinc] received status for " .
+			$child_obj->{object_name} . " of: $child_state "
+			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
+		$ack_setby = $$child_obj{m_status_request_pending} if ref $$child_obj{m_status_request_pending};
+		$child_obj->SUPER::set($child_state, $ack_setby);
+		delete($$parent{child_status_request_pending});
+	}
+	else {
+		$is_info_request = $self->SUPER::_is_info_request($cmd, $ack_setby, %msg);
+	}
+	return $is_info_request;
 }
 
-sub _is_info_request {
-   my ($self, $cmd, $ack_setby, %msg) = @_;
-   my $is_info_request = 0;
-   if ($cmd eq 'sensor_status' && $$self{'sensor_id'}) {
-      $is_info_request = 1;
-      my @sensors = split(/,/, $$self{'sensor_status'});
-      $sensors[$$self{'sensor_id'}] = $msg{extra};
-      $$self{'sensor_status'} = join(',', @sensors);
-      &::print_log("[Insteon::IOLinc] Received Status: $msg{extra} for Sensor_Id: $$self{'sensor_id'}") if $main::Debug{insteon};
-      $$self{'sensor_id'} = undef;
-   }
-   else {
-      #Check if this was a generic info_request
-      $is_info_request = $self->SUPER::_is_info_request($cmd, $ack_setby, %msg);
-   }
-   return $is_info_request;
-
-}
-
-
-# Overload methods we don't use, but would otherwise cause Insteon traffic.
-sub request_status { return 0 }
 
 1;
 =back
