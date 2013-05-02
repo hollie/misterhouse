@@ -4,7 +4,8 @@ INITIAL CONFIGURATION
 In user code:
 
    use Insteon::IOLinc;
-   $io_device = new Insteon::IOLinc('12.34.56',$myPLM);
+   $io_device = new Insteon::IOLinc('12.34.56:01',$myPLM);
+   $io_device_sensor = new Insteon::IOLinc('12.34.56:02',$myPLM);
 
 In items.mht:
 
@@ -22,15 +23,18 @@ Creating the object:
    use Insteon::IOLinc;
    $io_device = new Insteon::IOLinc('12.34.56:01',$myPLM);
    $io_device_sensor = new Insteon::IOLinc('12.34.56:02',$myPLM);
+   
 
 Turning on a relay:
-
+   $io_device->set('on');
 
 Turning off a relay:
+   $io_device->set('off');
 
-
-Requesting sensor status:
-
+Requesting sensor status: 
+(shouldn't be needed as the sensor is linked to the PLM, and will update the PLM
+on state changes)
+   $io_device_sensor->request_status();;
 
 NOTES
 
@@ -100,6 +104,79 @@ sub _is_info_request
 	return $is_info_request;
 }
 
+=item C<set_momentary_time($time)>
+
+$time in (10th of seconds) is the length of time the relay will close when 
+Momentary is selected.
+
+Changes must be written with _
+
+=cut
+
+sub set_momentary_time 
+{
+	my ($self, $momentary_time) = @_;
+	$$self{momentary_time} = $momentary_time if ($momentary_time && !$self->is_root);
+	return $$self{momentary_time};
+}
+
+=item C<set_relay_linked($boolean)>
+
+Sets Relay On when Sensor is On and Off when sensor if Off.
+
+Changes must be written with _
+
+=cut
+
+sub set_relay_linked 
+{
+	my ($self, $relay_linked) = @_;
+	$$self{relay_linked} = $relay_linked if ($relay_linked && !$self->is_root);
+	return $$self{relay_linked};
+}
+
+=item C<set_trigger_reverse($boolean)>
+
+If set, it reverses the sensor value so that a closed sensor switch sends an OFF
+and open sensor switch sends an ON. 
+
+Changes must be written with _
+
+=cut
+
+sub set_trigger_reverse 
+{
+	my ($self, $trigger_reverse) = @_;
+	$$self{trigger_reverse} = $trigger_reverse if ($trigger_reverse && !$self->is_root);
+	return $$self{trigger_reverse};
+}
+
+=item C<set_relay_mode($mode)>
+
+Sets the relay mode to [Latching|Momentary_A|Momentary_B|Momentary_C]
+
+Latching: The relay will remain open or closed until another command is received. 
+Momentary time is ignored.
+
+Momentary_A: The relay will close momentarily. If it is Linked while On it will 
+respond to On. If it is Linked while Off it will respond to Off.
+
+Momentary_B: Both - On and Off both cause the relay to close momentarily.
+
+Momentary_C: Look at Sensor - If the sensor is On the relay will close momentarily 
+when an On command is received. If the sensor is Off the relay will close momentarily 
+when an Off command is received.
+
+Changes must be written with _
+
+=cut
+
+sub set_relay_mode 
+{
+	my ($self, $relay_mode) = @_;
+	$$self{relay_mode} = $relay_mode if ($relay_mode && !$self->is_root);
+	return $$self{relay_mode};
+}
 
 1;
 =back
