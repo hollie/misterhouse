@@ -58,6 +58,12 @@ sub new {
 		::print_log("[Insteon::IOLinc] Warning IOLincs with more than "
 			. " 1 input and 1 output are not yet supported by this code.");
 	}
+	if ($self->is_root){
+		$$self{momentary_time} = 20;
+		$$self{relay_linked} = 0;
+		$$self{trigger_reverse} = 0;
+		$$self{relay_mode} = 'Latching';
+	}
 	return $self;
 }
 
@@ -104,54 +110,60 @@ sub _is_info_request
 	return $is_info_request;
 }
 
-=item C<set_momentary_time($time)>
+=item C<set_momentary_time(time)>
 
 $time in (10th of seconds) is the length of time the relay will close when 
 Momentary is selected.
 
-Changes must be written with _
+Default 20
+
+Changes must be written with C<write_settings()>
 
 =cut
 
 sub set_momentary_time 
 {
 	my ($self, $momentary_time) = @_;
-	$$self{momentary_time} = $momentary_time if ($momentary_time && !$self->is_root);
+	$$self{momentary_time} = $momentary_time if ($momentary_time && $self->is_root);
 	return $$self{momentary_time};
 }
 
-=item C<set_relay_linked($boolean)>
+=item C<set_relay_linked([0|1])>
 
-Sets Relay On when Sensor is On and Off when sensor if Off.
+If set to 1 sets Relay On when Sensor is On and Off when sensor if Off.
 
-Changes must be written with _
+Default 0
+
+Changes must be written with C<write_settings()>
 
 =cut
 
 sub set_relay_linked 
 {
 	my ($self, $relay_linked) = @_;
-	$$self{relay_linked} = $relay_linked if ($relay_linked && !$self->is_root);
+	$$self{relay_linked} = $relay_linked if ($relay_linked && $self->is_root);
 	return $$self{relay_linked};
 }
 
-=item C<set_trigger_reverse($boolean)>
+=item C<set_trigger_reverse([0|1])>
 
-If set, it reverses the sensor value so that a closed sensor switch sends an OFF
+If set to 1, it reverses the sensor value so that a closed sensor switch sends an OFF
 and open sensor switch sends an ON. 
 
-Changes must be written with _
+Default 0
+
+Changes must be written with C<write_settings()>
 
 =cut
 
 sub set_trigger_reverse 
 {
 	my ($self, $trigger_reverse) = @_;
-	$$self{trigger_reverse} = $trigger_reverse if ($trigger_reverse && !$self->is_root);
+	$$self{trigger_reverse} = $trigger_reverse if ($trigger_reverse && $self->is_root);
 	return $$self{trigger_reverse};
 }
 
-=item C<set_relay_mode($mode)>
+=item C<set_relay_mode(mode)>
 
 Sets the relay mode to [Latching|Momentary_A|Momentary_B|Momentary_C]
 
@@ -167,15 +179,30 @@ Momentary_C: Look at Sensor - If the sensor is On the relay will close momentari
 when an On command is received. If the sensor is Off the relay will close momentarily 
 when an Off command is received.
 
-Changes must be written with _
+Default Latching
+
+Changes must be written with C<write_settings()>
 
 =cut
 
 sub set_relay_mode 
 {
 	my ($self, $relay_mode) = @_;
-	$$self{relay_mode} = $relay_mode if ($relay_mode && !$self->is_root);
+	$$self{relay_mode} = $relay_mode if ($relay_mode && $self->is_root);
 	return $$self{relay_mode};
+}
+
+=item C<write_settings()>
+
+Writes momentary_time, relay_linked, trigger_reverse and relay_mode settings to
+the device.
+
+=cut
+
+sub write_settings
+{
+	my ($self) = @_;
+	return;
 }
 
 1;
