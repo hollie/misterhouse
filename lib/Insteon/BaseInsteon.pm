@@ -597,6 +597,8 @@ sub _process_command_stack
                                 or $message->command eq 'do_read_ee'
                                 or $message->command eq 'set_address_msb'
                                 or $message->command eq 'sensor_status'
+                                or $message->command eq 'set_operating_flags'
+                                or $message->command eq 'get_operating_flags'
                                 )
                         {
 				$$self{awaiting_ack} = 1;
