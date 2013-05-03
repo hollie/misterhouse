@@ -269,8 +269,14 @@ Default 0
 sub set_relay_linked 
 {
 	my ($self, $relay_linked) = @_;
-	$$self{relay_linked} = $relay_linked if ($relay_linked && $self->is_root);
-	return $$self{relay_linked};
+	my $parent = $self->get_root();
+	if ($relay_linked){
+		$parent->set_operating_flag('relay_follows_input_on');
+	}
+	elsif (defined $relay_linked){
+		$parent->set_operating_flag('relay_follows_input_off');
+	}
+	return;
 }
 
 =item C<set_trigger_reverse([0|1])>
@@ -285,13 +291,17 @@ Default 0
 sub set_trigger_reverse 
 {
 	my ($self, $trigger_reverse) = @_;
-	$$self{trigger_reverse} = $trigger_reverse if ($trigger_reverse && $self->is_root);
-	return $$self{trigger_reverse};
+	my $parent = $self->get_root();
+	if ($trigger_reverse){
+		$parent->set_operating_flag('invert_sensor_on');
+	}
+	elsif (defined $trigger_reverse){
+		$parent->set_operating_flag('invert_sensor_off');
+	}
+	return;
 }
 
-=item C<set_relay_mode(mode)>
-
-Sets the relay mode to [Latching|Momentary_A|Momentary_B|Momentary_C]
+=item C<set_relay_mode([Latching|Momentary_A|Momentary_B|Momentary_C])>
 
 Latching: The relay will remain open or closed until another command is received. 
 Momentary time is ignored.
@@ -312,20 +322,21 @@ Default Latching
 sub set_relay_mode 
 {
 	my ($self, $relay_mode) = @_;
-	$$self{relay_mode} = $relay_mode if ($relay_mode && $self->is_root);
-	return $$self{relay_mode};
-}
-
-=item C<write_settings()>
-
-Writes momentary_time, relay_linked, trigger_reverse and relay_mode settings to
-the device.
-
-=cut
-
-sub write_settings
-{
-	my ($self) = @_;
+	my $parent = $self->get_root();
+	if (lc($relay_mode) eq 'latching'){
+		$parent->set_operating_flag('momentary_a_off');
+		$parent->set_operating_flag('momentary_b_off');
+		$parent->set_operating_flag('momentary_c_off');
+	}
+	elsif (lc($relay_mode) eq 'momentary_a'){
+		$parent->set_operating_flag('momentary_a_on');
+	}
+	elsif (lc($relay_mode) eq 'momentary_b'){
+		$parent->set_operating_flag('momentary_b_on');
+	}
+	elsif (lc($relay_mode) eq 'momentary_c'){
+		$parent->set_operating_flag('momentary_c_on');
+	}
 	return;
 }
 
