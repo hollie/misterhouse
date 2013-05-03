@@ -331,11 +331,17 @@ sub set_relay_mode
 	}
 	elsif (lc($relay_mode) eq 'momentary_a'){
 		$parent->set_operating_flag('momentary_a_on');
+		$parent->set_operating_flag('momentary_b_off');
+		$parent->set_operating_flag('momentary_c_off');
 	}
 	elsif (lc($relay_mode) eq 'momentary_b'){
+		$parent->set_operating_flag('momentary_a_off');
 		$parent->set_operating_flag('momentary_b_on');
+		$parent->set_operating_flag('momentary_c_off');
 	}
 	elsif (lc($relay_mode) eq 'momentary_c'){
+		$parent->set_operating_flag('momentary_a_off');
+		$parent->set_operating_flag('momentary_b_off');
 		$parent->set_operating_flag('momentary_c_on');
 	}
 	return;
