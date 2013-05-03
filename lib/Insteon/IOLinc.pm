@@ -141,8 +141,24 @@ sub _is_info_request
 		$ack_setby = $$child_obj{m_status_request_pending} if ref $$child_obj{m_status_request_pending};
 		$child_obj->SUPER::set($child_state, $ack_setby);
 		delete($$parent{child_status_request_pending});
-	}
-	else {
+	} 
+	elsif ($cmd eq 'get_operating_flags') {
+		$is_info_request++;
+		my $output = "";
+		$output .= ($msg{extra} & 0x01) ? "Program Lock: On; " : "Program Lock: Off; ";
+		$output .= ($msg{extra} & 0x02) ? "Transmit Led: On; " : "Transmit Led: Off; ";
+		$output .= ($msg{extra} & 0x04) ? "Relay Linked: On; " : "Relay Linked: Off; ";
+		$output .= ($msg{extra} & 0x20) ? "X10 Reverse: On; " : "X10 Reverse: Off; ";
+		$output .= ($msg{extra} & 0x40) ? "Trigger Reverse: On; " : "Trigger Reverse: Off; ";
+		if ($msg{extra} & 0x08 && $msg{extra} & 0x10 && $msg{extra} & 0x80){
+			$output .= "Latching: On.";
+		} else {
+			$output .= "Momentary_A: On." if $msg{extra} & 0x08;
+			$output .= "Momentary_B: On." if $msg{extra} & 0x10;
+			$output .= "Momentary_C: On." if $msg{extra} & 0x80;
+		}
+		::print_log("[Insteon::IOLinc] Device Settings are: $output");
+	} else {
 		$is_info_request = $self->SUPER::_is_info_request($cmd, $ack_setby, %msg);
 	}
 	return $is_info_request;
