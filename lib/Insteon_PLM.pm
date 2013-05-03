@@ -308,8 +308,8 @@ sub _send_cmd {
          		$self->_set_timeout('command', $cmd_timeout); # a commmand needs to be PLM ack'd w/i 3 seconds or it gets dropped
                 }
         }
-
-	if (length($command) != (Insteon::MessageDecoder::insteon_cmd_len(substr($command,0,4), 0)*2)){
+	my $is_extended = ($message->command_type eq "insteon_ext_send") ? 1 : 0;
+	if (length($command) != (Insteon::MessageDecoder::insteon_cmd_len(substr($command,0,4), 0, $is_extended)*2)){
 		&::print_log( "[Insteon_PLM]: ERROR!! Command sent to PLM " . lc($command) 
 		. " is of an incorrect length.  Message not sent.");
 		$self->clear_active_message();
@@ -613,7 +613,7 @@ sub _parse_data {
 		}
                 elsif($parsed_prefix eq $prefix{x10_received} and ($message_length == 8))
                 { #X10 Received
-                       	my $x10_message = new Insteon::X10Message($message_data);
+                       	my $x10_message = new Insteon::X10Message($parsed_data);
                         my $x10_data = $x10_message->get_formatted_data();
 			&::print_log("[Insteon_PLM] DEBUG3: received x10 data: $x10_data") if $main::Debug{insteon} >= 3;
 			&::process_serial_data($x10_data,undef,$self);
@@ -626,19 +626,24 @@ sub _parse_data {
 		}
                 elsif ($parsed_prefix eq $prefix{all_link_clean_failed} and ($message_length == 12))
                 { #ALL-Link Cleanup Failure Report
-                        # extract out the pertinent parts of the message for display purposes
-                        # bytes 0-1 - group; 2-7 device address
-                        my $failure_group = substr($message_data,0,2);
-                        my $failure_device = substr($message_data,2,6);
+			if ($self->active_message){
+                        	# extract out the pertinent parts of the message for display purposes
+                        	# bytes 0-1 - group; 2-7 device address
+                        	my $failure_group = substr($message_data,0,2);
+                        	my $failure_device = substr($message_data,2,6);
 
-			&::print_log("[Insteon_PLM] DEBUG2: Received all-link cleanup failure from device: "
-                        	. "$failure_device and group: $failure_group") if $main::Debug{insteon} >= 2;
+				&::print_log("[Insteon_PLM] DEBUG2: Received all-link cleanup failure from device: "
+                        		. "$failure_device and group: $failure_group") if $main::Debug{insteon} >= 2;
                         
-                        my $failed_object = &Insteon::get_object($failure_device,'01');
-                        my $message = new Insteon::InsteonMessage('all_link_direct_cleanup', $failed_object, 
-                        	$self->active_message->command, $failure_group);
-                        push(@{$$failed_object{command_stack}}, $message);
-                        $failed_object->_process_command_stack();
+                        	my $failed_object = &Insteon::get_object($failure_device,'01');
+                        	my $message = new Insteon::InsteonMessage('all_link_direct_cleanup', $failed_object, 
+                        		$self->active_message->command, $failure_group);
+                        	push(@{$$failed_object{command_stack}}, $message);
+                        	$failed_object->_process_command_stack();
+			} else {
+				&::print_log("[Insteon_PLM] DEBUG2: Received all-link cleanup failure."
+                        		. " But there is no pending message.") if $main::Debug{insteon} >= 2;
+			}
                         
 		}
                 elsif ($parsed_prefix eq $prefix{all_link_record} and ($message_length == 20))
@@ -681,14 +686,26 @@ sub _parse_data {
                   # so, slow things down
 			if (!($nack_count))
                         {
-				my $nack_delay = ($::config_parms{Insteon_PLM_disable_throttling}) ? 0.3 : 1.0;
-				&::print_log("[Insteon_PLM] DEBUG3: Interface extremely busy. Resending command"
-					. " after delaying for $nack_delay second") if $main::Debug{insteon} >= 3;
-				$self->_set_timeout('xmit',$nack_delay * 1000);
-				$self->active_message->no_hop_increase(1);
-                                $self->retry_active_message();
-				$process_next_command = 0;
+				if ($self->active_message){
+					my $nack_delay = ($::config_parms{Insteon_PLM_disable_throttling}) ? 0.3 : 1.0;
+					&::print_log("[Insteon_PLM] DEBUG3: Interface extremely busy. Resending command"
+						. " after delaying for $nack_delay second") if $main::Debug{insteon} >= 3;
+					$self->_set_timeout('xmit',$nack_delay * 1000);
+					$self->active_message->no_hop_increase(1);
+                                	$self->retry_active_message();
+					$process_next_command = 0;
+				} else {
+					&::print_log("[Insteon_PLM] DEBUG3: Interface extremely busy."
+						. " No message to resend.") if $main::Debug{insteon} >= 3;
+				}
 				$nack_count++;
+			}
+			#Remove the leading NACK bytes and place whatever remains into fragment for next read
+			$parsed_data =~ s/^(15)*//;
+			if ($parsed_data ne ''){
+				$$self{_data_fragment} .= $parsed_data;
+				::print_log("[Insteon_PLM] DEBUG3: Saving parsed data fragment: " 
+					. $parsed_data) if( $main::Debug{insteon} >= 3);
 			}
 		}
                 else
