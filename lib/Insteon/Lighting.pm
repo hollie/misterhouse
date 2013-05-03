@@ -354,4 +354,35 @@ sub set
 
 }
 
+package Insteon::FanLinc;
+
+use strict;
+use Insteon::BaseInsteon;
+
+@Insteon::FanLinc::ISA = ('Insteon::DimmableLight','Insteon::DeviceController');
+
+sub new
+{
+	my ($class,$p_deviceid,$p_interface) = @_;
+	my $self = new Insteon::DimmableLight($p_deviceid,$p_interface);
+	bless $self,$class;
+	return $self;
+}
+
+sub set
+{
+	my ($self, $p_state, $p_setby, $p_respond) = @_;
+	if ($self->is_root()){
+		return $self->Insteon::DeviceController::set($p_state, $p_setby, $p_respond);
+	} else {
+		my $parent = $self->get_root();
+		#$$parent{child_status_request_pending} = $self->group;
+		#$$self{m_status_request_pending} = ($requestor) ? $requestor : 1;
+		my $extra = $p_state ."0200000000000000000000000000";
+		### need to convert $p_state to hexedecimal ###
+		my $message = new Insteon::InsteonMessage('insteon_ext_send', $parent, 'on', $extra);
+		$parent->_send_cmd($message);
+	}
+}
+
 1
