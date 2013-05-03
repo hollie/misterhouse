@@ -164,6 +164,46 @@ sub _is_info_request
 	return $is_info_request;
 }
 
+sub _process_message {
+	my ($self,$p_setby,%msg) = @_;
+	my $clear_message = 0;
+	if ($msg{command} eq "extended_set_get" && $msg{is_ack}){
+		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
+		#If this was a get request don't clear until data packet received
+		main::print_log("[Insteon::IOLinc] Extended Set/Get ACK Received for " . $self->get_object_name) if $main::Debug{insteon};
+		if ($$self{_ext_set_get_action} eq 'set'){
+			main::print_log("[Insteon::IOLinc] Clearing active message") if $main::Debug{insteon};
+			$clear_message = 1;
+			$$self{_ext_set_get_action} = undef;
+			$self->_process_command_stack(%msg);	
+		}
+	} 
+	elsif ($msg{command} eq "extended_set_get" && $msg{is_extended}) {
+		if (substr($msg{extra},0,6) eq "000101") {
+			$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
+			#D4 = Time; 
+			main::print_log("[Insteon::IOLinc] The Momentary Time Setting ".
+				"on device ". $self->get_object_name . " is set to: ".
+				hex(substr($msg{extra}, 8, 2)) . " microseconds.");
+			$clear_message = 1;
+			$self->_process_command_stack(%msg);
+		} else {
+			main::print_log("[Insteon::IOLinc] WARN: Corrupt Extended "
+				."Set/Get Data Received for ". $self->get_object_name) if $main::Debug{insteon};
+		}
+	}
+	elsif ($msg{command} eq "set_operating_flags" && $msg{is_ack}){
+		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
+		main::print_log("[Insteon::IOLinc] Acknowledged flag set for " . $self->get_object_name) if $main::Debug{insteon};
+		$clear_message = 1;
+		$self->_process_command_stack(%msg);
+	}
+	else {
+		$clear_message = $self->SUPER::_process_message($p_setby,%msg);
+	}
+	return $clear_message;
+}
+
 =item C<set_momentary_time(time)>
 
 $time in (10th of seconds) is the length of time the relay will close when 
