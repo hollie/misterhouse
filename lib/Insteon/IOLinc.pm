@@ -211,15 +211,51 @@ Momentary is selected.
 
 Default 20
 
-Changes must be written with C<write_settings()>
-
 =cut
 
 sub set_momentary_time 
 {
 	my ($self, $momentary_time) = @_;
-	$$self{momentary_time} = $momentary_time if ($momentary_time && $self->is_root);
-	return $$self{momentary_time};
+	my $root = $self->get_root();
+	if ($momentary_time == 0){
+		::print_log("[Insteon::IOLinc] Setting " . $self->get_object_name . 
+			" to Latching Relay Mode." ) if $main::Debug{insteon};
+	} 
+	elsif ($momentary_time <= 255) {
+		$momentary_time = 2 if $momentary_time == 1; #Can't set to 1
+		::print_log("[Insteon::IOLinc] Setting Momentary Time to $momentary_time " .
+			"microseconds for " . $self->get_object_name) if $main::Debug{insteon};
+	}
+	else {
+		::print_log("[Insteon::IOLinc] WARN Invalid Momentary Time of $momentary_time " .
+			"microseconds for " . $self->get_object_name);
+	}
+
+	#D2 = 0x06, D3 = microseconds of time from 0x02-0xFF.  0x00 = Latching?
+	my $extra = '000006';
+	$extra .= sprintf("%02x", $momentary_time);
+	$extra .= '0000000000000000000000';
+	$$root{_ext_set_get_action} = "set";
+	my $message = new Insteon::InsteonMessage('insteon_ext_send', $root, 'extended_set_get', $extra);
+	$root->_send_cmd($message);
+	return;
+}
+
+=item C<get_momentary_time()>
+
+Prints the device's momentary time to the log.
+
+=cut
+
+sub get_momentary_time 
+{
+	my ($self) = @_;
+	my $root = $self->get_root();
+	my $extra = '000000000000000000000000000000';
+	$$root{_ext_set_get_action} = "get";
+	my $message = new Insteon::InsteonMessage('insteon_ext_send', $root, 'extended_set_get', $extra);
+	$root->_send_cmd($message);
+	return;
 }
 
 =item C<set_relay_linked([0|1])>
@@ -227,8 +263,6 @@ sub set_momentary_time
 If set to 1 sets Relay On when Sensor is On and Off when sensor if Off.
 
 Default 0
-
-Changes must be written with C<write_settings()>
 
 =cut
 
@@ -245,8 +279,6 @@ If set to 1, it reverses the sensor value so that a closed sensor switch sends a
 and open sensor switch sends an ON. 
 
 Default 0
-
-Changes must be written with C<write_settings()>
 
 =cut
 
@@ -274,8 +306,6 @@ when an On command is received. If the sensor is Off the relay will close moment
 when an Off command is received.
 
 Default Latching
-
-Changes must be written with C<write_settings()>
 
 =cut
 
