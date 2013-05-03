@@ -746,6 +746,7 @@ sub new
 	bless $self,$class;
 
         $$self{message_types} = \%message_types;
+	$$self{operating_flags} = \%operating_flags;
 
         if ($self->group eq '01') {
            $$self{aldb} = new Insteon::ALDB_i1($self);
@@ -875,7 +876,7 @@ sub _aldb
 sub set_operating_flag {
 	my ($self, $flag) = @_;
 
-	if (!(exists($operating_flags{$flag})))
+	if (!(exists($$self{operating_flags}{$flag})))
         {
 		&::print_log("[Insteon::BaseDevice] $flag is not a support operating flag");
 		return;
@@ -885,7 +886,7 @@ sub set_operating_flag {
         {
 		# TO-DO: check devcat to determine if the action is supported by the device
                 my $message = new Insteon::InsteonMessage('insteon_send', $self, 'set_operating_flags');
-                $message->extra($operating_flags{$flag});
+                $message->extra($$self{operating_flags}{$flag});
                 $self->_send_cmd($message);
 #		$self->_send_cmd('command' => 'set_operating_flags', 'extra' => $operating_flags{$flag});
         }
