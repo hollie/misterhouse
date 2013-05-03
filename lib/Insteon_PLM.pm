@@ -41,6 +41,7 @@ Special Thanks to:
 package Insteon_PLM;
 
 use strict;
+use Insteon;
 use Insteon::BaseInterface;
 use Insteon::BaseInsteon;
 use Insteon::AllLinkDatabase;
@@ -239,7 +240,7 @@ sub initiate_linking_as_controller
 {
 	my ($self, $group) = @_;
 
-	$group = 'FF' unless $group;
+	$group = '01' unless $group;
 	# set up the PLM as the responder
 	my $cmd = '01'; # controller code
 	$cmd .= $group; # WARN - must be 2 digits and in hex!!
@@ -464,6 +465,9 @@ sub _parse_data {
                                                 {
                                                 	$self->_aldb->health("good");
                                                 }
+						&::print_log("[Insteon_PLM] " . $self->get_object_name 
+							. " completed link memory scan: status: " . $self->_aldb->health())
+							if $main::Debug{insteon};
 						if ($$self{_mem_callback})
 						{
 							my $callback = $$self{_mem_callback};

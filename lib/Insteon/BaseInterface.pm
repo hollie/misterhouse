@@ -33,6 +33,7 @@ sub poll_all
             		{
                		# don't request status for objects associated w/ other than the primary group
                		#    as they are psuedo links
+                                $insteon_device->get_engine_version();
                			$insteon_device->request_status();
             		}
                		if ($insteon_device->devcat) {
@@ -192,8 +193,6 @@ sub queue_message
 		}
                 else
                 {
-			my $queue_size = @{$$self{command_stack2}};
-#			&main::print_log("[Insteon_PLM] Command stack size: $queue_size") if $queue_size > 0 and $main::Debug{insteon};
 			if ($setby and ref($setby) and $setby->can('set_retry_timeout')
                            and $setby->get_object_name)
                         {
@@ -250,20 +249,20 @@ sub process_queue
 					&main::print_log("[Insteon::BaseInterface] WARN! Unable to clear acknowledge for "
 						. ((defined($failed_message->setby)) ? $failed_message->setby->get_object_name : "undefined"));
 				}
-                		# clear active message
-                		$self->clear_active_message();
 
                                 # may instead want a "failure" callback separate from success callback
 				if ($failed_message->failure_callback)
                                 {
-                                       	&::print_log("[Insteon::BaseInterface] WARN: Now calling callback: " .
+                                       	&::print_log("[Insteon::BaseInterface] WARN: Message Timeout:  Now calling callback: " .
                                                	$failed_message->failure_callback) if $main::Debug{insteon};
+					$failed_message->failure_reason('timeout');
 		       			package main;
 					eval $failed_message->failure_callback;
 					&::print_log("[Insteon::BaseInterface] problem w/ retry callback: $@") if $@;
 					package Insteon::BaseInterface;
 				}
 
+                		$self->clear_active_message();
                 		$self->process_queue();
                         }
 		}
@@ -358,6 +357,9 @@ sub on_standard_insteon_received
                    	}
                    	if ($msg{is_ack} or $msg{is_nack})
                    	{
+		      		main::print_log("[Insteon::BaseInterface] DEBUG3: PLM command:insteon_received; "
+		      			. "Device command:$msg{command}; type:$msg{type}; group: $msg{group}")
+                        		if $main::Debug{insteon} >=3;
                         	# need to confirm that this message corresponds to the current active one before clearing it
                                 # TO-DO!!! This is a brute force and poor compare technique; needs to be replaced by full compare
                                 if ($self->active_message && ref $self->active_message->setby)
@@ -372,21 +374,13 @@ sub on_standard_insteon_received
                                         {
                                         	if (lc $self->active_message->setby->device_id eq lc $msg{source})
                                                 {
-                                                	if ((($self->active_message->command eq 'peek') && ($msg{cmd_code} ne '2b')) 
-                                                		|| (($self->active_message->command eq 'set_address_msb') && ($msg{cmd_code} ne '28')))
-                                                	{
-								&main::print_log("[Insteon::BaseInterface] WARN: received a message from "
-									. $object->get_object_name . " in response to a "
-									. $self->active_message->command . " command, but the command code "
-									. $msg{cmd_code} . " is incorrect. Ignorring received message.");
-								$self->active_message->no_hop_increase(1);
-                                                	} else {
-	                                                	# prevent re-processing transmit queue until after clearing occurs
-	                                                        $self->transmit_in_progress(1);
-	                        		       		# ask the object to process the received message and update its state
-			   					$object->_process_message($self, %msg);
-	                   					$self->clear_active_message();
-                                                	}
+                                                	# prevent re-processing transmit queue until after clearing occurs
+                                                        $self->transmit_in_progress(1);
+                        		       		# ask the object to process the received message and update its state
+                        		       		# Object will return true if this is the end of the send transaction
+		   					if($object->_process_message($self, %msg)) {
+		   						$self->clear_active_message();
+		   					}
                                                 }
                                                 else
                                                 {
@@ -432,7 +426,7 @@ sub on_standard_insteon_received
                                                              . "and will be skipped! Was group " . $msg{extra});
                                                 }
                                         }
-                                        else
+                                        else #not direct or cleanup
                                         {
                                                 &main::print_log("[Insteon::BaseInterface] ERROR: received ACK/NACK message from "
                                                 	. $object->get_object_name . " but unable to process $msg{type} message type."
@@ -440,7 +434,7 @@ sub on_standard_insteon_received
                                                 $self->active_message->no_hop_increase(1);
                                         }
                         	}
-                                else
+                                else #does not correspond to current active message
                                 {
                                         if ($msg{type} eq 'direct')
                                         {
@@ -464,13 +458,13 @@ sub on_standard_insteon_received
                                         }
                                 }
                    	}
-                        else
+                        else # not ACK or NAK
                         {
                         	# ask the object to process the received message and update its state
 		   		$object->_process_message($self, %msg);
                         }
 		}
-                else
+                else 
                 {
          		&::print_log("[Insteon::BaseInterface] Warn! Unable to locate object for source: $msg{source} and group: $msg{group}");
 		}
@@ -503,15 +497,15 @@ sub on_extended_insteon_received
                 	if ($msg{type} ne 'broadcast')
                         {
                 		$msg{command} = $object->message_type($msg{cmd_code});
-		      		&::print_log("[Insteon::BaseInterface] command:$msg{command}; type:$msg{type}; group: $msg{group}")
-                        		if (!($msg{is_ack} or $msg{is_nack})) and $main::Debug{insteon};
+		      		main::print_log("[Insteon::BaseInterface] DEBUG: PLM command:insteon_ext_received; "
+		      			. "Device command:$msg{command}; type:$msg{type}; group: $msg{group}")
+                        		if( (!($msg{is_ack} or $msg{is_nack}) and $main::Debug{insteon}) 
+                        		or $main::Debug{insteon} >= 3);
                    	}
-		   	&::print_log("[Insteon::BaseInterface] Processing message for " . $object->get_object_name) if $main::Debug{insteon};
-		   	$object->_process_message($self, %msg);
-                   	if ($msg{is_ack} or $msg{is_nack})
-                   	{
-                   		$self->clear_active_message();
-                   	}
+		   	&::print_log("[Insteon::BaseInterface] Processing message for " . $object->get_object_name) if $main::Debug{insteon} >=3;
+			if($object->_process_message($self, %msg)) {
+				$self->clear_active_message();
+			}
 		}
                 else
                 {
