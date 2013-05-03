@@ -23,7 +23,6 @@ Creating the object:
    use Insteon::IOLinc;
    $io_device = new Insteon::IOLinc('12.34.56:01',$myPLM);
    $io_device_sensor = new Insteon::IOLinc('12.34.56:02',$myPLM);
-   
 
 Turning on a relay:
    $io_device->set('on');
@@ -34,11 +33,17 @@ Turning off a relay:
 Requesting sensor status: 
 (shouldn't be needed as the sensor is linked to the PLM, and will update the PLM
 on state changes)
-   $io_device_sensor->request_status();;
+   $io_device_sensor->request_status();
+   
+Print the Current Device Settings to the log:
+   $io_device->get_operating_flag();
 
 NOTES
 
-This module works with the Insteon IOLinc device from Smarthome
+This module works with the Insteon IOLinc device from Smarthome.
+
+The state that the relay is in when the device is linked to the PLM matters if
+you are using relay mode Momentary_A.  
 
 =over
 =cut
@@ -50,9 +55,42 @@ package Insteon::IOLinc;
 
 @Insteon::IOLinc::ISA = ('Insteon::BaseDevice', 'Insteon::DeviceController');
 
-sub new {
+my %operating_flags = (
+   'program_lock_on' => '00',
+   'program_lock_off' => '01',
+   'led_on_during_tx' => '02',
+   'led_off_during_tx' => '03',
+   'relay_follows_input_on' => '04',
+   'relay_follows_input_off' => '05',
+   'momentary_a_on' => '06',
+   'momentary_a_off' => '07',
+   'led_off' => '08',
+   'led_enabled' => '09',
+   'key_beep_enabled' => '0a',
+   'key_beep_off' => '0b',
+   'x10_tx_on_when_off' => '0c',
+   'x10_tx_on_when_on' => '0d',
+   'invert_sensor_on' => '0e',
+   'invert_sensor_off' => '0f',
+   'x10_rx_on_is_off' => '10',
+   'x10_rx_on_is_on' => '11',
+   'momentary_b_on' => '12',
+   'momentary_b_off' => '13',
+   'momentary_c_on' => '14',
+   'momentary_c_off' => '15',
+);
+
+my %message_types = (
+	%Insteon::BaseDevice::message_types,
+	extended_set_get => 0x2e
+);
+
+sub new 
+{
 	my ($class, $p_deviceid, $p_interface) = @_;
 	my $self = new Insteon::BaseDevice($p_deviceid, $p_interface);
+	$$self{operating_flags} = \%operating_flags;
+	$$self{message_types} = \%message_types;
 	bless $self, $class;
 	if ($self->group ne '02' && !$self->is_root){
 		::print_log("[Insteon::IOLinc] Warning IOLincs with more than "
