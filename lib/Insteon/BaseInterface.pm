@@ -330,8 +330,8 @@ sub on_interface_info_received
 sub on_standard_insteon_received
 {
         my ($self, $message_data) = @_;
-	return if $self->_is_duplicate_received($message_data);
 	my %msg = &Insteon::InsteonMessage::command_to_hash($message_data);
+	return if $self->_is_duplicate_received($message_data, %msg);
 	if (%msg)
         {
 		if ($msg{hopsleft} > 0) {
@@ -477,8 +477,8 @@ sub on_standard_insteon_received
 sub on_extended_insteon_received
 {
         my ($self, $message_data) = @_;
-	return if $self->_is_duplicate_received($message_data);
 	my %msg = &Insteon::InsteonMessage::command_to_hash($message_data);
+	return if $self->_is_duplicate_received($message_data, %msg);
 	if (%msg)
         {
 		if ($msg{hopsleft} > 0) {
@@ -561,24 +561,25 @@ sub _aldb
 # Returns 1 if the received message is a duplicate message
 # See discussion at: https://github.com/hollie/misterhouse/issues/169
 sub _is_duplicate_received {
-	my ($self, $message_data) = @_;
+	my ($self, $message_data, %msg) = @_;
 	my $is_duplicate;
+	
+	#Duplicate testing is currently only performed on alllink related commands
+	#use on direct commands may result in false positives for ACK messages 
+	return if (($msg{type} ne 'cleanup') && ($msg{type} ne 'alllink'));
 
 	#Current time in milliseconds
 	my $curr_milli = sprintf('%.0f', &main::get_tickcount);
 
-	#Key is the message with the hops_left portion zeroed out
+	# $key will be set to $message_data with max hops and hops left set to 0
 	my $key = $message_data;
-	substr($key,12,2) = substr($key,12,2) & 0xF3;
-	
+	substr($key,13,1) = 0;
+
 	#How long does it take to transmit each hop of this message
 	my $message_time = (length($message_data) > 18) ? 108 : 50;
-	
-	#Get hops left
-	my $hops_left = hex(substr($message_data,13,1)) >> 2;
-	
+
 	#Add additional delay to catch PLM delays or out of sync messages
-	my $delay = ($message_time * ($hops_left+2));
+	my $delay = ($message_time * ($msg{hops_left})) + 500;
 
 	#Clean hash of outdated entries
 	for (keys $$self{received_commands}){
@@ -591,7 +592,7 @@ sub _is_duplicate_received {
 	if (exists($$self{received_commands}{$key})){
 		$is_duplicate = 1;
 		::print_log("[Insteon::BaseInterface] WARN! Dropped duplicate incoming message "
-			. $message_data) if $main::Debug{insteon};
+			. $message_data . ", from " . $msg{source}) if $main::Debug{insteon};
 	} else {
 		#Message was not in hash, so add it
 		$$self{received_commands}{$key} = $curr_milli + $delay;
