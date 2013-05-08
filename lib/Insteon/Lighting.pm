@@ -395,7 +395,7 @@ sub set
 			my $setby_name = $p_setby;
 			$setby_name = $p_setby->get_object_name() if (ref $p_setby and $p_setby->can('get_object_name'));
 			my $parent = $self->get_root();
-			$level = ::Insteon::DimmableLight::convert_level($p_state) if ($p_state ne '00' && $p_state ne 'ff');
+			$level = ::Insteon::DimmableLight::convert_level($level) if ($level ne '00' && $level ne 'ff');
 			my $extra = $level ."0200000000000000000000000000";
 			my $message = new Insteon::InsteonMessage('insteon_ext_send', $parent, 'on', $extra);
 			$parent->_send_cmd($message);
