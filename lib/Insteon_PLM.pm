@@ -682,6 +682,11 @@ sub _parse_data {
                         	my $message_to_string = ($self->active_message) ? $self->active_message->to_string() : "";
 				&::print_log("[Insteon_PLM] Received all-link cleanup success: $message_to_string")
                                 	if $main::Debug{insteon};
+				if (ref $self->active_message->setby){
+					my $object = $self->active_message->setby;
+					$object->is_acknowledged(1);
+					$object->_process_command_stack();
+				}
                                 $self->clear_active_message();
 			}
 		}
