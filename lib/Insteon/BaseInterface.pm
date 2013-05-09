@@ -334,18 +334,23 @@ sub on_standard_insteon_received
 	return if $self->_is_duplicate_received($message_data, %msg);
 	if (%msg)
         {
-		if ($msg{hopsleft} > 0) {
-			&::print_log("[Insteon::BaseInterface] DEBUG2: Message received with $msg{hopsleft} hops left, delaying next "
-			."transmit to avoid collisions with remaining hops.") if $main::Debug{insteon} >= 2;
-			$self->_set_timeout('xmit', $msg{hopsleft} * 100) #Standard msgs should only take 50 millis;			
+		my $wait_time;
+		my $wait_message = "[Insteon::BaseInterface] DEBUG3: Message received "
+			."with $msg{hopsleft} hops left, ";
+		if (!$msg{is_ack} && !$msg{is_nack} && $msg{type} ne 'alllink' 
+			&& $msg{type} ne 'broadcast') {
+			#Wait for ACK to be delivered
+			$wait_time = $msg{maxhops};
+			$wait_message .= "plus ACK will take $msg{maxhops} to deliver, ";
 		}
-		else {
-			#This prevents the majority of corrupt messages on aldb scans
-			#For some reason duplicate messages arrive with the same hop count
-			#My theory is that they are created by bridging the powerline and rf
-			#A mere 50 millisecond pause seems to fix everything.
-			$self->_set_timeout('xmit', 50);
-		}
+		$wait_time += $msg{hopsleft};
+		#Standard msgs should only take 50 millis, but in practice additional 
+		#time has been required. Extra 50 millis helps prevent dupes
+		$wait_time = ($wait_time * 100) + 50;
+		$wait_message .= "delaying next transmit by $wait_time milliseconds to avoid collisions.";
+		::print_log($wait_message) if ($main::Debug{insteon} >= 3 && $wait_time > 50);
+		$self->_set_timeout('xmit', $wait_time);			
+
 		# get the matching object
 		my $object = &Insteon::get_object($msg{source}, $msg{group});
 		if (defined $object)
@@ -481,18 +486,23 @@ sub on_extended_insteon_received
 	return if $self->_is_duplicate_received($message_data, %msg);
 	if (%msg)
         {
-		if ($msg{hopsleft} > 0) {
-			&::print_log("[Insteon::BaseInterface] DEBUG2: Message received with $msg{hopsleft} hops left, delaying next "
-			."transmit to avoid collisions with remaining hops.") if $main::Debug{insteon} >= 2;
-			$self->_set_timeout('xmit', $msg{hopsleft} * 200) #Extended msgs take longer to deliver;
+		my $wait_time;
+		my $wait_message = "[Insteon::BaseInterface] DEBUG3: Message received "
+			."with $msg{hopsleft} hops left, ";
+		if (!$msg{is_ack} && !$msg{is_nack} && $msg{type} ne 'alllink' 
+			&& $msg{type} ne 'broadcast') {
+			#Wait for ACK to be delivered
+			$wait_time = $msg{maxhops};
+			$wait_message .= "plus ACK will take $msg{maxhops} to deliver, ";
 		}
-                else {
-                        #This prevents the majority of corrupt messages on aldb scans
-                        #For some reason duplicate messages arrive with the same hop count
-                        #My theory is that they are created by bridging the powerline and rf
-                        #A mere 50 millisecond pause seems to fix everything.
-                        $self->_set_timeout('xmit', 50);
-                }
+		$wait_time += $msg{hopsleft};
+		#Standard msgs should only take 108 millis, but in practice additional 
+		#time has been required. Extra 50 millis helps prevent dupes
+		$wait_time = ($wait_time * 200) + 50;
+		$wait_message .= "delaying next transmit by $wait_time milliseconds to avoid collisions.";
+		::print_log($wait_message) if ($main::Debug{insteon} >= 3 && $wait_time > 50);
+		$self->_set_timeout('xmit', $wait_time);
+
 		# get the matching object
 		my $object = &Insteon::get_object($msg{source}, $msg{group});
 		if (defined $object)
