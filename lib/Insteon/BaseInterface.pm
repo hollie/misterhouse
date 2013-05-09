@@ -580,7 +580,7 @@ sub _is_duplicate_received {
 	$max_hops++;
 	
 	#Does the device expect an ACK?
-	if (!$msg{is_ack}) && !$msg{is_nack}) && $msg{type} ne 'alllink' 
+	if (!$msg{is_ack} && !$msg{is_nack} && $msg{type} ne 'alllink' 
 		&& $msg{type} ne 'broadcast')
 	{
 		#The device expects the PLM to ACK this command
