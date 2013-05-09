@@ -558,45 +558,50 @@ sub _aldb
    return $$self{aldb};
 }
 
+# This function attempts to identify erroneous duplicative incoming messages 
+# while still permitting identical messages to arrive in close proximity.  For 
+# example, a valid identical message is the ACK of an extended aldb read which 
+# is always 2F00.
+#
+# Messages are deemed to be identical if, excluding the max_hops and hops_left
+# bits, they are otherwise the same.  Identical messages are deemed to be 
+# erroneous if they are received within a calculated message window, $delay.  
+#
+# The message window is calculated depending on whether the PLM is sending an ACK.
+#
+
 # Returns 1 if the received message is a duplicate message
 # See discussion at: https://github.com/hollie/misterhouse/issues/169
 sub _is_duplicate_received {
 	my ($self, $message_data, %msg) = @_;
 	my $is_duplicate;
 
-	#Current time in milliseconds
 	my $curr_milli = sprintf('%.0f', &main::get_tickcount);
 
 	# $key will be set to $message_data with max hops and hops left set to 0
 	my $key = $message_data;
 	substr($key,13,1) = 0;
+	
+	#Standard = 50 millis; Extended = 108 millis;
+	#In practice requires 75% more
+	my $message_time = (length($message_data) > 18) ? 183 : 87;
+	
+	#Wait period before PLM can send ACK or next request
+	my $max_hops = $msg{hopsleft};
 
-	#How long does it take to transmit each hop of this message
-	my $message_time = (length($message_data) > 18) ? 108 : 50;
-	
-	#What will the next max_hops count from this device be?
-	my $max_hops = ($msg{max_hops} < 3) ? $msg{max_hops} + 1 : 3;
-	#Need to add 1 "hop" for the initial transmit timeslot
-	$max_hops++;
-	
-	#Does the device expect an ACK?
 	if (!$msg{is_ack} && !$msg{is_nack} && $msg{type} ne 'alllink' 
 		&& $msg{type} ne 'broadcast')
 	{
-		#The device expects the PLM to ACK this command
-		#If the ACK is lost, a subsequent duplicate message would take
-		#double the max hops to arrive
-		$max_hops = $max_hops * 2;
-		#For non-ACK commands, it is assumed that a device could not respond to a
-		#PLM request in less than the max_hops since it would take double the 
-		#max_hops for a message to be sent by the PLM and responded to by the device.
-		#As a result, legitimate duplicate messages should not be caught by this
-		#routine.
+		#ACK sent with same max hops plus 1 for initial timeslot
+		$max_hops += $msg{maxhops} + 1;
+		#Subsequent Reply, arrives in same number of hops + 1 for intial timeslot
+		$max_hops += ($msg{maxhops} - $msg{hopsleft}) + 1;
+	} else {
+		#Subsequent PLM request is sent with max hops + 1 for intial timeslot
+		$max_hops += $msg{maxhops} + 1;
 	}
-	
-	#Delay is equal to the number of hops left, plus the maximum number of 
-	#hops it would take for a subsequent resent message to arrive at the PLM.
-	my $delay = ($message_time * ($msg{hops_left} + $max_hops));
+
+	my $delay = ($message_time * $max_hops);
 
 	#Clean hash of outdated entries
 	for (keys $$self{received_commands}){
@@ -610,13 +615,16 @@ sub _is_duplicate_received {
 		$is_duplicate = 1;
 		#Reset the time in case there are multiple duplicates
 		$$self{received_commands}{$key} = $curr_milli + $delay;
+		#Make a nicer name
+		my $source = $msg{source};
+		my $object = &Insteon::get_object($msg{source}, $msg{group});
+		$source = $object->get_object_name() if (defined $object);
 		::print_log("[Insteon::BaseInterface] WARN! Dropped duplicate incoming message "
-			. $message_data . ", from " . $msg{source}) if $main::Debug{insteon};
+			. $message_data . ", from $source.") if $main::Debug{insteon};
 	} else {
 		#Message was not in hash, so add it
 		$$self{received_commands}{$key} = $curr_milli + $delay;
 	}
-
 	return $is_duplicate;
 }
 
