@@ -563,10 +563,6 @@ sub _aldb
 sub _is_duplicate_received {
 	my ($self, $message_data, %msg) = @_;
 	my $is_duplicate;
-	
-	#Duplicate testing is currently only performed on alllink related commands
-	#use on direct commands may result in false positives for ACK messages 
-	return if (($msg{type} ne 'cleanup') && ($msg{type} ne 'alllink'));
 
 	#Current time in milliseconds
 	my $curr_milli = sprintf('%.0f', &main::get_tickcount);
@@ -577,9 +573,30 @@ sub _is_duplicate_received {
 
 	#How long does it take to transmit each hop of this message
 	my $message_time = (length($message_data) > 18) ? 108 : 50;
-
-	#Add additional delay to catch PLM delays or out of sync messages
-	my $delay = ($message_time * ($msg{hops_left})) + 500;
+	
+	#What will the next max_hops count from this device be?
+	my $max_hops = ($msg{max_hops} < 3) ? $msg{max_hops} + 1 : 3;
+	#Need to add 1 "hop" for the initial transmit timeslot
+	$max_hops++;
+	
+	#Does the device expect an ACK?
+	if (!$msg{is_ack}) && !$msg{is_nack}) && $msg{type} ne 'alllink' 
+		&& $msg{type} ne 'broadcast')
+	{
+		#The device expects the PLM to ACK this command
+		#If the ACK is lost, a subsequent duplicate message would take
+		#double the max hops to arrive
+		$max_hops = $max_hops * 2;
+		#For non-ACK commands, it is assumed that a device could not respond to a
+		#PLM request in less than the max_hops since it would take double the 
+		#max_hops for a message to be sent by the PLM and responded to by the device.
+		#As a result, legitimate duplicate messages should not be caught by this
+		#routine.
+	}
+	
+	#Delay is equal to the number of hops left, plus the maximum number of 
+	#hops it would take for a subsequent resent message to arrive at the PLM.
+	my $delay = ($message_time * ($msg{hops_left} + $max_hops));
 
 	#Clean hash of outdated entries
 	for (keys $$self{received_commands}){
@@ -591,6 +608,8 @@ sub _is_duplicate_received {
 	#Check if the message exists
 	if (exists($$self{received_commands}{$key})){
 		$is_duplicate = 1;
+		#Reset the time in case there are multiple duplicates
+		$$self{received_commands}{$key} = $curr_milli + $delay;
 		::print_log("[Insteon::BaseInterface] WARN! Dropped duplicate incoming message "
 			. $message_data . ", from " . $msg{source}) if $main::Debug{insteon};
 	} else {

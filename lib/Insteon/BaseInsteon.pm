@@ -289,7 +289,16 @@ sub is_acknowledged
 sub set_receive
 {
 	my ($self, $p_state, $p_setby, $p_response) = @_;
-	$self->SUPER::set($p_state, $p_setby, $p_response);
+	my $curr_milli = sprintf('%.0f', &main::get_tickcount);
+	my $window = 1000;
+	if ($p_state eq $self->state && ($curr_milli - $$self{set_milliseconds} < $window)){
+		::print_log("[Insteon::BaseObject] Ignoring duplicate set " . $p_state .
+			" state command for " . $self->get_object_name . " received in " .
+			"less than $window milliseconds") if $main::Debug{insteon}; 
+	} else {
+		$$self{set_milliseconds} = $curr_milli;
+		$self->SUPER::set($p_state, $p_setby, $p_response);
+	}
 }
 
 sub set_with_timer {
