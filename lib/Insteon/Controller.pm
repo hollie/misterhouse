@@ -177,14 +177,15 @@ sub set_battery_timer {
 	return;
 }
 
-=item C<set_low_battery_level([0-100])>
+=item C<set_low_battery_level([0.00])>
 
 Only available for RemoteLinc 2 models.
 
-If the battery level falls below this percentage, the C<battery_low_event()> 
-command is run.
+If the battery level falls below this voltage, the C<battery_low_event()> 
+command is run.  The theoretical maximum voltage of the battery is 3.70 volts.
+The recommended low battery setting by Insteon is 3.26 volts.
 
-Setting to 0 will prevent any low battery events from occuring.
+Setting to 0 will prevent any low battery events from occuring.  
 
 This setting will be saved between MisterHouse reboots.
 
@@ -192,11 +193,10 @@ This setting will be saved between MisterHouse reboots.
 
 sub set_low_battery_level {
 	my ($self, $level) = @_;
-	$level =~ s/(\d+)%?/$1/;
 	my $root = $self->get_root();
-	$$root{low_battery_level} = sprintf("%u", $level);
+	$$root{low_battery_level} = sprintf("%.2f", $level);
 	::print_log("[Insteon::RemoteLinc] Set low battery level to ".
-		$$root{low_battery_level}."%");
+		$$root{low_battery_level}." volts.");
 	return;
 }
 
@@ -230,17 +230,17 @@ sub _is_battery_time_expired {
 	my ($self) = @_;
 	my $root = $self->get_root();
 	if ($$root{battery_timer} > 0 && 
-		(time - ($$root{last_battery_time} * 60)) > $$root{battery_timer}) {
+		(time - $$root{last_battery_time}) > ($$root{battery_timer} * 60)) {
 		return 1;
 	}
 	return 0;
 }
 
 sub _is_battery_low {
-	my ($self, $percent) = @_;
+	my ($self, $voltage) = @_;
 	my $root = $self->get_root();
 	if ($$root{low_battery_level} > 0 && 
-		($$root{low_battery_level} > $percent)) {
+		($$root{low_battery_level} > $voltage)) {
 		return 1;
 	}
 	return 0;
@@ -269,11 +269,14 @@ sub _process_message {
 		if (substr($msg{extra},0,6) eq "000001") {
 			$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
 			#D10 = Battery;
-			my $percent = hex(substr($msg{extra}, 20, 2));
+			my $voltage = (hex(substr($msg{extra}, 20, 2))/50);
 			main::print_log("[Insteon::RemoteLinc] The battery level ".
 				"for device ". $self->get_object_name . " is: ".
-				$percent . "%");
-			if ($self->_is_battery_low){
+				$voltage . " of 3.70 volts.");
+			$$root{last_battery_time} = time;
+			if ($self->_is_battery_low($voltage)){
+				main::print_log("[Insteon::RemoteLinc] The battery level ".
+					"is below the set threshold running low battery event.");
 				package main;
 					eval $$root{low_battery_event};
 					::print_log("[Insteon::RemoteLinc] " . $self->{device}->get_object_name . ": error during low battery event eval $@")
