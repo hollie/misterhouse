@@ -183,6 +183,8 @@ Only available for RemoteLinc 2 models.
 If the battery level falls below this percentage, the C<battery_low_event()> 
 command is run.
 
+This setting will be saved between MisterHouse reboots.
+
 =cut
 
 sub set_low_battery_level {
@@ -192,6 +194,30 @@ sub set_low_battery_level {
 	$$root{low_battery_level} = sprintf("%u", $level);
 	::print_log("[Insteon::RemoteLinc] Set low battery level to ".
 		$$root{low_battery_level}."%");
+	return;
+}
+
+=item C<battery_low_event([cmd_to_eval])>
+
+Only available for RemoteLinc 2 models.
+
+If the battery level falls below the percentage defined by C<set_low_battery_level()> 
+this command is evaluated.  Works very similar to a C<Generic_Item::tie_event()>
+eval.
+
+Example:
+
+   $remote->battery_low_event('speak "Warning, Remote battery is low."');
+
+This setting will be saved between MisterHouse reboots.
+
+=cut
+
+sub battery_low_event {
+	my ($self, $eval) = @_;
+	my $root = $self->get_root();
+	$$root{low_battery_event} = $eval;
+	::print_log("[Insteon::RemoteLinc] Set low battery event.");
 	return;
 }
 
