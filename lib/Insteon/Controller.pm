@@ -354,8 +354,9 @@ use strict;
 sub new {
 	my ($class, $parent) = @_;
 	my $self = new Generic_Item();
+	my $root = $parent->get_root();
 	bless $self, $class;
-	$$parent{battery_object} = $self;
+	$$root{battery_object} = $self;
 	return $self;
 }
 
