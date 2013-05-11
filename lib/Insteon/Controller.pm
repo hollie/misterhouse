@@ -1,3 +1,52 @@
+=head1 B<Insteon::RemoteLinc>
+
+=head2 SYNOPSIS
+
+Configuration:
+
+Depending on your device and your settings, your remote may offer 1, 4, or 8
+groups.  Your configuration should vary depeninding on you remote style.
+
+In user code:
+
+   use Insteon::RemoteLinc;
+   $remote_1 = new Insteon::RemoteLinc('12.34.56:01',$myPLM);
+   $remote_2 = new Insteon::RemoteLinc('12.34.56:02',$myPLM);
+   $remote_3 = new Insteon::RemoteLinc('12.34.56:03',$myPLM);
+   $remote_4 = new Insteon::RemoteLinc('12.34.56:04',$myPLM);
+
+In items.mht:
+
+   INSTEON_REMOTELINC, 12.34.56:01, $remote_1, $remote_group
+   INSTEON_REMOTELINC, 12.34.56:02, $remote_2, $remote_group
+   INSTEON_REMOTELINC, 12.34.56:03, $remote_3, $remote_group
+   INSTEON_REMOTELINC, 12.34.56:04, $remote_4, $remote_group
+
+=head2 DESCRIPTION
+
+Provides basic support for Insteon RemoteLinc models 1 and 2.  Basic support
+includes, linking and receiving set commands from the device.  More advanced
+support is offered for RemoteLinc 2 in the form of battery level notifications.
+
+MisterHouse is only able to communicate with a RemoteLinc when it is in "awake
+mode."  The device is in "awake mode" while in its linking state.  To put the 
+RemoteLinc into "awake mode", follow the instructions for placing the device into
+linking mode.  In short, the instructions are to hold down the set button for 4-10
+seconds until you hear a beep and see the light flash.  The RemoteLinc will now
+remain in "awake mode" for approximately 4 minutes.
+
+To scan the link table, sync links, or set settings on the device, the RemoteLinc
+must first be put into "awake mode."
+
+=head2 INHERITS
+
+B<Insteon::BaseDevice>, B<Insteon::DeviceController>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 package Insteon::RemoteLinc;
 
@@ -50,6 +99,21 @@ sub set
 	return;
 }
 
+=item C<set_awake_time([0-255 seconds])>
+
+Only available for RemoteLinc 2 models.
+
+Sets the amount of time, in seconds, that the RemoteLinc will remain "awake" 
+after sending a command.  MH uses the awake time to send batter level requests
+to the device.  If the device is not responding to the battery level requests,
+consider increasing this value.  However, keep in mind that a longer awake time
+will result in more battery usage.
+
+The factory setting is 4 seconds, 10 seconds seems to work with MisterHouse 
+without causing adverse battery drain.
+
+=cut
+
 sub set_awake_time {
 	my ($self, $awake) = @_;
 	$awake = sprintf("%02x", $awake);
@@ -60,6 +124,20 @@ sub set_awake_time {
 	$root->_send_cmd($message);
 	return;
 }
+
+=item C<get_extended_info()>
+
+Only available for RemoteLinc 2 models.
+
+Requests the status of various settings on the device.  Currently this is only
+used to obtain the battery level.  If the device is awake, the battery level 
+will be printed to the log.
+
+You likely do not need to directly call this message, rather MisterHouse will issue
+this request when it sees activity from the device and the C<battery_timer()> has 
+expired.
+
+=cut
 
 sub get_extended_info {
 	my ($self) = @_;
@@ -114,4 +192,27 @@ sub is_responder
    return 0;
 }
 
+=back
+
+=head2 INI PARAMETERS
+
+None.
+
+=head2 AUTHOR
+
+Bruce Winter, Gregg Limming, Kevin Robert Keegan
+
+=head2 SEE ALSO
+
+
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 1
