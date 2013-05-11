@@ -68,6 +68,9 @@ sub new
 
 	my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
         $$self{message_types} = \%message_types;
+	if ($self->is_root){
+		$self->restore_data('battery_timer', 'last_battery_time');
+	}
 	bless $self,$class;
 	return $self;
 }
@@ -104,7 +107,7 @@ sub set
 Only available for RemoteLinc 2 models.
 
 Sets the amount of time, in seconds, that the RemoteLinc will remain "awake" 
-after sending a command.  MH uses the awake time to send batter level requests
+after sending a command.  MH uses the awake time to send battery level requests
 to the device.  If the device is not responding to the battery level requests,
 consider increasing this value.  However, keep in mind that a longer awake time
 will result in more battery usage.
@@ -134,7 +137,7 @@ used to obtain the battery level.  If the device is awake, the battery level
 will be printed to the log.
 
 You likely do not need to directly call this message, rather MisterHouse will issue
-this request when it sees activity from the device and the C<battery_timer()> has 
+this request when it sees activity from the device and the C<set_battery_timer()> has 
 expired.
 
 =cut
@@ -146,6 +149,27 @@ sub get_extended_info {
 	$$root{_ext_set_get_action} = "get";
 	my $message = new Insteon::InsteonMessage('insteon_ext_send', $root, 'extended_set_get', $extra);
 	$root->_send_cmd($message);
+	return;
+}
+
+=item C<set_battery_timer([minutes])>
+
+Only available for RemoteLinc 2 models.
+
+Sets the minimum amount of time between battery level requests.  When this time
+expires, Misterhouse will request the battery level from the device the next time
+MisterHouse sees activity from the device.  Misterhouse will continue to request
+the battery level until it gets a response from the device.
+
+This setting will be saved between MisterHouse reboots.
+
+=cut
+
+sub set_battery_timer {
+	my ($self, $minutes) = @_;
+	my $root = $self->get_root();
+	$$root{battery_timer} = $minutes;
+	::print_log("[Insteon::RemoteLinc] Set battery timer to $minutes minutes");
 	return;
 }
 
