@@ -161,6 +161,8 @@ expires, Misterhouse will request the battery level from the device the next tim
 MisterHouse sees activity from the device.  Misterhouse will continue to request
 the battery level until it gets a response from the device.
 
+Setting to 0 will disable automatic battery level requests.
+
 This setting will be saved between MisterHouse reboots.
 
 =cut
@@ -168,15 +170,16 @@ This setting will be saved between MisterHouse reboots.
 sub set_battery_timer {
 	my ($self, $minutes) = @_;
 	my $root = $self->get_root();
-	$$root{battery_timer} = $minutes;
-	::print_log("[Insteon::RemoteLinc] Set battery timer to $minutes minutes");
+	$$root{battery_timer} = sprintf("%u", $minutes);
+	::print_log("[Insteon::RemoteLinc] Set battery timer to ".
+		$$root{battery_timer}." minutes");
 	return;
 }
 
 sub _is_battery_time_expired {
 	my ($self) = @_;
 	my $root = $self->get_root();
-	if (defined $$root{battery_timer} && 
+	if ($$root{battery_timer} > 0 && 
 		(time - ($$root{last_battery_time} * 60)) > $$root{battery_timer}) {
 		return 1;
 	}
