@@ -69,7 +69,7 @@ sub new
 	my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
         $$self{message_types} = \%message_types;
 	if ($self->is_root){
-		$self->restore_data('battery_timer', 'last_battery_time');
+		$self->restore_data('battery_timer', 'last_battery_time', 'low_battery_level');
 	}
 	bless $self,$class;
 	return $self;
@@ -161,7 +161,7 @@ expires, Misterhouse will request the battery level from the device the next tim
 MisterHouse sees activity from the device.  Misterhouse will continue to request
 the battery level until it gets a response from the device.
 
-Setting to 0 will disable automatic battery level requests.
+Setting to 0 will disable automatic battery level requests.  1440 equals a day.
 
 This setting will be saved between MisterHouse reboots.
 
@@ -173,6 +173,25 @@ sub set_battery_timer {
 	$$root{battery_timer} = sprintf("%u", $minutes);
 	::print_log("[Insteon::RemoteLinc] Set battery timer to ".
 		$$root{battery_timer}." minutes");
+	return;
+}
+
+=item C<set_low_battery_level([0-100])>
+
+Only available for RemoteLinc 2 models.
+
+If the battery level falls below this percentage, the C<battery_low_event()> 
+command is run.
+
+=cut
+
+sub set_low_battery_level {
+	my ($self, $level) = @_;
+	$level =~ s/(\d+)%?/$1/;
+	my $root = $self->get_root();
+	$$root{low_battery_level} = sprintf("%u", $level);
+	::print_log("[Insteon::RemoteLinc] Set low battery level to ".
+		$$root{low_battery_level}."%");
 	return;
 }
 
