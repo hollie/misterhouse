@@ -69,7 +69,8 @@ sub new
 	my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
         $$self{message_types} = \%message_types;
 	if ($self->is_root){
-		$self->restore_data('battery_timer', 'last_battery_time', 'low_battery_level');
+		$self->restore_data('battery_timer', 'last_battery_time', 
+		'low_battery_level', 'low_battery_event');
 	}
 	bless $self,$class;
 	return $self;
@@ -183,6 +184,8 @@ Only available for RemoteLinc 2 models.
 If the battery level falls below this percentage, the C<battery_low_event()> 
 command is run.
 
+Setting to 0 will prevent any low battery events from occuring.
+
 This setting will be saved between MisterHouse reboots.
 
 =cut
@@ -209,6 +212,8 @@ Example:
 
    $remote->battery_low_event('speak "Warning, Remote battery is low."');
 
+See C<test_tie.pl> for more examples.
+
 This setting will be saved between MisterHouse reboots.
 
 =cut
@@ -231,9 +236,20 @@ sub _is_battery_time_expired {
 	return 0;
 }
 
+sub _is_battery_low {
+	my ($self, $percent) = @_;
+	my $root = $self->get_root();
+	if ($$root{low_battery_level} > 0 && 
+		($$root{low_battery_level} > $percent)) {
+		return 1;
+	}
+	return 0;
+}
+
 sub _process_message {
 	my ($self,$p_setby,%msg) = @_;
 	my $clear_message = 0;
+	my $root = $self->get_root();
 	if ($msg{command} eq 'link_cleanup_report' && $self->_is_battery_time_expired){
 		#Queue an get_extended_info request
 		$self->get_extended_info();
@@ -252,10 +268,18 @@ sub _process_message {
 	elsif ($msg{command} eq "extended_set_get" && $msg{is_extended}) {
 		if (substr($msg{extra},0,6) eq "000001") {
 			$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
-			#D10 = Battery; 
+			#D10 = Battery;
+			my $percent = hex(substr($msg{extra}, 20, 2));
 			main::print_log("[Insteon::RemoteLinc] The battery level ".
 				"for device ". $self->get_object_name . " is: ".
-				hex(substr($msg{extra}, 20, 2)));
+				$percent . "%");
+			if ($self->_is_battery_low){
+				package main;
+					eval $$root{low_battery_event};
+					::print_log("[Insteon::RemoteLinc] " . $self->{device}->get_object_name . ": error during low battery event eval $@")
+						if $@;
+				package Insteon::RemoteLinc;
+			}
 			$clear_message = 1;
 			$self->_process_command_stack(%msg);
 		} else {
