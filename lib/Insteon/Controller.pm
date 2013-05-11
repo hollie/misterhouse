@@ -173,10 +173,20 @@ sub set_battery_timer {
 	return;
 }
 
+sub _is_battery_time_expired {
+	my ($self) = @_;
+	my $root = $self->get_root();
+	if (defined $$root{battery_timer} && 
+		(time - ($$root{last_battery_time} * 60)) > $$root{battery_timer}) {
+		return 1;
+	}
+	return 0;
+}
+
 sub _process_message {
 	my ($self,$p_setby,%msg) = @_;
 	my $clear_message = 0;
-	if ($msg{command} eq 'link_cleanup_report'){
+	if ($msg{command} eq 'link_cleanup_report' && $self->_is_battery_time_expired){
 		#Queue an get_extended_info request
 		$self->get_extended_info();
 	}
