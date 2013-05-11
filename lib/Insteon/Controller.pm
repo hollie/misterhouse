@@ -183,7 +183,8 @@ Only available for RemoteLinc 2 models.
 
 If the battery level falls below this voltage, the C<battery_low_event()> 
 command is run.  The theoretical maximum voltage of the battery is 3.70 volts.
-The recommended low battery setting by Insteon is 3.26 volts.
+Although practical experience shows it to be closer to 3.65 volts. The 
+recommended low battery setting by Insteon is 3.26 volts.
 
 Setting to 0 will prevent any low battery events from occuring.  
 
@@ -274,6 +275,10 @@ sub _process_message {
 				"for device ". $self->get_object_name . " is: ".
 				$voltage . " of 3.70 volts.");
 			$$root{last_battery_time} = time;
+			if (ref $$root{battery_object} && $$root{battery_object}->can('set_receive'))
+			{
+				$$root{battery_object}->set_receive($voltage, $root);
+			}
 			if ($self->_is_battery_low($voltage)){
 				main::print_log("[Insteon::RemoteLinc] The battery level ".
 					"is below the set threshold running low battery event.");
@@ -299,6 +304,64 @@ sub _process_message {
 sub is_responder
 {
    return 0;
+}
+
+=back
+
+=head1 B<Insteon::RemoteLinc_Battery>
+
+=head2 SYNOPSIS
+
+Configuration:
+
+Currently the object can only be defined in the user code.
+
+In user code:
+
+   use Insteon::RemoteLinc_Battery;
+   $remote_battery = new Insteon::RemoteLinc_Battery($remote);
+
+Where $remote is the RemoteLinc device you wish to monitor.
+
+=head2 DESCRIPTION
+
+This basic class creates a simple object that displays the current battery voltage
+as its state.  This is helpful if you want to be able to view the battery level
+through a web page.  Battery level tracking is likely only available on RemoteLinc 2
+devices.
+
+This objects state will be updated based on interval defined for C<set_battery_timer()>
+in the parent B<Insteon::RemoteLinc> object.
+
+Once created, you can tie_events directly to this object rather than using the 
+battery_low_event code in the parent B<Insteon::RemoteLinc> object.
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
+
+package Insteon::RemoteLinc_Battery;
+use strict;
+
+@Insteon::RemoteLinc_Battery::ISA = ('Generic_Item');
+
+sub new {
+	my ($class, $parent) = @_;
+	my $self = new Generic_Item();
+	bless $self, $class;
+	$$parent{battery_object} = $self;
+	return $self;
+}
+
+sub set_receive {
+	my ($self, $p_state) = @_;
+	$self->SUPER::set($p_state);
 }
 
 =back
