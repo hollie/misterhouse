@@ -71,4 +71,35 @@ sub is_responder
    return 0;
 }
 
+=back
+
+=head2 INI PARAMETERS
+
+Only available for Motion Sensor Verion 2 models.
+
+Requests the status of various settings on the device.  Currently this is only
+used to obtain the battery and light level.  If the device is awake, the battery
+level and light level will be printed to the log.
+
+You likely do not need to directly call this message, rather MisterHouse will issue
+this request when it sees activity from the device and the C<set_query_timer()> has 
+expired.
+
+=cut
+
+sub get_extended_info {
+	my ($self) = @_;
+	my $root = $self->get_root();
+	my $extra = '000100000000000000000000000000';
+	$$root{_ext_set_get_action} = "get";
+	my $message = new Insteon::InsteonMessage('insteon_ext_send', $root, 'extended_set_get', $extra);
+	$root->_send_cmd($message);
+	return;
+}
+
+sub is_responder
+{
+   return 0;
+}
+
 1
