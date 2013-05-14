@@ -387,31 +387,23 @@ sub set_receive {
 
 =head2 INI PARAMETERS
 
-Only available for Motion Sensor Verion 2 models.
+None.
 
-Requests the status of various settings on the device.  Currently this is only
-used to obtain the battery and light level.  If the device is awake, the battery
-level and light level will be printed to the log.
+=head2 AUTHOR
 
-You likely do not need to directly call this message, rather MisterHouse will issue
-this request when it sees activity from the device and the C<set_query_timer()> has 
-expired.
+Bruce Winter, Gregg Limming, Kevin Robert Keegan
+
+=head2 SEE ALSO
+
+
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 =cut
-
-sub get_extended_info {
-	my ($self) = @_;
-	my $root = $self->get_root();
-	my $extra = '000100000000000000000000000000';
-	$$root{_ext_set_get_action} = "get";
-	my $message = new Insteon::InsteonMessage('insteon_ext_send', $root, 'extended_set_get', $extra);
-	$root->_send_cmd($message);
-	return;
-}
-
-sub is_responder
-{
-   return 0;
-}
-
 1
