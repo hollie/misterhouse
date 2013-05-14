@@ -325,6 +325,24 @@ sub _process_message {
 						if $@;
 				package Insteon::MotionSensor;
 			}
+			if ($self->_is_light_level_low($light_level)){
+				main::print_log("[Insteon::MotionSensor] The light level ".
+					"is below the set threshold running low light event.");
+				package main;
+					eval $$root{low_light_event};
+					::print_log("[Insteon::MotionSensor] " . $self->{device}->get_object_name . ": error during low light level event eval $@")
+						if $@;
+				package Insteon::MotionSensor;
+			}
+			if ($self->_is_light_level_high($light_level)){
+				main::print_log("[Insteon::MotionSensor] The light level ".
+					"is above the set threshold running high light event.");
+				package main;
+					eval $$root{high_light_event};
+					::print_log("[Insteon::MotionSensor] " . $self->{device}->get_object_name . ": error during high light level event eval $@")
+						if $@;
+				package Insteon::MotionSensor;
+			}
 			$clear_message = 1;
 			$self->_process_command_stack(%msg);
 		} else {
