@@ -66,6 +66,32 @@ sub get_extended_info {
 	return;
 }
 
+=item C<set_query_timer([minutes])>
+
+Only available for Motion Sensor Version 2 models.
+
+Sets the minimum amount of time between battery and light level requests.  When 
+this time expires, Misterhouse will request the battery and light level from 
+the device the next time MisterHouse sees activity from the device.  Misterhouse 
+will continue to request the battery and light level until it gets a response 
+from the device.
+
+Setting to 0 will disable automatic battery and light level requests.  1440 
+equals a day.
+
+This setting will be saved between MisterHouse reboots.
+
+=cut
+
+sub set_query_timer {
+	my ($self, $minutes) = @_;
+	my $root = $self->get_root();
+	$$root{query_timer} = sprintf("%u", $minutes);
+	::print_log("[Insteon::MotionSensor] Set battery timer to ".
+		$$root{query_timer}." minutes");
+	return;
+}
+
 sub is_responder
 {
    return 0;
