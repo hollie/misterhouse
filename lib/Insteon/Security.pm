@@ -92,6 +92,30 @@ sub set_query_timer {
 	return;
 }
 
+=item C<set_low_battery_level([0.0])>
+
+Only available for Motion Sensor Version 2 models.
+
+If the battery level falls below this voltage, the C<battery_low_event()> 
+command is run.  The theoretical maximum voltage of the battery is 9.0 volts.
+Although practical experience shows it to be closer to 8.5 volts. The 
+recommended low battery setting is (7.0??) volts.
+
+Setting to 0 will prevent any low battery events from occuring.  
+
+This setting will be saved between MisterHouse reboots.
+
+=cut
+
+sub set_low_battery_level {
+	my ($self, $level) = @_;
+	my $root = $self->get_root();
+	$$root{low_battery_level} = sprintf("%.2f", $level);
+	::print_log("[Insteon::RemoteLinc] Set low battery level to ".
+		$$root{low_battery_level}." volts.");
+	return;
+}
+
 sub is_responder
 {
    return 0;
