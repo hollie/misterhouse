@@ -162,6 +162,26 @@ sub _is_battery_low {
 	return 0;
 }
 
+sub _is_light_level_low {
+	my ($self, $level) = @_;
+	my $root = $self->get_root();
+	if ($$root{low_light_level} > 0 && 
+		($$root{low_light_level} > $level)) {
+		return 1;
+	}
+	return 0;
+}
+
+sub _is_light_level_high {
+	my ($self, $level) = @_;
+	my $root = $self->get_root();
+	if ($$root{low_light_level} > 0 && 
+		($$root{low_light_level} > $level)) {
+		return 1;
+	}
+	return 0;
+}
+
 sub _process_message {
 	my ($self,$p_setby,%msg) = @_;
 	my $clear_message = 0;
