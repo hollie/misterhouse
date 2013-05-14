@@ -1,3 +1,98 @@
+=head1 B<Insteon::MotionSensor>
+
+=head2 SYNOPSIS
+
+Configuration:
+
+In user code:
+
+   use Insteon::MotionSensor;
+   $motion_1 = new Insteon::MotionSensor('12.34.56:01',$myPLM);
+   $motion_2_light_level = new Insteon::MotionSensor('12.34.56:02',$myPLM);
+   $motion_3_battery_level = new Insteon::MotionSensor('12.34.56:03',$myPLM);
+
+In items.mht:
+
+   INSTEON_MOTIONSENSOR, 12.34.56:01, $motion_1, $motion_group
+   INSTEON_MOTIONSENSOR, 12.34.56:02, $motion_2_light_level, $motion_group
+   INSTEON_MOTIONSENSOR, 12.34.56:03, $motion_3_battery_level, $motion_group
+
+=head2 DESCRIPTION
+
+Provides support for Insteon Motion Sensor versions 1 and 2.  Support includes
+the ability to link the device to other devices, setting the various parameters
+on the device (timeout, light level, LED brightness), receive motion commands, 
+monitor the light level, and monitor the battery level.
+
+MisterHouse is only able to communicate with a Motion Sensor when it is in "awake
+mode."  The device is in "awake mode" while in its linking state.  To put the 
+Motion Sensor into "awake mode", follow the instructions for placing the device into
+linking mode.  In short, the instructions are to hold down the set button for 4-10
+seconds until you hear a beep and/or see the LED flash.  The Motion Sensor will now
+remain in "awake mode" for approximately 4 minutes.
+
+To scan the link table, sync links, or set settings on the device, the Motion Sensor
+must first be put into "awake mode."
+
+=head3 Battery and Light Level Monitoring Options:
+
+For version 2 devices, there are two ways in which you can monitor the battery 
+and light level.  For simplicity, these are referred to as the GROUP and QUERY
+method.  Both, either, or neither method may be used.  
+
+For version 1 devices, the GROUP method is the only option.
+
+=head4 The GROUP Method
+
+The Motion Sensor can send regular AllLink messages to signal changes in the
+light or battery level.  As a result, the device has 3 groups.  Group 1 is used
+for sending motion events, group 2 for sending light level events, and group 3 
+for sending battery level events.  
+
+When using the GROUP Method, the lighting and battery level events are binary, 
+that is the event is either on or off.  The threshold for determining whether 
+the light level is on or off must be set before hand.  The battery threshold is 
+present and not modifiable.
+
+When using this method, two additional motion objects will be created.  The state
+of these objects is set by the group messages sent from the device.  Currently,
+there is no known way to poll the device to request the current status of these
+objects.  As such, if MisterHouse fails to receive the group message from the 
+device, these objects may be out of sync.
+
+To use this method, simply define objects for groups 2 & 3 in your user code
+or mht file as described above.
+
+=head4 The QUERY Method
+
+Version 2 Motion Sensors can be queried to obtain the current light and voltage
+level.  However, these query messages can only be sent while the device is awake.
+Luckily, a Motion Sensor remains awake for approximatly 4 seconds after it sends
+a message.
+
+If this method is used, MisterHouse will periodically send a query message to
+the device after MisterHouse sees activity from the device.  The interval between
+when these messages can be set by the user.  The response from the device 
+contains a specific light and voltage level, as opposed to the simple binary
+states provided by the GROUP method.
+
+To use this method, set the C<set_query_time()> routine.
+	
+You can further create child objects that automatically track the state of the 
+light and voltage levels.  These objects allow you to display the state of the
+light and voltage levels on the MisterHouse webpage.  The child objects are 
+described below.  You can then tie an event to the state of the child objects
+with C<tie_event>.
+
+=head2 INHERITS
+
+B<Insteon::BaseDevice>, B<Insteon::DeviceController>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 package Insteon::MotionSensor;
 
@@ -6,11 +101,22 @@ use Insteon::BaseInsteon;
 
 @Insteon::MotionSensor::ISA = ('Insteon::DeviceController','Insteon::BaseDevice');
 
+my %message_types = (
+	%Insteon::BaseDevice::message_types,
+	extended_set_get => 0x2e
+);
+
 sub new
 {
 	my ($class,$p_deviceid,$p_interface) = @_;
 
 	my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
+	$$self{message_types} = \%message_types;
+	if ($self->is_root){ 
+		$self->restore_data('query_timer', 'last_query_time', 
+		'low_battery_level', 'low_battery_event', 'low_light_level',
+		'high_light_level', 'low_light_level_event', 'high_light_level_event');
+	}
 	bless $self,$class;
 	return $self;
 }
@@ -87,154 +193,8 @@ sub set_query_timer {
 	my ($self, $minutes) = @_;
 	my $root = $self->get_root();
 	$$root{query_timer} = sprintf("%u", $minutes);
-	::print_log("[Insteon::MotionSensor] Set battery timer to ".
+	::print_log("[Insteon::MotionSensor] Set query timer to ".
 		$$root{query_timer}." minutes");
-	return;
-}
-
-=item C<set_low_battery_level([0.0])>
-
-Only available for Motion Sensor Version 2 models.
-
-If the battery level falls below this voltage, the C<battery_low_event()> 
-command is run.  The theoretical maximum voltage of the battery is 9.0 volts.
-Although practical experience shows it to be closer to 8.5 volts. The 
-recommended low battery setting is (7.0??) volts.
-
-Setting to 0 will prevent any low battery events from occuring.  
-
-This setting will be saved between MisterHouse reboots.
-
-=cut
-
-sub set_low_battery_level {
-	my ($self, $level) = @_;
-	my $root = $self->get_root();
-	$$root{low_battery_level} = sprintf("%.2f", $level);
-	::print_log("[Insteon::MotionSensor] Set low battery level to ".
-		$$root{low_battery_level}." volts.");
-	return;
-}
-
-=item C<battery_low_event([cmd_to_eval])>
-
-Only available for Motion Sensor Version 2 models.
-
-If the battery level falls below the voltage defined by C<set_low_battery_level()> 
-this command is evaluated.  Works very similar to a C<Generic_Item::tie_event()>
-eval.
-
-Example:
-
-   $motion->battery_low_event('speak "Warning, Motion battery is low."');
-
-See C<test_tie.pl> for more examples.
-
-This setting will be saved between MisterHouse reboots.
-
-=cut
-
-sub battery_low_event {
-	my ($self, $eval) = @_;
-	my $root = $self->get_root();
-	$$root{low_battery_event} = $eval;
-	::print_log("[Insteon::MotionSensor] Set low battery event.");
-	return;
-}
-
-=item C<set_low_light_level([0-255])>
-
-Only available for Motion Sensor Version 2 models.
-
-If the light level falls below this level, the C<light_low_event()> 
-command is run.  The light level can range between 1 and 255.
-
-Setting to 0 will prevent any low light level events from occuring.  
-
-This setting will be saved between MisterHouse reboots.
-
-=cut
-
-sub set_low_light_level {
-	my ($self, $level) = @_;
-	my $root = $self->get_root();
-	$$root{low_light_level} = sprintf("%02d", $level);
-	::print_log("[Insteon::MotionSensor] Set low light level to ".
-		$$root{low_light_level}.".");
-	return;
-}
-
-=item C<light_low_event([cmd_to_eval])>
-
-Only available for Motion Sensor Version 2 models.
-
-If the light level falls below the level defined by C<set_low_light_level()> 
-this command is evaluated.  Works very similar to a C<Generic_Item::tie_event()>
-eval.
-
-Example:
-
-   $motion->light_low_event('speak "Warning, Light level is low."');
-
-See C<test_tie.pl> for more examples.
-
-This setting will be saved between MisterHouse reboots.
-
-=cut
-
-sub light_low_event {
-	my ($self, $eval) = @_;
-	my $root = $self->get_root();
-	$$root{light_low_event} = $eval;
-	::print_log("[Insteon::MotionSensor] Set low light event.");
-	return;
-}
-
-=item C<set_high_light_level([0-255])>
-
-Only available for Motion Sensor Version 2 models.
-
-If the light level falls above this level, the C<light_high_event()> 
-command is run.  The light level can range between 1 and 255.
-
-Setting to 0 will prevent any high light level events from occuring.  
-
-This setting will be saved between MisterHouse reboots.
-
-=cut
-
-sub set_high_light_level {
-	my ($self, $level) = @_;
-	my $root = $self->get_root();
-	$$root{high_light_level} = sprintf("%02d", $level);
-	::print_log("[Insteon::MotionSensor] Set high light level to ".
-		$$root{high_light_level}.".");
-	return;
-}
-
-=item C<light_high_event([cmd_to_eval])>
-
-Only available for Motion Sensor Version 2 models.
-
-If the light level falls above the level defined by C<set_high_light_level()> 
-this command is evaluated.  Works very similar to a C<Generic_Item::tie_event()>
-eval.
-
-Example:
-
-   $motion->light_high_event('speak "Warning, Light level is high."');
-
-See C<test_tie.pl> for more examples.
-
-This setting will be saved between MisterHouse reboots.
-
-=cut
-
-sub light_high_event {
-	my ($self, $eval) = @_;
-	my $root = $self->get_root();
-	$$root{light_high_event} = $eval;
-	::print_log("[Insteon::MotionSensor] Set high light event.");
 	return;
 }
 
@@ -248,41 +208,11 @@ sub _is_query_time_expired {
 	return 0;
 }
 
-sub _is_battery_low {
-	my ($self, $voltage) = @_;
-	my $root = $self->get_root();
-	if ($$root{low_battery_level} > 0 && 
-		($$root{low_battery_level} > $voltage)) {
-		return 1;
-	}
-	return 0;
-}
-
-sub _is_light_level_low {
-	my ($self, $level) = @_;
-	my $root = $self->get_root();
-	if ($$root{low_light_level} > 0 && 
-		($$root{low_light_level} > $level)) {
-		return 1;
-	}
-	return 0;
-}
-
-sub _is_light_level_high {
-	my ($self, $level) = @_;
-	my $root = $self->get_root();
-	if ($$root{low_light_level} > 0 && 
-		($$root{low_light_level} > $level)) {
-		return 1;
-	}
-	return 0;
-}
-
 sub _process_message {
 	my ($self,$p_setby,%msg) = @_;
 	my $clear_message = 0;
 	my $root = $self->get_root();
-	if ($msg{command} eq 'link_cleanup_report' && $self->_is_query_time_expired){
+	if ($msg{type} eq 'cleanup' && $self->_is_query_time_expired){
 		#Queue an get_extended_info request
 		$self->get_extended_info();
 	}
@@ -305,7 +235,7 @@ sub _process_message {
 			my $light_level = hex(substr($msg{extra}, 22, 2));
 			main::print_log("[Insteon::MotionSensor] The battery level ".
 				"for device ". $self->get_object_name . " is: ".
-				$voltage . " of 9.0 volts and the light level is".
+				$voltage . " of 9.0 volts and the light level is ".
 				$light_level . " of 255.");
 			$$root{last_query_time} = time;
 			if (ref $$root{battery_object} && $$root{battery_object}->can('set_receive'))
@@ -315,33 +245,6 @@ sub _process_message {
 			if (ref $$root{light_level_object} && $$root{light_level_object}->can('set_receive'))
 			{
 				$$root{light_level_object}->set_receive($light_level, $root);
-			}
-			if ($self->_is_battery_low($voltage)){
-				main::print_log("[Insteon::MotionSensor] The battery level ".
-					"is below the set threshold running low battery event.");
-				package main;
-					eval $$root{low_battery_event};
-					::print_log("[Insteon::MotionSensor] " . $self->{device}->get_object_name . ": error during low battery event eval $@")
-						if $@;
-				package Insteon::MotionSensor;
-			}
-			if ($self->_is_light_level_low($light_level)){
-				main::print_log("[Insteon::MotionSensor] The light level ".
-					"is below the set threshold running low light event.");
-				package main;
-					eval $$root{low_light_event};
-					::print_log("[Insteon::MotionSensor] " . $self->{device}->get_object_name . ": error during low light level event eval $@")
-						if $@;
-				package Insteon::MotionSensor;
-			}
-			if ($self->_is_light_level_high($light_level)){
-				main::print_log("[Insteon::MotionSensor] The light level ".
-					"is above the set threshold running high light event.");
-				package main;
-					eval $$root{high_light_event};
-					::print_log("[Insteon::MotionSensor] " . $self->{device}->get_object_name . ": error during high light level event eval $@")
-						if $@;
-				package Insteon::MotionSensor;
 			}
 			$clear_message = 1;
 			$self->_process_command_stack(%msg);
