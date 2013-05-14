@@ -363,6 +363,125 @@ sub is_responder
 
 =back
 
+=head1 B<Insteon::MotionSensor_Battery>
+
+=head2 SYNOPSIS
+
+Configuration:
+
+Currently the object can only be defined in the user code.
+
+In user code:
+
+   use Insteon::MotionSensor_Battery;
+   $motion_battery = new Insteon::MotionSensor_Battery($motion);
+
+Where $motion is the Motion Sensor device you wish to monitor.
+
+=head2 DESCRIPTION
+
+This basic class creates a simple object that displays the current battery voltage
+as its state.  This is helpful if you want to be able to view the battery level
+through a web page.  This type of battery level tracking is only available for
+Motion Sensor Version 2 devices.
+
+This objects state will be updated based on interval defined for C<set_query_timer()>
+in the parent B<Insteon::MotionSensor> object.
+
+Once created, you can tie_events directly to this object rather than using the 
+battery_low_event code in the parent B<Insteon::MotionSensor> object.
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
+
+package Insteon::MotionSensor_Battery;
+use strict;
+
+@Insteon::MotionSensor_Battery::ISA = ('Generic_Item');
+
+sub new {
+	my ($class, $parent) = @_;
+	my $self = new Generic_Item();
+	my $root = $parent->get_root();
+	bless $self, $class;
+	$$root{battery_object} = $self;
+	return $self;
+}
+
+sub set_receive {
+	my ($self, $p_state) = @_;
+	$self->SUPER::set($p_state);
+}
+
+=back
+
+=head1 B<Insteon::MotionSensor_Light_level>
+
+=head2 SYNOPSIS
+
+Configuration:
+
+Currently the object can only be defined in the user code.
+
+In user code:
+
+   use Insteon::MotionSensor_Light_Level;
+   $motion_light_level = new Insteon::MotionSensor_Light_Level($motion);
+
+Where $motion is the Motion Sensor device you wish to monitor.
+
+=head2 DESCRIPTION
+
+This basic class creates a simple object that displays the current light level
+as its state.  This is helpful if you want to be able to view the light level
+through a web page.  This type of light level tracking is only available for
+Motion Sensor Version 2 devices.
+
+This objects state will be updated based on interval defined for C<set_query_timer()>
+in the parent B<Insteon::MotionSensor> object.
+
+Once created, you can tie_events directly to this object rather than using the 
+C<light_level_low_event> and C<light_level_high_event> code in the parent 
+B<Insteon::MotionSensor> object.
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
+
+package Insteon::MotionSensor_Light_Level;
+use strict;
+
+@Insteon::MotionSensor_Light_Level::ISA = ('Generic_Item');
+
+sub new {
+	my ($class, $parent) = @_;
+	my $self = new Generic_Item();
+	my $root = $parent->get_root();
+	bless $self, $class;
+	$$root{light_level_object} = $self;
+	return $self;
+}
+
+sub set_receive {
+	my ($self, $p_state) = @_;
+	$self->SUPER::set($p_state);
+}
+
+=back
+
 =head2 INI PARAMETERS
 
 Only available for Motion Sensor Verion 2 models.
