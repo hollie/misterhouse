@@ -111,8 +111,34 @@ sub set_low_battery_level {
 	my ($self, $level) = @_;
 	my $root = $self->get_root();
 	$$root{low_battery_level} = sprintf("%.2f", $level);
-	::print_log("[Insteon::RemoteLinc] Set low battery level to ".
+	::print_log("[Insteon::MotionSensor] Set low battery level to ".
 		$$root{low_battery_level}." volts.");
+	return;
+}
+
+=item C<battery_low_event([cmd_to_eval])>
+
+Only available for Motion Sensor Version 2 models.
+
+If the battery level falls below the voltage defined by C<set_low_battery_level()> 
+this command is evaluated.  Works very similar to a C<Generic_Item::tie_event()>
+eval.
+
+Example:
+
+   $motion->battery_low_event('speak "Warning, Motion battery is low."');
+
+See C<test_tie.pl> for more examples.
+
+This setting will be saved between MisterHouse reboots.
+
+=cut
+
+sub battery_low_event {
+	my ($self, $eval) = @_;
+	my $root = $self->get_root();
+	$$root{low_battery_event} = $eval;
+	::print_log("[Insteon::MotionSensor] Set low battery event.");
 	return;
 }
 
