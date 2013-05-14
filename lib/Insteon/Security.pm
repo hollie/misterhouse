@@ -142,6 +142,86 @@ sub battery_low_event {
 	return;
 }
 
+sub _is_query_time_expired {
+	my ($self) = @_;
+	my $root = $self->get_root();
+	if ($$root{query_timer} > 0 && 
+		(time - $$root{last_query_time}) > ($$root{query_timer} * 60)) {
+		return 1;
+	}
+	return 0;
+}
+
+sub _is_battery_low {
+	my ($self, $voltage) = @_;
+	my $root = $self->get_root();
+	if ($$root{low_battery_level} > 0 && 
+		($$root{low_battery_level} > $voltage)) {
+		return 1;
+	}
+	return 0;
+}
+
+sub _process_message {
+	my ($self,$p_setby,%msg) = @_;
+	my $clear_message = 0;
+	my $root = $self->get_root();
+	if ($msg{command} eq 'link_cleanup_report' && $self->_is_query_time_expired){
+		#Queue an get_extended_info request
+		$self->get_extended_info();
+	}
+	if ($msg{command} eq "extended_set_get" && $msg{is_ack}){
+		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
+		#If this was a get request don't clear until data packet received
+		main::print_log("[Insteon::MotionSensor] Extended Set/Get ACK Received for " . $self->get_object_name) if $main::Debug{insteon};
+		if ($$self{_ext_set_get_action} eq 'set'){
+			main::print_log("[Insteon::MotionSensor] Clearing active message") if $main::Debug{insteon};
+			$clear_message = 1;
+			$$self{_ext_set_get_action} = undef;
+			$self->_process_command_stack(%msg);	
+		}
+	}
+	elsif ($msg{command} eq "extended_set_get" && $msg{is_extended}) {
+		if (substr($msg{extra},0,6) eq "000001") {
+			$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
+			#D11 = Light; D12 = Battery;
+			my $voltage = (hex(substr($msg{extra}, 24, 2))/10);
+			my $light_level = hex(substr($msg{extra}, 22, 2));
+			main::print_log("[Insteon::MotionSensor] The battery level ".
+				"for device ". $self->get_object_name . " is: ".
+				$voltage . " of 9.0 volts and the light level is".
+				$light_level . " of 255.");
+			$$root{last_query_time} = time;
+			if (ref $$root{battery_object} && $$root{battery_object}->can('set_receive'))
+			{
+				$$root{battery_object}->set_receive($voltage, $root);
+			}
+			if (ref $$root{light_level_object} && $$root{light_level_object}->can('set_receive'))
+			{
+				$$root{light_level_object}->set_receive($light_level, $root);
+			}
+			if ($self->_is_battery_low($voltage)){
+				main::print_log("[Insteon::MotionSensor] The battery level ".
+					"is below the set threshold running low battery event.");
+				package main;
+					eval $$root{low_battery_event};
+					::print_log("[Insteon::MotionSensor] " . $self->{device}->get_object_name . ": error during low battery event eval $@")
+						if $@;
+				package Insteon::MotionSensor;
+			}
+			$clear_message = 1;
+			$self->_process_command_stack(%msg);
+		} else {
+			main::print_log("[Insteon::MotionSensor] WARN: Corrupt Extended "
+				."Set/Get Data Received for ". $self->get_object_name) if $main::Debug{insteon};
+		}
+	}
+	else {
+		$clear_message = $self->SUPER::_process_message($p_setby,%msg);
+	}
+	return $clear_message;
+}
+
 sub is_responder
 {
    return 0;
