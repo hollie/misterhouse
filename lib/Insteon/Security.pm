@@ -142,6 +142,102 @@ sub battery_low_event {
 	return;
 }
 
+=item C<set_low_light_level([0-255])>
+
+Only available for Motion Sensor Version 2 models.
+
+If the light level falls below this level, the C<light_low_event()> 
+command is run.  The light level can range between 1 and 255.
+
+Setting to 0 will prevent any low light level events from occuring.  
+
+This setting will be saved between MisterHouse reboots.
+
+=cut
+
+sub set_low_light_level {
+	my ($self, $level) = @_;
+	my $root = $self->get_root();
+	$$root{low_light_level} = sprintf("%02d", $level);
+	::print_log("[Insteon::MotionSensor] Set low light level to ".
+		$$root{low_light_level}.".");
+	return;
+}
+
+=item C<light_low_event([cmd_to_eval])>
+
+Only available for Motion Sensor Version 2 models.
+
+If the light level falls below the level defined by C<set_low_light_level()> 
+this command is evaluated.  Works very similar to a C<Generic_Item::tie_event()>
+eval.
+
+Example:
+
+   $motion->light_low_event('speak "Warning, Light level is low."');
+
+See C<test_tie.pl> for more examples.
+
+This setting will be saved between MisterHouse reboots.
+
+=cut
+
+sub light_low_event {
+	my ($self, $eval) = @_;
+	my $root = $self->get_root();
+	$$root{light_low_event} = $eval;
+	::print_log("[Insteon::MotionSensor] Set low light event.");
+	return;
+}
+
+=item C<set_high_light_level([0-255])>
+
+Only available for Motion Sensor Version 2 models.
+
+If the light level falls above this level, the C<light_high_event()> 
+command is run.  The light level can range between 1 and 255.
+
+Setting to 0 will prevent any high light level events from occuring.  
+
+This setting will be saved between MisterHouse reboots.
+
+=cut
+
+sub set_high_light_level {
+	my ($self, $level) = @_;
+	my $root = $self->get_root();
+	$$root{high_light_level} = sprintf("%02d", $level);
+	::print_log("[Insteon::MotionSensor] Set high light level to ".
+		$$root{high_light_level}.".");
+	return;
+}
+
+=item C<light_high_event([cmd_to_eval])>
+
+Only available for Motion Sensor Version 2 models.
+
+If the light level falls above the level defined by C<set_high_light_level()> 
+this command is evaluated.  Works very similar to a C<Generic_Item::tie_event()>
+eval.
+
+Example:
+
+   $motion->light_high_event('speak "Warning, Light level is high."');
+
+See C<test_tie.pl> for more examples.
+
+This setting will be saved between MisterHouse reboots.
+
+=cut
+
+sub light_high_event {
+	my ($self, $eval) = @_;
+	my $root = $self->get_root();
+	$$root{light_high_event} = $eval;
+	::print_log("[Insteon::MotionSensor] Set high light event.");
+	return;
+}
+
 sub _is_query_time_expired {
 	my ($self) = @_;
 	my $root = $self->get_root();
