@@ -113,9 +113,8 @@ sub new
 	my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
 	$$self{message_types} = \%message_types;
 	if ($self->is_root){ 
-		$self->restore_data('query_timer', 'last_query_time', 
-		'low_battery_level', 'low_battery_event', 'low_light_level',
-		'high_light_level', 'low_light_level_event', 'high_light_level_event');
+		$self->restore_data('query_timer', 'last_query_time');
+		$$self{queue_timer} = new Timer;
 	}
 	bless $self,$class;
 	return $self;
@@ -198,6 +197,169 @@ sub set_query_timer {
 	return;
 }
 
+=item C<set_led_brightness([0-255])>
+
+Sets the brightness of the LED light with 0 being off and 255 being full
+brightness.  Factory default value is 100.
+
+The device will only obey this setting if Jumper 5, the Remote Software
+Management switch, is enabled.  To enable this, make sure jumper 5 is connected
+to both pins.  Enabling the Software Mangement Switch will disable the light 
+sensitivity and timeout dials on the device and require them to be set through
+MisterHouse.
+
+=cut
+
+sub set_led_brightness {
+	my ($self, $value) = @_;
+	my $root = $self->get_root();
+	::print_log("[Insteon::MotionSensor] Setting LED Brightness to $value of 255");
+	$value = sprintf("%02x", $value);
+	my $extra = '000002' . $value;
+	$extra .= '0' x (30 - length $extra);
+	$$root{_ext_set_get_action} = "set";
+	my $message = new Insteon::InsteonMessage('insteon_ext_send', $root, 'extended_set_get', $extra);
+	$root->_send_cmd($message);
+	return;
+}
+
+=item C<set_timeout([30-7680]seconds)>
+
+Sets the number of seconds between the on and off messages sent by the device.  
+If the device is set to on only, sets the amount of time between when on messages
+can be sent.  If on only mode is enabled, on messages can be sent as frequent
+as once every 10 seconds if C<all_motion_events()> is enabled.
+
+The number of seconds must be in increments of 30 seconds.  Improper settings 
+will be rounded down to nearest multiple of 30. The factory default value is 60. 
+The lowest value is 30.  
+
+The device will only obey this setting if Jumper 5, the Remote Software
+Management switch, is enabled.  To enable this, make sure jumper 5 is connected
+to both pins.  Enabling the Software Mangement Switch will disable the light 
+sensitivity and timeout dials on the device and require them to be set through
+MisterHouse.
+
+=cut
+
+sub set_timeout {
+	my ($self, $value) = @_;
+	my $root = $self->get_root();
+	$value = (sprintf("%d", ($value / 30)) - 1);
+	my $readable_value = ($value + 1) * 30;
+	::print_log("[Insteon::MotionSensor] Setting timeout to $readable_value seconds.");
+	$value = sprintf("%02x", $value);
+	my $extra = '000003' . $value;
+	$extra .= '0' x (30 - length $extra);
+	$$root{_ext_set_get_action} = "set";
+	my $message = new Insteon::InsteonMessage('insteon_ext_send', $root, 'extended_set_get', $extra);
+	$root->_send_cmd($message);
+	return;
+}
+
+=item C<set_light_sensitivity([0-255])>
+
+Sets the level of light at which the device perceives it to be night.  The lower
+the value, the darker it needs to be for the unit to perceive night.  In night 
+only mode, the device will not send an on command unless it is darker than this
+setting.  In all cases, the group 2 light_level object, will turn to on when
+the light level falls below this setting for more than 3 minutes.
+
+The factory default value is 35.
+
+The device will only obey this setting if Jumper 5, the Remote Software
+Management switch, is enabled.  To enable this, make sure jumper 5 is connected
+to both pins.  Enabling the Software Mangement Switch will disable the light 
+sensitivity and timeout dials on the device and require them to be set through
+MisterHouse.
+
+=cut
+
+sub set_light_sensitivity {
+	my ($self, $value) = @_;
+	my $root = $self->get_root();
+	::print_log("[Insteon::MotionSensor] Setting light sensitivity level to $value of 255.");
+	$value = sprintf("%02x", $value);
+	my $extra = '000004' . $value;
+	$extra .= '0' x (30 - length $extra);
+	$$root{_ext_set_get_action} = "set";
+	my $message = new Insteon::InsteonMessage('insteon_ext_send', $root, 'extended_set_get', $extra);
+	$root->_send_cmd($message);
+	return;
+}
+
+=item C<enable_night_only([0/1])>
+
+Only available on Motion Sensor Version 2.
+
+When enabled, the device will only send motion events if the current light
+level is below the light sensitivity.  The light sensitivity can be set with
+C<set_light_sensitivity()>.
+
+The device will only obey this setting if Jumper 5, the Remote Software
+Management switch, is enabled.  To enable this, make sure jumper 5 is connected
+to both pins.  Enabling the Software Mangement Switch will disable the light 
+sensitivity and timeout dials on the device and require them to be set through
+MisterHouse.
+
+=cut
+
+sub enable_night_only {
+	my ($self, $value) = @_;
+	my $root = $self->get_root();
+	$$root{_set_bit_action} = ($value) ? "night_on" : "night_off";		
+	$root->get_extended_info();
+	return;
+}
+
+=item C<enable_on_only([0/1])>
+
+Only available on Motion Sensor Version 2.
+
+When enabled, the device will only send ON motion events.  No OFF motion events
+will be sent.
+
+The device will only obey this setting if Jumper 5, the Remote Software
+Management switch, is enabled.  To enable this, make sure jumper 5 is connected
+to both pins.  Enabling the Software Mangement Switch will disable the light 
+sensitivity and timeout dials on the device and require them to be set through
+MisterHouse.
+
+=cut
+
+sub enable_on_only {
+	my ($self, $value) = @_;
+	my $root = $self->get_root();
+	$$root{_set_bit_action} = ($value) ? "on_mode_on" : "on_mode_off";		
+	$root->get_extended_info();
+	return;
+}
+
+=item C<enable_all_motion([0/1])>
+
+Only available on Motion Sensor Version 2.
+
+When enabled, the device will constantly send motion events whenever motion
+is seen.  The device seems to be limited to one event per 10 seconds.  If 
+disabled, the device will only send an ON event once per timeout period.  The
+timeout period can be set with C<set_timeout()>.
+
+The device will only obey this setting if Jumper 5, the Remote Software
+Management switch, is enabled.  To enable this, make sure jumper 5 is connected
+to both pins.  Enabling the Software Mangement Switch will disable the light 
+sensitivity and timeout dials on the device and require them to be set through
+MisterHouse.
+
+=cut
+
+sub enable_all_motion {
+	my ($self, $value) = @_;
+	my $root = $self->get_root();
+	$$root{_set_bit_action} = ($value) ? "all_motion_on" : "all_motion_off";		
+	$root->get_extended_info();
+	return;
+}
+
 sub _is_query_time_expired {
 	my ($self) = @_;
 	my $root = $self->get_root();
@@ -212,16 +374,28 @@ sub _process_message {
 	my ($self,$p_setby,%msg) = @_;
 	my $clear_message = 0;
 	my $root = $self->get_root();
-	if ($msg{type} eq 'cleanup' && $self->_is_query_time_expired){
-		#Queue an get_extended_info request
-		$self->get_extended_info();
+	if ($root->_is_query_time_expired && $msg{command} ne "extended_set_get"){
+		#Queue an get_extended_info request, but wait for subsequent msgs
+		#Don't queue if incoming msg is an ext_set_get to avoid loop
+		if ($$root{queue_timer}->active){
+			$$root{queue_timer}->restart();
+		}
+		else {
+			$$root{queue_timer}->set(1, $root->get_object_name . "->get_extended_info()");
+		}
 	}
 	if ($msg{command} eq "extended_set_get" && $msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
 		#If this was a get request don't clear until data packet received
 		main::print_log("[Insteon::MotionSensor] Extended Set/Get ACK Received for " . $self->get_object_name) if $main::Debug{insteon};
 		if ($$self{_ext_set_get_action} eq 'set'){
-			main::print_log("[Insteon::MotionSensor] Clearing active message") if $main::Debug{insteon};
+			if (defined($$root{_set_bit_action})){
+				::print_log("[Insteon::MotionSensor] Flags update for ".
+					$root->get_object_name . " complete.");
+				$$root{_set_bit_action} = undef;
+			} else {
+				main::print_log("[Insteon::MotionSensor] Clearing active message") if $main::Debug{insteon};
+			}
 			$clear_message = 1;
 			$$self{_ext_set_get_action} = undef;
 			$self->_process_command_stack(%msg);	
@@ -245,6 +419,30 @@ sub _process_message {
 			if (ref $$root{light_level_object} && $$root{light_level_object}->can('set_receive'))
 			{
 				$$root{light_level_object}->set_receive($light_level, $root);
+			}
+			if (defined $$root{_set_bit_action}){
+				#Take current flags and apply changes
+				my $curr_flags = substr($msg{extra}, 12, 2);
+				my $bitflags = sprintf('%08b',hex($curr_flags));
+				substr($bitflags,2,1) = 0 if ($$root{_set_bit_action} eq "night_on");
+				substr($bitflags,2,1) = 1 if ($$root{_set_bit_action} eq "night_off");
+				substr($bitflags,1,1) = 0 if ($$root{_set_bit_action} eq "on_mode_on");
+				substr($bitflags,1,1) = 1 if ($$root{_set_bit_action} eq "on_mode_off");
+				substr($bitflags,4,1) = 1 if ($$root{_set_bit_action} eq "all_motion_on");
+				substr($bitflags,4,1) = 0 if ($$root{_set_bit_action} eq "all_motion_off");
+				$bitflags = sprintf("%02x", oct("0b$bitflags"));
+				#Send command to set bits
+				if ($curr_flags ne $bitflags) {
+					my $extra = '000005' . $bitflags;
+					$extra .= '0' x (30 - length $extra);
+					$$root{_ext_set_get_action} = "set";
+					my $message = new Insteon::InsteonMessage('insteon_ext_send', $root, 'extended_set_get', $extra);
+					$root->_send_cmd($message);
+				} else {
+					::print_log("[Insteon::MotionSensor] Flags update for ".
+						$root->get_object_name . " complete.");
+					$$root{_set_bit_action} = undef;
+				}
 			}
 			$clear_message = 1;
 			$self->_process_command_stack(%msg);
