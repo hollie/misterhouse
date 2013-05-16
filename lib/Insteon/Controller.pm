@@ -69,8 +69,8 @@ sub new
 	my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
         $$self{message_types} = \%message_types;
 	if ($self->is_root){
-		$self->restore_data('battery_timer', 'last_battery_time', 
-		'low_battery_level', 'low_battery_event');
+		$self->restore_data('battery_timer', 'last_battery_time');
+		$$self{queue_timer} = new Timer;
 	}
 	bless $self,$class;
 	return $self;
@@ -177,56 +177,6 @@ sub set_battery_timer {
 	return;
 }
 
-=item C<set_low_battery_level([0.00])>
-
-Only available for RemoteLinc 2 models.
-
-If the battery level falls below this voltage, the C<battery_low_event()> 
-command is run.  The theoretical maximum voltage of the battery is 3.70 volts.
-Although practical experience shows it to be closer to 3.65 volts. The 
-recommended low battery setting by Insteon is 3.26 volts.
-
-Setting to 0 will prevent any low battery events from occuring.  
-
-This setting will be saved between MisterHouse reboots.
-
-=cut
-
-sub set_low_battery_level {
-	my ($self, $level) = @_;
-	my $root = $self->get_root();
-	$$root{low_battery_level} = sprintf("%.2f", $level);
-	::print_log("[Insteon::RemoteLinc] Set low battery level to ".
-		$$root{low_battery_level}." volts.");
-	return;
-}
-
-=item C<battery_low_event([cmd_to_eval])>
-
-Only available for RemoteLinc 2 models.
-
-If the battery level falls below the percentage defined by C<set_low_battery_level()> 
-this command is evaluated.  Works very similar to a C<Generic_Item::tie_event()>
-eval.
-
-Example:
-
-   $remote->battery_low_event('speak "Warning, Remote battery is low."');
-
-See C<test_tie.pl> for more examples.
-
-This setting will be saved between MisterHouse reboots.
-
-=cut
-
-sub battery_low_event {
-	my ($self, $eval) = @_;
-	my $root = $self->get_root();
-	$$root{low_battery_event} = $eval;
-	::print_log("[Insteon::RemoteLinc] Set low battery event.");
-	return;
-}
-
 sub _is_battery_time_expired {
 	my ($self) = @_;
 	my $root = $self->get_root();
@@ -237,23 +187,18 @@ sub _is_battery_time_expired {
 	return 0;
 }
 
-sub _is_battery_low {
-	my ($self, $voltage) = @_;
-	my $root = $self->get_root();
-	if ($$root{low_battery_level} > 0 && 
-		($$root{low_battery_level} > $voltage)) {
-		return 1;
-	}
-	return 0;
-}
-
 sub _process_message {
 	my ($self,$p_setby,%msg) = @_;
 	my $clear_message = 0;
 	my $root = $self->get_root();
-	if ($msg{command} eq 'link_cleanup_report' && $self->_is_battery_time_expired){
+	if ($root->_is_battery_time_expired){
 		#Queue an get_extended_info request
-		$self->get_extended_info();
+		if ($$root{queue_timer}->active){
+			$$root{queue_timer}-restart();
+		}
+		else {
+			$$root{queue_timer}->set(3, '$root->get_extended_info()');
+		}
 	}
 	if ($msg{command} eq "extended_set_get" && $msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
