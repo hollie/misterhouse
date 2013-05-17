@@ -135,7 +135,8 @@ sub set
 	# motion sensors seem to get multiple fast reports; don't trigger on both
         my $setby_name = $p_setby;
         $setby_name = $p_setby->get_object_name() if (ref $p_setby and $p_setby->can('get_object_name'));
-	if (not defined($self->get_idle_time) or $self->get_idle_time > 1 or $self->state ne $p_state) {
+	if (not defined($self->get_idle_time) or $self->get_idle_time > 1 or 
+		($self->state ne $p_state && $self->state_final ne $p_state)) {
 		&::print_log("[Insteon::MotionSensor] " . $self->get_object_name()
 			. "::set_receive($p_state, $setby_name)") if $main::Debug{insteon};
 		$self->set_receive($p_state,$p_setby);
