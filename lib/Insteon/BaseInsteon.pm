@@ -703,7 +703,8 @@ sub _process_message
                 }
                 elsif ($msg{type} eq 'cleanup')
                 {
-                	if (lc($self->state) eq lc($p_state) and $$self{_pending_cleanup}){
+                	if (($self->state eq $p_state or $self->state_final eq $p_state)
+                		and $$self{_pending_cleanup}){
 				::print_log("[Insteon::BaseObject] Ignoring Received Direct AllLink Cleanup Message for " 
 					. $self->{object_name} . " since AllLink Broadcast Message was Received.") if $main::Debug{insteon};
                 	} else {
