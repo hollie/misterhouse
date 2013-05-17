@@ -597,7 +597,11 @@ sub _parse_data {
 	{
 		#ignore blanks.. the split does odd things
 		next if $parsed_data eq '';
-                next if $previous_parsed_data eq $parsed_data; # guard against repeats
+		if ($previous_parsed_data eq $parsed_data){
+			# guard against repeats
+			::print_log("[Insteon_PLM] DEBUG3: Dropped duplicate message: $parsed_data") if $main::Debug{insteon} >= 3; 
+			next;
+		}
                 $previous_parsed_data = $parsed_data; # and, now reinitialize
 
                 $entered_rcv_loop = 1;
