@@ -560,8 +560,18 @@ sub _process_message
 		$p_state = $msg{command};
                 if ($msg{type} eq 'alllink')
                 {
-			$self->set($p_state, $self);
-			$$self{_pending_cleanup} = 1;
+			if ($msg{command} eq 'link_cleanup_report'){
+				if ($msg{extra} == 0){
+					::print_log("[Insteon::BaseObject] DEBUG Received AllLink Cleanup Success for "
+						. $self->{object_name}) if $main::Debug{insteon} >= 1;
+				} else {
+					::print_log("[Insteon::BaseObject] WARN " . $msg{extra} . " Device(s) failed to "
+						. "acknowledge the command from " . $self->{object_name});
+				}
+			} else {
+				$self->set($p_state, $self);
+				$$self{_pending_cleanup} = 1;
+			}
                 }
                 elsif ($msg{type} eq 'cleanup')
                 {
