@@ -249,20 +249,20 @@ sub process_queue
 					&main::print_log("[Insteon::BaseInterface] WARN! Unable to clear acknowledge for "
 						. ((defined($failed_message->setby)) ? $failed_message->setby->get_object_name : "undefined"));
 				}
-
+				# clear active message
+				$self->clear_active_message();
                                 # may instead want a "failure" callback separate from success callback
 				if ($failed_message->failure_callback)
                                 {
                                        	&::print_log("[Insteon::BaseInterface] WARN: Message Timeout:  Now calling callback: " .
                                                	$failed_message->failure_callback) if $main::Debug{insteon};
-					$failed_message->failure_reason('timeout');
+					$failed_message->setby->failure_reason('timeout') 
+						if (defined($failed_message->setby) and $failed_message->setby->can('failure_reason'));
 		       			package main;
 					eval $failed_message->failure_callback;
 					&::print_log("[Insteon::BaseInterface] problem w/ retry callback: $@") if $@;
 					package Insteon::BaseInterface;
 				}
-
-                		$self->clear_active_message();
                 		$self->process_queue();
                         }
 		}

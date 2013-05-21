@@ -660,7 +660,7 @@ sub _process_message
 		{
 			main::print_log("[Insteon::BaseObject] WARN: Now calling message failure callback: "
 				. $p_setby->active_message->failure_callback) if $main::Debug{insteon};
-			$p_setby->active_message->failure_reason('NAK');
+			$self->failure_reason('NAK');
 			package main;
 			eval $p_setby->active_message->failure_callback;
 			main::print_log("[Insteon::BaseObject] problem w/ retry callback: $@") if $@;
@@ -826,6 +826,26 @@ sub _is_valid_state
 sub get_nack_msg_for {
    my ($self,$msg) = @_;
    return $nack_messages{ $msg };
+}
+
+=item C<failure_reason>
+
+Stores the resaon for the most recent message failure [NAK | timeout].  Used to 
+process message callbacks after a message fails.  If called with no parameter 
+returns the saved failure reason.
+
+Parameters:
+	reason: failure reason
+
+Returns: failure reason
+
+=cut 
+
+sub failure_reason
+{
+        my ($self, $reason) = @_;
+        $$self{failure_reason} = $reason if $reason;
+        return $$self{failure_reason};
 }
 
 ####################################
@@ -1264,7 +1284,7 @@ Returns: nothing
 sub _get_engine_version_failure
 {
 	my ($self) = @_;
-	my $failure_reason = $self->interface->active_message->failure_reason();
+	my $failure_reason = $self->failure_reason();
 	
 	main::print_log("[Insteon::BaseDevice::_get_engine_version_failure] DEBUG4: "
 		."failure reason: $failure_reason") if $main::Debug{insteon} >= 4;
