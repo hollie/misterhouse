@@ -353,7 +353,6 @@ sub _parse_data {
         }
 
 	&::print_log( "[Insteon_PLM] DEBUG3: Received PLM raw data: $data") if $main::Debug{insteon} >= 3;
-	&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($data)) if $main::Debug{insteon} >= 4;
 
 	# begin by pulling out any PLM ack/nacks
 	my $prev_cmd = '';
@@ -389,6 +388,7 @@ sub _parse_data {
                         $entered_ack_loop = 1;
 			if ($parsed_data =~ /^($ackcmd)|($nackcmd)|($prefix{plm_info}\w{12}06)|($prefix{plm_info}\w{12}15)|($prefix{all_link_first_rec}15)|($prefix{all_link_next_rec}15)|($badcmd)$/)
                         {
+				&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($data)) if $main::Debug{insteon} >= 4;
 				my $ret_code = substr($parsed_data,length($parsed_data)-2,2);
 				my $record_type = substr($parsed_data,0,4);
                                 my $message_data = substr($parsed_data,4,length($parsed_data)-4);
@@ -553,6 +553,7 @@ sub _parse_data {
                         	# is $parsed_data an accidental anomoly? (there are other cases; but, this is a good start)
                                 if ($parsed_data =~ /^($prefix{insteon_send}\w{12}06)|($prefix{insteon_send}\w{12}15)$/)
                                 {
+					&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($data)) if $main::Debug{insteon} >= 4;
                                 	# first, parse the content to confirm that it could be a legitimate ACK
                                         my $unknown_deviceid = substr($parsed_data,4,6);
                                         my $unknown_msg_flags = substr($parsed_data,10,2);
@@ -597,7 +598,12 @@ sub _parse_data {
 	{
 		#ignore blanks.. the split does odd things
 		next if $parsed_data eq '';
-                next if $previous_parsed_data eq $parsed_data; # guard against repeats
+		&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($data)) if $main::Debug{insteon} >= 4;
+		if ($previous_parsed_data eq $parsed_data){
+			# guard against repeats
+			::print_log("[Insteon_PLM] DEBUG3: Dropped duplicate message: $parsed_data") if $main::Debug{insteon} >= 3; 
+			next;
+		}
                 $previous_parsed_data = $parsed_data; # and, now reinitialize
 
                 $entered_rcv_loop = 1;
