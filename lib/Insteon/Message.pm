@@ -116,10 +116,11 @@ sub send
                                 	$self->setby->default_hop_count($self->setby->default_hop_count + 1);
                                 }
                         }
-                        elsif (defined($$self{no_hop_increase}) && $main::Debug{insteon}
+                        elsif (defined($$self{no_hop_increase}) && ref $self->setby
                         	&& $self->setby->isa('Insteon::BaseObject')){
                         	&main::print_log("[Insteon::BaseMessage] Hop count not increased for "
-                        		. $self->setby->get_object_name . " because no_hop_increase flag was set.");
+                        		. $self->setby->get_object_name . " because no_hop_increase flag was set.")
+                        		if $main::Debug{insteon};
                         	$$self{no_hop_increase} = undef;
                         }
                 }
