@@ -309,8 +309,8 @@ sub _send_cmd {
          		$self->_set_timeout('command', $cmd_timeout); # a commmand needs to be PLM ack'd w/i 3 seconds or it gets dropped
                 }
         }
-
-	if (length($command) != (Insteon::MessageDecoder::insteon_cmd_len(substr($command,0,4), 0)*2)){
+	my $is_extended = ($message->can('command_type') && $message->command_type eq "insteon_ext_send") ? 1 : 0;
+	if (length($command) != (Insteon::MessageDecoder::insteon_cmd_len(substr($command,0,4), 0, $is_extended)*2)){
 		&::print_log( "[Insteon_PLM]: ERROR!! Command sent to PLM " . lc($command) 
 		. " is of an incorrect length.  Message not sent.");
 		$self->clear_active_message();
@@ -646,10 +646,15 @@ sub _parse_data {
                         		. "$failure_device and group: $failure_group") if $main::Debug{insteon} >= 2;
                         
                         	my $failed_object = &Insteon::get_object($failure_device,'01');
-                        	my $message = new Insteon::InsteonMessage('all_link_direct_cleanup', $failed_object, 
-                        		$self->active_message->command, $failure_group);
-                        	push(@{$$failed_object{command_stack}}, $message);
-                        	$failed_object->_process_command_stack();
+                        	if (ref $failed_object){
+	                        	my $message = new Insteon::InsteonMessage('all_link_direct_cleanup', $failed_object, 
+	                        		$self->active_message->command, $failure_group);
+	                        	push(@{$$failed_object{command_stack}}, $message);
+	                        	$failed_object->_process_command_stack();
+                        	} else {
+                        		&::print_log("[Insteon_PLM] WARN: Device ID: $failure_device does not exist. You may "
+                        			. "want to run delete orphans to remove this link from your PLM");
+                        	}
 			} else {
 				&::print_log("[Insteon_PLM] DEBUG2: Received all-link cleanup failure."
                         		. " But there is no pending message.") if $main::Debug{insteon} >= 2;
@@ -688,6 +693,11 @@ sub _parse_data {
                         	my $message_to_string = ($self->active_message) ? $self->active_message->to_string() : "";
 				&::print_log("[Insteon_PLM] Received all-link cleanup success: $message_to_string")
                                 	if $main::Debug{insteon};
+				if (ref $self->active_message->setby){
+					my $object = $self->active_message->setby;
+					$object->is_acknowledged(1);
+					$object->_process_command_stack();
+				}
                                 $self->clear_active_message();
 			}
 		}
