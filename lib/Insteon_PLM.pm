@@ -388,7 +388,7 @@ sub _parse_data {
                         $entered_ack_loop = 1;
 			if ($parsed_data =~ /^($ackcmd)|($nackcmd)|($prefix{plm_info}\w{12}06)|($prefix{plm_info}\w{12}15)|($prefix{all_link_first_rec}15)|($prefix{all_link_next_rec}15)|($badcmd)$/)
                         {
-				&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($data)) if $main::Debug{insteon} >= 4;
+				&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $main::Debug{insteon} >= 4;
 				my $ret_code = substr($parsed_data,length($parsed_data)-2,2);
 				my $record_type = substr($parsed_data,0,4);
                                 my $message_data = substr($parsed_data,4,length($parsed_data)-4);
@@ -553,7 +553,7 @@ sub _parse_data {
                         	# is $parsed_data an accidental anomoly? (there are other cases; but, this is a good start)
                                 if ($parsed_data =~ /^($prefix{insteon_send}\w{12}06)|($prefix{insteon_send}\w{12}15)$/)
                                 {
-					&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($data)) if $main::Debug{insteon} >= 4;
+					&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $main::Debug{insteon} >= 4;
                                 	# first, parse the content to confirm that it could be a legitimate ACK
                                         my $unknown_deviceid = substr($parsed_data,4,6);
                                         my $unknown_msg_flags = substr($parsed_data,10,2);
