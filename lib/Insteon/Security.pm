@@ -425,12 +425,12 @@ sub _process_message {
 				#Take current flags and apply changes
 				my $curr_flags = substr($msg{extra}, 12, 2);
 				my $bitflags = sprintf('%08b',hex($curr_flags));
-				substr($bitflags,2,1) = 0 if ($$root{_set_bit_action} eq "night_on");
-				substr($bitflags,2,1) = 1 if ($$root{_set_bit_action} eq "night_off");
-				substr($bitflags,1,1) = 0 if ($$root{_set_bit_action} eq "on_mode_on");
-				substr($bitflags,1,1) = 1 if ($$root{_set_bit_action} eq "on_mode_off");
-				substr($bitflags,4,1) = 1 if ($$root{_set_bit_action} eq "all_motion_on");
-				substr($bitflags,4,1) = 0 if ($$root{_set_bit_action} eq "all_motion_off");
+				substr($bitflags,5,1) = 0 if ($$root{_set_bit_action} eq "night_on");
+				substr($bitflags,5,1) = 1 if ($$root{_set_bit_action} eq "night_off");
+				substr($bitflags,6,1) = 0 if ($$root{_set_bit_action} eq "on_mode_on");
+				substr($bitflags,6,1) = 1 if ($$root{_set_bit_action} eq "on_mode_off");
+				substr($bitflags,3,1) = 1 if ($$root{_set_bit_action} eq "all_motion_on");
+				substr($bitflags,3,1) = 0 if ($$root{_set_bit_action} eq "all_motion_off");
 				$bitflags = sprintf("%02x", oct("0b$bitflags"));
 				#Send command to set bits
 				if ($curr_flags ne $bitflags) {
