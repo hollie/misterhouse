@@ -372,8 +372,9 @@ sub _process_message {
 		main::print_log("[Insteon::MotionSensor] Extended Set/Get ACK Received for " . $self->get_object_name) if $main::Debug{insteon};
 		if ($$self{_ext_set_get_action} eq 'set'){
 			if (defined($$root{_set_bit_action})){
-				::print_log("[Insteon::MotionSensor] Flags update for ".
-					$root->get_object_name . " complete.");
+				::print_log("[Insteon::MotionSensor] Set of ".
+					$$root{_set_bit_action} . " flag acknowledged by ".
+					$root->get_object_name);
 				$$root{_set_bit_action} = undef;
 			} else {
 				main::print_log("[Insteon::MotionSensor] Clearing active message") if $main::Debug{insteon};
@@ -421,8 +422,9 @@ sub _process_message {
 					my $message = new Insteon::InsteonMessage('insteon_ext_send', $root, 'extended_set_get', $extra);
 					$root->_send_cmd($message);
 				} else {
-					::print_log("[Insteon::MotionSensor] Flags update for ".
-						$root->get_object_name . " complete.");
+					::print_log("[Insteon::MotionSensor] The ".
+						$$root{_set_bit_action} . " flag was already ".
+						"set on device ". $root->get_object_name);
 					$$root{_set_bit_action} = undef;
 				}
 			}
