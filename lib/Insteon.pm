@@ -114,13 +114,12 @@ sub _get_next_linkscan
 			$current_scan_device->_aldb->{_aldb_unchanged_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.')';
 			$current_scan_device->_aldb->{_aldb_changed_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.', '.$current_scan_device->get_object_name.')';
 			$current_scan_device->_aldb->query_aldb_delta("check");
-			$current_scan_device = undef;
 			$checking = 1;
 		}
 	} else {
 		$current_scan_device = $changed_device;
 	}
-	if ($current_scan_device)
+	if ($current_scan_device && ($checking == 0))
         {
           	&main::print_log("[Scan all link tables] Now scanning: "
                 	. $current_scan_device->get_object_name . " ("
