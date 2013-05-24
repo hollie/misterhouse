@@ -17,10 +17,10 @@ In user code:
 
 In items.mht:
 
-   INSTEON_REMOTELINC, 12.34.56:01, $remote_1, $remote_group
-   INSTEON_REMOTELINC, 12.34.56:02, $remote_2, $remote_group
-   INSTEON_REMOTELINC, 12.34.56:03, $remote_3, $remote_group
-   INSTEON_REMOTELINC, 12.34.56:04, $remote_4, $remote_group
+   INSTEON_REMOTELINC, 12.34.56:01, remote_1, remote_group
+   INSTEON_REMOTELINC, 12.34.56:02, remote_2, remote_group
+   INSTEON_REMOTELINC, 12.34.56:03, remote_3, remote_group
+   INSTEON_REMOTELINC, 12.34.56:04, remote_4, remote_group
 
 =head2 DESCRIPTION
 
