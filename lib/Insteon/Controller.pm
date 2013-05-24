@@ -144,11 +144,14 @@ expired.
 =cut
 
 sub get_extended_info {
-	my ($self) = @_;
+	my ($self,$no_retry) = @_;
 	my $root = $self->get_root();
 	my $extra = '000100000000000000000000000000';
 	$$root{_ext_set_get_action} = "get";
 	my $message = new Insteon::InsteonMessage('insteon_ext_send', $root, 'extended_set_get', $extra);
+	if ($no_retry){
+		$message->retry_count(1);
+	}
 	$root->_send_cmd($message);
 	return;
 }
@@ -197,7 +200,7 @@ sub _process_message {
 			$$root{queue_timer}-restart();
 		}
 		else {
-			$$root{queue_timer}->set(3, '$root->get_extended_info()');
+			$$root{queue_timer}->set(3, '$root->get_extended_info(1)');
 		}
 	}
 	if ($msg{command} eq "extended_set_get" && $msg{is_ack}){
