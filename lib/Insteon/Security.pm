@@ -144,11 +144,14 @@ expired.
 =cut
 
 sub get_extended_info {
-	my ($self) = @_;
+	my ($self, $no_retry) = @_;
 	my $root = $self->get_root();
 	my $extra = '000100000000000000000000000000';
 	$$root{_ext_set_get_action} = "get";
 	my $message = new Insteon::InsteonMessage('insteon_ext_send', $root, 'extended_set_get', $extra);
+	if ($no_retry){
+		$message->retry_count(1);
+	}
 	$root->_send_cmd($message);
 	return;
 }
@@ -356,15 +359,10 @@ sub _process_message {
 	my ($self,$p_setby,%msg) = @_;
 	my $clear_message = 0;
 	my $root = $self->get_root();
-	if ($root->_is_query_time_expired && $msg{command} ne "extended_set_get"){
-		#Queue an get_extended_info request, but wait for subsequent msgs
+	if ($root->_is_query_time_expired && $msg{type} eq "cleanup" && $msg{command} ne "extended_set_get"){
 		#Don't queue if incoming msg is an ext_set_get to avoid loop
-		if ($$root{queue_timer}->active){
-			$$root{queue_timer}->restart();
-		}
-		else {
-			$$root{queue_timer}->set(1, $root->get_object_name . "->get_extended_info()");
-		}
+		my $no_retry = 1;
+		$root->get_extended_info($no_retry);
 	}
 	if ($msg{command} eq "extended_set_get" && $msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
