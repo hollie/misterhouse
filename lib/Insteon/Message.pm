@@ -95,10 +95,22 @@ sub no_hop_increase
         return $$self{no_hop_increase};
 }
 
+sub retry_count {
+	my ($self, $retry_count) = @_;
+	if ($retry_count)
+	{
+		$$self{retry_count} = $retry_count;
+	}
+	my $result_retry = 5;
+	$result_retry = $::config_parms{'Insteon_retry_count'} if ($::config_parms{'Insteon_retry_count'});
+	$result_retry = $$self{retry_count} if ($$self{retry_count});
+	return $result_retry;
+}
+
 sub send
 {
         my ($self, $interface) = @_;
-        if ($self->send_attempts < ($::config_parms{'Insteon_retry_count'} || 5))
+        if ($self->send_attempts < $self->retry_count)
         {
 
         	if ($self->send_attempts > 0)
