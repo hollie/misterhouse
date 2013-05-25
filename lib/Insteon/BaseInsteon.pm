@@ -29,9 +29,7 @@ Special Thanks to:
 package Insteon::BaseObject;
 
 use strict;
-use Insteon;
 use Insteon::AllLinkDatabase;
-use Insteon::Message;
 
 @Insteon::BaseObject::ISA = ('Generic_Item');
 
@@ -90,7 +88,7 @@ sub new
         	$self->interface(&Insteon::active_interface());
         }
 
-	$self->restore_data('level','default_hop_count');
+	$self->restore_data('default_hop_count', 'engine_version');
 
 	$self->initialize();
 	$$self{level} = undef;
@@ -171,6 +169,13 @@ sub default_hop_count
 	}
 	$$self{default_hop_count} = $high;
         return $$self{default_hop_count};
+}
+
+sub engine_version
+{
+        my ($self, $p_engine_version) = @_;
+        $$self{engine_version} = $p_engine_version if $p_engine_version;
+        return $$self{engine_version};
 }
 
 sub equals
@@ -284,7 +289,17 @@ sub is_acknowledged
 sub set_receive
 {
 	my ($self, $p_state, $p_setby, $p_response) = @_;
-	$self->SUPER::set($p_state, $p_setby, $p_response);
+	my $curr_milli = sprintf('%.0f', &main::get_tickcount);
+	my $window = 1000;
+	if (($p_state eq $self->state || $p_state eq $self->state_final)
+		&& ($curr_milli - $$self{set_milliseconds} < $window)){
+		::print_log("[Insteon::BaseObject] Ignoring duplicate set " . $p_state .
+			" state command for " . $self->get_object_name . " received in " .
+			"less than $window milliseconds") if $main::Debug{insteon}; 
+	} else {
+		$$self{set_milliseconds} = $curr_milli;
+		$self->SUPER::set($p_state, $p_setby, $p_response);
+	}
 }
 
 sub set_with_timer {
@@ -319,6 +334,7 @@ sub _send_cmd
                	or $message->command eq 'status_request'
                 or $message->command eq 'do_read_ee'
                 or $message->command eq 'set_address_msb'
+                or $message->command eq 'read_write_aldb'
             )
 	{
         	push(@{$$self{command_stack}}, $message);
@@ -411,10 +427,13 @@ sub derive_message
 sub message_type_code
 {
     my ($self, $msg) = @_;
-    my $msg_type_ptr = $$self{message_types};
-    my %msg_types = %$msg_type_ptr;
-    my $code = $msg_types{$msg};
-    return $code;
+    return $$self{message_types}->{$msg};
+}
+
+sub message_type_hex
+{
+    my ($self, $msg) = @_;
+    return unpack( 'H*', pack( 'c', $self->message_type_code($msg)));
 }
 
 sub message_type
@@ -437,9 +456,9 @@ sub message_type
 sub _is_info_request
 {
 	my ($self, $cmd, $ack_setby, %msg) = @_;
-	my $is_info_request = ($cmd eq 'status_request') ? 1 : 0;
-#print "cmd: $cmd; is_info_request: $is_info_request\n";
-	if ($is_info_request) {
+	my $is_info_request = 0;
+	if ($cmd eq 'status_request') {
+		$is_info_request++;
 		my $ack_on_level = (hex($msg{extra}) >= 254) ? 100 : sprintf("%d", hex($msg{extra}) * 100 / 255);
 		&::print_log("[Insteon::BaseObject] received status for " .
 			$self->{object_name} . " with on-level: $ack_on_level%, "
@@ -453,22 +472,66 @@ sub _is_info_request
 			$self->SUPER::set($ack_on_level . '%', $ack_setby);
 		}
 		# if this were a scene controller, then also propogate the result to all members
+		my $callback;
+		if ($self->_aldb->{aldb_delta_action} eq 'set'){
+			if ($msg{cmd_code} eq "00") {
+				$self->_aldb->{_mem_activity} = 'delete';
+				$self->_aldb->{pending_aldb}{address} = $self->_aldb->get_first_empty_address();
+				if($self->_aldb->isa('Insteon::ALDB_i1')) {
+					$self->_aldb->_peek($self->_aldb->{pending_aldb}{address},0);
+				} else {
+					$self->_aldb->_write_delete($self->_aldb->{pending_aldb}{address});
+				}
+			} else {
+				$self->_aldb->aldb_delta($msg{cmd_code});
+				$self->_aldb->scandatetime(&main::get_tickcount);
+				&::print_log("[Insteon::BaseObject] The Link Table Version for "
+					. $self->{object_name} . " has been updated to version number " . $self->_aldb->aldb_delta());
+				if (defined $self->_aldb->{_success_callback}) {
+					$callback = $self->_aldb->{_success_callback};
+					$self->_aldb->{_success_callback} = undef;
+				}
+			}
+		}
+		elsif ($self->_aldb->{aldb_delta_action} eq 'check')
+		{
+			if ($self->_aldb->aldb_delta() eq $msg{cmd_code}){
+				&::print_log("[Insteon::BaseObject] The link table for "
+					. $self->{object_name} . " is in sync.");
+				if (defined $self->_aldb->{_aldb_unchanged_callback}) {
+					$callback = $self->_aldb->{_aldb_unchanged_callback};
+					$self->_aldb->{_aldb_unchanged_callback} = undef;
+				}
+			} else {
+				&::print_log("[Insteon::BaseObject] WARN The link table for "
+					. $self->{object_name} . " is out-of-sync.");
+				$self->_aldb->health('out-of-sync');
+				if (defined $self->_aldb->{_aldb_changed_callback}) {
+					$callback = $self->_aldb->{_aldb_changed_callback};
+					$self->_aldb->{_aldb_changed_callback} = undef;
+				}
+			}
+		}
+		$self->_aldb->{aldb_delta_action} = undef;
+		$self->_aldb->health('out-of-sync') if($self->_aldb->aldb_delta() ne $msg{cmd_code});
+		if ($callback){
+			package main;
+			eval ($callback);
+			&::print_log("[Insteon::BaseObject] " . $self->get_object_name . ": error during scan callback $@")
+				if $@ and $main::Debug{insteon};
+			package Insteon::BaseObject;                		
+		}
 	}
-   elsif ( $cmd eq 'get_engine_version' ) {
-      my $version = $msg{extra};
-      $version++; # version retuned in cmd2 is 0 indexed
-      if ( $version == 3 ) {
-         $version = 'I2CS';
-      }
-      else {
-         $version = 'I'. sprintf( "%1d",$version);
-      }
-      &::print_log("[Insteon::BaseObject] received engine version for " 
-         . $self->{object_name} . " of $version.");
-   }
-
+	elsif ( $cmd eq 'get_engine_version' ) {
+		$is_info_request++;
+		my @engine_types = (qw/I1 I2 I2CS/);
+		my $version = $engine_types[$msg{extra}];
+		$self->engine_version($version);
+		&::print_log("[Insteon::BaseObject] received engine version for " 
+			. $self->{object_name} . " of $version. "
+			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
+	}
 	return $is_info_request;
-
 }
 
 sub _process_message
@@ -481,9 +544,18 @@ sub _process_message
 	# and not putting the plm into monitor mode.  This means that updating the state
 	# of the responder based upon the link controller's request is handled
 	# by Insteon_Link.
+
+	main::print_log("[Insteon::BaseObject] WARN: Message has invalid checksum")
+		if ($main::Debug{insteon} && !($msg{crc_valid}) 
+		&& $msg{is_extended} && $self->engine_version() eq 'I2CS');
+
+	my $clear_message = 0;
 	$$self{m_is_locally_set} = 1 if $msg{source} eq lc $self->device_id;
 	$self->default_hop_count($msg{maxhops}-$msg{hopsleft}) if (!$self->isa('Insteon::InterfaceController'));
 	if ($msg{is_ack}) {
+		#Default to clearing message transaction for ACK
+		$clear_message = 1;
+		my $corrupt_cmd = 0;
 		my $pending_cmd = ($$self{_prior_msg}) ? $$self{_prior_msg}->command : $msg{command};
 		if ($$self{awaiting_ack})
                 {
@@ -495,18 +567,59 @@ sub _process_message
 				$$self{m_status_request_pending} = 0;
 				$self->_process_command_stack(%msg);
 			}
-                        elsif (($pending_cmd eq 'peek') or ($pending_cmd eq 'set_address_msb'))
+                        elsif ($pending_cmd eq 'peek')
                         {
-				$self->_aldb->_on_peek(%msg) if $self->_aldb;
-				$self->_process_command_stack(%msg);
+                        	if ($msg{cmd_code} eq $self->message_type_hex($pending_cmd)) {
+					$self->_aldb->_on_peek(%msg) if $self->_aldb;
+					$self->_process_command_stack(%msg);
+                        	} else {
+                        		$corrupt_cmd = 1;
+                        		$clear_message = 0;
+                        	}
 			}
-                        elsif (($pending_cmd eq 'poke') or ($pending_cmd eq 'set_address_msb'))
+                        elsif ($pending_cmd eq 'set_address_msb')
                         {
-				$self->_aldb->_on_poke(%msg) if $self->_aldb;
-				$self->_process_command_stack(%msg);
+                        	if ($msg{cmd_code} eq $self->message_type_hex($pending_cmd)) {
+					$self->_aldb->_on_peek(%msg) if $self->_aldb;
+					$self->_process_command_stack(%msg);
+                        	} else {
+                        		$corrupt_cmd = 1;
+                        		$clear_message = 0;
+                        	}
 			}
-                        else
+                        elsif (($pending_cmd eq 'poke'))
                         {
+                        	if ($msg{cmd_code} eq $self->message_type_hex($pending_cmd)) {
+					$self->_aldb->_on_poke(%msg) if $self->_aldb;
+					$self->_process_command_stack(%msg);
+                        	} else {
+                        		$corrupt_cmd = 1;
+                        		$clear_message = 0;
+                        	}
+			}
+			elsif ($pending_cmd eq 'read_write_aldb') {
+                        	if ($msg{cmd_code} eq $self->message_type_hex($pending_cmd)) {
+					if ($self->_aldb && $self->_aldb->{_mem_action} ne 'aldb_i2writeack'){
+						#This is an ACK. Will be followed by a Link Data message
+						$clear_message = 0;
+						$self->_aldb->on_read_write_aldb(%msg) if $self->_aldb;
+					} else {
+						$self->_aldb->on_read_write_aldb(%msg) if $self->_aldb;
+						$self->_process_command_stack(%msg);
+					}
+                        	} else {
+                        		$corrupt_cmd = 1;
+                        		$clear_message = 0;
+                        	}
+			}
+			else
+                        {
+				if (($pending_cmd eq 'do_read_ee') && 
+					($self->_aldb->health eq "good" || $self->_aldb->health eq "empty") &&
+					($self->isa('Insteon::KeyPadLincRelay') || $self->isa('Insteon::KeyPadLinc'))){
+					## Update_Flags ends up here, set aldb_delta to new value
+					$self->_aldb->query_aldb_delta("set");
+				}
 				$self->is_acknowledged(1);
 				# signal receipt of message to the command stack in case commands are queued
 				$self->_process_command_stack(%msg);
@@ -525,9 +638,18 @@ sub _process_message
 				. ": " . (($msg{command}) ? $msg{command} : "(unknown)")
 				. " and data: $msg{extra}") if $main::Debug{insteon};
 		}
+		if ($corrupt_cmd) {
+			main::print_log("[Insteon::BaseObject] WARN: received a message from "
+				. $self->get_object_name . " in response to a "
+				. $pending_cmd . " command, but the command code "
+				. $msg{cmd_code} . " is incorrect. Ignorring received message.");
+			$p_setby->active_message->no_hop_increase(1);
+		}
 	}
         elsif ($msg{is_nack})
         {
+		#Default to clearing message transaction for NAK
+		$clear_message = 1;
 		if ($self->isa('Insteon::BaseLight')) {
 			&::print_log("[Insteon::BaseObject] WARN!! encountered a nack message ("
 			. $self->get_nack_msg_for( $msg{extra} ) .") for " . $self->{object_name}
@@ -541,6 +663,20 @@ sub _process_message
 			. $self->get_nack_msg_for( $msg{extra} ) .") for " . $self->{object_name}
 			. " ... skipping");
 		}
+		$p_setby->active_message->no_hop_increase(1);
+		$self->is_acknowledged(0);
+		$self->_process_command_stack(%msg);
+		if($p_setby->active_message->failure_callback)
+		{
+			main::print_log("[Insteon::BaseObject] WARN: Now calling message failure callback: "
+				. $p_setby->active_message->failure_callback) if $main::Debug{insteon};
+			$self->failure_reason('NAK');
+			package main;
+			eval $p_setby->active_message->failure_callback;
+			main::print_log("[Insteon::BaseObject] problem w/ retry callback: $@") if $@;
+			package Insteon::BaseObject;
+		}
+		$p_setby->active_message->no_hop_increase(1);
 		$self->is_acknowledged(0);
 		$self->_process_command_stack(%msg);
 	}
@@ -550,6 +686,18 @@ sub _process_message
 	} elsif ($msg{command} eq 'stop_manual_change') {
 		# request status so that the final state can be known
 		$self->request_status($self);
+	} elsif ($msg{command} eq 'read_write_aldb') {
+		if ($self->_aldb){
+			if ($self->_aldb->{_mem_action} eq 'aldb_i2readack'){
+				#If aldb_i2readack is set then this is good
+				$clear_message = 1;
+				$self->_aldb->on_read_write_aldb(%msg);
+				$self->_process_command_stack(%msg);
+			} else {
+				#This is an out of sequence message
+				$self->_aldb->on_read_write_aldb(%msg);
+			}
+		}
 	} elsif ($msg{type} eq 'broadcast') {
 		$self->devcat($msg{devcat});
 		&::print_log("[Insteon::BaseObject] device category: $msg{devcat} received for " . $self->{object_name});
@@ -560,12 +708,23 @@ sub _process_message
 		$p_state = $msg{command};
                 if ($msg{type} eq 'alllink')
                 {
-			$self->set($p_state, $self);
-			$$self{_pending_cleanup} = 1;
+			if ($msg{command} eq 'link_cleanup_report'){
+				if ($msg{extra} == 0){
+					::print_log("[Insteon::BaseObject] DEBUG Received AllLink Cleanup Success for "
+						. $self->{object_name}) if $main::Debug{insteon} >= 1;
+				} else {
+					::print_log("[Insteon::BaseObject] WARN " . $msg{extra} . " Device(s) failed to "
+						. "acknowledge the command from " . $self->{object_name});
+				}
+			} else {
+				$self->set($p_state, $self);
+				$$self{_pending_cleanup} = 1;
+			}
                 }
                 elsif ($msg{type} eq 'cleanup')
                 {
-                	if (lc($self->state) eq lc($p_state) and $$self{_pending_cleanup}){
+                	if (($self->state eq $p_state or $self->state_final eq $p_state)
+                		and $$self{_pending_cleanup}){
 				::print_log("[Insteon::BaseObject] Ignoring Received Direct AllLink Cleanup Message for " 
 					. $self->{object_name} . " since AllLink Broadcast Message was Received.") if $main::Debug{insteon};
                 	} else {
@@ -577,6 +736,7 @@ sub _process_message
 				. $self->{object_name}) if $main::Debug{insteon};
                 }
 	}
+	return $clear_message;
 }
 
 sub _process_command_stack
@@ -599,8 +759,10 @@ sub _process_command_stack
                         if ($message->command eq 'peek'
                         	or $message->command eq 'poke'
                         	or $message->command eq 'status_request'
+                                or $message->command eq 'get_engine_version'
                                 or $message->command eq 'do_read_ee'
                                 or $message->command eq 'set_address_msb'
+                                or $message->command eq 'read_write_aldb'
                                 )
                         {
 				$$self{awaiting_ack} = 1;
@@ -676,6 +838,26 @@ sub get_nack_msg_for {
    return $nack_messages{ $msg };
 }
 
+=item C<failure_reason>
+
+Stores the resaon for the most recent message failure [NAK | timeout].  Used to 
+process message callbacks after a message fails.  If called with no parameter 
+returns the saved failure reason.
+
+Parameters:
+	reason: failure reason
+
+Returns: failure reason
+
+=cut 
+
+sub failure_reason
+{
+        my ($self, $reason) = @_;
+        $$self{failure_reason} = $reason if $reason;
+        return $$self{failure_reason};
+}
+
 ####################################
 ###            #####################
 ### BaseObject #####################
@@ -684,9 +866,6 @@ sub get_nack_msg_for {
 
 package Insteon::BaseDevice;
 
-use strict;
-use Insteon;
-use Insteon::AllLinkDatabase;
 
 @Insteon::BaseDevice::ISA = ('Insteon::BaseObject');
 
@@ -694,6 +873,7 @@ our %message_types = (
    %Insteon::BaseObject::message_types,
    assign_to_group => 0x01,
    delete_from_group => 0x02,
+   link_cleanup_report => 0x06,
    linking_mode => 0x09,
    unlinking_mode => 0x0A,
    get_engine_version => 0x0D,
@@ -713,7 +893,8 @@ our %message_types = (
    poke_extended => 0x2a,
    peek => 0x2b,
    peek_internal => 0x2c,
-   poke_internal => 0x2d
+   poke_internal => 0x2d,
+   read_write_aldb => 0x2f,
 );
 
 
@@ -834,7 +1015,7 @@ sub link_to_interface
 	my $callback_instance = $self->interface->get_object_name;
 	my $callback_info = "deviceid=" . lc $self->device_id . " group=$group is_controller=0";
 	my %link_info = ( object => $self->interface, group => $group, is_controller => 1,
-		on_level => '100%', ramp_rate => '0.1s',
+#		on_level => '100%', ramp_rate => '0.1s',  Controllers don't use on_level or ramp_rate
 		callback => "$callback_instance->add_link('$callback_info')");
 	$link_info{data3} = $p_data3 if $p_data3;
         if ($self->_aldb) {
@@ -1046,6 +1227,20 @@ sub scan_link_table
 
 }
 
+sub log_aldb_status
+{
+	my ($self) = @_;
+	main::print_log( "     Hop Count: ".$self->default_hop_count());
+	main::print_log( "Engine Version: ".$self->engine_version());
+	my $aldb = $self->get_root()->_aldb;
+	if ($aldb)
+	{
+		main::print_log( "     ALDB Type: ".ref($aldb));
+		main::print_log( "   ALDB Health: ".$aldb->health());
+		main::print_log( "ALDB Scan Time: ".$aldb->scandatetime());
+	}
+}
+
 ### WARN: Testing using the following does not produce results as expected.  Use at your own risk. [GL]
 sub remote_set_button_tap
 {
@@ -1066,11 +1261,51 @@ sub request_status
 #	$self->_send_cmd('command' => 'status_request', 'is_synchronous' => 1);
 }
 
+=item C<get_engine_version>
+
+Queues a get engine version insteon message using L<Insteon::BaseObject::_send_cmd> 
+and sets a message failure callback to L<Insteon::BaseDevice::_get_engine_version_failure>.  
+Message response is processed in L<Insteon::BaseObject::_is_info_request>  
+
+Returns: nothing
+
+=cut 
+
 sub get_engine_version {
-   my ($self, $requestor) = @_;
+   my ($self) = @_;
 
    my $message = new Insteon::InsteonMessage('insteon_send', $self, 'get_engine_version');
+   my $self_object_name = $self->get_object_name;
+   $message->failure_callback("$self_object_name->_get_engine_version_failure()");
    $self->_send_cmd($message);
+}
+
+=item C<_get_engine_version_failure>
+
+Callback failure for L<Insteon::BaseDevice::get_engine_version>; called for NAK 
+and message timeout.  Will force engine_version to I2CS which will also remap 
+the aldb version if the device responds with a NAK. Does nothing for timeouts 
+except print a message. 
+
+Returns: nothing
+
+=cut 
+
+sub _get_engine_version_failure
+{
+	my ($self) = @_;
+	my $failure_reason = $self->failure_reason();
+	
+	main::print_log("[Insteon::BaseDevice::_get_engine_version_failure] DEBUG4: "
+		."failure reason: $failure_reason") if $main::Debug{insteon} >= 4;
+	
+	if($failure_reason eq 'NAK')
+	{
+		#assume I2CS because no other device will NAK this command
+		main::print_log("[Insteon::BaseDevice] WARN: I2CS device is not "
+			."linked; Please use 'link to interface' voice command");
+		$self->engine_version('I2CS');
+	}
 }
 
 sub ping
@@ -1225,6 +1460,79 @@ sub update_flags
 	$self->_aldb->update_flags($flags) if $self->_aldb;
 }
 
+=item C<engine_version>
+
+Sets or gets the device object engine version.  If setting the engine version, 
+will also call check_aldb_version to map the aldb correctly for I2 devices. 
+
+Parameters:
+	p_engine_version: [I1|I2|I2CS] to set engine version
+
+Returns: engine version string [I1|I2|I2CS]
+
+=cut 
+
+sub engine_version
+{
+	my ($self, $p_engine_version) = @_;
+	my $engine_version = $self->SUPER::engine_version($p_engine_version);
+	$self->check_aldb_version() if $p_engine_version;
+	return $engine_version;
+}
+
+sub check_aldb_version
+{
+	#Because of the way MH saves / restores states "after" object creation
+	#the aldb must be initially created before the engine_version is restored.
+	#It is therefore impossible to know the device is i2 before creating
+	#the aldb object.  The solution is to keep the existing logic which assumes
+	#the device is peek/poke capable (i1 or i2) and then delete/recreate the 
+	#aldb object if it is later determined to be an i2 device. 
+
+	#There is a use case where a device is initially I2 but the user replaces
+	#the device with an I1 device, reusing the same object name.  In this case
+	#the object state restore will build an I2 aldb object.  The user must 
+	#manually initiate the 'get engine version' voice command or stop/start
+	#MH so the initial poll will detect the change. 
+
+	#This is called anytime the engine_version is queried (initial startup poll) and
+	#in the Reload_post_hooks once object_states_restore completes
+
+	my ($self) = @_;
+
+	my $engine_version = $self->SUPER::engine_version();
+	my $new_version = "";
+	if($engine_version and $engine_version ne 'I1' and $self->_aldb->aldb_version() ne 'I2') {
+		$new_version = "I2";
+	}
+	elsif($engine_version eq 'I1' and $self->_aldb->aldb_version() ne 'I1') {
+		$new_version = "I1";
+	}
+	if ($new_version) {
+		main::print_log("[Insteon::BaseDevice] DEBUG4: aldb_version is "
+			.$self->_aldb->aldb_version()." but device is ".$engine_version.
+			".  Remapping aldb version to $new_version") if $main::Debug{insteon} >= 4;
+		my $restore_string = '';
+		if ($self->_aldb) {
+			$restore_string = $self->_aldb->restore_string();
+		}
+		undef $self->{aldb};
+
+		if ($new_version eq "I2") {
+			$self->{aldb} = new Insteon::ALDB_i2($self);
+		}
+		else {
+			$self->{aldb} = new Insteon::ALDB_i1($self);
+		} 
+		
+		package main;
+		eval ($restore_string);
+		&::print_log("[Insteon::BaseDevice] error in eval creating ALDB object: " . $@)
+			if $@ and $main::Debug{insteon};
+		package Insteon::BaseDevice;
+	}
+}
+
 
 ####################################
 ###                #################
@@ -1235,7 +1543,6 @@ sub update_flags
 package Insteon::BaseController;
 
 use strict;
-use Insteon;
 
 @Insteon::BaseController::ISA = ('Generic_Item');
 
@@ -1399,6 +1706,11 @@ sub sync_links
                                         	{
 							$link_req{data3} = $linkmember->group;
 						}
+						main::print_log("[Insteon::BaseController] DEBUG4: queuing update for responder record to "
+							. $member->get_object_name . " for "
+							. $insteon_object->get_object_name . " with group:" . $self->group
+							. "; on_level:$tgt_on_level; ramp_rate:$tgt_ramp_rate")
+							if $main::Debug{insteon} >= 4;
 				       		push @{$$self{sync_queue}}, \%link_req;
                                         }
 				}
@@ -1423,6 +1735,11 @@ sub sync_links
                                 	{
 						$link_req{data3} = $linkmember->group;
 					}
+					main::print_log("[Insteon::BaseController] DEBUG4: queuing add for responder record to "
+						. $member->get_object_name . " for "
+						. $insteon_object->get_object_name . " with group:" . $self->group
+						. "; on_level:$tgt_on_level; ramp_rate:$tgt_ramp_rate")
+						if $main::Debug{insteon} >= 4;
 					push @{$$self{sync_queue}}, \%link_req;
                                 }
 			}
@@ -1444,6 +1761,9 @@ sub sync_links
                                 	{
 						$link_req{data3} = $linkmember->group;
 					}
+					main::print_log("[Insteon::BaseController] DEBUG4: queuing add for controller record to "
+						. $insteon_object->get_object_name . " for " . $member->get_object_name 
+						. " with group:" . $self->group) if $main::Debug{insteon} >= 4;
 					push @{$$self{sync_queue}}, \%link_req;
                                 }
 			}
@@ -1453,6 +1773,7 @@ sub sync_links
 	if (!($self->isa('Insteon::InterfaceController')))
         {
 		my $subaddress = ($self->isa('Insteon::KeyPadLincRelay') or $self->isa('Insteon::KeyPadLinc')) ? $self->group : '00';
+		#Make sure this device has a controller link to the PLM
 		if (!($insteon_object->has_link($self->interface,$self->group,1,$subaddress)))
                 {
                 	if ($audit_mode)
@@ -1467,9 +1788,14 @@ sub sync_links
 					group => $self->group, is_controller => 1,
 					callback => "$self_link_name->_process_sync_queue()" );
 				$link_req{data3} = $self->group if $insteon_object->isa('Insteon::KeyPadLincRelay') or $insteon_object->isa('Insteon::KeyPadLinc');
+				main::print_log("[Insteon::BaseController] DEBUG4: queuing add for controller record to "
+					. $insteon_object->get_object_name . " for "
+					. $self->interface->get_object_name . " with group:" . $self->group)
+					if $main::Debug{insteon} >= 4;
 				push @{$$self{sync_queue}}, \%link_req;
                         }
 		}
+		#Make sure the PLM has a responder link to this device
 		if (!($self->interface->has_link($insteon_object,$self->group,0,$subaddress)))
                 {
                 	if ($audit_mode)
@@ -1483,6 +1809,10 @@ sub sync_links
 				my %link_req = ( member => $self->interface, cmd => 'add', object => $insteon_object,
 					group => $self->group, is_controller => 0,
 			       		callback => "$self_link_name->_process_sync_queue()" );
+				main::print_log("[Insteon::BaseController] DEBUG4: queuing add for responder record to "
+					. $self->interface->get_object_name . " for "
+					. $insteon_object->get_object_name . " with group:" . $self->group)
+					if $main::Debug{insteon} >= 4;
 				push @{$$self{sync_queue}}, \%link_req;
                         }
 		}
@@ -1726,7 +2056,6 @@ sub has_member
 package Insteon::DeviceController;
 
 use strict;
-use Insteon;
 
 @Insteon::DeviceController::ISA = ('Insteon::BaseController');
 
@@ -1840,7 +2169,6 @@ sub unlink_to_interface
 package Insteon::InterfaceController;
 
 use strict;
-use Insteon;
 
 @Insteon::InterfaceController::ISA = ('Insteon::BaseController','Insteon::BaseObject');
 

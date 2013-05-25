@@ -6,13 +6,45 @@ use strict;
 
 #@ This module creates voice commands for all insteon related items.
 
+=head1 NAME
+
+B<Insteon> - This module .....
+
+=head1 SYNOPSIS
+
+
+=head1 DESCRIPTION
+
+
+=head1 INHERITS
+
+This module inherits nothing
+
+
+=head1 METHODS
+
+=over
+
+=cut
+
+
 my (@_insteon_plm,@_insteon_device,@_insteon_link,@_scannable_link,$_scan_cnt,$_sync_cnt,$_sync_failure_cnt);
 my $init_complete;
 my (@_scan_devices,@_scan_device_failures,$current_scan_device);
 my (@_sync_devices,@_sync_device_failures,$current_sync_device);
 
+=item C<scan_all_linktables()>
+
+Walks through every Insteon device calling the device's scan links command.
+Does not output anything but will recreate the device's aldb from the actual
+entries in the device.
+
+=cut
+
 sub scan_all_linktables
 {
+	my $skip_unchanged = pop(@_);
+	$skip_unchanged = 0 if (ref $skip_unchanged || !defined($skip_unchanged));
 	if ($current_scan_device)
         {
         	&main::print_log("[Scan all linktables] WARN: link already underway. Ignoring request for new scan ...");
@@ -58,31 +90,45 @@ sub scan_all_linktables
         }
         $_scan_cnt = scalar @_scan_devices;
 
-        &_get_next_linkscan();
+        &_get_next_linkscan($skip_unchanged);
 }
 
 sub _get_next_linkscan_failure
 {
+	my($skip_unchanged) = @_;
         push @_scan_device_failures, $current_scan_device;
         &main::print_log("[Scan all link tables] WARN: failure occurred when scanning "
                 	. $current_scan_device->get_object_name . ".  Moving on...");
-        &_get_next_linkscan();
+        &_get_next_linkscan($skip_unchanged);
 
 }
 
 sub _get_next_linkscan
 {
-   	$current_scan_device = shift @_scan_devices;
-
-	if ($current_scan_device)
+	my($skip_unchanged, $changed_device) = @_;
+	my $checking = 0;
+	if (!defined($changed_device)) {
+		$current_scan_device = shift @_scan_devices;
+		if ($skip_unchanged && $current_scan_device && ($current_scan_device != &Insteon::active_interface)){
+			## check if aldb_delta has changed;
+			$current_scan_device->_aldb->{_aldb_unchanged_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.')';
+			$current_scan_device->_aldb->{_aldb_changed_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.', '.$current_scan_device->get_object_name.')';
+			$current_scan_device->_aldb->query_aldb_delta("check");
+			$checking = 1;
+		}
+	} else {
+		$current_scan_device = $changed_device;
+	}
+	if ($current_scan_device && ($checking == 0))
         {
           	&main::print_log("[Scan all link tables] Now scanning: "
                 	. $current_scan_device->get_object_name . " ("
                         . ($_scan_cnt - scalar @_scan_devices)
                         . " of $_scan_cnt)");
                 # pass first the success callback followed by the failure callback
-          	$current_scan_device->scan_link_table('&Insteon::_get_next_linkscan()','&Insteon::_get_next_linkscan_failure()');
-    	} else {
+          	$current_scan_device->scan_link_table('&Insteon::_get_next_linkscan('.$skip_unchanged.')','&Insteon::_get_next_linkscan_failure('.$skip_unchanged.')');
+    	} elsif (scalar(@_scan_devices) == 0 && ($checking == 0))
+    	{
           	&main::print_log("[Scan all link tables] All tables have completed scanning");
                 my $_scan_failure_cnt = scalar @_scan_device_failures;
                 if ($_scan_failure_cnt)
@@ -98,6 +144,18 @@ sub _get_next_linkscan
     	}
 }
 
+=item C<sync_all_links()>
+
+Initiates a process that will walk through every device that is a Insteon::InterfaceController 
+calling the device's sync_links() command.  sync_all_links() loads up the module
+global variable @_sync_devices then kicks off the recursive call backs by calling
+_get_next_linksync.
+
+=item B<Parameter: audit_mode> - Causes sync to walk through but not actually 
+send any commands to the devices.  Useful with the insteon:3 debug setting for 
+troubleshooting. 
+ 
+=cut
 
 sub sync_all_links
 {
@@ -129,6 +187,15 @@ sub sync_all_links
 
         &_get_next_linksync();
 }
+
+=item C<_get_next_linksync()>
+
+Calls the sync_links() function for each device in the module global variable 
+@_sync_devices.  This function will be called recursively since the callback 
+passed to sync_links() is this function again.  Will also ask sync_links() to 
+call _get_next_linksync_failure() if sync_links() fails. 
+
+=cut
 
 sub _get_next_linksync
 {
@@ -172,6 +239,13 @@ sub _get_next_linksync
 
 }
 
+=item C<_get_next_linksync()>
+
+Called by the failure callback in a device's sync_links() function.  Will add
+the failed device to the module global variable @_sync_device_failures. 
+
+=cut
+
 sub _get_next_linksync_failure
 {
         push @_sync_device_failures, $current_sync_device;
@@ -179,6 +253,64 @@ sub _get_next_linksync_failure
                 	. $current_sync_device->get_object_name . ".  Moving on...");
         &_get_next_linksync();
 
+}
+
+
+=item C<log_all_ADLB_status()>
+
+Walks through every Insteon device and logs:
+
+=over(8)
+
+- Hop Count
+
+- Engine Version
+
+- ALDB Type
+
+- ALDB Health
+
+- ALDB Scan Time
+
+=back
+
+=cut
+
+sub log_all_ADLB_status
+{
+	my @_log_ALDB_devices = ();
+	# alwayws include the active interface (e.g., plm)
+#	push @_log_ALDB_devices, &Insteon::active_interface;
+
+	push @_log_ALDB_devices, Insteon::find_members("Insteon::BaseDevice");
+
+	# don't try to scan devices that are not responders
+	if (@_log_ALDB_devices)
+	{
+		my $log_ALDB_cnt = @_log_ALDB_devices;
+		my $count = 0;
+		foreach my $current_log_ALDB_device (@_log_ALDB_devices)
+		{
+			$count++;
+			if ($current_log_ALDB_device->is_root and
+				!($current_log_ALDB_device->isa('Insteon::InterfaceController')))
+			{
+				&main::print_log("[log all device ALDB status] Now logging: "
+					. $current_log_ALDB_device->get_object_name()
+					. " ($count of $log_ALDB_cnt)");
+				$current_log_ALDB_device->log_aldb_status();
+			} else
+			{
+				main::print_log("[log all device ALDB status] INFO: !!! "
+					. $current_log_ALDB_device->get_object_name
+					. " is NOT a candidate for logging ($count of $log_ALDB_cnt)");
+			}
+		}
+		main::print_log("[log all device ALDB status] All devices have completed logging");
+	} else
+	{
+		main::print_log("[log all device ALDB status] WARN: No insteon devices could be found");
+	}
 }
 
 
@@ -296,18 +428,22 @@ sub generate_voice_commands
            $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_item_commands');
            push @_insteon_device, $object_name if $group eq '01'; # don't allow non-base items to participate
         } elsif ($object->isa('Insteon_PLM')) {
-           my $cmd_states = "complete linking as responder,cancel linking,delete link with PLM,scan link table,log links,delete orphan links,AUDIT - delete orphan links,scan all device link tables,sync all links,AUDIT - sync all links";
+           my $cmd_states = "complete linking as responder,initiate linking as controller,cancel linking,delete link with PLM,scan link table,log links,delete orphan links,AUDIT - delete orphan links,scan all device link tables,scan changed device link tables,sync all links,AUDIT - sync all links";
+           $cmd_states .= ",log all device ALDB status";
            $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->complete_linking_as_responder','complete linking as responder');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->initiate_linking_as_controller','initiate linking as controller');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->initiate_unlinking_as_controller','initiate unlinking');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->cancel_linking','cancel linking');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table','log links');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','scan link table');\n\n";
+           $object_string .= "$object_name_v -> tie_event('&Insteon::scan_all_linktables(1)','scan changed device link tables');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->delete_orphan_links','delete orphan links');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->delete_orphan_links(1)','AUDIT - delete orphan links');\n\n";
            $object_string .= "$object_name_v -> tie_event('&Insteon::scan_all_linktables','scan all device link tables');\n\n";
            $object_string .= "$object_name_v -> tie_event('&Insteon::sync_all_links(0)','sync all links');\n\n";
            $object_string .= "$object_name_v -> tie_event('&Insteon::sync_all_links(1)','AUDIT - sync all links');\n\n";
+           $object_string .= "$object_name_v -> tie_event('&Insteon::log_all_ADLB_status','log all device ALDB status');\n\n";
            $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_PLM_commands');
            push @_insteon_plm, $object_name;
         }
@@ -385,6 +521,41 @@ sub active_interface
 
 }
 
+=item C<check_all_aldb_versions()>
+
+Walks through every Insteon device and checks the aldb object version for I1 vs. I2
+
+=cut
+
+sub check_all_aldb_versions
+{
+	main::print_log("[Insteon] DEBUG4 Checking aldb version of all devices") if ($main::Debug{insteon} >= 4);
+
+	my @ALDB_devices = ();
+	push @ALDB_devices, Insteon::find_members("Insteon::BaseDevice");
+	my $ALDB_cnt = @ALDB_devices;
+	my $count = 0;
+	foreach my $ALDB_device (@ALDB_devices)
+	{
+		$count++;
+		if ($ALDB_device->is_root and
+			!($ALDB_device->isa('Insteon::InterfaceController')))
+		{
+			main::print_log("[Insteon] DEBUG4 Checking aldb version for "
+				. $ALDB_device->get_object_name()
+				. " ($count of $ALDB_cnt)") if ($main::Debug{insteon} >= 4);
+			$ALDB_device->check_aldb_version();
+		} else
+		{
+			main::print_log("[Insteon] DEBUG4 " . $ALDB_device->get_object_name
+				. " does not have its own aldb ($count of $ALDB_cnt)")
+				if ($main::Debug{insteon} >= 4);
+		}
+	}
+	main::print_log("[Insteon] DEBUG4 Checking aldb version of all devices completed") if ($main::Debug{insteon} >= 4);
+}
+
+
 package InsteonManager;
 
 use strict;
@@ -405,8 +576,9 @@ sub _active_interface
    if (!($$self{active_interface}) and $interface) {
       &main::print_log("[Insteon] Setting up initialization hooks") if $main::Debug{insteon};
       &main::MainLoop_pre_add_hook(\&Insteon::BaseInterface::check_for_data, 1);
+      &main::Reload_post_add_hook(\&Insteon::check_all_aldb_versions, 1);
       &main::Reload_post_add_hook(\&Insteon::BaseInterface::poll_all, 1);
-      $Insteon::init_complete = 0;
+      $init_complete = 0;
       &main::MainLoop_pre_add_hook(\&Insteon::init, 1);
       &main::Reload_post_add_hook(\&Insteon::generate_voice_commands, 1);
    }
@@ -508,4 +680,42 @@ sub find_members {
 	return @l_found;
 }
 
-1
+=head1 INI PARAMETERS
+
+=over
+
+=item C<debug>
+
+For debugging debug=insteon or debug=insteon:level where level is 1-4. 
+
+=back
+
+=head1 AUTHOR
+
+Bruce Winter
+
+=head1 SEE ALSO
+
+None
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, 
+MA  02110-1301, USA.
+
+=cut
+
+
+1;

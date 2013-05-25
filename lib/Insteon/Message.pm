@@ -2,7 +2,6 @@
 package Insteon::BaseMessage;
 
 use strict;
-use Insteon;
 
 sub new
 {
@@ -116,10 +115,11 @@ sub send
                                 	$self->setby->default_hop_count($self->setby->default_hop_count + 1);
                                 }
                         }
-                        elsif (defined($$self{no_hop_increase}) && $main::Debug{insteon}
+                        elsif (defined($$self{no_hop_increase}) && ref $self->setby
                         	&& $self->setby->isa('Insteon::BaseObject')){
                         	&main::print_log("[Insteon::BaseMessage] Hop count not increased for "
-                        		. $self->setby->get_object_name . " because no_hop_increase flag was set.");
+                        		. $self->setby->get_object_name . " because no_hop_increase flag was set.")
+                        		if $main::Debug{insteon};
                         	$$self{no_hop_increase} = undef;
                         }
                 }
@@ -172,7 +172,6 @@ sub to_string
 
 package Insteon::InsteonMessage;
 use strict;
-use Insteon;
 
 @Insteon::InsteonMessage::ISA = ('Insteon::BaseMessage');
 
@@ -200,11 +199,15 @@ sub command_to_hash
 	$msg{hopsleft} = $hopflag >> 2;
 	my $msgflag = hex(uc substr($p_state,12,1));
 	$msg{is_extended} = (0x01 & $msgflag) ? 1 : 0;
+	$msg{cmd_code} = substr($p_state,14,2);
+	$msg{crc_valid} = 1;
 	if ($msg{is_extended})
         {
+		$msg{type} = 'direct';
 		$msg{source} = substr($p_state,0,6);
 		$msg{destination} = substr($p_state,6,6);
-		$msg{extra} = substr($p_state,16,16);
+		$msg{extra} = substr($p_state,16,length($p_state)-16);
+		$msg{crc_valid} = (calculate_checksum($msg{cmd_code}.$msg{extra}) eq '00');
 	}
         else
         {
@@ -263,7 +266,6 @@ sub command_to_hash
 			}
 		}
 	}
-	$msg{cmd_code} = substr($p_state,14,2);
 
 	return %msg;
 }
@@ -478,13 +480,90 @@ sub _derive_interface_data
         	$cmd .= '00';
         }
 
+	if( $self->command_type eq 'insteon_ext_send' and $$self{add_crc16}){
+		if( length($cmd) < 40) {
+			main::print_log("[Insteon::InsteonMessage] WARN: insert_crc16 "
+				. "failed; cmd to short: $cmd");
+		} else {
+			$cmd = substr($cmd,0,36).calculate_crc16(substr($cmd,8,28));
+		}
+	}
+	elsif( $self->command_type eq 'insteon_ext_send' and $self->setby->engine_version eq 'I2CS') {
+	        #$message is the entire insteon command (no 0262 PLM command)
+	        # i.e. '02622042d31f2e000107110000000000000000000000'
+	        #                     111111111122222222223333333333
+	        #           0123456789012345678901234567890123456789
+	        #          '2042d31f2e000107110000000000000000000000'
+		if( length($cmd) < 40) {
+			main::print_log("[Insteon::InsteonMessage] WARN: insert_checksum "
+				. "failed; cmd to short: $cmd");
+		} else {
+			$cmd = substr($cmd,0,38).calculate_checksum(substr($cmd,8,30));
+		}
+	}
+
 	return $cmd;
 
 }
 
+=item C<calculate_checksum( string )>
+
+Calculates a checksum of all hex bytes in the string.  Returns two hex nibbles
+that represent the checksum in hex.  One useful characteristic of the checksum
+is that summing over all the bytes "including" the checksum will always equal 00. 
+This makes it very easy to validate a checksum.
+
+=cut
+
+sub calculate_checksum {
+	my ($string) = @_;
+
+	#returns 2 characters as hex nibbles (e.g. AA)
+	my $sum = 0;
+	$sum += hex($_) for (unpack('(A2)*', $string));
+	return unpack( 'H2', chr((~$sum + 1) & 0xff));
+}
+
+=item C<calculate_crc16( string )>
+
+Calculates a two byte CRC value of string.  This two byte CRC differs from the 
+one byte checksum used in other extended commands. This CRC calculation is known
+to be used by the 2441TH Insteon Thermostat as well as the iMeter INSTEON device. 
+It may be used by other devices in the future.
+ 
+The calculation if the crc value involves data bytes from command 1 to the data 12 
+byte. This function will return two bytes, which are generally added to the 
+data 13 & 14 bytes in an extended message.
+
+=cut
+
+sub calculate_crc16
+{
+	#This function is nearly identical to the C++ sample provided by 
+	#smartlabs, with only minor modifications to make it work in perl
+	my ($string) = @_;
+	my $crc = 0;
+	for(unpack('(A2)*', $string))
+	{
+		my $byte = hex($_);
+	
+		for(my $bit = 0;$bit < 8;$bit++)
+		{ 
+			my $fb = $byte & 1;
+			$fb = ($crc & 0x8000) ? $fb ^ 1 : $fb;
+			$fb = ($crc & 0x4000) ? $fb ^ 1 : $fb;
+			$fb = ($crc & 0x1000) ? $fb ^ 1 : $fb;
+			$fb = ($crc & 0x0008) ? $fb ^ 1 : $fb;
+			$crc = (($crc << 1) & 0xFFFF) | $fb;
+			$byte = $byte >> 1;
+		}
+	}
+	return uc(sprintf("%x", $crc));
+}
+
+
 package Insteon::X10Message;
 use strict;
-use Insteon;
 
 @Insteon::X10Message::ISA = ('Insteon::BaseMessage');
 
