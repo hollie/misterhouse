@@ -41,6 +41,7 @@ Special Thanks to:
 package Insteon_PLM;
 
 use strict;
+use Insteon;
 use Insteon::BaseInterface;
 use Insteon::BaseInsteon;
 use Insteon::AllLinkDatabase;
@@ -239,7 +240,7 @@ sub initiate_linking_as_controller
 {
 	my ($self, $group) = @_;
 
-	$group = 'FF' unless $group;
+	$group = '01' unless $group;
 	# set up the PLM as the responder
 	my $cmd = '01'; # controller code
 	$cmd .= $group; # WARN - must be 2 digits and in hex!!
@@ -308,8 +309,8 @@ sub _send_cmd {
          		$self->_set_timeout('command', $cmd_timeout); # a commmand needs to be PLM ack'd w/i 3 seconds or it gets dropped
                 }
         }
-
-	if (length($command) != (Insteon::MessageDecoder::insteon_cmd_len(substr($command,0,4), 0)*2)){
+	my $is_extended = ($message->can('command_type') && $message->command_type eq "insteon_ext_send") ? 1 : 0;
+	if (length($command) != (Insteon::MessageDecoder::insteon_cmd_len(substr($command,0,4), 0, $is_extended)*2)){
 		&::print_log( "[Insteon_PLM]: ERROR!! Command sent to PLM " . lc($command) 
 		. " is of an incorrect length.  Message not sent.");
 		$self->clear_active_message();
@@ -352,7 +353,6 @@ sub _parse_data {
         }
 
 	&::print_log( "[Insteon_PLM] DEBUG3: Received PLM raw data: $data") if $main::Debug{insteon} >= 3;
-	&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($data)) if $main::Debug{insteon} >= 4;
 
 	# begin by pulling out any PLM ack/nacks
 	my $prev_cmd = '';
@@ -388,6 +388,7 @@ sub _parse_data {
                         $entered_ack_loop = 1;
 			if ($parsed_data =~ /^($ackcmd)|($nackcmd)|($prefix{plm_info}\w{12}06)|($prefix{plm_info}\w{12}15)|($prefix{all_link_first_rec}15)|($prefix{all_link_next_rec}15)|($badcmd)$/)
                         {
+				&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $main::Debug{insteon} >= 4;
 				my $ret_code = substr($parsed_data,length($parsed_data)-2,2);
 				my $record_type = substr($parsed_data,0,4);
                                 my $message_data = substr($parsed_data,4,length($parsed_data)-4);
@@ -464,6 +465,9 @@ sub _parse_data {
                                                 {
                                                 	$self->_aldb->health("good");
                                                 }
+						&::print_log("[Insteon_PLM] " . $self->get_object_name 
+							. " completed link memory scan: status: " . $self->_aldb->health())
+							if $main::Debug{insteon};
 						if ($$self{_mem_callback})
 						{
 							my $callback = $$self{_mem_callback};
@@ -549,6 +553,7 @@ sub _parse_data {
                         	# is $parsed_data an accidental anomoly? (there are other cases; but, this is a good start)
                                 if ($parsed_data =~ /^($prefix{insteon_send}\w{12}06)|($prefix{insteon_send}\w{12}15)$/)
                                 {
+					&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $main::Debug{insteon} >= 4;
                                 	# first, parse the content to confirm that it could be a legitimate ACK
                                         my $unknown_deviceid = substr($parsed_data,4,6);
                                         my $unknown_msg_flags = substr($parsed_data,10,2);
@@ -593,7 +598,12 @@ sub _parse_data {
 	{
 		#ignore blanks.. the split does odd things
 		next if $parsed_data eq '';
-                next if $previous_parsed_data eq $parsed_data; # guard against repeats
+		&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($data)) if $main::Debug{insteon} >= 4;
+		if ($previous_parsed_data eq $parsed_data){
+			# guard against repeats
+			::print_log("[Insteon_PLM] DEBUG3: Dropped duplicate message: $parsed_data") if $main::Debug{insteon} >= 3; 
+			next;
+		}
                 $previous_parsed_data = $parsed_data; # and, now reinitialize
 
                 $entered_rcv_loop = 1;
@@ -636,10 +646,15 @@ sub _parse_data {
                         		. "$failure_device and group: $failure_group") if $main::Debug{insteon} >= 2;
                         
                         	my $failed_object = &Insteon::get_object($failure_device,'01');
-                        	my $message = new Insteon::InsteonMessage('all_link_direct_cleanup', $failed_object, 
-                        		$self->active_message->command, $failure_group);
-                        	push(@{$$failed_object{command_stack}}, $message);
-                        	$failed_object->_process_command_stack();
+                        	if (ref $failed_object){
+	                        	my $message = new Insteon::InsteonMessage('all_link_direct_cleanup', $failed_object, 
+	                        		$self->active_message->command, $failure_group);
+	                        	push(@{$$failed_object{command_stack}}, $message);
+	                        	$failed_object->_process_command_stack();
+                        	} else {
+                        		&::print_log("[Insteon_PLM] WARN: Device ID: $failure_device does not exist. You may "
+                        			. "want to run delete orphans to remove this link from your PLM");
+                        	}
 			} else {
 				&::print_log("[Insteon_PLM] DEBUG2: Received all-link cleanup failure."
                         		. " But there is no pending message.") if $main::Debug{insteon} >= 2;
@@ -678,6 +693,11 @@ sub _parse_data {
                         	my $message_to_string = ($self->active_message) ? $self->active_message->to_string() : "";
 				&::print_log("[Insteon_PLM] Received all-link cleanup success: $message_to_string")
                                 	if $main::Debug{insteon};
+				if (ref $self->active_message->setby){
+					my $object = $self->active_message->setby;
+					$object->is_acknowledged(1);
+					$object->_process_command_stack();
+				}
                                 $self->clear_active_message();
 			}
 		}
