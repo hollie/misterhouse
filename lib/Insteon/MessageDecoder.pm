@@ -115,7 +115,7 @@ my %plmcmdlen = (
 	'0258' => [3, 3],
 	'0260' => [2, 9],
 	'0261' => [5, 6],
-	'0262' => [8, 9], # could get 9 or 23 (Standard or Extended Message received)
+	'0262' => [8, 9, 22, 23], # could get 9 or 23 (Standard or Extended Message received)
 	'0263' => [4, 5],
 	'0264' => [4, 5],
 	'0265' => [2, 3],
@@ -481,6 +481,7 @@ my %x10_commands = (
 Returns a string containing a decoded PLM data packet
 
 =cut
+
 sub plm_decode {
 	my ($plm_string) = @_;
 	$plm_string = lc($plm_string);
@@ -716,6 +717,7 @@ sub plm_decode {
 Returns a string containing a decoded PLM X10 data packet
 
 =cut
+
 sub plm_x10_decode {
 	my ($x10_string) = @_;
 	$x10_string = lc($x10_string);
@@ -735,6 +737,7 @@ sub plm_x10_decode {
 Returns a string containing decoded Insteon message flags
 
 =cut
+
 sub insteon_message_flags_decode {
         my ($flags_string) = @_;
         $flags_string = lc($flags_string);
@@ -765,6 +768,7 @@ string should be the Insteon message starting with the
 message flag byte.
 
 =cut
+
 sub insteon_decode {
 	my ($command_string) = @_;
 #Mapping from message type bit field to acronyms used in
@@ -892,10 +896,15 @@ sub insteon_decode_cmd {
 }
 
 
-#Takes a 2 byte hex cmd, 0 for send, 1, for rec and returns expected byte length
+#$plm_cmd is 2 byte hex cmd; $send_rec is 0 for send, 1, for rec; $is_extended is 1 if extended send
+#returns expected byte length
 sub insteon_cmd_len{
-	my ($plm_cmd, $send_rec) = @_;
-	return $plmcmdlen{$plm_cmd}->[$send_rec]
+	my ($plm_cmd, $send_rec, $is_extended) = @_;
+	if ($is_extended && $plmcmdlen{uc($plm_cmd)} > 2) {
+		return $plmcmdlen{uc($plm_cmd)}->[($send_rec+2)];
+	} else {
+		return $plmcmdlen{uc($plm_cmd)}->[$send_rec];
+	}
 }
 
 

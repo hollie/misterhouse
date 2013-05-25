@@ -69,8 +69,8 @@ $form_type
     $html .= "</body></html>";
 
     print "dbx3\n";
-    return $html;
 
+    return &html_page('', $html);
 }
 
 
