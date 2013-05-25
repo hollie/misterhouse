@@ -198,7 +198,6 @@ sub reset_language_files {
     my ($self) = @_;
     $PocketSphinx_state = "reset";
     $self->{disabled} = 0;
-    $self->{crash_cnt} = 0;
 }
 
 #============================================================================================ 
