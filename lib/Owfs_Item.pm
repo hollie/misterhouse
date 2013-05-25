@@ -69,10 +69,6 @@ Example Usage:
 =cut
 
 # TODO
-# document
-# test raw Owfs_Item
-# test others
-# celcius/fahrenheit
 # maintain inventory
 # dump inventory
 # inventory of all items, not just those requested
@@ -833,8 +829,6 @@ sub new {
     $self->{pio} = undef;
     $self->{latch} = 0;
     $self->{sensed} = undef;
-    $self->{pass_triggered} = 0;
-    $self->restore_data('latch');
 
     $latch_store{$device} = 0;
     if (!exists $latch_mask{$device}) {
@@ -992,20 +986,20 @@ sub process_read_response {
 	} elsif ($self->{token} =~ /latch/) {
 	    $latch_store{$device} |= ($latch_mask{$device} & $response);
 	    my $ls = $latch_store{$device};
-	    my $lm = $latch_mask{$device};
+	    my $lm = sprintf ("%x", $latch_mask{$device});
 	    my $chanidx = $channel;
 	    $chanidx = 0 if (!defined $channel);
 	    my $latch = ($latch_store{$device} >> $chanidx) & 1;
+	    my $slatch = $self->{latch};
+	    &main::print_log ("Owfs_Switch::process_read_response device: $device location: $location channel: $channel latch: $latch slatch: $slatch ls: $ls lm: $lm chanidx: $chanidx") if $debug;
 	    if ($mode == LATCH) {
 		if ($latch ne $self->{latch}) {
 		    my $state = $self->convert_state($latch);
 		    $self->SUPER::process_read_response($state);
-		    $self->{pass_triggered} = $main::Loop_Count;
-		    $latch_store{$device} &= ~(1 << $chanidx);
+		    $self->{latch} = $latch;
 		}
 	    }
-	    $self->{latch} = $latch;
-	    &main::print_log ("Owfs_Switch::process_read_response device: $device location: $location channel: $channel latch: $latch ls: $ls lm: $lm chanidx: $chanidx") if $debug;
+	    $latch_store{$device} &= ~(1 << $chanidx);
 	    if ($response != 0) {
 		$self->SUPER::set ($latchstr, 1);
 	    } else {
@@ -1083,6 +1077,16 @@ sub run_loop {
 #=======================================================================================
 
 =begin comment
+
+ By default, the temperature unit of measure will be Celcius.  Use the owfs_uom_temp
+ config_parm to control the desired temperature uom
+
+ $main::config_parms{owfs_uom_temp}
+
+ C Celcius
+ F Fahrenheit
+ K Kelvin
+ R Rankine
 
 Usage:
 
@@ -1190,8 +1194,6 @@ sub process_read_response {
     if (defined $temperature) {
 	$temperature = $self->_chomp_plus($temperature);
 	if ($temperature =~ /^[-]?\d+(?:[.]\d+)?$/) {
-	    # convert to fahrenheit
-	    $temperature = (($temperature*9)/5)+32;
 	    if ($temperature ne $self->state( )) {
 		$self->SUPER::process_read_response( $temperature );
 	    }
