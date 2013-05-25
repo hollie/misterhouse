@@ -293,7 +293,10 @@ sub convert_humidity_to_dewpoint {
 	return unless defined $humidity and defined $temp_celsius;
 
 	# http://en.wikipedia.org/wiki/Dew_point
-	my $gamma = ( (17.271 * $temp_celsius) / (237.7 + $temp_celsius) ) + log($humidity/100);
+	my $gamma = ( (17.271 * $temp_celsius) / (237.7 + $temp_celsius) );
+	if ($humidity != 0) {
+	    $gamma += log($humidity/100);
+	}
 	my $dew_point = (237.7 * $gamma) / (17.271 - $gamma);
 
         # old calculations
