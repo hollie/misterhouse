@@ -614,7 +614,7 @@ sub _is_duplicate_received {
 	my $delay = ($message_time * $max_hops);
 
 	#Clean hash of outdated entries
-	for (keys $$self{received_commands}){
+	for (keys %{$$self{received_commands}}){
 		if ($$self{received_commands}{$_} < $curr_milli){
 			delete($$self{received_commands}{$_});
 		}
