@@ -146,7 +146,7 @@ expired.
 sub get_extended_info {
 	my ($self, $no_retry) = @_;
 	my $root = $self->get_root();
-	my $extra = '000100000000000000000000000000';
+	my $extra = '000000000000000000000000000000';
 	$$root{_ext_set_get_action} = "get";
 	my $message = new Insteon::InsteonMessage('insteon_ext_send', $root, 'extended_set_get', $extra);
 	if ($no_retry){
