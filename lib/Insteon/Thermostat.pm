@@ -35,7 +35,8 @@ And, you can set the temperature and mode at will...
       $thermostat->cool_setpoint(89);
    }
 
-All of the states that may be set:
+All of the states of the parent object that may be set by MH, you can use tie_event
+to link specific actions to these states:
    temp_change: Inside temperature changed 
       (call get_temp() to get value)
    heat_sp_change: Heat setpoint was changed
@@ -61,11 +62,8 @@ see code/examples/Insteon_thermostat.pl for more.
 
 =head1 BUGS
 
-Initial code for Venstar thermostats, which use Insteon engine version i1, only
-provided basic features.  The new Insteon 2441TH thermostats use the i2cs engine
-and only allow the polling, but not setting, of the thermostat attributes using
-i2 code.  As such, I am unable to test or provide enhancements to certain i1 
-only aspects.
+This code has not been tested on older Venstar thermsotats, however it is believed
+that the basic functionality should work as it did in the old code.
 
 =head1 AUTHOR
 
@@ -74,13 +72,14 @@ Gregg Liming <gregg@limings.net>
 Brian Warren <brian@7811.net>
 
 Enhanced to i2 by:
-Kevin Rober Keegan <kevin@krkeegan.com>
+Kevin Robert Keegan <kevin@krkeegan.com>
 
 =head1 TODO
 
- - Manage aldb - should be able to adjust setpoints based on plm scene. <- may be overkill
- - Add ability to link devices to the I2 Thermostat groups 1-4
- - Add ability to link other devices to the broadcast group.
+ - Enable Linking of the Thermostat as a Responder - The current design of MH 
+   will not create valid links when the thermostat is the responder.  To enable
+   this function, a reorganization of the add_link and update_link code at the
+   BaseObject level needs to be performed.
 
 =head1 INHERITS
 
@@ -613,32 +612,32 @@ sub _process_message {
 	}
 	elsif ($msg{command} eq "status_temp" && !$msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
-		main::print_log("[Insteon::Thermo_i2] Received Status Temp Message ".
-			"for ". $self->get_object_name) if $main::Debug{insteon};	
+		main::print_log("[Insteon::Thermo_i2] Received Temp Change Message ".
+			"from ". $self->get_object_name) if $main::Debug{insteon};	
 		$self->hex_short_temp($msg{extra});
 	}
 	elsif ($msg{command} eq "status_mode" && !$msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
-		main::print_log("[Insteon::Thermo_i2] Received Status Mode Message ".
-			"for ". $self->get_object_name) if $main::Debug{insteon};	
+		main::print_log("[Insteon::Thermo_i2] Received Mode Change Message ".
+			"from ". $self->get_object_name) if $main::Debug{insteon};	
 		$self->status_mode($msg{extra});
 	}
 	elsif ($msg{command} eq "status_cool" && !$msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
-		main::print_log("[Insteon::Thermo_i2] Received Status Cool Message ".
-			"for ". $self->get_object_name) if $main::Debug{insteon};	
+		main::print_log("[Insteon::Thermo_i2] Received Cool Setpoint Change Message ".
+			"from ". $self->get_object_name) if $main::Debug{insteon};	
 		$self->hex_cool($msg{extra});
 	}
 	elsif ($msg{command} eq "status_humid" && !$msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
-		main::print_log("[Insteon::Thermo_i2] Received Status Humid Message ".
-			"for ". $self->get_object_name) if $main::Debug{insteon};	
+		main::print_log("[Insteon::Thermo_i2] Received Humidity Change Message ".
+			"from ". $self->get_object_name) if $main::Debug{insteon};	
 		$self->hex_humid($msg{extra});
 	}
 	elsif ($msg{command} eq "status_heat" && !$msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
-		main::print_log("[Insteon::Thermo_i2] Received Status Heat Message ".
-			"for ". $self->get_object_name) if $main::Debug{insteon};	
+		main::print_log("[Insteon::Thermo_i2] Received Heat Setpoint Change Message ".
+			"from ". $self->get_object_name) if $main::Debug{insteon};	
 		$self->hex_heat($msg{extra});
 	}
 	else {
@@ -724,7 +723,8 @@ sub hex_long_temp{
 	my $temp_cel = (hex($hex_temp)/10);
 	## ATM I am going to assume farenheit b/c that is what I have
 	# in future, can pull setting bit from thermometer
-	$$self{temp} = (($temp_cel*9)/5 +32);
+	# Extra .5 since sprintf doesn't round
+	$$self{temp} = sprintf("%d", (($temp_cel*9)/5 +32 +.5)); 
 	$self->set_receive('temp_change');
 }
 
