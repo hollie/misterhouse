@@ -946,6 +946,25 @@ sub sync_time {
 	$self->poll_simple();
 }
 
+=item C<high_humid_setpoint()>
+
+Sets the high humidity setpoint.
+
+=cut
+sub high_humid_setpoint {
+	my ($self, $value) = @_;
+	main::print_log("[Insteon::Thermo_i2] Setting high humid setpoint -> $value") if $main::Debug{insteon};
+	if($value !~ /^\d+$/){
+		main::print_log("[Insteon::Thermostat] ERROR: Setpoint $value not numeric");
+		return;
+	}
+	my $extra = "00000B" . sprintf("%02x", $value);
+	$extra .= '0' x (30 - length $extra);
+	my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
+	$$self{_ext_set_get_action} = 'set';
+	$self->_send_cmd($message);
+}
+
 package Insteon::Thermo_i2_bcast;
 use strict;
 
