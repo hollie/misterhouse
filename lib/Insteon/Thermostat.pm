@@ -9,10 +9,30 @@ Enables support for an Insteon Thermostat.
 =head1 SYNOPSIS
 
 In user code:
+
 	$thermostat = new Insteon_Thermostat($myPLM, '12.34.56');
+	
+Additional i2 specific objects:
+	
+	$thermostat_heating = new Insteon_Thermostat($myPLM, '12.34.56:02');
+	$thermostat_high_humid = new Insteon_Thermostat($myPLM, '12.34.56:03');
+	$thermostat_low_humid = new Insteon_Thermostat($myPLM, '12.34.56:04');
+	$thermostat_broadcast = new Insteon_Thermostat($myPLM, '12.34.56:EF');
+
+These devices will not have any states, but are only used for linking purposes.
 
 In items.mht:
+
 	INSTEON_THERMOSTAT, 12.34.56, thermostat, HVAC
+	
+Additional i2 specific objects:
+	
+	INSTEON_THERMOSTAT, 12.34.56:02, thermostat_heating, HVAC
+	INSTEON_THERMOSTAT, 12.34.56:03, thermostat_high_humid, HVAC
+	INSTEON_THERMOSTAT, 12.34.56:04, thermostat_low_humid, HVAC
+	INSTEON_THERMOSTAT, 12.34.56:EF, thermostat_broadcast, HVAC
+
+These devices will not have any states, but are only used for linking purposes.
 
 Poll for temperature changes.
 
@@ -47,16 +67,60 @@ to link specific actions to these states:
       (call get_mode() to get value).
    fan_mode_change: Fan mode changed
       (call get_fan_mode() to get value).
+   status_change: Heating, Cooling, Dehumidifying, or Humidifying change (i2 only)
+      (call get_status() to get status).
 
-Child objects which track the states of the thermostat can be created:
-$thermo_temp = new Insteon::Thermo_temp($thermostat);
-$thermo_fan = new Insteon::Thermo_fan($thermostat);
-$thermo_mode = new Insteon::Thermo_mode($thermostat);
-$thermo_humidity = new Insteon::Thermo_humidity($thermostat);
-$thermo_setpoint_h = new Insteon::Thermo_setpoint_h($thermostat);
-$thermo_setpoint_c = new Insteon::Thermo_setpoint_c($thermostat);
+I2 Broadcast messages:
 
-where $thermostat is the parent object to track.
+If a group EF device is defined, MH will receive broadcast changes from the 
+thermostat.  When enabled, broadcast messages for changes in setpoint, mode,
+temp, and humidity will be sent to MH.  When enabled, there is no reason to 
+poll the thermostat, except for possibly at reboot.  To enable simply define
+the EF group as described above and run sync links.
+
+Broadcast messages are NOT sent when the heater turns on/off.  Broadcast
+message are also NOT sent when the humidity setpoints are exceeded.  Instead,
+you must define the heating, high_humdid, and _low_humid groups and link them
+to MH.  (The base group 01 is the cooling group and should always be linked to
+MH).  When linked, these groups will send on/off commands to MH when these events
+occur.  Alternatively, you can periodically call the poll_simple method to check 
+the status of these attributes.
+
+Linking:
+
+I am not sure how or if the i1 device can be linked to other devices.
+
+I2 devices have 5 controllers, groups 01-04 plus the broadcast group EF.  At the
+moment, MH only supports using the thermostat as a controller of another device.
+To control another device, simply define it as a scene member of the desired 
+thermostat group.  The groups are:
+
+	01 - Cooling - Will send an ON/OFF command when the A/C is turned on/off.
+	02 - Heating - Will send an ON/OFF command when the heater is turned on/off.
+	03 - Humid High - Will send an ON/OFF command when the humidity exceeds the 
+	humid high setpoint.
+	04 - Humid Low - Will send an ON/OFF command when the humidity falls below the 
+	humid low setpoint.
+	EF - Broadcast - Other than MH, I do not know if any other device can 
+	respond to these commands.
+
+Tracking Child Objects:
+
+For both, i1 and i2 devices, optional child objects which track the states of the 
+thermostat can be created in user code:
+	
+   $thermo_temp = new Insteon::Thermo_temp($thermostat);
+   $thermo_fan = new Insteon::Thermo_fan($thermostat);
+   $thermo_mode = new Insteon::Thermo_mode($thermostat);
+   $thermo_setpoint_h = new Insteon::Thermo_setpoint_h($thermostat);
+   $thermo_setpoint_c = new Insteon::Thermo_setpoint_c($thermostat);
+   $thermo_humidity = new Insteon::Thermo_humidity($thermostat);  #Only available on i2 devices
+   $thermo_status = new Insteon::Thermo_status($thermostat);  #Only available on i2 devices
+
+where $thermostat is the parent object to track.  The state of these child objects
+will be the state of the various objects.  This makes the display of the various
+states easier within MH.  The child objects also make it easier to change the 
+various states on the thermostat.
 
 see code/examples/Insteon_thermostat.pl for more.
 
@@ -392,6 +456,9 @@ sub parent_event {
 	elsif ($p_state eq 'humid_change'){
 		$$self{child_humidity}->set_receive($$self{humid}, $self);
 	}
+	elsif ($p_state eq 'status_change'){
+		$$self{child_status}->set_receive($self->get_status(), $self);
+	}
 }
 
 # Overload methods we don't use, but would otherwise cause Insteon traffic.
@@ -501,7 +568,7 @@ sub init {
 	my ($self) = @_;
 	$$self{message_types} = \%message_types;
 	#Set saved state unique to i2 devices
-	$self->restore_data('humid');
+	$self->restore_data('humid', 'cooling', 'heating', 'high_humid', 'low_humid');
 	
 	# Create the broadcast dummy item
 	# This may not belong here.  Maybe this should go into read table A?
@@ -519,6 +586,33 @@ sub init {
 	# Register bcast object with MH
 	&main::register_object_by_name('$' . $self->get_object_name ."{bcast_item}",$$self{bcast_item});
 	$$self{bcast_item}->{object_name} = '$' . $self->get_object_name ."{bcast_item}";
+}
+
+sub set {
+	my ($self, $p_state, $p_setby, $p_respond) = @_;
+	my $root = $self->get_root();
+	if (!(ref $p_setby) || !($p_setby->equals($self))) {
+		::print_log("[Insteon::Thermo_i2] Sorry, you cannot control the ".
+			"thermostat in this manner.  Please read the documentation ".
+			"for Insteon::Thermostat for help.");
+		return;
+	}
+	#Update the root object state
+	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
+	if ($self->group eq '01'){
+		$root->_cooling($link_state);
+	} 
+	elsif ($self->group eq '02') {
+		$root->_heating($link_state);
+	}
+	elsif ($self->group eq '03') {
+		$root->_high_humid($link_state);
+	}
+	elsif ($self->group eq '04') {
+		$root->_low_humid($link_state);
+	}
+	#Update the status of linked devices
+	$self->set_linked_devices($link_state);
 }
 
 sub sync_links{
@@ -546,6 +640,25 @@ sub poll_simple{
 	my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
 	$$message{add_crc16} = 1;
 	$self->_send_cmd($message);
+}
+
+=item C<get_status()>
+
+Returns a text string describing the current status of the thermostat. May include
+a combination of "Heating; Cooling; Dehumidifying; Humidifying; or Off." Only
+available for I2 devices.
+
+=cut
+sub get_status() {
+	my ($self) = @_;
+	my $root = $self->get_root();
+	my $output = "";
+	$output .= "Heating, " if ($$root{heating} eq 'on');
+	$output .= "Cooling, " if ($$root{cooling} eq 'on');
+	$output .= "Dehumidifying, " if ($$root{high_humid} eq 'on');
+	$output .= "Humidifying" if ($$root{low_humid} eq 'on');
+	$output = 'Off' if ($output eq '');
+	return $output;
 }
 
 sub _process_message {
@@ -736,6 +849,8 @@ sub hex_short_temp{
 
 sub hex_status{
 	### Not sure about this one yet, was 80 when set to auto but no activity
+	## need to call _cooling, _heating, _high_humid, and _low_humid when 
+	## figured out
 }
 
 sub hex_heat{
@@ -750,6 +865,34 @@ sub _humid {
 		$self->set_receive('humid_change');
 	}
 	return $$self{humid};
+}
+
+sub _cooling {
+	my ($self,$p_state) = @_;
+	$$self{cooling} = $p_state;
+	$self->set_receive('status_change');
+	return $$self{cooling};
+}
+
+sub _heating {
+	my ($self,$p_state) = @_;
+	$$self{heating} = $p_state;
+	$self->set_receive('status_change');
+	return $$self{heating};
+}
+
+sub _high_humid {
+	my ($self,$p_state) = @_;
+	$$self{high_humid} = $p_state;
+	$self->set_receive('status_change');
+	return $$self{high_humid};
+}
+
+sub _low_humid {
+	my ($self,$p_state) = @_;
+	$$self{low_humid} = $p_state;
+	$self->set_receive('status_change');
+	return $$self{low_humid};
 }
 
 =item C<mode()>
@@ -1012,6 +1155,27 @@ sub set_receive {
 	my ($self, $p_state) = @_;
 	$self->SUPER::set($p_state);
 }
+
+package Insteon::Thermo_status;
+use strict;
+
+@Insteon::Thermo_status::ISA = ('Generic_Item');
+
+sub new {
+	my ($class, $parent) = @_;
+	my $self = new Generic_Item();
+	bless $self, $class;
+	$$self{parent} = $parent;
+	$$self{parent}{child_status} = $self;
+	$$self{parent} -> tie_event ('$object->parent_event("$state")', "status_change");
+	return $self;
+}
+
+sub set_receive {
+	my ($self, $p_state) = @_;
+	$self->SUPER::set($p_state);
+}
+
 1;
 =back
 
