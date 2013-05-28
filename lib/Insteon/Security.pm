@@ -383,7 +383,7 @@ sub _process_message {
 		}
 	}
 	elsif ($msg{command} eq "extended_set_get" && $msg{is_extended}) {
-		if (substr($msg{extra},0,6) eq "000001") {
+		if (substr($msg{extra},0,6) eq "000001" || substr($msg{extra},0,6) eq "000101") {
 			$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
 			#D11 = Light; D12 = Battery;
 			my $voltage = (hex(substr($msg{extra}, 24, 2))/10);
@@ -429,8 +429,8 @@ sub _process_message {
 			$clear_message = 1;
 			$self->_process_command_stack(%msg);
 		} else {
-			main::print_log("[Insteon::MotionSensor] WARN: Corrupt Extended "
-				."Set/Get Data Received for ". $self->get_object_name) if $main::Debug{insteon};
+			main::print_log("[Insteon::MotionSensor] WARN: Unknown Extended "
+				."Set/Get Data Message Received for ". $self->get_object_name) if $main::Debug{insteon};
 		}
 	}
 	else {
