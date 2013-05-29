@@ -7,15 +7,15 @@ Configuration:
 In user code:
 
    use Insteon::MotionSensor;
-   $motion_1 = new Insteon::MotionSensor('12.34.56:01',$myPLM);
-   $motion_2_light_level = new Insteon::MotionSensor('12.34.56:02',$myPLM);
-   $motion_3_battery_level = new Insteon::MotionSensor('12.34.56:03',$myPLM);
+   $motion = new Insteon::MotionSensor('12.34.56:01',$myPLM);
+   $motion_light_level = new Insteon::MotionSensor('12.34.56:02',$myPLM);
+   $motion_battery_level = new Insteon::MotionSensor('12.34.56:03',$myPLM);
 
 In items.mht:
 
-   INSTEON_MOTIONSENSOR, 12.34.56:01, $motion_1, $motion_group
-   INSTEON_MOTIONSENSOR, 12.34.56:02, $motion_2_light_level, $motion_group
-   INSTEON_MOTIONSENSOR, 12.34.56:03, $motion_3_battery_level, $motion_group
+   INSTEON_MOTIONSENSOR, 12.34.56:01, $motion, $motion_group
+   INSTEON_MOTIONSENSOR, 12.34.56:02, $motion_light_level, $motion_group
+   INSTEON_MOTIONSENSOR, 12.34.56:03, $motion_battery_level, $motion_group
 
 =head2 DESCRIPTION
 
@@ -34,13 +34,22 @@ remain in "awake mode" for approximately 4 minutes.
 To scan the link table, sync links, or set settings on the device, the Motion Sensor
 must first be put into "awake mode."
 
+=head3 Link Management
+
+For version 2 devices, MH can manage the links of the device if it has been put
+into awake mode.  To link other devices directly to the motion sensor, first 
+create the necessary link entries in your mht file.  Then restart MisterHouse, 
+and put the motion sensor into awake mode.  Then run sync_links to add the necessary
+entries to the device and linked devices.
+
+Version 1 devices do not respond even when in awake mode, all link management for
+these devices must be done manually.
+
 =head3 Battery and Light Level Monitoring Options:
 
 For version 2 devices, there are two ways in which you can monitor the battery 
 and light level.  For simplicity, these are referred to as the GROUP and QUERY
 method.  Both, either, or neither method may be used.  
-
-For version 1 devices, the GROUP method is the only option.
 
 =head4 The GROUP Method
 
@@ -67,7 +76,7 @@ or mht file as described above.
 
 Version 2 Motion Sensors can be queried to obtain the current light and voltage
 level.  However, these query messages can only be sent while the device is awake.
-Luckily, a Motion Sensor remains awake for approximatly 4 seconds after it sends
+Luckily, a Motion Sensor remains awake for a few seconds after it sends
 a message.
 
 If this method is used, MisterHouse will periodically send a query message to
@@ -82,7 +91,8 @@ You can further create child objects that automatically track the state of the
 light and voltage levels.  These objects allow you to display the state of the
 light and voltage levels on the MisterHouse webpage.  The child objects are 
 described below.  You can then tie an event to the state of the child objects
-with C<tie_event>.
+with C<tie_event> for example to alert you when the battery level falls below a 
+certain threshold.
 
 =head2 INHERITS
 
@@ -131,7 +141,7 @@ sub set
 
 =item C<get_extended_info()>
 
-Only available for Motion Sensor Verion 2 models.
+Only available for Motion Sensor Version 2 models.
 
 Requests the status of various settings on the device.  Currently this is only
 used to obtain the battery and light level.  If the device is awake, the battery
@@ -161,12 +171,13 @@ sub get_extended_info {
 Only available for Motion Sensor Version 2 models.
 
 Sets the minimum amount of time between battery and light level requests.  When 
-this time expires, Misterhouse will request the battery and light level from 
+the time elapsed since last receiving a battery and light level update from the device
+exceeds this value, Misterhouse will request the battery and light level from 
 the device the next time MisterHouse sees activity from the device.  Misterhouse 
 will continue to request the battery and light level until it gets a response 
 from the device.
 
-Setting to 0 will disable automatic battery and light level requests.  1440 
+Setting to 0 will disable automatic battery and light level requests.  1440 minutes
 equals a day.
 
 This setting will be saved between MisterHouse reboots.
