@@ -1,4 +1,4 @@
-#!/bin/perl -w
+#!/usr/bin/perl -w
 
 # Use this as a stand-alone (outside of mh) way to
 # test a CM11 and/or CM17 X10  device
