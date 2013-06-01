@@ -762,6 +762,9 @@ sub _process_command_stack
                                 or $message->command eq 'get_engine_version'
                                 or $message->command eq 'do_read_ee'
                                 or $message->command eq 'set_address_msb'
+                                or $message->command eq 'sensor_status'
+                                or $message->command eq 'set_operating_flags'
+                                or $message->command eq 'get_operating_flags'
                                 or $message->command eq 'read_write_aldb'
                                 )
                         {
@@ -929,6 +932,7 @@ sub new
 	bless $self,$class;
 
         $$self{message_types} = \%message_types;
+        $$self{operating_flags} = \%operating_flags;
 
         if ($self->group eq '01') {
            $$self{aldb} = new Insteon::ALDB_i1($self);
@@ -1058,7 +1062,7 @@ sub _aldb
 sub set_operating_flag {
 	my ($self, $flag) = @_;
 
-	if (!(exists($operating_flags{$flag})))
+	if (!(exists($$self{operating_flags}{$flag})))
         {
 		&::print_log("[Insteon::BaseDevice] $flag is not a support operating flag");
 		return;
@@ -1066,11 +1070,16 @@ sub set_operating_flag {
 
 	if ($self->is_root and !($self->isa('Insteon::InterfaceController')))
         {
-		# TO-DO: check devcat to determine if the action is supported by the device
-                my $message = new Insteon::InsteonMessage('insteon_send', $self, 'set_operating_flags');
-                $message->extra($operating_flags{$flag});
+        	my $message;
+		if (ref $self->_aldb && $self->_aldb->isa('Insteon::ALDB_i2'))
+		{
+			$message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'set_operating_flags');
+			$message->extra($$self{operating_flags}{$flag} . "0000000000000000000000000000");
+		} else {
+			$message = new Insteon::InsteonMessage('insteon_send', $self, 'set_operating_flags');
+			$message->extra($$self{operating_flags}{$flag});
+		}
                 $self->_send_cmd($message);
-#		$self->_send_cmd('command' => 'set_operating_flags', 'extra' => $operating_flags{$flag});
         }
         else
         {
