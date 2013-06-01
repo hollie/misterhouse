@@ -1,42 +1,36 @@
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 B<SchoolDays>
 
-File:
-	SchoolDays.pm
+=head2 SYNOPSIS
 
-Description:
+  $school1 = new SchoolDays("EACMSI",             # School name
+                 "9/3-12/19",                     # School dates
+                 "9/30,10/9,10/10,10/13,11/11,11/13,11/14,11/26-11/28");
 
-	These function will calculate if Today or Tomorrow are 
-	schooldays. Multiple schools are supported. 
-	A list of term dates and an optional list of mid-term
-	holidays are required for each school.
-	
-Author(s):
-	Andrew C Baker / andrew@rekabuk.co.uk
-	Jeffrey C Honig / jch@honig.net
+  if ($school1->is_school_today()) {
+    ...
+  } elsif ($school1->is_school_tomorrow()) {
+    ...
+  }
 
-License:
-	This free software is licensed under the terms of the GNU public license. GPLv2
+  $school1->is_school_day("mm/dd/yy");    # Date format is $config_parms{"date_format"};
+  $school1->is_school_night("mm/dd/yy");  $ Can also use an ISO8601 date
 
-Usage:
-	$school1 = new SchoolDays("EACMSI",		# School name
-		       "9/3-12/19",			# School dates
-		       "9/30,10/9,10/10,10/13,11/11,11/13,11/14,11/26-11/28");
+  $school1->set_logging(0|1);             # Logging
 
-	if ($school1->is_school_today()) {
-           ...
-        } elsif ($school1->is_school_tomorrow()) {
-	   ...
-        }
+=head2 DESCRIPTION
 
-	$school1->is_school_day("mm/dd/yy");	# Date format is $config_parms{"date_format"};
-	$school1->is_school_night("mm/dd/yy");	$ Can also use an ISO8601 date
+These function will calculate if Today or Tomorrow are
+schooldays. Multiple schools are supported.
+A list of term dates and an optional list of mid-term
+holidays are required for each school.
 
-	$school1->set_logging(0|1);		# Logging
+=head2 INHERITS
 
-Notes:
+B<>
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head2 METHODS
+
+=over
 
 =cut
 
@@ -46,9 +40,12 @@ use Time::Local;
 
 package SchoolDays;
 
-#
-#	Initialize with school name, session dates, and exceptions
-#
+
+=item C<new>
+
+Initialize with school name, session dates, and exceptions
+
+=cut
 
 sub new {
     my ($class, $school, $school_terms, $school_inset, $logging) = @_;
@@ -154,9 +151,12 @@ sub _convert_to_ISO8601_date {
     return Time::Local::timelocal(0, 0, 1, $dd, $mm-1, $yyyy);
 }
 
+=item C<_get_epoch_date>
 
-#---------------------------------------------
-# Return ISO8601 date for today
+Return ISO8601 date for today
+
+=cut
+
 sub _get_epoch_date {
     my ($self) = @_;
     my $iso_date;
@@ -170,16 +170,24 @@ sub _get_epoch_date {
     return $self->_convert_to_ISO8601_date($iso_date);
 }
 
-#---------------------------------------------
-# Return human readable date
+=item C<_hr_date>
+
+Return human readable date
+
+=cut
+
 sub _hr_date {
     my ($self, $date) = @_;
 
     return POSIX::strftime("%d %b %Y", localtime($date));
 }
 
-#---------------------------------------------
-# Log a message
+=item C<_log>
+
+Log a message
+
+=cut
+
 sub _log {
     my ($self, $msg) = @_;
 
@@ -188,8 +196,12 @@ sub _log {
     }
 }
 
-#---------------------------------------------
-# Toggle logging
+=item C<set_logging>
+
+Toggle logging
+
+=cut
+
 sub set_logging {
     my ($self, $logging) = @_;
 
@@ -198,8 +210,12 @@ sub set_logging {
     $self->_log("Logging set to $logging");
 }
 
-#---------------------------------------------
-# Is the supplied day a school day
+=item C<is_schoolday>
+
+Is the supplied day a school day
+
+=cut
+
 sub is_schoolday {
     my ($self, $testdate) = @_;
 
@@ -241,8 +257,11 @@ sub is_schoolday {
     return 0;
 }
 
-#---------------------------------------------
-# Is the supplied day a school night
+=item C<is_schoolnight>
+
+Is the supplied day a school night
+
+=cut
 
 sub is_schoolnight {
     my ($self, $testdate) = @_;
@@ -261,8 +280,11 @@ sub is_schoolnight {
     return $self->is_schoolday($testdate);
 }
 
-#---------------------------------------------
-# Is today a school day?
+=item C<is_school_today>
+
+Is today a school day?
+
+=cut
 
 sub is_school_today {
     my ($self) = @_;
@@ -270,8 +292,11 @@ sub is_school_today {
     return $self->is_schoolday($self->_get_epoch_date());
 }
 
-#---------------------------------------------
-#Is tomorrow a school day?
+=item C<is_school_tomorrow>
+
+Is tomorrow a school day?
+
+=cut
 
 sub is_school_tomorrow {
     my ($self) = @_;
@@ -280,3 +305,30 @@ sub is_school_tomorrow {
 }
 
 1;
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Andrew C Baker / andrew@rekabuk.co.uk
+
+Jeffrey C Honig / jch@honig.net
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

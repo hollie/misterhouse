@@ -1,72 +1,65 @@
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 B<Numbered_Menu>
 
-File:
-	Numbered_Menu.pm
+=head2 SYNOPSIS
 
-Description:
-	Module that navigates a specified menu using numbered selections.
+Read in .menu files with menu_parse (see menu.pl for examples),
+then select which menu to use with the first parameter, and
+the delay you want with the 2nd.
 
-Author:
-	Jason Sharpee
-	jason@sharpee.com
+Example initialization:
 
-License:
-	This free software is licensed under the terms of the GNU public license.
+  use Numbered_Menu;
+  $NM = new Numbered_Menu('default', 2);
 
-Usage:
-
-    Read in .menu files with menu_parse (see menu.pl for examples),
-    then select which menu to use with the first parameter, and
-    the delay you want with the 2nd.
-
-	Example initialization:
-
-		use Numbered_Menu;
-		$NM = new Numbered_Menu('default', 2);
-
-		$input_object->tie_items($NM);
-		$NM->tie_items($output_object);
+  $input_object->tie_items($NM);
+  $NM->tie_items($output_object);
 
 
-	Constructor Parameters:
-		ex. $x = new Numbered_Menu($y,$i);
-		$x		- Reference to the class
-		$y		- Menu Name
-		$i		- Delay between outputing items from the menu.
-				  -1 = Do not automatically advance to the next item
-                   0 = Output all items without delay
-				  >0 = Number of seconds of delay time
+Constructor Parameters:
 
-	Input states:
-		"start"	    - Starts the menu code and listens to all other input states.
-		"1","2",etc - Selects the numbered item
- 		"exit"      - Go to parent menu
-		"repeat"    - Repeats current item
-		"stop"      - Stops the menu code and ignores all input states except for start.
-		"previous"	- Advances to the prior menu item.
-		"next"		- Advances immediately to the next item in the menu.
+  ex. $x = new Numbered_Menu($y,$i);
 
-	Output states:
-		"MENU:xxxxxx"   - Menu named xxxxx
-		"ITEM:x:yyyy"   - Item number x with name yyyyyy (x is '-' at the end of the
-				  menu)
-		"RESPONSE:xxxx" - Reponse xxxx from selected item if any
-		<input states>  - All input states are echoed exactly to the output state as well.
+  $x              - Reference to the class
+  $y              - Menu Name
+  $i              - Delay between outputing items from the menu.
+                    -1 = Do not automatically advance to the next item
+                     0 = Output all items without delay
+                    >0 = Number of seconds of delay time
 
-	For keyboard example, enable code/common/keyboard_numbered_menu.pl
+Input states:
 
-Bugs:
-	There isnt a whole lot of error handling currently present in this version.  Drop me
-	an email if you are seeing something odd.
-
-Special Thanks to:
-	Bruce Winter - MH
-	David Norwood - Audible_Menu.pm
-	Bill Sobel - Stargate.pm
+  "start"     - Starts the menu code and listens to all other input states.
+  "1","2",etc - Selects the numbered item
+  "exit"      - Go to parent menu
+  "repeat"    - Repeats current item
+  "stop"      - Stops the menu code and ignores all input states except for start.
+  "previous"  - Advances to the prior menu item.
+  "next"      - Advances immediately to the next item in the menu.
 
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+Output states:
+
+  "MENU:xxxxxx"   - Menu named xxxxx
+  "ITEM:x:yyyy"   - Item number x with name yyyyyy (x is '-' at the end of the menu)
+  "RESPONSE:xxxx" - Reponse xxxx from selected item if any
+  <input states>  - All input states are echoed exactly to the output state as well.
+
+For keyboard example, enable code/common/keyboard_numbered_menu.pl
+
+=head2 DESCRIPTION
+
+Module that navigates a specified menu using numbered selections.
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
 =cut
 
 use strict;
@@ -416,3 +409,35 @@ sub output_item
 	$self->set_states_for_next_pass("ITEM:$p_item:$name");
 }
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Jason Sharpee  jason@sharpee.com
+
+Special Thanks to:
+
+  Bruce Winter - MH
+  David Norwood - Audible_Menu.pm
+  Bill Sobel - Stargate.pm
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
