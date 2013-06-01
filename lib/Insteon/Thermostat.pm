@@ -718,8 +718,27 @@ sub _process_message {
 				$$self{sync_time} = undef;
 				$self->_send_cmd($message);
 			}
-		} else {
-			main::print_log("[Insteon::Thermo_i2] WARN: Corrupt Extended "
+		} 
+		elsif (substr($msg{extra},0,8) eq "00000101") {
+			$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
+			#0 = 00				#14 = Cool SP 
+			#2 = 00				#16 = Heat SP
+			#4 = 01	Response		#18 = RF Offset
+			#6 = 01	Data Set 2		#20 = Energy Saving Setback
+			#8 = humid low			#22 = External TempOffset
+			#10 = humid high		#24 = 1 = Status Report Enabled
+			#12 = firmware			#26 = 1 = External Power On
+							#28 = 1 = Int, 2=Ext Temp
+			main::print_log("[Insteon::Thermo_i2] Humidity setpoints for ".
+				$self->get_object_name . " are High: " .
+				$self->_high_humid(hex(substr($msg{extra}, 8, 2))) .
+				" Low: " . $self->_low_humid(hex(substr($msg{extra}, 10, 2)))
+				) if $main::Debug{insteon};
+			$clear_message = 1;
+			$self->_process_command_stack(%msg);
+		}
+		else {
+			main::print_log("[Insteon::Thermo_i2] WARN: Unknown Extended "
 				."Set/Get Data Received for ". $self->get_object_name) if $main::Debug{insteon};
 		}
 	}
@@ -881,17 +900,20 @@ sub _heating {
 	return $$self{heating};
 }
 
+
 sub _high_humid {
 	my ($self,$p_state) = @_;
-	$$self{high_humid} = $p_state;
-	$self->set_receive('status_change');
+	if ($p_state ne $$self{high_humid}) {
+		$$self{high_humid} = $p_state;
+	}
 	return $$self{high_humid};
 }
 
 sub _low_humid {
 	my ($self,$p_state) = @_;
-	$$self{low_humid} = $p_state;
-	$self->set_receive('status_change');
+	if ($p_state ne $$self{low_humid}) {
+		$$self{low_humid} = $p_state;
+	}
 	return $$self{low_humid};
 }
 
@@ -962,6 +984,38 @@ sub high_humid_setpoint {
 	$extra .= '0' x (30 - length $extra);
 	my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
 	$$self{_ext_set_get_action} = 'set';
+	$self->_send_cmd($message);
+}
+
+=item C<low_humid_setpoint()>
+
+Sets the low humidity setpoint.
+
+=cut
+sub low_humid_setpoint {
+	my ($self, $value) = @_;
+	main::print_log("[Insteon::Thermo_i2] Setting low humid setpoint -> $value") if $main::Debug{insteon};
+	if($value !~ /^\d+$/){
+		main::print_log("[Insteon::Thermostat] ERROR: Setpoint $value not numeric");
+		return;
+	}
+	my $extra = "00000C" . sprintf("%02x", $value);
+	$extra .= '0' x (30 - length $extra);
+	my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
+	$$self{_ext_set_get_action} = 'set';
+	$self->_send_cmd($message);
+}
+
+=item C<get_humid_setpoints()>
+
+Retreives and prints the current humidity high and low setpoints.  Only available for I2 devices.
+=cut
+sub get_humid_setpoints{
+	my ($self) = @_;
+	my $extra = "00000001";
+	$extra .= '0' x (30 - length $extra);
+	my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
+	$$self{_ext_set_get_action} = 'get';
 	$self->_send_cmd($message);
 }
 
