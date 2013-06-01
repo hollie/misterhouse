@@ -113,7 +113,7 @@ to the device.  If the device is not responding to the battery level requests,
 consider increasing this value.  However, keep in mind that a longer awake time
 will result in more battery usage.
 
-The factory setting is 4 seconds, 10 seconds seems to work with MisterHouse 
+The factory setting is 4 seconds, 10 seconds seems to work well with MisterHouse 
 without causing adverse battery drain.
 
 =cut
@@ -278,11 +278,11 @@ as its state.  This is helpful if you want to be able to view the battery level
 through a web page.  Battery level tracking is likely only available on RemoteLinc 2
 devices.
 
-This objects state will be updated based on interval defined for C<set_battery_timer()>
+This object's state will be updated based on interval defined for C<set_battery_timer()>
 in the parent B<Insteon::RemoteLinc> object.
 
-Once created, you can tie_events directly to this object rather than using the 
-battery_low_event code in the parent B<Insteon::RemoteLinc> object.
+Once created, you can tie_events directly to this object, for example to alert
+you when the battery is low.
 
 =head2 INHERITS
 
