@@ -289,7 +289,17 @@ sub is_acknowledged
 sub set_receive
 {
 	my ($self, $p_state, $p_setby, $p_response) = @_;
-	$self->SUPER::set($p_state, $p_setby, $p_response);
+	my $curr_milli = sprintf('%.0f', &main::get_tickcount);
+	my $window = 1000;
+	if (($p_state eq $self->state || $p_state eq $self->state_final)
+		&& ($curr_milli - $$self{set_milliseconds} < $window)){
+		::print_log("[Insteon::BaseObject] Ignoring duplicate set " . $p_state .
+			" state command for " . $self->get_object_name . " received in " .
+			"less than $window milliseconds") if $main::Debug{insteon}; 
+	} else {
+		$$self{set_milliseconds} = $curr_milli;
+		$self->SUPER::set($p_state, $p_setby, $p_response);
+	}
 }
 
 sub set_with_timer {
@@ -660,7 +670,7 @@ sub _process_message
 		{
 			main::print_log("[Insteon::BaseObject] WARN: Now calling message failure callback: "
 				. $p_setby->active_message->failure_callback) if $main::Debug{insteon};
-			$p_setby->active_message->failure_reason('NAK');
+			$self->failure_reason('NAK');
 			package main;
 			eval $p_setby->active_message->failure_callback;
 			main::print_log("[Insteon::BaseObject] problem w/ retry callback: $@") if $@;
@@ -698,12 +708,23 @@ sub _process_message
 		$p_state = $msg{command};
                 if ($msg{type} eq 'alllink')
                 {
-			$self->set($p_state, $self);
-			$$self{_pending_cleanup} = 1;
+			if ($msg{command} eq 'link_cleanup_report'){
+				if ($msg{extra} == 0){
+					::print_log("[Insteon::BaseObject] DEBUG Received AllLink Cleanup Success for "
+						. $self->{object_name}) if $main::Debug{insteon} >= 1;
+				} else {
+					::print_log("[Insteon::BaseObject] WARN " . $msg{extra} . " Device(s) failed to "
+						. "acknowledge the command from " . $self->{object_name});
+				}
+			} else {
+				$self->set($p_state, $self);
+				$$self{_pending_cleanup} = 1;
+			}
                 }
                 elsif ($msg{type} eq 'cleanup')
                 {
-                	if (lc($self->state) eq lc($p_state) and $$self{_pending_cleanup}){
+                	if (($self->state eq $p_state or $self->state_final eq $p_state)
+                		and $$self{_pending_cleanup}){
 				::print_log("[Insteon::BaseObject] Ignoring Received Direct AllLink Cleanup Message for " 
 					. $self->{object_name} . " since AllLink Broadcast Message was Received.") if $main::Debug{insteon};
                 	} else {
@@ -818,6 +839,26 @@ sub _is_valid_state
 sub get_nack_msg_for {
    my ($self,$msg) = @_;
    return $nack_messages{ $msg };
+}
+
+=item C<failure_reason>
+
+Stores the resaon for the most recent message failure [NAK | timeout].  Used to 
+process message callbacks after a message fails.  If called with no parameter 
+returns the saved failure reason.
+
+Parameters:
+	reason: failure reason
+
+Returns: failure reason
+
+=cut 
+
+sub failure_reason
+{
+        my ($self, $reason) = @_;
+        $$self{failure_reason} = $reason if $reason;
+        return $$self{failure_reason};
 }
 
 ####################################
@@ -1262,7 +1303,7 @@ Returns: nothing
 sub _get_engine_version_failure
 {
 	my ($self) = @_;
-	my $failure_reason = $self->interface->active_message->failure_reason();
+	my $failure_reason = $self->failure_reason();
 	
 	main::print_log("[Insteon::BaseDevice::_get_engine_version_failure] DEBUG4: "
 		."failure reason: $failure_reason") if $main::Debug{insteon} >= 4;
