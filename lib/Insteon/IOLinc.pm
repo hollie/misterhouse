@@ -185,7 +185,7 @@ sub _process_message {
 			#D4 = Time; 
 			main::print_log("[Insteon::IOLinc] The Momentary Time Setting ".
 				"on device ". $self->get_object_name . " is set to: ".
-				hex(substr($msg{extra}, 8, 2)) . " microseconds.");
+				hex(substr($msg{extra}, 8, 2)) . " tenths of a second.");
 			$clear_message = 1;
 			$self->_process_command_stack(%msg);
 		} else {
@@ -225,7 +225,7 @@ sub set_momentary_time
 	elsif ($momentary_time <= 255) {
 		$momentary_time = 2 if $momentary_time == 1; #Can't set to 1
 		::print_log("[Insteon::IOLinc] Setting Momentary Time to $momentary_time " .
-			"microseconds for " . $self->get_object_name) if $main::Debug{insteon};
+			"tenths of a second for " . $self->get_object_name) if $main::Debug{insteon};
 	}
 	else {
 		::print_log("[Insteon::IOLinc] WARN Invalid Momentary Time of $momentary_time " .
