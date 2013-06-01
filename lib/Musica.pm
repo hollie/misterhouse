@@ -1,40 +1,9 @@
-# $Date$
-# $Revision$
+=head1 B<Musica>
 
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-File:
-	Musica.pm
-
-Description:
-   Allows control of the Musica whole-house audio system by Netstreams over the
-   RS232 port.  This system has excellent controllability through Misterhouse
-   and provides 6 zones and 4 sources with very nice keypads.
-
-   http://www.netstreams.com
-   
-   If you are interested in installing a Netstreams Musica system yourself,
-   contact me and I can put you in contact with somebody who can give you
-   a good price.
-
-   Note that you must use a null-modem cable between the Musica system and your
-   Misterhouse computer.
-
-   This module uses Rev 2.0 of the Musica RS-232 protocol.
-
-Author:
-	Kirk Bauer
-	kirk@kaybee.org
-
-   You can get the most current version of this file and other files related
-   whole-house music/speech setup here:
-     http://www.linux.kaybee.org:81/tabs/whole_house_audio/
-
-License:
-	This free software is licensed under the terms of the GNU public license.
+=head2 SYNOPSIS
 
 Important Note:
+
    Because the new FM-Tuner keypads (and possibly other newer keypads?) take
    *forever (minutes) to respond to the StatVer command, their version is
    stored in the persistant Misterhouse %Save hash.  This means that if you
@@ -60,6 +29,7 @@ Important Note:
       40822: MU4602 FM-Tuner keypad
 
 Initialization:
+
    You can define any number of Musica systems, but each one requires its own
    serial port.  To begin with, come up with a name for your object such as
    $Musica.  Then add an entry to your mh.private.ini file:
@@ -105,6 +75,7 @@ Initialization:
       MUSICA_SOURCE, music_source4,  Musica, 4
 
 Interface Overview:
+
    All objects (the main Musica object, the zone objects, and the source objects)
    will return various states (as documented below) when somebody performs any
    kind of action from a keypad.
@@ -141,6 +112,7 @@ Interface Overview:
    get_last_error() on any object to see this error message.
 
 Controlling either all zones or one zone:
+
    These functions can all be called on the main Musica object to influence
    all zones or can be called on one specific zone object:
 
@@ -226,12 +198,14 @@ Controlling either all zones or one zone:
    where 8950 is 89.5, for example.
 
 Controlling the Musica system object:
+
    The following functions allow you to make changes to the Musica system
    as a whole from Misterhouse.  
    
    all_off(): Turn off all zones.
 
 Retrieving data from the Musica system object:
+
    get_object_version(): Returns the version of the Musica object.
    get_port_name(): Returns the name of the serial port used for this object.
    get_zones(): Returns list of zone objects associated with this system.
@@ -240,11 +214,13 @@ Retrieving data from the Musica system object:
       Distribution Center.
 
 Monitoring the Musica system object:
+
    Following is a list of states that may be returned by the Musica system:
 
    error: An error has occurred, call get_last_error() for details.
 
 Controlling the Musica zone objects using functions:
+
    The following functions allow you to make changes to a specific Musica
    zone from Misterhouse.
    
@@ -262,6 +238,7 @@ Controlling the Musica zone objects using functions:
       is provided.
 
 Controlling the Musica zone objects using set()
+
    The following input states are recognized by the Musica zone objects:
       off: Turn zone off
       1: Turn to source 1
@@ -274,6 +251,7 @@ Controlling the Musica zone objects using set()
       unmute: Unmutes the zone
 
 Retrieving data from the Musica zone object:
+
    get_musica_obj(): Returns the main musica object.
    get_zone_num(): Returns the zone number (from 1 to 6) for this object.
    get_keypad_version(): Returns the version number returned by the keypad.
@@ -306,6 +284,7 @@ Retrieving data from the Musica zone object:
       a number from 1 to 12 or as a label as returned by get_button_labels().
 
 Monitoring the Musica zone objects:
+
    You can watch for state changes of the Musica zone object to see when a
    user changes the system in a way that affects a particular zone.
 
@@ -347,6 +326,7 @@ Monitoring the Musica zone objects:
       zone object).
 
 Controlling the Musica source object:
+
    The following functions allow you to make changes to a particular source
    accessible from the Musica system.
 
@@ -356,6 +336,7 @@ Controlling the Musica source object:
       by calling get_source_labels() on a source object.
 
 Retrieving data from a Musica source object:
+
    get_musica_obj(): Returns the main musica object. 
    get_source_num(): Returns the numerical source number associated with 
       this source object.
@@ -366,6 +347,7 @@ Retrieving data from a Musica source object:
       this source.
 
 Monitoring the Musica source objects:
+
    You can watch for state changes of the Musica source object to see when a
    user changes the system in a way that affects a particular source.
 
@@ -383,6 +365,7 @@ Monitoring the Musica source objects:
       after this comment section or by calling get_button_labels()).
 
 Usage Examples:
+
    To better understand the following examples, you should know that I have
    an array of MP3 players defined as:
 
@@ -432,6 +415,7 @@ Usage Examples:
       }
 
 MUSICA SYSTEM BUGS:
+
    [ADC Version M30419/Keypad Version R40822 (FM-Tuner)]
    - Keypad takes FOREVER (1-4 minutes) to respond to StatVer.
    - When you hold down a button on the keypad often times a button pressed
@@ -462,6 +446,7 @@ MUSICA SYSTEM BUGS:
    what happened to me).
 
 TODO:
+
    - Detect door/phone muting by watching for volume changes?
    - Implement IR_Dn/IR_Up?
    - ExeMenu* is not implemented as the ADC does not respond which makes it
@@ -476,7 +461,33 @@ TODO:
            4: Left Arrow
            5: Right Arrow
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head2 DESCRIPTION
+
+Allows control of the Musica whole-house audio system by Netstreams over the
+RS232 port.  This system has excellent controllability through Misterhouse
+and provides 6 zones and 4 sources with very nice keypads.
+
+http://www.netstreams.com
+
+If you are interested in installing a Netstreams Musica system yourself,
+contact me and I can put you in contact with somebody who can give you
+a good price.
+
+Note that you must use a null-modem cable between the Musica system and your
+Misterhouse computer.
+
+This module uses Rev 2.0 of the Musica RS-232 protocol.
+
+=head2 INHERITS
+
+B<Serial_Item>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
 =cut
 
 use strict;
@@ -2186,3 +2197,29 @@ sub set_label {
 ################################################################################
 
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Kirk Bauer  kirk@kaybee.org
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

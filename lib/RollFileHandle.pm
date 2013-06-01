@@ -1,3 +1,33 @@
+=head1 B<RollFileHandle>
+
+=head2 SYNOPSIS
+
+  use RollFileHandle;
+  my $dl=new RollFileHandle(">> /tmp/$0.stdout.%m%d");
+  $dl->trap_stdxxx();    # install as default for stdout
+  while($event_loop){
+        $dl->roll_logfile();     # re-open log file when date rolls.
+        print("1","2","3\n");    # use vanilla print syntax.
+
+=head2 DESCRIPTION
+
+This package is intended to give the caller the ability to
+create a "rolling" log file of its output, so that a single
+output log doesn't grow unrestricted.
+
+If the process is dropped and restarted, the log file will be
+appended onto instead of truncated.
+
+=head2 INHERITS
+
+B<>
+
+=head2 METHODS
+
+=over
+
+=cut
+
 package RollFileHandle;
 
 use 5.003_11;
@@ -38,24 +68,6 @@ require IO::File;
 import IO::Handle grep { !defined(&$_) } @EXPORT, @EXPORT_OK;
 
 
-###################################################################
-##  this package is intended to give the caller the ability to 
-##  create a "rolling" log file of its output, so that a single
-##  output log doesn't grow unrestricted.
-##
-##  if the process is dropped and restarted, the log file will be 
-##    appended onto instead of truncated.
-##
-## example usage:
-##   use RollFileHandle;
-##   my $dl=new RollFileHandle(">> /tmp/$0.stdout.%m%d");
-##   $dl->trap_stdxxx();    # install as default for stdout
-##   while($event_loop){
-##         $dl->roll_logfile();     # re-open log file when date rolls.
-##         print("1","2","3\n");    # use vanilla print syntax.
-##
-##
-###################################################################
 my $sccs="@(#).RollFileHandle.pm         %I% %G% ";
 my $cur_stdout_obj;
 my $debug=0;
@@ -92,10 +104,14 @@ sub new{
 	return $newobj;
 }
 
-########################################################
-## Open the correct logfile for the current time.
-##   if there is no work to do, exit without making any changes.
-########################################################
+
+=item C<roll_logfile>
+
+Open the correct logfile for the current time.
+if there is no work to do, exit without making any changes.
+
+=cut
+
 sub roll_logfile{
 	my ($self_obj)=@_;
 	my $self=$known_objects{$self_obj};  ## look up the hashref
@@ -170,11 +186,13 @@ sub trap_stdxxx{
 	# &Filter::Handle::Filter(\*STDERR, \&redir_stdout);
 }
 
+=item C<midnite_time>
 
-########################################################
-## Calculate the time for midnight tonight, when we'll need
-##   to roll the log (again)
-########################################################
+Calculate the time for midnight tonight, when we'll need
+to roll the log (again)
+
+=cut
+
 sub midnite_time{
 	my ($ref_time)=@_;
 	
@@ -201,3 +219,29 @@ sub DESTROY{
 	
 }
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
