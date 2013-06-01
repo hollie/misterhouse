@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl -w
+#!/usr/bin/perl -w
 # ----------------------------------------------------------------------------
 # tasks.pl
 # Copyright (c) 2001 Jason M. Hinkle. All rights reserved. This script is
