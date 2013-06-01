@@ -12,35 +12,35 @@ In items.mht:
 INSTEON_IOLINC, 12.34.56:01, io_device, io_group
 INSTEON_IOLINC, 12.34.56:02, io_device_sensor, io_group
 
-Where io_device is the relay and io_device_sensor is the sensor
-
-BUGS
-
+Where io_device is the relay and io_device_sensor is the sensor.
 
 EXAMPLE USAGE
 
-Creating the object:
-   use Insteon::IOLinc;
-   $io_device = new Insteon::IOLinc('12.34.56:01',$myPLM);
-   $io_device_sensor = new Insteon::IOLinc('12.34.56:02',$myPLM);
-
 Turning on a relay:
+
    $io_device->set('on');
 
 Turning off a relay:
+
    $io_device->set('off');
 
 Requesting sensor status: 
-(shouldn't be needed as the sensor is linked to the PLM, and will update the PLM
-on state changes)
+
    $io_device_sensor->request_status();
-   
+
+If the sensor is defined in the user code or mht file as described above, and
+linked to MH using the sync_links voice command, the sensor will automatically 
+send state changes to MisterHouse whenever its state changes.  In that instance
+the request_status command should not be needed.
+
 Print the Current Device Settings to the log:
    $io_device->get_operating_flag();
 
 NOTES
 
-This module works with the Insteon IOLinc device from Smarthome.
+This module works with the Insteon IOLinc device from Smarthome.  The EZIO device
+uses a different set of commands and this code will offer only limited, if any
+support at all, for EZIO devices.
 
 The state that the relay is in when the device is linked to the PLM matters if
 you are using relay mode Momentary_A.  
@@ -207,8 +207,8 @@ sub _process_message {
 
 =item C<set_momentary_time(time)>
 
-$time in (10th of seconds) is the length of time the relay will close when 
-Momentary is selected.
+$time in tenths of seconds (deciseconds) is the length of time the relay will close when 
+a Momentary mode is is selected in C<set_relay_mode>.
 
 Default 20
 
@@ -229,10 +229,10 @@ sub set_momentary_time
 	}
 	else {
 		::print_log("[Insteon::IOLinc] WARN Invalid Momentary Time of $momentary_time " .
-			"microseconds for " . $self->get_object_name);
+			"tenths of a second for " . $self->get_object_name);
 	}
 
-	#D2 = 0x06, D3 = microseconds of time from 0x02-0xFF.  0x00 = Latching?
+	#D2 = 0x06, D3 = deciseconds of time from 0x02-0xFF.  0x00 = Latching?
 	my $extra = '000006';
 	$extra .= sprintf("%02x", $momentary_time);
 	$extra .= '0000000000000000000000';
@@ -244,7 +244,7 @@ sub set_momentary_time
 
 =item C<get_momentary_time()>
 
-Prints the device's momentary time to the log.
+Prints the device's current momentary time setting to the log.
 
 =cut
 
@@ -261,7 +261,8 @@ sub get_momentary_time
 
 =item C<set_relay_linked([0|1])>
 
-If set to 1 sets Relay On when Sensor is On and Off when sensor if Off.
+If set to 1 whenever the Sensor is On the Relay will be on and whenever the 
+Sensor is Off the Relay will be Off.
 
 Default 0
 
@@ -282,8 +283,8 @@ sub set_relay_linked
 
 =item C<set_trigger_reverse([0|1])>
 
-If set to 1, it reverses the sensor value so that a closed sensor switch sends an OFF
-and open sensor switch sends an ON. 
+If set to 1, it reverses the sensor value so that a closed sensor switch reports its 
+state as OFF and an open sensor switch reports its state as ON. 
 
 Default 0
 
@@ -306,6 +307,15 @@ sub set_trigger_reverse
 
 Latching: The relay will remain open or closed until another command is received. 
 Momentary time is ignored.
+
+The following modes act differently depending on how the relay is controlled.  
+For the following modes, direct ON commands, such as those called from the devices
+voice command or those sent using the set function, will close the relay but only 
+for the amount of time specified by the momentary time setting.  Direct OFF 
+commands can be used to shorten the momentary time, but are otherwise ignored.
+
+However, commands issued from a PLM Scene or from another Insteon Device, through
+a defined link, will follow the restrictions described below.
 
 Momentary_A: The relay will close momentarily. If it is Linked while On it will 
 respond to On. If it is Linked while Off it will respond to Off.
@@ -330,14 +340,14 @@ sub set_relay_mode
 		$parent->set_operating_flag('momentary_c_off');
 	}
 	elsif (lc($relay_mode) eq 'momentary_a'){
-		$parent->set_operating_flag('momentary_a_on');
 		$parent->set_operating_flag('momentary_b_off');
 		$parent->set_operating_flag('momentary_c_off');
+		$parent->set_operating_flag('momentary_a_on');
 	}
 	elsif (lc($relay_mode) eq 'momentary_b'){
 		$parent->set_operating_flag('momentary_a_off');
-		$parent->set_operating_flag('momentary_b_on');
 		$parent->set_operating_flag('momentary_c_off');
+		$parent->set_operating_flag('momentary_b_on');
 	}
 	elsif (lc($relay_mode) eq 'momentary_c'){
 		$parent->set_operating_flag('momentary_a_off');
