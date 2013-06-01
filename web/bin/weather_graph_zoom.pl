@@ -1,4 +1,4 @@
-#!/local/bin/perl
+#!/usr/bin/perl
 #
 # $Date$
 # $Revision$
