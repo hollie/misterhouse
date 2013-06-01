@@ -1,86 +1,61 @@
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 B<PlayList>
 
-File:
-	PlayList.pm
+=head2 SYNOPSIS
 
-Description:
-   Object containing a list of music files.  Currently supports:
-      1) MP3 files
-      2) M3U files contaning lists of MP3 files
-      3) Directories containing MP3 files
+Note that you can have as many AlsaPlayer objects as you want but each
+one must have a unique alsa device name.
 
-   Currently used by AlsaPlayer.pm on Linux.  Changes to the playlist
-   are passed along to any AlsaPlayers that have the playlist currently
-   attached.
+  use AlsaPlayer;
+  my $mp3_player = new AlsaPlayer('alsa_device_name');
 
-Author:
-	Kirk Bauer
-	kirk@kaybee.org
+  use PlayList;
+  my $kirk_mp3s = new PlayList;
 
-   You can get the most current version of this file and other files related
-   whole-house music/speech setup here:
-     http://www.linux.kaybee.org:81/tabs/whole_house_audio/
+  if ($Startup) {
+     # Starts the Alsaplayer process
+     $mp3_player->start();
 
-License:
-	This free software is licensed under the terms of the GNU public license.
+     # Populate the playlist
+     $kirk_mp3s->add_files('/mnt/mp3s/KirkAll.m3u');
+     $kirk_mp3s->add_files('/mnt/mp3s/blah/blah.mp3');
+     $kirk_mp3s->add_files('/mnt/mp3s/favorites/');
 
-Example Usage:
-   Note that you can have as many AlsaPlayer objects as you want but each
-   one must have a unique alsa device name.
+     # Start playing the MP3s
+     $mp3_player->add_playlist($kirk_mp3s);
+     $mp3_player->unpause();
+  }
 
-      use AlsaPlayer;
-      my $mp3_player = new AlsaPlayer('alsa_device_name');
+If you want randomized playlist, you can call the randomize() function on
+the PlayList object before adding it to the player but after populating
+it with MP3s.  Instead (or in addition to), you can call shuffle(1) on
+AlsaPlayer before adding any playlists.  This requires you to have patched
+your AlsaPlayer as described just above the shuffle function in this module.
 
-      use PlayList;
-      my $kirk_mp3s = new PlayList;
+=head2 DESCRIPTION
 
-      if ($Startup) {
-         # Starts the Alsaplayer process
-         $mp3_player->start();
+Object containing a list of music files.  Currently supports:
 
-         # Populate the playlist
-         $kirk_mp3s->add_files('/mnt/mp3s/KirkAll.m3u');
-         $kirk_mp3s->add_files('/mnt/mp3s/blah/blah.mp3');
-         $kirk_mp3s->add_files('/mnt/mp3s/favorites/');
+  1) MP3 files
+  2) M3U files contaning lists of MP3 files
+  3) Directories containing MP3 files
 
-         # Start playing the MP3s
-         $mp3_player->add_playlist($kirk_mp3s);
-         $mp3_player->unpause();
-      }
+Currently used by AlsaPlayer.pm on Linux.  Changes to the playlist
+are passed along to any AlsaPlayers that have the playlist currently
+attached.
 
-   If you want randomized playlist, you can call the randomize() function on
-   the PlayList object before adding it to the player but after populating
-   it with MP3s.  Instead (or in addition to), you can call shuffle(1) on
-   AlsaPlayer before adding any playlists.  This requires you to have patched
-   your AlsaPlayer as described just above the shuffle function in this module.
+You can get the most current version of this file and other files related
+whole-house music/speech setup here:
 
-Usage:
-   add_files(list): Adds one or more .mp3, .m3u and/or directories to this
-      playlist object (and any players with this object attached).
-   add_mp3_files(list): Adds one or more .mp3 files and/or directories to this
-      playlist object (and any players with this object attached).
-   add_m3u_files(list): Adds the contents of any m3u files that are specified
-      or that are found in a directory (recursively) that was specified.
-   remove_files(list): Removes one or more .mp3, .m3u and/or directories from
-      this playlist object (and any players with this object attached).
-   clear(): Empties this playlist.
-   randomize(): Call only after you have added your MP3s... randomizes the
-      order of all songs currently in the playlist.
-   randomize_by_dir(): Call only after you have added your MP3s... randomizes the
-      order of songs by directory -- i.e. first it determines all of the 
-      directories, and then randomly picks one, and then another, etc.  Note
-      that the MP3 list is sorted in this process, so I'd recomment beginning
-      your MP3 names with the track number on each CD -- i.e. 01-xx.mp3.  I use
-      this to basically sort by directory.
+  http://www.linux.kaybee.org:81/tabs/whole_house_audio/
 
-Special Thanks to: 
-	Bruce Winter - Misterhouse
+=head2 INHERITS
 
-See Also:
-   AlsaPlayer.pm
+B<NONE>
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head2 METHODS
+
+=over
+
 =cut
 
 use strict;
@@ -197,20 +172,48 @@ sub _add_files {
    }
 }
 
+=item C<add_files(list)>
+
+Adds one or more .mp3, .m3u and/or directories to this
+playlist object (and any players with this object attached).
+
+=cut
+
 sub add_files {
    my ($self, @files) = @_;
    $self->_add_files('', @files);
 }
+
+=item C<add_mp3_files(list)>
+
+Adds one or more .mp3 files and/or directories to this
+playlist object (and any players with this object attached).
+
+=cut
 
 sub add_mp3_files {
    my ($self, @files) = @_;
    $self->_add_files('mp3', @files);
 }
 
+=item C<add_m3u_files(list)>
+
+Adds the contents of any m3u files that are specified
+or that are found in a directory (recursively) that was specified.
+
+=cut
+
 sub add_m3u_files {
    my ($self, @files) = @_;
    $self->_add_files('m3u', @files);
 }
+
+=item C<remove_files(list)>
+
+Removes one or more .mp3, .m3u and/or directories from
+this playlist object (and any players with this object attached).
+
+=cut
 
 sub remove_files {
    my ($self, @files) = @_;
@@ -229,10 +232,27 @@ sub remove_files {
    }
 }
 
+=item C<clear()>
+
+Empties this playlist.
+
+=cut
+
 sub clear {
    my ($self) = @_;
    $self->_do_remove_files(@{$$self{'list'}});
 }
+
+=item C<randomize_by_dir()>
+
+Call only after you have added your MP3s... randomizes the
+order of songs by directory -- i.e. first it determines all of the
+directories, and then randomly picks one, and then another, etc.  Note
+that the MP3 list is sorted in this process, so I'd recomment beginning
+your MP3 names with the track number on each CD -- i.e. 01-xx.mp3.  I use
+this to basically sort by directory.
+
+=cut
 
 sub randomize_by_dir {
    my ($self) = @_;
@@ -262,6 +282,13 @@ sub randomize_by_dir {
    }
 }
 
+=item C<randomize()>
+
+Call only after you have added your MP3s... randomizes the
+order of all songs currently in the playlist.
+
+=cut
+
 sub randomize {
    my ($self) = @_;
    my @orig_list = @{$$self{'list'}};
@@ -274,3 +301,31 @@ sub randomize {
 }
 
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Kirk Bauer  kirk@kaybee.org
+
+Special Thanks to:  Bruce Winter - Misterhouse
+
+=head2 SEE ALSO
+
+AlsaPlayer.pm
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

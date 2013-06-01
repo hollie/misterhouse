@@ -1,58 +1,56 @@
+=head1 B<OneWire_xAP>
 
-# Package: OneWire_xAP
-# $Date$
-# $Revision$
+=head2 SYNOPSIS
 
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+Documentation on installing/configuring oxc is found in the oxc distribution.
+oxc now uses digitemp (www.digitemp.com) or one-wire file system
+(owfs; see - www.owfs.org).
 
-Description:
+The xAP message convention assumes that the one-wire xAP connector, oxc,
+is addressed via the target: liming.oxc.house
 
-	This package provides an interface to one-wire devices via the xAP
-	(www.xapautomation.org) "connector": oxc (www.limings.net/xap/oxc)
+Each "device" is subaddressed using the convention: :<type>.<name> where
+<type> can be temp, humid, etc and <name> is a user-definable name
+specfified in the oxc config.
 
-Author:
-	Gregg Liming
-	gregg@limings.net
+Declaration:
 
-License:
-	This free software is licensed under the terms of the GNU public license
+If declaring via .mht:
 
-Usage:
-	Documentation on installing/configuring oxc is found in the oxc distribution.
-	oxc now uses digitemp (www.digitemp.com) or one-wire file system 
-        (owfs; see - www.owfs.org).
+  OWX,  liming.oxc.house,   house_owx
 
-        The xAP message convention assumes that the one-wire xAP connector, oxc,
-        is addressed via the target: liming.oxc.house 
+Where 'liming.oxc.house' is the xAP source address and 'house_owx' is the object
 
-        Each "device" is subaddressed using the convention: :<type>.<name> where
-        <type> can be temp, humid, etc and <name> is a user-definable name
-        specfified in the oxc config.
+  # declare the oxc "conduit" object
+  $oxc = new OneWire_xAP;
 
-     Declaration:
+  # create one or more AnalogSensor_Items that will be attached to the OneWire_xAP
+  # See additional comments in AnalogSensor_Items for .mht based declaration
 
-        If declaring via .mht:
-        OWX,  liming.oxc.house,   house_owx
+  $indoor_temp = new AnalogSensor_Item('indoor-t', 'temp');
+  # 'indoor-t' is the device name, 'temp' is the sensor type
+  $indoor_humid = new AnalogSensor_Item('indoor-h', 'humid');
 
-        Where 'liming.oxc.house' is the xAP source address and 'house_owx' is the object
+  $ocx->add($indoor_temp, $indoor_humid);
 
-	# declare the oxc "conduit" object
-        $oxc = new OneWire_xAP;
+Information on using AnalogSensor_Items is contained within its
+corresponding package documentation
 
-	# create one or more AnalogSensor_Items that will be attached to the OneWire_xAP
-        # See additional comments in AnalogSensor_Items for .mht based declaration
+=head2 DESCRIPTION
 
-	$indoor_temp = new AnalogSensor_Item('indoor-t', 'temp');
-	# 'indoor-t' is the device name, 'temp' is the sensor type
-	$indoor_humid = new AnalogSensor_Item('indoor-h', 'humid');
+This package provides an interface to one-wire devices via the xAP
+(www.xapautomation.org) "connector": oxc (www.limings.net/xap/oxc)
 
-	$ocx->add($indoor_temp, $indoor_humid);
+=head2 INHERITS
 
-	Information on using AnalogSensor_Items is contained within its
-	corresponding package documentation
+B<Base_Item>
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
 =cut
 
 use strict;
@@ -158,3 +156,29 @@ sub set {
 }
 
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Gregg Liming  gregg@limings.net
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

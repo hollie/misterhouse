@@ -1,65 +1,68 @@
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 B<Motion_Item>
 
-File:
-	Motion_Item.pm
+=head2 SYNOPSIS
 
-Description:
-   An abstract object that represents a motion detector that you can add to a
-   Light_Item.  You typically associate a real motion detector (i.e. a hard-
-   wired one or an X10 Hawkeye) to this object.  It will also indicate the
-   state of the motion detector on floorplan.pl if given proper coordinates.
+Example initialization:
+These are to be placed in a *.mht file in your user code directory.
 
-   When attached to a Light_Item, it will cause the light to be turned on
-   whenever motion is detected.  Typically you attach several objects to
-   the same Light_Item.  See Light_Item.pm for various ways to control when
-   the light turns on and for how long.
+First, define your actual motion detector:
 
-Author:
-	Jason Sharpee
-	jason@sharpee.com
+  X10MS, B7, x10_motion_master_bedroom, Sensors, MS13
 
-License:
-	This free software is licensed under the terms of the GNU public license.
+Then define the Motion_Item and attach to the real object:
 
-Usage:
-	Example initialization:
-      These are to be placed in a *.mht file in your user code directory.
+  MOTION, x10_motion_master_bedroom, motion_master_bedroom
 
-      First, define your actual motion detector:
-         X10MS, B7, x10_motion_master_bedroom, Sensors, MS13
+Using from your user code:
 
-      Then define the Motion_Item and attach to the real object:
-         MOTION, x10_motion_master_bedroom, motion_master_bedroom
+  # Attaching to a Light_Item (automatically turns light on)
+  $auto_master_bedroom_light->add($motion_master_bedroom);
 
-   Using from your user code:
-      # Attaching to a Light_Item (automatically turns light on)
-      $auto_master_bedroom_light->add($motion_master_bedroom);
+Input states:
 
-	Input states:
-      on/motion: motion detected
-      off/still: motion no longer detected
+  on/motion: motion detected
+  off/still: motion no longer detected
 
-	Output states:
-      motion: motion detected
-      still: motion timer expired
-      check: inactivity timer has expired -- batteries may be dead?
+Output states:
 
-   Optional Inactivity Alarm:
-      If you want to be alerted when motion hasn't been detected for
-      a period of time (i.e. the batteries in the transmitter may be
-      dead) then do this (time is in hours):
-         $motion_master_bedroom->set_inactivity_alarm(
-            48,                                                        # hours
-            "speak('master bed motion detector battery may be dead');" # command
-         );
+  motion: motion detected
+  still: motion timer expired
+  check: inactivity timer has expired -- batteries may be dead?
 
-      The default is to log a message in the print log after 24 hours.
+Optional Inactivity Alarm:
 
-Special Thanks to:
-	Bruce Winter - MH
+If you want to be alerted when motion hasn't been detected for
+a period of time (i.e. the batteries in the transmitter may be
+dead) then do this (time is in hours):
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  $motion_master_bedroom->set_inactivity_alarm(
+     48,                                                        # hours
+     "speak('master bed motion detector battery may be dead');" # command
+  );
+
+The default is to log a message in the print log after 24 hours.
+
+
+=head2 DESCRIPTION
+
+An abstract object that represents a motion detector that you can add to a
+Light_Item.  You typically associate a real motion detector (i.e. a hard-
+wired one or an X10 Hawkeye) to this object.  It will also indicate the
+state of the motion detector on floorplan.pl if given proper coordinates.
+
+When attached to a Light_Item, it will cause the light to be turned on
+whenever motion is detected.  Typically you attach several objects to
+the same Light_Item.  See Light_Item.pm for various ways to control when
+the light turns on and for how long.
+
+=head2 INHERITS
+
+B<Base_Item>
+
+=head2 METHODS
+
+=over
+
 =cut
 
 use strict;
@@ -133,8 +136,12 @@ sub delay_off()
 	return $$self{m_delay_off};
 }
 
-# If an inactivity alarm is set, the specified action is executed
-# if no notification of motion has occured for X hours
+=item C<set_inactivity_alarm($$$)>
+
+If an inactivity alarm is set, the specified action is executed.  if no notification of motion has occured for X hours
+
+=cut
+
 sub set_inactivity_alarm($$$) {
    my ($self, $time, $action) = @_;
    $$self{'inactivity_action'} = $action;
@@ -143,3 +150,31 @@ sub set_inactivity_alarm($$$) {
 }
 
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Jason Sharpee  jason@sharpee.com
+
+Special Thanks to: Bruce Winter - MH
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

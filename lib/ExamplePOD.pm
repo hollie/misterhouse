@@ -1,60 +1,50 @@
-=head1 B<StargateJTelephone>
+=head1 B<---PackageName--->
 
 =head2 SYNOPSIS
 
-NONE
+---Example Code and Usage---
 
 =head2 DESCRIPTION
 
-NONE
+---Description of Package---
 
 =head2 INHERITS
 
-B<StargateTelephone>
+B<---Inherited Items--->
 
 =head2 METHODS
 
 =over
 
-=item B<UnDoc>
+=cut
+
+#CODE HERE
+#CODE HERE
+#CODE HERE
+
+=item C<---Method Name--->
+
+---Method Description---
 
 =cut
 
-use strict;
-
-package StargateJTelephone;
-
-@StargateJTelephone::ISA = ('StargateTelephone');
-
-sub patch()
-{
-	my ($self,$p_state) = @_;
-	if (lc($p_state) eq 'on') {
-		&::set_audio('ic','off');
-		&::set_audio('sg','on');
-	} else {
-		&::set_audio('ic','on');
-		&::set_audio('sg','off');
-	}
-	$self->SUPER::patch($p_state);
-}
-
-1;
-
+#CODE HERE
+#CODE HERE
+#CODE HERE
 
 =back
 
 =head2 INI PARAMETERS
 
-NONE
+---mh.ini or mh.private.ini parameters---
 
 =head2 AUTHOR
 
-UNK
+---Package Author Information---
 
 =head2 SEE ALSO
 
-NONE
+---Other reference files or sources---
 
 =head2 LICENSE
 
