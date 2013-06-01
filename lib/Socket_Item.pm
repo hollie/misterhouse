@@ -1,15 +1,6 @@
-# $Date$
-# $Revision$
+=head1 B<Socket_Item>
 
-use strict;
-
-package Socket_Item;
-
-=head1 NAME
-
-B<Socket_Item> - You can use the Socket_Item object to read and/or write to TCP/IP socket ports.
-
-=head1 SYNOPSIS
+=head2 SYNOPSIS
 
   # An example of a server socket
   # Add this mh.ini parm:  server_speak_port = 8090
@@ -33,19 +24,23 @@ B<Socket_Item> - You can use the Socket_Item object to read and/or write to TCP/
   # Example of sending a message to all clients
   set $telnet_server "Hi to all clients", 'all';
 
-More examples are in mh/code/bruce/telnet.pl, mh/code/examples/socket_test*.pl, mh/code/bruce/monitor_shoutcast.pl, bruce/wxserver_server.pl, and bruce/monitor_router.pl
+=head2 DESCRIPTION
 
+Read/Write to TCP/IP socket ports.
 
-=head1 DESCRIPTION
+=head2 INHERITS
 
-=head1 INHERITS
+B<Generic_Item>
 
-=head1 METHODS
+=head2 METHODS
 
 =over
 
 =cut
 
+use strict;
+
+package Socket_Item;
 
 @Socket_Item::ISA = ('Generic_Item');
 
@@ -487,44 +482,6 @@ sub set_expect_check {
     }
 }
 
-=back
-
-=head1 INHERITED METHODS
-
-=over
-
-=item C<state>
-
-Returns the last state that was received or sent
-
-=item C<state_now>
-
-Returns the state that was received or sent in the current pass.
-
-=back
-
-=head1 INI PARAMETERS
-
-Server socket ports are specified with mh.ini parms (see 'server options' in mh.ini)
-
-=head1 AUTHOR
-
-UNK
-
-=head1 SEE ALSO
-
-NONE
-
-=head1 LICENSE
-
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-
-=cut
-
 1;
 
 #
@@ -627,3 +584,42 @@ You should have received a copy of the GNU General Public License along with thi
 # - created
 #
 #
+
+=back
+
+=head1 INHERITED METHODS
+
+=over
+
+=item C<state>
+
+Returns the last state that was received or sent
+
+=item C<state_now>
+
+Returns the state that was received or sent in the current pass.
+
+=back
+
+=head2 INI PARAMETERS
+
+Server socket ports are specified with mh.ini parms (see 'server options' in mh.ini)
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+More examples are in mh/code/bruce/telnet.pl, mh/code/examples/socket_test*.pl, mh/code/bruce/monitor_shoutcast.pl, bruce/wxserver_server.pl, and bruce/monitor_router.pl
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

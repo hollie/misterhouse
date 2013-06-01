@@ -1,23 +1,23 @@
-=begin comment
-# $Date: 2008-03-14 22:43:50 -0400 (Fri, 14 Mar 2008) $
-# $Revision: 1394 $
+=head1 B<TED>
 
-From David Satterfield <david_misterhouse@yahoo.com>
+=head2 SYNOPSIS
 
-# Serial/USB port that the TED is connected to. Put this in your mh.private.ini.
-TED_serial_port = /dev/ttyUSB0
-
-If your ted firmware version is > 8.01U, you need this parm in your mh.private.ini as well. New versions of firmware won't send data unless prompted.
-TED_ask_for_data = 1
-
-Then, add this to your user code (I put it in ted.pl)
 use TED;
 $ted_interface = new TED;
 
-That's it! Your %Electric hash should start getting filled in.
+=head2 DESCRIPTION
 
-Known Issues:
+NONE
 
+=head2 INHERITS
+
+B<Serial_Item>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
 
 =cut
 
@@ -348,4 +348,37 @@ sub print_pkt {
 # - Added support for firmare v9.01U (use _ask_for_data parm)
 #   
 #
+
+
+
+=back
+
+=head2 INI PARAMETERS
+
+Serial/USB port that the TED is connected to.
+
+  TED_serial_port = /dev/ttyUSB0
+
+If your ted firmware version is > 8.01U, you need this parm in your mh.private.ini as well. New versions of firmware won't send data unless prompted.
+
+  TED_ask_for_data = 1
+
+
+=head2 AUTHOR
+
+David Satterfield <david_misterhouse@yahoo.com>
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 

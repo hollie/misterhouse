@@ -609,7 +609,7 @@ sub add_item
    my ($self,$p_object) = @_;
 
    push @{$$self{objects}}, $p_object;
-   if ($p_object->isa('Insteon::BaseInterface') and !($self->_active_interface)) {
+   if ($p_object->isa('Insteon::BaseInterface')) {
       $self->_active_interface($p_object);
    }
    return $p_object;
