@@ -569,23 +569,6 @@ sub init {
 	$$self{message_types} = \%message_types;
 	#Set saved state unique to i2 devices
 	$self->restore_data('humid', 'cooling', 'heating', 'high_humid', 'low_humid');
-	
-	# Create the broadcast dummy item
-	# This may not belong here.  Maybe this should go into read table A?
-	# Otherwise, users cannot define insteon scenes containing this device.
-	# While rare a thermostat may be set to provide broadcast updates to
-	# another device
-	my $dev_id = $self->device_id();
-	$dev_id =~ /(\w\w)(\w\w)(\w\w)/;
-	$dev_id = "$1.$2.$3";
-	$$self{bcast_item} = new Insteon::Thermo_i2_bcast("$dev_id".':EF');
-
-	# Add bcast object to list of Insteon objects
-	Insteon::add($$self{bcast_item});
-
-	# Register bcast object with MH
-	&main::register_object_by_name('$' . $self->get_object_name ."{bcast_item}",$$self{bcast_item});
-	$$self{bcast_item}->{object_name} = '$' . $self->get_object_name ."{bcast_item}";
 }
 
 sub set {
@@ -617,7 +600,9 @@ sub set {
 
 sub sync_links{
 	my ($self, $audit_mode, $callback, $failure_callback) = @_;
-	if (!$audit_mode){
+	my $dev_id = $self->device_id();
+	my $bcast_obj = Insteon::get_object($self->device_id(), 'EF');
+	if (!$audit_mode && ref $bcast_obj){
 		#Make sure thermostat is set to broadcast changes
 		::print_log("[Insteon::Thermo_i2] (sync_links) Enabling thermostat broadcast setting.") unless $audit_mode;
 		my $extra = "000008000000000000000000000000";
@@ -1017,22 +1002,6 @@ sub get_humid_setpoints{
 	my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
 	$$self{_ext_set_get_action} = 'get';
 	$self->_send_cmd($message);
-}
-
-package Insteon::Thermo_i2_bcast;
-use strict;
-
-@Insteon::Thermo_i2_bcast::ISA = ('Insteon::BaseDevice', 'Insteon::DeviceController');
-
-###This is basically a dummy object, it is designed to allow a link from group
-###EF to be added as part of sync links.  Group EF is the broadcast group used
-###by the 2441th thermostat to announce changes.
-
-sub new {
-   my ($class, $p_deviceid) = @_;
-   my $self = new Insteon::BaseDevice($p_deviceid);
-   bless $self, $class;
-   return $self;
 }
 
 package Insteon::Thermo_mode;
