@@ -139,7 +139,7 @@ sub _is_info_request
 			$child_obj->{object_name} . " of: $child_state "
 			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
 		$ack_setby = $$child_obj{m_status_request_pending} if ref $$child_obj{m_status_request_pending};
-		$child_obj->SUPER::set($child_state, $ack_setby);
+		$child_obj->Generic_Item::set($child_state, $ack_setby);
 		delete($$parent{child_status_request_pending});
 	} 
 	elsif ($cmd eq 'get_operating_flags') {
@@ -168,7 +168,14 @@ sub _is_info_request
 sub _process_message {
 	my ($self,$p_setby,%msg) = @_;
 	my $clear_message = 0;
-	if ($msg{command} eq "extended_set_get" && $msg{is_ack}){
+	my $pending_cmd = ($$self{_prior_msg}) ? $$self{_prior_msg}->command : $msg{command};
+	my $ack_setby = (ref $$self{m_status_request_pending}) ? $$self{m_status_request_pending} : $p_setby;
+	if ($msg{is_ack} && $self->_is_info_request($pending_cmd,$ack_setby,%msg)) {
+		$clear_message = 1;
+		$$self{m_status_request_pending} = 0;
+		$self->_process_command_stack(%msg);
+	}	
+	elsif ($msg{command} eq "extended_set_get" && $msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
 		#If this was a get request don't clear until data packet received
 		main::print_log("[Insteon::IOLinc] Extended Set/Get ACK Received for " . $self->get_object_name) if $main::Debug{insteon};
