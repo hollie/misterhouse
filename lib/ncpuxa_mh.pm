@@ -1,30 +1,36 @@
+=head1 B<ncpuxa_mh>
 
-# This module is an interface for Misterhouse to access the CPU-XA, 
-# Ocelot, and Leopard controlers from Applied Digital Inc: 
-# http://www.appdig.com/adicon_new/index.htm
+=head2 SYNOPSIS
 
-# By David Norwood, dnorwood2@yahoo.com
-#               for Misterhouse, http://www.misterhouse.com
-#               by Bruce Winter and many contributors
+NONE
 
-# Requires cpuxad, part of the XALIB package by Mark A. Day available 
-# here: http://mywebpages.comcast.net/ncherry/common/cpuxad/xalib-0.48.tgz
+=head2 DESCRIPTION
 
-# The cpuxad daemon was written to run on Unix/Linux, but Neil Cherry
-# has compiled the xalib package on Windows using the Cygwin tools and 
-# made it available here: 
-# http://mywebpages.comcast.net/ncherry/common/cpuxad/xalib-0.48_bin.tgz
+This module is an interface for Misterhouse to access the CPU-XA,
+Ocelot, and Leopard controlers from Applied Digital Inc:
+http://www.appdig.com/adicon_new/index.htm
 
-# To use this interface, add the following line to your mh.ini file:
+Requires cpuxad, part of the XALIB package by Mark A. Day available
+here: http://mywebpages.comcast.net/ncherry/common/cpuxad/xalib-0.48.tgz
 
-# ncpuxa_port=localhost:3000
+The cpuxad daemon was written to run on Unix/Linux, but Neil Cherry
+has compiled the xalib package on Windows using the Cygwin tools and
+made it available here:
+http://mywebpages.comcast.net/ncherry/common/cpuxad/xalib-0.48_bin.tgz
 
-# Where localhost:3000 is the host and network port where cpuxad is
-# running.
+=head2 INHERITS
 
+B<NONE>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
+=cut
 
 package ncpuxa_mh;
-
 
 use ncpuxa;
 use ControlX10::CM11;		# required for dim_level_convert 
@@ -178,3 +184,34 @@ sub read {
 
 
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+  ncpuxa_port=localhost:3000
+
+Where localhost:3000 is the host and network port where cpuxad is
+running.
+
+=head2 AUTHOR
+
+By David Norwood, dnorwood2@yahoo.com
+for Misterhouse, http://www.misterhouse.com
+by Bruce Winter and many contributors
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

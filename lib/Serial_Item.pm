@@ -1,15 +1,6 @@
-# $Date$
-# $Revision$
+=head1 B<Serial_Item>
 
-use strict;
-
-package Serial_Item;
-
-=head1 NAME
-
-B<Serial_Item> is used whenever you want read or write serial port data.
-
-=head1 SYNOPSIS
+=head2 SYNOPSIS
 
   $garage_movement = new Serial_Item('XI2');
     speak "Someone is in the garage" if state_now $garage_movement;
@@ -28,14 +19,24 @@ B<Serial_Item> is used whenever you want read or write serial port data.
   $serial_tom10port = new  Serial_Item(undef, undef, 'serial_tom10');
   $serial_tom10port -> set_casesensitive;     # TOM10 needs lowercase commands
 
-See mh/code/examples/serial_port_examples.pl for more Serial_Item examples.
 
-=head1 INHERITS
+=head2 DESCRIPTION
+
+Used to read or write serial port data
+
+=head2 INHERITS
 
 B<Generic_Item>
 
+=head2 METHODS
+
+=over
 
 =cut
+
+use strict;
+
+package Serial_Item;
 
 use X10_Interface;
 
@@ -44,10 +45,6 @@ our $mainHash=\%::Serial_Ports;
 @Serial_Item::ISA = ('X10_Interface');
 our @supported_interfaces=qw!cm11 BX24 Homevision HomeBase Stargate HouseLinc
 	Marrick cm17 Lynx10PLC weeder wish ti103 ncpuxa!;
-
-=head1 METHODS
-
-=over
 
 =item C<new('data_stream', 'state_name', 'serial_port')>
 
@@ -436,19 +433,19 @@ Adds additional information.  This will show up as a popup window on the web int
 
 =back
 
-=head1 INI PARAMETERS
+=head2 INI PARAMETERS
 
 NONE
 
-=head1 AUTHOR
+=head2 AUTHOR
 
 UNK
 
-=head1 SEE ALSO
+=head2 SEE ALSO
 
-NONE
+See mh/code/examples/serial_port_examples.pl for more Serial_Item examples.
 
-=head1 LICENSE
+=head2 LICENSE
 
 This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
 

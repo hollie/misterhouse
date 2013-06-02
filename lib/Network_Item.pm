@@ -1,10 +1,6 @@
-package Network_Item;
+=head1 B<Network_Item>
 
-=head1 NAME
-
-B<Network_Item> - Uses ping to detect when specified ip address is up.
-
-=head1 SYNOPSIS
+=head2 SYNOPSIS
 
   use Network_Item;
 
@@ -19,21 +15,23 @@ Example mht entry:
   #NETWORK        IP_ADDRESS      NAME            Grouplist       Interval        MAC_ADDRESS
   NETWORK,        192.168.4.25,   HTPC_Mini,      HTPC|HomeGym,   120,    00:1C:C0:AB:CD:AE
 
-=head1 DESCRIPTION
+=head2 DESCRIPTION
 
 This object simply pings the specified address and sets its state according to status
 
 2011-07-30 MKB Enhanced with WakeOnLan functionality
 
-=head1 INHERITS
+=head2 INHERITS
 
 B<Generic_Item>
 
-=head1 METHODS
+=head2 METHODS
 
 =over
 
 =cut
+
+package Network_Item;
 
 @Network_Item::ISA = ('Generic_Item');
 
@@ -163,19 +161,19 @@ sub setstate_start
 
 =back
 
-=head1 INI PARAMETERS
+=head2 INI PARAMETERS
 
 NONE
 
-=head1 AUTHOR
+=head2 AUTHOR
 
 UNK
 
-=head1 SEE ALSO
+=head2 SEE ALSO
 
 NONE
 
-=head1 LICENSE
+=head2 LICENSE
 
 This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
 

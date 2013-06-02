@@ -1,3 +1,29 @@
+=head1 B<SunTime_mh>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+Results can be checked with: http://aa.usno.navy.mil/AA/data/docs/RS_OneYear.html
+
+09/03/00 :: winter Make ParseDate optional.  It is overkill and I could not get it to
+compile in perl2exe.  It gave runaway comment errors :(
+10/12/00 :: winter Change time_zone check to defined, to allow for time_zone 0
+06/02/01 :: winter Moved from mh/site/lib/Astro and renamed from SunTime.pm
+to avoid picking up old non-mh versions.
+
+=head2 INHERITS
+
+B<NONE>
+
+=head2 METHODS
+
+=over
+
+=cut
+
 #package Astro::SunTime;
 package SunTime_mh;
 
@@ -6,25 +32,22 @@ $VERSION = 0.01;
 @ISA = qw(Exporter);
 @EXPORT = qw(sun_time);
 
-#  Results can be checked with: http://aa.usno.navy.mil/AA/data/docs/RS_OneYear.html
-
-# 09/03/00 :: winter Make ParseDate optional.  It is overkill and I could not get it to
-#                    compile in perl2exe.  It gave runaway comment errors :(
-# 10/12/00 :: winter Change time_zone check to defined, to allow for time_zone 0
-# 06/02/01 :: winter Moved from mh/site/lib/Astro and renamed from SunTime.pm
-#                    to avoid picking up old non-mh versions.
-
 use POSIX;
 
 use strict;
 
-# sun_time takes:
-#	type => 'rise' | 'set'
-#	latitude
-#	longitude
-#	time_zone => hours from GMT
-#	date => date parsable by Time::ParseDate::parsedate()
-#	time => to feed to localtime
+=item C<sun_time>
+
+sun_time takes:
+
+  type => 'rise' | 'set'
+  latitude
+  longitude
+  time_zone => hours from GMT
+  date => date parsable by Time::ParseDate::parsedate()
+  time => to feed to localtime
+
+=cut
 
 sub sun_time
 {
@@ -157,4 +180,27 @@ sub adjust_dst {
 
 1;
 
-__END__
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

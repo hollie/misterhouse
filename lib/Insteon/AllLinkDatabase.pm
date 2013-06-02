@@ -2400,7 +2400,7 @@ sub delete_orphan_links
 					# a reference in the PLM's linktable does not match a scene member target
 					if ($group eq '01') {
 						#ignore manual controller link from PLM group 01 to device required for I2CS devices
-						main::print_log("[Insteon::ALDB_i2] DEBUG2 Ignoring orphan PLM controller(01) link to "
+						main::print_log("[Insteon::ALDB_PLM] DEBUG2 Ignoring orphan PLM controller(01) link to "
 							. $device->get_object_name() ) if $main::Debug{insteon} >= 2;
 					}
 					elsif ($audit_mode)
