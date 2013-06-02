@@ -602,7 +602,7 @@ sub sync_links{
 	my ($self, $audit_mode, $callback, $failure_callback) = @_;
 	my $dev_id = $self->device_id();
 	my $bcast_obj = Insteon::get_object($self->device_id(), 'EF');
-	if (!$audit_mode && ref $bcast_obj){
+	if (!$audit_mode && ref $bcast_obj && $self->is_root){
 		#Make sure thermostat is set to broadcast changes
 		::print_log("[Insteon::Thermo_i2] (sync_links) Enabling thermostat broadcast setting.") unless $audit_mode;
 		my $extra = "000008000000000000000000000000";
