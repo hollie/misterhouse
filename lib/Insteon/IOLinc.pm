@@ -155,10 +155,10 @@ sub set
 sub request_sensor_status 
 {
 	my ($self, $requestor) = @_;
-	$$parent{child_status_request_pending} = $self->group;
+	$$self{child_status_request_pending} = $self->group;
 	$$self{m_status_request_pending} = ($requestor) ? $requestor : 1;
-	my $message = new Insteon::InsteonMessage('insteon_send', $parent, 'status_request', '01');
-	$parent->_send_cmd($message);
+	my $message = new Insteon::InsteonMessage('insteon_send', $self, 'status_request', '01');
+	$self->_send_cmd($message);
 }
 
 sub _is_info_request
@@ -172,7 +172,7 @@ sub _is_info_request
 		&::print_log("[Insteon::IOLinc] received status for " .
 			$self->get_object_name . "sensor of: $child_state "
 			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
-		$ack_setby = $$child_obj{m_status_request_pending} if ref $$child_obj{m_status_request_pending};
+		$ack_setby = $$self{child_sensor} if ref $$self{child_sensor};
 		if (ref $$self{child_sensor}){
 			$$self{child_sensor}->set_receive($child_state, $ack_setby);
 		}
