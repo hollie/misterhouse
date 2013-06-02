@@ -4,15 +4,14 @@ INITIAL CONFIGURATION
 In user code:
 
    use Insteon::IOLinc;
-   $io_device = new Insteon::IOLinc('12.34.56:01',$myPLM);
-   $io_device_sensor = new Insteon::IOLinc('12.34.56:02',$myPLM);
+   $io_device = new Insteon::IOLinc('12.34.56',$myPLM);
 
 In items.mht:
 
-INSTEON_IOLINC, 12.34.56:01, io_device, io_group
-INSTEON_IOLINC, 12.34.56:02, io_device_sensor, io_group
+INSTEON_IOLINC, 12.34.56, io_device, io_group
 
-Where io_device is the relay and io_device_sensor is the sensor.
+Where commands sent to io_device control the relay, however commands received
+from io_device represent the sensor state..
 
 EXAMPLE USAGE
 
@@ -26,15 +25,44 @@ Turning off a relay:
 
 Requesting sensor status: 
 
-   $io_device_sensor->request_status();
+   $io_device->request_sensor_status();
 
-If the sensor is defined in the user code or mht file as described above, and
-linked to MH using the sync_links voice command, the sensor will automatically 
-send state changes to MisterHouse whenever its state changes.  In that instance
-the request_status command should not be needed.
+The IOLinc is a strange device in that commands sent to it control one aspect
+of the device, but commands received from it are from another aspect of the
+device.
 
 Print the Current Device Settings to the log:
    $io_device->get_operating_flag();
+
+LINKING
+
+As a result of the IOLinc's oddities, when the IOLinc is set as a controller
+of another device, that other device will be controlled by the sensor state.
+However, when the IOLinc is set as a responder in a link, the relay of the
+IOLinc will change with the commands sent by the controller.
+
+STATE REPORTED IN MisterHouse
+
+MisterHouse objects are only designed to hold the state of a single aspect.  As a 
+result of the IOLinc's oddities, the $io_device defined using the examples above
+will track the state of the relay only.  The state of the sensor can be obtained
+using the C<request_sensor_status()> command.
+
+SENSOR STATE CHILD OBJECT
+
+To create a device that directly tracks the state of the sensor, you can use 
+the following code to create a generic child object.  The state of the child
+object will reflect the state of the sensor and it will be automatically updated
+as long as the IOLinc is linked to the PLM.  Tie_events can be used on this
+child object.  However, if you want to directly link an obect to the sensor
+be sure to use the normal SCENE_MEMBER code in your mht file with the IOLinc
+defined as the controller.
+
+User Code:
+
+   $io_device_sensor = new Insteon::IOLinc_sensor($io_device);
+
+Where $io_device is the parent device defined above.
 
 NOTES
 
@@ -108,8 +136,18 @@ sub new
 sub set
 {
 	my ($self, $p_state, $p_setby, $p_respond) = @_;
-	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
-	return $self->Insteon::BaseDevice::set($link_state, $p_setby, $p_respond);
+	#Commands sent by the IOLinc itself represent the sensor
+	#Commands sent by MH to IOLinc represent the relay
+	if (ref $p_setby && $p_setby->isa('Insteon::BaseObject') && $p_setby->equals($self)){
+		::print_log("[Insteon::IOLinc] Received ". $self->get_object_name
+			. " sensor " . $p_state . " message.");
+		$$self{child_sensor}->set_receive($p_state, $p_setby, $p_respond);
+	}
+	else {
+		my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
+		$self->Insteon::BaseDevice::set($link_state, $p_setby, $p_respond);
+	}
+	return;
 }
 
 sub request_status 
@@ -363,6 +401,26 @@ sub set_relay_mode
 	}
 	return;
 }
+
+package Insteon::IOLinc_sensor;
+use strict;
+
+@Insteon::IOLinc_sensor::ISA = ('Generic_Item');
+
+sub new {
+	my ($class, $parent) = @_;
+	my $self = new Generic_Item();
+	bless $self, $class;
+	$$self{parent} = $parent;
+	$$self{parent}{child_sensor} = $self;
+	return $self;
+}
+
+sub set_receive {
+	my ($self, $p_state, $p_setby, $p_respond) = @_;
+	$self->SUPER::set($p_state, $p_setby, $p_respond);
+}
+
 
 1;
 =back
