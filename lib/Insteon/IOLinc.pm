@@ -141,7 +141,9 @@ sub set
 	if (ref $p_setby && $p_setby->isa('Insteon::BaseObject') && $p_setby->equals($self)){
 		::print_log("[Insteon::IOLinc] Received ". $self->get_object_name
 			. " sensor " . $p_state . " message.");
-		$$self{child_sensor}->set_receive($p_state, $p_setby, $p_respond);
+		if (ref $$self{child_sensor}){
+			$$self{child_sensor}->set_receive($p_state, $p_setby, $p_respond);
+		}
 	}
 	else {
 		my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
@@ -150,18 +152,13 @@ sub set
 	return;
 }
 
-sub request_status 
+sub request_sensor_status 
 {
 	my ($self, $requestor) = @_;
-	if (!($self->is_root)) {
-		my $parent = $self->get_root();
-		$$parent{child_status_request_pending} = $self->group;
-		$$self{m_status_request_pending} = ($requestor) ? $requestor : 1;
-		my $message = new Insteon::InsteonMessage('insteon_send', $parent, 'status_request', '01');
-		$parent->_send_cmd($message);
-	} else {
-		$self->SUPER::request_status($requestor);
-	}
+	$$parent{child_status_request_pending} = $self->group;
+	$$self{m_status_request_pending} = ($requestor) ? $requestor : 1;
+	my $message = new Insteon::InsteonMessage('insteon_send', $parent, 'status_request', '01');
+	$parent->_send_cmd($message);
 }
 
 sub _is_info_request
@@ -171,13 +168,14 @@ sub _is_info_request
 	my $parent = $self->get_root();
 	if ($$parent{child_status_request_pending}) {
 		$is_info_request++;
-		my $child_obj = Insteon::get_object($self->device_id, '02');
 		my $child_state = &Insteon::BaseObject::derive_link_state(hex($msg{extra}));
 		&::print_log("[Insteon::IOLinc] received status for " .
-			$child_obj->{object_name} . " of: $child_state "
+			$self->get_object_name . "sensor of: $child_state "
 			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
 		$ack_setby = $$child_obj{m_status_request_pending} if ref $$child_obj{m_status_request_pending};
-		$child_obj->Generic_Item::set($child_state, $ack_setby);
+		if (ref $$self{child_sensor}){
+			$$self{child_sensor}->set_receive($child_state, $ack_setby);
+		}
 		delete($$parent{child_status_request_pending});
 	} 
 	elsif ($cmd eq 'get_operating_flags') {
