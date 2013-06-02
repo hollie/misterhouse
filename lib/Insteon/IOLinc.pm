@@ -48,6 +48,10 @@ result of the IOLinc's oddities, the $io_device defined using the examples above
 will track the state of the relay only.  The state of the sensor can be obtained
 using the C<request_sensor_status()> command.
 
+One more oddity is that using the "set" button on the side of the device to 
+change the state of the relay, will cause MH to perceive this as a change in 
+the state of the sensor, thus placing the sensor and relay objects out of sync.
+
 SENSOR STATE CHILD OBJECT
 
 To create a device that directly tracks the state of the sensor, you can use 
@@ -71,7 +75,11 @@ uses a different set of commands and this code will offer only limited, if any
 support at all, for EZIO devices.
 
 The state that the relay is in when the device is linked to the PLM matters if
-you are using relay mode Momentary_A.  
+you are using relay mode Momentary_A.
+
+BUGS
+
+The relay state will not be accurate if you are using a momentary mode.
 
 =over
 =cut
@@ -120,16 +128,8 @@ sub new
 	$$self{operating_flags} = \%operating_flags;
 	$$self{message_types} = \%message_types;
 	bless $self, $class;
-	if ($self->group ne '02' && !$self->is_root){
-		::print_log("[Insteon::IOLinc] Warning IOLincs with more than "
-			. " 1 input and 1 output are not yet supported by this code.");
-	}
-	if ($self->is_root){
-		$$self{momentary_time} = 20;
-		$$self{relay_linked} = 0;
-		$$self{trigger_reverse} = 0;
-		$$self{relay_mode} = 'Latching';
-	}
+	$self->restore_data('momentary_time');
+	$$self{momentary_timer} = new Timer;
 	return $self;
 }
 
@@ -148,6 +148,7 @@ sub set
 	else {
 		my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
 		$self->Insteon::BaseDevice::set($link_state, $p_setby, $p_respond);
+		#$$self{momentary_timer}->set(int($$self{momentary_time/10), '$self->Generic_Item::set('off')');
 	}
 	return;
 }
@@ -282,6 +283,7 @@ sub set_momentary_time
 	$$root{_ext_set_get_action} = "set";
 	my $message = new Insteon::InsteonMessage('insteon_ext_send', $root, 'extended_set_get', $extra);
 	$root->_send_cmd($message);
+	$$self{momentary_time} = $momentary_time;
 	return;
 }
 
@@ -381,6 +383,7 @@ sub set_relay_mode
 		$parent->set_operating_flag('momentary_a_off');
 		$parent->set_operating_flag('momentary_b_off');
 		$parent->set_operating_flag('momentary_c_off');
+		$$self{momentary_time} = 0;
 	}
 	elsif (lc($relay_mode) eq 'momentary_a'){
 		$parent->set_operating_flag('momentary_b_off');
