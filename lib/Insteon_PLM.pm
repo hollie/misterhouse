@@ -240,7 +240,7 @@ sub initiate_linking_as_controller
 {
 	my ($self, $group) = @_;
 
-	$group = '01' unless $group;
+	$group = '00' unless $group;
 	# set up the PLM as the responder
 	my $cmd = '01'; # controller code
 	$cmd .= $group; # WARN - must be 2 digits and in hex!!

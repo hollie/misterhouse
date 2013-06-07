@@ -464,10 +464,10 @@ sub delete_orphan_links
 					}
                                         else
                                         {    # no corresponding PLM link found in items.mht
-						if ($group eq '01') {
-							#ignore manual responder link to PLM group 01 required for I2CS devices
+						if ($group eq '01' || $group eq '00') {
+							#ignore manual responder link to PLM group 01 or 00 required for I2CS devices
 							main::print_log("[Insteon::AllLinkDatabase] DEBUG2 Ignoring orphan responder link from "
-								. $selfname . " to PLM for group 01") if $main::Debug{insteon} >= 2;
+								. $selfname . " to PLM for group 01 or 00") if $main::Debug{insteon} >= 2;
 						}
 						elsif ($audit_mode)
                                                 {
@@ -2398,9 +2398,9 @@ sub delete_orphan_links
 				if (!($link))
                                 {
 					# a reference in the PLM's linktable does not match a scene member target
-					if ($group eq '01') {
-						#ignore manual controller link from PLM group 01 to device required for I2CS devices
-						main::print_log("[Insteon::ALDB_PLM] DEBUG2 Ignoring orphan PLM controller(01) link to "
+					if ($group eq '01' || $group eq '00') {
+						#ignore manual controller link from PLM group 01 or 00 to device required for I2CS devices
+						main::print_log("[Insteon::ALDB_PLM] DEBUG2 Ignoring orphan PLM controller(01 or 00) link to "
 							. $device->get_object_name() ) if $main::Debug{insteon} >= 2;
 					}
 					elsif ($audit_mode)
