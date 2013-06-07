@@ -719,6 +719,16 @@ sub _process_message
 			} else {
 				$self->set($p_state, $self);
 				$$self{_pending_cleanup} = 1;
+				#Wait to avoid clobbering incomming subsequent cleanup messages
+				my @links = $self->find_members('Insteon::BaseDevice');
+				#Timeout is the number of linked devices multiplied by
+				#the maximum hop length for a direct message and an ACK
+				#PLM is the +1
+				my $timeout = (scalar(@links)+1) * 300;
+				::print_log("[Insteon::BaseObject] DEBUG3 Delaying any outgoing messages ". 
+					"by $timeout milliseconds to avoid collision with subsequent cleanup ".
+					"messages from " . $self->get_object_name) if ($main::Debug{insteon} >= 3);
+				$self->interface->_set_timeout('xmit', $timeout);
 			}
                 }
                 elsif ($msg{type} eq 'cleanup')
