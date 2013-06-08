@@ -406,7 +406,10 @@ sub derive_message
 		return undef;
 	}
 
-	if ($p_extra)
+	if ($self->isa("Insteon::InterfaceController")) 
+	{
+		$message->extra('00') #All PLM Scenes are Cmd2=00;
+	} elsif ($p_extra)
 	{       $message->extra($p_extra);
 
 	} elsif ($subcommand) {
@@ -1050,6 +1053,33 @@ sub unlink_to_interface
         }
 }
 
+=item C<enter_linking_mode(group)>
+
+BETA -- Can be used to create the initial link with i2cs devices.  i1 devices
+will not respond to this command.  In the future, this will be incorporated into a
+one-step process -- BETA
+
+Places the object into linking mode as if you had held down the set button on 
+the device.  To create a link wherein the PLM is the controller, first run the 
+PLM voice command "initiate link as controller". Then run this command.  Finally,
+run the voice command "scan link table" on this device.
+
+The group argument is optional and not needed for group 01.
+
+Returns: nothing
+
+=cut 
+
+sub enter_linking_mode
+{
+	my ($self,$p_group) = @_;
+	my $group = $p_group;
+	$group = '01' unless $group;
+	my $extra = sprintf("%02x", $group);
+	$extra .= '0' x (30 - length $extra);
+	my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'linking_mode', $extra);
+	$self->_send_cmd($message);
+}
 
 sub _aldb
 {
