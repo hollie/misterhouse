@@ -598,7 +598,7 @@ sub _parse_data {
 	{
 		#ignore blanks.. the split does odd things
 		next if $parsed_data eq '';
-		&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($data)) if $main::Debug{insteon} >= 4;
+		&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $main::Debug{insteon} >= 4;
 		if ($previous_parsed_data eq $parsed_data){
 			# guard against repeats
 			::print_log("[Insteon_PLM] DEBUG3: Dropped duplicate message: $parsed_data") if $main::Debug{insteon} >= 3; 
