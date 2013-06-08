@@ -406,7 +406,10 @@ sub derive_message
 		return undef;
 	}
 
-	if ($p_extra)
+	if ($self->isa("Insteon::InterfaceController")) 
+	{
+		$message->extra('00') #All PLM Scenes are Cmd2=00;
+	} elsif ($p_extra)
 	{       $message->extra($p_extra);
 
 	} elsif ($subcommand) {
