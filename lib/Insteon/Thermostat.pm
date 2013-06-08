@@ -406,7 +406,14 @@ sub _process_message
 {
 	my ($self,$p_setby,%msg) = @_;
 	my $clear_message = 0;
-	if ($msg{command} eq "thermostat_setpoint_cool" && $msg{is_ack}){
+	my $pending_cmd = ($$self{_prior_msg}) ? $$self{_prior_msg}->command : $msg{command};
+	my $ack_setby = (ref $$self{m_status_request_pending}) ? $$self{m_status_request_pending} : $p_setby;
+	if ($msg{is_ack} && $self->_is_info_request($pending_cmd,$ack_setby,%msg)) {
+		$clear_message = 1;
+		$$self{m_status_request_pending} = 0;
+		$self->_process_command_stack(%msg);
+	}
+	elsif ($msg{command} eq "thermostat_setpoint_cool" && $msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
 		main::print_log("[Insteon::Thermostat] Received ACK of cool setpoint ".
 			"for ". $self->get_object_name) if $main::Debug{insteon};	
@@ -649,7 +656,14 @@ sub get_status() {
 sub _process_message {
 	my ($self,$p_setby,%msg) = @_;
 	my $clear_message = 0;
-	if ($msg{command} eq "extended_set_get" && $msg{is_ack}){
+	my $pending_cmd = ($$self{_prior_msg}) ? $$self{_prior_msg}->command : $msg{command};
+	my $ack_setby = (ref $$self{m_status_request_pending}) ? $$self{m_status_request_pending} : $p_setby;
+	if ($msg{is_ack} && $self->_is_info_request($pending_cmd,$ack_setby,%msg)) {
+		$clear_message = 1;
+		$$self{m_status_request_pending} = 0;
+		$self->_process_command_stack(%msg);
+	}
+	elsif ($msg{command} eq "extended_set_get" && $msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
 		#If this was a get request don't clear until data packet received
 		main::print_log("[Insteon::Thermo_i2] Extended Set/Get ACK Received for " . $self->get_object_name) if $main::Debug{insteon};
