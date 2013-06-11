@@ -385,18 +385,19 @@ sub set_relay_mode
 		$parent->set_operating_flag('momentary_c_off');
 		$$self{momentary_time} = 0;
 	}
+	#Momentary A must be on for any Momentary setting
 	elsif (lc($relay_mode) eq 'momentary_a'){
 		$parent->set_operating_flag('momentary_b_off');
 		$parent->set_operating_flag('momentary_c_off');
 		$parent->set_operating_flag('momentary_a_on');
 	}
 	elsif (lc($relay_mode) eq 'momentary_b'){
-		$parent->set_operating_flag('momentary_a_off');
+		$parent->set_operating_flag('momentary_a_on');
 		$parent->set_operating_flag('momentary_c_off');
 		$parent->set_operating_flag('momentary_b_on');
 	}
 	elsif (lc($relay_mode) eq 'momentary_c'){
-		$parent->set_operating_flag('momentary_a_off');
+		$parent->set_operating_flag('momentary_a_on');
 		$parent->set_operating_flag('momentary_b_off');
 		$parent->set_operating_flag('momentary_c_on');
 	}
