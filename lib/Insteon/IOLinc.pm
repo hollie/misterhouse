@@ -188,12 +188,14 @@ sub _is_info_request
 		$output .= ($flags & 0x04) ? "Relay Linked: On; " : "Relay Linked: Off; ";
 		$output .= ($flags & 0x20) ? "X10 Reverse: On; " : "X10 Reverse: Off; ";
 		$output .= ($flags & 0x40) ? "Trigger Reverse: On; " : "Trigger Reverse: Off; ";
-		if (!($flags & 0x98)){
+		if (!($flags & 0x08)){
 			$output .= "Latching: On.";
 		} else {
-			$output .= "Momentary_A: On." if $flags & 0x08;
-			$output .= "Momentary_B: On." if $flags & 0x10;
-			$output .= "Momentary_C: On." if $flags & 0x80;
+			my $momentary_state = '';
+			$momentary_state .= "Momentary_B: On." if $flags & 0x10;
+			$momentary_state .= "Momentary_C: On." if $flags & 0x80;
+			$momentary_state .= "Momentary_A: On." if $momentary_state eq '';
+			$output .= $momentary_state;
 		}
 		::print_log("[Insteon::IOLinc] Device Settings are: $output");
 	} else {
@@ -352,15 +354,6 @@ sub set_trigger_reverse
 
 Latching: The relay will remain open or closed until another command is received. 
 Momentary time is ignored.
-
-The following modes act differently depending on how the relay is controlled.  
-For the following modes, direct ON commands, such as those called from the devices
-voice command or those sent using the set function, will close the relay but only 
-for the amount of time specified by the momentary time setting.  Direct OFF 
-commands can be used to shorten the momentary time, but are otherwise ignored.
-
-However, commands issued from a PLM Scene or from another Insteon Device, through
-a defined link, will follow the restrictions described below.
 
 Momentary_A: The relay will close momentarily. If it is Linked while On it will 
 respond to On. If it is Linked while Off it will respond to Off.
