@@ -80,130 +80,154 @@ $outdir = '../docs' unless $outdir and -d $outdir;
 -w $outdir || die "directory $outdir isn't writeable";
 mkdir "$outdir/lib" unless -d "$outdir/lib";
 
-# make list of module and script files in lib so we can extract pod doc later
-my %libfiles;
+my ( $ipod, $mpod );
+
+## Get list of possible directories
+my %libsubdirs;
 opendir LIB, $libdir || die "can't open $libdir directory: $!";
-
-foreach ( readdir LIB ) {
-    $libfiles{$_}{exists} = 1 if /\.p[lm]$/i;
-}
-
+	foreach ( readdir LIB ) {
+	    $libsubdirs{$_}{exists} = 1 if (-d "$libdir/$_" && !($_ =~ /^site/i)
+	    	&& !($_ =~ /^\./));
+	}
 closedir LIB;
 
-# make list of lib html files so we can delete obsolete ones
-my %htmlfiles;
-opendir OUT, "$outdir/lib" || die "can't open $outdir/lib directory: $!";
+## Start foreach loop
 
-foreach ( readdir OUT ) {
-    $htmlfiles{$_}{exists} = 1 if /\.html$/i;
-}
+foreach my $libsubdir ( keys %libsubdirs ) {
 
-closedir OUT;
-
-# convert the pod doc in each changed pl or pm file into html
-my $changes = 0;
-foreach my $lib ( keys %libfiles ) {
-    my $libfile  = "$libdir/$lib";
-    my $htmlfile = "$outdir/lib/$lib";
-    $htmlfile =~ s/\.p[lm]$/.html/i;
-    $libfiles{$lib}{html} = $htmlfile;
-
-    my $mdate = ( stat($libfile) )[9];
-    my $hdate = ( stat($htmlfile) )[9];
-
-    #print "mdate $mdate hdate $hdate $libfile\n";
-    if ( !-e $htmlfile or $mdate > $hdate ) {
-        print "converting $libfile to $htmlfile\n";
-        $changes++;
-        pod2html(
-            "--title=$lib",        "--infile=$libfile",
-            "--outfile=$htmlfile", "--header",
-            "--htmlroot=/docs",    "--htmldir=$outdir/..",
-            "--podroot=$docdir",   "--podpath=.",
-            "--css=/lib/pod.css",
-        );
-    }
-}
-
-# check for deleted lib files
-foreach ( keys %htmlfiles ) {
-    my $htmlfile = "$outdir/lib/$_";
-    my $pm = $_;
-    my $pl = $_;
-    $pm =~ s/\.html$/.pm/i;
-    $pl =~ s/\.html$/.pl/i;
-    my $check;		#Don't invent keys that dont exist
-    $check = $pm if( exists( $libfiles{$pm}));
-    $check = $pl if( exists( $libfiles{$pl}));
-    if ( !$check or !$libfiles{$check}{exists}) {
-        $changes++;
-        print "deleting $htmlfile\n";
-        unlink $htmlfile;
-    }
-}
-
-# write out items and modules lists if any pm files changed
-my ( $ipod, $mpod );
-if ($changes) {
-    my %packages;
-    foreach my $pm ( keys %libfiles ) {
-        next unless $pm =~ /.+\.pm$/i;
-        my $html = $pm;
-        $html =~ s/\.pm$/.html/i;
-        my $noext = $pm;
-        $noext =~ s/\.pm$//i;
-        my $modfile  = "$libdir/$pm";
-        my $htmlfile = "$outdir/lib/$html";
-
-	my $fh;
-        unless( open( $fh, $modfile) ) {
-		print "Can't open $modfile, skipping: $!\n";
-		next;
+	## make outdir if doesn't exist
+	## Set libdir and outdir to correct settings
+	$libdir = "../lib/$libsubdir";
+	my $htmldir = "$outdir/lib/$libsubdir";
+	mkdir "$htmldir" unless -d "$htmldir";
+	
+print "[krk] - $libdir - $htmldir";
+	
+	# make list of module and script files in lib so we can extract pod doc later
+	my %libfiles;
+	opendir LIB, $libdir || die "can't open $libdir directory: $!";
+	
+	foreach ( readdir LIB ) {
+	    $libfiles{$_}{exists} = 1 if /\.p[lm]$/i;
 	}
-        my $current_p;
-        while ( my $l = <$fh> ) {
-            if ( $l =~ /^package ([^;]+);/ ) {
-                $current_p = $1;
-
-                #print "found package $current_p in $pm\n";
-                $packages{$current_p}{pm}    = $pm;
-                $packages{$current_p}{html}  = $html;
-                $packages{$current_p}{noext} = $noext;
-            }
-            elsif ( $l =~ /^sub new / ) {
-
-                #print "found 'new' method in package $current_p in $pm\n";
-                $packages{$current_p}{isitem} = 1 if $current_p;
-            }
-            elsif ( $l =~ /^=head/ ) {
-
-                #print "found pod directive in package $current_p in $pm\n";
-                $packages{$current_p}{haspod} = 1 if $current_p;
-            }
-        }
-        print "didn't find any packages in $pm\n" unless $current_p;
-        close $fh;
-    }
-
-    foreach ( sort keys %packages ) {
-
-        #print "package: $_\n";
-        s/\//::/g;
-        my $pod = "=item $_\n\n";
-        if ( $packages{$_}{haspod} ) {
-            $pod .= "L<$_|lib::" . $packages{$_}{noext} . "/$_>\n\n";
-        }
-        else {
-            $pod .= "package $_ in $packages{$_}{pm} isn't documented yet\n\n";
-        }
-        if ( $packages{$_}{isitem} ) {
-            $ipod .= $pod;
-        }
-        else {
-            $mpod .= $pod;
-        }
-    }
-}
+	
+	closedir LIB;
+	
+	# make list of lib html files so we can delete obsolete ones
+	my %htmlfiles;
+	opendir OUT, $htmldir || die "can't open $htmldir directory: $!";
+	
+	foreach ( readdir OUT ) {
+	    $htmlfiles{$_}{exists} = 1 if /\.html$/i;
+	}
+	
+	closedir OUT;
+	
+	# convert the pod doc in each changed pl or pm file into html
+	my $changes = 0;
+	foreach my $lib ( keys %libfiles ) {
+	    my $libfile  = "$libdir/$lib";
+	    my $htmlfile = "$htmldir/$lib";
+	    $htmlfile =~ s/\.p[lm]$/.html/i;
+	    $libfiles{$lib}{html} = $htmlfile;
+	
+	    my $mdate = ( stat($libfile) )[9];
+	    my $hdate = ( stat($htmlfile) )[9];
+	
+	    #print "mdate $mdate hdate $hdate $libfile\n";
+	    if ( !-e $htmlfile or $mdate > $hdate ) {
+	        print "converting $libfile to $htmlfile\n";
+	        $changes++;
+	        pod2html(
+	            "--title=$lib",        "--infile=$libfile",
+	            "--outfile=$htmlfile", "--header",
+	            "--htmlroot=/docs",    "--htmldir=$htmldir/..",
+	            "--podroot=$docdir",   "--podpath=.",
+	            "--css=/lib/pod.css",
+	        );
+	    }
+	}
+	
+	# check for deleted lib files
+	foreach ( keys %htmlfiles ) {
+	    my $htmlfile = "$htmldir/$_";
+	    my $pm = $_;
+	    my $pl = $_;
+	    $pm =~ s/\.html$/.pm/i;
+	    $pl =~ s/\.html$/.pl/i;
+	    my $check;		#Don't invent keys that dont exist
+	    $check = $pm if( exists( $libfiles{$pm}));
+	    $check = $pl if( exists( $libfiles{$pl}));
+	    if ( !$check or !$libfiles{$check}{exists}) {
+	        $changes++;
+	        print "deleting $htmlfile\n";
+	        unlink $htmlfile;
+	    }
+	}
+	
+	# write out items and modules lists if any pm files changed
+	if ($changes) {
+	    my %packages;
+	    foreach my $pm ( keys %libfiles ) {
+	        next unless $pm =~ /.+\.pm$/i;
+	        my $html = $pm;
+	        $html =~ s/\.pm$/.html/i;
+	        my $noext = $pm;
+	        $noext =~ s/\.pm$//i;
+	        my $modfile  = "$libdir/$pm";
+	        my $htmlfile = "$htmldir/$html";
+	
+		my $fh;
+	        unless( open( $fh, $modfile) ) {
+			print "Can't open $modfile, skipping: $!\n";
+			next;
+		}
+	        my $current_p;
+	        while ( my $l = <$fh> ) {
+	            if ( $l =~ /^package ([^;]+);/ ) {
+	                $current_p = $1;
+	
+	                #print "found package $current_p in $pm\n";
+	                $packages{$current_p}{pm}    = $pm;
+	                $packages{$current_p}{html}  = $html;
+	                $packages{$current_p}{noext} = $noext;
+	            }
+	            elsif ( $l =~ /^sub new / ) {
+	
+	                #print "found 'new' method in package $current_p in $pm\n";
+	                $packages{$current_p}{isitem} = 1 if $current_p;
+	            }
+	            elsif ( $l =~ /^=head/ ) {
+	
+	                #print "found pod directive in package $current_p in $pm\n";
+	                $packages{$current_p}{haspod} = 1 if $current_p;
+	            }
+	        }
+	        print "didn't find any packages in $pm\n" unless $current_p;
+	        close $fh;
+	    }
+	
+	    foreach ( sort keys %packages ) {
+	
+	        #print "package: $_\n";
+	        s/\//::/g;
+	        my $pod = "=item $_\n\n";
+	        if ( $packages{$_}{haspod} ) {
+	            $pod .= "L<$_|lib::" . $packages{$_}{noext} . "/$_>\n\n";
+	        }
+	        else {
+	            $pod .= "package $_ in $packages{$_}{pm} isn't documented yet\n\n";
+	        }
+	        if ( $packages{$_}{isitem} ) {
+	            $ipod .= $pod;
+	        }
+	        else {
+	            $mpod .= $pod;
+	        }
+	    }
+	}
+	
+}##Stop loop here?
 
 if ($ipod) {
     print "writing $outdir/items.pod file\n";
@@ -243,11 +267,11 @@ else {
         s/\.pod$/.html/i;
         print("deleting $docdir/$_\n"), unlink "$docdir/$_" if -e "$docdir/$_";
     }
-    foreach ( keys %libfiles ) {
-        s/\.p[lm]$/.html/i;
-        print("deleting $docdir/lib/$_\n"), unlink "$docdir/lib/$_"
-          if -e "$docdir/lib/$_";
-    }
+#    foreach ( keys %libfiles ) {
+#        s/\.p[lm]$/.html/i;
+#        print("deleting $docdir/lib/$_\n"), unlink "$docdir/lib/$_"
+#          if -e "$docdir/lib/$_";
+#    }
     print("deleting $docdir/lib/\n"), rmdir "$docdir/lib" if -d "$docdir/lib";
     print("deleting $docdir/modules.pod\n"), unlink "$docdir/modules.pod"
       if -w "$docdir/modules.pod";
