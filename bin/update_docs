@@ -87,22 +87,15 @@ my %libsubdirs;
 opendir LIB, $libdir || die "can't open $libdir directory: $!";
 	foreach ( readdir LIB ) {
 	    $libsubdirs{$_}{exists} = 1 if (-d "$libdir/$_" && !($_ =~ /^site/i)
-	    	&& !($_ =~ /^\./));
+	    	&& !($_ =~ /^\.\./));
 	}
 closedir LIB;
 
-## Start foreach loop
-
 foreach my $libsubdir ( keys %libsubdirs ) {
-
-	## make outdir if doesn't exist
-	## Set libdir and outdir to correct settings
 	$libdir = "../lib/$libsubdir";
 	my $htmldir = "$outdir/lib/$libsubdir";
 	mkdir "$htmldir" unless -d "$htmldir";
-	
-print "[krk] - $libdir - $htmldir";
-	
+
 	# make list of module and script files in lib so we can extract pod doc later
 	my %libfiles;
 	opendir LIB, $libdir || die "can't open $libdir directory: $!";
@@ -211,9 +204,10 @@ print "[krk] - $libdir - $htmldir";
 	
 	        #print "package: $_\n";
 	        s/\//::/g;
+	        my $class = ($libsubdir eq ".") ? '' : $libsubdir . "::";
 	        my $pod = "=item $_\n\n";
 	        if ( $packages{$_}{haspod} ) {
-	            $pod .= "L<$_|lib::" . $packages{$_}{noext} . "/$_>\n\n";
+	            $pod .= "L<$_|lib::" . $class . $packages{$_}{noext} . "/$_>\n\n";
 	        }
 	        else {
 	            $pod .= "package $_ in $packages{$_}{pm} isn't documented yet\n\n";
@@ -225,9 +219,8 @@ print "[krk] - $libdir - $htmldir";
 	            $mpod .= $pod;
 	        }
 	    }
-	}
-	
-}##Stop loop here?
+	}	
+}
 
 if ($ipod) {
     print "writing $outdir/items.pod file\n";
