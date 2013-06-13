@@ -4,7 +4,7 @@ package Insteon::AllLinkDatabase;
 
 =head2 SYNOPSIS
 
-Base class used for storing AllLink Database structures within MisterHouse.
+Generic class implementation of an insteon device's all link database.
 
 =head2 DESCRIPTION
 
@@ -1369,6 +1369,8 @@ None
 
 =head2 AUTHOR
 
+Gregg Liming / gregg@limings.net, Kevin Robert Keegan, Michael Stovenour
+
 =head2 LICENSE
 
 This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
@@ -2045,6 +2047,8 @@ None
 
 =head2 AUTHOR
 
+Gregg Liming / gregg@limings.net, Kevin Robert Keegan, Michael Stovenour
+
 =head2 LICENSE
 
 This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
@@ -2489,6 +2493,8 @@ sub send_read_aldb
 None
 
 =head2 AUTHOR
+
+Michael Stovenour
 
 =head2 LICENSE
 
@@ -3074,6 +3080,8 @@ sub has_link
 None
 
 =head2 AUTHOR
+
+Gregg Liming / gregg@limings.net, Kevin Robert Keegan, Michael Stovenour
 
 =head2 LICENSE
 
