@@ -1,47 +1,48 @@
-=begin comment
+=head1 B<Insteon::IOLinc>
 
-INITIAL CONFIGURATION
+=head2 SYNOPSIS
+
 In user code:
 
-   use Insteon::IOLinc;
-   $io_device = new Insteon::IOLinc('12.34.56',$myPLM);
+    use Insteon::IOLinc;
+    $io_device = new Insteon::IOLinc('12.34.56',$myPLM);
 
 In items.mht:
 
-INSTEON_IOLINC, 12.34.56, io_device, io_group
-
-Where commands sent to io_device control the relay, however commands received
-from io_device represent the sensor state..
-
-EXAMPLE USAGE
+    INSTEON_IOLINC, 12.34.56, io_device, io_group
 
 Turning on a relay:
 
-   $io_device->set('on');
+    $io_device->set('on');
 
 Turning off a relay:
 
-   $io_device->set('off');
+    $io_device->set('off');
 
 Requesting sensor status: 
 
-   $io_device->request_sensor_status();
+    $io_device->request_sensor_status();
+
+Print the Current Device Settings to the log:
+
+    $io_device->get_operating_flag();
+
+=head2 DESCRIPTION
+
+Support for the Insteon IOLinc.
 
 The IOLinc is a strange device in that commands sent to it control one aspect
 of the device, but commands received from it are from another aspect of the
 device.
 
-Print the Current Device Settings to the log:
-   $io_device->get_operating_flag();
-
-LINKING
+=head3 LINKING
 
 As a result of the IOLinc's oddities, when the IOLinc is set as a controller
 of another device, that other device will be controlled by the sensor state.
 However, when the IOLinc is set as a responder in a link, the relay of the
 IOLinc will change with the commands sent by the controller.
 
-STATE REPORTED IN MisterHouse
+=head3 STATE REPORTED IN MisterHouse
 
 MisterHouse objects are only designed to hold the state of a single aspect.  As a 
 result of the IOLinc's oddities, the $io_device defined using the examples above
@@ -52,23 +53,20 @@ One more oddity is that using the "set" button on the side of the device to
 change the state of the relay, will cause MH to perceive this as a change in 
 the state of the sensor, thus placing the sensor and relay objects out of sync.
 
-SENSOR STATE CHILD OBJECT
+=head3 SENSOR STATE CHILD OBJECT
 
 To create a device that directly tracks the state of the sensor, you can use 
-the following code to create a generic child object.  The state of the child
-object will reflect the state of the sensor and it will be automatically updated
-as long as the IOLinc is linked to the PLM.  Tie_events can be used on this
-child object.  However, if you want to directly link an obect to the sensor
+C<Insteon::IOLinc_sensor>.  The state of the child object will reflect the state 
+of the sensor and it will be automatically updated as long as the IOLinc is 
+linked to the 
+
+However, if you want to directly link an obect to the sensor 
 be sure to use the normal SCENE_MEMBER code in your mht file with the IOLinc
 defined as the controller.
 
-User Code:
+Instructions for this object are contained in C<Insteon::IOLinc_sensor>.
 
-   $io_device_sensor = new Insteon::IOLinc_sensor($io_device);
-
-Where $io_device is the parent device defined above.
-
-NOTES
+=head2 NOTES
 
 This module works with the Insteon IOLinc device from Smarthome.  The EZIO device
 uses a different set of commands and this code will offer only limited, if any
@@ -77,9 +75,15 @@ support at all, for EZIO devices.
 The state that the relay is in when the device is linked to the PLM matters if
 you are using relay mode Momentary_A.
 
-BUGS
+=head2 BUGS
 
 The relay state will not be accurate if you are using a momentary mode.
+
+=head2 INHERITS
+
+B<Insteon::BaseDevice>, B<Insteon::DeviceController>
+
+=head2 METHODS
 
 =over
 =cut
@@ -121,6 +125,12 @@ my %message_types = (
 	extended_set_get => 0x2e
 );
 
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
+
 sub new 
 {
 	my ($class, $p_deviceid, $p_interface) = @_;
@@ -132,6 +142,16 @@ sub new
 	$$self{momentary_timer} = new Timer;
 	return $self;
 }
+
+=item C<set(state[,setby,response])>
+
+Handles setting and receiving states from the device.
+
+If the set command originates from the device, it represents the sensor state 
+and is processed accordingly.  All other set commands are sent to the device
+and control the relay state.
+
+=cut
 
 sub set
 {
@@ -153,6 +173,16 @@ sub set
 	return;
 }
 
+=item C<request_sensor_status()>
+
+Works just like C<request_status()> but it requests the status of the sensor.  
+Will cause the sensor status to be printed to the log.
+
+As an alternative to calling the function repeatedly, you can define an 
+C<Insteon::IOLinc_sensor> object.
+
+=cut
+
 sub request_sensor_status 
 {
 	my ($self, $requestor) = @_;
@@ -161,6 +191,14 @@ sub request_sensor_status
 	my $message = new Insteon::InsteonMessage('insteon_send', $self, 'status_request', '01');
 	$self->_send_cmd($message);
 }
+
+=item C<_is_info_request()>
+
+Checks to see if an incomming message contains the sensor state or the operating
+flags for the device.  If not the message is passed on to 
+C<Insteon::BaseObject::_is_info_requested()>.
+
+=cut
 
 sub _is_info_request
 {
@@ -201,6 +239,13 @@ sub _is_info_request
 	}
 	return $is_info_request;
 }
+
+=item C<_process_message()>
+
+Checks for and handles unique IOLinc messages such as the momentary time settings. 
+All other messages are transferred to C<Insteon::BaseObject::_process_message()>.
+
+=cut
 
 sub _process_message {
 	my ($self,$p_setby,%msg) = @_;
@@ -403,10 +448,62 @@ sub set_relay_mode
 	return;
 }
 
+=back
+
+=head2 AUTHOR
+
+Kevin Robert Keegan
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
+=head1 B<Insteon::IOLinc_sensor>
+
+=head2 SYNOPSIS
+
+User Code:
+
+    $io_device_sensor = new Insteon::IOLinc_sensor($io_device);
+
+Where $io_device is the parent device defined above.
+
+=head2 DESCRIPTION
+
+Creates a device that directly tracks the state of the IOLinc sensor.  The state 
+of this object will reflect the state of the sensor and it will be automatically 
+updated as long as the IOLinc is linked to the PLM.  
+
+Tie_events can be used on this child object.  However, if you want to directly 
+link an obect to the sensor be sure to use the normal SCENE_MEMBER code in your 
+mht file with the main IOLinc device defined as the controller.
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
+
 package Insteon::IOLinc_sensor;
 use strict;
 
 @Insteon::IOLinc_sensor::ISA = ('Generic_Item');
+
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
 
 sub new {
 	my ($class, $parent) = @_;
@@ -417,12 +514,32 @@ sub new {
 	return $self;
 }
 
+=item C<set_receive()>
+
+Receives sensor state messages from the parent object and sets the state of this 
+device accordingly.
+
+=cut
+
 sub set_receive {
 	my ($self, $p_state, $p_setby, $p_respond) = @_;
 	$self->SUPER::set($p_state, $p_setby, $p_respond);
 }
 
+=back
+
+=head2 AUTHOR
+
+Kevin Robert Keegan
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 
 1;
-=back
-=cut
