@@ -186,7 +186,7 @@ foreach my $libsubdir ( keys %libsubdirs ) {
 	                $packages{$current_p}{noext} = $noext;
 	                $packages{$current_p}{class} = ($libsubdir eq ".") ? '' : $libsubdir . "::";
 	            }
-	            elsif ( $l =~ /^sub new / ) {
+	            elsif ( $l =~ /^sub new\s/ ) {
 	
 	                #print "found 'new' method in package $current_p in $pm\n";
 	                $packages{$current_p}{isitem} = 1 if $current_p;
