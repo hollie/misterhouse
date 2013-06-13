@@ -80,7 +80,9 @@ $outdir = '../docs' unless $outdir and -d $outdir;
 -w $outdir || die "directory $outdir isn't writeable";
 mkdir "$outdir/lib" unless -d "$outdir/lib";
 
-my ( $ipod, $mpod );
+#Define variables used in creating module and item lists
+my ($ipod, $mpod, %packages);
+my $changes = 0;
 
 ## Get list of possible directories
 my %libsubdirs;
@@ -117,7 +119,6 @@ foreach my $libsubdir ( keys %libsubdirs ) {
 	closedir OUT;
 	
 	# convert the pod doc in each changed pl or pm file into html
-	my $changes = 0;
 	foreach my $lib ( keys %libfiles ) {
 	    my $libfile  = "$libdir/$lib";
 	    my $htmlfile = "$htmldir/$lib";
@@ -160,7 +161,6 @@ foreach my $libsubdir ( keys %libsubdirs ) {
 	
 	# write out items and modules lists if any pm files changed
 	if ($changes) {
-	    my %packages;
 	    foreach my $pm ( keys %libfiles ) {
 	        next unless $pm =~ /.+\.pm$/i;
 	        my $html = $pm;
@@ -184,6 +184,7 @@ foreach my $libsubdir ( keys %libsubdirs ) {
 	                $packages{$current_p}{pm}    = $pm;
 	                $packages{$current_p}{html}  = $html;
 	                $packages{$current_p}{noext} = $noext;
+	                $packages{$current_p}{class} = ($libsubdir eq ".") ? '' : $libsubdir . "::";
 	            }
 	            elsif ( $l =~ /^sub new / ) {
 	
@@ -199,29 +200,30 @@ foreach my $libsubdir ( keys %libsubdirs ) {
 	        print "didn't find any packages in $pm\n" unless $current_p;
 	        close $fh;
 	    }
-	
-	    foreach ( sort keys %packages ) {
-	
-	        #print "package: $_\n";
-	        s/\//::/g;
-	        my $class = ($libsubdir eq ".") ? '' : $libsubdir . "::";
-	        my $pod = "=item $_\n\n";
-	        if ( $packages{$_}{haspod} ) {
-	            $pod .= "L<$_|lib::" . $class . $packages{$_}{noext} . "/$_>\n\n";
-	        }
-	        else {
-	            $pod .= "package $_ in $packages{$_}{pm} isn't documented yet\n\n";
-	        }
-	        if ( $packages{$_}{isitem} ) {
-	            $ipod .= $pod;
-	        }
-	        else {
-	            $mpod .= $pod;
-	        }
-	    }
 	}	
 }
 
+#Sort Packages and Place into Module or Item List
+if ($changes) {
+    foreach ( sort keys %packages ) {
+        s/\//::/g;
+        my $pod = "=item $_\n\n";
+        if ( $packages{$_}{haspod} ) {
+            $pod .= "L<$_|lib::" . $packages{$_}{class} . $packages{$_}{noext} . "/$_>\n\n";
+        }
+        else {
+            $pod .= "package $_ in $packages{$_}{pm} isn't documented yet\n\n";
+        }
+        if ( $packages{$_}{isitem} ) {
+            $ipod .= $pod;
+        }
+        else {
+            $mpod .= $pod;
+        }
+    }
+}
+
+#Create Item List POD
 if ($ipod) {
     print "writing $outdir/items.pod file\n";
     open TAR, "> $outdir/items.pod";
@@ -229,6 +231,7 @@ if ($ipod) {
     close TAR;
 }
 
+#Create Module List POD
 if ($mpod) {
     print "writing $outdir/modules.pod file\n";
     open TAR, "> $outdir/modules.pod";
