@@ -680,6 +680,8 @@ sub find_members {
 	return @l_found;
 }
 
+=back
+
 =head1 INI PARAMETERS
 
 =over
