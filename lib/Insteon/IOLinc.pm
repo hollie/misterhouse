@@ -86,6 +86,7 @@ B<Insteon::BaseDevice>, B<Insteon::DeviceController>
 =head2 METHODS
 
 =over
+
 =cut
 
 use strict;
