@@ -6,7 +6,7 @@ Provides support for the Insteon Interface.
 
 =head2 INHERITS
 
-B<Class::Singleton>
+L<Class::Singleton|Class::Singleton>
 
 =head2 METHODS
 
@@ -41,7 +41,7 @@ contains the PLM revision number, to the log on startup.
 If Insteon_PLM_scan_at_startup is set to 1 in the ini file, this routine will poll
 all insteon devices and request their current state.  Useful for making sure that
 no devices changed their state while MisterHouse was off.  Will also call 
-C<Insteon::BaseObject::get_engine_version> on each device to ensure that
+L<Insteon::BaseObject::get_engine_version|Insteon::BaseInsteon/Insteon::BaseObject> on each device to ensure that
 the proper ALDB object is created for them.
 
 =cut
@@ -150,7 +150,7 @@ sub _is_duplicate
 =item C<has_link(link_details)>
 
 If a device has an ALDB, passes link_details onto one of the has_link() routines
-within C<Insteon::AllLinkDatabase.pm>.  Generally called as part of C<delete_orphan_links()>.
+within L<Insteon::AllLinkDatabase|Insteon::AllLinkDatabase>.  Generally called as part of C<delete_orphan_links()>.
 
 =cut
 
@@ -167,7 +167,7 @@ sub has_link
 =item C<add_link(link_params)>
 
 If a device has an ALDB, passes link_details onto one of the add_link() routines
-within C<Insteon::AllLinkDatabase.pm>.  Generally called from the "sync links" or 
+within L<Insteon::AllLinkDatabase|Insteon::AllLinkDatabase>.  Generally called from the "sync links" or 
 "link to interface" voice commands.
 
 =cut
@@ -194,7 +194,7 @@ sub add_link
 =item C<delete_link([link details])>
 
 If a device has an ALDB, passes link_details onto one of the delete_link() routines
-within C<Insteon::AllLinkDatabase.pm>.  Generally called by C<delete_orphan_links()>.
+within L<Insteon::AllLinkDatabase|Insteon::AllLinkDatabase>.  Generally called by C<delete_orphan_links()>.
 
 =cut
 

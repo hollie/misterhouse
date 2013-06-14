@@ -15,7 +15,7 @@ Generic class implementation of an Insteon Device.
 
 =head2 INHERITS
 
-B<Generic_Item>
+L<Generic_Item|Generic_Item>
 
 =head2 METHODS
 
@@ -1046,7 +1046,7 @@ Generic class implementation of a Base Insteon Device.
 
 =head2 INHERITS
 
-B<Insteon::BaseObject>
+L<Insteon::BaseObject|Insteon::BaseInsteon/Insteon::BaseObject>
 
 =head2 METHODS
 
@@ -1469,7 +1469,7 @@ sub get_root {
 =item C<has_link(link_details)>
 
 If a device has an ALDB, passes link_details onto one of the has_link() routines
-within C<Insteon::AllLinkDatabase.pm>.  Generally called as part of C<delete_orphan_links()>.
+within L<Insteon::AllLinkDatabase|Insteon::AllLinkDatabase>.  Generally called as part of C<delete_orphan_links()>.
 
 =cut
 
@@ -1491,7 +1491,7 @@ sub has_link
 =item C<add_link(link_params)>
 
 If a device has an ALDB, passes link_details onto one of the add_link() routines
-within C<Insteon::AllLinkDatabase.pm>.  Generally called from the "sync links" or 
+within L<Insteon::AllLinkDatabase|Insteon::AllLinkDatabase>.  Generally called from the "sync links" or 
 "link to interface" voice commands.
 
 =cut
@@ -1520,7 +1520,7 @@ sub add_link
 =item C<update_link(link_params)>
 
 If a device has an ALDB, passes link_details onto one of the update_link() routines
-within C<Insteon::AllLinkDatabase.pm>. Generally called from the "sync links" 
+within L<Insteon::AllLinkDatabase|Insteon::AllLinkDatabase>. Generally called from the "sync links" 
 voice command.
 
 =cut
@@ -1548,7 +1548,7 @@ sub update_link
 =item C<delete_link([link details])>
 
 If a device has an ALDB, passes link_details onto one of the delete_link() routines
-within C<Insteon::AllLinkDatabase.pm>.  Generally called by C<delete_orphan_links()>.
+within L<Insteon::AllLinkDatabase|Insteon::AllLinkDatabase>.  Generally called by C<delete_orphan_links()>.
 
 =cut
 
@@ -1930,7 +1930,7 @@ options include:
     '04' - 6 button; backlighting off
     '00' - 6 button; backlighting normal
 
-Note: This routine will likely be moved to C<Insteon::KeypadLinc> at some point.
+Note: This routine will likely be moved to L<Insteon::KeypadLinc|Insteon::Lighting/Insteon::KeypadLinc> at some point.
 
 =cut
 
@@ -2054,7 +2054,7 @@ Generic class implementation of an Insteon Controller.
 
 =head2 INHERITS
 
-B<Generic_Item>
+L<Generic_Item|Generic_Item>
 
 =head2 METHODS
 
@@ -2685,7 +2685,7 @@ Generic class implementation of an Device Controller.
 
 =head2 INHERITS
 
-B<Insteon::BaseController>
+L<Insteon::BaseController|Insteon::BaseInsteon/Insteon::BaseController>
 
 =head2 METHODS
 
@@ -2875,7 +2875,8 @@ Generic class implementation of an Interface Controller.  These are the PLM Scen
 
 =head2 INHERITS
 
-B<Insteon::BaseController>, B<Insteon::BaseObject>
+L<Insteon::BaseController|Insteon::BaseInsteon/Insteon::BaseController>, 
+L<Insteon::BaseObject|Insteon::BaseInsteon/Insteon::BaseObject>
 
 =head2 METHODS
 

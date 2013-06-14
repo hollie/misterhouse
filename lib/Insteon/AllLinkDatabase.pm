@@ -1396,7 +1396,7 @@ not by directly calling any of the following methods.
 
 =head2 INHERITS
 
-B<Insteon::AllLinkDatabase>
+L<Insteon::AllLinkDatabase|Insteon::AllLinkDatabase>
 
 =head2 METHODS
 
@@ -1916,7 +1916,7 @@ sub _on_peek
 =item C<update_local_properties()>
 
 Used to update the local on level and ramp rate of a device.  Called by 
-C<Insteon::BaseInsteon::update_local_properties()>.
+L<Insteon::BaseDevice::update_local_properties()|Insteon::BaseInsteon/Insteon::BaseDevice>.
 
 =cut
 
@@ -1935,7 +1935,7 @@ sub update_local_properties
 
 =item C<update_flags()>
 
-Used to update the flags of a device.  Called by C<Insteon::BaseInsteon::update_flags()>.
+Used to update the flags of a device.  Called by L<Insteon::BaseDevice::update_flags()|Insteon::BaseInsteon/Insteon::BaseDevice>.
 
 =cut
 
@@ -1956,7 +1956,7 @@ sub update_flags
 
 =item C<get_link_record()>
 
-Gets and returns the details of a link.  Called by C<Insteon::BaseInsteon::update_members()>.
+Gets and returns the details of a link.  Called by L<Insteon::BaseController::update_members()|Insteon::BaseInsteon/Insteon::BaseController>.
 
 NOTE - This routine may be obsolete, its parent routine is not called by any code.
 
@@ -2074,7 +2074,7 @@ not by directly calling any of the following methods.
 
 =head2 INHERITS
 
-B<Insteon::AllLinkDatabase>
+L<Insteon::AllLinkDatabase|Insteon::AllLinkDatabase>
 
 =head2 METHODS
 
@@ -2521,7 +2521,7 @@ not by directly calling any of the following methods.
 
 =head2 INHERITS
 
-B<Insteon::AllLinkDatabase>
+L<Insteon::AllLinkDatabase|Insteon::AllLinkDatabase>
 
 =head2 METHODS
 

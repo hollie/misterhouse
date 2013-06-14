@@ -45,7 +45,8 @@ Provides basic support for the EzFlora (aka EzRain) sprinkler controller.
 
 =head2 INHERITS
 
-B<Insteon::DeviceController>, <Insteon::BaseDevice>
+L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>, 
+L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
 
 =head2 METHODS
 
@@ -242,7 +243,7 @@ sub get_timers() {
 =item C<_is_info_request()>
 
 Used to intercept and handle unique EZFlora messages, all others are passed on
-to C<Insteon::BaseObject::_is_info_request()>.
+to C<Insteon::BaseObject::_is_info_request()|Insteon::BaseInsteon/Insteon::BaseObject>.
 
 =cut
 

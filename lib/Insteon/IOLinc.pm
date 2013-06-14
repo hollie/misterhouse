@@ -81,7 +81,8 @@ The relay state will not be accurate if you are using a momentary mode.
 
 =head2 INHERITS
 
-B<Insteon::BaseDevice>, B<Insteon::DeviceController>
+L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>, 
+L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
 
 =head2 METHODS
 
@@ -180,7 +181,7 @@ Works just like C<request_status()> but it requests the status of the sensor.
 Will cause the sensor status to be printed to the log.
 
 As an alternative to calling the function repeatedly, you can define an 
-C<Insteon::IOLinc_sensor> object.
+L<Insteon::IOLinc_sensor|Insteon::IOLincf/Insteon::IOLinc_sensor> object.
 
 =cut
 
@@ -197,7 +198,7 @@ sub request_sensor_status
 
 Checks to see if an incomming message contains the sensor state or the operating
 flags for the device.  If not the message is passed on to 
-C<Insteon::BaseObject::_is_info_requested()>.
+L<Insteon::BaseObject::_is_info_requested()|Insteon::BaseInsteon/Insteon::BaseObject>.
 
 =cut
 
@@ -244,7 +245,7 @@ sub _is_info_request
 =item C<_process_message()>
 
 Checks for and handles unique IOLinc messages such as the momentary time settings. 
-All other messages are transferred to C<Insteon::BaseObject::_process_message()>.
+All other messages are transferred to C<Insteon::BaseObject::_process_message()|Insteon::BaseInsteon/Insteon::BaseObject>.
 
 =cut
 
@@ -487,7 +488,7 @@ mht file with the main IOLinc device defined as the controller.
 
 =head2 INHERITS
 
-B<Generic_Item>
+L<Generic_Item|Generic_Item>
 
 =head2 METHODS
 

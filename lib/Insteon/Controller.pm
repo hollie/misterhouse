@@ -40,7 +40,8 @@ must first be put into "awake mode."
 
 =head2 INHERITS
 
-B<Insteon::BaseDevice>, B<Insteon::DeviceController>
+L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>, 
+L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>, 
 
 =head2 METHODS
 
@@ -214,7 +215,7 @@ sub _is_battery_time_expired {
 =item C<_process_message()>
 
 Checks for and handles unique RemoteLinc messages such as battery voltage messages. 
-All other messages are transferred to C<Insteon::BaseObject::_process_message()>.
+All other messages are transferred to L<Insteon::BaseObject::_process_message()|Insteon::BaseInsteon/Insteon::BaseObject>.
 
 Also checks the battery timer and sends a battery request if needed.
 
@@ -339,7 +340,7 @@ you when the battery is low.
 
 =head2 INHERITS
 
-B<Generic_Item>
+L<Generic_Item|Generic_Item>
 
 =head2 METHODS
 

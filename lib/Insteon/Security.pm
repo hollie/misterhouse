@@ -95,7 +95,7 @@ certain threshold.
 =head2 INHERITS
 
 L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>, 
-B<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
+L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
 
 =head2 METHODS
 

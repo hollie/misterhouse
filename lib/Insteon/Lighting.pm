@@ -6,7 +6,7 @@ A generic base class for all Insteon lighting objects.
 
 =head2 INHERITS
 
-B<Insteon::BaseDevice>
+L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>
 
 =head2 METHODS
 
@@ -84,7 +84,7 @@ A generic base class for all dimmable Insteon lighting objects.
 
 =head2 INHERITS
 
-B<Insteon::BaseLight>
+L<Insteon::BaseLight|Insteon::Lighting/Insteon::BaseLight>
 
 =head2 METHODS
 
@@ -290,7 +290,7 @@ Provides support for the Insteon ApplianceLinc.
 
 =head2 INHERITS
 
-B<Insteon::BaseLight>
+L<Insteon::BaseLight|Insteon::Lighting/Insteon::BaseLight>
 
 =head2 METHODS
 
@@ -373,7 +373,8 @@ Provides support for the Insteon LampLinc.
 
 =head2 INHERITS
 
-B<Insteon::DimmableLight>, B<Insteon::DeviceController>
+L<Insteon::DimmableLight|Insteon::Lighting/Insteon::DimmableLight>, 
+L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
 
 =head2 METHODS
 
@@ -438,7 +439,8 @@ Provides support for the Insteon SwitchLinc Relay.
 
 =head2 INHERITS
 
-B<Insteon::BaseLight>, B<Insteon::DeviceController>
+L<Insteon::BaseLight|Insteon::Lighting/Insteon::BaseLight>,
+L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
 
 =head2 METHODS
 
@@ -521,7 +523,8 @@ Provides support for the Insteon SwitchLinc.
 
 =head2 INHERITS
 
-B<Insteon::DimmableLight>, B<Insteon::DeviceController>
+L<Insteon::DimmableLight|Insteon::Lighting/Insteon::DimmableLight>, 
+L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
 
 =head2 METHODS
 
@@ -556,7 +559,8 @@ sub new
 Handles setting and receiving states from the device.
 
 NOTE - This is just silly, the only thing this routine does is push the set 
-command to the C<Insteon::DeviceController> class.  Simply reording the class 
+command to the L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController> 
+class.  Simply reording the class 
 inheritance of this object would remove the need to do this.
 
 =cut
@@ -607,7 +611,8 @@ Provides support for the Insteon KeypadLinc Relay.
 
 =head2 INHERITS
 
-B<Insteon::BaseLight>, B<Insteon::DeviceController>
+L<Insteon::BaseLight|Insteon::Lighting/Insteon::BaseLight>, 
+L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
 
 =head2 METHODS
 
@@ -718,7 +723,8 @@ Provides support for the Insteon KeypadLinc.
 
 =head2 INHERITS
 
-B<Insteon::DimmableLight>, B<Insteon::DeviceController>
+L<Insteon::DimmableLight|Insteon::Lighting/Insteon::DimmableLight>, 
+L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
 
 =head2 METHODS
 
@@ -830,7 +836,8 @@ Provides support for the Insteon FanLinc.
 
 =head2 INHERITS
 
-B<Insteon::DimmableLight>, B<Insteon::DeviceController>
+L<Insteon::DimmableLight|Insteon::Lighting/Insteon::DimmableLight>, 
+L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
 
 =head2 METHODS
 
@@ -912,7 +919,7 @@ sub set
 =item C<request_status()>
 
 Will request the status of the device.  For the light device, the process is 
-handed off to the C<Insteon::BaseObject::request_status()> routine.  This routine
+handed off to the L<Insteon::BaseObject::request_status()|Insteon::BaseInsteon/Insteon::BaseObject> routine.  This routine
 specifically handles the fan request.
 
 =cut
@@ -991,7 +998,7 @@ sub is_acknowledged
 
 =back
 
-=head2 AUTHOR
+=head2 AUTHOR 
 
 Kevin Robert Keegan 
 
