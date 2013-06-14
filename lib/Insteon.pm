@@ -23,14 +23,14 @@ None
 
 =over
 
-=item Complete Linking as Responder
+=item C<Complete Linking as Responder>
 
 If a device is first placed into linking mode, calling this command will cause
 the PLM to complete the link, thus making the PLM the responder.  The 
 C<Link To Interface> device voice command is likely an easier way to do this, 
 but this may be need for hard to reach devices or deaf devices.
 
-=item Initiate Linking as Controller
+=item C<Initiate Linking as Controller>
 
 Call this first, then press and hold the set button on a device that you wish
 to have the PLM control.  The C<Link To Interface> device voice command is 
@@ -38,23 +38,23 @@ likely an easier way to do this, but this may be need for hard to reach devices
 or deaf devices.  This is also needed for i2cs devices in which the first link
 must currently be manually created this way.
 
-=item Cancel Linking
+=item C<Cancel Linking>
 
 Cancel either of the above two commands without completing a link.
 
-=item Delete Link with PLM
+=item C<Delete Link with PLM>
 
 This does nothing and shoudl be removed.
 
-=item Scan Link Table
+=item C<Scan Link Table>
 
 This will scan and output to the log only the PLM link table.
 
-=item Log Links
+=item C<Log Links>
 
 This will output only the PLM link table to log.
 
-=item Delete Orphan Links
+=item C<Delete Orphan Links>
 
 Misterhouse will review the state of all of the links in your system, as it knows
 them without any additional scanning.  If any of these links are not defined in
@@ -78,23 +78,23 @@ Deleting the orphan links will make your devices happier.  If you have unintende
 links on your devices, they can run slower and may unnecessarily increase the 
 number of messages sent on your network.
 
-=item AUDIT Delete Orphan Links
+=item C<AUDIT Delete Orphan Links>
 
 Does the same thing as C<Delete Orphan Links> but doesn't actually delete anything
 instead it just prints what it would have done to the log.
 
-=item Scan All Device Link Tables
+=item C<Scan All Device Link Tables>
 
 Scans the link tables of the PLM and all devices on your network.  On a large
 network this can take sometime.  You can generally run C<Scan Changed Device Link Tables>
 which is much faster without any issue.
 
-=item Scan Changed Device Link Tables
+=item C<Scan Changed Device Link Tables>
 
 Scans the link tables of the PLM and all devices whose link tables have changed
 on your network.
 
-=item Sync All Links
+=item C<Sync All Links>
 
 Similar to C<Delete Orphan Links> exccept this adds any links that are missing.
 This is helpful when adding a bunch of new devices, new scenes, or cleaning things
@@ -102,12 +102,12 @@ up.
 
 See the workflow described in C<Delete Orphan Links>.
 
-=item AUDIT Sync All Links
+=item C<AUDIT Sync All Links>
 
 Same as C<Sync All Links> but prints what it would do to the log, without doing
 anything else.
 
-=item Log All Device ALDB Status
+=item C<Log All Device ALDB Status>
 
 Logs some details about each device to the log.  See C<log_all_ADLB_status()>
 
@@ -756,11 +756,51 @@ sub check_all_aldb_versions
 	main::print_log("[Insteon] DEBUG4 Checking aldb version of all devices completed") if ($main::Debug{insteon} >= 4);
 }
 
+=back
+
+=head2 INI PARAMETERS
+
+Need to add these
+
+=head2 AUTHOR
+
+Gregg Limming, Kevin Robert Keegan, Micheal Stovenour, many others
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=head1 B<InsteonManager>
+
+=head2 DESCRIPTION
+
+Provides the basic infrastructure for the Insteon stack, contains many of the 
+startup routines.
+
+=head2 INHERITS
+
+L<Class::Singleton|Class::Singleton>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 package InsteonManager;
 
 use strict;
 use base 'Class::Singleton';
+
+=item C<_new_instance()>
+
+Defines a new instance of the class.
+
+=cut
 
 sub _new_instance
 {
@@ -769,6 +809,13 @@ sub _new_instance
 
 	return $self;
 }
+
+=item C<_active_interface()>
+
+Sets and returns the active interface.  Likely should only be caled on startup
+or reload.  It also sets all of the hooks for the Insteon stack.
+
+=cut
 
 sub _active_interface
 {
@@ -786,6 +833,12 @@ sub _active_interface
    $$self{active_interface} = $interface if $interface;
    return $$self{active_interface};
 }
+
+=item C<add()>
+
+Adds a list of objects to be tracked.
+
+=cut
 
 sub add
 {
@@ -805,6 +858,12 @@ sub add
 	}
 }
 
+=item C<add()>
+
+Adds an object to be tracked.
+
+=cut
+
 sub add_item
 {
    my ($self,$p_object) = @_;
@@ -816,6 +875,12 @@ sub add_item
    return $p_object;
 }
 
+=item C<remove_all_items()>
+
+Removes all of the Insteon objects.
+
+=cut
+
 sub remove_all_items {
    my ($self) = @_;
 
@@ -826,6 +891,12 @@ sub remove_all_items {
    }
    delete $self->{objects};
 }
+
+=item C<add_item_if_not_present()>
+
+Adds an item to be tracked if it is not already in the list.
+
+=cut
 
 sub add_item_if_not_present {
    my ($self, $p_object) = @_;
@@ -841,6 +912,12 @@ sub add_item_if_not_present {
    return 1;
 }
 
+=item C<remove_item()>
+
+Removes the Insteon object.
+
+=cut
+
 sub remove_item {
    my ($self, $p_object) = @_;
    return 0 unless $p_object and ref $p_object;
@@ -855,6 +932,11 @@ sub remove_item {
    return 0;
 }
 
+=item C<is_member()>
+
+Returns true if object is in the list.
+
+=cut
 
 sub is_member {
     my ($self, $p_object) = @_;
@@ -867,6 +949,13 @@ sub is_member {
     }
     return 0;
 }
+
+=item C<find_members(p_type)>
+
+Find and return all tracked objects of type p_type where p_type is an object
+class.
+
+=cut
 
 sub find_members {
 	my ($self,$p_type) = @_;
@@ -895,7 +984,7 @@ For debugging debug=insteon or debug=insteon:level where level is 1-4.
 
 =head1 AUTHOR
 
-Bruce Winter
+Bruce Winter, Gregg Liming, Kevin Robert Keegan, Michael Stovenour, many others
 
 =head1 SEE ALSO
 
