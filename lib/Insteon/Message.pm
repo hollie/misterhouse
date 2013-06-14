@@ -332,6 +332,7 @@ L<Insteon::BaseMessage|Insteon::Message/Insteon::BaseMessage>
 
 =over
 
+=cut
 
 package Insteon::InsteonMessage;
 use strict;
