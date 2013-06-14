@@ -131,8 +131,8 @@ foreach my $libsubdir ( keys %libsubdirs ) {
 	        pod2html(
 	            "--title=$lib",        "--infile=$libfile",
 	            "--outfile=$htmlfile", "--header",
-	            "--htmlroot=/docs",    "--htmldir=$htmldir/..",
-	            "--podroot=$docdir",   "--podpath=.",
+	            "--htmlroot=/docs/lib",    "--htmldir=$htmldir/",
+	            "--podroot=../lib",   "--podpath=.",
 	            "--css=/lib/pod.css",
 	        );
 	    }
