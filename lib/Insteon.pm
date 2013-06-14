@@ -6,22 +6,169 @@ use strict;
 
 #@ This module creates voice commands for all insteon related items.
 
-=head1 NAME
+=head1 B<Insteon>
 
-B<Insteon> - This module .....
+=head2 DESCRIPTION
 
-=head1 SYNOPSIS
+Provides the basic infrastructure for the Insteon stack, contains many of the 
+startup routines.
 
+=head2 INHERITS
 
-=head1 DESCRIPTION
+None
 
+=head2 VOICE COMMANDS
 
-=head1 INHERITS
+=head3 PLM
 
-This module inherits nothing
+=over
 
+=item Complete Linking as Responder
 
-=head1 METHODS
+If a device is first placed into linking mode, calling this command will cause
+the PLM to complete the link, thus making the PLM the responder.  The 
+C<Link To Interface> device voice command is likely an easier way to do this, 
+but this may be need for hard to reach devices or deaf devices.
+
+=item Initiate Linking as Controller
+
+Call this first, then press and hold the set button on a device that you wish
+to have the PLM control.  The C<Link To Interface> device voice command is 
+likely an easier way to do this, but this may be need for hard to reach devices 
+or deaf devices.  This is also needed for i2cs devices in which the first link
+must currently be manually created this way.
+
+=item Cancel Linking
+
+Cancel either of the above two commands without completing a link.
+
+=item Delete Link with PLM
+
+This does nothing and shoudl be removed.
+
+=item Scan Link Table
+
+This will scan and output to the log only the PLM link table.
+
+=item Log Links
+
+This will output only the PLM link table to log.
+
+=item Delete Orphan Links
+
+Misterhouse will review the state of all of the links in your system, as it knows
+them without any additional scanning.  If any of these links are not defined in
+your mht file or the links are only half links (controller with no responder or
+vice versa) MisterHouse will delete these links.
+
+It is usually best to:
+
+1. Run C<Scan Changed Device Link Tables> first unless you know that the
+information in MisterHouse is up-to-date.
+
+2. Run C<AUDIT Sync All Links> and verify that what is being added is correct.
+
+3. Run C<Sync All Links> to add the links
+
+4. Run C<AUDIT Delete Orphan Links> first to see what will happen.
+
+5. If everything looks right, run C<Delete Orphan Links> to clean up the old links
+
+Deleting the orphan links will make your devices happier.  If you have unintended
+links on your devices, they can run slower and may unnecessarily increase the 
+number of messages sent on your network.
+
+=item AUDIT Delete Orphan Links
+
+Does the same thing as C<Delete Orphan Links> but doesn't actually delete anything
+instead it just prints what it would have done to the log.
+
+=item Scan All Device Link Tables
+
+Scans the link tables of the PLM and all devices on your network.  On a large
+network this can take sometime.  You can generally run C<Scan Changed Device Link Tables>
+which is much faster without any issue.
+
+=item Scan Changed Device Link Tables
+
+Scans the link tables of the PLM and all devices whose link tables have changed
+on your network.
+
+=item Sync All Links
+
+Similar to C<Delete Orphan Links> exccept this adds any links that are missing.
+This is helpful when adding a bunch of new devices, new scenes, or cleaning things
+up.
+
+See the workflow described in C<Delete Orphan Links>.
+
+=item AUDIT Sync All Links
+
+Same as C<Sync All Links> but prints what it would do to the log, without doing
+anything else.
+
+=item Log All Device ALDB Status
+
+Logs some details about each device to the log.  See C<log_all_ADLB_status()>
+
+=back
+
+=head3 Devices
+
+=over
+
+=item on
+
+Turns the device on.
+
+=item off
+
+Turns the device off.
+
+=item Sync Links
+
+Similar to C<Sync All Links> above, but this will only add links that are related
+to this device.  Useful when adding a new device.
+
+=item Link to Interface
+
+Will create the controller/responder links between the device and the PLM.
+
+=item Unlink with Interface
+
+Will delete the controller/responder links between the device and the PLM.  
+Useful if you are removing a device from your network.
+
+=item Status
+
+Requests the status of the device.
+
+=item Get Engine Version
+
+Requests the engine version of the device.  Generally you would not need to call
+this, but every now and then it is needed when a new device is installed.
+
+=item Scan Link Table
+
+This will scan and output to the log only the link table of this device.
+
+=item Log Links
+
+Will output to the log only the link table of this device.
+
+=item Initiate Linking as Controller
+
+Generally only available for PLM Scenes.  This places the PLM in linking mode
+and adds any device which the set button is pressed for 4 seconds as a responder
+to this scene.  Generally not needed.
+
+=item Cancel Linking
+
+Cancels the above linking session without creating a link.
+
+=back
+
+=head2 METHODS
 
 =over
 
@@ -93,6 +240,13 @@ sub scan_all_linktables
         &_get_next_linkscan($skip_unchanged);
 }
 
+=item C<_get_next_linkscan_failure()>
+
+Called if a the scanning of a device fails.  Logs the failure and proceeds to 
+the next device.
+
+=cut
+
 sub _get_next_linkscan_failure
 {
 	my($skip_unchanged) = @_;
@@ -102,6 +256,12 @@ sub _get_next_linkscan_failure
         &_get_next_linkscan($skip_unchanged);
 
 }
+
+=item C<_get_next_linkscan()>
+
+Gets the next device to scan.
+
+=cut
 
 sub _get_next_linkscan
 {
@@ -313,6 +473,11 @@ sub log_all_ADLB_status
 	}
 }
 
+=item C<init()>
+
+Initiates the insteon stack, mostly just sets the trigger. 
+
+=cut
 
 sub init {
 
@@ -356,6 +521,15 @@ sub init {
     @_insteon_link = ();
 
 }
+
+=item C<generate_voice_commands()>
+
+Generates and sets the voice commands for all Insteon devices.
+
+Note: At some point, this function will be pushed out to the specific classes
+so that each class can have its own unique set of voice commands.
+
+=cut
 
 sub generate_voice_commands
 {
@@ -455,6 +629,13 @@ sub generate_voice_commands
     package Insteon;
 }
 
+=item C<add(object)>
+
+Adds object to the list of insteon objects that are managed by the stack.  Makes
+the object eligible for linking, scanning, and global functions.
+
+=cut
+
 sub add
 {
    my ($object) = @_;
@@ -466,6 +647,12 @@ sub add
    $insteon_manager->add_item($object);
 }
 
+=item C<find_members(name)>
+
+Called as a non-object routine.  Returns the object named name.
+
+=cut
+
 sub find_members
 {
    my ($name) = @_;
@@ -474,6 +661,13 @@ sub find_members
    return $insteon_manager->find_members($name);
 }
 
+=item C<get_object(p_id[, p_group])>
+
+Returns the object identified by p_id and p_group.  Where p_id is the 6 digit
+hexadecimal address of the object without periods and group is a two digit
+representation of the group number of the device.
+
+=cut
 
 sub get_object
 {
@@ -508,6 +702,13 @@ sub get_object
 
 	return $retObj;
 }
+
+=item C<active_interface(p_interface)>
+
+Sets p_interface as the new active interface.  Should likely only be called on
+startup or reload.
+
+=cut
 
 sub active_interface
 {
