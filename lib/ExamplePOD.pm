@@ -10,7 +10,7 @@
 
 =head2 INHERITS
 
-B<---Inherited Items--->
+L<---Inherited Items--->
 
 =head2 METHODS
 
