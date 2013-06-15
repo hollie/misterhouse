@@ -139,10 +139,21 @@ sub set
 	#Commands sent by the IOLinc itself represent the sensor
 	#Commands sent by MH to IOLinc represent the relay
 	if (ref $p_setby && $p_setby->isa('Insteon::BaseObject') && $p_setby->equals($self)){
-		::print_log("[Insteon::IOLinc] Received ". $self->get_object_name
-			. " sensor " . $p_state . " message.");
-		if (ref $$self{child_sensor}){
-			$$self{child_sensor}->set_receive($p_state, $p_setby, $p_respond);
+		my $curr_milli = sprintf('%.0f', &main::get_tickcount);
+		my $window = 1000;
+		if ($p_state eq $$self{child_state} &&
+			($curr_milli - $$self{child_set_milliseconds} < $window)) {
+			::print_log("[Insteon::IOLinc] Received duplicate ". $self->get_object_name
+				. " sensor " . $p_state . " message, ignoring.") if $main::Debug{insteon};
+		}
+		else {
+			::print_log("[Insteon::IOLinc] Received ". $self->get_object_name
+				. " sensor " . $p_state . " message.") if $main::Debug{insteon};
+			$$self{child_state} = $p_state;
+			$$self{child_set_milliseconds} = $curr_milli;
+			if (ref $$self{child_sensor}){
+				$$self{child_sensor}->set_receive($p_state, $p_setby, $p_respond);
+			}
 		}
 	}
 	else {
