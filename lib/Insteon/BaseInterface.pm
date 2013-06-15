@@ -854,6 +854,22 @@ sub _is_duplicate_received {
 
 =back
 
+=head2 INI PARAMETERS
+
+=over
+
+=item Insteon_PLM_scan_at_startup
+
+By default, MisterHouse will scan all devices at startup.  This scan involves
+asking each device for its current state and asking each device for its engine
+version.  In a larger network this can take a few seconds to complete and it does
+send a lot of messages all at once, but polling at startup is a good way to make
+sure that MisterHouse has an accurate understanding of the network.
+
+If set to false, will disable the scan at startup.
+
+=back
+
 =head2 AUTHOR
 
 Gregg Liming / gregg@limings.net, Kevin Robert Keegan, Michael Stovenour

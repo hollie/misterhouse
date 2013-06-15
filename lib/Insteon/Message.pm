@@ -304,6 +304,17 @@ sub to_string
 
 =back
 
+=head2 INI PARAMETERS
+
+=over
+
+=item Insteon_retry_count
+
+Sets the number of times MisterHouse will attempt to resend a message that has
+not been acknowledged.  The default setting is 5.
+
+=back
+
 =head2 AUTHOR
 
 Gregg Limming, Kevin Robert Keegan

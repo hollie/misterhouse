@@ -1006,9 +1006,17 @@ sub failure_reason
 
 =head2 INI PARAMETERS
 
-Insteon_PLM_max_queue_time - Was previously used to set the maximum amount of time
+=over 
+
+=item Insteon_PLM_max_queue_time
+
+Was previously used to set the maximum amount of time
 a message could remain in the queue.  This parameter is no longer used in the code
-but it still appears in the initialization.  It may be removed at a future date.
+but it still appears in the initialization.  It may be removed at a future date.  
+This also gets set in L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>
+as well for some reason, but is not used there either.
+
+=back
 
 =head2 AUTHOR
 
@@ -2023,6 +2031,20 @@ sub check_aldb_version
 		package Insteon::BaseDevice;
 	}
 }
+
+=back
+
+=head2 INI PARAMETERS
+
+=over 
+
+=item Insteon_PLM_max_queue_time
+
+Was previously used to set the maximum amount of time
+a message could remain in the queue.  This parameter is no longer used in the code
+but it still appears in the initialization.  It may be removed at a future date.  
+This also gets set in L<Insteon::BaseObject|Insteon::BaseInsteon/Insteon::BaseObject>
+as well for some reason, but is not used there either.
 
 =back
 

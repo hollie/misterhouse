@@ -311,10 +311,10 @@ calling the device's sync_links() command.  sync_all_links() loads up the module
 global variable @_sync_devices then kicks off the recursive call backs by calling
 _get_next_linksync.
 
-=item B<Parameter: audit_mode> - Causes sync to walk through but not actually 
+Paramter B<audit_mode> - Causes sync to walk through but not actually 
 send any commands to the devices.  Useful with the insteon:3 debug setting for 
 troubleshooting. 
- 
+
 =cut
 
 sub sync_all_links
@@ -416,23 +416,38 @@ sub _get_next_linksync_failure
 }
 
 
+
 =item C<log_all_ADLB_status()>
 
 Walks through every Insteon device and logs:
 
-=over(8)
+=back
 
-- Hop Count
+=over8
 
-- Engine Version
+=item * 
 
-- ALDB Type
+Hop Count
 
-- ALDB Health
+=item * 
 
-- ALDB Scan Time
+Engine Version
+
+=item * 
+
+ALDB Type
+
+=item * 
+
+ALDB Health
+
+=item * 
+
+ALDB Scan Time
 
 =back
+
+=over
 
 =cut
 
@@ -760,7 +775,14 @@ sub check_all_aldb_versions
 
 =head2 INI PARAMETERS
 
-Need to add these
+=over 
+
+=item insteon_menu_states
+
+A comma seperated list of states that will be added as voice commands to dimmable
+devices.
+
+=back
 
 =head2 AUTHOR
 
@@ -972,7 +994,7 @@ sub find_members {
 
 =back
 
-=head1 INI PARAMETERS
+=head2 INI PARAMETERS
 
 =over
 
@@ -982,15 +1004,15 @@ For debugging debug=insteon or debug=insteon:level where level is 1-4.
 
 =back
 
-=head1 AUTHOR
+=head2 AUTHOR
 
 Bruce Winter, Gregg Liming, Kevin Robert Keegan, Michael Stovenour, many others
 
-=head1 SEE ALSO
+=head2 SEE ALSO
 
 None
 
-=head1 LICENSE
+=head2 LICENSE
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
