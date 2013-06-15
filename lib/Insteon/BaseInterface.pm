@@ -1,3 +1,18 @@
+=head1 B<Insteon::BaseInterface>
+
+=head2 SYNOPSIS
+
+Provides support for the Insteon Interface.
+
+=head2 INHERITS
+
+L<Class::Singleton|Class::Singleton>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 package Insteon::BaseInterface;
 
@@ -5,11 +20,31 @@ use strict;
 use Insteon::Message;
 @Insteon::BaseInterface::ISA = ('Class::Singleton');
 
+=item C<check_for_data>
+
+Locates the active_interface from the main Insteon class and calls 
+C<check_for_data> on it.  Called once per loop to get data from the PLM.
+
+=cut
+
 sub check_for_data
 {
    my $interface = &Insteon::active_interface();
    $interface->check_for_data();
 }
+
+=item C<poll_all>
+
+Called on startup or reload.  Will always request and print the plm_info, which 
+contains the PLM revision number, to the log on startup.
+
+If Insteon_PLM_scan_at_startup is set to 1 in the ini file, this routine will poll
+all insteon devices and request their current state.  Useful for making sure that
+no devices changed their state while MisterHouse was off.  Will also call 
+L<Insteon::BaseObject::get_engine_version|Insteon::BaseInsteon/Insteon::BaseObject> on each device to ensure that
+the proper ALDB object is created for them.
+
+=cut
 
 sub poll_all
 {
@@ -45,6 +80,12 @@ sub poll_all
       }
 }
 
+=item C<new()>
+
+Instantiate a new object.
+
+=cut
+
 sub new
 {
 	my ($class) = @_;
@@ -58,6 +99,12 @@ sub new
 #   	$self->debug(0) unless $self->debug;
 	return $self;
 }
+
+=item C<equals([object])>
+
+Returns 1 if object is the same as $self, otherwise returns 0.
+
+=cut
 
 sub equals
 {
@@ -77,6 +124,12 @@ sub equals
         }
 }
 
+=item C<_is_duplicate(cmd)>
+
+Returns true if cmd already exists in the command stack.
+
+=cut
+
 sub _is_duplicate
 {
 	my ($self, $cmd) = @_;
@@ -94,6 +147,13 @@ sub _is_duplicate
 	return $duplicate_detected;
 }
 
+=item C<has_link(link_details)>
+
+If a device has an ALDB, passes link_details onto one of the has_link() routines
+within L<Insteon::AllLinkDatabase|Insteon::AllLinkDatabase>.  Generally called as part of C<delete_orphan_links()>.
+
+=cut
+
 sub has_link
 {
 	my ($self, $insteon_object, $group, $is_controller, $subaddress) = @_;
@@ -103,6 +163,14 @@ sub has_link
         }
 	return 0;
 }
+
+=item C<add_link(link_params)>
+
+If a device has an ALDB, passes link_details onto one of the add_link() routines
+within L<Insteon::AllLinkDatabase|Insteon::AllLinkDatabase>.  Generally called from the "sync links" or 
+"link to interface" voice commands.
+
+=cut
 
 sub add_link
 {
@@ -123,6 +191,13 @@ sub add_link
         }
 }
 
+=item C<delete_link([link details])>
+
+If a device has an ALDB, passes link_details onto one of the delete_link() routines
+within L<Insteon::AllLinkDatabase|Insteon::AllLinkDatabase>.  Generally called by C<delete_orphan_links()>.
+
+=cut
+
 sub delete_link
 {
 	my ($self, $parms_text) = @_;
@@ -142,6 +217,12 @@ sub delete_link
         }
 }
 
+=item C<active_message([msg])>
+
+Optionally stores, and returns the message currently being processed by the interface.
+
+=cut
+
 sub active_message
 {
 	my ($self, $message) = @_;
@@ -152,6 +233,13 @@ sub active_message
         return $$self{active_message};
 }
 
+=item C<clear_active_message()>
+
+Clears the message currently being processed by the interface, and sets the
+transmit in progress flag to false.
+
+=cut
+
 sub clear_active_message
 {
 	my ($self) = @_;
@@ -159,11 +247,24 @@ sub clear_active_message
 	$self->transmit_in_progress(0);
 }
 
+=item C<retry_active_message()>
+
+Sets the transmit in progress flag to false.
+
+=cut
+
 sub retry_active_message
 {
 	my ($self) = @_;
 	$self->transmit_in_progress(0);
 }
+
+=item C<transmit_in_progress([xmit_flag])>
+
+Sets the transmit in progress flag to xmit_flag, returns true if xmit_flag
+true or xmit timout has not elapsed.
+
+=cut
 
 sub transmit_in_progress
 {
@@ -176,6 +277,15 @@ sub transmit_in_progress
         #   adequate time to elapse
         return $$self{xmit_in_progress} || ($self->_check_timeout('xmit')==0);
 }
+
+=item C<queue_message([msg])>
+
+If no msg is passed, returns the queue length.
+
+Msg is optionally a message, if sent is added to the message queue.  
+C<process_queue()> is then called.
+
+=cut
 
 sub queue_message
 {
@@ -205,6 +315,17 @@ sub queue_message
         # and, begin processing either this entry or the oldest one in the queue
         $self->process_queue();
 }
+
+=item C<process_queue()>
+
+If C<transmit_in_progress()> is true returns queue size.
+
+If there is a pending message, will leave it as active_message.  If retries are 
+exceeded, will log an error, clear the message, and call the message failure_callback.
+
+Else, will pull a message from the queue and place it as the active_message.
+
+=cut
 
 sub process_queue
 {
@@ -278,11 +399,27 @@ sub process_queue
 	return $command_queue_size;
 }
 
+=item C<device_id([id])>
+
+Used to store and return the associated device_id of a device.
+
+If provided, stores id as the device's id.
+
+Returns device id without any delimiters.
+
+=cut
+
 sub device_id {
 	my ($self, $p_deviceid) = @_;
 	$$self{deviceid} = $p_deviceid if defined $p_deviceid;
 	return $$self{deviceid};
 }
+
+=item C<restore_string()>
+
+This is called by mh on exit to save the cached ALDB of a device to persistant data.
+
+=cut
 
 sub restore_string
 {
@@ -292,6 +429,12 @@ sub restore_string
 	return $restore_string;
 }
 
+=item C<restore_linktable()>
+
+Used to reload the link table of a device on restart.
+
+=cut
+
 sub restore_linktable
 {
 	my ($self,$aldb) = @_;
@@ -300,6 +443,13 @@ sub restore_linktable
 	}
 }
 
+=item C<log_alllink_table()>
+
+Prints a human readable form of MisterHouse's cached version of a device's ALDB
+to the print log.  Called as part of the "scan links" voice command
+or in response to the "log links" voice command.
+
+=cut
 
 sub log_alllink_table
 {
@@ -307,15 +457,33 @@ sub log_alllink_table
         $self->_aldb->log_alllink_table if $self->_aldb;
 }
 
+=item C<delete_orphan_links(audit_mode)>
+
+Reviews the cached version of all of the ALDBs and based on this review removes
+links from this device which are not present in the mht file, not defined in the 
+code, or links which are only half-links.
+
+If audit_mode is true, prints the actions that would be taken to the log, but 
+does nothing.
+
+=cut
+
 sub delete_orphan_links
 {
 	my ($self, $audit_mode) = @_;
         return $self->_aldb->delete_orphan_links($audit_mode) if $self->_aldb;
 }
 
-  ######################
- ### EVENT HANDLERS ###
 ######################
+### EVENT HANDLERS ###
+######################
+
+=item C<on_interface_info_received>
+
+Called to process the plm_info request sent by the C<poll_all()> command.
+Prints output to log.
+
+=cut
 
 sub on_interface_info_received
 {
@@ -326,6 +494,13 @@ sub on_interface_info_received
         $self->clear_active_message();
 }
 
+=item C<on_standard_insteon_received>
+
+Called to process standard length insteon messages.  The routine is rather complex
+some messsages are processed right here.  The majority are passed off to the
+C<_is_info_request()> and C<_process_message()> routines for each device.
+
+=cut
 
 sub on_standard_insteon_received
 {
@@ -479,6 +654,14 @@ sub on_standard_insteon_received
 	}
 }
 
+=item C<on_standard_insteon_received>
+
+Called to process extended length insteon messages.  The majority of messages are 
+passed off to the C<_process_message()> routines for each device.
+
+=cut
+
+
 sub on_extended_insteon_received
 {
         my ($self, $message_data) = @_;
@@ -529,9 +712,17 @@ sub on_extended_insteon_received
 
 }
 
-  #################################
- ### INTERNAL METHODS/FUNCTION ###
 #################################
+### INTERNAL METHODS/FUNCTION ###
+#################################
+
+=item C<_set_timeout(timeout_name, timeout_millis)>
+
+Sets an internal variable, timeout_name, the current time plus the number of 
+milliseconds specified by timeout_millis.
+
+=cut
+
 
 sub _set_timeout
 {
@@ -541,11 +732,17 @@ sub _set_timeout
 	$$self{"_timeout_$timeout_name"} = $tickcount;
 }
 
-#
-# return -1 if timeout_name does not match an existing timer
-# return 0 if timer has not expired
-# return 1 if timer has expired
-#
+=item C<_check_timeout(timeout_name)>
+
+Checks to see if the current number of milliseconds has exceeded the number of
+milliseconds defined in timeout_name, which was set by C<_set_timeout()>.
+
+return -1 if timeout_name does not match an existing timer
+return 0 if timer has not expired
+return 1 if timer has expired
+
+=cut
+
 sub _check_timeout
 {
 	my ($self, $timeout_name) = @_;
@@ -556,11 +753,22 @@ sub _check_timeout
 	return ($current_tickcount > $$self{"_timeout_$timeout_name"}) ? 1 : 0;
 }
 
+=item C<_check_timeout(timeout_name)>
+
+Erases timeout_name, which was set by C<_set_timeout()>.
+
+=cut
 sub _clear_timeout
 {
 	my ($self, $timeout_name) = @_;
 	$$self{"_timeout_$timeout_name"} = undef;
 }
+
+=item C<_aldb()>
+
+Returns the ALDB object associated with the device.
+
+=cut
 
 sub _aldb
 {
@@ -568,20 +776,26 @@ sub _aldb
    return $$self{aldb};
 }
 
-# This function attempts to identify erroneous duplicative incoming messages 
-# while still permitting identical messages to arrive in close proximity.  For 
-# example, a valid identical message is the ACK of an extended aldb read which 
-# is always 2F00.
-#
-# Messages are deemed to be identical if, excluding the max_hops and hops_left
-# bits, they are otherwise the same.  Identical messages are deemed to be 
-# erroneous if they are received within a calculated message window, $delay.  
-#
-# The message window is calculated depending on whether the PLM is sending an ACK.
-#
+=item C<_is_duplicate_received()>
 
-# Returns 1 if the received message is a duplicate message
-# See discussion at: https://github.com/hollie/misterhouse/issues/169
+This function attempts to identify erroneous duplicative incoming messages 
+while still permitting identical messages to arrive in close proximity.  For 
+example, a valid identical message is the ACK of an extended aldb read which 
+is always 2F00.
+
+Messages are deemed to be identical if, excluding the max_hops and hops_left
+bits, they are otherwise the same.  Identical messages are deemed to be 
+erroneous if they are received within a calculated message window, $delay.  
+
+The message window is calculated based on the amount of time that should have
+elapsed before a subsequent identical message could have been received..
+
+Returns 1 if the received message is an erroneous duplicate message
+
+See discussion at: https://github.com/hollie/misterhouse/issues/169
+
+=cut
+
 sub _is_duplicate_received {
 	my ($self, $message_data, %msg) = @_;
 	my $is_duplicate;
@@ -637,5 +851,37 @@ sub _is_duplicate_received {
 	}
 	return $is_duplicate;
 }
+
+=back
+
+=head2 INI PARAMETERS
+
+=over
+
+=item Insteon_PLM_scan_at_startup
+
+By default, MisterHouse will scan all devices at startup.  This scan involves
+asking each device for its current state and asking each device for its engine
+version.  In a larger network this can take a few seconds to complete and it does
+send a lot of messages all at once, but polling at startup is a good way to make
+sure that MisterHouse has an accurate understanding of the network.
+
+If set to false, will disable the scan at startup.
+
+=back
+
+=head2 AUTHOR
+
+Gregg Liming / gregg@limings.net, Kevin Robert Keegan, Michael Stovenour
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 
 1

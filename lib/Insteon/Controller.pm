@@ -40,7 +40,8 @@ must first be put into "awake mode."
 
 =head2 INHERITS
 
-B<Insteon::BaseDevice>, B<Insteon::DeviceController>
+L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>, 
+L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>, 
 
 =head2 METHODS
 
@@ -62,6 +63,12 @@ my %message_types = (
 	extended_set_get => 0x2e
 );
 
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
+
 sub new
 {
 	my ($class,$p_deviceid,$p_interface) = @_;
@@ -75,6 +82,15 @@ sub new
 	bless $self,$class;
 	return $self;
 }
+
+=item C<set(state[,setby,response])>
+
+Handles messages received from the device.  Ignores attempts to set the same state
+in less than 1 second.  (This can likely be removed as the same process exists
+now in BaseInsteon set_receive.)  If this is not a duplicate message calls 
+C<set_receive()>.
+
+=cut
 
 sub set
 {
@@ -180,6 +196,12 @@ sub set_battery_timer {
 	return;
 }
 
+=item C<_is_battery_time_expired()>
+
+Returns true if the battery timer has expired, else returns false.
+
+=cut
+
 sub _is_battery_time_expired {
 	my ($self) = @_;
 	my $root = $self->get_root();
@@ -189,6 +211,15 @@ sub _is_battery_time_expired {
 	}
 	return 0;
 }
+
+=item C<_process_message()>
+
+Checks for and handles unique RemoteLinc messages such as battery voltage messages. 
+All other messages are transferred to L<Insteon::BaseObject::_process_message()|Insteon::BaseInsteon/Insteon::BaseObject>.
+
+Also checks the battery timer and sends a battery request if needed.
+
+=cut
 
 sub _process_message {
 	my ($self,$p_setby,%msg) = @_;
@@ -263,6 +294,18 @@ sub is_responder
 
 =back
 
+=head2 AUTHOR
+
+Gregg Liming / gregg@limings.net, Kevin Robert Keegan
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
 =head1 B<Insteon::RemoteLinc_Battery>
 
 =head2 SYNOPSIS
@@ -293,7 +336,7 @@ you when the battery is low.
 
 =head2 INHERITS
 
-B<Generic_Item>
+L<Generic_Item|Generic_Item>
 
 =head2 METHODS
 
@@ -306,6 +349,12 @@ use strict;
 
 @Insteon::RemoteLinc_Battery::ISA = ('Generic_Item');
 
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
+
 sub new {
 	my ($class, $parent) = @_;
 	my $self = new Generic_Item();
@@ -315,6 +364,13 @@ sub new {
 	return $self;
 }
 
+=item C<set_receive()>
+
+Receives voltage messages from the parent object and sets the state of this 
+device accordingly.
+
+=cut
+
 sub set_receive {
 	my ($self, $p_state) = @_;
 	$self->SUPER::set($p_state);
@@ -322,17 +378,9 @@ sub set_receive {
 
 =back
 
-=head2 INI PARAMETERS
-
-None.
-
 =head2 AUTHOR
 
-Bruce Winter, Gregg Limming, Kevin Robert Keegan
-
-=head2 SEE ALSO
-
-
+Kevin Robert Keegan
 
 =head2 LICENSE
 

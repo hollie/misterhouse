@@ -1,26 +1,33 @@
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-File:
-	AllLinkDatabase.pm
-
-Description:
-	Generic class implementation of an insteon device's all link database.
-
-Author(s):
-	Gregg Liming / gregg@limings.net
-
-License:
-	This free software is licensed under the terms of the GNU public license.
-
-
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-=cut
-
-
 package Insteon::AllLinkDatabase;
 
+=head1 B<Insteon::AllLinkDatabase>
+
+=head2 SYNOPSIS
+
+Generic class implementation of an insteon device's all link database.
+
+=head2 DESCRIPTION
+
+Generally this object should be interacted with through the insteon objects and 
+not by directly calling any of the following methods.
+
+=head2 INHERITS
+
+None
+
+=head2 METHODS
+
+=over
+
+=cut
+
 use strict;
+
+=item C<new()>
+
+Instantiate a new object.
+
+=cut
 
 sub new
 {
@@ -39,6 +46,16 @@ sub _send_cmd
    $$self{device}->_send_cmd($msg);
 }
 
+=item C<aldb_version([i1|i2])>
+
+Used to track the ALDB version type.
+
+If provided, saves version to memory.
+
+Returns the saved version type.
+
+=cut
+
 sub aldb_version
 {
 	my ($self, $aldb_version) = @_;
@@ -46,16 +63,32 @@ sub aldb_version
 	return $$self{aldb_version};
 }
 
+=item C<health([out-of-sync|unknown|empty|good])>
+
+Used to track the health of MisterHouse's copy of a device's ALDB.
+
+If provided, saves status to memory.
+
+Returns the saved health status.
+
+=cut
+
 sub health
 {
-	# out-of-sync
-	# unknown
-        # empty
-        # good
 	my ($self, $health) = @_;
         $$self{health} = $health if defined $health;
         return $$self{health};
 }
+
+=item C<scandatetime([seconds])>
+
+Used to track the time, in unix time seconds, of the last ALDB scan.
+
+If provided, saves the time to memory.
+
+Returns the time of the last ALDB scan.
+
+=cut
 
 sub scandatetime
 {
@@ -64,12 +97,40 @@ sub scandatetime
         return $$self{scandatetime};
 }
 
+=item C<aldb_delta([hex])>
+
+Used to track the ALDB Delta.  The ALDB Delta starts at 00 and iterates
++1 for each change to a device's ALDB.  The ALDB Delta will be reset to 00 
+whenever power is lost to the device or if the device is factory reset.
+
+If provided, saves the hex value to memory. (This should likely only be done by
+C<query_aldb_delta()>)
+
+Returns the current ALDB Delta.
+
+=cut
+
 sub aldb_delta
 {
         my ($self, $p_aldb_delta) = @_;
         $$self{aldb_delta} = $p_aldb_delta if defined($p_aldb_delta);  
         return $$self{aldb_delta};
 }
+
+=item C<query_aldb_delta([check|set])>
+
+Interacts with the device's ALDB Delta.
+
+If called with "check", MisterHouse will query the device to obtain the current
+ALDB Delta.  If the ALDB Delta matches the version stored in C<aldb_delta> 
+MisterHouse will eval the code stored in C<$self->{_aldb_unchanged_callback}>.
+If the ALDB Delta does not match, MisterHouse will eval the code stored in
+C<$self->{_aldb_changed_callback}>.
+
+If called with "set" will cause MisterHouse to query the device for its ALDB
+Delta and will store it with C<aldb_delta>.
+
+=cut
 
 sub query_aldb_delta
 {
@@ -106,6 +167,12 @@ sub query_aldb_delta
         	$self->_send_cmd($message);
         }
 }
+
+=item C<restore_string()>
+
+This is called by mh on exit to save the cached ALDB of a device to persistant data.
+
+=cut
 
 sub restore_string
 {
@@ -158,6 +225,12 @@ sub restore_string
 	return $restore_string;
 }
 
+=item C<restore_aldb()>
+
+Used to reload MisterHouse's cached version of a device's ALDB on restart.
+
+=cut
+
 sub restore_aldb
 {
 	my ($self,$aldb) = @_;
@@ -203,6 +276,12 @@ sub restore_aldb
 	}
 }
 
+=item C<scan_link_table()>
+
+Scans a device's link table and caches a copy.
+
+=cut
+
 sub scan_link_table
 {
 	my ($self,$success_callback,$failure_callback) = @_;
@@ -217,6 +296,12 @@ sub scan_link_table
 		$self->send_read_aldb('0000');
 	}
 }
+
+=item C<delete_link([link details])>
+
+Deletes a specific link from a device.  Generally called by C<delete_orphan_links()>.
+
+=cut
 
 sub delete_link
 {
@@ -315,6 +400,14 @@ sub delete_link
 		}
 	}
 }
+
+=item C<delete_orphan_links()>
+
+Reviews the cached version of all of the ALDBs and based on this review removes
+links from this device which are not present in the mht file, not defined in the 
+code, or links which are only half-links..
+
+=cut
 
 sub delete_orphan_links
 {
@@ -768,6 +861,12 @@ sub _process_delete_queue {
 	}
 }
 
+=item C<add_duplicate_link_address([address])>
+
+Adds address to the duplicate link hash. Called as part of C<scan_link_table()>.
+
+=cut
+
 sub add_duplicate_link_address
 {
 	my ($self, $address) = @_;
@@ -778,6 +877,12 @@ sub add_duplicate_link_address
         @{$$self{aldb}{duplicates}} = sort(@{$$self{aldb}{duplicates}});
 
 }
+
+=item C<delete_duplicate_link_address([address])>
+
+Removes address from the duplicate link hash. Called as part of C<delete_orphan_links()>.
+
+=cut
 
 sub delete_duplicate_link_address
 {
@@ -799,6 +904,13 @@ sub delete_duplicate_link_address
                 @{$$self{aldb}{duplicates}} = sort(@temp_duplicates);
         }
 }
+
+=item C<add_empty_address([address])>
+
+Adds address to the empty link hash. Called as part of C<delete_orphan_links()> 
+or C<scan_link_table()>.
+
+=cut
 
 sub add_empty_address
 {
@@ -828,6 +940,14 @@ sub add_empty_address
         @{$$self{aldb}{empty}} = sort(@{$$self{aldb}{empty}});
 
 }
+
+=item C<get_first_empty_address()>
+
+Returns the highest empty link address, or if no empty addresses exist, returns
+the highest unused address.  Called as part of C<delete_orphan_links()> or 
+C<scan_link_table()>..
+
+=cut
 
 sub get_first_empty_address
 {
@@ -865,6 +985,13 @@ sub get_first_empty_address
 
         return $first_address;
 }
+
+=item C<add_link(link_params)>
+
+Adds the link to the device's ALDB.  Generally called from the "sync links" or 
+"link to interface" voice commands.
+
+=cut
 
 sub add_link
 {
@@ -992,6 +1119,13 @@ sub add_link
 	}
 }
 
+=item C<update_link(link_params)>
+
+Updates the on_level and/or ramp_rate associated with a link to match the defined
+value in MisterHouse. Generally called from the "sync links" voice command.
+
+=cut
+
 sub update_link
 {
 	my ($self, %link_parms) = @_;
@@ -1062,6 +1196,14 @@ sub update_link
 		}
 	}
 }
+
+=item C<log_alllink_table()>
+
+Prints a human readable form of MisterHouse's cached version of a device's ALDB
+to the print log.  Called as part of the "scan links" voice command
+or in response to the "log links" voice command.
+
+=cut
 
 sub log_alllink_table
 {
@@ -1191,6 +1333,13 @@ sub log_alllink_table
         }
 }
 
+=item C<has_link(link_details)>
+
+Checks and returns true if a link with the passed details exists on the device
+or false if it does not.  Generally called as part of C<delete_orphan_links()>.
+
+=cut
+
 sub has_link
 {
 	my ($self, $insteon_object, $group, $is_controller, $subaddress) = @_;
@@ -1212,11 +1361,58 @@ sub has_link
 	return (defined $$self{aldb}{$key});
 }
 
+=back
+
+=head2 INI PARAMETERS
+
+None
+
+=head2 AUTHOR
+
+Gregg Liming / gregg@limings.net, Kevin Robert Keegan, Michael Stovenour
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
 package Insteon::ALDB_i1;
+
+=head1 B<Insteon::ALDB_i1>
+
+=head2 SYNOPSIS
+
+Unique class for storing a cahced copy of a verion i1 device's ALDB.
+
+=head2 DESCRIPTION
+
+Generally this object should be interacted with through the insteon objects and 
+not by directly calling any of the following methods.
+
+=head2 INHERITS
+
+L<Insteon::AllLinkDatabase|Insteon::AllLinkDatabase>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 use strict;
 
 @Insteon::ALDB_i1::ISA = ('Insteon::AllLinkDatabase');
+
+=item C<new()>
+
+Instantiate a new object.
+
+=cut
 
 sub new
 {
@@ -1717,6 +1913,12 @@ sub _on_peek
 	}
 }
 
+=item C<update_local_properties()>
+
+Used to update the local on level and ramp rate of a device.  Called by 
+L<Insteon::BaseDevice::update_local_properties()|Insteon::BaseInsteon/Insteon::BaseDevice>.
+
+=cut
 
 sub update_local_properties
 {
@@ -1730,6 +1932,12 @@ sub update_local_properties
 		$self->query_aldb_delta("check");
 	}
 }
+
+=item C<update_flags()>
+
+Used to update the flags of a device.  Called by L<Insteon::BaseDevice::update_flags()|Insteon::BaseInsteon/Insteon::BaseDevice>.
+
+=cut
 
 sub update_flags
 {
@@ -1745,6 +1953,14 @@ sub update_flags
 		$self->query_aldb_delta("check");
 	}
 }
+
+=item C<get_link_record()>
+
+Gets and returns the details of a link.  Called by L<Insteon::BaseController::update_members()|Insteon::BaseInsteon/Insteon::BaseController>.
+
+NOTE - This routine may be obsolete, its parent routine is not called by any code.
+
+=cut
 
 sub get_link_record
 {
@@ -1823,13 +2039,58 @@ sub _peek
 	}
 }
 
+=back
 
+=head2 INI PARAMETERS
+
+None
+
+=head2 AUTHOR
+
+Gregg Liming / gregg@limings.net, Kevin Robert Keegan, Michael Stovenour
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 
 package Insteon::ALDB_i2;
+
+=head1 B<Insteon::ALDB_i2>
+
+=head2 SYNOPSIS
+
+Unique class for storing a cahced copy of a verion i2 device's ALDB.
+
+=head2 DESCRIPTION
+
+Generally this object should be interacted with through the insteon objects and 
+not by directly calling any of the following methods.
+
+=head2 INHERITS
+
+L<Insteon::AllLinkDatabase|Insteon::AllLinkDatabase>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 use strict;
 
 @Insteon::ALDB_i2::ISA = ('Insteon::AllLinkDatabase');
+
+=item C<new()>
+
+Instantiate a new object.
+
+=cut
 
 sub new
 {
@@ -1841,6 +2102,11 @@ sub new
 	return $self;
 }
 
+=item C<on_read_write_aldb()>
+
+Called as part of any process to read or write to a device's ALDB.
+
+=cut
 
 sub on_read_write_aldb
 {
@@ -2199,6 +2465,12 @@ sub _write_delete
 	}
 }
 
+=item C<send_read_aldb()>
+
+Called as part of "scan link table" voice command.
+
+=cut
+
 sub send_read_aldb
 {
 	my ($self, $address) = @_;
@@ -2214,12 +2486,58 @@ sub send_read_aldb
 	$self->_send_cmd($message);
 }
 
+=back
+
+=head2 INI PARAMETERS
+
+None
+
+=head2 AUTHOR
+
+Michael Stovenour
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 
 package Insteon::ALDB_PLM;
+
+=head1 B<Insteon::ALDB_PLM>
+
+=head2 SYNOPSIS
+
+Unique class for storing a cahced copy of a the PLM's link database.
+
+=head2 DESCRIPTION
+
+Generally this object should be interacted with through the insteon objects and 
+not by directly calling any of the following methods.
+
+=head2 INHERITS
+
+L<Insteon::AllLinkDatabase|Insteon::AllLinkDatabase>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 use strict;
 
 @Insteon::ALDB_PLM::ISA = ('Insteon::AllLinkDatabase');
+
+=item C<new()>
+
+Instantiate a new object.
+
+=cut
 
 sub new
 {
@@ -2229,6 +2547,12 @@ sub new
 	bless $self,$class;
 	return $self;
 }
+
+=item C<restore_string()>
+
+This is called by mh on exit to save the cached ALDB of a device to persistant data.
+
+=cut
 
 sub restore_string
 {
@@ -2262,6 +2586,12 @@ sub restore_string
 	return $restore_string;
 }
 
+=item C<restore_linktable()>
+
+Used to reload MisterHouse's cached version of a device's ALDB on restart.
+
+=cut
+
 sub restore_linktable
 {
 	my ($self, $links) = @_;
@@ -2287,6 +2617,14 @@ sub restore_linktable
 #		$self->log_alllink_table();
 	}
 }
+
+=item C<log_alllink_table()>
+
+Prints a human readable form of MisterHouse's cached version of a device's ALDB
+to the print log.  Called as part of the "scan links" voice command
+or in response to the "log links" voice command.
+
+=cut
 
 sub log_alllink_table
 {
@@ -2319,6 +2657,12 @@ sub log_alllink_table
 	}
 }
 
+=item C<parse_alllink()>
+
+Parses the alllink message sent from the PLM.
+
+=cut
+
 sub parse_alllink
 {
 	my ($self, $data) = @_;
@@ -2338,6 +2682,12 @@ sub parse_alllink
 	}
 }
 
+=item C<get_first_alllink()>
+
+Sends the request for the first alllink entry on the PLM.
+
+=cut
+
 sub get_first_alllink
 {
 	my ($self) = @_;
@@ -2346,11 +2696,25 @@ sub get_first_alllink
 	$$self{device}->queue_message(new Insteon::InsteonMessage('all_link_first_rec', $$self{device}));
 }
 
+=item C<get_next_alllink()>
+
+Sends the request for the next alllink entry on the PLM.
+
+=cut
+
 sub get_next_alllink
 {
 	my ($self) = @_;
 	$$self{device}->queue_message(new Insteon::InsteonMessage('all_link_next_rec', $$self{device}));
 }
+
+=item C<delete_orphan_links()>
+
+Reviews the cached version of all of the ALDBs and based on this review removes
+links from this device which are not present in the mht file, not defined in the 
+code, or links which are only half-links..
+
+=cut
 
 sub delete_orphan_links
 {
@@ -2548,6 +2912,12 @@ sub _process_delete_queue {
 
 }
 
+=item C<delete_link([link details])>
+
+Deletes a specific link from a device.  Generally called by C<delete_orphan_links()>.
+
+=cut
+
 sub delete_link
 {
 	# linkkey is concat of: deviceid, group, is_controller
@@ -2601,6 +2971,13 @@ sub delete_link
 	}
 	return $num_deleted;
 }
+
+=item C<add_link(link_params)>
+
+Adds the link to the device's ALDB.  Generally called from the "sync links" or 
+"link to interface" voice commands.
+
+=cut
 
 sub add_link
 {
@@ -2681,6 +3058,13 @@ sub add_link
 	}
 }
 
+=item C<has_link(link_details)>
+
+Checks and returns true if a link with the passed details exists on the device
+or false if it does not.  Generally called as part of C<delete_orphan_links()>.
+
+=cut
+
 sub has_link
 {
 	my ($self, $insteon_object, $group, $is_controller, $subaddress) = @_;
@@ -2689,7 +3073,25 @@ sub has_link
 	return (defined $$self{aldb}{$key}) ? 1 : 0;
 }
 
+=back
 
+=head2 INI PARAMETERS
+
+None
+
+=head2 AUTHOR
+
+Gregg Liming / gregg@limings.net, Kevin Robert Keegan, Michael Stovenour
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 
 
 1;
