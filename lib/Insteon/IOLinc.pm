@@ -161,10 +161,21 @@ sub set
 	#Commands sent by the IOLinc itself represent the sensor
 	#Commands sent by MH to IOLinc represent the relay
 	if (ref $p_setby && $p_setby->isa('Insteon::BaseObject') && $p_setby->equals($self)){
-		::print_log("[Insteon::IOLinc] Received ". $self->get_object_name
-			. " sensor " . $p_state . " message.");
-		if (ref $$self{child_sensor}){
-			$$self{child_sensor}->set_receive($p_state, $p_setby, $p_respond);
+		my $curr_milli = sprintf('%.0f', &main::get_tickcount);
+		my $window = 1000;
+		if ($p_state eq $$self{child_state} &&
+			($curr_milli - $$self{child_set_milliseconds} < $window)) {
+			::print_log("[Insteon::IOLinc] Received duplicate ". $self->get_object_name
+				. " sensor " . $p_state . " message, ignoring.") if $main::Debug{insteon};
+		}
+		else {
+			::print_log("[Insteon::IOLinc] Received ". $self->get_object_name
+				. " sensor " . $p_state . " message.") if $main::Debug{insteon};
+			$$self{child_state} = $p_state;
+			$$self{child_set_milliseconds} = $curr_milli;
+			if (ref $$self{child_sensor}){
+				$$self{child_sensor}->set_receive($p_state, $p_setby, $p_respond);
+			}
 		}
 	}
 	else {
@@ -228,12 +239,14 @@ sub _is_info_request
 		$output .= ($flags & 0x04) ? "Relay Linked: On; " : "Relay Linked: Off; ";
 		$output .= ($flags & 0x20) ? "X10 Reverse: On; " : "X10 Reverse: Off; ";
 		$output .= ($flags & 0x40) ? "Trigger Reverse: On; " : "Trigger Reverse: Off; ";
-		if (!($flags & 0x98)){
+		if (!($flags & 0x08)){
 			$output .= "Latching: On.";
 		} else {
-			$output .= "Momentary_A: On." if $flags & 0x08;
-			$output .= "Momentary_B: On." if $flags & 0x10;
-			$output .= "Momentary_C: On." if $flags & 0x80;
+			my $momentary_state = '';
+			$momentary_state .= "Momentary_B: On." if $flags & 0x10;
+			$momentary_state .= "Momentary_C: On." if $flags & 0x80;
+			$momentary_state .= "Momentary_A: On." if $momentary_state eq '';
+			$output .= $momentary_state;
 		}
 		::print_log("[Insteon::IOLinc] Device Settings are: $output");
 	} else {
@@ -400,15 +413,6 @@ sub set_trigger_reverse
 Latching: The relay will remain open or closed until another command is received. 
 Momentary time is ignored.
 
-The following modes act differently depending on how the relay is controlled.  
-For the following modes, direct ON commands, such as those called from the devices
-voice command or those sent using the set function, will close the relay but only 
-for the amount of time specified by the momentary time setting.  Direct OFF 
-commands can be used to shorten the momentary time, but are otherwise ignored.
-
-However, commands issued from a PLM Scene or from another Insteon Device, through
-a defined link, will follow the restrictions described below.
-
 Momentary_A: The relay will close momentarily. If it is Linked while On it will 
 respond to On. If it is Linked while Off it will respond to Off.
 
@@ -432,18 +436,19 @@ sub set_relay_mode
 		$parent->set_operating_flag('momentary_c_off');
 		$$self{momentary_time} = 0;
 	}
+	#Momentary A must be on for any Momentary setting
 	elsif (lc($relay_mode) eq 'momentary_a'){
 		$parent->set_operating_flag('momentary_b_off');
 		$parent->set_operating_flag('momentary_c_off');
 		$parent->set_operating_flag('momentary_a_on');
 	}
 	elsif (lc($relay_mode) eq 'momentary_b'){
-		$parent->set_operating_flag('momentary_a_off');
+		$parent->set_operating_flag('momentary_a_on');
 		$parent->set_operating_flag('momentary_c_off');
 		$parent->set_operating_flag('momentary_b_on');
 	}
 	elsif (lc($relay_mode) eq 'momentary_c'){
-		$parent->set_operating_flag('momentary_a_off');
+		$parent->set_operating_flag('momentary_a_on');
 		$parent->set_operating_flag('momentary_b_off');
 		$parent->set_operating_flag('momentary_c_on');
 	}
