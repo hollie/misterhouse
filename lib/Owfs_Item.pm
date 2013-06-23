@@ -1,9 +1,31 @@
-=head1 B<Owfs_Item>
+=begin comment
 
-=head2 SYNOPSIS
+Owfs_Item.pm
 
-In your code module, instantation the Owfs_Item class to interface with some
+03/10/2007 Created by Jim Duda (jim@duda.tzo.com)
+
+Use this module to interface with the OWFS (one-wire filesystem) software.
+The OWFS software handles all the real-time processing of the one-wire itself,
+offering a simple PERL API interface.  The Owfs_Item only requires the owserver
+portion of owfs to be accessable.
+
+Requirements:
+
+ Download and install OWFS  (tested against release owfs-2.9p0).
+ Only the owserver portion is required for Misterhouse.
+ http://www.owfs.org
+
+Setup:
+
+In your code module, instantation the Owfs_Item class (or extension) to interface with some
 one-wire element.  The one-wire device can be found using the OWFS html interface.
+
+configure mh.private.ini
+
+owfs_port = 4304    # defined port where the owfs server is listening
+		    # (owserver defaults to 4304)
+
+Example Usage:
 
  $item = new Owfs_Item ( "<device_id>", <location> );
 
@@ -13,349 +35,1122 @@ one-wire element.  The one-wire device can be found using the OWFS html interfac
  $frontDoorBell = new Owfs_Item ( "12.487344000000", "Front DoorBell");
  $sensor        = new Owfs_Item ( "05.4D212A000000");
 
- Owfs_Item can be used as a baseclass and extended for specific one wire devices.
- For example, refer to package Owfs_DS2450 which describes a one wire A/D device.
-
  Any of the fields in the one-wire device can be access via the set and get methods.
 
- $sensor->set ("power", 1 );
- $sensor->get ("alarm");
+ $sensor->set ( "power", 1 );
+ $sensor->get ( "alarm" );
 
+ The get method only "requests" the property be fetched.  The property will be
+ placed into the object state and can be accessed via:
 
-=head2 DESCRIPTION
+   if (my $state = said $sensor) {
+     ...
+   }
 
-Use this module to interface with the OWFS (one-wire filesystem) software.
-The OWFS software handles all the real-time processing of the one-wire itself,
-offering a simple PERL API interface.
+   or;
 
-Owfs_Item should handle any Owfs device, and provides access to any individual field.
+   if (my $state = state_now $sensor) {
+     ...
+   }
 
-Requirements:
+   if (my $state = state_changed $sensor) {
+     ...
+   }
 
- Download and install OWFS (tested against release owfs-2.7p21) http://www.owfs.org
+   or;
 
-Got this from the tini@ibutton.com list on 3/00:
+   my $state = $sensor->state( );
 
-  Field Index:
-  ------------
-  (1) Family code in hex
-  (2) Number of regular memory pages
-  (3) Length of regular memory page in bytes
-  (4) Number of status memory pages
-  (5) Length of status memory page in bytes
-  (6) Max communication speed (0 regular, 1 Overdrive)
-  (7) Memory type (see below)
-  (8) Part number in iButton package
-  (9) Part number in non-iButton package
-  (10) Brief descriptions
-
-  (1)   (2)  (3)  (4)  (5)  (6)  (7)   (8)   (9)   (10)
-  -------------------------------------------------------
-  01,    0,   0,   0,   0,   1,   0, DS1990A,DS2401,Unique Serial Number
-  02,    0,   0,   0,   0,   0,   0, DS1991,DS1205, MultiKey iButton
-  04,   16,  32,   0,   0,   0,   1, DS1994,DS2404,4K-bit NVRAM with Clock
-  05,    0,   0,   0,   0,   0,   0, DS2405,,Single Addressable Switch
-  06,   16,  32,   0,   0,   0,   1, DS1993,DS2403,4K-bit NVRAM
-  08,    4,  32,   0,   0,   0,   1, DS1992,DS2402,1K-bit NVRAM
-  09,    4,  32,   1,   8,   1,   2, DS1982,DS2502,1K-bit EPROM
-  0A,   64,  32,   0,   0,   1,   1, DS1995,DS2416,16K-bit NVRAM
-  0B,   64,  32,  40,   8,   1,   3, DS1985,DS2505,16K-bit EPROM
-  0C,  256,  32,   0,   0,   1,   1, DS1996,DS2464,64K-bit NVRAM
-  0F,  256,  32,  64,   8,   1,   3, DS1986,DS2506,64K-bit EPROM
-  10,    0,   0,   0,   0,   0,   0, DS1920,DS1820,Temperature iButton with Trips
-  11,    2,  32,   1,   8,   0,   2, DS1981,DS2501,512-bit EPROM
-  12,    4,  32,   1,   8,   0,   4, DS2407,,Dual Addressable Switch
-  13,   16,  32,  34,   8,   0,   3, DS1983,DS2503,4K-bit EPROM
-  14,    1,  32,   0,   0,   0,   5, DS1971,DS2430A,256-bit EEPROM, plus 64-bit OTP
-  15,    0,   0,   0,   0,   1,   0, DS87C900,,Lock Processor
-  16,    0,   0,   0,   0,   0,   0, DS1954,,Crypto iButton
-  18,    4,  32,   0,   0,   1,   6, DS1963S,4K-bit Transaction iButton with SHA
-  1A,   16,  32,   0,   0,   1,   6, DS1963,,4K-bit Transaction iButton
-  1C,    4,  32,   0,   0,   1,   6, DS2422,,1K-bit EconoRAM with Counter Input
-  1D,   16,  32,   0,   0,   1,   6, DS2423,,4K-bit EconoRAM with Counter Input
-  1F,    0,  32,   0,   0,   0,   0, DS2409,,One-Wire Net Coupler
-  20,    3,   8,   0,   0,   1,   9, DS2450,,Quad A-D Converter
-  21,   16,  32,   0,   0,   1,   8, DS1921,,Temperature Recorder iButton
-  23,   16,  32,   0,   0,   1,   7, DS1973,DS2433,4K-bit EEPROM
-  40,   16,  32,   0,   0,   0,   1, DS1608,,Battery Pack Clock
-
-  Memory Types:
-  --------------
-  0 NOMEM - no user storage space or with
-            non-standard structure.
-  1 NVRAM - non-volatile rewritable RAM.
-  2 EPROM1- EPROM (OTP).
-            Contains an onboard 8-bit CRC data check.
-  3 EPROM2 - EPROM (OTP). TMEX Bitmap starting on status page 8
-             Contains an onboard 16-bit CRC.
-  4 EPROM3 - EPROM (OTP). TMEX Bitmap in upper nibble of byte 0 of status memory
-             Contains an onboard 16-bit CRC data check.
-  5 EEPROM1 - EEPROM, one address byte
-  6 MNVRAM - non-volatile rewritable RAM with read-only non rolling-over page
-             write cycle counters associated with last 1/4 of pages (3 minimum)
-  7 EEPROM2 - EEPROM. On board CRC16 for Write/Read memory.
-              Copy Scratchpad returns an authentication byte (alternating 1/0).
-  8 NVRAM2 - non-volatile RAM. Contains an onboard 16-bit CRC.
-  9 NVRAM3 - non-volatile RAM with bit accessible memory.  Contains an onboard 16-bit CRC.
-
-=head2 INHERITS
-
-B<Generic_Item>
-
-=head2 METHODS
-
-=over
-
-=item B<UnDoc>
+ Owfs_Item can be used as a baseclass and extended for specific one wire devices.
+ For example, refer to package Owfs_DS2450 which describes a one wire A/D device.
+ Extended devices will have different API routines and will typically not use
+ the set/get methods.
 
 =cut
 
+# TODO
+# maintain inventory
+# dump inventory
+# inventory of all items, not just those requested
+# table A
+
+#=======================================================================================
+#
+# Generic Owfs_Item
+#
+# Owfs_Item should handle any Owfs device, and provides access to any individual field.
+#
+#=======================================================================================
+
+use Timer;
+use Socket_Item;
+
 package Owfs_Item;
+use strict;
 
 @Owfs_Item::ISA = ('Generic_Item');
 
-use OW;
+our (%objects_by_id);        # database of all discovered objects by id
+our $socket;                 # single Socket_Item which serves all Owfs_Item objects
+our @queue;                  # Queue of commands for owserver, commands handled one at a time
+our $socket_state = 0;       # State variable for handling socket interface
+our $socket_inactive = 0;    # State variable for handling socket interface
 
-my (%objects_by_id);
-my $port = undef;
+###################################################################################
+# Static variables used for owserver interface
+###################################################################################
 
+our $msg_read = 2 ;          # Command codes for owserver interface
+our $msg_write = 3 ;
+our $msg_dir = 4 ;
+our $msg_presence = 6 ;
+our $msg_dirall = 7 ;
+our $msg_get = 8 ;
+
+our $persistence_bit = 0x04 ;
+# PresenceCheck, Return bus list,  and apply aliases
+our $default_sg = 0x100 + 0x2 + 0x8 ;
+our $default_block = 4096 ;
+
+our $tempscale = 0 ;
+our $addr = "";
+TEMPSCALE: {
+    $tempscale = 0x00000 , last TEMPSCALE if $addr =~ /-C/ ;
+    $tempscale = 0x10000 , last TEMPSCALE if $addr =~ /-F/ ;
+    $tempscale = 0x20000 , last TEMPSCALE if $addr =~ /-K/ ;
+    $tempscale = 0x30000 , last TEMPSCALE if $addr =~ /-R/ ;
+}
+
+our $format = 0 ;
+FORMAT: {
+    $format = 0x2000000 , last FORMAT if $addr =~ /-ff\.i\.c/ ;
+    $format = 0x4000000 , last FORMAT if $addr =~ /-ffi\.c/ ;
+    $format = 0x3000000 , last FORMAT if $addr =~ /-ff\.ic/ ;
+    $format = 0x5000000 , last FORMAT if $addr =~ /-ffic/ ;
+    $format = 0x0000000 , last FORMAT if $addr =~ /-ff\.i/ ;
+    $format = 0x1000000 , last FORMAT if $addr =~ /-ffi/ ;
+    $format = 0x2000000 , last FORMAT if $addr =~ /-f\.i\.c/ ;
+    $format = 0x4000000 , last FORMAT if $addr =~ /-fi\.c/ ;
+    $format = 0x3000000 , last FORMAT if $addr =~ /-f\.ic/ ;
+    $format = 0x5000000 , last FORMAT if $addr =~ /-fic/ ;
+    $format = 0x0000000 , last FORMAT if $addr =~ /-f\.i/ ;
+    $format = 0x1000000 , last FORMAT if $addr =~ /-fi/ ;
+}
+
+###################################################################################
+
+# BaseClass constructor
 sub new {
     my ($class, $device, $location) = @_;
     my $self = { };
     bless $self,$class;
-    $device =~ /(.*)\.(.*)/;
-    my $family = $1;
-    my $id = $2;
 
-    # Initialize the OWFS perl interface ( server tcp port )
-
-    if (!defined $port) {
-        $port = 3030;
-        $port = "$main::config_parms{owfs_port}" if exists $main::config_parms{owfs_port};
-        &main::print_log ("Owfs_Item:: Initializing port: $port $location") if $main::Debug{owfs};
-        OW::init ( "$port" );
+    # Create one Socket_Item for ALL Owfs_Item devices to share
+    if (!$socket) {
+	&::MainLoop_pre_add_hook(\&Owfs_Item::_run_loop, 'persistent');
+	my $host = "localhost";
+	my $port = "4304";
+	$host = "$main::config_parms{owfs_host}" if exists $main::config_parms{owfs_host};
+	$port = "$main::config_parms{owfs_port}" if exists $main::config_parms{owfs_port};
+	&main::print_log ("Owfs_Item::new Initializing host:port: $host:$port") if $main::Debug{owfs};
+	$socket = new Socket_Item(undef, undef, "$host:$port", undef, 'tcp', 'raw', undef);
+	@queue = ();
     }
 
+    # Object identification
+    $device =~ /(.*)\.(.*)/;
     $self->{device}   = $device;
     $self->{location} = $location;
-    $self->{present}  = undef;
-    $self->{root}     = &_find ( $family, $id, 0, "/" );
-    $self->{path}     = $self->{root} . $family . "." . $id . "/";
-    if (defined $self->{path}) {
-        $objects_by_id{path} = $self;
-        &_load ( $self, $self->{path} );
-    }
-    $$self{state}     = '';     # Will only be listed on web page if state is defined
+    $self->{family} = $1;
+    $self->{id} = $2;
+    $self->{root} = undef;
 
-    &dump ( $self ) if ($main::Debug{owfs});
+    # State variables for _discovery
+    $self->{dir_tokens} = ();
+    $self->{dir_level}  = 0;
+    $self->{present}    = 0;
+    $self->{failcnt}    = 0;
+
+    # State variables for get/set operations
+    $self->{path}  = undef;
+    $self->{token} = undef;
+    $self->{value} = undef;
+
+    # State variables for debug
+    $self->{debug} = 0;
+
+    # Initialize object state
+    $self->{state} = '';     # Will only be listed on web page if state is defined
+
+    # Schedule item discovery
+    $self->{discover_timer} = new Timer;
+    $self->{discover_timer}->set(5, sub {Owfs_Item::_discover($self);});
+
+    my $uom = "F";
+    $uom  = "$main::config_parms{owfs_uom_temp}" if exists $main::config_parms{owfs_uom_temp};
+
+    my $tempscale = 0;
+    if ($uom =~ /C/) {
+	$tempscale = 0x00000;
+    } elsif ($uom =~ /F/) {
+	$tempscale = 0x10000;
+    } elsif ($uom =~ /K/) {
+	$tempscale = 0x20000;
+    } elsif ($uom =~ /R/) {
+	$tempscale = 0x30000;
+    }
+
+    # owserver state variables
+    $self->{PERSIST} = $persistence_bit;
+    $self->{SG} = $default_sg + $tempscale + $format;
+    $self->{VER} = 0 ;
 
     return $self;
 }
 
-sub set {
-     my ($self, $token, $data) = @_;
-     my $path = $self->{path} . $token;
-     &main::print_log ("Owfs_Item::set $path $data") if $main::Debug{owfs};
-     my $result = OW::put($path, "$data") or return ;
-     return $result;
-}
-
-sub set_root {
-     my ($self, $token, $data) = @_;
-     my $path = $self->{root} . $token;
-     &main::print_log ("Owfs_Item::set_root $path $data") if $main::Debug{owfs};
-     my $result = OW::put($path, "$data" ) or return ;
-     return $result;
-}
-
-sub get {
-     my ($self, $token) = @_;
-     my $path = $self->{path} . $token;
-     my $result = OW::get($path) or return ;
-     &main::print_log ("Owfs_Item::get $path $result") if $main::Debug{owfs};
-     return $result;
-}
-
-sub get_present {
-     my ($self) = @_;
-     $self->{present} = $self->get("present");
-     return $self->{present};
-}
-
-sub get_root {
-     my ($self, $token) = @_;
-     my $path = $self->{root} . $token;
-     my $result = OW::get($path) or return ;
-     &main::print_log ("Owfs_Item::get_root $path $result") if $main::Debug{owfs};
-     return $result;
-}
-
-sub set_key {
-     my ($self, $key, $data) = @_;
-     $self->{$key} = $data;
-}
-
-sub get_key {
-     my ($self, $key) = @_;
-     return ($self->{$key});
-}
-
 sub get_device {
-     my ($self) = @_;
-     return $self->{device};
+    my ($self) = @_;
+    return $self->{device};
 }
 
 sub get_location {
-     my ($self) = @_;
-     return $self->{location};
+    my ($self) = @_;
+    return $self->{location};
 }
 
-sub dump {
-  my $self = shift;
-  &main::print_log ( "\n") if $main::Debug{owfs};
-  &main::print_log ( "root: \t\t$$self{root}") if $main::Debug{owfs};
-  &main::print_log ( "path: \t\t$$self{path}") if $main::Debug{owfs};
-  &main::print_log ( "family: \t$$self{family}") if $main::Debug{owfs};
-  &main::print_log ( "id: \t\t$$self{id}") if $main::Debug{owfs};
-  &main::print_log ( "type: \t\t$$self{type}") if $main::Debug{owfs};
-
-  for my $key (sort keys %$self) {
-    next if ($key eq "root");
-    next if ($key eq "path");
-    next if ($key eq "family");
-    next if ($key eq "id");
-    next if ($key eq "type");
-    &main::print_log ( "$key:\t\t$$self{$key}") if $main::Debug{owfs};
-  }
-  &main::print_log ( "\n") if $main::Debug{owfs};
+sub get_family {
+    my ($self) = @_;
+    return $self->{family};
 }
 
-sub _find {
-  my ($family, $id,$lev,$path) = @_;
-  my $result = OW::get($path) or return ;
-  #&main::print_log ( "_find:: family: $family id: $id lev: $lev path: $path") if $main::Debug{owfs};
-  my @tokens = split(',',$result);
-  foreach my $token (@tokens) {
-    if ( $token =~ /\/$/ ) {
-      $token =~ /(.+)\.(.+)\/$/;
-      if (($family eq $1) && ($id eq $2)) {
-        return ( $path );
-      } elsif (($1 eq "1F") || ($token =~ /aux\/$/) || ($token =~ /main\/$/)) {
-        my $val = &_find ($family, $id, $lev+1, $path.$token);
-        if ( defined $val ) {
-          return ( $val );
-        }
-      }
+sub get_id {
+    my ($self) = @_;
+    return $self->{id};
+}
+
+sub get_present {
+    my ($self) = @_;
+    return $self->{present};
+}
+
+sub set_key {
+    my ($self, $key, $data) = @_;
+    $self->{$key} = $data;
+}
+
+sub get_key {
+    my ($self, $key) = @_;
+    return ($self->{$key});
+}
+
+# This method is called when the response for a read request to owserver returns.
+sub process_read_response {
+    my ($self, $response) = @_;
+    my $device = $self->{device};
+    my $location = $self->{location};
+    my $debug = $self->{debug} || $main::Debug{owfs};
+    &main::print_log ("Owfs_Item::process_read_response $device $location response: $response") if $debug;
+    if ($response ne $self->state( )) {
+	$self->SUPER::set($response, 'owfs');
     }
-  }
-  return undef;
 }
 
-sub _load {
-  my ($self, $path) = @_;
-#  &main::print_log ( "_load:: path: $path") if $main::Debug{owfs};
-  my $result = OW::get($path) or return ;
-  my @tokens = split(',',$result);
-  foreach my $token (@tokens) {
-    $self->{$token} = OW::get($path.$token);
-  }
+# This method is called when the response for a write request to owserver returns.
+sub process_write_response {
+    my ($self, $response) = @_;
+    my $device = $self->{device};
+    my $location = $self->{location};
+    my $token = $self->{token};
+    my $value = $self->{value};
+    my $type = $self->isa('Owfs_Item');
+    if ($response) {
+	if ($value ne $self->state( )) {
+	    $self->SUPER::set($value, 'owfs');
+	}
+    }
+    my $debug = $self->{debug} || $main::Debug{owfs};
+    &main::print_log ("Owfs_Item::process_write_response type: $type $device $location response: $response token: $token value: $value") if $debug;
 }
 
-sub _remove {
-  my $self = shift;
-  for my $key (keys %$self) {
-    delete $$self{$key};
-  }
+# This method is called when the response for a directory request to owserver returns.  This method is
+# used during device discovery.
+sub process_dir_response {
+    my ($self, $response) = @_;
+    my $device = $self->{device};
+    my $location = $self->{location};
+    my $family = $self->{family};
+    my $level = $self->{dir_level};
+    my $id = $self->{id};
+    my $path = $self->{dir_path};
+    my @tokens = split(',',$response);
+    push @{$self->{dir_tokens}}, @tokens;
+    &main::print_log ( "Owfs_Item::process_dir_response family: $family id: $id level: $level path: $path tokens: @tokens") if $main::Debug{owfs};
+    while ( scalar(@{$self->{dir_tokens}}) ) {
+	my $token = shift @{$self->{dir_tokens}};
+	&main::print_log ( "Owfs_Item::process_dir_response family: $family id: $id level: $level path: $path token: $token") if $main::Debug{owfs};
+	if ( $token =~ /\/([0123456789abcdefABCDEF\.]+|aux|main)$/ ) {
+	    my $leaf = $1;
+	    &main::print_log ( "Owfs_Item::process_dir_response family: $family id: $id level: $level path: $path token: $token leaf: $leaf") if $main::Debug{owfs};
+	    $leaf =~ /(.+)\.(.+)$/;
+	    if ((uc $family eq uc $1) && (uc $id eq uc $2)) {
+		$self->{root} = $path;
+		if ($self->{root} ne "/") {
+		    $self->{root} .= "/";
+		}
+		$self->{path} = $token . "/";
+		$self->{present} = 1;
+		$objects_by_id{$id} = $self;
+		&main::print_log ("Owfs_Item::DEVICE_DISCOVERY: device: $device location: $location family: $family id: $id root: $path path: $token"); # if $main::Debug{owfs};
+		$self->discovered( );
+		return;
+	    } elsif (($1 eq "1F") || ($leaf =~ /aux$/) || ($leaf =~ /main$/)) {
+		my $val = $self->_find ($family, $id, $level+1, $token);
+	    }
+	}
+    }
 }
 
-=back
+# This method is called to schedule a write command be sent to the owserver for the object.
+sub set {
+    my ($self, $token, $value) = @_;
+    return if (!defined $self->{path});
+    my $path = $self->{path} . $token;
+    my $debug = $self->{debug} || $main::Debug{owfs};
+    &main::print_log ("Owfs_Item::set path: $path value: $value") if $debug;
+    my $path_length = length($path)+1;
+    #$value .= ' ';
+    my $value_length = length($value);
+    my $payload = pack( 'Z'.$path_length.'A'.$value_length,$path,$value );
+    $self->{token} = $token;
+    $self->{value} = $value;
+    $self->_ToServer($path,length($payload)+1, $msg_write, $value_length, 0, $payload);
+}
 
-=head2 INI PARAMETERS
+# This method is called to schedule a read command be sent to the owserver for the object.
+sub get {
+    my ($self, $token) = @_;
+    return if (!defined $self->{path});
+    my $path = $self->{path} . $token;
+    &main::print_log ("Owfs_Item::get path: $path") if $main::Debug{owfs};
+    $self->{token} = $token;
+    $self->{value} = undef;
+    $self->_ToServer($path,length($path)+1,$msg_read,$default_block,0,$path);
+}
 
-  owfs_port = 3030    # defined port where the owfs server is listening
-                      # (owserver defaults to 4304)
+# This method is called to schedule a directory command be sent to the owserver for the object.
+# This method is used for item discovery.
+sub _dir {
+    my ($self, $path) = @_;
+    # new msg_dirall method -- single packet
+    &main::print_log ("Owfs_Item::dir path: $path") if $main::Debug{owfs};
+    $self->{dir_path} = $path;
+    $self->{token} = undef;
+    $self->{value} = undef;
+    $self->_ToServer($path,length($path)+1,$msg_dirall,$default_block,0,$path);
+}
 
-=head2 AUTHOR
+# This method is called to schedule a write command be sent to the owserver for the object.
+# The path used will be the device root instead of the device itself.  If the $token value
+# is preceeded with a "/", then the token value will be used as a raw path.
+sub _set_root {
+    my ($self, $token, $value) = @_;
+    my $root = $self->{root};
+    return if (!defined $root);
+    my $path = $self->{root} . $token;
+    if ($token =~ /^\//) {
+	$path = $token;
+    }
+    &main::print_log ("Owfs_Item::_set_root root: $root path: $path value: $value") if $main::Debug{owfs};
+    my $path_length = length($path)+1 ;
+    #$value .= ' ';
+    my $value_length = length($value) ;
+    my $payload = pack( 'Z'.$path_length.'A'.$value_length,$path,$value ) ;
+    $self->{token} = $token;
+    $self->{value} = $value;
+    $self->_ToServer($path,length($payload)+1, $msg_write, $value_length, 0, $payload);
+}
 
-03/10/2007 Created by Jim Duda (jim@duda.tzo.com)
+# This method is called to schedule a read command be sent to the owserver for the object.
+# The path used will be the device root instead of the device itself.  If the $token value
+# is preceeded with a "/", then the token value will be used as a raw path.
+sub _get_root {
+    my ($self, $token) = @_;
+    my $root = $self->{root};
+    return if (!defined $root);
+    my $path = $self->{root} . $token;
+    &main::print_log ("Owfs_Item::_get_root path: $path") if $main::Debug{owfs};
+    $self->{token} = $token;
+    $self->{value} = undef;
+    $self->_ToServer($path,length($path)+1,$msg_read,$default_block,0,$path) ;
+}
 
-=head2 SEE ALSO
+# This method is used to search the one-wire tree for the specific object as defined
+# by the $device passed during construction.
+sub _discover {
+    my ($self) = @_;
+    my $device = $self->{device};
+    my $location = $self->{location};
+    my $family = $self->{family};
+    my $id = $self->{id};
+    &main::print_log ( "Owfs_Item::_discover family: $family id: $id") if $main::Debug{owfs};
+    return if (defined $self->{path});
+    $self->_find ( $family, $id, 0, "/" );
+    if (!$self->get_present( )) {
+	$self->{discover_timer}->set(5, sub {Owfs_Item::_discover($self);});
+    }
+}
 
-NONE
+# This method is called whenever the object has been discovered.  Useful for initialization.
+sub discovered {
+    my ($self) = @_;
+}
 
-=head2 LICENSE
+# This method is part of _discover.  It provides an interim method to allow for recursion to work.
+sub _find {
+    my ($self,$family,$id,$level,$path) = @_;
+    &main::print_log ( "Owfs_Item::_find family: $family id: $id") if $main::Debug{owfs};
+    $self->{dir_level} = $level;
+    $self->_dir($path);
+}
 
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+# This method is called when a device which had been previously discovered has been lost.  This 
+# method will schedule the _discover mechanism to run again.  The _lost and _discover methods
+# allow for dynamic removal and insertion.
+sub _lost {
+    my ($self) = @_;
+    my $device = $self->{device};
+    my $location = $self->{location};
+    my $family = $self->{family};
+    my $id = $self->{id};
+    my $path = $self->{path};
+    &main::print_log ("Owfs_Item::DEVICE_LOST: device: $device location: $location family: $family id: $id path: $path"); # if $main::Debug{owfs};
+    $self->{root} = undef;
+    $self->{path} = undef;
+    $self->{present} = 0;
+    $self->{discover_timer}->set(5, sub {Owfs_Item::_discover($self);});
+    $self->{failcnt} = 0;
+    $self->{state} = undef;
+}
 
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# The method can be used to dump the state of any Owfs_Item object.
+sub _dump {
+    my ($self) = @_;
+    &main::print_log ( "\n") if $main::Debug{owfs};
+    &main::print_log ( "path: \t\t$$self{path}") if $main::Debug{owfs};
+    &main::print_log ( "family: \t$$self{family}") if $main::Debug{owfs};
+    &main::print_log ( "id: \t\t$$self{id}") if $main::Debug{owfs};
+    &main::print_log ( "type: \t\t$$self{type}") if $main::Debug{owfs};
+    for my $key (sort keys %$self) {
+	next if ($key eq "root");
+	next if ($key eq "path");
+	next if ($key eq "family");
+	next if ($key eq "id");
+	next if ($key eq "type");
+	&main::print_log ( "$key:\t\t$$self{$key}") if $main::Debug{owfs};
+    }
+    &main::print_log ( "\n") if $main::Debug{owfs};
+}
 
-You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+# This is a helper method to remove extra white space characters.
+sub _chomp_plus {
+    my ($self,$string) = @_;
+    $string =~ s/^\s+//;
+    chomp $string;
+    return $string;
+}
+
+# This is a helper method to convert states as required.  This method is overloaded
+# in the sub class as necessary.
+sub convert_state {
+    my ($self, $value) = @_;
+    return $value;
+}
+
+# This method is a direct port from the OWNet.pm module from owfs.  This is the lower layer interface
+# to the owserver socket port.
+sub _ToServer {
+    my ($self, $path, $payload_length, $msg_type, $size, $offset, $payload_data) = @_ ;
+    my $f = "N6Z$payload_length";
+    #$f .= 'Z'.$payload_length if ( $payload_length > 0 ) ;
+    my $message = pack($f,$self->{VER},$payload_length,$msg_type,$self->{SG}|$self->{PERSIST},$size,$offset,$payload_data);
+    &main::print_log ( "Owfs_Item::_ToServer path: $path payload_length: $payload_length payload_data: $payload_data message: $message") if $main::Debug{owfs};
+    my $token = $self->{token};
+    my $value = $self->{value};
+    my $hashref = { msg_type => $msg_type, self => $self, path => $path, token => $token, value => $value, message => $message };
+    push  @queue, $hashref;
+    my $num = scalar(@queue);
+    &main::print_log ( "Owfs_Item::_ToServer num: $num") if $main::Debug{owfs};
+    if ($num > 100) {
+	&main::print_log ( "Owfs_Item::_ToServer high outstanding requests! num: $num");
+    }
+    if ($main::Debug{owfs} && (scalar(@queue) > 1)) {
+	foreach my $ref (@queue) {
+	    my $msg_type = $ref->{msg_type};
+	    my $path     = $ref->{path};
+	    &main::print_log ( "Owfs_Item::_ToServer msg_type: $msg_type path: $path");
+	}
+    }
+    if (scalar(@queue) eq 1) {
+	&main::print_log ( "Owfs_Item::_ToServer path: $path message: $message sending socket....") if $main::Debug{owfs};
+	start $socket unless active $socket;
+	$socket->set ( $message );
+    }
+}
+
+# This method is a direct port from the OWNet.pm module from owfs.  This is the lower layer interface
+# to the owserver socket port.
+sub _FromServerLow {
+    my ($self, $length_wanted) = @_;
+    my $length = length($self->{record});
+    &main::print_log ( "Owfs_Item::_FromServerLow length_wanted: $length_wanted length: $length") if $main::Debug{owfs};
+    return '' if $length_wanted == 0;
+    my $remaininglength = $length_wanted;
+    my $fullread = '';
+    return if length($self->{record}) < $length_wanted;
+    my $result = substr($self->{record},0,$length_wanted);
+    $self->{record} = substr($self->{record},$length_wanted);
+    return $result;
+}
+
+# This method is a direct port from the OWNet.pm module from owfs.  This is the lower layer interface
+# to the owserver socket port.
+sub _FromServer {
+    my ($self) = @_;
+    my ( $version, $payload_length, $return_status, $sg, $size, $offset, $payload_data );
+    while (active $socket) {
+	&main::print_log ( "Owfs_Item::_FromServer socket_state: $socket_state") if $main::Debug{owfs};
+	if ($socket_state == 0) {
+	    do {
+		my $r = _FromServerLow( $self, 24 );
+		if (!defined $r) {
+		    &main::print_log ( "Owfs_Item::_FromServer Trouble getting header") if $main::Debug{owfs};
+		    return;
+		}
+		($version, $payload_length, $return_status, $sg, $size, $offset) = unpack('N6', $r );
+		my @things = ($version, $payload_length, $return_status, $sg, $size, $offset);
+		&main::print_log ( "Owfs_Item::_FromServer things: @things") if $main::Debug{owfs};
+		# returns unsigned (though originals signed
+		# assume anything above 66000 is an error
+		if ($return_status > 66000) {
+		    &main::print_log ( "Owfs_Item::_FromServer Trouble getting payload") if $main::Debug{owfs};
+		    return ($version, $payload_length, $return_status, $sg, $size, $offset, $payload_data ) ;
+		}
+	    } while ($payload_length > 66000);
+	    $socket_state = 1;
+	}
+	else {
+	    $payload_data = $self->_FromServerLow( $payload_length ) ;
+	    if (!defined $payload_data) {
+		&main::print_log ( "Owfs_Item::_FromServer Trouble getting payload") if $main::Debug{owfs};
+		return;
+	    }
+	    $payload_data = substr($payload_data,0,$size) ;
+	    $socket_state = 0;
+	    return ($version, $payload_length, $return_status, $sg, $size, $offset, $payload_data ) ;
+	}
+    }
+}
+
+# This method runs one during the misterhouse main loop.  Its purpose is to handle the return responses
+# from the Socket_Item attached to the owserver.  The results are dispatched back to the objects using
+# the process_write/read/dir_response methods.  After each response is handled by the object, the next
+# command will be popped from the queue and sent to owserver.  The owserver interface is only given
+# one command at a time to process.
+sub _run_loop {
+
+    # State Machine
+    return if !scalar(@queue);
+
+    my $hashref  = $queue[0];
+    my $self     = $hashref->{self};
+    my $msg_type = $hashref->{msg_type};
+    my $path     = $hashref->{path};
+    my $token    = $hashref->{token};
+    my $value    = $hashref->{value};
+    my $device   = $self->{device};
+    my $location = $self->{location};
+    my $popped   = 0;
+
+    # Detect state change from inactive to active
+    if ($socket->inactive_now( )) {
+	$socket_inactive = 1;
+	$socket_state = 0;
+	&main::print_log ( "Owfs_Item::_run_loop socket INACTIVE") if $main::Debug{owfs};
+    }
+
+    if ($socket->active_now( )) {
+	$socket_state = 0;
+	if ($socket_inactive) {
+	    $popped = 1;
+	}
+	$socket_inactive = 0;
+	&main::print_log ( "Owfs_Item::_run_loop socket ACTIVE") if $main::Debug{owfs};
+    }
+
+    start $socket unless active $socket;
+
+    # Read Response
+    if ($msg_type eq $msg_read) {
+	if (my $record = said $socket) {
+	    $self->{record} .= $record;
+	    my $len1 = length($record);
+	    my $len2 = length($self->{record});
+	    &main::print_log ( "Owfs_Item::_run_loop len1: $len1 len2: $len2") if $main::Debug{owfs};
+	    my @response = _FromServer($self) ;
+	    if (!@response) {
+		&main::print_log ( "Owfs_Item::_run_loop msg_type: $msg_type path: $path EMPTY") if $main::Debug{owfs};
+	    } else {
+		if ($response[2] > 66000) {
+		    &main::print_log ( "Owfs_Item::_run_loop msg_type: $msg_type path: $path ERROR"); # if $main::Debug{owfs};
+		    $self->{failcnt}++;
+		    if ($self->{failcnt} >= 5) {
+			$self->_lost( );
+		    }
+		    $self->process_read_response( );
+		} else {
+		    # process response
+		    &main::print_log ( "Owfs_Item::_run_loop msg_type: $msg_type path: $path response: $response[6]") if $main::Debug{owfs};
+		    $self->{failcnt} = 0;
+		    $self->process_read_response($response[6]);
+		}
+		shift @queue;
+		$popped = 1;
+	    }
+	}
+    }
+
+    # Write Response
+    elsif ($msg_type eq $msg_write) {
+	if (my $record = said $socket) {
+	    $self->{record} .= $record;
+	    my $len1 = length($record);
+	    my $len2 = length($self->{record});
+	    &main::print_log ( "Owfs_Item::_run_loop len1: $len1 len2: $len2") if $main::Debug{owfs};
+	    my @response = _FromServer($self) ;
+	    if (!@response) {
+		&main::print_log ( "Owfs_Item::_run_loop msg_type: $msg_type path: $path EMPTY") if $main::Debug{owfs};
+	    } else {
+		if ($response[2] > 66000) {
+		    &main::print_log ( "Owfs_Item::_run_loop msg_type: $msg_type path: $path ERROR"); # if $main::Debug{owfs};
+		    $self->{failcnt}++;
+		    if ($self->{failcnt} >= 5) {
+			$self->_lost( );
+		    }
+		    $self->process_write_response( );
+		} else {
+		    # process response
+		    &main::print_log ( "Owfs_Item::_run_loop msg_type: $msg_type path: $path response: $response[2]") if $main::Debug{owfs};
+		    $self->{failcnt} = 0;
+		    $self->process_write_response($response[2] >= 0);
+		}
+		shift @queue;
+		$popped = 1;
+	    }
+	}
+    }
+
+    # Dirall Response
+    elsif ($msg_type eq $msg_dirall) {
+	if (my $record = said $socket) {
+	    $self->{record} .= $record;
+	    my @response = _FromServer($self) ;
+	    if (!@response) {
+		&main::print_log ( "Owfs_Item::_run_loop msg_type: $msg_type path: $path EMPTY") if $main::Debug{owfs};
+	    } else {
+		if ($response[2] > 66000) {
+		    &main::print_log ( "Owfs_Item::_run_loop msg_type: $msg_type path: $path ERROR"); # if $main::Debug{owfs};
+		    $self->{failcnt}++;
+		    if ($self->{failcnt} >= 5) {
+			$self->_lost( );
+		    }
+		    $self->process_write_response( );
+		} else {
+		    # process response
+		    &main::print_log ( "Owfs_Item::_run_loop msg_type: $msg_type path: $path response: $response[6]") if $main::Debug{owfs};
+		    $self->{failcnt} = 0;
+		    $self->process_dir_response($response[6]);
+		}
+		shift @queue;
+		$popped = 1;
+#	    } else {
+		# old msg_dir method -- many packets
+#		$self->{dirlist} = '';
+#		$self->_ToServer($path,length($path)+1,$msg_dir,$default_block,0,$path) || return ;
+	    }
+	}
+    }
+
+    # Dir response
+    elsif ($msg_type eq $msg_dir) {
+	if (my $record = said $socket) {
+	    $self->{record} .= $record;
+	    my @response = _FromServer($self);
+	    if (!@response) {
+		&main::print_log ( "Owfs_Item::_run_loop msg_type: $msg_type path: $path EMPTY") if $main::Debug{owfs};
+	    } else {
+		if ($response[2] > 66000) {
+		    &main::print_log ( "Owfs_Item::_run_loop msg_type: $msg_type path: $path ERROR"); # if $main::Debug{owfs};
+		    $self->{failcnt}++;
+		    if ($self->{failcnt} >= 5) {
+			$self->_lost( );
+		    }
+		    $self->process_write_response( );
+		} else {
+		    $self->{failcnt} = 0;;
+		    if ( $response[1] == 0 ) { # last null packet
+			&main::print_log ( "Owfs_Item::_run_loop msg_type: $msg_type path: $path response: $response[6]") if $main::Debug{owfs};
+			$self->process_dir_response(substr($self->{dirlist},1));
+			shift @queue;
+			$popped = 1;
+		    } else {
+			&main::print_log ( "Owfs_Item::_run_loop msg_type: $msg_type path: $path response: $response[6]") if $main::Debug{owfs};
+			$self->{dirlist} .= ','.$response[6] ;
+		    }
+		}
+	    }
+	}
+    }
+
+    # Handle Unknown response
+    else {
+	&main::print_log ( "Owfs_Item::_run_loop unknown msg_type: $msg_type") if $main::Debug{owfs};
+	if (my $record = said $socket) {
+	    $self->{record} .= $record;
+	    my @response = _FromServer($self) ;
+	    if (!@response) {
+		&main::print_log ( "Owfs_Item::_run_loop msg_type: $msg_type path: $path EMPTY") if $main::Debug{owfs};
+	    } else {
+		if ($response[2] > 66000) {
+		    &main::print_log ( "Owfs_Item::_run_loop msg_type: $msg_type path: $path ERROR"); # if $main::Debug{owfs};
+		} else {
+		    &main::print_log ( "Owfs_Item::_run_loop msg_type: $msg_type (UNKNOWN) path: $path") if $main::Debug{owfs};
+		}
+		shift @queue;
+		$popped = 1;
+	    }
+	}
+    }
+    if ($popped and scalar(@queue)) {
+	my $hashref  = $queue[0];
+	my $msg_type = $hashref->{msg_type};
+	my $path     = $hashref->{path};
+	my $message  = $hashref->{message};
+	&main::print_log ( "Owfs_Item::run_loop path: $path message: $message sending socket....") if $main::Debug{owfs};
+	start $socket unless active $socket;
+	$socket->set ( $message );
+    }
+}
+
+#=======================================================================================
+#
+# Owfs_Switch
+#
+# This package is a common base class for many OWFS Switch like devices which 
+# have PIO, Latch, and Sense.
+#
+#=======================================================================================
+
+=begin comment
+
+Usage:
+
+ $sensor = new Owfs_Switch ( "<device_id>", <location>, <channel>, <interval>, <mode> );
+
+ <device_id> - of the form family.address; identifies the one-wire device
+ <location>  - ASCII string identifier providing a useful name for device_id
+ <channel>   - "0", "1", "2", "3", "4", "5", "6", "7"
+ <mode>      - Identifies what is stored in <state> 0: PIO (Relay) 1: Sense 2: Latch
+ <interval>  - Optional (defaults to 2).  Number of seconds between input samples.
+
+ Examples:
+
+ # RELAY
+ my $relay = new Owfs_Switch ( "20.DB2506000000", "Some Relay", "0", 0 );
+ $relay->set_pio("1");          # Turn on Relay
+ $relay->set_pio("0");          # Turn off Relay
+ my $state = $state->state( );  # 0: Relay off 1: Relay on
+
+ # LATCH
+ my $doorbell = new Owfs_Switch ( "20.DB2506000000", "Front Door Bell", "1", 1 );
+ if (my $state = said $doorbell) {
+    print_log ("notice,,, someone is at the front door");
+    speak (rooms=>"all", text=> "notice,,, someone is at the front door");
+ }
+
+ or
+
+ if (my $state = state_now $doorbell) {
+    print_log ("notice,,, someone is at the front door");
+    speak (rooms=>"all", text=> "notice,,, someone is at the front door");
+ }
+
+ or
+
+ if (my $state = state_changed $doorbell) {
+    print_log ("notice,,, someone is at the front door");
+    speak (rooms=>"all", text=> "notice,,, someone is at the front door");
+ }
 
 =cut
 
-
-
-
-
-
-=head1 B<Owfs_DS18S20>
-
-=head2 SYNOPSIS
-
-  $sensor = new Owfs_DS18S20 ( "<device_id>", <location>, <interval> );
-
-  <device_id> - of the form family.address; identifies the one-wire device
-  <location>  - ASCII string identifier providing a useful name for device_id
-  <interval>  - Optional (defaults to 10).  Number of seconds between measurements.
-
-Example:
-
-  $ds18S20 = new Owfs_DS18S20 ( "10.DB2506000000", "Living Room", 2 );
-
-  my $temperature = get_temperature $ds18S20;
-
-=head2 DESCRIPTION
-
-This package specifically handles the DS18S20 Thermometer
-
-=head2 INHERITS
-
-B<Owfs_Item>
-
-=head2 METHODS
-
-=over
-
-=item B<UnDoc>
-
-=cut
-
+package Owfs_Switch;
 use strict;
 
+use constant;
+use constant ON  => 'on';
+use constant OFF => 'off';
+use constant PIO   => 0;
+use constant SENSE => 1;
+use constant LATCH => 2;
+
+@Owfs_Switch::ISA = ('Owfs_Item');
+
+our (%latch_mask);
+our (%latch_store);
+
+sub new {
+    my ($class, $device, $location, $channel, $interval, $mode) = @_;
+    my $self = new Owfs_Item ( $device, $location );
+    bless $self,$class;
+
+    $self->{channel} = undef;
+    if (defined $channel) {
+	$self->{channel} = $channel;
+    }
+    $self->{interval} = 1;
+    if (defined $interval && ($interval >= 1)) {
+        $self->{interval} = $interval;
+    }
+    $self->{mode} = PIO;
+    if (defined $mode) {
+	$self->{mode} = $mode;
+    }
+    @{$$self{states}} = ('on','off');
+    $self->{pio} = undef;
+    $self->{latch} = 0;
+    $self->{sensed} = undef;
+
+    $latch_store{$device} = 0;
+    if (!exists $latch_mask{$device}) {
+	$latch_mask{$device} = 0;
+    }
+    if (defined $channel) {
+	$latch_mask{$device} |= (1 << $channel);
+    }
+
+    $self->{loop_timer} = new Timer;
+    $self->{loop_timer}->set($self->{interval}, sub {Owfs_Switch::run_loop($self);});
+
+    &::Reload_pre_add_hook(\&Owfs_Switch::reload_hook, 1);
+
+    return $self;
+}
+
+sub set_interval {
+    my ($self,$interval) = @_;
+    $self->{interval} = $interval if defined $interval;
+}
+
+sub get_interval {
+    my ($self) = @_;
+    return $self->{interval};
+}
+
+sub set {
+    my ($self,$value) = @_;
+    my $mode = $self->{mode};
+    my $debug = $self->{debug} || $main::Debug{owfs};
+    &main::print_log ("Owfs_Switch::set mode: $mode value: $value") if $debug;
+    if ($mode eq PIO) {
+	my $channel = $self->{channel};
+	my $pio = "PIO";
+	if (defined $channel) {
+	    $pio .= ".$channel";
+	}
+	my $state = $self->convert_state($value);
+	$self->SUPER::set ($pio, $state);
+    }
+}
+
+sub get {
+    my ($self) = @_;
+    return $self->state( );
+}
+
+sub set_pio {
+    my ($self,$value) = @_;
+    $self->set($value);
+}
+
+sub get_pio {
+    my ($self) = @_;
+    return unless $self->get_present( );
+    return $self->{pio};
+}
+
+sub get_latch {
+    my ($self) = @_;
+    my $device = $self->{device};
+    my $channel = $self->{channel};
+    $channel = 0 if (!defined $channel);
+    return unless $self->get_present( );
+    return  $self->convert_state($self->{latch});
+}
+
+sub get_sensed {
+    my ($self) = @_;
+    return unless $self->get_present( );
+    return $self->{sensed};
+}
+
+sub set_debug {
+    my ($self,$debug) = @_;
+    $self->{debug} = $debug;
+}
+
+# This is a helper method to convert states to 'on' and 'off'
+sub convert_state {
+    my ($self, $value) = @_;
+    my $device = $self->{device};
+    my $location = $self->{location};
+    my $channel = $self->{channel};
+    my $state = $value;
+    $state = ON  if ($value eq 1);
+    $state = OFF if ($value eq 0);
+    $state = ON  if ($value eq 'yes');
+    $state = OFF if ($value eq 'no');
+    if (($state ne ON) && ($state ne OFF)) {
+	&main::print_log ( "Owfs_Item::convert_state Unknown state device: $device location: $location channel: $channel value: $value state: $state");
+    }
+    return $state;
+}
+
+# This method is called whenever the object has been discovered.  Useful for initialization.
+sub discovered {
+    my ($self) = @_;
+    my $channel = $self->{channel};
+    my $mode = $self->{mode};
+    if ($mode ne PIO) {
+	my $pio = "PIO";
+	if (defined $channel) {
+	    $pio .= ".$channel";
+	}
+	$self->SUPER::set( $pio, OFF );
+    }
+}
+
+sub process_read_response {
+    my ($self, $response) = @_;
+    my $device = $self->{device};
+    my $location = $self->{location};
+    my $channel = $self->{channel};
+    my $pio = "PIO";
+    my $debug = $self->{debug} || $main::Debug{owfs};
+    if (defined $channel) {
+	$pio .= ".$channel";
+    }
+    my $sensed = "sensed";
+    if (defined $channel) {
+	$sensed .= ".$channel";
+    }
+    my $latchstr = "latch";
+    if (defined $channel) {
+	$latchstr .= ".$channel";
+    }
+    my $mode = $self->{mode};
+    my $token = $self->{token};
+    &main::print_log ("Owfs_Switch::process_read_response device: $device location: $location channel: $channel mode: $mode token: $token response: $response") if $debug;
+    if (defined $response) {
+	if ($self->{token} =~ /PIO/) {
+	    if ($mode == PIO) {
+		if ($response ne $self->state( )) {
+		    my $state = $self->convert_state($response);
+		    $self->SUPER::process_read_response($state);
+		}
+	    }
+	    $self->{pio} = $response;
+	    &main::print_log ("Owfs_Switch::process_read_response $device $location $channel pio: $response") if $debug;
+	    $self->{token} = undef;
+	    $self->{value} = undef;
+	} elsif ($self->{token} =~ /sensed/) {
+	    if ($mode == SENSE) {
+		if ($response ne $self->state( )) {
+		    my $state = $self->convert_state($response);
+		    $self->SUPER::process_read_response($state);
+		}
+	    }
+	    $self->{sensed} = $response;
+	    &main::print_log ("Owfs_Switch::process_read_response $device $location $channel sensed: $response") if $debug;
+	    $self->{token} = undef;
+	    $self->{value} = undef;
+	} elsif ($self->{token} =~ /latch/) {
+	    $latch_store{$device} |= ($latch_mask{$device} & $response);
+	    my $ls = $latch_store{$device};
+	    my $lm = sprintf ("%x", $latch_mask{$device});
+	    my $chanidx = $channel;
+	    $chanidx = 0 if (!defined $channel);
+	    my $latch = ($latch_store{$device} >> $chanidx) & 1;
+	    my $slatch = $self->{latch};
+	    &main::print_log ("Owfs_Switch::process_read_response device: $device location: $location channel: $channel latch: $latch slatch: $slatch ls: $ls lm: $lm chanidx: $chanidx") if $debug;
+	    if ($mode == LATCH) {
+		if ($latch ne $self->{latch}) {
+		    my $state = $self->convert_state($latch);
+		    $self->SUPER::process_read_response($state);
+		    $self->{latch} = $latch;
+		}
+	    }
+	    $latch_store{$device} &= ~(1 << $chanidx);
+	    if ($response != 0) {
+		$self->SUPER::set ($latchstr, 1);
+	    } else {
+		$self->{token} = undef;
+		$self->{value} = undef;
+	    }
+	} else {
+	    $self->{token} = undef;
+	    $self->{value} = undef;
+	}
+    } else {
+	&main::print_log ("Owfs_Switch::process_read_response $device $location $channel ERROR"); # if $debug;
+	$self->{token} = undef;
+	$self->{value} = undef;
+    }
+}
+
+sub process_write_response {
+    my ($self, $response) = @_;
+    my $device = $self->{device};
+    my $location = $self->{location};
+    my $channel = $self->{channel};
+    my $mode = $self->{mode};
+    my $token = $self->{token};
+    my $debug = $self->{debug} || $main::Debug{owfs};
+    &main::print_log ("Owfs_Switch::process_write_response $device $location $channel mode: $mode token: $token response: $response") if $debug;
+    if (defined $response) {
+	if (($mode eq PIO) && ($self->{token} =~ /PIO/)) {
+	    $self->SUPER::process_write_response($response);
+	}
+	#if ($self->{token} =~ /latch/) {
+	#    $self->{latch} = 0;
+	#}
+    }
+    $self->{token} = undef;
+    $self->{value} = undef;
+}
+
+sub reload_hook {
+}
+
+sub run_loop {
+    my ($self) = @_;
+    my $device = $self->{device};
+    my $location = $self->{location};
+    my $channel = $self->{channel};
+    my $pio = "PIO";
+    if (defined $channel) {
+	$pio .= ".$channel";
+    }
+    my $mode = $self->{mode};
+    my $present = $self->{present};
+    my $token = $self->{token};
+    my $debug = $self->{debug} || $main::Debug{owfs};
+    &main::print_log ("Owfs_Switch::run_loop $device $location $channel mode: $mode present: $present token: $token") if $debug;
+    if (!defined $self->{token} && $self->{present}) {
+	if ($mode eq PIO) {
+	    $self->SUPER::get ($pio);
+	} elsif ($mode eq SENSE) {
+	    $self->SUPER::get ("sensed.$channel");
+	} elsif ($mode eq LATCH) {
+	    $self->SUPER::get ("latch.BYTE");
+	}
+    }
+    # reschedule the timer for next pass
+    $self->{loop_timer}->set($self->{interval}, sub {Owfs_Switch::run_loop($self);});
+}
+
+#=======================================================================================
+#
+# Owfs_DS18S20
+#
+# This package specifically handles the DS18S20 Thermometer
+#
+#=======================================================================================
+
+=begin comment
+
+ By default, the temperature unit of measure will be Celcius.  Use the owfs_uom_temp
+ config_parm to control the desired temperature uom
+
+ $main::config_parms{owfs_uom_temp}
+
+ C Celcius
+ F Fahrenheit
+ K Kelvin
+ R Rankine
+
+Usage:
+
+ $sensor = new Owfs_DS18S20 ( "<device_id>", <location>, <interval> );
+
+ <device_id> - of the form family.address; identifies the one-wire device
+ <location>  - ASCII string identifier providing a useful name for device_id
+ <interval>  - Optional (defaults to 10).  Number of seconds between measurements.
+
+ Example:
+
+ $ds18S20 = new Owfs_DS18S20 ( "10.DB2506000000", "Living Room", 2 );
+
+ my $temperature = get_temperature $ds18S20;
+
+ or;
+
+ if (my $temperature = said $sensor) {
+   ...
+ }
+
+ or;
+
+ if (my $temperature = state_now $sensor) {
+   ...
+ }
+
+ if (my $temperature = state_changed $sensor) {
+   ...
+ }
+
+ or;
+
+ my $temperature = $sensor->state( );
+
+=cut
+
 package Owfs_DS18S20;
+use strict;
 
 @Owfs_DS18S20::ISA = ('Owfs_Item');
 
-my @clients = ();
-my $index = 0;
-my $timer = undef;
+our @clients = ();
+our $index = 0;
+our $timer = undef;
 
 sub new {
-    my ($class, $ds18S20, $location, $interval) = @_;
-    my $self = new Owfs_Item ( $ds18S20, $location, $interval );
+    my ($class, $device, $location, $interval) = @_;
+    my $self = new Owfs_Item ( $device, $location );
     bless $self,$class;
 
     $self->{interval} = 10;
     if (defined $interval && ($interval > 1)) {
         $self->{interval} = $interval;
     }
-    $self->{present} = 0;
     $self->{temperature} = undef;
 
     if (!defined $timer) {
         &::Reload_pre_add_hook(\&Owfs_DS18S20::reload_hook, 1);
 	$index = 0;
         $timer = new Timer;
+    }
+
+    if ($timer->inactive( )) {
         $timer->set($self->{interval}, sub {&Owfs_DS18S20::run_loop});
     }
 
@@ -368,11 +1163,6 @@ sub new {
     return $self;
 }
 
-sub get_present {
-     my ($self) = @_;
-     return $self->{present};
-}
-
 sub set_interval {
     my ($self,$interval) = @_;
     $self->{interval} = $interval if defined $interval;
@@ -383,560 +1173,483 @@ sub get_interval {
     return $self->{interval};
 }
 
+sub set {
+    my ($self) = @_;
+}
+
+sub get {
+    my ($self) = @_;
+    return $self->state( );
+}
+
 sub get_temperature {
-    my $self = shift;
-    return ($self->{temperature});
+    my ($self) = @_;
+    return $self->state( );
+}
+
+sub process_read_response {
+    my ($self, $temperature) = @_;
+    my $device = $self->{device};
+    my $location = $self->{device};
+    if (defined $temperature) {
+	$temperature = $self->_chomp_plus($temperature);
+	if ($temperature =~ /^[-]?\d+(?:[.]\d+)?$/) {
+	    if ($temperature ne $self->state( )) {
+		$self->SUPER::process_read_response( $temperature );
+	    }
+	    $self->{temperature} = $temperature;
+	    if ($main::Debug{owfs}) {
+		&main::print_log ("Owfs_DS18S20::process_read_response $device $location temperature: $temperature") if $main::Debug{owfs};
+	    }
+	}
+    } else {
+	&main::print_log ("Owfs_DS18S20::process_read_response $device $location temperature: ERROR"); # if $main::Debug{owfs};
+    }
+    $self->{token} = undef;
+    $self->{value} = undef;
+}
+
+# This method is called when the response for a write request to owserver returns.
+sub process_write_response {
+    my ($self, $response) = @_;
+    my $device = $self->{device};
+    my $location = $self->{location};
+    my $token = $self->{token};
+    my $value = $self->{value};
+    &main::print_log ("Owfs_DS18S20::process_write_response $device $location response: $response token: $token value: $value") if $main::Debug{owfs};
+    $self->{token} = undef;
+    $self->{value} = undef;
 }
 
 sub reload_hook {
     @clients = ();
-    my $num = @clients;
-    &main::print_log( "Owfs_DS18S20::reload_hook $num") if $main::Debug{owfs};
+    &main::print_log( "Owfs_DS18S20::reload_hook") if $main::Debug{owfs};
     $timer->set(10, sub {&Owfs_DS18S20::run_loop});
 }
 
 sub run_loop {
 
-  # exit if we don't have any clients.
-  return unless @clients;
+    # exit if we don't have any clients.
+    return unless scalar(@clients);
 
-  # issue simultaneous to start a conversion
-  if ($index == 0) {
-      my $self = $clients[0];
-      &main::print_log ( "Owfs_DS18S20:: $index simultaneous") if $main::Debug{owfs};
-      $self->set_root ( "simultaneous/temperature", "1" );
-  } else {
-      my $self = $clients[$index-1];
-      $self->{present} = $self->get("present");
-      my $temperature = $self->get("temperature");
-      $self->{temperature} = $temperature;
-      if ($main::Debug{owfs}) {
-	  my $device = $self->{device};
-	  my $location = $self->{location};
-	  &main::print_log ("Owfs_DS18S20 $index $device $location temperature: $temperature") if $main::Debug{owfs};
-      }
-  }
+    # issue simultaneous to start a conversion
+    if ($index == 0) {
+	my $self = $clients[0];
+	&main::print_log ( "Owfs_DS18S20::run_loop index: $index simultaneous") if $main::Debug{owfs};
+	$self->_set_root ( "/simultaneous/temperature", 1);
+    } else {
+	my $self = $clients[$index-1];
+	if (!defined $self->{token} && $self->{present}) {
+	    $self->SUPER::get("temperature");
+	}
+    }
 
-  # udpate the index
-  $index += 1;
-  if ($index > @clients) {
-      $index = 0;
-  }
-
-  # reschedule the timer for next pass
-  $timer->set($clients[0]->get_interval( ), sub {&Owfs_DS18S20::run_loop});
+    # udpate the index
+    $index += 1;
+    if ($index > @clients) {
+	$index = 0;
+    }
+    # reschedule the timer for next pass
+    $timer->set($clients[0]->get_interval( ), sub {&Owfs_DS18S20::run_loop});
 }
 
-=back
+#=======================================================================================
+#
+# Owfs_DS2405
+#
+# This package specifically handles the DS2405 Relay / IO controller.
+#
+#=======================================================================================
 
-=head2 INI PARAMETERS
+=begin comment
 
-NONE
+Usage:
 
-=head2 AUTHOR
+ $sensor = new Owfs_DS2405 ( "<device_id>", <location>, <interval> );
 
-03/10/2007 Created by Jim Duda (jim@duda.tzo.com)
+ <device_id> - of the form family.address; identifies the one-wire device
+ <location>  - ASCII string identifier providing a useful name for device_id
+ <interval>  - Optional (defaults to 2).  Number of seconds between reads of sensed.
 
-=head2 SEE ALSO
+ Examples:
 
-NONE
+ my $relay = new Owfs_DS2405_pio ( "20.DB2506000000", "Some Relay" );
 
-=head2 LICENSE
+ # Turn on relay
+ $relay->set_pio("1");
 
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+ # Turn off relay
+ $relay->set_pio("0");
 
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-
-=cut
-
-
-
-
-
-
-=head1 B<Owfs_DS2405>
-
-=head2 SYNOPSIS
-
-  $sensor = new Owfs_DS2405 ( "<device_id>", <location> );
-
-  <device_id> - of the form family.address; identifies the one-wire device
-  <location>  - ASCII string identifier providing a useful name for device_id
-
-Examples:
-
-  my $relay = new Owfs_DS2405 ( "20.DB2506000000", "Some Relay", "0" );
-
-  // Turn on relay
-  $relay->set_pio("1");
-
-  // Turn off relay
-  $realy->set_pio("0");
-
-  // Detect input transition
-  my $doorbell = new Owfs_DS2405 ( "20.DB2506000000", "Front Door Bell", "1", 1 );
-  if ($doorbell->get_latch( )) {
-    print_log ("notice,,, someone is at the front door");
-    speak (rooms=>"all", text=> "notice,,, someone is at the front door");
-  }
-
-=head2 DESCRIPTION
-
-This package specifically handles the DS2405 Relay / IO controller.
-
-=head2 INHERITS
-
-B<Owfs_Item>
-
-=head2 METHODS
-
-=over
-
-=item B<UnDoc>
+ # Detect input transition
+ my $doorbell = new Owfs_DS2405_sense ( "20.DB2506000000", "Front Door Bell", 1 );
+ if ($doorbell->state_now( )) {
+     print_log ("notice,,, someone is at the front door");
+     speak (rooms=>"all", text=> "notice,,, someone is at the front door");
+ }
 
 =cut
-
-use strict;
 
 package Owfs_DS2405;
+use strict;
 
-@Owfs_DS2405::ISA = ('Owfs_Item');
+use constant;
+use constant ON  => 'on';
+use constant OFF => 'off';
+use constant PIO   => 0;
+use constant SENSE => 1;
+use constant LATCH => 2;
+
+@Owfs_DS2405::ISA = ('Owfs_DS2405_pio');
 
 sub new {
-    my ($class, $ds2405, $location ) = @_;
-    my $self = new Owfs_Item ( $ds2405, $location );
+    my ($class, $device, $location, $interval) = @_;
+    my $self = new Owfs_DS2405_pio ( $device, $location, $interval );
     bless $self,$class;
     return $self;
 }
 
-sub set_pio {
-    my ($self,$value) = @_;
-    $self->set ("PIO", $value);
+@Owfs_DS2405_pio::ISA = ('Owfs_Switch');
+
+sub new {
+    my ($class, $device, $location, $interval) = @_;
+    my $self = new Owfs_Switch ( $device, $location, undef, $interval, PIO);
+    bless $self,$class;
+    return $self;
 }
 
-sub get_pio {
-    my ($self) = @_;
-    my $channel = $self->{channel};
-    return ($self->get ("PIO"));
+@Owfs_DS2405_sense::ISA = ('Owfs_Switch');
+
+sub new {
+    my ($class, $device, $location, $interval) = @_;
+    my $self = new Owfs_Switch ( $device, $location, undef, $interval, SENSE );
+    bless $self,$class;
+    return $self;
 }
 
-=back
+#=======================================================================================
+#
+# Owfs_DS2408
+#
+# This package specifically handles the DS2408 Relay / IO controller.
+#
+#=======================================================================================
 
-=head2 INI PARAMETERS
+=begin comment
 
-NONE
+Usage:
 
-=head2 AUTHOR
+ $sensor = new Owfs_DS2408 ( "<device_id>", <location>, <channel>, <interval> );
 
-03/10/2007 Created by Jim Duda (jim@duda.tzo.com)
+ <device_id> - of the form family.address; identifies the one-wire device
+ <location>  - ASCII string identifier providing a useful name for device_id
+ <channel>   - "0", "1", "2", "3", "4", "5", "6", "7"
+ <interval>  - Optional (defaults to 2).  Number of seconds between input samples.
 
-=head2 SEE ALSO
+ Examples:
 
-NONE
+ # RELAY
+ my $relay = new Owfs_DS2408_pio ( "20.DB2506000000", "Some Relay", "0", 1 );
+ $relay->set_pio("1");          # Turn on Relay
+ $relay->set_pio("0");          # Turn off Relay
+ my $state = $state->state( );  # 0: Relay off 1: Relay on
 
-=head2 LICENSE
-
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-
-=cut
-
-
-
-
-
-
-=head1 B<Owfs_DS2408>
-
-=head2 SYNOPSIS
-
-  $sensor = new Owfs_DS2408 ( "<device_id>", <location>, <channel>, <interval> );
-
-  <device_id> - of the form family.address; identifies the one-wire device
-  <location>  - ASCII string identifier providing a useful name for device_id
-  <channel>   - "0", "1", "2", "3", "4", "5", "6", "7"
-  <interval>  - Optional (defaults to 10).  Number of seconds between input samples.
-
-Examples:
-
-  my $relay = new Owfs_DS2408 ( "20.DB2506000000", "Some Relay", "0" );
-
-  // Turn on relay
-  $relay->set_pio("1");
-
-  // Turn off relay
-  $realy->set_pio("0");
-
-  // Detect input transition
-  my $doorbell = new Owfs_DS2408 ( "20.DB2506000000", "Front Door Bell", "1", 1 );
-  if ($doorbell->get_latch( )) {
+ # LATCH
+ my $doorbell = new Owfs_DS2408_latch ( "20.DB2506000000", "Front Door Bell", "1", 1 );
+ if (my $state = said $doorbell) {
     print_log ("notice,,, someone is at the front door");
     speak (rooms=>"all", text=> "notice,,, someone is at the front door");
-  }
+ }
 
+ or
 
-=head2 DESCRIPTION
+ if (my $state = state_now $doorbell) {
+    print_log ("notice,,, someone is at the front door");
+    speak (rooms=>"all", text=> "notice,,, someone is at the front door");
+ }
 
-This package specifically handles the DS2408 Relay / IO controller.
+ or
 
-=head2 INHERITS
-
-B<Owfs_Item>
-
-=head2 METHODS
-
-=over
-
-=item B<UnDoc>
+ if (my $state = state_changed $doorbell) {
+    print_log ("notice,,, someone is at the front door");
+    speak (rooms=>"all", text=> "notice,,, someone is at the front door");
+ }
 
 =cut
-
-use strict;
 
 package Owfs_DS2408;
+use strict;
 
-@Owfs_DS2408::ISA = ('Owfs_Item');
+use constant;
+use constant ON  => 'on';
+use constant OFF => 'off';
+use constant PIO   => 0;
+use constant SENSE => 1;
+use constant LATCH => 2;
+
+@Owfs_DS2408::ISA = ('Owfs_DS2408_pio');
 
 sub new {
-    my ($class, $ds2408, $location, $channel, $interval) = @_;
-    my $self = new Owfs_Item ( $ds2408, $location );
-    bless $self,$class;
-
-    $self->{interval} = 10;
-    if (defined $interval && ($interval >= 1)) {
-        $self->{interval} = $interval;
-    }
-    $self->{present} = 0;
-    $self->{latch} = 0;
-    $self->{pass_triggered} = 0;
-    $self->{sensed} = undef;
-    $self->{channel} = $channel;
-
-    $self->restore_data('latch'); 
-
-    &::Reload_pre_add_hook(\&Owfs_DS2408::reload_hook, 1);
-
-    $self->{timer} = new Timer;
-    $self->{timer}->set($self->{interval}, sub {&Owfs_DS2408::run_loop($self)});
-
+    my ($class, $device, $location, $channel, $interval) = @_;
+    my $self = new Owfs_DS2408_pio ( $device, $location, $channel, $interval );
+    #bless $self,$class;
     return $self;
 }
 
-sub get_present {
-     my ($self) = @_;
-     return $self->{present};
-}
+package Owfs_DS2408_pio;
+use strict;
 
-sub set_interval {
-    my ($self,$interval) = @_;
-    $self->{interval} = $interval if defined $interval;
-}
+use constant;
+use constant ON  => 'on';
+use constant OFF => 'off';
+use constant PIO   => 0;
+use constant SENSE => 1;
+use constant LATCH => 2;
 
-sub get_interval {
-    my ($self) = @_;
-    return $self->{interval};
-}
+@Owfs_DS2408_pio::ISA = ('Owfs_Switch');
 
-sub set_pio {
-    my ($self,$value) = @_;
-    my $channel = $self->{channel};
-    $self->set ("PIO.$channel", $value);
-}
-
-sub get_pio {
-    my ($self) = @_;
-    my $channel = $self->{channel};
-    return ($self->get ("PIO.$channel"));
-}
-
-sub get_latch {
-    my ($self) = @_;
-    my $latch = $self->{latch};
-    if ($latch) {
-        $self->{latch} = 0;
-        $self->{pass_triggered} = 0;
+sub new {
+    my ($class, $device, $location, $channel, $interval) = @_;
+    if (($channel < 0) || ($channel > 7)) {
+	&main::print_log ("Owfs_DS2408::new ERROR channel ($channel) out of range!");
     }
-    return ($latch);
+    my $self = new Owfs_Switch ( $device, $location, $channel, $interval, PIO );
+    #bless $self,$class;
+    return $self;
 }
 
-sub get_sensed {
-    my $self = shift;
-    return ($self->{sensed} eq 1 ? 1 : 0);
-}
+package Owfs_DS2408_sense;
+use strict;
 
-sub reload_hook {
-}
+use constant;
+use constant ON  => 'on';
+use constant OFF => 'off';
+use constant PIO   => 0;
+use constant SENSE => 1;
+use constant LATCH => 2;
 
-sub run_loop {
-    my $self = shift;
-    my $channel = $self->{channel};
-    my $latch = $self->get ("latch.$channel");
-    $self->{present} = $self->get("present");
-    $self->{sensed} = $self->get ("sensed.$channel");
-    if ($latch) {
-        $self->{pass_triggered} = $main::Loop_Count;
-	$self->{latch} = $latch;
-	$self->set("latch.$channel", "0");
-    } elsif ($self->{pass_triggered} && $self->{pass_triggered} < $main::Loop_Count) {
-	$self->{latch} = 0;
-        $self->{pass_triggered} = 0;
+@Owfs_DS2408_sense::ISA = ('Owfs_Switch');
+
+sub new {
+    my ($class, $device, $location, $channel, $interval) = @_;
+    if (($channel < 0) || ($channel > 7)) {
+	&main::print_log ("Owfs_DS2408::new ERROR channel ($channel) out of range!");
     }
-
-    if ($main::Debug{owfs}) {
-	my $device = $self->{device};
-	my $location = $self->{location};
-	&main::print_log ("Owfs_DS2408 $index $device $location $channel latch: $latch");
-    }
-
-    # reschedule the timer for next pass
-    $self->{timer}->set($self->get_interval( ), sub {&Owfs_DS2408::run_loop($self)});
+    my $self = new Owfs_Switch ( $device, $location, $channel, $interval, SENSE );
+    #bless $self,$class;
+    return $self;
 }
 
-=back
+package Owfs_DS2408_latch;
+use strict;
 
-=head2 INI PARAMETERS
+use constant;
+use constant ON  => 'on';
+use constant OFF => 'off';
+use constant PIO   => 0;
+use constant SENSE => 1;
+use constant LATCH => 2;
 
-NONE
+@Owfs_DS2408_latch::ISA = ('Owfs_Switch');
 
-=head2 AUTHOR
+sub new {
+    my ($class, $device, $location, $channel, $interval) = @_;
+    if (($channel < 0) || ($channel > 7)) {
+	&main::print_log ("Owfs_DS2408::new ERROR channel ($channel) out of range!");
+    }
+    my $self = new Owfs_Switch ( $device, $location, $channel, $interval, LATCH );
+    #bless $self,$class;
+    return $self;
+}
 
-03/10/2007 Created by Jim Duda (jim@duda.tzo.com)
+#=======================================================================================
+#
+# Owfs_DS2413
+#
+# This package specifically handles the DS2413 Dual Channel Addressable Switch.
+#
+#=======================================================================================
 
-=head2 SEE ALSO
+=begin comment
 
-NONE
+Usage:
 
-=head2 LICENSE
+ $sensor = new Owfs_DS2413 ( "<device_id>", <location>, <channel> , <interval> );
 
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+ <device_id> - of the form family.address; identifies the one-wire device
+ <location>  - ASCII string identifier providing a useful name for device_id
+ <channel>   - Channel identifier, "A" or "B"
+ <interval>  - Optional (defaults to 10).  Number of seconds between input samples.
 
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+ Examples:
 
-You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ # RELAY
+ my $relay = new Owfs_DS2413 ( "20.DB2506000000", "Some Relay", "0", 0 );
+ $relay->set( 1 ); # Turn on Relay
+ $relay->set( 0 ); # Turn off Relay
+ my $state = $state->state( );  # 0: Relay off 1: Relay on
 
-=cut
-
-
-
-
-
-
-=head1 B<Owfs_DS2413>
-
-=head2 SYNOPSIS
-
-  $sensor = new Owfs_DS2413 ( "<device_id>", <location>, <channel> , <interval> );
-
-  <device_id> - of the form family.address; identifies the one-wire device
-  <location>  - ASCII string identifier providing a useful name for device_id
-  <channel>   - Channel identifier, "A" or "B"
-  <interval>  - Optional (defaults to 10).  Number of seconds between input samples.
-
-Examples:
-
-  my $switch = new Owfs_DS2413 ( "20.DB2506000000", "Some Switch", "A" );
-
-  // Turn on switch
-  $switch->set_pio("1");
-
-  // Turn off switch
-  $switch->set_pio("0");
-
-  // Detect input transition
-  my $doorbell = new Owfs_DS2413 ( "20.DB2506000000", "Front Door Bell", "A", 1 );
-  if ($doorbell->get_latch( )) {
+ # SENSE
+ my $doorbell = new Owfs_DS2413_sense ( "20.DB2506000000", "Front Door Bell", "1", 1 );
+ if (my $state = said $doorbell) {
     print_log ("notice,,, someone is at the front door");
     speak (rooms=>"all", text=> "notice,,, someone is at the front door");
-  }
+ }
 
-=head2 DESCRIPTION
+ or
 
-This package specifically handles the DS2413 Dual Channel Addressable Switch.
+ if (my $state = state_now $doorbell) {
+    print_log ("notice,,, someone is at the front door");
+    speak (rooms=>"all", text=> "notice,,, someone is at the front door");
+ }
 
-=head2 INHERITS
+ or
 
-B<Owfs_Item>
+ if (my $state = state_changed $doorbell) {
+    print_log ("notice,,, someone is at the front door");
+    speak (rooms=>"all", text=> "notice,,, someone is at the front door");
+ }
 
-=head2 METHODS
+ or
 
-=over
-
-=item B<UnDoc>
+ my $state = $doorbell->state( )
 
 =cut
 
+package Owfs_DS2413;
 use strict;
 
-package Owfs_DS2413;
+use constant;
+use constant ON  => 'on';
+use constant OFF => 'off';
+use constant PIO   => 0;
+use constant SENSE => 1;
+use constant LATCH => 2;
 
-@Owfs_DS2413::ISA = ('Owfs_Item');
+@Owfs_DS2413::ISA = ('Owfs_DS2413_pio');
 
 sub new {
-    my ($class, $ds2413, $location, $channel, $interval) = @_;
-    my $self = new Owfs_Item ( $ds2413, $location );
+    my ($class, $device, $location, $channel, $interval) = @_;
+    my $self = new Owfs_DS2413_pio ( $device, $location, $channel, $interval );
     bless $self,$class;
-
-    $self->{interval} = 10;
-    if (defined $interval && ($interval >= 1)) {
-        $self->{interval} = $interval;
-    }
-    $self->{present} = 0;
-    $self->{sensed} = undef;
-    $self->{channel} = $channel;
-
-    &::Reload_pre_add_hook(\&Owfs_DS2413::reload_hook, 1);
-
-    $self->{timer} = new Timer;
-    $self->{timer}->set($self->{interval}, sub {&Owfs_DS2413::run_loop($self)});
-
     return $self;
 }
 
-sub get_present {
-     my ($self) = @_;
-     return $self->{present};
-}
-
-sub set_interval {
-    my ($self,$interval) = @_;
-    $self->{interval} = $interval if defined $interval;
-}
-
-sub get_interval {
-    my ($self) = @_;
-    return $self->{interval};
-}
-
-sub set_pio {
-    my ($self,$value) = @_;
-    my $channel = $self->{channel};
-    $self->set ("PIO.$channel", $value);
-}
-
-sub get_pio {
-    my ($self) = @_;
-    my $channel = $self->{channel};
-    return ($self->get ("PIO.$channel"));
-}
-
-sub get_sensed {
-    my $self = shift;
-    return ($self->{sensed} eq 1 ? 1 : 0);
-}
-
-sub reload_hook {
-}
-
-sub run_loop {
-    my $self = shift;
-    my $channel = $self->{channel};
-    $self->{present} = $self->get("present");
-    $self->{sensed} = $self->get ("sensed.$channel");
-
-    if ($main::Debug{owfs}) {
-	my $device = $self->{device};
-	my $location = $self->{location};
-	&main::print_log ("Owfs_DS2413 $index $device $location $channel");
-    }
-
-    # reschedule the timer for next pass
-    $self->{timer}->set($self->get_interval( ), sub {&Owfs_DS2413::run_loop($self)});
-}
-
-=back
-
-=head2 INI PARAMETERS
-
-NONE
-
-=head2 AUTHOR
-
-03/10/2007 Created by Jim Duda (jim@duda.tzo.com)
-
-=head2 SEE ALSO
-
-NONE
-
-=head2 LICENSE
-
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-
-=cut
-
-
-
-
-
-
-=head1 B<Owfs_DS2450>
-
-=head2 SYNOPSIS
-
-  $sensor = new Owfs_DS2450 ( "<device_id>", <location>, <channel>, <interval> );
-
-  <device_id> - of the form family.address; identifies the one-wire device
-  <location>  - ASCII string identifier providing a useful name for device_id
-  <channel>   - "A", "B", "C", or "D"
-  <interval>  - Optional (defaults to 10).  Number of seconds between measurements.
-
-Example:
-
-  $ds2450 = new Owfs_DS2450 ( "20.DB2506000000", "Furnace Sensor", "A" );
-
-  my $voltage = $ds2450->get_voltage( );
-
-=head2 DESCRIPTION
-
-This package specifically handles the DS2450 A/D Converter.
-
-=head2 INHERITS
-
-B<Owfs_Item>
-
-=head2 METHODS
-
-=over
-
-=item B<UnDoc>
-
-=cut
-
+package Owfs_DS2413_pio;
 use strict;
 
+use constant;
+use constant ON  => 'on';
+use constant OFF => 'off';
+use constant PIO   => 0;
+use constant SENSE => 1;
+use constant LATCH => 2;
+
+@Owfs_DS2413_pio::ISA = ('Owfs_Switch');
+
+sub new {
+    my ($class, $device, $location, $channel, $interval) = @_;
+    if (($channel < 0) || ($channel > 1)) {
+	&main::print_log ("Owfs_DS2413::new ERROR channel ($channel) out of range!");
+    }
+    my $self = new Owfs_Switch ( $device, $location, $channel, $interval, PIO );
+    bless $self,$class;
+    return $self;
+}
+
+package Owfs_DS2413_sense;
+use strict;
+
+use constant;
+use constant ON  => 'on';
+use constant OFF => 'off';
+use constant PIO   => 0;
+use constant SENSE => 1;
+use constant LATCH => 2;
+
+@Owfs_DS2413_sense::ISA = ('Owfs_Switch');
+
+sub new {
+    my ($class, $device, $location, $channel, $interval) = @_;
+    if (($channel < 0) || ($channel > 1)) {
+	&main::print_log ("Owfs_DS2413::new ERROR channel ($channel) out of range!");
+    }
+    my $self = new Owfs_Switch ( $device, $location, $channel, $interval, SENSE );
+    bless $self,$class;
+    return $self;
+}
+
+#=======================================================================================
+#
+# Owfs_DS2450
+#
+# This package specifically handles the DS2450 A/D Converter.
+#
+#=======================================================================================
+
+=begin comment
+
+Usage:
+
+ $sensor = new Owfs_DS2450 ( "<device_id>", <location>, <channel>, <interval> );
+
+ <device_id> - of the form family.address; identifies the one-wire device
+ <location>  - ASCII string identifier providing a useful name for device_id
+ <channel>   - "A", "B", "C", or "D"
+ <interval>  - Optional (defaults to 10).  Number of seconds between measurements.
+
+ Example:
+
+ $ds2450 = new Owfs_DS2450 ( "20.DB2506000000", "Furnace Sensor", "A" );
+
+ if (my $voltage = said $ds2450) {
+   ...
+ }
+
+ or;
+
+ if (my $voltage = state_now $ds2450) {
+   ...
+ }
+
+ if (my $voltage = state_changed $ds2450) {
+   ...
+ }
+
+ or;
+
+ my $voltage = $ds2450->state( );
+
+=cut
+
 package Owfs_DS2450;
+use strict;
 
 @Owfs_DS2450::ISA = ('Owfs_Item');
 
-my @clients = ();
-my $index = 0;
-my $timer = undef;
+our @clients = ();
+our $index = 0;
+our $timer = undef;
 
 sub new {
-    my ($class, $ds2450, $location, $channel, $interval) = @_;
-    my $self = new Owfs_Item ( $ds2450, $location );
+    my ($class, $device, $location, $channel, $interval) = @_;
+    my $self = new Owfs_Item ( $device, $location );
     bless $self,$class;
 
+    $self->{channel} = $channel;
     $self->{interval} = 10;
     if (defined $interval && ($interval > 1)) {
         $self->{interval} = $interval if defined $interval;
     }
-    $self->{present} = 0;
     $self->{voltage} = undef;
-    $self->{channel} = $channel;
 
     if (!defined $timer) {
         &::Reload_pre_add_hook(\&Owfs_DS2450::reload_hook, 1);
+	@clients = ( );
 	$index = 0;
         $timer = new Timer;
+    }
+    if ($timer->inactive( )) {
         $timer->set($self->{interval}, sub {&Owfs_DS2450::run_loop});
     }
 
@@ -946,17 +1659,7 @@ sub new {
 	$clients[0]->set_interval($self->{interval});
     }
 
-    $self->set ( "set_alarm/voltlow.$channel", "1.0" );
-    $self->set ( "set_alarm/low.$channel", "1" );
-    $self->set ( "power", "1" );
-    $self->set ( "PIO.$channel", "1" );
-
     return $self;
-}
-
-sub get_present {
-     my ($self) = @_;
-     return $self->{present};
 }
 
 sub set_interval {
@@ -969,74 +1672,107 @@ sub get_interval {
     return $self->{interval};
 }
 
+sub set {
+    my ($self) = @_;
+}
+
+sub get {
+    my ($self) = @_;
+    return $self->state( );
+}
+
 sub get_voltage {
-    my $self = shift;
-    return ($self->{voltage});
+    my ($self) = @_;
+    return unless $self->get_present( );
+    return $self->state( );
+}
+
+# This method is called when the read request is returned from owserver.
+sub process_read_response {
+    my ($self, $voltage) = @_;
+    my $device = $self->{device};
+    my $location = $self->{location};
+    my $channel = $self->{channel};
+    if (defined $voltage) {
+	$voltage = $self->_chomp_plus($voltage);
+	if ($voltage ne $self->state( )) {
+	    $self->SUPER::process_read_response($voltage);
+	}
+	$self->{voltage} = $voltage;
+	&main::print_log ("Owfs_DS2450::process_read_response $device $location $channel voltage: $voltage") if $main::Debug{owfs};
+    } else {
+	&main::print_log ("Owfs_DS2450::process_read_response $device $location $channel ERROR"); # if $main::Debug{owfs};
+    }
+    $self->{token} = undef;
+    $self->{value} = undef;
+}
+
+# This method is called when the response for a write request to owserver returns.
+sub process_write_response {
+    my ($self, $response) = @_;
+    my $device = $self->{device};
+    my $location = $self->{location};
+    my $token = $self->{token};
+    my $value = $self->{value};
+    &main::print_log ("Owfs_DS2450::process_write_response $device $location response: $response token: $token value: $value") if $main::Debug{owfs};
+    $self->{token} = undef;
+    $self->{value} = undef;
+}
+
+# This method is called whenever the object has been discovered.  Useful for initialization.
+sub discovered {
+    my ($self) = @_;
+    my $channel = $self->{channel};
+    $self->SUPER::set ( "set_alarm/voltlow.$channel", "1.0" );
+    $self->SUPER::set ( "set_alarm/low.$channel", "1" );
+    $self->SUPER::set ( "power", "1" );
+    $self->SUPER::set ( "PIO.$channel", 1 );
 }
 
 sub reload_hook {
     @clients = ();
-    my $num = @clients;
-    &main::print_log( "Owfs_DS2450::reload_hook $num") if $main::Debug{owfs};
+    &main::print_log( "Owfs_DS2450::reload_hook") if $main::Debug{owfs};
     $timer->set(10, sub {&Owfs_DS2450::run_loop});
 }
 
+# This method runs using a timer, with an interval of interval timer.  Each
+# pass of the timer will result in one A/D measurement reading.  All of the DS2450
+# devices share this same timer loop.  The first iteration of the loop will execute
+# a simultaneous voltage reading, to cause all A/D device to start a conversion at
+# the same time.  The remaing passes are used to pick up the results from the
+# simultaneous converstion.
 sub run_loop {
 
-    # exit if we don't have any clients.
-    return unless @clients;
-    
+    # exit if no clients
+    return unless scalar(@clients);
+
     # issue simultaneous to start a conversion
     if ($index == 0) {
-        my $self = $clients[0];
-        my $channel = $self->{channel};
-        &main::print_log ( "Owfs_DS2450:: $index simultaneous: $channel index: $index") if $main::Debug{owfs};
-        $self->set_root ( "simultaneous/voltage", "1" );
+	my $self = $clients[0];
+	&main::print_log ( "Owfs_DS2450::run_loop $index simultaneous") if $main::Debug{owfs};
+	$self->_set_root ( "/simultaneous/voltage", 1 );
     } else {
-        my $self = $clients[$index-1];
-        my $channel = $self->{channel};
-        my $voltage = $self->get ("volt.$channel");
-        $self->{present} = $self->get("present");
-        $self->{voltage} = $voltage;
-        if ($main::Debug{owfs}) {
-    	  my $device = $self->{device};
-    	  my $location = $self->{location};
-    	  &main::print_log ("Owfs_DS2450 $index $device $location $channel volt: $voltage");
-        }
+	my $self = $clients[$index-1];
+	my $channel = $self->{channel};
+	my $device = $self->{device};
+	my $location = $self->{location};
+	my $token =  $self->{token};
+	my $present =  $self->{present};
+	&main::print_log ( "Owfs_DS2450::run_loop $index $device $location channel: $channel present: $present token: $token") if $main::Debug{owfs};
+	if (!defined $self->{token} && $self->{present}) {
+	    $self->SUPER::get("volt.$channel");
+	}
     }
-    
+
     # udpate the index
     $index += 1;
     if ($index > @clients) {
-      $index = 0;
+	$index = 0;
     }
-    
+
     # reschedule the timer for next pass
     $timer->set($clients[0]->get_interval( ), sub {&Owfs_DS2450::run_loop});
+
 }
 
 1;
-
-=back
-
-=head2 INI PARAMETERS
-
-NONE
-
-=head2 AUTHOR
-
-03/10/2007 Created by Jim Duda (jim@duda.tzo.com)
-
-=head2 SEE ALSO
-
-NONE
-
-=head2 LICENSE
-
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-
-=cut

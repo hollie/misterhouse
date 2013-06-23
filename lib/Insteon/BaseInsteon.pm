@@ -1,29 +1,26 @@
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 B<Insteon::BaseObject>
 
-File:
-	BaseInsteon.pm
+=head2 SYNOPSIS
 
-Description:
-	Generic class implementation of an Insteon Device.
+Usage
 
-Author(s):
-	Gregg Liming / gregg@limings.net
+In user code:
 
-License:
-	This free software is licensed under the terms of the GNU public license.
+    $ip_patio_light = new Insteon_Device($myPLM,"33.44.55");
+    $ip_patio_light->set("ON");
 
-Usage:
+=head2 DESCRIPTION
 
-	$ip_patio_light = new Insteon_Device($myPLM,"33.44.55");
+Generic class implementation of an Insteon Device.
 
-	$ip_patio_light->set("ON");
+=head2 INHERITS
 
-Special Thanks to:
-	Brian Warren for significant testing and patches
-	Bruce Winter - MH
+L<Generic_Item|Generic_Item>
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head2 METHODS
+
+=over
+
 =cut
 
 package Insteon::BaseObject;
@@ -46,6 +43,13 @@ our %nack_messages = (
    ff => 'sender_id_not_in_responder_aldb',
 );
 
+=item C<derive_link_state([state])>
+
+Takes the various states available to insteon devices and returns a derived 
+state of either ON or OFF.
+
+=cut
+
 sub derive_link_state
 {
 	my ($p_state) = @_;
@@ -63,6 +67,12 @@ sub derive_link_state
 
 	return $link_state;
 }
+
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
 
 sub new
 {
@@ -107,6 +117,13 @@ sub new
 	return $self;
 }
 
+=item C<initialize()>
+
+A former holdover from when MisterHouse used to ping devices to get their device
+category.  May not be needed anymore.
+
+=cut
+
 sub initialize
 {
 	my ($self) = @_;
@@ -121,6 +138,14 @@ sub initialize
 #		unless $self->group eq '01' and defined $self->devcat;
 }
 
+=item C<interface([interface])>
+
+Used to store and return the associated interface of a device.
+
+If provided, stores interface as the device's interface.
+
+=cut
+
 sub interface
 {
 	my ($self,$p_interface) = @_;
@@ -134,6 +159,16 @@ sub interface
 	return $$self{interface};
 }
 
+=item C<device_id([id])>
+
+Used to store and return the associated device_id of a device.
+
+If provided, stores id as the device's id.
+
+Returns device id without any delimiters.
+
+=cut
+
 sub device_id
 {
 	my ($self,$p_device_id) = @_;
@@ -146,12 +181,34 @@ sub device_id
 	return $$self{device_id};
 }
 
+=item C<group([group])>
+
+Used to store and return the associated group of a device.
+
+If provided, stores group as the device's group.
+
+=cut
+
 sub group
 {
 	my ($self, $p_group) = @_;
 	$$self{m_group} = $p_group if $p_group;
 	return $$self{m_group};
 }
+
+=item C<default_hop_count([hops])>
+
+Used to track the number of hops needed to reach a device.  Will store the past
+20 hop counts for the device.  Hop counts are added based on the number of hops
+needed for an incomming message to arrive.  Additionally, any time a message is
+resent, a hop count equal to the prior default_hop_count + 1 is added.
+
+If provided, stores hop as a new hop count for the device.  If more than 20 hop
+counts have been stored, will drop the oldest hop count until only 20 exist.
+
+Returns the highest hop count of the past 20 hop counts
+
+=cut
 
 sub default_hop_count
 {
@@ -171,12 +228,26 @@ sub default_hop_count
         return $$self{default_hop_count};
 }
 
+=item C<engine_version([i1|i2|i2cs])>
+
+Used to store and return the associated engine version of a device.
+
+If provided, stores the engine version of the device.
+
+=cut
+
 sub engine_version
 {
         my ($self, $p_engine_version) = @_;
         $$self{engine_version} = $p_engine_version if $p_engine_version;
         return $$self{engine_version};
 }
+
+=item C<equals([object])>
+
+Returns 1 if object is the same as $self, otherwise returns 0.
+
+=cut
 
 sub equals
 {
@@ -191,6 +262,14 @@ sub equals
 	# default to false;
         return 0;
 }
+
+=item C<set(state[,setby,response])>
+
+Used to set the device's state.  If called by device or a device linked to device, 
+calls C<set_receive()>.  If called by something 
+else, will send the command to the device.
+
+=cut
 
 sub set
 {
@@ -263,6 +342,12 @@ sub set
 	}
 }
 
+=item C<is_acknowledged([ack])>
+
+If ack is true, calls C<set_receive()>.  If ack is false, clears awaiting_ack flag.
+
+=cut
+
 sub is_acknowledged
 {
 	my ($self, $p_ack) = @_;
@@ -286,6 +371,16 @@ sub is_acknowledged
 	return $$self{is_acknowledged};
 }
 
+=item C<set_receive(state[,setby,response])>
+
+Updates the device's state in MisterHouse.  Triggers state_now, state_changed, and
+state_final variables to update accordingly.  Which causes tie_events to occur.
+
+If state was set to the same state within the last 1 second, then this is ignored.
+This prevents the accidental calling of state_now if duplicate messages are received.
+
+=cut
+
 sub set_receive
 {
 	my ($self, $p_state, $p_setby, $p_response) = @_;
@@ -301,6 +396,16 @@ sub set_receive
 		$self->SUPER::set($p_state, $p_setby, $p_response);
 	}
 }
+
+=item C<set_with_timer(state, time, return_state, additional_return_states)>
+
+NOTE - This routine appears to be nearly identical, if not identical to the
+C<Generic_Item::set_with_timer()> routine, it is not clear why this routine is
+needed here.
+
+See full description of this routine in C<Generic_Item>
+
+=cut
 
 sub set_with_timer {
 	my ($self, $state, $time, $return_state, $additional_return_states) = @_;
@@ -345,6 +450,12 @@ sub _send_cmd
 	}
 	$self->_process_command_stack();
 }
+
+=item C<derive_message([command,extra])>
+
+Generates and returns a basic on/off message from a command.
+
+=cut
 
 sub derive_message
 {
@@ -427,17 +538,38 @@ sub derive_message
 	return $message;
 }
 
+=item C<message_type_code(msg)>
+
+Takes msg, a text based msg type, and returns the corresponding text version of
+the hexadecimal message type.
+
+=cut
+
 sub message_type_code
 {
     my ($self, $msg) = @_;
     return $$self{message_types}->{$msg};
 }
 
+=item C<message_type_hex(msg)>
+
+Takes msg, a text based msg type, and returns the corresponding message type as
+a hex.
+
+=cut
+
 sub message_type_hex
 {
     my ($self, $msg) = @_;
     return unpack( 'H*', pack( 'c', $self->message_type_code($msg)));
 }
+
+=item C<message_type(cmd)>
+
+Takes cmd, text based hexadecimal code, and returns the text based description
+of the message code.
+
+=cut
 
 sub message_type
 {
@@ -722,6 +854,16 @@ sub _process_message
 			} else {
 				$self->set($p_state, $self);
 				$$self{_pending_cleanup} = 1;
+				#Wait to avoid clobbering incomming subsequent cleanup messages
+				my @links = $self->find_members('Insteon::BaseDevice');
+				#Timeout is the number of linked devices multiplied by
+				#the maximum hop length for a direct message and an ACK
+				#PLM is the +1
+				my $timeout = (scalar(@links)+1) * 300;
+				::print_log("[Insteon::BaseObject] DEBUG3 Delaying any outgoing messages ". 
+					"by $timeout milliseconds to avoid collision with subsequent cleanup ".
+					"messages from " . $self->get_object_name) if ($main::Debug{insteon} >= 3);
+				$self->interface->_set_timeout('xmit', $timeout);
 			}
                 }
                 elsif ($msg{type} eq 'cleanup')
@@ -838,7 +980,13 @@ sub _is_valid_state
 	}
 }
 
-# Provide human readable nack message.
+=item C<get_nack_msg_for(msg)>
+
+Takes msg, text based hexadecimal code, and returns the text based description
+of the NACK code.
+
+=cut
+
 sub get_nack_msg_for {
    my ($self,$msg) = @_;
    return $nack_messages{ $msg };
@@ -864,14 +1012,67 @@ sub failure_reason
         return $$self{failure_reason};
 }
 
+=back
+
+=head2 INI PARAMETERS
+
+=over 
+
+=item Insteon_PLM_max_queue_time
+
+Was previously used to set the maximum amount of time
+a message could remain in the queue.  This parameter is no longer used in the code
+but it still appears in the initialization.  It may be removed at a future date.  
+This also gets set in L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>
+as well for some reason, but is not used there either.
+
+=back
+
+=head2 AUTHOR
+
+Gregg Liming / gregg@limings.net, Kevin Robert Keegan, Michael Stovenour
+
+=head2 NOTES
+
+Special thanks to:
+	Brian Warren for significant testing and patches
+	Bruce Winter - MH
+
+=head2 SEE ALSO
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
 ####################################
 ###            #####################
-### BaseObject #####################
+### BaseDevice #####################
 ###            #####################
 ####################################
+
+=head1 B<Insteon::BaseDevice>
+
+=head2 DESCRIPTION
+
+Generic class implementation of a Base Insteon Device.
+
+=head2 INHERITS
+
+L<Insteon::BaseObject|Insteon::BaseInsteon/Insteon::BaseObject>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 package Insteon::BaseDevice;
-
 
 @Insteon::BaseDevice::ISA = ('Insteon::BaseObject');
 
@@ -927,6 +1128,11 @@ my %operating_flags = (
    'one_minute_warn_enabled' => '0b'
 );
 
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
 
 sub new
 {
@@ -959,6 +1165,13 @@ sub new
 	return $self;
 }
 
+=item C<initialize()>
+
+A former holdover from when MisterHouse used to ping devices to get their device
+category.  May not be needed anymore.
+
+=cut
+
 sub initialize
 {
 	my ($self) = @_;
@@ -971,12 +1184,27 @@ sub initialize
 	$$self{ping_timerTime} = 300;
 }
 
+=item C<rate([rate])>
+
+Used to store and return the associated ramp rate of a device.
+
+If provided, stores rate as the device's ramp rate in MisterHouse.
+
+=cut
+
 sub rate
 {
 	my ($self,$p_rate) = @_;
 	$$self{rate} = $p_rate if defined $p_rate;
 	return $$self{rate};
 }
+
+=item C<set_receive(state[,setby,response])>
+
+Updates the device's level if it can level, then calls 
+C<Insteon::BaseObject::set_receive()>.
+
+=cut
 
 sub set_receive
 {
@@ -985,11 +1213,23 @@ sub set_receive
 	$self->SUPER::set_receive($p_state, $p_setby, $p_response);
 }
 
+=item C<is_controller()>
+
+Returns true if the device is a controller.
+
+=cut
+
 sub is_controller
 {
 	my ($self) = @_;
 	return $$self{is_controller};
 }
+
+=item C<is_responder([1|0])>
+
+Stores and returns whether a device is a responder.
+
+=cut
 
 sub is_responder
 {
@@ -1011,6 +1251,22 @@ sub is_responder
 		}
 	}
 }
+
+=item C<link_to_interface([group,data3])>
+
+If a controller link from the device to the interface does not exist, this will
+create that link on the device.
+
+Next, if a responder link from the device to the interface does not exist on the 
+interface, this will create that link on the interface.
+
+The group is the group on the device that is the controller, such as a button on
+a keypad link.  It will default to 01.
+
+Data3 is optional and is used to set the Data3 value in the controller link on 
+the device.
+
+=cut
 
 sub link_to_interface
 {
@@ -1034,6 +1290,18 @@ sub link_to_interface
               " does not have an ALDB object.  Linking is not permitted.");
         }
 }
+
+=item C<unlink_to_interface([group])>
+
+Will delete the contoller link from the device to the interface if such a link exists.
+
+Next, will delete the responder link from the device to the interface on the 
+interface, if such a link exists.
+
+The group is the group on the device that is the controller, such as a button on
+a keypad link.  It will default to 01.
+
+=cut
 
 sub unlink_to_interface
 {
@@ -1088,6 +1356,11 @@ sub _aldb
    return $$root_obj{aldb};
 }
 
+=item C<set_operating_flag(flag)>
+
+Sets the defined flag on the device.
+
+=cut 
 
 sub set_operating_flag {
 	my ($self, $flag) = @_;
@@ -1118,6 +1391,12 @@ sub set_operating_flag {
 	}
 }
 
+=item C<get_operating_flag()>
+
+Requests the device's operating flag and prints it to the log.
+
+=cut 
+
 sub get_operating_flag {
 	my ($self) = @_;
 
@@ -1135,6 +1414,13 @@ sub get_operating_flag {
 	}
 }
 
+=item C<writable(cmd)>
+
+Appears to set and or return the "writable" state.  Does not appear to be used
+in the Insteon code, but may be necessary for supporting other classes?
+
+=cut
+
 sub writable {
 	my ($self, $p_write) = @_;
 	if (defined $p_write)
@@ -1151,16 +1437,35 @@ sub writable {
 	return $$self{m_write};
 }
 
+=item C<is_locally_set(cmd)>
+
+Returns the is_locally_set variable.  Doesn't appear to be used in Insteon code.
+Likely was used to test whether setby was equal to the device itself.  May not
+always be properly updated since it appears unused.
+
+=cut
+
 sub is_locally_set {
 	my ($self) = @_;
 	return $$self{m_is_locally_set};
 }
 
+=item C<is_root()>
+
+Returns true if the object is the base object, generally group 01, on the device.
+
+=cut
 
 sub is_root {
 	my ($self) = @_;
 	return (($self->group eq '01') and !($self->isa('Insteon::InterfaceController'))) ? 1 : 0;
 }
+
+=item C<get_root()>
+
+Returns the root object of a device.
+
+=cut
 
 sub get_root {
 	my ($self) = @_;
@@ -1179,6 +1484,13 @@ sub get_root {
 	}
 }
 
+=item C<has_link(link_details)>
+
+If a device has an ALDB, passes link_details onto one of the has_link() routines
+within L<Insteon::AllLinkDatabase|Insteon::AllLinkDatabase>.  Generally called as part of C<delete_orphan_links()>.
+
+=cut
+
 sub has_link
 {
 	my ($self, $insteon_object, $group, $is_controller, $subaddress) = @_;
@@ -1193,6 +1505,14 @@ sub has_link
         }
 
 }
+
+=item C<add_link(link_params)>
+
+If a device has an ALDB, passes link_details onto one of the add_link() routines
+within L<Insteon::AllLinkDatabase|Insteon::AllLinkDatabase>.  Generally called from the "sync links" or 
+"link to interface" voice commands.
+
+=cut
 
 sub add_link
 {
@@ -1215,6 +1535,14 @@ sub add_link
 
 }
 
+=item C<update_link(link_params)>
+
+If a device has an ALDB, passes link_details onto one of the update_link() routines
+within L<Insteon::AllLinkDatabase|Insteon::AllLinkDatabase>. Generally called from the "sync links" 
+voice command.
+
+=cut
+
 sub update_link
 {
 	my ($self, $parms_text) = @_;
@@ -1234,6 +1562,13 @@ sub update_link
         	$aldb->update_link(%link_parms);
         }
 }
+
+=item C<delete_link([link details])>
+
+If a device has an ALDB, passes link_details onto one of the delete_link() routines
+within L<Insteon::AllLinkDatabase|Insteon::AllLinkDatabase>.  Generally called by C<delete_orphan_links()>.
+
+=cut
 
 sub delete_link
 {
@@ -1255,6 +1590,12 @@ sub delete_link
         }
 }
 
+=item C<scan_link_table()>
+
+Scans a device's link table and caches a copy.
+
+=cut
+
 sub scan_link_table
 {
 	my ($self, $success_callback, $failure_callback) = @_;
@@ -1265,6 +1606,15 @@ sub scan_link_table
 	}
 
 }
+
+=item C<log_aldb_status()>
+
+Prints a human readable description of various settings and attributes associated 
+with a device including:
+
+Hop Count, Engine Version, ALDB Type, ALDB Health, and Last ALDB Scan Time
+
+=cut
 
 sub log_aldb_status
 {
@@ -1280,7 +1630,16 @@ sub log_aldb_status
 	}
 }
 
-### WARN: Testing using the following does not produce results as expected.  Use at your own risk. [GL]
+=item C<remote_set_button_tap([repeat])>
+
+In theory, would have the same effect as manually tapping the set button on the 
+device repeat times.
+
+WARN: Testing using the following does not produce results as expected.  Use at 
+your own risk. [GL]
+
+=cut
+
 sub remote_set_button_tap
 {
 	my ($self,$p_number_taps) = @_;
@@ -1290,6 +1649,13 @@ sub remote_set_button_tap
         $self->_send_cmd($message);
 #	$self->_send_cmd('command' => 'remote_set_button_tap', 'extra' => $taps);
 }
+
+=item C<request_status([requestor])>
+
+Requests the current status of the device and calls C<set()> on the response.  
+This will trigger tied_events.
+
+=cut
 
 sub request_status
 {
@@ -1347,6 +1713,12 @@ sub _get_engine_version_failure
 	}
 }
 
+=item C<ping()>
+
+Sends a ping command to the device.
+
+=cut 
+
 sub ping
 {
 	my ($self) = @_;
@@ -1354,6 +1726,12 @@ sub ping
         $self->_send_cmd($message);
 #	$self->_send_cmd('command' => 'ping');
 }
+
+=item C<set_led_status()>
+
+Used to set the led staatus of SwitchLinc companion leds.
+
+=cut 
 
 sub set_led_status
 {
@@ -1363,6 +1741,12 @@ sub set_led_status
         $self->_send_cmd($message);
 #	$self->_send_cmd('command' => 'set_led_status', 'extra' => $status_mask);
 }
+
+=item C<restore_string()>
+
+This is called by mh on exit to save the cached ALDB of a device to persistant data.
+
+=cut
 
 sub restore_string
 {
@@ -1386,6 +1770,12 @@ sub restore_string
 	return $restore_string;
 }
 
+=item C<restore_states()>
+
+Used to reload the persistent states of variables on restart.
+
+=cut
+
 sub restore_states
 {
 	my ($self, $states) = @_;
@@ -1395,6 +1785,12 @@ sub restore_states
 	}
 }
 
+=item C<restore_aldb()>
+
+Used to reload the aldb of a device on restart.
+
+=cut
+
 sub restore_aldb
 {
 	my ($self,$aldb) = @_;
@@ -1403,6 +1799,12 @@ sub restore_aldb
            $self->_aldb->restore_aldb($aldb);
 	}
 }
+
+=item C<devcat()>
+
+NOT USED - Sets and returns the device category of a device.  No longer used.
+
+=cut
 
 sub devcat
 {
@@ -1417,6 +1819,12 @@ sub devcat
 	}
 	return $$self{devcat};
 }
+
+=item C<states()>
+
+Sets and returns the available states for a device.
+
+=cut
 
 sub states
 {
@@ -1434,6 +1842,12 @@ sub states
 
 }
 
+=item C<local_onlevel(level)>
+
+Sets and returns the local onlevel for the device in MH only. Level is a 
+percentage from 0%-100%
+
+=cut
 
 sub local_onlevel
 {
@@ -1446,6 +1860,14 @@ sub local_onlevel
 	return $$self{_onlevel};
 }
 
+=item C<local_ramprate(rate)>
+
+Sets and returns the local ramp rate for the device in MH only. Rate is a time
+between .1 and 540 seconds.  Only 32 rate steps exist, to MH will pick a time
+equal to of the closest below this time.
+
+=cut
+
 sub local_ramprate
 {
 	my ($self, $p_ramprate) = @_;
@@ -1455,6 +1877,17 @@ sub local_ramprate
 	return $$self{_ramprate};
 
 }
+
+=item C<delete_orphan_links(audit_mode)>
+
+Reviews the cached version of all of the ALDBs and based on this review removes
+links from this device which are not present in the mht file, not defined in the 
+code, or links which are only half-links.
+
+If audit_mode is true, prints the actions that would be taken to the log, but 
+does nothing.
+
+=cut
 
 sub delete_orphan_links
 {
@@ -1467,11 +1900,27 @@ sub _process_delete_queue {
         $self->_aldb->_process_delete_queue() if $self->_aldb;
 }
 
+=item C<log_alllink_table()>
+
+Prints a human readable form of MisterHouse's cached version of a device's ALDB
+to the print log.  Called as part of the "scan links" voice command
+or in response to the "log links" voice command.
+
+=cut
+
 sub log_alllink_table
 {
 	my ($self) = @_;
         $self->_aldb->log_alllink_table if $self->_aldb;
 }
+
+=item C<update_local_properties()>
+
+Pushes the values set in C<local_onlevel()> and C<local_ramprate()> to the device.
+The device will only reread these values when it is power-cycled.  This can be
+done by pulling the air-gap for 4 seconds or unplugging the device.
+
+=cut
 
 sub update_local_properties
 {
@@ -1485,6 +1934,23 @@ sub update_local_properties
 		&::print_log("[Insteon::BaseDevice] update_local_properties may only be applied to dimmable devices!");
 	}
 }
+
+=item C<update_flags(flags)>
+
+Can be used to set the button layout and light level on a keypadlinc.  Flag 
+options include:
+
+    '0a' - 8 button; backlighting dim
+    '06' - 8 button; backlighting off
+    '02' - 8 button; backlighting normal
+
+    '08' - 6 button; backlighting dim
+    '04' - 6 button; backlighting off
+    '00' - 6 button; backlighting normal
+
+Note: This routine will likely be moved to L<Insteon::KeypadLinc|Insteon::Lighting/Insteon::KeypadLinc> at some point.
+
+=cut
 
 sub update_flags
 {
@@ -1519,24 +1985,28 @@ sub engine_version
 	return $engine_version;
 }
 
+=item C<engine_version>
+
+Because of the way MH saves / restores states "after" object creation
+the aldb must be initially created before the engine_version is restored.
+It is therefore impossible to know the device is i2 before creating
+the aldb object.  The solution is to keep the existing logic which assumes
+the device is peek/poke capable (i1 or i2) and then delete/recreate the 
+aldb object if it is later determined to be an i2 device. 
+
+There is a use case where a device is initially I2 but the user replaces
+the device with an I1 device, reusing the same object name.  In this case
+the object state restore will build an I2 aldb object.  The user must 
+manually initiate the 'get engine version' voice command or stop/start
+MH so the initial poll will detect the change. 
+
+This is called anytime the engine_version is queried (initial startup poll) and
+in the Reload_post_hooks once object_states_restore completes
+
+=cut
+
 sub check_aldb_version
 {
-	#Because of the way MH saves / restores states "after" object creation
-	#the aldb must be initially created before the engine_version is restored.
-	#It is therefore impossible to know the device is i2 before creating
-	#the aldb object.  The solution is to keep the existing logic which assumes
-	#the device is peek/poke capable (i1 or i2) and then delete/recreate the 
-	#aldb object if it is later determined to be an i2 device. 
-
-	#There is a use case where a device is initially I2 but the user replaces
-	#the device with an I1 device, reusing the same object name.  In this case
-	#the object state restore will build an I2 aldb object.  The user must 
-	#manually initiate the 'get engine version' voice command or stop/start
-	#MH so the initial poll will detect the change. 
-
-	#This is called anytime the engine_version is queried (initial startup poll) and
-	#in the Reload_post_hooks once object_states_restore completes
-
 	my ($self) = @_;
 
 	my $engine_version = $self->SUPER::engine_version();
@@ -1572,6 +2042,35 @@ sub check_aldb_version
 	}
 }
 
+=back
+
+=head2 INI PARAMETERS
+
+=over 
+
+=item Insteon_PLM_max_queue_time
+
+Was previously used to set the maximum amount of time
+a message could remain in the queue.  This parameter is no longer used in the code
+but it still appears in the initialization.  It may be removed at a future date.  
+This also gets set in L<Insteon::BaseObject|Insteon::BaseInsteon/Insteon::BaseObject>
+as well for some reason, but is not used there either.
+
+=back
+
+=head2 AUTHOR
+
+Gregg Liming / gregg@limings.net, Kevin Robert Keegan, Michael Stovenour
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 
 ####################################
 ###                #################
@@ -1579,11 +2078,33 @@ sub check_aldb_version
 ###                #################
 ####################################
 
+=head1 B<Insteon::BaseController>
+
+=head2 DESCRIPTION
+
+Generic class implementation of an Insteon Controller.
+
+=head2 INHERITS
+
+L<Generic_Item|Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
+
 package Insteon::BaseController;
 
 use strict;
 
 @Insteon::BaseController::ISA = ('Generic_Item');
+
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
 
 sub new
 {
@@ -1596,6 +2117,13 @@ sub new
 #	$$self{ping_timer}->stop();
 	return $self;
 }
+
+=item C<add(object[,on_level, ramp_rate])>
+
+Adds object as a responder to the device.  If on_level and ramp_rate are specified
+they will be used, otherwise 100% .1s will be used.
+
+=cut
 
 sub add
 {
@@ -1631,6 +2159,17 @@ sub add
 			." as items of type ".ref($obj)." are not supported!");
         }
 }
+
+=item C<sync_links(audit_mode)>
+
+Causes MisterHouse to review the list of objects that should be linked to device
+and to check to make sure these links are complete.  If any link is not complete
+MisterHouse will add the link.
+
+If audit_mode is true, MisterHouse will print the actions it would have taken to 
+the log, but will not take any actions.
+
+=cut
 
 sub sync_links
 {
@@ -1895,6 +2434,16 @@ sub _process_sync_queue {
 	}
 }
 
+=item C<set(state[,setby,response])>
+
+Returns -1 if setby was set by this object.
+
+Returns -1 if setby a tied_filter.
+
+Otherwise calls C<set_linked_devices> and returns 0.
+
+=cut
+
 sub set
 {
 	my ($self, $p_state, $p_setby, $p_respond) = @_;
@@ -1912,6 +2461,14 @@ sub set
 
 	return 0;
 }
+
+=item C<set_linked_devices(state)>
+
+Checks each linked member of device.  If the linked member is a C<light_item>, 
+then sets that item to state.  If the linked member is a C<Insteon::BaseObject>
+then call C<set_receive> for the member.
+
+=cut
 
 sub set_linked_devices
 {
@@ -1970,6 +2527,16 @@ sub set_linked_devices
 
 }
 
+=item C<set_with_timer(state, time, return_state, additional_return_states)>
+
+NOTE - This routine appears to be nearly identical, if not identical to the
+C<Generic_Item::set_with_timer()> routine, it is not clear why this routine is
+needed here.
+
+See full description of this routine in C<Generic_Item>
+
+=cut
+
 sub set_with_timer {
 	my ($self, $state, $time, $return_state, $additional_return_states) = @_;
 	return if &main::check_for_tied_filters($self, $state);
@@ -1990,6 +2557,12 @@ sub set_with_timer {
 	$$self{set_timer}->set($time, $action);
 }
 
+=item C<update_members()>
+
+This appears to be a depricated routine that is no longer used.  At a cursory
+glance, it may throw an error if called.
+
+=cut
 
 sub update_members
 {
@@ -2023,6 +2596,14 @@ sub update_members
 	}
 }
 
+=item C<initiate_linking_as_controller()>
+
+Places the interface in linking mode as the controller.  To complete the process
+press the set button on the responder device until it beeps.  Alternatively,
+you may be able to complete the process with 
+C<Insteon::BaseDevice::enter_linking_mode()>.
+
+=cut
 
 sub initiate_linking_as_controller
 {
@@ -2041,6 +2622,12 @@ sub initiate_linking_as_controller
 	$self->interface()->initiate_linking_as_controller($p_group);
 }
 
+=item C<derive_message([command,extra])>
+
+Generates and returns a basic on/off message from a command.
+
+=cut
+
 sub derive_message
 {
 	my ($self, $p_state, $p_extra) = @_;
@@ -2050,6 +2637,15 @@ sub derive_message
 		return $self->Insteon::BaseObject::derive_message($p_state, $p_extra);
 	}
 }
+
+=item C<find_members([type])>
+
+Returns a list of objects that are members of device.  If type is specified, only
+members of that type are returned.  Type is a package name, for example: 
+
+    $member->find_members('Insteon::BaseDevice');
+
+=cut
 
 sub find_members
 {
@@ -2071,6 +2667,12 @@ sub find_members
 
 }
 
+=item C<has_member(object)>
+
+Returns true if object is a member of device, else returns false.
+
+=cut
+
 sub has_member
 {
 	my ($self, $compare_object) = @_;
@@ -2085,18 +2687,55 @@ sub has_member
         return 0;
 }
 
+=back
+
+=head2 AUTHOR
+
+Gregg Liming / gregg@limings.net, Kevin Robert Keegan, Michael Stovenour
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
 ####################################
 ###            #####################
 ### DeviceController ###############
 ###                  ###############
 ####################################
 
+=head1 B<Insteon::DeviceController>
+
+=head2 DESCRIPTION
+
+Generic class implementation of an Device Controller.
+
+=head2 INHERITS
+
+L<Insteon::BaseController|Insteon::BaseInsteon/Insteon::BaseController>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 package Insteon::DeviceController;
 
 use strict;
 
 @Insteon::DeviceController::ISA = ('Insteon::BaseController');
+
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
 
 sub new
 {
@@ -2107,6 +2746,14 @@ sub new
 	bless $self,$class;
 	return $self;
 }
+
+=item C<set(state[,setby,response])>
+
+If C<Insteon::BaseController::set> returns a true value returns that.
+
+Else, calls C<Insteon::BaseObject::set> and returns 0
+
+=cut
 
 sub set
 {
@@ -2122,6 +2769,12 @@ sub set
 	return 0;
 }
 
+=item C<request_status([requestor])>
+
+Requests the current status of the device and calls C<set()> on the response.  
+This will trigger tied_events.
+
+=cut
 
 sub request_status
 {
@@ -2147,6 +2800,22 @@ sub request_status
 		$self->Insteon::BaseDevice::request_status($requestor);
 	}
 }
+
+=item C<link_to_interface([group,data3])>
+
+If a controller link from the device to the interface does not exist, this will
+create that link on the device.
+
+Next, if a responder link from the device to the interface does not exist on the 
+interface, this will create that link on the interface.
+
+The group is the group on the device that is the controller, such as a button on
+a keypad link.  It will default to 01.
+
+Data3 is optional and is used to set the Data3 value in the controller link on 
+the device.
+
+=cut
 
 sub link_to_interface
 {
@@ -2177,6 +2846,18 @@ sub link_to_interface
 	}
 }
 
+=item C<unlink_to_interface([group])>
+
+Will delete the contoller link from the device to the interface if such a link exists.
+
+Next, will delete the responder link from the device to the interface on the 
+interface, if such a link exists.
+
+The group is the group on the device that is the controller, such as a button on
+a keypad link.  It will default to 01.
+
+=cut
+
 sub unlink_to_interface
 {
 	my ($self,$p_group) = @_;
@@ -2196,7 +2877,21 @@ sub unlink_to_interface
 	}
 }
 
+=back
 
+=head2 AUTHOR
+
+Gregg Liming / gregg@limings.net, Kevin Robert Keegan, Michael Stovenour
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 
 ####################################
 ###                     ############
@@ -2204,12 +2899,34 @@ sub unlink_to_interface
 ###                     ############
 ####################################
 
+=head1 B<Insteon::InterfaceController>
+
+=head2 DESCRIPTION
+
+Generic class implementation of an Interface Controller.  These are the PLM Scenes.
+
+=head2 INHERITS
+
+L<Insteon::BaseController|Insteon::BaseInsteon/Insteon::BaseController>, 
+L<Insteon::BaseObject|Insteon::BaseInsteon/Insteon::BaseObject>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 package Insteon::InterfaceController;
 
 use strict;
 
 @Insteon::InterfaceController::ISA = ('Insteon::BaseController','Insteon::BaseObject');
+
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
 
 sub new
 {
@@ -2220,6 +2937,14 @@ sub new
 	bless $self,$class;
 	return $self;
 }
+
+=item C<set(state[,setby,response])>
+
+If C<Insteon::BaseController::set> returns a true value returns that.
+
+Else, calls C<Insteon::BaseObject::set> and returns 0
+
+=cut
 
 sub set
 {
@@ -2237,5 +2962,21 @@ sub is_root
 {
    return 0;
 }
+
+=back
+
+=head2 AUTHOR
+
+Gregg Liming / gregg@limings.net, Kevin Robert Keegan, Michael Stovenour
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 
 1;
