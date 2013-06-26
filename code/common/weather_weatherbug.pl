@@ -45,10 +45,9 @@
 # -----------------------------------------------------------------------
 # noloop=start
 	use Weather_Common;
-	$Debug{weatherbug} =0;
 # Define config parameters
 # add variables for the weatherbug feed
-	my $weatherbug_city=lc($config_parms{weather_weatherbug_city});
+	my $weatherbug_city=$config_parms{weather_weatherbug_city};
 	my $weatherbug_state=lc($config_parms{weather_weatherbug_state});
 	my $weatherbug_country=lc($config_parms{weather_weatherbug_country});
 	my $weatherbug_units= $config_parms{weather_weatherbug_units};
@@ -60,7 +59,7 @@
 # build the url from existing init variables if the values have been left blank
 	$weatherbug_state=uc($config_parms{state}) unless $weatherbug_state;
 	$weatherbug_country=uc($config_parms{country}) unless $weatherbug_country;
-	$weatherbug_city=lc($config_parms{city}) unless $weatherbug_city;
+	$weatherbug_city=$config_parms{city} unless $weatherbug_city;
 	$weatherbug_zipcode= $config_parms{zipcode} unless $weatherbug_zipcode;
 	$weatherbug_latitude= $config_parms{latitude} unless $weatherbug_latitude;
 	$weatherbug_longitude= $config_parms{longitude} unless $weatherbug_longitude;
@@ -84,7 +83,7 @@
 # Define the new process item that fetchs the RSS feed for the location
 	$p_weather_weatherbug_forecast =  new Process_Item(qq{get_url -quiet "$weatherbug_url" "$weatherbug_file"});
 # Need to add a process to search for the citycode
-	$weatherbug_url="http://api.wxbug.net/getLocationsXML.aspx?ACode=".$key."&searchString=".$weatherbug_city;
+	$weatherbug_url="http://api.wxbug.net/getLocationsXML.aspx?ACode=".$key."&searchString=".lc($weatherbug_city);
 	logit("$config_parms{data_dir}/web/weatherbug_debug",$weatherbug_url,13,0) if($Debug{weatherbug});
 # Define the new process item that fetchs the RSS feed for the location
 	$p_weather_weatherbug_citycode =  new Process_Item(qq{get_url -quiet "$weatherbug_url" "$weatherbug_file"});
@@ -425,10 +424,11 @@ if (done_now $p_weather_weatherbug_forecast) {
 	# There should be a title for forecast in the text for the
 	# city if the fetch was successful
 	$Weather{weatherbug_fcst_valid} = 0; #Set to not valid unless proven
-	my $search_for = "Forecast for ".ucfirst($weatherbug_city);
+	my $search_for = "Forecast for $weatherbug_city";
 	my $title = $channel->first_child_text("title"); 
-	logit("$config_parms{data_dir}/web/weatherbug_debug",$search_for,13,0) if($Debug{weatherbug});
-	if ($title =~ /$search_for/ ) {
+	logit("$config_parms{data_dir}/web/weatherbug_debug","Search for: ".$search_for,13,0) if($Debug{weatherbug});
+	logit("$config_parms{data_dir}/web/weatherbug_debug","WeatherBug returned: $title",13,0) if($Debug{weatherbug});
+	if ($title =~ /$search_for/i ) {
 		$Weather{weatherbug_fcst_valid} = 1;
 	}
 	else {
