@@ -549,7 +549,6 @@ so that each class can have its own unique set of voice commands.
 sub generate_voice_commands
 {
 
-    my $insteon_menu_states = $main::config_parms{insteon_menu_states} if $main::config_parms{insteon_menu_states};
     &main::print_log("Generating Voice commands for all Insteon objects");
     my $object_string;
     for my $object (&main::list_all_objects) {
@@ -594,8 +593,6 @@ sub generate_voice_commands
            $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_link_commands');
            push @_insteon_link, $object_name;
         } elsif ($object->isa('Insteon::BaseDevice')) {
-           $states = $insteon_menu_states if $insteon_menu_states
-           	&& ($object->can('is_dimmable') && $object->is_dimmable);
            my $cmd_states = "$states,status,get engine version,scan link table,log links,update onlevel/ramprate"; #,on level,ramp rate";
            $cmd_states .= ",link to interface,unlink with interface" if $object->isa("Insteon::BaseController") || $object->is_controller;
            $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";

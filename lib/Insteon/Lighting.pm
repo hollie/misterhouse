@@ -216,6 +216,11 @@ sub new
 
 	my $self = new Insteon::BaseLight($p_deviceid,$p_interface);
 	bless $self,$class;
+	
+	if( $main::config_parms{insteon_menu_states}) {
+		push(@{$$self{states}}, split( ',', $main::config_parms{insteon_menu_states}) );
+	}
+	
 	return $self;
 }
 
