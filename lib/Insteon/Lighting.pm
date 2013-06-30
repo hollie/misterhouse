@@ -33,8 +33,8 @@ sub new
 
 	my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
 	bless $self,$class;
-        # include very basic states
-        @{$$self{states}} = ('on','off');
+        # include very basic states; off first so web interface up/down works
+        $self->set_states('off','on');
 
 	return $self;
 }
@@ -218,7 +218,7 @@ sub new
 	bless $self,$class;
 	
 	if( $main::config_parms{insteon_menu_states}) {
-		push(@{$$self{states}}, split( ',', $main::config_parms{insteon_menu_states}) );
+		$self->set_states(split( ',', $main::config_parms{insteon_menu_states}));
 	}
 	
 	return $self;

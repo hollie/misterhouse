@@ -1756,33 +1756,23 @@ sub restore_string
         {
 		$restore_string .= $self->_aldb->restore_string();
         }
-	if ($$self{states})
-        {
-		my $states = '';
-		foreach my $state (@{$$self{states}})
-                {
-			$states .= '|' if $states;
-			$states .= $state;
-		}
-		$restore_string .= $self->{object_name} . "->restore_states(q~$states~);\n";
-	}
 
 	return $restore_string;
 }
 
 =item C<restore_states()>
 
-Used to reload the persistent states of variables on restart.
+Obsolete / do not use.
+
+Function should remain so that upgrading users will not have issues starting 
+MH from previous versions that referenced this function in the 
+mh_temp.saved_states file.
 
 =cut
 
 sub restore_states
 {
 	my ($self, $states) = @_;
-	if ($states)
-        {
-		@{$$self{states}} = split(/\|/,$states);
-	}
 }
 
 =item C<restore_aldb()>
