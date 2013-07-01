@@ -65,6 +65,7 @@ for my $item (sort @objects) {
     my $icon;
     if ($Info{module_GD}) {
                                 # Use custom icons if they exist
+        $state = 'on' if $state eq '100%';
         $icon = $state;
         $icon = 'dim' if $state =~ /d+/;
         my $image = "/graphics/light-" . lc $item . "_" . $icon . ".gif";
