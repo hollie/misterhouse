@@ -528,7 +528,7 @@ sub derive_message
 	} else {
 		if ($command eq 'on')
 		{
-			$message->extra(sprintf("%02X",$level));
+			$message->extra(sprintf("%02X",int($level+.5)));
 		} else {
 			$message->extra('00');
 		}
@@ -594,7 +594,7 @@ sub _is_info_request
 	my $is_info_request = 0;
 	if ($cmd eq 'status_request') {
 		$is_info_request++;
-		my $ack_on_level = (hex($msg{extra}) >= 254) ? 100 : sprintf("%d", hex($msg{extra}) * 100 / 255);
+		my $ack_on_level = sprintf("%d", int((hex($msg{extra}) * 100 / 255)+.5));
 		&::print_log("[Insteon::BaseObject] received status for " .
 			$self->{object_name} . " with on-level: $ack_on_level%, "
 			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};

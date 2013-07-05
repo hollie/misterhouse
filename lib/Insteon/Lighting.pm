@@ -193,13 +193,7 @@ sub convert_level
 	my $level = 'ff';
 	if (defined ($on_level)) {
 		$on_level =~ s/(\d+)%?/$1/;
-		if ($on_level eq '100') {
-			$level = 'ff';
-		} elsif ($on_level eq '0') {
-			$level = '00';
-		} else {
-			$level = sprintf('%02X',$on_level * 2.55);
-		}
+		$level = sprintf('%02X',int(($on_level * 2.55) + .5));
 	}
 	return $level;
 }
