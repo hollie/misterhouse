@@ -528,7 +528,7 @@ sub derive_message
 	} else {
 		if ($command eq 'on')
 		{
-			$message->extra(sprintf("%02X",$level));
+			$message->extra(sprintf("%02X",int($level+.5)));
 		} else {
 			$message->extra('00');
 		}
@@ -594,7 +594,7 @@ sub _is_info_request
 	my $is_info_request = 0;
 	if ($cmd eq 'status_request') {
 		$is_info_request++;
-		my $ack_on_level = (hex($msg{extra}) >= 254) ? 100 : sprintf("%d", hex($msg{extra}) * 100 / 255);
+		my $ack_on_level = sprintf("%d", int((hex($msg{extra}) * 100 / 255)+.5));
 		&::print_log("[Insteon::BaseObject] received status for " .
 			$self->{object_name} . " with on-level: $ack_on_level%, "
 			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
@@ -1756,33 +1756,23 @@ sub restore_string
         {
 		$restore_string .= $self->_aldb->restore_string();
         }
-	if ($$self{states})
-        {
-		my $states = '';
-		foreach my $state (@{$$self{states}})
-                {
-			$states .= '|' if $states;
-			$states .= $state;
-		}
-		$restore_string .= $self->{object_name} . "->restore_states(q~$states~);\n";
-	}
 
 	return $restore_string;
 }
 
 =item C<restore_states()>
 
-Used to reload the persistent states of variables on restart.
+Obsolete / do not use.
+
+Function should remain so that upgrading users will not have issues starting 
+MH from previous versions that referenced this function in the 
+mh_temp.saved_states file.
 
 =cut
 
 sub restore_states
 {
 	my ($self, $states) = @_;
-	if ($states)
-        {
-		@{$$self{states}} = split(/\|/,$states);
-	}
 }
 
 =item C<restore_aldb()>
