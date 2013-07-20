@@ -1012,6 +1012,34 @@ sub failure_reason
         return $$self{failure_reason};
 }
 
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my %voice_cmds = (
+        #The Sync Links routine really resides in DeviceController, but that
+        #class seems a little redundant as in practice all devices are controllers
+        #in some sense.  As a result, that class will likely be folded into 
+        #BaseObject/Device at some future date.  In order to avoid a bizarre
+        #inheritance of this routine by higher classes, this command was placed
+        #here
+        'sync links' => $self->get_object_name . '->sync_links(0)'
+    );
+    return \%voice_cmds;
+}
+
 =back
 
 =head2 INI PARAMETERS
@@ -2032,6 +2060,40 @@ sub check_aldb_version
 	}
 }
 
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds},
+        'link to interface' => "$object_name->link_to_interface",
+        'unlink with interface' => "$object_name->unlink_to_interface"
+    );
+    if ($self->is_root){
+        %voice_cmds = (
+            %voice_cmds,
+            'status' => "$object_name->request_status",
+            'get engine version' => "$object_name->get_engine_version",
+            'scan link table' => "$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")",
+            'log links' => "$object_name->log_alllink_table()"
+        )
+    }
+    return \%voice_cmds;
+}
+
 =back
 
 =head2 INI PARAMETERS
@@ -2951,6 +3013,32 @@ sub set
 sub is_root
 {
    return 0;
+}
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my $group = $self->group;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds},
+        'initiate linking as controller' => "$object_name->initiate_linking_as_controller(\"$group\")",
+        'cancel linking' => "$object_name->interface()->cancel_linking"
+    );
+    return \%voice_cmds;
 }
 
 =back
