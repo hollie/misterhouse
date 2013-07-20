@@ -1935,7 +1935,7 @@ sub update_local_properties
 
 =item C<update_flags()>
 
-Used to update the flags of a device.  Called by L<Insteon::BaseDevice::update_flags()|Insteon::BaseInsteon/Insteon::BaseDevice>.
+Used to update the flags of a device.  Called by L<Insteon::KeyPadLinc::update_flags()|Insteon::Lighting/Insteon::KeyPadLinc>.
 
 =cut
 

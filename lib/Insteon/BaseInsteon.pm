@@ -1953,36 +1953,6 @@ sub update_local_properties
 	}
 }
 
-=item C<update_flags(flags)>
-
-Can be used to set the button layout and light level on a keypadlinc.  Flag 
-options include:
-
-    '0a' - 8 button; backlighting dim
-    '06' - 8 button; backlighting off
-    '02' - 8 button; backlighting normal
-
-    '08' - 6 button; backlighting dim
-    '04' - 6 button; backlighting off
-    '00' - 6 button; backlighting normal
-
-Note: This routine will likely be moved to L<Insteon::KeypadLinc|Insteon::Lighting/Insteon::KeypadLinc> at some point.
-
-=cut
-
-sub update_flags
-{
-	my ($self, $flags) = @_;
-	if (!($self->isa('Insteon::KeyPadLinc') or $self->isa('Insteon::KeyPadLincRelay')))
-        {
-		&::print_log("[Insteon::BaseDevice] Operating flags may only be revised on keypadlincs!");
-		return;
-	}
-	return unless defined $flags;
-
-	$self->_aldb->update_flags($flags) if $self->_aldb;
-}
-
 =item C<engine_version>
 
 Sets or gets the device object engine version.  If setting the engine version, 
