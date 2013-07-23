@@ -1,60 +1,69 @@
-#
-# From Misterhouse HomeBase.pm
-#
+=head1 B<Stargate>
 
-#            I/ODevice         Offset
-#
-#    TimeCommander-Plus         0x00    1-16
-#    reserved                   0x01
-#    IO Xpander -1              0x02    17-32
-#    IO Xpander -2              0x03    33-48
-#    IO Xpander -3              0x04    49-64
-#    IO Xpander -4              0x05    65-80
-#
-#    DI Xpander-1               0x06
-#    DI Xpander-2               0x07
-#    DI Xpander-3               0x08
-#    DI Xpander-4               0x09
-#
-#    RO Xpander-1               0x0a
-#    RO Xpander-2               0x0b
-#    RO Xpander-3               0x0c
-#    RO Xpander-4               0x0d
+=head2 SYNOPSIS
 
-# For reference on dealing with bits/bytes/strings:
-#
-#print pack('B8', '01101011');   # -> k   To go from bit to string
-#print unpack('C', 'k');         # -> 107 To go from string to decimal
-#print   pack('C', 107);         # -> k   To go from decimal to srting
-#printf("%0.2lx", 107);          # -> 6b  To go to decimal -> hex
-#print hex('6b');                # -> 107 to go from hex -> decimal
-
-# Examples:
-# 0x5a -> 90  -> Z
-# 0xa5 -> 165 -> ~N (tilde over N)
-# 0xc3 -> 195 -> |-
-# 0x3c -> 60 -> <
-
-# Modified by Bob Steinbeiser 2/12/00
-#
-
-
-=pod
-    unless ($unithi = $table_iounit{lc($bytes[2])})
-{
+  unless ($unithi = $table_iounit{lc($bytes[2])})
+  {
     print "$::Time_Now Error, not a valid Stargate IO base: $code\n";
     next;
-}
+  }
 
-unless ($unitlo = $table_iounit{lc($bytes[3])})
-{
+  unless ($unitlo = $table_iounit{lc($bytes[3])})
+  {
     print "$::Time_Now Error, not a valid Stargate IO base: $code\n";
     next;
-}
+  }
 
-$unitstates = (($unithi * 16) + $unitlo);
+  $unitstates = (($unithi * 16) + $unitlo);
 
-#print "$::Time_Now Digital IO State change base:hi:lo=$base:$unithi:$unitlo:$unitstates\n";
+  #print "$::Time_Now Digital IO State change base:hi:lo=$base:$unithi:$unitlo:$unitstates\n";
+
+=head2 DESCRIPTION
+
+From Misterhouse HomeBase.pm
+
+         I/ODevice         Offset
+
+  TimeCommander-Plus         0x00    1-16
+  reserved                   0x01
+  IO Xpander -1              0x02    17-32
+  IO Xpander -2              0x03    33-48
+  IO Xpander -3              0x04    49-64
+  IO Xpander -4              0x05    65-80
+
+  DI Xpander-1               0x06
+  DI Xpander-2               0x07
+  DI Xpander-3               0x08
+  DI Xpander-4               0x09
+
+  RO Xpander-1               0x0a
+  RO Xpander-2               0x0b
+  RO Xpander-3               0x0c
+  RO Xpander-4               0x0d
+
+For reference on dealing with bits/bytes/strings:
+
+  print pack('B8', '01101011');   # -> k   To go from bit to string
+  print unpack('C', 'k');         # -> 107 To go from string to decimal
+  print   pack('C', 107);         # -> k   To go from decimal to srting
+  printf("%0.2lx", 107);          # -> 6b  To go to decimal -> hex
+  print hex('6b');                # -> 107 to go from hex -> decimal
+
+Examples:
+
+  0x5a -> 90  -> Z
+  0xa5 -> 165 -> ~N (tilde over N)
+  0xc3 -> 195 -> |-
+  0x3c -> 60 -> <
+
+
+=head2 INHERITS
+
+B<>
+
+=head2 METHODS
+
+=over
 
 =cut
 
@@ -68,9 +77,12 @@ package Stargate;
 
 my $temp;
 
-#
-# This code create the serial port and registers the callbacks we need
-#
+=item C<serial_startup>
+
+This code create the serial port and registers the callbacks we need
+
+=cut
+
 sub serial_startup
 {
     if ($::config_parms{Stargate_serial_port})
@@ -1107,14 +1119,17 @@ sub read_variables
     }
 }
 
-# Set Time
-# this command was decoded empirically from Starate/WinEVM interaction
-# Homebase (Stargate) command is ##%05AAAALLLLTTSSYYMMDDRRHHMMCC
-# AAAA = Latitude, LLLL = Longitude, TT=Timezone (05=EST)
-# SS="Is daylight savings time used in your area?" (01=Yes)
-# YY=Year, MM=Month, DD=Day, RR=DOW (Seems to be ignored, but set as
-#       Th=01, Wen=02, Tu=04, Mo=08, Sun=10, Sat=20)
-# CC=00 (Checksum? doesn't appear to be used)
+=item C<set_time>
+
+This command was decoded empirically from Starate/WinEVM interaction
+Homebase (Stargate) command is ##%05AAAALLLLTTSSYYMMDDRRHHMMCC
+AAAA = Latitude, LLLL = Longitude, TT=Timezone (05=EST)
+SS="Is daylight savings time used in your area?" (01=Yes)
+YY=Year, MM=Month, DD=Day, RR=DOW (Seems to be ignored, but set as
+      Th=01, Wen=02, Tu=04, Mo=08, Sun=10, Sat=20)
+CC=00 (Checksum? doesn't appear to be used)
+
+=cut
 
 sub set_time
 {
@@ -1212,12 +1227,17 @@ sub send_X10
     print "Bad Stargate X10 transmition sent=$sent\n" unless 10 == $sent;
 }
 
-# Valid digitis 0-9, * #
-# OnHook = +
-# OffHook = ^
-# Pause = ,
-# CallerID C
-# HookFlash !
+=item C<send_telephone>
+
+  Valid digitis 0-9, * #
+  OnHook = +
+  OffHook = ^
+  Pause = ,
+  CallerID C
+  HookFlash !
+
+=cut
+
 sub send_telephone
 {
     my ($serial_port, $phonedata) = @_;
@@ -1277,7 +1297,57 @@ sub set_audio
 
 1;           # for require
 
+=back
 
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
+
+
+
+
+
+
+=head1 B<StargateDigitalInput>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+NONE
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
+=cut
 
 #
 # Item object version (this lets us use object links and events)
@@ -1326,7 +1396,57 @@ sub invert
 }
 1;
 
+=back
 
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
+
+
+
+
+
+
+=head1 B<StargateVariable>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+NONE
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
+=cut
 
 #
 # Item object version (this lets us use object links and events)
@@ -1391,7 +1511,57 @@ sub default_setstate
 
 1;
 
+=back
 
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
+
+
+
+
+
+
+=head1 B<StargateFlag>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+NONE
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
+=cut
 
 #
 # Item object version (this lets us use object links and events)
@@ -1436,7 +1606,57 @@ sub default_setstate
 
 1;
 
+=back
 
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
+
+
+
+
+
+
+=head1 B<StargateRelay>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+NONE
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
+=cut
 
 #
 # Item object version (this lets us use object links and events)
@@ -1485,7 +1705,57 @@ sub default_setstate
 
 1;
 
+=back
 
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
+
+
+
+
+
+
+=head1 B<StargateThermostat>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+NONE
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
+=cut
 
 #
 # Item object version (this lets us use object links and events)
@@ -1629,7 +1899,57 @@ sub SendTheromostatCommand
 
 1;
 
+=back
 
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
+
+
+
+
+
+
+=head1 B<StargateTelephone>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+NONE
+
+=head2 INHERITS
+
+B<Telephony_Item>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
+=cut
 
 #
 # Item object version (this lets us use object links and events)
@@ -1781,6 +2101,58 @@ sub hook
 
 1;
 
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
+
+
+
+
+
+
+=head1 B<StargateASCII>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+NONE
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
+=cut
+
 #
 # Item object version (this lets us use object links and events)
 #
@@ -1815,6 +2187,58 @@ sub default_setrawstate
 }
 
 1;
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
+
+
+
+
+
+
+=head1 B<StargateVoicemail>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+NONE
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
+=cut
 
 package StargateVoicemail;
 @StargateVoicemail::ISA = ('Generic_Item');
@@ -1852,6 +2276,57 @@ sub default_setstate
 
 1;
 
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
+
+
+
+
+
+
+=head1 B<StargateIR>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+NONE
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
+=cut
 
 #
 # Item object version (this lets us use object links and events)
@@ -1931,3 +2406,29 @@ sub default_setstate
     return;
 }
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

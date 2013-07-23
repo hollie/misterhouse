@@ -6,13 +6,192 @@ use strict;
 
 #@ This module creates voice commands for all insteon related items.
 
+=head1 B<Insteon>
+
+=head2 DESCRIPTION
+
+Provides the basic infrastructure for the Insteon stack, contains many of the 
+startup routines.
+
+=head2 INHERITS
+
+None
+
+=head2 VOICE COMMANDS
+
+=head3 PLM
+
+=over
+
+=item C<Complete Linking as Responder>
+
+If a device is first placed into linking mode, calling this command will cause
+the PLM to complete the link, thus making the PLM the responder.  The 
+C<Link To Interface> device voice command is likely an easier way to do this, 
+but this may be need for hard to reach devices or deaf devices.
+
+=item C<Initiate Linking as Controller>
+
+Call this first, then press and hold the set button on a device that you wish
+to have the PLM control.  The C<Link To Interface> device voice command is 
+likely an easier way to do this, but this may be need for hard to reach devices 
+or deaf devices.  This is also needed for i2cs devices in which the first link
+must currently be manually created this way.
+
+=item C<Cancel Linking>
+
+Cancel either of the above two commands without completing a link.
+
+=item C<Delete Link with PLM>
+
+This does nothing and shoudl be removed.
+
+=item C<Scan Link Table>
+
+This will scan and output to the log only the PLM link table.
+
+=item C<Log Links>
+
+This will output only the PLM link table to log.
+
+=item C<Delete Orphan Links>
+
+Misterhouse will review the state of all of the links in your system, as it knows
+them without any additional scanning.  If any of these links are not defined in
+your mht file or the links are only half links (controller with no responder or
+vice versa) MisterHouse will delete these links.
+
+It is usually best to:
+
+1. Run C<Scan Changed Device Link Tables> first unless you know that the
+information in MisterHouse is up-to-date.
+
+2. Run C<AUDIT Sync All Links> and verify that what is being added is correct.
+
+3. Run C<Sync All Links> to add the links
+
+4. Run C<AUDIT Delete Orphan Links> first to see what will happen.
+
+5. If everything looks right, run C<Delete Orphan Links> to clean up the old links
+
+Deleting the orphan links will make your devices happier.  If you have unintended
+links on your devices, they can run slower and may unnecessarily increase the 
+number of messages sent on your network.
+
+=item C<AUDIT Delete Orphan Links>
+
+Does the same thing as C<Delete Orphan Links> but doesn't actually delete anything
+instead it just prints what it would have done to the log.
+
+=item C<Scan All Device Link Tables>
+
+Scans the link tables of the PLM and all devices on your network.  On a large
+network this can take sometime.  You can generally run C<Scan Changed Device Link Tables>
+which is much faster without any issue.
+
+=item C<Scan Changed Device Link Tables>
+
+Scans the link tables of the PLM and all devices whose link tables have changed
+on your network.
+
+=item C<Sync All Links>
+
+Similar to C<Delete Orphan Links> exccept this adds any links that are missing.
+This is helpful when adding a bunch of new devices, new scenes, or cleaning things
+up.
+
+See the workflow described in C<Delete Orphan Links>.
+
+=item C<AUDIT Sync All Links>
+
+Same as C<Sync All Links> but prints what it would do to the log, without doing
+anything else.
+
+=item C<Log All Device ALDB Status>
+
+Logs some details about each device to the log.  See C<log_all_ADLB_status()>
+
+=back
+
+=head3 Devices
+
+=over
+
+=item on
+
+Turns the device on.
+
+=item off
+
+Turns the device off.
+
+=item Sync Links
+
+Similar to C<Sync All Links> above, but this will only add links that are related
+to this device.  Useful when adding a new device.
+
+=item Link to Interface
+
+Will create the controller/responder links between the device and the PLM.
+
+=item Unlink with Interface
+
+Will delete the controller/responder links between the device and the PLM.  
+Useful if you are removing a device from your network.
+
+=item Status
+
+Requests the status of the device.
+
+=item Get Engine Version
+
+Requests the engine version of the device.  Generally you would not need to call
+this, but every now and then it is needed when a new device is installed.
+
+=item Scan Link Table
+
+This will scan and output to the log only the link table of this device.
+
+=item Log Links
+
+Will output to the log only the link table of this device.
+
+=item Initiate Linking as Controller
+
+Generally only available for PLM Scenes.  This places the PLM in linking mode
+and adds any device which the set button is pressed for 4 seconds as a responder
+to this scene.  Generally not needed.
+
+=item Cancel Linking
+
+Cancels the above linking session without creating a link.
+
+=back
+
+=head2 METHODS
+
+=over
+
+=cut
+
+
 my (@_insteon_plm,@_insteon_device,@_insteon_link,@_scannable_link,$_scan_cnt,$_sync_cnt,$_sync_failure_cnt);
 my $init_complete;
 my (@_scan_devices,@_scan_device_failures,$current_scan_device);
 my (@_sync_devices,@_sync_device_failures,$current_sync_device);
 
+=item C<scan_all_linktables()>
+
+Walks through every Insteon device calling the device's scan links command.
+Does not output anything but will recreate the device's aldb from the actual
+entries in the device.
+
+=cut
+
 sub scan_all_linktables
 {
+	my $skip_unchanged = pop(@_);
+	$skip_unchanged = 0 if (ref $skip_unchanged || !defined($skip_unchanged));
 	if ($current_scan_device)
         {
         	&main::print_log("[Scan all linktables] WARN: link already underway. Ignoring request for new scan ...");
@@ -58,31 +237,58 @@ sub scan_all_linktables
         }
         $_scan_cnt = scalar @_scan_devices;
 
-        &_get_next_linkscan();
+        &_get_next_linkscan($skip_unchanged);
 }
+
+=item C<_get_next_linkscan_failure()>
+
+Called if a the scanning of a device fails.  Logs the failure and proceeds to 
+the next device.
+
+=cut
 
 sub _get_next_linkscan_failure
 {
+	my($skip_unchanged) = @_;
         push @_scan_device_failures, $current_scan_device;
         &main::print_log("[Scan all link tables] WARN: failure occurred when scanning "
                 	. $current_scan_device->get_object_name . ".  Moving on...");
-        &_get_next_linkscan();
+        &_get_next_linkscan($skip_unchanged);
 
 }
 
+=item C<_get_next_linkscan()>
+
+Gets the next device to scan.
+
+=cut
+
 sub _get_next_linkscan
 {
-   	$current_scan_device = shift @_scan_devices;
-
-	if ($current_scan_device)
+	my($skip_unchanged, $changed_device) = @_;
+	my $checking = 0;
+	if (!defined($changed_device)) {
+		$current_scan_device = shift @_scan_devices;
+		if ($skip_unchanged && $current_scan_device && ($current_scan_device != &Insteon::active_interface)){
+			## check if aldb_delta has changed;
+			$current_scan_device->_aldb->{_aldb_unchanged_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.')';
+			$current_scan_device->_aldb->{_aldb_changed_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.', '.$current_scan_device->get_object_name.')';
+			$current_scan_device->_aldb->query_aldb_delta("check");
+			$checking = 1;
+		}
+	} else {
+		$current_scan_device = $changed_device;
+	}
+	if ($current_scan_device && ($checking == 0))
         {
           	&main::print_log("[Scan all link tables] Now scanning: "
                 	. $current_scan_device->get_object_name . " ("
                         . ($_scan_cnt - scalar @_scan_devices)
                         . " of $_scan_cnt)");
                 # pass first the success callback followed by the failure callback
-          	$current_scan_device->scan_link_table('&Insteon::_get_next_linkscan()','&Insteon::_get_next_linkscan_failure()');
-    	} else {
+          	$current_scan_device->scan_link_table('&Insteon::_get_next_linkscan('.$skip_unchanged.')','&Insteon::_get_next_linkscan_failure('.$skip_unchanged.')');
+    	} elsif (scalar(@_scan_devices) == 0 && ($checking == 0))
+    	{
           	&main::print_log("[Scan all link tables] All tables have completed scanning");
                 my $_scan_failure_cnt = scalar @_scan_device_failures;
                 if ($_scan_failure_cnt)
@@ -98,6 +304,18 @@ sub _get_next_linkscan
     	}
 }
 
+=item C<sync_all_links()>
+
+Initiates a process that will walk through every device that is a Insteon::InterfaceController 
+calling the device's sync_links() command.  sync_all_links() loads up the module
+global variable @_sync_devices then kicks off the recursive call backs by calling
+_get_next_linksync.
+
+Paramter B<audit_mode> - Causes sync to walk through but not actually 
+send any commands to the devices.  Useful with the insteon:3 debug setting for 
+troubleshooting. 
+
+=cut
 
 sub sync_all_links
 {
@@ -129,6 +347,15 @@ sub sync_all_links
 
         &_get_next_linksync();
 }
+
+=item C<_get_next_linksync()>
+
+Calls the sync_links() function for each device in the module global variable 
+@_sync_devices.  This function will be called recursively since the callback 
+passed to sync_links() is this function again.  Will also ask sync_links() to 
+call _get_next_linksync_failure() if sync_links() fails. 
+
+=cut
 
 sub _get_next_linksync
 {
@@ -172,6 +399,13 @@ sub _get_next_linksync
 
 }
 
+=item C<_get_next_linksync()>
+
+Called by the failure callback in a device's sync_links() function.  Will add
+the failed device to the module global variable @_sync_device_failures. 
+
+=cut
+
 sub _get_next_linksync_failure
 {
         push @_sync_device_failures, $current_sync_device;
@@ -181,6 +415,84 @@ sub _get_next_linksync_failure
 
 }
 
+
+
+=item C<log_all_ADLB_status()>
+
+Walks through every Insteon device and logs:
+
+=back
+
+=over8
+
+=item * 
+
+Hop Count
+
+=item * 
+
+Engine Version
+
+=item * 
+
+ALDB Type
+
+=item * 
+
+ALDB Health
+
+=item * 
+
+ALDB Scan Time
+
+=back
+
+=over
+
+=cut
+
+sub log_all_ADLB_status
+{
+	my @_log_ALDB_devices = ();
+	# alwayws include the active interface (e.g., plm)
+#	push @_log_ALDB_devices, &Insteon::active_interface;
+
+	push @_log_ALDB_devices, Insteon::find_members("Insteon::BaseDevice");
+
+	# don't try to scan devices that are not responders
+	if (@_log_ALDB_devices)
+	{
+		my $log_ALDB_cnt = @_log_ALDB_devices;
+		my $count = 0;
+		foreach my $current_log_ALDB_device (@_log_ALDB_devices)
+		{
+			$count++;
+			if ($current_log_ALDB_device->is_root and
+				!($current_log_ALDB_device->isa('Insteon::InterfaceController')))
+			{
+				&main::print_log("[log all device ALDB status] Now logging: "
+					. $current_log_ALDB_device->get_object_name()
+					. " ($count of $log_ALDB_cnt)");
+				$current_log_ALDB_device->log_aldb_status();
+			} else
+			{
+				main::print_log("[log all device ALDB status] INFO: !!! "
+					. $current_log_ALDB_device->get_object_name
+					. " is NOT a candidate for logging ($count of $log_ALDB_cnt)");
+			}
+		}
+		main::print_log("[log all device ALDB status] All devices have completed logging");
+	} else
+	{
+		main::print_log("[log all device ALDB status] WARN: No insteon devices could be found");
+	}
+}
+
+=item C<init()>
+
+Initiates the insteon stack, mostly just sets the trigger. 
+
+=cut
 
 sub init {
 
@@ -225,10 +537,18 @@ sub init {
 
 }
 
+=item C<generate_voice_commands()>
+
+Generates and sets the voice commands for all Insteon devices.
+
+Note: At some point, this function will be pushed out to the specific classes
+so that each class can have its own unique set of voice commands.
+
+=cut
+
 sub generate_voice_commands
 {
 
-    my $insteon_menu_states = $main::config_parms{insteon_menu_states} if $main::config_parms{insteon_menu_states};
     &main::print_log("Generating Voice commands for all Insteon objects");
     my $object_string;
     for my $object (&main::list_all_objects) {
@@ -273,8 +593,6 @@ sub generate_voice_commands
            $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_link_commands');
            push @_insteon_link, $object_name;
         } elsif ($object->isa('Insteon::BaseDevice')) {
-           $states = $insteon_menu_states if $insteon_menu_states
-           	&& ($object->can('is_dimmable') && $object->is_dimmable);
            my $cmd_states = "$states,status,get engine version,scan link table,log links,update onlevel/ramprate"; #,on level,ramp rate";
            $cmd_states .= ",link to interface,unlink with interface" if $object->isa("Insteon::BaseController") || $object->is_controller;
            $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
@@ -296,18 +614,22 @@ sub generate_voice_commands
            $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_item_commands');
            push @_insteon_device, $object_name if $group eq '01'; # don't allow non-base items to participate
         } elsif ($object->isa('Insteon_PLM')) {
-           my $cmd_states = "complete linking as responder,cancel linking,delete link with PLM,scan link table,log links,delete orphan links,AUDIT - delete orphan links,scan all device link tables,sync all links,AUDIT - sync all links";
+           my $cmd_states = "complete linking as responder,initiate linking as controller,cancel linking,delete link with PLM,scan link table,log links,delete orphan links,AUDIT - delete orphan links,scan all device link tables,scan changed device link tables,sync all links,AUDIT - sync all links";
+           $cmd_states .= ",log all device ALDB status";
            $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->complete_linking_as_responder','complete linking as responder');\n\n";
+           $object_string .= "$object_name_v -> tie_event('$object_name->initiate_linking_as_controller','initiate linking as controller');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->initiate_unlinking_as_controller','initiate unlinking');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->cancel_linking','cancel linking');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table','log links');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','scan link table');\n\n";
+           $object_string .= "$object_name_v -> tie_event('&Insteon::scan_all_linktables(1)','scan changed device link tables');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->delete_orphan_links','delete orphan links');\n\n";
            $object_string .= "$object_name_v -> tie_event('$object_name->delete_orphan_links(1)','AUDIT - delete orphan links');\n\n";
            $object_string .= "$object_name_v -> tie_event('&Insteon::scan_all_linktables','scan all device link tables');\n\n";
            $object_string .= "$object_name_v -> tie_event('&Insteon::sync_all_links(0)','sync all links');\n\n";
            $object_string .= "$object_name_v -> tie_event('&Insteon::sync_all_links(1)','AUDIT - sync all links');\n\n";
+           $object_string .= "$object_name_v -> tie_event('&Insteon::log_all_ADLB_status','log all device ALDB status');\n\n";
            $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_PLM_commands');
            push @_insteon_plm, $object_name;
         }
@@ -318,6 +640,13 @@ sub generate_voice_commands
     print "Error in insteon_item_commands: $@\n" if $@;
     package Insteon;
 }
+
+=item C<add(object)>
+
+Adds object to the list of insteon objects that are managed by the stack.  Makes
+the object eligible for linking, scanning, and global functions.
+
+=cut
 
 sub add
 {
@@ -330,6 +659,12 @@ sub add
    $insteon_manager->add_item($object);
 }
 
+=item C<find_members(name)>
+
+Called as a non-object routine.  Returns the object named name.
+
+=cut
+
 sub find_members
 {
    my ($name) = @_;
@@ -338,6 +673,13 @@ sub find_members
    return $insteon_manager->find_members($name);
 }
 
+=item C<get_object(p_id[, p_group])>
+
+Returns the object identified by p_id and p_group.  Where p_id is the 6 digit
+hexadecimal address of the object without periods and group is a two digit
+representation of the group number of the device.
+
+=cut
 
 sub get_object
 {
@@ -373,6 +715,13 @@ sub get_object
 	return $retObj;
 }
 
+=item C<active_interface(p_interface)>
+
+Sets p_interface as the new active interface.  Should likely only be called on
+startup or reload.
+
+=cut
+
 sub active_interface
 {
    my ($interface) = @_;
@@ -385,10 +734,92 @@ sub active_interface
 
 }
 
+=item C<check_all_aldb_versions()>
+
+Walks through every Insteon device and checks the aldb object version for I1 vs. I2
+
+=cut
+
+sub check_all_aldb_versions
+{
+	main::print_log("[Insteon] DEBUG4 Checking aldb version of all devices") if ($main::Debug{insteon} >= 4);
+
+	my @ALDB_devices = ();
+	push @ALDB_devices, Insteon::find_members("Insteon::BaseDevice");
+	my $ALDB_cnt = @ALDB_devices;
+	my $count = 0;
+	foreach my $ALDB_device (@ALDB_devices)
+	{
+		$count++;
+		if ($ALDB_device->is_root and
+			!($ALDB_device->isa('Insteon::InterfaceController')))
+		{
+			main::print_log("[Insteon] DEBUG4 Checking aldb version for "
+				. $ALDB_device->get_object_name()
+				. " ($count of $ALDB_cnt)") if ($main::Debug{insteon} >= 4);
+			$ALDB_device->check_aldb_version();
+		} else
+		{
+			main::print_log("[Insteon] DEBUG4 " . $ALDB_device->get_object_name
+				. " does not have its own aldb ($count of $ALDB_cnt)")
+				if ($main::Debug{insteon} >= 4);
+		}
+	}
+	main::print_log("[Insteon] DEBUG4 Checking aldb version of all devices completed") if ($main::Debug{insteon} >= 4);
+}
+
+=back
+
+=head2 INI PARAMETERS
+
+=over 
+
+=item insteon_menu_states
+
+A comma seperated list of states that will be added as voice commands to dimmable
+devices.
+
+=back
+
+=head2 AUTHOR
+
+Gregg Limming, Kevin Robert Keegan, Micheal Stovenour, many others
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=head1 B<InsteonManager>
+
+=head2 DESCRIPTION
+
+Provides the basic infrastructure for the Insteon stack, contains many of the 
+startup routines.
+
+=head2 INHERITS
+
+L<Class::Singleton|Class::Singleton>
+
+=head2 METHODS
+
+=over
+
+=cut
+
 package InsteonManager;
 
 use strict;
 use base 'Class::Singleton';
+
+=item C<_new_instance()>
+
+Defines a new instance of the class.
+
+=cut
 
 sub _new_instance
 {
@@ -398,6 +829,13 @@ sub _new_instance
 	return $self;
 }
 
+=item C<_active_interface()>
+
+Sets and returns the active interface.  Likely should only be caled on startup
+or reload.  It also sets all of the hooks for the Insteon stack.
+
+=cut
+
 sub _active_interface
 {
    my ($self, $interface) = @_;
@@ -405,14 +843,21 @@ sub _active_interface
    if (!($$self{active_interface}) and $interface) {
       &main::print_log("[Insteon] Setting up initialization hooks") if $main::Debug{insteon};
       &main::MainLoop_pre_add_hook(\&Insteon::BaseInterface::check_for_data, 1);
+      &main::Reload_post_add_hook(\&Insteon::check_all_aldb_versions, 1);
       &main::Reload_post_add_hook(\&Insteon::BaseInterface::poll_all, 1);
-      $Insteon::init_complete = 0;
+      $init_complete = 0;
       &main::MainLoop_pre_add_hook(\&Insteon::init, 1);
       &main::Reload_post_add_hook(\&Insteon::generate_voice_commands, 1);
    }
    $$self{active_interface} = $interface if $interface;
    return $$self{active_interface};
 }
+
+=item C<add()>
+
+Adds a list of objects to be tracked.
+
+=cut
 
 sub add
 {
@@ -432,16 +877,28 @@ sub add
 	}
 }
 
+=item C<add()>
+
+Adds an object to be tracked.
+
+=cut
+
 sub add_item
 {
    my ($self,$p_object) = @_;
 
    push @{$$self{objects}}, $p_object;
-   if ($p_object->isa('Insteon::BaseInterface') and !($self->_active_interface)) {
+   if ($p_object->isa('Insteon::BaseInterface')) {
       $self->_active_interface($p_object);
    }
    return $p_object;
 }
+
+=item C<remove_all_items()>
+
+Removes all of the Insteon objects.
+
+=cut
 
 sub remove_all_items {
    my ($self) = @_;
@@ -453,6 +910,12 @@ sub remove_all_items {
    }
    delete $self->{objects};
 }
+
+=item C<add_item_if_not_present()>
+
+Adds an item to be tracked if it is not already in the list.
+
+=cut
 
 sub add_item_if_not_present {
    my ($self, $p_object) = @_;
@@ -468,6 +931,12 @@ sub add_item_if_not_present {
    return 1;
 }
 
+=item C<remove_item()>
+
+Removes the Insteon object.
+
+=cut
+
 sub remove_item {
    my ($self, $p_object) = @_;
    return 0 unless $p_object and ref $p_object;
@@ -482,6 +951,11 @@ sub remove_item {
    return 0;
 }
 
+=item C<is_member()>
+
+Returns true if object is in the list.
+
+=cut
 
 sub is_member {
     my ($self, $p_object) = @_;
@@ -494,6 +968,13 @@ sub is_member {
     }
     return 0;
 }
+
+=item C<find_members(p_type)>
+
+Find and return all tracked objects of type p_type where p_type is an object
+class.
+
+=cut
 
 sub find_members {
 	my ($self,$p_type) = @_;
@@ -508,4 +989,44 @@ sub find_members {
 	return @l_found;
 }
 
-1
+=back
+
+=head2 INI PARAMETERS
+
+=over
+
+=item C<debug>
+
+For debugging debug=insteon or debug=insteon:level where level is 1-4. 
+
+=back
+
+=head2 AUTHOR
+
+Bruce Winter, Gregg Liming, Kevin Robert Keegan, Michael Stovenour, many others
+
+=head2 SEE ALSO
+
+None
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, 
+MA  02110-1301, USA.
+
+=cut
+
+
+1;

@@ -103,8 +103,16 @@ h2 {
 }
 
 h3 {
-	font: 0.8em "ITC Garamond", Garamond, Georgia, "Times New Roman", Times, serif;
+	font: 1.0em "ITC Garamond", Garamond, Georgia, "Times New Roman", Times, serif;
 	color: #36497d;
+	margin-top: 9px;
+	margin-bottom: 3px;	
+}
+
+h4 {
+	font: 1.0em "ITC Garamond", Garamond, Georgia, "Times New Roman", Times, serif;
+	color: #36497d;
+	margin-left: 30px;
 	margin-top: 9px;
 	margin-bottom: 3px;	
 }

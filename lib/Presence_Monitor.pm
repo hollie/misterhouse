@@ -1,88 +1,91 @@
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 B<Presence_Monitor>
 
-File:
-	Presence_Monitor.pm
+=head2 SYNOPSIS
 
-Description:
-	This is an object that is attached to the Occupancy Monitor (usually $om)
-   as well as one Door_Item or Motion_Item.  It maintains whether or not there
-   is presence (or predicted presence) within a given room.  You should have one
-   per room in your house, even if the room has multiple motion detectors.  Not
-   only will this object show up on floorplan.pl, but it can also be attached
-   to a Light_Object to make sure the light remains on when somebody is present.
-   If the light has prediction enabled it will also cause the light to turn on
-   when somebody may be entering the room.
+Example initialization:
 
-Author:
-	Jason Sharpee
-	jason@sharpee.com
+These are to be placed in a *.mht file in your user code directory.
 
-License:
-	This free software is licensed under the terms of the GNU public license.
+First, make sure you have an occupancy monitor:
 
-Usage:
-	Example initialization:
-      These are to be placed in a *.mht file in your user code directory.
+  OCCUPANCY, om
 
-      First, make sure you have an occupancy monitor:
-         OCCUPANCY, om
+Then, create your presence objects:
 
-      Then, create your presence objects:
-         PRESENCE, sensor_X, om, presence_X
+  PRESENCE, sensor_X, om, presence_X
 
-      This creates a new Presence_Monitor object of name 'presence_X'
-      and attaches it to both the occupancy monitor and 'sensor_X'.  The
-      'sensor_X' object must already have been defined and needs to be
-      either a Door_Item or a Motion_Item.
+This creates a new Presence_Monitor object of name 'presence_X'
+and attaches it to both the occupancy monitor and 'sensor_X'.  The
+'sensor_X' object must already have been defined and needs to be
+either a Door_Item or a Motion_Item.
 
-   Optional settings:
-      You can have occupancy automatically expire after X seconds of
-      no activity (no doors opened or motion in the room):
+Optional settings:
 
-         $presence_X->occupancy_expire(3600);  # Expire after 1 hour
+You can have occupancy automatically expire after X seconds of
+no activity (no doors opened or motion in the room):
 
-      When using this feature, consider how long a person might remain
-      in the room without creating any motion.  This will depend on
-      the room and the motion detector coverage.  Obviously a room
-      with motion detector coverage only on the entrances/exits would
-      need a longer expiration time.  A hallway could have a pretty short
-      expiration time, but a room in which you might sit and read a book
-      for two hours needs a longer expiration time.
+  $presence_X->occupancy_expire(3600);  # Expire after 1 hour
 
-      The purpose of this feature is to cause an errant occupancy to
-      eventually expire.  This is especially useful for rooms like a
-      closet that might get false-positive presence and nobody else
-      goes near it for a long time.  Also for a room like a hallway
-      that basically nobody ever stays in... yet there is lots of activity 
-      in and out and one of the outs might be missed.
+When using this feature, consider how long a person might remain
+in the room without creating any motion.  This will depend on
+the room and the motion detector coverage.  Obviously a room
+with motion detector coverage only on the entrances/exits would
+need a longer expiration time.  A hallway could have a pretty short
+expiration time, but a room in which you might sit and read a book
+for two hours needs a longer expiration time.
 
-   Automating timers:
-      You can now add arbitrary commands to a presence object that will be
-      run after a room has been vacant or occupied for the specified amount
-      of time.  Here are examples:
+The purpose of this feature is to cause an errant occupancy to
+eventually expire.  This is especially useful for rooms like a
+closet that might get false-positive presence and nobody else
+goes near it for a long time.  Also for a room like a hallway
+that basically nobody ever stays in... yet there is lots of activity 
+in and out and one of the outs might be missed.
 
-         $om_presence_master_bedroom->add_presence_timer(15, 'speak("bedroom presence")');
-         $om_presence_master_bedroom->add_vacancy_timer(15, 'speak("bedroom vacant")');
+Automating timers:
 
-      These examples cause the specified text to be spoken after a room has been
-      continuously occupied for 15 seconds or continuously vacant for 15 seconds.
+You can now add arbitrary commands to a presence object that will be
+run after a room has been vacant or occupied for the specified amount
+of time.  Here are examples:
 
-   Setting occupancy:
-      set_count(): This function can be used to set the number of people
+  $om_presence_master_bedroom->add_presence_timer(15, 'speak("bedroom presence")');
+  $om_presence_master_bedroom->add_vacancy_timer(15, 'speak("bedroom vacant")');
+
+These examples cause the specified text to be spoken after a room has been
+continuously occupied for 15 seconds or continuously vacant for 15 seconds.
+
+Setting occupancy:
+
+  set_count(): This function can be used to set the number of people
       in a specific room.  Set to 0 to vacate the room, or a positive number
-      to set the number of people in the room. 
-	
-	Output states:
-      vacant: Nobody is in the room
-      predict: Somebody may be entering the room
-      occupied: Somebody is in the room
+      to set the number of people in the room.
 
-Special Thanks to: 
-	Bruce Winter - MH
+Output states:
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  vacant: Nobody is in the room
+  predict: Somebody may be entering the room
+  occupied: Somebody is in the room
+
+=head2 DESCRIPTION
+
+This is an object that is attached to the Occupancy Monitor (usually $om)
+as well as one Door_Item or Motion_Item.  It maintains whether or not there
+is presence (or predicted presence) within a given room.  You should have one
+per room in your house, even if the room has multiple motion detectors.  Not
+only will this object show up on floorplan.pl, but it can also be attached
+to a Light_Object to make sure the light remains on when somebody is present.
+If the light has prediction enabled it will also cause the light to turn on
+when somebody may be entering the room.
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
 =cut
+
 
 use strict;
 
@@ -114,8 +117,13 @@ sub set_debug {
     $self->{debug} = $debug;
 }
 
-# This watch_dog timer method will look for conditions where the room is occupied but no
-# occupancy expiration timer is in play. 
+=item C<watch_dog>
+
+This watch_dog timer method will look for conditions where the room is occupied but no
+occupancy expiration timer is in play. 
+
+=cut
+
 sub watch_dog {
    my ($self) = @_;
    if ($self->state eq 'occupied') {
@@ -293,7 +301,12 @@ sub set_count {
    }
 }
 
-# Returns the number of seconds since the last motion in the room
+=item C<get_time_diff>
+
+Returns the number of seconds since the last motion in the room
+
+=cut
+
 sub get_time_diff {
    my ($self) = @_;
 	my $last = $$self{m_OM}->get_last_motion($$self{m_obj});
@@ -319,4 +332,30 @@ sub writable
 #}
 
 1;
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Jason Sharpee  jason@sharpee.com
+
+Special Thanks to:  Bruce Winter - MH
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 

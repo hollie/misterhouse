@@ -1,57 +1,8 @@
-=begin comment
-      $$self{cool_start} = $::Time;
+=head1 B<RCSsTR40>
 
-Initial version created by Chris Witte <cwitte@xmlhq.com>
-Expanded for TR40 by Kirk Bauer <kirk@kaybee.org>
+=head2 SYNOPSIS
 
-Control RCS serial (rs232/rs485) TR40 model thermostats.  This will probably
-need some enhancement to work with rs485, or at least if you want to put
-multiple units on the same drop.
-
-I created a new module because I don't have a full understanding of the
-compatibility issues with older/other models.  My new module *should* be usable
-with multiple thermostats and could be expanded to support some of the more
-advanced RCS thermostat modules.
-
-Use these mh.ini parameters to enable this code:
-
-RCSsTR40_serial_port=/dev/ttyS4
-RCSsTR40_baudrate=9600
-RCSsTR40_address=1 to 255 (for mutiple thermostats on a 422 interface)
-		       May be omitted (or 1) if using RS232.
-
-SERIAL PIN CONNECTIONS
-
-PS - I don't know if I'm just stupid or what, but I could not send anything
-to the TR40 through either minicom (Linux) or HypterTerminal (Windows), but I
-could receive messages (i.e. when the TR40 was powered up).  I thought it was
-broken, but it turns out that this module talked to it fine.  Who knows.
-
-I don't know why they don't mention this in the manual... maybe it is common
-knowledge?  But I went to Radio Shack and bought a female, 9-pin serial
-connector and use that to wire into the TR40 control unit.  These pin-outs
-worked for me:
-
-   Cable            Controller
---------------------------------------
-                    +V (not connected)
-   Pin 5 (SG)       G (Gnd)
-   Pin 2 (receive)  T+ (transmit)
-   Pin 3 (transmit) R- (receive)
-
-INITIAL CONFIGURATION
-
-I recommend enabling auto-send either in the configuration menu or by
-calling (once) the function: set_variable(74,1);  I don't like having to leave
-the thermostat in "hold" mode, so instead I clear out the schedule (just once
-using the clear_schedule() command).
-
-BUGS
-
-The get_heat_run_time() and get_cool_run_time() functions are not always
-accurate... I must still have some bugs there.
-
-EXAMPLE USAGE
+  $$self{cool_start} = $::Time;
 
 Creating the object:
 
@@ -60,9 +11,9 @@ Creating the object:
 
 Use internet weather temperature to automatically update the outside
 temperature on the display.  If you have a physical external temp monitor
-hooked up to the unit, then this will have no effect.  If you have a 
-weather station or an iButton, just change the reference from 
-\$Weather{TempInternet} to something else and stop running 
+hooked up to the unit, then this will have no effect.  If you have a
+weather station or an iButton, just change the reference from
+\$Weather{TempInternet} to something else and stop running
 'Get internet weather data' every hour.
 
    if ($Startup or $Reload) {
@@ -74,7 +25,7 @@ weather station or an iButton, just change the reference from
 
 Watch for temperature changes (can do the same with outside_temp_change if
 you have a physical outside temperature monitor hooked up to the TR40).
-   
+
    if (state_now $thermostat eq 'temp_change') {
       my $temp = $thermostat->get_temp();
       print "Got new thermostat temperature: $temp\n";
@@ -84,8 +35,8 @@ Watch for other changes such as fan mode, system mode, etc.  I only currently
 watch for vacation mode (enabled/disabled by holding down the HOLD button for 3
 seconds) and use this to enable/disable the Misterhouse vacation mode.  This
 module looks for the temperatures to change to 66 and 80 at the same time to
-detect this.  This is what my unit does when you place it into vacation mode.  
-You can change the temperatures (locally or remotely) after it goes into 
+detect this.  This is what my unit does when you place it into vacation mode.
+You can change the temperatures (locally or remotely) after it goes into
 vacation mode and the mode will still remain active until turned off on
 the control panel.
 
@@ -110,12 +61,13 @@ And, you can set the temperature and mode at will...
    }
 
 All of the states that may be set:
+
    temp_change: inside temperature changed (call get_temp() to get value)
-   outside_temp_change: outside temperature changed (call 
+   outside_temp_change: outside temperature changed (call
       get_outside_temp() to get value)
-   heat_sp_change: Heat setpoint was changed from the control pad 
+   heat_sp_change: Heat setpoint was changed from the control pad
       (call get_heat_sp() to get value).
-   cool_sp_change: Cool setpoint was changed from the control pad 
+   cool_sp_change: Cool setpoint was changed from the control pad
       (call get_cool_sp() to get value).
    off: System mode set to 'off'
    heat: System mode set to 'heat'
@@ -130,58 +82,56 @@ All of the states that may be set:
    vacation: Vacation mode was enabled by user
    no_vacation: Vacation mode was turned off by user
 
-All of the functions available:
-   reset_run_times(): Clears all runtime data
-   get_heat_run_time(): Returns # of seconds of heating since last reset
-   get_cool_run_time(): Returns # of seconds of cooling since last reset
-   mode(): Sets system mode to argument: 'off', 'heat', 'cool', 'auto', or 
-      'emerg_heat' (if available)
-   fan(): Sets fan to 'on' or 'off'
-   set_schedule_control(): Sets schedule control to 'hold' or 'run'.  Note
-      that this has no effect if there is no scehdule defined.
-   lock_display(): Locks the TR40 display.
-   unlock_display(): Unlocks the TR40 display.
-   create_schedule_entry(): Creates a schedule entry.  Parameters are:
-      1) day of week (1=Sunday, ..., 7=Saturday)
-      2) entry # (1 through 4)
-      3) hour (00-23)
-      4) minute (00-59)
-      5) heat setpoint
-      6) cool setpoint
-   clear_schedule(): A convenience function that can be used to clear out
-      the entire schedule.  This is permanent so it only has to be run once.
-      I use this so that Misterhouse can completely control the thermostat.
-   set_variable(): Sets an arbitrary variable to an arbitrary value.  First
-      argument is the variable number (from back of programming manual) and
-      the second argument is the value.
-   clear_messages(): Clears all text messages from the system
-   send_text_msg(): Sends an arbitrary text message to the display.  The TR40
-      automatically timestamps the message.  Max length is 80 characters and
-      the double-quotes character (") is not allowed.
-   cool_setpoint(): Sets a new cool setpoint.
-   heat_setpoint(): Sets a new heat setpoint.
-   set_outside_temp(): Sets the displayed outside temp.  Only works if no
-      external temperature sensor is connected to the TR40.
-   set_remote_temp(): Sets a remote temperature that will be average with the
-      internal temperature sensor when determining the actual current temperature.
-      Does not work if you actually have a remote temperature sensor connected.
-   set_date_time(): Sends Misterhouse's current date/time to the TR40.  Note
-      that the module automatically calls this once per hour.
-   auto_set_outside_temp(): Pass in a scalar reference to this function and it
-      will automatically set the displayed outside temperature whenever the
-      scalar changes.  See above for an example.
-   get_temp(): Returns the current inside temperature.
-   get_outside_temp(): Returns the current outside temperature.
-   get_heat_sp(): Returns the current heat setpoint.
-   get_cool_sp(): Returns the current cool setpoint.
-   get_mode(): Returns the current mode (off, auto, heat, cool, emerg_heat)
-   get_fan_mode(): Returns the current fan mode (fan_on or fan_auto)
-   get_schedule_mode(): Returns the current schedule mode ('hold' or 'run').
-      Note that this will always return 'hold' if there is no schedule defined.
-   get_vacation_status(): Returns either 'vacation' or 'no_vacation'.  Vacation
-      mode is (de)activated by pressing and holding the away button for 3 seconds.
-   set_heat_limits(min, max): Specify minimum and maximum heat setpoints
-   set_cool_limits(min, max): Specify minimum and maximum cool setpoints
+=head2 DESCRIPTION
+
+Control RCS serial (rs232/rs485) TR40 model thermostats.  This will probably
+need some enhancement to work with rs485, or at least if you want to put
+multiple units on the same drop.
+
+I created a new module because I don't have a full understanding of the
+compatibility issues with older/other models.  My new module *should* be usable
+with multiple thermostats and could be expanded to support some of the more
+advanced RCS thermostat modules.
+
+SERIAL PIN CONNECTIONS
+
+PS - I don't know if I'm just stupid or what, but I could not send anything
+to the TR40 through either minicom (Linux) or HypterTerminal (Windows), but I
+could receive messages (i.e. when the TR40 was powered up).  I thought it was
+broken, but it turns out that this module talked to it fine.  Who knows.
+
+I don't know why they don't mention this in the manual... maybe it is common
+knowledge?  But I went to Radio Shack and bought a female, 9-pin serial
+connector and use that to wire into the TR40 control unit.  These pin-outs
+worked for me:
+
+   Cable            Controller
+   -----------------------------------
+                    +V (not connected)
+   Pin 5 (SG)       G (Gnd)
+   Pin 2 (receive)  T+ (transmit)
+   Pin 3 (transmit) R- (receive)
+
+INITIAL CONFIGURATION
+
+I recommend enabling auto-send either in the configuration menu or by
+calling (once) the function: set_variable(74,1);  I don't like having to leave
+the thermostat in "hold" mode, so instead I clear out the schedule (just once
+using the clear_schedule() command).
+
+BUGS
+
+The get_heat_run_time() and get_cool_run_time() functions are not always
+accurate... I must still have some bugs there.
+
+=head2 INHERITS
+
+B<Serial_Item>
+
+=head2 METHODS
+
+=over
+
 =cut
 
 use strict;
@@ -319,6 +269,12 @@ sub get_system_state {
    return 'off';
 }
 
+=item C<reset_run_times()>
+
+Clears all runtime data
+
+=cut
+
 sub reset_run_times {
    my ($self) = @_;
    $self->_process_off_times();
@@ -332,6 +288,12 @@ sub reset_run_times {
    }
 }
 
+=item C<get_heat_run_time()>
+
+Returns # of seconds of heating since last reset
+
+=cut
+
 sub get_heat_run_time {
    my ($self) = @_;
    $self->_process_off_times();
@@ -341,6 +303,12 @@ sub get_heat_run_time {
    }
    return ($$self{hrt} + $tmp);
 }
+
+=item C<get_cool_run_time()>
+
+Returns # of seconds of cooling since last reset
+
+=cut
 
 sub get_cool_run_time {
    my ($self) = @_;
@@ -362,6 +330,13 @@ sub _send_cmd {
    $$self{'last_change'} = $main::Time;
 	$self->_poll();
 }
+
+=item C<mode()>
+
+Sets system mode to argument: 'off', 'heat', 'cool', 'auto', or
+'emerg_heat' (if available)
+
+=cut
 
 sub mode{
 	my ($self, $state) = @_;
@@ -386,6 +361,12 @@ sub mode{
    $self->_send_cmd("M=$mode");
 }
 
+=item C<fan()>
+
+Sets fan to 'on' or 'off'
+
+=cut
+
 sub fan{
 	my ($self, $state) = @_;
 	$state = lc($state);
@@ -405,6 +386,13 @@ sub fan{
    $self->_send_cmd("F=$fan");
 }
 
+=item C<set_schedule_control()>
+
+Sets schedule control to 'hold' or 'run'.  Note
+that this has no effect if there is no scehdule defined.
+
+=cut
+
 sub set_schedule_control {
 	my ($self, $state) = @_;
 	$state = lc($state);
@@ -422,17 +410,42 @@ sub set_schedule_control {
    $self->_send_cmd("SC=$val");
 }
 
+=item C<lock_display()>
+
+Locks the TR40 display.
+
+=cut
+
 sub lock_display{
 	my ($self, $msg) = @_;
 	print "$::Time_Date: RCSsTR40 -> Lock Display\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
    $self->_send_cmd("DL=1");
 }
 
+=item C<unlock_display()>
+
+Unlocks the TR40 display.
+
+=cut
+
 sub unlock_display{
 	my ($self, $msg) = @_;
 	print "$::Time_Date: RCSsTR40 -> Unlock Display\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
    $self->_send_cmd("DL=0");
 }
+
+=item C<create_schedule_entry()>
+
+Creates a schedule entry.  Parameters are:
+
+  1) day of week (1=Sunday, ..., 7=Saturday)
+  2) entry # (1 through 4)
+  3) hour (00-23)
+  4) minute (00-59)
+  5) heat setpoint
+  6) cool setpoint
+
+=cut
 
 sub create_schedule_entry {
 	my ($self, $day, $entry, $hour, $min, $heat, $cool) = @_;
@@ -450,6 +463,14 @@ sub create_schedule_entry {
    $self->_send_cmd("SE$day/$entry=$hour$min$heat$cool");
 }
 
+=item C<clear_schedule()>
+
+A convenience function that can be used to clear out
+the entire schedule.  This is permanent so it only has to be run once.
+I use this so that Misterhouse can completely control the thermostat.
+
+=cut
+
 sub clear_schedule {
 	my ($self) = @_;
 	print "$::Time_Date: RCSsTR40 -> Clearing schedule\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
@@ -461,11 +482,25 @@ sub clear_schedule {
    }
 }
 
+=item C<set_variable()>
+
+Sets an arbitrary variable to an arbitrary value.  First
+argument is the variable number (from back of programming manual) and
+the second argument is the value.
+
+=cut
+
 sub set_variable{
 	my ($self, $var, $val) = @_;
 	print "$::Time_Date: RCSsTR40 -> Set Variable $var=$val\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
    $self->_send_cmd("SV$var=$val");
 }
+
+=item C<clear_messages()>
+
+Clears all text messages from the system
+
+=cut
 
 sub clear_messages{
 	my ($self,$msg)=@_;
@@ -473,7 +508,16 @@ sub clear_messages{
    $self->_send_cmd("TM=\"#\"");
 }
 
-# Use carriage returns (\r) for new lines
+=item C<send_text_msg()>
+
+Sends an arbitrary text message to the display.  The TR40
+automatically timestamps the message.  Max length is 80 characters and
+the double-quotes character (") is not allowed.
+
+Use carriage returns (\r) for new lines
+
+=cut
+
 sub send_text_msg{
 	my ($self, $msg) = @_;
 	print "$::Time_Date: RCSsTR40 -> Send Text message: $msg\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
@@ -487,6 +531,12 @@ sub send_text_msg{
 	}
    $self->_send_cmd("TM=\"$msg\"");
 }
+
+=item C<cool_setpoint()>
+
+Sets a new cool setpoint.
+
+=cut
 
 sub cool_setpoint{
 	my ($self, $temp) = @_;
@@ -504,6 +554,12 @@ sub cool_setpoint{
    $self->_send_cmd("SPC=$temp");
 }
 
+=item C<heat_setpoint()>
+
+Sets a new heat setpoint.
+
+=cut
+
 sub heat_setpoint{
 	my ($self, $temp) = @_;
 	print "$::Time_Date: RCSsTR40 -> Heat setpoint $temp\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
@@ -520,6 +576,13 @@ sub heat_setpoint{
    $self->_send_cmd("SPH=$temp");
 }
 
+=item C<set_outside_temp()>
+
+Sets the displayed outside temp.  Only works if no
+external temperature sensor is connected to the TR40.
+
+=cut
+
 sub set_outside_temp {
 	my ($self, $temp) = @_;
 	print "$::Time_Date: RCSsTR40 -> Set outside temp: $temp\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
@@ -531,6 +594,14 @@ sub set_outside_temp {
    $self->_send_cmd("OT=$temp");
 }
 
+=item C<set_remote_temp()>
+
+Sets a remote temperature that will be average with the
+internal temperature sensor when determining the actual current temperature.
+Does not work if you actually have a remote temperature sensor connected.
+
+=cut
+
 sub set_remote_temp {
 	my ($self, $temp) = @_;
 	print "$::Time_Date: RCSsTR40 -> Set remote temp: $temp\n" unless $main::config_parms{no_log} =~/RCSsTR40/;
@@ -540,6 +611,13 @@ sub set_remote_temp {
 	}
    $self->_send_cmd("RT=$temp");
 }
+
+=item C<set_date_time()>
+
+Sends Misterhouse's current date/time to the TR40.  Note
+that the module automatically calls this once per hour.
+
+=cut
 
 sub set_date_time {
 	my ($self) = @_;
@@ -567,6 +645,14 @@ sub _poll{
    $RCSsTR40_Data{$$self{'port_name'}}{'send_count'}++;
 }
 
+=item C<auto_set_outside_temp()>
+
+Pass in a scalar reference to this function and it
+will automatically set the displayed outside temperature whenever the
+scalar changes.  See above for an example.
+
+=cut
+
 sub auto_set_outside_temp {
 	my ($self, $temp_ref) = @_;
    $$self{'auto_outside_temp_ref'} = $temp_ref;
@@ -585,51 +671,113 @@ sub _check_auto_outside_temp {
    }
 }
 
+=item C<get_temp()>
+
+Returns the current inside temperature.
+
+=cut
+
 sub get_temp() {
    my ($self) = @_;
    return $$self{'temp'};
 }
+
+=item C<get_outside_temp()>
+
+Returns the current outside temperature.
+
+=cut
 
 sub get_outside_temp() {
    my ($self) = @_;
    return $$self{'outside_temp'};
 }
 
+=item C<get_heat_sp()>
+
+Returns the current heat setpoint.
+
+=cut
+
 sub get_heat_sp() {
    my ($self) = @_;
    return $$self{'heat_sp'};
 }
+
+=item C<get_cool_sp()>
+
+Returns the current cool setpoint.
+
+=cut
 
 sub get_cool_sp() {
    my ($self) = @_;
    return $$self{'cool_sp'};
 }
 
+=item C<get_mode()>
+
+Returns the current mode (off, auto, heat, cool, emerg_heat)
+
+=cut
+
 sub get_mode() {
    my ($self) = @_;
    return $$self{'mode'};
 }
+
+=item C<get_fan_mode()>
+
+Returns the current fan mode (fan_on or fan_auto)
+
+=cut
 
 sub get_fan_mode() {
    my ($self) = @_;
    return $$self{'fan_mode'};
 }
 
+=item C<get_schedule_mode()>
+
+Returns the current schedule mode ('hold' or 'run').
+Note that this will always return 'hold' if there is no schedule defined.
+
+=cut
+
 sub get_schedule_mode() {
    my ($self) = @_;
    return $$self{'schedule_mode'};
 }
+
+=item C<get_vacation_status()>
+
+Returns either 'vacation' or 'no_vacation'.  Vacation
+mode is (de)activated by pressing and holding the away button for 3 seconds.
+
+=cut
 
 sub get_vacation_status() {
    my ($self) = @_;
    return $$self{'vacation'};
 }
 
+=item C<set_heat_limits(min, max)>
+
+Specify minimum and maximum heat setpoints
+
+=cut
+
 sub set_heat_limits($$) {
    my ($self, $min, $max) = @_;
    $$self{'heat_min_limit'} = $min;
    $$self{'heat_max_limit'} = $max;
 }
+
+=item C<set_cool_limits(min, max)>
+
+Specify minimum and maximum cool setpoints
+
+=cut
 
 sub set_cool_limits($$) {
    my ($self, $min, $max) = @_;
@@ -846,3 +994,32 @@ sub _parse_data {
 }
 
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+RCSsTR40_serial_port=/dev/ttyS4
+RCSsTR40_baudrate=9600
+RCSsTR40_address=1 to 255 (for mutiple thermostats on a 422 interface) May be omitted (or 1) if using RS232.
+
+=head2 AUTHOR
+
+Initial version created by Chris Witte <cwitte@xmlhq.com>
+Expanded for TR40 by Kirk Bauer <kirk@kaybee.org>
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

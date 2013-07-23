@@ -138,6 +138,18 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon::MotionSensor(\'$address\', $other)";
     }
+    elsif($type eq "INSTEON_IOLINC") {
+        require Insteon::IOLinc;
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon::IOLinc(\'$address\', $other)";
+    }
+    elsif($type eq "INSTEON_FANLINC") {
+        require Insteon::Lighting;
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon::FanLinc(\'$address\', $other)";
+    }
     elsif($type eq "INSTEON_ICONTROLLER") {
         require Insteon::BaseInsteon;
         ($address, $name, $grouplist, @other) = @item_info;
