@@ -101,6 +101,8 @@ sub new
 	$self->restore_data('default_hop_count', 'engine_version');
 
 	$self->initialize();
+	$$self{max_hops} = 3;
+	$$self{min_hops} = 0;
 	$$self{level} = undef;
 	$$self{flag} = "0F";
 	$$self{ackMode} = "1";
@@ -200,6 +202,9 @@ sub group
 
 Sets the maximum number of hops that may be used in a message sent to the device.
 The default and maximum number is 3.  $int is an integer between 0-3.
+
+This value is NOT saved on reboot, as such likely should be called in a $Reload loop.
+
 =cut
 
 sub max_hops {
@@ -212,6 +217,9 @@ sub max_hops {
 
 Sets the minimum number of hops that may be used in a message sent to the device.
 The default and minimum number is 0.  $int is an integer between 0-3.
+
+This value is NOT saved on reboot, as such likely should be called in a $Reload loop.
+
 =cut
 
 sub min_hops {
