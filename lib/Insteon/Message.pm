@@ -218,6 +218,7 @@ sub send
                 	&::print_log("[Insteon::BaseMessage] WARN: now resending "
                         	. $self->to_string() . " after " . $self->send_attempts
                         	. " attempts.") if $main::Debug{insteon};
+                        $self->setby->retry_count_log(1) if $self->setby->can('retry_count_log');
                         # revise default hop count to reflect retries
                         if (ref $self->setby && $self->setby->isa('Insteon::BaseObject') 
                         	&& !defined($$self{no_hop_increase}))
@@ -237,6 +238,9 @@ sub send
                 }
 
                 # need to set timeout as a function of retries; also need to alter hop count
+                if ($self->setby->can('outgoing_count_log') && $self->send_attempts <= 0) {
+                    $self->setby->outgoing_count_log(1);
+                }
                 $self->send_attempts($self->send_attempts + 1);
 		$interface->_send_cmd($self, $self->send_timeout);
 		if ($self->callback)

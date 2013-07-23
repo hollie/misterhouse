@@ -359,6 +359,7 @@ sub process_queue
                                        	. $self->active_message->send_attempts
                 			. ") for " . $self->active_message->to_string()
                                         . " exceeds limit.  Now moving on...") if $main::Debug{insteon};
+                                $self->fail_count_log(1) if $self->can('fail_count_log');
                                 # !!!!!!!!! TO-DO - handle failure timeout ???
                                 my $failed_message = $self->active_message;
                                 # make sure to let the sending object know!!!
@@ -530,6 +531,7 @@ sub on_standard_insteon_received
 		my $object = &Insteon::get_object($msg{source}, $msg{group});
 		if (defined $object)
                 {
+                    $object->incoming_count_log(1) if $object->can('incoming_count_log');
                 	if ($msg{type} ne 'broadcast')
                         {
                 		$msg{command} = $object->message_type($msg{cmd_code});
@@ -690,6 +692,7 @@ sub on_extended_insteon_received
 		my $object = &Insteon::get_object($msg{source}, $msg{group});
 		if (defined $object)
                 {
+                    $object->incoming_count_log(1) if $object->can('incoming_count_log');
                 	if ($msg{type} ne 'broadcast')
                         {
                 		$msg{command} = $object->message_type($msg{cmd_code});

@@ -488,6 +488,58 @@ sub log_all_ADLB_status
 	}
 }
 
+=item C<print_message_logs>
+
+Walks through every Insteon device and prints statistical information about
+its message handling.
+
+=cut
+
+sub print_message_logs
+{
+    my @_log_devices = ();
+	push @_log_devices, Insteon::find_members("Insteon::BaseDevice");
+
+	if (@_log_devices)
+	{
+		foreach my $current_log_device (@_log_devices)
+		{
+			$current_log_device->print_message_log 
+                if $current_log_device->can('print_message_log');
+		}
+		main::print_log("[Insteon::Print_Message_Logs] All devices have completed logging");
+	} else
+	{
+		main::print_log("[Insteon::Print_Message_Logs] WARN: No insteon devices could be found");
+	}
+}
+
+=item C<reset_message_logs>
+
+Walks through every Insteon device and resets the statistical information about
+its message handling.
+
+=cut
+
+sub reset_message_logs
+{
+    my @_log_devices = ();
+    push @_log_devices, Insteon::find_members("Insteon::BaseDevice");
+
+	if (@_log_devices)
+	{
+		foreach my $current_log_device (@_log_devices)
+		{
+			$current_log_device->reset_message_log 
+                if $current_log_device->can('reset_message_log');
+		}
+		main::print_log("[Insteon::Reset_Message_Logs] All devices have been reset");
+	} else
+	{
+		main::print_log("[Insteon::Reset_Message_Logs] WARN: No insteon devices could be found");
+	}
+}
+
 =item C<init()>
 
 Initiates the insteon stack, mostly just sets the trigger. 

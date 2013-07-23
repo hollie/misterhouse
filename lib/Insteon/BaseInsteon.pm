@@ -778,6 +778,7 @@ sub _process_message
 				. $self->get_object_name . " in response to a "
 				. $pending_cmd . " command, but the command code "
 				. $msg{cmd_code} . " is incorrect. Ignorring received message.");
+            $self->corrupt_count_log(1) if $self->can('corrupt_count_log');
 			$p_setby->active_message->no_hop_increase(1);
 		}
 	}
@@ -1147,7 +1148,8 @@ sub new
            $$self{aldb} = new Insteon::ALDB_i1($self);
         }
 
-	$self->restore_data('level');
+	$self->restore_data('level', 'retry_count_log', 'fail_count_log', 
+        'outgoing_count_log', 'incoming_count_log', 'corrupt_count_log');
 
 	$self->initialize();
 	$self->rate(undef);
@@ -1161,6 +1163,11 @@ sub new
 	@{$$self{command_stack}} = ();
 	$$self{_onlevel} = undef;
 	$$self{is_responder} = 1;
+    $$self{retry_count_log} = 0;
+    $$self{fail_count_log} = 0;
+    $$self{outgoing_count_log} = 0;
+    $$self{incoming_count_log} = 0;
+    $$self{corrupt_count_log} = 0;
 
 	return $self;
 }
@@ -1975,7 +1982,145 @@ sub engine_version
 	return $engine_version;
 }
 
-=item C<engine_version>
+=item C<retry_count_log([type]>
+
+Sets or gets the number of message retries that have occured for this device 
+since the last time C<reset_message_log> was called.
+
+If type is set, to any value, will increment retry log by one.
+
+Returns: current retry count.
+
+=cut 
+
+sub retry_count_log
+{
+	my ($self, $retry_count_log) = @_;
+	$$self{retry_count_log} = $retry_count_log if $retry_count_log;
+	return $$self{retry_count_log};
+} 
+
+=item C<fail_count_log([type]>
+
+Sets or gets the number of message failures that have occured for this device 
+since the last time C<reset_message_log> was called.
+
+If type is set, to any value, will increment fail log by one.
+
+Returns: current fail count.
+
+=cut 
+
+sub fail_count_log
+{
+    my ($self, $fail_count_log) = @_;
+	$$self{fail_count_log} = $fail_count_log if $fail_count_log;
+	return $$self{fail_count_log};
+} 
+
+=item C<outgoing_count_log([type]>
+
+Sets or gets the number of outgoing message that have occured for this device 
+since the last time C<reset_message_log> was called.
+
+If type is set, to any value, will increment output count by one.
+
+Returns: current output count.
+
+=cut 
+
+sub outgoing_count_log
+{
+    my ($self, $outgoing_count_log) = @_;
+    $$self{outgoing_count_log} = $outgoing_count_log if $outgoing_count_log;
+	return $$self{outgoing_count_log};
+}
+
+=item C<incoming_count_log([type]>
+
+Sets or gets the number of incoming message that have occured for this device 
+since the last time C<reset_message_log> was called.
+
+If type is set, to any value, will increment incoming count by one.
+
+Returns: current incoming count.
+
+=cut 
+
+sub incoming_count_log
+{
+    my ($self, $incoming_count_log) = @_;
+    $$self{incoming_count_log} = $incoming_count_log if $incoming_count_log;
+    return $$self{incoming_count_log};
+}
+        
+=item C<corrupt_count_log([type]>
+
+Sets or gets the number of currupt message that have arrived from this device 
+since the last time C<reset_message_log> was called.
+
+If type is set, to any value, will increment corrupt count by one.
+
+Returns: current corrupt count.
+
+=cut 
+
+sub corrupt_count_log
+{
+    my ($self, $corrupt_count_log) = @_;
+    $$self{corrupt_count_log} = $corrupt_count_log if $corrupt_count_log;
+    return $$self{corrupt_count_log};
+}
+
+
+=item C<reset_message_log>
+
+Resets the retry, fail, outgoing, incoming, and corrupt message counters.
+
+=cut 
+
+sub reset_message_log
+{
+    my ($self) = @_;
+    $$self{retry_count_log} = 0;
+    $$self{fail_count_log} = 0;
+    $$self{outgoing_count_log} = 0;
+    $$self{incoming_count_log} = 0;
+    $$self{corrupt_count_log} = 0;
+}
+
+=item C<print_message_log>
+
+Prints message statistics for this device to the print log.
+
+=cut 
+
+sub print_message_log
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my $retry_percentage = 0; 
+    $retry_percentage = sprintf("%.2f", ($$self{retry_count_log} / 
+        $$self{outgoing_count_log}) * 100 ) if ($$self{outgoing_count_log} > 0);
+    my $fail_percentage = 0; 
+    $fail_percentage = sprintf("%.2f", ($$self{fail_count_log} / 
+        $$self{outgoing_count_log}) * 100 ) if ($$self{outgoing_count_log} > 0);
+    my $corrupt_percentage = 0; 
+    $corrupt_percentage = sprintf("%.2f", ($$self{corrupt_count_log} / 
+        $$self{incoming_count_log}) * 100 ) if ($$self{outgoing_count_log} > 0);
+    ::print_log("[Insteon::BaseDevice] Message statistics for $object_name:\n"
+    . "Outgoing Count = " . $$self{outgoing_count_log} ."\n"
+    . "   Retry Count = " . $$self{retry_count_log} ."\n"
+    . "       Retry % = " . $retry_percentage . "%\n"
+    . "    Fail Count = " . $$self{fail_count_log} ."\n"
+    . "        Fail % = " . $fail_percentage . "%\n"
+    . "Incoming Count = " . $$self{incoming_count_log} ."\n"
+    . " Corrupt Count = " . $$self{corrupt_count_log} ."\n"
+    . "     Corrupt % = " . $corrupt_percentage. "%\n");
+}
+
+
+=item C<check_aldb_version>
 
 Because of the way MH saves / restores states "after" object creation
 the aldb must be initially created before the engine_version is restored.
