@@ -1,37 +1,32 @@
-use strict;
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 B<PAobj>
 
-File:
-	PA.pm
+=head2 SYNOPSIS
 
-Description:
-	Centralized control of various PA zone types.
+Example initialization:
 
-Author:
-	Steve Switzer
-	steve@switzerny.org
+  use PAobj;
+  $paobj = new PAobj('wdio','weeder');
 
-License:
-	This free software is licensed under the terms of the GNU public license.
+Enable pa_control.pl using "Common code activation" in the IA5 interface
+to activate an instance of this PA code.
 
-Usage:
+=head2 DESCRIPTION
 
-	Example initialization:
+Centralized control of various PA zone types.
 
-		use PAobj;
-		$paobj = new PAobj('wdio','weeder');
+=head2 INHERITS
 
-        Enable pa_control.pl using "Common code activation" in the IA5 interface
-        to activate an instance of this PA code.
+B<Generic_Item>
 
-Special Thanks to:
-	Bruce Winter - MH
-	Jason Sharpee - Example Perl Modules to "steal",learn from. :)
-	Ross Towbin - Providing me with code snippets for "setting weeder with more than 8 ports"
+=head2 METHODS
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=over
+
+=item B<UnDoc>
+
 =cut
+
+use strict;
 
 my (%pa_weeder_max_port,%pa_zone_types,%pa_zone_type_by_zone);
 
@@ -408,3 +403,36 @@ sub print_speaker_states
 }
 
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Steve Switzer  steve@switzerny.org
+
+Special Thanks to:
+
+  Bruce Winter - MH
+  Jason Sharpee - Example Perl Modules to "steal",learn from. :)
+  Ross Towbin - Providing me with code snippets for "setting weeder with more than 8 ports"
+
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

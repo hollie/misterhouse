@@ -1,73 +1,67 @@
+=head1 B<SysDiag_xAP>
 
-# Package: SysDiag_xAP
-# $Date$
-# $Revision$
+=head2 SYNOPSIS
 
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+If declaring via .mht:
 
-Description:
+  SDX,  psixc_instance,   sdx_object_name,        psixc_server
 
-	This package provides an interface to PhpSysInfo xml source via the xAP
-	(www.xapautomation.org) "connector": psixc 
+Where 'psixc_instance' is the xap instance name, psixc_server is the monitored server, and
+'sdx_object_name' is the Misterhouse object
 
-Author:
-	Gregg Liming / Howard Plato
-	gregg@limings.net hplato@gmail.com
+  # declare the psixc "conduit" object
+  $server1 = new SysDiag_xAP(instance, servername);
 
-License:
-	This free software is licensed under the terms of the GNU public license
+  # create one or more AnalogSensor_Items that will be attached to the SysDiag_xAP
+  # See additional comments in AnalogSensor_Items for .mht based declaration
 
-Usage:
-	Documentation on installing/configuring psixc is found in the psixc distribution.
-	(Note: psixc currently relies on phpsysinfo (phpsysinfo.sourceforge.net).
+  $server1_eth0 = new AnalogSensor_Item('loadavg1', 'cpu');
+  # 'loadavg1' is the attribute name, 'cpu' is the sensor type
+  $server1_hda1 = new AnalogSensor_Item('hda1.free', 'disk');
+  # 'hda1.free' is the attribute name, and sub-attribute value, 'disk' is the sensor type
 
-        The xAP message convention assumes that the phpsysinfo xAP connector, psixc,
-        is addressed via the target: hpgl.psixc.house 
+  # Now add these to the SysDiag_xAP object
+  $server1->add($server1_eth0, $server1_hda1);
 
-        Each "device" is subaddressed using the convention: :<type>.<item> where
-        <type> can be cpu, memory, network, disk and <item> is an attribute within that
-	item type (ie. eth0.rx hda1.used_percent)
+  # Another useful function is get_diag. This returns the xAP value without creating
+  # an AnalogSensor_Item object
 
-     Declaration:
+  $server1->get_diag('disk.hda1.size');
 
-        If declaring via .mht:
-        SDX,  psixc_instance,   sdx_object_name,	psixc_server
+Information on using AnalogSensor_Items is contained within its
+corresponding package documentation
 
-        Where 'psixc_instance' is the xap instance name, psixc_server is the monitored server, and
-	'sdx_object_name' is the Misterhouse object
+=head2 DESCRIPTION
 
-	# declare the psixc "conduit" object
-        $server1 = new SysDiag_xAP(instance, servername);
+This package provides an interface to PhpSysInfo xml source via the xAP
+(www.xapautomation.org) "connector": psixc
 
-	# create one or more AnalogSensor_Items that will be attached to the SysDiag_xAP
-        # See additional comments in AnalogSensor_Items for .mht based declaration
+Documentation on installing/configuring psixc is found in the psixc distribution.
+(Note: psixc currently relies on phpsysinfo (phpsysinfo.sourceforge.net).
 
-	$server1_eth0 = new AnalogSensor_Item('loadavg1', 'cpu');
-	# 'loadavg1' is the attribute name, 'cpu' is the sensor type
-	$server1_hda1 = new AnalogSensor_Item('hda1.free', 'disk');
-	# 'hda1.free' is the attribute name, and sub-attribute value, 'disk' is the sensor type
+The xAP message convention assumes that the phpsysinfo xAP connector, psixc,
+is addressed via the target: hpgl.psixc.house
 
-	# Now add these to the SysDiag_xAP object
-	$server1->add($server1_eth0, $server1_hda1);
+Each "device" is subaddressed using the convention: :<type>.<item> where
+<type> can be cpu, memory, network, disk and <item> is an attribute within that
+item type (ie. eth0.rx hda1.used_percent)
 
-	# Another useful function is get_diag. This returns the xAP value without creating
-	# an AnalogSensor_Item object
+=head2 INHERITS
 
-	$server1->get_diag('disk.hda1.size');
+B<Base_Item>
 
-	Information on using AnalogSensor_Items is contained within its
-	corresponding package documentation
+=head2 METHODS
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=over
+
+=item B<UnDoc>
+
 =cut
 
 use strict;
 
 package SysDiag_xAP;
 @SysDiag_xAP::ISA = ('Base_Item');
-
-
 
 sub new {
 
@@ -171,3 +165,29 @@ sub get_diag {
 }
 
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Gregg Liming / Howard Plato  gregg@limings.net hplato@gmail.com
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

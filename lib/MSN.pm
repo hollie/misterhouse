@@ -1,23 +1,13 @@
+=head1 B<MSN>
 
-=begin comment
-
-Downloaded from:   http://www.wiredbots.com/tutorial.html
-                   http://adamswann.com/library/2002/msn-perl/
-
-Protocol info:  http://www.hypothetic.org/docs/msn/
-
-Related project that uses MSN.pm with different mods here:
-                http://webmessenger.sourceforge.net
-
-Changes:
-  04/27/2002 : Bruce Winter (bruce@misterhouse.net)
-               Split &process out of &connect, so we can make it non-blocking.
+=head2 SYNOPSIS
 
 Example usage:
-  $client->connect('username','password', '', { 
-      Status  => \&Status, 
-      Answer  => \&Answer, 
-      Message => \&Message, 
+
+  $client->connect('username','password', '', {
+      Status  => \&Status,
+      Answer  => \&Answer,
+      Message => \&Message,
       Join    => \&Join}  , 0 );
 
   while (1) {
@@ -26,8 +16,30 @@ Example usage:
       $client->process(0);
   }
 
-=cut 
+=head2 DESCRIPTION
 
+Downloaded from:   http://www.wiredbots.com/tutorial.html  http://adamswann.com/library/2002/msn-perl/
+
+Protocol info:  http://www.hypothetic.org/docs/msn/
+
+Related project that uses MSN.pm with different mods here:  http://webmessenger.sourceforge.net
+
+Changes:
+
+  04/27/2002 : Bruce Winter (bruce@misterhouse.net)
+  Split &process out of &connect, so we can make it non-blocking.
+
+=head2 INHERITS
+
+B<NONE>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
+=cut
 
 package MSN;
 use strict;
@@ -417,3 +429,29 @@ sub stripheader {
 }
 
 return 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

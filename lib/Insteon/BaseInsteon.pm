@@ -1,38 +1,32 @@
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 B<Insteon::BaseObject>
 
-File:
-	BaseInsteon.pm
+=head2 SYNOPSIS
 
-Description:
-	Generic class implementation of an Insteon Device.
+Usage
 
-Author(s):
-	Gregg Liming / gregg@limings.net
+In user code:
 
-License:
-	This free software is licensed under the terms of the GNU public license.
+    $ip_patio_light = new Insteon_Device($myPLM,"33.44.55");
+    $ip_patio_light->set("ON");
 
-Usage:
+=head2 DESCRIPTION
 
-	$ip_patio_light = new Insteon_Device($myPLM,"33.44.55");
+Generic class implementation of an Insteon Device.
 
-	$ip_patio_light->set("ON");
+=head2 INHERITS
 
-Special Thanks to:
-	Brian Warren for significant testing and patches
-	Bruce Winter - MH
+L<Generic_Item|Generic_Item>
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head2 METHODS
+
 =over
+
 =cut
 
 package Insteon::BaseObject;
 
 use strict;
-use Insteon;
 use Insteon::AllLinkDatabase;
-use Insteon::Message;
 
 @Insteon::BaseObject::ISA = ('Generic_Item');
 
@@ -48,6 +42,13 @@ our %nack_messages = (
    fe => 'load_sense_detects_no_load',
    ff => 'sender_id_not_in_responder_aldb',
 );
+
+=item C<derive_link_state([state])>
+
+Takes the various states available to insteon devices and returns a derived 
+state of either ON or OFF.
+
+=cut
 
 sub derive_link_state
 {
@@ -66,6 +67,12 @@ sub derive_link_state
 
 	return $link_state;
 }
+
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
 
 sub new
 {
@@ -91,7 +98,7 @@ sub new
         	$self->interface(&Insteon::active_interface());
         }
 
-	$self->restore_data('level','default_hop_count');
+	$self->restore_data('default_hop_count', 'engine_version');
 
 	$self->initialize();
 	$$self{level} = undef;
@@ -110,6 +117,13 @@ sub new
 	return $self;
 }
 
+=item C<initialize()>
+
+A former holdover from when MisterHouse used to ping devices to get their device
+category.  May not be needed anymore.
+
+=cut
+
 sub initialize
 {
 	my ($self) = @_;
@@ -124,6 +138,14 @@ sub initialize
 #		unless $self->group eq '01' and defined $self->devcat;
 }
 
+=item C<interface([interface])>
+
+Used to store and return the associated interface of a device.
+
+If provided, stores interface as the device's interface.
+
+=cut
+
 sub interface
 {
 	my ($self,$p_interface) = @_;
@@ -137,6 +159,16 @@ sub interface
 	return $$self{interface};
 }
 
+=item C<device_id([id])>
+
+Used to store and return the associated device_id of a device.
+
+If provided, stores id as the device's id.
+
+Returns device id without any delimiters.
+
+=cut
+
 sub device_id
 {
 	my ($self,$p_device_id) = @_;
@@ -148,6 +180,14 @@ sub device_id
 	}
 	return $$self{device_id};
 }
+
+=item C<group([group])>
+
+Used to store and return the associated group of a device.
+
+If provided, stores group as the device's group.
+
+=cut
 
 sub group
 {
@@ -164,11 +204,26 @@ in MH.  $float can be set to any positive decimal number.  For example using 1.0
 will not change the preset values; 1.1 will increase the time MH waits by 10%; and
 0.9 will force MH to wait for only 90% of the predefined time.
 =cut
+
 sub timeout_factor {
 	my ($self, $factor) = @_;
 	$$self{timeout_factor} = $factor if $factor;
 	return $$self{timeout_factor};
 }
+
+=item C<default_hop_count([hops])>
+
+Used to track the number of hops needed to reach a device.  Will store the past
+20 hop counts for the device.  Hop counts are added based on the number of hops
+needed for an incomming message to arrive.  Additionally, any time a message is
+resent, a hop count equal to the prior default_hop_count + 1 is added.
+
+If provided, stores hop as a new hop count for the device.  If more than 20 hop
+counts have been stored, will drop the oldest hop count until only 20 exist.
+
+Returns the highest hop count of the past 20 hop counts
+
+=cut
 
 sub default_hop_count
 {
@@ -188,6 +243,27 @@ sub default_hop_count
         return $$self{default_hop_count};
 }
 
+=item C<engine_version([i1|i2|i2cs])>
+
+Used to store and return the associated engine version of a device.
+
+If provided, stores the engine version of the device.
+
+=cut
+
+sub engine_version
+{
+        my ($self, $p_engine_version) = @_;
+        $$self{engine_version} = $p_engine_version if $p_engine_version;
+        return $$self{engine_version};
+}
+
+=item C<equals([object])>
+
+Returns 1 if object is the same as $self, otherwise returns 0.
+
+=cut
+
 sub equals
 {
 	my ($self, $compare_object) = @_;
@@ -201,6 +277,14 @@ sub equals
 	# default to false;
         return 0;
 }
+
+=item C<set(state[,setby,response])>
+
+Used to set the device's state.  If called by device or a device linked to device, 
+calls C<set_receive()>.  If called by something 
+else, will send the command to the device.
+
+=cut
 
 sub set
 {
@@ -273,6 +357,12 @@ sub set
 	}
 }
 
+=item C<is_acknowledged([ack])>
+
+If ack is true, calls C<set_receive()>.  If ack is false, clears awaiting_ack flag.
+
+=cut
+
 sub is_acknowledged
 {
 	my ($self, $p_ack) = @_;
@@ -296,11 +386,41 @@ sub is_acknowledged
 	return $$self{is_acknowledged};
 }
 
+=item C<set_receive(state[,setby,response])>
+
+Updates the device's state in MisterHouse.  Triggers state_now, state_changed, and
+state_final variables to update accordingly.  Which causes tie_events to occur.
+
+If state was set to the same state within the last 1 second, then this is ignored.
+This prevents the accidental calling of state_now if duplicate messages are received.
+
+=cut
+
 sub set_receive
 {
 	my ($self, $p_state, $p_setby, $p_response) = @_;
-	$self->SUPER::set($p_state, $p_setby, $p_response);
+	my $curr_milli = sprintf('%.0f', &main::get_tickcount);
+	my $window = 1000;
+	if (($p_state eq $self->state || $p_state eq $self->state_final)
+		&& ($curr_milli - $$self{set_milliseconds} < $window)){
+		::print_log("[Insteon::BaseObject] Ignoring duplicate set " . $p_state .
+			" state command for " . $self->get_object_name . " received in " .
+			"less than $window milliseconds") if $main::Debug{insteon}; 
+	} else {
+		$$self{set_milliseconds} = $curr_milli;
+		$self->SUPER::set($p_state, $p_setby, $p_response);
+	}
 }
+
+=item C<set_with_timer(state, time, return_state, additional_return_states)>
+
+NOTE - This routine appears to be nearly identical, if not identical to the
+C<Generic_Item::set_with_timer()> routine, it is not clear why this routine is
+needed here.
+
+See full description of this routine in C<Generic_Item>
+
+=cut
 
 sub set_with_timer {
 	my ($self, $state, $time, $return_state, $additional_return_states) = @_;
@@ -334,6 +454,7 @@ sub _send_cmd
                	or $message->command eq 'status_request'
                 or $message->command eq 'do_read_ee'
                 or $message->command eq 'set_address_msb'
+                or $message->command eq 'read_write_aldb'
             )
 	{
         	push(@{$$self{command_stack}}, $message);
@@ -344,6 +465,12 @@ sub _send_cmd
 	}
 	$self->_process_command_stack();
 }
+
+=item C<derive_message([command,extra])>
+
+Generates and returns a basic on/off message from a command.
+
+=cut
 
 sub derive_message
 {
@@ -405,7 +532,10 @@ sub derive_message
 		return undef;
 	}
 
-	if ($p_extra)
+	if ($self->isa("Insteon::InterfaceController")) 
+	{
+		$message->extra('00') #All PLM Scenes are Cmd2=00;
+	} elsif ($p_extra)
 	{       $message->extra($p_extra);
 
 	} elsif ($subcommand) {
@@ -413,7 +543,7 @@ sub derive_message
 	} else {
 		if ($command eq 'on')
 		{
-			$message->extra(sprintf("%02X",$level));
+			$message->extra(sprintf("%02X",int($level+.5)));
 		} else {
 			$message->extra('00');
 		}
@@ -423,14 +553,38 @@ sub derive_message
 	return $message;
 }
 
+=item C<message_type_code(msg)>
+
+Takes msg, a text based msg type, and returns the corresponding text version of
+the hexadecimal message type.
+
+=cut
+
 sub message_type_code
 {
     my ($self, $msg) = @_;
-    my $msg_type_ptr = $$self{message_types};
-    my %msg_types = %$msg_type_ptr;
-    my $code = $msg_types{$msg};
-    return $code;
+    return $$self{message_types}->{$msg};
 }
+
+=item C<message_type_hex(msg)>
+
+Takes msg, a text based msg type, and returns the corresponding message type as
+a hex.
+
+=cut
+
+sub message_type_hex
+{
+    my ($self, $msg) = @_;
+    return unpack( 'H*', pack( 'c', $self->message_type_code($msg)));
+}
+
+=item C<message_type(cmd)>
+
+Takes cmd, text based hexadecimal code, and returns the text based description
+of the message code.
+
+=cut
 
 sub message_type
 {
@@ -452,10 +606,10 @@ sub message_type
 sub _is_info_request
 {
 	my ($self, $cmd, $ack_setby, %msg) = @_;
-	my $is_info_request = ($cmd eq 'status_request') ? 1 : 0;
-#print "cmd: $cmd; is_info_request: $is_info_request\n";
-	if ($is_info_request) {
-		my $ack_on_level = (hex($msg{extra}) >= 254) ? 100 : sprintf("%d", hex($msg{extra}) * 100 / 255);
+	my $is_info_request = 0;
+	if ($cmd eq 'status_request') {
+		$is_info_request++;
+		my $ack_on_level = sprintf("%d", int((hex($msg{extra}) * 100 / 255)+.5));
 		&::print_log("[Insteon::BaseObject] received status for " .
 			$self->{object_name} . " with on-level: $ack_on_level%, "
 			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
@@ -468,22 +622,66 @@ sub _is_info_request
 			$self->SUPER::set($ack_on_level . '%', $ack_setby);
 		}
 		# if this were a scene controller, then also propogate the result to all members
+		my $callback;
+		if ($self->_aldb->{aldb_delta_action} eq 'set'){
+			if ($msg{cmd_code} eq "00") {
+				$self->_aldb->{_mem_activity} = 'delete';
+				$self->_aldb->{pending_aldb}{address} = $self->_aldb->get_first_empty_address();
+				if($self->_aldb->isa('Insteon::ALDB_i1')) {
+					$self->_aldb->_peek($self->_aldb->{pending_aldb}{address},0);
+				} else {
+					$self->_aldb->_write_delete($self->_aldb->{pending_aldb}{address});
+				}
+			} else {
+				$self->_aldb->aldb_delta($msg{cmd_code});
+				$self->_aldb->scandatetime(&main::get_tickcount);
+				&::print_log("[Insteon::BaseObject] The Link Table Version for "
+					. $self->{object_name} . " has been updated to version number " . $self->_aldb->aldb_delta());
+				if (defined $self->_aldb->{_success_callback}) {
+					$callback = $self->_aldb->{_success_callback};
+					$self->_aldb->{_success_callback} = undef;
+				}
+			}
+		}
+		elsif ($self->_aldb->{aldb_delta_action} eq 'check')
+		{
+			if ($self->_aldb->aldb_delta() eq $msg{cmd_code}){
+				&::print_log("[Insteon::BaseObject] The link table for "
+					. $self->{object_name} . " is in sync.");
+				if (defined $self->_aldb->{_aldb_unchanged_callback}) {
+					$callback = $self->_aldb->{_aldb_unchanged_callback};
+					$self->_aldb->{_aldb_unchanged_callback} = undef;
+				}
+			} else {
+				&::print_log("[Insteon::BaseObject] WARN The link table for "
+					. $self->{object_name} . " is out-of-sync.");
+				$self->_aldb->health('out-of-sync');
+				if (defined $self->_aldb->{_aldb_changed_callback}) {
+					$callback = $self->_aldb->{_aldb_changed_callback};
+					$self->_aldb->{_aldb_changed_callback} = undef;
+				}
+			}
+		}
+		$self->_aldb->{aldb_delta_action} = undef;
+		$self->_aldb->health('out-of-sync') if($self->_aldb->aldb_delta() ne $msg{cmd_code});
+		if ($callback){
+			package main;
+			eval ($callback);
+			&::print_log("[Insteon::BaseObject] " . $self->get_object_name . ": error during scan callback $@")
+				if $@ and $main::Debug{insteon};
+			package Insteon::BaseObject;                		
+		}
 	}
-   elsif ( $cmd eq 'get_engine_version' ) {
-      my $version = $msg{extra};
-      $version++; # version retuned in cmd2 is 0 indexed
-      if ( $version == 3 ) {
-         $version = 'I2CS';
-      }
-      else {
-         $version = 'I'. sprintf( "%1d",$version);
-      }
-      &::print_log("[Insteon::BaseObject] received engine version for " 
-         . $self->{object_name} . " of $version.");
-   }
-
+	elsif ( $cmd eq 'get_engine_version' ) {
+		$is_info_request++;
+		my @engine_types = (qw/I1 I2 I2CS/);
+		my $version = $engine_types[$msg{extra}];
+		$self->engine_version($version);
+		&::print_log("[Insteon::BaseObject] received engine version for " 
+			. $self->{object_name} . " of $version. "
+			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
+	}
 	return $is_info_request;
-
 }
 
 sub _process_message
@@ -496,9 +694,18 @@ sub _process_message
 	# and not putting the plm into monitor mode.  This means that updating the state
 	# of the responder based upon the link controller's request is handled
 	# by Insteon_Link.
+
+	main::print_log("[Insteon::BaseObject] WARN: Message has invalid checksum")
+		if ($main::Debug{insteon} && !($msg{crc_valid}) 
+		&& $msg{is_extended} && $self->engine_version() eq 'I2CS');
+
+	my $clear_message = 0;
 	$$self{m_is_locally_set} = 1 if $msg{source} eq lc $self->device_id;
 	$self->default_hop_count($msg{maxhops}-$msg{hopsleft}) if (!$self->isa('Insteon::InterfaceController'));
 	if ($msg{is_ack}) {
+		#Default to clearing message transaction for ACK
+		$clear_message = 1;
+		my $corrupt_cmd = 0;
 		my $pending_cmd = ($$self{_prior_msg}) ? $$self{_prior_msg}->command : $msg{command};
 		if ($$self{awaiting_ack})
                 {
@@ -510,18 +717,59 @@ sub _process_message
 				$$self{m_status_request_pending} = 0;
 				$self->_process_command_stack(%msg);
 			}
-                        elsif (($pending_cmd eq 'peek') or ($pending_cmd eq 'set_address_msb'))
+                        elsif ($pending_cmd eq 'peek')
                         {
-				$self->_aldb->_on_peek(%msg) if $self->_aldb;
-				$self->_process_command_stack(%msg);
+                        	if ($msg{cmd_code} eq $self->message_type_hex($pending_cmd)) {
+					$self->_aldb->_on_peek(%msg) if $self->_aldb;
+					$self->_process_command_stack(%msg);
+                        	} else {
+                        		$corrupt_cmd = 1;
+                        		$clear_message = 0;
+                        	}
 			}
-                        elsif (($pending_cmd eq 'poke') or ($pending_cmd eq 'set_address_msb'))
+                        elsif ($pending_cmd eq 'set_address_msb')
                         {
-				$self->_aldb->_on_poke(%msg) if $self->_aldb;
-				$self->_process_command_stack(%msg);
+                        	if ($msg{cmd_code} eq $self->message_type_hex($pending_cmd)) {
+					$self->_aldb->_on_peek(%msg) if $self->_aldb;
+					$self->_process_command_stack(%msg);
+                        	} else {
+                        		$corrupt_cmd = 1;
+                        		$clear_message = 0;
+                        	}
 			}
-                        else
+                        elsif (($pending_cmd eq 'poke'))
                         {
+                        	if ($msg{cmd_code} eq $self->message_type_hex($pending_cmd)) {
+					$self->_aldb->_on_poke(%msg) if $self->_aldb;
+					$self->_process_command_stack(%msg);
+                        	} else {
+                        		$corrupt_cmd = 1;
+                        		$clear_message = 0;
+                        	}
+			}
+			elsif ($pending_cmd eq 'read_write_aldb') {
+                        	if ($msg{cmd_code} eq $self->message_type_hex($pending_cmd)) {
+					if ($self->_aldb && $self->_aldb->{_mem_action} ne 'aldb_i2writeack'){
+						#This is an ACK. Will be followed by a Link Data message
+						$clear_message = 0;
+						$self->_aldb->on_read_write_aldb(%msg) if $self->_aldb;
+					} else {
+						$self->_aldb->on_read_write_aldb(%msg) if $self->_aldb;
+						$self->_process_command_stack(%msg);
+					}
+                        	} else {
+                        		$corrupt_cmd = 1;
+                        		$clear_message = 0;
+                        	}
+			}
+			else
+                        {
+				if (($pending_cmd eq 'do_read_ee') && 
+					($self->_aldb->health eq "good" || $self->_aldb->health eq "empty") &&
+					($self->isa('Insteon::KeyPadLincRelay') || $self->isa('Insteon::KeyPadLinc'))){
+					## Update_Flags ends up here, set aldb_delta to new value
+					$self->_aldb->query_aldb_delta("set");
+				}
 				$self->is_acknowledged(1);
 				# signal receipt of message to the command stack in case commands are queued
 				$self->_process_command_stack(%msg);
@@ -540,9 +788,18 @@ sub _process_message
 				. ": " . (($msg{command}) ? $msg{command} : "(unknown)")
 				. " and data: $msg{extra}") if $main::Debug{insteon};
 		}
+		if ($corrupt_cmd) {
+			main::print_log("[Insteon::BaseObject] WARN: received a message from "
+				. $self->get_object_name . " in response to a "
+				. $pending_cmd . " command, but the command code "
+				. $msg{cmd_code} . " is incorrect. Ignorring received message.");
+			$p_setby->active_message->no_hop_increase(1);
+		}
 	}
         elsif ($msg{is_nack})
         {
+		#Default to clearing message transaction for NAK
+		$clear_message = 1;
 		if ($self->isa('Insteon::BaseLight')) {
 			&::print_log("[Insteon::BaseObject] WARN!! encountered a nack message ("
 			. $self->get_nack_msg_for( $msg{extra} ) .") for " . $self->{object_name}
@@ -556,6 +813,20 @@ sub _process_message
 			. $self->get_nack_msg_for( $msg{extra} ) .") for " . $self->{object_name}
 			. " ... skipping");
 		}
+		$p_setby->active_message->no_hop_increase(1);
+		$self->is_acknowledged(0);
+		$self->_process_command_stack(%msg);
+		if($p_setby->active_message->failure_callback)
+		{
+			main::print_log("[Insteon::BaseObject] WARN: Now calling message failure callback: "
+				. $p_setby->active_message->failure_callback) if $main::Debug{insteon};
+			$self->failure_reason('NAK');
+			package main;
+			eval $p_setby->active_message->failure_callback;
+			main::print_log("[Insteon::BaseObject] problem w/ retry callback: $@") if $@;
+			package Insteon::BaseObject;
+		}
+		$p_setby->active_message->no_hop_increase(1);
 		$self->is_acknowledged(0);
 		$self->_process_command_stack(%msg);
 	}
@@ -565,6 +836,18 @@ sub _process_message
 	} elsif ($msg{command} eq 'stop_manual_change') {
 		# request status so that the final state can be known
 		$self->request_status($self);
+	} elsif ($msg{command} eq 'read_write_aldb') {
+		if ($self->_aldb){
+			if ($self->_aldb->{_mem_action} eq 'aldb_i2readack'){
+				#If aldb_i2readack is set then this is good
+				$clear_message = 1;
+				$self->_aldb->on_read_write_aldb(%msg);
+				$self->_process_command_stack(%msg);
+			} else {
+				#This is an out of sequence message
+				$self->_aldb->on_read_write_aldb(%msg);
+			}
+		}
 	} elsif ($msg{type} eq 'broadcast') {
 		$self->devcat($msg{devcat});
 		&::print_log("[Insteon::BaseObject] device category: $msg{devcat} received for " . $self->{object_name});
@@ -575,12 +858,33 @@ sub _process_message
 		$p_state = $msg{command};
                 if ($msg{type} eq 'alllink')
                 {
-			$self->set($p_state, $self);
-			$$self{_pending_cleanup} = 1;
+			if ($msg{command} eq 'link_cleanup_report'){
+				if ($msg{extra} == 0){
+					::print_log("[Insteon::BaseObject] DEBUG Received AllLink Cleanup Success for "
+						. $self->{object_name}) if $main::Debug{insteon} >= 1;
+				} else {
+					::print_log("[Insteon::BaseObject] WARN " . $msg{extra} . " Device(s) failed to "
+						. "acknowledge the command from " . $self->{object_name});
+				}
+			} else {
+				$self->set($p_state, $self);
+				$$self{_pending_cleanup} = 1;
+				#Wait to avoid clobbering incomming subsequent cleanup messages
+				my @links = $self->find_members('Insteon::BaseDevice');
+				#Timeout is the number of linked devices multiplied by
+				#the maximum hop length for a direct message and an ACK
+				#PLM is the +1
+				my $timeout = (scalar(@links)+1) * 300;
+				::print_log("[Insteon::BaseObject] DEBUG3 Delaying any outgoing messages ". 
+					"by $timeout milliseconds to avoid collision with subsequent cleanup ".
+					"messages from " . $self->get_object_name) if ($main::Debug{insteon} >= 3);
+				$self->interface->_set_timeout('xmit', $timeout);
+			}
                 }
                 elsif ($msg{type} eq 'cleanup')
                 {
-                	if (lc($self->state) eq lc($p_state) and $$self{_pending_cleanup}){
+                	if (($self->state eq $p_state or $self->state_final eq $p_state)
+                		and $$self{_pending_cleanup}){
 				::print_log("[Insteon::BaseObject] Ignoring Received Direct AllLink Cleanup Message for " 
 					. $self->{object_name} . " since AllLink Broadcast Message was Received.") if $main::Debug{insteon};
                 	} else {
@@ -592,6 +896,7 @@ sub _process_message
 				. $self->{object_name}) if $main::Debug{insteon};
                 }
 	}
+	return $clear_message;
 }
 
 sub _process_command_stack
@@ -614,8 +919,13 @@ sub _process_command_stack
                         if ($message->command eq 'peek'
                         	or $message->command eq 'poke'
                         	or $message->command eq 'status_request'
+                                or $message->command eq 'get_engine_version'
                                 or $message->command eq 'do_read_ee'
                                 or $message->command eq 'set_address_msb'
+                                or $message->command eq 'sensor_status'
+                                or $message->command eq 'set_operating_flags'
+                                or $message->command eq 'get_operating_flags'
+                                or $message->command eq 'read_write_aldb'
                                 )
                         {
 				$$self{awaiting_ack} = 1;
@@ -685,23 +995,99 @@ sub _is_valid_state
 	}
 }
 
-# Provide human readable nack message.
+=item C<get_nack_msg_for(msg)>
+
+Takes msg, text based hexadecimal code, and returns the text based description
+of the NACK code.
+
+=cut
+
 sub get_nack_msg_for {
    my ($self,$msg) = @_;
    return $nack_messages{ $msg };
 }
 
+=item C<failure_reason>
+
+Stores the resaon for the most recent message failure [NAK | timeout].  Used to 
+process message callbacks after a message fails.  If called with no parameter 
+returns the saved failure reason.
+
+Parameters:
+	reason: failure reason
+
+Returns: failure reason
+
+=cut 
+
+sub failure_reason
+{
+        my ($self, $reason) = @_;
+        $$self{failure_reason} = $reason if $reason;
+        return $$self{failure_reason};
+}
+
+=back
+
+=head2 INI PARAMETERS
+
+=over 
+
+=item Insteon_PLM_max_queue_time
+
+Was previously used to set the maximum amount of time
+a message could remain in the queue.  This parameter is no longer used in the code
+but it still appears in the initialization.  It may be removed at a future date.  
+This also gets set in L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>
+as well for some reason, but is not used there either.
+
+=back
+
+=head2 AUTHOR
+
+Gregg Liming / gregg@limings.net, Kevin Robert Keegan, Michael Stovenour
+
+=head2 NOTES
+
+Special thanks to:
+	Brian Warren for significant testing and patches
+	Bruce Winter - MH
+
+=head2 SEE ALSO
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
 ####################################
 ###            #####################
-### BaseObject #####################
+### BaseDevice #####################
 ###            #####################
 ####################################
+
+=head1 B<Insteon::BaseDevice>
+
+=head2 DESCRIPTION
+
+Generic class implementation of a Base Insteon Device.
+
+=head2 INHERITS
+
+L<Insteon::BaseObject|Insteon::BaseInsteon/Insteon::BaseObject>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 package Insteon::BaseDevice;
-
-use strict;
-use Insteon;
-use Insteon::AllLinkDatabase;
 
 @Insteon::BaseDevice::ISA = ('Insteon::BaseObject');
 
@@ -709,6 +1095,7 @@ our %message_types = (
    %Insteon::BaseObject::message_types,
    assign_to_group => 0x01,
    delete_from_group => 0x02,
+   link_cleanup_report => 0x06,
    linking_mode => 0x09,
    unlinking_mode => 0x0A,
    get_engine_version => 0x0D,
@@ -728,7 +1115,8 @@ our %message_types = (
    poke_extended => 0x2a,
    peek => 0x2b,
    peek_internal => 0x2c,
-   poke_internal => 0x2d
+   poke_internal => 0x2d,
+   read_write_aldb => 0x2f,
 );
 
 
@@ -755,6 +1143,11 @@ my %operating_flags = (
    'one_minute_warn_enabled' => '0b'
 );
 
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
 
 sub new
 {
@@ -763,6 +1156,7 @@ sub new
 	bless $self,$class;
 
         $$self{message_types} = \%message_types;
+        $$self{operating_flags} = \%operating_flags;
 
         if ($self->group eq '01') {
            $$self{aldb} = new Insteon::ALDB_i1($self);
@@ -786,6 +1180,13 @@ sub new
 	return $self;
 }
 
+=item C<initialize()>
+
+A former holdover from when MisterHouse used to ping devices to get their device
+category.  May not be needed anymore.
+
+=cut
+
 sub initialize
 {
 	my ($self) = @_;
@@ -798,12 +1199,27 @@ sub initialize
 	$$self{ping_timerTime} = 300;
 }
 
+=item C<rate([rate])>
+
+Used to store and return the associated ramp rate of a device.
+
+If provided, stores rate as the device's ramp rate in MisterHouse.
+
+=cut
+
 sub rate
 {
 	my ($self,$p_rate) = @_;
 	$$self{rate} = $p_rate if defined $p_rate;
 	return $$self{rate};
 }
+
+=item C<set_receive(state[,setby,response])>
+
+Updates the device's level if it can level, then calls 
+C<Insteon::BaseObject::set_receive()>.
+
+=cut
 
 sub set_receive
 {
@@ -812,11 +1228,23 @@ sub set_receive
 	$self->SUPER::set_receive($p_state, $p_setby, $p_response);
 }
 
+=item C<is_controller()>
+
+Returns true if the device is a controller.
+
+=cut
+
 sub is_controller
 {
 	my ($self) = @_;
 	return $$self{is_controller};
 }
+
+=item C<is_responder([1|0])>
+
+Stores and returns whether a device is a responder.
+
+=cut
 
 sub is_responder
 {
@@ -839,6 +1267,22 @@ sub is_responder
 	}
 }
 
+=item C<link_to_interface([group,data3])>
+
+If a controller link from the device to the interface does not exist, this will
+create that link on the device.
+
+Next, if a responder link from the device to the interface does not exist on the 
+interface, this will create that link on the interface.
+
+The group is the group on the device that is the controller, such as a button on
+a keypad link.  It will default to 01.
+
+Data3 is optional and is used to set the Data3 value in the controller link on 
+the device.
+
+=cut
+
 sub link_to_interface
 {
 	my ($self,$p_group, $p_data3) = @_;
@@ -849,7 +1293,7 @@ sub link_to_interface
 	my $callback_instance = $self->interface->get_object_name;
 	my $callback_info = "deviceid=" . lc $self->device_id . " group=$group is_controller=0";
 	my %link_info = ( object => $self->interface, group => $group, is_controller => 1,
-		on_level => '100%', ramp_rate => '0.1s',
+#		on_level => '100%', ramp_rate => '0.1s',  Controllers don't use on_level or ramp_rate
 		callback => "$callback_instance->add_link('$callback_info')");
 	$link_info{data3} = $p_data3 if $p_data3;
         if ($self->_aldb) {
@@ -861,6 +1305,18 @@ sub link_to_interface
               " does not have an ALDB object.  Linking is not permitted.");
         }
 }
+
+=item C<unlink_to_interface([group])>
+
+Will delete the contoller link from the device to the interface if such a link exists.
+
+Next, will delete the responder link from the device to the interface on the 
+interface, if such a link exists.
+
+The group is the group on the device that is the controller, such as a button on
+a keypad link.  It will default to 01.
+
+=cut
 
 sub unlink_to_interface
 {
@@ -880,6 +1336,33 @@ sub unlink_to_interface
         }
 }
 
+=item C<enter_linking_mode(group)>
+
+BETA -- Can be used to create the initial link with i2cs devices.  i1 devices
+will not respond to this command.  In the future, this will be incorporated into a
+one-step process -- BETA
+
+Places the object into linking mode as if you had held down the set button on 
+the device.  To create a link wherein the PLM is the controller, first run the 
+PLM voice command "initiate link as controller". Then run this command.  Finally,
+run the voice command "scan link table" on this device.
+
+The group argument is optional and not needed for group 01.
+
+Returns: nothing
+
+=cut 
+
+sub enter_linking_mode
+{
+	my ($self,$p_group) = @_;
+	my $group = $p_group;
+	$group = '01' unless $group;
+	my $extra = sprintf("%02x", $group);
+	$extra .= '0' x (30 - length $extra);
+	my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'linking_mode', $extra);
+	$self->_send_cmd($message);
+}
 
 sub _aldb
 {
@@ -888,11 +1371,16 @@ sub _aldb
    return $$root_obj{aldb};
 }
 
+=item C<set_operating_flag(flag)>
+
+Sets the defined flag on the device.
+
+=cut 
 
 sub set_operating_flag {
 	my ($self, $flag) = @_;
 
-	if (!(exists($operating_flags{$flag})))
+	if (!(exists($$self{operating_flags}{$flag})))
         {
 		&::print_log("[Insteon::BaseDevice] $flag is not a support operating flag");
 		return;
@@ -900,11 +1388,16 @@ sub set_operating_flag {
 
 	if ($self->is_root and !($self->isa('Insteon::InterfaceController')))
         {
-		# TO-DO: check devcat to determine if the action is supported by the device
-                my $message = new Insteon::InsteonMessage('insteon_send', $self, 'set_operating_flags');
-                $message->extra($operating_flags{$flag});
+        	my $message;
+		if (ref $self->_aldb && $self->_aldb->isa('Insteon::ALDB_i2'))
+		{
+			$message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'set_operating_flags');
+			$message->extra($$self{operating_flags}{$flag} . "0000000000000000000000000000");
+		} else {
+			$message = new Insteon::InsteonMessage('insteon_send', $self, 'set_operating_flags');
+			$message->extra($$self{operating_flags}{$flag});
+		}
                 $self->_send_cmd($message);
-#		$self->_send_cmd('command' => 'set_operating_flags', 'extra' => $operating_flags{$flag});
         }
         else
         {
@@ -912,6 +1405,12 @@ sub set_operating_flag {
 		return;
 	}
 }
+
+=item C<get_operating_flag()>
+
+Requests the device's operating flag and prints it to the log.
+
+=cut 
 
 sub get_operating_flag {
 	my ($self) = @_;
@@ -930,6 +1429,13 @@ sub get_operating_flag {
 	}
 }
 
+=item C<writable(cmd)>
+
+Appears to set and or return the "writable" state.  Does not appear to be used
+in the Insteon code, but may be necessary for supporting other classes?
+
+=cut
+
 sub writable {
 	my ($self, $p_write) = @_;
 	if (defined $p_write)
@@ -946,16 +1452,35 @@ sub writable {
 	return $$self{m_write};
 }
 
+=item C<is_locally_set(cmd)>
+
+Returns the is_locally_set variable.  Doesn't appear to be used in Insteon code.
+Likely was used to test whether setby was equal to the device itself.  May not
+always be properly updated since it appears unused.
+
+=cut
+
 sub is_locally_set {
 	my ($self) = @_;
 	return $$self{m_is_locally_set};
 }
 
+=item C<is_root()>
+
+Returns true if the object is the base object, generally group 01, on the device.
+
+=cut
 
 sub is_root {
 	my ($self) = @_;
 	return (($self->group eq '01') and !($self->isa('Insteon::InterfaceController'))) ? 1 : 0;
 }
+
+=item C<get_root()>
+
+Returns the root object of a device.
+
+=cut
 
 sub get_root {
 	my ($self) = @_;
@@ -974,6 +1499,13 @@ sub get_root {
 	}
 }
 
+=item C<has_link(link_details)>
+
+If a device has an ALDB, passes link_details onto one of the has_link() routines
+within L<Insteon::AllLinkDatabase|Insteon::AllLinkDatabase>.  Generally called as part of C<delete_orphan_links()>.
+
+=cut
+
 sub has_link
 {
 	my ($self, $insteon_object, $group, $is_controller, $subaddress) = @_;
@@ -988,6 +1520,14 @@ sub has_link
         }
 
 }
+
+=item C<add_link(link_params)>
+
+If a device has an ALDB, passes link_details onto one of the add_link() routines
+within L<Insteon::AllLinkDatabase|Insteon::AllLinkDatabase>.  Generally called from the "sync links" or 
+"link to interface" voice commands.
+
+=cut
 
 sub add_link
 {
@@ -1010,6 +1550,14 @@ sub add_link
 
 }
 
+=item C<update_link(link_params)>
+
+If a device has an ALDB, passes link_details onto one of the update_link() routines
+within L<Insteon::AllLinkDatabase|Insteon::AllLinkDatabase>. Generally called from the "sync links" 
+voice command.
+
+=cut
+
 sub update_link
 {
 	my ($self, $parms_text) = @_;
@@ -1029,6 +1577,13 @@ sub update_link
         	$aldb->update_link(%link_parms);
         }
 }
+
+=item C<delete_link([link details])>
+
+If a device has an ALDB, passes link_details onto one of the delete_link() routines
+within L<Insteon::AllLinkDatabase|Insteon::AllLinkDatabase>.  Generally called by C<delete_orphan_links()>.
+
+=cut
 
 sub delete_link
 {
@@ -1050,6 +1605,12 @@ sub delete_link
         }
 }
 
+=item C<scan_link_table()>
+
+Scans a device's link table and caches a copy.
+
+=cut
+
 sub scan_link_table
 {
 	my ($self, $success_callback, $failure_callback) = @_;
@@ -1061,7 +1622,39 @@ sub scan_link_table
 
 }
 
-### WARN: Testing using the following does not produce results as expected.  Use at your own risk. [GL]
+=item C<log_aldb_status()>
+
+Prints a human readable description of various settings and attributes associated 
+with a device including:
+
+Hop Count, Engine Version, ALDB Type, ALDB Health, and Last ALDB Scan Time
+
+=cut
+
+sub log_aldb_status
+{
+	my ($self) = @_;
+	main::print_log( "     Hop Count: ".$self->default_hop_count());
+	main::print_log( "Engine Version: ".$self->engine_version());
+	my $aldb = $self->get_root()->_aldb;
+	if ($aldb)
+	{
+		main::print_log( "     ALDB Type: ".ref($aldb));
+		main::print_log( "   ALDB Health: ".$aldb->health());
+		main::print_log( "ALDB Scan Time: ".$aldb->scandatetime());
+	}
+}
+
+=item C<remote_set_button_tap([repeat])>
+
+In theory, would have the same effect as manually tapping the set button on the 
+device repeat times.
+
+WARN: Testing using the following does not produce results as expected.  Use at 
+your own risk. [GL]
+
+=cut
+
 sub remote_set_button_tap
 {
 	my ($self,$p_number_taps) = @_;
@@ -1072,6 +1665,13 @@ sub remote_set_button_tap
 #	$self->_send_cmd('command' => 'remote_set_button_tap', 'extra' => $taps);
 }
 
+=item C<request_status([requestor])>
+
+Requests the current status of the device and calls C<set()> on the response.  
+This will trigger tied_events.
+
+=cut
+
 sub request_status
 {
 	my ($self, $requestor) = @_;
@@ -1081,12 +1681,58 @@ sub request_status
 #	$self->_send_cmd('command' => 'status_request', 'is_synchronous' => 1);
 }
 
+=item C<get_engine_version>
+
+Queues a get engine version insteon message using L<Insteon::BaseObject::_send_cmd> 
+and sets a message failure callback to L<Insteon::BaseDevice::_get_engine_version_failure>.  
+Message response is processed in L<Insteon::BaseObject::_is_info_request>  
+
+Returns: nothing
+
+=cut 
+
 sub get_engine_version {
-   my ($self, $requestor) = @_;
+   my ($self) = @_;
 
    my $message = new Insteon::InsteonMessage('insteon_send', $self, 'get_engine_version');
+   my $self_object_name = $self->get_object_name;
+   $message->failure_callback("$self_object_name->_get_engine_version_failure()");
    $self->_send_cmd($message);
 }
+
+=item C<_get_engine_version_failure>
+
+Callback failure for L<Insteon::BaseDevice::get_engine_version>; called for NAK 
+and message timeout.  Will force engine_version to I2CS which will also remap 
+the aldb version if the device responds with a NAK. Does nothing for timeouts 
+except print a message. 
+
+Returns: nothing
+
+=cut 
+
+sub _get_engine_version_failure
+{
+	my ($self) = @_;
+	my $failure_reason = $self->failure_reason();
+	
+	main::print_log("[Insteon::BaseDevice::_get_engine_version_failure] DEBUG4: "
+		."failure reason: $failure_reason") if $main::Debug{insteon} >= 4;
+	
+	if($failure_reason eq 'NAK')
+	{
+		#assume I2CS because no other device will NAK this command
+		main::print_log("[Insteon::BaseDevice] WARN: I2CS device is not "
+			."linked; Please use 'link to interface' voice command");
+		$self->engine_version('I2CS');
+	}
+}
+
+=item C<ping()>
+
+Sends a ping command to the device.
+
+=cut 
 
 sub ping
 {
@@ -1095,6 +1741,12 @@ sub ping
         $self->_send_cmd($message);
 #	$self->_send_cmd('command' => 'ping');
 }
+
+=item C<set_led_status()>
+
+Used to set the led staatus of SwitchLinc companion leds.
+
+=cut 
 
 sub set_led_status
 {
@@ -1105,6 +1757,12 @@ sub set_led_status
 #	$self->_send_cmd('command' => 'set_led_status', 'extra' => $status_mask);
 }
 
+=item C<restore_string()>
+
+This is called by mh on exit to save the cached ALDB of a device to persistant data.
+
+=cut
+
 sub restore_string
 {
 	my ($self) = @_;
@@ -1113,28 +1771,30 @@ sub restore_string
         {
 		$restore_string .= $self->_aldb->restore_string();
         }
-	if ($$self{states})
-        {
-		my $states = '';
-		foreach my $state (@{$$self{states}})
-                {
-			$states .= '|' if $states;
-			$states .= $state;
-		}
-		$restore_string .= $self->{object_name} . "->restore_states(q~$states~);\n";
-	}
 
 	return $restore_string;
 }
 
+=item C<restore_states()>
+
+Obsolete / do not use.
+
+Function should remain so that upgrading users will not have issues starting 
+MH from previous versions that referenced this function in the 
+mh_temp.saved_states file.
+
+=cut
+
 sub restore_states
 {
 	my ($self, $states) = @_;
-	if ($states)
-        {
-		@{$$self{states}} = split(/\|/,$states);
-	}
 }
+
+=item C<restore_aldb()>
+
+Used to reload the aldb of a device on restart.
+
+=cut
 
 sub restore_aldb
 {
@@ -1144,6 +1804,12 @@ sub restore_aldb
            $self->_aldb->restore_aldb($aldb);
 	}
 }
+
+=item C<devcat()>
+
+NOT USED - Sets and returns the device category of a device.  No longer used.
+
+=cut
 
 sub devcat
 {
@@ -1158,6 +1824,12 @@ sub devcat
 	}
 	return $$self{devcat};
 }
+
+=item C<states()>
+
+Sets and returns the available states for a device.
+
+=cut
 
 sub states
 {
@@ -1175,6 +1847,12 @@ sub states
 
 }
 
+=item C<local_onlevel(level)>
+
+Sets and returns the local onlevel for the device in MH only. Level is a 
+percentage from 0%-100%
+
+=cut
 
 sub local_onlevel
 {
@@ -1187,6 +1865,14 @@ sub local_onlevel
 	return $$self{_onlevel};
 }
 
+=item C<local_ramprate(rate)>
+
+Sets and returns the local ramp rate for the device in MH only. Rate is a time
+between .1 and 540 seconds.  Only 32 rate steps exist, to MH will pick a time
+equal to of the closest below this time.
+
+=cut
+
 sub local_ramprate
 {
 	my ($self, $p_ramprate) = @_;
@@ -1196,6 +1882,17 @@ sub local_ramprate
 	return $$self{_ramprate};
 
 }
+
+=item C<delete_orphan_links(audit_mode)>
+
+Reviews the cached version of all of the ALDBs and based on this review removes
+links from this device which are not present in the mht file, not defined in the 
+code, or links which are only half-links.
+
+If audit_mode is true, prints the actions that would be taken to the log, but 
+does nothing.
+
+=cut
 
 sub delete_orphan_links
 {
@@ -1208,11 +1905,27 @@ sub _process_delete_queue {
         $self->_aldb->_process_delete_queue() if $self->_aldb;
 }
 
+=item C<log_alllink_table()>
+
+Prints a human readable form of MisterHouse's cached version of a device's ALDB
+to the print log.  Called as part of the "scan links" voice command
+or in response to the "log links" voice command.
+
+=cut
+
 sub log_alllink_table
 {
 	my ($self) = @_;
         $self->_aldb->log_alllink_table if $self->_aldb;
 }
+
+=item C<update_local_properties()>
+
+Pushes the values set in C<local_onlevel()> and C<local_ramprate()> to the device.
+The device will only reread these values when it is power-cycled.  This can be
+done by pulling the air-gap for 4 seconds or unplugging the device.
+
+=cut
 
 sub update_local_properties
 {
@@ -1227,6 +1940,23 @@ sub update_local_properties
 	}
 }
 
+=item C<update_flags(flags)>
+
+Can be used to set the button layout and light level on a keypadlinc.  Flag 
+options include:
+
+    '0a' - 8 button; backlighting dim
+    '06' - 8 button; backlighting off
+    '02' - 8 button; backlighting normal
+
+    '08' - 6 button; backlighting dim
+    '04' - 6 button; backlighting off
+    '00' - 6 button; backlighting normal
+
+Note: This routine will likely be moved to L<Insteon::KeypadLinc|Insteon::Lighting/Insteon::KeypadLinc> at some point.
+
+=cut
+
 sub update_flags
 {
 	my ($self, $flags) = @_;
@@ -1240,6 +1970,112 @@ sub update_flags
 	$self->_aldb->update_flags($flags) if $self->_aldb;
 }
 
+=item C<engine_version>
+
+Sets or gets the device object engine version.  If setting the engine version, 
+will also call check_aldb_version to map the aldb correctly for I2 devices. 
+
+Parameters:
+	p_engine_version: [I1|I2|I2CS] to set engine version
+
+Returns: engine version string [I1|I2|I2CS]
+
+=cut 
+
+sub engine_version
+{
+	my ($self, $p_engine_version) = @_;
+	my $engine_version = $self->SUPER::engine_version($p_engine_version);
+	$self->check_aldb_version() if $p_engine_version;
+	return $engine_version;
+}
+
+=item C<engine_version>
+
+Because of the way MH saves / restores states "after" object creation
+the aldb must be initially created before the engine_version is restored.
+It is therefore impossible to know the device is i2 before creating
+the aldb object.  The solution is to keep the existing logic which assumes
+the device is peek/poke capable (i1 or i2) and then delete/recreate the 
+aldb object if it is later determined to be an i2 device. 
+
+There is a use case where a device is initially I2 but the user replaces
+the device with an I1 device, reusing the same object name.  In this case
+the object state restore will build an I2 aldb object.  The user must 
+manually initiate the 'get engine version' voice command or stop/start
+MH so the initial poll will detect the change. 
+
+This is called anytime the engine_version is queried (initial startup poll) and
+in the Reload_post_hooks once object_states_restore completes
+
+=cut
+
+sub check_aldb_version
+{
+	my ($self) = @_;
+
+	my $engine_version = $self->SUPER::engine_version();
+	my $new_version = "";
+	if($engine_version and $engine_version ne 'I1' and $self->_aldb->aldb_version() ne 'I2') {
+		$new_version = "I2";
+	}
+	elsif($engine_version eq 'I1' and $self->_aldb->aldb_version() ne 'I1') {
+		$new_version = "I1";
+	}
+	if ($new_version) {
+		main::print_log("[Insteon::BaseDevice] DEBUG4: aldb_version is "
+			.$self->_aldb->aldb_version()." but device is ".$engine_version.
+			".  Remapping aldb version to $new_version") if $main::Debug{insteon} >= 4;
+		my $restore_string = '';
+		if ($self->_aldb) {
+			$restore_string = $self->_aldb->restore_string();
+		}
+		undef $self->{aldb};
+
+		if ($new_version eq "I2") {
+			$self->{aldb} = new Insteon::ALDB_i2($self);
+		}
+		else {
+			$self->{aldb} = new Insteon::ALDB_i1($self);
+		} 
+		
+		package main;
+		eval ($restore_string);
+		&::print_log("[Insteon::BaseDevice] error in eval creating ALDB object: " . $@)
+			if $@ and $main::Debug{insteon};
+		package Insteon::BaseDevice;
+	}
+}
+
+=back
+
+=head2 INI PARAMETERS
+
+=over 
+
+=item Insteon_PLM_max_queue_time
+
+Was previously used to set the maximum amount of time
+a message could remain in the queue.  This parameter is no longer used in the code
+but it still appears in the initialization.  It may be removed at a future date.  
+This also gets set in L<Insteon::BaseObject|Insteon::BaseInsteon/Insteon::BaseObject>
+as well for some reason, but is not used there either.
+
+=back
+
+=head2 AUTHOR
+
+Gregg Liming / gregg@limings.net, Kevin Robert Keegan, Michael Stovenour
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 
 ####################################
 ###                #################
@@ -1247,12 +2083,33 @@ sub update_flags
 ###                #################
 ####################################
 
+=head1 B<Insteon::BaseController>
+
+=head2 DESCRIPTION
+
+Generic class implementation of an Insteon Controller.
+
+=head2 INHERITS
+
+L<Generic_Item|Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
+
 package Insteon::BaseController;
 
 use strict;
-use Insteon;
 
 @Insteon::BaseController::ISA = ('Generic_Item');
+
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
 
 sub new
 {
@@ -1265,6 +2122,13 @@ sub new
 #	$$self{ping_timer}->stop();
 	return $self;
 }
+
+=item C<add(object[,on_level, ramp_rate])>
+
+Adds object as a responder to the device.  If on_level and ramp_rate are specified
+they will be used, otherwise 100% .1s will be used.
+
+=cut
 
 sub add
 {
@@ -1300,6 +2164,17 @@ sub add
 			." as items of type ".ref($obj)." are not supported!");
         }
 }
+
+=item C<sync_links(audit_mode)>
+
+Causes MisterHouse to review the list of objects that should be linked to device
+and to check to make sure these links are complete.  If any link is not complete
+MisterHouse will add the link.
+
+If audit_mode is true, MisterHouse will print the actions it would have taken to 
+the log, but will not take any actions.
+
+=cut
 
 sub sync_links
 {
@@ -1414,6 +2289,11 @@ sub sync_links
                                         	{
 							$link_req{data3} = $linkmember->group;
 						}
+						main::print_log("[Insteon::BaseController] DEBUG4: queuing update for responder record to "
+							. $member->get_object_name . " for "
+							. $insteon_object->get_object_name . " with group:" . $self->group
+							. "; on_level:$tgt_on_level; ramp_rate:$tgt_ramp_rate")
+							if $main::Debug{insteon} >= 4;
 				       		push @{$$self{sync_queue}}, \%link_req;
                                         }
 				}
@@ -1438,6 +2318,11 @@ sub sync_links
                                 	{
 						$link_req{data3} = $linkmember->group;
 					}
+					main::print_log("[Insteon::BaseController] DEBUG4: queuing add for responder record to "
+						. $member->get_object_name . " for "
+						. $insteon_object->get_object_name . " with group:" . $self->group
+						. "; on_level:$tgt_on_level; ramp_rate:$tgt_ramp_rate")
+						if $main::Debug{insteon} >= 4;
 					push @{$$self{sync_queue}}, \%link_req;
                                 }
 			}
@@ -1459,6 +2344,9 @@ sub sync_links
                                 	{
 						$link_req{data3} = $linkmember->group;
 					}
+					main::print_log("[Insteon::BaseController] DEBUG4: queuing add for controller record to "
+						. $insteon_object->get_object_name . " for " . $member->get_object_name 
+						. " with group:" . $self->group) if $main::Debug{insteon} >= 4;
 					push @{$$self{sync_queue}}, \%link_req;
                                 }
 			}
@@ -1468,6 +2356,7 @@ sub sync_links
 	if (!($self->isa('Insteon::InterfaceController')))
         {
 		my $subaddress = ($self->isa('Insteon::KeyPadLincRelay') or $self->isa('Insteon::KeyPadLinc')) ? $self->group : '00';
+		#Make sure this device has a controller link to the PLM
 		if (!($insteon_object->has_link($self->interface,$self->group,1,$subaddress)))
                 {
                 	if ($audit_mode)
@@ -1482,9 +2371,14 @@ sub sync_links
 					group => $self->group, is_controller => 1,
 					callback => "$self_link_name->_process_sync_queue()" );
 				$link_req{data3} = $self->group if $insteon_object->isa('Insteon::KeyPadLincRelay') or $insteon_object->isa('Insteon::KeyPadLinc');
+				main::print_log("[Insteon::BaseController] DEBUG4: queuing add for controller record to "
+					. $insteon_object->get_object_name . " for "
+					. $self->interface->get_object_name . " with group:" . $self->group)
+					if $main::Debug{insteon} >= 4;
 				push @{$$self{sync_queue}}, \%link_req;
                         }
 		}
+		#Make sure the PLM has a responder link to this device
 		if (!($self->interface->has_link($insteon_object,$self->group,0,$subaddress)))
                 {
                 	if ($audit_mode)
@@ -1498,6 +2392,10 @@ sub sync_links
 				my %link_req = ( member => $self->interface, cmd => 'add', object => $insteon_object,
 					group => $self->group, is_controller => 0,
 			       		callback => "$self_link_name->_process_sync_queue()" );
+				main::print_log("[Insteon::BaseController] DEBUG4: queuing add for responder record to "
+					. $self->interface->get_object_name . " for "
+					. $insteon_object->get_object_name . " with group:" . $self->group)
+					if $main::Debug{insteon} >= 4;
 				push @{$$self{sync_queue}}, \%link_req;
                         }
 		}
@@ -1541,6 +2439,16 @@ sub _process_sync_queue {
 	}
 }
 
+=item C<set(state[,setby,response])>
+
+Returns -1 if setby was set by this object.
+
+Returns -1 if setby a tied_filter.
+
+Otherwise calls C<set_linked_devices> and returns 0.
+
+=cut
+
 sub set
 {
 	my ($self, $p_state, $p_setby, $p_respond) = @_;
@@ -1558,6 +2466,14 @@ sub set
 
 	return 0;
 }
+
+=item C<set_linked_devices(state)>
+
+Checks each linked member of device.  If the linked member is a C<light_item>, 
+then sets that item to state.  If the linked member is a C<Insteon::BaseObject>
+then call C<set_receive> for the member.
+
+=cut
 
 sub set_linked_devices
 {
@@ -1616,6 +2532,16 @@ sub set_linked_devices
 
 }
 
+=item C<set_with_timer(state, time, return_state, additional_return_states)>
+
+NOTE - This routine appears to be nearly identical, if not identical to the
+C<Generic_Item::set_with_timer()> routine, it is not clear why this routine is
+needed here.
+
+See full description of this routine in C<Generic_Item>
+
+=cut
+
 sub set_with_timer {
 	my ($self, $state, $time, $return_state, $additional_return_states) = @_;
 	return if &main::check_for_tied_filters($self, $state);
@@ -1636,6 +2562,12 @@ sub set_with_timer {
 	$$self{set_timer}->set($time, $action);
 }
 
+=item C<update_members()>
+
+This appears to be a depricated routine that is no longer used.  At a cursory
+glance, it may throw an error if called.
+
+=cut
 
 sub update_members
 {
@@ -1669,6 +2601,14 @@ sub update_members
 	}
 }
 
+=item C<initiate_linking_as_controller()>
+
+Places the interface in linking mode as the controller.  To complete the process
+press the set button on the responder device until it beeps.  Alternatively,
+you may be able to complete the process with 
+C<Insteon::BaseDevice::enter_linking_mode()>.
+
+=cut
 
 sub initiate_linking_as_controller
 {
@@ -1687,6 +2627,12 @@ sub initiate_linking_as_controller
 	$self->interface()->initiate_linking_as_controller($p_group);
 }
 
+=item C<derive_message([command,extra])>
+
+Generates and returns a basic on/off message from a command.
+
+=cut
+
 sub derive_message
 {
 	my ($self, $p_state, $p_extra) = @_;
@@ -1696,6 +2642,15 @@ sub derive_message
 		return $self->Insteon::BaseObject::derive_message($p_state, $p_extra);
 	}
 }
+
+=item C<find_members([type])>
+
+Returns a list of objects that are members of device.  If type is specified, only
+members of that type are returned.  Type is a package name, for example: 
+
+    $member->find_members('Insteon::BaseDevice');
+
+=cut
 
 sub find_members
 {
@@ -1717,6 +2672,12 @@ sub find_members
 
 }
 
+=item C<has_member(object)>
+
+Returns true if object is a member of device, else returns false.
+
+=cut
+
 sub has_member
 {
 	my ($self, $compare_object) = @_;
@@ -1731,19 +2692,55 @@ sub has_member
         return 0;
 }
 
+=back
+
+=head2 AUTHOR
+
+Gregg Liming / gregg@limings.net, Kevin Robert Keegan, Michael Stovenour
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
 ####################################
 ###            #####################
 ### DeviceController ###############
 ###                  ###############
 ####################################
 
+=head1 B<Insteon::DeviceController>
+
+=head2 DESCRIPTION
+
+Generic class implementation of an Device Controller.
+
+=head2 INHERITS
+
+L<Insteon::BaseController|Insteon::BaseInsteon/Insteon::BaseController>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 package Insteon::DeviceController;
 
 use strict;
-use Insteon;
 
 @Insteon::DeviceController::ISA = ('Insteon::BaseController');
+
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
 
 sub new
 {
@@ -1754,6 +2751,14 @@ sub new
 	bless $self,$class;
 	return $self;
 }
+
+=item C<set(state[,setby,response])>
+
+If C<Insteon::BaseController::set> returns a true value returns that.
+
+Else, calls C<Insteon::BaseObject::set> and returns 0
+
+=cut
 
 sub set
 {
@@ -1769,6 +2774,12 @@ sub set
 	return 0;
 }
 
+=item C<request_status([requestor])>
+
+Requests the current status of the device and calls C<set()> on the response.  
+This will trigger tied_events.
+
+=cut
 
 sub request_status
 {
@@ -1794,6 +2805,22 @@ sub request_status
 		$self->Insteon::BaseDevice::request_status($requestor);
 	}
 }
+
+=item C<link_to_interface([group,data3])>
+
+If a controller link from the device to the interface does not exist, this will
+create that link on the device.
+
+Next, if a responder link from the device to the interface does not exist on the 
+interface, this will create that link on the interface.
+
+The group is the group on the device that is the controller, such as a button on
+a keypad link.  It will default to 01.
+
+Data3 is optional and is used to set the Data3 value in the controller link on 
+the device.
+
+=cut
 
 sub link_to_interface
 {
@@ -1824,6 +2851,18 @@ sub link_to_interface
 	}
 }
 
+=item C<unlink_to_interface([group])>
+
+Will delete the contoller link from the device to the interface if such a link exists.
+
+Next, will delete the responder link from the device to the interface on the 
+interface, if such a link exists.
+
+The group is the group on the device that is the controller, such as a button on
+a keypad link.  It will default to 01.
+
+=cut
+
 sub unlink_to_interface
 {
 	my ($self,$p_group) = @_;
@@ -1843,7 +2882,21 @@ sub unlink_to_interface
 	}
 }
 
+=back
 
+=head2 AUTHOR
+
+Gregg Liming / gregg@limings.net, Kevin Robert Keegan, Michael Stovenour
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 
 ####################################
 ###                     ############
@@ -1851,13 +2904,34 @@ sub unlink_to_interface
 ###                     ############
 ####################################
 
+=head1 B<Insteon::InterfaceController>
+
+=head2 DESCRIPTION
+
+Generic class implementation of an Interface Controller.  These are the PLM Scenes.
+
+=head2 INHERITS
+
+L<Insteon::BaseController|Insteon::BaseInsteon/Insteon::BaseController>, 
+L<Insteon::BaseObject|Insteon::BaseInsteon/Insteon::BaseObject>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 package Insteon::InterfaceController;
 
 use strict;
-use Insteon;
 
 @Insteon::InterfaceController::ISA = ('Insteon::BaseController','Insteon::BaseObject');
+
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
 
 sub new
 {
@@ -1868,6 +2942,14 @@ sub new
 	bless $self,$class;
 	return $self;
 }
+
+=item C<set(state[,setby,response])>
+
+If C<Insteon::BaseController::set> returns a true value returns that.
+
+Else, calls C<Insteon::BaseObject::set> and returns 0
+
+=cut
 
 sub set
 {
@@ -1885,6 +2967,22 @@ sub is_root
 {
    return 0;
 }
+
+=back
+
+=head2 AUTHOR
+
+Gregg Liming / gregg@limings.net, Kevin Robert Keegan, Michael Stovenour
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 
 1;
 =back

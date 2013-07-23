@@ -1,46 +1,28 @@
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 B<Insteon_PLM>
 
-File:
-	Insteon_PLM.pm
+=head2 SYNOPSIS
 
-Description:
+---Example Code and Usage---
 
-	This is the base interface class for Insteon Power Line Modem (PLM)
+=head2 DESCRIPTION
 
-	For more information regarding the technical details of the PLM:
-		http://www.smarthome.com/manuals/2412sdevguide.pdf
+This is the base interface class for Insteon Power Line Modem (PLM)
 
-Author(s):
-    Jason Sharpee / jason@sharpee.com
-    Gregg Liming / gregg@limings.net
+=head2 INHERITS
 
-License:
-    This free software is licensed under the terms of the GNU public license. GPLv2
+L<Serial_Item|Serial_Item>,
+L<Insteon::BaseInterface|Insteon::BaseInterface>
 
-Usage:
-	Use these mh.ini parameters to enable this code:
+=head2 METHODS
 
-	Insteon_PLM_serial_port=/dev/ttyS4
-
-    Example initialization:
-
-
-Notes:
-
-Special Thanks to:
-    Brian Warren for significant testing and patches
-    Bruce Winter - MH
-
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
+=over
 
 =cut
-
 
 package Insteon_PLM;
 
 use strict;
+use Insteon;
 use Insteon::BaseInterface;
 use Insteon::BaseInsteon;
 use Insteon::AllLinkDatabase;
@@ -81,6 +63,11 @@ my %prefix = (
 			plm_get_config 		=> '0273'
 );
 
+=item C<serial_startup()>
+
+Creates a new serial port connection.
+
+=cut
 
 sub serial_startup {
    my ($instance) = @_;
@@ -91,6 +78,12 @@ sub serial_startup {
    &::serial_port_create($instance, $port, $speed,'none','raw');
 
 }
+
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
 
 sub new {
    my ($class, $port_name, $p_deviceid) = @_;
@@ -125,6 +118,11 @@ sub new {
    return $self;
 }
 
+=item C<restore_string()>
+
+This is called by mh on exit to save the cached ALDB of a device to persistant data.
+
+=cut
 
 sub restore_string
 {
@@ -135,6 +133,17 @@ sub restore_string
         }
 	return $restore_string;
 }
+
+=item C<check_for_data()>
+
+Called once per loop.  This checks for any data waiting on the serial port, if
+data exists it is sent to C<_parse_data>.  If there is no data waiting, then
+this checks to see if the timers for any previous commands have expired, if they
+have, it calls C<retry_active_message()>.  Else, this checks to see if there
+is any timeout preventing a transmission right now, if there is no timeout it
+calles C<process_queue()>.
+
+=cut
 
 sub check_for_data {
 
@@ -193,6 +202,11 @@ sub check_for_data {
 	}
 }
 
+=item C<set()>
+
+Used to send X10 messages, generates an X10 command and queues it.
+
+=cut
 
 sub set
 {
@@ -204,6 +218,12 @@ sub set
 	    $self->queue_message(new Insteon::X10Message($command));
         }
 }
+
+=item C<complete_linking_as_responder()>
+
+Puts the PLM into linking mode as a responder.
+
+=cut
 
 sub complete_linking_as_responder
 {
@@ -219,11 +239,23 @@ sub complete_linking_as_responder
 	$self->queue_message($message)
 }
 
+=item C<log_alllink_table()>
+
+Causes MisterHouse to dump its cache of the PLM link table to the log.
+
+=cut
+
 sub log_alllink_table
 {
 	my ($self) = @_;
         $self->_aldb->log_alllink_table if $self->_aldb;
 }
+
+=item C<scan_link_table()>
+
+Causes MisterHouse to scan the link table of the PLM only.
+
+=cut
 
 sub scan_link_table
 {
@@ -235,11 +267,18 @@ sub scan_link_table
 	$self->_aldb->get_first_alllink();
 }
 
+=item C<initiate_linking_as_controller([p_group])>
+
+Puts the PLM into linking mode as a controller, if p_group is specified the
+controller will be added for this group, otherwise it will be for group 00.
+
+=cut
+
 sub initiate_linking_as_controller
 {
 	my ($self, $group) = @_;
 
-	$group = 'FF' unless $group;
+	$group = '01' unless $group;
 	# set up the PLM as the responder
 	my $cmd = '01'; # controller code
 	$cmd .= $group; # WARN - must be 2 digits and in hex!!
@@ -247,6 +286,14 @@ sub initiate_linking_as_controller
         $message->interface_data($cmd);
 	$self->queue_message($message);
 }
+
+=item C<initiate_unlinking_as_controller([p_group])>
+
+Puts the PLM into unlinking mode, if p_group is specified the PLM will try
+to unlink any devices linked to that group that identify themselves with a set
+button press.
+
+=cut
 
 sub initiate_unlinking_as_controller
 {
@@ -261,6 +308,11 @@ sub initiate_unlinking_as_controller
 	$self->queue_message($message);
 }
 
+=item C<cancel_linking()>
+
+Cancels any pending linking session that has not completed.
+
+=cut
 
 sub cancel_linking
 {
@@ -268,13 +320,23 @@ sub cancel_linking
 	$self->queue_message(new Insteon::InsteonMessage('all_link_cancel', $self));
 }
 
+=item C<_aldb()>
+
+Returns the PLM's aldb object.
+
+=cut
+
 sub _aldb
 {
    my ($self) = @_;
    return $$self{aldb};
 }
 
+=item C<_send_cmd()>
 
+Causes a message to be sent to the serial port.
+
+=cut
 
 sub _send_cmd {
 	my ($self, $message, $cmd_timeout) = @_;
@@ -308,8 +370,8 @@ sub _send_cmd {
          		$self->_set_timeout('command', $cmd_timeout); # a commmand needs to be PLM ack'd w/i 3 seconds or it gets dropped
                 }
         }
-
-	if (length($command) != (Insteon::MessageDecoder::insteon_cmd_len(substr($command,0,4), 0)*2)){
+	my $is_extended = ($message->can('command_type') && $message->command_type eq "insteon_ext_send") ? 1 : 0;
+	if (length($command) != (Insteon::MessageDecoder::insteon_cmd_len(substr($command,0,4), 0, $is_extended)*2)){
 		&::print_log( "[Insteon_PLM]: ERROR!! Command sent to PLM " . lc($command) 
 		. " is of an incorrect length.  Message not sent.");
 		$self->clear_active_message();
@@ -329,6 +391,15 @@ sub _send_cmd {
 	}
 }
 
+=item C<_parse_data()>
+
+A complex routine that parses data comming in from the serial port.  In many cases
+multiple messages or fragments of messages may arrive at once.  This routine sorts
+through the string of hexadecimal characters and determines what type of message 
+has arrived and its full content.  Based on the type of message, it is then 
+passed off to lower level message handling routines.
+
+=cut
 
 sub _parse_data {
 	my ($self, $data) = @_;
@@ -352,7 +423,6 @@ sub _parse_data {
         }
 
 	&::print_log( "[Insteon_PLM] DEBUG3: Received PLM raw data: $data") if $main::Debug{insteon} >= 3;
-	&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($data)) if $main::Debug{insteon} >= 4;
 
 	# begin by pulling out any PLM ack/nacks
 	my $prev_cmd = '';
@@ -388,6 +458,7 @@ sub _parse_data {
                         $entered_ack_loop = 1;
 			if ($parsed_data =~ /^($ackcmd)|($nackcmd)|($prefix{plm_info}\w{12}06)|($prefix{plm_info}\w{12}15)|($prefix{all_link_first_rec}15)|($prefix{all_link_next_rec}15)|($badcmd)$/)
                         {
+				&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $main::Debug{insteon} >= 4;
 				my $ret_code = substr($parsed_data,length($parsed_data)-2,2);
 				my $record_type = substr($parsed_data,0,4);
                                 my $message_data = substr($parsed_data,4,length($parsed_data)-4);
@@ -464,6 +535,9 @@ sub _parse_data {
                                                 {
                                                 	$self->_aldb->health("good");
                                                 }
+						&::print_log("[Insteon_PLM] " . $self->get_object_name 
+							. " completed link memory scan: status: " . $self->_aldb->health())
+							if $main::Debug{insteon};
 						if ($$self{_mem_callback})
 						{
 							my $callback = $$self{_mem_callback};
@@ -549,6 +623,7 @@ sub _parse_data {
                         	# is $parsed_data an accidental anomoly? (there are other cases; but, this is a good start)
                                 if ($parsed_data =~ /^($prefix{insteon_send}\w{12}06)|($prefix{insteon_send}\w{12}15)$/)
                                 {
+					&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $main::Debug{insteon} >= 4;
                                 	# first, parse the content to confirm that it could be a legitimate ACK
                                         my $unknown_deviceid = substr($parsed_data,4,6);
                                         my $unknown_msg_flags = substr($parsed_data,10,2);
@@ -593,7 +668,12 @@ sub _parse_data {
 	{
 		#ignore blanks.. the split does odd things
 		next if $parsed_data eq '';
-                next if $previous_parsed_data eq $parsed_data; # guard against repeats
+		&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $main::Debug{insteon} >= 4;
+		if ($previous_parsed_data eq $parsed_data){
+			# guard against repeats
+			::print_log("[Insteon_PLM] DEBUG3: Dropped duplicate message: $parsed_data") if $main::Debug{insteon} >= 3; 
+			next;
+		}
                 $previous_parsed_data = $parsed_data; # and, now reinitialize
 
                 $entered_rcv_loop = 1;
@@ -636,10 +716,15 @@ sub _parse_data {
                         		. "$failure_device and group: $failure_group") if $main::Debug{insteon} >= 2;
                         
                         	my $failed_object = &Insteon::get_object($failure_device,'01');
-                        	my $message = new Insteon::InsteonMessage('all_link_direct_cleanup', $failed_object, 
-                        		$self->active_message->command, $failure_group);
-                        	push(@{$$failed_object{command_stack}}, $message);
-                        	$failed_object->_process_command_stack();
+                        	if (ref $failed_object){
+	                        	my $message = new Insteon::InsteonMessage('all_link_direct_cleanup', $failed_object, 
+	                        		$self->active_message->command, $failure_group);
+	                        	push(@{$$failed_object{command_stack}}, $message);
+	                        	$failed_object->_process_command_stack();
+                        	} else {
+                        		&::print_log("[Insteon_PLM] WARN: Device ID: $failure_device does not exist. You may "
+                        			. "want to run delete orphans to remove this link from your PLM");
+                        	}
 			} else {
 				&::print_log("[Insteon_PLM] DEBUG2: Received all-link cleanup failure."
                         		. " But there is no pending message.") if $main::Debug{insteon} >= 2;
@@ -678,6 +763,11 @@ sub _parse_data {
                         	my $message_to_string = ($self->active_message) ? $self->active_message->to_string() : "";
 				&::print_log("[Insteon_PLM] Received all-link cleanup success: $message_to_string")
                                 	if $main::Debug{insteon};
+				if (ref $self->active_message->setby){
+					my $object = $self->active_message->setby;
+					$object->is_acknowledged(1);
+					$object->_process_command_stack();
+				}
                                 $self->clear_active_message();
 			}
 		}
@@ -733,17 +823,86 @@ sub _parse_data {
 	return;
 }
 
-# dummy sub required to support the X10 integrtion
+=item C<add_id_state()>
+
+Dummy sub required to support the X10 integrtion, does nothing.
+
+=cut
 
 sub add_id_state {
    # do nothing
 }
+
+=item C<firmware()>
+
+Stores and returns the firmware version of the PLM.
+
+=cut
 
 sub firmware {
 	my ($self, $p_firmware) = @_;
 	$$self{firmware} = $p_firmware if defined $p_firmware;
 	return $$self{firmware};
 }
+
+=back
+
+=head2 INI PARAMETERS
+
+=over 
+
+=item Insteon_PLM_serial_port
+
+Identifies the port on which the PLM is attached.  Example:
+
+    Insteon_PLM_serial_port=/dev/ttyS4
+
+=item Insteon_PLM_xmit_delay
+
+Sets the minimum amount of seconds that must elapse between sending Insteon messages 
+to the PLM.  Defaults to 0.25.
+
+=item Insteon_PLM_xmit_x10_delay
+
+Sets the minimum amount of seconds that must elapse between sending X10 messages 
+to the PLM.  Defaults to 0.50.
+
+=item Insteon_PLM_disable_throttling
+
+Periodically, the PLM will report that it is too busy to accept a message from
+MisterHouse.  When this happens, MisterHouse will wait 1 second before trying
+to send a message to the PLM.  If this is set to 1, downgrades the delay to only
+.3 seconds.  Most of the issues which caused the PLM to overload have been handled
+it is unlikely that you would need to set this.
+
+=back
+
+=head2 NOTES
+
+Special Thanks to:
+
+Brian Warren for significant testing and patches
+
+Bruce Winter - MH
+
+=head2 AUTHOR
+
+Jason Sharpee / jason@sharpee.com, Gregg Liming / gregg@limings.net, Kevin Robert Keegan, Michael Stovenour
+
+=head2 SEE ALSO
+
+For more information regarding the technical details of the PLM:
+L<Insteon PLM Dev Guide|http://www.smarthome.com/manuals/2412sdevguide.pdf>
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 
 
 1;

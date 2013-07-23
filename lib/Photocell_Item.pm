@@ -1,61 +1,61 @@
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 B<Photocell_Item>
 
-File:
-	Photocell_Item.pm
+=head2 SYNOPSIS
 
-Description:
-   An abstract object that represents a photocell that you can add to a
-   Light_Item.  Currently I have only used this with the Hawkeye motion
-   detector.  It will also indicate the light level of the room on 
-   floorplan.pl if given proper coordinates.
+Example initialization:
 
-Author:
-	Jason Sharpee
-	jason@sharpee.com
+These are to be placed in a *.mht file in your user code directory.
 
-License:
-	This free software is licensed under the terms of the GNU public license.
+  # First, define your actual motion detector:
+  X10MS, B7, x10_motion_master_bedroom, Sensors, MS13
 
-Usage:
-	Example initialization:
-      These are to be placed in a *.mht file in your user code directory.
+  # Then define the Photocell_Item and attach to the real object:
+  PHOTOCELL, x10_motion_master_bedroom, photocell_master_bedroom
 
-      First, define your actual motion detector:
-         X10MS, B7, x10_motion_master_bedroom, Sensors, MS13
+Input states:
 
-      Then define the Photocell_Item and attach to the real object:
-         PHOTOCELL, x10_motion_master_bedroom, photocell_master_bedroom
-	
-	Input states:
-      on/dark  : room is dark
-      off/light: room is light
+  on/dark  : room is dark
+  off/light: room is light
 
-	Output states:
-      dark  : room is dark
-      light: room is light
-      check: inactivity timer has expired -- batteries may be dead?
+Output states:
 
-   Optional Inactivity Alarm:
-      If you want to be alerted when motion hasn't been detected for
-      a period of time (i.e. the batteries in the transmitter may be
-      dead) then do this (time is in hours):
-         $motion_master_bedroom->set_inactivity_alarm(
-            48,                                                        # hours
-            "speak('master bed motion detector battery may be dead');" # command
-         );
+  dark  : room is dark
+  light: room is light
+  check: inactivity timer has expired -- batteries may be dead?
 
-      The default is to log a message in the print log after 24 hours.
+Optional Inactivity Alarm:
 
-      To disable the checking of this object, call:
+If you want to be alerted when motion hasn't been detected for
+a period of time (i.e. the batteries in the transmitter may be
+dead) then do this (time is in hours):
 
-         $motion_master_bedroom->check(0);
+  $motion_master_bedroom->set_inactivity_alarm(
+    48,                                                        # hours
+    "speak('master bed motion detector battery may be dead');" # command
+  );
 
+The default is to log a message in the print log after 24 hours.
 
-Special Thanks to: 
-	Bruce Winter - MH
+  # To disable the checking of this object, call:
+  $motion_master_bedroom->check(0);
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head2 DESCRIPTION
+
+An abstract object that represents a photocell that you can add to a
+Light_Item.  Currently I have only used this with the Hawkeye motion
+detector.  It will also indicate the light level of the room on
+floorplan.pl if given proper coordinates.
+
+=head2 INHERITS
+
+B<Base_Item>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
 =cut
 
 use strict;
@@ -136,4 +136,30 @@ sub set_inactivity_alarm($$$) {
 }
 
 1;
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Jason Sharpee  jason@sharpee.com
+
+Special Thanks to:  Bruce Winter - MH
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 

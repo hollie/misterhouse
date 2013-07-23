@@ -1,22 +1,7 @@
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 B<Occupancy_Monitor>
 
-File:
-	Occupancy_Monitor.pm
+=head2 SYNOPSIS
 
-Description:
-	Counts the number of people in a network of motion sensors and, with
-   the use of Presence_Items, can keep track of the occupancy state of
-   each room.
-	
-Author:
-	Jason Sharpee
-	jason@sharpee.com
-
-License:
-	This free software is licensed under the terms of the GNU public license.
-
-Usage:
    ********************** IMPORTANT ***************************
    The old method of calling set_fp_nodes() on each sensor object has been
    deprecated.  For the time being, as long as you call set_fp_nodes() on
@@ -64,306 +49,313 @@ Usage:
 
    ************************************************************
 
-	Example initialization:
+Example initialization:
 
-	use Occupancy_Monitor;
-	$om = new Occupancy_Monitor();
+  use Occupancy_Monitor;
+  $om = new Occupancy_Monitor();
 
-   # draw up a diagram of house rooms and number the connected rooms
-   # passageways add the sensors and their connections in the example as
-   # follows.  So, if you have a motion detector in a hallway connected to two
-   # rooms, it would have two edges, one each for the boundry between the
-   # hallway and each room.
+Draw up a diagram of house rooms and number the connected rooms
+passageways add the sensors and their connections in the example as
+follows.  So, if you have a motion detector in a hallway connected to two
+rooms, it would have two edges, one each for the boundry between the
+hallway and each room.
 
-	$om->set_edges($garage_motion, 1);
-	$om->set_edges($garage_hall_motion, 1, 2);
-	$om->set_edges($basement_motion, 2);
-	$om->set_edges($kitchen_motion, 2, 3);
-	$om->set_edges($family_motion, 3, 4);
-	$om->set_edges($foyer_motion, 4, 5, 6);
-	$om->set_edges($living_motion, 2, 5);
-	$om->set_edges($den_motion, 6, 7);
-	$om->set_edges($hall_motion, 4, 7, 8, 9);
-	$om->set_edges($robert_bedroom, 8);
-	$om->set_edges($celine_bedroom, 9, 10);
-	$om->set_edges($master_bedroom, 9, 11);
+  $om->set_edges($garage_motion, 1);
+  $om->set_edges($garage_hall_motion, 1, 2);
+  $om->set_edges($basement_motion, 2);
+  $om->set_edges($kitchen_motion, 2, 3);
+  $om->set_edges($family_motion, 3, 4);
+  $om->set_edges($foyer_motion, 4, 5, 6);
+  $om->set_edges($living_motion, 2, 5);
+  $om->set_edges($den_motion, 6, 7);
+  $om->set_edges($hall_motion, 4, 7, 8, 9);
+  $om->set_edges($robert_bedroom, 8);
+  $om->set_edges($celine_bedroom, 9, 10);
+  $om->set_edges($master_bedroom, 9, 11);
 
-   # You can have more than one motion detector and/or door in the same room,
-   # just be sure to set the same edges on each detector.
+You can have more than one motion detector and/or door in the same room,
+just be sure to set the same edges on each detector.
 
-	$garage_door_switch->tie_items($om,'off','reset');
-	$utility_door_switch->tie_items($om,'off','reset');
-	$patio_door_switch->tie_items($om,'off','reset');
-	$front_door_switch->tie_items($om,'off','reset');
+$garage_door_switch->tie_items($om,'off','reset');
+$utility_door_switch->tie_items($om,'off','reset');
+$patio_door_switch->tie_items($om,'off','reset');
+$front_door_switch->tie_items($om,'off','reset');
 
-	$om->tie_event('info_monitor($state, $object)');
+$om->tie_event('info_monitor($state, $object)');
 
-	sub info_monitor
-	{
-		my ($p_state, $p_setby) = @_;
-		if ($p_state =~ /^min/ or $p_state =~ /^last/){
-			 print_log "Current People count: $p_state";	
-		}
-	}
+  sub info_monitor
+  {
+    my ($p_state, $p_setby) = @_;
+    if ($p_state =~ /^min/ or $p_state =~ /^last/){
+       print_log "Current People count: $p_state";	
+    }
+  }
 
-	Input states:
-		on
-      motion
-      alertmin   - Motion or door opening
-		reset      - Resets all statistics
+Input states:
+  on
+  motion
+  alertmin   - Motion or door opening
+  reset      - Resets all statistics
 
-	Output states:
-      "minimum:xxx"	- Minimum count of people.  The name to me is a bit
-         confusing.  What this actually represents in the highest number
-         of people seen in the house since the last 'reset' of the 
-         occupancy monitor.
-      "current:xxx"	- Current count of people on last sensor report,
-         or the number of unique people seen recently. 
-      "average:xxX" 	- Running average count of people (NOT IMPLEMENTED YET??)
-      "last:xxx"	   - Last sensor to report
-      "people:xxx"   - A different count of people in the house based on adding
-         up the number of people in each presence object.  If you are not using
-         room counts, then this will be the number of unique rooms containing
-         people.  If you ARE using room counts then this should provide the
-         most accurate count of the number of people in the house at the current
-         time.
-      <input states> - All input states are echoed exactly to the output state 
-         as well.
+Output states:
 
-   Assigning Edges: More Detail
-      Each unique set of edges creates one room.  If multiple objects have the
-      same edges they are in the same room.  If two objects do NOT have the
-      same edges then they are NOT in the same room.  The order of the edges
-      does not matter but you should NOT list the same edge twice for the same
-      object.
+  "minimum:xxx"	- Minimum count of people.  The name to me is a bit
+     confusing.  What this actually represents in the highest number
+     of people seen in the house since the last 'reset' of the 
+     occupancy monitor.
+  "current:xxx"	- Current count of people on last sensor report,
+     or the number of unique people seen recently. 
+  "average:xxX" - Running average count of people (NOT IMPLEMENTED YET??)
+  "last:xxx" - Last sensor to report
+  "people:xxx" - A different count of people in the house based on adding
+     up the number of people in each presence object.  If you are not using
+     room counts, then this will be the number of unique rooms containing
+     people.  If you ARE using room counts then this should provide the
+     most accurate count of the number of people in the house at the current
+     time.
+  <input states> - All input states are echoed exactly to the output state 
+     as well.
 
-      To start, you assign a number to every junction between two rooms.  So,
-      let's say that your house consists of three rooms all off of a single
-      hallway.  You then have three junctions, each one between the hallway and
-      one room.  So, you would do this:
+Assigning Edges: More Detail
 
-      # Hallway attaches to all three rooms
-      $om->set_edges($motion_hallway, 1, 2, 3);
+Each unique set of edges creates one room.  If multiple objects have the
+same edges they are in the same room.  If two objects do NOT have the
+same edges then they are NOT in the same room.  The order of the edges
+does not matter but you should NOT list the same edge twice for the same
+object.
 
-      # Each room attaches to the hallway
-      $om->set_edges($motion_room1, 1);
-      $om->set_edges($motion_room2, 2);
-      $om->set_edges($motion_room3, 3);
+To start, you assign a number to every junction between two rooms.  So,
+let's say that your house consists of three rooms all off of a single
+hallway.  You then have three junctions, each one between the hallway and
+one room.  So, you would do this:
 
-      Now, doors can be confusing, because they *are* the edge.  In this simple
-      example, if you had a door sensor on each of the three doors, you would
-      just do:
+  # Hallway attaches to all three rooms
+  $om->set_edges($motion_hallway, 1, 2, 3);
 
-      $om->set_edges($door_room1, 1);
-      $om->set_edges($door_room2, 2);
-      $om->set_edges($door_room3, 3);
+  # Each room attaches to the hallway
+  $om->set_edges($motion_room1, 1);
+  $om->set_edges($motion_room2, 2);
+  $om->set_edges($motion_room3, 3);
 
-      I had a difficult sitution where I had two doors with sensors which were
-      the two boundries of one room.  If the room had a motion sensor, then it
-      would work like this:
+Now, doors can be confusing, because they *are* the edge.  In this simple
+example, if you had a door sensor on each of the three doors, you would
+just do:
 
-      $om->set_edges($motion_detector, 1, 2);
-      $om->set_edges($door1, 1);
-      $om->set_edges($door2, 2);
+  $om->set_edges($door_room1, 1);
+  $om->set_edges($door_room2, 2);
+  $om->set_edges($door_room3, 3);
 
-      But in my case I did not have a motion detector, which means that edges 1
-      and 2 would never be associated with eachother... which would cause
-      problems.  So, my rule is, when a room does not have a motion detector at
-      all, but has one or more door sensors, act like the door sensor is *in*
-      the room instead of on the boundry:
+I had a difficult sitution where I had two doors with sensors which were
+the two boundries of one room.  If the room had a motion sensor, then it
+would work like this:
 
-      $om->set_edges($door1, 1, 2);
-      $om->set_edges($door2, 1, 2);
+  $om->set_edges($motion_detector, 1, 2);
+  $om->set_edges($door1, 1);
+  $om->set_edges($door2, 2);
 
-      In fact, you really should consider all doors to be IN one room or the
-      other.  You can still associate the door with the light items for each
-      room, which is usually what you want to do.  So, let's say that we are
-      back to three rooms connected in a row.  Each room has a motion detector.
-      There is a door sensor on both doors.  You would start with the motion
-      detectors (where $motion2 is the middle room):
+But in my case I did not have a motion detector, which means that edges 1
+and 2 would never be associated with eachother... which would cause
+problems.  So, my rule is, when a room does not have a motion detector at
+all, but has one or more door sensors, act like the door sensor is *in*
+the room instead of on the boundry:
 
-         $om->set_edges($motion1, 1);
-         $om->set_edges($motion2, 1, 2);
-         $om->set_edges($motion3, 2);
+  $om->set_edges($door1, 1, 2);
+  $om->set_edges($door2, 1, 2);
 
-      Now, you could "place" both door sensors in the middle room:
+In fact, you really should consider all doors to be IN one room or the
+other.  You can still associate the door with the light items for each
+room, which is usually what you want to do.  So, let's say that we are
+back to three rooms connected in a row.  Each room has a motion detector.
+There is a door sensor on both doors.  You would start with the motion
+detectors (where $motion2 is the middle room):
 
-         $om->set_edges($door1, 1, 2);
-         $om->set_edges($door2, 1, 2);
+  $om->set_edges($motion1, 1);
+  $om->set_edges($motion2, 1, 2);
+  $om->set_edges($motion3, 2);
 
-      Or, you could "place" them in each end room:
+Now, you could "place" both door sensors in the middle room:
 
-         $om->set_edges($door1, 1);
-         $om->set_edges($door2, 2);
+  $om->set_edges($door1, 1, 2);
+  $om->set_edges($door2, 1, 2);
 
-      Or you could put one in the middle room and one in an end room.  What you
-      should do is "place" the door items in the room with the poorest motion
-      detector coverage.  So, a room with no motion detectors would come first,
-      but a room with limited motion detector coverage is also a good choice.
+Or, you could "place" them in each end room:
 
-      Let's do one more door example.  We have two rooms, each with a motion
-      detector, and a door in between them.  So, we only have one edge:
+  $om->set_edges($door1, 1);
+  $om->set_edges($door2, 2);
 
-         $om->set_edges($door, 1);
-         $om->set_edges($motion_room_1, 1);
-         $om->set_edges($motion_room_2, 1);
+Or you could put one in the middle room and one in an end room.  What you
+should do is "place" the door items in the room with the poorest motion
+detector coverage.  So, a room with no motion detectors would come first,
+but a room with limited motion detector coverage is also a good choice.
 
-      Now, what is wrong here?  Remember, if more than one object has the same
-      edge list then they are considered to be the same room.  So this edge
-      listing gives us one room only.  So, we need to make up at least one fake
-      edge:
+Let's do one more door example.  We have two rooms, each with a motion
+detector, and a door in between them.  So, we only have one edge:
 
-         $om->set_edges($door, 1);
-         $om->set_edges($motion_room_1, 1);
-         $om->set_edges($motion_room_2, 1, 100);
+  $om->set_edges($door, 1);
+  $om->set_edges($motion_room_1, 1);
+  $om->set_edges($motion_room_2, 1);
 
-      Now there are two rooms and the door is "in" room #1.  This is great if
-      room #1 has the poorest motion detector coverage.  If room #2 has poorer
-      coverage, put the door "in" room #2:
+Now, what is wrong here?  Remember, if more than one object has the same
+edge list then they are considered to be the same room.  So this edge
+listing gives us one room only.  So, we need to make up at least one fake
+edge:
 
-         $om->set_edges($door, 1, 100);
-         $om->set_edges($motion_room_1, 1);
-         $om->set_edges($motion_room_2, 1, 100);
+  $om->set_edges($door, 1);
+  $om->set_edges($motion_room_1, 1);
+  $om->set_edges($motion_room_2, 1, 100);
 
-      If the rooms on each side of the door have about equal motion detector
-      coverage, then determine which room you are usually entering when you
-      open the door and place the door into that room.  You can still
-      attach the door to the Light_Items on both sides of the door.
+Now there are two rooms and the door is "in" room #1.  This is great if
+room #1 has the poorest motion detector coverage.  If room #2 has poorer
+coverage, put the door "in" room #2:
 
-   Fine-tuning occupancy tracking:
-      ROOM COUNTS
+  $om->set_edges($door, 1, 100);
+  $om->set_edges($motion_room_1, 1);
+  $om->set_edges($motion_room_2, 1, 100);
 
-      First of all, you may want to experiment with a new feature where the
-      occupancy monitor actually keeps track of the number of people in each
-      room instead of just occupied/vacant.  Note that enabling this makes it
-      more likely that you will have false occupieds (thus leaving lights on
-      that don't need to be) and less likely that you will have false vacants
-      (thus turning lights off that need to be on).  Because of this you may
-      want to enable expiration of your presence objects (use the
-      occupancy_expire() function on each presence object). 
+If the rooms on each side of the door have about equal motion detector
+coverage, then determine which room you are usually entering when you
+open the door and place the door into that room.  You can still
+attach the door to the Light_Items on both sides of the door.
 
-      To enable the counting of people in each room:
-         $om->room_counts(1);
+Fine-tuning occupancy tracking:
 
-      NOTE: At this time, I no longer use room counts
+ROOM COUNTS
 
-      IGNORE TIME
+First of all, you may want to experiment with a new feature where the
+occupancy monitor actually keeps track of the number of people in each
+room instead of just occupied/vacant.  Note that enabling this makes it
+more likely that you will have false occupieds (thus leaving lights on
+that don't need to be) and less likely that you will have false vacants
+(thus turning lights off that need to be on).  Because of this you may
+want to enable expiration of your presence objects (use the
+occupancy_expire() function on each presence object). 
 
-      Next, I have many Hawkeye motion detectors that are very close together.
-      There are scenarios where I walk by one and it sends out 'motion'.  Then
-      I keep walking within its field of vision but it doesn't send out another
-      'motion' for about 5 seconds.  Let's say that after 3-4 seconds I walk
-      into another room and its motion detector sends out a 'motion'.  But then
-      the first motion detector finally sends out its 'motion' signal
-      immediately afterwards.  Now the occupancy monitor thinks I'm back in the
-      original room.  When I walk into the next room it thinks I'm a new
-      person. 
+To enable the counting of people in each room:
 
-      So, I added an optional "ignore time" for each detector.  I only recommend
-      using it for Hawkeye motion detectors and any other sensors that have a
-      certain amount of inherent latency.  I currently set this for ALL of my
-      Hawkeyes with a value of 2 seconds (which really means 2-3 seconds).
-      What this means is that if a room JUST went vacant within the previous
-      2-3 seconds (which happens when I enter a new room) and then there is a
-      motion signal, it will be ignored.  This could mess things up, though, if
-      you step into a room and then immediately step back into the previous
-      room.  But, if you stay in that new room within motion detector coverage
-      for another 5 seconds or so then another motion command should be sent
-      and everything should be okay.
+  $om->room_counts(1);
 
-      Here is what I do for all of my Hawkeyes:
-         $om->ignore_time($x10_motion_hallway, 2);
+NOTE: At this time, I no longer use room counts
 
-      Now, my other situation is that I have soom door sensors which are
-      basically instantaneous.  But some of these doors have Hawkeye's pointing
-      right at the doors.  So, it is almost certain that when I open the door
-      and as I step through it the Hawkeye WILL send 'motion' after the door
-      indicated that it was opened.  So, for these specific motion detectors, I
-      set their ignore time to 10 seconds.
+IGNORE TIME
 
-      EXTRA ROOMS
+Next, I have many Hawkeye motion detectors that are very close together.
+There are scenarios where I walk by one and it sends out 'motion'.  Then
+I keep walking within its field of vision but it doesn't send out another
+'motion' for about 5 seconds.  Let's say that after 3-4 seconds I walk
+into another room and its motion detector sends out a 'motion'.  But then
+the first motion detector finally sends out its 'motion' signal
+immediately afterwards.  Now the occupancy monitor thinks I'm back in the
+original room.  When I walk into the next room it thinks I'm a new
+person. 
 
-      This is another feature I added to handle my doors that so quickly send
-      changes to Misterhouse.  The scenario is that I am in room 1, I walk
-      through room 2 and open a door with a sensor before any motion detectors
-      in room 2 have been able to tell Misterhouse they saw motion.  So, all of
-      a sudden the occupancy monitor thinks I am a second person.
+So, I added an optional "ignore time" for each detector.  I only recommend
+using it for Hawkeye motion detectors and any other sensors that have a
+certain amount of inherent latency.  I currently set this for ALL of my
+Hawkeyes with a value of 2 seconds (which really means 2-3 seconds).
+What this means is that if a room JUST went vacant within the previous
+2-3 seconds (which happens when I enter a new room) and then there is a
+motion signal, it will be ignored.  This could mess things up, though, if
+you step into a room and then immediately step back into the previous
+room.  But, if you stay in that new room within motion detector coverage
+for another 5 seconds or so then another motion command should be sent
+and everything should be okay.
 
-      So, what this allows for is, if a sensor detects activity, and there is
-      nobody in the immediately surrounding rooms, then it will turn to these
-      extra rooms to check for people.  If it finds somebody in one of these
-      rooms it will move them to the new location.  You turn this on by doing
-      this:
+Here is what I do for all of my Hawkeyes:
 
-         $om->set_extra_rooms($master_bed_door_sensor, 
-            $sensor_master_bath, $sensor_hall_bedrooms);
+  $om->ignore_time($x10_motion_hallway, 2);
 
-      This says that if the sensor $master_bed_door_sensor detects activity
-      (i.e. it is opened), and nobody is present in the two connecting rooms,
-      then go on and check the room containing $sensor_master_bath and the room
-      containing $sensor_hall_bedrooms.  
+Now, my other situation is that I have soom door sensors which are
+basically instantaneous.  But some of these doors have Hawkeye's pointing
+right at the doors.  So, it is almost certain that when I open the door
+and as I step through it the Hawkeye WILL send 'motion' after the door
+indicated that it was opened.  So, for these specific motion detectors, I
+set their ignore time to 10 seconds.
 
-      This is also useful if you have any motion detectors that frequently miss
-      you entering the room... especially if there is a certain path you take
-      from one room to another and through a third room that causes you to not
-      be detected my a motion detector in that third room.
+EXTRA ROOMS
 
-      Here are some details:
-         1) The first argument is an actual sensor, not a Door_Item or
-         Motion_Item!  This only applies to that single SENSOR and not
-         to any other sensors that may be in the same room.
-         2) All of the remaining objects are sensors from ROOMS from which
-         the presence can be taken.  If there are multiple sensors in the 
-         ROOM then only list ONE of them.  
-         3) IMPORTANT: The sensor in the first argument must be separated
-         from each following sensor by only ONE room.  This is because
-         the algorithm will move the person from the extra room into ONE
-         intermediate room and then expects them to be adjacent to the
-         room containing the sensor listed as the first argument.
+This is another feature I added to handle my doors that so quickly send
+changes to Misterhouse.  The scenario is that I am in room 1, I walk
+through room 2 and open a door with a sensor before any motion detectors
+in room 2 have been able to tell Misterhouse they saw motion.  So, all of
+a sudden the occupancy monitor thinks I am a second person.
 
-      MAINTAIN PRESENCE
+So, what this allows for is, if a sensor detects activity, and there is
+nobody in the immediately surrounding rooms, then it will turn to these
+extra rooms to check for people.  If it finds somebody in one of these
+rooms it will move them to the new location.  You turn this on by doing
+this:
 
-      This function was added just because of my dogs.  What I have done in my
-      house is set up most motion detectors so that they will never see the
-      dogs.  This works fine most of the time.  The problem is that if two
-      people are in one room and one person leaves, the occupancy monitor
-      doesn't know if two people or one person left.  So, the initial room will
-      go vacant until it sees more activity in there.
+  $om->set_extra_rooms($master_bed_door_sensor, 
+  $sensor_master_bath, $sensor_hall_bedrooms);
 
-      The problem is that for certain rooms like the master bedroom and family
-      room, the person in the room might be sitting down or laying down out of
-      range of the motion detectors.  This means that the light will turn off
-      on them after the timer runs out.  
+This says that if the sensor $master_bed_door_sensor detects activity
+(i.e. it is opened), and nobody is present in the two connecting rooms,
+then go on and check the room containing $sensor_master_bath and the room
+containing $sensor_hall_bedrooms.  
 
-      So, I have certain motion detectors that watch the entire room and
-      regularly pick up the dogs.  They are set, however, to only *maintain*
-      presence and not *establish* presence.  The way this is accomplished is:
-         1) Motion from these detectors is ignored unless the occupancy
-         monitor thinks the room was recently vacated (within a 
-         user-specified number of seconds), in which case the room
-         is switched back to "occupied".
-         2) Motion from these detectors will never cause predictions nor
-         will it remove people from surrounding rooms.
-         3) When a room IS switched back to "occupied" because of one of these 
-         sensors, the occupancy count is never increased (if you are not using 
-         room counts, this will only happen if there are too many unique rooms 
-         occupied as defined by expected_occupancy).  What this means is that 
-         the room with the most stale presence has its room count decreased 
-         (or simply marked 'vacant' if not using room counts) to account for 
-         this new presence.
+This is also useful if you have any motion detectors that frequently miss
+you entering the room... especially if there is a certain path you take
+from one room to another and through a third room that causes you to not
+be detected my a motion detector in that third room.
 
-      You enable this only for the motion detectors you want largely to be
-      ignored by the system:
+Here are some details:
 
-         $om->maintain_presence($family_room_motion_maintain, 300);
+  1) The first argument is an actual sensor, not a Door_Item or
+  Motion_Item!  This only applies to that single SENSOR and not
+  to any other sensors that may be in the same room.
+  2) All of the remaining objects are sensors from ROOMS from which
+  the presence can be taken.  If there are multiple sensors in the 
+  ROOM then only list ONE of them.  
+  3) IMPORTANT: The sensor in the first argument must be separated
+  from each following sensor by only ONE room.  This is because
+  the algorithm will move the person from the extra room into ONE
+  intermediate room and then expects them to be adjacent to the
+  room containing the sensor listed as the first argument.
 
-      In this case, if the room was vacated within the previous 300 
-      seconds then the specified motion detector can re-establish
-      presence if it detects motion.  Remember that you can also set
-      a minimum amount of time the room must be vacant before the
-      presence can be re-established using ignore_time().
+MAINTAIN PRESENCE
 
-      NO NEW PRESENCE
+This function was added just because of my dogs.  What I have done in my
+house is set up most motion detectors so that they will never see the
+dogs.  This works fine most of the time.  The problem is that if two
+people are in one room and one person leaves, the occupancy monitor
+doesn't know if two people or one person left.  So, the initial room will
+go vacant until it sees more activity in there.
+
+The problem is that for certain rooms like the master bedroom and family
+room, the person in the room might be sitting down or laying down out of
+range of the motion detectors.  This means that the light will turn off
+on them after the timer runs out.  
+
+So, I have certain motion detectors that watch the entire room and
+regularly pick up the dogs.  They are set, however, to only *maintain*
+presence and not *establish* presence.  The way this is accomplished is:
+
+  1) Motion from these detectors is ignored unless the occupancy
+    monitor thinks the room was recently vacated (within a 
+    user-specified number of seconds), in which case the room
+    is switched back to "occupied".
+  2) Motion from these detectors will never cause predictions nor
+    will it remove people from surrounding rooms.
+  3) When a room IS switched back to "occupied" because of one of these 
+    sensors, the occupancy count is never increased (if you are not using 
+    room counts, this will only happen if there are too many unique rooms 
+    occupied as defined by expected_occupancy).  What this means is that 
+    the room with the most stale presence has its room count decreased 
+    (or simply marked 'vacant' if not using room counts) to account for 
+    this new presence.
+
+You enable this only for the motion detectors you want largely to be
+ignored by the system:
+
+  $om->maintain_presence($family_room_motion_maintain, 300);
+
+In this case, if the room was vacated within the previous 300 
+seconds then the specified motion detector can re-establish
+presence if it detects motion.  Remember that you can also set
+a minimum amount of time the room must be vacant before the
+presence can be re-established using ignore_time().
+
+NO NEW PRESENCE
 
       Another function added because of my animals.  In this case, you can set
       a sensor (probably a Motion_Item) that can only cause the room to become
@@ -612,6 +604,7 @@ Usage:
       presence in adjoining rooms.
 
 Examples:
+
    I want to provide some example scenarios here from my house to show how
    I use these various tuning options to improve occupancy tracking in my
    house.  I'll add these as I find time and reasons to add them.
@@ -716,11 +709,24 @@ Examples:
       }
    }
 
-Special Thanks to: 
-	Bruce Winter - MH
+=head2 DESCRIPTION
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+Counts the number of people in a network of motion sensors and, with
+the use of Presence_Items, can keep track of the occupancy state of
+each room.
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
 =cut
+
 use strict;
 
 package Occupancy_Monitor;
@@ -1661,4 +1667,32 @@ sub writable
 }
 
 1;
+
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Jason Sharpee  jason@sharpee.com
+
+Special Thanks to:  Bruce Winter - MH
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 

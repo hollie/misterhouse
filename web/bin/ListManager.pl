@@ -20,8 +20,6 @@ my $DisplayKeyboard              = 1;     # do we display the keyboard
 my @Category;                             # array containing category name, in file order
                                           # this allow to get printed list in store aisle.
 my $AtShopStatus = "";
-my $Version      = '$Revision$';
-$Version =~ s/\$//g;
 my $NumColumns;
 my $ColumnsWidth;
 
@@ -490,8 +488,7 @@ $html .= qq[</form>];
 $html .= qq[</body>];
 $html .= qq[</html>];
 
-return $html;
-
+return &html_page('', $html);
 #}}}
 
 # ============== Subroutine ================
@@ -501,8 +498,8 @@ sub DisplayAbout {
    $html .= qq [
   <CENTER>
   <H2>ListManager</H2>
-  <p>$Version</p>
-  <P>Managing $PrettyListName<p>
+  <p>Version '$Version'</p>
+  <P>Managing list '$PrettyListName'<p>
   <br><br><br>
   Gaetan Lord
   <br>
@@ -1301,7 +1298,7 @@ Please contact about any problems or suggestions via the misterhouse mailing lis
 #  ======================== POD END ==================================
 ];
 
-   open DOC, "echo \"$POD\" | pod2html  2>/dev/null|";
+   open DOC, "echo \"$POD\" | pod2html --cachedir=$config_parms{data_dir}/cache --flush 2>/dev/null |";
    my $content = 0;
    while (<DOC>) {
       $content = 1 if /<body/;

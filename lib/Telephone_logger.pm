@@ -1,17 +1,22 @@
-=begin comment
+=head1 B<Telephone_logger>
 
+=head2 SYNOPSIS
 
-From David Satterfield <david_misterhouse@yahoo.com>
+NONE
+
+=head2 DESCRIPTION
 
 Control CK-602 Telephone Logger
 
-This module was adapted from Kent Noonans Omnistat.pm
-Thanks for the starting point Kent.
+=head2 INHERITS
 
-Use these mh.ini parameters to enable this code:
+B<Generic_Item>
 
-Telephone_logger_serial_port=/dev/ttyR4
-Telephone_logger_baudrate=9600
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
 
 =cut
 
@@ -77,3 +82,33 @@ sub new {
 }
 
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+Telephone_logger_serial_port=/dev/ttyR4
+Telephone_logger_baudrate=9600
+
+=head2 AUTHOR
+
+David Satterfield <david_misterhouse@yahoo.com>
+
+This module was adapted from Kent Noonans Omnistat.pm
+Thanks for the starting point Kent.
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
