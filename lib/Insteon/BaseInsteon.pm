@@ -112,6 +112,7 @@ sub new
 	$$self{_onlevel} = undef;
 	$$self{is_responder} = 1;
         $$self{default_hop_count} = 0;
+	$$self{timeout_factor} = 1.0;
 
 	&Insteon::add($self);
 	return $self;
@@ -203,6 +204,9 @@ resending the message.  The value set will be multiplied by the predefined value
 in MH.  $float can be set to any positive decimal number.  For example using 1.0
 will not change the preset values; 1.1 will increase the time MH waits by 10%; and
 0.9 will force MH to wait for only 90% of the predefined time.
+
+This value is NOT saved on reboot, as such likely should be called in a $Reload loop.
+
 =cut
 
 sub timeout_factor {
