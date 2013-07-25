@@ -2262,24 +2262,48 @@ sub print_message_log
 {
     my ($self) = @_;
     my $object_name = $self->get_object_name;
-    my $retry_percentage = 0; 
-    $retry_percentage = sprintf("%.2f", ($$self{retry_count_log} / 
-        $$self{outgoing_count_log}) * 100 ) if ($$self{outgoing_count_log} > 0);
+    my $retry_average = 0; 
+    $retry_average = sprintf("%.1f", ($$self{retry_count_log} / 
+        $$self{outgoing_count_log}) + 1) if ($$self{outgoing_count_log} > 0);
     my $fail_percentage = 0; 
-    $fail_percentage = sprintf("%.2f", ($$self{fail_count_log} / 
+    $fail_percentage = sprintf("%.1f", ($$self{fail_count_log} / 
         $$self{outgoing_count_log}) * 100 ) if ($$self{outgoing_count_log} > 0);
     my $corrupt_percentage = 0; 
-    $corrupt_percentage = sprintf("%.2f", ($$self{corrupt_count_log} / 
-        $$self{incoming_count_log}) * 100 ) if ($$self{outgoing_count_log} > 0);
-    ::print_log("[Insteon::BaseDevice] Message statistics for $object_name:\n"
-    . "Outgoing Count = " . $$self{outgoing_count_log} ."\n"
-    . "   Retry Count = " . $$self{retry_count_log} ."\n"
-    . "       Retry % = " . $retry_percentage . "%\n"
-    . "    Fail Count = " . $$self{fail_count_log} ."\n"
-    . "        Fail % = " . $fail_percentage . "%\n"
-    . "Incoming Count = " . $$self{incoming_count_log} ."\n"
-    . " Corrupt Count = " . $$self{corrupt_count_log} ."\n"
-    . "     Corrupt % = " . $corrupt_percentage. "%\n");
+    $corrupt_percentage = sprintf("%.1f", ($$self{corrupt_count_log} / 
+        $$self{incoming_count_log}) * 100 ) if ($$self{incoming_count_log} > 0);
+    my $dupe_percentage = 0; 
+    $dupe_percentage = sprintf("%.1f", ($$self{dupe_count_log} / 
+        $$self{incoming_count_log}) * 100 ) if ($$self{incoming_count_log} > 0);
+    my $avg_hops_left = 0; 
+    $avg_hops_left = sprintf("%.1f", ($$self{hops_left_count} / 
+        $$self{incoming_count_log})) if ($$self{incoming_count_log} > 0);
+    my $avg_max_hops = 0; 
+    $avg_max_hops = sprintf("%.1f", ($$self{max_hops_count} / 
+        $$self{incoming_count_log})) if ($$self{incoming_count_log} > 0);
+    my $avg_out_hops = 0;
+    $avg_out_hops = sprintf("%.1f", ($$self{outgoing_hop_count} / 
+        $$self{outgoing_count_log})) if ($$self{outgoing_count_log} > 0);
+    ::print_log(
+        "[Insteon::BaseDevice] Message statistics for $object_name:\n"
+        . "    In Corrupt %Corrpt  Dupe   %Dupe HopsLeft Max_Hops Act_Hops\n"
+        . sprintf("%6s", $$self{incoming_count_log})
+        . sprintf("%8s", $$self{corrupt_count_log})
+        . sprintf("%8s", $corrupt_percentage . '%')
+        . sprintf("%6s", $$self{dupe_count_log})
+        . sprintf("%8s", $dupe_percentage . '%')
+        . sprintf("%9s", $avg_hops_left)
+        . sprintf("%9s", $avg_max_hops)
+        . sprintf("%9s", $avg_max_hops - $avg_hops_left)
+        . "\n"
+        . "   Out    Fail   %Fail Retry AvgSend Avg_Hops CurrHops\n"
+        . sprintf("%6s", $$self{outgoing_count_log})
+        . sprintf("%8s", $$self{fail_count_log})
+        . sprintf("%8s", $fail_percentage . '%')
+        . sprintf("%6s", $$self{retry_count_log})
+        . sprintf("%8s", $retry_average)
+        . sprintf("%9s", $avg_out_hops)
+        . sprintf("%9s", $self->default_hop_count)
+    );
 }
 
 
