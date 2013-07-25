@@ -612,6 +612,7 @@ sub on_standard_insteon_received
                                                 	&main::print_log("[Insteon::BaseInterface] ERROR: received cleanup message from "
                                                              . $setby_object->get_object_name . "that does not correspond to a valid PLM group. Corrupted message is assumed "
                                                              . "and will be skipped! Was group " . $msg{extra});
+                                                    $setby_object->corrupt_count_log(1) if $setby_object->can('corrupt_count_log');
                                                 }
                                         }
                                         else #not direct or cleanup
@@ -620,6 +621,7 @@ sub on_standard_insteon_received
                                                 	. $object->get_object_name . " but unable to process $msg{type} message type."
                                                         . " IGNORING received message!!");
                                                 $self->active_message->no_hop_increase(1);
+                                                $object->corrupt_count_log(1) if $object->can('corrupt_count_log');
                                         }
                         	}
                                 else #does not correspond to current active message
