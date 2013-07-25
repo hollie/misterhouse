@@ -359,13 +359,14 @@ sub process_queue
                                        	. $self->active_message->send_attempts
                 			. ") for " . $self->active_message->to_string()
                                         . " exceeds limit.  Now moving on...") if $main::Debug{insteon};
-                                $self->fail_count_log(1) if $self->can('fail_count_log');
                                 # !!!!!!!!! TO-DO - handle failure timeout ???
                                 my $failed_message = $self->active_message;
                                 # make sure to let the sending object know!!!
 				if (defined($failed_message->setby) and $failed_message->setby->can('is_acknowledged'))
 				{
                                        	$failed_message->setby->is_acknowledged(0);
+                                       	$failed_message->setby->fail_count_log(1) 
+                                       		if $failed_message->setby->can('fail_count_log');
 				}
 				else
 				{
