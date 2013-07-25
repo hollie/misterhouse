@@ -578,6 +578,7 @@ sub on_standard_insteon_received
                                         }
                                         elsif ($msg{type} eq 'cleanup')
                                         {
+                                        	my $setby_object = $object;
                                                 $object = &Insteon::get_object('000000', $msg{extra});
                                                 if ($object)
                                                 {
@@ -586,7 +587,7 @@ sub on_standard_insteon_received
 							# Don't clear active message as ACK is only one of many
 							if (($msg{extra} == $self->active_message->setby->group)){
                                                                 &main::print_log("[Insteon::BaseInterface] DEBUG3: Cleanup message received for scene "
-                                                                	. $object->get_object_name . " from source " . uc($msg{source}))
+                                                                	. $object->get_object_name . " from " . $setby_object->get_object_name)
                                                                 	if $main::Debug{insteon} >= 3;
 							} elsif ($self->active_message->command_type eq 'all_link_direct_cleanup' &&
 								lc($self->active_message->setby->device_id) eq $msg{source}) 
@@ -596,7 +597,7 @@ sub on_standard_insteon_received
 							}
 							else {
 								&main::print_log("[Insteon::BaseInterface] DEBUG3: Cleanup message received from "
-								. $msg{source} . " for scene "
+								. $setby_object->get_object_name . " for scene "
 								. $object->get_object_name . ", but group in recent message " 
 								. $msg{extra}. " did not match group in "
 								. "prior sent message group " . $self->active_message->setby->group) 
@@ -609,7 +610,7 @@ sub on_standard_insteon_received
                                                 else
                                                 {
                                                 	&main::print_log("[Insteon::BaseInterface] ERROR: received cleanup message from "
-                                                             . $msg{source} . "that does not correspond to a valid PLM group. Corrupted message is assumed "
+                                                             . $setby_object->get_object_name . "that does not correspond to a valid PLM group. Corrupted message is assumed "
                                                              . "and will be skipped! Was group " . $msg{extra});
                                                 }
                                         }
