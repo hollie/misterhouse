@@ -853,7 +853,16 @@ sub _is_duplicate_received {
 		#Make a nicer name
 		my $source = $msg{source};
 		my $object = &Insteon::get_object($msg{source}, $msg{group});
-		$source = $object->get_object_name() if (defined $object);
+		if (defined $object) {
+			$source = $object->get_object_name();
+			$object->dupe_count_log(1) if $object->can('dupe_count_log');
+			$object->max_hops_count($msg{maxhops}) if $object->can('max_hops_count');
+        	$object->hops_left_count($msg{hopsleft}) if $object->can('hops_left_count');
+            $object->incoming_count_log(1) if $object->can('incoming_count_log');
+            #This message still provides a data point on how many hops it is 
+            #taking for messages to arrive.
+            $object->default_hop_count($msg{maxhops}-$msg{hopsleft}) if $object->can('default_hop_count');
+		};
 		::print_log("[Insteon::BaseInterface] WARN! Dropped duplicate incoming message "
 			. $message_data . ", from $source.") if $main::Debug{insteon};
 	} else {
