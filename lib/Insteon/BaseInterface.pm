@@ -532,6 +532,8 @@ sub on_standard_insteon_received
 		my $object = &Insteon::get_object($msg{source}, $msg{group});
 		if (defined $object)
                 {
+                	$object->max_hops_count($msg{maxhops}) if $object->can('max_hops_count');
+                	$object->hops_left_count($msg{hopsleft}) if $object->can('hops_left_count');
                     $object->incoming_count_log(1) if $object->can('incoming_count_log');
                 	if ($msg{type} ne 'broadcast')
                         {
@@ -693,6 +695,8 @@ sub on_extended_insteon_received
 		my $object = &Insteon::get_object($msg{source}, $msg{group});
 		if (defined $object)
                 {
+                	$object->max_hops_count($msg{maxhops}) if $object->can('max_hops_count');
+                	$object->hops_left_count($msg{hopsleft}) if $object->can('hops_left_count');
                     $object->incoming_count_log(1) if $object->can('incoming_count_log');
                 	if ($msg{type} ne 'broadcast')
                         {
