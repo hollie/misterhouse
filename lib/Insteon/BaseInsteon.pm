@@ -2092,8 +2092,62 @@ Returns: current corrupt count.
 sub corrupt_count_log
 {
     my ($self, $corrupt_count_log) = @_;
-    $$self{corrupt_count_log} = $corrupt_count_log if $corrupt_count_log;
+    $$self{corrupt_count_log}++ if $corrupt_count_log;
     return $$self{corrupt_count_log};
+}
+
+=item C<dupe_count_log([type]>
+
+Sets or gets the number of duplicate message that have arrived from this device 
+since the last time C<reset_message_log> was called.
+
+If type is set, to any value, will increment corrupt count by one.
+
+Returns: current duplicate count.
+
+=cut 
+
+sub dupe_count_log
+{
+    my ($self, $dupe_count_log) = @_;
+    $$self{dupe_count_log}++ if $dupe_count_log;
+    return $$self{dupe_count_log};
+}
+
+=item C<hops_left_count([type]>
+
+Sets or gets the number of hops_left for messages that arrive from this device 
+since the last time C<reset_message_log> was called.
+
+If type is set, to any value, will increment corrupt count by one.
+
+Returns: current hops_left count.
+
+=cut 
+
+sub hops_left_count
+{
+    my ($self, $hops_left_count) = @_;
+    $$self{hops_left_count} += $hops_left_count if $hops_left_count;
+    return $$self{hops_left_count};
+}
+
+=item C<max_hops_count([type]>
+
+Sets or gets the number of max_hops for messages that arrive from this device 
+since the last time C<reset_message_log> was called.
+
+If type is set, to any value, will increment corrupt count by one.
+
+Returns: current duplicate count.
+
+=cut 
+
+sub max_hops_count
+{
+    my ($self, $max_hops_count) = @_;
+    $$self{max_hops_count} += $max_hops_count if $max_hops_count;
+    return $$self{max_hops_count};
 }
 
 
