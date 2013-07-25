@@ -491,7 +491,9 @@ sub log_all_ADLB_status
 =item C<print_message_logs>
 
 Walks through every Insteon device and prints statistical information about
-its message handling.
+its message handling, as well as a summary average of the entire network.  See 
+L<Insteon::BaseDevice::print_message_log|Insteon::BaseInsteon::BaseDevice::print_message_log> 
+for more detailed information.
 
 =cut
 
