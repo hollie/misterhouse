@@ -2002,7 +2002,7 @@ Returns: current retry count.
 sub retry_count_log
 {
 	my ($self, $retry_count_log) = @_;
-	$$self{retry_count_log} = $retry_count_log if $retry_count_log;
+	$$self{retry_count_log}++ if $retry_count_log;
 	return $$self{retry_count_log};
 } 
 
@@ -2020,7 +2020,7 @@ Returns: current fail count.
 sub fail_count_log
 {
     my ($self, $fail_count_log) = @_;
-	$$self{fail_count_log} = $fail_count_log if $fail_count_log;
+	$$self{fail_count_log}++ if $fail_count_log;
 	return $$self{fail_count_log};
 } 
 
@@ -2056,7 +2056,7 @@ Returns: current incoming count.
 sub incoming_count_log
 {
     my ($self, $incoming_count_log) = @_;
-    $$self{incoming_count_log} = $incoming_count_log if $incoming_count_log;
+    $$self{incoming_count_log}++ if $incoming_count_log;
     return $$self{incoming_count_log};
 }
         
