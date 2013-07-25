@@ -1149,7 +1149,9 @@ sub new
         }
 
 	$self->restore_data('level', 'retry_count_log', 'fail_count_log', 
-        'outgoing_count_log', 'incoming_count_log', 'corrupt_count_log');
+        'outgoing_count_log', 'incoming_count_log', 'corrupt_count_log',
+        'dupe_count_log', 'hops_left_count', 'max_hops_count',
+        'outgoing_hop_count');
 
 	$self->initialize();
 	$self->rate(undef);
@@ -1168,6 +1170,10 @@ sub new
     $$self{outgoing_count_log} = 0;
     $$self{incoming_count_log} = 0;
     $$self{corrupt_count_log} = 0;
+    $$self{dupe_count_log} = 0;
+    $$self{hops_left_count} = 0;
+    $$self{max_hops_count} = 0;
+    $$self{outgoing_hop_count} = 0;
 
 	return $self;
 }
