@@ -238,8 +238,10 @@ sub send
                 }
 
                 # need to set timeout as a function of retries; also need to alter hop count
-                if ($self->setby->can('outgoing_count_log') && $self->send_attempts <= 0) {
-                    $self->setby->outgoing_count_log(1);
+                if ($self->send_attempts <= 0) {
+                    $self->setby->outgoing_count_log(1) if $self->setby->can('outgoing_count_log');
+                    $self->setby->outgoing_hop_count($self->setby->default_hop_count)
+                    	if $self->setby->can('outgoing_hop_count');
                 }
                 $self->send_attempts($self->send_attempts + 1);
 		$interface->_send_cmd($self, $self->send_timeout);
