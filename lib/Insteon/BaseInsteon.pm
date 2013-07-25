@@ -2038,8 +2038,26 @@ Returns: current output count.
 sub outgoing_count_log
 {
     my ($self, $outgoing_count_log) = @_;
-    $$self{outgoing_count_log} = $outgoing_count_log if $outgoing_count_log;
+    $$self{outgoing_count_log}++ if $outgoing_count_log;
 	return $$self{outgoing_count_log};
+}
+
+=item C<outgoing_hop_count([type]>
+
+Sets or gets the number of hops that have been used in all outgoing messages
+since the last time C<reset_message_log> was called.
+
+If type is set, to any value, will increment output count by that value.
+
+Returns: current hop count.
+
+=cut 
+
+sub outgoing_hop_count
+{
+    my ($self, $outgoing_hop_count) = @_;
+    $$self{outgoing_hop_count} += $outgoing_hop_count if $outgoing_hop_count;
+	return $$self{outgoing_hop_count};
 }
 
 =item C<incoming_count_log([type]>
