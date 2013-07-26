@@ -1955,6 +1955,69 @@ sub update_flags
 	$self->_aldb->update_flags($flags) if $self->_aldb;
 }
 
+=item C<test_read([count])>
+
+Simulates a read of a link address from the device.  Repeats this process as many
+times as defined by count.  This routine is meant to be used as a diagnostic tool.
+It is similar to scan_link_table, however, if a failure occurs, this process will
+continue with the next iteration.  Scan link table will stop as soon as a single
+failure occurs.
+
+This is also similar to the C<ping> test, however, rather than simply requesting
+an ACK, this requests a full set of data equivalent to a link entry.  Similar to
+C<ping> this should be used with C<print_message_log> to diagnose issues and try
+different settings.
+
+Note: This routine can create a lot of traffic if count is set very high.  Try
+setting it to 5 first and working your way up.
+
+=cut
+
+sub test_read
+{
+	my ($self, $p_count, $complete_callback) = @_;
+	$$self{test_read_count} = $p_count if (defined ($p_count));
+	$$self{test_callback} = $complete_callback if (defined ($complete_callback));
+	if ($$self{test_read_count}){
+		&::print_log("[Insteon::BaseDevice] " . $self->get_object_name 
+			. " - Test Read " . $$self{test_read_count} . " iterations left");
+	        my $aldb = $self->get_root()->_aldb;
+	        if ($aldb)
+	        {
+			$$aldb{_mem_activity} = 'scan';
+			$$aldb{_mem_only_one} = 1;
+			$$aldb{_failure_callback} = $self->get_object_name 
+				. '->test_read()';
+			if($aldb->isa('Insteon::ALDB_i1')) {
+				$aldb->_peek('0FF8');
+			} else {
+				#Prevents duplicate commands in queue error
+				#Also allows for better identification of 
+				#sequential dupe incoming messages
+				my $odd = $$self{test_read_count} % 2;
+				if ($odd){
+					$aldb->send_read_aldb('0fff');
+				} else {
+					$aldb->send_read_aldb('0ff7');
+				}
+			}
+		}
+		$$self{test_read_count}--;
+	} else {
+		&::print_log("[Insteon::BaseDevice] Test Read Complete for " 
+			. $self->get_object_name);	
+		if (defined $$self{test_callback}){
+			$complete_callback = $$self{test_callback};
+			package main;
+			eval ($complete_callback);
+			&::print_log("[Insteon::BaseDevice] error in test_read callback: " . $@)
+				if $@ and $main::Debug{insteon};
+			package Insteon::BaseDevice;
+			delete $$self{test_callback};
+		}
+	}
+}
+
 =item C<engine_version>
 
 Sets or gets the device object engine version.  If setting the engine version, 
