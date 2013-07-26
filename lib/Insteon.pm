@@ -453,7 +453,36 @@ sub _get_next_linksync_failure
 
 }
 
+=item C<ping_all([count)>
 
+Walks through every Insteon device and pings it as many times as defined by 
+count.  See L<Insteon::BaseDevice::ping|Insteon::BaseInsteon::BaseDevice::ping> 
+for a more detailed description of ping.
+
+=cut
+
+sub ping_all
+{
+	my ($p_count) = @_;
+	my @_ping_devices = ();
+	push @_ping_devices, Insteon::find_members("Insteon::BaseDevice");
+
+	if (@_ping_devices)
+	{
+		main::print_log("[Insteon::Ping All Devices] Ping All Devices $p_count times");
+		foreach my $current_ping_device (@_ping_devices)
+		{
+			next unless $current_ping_device->is_root();
+			next unless $current_ping_device->is_responder(); 
+			$current_ping_device->ping($p_count)
+                		if $current_ping_device->can('ping');
+		}
+		main::print_log("[Insteon::Ping All Devices] Ping All Complete");
+	} else
+	{
+		main::print_log("[Insteon::Ping All Devices] WARN: No insteon devices could be found");
+	}
+}
 
 =item C<log_all_ADLB_status()>
 
