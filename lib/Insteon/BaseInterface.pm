@@ -657,6 +657,7 @@ sub on_standard_insteon_received
                 else 
                 {
          		&::print_log("[Insteon::BaseInterface] Warn! Unable to locate object for source: $msg{source} and group: $msg{group}");
+         		$self->corrupt_count_log(1);
 		}
 		# treat the message as legitimate even if an object match did not occur
 	}

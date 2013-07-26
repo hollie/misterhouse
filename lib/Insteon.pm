@@ -584,7 +584,7 @@ sub print_message_logs
         	$device_count)) if ($device_count > 0);
     	::print_log(
 	        "[Insteon] Average Network Statistics:\n"
-	        . "    In Corrupt %Corrpt  Dupe   %Dupe HopsLeft Max_Hops Act_Hops\n"
+	        . "    In Corrupt %Corrpt  Dupe   %Dupe HopsLeft Max_Hops Act_Hops PLM_Error\n"
 	        . sprintf("%6s", $incoming_count_log)
 	        . sprintf("%8s", $corrupt_count_log)
 	        . sprintf("%8s", $corrupt_percentage . '%')
@@ -593,6 +593,7 @@ sub print_message_logs
 	        . sprintf("%9s", $avg_hops_left)
 	        . sprintf("%9s", $avg_max_hops)
 	        . sprintf("%9s", $avg_max_hops - $avg_hops_left)
+	        . sprintf("%10s", &Insteon::active_interface->corrupt_count_log)
 	        . "\n"
 	        . "   Out    Fail   %Fail Retry AvgSend Avg_Hops CurrHops\n"
 	        . sprintf("%6s", $outgoing_count_log)
@@ -620,6 +621,7 @@ its message handling.
 sub reset_message_logs
 {
     my @_log_devices = ();
+    &Insteon::active_interface->reset_message_log;
     push @_log_devices, Insteon::find_members("Insteon::BaseDevice");
 
 	if (@_log_devices)
