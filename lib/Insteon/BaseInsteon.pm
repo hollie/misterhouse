@@ -880,6 +880,7 @@ sub _process_message
 		} else {
 			main::print_log("[Insteon::BaseObject] Ignoring unsupported command from " 
 				. $self->{object_name}) if $main::Debug{insteon};
+			$self->corrupt_count_log(1) if $self->can('corrupt_count_log');
                 }
 	}
 	return $clear_message;
@@ -2002,6 +2003,7 @@ Returns: current retry count.
 sub retry_count_log
 {
 	my ($self, $retry_count_log) = @_;
+	$self = $self->get_root;
 	$$self{retry_count_log}++ if $retry_count_log;
 	return $$self{retry_count_log};
 } 
@@ -2020,6 +2022,7 @@ Returns: current fail count.
 sub fail_count_log
 {
     my ($self, $fail_count_log) = @_;
+    $self = $self->get_root;
 	$$self{fail_count_log}++ if $fail_count_log;
 	return $$self{fail_count_log};
 } 
@@ -2038,6 +2041,7 @@ Returns: current output count.
 sub outgoing_count_log
 {
     my ($self, $outgoing_count_log) = @_;
+    $self = $self->get_root;
     $$self{outgoing_count_log}++ if $outgoing_count_log;
 	return $$self{outgoing_count_log};
 }
@@ -2056,6 +2060,7 @@ Returns: current hop count.
 sub outgoing_hop_count
 {
     my ($self, $outgoing_hop_count) = @_;
+    $self = $self->get_root;
     $$self{outgoing_hop_count} += $outgoing_hop_count if $outgoing_hop_count;
 	return $$self{outgoing_hop_count};
 }
@@ -2074,6 +2079,7 @@ Returns: current incoming count.
 sub incoming_count_log
 {
     my ($self, $incoming_count_log) = @_;
+    $self = $self->get_root;
     $$self{incoming_count_log}++ if $incoming_count_log;
     return $$self{incoming_count_log};
 }
@@ -2092,6 +2098,7 @@ Returns: current corrupt count.
 sub corrupt_count_log
 {
     my ($self, $corrupt_count_log) = @_;
+    $self = $self->get_root;
     $$self{corrupt_count_log}++ if $corrupt_count_log;
     return $$self{corrupt_count_log};
 }
@@ -2110,6 +2117,7 @@ Returns: current duplicate count.
 sub dupe_count_log
 {
     my ($self, $dupe_count_log) = @_;
+    $self = $self->get_root;
     $$self{dupe_count_log}++ if $dupe_count_log;
     return $$self{dupe_count_log};
 }
@@ -2128,6 +2136,7 @@ Returns: current hops_left count.
 sub hops_left_count
 {
     my ($self, $hops_left_count) = @_;
+    $self = $self->get_root;
     $$self{hops_left_count} += $hops_left_count if $hops_left_count;
     return $$self{hops_left_count};
 }
@@ -2146,6 +2155,7 @@ Returns: current duplicate count.
 sub max_hops_count
 {
     my ($self, $max_hops_count) = @_;
+    $self = $self->get_root;
     $$self{max_hops_count} += $max_hops_count if $max_hops_count;
     return $$self{max_hops_count};
 }
@@ -2160,6 +2170,7 @@ Resets the retry, fail, outgoing, incoming, and corrupt message counters.
 sub reset_message_log
 {
     my ($self) = @_;
+    $self = $self->get_root;
     $$self{retry_count_log} = 0;
     $$self{fail_count_log} = 0;
     $$self{outgoing_count_log} = 0;
@@ -2261,6 +2272,7 @@ controlled by MH and is not reset by calling C<reset_message_log>
 sub print_message_log
 {
     my ($self) = @_;
+    $self = $self->get_root;
     my $object_name = $self->get_object_name;
     my $retry_average = 0; 
     $retry_average = sprintf("%.1f", ($$self{retry_count_log} / 

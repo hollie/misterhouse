@@ -574,6 +574,8 @@ sub on_standard_insteon_received
                                                 	&main::print_log("[Insteon::BaseInterface] WARN: deviceid of "
                                                 		. "active message != received message source ("
                                                         	. $object->get_object_name() . "). IGNORING received message!!");
+                                                        #These generally seem to be duplicate messages
+                                                        $object->dupe_count_log(1) if $object->can('dupe_count_log');
                                                 }
                                         }
                                         elsif ($msg{type} eq 'cleanup')
