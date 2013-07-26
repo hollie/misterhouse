@@ -179,6 +179,44 @@ my (@_insteon_plm,@_insteon_device,@_insteon_link,@_scannable_link,$_scan_cnt,$_
 my $init_complete;
 my (@_scan_devices,@_scan_device_failures,$current_scan_device);
 my (@_sync_devices,@_sync_device_failures,$current_sync_device);
+my ($_test_count, @_test_devices);
+
+=item C<test_read_all([count)>
+
+Walks through every Insteon device and performs a test_read on it as many times as defined by 
+count.  See L<Insteon::BaseDevice::test_read|Insteon::BaseInsteon::BaseDevice::test_read> 
+for a more detailed description of test_read.
+
+=cut
+
+sub test_read_all
+{
+	my ($p_count) = @_;
+	if (defined $p_count){
+		$_test_count = $p_count; 
+		push @_test_devices, Insteon::find_members("Insteon::BaseDevice");
+		main::print_log("[Insteon::Test Read All Devices] Test Read All Devices $p_count times");
+	};	
+
+	if (@_test_devices)
+	{
+		my $current_test_device;
+		my $not_found = 1;
+		my $complete_callback = '&Insteon::test_read_all()';
+		while ($not_found){
+			$current_test_device = pop @_test_devices;
+			next unless $current_test_device->is_root();
+			next unless $current_test_device->is_responder();
+			$not_found = 0;
+		}
+		if (ref $current_test_device && $current_test_device->can('test_read')){
+			$current_test_device->test_read($_test_count, $complete_callback);
+		}
+	} else
+	{
+		main::print_log("[Insteon::Test Read All Devices] Complete");
+	}
+}
 
 =item C<scan_all_linktables()>
 
