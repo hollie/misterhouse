@@ -747,6 +747,17 @@ sub _process_message
                         		$clear_message = 0;
                         	}
 			}
+			elsif ($pending_cmd eq 'ping'){
+				$corrupt_cmd = 1 if ($msg{cmd_code} ne $self->message_type_hex($pending_cmd));
+				$corrupt_cmd = 1 if ($msg{extra} ne sprintf ("%02d", $$self{ping_count}));
+				if (!$corrupt_cmd){
+					$self->_process_command_stack(%msg);
+					&::print_log("[Insteon::BaseObject] received ping acknowledgement from " . $self->{object_name})
+						if $main::Debug{insteon};
+					$self->ping();
+					$clear_message = 1;
+				}
+			}
 			else
                         {
 				if (($pending_cmd eq 'do_read_ee') && 
@@ -911,6 +922,7 @@ sub _process_command_stack
                                 or $message->command eq 'set_operating_flags'
                                 or $message->command eq 'get_operating_flags'
                                 or $message->command eq 'read_write_aldb'
+                                or $message->command eq 'ping'
                                 )
                         {
 				$$self{awaiting_ack} = 1;
@@ -1084,7 +1096,7 @@ our %message_types = (
    linking_mode => 0x09,
    unlinking_mode => 0x0A,
    get_engine_version => 0x0D,
-   ping => 0x10,
+   ping => 0x0F,
    on_fast => 0x12,
    off_fast => 0x14,
    start_manual_change => 0x17,
@@ -1713,18 +1725,54 @@ sub _get_engine_version_failure
 	}
 }
 
-=item C<ping()>
+=item C<ping([count])>
 
-Sends a ping command to the device.
+Sends the number of ping messages defined by count.  A ping message is a basic 
+message that simply asks the device to respond with an ACKnowledgement.  For
+i1 devices this will send a standard length command, for i2 and i2cs devices
+this will send an extended ping command.  In both cases, the device responds
+back with a standard length ACKnowledgement only.
 
-=cut 
+Much like the ping command in IP networks, this command is useful for testing the
+connectivity of a device on your network.  You likely want to use this in 
+conjunction with the C<print_message_log> routine.  For example, you can use 
+this to compare the message stats for a device when changing settings in 
+MisterHouse.
+
+Parameters:
+	count = the number of pings to send.
+
+Returns: Nothing.
+
+=cut
 
 sub ping
 {
-	my ($self) = @_;
-        my $message = new Insteon::InsteonMessage('insteon_send', $self, 'ping');
-        $self->_send_cmd($message);
-#	$self->_send_cmd('command' => 'ping');
+	my ($self, $p_count) = @_;
+	$$self{ping_count} = $p_count if defined($p_count);
+	if ($$self{ping_count}) {
+		$$self{ping_count}--;
+		my $message;
+		my $extra = sprintf("%02d", $$self{ping_count});
+		if (uc($self->engine_version) eq 'I1'){
+	    	$message = new Insteon::InsteonMessage('insteon_send', $self, 
+	    		'ping', $extra);
+		}
+		else {
+			my $extra = $extra . '0' x 28;
+			$message = new Insteon::InsteonMessage('insteon_ext_send', $self, 
+				'ping', $extra);
+		}
+		::print_log("[Insteon::BaseDevice] Sending ping request to " 
+			. $self->get_object_name . " " . $$self{ping_count} 
+			. " more ping requests queued.");
+		$message->failure_callback($self->get_object_name . '->ping()');
+		$self->_send_cmd($message);
+	}
+	else {
+		::print_log("[Insteon::BaseDevice] Completed ping queue for " 
+			. $self->get_object_name);
+	}
 }
 
 =item C<set_led_status()>
