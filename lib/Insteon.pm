@@ -495,6 +495,21 @@ its message handling, as well as a summary average of the entire network.  See
 L<Insteon::BaseDevice::print_message_log|Insteon::BaseInsteon::BaseDevice::print_message_log> 
 for more detailed information.
 
+This command adds the following extra data points:
+
+=back
+
+=over8
+
+=item * 
+
+PLM_Error - The number of messages which have arrived at the PLM which cannot
+be associated with any know device.
+
+=back
+
+=over
+
 =cut
 
 sub print_message_logs
@@ -524,9 +539,16 @@ sub print_message_logs
 		my $hops_left_count = 0;
 		my $max_hops_count = 0;
 		my $outgoing_hop_count =0;
+		
+		my $device_count = 0;
 
 		foreach my $current_log_device (@_log_devices)
 		{
+			#Skip non-root items
+			next unless $current_log_device->is_root;
+			
+			$device_count++;
+			
 			#Prints the Individual Message for the Device
 			$current_log_device->print_message_log;
 			
@@ -559,7 +581,7 @@ sub print_message_logs
     	$avg_out_hops = sprintf("%.1f", ($outgoing_hop_count / 
         	$outgoing_count_log)) if ($outgoing_count_log > 0);
     	$curr_hops_avg = sprintf("%.1f", ($default_hop_count / 
-        	scalar @_log_devices)) if (scalar @_log_devices > 0);
+        	$device_count)) if ($device_count > 0);
     	::print_log(
 	        "[Insteon] Average Network Statistics:\n"
 	        . "    In Corrupt %Corrpt  Dupe   %Dupe HopsLeft Max_Hops Act_Hops\n"
