@@ -1638,6 +1638,8 @@ sub _on_peek
 				$$self{pending_aldb}{highwater} = ($flag & 0x02) ? 1 : 0;
                         	if ($$self{_stress_test_act} && !($$self{pending_aldb}{highwater})){
                         		::print_log("[Insteon::ALDB_i1] You need to create a link on this device before running stress_test");
+                        		$$self{_mem_activity} = undef;
+                        		$$self{_mem_action} = undef;
                         		$$self{_stress_test_act} = 0;
                         		$$self{device}->stress_test();
                         	}
@@ -1845,6 +1847,8 @@ sub _on_peek
 
                         	if ($$self{_stress_test_act}){
                         		$$self{_stress_test_act} = 0;
+                        		$$self{_mem_activity} = undef;
+                        		$$self{_mem_action} = undef;
                         		$$self{device}->stress_test();
                         	}
 				elsif ($$self{pending_aldb}{highwater})
@@ -1917,9 +1921,11 @@ sub _on_peek
                         $message->failure_callback($$self{_failure_callback});
                         $self->_send_cmd($message);
 		}
-#
-#			&::print_log("AllLinkDataBase: peek for " . $self->{object_name}
-#		. " is " . $msg{extra}) if $main::Debug{insteon};
+		else {
+		::print_log("[Insteon::ALDB_i1] " . $$self{device}->get_object_name 
+			. ": unhandled _mem_action=".$$self{_mem_action})
+			if $main::Debug{insteon};
+		}
 	}
 }
 
@@ -2169,6 +2175,8 @@ sub on_read_write_aldb
 			$self->send_read_aldb(sprintf("%04x", hex($$self{_mem_msb} . $$self{_mem_lsb})));
 		}
 		elsif ($$self{_stress_test_act}){
+			$$self{_mem_activity} = undef;
+                        $$self{_mem_action} = undef;
                 	$$self{_stress_test_act} = 0;
         		$$self{device}->stress_test();
         	}
