@@ -179,42 +179,55 @@ my (@_insteon_plm,@_insteon_device,@_insteon_link,@_scannable_link,$_scan_cnt,$_
 my $init_complete;
 my (@_scan_devices,@_scan_device_failures,$current_scan_device);
 my (@_sync_devices,@_sync_device_failures,$current_sync_device);
-my ($_test_count, @_test_devices);
+my ($_stress_test_count, $_stress_test_one_pass, @_stress_test_devices);
 
-=item C<test_read_all([count)>
+=item C<stress_test_all(count, [is_one_pass])>
 
-Walks through every Insteon device and performs a test_read on it as many times as defined by 
-count.  See L<Insteon::BaseDevice::test_read|Insteon::BaseInsteon::BaseDevice::test_read> 
-for a more detailed description of test_read.
+Sequentially goes through every Insteon device and performs a stress_test on it.  
+See L<Insteon::BaseDevice::stress_test|Insteon::BaseInsteon::BaseDevice::stress_test> 
+for a more detailed description of stress_test.
+
+Parameters:
+	Count: defines the number of stress_tests to perform on each device.
+	is_one_pass: if true, all stress_tests will be performed on a device
+		before proceeding to the next device. if false, the routine 
+		loops through all devices performing one stress_test on each 
+		device before moving on to the next device.
 
 =cut
 
-sub test_read_all
+sub stress_test_all
 {
-	my ($p_count) = @_;
+	my ($p_count, $is_one_pass) = @_;
 	if (defined $p_count){
-		$_test_count = $p_count; 
-		push @_test_devices, Insteon::find_members("Insteon::BaseDevice");
-		main::print_log("[Insteon::Test Read All Devices] Test Read All Devices $p_count times");
+		$_stress_test_count = $p_count; 
+		$_stress_test_one_pass = $is_one_pass;
+		push @_stress_test_devices, Insteon::find_members("Insteon::BaseDevice");
+		main::print_log("[Insteon::Stress Test All Devices] Stress Testing All Devices $p_count times");
 	};	
-
-	if (@_test_devices)
-	{
-		my $current_test_device;
-		my $not_found = 1;
-		my $complete_callback = '&Insteon::test_read_all()';
-		while ($not_found){
-			$current_test_device = pop @_test_devices;
-			next unless $current_test_device->is_root();
-			next unless $current_test_device->is_responder();
-			$not_found = 0;
+	if (!@_stress_test_devices) {
+		#Iteration may be complete, start over from the beginning
+		$_stress_test_count = ($_stress_test_one_pass) ? 0 : $_stress_test_count--; 
+		push @_stress_test_devices, Insteon::find_members("Insteon::BaseDevice");
+	}
+	if ($_stress_test_count > 0){
+		my $current_stress_test_device;
+		my $complete_callback = '&Insteon::stress_test_all()';
+		while (@_stress_test_devices){
+			$current_stress_test_device = pop @_stress_test_devices;
+			next unless $current_stress_test_device->is_root();
+			next unless $current_stress_test_device->is_responder();
+			last;
 		}
-		if (ref $current_test_device && $current_test_device->can('test_read')){
-			$current_test_device->test_read($_test_count, $complete_callback);
+		my $run_count = ($_stress_test_one_pass) ? $_stress_test_count : 1;
+		if (ref $current_stress_test_device && $current_stress_test_device->can('stress_test')){
+			$current_stress_test_device->stress_test($run_count, $complete_callback);
 		}
-	} else
-	{
-		main::print_log("[Insteon::Test Read All Devices] Complete");
+	} 
+	else {
+		$_stress_test_one_pass = 0;
+		@_stress_test_devices = undef;
+		main::print_log("[Insteon::Stress Test All Devices] Complete");
 	}
 }
 

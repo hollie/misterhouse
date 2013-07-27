@@ -2003,7 +2003,7 @@ sub update_flags
 	$self->_aldb->update_flags($flags) if $self->_aldb;
 }
 
-=item C<test_read([count])>
+=item C<stress_test(count)>
 
 Simulates a read of a link address from the device.  Repeats this process as many
 times as defined by count.  This routine is meant to be used as a diagnostic tool.
@@ -2021,28 +2021,28 @@ setting it to 5 first and working your way up.
 
 =cut
 
-sub test_read
+sub stress_test
 {
 	my ($self, $p_count, $complete_callback) = @_;
-	$$self{test_read_count} = $p_count if (defined ($p_count));
-	$$self{test_callback} = $complete_callback if (defined ($complete_callback));
-	if ($$self{test_read_count}){
+	$$self{stress_test_count} = $p_count if (defined ($p_count));
+	$$self{stress_test_callback} = $complete_callback if (defined ($complete_callback));
+	if ($$self{stress_test_count}){
 		&::print_log("[Insteon::BaseDevice] " . $self->get_object_name 
-			. " - Test Read " . $$self{test_read_count} . " iterations left");
+			. " - Stress Test " . $$self{stress_test_count} . " iterations left");
 	        my $aldb = $self->get_root()->_aldb;
 	        if ($aldb)
 	        {
 			$$aldb{_mem_activity} = 'scan';
-			$$aldb{_mem_only_one} = 1;
+			$$aldb{_stress_test_act} = 1;
 			$$aldb{_failure_callback} = $self->get_object_name 
-				. '->test_read()';
+				. '->stress_test()';
 			if($aldb->isa('Insteon::ALDB_i1')) {
 				$aldb->_peek('0FF8');
 			} else {
 				#Prevents duplicate commands in queue error
 				#Also allows for better identification of 
 				#sequential dupe incoming messages
-				my $odd = $$self{test_read_count} % 2;
+				my $odd = $$self{stress_test_count} % 2;
 				if ($odd){
 					$aldb->send_read_aldb('0fff');
 				} else {
@@ -2050,18 +2050,18 @@ sub test_read
 				}
 			}
 		}
-		$$self{test_read_count}--;
+		$$self{stress_test_count}--;
 	} else {
-		&::print_log("[Insteon::BaseDevice] Test Read Complete for " 
+		&::print_log("[Insteon::BaseDevice] Stress Test Complete for " 
 			. $self->get_object_name);	
-		if (defined $$self{test_callback}){
-			$complete_callback = $$self{test_callback};
+		if (defined $$self{stress_test_callback}){
+			$complete_callback = $$self{stress_test_callback};
 			package main;
 			eval ($complete_callback);
-			&::print_log("[Insteon::BaseDevice] error in test_read callback: " . $@)
+			&::print_log("[Insteon::BaseDevice] error in stress_test callback: " . $@)
 				if $@ and $main::Debug{insteon};
 			package Insteon::BaseDevice;
-			delete $$self{test_callback};
+			delete $$self{stress_test_callback};
 		}
 	}
 }

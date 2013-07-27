@@ -1591,7 +1591,7 @@ sub _on_peek
 				# if the device is responding to the peek, then init the link table
 				#   if at the very start of a scan
 				if (lc $$self{_mem_msb} eq '0f' and lc $$self{_mem_lsb} eq 'f8'
-					&& !$$self{_mem_only_one})
+					&& !$$self{_stress_test_act})
                                 {
 					# reinit the aldb hash as there will be a new one
 					$$self{aldb} = undef;
@@ -1636,10 +1636,10 @@ sub _on_peek
 				$$self{pending_aldb}{inuse} = ($flag & 0x80) ? 1 : 0;
 				$$self{pending_aldb}{is_controller} = ($flag & 0x40) ? 1 : 0;
 				$$self{pending_aldb}{highwater} = ($flag & 0x02) ? 1 : 0;
-                        	if ($$self{_mem_only_one} && !($$self{pending_aldb}{highwater})){
-                        		::print_log("[Insteon::ALDB_i1] You need to create a link on this device before running test_read");
-                        		$$self{_mem_only_one} = 0;
-                        		$$self{device}->test_read();
+                        	if ($$self{_stress_test_act} && !($$self{pending_aldb}{highwater})){
+                        		::print_log("[Insteon::ALDB_i1] You need to create a link on this device before running stress_test");
+                        		$$self{_stress_test_act} = 0;
+                        		$$self{device}->stress_test();
                         	}
 				elsif (!($$self{pending_aldb}{highwater}))
                                 {
@@ -1843,9 +1843,9 @@ sub _on_peek
                                         . lc $msg{extra} . " for " .  $$self{_mem_action}) if  $main::Debug{insteon} >= 3;
 				$$self{pending_aldb}{data3} = $msg{extra};
 
-                        	if ($$self{_mem_only_one}){
-                        		$$self{_mem_only_one} = 0;
-                        		$$self{device}->test_read();
+                        	if ($$self{_stress_test_act}){
+                        		$$self{_stress_test_act} = 0;
+                        		$$self{device}->stress_test();
                         	}
 				elsif ($$self{pending_aldb}{highwater})
                                 {
@@ -2168,9 +2168,9 @@ sub on_read_write_aldb
 			#retry previous address again
 			$self->send_read_aldb(sprintf("%04x", hex($$self{_mem_msb} . $$self{_mem_lsb})));
 		}
-		elsif ($$self{_mem_only_one}){
-                	$$self{_mem_only_one} = 0;
-        		$$self{device}->test_read();
+		elsif ($$self{_stress_test_act}){
+                	$$self{_stress_test_act} = 0;
+        		$$self{device}->stress_test();
         	}
 		else
 		{
