@@ -1247,8 +1247,12 @@ sub html_print_log {
         $h_response .= "<a href=print_log>Refresh Print Log</a>\n";
         my @last_printed = &main::print_log_last($main::config_parms{max_log_entries});
         for my $text (@last_printed) {
-            $text =~ s/\n/\n<br>/g;
-            $h_response .= "<li>$text\n";
+            #This formatting is a little bizarre, but sub html_page blindly 
+            #converts all \n to \n\r apparently to be standards compliant. It 
+            #would be easier to set the white space of list-item to pre, however
+            #the additional newline characters added by html_page look ugly.
+            $text =~ s/\n/<\/pre><\/br>\n<pre>/g;
+            $h_response .= "<li><pre>$text</pre></li>\n";
         }
     }
     else {
