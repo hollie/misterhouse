@@ -130,12 +130,6 @@ sub initialize
 	$$self{m_write} = 1;
 	$$self{m_is_locally_set} = 0;
 	# persist local, simple attribs
-
-        # do we really need to ping the devices anymore for a devcat?
-	$$self{ping_timer} = new Timer();
-	$$self{ping_timerTime} = 300;
-#	$$self{ping_timer}->set($$self{ping_timerTime} + (rand() * $$self{ping_timerTime}), $self)
-#		unless $self->group eq '01' and defined $self->devcat;
 }
 
 =item C<interface([interface])>
@@ -282,14 +276,7 @@ sub set
 		delete $$self{set_timer};
 	}
 
-	# did the queue timer go off?
-	if (ref $p_setby and $p_setby eq $$self{ping_timer}) {
-		if (! (defined($$self{devcat}))) {
-			$self->ping();
-			# set the timer again in case nothing occurs
-			$$self{ping_timer}->set($$self{ping_timerTime} + (rand() * $$self{ping_timerTime}), $self);
-		}
-	} elsif ($self->_is_valid_state($p_state)) {
+	if ($self->_is_valid_state($p_state)) {
 		# always reset the is_locally_set property unless set_by is the device
 		$$self{m_is_locally_set} = 0 unless ref $p_setby and $p_setby eq $self;
 
@@ -847,8 +834,6 @@ sub _process_message
 	} elsif ($msg{type} eq 'broadcast') {
 		$self->devcat($msg{devcat});
 		&::print_log("[Insteon::BaseObject] device category: $msg{devcat} received for " . $self->{object_name});
-		# stop ping timer now that we have a devcat; possibly may want to change this behavior to allow recurring pings
-		$$self{ping_timer}->stop();
 	} else {
 		## TO-DO: make sure that the state passed by command is something that is reasonable to set
 		$p_state = $msg{command};
@@ -1190,10 +1175,6 @@ sub initialize
 	$$self{m_write} = 1;
 	$$self{m_is_locally_set} = 0;
 	# persist local, simple attribs
-
-        # do we really need to ping the devices anymore for a devcat?
-	$$self{ping_timer} = new Timer();
-	$$self{ping_timerTime} = 300;
 }
 
 =item C<rate([rate])>
@@ -2224,8 +2205,6 @@ sub new
 	# note that $p_deviceid will be 00.00.00:<groupnum> if the link uses the interface as the controller
 	my $self = {};
 	bless $self,$class;
-# don't apply ping timer to this class
-#	$$self{ping_timer}->stop();
 	return $self;
 }
 
@@ -2562,9 +2541,6 @@ sub set
 	return -1 if (ref $p_setby and ($p_setby ne $self) and $p_setby->can('get_set_by') and
            $p_setby->{set_by} eq $self);
 	return -1 if &main::check_for_tied_filters($self, $p_state);
-
-	# prevent setby internal Insteon_Device timers
-	return -1 if $p_setby eq $$self{ping_timer};
 
 	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
 

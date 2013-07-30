@@ -71,10 +71,6 @@ sub poll_all
                                 $insteon_device->get_engine_version();
                			$insteon_device->request_status();
             		}
-               		if ($insteon_device->devcat) {
-              		 # reset devcat so as to trigger any device specific properties
-               			$insteon_device->devcat($insteon_device->devcat);
-            		}
          	}
          }
       }
