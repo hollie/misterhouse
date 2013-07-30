@@ -1992,7 +1992,7 @@ sub engine_version
 =item C<retry_count_log([type]>
 
 Sets or gets the number of message retries that have occured for this device 
-since the last time C<reset_message_log> was called.
+since the last time C<reset_message_stats> was called.
 
 If type is set, to any value, will increment retry log by one.
 
@@ -2011,7 +2011,7 @@ sub retry_count_log
 =item C<fail_count_log([type]>
 
 Sets or gets the number of message failures that have occured for this device 
-since the last time C<reset_message_log> was called.
+since the last time C<reset_message_stats> was called.
 
 If type is set, to any value, will increment fail log by one.
 
@@ -2030,7 +2030,7 @@ sub fail_count_log
 =item C<outgoing_count_log([type]>
 
 Sets or gets the number of outgoing message that have occured for this device 
-since the last time C<reset_message_log> was called.
+since the last time C<reset_message_stats> was called.
 
 If type is set, to any value, will increment output count by one.
 
@@ -2049,7 +2049,7 @@ sub outgoing_count_log
 =item C<outgoing_hop_count([type]>
 
 Sets or gets the number of hops that have been used in all outgoing messages
-since the last time C<reset_message_log> was called.
+since the last time C<reset_message_stats> was called.
 
 If type is set, to any value, will increment output count by that value.
 
@@ -2068,7 +2068,7 @@ sub outgoing_hop_count
 =item C<incoming_count_log([type]>
 
 Sets or gets the number of incoming message that have occured for this device 
-since the last time C<reset_message_log> was called.
+since the last time C<reset_message_stats> was called.
 
 If type is set, to any value, will increment incoming count by one.
 
@@ -2087,7 +2087,7 @@ sub incoming_count_log
 =item C<corrupt_count_log([type]>
 
 Sets or gets the number of currupt message that have arrived from this device 
-since the last time C<reset_message_log> was called.
+since the last time C<reset_message_stats> was called.
 
 If type is set, to any value, will increment corrupt count by one.
 
@@ -2106,7 +2106,7 @@ sub corrupt_count_log
 =item C<dupe_count_log([type]>
 
 Sets or gets the number of duplicate message that have arrived from this device 
-since the last time C<reset_message_log> was called.
+since the last time C<reset_message_stats> was called.
 
 If type is set, to any value, will increment corrupt count by one.
 
@@ -2125,7 +2125,7 @@ sub dupe_count_log
 =item C<hops_left_count([type]>
 
 Sets or gets the number of hops_left for messages that arrive from this device 
-since the last time C<reset_message_log> was called.
+since the last time C<reset_message_stats> was called.
 
 If type is set, to any value, will increment corrupt count by one.
 
@@ -2144,7 +2144,7 @@ sub hops_left_count
 =item C<max_hops_count([type]>
 
 Sets or gets the number of max_hops for messages that arrive from this device 
-since the last time C<reset_message_log> was called.
+since the last time C<reset_message_stats> was called.
 
 If type is set, to any value, will increment corrupt count by one.
 
@@ -2161,13 +2161,13 @@ sub max_hops_count
 }
 
 
-=item C<reset_message_log>
+=item C<reset_message_stats>
 
 Resets the retry, fail, outgoing, incoming, and corrupt message counters.
 
 =cut 
 
-sub reset_message_log
+sub reset_message_stats
 {
     my ($self) = @_;
     $self = $self->get_root;
@@ -2182,7 +2182,7 @@ sub reset_message_log
     $$self{outgoing_hop_count} = 0;
 }
 
-=item C<print_message_log>
+=item C<print_message_stats>
 
 Prints message statistics for this device to the print log.  The output contains:
 
@@ -2261,7 +2261,7 @@ sending messages to this device.
 =item *
 
 Hop_Count - The current hop count being used by MH.  This count is dynamically
-controlled by MH and is not reset by calling C<reset_message_log>
+controlled by MH and is not reset by calling C<reset_message_stats>
 
 =back
 
@@ -2269,7 +2269,7 @@ controlled by MH and is not reset by calling C<reset_message_log>
 
 =cut 
 
-sub print_message_log
+sub print_message_stats
 {
     my ($self) = @_;
     $self = $self->get_root;

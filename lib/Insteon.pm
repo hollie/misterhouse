@@ -488,11 +488,11 @@ sub log_all_ADLB_status
 	}
 }
 
-=item C<print_message_logs>
+=item C<print_all_message_stats>
 
 Walks through every Insteon device and prints statistical information about
 its message handling, as well as a summary average of the entire network.  See 
-L<Insteon::BaseDevice::print_message_log|Insteon::BaseInsteon::BaseDevice::print_message_log> 
+L<Insteon::BaseDevice::print_message_stats|Insteon::BaseInsteon::BaseDevice::print_message_stats> 
 for more detailed information.
 
 This command adds the following extra data points:
@@ -503,7 +503,7 @@ This command adds the following extra data points:
 
 =item * 
 
-PLM_Error - The number of messages which have arrived at the PLM which cannot
+Unk_Error - The number of messages which have arrived at the PLM which cannot
 be associated with any know device.
 
 =back
@@ -512,7 +512,7 @@ be associated with any know device.
 
 =cut
 
-sub print_message_logs
+sub print_all_message_stats
 {
     my @_log_devices = ();
 	push @_log_devices, Insteon::find_members("Insteon::BaseDevice");
@@ -550,7 +550,7 @@ sub print_message_logs
 			$device_count++;
 			
 			#Prints the Individual Message for the Device
-			$current_log_device->print_message_log;
+			$current_log_device->print_message_stats;
 			
 			#Add values for each device to the master count
 			$incoming_count_log += $current_log_device->incoming_count_log;
@@ -584,7 +584,7 @@ sub print_message_logs
         	$device_count)) if ($device_count > 0);
     	::print_log(
 	        "[Insteon] Average Network Statistics:\n"
-	        . "    In Corrupt %Corrpt  Dupe   %Dupe HopsLeft Max_Hops Act_Hops PLM_Error\n"
+	        . "    In Corrupt %Corrpt  Dupe   %Dupe HopsLeft Max_Hops Act_Hops Unk_Error\n"
 	        . sprintf("%6s", $incoming_count_log)
 	        . sprintf("%8s", $corrupt_count_log)
 	        . sprintf("%8s", $corrupt_percentage . '%')
@@ -604,37 +604,37 @@ sub print_message_logs
 	        . sprintf("%9s", $avg_out_hops)
 	        . sprintf("%9s", $curr_hops_avg)
     	);
-		main::print_log("[Insteon::Print_Message_Logs] All devices have completed logging");
+		main::print_log("[Insteon::Print_All_Message_Stats] All devices have completed logging");
 	} else
 	{
-		main::print_log("[Insteon::Print_Message_Logs] WARN: No insteon devices could be found");
+		main::print_log("[Insteon::Print_All_Message_Stats] WARN: No insteon devices could be found");
 	}
 }
 
-=item C<reset_message_logs>
+=item C<reset_all_message_stats>
 
 Walks through every Insteon device and resets the statistical information about
 its message handling.
 
 =cut
 
-sub reset_message_logs
+sub reset_all_message_stats
 {
     my @_log_devices = ();
-    &Insteon::active_interface->reset_message_log;
+    &Insteon::active_interface->reset_message_stats;
     push @_log_devices, Insteon::find_members("Insteon::BaseDevice");
 
 	if (@_log_devices)
 	{
 		foreach my $current_log_device (@_log_devices)
 		{
-			$current_log_device->reset_message_log 
-                if $current_log_device->can('reset_message_log');
+			$current_log_device->reset_message_stats 
+                if $current_log_device->can('reset_message_stats');
 		}
-		main::print_log("[Insteon::Reset_Message_Logs] All devices have been reset");
+		main::print_log("[Insteon::Reset_All_Message_Stats] All devices have been reset");
 	} else
 	{
-		main::print_log("[Insteon::Reset_Message_Logs] WARN: No insteon devices could be found");
+		main::print_log("[Insteon::Reset_All_Message_Stats] WARN: No insteon devices could be found");
 	}
 }
 
