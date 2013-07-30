@@ -180,6 +180,7 @@ my $init_complete;
 my (@_scan_devices,@_scan_device_failures,$current_scan_device);
 my (@_sync_devices,@_sync_device_failures,$current_sync_device);
 my ($_stress_test_count, $_stress_test_one_pass, @_stress_test_devices);
+my ($_ping_count, @_ping_devices);
 
 =item C<stress_test_all(count, [is_one_pass])>
 
@@ -202,6 +203,7 @@ sub stress_test_all
 	if (defined $p_count){
 		$_stress_test_count = $p_count; 
 		$_stress_test_one_pass = $is_one_pass;
+		@_stress_test_devices = undef; 
 		push @_stress_test_devices, Insteon::find_members("Insteon::BaseDevice");
 		main::print_log("[Insteon::Stress Test All Devices] Stress Testing All Devices $p_count times");
 	};	
@@ -226,7 +228,6 @@ sub stress_test_all
 	} 
 	else {
 		$_stress_test_one_pass = 0;
-		@_stress_test_devices = undef;
 		main::print_log("[Insteon::Stress Test All Devices] Complete");
 	}
 }
@@ -477,23 +478,28 @@ for a more detailed description of ping.
 sub ping_all
 {
 	my ($p_count) = @_;
-	my @_ping_devices = ();
-	push @_ping_devices, Insteon::find_members("Insteon::BaseDevice");
-
+	if (defined $p_count){
+		$_ping_count = $p_count;
+		@_ping_devices = ();
+		push @_ping_devices, Insteon::find_members("Insteon::BaseDevice");
+		main::print_log("[Insteon::Ping All Devices] Ping All Devices $p_count times");
+	}
 	if (@_ping_devices)
 	{
-		main::print_log("[Insteon::Ping All Devices] Ping All Devices $p_count times");
-		foreach my $current_ping_device (@_ping_devices)
+		my $current_ping_device;
+		while(@_ping_devices)
 		{
+			$current_ping_device = pop @_ping_devices;
 			next unless $current_ping_device->is_root();
 			next unless $current_ping_device->is_responder(); 
-			$current_ping_device->ping($p_count)
-                		if $current_ping_device->can('ping');
+			last;
 		}
-		main::print_log("[Insteon::Ping All Devices] Ping All Complete");
+		$current_ping_device->ping($_ping_count, '&Insteon::ping_all()')
+                		if $current_ping_device->can('ping');
 	} else
 	{
-		main::print_log("[Insteon::Ping All Devices] WARN: No insteon devices could be found");
+		$_ping_count = 0;
+		main::print_log("[Insteon::Ping All Devices] Ping All Complete");
 	}
 }
 

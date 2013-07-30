@@ -1748,8 +1748,9 @@ Returns: Nothing.
 
 sub ping
 {
-	my ($self, $p_count) = @_;
+	my ($self, $p_count, $p_callback) = @_;
 	$$self{ping_count} = $p_count if defined($p_count);
+	$$self{ping_callback} = $p_callback if defined($p_callback);
 	if ($$self{ping_count}) {
 		$$self{ping_count}--;
 		my $message;
@@ -1772,6 +1773,15 @@ sub ping
 	else {
 		::print_log("[Insteon::BaseDevice] Completed ping queue for " 
 			. $self->get_object_name);
+		if (defined $$self{ping_callback}){
+			my $complete_callback = $$self{ping_callback};
+			package main;
+			eval ($complete_callback);
+			&::print_log("[Insteon::BaseDevice] error in ping callback: " . $@)
+				if $@ and $main::Debug{insteon};
+			package Insteon::BaseDevice;
+			delete $$self{ping_callback};
+		}
 	}
 }
 
