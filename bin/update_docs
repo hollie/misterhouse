@@ -60,6 +60,7 @@ BEGIN {
 use strict;
 use warnings;
 use Pod::Html;
+use Cwd qw(abs_path);
 
 # Get parms from mh.ini
 require 'handy_utilities.pl';
@@ -242,7 +243,8 @@ closedir POD;
 # delete html files from docs dir if out dir is diff and pod exists
 my $docsi = ( stat($docdir) )[1];
 my $outi  = ( stat($outdir) )[1];
-if ( $docsi eq $outi ) {
+if ((($docsi == $outi) && ($outi == 0) && (abs_path($docdir) eq abs_path($outdir))) 
+    || (( $docsi eq $outi ) && ($outi != 0))) {
     print "you should set the html_alias2_docs directory to a place outside"
       . " the mh distribution\n directory.  Otherwise, everytime this script is"
       . " run, you will alter\n your distribution files.";

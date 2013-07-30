@@ -101,6 +101,8 @@ sub new
 	$self->restore_data('default_hop_count', 'engine_version');
 
 	$self->initialize();
+	$$self{max_hops} = 3;
+	$$self{min_hops} = 0;
 	$$self{level} = undef;
 	$$self{flag} = "0F";
 	$$self{ackMode} = "1";
@@ -215,6 +217,36 @@ sub timeout_factor {
 	return $$self{timeout_factor};
 }
 
+=item C<max_hops($int)>
+
+Sets the maximum number of hops that may be used in a message sent to the device.
+The default and maximum number is 3.  $int is an integer between 0-3.
+
+This value is NOT saved on reboot, as such likely should be called in a $Reload loop.
+
+=cut
+
+sub max_hops {
+	my ($self, $hops) = @_;
+	$$self{max_hops} = $hops if $hops;
+	return $$self{max_hops};
+}
+
+=item C<min_hops($int)>
+
+Sets the minimum number of hops that may be used in a message sent to the device.
+The default and minimum number is 0.  $int is an integer between 0-3.
+
+This value is NOT saved on reboot, as such likely should be called in a $Reload loop.
+
+=cut
+
+sub min_hops {
+	my ($self, $hops) = @_;
+	$$self{min_hops} = $hops if $hops;
+	return $$self{min_hops};
+}
+
 =item C<default_hop_count([hops])>
 
 Used to track the number of hops needed to reach a device.  Will store the past
@@ -244,6 +276,10 @@ sub default_hop_count
 		$high = $_ if ($high < $_);;
 	}
 	$$self{default_hop_count} = $high;
+	$$self{default_hop_count} = $$self{max_hops} if ($$self{max_hops} &&
+		$$self{default_hop_count} > $$self{max_hops});
+	$$self{default_hop_count} = $$self{min_hops} if ($$self{min_hops} &&
+		$$self{default_hop_count} < $$self{min_hops});
         return $$self{default_hop_count};
 }
 
