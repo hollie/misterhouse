@@ -833,7 +833,9 @@ sub _process_message
 		}
 	} elsif ($msg{type} eq 'broadcast') {
 		$self->devcat($msg{devcat});
-		&::print_log("[Insteon::BaseObject] device category: $msg{devcat} received for " . $self->{object_name});
+		$self->firmware($msg{firmware});
+		&::print_log("[Insteon::BaseObject] device category: $msg{devcat}"
+			. " firmware: $msg{firmware} received for " . $self->{object_name});
 	} else {
 		## TO-DO: make sure that the state passed by command is something that is reasonable to set
 		$p_state = $msg{command};
@@ -901,6 +903,7 @@ sub _process_command_stack
                         	or $message->command eq 'poke'
                         	or $message->command eq 'status_request'
                                 or $message->command eq 'get_engine_version'
+                                or $message->command eq 'id_request'
                                 or $message->command eq 'do_read_ee'
                                 or $message->command eq 'set_address_msb'
                                 or $message->command eq 'sensor_status'
@@ -1082,6 +1085,7 @@ our %message_types = (
    unlinking_mode => 0x0A,
    get_engine_version => 0x0D,
    ping => 0x0F,
+   id_request => 0x10,
    on_fast => 0x12,
    off_fast => 0x14,
    start_manual_change => 0x17,
@@ -1144,7 +1148,10 @@ sub new
            $$self{aldb} = new Insteon::ALDB_i1($self);
         }
 
-	$self->restore_data('level');
+	$self->restore_data('devcat', 'firmware', 'level', 'retry_count_log', 'fail_count_log', 
+        'outgoing_count_log', 'incoming_count_log', 'corrupt_count_log',
+        'dupe_count_log', 'hops_left_count', 'max_hops_count',
+        'outgoing_hop_count');
 
 	$self->initialize();
 	$self->rate(undef);
@@ -1831,7 +1838,8 @@ sub restore_aldb
 
 =item C<devcat()>
 
-NOT USED - Sets and returns the device category of a device.  No longer used.
+Sets and returns the device category of a device.  Devcat can be requested by
+calling C<get_devcat()>.
 
 =cut
 
@@ -1841,12 +1849,36 @@ sub devcat
 	if ($devcat)
         {
 		$$self{devcat} = $devcat;
-		if (($$self{devcat} =~ /^01\w\w/) or ($$self{devcat} =~ /^02\w\w/) && !($self->states))
-                {
-			$self->states( 'on,off' );
-		}
 	}
 	return $$self{devcat};
+}
+
+=item C<get_devcat()>
+
+Requests the device category for the device.  The returned value can be obtained
+by calling C<devcat()>.
+
+=cut
+
+sub get_devcat
+{
+	my ($self) = @_;
+        my $message = new Insteon::InsteonMessage('insteon_send', $self, 'id_request');
+        $self->_send_cmd($message);
+}
+
+=item C<firmwarre()>
+
+Sets and returns the device's firmware version.  Value can be obtained from the 
+device by calling C<get_devcat()>.
+
+=cut
+
+sub firmware
+{
+	my ($self, $firmware) = @_;
+	$$self{firmware} = $firmware if (defined $firmware);
+	return $$self{firmware};
 }
 
 =item C<states()>
