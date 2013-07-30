@@ -1867,7 +1867,7 @@ sub get_devcat
         $self->_send_cmd($message);
 }
 
-=item C<firmwarre()>
+=item C<firmware()>
 
 Sets and returns the device's firmware version.  Value can be obtained from the 
 device by calling C<get_devcat()>.
