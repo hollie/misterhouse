@@ -654,7 +654,7 @@ sub _derive_interface_data
 	}
         else
         {
-       		my $hop_count = $self->send_attempts + $self->setby->default_hop_count - 1;
+       		my $hop_count = $self->setby->default_hop_count;
 		$cmd.=$self->setby->device_id();
 		if ($self->command_type =~ /insteon_ext_send/i)
                 {
