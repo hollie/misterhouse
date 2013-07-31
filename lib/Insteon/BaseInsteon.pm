@@ -1887,42 +1887,6 @@ sub states
 
 }
 
-=item C<local_onlevel(level)>
-
-Sets and returns the local onlevel for the device in MH only. Level is a 
-percentage from 0%-100%
-
-=cut
-
-sub local_onlevel
-{
-	my ($self, $p_onlevel) = @_;
-	if (defined $p_onlevel)
-        {
-		my ($onlevel) = $p_onlevel =~ /(\d+)%?/;
-		$$self{_onlevel} = $onlevel;
-	}
-	return $$self{_onlevel};
-}
-
-=item C<local_ramprate(rate)>
-
-Sets and returns the local ramp rate for the device in MH only. Rate is a time
-between .1 and 540 seconds.  Only 32 rate steps exist, to MH will pick a time
-equal to of the closest below this time.
-
-=cut
-
-sub local_ramprate
-{
-	my ($self, $p_ramprate) = @_;
-	if (defined $p_ramprate) {
-		$$self{_ramprate} = &Insteon::DimmableLight::convert_ramp($p_ramprate);
-	}
-	return $$self{_ramprate};
-
-}
-
 =item C<delete_orphan_links(audit_mode)>
 
 Reviews the cached version of all of the ALDBs and based on this review removes
@@ -1957,27 +1921,6 @@ sub log_alllink_table
 {
 	my ($self) = @_;
         $self->_aldb->log_alllink_table if $self->_aldb;
-}
-
-=item C<update_local_properties()>
-
-Pushes the values set in C<local_onlevel()> and C<local_ramprate()> to the device.
-The device will only reread these values when it is power-cycled.  This can be
-done by pulling the air-gap for 4 seconds or unplugging the device.
-
-=cut
-
-sub update_local_properties
-{
-	my ($self) = @_;
-	if ($self->isa('Insteon::DimmableLight'))
-        {
-        	$self->_aldb->update_local_properties() if $self->_aldb;
-	}
-        else
-        {
-		&::print_log("[Insteon::BaseDevice] update_local_properties may only be applied to dimmable devices!");
-	}
 }
 
 =item C<update_flags(flags)>
