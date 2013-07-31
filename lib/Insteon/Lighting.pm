@@ -804,7 +804,7 @@ sub update_flags
 {
 	my ($self, $flags) = @_;
 	return unless defined $flags;
-	if ($self->engine_version ne 'I1') {
+	if ($self->engine_version eq 'I1') {
 		$self->_aldb->update_flags($flags) if $self->_aldb;
 	}
 	else {
