@@ -712,6 +712,21 @@ use Insteon::BaseInsteon;
 
 @Insteon::KeyPadLincRelay::ISA = ('Insteon::BaseLight','Insteon::DeviceController');
 
+my %operating_flags = (
+   'program_lock_on' => '00',
+   'program_lock_off' => '01',
+   'led_on_during_tx' => '02',
+   'led_off_during_tx' => '03',
+   'resume_dim_on' => '04',
+   'resume_dim_off' => '05',
+   '8_key_mode' => '06',
+   '6_key_mode' => '07',
+   'led_off' => '08',
+   'led_enabled' => '09',
+   'key_beep_enabled' => '0a',
+   'key_beep_off' => '0b'
+);
+
 =item C<new()>
 
 Instantiates a new object.
@@ -762,11 +777,56 @@ sub set
 	}
 	else
 	{
+		$link_state = $p_state if $self->can('level');
 		return $self->Insteon::DeviceController::set($link_state, $p_setby, $p_respond);
 	}
 
 	return 0;
 
+}
+
+=item C<update_flags(flags)>
+
+Can be used to set the button layout and light level on a keypadlinc.  Flag 
+options include:
+
+    '0a' - 8 button; backlighting dim
+    '06' - 8 button; backlighting off
+    '02' - 8 button; backlighting normal
+
+    '08' - 6 button; backlighting dim
+    '04' - 6 button; backlighting off
+    '00' - 6 button; backlighting normal
+
+=cut
+
+sub update_flags
+{
+	my ($self, $flags) = @_;
+	return unless defined $flags;
+	if ($self->engine_version ne 'I1') {
+		$self->_aldb->update_flags($flags) if $self->_aldb;
+	}
+	else {
+		if ($flags & 0x02) {
+			$self->set_operating_flags('8_key_mode');
+		} 
+		else {
+			$self->set_operating_flags('6_key_mode');	
+		}
+		if ($flags & 0x04) {
+			$self->set_operating_flags('led_off');
+		}
+		else {
+			$self->set_operating_flags('led_enabled');	
+		}
+		if ($flags & 0x08) {
+			$self->set_operating_flags('resume_dim_on');
+		}
+		else {
+			$self->set_operating_flags('resume_dim_off');
+		}
+	}
 }
 
 =back
@@ -822,7 +882,7 @@ package Insteon::KeyPadLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::KeyPadLinc::ISA = ('Insteon::DimmableLight','Insteon::DeviceController');
+@Insteon::KeyPadLinc::ISA = ('Insteon::KeyPadLincRelay', 'Insteon::DimmableLight','Insteon::DeviceController');
 
 =item C<new()>
 
@@ -833,55 +893,9 @@ Instantiates a new object.
 sub new
 {
 	my ($class,$p_deviceid,$p_interface) = @_;
-
 	my $self = new Insteon::DimmableLight($p_deviceid,$p_interface);
 	bless $self,$class;
 	return $self;
-}
-
-=item C<set(state[,setby,response])>
-
-Handles setting and receiving states from the device and specifically its 
-subordinate buttons.
-
-NOTE: This could be merged somehow with the set() function in 
-C<Insteon::KeyPadLincRelay>
-
-=cut
-
-sub set
-{
-	my ($self, $p_state, $p_setby, $p_respond) = @_;
-
-	if (!($self->is_root))
-	{
-		my $rslt_code = $self->Insteon::BaseController::set($p_state, $p_setby, $p_respond);
-		return $rslt_code if $rslt_code;
-
-		my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
-
-		if (ref $p_setby and $p_setby->isa('Insteon::BaseDevice'))
-		{
-			$self->Insteon::BaseObject::set($p_state, $p_setby, $p_respond);
-		}
-		elsif (ref $$self{surrogate} && ($$self{surrogate}->isa('Insteon::InterfaceController')))
-		{
-			$$self{surrogate}->set($link_state, $p_setby, $p_respond)
-				unless ref $p_setby and $p_setby eq $self;
-		}
-		else
-		{
-			&::print_log("[Insteon::KeyPadLinc] You may not directly attempt to set a keypadlinc's button "
-				. "unless you have defined a reverse link with the \"surrogate\" keyword");
-		}
-	}
-	else
-	{
-		return $self->Insteon::DeviceController::set($p_state, $p_setby, $p_respond);
-	}
-
-	return 0;
-
 }
 
 =back
