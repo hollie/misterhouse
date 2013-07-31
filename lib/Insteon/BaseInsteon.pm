@@ -1156,6 +1156,7 @@ our %message_types = (
    peek => 0x2b,
    peek_internal => 0x2c,
    poke_internal => 0x2d,
+   extended_set_get => 0x2e,
    read_write_aldb => 0x2f,
 );
 

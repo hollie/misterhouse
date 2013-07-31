@@ -225,6 +225,10 @@ percentage from 0%-100%.
 
 This setting can be pushed to the device using C<update_local_properties>.
 
+Parameters: level [0-100]
+
+Returns: [0-100]
+
 =cut
 
 sub local_onlevel
@@ -246,6 +250,10 @@ equal to of the closest below this time.
 
 This setting can be pushed to the device using C<update_local_properties>.
 
+Parameters: rate = ramp rate [.1s - 540s] see C<convert_ramp> for valid values
+
+Returns: hexadecimal representation of the ramprate.
+
 =cut
 
 sub local_ramprate
@@ -261,22 +269,46 @@ sub local_ramprate
 =item C<update_local_properties()>
 
 Pushes the values set in C<local_onlevel()> and C<local_ramprate()> to the device.
+
+I1 Devices:
+
 The device will only reread these values when it is power-cycled.  This can be
 done by pulling the air-gap for 4 seconds or unplugging the device.
+
+I2 & I2CS Devices
+
+The device will immediately read and update the values.
 
 =cut
 
 sub update_local_properties
 {
 	my ($self) = @_;
-       	$self->_aldb->update_local_properties() if $self->_aldb;
+	if ($self->engine_version eq 'I1'){
+       		$self->_aldb->update_local_properties() if $self->_aldb;
+	}
+	else {
+		#Queue Ramp Rate First
+		my $extra = '000005' . $self->local_ramprate();
+		$extra .= '0' x (30 - length $extra);
+		my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
+		$self->_send_cmd($message);
+		
+		#Now queue on level
+		$extra = '000006' . ::Insteon::DimmableLight::convert_level($self->local_onlevel());
+		$extra .= '0' x (30 - length $extra);
+		$message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
+		$self->_send_cmd($message);
+	}
 }
 
 =item C<level(p_level)>
 
-Takes the p_level, and stores it as a numeric level in memory.  If the p_level 
+Stores and returns the objects current on_level as a percentage. If p_level 
 is ON and the device has a defined local_onlevel, the local_onlevel is stored 
 as the numeric level in memory.
+
+Returns [0-100]
 
 =cut
 
