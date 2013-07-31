@@ -60,6 +60,31 @@ sub level
 
 }
 
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds},
+        'on' => "$object_name->set(\"on\")",
+        'off' => "$object_name->set(\"off\")"
+    );
+    return \%voice_cmds;
+}
+
 =back
 
 =head2 AUTHOR
@@ -252,6 +277,36 @@ sub level
 	}
 	return $$self{level};
 
+}
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my $insteon_menu_states = $main::config_parms{insteon_menu_states} if $main::config_parms{insteon_menu_states};
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds},
+        'update onlevel/ramprate' => "$object_name->update_local_properties"
+    );
+    if ($insteon_menu_states){
+        foreach my $state (split(/,/,$insteon_menu_states)) {
+            $voice_cmds{$state} = "$object_name->set(\"$state\")";
+        }
+    }
+    return \%voice_cmds;
 }
 
 =back
@@ -683,6 +738,62 @@ sub set
 
 }
 
+=item C<update_flags(flags)>
+
+Can be used to set the button layout and light level on a keypadlinc.  Flag 
+options include:
+
+    '0a' - 8 button; backlighting dim
+    '06' - 8 button; backlighting off
+    '02' - 8 button; backlighting normal
+
+    '08' - 6 button; backlighting dim
+    '04' - 6 button; backlighting off
+    '00' - 6 button; backlighting normal
+
+=cut
+
+sub update_flags
+{
+    my ($self, $flags) = @_;
+	return unless defined $flags;
+	$self->_aldb->update_flags($flags) if $self->_aldb;
+}
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds}
+    );
+    if ($self->is_root){
+        %voice_cmds = (
+            %voice_cmds,
+            'set 8 button - backlight dim' => "$object_name->update_flags(\"0a\")",
+            'set 8 button - backlight off' => "$object_name->update_flags(\"06\")",
+            'set 8 button - backlight normal' => "$object_name->update_flags(\"02\")",
+            'set 6 button - backlight dim' => "$object_name->update_flags(\"08\")",
+            'set 6 button - backlight off' => "$object_name->update_flags(\"04\")",
+            'set 6 button - backlight normal' => "$object_name->update_flags(\"00\")"
+        );
+    }
+    return \%voice_cmds;
+}
+
 =back
 
 =head2 AUTHOR
@@ -796,6 +907,62 @@ sub set
 
 	return 0;
 
+}
+
+=item C<update_flags(flags)>
+
+Can be used to set the button layout and light level on a keypadlinc.  Flag 
+options include:
+
+    '0a' - 8 button; backlighting dim
+    '06' - 8 button; backlighting off
+    '02' - 8 button; backlighting normal
+
+    '08' - 6 button; backlighting dim
+    '04' - 6 button; backlighting off
+    '00' - 6 button; backlighting normal
+
+=cut
+
+sub update_flags
+{
+    my ($self, $flags) = @_;
+    return unless defined $flags;
+	$self->_aldb->update_flags($flags) if $self->_aldb;
+}
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds}
+    );
+    if ($self->is_root){
+        %voice_cmds = (
+            %voice_cmds,
+            'set 8 button - backlight dim' => "$object_name->update_flags(\"0a\")",
+            'set 8 button - backlight off' => "$object_name->update_flags(\"06\")",
+            'set 8 button - backlight normal' => "$object_name->update_flags(\"02\")",
+            'set 6 button - backlight dim' => "$object_name->update_flags(\"08\")",
+            'set 6 button - backlight off' => "$object_name->update_flags(\"04\")",
+            'set 6 button - backlight normal' => "$object_name->update_flags(\"00\")"
+        );
+    }
+    return \%voice_cmds;
 }
 
 =back
