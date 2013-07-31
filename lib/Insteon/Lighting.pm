@@ -712,7 +712,7 @@ use Insteon::BaseInsteon;
 
 @Insteon::KeyPadLincRelay::ISA = ('Insteon::BaseLight','Insteon::DeviceController');
 
-my %operating_flags = (
+our %operating_flags = (
    'program_lock_on' => '00',
    'program_lock_off' => '01',
    'led_on_during_tx' => '02',
@@ -736,8 +736,8 @@ Instantiates a new object.
 sub new
 {
 	my ($class,$p_deviceid,$p_interface) = @_;
-
 	my $self = new Insteon::BaseLight($p_deviceid,$p_interface);
+	$$self{operating_flags} = \%operating_flags;
 	bless $self,$class;
 	return $self;
 }
@@ -809,22 +809,22 @@ sub update_flags
 	}
 	else {
 		if ($flags & 0x02) {
-			$self->set_operating_flags('8_key_mode');
+			$self->set_operating_flag('8_key_mode');
 		} 
 		else {
-			$self->set_operating_flags('6_key_mode');	
+			$self->set_operating_flag('6_key_mode');	
 		}
 		if ($flags & 0x04) {
-			$self->set_operating_flags('led_off');
+			$self->set_operating_flag('led_off');
 		}
 		else {
-			$self->set_operating_flags('led_enabled');	
+			$self->set_operating_flag('led_enabled');	
 		}
 		if ($flags & 0x08) {
-			$self->set_operating_flags('resume_dim_on');
+			$self->set_operating_flag('resume_dim_on');
 		}
 		else {
-			$self->set_operating_flags('resume_dim_off');
+			$self->set_operating_flag('resume_dim_off');
 		}
 	}
 }
@@ -894,6 +894,7 @@ sub new
 {
 	my ($class,$p_deviceid,$p_interface) = @_;
 	my $self = new Insteon::DimmableLight($p_deviceid,$p_interface);
+	$$self{operating_flags} = \%Insteon::KeyPadLincRelay::operating_flags;
 	bless $self,$class;
 	return $self;
 }

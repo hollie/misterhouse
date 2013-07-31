@@ -545,7 +545,7 @@ sub derive_message
 	if (!(defined $p_extra)) {
 		if ($command eq 'on')
 		{
-			if ($self->isa('Insteon::BaseDevice') && defined $self->local_onlevel) {
+			if ($self->can('local_onlevel') && defined $self->local_onlevel) {
 				$level = 2.55 * $self->local_onlevel;
 				$command = 'on_fast';
 			} else {
