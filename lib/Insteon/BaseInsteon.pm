@@ -3005,6 +3005,8 @@ sub get_voice_cmds
     my $group = $self->group;
     my %voice_cmds = (
         %{$self->SUPER::get_voice_cmds},
+	'on' => "$object_name->set(\"on\")",
+	'off' => "$object_name->set(\"off\")",
         'initiate linking as controller' => "$object_name->initiate_linking_as_controller(\"$group\")",
         'cancel linking' => "$object_name->interface()->cancel_linking"
     );
