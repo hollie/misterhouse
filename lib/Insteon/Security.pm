@@ -488,6 +488,36 @@ sub is_responder
    return 0;
 }
 
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds},
+        'enable night only' => "$object_name->enable_night_only(1)",
+        'disable night only' => "$object_name->enable_night_only(0)",
+        'enable on only mode' => "$object_name->enable_on_only(1)",
+        'disable on only mode' => "$object_name->enable_on_only(0)",
+        'enable all motion mode' => "$object_name->enable_all_motion(1)",
+        'disable all motion mode' => "$object_name->enable_all_motion(0)"
+    );
+    return \%voice_cmds;
+}
+
+
 =back
 
 =head2 AUTHOR
