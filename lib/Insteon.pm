@@ -704,87 +704,37 @@ sub generate_voice_commands
     for my $object (&main::list_all_objects) {
         next unless ref $object;
         next unless $object->isa('Insteon::BaseInterface') or $object->isa('Insteon::BaseObject');
+        
+        #get object name to use as part of variable in voice command
         my $object_name = $object->get_object_name;
-        # ignore the thermostat
-        next if $object->isa('Insteon_Thermostat');
+        my $object_name_v = $object_name . '_v';
+        $object_string .= "use vars '${object_name}_v';\n";
+        
+        #Convert object name into readable voice command words
         my $command = $object_name;
         $command =~ s/^\$//;
         $command =~ tr/_/ /;
-        my $object_name_v = $object_name . '_v';
-        $object_string .= "use vars '${object_name}_v';\n";
-        my $states = 'on,off';
+        
         my $group = ($object->isa('Insteon_PLM')) ? '' : $object->group;
-        if ($object->isa('Insteon::BaseController')) {
-           $states = 'on,off,sync links'; #,resume,enroll,unenroll,manual';
-           my $cmd_states = $states;
-           if ($object->isa('Insteon::InterfaceController')) {
-              $cmd_states .= ',initiate linking as controller,cancel linking';
-           } else {
-              $cmd_states .= ",link to interface,unlink with interface";
-           }
-           if ($object->is_root and !($object->isa('Insteon::InterfaceController'))) {
-              $cmd_states .= ",status,get engine version,scan link table,log links";
-              push @_scannable_link, $object_name;
-           }
-           $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->initiate_linking_as_controller(\"$group\")', 'initiate linking as controller');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->interface()->cancel_linking','cancel linking');\n\n";
-           if ($object->is_root and !($object->isa('Insteon::InterfaceController'))) {
-              $object_string .= "$object_name_v -> tie_event('$object_name->link_to_interface','link to interface');\n\n";
-              $object_string .= "$object_name_v -> tie_event('$object_name->unlink_to_interface','unlink with interface');\n\n";
-              $object_string .= "$object_name_v -> tie_event('$object_name->request_status','status');\n\n";
-              $object_string .= "$object_name_v -> tie_event('$object_name->get_engine_version','get engine version');\n\n";
-              $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','scan link table');\n\n";
-              $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table()','log links');\n\n";
-           }
-           $object_string .= "$object_name_v -> tie_event('$object_name->sync_links(0)','sync links');\n\n";
-           $object_string .= "$object_name_v -> tie_items($object_name, 'on');\n\n";
-           $object_string .= "$object_name_v -> tie_items($object_name, 'off');\n\n";
-           $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_link_commands');
-           push @_insteon_link, $object_name;
-        } elsif ($object->isa('Insteon::BaseDevice')) {
-           my $cmd_states = "$states,status,get engine version,scan link table,log links,update onlevel/ramprate"; #,on level,ramp rate";
-           $cmd_states .= ",link to interface,unlink with interface" if $object->isa("Insteon::BaseController") || $object->is_controller;
-           $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
-           foreach my $state (split(/,/,$states)) {
-              $object_string .= "$object_name_v -> tie_items($object_name, '$state');\n\n";
-           }
-           $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table()','log links');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->request_status','status');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->get_engine_version','get engine version');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->update_local_properties','update onlevel/ramprate');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','scan link table');\n\n";
-           if ($object->isa("Insteon::BaseController") || $object->is_controller) {
-              $object_string .= "$object_name_v -> tie_event('$object_name->link_to_interface','link to interface');\n\n";
-              $object_string .= "$object_name_v -> tie_event('$object_name->unlink_to_interface','unlink with interface');\n\n";
-           }
-# the remote_set_button_taps provide incorrect/inconsistent results
-#           $object_string .= "$object_name_v -> tie_event('$object_name->remote_set_button_tap(1)','on level');\n\n";
-#           $object_string .= "$object_name_v -> tie_event('$object_name->remote_set_button_tap(2)','ramp rate');\n\n";
-           $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_item_commands');
-           push @_insteon_device, $object_name if $group eq '01'; # don't allow non-base items to participate
-        } elsif ($object->isa('Insteon_PLM')) {
-           my $cmd_states = "complete linking as responder,initiate linking as controller,cancel linking,delete link with PLM,scan link table,log links,delete orphan links,AUDIT - delete orphan links,scan all device link tables,scan changed device link tables,sync all links,AUDIT - sync all links";
-           $cmd_states .= ",log all device ALDB status";
-           $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->complete_linking_as_responder','complete linking as responder');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->initiate_linking_as_controller','initiate linking as controller');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->initiate_unlinking_as_controller','initiate unlinking');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->cancel_linking','cancel linking');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table','log links');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','scan link table');\n\n";
-           $object_string .= "$object_name_v -> tie_event('&Insteon::scan_all_linktables(1)','scan changed device link tables');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->delete_orphan_links','delete orphan links');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->delete_orphan_links(1)','AUDIT - delete orphan links');\n\n";
-           $object_string .= "$object_name_v -> tie_event('&Insteon::scan_all_linktables','scan all device link tables');\n\n";
-           $object_string .= "$object_name_v -> tie_event('&Insteon::sync_all_links(0)','sync all links');\n\n";
-           $object_string .= "$object_name_v -> tie_event('&Insteon::sync_all_links(1)','AUDIT - sync all links');\n\n";
-           $object_string .= "$object_name_v -> tie_event('&Insteon::log_all_ADLB_status','log all device ALDB status');\n\n";
-           $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_PLM_commands');
-           push @_insteon_plm, $object_name;
+        
+        #Get list of all voice commands from the object
+        my $voice_cmds = $object->get_voice_cmds();
+        
+        #Initialize the voice command with all of the possible device commands
+        $object_string .= "$object_name_v  = new Voice_Cmd '$command [" 
+            . join(",", sort keys %$voice_cmds) . "]';\n";
+        
+        #Tie the proper routine to each voice command
+        foreach (keys %$voice_cmds) {
+            $object_string .= "$object_name_v -> tie_event('" . $voice_cmds->{$_}
+                . "', '$_');\n\n";
         }
+        
+        #Add this object to the list of Insteon Voice Commands on the Web Interface
+        $object_string .= ::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_PLM_commands');
     }
 
+    #Evaluate the resulting object generating string
     package main;
     eval $object_string;
     print "Error in insteon_item_commands: $@\n" if $@;

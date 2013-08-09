@@ -101,6 +101,8 @@ sub new
 	$self->restore_data('default_hop_count', 'engine_version');
 
 	$self->initialize();
+	$$self{max_hops} = 3;
+	$$self{min_hops} = 0;
 	$$self{level} = undef;
 	$$self{flag} = "0F";
 	$$self{ackMode} = "1";
@@ -112,6 +114,7 @@ sub new
 	$$self{_onlevel} = undef;
 	$$self{is_responder} = 1;
         $$self{default_hop_count} = 0;
+	$$self{timeout_factor} = 1.0;
 
 	&Insteon::add($self);
 	return $self;
@@ -196,6 +199,54 @@ sub group
 	return $$self{m_group};
 }
 
+=item C<timeout_factor($float)>
+
+Changes the amount of time MH will wait to receive a response from a device before
+resending the message.  The value set will be multiplied by the predefined value
+in MH.  $float can be set to any positive decimal number.  For example using 1.0
+will not change the preset values; 1.1 will increase the time MH waits by 10%; and
+0.9 will force MH to wait for only 90% of the predefined time.
+
+This value is NOT saved on reboot, as such likely should be called in a $Reload loop.
+
+=cut
+
+sub timeout_factor {
+	my ($self, $factor) = @_;
+	$$self{timeout_factor} = $factor if $factor;
+	return $$self{timeout_factor};
+}
+
+=item C<max_hops($int)>
+
+Sets the maximum number of hops that may be used in a message sent to the device.
+The default and maximum number is 3.  $int is an integer between 0-3.
+
+This value is NOT saved on reboot, as such likely should be called in a $Reload loop.
+
+=cut
+
+sub max_hops {
+	my ($self, $hops) = @_;
+	$$self{max_hops} = $hops if $hops;
+	return $$self{max_hops};
+}
+
+=item C<min_hops($int)>
+
+Sets the minimum number of hops that may be used in a message sent to the device.
+The default and minimum number is 0.  $int is an integer between 0-3.
+
+This value is NOT saved on reboot, as such likely should be called in a $Reload loop.
+
+=cut
+
+sub min_hops {
+	my ($self, $hops) = @_;
+	$$self{min_hops} = $hops if $hops;
+	return $$self{min_hops};
+}
+
 =item C<default_hop_count([hops])>
 
 Used to track the number of hops needed to reach a device.  Will store the past
@@ -225,6 +276,10 @@ sub default_hop_count
 		$high = $_ if ($high < $_);;
 	}
 	$$self{default_hop_count} = $high;
+	$$self{default_hop_count} = $$self{max_hops} if ($$self{max_hops} &&
+		$$self{default_hop_count} > $$self{max_hops});
+	$$self{default_hop_count} = $$self{min_hops} if ($$self{min_hops} &&
+		$$self{default_hop_count} < $$self{min_hops});
         return $$self{default_hop_count};
 }
 
@@ -1012,6 +1067,34 @@ sub failure_reason
         my ($self, $reason) = @_;
         $$self{failure_reason} = $reason if $reason;
         return $$self{failure_reason};
+}
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my %voice_cmds = (
+        #The Sync Links routine really resides in DeviceController, but that
+        #class seems a little redundant as in practice all devices are controllers
+        #in some sense.  As a result, that class will likely be folded into 
+        #BaseObject/Device at some future date.  In order to avoid a bizarre
+        #inheritance of this routine by higher classes, this command was placed
+        #here
+        'sync links' => $self->get_object_name . '->sync_links(0)'
+    );
+    return \%voice_cmds;
 }
 
 =back
@@ -1939,36 +2022,6 @@ sub update_local_properties
 	}
 }
 
-=item C<update_flags(flags)>
-
-Can be used to set the button layout and light level on a keypadlinc.  Flag 
-options include:
-
-    '0a' - 8 button; backlighting dim
-    '06' - 8 button; backlighting off
-    '02' - 8 button; backlighting normal
-
-    '08' - 6 button; backlighting dim
-    '04' - 6 button; backlighting off
-    '00' - 6 button; backlighting normal
-
-Note: This routine will likely be moved to L<Insteon::KeypadLinc|Insteon::Lighting/Insteon::KeypadLinc> at some point.
-
-=cut
-
-sub update_flags
-{
-	my ($self, $flags) = @_;
-	if (!($self->isa('Insteon::KeyPadLinc') or $self->isa('Insteon::KeyPadLincRelay')))
-        {
-		&::print_log("[Insteon::BaseDevice] Operating flags may only be revised on keypadlincs!");
-		return;
-	}
-	return unless defined $flags;
-
-	$self->_aldb->update_flags($flags) if $self->_aldb;
-}
-
 =item C<engine_version>
 
 Sets or gets the device object engine version.  If setting the engine version, 
@@ -2374,6 +2427,40 @@ sub check_aldb_version
 			if $@ and $main::Debug{insteon};
 		package Insteon::BaseDevice;
 	}
+}
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds},
+        'link to interface' => "$object_name->link_to_interface",
+        'unlink with interface' => "$object_name->unlink_to_interface"
+    );
+    if ($self->is_root){
+        %voice_cmds = (
+            %voice_cmds,
+            'status' => "$object_name->request_status",
+            'get engine version' => "$object_name->get_engine_version",
+            'scan link table' => "$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")",
+            'log links' => "$object_name->log_alllink_table()"
+        )
+    }
+    return \%voice_cmds;
 }
 
 =back
@@ -3295,6 +3382,34 @@ sub set
 sub is_root
 {
    return 0;
+}
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my $group = $self->group;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds},
+	'on' => "$object_name->set(\"on\")",
+	'off' => "$object_name->set(\"off\")",
+        'initiate linking as controller' => "$object_name->initiate_linking_as_controller(\"$group\")",
+        'cancel linking' => "$object_name->interface()->cancel_linking"
+    );
+    return \%voice_cmds;
 }
 
 =back

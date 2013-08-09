@@ -875,6 +875,41 @@ sub _is_duplicate_received {
 	return $is_duplicate;
 }
 
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds = (
+        'complete linking as responder' => "$object_name->complete_linking_as_responder",
+        'initiate linking as controller' => "$object_name->initiate_linking_as_controller",
+        'initiate unlinking' => "$object_name->initiate_unlinking_as_controller",
+        'cancel linking' => "$object_name->cancel_linking",
+        'log links' => "$object_name->log_alllink_table",
+        'scan link table' => "$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")",
+        'scan changed device link tables' => "Insteon::scan_all_linktables(1)",
+        'delete orphan links' => "$object_name->delete_orphan_links",
+        'AUDIT - delete orphan links' => "$object_name->delete_orphan_links(1)",
+        'scan all device link tables' => "Insteon::scan_all_linktables",
+        'sync all links' => "Insteon::sync_all_links(0)",
+        'AUDIT - sync all links' => "Insteon::sync_all_links(1)",
+        'log all device ALDB status' => "Insteon::log_all_ADLB_status"
+    );
+    return \%voice_cmds;
+}
+
 =back
 
 =head2 INI PARAMETERS
