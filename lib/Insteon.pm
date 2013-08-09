@@ -107,6 +107,25 @@ See the workflow described in C<Delete Orphan Links>.
 Same as C<Sync All Links> but prints what it would do to the log, without doing
 anything else.
 
+=item C<print all message stats>
+
+Prints the message stats for all devices plus a summary of the entire network
+stats.
+
+=item C<reset all message stats>
+
+Resets all the message stats for all devices including the Unk_Error stat.
+
+=item C<stress test All devices>
+
+Performs a 5 count stress test on all devices on the network.  See the description
+of what a stress test is under the device voice commands.
+
+=item C<ping test All devices>
+
+Performs a 5 count ping test on all devices on the network.  See the description
+of what a ping test is under the device voice commands.
+
 =item C<Log All Device ALDB Status>
 
 Logs some details about each device to the log.  See C<log_all_ADLB_status()>
@@ -117,54 +136,78 @@ Logs some details about each device to the log.  See C<log_all_ADLB_status()>
 
 =over
 
-=item on
+=item C<on>
 
 Turns the device on.
 
-=item off
+=item C<off>
 
 Turns the device off.
 
-=item Sync Links
+=item C<Sync Links>
 
 Similar to C<Sync All Links> above, but this will only add links that are related
 to this device.  Useful when adding a new device.
 
-=item Link to Interface
+=item C<Link to Interface>
 
 Will create the controller/responder links between the device and the PLM.
 
-=item Unlink with Interface
+=item C<Unlink with Interface>
 
 Will delete the controller/responder links between the device and the PLM.  
 Useful if you are removing a device from your network.
 
-=item Status
+=item C<Status>
 
 Requests the status of the device.
 
-=item Get Engine Version
+=item C<Get Engine Version>
 
 Requests the engine version of the device.  Generally you would not need to call
 this, but every now and then it is needed when a new device is installed.
 
-=item Scan Link Table
+=item C<Scan Link Table>
 
 This will scan and output to the log only the link table of this device.
 
-=item Log Links
+=item C<Log Links>
 
 Will output to the log only the link table of this device.
 
-=item Initiate Linking as Controller
+=item C<Initiate Linking as Controller>
 
 Generally only available for PLM Scenes.  This places the PLM in linking mode
 and adds any device which the set button is pressed for 4 seconds as a responder
 to this scene.  Generally not needed.
 
-=item Cancel Linking
+=item C<Cancel Linking>
 
 Cancels the above linking session without creating a link.
+
+=item C<Run Stress Test>
+
+Simulates a read of a 5 link addresses from the device.  This routine is meant to 
+be used as a diagnostic tool.
+
+This is also similar to the C<ping> test, however, rather than simply requesting
+an ACK, this requests a full set of data equivalent to a link entry.  Similar to
+C<ping> this should be used with C<print_message_log> to diagnose issues and try
+different settings.
+
+=item C<Run Ping Test>
+
+Sends 5 ping messages to the device.  A ping message is a basic 
+message that simply asks the device to respond with an ACKnowledgement.  For
+i1 devices this will send a standard length command, for i2 and i2cs devices
+this will send an extended ping command.  In both cases, the device responds
+back with a standard length ACKnowledgement only.
+
+Much like the ping command in IP networks, this command is useful for testing the
+connectivity of a device on your network.  You likely want to use this in 
+conjunction with the C<print_message_log> routine.  For example, you can use 
+this to compare the message stats for a device when changing settings in 
+MisterHouse.
 
 =back
 

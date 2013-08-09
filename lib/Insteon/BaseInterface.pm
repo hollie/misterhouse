@@ -903,6 +903,8 @@ sub get_voice_cmds
         'AUDIT - sync all links' => "Insteon::sync_all_links(1)",
         'print all message stats' => "Insteon::print_all_message_stats",
         'reset all message stats' => "Insteon::reset_all_message_stats",
+        'stress test ALL devices' => "Insteon::stress_test_all(5,1)",
+        'ping test ALL devices' => "Insteon::ping_all(5)",
         'log all device ALDB status' => "Insteon::log_all_ADLB_status"
     );
     return \%voice_cmds;

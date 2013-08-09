@@ -2534,6 +2534,8 @@ sub get_voice_cmds
             'scan link table' => "$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")",
             'print message stats' => "$object_name->print_message_stats",
             'reset message stats' => "$object_name->reset_message_stats",
+            'run stress test' => "$object_name->stress_test(5)",
+            'run ping test' => "$object_name->ping(5)",
             'log links' => "$object_name->log_alllink_table()"
         )
     }
