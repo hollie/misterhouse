@@ -133,12 +133,6 @@ sub initialize
 	$$self{m_write} = 1;
 	$$self{m_is_locally_set} = 0;
 	# persist local, simple attribs
-
-        # do we really need to ping the devices anymore for a devcat?
-	$$self{ping_timer} = new Timer();
-	$$self{ping_timerTime} = 300;
-#	$$self{ping_timer}->set($$self{ping_timerTime} + (rand() * $$self{ping_timerTime}), $self)
-#		unless $self->group eq '01' and defined $self->devcat;
 }
 
 =item C<interface([interface])>
@@ -337,14 +331,7 @@ sub set
 		delete $$self{set_timer};
 	}
 
-	# did the queue timer go off?
-	if (ref $p_setby and $p_setby eq $$self{ping_timer}) {
-		if (! (defined($$self{devcat}))) {
-			$self->ping();
-			# set the timer again in case nothing occurs
-			$$self{ping_timer}->set($$self{ping_timerTime} + (rand() * $$self{ping_timerTime}), $self);
-		}
-	} elsif ($self->_is_valid_state($p_state)) {
+	if ($self->_is_valid_state($p_state)) {
 		# always reset the is_locally_set property unless set_by is the device
 		$$self{m_is_locally_set} = 0 unless ref $p_setby and $p_setby eq $self;
 
@@ -802,6 +789,17 @@ sub _process_message
                         		$clear_message = 0;
                         	}
 			}
+			elsif ($pending_cmd eq 'ping'){
+				$corrupt_cmd = 1 if ($msg{cmd_code} ne $self->message_type_hex($pending_cmd));
+				$corrupt_cmd = 1 if ($msg{extra} ne sprintf ("%02d", $$self{ping_count}));
+				if (!$corrupt_cmd){
+					$self->_process_command_stack(%msg);
+					&::print_log("[Insteon::BaseObject] received ping acknowledgement from " . $self->{object_name})
+						if $main::Debug{insteon};
+					$self->ping();
+					$clear_message = 1;
+				}
+			}
 			else
                         {
 				if (($pending_cmd eq 'do_read_ee') && 
@@ -891,9 +889,9 @@ sub _process_message
 		}
 	} elsif ($msg{type} eq 'broadcast') {
 		$self->devcat($msg{devcat});
-		&::print_log("[Insteon::BaseObject] device category: $msg{devcat} received for " . $self->{object_name});
-		# stop ping timer now that we have a devcat; possibly may want to change this behavior to allow recurring pings
-		$$self{ping_timer}->stop();
+		$self->firmware($msg{firmware});
+		&::print_log("[Insteon::BaseObject] device category: $msg{devcat}"
+			. " firmware: $msg{firmware} received for " . $self->{object_name});
 	} else {
 		## TO-DO: make sure that the state passed by command is something that is reasonable to set
 		$p_state = $msg{command};
@@ -962,12 +960,14 @@ sub _process_command_stack
                         	or $message->command eq 'poke'
                         	or $message->command eq 'status_request'
                                 or $message->command eq 'get_engine_version'
+                                or $message->command eq 'id_request'
                                 or $message->command eq 'do_read_ee'
                                 or $message->command eq 'set_address_msb'
                                 or $message->command eq 'sensor_status'
                                 or $message->command eq 'set_operating_flags'
                                 or $message->command eq 'get_operating_flags'
                                 or $message->command eq 'read_write_aldb'
+                                or $message->command eq 'ping'
                                 )
                         {
 				$$self{awaiting_ack} = 1;
@@ -1169,7 +1169,8 @@ our %message_types = (
    linking_mode => 0x09,
    unlinking_mode => 0x0A,
    get_engine_version => 0x0D,
-   ping => 0x10,
+   ping => 0x0F,
+   id_request => 0x10,
    on_fast => 0x12,
    off_fast => 0x14,
    start_manual_change => 0x17,
@@ -1233,7 +1234,7 @@ sub new
            $$self{aldb} = new Insteon::ALDB_i1($self);
         }
 
-	$self->restore_data('level', 'retry_count_log', 'fail_count_log', 
+	$self->restore_data('devcat', 'firmware', 'level', 'retry_count_log', 'fail_count_log', 
         'outgoing_count_log', 'incoming_count_log', 'corrupt_count_log',
         'dupe_count_log', 'hops_left_count', 'max_hops_count',
         'outgoing_hop_count');
@@ -1276,10 +1277,6 @@ sub initialize
 	$$self{m_write} = 1;
 	$$self{m_is_locally_set} = 0;
 	# persist local, simple attribs
-
-        # do we really need to ping the devices anymore for a devcat?
-	$$self{ping_timer} = new Timer();
-	$$self{ping_timerTime} = 300;
 }
 
 =item C<rate([rate])>
@@ -1811,18 +1808,64 @@ sub _get_engine_version_failure
 	}
 }
 
-=item C<ping()>
+=item C<ping([count])>
 
-Sends a ping command to the device.
+Sends the number of ping messages defined by count.  A ping message is a basic 
+message that simply asks the device to respond with an ACKnowledgement.  For
+i1 devices this will send a standard length command, for i2 and i2cs devices
+this will send an extended ping command.  In both cases, the device responds
+back with a standard length ACKnowledgement only.
 
-=cut 
+Much like the ping command in IP networks, this command is useful for testing the
+connectivity of a device on your network.  You likely want to use this in 
+conjunction with the C<print_message_log> routine.  For example, you can use 
+this to compare the message stats for a device when changing settings in 
+MisterHouse.
+
+Parameters:
+	count = the number of pings to send.
+
+Returns: Nothing.
+
+=cut
 
 sub ping
 {
-	my ($self) = @_;
-        my $message = new Insteon::InsteonMessage('insteon_send', $self, 'ping');
-        $self->_send_cmd($message);
-#	$self->_send_cmd('command' => 'ping');
+	my ($self, $p_count, $p_callback) = @_;
+	$$self{ping_count} = $p_count if defined($p_count);
+	$$self{ping_callback} = $p_callback if defined($p_callback);
+	if ($$self{ping_count}) {
+		$$self{ping_count}--;
+		my $message;
+		my $extra = sprintf("%02d", $$self{ping_count});
+		if (uc($self->engine_version) eq 'I1'){
+	    	$message = new Insteon::InsteonMessage('insteon_send', $self, 
+	    		'ping', $extra);
+		}
+		else {
+			my $extra = $extra . '0' x 28;
+			$message = new Insteon::InsteonMessage('insteon_ext_send', $self, 
+				'ping', $extra);
+		}
+		::print_log("[Insteon::BaseDevice] Sending ping request to " 
+			. $self->get_object_name . " " . $$self{ping_count} 
+			. " more ping requests queued.");
+		$message->failure_callback($self->get_object_name . '->ping()');
+		$self->_send_cmd($message);
+	}
+	else {
+		::print_log("[Insteon::BaseDevice] Completed ping queue for " 
+			. $self->get_object_name);
+		if (defined $$self{ping_callback}){
+			my $complete_callback = $$self{ping_callback};
+			package main;
+			eval ($complete_callback);
+			&::print_log("[Insteon::BaseDevice] error in ping callback: " . $@)
+				if $@ and $main::Debug{insteon};
+			package Insteon::BaseDevice;
+			delete $$self{ping_callback};
+		}
+	}
 }
 
 =item C<set_led_status()>
@@ -1890,7 +1933,8 @@ sub restore_aldb
 
 =item C<devcat()>
 
-NOT USED - Sets and returns the device category of a device.  No longer used.
+Sets and returns the device category of a device.  Devcat can be requested by
+calling C<get_devcat()>.
 
 =cut
 
@@ -1900,12 +1944,36 @@ sub devcat
 	if ($devcat)
         {
 		$$self{devcat} = $devcat;
-		if (($$self{devcat} =~ /^01\w\w/) or ($$self{devcat} =~ /^02\w\w/) && !($self->states))
-                {
-			$self->states( 'on,off' );
-		}
 	}
 	return $$self{devcat};
+}
+
+=item C<get_devcat()>
+
+Requests the device category for the device.  The returned value can be obtained
+by calling C<devcat()>.
+
+=cut
+
+sub get_devcat
+{
+	my ($self) = @_;
+        my $message = new Insteon::InsteonMessage('insteon_send', $self, 'id_request');
+        $self->_send_cmd($message);
+}
+
+=item C<firmware()>
+
+Sets and returns the device's firmware version.  Value can be obtained from the 
+device by calling C<get_devcat()>.
+
+=cut
+
+sub firmware
+{
+	my ($self, $firmware) = @_;
+	$$self{firmware} = $firmware if (defined $firmware);
+	return $$self{firmware};
 }
 
 =item C<states()>
@@ -2041,6 +2109,69 @@ sub outgoing_count_log
     $self = $self->get_root;
     $$self{outgoing_count_log}++ if $outgoing_count_log;
 	return $$self{outgoing_count_log};
+}
+
+=item C<stress_test(count)>
+
+Simulates a read of a link address from the device.  Repeats this process as many
+times as defined by count.  This routine is meant to be used as a diagnostic tool.
+It is similar to scan_link_table, however, if a failure occurs, this process will
+continue with the next iteration.  Scan link table will stop as soon as a single
+failure occurs.
+
+This is also similar to the C<ping> test, however, rather than simply requesting
+an ACK, this requests a full set of data equivalent to a link entry.  Similar to
+C<ping> this should be used with C<print_message_log> to diagnose issues and try
+different settings.
+
+Note: This routine can create a lot of traffic if count is set very high.  Try
+setting it to 5 first and working your way up.
+
+=cut
+
+sub stress_test
+{
+	my ($self, $p_count, $complete_callback) = @_;
+	$$self{stress_test_count} = $p_count if (defined ($p_count));
+	$$self{stress_test_callback} = $complete_callback if (defined ($complete_callback));
+	if ($$self{stress_test_count}){
+		&::print_log("[Insteon::BaseDevice] " . $self->get_object_name 
+			. " - Stress Test " . $$self{stress_test_count} . " iterations left");
+	        my $aldb = $self->get_root()->_aldb;
+	        if ($aldb)
+	        {
+			$$aldb{_mem_activity} = 'scan';
+			$$aldb{_stress_test_act} = 1;
+			$$aldb{_failure_callback} = $self->get_object_name 
+				. '->stress_test()';
+			if($aldb->isa('Insteon::ALDB_i1')) {
+				$aldb->_peek('0FF8');
+			} else {
+				#Prevents duplicate commands in queue error
+				#Also allows for better identification of 
+				#sequential dupe incoming messages
+				my $odd = $$self{stress_test_count} % 2;
+				if ($odd){
+					$aldb->send_read_aldb('0fff');
+				} else {
+					$aldb->send_read_aldb('0ff7');
+				}
+			}
+		}
+		$$self{stress_test_count}--;
+	} else {
+		&::print_log("[Insteon::BaseDevice] Stress Test Complete for " 
+			. $self->get_object_name);	
+		if (defined $$self{stress_test_callback}){
+			$complete_callback = $$self{stress_test_callback};
+			package main;
+			eval ($complete_callback);
+			&::print_log("[Insteon::BaseDevice] error in stress_test callback: " . $@)
+				if $@ and $main::Debug{insteon};
+			package Insteon::BaseDevice;
+			delete $$self{stress_test_callback};
+		}
+	}
 }
 
 =item C<outgoing_hop_count([type]>
@@ -2403,6 +2534,8 @@ sub get_voice_cmds
             'scan link table' => "$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")",
             'print message stats' => "$object_name->print_message_stats",
             'reset message stats' => "$object_name->reset_message_stats",
+            'run stress test' => "$object_name->stress_test(5)",
+            'run ping test' => "$object_name->ping(5)",
             'log links' => "$object_name->log_alllink_table()"
         )
     }
@@ -2480,8 +2613,6 @@ sub new
 	# note that $p_deviceid will be 00.00.00:<groupnum> if the link uses the interface as the controller
 	my $self = {};
 	bless $self,$class;
-# don't apply ping timer to this class
-#	$$self{ping_timer}->stop();
 	return $self;
 }
 
@@ -2818,9 +2949,6 @@ sub set
 	return -1 if (ref $p_setby and ($p_setby ne $self) and $p_setby->can('get_set_by') and
            $p_setby->{set_by} eq $self);
 	return -1 if &main::check_for_tied_filters($self, $p_state);
-
-	# prevent setby internal Insteon_Device timers
-	return -1 if $p_setby eq $$self{ping_timer};
 
 	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
 

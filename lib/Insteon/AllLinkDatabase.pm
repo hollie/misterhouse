@@ -1590,7 +1590,8 @@ sub _on_peek
 				$$self{_mem_action} = 'aldb_flag';
 				# if the device is responding to the peek, then init the link table
 				#   if at the very start of a scan
-				if (lc $$self{_mem_msb} eq '0f' and lc $$self{_mem_lsb} eq 'f8')
+				if (lc $$self{_mem_msb} eq '0f' and lc $$self{_mem_lsb} eq 'f8'
+					&& !$$self{_stress_test_act})
                                 {
 					# reinit the aldb hash as there will be a new one
 					$$self{aldb} = undef;
@@ -1635,7 +1636,14 @@ sub _on_peek
 				$$self{pending_aldb}{inuse} = ($flag & 0x80) ? 1 : 0;
 				$$self{pending_aldb}{is_controller} = ($flag & 0x40) ? 1 : 0;
 				$$self{pending_aldb}{highwater} = ($flag & 0x02) ? 1 : 0;
-				if (!($$self{pending_aldb}{highwater}))
+                        	if ($$self{_stress_test_act} && !($$self{pending_aldb}{highwater})){
+                        		::print_log("[Insteon::ALDB_i1] You need to create a link on this device before running stress_test");
+                        		$$self{_mem_activity} = undef;
+                        		$$self{_mem_action} = undef;
+                        		$$self{_stress_test_act} = 0;
+                        		$$self{device}->stress_test();
+                        	}
+				elsif (!($$self{pending_aldb}{highwater}))
                                 {
 					# since this is the last unused memory location, then add it to the empty list
 					$self->add_empty_address($$self{_mem_msb} . $$self{_mem_lsb});
@@ -1836,8 +1844,14 @@ sub _on_peek
                                 	. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
                                         . lc $msg{extra} . " for " .  $$self{_mem_action}) if  $main::Debug{insteon} >= 3;
 				$$self{pending_aldb}{data3} = $msg{extra};
-				# check the previous record if highwater is set
-				if ($$self{pending_aldb}{highwater})
+
+                        	if ($$self{_stress_test_act}){
+                        		$$self{_stress_test_act} = 0;
+                        		$$self{_mem_activity} = undef;
+                        		$$self{_mem_action} = undef;
+                        		$$self{device}->stress_test();
+                        	}
+				elsif ($$self{pending_aldb}{highwater})
                                 {
 					if ($$self{pending_aldb}{inuse})
                                         {
@@ -1907,9 +1921,11 @@ sub _on_peek
                         $message->failure_callback($$self{_failure_callback});
                         $self->_send_cmd($message);
 		}
-#
-#			&::print_log("AllLinkDataBase: peek for " . $self->{object_name}
-#		. " is " . $msg{extra}) if $main::Debug{insteon};
+		else {
+		::print_log("[Insteon::ALDB_i1] " . $$self{device}->get_object_name 
+			. ": unhandled _mem_action=".$$self{_mem_action})
+			if $main::Debug{insteon};
+		}
 	}
 }
 
@@ -2160,6 +2176,12 @@ sub on_read_write_aldb
 			#retry previous address again
 			$self->send_read_aldb(sprintf("%04x", hex($$self{_mem_msb} . $$self{_mem_lsb})));
 		}
+		elsif ($$self{_stress_test_act}){
+			$$self{_mem_activity} = undef;
+                        $$self{_mem_action} = undef;
+                	$$self{_stress_test_act} = 0;
+        		$$self{device}->stress_test();
+        	}
 		else
 		{
 			# init the link table if at the very start of a scan
