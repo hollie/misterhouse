@@ -1951,7 +1951,7 @@ sub update_local_properties
 
 =item C<update_flags()>
 
-Used to update the flags of a device.  Called by L<Insteon::BaseDevice::update_flags()|Insteon::BaseInsteon/Insteon::BaseDevice>.
+Used to update the flags of a device.  Called by L<Insteon::KeyPadLinc::update_flags()|Insteon::Lighting/Insteon::KeyPadLinc>.
 
 =cut
 
@@ -2162,7 +2162,8 @@ sub on_read_write_aldb
 				. $$self{device}->get_object_name
 				. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
 				. lc $msg{extra} . " for " .  $$self{_mem_action}) if  $main::Debug{insteon} >= 3;
-			#retry previous address again
+			$$self{device}->corrupt_count_log(1) if $$self{device}->can('corrupt_count_log');
+            #retry previous address again
 			$self->send_read_aldb(sprintf("%04x", hex($$self{_mem_msb} . $$self{_mem_lsb})));
 		} elsif ($$self{_mem_msb} . $$self{_mem_lsb} ne '0000' and 
 				$$self{_mem_msb} . $$self{_mem_lsb} ne substr($msg{extra},6,4)){
@@ -2171,6 +2172,7 @@ sub on_read_write_aldb
 				. $$self{device}->get_object_name
 				. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
 				. lc $msg{extra} . " for " .  $$self{_mem_action}) if  $main::Debug{insteon} >= 3;
+            $$self{device}->corrupt_count_log(1) if $$self{device}->can('corrupt_count_log');
 			#retry previous address again
 			$self->send_read_aldb(sprintf("%04x", hex($$self{_mem_msb} . $$self{_mem_lsb})));
 		}

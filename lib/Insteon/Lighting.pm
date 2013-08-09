@@ -60,6 +60,31 @@ sub level
 
 }
 
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds},
+        'on' => "$object_name->set(\"on\")",
+        'off' => "$object_name->set(\"off\")"
+    );
+    return \%voice_cmds;
+}
+
 =back
 
 =head2 AUTHOR
@@ -218,11 +243,97 @@ sub new
 	return $self;
 }
 
+=item C<local_onlevel(level)>
+
+Sets and returns the local onlevel for the device in MH only. Level is a 
+percentage from 0%-100%.
+
+This setting can be pushed to the device using C<update_local_properties>.
+
+Parameters: level [0-100]
+
+Returns: [0-100]
+
+=cut
+
+sub local_onlevel
+{
+	my ($self, $p_onlevel) = @_;
+	if (defined $p_onlevel)
+        {
+		my ($onlevel) = $p_onlevel =~ /(\d+)%?/;
+		$$self{_onlevel} = $onlevel;
+	}
+	return $$self{_onlevel};
+}
+
+=item C<local_ramprate(rate)>
+
+Sets and returns the local ramp rate for the device in MH only. Rate is a time
+between .1 and 540 seconds.  Only 32 rate steps exist, to MH will pick a time
+equal to of the closest below this time.
+
+This setting can be pushed to the device using C<update_local_properties>.
+
+Parameters: rate = ramp rate [.1s - 540s] see C<convert_ramp> for valid values
+
+Returns: hexadecimal representation of the ramprate.
+
+=cut
+
+sub local_ramprate
+{
+	my ($self, $p_ramprate) = @_;
+	if (defined $p_ramprate) {
+		$$self{_ramprate} = &Insteon::DimmableLight::convert_ramp($p_ramprate);
+	}
+	return $$self{_ramprate};
+
+}
+
+=item C<update_local_properties()>
+
+Pushes the values set in C<local_onlevel()> and C<local_ramprate()> to the device.
+
+I1 Devices:
+
+The device will only reread these values when it is power-cycled.  This can be
+done by pulling the air-gap for 4 seconds or unplugging the device.
+
+I2 & I2CS Devices
+
+The device will immediately read and update the values.
+
+=cut
+
+sub update_local_properties
+{
+	my ($self) = @_;
+	if ($self->engine_version eq 'I1'){
+       		$self->_aldb->update_local_properties() if $self->_aldb;
+	}
+	else {
+		#Queue Ramp Rate First
+		my $extra = '000005' . $self->local_ramprate();
+		$extra .= '0' x (30 - length $extra);
+		my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
+		$self->_send_cmd($message);
+		
+		#Now queue on level
+		$extra = '000006' . ::Insteon::DimmableLight::convert_level($self->local_onlevel());
+		$extra .= '0' x (30 - length $extra);
+		$message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
+		$self->_send_cmd($message);
+	}
+}
+
 =item C<level(p_level)>
 
-Takes the p_level, and stores it as a numeric level in memory.  If the p_level 
+Stores and returns the objects current on_level as a percentage. If p_level 
 is ON and the device has a defined local_onlevel, the local_onlevel is stored 
 as the numeric level in memory.
+
+Returns [0-100]
 
 =cut
 
@@ -252,6 +363,36 @@ sub level
 	}
 	return $$self{level};
 
+}
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my $insteon_menu_states = $main::config_parms{insteon_menu_states} if $main::config_parms{insteon_menu_states};
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds},
+        'update onlevel/ramprate' => "$object_name->update_local_properties"
+    );
+    if ($insteon_menu_states){
+        foreach my $state (split(/,/,$insteon_menu_states)) {
+            $voice_cmds{$state} = "$object_name->set(\"$state\")";
+        }
+    }
+    return \%voice_cmds;
 }
 
 =back
@@ -626,6 +767,21 @@ use Insteon::BaseInsteon;
 
 @Insteon::KeyPadLincRelay::ISA = ('Insteon::BaseLight','Insteon::DeviceController');
 
+our %operating_flags = (
+   'program_lock_on' => '00',
+   'program_lock_off' => '01',
+   'led_on_during_tx' => '02',
+   'led_off_during_tx' => '03',
+   'resume_dim_on' => '04',
+   'resume_dim_off' => '05',
+   '8_key_mode' => '06',
+   '6_key_mode' => '07',
+   'led_off' => '08',
+   'led_enabled' => '09',
+   'key_beep_enabled' => '0a',
+   'key_beep_off' => '0b'
+);
+
 =item C<new()>
 
 Instantiates a new object.
@@ -635,8 +791,8 @@ Instantiates a new object.
 sub new
 {
 	my ($class,$p_deviceid,$p_interface) = @_;
-
 	my $self = new Insteon::BaseLight($p_deviceid,$p_interface);
+	$$self{operating_flags} = \%operating_flags;
 	bless $self,$class;
 	return $self;
 }
@@ -676,11 +832,90 @@ sub set
 	}
 	else
 	{
+		$link_state = $p_state if $self->can('level');
 		return $self->Insteon::DeviceController::set($link_state, $p_setby, $p_respond);
 	}
 
 	return 0;
 
+}
+
+=item C<update_flags(flags)>
+
+Can be used to set the button layout and light level on a keypadlinc.  Flag 
+options include:
+
+    '0a' - 8 button; backlighting dim
+    '06' - 8 button; backlighting off
+    '02' - 8 button; backlighting normal
+
+    '08' - 6 button; backlighting dim
+    '04' - 6 button; backlighting off
+    '00' - 6 button; backlighting normal
+
+=cut
+
+sub update_flags
+{
+	my ($self, $flags) = @_;
+	return unless defined $flags;
+	if ($self->engine_version eq 'I1') {
+		$self->_aldb->update_flags($flags) if $self->_aldb;
+	}
+	else {
+		if ($flags & 0x02) {
+			$self->set_operating_flag('8_key_mode');
+		} 
+		else {
+			$self->set_operating_flag('6_key_mode');	
+		}
+		if ($flags & 0x04) {
+			$self->set_operating_flag('led_off');
+		}
+		else {
+			$self->set_operating_flag('led_enabled');	
+		}
+		if ($flags & 0x08) {
+			$self->set_operating_flag('resume_dim_on');
+		}
+		else {
+			$self->set_operating_flag('resume_dim_off');
+		}
+	}
+}
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds}
+    );
+    if ($self->is_root){
+        %voice_cmds = (
+            %voice_cmds,
+            'set 8 button - backlight dim' => "$object_name->update_flags(\"0a\")",
+            'set 8 button - backlight off' => "$object_name->update_flags(\"06\")",
+            'set 8 button - backlight normal' => "$object_name->update_flags(\"02\")",
+            'set 6 button - backlight dim' => "$object_name->update_flags(\"08\")",
+            'set 6 button - backlight off' => "$object_name->update_flags(\"04\")",
+            'set 6 button - backlight normal' => "$object_name->update_flags(\"00\")"
+        );
+    }
+    return \%voice_cmds;
 }
 
 =back
@@ -736,7 +971,7 @@ package Insteon::KeyPadLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::KeyPadLinc::ISA = ('Insteon::DimmableLight','Insteon::DeviceController');
+@Insteon::KeyPadLinc::ISA = ('Insteon::KeyPadLincRelay', 'Insteon::DimmableLight','Insteon::DeviceController');
 
 =item C<new()>
 
@@ -747,55 +982,44 @@ Instantiates a new object.
 sub new
 {
 	my ($class,$p_deviceid,$p_interface) = @_;
-
 	my $self = new Insteon::DimmableLight($p_deviceid,$p_interface);
+	$$self{operating_flags} = \%Insteon::KeyPadLincRelay::operating_flags;
 	bless $self,$class;
 	return $self;
 }
 
-=item C<set(state[,setby,response])>
+=item C<get_voice_cmds>
 
-Handles setting and receiving states from the device and specifically its 
-subordinate buttons.
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
 
-NOTE: This could be merged somehow with the set() function in 
-C<Insteon::KeyPadLincRelay>
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
 
-=cut
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
 
-sub set
+=cut 
+
+sub get_voice_cmds
 {
-	my ($self, $p_state, $p_setby, $p_respond) = @_;
-
-	if (!($self->is_root))
-	{
-		my $rslt_code = $self->Insteon::BaseController::set($p_state, $p_setby, $p_respond);
-		return $rslt_code if $rslt_code;
-
-		my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
-
-		if (ref $p_setby and $p_setby->isa('Insteon::BaseDevice'))
-		{
-			$self->Insteon::BaseObject::set($p_state, $p_setby, $p_respond);
-		}
-		elsif (ref $$self{surrogate} && ($$self{surrogate}->isa('Insteon::InterfaceController')))
-		{
-			$$self{surrogate}->set($link_state, $p_setby, $p_respond)
-				unless ref $p_setby and $p_setby eq $self;
-		}
-		else
-		{
-			&::print_log("[Insteon::KeyPadLinc] You may not directly attempt to set a keypadlinc's button "
-				. "unless you have defined a reverse link with the \"surrogate\" keyword");
-		}
-	}
-	else
-	{
-		return $self->Insteon::DeviceController::set($p_state, $p_setby, $p_respond);
-	}
-
-	return 0;
-
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds}
+    );
+    if ($self->is_root){
+        %voice_cmds = (
+            %voice_cmds,
+            'set 8 button - backlight dim' => "$object_name->update_flags(\"0a\")",
+            'set 8 button - backlight off' => "$object_name->update_flags(\"06\")",
+            'set 8 button - backlight normal' => "$object_name->update_flags(\"02\")",
+            'set 6 button - backlight dim' => "$object_name->update_flags(\"08\")",
+            'set 6 button - backlight off' => "$object_name->update_flags(\"04\")",
+            'set 6 button - backlight normal' => "$object_name->update_flags(\"00\")"
+        );
+    }
+    return \%voice_cmds;
 }
 
 =back

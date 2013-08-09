@@ -574,6 +574,156 @@ sub log_all_ADLB_status
 	}
 }
 
+=item C<print_all_message_stats>
+
+Walks through every Insteon device and prints statistical information about
+its message handling, as well as a summary average of the entire network.  See 
+L<Insteon::BaseDevice::print_message_stats|Insteon::BaseInsteon::BaseDevice::print_message_stats> 
+for more detailed information.
+
+This command adds the following extra data points:
+
+=back
+
+=over8
+
+=item * 
+
+Unk_Error - The number of messages which have arrived at the PLM which cannot
+be associated with any know device.
+
+=back
+
+=over
+
+=cut
+
+sub print_all_message_stats
+{
+    my @_log_devices = ();
+	push @_log_devices, Insteon::find_members("Insteon::BaseDevice");
+
+	if (@_log_devices)
+	{
+		#Initialize all of the tracking variables
+		my $retry_average = 0;
+    	my $fail_percentage = 0;
+    	my $corrupt_percentage = 0; 
+    	my $dupe_percentage = 0;
+    	my $avg_hops_left = 0;
+    	my $avg_max_hops = 0;
+		my $avg_out_hops = 0;
+    	my $curr_hops_avg = 0;
+    	
+		my $incoming_count_log = 0;
+		my $corrupt_count_log = 0;
+		my $dupe_count_log = 0;
+		my $retry_count_log = 0;
+		my $outgoing_count_log = 0;
+		my $fail_count_log = 0;
+		my $default_hop_count = 0;
+		my $hops_left_count = 0;
+		my $max_hops_count = 0;
+		my $outgoing_hop_count =0;
+		
+		my $device_count = 0;
+
+		foreach my $current_log_device (@_log_devices)
+		{
+			#Skip non-root items
+			next unless $current_log_device->is_root;
+			
+			$device_count++;
+			
+			#Prints the Individual Message for the Device
+			$current_log_device->print_message_stats;
+			
+			#Add values for each device to the master count
+			$incoming_count_log += $current_log_device->incoming_count_log;
+			$corrupt_count_log += $current_log_device->corrupt_count_log;
+			$dupe_count_log += $current_log_device->dupe_count_log;
+			$retry_count_log += $current_log_device->retry_count_log;
+			$outgoing_count_log += $current_log_device->outgoing_count_log;
+			$fail_count_log += $current_log_device->fail_count_log;
+			$default_hop_count += $current_log_device->default_hop_count;
+			$hops_left_count += $current_log_device->hops_left_count;
+			$max_hops_count += $current_log_device->max_hops_count;
+			$outgoing_hop_count += $current_log_device->outgoing_hop_count;
+		}
+		
+		#Calculate the averages
+	    $retry_average = sprintf("%.1f", ($retry_count_log / 
+	        $outgoing_count_log) + 1) if ($outgoing_count_log > 0); 
+	    $fail_percentage = sprintf("%.1f", ($fail_count_log / 
+	        $outgoing_count_log) * 100 ) if ($outgoing_count_log > 0);
+	    $corrupt_percentage = sprintf("%.1f", ($corrupt_count_log / 
+	        $incoming_count_log) * 100 ) if ($incoming_count_log > 0);
+	    $dupe_percentage = sprintf("%.1f", ($dupe_count_log / 
+	        $incoming_count_log) * 100 ) if ($incoming_count_log > 0);
+	    $avg_hops_left = sprintf("%.1f", ($hops_left_count / 
+	        $incoming_count_log)) if ($incoming_count_log > 0);
+	    $avg_max_hops = sprintf("%.1f", ($max_hops_count / 
+	        $incoming_count_log)) if ($incoming_count_log > 0);
+    	$avg_out_hops = sprintf("%.1f", ($outgoing_hop_count / 
+        	$outgoing_count_log)) if ($outgoing_count_log > 0);
+    	$curr_hops_avg = sprintf("%.1f", ($default_hop_count / 
+        	$device_count)) if ($device_count > 0);
+    	::print_log(
+	        "[Insteon] Average Network Statistics:\n"
+	        . "    In Corrupt %Corrpt  Dupe   %Dupe HopsLeft Max_Hops Act_Hops Unk_Error\n"
+	        . sprintf("%6s", $incoming_count_log)
+	        . sprintf("%8s", $corrupt_count_log)
+	        . sprintf("%8s", $corrupt_percentage . '%')
+	        . sprintf("%6s", $dupe_count_log)
+	        . sprintf("%8s", $dupe_percentage . '%')
+	        . sprintf("%9s", $avg_hops_left)
+	        . sprintf("%9s", $avg_max_hops)
+	        . sprintf("%9s", $avg_max_hops - $avg_hops_left)
+	        . sprintf("%10s", &Insteon::active_interface->corrupt_count_log)
+	        . "\n"
+	        . "   Out    Fail   %Fail Retry AvgSend Avg_Hops CurrHops\n"
+	        . sprintf("%6s", $outgoing_count_log)
+	        . sprintf("%8s", $fail_count_log)
+	        . sprintf("%8s", $fail_percentage . '%')
+	        . sprintf("%6s", $retry_count_log)
+	        . sprintf("%8s", $retry_average)
+	        . sprintf("%9s", $avg_out_hops)
+	        . sprintf("%9s", $curr_hops_avg)
+    	);
+		main::print_log("[Insteon::Print_All_Message_Stats] All devices have completed logging");
+	} else
+	{
+		main::print_log("[Insteon::Print_All_Message_Stats] WARN: No insteon devices could be found");
+	}
+}
+
+=item C<reset_all_message_stats>
+
+Walks through every Insteon device and resets the statistical information about
+its message handling.
+
+=cut
+
+sub reset_all_message_stats
+{
+    my @_log_devices = ();
+    &Insteon::active_interface->reset_message_stats;
+    push @_log_devices, Insteon::find_members("Insteon::BaseDevice");
+
+	if (@_log_devices)
+	{
+		foreach my $current_log_device (@_log_devices)
+		{
+			$current_log_device->reset_message_stats 
+                if $current_log_device->can('reset_message_stats');
+		}
+		main::print_log("[Insteon::Reset_All_Message_Stats] All devices have been reset");
+	} else
+	{
+		main::print_log("[Insteon::Reset_All_Message_Stats] WARN: No insteon devices could be found");
+	}
+}
+
 =item C<init()>
 
 Initiates the insteon stack, mostly just sets the trigger. 
@@ -640,87 +790,37 @@ sub generate_voice_commands
     for my $object (&main::list_all_objects) {
         next unless ref $object;
         next unless $object->isa('Insteon::BaseInterface') or $object->isa('Insteon::BaseObject');
+        
+        #get object name to use as part of variable in voice command
         my $object_name = $object->get_object_name;
-        # ignore the thermostat
-        next if $object->isa('Insteon_Thermostat');
+        my $object_name_v = $object_name . '_v';
+        $object_string .= "use vars '${object_name}_v';\n";
+        
+        #Convert object name into readable voice command words
         my $command = $object_name;
         $command =~ s/^\$//;
         $command =~ tr/_/ /;
-        my $object_name_v = $object_name . '_v';
-        $object_string .= "use vars '${object_name}_v';\n";
-        my $states = 'on,off';
+        
         my $group = ($object->isa('Insteon_PLM')) ? '' : $object->group;
-        if ($object->isa('Insteon::BaseController')) {
-           $states = 'on,off,sync links'; #,resume,enroll,unenroll,manual';
-           my $cmd_states = $states;
-           if ($object->isa('Insteon::InterfaceController')) {
-              $cmd_states .= ',initiate linking as controller,cancel linking';
-           } else {
-              $cmd_states .= ",link to interface,unlink with interface";
-           }
-           if ($object->is_root and !($object->isa('Insteon::InterfaceController'))) {
-              $cmd_states .= ",status,get engine version,scan link table,log links";
-              push @_scannable_link, $object_name;
-           }
-           $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->initiate_linking_as_controller(\"$group\")', 'initiate linking as controller');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->interface()->cancel_linking','cancel linking');\n\n";
-           if ($object->is_root and !($object->isa('Insteon::InterfaceController'))) {
-              $object_string .= "$object_name_v -> tie_event('$object_name->link_to_interface','link to interface');\n\n";
-              $object_string .= "$object_name_v -> tie_event('$object_name->unlink_to_interface','unlink with interface');\n\n";
-              $object_string .= "$object_name_v -> tie_event('$object_name->request_status','status');\n\n";
-              $object_string .= "$object_name_v -> tie_event('$object_name->get_engine_version','get engine version');\n\n";
-              $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','scan link table');\n\n";
-              $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table()','log links');\n\n";
-           }
-           $object_string .= "$object_name_v -> tie_event('$object_name->sync_links(0)','sync links');\n\n";
-           $object_string .= "$object_name_v -> tie_items($object_name, 'on');\n\n";
-           $object_string .= "$object_name_v -> tie_items($object_name, 'off');\n\n";
-           $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_link_commands');
-           push @_insteon_link, $object_name;
-        } elsif ($object->isa('Insteon::BaseDevice')) {
-           my $cmd_states = "$states,status,get engine version,scan link table,log links,update onlevel/ramprate"; #,on level,ramp rate";
-           $cmd_states .= ",link to interface,unlink with interface" if $object->isa("Insteon::BaseController") || $object->is_controller;
-           $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
-           foreach my $state (split(/,/,$states)) {
-              $object_string .= "$object_name_v -> tie_items($object_name, '$state');\n\n";
-           }
-           $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table()','log links');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->request_status','status');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->get_engine_version','get engine version');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->update_local_properties','update onlevel/ramprate');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','scan link table');\n\n";
-           if ($object->isa("Insteon::BaseController") || $object->is_controller) {
-              $object_string .= "$object_name_v -> tie_event('$object_name->link_to_interface','link to interface');\n\n";
-              $object_string .= "$object_name_v -> tie_event('$object_name->unlink_to_interface','unlink with interface');\n\n";
-           }
-# the remote_set_button_taps provide incorrect/inconsistent results
-#           $object_string .= "$object_name_v -> tie_event('$object_name->remote_set_button_tap(1)','on level');\n\n";
-#           $object_string .= "$object_name_v -> tie_event('$object_name->remote_set_button_tap(2)','ramp rate');\n\n";
-           $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_item_commands');
-           push @_insteon_device, $object_name if $group eq '01'; # don't allow non-base items to participate
-        } elsif ($object->isa('Insteon_PLM')) {
-           my $cmd_states = "complete linking as responder,initiate linking as controller,cancel linking,delete link with PLM,scan link table,log links,delete orphan links,AUDIT - delete orphan links,scan all device link tables,scan changed device link tables,sync all links,AUDIT - sync all links";
-           $cmd_states .= ",log all device ALDB status";
-           $object_string .= "$object_name_v  = new Voice_Cmd '$command [$cmd_states]';\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->complete_linking_as_responder','complete linking as responder');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->initiate_linking_as_controller','initiate linking as controller');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->initiate_unlinking_as_controller','initiate unlinking');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->cancel_linking','cancel linking');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->log_alllink_table','log links');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")','scan link table');\n\n";
-           $object_string .= "$object_name_v -> tie_event('&Insteon::scan_all_linktables(1)','scan changed device link tables');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->delete_orphan_links','delete orphan links');\n\n";
-           $object_string .= "$object_name_v -> tie_event('$object_name->delete_orphan_links(1)','AUDIT - delete orphan links');\n\n";
-           $object_string .= "$object_name_v -> tie_event('&Insteon::scan_all_linktables','scan all device link tables');\n\n";
-           $object_string .= "$object_name_v -> tie_event('&Insteon::sync_all_links(0)','sync all links');\n\n";
-           $object_string .= "$object_name_v -> tie_event('&Insteon::sync_all_links(1)','AUDIT - sync all links');\n\n";
-           $object_string .= "$object_name_v -> tie_event('&Insteon::log_all_ADLB_status','log all device ALDB status');\n\n";
-           $object_string .= &main::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_PLM_commands');
-           push @_insteon_plm, $object_name;
+        
+        #Get list of all voice commands from the object
+        my $voice_cmds = $object->get_voice_cmds();
+        
+        #Initialize the voice command with all of the possible device commands
+        $object_string .= "$object_name_v  = new Voice_Cmd '$command [" 
+            . join(",", sort keys %$voice_cmds) . "]';\n";
+        
+        #Tie the proper routine to each voice command
+        foreach (keys %$voice_cmds) {
+            $object_string .= "$object_name_v -> tie_event('" . $voice_cmds->{$_}
+                . "', '$_');\n\n";
         }
+        
+        #Add this object to the list of Insteon Voice Commands on the Web Interface
+        $object_string .= ::store_object_data($object_name_v, 'Voice_Cmd', 'Insteon', 'Insteon_PLM_commands');
     }
 
+    #Evaluate the resulting object generating string
     package main;
     eval $object_string;
     print "Error in insteon_item_commands: $@\n" if $@;
