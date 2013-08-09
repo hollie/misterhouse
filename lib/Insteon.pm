@@ -110,7 +110,9 @@ anything else.
 =item C<print all message stats>
 
 Prints the message stats for all devices plus a summary of the entire network
-stats.
+stats.  For full details on what is contained in this printout please see
+the description for the C<print message stats> voice command under the device
+heading below.
 
 =item C<reset all message stats>
 
@@ -208,6 +210,95 @@ connectivity of a device on your network.  You likely want to use this in
 conjunction with the C<print_message_log> routine.  For example, you can use 
 this to compare the message stats for a device when changing settings in 
 MisterHouse.
+
+=item C<Print Message Stats>
+
+Prints message statistics for this device to the print log.  
+
+=back
+
+=over8
+
+=item * 
+
+In - The number of incoming messages received
+
+=item * 
+
+Corrupt - The number of incoming corrupt messages received
+
+=item * 
+
+%Corrpt - Of the incoming messages received, the percentage that were 
+corrupt
+
+=item *
+
+Dupe - The number of duplicate messages that have been received from this 
+device.
+
+=item *
+
+%Dupe - The percentage of duplilicate incoming messages received.
+
+=item *
+
+Hops_Left - The average hops left in the messages received from this device.
+
+=item *
+
+Max_Hops - The average maximum hops in the messages received from this device.
+
+=item *
+
+Act_Hops - Max_Hops - Hops_Left, this is the average number of hops that have
+been required for a message sent from the device to reach MisterHouse.
+
+=item * 
+
+Out - The number of unique outgoing messages, without retries, sent. 
+
+=item * 
+
+Fail - The number times that all retries were exhausted without a successful
+delivery of a message.
+
+=item * 
+
+%Fail - Of the outgoing messages sent, the percentage that failed.
+
+=item * 
+
+Retry - The number of retry attempts that have been made to deliver a message. 
+Ideally this is 0, but Sends/Msg is a better indication of this parameter.
+
+=item * 
+
+AvgSend - The average number of send attempts that must be made in order to 
+successfully deliver a message.  Ideally this would be 1.0.  
+
+NOTE: If the number of retries exceeds the value set in the configuration file 
+for Insteon_retry_count, MisterHouse will abandon sending the message.  As a 
+result, as this number approaches Insteon_retry_count it becomes a less accurate 
+representation of the number of retries needed to reach a device.
+
+=item *
+
+Avg_Hops - The average number of hops that have been used by MisterHouse when
+sending messages to this device.
+
+=item *
+
+Hop_Count - The current hop count being used by MH.  This count is dynamically
+controlled by MH and is not reset by calling C<reset_message_stats>
+
+=back
+
+=over
+
+=item C<Reset Message Stats>
+
+Resets the message stats back to 0 for this device.
 
 =back
 
