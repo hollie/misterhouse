@@ -365,6 +365,8 @@ sub process_queue
 				if (defined($failed_message->setby) and $failed_message->setby->can('is_acknowledged'))
 				{
                                        	$failed_message->setby->is_acknowledged(0);
+                                       	$failed_message->setby->fail_count_log(1) 
+                                       		if $failed_message->setby->can('fail_count_log');
 				}
 				else
 				{
@@ -530,6 +532,9 @@ sub on_standard_insteon_received
 		my $object = &Insteon::get_object($msg{source}, $msg{group});
 		if (defined $object)
                 {
+                	$object->max_hops_count($msg{maxhops}) if $object->can('max_hops_count');
+                	$object->hops_left_count($msg{hopsleft}) if $object->can('hops_left_count');
+                    $object->incoming_count_log(1) if $object->can('incoming_count_log');
                 	if ($msg{type} ne 'broadcast')
                         {
                 		$msg{command} = $object->message_type($msg{cmd_code});
@@ -569,10 +574,13 @@ sub on_standard_insteon_received
                                                 	&main::print_log("[Insteon::BaseInterface] WARN: deviceid of "
                                                 		. "active message != received message source ("
                                                         	. $object->get_object_name() . "). IGNORING received message!!");
+                                                        #These generally seem to be duplicate messages
+                                                        $object->dupe_count_log(1) if $object->can('dupe_count_log');
                                                 }
                                         }
                                         elsif ($msg{type} eq 'cleanup')
                                         {
+                                        	my $setby_object = $object;
                                                 $object = &Insteon::get_object('000000', $msg{extra});
                                                 if ($object)
                                                 {
@@ -581,7 +589,7 @@ sub on_standard_insteon_received
 							# Don't clear active message as ACK is only one of many
 							if (($msg{extra} == $self->active_message->setby->group)){
                                                                 &main::print_log("[Insteon::BaseInterface] DEBUG3: Cleanup message received for scene "
-                                                                	. $object->get_object_name . " from source " . uc($msg{source}))
+                                                                	. $object->get_object_name . " from " . $setby_object->get_object_name)
                                                                 	if $main::Debug{insteon} >= 3;
 							} elsif ($self->active_message->command_type eq 'all_link_direct_cleanup' &&
 								lc($self->active_message->setby->device_id) eq $msg{source}) 
@@ -591,7 +599,7 @@ sub on_standard_insteon_received
 							}
 							else {
 								&main::print_log("[Insteon::BaseInterface] DEBUG3: Cleanup message received from "
-								. $msg{source} . " for scene "
+								. $setby_object->get_object_name . " for scene "
 								. $object->get_object_name . ", but group in recent message " 
 								. $msg{extra}. " did not match group in "
 								. "prior sent message group " . $self->active_message->setby->group) 
@@ -604,8 +612,9 @@ sub on_standard_insteon_received
                                                 else
                                                 {
                                                 	&main::print_log("[Insteon::BaseInterface] ERROR: received cleanup message from "
-                                                             . $msg{source} . "that does not correspond to a valid PLM group. Corrupted message is assumed "
+                                                             . $setby_object->get_object_name . "that does not correspond to a valid PLM group. Corrupted message is assumed "
                                                              . "and will be skipped! Was group " . $msg{extra});
+                                                    $setby_object->corrupt_count_log(1) if $setby_object->can('corrupt_count_log');
                                                 }
                                         }
                                         else #not direct or cleanup
@@ -614,6 +623,7 @@ sub on_standard_insteon_received
                                                 	. $object->get_object_name . " but unable to process $msg{type} message type."
                                                         . " IGNORING received message!!");
                                                 $self->active_message->no_hop_increase(1);
+                                                $object->corrupt_count_log(1) if $object->can('corrupt_count_log');
                                         }
                         	}
                                 else #does not correspond to current active message
@@ -649,6 +659,7 @@ sub on_standard_insteon_received
                 else 
                 {
          		&::print_log("[Insteon::BaseInterface] Warn! Unable to locate object for source: $msg{source} and group: $msg{group}");
+         		$self->corrupt_count_log(1);
 		}
 		# treat the message as legitimate even if an object match did not occur
 	}
@@ -690,6 +701,9 @@ sub on_extended_insteon_received
 		my $object = &Insteon::get_object($msg{source}, $msg{group});
 		if (defined $object)
                 {
+                	$object->max_hops_count($msg{maxhops}) if $object->can('max_hops_count');
+                	$object->hops_left_count($msg{hopsleft}) if $object->can('hops_left_count');
+                    $object->incoming_count_log(1) if $object->can('incoming_count_log');
                 	if ($msg{type} ne 'broadcast')
                         {
                 		$msg{command} = $object->message_type($msg{cmd_code});
@@ -842,7 +856,16 @@ sub _is_duplicate_received {
 		#Make a nicer name
 		my $source = $msg{source};
 		my $object = &Insteon::get_object($msg{source}, $msg{group});
-		$source = $object->get_object_name() if (defined $object);
+		if (defined $object) {
+			$source = $object->get_object_name();
+			$object->dupe_count_log(1) if $object->can('dupe_count_log');
+			$object->max_hops_count($msg{maxhops}) if $object->can('max_hops_count');
+        	$object->hops_left_count($msg{hopsleft}) if $object->can('hops_left_count');
+            $object->incoming_count_log(1) if $object->can('incoming_count_log');
+            #This message still provides a data point on how many hops it is 
+            #taking for messages to arrive.
+            $object->default_hop_count($msg{maxhops}-$msg{hopsleft}) if $object->can('default_hop_count');
+		};
 		::print_log("[Insteon::BaseInterface] WARN! Dropped duplicate incoming message "
 			. $message_data . ", from $source.") if $main::Debug{insteon};
 	} else {
@@ -882,6 +905,8 @@ sub get_voice_cmds
         'scan all device link tables' => "Insteon::scan_all_linktables",
         'sync all links' => "Insteon::sync_all_links(0)",
         'AUDIT - sync all links' => "Insteon::sync_all_links(1)",
+        'print all message stats' => "Insteon::print_all_message_stats",
+        'reset all message stats' => "Insteon::reset_all_message_stats",
         'log all device ALDB status' => "Insteon::log_all_ADLB_status"
     );
     return \%voice_cmds;

@@ -833,6 +833,7 @@ sub _process_message
 				. $self->get_object_name . " in response to a "
 				. $pending_cmd . " command, but the command code "
 				. $msg{cmd_code} . " is incorrect. Ignorring received message.");
+            $self->corrupt_count_log(1) if $self->can('corrupt_count_log');
 			$p_setby->active_message->no_hop_increase(1);
 		}
 	}
@@ -934,6 +935,7 @@ sub _process_message
 		} else {
 			main::print_log("[Insteon::BaseObject] Ignoring unsupported command from " 
 				. $self->{object_name}) if $main::Debug{insteon};
+			$self->corrupt_count_log(1) if $self->can('corrupt_count_log');
                 }
 	}
 	return $clear_message;
@@ -1230,7 +1232,10 @@ sub new
            $$self{aldb} = new Insteon::ALDB_i1($self);
         }
 
-	$self->restore_data('level');
+	$self->restore_data('level', 'retry_count_log', 'fail_count_log', 
+        'outgoing_count_log', 'incoming_count_log', 'corrupt_count_log',
+        'dupe_count_log', 'hops_left_count', 'max_hops_count',
+        'outgoing_hop_count');
 
 	$self->initialize();
 	$self->rate(undef);
@@ -1244,6 +1249,15 @@ sub new
 	@{$$self{command_stack}} = ();
 	$$self{_onlevel} = undef;
 	$$self{is_responder} = 1;
+    $$self{retry_count_log} = 0;
+    $$self{fail_count_log} = 0;
+    $$self{outgoing_count_log} = 0;
+    $$self{incoming_count_log} = 0;
+    $$self{corrupt_count_log} = 0;
+    $$self{dupe_count_log} = 0;
+    $$self{hops_left_count} = 0;
+    $$self{max_hops_count} = 0;
+    $$self{outgoing_hop_count} = 0;
 
 	return $self;
 }
@@ -2028,7 +2042,337 @@ sub engine_version
 	return $engine_version;
 }
 
-=item C<engine_version>
+=item C<retry_count_log([type]>
+
+Sets or gets the number of message retries that have occured for this device 
+since the last time C<reset_message_stats> was called.
+
+If type is set, to any value, will increment retry log by one.
+
+Returns: current retry count.
+
+=cut 
+
+sub retry_count_log
+{
+	my ($self, $retry_count_log) = @_;
+	$self = $self->get_root;
+	$$self{retry_count_log}++ if $retry_count_log;
+	return $$self{retry_count_log};
+} 
+
+=item C<fail_count_log([type]>
+
+Sets or gets the number of message failures that have occured for this device 
+since the last time C<reset_message_stats> was called.
+
+If type is set, to any value, will increment fail log by one.
+
+Returns: current fail count.
+
+=cut 
+
+sub fail_count_log
+{
+    my ($self, $fail_count_log) = @_;
+    $self = $self->get_root;
+	$$self{fail_count_log}++ if $fail_count_log;
+	return $$self{fail_count_log};
+} 
+
+=item C<outgoing_count_log([type]>
+
+Sets or gets the number of outgoing message that have occured for this device 
+since the last time C<reset_message_stats> was called.
+
+If type is set, to any value, will increment output count by one.
+
+Returns: current output count.
+
+=cut 
+
+sub outgoing_count_log
+{
+    my ($self, $outgoing_count_log) = @_;
+    $self = $self->get_root;
+    $$self{outgoing_count_log}++ if $outgoing_count_log;
+	return $$self{outgoing_count_log};
+}
+
+=item C<outgoing_hop_count([type]>
+
+Sets or gets the number of hops that have been used in all outgoing messages
+since the last time C<reset_message_stats> was called.
+
+If type is set, to any value, will increment output count by that value.
+
+Returns: current hop count.
+
+=cut 
+
+sub outgoing_hop_count
+{
+    my ($self, $outgoing_hop_count) = @_;
+    $self = $self->get_root;
+    $$self{outgoing_hop_count} += $outgoing_hop_count if $outgoing_hop_count;
+	return $$self{outgoing_hop_count};
+}
+
+=item C<incoming_count_log([type]>
+
+Sets or gets the number of incoming message that have occured for this device 
+since the last time C<reset_message_stats> was called.
+
+If type is set, to any value, will increment incoming count by one.
+
+Returns: current incoming count.
+
+=cut 
+
+sub incoming_count_log
+{
+    my ($self, $incoming_count_log) = @_;
+    $self = $self->get_root;
+    $$self{incoming_count_log}++ if $incoming_count_log;
+    return $$self{incoming_count_log};
+}
+        
+=item C<corrupt_count_log([type]>
+
+Sets or gets the number of currupt message that have arrived from this device 
+since the last time C<reset_message_stats> was called.
+
+If type is set, to any value, will increment corrupt count by one.
+
+Returns: current corrupt count.
+
+=cut 
+
+sub corrupt_count_log
+{
+    my ($self, $corrupt_count_log) = @_;
+    $self = $self->get_root;
+    $$self{corrupt_count_log}++ if $corrupt_count_log;
+    return $$self{corrupt_count_log};
+}
+
+=item C<dupe_count_log([type]>
+
+Sets or gets the number of duplicate message that have arrived from this device 
+since the last time C<reset_message_stats> was called.
+
+If type is set, to any value, will increment corrupt count by one.
+
+Returns: current duplicate count.
+
+=cut 
+
+sub dupe_count_log
+{
+    my ($self, $dupe_count_log) = @_;
+    $self = $self->get_root;
+    $$self{dupe_count_log}++ if $dupe_count_log;
+    return $$self{dupe_count_log};
+}
+
+=item C<hops_left_count([type]>
+
+Sets or gets the number of hops_left for messages that arrive from this device 
+since the last time C<reset_message_stats> was called.
+
+If type is set, to any value, will increment corrupt count by one.
+
+Returns: current hops_left count.
+
+=cut 
+
+sub hops_left_count
+{
+    my ($self, $hops_left_count) = @_;
+    $self = $self->get_root;
+    $$self{hops_left_count} += $hops_left_count if $hops_left_count;
+    return $$self{hops_left_count};
+}
+
+=item C<max_hops_count([type]>
+
+Sets or gets the number of max_hops for messages that arrive from this device 
+since the last time C<reset_message_stats> was called.
+
+If type is set, to any value, will increment corrupt count by one.
+
+Returns: current duplicate count.
+
+=cut 
+
+sub max_hops_count
+{
+    my ($self, $max_hops_count) = @_;
+    $self = $self->get_root;
+    $$self{max_hops_count} += $max_hops_count if $max_hops_count;
+    return $$self{max_hops_count};
+}
+
+
+=item C<reset_message_stats>
+
+Resets the retry, fail, outgoing, incoming, and corrupt message counters.
+
+=cut 
+
+sub reset_message_stats
+{
+    my ($self) = @_;
+    $self = $self->get_root;
+    $$self{retry_count_log} = 0;
+    $$self{fail_count_log} = 0;
+    $$self{outgoing_count_log} = 0;
+    $$self{incoming_count_log} = 0;
+    $$self{corrupt_count_log} = 0;
+    $$self{dupe_count_log} = 0;
+    $$self{hops_left_count} = 0;
+    $$self{max_hops_count} = 0;
+    $$self{outgoing_hop_count} = 0;
+}
+
+=item C<print_message_stats>
+
+Prints message statistics for this device to the print log.  The output contains:
+
+=back
+
+=over8
+
+=item * 
+
+In - The number of incoming messages received
+
+=item * 
+
+Corrupt - The number of incoming corrupt messages received
+
+=item * 
+
+%Corrpt - Of the incoming messages received, the percentage that were 
+corrupt
+
+=item *
+
+Dupe - The number of duplicate messages that have been received from this 
+device.
+
+=item *
+
+%Dupe - The percentage of duplilicate incoming messages received.
+
+=item *
+
+Hops_Left - The average hops left in the messages received from this device.
+
+=item *
+
+Max_Hops - The average maximum hops in the messages received from this device.
+
+=item *
+
+Act_Hops - Max_Hops - Hops_Left, this is the average number of hops that have
+been required for a message sent from the device to reach MisterHouse.
+
+=item * 
+
+Out - The number of unique outgoing messages, without retries, sent. 
+
+=item * 
+
+Fail - The number times that all retries were exhausted without a successful
+delivery of a message.
+
+=item * 
+
+%Fail - Of the outgoing messages sent, the percentage that failed.
+
+=item * 
+
+Retry - The number of retry attempts that have been made to deliver a message. 
+Ideally this is 0, but Sends/Msg is a better indication of this parameter.
+
+=item * 
+
+AvgSend - The average number of send attempts that must be made in order to 
+successfully deliver a message.  Ideally this would be 1.0.  
+
+NOTE: If the number of retries exceeds the value set in the configuration file 
+for Insteon_retry_count, MisterHouse will abandon sending the message.  As a 
+result, as this number approaches Insteon_retry_count it becomes a less accurate 
+representation of the number of retries needed to reach a device.
+
+=item *
+
+Avg_Hops - The average number of hops that have been used by MisterHouse when
+sending messages to this device.
+
+=item *
+
+Hop_Count - The current hop count being used by MH.  This count is dynamically
+controlled by MH and is not reset by calling C<reset_message_stats>
+
+=back
+
+=over
+
+=cut 
+
+sub print_message_stats
+{
+    my ($self) = @_;
+    $self = $self->get_root;
+    my $object_name = $self->get_object_name;
+    my $retry_average = 0; 
+    $retry_average = sprintf("%.1f", ($$self{retry_count_log} / 
+        $$self{outgoing_count_log}) + 1) if ($$self{outgoing_count_log} > 0);
+    my $fail_percentage = 0; 
+    $fail_percentage = sprintf("%.1f", ($$self{fail_count_log} / 
+        $$self{outgoing_count_log}) * 100 ) if ($$self{outgoing_count_log} > 0);
+    my $corrupt_percentage = 0; 
+    $corrupt_percentage = sprintf("%.1f", ($$self{corrupt_count_log} / 
+        $$self{incoming_count_log}) * 100 ) if ($$self{incoming_count_log} > 0);
+    my $dupe_percentage = 0; 
+    $dupe_percentage = sprintf("%.1f", ($$self{dupe_count_log} / 
+        $$self{incoming_count_log}) * 100 ) if ($$self{incoming_count_log} > 0);
+    my $avg_hops_left = 0; 
+    $avg_hops_left = sprintf("%.1f", ($$self{hops_left_count} / 
+        $$self{incoming_count_log})) if ($$self{incoming_count_log} > 0);
+    my $avg_max_hops = 0; 
+    $avg_max_hops = sprintf("%.1f", ($$self{max_hops_count} / 
+        $$self{incoming_count_log})) if ($$self{incoming_count_log} > 0);
+    my $avg_out_hops = 0;
+    $avg_out_hops = sprintf("%.1f", ($$self{outgoing_hop_count} / 
+        $$self{outgoing_count_log})) if ($$self{outgoing_count_log} > 0);
+    ::print_log(
+        "[Insteon::BaseDevice] Message statistics for $object_name:\n"
+        . "    In Corrupt %Corrpt  Dupe   %Dupe HopsLeft Max_Hops Act_Hops\n"
+        . sprintf("%6s", $$self{incoming_count_log})
+        . sprintf("%8s", $$self{corrupt_count_log})
+        . sprintf("%8s", $corrupt_percentage . '%')
+        . sprintf("%6s", $$self{dupe_count_log})
+        . sprintf("%8s", $dupe_percentage . '%')
+        . sprintf("%9s", $avg_hops_left)
+        . sprintf("%9s", $avg_max_hops)
+        . sprintf("%9s", $avg_max_hops - $avg_hops_left)
+        . "\n"
+        . "   Out    Fail   %Fail Retry AvgSend Avg_Hops CurrHops\n"
+        . sprintf("%6s", $$self{outgoing_count_log})
+        . sprintf("%8s", $$self{fail_count_log})
+        . sprintf("%8s", $fail_percentage . '%')
+        . sprintf("%6s", $$self{retry_count_log})
+        . sprintf("%8s", $retry_average)
+        . sprintf("%9s", $avg_out_hops)
+        . sprintf("%9s", $self->default_hop_count)
+    );
+}
+
+
+=item C<check_aldb_version>
 
 Because of the way MH saves / restores states "after" object creation
 the aldb must be initially created before the engine_version is restored.
@@ -2113,6 +2457,8 @@ sub get_voice_cmds
             'status' => "$object_name->request_status",
             'get engine version' => "$object_name->get_engine_version",
             'scan link table' => "$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")",
+            'print message stats' => "$object_name->print_message_stats",
+            'reset message stats' => "$object_name->reset_message_stats",
             'log links' => "$object_name->log_alllink_table()"
         )
     }
