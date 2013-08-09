@@ -107,6 +107,27 @@ See the workflow described in C<Delete Orphan Links>.
 Same as C<Sync All Links> but prints what it would do to the log, without doing
 anything else.
 
+=item C<print all message stats>
+
+Prints the message stats for all devices plus a summary of the entire network
+stats.  For full details on what is contained in this printout please see
+the description for the C<print message stats> voice command under the device
+heading below.
+
+=item C<reset all message stats>
+
+Resets all the message stats for all devices including the Unk_Error stat.
+
+=item C<stress test All devices>
+
+Performs a 5 count stress test on all devices on the network.  See the description
+of what a stress test is under the device voice commands.
+
+=item C<ping test All devices>
+
+Performs a 5 count ping test on all devices on the network.  See the description
+of what a ping test is under the device voice commands.
+
 =item C<Log All Device ALDB Status>
 
 Logs some details about each device to the log.  See C<log_all_ADLB_status()>
@@ -117,54 +138,167 @@ Logs some details about each device to the log.  See C<log_all_ADLB_status()>
 
 =over
 
-=item on
+=item C<on>
 
 Turns the device on.
 
-=item off
+=item C<off>
 
 Turns the device off.
 
-=item Sync Links
+=item C<Sync Links>
 
 Similar to C<Sync All Links> above, but this will only add links that are related
 to this device.  Useful when adding a new device.
 
-=item Link to Interface
+=item C<Link to Interface>
 
 Will create the controller/responder links between the device and the PLM.
 
-=item Unlink with Interface
+=item C<Unlink with Interface>
 
 Will delete the controller/responder links between the device and the PLM.  
 Useful if you are removing a device from your network.
 
-=item Status
+=item C<Status>
 
 Requests the status of the device.
 
-=item Get Engine Version
+=item C<Get Engine Version>
 
 Requests the engine version of the device.  Generally you would not need to call
 this, but every now and then it is needed when a new device is installed.
 
-=item Scan Link Table
+=item C<Scan Link Table>
 
 This will scan and output to the log only the link table of this device.
 
-=item Log Links
+=item C<Log Links>
 
 Will output to the log only the link table of this device.
 
-=item Initiate Linking as Controller
+=item C<Initiate Linking as Controller>
 
 Generally only available for PLM Scenes.  This places the PLM in linking mode
 and adds any device which the set button is pressed for 4 seconds as a responder
 to this scene.  Generally not needed.
 
-=item Cancel Linking
+=item C<Cancel Linking>
 
 Cancels the above linking session without creating a link.
+
+=item C<Run Stress Test>
+
+Simulates a read of a 5 link addresses from the device.  This routine is meant to 
+be used as a diagnostic tool.
+
+This is also similar to the C<ping> test, however, rather than simply requesting
+an ACK, this requests a full set of data equivalent to a link entry.  Similar to
+C<ping> this should be used with C<print_message_log> to diagnose issues and try
+different settings.
+
+=item C<Run Ping Test>
+
+Sends 5 ping messages to the device.  A ping message is a basic 
+message that simply asks the device to respond with an ACKnowledgement.  For
+i1 devices this will send a standard length command, for i2 and i2cs devices
+this will send an extended ping command.  In both cases, the device responds
+back with a standard length ACKnowledgement only.
+
+Much like the ping command in IP networks, this command is useful for testing the
+connectivity of a device on your network.  You likely want to use this in 
+conjunction with the C<print_message_log> routine.  For example, you can use 
+this to compare the message stats for a device when changing settings in 
+MisterHouse.
+
+=item C<Print Message Stats>
+
+Prints message statistics for this device to the print log.  
+
+=back
+
+=over8
+
+=item * 
+
+In - The number of incoming messages received
+
+=item * 
+
+Corrupt - The number of incoming corrupt messages received
+
+=item * 
+
+%Corrpt - Of the incoming messages received, the percentage that were 
+corrupt
+
+=item *
+
+Dupe - The number of duplicate messages that have been received from this 
+device.
+
+=item *
+
+%Dupe - The percentage of duplilicate incoming messages received.
+
+=item *
+
+Hops_Left - The average hops left in the messages received from this device.
+
+=item *
+
+Max_Hops - The average maximum hops in the messages received from this device.
+
+=item *
+
+Act_Hops - Max_Hops - Hops_Left, this is the average number of hops that have
+been required for a message sent from the device to reach MisterHouse.
+
+=item * 
+
+Out - The number of unique outgoing messages, without retries, sent. 
+
+=item * 
+
+Fail - The number times that all retries were exhausted without a successful
+delivery of a message.
+
+=item * 
+
+%Fail - Of the outgoing messages sent, the percentage that failed.
+
+=item * 
+
+Retry - The number of retry attempts that have been made to deliver a message. 
+Ideally this is 0, but Sends/Msg is a better indication of this parameter.
+
+=item * 
+
+AvgSend - The average number of send attempts that must be made in order to 
+successfully deliver a message.  Ideally this would be 1.0.  
+
+NOTE: If the number of retries exceeds the value set in the configuration file 
+for Insteon_retry_count, MisterHouse will abandon sending the message.  As a 
+result, as this number approaches Insteon_retry_count it becomes a less accurate 
+representation of the number of retries needed to reach a device.
+
+=item *
+
+Avg_Hops - The average number of hops that have been used by MisterHouse when
+sending messages to this device.
+
+=item *
+
+Hop_Count - The current hop count being used by MH.  This count is dynamically
+controlled by MH and is not reset by calling C<reset_message_stats>
+
+=back
+
+=over
+
+=item C<Reset Message Stats>
+
+Resets the message stats back to 0 for this device.
 
 =back
 
@@ -179,6 +313,58 @@ my (@_insteon_plm,@_insteon_device,@_insteon_link,@_scannable_link,$_scan_cnt,$_
 my $init_complete;
 my (@_scan_devices,@_scan_device_failures,$current_scan_device);
 my (@_sync_devices,@_sync_device_failures,$current_sync_device);
+my ($_stress_test_count, $_stress_test_one_pass, @_stress_test_devices);
+my ($_ping_count, @_ping_devices);
+
+=item C<stress_test_all(count, [is_one_pass])>
+
+Sequentially goes through every Insteon device and performs a stress_test on it.  
+See L<Insteon::BaseDevice::stress_test|Insteon::BaseInsteon::BaseDevice::stress_test> 
+for a more detailed description of stress_test.
+
+Parameters:
+	Count: defines the number of stress_tests to perform on each device.
+	is_one_pass: if true, all stress_tests will be performed on a device
+		before proceeding to the next device. if false, the routine 
+		loops through all devices performing one stress_test on each 
+		device before moving on to the next device.
+
+=cut
+
+sub stress_test_all
+{
+	my ($p_count, $is_one_pass) = @_;
+	if (defined $p_count){
+		$_stress_test_count = $p_count; 
+		$_stress_test_one_pass = $is_one_pass;
+		@_stress_test_devices = undef; 
+		push @_stress_test_devices, Insteon::find_members("Insteon::BaseDevice");
+		main::print_log("[Insteon::Stress Test All Devices] Stress Testing All Devices $p_count times");
+	};	
+	if (!@_stress_test_devices) {
+		#Iteration may be complete, start over from the beginning
+		$_stress_test_count = ($_stress_test_one_pass) ? 0 : $_stress_test_count--; 
+		push @_stress_test_devices, Insteon::find_members("Insteon::BaseDevice");
+	}
+	if ($_stress_test_count > 0){
+		my $current_stress_test_device;
+		my $complete_callback = '&Insteon::stress_test_all()';
+		while (@_stress_test_devices){
+			$current_stress_test_device = pop @_stress_test_devices;
+			next unless $current_stress_test_device->is_root();
+			next unless $current_stress_test_device->is_responder();
+			last;
+		}
+		my $run_count = ($_stress_test_one_pass) ? $_stress_test_count : 1;
+		if (ref $current_stress_test_device && $current_stress_test_device->can('stress_test')){
+			$current_stress_test_device->stress_test($run_count, $complete_callback);
+		}
+	} 
+	else {
+		$_stress_test_one_pass = 0;
+		main::print_log("[Insteon::Stress Test All Devices] Complete");
+	}
+}
 
 =item C<scan_all_linktables()>
 
@@ -415,7 +601,41 @@ sub _get_next_linksync_failure
 
 }
 
+=item C<ping_all([count)>
 
+Walks through every Insteon device and pings it as many times as defined by 
+count.  See L<Insteon::BaseDevice::ping|Insteon::BaseInsteon::BaseDevice::ping> 
+for a more detailed description of ping.
+
+=cut
+
+sub ping_all
+{
+	my ($p_count) = @_;
+	if (defined $p_count){
+		$_ping_count = $p_count;
+		@_ping_devices = ();
+		push @_ping_devices, Insteon::find_members("Insteon::BaseDevice");
+		main::print_log("[Insteon::Ping All Devices] Ping All Devices $p_count times");
+	}
+	if (@_ping_devices)
+	{
+		my $current_ping_device;
+		while(@_ping_devices)
+		{
+			$current_ping_device = pop @_ping_devices;
+			next unless $current_ping_device->is_root();
+			next unless $current_ping_device->is_responder(); 
+			last;
+		}
+		$current_ping_device->ping($_ping_count, '&Insteon::ping_all()')
+                		if $current_ping_device->can('ping');
+	} else
+	{
+		$_ping_count = 0;
+		main::print_log("[Insteon::Ping All Devices] Ping All Complete");
+	}
+}
 
 =item C<log_all_ADLB_status()>
 
