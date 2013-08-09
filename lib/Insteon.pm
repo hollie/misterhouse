@@ -488,6 +488,156 @@ sub log_all_ADLB_status
 	}
 }
 
+=item C<print_all_message_stats>
+
+Walks through every Insteon device and prints statistical information about
+its message handling, as well as a summary average of the entire network.  See 
+L<Insteon::BaseDevice::print_message_stats|Insteon::BaseInsteon::BaseDevice::print_message_stats> 
+for more detailed information.
+
+This command adds the following extra data points:
+
+=back
+
+=over8
+
+=item * 
+
+Unk_Error - The number of messages which have arrived at the PLM which cannot
+be associated with any know device.
+
+=back
+
+=over
+
+=cut
+
+sub print_all_message_stats
+{
+    my @_log_devices = ();
+	push @_log_devices, Insteon::find_members("Insteon::BaseDevice");
+
+	if (@_log_devices)
+	{
+		#Initialize all of the tracking variables
+		my $retry_average = 0;
+    	my $fail_percentage = 0;
+    	my $corrupt_percentage = 0; 
+    	my $dupe_percentage = 0;
+    	my $avg_hops_left = 0;
+    	my $avg_max_hops = 0;
+		my $avg_out_hops = 0;
+    	my $curr_hops_avg = 0;
+    	
+		my $incoming_count_log = 0;
+		my $corrupt_count_log = 0;
+		my $dupe_count_log = 0;
+		my $retry_count_log = 0;
+		my $outgoing_count_log = 0;
+		my $fail_count_log = 0;
+		my $default_hop_count = 0;
+		my $hops_left_count = 0;
+		my $max_hops_count = 0;
+		my $outgoing_hop_count =0;
+		
+		my $device_count = 0;
+
+		foreach my $current_log_device (@_log_devices)
+		{
+			#Skip non-root items
+			next unless $current_log_device->is_root;
+			
+			$device_count++;
+			
+			#Prints the Individual Message for the Device
+			$current_log_device->print_message_stats;
+			
+			#Add values for each device to the master count
+			$incoming_count_log += $current_log_device->incoming_count_log;
+			$corrupt_count_log += $current_log_device->corrupt_count_log;
+			$dupe_count_log += $current_log_device->dupe_count_log;
+			$retry_count_log += $current_log_device->retry_count_log;
+			$outgoing_count_log += $current_log_device->outgoing_count_log;
+			$fail_count_log += $current_log_device->fail_count_log;
+			$default_hop_count += $current_log_device->default_hop_count;
+			$hops_left_count += $current_log_device->hops_left_count;
+			$max_hops_count += $current_log_device->max_hops_count;
+			$outgoing_hop_count += $current_log_device->outgoing_hop_count;
+		}
+		
+		#Calculate the averages
+	    $retry_average = sprintf("%.1f", ($retry_count_log / 
+	        $outgoing_count_log) + 1) if ($outgoing_count_log > 0); 
+	    $fail_percentage = sprintf("%.1f", ($fail_count_log / 
+	        $outgoing_count_log) * 100 ) if ($outgoing_count_log > 0);
+	    $corrupt_percentage = sprintf("%.1f", ($corrupt_count_log / 
+	        $incoming_count_log) * 100 ) if ($incoming_count_log > 0);
+	    $dupe_percentage = sprintf("%.1f", ($dupe_count_log / 
+	        $incoming_count_log) * 100 ) if ($incoming_count_log > 0);
+	    $avg_hops_left = sprintf("%.1f", ($hops_left_count / 
+	        $incoming_count_log)) if ($incoming_count_log > 0);
+	    $avg_max_hops = sprintf("%.1f", ($max_hops_count / 
+	        $incoming_count_log)) if ($incoming_count_log > 0);
+    	$avg_out_hops = sprintf("%.1f", ($outgoing_hop_count / 
+        	$outgoing_count_log)) if ($outgoing_count_log > 0);
+    	$curr_hops_avg = sprintf("%.1f", ($default_hop_count / 
+        	$device_count)) if ($device_count > 0);
+    	::print_log(
+	        "[Insteon] Average Network Statistics:\n"
+	        . "    In Corrupt %Corrpt  Dupe   %Dupe HopsLeft Max_Hops Act_Hops Unk_Error\n"
+	        . sprintf("%6s", $incoming_count_log)
+	        . sprintf("%8s", $corrupt_count_log)
+	        . sprintf("%8s", $corrupt_percentage . '%')
+	        . sprintf("%6s", $dupe_count_log)
+	        . sprintf("%8s", $dupe_percentage . '%')
+	        . sprintf("%9s", $avg_hops_left)
+	        . sprintf("%9s", $avg_max_hops)
+	        . sprintf("%9s", $avg_max_hops - $avg_hops_left)
+	        . sprintf("%10s", &Insteon::active_interface->corrupt_count_log)
+	        . "\n"
+	        . "   Out    Fail   %Fail Retry AvgSend Avg_Hops CurrHops\n"
+	        . sprintf("%6s", $outgoing_count_log)
+	        . sprintf("%8s", $fail_count_log)
+	        . sprintf("%8s", $fail_percentage . '%')
+	        . sprintf("%6s", $retry_count_log)
+	        . sprintf("%8s", $retry_average)
+	        . sprintf("%9s", $avg_out_hops)
+	        . sprintf("%9s", $curr_hops_avg)
+    	);
+		main::print_log("[Insteon::Print_All_Message_Stats] All devices have completed logging");
+	} else
+	{
+		main::print_log("[Insteon::Print_All_Message_Stats] WARN: No insteon devices could be found");
+	}
+}
+
+=item C<reset_all_message_stats>
+
+Walks through every Insteon device and resets the statistical information about
+its message handling.
+
+=cut
+
+sub reset_all_message_stats
+{
+    my @_log_devices = ();
+    &Insteon::active_interface->reset_message_stats;
+    push @_log_devices, Insteon::find_members("Insteon::BaseDevice");
+
+	if (@_log_devices)
+	{
+		foreach my $current_log_device (@_log_devices)
+		{
+			$current_log_device->reset_message_stats 
+                if $current_log_device->can('reset_message_stats');
+		}
+		main::print_log("[Insteon::Reset_All_Message_Stats] All devices have been reset");
+	} else
+	{
+		main::print_log("[Insteon::Reset_All_Message_Stats] WARN: No insteon devices could be found");
+	}
+}
+
 =item C<init()>
 
 Initiates the insteon stack, mostly just sets the trigger. 
