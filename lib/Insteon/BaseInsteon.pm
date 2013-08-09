@@ -2457,6 +2457,8 @@ sub get_voice_cmds
             'status' => "$object_name->request_status",
             'get engine version' => "$object_name->get_engine_version",
             'scan link table' => "$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")",
+            'print message stats' => "$object_name->print_message_stats",
+            'reset message stats' => "$object_name->reset_message_stats",
             'log links' => "$object_name->log_alllink_table()"
         )
     }

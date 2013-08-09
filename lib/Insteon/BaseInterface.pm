@@ -905,6 +905,8 @@ sub get_voice_cmds
         'scan all device link tables' => "Insteon::scan_all_linktables",
         'sync all links' => "Insteon::sync_all_links(0)",
         'AUDIT - sync all links' => "Insteon::sync_all_links(1)",
+        'print all message stats' => "Insteon::print_all_message_stats",
+        'reset all message stats' => "Insteon::reset_all_message_stats",
         'log all device ALDB status' => "Insteon::log_all_ADLB_status"
     );
     return \%voice_cmds;
