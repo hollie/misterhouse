@@ -110,11 +110,6 @@ use Insteon::BaseInsteon;
 
 @Insteon::MotionSensor::ISA = ('Insteon::DeviceController','Insteon::BaseDevice');
 
-my %message_types = (
-	%Insteon::BaseDevice::message_types,
-	extended_set_get => 0x2e
-);
-
 =item C<new()>
 
 Instantiates a new object.
@@ -126,7 +121,6 @@ sub new
 	my ($class,$p_deviceid,$p_interface) = @_;
 
 	my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
-	$$self{message_types} = \%message_types;
 	if ($self->is_root){ 
 		$self->restore_data('query_timer', 'last_query_time');
 		$$self{queue_timer} = new Timer;
