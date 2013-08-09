@@ -122,11 +122,6 @@ my %operating_flags = (
    'momentary_c_off' => '15',
 );
 
-my %message_types = (
-	%Insteon::BaseDevice::message_types,
-	extended_set_get => 0x2e
-);
-
 =item C<new()>
 
 Instantiates a new object.
@@ -138,7 +133,6 @@ sub new
 	my ($class, $p_deviceid, $p_interface) = @_;
 	my $self = new Insteon::BaseDevice($p_deviceid, $p_interface);
 	$$self{operating_flags} = \%operating_flags;
-	$$self{message_types} = \%message_types;
 	bless $self, $class;
 	$self->restore_data('momentary_time');
 	$$self{momentary_timer} = new Timer;
