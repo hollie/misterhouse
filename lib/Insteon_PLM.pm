@@ -99,7 +99,8 @@ sub new {
 	$$self{last_command} = '';
 	$$self{_prior_data_fragment} = '';
    bless $self, $class;
-   $self->restore_data('debug');
+   $self->restore_data('debug', 'corrupt_count_log');
+   $$self{corrupt_count_log} = 0;
    $$self{aldb} = new Insteon::ALDB_PLM($self);
 
    &Insteon::add($self);
@@ -116,6 +117,37 @@ sub new {
 	$self->_clear_timeout('command');
 
    return $self;
+}
+
+=item C<corrupt_count_log([type]>
+
+Sets or gets the number of corrupt message that have arrived that could not be
+associated with any device since the last time C<reset_message_stats> was called.
+These are generally instances in which the from device ID is corrupt.
+
+If type is set, to any value, will increment corrupt count by one.
+
+Returns: current corrupt count.
+
+=cut 
+
+sub corrupt_count_log
+{
+    my ($self, $corrupt_count_log) = @_;
+    $$self{corrupt_count_log}++ if $corrupt_count_log;
+    return $$self{corrupt_count_log};
+}
+
+=item C<reset_message_stats>
+
+Resets the retry, fail, outgoing, incoming, and corrupt message counters.
+
+=cut 
+
+sub reset_message_stats
+{
+    my ($self) = @_;
+    $$self{corrupt_count_log} = 0;
 }
 
 =item C<restore_string()>

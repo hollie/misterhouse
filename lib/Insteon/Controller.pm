@@ -59,8 +59,7 @@ use Insteon::BaseInsteon;
 my %message_types = (
 	%Insteon::BaseDevice::message_types,
 	bright => 0x15,
-	dim => 0x16,
-	extended_set_get => 0x2e
+	dim => 0x16
 );
 
 =item C<new()>
