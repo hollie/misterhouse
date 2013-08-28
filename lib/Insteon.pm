@@ -558,24 +558,23 @@ sub check_all_aldb_versions
 
 sub check_thermo_versions
 {
-	#main::print_log("[Insteon] DEBUG4 Checking thermostat versions") if ($main::Debug{insteon} >= 4);
+	main::print_log("[Insteon] DEBUG4 Initializing thermostat versions") if ($main::Debug{insteon} >= 4);
 
 	my @thermo_devices = ();
 	push @thermo_devices, Insteon::find_members("Insteon::Thermostat");
 	foreach my $thermo_device (@thermo_devices)
 	{
 		if ($thermo_device->isa('Insteon::Thermostat') && 
-			$thermo_device->_aldb->aldb_version() eq "I2CS"){
+			$thermo_device->get_root()->engine_version eq "I2CS"){
 			main::print_log("[Insteon] DEBUG4 Setting thermostat "
 				. $thermo_device->get_object_name() . " to i2CS") 
 			if ($main::Debug{insteon} >= 4);
 			bless $thermo_device, 'Insteon::Thermo_i2CS';
 			$thermo_device->init();
 		}
-		elsif ($thermo_device->isa('Insteon::Thermostat')
-			&& $thermo_device->_aldb->aldb_version() eq "I1"){
+		else {
 			main::print_log("[Insteon] DEBUG4 Setting thermostat "
-				. $thermo_device->get_object_name() . " to i2") 
+				. $thermo_device->get_object_name() . " to i1") 
 			if ($main::Debug{insteon} >= 4);
 			bless $thermo_device, 'Insteon::Thermo_i1';
 		}
