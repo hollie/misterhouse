@@ -12,7 +12,7 @@ In user code:
 
 	$thermostat = new Insteon_Thermostat($myPLM, '12.34.56');
 	
-Additional i2 specific objects:
+Additional i2CS specific objects:
 	
 	$thermostat_heating = new Insteon_Thermostat($myPLM, '12.34.56:02');
 	$thermostat_high_humid = new Insteon_Thermostat($myPLM, '12.34.56:03');
@@ -25,7 +25,7 @@ In items.mht:
 
 	INSTEON_THERMOSTAT, 12.34.56, thermostat, HVAC
 	
-Additional i2 specific objects:
+Additional i2CS specific objects:
 	
 	INSTEON_THERMOSTAT, 12.34.56:02, thermostat_heating, HVAC
 	INSTEON_THERMOSTAT, 12.34.56:03, thermostat_high_humid, HVAC
@@ -67,10 +67,10 @@ to link specific actions to these states:
       (call get_mode() to get value).
    fan_mode_change: Fan mode changed
       (call get_fan_mode() to get value).
-   status_change: Heating, Cooling, Dehumidifying, or Humidifying change (i2 only)
+   status_change: Heating, Cooling, Dehumidifying, or Humidifying change (i2CS only)
       (call get_status() to get status).
 
-I2 Broadcast messages:
+I2CS Broadcast messages:
 
 If a group EF device is defined, MH will receive broadcast changes from the 
 thermostat.  When enabled, broadcast messages for changes in setpoint, mode,
@@ -90,7 +90,7 @@ Linking:
 
 I am not sure how or if the i1 device can be linked to other devices.
 
-I2 devices have 5 controllers, groups 01-04 plus the broadcast group EF.  At the
+I2CS devices have 5 controllers, groups 01-04 plus the broadcast group EF.  At the
 moment, MH only supports using the thermostat as a controller of another device.
 To control another device, simply define it as a scene member of the desired 
 thermostat group.  The groups are:
@@ -106,7 +106,7 @@ thermostat group.  The groups are:
 
 Tracking Child Objects:
 
-For both, i1 and i2 devices, optional child objects which track the states of the 
+For both, i1 and i2CS devices, optional child objects which track the states of the 
 thermostat can be created in user code:
 	
    $thermo_temp = new Insteon::Thermo_temp($thermostat);
@@ -114,8 +114,8 @@ thermostat can be created in user code:
    $thermo_mode = new Insteon::Thermo_mode($thermostat);
    $thermo_setpoint_h = new Insteon::Thermo_setpoint_h($thermostat);
    $thermo_setpoint_c = new Insteon::Thermo_setpoint_c($thermostat);
-   $thermo_humidity = new Insteon::Thermo_humidity($thermostat);  #Only available on i2 devices
-   $thermo_status = new Insteon::Thermo_status($thermostat);  #Only available on i2 devices
+   $thermo_humidity = new Insteon::Thermo_humidity($thermostat);  #Only available on i2CS devices
+   $thermo_status = new Insteon::Thermo_status($thermostat);  #Only available on i2CS devices
 
 where $thermostat is the parent object to track.  The state of these child objects
 will be the state of the various objects.  This makes the display of the various
@@ -135,7 +135,7 @@ Initial Code by:
 Gregg Liming <gregg@limings.net>
 Brian Warren <brian@7811.net>
 
-Enhanced to i2 by:
+Enhanced to i2CS by:
 Kevin Robert Keegan <kevin@krkeegan.com>
 
 =head1 TODO
@@ -349,7 +349,7 @@ sub _mode() {
 
 =item C<get_mode()>
 
-Returns the last mode returned by C<poll_mode()>  I2 devices will report auto for both auto and program_auto. 
+Returns the last mode returned by C<poll_mode()>  I2CS devices will report auto for both auto and program_auto. 
 =cut
 sub get_mode() {
    my ($self) = @_;
@@ -556,10 +556,10 @@ sub simple_message {
 	return $message;
 }
 
-package Insteon::Thermo_i2;
+package Insteon::Thermo_i2CS;
 use strict;
 
-@Insteon::Thermo_i2::ISA = ('Insteon::Thermostat');
+@Insteon::Thermo_i2CS::ISA = ('Insteon::Thermostat');
 
 our %message_types = (
 	%Insteon::Thermostat::message_types,
@@ -574,7 +574,7 @@ our %message_types = (
 sub init {
 	my ($self) = @_;
 	$$self{message_types} = \%message_types;
-	#Set saved state unique to i2 devices
+	#Set saved state unique to i2CS devices
 	$self->restore_data('humid', 'cooling', 'heating', 'high_humid', 'low_humid');
 }
 
@@ -582,7 +582,7 @@ sub set {
 	my ($self, $p_state, $p_setby, $p_respond) = @_;
 	my $root = $self->get_root();
 	if (!(ref $p_setby) || !($p_setby->equals($self))) {
-		::print_log("[Insteon::Thermo_i2] Sorry, you cannot control the ".
+		::print_log("[Insteon::Thermo_i2CS] Sorry, you cannot control the ".
 			"thermostat in this manner.  Please read the documentation ".
 			"for Insteon::Thermostat for help.");
 		return;
@@ -611,7 +611,7 @@ sub sync_links{
 	my $bcast_obj = Insteon::get_object($self->device_id(), 'EF');
 	if (!$audit_mode && ref $bcast_obj && $self->is_root){
 		#Make sure thermostat is set to broadcast changes
-		::print_log("[Insteon::Thermo_i2] (sync_links) Enabling thermostat broadcast setting.") unless $audit_mode;
+		::print_log("[Insteon::Thermo_i2CS] (sync_links) Enabling thermostat broadcast setting.") unless $audit_mode;
 		my $extra = "000008000000000000000000000000";
 		my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
 		$$self{_ext_set_get_action} = 'set';
@@ -624,7 +624,7 @@ sub sync_links{
 =item C<poll_simple()>
 
 Requests the status of all Thermostat data points (temp, fan, mode ...) in a single
-request.  Only available for I2 devices.
+request.  Only available for I2CS devices.
 =cut
 sub poll_simple{
 	my ($self) = @_;
@@ -638,7 +638,7 @@ sub poll_simple{
 
 Returns a text string describing the current status of the thermostat. May include
 a combination of "Heating; Cooling; Dehumidifying; Humidifying; or Off." Only
-available for I2 devices.
+available for I2CS devices.
 
 =cut
 sub get_status() {
@@ -666,9 +666,9 @@ sub _process_message {
 	elsif ($msg{command} eq "extended_set_get" && $msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
 		#If this was a get request don't clear until data packet received
-		main::print_log("[Insteon::Thermo_i2] Extended Set/Get ACK Received for " . $self->get_object_name) if $main::Debug{insteon};
+		main::print_log("[Insteon::Thermo_i2CS] Extended Set/Get ACK Received for " . $self->get_object_name) if $main::Debug{insteon};
 		if ($$self{_ext_set_get_action} eq 'set'){
-			main::print_log("[Insteon::Thermo_i2] Clearing active message") if $main::Debug{insteon};
+			main::print_log("[Insteon::Thermo_i2CS] Clearing active message") if $main::Debug{insteon};
 			$clear_message = 1;
 			$$self{_ext_set_get_action} = undef;
 			$self->_process_command_stack(%msg);	
@@ -677,7 +677,7 @@ sub _process_message {
 	elsif ($msg{command} eq "extended_set_get" && $msg{is_extended}) {
 		if (substr($msg{extra},0,4) eq "0201") {
 			$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
-			main::print_log("[Insteon::Thermo_i2] Extended Set/Get Data ".
+			main::print_log("[Insteon::Thermo_i2CS] Extended Set/Get Data ".
 				"Received for ". $self->get_object_name) if $main::Debug{insteon};
 			#0 = 2				#14 = Cool SP 
 			#2 = 1				#16 = humidity
@@ -728,7 +728,7 @@ sub _process_message {
 			#10 = humid high		#24 = 1 = Status Report Enabled
 			#12 = firmware			#26 = 1 = External Power On
 							#28 = 1 = Int, 2=Ext Temp
-			main::print_log("[Insteon::Thermo_i2] Humidity setpoints for ".
+			main::print_log("[Insteon::Thermo_i2CS] Humidity setpoints for ".
 				$self->get_object_name . " are High: " .
 				$self->_high_humid(hex(substr($msg{extra}, 8, 2))) .
 				" Low: " . $self->_low_humid(hex(substr($msg{extra}, 10, 2)))
@@ -737,37 +737,37 @@ sub _process_message {
 			$self->_process_command_stack(%msg);
 		}
 		else {
-			main::print_log("[Insteon::Thermo_i2] WARN: Unknown Extended "
+			main::print_log("[Insteon::Thermo_i2CS] WARN: Unknown Extended "
 				."Set/Get Data Received for ". $self->get_object_name) if $main::Debug{insteon};
 		}
 	}
 	elsif ($msg{command} eq "status_temp" && !$msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
-		main::print_log("[Insteon::Thermo_i2] Received Temp Change Message ".
+		main::print_log("[Insteon::Thermo_i2CS] Received Temp Change Message ".
 			"from ". $self->get_object_name) if $main::Debug{insteon};	
 		$self->hex_short_temp($msg{extra});
 	}
 	elsif ($msg{command} eq "status_mode" && !$msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
-		main::print_log("[Insteon::Thermo_i2] Received Mode Change Message ".
+		main::print_log("[Insteon::Thermo_i2CS] Received Mode Change Message ".
 			"from ". $self->get_object_name) if $main::Debug{insteon};	
 		$self->status_mode($msg{extra});
 	}
 	elsif ($msg{command} eq "status_cool" && !$msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
-		main::print_log("[Insteon::Thermo_i2] Received Cool Setpoint Change Message ".
+		main::print_log("[Insteon::Thermo_i2CS] Received Cool Setpoint Change Message ".
 			"from ". $self->get_object_name) if $main::Debug{insteon};	
 		$self->hex_cool($msg{extra});
 	}
 	elsif ($msg{command} eq "status_humid" && !$msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
-		main::print_log("[Insteon::Thermo_i2] Received Humidity Change Message ".
+		main::print_log("[Insteon::Thermo_i2CS] Received Humidity Change Message ".
 			"from ". $self->get_object_name) if $main::Debug{insteon};	
 		$self->hex_humid($msg{extra});
 	}
 	elsif ($msg{command} eq "status_heat" && !$msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
-		main::print_log("[Insteon::Thermo_i2] Received Heat Setpoint Change Message ".
+		main::print_log("[Insteon::Thermo_i2CS] Received Heat Setpoint Change Message ".
 			"from ". $self->get_object_name) if $main::Debug{insteon};	
 		$self->hex_heat($msg{extra});
 	}
@@ -782,7 +782,7 @@ sub _is_info_request {
 	my $is_info_request;
 	if ($cmd eq 'thermostat_control' && $$self{_control_action} eq "mode") {
 		my $val = $msg{extra};
-		main::print_log("[Insteon::Thermo_i2] Processing is_info_request for $cmd with value: $val") if $main::Debug{insteon}; 
+		main::print_log("[Insteon::Thermo_i2CS] Processing is_info_request for $cmd with value: $val") if $main::Debug{insteon}; 
 		if ($val eq '09') {
 			$self->_mode('Off');
 		} elsif ($val eq '04') {
@@ -797,7 +797,7 @@ sub _is_info_request {
 		$$self{_control_action} = undef;
 		$is_info_request = 1;
 	}
-	else #This was not a thermo_i2 info_request
+	else #This was not a thermo_i2CS info_request
 	{
 		#Check if this was a generic info_request
 		$is_info_request = $self->SUPER::_is_info_request($cmd, $ack_setby, %msg);
@@ -974,7 +974,7 @@ Sets the high humidity setpoint.
 =cut
 sub high_humid_setpoint {
 	my ($self, $value) = @_;
-	main::print_log("[Insteon::Thermo_i2] Setting high humid setpoint -> $value") if $main::Debug{insteon};
+	main::print_log("[Insteon::Thermo_i2CS] Setting high humid setpoint -> $value") if $main::Debug{insteon};
 	if($value !~ /^\d+$/){
 		main::print_log("[Insteon::Thermostat] ERROR: Setpoint $value not numeric");
 		return;
@@ -993,7 +993,7 @@ Sets the low humidity setpoint.
 =cut
 sub low_humid_setpoint {
 	my ($self, $value) = @_;
-	main::print_log("[Insteon::Thermo_i2] Setting low humid setpoint -> $value") if $main::Debug{insteon};
+	main::print_log("[Insteon::Thermo_i2CS] Setting low humid setpoint -> $value") if $main::Debug{insteon};
 	if($value !~ /^\d+$/){
 		main::print_log("[Insteon::Thermostat] ERROR: Setpoint $value not numeric");
 		return;
@@ -1007,7 +1007,7 @@ sub low_humid_setpoint {
 
 =item C<get_humid_setpoints()>
 
-Retreives and prints the current humidity high and low setpoints.  Only available for I2 devices.
+Retreives and prints the current humidity high and low setpoints.  Only available for I2CS devices.
 =cut
 sub get_humid_setpoints{
 	my ($self) = @_;
@@ -1043,7 +1043,7 @@ sub set {
 		}
 	}
 	if ($found_state){
-		::print_log("[Insteon::Thermo_i2] Received set mode request to "
+		::print_log("[Insteon::Thermo_i2CS] Received set mode request to "
 			. $p_state . " for device " . $self->get_object_name);
 		$$self{parent}->mode($p_state);
 	}
@@ -1079,7 +1079,7 @@ sub set {
 		}
 	}
 	if ($found_state){
-		::print_log("[Insteon::Thermo_i2] Received set fan to "
+		::print_log("[Insteon::Thermo_i2CS] Received set fan to "
 			. $p_state . " for device " . $self->get_object_name);
 		$$self{parent}->fan($p_state);
 	}
@@ -1155,7 +1155,7 @@ sub set {
 		}
 	}
 	if ($found_state){
-		::print_log("[Insteon::Thermo_i2] Received request to set heat setpoint "
+		::print_log("[Insteon::Thermo_i2CS] Received request to set heat setpoint "
 			. $p_state . " for device " . $self->get_object_name);
 		if (lc($p_state) eq 'cooler'){
 			$$self{parent}->heat_setpoint($$self{parent}->get_heat_sp - 1);
@@ -1196,7 +1196,7 @@ sub set {
 		}
 	}
 	if ($found_state){
-		::print_log("[Insteon::Thermo_i2] Received request to set cool setpoint "
+		::print_log("[Insteon::Thermo_i2CS] Received request to set cool setpoint "
 			. $p_state . " for device " . $self->get_object_name);
 		if (lc($p_state) eq 'cooler'){
 			$$self{parent}->cool_setpoint($$self{parent}->get_cool_sp - 1);

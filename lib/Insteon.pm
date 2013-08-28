@@ -565,11 +565,11 @@ sub check_thermo_versions
 	foreach my $thermo_device (@thermo_devices)
 	{
 		if ($thermo_device->isa('Insteon::Thermostat') && 
-			$thermo_device->_aldb->aldb_version() eq "I2"){
+			$thermo_device->_aldb->aldb_version() eq "I2CS"){
 			main::print_log("[Insteon] DEBUG4 Setting thermostat "
-				. $thermo_device->get_object_name() . " to i2") 
+				. $thermo_device->get_object_name() . " to i2CS") 
 			if ($main::Debug{insteon} >= 4);
-			bless $thermo_device, 'Insteon::Thermo_i2';
+			bless $thermo_device, 'Insteon::Thermo_i2CS';
 			$thermo_device->init();
 		}
 		elsif ($thermo_device->isa('Insteon::Thermostat')
