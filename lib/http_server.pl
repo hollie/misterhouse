@@ -1247,8 +1247,12 @@ sub html_print_log {
         $h_response .= "<a href=print_log>Refresh Print Log</a>\n";
         my @last_printed = &main::print_log_last($main::config_parms{max_log_entries});
         for my $text (@last_printed) {
-            $text =~ s/\n/\n<br>/g;
-            $h_response .= "<li>$text\n";
+            #This formatting is a little bizarre, but sub html_page blindly 
+            #converts all \n to \n\r apparently to be standards compliant. It 
+            #would be easier to set the white space of list-item to pre, however
+            #the additional newline characters added by html_page look ugly.
+            $text =~ s/\n/<\/pre><\/br>\n<pre>/g;
+            $h_response .= "<li><pre>$text</pre></li>\n";
         }
     }
     else {
@@ -2367,9 +2371,7 @@ sub html_item_state {
     my $object_name  = $object->{object_name};
     my $object_name2 = &pretty_object_name($object_name);
     my $isa_X10 = UNIVERSAL::isa($object, 'X10_Item');
-#   my $isa_X10 = $object->isa('X10_Item');  # This will abend if object is not an object
     my $isa_EIB2 = UNIVERSAL::isa($object, 'EIB2_Item');
-    my $isa_insteon = UNIVERSAL::isa($object, 'Insteon_Device');
 
                                 # If not a state item, just list it
     unless ($isa_X10 or UNIVERSAL::isa($object, 'Group') or exists $object->{state} or $object->{states}) {
@@ -2384,9 +2386,7 @@ sub html_item_state {
                                 # If >2 possible states, add a Select pull down form
     my @states;
     @states = @{$object->{states}} if $object->{states};
-#   print "db on=$object_name ix10=$isa_X10 s=@states\n";
     @states = split ',', $config_parms{x10_menu_states} if $isa_X10;
-    @states = split ',', $config_parms{insteon_menu_states} if $isa_insteon;
 
     @states = qw(on off) if UNIVERSAL::isa($object, 'X10_Appliance');
 
