@@ -14,7 +14,7 @@ use strict;
 
 #print_log "Using read_table_A.pl";
 
-my (%groups, %objects, %packages, %addresses);
+my (%groups, %objects, %packages, %addresses, %scenes);
 
 sub read_table_init_A {
                                 # reset known groups
@@ -23,6 +23,7 @@ sub read_table_init_A {
 	%objects=();
 	%packages=();
         %addresses=();
+        %scenes=();
 }
 
 sub read_table_A {
@@ -992,6 +993,17 @@ sub read_table_A {
         }
         $object = '';
     }
+    elsif($type eq "SCENE_SIMPLE") {
+	#SCENE_SIMPLE, scene_name, scene_member, controller?, responder?, onlevel, ramprate
+        my ($scene_member, $scene_controller, $scene_responder, $on_level, $ramp_rate);
+        ($name, $scene_member, $scene_controller, $scene_responder, $on_level, $ramp_rate) = @item_info;
+        if( ! $packages{Scene}++ ) {   # first time for this object type?
+            $code .= "use Scene;\n";
+        }
+	$scenes{$name}{$scene_member}="$scene_controller,$scene_responder,$on_level,$ramp_rate";
+        $code .= sprintf "#SCENE_SIMPLE: \$%-35s -> add(\$%s);\n", $name, $scene_member;
+	$object = '';
+    }
     elsif ($type eq "PHILIPS_HUE"){
     	($address, $name, $grouplist, @other) = @item_info;
     	$other = join ', ', (map {"'$_'"} @other); # Quote data
@@ -1044,6 +1056,47 @@ sub read_table_A {
 
     }
 
+    return $code;
+}
+
+sub read_table_finish_A {
+    my ($code, $scene, $scene_member, %scene_data, $member_data);
+    foreach $scene (sort keys %scenes) {
+        $code .= "\n#SCENE DEFINITION: $scene\n";
+        #my $object = &get_object_by_name($scene);
+        #if(defined($object) and $object->isa("Insteon::InterfaceController")) { #Doesn't work because object technically doesn't exist yet. Is it even necessary to limit to ICONTROLLER's?
+#        print "\n\nOBJECT: $objects{$scene}\n\n\n";
+        if($objects{$scene}) {
+            $scenes{$scene}{$scene}="1,0"; #Make the INSTEON_ICONTROLLER a controller too
+        }
+        #Loop through the hash and find all controller->responder combinations that make sense.
+        my %scenememberlist=%{$scenes{$scene}}; #Make a hash copy so we can iterate through the hash inside another iteration of the same hash. Is there a better way?
+        while (($scene_member, $member_data) = each($scenes{$scene})) {
+            my ($scene_controller, $scene_responder) = split(',', $member_data);
+
+            if (($objects{$scene_member}) and ($scene_controller)) {
+                while (my($scene2_member, $member2_data) = each(%scenememberlist)) {
+                    my ($scene2_controller, $scene2_responder, $on_level, $ramp_rate) = split(',', $member2_data);
+
+                    if (($objects{$scene2_member}) and ($scene2_responder) and ($scene_member ne $scene2_member)) {
+                        if ($on_level) {
+                            if ($ramp_rate) {
+                                $code .= sprintf "\$%-35s -> add(\$%s,'%s','%s');\n",
+                                    $scene_member, $scene2_member, $on_level, $ramp_rate;
+                        } else {
+                                $code .= sprintf "\$%-35s -> add(\$%s,'%s');\n", $scene_member, $scene2_member, $on_level;
+                            }
+                        } else {
+                            $code .= sprintf "\$%-35s -> add(\$%s);\n", $scene_member, $scene2_member;
+                        }
+                    }
+                }
+
+            } else {
+                print "\nThere is no object called $scene_member defined.  Ignoring SCENE_SIMPLE entry.\n" unless $objects{$scene_member};
+            }
+        }
+    }
     return $code;
 }
 
