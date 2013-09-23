@@ -4775,6 +4775,10 @@ sub read_table_files {
                 print "Error in &read_table_$format: $@\n" if $@;
             }
         }
+        if (defined(&{"read_table_finish_$format"})) {
+                print TABLE_OUT eval "&read_table_finish_$format()";
+                print "Error in &read_table_finish_$format: $@\n" if $@;
+        }
         close TABLE_IN;
         close TABLE_OUT;
         if ($format =~/xml/) { $/="\n"; }
