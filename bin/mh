@@ -4963,8 +4963,8 @@ sub read_user_code {
                 $record =~ /->\s*hidden/   or
                 $record =~  /^\s*set_(authority|icon|info|order|fp_location)\s/ or
                 $record =~ /->\s*set_(authority|icon|info|order|fp_location)/   or
-                $record =~ /^\s{0,3}\S+\s*->\s*add[\s\(]/ or
-                $record =~ /^\s{0,3}add\s/) {
+                $record =~ /^\ {0,3}\S+\s*->\s*add[\s\(]/ or
+                $record =~ /^\ {0,3}add\s/) {
                 $noloop_statement_flag = 1 unless $pod_flag; # Allow for multi-record statements
             }
 
