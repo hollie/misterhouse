@@ -1802,7 +1802,7 @@ sub _get_engine_version_failure
 	if($failure_reason eq 'NAK')
 	{
 		#assume I2CS because no other device will NAK this command
-		main::print_log("[Insteon::BaseDevice] WARN: I2CS device is not "
+		main::print_log("[Insteon::BaseDevice] WARN: I2CS device (" . $self->get_object_name . ") is not "
 			."linked; Please use 'link to interface' voice command");
 		$self->engine_version('I2CS');
 	}
