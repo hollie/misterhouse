@@ -1059,7 +1059,7 @@ sub set_state_log {
     $target = '' unless defined $target;
     unshift(@{$$self{state_log}}, "$main::Time_Date $state set_by=$set_by_name"
       . (($target)?"target=$target":''))
-      if $state or (ref $self) eq 'Voice_Cmd';
+      if defined($state) or (ref $self) eq 'Voice_Cmd';
     pop @{$$self{state_log}} if $$self{state_log} and @{$$self{state_log}}
       > $main::config_parms{max_state_log_entries};
 
