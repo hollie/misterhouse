@@ -2373,6 +2373,7 @@ sub on_read_write_aldb
 		main::print_log("[Insteon::ALDB_i2] " . $$self{device}->get_object_name 
 			. ": unhandled _mem_action=".$$self{_mem_action})
 			if $main::Debug{insteon};
+		$clear_message = 0;
 	}
 	return $clear_message;
 }
