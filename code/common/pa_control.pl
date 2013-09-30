@@ -126,6 +126,8 @@ Address:     Address or Object name.
                if the command to turn on the pin you want is: BHC, then the Address is: BC
              For X10, the X10 address of the (likely) relay device.
              For xAP and xPL, use the IP address or hostname of the target device.
+             For "object", use the name of the object (without the $). You may use anything that
+               responds ON and OFF set commands. Tested with and Insteon device.
 
 Name:        Give a name to the pa zone, usually the room name. You use these in the
              speak and play commands with rooms=.
