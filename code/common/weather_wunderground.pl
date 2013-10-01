@@ -46,7 +46,6 @@ if ($Reload) {
 	$wunderground_getweather_file=$config_parms{data_dir}.'/web/weather_wunderground_getweather.xml';
 	$wunderground_url='http://api.wunderground.com/weatherstation/WXCurrentObXML.asp?ID='.$wunderground_stationid;
 	
-	set $p_weather_wunderground_getweather qq{get_url -quiet "$wunderground_url" "$wunderground_getweather_file"};
 	#$p_weather_wunderground_getweather-set_output("$wunderground_getweather_file");
 	
 	&trigger_set('($New_Minute_10) or $Reload', "run_voice_cmd 'wunderground getweather'", 'NoExpire', 'Update current weather conditions via wunderground')
@@ -56,6 +55,7 @@ if ($Reload) {
 my $wunderground_state = 'blank';
 if ($wunderground_state = $v_wunderground ->{said}) {
 	if ($wunderground_state eq 'getweather'){
+		set $p_weather_wunderground_getweather qq{get_url -quiet "$wunderground_url" "$wunderground_getweather_file"};
 		start $p_weather_wunderground_getweather;
 	}
 }
