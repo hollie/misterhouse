@@ -25,6 +25,7 @@ Requires:
 Special Thanks to:
 	Bruce Winter - MH
 	Everyone else - GPL examples to learn from
+	J. Serack & David Norwood - Weatherbug code template
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 =cut
@@ -48,7 +49,7 @@ if ($Reload) {
 	
 	#$p_weather_wunderground_getweather-set_output("$wunderground_getweather_file");
 	
-	&trigger_set('($New_Minute_10) or $Reload', "run_voice_cmd 'wunderground getweather'", 'NoExpire', 'Update current weather conditions via wunderground')
+	&trigger_set(qq|time_cron('*/15 * * * *') or \$Reload|, "run_voice_cmd 'wunderground getweather'", 'NoExpire', 'Update current weather conditions via wunderground')
 	  unless &trigger_get('Update current weather conditions via wunderground');
 }
 
@@ -72,7 +73,7 @@ if (done_now $p_weather_wunderground_getweather) {
 	
 	my $w_stationid = $root->first_child_text("station_id");
 	
-	print_log "WUnderground: Received stationid: $w_stationid\n";
+	print_log "WUnderground: Received stationid: $w_stationid" if $Debug{wunderground};
 	
 	if($config_parms{wunderground_stationid} eq $w_stationid) {
 		%wunderground_data={};
@@ -117,6 +118,7 @@ if (done_now $p_weather_wunderground_getweather) {
 sub weather_wunderground_addelem {
 	my ($w_root,$w_dest,$w_src) = @_;
 	if(my $w_srcval=$w_root->first_child_text("$w_src")) {
+		print_log sprintf("WUnderground: Data: %15s = %8s (%s)",$w_dest,$w_srcval,$w_src) if $Debug{wunderground};
 		$wunderground_data{$w_dest}=$w_srcval;
 		push(@wunderground_keys, $w_dest);
 	}
