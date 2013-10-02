@@ -63,6 +63,7 @@ if (said $v_pa_speakers) {
     my $state = $v_pa_speakers->{state};
     $v_pa_speakers->respond("app=pa Turning speakers $state...");
     $state = ($state eq 'on') ? ON : OFF;
+    print "PA: Turning speakers $state\n" if $Debug{pa};
     $pactrl->set('allspeakers',$state,'unmuted');
 }
 
@@ -82,7 +83,7 @@ sub pa_control_stub {
     my $rooms = $parms{rooms};
     print "PA: control_stub: rooms=$rooms, mode=$mode\n" if $Debug{pa};
     my $results = $pactrl->set($rooms,ON,$mode,%parms);
-    print "PA: control_stub set results: $results\n" if $Debug{pa};
+    print "PA: control_stub set results: $results\n" if $Debug{pa} >=2;
     set $pa_speaker_timer $pa_timer if $results;
 }
 
