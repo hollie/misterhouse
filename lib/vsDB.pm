@@ -12,7 +12,7 @@
 # ----------------------------------------------------------------------------
 package vsDB;
 require 5.000;
-$VERSION = "1.3.9";
+$VERSION = "1.4.3";
 $ID = "vsDB.pm";
 
 
@@ -22,7 +22,9 @@ sub new {
 	my %keyValues = @_;
 	my (%fieldNames,@fileArray,@row,@filterArray);
 
-	# if no delimiter is specified, then make it a tab char.
+	# normalize the input for backwards compatibility & to set default delim.
+		$keyValues{'file'} = $keyValues{'file'} || $keyValues{'File'} || "";
+	$keyValues{'delimiter'} = $keyValues{'Delimiter'} unless defined($keyValues{'delimiter'});
 	$keyValues{'delimiter'} = "\t" unless defined($keyValues{'delimiter'});
 
 	my $this = {
@@ -33,17 +35,18 @@ sub new {
 		filterArray			=> \@filterArray,
 		row				=> \@row,
 		recordCount		=> 0,
-		filterRecordCount		=> 0,
-		absolutePosition		=> 0,
+		filterRecordCount	        => 0,
+		absolutePosition	        => 0,
 		pageSize			=> 10,
 		EOF				=> 1,
 		isOpen			=> 0,
 		lastError			=> '',
 		appendOnly			=> 1,
-		isDirty			=> 0,
+		isDirty		        => 0,
 		originalCount		=> 0,
 		CR				=> '<CR>',
 		LF				=> '<LF>',
+		noFieldNames		=> $keyValues{'NoFieldNames'},
 	};
 	bless $this;
 	return $this;
@@ -88,12 +91,21 @@ sub ActivePage {
 	my ($newValue) = shift;
 	if (defined($newValue)) {
 		$newValue = $this->PageCount if ($newValue > $this->PageCount);
-		$this->{'absolutePosition'} = ($this->{'pageSize'} * ($newValue-1)) + 1;
+		$this->MoveFirst;
+		# don't need to do anything if page 1
+		return 1 if ($newValue == 1);
+		# set the new page, just move next until we hit the right spot
+		my ($records) = ($newValue * $this->PageSize) - $this->PageSize;
+		for (my $count = 0; $count < $records && !$this->EOF; $count++) {
+			$this->MoveNext;
+		}
+		# old code- faster, but doesnt work right with filters
+		#$this->{'absolutePosition'} = ($this->{'pageSize'} * ($newValue-1)) + 1;
 		# make sure we are on the right page if filtered
-		while ($this->{'filterArray'}[$this->{'absolutePosition'}]) {
-			$this->{'absolutePosition'}++;
-		}		
-		$this->_RefreshRow;
+		#while ($this->{'filterArray'}[$this->{'absolutePosition'}]) {
+		#	$this->{'absolutePosition'}++;
+		#}		
+		#$this->_RefreshRow;
 		return 1;
 	} else {
 	    # BUG - when filtering, this returns the wrong value
@@ -103,7 +115,6 @@ sub ActivePage {
 	    $activePage = $this->PageCount if ($activePage > $this->PageCount);
 	    return $activePage;
 	}	
-	
 }
 
 #_____________________________________________________________________________
@@ -141,6 +152,11 @@ sub CR {
 }
 
 #_____________________________________________________________________________
+sub NoFieldNames {
+	return shift->_GetSetProperty("noFieldNames",shift);
+}
+
+#_____________________________________________________________________________
 sub LF {
 	return shift->_GetSetProperty("LF",shift);
 }
@@ -165,7 +181,6 @@ sub EOF {
 #_____________________________________________________________________________
 sub FieldValue {
 	my ($this) = shift;
-	return "EOF" if ($this->{'EOF'});
 	my ($fieldName) = shift || return "ERROR: FieldValue(): Field Name Required";
 	my ($newValue) = shift;
 	my ($fieldNumber) = $this->{'fieldNames'}{$fieldName};
@@ -451,23 +466,35 @@ sub Min {
 
 #_____________________________________________________________________________
 sub Filter {
-	# $obj->Filter($fieldName,$operator,$criteria);
+	# $obj->Filter($fieldName,$operator,$criteria [,$filterOr]);
 
 	# TODO: > and < are not working properly... maybe text comparison problem?? 	
 	my ($this) = shift;
 	my ($fieldName) = shift || return 0;
 	my ($operator) = shift || "eq";
 	my ($criteria) = shift;
+	my ($filterOr) = shift || 0;
 	$criteria = "" unless defined($criteria);
 	
 	my ($filterSetting);
+	my ($absolutePosition) = 0;
 
-	$this->{'filterArray'}[0] = 0;
-	$this->MoveFirst;
-
-	while (!$this->EOF) {
+	# manually cycle through because MoveNext will skip past any prev. filtered records
+	$this->{'absolutePosition'} = 1;
+	$this->_RefreshRow;
+	while ($this->{'absolutePosition'} != $absolutePosition) {
 		$filterSetting = 0;
-		if ($operator eq "eq" && $this->FieldValue($fieldName) ne $criteria) {
+		$absolutePosition = $this->{'absolutePosition'};
+
+		#print "original val=" . ($this->{'filterArray'}[$absolutePosition] || 'x') . " ";
+
+		if ($filterOr && !$this->{'filterArray'}[$absolutePosition]) {
+			# leave record alone if it already passed and OR is specified
+			$filterSetting = 0;
+		} elsif (!$filterOr && $this->{'filterArray'}[$absolutePosition]) {
+			# don't undue any previous filters if AND is specified
+			$filterSetting = 1;
+		} elsif ($operator eq "eq" && $this->FieldValue($fieldName) ne $criteria) {
 			$filterSetting = 1;
 		} elsif ($operator eq "ne" && !($this->FieldValue($fieldName) ne $criteria)) {
 			$filterSetting = 1;
@@ -479,12 +506,24 @@ sub Filter {
 			$filterSetting = 1;
 		}
 		
-		# print "<p>" . $this->{'absolutePosition'} . ": " . $filterSetting . "<p>";
-		$this->{'filterArray'}[$this->{'absolutePosition'}] = $filterSetting;
+		# print $absolutePosition . ": " . $filterSetting;
 
-		$this->{'filterRecordCount'} -= 1 if ($filterSetting);	
-		$this->MoveNext;
+		# the filtercount may need to be decremented or incremented, depending on if
+		# the current record was filtered, re-filtered, or unfiltered
+		if ($this->{'filterArray'}[$absolutePosition]) {
+			$this->{'filterRecordCount'} = $this->{'filterRecordCount'} + 1 unless ($filterSetting);	
+		} else {
+			$this->{'filterRecordCount'} = $this->{'filterRecordCount'} - $filterSetting;
+		}
+		
+		$this->{'filterArray'}[$absolutePosition] = $filterSetting;
+
+		#print " filterCount=" . $this->{'filterRecordCount'} . "<br>";
+
+		$this->{'absolutePosition'}++;
+		$this->_RefreshRow;
 	}
+
 	$this->MoveFirst;
 	return 1;
 }
@@ -528,7 +567,15 @@ sub Commit {
 		};
 		flock(OUTPUTFILE,2) if ($useFlock);
 		my ($tempArray) = $this->{'fileArray'};
-		print OUTPUTFILE join('',@$tempArray);
+                if ($this->NoFieldNames) {
+                    # if no field names was specified, remove the dummy row before saving, then
+                    # put it back on after the save is complete
+                    my ($headerRow) = shift(@$tempArray);
+                    print OUTPUTFILE join('',@$tempArray);
+                    unshift(@$tempArray,$headerRow);
+                } else {
+                    print OUTPUTFILE join('',@$tempArray);
+                }
 	}
 	close (OUTPUTFILE);
 	flock(OUTPUTFILE,8) if ($useFlock);
@@ -538,13 +585,14 @@ sub Commit {
 #_____________________________________________________________________________
 sub Sort {
 	# sorts the datafile on the given column 
-	# obj->Sort($field);
+	# obj->Sort($field [, $sortMode]);
 	# if $field is ommited, or an invalid fieldname is used, defaults to
 	# the left-most column.
+    # $sortMode 0 = alpha ascending, 1 = alpha descending, 2 = numeric ascending, 3 = numeric descending
 	
 	my ($this) = shift;
 	my ($fieldName) = shift || '0';
-	my ($desc) = shift || '0';
+	my ($sortMode) = shift || '0';
 	my ($delimiter) = $this->{'delimiter'};
 
 	# can't append once we've changed the sort order 
@@ -565,10 +613,18 @@ sub Sort {
 		# custom sorting comparison routine
 		my (@aVals) = split($delimiter,$a);
 		my (@bVals) = split($delimiter,$b);
-		if ($desc) {
-			return $bVals[$fieldNumber] cmp $aVals[$fieldNumber];
+		if ($sortMode eq "1") {
+		    # alpha descending
+			return lc($bVals[$fieldNumber]) cmp lc($aVals[$fieldNumber]);
+		} elsif ($sortMode eq "2") {
+		    # numeric ascending
+			return $bVals[$fieldNumber] > $aVals[$fieldNumber];
+		} elsif ($sortMode eq "3") {
+		    # numeric descending
+			return $bVals[$fieldNumber] > $aVals[$fieldNumber];
 		} else {
-			return $aVals[$fieldNumber] cmp $bVals[$fieldNumber]; 
+		    # alpha ascending
+			return lc($aVals[$fieldNumber]) cmp lc($bVals[$fieldNumber]); 
 		}
 		undef(@aVals);
 		undef(@bVals);
@@ -614,25 +670,42 @@ sub Open {
 	    return 0;
 	}
 	
+        # if no fieldnames is specified, then insert a dummy row at the front
+        # so the module will use numbers as the fieldnames
+        if ($this->NoFieldNames) {
+            my ($dummyRow) = "";
+            my (@DummyFieldNames) = split($delimiter, ($tempFileArray[0] || "") );
+            my ($dummyDelim) = "";
+            my ($count) = 1;
+            foreach (@DummyFieldNames) {
+                $dummyRow .= $dummyDelim . $count;
+                $dummyDelim = $delimiter;
+				$dummyDelim = "\|" if ($dummyDelim eq "\\|"); # glitch on windows servers with | as delim
+                $count++;
+            }
+            unshift(@tempFileArray,$dummyRow . "\n") 
+        }
+
+	# get the top row, which should be fieldnames
+	my $fileRow = $tempFileArray[0] || "\n";
+	chop($fileRow);
+
 	# get the entire contents of the file	
 	$this->{'fileArray'} = \@tempFileArray;
 
 	# get the number of rows
 	$this->{'recordCount'} = @tempFileArray - 1;
-
-	# get the top row, which should be fieldnames
-	my $fileRow = $tempFileArray[0];
-	chop($fileRow);
 	
 	# split the top row into fields
 	my (@tempfieldNames) = split($delimiter,$fileRow);
 	my ($fieldName) = "";
 	my ($counter) = 0;
 	foreach $fieldName (@tempfieldNames) {
-		$this->{'fieldNames'}{$fieldName} = $counter;
-		$counter++
-	}		
+	    $this->{'fieldNames'}{$fieldName} = $counter;
+	    $counter++
+	}
 
+        
 	$this->MoveFirst;
 	$this->{'isOpen'} = 1;
 	$this->_RefreshRow;
@@ -713,7 +786,7 @@ vsDB - Simple interface to text-delimited data files
 	use vsDB;
 
 	# create the object
-	my (objDB) = new vsDB(filename=>'C:\\datafile.txt', delimiter=>'\t');
+	my (objDB) = new vsDB(File=>'C:\\datafile.txt', Delimiter=>'\t');
 
 	# open the datafile	
 	$objDB->Open;
@@ -860,6 +933,17 @@ is set to 0, indicating that the field is numeric.
 Warning: if your field contains non-numeric values, you must set alpha=1 or Min
 will produce a type-mismatch error.
 
+=head2 NoFieldNames([nNewVal])
+
+Use this option if the datafile does not have fieldnames in the first row.
+You must set this property = 1 BEFORE you open the file, though.
+If you set this property = 1 before you open the file, then the first row will
+be treated as data and not fieldnames.  This can also be set when you
+create the object if you specify NoFieldNames => 1 as a parameter.
+
+If you enable this property, then you can refer to the fields by their order.
+So, the first field would be FieldValue("1"), the second FieldValue("2"), etc.
+
 =head2 PageCount()
 
 PageCount returns the number of pages in the RecordSet.  This is essentially
@@ -950,7 +1034,7 @@ Deletes the current record in the RecordSet.
 Note: any changes you make to the data will not be saved to disk until you call
 the Commit method.
 
-=head2 Filter(strFieldName,strOperator,strCriteria)
+=head2 Filter(strFieldName,strOperator,strCriteria [,blnOR))
 
 Filter provides a way to either search the RecordSet or to get a specific record
 based on a primary key field.  strFieldName indicates the field that you want to
@@ -959,7 +1043,8 @@ how the field is to be compared.  strCriteria indicates the search pattern that 
 wish to find.
 
 You can apply the Filter method more than once to further filter out records.  The
-filters are applied as "AND."  Currently there is no support for "OR" filtering.
+filters are applied as "AND."  If you specify a value (other than 0) for blnOR, then
+"OR" filtering will be used instead of AND.
 
 If you are using a primary key field, you can use the Filter method to locate
 the row that you want.  For example:
@@ -1004,13 +1089,18 @@ Warning: calling Open more than once may cause unexpected results.
 RemoveFilter removes any filtering that you have done using the Filter method
 and moves the cursor to the first row in the RecordSet.
 
-=head2 Sort(strFieldName [,Descending])
+=head2 Sort(strFieldName [,SortMethod])
 
 Sort sorts the RecordSet by the strFieldName.  You can sort by multiple fields
 by calling the Sort method more than once with a different fieldname each time.
 
-Descending should be 1 if you want the sort to be in descending order instead
-of the default ascending order.
+SortMethod is optional and has four options (below).  If you specify a numeric sort,
+then all field values for that column must be numeric or you will get a type mismatch
+runtime error.
+	0 = Alpha sort ascending (default)
+	1 = Alpha sort descending
+	2 = Numeric sort ascending
+	3 = Numeric sort descending
 
 Note: Calling Sort will remove any Filters that you have applied.  If you want to
 sort and filter, then call Sort first, then Filter.
@@ -1021,7 +1111,11 @@ if you always sort the same way, but proceed with caution.
 
 =head1 VERSION HISTORY
 
-	1.3.9: don't allow FieldValue or Delete if EOF is true
+	1.4.3: Added NoFieldNames property for files without fieldnames in the first row
+	1.4.2: Sort is updated to support numeric in addition to alphabetic sort
+	1.4.1: Sort is now case-insensitive
+	1.4.0: fixed active page bug when filter is on & added OR argument to Filter
+	1.3.9: don't allow delete if EOF is true, FieldValue returns "EOF"
 	1.3.8: added UseFLock argument to Commit method
 	1.3.7: Updated error messages
 	1.3.6: AddNew now moves to the last record properly

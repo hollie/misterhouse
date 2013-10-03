@@ -1,45 +1,54 @@
-=head1 B<CID_Lookup>
-
-=head2 SYNOPSIS
-
-Example initialization:
-
-  use CID_Lookup;
-  $cid = new CID_Lookup($telephony_driver);
-
-Constructor Parameters:
-
-  $x = new CID_lookup($y);
-  $x - Reference to the class
-  $y - Telephony driver reference
-
-Input states:
-
-  "cid"           - Caller ID event
-  "ring"          - Ring event 'to pass along to other consumers of this object'
-
-Output states:
-
-  "cid"           - Caller ID event
-  "ring"          - Ring event 'to pass along to other consumers of this object'
-
-=head2 DESCRIPTION
-
-Translates a caller name and number to more information based on file data
-
-=head2 INHERITS
-
-B<Telephony_Item>
-
-=head2 METHODS
-
-=over
-
-=item B<UnDoc>
-
-=cut
-
 use strict;
+=begin comment
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+File:
+	CID_Lookup.pm
+
+Description:
+	Translates a caller name and number to more information based on file data
+
+Author:
+	Jason Sharpee
+	jason@sharpee.com
+
+License:
+	This free software is licensed under the terms of the GNU public license.
+
+Usage:
+
+	Example initialization:
+
+		use CID_Lookup;
+		$cid = new CID_Lookup($telephony_driver);
+
+	Constructor Parameters:
+		ex. $x = new CID_lookup($y);
+		$x		- Reference to the class
+		$y		- Telephony driver reference
+
+	Input states:
+		"cid"	        - Caller ID event
+		"ring"     	- Ring event 'to pass along to other consumers of this object'
+
+	Output states:
+		"cid"	        - Caller ID event
+		"ring"     	- Ring event 'to pass along to other consumers of this object'
+
+	For example see g_phone.pl
+
+Bugs:
+	There isnt a whole lot of error handling currently present in this version.  Drop me
+	an email if you are seeing something odd.
+
+Special Thanks to:
+	Bruce Winter - MH
+	Tim Doyle - New Area Code format
+	Clive Freeman
+
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=cut
 package CID_Lookup;
 
 @CID_Lookup::ISA = ('Telephony_Item');
@@ -265,14 +274,14 @@ sub parse_name
 	my $l_middle;
 
 	#first determine if "Last, First" or not (possibly company instead)
-#	&::print_log("CID H in loop :$p_name:");
+	&::print_log("CID H in loop :$p_name:") if $main::Debug{callerid};
 	if ($p_name =~ /,/g)
 	{
-#		&::print_log("CID L in loop :$p_name:");
+		&::print_log("CID L in loop :$p_name:") if $main::Debug{callerid};
 		#put a space after a comma for scrunched CID names.
 		$p_name=~ s/,(\S)/, $1/g;
 		$self->cid_name($p_name);
-#		&::print_log("CID J in loop :$p_name:");
+		&::print_log("CID J in loop :$p_name:") if $main::Debug{callerid};
 
 		($l_last,$l_first,$l_middle) = split(' ',$p_name);
 		$l_last =~ s/,//g; # remove commas
@@ -438,6 +447,7 @@ sub lookup_areacode
 
 	my ($areacode,$state,$city,$timeoffset);
 	my (%state_by_abbrv,$state_abbrv,$state_name);
+print "CID_Lookup: looking up state names in $p_state_file";
 	open (STATENAME, $p_state_file) or print "\nError, could not find the state file $p_state_file\n";
 	while (<STATENAME>)
 	{
@@ -449,17 +459,18 @@ sub lookup_areacode
 
 	close STATENAME;
 
+print "\nCID_Lookup: looking up area codes for $::config_parms{country} in $p_area_code_file\n";
 	open (AREACODE, $p_area_code_file) or print "\nError, could not find the area code file $p_area_code_file\n";
 
 	while (<AREACODE>)
 	{
 		next if /^\#/;
-		if ($::config_parms{country} =~ /US|CANADA/i)
+		if ($::config_parms{country} =~ /US|CANADA|CA/i)
 		{
+			$_ =~ s/\(.*\)$//; #remove end junk
 			# Delete descriptors like (Southern) Texas ... too much to speak
 		        $_ =~ s/\(.+?\)//;
 			#406 All parts of Montana
-#			&::print_log("Line ". $_);
 			#Old Format code
 #			($areacode, $state) = $_ =~ /(\d\d\d) All parts of (.+)/;
 #			($areacode, $city, $state) = $_ =~ /(\d\d\d)(.*), *(.+)/ unless $state;
@@ -472,10 +483,11 @@ sub lookup_areacode
 			if ($city =~ /.*,.*/) {
 				($city) = $city =~ /(.*),.*/;
 			}
-
+			$city =~ s/^\s+|\s+$//g; #remove leading/trailing whitespace
+			$city =~ s/[\-\-|\;].*//; #remove stuff after --, ;
 			next unless $city;
 
-#			&::print_log($self->areacode() . ", $areacode, $city, $state");
+print "CID_Lookup: \$self->areacode=" .$self->areacode() . ", areacode=$areacode, city=$city, state=$state, \n";
  			next unless $city;
 			if ($areacode eq $self->areacode())
 			{
@@ -502,7 +514,7 @@ sub lookup_areacode
 
 			$city =~ s/   .+$//;
 			$state=$city;
-            print "Checking: areacode=$areacode city=$city\n" if $::config_parms{debug} eq 'phone';
+            print "Checking: areacode=$areacode city=$city\n" if $main::Debug{phone};
 			next unless $city;
 			if ($self->number() =~ /^$areacode/) {
 				$self->city($city);
@@ -534,34 +546,3 @@ sub lookup_areacode
 }
 
 1;
-
-=back
-
-=head2 INI PARAMETERS
-
-NONE
-
-=head2 AUTHOR
-
-Jason Sharpee
-jason@sharpee.com
-
-Special Thanks to:
-Bruce Winter - MH
-Tim Doyle - New Area Code format
-Clive Freeman
-
-=head2 SEE ALSO
-
-For example see g_phone.pl
-
-=head2 LICENSE
-
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-
-=cut
-

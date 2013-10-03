@@ -1,0 +1,43 @@
+#!/usr/bin/perl -w
+
+use strict;
+
+
+use XML::Simple;
+use LWP::Simple;
+use LWP::UserAgent;
+
+my $status_url="http://mystatus.skype.com/";
+
+my $progname = "skype check";
+my $progver  = "v1.0 2009-11-20";
+my $DB = 0;
+my $help;
+
+unless ($ARGV[0]) {
+    &help;
+} else {
+
+    my @accounts = split /,/,$ARGV[0];
+
+    foreach my $account (@accounts) {
+        my $ua = new LWP::UserAgent;
+        my $req = new HTTP::Request GET => $status_url . "$account" . ".txt";
+        my $results = $ua->request($req);
+        my $data;
+        if (!($results->is_success)) {
+            $data = "Error:" . $results->status_line;
+            } else {
+            $data = $results->content . ":";
+        }
+        print "$account:" . $data ."\n";
+        
+    }
+}
+
+sub help {
+    print "$progname $progver \n";
+    print "usage: $0 skypename[,skypename,skypename]\n\n";
+    print "Reads skypename status from mystatus.skype.com\n";
+    print "requires account to have \'allow my status to be viewed on the web\' preference\n";
+}

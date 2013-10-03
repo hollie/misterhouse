@@ -1,51 +1,61 @@
-=head1 B<CID_Announce>
-
-=head2 SYNOPSIS
-
-Example initialization:
-
-  use CID_Announce;
-  $cid = new CID_Announce($telephony_driver,'Call from $name $snumber.');
-
-Constructor Parameters:
-
-   ex. $x = new CID_Announce($y,$z);
-   $x              - Reference to the class
-   $y              - Telephony driver reference
-   $z              - Format for speaking
-        Following variables are substitued in ""
-        $name,$first,$middle,$last,$number,$fnumber
-        (formated),$snumber(speakable),$type,$category,$city,
-        $state,$time,$areacode,$prefix,$suffix,$soundfile
-
-Input states:
-
-  "cid"           - Caller ID event
-  "ring"          - Ring event 'to pass along to other consumers of this object'
-
-Output states:
-
-  "cid"  - Caller ID event
-  "ring" - Ring event 'to pass along to other consumers of this object'
-
-=head2 DESCRIPTION
-
-Announces a call.  CID with category of 'reject' will not be announced.
-
-=head2 INHERITS
-
-B<Telephony_Item>
-
-=head2 METHODS
-
-=over
-
-=item B<UnDoc>
-
-=cut
-
 use strict;
 
+# $Revision: 1117 $
+# $Date: 2007-06-04 09:22:13 -0600 (Mon, 04 Jun 2007) $
+
+=begin comment
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+File:
+	CID_Announce.pm
+
+Description:
+	Announces a call.  CID with category of 'reject' will not be announced.
+
+Author:
+	Jason Sharpee
+	jason@sharpee.com
+
+License:
+	This free software is licensed under the terms of the GNU public license.
+
+Usage:
+
+	Example initialization:
+
+		use CID_Announce;
+		$cid = new CID_Announce($telephony_driver,'Call from $name $snumber.');
+
+	Constructor Parameters:
+		ex. $x = new CID_Announce($y,$z);
+		$x		- Reference to the class
+		$y		- Telephony driver reference
+		$z		- Format for speaking
+				Following variables are substitued in ""
+				$name,$first,$middle,$last,$number,$fnumber
+ 				(formated),$snumber(speakable),$type,$category,$city,
+				$state,$time,$areacode,$prefix,$suffix,$soundfile
+
+	Input states:
+		"cid"	        - Caller ID event
+		"ring"     	- Ring event 'to pass along to other consumers of this object'
+
+	Output states:
+		"cid"	        - Caller ID event
+		"ring"     	- Ring event 'to pass along to other consumers of this object'
+
+	For example see g_phone.pl
+
+Bugs:
+	There isnt a whole lot of error handling currently present in this version.  Drop me
+	an email if you are seeing something odd.
+
+Special Thanks to:
+	Bruce Winter - MH
+
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=cut
 package CID_Announce;
 
 @CID_Announce::ISA = ('Telephony_Item');
@@ -75,7 +85,7 @@ sub new
 sub add
 {
 	my ($self, $p_telephony) = @_;
-#	print "CID ADD $p_telephony";
+	print "CID ADD $p_telephony" if $main::Debug{callerid};
 	$p_telephony->tie_items($self,'cid') if defined $p_telephony;
 }
 
@@ -128,7 +138,7 @@ sub announce
 	my ($self,$p_telephony,$p_speak_format,$p_local_area_code) = @_;
 
 	my $response=$self->parse_format($p_telephony,$p_speak_format,$p_local_area_code);
-#	print "CID Announce $response,$p_telephony,$p_speak_format";
+	print "CID Announce $response,$p_telephony,$p_speak_format\n" if $main::Debug{callerid};
     return if $response =~ /MESSAGE WAITING/; # Don't announce message waiting data
     return if $response =~ /\-MSG OFF\-/;
 	if ($response=~ /\.wav$/) {
@@ -181,16 +191,19 @@ sub parse_format
 	my $areac = $areacodes[0];
 	$number =~ s/^$areac//;
 
-    print "CID_nnounce data: type=$type name=$name number=$number\n" if $main::Debug{phone};
+    print "CID_Announce data: local_area=$areac type=$type name=$name number=$number\n" if $main::Debug{phone};
 
 	if ($p_telephony->isa('CID_Lookup')) {
 #		print "CID ISA";
 		$areacode = $p_telephony->areacode();
 		$fnumber = $p_telephony->formated_number();
 		$snumber = $p_telephony->speakable_number();
-		$fnumber =~ s/^$areac//g;
+# really remove all area codes as we'll speak them later
+#		$fnumber =~ s/^$areac//g;
 		$areac =~ s/([0-9])/$1 /g;
-		$snumber =~ s/^$areac//g;
+#		$snumber =~ s/^$areac//g;
+		$fnumber =~ s/^\d\d\d//g;
+		$snumber =~ s/^\d\s\d\s\d\s//g;
 
 		# Make other vars available
 		$address = $p_telephony->address();
@@ -208,15 +221,32 @@ sub parse_format
 		$category = $p_telephony->category();
 #   		$format1  = "$first $middle $last";
     		$format1  = $name;
+		$format1  = $snumber if $name eq 'unknown';
     		$format1  = $snumber if $name =~ 'UNKNOWN CALLER';
     		$format1  = "Unknown" if $type eq 'unknown' and !$snumber;
     		$format1  = $snumber unless $format1 =~ /\S/;
+print "CID_Announce: areacodes[0]=$areacodes[0] areacode=$areacode prefix=$prefix snumber=$snumber fnumber=$fnumber city=$city state=$state\n";
     		if ($areacodes[0] ne $areacode) {
-        		$format1 .= " in $city" if $city =~ /\S/ and
+print "CID_Announce: Area codes do not match. city=$city state=$state config_parms{city}=$::config_parms{city} config_parms{state}=$::config_parms{state}\n";
+			my $outarea;
+			my $ac_speak = $areacode;
+			$ac_speak =~ s/(\d)/$1 /g;
+        		$outarea = " from ";
+			$outarea .= "$city," if $city =~ /\S/ and
           			(lc $city ne lc $::config_parms{city} or lc $state ne lc $::config_parms{state});
-			$format1 =~ s/\s*$//;
-        		$format1 .= ", $state"  if $state and lc $state ne lc $::config_parms{state} and lc $state ne lc $city;
+			#$outarea =~ s/\s*$//;
+        		$outarea .= "$state"  if $state and lc $state ne lc $::config_parms{state} and lc $state ne lc $city and $state ne "--";
+			if ($outarea eq " from ") {
+				if ($areacode) {
+				$outarea = " from area code $ac_speak";
+				} else {
+				$outarea = " from unknown area code";
+				}
+			}
+print "CID_Announce: outarea=[$outarea]\n";
+			$format1 .= $outarea;
 	    	}
+		$format1  = "TollFree number" if $prefix eq "800" or $prefix eq "866" or $prefix eq "888";
 	}
 
 
@@ -229,39 +259,10 @@ sub parse_format
 	{
 		$speak_string = $soundfile;
 	}
-#	print "CID PARSE $speak_string";
+	print "CID PARSE $speak_string\n" if $main::Debug{callerid};
 	return $speak_string;
 
 }
 
 
 1;
-
-
-=back
-
-=head2 INI PARAMETERS
-
-NONE
-
-=head2 AUTHOR
-
-Jason Sharpee
-jason@sharpee.com
-
-Special Thanks to:
-Bruce Winter - MH
-
-=head2 SEE ALSO
-
-For example see g_phone.pl
-
-=head2 LICENSE
-
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-
-=cut

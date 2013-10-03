@@ -1,13 +1,11 @@
 package DateTime::TimeZone;
 
-use 5.006;
-
 use strict;
-use warnings;
 
-our $VERSION = '0.84';
+use vars qw( $VERSION );
+$VERSION = '0.6603';
 
-use DateTime::TimeZone::Catalog;
+use DateTime::TimeZoneCatalog;
 use DateTime::TimeZone::Floating;
 use DateTime::TimeZone::Local;
 use DateTime::TimeZone::OffsetOnly;
@@ -26,7 +24,7 @@ use constant OFFSET      => 4;
 use constant IS_DST      => 5;
 use constant SHORT_NAME  => 6;
 
-my %SpecialName = map { $_ => 1 } qw( EST MST HST CET EET MET WET EST5EDT CST6CDT MST7MDT PST8PDT );
+my %SpecialName = map { $_ => 1 } qw( EST MST HST EST5EDT CST6CDT MST7MDT PST8PDT );
 
 sub new
 {
@@ -35,13 +33,13 @@ sub new
                       { name => { type => SCALAR } },
                     );
 
-    if ( exists $DateTime::TimeZone::Catalog::LINKS{ $p{name} } )
+    if ( exists $DateTime::TimeZone::LINKS{ $p{name} } )
     {
-        $p{name} = $DateTime::TimeZone::Catalog::LINKS{ $p{name} };
+        $p{name} = $DateTime::TimeZone::LINKS{ $p{name} };
     }
-    elsif ( exists $DateTime::TimeZone::Catalog::LINKS{ uc $p{name} } )
+    elsif ( exists $DateTime::TimeZone::LINKS{ uc $p{name} } )
     {
-        $p{name} = $DateTime::TimeZone::Catalog::LINKS{ uc $p{name} };
+        $p{name} = $DateTime::TimeZone::LINKS{ uc $p{name} };
     }
 
     unless ( $p{name} =~ m,/,
@@ -102,7 +100,7 @@ sub new
             $zone->can('olson_version')
             ? $zone->olson_version()
             : 'unknown';
-        my $catalog_version = DateTime::TimeZone::Catalog->OlsonVersion();
+        my $catalog_version = __PACKAGE__->catalog_olson_version();
 
         if ( $object_version ne $catalog_version )
         {
@@ -406,13 +404,9 @@ sub category  { (split /\//, $_[0]->{name}, 2)[0] }
 
 sub is_valid_name
 {
-    my $tz;
-    {
-        local $@;
-        $tz = eval { $_[0]->new( name => $_[1] ) };
-    }
+    my $tz = eval { $_[0]->new( name => $_[1] ) };
 
-    return $tz && $tz->isa('DateTime::TimeZone') ? 1 : 0
+    return $tz && UNIVERSAL::isa( $tz, 'DateTime::TimeZone') ? 1 : 0
 }
 
 sub STORABLE_freeze
@@ -450,11 +444,7 @@ sub STORABLE_thaw
 #
 sub offset_as_seconds
 {
-    {
-        local $@;
-        shift if eval { $_[0]->isa('DateTime::TimeZone') };
-    }
-
+    shift if eval { $_[0]->isa('DateTime::TimeZone') };
     my $offset = shift;
 
     return undef unless defined $offset;
@@ -489,11 +479,7 @@ sub offset_as_seconds
 
 sub offset_as_string
 {
-    {
-        local $@;
-        shift if eval { $_[0]->isa('DateTime::TimeZone') };
-    }
-
+    shift if eval { $_[0]->isa('DateTime::TimeZone') };
     my $offset = shift;
 
     return undef unless defined $offset;
@@ -515,54 +501,54 @@ sub offset_as_string
            );
 }
 
-# These methods all operate on data contained in the DateTime/TimeZone/Catalog.pm file.
+# These methods all operate on data contained in the DateTime/TimeZoneCatalog.pm file.
 
 sub all_names
 {
-    return wantarray ? @DateTime::TimeZone::Catalog::ALL : [@DateTime::TimeZone::Catalog::ALL];
+    return wantarray ? @DateTime::TimeZone::ALL : [@DateTime::TimeZone::ALL];
 }
 
 sub categories
 {
     return wantarray
-        ? @DateTime::TimeZone::Catalog::CATEGORY_NAMES
-        : [@DateTime::TimeZone::Catalog::CATEGORY_NAMES];
+        ? @DateTime::TimeZone::CATEGORY_NAMES
+        : [@DateTime::TimeZone::CATEGORY_NAMES];
 }
 
 sub links
 {
     return
-        wantarray ? %DateTime::TimeZone::Catalog::LINKS : {%DateTime::TimeZone::Catalog::LINKS};
+        wantarray ? %DateTime::TimeZone::LINKS : {%DateTime::TimeZone::LINKS};
 }
 
 sub names_in_category
 {
     shift if $_[0]->isa('DateTime::TimeZone');
-    return unless exists $DateTime::TimeZone::Catalog::CATEGORIES{ $_[0] };
+    return unless exists $DateTime::TimeZone::CATEGORIES{ $_[0] };
 
     return
         wantarray
-        ? @{ $DateTime::TimeZone::Catalog::CATEGORIES{ $_[0] } }
-        : [ $DateTime::TimeZone::Catalog::CATEGORIES{ $_[0] } ];
+        ? @{ $DateTime::TimeZone::CATEGORIES{ $_[0] } }
+        : [ $DateTime::TimeZone::CATEGORIES{ $_[0] } ];
 }
 
 sub countries
 {
     wantarray
-        ? ( sort keys %DateTime::TimeZone::Catalog::ZONES_BY_COUNTRY )
-        : [ sort keys %DateTime::TimeZone::Catalog::ZONES_BY_COUNTRY ];
+        ? ( sort keys %DateTime::TimeZone::ZONES_BY_COUNTRY )
+        : [ sort keys %DateTime::TimeZone::ZONES_BY_COUNTRY ];
 }
 
 sub names_in_country
 {
     shift if $_[0]->isa('DateTime::TimeZone');
 
-    return unless exists $DateTime::TimeZone::Catalog::ZONES_BY_COUNTRY{ lc $_[0] };
+    return unless exists $DateTime::TimeZone::ZONES_BY_COUNTRY{ lc $_[0] };
 
     return
         wantarray
-        ? @{ $DateTime::TimeZone::Catalog::ZONES_BY_COUNTRY{ lc $_[0] } }
-        : $DateTime::TimeZone::Catalog::ZONES_BY_COUNTRY{ lc $_[0] };
+        ? @{ $DateTime::TimeZone::ZONES_BY_COUNTRY{ lc $_[0] } }
+        : $DateTime::TimeZone::ZONES_BY_COUNTRY{ lc $_[0] };
 }
 
 
@@ -637,21 +623,34 @@ C<DateTime::TimeZone::OffsetOnly> object is returned.
 If the "name" parameter is "local", then the module attempts to
 determine the local time zone for the system.
 
-The method for finding the local zone varies by operating system. See
-the appropriate module for details of how we check for the local time
-zone.
+First it checks C<$ENV> for keys named "TZ", "SYS$TIMEZONE_RULE",
+"SYS$TIMEZONE_NAME", "UCX$TZ", or "TCPIP$TZC" (the last 4 are for
+VMS).  If this is defined, and it is not the string "local", then it
+is treated as any other valid name (including "floating"), and the
+constructor tries to create a time zone based on that name.
 
-=over 4
+Next, it checks for the existence of a symlink at F</etc/localtime>.
+It follows this link to the real file and figures out what the file's
+name is.  It then tries to turn this name into a valid time zone.  For
+example, if this file is linked to F</usr/share/zoneinfo/US/Central>,
+it will end up trying "US/Central", which will then be converted to
+"America/Chicago" internally.
 
-=item * L<DateTime::TimeZone::Local::Unix>
+Some systems just copy the relevant file to F</etc/localtime> instead
+of making a symlink.  In this case, we look in F</usr/share/zoneinfo>
+for a file that has the same size and content as F</etc/localtime> to
+determine the local time zone.
 
-=item * L<DateTime::TimeZone::Local::Win32>
+Then it checks for a file called F</etc/timezone> or F</etc/TIMEZONE>.
+If one of these exists, it is read and it tries to create a time zone
+with the name contained in the file.
 
-=item * L<DateTime::TimeZone::Local::VMS>
+Finally, it checks for a file called F</etc/sysconfig/clock>.  If this
+file exists, it looks for a line inside the file matching
+C</^(?:TIME)?ZONE="([^"]+)"/>.  If this line exists, it tries the
+value as a time zone name.
 
-=back
-
-If a local time zone is not found, then an exception will be thrown.
+If none of these methods work, it gives up and dies.
 
 =head2 $tz->offset_for_datetime( $dt )
 
@@ -757,7 +756,7 @@ use C<Locale::Country> to do so.
 
 =head2 DateTime::TimeZone->names_in_country( $country_code )
 
-Given a two-letter ISO3166 country code, this method returns a list of
+Given a two-letter ISO3066 country code, this method returns a list of
 time zones used in that country. The country code may be of any
 case. In scalar context, it returns an array reference, while in list
 context it returns an array.
@@ -794,32 +793,11 @@ your module with Storable.
 =head1 SUPPORT
 
 Support for this module is provided via the datetime@perl.org email
-list. See http://datetime.perl.org/?MailingList for details.
+list.  See http://lists.perl.org/ for more details.
 
 Please submit bugs to the CPAN RT system at
 http://rt.cpan.org/NoAuth/ReportBug.html?Queue=datetime%3A%3Atimezone
 or via email at bug-datetime-timezone@rt.cpan.org.
-
-=head1 DONATIONS
-
-If you'd like to thank me for the work I've done on this module,
-please consider making a "donation" to me via PayPal. I spend a lot of
-free time creating free software, and would appreciate any support
-you'd care to offer.
-
-Please note that B<I am not suggesting that you must do this> in order
-for me to continue working on this particular software. I will
-continue to do so, inasmuch as I have in the past, for as long as it
-interests me.
-
-Similarly, a donation made in this way will probably not make me work
-on this software much more, unless I get so many donations that I can
-consider working on free software full time, which seems unlikely at
-best.
-
-To donate, log into PayPal and send money to autarch@urth.org or use
-the button on this page:
-L<http://www.urth.org/~autarch/fs-donation.html>
 
 =head1 AUTHOR
 
@@ -833,7 +811,7 @@ datetime@perl.org list.
 
 =head1 COPYRIGHT
 
-Copyright (c) 2003-2008 David Rolsky.  All rights reserved.  This
+Copyright (c) 2003-2007 David Rolsky.  All rights reserved.  This
 program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
 
