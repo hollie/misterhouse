@@ -104,6 +104,22 @@ sub failure_callback
         return $$self{failure_callback};
 }
 
+=item C<success_callback(data)>
+
+Data will be evaluated after the receipt of an ACK from the device for this command.
+
+=cut
+
+sub success_callback
+{
+	my ($self, $callback) = @_;
+        if ($callback)
+        {
+        	$$self{success_callback} = $callback;
+        }
+        return $$self{success_callback};
+}
+
 =item C<send_attempts(data)>
 
 Stores and retrieves the number of times Misterhouse has tried to send the message.
