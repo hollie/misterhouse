@@ -25,6 +25,7 @@ L<Generic_Item|Generic_Item>
 
 package Insteon::BaseObject;
 
+use Switch;
 use strict;
 use Insteon::AllLinkDatabase;
 
@@ -1392,6 +1393,53 @@ sub link_to_interface
               " does not have an ALDB object.  Linking is not permitted.");
         }
 }
+
+=item C<link_to_interface_i2cs([group,data3])>
+
+Performs the same task as C<link_to_interface> however this routine is designed
+to perform the initial link to I2CS devices.  These devices cannot be initially
+linked to the PLM in the normal way.  This process requires more steps than the
+normal routine which will take longer to perform and therefore is more prone to
+faile.  As such, this should likely only be used if necessary.
+
+=cut
+
+sub link_to_interface_i2cs
+{
+	my ($self,$p_group, $p_data3, $step) = @_;
+	my $success_callback_prefix = $self->get_object_name."->link_to_interface_i2cs('$p_group','$p_data3',";
+	my $success_callback = "";
+	my $failure_callback = "::print_log('[Insteon::BaseInsteon] Error Link_To_Interface_I2CS ".
+		"routine failed for device: ".$self->get_object_name."')";
+	$step = 0 if ($step eq '');
+	switch ($step){
+		case (0) { #Put PLM into initiate linking mode
+			$success_callback = $success_callback_prefix . "'1')";
+			$self->interface()->initiate_linking_as_controller('00', $success_callback, $failure_callback);	
+		}
+		case (1) { #Ask device to respond to link request
+			$success_callback = $success_callback_prefix . "'2')";
+			$self->enter_linking_mode($p_group, $success_callback, $failure_callback);	
+		}
+		case (2) { #Scan device to get an accurate link table
+			$success_callback = $success_callback_prefix . "'3')";
+			$self->scan_link_table($success_callback, $failure_callback);
+		}
+		case (3) { #Add link from device->PLM
+			$success_callback = $success_callback_prefix . "'4')";
+			my $group = $p_group;
+			$group = '01' unless $group;
+			my $link_info = "deviceid=" . lc $self->device_id . " group=$group is_controller=0 ".
+				"callback=$success_callback failure_callback=$failure_callback";
+			$self->interface->add_link("$link_info");
+		}
+		case (4) {
+			::print_log('[Insteon::BaseInsteon] Link_To_Interface_I2CS successfully completed'.
+				' for device ' .$self->get_object_name);
+		}
+	}
+}
+
 
 =item C<unlink_to_interface([group])>
 
