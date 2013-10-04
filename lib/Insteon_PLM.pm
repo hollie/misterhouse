@@ -743,7 +743,7 @@ sub _parse_data {
                 { #ALL-Linking Completed
 			my $link_address = substr($message_data,4,6);
 			&::print_log("[Insteon_PLM] DEBUG2: ALL-Linking Completed with $link_address ($message_data)") if $main::Debug{insteon} >= 2;
-                        $self->clear_active_message();
+                        #$self->clear_active_message();
 		}
                 elsif ($parsed_prefix eq $prefix{all_link_clean_failed} and ($message_length == 12))
                 { #ALL-Link Cleanup Failure Report

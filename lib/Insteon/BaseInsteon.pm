@@ -976,6 +976,7 @@ sub _process_command_stack
                                 or $message->command eq 'get_operating_flags'
                                 or $message->command eq 'read_write_aldb'
                                 or $message->command eq 'ping'
+                                or $message->command eq 'linking_mode' 
                                 )
                         {
 				$$self{awaiting_ack} = 1;
