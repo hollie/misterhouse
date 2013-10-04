@@ -9,7 +9,7 @@ $^W = 0;                        # Avoid redefined sub msgs
 
 my ($text, $type, $bg_color) = @ARGV;
 
-##print "db v6 t=$text  s=$state bg=$bg_color\n";
+#print "db v6 t=$text  s=$type bg=$bg_color\n";
 
 #my ($state, $x, $y) = $state_xy =~ /(\S+)\?(\d+),(\d+)/;
 
@@ -43,17 +43,21 @@ my ($icon, $light);
 #   $light = 1 if $text =~ /light/i or $text =~ /lite/i;
 #    $light = 1 if $object->isa('X10_Item') and !$object->isa('X10_Appliance');
 
+my $graphic_dir = "./../web/graphics";
+$graphic_dir = $config_parms{html_alias_graphics} if defined $config_parms{html_alias_graphics};
+
 if ($type eq 'door') {
-	$icon = './../web/graphics/icon_door.jpg';
+#	$icon = './../web/graphics/icon_door.jpg';
+	$icon = $graphic_dir . '/icon_door.jpg';
 	}
 elsif ($type eq 'motion') {
-	$icon = './../web/graphics/icon_motion.jpg';
+	$icon = $graphic_dir . '/icon_motion.jpg';
 	}
 elsif ($type eq 'brightness') {
-	$icon = './../web/graphics/icon_motion.jpg';
+	$icon = $graphic_dir . '/icon_motion.jpg';
 	}
 elsif ($type eq 'water') {
-	$icon = './../web/graphics/icon_water.jpg';
+	$icon = $graphic_dir . '/icon_water.jpg';
 	}
 
 
@@ -61,6 +65,11 @@ elsif ($type eq 'water') {
 my $state = $object->state;
 
 undef $icon if $icon and $icon !~ /.jpg$/i;  # GD does not do gifs :(
+
+die "Cannot find source graphic file!" unless (-f $icon);
+
+print "graphic file = $icon\n";
+
 my $image_icon = GD::Image->newFromJpeg($icon) if $icon;
 
 my $image;
@@ -71,11 +80,15 @@ my $image;
 
     # GD in 5.8 gives gray for white jpg??  Allow for png, which is still gray :(
     my $file = "$config_parms{html_dir}/graphics/$template.png";
+    $file  = "$config_parms{html_alias_graphics}/$template.png" if defined $config_parms{html_alias_graphics}; 
+
     if (-f $file) {
         $image = GD::Image->newFromPng($file);
     }
     else {
         $file  = "$config_parms{html_dir}/graphics/$template.jpg";
+	$file  = "$config_parms{html_alias_graphics}/$template.jpg" if defined $config_parms{html_alias_graphics}; 
+	die "Cannot find source template file!" unless (-f $file);
         $image = GD::Image->newFromJpeg($file);
     }
 

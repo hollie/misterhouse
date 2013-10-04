@@ -60,6 +60,22 @@ for my $item (sort @objects) {
 		}
 	}
 
+my $prefix = "light";
+    if ($object->get_type eq 'Generic_Item') {
+	my @states = $object->get_states;
+	my $index;
+	for ($index = 0; $index < @states; $index++) {
+#	  print "db: item=$item states[$index]=[$states[$index]] state=[$state]\n";
+   	  last if ($states[$index] eq $state);
+	}
+	$index++;
+	$index = 0 if ($index > ($#states));
+	  print "db: state_new=[$states[$index]] index=[$index] states=$#states\n";
+	$state_new = $states[$index];
+	$prefix = "generic";
+    }
+
+
     my $name   = &pretty_object_name($item);
 
     my $icon;
@@ -68,10 +84,11 @@ for my $item (sort @objects) {
         $state = 'on' if $state eq '100%';
         $state = 'off' if $state eq '0%';
         $icon = $state;
-        $icon = 'dim' if $state =~ /d+/;
-        my $image = "/graphics/light-" . lc $item . "_" . $icon . ".gif";
+        $icon = 'dim' if (($state =~ /d+/) and ($prefix ne "generic"));
+        my $image = "/graphics/" . $prefix . "-" . lc $item . "_" . $icon . ".gif";
         $image =~ s/ /_/g;
         $image =~ s/\$//g;
+#print "db: image=$image\n";
         my ($file) = (&http_get_local_file($image));
         $image = "/bin/button.pl?$item&item&$state" unless -e $file;
 #       $image = "/bin/button.pl?$item&item&$state" unless -e "$config_parms{html_dir}$image";

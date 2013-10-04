@@ -64,7 +64,7 @@ $object->set("$state", 'web');
 # experimental, and this delay causes MH to pause for the duration of the
 # delay, this is currently disabled by default. But feel free to enable
 # to see if things improve.
-#sleep(1);
+sleep(2) if $object->isa('Insteon::BaseDevice');
 
 my $h = &referer("/bin/list_buttons.pl?$list_name");
 

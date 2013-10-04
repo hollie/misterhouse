@@ -76,7 +76,6 @@ Since this item is inherits from Generic_Item, you can use the set_with_timer me
   set_with_timer $watchdog_light '20%', 5 if file_unchanged $watchdog_file;
 
 
-
 =head1 DESCRIPTION
 
 =head1 INHERITS
