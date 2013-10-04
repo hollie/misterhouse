@@ -1440,7 +1440,6 @@ sub link_to_interface_i2cs
 	}
 }
 
-
 =item C<unlink_to_interface([group])>
 
 Will delete the contoller link from the device to the interface if such a link exists.
@@ -1471,7 +1470,7 @@ sub unlink_to_interface
         }
 }
 
-=item C<enter_linking_mode(group)>
+=item C<enter_linking_mode(group, success_callback, failure_callback)>
 
 BETA -- Can be used to create the initial link with i2cs devices.  i1 devices
 will not respond to this command.  In the future, this will be incorporated into a
@@ -1490,12 +1489,14 @@ Returns: nothing
 
 sub enter_linking_mode
 {
-	my ($self,$p_group) = @_;
+	my ($self,$p_group, $success_callback, $failure_callback) = @_;
 	my $group = $p_group;
 	$group = '01' unless $group;
 	my $extra = sprintf("%02x", $group);
 	$extra .= '0' x (30 - length $extra);
 	my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'linking_mode', $extra);
+	$message->success_callback($success_callback);
+	$message->failure_callback($failure_callback);
 	$self->_send_cmd($message);
 }
 
@@ -1827,11 +1828,12 @@ Returns: nothing
 =cut 
 
 sub get_engine_version {
-   my ($self) = @_;
+   my ($self, $success_callback, $failure_callback) = @_;
 
    my $message = new Insteon::InsteonMessage('insteon_send', $self, 'get_engine_version');
    my $self_object_name = $self->get_object_name;
-   $message->failure_callback("$self_object_name->_get_engine_version_failure()");
+   $message->failure_callback("$self_object_name->_get_engine_version_failure();$failure_callback");
+   $message->success_callback($success_callback);
    $self->_send_cmd($message);
 }
 
@@ -3157,7 +3159,7 @@ C<Insteon::BaseDevice::enter_linking_mode()>.
 
 sub initiate_linking_as_controller
 {
-	my ($self, $p_group) = @_;
+	my ($self, $p_group, $success_callback, $failure_callback) = @_;
 	# iterate over the members
 	if ($$self{members}) {
 		foreach my $member_ref (keys %{$$self{members}}) {
@@ -3169,7 +3171,7 @@ sub initiate_linking_as_controller
 			}
 		}
 	}
-	$self->interface()->initiate_linking_as_controller($p_group);
+	$self->interface()->initiate_linking_as_controller($p_group, $success_callback, $failure_callback);
 }
 
 =item C<derive_message([command,extra])>

@@ -308,7 +308,7 @@ controller will be added for this group, otherwise it will be for group 00.
 
 sub initiate_linking_as_controller
 {
-	my ($self, $group) = @_;
+	my ($self, $group, $success_callback, $failure_callback) = @_;
 
 	$group = '00' unless $group;
 	# set up the PLM as the responder
@@ -316,6 +316,8 @@ sub initiate_linking_as_controller
 	$cmd .= $group; # WARN - must be 2 digits and in hex!!
         my $message = new Insteon::InsteonMessage('all_link_start', $self);
         $message->interface_data($cmd);
+        $message->success_callback($success_callback);
+        $message->failure_callback($failure_callback);
 	$self->queue_message($message);
 }
 
@@ -509,6 +511,13 @@ sub _parse_data {
 					}
                                         elsif ($record_type eq $prefix{all_link_start})
                                         {
+                                        	if ($self->active_message->success_callback){
+							package main;
+							eval ($self->active_message->success_callback);
+							&::print_log("[Insteon_PLM] WARN1: Error encountered during ack callback: " . $@)
+								if $@ and $main::Debug{insteon} >= 1;
+							package Insteon_PLM;
+                                        	}
                                                 # clear the active message because we're done
                 				$self->clear_active_message();
                                         }
@@ -538,7 +547,7 @@ sub _parse_data {
                                                 {
 							$callback = $pending_message->callback(); #$$self{_mem_callback};
 							$$self{_mem_callback} = undef;
-                                                }
+                                                } 
                                                 if ($callback){
 							package main;
 							eval ($callback);
