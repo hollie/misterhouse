@@ -1373,25 +1373,45 @@ the device.
 
 sub link_to_interface
 {
-	my ($self,$p_group, $p_data3) = @_;
+	my ($self,$p_group, $p_data3, $step) = @_;
 	my $group = $p_group;
 	$group = '01' unless $group;
-	# add a link first to this device back to interface
-	# and, add a reference to creating a link from interface back to device via hook
-	my $callback_instance = $self->interface->get_object_name;
-	my $callback_info = "deviceid=" . lc $self->device_id . " group=$group is_controller=0";
-	my %link_info = ( object => $self->interface, group => $group, is_controller => 1,
-#		on_level => '100%', ramp_rate => '0.1s',  Controllers don't use on_level or ramp_rate
-		callback => "$callback_instance->add_link('$callback_info')");
-	$link_info{data3} = $p_data3 if $p_data3;
-        if ($self->_aldb) {
-	   $self->_aldb->add_link(%link_info);
-        }
-        else
-        {
-           &main::print_log("[BaseInsteon] This item " . $self->get_object_name .
-              " does not have an ALDB object.  Linking is not permitted.");
-        }
+	my $success_callback_prefix = $self->get_object_name."->link_to_interface(\"$p_group\",\"$p_data3\",";
+	my $success_callback = "";
+	my $failure_callback = '::print_log("[Insteon::BaseInsteon] Error: The Link_To_Interface '.
+		'routine failed for device: '.$self->get_object_name.'")';
+	$step = 0 if ($step eq '');
+	switch ($step){
+		case (0) { #If NAK on get_engine, then this is an I2CS device
+			$success_callback = $success_callback_prefix . "\"1\")";
+			$failure_callback = $self->get_object_name."->link_to_interface_i2cs(\"$p_group\",\"$p_data3\")";
+			$self->get_engine_version($success_callback, $failure_callback);	
+		}
+		case (1) { #Add Link from object->PLM
+			$success_callback = $success_callback_prefix . "\"2\")";
+			my %link_info = ( object => $self->interface, group => $group, is_controller => 1,
+				callback => "$success_callback", failure_callback=> "$failure_callback");
+			$link_info{data3} = $p_data3 if $p_data3;
+		        if ($self->_aldb) {
+			   $self->_aldb->add_link(%link_info);
+		        }
+		        else
+		        {
+		           &main::print_log("[Insteon::BaseInsteon] Error: This item, " . $self->get_object_name .
+		              ", does not have an ALDB object.  Linking is not permitted.");
+		        }
+		}
+		case (2){ #Add Link from PLM->object
+			$success_callback = $success_callback_prefix . "\"3\")";
+			my $link_info = "deviceid=" . lc $self->device_id . " group=$group is_controller=0 " .
+				"callback=$success_callback failure_callback=$failure_callback";	
+		        $self->interface->add_link($link_info);
+		}
+		case (3){
+			::print_log('[Insteon::BaseInsteon] Link_To_Interface successfully completed'.
+				' for device ' .$self->get_object_name);			
+		}
+	}
 }
 
 =item C<link_to_interface_i2cs([group,data3])>
