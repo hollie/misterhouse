@@ -2381,7 +2381,7 @@ sub html_item_state {
     my $filename     = $object->{filename};
     my $state_now    = $object->{state};
     my $html;
-    $state_now = '' unless $state_now; # Avoid -w uninitialized value msg
+    $state_now = '' unless defined($state_now); # Avoid -w uninitialized value msg
 
                                 # If >2 possible states, add a Select pull down form
     my @states;
@@ -2407,7 +2407,7 @@ sub html_item_state {
     if (my $h_icon = &html_find_icon_image($object, $object_type)) {
         $html .= qq[<img src="$h_icon" alt="$object_name" border="0"></a>];
     }
-    elsif ($state_now) {
+    elsif ($state_now ne '') {
 	my $temp = $state_now;
 	$temp = substr($temp, 0, 8) . '..' if length $temp > 8;
 	$html .= $temp . '</a>&nbsp';
