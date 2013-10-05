@@ -268,7 +268,7 @@ sub default_hop_count
 		#Calculate a simple moving average
 		unshift(@{$$self{hop_array}}, $hop_count); 
 		$$self{hop_sum} += ${$$self{hop_array}}[0];
-		$$self{hop_sum} -= pop(@{$$self{hop_array}}) if (scalar(@{$$self{hop_array}}) >20);
+		$$self{hop_sum} -= pop(@{$$self{hop_array}}) if (scalar(@{$$self{hop_array}}) >10);
 		$$self{default_hop_count} = int(($$self{hop_sum} / scalar(@{$$self{hop_array}})) + 0.5);
 
 		#Allow for per-device settings
