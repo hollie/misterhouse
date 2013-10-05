@@ -2,8 +2,6 @@
 
 =head2 SYNOPSIS
 
-Configuration:
-
 In user code:
 
    use Insteon::MotionSensor;
@@ -86,7 +84,7 @@ contains a specific light and voltage level, as opposed to the simple binary
 states provided by the GROUP method.
 
 To use this method, set the C<set_query_time()> routine.
-	
+
 You can further create child objects that automatically track the state of the 
 light and voltage levels.  These objects allow you to display the state of the
 light and voltage levels on the MisterHouse webpage.  The child objects are 
@@ -96,7 +94,8 @@ certain threshold.
 
 =head2 INHERITS
 
-B<Insteon::BaseDevice>, B<Insteon::DeviceController>
+L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>, 
+L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
 
 =head2 METHODS
 
@@ -111,17 +110,17 @@ use Insteon::BaseInsteon;
 
 @Insteon::MotionSensor::ISA = ('Insteon::DeviceController','Insteon::BaseDevice');
 
-my %message_types = (
-	%Insteon::BaseDevice::message_types,
-	extended_set_get => 0x2e
-);
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
 
 sub new
 {
 	my ($class,$p_deviceid,$p_interface) = @_;
 
 	my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
-	$$self{message_types} = \%message_types;
 	if ($self->is_root){ 
 		$self->restore_data('query_timer', 'last_query_time');
 		$$self{queue_timer} = new Timer;
@@ -129,6 +128,12 @@ sub new
 	bless $self,$class;
 	return $self;
 }
+
+=item C<set(state[,setby,response])>
+
+Handles setting and receiving states from the device.
+
+=cut
 
 sub set
 {
@@ -356,6 +361,13 @@ sub enable_all_motion {
 	return;
 }
 
+=item C<_is_query_time_expired()>
+
+Returns true if the last battery level response received by MisterHouse is older
+than C<set_timeout>.
+
+=cut
+
 sub _is_query_time_expired {
 	my ($self) = @_;
 	my $root = $self->get_root();
@@ -366,6 +378,14 @@ sub _is_query_time_expired {
 	return 0;
 }
 
+=item C<_process_message()>
+
+Processes unique messages sent to the device, notably battery level messages, and
+settings messages but passes the rest of the messages off to 
+L<Insteon::BaseObject|Insteon::BaseInsteon/Insteon::BaseObject>.
+
+=cut
+
 sub _process_message {
 	my ($self,$p_setby,%msg) = @_;
 	my $clear_message = 0;
@@ -375,7 +395,14 @@ sub _process_message {
 		my $no_retry = 1;
 		$root->get_extended_info($no_retry);
 	}
-	if ($msg{command} eq "extended_set_get" && $msg{is_ack}){
+	my $pending_cmd = ($$self{_prior_msg}) ? $$self{_prior_msg}->command : $msg{command};
+	my $ack_setby = (ref $$self{m_status_request_pending}) ? $$self{m_status_request_pending} : $p_setby;
+	if ($msg{is_ack} && $self->_is_info_request($pending_cmd,$ack_setby,%msg)) {
+		$clear_message = 1;
+		$$self{m_status_request_pending} = 0;
+		$self->_process_command_stack(%msg);
+	}
+	elsif ($msg{command} eq "extended_set_get" && $msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
 		#If this was a get request don't clear until data packet received
 		main::print_log("[Insteon::MotionSensor] Extended Set/Get ACK Received for " . $self->get_object_name) if $main::Debug{insteon};
@@ -450,12 +477,60 @@ sub _process_message {
 	return $clear_message;
 }
 
+=item C<is_responder()>
+
+Always returns 0.
+
+=cut
+
 sub is_responder
 {
    return 0;
 }
 
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds},
+        'enable night only' => "$object_name->enable_night_only(1)",
+        'disable night only' => "$object_name->enable_night_only(0)",
+        'enable on only mode' => "$object_name->enable_on_only(1)",
+        'disable on only mode' => "$object_name->enable_on_only(0)",
+        'enable all motion mode' => "$object_name->enable_all_motion(1)",
+        'disable all motion mode' => "$object_name->enable_all_motion(0)"
+    );
+    return \%voice_cmds;
+}
+
+
 =back
+
+=head2 AUTHOR
+
+Kevin Robert Keegan, Gregg Limming
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 =head1 B<Insteon::MotionSensor_Battery>
 
@@ -487,7 +562,7 @@ battery_low_event code in the parent B<Insteon::MotionSensor> object.
 
 =head2 INHERITS
 
-B<Generic_Item>
+L<Generic_Item|Generic_Item>
 
 =head2 METHODS
 
@@ -500,6 +575,12 @@ use strict;
 
 @Insteon::MotionSensor_Battery::ISA = ('Generic_Item');
 
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
+
 sub new {
 	my ($class, $parent) = @_;
 	my $self = new Generic_Item();
@@ -509,12 +590,30 @@ sub new {
 	return $self;
 }
 
+=item C<set_receive()>
+
+Handles state updates provided by the parent object.
+
+=cut
+
 sub set_receive {
 	my ($self, $p_state) = @_;
 	$self->SUPER::set($p_state);
 }
 
 =back
+
+=head2 AUTHOR
+
+Kevin Robert Keegan
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 =head1 B<Insteon::MotionSensor_Light_level>
 
@@ -547,7 +646,7 @@ B<Insteon::MotionSensor> object.
 
 =head2 INHERITS
 
-B<Generic_Item>
+L<Generic_Item|Generic_Item>
 
 =head2 METHODS
 
@@ -560,6 +659,12 @@ use strict;
 
 @Insteon::MotionSensor_Light_Level::ISA = ('Generic_Item');
 
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
+
 sub new {
 	my ($class, $parent) = @_;
 	my $self = new Generic_Item();
@@ -568,6 +673,12 @@ sub new {
 	$$root{light_level_object} = $self;
 	return $self;
 }
+
+=item C<set_receive()>
+
+Handles state updates provided by the parent object.
+
+=cut
 
 sub set_receive {
 	my ($self, $p_state) = @_;
@@ -582,11 +693,7 @@ None.
 
 =head2 AUTHOR
 
-Bruce Winter, Gregg Limming, Kevin Robert Keegan
-
-=head2 SEE ALSO
-
-
+Kevin Robert Keegan
 
 =head2 LICENSE
 
