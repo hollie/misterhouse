@@ -801,6 +801,15 @@ sub _process_message
 					$clear_message = 1;
 				}
 			}
+			elsif ($pending_cmd eq 'linking_mode'){
+				$corrupt_cmd = 1 if ($msg{cmd_code} ne $self->message_type_hex($pending_cmd));
+				if (!$corrupt_cmd){
+					&::print_log("[Insteon::BaseObject] received linking mode ACK from " . $self->{object_name})
+						if $main::Debug{insteon};
+					$self->interface->_set_timeout('xmit', 2000);
+					$clear_message = 0;
+				}
+			}
 			else
                         {
 				if (($pending_cmd eq 'do_read_ee') && 

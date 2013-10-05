@@ -743,7 +743,15 @@ sub _parse_data {
                 { #ALL-Linking Completed
 			my $link_address = substr($message_data,4,6);
 			&::print_log("[Insteon_PLM] DEBUG2: ALL-Linking Completed with $link_address ($message_data)") if $main::Debug{insteon} >= 2;
-                        #$self->clear_active_message();
+			if ($self->active_message->success_callback){
+				main::print_log("[Insteon::Insteon_PLM] DEBUG4: Now calling message success callback: "
+					. $self->active_message->success_callback) if $main::Debug{insteon} >= 4;
+				package main;
+					eval $self->active_message->success_callback;
+					::print_log("[Insteon::Insteon_PLM] problem w/ success callback: $@") if $@;
+				package Insteon::BaseObject;
+			}
+                        $self->clear_active_message();
 		}
                 elsif ($parsed_prefix eq $prefix{all_link_clean_failed} and ($message_length == 12))
                 { #ALL-Link Cleanup Failure Report
