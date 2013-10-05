@@ -14,7 +14,7 @@ use strict;
 
 #print_log "Using read_table_A.pl";
 
-my (%groups, %objects, %packages, %addresses, %scenes);
+my (%groups, %objects, %packages, %addresses, %scene_build_controllers, %scene_build_responders);
 
 sub read_table_init_A {
                                 # reset known groups
