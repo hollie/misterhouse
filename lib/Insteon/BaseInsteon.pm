@@ -271,17 +271,18 @@ sub default_hop_count
 		$$self{hop_sum} -= pop(@{$$self{hop_array}}) if (scalar(@{$$self{hop_array}}) >10);
 		$$self{default_hop_count} = int(($$self{hop_sum} / scalar(@{$$self{hop_array}})) + 0.5);
 
-		#Allow for per-device settings
-		$$self{default_hop_count} = $$self{max_hops} if ($$self{max_hops} &&
-			$$self{default_hop_count} > $$self{max_hops});
-		$$self{default_hop_count} = $$self{min_hops} if ($$self{min_hops} &&
-			$$self{default_hop_count} < $$self{min_hops});
-
 		::print_log("[Insteon::BaseObject] DEBUG4: ".$self->get_object_name
 			."->default_hop_count()=".$$self{default_hop_count}
 			." :: hop_array[]=". join("",@{$$self{hop_array}})) 
 			if $main::Debug{insteon} >= 4;
 	}
+
+	#Allow for per-device settings
+	$$self{default_hop_count} = $$self{max_hops} if ($$self{max_hops} &&
+		$$self{default_hop_count} > $$self{max_hops});
+	$$self{default_hop_count} = $$self{min_hops} if ($$self{min_hops} &&
+		$$self{default_hop_count} < $$self{min_hops});	
+	
         return $$self{default_hop_count};
 }
 
