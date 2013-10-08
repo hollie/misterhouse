@@ -14,7 +14,7 @@ use strict;
 
 #print_log "Using read_table_A.pl";
 
-my (%groups, %objects, %packages, %addresses, %scenes);
+my (%groups, %objects, %packages, %addresses, %scene_build_controllers, %scene_build_responders);
 
 sub read_table_init_A {
                                 # reset known groups
@@ -23,7 +23,8 @@ sub read_table_init_A {
 	%objects=();
 	%packages=();
         %addresses=();
-        %scenes=();
+        %scene_build_controllers=();
+        %scene_build_responders=();
 }
 
 sub read_table_A {
@@ -994,13 +995,18 @@ sub read_table_A {
         $object = '';
     }
     elsif($type eq "SCENE_BUILD") {
-	#SCENE_BUILD, scene_name, scene_member, controller?, responder?, onlevel, ramprate
-        my ($scene_member, $scene_controller, $scene_responder, $on_level, $ramp_rate);
-        ($name, $scene_member, $scene_controller, $scene_responder, $on_level, $ramp_rate) = @item_info;
+	#SCENE_BUILD, scene_name, scene_member, is_controller?, is_responder?, onlevel, ramprate
+        my ($scene_member, $is_scene_controller, $is_scene_responder, $on_level, $ramp_rate);
+        ($name, $scene_member, $is_scene_controller, $is_scene_responder, $on_level, $ramp_rate) = @item_info;
         if( ! $packages{Scene}++ ) {   # first time for this object type?
             $code .= "use Scene;\n";
         }
-	$scenes{$name}{$scene_member} = "$scene_controller,$scene_responder,$on_level,$ramp_rate";
+	if ($is_scene_controller){
+		$scene_build_controllers{$name}{$scene_member} = "1";
+	}
+	if ($is_scene_responder){
+		$scene_build_responders{$name}{$scene_member} = "$on_level,$ramp_rate";
+	}
 	$object = '';
     }
     elsif ($type eq "PHILIPS_HUE"){
@@ -1059,45 +1065,47 @@ sub read_table_A {
 }
 
 sub read_table_finish_A {
-    my ($code, $scene, $scene_member, %scene_data, $member_data);
-    foreach $scene (sort keys %scenes) {
+    my $code = '';
+    #a scene cannot exist without a responder, but it could lack a controller if
+    #scene is a PLM Scene
+    foreach my $scene (sort keys %scene_build_responders) {
         $code .= "\n#SCENE_BUILD Definition for scene: $scene\n";
 
-        #Doesn't work because object technically doesn't exist yet. Is it even necessary to limit to ICONTROLLER's?
+        #Doesn't work because object technically doesn't exist yet. Is it even 
+        #necessary to limit to ICONTROLLER's?
         #my $object = &get_object_by_name($scene);
         #if(defined($object) and $object->isa("Insteon::InterfaceController")) {
 
         if($objects{$scene}) {
-            #Since an INSTEON_ICONTROLLER exists with the same name as the scene, make it a controller of the scene, too.
-            $scenes{$scene}{$scene}="1,0";
+            #Since an INSTEON_ICONTROLLER exists with the same name as the scene, 
+            #make it a controller of the scene, too.
+            $scene_build_controllers{$scene}{$scene}="1";
         }
-        #Make a hash copy so we can iterate through the hash inside another iteration of the same hash. Is there a better way?
-        my %scenememberlist=%{$scenes{$scene}};
 
-        #Loop through the hash and find all controller->responder combinations that make sense.
-        while (($scene_member, $member_data) = each($scenes{$scene})) {
-            my ($scene_controller, $scene_responder) = split(',', $member_data);
+        #Loop through the controller hash
+        foreach my $scene_controller (keys $scene_build_controllers{$scene}) {
+            if ($objects{$scene_controller}) {
+            	#Make a link to each responder in the responder hash
+                while (my ($scene_responder, $responder_data) = each($scene_build_responders{$scene})) {
+                    my ($on_level, $ramp_rate) = split(',', $responder_data);
 
-            if (($objects{$scene_member}) and ($scene_controller)) {
-                while (my($scene2_member, $member2_data) = each(%scenememberlist)) {
-                    my ($scene2_controller, $scene2_responder, $on_level, $ramp_rate) = split(',', $member2_data);
-
-                    if (($objects{$scene2_member}) and ($scene2_responder) and ($scene_member ne $scene2_member)) {
+                    if (($objects{$scene_responder}) and ($scene_responder ne $scene_controller)) {
                         if ($on_level) {
                             if ($ramp_rate) {
                                 $code .= sprintf "\$%-35s -> add(\$%s,'%s','%s');\n",
-                                    $scene_member, $scene2_member, $on_level, $ramp_rate;
-                        } else {
-                                $code .= sprintf "\$%-35s -> add(\$%s,'%s');\n", $scene_member, $scene2_member, $on_level;
+                                    $scene_controller, $scene_responder, $on_level, $ramp_rate;
+                            } else {
+                                $code .= sprintf "\$%-35s -> add(\$%s,'%s');\n", 
+                                    $scene_controller, $scene_responder, $on_level;
                             }
                         } else {
-                            $code .= sprintf "\$%-35s -> add(\$%s);\n", $scene_member, $scene2_member;
+                            $code .= sprintf "\$%-35s -> add(\$%s);\n", $scene_controller, $scene_responder;
                         }
                     }
                 }
 
             } else {
-                print "\nThere is no object called $scene_member defined.  Ignoring SCENE_BUILD entry.\n" unless $objects{$scene_member};
+                print "\nThere is no object called $scene_controller defined.  Ignoring SCENE_BUILD entry.\n";
             }
         }
     }
