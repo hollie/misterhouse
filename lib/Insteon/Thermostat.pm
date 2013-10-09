@@ -866,9 +866,19 @@ sub hex_short_temp{
 }
 
 sub hex_status{
-	### Not sure about this one yet, was 80 when set to auto but no activity
-	## need to call _cooling, _heating, _high_humid, and _low_humid when 
-	## figured out
+	my ($self, $hex_status) = @_;
+	# Bit 	Value	Bit	Value
+	# 0	Cooling	4	1??	
+	# 1	Heating	5	0??
+	# 2	0??	6	1??
+	# 3	0??	7	0??
+	# Sadly, dehumidifying and humidifying do not appear to be reported here
+	my ($pre_cooling, $pre_heating) = ($$self{cooling}, $$self{heating});
+	$$self{cooling} = ($hex_status & 0x01) ? 'on' : 'off';
+	$$self{heating} = ($hex_status & 0x02) ? 'on' : 'off';
+	if (($pre_cooling ne $$self{cooling}) || ($pre_heating ne $$self{heating})){
+		$self->set_receive('status_change');
+	}
 }
 
 sub hex_heat{
