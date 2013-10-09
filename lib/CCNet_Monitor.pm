@@ -1,46 +1,37 @@
-# Category=Informational
-=begin comment
-#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 B<CCNet_Monitor>
 
-File:
-	CCNet_Monitor.pm
+=head2 SYNOPSIS
 
-Description:
-	Gets ccnet status
+Construct new Object of this type
 
-	Program will play sounds in the sound folder in the following format
-	<ccnetProjectName>-<status>.wav
+ Constructor arguments:
+   - instance name
+   - CCNet project name
+   - CCNet URL
+   - Notification Object or Group
+   - 1=>Announce suspects 0=>Do Not announce suspsects
 
-    And will set any object passed as the "Notification Object" to state "ON"	
+Example initialization:
 
-Author:
-	Jason Sharpee
-	jason@sharpee.com
+  $cont_build = new CCNet_Monitor('cont_build','ProgramSuite.Continuous.Build','http://dev-build1.development.programsuite.net/ccnet',$disco_light,1);
+  $qa_build = new CCNet_Monitor('qa_build','ProgramSuite.QA.Build','http://dev-build1.development.programsuite.net/ccnet',undef,0);
 
-License:
-	This free software is licensed under the terms of the GNU public license.
+=head2 DESCRIPTION
 
-Usage:
-	Construct new Object of this type
+Gets ccnet status
 
-	Constructor arguments:
-	- instance name
-        - CCNet project name
-        - CCNet URL
-        - Notification Object or Group
-        - 1=>Announce suspects 0=>Do Not announce suspsects
+Program will play sounds in the sound folder in the following format <ccnetProjectName>-<status>.wav and will set any object passed as the "Notification Object" to state "ON"
 
+=head2 INHERITS
 
-	Example initialization:
+B<Base_Item>
 
-        $cont_build = new CCNet_Monitor('cont_build','ProgramSuite.Continuous.Build','http://dev-build1.development.programsuite.net/ccnet',$disco_light,1);
-        $qa_build = new CCNet_Monitor('qa_build','ProgramSuite.QA.Build','http://dev-build1.development.programsuite.net/ccnet',undef,0);
+=head2 METHODS
 
+=over
 
-Bugs:
+=item B<UnDoc>
 
-
-#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 =cut
 
 use strict;
@@ -214,4 +205,29 @@ sub notification_suspect
 }
 
 1;
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Jason Sharpee
+jason@sharpee.com
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 

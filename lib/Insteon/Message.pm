@@ -1,8 +1,30 @@
+=head1 B<Insteon::BaseMessage>
+
+=head2 DESCRIPTION
+
+Generic base class for L<Insteon|Insteon> object messages, including 
+L<Insteon::X10Message|Insteon::Message/Insteon::X10Message>.  Primarily just 
+stores variables for the object.
+
+=head2 INHERITS
+
+Nothing
+
+=head2 METHODS
+
+=over
+
+=cut
 
 package Insteon::BaseMessage;
 
 use strict;
-#use Insteon;
+
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
 
 sub new
 {
@@ -16,6 +38,12 @@ sub new
         return $self;
 }
 
+=item C<interface_data(data)>
+
+Save and retrieve the interface data defined by C<interface_data()>.
+
+=cut
+
 sub interface_data
 {
 	my ($self, $interface_data) = @_;
@@ -25,6 +53,13 @@ sub interface_data
         }
         return $$self{interface_data};
 }
+
+=item C<queue_time(data)>
+
+Stores the time at which a message was added to the queue.  Used for calculating
+how long a message was delayed.
+
+=cut
 
 sub queue_time
 {
@@ -36,6 +71,12 @@ sub queue_time
         return $$self{queue_time};
 }
 
+=item C<callback(data)>
+
+Data will be evaluated each time the message is sent.
+
+=cut
+
 sub callback
 {
 	my ($self, $callback) = @_;
@@ -45,6 +86,13 @@ sub callback
         }
         return $$self{callback};
 }
+
+=item C<failure_callback(data)>
+
+Data will be evaluated if the maximum number of retry attempts has been made 
+and the message is not acknowledged.
+
+=cut
 
 sub failure_callback
 {
@@ -56,25 +104,11 @@ sub failure_callback
         return $$self{failure_callback};
 }
 
-=item C<failure_reason>
+=item C<send_attempts(data)>
 
-Stores the resaon for the most recent message failure [NAK | timeout].  Used to 
-process message callbacks after a message fails.  If called with no parameter 
-returns the saved failure reason.
+Stores and retrieves the number of times Misterhouse has tried to send the message.
 
-Parameters:
-	reason: failure reason
-
-Returns: failure reason
-
-=cut 
-
-sub failure_reason
-{
-        my ($self, $reason) = @_;
-        $$self{failure_reason} = $reason if $reason;
-        return $$self{failure_reason};
-}
+=cut
 
 sub send_attempts
 {
@@ -86,6 +120,12 @@ sub send_attempts
         return $$self{send_attempts};
 }
 
+=item C<setby(data)>
+
+Stores and retrieves what the source of this message was.
+
+=cut
+
 sub setby
 {
 	my ($self, $setby) = @_;
@@ -95,6 +135,12 @@ sub setby
         }
         return $$self{setby};
 }
+
+=item C<respond(data)>
+
+Stores and retrieves respond variable.
+
+=cut
 
 sub respond
 {
@@ -106,6 +152,17 @@ sub respond
         return $$self{respond};
 }
 
+
+=item C<no_hop_increase(data)>
+
+Stores and retrieves no_hop_increase variable, if set to true, when the message
+is retried, no additional hops will be added.  Typically used where the failure 
+to deliver the last message attempt was not caused by a failure of the object 
+to receive the message such as when the PLM is too busy to even attempt sending
+the message.
+
+=cut
+
 sub no_hop_increase
 {
 	my ($self, $no_hop_increase) = @_;
@@ -116,10 +173,44 @@ sub no_hop_increase
         return $$self{no_hop_increase};
 }
 
+=item C<retry_count(data)>
+
+Stores and retrieves the number of times MisterHouse should try to deliver this 
+message.  If B<Insteon_retry_count> is set in the ini parameters will default 
+to that value, otherwise defaults to 5.  Some messages types have specific 
+retry counts, such as L<Insteon::RemoteLinc|Insteon::Controller/Insteon::RemoteLinc>
+battery level requests which are only sent once.
+
+=cut
+
+sub retry_count {
+	my ($self, $retry_count) = @_;
+	if ($retry_count)
+	{
+		$$self{retry_count} = $retry_count;
+	}
+	my $result_retry = 5;
+	$result_retry = $::config_parms{'Insteon_retry_count'} if ($::config_parms{'Insteon_retry_count'});
+	$result_retry = $$self{retry_count} if ($$self{retry_count});
+	return $result_retry;
+}
+
+=item C<send(p_interface)>
+
+Sends this message using the interface p_interface.  If C<send_attempts> is 
+greater than 0 then 
+L<Insteon::BaseObject::default_hop_count|Insteon::BaseInsteon/Insteon::BaseObject> 
+is increase by one.  Calls C<callback()>
+when the message is sent.  
+
+Returns 1 if message sent or 0 if message retry count exceeds C<retry_count()>.
+
+=cut
+
 sub send
 {
         my ($self, $interface) = @_;
-        if ($self->send_attempts < ($::config_parms{'Insteon_retry_count'} || 5))
+        if ($self->send_attempts < $self->retry_count)
         {
 
         	if ($self->send_attempts > 0)
@@ -131,19 +222,27 @@ sub send
                         if (ref $self->setby && $self->setby->isa('Insteon::BaseObject') 
                         	&& !defined($$self{no_hop_increase}))
                         {
+                        	$self->setby->retry_count_log(1) if $self->setby->can('retry_count_log');
                         	if ($self->setby->default_hop_count < 3)
                                 {
                                 	$self->setby->default_hop_count($self->setby->default_hop_count + 1);
                                 }
                         }
-                        elsif (defined($$self{no_hop_increase}) && $main::Debug{insteon}){
+                        elsif (defined($$self{no_hop_increase}) && ref $self->setby
+                        	&& $self->setby->isa('Insteon::BaseObject')){
                         	&main::print_log("[Insteon::BaseMessage] Hop count not increased for "
-                        		. $self->setby->get_object_name . " because no_hop_increase flag was set.");
+                        		. $self->setby->get_object_name . " because no_hop_increase flag was set.")
+                        		if $main::Debug{insteon};
                         	$$self{no_hop_increase} = undef;
                         }
                 }
 
                 # need to set timeout as a function of retries; also need to alter hop count
+                if ($self->send_attempts <= 0 && ref $self->setby) {
+                    $self->setby->outgoing_count_log(1) if $self->setby->can('outgoing_count_log');
+                    $self->setby->outgoing_hop_count($self->setby->default_hop_count)
+                    	if $self->setby->can('outgoing_hop_count');
+                }
                 $self->send_attempts($self->send_attempts + 1);
 		$interface->_send_cmd($self, $self->send_timeout);
 		if ($self->callback)
@@ -162,6 +261,13 @@ sub send
 
 }
 
+=item C<seconds_delayed()>
+
+Returns the number of seconds that elapsed between time set in C<queue_time>
+and when this routine was called.
+
+=cut
+
 sub seconds_delayed
 {
 	my ($self) = @_;
@@ -176,6 +282,13 @@ sub seconds_delayed
         return $delay_time;
 }
 
+=item C<send_timeout(p_timeout)>
+
+Stores and returns the number of milliseconds, p_timeout, that MisterHouse
+should wait before retrying this message again.
+
+=cut
+
 sub send_timeout
 {
 	my ($self, $timeout) = @_;
@@ -183,17 +296,71 @@ sub send_timeout
         return $$self{send_timeout};
 }
 
+=item C<to_string()>
+
+Returns the hexadecimal representation of the message.
+
+=cut
+
 sub to_string
 {
 	my ($self) = @_;
         return $self->interface_data;
 }
 
+=back
+
+=head2 INI PARAMETERS
+
+=over
+
+=item Insteon_retry_count
+
+Sets the number of times MisterHouse will attempt to resend a message that has
+not been acknowledged.  The default setting is 5.
+
+=back
+
+=head2 AUTHOR
+
+Gregg Limming, Kevin Robert Keegan
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
+=head1 B<Insteon::InsteonMessage>
+
+=head2 DESCRIPTION
+
+Main class for all L<Insteon|Insteon> messages.
+
+=head2 INHERITS
+
+L<Insteon::BaseMessage|Insteon::Message/Insteon::BaseMessage>
+
+=head2 METHODS
+
+=over
+
+=cut
+
 package Insteon::InsteonMessage;
 use strict;
-#use Insteon;
 
 @Insteon::InsteonMessage::ISA = ('Insteon::BaseMessage');
+
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
 
 sub new
 {
@@ -209,6 +376,12 @@ sub new
 
         return $self;
 }
+
+=item C<command_to_hash(msg)>
+
+Takes msg, a hexadecimal message, and returns a hash of the message details.
+
+=cut
 
 sub command_to_hash
 {
@@ -290,6 +463,11 @@ sub command_to_hash
 	return %msg;
 }
 
+=item C<command(data)>
+
+Stores and retrieves the Cmd1 value for this message.
+
+=cut
 
 sub command
 {
@@ -298,12 +476,25 @@ sub command
       return $$self{command};
 }
 
+=item C<command_type(data)>
+
+Stores and retrieves the Command Type value for this message.
+
+=cut
+
 sub command_type
 {
       my ($self, $command_type) = @_;
       $$self{command_type} = $command_type if $command_type;
       return $$self{command_type};
 }
+
+=item C<extra(data)>
+
+Stores and retrieves the extra value for this message.  For standard messages
+extra is Cmd2.  For extended messages extra is Cmd2 + D1-D14.
+
+=cut
 
 sub extra
 {
@@ -312,67 +503,95 @@ sub extra
       return $$self{extra};
 }
 
+=item C<send_timeout()>
+
+Calculates and returns the number of milliseconds that MisterHouse should wait
+for this message to be delivered.  The time is based on message type, command type, 
+and hop count.
+
+    Peek Related Messages = 4000
+    PLM Scene Commands    = 3000
+          Ext   /  Std
+    0 Hop 2220    1400
+    1 Hop 2690    1700
+    2 Hop 3000    1900
+    3 Hop 3170    2000
+
+These times were intially calculated by Gregg Limming and appear to have been 
+calculated based on experience.  In reality each hop of a standard message 
+should take 50 ms and 108 for extended messages.  Each time needs to be at least
+doubled to compensate for the return hops as well.
+
+In reality, the PLM and even some Insteon devices appear to react much slower
+than the spec defines.  These settings generally appear to work without causing 
+errors or too much undue delay.
+
+=cut
+
 sub send_timeout
 {
-# hop timing in seconds; this method returns timeout in millisconds
-# hops    standard   extended
-# ----    --------   --------
-#  0       1.40       2.22
-#  1       1.70       2.69
-#  2       1.90       3.01
-#  3       2.00       3.17
-
 	my ($self, $ignore) = @_;
         my $hop_count = (ref $self->setby and $self->setby->isa('Insteon::BaseObject')) ?
         			$self->setby->default_hop_count : $self->send_attempts;
+        my $timeout = 1400;
 	if($self->command eq 'peek' || $self->command eq 'set_address_msb')
 	{
-		return 4000;
+		$timeout = 4000;
 	}
-        if ($self->command_type eq 'all_link_send')
+        elsif ($self->command_type eq 'all_link_send')
         {
         	# note, the following was set to 2000 and that was insufficient
-        	return 3000;
+        	$timeout = 3000;
         }
         elsif ($self->command_type eq 'insteon_ext_send')
         {
         	if ($hop_count == 0)
                 {
-                	return   2220;
+                	$timeout = 2220;
                 }
                 elsif ($hop_count == 1)
                 {
-                	return   2690;
+                	$timeout = 2690;
                 }
                 elsif ($hop_count == 2)
                 {
-                	return   3000;
+                	$timeout = 3000;
                 }
                 elsif ($hop_count >= 3)
                 {
-                	return   3170;
+                	$timeout = 3170;
                 }
         }
         else
         {
         	if ($hop_count == 0)
                 {
-                	return   1400;
+                	$timeout = 1400;
                 }
                 elsif ($hop_count == 1)
                 {
-                	return   1700;
+                	$timeout = 1700;
                 }
                 elsif ($hop_count == 2)
                 {
-                	return   1900;
+                	$timeout = 1900;
                 }
                 elsif ($hop_count >= 3)
                 {
-                	return   2000;
+                	$timeout = 2000;
                 }
         }
+        if (ref $self->setby and $self->setby->isa('Insteon::BaseObject')){
+        	$timeout = int($timeout * $self->setby->timeout_factor);
+        }
+        return $timeout;
 }
+
+=item C<to_string()>
+
+Returns text based human readable representation of the message.
+
+=cut
 
 sub to_string
 {
@@ -402,6 +621,13 @@ sub to_string
         return $result;
 }
 
+=item C<interface_data(data)>
+
+Stores data as the hexadecimal message, or if data is not specified, then derives
+the hexadecimal message and returns it.
+
+=cut
+
 sub interface_data
 {
 	my ($self, $interface_data) = @_;
@@ -420,6 +646,13 @@ sub interface_data
         }
 }
 
+=item C<_derive_interface_data()>
+
+Converts all of the attributes set for this message into a hexadecimal message
+that can be sent to the PLM.  Will add checksums and crcs when necessary.
+
+=cut
+
 sub _derive_interface_data
 {
 
@@ -432,7 +665,7 @@ sub _derive_interface_data
 	}
         else
         {
-       		my $hop_count = $self->send_attempts + $self->setby->default_hop_count - 1;
+       		my $hop_count = $self->setby->default_hop_count;
 		$cmd.=$self->setby->device_id();
 		if ($self->command_type =~ /insteon_ext_send/i)
                 {
@@ -555,6 +788,8 @@ The calculation if the crc value involves data bytes from command 1 to the data 
 byte. This function will return two bytes, which are generally added to the 
 data 13 & 14 bytes in an extended message.
 
+To add a crc16 to a message set the $$message{add_crc16} flag to true.
+
 =cut
 
 sub calculate_crc16
@@ -581,10 +816,40 @@ sub calculate_crc16
 	return uc(sprintf("%x", $crc));
 }
 
+=back
+
+=head2 AUTHOR
+
+Gregg Limming, Kevin Robert Keegan, Michael Stovenour
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
+=head1 B<Insteon::X10Message>
+
+=head2 DESCRIPTION
+
+Main class for all L<Insteon|Insteon> X10 messages.
+
+=head2 INHERITS
+
+L<Insteon::BaseMessage|Insteon::Message/Insteon::BaseMessage>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 package Insteon::X10Message;
 use strict;
-#use Insteon;
 
 @Insteon::X10Message::ISA = ('Insteon::BaseMessage');
 
@@ -718,6 +983,12 @@ my %mh_commands = (
 						'8' => 'hail_request'
 );
 
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
+
 sub new
 {
 	my ($class, $interface_data) = @_;
@@ -729,6 +1000,13 @@ sub new
 
         return $self;
 }
+
+=item C<get_formatted_data()>
+
+Converts an X10 message from the interface into the generic humand readable X10 
+message format.
+
+=cut
 
 sub get_formatted_data
 {
@@ -761,6 +1039,12 @@ sub get_formatted_data
 
 	return $msg;
 }
+
+=item C<generate_commands()>
+
+Generates and returns the X10 hexadecimal message for sending to the PLM.
+
+=cut
 
 sub generate_commands
 {
@@ -829,5 +1113,21 @@ sub generate_commands
 
         return @data;
 }
+
+=back
+
+=head2 AUTHOR
+
+Gregg Limming
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 
 1;

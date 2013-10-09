@@ -2,6 +2,39 @@ use strict;
 
 package Weather_Item;
 
+=head1 NAME
+
+B<Weather_Item> - This object can be used to track data stored in the global %Weather array.
+
+=head1 SYNOPSIS
+
+  $WindSpeed = new Weather_Item 'WindSpeed';
+  $WindSpeed-> tie_event('print_log "Wind speed is now at $state"');
+
+  $freezing = new Weather_Item 'TempOutdoor < 32';
+  if (state_now $fountain eq ON and state $freezing) {
+    speak "Sorry fountains don't work too well when frozen";
+    set $fountain OFF
+  }
+
+  $Windy = new Weather_Item 'WindSpeed > 15';
+  speak "Wind is gusting at $Weather{WindSpeed} mph" if state $Windy;
+
+  # For current state, easiest to use it directly
+  speak "Outdoor temperature is $Weather{TempOutdoor} degrees";
+
+=head1 DESCRIPTION
+
+=head1 INHERITS
+
+B<Generic_Item>
+
+=head1 METHODS
+
+=over
+
+=cut
+
 # $w_x = new Weather_Item(TempIndoor);         # returns e.g. 68/82/etc
 # $w_x = new Weather_Item('TempIndoor > 99')   # returns evaluated expression if defined else return value undefined
 
@@ -32,6 +65,12 @@ sub item_transform($) {
     $_ = shift;
     ($_ =~ /^(and|or|not|eq|ne|clear|cloudy|sunny|partly|mostly)$/i)?"$_":"\$::Weather{$_}";
 }
+
+=item C<new($type)>
+
+$type is the name of the %Weather index you want to monitor.  $type can also have a =<> comparison operator in it so you can make the object a true/false test.
+
+=cut
 
 sub new {
    my ($class, $type) = @_;
@@ -71,6 +110,12 @@ sub new {
 
 }
 
+=item C<state>
+
+Returns the last state, or 1/0 if $comparition and $limit were used.
+
+=cut
+
 sub state {
     my ($self) = @_;
     my $valid;
@@ -99,6 +144,39 @@ sub default_setstate {
 
 1;
 
+=back
+
+=head1 INHERITED METHODS
+
+=over
+
+=item C<tate_now>
+
+Returns the state only when the weather data changed.
+
+=back
+
+=head1 INI PARAMETERS
+
+NONE
+
+=head1 AUTHOR
+
+UNK
+
+=head1 SEE ALSO
+
+For examples on interface code that stores data into %Weather, see mh/code/bruce/weather_monitor.pl (uses mh/lib/Weather_wx200.pm), mh/code/public/iButton_ws_client.pl, and mh/code/public/weather_com.pl
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 
 #
 # $Log: Weather_Item.pm,v $

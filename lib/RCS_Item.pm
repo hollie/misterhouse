@@ -1,16 +1,26 @@
-###################################################################
+=head1 B<RCS_Item>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+NONE
+
+=head2 INHERITS
+
+B<Serial_Item>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
+=cut
 
 package RCS_Item;
- 
-# Copyright (c) 1999 Craig Schaeffer. All rights reserved. 
-# This program is free software.  You may modify and/or 
-# distribute it under the same terms as Perl itself.  
-# This copyright notice must remain attached to the file.  
-#
-# Protocol is documented here: 
-#   http://www.resconsys.com/docs/X10%20BIDIRECTIONAL%20PROTOCOL%20REV13.pdf 
-
-####################################################################
 
 @RCS_Item::ISA = ("Serial_Item");
 @RCS_Item::Inherit::ISA = @ISA;
@@ -159,3 +169,30 @@ sub list_by_type {
 #
 #
 #
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Craig Schaeffer
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+  Copyright (c) 1999 Craig Schaeffer. All rights reserved.
+  This program is free software.  You may modify and/or
+  distribute it under the same terms as Perl itself.
+  This copyright notice must remain attached to the file.
+
+  Protocol is documented here:
+    http://www.resconsys.com/docs/X10%20BIDIRECTIONAL%20PROTOCOL%20REV13.pdf
+
+=cut
+

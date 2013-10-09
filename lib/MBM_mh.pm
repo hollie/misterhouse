@@ -1,20 +1,26 @@
-# Interface mh user scripts to MBM (Mother Board Monitor)
-#
-# MBM monitors Temperature, Voltage, Fans, etc. via sensors included in many motherboards
-# MBM runs on Windows only
-# MBM available at http://mbm.livewiredev.com
-#
-# mh.ini parm "MBM_module=MBM_mh" required.
-# See /mh/code/common/MBM.pl for example user script.
-#
-# MBM must be installed and configured.
-# Win32::API must be installed via "ppm install Win32-API"
-# Do not confuse Win32::API with Win32API
-#
-#    By: Danal Estes 
-# Email: danal@earthling.net
-#  January 25, 2003 - Original Code
-#
+=head1 B<MBM_mh>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+Interface mh user scripts to MBM (Mother Board Monitor)
+
+MBM monitors Temperature, Voltage, Fans, etc. via sensors included in many motherboards.  MBM runs on Windows only.  MBM available at http://mbm.livewiredev.com
+
+MBM must be installed and configured.  Win32::API must be installed via "ppm install Win32-API".  Do not confuse Win32::API with Win32API
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 use strict;
 use Win32::API;
@@ -89,7 +95,12 @@ sub time {
 # Methods internal to package
 ## 
  
-# mh calls startup when mh.ini MBM_module=MBM_mh parm is processed 
+=item C<startup>
+
+mh calls startup when mh.ini MBM_module=MBM_mh parm is processed 
+
+=cut
+
 sub startup {  
     &::Reload_pre_add_hook(\&MBM_mh::reload_reset, 'persistent');
     &::MainLoop_pre_add_hook(\&MBM_mh::check_for_data, 'persistent');
@@ -127,3 +138,29 @@ sub check_for_data {
 
 
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+"MBM_module=MBM_mh" required.
+
+=head2 AUTHOR
+
+Danal Estes danal@earthling.net
+
+=head2 SEE ALSO
+
+See /mh/code/common/MBM.pl for example user script.
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

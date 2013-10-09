@@ -1,3 +1,25 @@
+=head1 B<Caller_ID>
+
+=head2 SYNOPSIS
+
+None
+
+=head2 DESCRIPTION
+
+NONE
+
+=head2 INHERITS
+
+NONE
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
+=cut
+
 package Caller_ID;
 use strict;
 
@@ -10,7 +32,7 @@ my $caller_id_debug = 0;
 sub make_speakable {
     my($data, $format,$local_area_code_language) = @_;
 
-=cut begin
+=cut
 
 format=1: Weeder CID data looks like this:
 I03/18 22:05 507-288-1030 WINTER BRUCE LA
@@ -68,7 +90,7 @@ Format=4   NetCallerID (http://ugotcall.com/nci.htm)
 ###DATE06191942...NMBR...NAME-UNKNOWN CALLER-+++
 
 
-=cut end
+=cut
 
 
 # Switch name strings so first last, not last first.
@@ -434,3 +456,28 @@ sub read_callerid_list {
 #
 
 1;
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

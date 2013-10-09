@@ -1,16 +1,20 @@
-=begin comment
+=head1 B<Audible_Menu>
 
-Audible_Menu.pm
+=head2 SYNOPSIS
 
-By David Norwood, dnorwood2@yahoo.com
-               for Misterhouse, http://www.misterhouse.net
-               by Bruce Winter and many contributors
+NONE
 
-This module uses text-to-speech and input from one or two switches
-to provide access to the Misterhouse menu system for people with 
-severe physical disabilities. 
+=head2 DESCRIPTION
 
-See mh/code/public/audible_menu.pl for example usage.
+This module uses text-to-speech and input from one or two switches to provide access to the Misterhouse menu system for people with severe physical disabilities.
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=item B<UnDoc>
 
 =cut
 
@@ -216,3 +220,28 @@ sub process {
 }
 
 1;
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+By David Norwood, dnorwood2@yahoo.com for Misterhouse, http://www.misterhouse.net by Bruce Winter and many contributors
+
+=head2 SEE ALSO
+
+See mh/code/public/audible_menu.pl for example usage.
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

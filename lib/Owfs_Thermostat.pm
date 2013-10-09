@@ -1,28 +1,8 @@
-=begin comment
+=head1 B<Owfs_Thermostat>
 
-Owfs_Thermostat.pm 
+=head2 SYNOPSIS
 
-03/10/2007 Created by Jim Duda (jim@duda.tzo.com)
-
-Use this module to create a software based thermostat control which is 
-manipulated by the MH web browser.  This library module interacts with 
-the perl cgi scripts found in code/public/Owfs_hvac.pl.  This cgi script
-needs to be copied to web/ia5/outside/Owfs_hvac.pl.  You will
-need to update web/ia5/outside/hvac.stml to call Owfs_hvac.pl.
-
-Requirements:
-
- Download and install OWFS
- http://www.owfs.org
-
-Setup:
-
-mh.private.ini
-
-owfs_on_timer_value = 3       # minimum A/C compressor ON time
-owfs_off_timer_value = 3      # minimum A/C compressor OFF time
-
-In your code module, instantation the Owfs_Thermostat class.  Next, 
+In your code module, instantation the Owfs_Thermostat class.  Next,
 inform the Thermostat of the one-wire devices which control the various
 HVAC equipment, all of which are optional.
 
@@ -36,21 +16,45 @@ HVAC equipment, all of which are optional.
 
 Usage:
 
-$thermostat = new Owfs_Thermostat ( );
+  $thermostat = new Owfs_Thermostat ( );
 
-if ($Startup or $Reload) {
-  $thermostat->add_thermometer ( "10.A930E4000800", "Sewing Room", 3 );
-  $thermostat->add_thermometer ( "10.6D9EB1000800", "Kitchen", 1 );
-  $thermostat->add_thermometer ( "10.4936E4000800", "Living Room", 1);
-  $thermostat->add_thermometer ( "10.6474E4000800", "Master Bedroom", 2);
-  $thermostat->add_thermometer ( "10.842CE4000800", "Guest Room", 3);
-  $thermostat->set_heat_relay  ( "05.14312A000000", "Furnace" );
-  $thermostat->set_heat_sensor ( "20.DB2506000000", "Furnace", "B");
-  $thermostat->set_cool_relay  ( "05.F2302A000000", "Air Conditioner" );
-  $thermostat->set_cool_sensor ( "20.DB2506000000", "Air Conditioner", "A");
-  $thermostat->set_fan_relay   ( "05.14312A000000", "Air Fan" );
-  $thermostat->set_cool_sensor ( "20.DB2506000000", "Air Fan", "C");
-}
+  if ($Startup or $Reload) {
+    $thermostat->add_thermometer ( "10.A930E4000800", "Sewing Room", 3 );
+    $thermostat->add_thermometer ( "10.6D9EB1000800", "Kitchen", 1 );
+    $thermostat->add_thermometer ( "10.4936E4000800", "Living Room", 1);
+    $thermostat->add_thermometer ( "10.6474E4000800", "Master Bedroom", 2);
+    $thermostat->add_thermometer ( "10.842CE4000800", "Guest Room", 3);
+    $thermostat->set_heat_relay  ( "05.14312A000000", "Furnace" );
+    $thermostat->set_heat_sensor ( "20.DB2506000000", "Furnace", "B");
+    $thermostat->set_cool_relay  ( "05.F2302A000000", "Air Conditioner" );
+    $thermostat->set_cool_sensor ( "20.DB2506000000", "Air Conditioner", "A");
+    $thermostat->set_fan_relay   ( "05.14312A000000", "Air Fan" );
+    $thermostat->set_cool_sensor ( "20.DB2506000000", "Air Fan", "C");
+  }
+
+
+=head2 DESCRIPTION
+
+Use this module to create a software based thermostat control which is
+manipulated by the MH web browser.  This library module interacts with
+the perl cgi scripts found in code/public/Owfs_hvac.pl.  This cgi script
+needs to be copied to web/ia5/outside/Owfs_hvac.pl.  You will
+need to update web/ia5/outside/hvac.stml to call Owfs_hvac.pl.
+
+Requirements:
+
+ Download and install OWFS
+ http://www.owfs.org
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
 
 =cut
 
@@ -795,4 +799,31 @@ sub run_loop {
 }
 
 1;
+
+
+
+=back
+
+=head2 INI PARAMETERS
+
+owfs_on_timer_value = 3       # minimum A/C compressor ON time
+owfs_off_timer_value = 3      # minimum A/C compressor OFF time
+
+=head2 AUTHOR
+
+03/10/2007 Created by Jim Duda (jim@duda.tzo.com)
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 

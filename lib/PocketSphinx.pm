@@ -1,63 +1,37 @@
-=begin comment
+=head1 B<PocketSphinx_Control>
 
-PocketSphinx.pm 
+=head2 SYNOPSIS
 
-01/21/2007 Created by Jim Duda (jim@duda.tzo.com)
+NONE
+
+=head2 DESCRIPTION
 
 Use this module to control the PocketSphinx VR engine (currently Linux only)
 
 Requirements:
 
- Download and install Sphinxbase, PocketSphinx, and CMU Language Toolkit
- http://cmusphinx.sourceforge.net/wiki/download/
+Download and install Sphinxbase, PocketSphinx, and CMU Language Toolkit
+http://cmusphinx.sourceforge.net/wiki/download/
 
  Current Version Supported:
  PocketSphinx: 0.7
  SphinxBase:   0.7
  Cmuclmtk:     0.7
 
- When building SphinxBase, it will default to OSS, if you want ALSA (recommended) then you 
- need to add --with-alsa to the configure command.
-
-Setup:
+When building SphinxBase, it will default to OSS, if you want ALSA (recommended) then you
+need to add --with-alsa to the configure command.
 
 Install and configure all the above software.  Set these values in your mh.private.ini file
 Note that all those marked as default are in mh.ini and need not be loaded unless truly different.
 Enable the pocket_sphinx_control module in misterhouse setup (code/common).
 
- voice_cmd                    = pocketsphinx                   # REQUIRED
- server_pocketsphinx_port     = 3235                           # REQUIRED
- pocketsphinx_awake_phrase    = "mister house,computer"        # optional
- pocketsphinx_awake_response  = "yes master?"                  # optional
- pocketsphinx_awake_time=300                                   # optional
- pocketsphinx_asleep_phrase={go to sleep,change to sleep mode} # optional
- pocketsphinx_asleep_response=Ok, later.
- pocketsphinx_timeout_response=Later.
+=head2 INHERITS
 
- pocketsphinx_hmm         = /usr/local/share/pocketsphinx/model/hmm/en_US/hub4wsj_sc_8k   # default
- pocketsphinx_rate        = 16000                                                         # default
- pocketsphinx_continuous  = /usr/local/bin/pocketsphinx_continuous                        # default
- pocketsphinx_dev         = default                                                       # default
+B<Generic_Item>
 
- Note: If using OSS instead of ALSA, pocketsphinx_device needs to be "/dev/dsp" or similiar.
+=head2 METHODS
 
-@    - pocketsphinx_awake_phrase:     Command(s) that will switch mh into active 
-@                                     mode (all commands recognized) from asleep mode.
-@    - pocketsphinx_awake_response:   This is what is said (or played) when entering
-@                                     awake mode
-@    - pocketsphinx_awake_time:       Stay in awake mode for this many seconds after
-@                                     the last command was heard.  Then it switches
-@                                     to asleep mode. Set to 0 or blank to disable
-@                                     (always stay in awake mode).
-@    - pocketsphinx_asleep_phrase:    Command{s} to put mh into asleep mode.
-@    - pocketsphinx_asleep_response:  This is what it said (or played) when entering
-@                                     sleep mode
-@    - pocketsphinx_timeout_response: This is what is said (or played) when the awake
-@                                     timer expires.
-@    - pocketsphinx_hmm               Pocketsphinx Human Markov Model directory location.
-@    - pocketsphinx_rate              Audio Sample rate
-@    - pocketsphinx_continuous        Program location for pocketsphinx_continuous
-@    - pocketsphinx_dev               Audio device (multiple devices can be separated by "|")
+=over
 
 =cut
 
@@ -123,7 +97,12 @@ sub startup {
    }
 }
 
-# Trim leading and trailing spaces
+=item C<_trim>
+
+Trim leading and trailing spaces
+
+=cut
+
 sub _trim {
     my $string = shift;
     $string =~ s/^\s+//;
@@ -131,12 +110,22 @@ sub _trim {
     return $string;
 }
 
-# Shut down the process before we restart
+=item C<restart>
+
+Shut down the process before we restart
+
+=cut
+
 sub restart {
     $p_sphinx->stop( );
 }
 
-# check for any new voice command from external pocketsphinx client(s)
+=item C<said>
+
+Check for any new voice command from external pocketsphinx client(s)
+
+=cut
+
 sub said {
   my $text;
   if (my $tmp = said $s_pocketsphinx) {
@@ -200,9 +189,12 @@ sub reset_language_files {
     $self->{disabled} = 0;
 }
 
-#============================================================================================ 
-# BUILD SENTENCE FILE
-#============================================================================================ 
+=item C<build_sentence_file>
+
+BUILD SENTENCE FILE
+
+=cut
+
 sub build_sentence_file {
   my ($sentence_file) = @_;
   #first write the sentence file
@@ -217,51 +209,65 @@ sub build_sentence_file {
   close OUTPUT;
 }
 
-#============================================================================================ 
-# BUILD LANGUAGE MODEL FILE
-#============================================================================================ 
-# 1) Prepare a reference text that will be used to generate the language model. 
-# The language model toolkit expects its input to be in the form of normalized text files, 
-# with utterances delimited by <s> and </s> tags. A number of input filters are available 
-# for specific corpora such as Switchboard, ISL and NIST meetings, and HUB5 transcripts. 
-# The result should be the set of sentences that are bounded by the start and end sentence 
-# markers: <s> and </s>. 
 
-# Here's an example:
-# <s> generally cloudy today with scattered outbreaks of rain and drizzle persistent and heavy at times </s>
-# <s> some dry intervals also with hazy sunshine especially in eastern parts in the morning </s>
-# <s> highest temperatures nine to thirteen Celsius in a light or moderate mainly east south east breeze </s>
-# <s> cloudy damp and misty today with spells of rain and drizzle in most places much of this rain will be 
-# light and patchy but heavier rain may develop in the west later </s>
-#
-# 2) Generate the vocabulary file. This is a list of all the words in the file:
-#    text2wfreq < weather.txt | wfreq2vocab > weather.tmp.vocab
-#
-# 3) You may want to edit the vocabulary file to remove words (numbers, misspellings, names). 
-# If you find misspellings, it is a good idea to fix them in the input transcript.
-#
-# 4) If you want a closed vocabulary language model (a language model that has no provisions 
-# for unknown words), then you should remove sentences from your input transcript that contain
-# words that are not in your vocabulary file.
+=item C<build_lm>
 
-# 5) Generate the arpa format language model with the commands:
-# % text2idngram -vocab weather.vocab -idngram weather.idngram < weather.closed.txt
-# % idngram2lm -vocab_type 0 -idngram weather.idngram -vocab \
-#     weather.vocab -arpa weather.arpa
-#
-# 6) Generate the CMU binary form (DMP)
-# % sphinx_lm_convert -i weather.arpa -o weather.lm
+BUILD LANGUAGE MODEL FILE
 
-# /usr/local/bin/text2wfreq < current.sent | /usr/local/bin/wfreq2vocab > current.vocab
-# text2idngram -vocab current.vocab -idngram current.idngram < current.sent
-# /usr/local/bin/idngram2lm -vocab_type 0 -idngram current.idngram -vocab current.vocab -arpa current.arpa
-# /usr/local/bin/sphinx_lm_convert -i current.arpa -o current.lm
+1) Prepare a reference text that will be used to generate the language model. 
+The language model toolkit expects its input to be in the form of normalized text files, 
+with utterances delimited by <s> and </s> tags. A number of input filters are available 
+for specific corpora such as Switchboard, ISL and NIST meetings, and HUB5 transcripts. 
+The result should be the set of sentences that are bounded by the start and end sentence 
+markers: <s> and </s>. 
+
+Here's an example:
+
+  <s> generally cloudy today with scattered outbreaks of rain and drizzle persistent and heavy at times </s>
+  <s> some dry intervals also with hazy sunshine especially in eastern parts in the morning </s>
+  <s> highest temperatures nine to thirteen Celsius in a light or moderate mainly east south east breeze </s>
+  <s> cloudy damp and misty today with spells of rain and drizzle in most places much of this rain will be 
+  light and patchy but heavier rain may develop in the west later </s>
+
+2) Generate the vocabulary file. This is a list of all the words in the file:
+
+  text2wfreq < weather.txt | wfreq2vocab > weather.tmp.vocab
+
+3) You may want to edit the vocabulary file to remove words (numbers, misspellings, names). 
+If you find misspellings, it is a good idea to fix them in the input transcript.
+
+4) If you want a closed vocabulary language model (a language model that has no provisions 
+for unknown words), then you should remove sentences from your input transcript that contain
+words that are not in your vocabulary file.
+
+5) Generate the arpa format language model with the commands:
+
+  % text2idngram -vocab weather.vocab -idngram weather.idngram < weather.closed.txt
+  % idngram2lm -vocab_type 0 -idngram weather.idngram -vocab \
+     weather.vocab -arpa weather.arpa
+
+6) Generate the CMU binary form (DMP)
+
+  % sphinx_lm_convert -i weather.arpa -o weather.lm
+
+  /usr/local/bin/text2wfreq < current.sent | /usr/local/bin/wfreq2vocab > current.vocab
+  text2idngram -vocab current.vocab -idngram current.idngram < current.sent
+  /usr/local/bin/idngram2lm -vocab_type 0 -idngram current.idngram -vocab current.vocab -arpa current.arpa
+  /usr/local/bin/sphinx_lm_convert -i current.arpa -o current.lm
+
+=cut
 
 sub build_lm {
 
   # input parameters
   # quick_lm -s <sentence_file> [-w <word_file>] [-d discount]\n"); }
   my ($pgm_root,$data_root,$logfile) = @_;
+
+  my $binary = "$pgm_root/sphinx_lm_convert";
+  if (! -e $binary) {
+      &main::print_log ("PocketSphinx Control:: ERROR: file: $binary MISSING!!");
+      &main::print_log ("PocketSphinx Control:: Did you forget to install the Cmuclmtk?");
+  }
 
   open(LOG,">$logfile");
 
@@ -285,11 +291,96 @@ sub build_lm {
 
 }
 
+=back
+
+=head2 INI PARAMETERS
+
+  voice_cmd                    = pocketsphinx                   # REQUIRED
+  server_pocketsphinx_port     = 3235                           # REQUIRED
+  pocketsphinx_awake_phrase    = "mister house,computer"        # optional
+  pocketsphinx_awake_response  = "yes master?"                  # optional
+  pocketsphinx_awake_time=300                                   # optional
+  pocketsphinx_asleep_phrase={go to sleep,change to sleep mode} # optional
+  pocketsphinx_asleep_response=Ok, later.
+  pocketsphinx_timeout_response=Later.
+
+  pocketsphinx_hmm         = /usr/local/share/pocketsphinx/model/hmm/en_US/hub4wsj_sc_8k   # default
+  pocketsphinx_rate        = 16000                                                         # default
+  pocketsphinx_continuous  = /usr/local/bin/pocketsphinx_continuous                        # default
+  pocketsphinx_dev         = default                                                       # default
+
+Note: If using OSS instead of ALSA, pocketsphinx_device needs to be "/dev/dsp" or similiar.
+
+  - pocketsphinx_awake_phrase:     Command(s) that will switch mh into active
+                                   mode (all commands recognized) from asleep mode.
+  - pocketsphinx_awake_response:   This is what is said (or played) when entering
+                                   awake mode
+  - pocketsphinx_awake_time:       Stay in awake mode for this many seconds after
+                                   the last command was heard.  Then it switches
+                                   to asleep mode. Set to 0 or blank to disable
+                                   (always stay in awake mode).
+  - pocketsphinx_asleep_phrase:    Command{s} to put mh into asleep mode.
+  - pocketsphinx_asleep_response:  This is what it said (or played) when entering
+                                   sleep mode
+  - pocketsphinx_timeout_response: This is what is said (or played) when the awake
+                                   timer expires.
+  - pocketsphinx_hmm               Pocketsphinx Human Markov Model directory location.
+  - pocketsphinx_rate              Audio Sample rate
+  - pocketsphinx_continuous        Program location for pocketsphinx_continuous
+  - pocketsphinx_dev               Audio device (multiple devices can be separated by "|")
+
+=head2 AUTHOR
+
+01/21/2007 Created by Jim Duda (jim@duda.tzo.com)
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
+
+
+
+
+=head1 B<PocketSphinx_Listner>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+NONE
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
+
 package PocketSphinx_Listener;
 
 @PocketSphinx_Listener::ISA = ('Generic_Item');
 
-# Constructor
+=item C<new>
+
+Constructor
+
+=cut
+
 sub new
 {
    my ($class, $device,$sample_rate,$listening,$speak) = @_;
@@ -359,7 +450,12 @@ sub new
    return $self;
 }
 
-# Set functions
+=item C<set_hmm_file>
+
+Set functions
+
+=cut
+
 sub set_hmm_file {
    my ($self,$file) = @_;
    $self->{hmm_file} = $file if -e $file;
@@ -370,7 +466,12 @@ sub set_sample_rate {
    $self->{sample_rate} = $sample_rate;
 }
 
-# Trim leading and trailing spaces
+=item C<_trim>
+
+Trim leading and trailing spaces
+
+=cut
+
 sub _trim {
     my $string = shift;
     $string =~ s/^\s+//;
@@ -378,10 +479,15 @@ sub _trim {
     return $string;
 }
 
-# We need to save the persistent information for the Process_Item p_sphinx object between restart 
-# and startup such that we can safely kill any running pocketsphinx processes.  We'll save the
-# persistent information in restore_data and eval to play it out and restore the object 
-# information.
+=item C<restore_string>
+
+We need to save the persistent information for the Process_Item p_sphinx object between restart 
+and startup such that we can safely kill any running pocketsphinx processes.  We'll save the
+persistent information in restore_data and eval to play it out and restore the object 
+information.
+
+=cut
+
 sub restore_string {
     &main::print_log ("PocketSphinx_Listener:: restore_string called") if $main::Debug{pocketsphinx};
     my ($self) = @_;
@@ -393,9 +499,14 @@ sub restore_string {
     return $restore_string;
 }
 
-# restore will be called on startup or restart such that we can play out the information
-# contained in p_shpinx_state, which represents the persistent data for the Process_Item
-# object.
+=item C<restore>
+
+Restore will be called on startup or restart such that we can play out the information
+contained in p_shpinx_state, which represents the persistent data for the Process_Item
+object.
+
+=cut
+
 sub restore {
     my ($self) = @_;
     my $restore_data = $self->{restore_data};
@@ -405,13 +516,23 @@ sub restore {
     $self->{p_sphinx}->stop( );
 }
 
-# Shut down the process before we restart
+=item C<restart>
+
+Shut down the process before we restart
+
+=cut
+
 sub restart {
     my ($self) = @_;
     $self->{p_sphinx}->stop( );
 }
 
-# Update speak parameters based upon context
+=item C<speak>
+
+Update speak parameters based upon context
+
+=cut
+
 sub speak {
     my ($self,$parms_ref) = @_;
     &main::print_log ("PocketSphinx_Listener::speak called!!") if $main::Debug{pocketsphinx};
@@ -434,7 +555,12 @@ sub speak {
     }
 }
 
-# Define the speaking room
+=item C<set_speak_room>
+
+Define the speaking room
+
+=cut
+
 sub set_speak_room {
     my ($self,$room) = @_;
     $self->{speak_room} = $room;
@@ -443,14 +569,24 @@ sub set_speak_room {
 }
 
 
-# Allow the listener to startup on the next pass of the state_machine maintenance thread.
+=item C<start_listner>
+
+Allow the listener to startup on the next pass of the state_machine maintenance thread.
+
+=cut
+
 sub start_listener {
   my ($self) = @_;
   $self->{listening} = 1;
   &main::print_log ("PocketSphinx_Listener:: start_listener $self->{device}") if $main::Debug{pocketsphinx};
 }
 
-# Stop any active listener program currently running
+=item C<stop_listner>
+
+Stop any active listener program currently running
+
+=cut
+
 sub stop_listener {
   my ($self) = @_;
   $self->{p_sphinx}->stop( ) if (!$self->{p_sphinx}->done( ));
@@ -458,9 +594,14 @@ sub stop_listener {
   &main::print_log ("PocketSphinx_Listener:: stop_listener $self->{device}") if $main::Debug{pocketsphinx};
 }
 
-# The state_machine loop runs once each pass of misterhouse.  This is basically a maitanance thread
-# which insures that the listener is running, since it has been known to crash on its own.  We keep
-# a count of restarts to avoid thrashing since the crashes could be caused by bad configuration.
+=item C<state_machine>
+
+The state_machine loop runs once each pass of misterhouse.  This is basically a maitanance thread
+which insures that the listener is running, since it has been known to crash on its own.  We keep
+a count of restarts to avoid thrashing since the crashes could be caused by bad configuration.
+
+=cut
+
 sub state_machine {
   my ($self) = @_;
   # check to see of the pocketsphinx VR program has completed, check for short crashes (something is wrong)
@@ -510,3 +651,28 @@ sub state_machine {
 }
 
 1;
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+01/21/2007 Created by Jim Duda (jim@duda.tzo.com)
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

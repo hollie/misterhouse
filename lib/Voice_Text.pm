@@ -4,6 +4,8 @@ package Voice_Text;
 # $Revision$
 
 use strict;
+use LWP::UserAgent;
+use LWP::ConnCache;
 
 use vars '$VTxt_version';
 my (@VTxt, $VTxt_stream1, $VTxt_stream2, %VTxt_cards, $VTxt_festival, $VTxt_mac);
@@ -18,15 +20,11 @@ sub init {
 
     $web_index = 0;
 
-# The darwin hook is currently done in the main bin/mh code
-#    if ($main::Info{OS_name}=~ /darwin/i) {
-#        &main::my_use("Mac::Sound");
-#		&main::my_use("Mac::Speech");
-#        my $voice = $main::config_parms{speak_voice};
-#        $voice = 'Albert' unless $voice;
-#        my $Mac_voice = $Mac::Speech::Voice{$voice};
-#        $VTxt_mac = NewSpeechChannel($Mac_voice); # Need a default voice here?
-#    }
+	# OS X
+    if ($main::Info{OS_name}=~ /darwin/i) {
+        my $voice = $main::config_parms{speak_voice};
+        $voice = 'Albert' unless $voice;
+    }
 
     if (($main::config_parms{voice_text} =~ /festival/i or $engine and $engine eq 'festival') and
         $main::config_parms{festival_host}) {
@@ -207,7 +205,7 @@ sub speak_text {
 #       $speak_pgm = "$path/bin/TTSDesktopPlayer      -data $path/data -xml";
     }
     elsif ($main::Info{OS_name}=~ /darwin/i) {
-        $speak_pgm = 'MacSpeech' unless $speak_pgm;
+        $speak_pgm = 'say' unless $speak_pgm;
 #       $speak_pgm = 'osascript' unless $speak_pgm;
     }
     elsif ($speak_engine =~ /viavoice/i or $speak_engine =~ /vv_tts/i) {
@@ -433,6 +431,42 @@ sub speak_text {
 		# 		    exit; # nothing left for the child to do
 	    }
         }
+    }elsif ($speak_engine =~ /google/) {
+        # Speak to tile using the Google TTS Engine
+
+        # Define a basic LWP agent for retrieving the Google MP3
+        my $ua;
+        $ua = LWP::UserAgent->new;
+        $ua->agent("Mozilla/5.0 (X11; Linux; rv:8.0) Gecko/20100101");
+        $ua->env_proxy;
+        $ua->conn_cache(LWP::ConnCache->new());
+        $ua->timeout(10);
+
+        my $random = int rand 1000; # Use random file name so we can talk 2+ at once.
+
+        # If being forced to file, use the filename being forced, otherwise, use a random temp file.
+        my $out_file = ($parms{to_file}) ? $parms{to_file} : "$main::config_parms{data_dir}/mh_temp.google-$random.wav";
+
+        # The temp file to store google's MP3 as
+        my $google_file = "$main::config_parms{data_dir}/mh_temp.google-$random.mp3";
+
+        # Make the request, store the result in the google temp file
+        my $ua_request = HTTP::Request->new('GET' => "http://translate.google.com/translate_tts?tl=en&q=".qq[ $parms{text} ]);
+        my $ua_response = $ua->request($ua_request, $google_file);
+
+        # Log the failure
+        if (!$ua_response->is_success) {
+            print "Failed to contact the Google TTS API.\n";
+            return;
+        }
+
+        # Convert the returned mp3 file to a wav, and clean up the temp file
+        system("ffmpeg", "-loglevel", "panic", "-i", "$google_file", "$out_file");
+        unlink($google_file);
+
+        # Play the wav file, clean up only if we are not being forced to file
+        system($main::config_parms{sound_program}, $out_file) unless $parms{to_file};
+        unlink($out_file) unless $parms{to_file};
     }
     elsif ($speak_pgm) {
         my $fork = 1 unless $parms{to_file} and !$parms{async}; # Must wait for to_file requests, so http requests work
@@ -521,11 +555,12 @@ sub speak_text {
 
                 $speak_pgm .= " > /dev/null" unless $main::Debug{voice} and $main::Debug{voice} > 1;
             }
-            elsif ($speak_pgm eq 'MacSpeech') {
-                my $volume_reset = GetDefaultOutputVolume();
-                SetDefaultOutputVolume(2**$parms{volume}) if $parms{volume};
-                SpeakText($VTxt_mac, $parms{text});
-                SetDefaultOutputVolume(2**$volume_reset)  if $parms{volume};
+            elsif ($speak_pgm eq 'say') {
+            	system "say $parms{text}";
+                #my $volume_reset = GetDefaultOutputVolume();
+                #SetDefaultOutputVolume(2**$parms{volume}) if $parms{volume};
+                #SpeakText($VTxt_mac, $parms{text});
+                #SetDefaultOutputVolume(2**$volume_reset)  if $parms{volume};
 #               sleep 1 while SpeechBusy();
             }
             elsif ($speak_pgm eq 'osascript') {

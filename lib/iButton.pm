@@ -1,17 +1,6 @@
-# $Date$
-# $Revision$
+=head1 B<iButton_Item>
 
-use strict;
-
-# This uses the iButton perl modules from: http://www.lothar.com/tech/iButtons/
-
-package iButton;
-
-=head1 NAME
-
-B<iButton_Item> - This is used to query and/or control an iButton device
-
-=head1 SYNOPSIS
+=head2 SYNOPSIS
 
         $v_iButton_connect = new Voice_Cmd "[Connect,Disconnect] to the iButton bus";
         if ($state = said $v_iButton_connect) {
@@ -53,15 +42,19 @@ B<iButton_Item> - This is used to query and/or control an iButton device
            run_voice_cmd 'Read the iButton temperature 2' if $Second == 22;
         }
 
-=head1 DESCRIPTION
+=head2 DESCRIPTION
+
+This is used to query and/or control an iButton device
 
 For more information on iButton see the hardware section
 
-=head1 INHERITS
+This uses the iButton perl modules from: http://www.lothar.com/tech/iButtons/
+
+=head2 INHERITS
 
 B<Generic_Item>
 
-=head1 METHODS
+=head2 METHODS
 
 =over 
 
@@ -70,21 +63,37 @@ B<Generic_Item>
 If $port is not specified, the port of the first iButton::connect will be used.
 $channel (used for switches like the DS2406) defaults to A
 
-=item C<set($state)> - Sets the item to the specified state.
+=item C<set($state)>
 
-=item C<state)> - Returns the last state that was received or sent
+Sets the item to the specified state.
 
-=item C<state_now> - Returns the state that was received or sent in the current pass.
+=item C<state)>
 
-=item C<state_log> - Returns a list array of the last max_state_log_entries (mh.ini parm) time_date stamped states.
+Returns the last state that was received or sent
 
-=item C<read_temp> - Returns the temperature of temperature devices.
+=item C<state_now>
 
-=item C<read_switch> - Reads iButton switch data
+Returns the state that was received or sent in the current pass.
 
-=item C<read_windspeed> - Reads iButton weather station wind speed
+=item C<state_log>
 
-=item C<read_dir> - Reads iButton weather station wind direction
+Returns a list array of the last max_state_log_entries (mh.ini parm) time_date stamped states.
+
+=item C<read_temp>
+
+Returns the temperature of temperature devices.
+
+=item C<read_switch>
+
+Reads iButton switch data
+
+=item C<read_windspeed>
+
+Reads iButton weather station wind speed
+
+=item C<read_dir>
+
+Reads iButton weather station wind direction
 
 =back
 
@@ -94,15 +103,25 @@ These functions are also part of the iButton module, but not associated with an 
 
 =over
 
-=item C<scan($family, $port)> - Returns a object list of iButton devices that match $family
+=item C<scan($family, $port)>
 
-=item C<scan_report($family, $port)> - Returns a report of iButton devices that match $family
+Returns a object list of iButton devices that match $family
 
-=item C<monitor($family, $port)> - Checks the one wire bus for iButton activity
+=item C<scan_report($family, $port)>
 
-=item C<connect($port)> - Connect to the one wire bus.  Note you can now have multiple iButton interfaces on multiple COM ports.
+Returns a report of iButton devices that match $family
 
-=item C<disconnect> - Disconnect to the one wire bus
+=item C<monitor($family, $port)>
+
+Checks the one wire bus for iButton activity
+
+=item C<connect($port)>
+
+Connect to the one wire bus.  Note you can now have multiple iButton interfaces on multiple COM ports.
+
+=item C<disconnect>
+
+Disconnect to the one wire bus
 
 =back
 
@@ -166,9 +185,11 @@ The first 2 characters are the iButton family type. Here is a list of family typ
           22                                 DS1822 temperature button
           40,   16,  32,   0,   0,   0,   1, DS1608,,Battery Pack Clock
 
-
-
 =cut
+
+use strict;
+
+package iButton;
 
 @iButton::ISA = ('Generic_Item');
 
@@ -706,19 +727,19 @@ memory
 ----------------------------------------------------------------------------
 
 
-=head1 INI PARAMETERS
+=head2 INI PARAMETERS
 
 To enable iButton support in mh, set the mh.ini parm ibutton_serial_port.
 
-=head1 AUTHOR
+=head2 AUTHOR
 
 UNK
 
-=head1 SEE ALSO
+=head2 SEE ALSO
 
 NONE
 
-=head1 LICENSE
+=head2 LICENSE
 
 This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
 

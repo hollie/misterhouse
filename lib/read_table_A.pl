@@ -14,7 +14,7 @@ use strict;
 
 #print_log "Using read_table_A.pl";
 
-my (%groups, %objects, %packages, %addresses);
+my (%groups, %objects, %packages, %addresses, %scene_build_controllers, %scene_build_responders);
 
 sub read_table_init_A {
                                 # reset known groups
@@ -23,6 +23,8 @@ sub read_table_init_A {
 	%objects=();
 	%packages=();
         %addresses=();
+        %scene_build_controllers=();
+        %scene_build_responders=();
 }
 
 sub read_table_A {
@@ -138,6 +140,18 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon::MotionSensor(\'$address\', $other)";
     }
+    elsif($type eq "INSTEON_IOLINC") {
+        require Insteon::IOLinc;
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon::IOLinc(\'$address\', $other)";
+    }
+    elsif($type eq "INSTEON_FANLINC") {
+        require Insteon::Lighting;
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon::FanLinc(\'$address\', $other)";
+    }
     elsif($type eq "INSTEON_ICONTROLLER") {
         require Insteon::BaseInsteon;
         ($address, $name, $grouplist, @other) = @item_info;
@@ -156,10 +170,10 @@ sub read_table_A {
         $object = "Insteon::Thermostat(\'$address\', $other)";
     }
     elsif($type eq "INSTEON_IRRIGATION") {
-        require 'Insteon_Irrigation.pm';
-        ($address, $name, $grouplist, $object, @other) = @item_info;
+        require Insteon::Irrigation;
+        ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "Insteon_Irrigation(\$$object, \'$address\', $other)";
+        $object = "Insteon::Irrigation(\'$address\', $other)";
     }
     # ----------------------------------------------------------------------
     elsif($type eq 'FROG') {
@@ -753,6 +767,19 @@ sub read_table_A {
             $code .= "use xPL_Items;\n";
         }
     }
+     elsif($type eq "XPL_X10BASIC") {
+       ($address, $name, $grouplist, @other) = @item_info;
+       $other = join ', ', (map {"'$_'"} @other); # Quote data
+       if($other){
+           $object = "xPL_X10Basic('$address',$other)";
+       }
+       else{
+           $object = "xPL_X10Basic('$address')";
+       }
+       if( ! $packages{xPL_X10Basic}++ ) {   # first time for this objecttype?
+           $code .= "use xPL_X10Basic;\n";
+       }
+   }
     elsif($type eq "XPL_IRRIGATEWAY") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
@@ -966,7 +993,36 @@ sub read_table_A {
            print "\nThere is no object called $name defined.  Ignoring SCENE_MEMBER entry.\n" unless $objects{$name};
         }
         $object = '';
-    } else {
+    }
+    elsif($type eq "SCENE_BUILD") {
+	#SCENE_BUILD, scene_name, scene_member, is_controller?, is_responder?, onlevel, ramprate
+        my ($scene_member, $is_scene_controller, $is_scene_responder, $on_level, $ramp_rate);
+        ($name, $scene_member, $is_scene_controller, $is_scene_responder, $on_level, $ramp_rate) = @item_info;
+        if( ! $packages{Scene}++ ) {   # first time for this object type?
+            $code .= "use Scene;\n";
+        }
+	if ($is_scene_controller){
+		$scene_build_controllers{$name}{$scene_member} = "1";
+	}
+	if ($is_scene_responder){
+		$scene_build_responders{$name}{$scene_member} = "$on_level,$ramp_rate";
+	}
+	$object = '';
+    }
+    elsif ($type eq "PHILIPS_HUE"){
+    	($address, $name, $grouplist, @other) = @item_info;
+    	$other = join ', ', (map {"'$_'"} @other); # Quote data
+        if($other){
+            $object = "Philips_Hue('$address',$other)";
+        }
+        else{
+            $object = "Philips_Hue('$address')";
+        }
+        if( ! $packages{Philips_Hue}++ ) {   # first time for this object type?
+            $code .= "use Philips_Hue;\n";
+        }
+    }
+    else {
         print "\nUnrecognized .mht entry: $record\n";
         return;
     }
@@ -1005,6 +1061,54 @@ sub read_table_A {
 
     }
 
+    return $code;
+}
+
+sub read_table_finish_A {
+    my $code = '';
+    #a scene cannot exist without a responder, but it could lack a controller if
+    #scene is a PLM Scene
+    foreach my $scene (sort keys %scene_build_responders) {
+        $code .= "\n#SCENE_BUILD Definition for scene: $scene\n";
+
+        #Doesn't work because object technically doesn't exist yet. Is it even 
+        #necessary to limit to ICONTROLLER's?
+        #my $object = &get_object_by_name($scene);
+        #if(defined($object) and $object->isa("Insteon::InterfaceController")) {
+
+        if($objects{$scene}) {
+            #Since an INSTEON_ICONTROLLER exists with the same name as the scene, 
+            #make it a controller of the scene, too.
+            $scene_build_controllers{$scene}{$scene}="1";
+        }
+
+        #Loop through the controller hash
+        foreach my $scene_controller (keys $scene_build_controllers{$scene}) {
+            if ($objects{$scene_controller}) {
+            	#Make a link to each responder in the responder hash
+                while (my ($scene_responder, $responder_data) = each($scene_build_responders{$scene})) {
+                    my ($on_level, $ramp_rate) = split(',', $responder_data);
+
+                    if (($objects{$scene_responder}) and ($scene_responder ne $scene_controller)) {
+                        if ($on_level) {
+                            if ($ramp_rate) {
+                                $code .= sprintf "\$%-35s -> add(\$%s,'%s','%s');\n",
+                                    $scene_controller, $scene_responder, $on_level, $ramp_rate;
+                            } else {
+                                $code .= sprintf "\$%-35s -> add(\$%s,'%s');\n", 
+                                    $scene_controller, $scene_responder, $on_level;
+                            }
+                        } else {
+                            $code .= sprintf "\$%-35s -> add(\$%s);\n", $scene_controller, $scene_responder;
+                        }
+                    }
+                }
+
+            } else {
+                print "\nThere is no object called $scene_controller defined.  Ignoring SCENE_BUILD entry.\n";
+            }
+        }
+    }
     return $code;
 }
 

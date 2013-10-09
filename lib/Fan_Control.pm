@@ -1,31 +1,10 @@
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 B<Fan_Control>
 
-File:
-	Fan_Control.pm
+=head2 SYNOPSIS
 
-Description:
-	Allows control of Hampton Bay RF ceiling fans with appropriate custom
-   hardware, as described at http://www.linux.kaybee.org:81/tabs/fancontrol/
+This module is included from Misterhouse.  Just place it in your user code directory (code_dir in your config file).
 
-Author:
-	Kirk Bauer
-	kirk@kaybee.org
-
-License:
-	This free software is licensed under the terms of the GNU public license.
-
-Usage:
-   This module is included from Misterhouse.  Just place it in your user code
-   directory (code_dir in your config file).  You must then add the following
-   configuration items to your mh.ini:
-      fancontrol_module=Fan_Control
-      fancontrol_host=localhost
-      fancontrol_port=3412
-
-   These direct Misterhouse to connect to the fan control daemon, which you
-   must have running for the fan control to work.  Here are some example
-   .mht entries (assuming your Misterhouse is using the proper patches):
+These direct Misterhouse to connect to the fan control daemon, which you must have running for the fan control to work.  Here are some example .mht entries (assuming your Misterhouse is using the proper patches):
 
       FANLIGHT,   fr,     fr_fan_light,           Inside_Lights|All_Lights|FamilyRoom(9;7)FANLIGHT,   mb,     mb_fan_light,           Inside_Lights|All_Lights|MasterBed(7;8)
       FANLIGHT,   dr,     dr_fan_light,           Inside_Lights|All_Lights|LivingRoom(5;5)FANLIGHT,   patio,  patio_fan_light,        Inside_Lights|All_Lights|BackPorch(10;4)FANMOTOR,   fr,     fr_fan_motor,           Fans
@@ -33,16 +12,24 @@ Usage:
       FANMOTOR,   dr,     dr_fan_motor,           Fans
       FANMOTOR,   patio,  patio_fan_motor,        Fans
 
-   Currently, a FANLIGHT can be set to 'on' or 'off'.  A FANMOTOR can be set to
-   'off', 'low', 'med', 'high'.
+Currently, a FANLIGHT can be set to 'on' or 'off'.  A FANMOTOR can be set to 'off', 'low', 'med', 'high'.
 
-TODO:
-   Need to add support for dimming (the daemon does not yet support this either)
+=head2 DESCRIPTION
 
-Special Thanks to: 
-	Bruce Winter - Misterhouse
+Allows control of Hampton Bay RF ceiling fans with appropriate custom hardware, as described at http://www.linux.kaybee.org:81/tabs/fancontrol/
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+TODO: Need to add support for dimming (the daemon does not yet support this either)
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
 =cut
 
 use strict;
@@ -153,4 +140,36 @@ sub setstate_high {
 }
 
 1;
+
+
+
+=back
+
+=head2 INI PARAMETERS
+
+  fancontrol_module=Fan_Control
+  fancontrol_host=localhost
+  fancontrol_port=3412
+
+=head2 AUTHOR
+
+Kirk Bauer
+kirk@kaybee.org
+
+Special Thanks to:
+Bruce Winter - Misterhouse
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 

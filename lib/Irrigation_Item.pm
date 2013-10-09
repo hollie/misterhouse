@@ -1,60 +1,82 @@
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 NAME
 
-File:
-	Irrigation_Item.pm
+B<Irrigation_Item>
 
-Description:
-	Irrigation Cycle controller - This is an attempt to abstract irrigation control
-	features from the hardware specific device driver.   This driver can cycle
-	through specific zones with specified time delays (much like a generic sprinkler
-	controller found on an existing system)  This driver has been tested
-	to work with the UPB_Rain8 driver, but should work with any other device object
-	that can turn on/off its zones using the MH support substate syntax ( ->set(on:4);)
+=head1 SYNOPSIS
 
-Author(s):
-	Jason Sharpee  - jason@sharpee.com
-	
-License:
-	This free software is licensed under the terms of the GNU public license.
-	By using this software you agree that it comes with no warranty and author 
-	is not responsible for any damage that may occur.
-	
-Usage:
-	Example initialization:
-      These are to be placed in a *.mht file in your user code directory.
+Example initialization:
 
-      First, define your actual irrigation object:
-		 UPB_Rain8, irrigation_controller1, 13, 1
+These are to be placed in a *.mht file in your user code directory.
 
-      Then, define the Irrigation_Item(s) and attach the real object:
-         IRRIGATION, irrigation_controller1, morning_irrigation
-         IRRIGATION, irrigation_controller1, evening_irrigation
+First, define your actual irrigation object:
 
-	Methods:
-		set(state) - Start / Stop full irrigation cycle
-			state[on/off] = Start/Stop full irrigation cycle
-		zone_single(zone,state,time) - Start / Stop single zone
-			zone[x] = Single zone to activate/deactivate
-			state[on/off] = Start / Stop single zone
-			time[x] = Time in seconds for the zone to run
-		zone_activate(zone,activated) - Set zone activation part of the cycle
-			zone[x] = Zone to set activate/de-activated
-			activated[1/0] = Set / unset active zone in full cycle
-		zone_time(zone,time) - Set zone cycle time
-			zone[x] = Zone to set cycle time
-			time[x] = Time in seconds for the zone to run part of the cycle
-		zone_count(zones) - Set total zones
-			zones[x] = Number of zones as a part of the system (default 8)
-		zone_hammer(time) - Set anti-water hammer time (seconds)
-			time[x] = Time in seconds for overlaping zones
-		running() - Returns (1/0) system running
-		zone_current() - Returns [1/0] current zone running
-		
-	Output states:
+  UPB_Rain8, irrigation_controller1, 13, 1
 
+Then, define the Irrigation_Item(s) and attach the real object:
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  IRRIGATION, irrigation_controller1, morning_irrigation
+  IRRIGATION, irrigation_controller1, evening_irrigation
+
+=head1 DESCRIPTION
+
+Irrigation Cycle controller - This is an attempt to abstract irrigation control features from the hardware specific device driver.   This driver can cycle through specific zones with specified time delays (much like a generic sprinkler controller found on an existing system)  This driver has been tested to work with the UPB_Rain8 driver, but should work with any other device object that can turn on/off its zones using the MH support substate syntax ( ->set(on:4);)
+
+=head1 INHERITS
+
+B<>
+
+=head1 METHODS
+
+=over
+
+=item C<set(state)>
+
+Start / Stop full irrigation cycle
+
+  state[on/off] = Start/Stop full irrigation cycle
+
+=item C<zone_single(zone,state,time)>
+
+Start / Stop single zone
+
+  zone[x] = Single zone to activate/deactivate
+  state[on/off] = Start / Stop single zone
+  time[x] = Time in seconds for the zone to run
+
+=item C<zone_activate(zone,activated)>
+
+Set zone activation part of the cycle
+
+  zone[x] = Zone to set activate/de-activated
+  activated[1/0] = Set / unset active zone in full cycle
+
+=item C<zone_time(zone,time)>
+
+Set zone cycle time
+
+  zone[x] = Zone to set cycle time
+  time[x] = Time in seconds for the zone to run part of the cycle
+
+=item C<zone_count(zones)>
+
+Set total zones
+
+  zones[x] = Number of zones as a part of the system (default 8)
+
+=item C<zone_hammer(time)>
+
+Set anti-water hammer time (seconds)
+
+  time[x] = Time in seconds for overlaping zones
+
+=item C<running()>
+
+Returns (1/0) system running
+
+=item C<zone_current()>
+
+Returns [1/0] current zone running
+
 =cut
 
 use strict;
@@ -286,4 +308,30 @@ sub single
 }
 
 1;
+
+
+
+=back
+
+=head1 INI PARAMETERS
+
+NONE
+
+=head1 AUTHOR
+
+Jason Sharpee  - jason@sharpee.com
+
+=head1 SEE ALSO
+
+NONE
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 

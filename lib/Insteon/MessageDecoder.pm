@@ -115,7 +115,7 @@ my %plmcmdlen = (
 	'0258' => [3, 3],
 	'0260' => [2, 9],
 	'0261' => [5, 6],
-	'0262' => [8, 9], # could get 9 or 23 (Standard or Extended Message received)
+	'0262' => [8, 9, 22, 23], # could get 9 or 23 (Standard or Extended Message received)
 	'0263' => [4, 5],
 	'0264' => [4, 5],
 	'0265' => [2, 3],
@@ -519,11 +519,11 @@ sub plm_decode {
 				#include the STX for historical reasons
 				$plm_cmd_id = substr($plm_string,0,4);
 				$plm_message .= sprintf("%20s: (","PLM Command").$plm_cmd_id.") ".$plmcmd2string{$plm_cmd_id}."\n";
-				if(length($plm_string) < $plmcmdlen{$plm_cmd_id}->[0] * 2) {
+				if(length($plm_string) < $plmcmdlen{uc($plm_cmd_id)}->[0] * 2) {
 					$plm_message .= "        Message length too short for PLM command.  Not parsed\n";
 					$abort++;
-				} elsif(length($plm_string) > $plmcmdlen{$plm_cmd_id}->[0] * 2 
-						and length($plm_string) < $plmcmdlen{$plm_cmd_id}->[1] * 2) {
+				} elsif(length($plm_string) > $plmcmdlen{uc($plm_cmd_id)}->[0] * 2 
+						and length($plm_string) < $plmcmdlen{uc($plm_cmd_id)}->[1] * 2) {
 					$plm_message .= "        Message length too short for PLM command.  Not parsed\n";
 					$abort++;
 				} elsif(substr($plm_string,2,1) == '5') {
@@ -893,6 +893,18 @@ sub insteon_decode_cmd {
 	}
 
 	return $insteon_message;
+}
+
+
+#$plm_cmd is 2 byte hex cmd; $send_rec is 0 for send, 1, for rec; $is_extended is 1 if extended send
+#returns expected byte length
+sub insteon_cmd_len{
+	my ($plm_cmd, $send_rec, $is_extended) = @_;
+	if ($is_extended && $plmcmdlen{uc($plm_cmd)} > 2) {
+		return $plmcmdlen{uc($plm_cmd)}->[($send_rec+2)];
+	} else {
+		return $plmcmdlen{uc($plm_cmd)}->[$send_rec];
+	}
 }
 
 

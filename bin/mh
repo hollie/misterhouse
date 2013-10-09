@@ -57,34 +57,18 @@ BEGIN {
     }
     chdir $Pgm_Path;            # Base everything from the mh dir.
 
-	# Are we running from within a subversion repository?
-	my $entries='../.svn/entries';
-	my $revision=undef;
-	if (-r $entries) {
-		open (ENTRIES, $entries);
-		my $line1=<ENTRIES>;
-		# $entries can be either XML (svn < 1.4) or just text (svn >= 1.4)
-		if ($line1 =~ /xml/) {
-			while (<ENTRIES>) {
-				next unless /revision="(\d+)"/;
-		    	$revision=$1;
-				last;
-			}
-		} else  {
-			# the revision number is the 11th line.  We have already read 1 line
-			for (1..10) {
-				$revision=<ENTRIES>;
-			}
-			chomp $revision;
-		}
-		close (ENTRIES);
+    # Determine the VERSION
+    my $autover;
+
+    if (-e '../VERSION') {
+        open (VERSION, '../VERSION');
+	$autover = <VERSION>;
+	chomp $autover;
+	close (VERSION);
     }
 
-	$Version = "mh 2.105";
-	if ($revision) {
-		$Version.=" R${revision}";
-	}
-	$Version .= " (compiler: $Info{Perl_compiled})" if $Info{Perl_compiled};
+    $Version = $autover || 'unknown';
+    $Version .= " (compiler: $Info{Perl_compiled})" if $Info{Perl_compiled};
 
 #   $Pgm_Path = '.';
 
@@ -2975,9 +2959,9 @@ sub exit_pgm {
     }
 
 
-    if ($main::Info{OS_name}=~ /darwin/i) {  # Should go into Voice::Text?
-      Dispose_Speech_Channel();
-    }
+    #if ($main::Info{OS_name}=~ /darwin/i) {  # Should go into Voice::Text?
+    #  Dispose_Speech_Channel();
+    #}
     &Voice_Cmd::remove_voice_cmds if $config_parms{voice_cmd};
     &Exit_hooks();              # Allow user code exits
     &run_kill_processes;        # From handy_utilities ... kills anybody that isn't done yet
@@ -4791,6 +4775,10 @@ sub read_table_files {
                 print "Error in &read_table_$format: $@\n" if $@;
             }
         }
+        if (defined(&{"read_table_finish_$format"})) {
+                print TABLE_OUT eval "&read_table_finish_$format()";
+                print "Error in &read_table_finish_$format: $@\n" if $@;
+        }
         close TABLE_IN;
         close TABLE_OUT;
         if ($format =~/xml/) { $/="\n"; }
@@ -4979,8 +4967,8 @@ sub read_user_code {
                 $record =~ /->\s*hidden/   or
                 $record =~  /^\s*set_(authority|icon|info|order|fp_location)\s/ or
                 $record =~ /->\s*set_(authority|icon|info|order|fp_location)/   or
-                $record =~ /^\s{0,3}\S+\s*->\s*add[\s\(]/ or
-                $record =~ /^\s{0,3}add\s/) {
+                $record =~ /^\ {0,3}\S+\s*->\s*add[\s\(]/ or
+                $record =~ /^\ {0,3}add\s/) {
                 $noloop_statement_flag = 1 unless $pod_flag; # Allow for multi-record statements
             }
 
@@ -6070,11 +6058,11 @@ sub speak {
 #   print "Warning, speak control not recognized: key=$key value=$value\n"
 #            unless grep $key eq $_, @speak_parms;
 
-    if ($main::Info{OS_name}=~ /darwin/i) {   # Should go into Voice::Text? (YES!! It should.)
-      print "Trying to speak $phrase\n";
-      speak_mac ($phrase);
-      return;
-    }
+    #if ($main::Info{OS_name}=~ /darwin/i) {   # Should go into Voice::Text? (YES!! It should.)
+    #  print "Trying to speak $phrase\n";
+    #  speak_mac ($phrase);
+    #  return;
+    #}
 
     $parms{mode}  = '' unless $parms{mode};
     $parms{rooms} = $parms{room}    if $parms{room}; # Allow for room or rooms

@@ -1,20 +1,20 @@
-=begin comment
+=head1 B<RCSs>
 
+=head2 SYNOPSIS
 
-From Chris Witte <cwitte@xmlhq.com>
+NONE
 
+=head2 DESCRIPTION
 
 Control RCS serial (rs232/rs485) thermostats.
 
-This module was shamelessly cloned from Kent Noonans Omnistat.pm
-Thanks for the starting point Kent.
+=head2 INHERITS
 
-Use these mh.ini parameters to enable this code:
+B<Serial_Item>
 
-RCSs_serial_port=/dev/ttyS4
-RCSs_baudrate=9600
-RCSs_address=1 to 255 (for mutiple thermistats on a 422 interface)
-		       May be omitted (or 1) if using RS232.
+=head2 METHODS
+
+=over
 
 =cut
 
@@ -95,8 +95,14 @@ sub new {
     return $self;
 }
 
-##  Hold isn't directly available on the RCS, but we'll implement a holdlike
-##     feature via software.
+
+=item C<hold>
+
+Hold isn't directly available on the RCS, but we'll implement a holdlike
+feature via software.
+
+=cut
+
 sub hold{
 	my ($self,$state)=@_;
 	$state=lc($state);
@@ -204,3 +210,34 @@ sub heating_anticipator{
 }
 
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+  RCSs_serial_port=/dev/ttyS4
+  RCSs_baudrate=9600
+  RCSs_address=1 to 255 (for mutiple thermistats on a 422 interface) May be omitted (or 1) if using RS232.
+
+=head2 AUTHOR
+
+Chris Witte <cwitte@xmlhq.com>
+
+This module was shamelessly cloned from Kent Noonans Omnistat.pm
+Thanks for the starting point Kent.
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

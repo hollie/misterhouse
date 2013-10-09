@@ -1,29 +1,30 @@
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head1 B<Motion_Tracker>
 
-  File:
-    Motion_Tracker.pm
+=head2 SYNOPSIS
 
-  Description:
-    This tracks a X10_Sensor and provides information on the last time motion
-    was seen by the sensor.
+In .mht file:
 
-  Author:
-    John Dillenburg
-    john@dillenburg.org
+  X10MS, C10, room1_sensor, Sensors
 
-  License:
-    Free software.
+In .pl file:
 
-  Usage:
-    In .mht file:
-      X10MS, C10, room1_sensor, Sensors
+  my $room1_tracker = new Motion_Tracker(room1_sensor, 2*60);
+  print_log "Last motion was " . $room1_tracker->age();
 
-    In .pl file:
-      my $room1_tracker = new Motion_Tracker(room1_sensor, 2*60);
-      print_log "Last motion was " . $room1_tracker->age();
 
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+=head2 DESCRIPTION
+
+This tracks a X10_Sensor and provides information on the last time motion
+was seen by the sensor.
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
 =cut
 
 use strict;
@@ -58,30 +59,46 @@ sub new {
   return $self;
 }
 
-# Part of tie mechanism to track last_motion variable
+=item C<TIESCALAR>
+
+Part of tie mechanism to track last_motion variable
+
+=cut
+
 sub TIESCALAR {
   my ($class, $self) = @_;
   return $self;
 }
 
-# Part of tie mechanism to track last_motion variable
+=item C<FETCH>
+
+Part of tie mechanism to track last_motion variable
+
+=cut
+
 sub FETCH {
   my ($self) = @_;
   return $self->last_motion();
 }
 
-# Part of tie mechanism to track last_motion variable
+=item C<STORE>
+
+Part of tie mechanism to track last_motion variable
+
+=cut
+
 sub STORE {
   my ($self, $val) = @_;
   #print 'Setting last_motion to ' . $val . '\n';
   $self->last_motion($val);
 }
 
-#
-# Set the state of this tracker.  Valid states input states are
-# 'motion', 'on', 'occupied' or 'vacant'.  All other states are ignored.
-# Output states are 'occupied' or 'vacant'.
-#
+=item C<set>
+
+Set the state of this tracker.  Valid states input states are 'motion', 'on', 'occupied' or 'vacant'.  All other states are ignored.  Output states are 'occupied' or 'vacant'.
+
+=cut
+
 sub set {
   my ($self, $p_state, $p_setby) = @_;
 
@@ -100,11 +117,12 @@ sub set {
   $self->SUPER::set($p_state, $p_setby);
 }
 
-#
-# Get/set the expire timeout.  This controls how long after the last motion
-# is seen until when the tracker will be set to 'vacant'.  Will not take
-# effect until next motion is detected (fix?).
-#
+=item C<expire_timeout>
+
+Get/set the expire timeout.  This controls how long after the last motion is seen until when the tracker will be set to 'vacant'.  Will not take effect until next motion is detected (fix?).
+
+=cut
+
 sub expire_timeout {
   my ($self, $expire_timeout) = @_;
   if ($expire_timeout == undef) {
@@ -114,22 +132,23 @@ sub expire_timeout {
   return $expire_timeout;
 }
 
-#
-# Return number of seconds since last motion was detected
-#
+=item C<age>
+
+Return number of seconds since last motion was detected
+
+=cut
+
 sub age {
   my ($self) = @_;
   return $::Time - $self->last_motion();
 }
 
-#
-# Get/set the last motion time.
-# Call with one argument to set last_motion, call with no arguments to
-# return last_motion time.  If last_motion was more than expire_timeout
-# seconds ago, then the state will be set to 'vacant'.  Otherwise, a 
-# timer will be started to set the state to 'vacant' after expire_timeout
-# seconds have elapsed.
-#
+=item C<last_motion>
+
+Get/set the last motion time.  Call with one argument to set last_motion, call with no arguments to return last_motion time.  If last_motion was more than expire_timeout seconds ago, then the state will be set to 'vacant'.  Otherwise, a  timer will be started to set the state to 'vacant' after expire_timeout seconds have elapsed.
+
+=cut
+
 sub last_motion {
   my ($self, $last_motion) = @_;
   if ($last_motion == undef) {
@@ -148,12 +167,41 @@ sub last_motion {
   return $last_motion;
 }
 
-#
-# Return vacant/occupied state and time since last motion as a string
-#
+=item C<print_state>
+
+Return vacant/occupied state and time since last motion as a string
+
+=cut
+
 sub print_state {
   my ($self) = @_;
   return $self->state() . " last motion " . $self->age() . " sec ago";
 }
 
 1;
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+John Dillenburg  john@dillenburg.org
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+

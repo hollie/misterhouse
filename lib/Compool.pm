@@ -1,38 +1,50 @@
+=head1 B<Compool>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+The basic control packet allows the third party controller to
+
+  - Toggle On/Off state of the Spa, Pool, Aux 1 - 7.
+  - Enable or disable the Spa side remote(s).
+  - Cancel any current circuit delays (not recommended).
+  - Change/select heat source/method for Spa or Pool.
+  - Change/set desired temperature for Spa and/or Pool.
+  - Control Dimmers, (if unit has dimmers installed).
+  - Change/set the current time of day in LX3xxx control units clock.
+
+The basic acknowledge packet allows the third party to determine
+
+  - Current state of Spa, Pool, Aux 1 - 7.
+  - Current state of Heater and Solar for both Spa and Pool.
+  - Whether LX3xxx is in Service mode (no commands should be sent).
+  - Current state of Spa side remotes (enabled or not).
+  - Current heat source selection.
+  - Solar presence.
+  - Freeze protection mode.
+  - Current water and solar temperature for Spa and Pool.
+  - Desired/set temperature for Spa and Pool.
+  - Air Temperature (Freeze sensor, not intended offer an accurate )
+                    (air temperature                               )
+  - Status of temperature sensors.
+  - Current time of day stored in LX3xxx unit.
+
+=head2 INHERITS
+
+B<NONE>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
+=cut
+
 #!/usr/bin/perl                                                                                 
-#
-#
-#    The basic control packet allows the third party controller to
-#    - Toggle On/Off state of the Spa, Pool, Aux 1 - 7.
-#    - Enable or disable the Spa side remote(s).
-#    - Cancel any current circuit delays (not recommended).
-#    - Change/select heat source/method for Spa or Pool.
-#    - Change/set desired temperature for Spa and/or Pool.
-#    - Control Dimmers, (if unit has dimmers installed).
-#    - Change/set the current time of day in LX3xxx control units clock.
-#
-#    The basic acknowledge packet allows the third party to determine
-#    - Current state of Spa, Pool, Aux 1 - 7.
-#    - Current state of Heater and Solar for both Spa and Pool.
-#    - Whether LX3xxx is in Service mode (no commands should be sent).
-#    - Current state of Spa side remotes (enabled or not).
-#    - Current heat source selection.
-#    - Solar presence.
-#    - Freeze protection mode.
-#    - Current water and solar temperature for Spa and Pool.
-#    - Desired/set temperature for Spa and Pool.
-#    - Air Temperature (Freeze sensor, not intended offer an accurate )
-#                      (air temperature                               )
-#    - Status of temperature sensors.
-#    - Current time of day stored in LX3xxx unit.
-#
-#    Add these entries to your mh.ini file:
-#
-#    Compool_serial_port=COM2
-# 
-#    bsobel@vipmail.com'
-#    May 16, 2000
-#
-#
 
 use strict;
 
@@ -829,4 +841,30 @@ sub default_setstate
 }
 
 1;
+
+
+
+=back
+
+=head2 INI PARAMETERS
+
+Compool_serial_port=COM2
+
+=head2 AUTHOR
+
+bsobel@vipmail.com May 16, 2000
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 

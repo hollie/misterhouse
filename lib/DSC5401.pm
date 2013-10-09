@@ -1,20 +1,23 @@
-# $Id$
-# $Revision$
-# $Date$
+=head1 B<DSC5401>
 
-=head1 DESCRIPTION
+=head2 SYNOPSIS
 
+NONE
 
-by 
-Jocelyn Brouillard
-Gaetan lord           email@gaetanlord.ca
+=head2 DESCRIPTION
 
+NONE
 
-=head1 .INI PARAMETERS
+=head2 INHERITS
 
-=head2 EXAMPLES
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
 
 =cut
+
 
 #use strict;
 
@@ -30,7 +33,12 @@ my $Self;
 my %ErrorCode;
 my $ImcompleteCmd;
 
-#    Starting a new object                                                  {{{
+=item C<new>
+
+Starting a new object
+
+=cut
+
 sub new {
    my ($class) = @_;
    my $self = {};
@@ -84,8 +92,12 @@ sub new {
    return $self;
 }
 
-#}}}
-#    serial port configuration                                         {{{
+=item C<init>
+
+serial port configuration
+
+=cut
+
 sub init {
    my ($serial_port) = @_;
    $serial_port->error_msg(1);
@@ -101,8 +113,12 @@ sub init {
    select( undef, undef, undef, .100 );    # Sleep a bit
 }
 
-# }}}
-#    module startup / enabling serial port                             {{{
+=item C<startup>
+
+module startup / enabling serial port
+
+=cut
+
 sub startup {
    my $self = $Self;
    ( my $port = $::config_parms{'DSC_5401_serial_port'} ) or warn "DSC5401.pm->startup  DSC_5401_serial_port not defined in mh.ini file";
@@ -116,8 +132,12 @@ sub startup {
    }
 }
 
-#}}}
-#    check for incoming data on serial port                                 {{{
+=item C<check_for_data>
+
+check for incoming data on serial port
+
+=cut
+
 sub check_for_data {
    ResetDscState();
    &main::check_for_generic_serial_data('DSC5401');
@@ -142,8 +162,11 @@ sub check_for_data {
    $ImcompleteCmd = $Cmd;
 }
 
-#}}}
-#    Validate the command and perform action                                {{{
+=item C<CmdStr>
+
+Validate the command and perform action
+
+=cut
 
 sub CheckCmd {
    my $CmdStr = shift;
@@ -518,8 +541,12 @@ sub CheckCmd {
    return;
 }
 
-#}}}
-# local logit call {{{
+=item C<LocalLogit>
+
+local logit call
+
+=cut
+
 sub LocalLogit {
    my $file = shift;
    my $str  = shift;
@@ -531,8 +558,12 @@ sub LocalLogit {
 
 }
 
-#}}}
-#    Validate if checksum is OK, from the string receive                    {{{
+=item C<IsChecksumOK>
+
+Validate if checksum is OK, from the string receive
+
+=cut
+
 sub IsChecksumOK {
    my $DscStr   = shift;
    my $ll       = length($DscStr);
@@ -545,8 +576,12 @@ sub IsChecksumOK {
    return 0;
 }
 
-#}}}
-#    Reset DSC state to simulate a "now" on some value ie: zone, temp etc.  {{{
+=item C<ResetDscState>
+
+Reset DSC state to simulate a "now" on some value ie: zone, temp etc.
+
+=cut
+
 sub ResetDscState {
 
    # reset zone
@@ -607,8 +642,12 @@ sub ResetDscState {
    return;
 }
 
-#}}}
-#    calculate checksum                                                     {{{
+=item C<DoChecksum>
+
+calculate checksum
+
+=cut
+
 sub DoChecksum {
    my $Str = shift;    # expect to receive string with checksum value included
    my $CKStmp;
@@ -620,8 +659,12 @@ sub DoChecksum {
    return uc substr( unpack( "H*", pack( "N", $CKStmp ) ), -2 );
 }
 
-#}}}
-#    Define hash with DSC message event                                     {{{
+=item C<DefineEventMsg>
+
+Define hash with DSC message event
+
+=cut
+
 sub DefineEventMsg {
 
    %EventMsg = (
@@ -710,8 +753,12 @@ sub DefineEventMsg {
    return;
 }
 
-#}}}
-#    Define hash with DSC command                                           {{{
+=item C<DefineCmdMsg>
+
+Define hash with DSC command
+
+=cut
+
 sub DefineCmdMsg {
 
    %CmdMsg = (
@@ -736,8 +783,12 @@ sub DefineCmdMsg {
    return;
 }
 
-#}}}
-#    Define hash with DSC command error code                                {{{
+=item C<DefineErrorCode>
+
+Define hash with DSC command error code
+
+=cut
+
 sub DefineErrorCode {
 
    %ErrorCode = (
@@ -766,8 +817,12 @@ sub DefineErrorCode {
    return;
 }
 
-#}}}
-#    read the zone name and put name in hash {{{
+=item C<ZoneName>
+
+read the zone name and put name in hash
+
+=cut
+
 sub ZoneName {
 
    #my $self = $Self;
@@ -781,8 +836,12 @@ sub ZoneName {
    return @Name;
 }
 
-#}}}
-#    Sending command to DSC panel                                           {{{
+=item C<cmd>
+
+Sending command to DSC panel
+
+=cut
+
 sub cmd {
 
    my ( $class, $cmd, @arg_array ) = @_;
@@ -916,12 +975,15 @@ sub cmd_list {
    }
 }
 
-# This method copied from Gaeton's example DSC_Clock.pl code.
-# I recommend that this be run every day at 3am to keep the clock
-# synchronized and also to correct for daylight saving time.
+=item C<set_clock>
+
+This method copied from Gaeton's example DSC_Clock.pl code.  I recommend that this be run every day at 3am to keep the clock synchronized and also to correct for daylight saving time.
+
+=cut
+
 sub set_clock {
    my ($self)=@_;
-    
+
    my ($sec,$m,$h,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
    $year = sprintf("%02d", $year % 100);
    $mon+=1;
@@ -996,4 +1058,31 @@ Thu 01/13/2005 13:38:18 Command Acknowledge:   PartitionDisarmControl
 Thu 01/13/2005 13:38:19 User Opening:   partition maison (1) by user Gaetan (0040)
 Thu 01/13/2005 13:38:19 Partition Disarmed:   maison  (1)
 Thu 01/13/2005 13:38:24 Partition Ready:   maison  (1)
+
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Jocelyn Brouillard
+Gaetan lord           email@gaetanlord.ca
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 

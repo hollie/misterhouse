@@ -1,13 +1,22 @@
-#!/usr/bin/perl                                                                                 
-#
-#    Add these entries to your mh.ini file:
-#
-#    Stargate485_serial_port=COM2
-# 
-#    bsobel@vipmail.com'
-#    July 11, 2000
-#
-#
+=head1 B<Stargate485>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+NONE
+
+=head2 INHERITS
+
+B<NONE>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 use strict;
 
@@ -20,9 +29,12 @@ package Stargate485;
 
 my ($temp);
 
-#
-# This code create the serial port and registers the callbacks we need
-#
+=item C<serial_startup>
+
+This code create the serial port and registers the callbacks we need
+
+=cut
+
 sub serial_startup
 {
     if ($::config_parms{Stargate485_serial_port}) 
@@ -320,11 +332,58 @@ sub ParseThermostatData
 }
 
 1;
-    
-#
-# Item object version (this lets us use object links and events)
-#
 
+=back
+
+=head2 INI PARAMETERS
+
+Stargate485_serial_port=COM2
+
+=head2 AUTHOR
+
+bsobel@vipmail.com' July 11, 2000
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
+
+
+
+
+
+=head1 B<StargateLCDKeypad>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+Item object version (this lets us use object links and events)
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
+=cut
+    
 # $TP from keypad.  01 address 
 #$TP01D2cff         11
 
@@ -389,9 +448,57 @@ sub UnInvertText
 }
 1;
 
-#
-# Item object version (this lets us use object links and events)
-#
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+bsobel@vipmail.com' July 11, 2000
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
+
+
+
+
+
+=head1 B<StargateRCSThermostat>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+Item object version (this lets us use object links and events)
+
+=head2 INHERITS
+
+B<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=item B<UnDoc>
+
+=cut
+
 package StargateRCSThermostat;
 @StargateRCSThermostat::ISA = ('Generic_Item');
 
@@ -552,4 +659,28 @@ sub SendTheromostatCommand
 }
 
 1;
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+bsobel@vipmail.com' July 11, 2000
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 

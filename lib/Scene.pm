@@ -1,111 +1,82 @@
+=head1 B<Scene>
 
-# Package: Scene
-# $Date$
-# $Revision$
+=head2 SYNOPSIS
 
-=begin comment
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+Declaration:
 
-Description:
+The following entries belong in the .mht file
 
-		Generic Scene base class
+  # declare the scene item
+  SCENE, family_room_movie, All_Lights|Scenes
 
-Compatibility:
-		?
+  # add members to the scene
+  SCENE_MEMBER, x10_family_light, family_room_movie, 70%, 78%
 
-Author:
+The first percentage is the "on-level" and extends from 0% to 100%;
+it is set to 100% if ommitted.  For non-dimmable items, it must
+be 0%, off, 100% or on.
 
-		Jason Sharpee
-		jason@sharpee.com
+The second percentage is the ramp-rate (see table below);
+it is optional and can be unique.  It must be omitted if the
+device doest not support fade/ramp rates
 
-Based on X10_SCENE.pm from:
-        Gregg Liming
-        gregg@limings.net
+States:
 
-License:
+  'on'       - all scene members are set to their scene on values and with
+               optional ramp rate.  The mh items' state is also set to mirror
+               the scene's control
+  'off'      - all scene members are set off
+  'brighten' - all scene members' state is incremented
+  'dim'      - all scene members' state is decremented
+  'resume'   - resume is a special state that allows a resumption
+               of the original states of the scene's member lights.
 
-        This free software is licensed under the terms of the GNU public license.
+Ramp rate table:
 
-Usage:
+Ramp rates must currently expressed in percentage form.  The table below
+maps percentage to ramp duration.
 
-    Declaration:
+  100% -  0.1s       65% -  26s       29% - 150s
+   97% -  0.2s       61% -  28s       26% - 180s
+   94% -  0.3s       58% -  30s       23% - 210s
+   90% -  0.5s       55% -  32s       19% - 240s
+   87% -  2.0s       52% -  34s       16% - 270s
+   84% -  4.5s       48% -  38s       13% - 300s
+   81% -  6.5s       45% -  43s       10% - 360s
+   77% -  8.5s       42% -  47s        6% - 420s
+   74% - 19.0s       39% -  60s        3% - 480s
+   71% - 21.5s       35% -  90s        0% - 540s
+   68% - 23.5s       32% - 120s
 
-        The following entries belong in the .mht file
-        # declare the scene item
-		SCENE, family_room_movie, All_Lights|Scenes
+Special Considerations:
 
-        # add members to the scene
-		SCENE_MEMBER, x10_family_light, family_room_movie, 70%, 78%
+If using in conjuction with lights managed by Light_Items, various properties of
+the Light_Item such as "on_state" and "delay_off" may need to be stored, separately
+managed and restored.  Use of scene->tie_event and scene->tie_filter can be used
+within usercode to gain access to scene and scene member states.
 
-        # The first percentage is the "on-level" and extends from 0% to 100%;
-        #    it is set to 100% if ommitted.  For non-dimmable items, it must
-        #    be 0%, off, 100% or on.
-        # The second percentage is the ramp-rate (see table below); 
-        #    it is optional and can be unique.  It must be omitted if the 
-		# device doest not support fade/ramp rates
+If control over a scene item will be "mapped" via usercode (vice directly controlled
+by a X10SL-compatible controller), then consider mapping the "off" part of the control
+to the resume method to avoid making all lights turn off.  For example,
 
-        
-    States:
+  if ($some_button->state_now eq ON) {
+     $my_scene->set(ON);
+  } elsif ($some_button->state_now eq OFF) {
+     $my_scene->set('resume');
+  }
 
-        'on' - all scene members are set to their scene on values and with
-                optional ramp rate.  The mh items' state is also set to mirror
-                the scene's control
-        'off' - all scene members are set off
-        'brighten' - all scene members' state is incremented
-        'dim' - all scene members' state is decremented
-        'resume' -  resume is a special state that allows a resumption 
-                of the original states of the scene's member lights.
+=head2 DESCRIPTION
 
-    Operations:
+Generic Scene base class
 
-        add($x10sl_light, $on_level, $ramp_rate) - adds a scene member
-                Note that this does NOT automatically enroll the scene
-                at the device level.  $on_level and ramp_rate must both be
-                expressed in percentage.  See ramp rate table below for ramp rate
-                mapping.  $ramp_rate is optional.
+=head2 INHERITS
 
-        remove_member($x10sl_light) - removes a member at the device level.  Consider
-                only using this method sparingly and possibly via Voice_Command.
+B<Generic_Item>
 
-        remove_all_members() - removes all members defined for a scene at the device level.
-                Consider only using this method sparingly and possibly via Voice_Command.
+=head2 METHODS
 
-    Ramp rate table:
+=over
 
-        Ramp rates must currently expressed in percentage form.  The table below
-        maps percentage to ramp duration.
-
-        100% -  0.1s       65% -  26s       29% - 150s
-         97% -  0.2s       61% -  28s       26% - 180s
-         94% -  0.3s       58% -  30s       23% - 210s
-         90% -  0.5s       55% -  32s       19% - 240s
-         87% -  2.0s       52% -  34s       16% - 270s
-         84% -  4.5s       48% -  38s       13% - 300s
-         81% -  6.5s       45% -  43s       10% - 360s
-         77% -  8.5s       42% -  47s        6% - 420s
-         74% - 19.0s       39% -  60s        3% - 480s
-         71% - 21.5s       35% -  90s        0% - 540s
-         68% - 23.5s       32% - 120s
-
-    Special Considerations:
-
-        If using in conjuction with lights managed by Light_Items, various properties of
-        the Light_Item such as "on_state" and "delay_off" may need to be stored, separately
-        managed and restored.  Use of scene->tie_event and scene->tie_filter can be used
-        within usercode to gain access to scene and scene member states.
-
-        If control over a scene item will be "mapped" via usercode (vice directly controlled
-        by a X10SL-compatible controller), then consider mapping the "off" part of the control
-        to the resume method to avoid making all lights turn off.  For example,
-
-        if ($some_button->state_now eq ON) {
-           $my_scene->set(ON);
-        } elsif ($some_button->state_now eq OFF) {
-           $my_scene->set('resume');
-        }
-
-
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 =cut
 
 package Scene;
@@ -122,7 +93,19 @@ sub new {
     return $self;
 }
 
-# TO-DO: ensure that new member doesn't already exist
+=item C<add($x10sl_light, $on_level, $ramp_rate)>
+
+Adds a scene member
+
+Note that this does NOT automatically enroll the scene
+at the device level.  $on_level and ramp_rate must both be
+expressed in percentage.  See ramp rate table below for ramp rate
+mapping.  $ramp_rate is optional.
+
+TO-DO: ensure that new member doesn't already exist
+
+=cut
+
 sub add {
     my ($self, $obj, $on_level, $ramp_rate) = @_;
     if (ref $obj) {
@@ -138,9 +121,15 @@ sub add {
     }
 }
 
+=item C<remove_member($x10sl_light)>
 
-# unenrolls member(s) from scene
-# deletes (object) member if passed in; otherwise, deletes all members
+Removes a member at the device level.  Consider only using this method sparingly and possibly via Voice_Command.
+
+Unenrolls member(s) from scene
+
+Deletes (object) member if passed in; otherwise, deletes all members
+
+=cut
 
 sub remove_member {
     my ($self, $member) = @_;
@@ -159,7 +148,15 @@ sub remove_member {
     }
 }
 
-# convenience method as invoking a null arg remove_member isn't obvious
+=item C<remove_all_members()>
+
+Removes all members defined for a scene at the device level.
+Consider only using this method sparingly and possibly via Voice_Command.
+
+Convenience method as invoking a null arg remove_member isn't obvious
+
+=cut
+
 sub remove_all_members {
    my ($self) = @_;
    $self->remove_member();
@@ -175,8 +172,13 @@ sub get_member_on_level {
    return $on_level;
 }
 
-# allows a restore of members' original state values; no restore occurs if 
-# the scene has not been set on prior to a resume
+=item C<resume>
+
+Allows a restore of members' original state values; no restore occurs if 
+the scene has not been set on prior to a resume
+
+=cut
+
 sub resume {
     my ($self) = @_;
     if ($$self{members}) {
@@ -266,4 +268,31 @@ sub set {
        if ($p_state eq 'on' or $p_state eq 'off' or $p_state eq 'brighten' 
             or $p_state eq 'dim' or $p_state eq 'resume' or $p_state eq 'manual');
 }
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+Jason Sharpee  jason@sharpee.com
+
+Based on X10_SCENE.pm from:  Gregg Liming  gregg@limings.net
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 

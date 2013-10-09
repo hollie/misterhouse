@@ -1,10 +1,32 @@
+=head1 B<{menu_code}>
+
+=head2 SYNOPSIS
+
+NONE
+
+=head2 DESCRIPTION
+
+NONE
+
+=head2 INHERITS
+
+B<NONE>
+
+=head2 METHODS
+
+=over
+
+=cut
+
 use strict;
 
 use vars qw(%Menus);
 
-#---------------------------------------------------------------------------
-#  menu_parse will parse the menu into %Menus
-#---------------------------------------------------------------------------
+=item C<menu_parse>
+
+Parse the menu into %Menus
+
+=cut
 
 sub menu_parse {
     my ($template, $menu_group) = @_;
@@ -167,7 +189,12 @@ sub menu_parse {
     return $Menus{$menu_group};
 }
 
-                                # Find just one level of submenus
+=item C<menu_submenu>
+
+Find just one level of submenus
+
+=cut
+
 sub menu_submenu {
     my ($menu_group, $menu) = @_;
     my (@menus, %menus_seen);
@@ -189,7 +216,12 @@ sub menu_submenu {
     return @menus;
 }
 
-                                # Find nn levels of submenus, grouped by levels
+=item <menu_submenus>
+
+Find nn levels of submenus, grouped by levels
+
+=cut
+
 sub menu_submenus {
     my ($menu_group, $menu, $levels, $levelized) = @_;
     my (@menus_list, %menus_seen);
@@ -218,10 +250,11 @@ sub menu_submenus {
     }
 }
 
+=item C<menu_create>
 
-#---------------------------------------------------------------------------
-#  menu_create will create a menu for all voice commands
-#---------------------------------------------------------------------------
+Create a menu for all voice commands
+
+=cut
 
 sub menu_create {
     my ($file) = @_;
@@ -248,10 +281,13 @@ sub menu_create {
     return $menu_top . $menu;
 }
 
-#---------------------------------------------------------------------------
-#  menu_run will be called to execute menu actions
-#     $format:  v->vxml,  h->html, hn->html no_response,  w->wml,  l->lcd
-#---------------------------------------------------------------------------
+=item C<menu_run>
+
+Called to execute menu actions
+
+  $format:  v->vxml,  h->html, hn->html no_response,  w->wml,  l->lcd
+
+=cut
 
 sub menu_run {
 #   my ($menu_group, $menu, $item, $state, $format, $referer) = split ',', $_[0] if $_[0];
@@ -409,9 +445,11 @@ sub menu_run_response {
     }
 }
 
-#---------------------------------------------------------------------------
-#  menu_html creates the web browser menu interface
-#---------------------------------------------------------------------------
+=item C<menu_html>
+
+Creates the web browser menu interface
+
+=cut
 
 sub menu_html {
     my ($menu_group, $menu) = @_;
@@ -457,11 +495,11 @@ sub menu_html {
     return &html_page($menu, $html);
 }
 
-#---------------------------------------------------------------------------
-#  menu_wml creates the wml (for WAP enabled cell phones) menu interface
-#  You can test it here:  http://www.gelon.net  or http://wapsilon.com
-#  Others listed here: http://www.palowireless.com/wap/browsers.asp
-#---------------------------------------------------------------------------
+=item C<menu_wml>
+
+Creates the wml (for WAP enabled cell phones) menu interface.  You can test it here:  http://www.gelon.net  or http://wapsilon.com.  Others listed here: http://www.palowireless.com/wap/browsers.asp
+
+=cut
 
 sub menu_wml {
     my ($menu_group, $menu_start) = @_;
@@ -567,10 +605,11 @@ sub menu_wml_cards {
     return @cards;
 }
 
+=item C<menu_vxml>
 
-#---------------------------------------------------------------------------
-#  menu_vxml creates the vxml (for WAP enabled cell phones) menu interface
-#---------------------------------------------------------------------------
+Creates the vxml (for WAP enabled cell phones) menu interface
+
+=cut
 
 sub menu_vxml {
     my ($menu_group, $menu_start) = @_;
@@ -650,11 +689,12 @@ sub menu_vxml_forms {
     return @forms;
 }
 
+=item C<menu_lcd_load>
 
-#---------------------------------------------------------------------------
-#  menu_lcd* populate the LCD objects
-#---------------------------------------------------------------------------
-                                # This loads in a menu and refreshes the LCD display data
+This loads in a menu and refreshes the LCD display data
+
+=cut
+
 sub menu_lcd_load {
     my ($lcd, $menu) = @_;
     $menu = $$lcd{menu_name}                        unless $menu;
@@ -678,8 +718,12 @@ sub menu_lcd_load {
     &menu_lcd_refresh($lcd);    # Refresh the display data
 }
 
-                                # This will refresh the LCD Display records
-                                # And position the cursor scroll line if needed
+=item C<menu_lcd_refresh>
+
+This will refresh the LCD Display records and position the cursor scroll line if needed
+
+=cut
+
 sub menu_lcd_refresh {
     my ($lcd) = @_;
     for my $i (0 .. $$lcd{dy_max}) {
@@ -714,7 +758,12 @@ sub menu_lcd_refresh {
     $$lcd{refresh} = 1;
 }
 
-                                # Monitor keypad data (allow for computer keyboard simulation)
+=item C<menu_lcd_navigate>
+
+Monitor keypad data (allow for computer keyboard simulation)
+
+=cut
+
 sub menu_lcd_navigate {
     my ($lcd, $key) = @_;
     $key = $$lcd{keymap}->{$key} if $$lcd{keymap}->{$key};
@@ -837,7 +886,12 @@ sub menu_lcd_curser_state {
     }
 }
 
-                                # Format a list of things, based on format
+=item C<menu_format_list>
+
+Format a list of things, based on format
+
+=cut
+
 sub menu_format_list {
     my ($format, @list) = @_;
 
@@ -852,7 +906,12 @@ sub menu_format_list {
     }
 }
 
-                                # Call this to set default menus
+=item C<set_menu_default>
+
+Call this to set default menus
+
+=cut
+
 sub set_menu_default {
     my ($menu_group, $menu, $address) = @_;
     $Menus{menu_data}{defaults}{$address} = join $;, $menu_group, $menu;
@@ -905,3 +964,29 @@ return 1;
 # - 2.57 update
 #
 #
+
+
+=back
+
+=head2 INI PARAMETERS
+
+NONE
+
+=head2 AUTHOR
+
+UNK
+
+=head2 SEE ALSO
+
+NONE
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
