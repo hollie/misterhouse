@@ -658,6 +658,57 @@ sub get_status() {
 	return $output;
 }
 
+=item C<print_status()>
+
+Prints the currently known status to the log as a text string.
+
+=cut
+sub print_status() {
+	my ($self) = @_;
+	my $root = $self->get_root();
+	my $output = "[Insteon:Thermo_i2CaS] The status of " . $root->get_object_name . " is:\n";
+	$output .= "Mode: ";
+	$output .= $root->get_mode();
+	$output .= "; Status: ";
+	$output .= "Heating, " if ($$root{heating} eq 'on');
+	$output .= "Cooling, " if ($$root{cooling} eq 'on');
+	$output .= "Dehumidifying, " if ($$root{high_humid} eq 'on');
+	$output .= "Humidifying" if ($$root{low_humid} eq 'on');
+	$output .= 'Off' if ($output eq '');
+	$output .= "; Temp: ";
+	$output .= $root->get_temp();
+	$output .= "; Humid: ";
+	$output .= $root->get_humid();
+	$output .= "; Heat SP: ";
+	$output .= $root->get_heat_sp();
+	$output .= "; Cool SP: ";
+	$output .= $root->get_cool_sp();
+	$output .= "; High Humid SP: ";
+	$output .= $root->_high_humid();
+	$output .= "; Low Humid SP: ";
+	$output .= $root->_low_humid();
+	::print_log($output);
+}
+
+=item C<get_humid()>
+
+Returns the current humidity at the thermostat. 
+=cut
+sub get_humid() {
+   my ($self) = @_;
+   return $$self{'humid'};
+}
+
+sub request_status { 
+	my ($self) = @_;
+	$self = $self->get_root();
+	my $self_name = $self->get_object_name;
+	my $failure_callback = "::print_log('[Insteon:Thermo_i2CS] ERROR: Failed to get status for $self_name.');";
+	my $print_callback = $self_name . "->print_status";
+	my $humid_callback = $self_name . "->_poll_humid_setpoints(\'$print_callback\', \"$failure_callback\")";
+	$self->_poll_simple($humid_callback, $failure_callback);
+}
+
 sub _process_message {
 	my ($self,$p_setby,%msg) = @_;
 	my $clear_message = 0;
@@ -733,11 +784,8 @@ sub _process_message {
 			#10 = humid high		#24 = 1 = Status Report Enabled
 			#12 = firmware			#26 = 1 = External Power On
 							#28 = 1 = Int, 2=Ext Temp
-			main::print_log("[Insteon::Thermo_i2CS] Humidity setpoints for ".
-				$self->get_object_name . " are High: " .
-				$self->_high_humid(hex(substr($msg{extra}, 8, 2))) .
-				" Low: " . $self->_low_humid(hex(substr($msg{extra}, 10, 2)))
-				) if $main::Debug{insteon};
+			$self->_high_humid(hex(substr($msg{extra}, 8, 2)));
+			$self->_low_humid(hex(substr($msg{extra}, 10, 2)));
 			$clear_message = 1;
 			$self->_process_command_stack(%msg);
 		}
@@ -1022,16 +1070,20 @@ sub low_humid_setpoint {
 	$self->_send_cmd($message);
 }
 
-=item C<get_humid_setpoints()>
+=item C<_poll_humid_setpoints()>
 
 Retreives and prints the current humidity high and low setpoints.  Only available for I2CS devices.
+
 =cut
-sub get_humid_setpoints{
-	my ($self) = @_;
+
+sub _poll_humid_setpoints{
+	my ($self, $success_callback, $failure_callback) = @_;
 	my $extra = "00000001";
 	$extra .= '0' x (30 - length $extra);
 	my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
 	$$self{_ext_set_get_action} = 'get';
+	$message->failure_callback($failure_callback);
+	$message->success_callback($success_callback);
 	$self->_send_cmd($message);
 }
 
