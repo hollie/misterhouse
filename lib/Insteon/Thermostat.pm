@@ -914,6 +914,7 @@ sub _high_humid {
 	my ($self,$p_state) = @_;
 	if ($p_state ne $$self{high_humid}) {
 		$$self{high_humid} = $p_state;
+		$self->set_receive('status_change');
 	}
 	return $$self{high_humid};
 }
@@ -922,6 +923,7 @@ sub _low_humid {
 	my ($self,$p_state) = @_;
 	if ($p_state ne $$self{low_humid}) {
 		$$self{low_humid} = $p_state;
+		$self->set_receive('status_change');
 	}
 	return $$self{low_humid};
 }
