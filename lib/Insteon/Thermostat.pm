@@ -83,7 +83,7 @@ message are also NOT sent when the humidity setpoints are exceeded.  Instead,
 you must define the heating, high_humdid, and _low_humid groups and link them
 to MH.  (The base group 01 is the cooling group and should always be linked to
 MH).  When linked, these groups will send on/off commands to MH when these events
-occur.  Alternatively, you can periodically call the poll_simple method to check 
+occur.  Alternatively, you can periodically call request_status() to check 
 the status of these attributes.
 
 Linking:
@@ -621,16 +621,21 @@ sub sync_links{
 	return $self->SUPER::sync_links($audit_mode, $callback, $failure_callback);
 }
 
-=item C<poll_simple()>
+=item C<_poll_simple()>
 
 Requests the status of all Thermostat data points (temp, fan, mode ...) in a single
-request.  Only available for I2CS devices.
+request.  Called by C<request_status>, you likely don't need to call this directly
+Only available for I2CS devices.
+
 =cut
-sub poll_simple{
-	my ($self) = @_;
+
+sub _poll_simple{
+	my ($self, $success_callback, $failure_callback) = @_;
 	my $extra = "020000000000000000000000000000";
 	my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
 	$$message{add_crc16} = 1;
+	$message->failure_callback($failure_callback);
+	$message->success_callback($success_callback);
 	$self->_send_cmd($message);
 }
 
@@ -976,7 +981,7 @@ sub sync_time {
 	#points such as mode and what not becuase we can't just set the time without
 	#setting these variables too.
 	$$self{sync_time} = 1;
-	$self->poll_simple();
+	$self->_poll_simple();
 }
 
 =item C<high_humid_setpoint()>
