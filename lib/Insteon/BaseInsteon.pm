@@ -843,14 +843,7 @@ sub _process_message
 				. $msg{cmd_code} . " is incorrect. Ignorring received message.");
 			$self->corrupt_count_log(1) if $self->can('corrupt_count_log');
 			$p_setby->active_message->no_hop_increase(1);
-		} elsif ($clear_message && $p_setby->active_message->success_callback){
-			main::print_log("[Insteon::BaseObject] DEBUG4: Now calling message success callback: "
-				. $p_setby->active_message->success_callback) if $main::Debug{insteon} >= 4;
-			package main;
-				eval $p_setby->active_message->success_callback;
-				::print_log("[Insteon::BaseObject] problem w/ success callback: $@") if $@;
-			package Insteon::BaseObject;
-		}
+		} 
 	}
         elsif ($msg{is_nack})
         {
