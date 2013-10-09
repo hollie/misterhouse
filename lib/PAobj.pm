@@ -27,7 +27,7 @@ B<Generic_Item>
 
 use strict;
 
-my (%pa_weeder_max_port,%pa_zone_types,%pa_zone_type_by_zone);
+my (%pa_weeder_max_port,%pa_zone_types,%pa_zones);
 
 package PAobj;
 
@@ -63,12 +63,12 @@ sub init {
     $self->check_group('default');
 
     my @speakers = $self->get_speakers('allspeakers');
-    my (@speakers_wdio,@speakers_x10,@speakers_obj,@speakers_xap,@speakers_xpl);
+    my (@speakers_wdio,@speakers_x10,@speakers_obj,@speakers_xap,@speakers_xpl,@speakers_audrey);
 
     for my $room (@speakers) {
         my $ref = &::get_object_by_name("pa_$room");
         my $type = $ref->get_type();
-        &::print_log("PAObj: init: room=$room, zonetype=$type");
+        &::print_log("PAobj: init: room=$room, zonetype=$type");
         $pa_zone_types{$type}++ unless $pa_zone_types{$type};
         
         if($type eq 'wdio') {
@@ -86,26 +86,30 @@ sub init {
         if($type eq 'object') {
             push(@speakers_obj,$room);
         }
+        if($type eq 'audrey') {
+            push(@speakers_audrey,$room);
+        }
     }
     
-    &::print_log("PAObj: speakers_wdio: $#speakers_wdio") if $main::Debug{pa} || $#speakers_wdio gt -1;
-    &::print_log("PAObj: speakers_x10: $#speakers_x10") if $main::Debug{pa} || $#speakers_x10 gt -1;
-    &::print_log("PAObj: speakers_xap: $#speakers_xap") if $main::Debug{pa} || $#speakers_xap gt -1;
-    &::print_log("PAObj: speakers_xpl: $#speakers_xpl") if $main::Debug{pa} || $#speakers_xpl gt -1;
-    &::print_log("PAObj: speakers_obj: $#speakers_obj") if $main::Debug{pa} || $#speakers_obj gt -1;
+    &::print_log("PAobj: speakers_wdio: $#speakers_wdio") if $main::Debug{pa} || $#speakers_wdio gt -1;
+    &::print_log("PAobj: speakers_x10: $#speakers_x10") if $main::Debug{pa} || $#speakers_x10 gt -1;
+    &::print_log("PAobj: speakers_xap: $#speakers_xap") if $main::Debug{pa} || $#speakers_xap gt -1;
+    &::print_log("PAobj: speakers_xpl: $#speakers_xpl") if $main::Debug{pa} || $#speakers_xpl gt -1;
+    &::print_log("PAobj: speakers_obj: $#speakers_obj") if $main::Debug{pa} || $#speakers_obj gt -1;
+    &::print_log("PAobj: speakers_audrey: $#speakers_audrey") if $main::Debug{pa} || $#speakers_audrey gt -1;
 
     if ($#speakers_wdio > -1) {
         $self->init_weeder(@speakers_wdio);
         return 0 unless %pa_weeder_max_port;
     }
     if ($pa_zone_types{'x10'}) {
-        &::print_log("PAObj: x10 PA type initialized...") if $main::Debug{pa};
+        &::print_log("PAobj: x10 PA type initialized...") if $main::Debug{pa};
     }
     if ($pa_zone_types{'xap'}) {
-        &::print_log("PAObj: xAP PA type initialized...") if $main::Debug{pa};
+        &::print_log("PAobj: xAP PA type initialized...") if $main::Debug{pa};
     }
     if ($pa_zone_types{'xpl'}) {
-        &::print_log("PAObj: xPL PA type initialized...") if $main::Debug{pa};
+        &::print_log("PAobj: xPL PA type initialized...") if $main::Debug{pa};
     }
     return 1;
 }
@@ -116,7 +120,7 @@ sub init_weeder
     my (%weeder_ref,%weeder_max);
     undef %pa_weeder_max_port;
     for my $room (@speakers) {
-        &::print_log("PAObj: init PA Room loaded: $room") if $main::Debug{pa};
+        &::print_log("PAobj: init PA Room loaded: $room") if $main::Debug{pa};
         my $ref = &::get_object_by_name('pa_' . $room . '_obj');
         $ref->{state} = 'off';
         my ($card,$id);
@@ -124,75 +128,138 @@ sub init_weeder
 
         $weeder_ref{$card} = '' unless $weeder_ref{$card};
         $weeder_ref{$card} .= $id;
-        &::print_log("PAObj: init card: $card, id: $id, Room: $room, List: $weeder_ref{$card}") if $main::Debug{pa};
+        &::print_log("PAobj: init card: $card, id: $id, Room: $room, List: $weeder_ref{$card}") if $main::Debug{pa};
     }
 
     for my $card ('A' .. 'P','a' .. 'p') {
         if ($weeder_ref{$card}) {
             my $data = $weeder_ref{$card};
             $weeder_max{$card}=$self->last_char($data);
-            &::print_log("PAObj: init weeder board=$card, ports=$data, max port=" . $weeder_max{$card}) if $main::Debug{pa};
+            &::print_log("PAobj: init weeder board=$card, ports=$data, max port=" . $weeder_max{$card}) if $main::Debug{pa};
         }
     }
     %pa_weeder_max_port = %weeder_max;
 }
 
-sub set
+sub prep_parms
 {
-    my ($self,$rooms,$state,$mode,%voiceparms) = @_;
-    my $results = 0;
-    &::print_log("PAObj: delay: $$self{pa_delay}\n") if $main::Debug{pa} >=3;
-    &::print_log("PAObj: set,mode: " . $mode . ",rooms: " . $rooms) if $main::Debug{pa} >=3;
+    my ($self,$parms) = @_;
+    #my $self = {};
+    &::print_log("PAobj: delay: $$self{pa_delay}\n") if $main::Debug{pa} >=3;
+    &::print_log("PAobj: set,mode: " . $parms->{mode} . ",rooms: " . $parms->{rooms}) if $main::Debug{pa} >=3;
 
-    my @speakers = $self->get_speakers($rooms);
+    my @speakers = $self->get_speakers($parms->{rooms});
     @speakers = $self->get_speakers('') if $#speakers == -1;
-    &::print_log("PAObj: Proposed rooms: ".join(', ', @speakers)) if $main::Debug{pa} >=2;
-    @speakers = $self->get_speakers_speakable($mode,@speakers);
-    &::print_log("PAObj: Will speak in rooms: ".join(', ', @speakers)) if $main::Debug{pa};
-
-    my (@speakers_wdio,@speakers_x10,@speakers_obj,@speakers_xap,@speakers_xpl);
+    &::print_log("PAobj: Proposed rooms: ".join(', ', @speakers)) if $main::Debug{pa} >=2;
+    @speakers = $self->get_speakers_speakable($parms->{mode},@speakers);
+    &::print_log("PAobj: Will speak in rooms: ".join(', ', @speakers)) if $main::Debug{pa};
+    
+    $parms->{pa_zones} = join(',', @speakers);
+    
+    my (@speakers_wdio,@speakers_x10,@speakers_obj,@speakers_xap,@speakers_xpl,@speakers_audrey);
 
     for my $room (@speakers) {
         my $ref = &::get_object_by_name("pa_$room");
         my $type = lc $ref->get_type();
         if($type eq 'wdio' || $type eq 'wdio_old') {
-            &::print_log("PAObj: speakers_wdio: Adding $room") if $main::Debug{pa} >=3;
+            &::print_log("PAobj: speakers_wdio: Adding $room") if $main::Debug{pa} >=3;
             push(@speakers_wdio,$room);
         }
         if($type eq 'x10') {
-            &::print_log("PAObj: speakers_x10: Adding $room") if $main::Debug{pa} >=3;
+            &::print_log("PAobj: speakers_x10: Adding $room") if $main::Debug{pa} >=3;
             push(@speakers_x10,$room);
         }
         if($type eq 'xap') {
-            &::print_log("PAObj: speakers_xap: Adding $room") if $main::Debug{pa} >=3;
-            push(@speakers_xap,$room) if $state eq 'on'; #Only need to send if speech is starting
+            &::print_log("PAobj: speakers_xap: Adding $room") if $main::Debug{pa} >=3;
+            push(@speakers_xap,$room);
         }
         if($type eq 'xpl') {
-            &::print_log("PAObj: speakers_xpl: Adding $room") if $main::Debug{pa} >=3;
-            push(@speakers_xpl,$room) if $state eq 'on'; #Only need to send if speech is starting
+            &::print_log("PAobj: speakers_xpl: Adding $room") if $main::Debug{pa} >=3;
+            push(@speakers_xpl,$room);
         }
         if($type eq 'object') {
-            &::print_log("PAObj: speakers_object: Adding $room") if $main::Debug{pa} >=3;
+            &::print_log("PAobj: speakers_object: Adding $room") if $main::Debug{pa} >=3;
             push(@speakers_obj,$room);
+        }
+        if($type eq 'audrey') {
+            &::print_log("PAobj: speakers_audrey: Adding $room") if $main::Debug{pa} >=3;
+            push(@speakers_audrey,$room);
         }
     }
     
-    &::print_log("PAObj: speakers_wdio: $#speakers_wdio") if $main::Debug{pa}  >=2 || $#speakers_wdio gt -1;
-    &::print_log("PAObj: speakers_x10: $#speakers_x10") if $main::Debug{pa}  >=2 || $#speakers_x10 gt -1;
-    &::print_log("PAObj: speakers_xap: $#speakers_xap") if $main::Debug{pa}  >=2 || $#speakers_xap gt -1;
-    &::print_log("PAObj: speakers_xpl: $#speakers_xpl") if $main::Debug{pa}  >=2 || $#speakers_xpl gt -1;
-    &::print_log("PAObj: speakers_obj: $#speakers_obj") if $main::Debug{pa}  >=2 || $#speakers_obj gt -1;
+    &::print_log("PAobj: speakers_wdio: $#speakers_wdio") if $main::Debug{pa}  >=2 || $#speakers_wdio gt -1;
+    &::print_log("PAobj: speakers_x10: $#speakers_x10") if $main::Debug{pa}  >=2 || $#speakers_x10 gt -1;
+    &::print_log("PAobj: speakers_xap: $#speakers_xap") if $main::Debug{pa}  >=2 || $#speakers_xap gt -1;
+    &::print_log("PAobj: speakers_xpl: $#speakers_xpl") if $main::Debug{pa}  >=2 || $#speakers_xpl gt -1;
+    &::print_log("PAobj: speakers_obj: $#speakers_obj") if $main::Debug{pa}  >=2 || $#speakers_obj gt -1;
+    &::print_log("PAobj: speakers_audrey: $#speakers_audrey") if $main::Debug{pa}  >=2 || $#speakers_audrey gt -1;
+
+    
+    $pa_zones{wdio}=join(',',@speakers_wdio);
+    $pa_zones{x10}=join(',',@speakers_x10);
+    $pa_zones{xap}=join(',',@speakers_xap);
+    $pa_zones{xpl}=join(',',@speakers_xpl);
+    $pa_zones{obj}=join(',',@speakers_obj);
+    $pa_zones{audrey}=join(',',@speakers_audrey);
+    
+    $parms->{web_file}="web_file";# if $#speakers_wdio gt -1;
+    
+    if(
+        1
+        && $pa_zones{wdio} eq ''
+        && $pa_zones{x10} eq ''
+        && $pa_zones{xap} eq ''
+        && $pa_zones{xpl} eq ''
+        && $pa_zones{obj} eq ''
+        
+    ) {
+        $$parms{to_file}='/dev/null';
+    }
+    
+    return 1;
+    
+}
+
+sub audio_hook
+{
+    my ($self,$state,%voiceparms) = @_;
+    my $results = 0;
+#    my @speakers = split(',', $voiceparms{pa_zones});
+
+    my @speakers_wdio=split(',',$pa_zones{wdio});
+    my @speakers_x10=split(',',$pa_zones{x10});
+    my @speakers_xap=split(',',$pa_zones{xap});
+    my @speakers_xpl=split(',',$pa_zones{xpl});
+    my @speakers_obj=split(',',$pa_zones{obj});
     
     #TODO: Properly handle $results across multiple types
     #TODO: Break up the wdio zones based on serial port, in case there are more than one.
+    $results=0;
     $results = $self->set_weeder($state,'weeder',@speakers_wdio) 			if $#speakers_wdio > -1;
     $results = $self->set_x10($state,@speakers_x10) 			if $#speakers_x10 > -1;
     $results = $self->set_xap($state,\@speakers_xap,\%voiceparms) 	if $#speakers_xap > -1;	
     $results = $self->set_xpl($state,\@speakers_xpl,\%voiceparms) 	if $#speakers_xpl > -1;
     $results = $self->set_obj($state,@speakers_obj) 			if $#speakers_obj > -1;
-
+    
     select undef, undef, undef, $$self{pa_delay} if $results;
+    &::print_log("PAobj: set results: $results");
+    
+    $results=0;
+    if($pa_zones{wdio} ne '') {$results=1;print_log('------> wdio detected, talking...');}
 
+    return $results;
+}
+
+sub web_hook
+{
+    my ($self,$parms) = @_;
+    &::print_log("PAobj: web_hook! Audrey: " . $pa_zones{audrey});
+    return unless $pa_zones{audrey} ne '';
+    my $results=0;
+    my @speakers_audrey=split(',', $pa_zones{audrey});
+    
+    $results = $self->set_audrey($parms->{web_file},@speakers_audrey);
+    
     return $results;
 }
 
@@ -200,10 +267,26 @@ sub set_obj
 {
     my ($self,$state,@speakers) = @_;
     for my $room (@speakers) {
-        &::print_log("PAObj: set_obj: " . $room . " / " . $state) if $main::Debug{pa} >=2;
+        &::print_log("PAobj: set_obj: " . $room . " / " . $state) if $main::Debug{pa} >=2;
         my $ref = &::get_object_by_name("pa_$room");
         if ($ref) {
             $ref->set($state);
+        }
+    }
+}
+
+sub set_audrey
+{
+    my ($self,$speakFile,@speakers) = @_;
+    &::print_log("PAobj: set_audrey: file: " . $speakFile) if $main::Debug{pa} >=4;
+    &::print_log("PAobj: set_audrey: count: " . $#speakers) if $main::Debug{pa} >=4;
+    
+    for my $room (@speakers) {
+        #my $ref = &::get_object_by_name('pa_'.$room);
+        my $refobj = &::get_object_by_name('pa_'.$room.'_obj');
+        if ($refobj) {
+            &::print_log("PAobj: set_audrey: " . $room . " / " . $speakFile) if $main::Debug{pa} >=2;
+            $refobj->play($speakFile);
         }
     }
 }
@@ -214,12 +297,12 @@ sub set_x10
     my ($x10_list,$pa_x10_hc,$ref,$refobj);
 
     for my $room (@speakers) {
-        &::print_log("PAObj: set_x10: " . $room . " / " . $state) if $main::Debug{pa} >=3;
+        &::print_log("PAobj: set_x10: " . $room . " / " . $state) if $main::Debug{pa} >=3;
         $ref = &::get_object_by_name('pa_'.$room);
         $refobj = &::get_object_by_name('pa_'.$room.'_obj');
         if ($refobj && $ref) {
             my ($id) = $ref->get_address();
-            &::print_log("PAObj: set_x10 ID: $id, State: $state, Room: $room") if $main::Debug{pa} >=2;
+            &::print_log("PAobj: set_x10 ID: $id, State: $state, Room: $room") if $main::Debug{pa} >=2;
             $refobj->set($state);
         }
     }
@@ -231,13 +314,13 @@ sub set_xap {
     my %voiceparms = %$param2;
     return unless $#speakers > -1;
     for my $room (@speakers) {
-        &::print_log("PAObj: set_xap: " . $room . " / " . $state) if $main::Debug{pa} >=3;
+        &::print_log("PAobj: set_xap: " . $room . " / " . $state) if $main::Debug{pa} >=3;
         my $ref = &::get_object_by_name('pa_'.$room.'_obj');
         if ($ref) {
             $ref->send_message($ref->target_address, $ref->class_name => {say => $voiceparms{text}, volume => $voiceparms{volume}, mode => $voiceparms{mode}, voice => $voiceparms{voice} });
-            &::print_log("PAObj: xap cmd: $ref->{object_name} is sending voice text: $voiceparms{text}") if $main::Debug{pa};
+            &::print_log("PAobj: xap cmd: $ref->{object_name} is sending voice text: $voiceparms{text}") if $main::Debug{pa};
         } else {
-            &::print_log("PAObj: Unable to locate object for: pa_$room");
+            &::print_log("PAobj: Unable to locate object for: pa_$room");
         }
     }
 }
@@ -248,7 +331,7 @@ sub set_xpl {
     my %voiceparms = %$param2;
     return unless $#speakers > -1;
     for my $room (@speakers) {
-        &::print_log("PAObj: set_xpl: " . $room . " / " . $state) if $main::Debug{pa} >=3;
+        &::print_log("PAobj: set_xpl: " . $room . " / " . $state) if $main::Debug{pa} >=3;
         my $ref = &::get_object_by_name('pa_'.$room.'_obj');
         if ($ref) {
             my $max_length = $::config_parms{"pa_$room" . "_maxlength"};
@@ -258,9 +341,9 @@ sub set_xpl {
                $text = substr($text, 0, $max_length) if $max_length < length($text);
             }
             $ref->send_cmnd($ref->class_name => {speech => $text, voice => $voiceparms{voice}, volume => $voiceparms{volume}, mode => $voiceparms{mode} });
-            &::print_log("PAObj: set_xpl: $ref->{object_name} is sending voice text: $voiceparms{text}") if $main::Debug{pa};
+            &::print_log("PAobj: set_xpl: $ref->{object_name} is sending voice text: $voiceparms{text}") if $main::Debug{pa};
         } else {
-            &::print_log("PAObj: Unable to locate object for: pa_$room");
+            &::print_log("PAobj: Unable to locate object for: pa_$room");
         }
     }
 }
@@ -272,14 +355,14 @@ sub set_weeder
     my $weeder_command='';
     my $command='';
     for my $room (@speakers) {
-        &::print_log("PAObj: set_weeder: " . $room . " / " . $state) if $main::Debug{pa} >=3;
+        &::print_log("PAobj: set_weeder: " . $room . " / " . $state) if $main::Debug{pa} >=3;
         my $ref = &::get_object_by_name('pa_'.$room.'_obj');
         if ($ref) {
             $ref->{state} = $state;
             my ($card,$id) = $ref->{id_by_state}{'on'} =~ /^D?(.)H(.)/s;
             $weeder_ref{$card}='' unless $weeder_ref{$card};
             $weeder_ref{$card} .= $id;
-            &::print_log("PAObj: card: $card, id: $id, Room: $room") if $main::Debug{pa} >=2;
+            &::print_log("PAobj: card: $card, id: $id, Room: $room") if $main::Debug{pa} >=2;
         }
     }
 
@@ -294,7 +377,7 @@ sub set_weeder
         }
     }
     return 0 unless $weeder_command;
-    &::print_log("PAObj: Sending $weeder_command to the weeder card(s)") if $main::Debug{pa};
+    &::print_log("PAobj: Sending $weeder_command to the weeder card(s)") if $main::Debug{pa};
     $weeder_command =~ s/\\r/\r/g;
     &Serial_Item::send_serial_data($weeder_port, $weeder_command) if $main::Serial_Ports{$weeder_port}{object};
     return 1;
@@ -323,7 +406,7 @@ sub get_weeder_string
         }
 
         $bit_flag = ($state eq 'on') ? 1 : 0;                # get 0 or 1
-        &::print_log("PAObj: get_weeder_string card: $card, bit=$bit state=$bit_flag") if $main::Debug{pa} >=2;
+        &::print_log("PAobj: get_weeder_string card: $card, bit=$bit state=$bit_flag") if $main::Debug{pa} >=2;
         $byte_code += ($bit_flag << $bit_counter);        # get bit in byte position
 
         if ($bit_counter++ >= 3) {
@@ -351,7 +434,7 @@ sub get_speakers
     my ($self,$rooms) = @_;
     my @pazones;
 
-    &::print_log("PAObj: get_speakers,rooms: " . $rooms) if $main::Debug{pa} >=2;
+    &::print_log("PAobj: get_speakers,rooms: " . $rooms) if $main::Debug{pa} >=2;
     if ($::mh_speakers->{rooms}) {
         $rooms = $::mh_speakers->{rooms};
         $::mh_speakers->{rooms} = '';
@@ -363,22 +446,22 @@ sub get_speakers
         no strict 'refs';
         my $ref = &::get_object_by_name("pa_$room");
         if ($ref) {
-            &::print_log("PAObj: name=$ref->{object_name}") if $main::Debug{pa};
+            &::print_log("PAobj: name=$ref->{object_name}") if $main::Debug{pa};
             if (UNIVERSAL::isa($ref,'Group')) {
-                &::print_log("PAObj: It's a group!") if $main::Debug{pa} >=2;
+                &::print_log("PAobj: It's a group!") if $main::Debug{pa} >=2;
                 for my $grouproom ($ref->list) {
                     $grouproom = $grouproom->get_object_name;
                     $grouproom =~ s/^\$pa_//;
                     $grouproom =~ s/^\$paxpl_//;
                     $grouproom =~ s/^\$paxap_//;
-                    &::print_log("PAObj:  - member: $grouproom\n") if $main::Debug{pa} >=2;
+                    &::print_log("PAobj:  - member: $grouproom") if $main::Debug{pa} >=2;
                     push(@pazones, $grouproom);
                 }
             } else {
                 push(@pazones, $room);
             }
         } else {
-            &::print_log("PAObj: WARNING: PA zone of '$room' not found!");
+            &::print_log("PAobj: WARNING: PA zone of '$room' not found!");
         }
     }
     return @pazones;
@@ -387,13 +470,13 @@ sub get_speakers
 sub check_group
 {
     my ($self,$group) = @_;
-    &::print_log("PAObj: check group=$group") if $main::Debug{pa} >=2;
+    &::print_log("PAobj: check group=$group") if $main::Debug{pa} >=2;
     my $ref = &::get_object_by_name("pa_$group");
-    if (!$ref) {&::print_log("PAObj: check group: Error! Group does not exist: $group"); return;}
+    if (!$ref) {&::print_log("PAobj: check group: Error! Group does not exist: $group"); return;}
     my @list = $ref->list;
-    &::print_log("PAObj: check group=$group, list=$#list") if $main::Debug{pa} >=2;
+    &::print_log("PAobj: check group=$group, list=$#list") if $main::Debug{pa} >=2;
     if ($#list == -1) {
-        &::print_log("PAObj: check populating group: $group!") if $main::Debug{pa};
+        &::print_log("PAobj: check populating group: $group!") if $main::Debug{pa};
         for my $room ($self->get_speakers('allspeakers')) {
             my $ref2 = &::get_object_by_name("pa_$room");
             $ref->add($ref2);
@@ -411,17 +494,24 @@ sub get_speakers_speakable
 
     for my $room (@zones) {
         my $ref = &::get_object_by_name("pa_$room");
-        &::print_log("PAObj: speakable: name=$ref->{object_name}") if $main::Debug{pa} >=3;
+        &::print_log("PAobj: speakable: name=$ref->{object_name}") if $main::Debug{pa} >=3;
         if ($ref->{sleeping} == 0) {
             $ref->{mode} = 'normal' unless $ref->{mode};
             my $gss_mode = $ref->{mode};
             if ($gss_mode ne 'sleeping' && ($gss_mode eq 'normal' || $mode eq 'unmuted')) {
                 push(@pazones,$room);
-                &::print_log("PAObj: speakable: Pushing $room into pazones array:$#pazones") if $main::Debug{pa} >=2;
+                &::print_log("PAobj: speakable: Pushing $room into pazones array:$#pazones") if $main::Debug{pa} >=2;
             }
         }
     }
     return @pazones;
+}
+
+sub get_pa_zones
+{
+    my ($self) = @_;
+    &::print_log("PAobj: get_pa_zones");# if $main::Debug{pa} >=3;
+    return %pa_zones;
 }
 
 sub set_delay
@@ -439,7 +529,7 @@ sub print_speaker_states
         $ref = &::get_object_by_name("pa_$speaker");
         $room = $ref->{object_name};
         $room =~ s/^\$pa_//;
-        &::print_log("PAObj: name=$room, state=$ref->{state}") if $main::Debug{pa};
+        &::print_log("PAobj: name=$room, state=$ref->{state}") if $main::Debug{pa};
     }
 }
 

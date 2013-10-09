@@ -22,12 +22,12 @@ sub read_table_init_A {
 	%groups=();
 	%objects=();
 	%packages=();
-      %addresses=();
+  %addresses=();
 }
 
 sub read_table_A {
     my ($record) = @_;
-
+    
     if($record =~ /^#/ or $record =~ /^\s*$/) {
        return;
     }
@@ -551,6 +551,10 @@ sub read_table_A {
                 $code .= sprintf "\$%-35s -> tie_items(\$%s,'off','off');\n",$name,$address;
                 $code .= sprintf "\$%-35s -> tie_items(\$%s,'on','on');\n",$name,$address;
             }
+        } elsif (lc $pa_type eq 'audrey') {
+            require 'Audrey_Play.pm';
+            $code .= sprintf "\$%-35s = new Audrey_Play('%s');\n",$name.'_obj',$address;
+            $code .= sprintf "\$%-35s -> hidden(1);\n", $name.'_obj';
         } elsif (lc $pa_type eq 'x10') {
             $other = join ', ', (map {"'$_'"} @other); # Quote data
             $code .= sprintf "\$%-35s = new X10_Appliance('%s','%s');\n",$name.'_obj',$address, $serial;

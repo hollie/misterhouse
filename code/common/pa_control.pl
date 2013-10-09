@@ -48,8 +48,10 @@ $v_pa_speakers-> set_info('Turn all the PA speakers on/off');
 $pactrl->init() if $Startup or $Reload;
 
 # Hooks to flag which rooms to turn on based on "rooms=" parm in speak command
+&Speak_parms_add_hook(\&pa_parms_stub) if $Reload;
 &Speak_pre_add_hook(\&pa_control_stub) if $Reload;
-&Play_pre_add_hook (\&pa_control_stub) if $Reload;
+&Play_parms_add_hook(\&pa_parms_stub)  if $Reload;
+&Play_pre_add_hook(\&pa_control_stub)  if $Reload;
 
 if (said $v_pa_test) {
     my $state = $v_pa_test->{state};
@@ -67,38 +69,65 @@ if (said $v_pa_speakers) {
     $pactrl->set('allspeakers',$state,'unmuted');
 }
 
+sub pa_parms_stub {
+    my ($parms) = @_;
+    unless ($parms->{mode}) {
+        if (defined $mode_mh) { # *** Outdated (?)
+            $parms->{mode} = state $mode_mh;
+        } else {
+            $parms->{mode} = $Save{mode};
+        }
+    }
+    return if $parms->{mode} eq 'mute' or $parms->{mode} eq 'offline';
+    
+    my $results = $pactrl->prep_parms($parms);
+    
+    my %pa_zones = $pactrl->get_pa_zones();
+    push(@{$parms->{web_hook}},\&pa_web_hook) if $pa_zones{audrey} ne '';
+
+    print "PA: parms_stub set results: $results\n" if $Debug{pa} >=2;
+    
+}
+
 sub pa_control_stub {
     my (%parms) = @_;
     my @pazones;
     my $mode = $parms{mode};
-    unless ($mode) {
-        if (defined $mode_mh) { # *** Outdated (?)
-            $mode = state $mode_mh;
-        } else {
-            $mode = $Save{mode};
-        }
-    }
+#    unless ($mode) {
+#        if (defined $mode_mh) { # *** Outdated (?)
+#            $mode = state $mode_mh;
+#        } else {
+#            $mode = $Save{mode};
+#        }
+#    }
     return if $mode eq 'mute' or $mode eq 'offline';
 
     my $rooms = $parms{rooms};
     print "PA: control_stub: rooms=$rooms, mode=$mode\n" if $Debug{pa};
-    my $results = $pactrl->set($rooms,ON,$mode,%parms);
+    my $results = $pactrl->audio_hook(ON,%parms);
     print "PA: control_stub set results: $results\n" if $Debug{pa} >=2;
     set $pa_speaker_timer $pa_timer if $results;
+    return $results;
 }
+
+sub pa_web_hook {
+    my (%parms) = @_;
+    $pactrl->web_hook(\%parms);
+}
+
 
           #Turn off speakers when MH says it's done speaking/playing
 if (state_now $mh_speakers eq OFF) {
     unset $pa_speaker_timer;
     print "PA: Turning speakers off\n" if $Debug{pa};
-    $pactrl->set('allspeakers',OFF,'normal');
+    $pactrl->audio_hook(OFF,'normal');
 }
 
           #Setup Fail-safe speaker shutoff
 $pa_speaker_timer = new Timer;
 set $pa_speaker_timer 60 if state_now $mh_speakers eq ON;
 if (expired $pa_speaker_timer) {
-    print "PA: Timer expired.\n" if $Debug{pa};
+    print "PA: Timer expired. Forcing PA speakers off.\n" if $Debug{pa};
     set $mh_speakers OFF;
 }
 
