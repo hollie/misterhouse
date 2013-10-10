@@ -80,7 +80,7 @@ the EF group as described above and run sync links.
 
 Broadcast messages are NOT sent when the heater turns on/off.  Broadcast
 message are also NOT sent when the humidity setpoints are exceeded.  Instead,
-you must define the heating, high_humdid, and _low_humid groups and link them
+you must define the heating, high_humid, and low_humid groups and link them
 to MH.  (The base group 01 is the cooling group and should always be linked to
 MH).  When linked, these groups will send on/off commands to MH when these events
 occur.  Alternatively, you can periodically call request_status() to check 
@@ -116,17 +116,20 @@ thermostat can be created in user code:
    $thermo_setpoint_c = new Insteon::Thermo_setpoint_c($thermostat);
    $thermo_humidity = new Insteon::Thermo_humidity($thermostat);  #Only available on i2CS devices
    $thermo_status = new Insteon::Thermo_status($thermostat);  #Only available on i2CS devices
+   $thermo_humidity_setpoint_h = new Insteon::Thermo_setpoint_humid_h($thermostat);  #Only available on i2CS devices
+   $thermo_humidity_setpoint_l = new Insteon::Thermo_setpoint_humid_l($thermostat);  #Only available on i2CS devices
+
 
 where $thermostat is the parent object to track.  The state of these child objects
-will be the state of the various objects.  This makes the display of the various
-states easier within MH.  The child objects also make it easier to change the 
-various states on the thermostat.
+will be the state of the various attributes of the thermostat.  This makes the 
+display of the various states easier within MH.  The child objects also make it 
+easier to change the various states on the thermostat.
 
 see code/examples/Insteon_thermostat.pl for more.
 
 =head1 BUGS
 
-This code has not been tested on older Venstar thermsotats, however it is believed
+This code has not been tested on older Venstar thermostats, however it is believed
 that the basic functionality should work as it did in the old code.
 
 =head1 AUTHOR
