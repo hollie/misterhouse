@@ -584,7 +584,7 @@ sub init {
 	my ($self) = @_;
 	$$self{message_types} = \%message_types;
 	#Set saved state unique to i2CS devices
-	$self->restore_data('humid', 'cooling', 'heating', 'high_humid', 'low_humid');
+	$self->restore_data('humid', 'cooling', 'heating', 'humidifying', 'dehumidifying', 'high_humid_sp', 'low_humid_sp');
 }
 
 sub set {
@@ -605,10 +605,10 @@ sub set {
 		$root->_heating($link_state);
 	}
 	elsif ($self->group eq '03') {
-		$root->_high_humid($link_state);
+		$root->_dehumidifying($link_state);
 	}
 	elsif ($self->group eq '04') {
-		$root->_low_humid($link_state);
+		$root->_humidifying($link_state);
 	}
 	#Update the status of linked devices
 	$self->set_linked_devices($link_state);
@@ -661,8 +661,8 @@ sub get_status() {
 	my $output = "";
 	$output .= "Heating, " if ($$root{heating} eq 'on');
 	$output .= "Cooling, " if ($$root{cooling} eq 'on');
-	$output .= "Dehumidifying, " if ($$root{high_humid} eq 'on');
-	$output .= "Humidifying" if ($$root{low_humid} eq 'on');
+	$output .= "Dehumidifying, " if ($$root{dehumidifying} eq 'on');
+	$output .= "Humidifying" if ($$root{humidifying} eq 'on');
 	$output = 'Off' if ($output eq '');
 	return $output;
 }
@@ -679,11 +679,13 @@ sub print_status() {
 	$output .= "Mode: ";
 	$output .= $root->get_mode();
 	$output .= "; Status: ";
-	$output .= "Heating, " if ($$root{heating} eq 'on');
-	$output .= "Cooling, " if ($$root{cooling} eq 'on');
-	$output .= "Dehumidifying, " if ($$root{high_humid} eq 'on');
-	$output .= "Humidifying" if ($$root{low_humid} eq 'on');
-	$output .= 'Off' if ($output eq '');
+	my $output_status = '';
+	$output_status .= "Heating, " if ($$root{heating} eq 'on');
+	$output_status .= "Cooling, " if ($$root{cooling} eq 'on');
+	$output_status .= "Dehumidifying, " if ($$root{dehumidifying} eq 'on');
+	$output_status .= "Humidifying" if ($$root{humidifying} eq 'on');
+	$output_status .= 'Off' if ($output_status eq '');
+	$output .= $output_status;
 	$output .= "; Temp: ";
 	$output .= $root->get_temp();
 	$output .= "; Humid: ";
@@ -972,22 +974,31 @@ sub _heating {
 }
 
 
-sub _high_humid {
+sub _dehumidifying {
 	my ($self,$p_state) = @_;
-	if ($p_state ne $$self{high_humid}) {
-		$$self{high_humid} = $p_state;
+	if ($p_state ne $$self{dehumidifying}) {
+		$$self{dehumidifying} = $p_state;
 		$self->set_receive('status_change');
 	}
-	return $$self{high_humid};
+	return $$self{dehumidifying};
 }
 
-sub _low_humid {
+sub _humidifying {
 	my ($self,$p_state) = @_;
-	if ($p_state ne $$self{low_humid}) {
-		$$self{low_humid} = $p_state;
+	if ($p_state ne $$self{humidifying}) {
+		$$self{humidifying} = $p_state;
 		$self->set_receive('status_change');
 	}
-	return $$self{low_humid};
+	return $$self{humidifying};
+}
+
+sub _high_humid_sp {
+	my ($self,$p_state) = @_;
+	if ($p_state ne $$self{high_humid_sp}) {
+		$$self{high_humid_sp} = $p_state;
+		$self->set_receive('high_humid_setpoint_change');
+	}
+	return $$self{high_humid_sp};
 }
 
 =item C<mode()>
