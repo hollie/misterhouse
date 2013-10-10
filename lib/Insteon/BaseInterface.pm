@@ -718,6 +718,14 @@ sub on_extended_insteon_received
                    	}
 		   	&::print_log("[Insteon::BaseInterface] Processing message for " . $object->get_object_name) if $main::Debug{insteon} >=3;
 			if($object->_process_message($self, %msg)) {
+				if ($self->active_message->success_callback){
+					main::print_log("[Insteon::BaseInterface] DEBUG4: Now calling message success callback: "
+						. $self->active_message->success_callback) if $main::Debug{insteon} >= 4;
+					package main;
+						eval $self->active_message->success_callback;
+						::print_log("[Insteon::BaseInterface] problem w/ success callback: $@") if $@;
+					package Insteon::BaseInterface;
+				}
 				$self->clear_active_message();
 			}
 		}
