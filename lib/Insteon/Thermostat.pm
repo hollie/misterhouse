@@ -795,8 +795,23 @@ sub _process_message {
 			#10 = humid high		#24 = 1 = Status Report Enabled
 			#12 = firmware			#26 = 1 = External Power On
 							#28 = 1 = Int, 2=Ext Temp
-			$self->_high_humid(hex(substr($msg{extra}, 8, 2)));
-			$self->_low_humid(hex(substr($msg{extra}, 10, 2)));
+			$self->_high_humid_sp(hex(substr($msg{extra}, 8, 2)));
+			$self->_low_humid_sp(hex(substr($msg{extra}, 10, 2)));
+			
+			#Humidifying and Dehumidifying are only reported by the
+			#thermostat as scene-commands.  When a user calls 
+			#request_status, we manually check the values and update
+			#as appropriate
+			if ($self->get_high_humid_sp > $self->get_humid){
+				$self->_dehumidifying('off'); 
+			} else {
+				$self->_dehumidifying('on');	
+			}
+			if ($self->get_low_humid_sp < $self->get_humid){
+				$self->_humidifying('off');
+			} else {
+				$self->_humidifying('on');	
+			}
 			$clear_message = 1;
 			$self->_process_command_stack(%msg);
 		}
