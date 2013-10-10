@@ -675,7 +675,7 @@ Prints the currently known status to the log as a text string.
 sub print_status() {
 	my ($self) = @_;
 	my $root = $self->get_root();
-	my $output = "[Insteon:Thermo_i2CaS] The status of " . $root->get_object_name . " is:\n";
+	my $output = "[Insteon:Thermo_i2CS] The status of " . $root->get_object_name . " is:\n";
 	$output .= "Mode: ";
 	$output .= $root->get_mode();
 	$output .= "; Status: ";
