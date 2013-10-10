@@ -695,9 +695,9 @@ sub print_status() {
 	$output .= "; Cool SP: ";
 	$output .= $root->get_cool_sp();
 	$output .= "; High Humid SP: ";
-	$output .= $root->_high_humid();
+	$output .= $root->get_high_humid_sp();
 	$output .= "; Low Humid SP: ";
-	$output .= $root->_low_humid();
+	$output .= $root->get_low_humid_sp();
 	::print_log($output);
 }
 
@@ -1000,6 +1000,34 @@ sub _high_humid_sp {
 	}
 	return $$self{high_humid_sp};
 }
+
+sub _low_humid_sp {
+	my ($self,$p_state) = @_;
+	if ($p_state ne $$self{low_humid_sp}) {
+		$$self{low_humid_sp} = $p_state;
+		$self->set_receive('low_humid_setpoint_change');
+	}
+	return $$self{low_humid_sp};
+}
+
+=item C<get_high_humid_sp()>
+
+Returns the current high humidity setpoint. 
+=cut
+sub get_high_humid_sp {
+	my ($self) = @_;
+	return $$self{high_humid_sp};
+}
+
+=item C<get_low_humid_sp()>
+
+Returns the current low humidity setpoint. 
+=cut
+sub get_low_humid_sp {
+	my ($self) = @_;
+	return $$self{low_humid_sp};
+}
+
 
 =item C<mode()>
 
