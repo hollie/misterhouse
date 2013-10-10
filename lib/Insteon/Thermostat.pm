@@ -469,6 +469,12 @@ sub parent_event {
 	elsif ($p_state eq 'status_change'){
 		$$self{child_status}->set_receive($self->get_status(), $self);
 	}
+	elsif ($p_state eq 'low_humid_setpoint_change'){
+		$$self{child_setpoint_humid_l}->set_receive($self->get_low_humid_sp(), $self);
+	}
+	elsif ($p_state eq 'high_humid_setpoint_change'){
+		$$self{child_setpoint_humid_h}->set_receive($self->get_high_humid_sp(), $self);
+	}
 }
 
 # Overload methods we don't use, but would otherwise cause Insteon traffic.
@@ -1297,6 +1303,88 @@ sub new {
 	$$self{parent}{child_status} = $self;
 	$$self{parent} -> tie_event ('$object->parent_event("$state")', "status_change");
 	return $self;
+}
+
+sub set_receive {
+	my ($self, $p_state) = @_;
+	$self->SUPER::set($p_state);
+}
+
+package Insteon::Thermo_setpoint_humid_h;
+use strict;
+
+@Insteon::Thermo_setpoint_humid_h::ISA = ('Generic_Item');
+
+sub new {
+	my ($class, $parent) = @_;
+	my $self = new Generic_Item();
+	bless $self, $class;
+	$$self{parent} = $parent;
+	@{$$self{states}} = ('Lower' , 'Higher');
+	$$self{parent}{child_setpoint_humid_h} = $self;
+	$$self{parent} -> tie_event ('$object->parent_event("$state")', "high_humid_setpoint_change");
+	return $self;
+}
+
+sub set {
+	my ($self, $p_state, $p_setby, $p_response) = @_;
+	my $found_state = 0;
+	foreach my $test_state (@{$$self{states}}){
+		if (lc($test_state) eq lc($p_state)){
+			$found_state = 1;
+		}
+	}
+	if ($found_state){
+		::print_log("[Insteon::Thermo_i2CS] Received request to set high humidity setpoint to "
+			. $p_state . " for device " . $self->get_object_name);
+		if (lc($p_state) eq 'lower'){
+			$$self{parent}->high_humid_setpoint($$self{parent}->get_high_humid_sp - 1);
+		}
+		elsif (lc($p_state) eq 'higher'){
+			$$self{parent}->high_humid_setpoint($$self{parent}->get_high_humid_sp + 1);
+		}
+	}
+}
+
+sub set_receive {
+	my ($self, $p_state) = @_;
+	$self->SUPER::set($p_state);
+}
+
+package Insteon::Thermo_setpoint_humid_l;
+use strict;
+
+@Insteon::Thermo_setpoint_humid_l::ISA = ('Generic_Item');
+
+sub new {
+	my ($class, $parent) = @_;
+	my $self = new Generic_Item();
+	bless $self, $class;
+	$$self{parent} = $parent;
+	@{$$self{states}} = ('Lower', 'Higher');
+	$$self{parent}{child_setpoint_humid_l} = $self;
+	$$self{parent} -> tie_event ('$object->parent_event("$state")', "low_humid_setpoint_change");
+	return $self;
+}
+
+sub set {
+	my ($self, $p_state, $p_setby, $p_response) = @_;
+	my $found_state = 0;
+	foreach my $test_state (@{$$self{states}}){
+		if (lc($test_state) eq lc($p_state)){
+			$found_state = 1;
+		}
+	}
+	if ($found_state){
+		::print_log("[Insteon::Thermo_i2CS] Received request to set low humidity setpoint to "
+			. $p_state . " for device " . $self->get_object_name);
+		if (lc($p_state) eq 'lower'){
+			$$self{parent}->low_humid_setpoint($$self{parent}->get_low_humid_sp - 1);
+		}
+		elsif (lc($p_state) eq 'higher'){
+			$$self{parent}->low_humid_setpoint($$self{parent}->get_low_humid_sp + 1);
+		}
+	}
 }
 
 sub set_receive {
