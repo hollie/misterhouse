@@ -621,8 +621,8 @@ sub sync_links{
 	if (!$audit_mode && ref $bcast_obj && $self->is_root){
 		#Make sure thermostat is set to broadcast changes
 		::print_log("[Insteon::Thermo_i2CS] (sync_links) Enabling thermostat broadcast setting.") unless $audit_mode;
-		my $extra = "000008000000000000000000000000";
-		my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
+		my $extra = "000008";
+		my $message = $self->simple_message('extended_set_get', $extra);
 		$$self{_ext_set_get_action} = 'set';
 		$self->_send_cmd($message);
 	}
@@ -640,8 +640,8 @@ Only available for I2CS devices.
 
 sub _poll_simple{
 	my ($self, $success_callback, $failure_callback) = @_;
-	my $extra = "020000000000000000000000000000";
-	my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
+	my $extra = "02";
+	my $message = $self->simple_message('extended_set_get', $extra);
 	$$message{add_crc16} = 1;
 	$message->failure_callback($failure_callback);
 	$message->success_callback($success_callback);
