@@ -1122,13 +1122,18 @@ sub high_humid_setpoint {
 	my ($self, $value) = @_;
 	main::print_log("[Insteon::Thermo_i2CS] Setting high humid setpoint -> $value") if $main::Debug{insteon};
 	if($value !~ /^\d+$/){
-		main::print_log("[Insteon::Thermostat] ERROR: Setpoint $value not numeric");
+		main::print_log("[Insteon::Thermo_i2CS] ERROR: Setpoint $value not numeric");
 		return;
+	}
+	if($value > 99 || $value < 1){
+		main::print_log("[Insteon::Thermo_i2CS] ERROR: Setpoint must be between 1-99, not $value");
+		return;		
 	}
 	my $extra = "00000B" . sprintf("%02x", $value);
 	$extra .= '0' x (30 - length $extra);
 	my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
-	$$self{_ext_set_get_action} = 'set';
+	$$self{_ext_set_get_action} = 'set_high_humid';
+	$$self{_high_humid_pending} = $value;
 	$self->_send_cmd($message);
 }
 
@@ -1141,13 +1146,18 @@ sub low_humid_setpoint {
 	my ($self, $value) = @_;
 	main::print_log("[Insteon::Thermo_i2CS] Setting low humid setpoint -> $value") if $main::Debug{insteon};
 	if($value !~ /^\d+$/){
-		main::print_log("[Insteon::Thermostat] ERROR: Setpoint $value not numeric");
+		main::print_log("[Insteon::Thermo_i2CS] ERROR: Setpoint $value not numeric");
 		return;
+	}
+	if($value > 99 || $value < 1){
+		main::print_log("[Insteon::Thermo_i2CS] ERROR: Setpoint must be between 1-99, not $value");
+		return;		
 	}
 	my $extra = "00000C" . sprintf("%02x", $value);
 	$extra .= '0' x (30 - length $extra);
 	my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
-	$$self{_ext_set_get_action} = 'set';
+	$$self{_ext_set_get_action} = 'set_low_humid';
+	$$self{_low_humid_pending} = $value;
 	$self->_send_cmd($message);
 }
 
