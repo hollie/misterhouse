@@ -740,6 +740,24 @@ sub _process_message {
 			$$self{_ext_set_get_action} = undef;
 			$self->_process_command_stack(%msg);	
 		}
+		elsif ($$self{_ext_set_get_action} eq 'set_high_humid'){
+			main::print_log("[Insteon::Thermostat] Received ACK of high humid setpoint ".
+				"for ". $self->get_object_name) if $main::Debug{insteon};	
+			$self->_high_humid_sp($$self{_high_humid_pending});
+			$clear_message = 1;
+			$$self{_ext_set_get_action} = undef;
+			$$self{_high_humid_pending} = undef;
+			$self->_process_command_stack(%msg);
+		}
+		elsif ($$self{_ext_set_get_action} eq 'set_low_humid'){
+			main::print_log("[Insteon::Thermostat] Received ACK of low humid setpoint ".
+				"for ". $self->get_object_name) if $main::Debug{insteon};	
+			$self->_low_humid_sp($$self{_low_humid_pending});
+			$clear_message = 1;
+			$$self{_ext_set_get_action} = undef;
+			$$self{_low_humid_pending} = undef;
+			$self->_process_command_stack(%msg);
+		}
 	} 
 	elsif ($msg{command} eq "extended_set_get" && $msg{is_extended}) {
 		if (substr($msg{extra},0,4) eq "0201") {
