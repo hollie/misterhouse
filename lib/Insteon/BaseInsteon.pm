@@ -1377,8 +1377,8 @@ the device.
 sub link_to_interface
 {
 	my ($self,$p_group, $p_data3, $step) = @_;
-	my $group = $p_group;
-	$group = '01' unless $group;
+	$p_group = $self->group unless (defined $p_group);
+	$p_data3 = $self->group unless (defined $p_data3);
 	my $success_callback_prefix = $self->get_object_name."->link_to_interface(\"$p_group\",\"$p_data3\",";
 	my $success_callback = "";
 	my $failure_callback = '::print_log("[Insteon::BaseInsteon] Error: The Link_To_Interface '.
@@ -1392,7 +1392,7 @@ sub link_to_interface
 		}
 		case (1) { #Add Link from object->PLM
 			$success_callback = $success_callback_prefix . "\"2\")";
-			my %link_info = ( object => $self->interface, group => $group, is_controller => 1,
+			my %link_info = ( object => $self->interface, group => $p_group, is_controller => 1,
 				callback => "$success_callback", failure_callback=> "$failure_callback");
 			$link_info{data3} = $p_data3 if $p_data3;
 		        if ($self->_aldb) {
@@ -1406,7 +1406,7 @@ sub link_to_interface
 		}
 		case (2){ #Add Link from PLM->object
 			$success_callback = $success_callback_prefix . "\"3\")";
-			my $link_info = "deviceid=" . lc $self->device_id . " group=$group is_controller=0 " .
+			my $link_info = "deviceid=" . lc $self->device_id . " group=$p_group is_controller=0 " .
 				"callback=$success_callback failure_callback=$failure_callback";	
 		        $self->interface->add_link($link_info);
 		}
