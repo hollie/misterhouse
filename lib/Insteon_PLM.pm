@@ -751,6 +751,8 @@ sub _parse_data {
 					::print_log("[Insteon::Insteon_PLM] problem w/ success callback: $@") if $@;
 				package Insteon::BaseObject;
 			}
+			#Clear awaiting_ack flag
+			$self->active_message->setby->_process_command_stack(0);
                         $self->clear_active_message();
 		}
                 elsif ($parsed_prefix eq $prefix{all_link_clean_failed} and ($message_length == 12))
