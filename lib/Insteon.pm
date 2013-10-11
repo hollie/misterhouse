@@ -1193,8 +1193,8 @@ sub _active_interface
       &main::Reload_post_add_hook(\&Insteon::BaseInterface::poll_all, 1);
       $init_complete = 0;
       &main::MainLoop_pre_add_hook(\&Insteon::init, 1);
-      &main::Reload_post_add_hook(\&Insteon::generate_voice_commands, 1);
       &main::Reload_post_add_hook(\&Insteon::check_thermo_versions, 1);
+      &main::Reload_post_add_hook(\&Insteon::generate_voice_commands, 1);
    }
    $$self{active_interface} = $interface if $interface;
    return $$self{active_interface};

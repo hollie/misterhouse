@@ -1178,6 +1178,30 @@ sub _poll_humid_setpoints{
 	$self->_send_cmd($message);
 }
 
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds},
+        'sync time' => "$object_name->sync_time()"
+    );
+    return \%voice_cmds;
+}
+
 package Insteon::Thermo_mode;
 use strict;
 
