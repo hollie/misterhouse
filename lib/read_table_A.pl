@@ -1071,42 +1071,44 @@ sub read_table_finish_A {
     foreach my $scene (sort keys %scene_build_responders) {
         $code .= "\n#SCENE_BUILD Definition for scene: $scene\n";
 
-        #Doesn't work because object technically doesn't exist yet. Is it even 
-        #necessary to limit to ICONTROLLER's?
-        #my $object = &get_object_by_name($scene);
-        #if(defined($object) and $object->isa("Insteon::InterfaceController")) {
-
         if($objects{$scene}) {
-            #Since an INSTEON_ICONTROLLER exists with the same name as the scene, 
-            #make it a controller of the scene, too.
+            #Since an object exists with the same name as the scene, 
+            #make it a controller of the scene, too. Hopefully it can be a controller
             $scene_build_controllers{$scene}{$scene}="1";
         }
 
         #Loop through the controller hash
-        foreach my $scene_controller (keys $scene_build_controllers{$scene}) {
-            if ($objects{$scene_controller}) {
-            	#Make a link to each responder in the responder hash
-                while (my ($scene_responder, $responder_data) = each($scene_build_responders{$scene})) {
-                    my ($on_level, $ramp_rate) = split(',', $responder_data);
-
-                    if (($objects{$scene_responder}) and ($scene_responder ne $scene_controller)) {
-                        if ($on_level) {
-                            if ($ramp_rate) {
-                                $code .= sprintf "\$%-35s -> add(\$%s,'%s','%s');\n",
-                                    $scene_controller, $scene_responder, $on_level, $ramp_rate;
-                            } else {
-                                $code .= sprintf "\$%-35s -> add(\$%s,'%s');\n", 
-                                    $scene_controller, $scene_responder, $on_level;
-                            }
-                        } else {
-                            $code .= sprintf "\$%-35s -> add(\$%s);\n", $scene_controller, $scene_responder;
-                        }
-                    }
-                }
-
-            } else {
-                print "\nThere is no object called $scene_controller defined.  Ignoring SCENE_BUILD entry.\n";
-            }
+        if (exists $scene_build_controllers{$scene}){
+	        foreach my $scene_controller (keys $scene_build_controllers{$scene}) {
+	            if ($objects{$scene_controller}) {
+	            	#Make a link to each responder in the responder hash
+	                while (my ($scene_responder, $responder_data) = each($scene_build_responders{$scene})) {
+	                    my ($on_level, $ramp_rate) = split(',', $responder_data);
+	
+	                    if (($objects{$scene_responder}) and ($scene_responder ne $scene_controller)) {
+	                        if ($on_level) {
+	                            if ($ramp_rate) {
+	                                $code .= sprintf "\$%-35s -> add(\$%s,'%s','%s');\n",
+	                                    $scene_controller, $scene_responder, $on_level, $ramp_rate;
+	                            } else {
+	                                $code .= sprintf "\$%-35s -> add(\$%s,'%s');\n", 
+	                                    $scene_controller, $scene_responder, $on_level;
+	                            }
+	                        } else {
+	                            $code .= sprintf "\$%-35s -> add(\$%s);\n", $scene_controller, $scene_responder;
+	                        }
+	                    }
+	                }
+	
+	            } else {
+	                ::print_log("[Read_Table_A] ERROR: There is no object ".
+	                	"called $scene_controller defined.  Ignoring SCENE_BUILD entry.");
+	            }
+	        }
+        } 
+        else {
+        	::print_log("[Read_Table_A] ERROR: There is no controller ".
+	                "defined for $scene.  Ignoring SCENE_BUILD entry.");
         }
     }
     return $code;
