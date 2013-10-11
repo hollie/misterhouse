@@ -3376,51 +3376,6 @@ sub request_status
 	}
 }
 
-=item C<link_to_interface([group,data3])>
-
-If a controller link from the device to the interface does not exist, this will
-create that link on the device.
-
-Next, if a responder link from the device to the interface does not exist on the 
-interface, this will create that link on the interface.
-
-The group is the group on the device that is the controller, such as a button on
-a keypad link.  It will default to 01.
-
-Data3 is optional and is used to set the Data3 value in the controller link on 
-the device.
-
-=cut
-
-sub link_to_interface
-{
-	my ($self, $p_group, $p_data3) = @_;
-	my $group = $p_group;
-	$group = $self->group unless $group;
-	# get the surrogate device for this if group is not '01'
-	if ($self->group ne '01') {
-		my $surrogate_obj = &Insteon::get_object($self->device_id,'01');
-		if ($p_data3) {
-			$surrogate_obj->link_to_interface($group,$p_data3);
-		} elsif ($surrogate_obj->isa('Insteon::KeyPadLincRelay') or $surrogate_obj->isa('Insteon::KeyPadLinc')) {
-			$surrogate_obj->link_to_interface($group,$self->group);
-		} else {
-			$surrogate_obj->link_to_interface($group);
-		}
-		# next, if the link is a keypadlinc, then create the reverse link to permit
-		# control over the button's light
-		if ($surrogate_obj->isa('Insteon::KeyPadLincRelay') or $surrogate_obj->isa('Insteon::KeyPadLinc')) {
-
-		}
-	} else {
-		if ($p_data3) {
-			$self->SUPER::link_to_interface($group, $p_data3);
-		} else {
-			$self->SUPER::link_to_interface($group);
-		}
-	}
-}
-
 =item C<unlink_to_interface([group])>
 
 Will delete the contoller link from the device to the interface if such a link exists.
