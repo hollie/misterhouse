@@ -202,7 +202,7 @@ sub prep_parms
     $pa_zones{obj}=join(',',@speakers_obj);
     $pa_zones{audrey}=join(',',@speakers_audrey);
     
-    $parms->{web_file}="web_file";# if $#speakers_wdio gt -1;
+    $parms->{web_file}="web_file" if $#speakers_audrey gt -1;
     
     if(
         1

@@ -81,31 +81,28 @@ sub pa_parms_stub {
             $mode = $Save{mode};
         }
     }
+    $parms->{pa_mode} = $mode;
     return if $mode eq 'mute' or $mode eq 'offline';
     
     my $results = $pactrl->prep_parms($parms);
-    
     my %pa_zones = $pactrl->get_pa_zones();
-    push(@{$parms->{web_hook}},\&pa_web_hook) if $pa_zones{audrey} ne '';
+
+    if (defined $pa_zones{audrey} && $pa_zones{audrey} ne '') {
+        print_log("PA: audrey zone detected, hooking via web_hook. (".$pa_zones{audrey}.")") if $Debug{pa};
+        push(@{$parms->{web_hook}},\&pa_web_hook);
+    }
 
     print_log("PA: parms_stub set results: $results") if $Debug{pa} >=2;
     
 }
 
 sub pa_control_stub {
-    my (%parms) = @_;
+    my ($parms) = @_;
     my @pazones;
-    my $mode = $parms{mode};
-#    unless ($mode) {
-#        if (defined $mode_mh) { # *** Outdated (?)
-#            $mode = state $mode_mh;
-#        } else {
-#            $mode = $Save{mode};
-#        }
-#    }
+    my $mode = $parms->{pa_mode};
     return if $mode eq 'mute' or $mode eq 'offline';
 
-    my $rooms = $parms{rooms};
+    my $rooms = $parms->{rooms};
     print_log("PA: control_stub: rooms=$rooms, mode=$mode") if $Debug{pa};
     my $results = $pactrl->audio_hook(ON,%parms);
     print_log("PA: control_stub set results: $results") if $Debug{pa} >=2;
