@@ -431,6 +431,7 @@ Provides support for the Insteon ApplianceLinc.
 =head2 INHERITS
 
 L<Insteon::BaseLight|Insteon::Lighting/Insteon::BaseLight>
+L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
 
 =head2 METHODS
 
@@ -443,7 +444,7 @@ package Insteon::ApplianceLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::ApplianceLinc::ISA = ('Insteon::BaseLight');
+@Insteon::ApplianceLinc::ISA = ('Insteon::BaseLight','Insteon::DeviceController');
 
 =item C<new()>
 
