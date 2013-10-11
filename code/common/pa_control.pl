@@ -73,14 +73,15 @@ if (said $v_pa_speakers) {
 
 sub pa_parms_stub {
     my ($parms) = @_;
-    unless ($parms->{mode}) {
+    my $mode = $parms->{mode};
+    unless ($mode) {
         if (defined $mode_mh) { # *** Outdated (?)
-            $parms->{mode} = state $mode_mh;
+            $mode = state $mode_mh;
         } else {
-            $parms->{mode} = $Save{mode};
+            $mode = $Save{mode};
         }
     }
-    return if $parms->{mode} eq 'mute' or $parms->{mode} eq 'offline';
+    return if $mode eq 'mute' or $mode eq 'offline';
     
     my $results = $pactrl->prep_parms($parms);
     
