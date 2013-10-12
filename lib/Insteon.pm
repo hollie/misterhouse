@@ -510,7 +510,7 @@ sub sync_all_links
 	# iterate over all registered objects and compare whether the link tables match defined scene linkages in known Insteon_Links
 	for my $obj (&Insteon::find_members('Insteon::BaseController'))
 	{
-        	if ($self->is_deaf)
+        	if ($obj->is_deaf)
                 {
                 	&main::print_log("[Sync all links] Ignoring links from 'deaf' device: " . $obj->get_object_name);
                 }
