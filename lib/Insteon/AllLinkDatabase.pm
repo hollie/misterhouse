@@ -152,6 +152,8 @@ sub query_aldb_delta
 		#if we just did a aldb_query less than 2 seconds ago, don't repeat
 		&::print_log("[Insteon::AllLinkDatabase] The link table for "
 			. $self->{device}->get_object_name . " is in sync.");
+		#Further extend Scan Time in case of serial aldb requests
+		$self->scandatetime(&main::get_tickcount);
 		if (defined $self->{_aldb_unchanged_callback}) {
 			package main;
 			my $callback = $self->{_aldb_unchanged_callback};
@@ -288,7 +290,6 @@ sub scan_link_table
 	$$self{_mem_activity} = 'scan';
 	$$self{_success_callback} = ($success_callback) ? $success_callback : undef;
 	$$self{_failure_callback} = ($failure_callback) ? $failure_callback : undef;
-	$self->scandatetime(&main::get_tickcount);
 	$self->health('out-of-sync'); # allow acknowledge to set otherwise
 	if($self->isa('Insteon::ALDB_i1')) {
 		$self->_peek('0FF8',0);
@@ -2715,7 +2716,6 @@ Sends the request for the first alllink entry on the PLM.
 sub get_first_alllink
 {
 	my ($self) = @_;
-        $self->scandatetime(&main::get_tickcount);
         $self->health('out-of-sync'); # set as corrupt and allow acknowledge to set otherwise
 	$$self{device}->queue_message(new Insteon::InsteonMessage('all_link_first_rec', $$self{device}));
 }
