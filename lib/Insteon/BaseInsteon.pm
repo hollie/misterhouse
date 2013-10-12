@@ -1366,8 +1366,8 @@ the device.
 sub link_to_interface
 {
 	my ($self,$p_group, $p_data3, $step) = @_;
-	my $group = $p_group;
-	$group = '01' unless $group;
+	$p_group = $self->group unless (defined $p_group);
+	$p_data3 = $self->group unless (defined $p_data3);
 	my $success_callback_prefix = $self->get_object_name."->link_to_interface(\"$p_group\",\"$p_data3\",";
 	my $success_callback = "";
 	my $failure_callback = '::print_log("[Insteon::BaseInsteon] Error: The Link_To_Interface '.
@@ -1381,7 +1381,7 @@ sub link_to_interface
 		}
 		case (1) { #Add Link from object->PLM
 			$success_callback = $success_callback_prefix . "\"2\")";
-			my %link_info = ( object => $self->interface, group => $group, is_controller => 1,
+			my %link_info = ( object => $self->interface, group => $p_group, is_controller => 1,
 				callback => "$success_callback", failure_callback=> "$failure_callback");
 			$link_info{data3} = $p_data3 if $p_data3;
 		        if ($self->_aldb) {
@@ -1395,11 +1395,36 @@ sub link_to_interface
 		}
 		case (2){ #Add Link from PLM->object
 			$success_callback = $success_callback_prefix . "\"3\")";
-			my $link_info = "deviceid=" . lc $self->device_id . " group=$group is_controller=0 " .
+			my $link_info = "deviceid=" . lc $self->device_id . " group=$p_group is_controller=0 " .
 				"callback=$success_callback failure_callback=$failure_callback";	
 		        $self->interface->add_link($link_info);
 		}
-		case (3){
+		case (3){ #Add surrogate link on device if surrogate exists
+			if (ref $$self{surrogate}){
+				$success_callback = $success_callback_prefix . "\"4\")";
+				my $surrogate_group = $$self{surrogate}->group;
+				my %link_info = ( object => $self->interface, 
+					group => $surrogate_group, is_controller => 0,
+					callback => "$success_callback", 
+					failure_callback=> "$failure_callback",
+					data3 => $p_group);
+				$self->_aldb->add_link(%link_info);
+			} else {
+				::print_log('[Insteon::BaseInsteon] Link_To_Interface successfully completed'.
+					' for device ' .$self->get_object_name);	
+			}
+		}
+		case (4){ #Add surrogate link on PLM if surrogate exists
+			$success_callback = $success_callback_prefix . "\"5\")";
+			my $surrogate_group = $$self{surrogate}->group;
+			my %link_info = ( deviceid=> lc $self->device_id, 
+				group => $surrogate_group, is_controller => 1,
+				callback => "$success_callback", 
+				failure_callback=> "$failure_callback",
+				data3 => $surrogate_group);
+			$self->interface->add_link(%link_info);
+		}
+		case (5){
 			::print_log('[Insteon::BaseInsteon] Link_To_Interface successfully completed'.
 				' for device ' .$self->get_object_name);			
 		}
@@ -1434,20 +1459,10 @@ sub link_to_interface_i2cs
 			$self->enter_linking_mode($p_group, $success_callback, $failure_callback);	
 		}
 		case (2) { #Scan device to get an accurate link table
-			$success_callback = $success_callback_prefix . "'3')";
+			#return to normal link_to_interface routine if successful
+			$success_callback_prefix = $self->get_object_name."->link_to_interface('$p_group','$p_data3',";
+			$success_callback = $success_callback_prefix . "'2')";
 			$self->scan_link_table($success_callback, $failure_callback);
-		}
-		case (3) { #Add link from device->PLM
-			$success_callback = $success_callback_prefix . "'4')";
-			my $group = $p_group;
-			$group = '01' unless $group;
-			my $link_info = "deviceid=" . lc $self->device_id . " group=$group is_controller=0 ".
-				"callback=$success_callback failure_callback=$failure_callback";
-			$self->interface->add_link("$link_info");
-		}
-		case (4) {
-			::print_log('[Insteon::BaseInsteon] Link_To_Interface_I2CS successfully completed'.
-				' for device ' .$self->get_object_name);
 		}
 	}
 }
@@ -1466,34 +1481,81 @@ a keypad link.  It will default to 01.
 
 sub unlink_to_interface
 {
-	my ($self,$p_group) = @_;
-	my $group = $p_group;
-	$group = '01' unless $group;
-	my $callback_instance = $self->interface->get_object_name;
-	my $callback_info = "deviceid=" . lc $self->device_id . " group=$group is_controller=0";
-        if ($self->_aldb) {
-	   $self->_aldb->delete_link(object => $self->interface, group => $group, is_controller => 1,
-		callback => "$callback_instance->delete_link('$callback_info')");
-        }
-        else
-        {
-           &main::print_log("[BaseInsteon] This item " . $self->get_object_name .
-              " does not have an ALDB object.  Unlinking is not permitted.");
-        }
+	my ($self,$p_group,$step) = @_;
+	$p_group = $self->group unless $p_group;
+	#It is possible to nest all of the callbacks in at once, but the quoting
+	#becomes very complicated and happers readability
+	my $success_callback_prefix = $self->get_object_name."->unlink_to_interface('$p_group',";
+	my $success_callback = "";
+	my $failure_callback = "::print_log('[Insteon::BaseInsteon] ERROR: Unlink_To_Interface ".
+		"failed for device: ".$self->get_object_name."')";
+	$step = 0 if ($step eq '');
+	switch ($step){
+		case (0) { #Delete link on the device
+		        if ($self->_aldb) {
+		        	$success_callback = $success_callback_prefix . "'1')";
+				$self->_aldb->delete_link(object => $self->interface, 
+					group => $p_group, 
+					data3=> $p_group, is_controller => 1,
+					callback => $success_callback,
+					failure_callback=> $failure_callback);
+		        }
+		        else
+		        {
+		           &main::print_log("[BaseInsteon] This item " . $self->get_object_name .
+		              " does not have an ALDB object.  Unlinking is not permitted.");
+		        }
+		}
+		case (1) { #Delete link on the PLM
+			$success_callback = $success_callback_prefix . "'2')";
+			$self->interface->delete_link(
+				deviceid => lc $self->device_id, 
+				group=> $p_group, is_controller=>0,
+				callback=>$success_callback,
+				failure_callback=>$failure_callback);
+		}
+		case (2){ #Delete surrogate link on device if surrogate exists
+			if (ref $$self{surrogate}){
+				$success_callback = $success_callback_prefix . "'3')";
+				my $surrogate_group = $$self{surrogate}->group;
+				my %link_info = ( object => $self->interface, 
+					group => $surrogate_group, is_controller => 0,
+					callback => "$success_callback", 
+					failure_callback=> "$failure_callback",
+					data3 => $p_group);
+				$self->_aldb->delete_link(%link_info);
+			} else {
+				::print_log("[Insteon::BaseInsteon] Unlink_To_Interface".
+					" successfully completed for device "
+					. $self->get_object_name);	
+			}
+		}
+		case (3){ #Delete surrogate link on PLM if surrogate exists
+			$success_callback = $success_callback_prefix . "'4')";
+			my $surrogate_group = $$self{surrogate}->group;
+			my %link_info = ( deviceid=> lc $self->device_id, 
+				group => $surrogate_group, is_controller => 1,
+				callback => "$success_callback", 
+				failure_callback=> "$failure_callback",
+				data3 => $surrogate_group);
+			$self->interface->delete_link(%link_info);
+		}
+		case (4) {
+			::print_log("[Insteon::BaseInsteon] Unlink_To_Interface".
+				" successfully completed for device "
+				. $self->get_object_name);
+		}
+	}
 }
 
 =item C<enter_linking_mode(group, success_callback, failure_callback)>
 
-BETA -- Can be used to create the initial link with i2cs devices.  i1 devices
-will not respond to this command.  In the future, this will be incorporated into a
-one-step process -- BETA
+Places an i2 object into linking mode as if you had held down the set button on 
+the device.  i1 objects will not respond to this command.  This is needed to 
+link i2CS devices that will not respond without a manual link. 
 
-Places the object into linking mode as if you had held down the set button on 
-the device.  To create a link wherein the PLM is the controller, first run the 
-PLM voice command "initiate link as controller". Then run this command.  Finally,
-run the voice command "scan link table" on this device.
-
-The group argument is optional and not needed for group 01.
+This process is included as part of the link_to_interface voice command and 
+should not need to be called seperately.
 
 Returns: nothing
 
@@ -3362,82 +3424,6 @@ sub request_status
         #    since it could be a slave
 	if ($self->is_root && $self->is_responder) {
 		$self->Insteon::BaseDevice::request_status($requestor);
-	}
-}
-
-=item C<link_to_interface([group,data3])>
-
-If a controller link from the device to the interface does not exist, this will
-create that link on the device.
-
-Next, if a responder link from the device to the interface does not exist on the 
-interface, this will create that link on the interface.
-
-The group is the group on the device that is the controller, such as a button on
-a keypad link.  It will default to 01.
-
-Data3 is optional and is used to set the Data3 value in the controller link on 
-the device.
-
-=cut
-
-sub link_to_interface
-{
-	my ($self, $p_group, $p_data3) = @_;
-	my $group = $p_group;
-	$group = $self->group unless $group;
-	# get the surrogate device for this if group is not '01'
-	if ($self->group ne '01') {
-		my $surrogate_obj = &Insteon::get_object($self->device_id,'01');
-		if ($p_data3) {
-			$surrogate_obj->link_to_interface($group,$p_data3);
-		} elsif ($surrogate_obj->isa('Insteon::KeyPadLincRelay') or $surrogate_obj->isa('Insteon::KeyPadLinc')) {
-			$surrogate_obj->link_to_interface($group,$self->group);
-		} else {
-			$surrogate_obj->link_to_interface($group);
-		}
-		# next, if the link is a keypadlinc, then create the reverse link to permit
-		# control over the button's light
-		if ($surrogate_obj->isa('Insteon::KeyPadLincRelay') or $surrogate_obj->isa('Insteon::KeyPadLinc')) {
-
-		}
-	} else {
-		if ($p_data3) {
-			$self->SUPER::link_to_interface($group, $p_data3);
-		} else {
-			$self->SUPER::link_to_interface($group);
-		}
-	}
-}
-
-=item C<unlink_to_interface([group])>
-
-Will delete the contoller link from the device to the interface if such a link exists.
-
-Next, will delete the responder link from the device to the interface on the 
-interface, if such a link exists.
-
-The group is the group on the device that is the controller, such as a button on
-a keypad link.  It will default to 01.
-
-=cut
-
-sub unlink_to_interface
-{
-	my ($self,$p_group) = @_;
-	my $group = $p_group;
-	$group = $self->group unless $group;
-	# get the surrogate device for this if group is not '01'
-	if ($self->group ne '01') {
-		my $surrogate_obj = &Insteon::get_object($self->device_id,'01');
-		$surrogate_obj->unlink_to_interface($group);
-		# next, if the link is a keypadlinc, then delete the reverse link to permit
-		# control over the button's light
-		if ($surrogate_obj->isa('Insteon::KeyPadLincRelay') or $surrogate_obj->isa('Insteon::KeyPadLinc')) {
-
-		}
-	} else {
-		$self->SUPER::unlink_to_interface($group);
 	}
 }
 
