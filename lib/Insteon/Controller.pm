@@ -264,15 +264,6 @@ sub _process_message {
 			{
 				$$root{battery_object}->set_receive($voltage, $root);
 			}
-			if ($self->_is_battery_low($voltage)){
-				main::print_log("[Insteon::RemoteLinc] The battery level ".
-					"is below the set threshold running low battery event.");
-				package main;
-					eval $$root{low_battery_event};
-					::print_log("[Insteon::RemoteLinc] " . $self->{device}->get_object_name . ": error during low battery event eval $@")
-						if $@;
-				package Insteon::RemoteLinc;
-			}
 			$clear_message = 1;
 			$self->_process_command_stack(%msg);
 		} else {
