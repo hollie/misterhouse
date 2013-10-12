@@ -54,7 +54,7 @@ package Insteon::RemoteLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::RemoteLinc::ISA = ('Insteon::BaseDevice','Insteon::DeviceController');
+@Insteon::RemoteLinc::ISA = ('Insteon::DeviceController','Insteon::BaseDevice');
 
 my %message_types = (
 	%Insteon::BaseDevice::message_types,
