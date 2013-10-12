@@ -461,24 +461,6 @@ sub new
 	return $self;
 }
 
-=item C<set(state[,setby,response])>
-
-Handles setting and receiving states from the device.
-
-NOTE - Maybe this should be moved to BaseLight, or something farther up the stack?
-The only thing this routine does is convert p_state with derive_link_state.
-
-=cut
-
-sub set
-{
-	my ($self, $p_state, $p_setby, $p_respond) = @_;
-
-	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
-
-	return $self->SUPER::set($link_state, $p_setby, $p_respond);
-}
-
 =back
 
 =head2 AUTHOR
@@ -611,24 +593,6 @@ sub new
 	return $self;
 }
 
-=item C<set(state[,setby,response])>
-
-Handles setting and receiving states from the device.
-
-NOTE - Maybe this should be moved to BaseLight, or something farther up the stack?
-The only thing this routine does is convert p_state with derive_link_state.
-
-=cut
-
-sub set
-{
-	my ($self, $p_state, $p_setby, $p_respond) = @_;
-
-	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
-
-	return $self->SUPER::set($link_state, $p_setby, $p_respond);
-}
-
 =back
 
 =head2 AUTHOR
@@ -693,24 +657,6 @@ sub new
 	my $self = new Insteon::DimmableLight($p_deviceid,$p_interface);
 	bless $self,$class;
 	return $self;
-}
-
-=item C<set(state[,setby,response])>
-
-Handles setting and receiving states from the device.
-
-NOTE - This is just silly, the only thing this routine does is push the set 
-command to the L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController> 
-class.  Simply reording the class 
-inheritance of this object would remove the need to do this.
-
-=cut
-
-sub set
-{
-	my ($self, $p_state, $p_setby, $p_respond) = @_;
-
-	return $self->SUPER::set($p_state, $p_setby, $p_respond);
 }
 
 =back

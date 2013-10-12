@@ -129,21 +129,6 @@ sub new
 	return $self;
 }
 
-=item C<set(state[,setby,response])>
-
-Handles setting and receiving states from the device.
-
-=cut
-
-sub set
-{
-	my ($self, $p_state, $p_setby, $p_respond) = @_;
-
-	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
-
-	return $self->SUPER::set($link_state, $p_setby, $p_respond);
-}
-
 =item C<get_extended_info()>
 
 Only available for Motion Sensor Version 2 models.
@@ -787,20 +772,13 @@ Handles messages received from the device.  Calls C<set_receive()>.
 sub set
 {
 	my ($self,$p_state,$p_setby,$p_response) = @_;
-	return if &main::check_for_tied_filters($self, $p_state);
-
-	# Override any set_with_timer requests
-	if ($$self{set_timer}) {
-		&Timer::unset($$self{set_timer});
-		delete $$self{set_timer};
+	if (ref $p_setby && $p_setby eq $self){
+		$self->set_receive($p_state,$p_setby);
 	}
-
-        my $setby_name = $p_setby;
-        $setby_name = $p_setby->get_object_name() if (ref $p_setby and $p_setby->can('get_object_name'));
-	&::print_log("[Insteon::TriggerLinc] " . $self->get_object_name()
-		. "::set_receive($p_state, $setby_name)") if $main::Debug{insteon};
-	$self->set_receive($p_state,$p_setby);
-	return;
+	else {
+		&::print_log("[Insteon::TriggerLinc] " . $self->get_object_name()
+			. " is not a responder and cannot be set to a state.");
+	}
 }
 
 =item C<set_awake_time([0-255 seconds])>

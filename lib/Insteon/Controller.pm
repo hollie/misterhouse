@@ -84,38 +84,20 @@ sub new
 
 =item C<set(state[,setby,response])>
 
-Handles messages received from the device.  Ignores attempts to set the same state
-in less than 1 second.  (This can likely be removed as the same process exists
-now in BaseInsteon set_receive.)  If this is not a duplicate message calls 
-C<set_receive()>.
+Handles messages received from the device.  Calls C<set_receive()>.
 
 =cut
 
 sub set
 {
 	my ($self,$p_state,$p_setby,$p_response) = @_;
-	return if &main::check_for_tied_filters($self, $p_state);
-
-	# Override any set_with_timer requests
-	if ($$self{set_timer}) {
-		&Timer::unset($$self{set_timer});
-		delete $$self{set_timer};
-	}
-
-	# if it can't be controlled (i.e., a responder), then don't send out any signals
-	# motion sensors seem to get multiple fast reports; don't trigger on both
-        my $setby_name = $p_setby;
-        $setby_name = $p_setby->get_object_name() if (ref $p_setby and $p_setby->can('get_object_name'));
-	if (not defined($self->get_idle_time) or $self->get_idle_time > 1 or $self->state ne $p_state) {
-		&::print_log("[Insteon::RemoteLinc] " . $self->get_object_name()
-			. "::set_receive($p_state, $setby_name)") if $main::Debug{insteon};
+	if (ref $p_setby && $p_setby eq $self){
 		$self->set_receive($p_state,$p_setby);
-	} else {
-		&::print_log("[Insteon::RemoteLinc] " . $self->get_object_name()
-			. "::set_receive($p_state, $setby_name) deferred due to repeat within 1 second")
-			if $main::Debug{insteon};
 	}
-	return;
+	else {
+		&::print_log("[Insteon::RemoteLinc] " . $self->get_object_name()
+			. " is not a responder and cannot be set to a state.");
+	}
 }
 
 =item C<set_awake_time([0-255 seconds])>
