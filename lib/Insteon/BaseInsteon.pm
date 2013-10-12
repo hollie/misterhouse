@@ -675,6 +675,8 @@ sub _is_info_request
 			if ($self->_aldb->aldb_delta() eq $msg{cmd_code}){
 				&::print_log("[Insteon::BaseObject] The link table for "
 					. $self->{object_name} . " is in sync.");
+				#Link Table Scan Successful, Record Current Time
+				$self->_aldb->scandatetime(&main::get_tickcount);
 				if (defined $self->_aldb->{_aldb_unchanged_callback}) {
 					$callback = $self->_aldb->{_aldb_unchanged_callback};
 					$self->_aldb->{_aldb_unchanged_callback} = undef;
