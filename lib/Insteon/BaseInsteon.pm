@@ -966,6 +966,9 @@ sub _process_command_stack
                                 or $message->command eq 'set_operating_flags'
                                 or $message->command eq 'get_operating_flags'
                                 or $message->command eq 'read_write_aldb'
+                                or $message->command eq 'thermostat_control'
+                                or $message->command eq 'thermostat_get_zone_info'
+                                or $message->command eq 'extended_set_get'
                                 or $message->command eq 'ping'
                                 or $message->command eq 'linking_mode' 
                                 )
