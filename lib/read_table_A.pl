@@ -140,6 +140,12 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon::MotionSensor(\'$address\', $other)";
     }
+    elsif($type eq "INSTEON_TRIGGERLINC") {
+        require Insteon::Security;
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon::TriggerLinc(\'$address\', $other)";
+    }
     elsif($type eq "INSTEON_IOLINC") {
         require Insteon::IOLinc;
         ($address, $name, $grouplist, @other) = @item_info;
