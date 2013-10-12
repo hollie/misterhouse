@@ -635,11 +635,11 @@ sub _is_info_request
 			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
 		$self->level($ack_on_level) if $self->can('level'); # update the level value
 		if ($ack_on_level == 0) {
-			$self->SUPER::set('off', $ack_setby);
+			$self->set_receive('off', $ack_setby);
 		} elsif ($ack_on_level > 0 and !($self->isa('Insteon::DimmableLight'))) {
-			$self->SUPER::set('on', $ack_setby);
+			$self->set_receive('on', $ack_setby);
 		} else {
-			$self->SUPER::set($ack_on_level . '%', $ack_setby);
+			$self->set_receive($ack_on_level . '%', $ack_setby);
 		}
 		# if this were a scene controller, then also propogate the result to all members
 		my $callback;
