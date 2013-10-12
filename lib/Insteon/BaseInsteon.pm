@@ -354,23 +354,16 @@ sub set
 
                 my $setby_name = $p_setby;
                 $setby_name = $p_setby->get_object_name() if (ref $p_setby and $p_setby->can('get_object_name'));
-		if (ref $p_setby and (($p_setby eq $self->interface())
-			or (($p_setby->isa('Insteon::BaseObject'))
-                        and (($p_setby eq $self)
-			or (&main::set_by_to_target($p_setby) eq $self->interface)))))
-		{
-			# don't reset the object w/ the same state if set from the interface
-			return if (lc $p_state eq lc $self->state) and $self->is_acknowledged
-				and not(($p_setby->isa('Insteon::BaseObject') and ($p_setby eq $self)));
+		if (ref $p_setby and ($p_setby eq $self))
+		{ #If set by device, update MH state
 			&::print_log("[Insteon::BaseObject] " . $self->get_object_name()
-				. "::set($p_state, $setby_name)") if $main::Debug{insteon};
+				. "::set_receive($p_state, $setby_name)") if $main::Debug{insteon};
 			$self->set_receive($p_state,$p_setby,$p_response) if defined $p_state;
-		} else {
+			my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
+			$self->set_linked_devices($link_state);
+		} else { # Not called by device, send set command
                         my $message = $self->derive_message($p_state);
                         $self->_send_cmd($message);
-
-#			$self->_send_cmd(command => $p_state,
-#				type => (($self->isa('Insteon::Insteon_Link') and !($self->is_root)) ? 'alllink' : 'standard'));
 			&::print_log("[Insteon::BaseObject] " . $self->get_object_name() . "::set($p_state, $setby_name)")
 				if $main::Debug{insteon};
 			$self->is_acknowledged(0);
@@ -379,7 +372,6 @@ sub set
 			$$self{pending_response} = $p_response;
 	}
 		$self->level($p_state) if ($self->isa("Insteon::BaseDevice") && $self->can('level')); # update the level value
-#		$self->SUPER::set($p_state,$p_setby,$p_response) if defined $p_state;
 	} else {
 		&::print_log("[Insteon::BaseObject] failed state validation with state=$p_state");
 	}
