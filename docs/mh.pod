@@ -398,6 +398,22 @@ The list of modules that are not items is L<here|::modules>.
 
 =over
 
+=item set_by_to_target
+
+Checks to see if identified device is already in the chain of set_by devices.  
+Basically identifies never ending loops of setting objects.  
+
+Returns: 
+
+If no_strip is set to true:
+
+The original object which initiated this action, OR the same set_by
+object if it appears in the set_by list already.
+
+If no_strip is set to false or undef:
+
+Undef, unless would return something which is not an object, then it returns 
+the text preceding a [, such as web, email, ...
 
 =item add_sound
 
