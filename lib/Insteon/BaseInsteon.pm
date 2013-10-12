@@ -3365,28 +3365,6 @@ sub new
 	return $self;
 }
 
-=item C<set(state[,setby,response])>
-
-If C<Insteon::BaseController::set> returns a true value returns that.
-
-Else, calls C<Insteon::BaseObject::set> and returns 0
-
-=cut
-
-sub set
-{
-	my ($self, $p_state, $p_setby, $p_respond) = @_;
-
-	my $rslt_code = $self->Insteon::BaseController::set($p_state, $p_setby, $p_respond);
-	return $rslt_code if $rslt_code;
-
-	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
-
-	$self->Insteon::BaseObject::set((($self->is_root) ? $p_state : $link_state), $p_setby, $p_respond);
-
-	return 0;
-}
-
 =item C<request_status([requestor])>
 
 Requests the current status of the device and calls C<set()> on the response.  
