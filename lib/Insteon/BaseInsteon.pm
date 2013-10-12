@@ -779,14 +779,8 @@ sub _process_message
 			}
 			elsif ($pending_cmd eq 'read_write_aldb') {
                         	if ($msg{cmd_code} eq $self->message_type_hex($pending_cmd)) {
-					if ($self->_aldb && $self->_aldb->{_mem_action} ne 'aldb_i2writeack'){
-						#This is an ACK. Will be followed by a Link Data message
-						$clear_message = 0;
-						$self->_aldb->on_read_write_aldb(%msg) if $self->_aldb;
-					} else {
-						$self->_aldb->on_read_write_aldb(%msg) if $self->_aldb;
-						$self->_process_command_stack(%msg);
-					}
+					$clear_message = $self->_aldb->on_read_write_aldb(%msg) if $self->_aldb;
+					$self->_process_command_stack(%msg) if ($clear_message);
                         	} else {
                         		$corrupt_cmd = 1;
                         		$clear_message = 0;
@@ -889,15 +883,8 @@ sub _process_message
 		$self->request_status($self);
 	} elsif ($msg{command} eq 'read_write_aldb') {
 		if ($self->_aldb){
-			if ($self->_aldb->{_mem_action} eq 'aldb_i2readack'){
-				#If aldb_i2readack is set then this is good
-				$clear_message = 1;
-				$self->_aldb->on_read_write_aldb(%msg);
-				$self->_process_command_stack(%msg);
-			} else {
-				#This is an out of sequence message
-				$self->_aldb->on_read_write_aldb(%msg);
-			}
+			$clear_message = $self->_aldb->on_read_write_aldb(%msg) if $self->_aldb;
+			$self->_process_command_stack(%msg) if($clear_message);
 		}
 	} elsif ($msg{type} eq 'broadcast') {
 		$self->devcat($msg{devcat});
