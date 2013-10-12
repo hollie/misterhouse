@@ -141,7 +141,7 @@ sub set
 
 	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
 
-	return $self->Insteon::DeviceController::set($link_state, $p_setby, $p_respond);
+	return $self->SUPER::set($link_state, $p_setby, $p_respond);
 }
 
 =item C<get_extended_info()>

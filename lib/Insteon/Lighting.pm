@@ -476,7 +476,7 @@ sub set
 
 	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
 
-	return $self->Insteon::BaseDevice::set($link_state, $p_setby, $p_respond);
+	return $self->SUPER::set($link_state, $p_setby, $p_respond);
 }
 
 =back
@@ -626,7 +626,7 @@ sub set
 
 	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
 
-	return $self->Insteon::DeviceController::set($link_state, $p_setby, $p_respond);
+	return $self->SUPER::set($link_state, $p_setby, $p_respond);
 }
 
 =back
@@ -710,7 +710,7 @@ sub set
 {
 	my ($self, $p_state, $p_setby, $p_respond) = @_;
 
-	return $self->Insteon::DeviceController::set($p_state, $p_setby, $p_respond);
+	return $self->SUPER::set($p_state, $p_setby, $p_respond);
 }
 
 =back
@@ -833,8 +833,7 @@ sub set
 	}
 	else
 	{
-		$link_state = $p_state if $self->can('level');
-		return $self->Insteon::DeviceController::set($link_state, $p_setby, $p_respond);
+		return $self->SUPER::set($link_state, $p_setby, $p_respond);
 	}
 
 	return 0;
@@ -1101,7 +1100,7 @@ sub set
 {
 	my ($self, $p_state, $p_setby, $p_respond) = @_;
 	if ($self->is_root()){
-		return $self->Insteon::DeviceController::set($p_state, $p_setby, $p_respond);
+		return $self->SUPER::set($p_state, $p_setby, $p_respond);
 	} else {
 		if ($self->_is_valid_state($p_state)) {
 			# always reset the is_locally_set property unless set_by is the device

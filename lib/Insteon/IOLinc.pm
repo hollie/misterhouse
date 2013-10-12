@@ -174,7 +174,7 @@ sub set
 	}
 	else {
 		my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
-		$self->Insteon::BaseDevice::set($link_state, $p_setby, $p_respond);
+		$self->SUPER::set($link_state, $p_setby, $p_respond);
 		#$$self{momentary_timer}->set(int($$self{momentary_time/10), '$self->Generic_Item::set('off')');
 	}
 	return;
