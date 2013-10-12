@@ -529,14 +529,12 @@ sub handle_repeat_last_spoken_state() {
 # Clear the web cache directory
 $v_clear_cache = new Voice_Cmd 'Clear the web cache directory', '';
 $v_clear_cache->set_info(
-    'Delete all the auto-generated .jpg files in mh/web/cache');
+    'Delete all the auto-generated .jpg files in html_alias_cache directory');
 $v_clear_cache->tie_event('&handle_clear_cache_state()'); # noloop
 sub handle_clear_cache_state() {
     my $cmd = ($OS_win) ? 'del' : 'rm';
-    $cmd .= " $config_parms{html_dir}/cache/*.jpg";
-    $cmd =~ s|/|\\|g if $OS_win;
-    system $cmd;
-    $cmd .= " $config_parms{html_dir}/cache/*.wav";
+    $cmd .= " $config_parms{html_alias_cache}/*.jpg";
+    $cmd .= " $config_parms{html_alias_cache}/*.wav";
     $cmd =~ s|/|\\|g if $OS_win;
     system $cmd;
     print_log "Ran: $cmd";
