@@ -21,9 +21,9 @@ $mh_speakers       = new Generic_Item;
 $mh_speakers_timer = new Timer;
 $Info{Volume_Control} = 'Command Line' if $Reload and $config_parms{volume_master_get_cmd} and $config_parms{volume_master_set_cmd};
 
-
-                                # Allow for default volume control. Reset on startup.
-
+################################################
+# Allow for default volume control. Reset on startup.
+################################################
 &set_volume_master_wrapper($mh_volume->{state}) if $Startup and defined $mh_volume->{state}; #noloop
 &set_volume_wav($config_parms{volume_wav_default_volume}) if $Startup and defined $config_parms{volume_wav_default_volume}; #noloop
 
@@ -161,7 +161,7 @@ sub set_volume_wav {
     #return $volume_wav_previous;
 }
 
-                                # Set hooks so set_volume is called whenever speak or play is called
+# Set hooks so set_volume is called whenever speak or play is called
 &Speak_pre_add_hook(\&set_volume_pre_hook) if $Reload;
 &Play_pre_add_hook (\&set_volume_pre_hook) if $Reload;
 
@@ -179,12 +179,22 @@ sub set_volume_pre_hook {
 
     undef $volume_wav_previous;
     my $volume = $parms{volume};
+    my $mode = $parms{mode};
 
 	# *** Oops the following line is wrong--mh_volume is linked to mixer
 	# Not to be used as the default for playing WAV's, speaking, etc.
 
     #$volume = $mh_volume->{state} unless $volume;
     return unless $volume;
+
+    unless ($mode) {
+        if (defined $mode_mh) { # *** Outdated (?)
+            $mode = state $mode_mh;
+        } else {
+            $mode = $Save{mode};
+        }
+    }
+    return if $mode eq 'mute' or $mode eq 'offline';
 
                                 # Set a timer since we can not detect when a wav file is done
     if ($parms{time}) {
@@ -193,22 +203,21 @@ sub set_volume_pre_hook {
 
 
     if ($parms{time} or ($parms{text} and $Voice_Text::VTxt_version ne 'msv5')) {
-        print_log "Setting wav volume to $volume";
+	print_log "Setting wav volume to $volume";
 	$volume = 100 if $volume > 100;
 
-        $volume_wav_previous = &set_volume_wav($volume);
-
+	$volume_wav_previous = &set_volume_wav($volume);
+        
 	if($parms{mhvolume}) {
 		$volume_master_changed=1;
-		&set_volume_master_wrapper($parms{mhvolume});
+        	&set_volume_master_wrapper($parms{mhvolume});
 	}
 
     }
 }
 
 
-
-                                # Allow for a pre-speak/play wav file
+# Allow for a pre-speak/play wav file
 &Speak_pre_add_hook(\&sound_pre_speak) if $Reload and $config_parms{sound_pre_speak};
 &Play_pre_add_hook (\&sound_pre_play)  if $Reload and $config_parms{sound_pre_play};
 
@@ -219,7 +228,7 @@ sub sound_pre_speak {
 
 # ***  Config parm for this pause!
 
-    #&sleep_time(400);           # So the TTS engine doesn't grab the sound card first
+    #&sleep_time(400); # So the TTS engine doesn't grab the sound card first
 }
 sub sound_pre_play {
     my %parms = @_;
@@ -228,7 +237,7 @@ sub sound_pre_play {
 }
 
 
-                                # Allow for restarting of TTS engine
+# Allow for restarting of TTS engine
 $restart_tts = new Voice_Cmd 'Restart the TTS engine';
 $restart_tts-> set_info('This will restart the voice Text To Speech engine, in case it died for some reason');
 
