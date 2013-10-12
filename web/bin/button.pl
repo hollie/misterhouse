@@ -32,7 +32,7 @@ $image_file =~ s/ *$//;           # Drop trailing blanks
 $image_file .= "_$type"  if $type;
 $image_file .= "_$state" if $state;
 $image_file =~ s/ /_/g;           # Blanks in file names are nasty
-$image_file = "/cache/$image_file.jpg";
+$image_file = "/$image_file.jpg";
 
 # Set to 1 if you'd like to disable the image cache. Normally you should
 # not need to do this because it affects performance (MisterHouse needs
@@ -41,11 +41,11 @@ $image_file = "/cache/$image_file.jpg";
 # time the button generation script (this script) is called.
 my $nocache = 0;
 
-if (-e "$config_parms{data_dir}$image_file" && !$nocache) {
-    return $image_file if $file_name_only;
+if (-e "$config_parms{html_alias_cache}$image_file" && !$nocache) {
+    return "/cache".$image_file if $file_name_only;
 #   print "Returning data from: $image_file\n";
-    my $data = file_read "$config_parms{data_dir}$image_file";
-    return &mime_header($image_file, 1, length $data) . $data;
+    my $data = file_read "$config_parms{html_alias_cache}$image_file";
+    return &mime_header("/cache".$image_file, 1, length $data) . $data;
 }
 
                                 # Look for an icon
@@ -185,9 +185,9 @@ my $white = $image->colorClosest(255,255,255);
 $image->transparent($white);
 
                                 # Write out a copy to the cache
-print "Writing image to cache: $config_parms{data_dir}$image_file\n";
+print "Writing image to cache: $config_parms{html_alias_cache}$image_file\n";
 my $jpeg = $image->jpeg;
-file_write "$config_parms{data_dir}$image_file", $jpeg;
+file_write "$config_parms{html_alias_cache}$image_file", $jpeg;
 
-return $image_file if $file_name_only;
-return &mime_header($image_file, 1, length $jpeg) . $jpeg;
+return "/cache".$image_file if $file_name_only;
+return &mime_header("/cache".$image_file, 1, length $jpeg) . $jpeg;

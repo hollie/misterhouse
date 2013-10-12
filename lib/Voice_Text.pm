@@ -134,7 +134,7 @@ sub speak_text {
     if ($parms{address}) {
         my @address = split ',', $parms{address};
         delete $parms{address};
-        $parms{to_file} = "$main::config_parms{html_dir}/cache/speak_address.$main::Second.wav";
+        $parms{to_file} = "$main::config_parms{html_alias_cache}/speak_address.$main::Second.wav";
 
         &speak_text(%parms);
         package main;   # So the we do not have to use $main::
