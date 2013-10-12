@@ -1298,7 +1298,7 @@ Please contact about any problems or suggestions via the misterhouse mailing lis
 #  ======================== POD END ==================================
 ];
 
-   open DOC, "echo \"$POD\" | pod2html --cachedir=$config_parms{data_dir}/cache --flush 2>/dev/null |";
+   open DOC, "echo \"$POD\" | pod2html --cachedir=$config_parms{html_alias_cache} --flush 2>/dev/null |";
    my $content = 0;
    while (<DOC>) {
       $content = 1 if /<body/;
