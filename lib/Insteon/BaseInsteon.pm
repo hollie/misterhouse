@@ -25,6 +25,7 @@ L<Generic_Item|Generic_Item>
 
 package Insteon::BaseObject;
 
+use Switch;
 use strict;
 use Insteon::AllLinkDatabase;
 
@@ -802,6 +803,15 @@ sub _process_message
 					$clear_message = 1;
 				}
 			}
+			elsif ($pending_cmd eq 'linking_mode'){
+				$corrupt_cmd = 1 if ($msg{cmd_code} ne $self->message_type_hex($pending_cmd));
+				if (!$corrupt_cmd){
+					&::print_log("[Insteon::BaseObject] received linking mode ACK from " . $self->{object_name})
+						if $main::Debug{insteon};
+					$self->interface->_set_timeout('xmit', 2000);
+					$clear_message = 0;
+				}
+			}
 			else
                         {
 				if (($pending_cmd eq 'do_read_ee') && 
@@ -833,9 +843,9 @@ sub _process_message
 				. $self->get_object_name . " in response to a "
 				. $pending_cmd . " command, but the command code "
 				. $msg{cmd_code} . " is incorrect. Ignorring received message.");
-            $self->corrupt_count_log(1) if $self->can('corrupt_count_log');
+			$self->corrupt_count_log(1) if $self->can('corrupt_count_log');
 			$p_setby->active_message->no_hop_increase(1);
-		}
+		} 
 	}
         elsif ($msg{is_nack})
         {
@@ -970,6 +980,7 @@ sub _process_command_stack
                                 or $message->command eq 'get_operating_flags'
                                 or $message->command eq 'read_write_aldb'
                                 or $message->command eq 'ping'
+                                or $message->command eq 'linking_mode' 
                                 )
                         {
 				$$self{awaiting_ack} = 1;
@@ -1367,25 +1378,91 @@ the device.
 
 sub link_to_interface
 {
-	my ($self,$p_group, $p_data3) = @_;
+	my ($self,$p_group, $p_data3, $step) = @_;
 	my $group = $p_group;
 	$group = '01' unless $group;
-	# add a link first to this device back to interface
-	# and, add a reference to creating a link from interface back to device via hook
-	my $callback_instance = $self->interface->get_object_name;
-	my $callback_info = "deviceid=" . lc $self->device_id . " group=$group is_controller=0";
-	my %link_info = ( object => $self->interface, group => $group, is_controller => 1,
-#		on_level => '100%', ramp_rate => '0.1s',  Controllers don't use on_level or ramp_rate
-		callback => "$callback_instance->add_link('$callback_info')");
-	$link_info{data3} = $p_data3 if $p_data3;
-        if ($self->_aldb) {
-	   $self->_aldb->add_link(%link_info);
-        }
-        else
-        {
-           &main::print_log("[BaseInsteon] This item " . $self->get_object_name .
-              " does not have an ALDB object.  Linking is not permitted.");
-        }
+	my $success_callback_prefix = $self->get_object_name."->link_to_interface(\"$p_group\",\"$p_data3\",";
+	my $success_callback = "";
+	my $failure_callback = '::print_log("[Insteon::BaseInsteon] Error: The Link_To_Interface '.
+		'routine failed for device: '.$self->get_object_name.'")';
+	$step = 0 if ($step eq '');
+	switch ($step){
+		case (0) { #If NAK on get_engine, then this is an I2CS device
+			$success_callback = $success_callback_prefix . "\"1\")";
+			$failure_callback = $self->get_object_name."->link_to_interface_i2cs(\"$p_group\",\"$p_data3\")";
+			$self->get_engine_version($success_callback, $failure_callback);	
+		}
+		case (1) { #Add Link from object->PLM
+			$success_callback = $success_callback_prefix . "\"2\")";
+			my %link_info = ( object => $self->interface, group => $group, is_controller => 1,
+				callback => "$success_callback", failure_callback=> "$failure_callback");
+			$link_info{data3} = $p_data3 if $p_data3;
+		        if ($self->_aldb) {
+			   $self->_aldb->add_link(%link_info);
+		        }
+		        else
+		        {
+		           &main::print_log("[Insteon::BaseInsteon] Error: This item, " . $self->get_object_name .
+		              ", does not have an ALDB object.  Linking is not permitted.");
+		        }
+		}
+		case (2){ #Add Link from PLM->object
+			$success_callback = $success_callback_prefix . "\"3\")";
+			my $link_info = "deviceid=" . lc $self->device_id . " group=$group is_controller=0 " .
+				"callback=$success_callback failure_callback=$failure_callback";	
+		        $self->interface->add_link($link_info);
+		}
+		case (3){
+			::print_log('[Insteon::BaseInsteon] Link_To_Interface successfully completed'.
+				' for device ' .$self->get_object_name);			
+		}
+	}
+}
+
+=item C<link_to_interface_i2cs([group,data3])>
+
+Performs the same task as C<link_to_interface> however this routine is designed
+to perform the initial link to I2CS devices.  These devices cannot be initially
+linked to the PLM in the normal way.  This process requires more steps than the
+normal routine which will take longer to perform and therefore is more prone to
+faile.  As such, this should likely only be used if necessary.
+
+=cut
+
+sub link_to_interface_i2cs
+{
+	my ($self,$p_group, $p_data3, $step) = @_;
+	my $success_callback_prefix = $self->get_object_name."->link_to_interface_i2cs('$p_group','$p_data3',";
+	my $success_callback = "";
+	my $failure_callback = "::print_log('[Insteon::BaseInsteon] Error Link_To_Interface_I2CS ".
+		"routine failed for device: ".$self->get_object_name."')";
+	$step = 0 if ($step eq '');
+	switch ($step){
+		case (0) { #Put PLM into initiate linking mode
+			$success_callback = $success_callback_prefix . "'1')";
+			$self->interface()->initiate_linking_as_controller('00', $success_callback, $failure_callback);	
+		}
+		case (1) { #Ask device to respond to link request
+			$success_callback = $success_callback_prefix . "'2')";
+			$self->enter_linking_mode($p_group, $success_callback, $failure_callback);	
+		}
+		case (2) { #Scan device to get an accurate link table
+			$success_callback = $success_callback_prefix . "'3')";
+			$self->scan_link_table($success_callback, $failure_callback);
+		}
+		case (3) { #Add link from device->PLM
+			$success_callback = $success_callback_prefix . "'4')";
+			my $group = $p_group;
+			$group = '01' unless $group;
+			my $link_info = "deviceid=" . lc $self->device_id . " group=$group is_controller=0 ".
+				"callback=$success_callback failure_callback=$failure_callback";
+			$self->interface->add_link("$link_info");
+		}
+		case (4) {
+			::print_log('[Insteon::BaseInsteon] Link_To_Interface_I2CS successfully completed'.
+				' for device ' .$self->get_object_name);
+		}
+	}
 }
 
 =item C<unlink_to_interface([group])>
@@ -1418,7 +1495,7 @@ sub unlink_to_interface
         }
 }
 
-=item C<enter_linking_mode(group)>
+=item C<enter_linking_mode(group, success_callback, failure_callback)>
 
 BETA -- Can be used to create the initial link with i2cs devices.  i1 devices
 will not respond to this command.  In the future, this will be incorporated into a
@@ -1437,12 +1514,14 @@ Returns: nothing
 
 sub enter_linking_mode
 {
-	my ($self,$p_group) = @_;
+	my ($self,$p_group, $success_callback, $failure_callback) = @_;
 	my $group = $p_group;
 	$group = '01' unless $group;
 	my $extra = sprintf("%02x", $group);
 	$extra .= '0' x (30 - length $extra);
 	my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'linking_mode', $extra);
+	$message->success_callback($success_callback);
+	$message->failure_callback($failure_callback);
 	$self->_send_cmd($message);
 }
 
@@ -1774,11 +1853,12 @@ Returns: nothing
 =cut 
 
 sub get_engine_version {
-   my ($self) = @_;
+   my ($self, $success_callback, $failure_callback) = @_;
 
    my $message = new Insteon::InsteonMessage('insteon_send', $self, 'get_engine_version');
    my $self_object_name = $self->get_object_name;
-   $message->failure_callback("$self_object_name->_get_engine_version_failure()");
+   $message->failure_callback("$self_object_name->_get_engine_version_failure();$failure_callback");
+   $message->success_callback($success_callback);
    $self->_send_cmd($message);
 }
 
@@ -3104,7 +3184,7 @@ C<Insteon::BaseDevice::enter_linking_mode()>.
 
 sub initiate_linking_as_controller
 {
-	my ($self, $p_group) = @_;
+	my ($self, $p_group, $success_callback, $failure_callback) = @_;
 	# iterate over the members
 	if ($$self{members}) {
 		foreach my $member_ref (keys %{$$self{members}}) {
@@ -3116,7 +3196,7 @@ sub initiate_linking_as_controller
 			}
 		}
 	}
-	$self->interface()->initiate_linking_as_controller($p_group);
+	$self->interface()->initiate_linking_as_controller($p_group, $success_callback, $failure_callback);
 }
 
 =item C<derive_message([command,extra])>
