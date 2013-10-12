@@ -400,7 +400,7 @@ sub scan_all_linktables
         	{
         		my $candidate_object = $_;
         		if ($candidate_object->is_root and
-                		!($self->is_deaf
+                		!($candidate_object->is_deaf
                 		or $candidate_object->isa('Insteon::InterfaceController')))
                 	{
 		       		push @_scan_devices, $candidate_object;
