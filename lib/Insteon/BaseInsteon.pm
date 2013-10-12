@@ -1494,10 +1494,6 @@ sub unlink_to_interface
 {
 	my ($self,$p_group,$step) = @_;
 	$p_group = $self->group unless $p_group;
-	# get the root device for this if group is not '01'
-	if ($self->group ne '01') {
-		$self = &Insteon::get_object($self->device_id,'01');
-	}
 	#It is possible to nest all of the callbacks in at once, but the quoting
 	#becomes very complicated and happers readability
 	my $success_callback_prefix = $self->get_object_name."->unlink_to_interface('$p_group',";
@@ -1529,7 +1525,33 @@ sub unlink_to_interface
 				callback=>$success_callback,
 				failure_callback=>$failure_callback);
 		}
-		case (2) {
+		case (2){ #Delete surrogate link on device if surrogate exists
+			if (ref $$self{surrogate}){
+				$success_callback = $success_callback_prefix . "'3')";
+				my $surrogate_group = $$self{surrogate}->group;
+				my %link_info = ( object => $self->interface, 
+					group => $surrogate_group, is_controller => 0,
+					callback => "$success_callback", 
+					failure_callback=> "$failure_callback",
+					data3 => $p_group);
+				$self->_aldb->delete_link(%link_info);
+			} else {
+				::print_log("[Insteon::BaseInsteon] Unlink_To_Interface".
+					" successfully completed for device "
+					. $self->get_object_name);	
+			}
+		}
+		case (3){ #Delete surrogate link on PLM if surrogate exists
+			$success_callback = $success_callback_prefix . "'4')";
+			my $surrogate_group = $$self{surrogate}->group;
+			my %link_info = ( deviceid=> lc $self->device_id, 
+				group => $surrogate_group, is_controller => 1,
+				callback => "$success_callback", 
+				failure_callback=> "$failure_callback",
+				data3 => $surrogate_group);
+			$self->interface->delete_link(%link_info);
+		}
+		case (4) {
 			::print_log("[Insteon::BaseInsteon] Unlink_To_Interface".
 				" successfully completed for device "
 				. $self->get_object_name);
