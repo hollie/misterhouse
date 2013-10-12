@@ -2128,7 +2128,7 @@ Called as part of any process to read or write to a device's ALDB.
 sub on_read_write_aldb
 {
 	my ($self, %msg) = @_;
-
+	my $clear_message = 1; #Default Action is to Clear the Current Message
 	&::print_log("[Insteon::ALDB_i2] DEBUG3: " . $$self{device}->get_object_name
 		. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
 		. lc $msg{extra} . " for _mem_activity=".$$self{_mem_activity}
@@ -2136,6 +2136,8 @@ sub on_read_write_aldb
 
 	if ($$self{_mem_action} eq 'aldb_i2read')
 	{
+		#This is an ACK. Will be followed by a Link Data message, so don't clear
+		$clear_message = 0;
 		#Only move to the next state if the received message is a device ack
 		#if the ack is dropped the retransmission logic will resend the request
 		if($msg{is_ack}) {
@@ -2157,6 +2159,7 @@ sub on_read_write_aldb
 			&::print_log("[Insteon::ALDB_i2] DEBUG3: " . $$self{device}->get_object_name
 				. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received duplicate ack. Ignoring.")
 				if  $main::Debug{insteon} >= 3;
+				$clear_message = 0;
 		} elsif(length($msg{extra})<30)
 		{
 			&::print_log("[Insteon::ALDB_i2] WARNING: Corrupted I2 response not processed: "
@@ -2164,8 +2167,9 @@ sub on_read_write_aldb
 				. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
 				. lc $msg{extra} . " for " .  $$self{_mem_action}) if  $main::Debug{insteon} >= 3;
 			$$self{device}->corrupt_count_log(1) if $$self{device}->can('corrupt_count_log');
-            #retry previous address again
-			$self->send_read_aldb(sprintf("%04x", hex($$self{_mem_msb} . $$self{_mem_lsb})));
+			#can't clear message, if valid message doesn't arrive
+			#resend logic will kick in
+			$clear_message = 0;
 		} elsif ($$self{_mem_msb} . $$self{_mem_lsb} ne '0000' and 
 				$$self{_mem_msb} . $$self{_mem_lsb} ne substr($msg{extra},6,4)){
 			::print_log("[Insteon::ALDB_i2] WARNING: Corrupted I2 response not processed, "
@@ -2173,9 +2177,10 @@ sub on_read_write_aldb
 				. $$self{device}->get_object_name
 				. " [0x" . $$self{_mem_msb} . $$self{_mem_lsb} . "] received: "
 				. lc $msg{extra} . " for " .  $$self{_mem_action}) if  $main::Debug{insteon} >= 3;
-            $$self{device}->corrupt_count_log(1) if $$self{device}->can('corrupt_count_log');
-			#retry previous address again
-			$self->send_read_aldb(sprintf("%04x", hex($$self{_mem_msb} . $$self{_mem_lsb})));
+			$$self{device}->corrupt_count_log(1) if $$self{device}->can('corrupt_count_log');
+			#can't clear message, if valid message doesn't arrive
+			#resend logic will kick in
+			$clear_message = 0;
 		}
 		elsif ($$self{_stress_test_act}){
 			$$self{_mem_activity} = undef;
@@ -2369,7 +2374,9 @@ sub on_read_write_aldb
 		main::print_log("[Insteon::ALDB_i2] " . $$self{device}->get_object_name 
 			. ": unhandled _mem_action=".$$self{_mem_action})
 			if $main::Debug{insteon};
+		$clear_message = 0;
 	}
+	return $clear_message;
 }
 
 sub _write_link
