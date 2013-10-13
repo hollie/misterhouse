@@ -97,14 +97,14 @@ sub pa_parms_stub {
 }
 
 sub pa_control_stub {
-    my ($parms) = @_;
+    my (%parms) = @_;
     my @pazones;
-    my $mode = $parms->{pa_mode};
+    my $mode = $parms{pa_mode};
     return if $mode eq 'mute' or $mode eq 'offline';
 
-    my $rooms = $parms->{rooms};
+    my $rooms = $parms{rooms};
     print_log("PA: control_stub: rooms=$rooms, mode=$mode") if $Debug{pa};
-    my $results = $pactrl->audio_hook(ON,%parms);
+    my $results = $pactrl->audio_hook(ON,\%parms);
     print_log("PA: control_stub set results: $results") if $Debug{pa} >=2;
     set $pa_speaker_timer $pa_timer if $results;
     return $results;

@@ -98,6 +98,13 @@ sub init {
     &::print_log("PAobj: speakers_obj: $#speakers_obj") if $main::Debug{pa};# || $#speakers_obj gt -1;
     &::print_log("PAobj: speakers_audrey: $#speakers_audrey") if $main::Debug{pa};# || $#speakers_audrey gt -1;
 
+    $pa_zones{all}{wdio}=join(',',@speakers_wdio);
+    $pa_zones{all}{x10}=join(',',@speakers_x10);
+    $pa_zones{all}{xap}=join(',',@speakers_xap);
+    $pa_zones{all}{xpl}=join(',',@speakers_xpl);
+    $pa_zones{all}{obj}=join(',',@speakers_obj);
+    $pa_zones{all}{audrey}=join(',',@speakers_audrey);
+
     if ($#speakers_wdio > -1) {
         $self->init_weeder(@speakers_wdio);
         return 0 unless %pa_weeder_max_port;
@@ -195,22 +202,22 @@ sub prep_parms
     &::print_log("PAobj: speakers_audrey: $#speakers_audrey") if $main::Debug{pa}  >=2 || $#speakers_audrey gt -1;
 
     
-    $pa_zones{wdio}=join(',',@speakers_wdio);
-    $pa_zones{x10}=join(',',@speakers_x10);
-    $pa_zones{xap}=join(',',@speakers_xap);
-    $pa_zones{xpl}=join(',',@speakers_xpl);
-    $pa_zones{obj}=join(',',@speakers_obj);
-    $pa_zones{audrey}=join(',',@speakers_audrey);
+    $pa_zones{active}{wdio}=join(',',@speakers_wdio);
+    $pa_zones{active}{x10}=join(',',@speakers_x10);
+    $pa_zones{active}{xap}=join(',',@speakers_xap);
+    $pa_zones{active}{xpl}=join(',',@speakers_xpl);
+    $pa_zones{active}{obj}=join(',',@speakers_obj);
+    $pa_zones{active}{audrey}=join(',',@speakers_audrey);
     
     $parms->{web_file}="web_file" if $#speakers_audrey gt -1;
     
     if(
         1
-        && $pa_zones{wdio} eq ''
-        && $pa_zones{x10} eq ''
-        && $pa_zones{xap} eq ''
-        && $pa_zones{xpl} eq ''
-        && $pa_zones{obj} eq ''
+        && $pa_zones{active}{wdio} eq ''
+        && $pa_zones{active}{x10} eq ''
+        && $pa_zones{active}{xap} eq ''
+        && $pa_zones{active}{xpl} eq ''
+        && $pa_zones{active}{obj} eq ''
         
     ) {
         $$parms{to_file}='/dev/null';
@@ -226,16 +233,16 @@ sub audio_hook
     my $results = 0;
 #    my @speakers = split(',', $voiceparms{pa_zones});
 
-    my @speakers_wdio=split(',',$pa_zones{wdio});
-    my @speakers_x10=split(',',$pa_zones{x10});
-    my @speakers_xap=split(',',$pa_zones{xap});
-    my @speakers_xpl=split(',',$pa_zones{xpl});
-    my @speakers_obj=split(',',$pa_zones{obj});
+    my @speakers_wdio=split(',',$pa_zones{active}{wdio});
+    my @speakers_x10=split(',',$pa_zones{active}{x10});
+    my @speakers_xap=split(',',$pa_zones{active}{xap});
+    my @speakers_xpl=split(',',$pa_zones{active}{xpl});
+    my @speakers_obj=split(',',$pa_zones{active}{obj});
     
     #TODO: Properly handle $results across multiple types
     #TODO: Break up the wdio zones based on serial port, in case there are more than one.
     $results=0;
-    $results = $self->set_weeder($state,'weeder',@speakers_wdio) 			if $#speakers_wdio > -1;
+    $results = $self->set_weeder($state,'weeder',@speakers_wdio) 	if $#speakers_wdio > -1;
     $results = $self->set_x10($state,@speakers_x10) 			if $#speakers_x10 > -1;
     $results = $self->set_xap($state,\@speakers_xap,\%voiceparms) 	if $#speakers_xap > -1;	
     $results = $self->set_xpl($state,\@speakers_xpl,\%voiceparms) 	if $#speakers_xpl > -1;
@@ -248,9 +255,9 @@ sub audio_hook
     if(
         lc $state eq 'on'
         && (
-            $pa_zones{wdio} ne ''
-            || $pa_zones{x10} ne ''
-            || $pa_zones{obj} ne ''
+            $pa_zones{active}{wdio} ne ''
+            || $pa_zones{active}{x10} ne ''
+            || $pa_zones{active}{obj} ne ''
         )
     ) {
         $results=1;
@@ -262,10 +269,10 @@ sub audio_hook
 sub web_hook
 {
     my ($self,$parms) = @_;
-    &::print_log("PAobj: web_hook! Audrey: " . $pa_zones{audrey}) if $main::Debug{pa};
-    return unless $pa_zones{audrey} ne '';
+    &::print_log("PAobj: web_hook! Audrey: " . $pa_zones{active}{audrey}) if $main::Debug{pa};
+    return unless $pa_zones{active}{audrey} ne '';
     my $results=0;
-    my @speakers_audrey=split(',', $pa_zones{audrey});
+    my @speakers_audrey=split(',', $pa_zones{active}{audrey});
     
     $results = $self->set_audrey($parms->{web_file},@speakers_audrey);
     
@@ -469,8 +476,6 @@ sub get_speakers
                 for my $grouproom ($ref->list) {
                     $grouproom = $grouproom->get_object_name;
                     $grouproom =~ s/^\$pa_//;
-                    $grouproom =~ s/^\$paxpl_//;
-                    $grouproom =~ s/^\$paxap_//;
                     &::print_log("PAobj:  - member: $grouproom") if $main::Debug{pa} >=2;
                     push(@pazones, $grouproom);
                 }
