@@ -3050,31 +3050,6 @@ sub _process_sync_queue {
 	}
 }
 
-=item C<set(state[,setby,response])>
-
-Returns -1 if setby was set by this object.
-
-Returns -1 if setby a tied_filter.
-
-Otherwise calls C<set_linked_devices> and returns 0.
-
-=cut
-
-sub set
-{
-	my ($self, $p_state, $p_setby, $p_respond) = @_;
-	# prevent reciprocal setby loops
-	return -1 if (ref $p_setby and ($p_setby ne $self) and $p_setby->can('get_set_by') and
-           $p_setby->{set_by} eq $self);
-	return -1 if &main::check_for_tied_filters($self, $p_state);
-
-	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
-
-	$self->set_linked_devices($link_state);
-
-	return 0;
-}
-
 =item C<set_linked_devices(state)>
 
 Checks each linked member of device.  If the linked member is a C<light_item>, 
@@ -3450,26 +3425,6 @@ sub new
 	my $self = new Insteon::BaseObject($p_deviceid,$p_interface);
 	bless $self,$class;
 	return $self;
-}
-
-=item C<set(state[,setby,response])>
-
-If C<Insteon::BaseController::set> returns a true value returns that.
-
-Else, calls C<Insteon::BaseObject::set> and returns 0
-
-=cut
-
-sub set
-{
-	my ($self, $p_state, $p_setby, $p_respond) = @_;
-
-	my $rslt_code = $self->Insteon::BaseController::set($p_state, $p_setby, $p_respond);
-	return $rslt_code if $rslt_code;
-
-	$self->Insteon::BaseObject::set($p_state, $p_setby, $p_respond);
-
-	return 0;
 }
 
 sub is_root
