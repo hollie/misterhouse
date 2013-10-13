@@ -777,36 +777,20 @@ subordinate buttons.
 sub set
 {
 	my ($self, $p_state, $p_setby, $p_respond) = @_;
-
-	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
-
-	if (!($self->is_root))
+	if (!($self->is_root) and !(ref $p_setby && $p_setby eq $self))
 	{
-		my $rslt_code = $self->Insteon::BaseController::set($p_state, $p_setby, $p_respond);
-		return $rslt_code if $rslt_code;
-
-		if (ref $p_setby and $p_setby->isa('Insteon::BaseDevice'))
-		{
-			$self->Insteon::BaseObject::set($p_state, $p_setby, $p_respond);
+		if (ref $$self{surrogate} && ($$self{surrogate}->isa('Insteon::InterfaceController'))) {
+			$$self{surrogate}->set($p_state, $p_setby, $p_respond);
 		}
-		elsif (ref $$self{surrogate} && ($$self{surrogate}->isa('Insteon::InterfaceController')))
-		{
-			$$self{surrogate}->set($link_state, $p_setby, $p_respond)
-				unless ref $p_setby and $p_setby eq $self;
-		}
-		else
-		{
-			&::print_log("[Insteon::KeyPadLinc] You may not directly attempt to set a keypadlinc's button "
-				. "unless you have defined a reverse link with the \"surrogate\" keyword");
+		else {
+			::print_log("[Insteon::KeyPadLinc] You may not directly attempt to set a keypadlinc's button "
+				."unless you have defined a reverse link with the \"surrogate\" keyword");
 		}
 	}
 	else
 	{
-		return $self->SUPER::set($link_state, $p_setby, $p_respond);
+		return $self->SUPER::set($p_state, $p_setby, $p_respond);
 	}
-
-	return 0;
-
 }
 
 =item C<update_flags(flags)>
