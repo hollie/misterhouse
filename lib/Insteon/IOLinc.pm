@@ -152,7 +152,7 @@ and control the relay state.
 sub set
 {
 	my ($self, $p_state, $p_setby, $p_respond) = @_;
-	if (ref $p_setby && $p_setby->isa('Insteon::BaseObject') && $p_setby->equals($self)){
+	if (ref $p_setby && $p_setby->can('equals') && $p_setby->equals($self)){
 		my $curr_milli = sprintf('%.0f', &main::get_tickcount);
 		my $window = 1000;
 		if ($p_state eq $$self{child_state} &&
@@ -171,7 +171,6 @@ sub set
 		}
 	}
 	else {
-		my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
 		$self->SUPER::set($link_state, $p_setby, $p_respond);
 	}
 	return;
