@@ -362,15 +362,21 @@ sub set
 			$self->set_receive($p_state,$p_setby,$p_response) if defined $p_state;
 			$self->set_linked_devices($p_state);
 		} else { # Not called by device, send set command
-                        my $message = $self->derive_message($p_state);
-                        $self->_send_cmd($message);
-			&::print_log("[Insteon::BaseObject] " . $self->get_object_name() . "::set($p_state, $setby_name)")
-				if $main::Debug{insteon};
-			$self->is_acknowledged(0);
-			$$self{pending_state} = $p_state;
-			$$self{pending_setby} = $p_setby;
-			$$self{pending_response} = $p_response;
-	}
+			if ($self->is_responder){
+	                        my $message = $self->derive_message($p_state);
+	                        $self->_send_cmd($message);
+				&::print_log("[Insteon::BaseObject] " . $self->get_object_name() . "::set($p_state, $setby_name)")
+					if $main::Debug{insteon};
+				$self->is_acknowledged(0);
+				$$self{pending_state} = $p_state;
+				$$self{pending_setby} = $p_setby;
+				$$self{pending_response} = $p_response;
+			} 
+			else {
+				::print_log("[Insteon::BaseObject] " . $self->get_object_name()
+					. " is not a responder and cannot be set to a state.");	
+			}
+		}
 		$self->level($p_state) if ($self->isa("Insteon::BaseDevice") && $self->can('level')); # update the level value
 	} else {
 		&::print_log("[Insteon::BaseObject] failed state validation with state=$p_state");

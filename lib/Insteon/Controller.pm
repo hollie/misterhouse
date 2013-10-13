@@ -82,24 +82,6 @@ sub new
 	return $self;
 }
 
-=item C<set(state[,setby,response])>
-
-Handles messages received from the device.  Calls C<set_receive()>.
-
-=cut
-
-sub set
-{
-	my ($self,$p_state,$p_setby,$p_response) = @_;
-	if (ref $p_setby && $p_setby eq $self){
-		$self->set_receive($p_state,$p_setby);
-	}
-	else {
-		&::print_log("[Insteon::RemoteLinc] " . $self->get_object_name()
-			. " is not a responder and cannot be set to a state.");
-	}
-}
-
 =item C<set_awake_time([0-255 seconds])>
 
 Only available for RemoteLinc 2 models.
