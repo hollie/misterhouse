@@ -337,12 +337,12 @@ sub set
 		$$self{m_is_locally_set} = 0 unless ref $p_setby and $p_setby eq $self;
 
 		if ($p_state eq 'toggle')
-                {
-                	$p_state = ($self->state eq 'on')? 'off' : 'on';
-                }
+		{
+			$p_state = ($self->state eq 'on')? 'off' : 'on';
+		}
 
-                my $setby_name = $p_setby;
-                $setby_name = $p_setby->get_object_name() if (ref $p_setby and $p_setby->can('get_object_name'));
+		my $setby_name = $p_setby;
+		$setby_name = $p_setby->get_object_name() if (ref $p_setby and $p_setby->can('get_object_name'));
 		if (ref $p_setby and (($p_setby eq $self) or ($p_setby eq $self->interface)))
 		{ #If set by device, update MH state,
 		  #If set by interface, this was a status_request response
@@ -352,8 +352,8 @@ sub set
 			$self->set_linked_devices($p_state);
 		} else { # Not called by device, send set command
 			if ($self->is_responder){
-	                        my $message = $self->derive_message($p_state);
-	                        $self->_send_cmd($message);
+				my $message = $self->derive_message($p_state);
+				$self->_send_cmd($message);
 				&::print_log("[Insteon::BaseObject] " . $self->get_object_name() . "::set($p_state, $setby_name)")
 					if $main::Debug{insteon};
 				$self->is_acknowledged(0);
