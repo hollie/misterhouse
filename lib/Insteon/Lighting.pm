@@ -165,6 +165,29 @@ my %ramp_h2n = (
 						'1f' =>    .1
 );
 
+=item C<derive_link_state([state])>
+
+Overrides routine in BaseObject. Takes the various states available to insteon 
+devices and returns a derived state of on, off, or 0%-100%.
+
+=cut
+
+sub derive_link_state
+{
+	my ($self, $p_state) = @_;
+	my $link_state = 'on';
+	if ($p_state eq 'off' or $p_state eq 'off_fast')
+	{
+		$link_state = 'off';
+	}
+	elsif ($p_state =~ /\d+%?/)
+	{
+		$p_state =~ /(\d+)%?/;
+		$link_state = $1 . '%';
+	}
+	return $link_state;
+}
+
 =item C<convert_ramp(ramp_seconds)>
 
 Takes ramp_seconds in numeric seconds and returns the hexadecimal value of that 

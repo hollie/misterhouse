@@ -53,8 +53,8 @@ state of either ON or OFF.
 
 sub derive_link_state
 {
-	my ($p_state) = @_;
-
+	my ($self, $p_state) = @_;
+	$p_state = $self if !(ref $self); #Old code made direct calls
 	my $link_state = 'on';
 	if ($p_state eq 'off' or $p_state eq 'off_fast')
 	{
@@ -359,8 +359,7 @@ sub set
 			&::print_log("[Insteon::BaseObject] " . $self->get_object_name()
 				. "::set_receive($p_state, $setby_name)") if $main::Debug{insteon};
 			$self->set_receive($p_state,$p_setby,$p_response) if defined $p_state;
-			my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
-			$self->set_linked_devices($link_state);
+			$self->set_linked_devices($p_state);
 		} else { # Not called by device, send set command
                         my $message = $self->derive_message($p_state);
                         $self->_send_cmd($message);
@@ -3119,6 +3118,8 @@ sub set_linked_devices
 					# remember the current state to support resume
 					$$self{members}{$member_ref}{resume_state} = $light->state;
 					$member->manual($light, $ramp_rate);
+					$local_state = $light->derive_link_state($local_state) 
+						if $light->can('derive_link_state');
 					$light->set_receive($local_state,$self);
 				}
 				else
@@ -3133,10 +3134,7 @@ sub set_linked_devices
 				$$self{members}{$member_ref}{resume_state} = $member->state;
 			# if they are Insteon_Device objects, then simply set_receive their state to
 			#   the member on level
-                        	if (!($member->isa('Insteon::DimmableLight')) and $member->isa('Insteon::BaseLight'))
-                                {
-                                	$local_state =  &Insteon::BaseObject::derive_link_state($local_state);
-                                }
+ 				$local_state = $member->derive_link_state($local_state);
 				$member->set_receive($local_state,$self);
 			}
 		}
