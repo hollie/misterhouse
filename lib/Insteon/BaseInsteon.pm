@@ -3103,12 +3103,12 @@ sub set_linked_devices
 		foreach my $member_ref (keys %{$$self{members}})
 		{
 			my $member = $$self{members}{$member_ref}{object};
-			my $on_state = $$self{members}{$member_ref}{on_level};
-			$on_state = '100%' unless $on_state;
-			my $local_state = $on_state;
-			$local_state = 'on' if $local_state eq '100%'
-				&& $member->isa('Insteon::BaseDevice') && !($member->is_root);
-			$local_state = 'off' if $local_state eq '0%' or $link_state eq 'off';
+			# If controller is on, set member to stored on_level
+			# else set to controller value
+			my $local_state = $$self{members}{$member_ref}{on_level};
+			$local_state = 'on' unless $local_state;
+			$local_state = $link_state if (lc $link_state ne 'on');
+			
 			if ($member->isa('Light_Item'))
 			{
 			# if they are Light_Items, then set their on_dim attrib to the member on level
