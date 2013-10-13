@@ -423,6 +423,7 @@ sub set_receive
 			"less than $window milliseconds") if $main::Debug{insteon}; 
 	} else {
 		$$self{set_milliseconds} = $curr_milli;
+		$self->level($p_state) if $self->can('level'); # update the level value
 		$self->SUPER::set($p_state, $p_setby, $p_response);
 	}
 }
@@ -1282,20 +1283,6 @@ sub rate
 	my ($self,$p_rate) = @_;
 	$$self{rate} = $p_rate if defined $p_rate;
 	return $$self{rate};
-}
-
-=item C<set_receive(state[,setby,response])>
-
-Updates the device's level if it can level, then calls 
-C<Insteon::BaseObject::set_receive()>.
-
-=cut
-
-sub set_receive
-{
-	my ($self, $p_state, $p_setby, $p_response) = @_;
-	$self->level($p_state) if $self->can('level'); # update the level value
-	$self->SUPER::set_receive($p_state, $p_setby, $p_response);
 }
 
 =item C<is_controller()>
@@ -3430,9 +3417,30 @@ sub new
 	return $self;
 }
 
+
+#Otherwise BaseController will call Generic_Item::Set
+sub set
+{
+	my ($self,$p_state,$p_setby,$p_response) = @_;
+	$self->Insteon::BaseObject::set($p_state,$p_setby,$p_response);	
+}
+
 sub is_root
 {
    return 0;
+}
+
+sub is_responder {
+	return 1;
+}
+
+# For IFaceControllers, need to call set_linked_devices
+sub is_acknowledged {
+	my ($self, $p_ack) = @_;
+	if ($p_ack) {
+		$self->set_linked_devices($$self{pending_state}) if defined $$self{pending_state};	
+	}
+	return $self->Insteon::BaseObject::is_acknowledged($p_ack);
 }
 
 =item C<get_voice_cmds>
