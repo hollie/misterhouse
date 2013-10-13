@@ -171,7 +171,7 @@ sub set
 		}
 	}
 	else {
-		$self->SUPER::set($link_state, $p_setby, $p_respond);
+		$self->SUPER::set($p_state, $p_setby, $p_respond);
 	}
 	return;
 }
