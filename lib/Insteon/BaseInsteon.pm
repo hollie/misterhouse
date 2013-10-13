@@ -3199,22 +3199,6 @@ sub initiate_linking_as_controller
 	$self->interface()->initiate_linking_as_controller($p_group, $success_callback, $failure_callback);
 }
 
-=item C<derive_message([command,extra])>
-
-Generates and returns a basic on/off message from a command.
-
-=cut
-
-sub derive_message
-{
-	my ($self, $p_state, $p_extra) = @_;
-	if ($self->is_root) {
-		return $self->Insteon::BaseObject::derive_message($p_state, $p_extra);
-	} else {
-		return $self->Insteon::BaseObject::derive_message($p_state, $p_extra);
-	}
-}
-
 =item C<find_members([type])>
 
 Returns a list of objects that are members of device.  If type is specified, only
