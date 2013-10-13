@@ -718,7 +718,7 @@ sub on_extended_insteon_received
                    	}
 		   	&::print_log("[Insteon::BaseInterface] Processing message for " . $object->get_object_name) if $main::Debug{insteon} >=3;
 			if($object->_process_message($self, %msg)) {
-				if ($self->active_message->success_callback){
+				if (ref $self->active_message && $self->active_message->success_callback){
 					main::print_log("[Insteon::BaseInterface] DEBUG4: Now calling message success callback: "
 						. $self->active_message->success_callback) if $main::Debug{insteon} >= 4;
 					package main;
