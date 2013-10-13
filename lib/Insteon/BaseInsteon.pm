@@ -354,8 +354,9 @@ sub set
 
                 my $setby_name = $p_setby;
                 $setby_name = $p_setby->get_object_name() if (ref $p_setby and $p_setby->can('get_object_name'));
-		if (ref $p_setby and ($p_setby eq $self))
-		{ #If set by device, update MH state
+		if (ref $p_setby and (($p_setby eq $self) or ($p_setby eq $self->interface)))
+		{ #If set by device, update MH state,
+		  #If set by interface, this was a status_request response
 			&::print_log("[Insteon::BaseObject] " . $self->get_object_name()
 				. "::set_receive($p_state, $setby_name)") if $main::Debug{insteon};
 			$self->set_receive($p_state,$p_setby,$p_response) if defined $p_state;
@@ -634,11 +635,11 @@ sub _is_info_request
 			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
 		$self->level($ack_on_level) if $self->can('level'); # update the level value
 		if ($ack_on_level == 0) {
-			$self->set_receive('off', $ack_setby);
+			$self->set('off', $ack_setby);
 		} elsif ($ack_on_level > 0 and !($self->isa('Insteon::DimmableLight'))) {
-			$self->set_receive('on', $ack_setby);
+			$self->set('on', $ack_setby);
 		} else {
-			$self->set_receive($ack_on_level . '%', $ack_setby);
+			$self->set($ack_on_level . '%', $ack_setby);
 		}
 		# if this were a scene controller, then also propogate the result to all members
 		my $callback;
