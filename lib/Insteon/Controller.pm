@@ -79,6 +79,7 @@ sub new
 		$$self{queue_timer} = new Timer;
 	}
 	bless $self,$class;
+	$$self{is_responder} = 0;
 	return $self;
 }
 
@@ -239,11 +240,6 @@ sub _process_message {
 		$clear_message = $self->SUPER::_process_message($p_setby,%msg);
 	}
 	return $clear_message;
-}
-
-sub is_responder
-{
-   return 0;
 }
 
 =back

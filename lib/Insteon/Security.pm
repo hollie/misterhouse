@@ -126,6 +126,7 @@ sub new
 		$$self{queue_timer} = new Timer;
 	}
 	bless $self,$class;
+	$$self{is_responder} = 0;
 	return $self;
 }
 
@@ -462,17 +463,6 @@ sub _process_message {
 	return $clear_message;
 }
 
-=item C<is_responder()>
-
-Always returns 0.
-
-=cut
-
-sub is_responder
-{
-   return 0;
-}
-
 =item C<get_voice_cmds>
 
 Returns a hash of voice commands where the key is the voice command name and the
@@ -760,6 +750,7 @@ sub new
 	my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
         $$self{message_types} = \%message_types;
 	bless $self,$class;
+	$$self{is_responder} = 0;
 	return $self;
 }
 
@@ -851,11 +842,6 @@ sub _process_message {
 		$clear_message = $self->SUPER::_process_message($p_setby,%msg);
 	}
 	return $clear_message;
-}
-
-sub is_responder
-{
-   return 0;
 }
 
 =back
