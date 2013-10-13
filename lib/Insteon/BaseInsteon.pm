@@ -336,20 +336,9 @@ sub set
 		# always reset the is_locally_set property unless set_by is the device
 		$$self{m_is_locally_set} = 0 unless ref $p_setby and $p_setby eq $self;
 
-		# handle invalid state for non-dimmable devices
-		if (($p_state eq 'dim' or $p_state eq 'bright') and !($self->isa('Insteon::DimmableLight'))) {
-			$p_state = 'on';
-		}
-                elsif ($p_state eq 'toggle')
+		if ($p_state eq 'toggle')
                 {
-                	if ($self->state eq 'on')
-                        {
-                        	$p_state = 'off';
-                        }
-                        elsif ($self->state eq 'off')
-                        {
-                        	$p_state = 'on';
-                        }
+                	$p_state = ($self->state eq 'on')? 'off' : 'on';
                 }
 
                 my $setby_name = $p_setby;
@@ -377,7 +366,7 @@ sub set
 					. " is not a responder and cannot be set to a state.");	
 			}
 		}
-		$self->level($p_state) if ($self->isa("Insteon::BaseDevice") && $self->can('level')); # update the level value
+		$self->level($p_state) if $self->can('level'); # update the level value
 	} else {
 		&::print_log("[Insteon::BaseObject] failed state validation with state=$p_state");
 	}
