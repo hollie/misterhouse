@@ -346,10 +346,22 @@ sub set
 		if (ref $p_setby and (($p_setby eq $self) or ($p_setby eq $self->interface)))
 		{ #If set by device, update MH state,
 		  #If set by interface, this was a status_request response
+			$self->set_linked_devices($p_state);
+			if ($p_state =~ /^([+-])(\d+)/) {
+				#This is a relative state
+				my $rel_state;
+				$rel_state = -$2 if ($1 eq '-');
+				$rel_state = +$2 if ($1 eq '+');
+				my $curr_state = '100';
+				$curr_state = '0' if ($self->state eq 'off');
+				$curr_state = $1 if $self->state =~ /(\d{1,3})/;
+				$p_state = $curr_state + $rel_state;
+				$p_state = 100 if ($p_state > 100);
+				$p_state = 0 if ($p_state < 0);
+			}
 			&::print_log("[Insteon::BaseObject] " . $self->get_object_name()
 				. "::set_receive($p_state, $setby_name)") if $main::Debug{insteon};
 			$self->set_receive($p_state,$p_setby,$p_response) if defined $p_state;
-			$self->set_linked_devices($p_state);
 		} else { # Not called by device, send set command
 			if ($self->is_responder){
 				my $message = $self->derive_message($p_state);
@@ -865,10 +877,19 @@ sub _process_message
 	}
         elsif ($msg{command} eq 'start_manual_change')
         {
-		# do nothing; although, maybe anticipate change? we should always get a stop
+		$$self{manual_direction} = $msg{extra};
+		$$self{manual_start} = ::get_tickcount() - (($msg{maxhops}-$msg{hopsleft})*50);
 	} elsif ($msg{command} eq 'stop_manual_change') {
-		# request status so that the final state can be known
-		$self->request_status($self);
+		# Determine percent change based on time interval
+		my $finish_time = &main::get_tickcount - (($msg{maxhops}-$msg{hopsleft})*50);
+		my $total_time = $finish_time - $$self{manual_start};
+		my $percent_change = int($total_time / 42);
+		if ($$self{manual_direction} eq '00') {
+			$percent_change = "-".$percent_change;
+		} else {
+			$percent_change = "+".$percent_change;
+		}
+		$self->set($percent_change, $self);
 	} elsif ($msg{command} eq 'read_write_aldb') {
 		if ($self->_aldb){
 			$clear_message = $self->_aldb->on_read_write_aldb(%msg) if $self->_aldb;
@@ -1000,7 +1021,7 @@ sub _is_valid_state
 	my ($msg, $substate) = split(/:/, $state, 2);
 	$msg=lc($msg);
 
-	if ($msg=~/^([1]?[0-9]?[0-9])/)
+	if ($msg=~/^[+-]?([1]?[0-9]?[0-9])/)
 	{
 		if ($1 < 1) {
 			$msg='off';
@@ -3060,8 +3081,27 @@ sub set_linked_devices
 			# If controller is on, set member to stored on_level
 			# else set to controller value
 			my $local_state = $$self{members}{$member_ref}{on_level};
-			$local_state = 'on' unless $local_state;
-			$local_state = $link_state if (lc $link_state ne 'on');
+			$local_state = '100' unless $local_state;
+			
+			if (lc $link_state ne 'on'){
+				# Not setting member to default
+				if ($link_state =~ /^([+-])(\d+)/) {
+					#This is a relative state
+					my $rel_state;
+					$rel_state = -$2 if ($1 eq '-');
+					$rel_state = +$2 if ($1 eq '+');
+					my $curr_state = '100';
+					$curr_state = '0' if ($member->state eq 'off');
+					$curr_state = $1 if $member->state =~ /(\d{1,3})/;
+					$local_state = $curr_state + $rel_state;
+					$local_state = 100 if ($local_state > 100);
+					$local_state = 0 if ($local_state < 0);
+				} 
+				else {
+					#An absolute state
+					$local_state = $link_state;
+				}
+			}
 			
 			if ($member->isa('Light_Item'))
 			{
@@ -3091,17 +3131,15 @@ sub set_linked_devices
 			}
 			elsif ($member->isa('Insteon::BaseDevice'))
 			{
-			# remember the current state to support resume
+				# remember the current state to support resume
 				$$self{members}{$member_ref}{resume_state} = $member->state;
-			# if they are Insteon_Device objects, then simply set_receive their state to
-			#   the member on level
+				# if they are Insteon_Device objects, then simply set_receive their state to
+				#   the member on level
  				$local_state = $member->derive_link_state($local_state);
 				$member->set_receive($local_state,$self);
 			}
 		}
 	}
-
-
 }
 
 =item C<set_with_timer(state, time, return_state, additional_return_states)>
