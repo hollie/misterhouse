@@ -63,7 +63,7 @@ sub init {
     $self->check_group('default');
 
     my @speakers = $self->get_speakers('allspeakers');
-    my (@speakers_wdio,@speakers_x10,@speakers_obj,@speakers_xap,@speakers_xpl,@speakers_audrey);
+    my (@speakers_wdio,@speakers_x10,@speakers_obj,@speakers_xap,@speakers_xpl,@speakers_audrey,@speakers_aviosys);
 
     for my $room (@speakers) {
         my $ref = &::get_object_by_name("pa_$room");
@@ -89,21 +89,27 @@ sub init {
         if($type eq 'audrey') {
             push(@speakers_audrey,$room);
         }
+        if($type eq 'aviosys') {
+            push(@speakers_aviosys,$room);
+        }
     }
     
     &::print_log("PAobj: speakers_wdio: $#speakers_wdio") if $main::Debug{pa};# || $#speakers_wdio gt -1;
     &::print_log("PAobj: speakers_x10: $#speakers_x10") if $main::Debug{pa};# || $#speakers_x10 gt -1;
     &::print_log("PAobj: speakers_xap: $#speakers_xap") if $main::Debug{pa};# || $#speakers_xap gt -1;
     &::print_log("PAobj: speakers_xpl: $#speakers_xpl") if $main::Debug{pa};# || $#speakers_xpl gt -1;
-    &::print_log("PAobj: speakers_obj: $#speakers_obj") if $main::Debug{pa};# || $#speakers_obj gt -1;
     &::print_log("PAobj: speakers_audrey: $#speakers_audrey") if $main::Debug{pa};# || $#speakers_audrey gt -1;
+    &::print_log("PAobj: speakers_aviosys: $#speakers_aviosys") if $main::Debug{pa};# || $#speakers_aviosys gt -1;
+    &::print_log("PAobj: speakers_obj: $#speakers_obj") if $main::Debug{pa};# || $#speakers_obj gt -1;
+
 
     $pa_zones{all}{wdio}=join(',',@speakers_wdio);
     $pa_zones{all}{x10}=join(',',@speakers_x10);
     $pa_zones{all}{xap}=join(',',@speakers_xap);
     $pa_zones{all}{xpl}=join(',',@speakers_xpl);
-    $pa_zones{all}{obj}=join(',',@speakers_obj);
     $pa_zones{all}{audrey}=join(',',@speakers_audrey);
+    $pa_zones{all}{aviosys}=join(',',@speakers_aviosys);
+    $pa_zones{all}{obj}=join(',',@speakers_obj);
 
     if ($#speakers_wdio > -1) {
         $self->init_weeder(@speakers_wdio);
@@ -163,7 +169,7 @@ sub prep_parms
     
     $parms->{pa_zones} = join(',', @speakers);
     
-    my (@speakers_wdio,@speakers_x10,@speakers_obj,@speakers_xap,@speakers_xpl,@speakers_audrey);
+    my (@speakers_wdio,@speakers_x10,@speakers_obj,@speakers_xap,@speakers_xpl,@speakers_audrey,@speakers_aviosys);
 
     for my $room (@speakers) {
         my $ref = &::get_object_by_name("pa_$room");
@@ -184,13 +190,17 @@ sub prep_parms
             &::print_log("PAobj: speakers_xpl: Adding $room") if $main::Debug{pa} >=3;
             push(@speakers_xpl,$room);
         }
-        if($type eq 'object') {
-            &::print_log("PAobj: speakers_object: Adding $room") if $main::Debug{pa} >=3;
-            push(@speakers_obj,$room);
-        }
         if($type eq 'audrey') {
             &::print_log("PAobj: speakers_audrey: Adding $room") if $main::Debug{pa} >=3;
             push(@speakers_audrey,$room);
+        }
+        if($type eq 'aviosys') {
+            &::print_log("PAobj: speakers_aviosys: Adding $room") if $main::Debug{pa} >=3;
+            push(@speakers_aviosys,$room);
+        }
+        if($type eq 'object') {
+            &::print_log("PAobj: speakers_object: Adding $room") if $main::Debug{pa} >=3;
+            push(@speakers_obj,$room);
         }
     }
     
@@ -198,16 +208,18 @@ sub prep_parms
     &::print_log("PAobj: speakers_x10: $#speakers_x10") if $main::Debug{pa}  >=2 || $#speakers_x10 gt -1;
     &::print_log("PAobj: speakers_xap: $#speakers_xap") if $main::Debug{pa}  >=2 || $#speakers_xap gt -1;
     &::print_log("PAobj: speakers_xpl: $#speakers_xpl") if $main::Debug{pa}  >=2 || $#speakers_xpl gt -1;
-    &::print_log("PAobj: speakers_obj: $#speakers_obj") if $main::Debug{pa}  >=2 || $#speakers_obj gt -1;
     &::print_log("PAobj: speakers_audrey: $#speakers_audrey") if $main::Debug{pa}  >=2 || $#speakers_audrey gt -1;
+    &::print_log("PAobj: speakers_aviosys: $#speakers_aviosys") if $main::Debug{pa}  >=2 || $#speakers_aviosys gt -1;
+    &::print_log("PAobj: speakers_obj: $#speakers_obj") if $main::Debug{pa}  >=2 || $#speakers_obj gt -1;
 
     
     $pa_zones{active}{wdio}=join(',',@speakers_wdio);
     $pa_zones{active}{x10}=join(',',@speakers_x10);
     $pa_zones{active}{xap}=join(',',@speakers_xap);
     $pa_zones{active}{xpl}=join(',',@speakers_xpl);
-    $pa_zones{active}{obj}=join(',',@speakers_obj);
     $pa_zones{active}{audrey}=join(',',@speakers_audrey);
+    $pa_zones{active}{aviosys}=join(',',@speakers_aviosys);
+    $pa_zones{active}{obj}=join(',',@speakers_obj);
     
     $parms->{web_file}="web_file" if $#speakers_audrey gt -1;
     
@@ -217,6 +229,7 @@ sub prep_parms
         && $pa_zones{active}{x10} eq ''
         && $pa_zones{active}{xap} eq ''
         && $pa_zones{active}{xpl} eq ''
+        && $pa_zones{active}{aviosys} eq ''
         && $pa_zones{active}{obj} eq ''
         
     ) {
@@ -237,15 +250,17 @@ sub audio_hook
     my @speakers_x10=split(',',$pa_zones{active}{x10});
     my @speakers_xap=split(',',$pa_zones{active}{xap});
     my @speakers_xpl=split(',',$pa_zones{active}{xpl});
+    my @speakers_aviosys=split(',',$pa_zones{active}{aviosys});
     my @speakers_obj=split(',',$pa_zones{active}{obj});
     
     #TODO: Properly handle $results across multiple types
-    #TODO: Break up the wdio zones based on serial port, in case there are more than one.
+    #TODO: Break up the wdio and aviosys zones based on serial port, in case there are more than one.
     $results=0;
     $results = $self->set_weeder($state,'weeder',@speakers_wdio) 	if $#speakers_wdio > -1;
     $results = $self->set_x10($state,@speakers_x10) 			if $#speakers_x10 > -1;
     $results = $self->set_xap($state,\@speakers_xap,\%voiceparms) 	if $#speakers_xap > -1;	
     $results = $self->set_xpl($state,\@speakers_xpl,\%voiceparms) 	if $#speakers_xpl > -1;
+    $results = $self->set_aviosys($state,'aviosys',@speakers_aviosys) 	if $#speakers_aviosys > -1;
     $results = $self->set_obj($state,@speakers_obj) 			if $#speakers_obj > -1;
     
     &::print_log("PAobj: set results: $results") if $main::Debug{pa};
@@ -257,6 +272,7 @@ sub audio_hook
         && (
             $pa_zones{active}{wdio} ne ''
             || $pa_zones{active}{x10} ne ''
+            || $pa_zones{active}{aviosys} ne ''
             || $pa_zones{active}{obj} ne ''
         )
     ) {
@@ -451,6 +467,31 @@ sub get_weeder_string
         $weeder_code = 'h' . $weeder_code;
     }
     return $card . "W$weeder_code";
+}
+
+sub set_aviosys
+{
+    my ($self,$state,$aviosys_port,@speakers) = @_;
+    my $aviosysref = {'on' => {'1' => '!','2' => '#','3' => '%','4' => '&','5' => '(','6' => '_','7' => '{','8' => '}' },'off' => {'1' => '@','2' => '$','3' => '^','4' => '*','5' => ')','6' => '-','7' => '[','8' => ']'}};
+    my %aviosys_ref;
+    my $aviosys_command='';
+    for my $room (@speakers) {
+        &::print_log("PAobj: set_aviosys: " . $room . " / " . $state) if $main::Debug{pa} >=3;
+        my $ref = &::get_object_by_name('pa_'.$room);
+        if ($ref) {
+            my ($id) = $ref->get_address();
+            $aviosys_command .= $aviosysref->{$state}{$id};
+            &::print_log("PAobj: port: $id, Room: $room") if $main::Debug{pa} >=2;
+        } else {
+            &::print_log("PAobj: Unable to locate object for: pa_$room");
+        }
+    }
+
+    return 0 unless $aviosys_command;
+    &::print_log("PAobj: Sending $aviosys_command to the aviosys card") if $main::Debug{pa};
+    #$aviosys_command =~ s/\\r/\r/g;
+    #&Serial_Item::send_serial_data($aviosys_port, $aviosys_command) if $main::Serial_Ports{$aviosys_port}{object};
+    return 1;
 }
 
 sub get_speakers

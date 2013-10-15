@@ -573,6 +573,10 @@ sub read_table_A {
             $code .= sprintf "\$%-35s -> target_address('%s');\n",$name.'_obj',$address;
             $code .= sprintf "\$%-35s -> class_name('%s');\n",$name.'_obj',$serial;
             $code .= sprintf "\$%-35s -> tie_items(\$%s,'on','on');\n",$name,$name.'_obj';
+        } elsif (lc $pa_type eq 'aviosys') {
+            my $aviosysref = {'on' => {'1' => '!','2' => '#','3' => '%','4' => '&','5' => '(','6' => '_','7' => '{','8' => '}' },'off' => {'1' => '@','2' => '$','3' => '^','4' => '*','5' => ')','6' => '-','7' => '[','8' => ']'}};
+            $code .= sprintf "\$%-35s = new Serial_Item('%s','on','%s');\n",$name.'_obj',$aviosysref->{'on'}{$address},$serial;
+            $code .= sprintf "\$%-35s -> add ('%s','off');\n",$name.'_obj',$aviosysref->{'off'}{$address};
         } else {
             print "\nUnrecognized .mht entry for PA: $record\n";
             return;
