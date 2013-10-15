@@ -265,6 +265,7 @@ sub audio_hook
         push(@{$speakers_aviosys{$serial}},$room);
     }
     foreach my $serial (keys(%speakers_aviosys)) {
+        &::print_log("PAobj: calling set for aviosys serial port: $serial") if $main::Debug{pa} >=3;
         $results = $self->set_aviosys($state,$serial,@{$speakers_aviosys{$serial}});
     }
     for my $room (split(',',$pa_zones{active}{wdio})) {
@@ -274,6 +275,7 @@ sub audio_hook
         push(@{$speakers_wdio{$serial}},$room);
     }
     foreach my $serial (keys(%speakers_wdio)) {
+        &::print_log("PAobj: calling set for wdio serial port: $serial") if $main::Debug{pa} >=3;
         $results = $self->set_weeder($state,$serial,@{$speakers_wdio{$serial}});
     }
 
