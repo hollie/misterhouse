@@ -244,23 +244,39 @@ sub audio_hook
 {
     my ($self,$state,%voiceparms) = @_;
     my $results = 0;
-#    my @speakers = split(',', $voiceparms{pa_zones});
 
-    my @speakers_wdio=split(',',$pa_zones{active}{wdio});
+    my (%speakers_aviosys,%speakers_wdio);
     my @speakers_x10=split(',',$pa_zones{active}{x10});
     my @speakers_xap=split(',',$pa_zones{active}{xap});
     my @speakers_xpl=split(',',$pa_zones{active}{xpl});
-    my @speakers_aviosys=split(',',$pa_zones{active}{aviosys});
     my @speakers_obj=split(',',$pa_zones{active}{obj});
-    
+
     #TODO: Properly handle $results across multiple types
-    #TODO: Break up the wdio and aviosys zones based on serial port, in case there are more than one.
+
     $results=0;
-    $results = $self->set_weeder($state,'weeder',@speakers_wdio) 	if $#speakers_wdio > -1;
     $results = $self->set_x10($state,@speakers_x10) 			if $#speakers_x10 > -1;
     $results = $self->set_xap($state,\@speakers_xap,\%voiceparms) 	if $#speakers_xap > -1;	
     $results = $self->set_xpl($state,\@speakers_xpl,\%voiceparms) 	if $#speakers_xpl > -1;
-    $results = $self->set_aviosys($state,'aviosys',@speakers_aviosys) 	if $#speakers_aviosys > -1;
+
+    for my $room (split(',',$pa_zones{active}{aviosys})) {
+        my $ref = &::get_object_by_name('pa_'.$room);
+	my $serial=$ref->get_serial();
+        &::print_log("PAobj: aviosys serial: " . $room . " / " . $serial) if $main::Debug{pa} >=3;
+        push(@{$speakers_aviosys{$serial}},$room);
+    }
+    foreach my $serial (keys(%speakers_aviosys)) {
+        $results = $self->set_aviosys($state,$serial,@{$speakers_aviosys{$serial}});
+    }
+    for my $room (split(',',$pa_zones{active}{wdio})) {
+        my $ref = &::get_object_by_name('pa_'.$room);
+	my $serial=$ref->get_serial();
+        &::print_log("PAobj: wdio serial: " . $room . " / " . $serial) if $main::Debug{pa} >=3;
+        push(@{$speakers_wdio{$serial}},$room);
+    }
+    foreach my $serial (keys(%speakers_wdio)) {
+        $results = $self->set_weeder($state,$serial,@{$speakers_wdio{$serial}});
+    }
+
     $results = $self->set_obj($state,@speakers_obj) 			if $#speakers_obj > -1;
     
     &::print_log("PAobj: set results: $results") if $main::Debug{pa};
@@ -490,7 +506,7 @@ sub set_aviosys
     return 0 unless $aviosys_command;
     &::print_log("PAobj: Sending $aviosys_command to the aviosys card") if $main::Debug{pa};
     #$aviosys_command =~ s/\\r/\r/g;
-    #&Serial_Item::send_serial_data($aviosys_port, $aviosys_command) if $main::Serial_Ports{$aviosys_port}{object};
+    &Serial_Item::send_serial_data($aviosys_port, $aviosys_command) if $main::Serial_Ports{$aviosys_port}{object};
     return 1;
 }
 
