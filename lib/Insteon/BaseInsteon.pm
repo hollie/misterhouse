@@ -361,7 +361,7 @@ sub set
 			$p_state = $self->derive_link_state($p_state);
 			&::print_log("[Insteon::BaseObject] " . $self->get_object_name()
 				. "::set_receive($p_state, $setby_name)") if $main::Debug{insteon};
-			$self->set_receive($p_state,$p_setby,$p_response) if defined $p_state;
+			$self->set_receive($p_state,$p_setby,$p_response);
 		} else { # Not called by device, send set command
 			if ($self->is_responder){
 				my $message = $self->derive_message($p_state);
@@ -3095,7 +3095,7 @@ sub set_linked_devices
 				my @lights = $member->find_members('Insteon::BaseDevice');
 				if (@lights)
 				{
-					my $light = @lights[0];
+					my $light = $lights[0];
 					# remember the current state to support resume
 					$$self{members}{$member_ref}{resume_state} = $light->state;
 					$member->manual($light, $ramp_rate);
@@ -3175,7 +3175,7 @@ sub update_members
 			# if they are Light_Items, then locate the Light_Item's Insteon_Device member
 				my @lights = $member->find_members('Insteon::BaseDevice');
 				if (@lights) {
-					$device = @lights[0];
+					$device = $lights[0];
 				}
 			} elsif ($member->isa('Insteon::BaseDevice')) {
 				$device = $member;
