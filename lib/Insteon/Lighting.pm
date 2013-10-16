@@ -175,6 +175,17 @@ devices and returns a derived state of on, off, or 0%-100%.
 sub derive_link_state
 {
 	my ($self, $p_state) = @_;
+	#Convert Relative State to Absolute State
+	if ($p_state =~ /^([+-])(\d+)/) {
+		my $rel_state = $1 . $2;
+		my $curr_state = '100';
+		$curr_state = '0' if ($self->state eq 'off');
+		$curr_state = $1 if $self->state =~ /(\d{1,3})/;
+		$p_state = $curr_state + $rel_state;
+		$p_state = 100 if ($p_state > 100);
+		$p_state = 0 if ($p_state < 0);
+	}
+	
 	my $link_state = 'on';
 	if ($p_state eq 'off' or $p_state eq 'off_fast')
 	{

@@ -55,6 +55,17 @@ sub derive_link_state
 {
 	my ($self, $p_state) = @_;
 	$p_state = $self if !(ref $self); #Old code made direct calls
+	#Convert Relative State to Absolute State
+	if ($p_state =~ /^([+-])(\d+)/) {
+		my $rel_state = $1 . $2;
+		my $curr_state = '100';
+		$curr_state = '0' if ($self->state eq 'off');
+		$curr_state = $1 if $self->state =~ /(\d{1,3})/;
+		$p_state = $curr_state + $rel_state;
+		$p_state = 'on' if ($p_state > 0);
+		$p_state = 'off' if ($p_state <= 0);
+	}
+	
 	my $link_state = 'on';
 	if ($p_state eq 'off' or $p_state eq 'off_fast')
 	{
@@ -347,18 +358,7 @@ sub set
 		{ #If set by device, update MH state,
 		  #If set by interface, this was a status_request response
 			$self->set_linked_devices($p_state);
-			if ($p_state =~ /^([+-])(\d+)/) {
-				#This is a relative state
-				my $rel_state;
-				$rel_state = -$2 if ($1 eq '-');
-				$rel_state = +$2 if ($1 eq '+');
-				my $curr_state = '100';
-				$curr_state = '0' if ($self->state eq 'off');
-				$curr_state = $1 if $self->state =~ /(\d{1,3})/;
-				$p_state = $curr_state + $rel_state;
-				$p_state = 100 if ($p_state > 100);
-				$p_state = 0 if ($p_state < 0);
-			}
+			$p_state = $self->derive_link_state($p_state);
 			&::print_log("[Insteon::BaseObject] " . $self->get_object_name()
 				. "::set_receive($p_state, $setby_name)") if $main::Debug{insteon};
 			$self->set_receive($p_state,$p_setby,$p_response) if defined $p_state;
@@ -3082,26 +3082,6 @@ sub set_linked_devices
 			# else set to controller value
 			my $local_state = $$self{members}{$member_ref}{on_level};
 			$local_state = '100' unless $local_state;
-			
-			if (lc $link_state ne 'on'){
-				# Not setting member to default
-				if ($link_state =~ /^([+-])(\d+)/) {
-					#This is a relative state
-					my $rel_state;
-					$rel_state = -$2 if ($1 eq '-');
-					$rel_state = +$2 if ($1 eq '+');
-					my $curr_state = '100';
-					$curr_state = '0' if ($member->state eq 'off');
-					$curr_state = $1 if $member->state =~ /(\d{1,3})/;
-					$local_state = $curr_state + $rel_state;
-					$local_state = 100 if ($local_state > 100);
-					$local_state = 0 if ($local_state < 0);
-				} 
-				else {
-					#An absolute state
-					$local_state = $link_state;
-				}
-			}
 			
 			if ($member->isa('Light_Item'))
 			{
