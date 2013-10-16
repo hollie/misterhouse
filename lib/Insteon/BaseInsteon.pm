@@ -3099,8 +3099,9 @@ sub set_linked_devices
 					# remember the current state to support resume
 					$$self{members}{$member_ref}{resume_state} = $light->state;
 					$member->manual($light, $ramp_rate);
-					$local_state = $light->derive_link_state($local_state) 
-						if $light->can('derive_link_state');
+					if ($light->can('derive_link_state') && lc $link_state ne 'on'){
+						$local_state = $light->derive_link_state($link_state);
+					}
 					$light->set_receive($local_state,$self);
 				}
 				else
@@ -3115,7 +3116,9 @@ sub set_linked_devices
 				$$self{members}{$member_ref}{resume_state} = $member->state;
 				# if they are Insteon_Device objects, then simply set_receive their state to
 				#   the member on level
- 				$local_state = $member->derive_link_state($local_state);
+				if (lc $link_state ne 'on'){
+ 					$local_state = $member->derive_link_state($link_state);
+				}
 				$member->set_receive($local_state,$self);
 			}
 		}
