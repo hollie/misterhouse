@@ -108,7 +108,7 @@ package Insteon::MotionSensor;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::MotionSensor::ISA = ('Insteon::DeviceController','Insteon::BaseDevice');
+@Insteon::MotionSensor::ISA = ('Insteon::BaseDevice', 'Insteon::DeviceController');
 
 =item C<new()>
 
