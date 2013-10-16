@@ -354,15 +354,21 @@ sub set
 
 		my $setby_name = $p_setby;
 		$setby_name = $p_setby->get_object_name() if (ref $p_setby and $p_setby->can('get_object_name'));
-		if (ref $p_setby and (($p_setby eq $self) or ($p_setby eq $self->interface)))
+		if (ref $p_setby and $p_setby eq $self)
 		{ #If set by device, update MH state,
-		  #If set by interface, this was a status_request response
+			my $derived_state = $self->derive_link_state($p_state);
+			&::print_log("[Insteon::BaseObject] " . $self->get_object_name()
+				. "::set_receive($derived_state, $setby_name)") if $main::Debug{insteon};
+			$self->set_receive($derived_state,$p_setby,$p_response);
 			$self->set_linked_devices($p_state);
-			$p_state = $self->derive_link_state($p_state);
+		} 
+		elsif (ref $p_setby and $p_setby eq $self->interface) 
+		{ #If set by interface, this was a manual status_request response
 			&::print_log("[Insteon::BaseObject] " . $self->get_object_name()
 				. "::set_receive($p_state, $setby_name)") if $main::Debug{insteon};
 			$self->set_receive($p_state,$p_setby,$p_response);
-		} else { # Not called by device, send set command
+		}
+		else { # Not called by device, send set command
 			if ($self->is_responder){
 				my $message = $self->derive_message($p_state);
 				$self->_send_cmd($message);
