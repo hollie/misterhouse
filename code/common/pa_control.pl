@@ -35,7 +35,9 @@ use PAobj;
 
 #noloop=start
 my $pa_delay	= $config_parms{pa_delay};
+my $pa_clash_delay = $config_parms{pa_clash_delay};
 my $pa_timer	= $config_parms{pa_timer};
+$pa_clash_delay	= 1		unless $pa_clash_delay;
 $pa_delay	= 0.5		unless $pa_delay;
 $pa_timer	= 60		unless $pa_timer;
 $pactrl = new PAobj();
@@ -83,17 +85,42 @@ sub pa_parms_stub {
     }
     $parms->{pa_mode} = $mode;
     return if $mode eq 'mute' or $mode eq 'offline';
-    
-    my $results = $pactrl->prep_parms($parms);
-    my %pa_zones = $pactrl->get_pa_zones();
 
-    if (defined $pa_zones{audrey} && $pa_zones{audrey} ne '') {
-        print_log("PA: audrey zone detected, hooking via web_hook. (".$pa_zones{audrey}.")") if $Debug{pa};
-        push(@{$parms->{web_hook}},\&pa_web_hook);
+    if($pactrl->active(1)) {
+        my $results = $pactrl->prep_parms($parms);
+        my %pa_zones = $pactrl->get_pa_zones();
+
+        if (defined $pa_zones{audrey} && $pa_zones{audrey} ne '') {
+            print_log("PA: audrey zone detected, hooking via web_hook. (".$pa_zones{audrey}.")") if $Debug{pa};
+            push(@{$parms->{web_hook}},\&pa_web_hook);
+        }
+
+        print_log("PA: parms_stub set results: $results") if $Debug{pa} >=2;
+
+    } else {
+        #MH is already speaking, and other PA zones are already active. Delay speech.
+        if ($main::Debug{voice}) {
+            $$parms{clash_retry}=0 unless $$parms{clash_retry};
+            &print_log("PA SPEECH CLASH($$parms{clash_retry}): Delaying speech call for " . $$parms{text} . "\n") unless $$parms{clash_retry} lt 1;
+            $$parms{clash_retry}++; #To track how many loops are made
+        }
+        $$parms{nolog}=1;       #To stop MH from logging the speech again
+
+        my $parmstxt;
+        my ($pkey,$pval);
+        while (($pkey,$pval) = each(%{$parms})) {
+            $parmstxt.=', ' if $parmstxt;
+            $parmstxt .= "$pkey => q($pval)";
+        }
+        &print_log("PA SPEECH CLASH Parameters: $parmstxt") if $main::Debug{voice} && $$parms{clash_retry} eq 0;
+        &run_after_delay($pa_clash_delay, "speak($parmstxt)");
+
+        $$parms{no_speak}=1;    #To stop MH from speaking this time around
+        return;
     }
-
-    print_log("PA: parms_stub set results: $results") if $Debug{pa} >=2;
-    
+    if ($$parms{clash_retry}) {
+        &print_log("PA SPEECH CLASH: Resolved, continuing speech.");
+    }
 }
 
 sub pa_control_stub {
@@ -121,6 +148,7 @@ if (state_now $mh_speakers eq OFF) {
     unset $pa_speaker_timer;
     print_log("PA: Turning speakers off") if $Debug{pa};
     $pactrl->audio_hook(OFF,'normal');
+    $pactrl->active(0);
 }
 
           #Setup Fail-safe speaker shutoff
@@ -139,7 +167,7 @@ Example pa.mht file:
 #
 #Type Address	Name			Groups               		Serial   Type
 #
-PA,	AA,		kitchen,		all|default|mainfloor,		weeder, wdio
+PA,	AA,		kitchen,	all|default|mainfloor,		weeder, wdio
 PA,	AB,		server,		all|basement,			weeder, wdio
 PA,	AG,		master,		all|default|upstairs,		weeder2, wdio_old
 PA,	B12,		garage,		all|outside,				, X10

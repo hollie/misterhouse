@@ -33,6 +33,8 @@ package PAobj;
 
 @PAobj::ISA = ('Generic_Item');
 
+my $active;
+
 sub last_char
 {
     my ($self,$string) = @_;
@@ -61,6 +63,7 @@ sub init {
         return 0;
     }
     $self->check_group('default');
+    $self->active(0);
 
     my @speakers = $self->get_speakers('allspeakers');
     my (@speakers_wdio,@speakers_x10,@speakers_obj,@speakers_xap,@speakers_xpl,@speakers_audrey,@speakers_aviosys);
@@ -113,7 +116,6 @@ sub init {
 
     if ($#speakers_wdio > -1) {
         $self->init_weeder(@speakers_wdio);
-        return 0 unless %pa_weeder_max_port;
     }
     if ($pa_zone_types{'x10'}) {
         &::print_log("PAobj: x10 PA type initialized...") if $main::Debug{pa};
@@ -154,10 +156,23 @@ sub init_weeder
     %pa_weeder_max_port = %weeder_max;
 }
 
+sub active
+{
+    my ($self,$setactive) = @_;
+    &::print_log("PAobj: setactive: active: $active / set: $setactive\n") if $main::Debug{pa} >=4;
+    return $active unless defined $setactive;
+    if($active && $setactive) {
+        &::print_log("PAobj: Cannot make active, already active\n") if $main::Debug{pa} >=3;
+        return 0;
+    }
+    &::print_log("PAobj: setting active to: ".$setactive."\n") if $main::Debug{pa} >=3;
+    $active=$setactive;
+    return 1;
+}
+
 sub prep_parms
 {
     my ($self,$parms) = @_;
-    #my $self = {};
     &::print_log("PAobj: delay: $$self{pa_delay}\n") if $main::Debug{pa} >=3;
     &::print_log("PAobj: set,mode: " . $parms->{mode} . ",rooms: " . $parms->{rooms}) if $main::Debug{pa} >=3;
 
