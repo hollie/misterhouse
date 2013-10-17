@@ -371,7 +371,7 @@ sub delete_link
 		if ($address)
 		{
 			&main::print_log("[Insteon::AllLinkDatabase] Now deleting link [0x$address] with the following data"
-				. " deviceid=$deviceid, groupid=$groupid, is_controller=$is_controller");
+				. " deviceid=$deviceid, groupid=$groupid, is_controller=$is_controller, subaddress=$subaddress");
 			# now, alter the flags byte such that the in_use flag is set to 0
 			$$self{_mem_activity} = 'delete';
 			$$self{pending_aldb}{deviceid} = lc $deviceid;
@@ -389,7 +389,7 @@ sub delete_link
 		{
 			&main::print_log('[Insteon::AllLinkDatabase] WARN: (' . $$self{device}->get_object_name 
 				. ') attempt to delete link that does not exist!'
-				. " deviceid=$deviceid, groupid=$groupid, is_controller=$is_controller");
+				. " deviceid=$deviceid, groupid=$groupid, is_controller=$is_controller, subaddress=$subaddress");
 			if ($link_parms{callback})
 			{
 				package main;
@@ -1056,7 +1056,7 @@ sub add_link
 		&::print_log("[Insteon::AllLinkDatabase] WARN: attempt to add link to " 
 			. $$self{device}->get_object_name 
 			. " that already exists! object=" . $insteon_object->get_object_name 
-			. ", group=$group, is_controller=$is_controller");
+			. ", group=$group, is_controller=$is_controller, subaddress=$subaddress");
 		if ($link_parms{callback})
                 {
 			package main;
@@ -1083,7 +1083,7 @@ sub add_link
 		$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
                 if ($address)
                 {
-			&::print_log("[Insteon::AllLinkDatabase] DEBUG2: adding link record " . $$self{device}->get_object_name
+			&::print_log("[Insteon::AllLinkDatabase] DEBUG2: adding link record to " . $$self{device}->get_object_name
 				. " light level controlled by " . $insteon_object->get_object_name
 		       		. " and group: $group with on level: $on_level and ramp rate: $ramp_rate")
                                 if $main::Debug{insteon} >= 2;
@@ -1112,7 +1112,7 @@ sub add_link
                          {
 				package main;
 				eval ($$self{_success_callback});
-				&::print_log("[Insteon::AllLinkDatabase] WARN1: Error encountered during ack callback: " . $@)
+				&::print_log("[Insteon::AllLinkDatabase] WARN1: Error encountered during callback: " . $@)
 			 		if $@ and $main::Debug{insteon} >= 1;
 			 	package Insteon::AllLinkDatabase;
                          }
@@ -2635,6 +2635,7 @@ sub restore_linktable
 			my $deviceid = '';
 			my $groupid = '01';
 			my $is_controller = 0;
+			my $subaddress = '';
 			foreach my $link_record (split(/,/,$link_section))
 			{
 				my ($key,$value) = split(/=/,$link_record);
@@ -3000,7 +3001,7 @@ sub delete_link
         else
         {
 		&::print_log("[Insteon::ALDB_PLM] no entry in linktable could be found for: ".
-		"deviceid=$device_id, group=$group, is_controller=$is_controller, subaddress=$subaddress"
+		"deviceid=$deviceid, group=$group, is_controller=$is_controller, subaddress=$subaddress");
 		if ($link_parms{callback})
                 {
 			package main;
