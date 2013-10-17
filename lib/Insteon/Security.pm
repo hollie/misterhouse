@@ -126,6 +126,7 @@ sub new
 		$$self{queue_timer} = new Timer;
 	}
 	bless $self,$class;
+	$$self{is_deaf} = 1;
 	return $self;
 }
 
@@ -775,6 +776,7 @@ sub new
 	my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
         $$self{message_types} = \%message_types;
 	bless $self,$class;
+	$$self{is_deaf} = 1;
 	return $self;
 }
 
