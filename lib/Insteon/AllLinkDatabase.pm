@@ -2828,7 +2828,7 @@ sub delete_orphan_links
 							my @lights = $member->find_members('Insteon::BaseLight');
 							if (@lights)
                                                         {
-								$member = @lights[0]; # pick the first
+								$member = $lights[0]; # pick the first
 							}
 						}
 						if ($member->isa('Insteon::BaseDevice'))
@@ -2851,7 +2851,7 @@ sub delete_orphan_links
                                                         	{
 									# at this point, the forward link is ok; but, only if the reverse
 									# link also exists.  So, check:
-									if ($member->has_link($self, $group, 0, $data3))
+									if ($member->has_link($self, $group, 0, $linkmember->group))
                                                                 	{
 										$is_invalid = 0;
 									}
@@ -2867,6 +2867,7 @@ sub delete_orphan_links
 					if ($is_invalid)
                                         {
 						# then, there is a good chance that a reciprocal link exists; if so, delet it too
+						# KRK Need to delete ALL responder links regardless of data3
 						if ($device->has_link($self,$group,0, $data3))
                                                 {
                                                 	if ($audit_mode)
@@ -2886,6 +2887,7 @@ sub delete_orphan_links
 								push @{$$self{delete_queue}}, \%delete_req;
                                                         }
 						}
+						# KRK Why are we not deleting the invalid PLM link here?
 					}  # if $is_invalid
 				} # else
 			}
