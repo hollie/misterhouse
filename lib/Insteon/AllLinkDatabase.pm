@@ -2968,7 +2968,11 @@ sub delete_link
 	my $deviceid = ($insteon_object) ? $insteon_object->device_id : $link_parms{deviceid};
 	my $group = $link_parms{group};
 	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
-	my $linkkey = lc $deviceid . $group . (($is_controller) ? '1' : '0');
+	my $subaddress = (defined $link_parms{data3}) ? $link_parms{data3} : '00';
+	if ($subaddress eq '00' || $subaddress eq '01'){
+		$subaddress = '';
+	}
+	my $linkkey = lc $deviceid . $group . $is_controller . $subaddress;
 	if (defined $$self{aldb}{$linkkey})
         {
 		my $cmd = '80'
@@ -2990,7 +2994,8 @@ sub delete_link
 	}
         else
         {
-		&::print_log("[Insteon::ALDB_PLM] no entry in linktable could be found for linkkey: $linkkey");
+		&::print_log("[Insteon::ALDB_PLM] no entry in linktable could be found for: ".
+		"deviceid=$device_id, group=$group, is_controller=$is_controller, subaddress=$subaddress"
 		if ($link_parms{callback})
                 {
 			package main;
@@ -3036,12 +3041,16 @@ sub add_link
 		$device_id = lc $insteon_object->device_id;
 	}
 	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
+	my $subaddress = (defined $link_parms{data3}) ? $link_parms{data3} : '00';
+	if ($subaddress eq '00' || $subaddress eq '01'){
+		$subaddress = '';
+	}
 	# first, confirm that the link does not already exist
-	my $linkkey = lc $device_id . $group . $is_controller;
+	my $linkkey = lc $device_id . $group . $is_controller . $subaddress;
 	if (defined $$self{aldb}{$linkkey})
         {
 		&::print_log("[Insteon::ALDB_PLM] WARN: attempt to add link to PLM that already exists! "
-			. "deviceid=" . $device_id . ", group=$group, is_controller=$is_controller");
+			. "deviceid=$device_id, group=$group, is_controller=$is_controller, subaddress=$subaddress");
 		if ($link_parms{callback})
                 {
 			package main;
@@ -3099,9 +3108,14 @@ or false if it does not.  Generally called as part of C<delete_orphan_links()>.
 sub has_link
 {
 	my ($self, $insteon_object, $group, $is_controller, $subaddress) = @_;
-        # note, subaddress is IGNORED!!
 	my $key = lc $insteon_object->device_id . $group . $is_controller;
-	return (defined $$self{aldb}{$key}) ? 1 : 0;
+	$subaddress = '00' unless $subaddress;
+	# append the data3 value (controller = group, responder = 00); 
+	if (!($subaddress eq '00' or $subaddress eq '01'))
+        {
+		$key .= $subaddress;
+	}
+	return (defined $$self{aldb}{$key});
 }
 
 =back
