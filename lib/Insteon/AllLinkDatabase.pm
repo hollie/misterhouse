@@ -404,9 +404,13 @@ sub delete_link
 
 =item C<delete_orphan_links()>
 
-Reviews the cached version of all of the ALDBs and based on this review removes
-links from this device which are not present in the mht file, not defined in the 
-code, or links which are only half-links..
+Reviews the cached version of the link database for the device and removes
+links from THIS device which are not present in the mht file, link to non-existant
+devices, or which are only half-links.
+
+Since this routine only processes this device, it is best to run the voice 
+command 'delete all orphan links' from the interface so that all devices are 
+scanned and processed.
 
 =cut
 
@@ -416,181 +420,155 @@ sub delete_orphan_links
 	@{$$self{delete_queue}} = (); # reset the work queue
 	$$self{delete_queue_processed} = 0;
 	my $selfname = $$self{device}->get_object_name;
-	my $num_deleted = 0;
 
 	# first, make sure that the health of ALDB is ok
 	if ($self->health ne 'good') {
-		if ($$self{device}->isa('Insteon::RemoteLinc') or $$self{device}->isa('Insteon::MotionSensor')) {
-			&::print_log("[Insteon::AllLinkDatabase] Delete orphan links: ignoring link from deaf device: $selfname");
-	
+		if ($$self{device}->is_deaf) {
+			::print_log("[Insteon::AllLinkDatabase] Delete orphan links: Will not scan deaf device: $selfname");
 		} 
+		elsif ($self->health ne 'empty'){
+			::print_log("[Insteon::AllLinkDatabase] Delete orphan links: Skipping $selfname, it has no links");
+		}
 		else {
-			&::print_log("[Insteon::AllLinkDatabase] Delete orphan links: skipping $selfname because health: "
-				. $self->health . ". Please rescan this device!!")
-				if ($self->health ne 'empty');
+			::print_log("[Insteon::AllLinkDatabase] Delete orphan links: skipping $selfname because health: "
+				. $self->health . ". Please rescan the link table of this device and rerun delete "
+				. "orphans if necessary");
 		}
 		$self->_process_delete_queue();
 		return;
 	}
 
-	# Loop through device's ALDB table
-	for my $linkkey (keys %{$$self{aldb}}) {
-		#Skip empty addresses
-		next if ($linkkey eq 'empty');
+	# Loop through the device's ALDB table
+	LINKKEY: for my $linkkey (keys %{$$self{aldb}}) {
+		# Skip empty addresses
+		next LINKKEY if ($linkkey eq 'empty');
 		
-		#Delete duplicate entries
+		# Delete duplicate entries
 		if ($linkkey eq 'duplicates') {
-			my @duplicate_addresses = ();
-			push @duplicate_addresses, @{$$self{aldb}{duplicates}};
-			my $address = pop @duplicate_addresses;
-			while ($address)
-			{
-				if ($audit_mode)
-				{
-					&::print_log("[Insteon::AllLinkDatabase] (AUDIT) Delete orphan because duplicate found "
-						. "$selfname, address=$address");
-				}
-				else
-				{
-					my %delete_req = (address => $address,
-							callback => "$selfname->_aldb->_process_delete_queue()",
-							cause => "duplicate record found");
-					push @{$$self{delete_queue}}, \%delete_req;
-					$num_deleted++;
-				}
-				$address = pop @duplicate_addresses;
+			push my @duplicate_addresses, @{$$self{aldb}{duplicates}};
+			foreach (@duplicate_addresses) {
+				my %delete_req = (address => $_,
+					callback => "$selfname->_aldb->_process_delete_queue()",
+					cause => "it is a duplicate record");
+				push @{$$self{delete_queue}}, \%delete_req;
 			}
-			next; #for linkkey
+			next LINKKEY;
 		}
 
 		# Initialize Variables
-		my $deviceid = lc $$self{aldb}{$linkkey}{deviceid};
-		my $linked_device;
-		if ($deviceid eq lc $$self{device}->interface->device_id) {
-			$linked_device = $$self{device}->interface;
-		} else {
-			$linked_device = Insteon::get_object($deviceid,'01');
-		}
-		my $group = $$self{aldb}{$linkkey}{group};
-		my $is_controller = $$self{aldb}{$linkkey}{is_controller};
-		my $data3 = $$self{aldb}{$linkkey}{data3};
-		my $plm_scene;
+		my ($linked_device, $plm_scene, $controller_object, $link_defined,
+			$controller_id, $linked_id, $responder_id, $link_data3,
+			$linked_group);
+		my $group 		= lc $$self{aldb}{$linkkey}{group};
+		my $is_controller 	= $$self{aldb}{$linkkey}{is_controller};
+		my $data3 		= lc $$self{aldb}{$linkkey}{data3};
+		my $deviceid 		= lc $$self{aldb}{$linkkey}{deviceid};
+		my $self_id		= lc $$self{device}->device_id;
+		my $interface_id	= lc $$self{device}->interface->device_id;
+		$linked_device = Insteon::get_object($deviceid,'01');
+		$linked_device = $$self{device}->interface if ($deviceid eq $interface_id);
+		my %delete_req = (deviceid => $deviceid,
+			group => $group,
+			is_controller => $is_controller,
+			callback => "$selfname->_aldb->_process_delete_queue()",
+			data3 => $data3);
 
-		#Is the linked device defined in MH?
+		# Is the linked device defined in MH?
 		if (!($linked_device)) {
-			my %delete_req = (deviceid => $deviceid,
-				group => $group,
-				is_controller => $is_controller,
-				callback => "$selfname->_aldb->_process_delete_queue()",
-				data3 => $data3,
-				cause => "no device could with $deviceid could be found");
+			$delete_req{cause} = "no device with deviceid: $deviceid could be found";
 			push @{$$self{delete_queue}}, \%delete_req;
+			next LINKKEY;
 		} 
+
+		# IF a PLM Scene, is the PLM Scene defined in MH?
+		if ($linked_device->isa("Insteon::BaseInterface") and !$is_controller) {
+			$plm_scene = &Insteon::get_object('000000', $group);
+			if ($group eq '01' || $group eq '00') {
+				::print_log("[Insteon::AllLinkDatabase] DEBUG2 Ignoring orphan responder link from "
+					. $selfname . " to PLM for group 01 or 00") if $main::Debug{insteon} >= 2;
+				next LINKKEY;
+			}
+			elsif (!ref $plm_scene) {
+				$delete_req{cause} = "no plm scene for this group could be found";
+				push @{$$self{delete_queue}}, \%delete_req;
+				next LINKKEY;
+			}
+		}
+
+		# Is this link defined in MH?
+		# First define variables based on type of link
+		$linked_id = $linked_device->device_id;
+		$controller_id = ($is_controller) ? $self_id : $linked_id;
+		$responder_id = ($is_controller) ? $linked_id : $self_id;
+		$controller_object = Insteon::get_object($controller_id,$group);
+		$controller_object = $plm_scene if (ref $plm_scene);
 		
-		#Is the device deaf?
-		elsif ($linked_device->isa('Insteon::RemoteLinc') or $linked_device->isa('Insteon::MotionSensor')) {
+		# Second, iterate over the controller object members to find the link definition
+		MEMBERS: foreach my $member_ref (keys %{$$controller_object{members}}) {
+			my $member = $$controller_object{members}{$member_ref}{object};
+			if ($member->isa('Light_Item')) {
+				my @lights = $member->find_members('Insteon::BaseLight');
+				$member = $lights[0] if (@lights); # pick the first
+			}
+			# For resp, D3 = resp group; For cont, D3 = cont group
+			$link_data3 = ($is_controller) ? $group : $member->group;
+			if ($member->device_id eq $responder_id && 
+			($data3 eq '00' or ($data3 eq $link_data3))) {
+				$link_defined = 1;
+				#Identify the linked device's group for use later
+				$linked_group = ($is_controller) ? $member->group : $group;
+				last MEMBERS;
+			}
+		}
+
+		# Third, delete link if not defined
+		if (!$link_defined){
+			$delete_req{cause} = "link is not defined in MisterHouse";
+			push @{$$self{delete_queue}}, \%delete_req;
+			next LINKKEY;
+		}
+
+		# Ignore links to deaf devices
+		if ($linked_device->is_deaf) {
 			::print_log("[Insteon::AllLinkDatabase] Delete orphan links: "
 				."ignoring link from $selfname to 'deaf' device: " . $linked_device->get_object_name);
+			next LINKKEY;
 		}
 		
-		# Is the ALDB Cache of the linked device healthy?
-		elsif ($linked_device->_aldb->health ne 'good' && $linked_device->_aldb->health ne 'empty') {
-			&::print_log("[Insteon::AllLinkDatabase] Delete orphan links: skipping check for reciprocal links from "
-				. $linked_device->get_object_name . " because health: "
+		# Ignore links to unhealthy devices 
+		if ($linked_device->_aldb->health ne 'good' && $linked_device->_aldb->health ne 'empty') {
+			::print_log("[Insteon::AllLinkDatabase] Delete orphan links: skipping check for reciprocal links from "
+				. $linked_device->get_object_name . " because aldb health of that device is "
 				. $linked_device->_aldb->health . ". Please rescan this device!!");
+			next LINKKEY;
 		}
 		
 		# Ignore Controller Links to the PLM
-		elsif ($linked_device->isa("Insteon::BaseInterface") and $is_controller) {
+		if ($linked_device->isa("Insteon::BaseInterface") and $is_controller) {
 			# ignore since this is just a link back to the PLM
+			next LINKKEY;
 		}
-		
-		# Does a reciprocal responder link exist?
-		elsif (!($is_controller && $linked_device->has_link($$self{device},$group,1, $group))) {
-			my $cause = "Linked device does not have a link pointing back to device ";
-			my %delete_req = (deviceid => $deviceid,
-				group => $group,
-				is_controller => $is_controller,
-				callback => "$selfname->_aldb->_process_delete_queue()",
-				object => $linked_device,
-				data3 => $data3,
-				cause => $cause);
+
+		# Does a reciprocal link exist?
+		if ($linked_device->has_link($$self{device},$group,($is_controller) ? 0 : 1, $linked_group)) {
+			$delete_req{cause} = "no reciprocal link was found on " . $linked_device->get_object_name;
 			push @{$$self{delete_queue}}, \%delete_req;
-			$num_deleted++;
 		}
 
-		# Does this PLM Scene exist
-		elsif ($linked_device->isa("Insteon::BaseInterface") and !$is_controller) {
-			$plm_scene = &Insteon::get_object('000000', $group);
-			if ($group eq '01' || $group eq '00') {
-				#ignore manual responder link to PLM group 01 or 00 required for I2CS devices
-				main::print_log("[Insteon::AllLinkDatabase] DEBUG2 Ignoring orphan responder link from "
-					. $selfname . " to PLM for group 01 or 00") if $main::Debug{insteon} >= 2;
-			}
-			elsif !(ref $plm_scene) {
-				# delete the link since it doesn't exist
-				my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
-					callback => "$selfname->_aldb->_process_delete_queue()", object => $linked_device,
-					cause => "no plm scene for this group could be found", data3 => $data3);
-				push @{$$self{delete_queue}}, \%delete_req;
-				$num_deleted++;
-			}
-		}
-
-		#Does recip link exist?
-		elsif (!($linked_device->has_link($self,$group,($is_controller) ? 0:1, $data3))) {
-			my %delete_req = (deviceid => $deviceid,
-				group => $group,
-				is_controller => $is_controller,
-				callback => "$selfname->_process_delete_queue()",
-				object => $linked_device,
-				cause => "no link to the device could be found",
-				data3 => $data3);
-			push @{$$self{delete_queue}}, \%delete_req;
-			$num_deleted++;
-		}
-
-		# Does MHT entry exist?
-		else {
-			my $is_invalid = 1;
-			my $controller_object;
-			if (ref $plm_scne) {
-				$controller_object = $plm_scene;
-			} 
-			elsif ($is_controller) {
-				$controller_object = Insteon::get_object($$self{device}->device_id,$group);
-			} 
-			else {
-				$controller_object = Insteon::get_object($linked_device->device_id,$group);
-			}
-			
-			# now, iterate over the controller object members to see if a match exists
-			foreach my $member_ref (keys %{$$controller_object{members}}) {
-				my $member = $$controller_object{members}{$member_ref}{object};
-				if ($member->isa('Light_Item')) {
-					my @lights = $member->find_members('Insteon::BaseLight');
-					if (@lights) {
-						$member = $lights[0]; # pick the first
-					}
-				}
-				if ($member->device_id eq $$self{device}->device_id) {
-					if ($data3 eq '00' or (lc $data3 eq lc $member->group)) {
-						$is_invalid = 0;
-						last;
-					}
-				}
-			}
-			if ($is_invalid) {
-				my %delete_req = (deviceid => $deviceid, group => $group, is_controller => $is_controller,
-					callback => "$selfname->_aldb->_process_delete_queue()", object => $linked_device,
-					cause => "this link is not defined in the MHT file", data3 => $data3);
-					push @{$$self{delete_queue}}, \%delete_req;
-					$num_deleted++;
-			}
-		}
+	} # /LINKKEY Loop
+	foreach (@{$$self{delete_queue}}){
+		my %delete_req = %{$_};
+		my $audit_text = "(AUDIT)" if ($audit_mode);
+		my $log_text = "[Insteon::AllLinkDatabase] $audit_text Deleting the following link on $selfname because ";
+		$log_text .= $delete_req{cause} . "\n";
+		delete $delete_req{cause};
+		$log_text .= "$_ = $delete_req{$_}" for (keys %delete_req); 
 	}
-	if (!($audit_mode)) {
-		&::print_log("[Insteon::AllLinkDatabase] ## Begin processing delete queue for: $selfname");
+	if ($audit_mode) {
+		@{$$self{delete_queue}} = ();
+	}
+	else {
+		::print_log("[Insteon::AllLinkDatabase] ## Begin processing delete queue for: $selfname");
 	}
 	$self->_process_delete_queue();
 }
