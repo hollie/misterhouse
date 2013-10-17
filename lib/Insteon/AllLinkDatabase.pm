@@ -2628,25 +2628,28 @@ sub restore_linktable
 {
 	my ($self, $links) = @_;
 	if ($links)
-        {
+	{
 		foreach my $link_section (split(/\|/,$links))
-                {
+		{
 			my %link_record = ();
 			my $deviceid = '';
 			my $groupid = '01';
 			my $is_controller = 0;
 			foreach my $link_record (split(/,/,$link_section))
-                        {
+			{
 				my ($key,$value) = split(/=/,$link_record);
 				$deviceid = $value if ($key eq 'deviceid');
 				$groupid = $value if ($key eq 'group');
 				$is_controller = $value if ($key eq 'is_controller');
+				$subaddress = $value if ($key eq 'data3');
 				$link_record{$key} = $value if $key and defined($value);
 			}
-			my $linkkey = $deviceid . $groupid . $is_controller;
+			if ($subaddress eq '00' || $subaddress eq '01'){
+				$subaddress = '';
+			}
+			my $linkkey = $deviceid . $groupid . $is_controller . $subaddress;
 			%{$$self{aldb}{lc $linkkey}} = %link_record;
 		}
-#		$self->log_alllink_table();
 	}
 }
 
