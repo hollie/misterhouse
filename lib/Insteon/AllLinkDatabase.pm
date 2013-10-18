@@ -584,7 +584,7 @@ sub delete_orphan_links
 
 		# Does a reciprocal link exist?
 		# Temp OLD compatibility fix for data3, delete to #END to upgrade
-		if (($linked_device eq Insteon::active_interface) &&
+		if (($linked_device eq Insteon::active_interface()) &&
 		 (!$$self{device}->isa('Insteon::KeyPadLincRelay'))){
 			$linked_group = '00';
 		}
