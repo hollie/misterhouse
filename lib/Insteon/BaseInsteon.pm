@@ -1263,6 +1263,7 @@ sub new
     $$self{hops_left_count} = 0;
     $$self{max_hops_count} = 0;
     $$self{outgoing_hop_count} = 0;
+	$$self{is_deaf} = 0;
 
 	return $self;
 }
@@ -1309,6 +1310,23 @@ sub set_receive
 	my ($self, $p_state, $p_setby, $p_response) = @_;
 	$self->level($p_state) if $self->can('level'); # update the level value
 	$self->SUPER::set_receive($p_state, $p_setby, $p_response);
+}
+
+=item C<is_deaf()>
+
+Returns true if the device must be awake in order to respond to messages.  Most
+devices are not deaf, currently devices that are deaf are battery operated
+devices such as the Motion Sensor, RemoteLinc and TriggerLinc.
+
+At the BaseObject level all devices are defined as not deaf.  Objects which
+inherit BaseObject should redefine is_deaf as necessary.
+
+=cut
+
+sub is_deaf
+{
+	my ($self) = @_;
+	return $$self{is_deaf};
 }
 
 =item C<is_controller()>

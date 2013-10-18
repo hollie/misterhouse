@@ -79,6 +79,7 @@ sub new
 		$$self{queue_timer} = new Timer;
 	}
 	bless $self,$class;
+	$$self{is_deaf} = 1;
 	return $self;
 }
 
