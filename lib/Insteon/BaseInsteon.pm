@@ -1100,6 +1100,13 @@ sub get_voice_cmds
     return \%voice_cmds;
 }
 
+sub _aldb
+{
+   my ($self) = @_;
+   my $root_obj = $self->get_root();
+   return $$root_obj{aldb};
+}
+
 =back
 
 =head2 INI PARAMETERS
@@ -1593,13 +1600,6 @@ sub enter_linking_mode
 	$message->success_callback($success_callback);
 	$message->failure_callback($failure_callback);
 	$self->_send_cmd($message);
-}
-
-sub _aldb
-{
-   my ($self) = @_;
-   my $root_obj = $self->get_root();
-   return $$root_obj{aldb};
 }
 
 =item C<set_operating_flag(flag)>
@@ -3474,6 +3474,17 @@ sub set
 sub is_root
 {
    return 0;
+}
+
+=item C<get_root()>
+
+Returns the root object of a device, in this case the interface.
+
+=cut
+
+sub get_root {
+	my ($self) = @_;
+	return $self->interface;
 }
 
 =item C<get_voice_cmds>
