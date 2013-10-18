@@ -470,7 +470,7 @@ sub delete_orphan_links
 		# Initialize Variables
 		my ($linked_device, $plm_scene, $controller_object, $link_defined,
 			$controller_id, $linked_id, $responder_id, $link_data3,
-			$linked_group, $self_subgroup, $linked_subgroup, $interface_id,
+			$linked_group, $self_subgroup, $interface_id,
 			$link_subgroup);
 		my $group 		= lc $$self{aldb}{$linkkey}{group};
 		my $is_controller 	= $$self{aldb}{$linkkey}{is_controller};
@@ -548,8 +548,6 @@ sub delete_orphan_links
 				$link_defined = 1;
 				#Identify the linked device's group for use later
 				$linked_group = ($is_controller) ? $member->group : $group;
-				#Only needed to support OLD method
-				$linked_subgroup = $member;
 				last MEMBERS;
 			} 
 		}
@@ -595,15 +593,6 @@ sub delete_orphan_links
 		}
 
 		# Does a reciprocal link exist?
-		# Temp OLD compatibility fix for data3, delete to #END to upgrade
-		if (($linked_device eq Insteon::active_interface()) &&
-		 (!$$self{device}->isa('Insteon::KeyPadLincRelay'))){
-			$linked_group = '00';
-		}
-		if ($$self{device}->isa('Insteon::KeyPadLincRelay')){
-			$linked_group = $linked_subgroup->group;
-		}
-		#END
 		if (! $linked_device->has_link($$self{device},$group,($is_controller) ? 0 : 1, lc $linked_group)) {
 			$delete_req{cause} = "no reciprocal link was found on " . $linked_device->get_object_name . " linked_group $linked_group linkkey $linkkey";
 			push @{$$self{delete_queue}}, \%delete_req;
