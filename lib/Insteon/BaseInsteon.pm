@@ -1315,8 +1315,8 @@ Returns true if the device must be awake in order to respond to messages.  Most
 devices are not deaf, currently devices that are deaf are battery operated
 devices such as the Motion Sensor, RemoteLinc and TriggerLinc.
 
-At the BaseObject level all devices are defined as deaf.  Objects which inherit
-BaseObject should redefine is_deaf as necessary.
+At the BaseObject level all devices are defined as not deaf.  Objects which
+inherit BaseObject should redefine is_deaf as necessary.
 
 =cut
 
