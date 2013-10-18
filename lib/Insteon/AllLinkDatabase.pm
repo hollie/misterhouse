@@ -80,6 +80,26 @@ sub health
         return $$self{health};
 }
 
+=item C<get_linkkey($deviceid, $group, $is_controller, $data3)>
+
+Used to track the health of MisterHouse's copy of a device's ALDB.
+
+If provided, saves status to memory.
+
+Returns the saved health status.
+
+=cut
+
+sub get_linkkey {
+	my ($self, $deviceid, $group, $is_controller, $data3) = @_;
+	my $linkkey = $deviceid . $group . $is_controller;
+	# '00' and '01' are generally interchangable for $data3 values and are
+	# the most common values.  So to make searching easier we only 
+	# add data3 if it is unique
+	$linkkey .= $data3 if ($data3 ne '00' and $data3 ne '01');
+	return lc $linkkey;
+}
+
 =item C<scandatetime([seconds])>
 
 Used to track the time, in unix time seconds, of the last ALDB scan.
@@ -266,11 +286,8 @@ sub restore_aldb
 				@{$$self{aldb}{duplicates}} = @aldb_duplicates;
 			} elsif (scalar %aldb_record) {
 				next unless $deviceid;
-				my $aldbkey = $deviceid . $groupid . $is_controller;
-				# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
-				if ($subaddress ne '00' and $subaddress ne '01') {
-					$aldbkey .= $subaddress;
-				}
+				my $aldbkey = $self->get_linkkey($deviceid, $groupid, 
+							$is_controller, $subaddress);
 				%{$$self{aldb}{$aldbkey}} = %aldb_record;
 			}
 		}
@@ -361,12 +378,7 @@ sub delete_link
 		my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
 		my $subaddress = ($link_parms{data3}) ? $link_parms{data3} : '00';
 		# get the address via lookup into the hash
-		my $key = lc $deviceid . $groupid . $is_controller;
-		# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
-		if ($subaddress ne '00' and $subaddress ne '01')
-		{
-			$key .= $subaddress;
-		}
+		my $key = $self->get_linkkey($deviceid, $groupid, $is_controller, $subaddress);
 		my $address = $$self{aldb}{$key}{address};
 		if ($address)
 		{
@@ -821,13 +833,7 @@ sub add_link
 		$data3_default = '01';
 	}
 	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : $data3_default;
-	# get the address via lookup into the hash
-	my $key = lc $device_id . $group . $is_controller;
-	# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
-	if (!($data3 eq '00' or $data3 eq '01'))
-        {
-		$key .= $data3;
-	}
+	my $key = $self->get_linkkey($device_id, $group, $is_controller, $data3);
 	if (!defined($link_parms{aldb_check}) && (!$$self{device}->isa('Insteon_PLM'))){
 		## Check whether ALDB is in sync
 		$self->{callback_parms} = \%link_parms;
@@ -850,7 +856,7 @@ sub add_link
 		&::print_log("[Insteon::AllLinkDatabase] WARN: attempt to add link to " 
 			. $$self{device}->get_object_name 
 			. " that already exists! object=" . $insteon_object->get_object_name 
-			. ", group=$group, is_controller=$is_controller, subaddress=$subaddress");
+			. ", group=$group, is_controller=$is_controller, data3=$data3");
 		if ($link_parms{callback})
                 {
 			package main;
@@ -949,14 +955,7 @@ sub update_link
 	}
 	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : $data3_default;
 	my $deviceid = $insteon_object->device_id;
-	my $subaddress = $data3;
-	# get the address via lookup into the hash
-	my $key = lc $deviceid . $group . $is_controller;
-	# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
-	if (!($subaddress eq '00' or $subaddress eq '01'))
-        {
-		$key .= $subaddress;
-	}
+	my $key = $self->get_linkkey($deviceid, $group, $is_controller, $data3);
 	if (!defined($link_parms{aldb_check}) && (!$$self{device}->isa('Insteon_PLM'))){
 		## Check whether ALDB is in sync
 		$self->{callback_parms} = \%link_parms;
@@ -1142,22 +1141,14 @@ or false if it does not.  Generally called as part of C<delete_orphan_links()>.
 
 sub has_link
 {
-	my ($self, $insteon_object, $group, $is_controller, $subaddress) = @_;
-	my $key = "";
-	if ($insteon_object->isa('Insteon::BaseObject') || $insteon_object->isa('Insteon::BaseInterface'))
-        {
-            $key = lc $insteon_object->device_id . $group . $is_controller;
+	my ($self, $insteon_object, $group, $is_controller, $data3) = @_;
+	my $deviceid;
+	if ($insteon_object->isa('Insteon::AllLinkDatabase')) {
+		$deviceid = $$insteon_object{device}->device_id;
+	} else {
+		$deviceid = lc $insteon_object->device_id;
 	}
-        elsif ($insteon_object->isa('Insteon::AllLinkDatabase'))
-        {
-            $key = lc $$insteon_object{device}->device_id . $group . $is_controller;
-	}
-	$subaddress = '00' unless $subaddress;
-	# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
-	if (!($subaddress eq '00' or $subaddress eq '01'))
-        {
-		$key .= $subaddress;
-	}
+	my $key = $self->get_linkkey($deviceid, $group, $is_controller, $data3);
 	return (defined $$self{aldb}{$key});
 }
 
@@ -1289,15 +1280,10 @@ sub _on_poke
                 elsif ($$self{_mem_action} eq 'aldb_data3')
                 {
 			## update the aldb records w/ the changes that were made
-			my $aldbkey = $$self{pending_aldb}{deviceid}
-                        		. $$self{pending_aldb}{group}
-                                        . $$self{pending_aldb}{is_controller};
-			# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
-			my $subaddress = $$self{pending_aldb}{data3};
-			if (($subaddress ne '00') and ($subaddress ne '01'))
-                        {
-				$aldbkey .= $subaddress;
-			}
+			my $aldbkey = $self->get_linkkey($$self{pending_aldb}{deviceid},
+							$$self{pending_aldb}{group},
+							$$self{pending_aldb}{is_controller},
+							$$self{pending_aldb}{data3});
 			$$self{aldb}{$aldbkey}{data1} = $$self{pending_aldb}{data1};
 			$$self{aldb}{$aldbkey}{data2} = $$self{pending_aldb}{data2};
 			$$self{aldb}{$aldbkey}{data3} = $$self{pending_aldb}{data3};
@@ -1356,15 +1342,10 @@ sub _on_poke
                 $self->delete_duplicate_link_address($$self{pending_aldb}{address});
 		if (exists $$self{pending_aldb}{deviceid})
                 {
-			my $key = lc $$self{pending_aldb}{deviceid}
-                        		. $$self{pending_aldb}{group}
-                                        . $$self{pending_aldb}{is_controller};
-			# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
-			my $subaddress = $$self{pending_aldb}{data3};
-			if ($subaddress ne '00' and $subaddress ne '01')
-                        {
-				$key .= $subaddress;
-			}
+			my $key = $self->get_linkkey($$self{pending_aldb}{deviceid},
+							$$self{pending_aldb}{group}, 
+							$$self{pending_aldb}{is_controller},
+							$$self{pending_aldb}{data3});
 			delete $$self{aldb}{$key};
 		}
 		$self->health("good");
@@ -1656,15 +1637,10 @@ sub _on_peek
 					if ($$self{pending_aldb}{inuse})
                                         {
 					# save pending_aldb and then clear it out
-						my $aldbkey = lc $$self{pending_aldb}{deviceid}
-							. $$self{pending_aldb}{group}
-							. $$self{pending_aldb}{is_controller};
-						# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
-						my $subaddress = $$self{pending_aldb}{data3};
-						if ($subaddress ne '00' and $subaddress ne '01')
-                                                {
-							$aldbkey .= $subaddress;
-						}
+						my $aldbkey = $self->get_linkkey($$self{pending_aldb}{deviceid},
+										$$self{pending_aldb}{group},
+										$$self{pending_aldb}{is_controller},
+										$$self{pending_aldb}{data3});
 						# check for duplicates
 						if (exists $$self{aldb}{$aldbkey} && $$self{aldb}{$aldbkey}{inuse})
                                                 {
@@ -2078,15 +2054,10 @@ sub on_read_write_aldb
 					$$self{pending_aldb}{data3} = lc substr($msg{extra},26,2);
 
 					# save pending_aldb and then clear it out
-					my $aldbkey = lc $$self{pending_aldb}{deviceid}
-						. $$self{pending_aldb}{group}
-						. $$self{pending_aldb}{is_controller};
-					# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
-					my $subaddress = $$self{pending_aldb}{data3};
-					if ($subaddress ne '00' and $subaddress ne '01')
-					{
-						$aldbkey .= $subaddress;
-					}
+					my $aldbkey = $self->get_linkkey($$self{pending_aldb}{deviceid},
+									$$self{pending_aldb}{group},
+									$$self{pending_aldb}{is_controller},
+									$$self{pending_aldb}{data3});
 					# check for duplicates
 					if (exists $$self{aldb}{$aldbkey} && $$self{aldb}{$aldbkey}{inuse})
 					{
@@ -2114,15 +2085,10 @@ sub on_read_write_aldb
 	{
 		unless ($$self{_mem_activity} eq 'delete') {
 			## update the aldb records w/ the changes that were made
-			my $aldbkey = $$self{pending_aldb}{deviceid}
-					. $$self{pending_aldb}{group}
-					. $$self{pending_aldb}{is_controller};
-			# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
-			my $subaddress = $$self{pending_aldb}{data3};
-			if (($subaddress ne '00') and ($subaddress ne '01'))
-			{
-				$aldbkey .= $subaddress;
-			}
+			my $aldbkey = $self->get_linkkey($$self{pending_aldb}{deviceid},
+							$$self{pending_aldb}{group},
+							$$self{pending_aldb}{is_controller},
+							$$self{pending_aldb}{data3});
 			$$self{aldb}{$aldbkey}{data1} = $$self{pending_aldb}{data1};
 			$$self{aldb}{$aldbkey}{data2} = $$self{pending_aldb}{data2};
 			$$self{aldb}{$aldbkey}{data3} = $$self{pending_aldb}{data3};
@@ -2152,15 +2118,10 @@ sub on_read_write_aldb
 	                $self->delete_duplicate_link_address($$self{pending_aldb}{address});
 			if (exists $$self{pending_aldb}{deviceid})
 	                {
-				my $key = lc $$self{pending_aldb}{deviceid}
-	                        		. $$self{pending_aldb}{group}
-	                                        . $$self{pending_aldb}{is_controller};
-				# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
-				my $subaddress = $$self{pending_aldb}{data3};
-				if ($subaddress ne '00' and $subaddress ne '01')
-	                        {
-					$key .= $subaddress;
-				}
+				my $key = $self->get_linkkey($$self{pending_aldb}{deviceid},
+							$$self{pending_aldb}{group}, 
+							$$self{pending_aldb}{is_controller},
+							$$self{pending_aldb}{data3});
 				delete $$self{aldb}{$key};
 			}
 			$self->health("good");
@@ -2444,10 +2405,7 @@ sub restore_linktable
 				$subaddress = $value if ($key eq 'data3');
 				$link_record{$key} = $value if $key and defined($value);
 			}
-			if ($subaddress eq '00' || $subaddress eq '01'){
-				$subaddress = '';
-			}
-			my $linkkey = $deviceid . $groupid . $is_controller . $subaddress;
+			my $linkkey = $self->get_linkkey($deviceid, $groupid, $is_controller, $subaddress);
 			%{$$self{aldb}{lc $linkkey}} = %link_record;
 		}
 	}
@@ -2512,7 +2470,8 @@ sub parse_alllink
 		$link{data1} = substr($data,10,2);
 		$link{data2} = substr($data,12,2);
 		$link{data3} = substr($data,14,2);
-		my $key = $link{deviceid} . $link{group} . $link{is_controller};
+		my $key = $self->get_linkkey($link{deviceid}, $link{group}, 
+					$link{is_controller}, $link{data3});
 		%{$$self{aldb}{lc $key}} = %link;
 	}
 }
@@ -2639,10 +2598,7 @@ sub delete_link
 	my $group = $link_parms{group};
 	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
 	my $subaddress = (defined $link_parms{data3}) ? $link_parms{data3} : '00';
-	if ($subaddress eq '00' || $subaddress eq '01'){
-		$subaddress = '';
-	}
-	my $linkkey = lc $deviceid . $group . $is_controller . $subaddress;
+	my $linkkey = $self->get_linkkey($deviceid, $group, $is_controller, $subaddress);
 	if (defined $$self{aldb}{$linkkey})
         {
 		my $cmd = '80'
@@ -2712,11 +2668,7 @@ sub add_link
 	}
 	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
 	my $subaddress = (defined $link_parms{data3}) ? $link_parms{data3} : '00';
-	if ($subaddress eq '00' || $subaddress eq '01'){
-		$subaddress = '';
-	}
-	# first, confirm that the link does not already exist
-	my $linkkey = lc $device_id . $group . $is_controller . $subaddress;
+	my $linkkey = $self->get_linkkey($device_id, $group, $is_controller, $subaddress);
 	if (defined $$self{aldb}{$linkkey})
         {
 		&::print_log("[Insteon::ALDB_PLM] WARN: attempt to add link to PLM that already exists! "
@@ -2777,14 +2729,9 @@ or false if it does not.  Generally called as part of C<delete_orphan_links()>.
 
 sub has_link
 {
-	my ($self, $insteon_object, $group, $is_controller, $subaddress) = @_;
-	my $key = lc $insteon_object->device_id . $group . $is_controller;
-	$subaddress = '00' unless $subaddress;
-	# append the data3 value (controller = group, responder = 00); 
-	if (!($subaddress eq '00' or $subaddress eq '01'))
-        {
-		$key .= $subaddress;
-	}
+	my ($self, $insteon_object, $group, $is_controller, $data3) = @_;
+	my $key = $self->get_linkkey($insteon_object->device_id, 
+				$group, $is_controller, $data3);
 	return (defined $$self{aldb}{$key});
 }
 

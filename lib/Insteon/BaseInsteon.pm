@@ -2898,10 +2898,10 @@ sub sync_links
 		$tgt_ramp_rate = '0' unless defined $tgt_ramp_rate;
 		$tgt_on_level =~ s/(\d+)%?/$1/;
 		$tgt_ramp_rate =~ s/(\d)s?/$1/;
-		my $resp_aldbkey = lc $insteon_object->device_id . $self->group . '0';
-		if ($member->group ne '01') {
-			$resp_aldbkey .= $member->group;
-		}
+		my $resp_aldbkey = $self->_aldb->get_linkkey($insteon_object->device_id,
+								$self->group,
+								'0',
+								$member->group);
 
 		# 3. Does the responder link exist
 		if (!$member_root->has_link($insteon_object, $self->group, 0, $member->group)){
