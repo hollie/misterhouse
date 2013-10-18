@@ -826,13 +826,17 @@ sub add_link
 		$device_id = lc $insteon_object->device_id;
 	}
 	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
-	# check whether the link already exists
-	# for I2CS devices the default data3 should be 01 no 00
-	my $data3_default = '00';
+
+	# For I2CS devices the default data3 for responders is 01
+	# For all other devices the default data3 for responders is 00
+	my $data3_resp_default = '00';
 	if ($insteon_object->can('engine_version') && $insteon_object->engine_version eq 'I2CS') {
-		$data3_default = '01';
+		$data3_resp_default = '01';
 	}
-	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : $data3_default;
+	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
+	$data3 = $data3_resp_default if (!$is_controller && ($data3 eq '00' || $data3 eq '01'));
+
+	# check whether the link already exists
 	my $key = $self->get_linkkey($device_id, $group, $is_controller, $data3);
 	if (!defined($link_parms{aldb_check}) && (!$$self{device}->isa('Insteon_PLM'))){
 		## Check whether ALDB is in sync
@@ -948,12 +952,16 @@ sub update_link
 		. " and group: $group with on level: $on_level and ramp rate: $ramp_rate") if $main::Debug{insteon};
 	my $data1 = &Insteon::DimmableLight::convert_level($on_level);
 	my $data2 = ($$self{device}->isa('Insteon::DimmableLight')) ? &Insteon::DimmableLight::convert_ramp($ramp_rate) : '00';
-	# for I2CS devices the default data3 should be 01 no 00
-	my $data3_default = '00';
+
+	# For I2CS devices the default data3 for responders is 01
+	# For all other devices the default data3 for responders is 00
+	my $data3_resp_default = '00';
 	if ($insteon_object->can('engine_version') && $insteon_object->engine_version eq 'I2CS') {
-		$data3_default = '01';
+		$data3_resp_default = '01';
 	}
-	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : $data3_default;
+	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
+	$data3 = $data3_resp_default if (!$is_controller && ($data3 eq '00' || $data3 eq '01'));
+
 	my $deviceid = $insteon_object->device_id;
 	my $key = $self->get_linkkey($deviceid, $group, $is_controller, $data3);
 	if (!defined($link_parms{aldb_check}) && (!$$self{device}->isa('Insteon_PLM'))){
@@ -1779,13 +1787,6 @@ sub _write_link
 		$$self{pending_aldb}{is_controller} = $is_controller;
 		$$self{pending_aldb}{data1} = (defined $data1) ? lc $data1 : '00';
 		$$self{pending_aldb}{data2} = (defined $data2) ? lc $data2 : '00';
-		# Note: if device is a KeypadLinc, then $data3 must be assigned the value of the applicable button (01)
-		if (($$self{device}->isa('Insteon::KeyPadLincRelay') or $$self{device}->isa('Insteon::KeyPadLinc')) and ($data3 eq '00'))
-                {
-			&::print_log("[Insteon::ALDB_i1] setting data3 to " . $$self{device}->group . " for this keypadlinc")
-				if $main::Debug{insteon};
-			$data3 = $$self{device}->group;
-		}
 		$$self{pending_aldb}{data3} = (defined $data3) ? lc $data3 : '00';
 		$self->_peek($address);
 	}
@@ -2176,13 +2177,6 @@ sub _write_link
 		$message_extra .= $$self{pending_aldb}{data1}; 
 		$$self{pending_aldb}{data2} = (defined $data2) ? lc $data2 : '00';
 		$message_extra .= $$self{pending_aldb}{data2}; 
-		# Note: if device is a KeypadLinc, then $data3 must be assigned the value of the applicable button (01)
-		if (($$self{device}->isa('Insteon::KeyPadLincRelay') or $$self{device}->isa('Insteon::KeyPadLinc')) and ($data3 eq '00'))
-                {
-			&::print_log("[Insteon::ALDB_i2] setting data3 to " . $$self{device}->group . " for this keypadlinc")
-				if $main::Debug{insteon};
-			$data3 = $$self{device}->group;
-		}
 		$$self{pending_aldb}{data3} = (defined $data3) ? lc $data3 : '00';
 		$message_extra .= $$self{pending_aldb}{data3}; 
 		$message_extra .= '00';  #byte 14
