@@ -25,6 +25,7 @@ L<Generic_Item|Generic_Item>
 
 package Insteon::BaseObject;
 
+use Switch;
 use strict;
 use Insteon::AllLinkDatabase;
 
@@ -101,6 +102,8 @@ sub new
 	$self->restore_data('default_hop_count', 'engine_version');
 
 	$self->initialize();
+	$$self{max_hops} = 3;
+	$$self{min_hops} = 0;
 	$$self{level} = undef;
 	$$self{flag} = "0F";
 	$$self{ackMode} = "1";
@@ -112,6 +115,7 @@ sub new
 	$$self{_onlevel} = undef;
 	$$self{is_responder} = 1;
         $$self{default_hop_count} = 0;
+	$$self{timeout_factor} = 1.0;
 
 	&Insteon::add($self);
 	return $self;
@@ -130,12 +134,6 @@ sub initialize
 	$$self{m_write} = 1;
 	$$self{m_is_locally_set} = 0;
 	# persist local, simple attribs
-
-        # do we really need to ping the devices anymore for a devcat?
-	$$self{ping_timer} = new Timer();
-	$$self{ping_timerTime} = 300;
-#	$$self{ping_timer}->set($$self{ping_timerTime} + (rand() * $$self{ping_timerTime}), $self)
-#		unless $self->group eq '01' and defined $self->devcat;
 }
 
 =item C<interface([interface])>
@@ -185,7 +183,7 @@ sub device_id
 
 Used to store and return the associated group of a device.
 
-If provided, stores group as the device's group.
+If provided, stores group as the device group.
 
 =cut
 
@@ -194,6 +192,71 @@ sub group
 	my ($self, $p_group) = @_;
 	$$self{m_group} = $p_group if $p_group;
 	return $$self{m_group};
+}
+
+=item C<debuglevel([level])>
+
+Returns 1 if Insteon or this device is at least debug level 'level', otherwise returns 0.
+
+=cut
+
+sub debuglevel
+{
+	my ($self, $debug_level) = @_;
+	$debug_level = 1 unless $debug_level;
+	my $objname = lc $self->get_object_name;
+	&::print_log("debuglevel: Processing debug for object $objname ... " . $main::Debug{$objname}) if $main::Debug{insteon} >= 5;
+	return 1 if $main::Debug{insteon} >= $debug_level;
+	return 1 if $main::Debug{$objname} >= $debug_level;
+  return 0;
+}
+
+=item C<timeout_factor($float)>
+
+Changes the amount of time MH will wait to receive a response from a device before
+resending the message.  The value set will be multiplied by the predefined value
+in MH.  $float can be set to any positive decimal number.  For example using 1.0
+will not change the preset values; 1.1 will increase the time MH waits by 10%; and
+0.9 will force MH to wait for only 90% of the predefined time.
+
+This value is NOT saved on reboot, as such likely should be called in a $Reload loop.
+
+=cut
+
+sub timeout_factor {
+	my ($self, $factor) = @_;
+	$$self{timeout_factor} = $factor if $factor;
+	return $$self{timeout_factor};
+}
+
+=item C<max_hops($int)>
+
+Sets the maximum number of hops that may be used in a message sent to the device.
+The default and maximum number is 3.  $int is an integer between 0-3.
+
+This value is NOT saved on reboot, as such likely should be called in a $Reload loop.
+
+=cut
+
+sub max_hops {
+	my ($self, $hops) = @_;
+	$$self{max_hops} = $hops if $hops;
+	return $$self{max_hops};
+}
+
+=item C<min_hops($int)>
+
+Sets the minimum number of hops that may be used in a message sent to the device.
+The default and minimum number is 0.  $int is an integer between 0-3.
+
+This value is NOT saved on reboot, as such likely should be called in a $Reload loop.
+
+=cut
+
+sub min_hops {
+	my ($self, $hops) = @_;
+	$$self{min_hops} = $hops if $hops;
+	return $$self{min_hops};
 }
 
 =item C<default_hop_count([hops])>
@@ -216,7 +279,7 @@ sub default_hop_count
 	unshift(@{$$self{hop_array}}, $$self{default_hop_count}) if (!defined(@{$$self{hop_array}}));
 	if (defined($hop_count)){
 		::print_log("[Insteon::BaseObject] DEBUG3: Adding hop count of " . $hop_count . " to hop_array of "
-			. $self->get_object_name) if $main::Debug{insteon} >= 3;
+			. $self->get_object_name) if $self->debuglevel(3);
 		unshift(@{$$self{hop_array}}, $hop_count) 
 	}
 	pop(@{$$self{hop_array}}) if (scalar(@{$$self{hop_array}}) >20);
@@ -225,6 +288,10 @@ sub default_hop_count
 		$high = $_ if ($high < $_);;
 	}
 	$$self{default_hop_count} = $high;
+	$$self{default_hop_count} = $$self{max_hops} if ($$self{max_hops} &&
+		$$self{default_hop_count} > $$self{max_hops});
+	$$self{default_hop_count} = $$self{min_hops} if ($$self{min_hops} &&
+		$$self{default_hop_count} < $$self{min_hops});
         return $$self{default_hop_count};
 }
 
@@ -265,7 +332,7 @@ sub equals
 
 =item C<set(state[,setby,response])>
 
-Used to set the device's state.  If called by device or a device linked to device, 
+Used to set the device state.  If called by device or a device linked to device, 
 calls C<set_receive()>.  If called by something 
 else, will send the command to the device.
 
@@ -282,14 +349,7 @@ sub set
 		delete $$self{set_timer};
 	}
 
-	# did the queue timer go off?
-	if (ref $p_setby and $p_setby eq $$self{ping_timer}) {
-		if (! (defined($$self{devcat}))) {
-			$self->ping();
-			# set the timer again in case nothing occurs
-			$$self{ping_timer}->set($$self{ping_timerTime} + (rand() * $$self{ping_timerTime}), $self);
-		}
-	} elsif ($self->_is_valid_state($p_state)) {
+	if ($self->_is_valid_state($p_state)) {
 		# always reset the is_locally_set property unless set_by is the device
 		$$self{m_is_locally_set} = 0 unless ref $p_setby and $p_setby eq $self;
 
@@ -320,7 +380,7 @@ sub set
 			return if (lc $p_state eq lc $self->state) and $self->is_acknowledged
 				and not(($p_setby->isa('Insteon::BaseObject') and ($p_setby eq $self)));
 			&::print_log("[Insteon::BaseObject] " . $self->get_object_name()
-				. "::set($p_state, $setby_name)") if $main::Debug{insteon};
+				. "::set($p_state, $setby_name)") if $self->debuglevel();
 			$self->set_receive($p_state,$p_setby,$p_response) if defined $p_state;
 		} else {
                         my $message = $self->derive_message($p_state);
@@ -329,7 +389,7 @@ sub set
 #			$self->_send_cmd(command => $p_state,
 #				type => (($self->isa('Insteon::Insteon_Link') and !($self->is_root)) ? 'alllink' : 'standard'));
 			&::print_log("[Insteon::BaseObject] " . $self->get_object_name() . "::set($p_state, $setby_name)")
-				if $main::Debug{insteon};
+				if $self->debuglevel();
 			$self->is_acknowledged(0);
 			$$self{pending_state} = $p_state;
 			$$self{pending_setby} = $p_setby;
@@ -373,7 +433,7 @@ sub is_acknowledged
 
 =item C<set_receive(state[,setby,response])>
 
-Updates the device's state in MisterHouse.  Triggers state_now, state_changed, and
+Updates the device state in MisterHouse.  Triggers state_now, state_changed, and
 state_final variables to update accordingly.  Which causes tie_events to occur.
 
 If state was set to the same state within the last 1 second, then this is ignored.
@@ -390,7 +450,7 @@ sub set_receive
 		&& ($curr_milli - $$self{set_milliseconds} < $window)){
 		::print_log("[Insteon::BaseObject] Ignoring duplicate set " . $p_state .
 			" state command for " . $self->get_object_name . " received in " .
-			"less than $window milliseconds") if $main::Debug{insteon}; 
+			"less than $window milliseconds") if $self->debuglevel(); 
 	} else {
 		$$self{set_milliseconds} = $curr_milli;
 		$self->SUPER::set($p_state, $p_setby, $p_response);
@@ -490,7 +550,7 @@ sub derive_message
 	if (!(defined $p_extra)) {
 		if ($command eq 'on')
 		{
-			if ($self->isa('Insteon::BaseDevice') && defined $self->local_onlevel) {
+			if ($self->can('local_onlevel') && defined $self->local_onlevel) {
 				$level = 2.55 * $self->local_onlevel;
 				$command = 'on_fast';
 			} else {
@@ -513,7 +573,7 @@ sub derive_message
 
 	# confirm that the resulting $msg is legitimate
 	if (!(defined($self->message_type_code($command)))) {
-		&::print_log("[Insteon::BaseInsteon] invalid state=$command") if $main::Debug{insteon};
+		&::print_log("[Insteon::BaseInsteon] invalid state=$command") if $self->debuglevel();
 		return undef;
 	}
 
@@ -528,7 +588,7 @@ sub derive_message
 	} else {
 		if ($command eq 'on')
 		{
-			$message->extra(sprintf("%02X",$level));
+			$message->extra(sprintf("%02X",int($level+.5)));
 		} else {
 			$message->extra('00');
 		}
@@ -594,10 +654,10 @@ sub _is_info_request
 	my $is_info_request = 0;
 	if ($cmd eq 'status_request') {
 		$is_info_request++;
-		my $ack_on_level = (hex($msg{extra}) >= 254) ? 100 : sprintf("%d", hex($msg{extra}) * 100 / 255);
+		my $ack_on_level = sprintf("%d", int((hex($msg{extra}) * 100 / 255)+.5));
 		&::print_log("[Insteon::BaseObject] received status for " .
 			$self->{object_name} . " with on-level: $ack_on_level%, "
-			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
+			. "hops left: $msg{hopsleft}") if $self->debuglevel();
 		$self->level($ack_on_level) if $self->can('level'); # update the level value
 		if ($ack_on_level == 0) {
 			$self->SUPER::set('off', $ack_setby);
@@ -633,6 +693,8 @@ sub _is_info_request
 			if ($self->_aldb->aldb_delta() eq $msg{cmd_code}){
 				&::print_log("[Insteon::BaseObject] The link table for "
 					. $self->{object_name} . " is in sync.");
+				#Link Table Scan Successful, Record Current Time
+				$self->_aldb->scandatetime(&main::get_tickcount);
 				if (defined $self->_aldb->{_aldb_unchanged_callback}) {
 					$callback = $self->_aldb->{_aldb_unchanged_callback};
 					$self->_aldb->{_aldb_unchanged_callback} = undef;
@@ -653,7 +715,7 @@ sub _is_info_request
 			package main;
 			eval ($callback);
 			&::print_log("[Insteon::BaseObject] " . $self->get_object_name . ": error during scan callback $@")
-				if $@ and $main::Debug{insteon};
+				if $@ and $self->debuglevel();
 			package Insteon::BaseObject;                		
 		}
 	}
@@ -664,7 +726,7 @@ sub _is_info_request
 		$self->engine_version($version);
 		&::print_log("[Insteon::BaseObject] received engine version for " 
 			. $self->{object_name} . " of $version. "
-			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
+			. "hops left: $msg{hopsleft}") if $self->debuglevel();
 	}
 	return $is_info_request;
 }
@@ -681,7 +743,7 @@ sub _process_message
 	# by Insteon_Link.
 
 	main::print_log("[Insteon::BaseObject] WARN: Message has invalid checksum")
-		if ($main::Debug{insteon} && !($msg{crc_valid}) 
+		if ($self->debuglevel() && !($msg{crc_valid}) 
 		&& $msg{is_extended} && $self->engine_version() eq 'I2CS');
 
 	my $clear_message = 0;
@@ -734,18 +796,32 @@ sub _process_message
 			}
 			elsif ($pending_cmd eq 'read_write_aldb') {
                         	if ($msg{cmd_code} eq $self->message_type_hex($pending_cmd)) {
-					if ($self->_aldb && $self->_aldb->{_mem_action} ne 'aldb_i2writeack'){
-						#This is an ACK. Will be followed by a Link Data message
-						$clear_message = 0;
-						$self->_aldb->on_read_write_aldb(%msg) if $self->_aldb;
-					} else {
-						$self->_aldb->on_read_write_aldb(%msg) if $self->_aldb;
-						$self->_process_command_stack(%msg);
-					}
+					$clear_message = $self->_aldb->on_read_write_aldb(%msg) if $self->_aldb;
+					$self->_process_command_stack(%msg) if ($clear_message);
                         	} else {
                         		$corrupt_cmd = 1;
                         		$clear_message = 0;
                         	}
+			}
+			elsif ($pending_cmd eq 'ping'){
+				$corrupt_cmd = 1 if ($msg{cmd_code} ne $self->message_type_hex($pending_cmd));
+				$corrupt_cmd = 1 if ($msg{extra} ne sprintf ("%02d", $$self{ping_count}));
+				if (!$corrupt_cmd){
+					$self->_process_command_stack(%msg);
+					&::print_log("[Insteon::BaseObject] received ping acknowledgement from " . $self->{object_name})
+						if $self->debuglevel();
+					$self->ping();
+					$clear_message = 1;
+				}
+			}
+			elsif ($pending_cmd eq 'linking_mode'){
+				$corrupt_cmd = 1 if ($msg{cmd_code} ne $self->message_type_hex($pending_cmd));
+				if (!$corrupt_cmd){
+					&::print_log("[Insteon::BaseObject] received linking mode ACK from " . $self->{object_name})
+						if $self->debuglevel();
+					$self->interface->_set_timeout('xmit', 2000);
+					$clear_message = 0;
+				}
 			}
 			else
                         {
@@ -759,7 +835,7 @@ sub _process_message
 				# signal receipt of message to the command stack in case commands are queued
 				$self->_process_command_stack(%msg);
 				&::print_log("[Insteon::BaseObject] received command/state (awaiting) acknowledge from " . $self->{object_name}
-					. ": $pending_cmd and data: $msg{extra}") if $main::Debug{insteon};
+					. ": $pending_cmd and data: $msg{extra}") if $self->debuglevel();
 			}
 		}
                 else
@@ -771,15 +847,16 @@ sub _process_message
 			$self->_process_command_stack(%msg);
 			&::print_log("[Insteon::BaseObject] received command/state acknowledge from " . $self->{object_name}
 				. ": " . (($msg{command}) ? $msg{command} : "(unknown)")
-				. " and data: $msg{extra}") if $main::Debug{insteon};
+				. " and data: $msg{extra}") if $self->debuglevel();
 		}
 		if ($corrupt_cmd) {
 			main::print_log("[Insteon::BaseObject] WARN: received a message from "
 				. $self->get_object_name . " in response to a "
 				. $pending_cmd . " command, but the command code "
 				. $msg{cmd_code} . " is incorrect. Ignorring received message.");
+			$self->corrupt_count_log(1) if $self->can('corrupt_count_log');
 			$p_setby->active_message->no_hop_increase(1);
-		}
+		} 
 	}
         elsif ($msg{is_nack})
         {
@@ -790,7 +867,7 @@ sub _process_message
 			. $self->get_nack_msg_for( $msg{extra} ) .") for " . $self->{object_name}
 			. ".  It may be unplugged, have a burned out bulb, or this may be a new I2CS "
 			. "type device that must first be manually linked to the PLM using the set button.") 
-			if $main::Debug{insteon};
+			if $self->debuglevel();
 		}
 		else 
 		{
@@ -804,7 +881,7 @@ sub _process_message
 		if($p_setby->active_message->failure_callback)
 		{
 			main::print_log("[Insteon::BaseObject] WARN: Now calling message failure callback: "
-				. $p_setby->active_message->failure_callback) if $main::Debug{insteon};
+				. $p_setby->active_message->failure_callback) if $self->debuglevel();
 			$self->failure_reason('NAK');
 			package main;
 			eval $p_setby->active_message->failure_callback;
@@ -823,21 +900,14 @@ sub _process_message
 		$self->request_status($self);
 	} elsif ($msg{command} eq 'read_write_aldb') {
 		if ($self->_aldb){
-			if ($self->_aldb->{_mem_action} eq 'aldb_i2readack'){
-				#If aldb_i2readack is set then this is good
-				$clear_message = 1;
-				$self->_aldb->on_read_write_aldb(%msg);
-				$self->_process_command_stack(%msg);
-			} else {
-				#This is an out of sequence message
-				$self->_aldb->on_read_write_aldb(%msg);
-			}
+			$clear_message = $self->_aldb->on_read_write_aldb(%msg) if $self->_aldb;
+			$self->_process_command_stack(%msg) if($clear_message);
 		}
 	} elsif ($msg{type} eq 'broadcast') {
 		$self->devcat($msg{devcat});
-		&::print_log("[Insteon::BaseObject] device category: $msg{devcat} received for " . $self->{object_name});
-		# stop ping timer now that we have a devcat; possibly may want to change this behavior to allow recurring pings
-		$$self{ping_timer}->stop();
+		$self->firmware($msg{firmware});
+		&::print_log("[Insteon::BaseObject] device category: $msg{devcat}"
+			. " firmware: $msg{firmware} received for " . $self->{object_name});
 	} else {
 		## TO-DO: make sure that the state passed by command is something that is reasonable to set
 		$p_state = $msg{command};
@@ -846,7 +916,7 @@ sub _process_message
 			if ($msg{command} eq 'link_cleanup_report'){
 				if ($msg{extra} == 0){
 					::print_log("[Insteon::BaseObject] DEBUG Received AllLink Cleanup Success for "
-						. $self->{object_name}) if $main::Debug{insteon} >= 1;
+						. $self->{object_name}) if $self->debuglevel(1);
 				} else {
 					::print_log("[Insteon::BaseObject] WARN " . $msg{extra} . " Device(s) failed to "
 						. "acknowledge the command from " . $self->{object_name});
@@ -862,7 +932,7 @@ sub _process_message
 				my $timeout = (scalar(@links)+1) * 300;
 				::print_log("[Insteon::BaseObject] DEBUG3 Delaying any outgoing messages ". 
 					"by $timeout milliseconds to avoid collision with subsequent cleanup ".
-					"messages from " . $self->get_object_name) if ($main::Debug{insteon} >= 3);
+					"messages from " . $self->get_object_name) if ($self->debuglevel(3));
 				$self->interface->_set_timeout('xmit', $timeout);
 			}
                 }
@@ -871,14 +941,15 @@ sub _process_message
                 	if (($self->state eq $p_state or $self->state_final eq $p_state)
                 		and $$self{_pending_cleanup}){
 				::print_log("[Insteon::BaseObject] Ignoring Received Direct AllLink Cleanup Message for " 
-					. $self->{object_name} . " since AllLink Broadcast Message was Received.") if $main::Debug{insteon};
+					. $self->{object_name} . " since AllLink Broadcast Message was Received.") if $self->debuglevel();
                 	} else {
 				$self->set($p_state, $self);
 			}
 			$$self{_pending_cleanup} = 0;
 		} else {
 			main::print_log("[Insteon::BaseObject] Ignoring unsupported command from " 
-				. $self->{object_name}) if $main::Debug{insteon};
+				. $self->{object_name}) if $self->debuglevel();
+			$self->corrupt_count_log(1) if $self->can('corrupt_count_log');
                 }
 	}
 	return $clear_message;
@@ -905,12 +976,18 @@ sub _process_command_stack
                         	or $message->command eq 'poke'
                         	or $message->command eq 'status_request'
                                 or $message->command eq 'get_engine_version'
+                                or $message->command eq 'id_request'
                                 or $message->command eq 'do_read_ee'
                                 or $message->command eq 'set_address_msb'
                                 or $message->command eq 'sensor_status'
                                 or $message->command eq 'set_operating_flags'
                                 or $message->command eq 'get_operating_flags'
                                 or $message->command eq 'read_write_aldb'
+                                or $message->command eq 'thermostat_control'
+                                or $message->command eq 'thermostat_get_zone_info'
+                                or $message->command eq 'extended_set_get'
+                                or $message->command eq 'ping'
+                                or $message->command eq 'linking_mode' 
                                 )
                         {
 				$$self{awaiting_ack} = 1;
@@ -934,11 +1011,11 @@ sub _process_command_stack
 			package main;
 			eval ($callback);
 			&::print_log("[Insteon::BaseObject] error in queue timer callback: " . $@)
-				if $@ and $main::Debug{insteon};
+				if $@ and $self->debuglevel();
 			package Insteon::BaseObject;
 		}
 	} else {
-#		&::print_log("[Insteon_Device] " . $self->get_object_name . " command queued but not yet sent; awaiting ack from prior command") if $main::Debug{insteon};
+#		&::print_log("[Insteon_Device] " . $self->get_object_name . " command queued but not yet sent; awaiting ack from prior command") if $self->debuglevel();
 	}
 }
 
@@ -1010,6 +1087,34 @@ sub failure_reason
         my ($self, $reason) = @_;
         $$self{failure_reason} = $reason if $reason;
         return $$self{failure_reason};
+}
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my %voice_cmds = (
+        #The Sync Links routine really resides in DeviceController, but that
+        #class seems a little redundant as in practice all devices are controllers
+        #in some sense.  As a result, that class will likely be folded into 
+        #BaseObject/Device at some future date.  In order to avoid a bizarre
+        #inheritance of this routine by higher classes, this command was placed
+        #here
+        'sync links' => $self->get_object_name . '->sync_links(0)'
+    );
+    return \%voice_cmds;
 }
 
 =back
@@ -1084,7 +1189,8 @@ our %message_types = (
    linking_mode => 0x09,
    unlinking_mode => 0x0A,
    get_engine_version => 0x0D,
-   ping => 0x10,
+   ping => 0x0F,
+   id_request => 0x10,
    on_fast => 0x12,
    off_fast => 0x14,
    start_manual_change => 0x17,
@@ -1101,6 +1207,7 @@ our %message_types = (
    peek => 0x2b,
    peek_internal => 0x2c,
    poke_internal => 0x2d,
+   extended_set_get => 0x2e,
    read_write_aldb => 0x2f,
 );
 
@@ -1147,7 +1254,10 @@ sub new
            $$self{aldb} = new Insteon::ALDB_i1($self);
         }
 
-	$self->restore_data('level');
+	$self->restore_data('devcat', 'firmware', 'level', 'retry_count_log', 'fail_count_log', 
+        'outgoing_count_log', 'incoming_count_log', 'corrupt_count_log',
+        'dupe_count_log', 'hops_left_count', 'max_hops_count',
+        'outgoing_hop_count');
 
 	$self->initialize();
 	$self->rate(undef);
@@ -1161,6 +1271,15 @@ sub new
 	@{$$self{command_stack}} = ();
 	$$self{_onlevel} = undef;
 	$$self{is_responder} = 1;
+    $$self{retry_count_log} = 0;
+    $$self{fail_count_log} = 0;
+    $$self{outgoing_count_log} = 0;
+    $$self{incoming_count_log} = 0;
+    $$self{corrupt_count_log} = 0;
+    $$self{dupe_count_log} = 0;
+    $$self{hops_left_count} = 0;
+    $$self{max_hops_count} = 0;
+    $$self{outgoing_hop_count} = 0;
 
 	return $self;
 }
@@ -1178,10 +1297,6 @@ sub initialize
 	$$self{m_write} = 1;
 	$$self{m_is_locally_set} = 0;
 	# persist local, simple attribs
-
-        # do we really need to ping the devices anymore for a devcat?
-	$$self{ping_timer} = new Timer();
-	$$self{ping_timerTime} = 300;
 }
 
 =item C<rate([rate])>
@@ -1270,25 +1385,106 @@ the device.
 
 sub link_to_interface
 {
-	my ($self,$p_group, $p_data3) = @_;
-	my $group = $p_group;
-	$group = '01' unless $group;
-	# add a link first to this device back to interface
-	# and, add a reference to creating a link from interface back to device via hook
-	my $callback_instance = $self->interface->get_object_name;
-	my $callback_info = "deviceid=" . lc $self->device_id . " group=$group is_controller=0";
-	my %link_info = ( object => $self->interface, group => $group, is_controller => 1,
-#		on_level => '100%', ramp_rate => '0.1s',  Controllers don't use on_level or ramp_rate
-		callback => "$callback_instance->add_link('$callback_info')");
-	$link_info{data3} = $p_data3 if $p_data3;
-        if ($self->_aldb) {
-	   $self->_aldb->add_link(%link_info);
-        }
-        else
-        {
-           &main::print_log("[BaseInsteon] This item " . $self->get_object_name .
-              " does not have an ALDB object.  Linking is not permitted.");
-        }
+	my ($self,$p_group, $p_data3, $step) = @_;
+	$p_group = $self->group unless (defined $p_group);
+	$p_data3 = $self->group unless (defined $p_data3);
+	my $success_callback_prefix = $self->get_object_name."->link_to_interface(\"$p_group\",\"$p_data3\",";
+	my $success_callback = "";
+	my $failure_callback = '::print_log("[Insteon::BaseInsteon] Error: The Link_To_Interface '.
+		'routine failed for device: '.$self->get_object_name.'")';
+	$step = 0 if ($step eq '');
+	switch ($step){
+		case (0) { #If NAK on get_engine, then this is an I2CS device
+			$success_callback = $success_callback_prefix . "\"1\")";
+			$failure_callback = $self->get_object_name."->link_to_interface_i2cs(\"$p_group\",\"$p_data3\")";
+			$self->get_engine_version($success_callback, $failure_callback);	
+		}
+		case (1) { #Add Link from object->PLM
+			$success_callback = $success_callback_prefix . "\"2\")";
+			my %link_info = ( object => $self->interface, group => $p_group, is_controller => 1,
+				callback => "$success_callback", failure_callback=> "$failure_callback");
+			$link_info{data3} = $p_data3 if $p_data3;
+		        if ($self->_aldb) {
+			   $self->_aldb->add_link(%link_info);
+		        }
+		        else
+		        {
+		           &main::print_log("[Insteon::BaseInsteon] Error: This item, " . $self->get_object_name .
+		              ", does not have an ALDB object.  Linking is not permitted.");
+		        }
+		}
+		case (2){ #Add Link from PLM->object
+			$success_callback = $success_callback_prefix . "\"3\")";
+			my $link_info = "deviceid=" . lc $self->device_id . " group=$p_group is_controller=0 " .
+				"callback=$success_callback failure_callback=$failure_callback";	
+		        $self->interface->add_link($link_info);
+		}
+		case (3){ #Add surrogate link on device if surrogate exists
+			if (ref $$self{surrogate}){
+				$success_callback = $success_callback_prefix . "\"4\")";
+				my $surrogate_group = $$self{surrogate}->group;
+				my %link_info = ( object => $self->interface, 
+					group => $surrogate_group, is_controller => 0,
+					callback => "$success_callback", 
+					failure_callback=> "$failure_callback",
+					data3 => $p_group);
+				$self->_aldb->add_link(%link_info);
+			} else {
+				::print_log('[Insteon::BaseInsteon] Link_To_Interface successfully completed'.
+					' for device ' .$self->get_object_name);	
+			}
+		}
+		case (4){ #Add surrogate link on PLM if surrogate exists
+			$success_callback = $success_callback_prefix . "\"5\")";
+			my $surrogate_group = $$self{surrogate}->group;
+			my %link_info = ( deviceid=> lc $self->device_id, 
+				group => $surrogate_group, is_controller => 1,
+				callback => "$success_callback", 
+				failure_callback=> "$failure_callback",
+				data3 => $surrogate_group);
+			$self->interface->add_link(%link_info);
+		}
+		case (5){
+			::print_log('[Insteon::BaseInsteon] Link_To_Interface successfully completed'.
+				' for device ' .$self->get_object_name);			
+		}
+	}
+}
+
+=item C<link_to_interface_i2cs([group,data3])>
+
+Performs the same task as C<link_to_interface> however this routine is designed
+to perform the initial link to I2CS devices.  These devices cannot be initially
+linked to the PLM in the normal way.  This process requires more steps than the
+normal routine which will take longer to perform and therefore is more prone to
+faile.  As such, this should likely only be used if necessary.
+
+=cut
+
+sub link_to_interface_i2cs
+{
+	my ($self,$p_group, $p_data3, $step) = @_;
+	my $success_callback_prefix = $self->get_object_name."->link_to_interface_i2cs('$p_group','$p_data3',";
+	my $success_callback = "";
+	my $failure_callback = "::print_log('[Insteon::BaseInsteon] Error Link_To_Interface_I2CS ".
+		"routine failed for device: ".$self->get_object_name."')";
+	$step = 0 if ($step eq '');
+	switch ($step){
+		case (0) { #Put PLM into initiate linking mode
+			$success_callback = $success_callback_prefix . "'1')";
+			$self->interface()->initiate_linking_as_controller('00', $success_callback, $failure_callback);	
+		}
+		case (1) { #Ask device to respond to link request
+			$success_callback = $success_callback_prefix . "'2')";
+			$self->enter_linking_mode($p_group, $success_callback, $failure_callback);	
+		}
+		case (2) { #Scan device to get an accurate link table
+			#return to normal link_to_interface routine if successful
+			$success_callback_prefix = $self->get_object_name."->link_to_interface('$p_group','$p_data3',";
+			$success_callback = $success_callback_prefix . "'2')";
+			$self->scan_link_table($success_callback, $failure_callback);
+		}
+	}
 }
 
 =item C<unlink_to_interface([group])>
@@ -1305,34 +1501,81 @@ a keypad link.  It will default to 01.
 
 sub unlink_to_interface
 {
-	my ($self,$p_group) = @_;
-	my $group = $p_group;
-	$group = '01' unless $group;
-	my $callback_instance = $self->interface->get_object_name;
-	my $callback_info = "deviceid=" . lc $self->device_id . " group=$group is_controller=0";
-        if ($self->_aldb) {
-	   $self->_aldb->delete_link(object => $self->interface, group => $group, is_controller => 1,
-		callback => "$callback_instance->delete_link('$callback_info')");
-        }
-        else
-        {
-           &main::print_log("[BaseInsteon] This item " . $self->get_object_name .
-              " does not have an ALDB object.  Unlinking is not permitted.");
-        }
+	my ($self,$p_group,$step) = @_;
+	$p_group = $self->group unless $p_group;
+	#It is possible to nest all of the callbacks in at once, but the quoting
+	#becomes very complicated and happers readability
+	my $success_callback_prefix = $self->get_object_name."->unlink_to_interface('$p_group',";
+	my $success_callback = "";
+	my $failure_callback = "::print_log('[Insteon::BaseInsteon] ERROR: Unlink_To_Interface ".
+		"failed for device: ".$self->get_object_name."')";
+	$step = 0 if ($step eq '');
+	switch ($step){
+		case (0) { #Delete link on the device
+		        if ($self->_aldb) {
+		        	$success_callback = $success_callback_prefix . "'1')";
+				$self->_aldb->delete_link(object => $self->interface, 
+					group => $p_group, 
+					data3=> $p_group, is_controller => 1,
+					callback => $success_callback,
+					failure_callback=> $failure_callback);
+		        }
+		        else
+		        {
+		           &main::print_log("[BaseInsteon] This item " . $self->get_object_name .
+		              " does not have an ALDB object.  Unlinking is not permitted.");
+		        }
+		}
+		case (1) { #Delete link on the PLM
+			$success_callback = $success_callback_prefix . "'2')";
+			$self->interface->delete_link(
+				deviceid => lc $self->device_id, 
+				group=> $p_group, is_controller=>0,
+				callback=>$success_callback,
+				failure_callback=>$failure_callback);
+		}
+		case (2){ #Delete surrogate link on device if surrogate exists
+			if (ref $$self{surrogate}){
+				$success_callback = $success_callback_prefix . "'3')";
+				my $surrogate_group = $$self{surrogate}->group;
+				my %link_info = ( object => $self->interface, 
+					group => $surrogate_group, is_controller => 0,
+					callback => "$success_callback", 
+					failure_callback=> "$failure_callback",
+					data3 => $p_group);
+				$self->_aldb->delete_link(%link_info);
+			} else {
+				::print_log("[Insteon::BaseInsteon] Unlink_To_Interface".
+					" successfully completed for device "
+					. $self->get_object_name);	
+			}
+		}
+		case (3){ #Delete surrogate link on PLM if surrogate exists
+			$success_callback = $success_callback_prefix . "'4')";
+			my $surrogate_group = $$self{surrogate}->group;
+			my %link_info = ( deviceid=> lc $self->device_id, 
+				group => $surrogate_group, is_controller => 1,
+				callback => "$success_callback", 
+				failure_callback=> "$failure_callback",
+				data3 => $surrogate_group);
+			$self->interface->delete_link(%link_info);
+		}
+		case (4) {
+			::print_log("[Insteon::BaseInsteon] Unlink_To_Interface".
+				" successfully completed for device "
+				. $self->get_object_name);
+		}
+	}
 }
 
-=item C<enter_linking_mode(group)>
+=item C<enter_linking_mode(group, success_callback, failure_callback)>
 
-BETA -- Can be used to create the initial link with i2cs devices.  i1 devices
-will not respond to this command.  In the future, this will be incorporated into a
-one-step process -- BETA
+Places an i2 object into linking mode as if you had held down the set button on 
+the device.  i1 objects will not respond to this command.  This is needed to 
+link i2CS devices that will not respond without a manual link. 
 
-Places the object into linking mode as if you had held down the set button on 
-the device.  To create a link wherein the PLM is the controller, first run the 
-PLM voice command "initiate link as controller". Then run this command.  Finally,
-run the voice command "scan link table" on this device.
-
-The group argument is optional and not needed for group 01.
+This process is included as part of the link_to_interface voice command and 
+should not need to be called seperately.
 
 Returns: nothing
 
@@ -1340,12 +1583,14 @@ Returns: nothing
 
 sub enter_linking_mode
 {
-	my ($self,$p_group) = @_;
+	my ($self,$p_group, $success_callback, $failure_callback) = @_;
 	my $group = $p_group;
 	$group = '01' unless $group;
 	my $extra = sprintf("%02x", $group);
 	$extra .= '0' x (30 - length $extra);
 	my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'linking_mode', $extra);
+	$message->success_callback($success_callback);
+	$message->failure_callback($failure_callback);
 	$self->_send_cmd($message);
 }
 
@@ -1592,7 +1837,7 @@ sub delete_link
 
 =item C<scan_link_table()>
 
-Scans a device's link table and caches a copy.
+Scans a device link table and caches a copy.
 
 =cut
 
@@ -1677,11 +1922,12 @@ Returns: nothing
 =cut 
 
 sub get_engine_version {
-   my ($self) = @_;
+   my ($self, $success_callback, $failure_callback) = @_;
 
    my $message = new Insteon::InsteonMessage('insteon_send', $self, 'get_engine_version');
    my $self_object_name = $self->get_object_name;
-   $message->failure_callback("$self_object_name->_get_engine_version_failure()");
+   $message->failure_callback("$self_object_name->_get_engine_version_failure();$failure_callback");
+   $message->success_callback($success_callback);
    $self->_send_cmd($message);
 }
 
@@ -1702,29 +1948,75 @@ sub _get_engine_version_failure
 	my $failure_reason = $self->failure_reason();
 	
 	main::print_log("[Insteon::BaseDevice::_get_engine_version_failure] DEBUG4: "
-		."failure reason: $failure_reason") if $main::Debug{insteon} >= 4;
+		."failure reason: $failure_reason") if $self->debuglevel(4);
 	
 	if($failure_reason eq 'NAK')
 	{
 		#assume I2CS because no other device will NAK this command
-		main::print_log("[Insteon::BaseDevice] WARN: I2CS device is not "
+		main::print_log("[Insteon::BaseDevice] WARN: I2CS device (" . $self->get_object_name . ") is not "
 			."linked; Please use 'link to interface' voice command");
 		$self->engine_version('I2CS');
 	}
 }
 
-=item C<ping()>
+=item C<ping([count])>
 
-Sends a ping command to the device.
+Sends the number of ping messages defined by count.  A ping message is a basic 
+message that simply asks the device to respond with an ACKnowledgement.  For
+i1 devices this will send a standard length command, for i2 and i2cs devices
+this will send an extended ping command.  In both cases, the device responds
+back with a standard length ACKnowledgement only.
 
-=cut 
+Much like the ping command in IP networks, this command is useful for testing the
+connectivity of a device on your network.  You likely want to use this in 
+conjunction with the C<print_message_log> routine.  For example, you can use 
+this to compare the message stats for a device when changing settings in 
+MisterHouse.
+
+Parameters:
+	count = the number of pings to send.
+
+Returns: Nothing.
+
+=cut
 
 sub ping
 {
-	my ($self) = @_;
-        my $message = new Insteon::InsteonMessage('insteon_send', $self, 'ping');
-        $self->_send_cmd($message);
-#	$self->_send_cmd('command' => 'ping');
+	my ($self, $p_count, $p_callback) = @_;
+	$$self{ping_count} = $p_count if defined($p_count);
+	$$self{ping_callback} = $p_callback if defined($p_callback);
+	if ($$self{ping_count}) {
+		$$self{ping_count}--;
+		my $message;
+		my $extra = sprintf("%02d", $$self{ping_count});
+		if (uc($self->engine_version) eq 'I1'){
+	    	$message = new Insteon::InsteonMessage('insteon_send', $self, 
+	    		'ping', $extra);
+		}
+		else {
+			my $extra = $extra . '0' x 28;
+			$message = new Insteon::InsteonMessage('insteon_ext_send', $self, 
+				'ping', $extra);
+		}
+		::print_log("[Insteon::BaseDevice] Sending ping request to " 
+			. $self->get_object_name . " " . $$self{ping_count} 
+			. " more ping requests queued.");
+		$message->failure_callback($self->get_object_name . '->ping()');
+		$self->_send_cmd($message);
+	}
+	else {
+		::print_log("[Insteon::BaseDevice] Completed ping queue for " 
+			. $self->get_object_name);
+		if (defined $$self{ping_callback}){
+			my $complete_callback = $$self{ping_callback};
+			package main;
+			eval ($complete_callback);
+			&::print_log("[Insteon::BaseDevice] error in ping callback: " . $@)
+				if $@ and $self->debuglevel();
+			package Insteon::BaseDevice;
+			delete $$self{ping_callback};
+		}
+	}
 }
 
 =item C<set_led_status()>
@@ -1756,33 +2048,23 @@ sub restore_string
         {
 		$restore_string .= $self->_aldb->restore_string();
         }
-	if ($$self{states})
-        {
-		my $states = '';
-		foreach my $state (@{$$self{states}})
-                {
-			$states .= '|' if $states;
-			$states .= $state;
-		}
-		$restore_string .= $self->{object_name} . "->restore_states(q~$states~);\n";
-	}
 
 	return $restore_string;
 }
 
 =item C<restore_states()>
 
-Used to reload the persistent states of variables on restart.
+Obsolete / do not use.
+
+Function should remain so that upgrading users will not have issues starting 
+MH from previous versions that referenced this function in the 
+mh_temp.saved_states file.
 
 =cut
 
 sub restore_states
 {
 	my ($self, $states) = @_;
-	if ($states)
-        {
-		@{$$self{states}} = split(/\|/,$states);
-	}
 }
 
 =item C<restore_aldb()>
@@ -1802,7 +2084,8 @@ sub restore_aldb
 
 =item C<devcat()>
 
-NOT USED - Sets and returns the device category of a device.  No longer used.
+Sets and returns the device category of a device.  Devcat can be requested by
+calling C<get_devcat()>.
 
 =cut
 
@@ -1812,12 +2095,36 @@ sub devcat
 	if ($devcat)
         {
 		$$self{devcat} = $devcat;
-		if (($$self{devcat} =~ /^01\w\w/) or ($$self{devcat} =~ /^02\w\w/) && !($self->states))
-                {
-			$self->states( 'on,off' );
-		}
 	}
 	return $$self{devcat};
+}
+
+=item C<get_devcat()>
+
+Requests the device category for the device.  The returned value can be obtained
+by calling C<devcat()>.
+
+=cut
+
+sub get_devcat
+{
+	my ($self) = @_;
+        my $message = new Insteon::InsteonMessage('insteon_send', $self, 'id_request');
+        $self->_send_cmd($message);
+}
+
+=item C<firmware()>
+
+Sets and returns the device firmware version.  Value can be obtained from the 
+device by calling C<get_devcat()>.
+
+=cut
+
+sub firmware
+{
+	my ($self, $firmware) = @_;
+	$$self{firmware} = $firmware if (defined $firmware);
+	return $$self{firmware};
 }
 
 =item C<states()>
@@ -1839,42 +2146,6 @@ sub states
 	} else {
 		return undef;
 	}
-
-}
-
-=item C<local_onlevel(level)>
-
-Sets and returns the local onlevel for the device in MH only. Level is a 
-percentage from 0%-100%
-
-=cut
-
-sub local_onlevel
-{
-	my ($self, $p_onlevel) = @_;
-	if (defined $p_onlevel)
-        {
-		my ($onlevel) = $p_onlevel =~ /(\d+)%?/;
-		$$self{_onlevel} = $onlevel;
-	}
-	return $$self{_onlevel};
-}
-
-=item C<local_ramprate(rate)>
-
-Sets and returns the local ramp rate for the device in MH only. Rate is a time
-between .1 and 540 seconds.  Only 32 rate steps exist, to MH will pick a time
-equal to of the closest below this time.
-
-=cut
-
-sub local_ramprate
-{
-	my ($self, $p_ramprate) = @_;
-	if (defined $p_ramprate) {
-		$$self{_ramprate} = &Insteon::DimmableLight::convert_ramp($p_ramprate);
-	}
-	return $$self{_ramprate};
 
 }
 
@@ -1914,57 +2185,6 @@ sub log_alllink_table
         $self->_aldb->log_alllink_table if $self->_aldb;
 }
 
-=item C<update_local_properties()>
-
-Pushes the values set in C<local_onlevel()> and C<local_ramprate()> to the device.
-The device will only reread these values when it is power-cycled.  This can be
-done by pulling the air-gap for 4 seconds or unplugging the device.
-
-=cut
-
-sub update_local_properties
-{
-	my ($self) = @_;
-	if ($self->isa('Insteon::DimmableLight'))
-        {
-        	$self->_aldb->update_local_properties() if $self->_aldb;
-	}
-        else
-        {
-		&::print_log("[Insteon::BaseDevice] update_local_properties may only be applied to dimmable devices!");
-	}
-}
-
-=item C<update_flags(flags)>
-
-Can be used to set the button layout and light level on a keypadlinc.  Flag 
-options include:
-
-    '0a' - 8 button; backlighting dim
-    '06' - 8 button; backlighting off
-    '02' - 8 button; backlighting normal
-
-    '08' - 6 button; backlighting dim
-    '04' - 6 button; backlighting off
-    '00' - 6 button; backlighting normal
-
-Note: This routine will likely be moved to L<Insteon::KeypadLinc|Insteon::Lighting/Insteon::KeypadLinc> at some point.
-
-=cut
-
-sub update_flags
-{
-	my ($self, $flags) = @_;
-	if (!($self->isa('Insteon::KeyPadLinc') or $self->isa('Insteon::KeyPadLincRelay')))
-        {
-		&::print_log("[Insteon::BaseDevice] Operating flags may only be revised on keypadlincs!");
-		return;
-	}
-	return unless defined $flags;
-
-	$self->_aldb->update_flags($flags) if $self->_aldb;
-}
-
 =item C<engine_version>
 
 Sets or gets the device object engine version.  If setting the engine version, 
@@ -1985,7 +2205,400 @@ sub engine_version
 	return $engine_version;
 }
 
-=item C<engine_version>
+=item C<retry_count_log([type]>
+
+Sets or gets the number of message retries that have occured for this device 
+since the last time C<reset_message_stats> was called.
+
+If type is set, to any value, will increment retry log by one.
+
+Returns: current retry count.
+
+=cut 
+
+sub retry_count_log
+{
+	my ($self, $retry_count_log) = @_;
+	$self = $self->get_root;
+	$$self{retry_count_log}++ if $retry_count_log;
+	return $$self{retry_count_log};
+} 
+
+=item C<fail_count_log([type]>
+
+Sets or gets the number of message failures that have occured for this device 
+since the last time C<reset_message_stats> was called.
+
+If type is set, to any value, will increment fail log by one.
+
+Returns: current fail count.
+
+=cut 
+
+sub fail_count_log
+{
+    my ($self, $fail_count_log) = @_;
+    $self = $self->get_root;
+	$$self{fail_count_log}++ if $fail_count_log;
+	return $$self{fail_count_log};
+} 
+
+=item C<outgoing_count_log([type]>
+
+Sets or gets the number of outgoing message that have occured for this device 
+since the last time C<reset_message_stats> was called.
+
+If type is set, to any value, will increment output count by one.
+
+Returns: current output count.
+
+=cut 
+
+sub outgoing_count_log
+{
+    my ($self, $outgoing_count_log) = @_;
+    $self = $self->get_root;
+    $$self{outgoing_count_log}++ if $outgoing_count_log;
+	return $$self{outgoing_count_log};
+}
+
+=item C<stress_test(count)>
+
+Simulates a read of a link address from the device.  Repeats this process as many
+times as defined by count.  This routine is meant to be used as a diagnostic tool.
+It is similar to scan_link_table, however, if a failure occurs, this process will
+continue with the next iteration.  Scan link table will stop as soon as a single
+failure occurs.
+
+This is also similar to the C<ping> test, however, rather than simply requesting
+an ACK, this requests a full set of data equivalent to a link entry.  Similar to
+C<ping> this should be used with C<print_message_log> to diagnose issues and try
+different settings.
+
+Note: This routine can create a lot of traffic if count is set very high.  Try
+setting it to 5 first and working your way up.
+
+=cut
+
+sub stress_test
+{
+	my ($self, $p_count, $complete_callback) = @_;
+	$$self{stress_test_count} = $p_count if (defined ($p_count));
+	$$self{stress_test_callback} = $complete_callback if (defined ($complete_callback));
+	if ($$self{stress_test_count}){
+		&::print_log("[Insteon::BaseDevice] " . $self->get_object_name 
+			. " - Stress Test " . $$self{stress_test_count} . " iterations left");
+	        my $aldb = $self->get_root()->_aldb;
+	        if ($aldb)
+	        {
+			$$aldb{_mem_activity} = 'scan';
+			$$aldb{_stress_test_act} = 1;
+			$$aldb{_failure_callback} = $self->get_object_name 
+				. '->stress_test()';
+			if($aldb->isa('Insteon::ALDB_i1')) {
+				$aldb->_peek('0FF8');
+			} else {
+				#Prevents duplicate commands in queue error
+				#Also allows for better identification of 
+				#sequential dupe incoming messages
+				my $odd = $$self{stress_test_count} % 2;
+				if ($odd){
+					$aldb->send_read_aldb('0fff');
+				} else {
+					$aldb->send_read_aldb('0ff7');
+				}
+			}
+		}
+		$$self{stress_test_count}--;
+	} else {
+		&::print_log("[Insteon::BaseDevice] Stress Test Complete for " 
+			. $self->get_object_name);	
+		if (defined $$self{stress_test_callback}){
+			$complete_callback = $$self{stress_test_callback};
+			package main;
+			eval ($complete_callback);
+			&::print_log("[Insteon::BaseDevice] error in stress_test callback: " . $@)
+				if $@ and $self->debuglevel();
+			package Insteon::BaseDevice;
+			delete $$self{stress_test_callback};
+		}
+	}
+}
+
+=item C<outgoing_hop_count([type]>
+
+Sets or gets the number of hops that have been used in all outgoing messages
+since the last time C<reset_message_stats> was called.
+
+If type is set, to any value, will increment output count by that value.
+
+Returns: current hop count.
+
+=cut 
+
+sub outgoing_hop_count
+{
+    my ($self, $outgoing_hop_count) = @_;
+    $self = $self->get_root;
+    $$self{outgoing_hop_count} += $outgoing_hop_count if $outgoing_hop_count;
+	return $$self{outgoing_hop_count};
+}
+
+=item C<incoming_count_log([type]>
+
+Sets or gets the number of incoming message that have occured for this device 
+since the last time C<reset_message_stats> was called.
+
+If type is set, to any value, will increment incoming count by one.
+
+Returns: current incoming count.
+
+=cut 
+
+sub incoming_count_log
+{
+    my ($self, $incoming_count_log) = @_;
+    $self = $self->get_root;
+    $$self{incoming_count_log}++ if $incoming_count_log;
+    return $$self{incoming_count_log};
+}
+        
+=item C<corrupt_count_log([type]>
+
+Sets or gets the number of currupt message that have arrived from this device 
+since the last time C<reset_message_stats> was called.
+
+If type is set, to any value, will increment corrupt count by one.
+
+Returns: current corrupt count.
+
+=cut 
+
+sub corrupt_count_log
+{
+    my ($self, $corrupt_count_log) = @_;
+    $self = $self->get_root;
+    $$self{corrupt_count_log}++ if $corrupt_count_log;
+    return $$self{corrupt_count_log};
+}
+
+=item C<dupe_count_log([type]>
+
+Sets or gets the number of duplicate message that have arrived from this device 
+since the last time C<reset_message_stats> was called.
+
+If type is set, to any value, will increment corrupt count by one.
+
+Returns: current duplicate count.
+
+=cut 
+
+sub dupe_count_log
+{
+    my ($self, $dupe_count_log) = @_;
+    $self = $self->get_root;
+    $$self{dupe_count_log}++ if $dupe_count_log;
+    return $$self{dupe_count_log};
+}
+
+=item C<hops_left_count([type]>
+
+Sets or gets the number of hops_left for messages that arrive from this device 
+since the last time C<reset_message_stats> was called.
+
+If type is set, to any value, will increment corrupt count by one.
+
+Returns: current hops_left count.
+
+=cut 
+
+sub hops_left_count
+{
+    my ($self, $hops_left_count) = @_;
+    $self = $self->get_root;
+    $$self{hops_left_count} += $hops_left_count if $hops_left_count;
+    return $$self{hops_left_count};
+}
+
+=item C<max_hops_count([type]>
+
+Sets or gets the number of max_hops for messages that arrive from this device 
+since the last time C<reset_message_stats> was called.
+
+If type is set, to any value, will increment corrupt count by one.
+
+Returns: current duplicate count.
+
+=cut 
+
+sub max_hops_count
+{
+    my ($self, $max_hops_count) = @_;
+    $self = $self->get_root;
+    $$self{max_hops_count} += $max_hops_count if $max_hops_count;
+    return $$self{max_hops_count};
+}
+
+
+=item C<reset_message_stats>
+
+Resets the retry, fail, outgoing, incoming, and corrupt message counters.
+
+=cut 
+
+sub reset_message_stats
+{
+    my ($self) = @_;
+    $self = $self->get_root;
+    $$self{retry_count_log} = 0;
+    $$self{fail_count_log} = 0;
+    $$self{outgoing_count_log} = 0;
+    $$self{incoming_count_log} = 0;
+    $$self{corrupt_count_log} = 0;
+    $$self{dupe_count_log} = 0;
+    $$self{hops_left_count} = 0;
+    $$self{max_hops_count} = 0;
+    $$self{outgoing_hop_count} = 0;
+}
+
+=item C<print_message_stats>
+
+Prints message statistics for this device to the print log.  The output contains:
+
+=back
+
+=over8
+
+=item * 
+
+In - The number of incoming messages received
+
+=item * 
+
+Corrupt - The number of incoming corrupt messages received
+
+=item * 
+
+%Corrpt - Of the incoming messages received, the percentage that were 
+corrupt
+
+=item *
+
+Dupe - The number of duplicate messages that have been received from this 
+device.
+
+=item *
+
+%Dupe - The percentage of duplilicate incoming messages received.
+
+=item *
+
+Hops_Left - The average hops left in the messages received from this device.
+
+=item *
+
+Max_Hops - The average maximum hops in the messages received from this device.
+
+=item *
+
+Act_Hops - Max_Hops - Hops_Left, this is the average number of hops that have
+been required for a message sent from the device to reach MisterHouse.
+
+=item * 
+
+Out - The number of unique outgoing messages, without retries, sent. 
+
+=item * 
+
+Fail - The number times that all retries were exhausted without a successful
+delivery of a message.
+
+=item * 
+
+%Fail - Of the outgoing messages sent, the percentage that failed.
+
+=item * 
+
+Retry - The number of retry attempts that have been made to deliver a message. 
+Ideally this is 0, but Sends/Msg is a better indication of this parameter.
+
+=item * 
+
+AvgSend - The average number of send attempts that must be made in order to 
+successfully deliver a message.  Ideally this would be 1.0.  
+
+NOTE: If the number of retries exceeds the value set in the configuration file 
+for Insteon_retry_count, MisterHouse will abandon sending the message.  As a 
+result, as this number approaches Insteon_retry_count it becomes a less accurate 
+representation of the number of retries needed to reach a device.
+
+=item *
+
+Avg_Hops - The average number of hops that have been used by MisterHouse when
+sending messages to this device.
+
+=item *
+
+Hop_Count - The current hop count being used by MH.  This count is dynamically
+controlled by MH and is not reset by calling C<reset_message_stats>
+
+=back
+
+=over
+
+=cut 
+
+sub print_message_stats
+{
+    my ($self) = @_;
+    $self = $self->get_root;
+    my $object_name = $self->get_object_name;
+    my $retry_average = 0; 
+    $retry_average = sprintf("%.1f", ($$self{retry_count_log} / 
+        $$self{outgoing_count_log}) + 1) if ($$self{outgoing_count_log} > 0);
+    my $fail_percentage = 0; 
+    $fail_percentage = sprintf("%.1f", ($$self{fail_count_log} / 
+        $$self{outgoing_count_log}) * 100 ) if ($$self{outgoing_count_log} > 0);
+    my $corrupt_percentage = 0; 
+    $corrupt_percentage = sprintf("%.1f", ($$self{corrupt_count_log} / 
+        $$self{incoming_count_log}) * 100 ) if ($$self{incoming_count_log} > 0);
+    my $dupe_percentage = 0; 
+    $dupe_percentage = sprintf("%.1f", ($$self{dupe_count_log} / 
+        $$self{incoming_count_log}) * 100 ) if ($$self{incoming_count_log} > 0);
+    my $avg_hops_left = 0; 
+    $avg_hops_left = sprintf("%.1f", ($$self{hops_left_count} / 
+        $$self{incoming_count_log})) if ($$self{incoming_count_log} > 0);
+    my $avg_max_hops = 0; 
+    $avg_max_hops = sprintf("%.1f", ($$self{max_hops_count} / 
+        $$self{incoming_count_log})) if ($$self{incoming_count_log} > 0);
+    my $avg_out_hops = 0;
+    $avg_out_hops = sprintf("%.1f", ($$self{outgoing_hop_count} / 
+        $$self{outgoing_count_log})) if ($$self{outgoing_count_log} > 0);
+    ::print_log(
+        "[Insteon::BaseDevice] Message statistics for $object_name:\n"
+        . "    In Corrupt %Corrpt  Dupe   %Dupe HopsLeft Max_Hops Act_Hops\n"
+        . sprintf("%6s", $$self{incoming_count_log})
+        . sprintf("%8s", $$self{corrupt_count_log})
+        . sprintf("%8s", $corrupt_percentage . '%')
+        . sprintf("%6s", $$self{dupe_count_log})
+        . sprintf("%8s", $dupe_percentage . '%')
+        . sprintf("%9s", $avg_hops_left)
+        . sprintf("%9s", $avg_max_hops)
+        . sprintf("%9s", $avg_max_hops - $avg_hops_left)
+        . "\n"
+        . "   Out    Fail   %Fail Retry AvgSend Avg_Hops CurrHops\n"
+        . sprintf("%6s", $$self{outgoing_count_log})
+        . sprintf("%8s", $$self{fail_count_log})
+        . sprintf("%8s", $fail_percentage . '%')
+        . sprintf("%6s", $$self{retry_count_log})
+        . sprintf("%8s", $retry_average)
+        . sprintf("%9s", $avg_out_hops)
+        . sprintf("%9s", $self->default_hop_count)
+    );
+}
+
+
+=item C<check_aldb_version>
 
 Because of the way MH saves / restores states "after" object creation
 the aldb must be initially created before the engine_version is restored.
@@ -2020,7 +2633,7 @@ sub check_aldb_version
 	if ($new_version) {
 		main::print_log("[Insteon::BaseDevice] DEBUG4: aldb_version is "
 			.$self->_aldb->aldb_version()." but device is ".$engine_version.
-			".  Remapping aldb version to $new_version") if $main::Debug{insteon} >= 4;
+			".  Remapping aldb version to $new_version") if $self->debuglevel(4);
 		my $restore_string = '';
 		if ($self->_aldb) {
 			$restore_string = $self->_aldb->restore_string();
@@ -2037,9 +2650,47 @@ sub check_aldb_version
 		package main;
 		eval ($restore_string);
 		&::print_log("[Insteon::BaseDevice] error in eval creating ALDB object: " . $@)
-			if $@ and $main::Debug{insteon};
+			if $@ and $self->debuglevel();
 		package Insteon::BaseDevice;
 	}
+}
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds},
+        'link to interface' => "$object_name->link_to_interface",
+        'unlink with interface' => "$object_name->unlink_to_interface"
+    );
+    if ($self->is_root){
+        %voice_cmds = (
+            %voice_cmds,
+            'status' => "$object_name->request_status",
+            'get engine version' => "$object_name->get_engine_version",
+            'scan link table' => "$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")",
+            'print message stats' => "$object_name->print_message_stats",
+            'reset message stats' => "$object_name->reset_message_stats",
+            'run stress test' => "$object_name->stress_test(5)",
+            'run ping test' => "$object_name->ping(5)",
+            'log links' => "$object_name->log_alllink_table()"
+        )
+    }
+    return \%voice_cmds;
 }
 
 =back
@@ -2113,8 +2764,6 @@ sub new
 	# note that $p_deviceid will be 00.00.00:<groupnum> if the link uses the interface as the controller
 	my $self = {};
 	bless $self,$class;
-# don't apply ping timer to this class
-#	$$self{ping_timer}->stop();
 	return $self;
 }
 
@@ -2253,7 +2902,7 @@ sub sync_links
 						$requires_update = 1;
                                                 &::print_log("[Insteon::BaseController] DEBUG: flagging " . $self->get_object_name
                                                 	. " for update because existing ramp rate ($raw_ramp_rate) != target ($raw_tgt_ramp_rate)")
-							if $main::Debug{insteon};
+							if $self->debuglevel();
 
 					}
                                         elsif (($link_on_level > $tgt_on_level + 1) or ($link_on_level < $tgt_on_level -1))
@@ -2261,7 +2910,7 @@ sub sync_links
 						$requires_update = 1;
                                                 &::print_log("[Insteon::BaseController] DEBUG: flagging " . $self->get_object_name
                                                 	. " for update because existing on level ($link_on_level) != target ($tgt_on_level)")
-							if $main::Debug{insteon};
+							if $self->debuglevel();
 					}
 				}
 				if ($requires_update)
@@ -2288,7 +2937,7 @@ sub sync_links
 							. $member->get_object_name . " for "
 							. $insteon_object->get_object_name . " with group:" . $self->group
 							. "; on_level:$tgt_on_level; ramp_rate:$tgt_ramp_rate")
-							if $main::Debug{insteon} >= 4;
+							if $self->debuglevel(4);
 				       		push @{$$self{sync_queue}}, \%link_req;
                                         }
 				}
@@ -2317,7 +2966,7 @@ sub sync_links
 						. $member->get_object_name . " for "
 						. $insteon_object->get_object_name . " with group:" . $self->group
 						. "; on_level:$tgt_on_level; ramp_rate:$tgt_ramp_rate")
-						if $main::Debug{insteon} >= 4;
+						if $self->debuglevel(4);
 					push @{$$self{sync_queue}}, \%link_req;
                                 }
 			}
@@ -2341,7 +2990,7 @@ sub sync_links
 					}
 					main::print_log("[Insteon::BaseController] DEBUG4: queuing add for controller record to "
 						. $insteon_object->get_object_name . " for " . $member->get_object_name 
-						. " with group:" . $self->group) if $main::Debug{insteon} >= 4;
+						. " with group:" . $self->group) if $self->debuglevel(4);
 					push @{$$self{sync_queue}}, \%link_req;
                                 }
 			}
@@ -2369,7 +3018,7 @@ sub sync_links
 				main::print_log("[Insteon::BaseController] DEBUG4: queuing add for controller record to "
 					. $insteon_object->get_object_name . " for "
 					. $self->interface->get_object_name . " with group:" . $self->group)
-					if $main::Debug{insteon} >= 4;
+					if $self->debuglevel(4);
 				push @{$$self{sync_queue}}, \%link_req;
                         }
 		}
@@ -2390,7 +3039,7 @@ sub sync_links
 				main::print_log("[Insteon::BaseController] DEBUG4: queuing add for responder record to "
 					. $self->interface->get_object_name . " for "
 					. $insteon_object->get_object_name . " with group:" . $self->group)
-					if $main::Debug{insteon} >= 4;
+					if $self->debuglevel(4);
 				push @{$$self{sync_queue}}, \%link_req;
                         }
 		}
@@ -2399,7 +3048,7 @@ sub sync_links
 	if (!($num_sync_queue))
         {
 		&::print_log("[Insteon::BaseController] Nothing to do when syncing links for " . $self->get_object_name)
-			if $main::Debug{insteon};
+			if $self->debuglevel();
 	}
 	$self->_process_sync_queue();
 
@@ -2426,7 +3075,7 @@ sub _process_sync_queue {
 		package main;
 		eval ($$self{sync_queue_callback});
 		&::print_log("[Insteon::BaseController] error in sync links callback: " . $@)
-			if $@ and $main::Debug{insteon};
+			if $@ and $self->debuglevel();
 		$$self{sync_queue_callback} = undef;
 		package Insteon::BaseController;
 	} else {
@@ -2451,9 +3100,6 @@ sub set
 	return -1 if (ref $p_setby and ($p_setby ne $self) and $p_setby->can('get_set_by') and
            $p_setby->{set_by} eq $self);
 	return -1 if &main::check_for_tied_filters($self, $p_state);
-
-	# prevent setby internal Insteon_Device timers
-	return -1 if $p_setby eq $$self{ping_timer};
 
 	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
 
@@ -2589,7 +3235,7 @@ sub update_members
 				my %current_record = $device->get_link_record($self->device_id . $self->group);
 				if (%current_record) {
 					&::print_log("[Insteon::BaseController] remote record: $current_record{data1}")
-						if $::Debug{insteon};
+						if $self->debuglevel();
 				}
 			}
 		}
@@ -2607,7 +3253,7 @@ C<Insteon::BaseDevice::enter_linking_mode()>.
 
 sub initiate_linking_as_controller
 {
-	my ($self, $p_group) = @_;
+	my ($self, $p_group, $success_callback, $failure_callback) = @_;
 	# iterate over the members
 	if ($$self{members}) {
 		foreach my $member_ref (keys %{$$self{members}}) {
@@ -2619,7 +3265,7 @@ sub initiate_linking_as_controller
 			}
 		}
 	}
-	$self->interface()->initiate_linking_as_controller($p_group);
+	$self->interface()->initiate_linking_as_controller($p_group, $success_callback, $failure_callback);
 }
 
 =item C<derive_message([command,extra])>
@@ -2801,82 +3447,6 @@ sub request_status
 	}
 }
 
-=item C<link_to_interface([group,data3])>
-
-If a controller link from the device to the interface does not exist, this will
-create that link on the device.
-
-Next, if a responder link from the device to the interface does not exist on the 
-interface, this will create that link on the interface.
-
-The group is the group on the device that is the controller, such as a button on
-a keypad link.  It will default to 01.
-
-Data3 is optional and is used to set the Data3 value in the controller link on 
-the device.
-
-=cut
-
-sub link_to_interface
-{
-	my ($self, $p_group, $p_data3) = @_;
-	my $group = $p_group;
-	$group = $self->group unless $group;
-	# get the surrogate device for this if group is not '01'
-	if ($self->group ne '01') {
-		my $surrogate_obj = &Insteon::get_object($self->device_id,'01');
-		if ($p_data3) {
-			$surrogate_obj->link_to_interface($group,$p_data3);
-		} elsif ($surrogate_obj->isa('Insteon::KeyPadLincRelay') or $surrogate_obj->isa('Insteon::KeyPadLinc')) {
-			$surrogate_obj->link_to_interface($group,$self->group);
-		} else {
-			$surrogate_obj->link_to_interface($group);
-		}
-		# next, if the link is a keypadlinc, then create the reverse link to permit
-		# control over the button's light
-		if ($surrogate_obj->isa('Insteon::KeyPadLincRelay') or $surrogate_obj->isa('Insteon::KeyPadLinc')) {
-
-		}
-	} else {
-		if ($p_data3) {
-			$self->SUPER::link_to_interface($group, $p_data3);
-		} else {
-			$self->SUPER::link_to_interface($group);
-		}
-	}
-}
-
-=item C<unlink_to_interface([group])>
-
-Will delete the contoller link from the device to the interface if such a link exists.
-
-Next, will delete the responder link from the device to the interface on the 
-interface, if such a link exists.
-
-The group is the group on the device that is the controller, such as a button on
-a keypad link.  It will default to 01.
-
-=cut
-
-sub unlink_to_interface
-{
-	my ($self,$p_group) = @_;
-	my $group = $p_group;
-	$group = $self->group unless $group;
-	# get the surrogate device for this if group is not '01'
-	if ($self->group ne '01') {
-		my $surrogate_obj = &Insteon::get_object($self->device_id,'01');
-		$surrogate_obj->unlink_to_interface($group);
-		# next, if the link is a keypadlinc, then delete the reverse link to permit
-		# control over the button's light
-		if ($surrogate_obj->isa('Insteon::KeyPadLincRelay') or $surrogate_obj->isa('Insteon::KeyPadLinc')) {
-
-		}
-	} else {
-		$self->SUPER::unlink_to_interface($group);
-	}
-}
-
 =back
 
 =head2 AUTHOR
@@ -2961,6 +3531,34 @@ sub set
 sub is_root
 {
    return 0;
+}
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my $group = $self->group;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds},
+	'on' => "$object_name->set(\"on\")",
+	'off' => "$object_name->set(\"off\")",
+        'initiate linking as controller' => "$object_name->initiate_linking_as_controller(\"$group\")",
+        'cancel linking' => "$object_name->interface()->cancel_linking"
+    );
+    return \%voice_cmds;
 }
 
 =back

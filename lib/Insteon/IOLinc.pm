@@ -122,11 +122,6 @@ my %operating_flags = (
    'momentary_c_off' => '15',
 );
 
-my %message_types = (
-	%Insteon::BaseDevice::message_types,
-	extended_set_get => 0x2e
-);
-
 =item C<new()>
 
 Instantiates a new object.
@@ -138,7 +133,6 @@ sub new
 	my ($class, $p_deviceid, $p_interface) = @_;
 	my $self = new Insteon::BaseDevice($p_deviceid, $p_interface);
 	$$self{operating_flags} = \%operating_flags;
-	$$self{message_types} = \%message_types;
 	bless $self, $class;
 	$self->restore_data('momentary_time');
 	$$self{momentary_timer} = new Timer;
@@ -166,11 +160,11 @@ sub set
 		if ($p_state eq $$self{child_state} &&
 			($curr_milli - $$self{child_set_milliseconds} < $window)) {
 			::print_log("[Insteon::IOLinc] Received duplicate ". $self->get_object_name
-				. " sensor " . $p_state . " message, ignoring.") if $main::Debug{insteon};
+				. " sensor " . $p_state . " message, ignoring.") if $self->debuglevel();
 		}
 		else {
 			::print_log("[Insteon::IOLinc] Received ". $self->get_object_name
-				. " sensor " . $p_state . " message.") if $main::Debug{insteon};
+				. " sensor " . $p_state . " message.") if $self->debuglevel();
 			$$self{child_state} = $p_state;
 			$$self{child_set_milliseconds} = $curr_milli;
 			if (ref $$self{child_sensor}){
@@ -223,7 +217,7 @@ sub _is_info_request
 		my $child_state = &Insteon::BaseObject::derive_link_state(hex($msg{extra}));
 		&::print_log("[Insteon::IOLinc] received status for " .
 			$self->get_object_name . "sensor of: $child_state "
-			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
+			. "hops left: $msg{hopsleft}") if $self->debuglevel();
 		$ack_setby = $$self{child_sensor} if ref $$self{child_sensor};
 		if (ref $$self{child_sensor}){
 			$$self{child_sensor}->set_receive($child_state, $ack_setby);
@@ -275,9 +269,9 @@ sub _process_message {
 	elsif ($msg{command} eq "extended_set_get" && $msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
 		#If this was a get request don't clear until data packet received
-		main::print_log("[Insteon::IOLinc] Extended Set/Get ACK Received for " . $self->get_object_name) if $main::Debug{insteon};
+		main::print_log("[Insteon::IOLinc] Extended Set/Get ACK Received for " . $self->get_object_name) if $self->debuglevel();
 		if ($$self{_ext_set_get_action} eq 'set'){
-			main::print_log("[Insteon::IOLinc] Clearing active message") if $main::Debug{insteon};
+			main::print_log("[Insteon::IOLinc] Clearing active message") if $self->debuglevel();
 			$clear_message = 1;
 			$$self{_ext_set_get_action} = undef;
 			$self->_process_command_stack(%msg);	
@@ -294,12 +288,12 @@ sub _process_message {
 			$self->_process_command_stack(%msg);
 		} else {
 			main::print_log("[Insteon::IOLinc] WARN: Corrupt Extended "
-				."Set/Get Data Received for ". $self->get_object_name) if $main::Debug{insteon};
+				."Set/Get Data Received for ". $self->get_object_name) if $self->debuglevel();
 		}
 	}
 	elsif ($msg{command} eq "set_operating_flags" && $msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
-		main::print_log("[Insteon::IOLinc] Acknowledged flag set for " . $self->get_object_name) if $main::Debug{insteon};
+		main::print_log("[Insteon::IOLinc] Acknowledged flag set for " . $self->get_object_name) if $self->debuglevel();
 		$clear_message = 1;
 		$self->_process_command_stack(%msg);
 	}
@@ -324,12 +318,12 @@ sub set_momentary_time
 	my $root = $self->get_root();
 	if ($momentary_time == 0){
 		::print_log("[Insteon::IOLinc] Setting " . $self->get_object_name . 
-			" to Latching Relay Mode." ) if $main::Debug{insteon};
+			" to Latching Relay Mode." ) if $self->debuglevel();
 	} 
 	elsif ($momentary_time <= 255) {
 		$momentary_time = 2 if $momentary_time == 1; #Can't set to 1
 		::print_log("[Insteon::IOLinc] Setting Momentary Time to $momentary_time " .
-			"tenths of a second for " . $self->get_object_name) if $main::Debug{insteon};
+			"tenths of a second for " . $self->get_object_name) if $self->debuglevel();
 	}
 	else {
 		::print_log("[Insteon::IOLinc] WARN Invalid Momentary Time of $momentary_time " .
@@ -453,6 +447,47 @@ sub set_relay_mode
 		$parent->set_operating_flag('momentary_c_on');
 	}
 	return;
+}
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds},
+        #Rename status command to note that it will request status of the
+        #relay
+        'on' => "$object_name->set(\"on\")",
+        'off' => "$object_name->set(\"off\")",
+        'status - relay' => "$object_name->request_status",
+        'status - sensor' => "$object_name->request_sensor_status",
+        'print momentary time' => "$object_name->get_momentary_time",
+        'link relay to sensor' => "$object_name->set_relay_linked(1)",
+        'unlink relay from sensor' => "$object_name->set_relay_linked(0)",
+        'reverse sensor output' => "$object_name->set_trigger_reverse(1)",
+        'unreverse sensor output' => "$object_name->set_trigger_reverse(0)",
+        'set relay to latching' => "$object_name->set_relay_mode(\"Latching\")",
+        'set relay to momentary a' => "$object_name->set_relay_mode(\"Momentary_A\")",
+        'set relay to momentary b' => "$object_name->set_relay_mode(\"Momentary_B\")",
+        'set relay to momentary c' => "$object_name->set_relay_mode(\"Momentary_C\")",
+        'print settings to log' => "$object_name->get_operating_flag"
+    );
+    #Remove generic status command
+    delete $voice_cmds{status};
+    return \%voice_cmds;
 }
 
 =back

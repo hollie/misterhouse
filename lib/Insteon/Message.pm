@@ -104,6 +104,22 @@ sub failure_callback
         return $$self{failure_callback};
 }
 
+=item C<success_callback(data)>
+
+Data will be evaluated after the receipt of an ACK from the device for this command.
+
+=cut
+
+sub success_callback
+{
+	my ($self, $callback) = @_;
+        if ($callback)
+        {
+        	$$self{success_callback} = $callback;
+        }
+        return $$self{success_callback};
+}
+
 =item C<send_attempts(data)>
 
 Stores and retrieves the number of times Misterhouse has tried to send the message.
@@ -118,6 +134,23 @@ sub send_attempts
         	$$self{send_attempts} = $send_attempts;
         }
         return $$self{send_attempts};
+}
+
+=item C<debuglevel([level])>
+
+Returns 1 if Insteon or this device is at least debug level 'level', otherwise returns 0.
+
+=cut
+
+sub debuglevel
+{
+	my ($self, $debug_level) = @_;
+	$debug_level = 1 unless $debug_level;
+	my $objname = lc $self->get_object_name;
+	&::print_log("debuglevel: Processing debug for object $objname ... " . $main::Debug{$objname}) if $main::Debug{insteon} >= 5;
+	return 1 if $main::Debug{insteon} >= $debug_level;
+	return 1 if $main::Debug{$objname} >= $debug_level;
+  return 0;
 }
 
 =item C<setby(data)>
@@ -222,6 +255,7 @@ sub send
                         if (ref $self->setby && $self->setby->isa('Insteon::BaseObject') 
                         	&& !defined($$self{no_hop_increase}))
                         {
+                        	$self->setby->retry_count_log(1) if $self->setby->can('retry_count_log');
                         	if ($self->setby->default_hop_count < 3)
                                 {
                                 	$self->setby->default_hop_count($self->setby->default_hop_count + 1);
@@ -237,6 +271,11 @@ sub send
                 }
 
                 # need to set timeout as a function of retries; also need to alter hop count
+                if ($self->send_attempts <= 0 && ref $self->setby) {
+                    $self->setby->outgoing_count_log(1) if $self->setby->can('outgoing_count_log');
+                    $self->setby->outgoing_hop_count($self->setby->default_hop_count)
+                    	if $self->setby->can('outgoing_hop_count');
+                }
                 $self->send_attempts($self->send_attempts + 1);
 		$interface->_send_cmd($self, $self->send_timeout);
 		if ($self->callback)
@@ -527,53 +566,58 @@ sub send_timeout
 	my ($self, $ignore) = @_;
         my $hop_count = (ref $self->setby and $self->setby->isa('Insteon::BaseObject')) ?
         			$self->setby->default_hop_count : $self->send_attempts;
+        my $timeout = 1400;
 	if($self->command eq 'peek' || $self->command eq 'set_address_msb')
 	{
-		return 4000;
+		$timeout = 4000;
 	}
-        if ($self->command_type eq 'all_link_send')
+        elsif ($self->command_type eq 'all_link_send')
         {
         	# note, the following was set to 2000 and that was insufficient
-        	return 3000;
+        	$timeout = 3000;
         }
         elsif ($self->command_type eq 'insteon_ext_send')
         {
         	if ($hop_count == 0)
                 {
-                	return   2220;
+                	$timeout = 2220;
                 }
                 elsif ($hop_count == 1)
                 {
-                	return   2690;
+                	$timeout = 2690;
                 }
                 elsif ($hop_count == 2)
                 {
-                	return   3000;
+                	$timeout = 3000;
                 }
                 elsif ($hop_count >= 3)
                 {
-                	return   3170;
+                	$timeout = 3170;
                 }
         }
         else
         {
         	if ($hop_count == 0)
                 {
-                	return   1400;
+                	$timeout = 1400;
                 }
                 elsif ($hop_count == 1)
                 {
-                	return   1700;
+                	$timeout = 1700;
                 }
                 elsif ($hop_count == 2)
                 {
-                	return   1900;
+                	$timeout = 1900;
                 }
                 elsif ($hop_count >= 3)
                 {
-                	return   2000;
+                	$timeout = 2000;
                 }
         }
+        if (ref $self->setby and $self->setby->isa('Insteon::BaseObject')){
+        	$timeout = int($timeout * $self->setby->timeout_factor);
+        }
+        return $timeout;
 }
 
 =item C<to_string()>
@@ -654,7 +698,7 @@ sub _derive_interface_data
 	}
         else
         {
-       		my $hop_count = $self->send_attempts + $self->setby->default_hop_count - 1;
+       		my $hop_count = $self->setby->default_hop_count;
 		$cmd.=$self->setby->device_id();
 		if ($self->command_type =~ /insteon_ext_send/i)
                 {

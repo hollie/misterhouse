@@ -736,7 +736,7 @@ sub setup {
                                 # Make various directories, if missing
     mkdir ("$config_parms{data_dir}/logs", 0777)         unless -d "$config_parms{data_dir}/logs";
     mkdir ("$config_parms{data_dir}/web", 0777)          unless -d "$config_parms{data_dir}/web";
-    mkdir ("$config_parms{data_dir}/cache", 0777)        unless -d "$config_parms{data_dir}/cache";
+    mkdir ("$config_parms{html_alias_cache}", 0777)        unless -d "$config_parms{html_alias_cache}";
     mkdir ("$config_parms{html_dir}/tv", 0777)           unless -d "$config_parms{html_dir}/tv";
     mkdir ("$config_parms{html_dir}/tv/clicktv", 0777)   unless -d "$config_parms{html_dir}/tv/clicktv";
 
@@ -3819,7 +3819,7 @@ sub play {
                                 # Let the speak code push the wav file
                                 # For speak (TTS), this gets done in Voice_Text.pm
         if ($parms{address}) {
-            copy $file, "$config_parms{data_dir}/cache/speak_address.$Second.wav";
+            copy $file, "$config_parms{html_alias_cache}/speak_address.$Second.wav";
             for my $address (split ',', $parms{address}) {
                 my $address_code = $config_parms{voice_text_address_code};
                 $address_code =~ s|\$address|$address|;
@@ -4775,6 +4775,10 @@ sub read_table_files {
                 print "Error in &read_table_$format: $@\n" if $@;
             }
         }
+        if (defined(&{"read_table_finish_$format"})) {
+                print TABLE_OUT eval "&read_table_finish_$format()";
+                print "Error in &read_table_finish_$format: $@\n" if $@;
+        }
         close TABLE_IN;
         close TABLE_OUT;
         if ($format =~/xml/) { $/="\n"; }
@@ -4963,8 +4967,8 @@ sub read_user_code {
                 $record =~ /->\s*hidden/   or
                 $record =~  /^\s*set_(authority|icon|info|order|fp_location)\s/ or
                 $record =~ /->\s*set_(authority|icon|info|order|fp_location)/   or
-                $record =~ /^\s{0,3}\S+\s*->\s*add[\s\(]/ or
-                $record =~ /^\s{0,3}add\s/) {
+                $record =~ /^\ {0,3}\S+\s*->\s*add[\s\(]/ or
+                $record =~ /^\ {0,3}add\s/) {
                 $noloop_statement_flag = 1 unless $pod_flag; # Allow for multi-record statements
             }
 

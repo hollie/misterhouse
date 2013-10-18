@@ -20,7 +20,7 @@ $image_file =~ s/(.+)\.(.+)$/$1/;
 my $img;
 my $nocache = 0;
 #$nocache = 1;
-$image_file = "$config_parms{data_dir}/cache/$image_file.jpg";
+$image_file = "$config_parms{html_alias_cache}/$image_file.jpg";
 unless (-e "$image_file" or $nocache) {
 	$url = $config_parms{html_alias_photos} .$url;
 	my $image = Image::Resize->new($url);

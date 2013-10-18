@@ -71,10 +71,6 @@ sub poll_all
                                 $insteon_device->get_engine_version();
                			$insteon_device->request_status();
             		}
-               		if ($insteon_device->devcat) {
-              		 # reset devcat so as to trigger any device specific properties
-               			$insteon_device->devcat($insteon_device->devcat);
-            		}
          	}
          }
       }
@@ -123,6 +119,23 @@ sub equals
         	return 0;
         }
 }
+
+=item C<debuglevel([level])>
+
+Returns 1 if Insteon or this device is at least debug level 'level', otherwise returns 0.
+
+=cut
+
+sub debuglevel
+{
+	my ($self, $debug_level) = @_;
+	$debug_level = 1 unless $debug_level;
+	my $objname = lc $self->get_object_name;
+	&::print_log("debuglevel: Processing debug for object $objname ... " . $main::Debug{$objname}) if $main::Debug{insteon} >= 5;
+	return 1 if $main::Debug{insteon} >= $debug_level;
+	return 1 if $main::Debug{$objname} >= $debug_level;
+  return 0;
+ }
 
 =item C<_is_duplicate(cmd)>
 
@@ -300,7 +313,7 @@ sub queue_message
         	my $setby = $message->setby;
 		if ($self->_is_duplicate($message->interface_data) && !($message->isa('Insteon::X10Message')))
                 {
-			&main::print_log("[Insteon::BaseInterface] Attempt to queue command already in queue; skipping ...") if $main::Debug{insteon};
+			&main::print_log("[Insteon::BaseInterface] Attempt to queue command already in queue; skipping ...") if $self->debuglevel();
 		}
                 else
                 {
@@ -358,13 +371,15 @@ sub process_queue
                                	&::print_log("[Insteon::BaseInterface] WARN: number of retries ("
                                        	. $self->active_message->send_attempts
                 			. ") for " . $self->active_message->to_string()
-                                        . " exceeds limit.  Now moving on...") if $main::Debug{insteon};
+                                        . " exceeds limit.  Now moving on...") if $self->debuglevel();
                                 # !!!!!!!!! TO-DO - handle failure timeout ???
                                 my $failed_message = $self->active_message;
                                 # make sure to let the sending object know!!!
 				if (defined($failed_message->setby) and $failed_message->setby->can('is_acknowledged'))
 				{
                                        	$failed_message->setby->is_acknowledged(0);
+                                       	$failed_message->setby->fail_count_log(1) 
+                                       		if $failed_message->setby->can('fail_count_log');
 				}
 				else
 				{
@@ -377,7 +392,7 @@ sub process_queue
 				if ($failed_message->failure_callback)
                                 {
                                        	&::print_log("[Insteon::BaseInterface] WARN: Message Timeout:  Now calling callback: " .
-                                               	$failed_message->failure_callback) if $main::Debug{insteon};
+                                               	$failed_message->failure_callback) if $self->debuglevel();
 					$failed_message->setby->failure_reason('timeout') 
 						if (defined($failed_message->setby) and $failed_message->setby->can('failure_reason'));
 		       			package main;
@@ -490,7 +505,7 @@ sub on_interface_info_received
 	my ($self) = @_;
 	&::print_log("[Insteon_PLM] PLM id: " . $self->device_id .
 		" firmware: " . $self->firmware)
-		if $main::Debug{insteon};
+		if $self->debuglevel();
         $self->clear_active_message();
 }
 
@@ -523,25 +538,28 @@ sub on_standard_insteon_received
 		#time has been required. Extra 50 millis helps prevent dupes
 		$wait_time = ($wait_time * 100) + 50;
 		$wait_message .= "delaying next transmit by $wait_time milliseconds to avoid collisions.";
-		::print_log($wait_message) if ($main::Debug{insteon} >= 3 && $wait_time > 50);
+		::print_log($wait_message) if ($self->debuglevel(3) && $wait_time > 50);
 		$self->_set_timeout('xmit', $wait_time);			
 
 		# get the matching object
 		my $object = &Insteon::get_object($msg{source}, $msg{group});
 		if (defined $object)
                 {
+                	$object->max_hops_count($msg{maxhops}) if $object->can('max_hops_count');
+                	$object->hops_left_count($msg{hopsleft}) if $object->can('hops_left_count');
+                    $object->incoming_count_log(1) if $object->can('incoming_count_log');
                 	if ($msg{type} ne 'broadcast')
                         {
                 		$msg{command} = $object->message_type($msg{cmd_code});
 		      		&::print_log("[Insteon::BaseInterface] Received message from: ". $object->get_object_name
 		      			."; command: $msg{command}; type: $msg{type}; group: $msg{group}")
-                        		if (!($msg{is_ack} or $msg{is_nack})) and $main::Debug{insteon};
+                        		if (!($msg{is_ack} or $msg{is_nack})) and $self->debuglevel();
                    	}
                    	if ($msg{is_ack} or $msg{is_nack})
                    	{
 		      		main::print_log("[Insteon::BaseInterface] DEBUG3: PLM command:insteon_received; "
 		      			. "Device command:$msg{command}; type:$msg{type}; group: $msg{group}")
-                        		if $main::Debug{insteon} >=3;
+                        		if $self->debuglevel(3);
                         	# need to confirm that this message corresponds to the current active one before clearing it
                                 # TO-DO!!! This is a brute force and poor compare technique; needs to be replaced by full compare
                                 if ($self->active_message && ref $self->active_message->setby)
@@ -561,7 +579,15 @@ sub on_standard_insteon_received
                         		       		# ask the object to process the received message and update its state
                         		       		# Object will return true if this is the end of the send transaction
 		   					if($object->_process_message($self, %msg)) {
-		   						$self->clear_active_message();
+								if ($self->active_message->success_callback){
+									main::print_log("[Insteon::BaseInterface] DEBUG4: Now calling message success callback: "
+										. $self->active_message->success_callback) if $self->debuglevel(4);
+									package main;
+										eval $self->active_message->success_callback;
+										::print_log("[Insteon::BaseInterface] problem w/ success callback: $@") if $@;
+									package Insteon::BaseInterface;
+								}
+								$self->clear_active_message();
 		   					}
                                                 }
                                                 else
@@ -569,10 +595,13 @@ sub on_standard_insteon_received
                                                 	&main::print_log("[Insteon::BaseInterface] WARN: deviceid of "
                                                 		. "active message != received message source ("
                                                         	. $object->get_object_name() . "). IGNORING received message!!");
+                                                        #These generally seem to be duplicate messages
+                                                        $object->dupe_count_log(1) if $object->can('dupe_count_log');
                                                 }
                                         }
                                         elsif ($msg{type} eq 'cleanup')
                                         {
+                                        	my $setby_object = $object;
                                                 $object = &Insteon::get_object('000000', $msg{extra});
                                                 if ($object)
                                                 {
@@ -581,21 +610,21 @@ sub on_standard_insteon_received
 							# Don't clear active message as ACK is only one of many
 							if (($msg{extra} == $self->active_message->setby->group)){
                                                                 &main::print_log("[Insteon::BaseInterface] DEBUG3: Cleanup message received for scene "
-                                                                	. $object->get_object_name . " from source " . uc($msg{source}))
-                                                                	if $main::Debug{insteon} >= 3;
+                                                                	. $object->get_object_name . " from " . $setby_object->get_object_name)
+                                                                	if $self->debuglevel(3);
 							} elsif ($self->active_message->command_type eq 'all_link_direct_cleanup' &&
 								lc($self->active_message->setby->device_id) eq $msg{source}) 
 							{
-								&::print_log("[Insteon::BaseInterface] DEBUG2: ALL-Linking Direct Completed with ". $self->active_message->setby->get_object_name) if $main::Debug{insteon} >= 2;
+								&::print_log("[Insteon::BaseInterface] DEBUG2: ALL-Linking Direct Completed with ". $self->active_message->setby->get_object_name) if $self->debuglevel(2);
 								$self->clear_active_message();
 							}
 							else {
 								&main::print_log("[Insteon::BaseInterface] DEBUG3: Cleanup message received from "
-								. $msg{source} . " for scene "
+								. $setby_object->get_object_name . " for scene "
 								. $object->get_object_name . ", but group in recent message " 
 								. $msg{extra}. " did not match group in "
 								. "prior sent message group " . $self->active_message->setby->group) 
-									if $main::Debug{insteon} >= 3;
+									if $self->debuglevel(3);
                                 			}
                                 			# If ACK or NACK received then PLM is still working on the ALL Link Command
                                 			# Increase the command timeout to wait for next one
@@ -604,8 +633,9 @@ sub on_standard_insteon_received
                                                 else
                                                 {
                                                 	&main::print_log("[Insteon::BaseInterface] ERROR: received cleanup message from "
-                                                             . $msg{source} . "that does not correspond to a valid PLM group. Corrupted message is assumed "
+                                                             . $setby_object->get_object_name . "that does not correspond to a valid PLM group. Corrupted message is assumed "
                                                              . "and will be skipped! Was group " . $msg{extra});
+                                                    $setby_object->corrupt_count_log(1) if $setby_object->can('corrupt_count_log');
                                                 }
                                         }
                                         else #not direct or cleanup
@@ -614,6 +644,7 @@ sub on_standard_insteon_received
                                                 	. $object->get_object_name . " but unable to process $msg{type} message type."
                                                         . " IGNORING received message!!");
                                                 $self->active_message->no_hop_increase(1);
+                                                $object->corrupt_count_log(1) if $object->can('corrupt_count_log');
                                         }
                         	}
                                 else #does not correspond to current active message
@@ -631,7 +662,7 @@ sub on_standard_insteon_received
                                                 #   then, the above cleanup handler would be run
                                                 &main::print_log("[Insteon::BaseInterface] DEBUG3: received cleanup message responding to "
                                                 	. "PLM controller group: $msg{extra}. Ignoring as this has already been processed")
-                                                        if $main::Debug{insteon} >= 3;
+                                                        if $self->debuglevel(3);
                                         }
                                         else
                                         {
@@ -649,6 +680,7 @@ sub on_standard_insteon_received
                 else 
                 {
          		&::print_log("[Insteon::BaseInterface] Warn! Unable to locate object for source: $msg{source} and group: $msg{group}");
+         		$self->corrupt_count_log(1);
 		}
 		# treat the message as legitimate even if an object match did not occur
 	}
@@ -683,23 +715,34 @@ sub on_extended_insteon_received
 		#time has been required. Extra 50 millis helps prevent dupes
 		$wait_time = ($wait_time * 200) + 50;
 		$wait_message .= "delaying next transmit by $wait_time milliseconds to avoid collisions.";
-		::print_log($wait_message) if ($main::Debug{insteon} >= 3 && $wait_time > 50);
+		::print_log($wait_message) if ($self->debuglevel(3) && $wait_time > 50);
 		$self->_set_timeout('xmit', $wait_time);
 
 		# get the matching object
 		my $object = &Insteon::get_object($msg{source}, $msg{group});
 		if (defined $object)
                 {
+                	$object->max_hops_count($msg{maxhops}) if $object->can('max_hops_count');
+                	$object->hops_left_count($msg{hopsleft}) if $object->can('hops_left_count');
+                    $object->incoming_count_log(1) if $object->can('incoming_count_log');
                 	if ($msg{type} ne 'broadcast')
                         {
                 		$msg{command} = $object->message_type($msg{cmd_code});
 		      		main::print_log("[Insteon::BaseInterface] DEBUG: PLM command:insteon_ext_received; "
 		      			. "Device command:$msg{command}; type:$msg{type}; group: $msg{group}")
-                        		if( (!($msg{is_ack} or $msg{is_nack}) and $main::Debug{insteon}) 
-                        		or $main::Debug{insteon} >= 3);
+                        		if( (!($msg{is_ack} or $msg{is_nack}) and $self->debuglevel()) 
+                        		or $self->debuglevel(3));
                    	}
-		   	&::print_log("[Insteon::BaseInterface] Processing message for " . $object->get_object_name) if $main::Debug{insteon} >=3;
+		   	&::print_log("[Insteon::BaseInterface] Processing message for " . $object->get_object_name) if $self->debuglevel(3);
 			if($object->_process_message($self, %msg)) {
+				if (ref $self->active_message && $self->active_message->success_callback){
+					main::print_log("[Insteon::BaseInterface] DEBUG4: Now calling message success callback: "
+						. $self->active_message->success_callback) if $self->debuglevel(4);
+					package main;
+						eval $self->active_message->success_callback;
+						::print_log("[Insteon::BaseInterface] problem w/ success callback: $@") if $@;
+					package Insteon::BaseInterface;
+				}
 				$self->clear_active_message();
 			}
 		}
@@ -842,14 +885,62 @@ sub _is_duplicate_received {
 		#Make a nicer name
 		my $source = $msg{source};
 		my $object = &Insteon::get_object($msg{source}, $msg{group});
-		$source = $object->get_object_name() if (defined $object);
+		if (defined $object) {
+			$source = $object->get_object_name();
+			$object->dupe_count_log(1) if $object->can('dupe_count_log');
+			$object->max_hops_count($msg{maxhops}) if $object->can('max_hops_count');
+        	$object->hops_left_count($msg{hopsleft}) if $object->can('hops_left_count');
+            $object->incoming_count_log(1) if $object->can('incoming_count_log');
+            #This message still provides a data point on how many hops it is 
+            #taking for messages to arrive.
+            $object->default_hop_count($msg{maxhops}-$msg{hopsleft}) if $object->can('default_hop_count');
+		};
 		::print_log("[Insteon::BaseInterface] WARN! Dropped duplicate incoming message "
-			. $message_data . ", from $source.") if $main::Debug{insteon};
+			. $message_data . ", from $source.") if $self->debuglevel();
 	} else {
 		#Message was not in hash, so add it
 		$$self{received_commands}{$key} = $curr_milli + $delay;
 	}
 	return $is_duplicate;
+}
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds = (
+        'complete linking as responder' => "$object_name->complete_linking_as_responder",
+        'initiate linking as controller' => "$object_name->initiate_linking_as_controller",
+        'initiate unlinking' => "$object_name->initiate_unlinking_as_controller",
+        'cancel linking' => "$object_name->cancel_linking",
+        'log links' => "$object_name->log_alllink_table",
+        'scan link table' => "$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")",
+        'scan changed device link tables' => "Insteon::scan_all_linktables(1)",
+        'delete orphan links' => "$object_name->delete_orphan_links",
+        'AUDIT - delete orphan links' => "$object_name->delete_orphan_links(1)",
+        'scan all device link tables' => "Insteon::scan_all_linktables",
+        'sync all links' => "Insteon::sync_all_links(0)",
+        'AUDIT - sync all links' => "Insteon::sync_all_links(1)",
+        'print all message stats' => "Insteon::print_all_message_stats",
+        'reset all message stats' => "Insteon::reset_all_message_stats",
+        'stress test ALL devices' => "Insteon::stress_test_all(5,1)",
+        'ping test ALL devices' => "Insteon::ping_all(5)",
+        'log all device ALDB status' => "Insteon::log_all_ADLB_status"
+    );
+    return \%voice_cmds;
 }
 
 =back
