@@ -1362,6 +1362,18 @@ sub has_link
 	return (defined $$self{aldb}{$key});
 }
 
+=item C<debuglevel([level])>
+
+Returns 1 if Insteon or this device is at least debug level 'level', otherwise returns 0.
+
+=cut
+
+sub debuglevel
+{
+	my ($self, $debug_level) = @_;
+	return Insteon::debuglevel(undef, $debug_level);
+}
+
 =back
 
 =head2 INI PARAMETERS

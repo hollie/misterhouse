@@ -129,12 +129,7 @@ Returns 1 if Insteon or this device is at least debug level 'level', otherwise r
 sub debuglevel
 {
 	my ($self, $debug_level) = @_;
-	$debug_level = 1 unless $debug_level;
-	my $objname = lc $self->get_object_name;
-	&::print_log("debuglevel: Processing debug for object $objname ... " . $main::Debug{$objname}) if $main::Debug{insteon} >= 5;
-	return 1 if $main::Debug{insteon} >= $debug_level;
-	return 1 if $main::Debug{$objname} >= $debug_level;
-  return 0;
+	return Insteon::debuglevel($self, $debug_level);
  }
 
 =item C<_is_duplicate(cmd)>

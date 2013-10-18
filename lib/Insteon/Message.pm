@@ -145,12 +145,7 @@ Returns 1 if Insteon or this device is at least debug level 'level', otherwise r
 sub debuglevel
 {
 	my ($self, $debug_level) = @_;
-	$debug_level = 1 unless $debug_level;
-	my $objname = lc $self->get_object_name;
-	&::print_log("debuglevel: Processing debug for object $objname ... " . $main::Debug{$objname}) if $main::Debug{insteon} >= 5;
-	return 1 if $main::Debug{insteon} >= $debug_level;
-	return 1 if $main::Debug{$objname} >= $debug_level;
-  return 0;
+	return Insteon::debuglevel(undef, $debug_level);
 }
 
 =item C<setby(data)>
@@ -250,7 +245,7 @@ sub send
                 {
                 	&::print_log("[Insteon::BaseMessage] WARN: now resending "
                         	. $self->to_string() . " after " . $self->send_attempts
-                        	. " attempts.") if $main::Debug{insteon};
+                        	. " attempts.") if $self->debuglevel();
                         # revise default hop count to reflect retries
                         if (ref $self->setby && $self->setby->isa('Insteon::BaseObject') 
                         	&& !defined($$self{no_hop_increase}))
@@ -265,7 +260,7 @@ sub send
                         	&& $self->setby->isa('Insteon::BaseObject')){
                         	&main::print_log("[Insteon::BaseMessage] Hop count not increased for "
                         		. $self->setby->get_object_name . " because no_hop_increase flag was set.")
-                        		if $main::Debug{insteon};
+                        		if $self->debuglevel();
                         	$$self{no_hop_increase} = undef;
                         }
                 }
@@ -1101,7 +1096,7 @@ sub generate_commands
 	}
 
 	if ($uc eq undef) {
-	    &main::print_log("[Insteon::Message] Message is for entire HC") if $main::Debug{insteon};
+	    &main::print_log("[Insteon::Message] Message is for entire HC") if Insteon::debuglevel(undef);
 	}
 	else {
 
@@ -1110,7 +1105,7 @@ sub generate_commands
 	    $msg.= substr(unpack("H*",pack("C",$x10_unit_codes{substr($id,2,1)})),1,1);
 	    $msg.= "00";
 	    &main::print_log("[Insteon_PLM] x10 sending code: " . uc($hc . $uc) . " as insteon msg: "
-			     . $msg) if $main::Debug{insteon};
+			     . $msg) if Insteon::debuglevel(undef);
 
             push @data, $msg;
 	}
@@ -1138,7 +1133,7 @@ sub generate_commands
 	    $msg.= "80";
 
      	    &main::print_log("[Insteon_PLM] x10 sending code: " . uc($hc . $x10_arg) . " as insteon msg: "
-			     . $msg) if $main::Debug{insteon};
+			     . $msg) if Insteon::debuglevel(undef);
 
             push @data, $msg;
 
