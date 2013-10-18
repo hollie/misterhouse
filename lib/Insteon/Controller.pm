@@ -108,12 +108,12 @@ sub set
         $setby_name = $p_setby->get_object_name() if (ref $p_setby and $p_setby->can('get_object_name'));
 	if (not defined($self->get_idle_time) or $self->get_idle_time > 1 or $self->state ne $p_state) {
 		&::print_log("[Insteon::RemoteLinc] " . $self->get_object_name()
-			. "::set_receive($p_state, $setby_name)") if $main::Debug{insteon};
+			. "::set_receive($p_state, $setby_name)") if $self->debuglevel();
 		$self->set_receive($p_state,$p_setby);
 	} else {
 		&::print_log("[Insteon::RemoteLinc] " . $self->get_object_name()
 			. "::set_receive($p_state, $setby_name) deferred due to repeat within 1 second")
-			if $main::Debug{insteon};
+			if $self->debuglevel();
 	}
 	return;
 }
@@ -243,9 +243,9 @@ sub _process_message {
 	elsif ($msg{command} eq "extended_set_get" && $msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
 		#If this was a get request don't clear until data packet received
-		main::print_log("[Insteon::RemoteLinc] Extended Set/Get ACK Received for " . $self->get_object_name) if $main::Debug{insteon};
+		main::print_log("[Insteon::RemoteLinc] Extended Set/Get ACK Received for " . $self->get_object_name) if $self->debuglevel();
 		if ($$self{_ext_set_get_action} eq 'set'){
-			main::print_log("[Insteon::RemoteLinc] Clearing active message") if $main::Debug{insteon};
+			main::print_log("[Insteon::RemoteLinc] Clearing active message") if $self->debuglevel();
 			$clear_message = 1;
 			$$self{_ext_set_get_action} = undef;
 			$self->_process_command_stack(%msg);	
@@ -268,7 +268,7 @@ sub _process_message {
 			$self->_process_command_stack(%msg);
 		} else {
 			main::print_log("[Insteon::RemoteLinc] WARN: Corrupt Extended "
-				."Set/Get Data Received for ". $self->get_object_name) if $main::Debug{insteon};
+				."Set/Get Data Received for ". $self->get_object_name) if $self->debuglevel();
 		}
 	}
 	else {

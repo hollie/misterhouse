@@ -407,7 +407,7 @@ sub scan_all_linktables
 		       		push @_scan_devices, $candidate_object;
                 		&main::print_log("[Scan all linktables] INFO1: "
                         		. $candidate_object->get_object_name
-                        		. " will be scanned.") if $main::Debug{insteon} >= 1;
+                        		. " will be scanned.") if $candidate_object->debuglevel(1);
         		}
                 	else
                 	{
@@ -1076,13 +1076,13 @@ sub check_all_aldb_versions
 		{
 			main::print_log("[Insteon] DEBUG4 Checking aldb version for "
 				. $ALDB_device->get_object_name()
-				. " ($count of $ALDB_cnt)") if ($main::Debug{insteon} >= 4);
+				. " ($count of $ALDB_cnt)") if ($ALDB_device->debuglevel(4));
 			$ALDB_device->check_aldb_version();
 		} else
 		{
 			main::print_log("[Insteon] DEBUG4 " . $ALDB_device->get_object_name
 				. " does not have its own aldb ($count of $ALDB_cnt)")
-				if ($main::Debug{insteon} >= 4);
+				if ($ALDB_device->debuglevel(4));
 		}
 	}
 	main::print_log("[Insteon] DEBUG4 Checking aldb version of all devices completed") if ($main::Debug{insteon} >= 4);
@@ -1100,18 +1100,18 @@ sub check_thermo_versions
 			$thermo_device->get_root()->engine_version eq "I2CS"){
 			main::print_log("[Insteon] DEBUG4 Setting thermostat "
 				. $thermo_device->get_object_name() . " to i2CS") 
-			if ($main::Debug{insteon} >= 4);
+			if ($thermo_device->debuglevel(4));
 			bless $thermo_device, 'Insteon::Thermo_i2CS';
 			$thermo_device->init();
 		}
 		else {
 			main::print_log("[Insteon] DEBUG4 Setting thermostat "
 				. $thermo_device->get_object_name() . " to i1") 
-			if ($main::Debug{insteon} >= 4);
+			if ($thermo_device->debuglevel(4));
 			bless $thermo_device, 'Insteon::Thermo_i1';
 		}
 	}
-	#main::print_log("[Insteon] DEBUG4 Checking thermostat version of all devices completed") if ($main::Debug{insteon} >= 4);	
+	#main::print_log("[Insteon] DEBUG4 Checking thermostat version of all devices completed") if ($self->debuglevel(4));	
 }
 
 =back

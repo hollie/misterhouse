@@ -1128,7 +1128,7 @@ sub set
 			my $message = new Insteon::InsteonMessage('insteon_ext_send', $parent, 'on', $extra);
 			$parent->_send_cmd($message);
 			::print_log("[Insteon::FanLinc] " . $self->get_object_name() . "::set($p_state, $setby_name)")
-				if $main::Debug{insteon};
+				if $self->debuglevel();
 			$self->is_acknowledged(0);
 			$$self{pending_state} = $p_state;
 			$$self{pending_setby} = $p_setby;
@@ -1182,7 +1182,7 @@ sub _is_info_request
 		my $child_state = &Insteon::BaseObject::derive_link_state(hex($msg{extra}));
 		&::print_log("[Insteon::FanLinc] received status for " .
 			$child_obj->{object_name} . " of: $child_state "
-			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
+			. "hops left: $msg{hopsleft}") if $self->debuglevel();
 		$ack_setby = $$child_obj{m_status_request_pending} if ref $$child_obj{m_status_request_pending};
 		$child_obj->SUPER::set($child_state, $ack_setby);
 		delete($$parent{child_status_request_pending});
@@ -1213,7 +1213,7 @@ sub is_acknowledged
 		$$child_obj{pending_setby} = undef;
 		$$child_obj{pending_response} = undef;
 		$$parent{child_pending_state} = undef;
-		&::print_log("[Insteon::FanLinc] received command/state acknowledge from " . $child_obj->{object_name}) if $main::Debug{insteon};
+		&::print_log("[Insteon::FanLinc] received command/state acknowledge from " . $child_obj->{object_name}) if $self->debuglevel();
 		return $$self{is_acknowledged};
 	} else {
 		return $self->SUPER::is_acknowledged($p_ack);
