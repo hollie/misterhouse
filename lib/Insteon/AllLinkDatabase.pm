@@ -815,13 +815,18 @@ sub add_link
 	}
 	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
 	# check whether the link already exists
-	my $subaddress = ($link_parms{data3}) ? $link_parms{data3} : '00';
+	# for I2CS devices the default data3 should be 01 no 00
+	my $data3_default = '00';
+	if ($insteon_object->can('engine_version') && $insteon_object->engine_version eq 'I2CS') {
+		$data3_default = '01';
+	}
+	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : $data3_default;
 	# get the address via lookup into the hash
 	my $key = lc $device_id . $group . $is_controller;
 	# append the device "sub-address" (e.g., a non-root button on a keypadlinc) if it exists
-	if (!($subaddress eq '00' or $subaddress eq '01'))
+	if (!($data3 eq '00' or $data3 eq '01'))
         {
-		$key .= $subaddress;
+		$key .= $data3;
 	}
 	if (!defined($link_parms{aldb_check}) && (!$$self{device}->isa('Insteon_PLM'))){
 		## Check whether ALDB is in sync
@@ -884,7 +889,7 @@ sub add_link
 				$data1 = &Insteon::DimmableLight::convert_level($on_level);
 				$data2 = ($$self{device}->isa('Insteon::DimmableLight')) ? &Insteon::DimmableLight::convert_ramp($ramp_rate) : '00';
 			}
-			my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
+			#data3 is defined above
 			$$self{_mem_activity} = 'add';
 			$self->_write_link($address, $device_id, $group, $is_controller, $data1, $data2, $data3);
 			# TO-DO: ensure that pop'd address is restored back to queue if the transaction fails
@@ -937,7 +942,12 @@ sub update_link
 		. " and group: $group with on level: $on_level and ramp rate: $ramp_rate") if $main::Debug{insteon};
 	my $data1 = &Insteon::DimmableLight::convert_level($on_level);
 	my $data2 = ($$self{device}->isa('Insteon::DimmableLight')) ? &Insteon::DimmableLight::convert_ramp($ramp_rate) : '00';
-	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
+	# for I2CS devices the default data3 should be 01 no 00
+	my $data3_default = '00';
+	if ($insteon_object->can('engine_version') && $insteon_object->engine_version eq 'I2CS') {
+		$data3_default = '01';
+	}
+	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : $data3_default;
 	my $deviceid = $insteon_object->device_id;
 	my $subaddress = $data3;
 	# get the address via lookup into the hash
