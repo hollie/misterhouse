@@ -2854,31 +2854,26 @@ sub sync_links
 	$self->_process_sync_queue() unless $insteon_object;
 	
 	# 1. Does a controller link exist for Device-> PLM
-	if (!($self->isa('Insteon::InterfaceController') && 
-	$insteon_object->has_link($self->interface,$self->group,1,$subaddress))) {
+	if ((!$self->isa('Insteon::InterfaceController') && 
+	!$insteon_object->has_link($self->interface,$self->group,1,$subaddress))) {
 		my %link_req = ( member => $insteon_object, cmd => 'add', object => $self->interface,
 			group => $self->group, is_controller => 1,
 			callback => "$self_link_name->_process_sync_queue()",
 			data3 => $subaddress);
-		$link_req{cause} = "Adding controller record from $self_link_name to $interface_name";
+		$link_req{cause} = "Adding controller record to $self_link_name for $interface_name";
 		$link_req{data3} = $self->group;
 		push @{$$self{sync_queue}}, \%link_req;
 	}
 		
 	# 2. Does a responder link exist on the PLM
-	if (!($self->isa('Insteon::InterfaceController') &&
-	$self->interface->has_link($insteon_object,$self->group,0,'00'))) {
+	if ((!$self->isa('Insteon::InterfaceController') &&
+	!$self->interface->has_link($insteon_object,$self->group,0,'00'))) {
 		my %link_req = ( member => $self->interface, cmd => 'add', object => $insteon_object,
 			group => $self->group, is_controller => 0,
 			callback => "$self_link_name->_process_sync_queue()",
 			data3 => '00');
 		$link_req{cause} = "Adding responder record to $interface_name from $self_link_name";
 		push @{$$self{sync_queue}}, \%link_req;
-	}
-
-	if (!$$self{members}) {
-		#No members to sync
-		$self->_process_sync_queue();
 	}
 
 	# Loop members
@@ -2915,6 +2910,7 @@ sub sync_links
 				on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,
 				callback => "$self_link_name->_process_sync_queue()",
 				data3 => $member->group);
+			$link_req{cause} = "Adding responder record to $member_name from $self_link_name";
 			push @{$$self{sync_queue}}, \%link_req;
 			$has_link = 0;
 		}
@@ -2931,7 +2927,7 @@ sub sync_links
 				$requires_update = 1;
 				$cause .= "Ramp rate ";
 			}
-			elsif ($cur_on_level != $tgt_on_level){
+			elsif ($cur_on_level-1 > $tgt_on_level && $cur_on_level+1 < $tgt_on_level){
 				$requires_update = 1;
 				$cause .= "On level ";
 			}
@@ -2986,11 +2982,13 @@ sub sync_links
 	foreach (@{$$self{sync_queue}}){
 		my %sync_req = %{$_};
 		my $audit_text = "(AUDIT)" if ($audit_mode);
-		my $log_text = "[Insteon::BaseController] $audit_text $sync_req{cmd}ing the following link on $self_link_name because ";
+		my $log_text = "[Insteon::BaseController] $audit_text ";
 		$log_text .= $sync_req{cause} . "\n";
 		PRINT: for (keys %sync_req) {
 			next PRINT if ($_ eq 'cause');
 			next PRINT if ($_ eq 'callback');
+			next PRINT if ($_ eq 'member');
+			next PRINT if ($_ eq 'object');
 			$log_text .= "$_ = $sync_req{$_}; ";
 		}
 		::print_log($log_text);
