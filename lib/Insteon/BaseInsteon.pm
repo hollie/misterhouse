@@ -2898,7 +2898,7 @@ sub sync_links
 		$tgt_ramp_rate = '0' unless defined $tgt_ramp_rate;
 		$tgt_on_level =~ s/(\d+)%?/$1/;
 		$tgt_ramp_rate =~ s/(\d)s?/$1/;
-		my $resp_aldbkey = $self->_aldb->get_linkkey($insteon_object->device_id,
+		my $resp_aldbkey = $member_root->_aldb->get_linkkey($insteon_object->device_id,
 								$self->group,
 								'0',
 								$member->group);
@@ -2917,7 +2917,7 @@ sub sync_links
 		
 		# 4. Is the responder link accurate
 		if ($member->isa('Insteon::DimmableLight') && $has_link) {
-			my $member_aldb = $member->_aldb;
+			my $member_aldb = $member_root->_aldb;
 			my $data1 = $$member_aldb{aldb}{$resp_aldbkey}{data1};
 			my $data2 = $$member_aldb{aldb}{$resp_aldbkey}{data2};
 			my $cur_on_level = hex($data1)/2.55;
