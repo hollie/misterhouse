@@ -93,6 +93,12 @@ Returns the saved health status.
 sub get_linkkey {
 	my ($self, $deviceid, $group, $is_controller, $data3) = @_;
 	my $linkkey = $deviceid . $group . $is_controller;
+	# Data3 is irrelevant for the PLM itself, b/c for controller records
+	# data3 will always be equal to group.  And for responder records it 
+	# should always be 00, therefor blank data3 so it isn't used
+	if ($$self{device}->isa('Insteon_PLM')){
+		$data3 = '00';
+	}
 	# '00' and '01' are generally interchangable for $data3 values and are
 	# the most common values.  So to make searching easier we only 
 	# add data3 if it is unique
