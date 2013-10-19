@@ -1407,7 +1407,7 @@ sub link_to_interface
 			$failure_callback = $self->get_object_name."->link_to_interface_i2cs(\"$p_group\",\"$p_data3\")";
 			$self->get_engine_version($success_callback, $failure_callback);	
 		}
-		case (1) { #Add Link from object->PLM
+		case (1) { #Add Controller Link to device for object->PLM link
 			$success_callback = $success_callback_prefix . "\"2\")";
 			my %link_info = ( object => $self->interface, group => $p_group, is_controller => 1,
 				callback => "$success_callback", failure_callback=> "$failure_callback");
@@ -1421,7 +1421,7 @@ sub link_to_interface
 		              ", does not have an ALDB object.  Linking is not permitted.");
 		        }
 		}
-		case (2){ #Add Link from PLM->object
+		case (2){ #Add Responder Link to PLM for object->PLM link
 			$success_callback = $success_callback_prefix . "\"3\")";
 			my $link_info = "deviceid=" . lc $self->device_id . " group=$p_group is_controller=0 " .
 				"callback=$success_callback failure_callback=$failure_callback";	
