@@ -2684,6 +2684,15 @@ sub add_link
 	}
         else
         {
+		# The modem developers guide appears to be wrong regarding control
+		# codes.  40 and 41 will respond with a NACK if a record for that
+		# group/device/is_controller combination already exist.  It appears 
+		# that code 20 can be used to edit existing but not create new records.
+		# However, since data1-3 are consistent for all PLM links we never
+		# really need to update a PLM link.  NB prior MH code did not set
+		# data3 on control records to the group, however this does not 
+		# appear to have any adverse effects, and the current MH code will
+		# not flag these entries as being incorrect or requiring an update
 		my $control_code = ($is_controller) ? '40' : '41';
 		# flags should be 'a2' for responder and 'e2' for controller
 		my $flags = ($is_controller) ? 'E2' : 'A2';
