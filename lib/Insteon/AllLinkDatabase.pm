@@ -2424,29 +2424,39 @@ sub log_alllink_table
 	my ($self) = @_;
         &::print_log("[Insteon::ALDB_PLM] Link table health: " . $self->health);
 	foreach my $linkkey (sort(keys(%{$$self{aldb}}))) {
-		my $data3 = $$self{aldb}{$linkkey}{data3};
 		my $is_controller = $$self{aldb}{$linkkey}{is_controller};
-		my $group = ($is_controller) ? $data3 : $$self{aldb}{$linkkey}{group};
+		my $group = $$self{aldb}{$linkkey}{group};
 		$group = '01' if $group eq '00';
-                my $deviceid = $$self{aldb}{$linkkey}{deviceid};
-		my $device = &Insteon::get_object($deviceid,$group);
-		my $object_name = '';
-                if ($device)
-                {
-                	$object_name = $device->get_object_name;
-                }
-                else
-                {
-                        $object_name = uc substr($deviceid,0,2) . '.' .
-                        	       uc substr($deviceid,2,2) . '.' .
-                                       uc substr($deviceid,4,2);
-                }
+		my $deviceid = $$self{aldb}{$linkkey}{deviceid};
+		my $linked_subgroup = '01';
+		my $controller_device;
+		my $controller_name;
+		if (!$is_controller){
+			$linked_subgroup = $group;
+		}
+		elsif ($group ne '00' && $group ne '01') {
+			$controller_device = Insteon::get_object('000000',$group);
+			$controller_name = $controller_device->get_object_name . " ($group)";
+		}
+		else {
+			$controller_name = $group;
+		}
+		my $linked_object = Insteon::get_object($deviceid,$linked_subgroup);
+		my $linked_name = '';
+		if ($linked_object) {
+			$linked_name = $linked_object->get_object_name;
+		}
+		else {
+			$linked_name = uc substr($deviceid,0,2) . '.' .
+				       uc substr($deviceid,2,2) . '.' .
+				       uc substr($deviceid,4,2);
+		}
 		&::print_log("[Insteon::ALDB_PLM] " .
-			(($is_controller) ? "cntlr($$self{aldb}{$linkkey}{group}) record to "
-			. $object_name
-			: "responder record to " . $object_name . "($$self{aldb}{$linkkey}{group})")
+			(($is_controller) ? "cntlr($controller_name) record to "
+			. $linked_name
+			: "responder record to " . $linked_name . "($$self{aldb}{$linkkey}{group})")
 			. " (d1=$$self{aldb}{$linkkey}{data1}, d2=$$self{aldb}{$linkkey}{data2}, "
-			. "d3=$data3)");
+			. "d3=$$self{aldb}{$linkkey}{data3})");
 	}
 }
 
