@@ -510,22 +510,10 @@ sub sync_all_links
 	# iterate over all registered objects and compare whether the link tables match defined scene linkages in known Insteon_Links
 	for my $obj (&Insteon::find_members('Insteon::BaseController'))
 	{
-        	if (!$obj->isa('Insteon::InterfaceController') && $obj->is_deaf)
-                {
-                	&main::print_log("[Sync all links] Ignoring links from 'deaf' device: " . $obj->get_object_name);
-                }
-                elsif(!($obj->isa('Insteon::InterfaceController')) && ($obj->_aldb->health eq 'unknown'))
-                {
-                	&main::print_log("[Sync all links] Skipping links from 'unreachable' device: "
-                        	. $obj->get_object_name . ". Consider rescanning the link table of this device");
-                }
-                else
-                {
-			my %sync_req = ('sync_object' => $obj, 'audit_mode' => ($audit_mode) ? 1 : 0);
-                	&main::print_log("[Sync all links] Adding " . $obj->get_object_name
-                        	. " to sync queue");
-	       		push @_sync_devices, \%sync_req
-                };
+		my %sync_req = ('sync_object' => $obj, 'audit_mode' => ($audit_mode) ? 1 : 0);
+		&main::print_log("[Sync all links] Adding " . $obj->get_object_name
+			. " to sync queue");
+		push @_sync_devices, \%sync_req
 	}
 
         $_sync_cnt = scalar @_sync_devices;
