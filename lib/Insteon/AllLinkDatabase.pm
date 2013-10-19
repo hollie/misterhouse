@@ -833,14 +833,14 @@ sub add_link
 	}
 	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
 
-	# For I2CS devices the default data3 for responders is 01
-	# For all other devices the default data3 for responders is 00
-	my $data3_resp_default = '00';
+	# For I2CS devices the default data3 for links is 01
+	# For all other devices the default data3 for links is 00
+	my $data3_default = '00';
 	if ($insteon_object->can('engine_version') && $insteon_object->engine_version eq 'I2CS') {
-		$data3_resp_default = '01';
+		$data3_default = '01';
 	}
 	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
-	$data3 = $data3_resp_default if (!$is_controller && ($data3 eq '00' || $data3 eq '01'));
+	$data3 = $data3_default if ($data3 eq '00' || $data3 eq '01');
 
 	# check whether the link already exists
 	my $key = $self->get_linkkey($device_id, $group, $is_controller, $data3);
@@ -959,14 +959,14 @@ sub update_link
 	my $data1 = &Insteon::DimmableLight::convert_level($on_level);
 	my $data2 = ($$self{device}->isa('Insteon::DimmableLight')) ? &Insteon::DimmableLight::convert_ramp($ramp_rate) : '00';
 
-	# For I2CS devices the default data3 for responders is 01
-	# For all other devices the default data3 for responders is 00
-	my $data3_resp_default = '00';
+	# For I2CS devices the default data3 for links is 01
+	# For all other devices the default data3 for links is 00
+	my $data3_default = '00';
 	if ($insteon_object->can('engine_version') && $insteon_object->engine_version eq 'I2CS') {
-		$data3_resp_default = '01';
+		$data3_default = '01';
 	}
 	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
-	$data3 = $data3_resp_default if (!$is_controller && ($data3 eq '00' || $data3 eq '01'));
+	$data3 = $data3_default if ($data3 eq '00' || $data3 eq '01');
 
 	my $deviceid = $insteon_object->device_id;
 	my $key = $self->get_linkkey($deviceid, $group, $is_controller, $data3);
