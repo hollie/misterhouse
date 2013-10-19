@@ -2549,19 +2549,12 @@ sub _process_delete_queue {
 		}
                 else
                 {
-			if ($delete_req{linkdevice} eq $self)
-                        {
-				&::print_log("[Insteon::ALDB_PLM] now deleting orphaned link w/ details: "
-					. (($delete_req{is_controller}) ? "controller($delete_req{data3})" : "responder")
-					. ", " . (($delete_req{object}) ? "object=" . $delete_req{object}->get_object_name
-					: "deviceid=$delete_req{deviceid}") . ", group=$delete_req{group}")
-					if $main::Debug{insteon};
-				$self->delete_link(%delete_req);
-			}
-                        elsif ($delete_req{linkdevice})
-                        {
-				$delete_req{linkdevice}->delete_link(%delete_req);
-			}
+			&::print_log("[Insteon::ALDB_PLM] now deleting orphaned link w/ details: "
+				. (($delete_req{is_controller}) ? "controller($delete_req{data3})" : "responder")
+				. ", " . (($delete_req{object}) ? "object=" . $delete_req{object}->get_object_name
+				: "deviceid=$delete_req{deviceid}") . ", group=$delete_req{group}")
+				if $main::Debug{insteon};
+			$self->delete_link(%delete_req);
 		}
 	}
         else
