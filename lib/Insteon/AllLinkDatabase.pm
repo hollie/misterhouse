@@ -444,15 +444,17 @@ sub delete_orphan_links
 		if ($$self{device}->is_deaf) {
 			::print_log("[Insteon::AllLinkDatabase] Delete orphan links: Will not scan deaf device: $selfname");
 		} 
-		elsif ($self->health ne 'empty'){
-			::print_log("[Insteon::AllLinkDatabase] Delete orphan links: Skipping $selfname, it has no links");
+		elsif ($self->health eq 'empty'){
+			::print_log("[Insteon::AllLinkDatabase] Delete orphan links: Skipping $selfname, because it has no links");
 		}
 		else {
 			::print_log("[Insteon::AllLinkDatabase] Delete orphan links: skipping $selfname because health: "
 				. $self->health . ". Please rescan the link table of this device and rerun delete "
 				. "orphans if necessary");
 		}
-		$self->_process_delete_queue();
+		if (!$$self{device}->isa('Insteon_PLM')){
+			$self->_process_delete_queue();
+		}
 		return;
 	}
 
