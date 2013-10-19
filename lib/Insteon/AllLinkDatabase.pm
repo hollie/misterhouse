@@ -477,9 +477,9 @@ sub delete_orphan_links
 
 		# Initialize Variables
 		my ($linked_device, $plm_scene, $controller_object, $link_defined,
-			$controller_id, $linked_id, $responder_id, $link_data3,
-			$linked_group, $self_subgroup, $interface_id,
-			$link_subgroup);
+			$controller_id, $responder_id, $link_data3,
+			$recip_data3, $group_object, $interface_id,
+			$data3_object);
 		my $group 		= lc $$self{aldb}{$linkkey}{group};
 		my $is_controller 	= $$self{aldb}{$linkkey}{is_controller};
 		my $data3 		= lc $$self{aldb}{$linkkey}{data3};
@@ -492,9 +492,9 @@ sub delete_orphan_links
 			$interface_id	= lc $$self{device}->interface->device_id;
 		}
 		$linked_device = Insteon::get_object($deviceid,'01');
-		$linked_device = $$self{device}->interface if ($deviceid eq $interface_id);
-		$self_subgroup = Insteon::get_object($self_id, $group) if ($is_controller);
-		$link_subgroup = Insteon::get_object($deviceid, $group) if (!$is_controller);
+		$linked_device = Insteon::active_interface() if ($deviceid eq $interface_id);
+		$group_object = ($is_controller) ? Insteon::get_object($self_id, $group) : Insteon::get_object($deviceid, $group);
+		$data3_object = Insteon::get_object($self_id, $data3);
 		my %delete_req = (deviceid => $deviceid,
 			group => $group,
 			is_controller => $is_controller,
@@ -509,35 +509,24 @@ sub delete_orphan_links
 		} 
 
 		# IF link is a PLM Scene, is the PLM Scene defined in MH?
-		if (($linked_device->isa("Insteon::BaseInterface") and !$is_controller)||
-		($$self{device}->isa("Insteon::BaseInterface") and $is_controller)) {
+		if (($linked_device->isa("Insteon_PLM") and !$is_controller)||
+		($$self{device}->isa("Insteon_PLM") and $is_controller)) {
 			$plm_scene = &Insteon::get_object('000000', $group);
-			if ($group eq '01' || $group eq '00') {
-				my $not_plm_name;
-				if ($linked_device->isa("Insteon::BaseInterface")){
-					$not_plm_name = $selfname;
-				} else {
-					$not_plm_name = $linked_device->get_object_name;
-				}
-				::print_log("[Insteon::AllLinkDatabase] DEBUG2 Ignoring link between PLM and $not_plm_name "
-					."for group 01 or 00") if $main::Debug{insteon} >= 2;
-				next LINKKEY;
-			}
-			elsif (!ref $plm_scene) {
+			if (!ref $plm_scene && $group ne '01' && $group ne '00') {
 				$delete_req{cause} = "no plm scene for this group could be found";
 				push @{$$self{delete_queue}}, \%delete_req;
 				next LINKKEY;
 			}
 		}
 
-		# Is this link defined in MH? 5-Step Process
-		# First define variables based on type of link
-		$linked_id = lc $linked_device->device_id;
-		$controller_id = ($is_controller) ? $self_id : $linked_id;
-		$responder_id = ($is_controller) ? $linked_id : $self_id;
+		# Is this link defined in MH? 3-Step Process
+		# Define variables based on type of link
+		$controller_id = ($is_controller) ? $self_id : lc $linked_device->device_id;
+		$responder_id = ($is_controller) ? lc $linked_device->device_id : $self_id;
 		$controller_object = Insteon::get_object($controller_id,$group);
 		$controller_object = $plm_scene if (ref $plm_scene);
-		# Second, iterate over the controller object members to find the link definition
+
+		# First, iterate over the controller object members to find the link definition
 		MEMBERS: foreach my $member_ref (keys %{$$controller_object{members}}) {
 			my $member = $$controller_object{members}{$member_ref}{object};
 			if ($member->isa('Light_Item')) {
@@ -546,47 +535,66 @@ sub delete_orphan_links
 			}
 			# For resp, D3 = resp group; For cont, D3 = cont group
 			$link_data3 = ($is_controller) ? $group : $member->group;
-			# 00 and 01 likely only neede for old design OLD delete to END
-			if ($member->group ne '01') {
-				$link_data3 = $member->group;
-			}
-			#END
-			if (lc($member->device_id) eq $responder_id && 
-			($data3 eq '00' or $data3 eq '01' or ($data3 eq $link_data3))) {
-				$link_defined = 1;
-				#Identify the linked device's group for use later
-				$linked_group = ($is_controller) ? $member->group : $group;
-				last MEMBERS;
+			if (lc($member->device_id) eq $responder_id) {
+				if ($data3 eq $link_data3){
+					$link_defined = 1;
+					$recip_data3 = ($is_controller) ? $member->group : $group;
+					last MEMBERS;
+				} 
+				elsif (($link_data3 eq '00' || $link_data3 eq '01') && 
+					($data3 eq '00' || $data3 eq '01' )){
+					# Allow for 00 or 01 interchangability
+					$link_defined = 1;
+					$recip_data3 = ($is_controller) ? $member->group : $group;
+					last MEMBERS;
+				}
 			} 
 		}
 
-		# Third, is this a controller link from the device to the PLM?
-		if ($is_controller && $deviceid eq $interface_id && ref $self_subgroup){
-			$link_defined = 1;
+		# Second, is this a PLM->Device, Device->PLM link, these are not members
+		if ($$self{device}->isa("Insteon_PLM") && ($data3 eq '00' || $data3 eq '01')){
+			if ($is_controller && ($group eq '00' || $group eq '01')){
+				#Valid Controller for PLM->Device link
+				::print_log("[Insteon::AllLinkDatabase] Delete orphan links: "
+					."Skipping reciprocal link check for group 00 or 01 link from "
+					."$selfname to " . $linked_device->get_object_name); 
+				next LINKKEY;
+			}
+			elsif (!$is_controller && ref $group_object){
+				#Valid Responder for Device->PLM link
+				$link_defined = 1;
+				$recip_data3 = $group;
+			}
+		} 
+		elsif($deviceid eq $interface_id && (ref $data3_object || ($data3 eq '00' || $data3 eq '01'))){
+			if ($is_controller && ref $group_object){
+				#Valid Controller for Device->PLM link
+				$link_defined = 1;
+				$recip_data3 = '00';
+			}
+			elsif (!$is_controller && ($group eq '00' || $group eq '01')) {
+				#Valid Responder for PLM->Device link
+				$link_defined = 1;
+				$recip_data3 = '00';
+			}
+			
 		}
 
-		# Fourth, is this a responder link on the PLM from a device?
-		if (!$is_controller && $self_id eq $interface_id && ref $link_subgroup){
-			$link_defined = 1;
-			$linked_group = '00';
-			$linked_group = $group if ($group ne '01');
-		}
-
-		# Fifth, delete link if not defined
+		# Third, delete link if not defined
 		if (!$link_defined){
 			$delete_req{cause} = "link is not defined in MisterHouse $linkkey";
 			push @{$$self{delete_queue}}, \%delete_req;
 			next LINKKEY;
 		}
 
-		# Ignore links to deaf devices
-		if (! $linked_device->isa('Insteon_PLM') && $linked_device->is_deaf) {
+		# Do not delete links to deaf devices
+		if (!$linked_device->isa('Insteon_PLM') && $linked_device->is_deaf) {
 			::print_log("[Insteon::AllLinkDatabase] Delete orphan links: "
 				."ignoring link from $selfname to 'deaf' device: " . $linked_device->get_object_name);
 			next LINKKEY;
 		}
 		
-		# Ignore links to unhealthy devices 
+		# Do not delete links to unhealthy devices 
 		if ($linked_device->_aldb->health ne 'good' && $linked_device->_aldb->health ne 'empty') {
 			::print_log("[Insteon::AllLinkDatabase] Delete orphan links: skipping check for reciprocal links from "
 				. $linked_device->get_object_name . " because aldb health of that device is "
@@ -594,15 +602,16 @@ sub delete_orphan_links
 			next LINKKEY;
 		}
 		
-		# Ignore Controller Links to the PLM
-		if ($linked_device->isa("Insteon::BaseInterface") and $is_controller) {
-			# ignore since this is just a link back to the PLM
+		# Do not delete responder links from the PLM (prevents locking i2CS devices)
+		if ($linked_device->isa("Insteon_PLM") and !$is_controller && ($group eq '00' || $group eq '01')) {
+			::print_log("[Insteon::AllLinkDatabase] Skipping check for reciprocal link on PLM for responder "
+				."link on $selfname for group 00 or 01.");
 			next LINKKEY;
 		}
 
 		# Does a reciprocal link exist?
-		if (! $linked_device->has_link($$self{device},$group,($is_controller) ? 0 : 1, lc $linked_group)) {
-			$delete_req{cause} = "no reciprocal link was found on " . $linked_device->get_object_name . " linked_group $linked_group linkkey $linkkey";
+		if (! $linked_device->has_link($$self{device},$group,($is_controller) ? 0 : 1, lc $recip_data3)) {
+			$delete_req{cause} = "no reciprocal link was found on " . $linked_device->get_object_name . " recip_data3 $recip_data3 linkkey $linkkey";
 			push @{$$self{delete_queue}}, \%delete_req;
 		} 
 
