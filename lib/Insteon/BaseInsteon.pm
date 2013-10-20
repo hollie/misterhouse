@@ -1171,7 +1171,7 @@ sub is_responder
 {
 	my ($self,$is_responder) = @_;
 	$$self{is_responder} = $is_responder if defined $is_responder;
-	if ($self->is_root) {
+	if ($self->is_root || $self->isa('Insteon::InterfaceController')) {
 		return $$self{is_responder};
 	}
         else
