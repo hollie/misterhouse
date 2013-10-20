@@ -14,7 +14,7 @@ use strict;
 
 #print_log "Using read_table_A.pl";
 
-my (%groups, %objects, %packages, %addresses);
+my (%groups, %objects, %packages, %addresses, %scene_build_controllers, %scene_build_responders);
 
 sub read_table_init_A {
                                 # reset known groups
@@ -22,7 +22,9 @@ sub read_table_init_A {
 	%groups=();
 	%objects=();
 	%packages=();
-  %addresses=();
+        %addresses=();
+        %scene_build_controllers=();
+        %scene_build_responders=();
 }
 
 sub read_table_A {
@@ -138,6 +140,12 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon::MotionSensor(\'$address\', $other)";
     }
+    elsif($type eq "INSTEON_TRIGGERLINC") {
+        require Insteon::Security;
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon::TriggerLinc(\'$address\', $other)";
+    }
     elsif($type eq "INSTEON_IOLINC") {
         require Insteon::IOLinc;
         ($address, $name, $grouplist, @other) = @item_info;
@@ -162,10 +170,10 @@ sub read_table_A {
         }
     }
     elsif($type eq 'IPLT' or $type eq 'INSTEON_THERMOSTAT') {
-        require 'Insteon_Thermostat.pm';
+        require Insteon::Thermostat;
         ($address, $name, $grouplist, $object, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "Insteon_Thermostat(\$$object, \'$address\', $other)";
+        $object = "Insteon::Thermostat(\'$address\', $other)";
     }
     elsif($type eq "INSTEON_IRRIGATION") {
         require Insteon::Irrigation;
@@ -998,6 +1006,21 @@ sub read_table_A {
         }
         $object = '';
     }
+    elsif($type eq "SCENE_BUILD") {
+	#SCENE_BUILD, scene_name, scene_member, is_controller?, is_responder?, onlevel, ramprate
+        my ($scene_member, $is_scene_controller, $is_scene_responder, $on_level, $ramp_rate);
+        ($name, $scene_member, $is_scene_controller, $is_scene_responder, $on_level, $ramp_rate) = @item_info;
+        if( ! $packages{Scene}++ ) {   # first time for this object type?
+            $code .= "use Scene;\n";
+        }
+	if ($is_scene_controller){
+		$scene_build_controllers{$name}{$scene_member} = "1";
+	}
+	if ($is_scene_responder){
+		$scene_build_responders{$name}{$scene_member} = "$on_level,$ramp_rate";
+	}
+	$object = '';
+    }
     elsif ($type eq "PHILIPS_HUE"){
     	($address, $name, $grouplist, @other) = @item_info;
     	$other = join ', ', (map {"'$_'"} @other); # Quote data
@@ -1050,6 +1073,56 @@ sub read_table_A {
 
     }
 
+    return $code;
+}
+
+sub read_table_finish_A {
+    my $code = '';
+    #a scene cannot exist without a responder, but it could lack a controller if
+    #scene is a PLM Scene
+    foreach my $scene (sort keys %scene_build_responders) {
+        $code .= "\n#SCENE_BUILD Definition for scene: $scene\n";
+
+        if($objects{$scene}) {
+            #Since an object exists with the same name as the scene, 
+            #make it a controller of the scene, too. Hopefully it can be a controller
+            $scene_build_controllers{$scene}{$scene}="1";
+        }
+
+        #Loop through the controller hash
+        if (exists $scene_build_controllers{$scene}){
+	        foreach my $scene_controller (keys $scene_build_controllers{$scene}) {
+	            if ($objects{$scene_controller}) {
+	            	#Make a link to each responder in the responder hash
+	                while (my ($scene_responder, $responder_data) = each($scene_build_responders{$scene})) {
+	                    my ($on_level, $ramp_rate) = split(',', $responder_data);
+	
+	                    if (($objects{$scene_responder}) and ($scene_responder ne $scene_controller)) {
+	                        if ($on_level) {
+	                            if ($ramp_rate) {
+	                                $code .= sprintf "\$%-35s -> add(\$%s,'%s','%s');\n",
+	                                    $scene_controller, $scene_responder, $on_level, $ramp_rate;
+	                            } else {
+	                                $code .= sprintf "\$%-35s -> add(\$%s,'%s');\n", 
+	                                    $scene_controller, $scene_responder, $on_level;
+	                            }
+	                        } else {
+	                            $code .= sprintf "\$%-35s -> add(\$%s);\n", $scene_controller, $scene_responder;
+	                        }
+	                    }
+	                }
+	
+	            } else {
+	                ::print_log("[Read_Table_A] ERROR: There is no object ".
+	                	"called $scene_controller defined.  Ignoring SCENE_BUILD entry.");
+	            }
+	        }
+        } 
+        else {
+        	::print_log("[Read_Table_A] ERROR: There is no controller ".
+	                "defined for $scene.  Ignoring SCENE_BUILD entry.");
+        }
+    }
     return $code;
 }
 
