@@ -2868,8 +2868,8 @@ sub sync_links
 	# Warn if device is deaf or ALDB out of sync
 	my $insteon_object_is_syncable = 1;
 	if ($insteon_object->is_deaf) {
-		::print_log("[Insteon::BaseController] WARN! $self_link_name is a deaf device, responder links will be added to devices "
-			."controlled by this device, but no links will be added to $self_link_name.");
+		::print_log("[Insteon::BaseController] $self_link_name is deaf, only responder links will be added to devices "
+			."controlled by this device.");
 		$insteon_object_is_syncable = 0;
 	}
 	elsif ($insteon_object->_aldb->health ne 'good' && $insteon_object->_aldb->health ne 'empty'){
@@ -2942,6 +2942,17 @@ sub sync_links
 			$link_req{cause} = "Adding responder record to $member_name from $self_link_name";
 			push @{$$self{sync_queue}}, \%link_req;
 			$has_link = 0;
+		} 
+		elsif ($member_root->_aldb->health ne 'good' && $member_root->_aldb->health ne 'empty'){
+			my %link_req = ( member => $member, cmd => 'add', object => $insteon_object,
+				group => $self->group, is_controller => 0,
+				on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,
+				callback => "$self_link_name->_process_sync_queue()",
+				data3 => $member->group);
+			$link_req{skip} = "Unable to add the following responder record to $member_name "
+				."from $self_link_name because the aldb of $member_name is "
+				. $member_root->_aldb->health;
+			push @{$$self{sync_queue}}, \%link_req;
 		}
 		
 		# 4. Is the responder link accurate
@@ -3005,6 +3016,7 @@ sub sync_links
 	}
 	
 	my $num_sync_queue = @{$$self{sync_queue}};
+	my $index = 0;
 	if (!($num_sync_queue))
 	{
 		&::print_log("[Insteon::BaseController] Nothing to do when syncing links for " . $self->get_object_name)
@@ -3014,12 +3026,19 @@ sub sync_links
 		my %sync_req = %{$_};
 		my $audit_text = "(AUDIT)" if ($audit_mode);
 		my $log_text = "[Insteon::BaseController] $audit_text ";
-		$log_text .= $sync_req{cause} . "\n";
+		if ($sync_req{skip}){
+			$log_text .= $sync_req{skip} ."\n";
+			splice @{$$self{sync_queue}}, $index, 1;
+		} else {
+			$index++;
+			$log_text .= $sync_req{cause} . "\n";
+		}
 		PRINT: for (keys %sync_req) {
 			next PRINT if ($_ eq 'cause');
 			next PRINT if ($_ eq 'callback');
 			next PRINT if ($_ eq 'member');
 			next PRINT if ($_ eq 'object');
+			next PRINT if ($_ eq 'skip');
 			$log_text .= "$_ = $sync_req{$_}; ";
 		}
 		::print_log($log_text);
