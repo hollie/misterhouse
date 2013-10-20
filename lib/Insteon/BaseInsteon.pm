@@ -127,6 +127,7 @@ sub new
 	$$self{is_responder} = 1;
         $$self{default_hop_count} = 0;
 	$$self{timeout_factor} = 1.0;
+	$$self{is_deaf} = 0;
 
 	&Insteon::add($self);
 	return $self;
@@ -1131,6 +1132,62 @@ sub _aldb
    return $$root_obj{aldb};
 }
 
+=item C<is_deaf()>
+
+Returns true if the device must be awake in order to respond to messages.  Most
+devices are not deaf, currently devices that are deaf are battery operated
+devices such as the Motion Sensor, RemoteLinc and TriggerLinc.
+
+At the BaseObject level all devices are defined as not deaf.  Objects which
+inherit BaseObject should redefine is_deaf as necessary.
+
+=cut
+
+sub is_deaf
+{
+	my ($self) = @_;
+	return $$self{is_deaf};
+}
+
+=item C<is_controller()>
+
+Returns true if the device is a controller.
+
+=cut
+
+sub is_controller
+{
+	my ($self) = @_;
+	return $$self{is_controller};
+}
+
+=item C<is_responder([1|0])>
+
+Stores and returns whether a device is a responder.
+
+=cut
+
+sub is_responder
+{
+	my ($self,$is_responder) = @_;
+	$$self{is_responder} = $is_responder if defined $is_responder;
+	if ($self->is_root) {
+		return $$self{is_responder};
+	}
+        else
+        {
+		my $root_obj = $self->get_root();
+		if (ref $root_obj)
+                {
+			return $$root_obj{is_responder};
+		}
+                else
+                {
+			return 0;
+		}
+	}
+}
+
 =back
 
 =head2 INI PARAMETERS
@@ -1284,7 +1341,6 @@ sub new
 	$$self{max_queue_time} = 10 unless $$self{max_queue_time}; # 10 seconds is max time allowed in command stack
 	@{$$self{command_stack}} = ();
 	$$self{_onlevel} = undef;
-	$$self{is_responder} = 1;
     $$self{retry_count_log} = 0;
     $$self{fail_count_log} = 0;
     $$self{outgoing_count_log} = 0;
@@ -1294,7 +1350,7 @@ sub new
     $$self{hops_left_count} = 0;
     $$self{max_hops_count} = 0;
     $$self{outgoing_hop_count} = 0;
-	$$self{is_deaf} = 0;
+
 
 	return $self;
 }
@@ -1327,62 +1383,6 @@ sub rate
 	my ($self,$p_rate) = @_;
 	$$self{rate} = $p_rate if defined $p_rate;
 	return $$self{rate};
-}
-
-=item C<is_deaf()>
-
-Returns true if the device must be awake in order to respond to messages.  Most
-devices are not deaf, currently devices that are deaf are battery operated
-devices such as the Motion Sensor, RemoteLinc and TriggerLinc.
-
-At the BaseObject level all devices are defined as not deaf.  Objects which
-inherit BaseObject should redefine is_deaf as necessary.
-
-=cut
-
-sub is_deaf
-{
-	my ($self) = @_;
-	return $$self{is_deaf};
-}
-
-=item C<is_controller()>
-
-Returns true if the device is a controller.
-
-=cut
-
-sub is_controller
-{
-	my ($self) = @_;
-	return $$self{is_controller};
-}
-
-=item C<is_responder([1|0])>
-
-Stores and returns whether a device is a responder.
-
-=cut
-
-sub is_responder
-{
-	my ($self,$is_responder) = @_;
-	$$self{is_responder} = $is_responder if defined $is_responder;
-	if ($self->is_root) {
-		return $$self{is_responder};
-	}
-        else
-        {
-		my $root_obj = $self->get_root();
-		if (ref $root_obj)
-                {
-			return $$root_obj{is_responder};
-		}
-                else
-                {
-			return 0;
-		}
-	}
 }
 
 =item C<link_to_interface([group,data3])>
@@ -3441,10 +3441,6 @@ Returns the root object of a device, in this case the interface.
 sub get_root {
 	my ($self) = @_;
 	return $self->interface;
-}
-
-sub is_responder {
-	return 1;
 }
 
 # For IFaceControllers, need to call set_linked_devices
