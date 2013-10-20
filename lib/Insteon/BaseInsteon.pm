@@ -1489,7 +1489,7 @@ sub link_to_interface_i2cs
 		case (2) { #Scan device to get an accurate link table
 			#return to normal link_to_interface routine if successful
 			$success_callback_prefix = $self->get_object_name."->link_to_interface('$p_group','$p_data3',";
-			$success_callback = $success_callback_prefix . "'2')";
+			$success_callback = $success_callback_prefix . "'1')";
 			$self->scan_link_table($success_callback, $failure_callback);
 		}
 	}
