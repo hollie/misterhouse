@@ -1134,7 +1134,7 @@ sub log_alllink_table
 		    		}
 
 		    		$log_msg .= $is_controller ? "contlr($aldb_entry->{group}) "
-				    . "record to $object_name ($rspndr_group), "
+				    . "record to $object_name, "
 				    . "(d1:$aldb_entry->{data1}, "
 				    . "d2:$aldb_entry->{data2}, "
 				    . "d3:$aldb_entry->{data3})"
