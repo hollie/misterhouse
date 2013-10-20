@@ -79,43 +79,9 @@ sub new
 		$$self{queue_timer} = new Timer;
 	}
 	bless $self,$class;
+	$$self{is_responder} = 0;
+	$$self{is_deaf} = 1;
 	return $self;
-}
-
-=item C<set(state[,setby,response])>
-
-Handles messages received from the device.  Ignores attempts to set the same state
-in less than 1 second.  (This can likely be removed as the same process exists
-now in BaseInsteon set_receive.)  If this is not a duplicate message calls 
-C<set_receive()>.
-
-=cut
-
-sub set
-{
-	my ($self,$p_state,$p_setby,$p_response) = @_;
-	return if &main::check_for_tied_filters($self, $p_state);
-
-	# Override any set_with_timer requests
-	if ($$self{set_timer}) {
-		&Timer::unset($$self{set_timer});
-		delete $$self{set_timer};
-	}
-
-	# if it can't be controlled (i.e., a responder), then don't send out any signals
-	# motion sensors seem to get multiple fast reports; don't trigger on both
-        my $setby_name = $p_setby;
-        $setby_name = $p_setby->get_object_name() if (ref $p_setby and $p_setby->can('get_object_name'));
-	if (not defined($self->get_idle_time) or $self->get_idle_time > 1 or $self->state ne $p_state) {
-		&::print_log("[Insteon::RemoteLinc] " . $self->get_object_name()
-			. "::set_receive($p_state, $setby_name)") if $main::Debug{insteon};
-		$self->set_receive($p_state,$p_setby);
-	} else {
-		&::print_log("[Insteon::RemoteLinc] " . $self->get_object_name()
-			. "::set_receive($p_state, $setby_name) deferred due to repeat within 1 second")
-			if $main::Debug{insteon};
-	}
-	return;
 }
 
 =item C<set_awake_time([0-255 seconds])>
@@ -264,15 +230,6 @@ sub _process_message {
 			{
 				$$root{battery_object}->set_receive($voltage, $root);
 			}
-			if ($self->_is_battery_low($voltage)){
-				main::print_log("[Insteon::RemoteLinc] The battery level ".
-					"is below the set threshold running low battery event.");
-				package main;
-					eval $$root{low_battery_event};
-					::print_log("[Insteon::RemoteLinc] " . $self->{device}->get_object_name . ": error during low battery event eval $@")
-						if $@;
-				package Insteon::RemoteLinc;
-			}
 			$clear_message = 1;
 			$self->_process_command_stack(%msg);
 		} else {
@@ -284,11 +241,6 @@ sub _process_message {
 		$clear_message = $self->SUPER::_process_message($p_setby,%msg);
 	}
 	return $clear_message;
-}
-
-sub is_responder
-{
-   return 0;
 }
 
 =back

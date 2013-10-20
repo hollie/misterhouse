@@ -59,7 +59,7 @@ use Insteon::BaseInsteon;
 
 package Insteon::Irrigation;
 
-@Insteon::Irrigation::ISA = ('Insteon::DeviceController','Insteon::BaseDevice');
+@Insteon::Irrigation::ISA = ('Insteon::BaseDevice','Insteon::DeviceController');
 
 our %message_types = (
 	%Insteon::BaseDevice::message_types,

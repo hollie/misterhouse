@@ -254,7 +254,7 @@ sub pre_speak_hook {
    print_log "Speech: player string is: $player_str";
    if ($player_str) {
       $SpeechCount++;
-      $parms->{'to_file'} = "$config_parms{data_dir}/cache/speak_festival.${Hour}.${Minute}.${Second}.${SpeechCount}.wav";
+      $parms->{'to_file'} = "$config_parms{html_alias_cache}/speak_festival.${Hour}.${Minute}.${Second}.${SpeechCount}.wav";
       $parms->{'use_players'} = $player_str;
    } else {
       $parms->{'no_speak'} = 1;
@@ -282,7 +282,7 @@ sub post_speak_hook {
 #####################################################################
 
 if ($New_Hour) {
-   system('find', "$config_parms{data_dir}/cache", '-mmin', '+5', '-exec', 'rm', '-f', '{}', ';');
+   system('find', "$config_parms{html_alias_cache}", '-mmin', '+5', '-exec', 'rm', '-f', '{}', ';');
 }
 
 if ($Reload) {

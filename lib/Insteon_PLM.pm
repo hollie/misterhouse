@@ -308,14 +308,16 @@ controller will be added for this group, otherwise it will be for group 00.
 
 sub initiate_linking_as_controller
 {
-	my ($self, $group) = @_;
+	my ($self, $group, $success_callback, $failure_callback) = @_;
 
-	$group = '01' unless $group;
+	$group = '00' unless $group;
 	# set up the PLM as the responder
 	my $cmd = '01'; # controller code
 	$cmd .= $group; # WARN - must be 2 digits and in hex!!
         my $message = new Insteon::InsteonMessage('all_link_start', $self);
         $message->interface_data($cmd);
+        $message->success_callback($success_callback);
+        $message->failure_callback($failure_callback);
 	$self->queue_message($message);
 }
 
@@ -509,6 +511,13 @@ sub _parse_data {
 					}
                                         elsif ($record_type eq $prefix{all_link_start})
                                         {
+                                        	if ($self->active_message->success_callback){
+							package main;
+							eval ($self->active_message->success_callback);
+							&::print_log("[Insteon_PLM] WARN1: Error encountered during ack callback: " . $@)
+								if $@ and $main::Debug{insteon} >= 1;
+							package Insteon_PLM;
+                                        	}
                                                 # clear the active message because we're done
                 				$self->clear_active_message();
                                         }
@@ -538,7 +547,7 @@ sub _parse_data {
                                                 {
 							$callback = $pending_message->callback(); #$$self{_mem_callback};
 							$$self{_mem_callback} = undef;
-                                                }
+                                                } 
                                                 if ($callback){
 							package main;
 							eval ($callback);
@@ -567,6 +576,7 @@ sub _parse_data {
                                                 {
                                                 	$self->_aldb->health("good");
                                                 }
+                                                $self->_aldb->scandatetime(&main::get_tickcount);
 						&::print_log("[Insteon_PLM] " . $self->get_object_name 
 							. " completed link memory scan: status: " . $self->_aldb->health())
 							if $main::Debug{insteon};
@@ -734,6 +744,16 @@ sub _parse_data {
                 { #ALL-Linking Completed
 			my $link_address = substr($message_data,4,6);
 			&::print_log("[Insteon_PLM] DEBUG2: ALL-Linking Completed with $link_address ($message_data)") if $main::Debug{insteon} >= 2;
+			if ($self->active_message->success_callback){
+				main::print_log("[Insteon::Insteon_PLM] DEBUG4: Now calling message success callback: "
+					. $self->active_message->success_callback) if $main::Debug{insteon} >= 4;
+				package main;
+					eval $self->active_message->success_callback;
+					::print_log("[Insteon::Insteon_PLM] problem w/ success callback: $@") if $@;
+				package Insteon::BaseObject;
+			}
+			#Clear awaiting_ack flag
+			$self->active_message->setby->_process_command_stack(0);
                         $self->clear_active_message();
 		}
                 elsif ($parsed_prefix eq $prefix{all_link_clean_failed} and ($message_length == 12))
@@ -795,7 +815,7 @@ sub _parse_data {
                         	my $message_to_string = ($self->active_message) ? $self->active_message->to_string() : "";
 				&::print_log("[Insteon_PLM] Received all-link cleanup success: $message_to_string")
                                 	if $main::Debug{insteon};
-				if (ref $self->active_message->setby){
+				if (ref $self->active_message && ref $self->active_message->setby){
 					my $object = $self->active_message->setby;
 					$object->is_acknowledged(1);
 					$object->_process_command_stack();

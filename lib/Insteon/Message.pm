@@ -104,6 +104,22 @@ sub failure_callback
         return $$self{failure_callback};
 }
 
+=item C<success_callback(data)>
+
+Data will be evaluated after the receipt of an ACK from the device for this command.
+
+=cut
+
+sub success_callback
+{
+	my ($self, $callback) = @_;
+        if (defined $callback)
+        {
+        	$$self{success_callback} = $callback;
+        }
+        return $$self{success_callback};
+}
+
 =item C<send_attempts(data)>
 
 Stores and retrieves the number of times Misterhouse has tried to send the message.
@@ -418,6 +434,8 @@ sub command_to_hash
                 {
 			$msg{type} = 'alllink';
 			$msg{group} = substr($p_state,10,2);
+			$msg{extra} = substr($p_state,16,2) 
+				if (length($p_state) >= 18);
 		}
                 else
                 {
