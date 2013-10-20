@@ -2569,6 +2569,7 @@ sub _process_delete_queue {
 				: "deviceid=$delete_req{deviceid}") . ", group=$delete_req{group}")
 				if $main::Debug{insteon};
 			$self->delete_link(%delete_req);
+			$$self{delete_queue_processed}++;
 		}
 	}
         else
