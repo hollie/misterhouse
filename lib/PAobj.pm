@@ -78,7 +78,7 @@ sub init {
     
     foreach my $type (keys(%speakertype)) {
         my @thespeakers = @{$speakertype{$type}};
-        &::print_log("PAobj: speakers_$type: $#thespeakers") if $main::Debug{pa};
+        &::print_log("PAobj: speakers_$type: ".($#thespeakers+1)) if $main::Debug{pa};
         $pa_zones{all}{$type}=join(',',@thespeakers);
         if ($#thespeakers > -1) {
             &::print_log("PAobj: $type PA type initialized...") if $main::Debug{pa};
@@ -156,7 +156,7 @@ sub prep_parms
     
     foreach my $type (keys(%speakertype)) {
         my @thespeakers = @{$speakertype{$type}};
-        &::print_log("PAobj: speakers_$type: $#thespeakers: " . join(',',@thespeakers)) if $main::Debug{pa};
+        &::print_log("PAobj: speakers_$type: ".($#thespeakers+1).": " . join(',',@thespeakers)) if $main::Debug{pa};
         $pa_zones{active}{$type}=join(',',@thespeakers);
         if ($#thespeakers > -1) {
             $parms->{web_file}="web_file" if $type eq 'audrey';
@@ -271,7 +271,7 @@ sub set_audrey
 {
     my ($self,$speakFile,@speakers) = @_;
     &::print_log("PAobj: set_audrey: file: " . $speakFile) if $main::Debug{pa} >=4;
-    &::print_log("PAobj: set_audrey: count: " . $#speakers) if $main::Debug{pa} >=4;
+    &::print_log("PAobj: set_audrey: count: " . ($#speakers+1)) if $main::Debug{pa} >=4;
     
     for my $room (@speakers) {
         #my $ref = &::get_object_by_name('pa_'.$room);
@@ -496,7 +496,7 @@ sub check_group
     my $ref = &::get_object_by_name("pa_$group");
     if (!$ref) {&::print_log("PAobj: check group: Error! Group does not exist: $group"); return;}
     my @list = $ref->list;
-    &::print_log("PAobj: check group=$group, list=$#list") if $main::Debug{pa} >=2;
+    &::print_log("PAobj: check group=$group, list=".($#list+1)) if $main::Debug{pa} >=2;
     if ($#list == -1) {
         &::print_log("PAobj: check populating group: $group!") if $main::Debug{pa};
         for my $room ($self->get_speakers('allspeakers')) {
@@ -522,7 +522,7 @@ sub get_speakers_speakable
             my $gss_mode = $ref->{mode};
             if ($gss_mode ne 'sleeping' && ($gss_mode eq 'normal' || $mode eq 'unmuted')) {
                 push(@pazones,$room);
-                &::print_log("PAobj: speakable: Pushing $room into pazones array:$#pazones") if $main::Debug{pa} >=2;
+                &::print_log("PAobj: speakable: Pushed $room into pazones array. New count:".($#pazones+1)) if $main::Debug{pa} >=2;
             }
         }
     }
