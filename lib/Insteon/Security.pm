@@ -108,7 +108,7 @@ package Insteon::MotionSensor;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::MotionSensor::ISA = ('Insteon::DeviceController','Insteon::BaseDevice');
+@Insteon::MotionSensor::ISA = ('Insteon::BaseDevice', 'Insteon::DeviceController');
 
 =item C<new()>
 
@@ -126,23 +126,9 @@ sub new
 		$$self{queue_timer} = new Timer;
 	}
 	bless $self,$class;
+	$$self{is_responder} = 0;
 	$$self{is_deaf} = 1;
 	return $self;
-}
-
-=item C<set(state[,setby,response])>
-
-Handles setting and receiving states from the device.
-
-=cut
-
-sub set
-{
-	my ($self, $p_state, $p_setby, $p_respond) = @_;
-
-	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
-
-	return $self->Insteon::DeviceController::set($link_state, $p_setby, $p_respond);
 }
 
 =item C<get_extended_info()>
@@ -478,17 +464,6 @@ sub _process_message {
 	return $clear_message;
 }
 
-=item C<is_responder()>
-
-Always returns 0.
-
-=cut
-
-sub is_responder
-{
-   return 0;
-}
-
 =item C<get_voice_cmds>
 
 Returns a hash of voice commands where the key is the voice command name and the
@@ -776,33 +751,9 @@ sub new
 	my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
         $$self{message_types} = \%message_types;
 	bless $self,$class;
+	$$self{is_responder} = 0;
 	$$self{is_deaf} = 1;
 	return $self;
-}
-
-=item C<set(state[,setby,response])>
-
-Handles messages received from the device.  Calls C<set_receive()>.
-
-=cut
-
-sub set
-{
-	my ($self,$p_state,$p_setby,$p_response) = @_;
-	return if &main::check_for_tied_filters($self, $p_state);
-
-	# Override any set_with_timer requests
-	if ($$self{set_timer}) {
-		&Timer::unset($$self{set_timer});
-		delete $$self{set_timer};
-	}
-
-        my $setby_name = $p_setby;
-        $setby_name = $p_setby->get_object_name() if (ref $p_setby and $p_setby->can('get_object_name'));
-	&::print_log("[Insteon::TriggerLinc] " . $self->get_object_name()
-		. "::set_receive($p_state, $setby_name)") if $main::Debug{insteon};
-	$self->set_receive($p_state,$p_setby);
-	return;
 }
 
 =item C<set_awake_time([0-255 seconds])>
@@ -893,11 +844,6 @@ sub _process_message {
 		$clear_message = $self->SUPER::_process_message($p_setby,%msg);
 	}
 	return $clear_message;
-}
-
-sub is_responder
-{
-   return 0;
 }
 
 =back

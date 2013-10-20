@@ -434,6 +434,8 @@ sub command_to_hash
                 {
 			$msg{type} = 'alllink';
 			$msg{group} = substr($p_state,10,2);
+			$msg{extra} = substr($p_state,16,2) 
+				if (length($p_state) >= 18);
 		}
                 else
                 {
