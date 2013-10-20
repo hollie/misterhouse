@@ -1886,6 +1886,8 @@ sub _get_engine_version_failure
 			."linked; Please use 'link to interface' voice command");
 		$self->engine_version('I2CS');
 	}
+	#Clear success callback, otherwise it will run when message is cleared
+	$self->interface->active_message->success_callback('0');
 }
 
 =item C<ping([count])>
