@@ -113,7 +113,7 @@ Data will be evaluated after the receipt of an ACK from the device for this comm
 sub success_callback
 {
 	my ($self, $callback) = @_;
-        if ($callback)
+        if (defined $callback)
         {
         	$$self{success_callback} = $callback;
         }

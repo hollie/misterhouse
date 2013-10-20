@@ -80,6 +80,7 @@ sub new
 	}
 	bless $self,$class;
 	$$self{is_responder} = 0;
+	$$self{is_deaf} = 1;
 	return $self;
 }
 

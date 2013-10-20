@@ -400,9 +400,8 @@ sub scan_all_linktables
         	{
         		my $candidate_object = $_;
         		if ($candidate_object->is_root and
-                		!($candidate_object->isa('Insteon::RemoteLinc')
-                		or $candidate_object->isa('Insteon::InterfaceController')
-                       		or $candidate_object->isa('Insteon::MotionSensor')))
+                		!($candidate_object->is_deaf
+                		or $candidate_object->isa('Insteon::InterfaceController')))
                 	{
 		       		push @_scan_devices, $candidate_object;
                 		&main::print_log("[Scan all linktables] INFO1: "
@@ -511,7 +510,7 @@ sub sync_all_links
 	# iterate over all registered objects and compare whether the link tables match defined scene linkages in known Insteon_Links
 	for my $obj (&Insteon::find_members('Insteon::BaseController'))
 	{
-        	if ($obj->isa('Insteon::RemoteLinc') or $obj->isa('Insteon::MotionSensor'))
+        	if (!$obj->isa('Insteon::InterfaceController') && $obj->is_deaf)
                 {
                 	&main::print_log("[Sync all links] Ignoring links from 'deaf' device: " . $obj->get_object_name);
                 }

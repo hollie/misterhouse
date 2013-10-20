@@ -270,22 +270,31 @@ Returns the highest hop count of the past 20 hop counts
 sub default_hop_count
 {
 	my ($self, $hop_count) = @_;
-	unshift(@{$$self{hop_array}}, $$self{default_hop_count}) if (!defined(@{$$self{hop_array}}));
 	if (defined($hop_count)){
 		::print_log("[Insteon::BaseObject] DEBUG3: Adding hop count of " . $hop_count . " to hop_array of "
 			. $self->get_object_name) if $main::Debug{insteon} >= 3;
-		unshift(@{$$self{hop_array}}, $hop_count) 
+		if (!defined(@{$$self{hop_array}})) {
+			unshift(@{$$self{hop_array}}, $$self{default_hop_count});
+			$$self{hop_sum} = $$self{default_hop_count};
+		}
+		#Calculate a simple moving average
+		unshift(@{$$self{hop_array}}, $hop_count); 
+		$$self{hop_sum} += ${$$self{hop_array}}[0];
+		$$self{hop_sum} -= pop(@{$$self{hop_array}}) if (scalar(@{$$self{hop_array}}) >10);
+		$$self{default_hop_count} = int(($$self{hop_sum} / scalar(@{$$self{hop_array}})) + 0.5);
+
+		::print_log("[Insteon::BaseObject] DEBUG4: ".$self->get_object_name
+			."->default_hop_count()=".$$self{default_hop_count}
+			." :: hop_array[]=". join("",@{$$self{hop_array}})) 
+			if $main::Debug{insteon} >= 4;
 	}
-	pop(@{$$self{hop_array}}) if (scalar(@{$$self{hop_array}}) >20);
-	my $high = 0;
-	foreach (@{$$self{hop_array}}){
-		$high = $_ if ($high < $_);;
-	}
-	$$self{default_hop_count} = $high;
+
+	#Allow for per-device settings
 	$$self{default_hop_count} = $$self{max_hops} if ($$self{max_hops} &&
 		$$self{default_hop_count} > $$self{max_hops});
 	$$self{default_hop_count} = $$self{min_hops} if ($$self{min_hops} &&
-		$$self{default_hop_count} < $$self{min_hops});
+		$$self{default_hop_count} < $$self{min_hops});	
+	
         return $$self{default_hop_count};
 }
 
@@ -1278,6 +1287,7 @@ sub new
     $$self{hops_left_count} = 0;
     $$self{max_hops_count} = 0;
     $$self{outgoing_hop_count} = 0;
+	$$self{is_deaf} = 0;
 
 	return $self;
 }
@@ -1310,6 +1320,23 @@ sub rate
 	my ($self,$p_rate) = @_;
 	$$self{rate} = $p_rate if defined $p_rate;
 	return $$self{rate};
+}
+
+=item C<is_deaf()>
+
+Returns true if the device must be awake in order to respond to messages.  Most
+devices are not deaf, currently devices that are deaf are battery operated
+devices such as the Motion Sensor, RemoteLinc and TriggerLinc.
+
+At the BaseObject level all devices are defined as not deaf.  Objects which
+inherit BaseObject should redefine is_deaf as necessary.
+
+=cut
+
+sub is_deaf
+{
+	my ($self) = @_;
+	return $$self{is_deaf};
 }
 
 =item C<is_controller()>
@@ -1465,7 +1492,7 @@ sub link_to_interface_i2cs
 		case (2) { #Scan device to get an accurate link table
 			#return to normal link_to_interface routine if successful
 			$success_callback_prefix = $self->get_object_name."->link_to_interface('$p_group','$p_data3',";
-			$success_callback = $success_callback_prefix . "'2')";
+			$success_callback = $success_callback_prefix . "'1')";
 			$self->scan_link_table($success_callback, $failure_callback);
 		}
 	}
@@ -1848,7 +1875,8 @@ Hop Count, Engine Version, ALDB Type, ALDB Health, and Last ALDB Scan Time
 sub log_aldb_status
 {
 	my ($self) = @_;
-	main::print_log( "     Hop Count: ".$self->default_hop_count());
+	main::print_log( "     Device ID: ".$self->device_id());
+	main::print_log( "     Hop Count: ".$self->default_hop_count()." :: [". join("",@{$$self{hop_array}})."]");
 	main::print_log( "Engine Version: ".$self->engine_version());
 	my $aldb = $self->get_root()->_aldb;
 	if ($aldb)
@@ -1941,6 +1969,8 @@ sub _get_engine_version_failure
 			."linked; Please use 'link to interface' voice command");
 		$self->engine_version('I2CS');
 	}
+	#Clear success callback, otherwise it will run when message is cleared
+	$self->interface->active_message->success_callback('0');
 }
 
 =item C<ping([count])>

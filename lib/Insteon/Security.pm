@@ -127,6 +127,7 @@ sub new
 	}
 	bless $self,$class;
 	$$self{is_responder} = 0;
+	$$self{is_deaf} = 1;
 	return $self;
 }
 
@@ -751,6 +752,7 @@ sub new
         $$self{message_types} = \%message_types;
 	bless $self,$class;
 	$$self{is_responder} = 0;
+	$$self{is_deaf} = 1;
 	return $self;
 }
 
