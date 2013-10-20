@@ -3441,6 +3441,7 @@ Returns the root object of a device, in this case the interface.
 sub get_root {
 	my ($self) = @_;
 	return $self->interface;
+}
 
 sub is_responder {
 	return 1;
