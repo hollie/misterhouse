@@ -470,7 +470,7 @@ sub delete_orphan_links
 		if ($linkkey eq 'duplicates') {
 			push my @duplicate_addresses, @{$$self{aldb}{duplicates}};
 			foreach (@duplicate_addresses) {
-				%delete_req = (address => $_, cause => "it is a duplicate record");
+				%delete_req = (%delete_req, address => $_, cause => "it is a duplicate record");
 				push @{$$self{delete_queue}}, \%delete_req;
 			}
 			next LINKKEY;
@@ -491,10 +491,8 @@ sub delete_orphan_links
 		$linked_device = Insteon::active_interface() if ($deviceid eq $interface_id);
 		$group_object = ($is_controller) ? Insteon::get_object($self_id, $group) : Insteon::get_object($deviceid, $group);
 		$data3_object = Insteon::get_object($self_id, $data3);
-		%delete_req = (deviceid => $deviceid,
-			group => $group,
-			is_controller => $is_controller,
-			data3 => $data3);
+		%delete_req = (%delete_req, deviceid => $deviceid, group => $group,
+			is_controller => $is_controller, data3 => $data3);
 
 		# Is the linked device defined in MH?
 		if (! ref $linked_device) {
