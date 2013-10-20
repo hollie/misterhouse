@@ -2857,33 +2857,32 @@ sub sync_links
 	my $insteon_object = $self->interface;
 	my $interface_object = Insteon::active_interface();
 	my $interface_name = $interface_object->get_object_name;
-	if (!($self->isa('Insteon::InterfaceController'))) {
-		$insteon_object = $self->get_root;
-		::print_log("[Insteon::BaseController] WARN!! A device w/ insteon address: " . $self->device_id . ":01 could not be found. "
-			. "Please double check your items.mht file.") if (!(defined($insteon_object)));
-	}
+	$insteon_object = $self->get_root;
+	::print_log("[Insteon::BaseController] WARN!! A device w/ insteon address: " . $self->device_id . ":01 could not be found. "
+		. "Please double check your items.mht file.") if (!(defined($insteon_object)));
 
 	# Abort if $insteon_object doesn't exist
 	$self->_process_sync_queue() unless $insteon_object;
 	
 	# Warn if device is deaf or ALDB out of sync
-	if ((!$self->isa('Insteon::InterfaceController') && $insteon_object->is_deaf)) {
+	my $insteon_object_is_syncable = 1;
+	if ($insteon_object->is_deaf) {
 		::print_log("[Insteon::BaseController] WARN! $self_link_name is a deaf device, responder links will be added to devices "
 			."controlled by this device, but no links will be added to $self_link_name.");
+		$insteon_object_is_syncable = 0;
 	}
-	elsif (!$self->isa('Insteon::InterfaceController') &&
-	($insteon_object->_aldb->health ne 'good' && $insteon_object->_aldb->health ne 'empty')){
+	elsif ($insteon_object->_aldb->health ne 'good' && $insteon_object->_aldb->health ne 'empty'){
 		::print_log("[Insteon::BaseController] WARN! The ALDB of $self_link_name is ".$insteon_object->_aldb->health
 			.", links will be added to devices "
 			."linked to this device, but no links will be added to $self_link_name.  Please rescan this device and attempt "
 			."sync links again.");
+		$insteon_object_is_syncable = 0;
 	}
 	
 	# 1. Does a controller link exist for Device-> PLM
-	if ((!$self->isa('Insteon::InterfaceController') && 
+	if (!$insteon_object->isa('Insteon_PLM') && 
 	!$insteon_object->has_link($self->interface,$self->group,1,$subaddress) && 
-	!$insteon_object->is_deaf &&
-	($insteon_object->_aldb->health eq 'good' || $insteon_object->_aldb->health eq 'empty'))) {
+	$insteon_object_is_syncable) {
 		my %link_req = ( member => $insteon_object, cmd => 'add', object => $self->interface,
 			group => $self->group, is_controller => 1,
 			callback => "$self_link_name->_process_sync_queue()",
@@ -2894,7 +2893,7 @@ sub sync_links
 	}
 		
 	# 2. Does a responder link exist on the PLM
-	if ((!$self->isa('Insteon::InterfaceController') &&
+	if ((!$insteon_object->isa('Insteon_PLM') &&
 	!$self->interface->has_link($insteon_object,$self->group,0,'00'))) {
 		my %link_req = ( member => $self->interface, cmd => 'add', object => $insteon_object,
 			group => $self->group, is_controller => 0,
@@ -2994,8 +2993,7 @@ sub sync_links
 
 		# 5. Does the controller link on this device exist
 		if (!($insteon_object->has_link($member, $self->group, 1, $subaddress)) &&
-		!$insteon_object->is_deaf &&
-		($insteon_object->_aldb->health eq 'healthy' || $insteon_object->_aldb->health eq 'empty')) {
+		$insteon_object_is_syncable) {
 			my %link_req = ( member => $insteon_object, cmd => 'add', object => $member,
 				group => $self->group, is_controller => 1,
 				callback => "$self_link_name->_process_sync_queue()",
