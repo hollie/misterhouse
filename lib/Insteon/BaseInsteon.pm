@@ -444,6 +444,7 @@ sub set_receive
 	my ($self, $p_state, $p_setby, $p_response) = @_;
 	my $curr_milli = sprintf('%.0f', &main::get_tickcount);
 	my $window = 1000;
+	$p_state = $self->derive_link_state($p_state);
 	if (($p_state eq $self->state || $p_state eq $self->state_final)
 		&& ($curr_milli - $$self{set_milliseconds} < $window)){
 		::print_log("[Insteon::BaseObject] Ignoring duplicate set " . $p_state .
@@ -3094,8 +3095,8 @@ sub set_linked_devices
 					# remember the current state to support resume
 					$$self{members}{$member_ref}{resume_state} = $light->state;
 					$member->manual($light, $ramp_rate);
-					if ($light->can('derive_link_state') && lc $link_state ne 'on'){
-						$local_state = $light->derive_link_state($link_state);
+					if (lc $link_state ne 'on'){
+						$local_state = $light->$link_state;
 					}
 					$light->set_receive($local_state,$self);
 				}
@@ -3112,7 +3113,7 @@ sub set_linked_devices
 				# if they are Insteon_Device objects, then simply set_receive their state to
 				#   the member on level
 				if (lc $link_state ne 'on'){
- 					$local_state = $member->derive_link_state($link_state);
+ 					$local_state = $link_state;
 				}
 				$member->set_receive($local_state,$self);
 			}
