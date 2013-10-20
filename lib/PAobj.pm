@@ -77,7 +77,7 @@ sub init {
     }
     
     foreach my $type (keys(%speakertype)) {
-        my @thespeakers = \@{$speakertype{$type}};
+        my @thespeakers = @{$speakertype{$type}};
         &::print_log("PAobj: speakers_$type: $#thespeakers") if $main::Debug{pa};
         $pa_zones{all}{$type}=join(',',@thespeakers);
         if ($#thespeakers > -1) {
