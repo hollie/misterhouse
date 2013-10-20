@@ -49,7 +49,7 @@ sub new
 
     bless $self,$class;
 
-    $$self{pa_delay} = 0.5;
+    $self->{pa_delay} = 0.5;
 
     return $self;
 }
@@ -66,66 +66,26 @@ sub init {
     $self->active(0);
 
     my @speakers = $self->get_speakers('allspeakers');
-    my (@speakers_wdio,@speakers_x10,@speakers_obj,@speakers_xap,@speakers_xpl,@speakers_audrey,@speakers_aviosys);
+    my %speakertype;
 
     for my $room (@speakers) {
         my $ref = &::get_object_by_name("pa_$room");
         my $type = $ref->get_type();
         &::print_log("PAobj: init: room=$room, zonetype=$type") if $main::Debug{pa};
         $pa_zone_types{$type}++ unless $pa_zone_types{$type};
-        
-        if($type eq 'wdio') {
-            push(@speakers_wdio,$room);
-        }
-        if($type eq 'x10') {
-            push(@speakers_x10,$room);
-        }
-        if($type eq 'xap') {
-            push(@speakers_xap,$room);
-        }
-        if($type eq 'xpl') {
-            push(@speakers_xpl,$room);
-        }
-        if($type eq 'object') {
-            push(@speakers_obj,$room);
-        }
-        if($type eq 'audrey') {
-            push(@speakers_audrey,$room);
-        }
-        if($type eq 'aviosys') {
-            push(@speakers_aviosys,$room);
-        }
+        push(@{$speakertype{$type}}, $room);
     }
     
-    &::print_log("PAobj: speakers_wdio: $#speakers_wdio") if $main::Debug{pa};# || $#speakers_wdio gt -1;
-    &::print_log("PAobj: speakers_x10: $#speakers_x10") if $main::Debug{pa};# || $#speakers_x10 gt -1;
-    &::print_log("PAobj: speakers_xap: $#speakers_xap") if $main::Debug{pa};# || $#speakers_xap gt -1;
-    &::print_log("PAobj: speakers_xpl: $#speakers_xpl") if $main::Debug{pa};# || $#speakers_xpl gt -1;
-    &::print_log("PAobj: speakers_audrey: $#speakers_audrey") if $main::Debug{pa};# || $#speakers_audrey gt -1;
-    &::print_log("PAobj: speakers_aviosys: $#speakers_aviosys") if $main::Debug{pa};# || $#speakers_aviosys gt -1;
-    &::print_log("PAobj: speakers_obj: $#speakers_obj") if $main::Debug{pa};# || $#speakers_obj gt -1;
+    foreach my $type (keys(%speakertype)) {
+        my @thespeakers = \@{$speakertype{$type}};
+        &::print_log("PAobj: speakers_$type: $#thespeakers") if $main::Debug{pa};
+        $pa_zones{all}{$type}=join(',',@thespeakers);
+        if ($#thespeakers > -1) {
+            &::print_log("PAobj: $type PA type initialized...") if $main::Debug{pa};
+            $self->init_weeder(@thespeakers) if $type eq 'wdio';
+        }
+    } 
 
-
-    $pa_zones{all}{wdio}=join(',',@speakers_wdio);
-    $pa_zones{all}{x10}=join(',',@speakers_x10);
-    $pa_zones{all}{xap}=join(',',@speakers_xap);
-    $pa_zones{all}{xpl}=join(',',@speakers_xpl);
-    $pa_zones{all}{audrey}=join(',',@speakers_audrey);
-    $pa_zones{all}{aviosys}=join(',',@speakers_aviosys);
-    $pa_zones{all}{obj}=join(',',@speakers_obj);
-
-    if ($#speakers_wdio > -1) {
-        $self->init_weeder(@speakers_wdio);
-    }
-    if ($pa_zone_types{'x10'}) {
-        &::print_log("PAobj: x10 PA type initialized...") if $main::Debug{pa};
-    }
-    if ($pa_zone_types{'xap'}) {
-        &::print_log("PAobj: xAP PA type initialized...") if $main::Debug{pa};
-    }
-    if ($pa_zone_types{'xpl'}) {
-        &::print_log("PAobj: xPL PA type initialized...") if $main::Debug{pa};
-    }
     return 1;
 }
 
@@ -162,10 +122,10 @@ sub active
     &::print_log("PAobj: setactive: active: $active / set: $setactive\n") if $main::Debug{pa} >=4;
     return $active unless defined $setactive;
     if($active && $setactive) {
-        &::print_log("PAobj: Cannot make active, already active\n") if $main::Debug{pa} >=3;
+        &::print_log("PAobj: Cannot make active, already active\n") if $main::Debug{pa};
         return 0;
     }
-    &::print_log("PAobj: setting active to: ".$setactive."\n") if $main::Debug{pa} >=3;
+    &::print_log("PAobj: setting active to: ".$setactive."\n") if $main::Debug{pa} >=2;
     $active=$setactive;
     return 1;
 }
@@ -184,59 +144,24 @@ sub prep_parms
     
     $parms->{pa_zones} = join(',', @speakers);
     
-    my (@speakers_wdio,@speakers_x10,@speakers_obj,@speakers_xap,@speakers_xpl,@speakers_audrey,@speakers_aviosys);
+    my %speakertype;
 
     for my $room (@speakers) {
         my $ref = &::get_object_by_name("pa_$room");
-        my $type = lc $ref->get_type();
-        if($type eq 'wdio' || $type eq 'wdio_old') {
-            &::print_log("PAobj: speakers_wdio: Adding $room") if $main::Debug{pa} >=3;
-            push(@speakers_wdio,$room);
-        }
-        if($type eq 'x10') {
-            &::print_log("PAobj: speakers_x10: Adding $room") if $main::Debug{pa} >=3;
-            push(@speakers_x10,$room);
-        }
-        if($type eq 'xap') {
-            &::print_log("PAobj: speakers_xap: Adding $room") if $main::Debug{pa} >=3;
-            push(@speakers_xap,$room);
-        }
-        if($type eq 'xpl') {
-            &::print_log("PAobj: speakers_xpl: Adding $room") if $main::Debug{pa} >=3;
-            push(@speakers_xpl,$room);
-        }
-        if($type eq 'audrey') {
-            &::print_log("PAobj: speakers_audrey: Adding $room") if $main::Debug{pa} >=3;
-            push(@speakers_audrey,$room);
-        }
-        if($type eq 'aviosys') {
-            &::print_log("PAobj: speakers_aviosys: Adding $room") if $main::Debug{pa} >=3;
-            push(@speakers_aviosys,$room);
-        }
-        if($type eq 'object') {
-            &::print_log("PAobj: speakers_object: Adding $room") if $main::Debug{pa} >=3;
-            push(@speakers_obj,$room);
-        }
+        my $type = $ref->get_type();
+         &::print_log("PAobj: speakers_$type: Adding $room") if $main::Debug{pa} >=3;
+        $pa_zone_types{$type}++ unless $pa_zone_types{$type};
+        push(@{$speakertype{$type}}, $room);
     }
     
-    &::print_log("PAobj: speakers_wdio: $#speakers_wdio") if $main::Debug{pa}  >=2 || $#speakers_wdio gt -1;
-    &::print_log("PAobj: speakers_x10: $#speakers_x10") if $main::Debug{pa}  >=2 || $#speakers_x10 gt -1;
-    &::print_log("PAobj: speakers_xap: $#speakers_xap") if $main::Debug{pa}  >=2 || $#speakers_xap gt -1;
-    &::print_log("PAobj: speakers_xpl: $#speakers_xpl") if $main::Debug{pa}  >=2 || $#speakers_xpl gt -1;
-    &::print_log("PAobj: speakers_audrey: $#speakers_audrey") if $main::Debug{pa}  >=2 || $#speakers_audrey gt -1;
-    &::print_log("PAobj: speakers_aviosys: $#speakers_aviosys") if $main::Debug{pa}  >=2 || $#speakers_aviosys gt -1;
-    &::print_log("PAobj: speakers_obj: $#speakers_obj") if $main::Debug{pa}  >=2 || $#speakers_obj gt -1;
-
-    
-    $pa_zones{active}{wdio}=join(',',@speakers_wdio);
-    $pa_zones{active}{x10}=join(',',@speakers_x10);
-    $pa_zones{active}{xap}=join(',',@speakers_xap);
-    $pa_zones{active}{xpl}=join(',',@speakers_xpl);
-    $pa_zones{active}{audrey}=join(',',@speakers_audrey);
-    $pa_zones{active}{aviosys}=join(',',@speakers_aviosys);
-    $pa_zones{active}{obj}=join(',',@speakers_obj);
-    
-    $parms->{web_file}="web_file" if $#speakers_audrey gt -1;
+    foreach my $type (keys(%speakertype)) {
+        my @thespeakers = @{$speakertype{$type}};
+        &::print_log("PAobj: speakers_$type: $#thespeakers: " . join(',',@thespeakers)) if $main::Debug{pa};
+        $pa_zones{active}{$type}=join(',',@thespeakers);
+        if ($#thespeakers > -1) {
+            $parms->{web_file}="web_file" if $type eq 'audrey';
+        }
+    }
     
     if(
         1
@@ -248,7 +173,7 @@ sub prep_parms
         && $pa_zones{active}{obj} eq ''
         
     ) {
-        $$parms{to_file}='/dev/null';
+        $parms->{to_file}='/dev/null';
     }
     
     return 1;
@@ -297,7 +222,7 @@ sub audio_hook
     $results = $self->set_obj($state,@speakers_obj) 			if $#speakers_obj > -1;
     
     &::print_log("PAobj: set results: $results") if $main::Debug{pa};
-    select undef, undef, undef, $$self{pa_delay} if $results;
+    select undef, undef, undef, $self->{pa_delay} if $results;
     
     $results=0;
     if(
@@ -469,7 +394,8 @@ sub get_weeder_string
 
     for $bit ('A' .. $pa_weeder_max_port{$card}) {
         $id = $card . 'L' . $bit;
-        $id = "D$id" if $$self{pa_type} eq 'wdio_old'; #TODO: Find way to implement this with new code
+        #TODO: Find way to implement this with new code
+        #$id = "D$id" if $self->{pa_type} eq 'wdio_old';
         my $ref = &Device_Item::item_by_id($id);
         if ($ref) {
             $state = $ref->{state};
@@ -495,7 +421,7 @@ sub get_weeder_string
         $weeder_code = $decimal_to_hex{$byte_code} . $weeder_code;
     }
 
-    if ($$self{pa_type} eq 'wdio_old') { #TODO: Find way to implement this with new code
+    if ($self->{pa_type} eq 'wdio_old') { #TODO: Find way to implement this with new code
         $card = "D$card";
         $weeder_code = 'h' . $weeder_code;
     }
@@ -613,7 +539,7 @@ sub get_pa_zones
 sub set_delay
 {
     my ($self,$delay) = @_;
-    $$self{pa_delay} = $delay;
+    $self->{pa_delay} = $delay;
 }
 
 sub print_speaker_states
@@ -648,11 +574,11 @@ sub new
 
     bless $self,$class;
 
-    $$self{name}		= $paz_name;
-    $$self{address}	= $paz_address;
-    $$self{groups}	= $paz_groups;
-    $$self{serial}	= $paz_serial;
-    $$self{other}		= $paz_other;
+    $self->{name}		= $paz_name;
+    $self->{address}	= $paz_address;
+    $self->{groups}	= $paz_groups;
+    $self->{serial}	= $paz_serial;
+    $self->{other}		= $paz_other;
 
     return $self;
 }
@@ -665,31 +591,31 @@ sub init
 sub get_address
 {
     my ($self) = @_;
-    return $$self{address};
+    return $self->{address};
 }
 
 sub get_name
 {
     my ($self) = @_;
-    return $$self{name};
+    return $self->{name};
 }
 
 sub get_groups
 {
     my ($self) = @_;
-    return $$self{groups};
+    return $self->{groups};
 }
 
 sub get_serial
 {
     my ($self) = @_;
-    return $$self{serial};
+    return $self->{serial};
 }
 
 sub get_type
 {
     my ($self) = @_;
-    return $$self{other};
+    return $self->{other};
 }
 
 1;
