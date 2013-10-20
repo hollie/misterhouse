@@ -421,7 +421,7 @@ sub delete_orphan_links
         # first, make sure that the health of ALDB is ok
         if ($self->health ne 'good')
         {
-        	if ($$self{device}->isa('Insteon::RemoteLinc') or $$self{device}->isa('Insteon::MotionSensor'))
+        	if ($self->is_deaf)
                 {
         		&::print_log("[Insteon::AllLinkDatabase] Delete orphan links: ignoring link from deaf device: $selfname");
 
@@ -588,7 +588,7 @@ sub delete_orphan_links
 			}
                         else # is a non-PLM device
                         {
-                        	if ($linked_device->isa('Insteon::RemoteLinc') or $linked_device->isa('Insteon::MotionSensor'))
+                        	if ($linked_device->is_deaf)
                                 {
                                 	&::print_log("[Insteon::AllLinkDatabase] Delete orphan links: ignoring link from $selfname to 'deaf' device: " . $linked_device->get_object_name);
                                 }
@@ -754,7 +754,7 @@ sub delete_orphan_links
                                                         	{
 									$member = $member->get_root;
 								}
-                        					if ($member->isa('Insteon::RemoteLinc') or $member->isa('Insteon::MotionSensor'))
+                        					if ($member->is_deaf)
                                                         	{
                                                                		&::print_log("[Insteon::AllLinkDatabase] ignoring link from " . $link->get_object_name . " to " .
                                                                		$member->get_object_name);
@@ -2842,7 +2842,7 @@ sub delete_orphan_links
 						}
 						if ($member->isa('Insteon::BaseDevice'))
                                                 {
-                                                	if ($member->isa('Insteon::RemoteLinc') or $member->isa('Insteon::MotionSensor'))
+                                                	if ($member->is_deaf)
                                                         {
                                                                &::print_log("[Insteon::ALDB_PLM] ignoring link from PLM to " .
                                                                		$member->get_object_name);

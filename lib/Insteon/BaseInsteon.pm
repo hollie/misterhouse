@@ -53,8 +53,19 @@ state of either ON or OFF.
 
 sub derive_link_state
 {
-	my ($p_state) = @_;
-
+	my ($self, $p_state) = @_;
+	$p_state = $self if !(ref $self); #Old code made direct calls
+	#Convert Relative State to Absolute State
+	if ($p_state =~ /^([+-])(\d+)/) {
+		my $rel_state = $1 . $2;
+		my $curr_state = '100';
+		$curr_state = '0' if ($self->state eq 'off');
+		$curr_state = $1 if $self->state =~ /(\d{1,3})/;
+		$p_state = $curr_state + $rel_state;
+		$p_state = 'on' if ($p_state > 0);
+		$p_state = 'off' if ($p_state <= 0);
+	}
+	
 	my $link_state = 'on';
 	if ($p_state eq 'off' or $p_state eq 'off_fast')
 	{
@@ -271,22 +282,31 @@ Returns the highest hop count of the past 20 hop counts
 sub default_hop_count
 {
 	my ($self, $hop_count) = @_;
-	unshift(@{$$self{hop_array}}, $$self{default_hop_count}) if (!defined(@{$$self{hop_array}}));
 	if (defined($hop_count)){
 		::print_log("[Insteon::BaseObject] DEBUG3: Adding hop count of " . $hop_count . " to hop_array of "
 			. $self->get_object_name) if $self->debuglevel(3);
-		unshift(@{$$self{hop_array}}, $hop_count) 
+		if (!defined(@{$$self{hop_array}})) {
+			unshift(@{$$self{hop_array}}, $$self{default_hop_count});
+			$$self{hop_sum} = $$self{default_hop_count};
+		}
+		#Calculate a simple moving average
+		unshift(@{$$self{hop_array}}, $hop_count); 
+		$$self{hop_sum} += ${$$self{hop_array}}[0];
+		$$self{hop_sum} -= pop(@{$$self{hop_array}}) if (scalar(@{$$self{hop_array}}) >10);
+		$$self{default_hop_count} = int(($$self{hop_sum} / scalar(@{$$self{hop_array}})) + 0.5);
+
+		::print_log("[Insteon::BaseObject] DEBUG4: ".$self->get_object_name
+			."->default_hop_count()=".$$self{default_hop_count}
+			." :: hop_array[]=". join("",@{$$self{hop_array}})) 
+			if $self->debuglevel(4);
 	}
-	pop(@{$$self{hop_array}}) if (scalar(@{$$self{hop_array}}) >20);
-	my $high = 0;
-	foreach (@{$$self{hop_array}}){
-		$high = $_ if ($high < $_);;
-	}
-	$$self{default_hop_count} = $high;
+
+	#Allow for per-device settings
 	$$self{default_hop_count} = $$self{max_hops} if ($$self{max_hops} &&
 		$$self{default_hop_count} > $$self{max_hops});
 	$$self{default_hop_count} = $$self{min_hops} if ($$self{min_hops} &&
-		$$self{default_hop_count} < $$self{min_hops});
+		$$self{default_hop_count} < $$self{min_hops});	
+	
         return $$self{default_hop_count};
 }
 
@@ -348,50 +368,44 @@ sub set
 		# always reset the is_locally_set property unless set_by is the device
 		$$self{m_is_locally_set} = 0 unless ref $p_setby and $p_setby eq $self;
 
-		# handle invalid state for non-dimmable devices
-		if (($p_state eq 'dim' or $p_state eq 'bright') and !($self->isa('Insteon::DimmableLight'))) {
-			$p_state = 'on';
-		}
-                elsif ($p_state eq 'toggle')
-                {
-                	if ($self->state eq 'on')
-                        {
-                        	$p_state = 'off';
-                        }
-                        elsif ($self->state eq 'off')
-                        {
-                        	$p_state = 'on';
-                        }
-                }
-
-                my $setby_name = $p_setby;
-                $setby_name = $p_setby->get_object_name() if (ref $p_setby and $p_setby->can('get_object_name'));
-		if (ref $p_setby and (($p_setby eq $self->interface())
-			or (($p_setby->isa('Insteon::BaseObject'))
-                        and (($p_setby eq $self)
-			or (&main::set_by_to_target($p_setby) eq $self->interface)))))
+		if ($p_state eq 'toggle')
 		{
-			# don't reset the object w/ the same state if set from the interface
-			return if (lc $p_state eq lc $self->state) and $self->is_acknowledged
-				and not(($p_setby->isa('Insteon::BaseObject') and ($p_setby eq $self)));
-			&::print_log("[Insteon::BaseObject] " . $self->get_object_name()
-				. "::set($p_state, $setby_name)") if $self->debuglevel();
-			$self->set_receive($p_state,$p_setby,$p_response) if defined $p_state;
-		} else {
-                        my $message = $self->derive_message($p_state);
-                        $self->_send_cmd($message);
+			$p_state = ($self->state eq 'on')? 'off' : 'on';
+		}
 
-#			$self->_send_cmd(command => $p_state,
-#				type => (($self->isa('Insteon::Insteon_Link') and !($self->is_root)) ? 'alllink' : 'standard'));
-			&::print_log("[Insteon::BaseObject] " . $self->get_object_name() . "::set($p_state, $setby_name)")
-				if $self->debuglevel();
-			$self->is_acknowledged(0);
-			$$self{pending_state} = $p_state;
-			$$self{pending_setby} = $p_setby;
-			$$self{pending_response} = $p_response;
-	}
-		$self->level($p_state) if ($self->isa("Insteon::BaseDevice") && $self->can('level')); # update the level value
-#		$self->SUPER::set($p_state,$p_setby,$p_response) if defined $p_state;
+		my $setby_name = $p_setby;
+		$setby_name = $p_setby->get_object_name() if (ref $p_setby and $p_setby->can('get_object_name'));
+		if (ref $p_setby and $p_setby eq $self)
+		{ #If set by device, update MH state,
+			my $derived_state = $self->derive_link_state($p_state);
+			&::print_log("[Insteon::BaseObject] " . $self->get_object_name()
+				. "::set_receive($derived_state, $setby_name)") if $self->debuglevel();
+			$self->set_receive($derived_state,$p_setby,$p_response);
+			$self->set_linked_devices($p_state);
+		} 
+		elsif (ref $p_setby and $p_setby eq $self->interface) 
+		{ #If set by interface, this was a manual status_request response
+			&::print_log("[Insteon::BaseObject] " . $self->get_object_name()
+				. "::set_receive($p_state, $setby_name)") if $self->debuglevel();
+			$self->set_receive($p_state,$p_setby,$p_response);
+		}
+		else { # Not called by device, send set command
+			if ($self->is_responder){
+				my $message = $self->derive_message($p_state);
+				$self->_send_cmd($message);
+				&::print_log("[Insteon::BaseObject] " . $self->get_object_name() . "::set($p_state, $setby_name)")
+					if $self->debuglevel();
+				$self->is_acknowledged(0);
+				$$self{pending_state} = $p_state;
+				$$self{pending_setby} = $p_setby;
+				$$self{pending_response} = $p_response;
+			} 
+			else {
+				::print_log("[Insteon::BaseObject] " . $self->get_object_name()
+					. " is not a responder and cannot be set to a state.");	
+			}
+		}
+		$self->level($p_state) if $self->can('level'); # update the level value
 	} else {
 		&::print_log("[Insteon::BaseObject] failed state validation with state=$p_state");
 	}
@@ -448,6 +462,7 @@ sub set_receive
 			"less than $window milliseconds") if $self->debuglevel(); 
 	} else {
 		$$self{set_milliseconds} = $curr_milli;
+		$self->level($p_state) if $self->can('level'); # update the level value
 		$self->SUPER::set($p_state, $p_setby, $p_response);
 	}
 }
@@ -655,11 +670,11 @@ sub _is_info_request
 			. "hops left: $msg{hopsleft}") if $self->debuglevel();
 		$self->level($ack_on_level) if $self->can('level'); # update the level value
 		if ($ack_on_level == 0) {
-			$self->SUPER::set('off', $ack_setby);
+			$self->set('off', $ack_setby);
 		} elsif ($ack_on_level > 0 and !($self->isa('Insteon::DimmableLight'))) {
-			$self->SUPER::set('on', $ack_setby);
+			$self->set('on', $ack_setby);
 		} else {
-			$self->SUPER::set($ack_on_level . '%', $ack_setby);
+			$self->set($ack_on_level . '%', $ack_setby);
 		}
 		# if this were a scene controller, then also propogate the result to all members
 		my $callback;
@@ -889,10 +904,19 @@ sub _process_message
 	}
         elsif ($msg{command} eq 'start_manual_change')
         {
-		# do nothing; although, maybe anticipate change? we should always get a stop
+		$$self{manual_direction} = $msg{extra};
+		$$self{manual_start} = ::get_tickcount() - (($msg{maxhops}-$msg{hopsleft})*50);
 	} elsif ($msg{command} eq 'stop_manual_change') {
-		# request status so that the final state can be known
-		$self->request_status($self);
+		# Determine percent change based on time interval
+		my $finish_time = &main::get_tickcount - (($msg{maxhops}-$msg{hopsleft})*50);
+		my $total_time = $finish_time - $$self{manual_start};
+		my $percent_change = int($total_time / 42);
+		if ($$self{manual_direction} eq '00') {
+			$percent_change = "-".$percent_change;
+		} else {
+			$percent_change = "+".$percent_change;
+		}
+		$self->set($percent_change, $self);
 	} elsif ($msg{command} eq 'read_write_aldb') {
 		if ($self->_aldb){
 			$clear_message = $self->_aldb->on_read_write_aldb(%msg) if $self->_aldb;
@@ -1024,7 +1048,7 @@ sub _is_valid_state
 	my ($msg, $substate) = split(/:/, $state, 2);
 	$msg=lc($msg);
 
-	if ($msg=~/^([1]?[0-9]?[0-9])/)
+	if ($msg=~/^[+-]?([1]?[0-9]?[0-9])/)
 	{
 		if ($1 < 1) {
 			$msg='off';
@@ -1275,6 +1299,7 @@ sub new
     $$self{hops_left_count} = 0;
     $$self{max_hops_count} = 0;
     $$self{outgoing_hop_count} = 0;
+	$$self{is_deaf} = 0;
 
 	return $self;
 }
@@ -1309,18 +1334,21 @@ sub rate
 	return $$self{rate};
 }
 
-=item C<set_receive(state[,setby,response])>
+=item C<is_deaf()>
 
-Updates the device's level if it can level, then calls 
-C<Insteon::BaseObject::set_receive()>.
+Returns true if the device must be awake in order to respond to messages.  Most
+devices are not deaf, currently devices that are deaf are battery operated
+devices such as the Motion Sensor, RemoteLinc and TriggerLinc.
+
+At the BaseObject level all devices are defined as not deaf.  Objects which
+inherit BaseObject should redefine is_deaf as necessary.
 
 =cut
 
-sub set_receive
+sub is_deaf
 {
-	my ($self, $p_state, $p_setby, $p_response) = @_;
-	$self->level($p_state) if $self->can('level'); # update the level value
-	$self->SUPER::set_receive($p_state, $p_setby, $p_response);
+	my ($self) = @_;
+	return $$self{is_deaf};
 }
 
 =item C<is_controller()>
@@ -1476,7 +1504,7 @@ sub link_to_interface_i2cs
 		case (2) { #Scan device to get an accurate link table
 			#return to normal link_to_interface routine if successful
 			$success_callback_prefix = $self->get_object_name."->link_to_interface('$p_group','$p_data3',";
-			$success_callback = $success_callback_prefix . "'2')";
+			$success_callback = $success_callback_prefix . "'1')";
 			$self->scan_link_table($success_callback, $failure_callback);
 		}
 	}
@@ -1859,7 +1887,8 @@ Hop Count, Engine Version, ALDB Type, ALDB Health, and Last ALDB Scan Time
 sub log_aldb_status
 {
 	my ($self) = @_;
-	main::print_log( "     Hop Count: ".$self->default_hop_count());
+	main::print_log( "     Device ID: ".$self->device_id());
+	main::print_log( "     Hop Count: ".$self->default_hop_count()." :: [". join("",@{$$self{hop_array}})."]");
 	main::print_log( "Engine Version: ".$self->engine_version());
 	my $aldb = $self->get_root()->_aldb;
 	if ($aldb)
@@ -1952,6 +1981,8 @@ sub _get_engine_version_failure
 			."linked; Please use 'link to interface' voice command");
 		$self->engine_version('I2CS');
 	}
+	#Clear success callback, otherwise it will run when message is cleared
+	$self->interface->active_message->success_callback('0');
 }
 
 =item C<ping([count])>
@@ -3078,31 +3109,6 @@ sub _process_sync_queue {
 	}
 }
 
-=item C<set(state[,setby,response])>
-
-Returns -1 if setby was set by this object.
-
-Returns -1 if setby a tied_filter.
-
-Otherwise calls C<set_linked_devices> and returns 0.
-
-=cut
-
-sub set
-{
-	my ($self, $p_state, $p_setby, $p_respond) = @_;
-	# prevent reciprocal setby loops
-	return -1 if (ref $p_setby and ($p_setby ne $self) and $p_setby->can('get_set_by') and
-           $p_setby->{set_by} eq $self);
-	return -1 if &main::check_for_tied_filters($self, $p_state);
-
-	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
-
-	$self->set_linked_devices($link_state);
-
-	return 0;
-}
-
 =item C<set_linked_devices(state)>
 
 Checks each linked member of device.  If the linked member is a C<light_item>, 
@@ -3120,12 +3126,11 @@ sub set_linked_devices
 		foreach my $member_ref (keys %{$$self{members}})
 		{
 			my $member = $$self{members}{$member_ref}{object};
-			my $on_state = $$self{members}{$member_ref}{on_level};
-			$on_state = '100%' unless $on_state;
-			my $local_state = $on_state;
-			$local_state = 'on' if $local_state eq '100%'
-				&& $member->isa('Insteon::BaseDevice') && !($member->is_root);
-			$local_state = 'off' if $local_state eq '0%' or $link_state eq 'off';
+			# If controller is on, set member to stored on_level
+			# else set to controller value
+			my $local_state = $$self{members}{$member_ref}{on_level};
+			$local_state = '100' unless $local_state;
+			
 			if ($member->isa('Light_Item'))
 			{
 			# if they are Light_Items, then set their on_dim attrib to the member on level
@@ -3138,10 +3143,13 @@ sub set_linked_devices
 				my @lights = $member->find_members('Insteon::BaseDevice');
 				if (@lights)
 				{
-					my $light = @lights[0];
+					my $light = $lights[0];
 					# remember the current state to support resume
 					$$self{members}{$member_ref}{resume_state} = $light->state;
 					$member->manual($light, $ramp_rate);
+					if ($light->can('derive_link_state') && lc $link_state ne 'on'){
+						$local_state = $light->derive_link_state($link_state);
+					}
 					$light->set_receive($local_state,$self);
 				}
 				else
@@ -3152,20 +3160,17 @@ sub set_linked_devices
 			}
 			elsif ($member->isa('Insteon::BaseDevice'))
 			{
-			# remember the current state to support resume
+				# remember the current state to support resume
 				$$self{members}{$member_ref}{resume_state} = $member->state;
-			# if they are Insteon_Device objects, then simply set_receive their state to
-			#   the member on level
-                        	if (!($member->isa('Insteon::DimmableLight')) and $member->isa('Insteon::BaseLight'))
-                                {
-                                	$local_state =  &Insteon::BaseObject::derive_link_state($local_state);
-                                }
+				# if they are Insteon_Device objects, then simply set_receive their state to
+				#   the member on level
+				if (lc $link_state ne 'on'){
+ 					$local_state = $member->derive_link_state($link_state);
+				}
 				$member->set_receive($local_state,$self);
 			}
 		}
 	}
-
-
 }
 
 =item C<set_with_timer(state, time, return_state, additional_return_states)>
@@ -3221,7 +3226,7 @@ sub update_members
 			# if they are Light_Items, then locate the Light_Item's Insteon_Device member
 				my @lights = $member->find_members('Insteon::BaseDevice');
 				if (@lights) {
-					$device = @lights[0];
+					$device = $lights[0];
 				}
 			} elsif ($member->isa('Insteon::BaseDevice')) {
 				$device = $member;
@@ -3261,22 +3266,6 @@ sub initiate_linking_as_controller
 		}
 	}
 	$self->interface()->initiate_linking_as_controller($p_group, $success_callback, $failure_callback);
-}
-
-=item C<derive_message([command,extra])>
-
-Generates and returns a basic on/off message from a command.
-
-=cut
-
-sub derive_message
-{
-	my ($self, $p_state, $p_extra) = @_;
-	if ($self->is_root) {
-		return $self->Insteon::BaseObject::derive_message($p_state, $p_extra);
-	} else {
-		return $self->Insteon::BaseObject::derive_message($p_state, $p_extra);
-	}
 }
 
 =item C<find_members([type])>
@@ -3388,28 +3377,6 @@ sub new
 	return $self;
 }
 
-=item C<set(state[,setby,response])>
-
-If C<Insteon::BaseController::set> returns a true value returns that.
-
-Else, calls C<Insteon::BaseObject::set> and returns 0
-
-=cut
-
-sub set
-{
-	my ($self, $p_state, $p_setby, $p_respond) = @_;
-
-	my $rslt_code = $self->Insteon::BaseController::set($p_state, $p_setby, $p_respond);
-	return $rslt_code if $rslt_code;
-
-	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
-
-	$self->Insteon::BaseObject::set((($self->is_root) ? $p_state : $link_state), $p_setby, $p_respond);
-
-	return 0;
-}
-
 =item C<request_status([requestor])>
 
 Requests the current status of the device and calls C<set()> on the response.  
@@ -3503,29 +3470,30 @@ sub new
 	return $self;
 }
 
-=item C<set(state[,setby,response])>
 
-If C<Insteon::BaseController::set> returns a true value returns that.
-
-Else, calls C<Insteon::BaseObject::set> and returns 0
-
-=cut
-
+#Otherwise BaseController will call Generic_Item::Set
 sub set
 {
-	my ($self, $p_state, $p_setby, $p_respond) = @_;
-
-	my $rslt_code = $self->Insteon::BaseController::set($p_state, $p_setby, $p_respond);
-	return $rslt_code if $rslt_code;
-
-	$self->Insteon::BaseObject::set($p_state, $p_setby, $p_respond);
-
-	return 0;
+	my ($self,$p_state,$p_setby,$p_response) = @_;
+	$self->Insteon::BaseObject::set($p_state,$p_setby,$p_response);	
 }
 
 sub is_root
 {
    return 0;
+}
+
+sub is_responder {
+	return 1;
+}
+
+# For IFaceControllers, need to call set_linked_devices
+sub is_acknowledged {
+	my ($self, $p_ack) = @_;
+	if ($p_ack) {
+		$self->set_linked_devices($$self{pending_state}) if defined $$self{pending_state};	
+	}
+	return $self->Insteon::BaseObject::is_acknowledged($p_ack);
 }
 
 =item C<get_voice_cmds>

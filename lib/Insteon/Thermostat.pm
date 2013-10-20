@@ -192,6 +192,7 @@ sub new {
    $self->restore_data('temp','mode','fan_mode','heat_sp','cool_sp');
    $$self{m_pending_setpoint} = undef;
    $$self{message_types} = \%message_types;
+   $$self{is_responder} = 0; 
    return $self;
 }
 
@@ -585,33 +586,18 @@ sub init {
 	$$self{message_types} = \%message_types;
 	#Set saved state unique to i2CS devices
 	$self->restore_data('humid', 'cooling', 'heating', 'humidifying', 'dehumidifying', 'high_humid_sp', 'low_humid_sp');
-}
-
-sub set {
-	my ($self, $p_state, $p_setby, $p_respond) = @_;
-	my $root = $self->get_root();
-	if (!(ref $p_setby) || !($p_setby->equals($self))) {
-		::print_log("[Insteon::Thermo_i2CS] Sorry, you cannot control the ".
-			"thermostat in this manner.  Please read the documentation ".
-			"for Insteon::Thermostat for help.");
-		return;
+	if ($self->group eq 01){
+		$self -> tie_event ('$object->_cooling("$state")');
 	}
-	#Update the root object state
-	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
-	if ($self->group eq '01'){
-		$root->_cooling($link_state);
-	} 
 	elsif ($self->group eq '02') {
-		$root->_heating($link_state);
+		$self -> tie_event ('$object->_heating("$state")');
 	}
 	elsif ($self->group eq '03') {
-		$root->_dehumidifying($link_state);
+		$self -> tie_event ('$object->_dehumidifying("$state")');
 	}
 	elsif ($self->group eq '04') {
-		$root->_humidifying($link_state);
+		$self -> tie_event ('$object->_humidifying("$state")');
 	}
-	#Update the status of linked devices
-	$self->set_linked_devices($link_state);
 }
 
 sub sync_links{
@@ -994,35 +980,39 @@ sub _humid {
 
 sub _cooling {
 	my ($self,$p_state) = @_;
-	$$self{cooling} = $p_state;
-	$self->set_receive('status_change');
-	return $$self{cooling};
+	my $root = $self->get_root();
+	$$root{cooling} = $p_state;
+	$root->set_receive('status_change');
+	return $$root{cooling};
 }
 
 sub _heating {
 	my ($self,$p_state) = @_;
-	$$self{heating} = $p_state;
-	$self->set_receive('status_change');
-	return $$self{heating};
+	my $root = $self->get_root();
+	$$root{heating} = $p_state;
+	$root->set_receive('status_change');
+	return $$root{heating};
 }
 
 
 sub _dehumidifying {
 	my ($self,$p_state) = @_;
-	if ($p_state ne $$self{dehumidifying}) {
-		$$self{dehumidifying} = $p_state;
-		$self->set_receive('status_change');
+	my $root = $self->get_root();
+	if ($p_state ne $$root{dehumidifying}) {
+		$$root{dehumidifying} = $p_state;
+		$root->set_receive('status_change');
 	}
-	return $$self{dehumidifying};
+	return $$root{dehumidifying};
 }
 
 sub _humidifying {
 	my ($self,$p_state) = @_;
-	if ($p_state ne $$self{humidifying}) {
-		$$self{humidifying} = $p_state;
-		$self->set_receive('status_change');
+	my $root = $self->get_root();
+	if ($p_state ne $$root{humidifying}) {
+		$$root{humidifying} = $p_state;
+		$root->set_receive('status_change');
 	}
-	return $$self{humidifying};
+	return $$root{humidifying};
 }
 
 sub _high_humid_sp {
