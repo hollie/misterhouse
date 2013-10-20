@@ -629,8 +629,9 @@ sub delete_orphan_links
 				if (!$delete_req{is_controller}){
 					$reciprocal_object = Insteon::get_object($delete_req{deviceid}, $delete_req{group});
 				}
-				my $reciprocal_name = $reciprocal_object->get_object_name;
-				$log_text .= "linked device name= " . $reciprocal_name;
+				if (ref $reciprocal_object) {
+					$log_text .= "linked device name= " . $reciprocal_object->get_object_name;
+				}
 			}
 			$index ++;
 		}
