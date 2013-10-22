@@ -170,6 +170,7 @@ sub prep_parms
         && $pa_zones{active}{xap} eq ''
         && $pa_zones{active}{xpl} eq ''
         && $pa_zones{active}{aviosys} eq ''
+        && $pa_zones{active}{amixer} eq ''
         && $pa_zones{active}{obj} eq ''
         
     ) {
@@ -189,6 +190,7 @@ sub audio_hook
     my @speakers_x10=split(',',$pa_zones{active}{x10});
     my @speakers_xap=split(',',$pa_zones{active}{xap});
     my @speakers_xpl=split(',',$pa_zones{active}{xpl});
+    my @speakers_amixer=split(',',$pa_zones{active}{amixer});
     my @speakers_obj=split(',',$pa_zones{active}{obj});
 
     #TODO: Properly handle $results across multiple types
@@ -200,7 +202,7 @@ sub audio_hook
 
     for my $room (split(',',$pa_zones{active}{aviosys})) {
         my $ref = &::get_object_by_name('pa_'.$room);
-	my $serial=$ref->get_serial();
+        my $serial=$ref->get_serial();
         &::print_log("PAobj: aviosys serial: " . $room . " / " . $serial) if $main::Debug{pa} >=3;
         push(@{$speakers_aviosys{$serial}},$room);
     }
@@ -210,7 +212,7 @@ sub audio_hook
     }
     for my $room (split(',',$pa_zones{active}{wdio})) {
         my $ref = &::get_object_by_name('pa_'.$room);
-	my $serial=$ref->get_serial();
+        my $serial=$ref->get_serial();
         &::print_log("PAobj: wdio serial: " . $room . " / " . $serial) if $main::Debug{pa} >=3;
         push(@{$speakers_wdio{$serial}},$room);
     }
@@ -219,6 +221,7 @@ sub audio_hook
         $results = $self->set_weeder($state,$serial,@{$speakers_wdio{$serial}});
     }
 
+    $results = $self->set_amixer($state,@speakers_amixer) 			if $#speakers_amixer > -1;
     $results = $self->set_obj($state,@speakers_obj) 			if $#speakers_obj > -1;
     
     &::print_log("PAobj: set results: $results") if $main::Debug{pa};
@@ -453,6 +456,34 @@ sub set_aviosys
     return 1;
 }
 
+sub set_amixer
+{
+    my ($self,$state,@speakers) = @_;
+    my %amixerref;
+    my $mixpercent;
+    $mixpercent = '0%' if lc $state eq 'off';
+    $mixpercent = '100%' if lc $state eq 'on';
+    for my $room (@speakers) {
+        my $ref = &::get_object_by_name('pa_'.$room);
+        &::print_log("PAobj: set_amixer: " . $room . " / " . $state . " / " . $ref->{mixer} . " / " . $ref->{mixerchan}) if $main::Debug{pa} >=3;
+        
+        if(defined($ref->{mixerchan})) {
+            $amixerref{$ref->{mixer}}{'l'}='0%' unless $amixerref{$ref->{mixer}}{'l'};
+            $amixerref{$ref->{mixer}}{'r'}='0%' unless $amixerref{$ref->{mixer}}{'r'};
+            $amixerref{$ref->{mixer}}{$ref->{mixerchan}}=$mixpercent if $mixpercent;
+        } else {
+            $amixerref{$ref->{mixer}}{'l'}=$mixpercent if $mixpercent;
+            $amixerref{$ref->{mixer}}{'r'}=$mixpercent if $mixpercent;
+        }
+    }
+    foreach my $mixer (keys(%amixerref)) {
+        my $mixcmd = "amixer -q set $mixer ".$amixerref{$mixer}{'l'}.','.$amixerref{$mixer}{'r'};
+        &main::print_log("PAobj: set_amixer: CMD: $mixcmd") if $main::Debug{pa} >=2;
+        my $r = system $mixcmd;
+        &main::print_log("PAobj: set_amixer: ERROR running command: $mixcmd") if $r != 0;
+    }
+}
+
 sub get_speakers
 {
     my ($self,$rooms) = @_;
@@ -566,10 +597,10 @@ sub last_char
     return((sort @chars)[-1]);
 }
 
-#Type Address	Name			Groups               		Serial   Other
+#Type Address	Name			Groups               		Serial   Type
 sub new
 {
-    my ($class,$paz_address,$paz_name,$paz_groups,$paz_serial,$paz_other) = @_;
+    my ($class,$paz_address,$paz_name,$paz_groups,$paz_serial,$paz_type) = @_;
     my $self={};
 
     bless $self,$class;
@@ -578,7 +609,15 @@ sub new
     $self->{address}	= $paz_address;
     $self->{groups}	= $paz_groups;
     $self->{serial}	= $paz_serial;
-    $self->{other}		= $paz_other;
+    $self->{type}		= $paz_type;
+    
+    if(lc $paz_type eq 'amixer') {
+        #Headphone:0:L
+        my ($mixer,$mixernum,$channel) = split(':',$self->{address});
+        &main::print_log("$mixer / $mixernum / $channel");
+        $self->{mixer} = "$mixer,$mixernum";
+        $self->{mixerchan} = lc $channel if $channel;
+    }
 
     return $self;
 }
@@ -615,7 +654,7 @@ sub get_serial
 sub get_type
 {
     my ($self) = @_;
-    return $self->{other};
+    return $self->{type};
 }
 
 1;
