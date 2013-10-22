@@ -528,7 +528,7 @@ sub read_table_A {
         my ($pa_type, $serial);
         ($address, $name, $grouplist, $serial, $pa_type, @other) = @item_info;
         $pa_type = 'wdio' unless $pa_type;
-
+        
         if( ! $packages{PAobj}++ ) {   # first time for this object type?
             $code .= "my (%pa_weeder_max_port,%pa_zone_types,%pa_zone_type_by_zone);\n";
         }
@@ -585,6 +585,8 @@ sub read_table_A {
             my $aviosysref = {'on' => {'1' => '!','2' => '#','3' => '%','4' => '&','5' => '(','6' => '_','7' => '{','8' => '}' },'off' => {'1' => '@','2' => '$','3' => '^','4' => '*','5' => ')','6' => '-','7' => '[','8' => ']'}};
             $code .= sprintf "\$%-35s = new Serial_Item('%s','on','%s');\n",$name.'_obj',$aviosysref->{'on'}{$address},$serial;
             $code .= sprintf "\$%-35s -> add ('%s','off');\n",$name.'_obj',$aviosysref->{'off'}{$address};
+        } elsif (lc $pa_type eq 'amixer') {
+            #Nothing needed here, except to avoid the "else" statement.
         } else {
             print "\nUnrecognized .mht entry for PA: $record\n";
             return;

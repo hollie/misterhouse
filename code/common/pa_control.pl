@@ -175,6 +175,11 @@ PA,	objname,	living,		all|mainfloor,				, object
 PA,	192.168.0.1,family,		all|mainfloor,				, xap
 PA,	192.168.0.2,dining,		all|mainfloor,				, xpl
 PA,	192.168.0.3,table,		all|mainfloor,				, audrey
+#
+PA,	Headphone:0:L,	mix1l,		all,					, amixer
+PA,	Headphone:0:R,	mix1r,		all,					, amixer
+PA,	Headphone:1,	mix2,		all,					, amixer
+PA,	Headphone:1:R,	mix2r,		all,					, amixer
 
 
 Type:        "PA", constant. This must be there.
@@ -185,6 +190,11 @@ Address:     Address or Object name.
                if the command to turn on the pin you want is: BHC, then the Address is: BC
              For X10, the X10 address of the (likely) relay device.
              For xAP, xPL and audrey, use the IP address or hostname of the target device.
+             For amixer (Linux Only), use the alsa mixer name. My laptop has "Headphone" and
+               "Headphone 1". This is really "Headphone,0" and "Headphone,1". They are also both
+               stereo. Use : as a separator, and then add L or R to control the left or right
+               channel. Omitting this causes BOTH channels to be turned on. There's several examples
+               above.
              For "object", use the name of the object (without the $). You may use anything that
                responds ON and OFF set commands. Tested with and Insteon device.
 
@@ -203,7 +213,7 @@ Serial:      The name of the serial port that you use for communcating to the IO
              The default is "weeder". Note that this can be changed with an INI parm.
 
 Other:       Optional. Sets the type of PA control. Defaults to 'wdio'. Available options are:
-             wdio,wdio_old,X10,xpl,xap,audrey,object
+             wdio,wdio_old,X10,xpl,xap,audrey,amixer,object
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 =begin Audrey Config
