@@ -851,6 +851,8 @@ sub add_link
 
 	# check whether the link already exists
 	my $key = $self->get_linkkey($device_id, $group, $is_controller, $data3);
+	$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
+	$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
 	if (!defined($link_parms{aldb_check}) && (!$$self{device}->isa('Insteon_PLM'))){
 		## Check whether ALDB is in sync
 		$self->{callback_parms} = \%link_parms;
@@ -896,8 +898,6 @@ sub add_link
 		$ramp_rate = '0.1' unless $ramp_rate; # 0.1s is the default
 		# get the first available memory location
 		my $address = $self->get_first_empty_address();
-		$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
-		$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
                 if ($address)
                 {
 			&::print_log("[Insteon::AllLinkDatabase] DEBUG2: adding link record to " . $$self{device}->get_object_name

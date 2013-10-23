@@ -2887,7 +2887,8 @@ sub sync_links
 		my %link_req = ( member => $insteon_object, cmd => 'add', object => $self->interface,
 			group => $self->group, is_controller => 1,
 			callback => "$self_link_name->_process_sync_queue()",
-			data3 => $subaddress);
+			failure_callback => $failure_callback,
+			data3 => $self->group);
 		$link_req{cause} = "Adding controller record to $self_link_name for $interface_name";
 		$link_req{data3} = $self->group;
 		push @{$$self{sync_queue}}, \%link_req;
@@ -2899,6 +2900,7 @@ sub sync_links
 		my %link_req = ( member => $self->interface, cmd => 'add', object => $insteon_object,
 			group => $self->group, is_controller => 0,
 			callback => "$self_link_name->_process_sync_queue()",
+			failure_callback => $failure_callback,
 			data3 => '00');
 		$link_req{cause} = "Adding responder record to $interface_name from $self_link_name";
 		push @{$$self{sync_queue}}, \%link_req;
@@ -2938,6 +2940,7 @@ sub sync_links
 				group => $self->group, is_controller => 0,
 				on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,
 				callback => "$self_link_name->_process_sync_queue()",
+				failure_callback => $failure_callback,
 				data3 => $member->group);
 			$link_req{cause} = "Adding responder record to $member_name from $self_link_name";
 			push @{$$self{sync_queue}}, \%link_req;
@@ -2948,6 +2951,7 @@ sub sync_links
 				group => $self->group, is_controller => 0,
 				on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,
 				callback => "$self_link_name->_process_sync_queue()",
+				failure_callback => $failure_callback,
 				data3 => $member->group);
 			$link_req{skip} = "Unable to add the following responder record to $member_name "
 				."from $self_link_name because the aldb of $member_name is "
@@ -2997,6 +3001,7 @@ sub sync_links
 				group => $self->group, is_controller => 0,
 				on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,
 				callback => "$self_link_name->_process_sync_queue()",
+				failure_callback => $failure_callback,
 				data3 => $member->group);
 			$link_req{cause} = "Updating responder record on $member_name "
 				. "to fix $cause";
@@ -3009,7 +3014,8 @@ sub sync_links
 			my %link_req = ( member => $insteon_object, cmd => 'add', object => $member,
 				group => $self->group, is_controller => 1,
 				callback => "$self_link_name->_process_sync_queue()",
-				data3 => $subaddress);
+				failure_callback => $failure_callback,
+				data3 => $self->group);
 			$link_req{cause} = "Adding controller record to $self_link_name for $member_name";
 			push @{$$self{sync_queue}}, \%link_req;
 		}
@@ -3034,11 +3040,9 @@ sub sync_links
 			$log_text .= $sync_req{cause} . "\n";
 		}
 		PRINT: for (keys %sync_req) {
-			next PRINT if ($_ eq 'cause');
-			next PRINT if ($_ eq 'callback');
-			next PRINT if ($_ eq 'member');
-			next PRINT if ($_ eq 'object');
-			next PRINT if ($_ eq 'skip');
+			next PRINT if (($_ eq 'cause') || ($_ eq 'callback') ||
+				($_ eq 'member') || ($_ eq 'object') || 
+				($_ eq 'skip') || ($_ eq 'failure_callback'));
 			$log_text .= "$_ = $sync_req{$_}; ";
 		}
 		::print_log($log_text);
