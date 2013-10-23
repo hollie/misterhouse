@@ -440,8 +440,8 @@ sub delete_orphan_links
 	my $selfname = $$self{device}->get_object_name;
 
 	# first, make sure that the health of ALDB is ok
-	if ($self->health ne 'good' || (!$$self{device}->isa('Insteon_PLM') && $$self{device}->is_deaf)) {
-		if (!$$self{device}->isa('Insteon_PLM') && $$self{device}->is_deaf) {
+	if ($self->health ne 'good' || $$self{device}->is_deaf) {
+		if ($$self{device}->is_deaf) {
 			::print_log("[Insteon::AllLinkDatabase] Delete orphan links: Will not delete links on deaf device: $selfname");
 		} 
 		elsif ($self->health eq 'empty'){
@@ -580,7 +580,7 @@ sub delete_orphan_links
 		}
 
 		# Do not delete links to deaf devices
-		if (!$linked_device->isa('Insteon_PLM') && $linked_device->is_deaf) {
+		if ($linked_device->is_deaf) {
 			$delete_req{skip} = "$selfname -- Skipping check for reciprocal links on deaf device " . $linked_device->get_object_name;
 			next LINKKEY;
 		}
