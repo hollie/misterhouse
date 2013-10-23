@@ -2853,7 +2853,6 @@ sub sync_links
 	# Intialize Variables
 	@{$$self{sync_queue}} = (); # reset the work queue
 	$$self{sync_queue_callback} = ($callback) ? $callback : undef;
-	my $subaddress = $self->group;
 	my $self_link_name = $self->get_object_name;
 	my $insteon_object = $self->interface;
 	my $interface_object = Insteon::active_interface();
@@ -2882,7 +2881,7 @@ sub sync_links
 	
 	# 1. Does a controller link exist for Device-> PLM
 	if (!$insteon_object->isa('Insteon_PLM') && 
-	!$insteon_object->has_link($self->interface,$self->group,1,$subaddress) && 
+	!$insteon_object->has_link($self->interface,$self->group,1,$self->group) && 
 	$insteon_object_is_syncable) {
 		my %link_req = ( member => $insteon_object, cmd => 'add', object => $self->interface,
 			group => $self->group, is_controller => 1,
@@ -2890,7 +2889,6 @@ sub sync_links
 			failure_callback => $failure_callback,
 			data3 => $self->group);
 		$link_req{cause} = "Adding controller record to $self_link_name for $interface_name";
-		$link_req{data3} = $self->group;
 		push @{$$self{sync_queue}}, \%link_req;
 	}
 		
@@ -3009,7 +3007,7 @@ sub sync_links
 		}
 
 		# 5. Does the controller link on this device exist
-		if (!($insteon_object->has_link($member, $self->group, 1, $subaddress)) &&
+		if (!($insteon_object->has_link($member, $self->group, 1, $self->group)) &&
 		$insteon_object_is_syncable) {
 			my %link_req = ( member => $insteon_object, cmd => 'add', object => $member,
 				group => $self->group, is_controller => 1,
