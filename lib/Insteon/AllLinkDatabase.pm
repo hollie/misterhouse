@@ -975,6 +975,9 @@ sub update_link
 	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
 	$data3 = $data3_default if ($data3 eq '00' || $data3 eq '01');
 
+	$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
+	$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
+
 	my $deviceid = $insteon_object->device_id;
 	my $key = $self->get_linkkey($deviceid, $group, $is_controller, $data3);
 	if (!defined($link_parms{aldb_check}) && (!$$self{device}->isa('Insteon_PLM'))){
@@ -997,8 +1000,6 @@ sub update_link
 	elsif (defined $$self{aldb}{$key} && $link_parms{aldb_check} eq "ok"){	
 		my $address = $$self{aldb}{$key}{address};
 		$$self{_mem_activity} = 'update';
-		$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
-		$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
 		$self->_write_link($address, $deviceid, $group, $is_controller, $data1, $data2, $data3);
 	} else {
 		&::print_log("[Insteon::AllLinkDatabase] ERROR: updating link record failed because "
