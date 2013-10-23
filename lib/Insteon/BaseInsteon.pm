@@ -2177,8 +2177,8 @@ does nothing.
 
 sub delete_orphan_links
 {
-	my ($self, $audit_mode) = @_;
-        return $self->_aldb->delete_orphan_links($audit_mode) if $self->_aldb;
+	my ($self, $audit_mode, $failure_callback) = @_;
+        return $self->_aldb->delete_orphan_links($audit_mode, $failure_callback) if $self->_aldb;
 }
 
 sub _process_delete_queue {

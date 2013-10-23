@@ -434,7 +434,7 @@ scanned and processed.
 
 sub delete_orphan_links
 {
-	my ($self, $audit_mode) = @_;
+	my ($self, $audit_mode, $failure_callback) = @_;
 	@{$$self{delete_queue}} = (); # reset the work queue
 	$$self{delete_queue_processed} = 0;
 	my $selfname = $$self{device}->get_object_name;
@@ -464,7 +464,8 @@ sub delete_orphan_links
 		next LINKKEY if ($linkkey eq 'empty');
 		
 		# Define delete request
-		my %delete_req = (callback => "$selfname->_aldb->_process_delete_queue()",);
+		my %delete_req = (callback => "$selfname->_aldb->_process_delete_queue()",
+				  failure_callback => $failure_callback);
 
 		# Delete duplicate entries
 		if ($linkkey eq 'duplicates') {
@@ -618,8 +619,8 @@ sub delete_orphan_links
 			$log_text = "[Insteon::AllLinkDatabase] $audit_text Deleting the following link on $selfname because ";
 			$log_text .= $delete_req{cause} . "\n";
 			PRINT: for (keys %delete_req) {
-				next PRINT if ($_ eq 'cause');
-				next PRINT if ($_ eq 'callback');
+				next PRINT if (($_ eq 'cause') || ($_ eq 'callback') ||
+						($_ eq 'failure_callback'));
 				$log_text .= "$_ = $delete_req{$_}; ";
 			}
 			if ($delete_req{deviceid}){
@@ -2557,27 +2558,48 @@ sub _process_delete_queue {
         {
 		my $delete_req_ptr = shift(@{$$self{delete_queue}});
 		my %delete_req = %$delete_req_ptr;
+		my $failure_callback = $$self{device}->get_object_name . 
+					"->_aldb->_process_delete_queue_failure";
 		# distinguish between deleting PLM links and processing delete orphans for a root item
 		if ($delete_req{'root_object'})
                 {
-			$delete_req{'root_object'}->delete_orphan_links($delete_req{'audit_mode'});
+			$$self{current_delete_device} = $delete_req{'root_object'}->get_object_name;
+			$delete_req{'root_object'}->delete_orphan_links(($delete_req{'audit_mode'}) ? 1 : 0, $failure_callback);
 		}
                 else
                 {
+			$$self{current_delete_device} = $$self{device}->get_object_name;
 			&::print_log("[Insteon::ALDB_PLM] now deleting orphaned link w/ details: "
 				. (($delete_req{is_controller}) ? "controller($delete_req{data3})" : "responder")
 				. ", " . (($delete_req{object}) ? "object=" . $delete_req{object}->get_object_name
 				: "deviceid=$delete_req{deviceid}") . ", group=$delete_req{group}")
 				if $main::Debug{insteon};
+				$delete_req{failure_callback} = $failure_callback;
 			$self->delete_link(%delete_req);
 			$$self{delete_queue_processed}++;
 		}
 	}
-        else
-        {
-		&::print_log("[Insteon::ALDB_PLM] A total of $$self{delete_queue_processed} orphaned link records were deleted.");
-        	&::print_log("[Insteon::ALDB_PLM] #### END DELETE ORPHAN LINKS ####");
+	else {
+		::print_log("[Insteon::ALDB_PLM] Delete All Links has Completed.");
+		my $_delete_failure_cnt = scalar $$self{_delete_device_failures};
+		if ($_delete_failure_cnt) {
+			&main::print_log("[Insteon::ALDB_PLM] However, some failures were noted with the following devices:");
+			for my $failed_obj (@{$$self{_delete_device_failures}}) {
+				::print_log("[Insteon::ALDB_PLM] Failure on: "
+				. $failed_obj);
+			}
+		}
+		::print_log("[Insteon::ALDB_PLM] A total of $$self{delete_queue_processed} orphaned link records were deleted.");
+		::print_log("[Insteon::ALDB_PLM] #### END DELETE ORPHAN LINKS ####");
 	}
+}
+
+sub _process_delete_queue_failure {
+	my ($self) = @_;
+	push @{$$self{_delete_device_failures}}, $$self{current_delete_device};
+	::print_log("[Insteon::ALDB_PLM] WARN: failure occurred when deleting orphan links from: "
+			. $$self{current_delete_device} . ".  Moving on...");
+	$self->_process_delete_queue;
 
 }
 
@@ -2620,10 +2642,8 @@ sub delete_link
 		delete $$self{aldb}{$linkkey};
 		$num_deleted = 1;
                 my $message = new Insteon::InsteonMessage('all_link_manage_rec', $$self{device});
-                if ($link_parms{callback})
-                {
-			$$self{_success_callback} = $link_parms{callback};
-                }
+		$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
+		$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
                 $message->interface_data($cmd);
 		$$self{device}->queue_message($message);
 	}
@@ -2729,10 +2749,8 @@ sub add_link
 		$self->health('good') if($self->health() eq 'empty');
                 my $message =  new Insteon::InsteonMessage('all_link_manage_rec', $$self{device});
                 $message->interface_data($cmd);
-                if ($link_parms{callback})
-                {
-			$$self{_success_callback} = $link_parms{callback};
-                }
+		$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
+		$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
                 $message->interface_data($cmd);
 		$$self{device}->queue_message($message);
 	}
