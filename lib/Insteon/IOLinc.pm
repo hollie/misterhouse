@@ -122,11 +122,6 @@ my %operating_flags = (
    'momentary_c_off' => '15',
 );
 
-my %message_types = (
-	%Insteon::BaseDevice::message_types,
-	extended_set_get => 0x2e
-);
-
 =item C<new()>
 
 Instantiates a new object.
@@ -138,7 +133,6 @@ sub new
 	my ($class, $p_deviceid, $p_interface) = @_;
 	my $self = new Insteon::BaseDevice($p_deviceid, $p_interface);
 	$$self{operating_flags} = \%operating_flags;
-	$$self{message_types} = \%message_types;
 	bless $self, $class;
 	$self->restore_data('momentary_time');
 	$$self{momentary_timer} = new Timer;
@@ -158,9 +152,7 @@ and control the relay state.
 sub set
 {
 	my ($self, $p_state, $p_setby, $p_respond) = @_;
-	#Commands sent by the IOLinc itself represent the sensor
-	#Commands sent by MH to IOLinc represent the relay
-	if (ref $p_setby && $p_setby->isa('Insteon::BaseObject') && $p_setby->equals($self)){
+	if (ref $p_setby && $p_setby->can('equals') && $p_setby->equals($self)){
 		my $curr_milli = sprintf('%.0f', &main::get_tickcount);
 		my $window = 1000;
 		if ($p_state eq $$self{child_state} &&
@@ -179,9 +171,7 @@ sub set
 		}
 	}
 	else {
-		my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
-		$self->Insteon::BaseDevice::set($link_state, $p_setby, $p_respond);
-		#$$self{momentary_timer}->set(int($$self{momentary_time/10), '$self->Generic_Item::set('off')');
+		$self->SUPER::set($p_state, $p_setby, $p_respond);
 	}
 	return;
 }
@@ -453,6 +443,47 @@ sub set_relay_mode
 		$parent->set_operating_flag('momentary_c_on');
 	}
 	return;
+}
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds},
+        #Rename status command to note that it will request status of the
+        #relay
+        'on' => "$object_name->set(\"on\")",
+        'off' => "$object_name->set(\"off\")",
+        'status - relay' => "$object_name->request_status",
+        'status - sensor' => "$object_name->request_sensor_status",
+        'print momentary time' => "$object_name->get_momentary_time",
+        'link relay to sensor' => "$object_name->set_relay_linked(1)",
+        'unlink relay from sensor' => "$object_name->set_relay_linked(0)",
+        'reverse sensor output' => "$object_name->set_trigger_reverse(1)",
+        'unreverse sensor output' => "$object_name->set_trigger_reverse(0)",
+        'set relay to latching' => "$object_name->set_relay_mode(\"Latching\")",
+        'set relay to momentary a' => "$object_name->set_relay_mode(\"Momentary_A\")",
+        'set relay to momentary b' => "$object_name->set_relay_mode(\"Momentary_B\")",
+        'set relay to momentary c' => "$object_name->set_relay_mode(\"Momentary_C\")",
+        'print settings to log' => "$object_name->get_operating_flag"
+    );
+    #Remove generic status command
+    delete $voice_cmds{status};
+    return \%voice_cmds;
 }
 
 =back
