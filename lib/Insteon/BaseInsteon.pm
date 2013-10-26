@@ -2797,7 +2797,7 @@ sub sync_all_links
 	::print_log("[Insteon::MultigroupDevice] Sync All Links on device "
 		.$self->get_object_name . " starting ...");
 	# Find all subgroup items check groups from 02 - FF;
-	for ($dec_group = 02; $dec_group <= 255; $dec_group++) {
+	for ($dec_group = 01; $dec_group <= 255; $dec_group++) {
 		$group = sprintf("%02X", $dec_group);
 		$subgroup_object = Insteon::get_object($device_id, $group);
 		if (ref $subgroup_object){
