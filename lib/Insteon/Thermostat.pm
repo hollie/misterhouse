@@ -569,7 +569,7 @@ sub simple_message {
 package Insteon::Thermo_i2CS;
 use strict;
 
-@Insteon::Thermo_i2CS::ISA = ('Insteon::Thermostat');
+@Insteon::Thermo_i2CS::ISA = ('Insteon::Thermostat', 'Insteon::MultigroupDevice');
 
 our %message_types = (
 	%Insteon::Thermostat::message_types,
@@ -1186,9 +1186,16 @@ sub get_voice_cmds
     my ($self) = @_;
     my $object_name = $self->get_object_name;
     my %voice_cmds = (
-        %{$self->SUPER::get_voice_cmds},
-        'sync time' => "$object_name->sync_time()"
+        %{$self->SUPER::get_voice_cmds}
     );
+    if ($self->is_root){
+        %voice_cmds = (
+            %{$self->SUPER::get_voice_cmds},
+            'sync time' => "$object_name->sync_time()",
+            'sync all device links' => "$object_name->sync_all_links()",
+            'AUDIT sync all device links' => "$object_name->sync_all_links(1)"
+        );
+    }
     return \%voice_cmds;
 }
 

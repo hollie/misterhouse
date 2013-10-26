@@ -42,6 +42,7 @@ must first be put into "awake mode."
 
 L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>, 
 L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>, 
+L<Insteon::Insteon::MultigroupDevice|Insteon::BaseInsteon/Insteon::Insteon::MultigroupDevice>
 
 =head2 METHODS
 
@@ -54,7 +55,7 @@ package Insteon::RemoteLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::RemoteLinc::ISA = ('Insteon::BaseDevice','Insteon::DeviceController');
+@Insteon::RemoteLinc::ISA = ('Insteon::BaseDevice','Insteon::DeviceController', 'Insteon::MultigroupDevice');
 
 my %message_types = (
 	%Insteon::BaseDevice::message_types,
@@ -241,6 +242,36 @@ sub _process_message {
 		$clear_message = $self->SUPER::_process_message($p_setby,%msg);
 	}
 	return $clear_message;
+}
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds}
+    );
+    if ($self->is_root){
+        %voice_cmds = (
+            %voice_cmds,
+            'sync all device links' => "$object_name->sync_all_links()",
+            'AUDIT sync all device links' => "$object_name->sync_all_links(1)"
+        );
+    }
+    return \%voice_cmds;
 }
 
 =back
