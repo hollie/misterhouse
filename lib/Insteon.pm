@@ -458,6 +458,7 @@ sub _get_next_linkscan
 			## check if aldb_delta has changed;
 			$current_scan_device->_aldb->{_aldb_unchanged_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.')';
 			$current_scan_device->_aldb->{_aldb_changed_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.', '.$current_scan_device->get_object_name.')';
+			$current_scan_device->_aldb->{_failure_callback} = '&Insteon::_get_next_linkscan_failure('.$skip_unchanged.')';
 			$current_scan_device->_aldb->query_aldb_delta("check");
 			$checking = 1;
 		}
