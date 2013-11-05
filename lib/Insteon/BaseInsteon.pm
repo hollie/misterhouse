@@ -127,6 +127,7 @@ sub new
 	$$self{is_responder} = 1;
         $$self{default_hop_count} = 0;
 	$$self{timeout_factor} = 1.0;
+	$$self{is_deaf} = 0;
 
 	&Insteon::add($self);
 	return $self;
@@ -455,6 +456,7 @@ sub set_receive
 	my ($self, $p_state, $p_setby, $p_response) = @_;
 	my $curr_milli = sprintf('%.0f', &main::get_tickcount);
 	my $window = 1000;
+	$p_state = $self->derive_link_state($p_state);
 	if (($p_state eq $self->state || $p_state eq $self->state_final)
 		&& ($curr_milli - $$self{set_milliseconds} < $window)){
 		::print_log("[Insteon::BaseObject] Ignoring duplicate set " . $p_state .
@@ -1136,6 +1138,69 @@ sub get_voice_cmds
     return \%voice_cmds;
 }
 
+sub _aldb
+{
+   my ($self) = @_;
+   my $root_obj = $self->get_root();
+   return $$root_obj{aldb};
+}
+
+=item C<is_deaf()>
+
+Returns true if the device must be awake in order to respond to messages.  Most
+devices are not deaf, currently devices that are deaf are battery operated
+devices such as the Motion Sensor, RemoteLinc and TriggerLinc.
+
+At the BaseObject level all devices are defined as not deaf.  Objects which
+inherit BaseObject should redefine is_deaf as necessary.
+
+=cut
+
+sub is_deaf
+{
+	my ($self) = @_;
+	return $$self{is_deaf};
+}
+
+=item C<is_controller()>
+
+Returns true if the device is a controller.
+
+=cut
+
+sub is_controller
+{
+	my ($self) = @_;
+	return $$self{is_controller};
+}
+
+=item C<is_responder([1|0])>
+
+Stores and returns whether a device is a responder.
+
+=cut
+
+sub is_responder
+{
+	my ($self,$is_responder) = @_;
+	$$self{is_responder} = $is_responder if defined $is_responder;
+	if ($self->is_root || $self->isa('Insteon::InterfaceController')) {
+		return $$self{is_responder};
+	}
+        else
+        {
+		my $root_obj = $self->get_root();
+		if (ref $root_obj)
+                {
+			return $$root_obj{is_responder};
+		}
+                else
+                {
+			return 0;
+		}
+	}
+}
+
 =back
 
 =head2 INI PARAMETERS
@@ -1289,7 +1354,6 @@ sub new
 	$$self{max_queue_time} = 10 unless $$self{max_queue_time}; # 10 seconds is max time allowed in command stack
 	@{$$self{command_stack}} = ();
 	$$self{_onlevel} = undef;
-	$$self{is_responder} = 1;
     $$self{retry_count_log} = 0;
     $$self{fail_count_log} = 0;
     $$self{outgoing_count_log} = 0;
@@ -1299,7 +1363,7 @@ sub new
     $$self{hops_left_count} = 0;
     $$self{max_hops_count} = 0;
     $$self{outgoing_hop_count} = 0;
-	$$self{is_deaf} = 0;
+
 
 	return $self;
 }
@@ -1332,62 +1396,6 @@ sub rate
 	my ($self,$p_rate) = @_;
 	$$self{rate} = $p_rate if defined $p_rate;
 	return $$self{rate};
-}
-
-=item C<is_deaf()>
-
-Returns true if the device must be awake in order to respond to messages.  Most
-devices are not deaf, currently devices that are deaf are battery operated
-devices such as the Motion Sensor, RemoteLinc and TriggerLinc.
-
-At the BaseObject level all devices are defined as not deaf.  Objects which
-inherit BaseObject should redefine is_deaf as necessary.
-
-=cut
-
-sub is_deaf
-{
-	my ($self) = @_;
-	return $$self{is_deaf};
-}
-
-=item C<is_controller()>
-
-Returns true if the device is a controller.
-
-=cut
-
-sub is_controller
-{
-	my ($self) = @_;
-	return $$self{is_controller};
-}
-
-=item C<is_responder([1|0])>
-
-Stores and returns whether a device is a responder.
-
-=cut
-
-sub is_responder
-{
-	my ($self,$is_responder) = @_;
-	$$self{is_responder} = $is_responder if defined $is_responder;
-	if ($self->is_root) {
-		return $$self{is_responder};
-	}
-        else
-        {
-		my $root_obj = $self->get_root();
-		if (ref $root_obj)
-                {
-			return $$root_obj{is_responder};
-		}
-                else
-                {
-			return 0;
-		}
-	}
 }
 
 =item C<link_to_interface([group,data3])>
@@ -3147,8 +3155,8 @@ sub set_linked_devices
 					# remember the current state to support resume
 					$$self{members}{$member_ref}{resume_state} = $light->state;
 					$member->manual($light, $ramp_rate);
-					if ($light->can('derive_link_state') && lc $link_state ne 'on'){
-						$local_state = $light->derive_link_state($link_state);
+					if (lc $link_state ne 'on'){
+						$local_state = $light->$link_state;
 					}
 					$light->set_receive($local_state,$self);
 				}
@@ -3165,7 +3173,7 @@ sub set_linked_devices
 				# if they are Insteon_Device objects, then simply set_receive their state to
 				#   the member on level
 				if (lc $link_state ne 'on'){
- 					$local_state = $member->derive_link_state($link_state);
+ 					$local_state = $link_state;
 				}
 				$member->set_receive($local_state,$self);
 			}
@@ -3483,8 +3491,15 @@ sub is_root
    return 0;
 }
 
-sub is_responder {
-	return 1;
+=item C<get_root()>
+
+Returns the root object of a device, in this case the interface.
+
+=cut
+
+sub get_root {
+	my ($self) = @_;
+	return $self->interface;
 }
 
 # For IFaceControllers, need to call set_linked_devices

@@ -938,6 +938,40 @@ sub get_voice_cmds
     return \%voice_cmds;
 }
 
+=item C<is_deaf()>
+
+Returns false.
+
+=cut
+
+sub is_deaf
+{
+	return 0;
+}
+
+=item C<is_controller()>
+
+Returns true.
+
+=cut
+
+sub is_controller
+{
+	return 1;
+}
+
+=item C<is_responder()>
+
+Returns true.
+
+=cut
+
+sub is_responder
+{
+	return 1;
+}
+
+
 =back
 
 =head2 INI PARAMETERS

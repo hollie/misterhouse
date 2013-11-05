@@ -986,6 +986,18 @@ sub get_voice_cmds
     return \%voice_cmds;
 }
 
+# The subgroup items are not dimmable, so call BaseInsteon for them
+
+sub derive_link_state
+{
+	my ($self, $p_state) = @_;
+	if ($self->group eq '01'){
+		return $self->SUPER::derive_link_state($p_state);
+	} else {
+		return $self->Insteon::BaseObject::derive_link_state($p_state);
+	}
+}
+
 =back
 
 =head2 AUTHOR
