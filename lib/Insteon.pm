@@ -400,9 +400,8 @@ sub scan_all_linktables
         	{
         		my $candidate_object = $_;
         		if ($candidate_object->is_root and
-                		!($candidate_object->isa('Insteon::RemoteLinc')
-                		or $candidate_object->isa('Insteon::InterfaceController')
-                       		or $candidate_object->isa('Insteon::MotionSensor')))
+                		!($candidate_object->is_deaf
+                		or $candidate_object->isa('Insteon::InterfaceController')))
                 	{
 		       		push @_scan_devices, $candidate_object;
                 		&main::print_log("[Scan all linktables] INFO1: "
@@ -511,7 +510,7 @@ sub sync_all_links
 	# iterate over all registered objects and compare whether the link tables match defined scene linkages in known Insteon_Links
 	for my $obj (&Insteon::find_members('Insteon::BaseController'))
 	{
-        	if ($obj->isa('Insteon::RemoteLinc') or $obj->isa('Insteon::MotionSensor'))
+        	if (!$obj->isa('Insteon::InterfaceController') && $obj->is_deaf)
                 {
                 	&main::print_log("[Sync all links] Ignoring links from 'deaf' device: " . $obj->get_object_name);
                 }
@@ -1088,6 +1087,32 @@ sub check_all_aldb_versions
 	main::print_log("[Insteon] DEBUG4 Checking aldb version of all devices completed") if ($main::Debug{insteon} >= 4);
 }
 
+sub check_thermo_versions
+{
+	main::print_log("[Insteon] DEBUG4 Initializing thermostat versions") if ($main::Debug{insteon} >= 4);
+
+	my @thermo_devices = ();
+	push @thermo_devices, Insteon::find_members("Insteon::Thermostat");
+	foreach my $thermo_device (@thermo_devices)
+	{
+		if ($thermo_device->isa('Insteon::Thermostat') && 
+			$thermo_device->get_root()->engine_version eq "I2CS"){
+			main::print_log("[Insteon] DEBUG4 Setting thermostat "
+				. $thermo_device->get_object_name() . " to i2CS") 
+			if ($main::Debug{insteon} >= 4);
+			bless $thermo_device, 'Insteon::Thermo_i2CS';
+			$thermo_device->init();
+		}
+		else {
+			main::print_log("[Insteon] DEBUG4 Setting thermostat "
+				. $thermo_device->get_object_name() . " to i1") 
+			if ($main::Debug{insteon} >= 4);
+			bless $thermo_device, 'Insteon::Thermo_i1';
+		}
+	}
+	#main::print_log("[Insteon] DEBUG4 Checking thermostat version of all devices completed") if ($main::Debug{insteon} >= 4);	
+}
+
 =back
 
 =head2 INI PARAMETERS
@@ -1167,6 +1192,7 @@ sub _active_interface
       &main::Reload_post_add_hook(\&Insteon::BaseInterface::poll_all, 1);
       $init_complete = 0;
       &main::MainLoop_pre_add_hook(\&Insteon::init, 1);
+      &main::Reload_post_add_hook(\&Insteon::check_thermo_versions, 1);
       &main::Reload_post_add_hook(\&Insteon::generate_voice_commands, 1);
    }
    $$self{active_interface} = $interface if $interface;

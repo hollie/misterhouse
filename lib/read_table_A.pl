@@ -140,6 +140,12 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon::MotionSensor(\'$address\', $other)";
     }
+    elsif($type eq "INSTEON_TRIGGERLINC") {
+        require Insteon::Security;
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon::TriggerLinc(\'$address\', $other)";
+    }
     elsif($type eq "INSTEON_IOLINC") {
         require Insteon::IOLinc;
         ($address, $name, $grouplist, @other) = @item_info;
@@ -164,10 +170,10 @@ sub read_table_A {
         }
     }
     elsif($type eq 'IPLT' or $type eq 'INSTEON_THERMOSTAT') {
-        require 'Insteon_Thermostat.pm';
+        require Insteon::Thermostat;
         ($address, $name, $grouplist, $object, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "Insteon_Thermostat(\$$object, \'$address\', $other)";
+        $object = "Insteon::Thermostat(\'$address\', $other)";
     }
     elsif($type eq "INSTEON_IRRIGATION") {
         require Insteon::Irrigation;
@@ -1079,10 +1085,10 @@ sub read_table_finish_A {
 
         #Loop through the controller hash
         if (exists $scene_build_controllers{$scene}){
-	        foreach my $scene_controller (keys $scene_build_controllers{$scene}) {
+	        foreach my $scene_controller (keys %{$scene_build_controllers{$scene}}) {
 	            if ($objects{$scene_controller}) {
 	            	#Make a link to each responder in the responder hash
-	                while (my ($scene_responder, $responder_data) = each($scene_build_responders{$scene})) {
+	                while (my ($scene_responder, $responder_data) = each(%{$scene_build_responders{$scene}})) {
 	                    my ($on_level, $ramp_rate) = split(',', $responder_data);
 	
 	                    if (($objects{$scene_responder}) and ($scene_responder ne $scene_controller)) {
