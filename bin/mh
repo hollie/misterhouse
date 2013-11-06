@@ -74,7 +74,7 @@ BEGIN {
     if (lc $Version eq 'unstable'){
 	my $build = lc `git describe --long`;
 	$build =~ /(\S+)-(\d+)-g([0-9a-f]+)/;
-	$Version = "$1 Build $2 ($3)" if ($1 && $2 && $3);
+	$Version = "$1 Build $2 ($3)" if ($1 && defined($2) && $3);
     }
 
 
