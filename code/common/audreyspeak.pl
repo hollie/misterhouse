@@ -13,6 +13,13 @@ audreyspeak.pl
 
  1.0 Original version by Tim Doyle <tim@greenscourt.com> - 9/10/2002
 
+*********************************************************************
+*This script is now deprecated, as support for Audrey has been added
+*to the PAobj object. Enable pa_control.pl and follow examples to
+*add audrey zones to your pa.mht file. Example:
+*PA,	192.168.0.1,family,	all|mainfloor,		, audrey
+*********************************************************************
+
 This script allows MisterHouse to capture and send speech and played
 wav files to an Audrey unit. The original version was based upon Keith
 Webb's work outlined in his email of 12/23/01.
