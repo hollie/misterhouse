@@ -917,11 +917,7 @@ sub debuglevel
 	my ($object, $debug_level) = @_;
 	$debug_level = 1 unless $debug_level;
 	my $objname;
-	#try {
 	 $objname = lc $object->get_object_name if defined $object;
-	#} catch {
-	#  &::print_log("$object doesn't have a get_object_name function.") if $main::Debug{insteon} >= 2;
-	#}
 	&::print_log("Insteon::debuglevel: Processing debug for object $objname ... " . $main::Debug{$objname}) if $main::Debug{insteon} >= 5;
 	return 1 if $main::Debug{insteon} >= $debug_level;
 	return 1 if defined $objname && $main::Debug{$objname} >= $debug_level;
@@ -1132,7 +1128,6 @@ sub check_thermo_versions
 			bless $thermo_device, 'Insteon::Thermo_i1';
 		}
 	}
-	#main::print_log("[Insteon] DEBUG4 Checking thermostat version of all devices completed") if ($self->debuglevel(4));	
 }
 
 =back
