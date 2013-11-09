@@ -390,7 +390,7 @@ sub _send_cmd {
         my $incurred_delay_time = $message->seconds_delayed;
         &main::print_log("[Insteon_PLM] DEBUG2: Sending " . $message->to_string . " incurred delay of "
         	. sprintf('%.2f',$incurred_delay_time) . " seconds; starting hop-count: "
-                . ((ref $message->setby && $message->setby->isa('Insteon::BaseObject')) ? $message->setby->default_hop_count : "?")) if $self->debuglevel(2);
+                . ((ref $message->setby && $message->setby->isa('Insteon::BaseObject')) ? $message->setby->default_hop_count : "?")) if $message->setby->debuglevel(2);
 
 	if ($message->isa('Insteon::X10Message')) { # is x10; so, be slow
         	$command = $prefix{x10_send} . $command;
@@ -412,8 +412,8 @@ sub _send_cmd {
 	} 
 	else
 	{
-		&::print_log( "[Insteon_PLM] DEBUG3: Sending  PLM raw data: ".lc($command)) if $self->debuglevel(3);
-		&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($command)) if $self->debuglevel(4);
+		&::print_log( "[Insteon_PLM] DEBUG3: Sending  PLM raw data: ".lc($command)) if $message->setby->debuglevel(3);
+		&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($command)) if $message->setby->debuglevel(4);
 		my $data = pack("H*",$command);
 		$main::Serial_Ports{$instance}{object}->write($data) if $main::Serial_Ports{$instance};
 	
@@ -492,7 +492,7 @@ sub _parse_data {
                         $entered_ack_loop = 1;
 			if ($parsed_data =~ /^($ackcmd)|($nackcmd)|($prefix{plm_info}\w{12}06)|($prefix{plm_info}\w{12}15)|($prefix{all_link_first_rec}15)|($prefix{all_link_next_rec}15)|($badcmd)$/)
                         {
-				&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $self->debuglevel(4);
+				&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $self->active_message->setby->debuglevel(4);
 				my $ret_code = substr($parsed_data,length($parsed_data)-2,2);
 				my $record_type = substr($parsed_data,0,4);
                                 my $message_data = substr($parsed_data,4,length($parsed_data)-4);
@@ -515,7 +515,7 @@ sub _parse_data {
 							package main;
 							eval ($self->active_message->success_callback);
 							&::print_log("[Insteon_PLM] WARN1: Error encountered during ack callback: " . $@)
-								if $@ and $self->debuglevel(1);
+								if $@ and $self->active_message->setby->debuglevel(1);
 							package Insteon_PLM;
                                         	}
                                                 # clear the active message because we're done
@@ -524,7 +524,7 @@ sub _parse_data {
                                         else
                                         {
                                         	&::print_log("[Insteon_PLM] DEBUG3: Received PLM acknowledge: "
-                                                	. $pending_message->to_string) if $self->debuglevel(3);
+                                                	. $pending_message->to_string) if $self->active_message->setby->debuglevel(3);
                                         }
 
                                         # X10 messages don't ACK back on the powerline, so clear them if the PLM acknowledges
@@ -552,7 +552,7 @@ sub _parse_data {
 							package main;
 							eval ($callback);
 							&::print_log("[Insteon_PLM] WARN1: Error encountered during ack callback: " . $@)
-								if $@ and $self->debuglevel(1);
+								if $@ and $self->active_message->setby->debuglevel(1);
 							package Insteon_PLM;	
                                                 }
 					}
@@ -665,7 +665,6 @@ sub _parse_data {
                         	# is $parsed_data an accidental anomoly? (there are other cases; but, this is a good start)
                                 if ($parsed_data =~ /^($prefix{insteon_send}\w{12}06)|($prefix{insteon_send}\w{12}15)$/)
                                 {
-					&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $self->debuglevel(4);
                                 	# first, parse the content to confirm that it could be a legitimate ACK
                                         my $unknown_deviceid = substr($parsed_data,4,6);
                                         my $unknown_msg_flags = substr($parsed_data,10,2);
@@ -674,6 +673,7 @@ sub _parse_data {
                                         my $unknown_obj = &Insteon::get_object($unknown_deviceid, '01');
                                         if ($unknown_obj)
                                         {
+                                        	&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $unknown_obj->debuglevel(4);
                                         	&::print_log("[Insteon_PLM] WARN: encountered '$parsed_data' "
                                                 	. "from " . $unknown_obj->get_object_name()
                                                         . " with command: $unknown_command, but expected '$ackcmd'.");
@@ -681,6 +681,7 @@ sub _parse_data {
                                         }
                                         else
                                         {
+                                        	&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $self->debuglevel(4);
                                         	&::print_log("[Insteon_PLM] ERROR: encountered '$parsed_data' "
                                                 	. "that does not match any known device ID (expected '$ackcmd')."
                                                         . " Discarding received data.");
@@ -710,7 +711,7 @@ sub _parse_data {
 	{
 		#ignore blanks.. the split does odd things
 		next if $parsed_data eq '';
-		&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $self->debuglevel(4);
+
 		if ($previous_parsed_data eq $parsed_data){
 			# guard against repeats
 			::print_log("[Insteon_PLM] DEBUG3: Dropped duplicate message: $parsed_data") if $self->debuglevel(3); 
@@ -727,14 +728,29 @@ sub _parse_data {
 
 		if ($parsed_prefix eq $prefix{insteon_received} and ($message_length == 22))
                 { #Insteon Standard Received
+			my $find_obj = Insteon::get_object(substr($parsed_data,4,6));
+			if (ref $find_obj) {
+				&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $find_obj->debuglevel(4);
+			} 
+			else {
+				&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $self->debuglevel(4);
+			}
                         $self->on_standard_insteon_received($message_data);
 		}
                 elsif ($parsed_prefix eq $prefix{insteon_ext_received} and ($message_length == 50))
                 { #Insteon Extended Received
+			my $find_obj = Insteon::get_object(substr($parsed_data,4,6));
+			if (ref $find_obj) {
+				&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $find_obj->debuglevel(4);
+			} 
+			else {
+				&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $self->debuglevel(4);
+			}
                 	$self->on_extended_insteon_received($message_data);
 		}
                 elsif($parsed_prefix eq $prefix{x10_received} and ($message_length == 8))
                 { #X10 Received
+			&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $self->debuglevel(4);
                        	my $x10_message = new Insteon::X10Message($parsed_data);
                         my $x10_data = $x10_message->get_formatted_data();
 			&::print_log("[Insteon_PLM] DEBUG3: received x10 data: $x10_data") if $self->debuglevel(3);
@@ -742,6 +758,7 @@ sub _parse_data {
 		}
                 elsif ($parsed_prefix eq $prefix{all_link_complete} and ($message_length == 20))
                 { #ALL-Linking Completed
+			&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $self->debuglevel(4);
 			my $link_address = substr($message_data,4,6);
 			&::print_log("[Insteon_PLM] DEBUG2: ALL-Linking Completed with $link_address ($message_data)") if $self->debuglevel(2);
 			if ($self->active_message->success_callback){
@@ -763,21 +780,23 @@ sub _parse_data {
                         	# bytes 0-1 - group; 2-7 device address
                         	my $failure_group = substr($message_data,0,2);
                         	my $failure_device = substr($message_data,2,6);
-
-				&::print_log("[Insteon_PLM] DEBUG2: Received all-link cleanup failure from device: "
-                        		. "$failure_device and group: $failure_group") if $self->debuglevel(2);
-                        
                         	my $failed_object = &Insteon::get_object($failure_device,'01');
                         	if (ref $failed_object){
+					&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $failed_object->debuglevel(4);
+					&::print_log("[Insteon_PLM] DEBUG2: Received all-link cleanup failure from " . $failed_object->get_object_name
+                        		. " for all link group: $failure_group. Trying a direct cleanup.") if $failed_object->debuglevel(2);
 	                        	my $message = new Insteon::InsteonMessage('all_link_direct_cleanup', $failed_object, 
 	                        		$self->active_message->command, $failure_group);
 	                        	push(@{$$failed_object{command_stack}}, $message);
 	                        	$failed_object->_process_command_stack();
                         	} else {
-                        		&::print_log("[Insteon_PLM] WARN: Device ID: $failure_device does not exist. You may "
+					&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $self->debuglevel(4);
+					&::print_log("[Insteon_PLM] Received all-link cleanup failure from an unkown device id: "
+                        		. "$failure_device and for all link group: $failure_group. You may "
                         			. "want to run delete orphans to remove this link from your PLM");
                         	}
 			} else {
+				&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $self->debuglevel(4);
 				&::print_log("[Insteon_PLM] DEBUG2: Received all-link cleanup failure."
                         		. " But there is no pending message.") if $self->debuglevel(2);
 			}
@@ -785,6 +804,7 @@ sub _parse_data {
 		}
                 elsif ($parsed_prefix eq $prefix{all_link_record} and ($message_length == 20))
                 { #ALL-Link Record Response
+			&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $self->debuglevel(4);
 			&::print_log("[Insteon_PLM] DEBUG2: ALL-Link Record Response:$message_data") if $self->debuglevel(2);
 			$self->_aldb->parse_alllink($message_data);
         		# before doing the next, make sure that the pending command
@@ -795,16 +815,18 @@ sub _parse_data {
 		}
 		elsif ($parsed_prefix eq $prefix{plm_user_reset} and ($message_length == 4))
 		{
+			&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $self->debuglevel(4);
 			main::print_log("[Insteon_PLM] Detected PLM user reset to factory defaults");
 		}
                 elsif ($parsed_prefix eq $prefix{all_link_clean_status} and ($message_length == 6))
                 { #ALL-Link Cleanup Status Report
+			&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $self->debuglevel(4);
 			my $cleanup_ack = substr($message_data,0,2);
 			if ($cleanup_ack eq '15')
                         {
 				&::print_log("[Insteon_PLM] WARN1: All-link cleanup failure for scene: "
                                 	. $self->active_message->setby->get_object_name . ". Retrying in 1 second.")
-					if $self->debuglevel(1);
+					if $self->active_message->setby->debuglevel(1);
                                 $self->retry_active_message();
                                 # except that we should cause a bit of a delay to let things settle out
 				$self->_set_timeout('xmit', 1000);
@@ -814,7 +836,7 @@ sub _parse_data {
                         {
                         	my $message_to_string = ($self->active_message) ? $self->active_message->to_string() : "";
 				&::print_log("[Insteon_PLM] Received all-link cleanup success: $message_to_string")
-                                	if $self->debuglevel();
+                                	if $self->active_message->setby->debuglevel();
 				if (ref $self->active_message && ref $self->active_message->setby){
 					my $object = $self->active_message->setby;
 					$object->is_acknowledged(1);
