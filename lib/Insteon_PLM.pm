@@ -728,7 +728,7 @@ sub _parse_data {
 
 		if ($parsed_prefix eq $prefix{insteon_received} and ($message_length == 22))
                 { #Insteon Standard Received
-			my $find_obj = Insteon::get_object(substr($parsed_data,4,6));
+			my $find_obj = Insteon::get_object(substr($parsed_data,4,6), '01');
 			if (ref $find_obj) {
 				&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $find_obj->debuglevel(4);
 			} 
@@ -739,7 +739,7 @@ sub _parse_data {
 		}
                 elsif ($parsed_prefix eq $prefix{insteon_ext_received} and ($message_length == 50))
                 { #Insteon Extended Received
-			my $find_obj = Insteon::get_object(substr($parsed_data,4,6));
+			my $find_obj = Insteon::get_object(substr($parsed_data,4,6), '01');
 			if (ref $find_obj) {
 				&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $find_obj->debuglevel(4);
 			} 
