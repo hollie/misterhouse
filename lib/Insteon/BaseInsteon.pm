@@ -214,8 +214,14 @@ Returns 1 if insteon or this device is at least debug level 'level', otherwise r
 
 sub debuglevel
 {
-	my ($self, $debug_level) = @_;
-	return Insteon::debuglevel($self, $debug_level);
+	my ($object, $debug_level) = @_;
+	$debug_level = 1 unless $debug_level;
+	my $objname;
+	$objname = lc $object->get_object_name if defined $object;
+	::print_log("[Insteon] debuglevel: Processing debug for object $objname ... " . $main::Debug{$objname}) if $main::Debug{insteon} >= 5;
+	return 1 if $main::Debug{insteon} >= $debug_level;
+	return 1 if defined $objname && $main::Debug{$objname} >= $debug_level;
+	return 0;
 }
 
 =item C<timeout_factor($float)>

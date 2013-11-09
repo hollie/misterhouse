@@ -129,7 +129,7 @@ Returns 1 if Insteon or this device is at least debug level 'level', otherwise r
 sub debuglevel
 {
 	my ($self, $debug_level) = @_;
-	return Insteon::debuglevel($self, $debug_level);
+	return Insteon::BaseObject::debuglevel($self, $debug_level);
  }
 
 =item C<_is_duplicate(cmd)>
@@ -576,7 +576,7 @@ sub on_standard_insteon_received
 		   					if($object->_process_message($self, %msg)) {
 								if ($self->active_message->success_callback){
 									main::print_log("[Insteon::BaseInterface] DEBUG4: Now calling message success callback: "
-										. $self->active_message->success_callback) if $self->debuglevel(4);
+										. $self->active_message->success_callback) if $object->debuglevel(4);
 									package main;
 										eval $self->active_message->success_callback;
 										::print_log("[Insteon::BaseInterface] problem w/ success callback: $@") if $@;
@@ -606,11 +606,11 @@ sub on_standard_insteon_received
 							if (($msg{extra} == $self->active_message->setby->group)){
                                                                 &main::print_log("[Insteon::BaseInterface] DEBUG3: Cleanup message received for scene "
                                                                 	. $object->get_object_name . " from " . $setby_object->get_object_name)
-                                                                	if $self->debuglevel(3);
+                                                                	if $object->debuglevel(3);
 							} elsif ($self->active_message->command_type eq 'all_link_direct_cleanup' &&
 								lc($self->active_message->setby->device_id) eq $msg{source}) 
 							{
-								&::print_log("[Insteon::BaseInterface] DEBUG2: ALL-Linking Direct Completed with ". $self->active_message->setby->get_object_name) if $self->debuglevel(2);
+								&::print_log("[Insteon::BaseInterface] DEBUG2: ALL-Linking Direct Completed with ". $self->active_message->setby->get_object_name) if $object->debuglevel(2);
 								$self->clear_active_message();
 							}
 							else {
@@ -619,7 +619,7 @@ sub on_standard_insteon_received
 								. $object->get_object_name . ", but group in recent message " 
 								. $msg{extra}. " did not match group in "
 								. "prior sent message group " . $self->active_message->setby->group) 
-									if $self->debuglevel(3);
+									if $object->debuglevel(3);
                                 			}
                                 			# If ACK or NACK received then PLM is still working on the ALL Link Command
                                 			# Increase the command timeout to wait for next one
@@ -655,9 +655,13 @@ sub on_standard_insteon_received
                                                 #   in the Insteon_PLM handler for cleanup messages.
                                                 #   however, if the virtual handler was not invoked due to receipt of the broadcast message
                                                 #   then, the above cleanup handler would be run
+						my $plm_group_obj = Insteon::get_object('000000', $msg{extra});
+						my $group_name = $msg{extra};
+						$group_name = $plm_group_obj->get_object_name if (ref $plm_group_obj);
+						$plm_group_obj = $self if (!ref $plm_group_obj);
                                                 &main::print_log("[Insteon::BaseInterface] DEBUG3: received cleanup message responding to "
-                                                	. "PLM controller group: $msg{extra}. Ignoring as this has already been processed")
-                                                        if $self->debuglevel(3);
+                                                	. "PLM controller group: $group_name. Ignoring as this has already been processed")
+                                                        if $plm_group_obj->debuglevel(3);
                                         }
                                         else
                                         {
@@ -728,11 +732,11 @@ sub on_extended_insteon_received
                         		if( (!($msg{is_ack} or $msg{is_nack}) and $self->debuglevel()) 
                         		or $self->debuglevel(3));
                    	}
-		   	&::print_log("[Insteon::BaseInterface] Processing message for " . $object->get_object_name) if $self->debuglevel(3);
+		   	&::print_log("[Insteon::BaseInterface] Processing message for " . $object->get_object_name) if $object->debuglevel(3);
 			if($object->_process_message($self, %msg)) {
 				if (ref $self->active_message && $self->active_message->success_callback){
 					main::print_log("[Insteon::BaseInterface] DEBUG4: Now calling message success callback: "
-						. $self->active_message->success_callback) if $self->debuglevel(4);
+						. $self->active_message->success_callback) if $object->debuglevel(4);
 					package main;
 						eval $self->active_message->success_callback;
 						::print_log("[Insteon::BaseInterface] problem w/ success callback: $@") if $@;
@@ -891,7 +895,7 @@ sub _is_duplicate_received {
             $object->default_hop_count($msg{maxhops}-$msg{hopsleft}) if $object->can('default_hop_count');
 		};
 		::print_log("[Insteon::BaseInterface] WARN! Dropped duplicate incoming message "
-			. $message_data . ", from $source.") if $self->debuglevel();
+			. $message_data . ", from ". $object->get_object_name) if $object->debuglevel();
 	} else {
 		#Message was not in hash, so add it
 		$$self{received_commands}{$key} = $curr_milli + $delay;
