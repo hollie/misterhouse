@@ -233,7 +233,7 @@ sub send
                 {
                 	&::print_log("[Insteon::BaseMessage] WARN: now resending "
                         	. $self->to_string() . " after " . $self->send_attempts
-                        	. " attempts.") if $self->setby->debuglevel();
+                        	. " attempts.") if $self->setby->debuglevel(1, 'insteon');
                         # revise default hop count to reflect retries
                         if (ref $self->setby && $self->setby->isa('Insteon::BaseObject') 
                         	&& !defined($$self{no_hop_increase}))
@@ -248,7 +248,7 @@ sub send
                         	&& $self->setby->isa('Insteon::BaseObject')){
                         	&main::print_log("[Insteon::BaseMessage] Hop count not increased for "
                         		. $self->setby->get_object_name . " because no_hop_increase flag was set.")
-                        		if $self->setby->debuglevel();
+                        		if $self->setby->debuglevel(1, 'insteon');
                         	$$self{no_hop_increase} = undef;
                         }
                 }
@@ -1086,7 +1086,7 @@ sub generate_commands
 	}
 
 	if ($uc eq undef) {
-	    &main::print_log("[Insteon::Message] Message is for entire HC") if Insteon::BaseObject::debuglevel($p_setby,);
+	    &main::print_log("[Insteon::Message] Message is for entire HC") if (ref $p_setby && $p_setby->debuglevel(1,'insteon'));
 	}
 	else {
 
@@ -1095,7 +1095,7 @@ sub generate_commands
 	    $msg.= substr(unpack("H*",pack("C",$x10_unit_codes{substr($id,2,1)})),1,1);
 	    $msg.= "00";
 	    &main::print_log("[Insteon_PLM] x10 sending code: " . uc($hc . $uc) . " as insteon msg: "
-			     . $msg) if Insteon::BaseObject::debuglevel($p_setby,);
+			     . $msg) if (ref $p_setby && $p_setby->debuglevel(1,'insteon'));
 
             push @data, $msg;
 	}
@@ -1123,7 +1123,7 @@ sub generate_commands
 	    $msg.= "80";
 
      	    &main::print_log("[Insteon_PLM] x10 sending code: " . uc($hc . $x10_arg) . " as insteon msg: "
-			     . $msg) if Insteon::BaseObject::debuglevel($p_setby,);
+			     . $msg) if (ref $p_setby && $p_setby->debuglevel(1,'insteon'));
 
             push @data, $msg;
 
