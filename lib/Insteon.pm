@@ -906,24 +906,6 @@ sub init {
 
 }
 
-=item C<debuglevel([level])>
-
-Returns 1 if Insteon or this device is at least debug level 'level', otherwise returns 0.
-
-=cut
-
-sub debuglevel
-{
-	my ($object, $debug_level) = @_;
-	$debug_level = 1 unless $debug_level;
-	my $objname;
-	 $objname = lc $object->get_object_name if defined $object;
-	&::print_log("Insteon::debuglevel: Processing debug for object $objname ... " . $main::Debug{$objname}) if $main::Debug{insteon} >= 5;
-	return 1 if $main::Debug{insteon} >= $debug_level;
-	return 1 if defined $objname && $main::Debug{$objname} >= $debug_level;
-  return 0;
-}
-
 =item C<generate_voice_commands()>
 
 Generates and sets the voice commands for all Insteon devices.
@@ -1079,7 +1061,7 @@ Walks through every Insteon device and checks the aldb object version for I1 vs.
 
 sub check_all_aldb_versions
 {
-	main::print_log("[Insteon] DEBUG4 Checking aldb version of all devices") if Insteon::debuglevel(undef,4);
+	main::print_log("[Insteon] DEBUG4 Checking aldb version of all devices") if ($main::Debug{insteon} >= 4);
 
 	my @ALDB_devices = ();
 	push @ALDB_devices, Insteon::find_members("Insteon::BaseDevice");
@@ -1102,12 +1084,12 @@ sub check_all_aldb_versions
 				if ($ALDB_device->debuglevel(4));
 		}
 	}
-	main::print_log("[Insteon] DEBUG4 Checking aldb version of all devices completed") if Insteon::debuglevel(undef,4);
+	main::print_log("[Insteon] DEBUG4 Checking aldb version of all devices completed") if ($main::Debug{insteon} >= 4);
 }
 
 sub check_thermo_versions
 {
-	main::print_log("[Insteon] DEBUG4 Initializing thermostat versions") if Insteon::debuglevel(undef,4);
+	main::print_log("[Insteon] DEBUG4 Initializing thermostat versions") if ($main::Debug{insteon} >= 4);
 
 	my @thermo_devices = ();
 	push @thermo_devices, Insteon::find_members("Insteon::Thermostat");
@@ -1203,7 +1185,7 @@ sub _active_interface
    my ($self, $interface) = @_;
    # setup hooks the first time that an interface is made active
    if (!($$self{active_interface}) and $interface) {
-      &main::print_log("[Insteon] Setting up initialization hooks") if $self->debuglevel();
+      &main::print_log("[Insteon] Setting up initialization hooks") if $main::Debug{insteon};
       &main::MainLoop_pre_add_hook(\&Insteon::BaseInterface::check_for_data, 1);
       &main::Reload_post_add_hook(\&Insteon::check_all_aldb_versions, 1);
       &main::Reload_post_add_hook(\&Insteon::BaseInterface::poll_all, 1);
@@ -1214,18 +1196,6 @@ sub _active_interface
    }
    $$self{active_interface} = $interface if $interface;
    return $$self{active_interface};
-}
-
-=item C<debuglevel([level])>
-
-Returns 1 if Insteon or this device is at least debug level 'level', otherwise returns 0.
-
-=cut
-
-sub debuglevel
-{
-	my ($self, $debug_level) = @_;
-	return Insteon::debuglevel(undef, $debug_level);
 }
 
 =item C<add()>
