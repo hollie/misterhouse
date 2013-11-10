@@ -158,11 +158,11 @@ sub set
 		if ($p_state eq $$self{child_state} &&
 			($curr_milli - $$self{child_set_milliseconds} < $window)) {
 			::print_log("[Insteon::IOLinc] Received duplicate ". $self->get_object_name
-				. " sensor " . $p_state . " message, ignoring.") if $self->debuglevel();
+				. " sensor " . $p_state . " message, ignoring.") if $self->debuglevel(1, 'insteon');
 		}
 		else {
 			::print_log("[Insteon::IOLinc] Received ". $self->get_object_name
-				. " sensor " . $p_state . " message.") if $self->debuglevel();
+				. " sensor " . $p_state . " message.") if $self->debuglevel(1, 'insteon');
 			$$self{child_state} = $p_state;
 			$$self{child_set_milliseconds} = $curr_milli;
 			if (ref $$self{child_sensor}){
@@ -213,7 +213,7 @@ sub _is_info_request
 		my $child_state = &Insteon::BaseObject::derive_link_state(hex($msg{extra}));
 		&::print_log("[Insteon::IOLinc] received status for " .
 			$self->get_object_name . "sensor of: $child_state "
-			. "hops left: $msg{hopsleft}") if $self->debuglevel();
+			. "hops left: $msg{hopsleft}") if $self->debuglevel(1, 'insteon');
 		$ack_setby = $$self{child_sensor} if ref $$self{child_sensor};
 		if (ref $$self{child_sensor}){
 			$$self{child_sensor}->set_receive($child_state, $ack_setby);
@@ -265,9 +265,9 @@ sub _process_message {
 	elsif ($msg{command} eq "extended_set_get" && $msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
 		#If this was a get request don't clear until data packet received
-		main::print_log("[Insteon::IOLinc] Extended Set/Get ACK Received for " . $self->get_object_name) if $self->debuglevel();
+		main::print_log("[Insteon::IOLinc] Extended Set/Get ACK Received for " . $self->get_object_name) if $self->debuglevel(1, 'insteon');
 		if ($$self{_ext_set_get_action} eq 'set'){
-			main::print_log("[Insteon::IOLinc] Clearing active message") if $self->debuglevel();
+			main::print_log("[Insteon::IOLinc] Clearing active message") if $self->debuglevel(1, 'insteon');
 			$clear_message = 1;
 			$$self{_ext_set_get_action} = undef;
 			$self->_process_command_stack(%msg);	
@@ -284,12 +284,12 @@ sub _process_message {
 			$self->_process_command_stack(%msg);
 		} else {
 			main::print_log("[Insteon::IOLinc] WARN: Corrupt Extended "
-				."Set/Get Data Received for ". $self->get_object_name) if $self->debuglevel();
+				."Set/Get Data Received for ". $self->get_object_name) if $self->debuglevel(1, 'insteon');
 		}
 	}
 	elsif ($msg{command} eq "set_operating_flags" && $msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
-		main::print_log("[Insteon::IOLinc] Acknowledged flag set for " . $self->get_object_name) if $self->debuglevel();
+		main::print_log("[Insteon::IOLinc] Acknowledged flag set for " . $self->get_object_name) if $self->debuglevel(1, 'insteon');
 		$clear_message = 1;
 		$self->_process_command_stack(%msg);
 	}
@@ -314,12 +314,12 @@ sub set_momentary_time
 	my $root = $self->get_root();
 	if ($momentary_time == 0){
 		::print_log("[Insteon::IOLinc] Setting " . $self->get_object_name . 
-			" to Latching Relay Mode." ) if $self->debuglevel();
+			" to Latching Relay Mode." ) if $self->debuglevel(1, 'insteon');
 	} 
 	elsif ($momentary_time <= 255) {
 		$momentary_time = 2 if $momentary_time == 1; #Can't set to 1
 		::print_log("[Insteon::IOLinc] Setting Momentary Time to $momentary_time " .
-			"tenths of a second for " . $self->get_object_name) if $self->debuglevel();
+			"tenths of a second for " . $self->get_object_name) if $self->debuglevel(1, 'insteon');
 	}
 	else {
 		::print_log("[Insteon::IOLinc] WARN Invalid Momentary Time of $momentary_time " .

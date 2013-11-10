@@ -1140,7 +1140,7 @@ sub _is_info_request
 		my $child_state = $child_obj->derive_link_state(hex($msg{extra}));
 		&::print_log("[Insteon::FanLinc] received status for " .
 			$child_obj->{object_name} . " of: $child_state "
-			. "hops left: $msg{hopsleft}") if $self->debuglevel();
+			. "hops left: $msg{hopsleft}") if $self->debuglevel(1, 'insteon');
 		$ack_setby = $$child_obj{m_status_request_pending} if ref $$child_obj{m_status_request_pending};
 		$child_obj->SUPER::set($child_state, $ack_setby);
 		delete($$parent{child_status_request_pending});
@@ -1171,7 +1171,7 @@ sub is_acknowledged
 		$$child_obj{pending_setby} = undef;
 		$$child_obj{pending_response} = undef;
 		$$parent{child_pending_state} = undef;
-		&::print_log("[Insteon::FanLinc] received command/state acknowledge from " . $child_obj->{object_name}) if $self->debuglevel();
+		&::print_log("[Insteon::FanLinc] received command/state acknowledge from " . $child_obj->{object_name}) if $self->debuglevel(1, 'insteon');
 		return $$self{is_acknowledged};
 	} else {
 		return $self->SUPER::is_acknowledged($p_ack);

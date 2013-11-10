@@ -209,9 +209,9 @@ sub _process_message {
 	elsif ($msg{command} eq "extended_set_get" && $msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
 		#If this was a get request don't clear until data packet received
-		main::print_log("[Insteon::RemoteLinc] Extended Set/Get ACK Received for " . $self->get_object_name) if $self->debuglevel();
+		main::print_log("[Insteon::RemoteLinc] Extended Set/Get ACK Received for " . $self->get_object_name) if $self->debuglevel(1, 'insteon');
 		if ($$self{_ext_set_get_action} eq 'set'){
-			main::print_log("[Insteon::RemoteLinc] Clearing active message") if $self->debuglevel();
+			main::print_log("[Insteon::RemoteLinc] Clearing active message") if $self->debuglevel(1, 'insteon');
 			$clear_message = 1;
 			$$self{_ext_set_get_action} = undef;
 			$self->_process_command_stack(%msg);	
@@ -234,7 +234,7 @@ sub _process_message {
 			$self->_process_command_stack(%msg);
 		} else {
 			main::print_log("[Insteon::RemoteLinc] WARN: Corrupt Extended "
-				."Set/Get Data Received for ". $self->get_object_name) if $self->debuglevel();
+				."Set/Get Data Received for ". $self->get_object_name) if $self->debuglevel(1, 'insteon');
 		}
 	}
 	else {
