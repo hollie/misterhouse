@@ -70,6 +70,14 @@ BEGIN {
     $Version = $autover || 'unknown';
     $Version .= " (compiler: $Info{Perl_compiled})" if $Info{Perl_compiled};
 
+    #Create a build number if this is unstable version
+    if (lc $Version eq 'unstable'){
+	my $build = lc `git describe --long`;
+	$build =~ /(\S+)-(\d+)-g([0-9a-f]+)/;
+	$Version = "$1 Build $2 ($3)" if ($1 && defined($2) && $3);
+    }
+
+
 #   $Pgm_Path = '.';
 
     $usage = <<"eof";
@@ -213,9 +221,23 @@ BEGIN {
 
     sub print_version {
 
-        $Version_date = localtime((stat $0)[9]);
+        $Version_date = localtime((stat $0)[9]); #this script as default
         $Version_date = localtime((stat "$Pgm_Path/bin/$0.exe")[9]) if $PerlApp::BUILD;
         $Version_date = localtime((stat $ENV{sourceExe})[9]) if $ENV{sourceExe}; # Older 3.x perl2exe
+        $Version_date = localtime((stat '../VERSION')[9]) if (-e '../VERSION'); #if VERSION file exists use that
+	
+        #Get version date for unstable branch
+        my $autover;
+        if (-e '../VERSION') {
+		open (VERSION, '../VERSION');
+		$autover = <VERSION>;
+		chomp $autover;
+		close (VERSION);
+        }
+        if (lc $autover eq 'unstable'){
+		my $build_date = `git show -s --format="%ci"`;
+		$Version_date = $build_date if ($build_date=~/^\d\d\d\d-\d\d-\d\d/);
+        }
 
         $Pgm_PathU = '.';       # Since we now chdir, this is obsolete, but still used in some user code :(
         $Pgm_Root  = './..';
@@ -249,7 +271,7 @@ BEGIN {
 
         print "\nCommand: $Pgm_Name @ARGV\n";
         print "Pgm  path   : $Pgm_Path\n";
-        print "Pgm  version: $Version  Last updated: $Version_date\n";
+        print "Pgm  version: $Version  \nLast updated: $Version_date\n";
         $Info{Perl_version} = $];
                                 # Use eval to avoid problems with earlier version (e.g. build 502)
         $Info{Perl_version} .= " Build " . eval "&Win32::BuildNumber()" if $OS_win;

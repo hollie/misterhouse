@@ -67,7 +67,7 @@ function openparmhelp(parm1){
                         'EIB Value (EIB5)', 'EIB Drive (EIB7)',
                         'GENERIC', 'GROUP', 'IBUTTON', 'INSTEON_PLM','INSTEON_LAMPLINC','INSTEON_APPLIANCELINC',
                         'INSTEON_SWITCHLINC','INSTEON_SWITCHLINCRELAY','INSTEON_KEYPADLINC','INSTEON_KEYPADLINCRELAY',
-                        'INSTEON_REMOTELINC','INSTEON_MOTIONSENSOR','INSTEON_ICONTROLLER',
+                        'INSTEON_REMOTELINC','INSTEON_MOTIONSENSOR','INSTEON_TRIGGERLINC','INSTEON_ICONTROLLER',
                         'MP3PLAYER', 'One-Wire xAP Connector (OWX)', 'RF', 'SERIAL',
                         'SG485LCD', 'SG485RCSTHRM', 'STARGATEDIN', 'STARGATEVAR',
                         'STARGATEFLAG', 'STARGATERELAY', 'STARGATETHERM', 'STARGATEPHONE',
@@ -148,6 +148,7 @@ $form_type
 		    INSTEON_KEYPADLINCRELAY  	=> [qw(Address Name Groups)],
 		    INSTEON_REMOTELINC  	=> [qw(Address Name Groups)],
 		    INSTEON_MOTIONSENSOR  	=> [qw(Address Name Groups)],
+		    INSTEON_TRIGGERLINC		=> [qw(Address Name Groups)],
 		    INSTEON_ICONTROLLER  	=> [qw(Address Name Groups)],
                     SCENE_MEMBER => [qw(MemberName LinkName OnLevel RampRate)],
                     default => [qw(Address Name Groups Other)]
