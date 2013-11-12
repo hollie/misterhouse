@@ -1432,7 +1432,7 @@ sub link_to_interface
 	}
 	elsif ($step == 2){ #Add Link from PLM->object
 		$success_callback = $success_callback_prefix . "\"3\")";
-		my $link_info = "deviceid=" . lc $self->device_id . " group=$p_group is_controller=0 " .
+		my $link_info = "deviceid=" . lc ($self->device_id) . " group=$p_group is_controller=0 " .
 			"callback=$success_callback failure_callback=$failure_callback";	
 	        $self->interface->add_link($link_info);
 	}
@@ -1454,7 +1454,7 @@ sub link_to_interface
 	elsif ($step == 4){ #Add surrogate link on PLM if surrogate exists
 		$success_callback = $success_callback_prefix . "\"5\")";
 		my $surrogate_group = $$self{surrogate}->group;
-		my %link_info = ( deviceid=> lc $self->device_id, 
+		my %link_info = ( deviceid=> lc($self->device_id), 
 			group => $surrogate_group, is_controller => 1,
 			callback => "$success_callback", 
 			failure_callback=> "$failure_callback",
@@ -1542,7 +1542,7 @@ sub unlink_to_interface
 	elsif ($step == 1) { #Delete link on the PLM
 		$success_callback = $success_callback_prefix . "'2')";
 		$self->interface->delete_link(
-			deviceid => lc $self->device_id, 
+			deviceid => lc($self->device_id), 
 			group=> $p_group, is_controller=>0,
 			callback=>$success_callback,
 			failure_callback=>$failure_callback);
@@ -1566,7 +1566,7 @@ sub unlink_to_interface
 	elsif ($step == 3){ #Delete surrogate link on PLM if surrogate exists
 		$success_callback = $success_callback_prefix . "'4')";
 		my $surrogate_group = $$self{surrogate}->group;
-		my %link_info = ( deviceid=> lc $self->device_id, 
+		my %link_info = ( deviceid=> lc($self->device_id), 
 			group => $surrogate_group, is_controller => 1,
 			callback => "$success_callback", 
 			failure_callback=> "$failure_callback",
