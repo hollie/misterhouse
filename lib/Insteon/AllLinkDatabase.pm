@@ -421,7 +421,7 @@ sub delete_orphan_links
         # first, make sure that the health of ALDB is ok
         if ($self->health ne 'good')
         {
-        	if ($self->is_deaf)
+        	if ($$self{device}->is_deaf)
                 {
         		&::print_log("[Insteon::AllLinkDatabase] Delete orphan links: ignoring link from deaf device: $selfname");
 
