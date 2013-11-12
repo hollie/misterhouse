@@ -1877,7 +1877,9 @@ sub log_aldb_status
 {
 	my ($self) = @_;
 	main::print_log( "     Device ID: ".$self->device_id());
-	main::print_log( "     Hop Count: ".$self->default_hop_count()." :: [". join("",@{$$self{hop_array}})."]");
+	my $hop_array;
+	$hop_array = join("",@{$$self{hop_array}}) if (defined($$self{hop_array}));
+	main::print_log( "     Hop Count: ".$self->default_hop_count()." :: [$hop_array]");
 	main::print_log( "Engine Version: ".$self->engine_version());
 	my $aldb = $self->get_root()->_aldb;
 	if ($aldb)
