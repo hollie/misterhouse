@@ -128,7 +128,7 @@ sub set_valve {
    }
    unless ($cmd and $subcmd) {
       &::print_log("Insteon::Irrigation] ERROR: You must specify a valve number and a valid state (ON or OFF)")
-          if $main::Debug{insteon};
+          if $self->debuglevel(1, 'insteon');
       return;
    }
    my $message = new Insteon::InsteonMessage('insteon_send', $self, $cmd, $subcmd);
@@ -154,7 +154,7 @@ sub set_program {
    }
    unless ($cmd and $subcmd) {
       &::print_log("Insteon::Irrigation] ERROR: You must specify a program number and a valid state (ON or OFF)")
-          if $main::Debug{insteon};
+          if $self->debuglevel(1, 'insteon');
       return;
    }
    my $message = new Insteon::InsteonMessage('insteon_send', $self, $cmd, $subcmd);
@@ -257,7 +257,7 @@ sub _is_info_request {
         or $cmd eq 'sprinkler_program_off') {
       $is_info_request = 1;
       my $val = hex($msg{extra});
-      &::print_log("[Insteon::Irrigation] Processing data for $cmd with value: $val") if $main::Debug{insteon};
+      &::print_log("[Insteon::Irrigation] Processing data for $cmd with value: $val") if $self->debuglevel(1, 'insteon');
       $$self{'active_valve_id'} = ($val & 7) + 1;
       $$self{'active_program_number'} = (($val >> 3) & 3) + 1;
       $$self{'program_is_running'} = ($val >> 5) & 1;
@@ -265,7 +265,7 @@ sub _is_info_request {
       $$self{'valve_is_running'} = ($val >> 7) & 1;
       &::print_log("[Insteon::Irrigation] active_valve_id: $$self{'active_valve_id'},"
         . " valve_is_running: $$self{'valve_is_running'}, active_program: $$self{'active_program_number'},"
-        . " program_is_running: $$self{'program_is_running'}, pump_enabled: $$self{'pump_enabled'}") if $main::Debug{insteon};
+        . " program_is_running: $$self{'program_is_running'}, pump_enabled: $$self{'pump_enabled'}") if $self->debuglevel(1, 'insteon');
    }
    else {
       #Check if this was a generic info_request

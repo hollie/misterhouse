@@ -194,7 +194,7 @@ sub device_id
 
 Used to store and return the associated group of a device.
 
-If provided, stores group as the device's group.
+If provided, stores group as the device group.
 
 =cut
 
@@ -272,7 +272,7 @@ sub default_hop_count
 	my ($self, $hop_count) = @_;
 	if (defined($hop_count)){
 		::print_log("[Insteon::BaseObject] DEBUG3: Adding hop count of " . $hop_count . " to hop_array of "
-			. $self->get_object_name) if $main::Debug{insteon} >= 3;
+			. $self->get_object_name) if $self->debuglevel(3, 'insteon');
 		if (!defined(@{$$self{hop_array}})) {
 			unshift(@{$$self{hop_array}}, $$self{default_hop_count});
 			$$self{hop_sum} = $$self{default_hop_count};
@@ -286,7 +286,7 @@ sub default_hop_count
 		::print_log("[Insteon::BaseObject] DEBUG4: ".$self->get_object_name
 			."->default_hop_count()=".$$self{default_hop_count}
 			." :: hop_array[]=". join("",@{$$self{hop_array}})) 
-			if $main::Debug{insteon} >= 4;
+			if $self->debuglevel(4, 'insteon');
 	}
 
 	#Allow for per-device settings
@@ -335,7 +335,7 @@ sub equals
 
 =item C<set(state[,setby,response])>
 
-Used to set the device's state.  If called by device or a device linked to device, 
+Used to set the device state.  If called by device or a device linked to device, 
 calls C<set_receive()>.  If called by something 
 else, will send the command to the device.
 
@@ -367,14 +367,14 @@ sub set
 		{ #If set by device, update MH state,
 			my $derived_state = $self->derive_link_state($p_state);
 			&::print_log("[Insteon::BaseObject] " . $self->get_object_name()
-				. "::set_receive($derived_state, $setby_name)") if $main::Debug{insteon};
+				. "::set_receive($derived_state, $setby_name)") if $self->debuglevel(1, 'insteon');
 			$self->set_receive($derived_state,$p_setby,$p_response);
 			$self->set_linked_devices($p_state);
 		} 
 		elsif (ref $p_setby and $p_setby eq $self->interface) 
 		{ #If set by interface, this was a manual status_request response
 			&::print_log("[Insteon::BaseObject] " . $self->get_object_name()
-				. "::set_receive($p_state, $setby_name)") if $main::Debug{insteon};
+				. "::set_receive($p_state, $setby_name)") if $self->debuglevel(1, 'insteon');
 			$self->set_receive($p_state,$p_setby,$p_response);
 		}
 		else { # Not called by device, send set command
@@ -382,7 +382,7 @@ sub set
 				my $message = $self->derive_message($p_state);
 				$self->_send_cmd($message);
 				&::print_log("[Insteon::BaseObject] " . $self->get_object_name() . "::set($p_state, $setby_name)")
-					if $main::Debug{insteon};
+					if $self->debuglevel(1, 'insteon');
 				$self->is_acknowledged(0);
 				$$self{pending_state} = $p_state;
 				$$self{pending_setby} = $p_setby;
@@ -430,7 +430,7 @@ sub is_acknowledged
 
 =item C<set_receive(state[,setby,response])>
 
-Updates the device's state in MisterHouse.  Triggers state_now, state_changed, and
+Updates the device state in MisterHouse.  Triggers state_now, state_changed, and
 state_final variables to update accordingly.  Which causes tie_events to occur.
 
 If state was set to the same state within the last 1 second, then this is ignored.
@@ -448,7 +448,7 @@ sub set_receive
 		&& ($curr_milli - $$self{set_milliseconds} < $window)){
 		::print_log("[Insteon::BaseObject] Ignoring duplicate set " . $p_state .
 			" state command for " . $self->get_object_name . " received in " .
-			"less than $window milliseconds") if $main::Debug{insteon}; 
+			"less than $window milliseconds") if $self->debuglevel(1, 'insteon'); 
 	} else {
 		$$self{set_milliseconds} = $curr_milli;
 		$self->level($p_state) if $self->can('level'); # update the level value
@@ -572,7 +572,7 @@ sub derive_message
 
 	# confirm that the resulting $msg is legitimate
 	if (!(defined($self->message_type_code($command)))) {
-		&::print_log("[Insteon::BaseInsteon] invalid state=$command") if $main::Debug{insteon};
+		&::print_log("[Insteon::BaseInsteon] invalid state=$command") if $self->debuglevel(1, 'insteon');
 		return undef;
 	}
 
@@ -656,7 +656,7 @@ sub _is_info_request
 		my $ack_on_level = sprintf("%d", int((hex($msg{extra}) * 100 / 255)+.5));
 		&::print_log("[Insteon::BaseObject] received status for " .
 			$self->{object_name} . " with on-level: $ack_on_level%, "
-			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
+			. "hops left: $msg{hopsleft}") if $self->debuglevel(1, 'insteon');
 		$self->level($ack_on_level) if $self->can('level'); # update the level value
 		if ($ack_on_level == 0) {
 			$self->set('off', $ack_setby);
@@ -714,7 +714,7 @@ sub _is_info_request
 			package main;
 			eval ($callback);
 			&::print_log("[Insteon::BaseObject] " . $self->get_object_name . ": error during scan callback $@")
-				if $@ and $main::Debug{insteon};
+				if $@ and $self->debuglevel(1, 'insteon');
 			package Insteon::BaseObject;                		
 		}
 	}
@@ -725,7 +725,7 @@ sub _is_info_request
 		$self->engine_version($version);
 		&::print_log("[Insteon::BaseObject] received engine version for " 
 			. $self->{object_name} . " of $version. "
-			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
+			. "hops left: $msg{hopsleft}") if $self->debuglevel(1, 'insteon');
 	}
 	return $is_info_request;
 }
@@ -742,7 +742,7 @@ sub _process_message
 	# by Insteon_Link.
 
 	main::print_log("[Insteon::BaseObject] WARN: Message has invalid checksum")
-		if ($main::Debug{insteon} && !($msg{crc_valid}) 
+		if ($self->debuglevel(1, 'insteon') && !($msg{crc_valid}) 
 		&& $msg{is_extended} && $self->engine_version() eq 'I2CS');
 
 	my $clear_message = 0;
@@ -808,7 +808,7 @@ sub _process_message
 				if (!$corrupt_cmd){
 					$self->_process_command_stack(%msg);
 					&::print_log("[Insteon::BaseObject] received ping acknowledgement from " . $self->{object_name})
-						if $main::Debug{insteon};
+						if $self->debuglevel(1, 'insteon');
 					$self->ping();
 					$clear_message = 1;
 				}
@@ -817,7 +817,7 @@ sub _process_message
 				$corrupt_cmd = 1 if ($msg{cmd_code} ne $self->message_type_hex($pending_cmd));
 				if (!$corrupt_cmd){
 					&::print_log("[Insteon::BaseObject] received linking mode ACK from " . $self->{object_name})
-						if $main::Debug{insteon};
+						if $self->debuglevel(1, 'insteon');
 					$self->interface->_set_timeout('xmit', 2000);
 					$clear_message = 0;
 				}
@@ -834,7 +834,7 @@ sub _process_message
 				# signal receipt of message to the command stack in case commands are queued
 				$self->_process_command_stack(%msg);
 				&::print_log("[Insteon::BaseObject] received command/state (awaiting) acknowledge from " . $self->{object_name}
-					. ": $pending_cmd and data: $msg{extra}") if $main::Debug{insteon};
+					. ": $pending_cmd and data: $msg{extra}") if $self->debuglevel(1, 'insteon');
 			}
 		}
                 else
@@ -846,7 +846,7 @@ sub _process_message
 			$self->_process_command_stack(%msg);
 			&::print_log("[Insteon::BaseObject] received command/state acknowledge from " . $self->{object_name}
 				. ": " . (($msg{command}) ? $msg{command} : "(unknown)")
-				. " and data: $msg{extra}") if $main::Debug{insteon};
+				. " and data: $msg{extra}") if $self->debuglevel(1, 'insteon');
 		}
 		if ($corrupt_cmd) {
 			main::print_log("[Insteon::BaseObject] WARN: received a message from "
@@ -866,7 +866,7 @@ sub _process_message
 			. $self->get_nack_msg_for( $msg{extra} ) .") for " . $self->{object_name}
 			. ".  It may be unplugged, have a burned out bulb, or this may be a new I2CS "
 			. "type device that must first be manually linked to the PLM using the set button.") 
-			if $main::Debug{insteon};
+			if $self->debuglevel(1, 'insteon');
 		}
 		else 
 		{
@@ -880,7 +880,7 @@ sub _process_message
 		if($p_setby->active_message->failure_callback)
 		{
 			main::print_log("[Insteon::BaseObject] WARN: Now calling message failure callback: "
-				. $p_setby->active_message->failure_callback) if $main::Debug{insteon};
+				. $p_setby->active_message->failure_callback) if $self->debuglevel(1, 'insteon');
 			$self->failure_reason('NAK');
 			package main;
 			eval $p_setby->active_message->failure_callback;
@@ -924,7 +924,7 @@ sub _process_message
 			if ($msg{command} eq 'link_cleanup_report'){
 				if ($msg{extra} == 0){
 					::print_log("[Insteon::BaseObject] DEBUG Received AllLink Cleanup Success for "
-						. $self->{object_name}) if $main::Debug{insteon} >= 1;
+						. $self->{object_name}) if $self->debuglevel(1, 'insteon');
 				} else {
 					::print_log("[Insteon::BaseObject] WARN " . $msg{extra} . " Device(s) failed to "
 						. "acknowledge the command from " . $self->{object_name});
@@ -940,7 +940,7 @@ sub _process_message
 				my $timeout = (scalar(@links)+1) * 300;
 				::print_log("[Insteon::BaseObject] DEBUG3 Delaying any outgoing messages ". 
 					"by $timeout milliseconds to avoid collision with subsequent cleanup ".
-					"messages from " . $self->get_object_name) if ($main::Debug{insteon} >= 3);
+					"messages from " . $self->get_object_name) if ($self->debuglevel(3, 'insteon'));
 				$self->interface->_set_timeout('xmit', $timeout);
 			}
                 }
@@ -949,14 +949,14 @@ sub _process_message
                 	if (($self->state eq $p_state or $self->state_final eq $p_state)
                 		and $$self{_pending_cleanup}){
 				::print_log("[Insteon::BaseObject] Ignoring Received Direct AllLink Cleanup Message for " 
-					. $self->{object_name} . " since AllLink Broadcast Message was Received.") if $main::Debug{insteon};
+					. $self->{object_name} . " since AllLink Broadcast Message was Received.") if $self->debuglevel(1, 'insteon');
                 	} else {
 				$self->set($p_state, $self);
 			}
 			$$self{_pending_cleanup} = 0;
 		} else {
 			main::print_log("[Insteon::BaseObject] Ignoring unsupported command from " 
-				. $self->{object_name}) if $main::Debug{insteon};
+				. $self->{object_name}) if $self->debuglevel(1, 'insteon');
 			$self->corrupt_count_log(1) if $self->can('corrupt_count_log');
                 }
 	}
@@ -1019,11 +1019,11 @@ sub _process_command_stack
 			package main;
 			eval ($callback);
 			&::print_log("[Insteon::BaseObject] error in queue timer callback: " . $@)
-				if $@ and $main::Debug{insteon};
+				if $@ and $self->debuglevel(1, 'insteon');
 			package Insteon::BaseObject;
 		}
 	} else {
-#		&::print_log("[Insteon_Device] " . $self->get_object_name . " command queued but not yet sent; awaiting ack from prior command") if $main::Debug{insteon};
+#		&::print_log("[Insteon_Device] " . $self->get_object_name . " command queued but not yet sent; awaiting ack from prior command") if $self->debuglevel(1, 'insteon');
 	}
 }
 
@@ -1849,7 +1849,7 @@ sub delete_link
 
 =item C<scan_link_table()>
 
-Scans a device's link table and caches a copy.
+Scans a device link table and caches a copy.
 
 =cut
 
@@ -1963,7 +1963,7 @@ sub _get_engine_version_failure
 	my $failure_reason = $self->failure_reason();
 	
 	main::print_log("[Insteon::BaseDevice::_get_engine_version_failure] DEBUG4: "
-		."failure reason: $failure_reason") if $main::Debug{insteon} >= 4;
+		."failure reason: $failure_reason") if $self->debuglevel(4, 'insteon');
 	
 	if($failure_reason eq 'NAK')
 	{
@@ -2029,7 +2029,7 @@ sub ping
 			package main;
 			eval ($complete_callback);
 			&::print_log("[Insteon::BaseDevice] error in ping callback: " . $@)
-				if $@ and $main::Debug{insteon};
+				if $@ and $self->debuglevel(1, 'insteon');
 			package Insteon::BaseDevice;
 			delete $$self{ping_callback};
 		}
@@ -2132,7 +2132,7 @@ sub get_devcat
 
 =item C<firmware()>
 
-Sets and returns the device's firmware version.  Value can be obtained from the 
+Sets and returns the device firmware version.  Value can be obtained from the 
 device by calling C<get_devcat()>.
 
 =cut
@@ -2335,7 +2335,7 @@ sub stress_test
 			package main;
 			eval ($complete_callback);
 			&::print_log("[Insteon::BaseDevice] error in stress_test callback: " . $@)
-				if $@ and $main::Debug{insteon};
+				if $@ and $self->debuglevel(1, 'insteon');
 			package Insteon::BaseDevice;
 			delete $$self{stress_test_callback};
 		}
@@ -2650,7 +2650,7 @@ sub check_aldb_version
 	if ($new_version) {
 		main::print_log("[Insteon::BaseDevice] DEBUG4: aldb_version is "
 			.$self->_aldb->aldb_version()." but device is ".$engine_version.
-			".  Remapping aldb version to $new_version") if $main::Debug{insteon} >= 4;
+			".  Remapping aldb version to $new_version") if $self->debuglevel(4, 'insteon');
 		my $restore_string = '';
 		if ($self->_aldb) {
 			$restore_string = $self->_aldb->restore_string();
@@ -2667,7 +2667,7 @@ sub check_aldb_version
 		package main;
 		eval ($restore_string);
 		&::print_log("[Insteon::BaseDevice] error in eval creating ALDB object: " . $@)
-			if $@ and $main::Debug{insteon};
+			if $@ and $self->debuglevel(1, 'insteon');
 		package Insteon::BaseDevice;
 	}
 }
@@ -2919,7 +2919,7 @@ sub sync_links
 						$requires_update = 1;
                                                 &::print_log("[Insteon::BaseController] DEBUG: flagging " . $self->get_object_name
                                                 	. " for update because existing ramp rate ($raw_ramp_rate) != target ($raw_tgt_ramp_rate)")
-							if $main::Debug{insteon};
+							if $self->debuglevel(1, 'insteon');
 
 					}
                                         elsif (($link_on_level > $tgt_on_level + 1) or ($link_on_level < $tgt_on_level -1))
@@ -2927,7 +2927,7 @@ sub sync_links
 						$requires_update = 1;
                                                 &::print_log("[Insteon::BaseController] DEBUG: flagging " . $self->get_object_name
                                                 	. " for update because existing on level ($link_on_level) != target ($tgt_on_level)")
-							if $main::Debug{insteon};
+							if $self->debuglevel(1, 'insteon');
 					}
 				}
 				if ($requires_update)
@@ -2954,7 +2954,7 @@ sub sync_links
 							. $member->get_object_name . " for "
 							. $insteon_object->get_object_name . " with group:" . $self->group
 							. "; on_level:$tgt_on_level; ramp_rate:$tgt_ramp_rate")
-							if $main::Debug{insteon} >= 4;
+							if $self->debuglevel(4, 'insteon');
 				       		push @{$$self{sync_queue}}, \%link_req;
                                         }
 				}
@@ -2983,7 +2983,7 @@ sub sync_links
 						. $member->get_object_name . " for "
 						. $insteon_object->get_object_name . " with group:" . $self->group
 						. "; on_level:$tgt_on_level; ramp_rate:$tgt_ramp_rate")
-						if $main::Debug{insteon} >= 4;
+						if $self->debuglevel(4, 'insteon');
 					push @{$$self{sync_queue}}, \%link_req;
                                 }
 			}
@@ -3007,7 +3007,7 @@ sub sync_links
 					}
 					main::print_log("[Insteon::BaseController] DEBUG4: queuing add for controller record to "
 						. $insteon_object->get_object_name . " for " . $member->get_object_name 
-						. " with group:" . $self->group) if $main::Debug{insteon} >= 4;
+						. " with group:" . $self->group) if $self->debuglevel(4, 'insteon');
 					push @{$$self{sync_queue}}, \%link_req;
                                 }
 			}
@@ -3035,7 +3035,7 @@ sub sync_links
 				main::print_log("[Insteon::BaseController] DEBUG4: queuing add for controller record to "
 					. $insteon_object->get_object_name . " for "
 					. $self->interface->get_object_name . " with group:" . $self->group)
-					if $main::Debug{insteon} >= 4;
+					if $self->debuglevel(4, 'insteon');
 				push @{$$self{sync_queue}}, \%link_req;
                         }
 		}
@@ -3056,7 +3056,7 @@ sub sync_links
 				main::print_log("[Insteon::BaseController] DEBUG4: queuing add for responder record to "
 					. $self->interface->get_object_name . " for "
 					. $insteon_object->get_object_name . " with group:" . $self->group)
-					if $main::Debug{insteon} >= 4;
+					if $self->debuglevel(4, 'insteon');
 				push @{$$self{sync_queue}}, \%link_req;
                         }
 		}
@@ -3065,7 +3065,7 @@ sub sync_links
 	if (!($num_sync_queue))
         {
 		&::print_log("[Insteon::BaseController] Nothing to do when syncing links for " . $self->get_object_name)
-			if $main::Debug{insteon};
+			if $self->debuglevel(1, 'insteon');
 	}
 	$self->_process_sync_queue();
 
@@ -3092,7 +3092,7 @@ sub _process_sync_queue {
 		package main;
 		eval ($$self{sync_queue_callback});
 		&::print_log("[Insteon::BaseController] error in sync links callback: " . $@)
-			if $@ and $main::Debug{insteon};
+			if $@ and $self->debuglevel(1, 'insteon');
 		$$self{sync_queue_callback} = undef;
 		package Insteon::BaseController;
 	} else {
@@ -3226,7 +3226,7 @@ sub update_members
 				my %current_record = $device->get_link_record($self->device_id . $self->group);
 				if (%current_record) {
 					&::print_log("[Insteon::BaseController] remote record: $current_record{data1}")
-						if $::Debug{insteon};
+						if $self->debuglevel(1, 'insteon');
 				}
 			}
 		}
