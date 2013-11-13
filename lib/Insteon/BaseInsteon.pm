@@ -2741,6 +2741,153 @@ You should have received a copy of the GNU General Public License along with thi
 =cut
 
 ####################################
+###                  ###############
+### MultigroupDevice ###############
+###                  ###############
+####################################
+
+=head1 B<Insteon::MultigroupDevice>
+
+=head2 DESCRIPTION
+
+Contains functions which are unique to insteon devices which have more than
+one group.  This includes, KeyPadLincs, RemoteLincs, FanLincs, Thermostats 
+(i2 versions).
+
+=head2 INHERITS
+
+Nothing.
+
+This package is meant to provide supplemental support and should only be added
+as a secondary inheritance to an object.
+
+=head2 METHODS
+
+=over
+
+=cut
+
+package Insteon::MultigroupDevice;
+
+=item C<sync_all_links(audit_mode)>
+
+Syncs all links on the object, including all subgroups such as additional
+buttons.
+
+Paramter B<audit_mode> - Causes sync to walk through but not actually 
+send any commands to the devices.  Useful with the insteon:3 debug setting for 
+troubleshooting. 
+
+=cut
+
+sub sync_all_links
+{
+	my ($self, $audit_mode) = @_;
+	$self = $self->get_root();
+	@{$$self{_sync_devices}} = ();
+	@{$$self{_sync_device_failures}} = ();
+	my $device_id = $self->device_id();
+	my ($subgroup_object, $group, $dec_group);
+	
+	::print_log("[Insteon::MultigroupDevice] Sync All Links on device "
+		.$self->get_object_name . " starting ...");
+	# Find all subgroup items check groups from 02 - FF;
+	for ($dec_group = 01; $dec_group <= 255; $dec_group++) {
+		$group = sprintf("%02X", $dec_group);
+		$subgroup_object = Insteon::get_object($device_id, $group);
+		if (ref $subgroup_object){
+			my %sync_req = ('sync_object' => $subgroup_object, 
+					'audit_mode' => ($audit_mode) ? 1 : 0);
+			::print_log("[Insteon::MultigroupDevice] "
+				."Adding " . $subgroup_object->get_object_name 
+				." to sync queue.");
+			push @{$$self{_sync_devices}}, \%sync_req
+		}
+	}
+	$$self{_sync_cnt} = scalar @{$$self{_sync_devices}};
+	$self->_get_next_linksync();
+}
+
+=item C<_get_next_linksync()>
+
+Calls the sync_links() function for each device identified by sync_all_link.  
+This function will be called recursively since the callback passed to sync_links() 
+is this function again.  Will also ask sync_links() to call 
+_get_next_linksync_failure() if sync_links() fails. 
+
+=cut
+
+sub _get_next_linksync
+{
+	my ($self) = @_;
+	$self = $self->get_root();
+	my $sync_req_ptr = shift(@{$$self{_sync_devices}});
+	my %sync_req = ($sync_req_ptr) ? %$sync_req_ptr : undef;
+	my $current_sync_device;
+	if (%sync_req) {
+		$current_sync_device = $sync_req{'sync_object'};
+	}
+	else {
+		$current_sync_device = undef;
+	}
+
+	if ($current_sync_device) {
+		::print_log("[Insteon::MultigroupDevice] Now syncing: "
+			. $current_sync_device->get_object_name . " ("
+			. ($$self{_sync_cnt} - scalar @{$$self{_sync_devices}})
+			. " of ".$$self{_sync_cnt}.")");
+		$current_sync_device->sync_links($sync_req{'audit_mode'}, 
+			$self->get_object_name . '->_get_next_linksync()',
+			$self->get_object_name . '->_get_next_linksync_failure('.$current_sync_device->get_object_name.')');
+	}
+	else {
+		::print_log("[Insteon::MultigroupDevice] All links have completed syncing "
+				. "on device " . $self->get_object_name);
+		my $_sync_failure_cnt = scalar @{$$self{_sync_device_failures}};
+		if ($_sync_failure_cnt) {
+			::print_log("[Insteon::MultigroupDevice] However, some failures were noted:");
+			for my $failed_obj (@{$$self{_sync_device_failures}}) {
+				::print_log("[Insteon::MultigroupDevice] WARN: failure occurred when syncing "
+				. $failed_obj->get_object_name);
+			}
+		}
+	}
+}
+
+=item C<_get_next_linksync()>
+
+Called by the failure callback in a device's sync_links() function.  Will add
+the failed device to the module global variable @_sync_device_failures. 
+
+=cut
+
+sub _get_next_linksync_failure
+{
+	my ($self, $current_sync_device) = @_;
+	$self = $self->get_root();
+	push @{$$self{_sync_device_failures}}, $current_sync_device;
+	::print_log("[Insteon::MultigroupDevice] WARN: failure occurred when syncing "
+		. $current_sync_device->get_object_name . ".  Moving on...");
+	$self->_get_next_linksync();
+}
+
+=back
+
+=head2 AUTHOR
+
+Kevin Robert Keegan
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
+####################################
 ###                #################
 ### BaseController #################
 ###                #################
