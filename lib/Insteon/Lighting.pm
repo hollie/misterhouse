@@ -732,7 +732,8 @@ Provides support for the Insteon KeypadLinc Relay.
 =head2 INHERITS
 
 L<Insteon::BaseLight|Insteon::Lighting/Insteon::BaseLight>, 
-L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
+L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>,
+L<Insteon::Insteon::MultigroupDevice|Insteon::BaseInsteon/Insteon::Insteon::MultigroupDevice>
 
 =head2 METHODS
 
@@ -745,7 +746,7 @@ package Insteon::KeyPadLincRelay;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::KeyPadLincRelay::ISA = ('Insteon::BaseLight','Insteon::DeviceController');
+@Insteon::KeyPadLincRelay::ISA = ('Insteon::BaseLight','Insteon::DeviceController', 'Insteon::MultigroupDevice');
 
 our %operating_flags = (
    'program_lock_on' => '00',
@@ -875,7 +876,9 @@ sub get_voice_cmds
             'set 8 button - backlight normal' => "$object_name->update_flags(\"02\")",
             'set 6 button - backlight dim' => "$object_name->update_flags(\"08\")",
             'set 6 button - backlight off' => "$object_name->update_flags(\"04\")",
-            'set 6 button - backlight normal' => "$object_name->update_flags(\"00\")"
+            'set 6 button - backlight normal' => "$object_name->update_flags(\"00\")",
+            'sync all device links' => "$object_name->sync_all_links()",
+            'AUDIT sync all device links' => "$object_name->sync_all_links(1)"
         );
     }
     return \%voice_cmds;
@@ -1035,7 +1038,8 @@ Provides support for the Insteon FanLinc.
 =head2 INHERITS
 
 L<Insteon::DimmableLight|Insteon::Lighting/Insteon::DimmableLight>, 
-L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
+L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>,
+L<Insteon::Insteon::MultigroupDevice|Insteon::BaseInsteon/Insteon::Insteon::MultigroupDevice>
 
 =head2 METHODS
 
@@ -1048,7 +1052,7 @@ package Insteon::FanLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::FanLinc::ISA = ('Insteon::DimmableLight','Insteon::DeviceController');
+@Insteon::FanLinc::ISA = ('Insteon::DimmableLight','Insteon::DeviceController', 'Insteon::MultigroupDevice');
 
 =item C<new()>
 
@@ -1139,7 +1143,7 @@ sub _is_info_request
 		my $child_state = $child_obj->derive_link_state(hex($msg{extra}));
 		&::print_log("[Insteon::FanLinc] received status for " .
 			$child_obj->{object_name} . " of: $child_state "
-			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
+			. "hops left: $msg{hopsleft}") if $self->debuglevel(1, 'insteon');
 		$ack_setby = $$child_obj{m_status_request_pending} if ref $$child_obj{m_status_request_pending};
 		$child_obj->SUPER::set($child_state, $ack_setby);
 		delete($$parent{child_status_request_pending});
@@ -1170,11 +1174,41 @@ sub is_acknowledged
 		$$child_obj{pending_setby} = undef;
 		$$child_obj{pending_response} = undef;
 		$$parent{child_pending_state} = undef;
-		&::print_log("[Insteon::FanLinc] received command/state acknowledge from " . $child_obj->{object_name}) if $main::Debug{insteon};
+		&::print_log("[Insteon::FanLinc] received command/state acknowledge from " . $child_obj->{object_name}) if $self->debuglevel(1, 'insteon');
 		return $$self{is_acknowledged};
 	} else {
 		return $self->SUPER::is_acknowledged($p_ack);
 	}
+}
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds}
+    );
+    if ($self->is_root){
+        %voice_cmds = (
+            %voice_cmds,
+            'sync all device links' => "$object_name->sync_all_links()",
+            'AUDIT sync all device links' => "$object_name->sync_all_links(1)"
+        );
+    }
+    return \%voice_cmds;
 }
 
 =back
