@@ -562,7 +562,7 @@ sub _get_next_linksync
                 if ($_sync_failure_cnt)
                 {
           	  	&main::print_log("[Sync all links] WARN! Failures occured, "
-          	  		."some links for the following objects remain out-of-sync:");
+          	  		."some links involving the following objects remain out-of-sync:");
                   	for my $failed_obj (@_sync_device_failures)
                   	{
         			&main::print_log("[Sync all links] " . $failed_obj->get_object_name);
@@ -582,10 +582,17 @@ the failed device to the module global variable @_sync_device_failures.
 
 sub _get_next_linksync_failure
 {
-        push @_sync_device_failures, $current_sync_device;
+        push @_sync_device_failures, $current_sync_device 
+		unless (grep{$current_sync_device == $_} @_sync_device_failures);
         &main::print_log("[Sync all links] WARN: failure occurred when syncing links for "
-                	. $current_sync_device->get_object_name . ".  Moving on...");
+                	. $current_sync_device->get_object_name . ". Resuming sync queue if it exists.");
+	my $num_sync_queue = @{$$current_sync_device{sync_queue}};
+	if ($num_sync_queue){
+		$current_sync_device->_process_sync_queue();
+	}
+	else { #No other pending links in the queue
         &_get_next_linksync();
+	}
 
 }
 
