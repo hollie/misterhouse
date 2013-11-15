@@ -459,7 +459,7 @@ sub delete_orphan_links
 				&::print_log("[Insteon::AllLinkDatabase] error in delete orphans failure callback: " . $@)
 					if $@ and $self->{device}->debuglevel(1, 'insteon');
 				package Insteon::AllLinkDatabase;
-		}
+			}
 		}
 		if (!$$self{device}->isa('Insteon_PLM') && !$sent_to_failure){
 			$self->_process_delete_queue();
@@ -2592,11 +2592,12 @@ sub _process_delete_queue {
 		::print_log("[Insteon::ALDB_PLM] Delete All Links has Completed.");
 		my $_delete_failure_cnt = scalar $$self{_delete_device_failures};
 		if ($_delete_failure_cnt) {
-			&main::print_log("[Insteon::ALDB_PLM] However, some failures were noted with the following devices:");
-			for my $failed_obj (@{$$self{_delete_device_failures}}) {
-				::print_log("[Insteon::ALDB_PLM] Failure on: "
-				. $failed_obj);
+			my $obj_list;
+			for my $failed_obj (@{$$self{_delete_device_failures}}){
+				$obj_list .= $failed_obj .", ";
 			}
+			::print_log("[Insteon::ALDB_PLM] However, some failures were ".
+				"noted with the following devices: $obj_list");
 		}
 		::print_log("[Insteon::ALDB_PLM] A total of $$self{delete_queue_processed} orphaned link records were deleted.");
 		::print_log("[Insteon::ALDB_PLM] #### END DELETE ORPHAN LINKS ####");

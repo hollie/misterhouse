@@ -477,16 +477,14 @@ sub _get_next_linkscan
     	{
           	&main::print_log("[Scan all link tables] All tables have completed scanning");
                 my $_scan_failure_cnt = scalar @_scan_device_failures;
-                if ($_scan_failure_cnt)
-                {
-          	  &main::print_log("[Scan all link tables] However, some failures were noted:");
-                  for my $failed_obj (@_scan_device_failures)
-                  {
-        		&main::print_log("[Scan all link tables] WARN: failure occurred when scanning "
-                	. $failed_obj->get_object_name);
-                  }
-                }
-
+                if ($_scan_failure_cnt){
+			my $obj_list;
+			for my $failed_obj (@_scan_device_failures){
+				$obj_list .= $failed_obj->get_object_name .", ";
+			}
+			::print_log("[Scan all link tables] However, some failures "
+				."were noted with the following devices: $obj_list");
+		}
     	}
 }
 
@@ -559,16 +557,14 @@ sub _get_next_linksync
         {
           	&main::print_log("[Sync all links] All links have completed syncing");
                 my $_sync_failure_cnt = scalar @_sync_device_failures;
-                if ($_sync_failure_cnt)
-                {
-          	  	&main::print_log("[Sync all links] WARN! Failures occured, "
-          	  		."some links involving the following objects remain out-of-sync:");
-                  	for my $failed_obj (@_sync_device_failures)
-                  	{
-        			&main::print_log("[Sync all links] " . $failed_obj->get_object_name);
-                  	}
-                }
-
+                if ($_sync_failure_cnt){
+			my $obj_list;
+			for my $failed_obj (@_sync_device_failures){
+				$obj_list .= $failed_obj->get_object_name .", ";
+			}
+			::print_log("[Sync all links] WARN! Failures occured, "
+				."some links involving the following objects remain out-of-sync: $obj_list");
+		}
     	}
 
 }
@@ -591,7 +587,7 @@ sub _get_next_linksync_failure
 		$current_sync_device->_process_sync_queue();
 	}
 	else { #No other pending links in the queue
-        &_get_next_linksync();
+		&_get_next_linksync();
 	}
 
 }
