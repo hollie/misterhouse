@@ -440,6 +440,7 @@ sub delete_orphan_links
 
 	# first, make sure that the health of ALDB is ok
 	if ($self->health ne 'good' || $$self{device}->is_deaf) {
+		my $sent_to_failure = 0;
 		if ($$self{device}->is_deaf) {
 			::print_log("[Insteon::AllLinkDatabase] Delete orphan links: Will not delete links on deaf device: $selfname");
 		} 
@@ -450,8 +451,17 @@ sub delete_orphan_links
 			::print_log("[Insteon::AllLinkDatabase] Delete orphan links: skipping $selfname because health: "
 				. $self->health . ". Please rescan the link table of this device and rerun delete "
 				. "orphans if necessary");
+			#log the failure
+			$sent_to_failure = 1;
+			if ($failure_callback) {
+				package main;
+				eval ($failure_callback);
+				&::print_log("[Insteon::AllLinkDatabase] error in delete orphans failure callback: " . $@)
+					if $@ and $self->{device}->debuglevel(1, 'insteon');
+				package Insteon::AllLinkDatabase;
 		}
-		if (!$$self{device}->isa('Insteon_PLM')){
+		}
+		if (!$$self{device}->isa('Insteon_PLM') && !$sent_to_failure){
 			$self->_process_delete_queue();
 		}
 		return;
