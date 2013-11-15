@@ -1606,13 +1606,6 @@ sub enter_linking_mode
 	$self->_send_cmd($message);
 }
 
-sub _aldb
-{
-   my ($self) = @_;
-   my $root_obj = $self->get_root();
-   return $$root_obj{aldb};
-}
-
 =item C<set_operating_flag(flag)>
 
 Sets the defined flag on the device.
@@ -2179,8 +2172,8 @@ does nothing.
 
 sub delete_orphan_links
 {
-	my ($self, $audit_mode) = @_;
-        return $self->_aldb->delete_orphan_links($audit_mode) if $self->_aldb;
+	my ($self, $audit_mode, $failure_callback) = @_;
+        return $self->_aldb->delete_orphan_links($audit_mode, $failure_callback) if $self->_aldb;
 }
 
 sub _process_delete_queue {
@@ -2982,243 +2975,227 @@ MisterHouse will add the link.
 If audit_mode is true, MisterHouse will print the actions it would have taken to 
 the log, but will not take any actions.
 
+The process does the following 5 checks in order:
+
+ 1. Does a controller link exist for Device-> PLM
+ 2. Does a responder link exist on the PLM
+
+it then loops through all of the links defined for a device and checks:
+
+ 3. Does the responder link exist
+ 4. Is the responder link accurate
+ 5. Does the controller link on this device exist
+
 =cut
 
 sub sync_links
 {
 	my ($self, $audit_mode, $callback, $failure_callback) = @_;
+	
+	# Intialize Variables
 	@{$$self{sync_queue}} = (); # reset the work queue
 	$$self{sync_queue_callback} = ($callback) ? $callback : undef;
-	my $insteon_object = $self->interface;
-	if (!($self->isa('Insteon::InterfaceController')))
-        {
-		$insteon_object = &Insteon::get_object($self->device_id,'01');
-		if (!(defined($insteon_object)))
-                {
-			&main::print_log("[Insteon::BaseController] WARN!! A device w/ insteon address: " . $self->device_id . ":01 could not be found. "
-				. "Please double check your items.mht file.");
-		}
-	}
+	$$self{sync_queue_failure_callback} = ($failure_callback) ? $failure_callback : undef;
+	$$self{sync_queue_failure} = undef;
 	my $self_link_name = $self->get_object_name;
-	# abort if $insteon_object doesn't exist
+	my $insteon_object = $self->interface;
+	my $interface_object = Insteon::active_interface();
+	my $interface_name = $interface_object->get_object_name;
+	$insteon_object = $self->get_root;
+	::print_log("[Insteon::BaseController] WARN!! A device w/ insteon address: " . $self->device_id . ":01 could not be found. "
+		. "Please double check your items.mht file.") if (!(defined($insteon_object)));
+
+	# Abort if $insteon_object doesn't exist
 	$self->_process_sync_queue() unless $insteon_object;
-	if ($$self{members})
-        {
-		foreach my $member_ref (keys %{$$self{members}})
-                {
-			my $member = $$self{members}{$member_ref}{object};
-			# find real device if member is a Light_Item
-			if ($member->isa('Light_Item'))
-                        {
-				my @children = $member->find_members('Insteon::BaseDevice');
-				$member = $children[0];
-			}
-			my $linkmember = $member;
-			# find real device if member's group is not '01'; for example, cross-linked KeypadLincs
-			if ($member->group ne '01')
-                        {
-				$member = &Insteon::get_object($member->device_id,'01');
-			}
-			my $tgt_on_level = $$self{members}{$member_ref}{on_level};
-			$tgt_on_level = '100%' unless defined $tgt_on_level;
+	
+	# Warn if device is deaf or ALDB out of sync
+	my $insteon_object_is_syncable = 1;
+	if ($insteon_object->is_deaf) {
+		::print_log("[Insteon::BaseController] $self_link_name is deaf, only responder links will be added to devices "
+			."controlled by this device.");
+		$insteon_object_is_syncable = 0;
+	}
+	elsif ($insteon_object->_aldb->health ne 'good' && $insteon_object->_aldb->health ne 'empty'){
+		::print_log("[Insteon::BaseController] WARN! The ALDB of $self_link_name is ".$insteon_object->_aldb->health
+			.", links will be added to devices "
+			."linked to this device, but no links will be added to $self_link_name.  Please rescan this device and attempt "
+			."sync links again.");
+		$insteon_object_is_syncable = 0;
+		$$self{sync_queue_failure} = 1;
+	}
+	
+	# 1. Does a controller link exist for Device-> PLM
+	if (!$insteon_object->isa('Insteon_PLM') && 
+	!$insteon_object->has_link($self->interface,$self->group,1,$self->group) && 
+	$insteon_object_is_syncable) {
+		my %link_req = ( member => $insteon_object, cmd => 'add', object => $self->interface,
+			group => $self->group, is_controller => 1,
+			callback => "$self_link_name->_process_sync_queue()",
+			failure_callback => $failure_callback,
+			data3 => $self->group);
+		$link_req{cause} = "Adding controller record to $self_link_name for $interface_name";
+		push @{$$self{sync_queue}}, \%link_req;
+	}
+		
+	# 2. Does a responder link exist on the PLM
+	if ((!$insteon_object->isa('Insteon_PLM') &&
+	!$self->interface->has_link($insteon_object,$self->group,0,'00'))) {
+		my %link_req = ( member => $self->interface, cmd => 'add', object => $insteon_object,
+			group => $self->group, is_controller => 0,
+			callback => "$self_link_name->_process_sync_queue()",
+			failure_callback => $failure_callback,
+			data3 => '00');
+		$link_req{cause} = "Adding responder record to $interface_name from $self_link_name";
+		push @{$$self{sync_queue}}, \%link_req;
+	}
 
-			my $tgt_ramp_rate = $$self{members}{$member_ref}{ramp_rate};
-			$tgt_ramp_rate = '0' unless defined $tgt_ramp_rate;
-			# first, check existance for each link; if found, then perform an update (unless link is to PLM)
-			# if not, then add the link
-			if ($member->has_link($insteon_object, $self->group, 0, $linkmember->group))
-                        {
-				# TO-DO: only update link if the on_level and ramp_rate are different
-				my $requires_update = 0;
-				$tgt_on_level =~ s/(\d+)%?/$1/;
-				$tgt_ramp_rate =~ s/(\d)s?/$1/;
-				my $aldbkey = lc $insteon_object->device_id . $self->group . '0';
-				if (($member->isa('Insteon::KeyPadLincRelay') or $member->isa('Insteon::KeyPadLinc'))
-                                	 and $linkmember->group ne '01') {
-					$aldbkey .= $linkmember->group;
-				}
-				if (!($member->isa('Insteon::DimmableLight')))
-                                {
-                                	my $member_aldb = $member->_aldb;
-					if ($tgt_on_level >= 1 and $$member_aldb{aldb}{$aldbkey}{data1} ne 'ff')
-                                        {
-						$requires_update = 1;
-						$tgt_on_level = 100;
-					}
-                                        elsif ($tgt_on_level == 0 and $$member_aldb{aldb}{$aldbkey}{data1} ne '00')
-                                        {
-						$requires_update = 1;
-					}
-					if ($$member_aldb{aldb}{$aldbkey}{data2} ne '00')
-                                        {
-						$tgt_ramp_rate = 0;
-					}
-				}
-                                else
-                                {
-                                	my $member_aldb = $member->_aldb;
-					$tgt_ramp_rate = 0.1 unless $tgt_ramp_rate;
-					my $link_on_level = hex($$member_aldb{aldb}{$aldbkey}{data1})/2.55;
-					my $raw_ramp_rate = $$member_aldb{aldb}{$aldbkey}{data2};
-					my $raw_tgt_ramp_rate = &Insteon::DimmableLight::convert_ramp($tgt_ramp_rate);
-					if (($raw_ramp_rate ne $raw_tgt_ramp_rate) && ($raw_ramp_rate ne '00' and $raw_tgt_ramp_rate ne '1f'))
-                                        {
-						$requires_update = 1;
-                                                &::print_log("[Insteon::BaseController] DEBUG: flagging " . $self->get_object_name
-                                                	. " for update because existing ramp rate ($raw_ramp_rate) != target ($raw_tgt_ramp_rate)")
-							if $self->debuglevel(1, 'insteon');
+	# Loop members
+	foreach my $member_ref (keys %{$$self{members}}) {
+		my $member = $$self{members}{$member_ref}{object};
+		
+		# find real device if member is a Light_Item
+		if ($member->isa('Light_Item')) {
+			my @children = $member->find_members('Insteon::BaseDevice');
+			$member = $children[0];
+		}
+		
+		#Initialize Loop Variables
+		my $member_name = $member->get_object_name;
+		my $member_root = $member->get_root;
+		my $requires_update = 0;
+		my $has_link = 1;
+		my $cause;
+		my $tgt_on_level = $$self{members}{$member_ref}{on_level};
+		$tgt_on_level = '100' unless defined $tgt_on_level;
+		my $tgt_ramp_rate = $$self{members}{$member_ref}{ramp_rate};
+		$tgt_ramp_rate = '0' unless defined $tgt_ramp_rate;
+		$tgt_on_level =~ s/(\d+)%?/$1/;
+		$tgt_ramp_rate =~ s/(\d)s?/$1/;
+		my $resp_aldbkey = $member_root->_aldb->get_linkkey($insteon_object->device_id,
+								$self->group,
+								'0',
+								$member->group);
 
-					}
-                                        elsif (($link_on_level > $tgt_on_level + 1) or ($link_on_level < $tgt_on_level -1))
-                                        {
-						$requires_update = 1;
-                                                &::print_log("[Insteon::BaseController] DEBUG: flagging " . $self->get_object_name
-                                                	. " for update because existing on level ($link_on_level) != target ($tgt_on_level)")
-							if $self->debuglevel(1, 'insteon');
-					}
-				}
-				if ($requires_update)
-                                {
-                                	if ($audit_mode)
-                                        {
-                                               &::print_log("[Insteon::BaseController] (AUDIT) - updating responder record to "
-                                               		. $member->get_object_name . " for "
-                                               		. $insteon_object->get_object_name . " with group:" . $self->group
-                                                        . "; on_level:$tgt_on_level; ramp_rate:$tgt_ramp_rate");
-                                        }
-                                        else
-                                        {
-						my %link_req = ( member => $member, cmd => 'update', object => $insteon_object,
-							group => $self->group, is_controller => 0,
-							on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,
-							callback => "$self_link_name->_process_sync_queue()" );
-						# set data3 is device is a KeypadLinc
-						if ($member->isa('Insteon::KeyPadLincRelay') or $member->isa('Insteon::KeyPadLinc'))
-                                        	{
-							$link_req{data3} = $linkmember->group;
-						}
-						main::print_log("[Insteon::BaseController] DEBUG4: queuing update for responder record to "
-							. $member->get_object_name . " for "
-							. $insteon_object->get_object_name . " with group:" . $self->group
-							. "; on_level:$tgt_on_level; ramp_rate:$tgt_ramp_rate")
-							if $self->debuglevel(4, 'insteon');
-				       		push @{$$self{sync_queue}}, \%link_req;
-                                        }
-				}
+		# 3. Does the responder link exist
+		if (!$member_root->has_link($insteon_object, $self->group, 0, $member->group) &&
+		($member_root->_aldb->health eq 'good' || $member_root->_aldb->health eq 'empty')){
+			my %link_req = ( member => $member, cmd => 'add', object => $insteon_object,
+				group => $self->group, is_controller => 0,
+				on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,
+				callback => "$self_link_name->_process_sync_queue()",
+				failure_callback => $failure_callback,
+				data3 => $member->group);
+			$link_req{cause} = "Adding responder record to $member_name from $self_link_name";
+			push @{$$self{sync_queue}}, \%link_req;
+			$has_link = 0;
+		} 
+		elsif ($member_root->_aldb->health ne 'good' && $member_root->_aldb->health ne 'empty'){
+			my %link_req = ( member => $member, cmd => 'add', object => $insteon_object,
+				group => $self->group, is_controller => 0,
+				on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,
+				callback => "$self_link_name->_process_sync_queue()",
+				failure_callback => $failure_callback,
+				data3 => $member->group);
+			$link_req{skip} = "Unable to add the following responder record to $member_name "
+				."from $self_link_name because the aldb of $member_name is "
+				. $member_root->_aldb->health;
+			push @{$$self{sync_queue}}, \%link_req;
+			$$self{sync_queue_failure} = 1;
+		}
+		
+		# 4. Is the responder link accurate
+		if ($member->isa('Insteon::DimmableLight') && $has_link) {
+			my $member_aldb = $member_root->_aldb;
+			my $data1 = $$member_aldb{aldb}{$resp_aldbkey}{data1};
+			my $data2 = $$member_aldb{aldb}{$resp_aldbkey}{data2};
+			my $cur_on_level = hex($data1)/2.55;
+			my $raw_cur_ramp_rate = $data2;
+			my $raw_tgt_ramp_rate = Insteon::DimmableLight::convert_ramp($tgt_ramp_rate);
+			if ($raw_cur_ramp_rate ne $raw_tgt_ramp_rate) {
+				$requires_update = 1;
+				$cause .= "Ramp rate ";
 			}
-                        else
-                        {
-                        	if ($audit_mode)
-                                {
-                                	&::print_log("[Insteon::BaseController] (AUDIT) - adding responder record to "
-                                        	. $member->get_object_name . " for "
-                                        	. $insteon_object->get_object_name . " with group:" . $self->group
-                                                . "; on_level:$tgt_on_level; ramp_rate:$tgt_ramp_rate");
-                                }
-                                else
-                                {
-					my %link_req = ( member => $member, cmd => 'add', object => $insteon_object,
-						group => $self->group, is_controller => 0,
-						on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,
-				       		callback => "$self_link_name->_process_sync_queue()" );
-			       		# set data3 is device is a KeypadLinc
-					if ($member->isa('Insteon::KeyPadLincRelay') or $member->isa('Insteon::KeyPadLinc'))
-                                	{
-						$link_req{data3} = $linkmember->group;
-					}
-					main::print_log("[Insteon::BaseController] DEBUG4: queuing add for responder record to "
-						. $member->get_object_name . " for "
-						. $insteon_object->get_object_name . " with group:" . $self->group
-						. "; on_level:$tgt_on_level; ramp_rate:$tgt_ramp_rate")
-						if $self->debuglevel(4, 'insteon');
-					push @{$$self{sync_queue}}, \%link_req;
-                                }
+			elsif ($cur_on_level-1 > $tgt_on_level && $cur_on_level+1 < $tgt_on_level){
+				$requires_update = 1;
+				$cause .= "On level ";
 			}
-			if (!($insteon_object->has_link($member, $self->group, 1, $linkmember->group)))
-                        {
-                        	if ($audit_mode)
-                                {
-                                	&::print_log("[Insteon::BaseController] (AUDIT) - adding controller record to "
-                                        	. $insteon_object->get_object_name . " for " . $member->get_object_name
-                                                . " with group:" . $self->group);
-                                }
-                                else
-                                {
-			       		my %link_req = ( member => $insteon_object, cmd => 'add', object => $member,
-						group => $self->group, is_controller => 1,
-						callback => "$self_link_name->_process_sync_queue()" );
-			       		# set data3 is device is a KeypadLinc
-					if ($member->isa('Insteon::KeyPadLincRelay') or $member->isa('Insteon::KeyPadLinc'))
-                                	{
-						$link_req{data3} = $linkmember->group;
-					}
-					main::print_log("[Insteon::BaseController] DEBUG4: queuing add for controller record to "
-						. $insteon_object->get_object_name . " for " . $member->get_object_name 
-						. " with group:" . $self->group) if $self->debuglevel(4, 'insteon');
-					push @{$$self{sync_queue}}, \%link_req;
-                                }
+		}
+		elsif ($has_link){
+			my $member_aldb = $member->_aldb;
+			my $data1 = $$member_aldb{aldb}{$resp_aldbkey}{data1};
+			my $data2 = $$member_aldb{aldb}{$resp_aldbkey}{data2};
+			if ($tgt_on_level >= 1 and $data1 ne 'ff') {
+				$requires_update = 1;
+				$tgt_on_level = 100;
+				$cause .= "On level ";
 			}
+			elsif ($tgt_on_level == 0 and $data1 ne '00') {
+				$requires_update = 1;
+				$cause .= "On level ";
+			}
+			if ($data2 ne '00') {
+				$requires_update = 1;
+				$tgt_ramp_rate = 0;
+				$cause .= "Ramp rate ";
+			}
+		}
+		if ($requires_update &&
+		($member_root->_aldb->health eq 'good' || $member_root->_aldb->health eq 'empty')) {
+			my %link_req = ( member => $member, cmd => 'update', object => $insteon_object,
+				group => $self->group, is_controller => 0,
+				on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,
+				callback => "$self_link_name->_process_sync_queue()",
+				failure_callback => $failure_callback,
+				data3 => $member->group);
+			$link_req{cause} = "Updating responder record on $member_name "
+				. "to fix $cause";
+			push @{$$self{sync_queue}}, \%link_req;
+		}
+
+		# 5. Does the controller link on this device exist
+		if (!($insteon_object->has_link($member, $self->group, 1, $self->group)) &&
+		$insteon_object_is_syncable) {
+			my %link_req = ( member => $insteon_object, cmd => 'add', object => $member,
+				group => $self->group, is_controller => 1,
+				callback => "$self_link_name->_process_sync_queue()",
+				failure_callback => $failure_callback,
+				data3 => $self->group);
+			$link_req{cause} = "Adding controller record to $self_link_name for $member_name";
+			push @{$$self{sync_queue}}, \%link_req;
 		}
 	}
-	# if not a plm controlled link, then confirm that a link back to the plm exists
-	if (!($self->isa('Insteon::InterfaceController')))
-        {
-		my $subaddress = ($self->isa('Insteon::KeyPadLincRelay') or $self->isa('Insteon::KeyPadLinc')) ? $self->group : '00';
-		#Make sure this device has a controller link to the PLM
-		if (!($insteon_object->has_link($self->interface,$self->group,1,$subaddress)))
-                {
-                	if ($audit_mode)
-                        {
-                               	&::print_log("[Insteon::BaseController] (AUDIT) - adding controller record to "
-                                	. $insteon_object->get_object_name . " for "
-                                       	. $self->interface->get_object_name . " with group:" . $self->group);
-                        }
-                        else
-                        {
-		       		my %link_req = ( member => $insteon_object, cmd => 'add', object => $self->interface,
-					group => $self->group, is_controller => 1,
-					callback => "$self_link_name->_process_sync_queue()" );
-				$link_req{data3} = $self->group if $insteon_object->isa('Insteon::KeyPadLincRelay') or $insteon_object->isa('Insteon::KeyPadLinc');
-				main::print_log("[Insteon::BaseController] DEBUG4: queuing add for controller record to "
-					. $insteon_object->get_object_name . " for "
-					. $self->interface->get_object_name . " with group:" . $self->group)
-					if $self->debuglevel(4, 'insteon');
-				push @{$$self{sync_queue}}, \%link_req;
-                        }
-		}
-		#Make sure the PLM has a responder link to this device
-		if (!($self->interface->has_link($insteon_object,$self->group,0,$subaddress)))
-                {
-                	if ($audit_mode)
-                        {
-                               	&::print_log("[Insteon::BaseController] (AUDIT) - adding responder record to "
-                                	. $self->interface->get_object_name . " for "
-                                       	. $insteon_object->get_object_name . " with group:" . $self->group);
-                        }
-                        else
-                        {
-				my %link_req = ( member => $self->interface, cmd => 'add', object => $insteon_object,
-					group => $self->group, is_controller => 0,
-			       		callback => "$self_link_name->_process_sync_queue()" );
-				main::print_log("[Insteon::BaseController] DEBUG4: queuing add for responder record to "
-					. $self->interface->get_object_name . " for "
-					. $insteon_object->get_object_name . " with group:" . $self->group)
-					if $self->debuglevel(4, 'insteon');
-				push @{$$self{sync_queue}}, \%link_req;
-                        }
-		}
-	}
+	
 	my $num_sync_queue = @{$$self{sync_queue}};
+	my $index = 0;
 	if (!($num_sync_queue))
-        {
+	{
 		&::print_log("[Insteon::BaseController] Nothing to do when syncing links for " . $self->get_object_name)
 			if $self->debuglevel(1, 'insteon');
 	}
+	foreach (@{$$self{sync_queue}}){
+		my %sync_req = %{$_};
+		my $audit_text = "(AUDIT)" if ($audit_mode);
+		my $log_text = "[Insteon::BaseController] $audit_text ";
+		if ($sync_req{skip}){
+			$log_text .= $sync_req{skip} ."\n";
+			splice @{$$self{sync_queue}}, $index, 1;
+		} else {
+			$index++;
+			$log_text .= $sync_req{cause} . "\n";
+		}
+		PRINT: for (keys %sync_req) {
+			next PRINT if (($_ eq 'cause') || ($_ eq 'callback') ||
+				($_ eq 'member') || ($_ eq 'object') || 
+				($_ eq 'skip') || ($_ eq 'failure_callback'));
+			$log_text .= "$_ = $sync_req{$_}; ";
+		}
+		::print_log($log_text);
+	}
+	if ($audit_mode) {
+		@{$$self{sync_queue}} = ();
+	}
+	
 	$self->_process_sync_queue();
-
-	# TO-DO: consult links table to determine if any "orphaned links" refer to this device; if so, then delete
-	# WARN: can't immediately do this as the link tables aren't finalized on the above operations
-	#    until the end of the actual insteon memory poke sequences; therefore, may need to handle separately
 }
 
 sub _process_sync_queue {
@@ -3236,11 +3213,14 @@ sub _process_sync_queue {
 			$link_member->add_link(%link_req);
 		}
 	} elsif ($$self{sync_queue_callback}) {
+		my $callback = $$self{sync_queue_callback};
+		if ($$self{sync_queue_failure}){
+			$callback = $$self{sync_queue_failure_callback};
+		}
 		package main;
-		eval ($$self{sync_queue_callback});
+		eval ($callback);
 		&::print_log("[Insteon::BaseController] error in sync links callback: " . $@)
 			if $@ and $self->debuglevel(1, 'insteon');
-		$$self{sync_queue_callback} = undef;
 		package Insteon::BaseController;
 	} else {
 		main::print_log($self->get_object_name." completed sync links");

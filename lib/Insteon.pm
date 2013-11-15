@@ -458,6 +458,7 @@ sub _get_next_linkscan
 			## check if aldb_delta has changed;
 			$current_scan_device->_aldb->{_aldb_unchanged_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.')';
 			$current_scan_device->_aldb->{_aldb_changed_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.', '.$current_scan_device->get_object_name.')';
+			$current_scan_device->_aldb->{_failure_callback} = '&Insteon::_get_next_linkscan_failure('.$skip_unchanged.')';
 			$current_scan_device->_aldb->query_aldb_delta("check");
 			$checking = 1;
 		}
@@ -476,16 +477,14 @@ sub _get_next_linkscan
     	{
           	&main::print_log("[Scan all link tables] All tables have completed scanning");
                 my $_scan_failure_cnt = scalar @_scan_device_failures;
-                if ($_scan_failure_cnt)
-                {
-          	  &main::print_log("[Scan all link tables] However, some failures were noted:");
-                  for my $failed_obj (@_scan_device_failures)
-                  {
-        		&main::print_log("[Scan all link tables] WARN: failure occurred when scanning "
-                	. $failed_obj->get_object_name);
-                  }
-                }
-
+                if ($_scan_failure_cnt){
+			my $obj_list;
+			for my $failed_obj (@_scan_device_failures){
+				$obj_list .= $failed_obj->get_object_name .", ";
+			}
+			::print_log("[Scan all link tables] However, some failures "
+				."were noted with the following devices: $obj_list");
+		}
     	}
 }
 
@@ -510,22 +509,10 @@ sub sync_all_links
 	# iterate over all registered objects and compare whether the link tables match defined scene linkages in known Insteon_Links
 	for my $obj (&Insteon::find_members('Insteon::BaseController'))
 	{
-        	if (!$obj->isa('Insteon::InterfaceController') && $obj->is_deaf)
-                {
-                	&main::print_log("[Sync all links] Ignoring links from 'deaf' device: " . $obj->get_object_name);
-                }
-                elsif(!($obj->isa('Insteon::InterfaceController')) && ($obj->_aldb->health eq 'unknown'))
-                {
-                	&main::print_log("[Sync all links] Skipping links from 'unreachable' device: "
-                        	. $obj->get_object_name . ". Consider rescanning the link table of this device");
-                }
-                else
-                {
-			my %sync_req = ('sync_object' => $obj, 'audit_mode' => ($audit_mode) ? 1 : 0);
-                	&main::print_log("[Sync all links] Adding " . $obj->get_object_name
-                        	. " to sync queue");
-	       		push @_sync_devices, \%sync_req
-                };
+		my %sync_req = ('sync_object' => $obj, 'audit_mode' => ($audit_mode) ? 1 : 0);
+		&main::print_log("[Sync all links] Adding " . $obj->get_object_name
+			. " to sync queue");
+		push @_sync_devices, \%sync_req
 	}
 
         $_sync_cnt = scalar @_sync_devices;
@@ -570,16 +557,14 @@ sub _get_next_linksync
         {
           	&main::print_log("[Sync all links] All links have completed syncing");
                 my $_sync_failure_cnt = scalar @_sync_device_failures;
-                if ($_sync_failure_cnt)
-                {
-          	  	&main::print_log("[Sync all links] However, some failures were noted:");
-                  	for my $failed_obj (@_sync_device_failures)
-                  	{
-        			&main::print_log("[Sync all links] WARN: failure occurred when syncing "
-                		. $failed_obj->get_object_name);
-                  	}
-                }
-
+                if ($_sync_failure_cnt){
+			my $obj_list;
+			for my $failed_obj (@_sync_device_failures){
+				$obj_list .= $failed_obj->get_object_name .", ";
+			}
+			::print_log("[Sync all links] WARN! Failures occured, "
+				."some links involving the following objects remain out-of-sync: $obj_list");
+		}
     	}
 
 }
@@ -593,10 +578,17 @@ the failed device to the module global variable @_sync_device_failures.
 
 sub _get_next_linksync_failure
 {
-        push @_sync_device_failures, $current_sync_device;
-        &main::print_log("[Sync all links] WARN: failure occurred when scanning "
-                	. $current_sync_device->get_object_name . ".  Moving on...");
-        &_get_next_linksync();
+        push @_sync_device_failures, $current_sync_device 
+		unless (grep{$current_sync_device == $_} @_sync_device_failures);
+        &main::print_log("[Sync all links] WARN: failure occurred when syncing links for "
+                	. $current_sync_device->get_object_name . ". Resuming sync queue if it exists.");
+	my $num_sync_queue = @{$$current_sync_device{sync_queue}};
+	if ($num_sync_queue){
+		$current_sync_device->_process_sync_queue();
+	}
+	else { #No other pending links in the queue
+		&_get_next_linksync();
+	}
 
 }
 
