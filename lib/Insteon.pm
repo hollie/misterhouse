@@ -561,11 +561,11 @@ sub _get_next_linksync
                 my $_sync_failure_cnt = scalar @_sync_device_failures;
                 if ($_sync_failure_cnt)
                 {
-          	  	&main::print_log("[Sync all links] However, some failures were noted:");
+          	  	&main::print_log("[Sync all links] WARN! Failures occured, "
+          	  		."some links for the following objects remain out-of-sync:");
                   	for my $failed_obj (@_sync_device_failures)
                   	{
-        			&main::print_log("[Sync all links] WARN: failure occurred when syncing "
-                		. $failed_obj->get_object_name);
+        			&main::print_log("[Sync all links] " . $failed_obj->get_object_name);
                   	}
                 }
 
@@ -583,7 +583,7 @@ the failed device to the module global variable @_sync_device_failures.
 sub _get_next_linksync_failure
 {
         push @_sync_device_failures, $current_sync_device;
-        &main::print_log("[Sync all links] WARN: failure occurred when scanning "
+        &main::print_log("[Sync all links] WARN: failure occurred when syncing links for "
                 	. $current_sync_device->get_object_name . ".  Moving on...");
         &_get_next_linksync();
 

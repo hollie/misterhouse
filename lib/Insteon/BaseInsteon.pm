@@ -2995,6 +2995,8 @@ sub sync_links
 	# Intialize Variables
 	@{$$self{sync_queue}} = (); # reset the work queue
 	$$self{sync_queue_callback} = ($callback) ? $callback : undef;
+	$$self{sync_queue_failure_callback} = ($failure_callback) ? $failure_callback : undef;
+	$$self{sync_queue_failure} = undef;
 	my $self_link_name = $self->get_object_name;
 	my $insteon_object = $self->interface;
 	my $interface_object = Insteon::active_interface();
@@ -3019,6 +3021,7 @@ sub sync_links
 			."linked to this device, but no links will be added to $self_link_name.  Please rescan this device and attempt "
 			."sync links again.");
 		$insteon_object_is_syncable = 0;
+		$$self{sync_queue_failure} = 1;
 	}
 	
 	# 1. Does a controller link exist for Device-> PLM
@@ -3097,6 +3100,7 @@ sub sync_links
 				."from $self_link_name because the aldb of $member_name is "
 				. $member_root->_aldb->health;
 			push @{$$self{sync_queue}}, \%link_req;
+			$$self{sync_queue_failure} = 1;
 		}
 		
 		# 4. Is the responder link accurate
@@ -3209,11 +3213,14 @@ sub _process_sync_queue {
 			$link_member->add_link(%link_req);
 		}
 	} elsif ($$self{sync_queue_callback}) {
+		my $callback = $$self{sync_queue_callback};
+		if ($$self{sync_queue_failure}){
+			$callback = $$self{sync_queue_failure_callback};
+		}
 		package main;
-		eval ($$self{sync_queue_callback});
+		eval ($callback);
 		&::print_log("[Insteon::BaseController] error in sync links callback: " . $@)
 			if $@ and $self->debuglevel(1, 'insteon');
-		$$self{sync_queue_callback} = undef;
 		package Insteon::BaseController;
 	} else {
 		main::print_log($self->get_object_name." completed sync links");
