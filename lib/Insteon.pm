@@ -550,8 +550,9 @@ sub _get_next_linksync
                 	. $current_sync_device->get_object_name . " ("
                         . ($_sync_cnt - scalar @_sync_devices)
                         . " of $_sync_cnt)");
+		my $skip_deaf = 1;
                 # pass first the success callback followed by the failure callback
-          	$current_sync_device->sync_links($sync_req{'audit_mode'}, '&Insteon::_get_next_linksync()','&Insteon::_get_next_linksync_failure()');
+          	$current_sync_device->sync_links($sync_req{'audit_mode'}, '&Insteon::_get_next_linksync()','&Insteon::_get_next_linksync_failure()', $skip_deaf);
     	}
         else
         {

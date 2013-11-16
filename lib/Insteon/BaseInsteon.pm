@@ -2990,7 +2990,7 @@ it then loops through all of the links defined for a device and checks:
 
 sub sync_links
 {
-	my ($self, $audit_mode, $callback, $failure_callback) = @_;
+	my ($self, $audit_mode, $callback, $failure_callback, $skip_deaf) = @_;
 	
 	# Intialize Variables
 	@{$$self{sync_queue}} = (); # reset the work queue
@@ -3010,9 +3010,10 @@ sub sync_links
 	
 	# Warn if device is deaf or ALDB out of sync
 	my $insteon_object_is_syncable = 1;
-	if ($insteon_object->is_deaf) {
+	if ($insteon_object->is_deaf && $skip_deaf) {
 		::print_log("[Insteon::BaseController] $self_link_name is deaf, only responder links will be added to devices "
-			."controlled by this device.");
+			."controlled by this device.  To sync links on this device, put it in awake mode and run the 'Sync Links' "
+			."command on this specific device.");
 		$insteon_object_is_syncable = 0;
 	}
 	elsif ($insteon_object->_aldb->health ne 'good' && $insteon_object->_aldb->health ne 'empty'){

@@ -899,9 +899,13 @@ sub _is_duplicate_received {
             #This message still provides a data point on how many hops it is 
             #taking for messages to arrive.
             $object->default_hop_count($msg{maxhops}-$msg{hopsleft}) if $object->can('default_hop_count');
-		};
 		::print_log("[Insteon::BaseInterface] WARN! Dropped duplicate incoming message "
 			. $message_data . ", from ". $object->get_object_name) if $object->debuglevel(1, 'insteon');
+		}
+		else {
+			::print_log("[Insteon::BaseInterface] WARN! Dropped duplicate incoming message "
+			. " from an unknown device.  Id: $msg{source} Grp: $msg{group}") if $main::Debug{'insteon'};
+		}
 	} else {
 		#Message was not in hash, so add it
 		$$self{received_commands}{$key} = $curr_milli + $delay;
