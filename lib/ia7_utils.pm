@@ -31,7 +31,7 @@ easiest to force the default setup.
 sub get_cats {
 	my %default_cats = (
 		'01-Mr. House Home' => { 
-			'link' => 'house/index.html',
+			'link' => 'view_sub_cat.pl?category=1',
 			'icon' => 'fa-home',
 			'key' => 1
 		},
@@ -94,6 +94,111 @@ sub get_cats {
 	);
 	return \%default_cats;
 }
+
+=item B<get_sub_cats>
+
+Returns a reference to a hash containing the database of sub-catagories.
+
+In the future, the sub-categories will be written to the data directory.  If no such
+file exists a default copy will be created.  While building the code, it is
+easiest to force the default setup.
+
+=cut
+
+sub get_sub_cats {
+	my %default_sub_cats = (
+		'01-About MrHouse' => { 
+			'link' => 'house/main.shtml',
+			'icon' => 'fa-home',
+			'category' => 1
+		},
+		'02-About 3Com Audrey' => { 
+			'link' => 'house/aboutaudrey.shtml',
+			'icon' => 'fa-desktop',
+			'category' => 1
+		},
+		'03-Browse MrHouse' => { 
+			'link' => 'house/browsemrhouse.shtml',
+			'icon' => 'fa-home',
+			'category' => 1
+		},
+		'04-Browse Categories' => { 
+			'link' => '/bin/list_categories.pl',
+			'icon' => 'fa-archive',
+			'category' => 1
+		},
+		'05-Browse Groups' => { 
+			'link' => '/bin/list_groups.pl',
+			'icon' => 'fa-group',
+			'category' => 1
+		},
+		'06-Browse Items' => { 
+			'link' => '/bin/list_items.pl',
+			'icon' => 'fa-info',
+			'category' => 1
+		},
+		'07-Browse Widgets' => { 
+			'link' => '/bin/list_widgets.pl',
+			'icon' => 'fa-gears',
+			'category' => 1
+		},
+		'08-Setup MrHouse' => { 
+			'link' => 'house/setup.shtml',
+			'icon' => 'fa-wrench',
+			'category' => 1
+		},
+	);
+	return \%default_sub_cats;
+}
+
+sub print_header {
+	my ($title) = @_;
+	$output =<<END;
+	
+	<!DOCTYPE html>
+	<html><head><title>$title</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		
+		<!--Font Awesome-->
+		<link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css" rel="stylesheet">
+		
+		<!--Bootstrap-->
+		<!-- Latest compiled and minified CSS -->
+		<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css">
+		
+		<!-- Optional theme -->
+		<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap-theme.min.css">
+		
+		<!-- Latest compiled and minified JavaScript -->
+		<script src="//netdna.bootstrapcdn.com/bootstrap/3.0.2/js/bootstrap.min.js"></script>
+		<style type="text/css">
+		.btn-category {
+		  overflow: hidden;
+		  text-overflow: ellipsis;
+		  white-space: no-wrap;
+		  text-align: left;
+		  padding-left: 15px;
+		  padding-right: 15px;
+		}
+		.top-buffer { margin-top:20px; }
+		.col-center {text-align: center;}
+		</style>
+	</head>
+	<body>
+	<div class='row top-buffer'>
+		<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
+			<div class='col-sm-4'>
+				<a href='/ia5/'>
+				<img src='images/mhlogo.gif' alt='Reload Page' alt='Reload' border='0'>
+				</a>
+			</div>
+		</div>
+	</div>
+END
+	return $output;	
+}
+
+
 =back
 
 =head2 INI PARAMETERS

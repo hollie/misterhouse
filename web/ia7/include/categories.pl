@@ -8,11 +8,6 @@ my $row = 1;
 my $column = 1;
 my $output = '';
 
-#use Data::Dumper;
-
-#return Dumper(%default_cats);
-
-#foreach my $key (keys %default_cats){
 foreach my $key (sort(keys %default_cats)){
 	my $name = $key;
 	$name =~ s/^\d*-//i;
