@@ -1,0 +1,12 @@
+<!--#include file="/ia7/include/header.pl?title=MrHouse%20Menu"-->
+<!--#include file="/ia7/include/categories.pl"-->
+<div class='row top-buffer'>
+	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
+		<div class='col-sm-12 col-center'>
+			<!-- Put Footer Stuff Here -->
+			<!--#include file="/bin/tagline.pl"--><br>
+			<!--#include file="/bin/uptime.pl"-->&nbsp;&nbsp;<!--#include file="$config_parms{web_href_counter}"-->
+		</div>
+	</div>
+</div>
+</body></html>
