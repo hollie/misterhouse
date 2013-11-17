@@ -1,56 +1,9 @@
 ## Returns the HTML formated category grid
 
-my %default_cats = (
-	'01-Mr. House Home' => { 
-		'link' => 'house/index.html',
-		'icon' => 'fa-home'
-	},
-	'02-Mail and News' => { 
-		'link' => 'news/index.html',
-		'icon' => 'fa-envelope'
-	},
-	'03-Modes' => { 
-		'link' => 'modes/index.html',
-		'icon' => 'fa-tasks'
-	},
-	'04-Lights & Appliances' => { 
-		'link' => 'lights/index.html',
-		'icon' => 'fa-lightbulb-o'
-	},
-	'05-HVAC & Weather' => { 
-		'link' => 'outside/index.shtml',
-		'icon' => 'fa-umbrella'
-	},
-	'06-Security Cameras' => { 
-		'link' => 'security/index.html',
-		'icon' => 'fa-camera'
-	},
-	'07-Phone Calls & VoiceMail Msgs' => { 
-		'link' => 'phone/index.html',
-		'icon' => 'fa-phone'
-	},
-	'08-TV/Radio Guide & MP3 Music' => { 
-		'link' => 'entertain/index.html',
-		'icon' => 'fa-music'
-	},
-	'09-Speech' => { 
-		'link' => 'speak/index.html',
-		'icon' => 'fa-microphone'
-	},
-	'10-Comics & Pictures' => { 
-		'link' => 'pictures/index.html',
-		'icon' => 'fa-picture-o'
-	},
-	'11-Events, Calendar, & Clock' => { 
-		'link' => 'calendar/index.html',
-		'icon' => 'fa-calendar'
-	},
-	'12-Statistics & Logged Data' => { 
-		'link' => 'statistics/index.html',
-		'icon' => 'fa-bar-chart-o'
-	},
-	
-);
+use ia7_utils;
+
+my %default_cats = %{ia7_utils::get_cats()};
+
 my $row = 1;
 my $column = 1;
 my $output = '';
