@@ -189,7 +189,7 @@ sub print_header {
 		<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
 			<div class='col-sm-4'>
 				<a href='/ia5/'>
-				<img src='images/mhlogo.gif' alt='Reload Page' alt='Reload' border='0'>
+				<img src='/ia5/images/mhlogo.gif' alt='Reload Page' alt='Reload' border='0'>
 				</a>
 			</div>
 		</div>

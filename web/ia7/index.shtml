@@ -1,4 +1,4 @@
-<!--#include code="&ia7_utils::print_header('MrHouse Home')"-->
+<!--#include code="&ia7_utils::print_header('MrHouseHome')"-->
 <!--#include file="/ia7/include/categories.pl"-->
 <div class='row top-buffer'>
 	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
