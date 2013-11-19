@@ -1,7 +1,22 @@
 <!--#include code="&ia7_utils::print_header('Browse MrHouse')" -->
-<!-- include file="/list?MisterHouse" -->
 <div id="list_content">
 </div>
+<!-- Modal -->
+<div class="modal fade" id="lastResponse" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h4 class="modal-title" id="myModalLabel">Last Response</h4>
+      </div>
+      <div class="modal-body">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
 <script type="text/javascript">
 
 var loadList = function() {
@@ -48,8 +63,8 @@ var loadList = function() {
 				button_html += '</div>';
 			}
 			else {
-				button_html = "<div style='vertical-align:middle'><a href='' class='btn btn-default btn-lg btn-block btn-category' role='button'>";
-				button_html += "" +button_text+"</a></div>";
+				button_html = "<div style='vertical-align:middle'><button type='button' class='btn btn-default btn-lg btn-block btn-category'>";
+				button_html += "" +button_text+"</button></div>";
 			}
 			$('#row'+row).append("<div class='col-sm-4'>" + button_html + "</div>");
 			if (column == 3){
@@ -61,6 +76,18 @@ var loadList = function() {
 		$(".dropdown-menu > li > a").click( function () {
 			var button_group = $(this).parents('.btn-group');
 			button_group.find('.leadcontainer > .dropdown-lead >u').html($(this).text());
+		});
+		$(".btn-category").click( function () {
+			var voice_cmd = $(this).text().replace(/ /g, "_");
+			var url = '/RUN;last_response?select_cmd=' + voice_cmd;
+			$.get( url, function(data) {
+				var start = data.toLowerCase().indexOf('<body>') + 6;
+				var end = data.toLowerCase().indexOf('</body>');
+				$('#lastResponse').find('.modal-body').html(data.substring(start, end));
+				$('#lastResponse').modal({
+					show: true
+				});
+			});
 		});
 		}//success function
 	});  //ajax request
