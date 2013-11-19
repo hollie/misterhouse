@@ -231,9 +231,12 @@ sub send
 
         	if ($self->send_attempts > 0)
                 {
-                	&::print_log("[Insteon::BaseMessage] WARN: now resending "
-                        	. $self->to_string() . " after " . $self->send_attempts
-                        	. " attempts.") if $self->setby->debuglevel(1, 'insteon');
+			if ((ref $self->setby && $self->setby->debuglevel(1, 'insteon')) ||
+				((!ref $self->setby) && ::debug{'insteon'})){
+				::print_log("[Insteon::BaseMessage] WARN: now resending "
+				. $self->to_string() . " after " . $self->send_attempts
+				. " attempts.");
+			}
                         # revise default hop count to reflect retries
                         if (ref $self->setby && $self->setby->isa('Insteon::BaseObject') 
                         	&& !defined($$self{no_hop_increase}))
