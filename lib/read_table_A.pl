@@ -14,7 +14,7 @@ use strict;
 
 #print_log "Using read_table_A.pl";
 
-my (%groups, %objects, %packages, %addresses);
+my (%groups, %objects, %packages, %addresses, %scene_build_controllers, %scene_build_responders);
 
 sub read_table_init_A {
                                 # reset known groups
@@ -23,11 +23,13 @@ sub read_table_init_A {
 	%objects=();
 	%packages=();
         %addresses=();
+        %scene_build_controllers=();
+        %scene_build_responders=();
 }
 
 sub read_table_A {
     my ($record) = @_;
-
+    
     if($record =~ /^#/ or $record =~ /^\s*$/) {
        return;
     }
@@ -138,6 +140,12 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon::MotionSensor(\'$address\', $other)";
     }
+    elsif($type eq "INSTEON_TRIGGERLINC") {
+        require Insteon::Security;
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon::TriggerLinc(\'$address\', $other)";
+    }
     elsif($type eq "INSTEON_IOLINC") {
         require Insteon::IOLinc;
         ($address, $name, $grouplist, @other) = @item_info;
@@ -162,10 +170,10 @@ sub read_table_A {
         }
     }
     elsif($type eq 'IPLT' or $type eq 'INSTEON_THERMOSTAT') {
-        require 'Insteon_Thermostat.pm';
+        require Insteon::Thermostat;
         ($address, $name, $grouplist, $object, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "Insteon_Thermostat(\$$object, \'$address\', $other)";
+        $object = "Insteon::Thermostat(\'$address\', $other)";
     }
     elsif($type eq "INSTEON_IRRIGATION") {
         require Insteon::Irrigation;
@@ -517,65 +525,73 @@ sub read_table_A {
     }
    elsif ($type eq "PA") {
         require 'PAobj.pm';
-        my $pa_type;
-        ($address, $name, $grouplist, $other, $pa_type, @other) = @item_info;
-        # $other is being used as the serial name
+        my ($pa_type, $serial);
+        ($address, $name, $grouplist, $serial, $pa_type, @other) = @item_info;
         $pa_type = 'wdio' unless $pa_type;
-
+        
         if( ! $packages{PAobj}++ ) {   # first time for this object type?
             $code .= "my (%pa_weeder_max_port,%pa_zone_types,%pa_zone_type_by_zone);\n";
         }
 
-#       if ($config_parms{pa_type} ne $pa_type) {
-        if(1==0) {
-            print "ERROR! INI parm \"pa_type\"=$main::config_parms{pa_type}, but PA item $name is a type of $pa_type. Skipping PA zone.\n - r=$record\n";
-            return;
-        } else {
-#           $name = "pa_$name";
+        $code .= sprintf "\n\$%-35s = new PAobj_zone('%s','%s','%s','%s','%s');\n","pa_$name", $address, $name, $grouplist, $serial, $pa_type;
+        $name = "pa_$name";
 
-            $grouplist = "|$grouplist|allspeakers";
-            $grouplist =~ s/\|\|/\|/g;
-            $grouplist =~ s/\|/\|pa_/g;
-            $grouplist =~ s/^\|//;
-            $grouplist .= '|hidden';
+        $grouplist = "|$grouplist|allspeakers";
+        $grouplist =~ s/\|\|/\|/g;
+        $grouplist =~ s/\|/\|pa_/g;
+        $grouplist =~ s/^\|//;
+        $grouplist .= '|hidden';
 
-            if ($pa_type =~ /^wdio/i) {
-                $name = "pa_$name";
-                   # AHB / ALB  or DBH / DBL
-                $address =~ s/^(\S)(\S)$/$1H$2/;# if $pa_type eq 'wdio';
-                $address = "D$address" if $pa_type eq 'wdio_old';
-#                $address =~ s/^(\S)(\S)$/DBH$2/ if $pa_type eq 'wdio_old';
-                $code .= sprintf "\n\$%-35s = new Serial_Item('%s','on','%s');\n",$name,$address,$other;
-#                $code .= sprintf "\n\$\$%s{pa_type} = '%s';\n",$name,$pa_type;
+        if ($pa_type =~ /^wdio/i) {
+               # AHB / ALB  or DBH / DBL
+            $address =~ s/^(\S)(\S)$/$1H$2/;# if $pa_type eq 'wdio';
+            $address = "D$address" if $pa_type eq 'wdio_old';
+            $code .= sprintf "\$%-35s = new Serial_Item('%s','on','%s');\n",$name.'_obj',$address,$serial;
 
-#                $code .= sprintf "\$pa_zone_types{%s}++ unless \$pa_zone_types{%s};\n",$pa_type,$pa_type;
-#                $code .= sprintf "\$pa_zone_type_by_zone{%s} = '%s';\n",$name,$pa_type;
+            $address =~ s/^(\S{1,2})H(\S)$/$1L$2/;
+            $code .= sprintf "\$%-35s -> add ('%s','off');\n",$name.'_obj',$address;
 
-                $address =~ s/^(\S{1,2})H(\S)$/$1L$2/;
-#                $address =~ s/^(\S)H(\S)$/$1L$2/ if $pa_type eq 'wdio';
-#                $address =~ s/^D(\S)H(\S)$/D$1L$2/ if $pa_type eq 'wdio_old';
-                $code .= sprintf "\$%-35s -> add ('%s','off');\n",$name,$address;
-
-                $object = '';
-            } elsif (lc $pa_type eq 'x10') {
-                $name = "pa_$name";
-                $other = join ', ', (map {"'$_'"} @other); # Quote data
-                $object = "X10_Appliance('$address', $other)";
-            } elsif (lc $pa_type eq 'xap') {
-                $name = "paxap_$name";
-                $code .= sprintf "\n\$%-35s = new xAP_Item('%s');\n",$name,$address;
-                $code .= sprintf "\$%-35s -> target_address('%s');\n",$name,$address;
-                $code .= sprintf "\$%-35s -> class_name('%s');\n",$name,$other;
-            } elsif (lc $pa_type eq 'xpl') {
-                $name = "paxpl_$name";
-                $code .= sprintf "\n\$%-35s = new xPL_Item('%s');\n",$name,$address;
-                $code .= sprintf "\$%-35s -> target_address('%s');\n",$name,$address;
-                $code .= sprintf "\$%-35s -> class_name('%s');\n",$name,$other;
+            $object = '';
+        } elsif (lc $pa_type eq 'object') {
+            if($name =~ /^pa_pa_/i) {
+                print "\nObject name \"$name\" starts with \"pa_\". This will cause conflicts. Ignoring entry";
             } else {
-                print "\nUnrecognized .mht entry for PA: $record\n";
-                return;
+                $code .= sprintf "\$%-35s -> tie_items(\$%s,'off','off');\n",$name,$address;
+                $code .= sprintf "\$%-35s -> tie_items(\$%s,'on','on');\n",$name,$address;
             }
+        } elsif (lc $pa_type eq 'audrey') {
+            require 'Audrey_Play.pm';
+            $code .= sprintf "\$%-35s = new Audrey_Play('%s');\n",$name.'_obj',$address;
+            $code .= sprintf "\$%-35s -> hidden(1);\n", $name.'_obj';
+        } elsif (lc $pa_type eq 'x10') {
+            $other = join ', ', (map {"'$_'"} @other); # Quote data
+            $code .= sprintf "\$%-35s = new X10_Appliance('%s','%s');\n",$name.'_obj',$address, $serial;
+            $code .= sprintf "\$%-35s -> hidden(1);\n", $name.'_obj';
+            $code .= sprintf "\$%-35s -> tie_items(\$%s,'off','off');\n",$name,$name.'_obj';
+            $code .= sprintf "\$%-35s -> tie_items(\$%s,'on','on');\n",$name,$name.'_obj';
+        } elsif (lc $pa_type eq 'xap') {
+            $code .= sprintf "\$%-35s = new xAP_Item('%s');\n",$name.'_obj',$address;
+            $code .= sprintf "\$%-35s -> hidden(1);\n", $name.'_obj';
+            $code .= sprintf "\$%-35s -> target_address('%s');\n",$name.'_obj',$address;
+            $code .= sprintf "\$%-35s -> class_name('%s');\n",$name.'_obj',$serial;
+            $code .= sprintf "\$%-35s -> tie_items(\$%s,'on','on');\n",$name,$name.'_obj';
+        } elsif (lc $pa_type eq 'xpl') {
+            $code .= sprintf "\$%-35s = new xPL_Item('%s');\n",$name.'_obj',$address;
+            $code .= sprintf "\$%-35s -> hidden(1);\n", $name.'_obj';
+            $code .= sprintf "\$%-35s -> target_address('%s');\n",$name.'_obj',$address;
+            $code .= sprintf "\$%-35s -> class_name('%s');\n",$name.'_obj',$serial;
+            $code .= sprintf "\$%-35s -> tie_items(\$%s,'on','on');\n",$name,$name.'_obj';
+        } elsif (lc $pa_type eq 'aviosys') {
+            my $aviosysref = {'on' => {'1' => '!','2' => '#','3' => '%','4' => '&','5' => '(','6' => '_','7' => '{','8' => '}' },'off' => {'1' => '@','2' => '$','3' => '^','4' => '*','5' => ')','6' => '-','7' => '[','8' => ']'}};
+            $code .= sprintf "\$%-35s = new Serial_Item('%s','on','%s');\n",$name.'_obj',$aviosysref->{'on'}{$address},$serial;
+            $code .= sprintf "\$%-35s -> add ('%s','off');\n",$name.'_obj',$aviosysref->{'off'}{$address};
+        } elsif (lc $pa_type eq 'amixer') {
+            #Nothing needed here, except to avoid the "else" statement.
+        } else {
+            print "\nUnrecognized .mht entry for PA: $record\n";
+            return;
         }
+
     }
     elsif($type =~ /^EIB/) {
         ($address, $name, $grouplist, @other) = @item_info;
@@ -992,6 +1008,21 @@ sub read_table_A {
         }
         $object = '';
     }
+    elsif($type eq "SCENE_BUILD") {
+	#SCENE_BUILD, scene_name, scene_member, is_controller?, is_responder?, onlevel, ramprate
+        my ($scene_member, $is_scene_controller, $is_scene_responder, $on_level, $ramp_rate);
+        ($name, $scene_member, $is_scene_controller, $is_scene_responder, $on_level, $ramp_rate) = @item_info;
+        if( ! $packages{Scene}++ ) {   # first time for this object type?
+            $code .= "use Scene;\n";
+        }
+	if ($is_scene_controller){
+		$scene_build_controllers{$name}{$scene_member} = "1";
+	}
+	if ($is_scene_responder){
+		$scene_build_responders{$name}{$scene_member} = "$on_level,$ramp_rate";
+	}
+	$object = '';
+    }
     elsif ($type eq "PHILIPS_HUE"){
     	($address, $name, $grouplist, @other) = @item_info;
     	$other = join ', ', (map {"'$_'"} @other); # Quote data
@@ -1044,6 +1075,56 @@ sub read_table_A {
 
     }
 
+    return $code;
+}
+
+sub read_table_finish_A {
+    my $code = '';
+    #a scene cannot exist without a responder, but it could lack a controller if
+    #scene is a PLM Scene
+    foreach my $scene (sort keys %scene_build_responders) {
+        $code .= "\n#SCENE_BUILD Definition for scene: $scene\n";
+
+        if($objects{$scene}) {
+            #Since an object exists with the same name as the scene, 
+            #make it a controller of the scene, too. Hopefully it can be a controller
+            $scene_build_controllers{$scene}{$scene}="1";
+        }
+
+        #Loop through the controller hash
+        if (exists $scene_build_controllers{$scene}){
+	        foreach my $scene_controller (keys %{$scene_build_controllers{$scene}}) {
+	            if ($objects{$scene_controller}) {
+	            	#Make a link to each responder in the responder hash
+	                while (my ($scene_responder, $responder_data) = each(%{$scene_build_responders{$scene}})) {
+	                    my ($on_level, $ramp_rate) = split(',', $responder_data);
+	
+	                    if (($objects{$scene_responder}) and ($scene_responder ne $scene_controller)) {
+	                        if ($on_level) {
+	                            if ($ramp_rate) {
+	                                $code .= sprintf "\$%-35s -> add(\$%s,'%s','%s');\n",
+	                                    $scene_controller, $scene_responder, $on_level, $ramp_rate;
+	                            } else {
+	                                $code .= sprintf "\$%-35s -> add(\$%s,'%s');\n", 
+	                                    $scene_controller, $scene_responder, $on_level;
+	                            }
+	                        } else {
+	                            $code .= sprintf "\$%-35s -> add(\$%s);\n", $scene_controller, $scene_responder;
+	                        }
+	                    }
+	                }
+	
+	            } else {
+	                ::print_log("[Read_Table_A] ERROR: There is no object ".
+	                	"called $scene_controller defined.  Ignoring SCENE_BUILD entry.");
+	            }
+	        }
+        } 
+        else {
+        	::print_log("[Read_Table_A] ERROR: There is no controller ".
+	                "defined for $scene.  Ignoring SCENE_BUILD entry.");
+        }
+    }
     return $code;
 }
 
