@@ -162,6 +162,9 @@ sub print_header {
 		<!--Font Awesome-->
 		<link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css" rel="stylesheet">
 		
+		<!-- Jquery -->
+		<script src="//code.jquery.com/jquery-1.10.2.min.js"></script>
+		
 		<!--Bootstrap-->
 		<!-- Latest compiled and minified CSS -->
 		<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css">
@@ -171,17 +174,40 @@ sub print_header {
 		
 		<!-- Latest compiled and minified JavaScript -->
 		<script src="//netdna.bootstrapcdn.com/bootstrap/3.0.2/js/bootstrap.min.js"></script>
+		
 		<style type="text/css">
 		.btn-category {
 		  overflow: hidden;
 		  text-overflow: ellipsis;
-		  white-space: no-wrap;
+		  white-space: nowrap;
 		  text-align: left;
 		  padding-left: 15px;
 		  padding-right: 15px;
 		}
-		.top-buffer { margin-top:20px; }
-		.col-center {text-align: center;}
+		.btn-category-dropdown {
+		  
+		}
+		.top-buffer {
+			margin-top:20px;
+		}
+		.col-center {
+			text-align: center;
+		}
+		.dropdown-lead{
+			width: 100%;
+		}
+		.leadcontainer {
+			left: 0;
+			position: absolute;
+			right: 30px;
+		}
+		.dropdown-toggle{
+			width: 30px;
+			box-sizing: border-box;
+		}
+		.fillsplit {
+			position: relative;
+		}
 		</style>
 	</head>
 	<body>
