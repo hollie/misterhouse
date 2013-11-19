@@ -7,12 +7,12 @@
 #@ update docs.  This script also defines and lets you set the various modes.
 
 # Reload MisterHouse
-$v_reload_code  = new Voice_Cmd("[Reload,re load] code");
+$v_reload_code  = new Voice_Cmd("{Reload,re load} code");
 $v_reload_code->set_info('Load mh.ini, icon, and/or code changes');
 $v_reload_code->tie_event('push(@Nextpass_Actions, \&read_code)'); # noloop
 
 # Force reload MisterHouse
-$v_reload_code2 = new Voice_Cmd("Force [Reload,re load] code");
+$v_reload_code2 = new Voice_Cmd("Force {Reload,re load} code");
 $v_reload_code2->set_info('Force a code reload of all modules');
 $v_reload_code2->tie_event('push(@Nextpass_Actions, # noloop
   \&read_code_forced)'); # noloop
