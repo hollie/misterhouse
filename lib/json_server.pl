@@ -82,6 +82,7 @@ sub json {
 		}
 		foreach my $type ( sort @types ) {
 			print_log "json: type $type" if $Debug{json};
+			$json{'types'}{$type} = {};
 			unless ( $options{truncate} ) {
 				foreach my $object ( sort &list_objects_by_type($type) ) {
 					$object = &get_object_by_name($object);
@@ -107,6 +108,7 @@ sub json {
 			print_log "json: group $group" if $Debug{json};
 			my $group_object = &get_object_by_name($group);
 			next unless $group_object;
+			$json{'groups'}{$group} = {};
 			unless ( $options{truncate} ) {
 				foreach my $object ( list $group_object) {
 					$name = $object->{object_name};
@@ -132,6 +134,7 @@ sub json {
 		for my $category ( sort @categories ) {
 			print_log "json: cat $category" if $Debug{json};
 			next if $category =~ /^none$/;
+			$json{categories}{$category} = {};
 			unless ( $options{truncate} ) {
 				foreach my $name ( sort &list_objects_by_webname($category) ) {
 					my ( $object, $type );
