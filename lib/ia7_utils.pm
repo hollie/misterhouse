@@ -233,19 +233,19 @@ sub list_categories{
 	var list_categories = function() {
 		$.ajax({
 		type: "GET",
-		url: "/sub?xml(categories,truncate)",
-		dataType: "xml",
-		success: function( xml ) {
+		url: "/sub?json(categories,truncate)",
+		dataType: "json",
+		success: function( json ) {
 			var row = 0;
 			var column = 1;
 			var button_text = '';
 			var button_html = '';
-			$(xml).find('misterhouse>categories>category').each(function(){
+			for (var k in json.categories){
 				if (column == 1){
 					$('#list_content').append("<div id='buffer"+row+"' class='row top-buffer'>");
 					$('#buffer'+row).append("<div id='row" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
 				}
-				button_text = $(this).find('name').text();
+				button_text = k;
 
 				//Put Categories into button
 				button_html = "<div style='vertical-align:middle'><button type='button' class='btn btn-default btn-lg btn-block btn-category'>";
@@ -257,7 +257,7 @@ sub list_categories{
 					row++;
 				}
 				column++;
-			});//xml each loop
+			};//json for loop
 			$(".btn-category").click( function () {
 				window.location.href = "/ia7/print_category.pl?category=" + $(this).text();
 			});
@@ -299,19 +299,24 @@ sub print_category {
 	var loadList = function(category) {
 		$.ajax({
 		type: "GET",
-		url: "/sub?xml(categories="+category+",fields=text|type)",
-		dataType: "xml",
-		success: function( xml ) {
+		url: "/sub?json(categories="+category+",fields=text|type)",
+		dataType: "json",
+		success: function( json ) {
 			var row = 0;
 			var column = 1;
 			var button_text = '';
 			var button_html = '';
-			$(xml).find('misterhouse>categories>category>objects>object').each(function(){
+			var cat_hash = {};
+			for (var k in json.categories){
+				cat_hash = json.categories[k];
+				break
+			}
+			for (var k in cat_hash){
 				if (column == 1){
 					$('#list_content').append("<div id='buffer"+row+"' class='row top-buffer'>");
 					$('#buffer'+row).append("<div id='row" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
 				}
-				button_text = $(this).find('text').text();
+				button_text = cat_hash[k].text;
 				//Choose the first alternative of {} group
 				while (button_text.indexOf('{') >= 0){
 					var regex = /([^\{]*)\{([^,]*)[^\}]*\}(.*)/;
@@ -349,7 +354,7 @@ sub print_category {
 					row++;
 				}
 				column++;
-			});//xml each loop
+			};//json each loop
 			$(".dropdown-menu > li > a").click( function () {
 				var button_group = $(this).parents('.btn-group');
 				button_group.find('.leadcontainer > .dropdown-lead >u').html($(this).text());
