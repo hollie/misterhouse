@@ -103,7 +103,13 @@ $v_restart_mh = new Voice_Cmd 'Restart Mister House';
 $v_restart_mh->set_info( 'Restarts Misterhouse.  This will only work if ' .
   'you start with mh/bin/mhl') if !$OS_win;
 $v_restart_mh->set_info('Restarts Misterhouse.') if $OS_win;
-$v_restart_mh->tie_event('&exit_pgm(1)'); # noloop
+$v_restart_mh->tie_event('&restart_mh()'); # noloop
+
+sub restart_mh{
+	$exit_timer = new  Timer;
+	print_log "MisterHouse will restart in 2 seconds.";
+	$exit_timer->set(2, '&exit_pgm(1)');
+}
 
 # This will be abend.  
 # Allow for no msg on first time use where this flag is not set yet.
