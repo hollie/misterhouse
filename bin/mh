@@ -114,7 +114,7 @@ use vars qw(%Run_Members);
 
 my ($Pgm_PathU);
 my ($Loop_Speed, @Loop_Speeds, $Loop_Sleep_Time, $Loop_Tk_Passes, $Web_Play_Index);
-my (@Requested_Files, @Print_Log, @Display_Log, @Speak_Log, @Error_Log);
+my (@Requested_Files, @Print_Log, @Print_Log_Time, @Display_Log, @Speak_Log, @Error_Log);
 
 my ($exit_flag, $xcmd_file, %file_code_times, %file_code_times2, %file_change_times);
 my (@Loop_Code, @Sub_Code, %Sub_Code, %Run_Members, %Run_Members_Error_Count, %Benchmark_Members, @Item_Code, @Item_Code_Objects);
@@ -1135,6 +1135,7 @@ sub open_logs {
     chomp @log;
     @Print_Log = reverse @log;
     unshift @Print_Log, "$Time_Date ---------- Restart ---------- ";
+    @Print_Log_Time = (1)x scalar @Print_Log;
 
     @log = &file_tail($speak_log, $config_parms{max_log_entries});
     chomp @log;
@@ -3997,6 +3998,9 @@ sub print_log {
     unshift (@Print_Log, $data);
     pop @Print_Log if @Print_Log > $config_parms{max_log_entries};
 
+    unshift (@Print_Log_Time, &get_tickcount);
+    pop @Print_Log_Time if @Print_Log_Time > @Print_Log;
+
     $Last_Response = 'print_log' unless $Last_Response;
 
 
@@ -4022,6 +4026,39 @@ sub print_log_last {
     else {
         return (@Print_Log[0 .. ($how_many-1)]);
     }
+}
+
+sub print_log_since {
+                                # Return the print_log phrases since time
+    my ($time) = @_;
+    #Search from front to back, we are likely looking for an entry near the front
+    my $index;
+    for my $i (0 .. $#Print_Log_Time) {
+    	$index = $i;
+        if ($time eq $Print_Log_Time[$i]){
+            $index--;
+            last;
+        }
+        elsif ($time >= $Print_Log_Time[$i]){
+            last;
+        }
+    }
+    my $count = @Print_Log;
+    if ($index < 0) {
+        return;
+    }
+    elsif (($index+1) >= $count) {
+        return @Print_Log;
+    }
+    else {
+        return (@Print_Log[0 .. $index]);
+    }
+}
+
+sub print_log_current_time {
+                                # Return the time of most recent print_log phrase
+    return $Print_Log_Time[0] unless (scalar @Print_Log_Time <= 0);
+    return 0;
 }
 
 sub error_log_last {

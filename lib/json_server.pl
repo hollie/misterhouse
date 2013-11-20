@@ -305,6 +305,19 @@ sub json {
 		}
 	}
 
+	# List print_log phrases
+	if ( $request{print_log} ) {
+		my @log;
+		my $name;
+		if ($options{time}{active}){
+			@log = ::print_log_since($options{time}{members}[0]);
+		} else {
+			@log = ::print_log_since();
+		}
+		$json{'print_log'}{text} = \@log;
+		$json{'print_log'}{time} = ::print_log_current_time();
+	}
+
 	# List hash values
 	foreach my $hash (
 		qw( config_parms Menus photos Save Socket_Ports triggers
@@ -523,12 +536,15 @@ Content-type: text/html
 <h2>JSON Server</h2>
 eof
 	my @requests = qw( types groups categories config_parms socket_ports
-	  user_code weather save objects photos subs menus triggers packages vars );
+	  user_code weather save objects photos subs menus triggers packages vars print_log);
 
 	my %options = (
 		fields => {
 			applyto => 'types|groups|categories|objects',
 		},
+		time => {
+			applyto => 'print_log',
+		}
 	);
 	foreach my $r (@requests) {
 		my $url = "/sub?json($r)";
