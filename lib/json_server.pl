@@ -504,7 +504,7 @@ sub json_object_detail {
 sub json_page {
 	my ($json) = @_;
 
-	$json =~ s/\$|\%|\&|\@//g;
+	#$json =~ s/\$|\%|\&|\@//g;
 	return <<eof;
 HTTP/1.0 200 OK
 Server: MisterHouse
