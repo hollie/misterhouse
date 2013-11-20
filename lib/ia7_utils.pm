@@ -425,6 +425,14 @@ END
 	return $output;
 }
 
+sub print_log_changes{
+	my ($time) = @_;
+	if (int($time) >= int(::print_log_current_time())){
+		return;
+	}
+	return ::json('print_log','time='.$time);
+}
+
 
 =back
 

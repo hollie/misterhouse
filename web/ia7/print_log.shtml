@@ -1,0 +1,40 @@
+<!--#include code="&ia7_utils::print_header('MrHouseHome')"-->
+<div id='log'>
+	<ul id='list'></ul>
+</div>
+<script type="text/javascript">
+	var print_log = function(time) {
+		$.ajax({
+		type: "GET",
+		url: "/sub?json('print_log','time="+time+"')",
+		dataType: "json",
+		success: function( json ) {
+			for (var i = (json.print_log.text.length-1); i >= 0; i--){
+				var line = String(json.print_log.text[i]);
+				line = line.replace(/\n/g,"<br>");
+				$('#list').prepend("<li style='white-space:pre;font-size:small;'>"+line+"</li>");
+			}
+			print_log_long(json.print_log.time);
+		}
+		});
+	};
+	var print_log_long = function (time){
+		$.ajax({
+		type: "GET",
+		url: "/LONG_POLL?ia7_utils::print_log_changes("+time+")",
+		dataType: "json",
+		success: function( json ) {
+			for (var i = (json.print_log.text.length-1); i >= 0; i--){
+				var line = String(json.print_log.text[i]);
+				line = line.replace(/\n/g,"<br>");
+				$('#list').prepend("<li style='white-space:pre;font-size:small;'>"+line+"</li>");
+			}
+			print_log_long(json.print_log.time);
+		}
+		});
+	};
+	$(document).ready(function() {
+		print_log();
+	});
+</script>
+</body></html>
