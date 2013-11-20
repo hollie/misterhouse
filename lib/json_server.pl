@@ -82,11 +82,13 @@ sub json {
 		}
 		foreach my $type ( sort @types ) {
 			print_log "json: type $type" if $Debug{json};
+			$type =~ s/\$|\%|\&|\@//g;
 			$json{'types'}{$type} = {};
 			unless ( $options{truncate} ) {
 				foreach my $object ( sort &list_objects_by_type($type) ) {
 					$object = &get_object_by_name($object);
 					$name   = $object->{object_name};
+					$name =~ s/\$|\%|\&|\@//g;
 					$json{'types'}{$type}{$name} =
 					  &json_object_detail( $object, %fields );
 				}
@@ -108,10 +110,12 @@ sub json {
 			print_log "json: group $group" if $Debug{json};
 			my $group_object = &get_object_by_name($group);
 			next unless $group_object;
+			$group =~ s/\$|\%|\&|\@//g;
 			$json{'groups'}{$group} = {};
 			unless ( $options{truncate} ) {
 				foreach my $object ( list $group_object) {
 					$name = $object->{object_name};
+					$name =~ s/\$|\%|\&|\@//g;
 					$json{'groups'}{$group}{$name} =
 					  &json_object_detail( $object, %fields );
 				}
@@ -134,12 +138,14 @@ sub json {
 		for my $category ( sort @categories ) {
 			print_log "json: cat $category" if $Debug{json};
 			next if $category =~ /^none$/;
+			$category =~ s/\$|\%|\&|\@//g;
 			$json{categories}{$category} = {};
 			unless ( $options{truncate} ) {
 				foreach my $name ( sort &list_objects_by_webname($category) ) {
 					my ( $object, $type );
 					$object = &get_object_by_name($name);
 					$name   = $object->{object_name};
+					$name =~ s/\$|\%|\&|\@//g;
 					$type   = ref $object;
 					print_log "json: o $name t $type" if $Debug{json};
 					next unless $type eq 'Voice_Cmd';
@@ -165,6 +171,7 @@ sub json {
 			next unless $o;
 			my $name = $o;
 			$name = $o->{object_name};
+			$name =~ s/\$|\%|\&|\@//g;
 			print_log "json: object name=$name ref=" . ref $o if $Debug{json};
 			$json{objects}{$name} = &json_object_detail( $o, %fields );
 		}
@@ -504,7 +511,6 @@ sub json_object_detail {
 sub json_page {
 	my ($json) = @_;
 
-	#$json =~ s/\$|\%|\&|\@//g;
 	return <<eof;
 HTTP/1.0 200 OK
 Server: MisterHouse
