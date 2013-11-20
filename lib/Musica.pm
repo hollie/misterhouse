@@ -7,7 +7,7 @@ Important Note:
    Because the new FM-Tuner keypads (and possibly other newer keypads?) take
    *forever (minutes) to respond to the StatVer command, their version is
    stored in the persistant Misterhouse %Save hash.  This means that if you
-   change the physical keypad, you'll need to stop Misterhouse, edit 
+   change the physical keypad, you'll need to stop Misterhouse, edit
    data_dir/mh_temp.saved_states.persistent, and search for 'Musica' and
    remove or modify the entry for the zone you chaged.  Then start Misterhouse
    back up.  If you simply remove a keypad, just take the entry for that zone
@@ -136,7 +136,7 @@ Controlling either all zones or one zone:
       $zone1_obj->set_source('MP3');
       $Musica->set_source($source1_obj);
 
-   set_volume(level): Sets the volume of one or all zones, where the level 
+   set_volume(level): Sets the volume of one or all zones, where the level
    specified must range from 0 to 35.  Can also be specified as a percentage
    where '0%' is off and '100%' is full volume.
 
@@ -200,8 +200,8 @@ Controlling either all zones or one zone:
 Controlling the Musica system object:
 
    The following functions allow you to make changes to the Musica system
-   as a whole from Misterhouse.  
-   
+   as a whole from Misterhouse.
+
    all_off(): Turn off all zones.
 
 Retrieving data from the Musica system object:
@@ -223,9 +223,9 @@ Controlling the Musica zone objects using functions:
 
    The following functions allow you to make changes to a specific Musica
    zone from Misterhouse.
-   
+
    set_source(source): Sets the zone to the specified source, where 'source'
-   is a number between 1 and 4 or E for the local expansion source.  Turns 
+   is a number between 1 and 4 or E for the local expansion source.  Turns
    the zone ON if it is not already on.
 
    turn_off(): Turns off the zone.
@@ -294,15 +294,15 @@ Monitoring the Musica zone objects:
    source_changed: The zone is already on and a user changed the source.
    changed_label_source_X: This zone keypad was used to change the label
       of source X (where X is a number from 1 to 4).
-   volume_changed: Volume of the zone was changed. 
-   bass_changed: Bass level of the zone was changed. 
+   volume_changed: Volume of the zone was changed.
+   bass_changed: Bass level of the zone was changed.
    treble_changed: Treble level of the zone was changed.
    balance_changed: Balance level of the zone was changed.
    loudness_on: Loudness was enabled in the zone
    loudness_off: Loudness was disabled in the zone
    mute_on: This zone was muted.
    mute_off: This zone was unmuted.
-   color_amber: The backlight color in this zone was changed to amber 
+   color_amber: The backlight color in this zone was changed to amber
       (or blue on applicable keypads).
    color_green: The backlight color in this zone was changed to green
       (or white on applicable keypads).
@@ -321,8 +321,8 @@ Monitoring the Musica zone objects:
    button_pressed_*: A button was pressed (button names can be found after
       this comment section or by calling get_button_labels() on a zone
       object).
-   button_held_*: A button was pressed and held (button names can be found 
-      after this comment section or by calling get_button_labels() on a 
+   button_held_*: A button was pressed and held (button names can be found
+      after this comment section or by calling get_button_labels() on a
       zone object).
 
 Controlling the Musica source object:
@@ -332,18 +332,18 @@ Controlling the Musica source object:
 
    set_label(label): Sets the global label for this particular source.  The
       label can either be given as a number between 1 and 30 or as a string.
-      Only certain strings are allowed, and these strings can be determined 
+      Only certain strings are allowed, and these strings can be determined
       by calling get_source_labels() on a source object.
 
 Retrieving data from a Musica source object:
 
-   get_musica_obj(): Returns the main musica object. 
-   get_source_num(): Returns the numerical source number associated with 
+   get_musica_obj(): Returns the main musica object.
+   get_source_num(): Returns the numerical source number associated with
       this source object.
-   get_label(): Returns the label for the source as a string. 
+   get_label(): Returns the label for the source as a string.
    get_source_labels(): Returns a list of valid source labels.
    get_zones(): Returns array of zones currently listening to this source.
-   get_usage_count(): Returns the number of zones currently listening to 
+   get_usage_count(): Returns the number of zones currently listening to
       this source.
 
 Monitoring the Musica source objects:
@@ -354,14 +354,14 @@ Monitoring the Musica source objects:
    error: An error has occurred, call get_last_error() for details.
    label_changed: somebody changed the label for this source from a keypad
       (call get_set_by() to find the object name of the keypad used to make
-      the change). 
+      the change).
    first_listener: the source now has a listener and it did not before.
    no_listeners: the only listener stopped listening and now nobody is using
       this particular source.
    listener_zone_X: zone X just selected this source.
    button_pressed_*: A button was pressed (button names can be found after
       this comment section or by calling get_button_labels()).
-   button_held_*: A button was pressed and held (button names can be found 
+   button_held_*: A button was pressed and held (button names can be found
       after this comment section or by calling get_button_labels()).
 
 Usage Examples:
@@ -377,10 +377,10 @@ Usage Examples:
          }
       }
 
-   Then I create an array of all of the Musica::Source objects (which 
+   Then I create an array of all of the Musica::Source objects (which
    are already defined in my .mht file):
 
-      my @musica_sources = ( $music_source1, $music_source2, $music_source3, 
+      my @musica_sources = ( $music_source1, $music_source2, $music_source3,
                              $music_source4 );
 
    The 'first_listener' and 'no_listeners' states are handy to start/stop
@@ -424,7 +424,7 @@ MUSICA SYSTEM BUGS:
    - Never sends back a copy of the ChangeAmp command nor does it send
    an EventData message back.
    - Does not respond to various commands like ChangeVol, ChangeBass, etc.
-   Instead, sends an EventData message showing the changes (bug or protocol 
+   Instead, sends an EventData message showing the changes (bug or protocol
    change?)
 
    [ADC Version M30419/Keypad Version R30419]
@@ -451,7 +451,7 @@ TODO:
    - Implement IR_Dn/IR_Up?
    - ExeMenu* is not implemented as the ADC does not respond which makes it
      not like every other command plus I don't know why you would use it as it
-     just allows you to navigate the menu system on a keypad but you can 
+     just allows you to navigate the menu system on a keypad but you can
      change everything directly through other messages anyways.  But, for the
      record:
         ExeMenu/Zone/Command where Command is:
@@ -506,8 +506,8 @@ package Musica;
 
 @Musica::ISA = ('Serial_Item');
 
-use vars qw( %source_name_to_number @source_number_to_name 
-             %source_name_to_number_30419 @source_number_to_name_30419 
+use vars qw( %source_name_to_number @source_number_to_name
+             %source_name_to_number_30419 @source_number_to_name_30419
              %button_name_to_number @button_number_to_name
              %button_name_to_number_40822 @button_number_to_name_40822
            );
@@ -574,7 +574,7 @@ use vars qw( %source_name_to_number @source_number_to_name
    'R&B'      => 23,
    'RAP'      => 24,
    'RADIO'    => 25,
-   'HD RADIO' => 25, 
+   'HD RADIO' => 25,
    'ROCK'     => 26,
    'SAT'      => 27,
    'SAT2'     => 28,
@@ -636,7 +636,7 @@ use vars qw( %source_name_to_number @source_number_to_name
    'SAT'      ,
    'SAT2'     ,
    'SOUL'     ,
-   'WESTERN'  
+   'WESTERN'
 );
 
 @source_number_to_name_30419 = (
@@ -681,22 +681,22 @@ use vars qw( %source_name_to_number @source_number_to_name
    'DSS'      ,
    'M SERVER' ,
    'DISH'     ,
-   ''         
+   ''
 );
 
 %button_name_to_number = (
-   'pause'     => 1,  
-   'stop'      => 2,  
-   'play'      => 3,  
-   'rewind'    => 4, 
-   'up'        => 5,  
-   'forward'   => 6, 
-   'left'      => 7,  
-   'down'      => 8,  
-   'right'     => 9,  
-   'previous'  => 10, 
+   'pause'     => 1,
+   'stop'      => 2,
+   'play'      => 3,
+   'rewind'    => 4,
+   'up'        => 5,
+   'forward'   => 6,
+   'left'      => 7,
+   'down'      => 8,
+   'right'     => 9,
+   'previous'  => 10,
    'power'     => 11,
-   'next'      => 12, 
+   'next'      => 12,
 );
 
 %button_name_to_number_40822 = (
@@ -1168,14 +1168,14 @@ sub _parse_data {
          }
       }
    } elsif ($cmd eq 'EventData') {
-      my ($zone, $volume, $bass, $treble, $balance, $loudness, $mute, $blcolor, 
+      my ($zone, $volume, $bass, $treble, $balance, $loudness, $mute, $blcolor,
           $brightness, $audioport, $amp, $locked, $overheat) = split /\//, $value;
       if ($$self{'zones'}[$zone]) {
          if ($self->_check_first_cmd($zone, "ChangeVol/$zone/$volume")) {
             $self->_store_zone_data($zone, 'volume', $volume, 'volume_changed');
          } elsif ($$self{'zones'}[$zone]->{'volume'} != $volume) {
             if (defined($$self{'zones'}[$zone]->{'volume'}) and (($$self{'zones'}[$zone]->{'on_time'} + IGNORE_AFTER_ON) < $::Time)) {
-               $$self{'zones'}[$zone]->set_receive('volume_changed', 'keypad') 
+               $$self{'zones'}[$zone]->set_receive('volume_changed', 'keypad')
             }
             $$self{'zones'}[$zone]->{'volume'} = $volume;
          }
@@ -1302,7 +1302,7 @@ sub _parse_data {
 sub _process_keypad_version {
    my ($self, $zone_num) = @_;
    if ($$self{'zones'}[$zone_num]->{'keypad_version'} < 40822) {
-      # Use older source names if any keypad is older... 
+      # Use older source names if any keypad is older...
       %source_name_to_number = %source_name_to_number_30419;
       @source_number_to_name = @source_number_to_name_30419;
    }
@@ -1343,7 +1343,7 @@ sub _send_next_cmd {
             if ($$self{'zones'}[$zone]->{'just_turned_on'}) {
                my $moved = '';
                # See if we can find a command for another zone meanwhile
-               for (my $i = 0; $i <= $#{@{$$self{'queue'}}}; $i++) {
+               for (my $i = 0; $i <= {@{$$self{'queue'}}}; $i++) {
                   if ($$self{'queue'}->[$i] =~ /^[^\/]+\/(\d+)/) {
                      if ($$self{'zones'}[$1] and not $$self{'zones'}[$zone]->{'just_turned_on'}) {
                         $moved = $$self{'queue'}->[$i];

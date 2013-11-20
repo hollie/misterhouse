@@ -42,6 +42,7 @@ must first be put into "awake mode."
 
 L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>, 
 L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>, 
+L<Insteon::Insteon::MultigroupDevice|Insteon::BaseInsteon/Insteon::Insteon::MultigroupDevice>
 
 =head2 METHODS
 
@@ -54,7 +55,7 @@ package Insteon::RemoteLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::RemoteLinc::ISA = ('Insteon::BaseDevice','Insteon::DeviceController');
+@Insteon::RemoteLinc::ISA = ('Insteon::BaseDevice','Insteon::DeviceController', 'Insteon::MultigroupDevice');
 
 my %message_types = (
 	%Insteon::BaseDevice::message_types,
@@ -79,43 +80,9 @@ sub new
 		$$self{queue_timer} = new Timer;
 	}
 	bless $self,$class;
+	$$self{is_responder} = 0;
+	$$self{is_deaf} = 1;
 	return $self;
-}
-
-=item C<set(state[,setby,response])>
-
-Handles messages received from the device.  Ignores attempts to set the same state
-in less than 1 second.  (This can likely be removed as the same process exists
-now in BaseInsteon set_receive.)  If this is not a duplicate message calls 
-C<set_receive()>.
-
-=cut
-
-sub set
-{
-	my ($self,$p_state,$p_setby,$p_response) = @_;
-	return if &main::check_for_tied_filters($self, $p_state);
-
-	# Override any set_with_timer requests
-	if ($$self{set_timer}) {
-		&Timer::unset($$self{set_timer});
-		delete $$self{set_timer};
-	}
-
-	# if it can't be controlled (i.e., a responder), then don't send out any signals
-	# motion sensors seem to get multiple fast reports; don't trigger on both
-        my $setby_name = $p_setby;
-        $setby_name = $p_setby->get_object_name() if (ref $p_setby and $p_setby->can('get_object_name'));
-	if (not defined($self->get_idle_time) or $self->get_idle_time > 1 or $self->state ne $p_state) {
-		&::print_log("[Insteon::RemoteLinc] " . $self->get_object_name()
-			. "::set_receive($p_state, $setby_name)") if $main::Debug{insteon};
-		$self->set_receive($p_state,$p_setby);
-	} else {
-		&::print_log("[Insteon::RemoteLinc] " . $self->get_object_name()
-			. "::set_receive($p_state, $setby_name) deferred due to repeat within 1 second")
-			if $main::Debug{insteon};
-	}
-	return;
 }
 
 =item C<set_awake_time([0-255 seconds])>
@@ -243,9 +210,9 @@ sub _process_message {
 	elsif ($msg{command} eq "extended_set_get" && $msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
 		#If this was a get request don't clear until data packet received
-		main::print_log("[Insteon::RemoteLinc] Extended Set/Get ACK Received for " . $self->get_object_name) if $main::Debug{insteon};
+		main::print_log("[Insteon::RemoteLinc] Extended Set/Get ACK Received for " . $self->get_object_name) if $self->debuglevel(1, 'insteon');
 		if ($$self{_ext_set_get_action} eq 'set'){
-			main::print_log("[Insteon::RemoteLinc] Clearing active message") if $main::Debug{insteon};
+			main::print_log("[Insteon::RemoteLinc] Clearing active message") if $self->debuglevel(1, 'insteon');
 			$clear_message = 1;
 			$$self{_ext_set_get_action} = undef;
 			$self->_process_command_stack(%msg);	
@@ -264,20 +231,11 @@ sub _process_message {
 			{
 				$$root{battery_object}->set_receive($voltage, $root);
 			}
-			if ($self->_is_battery_low($voltage)){
-				main::print_log("[Insteon::RemoteLinc] The battery level ".
-					"is below the set threshold running low battery event.");
-				package main;
-					eval $$root{low_battery_event};
-					::print_log("[Insteon::RemoteLinc] " . $self->{device}->get_object_name . ": error during low battery event eval $@")
-						if $@;
-				package Insteon::RemoteLinc;
-			}
 			$clear_message = 1;
 			$self->_process_command_stack(%msg);
 		} else {
 			main::print_log("[Insteon::RemoteLinc] WARN: Corrupt Extended "
-				."Set/Get Data Received for ". $self->get_object_name) if $main::Debug{insteon};
+				."Set/Get Data Received for ". $self->get_object_name) if $self->debuglevel(1, 'insteon');
 		}
 	}
 	else {
@@ -286,9 +244,34 @@ sub _process_message {
 	return $clear_message;
 }
 
-sub is_responder
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
 {
-   return 0;
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds}
+    );
+    if ($self->is_root){
+        %voice_cmds = (
+            %voice_cmds,
+            'sync all device links' => "$object_name->sync_all_links()",
+            'AUDIT sync all device links' => "$object_name->sync_all_links(1)"
+        );
+    }
+    return \%voice_cmds;
 }
 
 =back

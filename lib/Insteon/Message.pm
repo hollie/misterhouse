@@ -104,6 +104,22 @@ sub failure_callback
         return $$self{failure_callback};
 }
 
+=item C<success_callback(data)>
+
+Data will be evaluated after the receipt of an ACK from the device for this command.
+
+=cut
+
+sub success_callback
+{
+	my ($self, $callback) = @_;
+        if (defined $callback)
+        {
+        	$$self{success_callback} = $callback;
+        }
+        return $$self{success_callback};
+}
+
 =item C<send_attempts(data)>
 
 Stores and retrieves the number of times Misterhouse has tried to send the message.
@@ -215,9 +231,12 @@ sub send
 
         	if ($self->send_attempts > 0)
                 {
-                	&::print_log("[Insteon::BaseMessage] WARN: now resending "
-                        	. $self->to_string() . " after " . $self->send_attempts
-                        	. " attempts.") if $main::Debug{insteon};
+			if ((ref $self->setby && $self->setby->debuglevel(1, 'insteon')) ||
+				((!ref $self->setby) && ::debug{'insteon'})){
+				::print_log("[Insteon::BaseMessage] WARN: now resending "
+				. $self->to_string() . " after " . $self->send_attempts
+				. " attempts.");
+			}
                         # revise default hop count to reflect retries
                         if (ref $self->setby && $self->setby->isa('Insteon::BaseObject') 
                         	&& !defined($$self{no_hop_increase}))
@@ -232,7 +251,7 @@ sub send
                         	&& $self->setby->isa('Insteon::BaseObject')){
                         	&main::print_log("[Insteon::BaseMessage] Hop count not increased for "
                         		. $self->setby->get_object_name . " because no_hop_increase flag was set.")
-                        		if $main::Debug{insteon};
+                        		if $self->setby->debuglevel(1, 'insteon');
                         	$$self{no_hop_increase} = undef;
                         }
                 }
@@ -418,6 +437,8 @@ sub command_to_hash
                 {
 			$msg{type} = 'alllink';
 			$msg{group} = substr($p_state,10,2);
+			$msg{extra} = substr($p_state,16,2) 
+				if (length($p_state) >= 18);
 		}
                 else
                 {
@@ -1068,7 +1089,7 @@ sub generate_commands
 	}
 
 	if ($uc eq undef) {
-	    &main::print_log("[Insteon::Message] Message is for entire HC") if $main::Debug{insteon};
+	    &main::print_log("[Insteon::Message] Message is for entire HC") if (ref $p_setby && $p_setby->debuglevel(1,'insteon'));
 	}
 	else {
 
@@ -1077,7 +1098,7 @@ sub generate_commands
 	    $msg.= substr(unpack("H*",pack("C",$x10_unit_codes{substr($id,2,1)})),1,1);
 	    $msg.= "00";
 	    &main::print_log("[Insteon_PLM] x10 sending code: " . uc($hc . $uc) . " as insteon msg: "
-			     . $msg) if $main::Debug{insteon};
+			     . $msg) if (ref $p_setby && $p_setby->debuglevel(1,'insteon'));
 
             push @data, $msg;
 	}
@@ -1105,7 +1126,7 @@ sub generate_commands
 	    $msg.= "80";
 
      	    &main::print_log("[Insteon_PLM] x10 sending code: " . uc($hc . $x10_arg) . " as insteon msg: "
-			     . $msg) if $main::Debug{insteon};
+			     . $msg) if (ref $p_setby && $p_setby->debuglevel(1,'insteon'));
 
             push @data, $msg;
 

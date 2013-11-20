@@ -400,14 +400,13 @@ sub scan_all_linktables
         	{
         		my $candidate_object = $_;
         		if ($candidate_object->is_root and
-                		!($candidate_object->isa('Insteon::RemoteLinc')
-                		or $candidate_object->isa('Insteon::InterfaceController')
-                       		or $candidate_object->isa('Insteon::MotionSensor')))
+                		!($candidate_object->is_deaf
+                		or $candidate_object->isa('Insteon::InterfaceController')))
                 	{
 		       		push @_scan_devices, $candidate_object;
                 		&main::print_log("[Scan all linktables] INFO1: "
                         		. $candidate_object->get_object_name
-                        		. " will be scanned.") if $main::Debug{insteon} >= 1;
+                        		. " will be scanned.") if $candidate_object->debuglevel(1, 'insteon');
         		}
                 	else
                 	{
@@ -459,6 +458,7 @@ sub _get_next_linkscan
 			## check if aldb_delta has changed;
 			$current_scan_device->_aldb->{_aldb_unchanged_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.')';
 			$current_scan_device->_aldb->{_aldb_changed_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.', '.$current_scan_device->get_object_name.')';
+			$current_scan_device->_aldb->{_failure_callback} = '&Insteon::_get_next_linkscan_failure('.$skip_unchanged.')';
 			$current_scan_device->_aldb->query_aldb_delta("check");
 			$checking = 1;
 		}
@@ -477,16 +477,14 @@ sub _get_next_linkscan
     	{
           	&main::print_log("[Scan all link tables] All tables have completed scanning");
                 my $_scan_failure_cnt = scalar @_scan_device_failures;
-                if ($_scan_failure_cnt)
-                {
-          	  &main::print_log("[Scan all link tables] However, some failures were noted:");
-                  for my $failed_obj (@_scan_device_failures)
-                  {
-        		&main::print_log("[Scan all link tables] WARN: failure occurred when scanning "
-                	. $failed_obj->get_object_name);
-                  }
-                }
-
+                if ($_scan_failure_cnt){
+			my $obj_list;
+			for my $failed_obj (@_scan_device_failures){
+				$obj_list .= $failed_obj->get_object_name .", ";
+			}
+			::print_log("[Scan all link tables] However, some failures "
+				."were noted with the following devices: $obj_list");
+		}
     	}
 }
 
@@ -511,22 +509,10 @@ sub sync_all_links
 	# iterate over all registered objects and compare whether the link tables match defined scene linkages in known Insteon_Links
 	for my $obj (&Insteon::find_members('Insteon::BaseController'))
 	{
-        	if ($obj->isa('Insteon::RemoteLinc') or $obj->isa('Insteon::MotionSensor'))
-                {
-                	&main::print_log("[Sync all links] Ignoring links from 'deaf' device: " . $obj->get_object_name);
-                }
-                elsif(!($obj->isa('Insteon::InterfaceController')) && ($obj->_aldb->health eq 'unknown'))
-                {
-                	&main::print_log("[Sync all links] Skipping links from 'unreachable' device: "
-                        	. $obj->get_object_name . ". Consider rescanning the link table of this device");
-                }
-                else
-                {
-			my %sync_req = ('sync_object' => $obj, 'audit_mode' => ($audit_mode) ? 1 : 0);
-                	&main::print_log("[Sync all links] Adding " . $obj->get_object_name
-                        	. " to sync queue");
-	       		push @_sync_devices, \%sync_req
-                };
+		my %sync_req = ('sync_object' => $obj, 'audit_mode' => ($audit_mode) ? 1 : 0);
+		&main::print_log("[Sync all links] Adding " . $obj->get_object_name
+			. " to sync queue");
+		push @_sync_devices, \%sync_req
 	}
 
         $_sync_cnt = scalar @_sync_devices;
@@ -564,23 +550,22 @@ sub _get_next_linksync
                 	. $current_sync_device->get_object_name . " ("
                         . ($_sync_cnt - scalar @_sync_devices)
                         . " of $_sync_cnt)");
+		my $skip_deaf = 1;
                 # pass first the success callback followed by the failure callback
-          	$current_sync_device->sync_links($sync_req{'audit_mode'}, '&Insteon::_get_next_linksync()','&Insteon::_get_next_linksync_failure()');
+          	$current_sync_device->sync_links($sync_req{'audit_mode'}, '&Insteon::_get_next_linksync()','&Insteon::_get_next_linksync_failure()', $skip_deaf);
     	}
         else
         {
           	&main::print_log("[Sync all links] All links have completed syncing");
                 my $_sync_failure_cnt = scalar @_sync_device_failures;
-                if ($_sync_failure_cnt)
-                {
-          	  	&main::print_log("[Sync all links] However, some failures were noted:");
-                  	for my $failed_obj (@_sync_device_failures)
-                  	{
-        			&main::print_log("[Sync all links] WARN: failure occurred when syncing "
-                		. $failed_obj->get_object_name);
-                  	}
-                }
-
+                if ($_sync_failure_cnt){
+			my $obj_list;
+			for my $failed_obj (@_sync_device_failures){
+				$obj_list .= $failed_obj->get_object_name .", ";
+			}
+			::print_log("[Sync all links] WARN! Failures occured, "
+				."some links involving the following objects remain out-of-sync: $obj_list");
+		}
     	}
 
 }
@@ -594,10 +579,17 @@ the failed device to the module global variable @_sync_device_failures.
 
 sub _get_next_linksync_failure
 {
-        push @_sync_device_failures, $current_sync_device;
-        &main::print_log("[Sync all links] WARN: failure occurred when scanning "
-                	. $current_sync_device->get_object_name . ".  Moving on...");
-        &_get_next_linksync();
+        push @_sync_device_failures, $current_sync_device 
+		unless (grep{$current_sync_device == $_} @_sync_device_failures);
+        &main::print_log("[Sync all links] WARN: failure occurred when syncing links for "
+                	. $current_sync_device->get_object_name . ". Resuming sync queue if it exists.");
+	my $num_sync_queue = @{$$current_sync_device{sync_queue}};
+	if ($num_sync_queue){
+		$current_sync_device->_process_sync_queue();
+	}
+	else { #No other pending links in the queue
+		&_get_next_linksync();
+	}
 
 }
 
@@ -1076,16 +1068,41 @@ sub check_all_aldb_versions
 		{
 			main::print_log("[Insteon] DEBUG4 Checking aldb version for "
 				. $ALDB_device->get_object_name()
-				. " ($count of $ALDB_cnt)") if ($main::Debug{insteon} >= 4);
+				. " ($count of $ALDB_cnt)") if ($ALDB_device->debuglevel(4, 'insteon'));
 			$ALDB_device->check_aldb_version();
 		} else
 		{
 			main::print_log("[Insteon] DEBUG4 " . $ALDB_device->get_object_name
 				. " does not have its own aldb ($count of $ALDB_cnt)")
-				if ($main::Debug{insteon} >= 4);
+				if ($ALDB_device->debuglevel(4, 'insteon'));
 		}
 	}
 	main::print_log("[Insteon] DEBUG4 Checking aldb version of all devices completed") if ($main::Debug{insteon} >= 4);
+}
+
+sub check_thermo_versions
+{
+	main::print_log("[Insteon] DEBUG4 Initializing thermostat versions") if ($main::Debug{insteon} >= 4);
+
+	my @thermo_devices = ();
+	push @thermo_devices, Insteon::find_members("Insteon::Thermostat");
+	foreach my $thermo_device (@thermo_devices)
+	{
+		if ($thermo_device->isa('Insteon::Thermostat') && 
+			$thermo_device->get_root()->engine_version eq "I2CS"){
+			main::print_log("[Insteon] DEBUG4 Setting thermostat "
+				. $thermo_device->get_object_name() . " to i2CS") 
+			if ($thermo_device->debuglevel(4, 'insteon'));
+			bless $thermo_device, 'Insteon::Thermo_i2CS';
+			$thermo_device->init();
+		}
+		else {
+			main::print_log("[Insteon] DEBUG4 Setting thermostat "
+				. $thermo_device->get_object_name() . " to i1") 
+			if ($thermo_device->debuglevel(4, 'insteon'));
+			bless $thermo_device, 'Insteon::Thermo_i1';
+		}
+	}
 }
 
 =back
@@ -1167,6 +1184,7 @@ sub _active_interface
       &main::Reload_post_add_hook(\&Insteon::BaseInterface::poll_all, 1);
       $init_complete = 0;
       &main::MainLoop_pre_add_hook(\&Insteon::init, 1);
+      &main::Reload_post_add_hook(\&Insteon::check_thermo_versions, 1);
       &main::Reload_post_add_hook(\&Insteon::generate_voice_commands, 1);
    }
    $$self{active_interface} = $interface if $interface;

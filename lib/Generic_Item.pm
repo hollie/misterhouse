@@ -1340,6 +1340,24 @@ sub user_data {
     return \%{$$self{user_data}};
 }
 
+=item C<debuglevel([level], [debug_group])>
+
+Returns 1 if debug_group or this device is at least debug level 'level', otherwise returns 0.
+
+=cut
+
+sub debuglevel
+{
+	my ($object, $debug_level, $debug_group) = @_;
+	$debug_level = 1 unless $debug_level;
+	my $objname;
+	$objname = lc $object->get_object_name if defined $object;
+	::print_log("[Generic_Item] debuglevel: Processing debug for object $objname ... " . $main::Debug{$objname}) if $main::Debug{$debug_group} >= 5;
+	return 1 if $main::Debug{$debug_group} >= $debug_level;
+	return 1 if defined $objname && $main::Debug{$objname} >= $debug_level;
+	return 0;
+}
+
 =back
 
 =head2 PACKAGE FUNCTIONS
