@@ -1,4 +1,4 @@
 <!--#include code="&ia7_utils::print_header('Browse Categories')" -->
-<!--#include code="&ia7_utils::list_categories()" -->
+<!--#include code="&ia7_utils::list_selected('categories')" -->
 </body>
 </html>

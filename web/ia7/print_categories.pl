@@ -12,7 +12,7 @@ if ($args_string =~ /=/) {
 		$args{$keyword} = $value;
 	}
 }
-$output = ia7_utils::print_header("Browse " . $args{'category'});
-$output .= ia7_utils::print_category($args{'category'});
+$output = ia7_utils::print_header("Browse " . $args{'categories'});
+$output .= ia7_utils::print_category($args{'categories'});
 
 return $output;

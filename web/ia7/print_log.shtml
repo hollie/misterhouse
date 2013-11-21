@@ -13,7 +13,7 @@
 			for (var i = (json.print_log.text.length-1); i >= 0; i--){
 				var line = String(json.print_log.text[i]);
 				line = line.replace(/\n/g,"<br>");
-				$('#list').prepend("<li style='white-space:pre;font-size:small;'>"+line+"</li>");
+				$('#list').prepend("<li style='font-family:courier, monospace;white-space:pre;font-size:small;'>"+line+"</li>");
 			}
 			print_log(json.print_log.time);
 		}

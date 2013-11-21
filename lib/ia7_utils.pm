@@ -118,7 +118,7 @@ sub get_sub_cats {
 			'category' => 1
 		},
 		'03-Browse MrHouse' => { 
-			'link' => 'print_category.pl?category=MisterHouse',
+			'link' => 'print_categories.pl?categories=MisterHouse',
 			'icon' => 'fa-home',
 			'category' => 1
 		},
@@ -128,12 +128,12 @@ sub get_sub_cats {
 			'category' => 1
 		},
 		'05-Browse Groups' => { 
-			'link' => '/bin/list_groups.pl',
+			'link' => 'list_groups.shtml',
 			'icon' => 'fa-group',
 			'category' => 1
 		},
 		'06-Browse Items' => { 
-			'link' => '/bin/list_items.pl',
+			'link' => 'list_types.shtml',
 			'icon' => 'fa-info',
 			'category' => 1
 		},
@@ -224,23 +224,24 @@ END
 	return $output;	
 }
 
-sub list_categories{
-	$output =<<'END';
+sub list_selected{
+	my ($req_type) = @_;
+	my $output =<<'END';
 	<div id="list_content">
 	</div>
 
 	<script type="text/javascript">
-	var list_categories = function() {
+	var list_selected = function(req_type) {
 		$.ajax({
 		type: "GET",
-		url: "/sub?json(categories,truncate)",
+		url: "/sub?json("+req_type+",truncate)",
 		dataType: "json",
 		success: function( json ) {
 			var row = 0;
 			var column = 1;
 			var button_text = '';
 			var button_html = '';
-			for (var k in json.categories){
+			for (var k in json[req_type]){
 				if (column == 1){
 					$('#list_content').append("<div id='buffer"+row+"' class='row top-buffer'>");
 					$('#buffer'+row).append("<div id='row" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
@@ -259,16 +260,15 @@ sub list_categories{
 				column++;
 			};//json for loop
 			$(".btn-category").click( function () {
-				window.location.href = "/ia7/print_category.pl?category=" + $(this).text();
+				window.location.href = "/ia7/print_"+req_type+".pl?"+req_type+"=" + $(this).text();
 			});
 			}//success function
 		});  //ajax request
 	}//loadlistfunction
 	$(document).ready(function() {
-		// Start
+	// Start
 END
-	$output .= "\t\tlist_categories();\n\t});\n</script>";
-
+	$output .= "\t\tlist_selected('$req_type');\n\t});\n</script>";
 	return $output;
 }
 
@@ -375,57 +375,86 @@ sub print_category {
 		});  //ajax request
 	}//loadlistfunction
 	
-	var list_categories = function() {
+	$(document).ready(function() {
+		// Start
+END
+	$output .= "\t\tloadList('$category');\n\t});\n</script>";
+
+	return $output;
+}
+
+sub print_group {
+	my ($group) = @_;
+	
+	$output =<<'END';
+	<div id="list_content">
+	</div>
+	<!-- Modal -->
+	<div class="modal fade" id="lastResponse" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+	  <div class="modal-dialog">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+	        <h4 class="modal-title" id="myModalLabel">Last Response</h4>
+	      </div>
+	      <div class="modal-body">
+	      </div>
+	      <div class="modal-footer">
+	        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+	      </div>
+	    </div><!-- /.modal-content -->
+	  </div><!-- /.modal-dialog -->
+	</div><!-- /.modal -->
+	<script type="text/javascript">
+	
+	var loadList = function(category) {
 		$.ajax({
 		type: "GET",
-		url: "/sub?xml(categories,truncate)",
-		dataType: "xml",
-		success: function( xml ) {
+		url: "/sub?json(groups="+category+",fields=state|states)",
+		dataType: "json",
+		success: function( json ) {
 			var row = 0;
 			var column = 1;
 			var button_text = '';
 			var button_html = '';
-			$(xml).find('misterhouse>categories>category>name').each(function(){
+			var cat_hash = {};
+			for (var k in json.groups){
+				cat_hash = json.groups[k];
+				break
+			}
+			for (var k in cat_hash){
+				var object = cat_hash[k];
 				if (column == 1){
 					$('#list_content').append("<div id='buffer"+row+"' class='row top-buffer'>");
 					$('#buffer'+row).append("<div id='row" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
 				}
-				button_text = $(this).find('text').text();
-
-				//Put Categories into button
-				button_html = "<div style='vertical-align:middle'><button type='button' class='btn btn-default btn-lg btn-block btn-category'>";
-				button_html += "" +button_text+"</button></div>";
-
-				$('#row'+row).append("<div class='col-sm-4'>" + button_html + "</div>");
+				var state = object.state;
+				var states = object.states;
+				var name = k;
+				var html = "";
+				var html = "";
+				//Put objects into button
+				html = "<div style='vertical-align:middle'><button class='btn btn-default btn-lg btn-block btn-category btn-popover' id='";
+				html += name+"' data-toggle='popover' data-html='true' data-content='<button>on</button><button>25%</button>";
+				html += "<button>50%</button><button>75%</button><button>off</button>' data-placement='bottom'>";
+				html += name+"<span class='pull-right'>"+state+"</span></button></div>";
+				//$('#row'+row).append("<div class='panel-group' id='accordian'>\n" + html + "</div>\n");
+				$('#row'+row).append("<div class='col-sm-4'>" + html + "</div>\n");
 				if (column == 3){
 					column = 0;
 					row++;
 				}
 				column++;
-			});//xml each loop
-			$(".dropdown-menu > li > a").click( function () {
-				var button_group = $(this).parents('.btn-group');
-				button_group.find('.leadcontainer > .dropdown-lead >u').html($(this).text());
-			});
-			$(".btn-category").click( function () {
-				var voice_cmd = $(this).text().replace(/ /g, "_");
-				var url = '/RUN;last_response?select_cmd=' + voice_cmd;
-				$.get( url, function(data) {
-					var start = data.toLowerCase().indexOf('<body>') + 6;
-					var end = data.toLowerCase().indexOf('</body>');
-					$('#lastResponse').find('.modal-body').html(data.substring(start, end));
-					$('#lastResponse').modal({
-						show: true
-					});
-				});
-			});
+			};//json each loop
+			$('.btn-popover').popover({});
 			}//success function
 		});  //ajax request
 	}//loadlistfunction
+	
 	$(document).ready(function() {
 		// Start
 END
-	$output .= "\t\tloadList('$category');\n\t});\n</script>";
+	$output .= "\t\tloadList('$group');\n\t});\n</script>";
 
 	return $output;
 }

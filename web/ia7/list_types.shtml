@@ -1,0 +1,4 @@
+<!--#include code="&ia7_utils::print_header('Browse Items')" -->
+<!--#include code="&ia7_utils::list_selected('types')" -->
+</body>
+</html>
