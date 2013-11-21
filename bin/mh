@@ -386,9 +386,10 @@ EOF
                 $Debug{debug_previous} = $config_parms{debug};
                                    # Allow for multiple debugs like serial;x10
                 for my $debug (split /[,|;]/, lc $config_parms{debug}) {
+                    $debug =~ s/^\s+|\s+$//g; #Trim whitespace
                                    # Allow for debug level like: x10:4
                     next unless $debug;
-                    if ($debug =~ /(.+):(.+)/) {
+                    if ($debug =~ /\s*(\S+)\s*:\s*(\d+)\s*/) {
                         $Debug{$1} = $2;
                         print "Debug for $1 set to $2\n";
                     }
