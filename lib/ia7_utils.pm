@@ -157,6 +157,8 @@ sub print_header {
 	
 	<!DOCTYPE html>
 	<html><head><title>$title</title>
+END
+	$output .=<<'END';
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		
 		<!--Font Awesome-->
@@ -187,8 +189,16 @@ sub print_header {
 		.btn-category-dropdown {
 		  
 		}
-		.top-buffer {
-			margin-top:20px;
+		@media (min-width: 768px) {
+			.top-buffer {
+				margin-top:20px;
+			}
+		}
+		
+		@media (min-width: 450px){
+			.control-dialog {
+				width: 400px;
+			}
 		}
 		.col-center {
 			text-align: center;
@@ -207,6 +217,9 @@ sub print_header {
 		}
 		.fillsplit {
 			position: relative;
+		}
+		.states {
+			text-align: center;
 		}
 		</style>
 	</head>
@@ -390,17 +403,20 @@ sub print_group {
 	<div id="list_content">
 	</div>
 	<!-- Modal -->
-	<div class="modal fade" id="lastResponse" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-	  <div class="modal-dialog">
+	<div class="modal fade" id="control" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+	  <div class="modal-dialog control-dialog">
 	    <div class="modal-content">
 	      <div class="modal-header">
-	        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-	        <h4 class="modal-title" id="myModalLabel">Last Response</h4>
+	        <h4 class="modal-title" id="myModalLabel"><span class="object-title"></span>
+		        <div class="btn-group btn-group-sm pull-right">
+		        	<button type="button" class="btn btn-default"><i class="fa fa-gear"></i></button>
+		        	<button type="button" class="btn btn-default" data-dismiss="modal"><i class="fa fa-times"></i></button>
+		        </div>
+	        </h4>
 	      </div>
 	      <div class="modal-body">
-	      </div>
-	      <div class="modal-footer">
-	        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+	        <div class="states">
+	        </div>
 	      </div>
 	    </div><!-- /.modal-content -->
 	  </div><!-- /.modal-dialog -->
@@ -429,16 +445,12 @@ sub print_group {
 					$('#buffer'+row).append("<div id='row" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
 				}
 				var state = object.state;
-				var states = object.states;
 				var name = k;
 				var html = "";
 				var html = "";
 				//Put objects into button
-				html = "<div style='vertical-align:middle'><button class='btn btn-default btn-lg btn-block btn-category btn-popover' id='";
-				html += name+"' data-toggle='popover' data-html='true' data-content='<button>on</button><button>25%</button>";
-				html += "<button>50%</button><button>75%</button><button>off</button>' data-placement='bottom'>";
+				html = "<div style='vertical-align:middle'><button id='"+name+"' class='btn btn-default btn-lg btn-block btn-category btn-popover'>";
 				html += name+"<span class='pull-right'>"+state+"</span></button></div>";
-				//$('#row'+row).append("<div class='panel-group' id='accordian'>\n" + html + "</div>\n");
 				$('#row'+row).append("<div class='col-sm-4'>" + html + "</div>\n");
 				if (column == 3){
 					column = 0;
@@ -446,7 +458,18 @@ sub print_group {
 				}
 				column++;
 			};//json each loop
-			$('.btn-popover').popover({});
+			$(".btn-popover").click( function () {
+				$('#control').modal({
+					show: true
+				});
+				$('#control').find('.object-title').html($(this).attr("id") + " - " + state);
+				$('#control').find('.states').html('<div class="btn-group"></div>');
+				var states = cat_hash[$(this).attr("id")].states;
+				for (var k in cat_hash[$(this).attr("id")].states){
+					$('#control').find('.states').find('.btn-group').append("<button class='btn btn-default'>"+states[k]+"</button>");
+				}
+			});
+			//$('.btn-popover').popover({});
 			}//success function
 		});  //ajax request
 	}//loadlistfunction
