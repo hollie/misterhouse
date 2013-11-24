@@ -459,15 +459,20 @@ sub print_group {
 				column++;
 			};//json each loop
 			$(".btn-popover").click( function () {
-				$('#control').modal({
-					show: true
-				});
+				$('#control').modal('show');
 				$('#control').find('.object-title').html($(this).attr("id") + " - " + state);
+				$('#control').find('.control-dialog').attr("id", $(this).attr("id"));
 				$('#control').find('.states').html('<div class="btn-group"></div>');
 				var states = cat_hash[$(this).attr("id")].states;
 				for (var k in cat_hash[$(this).attr("id")].states){
 					$('#control').find('.states').find('.btn-group').append("<button class='btn btn-default'>"+states[k]+"</button>");
 				}
+				$('#control').find('.states').find(".btn-default").click(function (){
+					url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("id")+'&select_state='+$(this).text();
+					console.log(url);
+					$('#control').modal('hide');
+					$.get( url);
+				});
 			});
 			//$('.btn-popover').popover({});
 			}//success function
