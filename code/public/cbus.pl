@@ -85,11 +85,15 @@
 #            Monitor and Talker attempt to always run unless in DEBUG state.
 #
 #	V3.0.1	 2013-11-22
-#	     Fixed to work with C-Gate Version: v2.9.7 (build 2569), which returns
-#	     cbus addresses in the form NETWORK/APPLICATION/GROUP rather than
-#	     //PROJECT/NETWORK/APPLICATION/GROUP.
-#	     Add logging to aid debugging cbus_builder
-#	     Contributed by Jon Whitear <jonATwhitearDOTorg>
+#	         Fixed to work with C-Gate Version: v2.9.7 (build 2569), which returns
+#	         cbus addresses in the form NETWORK/APPLICATION/GROUP rather than
+#	         //PROJECT/NETWORK/APPLICATION/GROUP.
+#	         Add logging to aid debugging cbus_builder
+#	         Contributed by Jon Whitear <jonATwhitearDOTorg>
+#
+#	V3.0.2  2013-11-25
+#			 Add support for both formats of return code, i.e. NETWORK/APPLICATION/GROUP 
+#	         and //PROJECT/NETWORK/APPLICATION/GROUP.
 #
 # How Cgate integrates with MH
 #
@@ -1055,6 +1059,51 @@ sub attempt_level_sync {
 }
 
 #
+# Add an address or group to the hash
+#
+
+sub add_address_to_hash {
+	my ($addr, $name) = @_;
+	my $addr_type;
+	
+	if ($addr =~ /\/p\/(\d+)/) {    
+		# Data is for a CBus device eg. switch, relay, dimmer
+		$addr_type = 'unit';	
+		$addr = $1;
+	} else {
+		# Data is for a CBus "group"
+		$addr_type = 'group';
+	}
+
+	print_log "CBus: Addr $addr is $name of type $addr_type";
+
+	# Store the CBus name and address in the cbus_def hash
+	if ($addr_type eq 'group') {
+		if (not exists $cbus_def->{group}{$addr}) {
+			print_log "CBus: group not defined yet, ".
+						"adding $addr, $name";
+			$cbus_def->{group}{$addr} = {     
+				name => $name,
+				note =>["Added by MisterHouse $Date_Now $Time_Now"],
+				type => 'dimmer',
+				mh_group => ['CBus']
+			};
+			# print_log Dumper($cbus_def);
+		}
+	} elsif ($addr_type eq 'unit') {
+		if (not exists $cbus_def->{unit}{$addr}) {
+			print_log "CBus: unit not defined yet, ".
+						"adding $addr, $name";
+			$cbus_def->{unit}{$addr} = {     
+				name => $name,
+				note => ["Added by MisterHouse $Date_Now $Time_Now"]
+			};
+		}
+	}
+
+}
+
+#
 # Main MH Loop Code for  ***** TALKER *****
 #
 # Process data returned from CBus server after a command is sent
@@ -1103,50 +1152,25 @@ if (my $cbus_data = said $cbus_talker) {
             print_log "CBus: Message 342 response data: $cbus_data"; 
                    
             if ($cbus_data =~ /\d+\s+(\d+\/[a-z\d]+\/\d+)\/TagName=(.+)/) {
+                #response matched against "new" format, i.e. network/app/group                
                 my ($addr, $name) = ($1, $2);
                 $addr = "//$cbus_project_name/$addr";
-                print_log "CBus: Address $addr, name $name";
+
                 $cbus_scan_last_addr_seen = $addr;
                 # $name =~ s/ /_/g;  Change spaces, depends on user usage...
-
-                my $addr_type;
-                if ($addr =~ /\/p\/(\d+)/) {    
-                    # Data is for a CBus device eg. switch, relay, dimmer
-                    $addr_type = 'unit';	
-                    $addr = $1;
-                } else {
-                    # Data is for a CBus "group"
-                    $addr_type = 'group';
-                }
-
-                print_log "CBus: Addr $addr is $name of type $addr_type";
-
-                # Store the CBus name and address in the cbus_def hash
-                if ($addr_type eq 'group') {
-                    if (not exists $cbus_def->{group}{$addr}) {
-                        print_log "CBus: group not defined yet, ".
-                                    "adding $addr, $name";
-                        $cbus_def->{group}{$addr} = {     
-                            name => $name,
-                            note =>["Added by MisterHouse $Date_Now $Time_Now"],
-                            type => 'dimmer',
-                            mh_group => ['CBus']
-                        };
-                        # print_log Dumper($cbus_def);
-                    }
-                } elsif ($addr_type eq 'unit') {
-                    if (not exists $cbus_def->{unit}{$addr}) {
-                        print_log "CBus: unit not defined yet, ".
-                                    "adding $addr, $name";
-                        $cbus_def->{unit}{$addr} = {     
-                            name => $name,
-                            note => ["Added by MisterHouse $Date_Now $Time_Now"]
-                        };
-                    }
-                }
-                print_log "Cbus: end message";
+                add_address_to_hash($addr, $name);
+                
+			} elsif ($cbus_data =~ /(\/\/.+\/\d+\/[a-z\d]+\/\d+)\/TagName=(.+)/) {
+                #response matched against "old" format, i.e. //project/network/app/group
+                my ($addr, $name) = ($1, $2);
+            
+                $cbus_scan_last_addr_seen = $addr;
+                # $name =~ s/ /_/g;  Change spaces, depends on user usage...
+                add_address_to_hash($addr, $name);            
+            
             }
-	}
+            print_log "Cbus: end message";
+	    }
 	
 ###### Message code 300: Object information, for example: 300 1/56/1: level=200	
 	
