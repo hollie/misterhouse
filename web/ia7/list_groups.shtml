@@ -1,4 +1,0 @@
-<!--#include code="&ia7_utils::print_header('Browse Groups')" -->
-<!--#include code="&ia7_utils::list_selected('groups')" -->
-</body>
-</html>
