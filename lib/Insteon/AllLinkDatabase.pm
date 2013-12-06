@@ -853,7 +853,7 @@ sub add_link
 	# For I2CS devices the default data3 for links is 01
 	# For all other devices the default data3 for links is 00
 	my $data3_default = '00';
-	if ($insteon_object->can('engine_version') && $insteon_object->engine_version eq 'I2CS') {
+	if ($$self{device}->can('engine_version') && $$self{device}->engine_version eq 'I2CS') {
 		$data3_default = '01';
 	}
 	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
@@ -912,7 +912,7 @@ sub add_link
                 {
 			&::print_log("[Insteon::AllLinkDatabase] DEBUG2: adding link record to " . $$self{device}->get_object_name
 				. " light level controlled by " . $insteon_object->get_object_name
-		       		. " and group: $group with on level: $on_level and ramp rate: $ramp_rate")
+		       		. " and group: $group with on level: $on_level, ramp rate: $ramp_rate, local load(data3): $data3")
                                 if $self->{device}->debuglevel(2, 'insteon');
 			my ($data1, $data2);
 			if($link_parms{is_controller}) {
@@ -971,19 +971,22 @@ sub update_link
 	# strip optional s (seconds) to append ramp_rate
 	my $ramp_rate = $link_parms{ramp_rate};
 	$ramp_rate =~ s/(\d)s?/$1/;
-	&::print_log("[Insteon::AllLinkDatabase] updating " . $$self{device}->get_object_name . " light level controlled by " . $insteon_object->get_object_name
-		. " and group: $group with on level: $on_level and ramp rate: $ramp_rate") if $self->{device}->debuglevel(1, 'insteon');
 	my $data1 = &Insteon::DimmableLight::convert_level($on_level);
 	my $data2 = ($$self{device}->isa('Insteon::DimmableLight')) ? &Insteon::DimmableLight::convert_ramp($ramp_rate) : '00';
 
 	# For I2CS devices the default data3 for links is 01
 	# For all other devices the default data3 for links is 00
 	my $data3_default = '00';
-	if ($insteon_object->can('engine_version') && $insteon_object->engine_version eq 'I2CS') {
+	if ($$self{device}->can('engine_version') && $$self{device}->engine_version eq 'I2CS') {
 		$data3_default = '01';
 	}
 	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
 	$data3 = $data3_default if ($data3 eq '00' || $data3 eq '01');
+
+	&::print_log("[Insteon::AllLinkDatabase] DEBUG2: updating " . $$self{device}->get_object_name 
+		. " light level controlled by " . $insteon_object->get_object_name
+		. " and group: $group with on level: $on_level, ramp rate: $ramp_rate, local load(data3): $data3") 
+		if $self->{device}->debuglevel(2, 'insteon');
 
 	$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
 	$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
