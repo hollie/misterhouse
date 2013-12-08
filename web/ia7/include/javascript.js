@@ -153,29 +153,27 @@ var loadCollection = function(collection_keys) {
 		url: '/ia7/include/collections.pl',
 		dataType: "json",
 		success: function( json ) {
-            var cur_collection_keys = collection_keys;
-            var collection_key = collection_keys.split(",");
-            collection_key = collection_key[collection_key.length-1];
+            var last_collection_key = collection_keys.split(",");
+            last_collection_key = last_collection_key[last_collection_key.length-1];
 			var entity_arr = [];
 			// sort the collections
-			var entity_sort = [];
-			for (var key in json.collections) {
-				if (json.collections.hasOwnProperty(key)) {
-				entity_sort.push(key);
-				}
-			}
-			entity_sort.sort ();
+			var entity_sort = json.collections[last_collection_key].children;
 			for (var i = 0; i < entity_sort.length; i++){
 				var collection = entity_sort[i];
-				if (json.collections[collection].parent != collection_key) continue;
-				var name = collection.replace(/^\d*-/g,'');
 				var link = json.collections[collection].link;
 				var icon = json.collections[collection].icon;
-				if (json.collections[collection].key !== undefined) {
-				    cur_collection_keys += "," + json.collections[collection].key;
+				var name = json.collections[collection].name;
+				var next_collection_keys = collection_keys + "," + entity_sort[i];
+				if (link === undefined) {
+					link = "#";
+				} 
+				else if (link.indexOf("#") === -1){
+					link += "#";
 				}
-				if (link === undefined) link = "#";
-				link += "&collection_key="+ cur_collection_keys;
+				else {
+					link += "&";
+				}
+				link += "collection_key="+ next_collection_keys;
 				var button_html = "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
 				entity_arr.push(button_html);
 			}
