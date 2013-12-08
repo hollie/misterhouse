@@ -106,22 +106,22 @@ my %json = (
 			'parent' => 1
 		},
 		'03-Browse MrHouse' => { 
-			'link' => 'print_selected.shtml?type=categories&name=MisterHouse',
+			'link' => '#request=list&type=categories&name=MisterHouse',
 			'icon' => 'fa-home',
 			'parent' => 1
 		},
 		'04-Browse Categories' => { 
-			'link' => 'print_selected.shtml?type=categories',
+			'link' => '#request=list&type=categories',
 			'icon' => 'fa-archive',
 			'parent' => 1
 		},
 		'05-Browse Groups' => { 
-			'link' => 'print_selected.shtml?type=groups',
+			'link' => '#request=list&type=groups',
 			'icon' => 'fa-group',
 			'parent' => 1
 		},
 		'06-Browse Items' => { 
-			'link' => 'print_selected.shtml?type=types',
+			'link' => '#request=list&type=types',
 			'icon' => 'fa-info',
 			'parent' => 1
 		},

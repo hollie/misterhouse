@@ -8,12 +8,50 @@
                         <!--#include file="/bin/tagline.pl"--><br>
                         <!--#include file="/bin/uptime.pl"-->&nbsp;&nbsp;<!--#include file="$config_parms{web_href_counter}"-->
                 </div>
+        </d
+<!-- Voice Command Modal -->
+<div class="modal fade" id="lastResponse" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h4 class="modal-title" id="myModalLabel">Last Response</h4>
+      </div>
+      <div class="modal-body">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+<!-- Object Modal -->
+<div class="modal fade" id="control" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog control-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title" id="myModalLabel"><span class="object-title"></span>
+	        <div class="btn-group btn-group-sm pull-right">
+	        	<button type="button" class="btn btn-default"><i class="fa fa-gear"></i></button>
+	        	<button type="button" class="btn btn-default" data-dismiss="modal"><i class="fa fa-times"></i></button>
+	        </div>
+        </h4>
+      </div>
+      <div class="modal-body">
+        <div class="states">
         </div>
-</div>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
 <script type="text/javascript">
 	$(document).ready(function() {
 		// Start
-		loadCollection(getURLParameter('collection_key'));
+        changePage();
+		//Watch for future changes in hash
+		$(window).bind('hashchange', function() {
+		    changePage();
+		});
 	});
 </script>
 </body></html>

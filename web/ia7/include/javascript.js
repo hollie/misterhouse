@@ -1,5 +1,17 @@
-function getURLParameter(name) {
-	return decodeURIComponent((new RegExp('[?|&]' + name + '=' + '([^&;]+?)(&|#|;|$)').exec(location.search)||[,""])[1].replace(/\+/g, '%20'))||null;
+function getURLParameter(name, type) {
+    var prefix = '[?|&]';
+    if (type === undefined) type = 'search';
+    if (type == 'hash') prefix = '[#|&]';
+	return decodeURIComponent((new RegExp(prefix + name + '=' + '([^&;]+?)(&|#|;|$)').exec(location[type])||[,""])[1].replace(/\+/g, '%20'))||null;
+}
+
+function changePage (){
+	if (getURLParameter('request', 'hash') == 'list'){
+        loadList(getURLParameter('type','hash'),getURLParameter('name','hash'));
+	} 
+	else { //default response is to load a collection
+        loadCollection(getURLParameter('collection_key', 'hash'));
+	}
 }
 
 var loadList = function(listType,listValue) {
@@ -21,11 +33,12 @@ var loadList = function(listType,listValue) {
 		for (var division in json[listType]){
 			if (listValue === null){ //truncated list
 				button_text = division;
-
+                var collection_key = getURLParameter('collection_key', 'hash');
 				//Put entities into button
-				button_html = "<div style='vertical-align:middle'><button type='button' listType='"+listType+"'";
-				button_html += "class='btn btn-default btn-lg btn-block btn-list btn-division'>";
-				button_html += "" +button_text+"</button></div>";
+				button_html = "<div style='vertical-align:middle'><a role='button' listType='"+listType+"'";
+				button_html += "class='btn btn-default btn-lg btn-block btn-list btn-division'";
+				button_html += "href='#request=list&collection_key="+collection_key+"&type="+listType+"&name="+button_text+"' >";
+				button_html += "" +button_text+"</a></div>";
 				entity_arr.push(button_html);
 				continue;
 			}//end truncated list
@@ -82,6 +95,9 @@ var loadList = function(listType,listValue) {
 		var column = 1;
 		for (var i = 0; i < entity_arr.length; i++){
 			if (column == 1){
+                if (row === 0){
+                    $('#list_content').html('');
+                }
 				$('#list_content').append("<div id='buffer"+row+"' class='row top-buffer'>");
 				$('#buffer'+row).append("<div id='row" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
 			}
@@ -93,9 +109,10 @@ var loadList = function(listType,listValue) {
 			column++;
 		}
 		//Affix functions to all button clicks
-		$(".dropdown-voice-cmd > li > a").click( function () {
+		$(".dropdown-voice-cmd > li > a").click( function (e) {
 			var button_group = $(this).parents('.btn-group');
 			button_group.find('.leadcontainer > .dropdown-lead >u').html($(this).text());
+			e.preventDefault();
 		});
 		$(".btn-voice-cmd").click( function () {
 			var voice_cmd = $(this).text().replace(/ /g, "_");
@@ -125,20 +142,20 @@ var loadList = function(listType,listValue) {
 				$.get( url);
 			});
 		});
-		$(".btn-division").click( function () {
-			window.location.href = "/ia7/print_selected.shtml?type="+$(this).attr("listType")+"&name=" + $(this).text();
-		});
 		}//success function
 	});  //ajax request
 };//loadlistfunction
 
-var loadCollection = function(collection_key) {
-	if (collection_key === null) collection_key = 0;
+var loadCollection = function(collection_keys) {
+	if (collection_keys === null) collection_keys = '0';
 	$.ajax({
 		type: "GET",
 		url: '/ia7/include/collections.pl',
 		dataType: "json",
 		success: function( json ) {
+            var cur_collection_keys = collection_keys;
+            var collection_key = collection_keys.split(",");
+            collection_key = collection_key[collection_key.length-1];
 			var entity_arr = [];
 			// sort the collections
 			var entity_sort = [];
@@ -154,8 +171,12 @@ var loadCollection = function(collection_key) {
 				var name = collection.replace(/^\d*-/g,'');
 				var link = json.collections[collection].link;
 				var icon = json.collections[collection].icon;
-				if (link === undefined) link = "/ia7/index.shtml?collection_key="+ json.collections[collection].key;
-				var button_html = "<a href='"+link+"' class='btn btn-default btn-lg btn-block btn-list' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
+				if (json.collections[collection].key !== undefined) {
+				    cur_collection_keys += "," + json.collections[collection].key;
+				}
+				if (link === undefined) link = "#";
+				link += "&collection_key="+ cur_collection_keys;
+				var button_html = "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
 				entity_arr.push(button_html);
 			}
 			//loop through array and print buttons
@@ -163,6 +184,9 @@ var loadCollection = function(collection_key) {
 			var column = 1;
 			for (var i = 0; i < entity_arr.length; i++){
 				if (column == 1){
+                    if (row === 0){
+                        $('#list_content').html('');
+                    }
 					$('#list_content').append("<div id='buffer"+row+"' class='row top-buffer'>");
 					$('#buffer'+row).append("<div id='row" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
 				}

@@ -18,6 +18,8 @@ B<NONE>
 
 =over
 
+=cut
+
 sub print_header {
 	my ($title) = @_;
 	$output =<<END;
