@@ -586,7 +586,7 @@ sub init {
 	$$self{message_types} = \%message_types;
 	#Set saved state unique to i2CS devices
 	$self->restore_data('humid', 'cooling', 'heating', 'humidifying', 'dehumidifying', 'high_humid_sp', 'low_humid_sp');
-	if ($self->group eq 01){
+	if ($self->group eq '01'){
 		$self -> tie_event ('$object->_cooling("$state")');
 	}
 	elsif ($self->group eq '02') {
@@ -598,6 +598,34 @@ sub init {
 	elsif ($self->group eq '04') {
 		$self -> tie_event ('$object->_humidifying("$state")');
 	}
+}
+
+=item C<derive_link_state([state])>
+
+Overrides routine in BaseObject. Takes state and checks to see if it is a valid
+state for the object.  Returns state if valid, otherwise returns __.
+
+=cut
+
+sub derive_link_state
+{
+	my ($self, $p_state) = @_;
+	my $link_state;
+	if ($self->group eq '01'){
+		$link_state = 'off'; #default to off if bad state
+		my @allowed_states = ('on', 'off', 'temp_change', 'status_change', 
+			'humid_change', 'high_humid_setpoint_change', 
+			'low_humid_setpoint_change', 'heat_setpoint_change', 
+			'cool_setpoint_change', 'fan_mode_change', 'mode_change');
+		if (grep(/$p_state/i, @allowed_states)) {
+			$link_state = $p_state;
+		} 
+	}
+	else {
+		#for all other objects use BaseObject routine.
+		$link_state = $self->Insteon::BaseObject::derive_link_state($p_state);
+	}
+	return $link_state;
 }
 
 sub sync_links{
@@ -981,8 +1009,12 @@ sub _humid {
 sub _cooling {
 	my ($self,$p_state) = @_;
 	my $root = $self->get_root();
-	$$root{cooling} = $p_state;
-	$root->set_receive('status_change');
+	#The root object state contains both the state of the cooling object
+	#as well as the general bucket for all status messages.
+	if (grep(/$p_state/i, @{['on','off']})){
+		$$root{cooling} = $p_state;
+		$root->set_receive('status_change');
+	}
 	return $$root{cooling};
 }
 
