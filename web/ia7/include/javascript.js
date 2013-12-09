@@ -1,3 +1,5 @@
+var collection_json;  //global storage for collection database
+
 function getURLParameter(name, type) {
     var prefix = '[?|&]';
     if (type === undefined) type = 'search';
@@ -6,11 +8,42 @@ function getURLParameter(name, type) {
 }
 
 function changePage (){
-	if (getURLParameter('request', 'hash') == 'list'){
-        loadList(getURLParameter('type','hash'),getURLParameter('name','hash'));
+	if (collection_json === undefined){
+		$.ajax({
+			type: "GET",
+			url: '/ia7/include/collections.pl',
+			dataType: "json",
+			success: function( json ) {
+				collection_json = json;
+				changePage();
+			}
+		});
 	} 
-	else { //default response is to load a collection
-        loadCollection(getURLParameter('collection_key', 'hash'));
+	else { //We have the database
+		if (getURLParameter('request', 'hash') == 'list'){
+	        loadList(getURLParameter('type','hash'),getURLParameter('name','hash'));
+		} 
+		else { //default response is to load a collection
+	        loadCollection(getURLParameter('collection_key', 'hash'));
+		}
+		//update the breadcrumb
+		$('#nav').html('');
+		var collection_keys_arr = getURLParameter('collection_key', 'hash');
+		if (collection_keys_arr === null) collection_keys_arr = '0';
+		collection_keys_arr = collection_keys_arr.split(',');
+		var breadcrumb = '';
+		for (var i = 0; i < collection_keys_arr.length; i++){
+			var nav_link = collection_json.collections[collection_keys_arr[i]].link;
+			nav_link = buildLink (nav_link, breadcrumb + collection_keys_arr[i]);
+			breadcrumb += collection_keys_arr[i] + ",";
+			var nav_name = collection_json.collections[collection_keys_arr[i]].name;
+			if (i == (collection_keys_arr.length-1)){
+				$('#nav').append('<li class="active">' + nav_name + '</a></li>');
+			} 
+			else {
+				$('#nav').append('<li><a href="' + nav_link + '">' + nav_name + '</a></li>');
+			}
+		}
 	}
 }
 
@@ -148,61 +181,40 @@ var loadList = function(listType,listValue) {
 
 var loadCollection = function(collection_keys) {
 	if (collection_keys === null) collection_keys = '0';
-	$.ajax({
-		type: "GET",
-		url: '/ia7/include/collections.pl',
-		dataType: "json",
-		success: function( json ) {
-			//update the breadcrumb
-			$('#nav').html('');
-			var collection_keys_arr = collection_keys.split(",");
-			var breadcrumb = '';
-			for (var i = 0; i < collection_keys_arr.length; i++){
-				var nav_link = json.collections[collection_keys_arr[i]].link;
-				nav_link = buildLink (nav_link, breadcrumb + collection_keys_arr[i]);
-				breadcrumb += collection_keys_arr[i] + ",";
-				var nav_name = json.collections[collection_keys_arr[i]].name;
-				if (i == (collection_keys_arr.length-1)){
-					$('#nav').append('<li class="active">' + nav_name + '</a></li>');
-				} 
-				else {
-					$('#nav').append('<li><a href="' + nav_link + '">' + nav_name + '</a></li>');
-				}
-			}
-			var last_collection_key = collection_keys_arr[collection_keys_arr.length-1];
-			var entity_arr = [];
-			// sort the collections
-			var entity_sort = json.collections[last_collection_key].children;
-			for (var i = 0; i < entity_sort.length; i++){
-				var collection = entity_sort[i];
-				var link = json.collections[collection].link;
-				var icon = json.collections[collection].icon;
-				var name = json.collections[collection].name;
-				var next_collection_keys = collection_keys + "," + entity_sort[i];
-				link = buildLink (link, next_collection_keys);
-				var button_html = "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
-				entity_arr.push(button_html);
-			}
-			//loop through array and print buttons
-			var row = 0;
-			var column = 1;
-			for (var i = 0; i < entity_arr.length; i++){
-				if (column == 1){
-                    if (row === 0){
-                        $('#list_content').html('');
-                    }
-					$('#list_content').append("<div id='buffer"+row+"' class='row top-buffer'>");
-					$('#buffer'+row).append("<div id='row" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
-				}
-				$('#row'+row).append("<div class='col-sm-4'>" + entity_arr[i] + "</div>");
-				if (column == 3){
-					column = 0;
-					row++;
-				}
-				column++;
-			}
+	var collection_keys_arr = collection_keys.split(",");
+	var last_collection_key = collection_keys_arr[collection_keys_arr.length-1];
+	var entity_arr = [];
+	// sort the collections
+	var entity_sort = collection_json.collections[last_collection_key].children;
+	for (var i = 0; i < entity_sort.length; i++){
+		var collection = entity_sort[i];
+		if (!(collection in collection_json.collections)) continue;
+		var link = collection_json.collections[collection].link;
+		var icon = collection_json.collections[collection].icon;
+		var name = collection_json.collections[collection].name;
+		var next_collection_keys = collection_keys + "," + entity_sort[i];
+		link = buildLink (link, next_collection_keys);
+		var button_html = "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
+		entity_arr.push(button_html);
+	}
+	//loop through array and print buttons
+	var row = 0;
+	var column = 1;
+	for (var i = 0; i < entity_arr.length; i++){
+		if (column == 1){
+            if (row === 0){
+                $('#list_content').html('');
+            }
+			$('#list_content').append("<div id='buffer"+row+"' class='row top-buffer'>");
+			$('#buffer'+row).append("<div id='row" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
 		}
-	});
+		$('#row'+row).append("<div class='col-sm-4'>" + entity_arr[i] + "</div>");
+		if (column == 3){
+			column = 0;
+			row++;
+		}
+		column++;
+	}
 };
 
 function buildLink (link, collection_keys){

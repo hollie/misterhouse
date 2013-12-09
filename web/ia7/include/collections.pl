@@ -36,87 +36,87 @@ my %json = (
 		},
 		2 => { 
 			'name' => 'Mail and News',
-			'link' => 'news/index.html',
+			'link' => '/ia5/news/index.html',
 			'icon' => 'fa-envelope',
 		},
 		3 => { 
 			'name' => 'Modes',
-			'link' => 'modes/index.html',
+			'link' => '/ia5/modes/index.html',
 			'icon' => 'fa-tasks',
 		},
 		4 => { 
 			'name' => 'Lights & Appliances',
-			'link' => 'lights/index.html',
+			'link' => '/ia5/lights/index.html',
 			'icon' => 'fa-lightbulb-o',
 		},
 		5 => { 
 			'name' => 'HVAC & Weather',
-			'link' => 'outside/index.shtml',
+			'link' => '/ia5/outside/index.shtml',
 			'icon' => 'fa-umbrella',
 		},
 		6 => { 
 			'name' => 'Security Cameras',
-			'link' => 'security/index.html',
+			'link' => '/ia5/security/index.html',
 			'icon' => 'fa-camera',
 		},
 		7 => { 
 			'name' => 'Phone Calls & VoiceMail Msgs',
-			'link' => 'phone/index.html',
+			'link' => '/ia5/phone/index.html',
 			'icon' => 'fa-phone',
 		},
 		8 => { 
 			'name' => 'TV/Radio Guide & MP3 Music',
-			'link' => 'entertain/index.html',
+			'link' => '/ia5/entertain/index.html',
 			'icon' => 'fa-music',
 		},
 		9 => { 
 			'name' => 'Speech',
-			'link' => 'speak/index.html',
+			'link' => '/ia5/speak/index.html',
 			'icon' => 'fa-microphone',
 		},
 		10 => { 
 			'name' => 'Comics & Pictures',
-			'link' => 'pictures/index.html',
+			'link' => '/ia5/pictures/index.html',
 			'icon' => 'fa-picture-o',
 		},
 		11 => { 
 			'name' => 'Events, Calendar, & Clock',
-			'link' => 'calendar/index.html',
+			'link' => '/ia5/calendar/index.html',
 			'icon' => 'fa-calendar',
 		},
 		12 => { 
 			'name' => 'Statistics & Logged Data',
-			'link' => 'statistics/index.html',
+			'link' => '/ia5/statistics/index.html',
 			'icon' => 'fa-bar-chart-o',
 		},
 		13 => { 
 			'name' => 'About MrHouse',
-			'link' => 'house/main.shtml',
+			'link' => '/ia7/house/main.shtml',
 			'icon' => 'fa-home',
 		},
 		14 => { 
 			'name' => 'About 3Com Audrey',
-			'link' => 'house/aboutaudrey.shtml',
+			'link' => '/ia7/house/aboutaudrey.shtml',
 			'icon' => 'fa-desktop',
 		},
 		15 => { 
 			'name' => 'Browse MrHouse',
-			'link' => '#request=list&type=categories&name=MisterHouse',
+			'link' => '/ia7/#request=list&type=categories&name=MisterHouse',
 			'icon' => 'fa-home',
 		},
 		16 => { 
 			'name' => 'Browse Categories',
-			'link' => '#request=list&type=categories',
+			'link' => '/ia7/#request=list&type=categories',
 			'icon' => 'fa-archive',
 		},
 		17 => { 
 			'name' => 'Browse Groups',
-			'link' => '#request=list&type=groups',
+			'link' => '/ia7/#request=list&type=groups',
 			'icon' => 'fa-group',
 		},
 		18 => { 
 			'name' => 'Browse Items',
-			'link' => '#request=list&type=types',
+			'link' => '/ia7/#request=list&type=types',
 			'icon' => 'fa-info',
 		},
 		19 => { 
@@ -127,7 +127,7 @@ my %json = (
 		20 => { 
 			'name' => 'Setup MrHouse',
 			'icon' => 'fa-wrench',
-			'children' => [21,22,23,24,25,26,27,28,29]
+			'children' => [21,22,23,24,25,26,27,28]
 		},
 		21 => { 
 			'name' => 'Common Code Activation',
@@ -168,11 +168,6 @@ my %json = (
 			'name' => 'Setup TV Provider',
 			'link' => '/bin/set_parm_tv_provider.pl',
 			'icon' => 'fa-desktop',
-		},
-		29 => { 
-			'name' => 'Setup Photo Slideshow',
-			'link' => '/ia5/house/SUB;photo_html',
-			'icon' => 'fa-picture-o',
 		},
 	}
 );
