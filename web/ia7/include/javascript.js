@@ -159,16 +159,7 @@ var loadCollection = function(collection_keys) {
 			var breadcrumb = '';
 			for (var i = 0; i < collection_keys_arr.length; i++){
 				var nav_link = json.collections[collection_keys_arr[i]].link;
-				if (nav_link === undefined) {
-					nav_link = "#";
-				} 
-				else if (nav_link.indexOf("#") === -1){
-					nav_link += "#";
-				}
-				else {
-					nav_link += "&";
-				}
-				nav_link += 'collection_key=' + breadcrumb + collection_keys_arr[i];
+				nav_link = buildLink (nav_link, breadcrumb + collection_keys_arr[i]);
 				breadcrumb += collection_keys_arr[i] + ",";
 				var nav_name = json.collections[collection_keys_arr[i]].name;
 				if (i == (collection_keys_arr.length-1)){
@@ -188,16 +179,7 @@ var loadCollection = function(collection_keys) {
 				var icon = json.collections[collection].icon;
 				var name = json.collections[collection].name;
 				var next_collection_keys = collection_keys + "," + entity_sort[i];
-				if (link === undefined) {
-					link = "#";
-				} 
-				else if (link.indexOf("#") === -1){
-					link += "#";
-				}
-				else {
-					link += "&";
-				}
-				link += "collection_key="+ next_collection_keys;
+				link = buildLink (link, next_collection_keys);
 				var button_html = "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
 				entity_arr.push(button_html);
 			}
@@ -222,3 +204,17 @@ var loadCollection = function(collection_keys) {
 		}
 	});
 };
+
+function buildLink (link, collection_keys){
+	if (link === undefined) {
+		link = "#";
+	} 
+	else if (link.indexOf("#") === -1){
+		link += "#";
+	}
+	else {
+		link += "&";
+	}
+	link += "collection_key="+ collection_keys;
+	return link;
+}
