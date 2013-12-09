@@ -22,7 +22,10 @@ function changePage (){
 	else { //We have the database
 		if (getURLParameter('request', 'hash') == 'list'){
 	        loadList(getURLParameter('type','hash'),getURLParameter('name','hash'));
-		} 
+		}
+		else if(getURLParameter('request', 'hash') == 'page'){
+			$('#list_content').load(getURLParameter('link', 'hash'));
+		}
 		else { //default response is to load a collection
 	        loadCollection(getURLParameter('collection_key', 'hash'));
 		}
@@ -222,7 +225,7 @@ function buildLink (link, collection_keys){
 		link = "#";
 	} 
 	else if (link.indexOf("#") === -1){
-		link += "#";
+		link = "#request=page&link="+link+"&";
 	}
 	else {
 		link += "&";
