@@ -153,8 +153,32 @@ var loadCollection = function(collection_keys) {
 		url: '/ia7/include/collections.pl',
 		dataType: "json",
 		success: function( json ) {
-            var last_collection_key = collection_keys.split(",");
-            last_collection_key = last_collection_key[last_collection_key.length-1];
+			//update the breadcrumb
+			$('#nav').html('');
+			var collection_keys_arr = collection_keys.split(",");
+			var breadcrumb = '';
+			for (var i = 0; i < collection_keys_arr.length; i++){
+				var nav_link = json.collections[collection_keys_arr[i]].link;
+				if (nav_link === undefined) {
+					nav_link = "#";
+				} 
+				else if (nav_link.indexOf("#") === -1){
+					nav_link += "#";
+				}
+				else {
+					nav_link += "&";
+				}
+				nav_link += 'collection_key=' + breadcrumb + collection_keys_arr[i];
+				breadcrumb += collection_keys_arr[i] + ",";
+				var nav_name = json.collections[collection_keys_arr[i]].name;
+				if (i == (collection_keys_arr.length-1)){
+					$('#nav').append('<li class="active">' + nav_name + '</a></li>');
+				} 
+				else {
+					$('#nav').append('<li><a href="' + nav_link + '">' + nav_name + '</a></li>');
+				}
+			}
+			var last_collection_key = collection_keys_arr[collection_keys_arr.length-1];
 			var entity_arr = [];
 			// sort the collections
 			var entity_sort = json.collections[last_collection_key].children;
