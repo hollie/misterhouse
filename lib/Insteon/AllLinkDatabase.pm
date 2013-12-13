@@ -488,7 +488,7 @@ sub delete_orphan_links
 
 		# Initialize Variables
 		my ($linked_device, $plm_scene, $controller_object, $link_defined,
-			$controller_id, $responder_id, $link_data3, $recip_data3, 
+			$controller_id, $responder_id, $recip_data3, 
 			$group_object, $data3_object);
 		my $group 		= lc $$self{aldb}{$linkkey}{group};
 		my $is_controller 	= $$self{aldb}{$linkkey}{is_controller};
@@ -504,6 +504,7 @@ sub delete_orphan_links
 		%delete_req = (%delete_req, deviceid => $deviceid, group => $group,
 			is_controller => $is_controller, data3 => $data3);
 
+::print_log("[Insteon::AllLinkDatabase] DEBUG-omg: Evaluating $selfname($self_id) link: is_controller=$is_controller deviceid=$deviceid group=$group data3=$data3 interface_id=$interface_id") if $main::Debug{insteon} >= 5;
 		# Is the linked device defined in MH?
 		if (! ref $linked_device) {
 			$delete_req{cause} = "no device with deviceid: $deviceid could be found";
@@ -536,21 +537,21 @@ sub delete_orphan_links
 				my @lights = $member->find_members('Insteon::BaseLight');
 				$member = $lights[0] if (@lights); # pick the first
 			}
-			# For resp, D3 = resp group; For cont, D3 = cont group
-			$link_data3 = ($is_controller) ? $group : $member->group;
+#TODO - In the ALDB, the primary key is the combination of device ID "and" group
+#It is possible to link two buttons on a keypad link to the same controller
+#e.g. one button turns on and the other turns off when the controller activates
+#So then we should be checking the group here too.  Otherwise when removing links
+#this could inadvertently leave extra links in the ALDB.
 			if (lc($member->device_id) eq $responder_id) {
+				#Ask self what we should have in data3
+				#For rspndr, D3 = rspndr group; For ctrlr, D3 = ctrlr group
+				my $link_data3 = $$self{device}->link_data3(($is_controller ? $group : $member->group), $is_controller);
+::print_log("[Insteon::AllLinkDatabase] DEBUG-omg: member: ".$member->get_object_name."(".$member->device_id.") data3: $data3; link data3: $link_data3") if $main::Debug{insteon} >= 5;
 				if ($data3 eq $link_data3){
 					$link_defined = 1;
 					$recip_data3 = ($is_controller) ? $member->group : $group;
 					last MEMBERS;
 				} 
-				elsif (($link_data3 eq '00' || $link_data3 eq '01') && 
-					($data3 eq '00' || $data3 eq '01' )){
-					# Allow for 00 or 01 interchangability
-					$link_defined = 1;
-					$recip_data3 = ($is_controller) ? $member->group : $group;
-					last MEMBERS;
-				}
 			} 
 		}
 
@@ -850,14 +851,7 @@ sub add_link
 	}
 	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
 
-	# For I2CS devices the default data3 for links is 01
-	# For all other devices the default data3 for links is 00
-	my $data3_default = '00';
-	if ($$self{device}->can('engine_version') && $$self{device}->engine_version eq 'I2CS') {
-		$data3_default = '01';
-	}
-	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
-	$data3 = $data3_default if ($data3 eq '00' || $data3 eq '01');
+	my $data3 = $$self{device}->link_data3($link_parms{data3},$is_controller);
 
 	# check whether the link already exists
 	my $key = $self->get_linkkey($device_id, $group, $is_controller, $data3);
@@ -974,14 +968,7 @@ sub update_link
 	my $data1 = &Insteon::DimmableLight::convert_level($on_level);
 	my $data2 = ($$self{device}->isa('Insteon::DimmableLight')) ? &Insteon::DimmableLight::convert_ramp($ramp_rate) : '00';
 
-	# For I2CS devices the default data3 for links is 01
-	# For all other devices the default data3 for links is 00
-	my $data3_default = '00';
-	if ($$self{device}->can('engine_version') && $$self{device}->engine_version eq 'I2CS') {
-		$data3_default = '01';
-	}
-	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
-	$data3 = $data3_default if ($data3 eq '00' || $data3 eq '01');
+	my $data3 = $$self{device}->link_data3($link_parms{data3},$is_controller);
 
 	&::print_log("[Insteon::AllLinkDatabase] DEBUG2: updating " . $$self{device}->get_object_name 
 		. " light level controlled by " . $insteon_object->get_object_name
@@ -1184,7 +1171,17 @@ sub has_link
 		$deviceid = lc $insteon_object->device_id;
 	}
 	my $key = $self->get_linkkey($deviceid, $group, $is_controller, $data3);
-	return (defined $$self{aldb}{$key});
+
+	#Now that we have a linkkey, compare the linkkey's data3 value.
+	my $found = 0;
+	if (defined $$self{aldb}{$key}) {
+		#Ask self what we should have in data3
+		$data3 = $$self{device}->link_data3($data3,$is_controller);
+		
+		$found++ if( $$self{aldb}{$key}{data3} == $data3);
+	}
+	
+	return ($found);
 }
 
 =back
