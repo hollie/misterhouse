@@ -150,10 +150,14 @@ sub prep_parms
         my $ref = &::get_object_by_name("pa_$room");
         my $type = $ref->get_type();
          &::print_log("PAobj: speakers_$type: Adding $room") if $main::Debug{pa} >=3;
-        $pa_zone_types{$type}++ unless $pa_zone_types{$type};
+#        $pa_zone_types{$type}++ unless $pa_zone_types{$type};
         push(@{$speakertype{$type}}, $room);
     }
     
+    foreach my $type (keys(%pa_zone_types)) {
+        undef $pa_zones{active}{$type};
+    }
+
     foreach my $type (keys(%speakertype)) {
         my @thespeakers = @{$speakertype{$type}};
         &::print_log("PAobj: speakers_$type: ".($#thespeakers+1).": " . join(',',@thespeakers)) if $main::Debug{pa};
@@ -614,8 +618,9 @@ sub new
     if(lc $paz_type eq 'amixer') {
         #Headphone:0:L
         my ($mixer,$mixernum,$channel) = split(':',$self->{address});
-        &main::print_log("$mixer / $mixernum / $channel");
-        $self->{mixer} = "$mixer,$mixernum";
+        &::print_log("$mixer / $mixernum / $channel");
+        $self->{mixer} = "$mixer";
+        $self->{mixer} .= ",$mixernum" if $mixernum;
         $self->{mixerchan} = lc $channel if $channel;
     }
 
