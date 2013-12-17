@@ -927,6 +927,33 @@ sub firmware {
 	return $$self{firmware};
 }
 
+=item C<link_data3>
+
+Returns the data3 value that should be used when creating a link for this device.  
+This sub was modivated by the need to return unique values for data3 on responder 
+links for group 01.  The PLM will store the responder's devcat data for controller 
+entries.  That's fundamentally hard so just do the same as for other devices for 
+now.  Can make this smarter in the future if needed.
+
+=cut 
+
+sub link_data3
+{
+	my ($self, $group, $is_controller) = @_;
+
+	my $link_data3;
+
+	if( $is_controller) {
+		#Default to 01 if no group was supplied
+		#Otherwise just return the group
+		$link_data3 = ($group) ? $group : '01';
+	} else { #is_responder
+		#Default to 01 if no group was supplied
+		$link_data3 = ($group) ? $group : '01';
+	}
+
+	return $link_data3;
+}
 =back
 
 =head2 INI PARAMETERS
