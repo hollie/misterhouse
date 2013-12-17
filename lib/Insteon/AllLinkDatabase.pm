@@ -546,7 +546,7 @@ sub delete_orphan_links
 				#Ask self what we should have in data3
 				#For rspndr, D3 = rspndr group; For ctrlr, D3 = ctrlr group
 				my $link_data3 = $$self{device}->link_data3(($is_controller ? $group : $member->group), $is_controller);
-::print_log("[Insteon::AllLinkDatabase] DEBUG-omg: member: ".$member->get_object_name."(".$member->device_id.") data3: $data3; link data3: $link_data3") if $main::Debug{insteon} >= 5;
+::print_log("[Insteon::AllLinkDatabase] DEBUG-omg:     member: ".$member->get_object_name."(".$member->device_id.") data3: $data3; link data3: $link_data3") if $main::Debug{insteon} >= 5;
 				if ($data3 eq $link_data3){
 					$link_defined = 1;
 					$recip_data3 = ($is_controller) ? $member->group : $group;
@@ -612,6 +612,7 @@ sub delete_orphan_links
 
 		# Does a reciprocal link exist?
 		if (! $linked_device->has_link($$self{device},$group,($is_controller) ? 0 : 1, lc $recip_data3)) {
+::print_log("[Insteon::AllLinkDatabase] DEBUG-omg:     No reciprocal link:  \$recip_data3 = $recip_data3") if $main::Debug{insteon} >= 5;
 			$delete_req{cause} = "no reciprocal link was found on " . $linked_device->get_object_name;
 			push @{$$self{delete_queue}}, \%delete_req;
 		} 
@@ -2778,7 +2779,17 @@ sub has_link
 	my ($self, $insteon_object, $group, $is_controller, $data3) = @_;
 	my $key = $self->get_linkkey($insteon_object->device_id, 
 				$group, $is_controller, $data3);
-	return (defined $$self{aldb}{$key});
+
+	#Now that we have a linkkey, compare the linkkey's data3 value.
+	my $found = 0;
+	if (defined $$self{aldb}{$key}) {
+		#Ask self what we should have in data3
+		$data3 = $$self{device}->link_data3($data3,$is_controller);
+		
+		$found++ if( $$self{aldb}{$key}{data3} == $data3);
+	}
+
+	return ($found);
 }
 
 =back

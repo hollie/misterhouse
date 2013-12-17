@@ -639,7 +639,7 @@ sub link_data3
 {
 	my ($self, $group, $is_controller) = @_;
 
-	my $link_data3 = SUPER::link_data3($group, $is_controller);
+	my $link_data3 = $self->SUPER::link_data3($group, $is_controller);
 
 	if( !$is_controller) {  #is_responder
 		#For I2CS devices the default data3 for responder links is 01.
@@ -647,7 +647,7 @@ sub link_data3
 		#permutations of the 00 vs. 01 problem and I1 devices may have 
 		#the same requirement.  This code is a work in progress as more 
 		#information is gathered about Relay type devices.
-		if ($$self{device}->can('engine_version') && $$self{device}->engine_version eq 'I2CS') {
+		if ($self->can('engine_version') && $self->engine_version eq 'I2CS') {
 			$link_data3 = '01';
 ::print_log("[Insteon::SwitchLincRelay] Overriding link_data3 to 01 for group 01");
 		}
