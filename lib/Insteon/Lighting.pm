@@ -649,7 +649,6 @@ sub link_data3
 		#information is gathered about Relay type devices.
 		if ($self->can('engine_version') && $self->engine_version eq 'I2CS') {
 			$link_data3 = '01';
-::print_log("[Insteon::SwitchLincRelay] Overriding link_data3 to 01 for group 01");
 		}
 	}
 
