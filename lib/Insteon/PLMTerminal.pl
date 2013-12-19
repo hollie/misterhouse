@@ -185,7 +185,7 @@ while(!$ctlc) {
 	#  but print a new line for visual separation
 	my $key;
 	while( defined ($key = ReadKey(-1))) {
-		if( $key eq "\n" or $key eq "\r" and $TxMessage ne '') { # enter
+		if( ($key eq "\n" or $key eq "\r") and $TxMessage ne '') { # enter
 			$TxMessage = insertChecksum($TxMessage) if( !$parms->{'nochecksum'});
 			print "\nPLM<=".$TxMessage."\n";
 			print Insteon::MessageDecoder::plm_decode($TxMessage)."\n";
