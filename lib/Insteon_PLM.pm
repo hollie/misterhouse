@@ -72,6 +72,9 @@ Creates a new serial port connection.
 sub serial_startup {
    my ($instance) = @_;
    my $port       = $::config_parms{$instance . "_serial_port"};
+   if (!defined($port)) {
+      main::print_log("WARN: ".$instance."_serial_port missing from INI params!");
+   }
    my $speed = 19200;
 
    &::print_log("[Insteon_PLM] serial:$port:$speed");
@@ -89,6 +92,9 @@ sub new {
    my ($class, $port_name, $p_deviceid) = @_;
    $port_name = 'Insteon_PLM' if !$port_name;
    my $port       = $::config_parms{$port_name . "_serial_port"};
+   if (!defined($port)) {
+      main::print_log("WARN: ".$port_name."_serial_port missing from INI params!");
+   }
 
    my $self = new Insteon::BaseInterface();
    $$self{state}     = '';
