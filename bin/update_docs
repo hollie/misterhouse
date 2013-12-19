@@ -70,7 +70,8 @@ my ( %config_parms, %parms );
 my $docdir = "../docs";
 my $outdir = $config_parms{html_alias2_docs};
 my $libdir = '../lib';
-$outdir = '../docs' unless $outdir and -d $outdir;
+$outdir = '../docs' unless $outdir;
+mkdir "$outdir" unless -d "$outdir";
 
 -d $docdir || die "directory $docdir doesn't exist";
 -d $outdir || die "directory $outdir doesn't exist";
@@ -85,6 +86,9 @@ mkdir "$outdir/lib" unless -d "$outdir/lib";
 my ($ipod, $mpod, %packages);
 my $changes = 0;
 
+print("[bin/update_docs] \$docdir:$docdir\n");
+print("[bin/update_docs] \$outdir:$outdir\n");
+print("[bin/update_docs] \$libdir:$libdir\n");
 # Generate the list of directories to scan for pm or pl files
 my %libsubdirs;
 opendir LIB, $libdir || die "can't open $libdir directory: $!";
@@ -243,11 +247,12 @@ closedir POD;
 # delete html files from docs dir if out dir is diff and pod exists
 my $docsi = ( stat($docdir) )[1];
 my $outi  = ( stat($outdir) )[1];
+print("[bin/update_docs] \$docsi:$docsi \$outi:$outi\n");
 if ((($docsi == $outi) && ($outi == 0) && (abs_path($docdir) eq abs_path($outdir))) 
     || (( $docsi eq $outi ) && ($outi != 0))) {
     print "you should set the html_alias2_docs directory to a place outside"
       . " the mh distribution\n directory.  Otherwise, everytime this script is"
-      . " run, you will alter\n your distribution files.";
+      . " run, you will alter\n your distribution files.\n";
 }
 else {
     # the following would delete files from the distribution docs dir
