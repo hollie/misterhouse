@@ -262,13 +262,16 @@ var loadList = function(listType,listValue,collection_key) {
 	});  //ajax request
 };//loadlistfunction
 
+//Prints all of the navigation items for Ia7
 var loadCollection = function(collection_keys) {
-	if (collection_keys === null) collection_keys = '0';
+	if (collection_keys === undefined) collection_keys = '0';
 	var collection_keys_arr = collection_keys.split(",");
 	var last_collection_key = collection_keys_arr[collection_keys_arr.length-1];
 	var entity_arr = [];
-	// sort the collections
 	var entity_sort = collection_json.collections[last_collection_key].children;
+	if (entity_sort.length <= 0){
+		entity_arr.push("Childless Collection");
+	}
 	for (var i = 0; i < entity_sort.length; i++){
 		var collection = entity_sort[i];
 		if (!(collection in collection_json.collections)) continue;
@@ -277,6 +280,9 @@ var loadCollection = function(collection_keys) {
 		var name = collection_json.collections[collection].name;
 		var next_collection_keys = collection_keys + "," + entity_sort[i];
 		link = buildLink (link, next_collection_keys);
+		if (collection_json.collections[collection].external !== undefined) {
+			link = collection_json.collections[collection].external;
+		}
 		var button_html = "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
 		entity_arr.push(button_html);
 	}
@@ -300,6 +306,7 @@ var loadCollection = function(collection_keys) {
 	}
 };
 
+//Constructs a link, likely should be replaced by HashToURL
 function buildLink (link, collection_keys){
 	if (link === undefined) {
 		link = "#";
@@ -313,3 +320,37 @@ function buildLink (link, collection_keys){
 	link += "collection_key="+ collection_keys;
 	return link;
 }
+
+//Outputs a constantly updating print log
+var print_log = function(time) {
+	if (typeof time === 'undefined'){
+		$('#list_content').html("<div id='print_log' class='row top-buffer'>");
+		$('#print_log').append("<div id='row_log' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+		$('#row_log').append("<ul id='list'></ul>");
+		time = 0;
+	}
+	$.ajax({
+	type: "GET",
+	url: "/LONG_POLL?ia7_utils::print_log_changes("+time+")",
+	dataType: "json",
+	success: function( json ) {
+		for (var i = (json.print_log.text.length-1); i >= 0; i--){
+			var line = String(json.print_log.text[i]);
+			line = line.replace(/\n/g,"<br>");
+			$('#list').prepend("<li style='font-family:courier, monospace;white-space:pre-wrap;font-size:small;padding-left: 13em;text-indent: -13em;position:relative;'>"+line+"</li>");
+		}
+		if ($('#row_log').length !== 0){
+			print_log(json.print_log.time);
+		}
+	}
+	});
+};
+
+$(document).ready(function() {
+	// Start
+	changePage();
+	//Watch for future changes in hash
+	$(window).bind('hashchange', function() {
+		changePage();
+	});
+});
