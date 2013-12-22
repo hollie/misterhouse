@@ -24,6 +24,7 @@ function HashtoURL(URLHash) {
 	return location.path + "#" + pairs.join('&');
 }
 
+//Called anytime the page changes
 function changePage (){
 	if (collection_json === undefined){
 		$.ajax({
@@ -37,28 +38,48 @@ function changePage (){
 		});
 	} 
 	else { //We have the database
-		if (getURLParameter('request', 'hash') == 'list'){
-	        loadList(getURLParameter('type','hash'),getURLParameter('name','hash'));
+		var URLHash = URLToHash();
+		if (URLHash.request == 'list'){
+			loadList(URLHash.type,URLHash.name, URLHash.collection_key);
 		}
-		else if(getURLParameter('request', 'hash') == 'page'){
-			$('#list_content').load(getURLParameter('link', 'hash'));
+		else if(URLHash.request == 'page'){
+			$.get(URLHash.link, function( data ) {
+				data = data.replace(/<link[^>]*>/img, ''); //Remove stylesheets
+				data = data.replace(/<title[^>]*>((\r|\n|.)*?)<\/title[^>]*>/img, ''); //Remove title
+				data = data.replace(/<meta[^>]*>/img, ''); //Remove meta refresh
+				data = data.replace(/<base[^>]*>/img, ''); //Remove base target tags
+				$('#list_content').html("<div id='buffer_page' class='row top-buffer'>");
+				$('#buffer_page').append("<div id='row_page' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+				$('#row_page').html(data);
+			});
+		}
+		else if(URLHash.request == 'print_log'){
+			print_log();
 		}
 		else { //default response is to load a collection
-	        loadCollection(getURLParameter('collection_key', 'hash'));
+			loadCollection(URLHash.collection_key);
 		}
 		//update the breadcrumb
 		$('#nav').html('');
-		var collection_keys_arr = getURLParameter('collection_key', 'hash');
-		if (collection_keys_arr === null) collection_keys_arr = '0';
+		var collection_keys_arr = URLHash.collection_key;
+		if (collection_keys_arr === undefined) collection_keys_arr = '0';
 		collection_keys_arr = collection_keys_arr.split(',');
 		var breadcrumb = '';
 		for (var i = 0; i < collection_keys_arr.length; i++){
-			var nav_link = collection_json.collections[collection_keys_arr[i]].link;
+			var nav_link, nav_name;
+			if (collection_keys_arr[i].substring(0,1) == "$"){
+				nav_name = collection_keys_arr[i].replace("$", '');
+				nav_link = ''; //ATM There is only a single level of these
+			}
+			else {
+				nav_link = collection_json.collections[collection_keys_arr[i]].link;
+				nav_name = collection_json.collections[collection_keys_arr[i]].name;
+			}
 			nav_link = buildLink (nav_link, breadcrumb + collection_keys_arr[i]);
 			breadcrumb += collection_keys_arr[i] + ",";
-			var nav_name = collection_json.collections[collection_keys_arr[i]].name;
 			if (i == (collection_keys_arr.length-1)){
 				$('#nav').append('<li class="active">' + nav_name + '</a></li>');
+				$('title').html("MisterHouse - " + nav_name);
 			} 
 			else {
 				$('#nav').append('<li><a href="' + nav_link + '">' + nav_name + '</a></li>');
