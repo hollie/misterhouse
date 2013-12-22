@@ -1,10 +1,27 @@
 var collection_json;  //global storage for collection database
 
-function getURLParameter(name, type) {
-    var prefix = '[?|&]';
-    if (type === undefined) type = 'search';
-    if (type == 'hash') prefix = '[#|&]';
-	return decodeURIComponent((new RegExp(prefix + name + '=' + '([^&;]+?)(&|#|;|$)').exec(location[type])||[,""])[1].replace(/\+/g, '%20'))||null;
+//Takes the current location and parses the achor element into a hash
+function URLToHash() {
+	if (location.hash === undefined) return;
+	var URLHash = {};
+	var url = location.hash.replace(/^\#/, ''); //Replace Hash Entity
+	var pairs = url.split('&');
+	for (var i = 0; i < pairs.length; i++) {
+		var pair = pairs[i].split('=');
+		URLHash[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
+	}
+	return URLHash;
+}
+
+//Takes a hash and turns it back into a url
+function HashtoURL(URLHash) {
+	var pairs = [];
+	for (var key in URLHash){
+		if (URLHash.hasOwnProperty(key)){
+			pairs.push(encodeURIComponent(key) + '=' + encodeURIComponent(URLHash[key]));
+		}
+	}
+	return location.path + "#" + pairs.join('&');
 }
 
 function changePage (){
