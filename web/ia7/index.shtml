@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html><head><title>$title</title>
+<html><head><title>MisterHouse</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	
 	<!--Font Awesome-->
@@ -121,13 +121,6 @@
   </div><!-- /.modal-dialog -->
 </div><!-- /.modal -->
 <script type="text/javascript">
-	$(document).ready(function() {
-		// Start
-        changePage();
-		//Watch for future changes in hash
-		$(window).bind('hashchange', function() {
-		    changePage();
-		});
-	});
+
 </script>
 </body></html>
