@@ -109,7 +109,7 @@ function variableList(value){
 //Prints a JSON generated list of MH objects
 var loadList = function(listType,listValue,collection_key) {
 	var url;
-	if (listValue !== null){
+	if (listValue !== undefined){
 		url = "/sub?json("+listType+"="+listValue+",fields=text|type|state|states)";
 	} 
 	else {
@@ -123,74 +123,91 @@ var loadList = function(listType,listValue,collection_key) {
 		var button_text = '';
 		var button_html = '';
 		var entity_arr = [];
-		for (var division in json[listType]){
-			if (listValue === null){ //truncated list
-				button_text = division;
-                var collection_key = getURLParameter('collection_key', 'hash');
-				//Put entities into button
-				button_html = "<div style='vertical-align:middle'><a role='button' listType='"+listType+"'";
-				button_html += "class='btn btn-default btn-lg btn-block btn-list btn-division'";
-				button_html += "href='#request=list&collection_key="+collection_key+"&type="+listType+"&name="+button_text+"' >";
-				button_html += "" +button_text+"</a></div>";
-				entity_arr.push(button_html);
+		var list_output = "";
+		for (var json_type in json){
+			if (json_type.toLowerCase() == 'save' || json_type.toLowerCase() == 'vars' ){ //variables list
+				var keys = [];
+				for (var key in json[json_type]) {
+					keys.push(key);
+				}
+				keys.sort ();
+				for (var i = 0; i < keys.length; i++){
+					var value = variableList(json[json_type][keys[i]]);
+					var name = keys[i];
+					var list_html = "<ul><li><b>" + name + ":</b>" + value+"</li></ul>";
+					list_output += (list_html);
+				}
 				continue;
-			}//end truncated list
-			for (var entity in json[listType][division]){
-				if (json[listType][division][entity].type == "Voice_Cmd"){
-					button_text = json[listType][division][entity].text;
-					//Choose the first alternative of {} group
-					while (button_text.indexOf('{') >= 0){
-						var regex = /([^\{]*)\{([^,]*)[^\}]*\}(.*)/;
-						button_text = button_text.replace(regex, "$1$2$3");
-					}
-					//Put each option in [] into toggle list, use first option by default
-					if (button_text.indexOf('[') >= 0){
-						var regex = /(.*)\[([^\]]*)\](.*)/;
-						var options = button_text.replace(regex, "$2");
-						var button_text_start = button_text.replace(regex, "$1");
-						var button_text_end = button_text.replace(regex, "$3");
-						options = options.split(',');
-						button_html = '<div class="btn-group btn-block fillsplit">';
-						button_html += '<div class="leadcontainer">';
-						button_html += '<button type="button" class="btn btn-default dropdown-lead btn-lg btn-list btn-voice-cmd">'+button_text_start + "<u>" + options[0] + "</u>" + button_text_end+'</button>';
-						button_html += '</div>';
-						button_html += '<button type="button" class="btn btn-default btn-lg dropdown-toggle pull-right btn-list-dropdown" data-toggle="dropdown">';
-						button_html += '<span class="caret"></span>';
-						button_html += '<span class="sr-only">Toggle Dropdown</span>';
-						button_html += '</button>';
-						button_html += '<ul class="dropdown-menu dropdown-voice-cmd" role="menu">';
-						for (var i=0,len=options.length; i<len; i++) { 
-							button_html += '<li><a href="#">'+options[i]+'</a></li>';
+			}
+			for (var division in json[json_type]){
+				if (listValue === undefined){ //truncated list
+					button_text = division;
+					//Put entities into button
+					button_html = "<div style='vertical-align:middle'><a role='button' listType='"+listType+"'";
+					button_html += "class='btn btn-default btn-lg btn-block btn-list btn-division'";
+					button_html += "href='#request=list&collection_key="+collection_key+",$" + button_text + "&type="+listType+"&name="+button_text+"' >";
+					button_html += "" +button_text+"</a></div>";
+					entity_arr.push(button_html);
+					continue;
+				}//end truncated list
+				for (var entity in json[listType][division]){
+					if (json[listType][division][entity].type == "Voice_Cmd"){
+						button_text = json[listType][division][entity].text;
+						//Choose the first alternative of {} group
+						while (button_text.indexOf('{') >= 0){
+							var regex = /([^\{]*)\{([^,]*)[^\}]*\}(.*)/;
+							button_text = button_text.replace(regex, "$1$2$3");
 						}
-						button_html += '</ul>';
-						button_html += '</div>';
-					}
+						//Put each option in [] into toggle list, use first option by default
+						if (button_text.indexOf('[') >= 0){
+							var regex = /(.*)\[([^\]]*)\](.*)/;
+							var options = button_text.replace(regex, "$2");
+							var button_text_start = button_text.replace(regex, "$1");
+							var button_text_end = button_text.replace(regex, "$3");
+							options = options.split(',');
+							button_html = '<div class="btn-group btn-block fillsplit">';
+							button_html += '<div class="leadcontainer">';
+							button_html += '<button type="button" class="btn btn-default dropdown-lead btn-lg btn-list btn-voice-cmd">'+button_text_start + "<u>" + options[0] + "</u>" + button_text_end+'</button>';
+							button_html += '</div>';
+							button_html += '<button type="button" class="btn btn-default btn-lg dropdown-toggle pull-right btn-list-dropdown" data-toggle="dropdown">';
+							button_html += '<span class="caret"></span>';
+							button_html += '<span class="sr-only">Toggle Dropdown</span>';
+							button_html += '</button>';
+							button_html += '<ul class="dropdown-menu dropdown-voice-cmd" role="menu">';
+							for (var i=0,len=options.length; i<len; i++) { 
+								button_html += '<li><a href="#">'+options[i]+'</a></li>';
+							}
+							button_html += '</ul>';
+							button_html += '</div>';
+						}
+						else {
+							button_html = "<div style='vertical-align:middle'><button type='button' class='btn btn-default btn-lg btn-block btn-list btn-voice-cmd'>";
+							button_html += "" +button_text+"</button></div>";
+						}
+						entity_arr.push(button_html);
+					} //Voice Command Button
 					else {
-						button_html = "<div style='vertical-align:middle'><button type='button' class='btn btn-default btn-lg btn-block btn-list btn-voice-cmd'>";
-						button_html += "" +button_text+"</button></div>";
-					}
-					entity_arr.push(button_html);
-				} //Voice Command Button
-				else {
-					var object = json[listType][division][entity];
-					var state = object.state;
-					var name = entity;
-					//Put objects into button
-					button_html = "<div style='vertical-align:middle'><button entity='"+name+"' division='"+division+"' ";
-					button_html += "class='btn btn-default btn-lg btn-block btn-list btn-popover btn-state-cmd'>";
-					button_html += name+"<span class='pull-right'>"+state+"</span></button></div>";
-					entity_arr.push(button_html);
-				} //Not voice command button
-			}//entity each loop
-		}//division loop
+						var object = json[listType][division][entity];
+						var state = object.state;
+						var name = entity;
+						//Put objects into button
+						button_html = "<div style='vertical-align:middle'><button entity='"+name+"' division='"+division+"' ";
+						button_html += "class='btn btn-default btn-lg btn-block btn-list btn-popover btn-state-cmd'>";
+						button_html += name+"<span class='pull-right'>"+state+"</span></button></div>";
+						entity_arr.push(button_html);
+					} //Not voice command button
+				}//entity each loop
+			}//division loop
+		}//json_type loop
+		//clear list_content if we have something to print
+		if (entity_arr.length > 0 || list_output !== ""){
+			$('#list_content').html('');
+		}
 		//loop through array and print buttons
 		var row = 0;
 		var column = 1;
 		for (var i = 0; i < entity_arr.length; i++){
 			if (column == 1){
-                if (row === 0){
-                    $('#list_content').html('');
-                }
 				$('#list_content').append("<div id='buffer"+row+"' class='row top-buffer'>");
 				$('#buffer'+row).append("<div id='row" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
 			}
@@ -200,6 +217,12 @@ var loadList = function(listType,listValue,collection_key) {
 				row++;
 			}
 			column++;
+		}
+		//Print list output if exists;
+		if (list_output !== ""){
+			$('#list_content').append("<div id='buffer_vars' class='row top-buffer'>");
+			$('#buffer_vars').append("<div id='row_vars' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+			$('#row_vars').append(list_output);
 		}
 		//Affix functions to all button clicks
 		$(".dropdown-voice-cmd > li > a").click( function (e) {
