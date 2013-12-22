@@ -88,7 +88,26 @@ function changePage (){
 	}
 }
 
-var loadList = function(listType,listValue) {
+//Recursively parses a JSON entity to print all variables 
+function variableList(value){
+	var retValue = '';
+	if (typeof value == 'object' && value !== null) {
+		var keys = [];
+		for (var key in value) {
+			keys.push(key);
+		}
+		keys.sort ();
+		for (var i = 0; i < keys.length; i++){
+			retValue += "<ul><li><b>" + keys[i] +":</b>"+ variableList(value[keys[i]]) + "</li></ul>";
+		}
+	} else {
+		retValue = "<ul><li>" + value+"</li></ul>";
+	}
+	return retValue;
+}
+
+//Prints a JSON generated list of MH objects
+var loadList = function(listType,listValue,collection_key) {
 	var url;
 	if (listValue !== null){
 		url = "/sub?json("+listType+"="+listValue+",fields=text|type|state|states)";
