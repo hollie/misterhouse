@@ -1352,7 +1352,6 @@ sub debuglevel
 	$debug_level = 1 unless $debug_level;
 	my $objname;
 	$objname = lc $object->get_object_name if defined $object;
-	::print_log("[Generic_Item] debuglevel: Processing debug for object $objname ... " . $main::Debug{$objname}) if $main::Debug{$debug_group} >= 5;
 	return 1 if $main::Debug{$debug_group} >= $debug_level;
 	return 1 if defined $objname && $main::Debug{$objname} >= $debug_level;
 	return 0;

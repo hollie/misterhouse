@@ -84,7 +84,7 @@ Prints the everything you ever wanted to know about the script and exits.
 
 =head1 SEE ALSO
 
-L<Insteon Command Tables 20070925a|www.insteon.net/pdf/INSTEON_Command_Tables_20070925a.pdf>
+L<http://www.insteon.net/pdf/INSTEON_Command_Tables_20070925a.pdf>
 
 PLM command details can be found in the 2412S Developers Guide.  This 
 document is not supplied by SmartHome but may be available through an 
@@ -185,7 +185,7 @@ while(!$ctlc) {
 	#  but print a new line for visual separation
 	my $key;
 	while( defined ($key = ReadKey(-1))) {
-		if( $key eq "\n" or $key eq "\r" and $TxMessage ne '') { # enter
+		if( ($key eq "\n" or $key eq "\r") and $TxMessage ne '') { # enter
 			$TxMessage = insertChecksum($TxMessage) if( !$parms->{'nochecksum'});
 			print "\nPLM<=".$TxMessage."\n";
 			print Insteon::MessageDecoder::plm_decode($TxMessage)."\n";
