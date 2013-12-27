@@ -88,7 +88,7 @@ sub weather_updated {
 	}
 
 	# calculate dew point if missing, but we have temp and humid
-	if ($temp ne 'unknown' and $humidity ne 'unknown' and $dewpoint eq 'unknown') {
+	if ($temp ne 'unknown' and $humidity ne 'unknown' and $$w{HumidOutdoorMeasured}) {
 		my $humidity=$$w{HumidOutdoor};
 		$dewpoint=convert_humidity_to_dewpoint($humidity ,$temp); # $dewpoint is in Celsius at this point
 		$$w{DewOutdoor}=$main::config_parms{weather_uom_temp} eq 'F' ? &::convert_c2f($dewpoint) : $dewpoint;
