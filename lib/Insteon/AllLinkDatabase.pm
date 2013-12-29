@@ -2454,7 +2454,11 @@ sub log_alllink_table
 		}
 		elsif ($group ne '00' && $group ne '01') {
 			$controller_device = Insteon::get_object('000000',$group);
-			$controller_name = $controller_device->get_object_name . " ($group)";
+			
+			$controller_name = defined($controller_device) ? 
+					$controller_device->get_object_name : 
+					"unknown scene";
+			$controller_name .= " ($group)";
 		}
 		else {
 			$controller_name = $group;
