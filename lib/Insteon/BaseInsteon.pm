@@ -3620,6 +3620,10 @@ sub new
 	# note that $p_deviceid will be 00.00.00:<groupnum> if the link uses the interface as the controller
 	my $self = new Insteon::BaseObject($p_deviceid,$p_interface);
 	bless $self,$class;
+
+	#off=>ALL-Link Alias 1 Low, 'on'=>All-Link Recall 
+	$self->set_states('off','on');
+
 	return $self;
 }
 
