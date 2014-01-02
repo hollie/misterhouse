@@ -96,7 +96,7 @@ $form_code
             $html .= "</table>\n" if $type_prev;
             $type_prev =  $type;
             $html .= "<p><B>$type:</B> (<a name='$type' href='#Top'>back to top</a>)\n";
-            $html .= qq|<table border width="100%">\n|;
+            $html .= qq|<table class="EditTrigger" border width="100%">\n|;
             $html .= "<tr><th></th><th>Name</th><th>Trigger Event</th><th>Action Code</th><th>Type</th><th>Last Run</th></tr>\n";
         }
 
