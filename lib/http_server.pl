@@ -1285,7 +1285,7 @@ sub html_error_log {
     else {
         $h_response = "<h4>Not Logged In</h4>";
     }
-    return "$h_response\n", $main::config_parms{'html_style_error' . $Http{format}};
+    return "$h_response\n", $main::config_parms{'html_style_print' . $Http{format}};
 }
 
                 # These html_form functions are used by mh/web/bin/*.pl scrips
