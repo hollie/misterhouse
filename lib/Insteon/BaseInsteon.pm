@@ -2704,6 +2704,40 @@ sub get_voice_cmds
     return \%voice_cmds;
 }
 
+=item C<link_data3>
+
+Returns the data3 value that should be used when creating a link for this device.  
+This sub provides the default for all Insteon devices.  Individual device 
+definitions can override this sub to return something unique.  This sub was 
+modivated by the need to return unique values for data3 on responder links for 
+group 01.  Most Insteon devices will learn 00 for the data3 responder link value, 
+however the In-LineLinc Relay learns 01 when manually linking and requires that 
+value when creating the links programmatically.
+
+=cut 
+
+sub link_data3
+{
+	my ($self, $group, $is_controller) = @_;
+
+	my $link_data3;
+
+	if( $is_controller) {
+		#Default to 01 if no group was supplied
+		#Otherwise just return the group
+		$link_data3 = ($group) ? $group : '01';
+	} else { #is_responder
+		#Default to 00 if no group was supplied
+		$link_data3 = ($group) ? $group : '00';
+		
+		#Default for group 01 is data3 == 00
+		#Override this in inerited classes if needed
+		$link_data3 = '00' if( $group eq '01');
+	}
+
+	return $link_data3;
+}
+
 =back
 
 =head2 INI PARAMETERS
@@ -2999,10 +3033,9 @@ sub sync_links
 	$$self{sync_queue_failure_callback} = ($failure_callback) ? $failure_callback : undef;
 	$$self{sync_queue_failure} = undef;
 	my $self_link_name = $self->get_object_name;
-	my $insteon_object = $self->interface;
 	my $interface_object = Insteon::active_interface();
 	my $interface_name = $interface_object->get_object_name;
-	$insteon_object = $self->get_root;
+	my $insteon_object = $self->get_root;
 	::print_log("[Insteon::BaseController] WARN!! A device w/ insteon address: " . $self->device_id . ":01 could not be found. "
 		. "Please double check your items.mht file.") if (!(defined($insteon_object)));
 
@@ -3587,6 +3620,10 @@ sub new
 	# note that $p_deviceid will be 00.00.00:<groupnum> if the link uses the interface as the controller
 	my $self = new Insteon::BaseObject($p_deviceid,$p_interface);
 	bless $self,$class;
+
+	#off=>ALL-Link Alias 1 Low, 'on'=>All-Link Recall 
+	$self->set_states('off','on');
+
 	return $self;
 }
 

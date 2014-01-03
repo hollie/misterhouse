@@ -626,6 +626,35 @@ sub new
 	return $self;
 }
 
+
+=item C<link_data3>
+
+Returns the data3 value that should be used when creating a link for this device.  
+This sub overides the parent class to map group 01 to data3 01.  This is required 
+by the I2CS In-LineLinc Relay.
+
+=cut 
+
+sub link_data3
+{
+	my ($self, $group, $is_controller) = @_;
+
+	my $link_data3 = $self->SUPER::link_data3($group, $is_controller);
+
+	if( !$is_controller) {  #is_responder
+		#For I2CS devices the default data3 for responder links is 01.
+		#This is to support the I2CS In-LineLinc Relay.  There may be more 
+		#permutations of the 00 vs. 01 problem and I1 devices may have 
+		#the same requirement.  This code is a work in progress as more 
+		#information is gathered about Relay type devices.
+		if ($self->can('engine_version') && $self->engine_version eq 'I2CS') {
+			$link_data3 = '01';
+		}
+	}
+
+	return $link_data3;
+}
+
 =back
 
 =head2 AUTHOR

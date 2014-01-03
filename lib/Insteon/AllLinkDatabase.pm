@@ -488,7 +488,7 @@ sub delete_orphan_links
 
 		# Initialize Variables
 		my ($linked_device, $plm_scene, $controller_object, $link_defined,
-			$controller_id, $responder_id, $link_data3, $recip_data3, 
+			$controller_id, $responder_id, $recip_data3, 
 			$group_object, $data3_object);
 		my $group 		= lc $$self{aldb}{$linkkey}{group};
 		my $is_controller 	= $$self{aldb}{$linkkey}{is_controller};
@@ -536,21 +536,20 @@ sub delete_orphan_links
 				my @lights = $member->find_members('Insteon::BaseLight');
 				$member = $lights[0] if (@lights); # pick the first
 			}
-			# For resp, D3 = resp group; For cont, D3 = cont group
-			$link_data3 = ($is_controller) ? $group : $member->group;
+#TODO - In the ALDB, the primary key is the combination of device ID "and" group
+#It is possible to link two buttons on a keypad link to the same controller
+#e.g. one button turns on and the other turns off when the controller activates
+#So then we should be checking the group here too.  Otherwise when removing links
+#this could inadvertently leave extra links in the ALDB.
 			if (lc($member->device_id) eq $responder_id) {
+				#Ask self what we should have in data3
+				#For rspndr, D3 = rspndr group; For ctrlr, D3 = ctrlr group
+				my $link_data3 = $$self{device}->link_data3(($is_controller ? $group : $member->group), $is_controller);
 				if ($data3 eq $link_data3){
 					$link_defined = 1;
 					$recip_data3 = ($is_controller) ? $member->group : $group;
 					last MEMBERS;
 				} 
-				elsif (($link_data3 eq '00' || $link_data3 eq '01') && 
-					($data3 eq '00' || $data3 eq '01' )){
-					# Allow for 00 or 01 interchangability
-					$link_defined = 1;
-					$recip_data3 = ($is_controller) ? $member->group : $group;
-					last MEMBERS;
-				}
 			} 
 		}
 
@@ -850,14 +849,7 @@ sub add_link
 	}
 	my $is_controller = ($link_parms{is_controller}) ? 1 : 0;
 
-	# For I2CS devices the default data3 for links is 01
-	# For all other devices the default data3 for links is 00
-	my $data3_default = '00';
-	if ($insteon_object->can('engine_version') && $insteon_object->engine_version eq 'I2CS') {
-		$data3_default = '01';
-	}
-	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
-	$data3 = $data3_default if ($data3 eq '00' || $data3 eq '01');
+	my $data3 = $$self{device}->link_data3($link_parms{data3},$is_controller);
 
 	# check whether the link already exists
 	my $key = $self->get_linkkey($device_id, $group, $is_controller, $data3);
@@ -912,7 +904,8 @@ sub add_link
                 {
 			&::print_log("[Insteon::AllLinkDatabase] DEBUG2: adding link record to " . $$self{device}->get_object_name
 				. " light level controlled by " . $insteon_object->get_object_name
-		       		. " and group: $group with on level: $on_level and ramp rate: $ramp_rate")
+				. " and group: $group with on level: $on_level,"
+				. " ramp rate: $ramp_rate, local load(data3): $data3")
                                 if $self->{device}->debuglevel(2, 'insteon');
 			my ($data1, $data2);
 			if($link_parms{is_controller}) {
@@ -971,19 +964,16 @@ sub update_link
 	# strip optional s (seconds) to append ramp_rate
 	my $ramp_rate = $link_parms{ramp_rate};
 	$ramp_rate =~ s/(\d)s?/$1/;
-	&::print_log("[Insteon::AllLinkDatabase] updating " . $$self{device}->get_object_name . " light level controlled by " . $insteon_object->get_object_name
-		. " and group: $group with on level: $on_level and ramp rate: $ramp_rate") if $self->{device}->debuglevel(1, 'insteon');
 	my $data1 = &Insteon::DimmableLight::convert_level($on_level);
 	my $data2 = ($$self{device}->isa('Insteon::DimmableLight')) ? &Insteon::DimmableLight::convert_ramp($ramp_rate) : '00';
 
-	# For I2CS devices the default data3 for links is 01
-	# For all other devices the default data3 for links is 00
-	my $data3_default = '00';
-	if ($insteon_object->can('engine_version') && $insteon_object->engine_version eq 'I2CS') {
-		$data3_default = '01';
-	}
-	my $data3 = ($link_parms{data3}) ? $link_parms{data3} : '00';
-	$data3 = $data3_default if ($data3 eq '00' || $data3 eq '01');
+	my $data3 = $$self{device}->link_data3($link_parms{data3},$is_controller);
+
+	&::print_log("[Insteon::AllLinkDatabase] DEBUG2: updating " . $$self{device}->get_object_name 
+		. " light level controlled by " . $insteon_object->get_object_name
+		. " and group: $group with on level: $on_level,"
+		. " ramp rate: $ramp_rate, local load(data3): $data3")
+		if $self->{device}->debuglevel(2, 'insteon');
 
 	$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
 	$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
@@ -1181,7 +1171,17 @@ sub has_link
 		$deviceid = lc $insteon_object->device_id;
 	}
 	my $key = $self->get_linkkey($deviceid, $group, $is_controller, $data3);
-	return (defined $$self{aldb}{$key});
+
+	#Now that we have a linkkey, compare the linkkey's data3 value.
+	my $found = 0;
+	if (defined $$self{aldb}{$key}) {
+		#Ask self what we should have in data3
+		$data3 = $$self{device}->link_data3($data3,$is_controller);
+		
+		$found++ if( $$self{aldb}{$key}{data3} == $data3);
+	}
+	
+	return ($found);
 }
 
 =back
@@ -2454,7 +2454,11 @@ sub log_alllink_table
 		}
 		elsif ($group ne '00' && $group ne '01') {
 			$controller_device = Insteon::get_object('000000',$group);
-			$controller_name = $controller_device->get_object_name . " ($group)";
+			
+			$controller_name = defined($controller_device) ? 
+					$controller_device->get_object_name : 
+					"unknown scene";
+			$controller_name .= " ($group)";
 		}
 		else {
 			$controller_name = $group;
@@ -2778,7 +2782,17 @@ sub has_link
 	my ($self, $insteon_object, $group, $is_controller, $data3) = @_;
 	my $key = $self->get_linkkey($insteon_object->device_id, 
 				$group, $is_controller, $data3);
-	return (defined $$self{aldb}{$key});
+
+	#Now that we have a linkkey, compare the linkkey's data3 value.
+	my $found = 0;
+	if (defined $$self{aldb}{$key}) {
+		#Ask self what we should have in data3
+		$data3 = $$self{device}->link_data3($data3,$is_controller);
+		
+		$found++ if( $$self{aldb}{$key}{data3} == $data3);
+	}
+
+	return ($found);
 }
 
 =back
