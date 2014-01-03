@@ -648,7 +648,9 @@ sub link_data3
 		#the same requirement.  This code is a work in progress as more 
 		#information is gathered about Relay type devices.
 		if ($self->can('engine_version') && $self->engine_version eq 'I2CS') {
-			$link_data3 = '01';
+			#Default to 01 if no group was supplied
+			#Otherwise just return the group
+			$link_data3 = ($group) ? $group : '01';
 		}
 	}
 
@@ -911,6 +913,27 @@ sub get_voice_cmds
         );
     }
     return \%voice_cmds;
+}
+
+=item C<link_data3>
+
+Returns the data3 value that should be used when creating a link for this device.  
+This sub overides the parent class to map group 01 to data3 01.  This is required 
+by all of the KeypadLinc family.
+
+=cut 
+
+sub link_data3
+{
+	my ($self, $group, $is_controller) = @_;
+
+	my $link_data3 = $self->SUPER::link_data3($group, $is_controller);
+
+	#Default to 01 if no group was supplied
+	#Otherwise just return the group
+	$link_data3 = ($group) ? $group : '01' if( !$is_controller);
+
+	return $link_data3;
 }
 
 =back
