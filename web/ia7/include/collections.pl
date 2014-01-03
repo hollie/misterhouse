@@ -61,27 +61,27 @@ my %json = (
 		},
 		7 => { 
 			'name' => 'Phone Calls & VoiceMail Msgs',
-			'link' => '/ia5/phone/index.html',
+			'children' => [77,78,79,80,81,82,83,84,85],
 			'icon' => 'fa-phone',
 		},
 		8 => { 
 			'name' => 'TV/Radio Guide & MP3 Music',
-			'link' => '/ia5/entertain/index.html',
+			'children' => [86,87,88,89,90,91,92,93,94,95,96],
 			'icon' => 'fa-music',
 		},
 		9 => { 
 			'name' => 'Speech',
-			'link' => '/ia5/speak/index.html',
+			'children' => [97,98,99,100],
 			'icon' => 'fa-microphone',
 		},
 		10 => { 
 			'name' => 'Comics & Pictures',
-			'link' => '/ia5/pictures/index.html',
+			'children' => [101,102,103,104],
 			'icon' => 'fa-picture-o',
 		},
 		11 => { 
 			'name' => 'Events, Calendar, & Clock',
-			'link' => '/ia5/calendar/index.html',
+			'children' => [105,106,107,108,109,110,111,112,113,114,115],
 			'icon' => 'fa-calendar',
 		},
 		12 => { 
@@ -403,6 +403,201 @@ my %json = (
 			'name' => 'Floorplan View2',
 			'link' => '/ia5/security/floorplan.shtml',
 			'icon' => 'fa-building-o',
+		},
+		77 => { 
+			'name' => 'Recent Incoming Calls',
+			'link' => '/bin/phone_in.pl',
+			'icon' => 'fa-arrow-down',
+		},
+		78 => { 
+			'name' => 'Recent Outgoing Calls',
+			'link' => '/bin/phone_out.pl',
+			'icon' => 'fa-arrow-up',
+		},
+		79 => { 
+			'name' => 'Search Calls',
+			'link' => '/bin/phone_search.pl',
+			'icon' => 'fa-search',
+		},
+		80 => { 
+			'name' => 'Phone List',
+			'link' => '/bin/phone_list.pl',
+			'icon' => 'fa-list',
+		},
+		81 => { 
+			'name' => 'VoiceMail Messages',
+			'link' => '/ia5/phone/voicemail.shtml',
+			'icon' => 'fa-envelope-o',
+		},
+		82 => { 
+			'name' => 'Yellow Pages',
+			'external' => 'http://www.yellowpages.com/',
+			'icon' => 'fa-building-o',
+		},
+		83 => { 
+			'name' => 'White Pages',
+			'external' => 'http://www.whitepages.com/',
+			'icon' => 'fa-home',
+		},
+		84 => { 
+			'name' => 'Reverse Lookup',
+			'external' => 'http://www.whitepages.com/find_person.pl?fid=p',
+			'icon' => 'fa-sort-alpha-desc',
+		},
+		85 => { 
+			'name' => 'Browse Phone',
+			'link' => '/ia7/#request=list&type=categories&name=Phone',
+			'icon' => 'fa-archive',
+		},
+		86 => { 
+			'name' => 'MP3 Jukebox',
+			'link' => '/misc/mp3.html',
+			'icon' => 'fa-music',
+		},
+		87 => { 
+			'name' => 'Media Center',
+			'link' => '/media/mhmedia.html',
+			'icon' => 'fa-play-circle',
+		},
+		88 => { 
+			'name' => 'TV Today',
+			'link' => '/tv',
+			'icon' => 'fa-calendar-o',
+		},
+		89 => { 
+			'name' => "TV Guide",
+			'external' => 'http://tvguide.com/Listings/index.asp?I=70620&Zip=91403',
+			'icon' => 'fa-book',
+		},
+		90 => { 
+			'name' => "What's On Now",
+			'external' => 'http://tvguide.com/tv',
+			'icon' => 'fa-desktop',
+		},
+		91 => { 
+			'name' => 'TV Shortcuts',
+			'link' => '/ia5/entertain/shortcuts.shtml',
+			'icon' => 'fa-bookmark-o',
+		},
+		92 => { 
+			'name' => 'Local Movies',
+			'external' => 'http://www.google.com/search?&q=movie%3A+91403',
+			'icon' => 'fa-film',
+		},
+		93 => { 
+			'name' => 'Radio Guide',
+			'external' => 'http://realguide.real.com/',
+			'icon' => 'fa-signal',
+		},
+		94 => { 
+			'name' => 'Internet Radio',
+			'link' => '/ia5/entertain/internetradio.shtml',
+			'icon' => 'fa-sitemap',
+		},
+		95 => { 
+			'name' => 'Browse Entertainment',
+			'link' => '/ia7/#request=list&type=categories&name=Entertainment',
+			'icon' => 'fa-gamepad',
+		},
+		96 => { 
+			'name' => 'Browse Music',
+			'link' => '/ia7/#request=list&type=categories&name=Music',
+			'icon' => 'fa-headphones',
+		},
+		97 => { 
+			'name' => 'View Speech Log',
+			'link' => '/speech',
+			'icon' => 'fa-bullhorn',
+		},
+		98 => { 
+			'name' => 'Speak Text',
+			'link' => '/ia5/speak/speakframe.html',
+			'icon' => 'fa-volume-up',
+		},
+		99 => { 
+			'name' => 'Speech Settings',
+			'link' => '/ia5/speak/speechsettings.shtml',
+			'icon' => 'fa-cog',
+		},
+		100 => { 
+			'name' => 'Browse Speech',
+			'link' => '/ia7/#request=list&type=categories&name=Speech',
+			'icon' => 'fa-microphone',
+		},
+		101 => { 
+			'name' => 'Daily Comics',
+			'link' => '/comics/index.html',
+			'icon' => 'fa-picture-o',
+		},
+		102 => { 
+			'name' => 'Picture Frame',
+			'external' => 'http://home.krkeegan.com:8081/misc/photos.shtml',
+			'icon' => 'fa-desktop',
+		},
+		103 => { 
+			'name' => 'Browse Photos',
+			'link' => '/ia7/#request=list&type=categories&name=Photos',
+			'icon' => 'fa-archive',
+		},
+		104 => { 
+			'name' => 'Browse Entertainment',
+			'link' => '/ia7/#request=list&type=categories&name=Entertainment',
+			'icon' => 'fa-gamepad',
+		},
+		105 => { 
+			'name' => 'Calendar Facts',
+			'link' => '/ia5/calendar/main.shtml',
+			'icon' => 'fa-check',
+		},
+		106 => { 
+			'name' => 'Calendar',
+			'link' => '/organizer/calendar.pl',
+			'icon' => 'fa-calendar',
+		},
+		107 => { 
+			'name' => 'Address Book',
+			'link' => '/organizer/contacts.pl',
+			'icon' => 'fa-book',
+		},
+		108 => { 
+			'name' => 'TODO List',
+			'link' => '/organizer/tasks.pl',
+			'icon' => 'fa-list',
+		},
+		109 => { 
+			'name' => 'Shopping List',
+			'link' => '/bin/shopping_list.pl',
+			'icon' => 'fa-shopping-cart',
+		},
+		110 => { 
+			'name' => 'List Manager',
+			'link' => '/bin/ListManager.pl',
+			'icon' => 'fa-list-alt',
+		},
+		111 => { 
+			'name' => 'Alarms',
+			'link' => '/bin/triggers.pl',
+			'icon' => 'fa-bell-o',
+		},
+		112 => { 
+			'name' => 'Timers',
+			'link' => '/misc/timers.shtml',
+			'icon' => 'fa-exclamation',
+		},
+		113 => { 
+			'name' => 'LED Clock',
+			'link' => '/clock',
+			'icon' => 'fa-clock-o',
+		},
+		114 => { 
+			'name' => 'Browse Timers',
+			'link' => '/ia7/#request=list&type=categories&name=Timers',
+			'icon' => 'fa-exclamation-circle',
+		},
+		115 => { 
+			'name' => 'Browse Timed_Events',
+			'link' => '/ia7/#request=list&type=categories&name=Timed_Events',
+			'icon' => 'fa-archive',
 		},
 	}
 );
