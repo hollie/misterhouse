@@ -131,6 +131,9 @@ sub serial_startup {
          $connecttype = 'serial';
       }
    } elsif ($::config_parms{'AD2USB_ser2sock_ip'}) {
+      #This shouldn't be in this routine, which is meant to startup serial items
+      #The current kludge is to use '/dev/none' to get this routine to run, but
+      #that seems silly.
       $recon_timer = new Timer;
       $ip = $::config_parms{'AD2USB_ser2sock_ip'};
       $port = $::config_parms{'AD2USB_ser2sock_port'};
@@ -151,6 +154,11 @@ sub serial_startup {
 #}}}
 #    module startup; hack because of the startup error                 {{{
 sub startup {
+   ##This is called as a result of using a .*_module parameter in the ini file
+   ##if only purpose of _module paramter is to call this, why do we use the
+   ##parameter?
+   ##Perhaps move socket startup here?  Then we would still need the _module
+   ##parameter
 }
 
 
