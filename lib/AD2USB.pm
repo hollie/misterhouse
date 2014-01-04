@@ -115,38 +115,38 @@ sub serial_startup {
    my ($instance) = @_;
    my $self = $Self; #WTH is this?
    my $port; my $BaudRate; my $ip;
-   
+
    #If Set to Use Ser2Sock Interface stop processing now
    if ($::config_parms{$instance . "_use_TCP"} == 1) {return;}
-   
-     if ($::config_parms{'AD2USB_serial_port'} and $::config_parms{'AD2USB_serial_port'} ne '/dev/none') {
-	 $port = $::config_parms{'AD2USB_serial_port'}; 	  
-       $BaudRate = ( defined $::config_parms{AD2USB_baudrate} ) ? $main::config_parms{AD2USB_baudrate} : 115200;
-   if ( &main::serial_port_create( 'AD2USB', $port, $BaudRate, 'none', 'raw' ) ) {
-      init( $::Serial_Ports{AD2USB}{object}, $port );
-       &main::print_log("  AD2USB.pm initializing port $port at $BaudRate baud") if $main::config_parms{debug} eq 'AD2USB';
+
+   if ($::config_parms{'AD2USB_serial_port'} and $::config_parms{'AD2USB_serial_port'} ne '/dev/none') {
+      $port = $::config_parms{'AD2USB_serial_port'};
+      $BaudRate = ( defined $::config_parms{AD2USB_baudrate} ) ? $main::config_parms{AD2USB_baudrate} : 115200;
+      if ( &main::serial_port_create( 'AD2USB', $port, $BaudRate, 'none', 'raw' ) ) {
+         init( $::Serial_Ports{AD2USB}{object}, $port );
+         &main::print_log("  AD2USB.pm initializing port $port at $BaudRate baud") if $main::config_parms{debug} eq 'AD2USB';
          &::MainLoop_pre_add_hook( \&AD2USB::check_for_data, 1 ) if $main::Serial_Ports{AD2USB}{object};
-        $::Year_Month_Now = &::time_date_stamp( 10, time );    # Not yet set when we init.
-       LocalLogit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "    ========= AD2USB.pm Serial Initialized =========" );
-      $connecttype = 'serial';
-    }
+         $::Year_Month_Now = &::time_date_stamp( 10, time );    # Not yet set when we init.
+         LocalLogit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "    ========= AD2USB.pm Serial Initialized =========" );
+         $connecttype = 'serial';
+      }
    } elsif ($::config_parms{'AD2USB_ser2sock_ip'}) {
       $recon_timer = new Timer;
-       $ip = $::config_parms{'AD2USB_ser2sock_ip'};
-	 $port = $::config_parms{'AD2USB_ser2sock_port'};
-         &main::print_log("  AD2USB.pm initializing TCP session with $ip on port $port") if $main::config_parms{debug} eq 'AD2USB';
-	  $AD2USB_ser2sock = new Socket_Item(undef, undef, "$ip:$port", 'AD2USB', 'tcp', 'raw');
-	  $AD2USB_ser2sock_sender = new Socket_Item(undef, undef, "$ip:$port", 'AD2USB_SENDER', 'tcp', 'rawout');
-             start $AD2USB_ser2sock;
-	      start $AD2USB_ser2sock_sender;
-             &::MainLoop_pre_add_hook( \&AD2USB::check_for_data, 1 );
-            $::Year_Month_Now = &::time_date_stamp( 10, time );    # Not yet set when we init.
-           LocalLogit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "    ========= AD2USB.pm Socket Initialized =========" );
-         $connecttype = 'tcp';
-	 } else { 
-	  warn "AD2USB.pm->startup  AD2USB_serial_port or AD2USB_ser2sock_ip not defined in mh.ini file";
-	}
-  } 
+      $ip = $::config_parms{'AD2USB_ser2sock_ip'};
+      $port = $::config_parms{'AD2USB_ser2sock_port'};
+      &main::print_log("  AD2USB.pm initializing TCP session with $ip on port $port") if $main::config_parms{debug} eq 'AD2USB';
+      $AD2USB_ser2sock = new Socket_Item(undef, undef, "$ip:$port", 'AD2USB', 'tcp', 'raw');
+      $AD2USB_ser2sock_sender = new Socket_Item(undef, undef, "$ip:$port", 'AD2USB_SENDER', 'tcp', 'rawout');
+      start $AD2USB_ser2sock;
+      start $AD2USB_ser2sock_sender;
+      &::MainLoop_pre_add_hook( \&AD2USB::check_for_data, 1 );
+      $::Year_Month_Now = &::time_date_stamp( 10, time );    # Not yet set when we init.
+      LocalLogit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "    ========= AD2USB.pm Socket Initialized =========" );
+      $connecttype = 'tcp';
+   } else { 
+      warn "AD2USB.pm->startup  AD2USB_serial_port or AD2USB_ser2sock_ip not defined in mh.ini file";
+   }
+} 
 
 #}}}
 #    module startup; hack because of the startup error                 {{{
