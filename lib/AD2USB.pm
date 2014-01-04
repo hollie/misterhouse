@@ -1104,7 +1104,12 @@ sub register {
    $_[0]->{zone_object}{$zone_num} = $object;
    }
 
- 
+sub get_child_object_name {
+   my ($class,$zone_num) = @_;
+   my $object = $_[0]->{zone_object}{$zone_num};
+   return $object->get_object_name() if defined ($object);
+}
+
 
 # MH-Style child objects
 # These allow zones to behave like Door_Items and Motion Sensors
@@ -1113,7 +1118,11 @@ sub register {
 # ie. 
 # $AD2USB = new AD2USB;
 # $Front_door = new AD2USB_Door_Item($AD2USB,1);
+#   states include open, closed and check
 # $Front_motion = new AD2USB_Motion_Item($AD2USB,2);
+#   states include motion and still
+#
+# inactivity timers are not working...don't know if those are relevant for panel items.
 
 package AD2USB_Door_Item;
 
