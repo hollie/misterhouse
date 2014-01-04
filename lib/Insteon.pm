@@ -991,6 +991,10 @@ Returns the object identified by p_id and p_group.  Where p_id is the 6 digit
 hexadecimal address of the object without periods and group is a two digit
 representation of the group number of the device.
 
+Insteon Scenes are identified by p_id=='000000', p_group==scene_id
+
+Returns undef if there is no matching object
+
 =cut
 
 sub get_object
