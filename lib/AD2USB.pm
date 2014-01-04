@@ -1100,7 +1100,7 @@ sub cmd_list {
 ##Used to register a child object to the zone. Allows for MH-style Door & Motion sensors {{{
 sub register {
    my ($class, $object, $zone_num ) = @_;
-   &::print_log("Registering Child Object $object->{zone_number} on zone $zone_num"); 
+   &::print_log("Registering Child Object on zone $zone_num");
    $_[0]->{zone_object}{$zone_num} = $object;
    }
 
