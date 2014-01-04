@@ -1132,7 +1132,7 @@ sub new
 {
    my ($class,$object,$zone) = @_;
 
-   my $self={};
+   my $self = new Generic_Item();
    bless $self,$class;
 
    $$self{m_write} = 0;
@@ -1141,7 +1141,6 @@ sub new
    $$self{'alarm_action'} = '';
    $$self{last_open} = 0;
    $$self{last_closed} = 0;
-   @{$$self{states}} = ('open','closed','check');
    $$self{zone_number} = $zone;
    $$self{master_object} = $object;
    $$self{item_type} = 'door';
@@ -1227,7 +1226,7 @@ sub new
 {
    my ($class,$object,$zone) = @_;
 
-   my $self={};
+   my $self = new Generic_Item();
    bless $self,$class;
 
    $$self{m_write} = 0;
@@ -1236,7 +1235,6 @@ sub new
    $$self{'alarm_action'} = '';
    $$self{last_still} = 0;
    $$self{last_motion} = 0;
-   @{$$self{states}} = ('motion','still','check');
    $$self{zone_number} = $zone;
    $$self{master_object} = $object;
    $$self{item_type} = 'motion';
