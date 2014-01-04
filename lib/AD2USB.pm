@@ -144,7 +144,7 @@ sub serial_startup {
   } 
 
 #}}}
-#    module startup; hack because of the startup error
+#    module startup; hack because of the startup error                 {{{
 sub startup {
 }
 
@@ -823,7 +823,7 @@ sub GetStatusType {
 }
 
 #}}}
-#    Change zone statuses for zone indices from start to end
+#    Change zone statuses for zone indices from start to end            {{{
 sub ChangeZones {
    my $start  = @_[0];
    my $end  = @_[1];
@@ -851,7 +851,7 @@ sub ChangeZones {
 }
 
 #}}}
-#    Change partition statuses for partition indices from start to end
+#    Change partition statuses for partition indices from start to end  {{{
 sub ChangePartitions {
    my $start  = @_[0];
    my $end  = @_[1];
@@ -871,7 +871,7 @@ sub ChangePartitions {
    }
 }
 
- 
+#}}}
 #    Reset Ademco state to simulate a "now" on some value ie: zone, temp etc.  {{{
 sub ResetAdemcoState {
 
@@ -1096,8 +1096,8 @@ sub cmd_list {
       &::print_log("$k");
    }
 }
-
-##Used to register a child object to the zone. Allows for MH-style Door & Motion sensors
+#}}}
+##Used to register a child object to the zone. Allows for MH-style Door & Motion sensors {{{
 sub register {
    my ($class, $object, $zone_num ) = @_;
    &::print_log("Registering Child Object $object->{zone_number} on zone $zone_num"); 
@@ -1110,7 +1110,7 @@ sub get_child_object_name {
    return $object->get_object_name() if defined ($object);
 }
 
-
+#}}}
 # MH-Style child objects
 # These allow zones to behave like Door_Items and Motion Sensors
 # to use, just create the item with the Master AD2USB object and the appropriate zone
@@ -1200,7 +1200,7 @@ sub get_child_item_type {
    return $$self{item_type};
 }
 
-#Left in these methods to maintain compatibility. Since we're not tracking inactivity, these won't return proper results.
+#Left in these methods to maintain compatibility. Since we're not tracking inactivity, these won't return proper results. {{{
 
 sub set_alarm($$$) {
    my ($self, $time, $action, $repeat_time) = @_;
@@ -1219,7 +1219,7 @@ sub set_inactivity_alarm($$$) {
 
 }
 
-
+#}}}
 package AD2USB_Motion_Item;
 @AD2USB_Motion_Item::ISA = ('Generic_Item');
 
@@ -1288,7 +1288,7 @@ sub get_child_item_type {
    return $$self{item_type};
 }
 
-#Left in these methods to maintain compatibility. Since we're not tracking inactivity, these won't return proper results.
+#Left in these methods to maintain compatibility. Since we're not tracking inactivity, these won't return proper results. {{{
 sub delay_off()
 {
 	my ($self,$p_time) = @_;
