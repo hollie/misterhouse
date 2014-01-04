@@ -112,8 +112,13 @@ sub init {
 #}}}
 #    module startup / enabling serial port                             {{{
 sub serial_startup {
-   my $self = $Self;
+   my ($instance) = @_;
+   my $self = $Self; #WTH is this?
    my $port; my $BaudRate; my $ip;
+   
+   #If Set to Use Ser2Sock Interface stop processing now
+   if ($::config_parms{$instance . "_use_TCP"} == 1) {return;}
+   
      if ($::config_parms{'AD2USB_serial_port'} and $::config_parms{'AD2USB_serial_port'} ne '/dev/none') {
 	 $port = $::config_parms{'AD2USB_serial_port'}; 	  
        $BaudRate = ( defined $::config_parms{AD2USB_baudrate} ) ? $main::config_parms{AD2USB_baudrate} : 115200;
