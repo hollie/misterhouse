@@ -165,32 +165,34 @@ sub startup {
 
 #}}}
 #    check for incoming data on serial port                                 {{{
+# This is called once per loop by a Mainloop_pre hook 
 sub check_for_data {
-    my $NewCmd;
-   
-    if ($connecttype eq 'serial') {
-     &main::check_for_generic_serial_data('AD2USB');
-      $NewCmd = $main::Serial_Ports{'AD2USB'}{data};
-     $main::Serial_Ports{'AD2USB'}{data} = '';
-    }
- 
-    if ($connecttype eq 'tcp') {
-       if (active $AD2USB_ser2sock) {
-        $NewCmd = said $AD2USB_ser2sock;
-       } else {
-	  # restart the TCP connection if its lost.
-         if (inactive $recon_timer) {
-             &main::print_log("Connection to AD2USB was lost, I will try to reconnect in $::config_parms{'AD2USB_ser2sock_recon'} seconds");
-	     # LocalLogit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "AD2USB.pm ser2sock connection lost! Trying to reconnect." );
-                set $recon_timer $::config_parms{'AD2USB_ser2sock_recon'}, sub {
-                  start $AD2USB_ser2sock;
-	        start $AD2USB_ser2sock_sender;
-     	     }
-          } 
-       } 
-    }
+   my ($self) = @_;
+   my $NewCmd;
 
-   $self=$Self;
+   if ($connecttype eq 'serial') {
+      &main::check_for_generic_serial_data('AD2USB');
+      $NewCmd = $main::Serial_Ports{'AD2USB'}{data};
+      $main::Serial_Ports{'AD2USB'}{data} = '';
+   }
+
+   if ($connecttype eq 'tcp') {
+      if (active $AD2USB_ser2sock) {
+         $NewCmd = said $AD2USB_ser2sock;
+      } else {
+         # restart the TCP connection if its lost.
+         if (inactive $recon_timer) {
+            &main::print_log("Connection to AD2USB was lost, I will try to reconnect in $::config_parms{'AD2USB_ser2sock_recon'} seconds");
+            # LocalLogit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "AD2USB.pm ser2sock connection lost! Trying to reconnect." );
+            set $recon_timer $::config_parms{'AD2USB_ser2sock_recon'}, sub {
+               start $AD2USB_ser2sock;
+               start $AD2USB_ser2sock_sender;
+            }
+         }
+      }
+   }
+
+   $self=$Self; #WTH is this?
    # we need to buffer the information receive, because many command could be include in a single pass
    $NewCmd = $IncompleteCmd . $NewCmd if $IncompleteCmd;
    return if !$NewCmd;
