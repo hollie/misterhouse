@@ -89,7 +89,6 @@ Tuesday: Mostly sunny except for patchy morning low clouds and fog. Highs
 	foreach my $line (read_all $f_weather_forecast_chance_of_rain) {
 		next if $line =~ /^as of/i;
 		if ($line =~ /^warning:(.*)/i) {
-			$Weather{Warning} = $1;
 			next;
 		}
 		if (my ($day, $forecast) = $line =~ /^([\w ]+): (.+)/) {
