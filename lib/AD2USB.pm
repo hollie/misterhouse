@@ -348,8 +348,8 @@ sub CheckCmd {
       case 12 {               # IN BYPASS FLASH LOOP
          my $status_codes = substr( $CmdStr, 1, 12 );
          my $fault = substr( $CmdStr, 23, 3 );
-$fault = substr($CmdStr, 67, 2);
-$fault = "0$fault";
+         $fault = substr($CmdStr, 67, 2);
+         $fault = "0$fault";
          my $panel_message = substr( $CmdStr, 61, 32);
 
          my $ZoneName = my $ZoneNum = $fault;
@@ -801,6 +801,9 @@ sub GetStatusType {
    my $ll       = length($AdemcoStr);
 
    if ($ll eq 94) {
+      # Keypad Message 
+      # Format: Bit field,Numeric code,Raw data,Alphanumeric Keypad Message
+      # TODO I would be inclined to split by comma rather than use substr
       my $substatus = substr($AdemcoStr, 61, 5);
       if ( $substatus eq "FAULT" ) {
          &LocalLogit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Fault zones available: $AdemcoStr") if $main::config_parms{AD2USB_debug_log};
@@ -810,7 +813,7 @@ sub GetStatusType {
          &LocalLogit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Bypass zones available: $AdemcoStr") if $main::config_parms{AD2USB_debug_log};
          return 12;
       }
-      elsif (index($AdemcoStr, "Hit *") >= 0) {
+      elsif ($AdemcoStr =~ m/Hit \*|Press \*/) {
          &LocalLogit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Faults available: $AdemcoStr") if $main::config_parms{AD2USB_debug_log};
          return 10;
       }
