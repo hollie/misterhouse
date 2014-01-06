@@ -202,18 +202,20 @@ sub check_for_data {
    foreach my $c ( split( //, $NewCmd ) ) {
       if ( $c eq '#' ) {
          if ($Cmd) {
-		&main::print_log($Cmd);
             # This is a full command that was terminated by \r\n
+            ::print_log("[AD2USB] " . $Cmd) if $main::Debug{AD2USB} >= 1;
             my $status_type = GetStatusType($Cmd);
             if ($status_type >= 10) {
                # This is a panel message
                if (($Cmd ne $self->{panel_status}) || ($status_type == 11))  {
+                  # This is a new message
                   &LocalLogit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "NEW: $Cmd") if $main::config_parms{AD2USB_debug_log};
                   CheckCmd($Cmd);
                   ResetAdemcoState();
                   $self->{panel_status} = $Cmd;
                }
                else {
+                  # This is a duplicate message
                   &LocalLogit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "DUPE: $Cmd") if $main::config_parms{AD2USB_debug_log};
                }
             }
@@ -222,7 +224,7 @@ sub check_for_data {
                &LocalLogit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "NONPANEL: $Cmd") if $main::config_parms{AD2USB_debug_log};
                CheckCmd($Cmd);
                ResetAdemcoState();
-	     #$self->{panel_status} = $Cmd;
+	            #$self->{panel_status} = $Cmd;
             }
             $Cmd = '';
          }
@@ -270,8 +272,8 @@ sub CheckCmd {
       case 11 {               # IN FAULT LOOP
          my $status_codes = substr( $CmdStr, 1, 12 );
          my $fault = substr( $CmdStr, 23, 3 );
-	$fault = substr($CmdStr, 67, 2);
-	$fault = "0$fault";
+         $fault = substr($CmdStr, 67, 2); #TODO Why do we set $fault twice? ^
+         $fault = "0$fault";
          my $panel_message = substr( $CmdStr, 61, 32);
 
          my $ZoneName = my $ZoneNum = $fault;
@@ -280,56 +282,55 @@ sub CheckCmd {
          $ZoneNum =~ s/^0*//;
          $fault = $ZoneNum;
 
-	 if (&MappedZones("00$ZoneNum")) { 
-           &LocalLogit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Zone $ZoneNum is mapped to a Relay or RF ID, skipping normal monitoring!") } 
-	 else {
-
-         #Check if this is the new lowest fault number and reset the zones before it
-         if (int($fault) <= int($self->{zone_lowest_fault})) {
-            $self->{zone_lowest_fault} = $fault;
-            #Reset zones to ready before the lowest
-            $start = 1;
-            $end = $self->{zone_lowest_fault} - 1;
-            ChangeZones( $start, $end, "ready", "bypass", 1);
-         }
-
-         #Check if this is a new highest fault number and reset zones after it
-         if (int($fault) > int($self->{zone_highest_fault})) {
-            $self->{zone_highest_fault} = $fault;
-            #Reset zones to ready after the highest
-            $start = $self->{zone_highest_fault} + 1;;
-            $end = 11;
-            ChangeZones( $start, $end, "ready", "bypass", 1);
-         }
-
-         # Check if this zone was already faulted
-         if ($self->{zone_status}{"$fault"} eq "fault") {
-
-            #Check if this fault is less than the last fault (and must now be the new lowest zone)
-            if (int($fault) <= int($self->{zone_last_num})) {
-               #This is the new lowest zone
+         if (&MappedZones("00$ZoneNum")) { 
+            &LocalLogit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Zone $ZoneNum is mapped to a Relay or RF ID, skipping normal monitoring!") } 
+         else {
+            #Check if this is the new lowest fault number and reset the zones before it
+            if (int($fault) <= int($self->{zone_lowest_fault})) {
                $self->{zone_lowest_fault} = $fault;
                #Reset zones to ready before the lowest
                $start = 1;
                $end = $self->{zone_lowest_fault} - 1;
                ChangeZones( $start, $end, "ready", "bypass", 1);
-            }         
+            }
 
-            #Check if this fault is equal to the last fault (and must now be the only zone)
-            if (int($fault) == int($self->{zone_last_num})) {
-               #Reset zones to ready after the only one
-               $start = int($fault) + 1;
+            #Check if this is a new highest fault number and reset zones after it
+            if (int($fault) > int($self->{zone_highest_fault})) {
+               $self->{zone_highest_fault} = $fault;
+               #Reset zones to ready after the highest
+               $start = $self->{zone_highest_fault} + 1;;
                $end = 11;
                ChangeZones( $start, $end, "ready", "bypass", 1);
             }
-
-            #Check if this fault is greater than the last fault and reset the zones between it and the prior one
-            if (int($fault) > int($self->{zone_last_num})) {
-               $start = (($self->{zone_last_num} == $fault) ? 1 : int($self->{zone_last_num}) + 1);
-               $end = $fault - 1;
-               ChangeZones( $start, $end, "ready", "bypass", 1);
-            }
-         }
+   
+            # Check if this zone was already faulted
+            if ($self->{zone_status}{"$fault"} eq "fault") {
+   
+               #Check if this fault is less than the last fault (and must now be the new lowest zone)
+               if (int($fault) <= int($self->{zone_last_num})) {
+                  #This is the new lowest zone
+                  $self->{zone_lowest_fault} = $fault;
+                  #Reset zones to ready before the lowest
+                  $start = 1;
+                  $end = $self->{zone_lowest_fault} - 1;
+                  ChangeZones( $start, $end, "ready", "bypass", 1);
+               }         
+   
+               #Check if this fault is equal to the last fault (and must now be the only zone)
+               if (int($fault) == int($self->{zone_last_num})) {
+                  #Reset zones to ready after the only one
+                  $start = int($fault) + 1;
+                  $end = 11;
+                  ChangeZones( $start, $end, "ready", "bypass", 1);
+               }
+   
+               #Check if this fault is greater than the last fault and reset the zones between it and the prior one
+               if (int($fault) > int($self->{zone_last_num})) {
+                  $start = (($self->{zone_last_num} == $fault) ? 1 : int($self->{zone_last_num}) + 1);
+                  $end = $fault - 1;
+                  ChangeZones( $start, $end, "ready", "bypass", 1);
+               }
+            } #Not MappedZones
        
 
          $self->{zone_now_msg}            = "$panel_message";
