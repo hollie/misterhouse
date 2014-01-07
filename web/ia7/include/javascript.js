@@ -56,6 +56,9 @@ function changePage (){
 		else if(URLHash.request == 'print_log'){
 			print_log();
 		}
+		else if(URLHash.request == 'trigger'){
+			trigger();
+		}
 		else { //default response is to load a collection
 			loadCollection(URLHash.collection_key);
 		}
@@ -341,6 +344,68 @@ var print_log = function(time) {
 		}
 		if ($('#row_log').length !== 0){
 			print_log(json.print_log.time);
+		}
+	}
+	});
+};
+
+//Outputs the list of triggers
+var trigger = function() {
+	$.ajax({
+	type: "GET",
+	url: "/sub?json(triggers)",
+	dataType: "json",
+	success: function( json ) {
+		var keys = [];
+		for (var key in json.triggers) {
+			keys.push(key);
+		}
+		var row = 0;
+		for (var i = (keys.length-1); i >= 0; i--){
+			var name = keys[i];
+			if (row === 0){
+				$('#list_content').html('');
+			}
+			var dark_row = '';
+			if (row % 2 == 1){
+				dark_row = 'dark-row';
+			}
+			$('#list_content').append("<div id='row_a_" + row + "' class='row top-buffer'>");
+			$('#row_a_'+row).append("<div id='content_a_" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+			$('#content_a_'+row).append("<div class='col-sm-5 trigger "+dark_row+"'><b>Name: </b><a id='name_"+row+"'>" + name + "</a></div>");
+			$('#content_a_'+row).append("<div class='col-sm-4 trigger "+dark_row+"'><b>Type: </b><a id='type_"+row+"'>" + json.triggers[keys[i]].type + "</a></div>");
+			$('#content_a_'+row).append("<div class='col-sm-3 trigger "+dark_row+"'><b>Last Run:</b> " + json.triggers[keys[i]].triggered + "</div>");
+			$('#list_content').append("<div id='row_b_" + row + "' class='row'>");
+			$('#row_b_'+row).append("<div id='content_b_" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+			$('#content_b_'+row).append("<div class='col-sm-5 trigger "+dark_row+"'><b>Trigger:</b> <a id='trigger_"+row+"'>" + json.triggers[keys[i]].trigger + "</a></div>");
+			$('#content_b_'+row).append("<div class='col-sm-7 trigger "+dark_row+"'><b>Code:</b> <a id='code_"+row+"'>" + json.triggers[keys[i]].code + "</a></div>");
+			$.fn.editable.defaults.mode = 'inline';
+			$('#name_'+row).editable({
+				type: 'text',
+				pk: 1,
+				url: '/post',
+				title: 'Enter username'
+			});
+			$('#type_'+row).editable({
+				type: 'select',
+				pk: 1,
+				url: '/post',
+				title: 'Select Type',
+				source: [{value: 1, text: "Disabled"}, {value: 2, text: "NoExpire"}]
+			});
+			$('#trigger_'+row).editable({
+				type: 'text',
+				pk: 1,
+				url: '/post',
+				title: 'Enter trigger'
+			});
+			$('#code_'+row).editable({
+				type: 'text',
+				pk: 1,
+				url: '/post',
+				title: 'Enter code'
+			});
+			row++;
 		}
 	}
 	});

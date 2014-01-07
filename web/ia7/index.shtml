@@ -15,8 +15,12 @@
 	<!-- Optional theme -->
 	<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap-theme.min.css">
 	
-	<!-- Latest compiled and minified JavaScript -->
+	<!-- Latest compiled and minified bootstrap JavaScript -->
 	<script src="//netdna.bootstrapcdn.com/bootstrap/3.0.2/js/bootstrap.min.js"></script>
+	
+	<!-- bootstrap editable -->
+	<link href="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.5.0/bootstrap3-editable/css/bootstrap-editable.css" rel="stylesheet"/>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.5.0/bootstrap3-editable/js/bootstrap-editable.min.js"></script>
 	
 	<!-- ia7 JS File-->
 	<script src="/ia7/include/javascript.js"></script>
@@ -64,6 +68,14 @@
 	}
 	.breadcrumb{
 		margin-bottom: 0;
+	}
+	.trigger{
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.dark-row{
+		background-color: #F5F5F5;
 	}
 	</style>
 </head>
