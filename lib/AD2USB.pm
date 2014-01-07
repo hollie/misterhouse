@@ -267,8 +267,8 @@ sub CheckCmd {
       case 10 {               # FAULTS AVAILABLE
 #         &LocalLogit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Faults exist and are available to parse" ) if $main::config_parms{AD2USB_debug_log};
          cmd( $self, "ShowFaults" );
-      }         
-      
+      }
+
       case 11 {               # IN FAULT LOOP
          my $status_codes = substr( $CmdStr, 1, 12 );
          my $fault = substr( $CmdStr, 23, 3 );
@@ -330,15 +330,14 @@ sub CheckCmd {
                   $end = $fault - 1;
                   ChangeZones( $start, $end, "ready", "bypass", 1);
                }
-            } #Not MappedZones
-       
+            } #End Already Faulted
 
-         $self->{zone_now_msg}            = "$panel_message";
-         $self->{zone_now_status}         = "fault";
-         $self->{zone_now_name}           = "$ZoneName";
-         $self->{zone_now_num}            = "$ZoneNum";
-         ChangeZones( int($ZoneNum), int($ZoneNum), "fault", "", 1);
-         }
+            $self->{zone_now_msg}            = "$panel_message";
+            $self->{zone_now_status}         = "fault";
+            $self->{zone_now_name}           = "$ZoneName";
+            $self->{zone_now_num}            = "$ZoneNum";
+            ChangeZones( int($ZoneNum), int($ZoneNum), "fault", "", 1);
+         } #Not MappedZones
          $self->{partition_now_msg}       = "$panel_message"; 
          $self->{partition_now_status}    = "not ready";
          $self->{partition_now_num}       = "$PartNum";
@@ -673,8 +672,7 @@ sub CheckCmd {
         }
       }
 
-
- case 4 {                # RELAY STATUS
+      case 4 {                # RELAY STATUS
          my $rel_id = substr( $CmdStr, 5, 2 );
          my $rel_input_id = substr( $CmdStr, 8, 2 );
          my $rel_status = substr( $CmdStr, 11, 2 );
@@ -864,7 +862,7 @@ sub ChangeZones {
          }
          $self->{zone_status}{"$i"} = $new_status;
 	 #  Set child object status if it is registered to the zone
-	 $$self{zone_object}{"$i"}->set($new_status) if defined $$self{zone_object}{"$i"};
+	 $$self{zone_object}{"$i"}->set($new_status, $$self{zone_object}{"$i"}) if defined $$self{zone_object}{"$i"};
       }
    }
 }
@@ -1118,14 +1116,14 @@ sub cmd_list {
 #}}}
 ##Used to register a child object to the zone. Allows for MH-style Door & Motion sensors {{{
 sub register {
-   my ($class, $object, $zone_num ) = @_;
+   my ($self, $object, $zone_num ) = @_;
    &::print_log("Registering Child Object on zone $zone_num");
-   $_[0]->{zone_object}{$zone_num} = $object;
+   $self->{zone_object}{$zone_num} = $object;
    }
 
 sub get_child_object_name {
-   my ($class,$zone_num) = @_;
-   my $object = $_[0]->{zone_object}{$zone_num};
+   my ($self,$zone_num) = @_;
+   my $object = $self->{zone_object}{$zone_num};
    return $object->get_object_name() if defined ($object);
 }
 
