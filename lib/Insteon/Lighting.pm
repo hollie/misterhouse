@@ -33,8 +33,8 @@ sub new
 
 	my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
 	bless $self,$class;
-        # include very basic states
-        @{$$self{states}} = ('on','off');
+        # include very basic states; off first so web interface up/down works
+        $self->set_states('off','on');
 
 	return $self;
 }
@@ -193,13 +193,7 @@ sub convert_level
 	my $level = 'ff';
 	if (defined ($on_level)) {
 		$on_level =~ s/(\d+)%?/$1/;
-		if ($on_level eq '100') {
-			$level = 'ff';
-		} elsif ($on_level eq '0') {
-			$level = '00';
-		} else {
-			$level = sprintf('%02X',$on_level * 2.55);
-		}
+		$level = sprintf('%02X',int(($on_level * 2.55) + .5));
 	}
 	return $level;
 }
@@ -216,6 +210,11 @@ sub new
 
 	my $self = new Insteon::BaseLight($p_deviceid,$p_interface);
 	bless $self,$class;
+	
+	if( $main::config_parms{insteon_menu_states}) {
+		$self->set_states(split( ',', $main::config_parms{insteon_menu_states}));
+	}
+	
 	return $self;
 }
 
