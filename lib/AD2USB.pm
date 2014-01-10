@@ -46,24 +46,25 @@ package AD2USB;
 
 my $Self;  #Kludge
 my %ErrorCode;
-my $IncompleteCmd;
-my $connecttype;
+my %Socket_Items; #Stores the socket instances and attributes
+my %Interfaces; #Stores the relationships btw instances and interfaces
 
 #    Starting a new object                                                  {{{
 # Called by user code `$AD2USB = new AD2USB`
 sub new {
-   my ($class) = @_;
-   ::print_log("Starting ADEMCO panel interface module");
+   my ($class, $instance) = @_;
+   $instance = "AD2USB" if (!defined($instance));
+   ::print_log("Starting $instance instance of ADEMCO panel interface module");
 
    my $self = new Generic_Item();
 
    # Initialize Variables
    $$self{last_cmd}       = '';
-   $$self{Log}            = []; #Not clear why this is needed
    $$self{ac_power}       = 0;
    $$self{battery_low}    = 1;
    $$self{chime}          = 0;
    $$self{keys_sent}      = 0;
+   $$self{instance}       = $instance;
    $$self{reconnect_time} = $::config_parms{'AD2USB_ser2sock_recon'};
    $$self{reconnect_time} = 10 if !defined($$self{reconnect_time});
 
@@ -81,12 +82,28 @@ sub new {
    ChangeZones( 1, 100, "ready", "ready", 0);
    ChangePartitions( 1, 1, "ready", 0);
 
+   #Store Object with Instance Name
+   $self->set_object_instance($instance);
+
    $Self = $self; #Kludge
 
    return $self;
 }
 
 #}}}
+
+#    Set/Get Object by Instance                                        {{{
+sub get_object_by_instance{
+   my ($instance) = @_;
+   return $Interfaces{$instance};
+}
+
+sub set_object_instance{
+   my ($self, $instance) = @_;
+   $Interfaces{$instance} = $self;
+}
+#}}}
+
 #    serial port configuration                                         {{{
 sub init {
 
@@ -778,7 +795,6 @@ sub CheckCmd {
 sub GetStatusType {
    my $AdemcoStr   = shift;
    my $ll       = length($AdemcoStr);
-
    if ($ll eq 94) {
       # Keypad Message 
       # Format: Bit field,Numeric code,Raw data,Alphanumeric Keypad Message
@@ -985,6 +1001,7 @@ sub MappedZones {
 #    Sending command to ADEMCO panel                                           {{{
 sub cmd {
    my ( $self, $cmd, $password ) = @_;
+   my $instance = $$self{instance};
    $cmd = $self->{CmdMsg}->{$cmd};
 
    $CmdName = ( exists $self->{CmdMsgRev}->{$cmd} ) ? $self->{CmdMsgRev}->{$cmd} : "unknown";
@@ -1002,15 +1019,26 @@ sub cmd {
       return;
    }
 
-   ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", ">>> Sending to ADEMCO panel                      $CmdName ($cmd)" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+   ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", ">>> Sending to ADEMCO panel                      $CmdName ($cmd)" ) unless ($main::config_parms{$instance . '_debug_log'} == 0);
    $self->{keys_sent} = $self->{keys_sent} + length($CmdStr);
-   if ($connecttype eq 'serial') {
-    $main::Serial_Ports{AD2USB}{object}->write("$CmdStr");
-    } else {
-    set $AD2USB_ser2sock_sender "$CmdStr";
-    } 
+   if (defined $Socket_Items{$instance}) {
+      if ($Socket_Items{$instance . '_sender'}{'socket'}->active) {
+         $Socket_Items{$instance . '_sender'}{'socket'}->set("$CmdStr");
+      } else {
+         # restart the TCP connection if its lost.
+         if ($Socket_Items{$instance}{recon_timer}->inactive) {
+            ::print_log("Connection to $instance sending instance of AD2USB was lost, I will try to reconnect in $$self{reconnect_time} seconds");
+            $Socket_Items{$instance}{recon_timer}->set($$self{reconnect_time}, sub {
+               $Socket_Items{$instance}{'socket'}->start;
+               $Socket_Items{$instance . '_sender'}{'socket'}->set("$CmdStr");
+            });
+         }
+      }
+   }
+   else {
+      $main::Serial_Ports{$instance}{'socket'}->write("$CmdStr");
+   }
    return "Sending to ADEMCO panel: $CmdName ($cmd)";
-
 }
 
 #}}}
