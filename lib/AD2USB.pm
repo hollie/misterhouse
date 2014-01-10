@@ -1,3 +1,61 @@
+=head1 B<AD2USB>
+
+=head2 SYNOPSIS
+
+---Example Code and Usage---
+
+=head2 DESCRIPTION
+
+Module that monitors a serial device for the AD2USB for known events and 
+maintains the state of the Ademco system in memory. Module also sends
+instructions to the panel as requested.
+
+=head2 CONNFIGURATION
+
+This is only a start of the documentation of the configuration for this module.
+At the moment, I am just documenting the main changes that I have made
+
+=head3 Serial Connections (USB or Serial)
+
+Add the following commands to your INI file:
+
+AD2USB_serial_port=/dev/ttyAMA0
+
+=head3 IP Connections (Ser2Sock)
+
+AD2USB_server_ip=192.168.11.17
+AD2USB_server_port=10000
+
+=head3 Code Inserts for All Devices
+
+$AD2USB = new AD2USB;
+
+=head3 For Additional Devices (Multiple Seperate Panels)
+
+Each additional device can be defined as follows:
+
+AD2USB_1_serial_port=/dev/ttyAMA0
+
+OR
+
+AD2USB_1_server_ip=192.168.11.17
+AD2USB_1_server_port=10000
+
+PLUS
+
+$AD2USB_1 = new AD2USB('AD2USB_1');
+
+Each addition panel should be iterated by 1.
+=head2 INHERITS
+
+L<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
+
 # ###########################################################################
 # Name: AD2USB Monitoring Module
 #
@@ -1299,6 +1357,26 @@ sub set_inactivity_alarm($$$) {
 	$$self{m_timerCheck}->set($time*3600, $self);
 	&::print_log("AD2USB_Motion_Item:: set_inactivity_alarm not supported");
 }
+
+=back
+
+=head2 INI PARAMETERS
+
+=head2 NOTES
+
+=head2 AUTHOR
+
+=head2 SEE ALSO
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
 
 1;
 
