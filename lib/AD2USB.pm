@@ -125,130 +125,111 @@ sub init {
 #    module startup / enabling serial port                             {{{
 sub serial_startup {
    my ($instance) = @_;
-   my $self = $Self; #WTH is this?
-   my $port; my $BaudRate; my $ip;
+   my ($port, $BaudRate, $ip);
 
-   #If Set to Use Ser2Sock Interface stop processing now
-   if ($::config_parms{$instance . "_use_TCP"} == 1) {return;}
-
-   if ($::config_parms{'AD2USB_serial_port'} and $::config_parms{'AD2USB_serial_port'} ne '/dev/none') {
-      $port = $::config_parms{'AD2USB_serial_port'};
-      $BaudRate = ( defined $::config_parms{AD2USB_baudrate} ) ? $main::config_parms{AD2USB_baudrate} : 115200;
-      if ( &main::serial_port_create( 'AD2USB', $port, $BaudRate, 'none', 'raw' ) ) {
-         init( $::Serial_Ports{AD2USB}{object}, $port );
-         &main::print_log("  AD2USB.pm initializing port $port at $BaudRate baud") if $main::config_parms{debug} eq 'AD2USB';
-         &::MainLoop_pre_add_hook( \&AD2USB::check_for_data, 1 ) if $main::Serial_Ports{AD2USB}{object};
+   if ($::config_parms{$instance . '_serial_port'} and 
+         $::config_parms{$instance . '_serial_port'} ne '/dev/none') {
+      $port = $::config_parms{$instance .'_serial_port'};
+      $BaudRate = ( defined $::config_parms{$instance . '_baudrate'} ) ? $main::config_parms{"$instance" . '_baudrate'} : 115200;
+      if ( &main::serial_port_create( $instance, $port, $BaudRate, 'none', 'raw' ) ) {
+         init( $::Serial_Ports{$instance}{object}, $port );
+         ::print_log("[AD2USB] initializing $instance on port $port at $BaudRate baud") if $main::config_parms{debug} eq 'AD2USB';
+         ::MainLoop_pre_add_hook( sub {AD2USB::check_for_data($instance, 'serial');}, 1 ) if $main::Serial_Ports{"$instance"}{object};
          $::Year_Month_Now = &::time_date_stamp( 10, time );    # Not yet set when we init.
-         LocalLogit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "    ========= AD2USB.pm Serial Initialized =========" );
-         $connecttype = 'serial';
+         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "    ========= AD2USB.pm Serial Initialized =========" );
       }
-   } elsif ($::config_parms{'AD2USB_ser2sock_ip'}) {
-      #This shouldn't be in this routine, which is meant to startup serial items
-      #The current kludge is to use '/dev/none' to get this routine to run, but
-      #that seems silly.
-      $recon_timer = new Timer;
-      $ip = $::config_parms{'AD2USB_ser2sock_ip'};
-      $port = $::config_parms{'AD2USB_ser2sock_port'};
-      &main::print_log("  AD2USB.pm initializing TCP session with $ip on port $port") if $main::config_parms{debug} eq 'AD2USB';
-      $AD2USB_ser2sock = new Socket_Item(undef, undef, "$ip:$port", 'AD2USB', 'tcp', 'raw');
-      $AD2USB_ser2sock_sender = new Socket_Item(undef, undef, "$ip:$port", 'AD2USB_SENDER', 'tcp', 'rawout');
-      start $AD2USB_ser2sock;
-      start $AD2USB_ser2sock_sender;
-      &::MainLoop_pre_add_hook( \&AD2USB::check_for_data, 1 );
-      $::Year_Month_Now = &::time_date_stamp( 10, time );    # Not yet set when we init.
-      LocalLogit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "    ========= AD2USB.pm Socket Initialized =========" );
-      $connecttype = 'tcp';
-   } else { 
-      warn "AD2USB.pm->startup  AD2USB_serial_port or AD2USB_ser2sock_ip not defined in mh.ini file";
    }
-} 
-
-#}}}
-#    module startup; hack because of the startup error                 {{{
-sub startup {
-   ##This is called as a result of using a .*_module parameter in the ini file
-   ##if only purpose of _module paramter is to call this, why do we use the
-   ##parameter?
-   ##Perhaps move socket startup here?  Then we would still need the _module
-   ##parameter
 }
 
+#}}}
+#    startup /enable socket port                                       {{{
+sub server_startup {
+   my ($instance) = @_;
 
+   $Socket_Items{"$instance"}{recon_timer} = new Timer;
+   $ip = $::config_parms{"$instance".'_server_ip'};
+   $port = $::config_parms{"$instance" . '_server_port'};
+   ::print_log("  AD2USB.pm initializing $instance TCP session with $ip on port $port") if $main::config_parms{debug} eq 'AD2USB';
+   $Socket_Items{"$instance"}{'socket'} = new Socket_Item($instance, undef, "$ip:$port", 'AD2USB', 'tcp', 'raw');
+   $Socket_Items{"$instance" . '_sender'}{'socket'} = new Socket_Item($instance . '_sender', undef, "$ip:$port", 'AD2USB_SENDER', 'tcp', 'rawout');
+   $Socket_Items{"$instance"}{'socket'}->start;
+   $Socket_Items{"$instance" . '_sender'}{'socket'}->start;
+   &::MainLoop_pre_add_hook( sub {AD2USB::check_for_data($instance, 'tcp');}, 1 );
+   $::Year_Month_Now = &::time_date_stamp( 10, time );    # Not yet set when we init.
+   ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "    ========= AD2USB.pm Socket Initialized =========" );
+}
 
 #}}}
+
 #    check for incoming data on serial port                                 {{{
 # This is called once per loop by a Mainloop_pre hook 
 sub check_for_data {
-   my ($self) = @_;
+   my ($instance, $connecttype) = @_;
+   my $self = get_object_by_instance($instance);
    my $NewCmd;
 
    if ($connecttype eq 'serial') {
-      &main::check_for_generic_serial_data('AD2USB');
-      $NewCmd = $main::Serial_Ports{'AD2USB'}{data};
-      $main::Serial_Ports{'AD2USB'}{data} = '';
+      &main::check_for_generic_serial_data($instance);
+      $NewCmd = $main::Serial_Ports{$instance}{data};
+      $main::Serial_Ports{$instance}{data} = '';
    }
 
    if ($connecttype eq 'tcp') {
-      if (active $AD2USB_ser2sock) {
-         $NewCmd = said $AD2USB_ser2sock;
+      if ($Socket_Items{$instance}{'socket'}->active) {
+         $NewCmd = $Socket_Items{$instance}{'socket'}->said;
       } else {
          # restart the TCP connection if its lost.
-         if (inactive $recon_timer) {
-            &main::print_log("Connection to AD2USB was lost, I will try to reconnect in $$self{reconnect_time} seconds");
-            # LocalLogit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "AD2USB.pm ser2sock connection lost! Trying to reconnect." );
-            set $recon_timer $$self{reconnect_time}, sub {
-               start $AD2USB_ser2sock;
-               start $AD2USB_ser2sock_sender;
-            }
+         if ($Socket_Items{$instance}{recon_timer}->inactive) {
+            &main::print_log("Connection to $instance instance of AD2USB was lost, I will try to reconnect in $$self{reconnect_time} seconds");
+            # ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "AD2USB.pm ser2sock connection lost! Trying to reconnect." );
+            $Socket_Items{$instance}{recon_timer}->set($$self{reconnect_time}, sub {
+               $Socket_Items{$instance}{'socket'}->start;
+            });
          }
       }
    }
 
-   $self=$Self; #WTH is this?
    # we need to buffer the information receive, because many command could be include in a single pass
-   $NewCmd = $IncompleteCmd . $NewCmd if $IncompleteCmd;
+   $NewCmd = $self{IncompleteCmd} . $NewCmd if $self{IncompleteCmd};
+   $self{IncompleteCmd} = '';
    return if !$NewCmd;
-   $NewCmd =~ s/\r\n/#/g;    # Replace newlines with # (use # as command delimiter)
-	#LocalLogit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "TCP DATA - - $NewCmd" ); 
-   my $Cmd = '';	     # Build up a command string by iterating each character
-   foreach my $c ( split( //, $NewCmd ) ) {
-      if ( $c eq '#' ) {
-         if ($Cmd) {
-            # This is a full command that was terminated by \r\n
-            ::print_log("[AD2USB] " . $Cmd) if $main::Debug{AD2USB} >= 1;
-            my $status_type = GetStatusType($Cmd);
-            if ($status_type >= 10) {
-               # This is a panel message
-               if (($Cmd ne $self->{last_cmd}) || ($status_type == 11))  {
-                  # This is a new message
-                  ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "NEW: $Cmd") unless ($main::config_parms{AD2USB_debug_log} == 0);
-                  CheckCmd($Cmd);
-                  ResetAdemcoState();
-                  $self->{last_cmd} = $Cmd;
-               }
-               else {
-                  # This is a duplicate message
-                  ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "DUPE: $Cmd") unless ($main::config_parms{AD2USB_debug_log} == 0);
-               }
-            }
-            else {
-               # This is a relay or RF or zone expander message
-               ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "NONPANEL: $Cmd") unless ($main::config_parms{AD2USB_debug_log} == 0);
+
+   #We have a command to examine, split by line endings and parse data
+   foreach my $Cmd (split("\n", $NewCmd)){
+      #Split leaves part of line ending so full message can be confirmed
+      if (substr($Cmd, -1) eq "\r"){
+         #strip off last line ending
+         $Cmd = substr($Cmd, 0, -1);
+         ::print_log("[AD2USB] " . $Cmd) if $main::Debug{AD2USB} >= 1;
+         my $status_type = GetStatusType($Cmd);
+         if ($status_type >= 10) {
+            # This is a panel message
+            if (($Cmd ne $self->{last_cmd}) || ($status_type == 11))  {
+               # This is a new message
+               ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "NEW: $Cmd") unless ($main::config_parms{AD2USB_debug_log} == 0);
                CheckCmd($Cmd);
                ResetAdemcoState();
-	            #$self->{last_cmd} = $Cmd;
+               $self->{last_cmd} = $Cmd;
             }
-            $Cmd = '';
+            else {
+               # This is a duplicate message
+               ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "DUPE: $Cmd") unless ($main::config_parms{AD2USB_debug_log} == 0);
+            }
          }
+         else {
+            # This is a relay or RF or zone expander message
+            ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "NONPANEL: $Cmd") unless ($main::config_parms{AD2USB_debug_log} == 0);
+            CheckCmd($Cmd);
+            ResetAdemcoState();
+            #$self->{last_cmd} = $Cmd;
+         }
+         $Cmd = '';
       }
       else {
-         # Append this character to the current command
-         $Cmd .= $c;
+         # Save partial command for next serial read
+         $self{IncompleteCmd} = $Cmd;
       }
-
    }
-   # Save partial command for next serial read
-   $IncompleteCmd = $Cmd;
 }
 
 #}}}
