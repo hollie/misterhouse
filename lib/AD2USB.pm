@@ -44,9 +44,7 @@ package AD2USB;
 
 @AD2USB::ISA = ('Generic_Item');
 
-my %CmdMsg;
-my %CmdMsgRev;
-my $Self;
+my $Self;  #Kludge
 my %ErrorCode;
 my $IncompleteCmd;
 my $connecttype;
@@ -931,38 +929,7 @@ sub ResetAdemcoState {
 #}}}
 #    Define hash with Ademco commands                                           {{{
 sub DefineCmdMsg {
-  my %OutputListco;
-   foreach my $key (keys(%::config_parms)) {
-    next if $key =~ /_MHINTERNAL_/;
-    next if $key !~ /^AD2USB_output_(\D+)_(\d+)$/;
-      if ($1 eq 'co') {
-       $OutputListco{"$::config_parms{$key}c"} = "$::config_parms{AD2USB_user_master_code}#70$2";
-       $OutputListco{"$::config_parms{$key}o"} = "$::config_parms{AD2USB_user_master_code}#80$2";
-       }
-      if ($1 eq 'oc') {
-       $OutputListco{"$::config_parms{$key}o"} = "$::config_parms{AD2USB_user_master_code}#80$2";
-       $OutputListco{"$::config_parms{$key}c"} = "$::config_parms{AD2USB_user_master_code}#70$2";
-       }
-      if ($1 eq 'o') {
-       $OutputListco{"$::config_parms{$key}o"} = "$::config_parms{AD2USB_user_master_code}#80$2";
-       }
-      if ($1 eq 'c') {
-       $OutputListco{"$::config_parms{$key}c"} = "$::config_parms{AD2USB_user_master_code}#70$2";
-       }
-     }
- 
- my %ExpListc;
-  my $srpzonenum;
-  foreach my $key (keys(%::config_parms)) {
-    next if $key =~ /_MHINTERNAL_/;
-    next if $key !~ /^AD2USB_expander_(\d+)$/;
-       $srpzonenum = substr($::config_parms{$key}, 1);
-       $ExpListc{"exp$::config_parms{$key}c"} = "L$srpzonenum"."0";
-       $ExpListc{"exp$::config_parms{$key}f"} = "L$srpzonenum"."1";
-       $ExpListc{"exp$::config_parms{$key}p"} = "L$srpzonenum"."2";  
-     } 
-
-   %CmdMsg = (
+   my %Return_Hash = (
       "Disarm"                            => "$::config_parms{AD2USB_user_master_code}1",
       "ArmAway"                           => "$::config_parms{AD2USB_user_master_code}2",
       "ArmStay"                           => "$::config_parms{AD2USB_user_master_code}3",
@@ -977,13 +944,36 @@ sub DefineCmdMsg {
       "AD2USBReboot"                      => "=",
       "AD2USBConfigure"                   => "!"
    );
- 
-   my %newHash = (%OutputListco, %CmdMsg); 
-   %CmdMsg = %newHash;
-   %newHash = (%ExpListc, %CmdMsg);
-   %CmdMsg = %newHash;
-   %CmdMsgRev = reverse %CmdMsg;
-   return;
+
+   my $two_digit_zone;
+   foreach my $key (keys(%::config_parms)) {
+      #Create Commands for Relays
+      if ($key =~ /^AD2USB_output_(\D+)_(\d+)$/){
+         if ($1 eq 'co') {
+            $Return_Hash{"$::config_parms{$key}c"} = "$::config_parms{AD2USB_user_master_code}#70$2";
+            $Return_Hash{"$::config_parms{$key}o"} = "$::config_parms{AD2USB_user_master_code}#80$2";
+         }
+         elsif ($1 eq 'oc') {
+            $Return_Hash{"$::config_parms{$key}o"} = "$::config_parms{AD2USB_user_master_code}#80$2";
+            $Return_Hash{"$::config_parms{$key}c"} = "$::config_parms{AD2USB_user_master_code}#70$2";
+         }
+         elsif ($1 eq 'o') {
+            $Return_Hash{"$::config_parms{$key}o"} = "$::config_parms{AD2USB_user_master_code}#80$2";
+         }
+         elsif ($1 eq 'c') {
+            $Return_Hash{"$::config_parms{$key}c"} = "$::config_parms{AD2USB_user_master_code}#70$2";
+         }
+      }
+      #Create Commands for Zone Expanders
+      elsif ($key =~ /^AD2USB_expander_(\d+)$/) {
+         $two_digit_zone = substr($::config_parms{$key}, 1); #Trim leading zero
+         $Return_Hash{"exp$::config_parms{$key}c"} = "L$two_digit_zone"."0";
+         $Return_Hash{"exp$::config_parms{$key}f"} = "L$two_digit_zone"."1";
+         $Return_Hash{"exp$::config_parms{$key}p"} = "L$two_digit_zone"."2"; 
+      }
+   }
+
+   return \%Return_Hash;
 }
 
 #}}}
@@ -1013,11 +1003,10 @@ sub MappedZones {
 #}}}
 #    Sending command to ADEMCO panel                                           {{{
 sub cmd {
+   my ( $self, $cmd, $password ) = @_;
+   $cmd = $self->{CmdMsg}->{$cmd};
 
-   my ( $class, $cmd, $password ) = @_;
-   $cmd = $CmdMsg{$cmd};
-
-   $CmdName = ( exists $CmdMsgRev{$cmd} ) ? $CmdMsgRev{$cmd} : "unknown";
+   $CmdName = ( exists $self->{CmdMsgRev}->{$cmd} ) ? $self->{CmdMsgRev}->{$cmd} : "unknown";
    $CmdStr = $cmd;
 
    # Exit if unknown command
@@ -1109,7 +1098,8 @@ sub partition_name {
 }
 
 sub cmd_list {
-   foreach my $k ( sort keys %CmdMsg ) {
+   my ($self) = @_;
+   foreach my $k ( sort keys %{$self->{CmdMsg}} ) {
       &::print_log("$k");
    }
 }
