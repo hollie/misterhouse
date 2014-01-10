@@ -980,7 +980,6 @@ sub ZoneName {
    my @Name = ["none"];
 
 	foreach my $key (keys(%::config_parms)) {
-		next if $key =~ /_MHINTERNAL_/;
 		next if $key !~ /^AD2USB_zone_(\d+)$/;
 		$Name[int($1)]=$::config_parms{$key};
 	}
@@ -990,7 +989,6 @@ sub ZoneName {
 
 sub MappedZones {
 	foreach my $mkey (keys(%::config_parms)) {
-                next if $mkey =~ /_MHINTERNAL_/;
                 next if $mkey !~ /^AD2USB_(relay|wireless|expander)_(\d+)$/;
                 if ("@_" eq $::config_parms{$mkey}) { return 1 }
         }
