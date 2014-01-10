@@ -733,7 +733,12 @@ sub state_overload {
 
 =item C<set_icon(icon)>
 
-Point to the icon member you want the web interface to use.  See the 'Customizing the web interface' section of the documentation for details.  Can only be run at startup or reload.
+Point to the icon member you want the web interface to use.  See the 
+'Customizing the web interface' section of the documentation for specific 
+details.  In short, this can be set to a file name such as 'light.gif' or to a
+prefix such as 'light.'  If a prefix is used, MH will attempt to find icons that
+match a combination of the prefix and the device's state. Can only be run at 
+startup or reload.
 
 =cut
 
@@ -922,9 +927,11 @@ sub get_fp_nodes {
     return @{$$self{nodes}};
 }
 
-=item C<set_fp_icons()>
+=item C<set_fp_icons(%icons)>
 
-TODO.  Can only be run at startup or reload.
+Sets the icons used by the floorplan web interface.  The %icons hash contains the 
+list of icons stored in the web/graphics directory.  Each key is a state of the
+object with the value being the icon filename. Can only be run at startup or reload.
 
 =cut
 
@@ -936,7 +943,8 @@ sub set_fp_icons {
 
 =item C<get_fp_icons()>
 
-TODO
+Returns the hash of icons for use by the floorplan web interface that were set 
+by C<set_fp_icons>.
 
 =cut
 
