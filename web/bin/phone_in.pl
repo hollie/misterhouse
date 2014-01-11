@@ -2,6 +2,7 @@
 # read_phone_logs* is from phone_logs.pl code files
 my $html_calls;
 my $display_name;
+my $display_num;
 my @logs   = &read_phone_logs1('callerid');
 my @calls  = &read_phone_logs2(100, @logs);
 for my $r (@calls) {
@@ -10,11 +11,15 @@ for my $r (@calls) {
     $display_name = $name;
     $display_name =~ s/_/ /g; # remove underscores to make it print pretty
     next unless $num;
+    $display_num = $num;
+    if  ($display_num =~ /\d\d\d\d\d\d\d\d\d\d/) {
+      $display_num = (substr $num,0,3) . "-" . (substr $num,3,3) . "-" . (substr $num,6,4);
+    }
 #   next unless $line;
 
     $html_calls .= "<tr id='resultrow' vAlign=center bgcolor='#EEEEEE' class='wvtrow'>";
 #    $html_calls .= "<td nowrap><a href=\"phone_search.pl?search=$num\"><img src='/graphics/ico_magnify.gif' border=0 alt='Show last call from $num'></a>&nbsp;<a href=\"phone_search.pl?search=$num\"><img src='/graphics/ico_magnify.gif' border=0 alt='Show last call from $num'></a></td>";
-    $html_calls .= "<td nowrap>$time</td><td nowrap><a href=\"phone_search.pl?search=$num\"><img src='/graphics/ico_magnify.gif' border=0 alt='Show last call from $num'></a>&nbsp;$num</td>";
+    $html_calls .= "<td nowrap>$time</td><td nowrap><a href=\"phone_search.pl?search=$num\"><img src='/graphics/ico_magnify.gif' border=0 alt='Show last call from $num'></a>&nbsp;$display_num</td>";
     $html_calls .= "<td nowrap><a href=\"callerid.pl?cidnumber=$num&cidname=$name&showlist=0\"><img src='/graphics/ico_plus.gif' border=0 alt='Add $num to phone.callerid.list file'></a>&nbsp;$display_name</td><td nowrap>$line</td>";
     $html_calls .= "</tr>";
 }

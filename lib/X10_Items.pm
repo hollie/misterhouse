@@ -76,7 +76,6 @@ Since this item is inherits from Generic_Item, you can use the set_with_timer me
   set_with_timer $watchdog_light '20%', 5 if file_unchanged $watchdog_file;
 
 
-
 =head1 DESCRIPTION
 
 =head1 INHERITS
@@ -1537,8 +1536,12 @@ sub init {
                                 # Note: name is require, as $self->{object_name} is not
                                 # set yet on startup :(
 sub new {
-    my ($class, $id, $name, $type) = @_;
-    my $self = X10_Item->new();
+##    my ($class, $id, $name, $type) = @_;
+##    my $self = X10_Item->new();
+    my ($class, $id, $name, $type, $interface) = @_;
+    print "[X10_Sensor] class=$class, id=$id, name=$name, interface=$interface\n" if $main::Debug{x10};
+    my $self = X10_Item->new($id, $interface, $type);
+
 
     $$self{state} = '';
     bless $self, $class;

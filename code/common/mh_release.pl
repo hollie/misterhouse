@@ -33,7 +33,11 @@ $v_version->set_info("Responds with current version information");
 sub parse_version {
 	my ($maj,$min) = $Version =~ /(\d)\.(\d*)/;
 	my ($rev) = $Version =~ /R(\d*)/;
-	return ($maj, $min, $rev);
+	$maj = $Version unless($maj);
+	my $version_str = $maj;
+	$version_str .= ".$min" unless($min eq '');
+	$version_str .= " (revision $rev)" if($rev);
+	return ($maj, $min, $version_str);
 }
 
 sub calc_age {
@@ -57,14 +61,13 @@ sub calc_age {
 
 if (said $v_version) {
 
-	my ($maj,$min,$revision) = &parse_version();
-	$revision = "unknown" unless $revision;
+	my ($maj,$min,$version_str) = &parse_version();
 
 	if (($Save{mhdl_maj} > $maj) or (($Save{mhdl_maj} == $maj) and ($Save{mhdl_min} > $min))) {
-        	respond "app=control I am version $maj.$min (revision $revision) and $Save{mhdl_maj}.$Save{mhdl_min} was released " . &calc_age($Save{mhdl_date}) . '.';
+        	respond("app=control I am version $version_str and $Save{mhdl_maj}.$Save{mhdl_min} was released " . &calc_age($Save{mhdl_date}) . '.');
 	}
 	else {
-        	respond "app=control I am version $maj.$min (revision $revision), released " . &calc_age($Save{mhdl_date}) . '.';
+        	respond("app=control I am version $version_str.");
 	}
 }
 
@@ -74,7 +77,7 @@ if (said $v_mhdl_page) {
 
     if (&net_connect_check) {
 	$msg = 'Checking version...';
-	print_log "Retrieving download page";
+	print_log("Retrieving download page");
 	start $p_mhdl_page;
     }
     else {
@@ -86,10 +89,10 @@ if (said $v_mhdl_page) {
 
 
 if (done_now $p_mhdl_page) {
-    my @html = file_head($mhdl_file,16);
-    print_log "Download page retrieved";
+    my @html = file_read($mhdl_file);
+    print_log("Download page retrieved");
     foreach(@html) {
-	next unless /^<p>Version (\d+)\.(\d+) released on (.*):/i;
+	next unless /Version (\d+)\.(\d+).*released on (\d+\/\d+\/\d+)/;
 	$Save{mhdl_maj} = $1;
 	$Save{mhdl_min} = $2;
 	$Save{mhdl_date} = $3;
@@ -98,14 +101,13 @@ if (done_now $p_mhdl_page) {
 
 
    if (defined $Save{mhdl_maj} and defined $Save{mhdl_min}) {
-	my ($maj,$min,$revision) = &parse_version();
-	$revision = "unknown" unless $revision;
+	my ($maj,$min,$version_str) = &parse_version();
 	if (($Save{mhdl_maj} > $maj) or (($Save{mhdl_maj} == $maj) and ($Save{mhdl_min} > $min))) {
-	    $v_mhdl_page->respond("important=1 connected=0 app=control I am version $maj.$min (revision $revision) and version $Save{mhdl_maj}.$Save{mhdl_min} was released " . &calc_age($Save{mhdl_date} . '.'));
+	    $v_mhdl_page->respond("important=1 connected=0 app=control I am version $version_str and version $Save{mhdl_maj}.$Save{mhdl_min} was released " . &calc_age($Save{mhdl_date} . '.'));
 	}
 	else {
 		# Voice command is only code to start this process, so check its set_by
-		$v_mhdl_page->respond("connected=0 app=control Version $Save{mhdl_maj}.$Save{mhdl_min} is current.");
+		$v_mhdl_page->respond("connected=0 app=control Version $version_str is current.");
 	}
    }
 

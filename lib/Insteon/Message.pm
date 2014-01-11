@@ -104,6 +104,22 @@ sub failure_callback
         return $$self{failure_callback};
 }
 
+=item C<success_callback(data)>
+
+Data will be evaluated after the receipt of an ACK from the device for this command.
+
+=cut
+
+sub success_callback
+{
+	my ($self, $callback) = @_;
+        if (defined $callback)
+        {
+        	$$self{success_callback} = $callback;
+        }
+        return $$self{success_callback};
+}
+
 =item C<send_attempts(data)>
 
 Stores and retrieves the number of times Misterhouse has tried to send the message.
@@ -215,13 +231,17 @@ sub send
 
         	if ($self->send_attempts > 0)
                 {
-                	&::print_log("[Insteon::BaseMessage] WARN: now resending "
-                        	. $self->to_string() . " after " . $self->send_attempts
-                        	. " attempts.") if $main::Debug{insteon};
+			if ((ref $self->setby && $self->setby->debuglevel(1, 'insteon')) ||
+				((!ref $self->setby) && ::debug{'insteon'})){
+				::print_log("[Insteon::BaseMessage] WARN: now resending "
+				. $self->to_string() . " after " . $self->send_attempts
+				. " attempts.");
+			}
                         # revise default hop count to reflect retries
                         if (ref $self->setby && $self->setby->isa('Insteon::BaseObject') 
                         	&& !defined($$self{no_hop_increase}))
                         {
+                        	$self->setby->retry_count_log(1) if $self->setby->can('retry_count_log');
                         	if ($self->setby->default_hop_count < 3)
                                 {
                                 	$self->setby->default_hop_count($self->setby->default_hop_count + 1);
@@ -231,12 +251,17 @@ sub send
                         	&& $self->setby->isa('Insteon::BaseObject')){
                         	&main::print_log("[Insteon::BaseMessage] Hop count not increased for "
                         		. $self->setby->get_object_name . " because no_hop_increase flag was set.")
-                        		if $main::Debug{insteon};
+                        		if $self->setby->debuglevel(1, 'insteon');
                         	$$self{no_hop_increase} = undef;
                         }
                 }
 
                 # need to set timeout as a function of retries; also need to alter hop count
+                if ($self->send_attempts <= 0 && ref $self->setby) {
+                    $self->setby->outgoing_count_log(1) if $self->setby->can('outgoing_count_log');
+                    $self->setby->outgoing_hop_count($self->setby->default_hop_count)
+                    	if $self->setby->can('outgoing_hop_count');
+                }
                 $self->send_attempts($self->send_attempts + 1);
 		$interface->_send_cmd($self, $self->send_timeout);
 		if ($self->callback)
@@ -412,6 +437,8 @@ sub command_to_hash
                 {
 			$msg{type} = 'alllink';
 			$msg{group} = substr($p_state,10,2);
+			$msg{extra} = substr($p_state,16,2) 
+				if (length($p_state) >= 18);
 		}
                 else
                 {
@@ -527,53 +554,58 @@ sub send_timeout
 	my ($self, $ignore) = @_;
         my $hop_count = (ref $self->setby and $self->setby->isa('Insteon::BaseObject')) ?
         			$self->setby->default_hop_count : $self->send_attempts;
+        my $timeout = 1400;
 	if($self->command eq 'peek' || $self->command eq 'set_address_msb')
 	{
-		return 4000;
+		$timeout = 4000;
 	}
-        if ($self->command_type eq 'all_link_send')
+        elsif ($self->command_type eq 'all_link_send')
         {
         	# note, the following was set to 2000 and that was insufficient
-        	return 3000;
+        	$timeout = 3000;
         }
         elsif ($self->command_type eq 'insteon_ext_send')
         {
         	if ($hop_count == 0)
                 {
-                	return   2220;
+                	$timeout = 2220;
                 }
                 elsif ($hop_count == 1)
                 {
-                	return   2690;
+                	$timeout = 2690;
                 }
                 elsif ($hop_count == 2)
                 {
-                	return   3000;
+                	$timeout = 3000;
                 }
                 elsif ($hop_count >= 3)
                 {
-                	return   3170;
+                	$timeout = 3170;
                 }
         }
         else
         {
         	if ($hop_count == 0)
                 {
-                	return   1400;
+                	$timeout = 1400;
                 }
                 elsif ($hop_count == 1)
                 {
-                	return   1700;
+                	$timeout = 1700;
                 }
                 elsif ($hop_count == 2)
                 {
-                	return   1900;
+                	$timeout = 1900;
                 }
                 elsif ($hop_count >= 3)
                 {
-                	return   2000;
+                	$timeout = 2000;
                 }
         }
+        if (ref $self->setby and $self->setby->isa('Insteon::BaseObject')){
+        	$timeout = int($timeout * $self->setby->timeout_factor);
+        }
+        return $timeout;
 }
 
 =item C<to_string()>
@@ -654,7 +686,7 @@ sub _derive_interface_data
 	}
         else
         {
-       		my $hop_count = $self->send_attempts + $self->setby->default_hop_count - 1;
+       		my $hop_count = $self->setby->default_hop_count;
 		$cmd.=$self->setby->device_id();
 		if ($self->command_type =~ /insteon_ext_send/i)
                 {
@@ -1057,7 +1089,7 @@ sub generate_commands
 	}
 
 	if ($uc eq undef) {
-	    &main::print_log("[Insteon::Message] Message is for entire HC") if $main::Debug{insteon};
+	    &main::print_log("[Insteon::Message] Message is for entire HC") if (ref $p_setby && $p_setby->debuglevel(1,'insteon'));
 	}
 	else {
 
@@ -1066,7 +1098,7 @@ sub generate_commands
 	    $msg.= substr(unpack("H*",pack("C",$x10_unit_codes{substr($id,2,1)})),1,1);
 	    $msg.= "00";
 	    &main::print_log("[Insteon_PLM] x10 sending code: " . uc($hc . $uc) . " as insteon msg: "
-			     . $msg) if $main::Debug{insteon};
+			     . $msg) if (ref $p_setby && $p_setby->debuglevel(1,'insteon'));
 
             push @data, $msg;
 	}
@@ -1094,7 +1126,7 @@ sub generate_commands
 	    $msg.= "80";
 
      	    &main::print_log("[Insteon_PLM] x10 sending code: " . uc($hc . $x10_arg) . " as insteon msg: "
-			     . $msg) if $main::Debug{insteon};
+			     . $msg) if (ref $p_setby && $p_setby->debuglevel(1,'insteon'));
 
             push @data, $msg;
 

@@ -29,7 +29,7 @@ use strict;
 use HTML::FormatText;
 use HTML::Parse;
 use LWP::Simple;
-use Encode qw(encode decode);
+use Encode qw(encode decode find_encoding);
 
 #require "$main::Pgm_Root/lib/site/HTML/Formatter.pm";
 
@@ -1488,11 +1488,61 @@ sub main::net_mail_summary {
 
 	# Parse any unicode from headers...
 	$from =~ s/\"//g;
-	if ($from =~ m/=\?/) {
-	   print "Unicode detected. Decoding MIME-Header from $from to " if $parms{debug} or $main::Debug{net};
-	   $from = decode("MIME-Header", $from);
-	   print "$from.\n" if $parms{debug} or $main::Debug{net};
+	if ($from =~ m/\=\?([0-9A-Za-z\-_]+)\?.\?.*\?\=/) {
+	   my $enc_check = find_encoding($1);
+  	   if ($enc_check) {
+	     print "Unicode $1 detected. Decoding MIME-Header 'from' from $from to " if $parms{debug} or $main::Debug{net};
+	     $from = decode("MIME-Header", $from);
+	     print "$from.\n" if $parms{debug} or $main::Debug{net};
+	     }
+	    else {
+	     print "WARNING: Unknown unicode detected $1 for 'from' $from\n";
+	    }
+	}
+	if ($sender =~ m/\=\?([0-9A-Za-z\-_]+)\?.\?.*\?\=/) {
+	   my $enc_check = find_encoding($1);
+  	   if ($enc_check) {
+	     print "Unicode $1 detected. Decoding MIME-Header 'sender' from $sender to " if $parms{debug} or $main::Debug{net};
+	     $sender = decode("MIME-Header", $sender);
+	     print "$sender.\n" if $parms{debug} or $main::Debug{net};
+	     }
+	    else {
+	     print "WARNING: Unknown unicode detected $1 for 'sender' $sender\n";
+	    }
+	}
+	if ($to =~ m/\=\?([0-9A-Za-z\-_]+)\?.\?.*\?\=/) {
+	   my $enc_check = find_encoding($1);
+  	   if ($enc_check) {
+	     print "Unicode $1 detected. Decoding MIME-Header 'to' from $to to " if $parms{debug} or $main::Debug{net};
+	     $to = decode("MIME-Header", $to);
+	     print "$to.\n" if $parms{debug} or $main::Debug{net};
+	     }
+	    else {
+	     print "WARNING: Unknown unicode detected $1 for 'to' $to\n";
+	    }
 	} 
+	if ($cc =~ m/\=\?([0-9A-Za-z\-_]+)\?.\?.*\?\=/) {
+	   my $enc_check = find_encoding($1);
+  	   if ($enc_check) {
+	     print "Unicode $1 detected. Decoding MIME-Header 'cc' from $cc to " if $parms{debug} or $main::Debug{net};
+	     $cc = decode("MIME-Header", $cc);
+	     print "$cc.\n" if $parms{debug} or $main::Debug{net};
+	     }
+	    else {
+	     print "WARNING: Unknown unicode detected $1 for 'cc' $cc\n";
+	    }
+	} 
+	if ($subject =~ m/\=\?([0-9A-Za-z\-_]+)\?.\?.*\?\=/) {
+	   my $enc_check = find_encoding($1);
+  	   if ($enc_check) {
+	     print "Unicode $1 detected. Decoding MIME-Header 'subject' from $subject to " if $parms{debug} or $main::Debug{net};
+	     $subject = decode("MIME-Header", $subject);
+	     print "$subject.\n" if $parms{debug} or $main::Debug{net};
+	     }
+	    else {
+	     print "WARNING: Unknown unicode detected $1 for 'subject' $subject\n";
+	    }
+	}  
                                 # Process 'from' into speakable name
         ($from_name) = $from =~ /\((.+)\)/;
         ($from_name) = $from =~ / *(.+?) *</ unless $from_name;

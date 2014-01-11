@@ -1,18 +1,19 @@
 # Category = Time
 
-#@ This module is a significant update from 2.103, and has a few functions;
+#@ This module is a significant update from MH v2, and has a few functions;
 #@<br>
 #@ <ul>
 #@ <li> iCal2vsDB syncronization control. Imports iCal files (Apple iCal, 
 #@   Mozilla Sunbird) into MH as standard calendars, or holiday/vacation
 #@   calendars.
+#@ <li> New in v3.1 now can control objects using a control calendar
 #@ <li> Monitors the vsDB calendar and todo files and creates required events
 #@   to process these items (creates organizer_*.pl files in the code dir)
 #@ <li> Implements an Organizer_Events class for manipulating events, holidays
 #@   and vacations.
 #@ <li> Automatically updates vsDB 'databases' with the new required fields
 #@<br>
-#@ Minimum Requirements: calendar.pl 1.5.7-4 and tasks.pl 1.4.8-4 (Misterhouse v2.104)
+#@ Minimum Requirements: calendar.pl 1.6.0-3 and tasks.pl 1.4.8-4 (Misterhouse v2.104)
 
 =begin comment
 
@@ -37,22 +38,29 @@ ical2vsdb_<name> = url to ical file
 
 url examples:
 http://server/path/to/icalfile.ics
+https://server/path/to/icalfile.ics
 file://path/to/icalfile.ics
 http://user@pass:server/file.ics
 
 ical2vsdb_<name>_options = comma delimited list of ical processing options
 
 Options available:
-sync_dtstamp	some calendars (ie google) update the dtstamp field each time the calendar
-		is downloaded, such that it is processed each time. Setting this option
-		syncs the dtstamp field with created, ensuring that ical2vsdb only runs when
-		the calendar has changed.
+
 speak_cal 	to speak calendar entries
 speak_todo 	to speak task entries
 holiday		calendar entries should be treated as holiday time
 vacation	calendar entries should be treated as vacation time
 name=XXXX	set source name to XXX rather than parse it from inside the ical
-dcsfix		might be needed to parse calendars using the Darwin Calendar Server
+
+Changed in ical2vsdb 4
+nodcsfix	most calendar servers (ie google) need a second level parse. Set this if the ical
+		isn't being processed
+nosync_dtstamp	some calendars (ie google) update the dtstamp field each time the calendar
+		is downloaded, such that it is processed each time. ical2vsdb syncs these fields 
+		ensuring that ical2vsdb only runs when the calendar has changed. Set this if there is
+		too much processing not if non-google calendars aren't being processed
+control		For dedicated item control calendars. MH objects with the same name as the
+		event will be turned on during the event duration
 
 ie
 ical2vsdb_account1 = http://house/holical.ics
@@ -66,6 +74,8 @@ ical_local_cache_dir    Local cache directory
 
 iCal2vsDB uses iCal::Parser, which has several significant dependancies to operate correctly,
 these have been included in lib/site
+
+for https access Crypt::SSLeay needs to be installed manually as well
 
 =cut
 
@@ -198,7 +208,7 @@ if ($Reload) {
        if defined $main::config_parms{organizer_announce_priorday_times};
 
    #Check to see if calendar and organizer databases need upgrade
-   my @_upd_cal = ( 'DATE','TIME','EVENT','CATEGORY','DETAILS','HOLIDAY','VACATION','SOURCE','REMINDER','ENDTIME' );
+   my @_upd_cal = ( 'DATE','TIME','EVENT','CATEGORY','DETAILS','HOLIDAY','VACATION','SOURCE','REMINDER','ENDTIME','CONTROL' );
    $calOk = &update_vsdb('Calendar',$_organizer_cal->name,@_upd_cal);
 
    my @_upd_todo = ( 'Complete','Description','DueDate','AssignedTo','Notes','SPEAK','SOURCE','REMINDER','STARTDATE','CATEGORY' );
@@ -309,12 +319,14 @@ if ($calOk and ($Reload or said $organizer_check or ($New_Minute and changed $_o
            $data{reminder} = $objDB->FieldValue('REMINDER');
            $data{category} = $objDB->FieldValue('CATEGORY');
            $data{endtime} = $objDB->FieldValue('ENDTIME');
+	   $data{control} = $objDB->FieldValue('CONTROL');
            $data{endtime} = (!($data{endtime}) && $data{time}) ? $data{time} : $data{endtime};
            $data{allday} = ($data{time} eq $data{endtime}) ? 'Yes' : 'No';
            $data{notes} = $objDB->FieldValue('DETAILS');
            $data{startdt} = $data{date} . ' ' . (($data{time}) ? $data{time} : "12:00 am");
            $data{enddt} = $data{date} . ' ' 
-               . (($data{endtime} && $data{endtime} !~ /12:00 am/i) ? $data{time} : "11:59 pm");
+               . (($data{endtime} && $data{endtime} !~ /12:00 am/i) ? $data{endtime} : "11:59 pm");
+
 
            #changed to notify an array of email addresses
            $data{name_count} = 0;
@@ -474,6 +486,9 @@ sub generate_code {
     my $default_reminder = $main::config_parms{organizer_reminder};
     $default_reminder = '15m' unless $default_reminder;
     $data{reminder} = $default_reminder unless $data{reminder} or $data{allday} =~ /^y/i;
+
+#print_log "organizerDB: data{type}=$data{type} data{control}=$data{control} data{desc}=$data{description}";
+
     my $task_flag = $main::config_parms{organizer_vc_category};
     if (($task_flag) && ($data{type} eq 'task') && 
        (($data{category} and ($data{category} =~ /^$task_flag/i)) or ($data{description} =~ /^$task_flag/i))) {
@@ -494,6 +509,28 @@ sub generate_code {
        }
        return;
     }
+
+    # control calendars turn item on and off. Note that this only tests if an object exists. A better way
+    # might be to check if on & off are valid states...
+    if (($data{type} eq 'event') and ($data{control} eq 'on')) {
+       my $obj = $data{description};
+       #&main::print_log("organizerDB: found control event $obj starting $data{startdt} ending $data{enddt}");
+       my $obj_test = '';
+       my $obj_state = '';
+       eval { $obj_test = &main::get_object_by_name($obj); $obj_state = state $obj_test };
+       if ($obj_state) {
+          if (($data{startdt}) and ($data{enddt})) {
+             print MYCODE "if (time_now '$data{startdt}') { set \$$obj ON; }; #Control Event\n";
+             print MYCODE "if (time_now '$data{enddt}') { set \$$obj OFF; }; #Control Event\n";
+          } else {
+		&main::print_log("Organizer: Warning, invalid times for event object $obj. Ignoring Event on $data{startdt}");
+	  }
+       } else {
+	&main::print_log("Organizer: Warning, cannot determing state of event object $obj. This item might not exist. Ignoring Event on $data{startdt}");
+	}
+       return;
+    }
+
     if ($data{reminder} and !(time_greater_than($data{time_date}) or $data{reminder} eq 'none')) {
        my @reminders = split(/,/,$data{reminder});
        for my $reminder_info (@reminders) {

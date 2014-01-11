@@ -1,38 +1,18 @@
-=head1 B<Caller_ID>
-
-=head2 SYNOPSIS
-
-None
-
-=head2 DESCRIPTION
-
-NONE
-
-=head2 INHERITS
-
-NONE
-
-=head2 METHODS
-
-=over
-
-=item B<UnDoc>
-
-=cut
-
 package Caller_ID;
 use strict;
 
-use vars '%name_by_number', '%reject_name_by_number', '%state_by_areacode', '%wav_by_number', '%group_by_number';
+use vars '%name_by_number', '%reject_name_by_number', '%city_by_areacode', '%state_by_areacode', '%wav_by_number', '%group_by_number';
 my ($my_areacode, @my_areacodes, $my_state);
 my $caller_file_2 = 1;
 my $caller_id_debug = 0;
+$caller_id_debug = 1 if $main::Debug{callerid};
 
+print "Caller ID debugging enabled" if $caller_id_debug;
 
 sub make_speakable {
     my($data, $format,$local_area_code_language) = @_;
 
-=cut
+=cut begin
 
 format=1: Weeder CID data looks like this:
 I03/18 22:05 507-288-1030 WINTER BRUCE LA
@@ -90,7 +70,7 @@ Format=4   NetCallerID (http://ugotcall.com/nci.htm)
 ###DATE06191942...NMBR...NAME-UNKNOWN CALLER-+++
 
 
-=cut
+=cut end
 
 
 # Switch name strings so first last, not last first.
@@ -101,6 +81,8 @@ Format=4   NetCallerID (http://ugotcall.com/nci.htm)
 # Last First M
 # Last M First
 
+print "CallerID DBG: data=[$data] format=$format\n";
+
     if ($format == 2) {
         ($date)   = $data =~ /DATE *= *(\S+)/s;
         ($time)   = $data =~ /TIME *= *(\S+)/s;
@@ -108,7 +90,8 @@ Format=4   NetCallerID (http://ugotcall.com/nci.htm)
         ($number) = $data =~ /NMBR *= *(\S+)/s;
 
 #       ($name)   = $data =~ /NAME *= *(.+)/s;
-        ($name)   = $data =~ /NAME *= *([^\n]+)/s;
+#       ($name)   = $data =~ /NAME *= *([^\n]+)/s;
+        ($name)   = $data =~ /NAME *= *(.+)\sNMBR/s; #HPC name is between NAME = & NMBR
 
         ($number) = $data =~ /FM:(\S+)/s unless $number;
         ($numberTo) = $data =~ /TO:(\S+)/s;
@@ -116,8 +99,9 @@ Format=4   NetCallerID (http://ugotcall.com/nci.htm)
         print "phone number=$number numberTo=$numberTo name=$name\n" if $caller_id_debug;
 
         $name = substr($name, 0, 15);
-#       $name = 'Unavailable' if $name =~ /^O$/; # Jay's & Chaz's exceptions
-        $name = 'Out of Area' if $name =~ /^O$/; # Jay's & Chaz's exceptions
+       $name = 'Unavailable' if $name =~ /^O$/; # Jay's & Chaz's exceptions
+#       $name = 'Out of Area' if $name =~ /^O$/; # Jay's & Chaz's exceptions
+##        $name = '' if $name =~ /^O$/; # No name announce number.
         $name = 'Private'     if $name =~ /^P$/; # Chaz's exception
         $name = 'Pay'         if $name =~ /^TEL PUBLIC BELL$/; # Chaz's exception
         ($last, $first, $middle) = split(/[\s,]+/, $name, 3);
@@ -262,10 +246,9 @@ sub read_areacode_list {
 
     my %parms = @_;
 
-#   &main::print_log("Reading area code table ... ");
-#   print "Reading area code table ... ";
+   &main::print_log("Reading area code table ... ");
 
-    my ($area_code_file, %city_by_areacode, $city, $state, $areacode, $areacode_cnt);
+    my ($area_code_file, $city, $state, $areacode, $areacode_cnt,$timeoffset);
     if ($parms{area_code_file}) {
         open (AREACODE, $parms{area_code_file}) or
             print "\nError, could not find the area code file $parms{area_code_file}: $!\n";
@@ -273,19 +256,34 @@ sub read_areacode_list {
         while (<AREACODE>) {
             next if /^\#/;
             $areacode_cnt++;
-            $_ =~ s/\(.+?\)//;      # Delete descriptors like (Southern) Texas ... too much to speak
-                                #406 All parts of Montana
 
-            ($areacode, $state) = $_ =~ /(\d\d\d) All parts of (.+)/;
-            ($areacode, $city, $state) = $_ =~ /(\d\d\d)(.*), *(.+)/ unless $state;
-            next unless $city;
+#            $_ =~ s/\(.+?\)//;      # Delete descriptors like (Southern) Texas ... too much to speak
+#                                #406 All parts of Montana
+#
+#            ($areacode, $state) = $_ =~ /(\d\d\d) All parts of (.+)/;
+#            ($areacode, $city, $state) = $_ =~ /(\d\d\d)(.*), *(.+)/ unless $state;
+
+             $_ =~ s/\(.*\)$//; #remove end junk
+             # Delete descriptors like (Southern) Texas ... too much to speak
+             $_ =~ s/\(.+?\)//;
+             ($areacode,$state,$timeoffset,$city) = $_ =~ /(\S*)\s*(\S*)\s*(\S*)\s*(.*)/;
+
+             if ($city =~ /.*:.*/) {
+                     ($city) = $city =~ /.*:(.*)/;
+             }
+             if ($city =~ /.*,.*/) {
+                     ($city) = $city =~ /(.*),.*/;
+             }
+             $city =~ s/^\s+|\s+$//g; #remove leading/trailing whitespace
+             $city =~ s/[\-\-|\;].*//; #remove stuff after --, ;
+             next unless $city;
+
             $city_by_areacode{$areacode}  = $city;
             $state_by_areacode{$areacode} = $state;
 #       print "db code=$areacode state=$state city=$city\n";
         }
         close AREACODE;
-#   &main::print_log("read in $areacode_cnt area codes from $parms{area_code_file}");
-        print "Read $areacode_cnt codes from $parms{area_code_file}\n" if $caller_id_debug;
+   &main::print_log("Read in $areacode_cnt area codes from $parms{area_code_file}");
     }
 
     # If in-state, store city name instead of state name.
@@ -456,28 +454,3 @@ sub read_callerid_list {
 #
 
 1;
-
-=back
-
-=head2 INI PARAMETERS
-
-NONE
-
-=head2 AUTHOR
-
-UNK
-
-=head2 SEE ALSO
-
-NONE
-
-=head2 LICENSE
-
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-
-=cut
-

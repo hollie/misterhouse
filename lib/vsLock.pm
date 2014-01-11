@@ -9,9 +9,6 @@
 ;#  as specified in the README file that comes with the distribution.
 ;#
 ;# $Log: vsLock.pm,v $
-;# Revision 1.3  2004/02/01 19:24:35  winter
-;#  - 2.87 release
-;#
 ;# Revision 0.1.1.1  1998/05/12  07:42:19  ram
 ;# patch1: Baseline for first alpha release.
 ;#
@@ -609,4 +606,6 @@ Raphael Manfredi F<E<lt>Raphael_Manfredi@grenoble.hp.comE<gt>>
 File::Flock(3).
 
 =cut
+
+
 

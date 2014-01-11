@@ -15,6 +15,7 @@
 # or indirectly caused by this software.
 # 
 # Version History
+# 1.6.0-3 - 01/04/14 - added support for control calendars (hide them)
 # 1.6.0-2 - 11/02/07 - minor bugfix to in icalsync name
 # 1.6.0-1 - 09/24/07 - Updated to organizer release 2.5.2 without admin login and ical customization
 #		       (1.6.0 added admin login & changed navigation)
@@ -30,7 +31,7 @@
 # 1.5.2   - 08/22/01 - added file locking
 # ----------------------------------------------------------------------------
 
-my $VERSION = "1.6.0-2";
+my $VERSION = "1.6.0-3";
 
 BEGIN {
 #	$SIG{__WARN__} = \&FatalError;
@@ -338,18 +339,19 @@ sub PrintDay {
     }
 
     while (!$objMyDb->EOF) {
-	my $custcolor = "";
-	$custcolor = " bgcolor='$dataHolidayColor' " if ($objMyDb->FieldValue("HOLIDAY") eq "on");
-	$custcolor = " bgcolor='$dataVacationColor' " if ($objMyDb->FieldValue("VACATION") eq "on");
-	$custcolor = " bgcolor='$dataMultipleColor' " if (($objMyDb->FieldValue("VACATION") eq "on") and ($objMyDb->FieldValue("HOLIDAY") eq "on")); # if a day is both vacation and holiday
-
-    my $icon = $detailIcon;
-    my $source = $objMyDb->FieldValue("SOURCE");
-    $icon = "images/ical_1.jpg" if ($source =~ /^ical=/);
-    my $link = "<a href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsCOM=EDIT&vsMonth=$month&vsYear=$year&vsDay=$day&vsID=" . $objMyDb->FieldValue("ID") . "'>";
-	print "<tr $custcolor><td>" . $link . "<img src='$icon' border='0'></a></td>";
-	print "<td><font size='2' face='arial,helvetica'>" . $objMyDb->FieldValue("TIME") . "&nbsp;</font></td>";
-	print "<td>" . $link . "<font size='2' face='arial,helvetica'>" . $objMyDb->FieldValue("EVENT") . "&nbsp;</font></td></a></tr>\n";
+	unless  ($objMyDb->FieldValue("CONTROL") eq "on") { #Don't display CONTROL calendars
+	   my $custcolor = "";
+	   $custcolor = " bgcolor='$dataHolidayColor' " if ($objMyDb->FieldValue("HOLIDAY") eq "on");
+	   $custcolor = " bgcolor='$dataVacationColor' " if ($objMyDb->FieldValue("VACATION") eq "on");
+	   $custcolor = " bgcolor='$dataMultipleColor' " if (($objMyDb->FieldValue("VACATION") eq "on") and ($objMyDb->FieldValue("HOLIDAY") eq "on")); # if a day is both vacation and holiday
+    	   my $icon = $detailIcon;
+    	   my $source = $objMyDb->FieldValue("SOURCE");
+    	   $icon = "images/ical_1.jpg" if ($source =~ /^ical=/);
+    	   my $link = "<a href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsCOM=EDIT&vsMonth=$month&vsYear=$year&vsDay=$day&vsID=" . $objMyDb->FieldValue("ID") . "'>";
+	   print "<tr $custcolor><td>" . $link . "<img src='$icon' border='0'></a></td>";
+	   print "<td><font size='2' face='arial,helvetica'>" . $objMyDb->FieldValue("TIME") . "&nbsp;</font></td>";
+	   print "<td>" . $link . "<font size='2' face='arial,helvetica'>" . $objMyDb->FieldValue("EVENT") . "&nbsp;</font></td></a></tr>\n";
+	}
 	$objMyDb->MoveNext;
     }
 
@@ -460,7 +462,7 @@ sub PrintMonth {
 		if ($showDayDetails) {
 		    print "<font size='1'>";
 		    while (!$objMyDb->EOF) {
-			print "<a href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsCOM=EDIT&vsMonth=$month&vsYear=$year&vsDay=$weekDayCount&vsID=" . $objMyDb->FieldValue("ID") . "'>" .$objMyDb->FieldValue("EVENT") . "</a><br>";
+			print "<a href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsCOM=EDIT&vsMonth=$month&vsYear=$year&vsDay=$weekDayCount&vsID=" . $objMyDb->FieldValue("ID") . "'>" .$objMyDb->FieldValue("EVENT") . "</a><br>"	unless  ($objMyDb->FieldValue("CONTROL") eq "on"); #Don't display CONTROL calendars;
 			$objMyDb->MoveNext;
 		    }
 		    print "</font>";
@@ -573,6 +575,8 @@ sub PrintCurrentRecord {
 		} elsif ($fieldName eq "ENDTIME") {
 		    $endtime_entry = $objMyDB->FieldValue($fieldName);
 		   
+		} elsif ($fieldName eq "CONTROL") {
+			#Don't display CONTROL field. Do nothing 
 		} else {
 		    print "<tr valign='top' bgcolor='#DDDDDD'>\n";
 		    print "<td><font face='arial' size='2'>" . $fieldName . "</font></td>\n";

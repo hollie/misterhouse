@@ -1,5 +1,0 @@
-
-This is an empty file :)
-
-Put here to make sure unzip programs will re-created this directory.
-

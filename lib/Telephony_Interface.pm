@@ -94,7 +94,9 @@ sub check_for_data {
             $main::Serial_Ports{$port}{data_record} = undef;
                                 # Ignore garbage data (ascii is between ! thru ~)
             $data = '' if $data !~ /^[\n\r\t !-~]+$/;
+print "Caller_id_data{$port} raw data: $caller_id_data{$port}" if $main::Debug{phone};
             $caller_id_data{$port} .= ' ' . $data;
+print "Phone raw data: $data.\n" if $main::Debug{phone};
             print "Phone data: $data.\n" if $main::Debug{phone};
             if (($caller_id_data{$port} =~ /NAME.+NU?MBE?R/s) or
                 ($caller_id_data{$port} =~ /NU?MBE?R.+NAME/s) or
@@ -172,7 +174,8 @@ sub process_cid_data {
     else {
         ($date)   = $data =~ /DATE *= *(\S+)/s;
         ($time)   = $data =~ /TIME *= *(\S+)/s;
-        ($name)   = $data =~ /NAME *= *(.{1,15})/s;
+        ($name)   = $data =~ /NAME *= *(.+)\sNMBR/s if ($type eq 'rockwell');
+	($name)   = $data =~ /NAME *= *(.{1,15})/s unless $name;
         ($name)   = $data =~ /MESG *= *([^\n]+)/s unless $name;
         $name     = 'private'     if $name eq '080150';
         $name     = 'unavailable' if $name eq '08014F';
@@ -182,6 +185,7 @@ sub process_cid_data {
 
     $name   = '' unless $name;
     $number = '' unless $number;
+    $number = '' if $number eq 'O';
 
     unless ($name or $number) {
         print "\nCallerid data not parsed: p=$port t=$type d=$data date=$date time=$time number=$number name=$name\n";
@@ -200,6 +204,8 @@ sub process_cid_data {
         $name='';
     }
     $cid_type = 'U' if uc $name eq 'O' or $number eq 'O';
+    $name = 'unknown' if uc $name eq 'O';
+    $name = 'unknown' if $name eq $number; #if name is same as number than ignore the name
     $cid_type = 'N' if $number =~ /^[\d\- ]+$/;	  # Override the type if the number is known
 
 
