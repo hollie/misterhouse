@@ -356,14 +356,6 @@ sub CheckCmd {
       ChangePartitions( int($PartNum), int($PartNum), "not ready", 1);
    }
    elsif ($status_type->{wireless}) {
-      my $ZoneLoop = "";
-      my $MZoneLoop = "";
-      my $ZoneNum;
-      my $ZoneName;
-      # Parse raw status strings
-      my $lc = 0;
-      my $wnum = 0;
-
       ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "WIRELESS: rf_id("
          .$status_type->{rf_id}.") status(".$status_type->{rf_status}.") loop1("
          .$status_type->{rf_loop_fault_1}.") loop2(".$status_type->{rf_loop_fault_2}
@@ -374,29 +366,22 @@ sub CheckCmd {
          .$status_type->{rf_low_batt}.") supervised(".$status_type->{rf_supervised}
          .")" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
 
-      my $ZoneStatus = "ready";
-      my $PartStatus = "";
-      my @parsest;
-      my $sensortype;
-
       if (exists $main::config_parms{"AD2USB_wireless_".$status_type->{rf_id}}) {
-         # Assign zone
-         my @ParseNum = split(",", $main::config_parms{"AD2USB_wireless_".$status_type->{rf_id}});
+         my ($MZoneLoop, $PartStatus, $ZoneNum, $ZoneName);
+         my $lc = 0;
+         my $ZoneStatus = "ready";
 
          # Assign status (zone and partition)
          if ($status_type->{rf_low_batt} == "1") {
             $ZoneStatus = "low battery";
          }
    
-         foreach $wnum(@ParseNum) {
-            if ($lc eq 0 or $lc eq 2 or $lc eq 4 or $lc eq 6) { 
+         foreach my $wnum(split(",", $main::config_parms{"AD2USB_wireless_".$status_type->{rf_id}})) {
+            if ($lc % 2 == 0) { 
                $ZoneNum = $wnum;
             }
-   
-            if ($lc eq 1 or $lc eq 3 or $lc eq 5 or $lc eq 7) {
-               @parsest = split("", $wnum);
-               $sensortype = $parsest[0];
-               $ZoneLoop = $parsest[1];
+            else {
+               my ($sensortype, $ZoneLoop) = split("", $wnum);
                $ZoneName = "Unknown";
                $ZoneName = $main::config_parms{"AD2USB_zone_$ZoneNum"} if exists $main::config_parms{"AD2USB_zone_$ZoneNum"};
    
