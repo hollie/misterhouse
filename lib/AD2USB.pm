@@ -442,12 +442,9 @@ sub CheckCmd {
       }
    }
    elsif ($status_type->{relay}) {
-      my $rel_id = substr( $CmdStr, 5, 2 );
-      my $rel_input_id = substr( $CmdStr, 8, 2 );
-      my $rel_status = substr( $CmdStr, 11, 2 );
-      my $PartName = my $PartNum = "1";
-      my $ZoneStatus;
-      my $PartStatus;
+      my $rel_id = $status_type->{rel_address};
+      my $rel_input_id = $status_type->{rel_channel};
+      my $rel_status = $status_type->{rel_status};
 
       ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "RELAY: rel_id($rel_id) input($rel_input_id) status($rel_status)" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
 
@@ -456,14 +453,13 @@ sub CheckCmd {
          my $ZoneNum = $main::config_parms{"AD2USB_relay_$rel_id$rel_input_id"};
          my $ZoneName = "Unknown";
          $ZoneName = $main::config_parms{"AD2USB_zone_$ZoneNum"} if exists $main::config_parms{"AD2USB_zone_$ZoneNum"};
-         # Assign status (zone and partition)
 
+         # Assign status (zone and partition)
+         my $ZoneStatus = "ready";
+         my $PartStatus = "";
          if ($rel_status == 01) {
             $ZoneStatus = "fault";
             $PartStatus = "not ready";
-         } elsif ($rel_status == 00) {
-            $ZoneStatus = "ready";
-            $PartStatus = "";
          }
 
          $self->{zone_now_msg}            = "$CmdStr";
@@ -732,11 +728,14 @@ sub GetStatusType {
       $message{exp_channel} = $2;
       $message{exp_status} = $3;
    }
-   elsif (substr($AdemcoStr,0,5) eq "!REL:") {
+   elsif ($AdemcoStr =~ /!REL:(\d{2}),(\d{2}),(\d{2})/) {
       ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Relay status received.") unless ($main::config_parms{AD2USB_debug_log} == 0);
       $message{relay} = 1;
+      $message{rel_address} = $1;
+      $message{rel_channel} = $2;
+      $message{rel_status} = $3;
    }
-   elsif ($AdemcoStr eq "!Sending...done") {
+   elsif ($AdemcoStr =~ /!Sending\.\.\.done/) {
       ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Command sent successfully.") unless ($main::config_parms{AD2USB_debug_log} == 0);
       $message{cmd_sent} = 1;
    }
