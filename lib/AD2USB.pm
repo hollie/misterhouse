@@ -97,6 +97,7 @@ L<Generic_Item>
 ############################################################################### 
 
 package AD2USB;
+use strict;
 
 @AD2USB::ISA = ('Generic_Item');
 
@@ -202,9 +203,9 @@ sub serial_startup {
 sub server_startup {
    my ($instance) = @_;
 
-   $Socket_Items{"$instance"}{recon_timer} = new Timer;
-   $ip = $::config_parms{"$instance".'_server_ip'};
-   $port = $::config_parms{"$instance" . '_server_port'};
+   $Socket_Items{"$instance"}{recon_timer} = ::Timer::new();
+   my $ip = $::config_parms{"$instance".'_server_ip'};
+   my $port = $::config_parms{"$instance" . '_server_port'};
    ::print_log("  AD2USB.pm initializing $instance TCP session with $ip on port $port") if $main::config_parms{debug} eq 'AD2USB';
    $Socket_Items{"$instance"}{'socket'} = new Socket_Item($instance, undef, "$ip:$port", 'AD2USB', 'tcp', 'raw');
    $Socket_Items{"$instance" . '_sender'}{'socket'} = new Socket_Item($instance . '_sender', undef, "$ip:$port", 'AD2USB_SENDER', 'tcp', 'rawout');
@@ -251,8 +252,8 @@ sub check_for_data {
    return if !$NewCmd;
 
    # Prepend any prior message fragment
-   $NewCmd = $self{IncompleteCmd} . $NewCmd if $self{IncompleteCmd};
-   $self{IncompleteCmd} = '';
+   $NewCmd = $self->{IncompleteCmd} . $NewCmd if $self->{IncompleteCmd};
+   $self->{IncompleteCmd} = '';
 
    # Split Data into Individual Messages and Then Send the Message to be Parsed
    foreach my $Cmd (split("\n", $NewCmd)){
@@ -281,7 +282,7 @@ sub check_for_data {
       }
       else {
          # Save partial command for next serial read
-         $self{IncompleteCmd} = $Cmd;
+         $self->{IncompleteCmd} = $Cmd;
       }
    }
 }
@@ -348,7 +349,7 @@ sub CheckCmd {
       $self->{zone_now_status}         = "bypass";
       $self->{zone_now_name}           = $ZoneName;
       $self->{zone_now_num}            = $zone_no_pad;
-      ChangeZones( int($ZoneNum), int($ZoneNum), "bypass", "", 1);
+      ChangeZones( $zone_no_pad, $zone_no_pad, "bypass", "", 1);
       $self->{partition_now_msg}       = $status_type->{alphanumeric};
       $self->{partition_now_status}    = "not ready";
       $self->{partition_now_num}       = $PartNum;
@@ -357,6 +358,8 @@ sub CheckCmd {
    elsif ($status_type->{wireless}) {
       my $ZoneLoop = "";
       my $MZoneLoop = "";
+      my $ZoneNum;
+      my $ZoneName;
       # Parse raw status strings
       my $rf_id = substr( $CmdStr, 5, 7 );
       my $rf_status = substr( $CmdStr, 13, 2 );
@@ -455,8 +458,8 @@ sub CheckCmd {
 
       if (exists $main::config_parms{"AD2USB_expander_$exp_id$input_id"}) {
          # Assign zone
-         $ZoneNum = $main::config_parms{"AD2USB_expander_$exp_id$input_id"};
-         $ZoneName = "Unknown";
+         my $ZoneNum = $main::config_parms{"AD2USB_expander_$exp_id$input_id"};
+         my $ZoneName = "Unknown";
          $ZoneName = $main::config_parms{"AD2USB_zone_$ZoneNum"} if exists $main::config_parms{"AD2USB_zone_$ZoneNum"};
          # Assign status (zone and partition)
 
@@ -495,8 +498,8 @@ sub CheckCmd {
 
       if (exists $main::config_parms{"AD2USB_relay_$rel_id$rel_input_id"}) {
          # Assign zone
-         $ZoneNum = $main::config_parms{"AD2USB_relay_$rel_id$rel_input_id"};
-         $ZoneName = "Unknown";
+         my $ZoneNum = $main::config_parms{"AD2USB_relay_$rel_id$rel_input_id"};
+         my $ZoneName = "Unknown";
          $ZoneName = $main::config_parms{"AD2USB_zone_$ZoneNum"} if exists $main::config_parms{"AD2USB_zone_$ZoneNum"};
          # Assign status (zone and partition)
 
@@ -541,7 +544,7 @@ sub CheckCmd {
          }
          else {
             # If zones are bypassed, reset unbypassed zones to ready
-            for ($i = $start; $i <= $end; $i++) {
+            for (my $i = $start; $i <= $end; $i++) {
                my $current_status = $self->{zone_status}{"$i"};
                if ($current_status eq "fault") {
                   ChangeZones($i, $i, "ready", "bypass", 1);
@@ -664,7 +667,7 @@ sub CheckCmd {
       }
 
       # CHIME MODE
-      if ( $status_type{chime_flag} == "0" ) { 
+      if ( $status_type->{chime_flag} == "0" ) { 
          $self->{chime} = 0;
 #            ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Chime is off" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
       }
@@ -674,20 +677,20 @@ sub CheckCmd {
       }
 
       # ALARM WAS TRIGGERED (Sticky until disarm)
-      if ( $status_type{alarm_past_flag} == "1" ) {
-         $EventName = "ALARM WAS TRIGGERED";
+      if ( $status_type->{alarm_past_flag} == "1" ) {
+         my $EventName = "ALARM WAS TRIGGERED";
          ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "$EventName" ) unless ($main::config_parms{AD2USB_part_log} == 0);
       }
 
       # ALARM IS SOUNDING
-      if ( $status_type{alarm_now_flag} == "1" ) {
-         $EventName = "ALARM IS SOUNDING";
+      if ( $status_type->{alarm_now_flag} == "1" ) {
+         my $EventName = "ALARM IS SOUNDING";
 
          #TODO: figure out how to get a partition number
          my $PartName = my $PartNum = "1";
-         $ZoneName = $main::config_parms{"AD2USB_zone_$zone_padded"}  if exists $main::config_parms{"AD2USB_zone_$zone_padded"};
+         my $ZoneName = $main::config_parms{"AD2USB_zone_$zone_padded"}  if exists $main::config_parms{"AD2USB_zone_$zone_padded"};
          $PartName = $main::config_parms{"AD2USB_part_$PartName"} if exists $main::config_parms{"AD2USB_part_$PartName"};
-         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "$EventName - Zone $ZoneNum ($ZoneName)" ) unless ($main::config_parms{AD2USB_part_log} == 0);
+         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "$EventName - Zone $zone_no_pad ($ZoneName)" ) unless ($main::config_parms{AD2USB_part_log} == 0);
          ChangeZones( $zone_no_pad, $zone_no_pad, "alarm", "", 1);
          $self->{zone_now_msg}         = $status_type->{alphanumeric};
          $self->{zone_now_status}      = "alarm";
@@ -780,9 +783,9 @@ sub ChangeZones {
 
    # Allow for reverse looping from 999->1
    my $reverse = ($start > $end)? 1 : 0;
-   for ($i = $start; (!$reverse && $i <= $end) ||
+   for (my $i = $start; (!$reverse && $i <= $end) ||
          ($reverse && ($i >= $start || $i <= $end)); $i++) {
-      $current_status = $self->{zone_status}{"$i"};
+      my $current_status = $self->{zone_status}{"$i"};
       if (($current_status ne $new_status) && ($current_status ne $neq_status)) {
          if (($main::config_parms{AD2USB_zone_log} != 0) && ($log == 1)) {
             my $ZoneNumPadded = sprintf("%03d", $i);
@@ -801,17 +804,14 @@ sub ChangeZones {
 #}}}
 #    Change partition statuses for partition indices from start to end  {{{
 sub ChangePartitions {
-   my $start  = @_[0];
-   my $end  = @_[1];
-   my $new_status = @_[2];
-   my $log = @_[3];
+   my ($start, $end, $new_status, $log) = @_;
 
    my $self = $Self;
-   for ($i = $start; $i <= $end; $i++) {
-      $current_status = $self->{partition_status}{"$i"};
+   for (my $i = $start; $i <= $end; $i++) {
+      my $current_status = $self->{partition_status}{"$i"};
       if ($current_status ne $new_status) {
          if (($main::config_parms{AD2USB_part_log} != 0) && ($log == 1)) {
-            $PartName = $main::config_parms{"AD2USB_part_$i"}  if exists $main::config_parms{"AD2USB_part_$i"};
+            my $PartName = $main::config_parms{"AD2USB_part_$i"}  if exists $main::config_parms{"AD2USB_part_$i"};
             ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Partition $i ($PartName) changed from '$current_status' to '$new_status'" ) unless ($main::config_parms{AD2USB_part_log} == 0);
          }
          $self->{partition_status}{"$i"} = $new_status;
@@ -938,8 +938,8 @@ sub cmd {
    my $instance = $$self{instance};
    $cmd = $self->{CmdMsg}->{$cmd};
 
-   $CmdName = ( exists $self->{CmdMsgRev}->{$cmd} ) ? $self->{CmdMsgRev}->{$cmd} : "unknown";
-   $CmdStr = $cmd;
+   my $CmdName = ( exists $self->{CmdMsgRev}->{$cmd} ) ? $self->{CmdMsgRev}->{$cmd} : "unknown";
+   my $CmdStr = $cmd;
 
    # Exit if unknown command
    if ( $CmdName =~ /^unknown/ ) {
