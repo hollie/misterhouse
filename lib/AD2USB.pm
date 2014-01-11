@@ -292,6 +292,8 @@ sub check_for_data {
 sub CheckCmd {
    my ($self, $CmdStr) = @_;
    my $status_type = $self->GetStatusType($CmdStr);
+   my $zone_padded = $status_type->{numeric_code};
+   my $zone_no_pad = int($zone_padded);
    
    if ($status_type->{unknown}) {
       ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "UNKNOWN STATUS: $CmdStr" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
@@ -310,9 +312,6 @@ sub CheckCmd {
       cmd( $self, "ShowFaults" );
    }
    elsif ($status_type->{fault}) {
-      my $zone_padded = $status_type->{numeric_code};
-      my $zone_no_pad = int($zone_padded);
-
       my $PartNum = "1";
       my $ZoneName = $main::config_parms{"AD2USB_zone_${zone_padded}"} if exists $main::config_parms{"AD2USB_zone_${zone_padded}"};
 
@@ -342,28 +341,18 @@ sub CheckCmd {
       ChangePartitions( int($PartNum), int($PartNum), "not ready", 1);
    }
    elsif ($status_type->{bypass}) {
-      my $status_codes = substr( $CmdStr, 1, 12 );
-      my $fault = substr( $CmdStr, 23, 3 );
-      $fault = substr($CmdStr, 67, 2);
-      $fault = "0$fault";
-      my $panel_message = substr( $CmdStr, 61, 32);
-
-      my $ZoneName = my $ZoneNum = $fault;
       my $PartNum = "1";
-      $ZoneName = $main::config_parms{"AD2USB_zone_${ZoneNum}"} if exists $main::config_parms{"AD2USB_zone_${ZoneNum}"};
-      $ZoneNum =~ s/^0*//;
-      $fault = $ZoneNum;
+      my $ZoneName = $main::config_parms{"AD2USB_zone_${zone_padded}"} if exists $main::config_parms{"AD2USB_zone_${zone_padded}"};
       
-      $self->{zone_now_msg}            = "$panel_message";
+      $self->{zone_now_msg}            = $status_type->{alphanumeric};
       $self->{zone_now_status}         = "bypass";
-      $self->{zone_now_name}           = "$ZoneName";
-      $self->{zone_now_num}            = "$ZoneNum";
+      $self->{zone_now_name}           = $ZoneName;
+      $self->{zone_now_num}            = $zone_no_pad;
       ChangeZones( int($ZoneNum), int($ZoneNum), "bypass", "", 1);
-      $self->{partition_now_msg}       = "$panel_message";
+      $self->{partition_now_msg}       = $status_type->{alphanumeric};
       $self->{partition_now_status}    = "not ready";
-      $self->{partition_now_num}       = "$PartNum";
+      $self->{partition_now_num}       = $PartNum;
       ChangePartitions( int($PartNum), int($PartNum), "not ready", 1);
-      
    }
    elsif ($status_type->{status}) {
 
