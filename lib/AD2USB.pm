@@ -415,42 +415,30 @@ sub CheckCmd {
       }
    }
    elsif ($status_type->{expander}) {
-      my $exp_id = substr( $CmdStr, 5, 2 );
-      my $input_id = substr( $CmdStr, 8, 2 );
-      my $status = substr( $CmdStr, 11, 2 );
-      my $ZoneStatus;
-      my $PartStatus;
+      my $exp_id = $status_type->{exp_address};
+      my $input_id = $status_type->{exp_channel};
+      my $status = $status_type->{exp_status};
 
       ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "EXPANDER: exp_id($exp_id) input($input_id) status($status)" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
 
       if (exists $main::config_parms{"AD2USB_expander_$exp_id$input_id"}) {
-         # Assign zone
          my $ZoneNum = $main::config_parms{"AD2USB_expander_$exp_id$input_id"};
          my $ZoneName = "Unknown";
          $ZoneName = $main::config_parms{"AD2USB_zone_$ZoneNum"} if exists $main::config_parms{"AD2USB_zone_$ZoneNum"};
          # Assign status (zone and partition)
 
+         my $ZoneStatus = "ready";
+         my $PartStatus = "";
          if ($status == 01) {
             $ZoneStatus = "fault";
             $PartStatus = "not ready";
-         } elsif ($status == 00) {
-             $ZoneStatus = "ready";
-             $PartStatus = "";
          }
 
-         $self->{zone_now_msg}            = "$CmdStr";
+         $self->{zone_now_msg}            = $status_type->{alphanumeric};
          $self->{zone_now_status}         = "$ZoneStatus";
          $self->{zone_now_name}           = "$ZoneName";
          $self->{zone_now_num}            = "$ZoneNum";
          ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
-         #  if (($self->{partition_status}{int($PartNum)}) eq "ready") { #only change the partition status if the current status is "ready". We dont change if the system is armed.
-         #   if ($PartStatus ne "") {
-         #      $self->{partition_now_msg}       = "$CmdStr";
-         #      $self->{partition_now_status}    = "$PartStatus";
-         #      $self->{partition_now_num}       = "$PartNum";
-         #      ChangePartitions( int($PartNum), int($PartNum), "$PartStatus", 1);
-         #   }
-         # }
       }
    }
    elsif ($status_type->{relay}) {
@@ -737,9 +725,12 @@ sub GetStatusType {
       $message{rf_loop_fault_4} = ((hex(substr($message{rf_status}, 0, 1)) & 4) == 4) ? 1 : 0;
 
    }
-   elsif (substr($AdemcoStr,0,5) eq "!EXP:") {
+   elsif ($AdemcoStr =~ /!EXP:(\d{2}),(\d{2}),(\d{2})/) {
       ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Expander status received.") unless ($main::config_parms{AD2USB_debug_log} == 0);
       $message{expander} = 1;
+      $message{exp_address} = $1;
+      $message{exp_channel} = $2;
+      $message{exp_status} = $3;
    }
    elsif (substr($AdemcoStr,0,5) eq "!REL:") {
       ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Relay status received.") unless ($main::config_parms{AD2USB_debug_log} == 0);
