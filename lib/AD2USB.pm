@@ -96,8 +96,6 @@ L<Generic_Item>
 # THE SOFTWARE.
 ############################################################################### 
 
-use Switch;
-
 package AD2USB;
 
 @AD2USB::ISA = ('Generic_Item');
@@ -266,8 +264,8 @@ sub check_for_data {
 
          # Get the Message Type, and Ignore Duplicate Status Messages
          my $status_type = GetStatusType($Cmd);
-         if ($status_type >= 10 && $Cmd eq $self->{last_cmd} &&
-            $status_type != 11) {
+         if ($status_type->{keypad} && $Cmd eq $self->{last_cmd} &&
+            (!$status_type->{fault})) {
             # This is a duplicate panel message with no important status
             ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "DUPE: $Cmd") unless ($main::config_parms{AD2USB_debug_log} == 0);
          }
@@ -278,7 +276,7 @@ sub check_for_data {
             ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "NONPANEL: $Cmd") unless ($main::config_parms{AD2USB_debug_log} == 0);
             CheckCmd($Cmd);
             ResetAdemcoState();
-            $self->{last_cmd} = $Cmd if ($status_type >= 10);
+            $self->{last_cmd} = $Cmd if ($status_type->{keypad});
          }
       }
       else {
@@ -296,243 +294,235 @@ sub CheckCmd {
    my $status_type = GetStatusType($CmdStr);
    my $self = $Self;
    
-   switch ( $status_type ) {
-
-      case -1 {                         # UNRECOGNIZED STATUS
-         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "UNKNOWN STATUS: $CmdStr" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+   if ($status_type->{unknown}) {
+      ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "UNKNOWN STATUS: $CmdStr" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+   }
+   elsif ($status_type->{cmd_sent}) {
+      if ($self->{keys_sent} == 0) {
+         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Key sent from ANOTHER panel." ) unless ($main::config_parms{AD2USB_debug_log} == 0);
       }
+      else {
+         $self->{keys_sent}--;
+         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Key received ($self->{keys_sent} left)" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+      }
+   }
+   elsif ($status_type->{fault_avail}) {
+      #Send command to show faults
+      cmd( $self, "ShowFaults" );
+   }
+   elsif ($status_type->{fault}) {
+      my $status_codes = substr( $CmdStr, 1, 12 );
+      my $fault = substr( $CmdStr, 23, 3 );
+      $fault = substr($CmdStr, 67, 2); #TODO Why do we set $fault twice? ^
+      $fault = "0$fault";
+      my $panel_message = substr( $CmdStr, 61, 32);
 
-      case 0 {                          # Key send confirmation
-         if ($self->{keys_sent} == 0) {
-            ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Key sent from ANOTHER panel." ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+      my $ZoneName = my $ZoneNum = $fault;
+      my $PartNum = "1";
+      $ZoneName = $main::config_parms{"AD2USB_zone_${ZoneNum}"} if exists $main::config_parms{"AD2USB_zone_${ZoneNum}"};
+      $ZoneNum =~ s/^0*//;
+      $fault = $ZoneNum;
+
+      if (&MappedZones("00$ZoneNum")) { 
+         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Zone $ZoneNum is mapped to a Relay or RF ID, skipping normal monitoring!") } 
+      else {
+         #Check if this is the new lowest fault number and reset the zones before it
+         if (int($fault) <= int($self->{zone_lowest_fault})) {
+            $self->{zone_lowest_fault} = $fault;
+            #Reset zones to ready before the lowest
+            $start = 1;
+            $end = $self->{zone_lowest_fault} - 1;
+            ChangeZones( $start, $end, "ready", "bypass", 1);
          }
-         else {
-            $self->{keys_sent}--;
-            ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Key received ($self->{keys_sent} left)" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+
+         #Check if this is a new highest fault number and reset zones after it
+         if (int($fault) > int($self->{zone_highest_fault})) {
+            $self->{zone_highest_fault} = $fault;
+            #Reset zones to ready after the highest
+            $start = $self->{zone_highest_fault} + 1;;
+            $end = 11;
+            ChangeZones( $start, $end, "ready", "bypass", 1);
          }
 
-      }
+         # Check if this zone was already faulted
+         if ($self->{zone_status}{"$fault"} eq "fault") {
 
-      case 10 {               # FAULTS AVAILABLE
-#         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Faults exist and are available to parse" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
-         cmd( $self, "ShowFaults" );
-      }
-
-      case 11 {               # IN FAULT LOOP
-         my $status_codes = substr( $CmdStr, 1, 12 );
-         my $fault = substr( $CmdStr, 23, 3 );
-         $fault = substr($CmdStr, 67, 2); #TODO Why do we set $fault twice? ^
-         $fault = "0$fault";
-         my $panel_message = substr( $CmdStr, 61, 32);
-
-         my $ZoneName = my $ZoneNum = $fault;
-         my $PartNum = "1";
-         $ZoneName = $main::config_parms{"AD2USB_zone_${ZoneNum}"} if exists $main::config_parms{"AD2USB_zone_${ZoneNum}"};
-         $ZoneNum =~ s/^0*//;
-         $fault = $ZoneNum;
-
-         if (&MappedZones("00$ZoneNum")) { 
-            ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Zone $ZoneNum is mapped to a Relay or RF ID, skipping normal monitoring!") } 
-         else {
-            #Check if this is the new lowest fault number and reset the zones before it
-            if (int($fault) <= int($self->{zone_lowest_fault})) {
+            #Check if this fault is less than the last fault (and must now be the new lowest zone)
+            if (int($fault) <= int($self->{zone_last_num})) {
+               #This is the new lowest zone
                $self->{zone_lowest_fault} = $fault;
                #Reset zones to ready before the lowest
                $start = 1;
                $end = $self->{zone_lowest_fault} - 1;
                ChangeZones( $start, $end, "ready", "bypass", 1);
-            }
+            }         
 
-            #Check if this is a new highest fault number and reset zones after it
-            if (int($fault) > int($self->{zone_highest_fault})) {
-               $self->{zone_highest_fault} = $fault;
-               #Reset zones to ready after the highest
-               $start = $self->{zone_highest_fault} + 1;;
+            #Check if this fault is equal to the last fault (and must now be the only zone)
+            if (int($fault) == int($self->{zone_last_num})) {
+               #Reset zones to ready after the only one
+               $start = int($fault) + 1;
                $end = 11;
                ChangeZones( $start, $end, "ready", "bypass", 1);
             }
-   
-            # Check if this zone was already faulted
-            if ($self->{zone_status}{"$fault"} eq "fault") {
-   
-               #Check if this fault is less than the last fault (and must now be the new lowest zone)
-               if (int($fault) <= int($self->{zone_last_num})) {
-                  #This is the new lowest zone
-                  $self->{zone_lowest_fault} = $fault;
-                  #Reset zones to ready before the lowest
-                  $start = 1;
-                  $end = $self->{zone_lowest_fault} - 1;
-                  ChangeZones( $start, $end, "ready", "bypass", 1);
-               }         
-   
-               #Check if this fault is equal to the last fault (and must now be the only zone)
-               if (int($fault) == int($self->{zone_last_num})) {
-                  #Reset zones to ready after the only one
-                  $start = int($fault) + 1;
-                  $end = 11;
-                  ChangeZones( $start, $end, "ready", "bypass", 1);
-               }
-   
-               #Check if this fault is greater than the last fault and reset the zones between it and the prior one
-               if (int($fault) > int($self->{zone_last_num})) {
-                  $start = (($self->{zone_last_num} == $fault) ? 1 : int($self->{zone_last_num}) + 1);
-                  $end = $fault - 1;
-                  ChangeZones( $start, $end, "ready", "bypass", 1);
-               }
-            } #End Already Faulted
 
-            $self->{zone_now_msg}            = "$panel_message";
-            $self->{zone_now_status}         = "fault";
-            $self->{zone_now_name}           = "$ZoneName";
-            $self->{zone_now_num}            = "$ZoneNum";
-            ChangeZones( int($ZoneNum), int($ZoneNum), "fault", "", 1);
-         } #Not MappedZones
-         $self->{partition_now_msg}       = "$panel_message"; 
-         $self->{partition_now_status}    = "not ready";
-         $self->{partition_now_num}       = "$PartNum";
-         ChangePartitions( int($PartNum), int($PartNum), "not ready", 1);
-      }
+            #Check if this fault is greater than the last fault and reset the zones between it and the prior one
+            if (int($fault) > int($self->{zone_last_num})) {
+               $start = (($self->{zone_last_num} == $fault) ? 1 : int($self->{zone_last_num}) + 1);
+               $end = $fault - 1;
+               ChangeZones( $start, $end, "ready", "bypass", 1);
+            }
+         } #End Already Faulted
 
-      case 12 {               # IN BYPASS FLASH LOOP
-         my $status_codes = substr( $CmdStr, 1, 12 );
-         my $fault = substr( $CmdStr, 23, 3 );
-         $fault = substr($CmdStr, 67, 2);
-         $fault = "0$fault";
-         my $panel_message = substr( $CmdStr, 61, 32);
-
-         my $ZoneName = my $ZoneNum = $fault;
-         my $PartNum = "1";
-         $ZoneName = $main::config_parms{"AD2USB_zone_${ZoneNum}"} if exists $main::config_parms{"AD2USB_zone_${ZoneNum}"};
-         $ZoneNum =~ s/^0*//;
-         $fault = $ZoneNum;
-         
          $self->{zone_now_msg}            = "$panel_message";
-         $self->{zone_now_status}         = "bypass";
+         $self->{zone_now_status}         = "fault";
          $self->{zone_now_name}           = "$ZoneName";
          $self->{zone_now_num}            = "$ZoneNum";
-         ChangeZones( int($ZoneNum), int($ZoneNum), "bypass", "", 1);
-         $self->{partition_now_msg}       = "$panel_message";
-         $self->{partition_now_status}    = "not ready";
-         $self->{partition_now_num}       = "$PartNum";
-         ChangePartitions( int($PartNum), int($PartNum), "not ready", 1);
-         
-      }
+         ChangeZones( int($ZoneNum), int($ZoneNum), "fault", "", 1);
+      } #Not MappedZones
+      $self->{partition_now_msg}       = "$panel_message"; 
+      $self->{partition_now_status}    = "not ready";
+      $self->{partition_now_num}       = "$PartNum";
+      ChangePartitions( int($PartNum), int($PartNum), "not ready", 1);
+   }
+   elsif ($status_type->{bypass}) {
+      my $status_codes = substr( $CmdStr, 1, 12 );
+      my $fault = substr( $CmdStr, 23, 3 );
+      $fault = substr($CmdStr, 67, 2);
+      $fault = "0$fault";
+      my $panel_message = substr( $CmdStr, 61, 32);
 
-      case 13 {               # NORMAL STATUS
+      my $ZoneName = my $ZoneNum = $fault;
+      my $PartNum = "1";
+      $ZoneName = $main::config_parms{"AD2USB_zone_${ZoneNum}"} if exists $main::config_parms{"AD2USB_zone_${ZoneNum}"};
+      $ZoneNum =~ s/^0*//;
+      $fault = $ZoneNum;
+      
+      $self->{zone_now_msg}            = "$panel_message";
+      $self->{zone_now_status}         = "bypass";
+      $self->{zone_now_name}           = "$ZoneName";
+      $self->{zone_now_num}            = "$ZoneNum";
+      ChangeZones( int($ZoneNum), int($ZoneNum), "bypass", "", 1);
+      $self->{partition_now_msg}       = "$panel_message";
+      $self->{partition_now_status}    = "not ready";
+      $self->{partition_now_num}       = "$PartNum";
+      ChangePartitions( int($PartNum), int($PartNum), "not ready", 1);
+      
+   }
+   elsif ($status_type->{status}) {
 
-         # Get three sections of the Ademco status message
-         my $status_codes = substr( $CmdStr, 1, 12 );
-         my $fault = substr( $CmdStr, 23, 3 );
-         my $panel_message = substr( $CmdStr, 61, 32);
-            ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Key received ($self->{keys_sent} left)" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+      # Get three sections of the Ademco status message
+      my $status_codes = substr( $CmdStr, 1, 12 );
+      my $fault = substr( $CmdStr, 23, 3 );
+      my $panel_message = substr( $CmdStr, 61, 32);
+         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Key received ($self->{keys_sent} left)" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
 
-         # READY
-         $data = 0;
-         if ( substr($status_codes,$data,1) == "1" ) {
-            my $start = 1;
-            my $end = 11;
-            if ( substr($status_codes,6,1) ne "1" ) {
-               # Reset all zones to ready if partition is ready and not bypassed
-               ChangeZones( $start, $end, "ready", "", 1);
-            }
-            else {
-               # If zones are bypassed, reset unbypassed zones to ready
-               for ($i = $start; $i <= $end; $i++) {
-                  my $current_status = $self->{zone_status}{"$i"};
-                  if ($current_status eq "fault") {
-                     ChangeZones($i, $i, "ready", "bypass", 1);
-                  }
+      # READY
+      $data = 0;
+      if ( substr($status_codes,$data,1) == "1" ) {
+         my $start = 1;
+         my $end = 11;
+         if ( substr($status_codes,6,1) ne "1" ) {
+            # Reset all zones to ready if partition is ready and not bypassed
+            ChangeZones( $start, $end, "ready", "", 1);
+         }
+         else {
+            # If zones are bypassed, reset unbypassed zones to ready
+            for ($i = $start; $i <= $end; $i++) {
+               my $current_status = $self->{zone_status}{"$i"};
+               if ($current_status eq "fault") {
+                  ChangeZones($i, $i, "ready", "bypass", 1);
                }
             }
-
-            my $PartName = my $PartNum = "1";
-
-            $PartName = $main::config_parms{"AD2USB_part_${PartNum}"} if exists $main::config_parms{"AD2USB_part_${PartNum}"};
-            $self->{partition_now_msg}    = "$panel_message";
-            $self->{partition_now_num}    = "$PartNum";
-            $self->{partition_now_status} = "ready";
-            ChangePartitions( int($PartNum), int($PartNum), "ready", 1);
-            $self->{zone_lowest_fault} = 999;
-            $self->{zone_highest_fault} = -1;            
-
-            # Reset state for fault checks
-            $self->{zone_last_status} = "";
-            $self->{zone_last_num} = "";
-            $self->{zone_last_name} = "";
          }
 
-         # ARMED AWAY
-         $data = 1;
-         if ( substr($status_codes,$data,1) == "1" ) {
-            my $PartNum = my $PartName = "1";
-            $PartName = $main::config_parms{"AD2USB_part_${PartNum}"} if exists $main::config_parms{"AD2USB_part_${PartNum}"};
+         my $PartName = my $PartNum = "1";
 
-	    my $mode = "ERROR";
-            if (index($panel_message, "ALL SECURE")) {
-               $mode = "armed away";
-            }
-            elsif (index($panel_message, "You may exit now")) {
-               $mode = "exit delay";
-            }
-            elsif (index($panel_message, "or alarm occurs")) {
-               $mode = "entry delay";
-            }
-            elsif (index($panel_message, "ZONE BYPASSED")) {
-               $mode = "armed away";
-            }
+         $PartName = $main::config_parms{"AD2USB_part_${PartNum}"} if exists $main::config_parms{"AD2USB_part_${PartNum}"};
+         $self->{partition_now_msg}    = "$panel_message";
+         $self->{partition_now_num}    = "$PartNum";
+         $self->{partition_now_status} = "ready";
+         ChangePartitions( int($PartNum), int($PartNum), "ready", 1);
+         $self->{zone_lowest_fault} = 999;
+         $self->{zone_highest_fault} = -1;            
 
-            set $self "$mode";
-            $self->{partition_now_msg}        = "$panel_message";
-            $self->{partition_now_status}     = "$mode";
-            $self->{partition_now_num}        = "$PartNum";
-            ChangePartitions( int($PartNum), int($PartNum), "$mode", 1);
+         # Reset state for fault checks
+         $self->{zone_last_status} = "";
+         $self->{zone_last_num} = "";
+         $self->{zone_last_name} = "";
+      }
 
-            # Reset state for fault checks
-            $self->{zone_last_status} = "";
-            $self->{zone_last_num} = "";
-            $self->{zone_last_name} = "";
+      # ARMED AWAY
+      $data = 1;
+      if ( substr($status_codes,$data,1) == "1" ) {
+         my $PartNum = my $PartName = "1";
+         $PartName = $main::config_parms{"AD2USB_part_${PartNum}"} if exists $main::config_parms{"AD2USB_part_${PartNum}"};
+
+    my $mode = "ERROR";
+         if (index($panel_message, "ALL SECURE")) {
+            $mode = "armed away";
+         }
+         elsif (index($panel_message, "You may exit now")) {
+            $mode = "exit delay";
+         }
+         elsif (index($panel_message, "or alarm occurs")) {
+            $mode = "entry delay";
+         }
+         elsif (index($panel_message, "ZONE BYPASSED")) {
+            $mode = "armed away";
          }
 
-         # ARMED HOME
-         $data = 2;
-         if ( substr($status_codes,$data,1) eq "1" ) {
-            my $PartNum = my $PartName = "1";
+         set $self "$mode";
+         $self->{partition_now_msg}        = "$panel_message";
+         $self->{partition_now_status}     = "$mode";
+         $self->{partition_now_num}        = "$PartNum";
+         ChangePartitions( int($PartNum), int($PartNum), "$mode", 1);
 
-            my $mode = "armed stay";
-            $PartName = $main::config_parms{"AD2USB_part_${PartNum}"} if exists $main::config_parms{"AD2USB_part_${PartNum}"};
-            $self->{partition_now_msg}        = "$panel_message";
-            $self->{partition_now_status}     = "$mode";
-            $self->{partition_now_num}        = "$PartNum";
-            ChangePartitions( int($PartNum), int($PartNum), "$mode", 1);
+         # Reset state for fault checks
+         $self->{zone_last_status} = "";
+         $self->{zone_last_num} = "";
+         $self->{zone_last_name} = "";
+      }
 
-            # Reset state for fault checks
-            $self->{zone_last_status} = "";
-            $self->{zone_last_num} = "";
-            $self->{zone_last_name} = "";
-         }
+      # ARMED HOME
+      $data = 2;
+      if ( substr($status_codes,$data,1) eq "1" ) {
+         my $PartNum = my $PartName = "1";
 
-         # SKIP BACKLIGHT
-         $data = 3;
+         my $mode = "armed stay";
+         $PartName = $main::config_parms{"AD2USB_part_${PartNum}"} if exists $main::config_parms{"AD2USB_part_${PartNum}"};
+         $self->{partition_now_msg}        = "$panel_message";
+         $self->{partition_now_status}     = "$mode";
+         $self->{partition_now_num}        = "$PartNum";
+         ChangePartitions( int($PartNum), int($PartNum), "$mode", 1);
 
-         # PROGRAMMING MODE
-         $data = 4;
-         if ( substr($status_codes,$data,1) eq "1" ) {
-            ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Panel is in programming mode" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+         # Reset state for fault checks
+         $self->{zone_last_status} = "";
+         $self->{zone_last_num} = "";
+         $self->{zone_last_name} = "";
+      }
 
-            # Reset state for fault checks
-            $self->{zone_last_status} = "";
-            $self->{zone_last_num} = "";
-            $self->{zone_last_name} = "";
-         }
+      # SKIP BACKLIGHT
+      $data = 3;
 
-         # SKIP BEEPS
-         $data = 5;
+      # PROGRAMMING MODE
+      $data = 4;
+      if ( substr($status_codes,$data,1) eq "1" ) {
+         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Panel is in programming mode" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
 
-         # A ZONE OR ZONES ARE BYPASSED
-         $data = 6;
-         if ( substr($status_codes,$data,1) == "1" ) {
+         # Reset state for fault checks
+         $self->{zone_last_status} = "";
+         $self->{zone_last_num} = "";
+         $self->{zone_last_name} = "";
+      }
 
-            # Reset zones to ready that haven't appeared in the bypass loop
+      # SKIP BEEPS
+      $data = 5;
+
+      # A ZONE OR ZONES ARE BYPASSED
+      $data = 6;
+      if ( substr($status_codes,$data,1) == "1" ) {
+
+         # Reset zones to ready that haven't appeared in the bypass loop
 #            if ($self->{zone_last_status} eq "bypass") {
 #               if (int($fault) < int($self->{zone_now_num})) {
 #                  $start = int($self->{zone_now_num}) + 1;
@@ -543,173 +533,169 @@ sub CheckCmd {
 #               $self->{zone_now_num} = "0";
 #            }
 
-            # Reset state for fault checks
-            $self->{zone_last_status} = "";
-            $self->{zone_last_num} = "";
-            $self->{zone_last_name} = "";
-         }
-
-         # SKIP AC POWER
-         $data = 7;
-
-         # SKIP CHIME MODE
-         $data = 8;
-
-         # ALARM WAS TRIGGERED (Sticky until disarm)
-         $data = 9;
-         if ( substr($status_codes,$data,1) == "1" ) {
-            $EventName = "ALARM WAS TRIGGERED";
-            ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "$EventName" ) unless ($main::config_parms{AD2USB_part_log} == 0);
-         }
-
-         # ALARM IS SOUNDING
-         $data = 10;
-         if ( substr($status_codes,$data,1) == "1" ) {
-            $EventName = "ALARM IS SOUNDING";
-
-            #TODO: figure out how to get a partition number
-            my $PartName = my $PartNum = "1";
-            my $ZoneNum = $fault;
-            $ZoneName = $main::config_parms{"AD2USB_zone_$ZoneNum"}  if exists $main::config_parms{"AD2USB_zone_$ZoneNum"};
-            $PartName = $main::config_parms{"AD2USB_part_$PartName"} if exists $main::config_parms{"AD2USB_part_$PartName"};
-            ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "$EventName - Zone $ZoneNum ($ZoneName)" ) unless ($main::config_parms{AD2USB_part_log} == 0);
-            $ZoneNum =~ s/^0*//;
-            ChangeZones( int($ZoneNum), int($ZoneNum), "alarm", "", 1);
-            $self->{zone_now_msg}         = "$panel_message";
-            $self->{zone_now_status}      = "alarm";
-            $self->{zone_now_num}         = "$ZoneNum";
-            $self->{partition_now_msg}    = "$panel_message";
-            $self->{partition_now_status} = "alarm";
-            $self->{partition_now_num}    = "$PartNum";
-            ChangePartitions( int($PartNum), int($PartNum), "alarm", 1);
-         }
-
-         # SKIP BATTERY LOW
-         $data = 11;
+         # Reset state for fault checks
+         $self->{zone_last_status} = "";
+         $self->{zone_last_num} = "";
+         $self->{zone_last_name} = "";
       }
 
-      case 2 {                # WIRELESS STATUS
-	 my $ZoneLoop = "";
-	 my $MZoneLoop = "";
-         # Parse raw status strings
-         my $rf_id = substr( $CmdStr, 5, 7 );
-         my $rf_status = substr( $CmdStr, 13, 2 );
-	 my $lc = 0;
-	 my $wnum = 0;
+      # SKIP AC POWER
+      $data = 7;
 
-         # UNKNOWN
-         my $unknown_1 = 0;
-         $unknown_1 = 1 if (hex(substr($rf_status, 1, 1)) & 1) == 1;
-         # Parse for low battery signal
-         my $low_batt = 0;
-         $low_batt = 1 if (hex(substr($rf_status, 1, 1)) & 2) == 2;
-         # Parse for supervision flag
-         my $supervised = 0;
-         $supervised = 1 if (hex(substr($rf_status, 1, 1)) & 4) == 4;
-         # UNKNOWN
-         my $unknown_8 = 0;
-         $unknown_8 = 1 if (hex(substr($rf_status, 1, 1)) & 8) == 8;
+      # SKIP CHIME MODE
+      $data = 8;
 
-         # Parse loop faults
-         my $loop_fault_1 = 0;
-         $loop_fault_1 = 1 if (hex(substr($rf_status, 0, 1)) & 8) == 8;
-         my $loop_fault_2 = 0;
-         $loop_fault_2 = 1 if (hex(substr($rf_status, 0, 1)) & 2) == 2;
-         my $loop_fault_3 = 0;
-         $loop_fault_3 = 1 if (hex(substr($rf_status, 0, 1)) & 1) == 1;
-         my $loop_fault_4 = 0;
-         $loop_fault_4 = 1 if (hex(substr($rf_status, 0, 1)) & 4) == 4;
+      # ALARM WAS TRIGGERED (Sticky until disarm)
+      $data = 9;
+      if ( substr($status_codes,$data,1) == "1" ) {
+         $EventName = "ALARM WAS TRIGGERED";
+         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "$EventName" ) unless ($main::config_parms{AD2USB_part_log} == 0);
+      }
 
-         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "WIRELESS: rf_id($rf_id) status($rf_status) loop1($loop_fault_1) loop2($loop_fault_2) loop3($loop_fault_3) loop4($loop_fault_4)" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
-         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "WIRELESS: rf_id($rf_id) status($rf_status) low_batt($low_batt) supervised($supervised)" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+      # ALARM IS SOUNDING
+      $data = 10;
+      if ( substr($status_codes,$data,1) == "1" ) {
+         $EventName = "ALARM IS SOUNDING";
 
-         my $ZoneStatus = "ready";
-         my $PartStatus = "";
-         my @parsest;
-         my $sensortype;
+         #TODO: figure out how to get a partition number
+         my $PartName = my $PartNum = "1";
+         my $ZoneNum = $fault;
+         $ZoneName = $main::config_parms{"AD2USB_zone_$ZoneNum"}  if exists $main::config_parms{"AD2USB_zone_$ZoneNum"};
+         $PartName = $main::config_parms{"AD2USB_part_$PartName"} if exists $main::config_parms{"AD2USB_part_$PartName"};
+         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "$EventName - Zone $ZoneNum ($ZoneName)" ) unless ($main::config_parms{AD2USB_part_log} == 0);
+         $ZoneNum =~ s/^0*//;
+         ChangeZones( int($ZoneNum), int($ZoneNum), "alarm", "", 1);
+         $self->{zone_now_msg}         = "$panel_message";
+         $self->{zone_now_status}      = "alarm";
+         $self->{zone_now_num}         = "$ZoneNum";
+         $self->{partition_now_msg}    = "$panel_message";
+         $self->{partition_now_status} = "alarm";
+         $self->{partition_now_num}    = "$PartNum";
+         ChangePartitions( int($PartNum), int($PartNum), "alarm", 1);
+      }
 
-         if (exists $main::config_parms{"AD2USB_wireless_$rf_id"}) {
-            # Assign zone
-            my @ParseNum = split(",", $main::config_parms{"AD2USB_wireless_$rf_id"});
+      # SKIP BATTERY LOW
+      $data = 11;
+   }
+   elsif ($status_type->{wireless}) {
+      my $ZoneLoop = "";
+      my $MZoneLoop = "";
+      # Parse raw status strings
+      my $rf_id = substr( $CmdStr, 5, 7 );
+      my $rf_status = substr( $CmdStr, 13, 2 );
+      my $lc = 0;
+      my $wnum = 0;
 
-            # Assign status (zone and partition)
-            if ($low_batt == "1") {
-               $ZoneStatus = "low battery";
+      # UNKNOWN
+      my $unknown_1 = 0;
+      $unknown_1 = 1 if (hex(substr($rf_status, 1, 1)) & 1) == 1;
+      # Parse for low battery signal
+      my $low_batt = 0;
+      $low_batt = 1 if (hex(substr($rf_status, 1, 1)) & 2) == 2;
+      # Parse for supervision flag
+      my $supervised = 0;
+      $supervised = 1 if (hex(substr($rf_status, 1, 1)) & 4) == 4;
+      # UNKNOWN
+      my $unknown_8 = 0;
+      $unknown_8 = 1 if (hex(substr($rf_status, 1, 1)) & 8) == 8;
+
+      # Parse loop faults
+      my $loop_fault_1 = 0;
+      $loop_fault_1 = 1 if (hex(substr($rf_status, 0, 1)) & 8) == 8;
+      my $loop_fault_2 = 0;
+      $loop_fault_2 = 1 if (hex(substr($rf_status, 0, 1)) & 2) == 2;
+      my $loop_fault_3 = 0;
+      $loop_fault_3 = 1 if (hex(substr($rf_status, 0, 1)) & 1) == 1;
+      my $loop_fault_4 = 0;
+      $loop_fault_4 = 1 if (hex(substr($rf_status, 0, 1)) & 4) == 4;
+
+      ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "WIRELESS: rf_id($rf_id) status($rf_status) loop1($loop_fault_1) loop2($loop_fault_2) loop3($loop_fault_3) loop4($loop_fault_4)" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+      ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "WIRELESS: rf_id($rf_id) status($rf_status) low_batt($low_batt) supervised($supervised)" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+
+      my $ZoneStatus = "ready";
+      my $PartStatus = "";
+      my @parsest;
+      my $sensortype;
+
+      if (exists $main::config_parms{"AD2USB_wireless_$rf_id"}) {
+         # Assign zone
+         my @ParseNum = split(",", $main::config_parms{"AD2USB_wireless_$rf_id"});
+
+         # Assign status (zone and partition)
+         if ($low_batt == "1") {
+            $ZoneStatus = "low battery";
+         }
+   
+         foreach $wnum(@ParseNum) {
+            if ($lc eq 0 or $lc eq 2 or $lc eq 4 or $lc eq 6) { 
+               $ZoneNum = $wnum;
             }
-	   
-	   foreach $wnum(@ParseNum) {
-	    if ($lc eq 0 or $lc eq 2 or $lc eq 4 or $lc eq 6) { 
-	     $ZoneNum = $wnum;
-	    }
-
-	    if ($lc eq 1 or $lc eq 3 or $lc eq 5 or $lc eq 7) {
-	    @parsest = split("", $wnum);
-	    $sensortype = $parsest[0];
-            $ZoneLoop = $parsest[1];
-            $ZoneName = "Unknown";
-            $ZoneName = $main::config_parms{"AD2USB_zone_$ZoneNum"} if exists $main::config_parms{"AD2USB_zone_$ZoneNum"};
- 
-	    	if ($ZoneLoop eq "1") {$MZoneLoop = $loop_fault_1}
-            	if ($ZoneLoop eq "2") {$MZoneLoop = $loop_fault_2}
-           	if ($ZoneLoop eq "3") {$MZoneLoop = $loop_fault_3}
-            	if ($ZoneLoop eq "4") {$MZoneLoop = $loop_fault_4}
-	 
-	    	if ("$MZoneLoop" eq "1") {
-               	 $ZoneStatus = "fault";
-            	} elsif ("$MZoneLoop" eq 0) {
+   
+            if ($lc eq 1 or $lc eq 3 or $lc eq 5 or $lc eq 7) {
+               @parsest = split("", $wnum);
+               $sensortype = $parsest[0];
+               $ZoneLoop = $parsest[1];
+               $ZoneName = "Unknown";
+               $ZoneName = $main::config_parms{"AD2USB_zone_$ZoneNum"} if exists $main::config_parms{"AD2USB_zone_$ZoneNum"};
+   
+               if ($ZoneLoop eq "1") {$MZoneLoop = $loop_fault_1}
+               if ($ZoneLoop eq "2") {$MZoneLoop = $loop_fault_2}
+               if ($ZoneLoop eq "3") {$MZoneLoop = $loop_fault_3}
+               if ($ZoneLoop eq "4") {$MZoneLoop = $loop_fault_4}
+   
+               if ("$MZoneLoop" eq "1") {
+                  $ZoneStatus = "fault";
+               } elsif ("$MZoneLoop" eq 0) {
                  $ZoneStatus = "ready";
-            	}
-	      
-            $self->{zone_now_msg}            = "$CmdStr";
-            $self->{zone_now_status}         = "$ZoneStatus";
-            $self->{zone_now_name}           = "$ZoneName";
-            $self->{zone_now_num}            = "$ZoneNum";
-            ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
-              if ($sensortype eq "k") {
-		  $ZoneStatus = "ready";
+               }
+   
+               $self->{zone_now_msg}            = "$CmdStr";
+               $self->{zone_now_status}         = "$ZoneStatus";
+               $self->{zone_now_name}           = "$ZoneName";
+               $self->{zone_now_num}            = "$ZoneNum";
+               ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
+               if ($sensortype eq "k") {
+                  $ZoneStatus = "ready";
                   $self->{zone_now_msg}            = "$CmdStr";
-            	  $self->{zone_now_status}         = "$ZoneStatus";
-            	  $self->{zone_now_name}           = "$ZoneName";
+                  $self->{zone_now_status}         = "$ZoneStatus";
+                  $self->{zone_now_name}           = "$ZoneName";
                   $self->{zone_now_num}            = "$ZoneNum";
                   ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
-              }
+               }
             }
-	  $lc++
-          }
+         $lc++
+         }
+      }
+   }
+   elsif ($status_type->{expander}) {
+      my $exp_id = substr( $CmdStr, 5, 2 );
+      my $input_id = substr( $CmdStr, 8, 2 );
+      my $status = substr( $CmdStr, 11, 2 );
+      my $ZoneStatus;
+      my $PartStatus;
+
+      ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "EXPANDER: exp_id($exp_id) input($input_id) status($status)" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+
+      if (exists $main::config_parms{"AD2USB_expander_$exp_id$input_id"}) {
+         # Assign zone
+         $ZoneNum = $main::config_parms{"AD2USB_expander_$exp_id$input_id"};
+         $ZoneName = "Unknown";
+         $ZoneName = $main::config_parms{"AD2USB_zone_$ZoneNum"} if exists $main::config_parms{"AD2USB_zone_$ZoneNum"};
+         # Assign status (zone and partition)
+
+         if ($status == 01) {
+            $ZoneStatus = "fault";
+            $PartStatus = "not ready";
+         } elsif ($status == 00) {
+             $ZoneStatus = "ready";
+             $PartStatus = "";
          }
 
-      }
-
-      case 3 {                # EXPANDER STATUS
-         my $exp_id = substr( $CmdStr, 5, 2 );
-         my $input_id = substr( $CmdStr, 8, 2 );
-         my $status = substr( $CmdStr, 11, 2 );
-	 my $ZoneStatus;
-         my $PartStatus;
-
-         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "EXPANDER: exp_id($exp_id) input($input_id) status($status)" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
-
-       if (exists $main::config_parms{"AD2USB_expander_$exp_id$input_id"}) {
-            # Assign zone
-            $ZoneNum = $main::config_parms{"AD2USB_expander_$exp_id$input_id"};
-            $ZoneName = "Unknown";
-            $ZoneName = $main::config_parms{"AD2USB_zone_$ZoneNum"} if exists $main::config_parms{"AD2USB_zone_$ZoneNum"};
-            # Assign status (zone and partition)
-
-
-            if ($status == 01) {
-               $ZoneStatus = "fault";
-               $PartStatus = "not ready";
-            } elsif ($status == 00) {
-                $ZoneStatus = "ready";
-                $PartStatus = "";
-            }
-
-            $self->{zone_now_msg}            = "$CmdStr";
-            $self->{zone_now_status}         = "$ZoneStatus";
-            $self->{zone_now_name}           = "$ZoneName";
-            $self->{zone_now_num}            = "$ZoneNum";
-            ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
+         $self->{zone_now_msg}            = "$CmdStr";
+         $self->{zone_now_status}         = "$ZoneStatus";
+         $self->{zone_now_name}           = "$ZoneName";
+         $self->{zone_now_num}            = "$ZoneNum";
+         ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
          #  if (($self->{partition_status}{int($PartNum)}) eq "ready") { #only change the partition status if the current status is "ready". We dont change if the system is armed.
          #   if ($PartStatus ne "") {
          #      $self->{partition_now_msg}       = "$CmdStr";
@@ -718,159 +704,155 @@ sub CheckCmd {
          #      ChangePartitions( int($PartNum), int($PartNum), "$PartStatus", 1);
          #   }
          # }
-        }
       }
+   }
+   elsif ($status_type->{relay}) {
+      my $rel_id = substr( $CmdStr, 5, 2 );
+      my $rel_input_id = substr( $CmdStr, 8, 2 );
+      my $rel_status = substr( $CmdStr, 11, 2 );
+      my $PartName = my $PartNum = "1";
+      my $ZoneStatus;
+      my $PartStatus;
 
-      case 4 {                # RELAY STATUS
-         my $rel_id = substr( $CmdStr, 5, 2 );
-         my $rel_input_id = substr( $CmdStr, 8, 2 );
-         my $rel_status = substr( $CmdStr, 11, 2 );
-	 my $PartName = my $PartNum = "1";
-         my $ZoneStatus;
-         my $PartStatus;
+      ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "RELAY: rel_id($rel_id) input($rel_input_id) status($rel_status)" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
 
+      if (exists $main::config_parms{"AD2USB_relay_$rel_id$rel_input_id"}) {
+         # Assign zone
+         $ZoneNum = $main::config_parms{"AD2USB_relay_$rel_id$rel_input_id"};
+         $ZoneName = "Unknown";
+         $ZoneName = $main::config_parms{"AD2USB_zone_$ZoneNum"} if exists $main::config_parms{"AD2USB_zone_$ZoneNum"};
+         # Assign status (zone and partition)
 
-         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "RELAY: rel_id($rel_id) input($rel_input_id) status($rel_status)" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+         if ($rel_status == 01) {
+            $ZoneStatus = "fault";
+            $PartStatus = "not ready";
+         } elsif ($rel_status == 00) {
+            $ZoneStatus = "ready";
+            $PartStatus = "";
+         }
 
-          if (exists $main::config_parms{"AD2USB_relay_$rel_id$rel_input_id"}) {
-            # Assign zone
-            $ZoneNum = $main::config_parms{"AD2USB_relay_$rel_id$rel_input_id"};
-            $ZoneName = "Unknown";
-            $ZoneName = $main::config_parms{"AD2USB_zone_$ZoneNum"} if exists $main::config_parms{"AD2USB_zone_$ZoneNum"};
-            # Assign status (zone and partition)
-       	   
-          
-	    if ($rel_status == 01) {
-               $ZoneStatus = "fault";
-               $PartStatus = "not ready";
-            } elsif ($rel_status == 00) {
-		$ZoneStatus = "ready";
-		$PartStatus = "";
-	    }
-
-            $self->{zone_now_msg}            = "$CmdStr";
-            $self->{zone_now_status}         = "$ZoneStatus";
-            $self->{zone_now_name}           = "$ZoneName";
-            $self->{zone_now_num}            = "$ZoneNum";
-            ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
-	  # if (($self->{partition_status}{int($PartNum)}) eq "ready") { #only change the partition status if the current status is "ready". We dont change if the system is armed.
-          #  if ($PartStatus ne "") {
-          #     $self->{partition_now_msg}       = "$CmdStr";
-          #     $self->{partition_now_status}    = "$PartStatus";
-          #     $self->{partition_now_num}       = "$PartNum";
-          #     ChangePartitions( int($PartNum), int($PartNum), "$PartStatus", 1);
-          #  }
+         $self->{zone_now_msg}            = "$CmdStr";
+         $self->{zone_now_status}         = "$ZoneStatus";
+         $self->{zone_now_name}           = "$ZoneName";
+         $self->{zone_now_num}            = "$ZoneNum";
+         ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
+         # if (($self->{partition_status}{int($PartNum)}) eq "ready") { #only change the partition status if the current status is "ready". We dont change if the system is armed.
+         #  if ($PartStatus ne "") {
+         #     $self->{partition_now_msg}       = "$CmdStr";
+         #     $self->{partition_now_status}    = "$PartStatus";
+         #     $self->{partition_now_num}       = "$PartNum";
+         #     ChangePartitions( int($PartNum), int($PartNum), "$PartStatus", 1);
+         #  }
          # }
-	}
       }
-
-      else {
-         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "SOMETHING SERIOUSLY WRONG - UNKNOWN COMMAND" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
-      }
+   }
+   else {
+      ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "SOMETHING SERIOUSLY WRONG - UNKNOWN COMMAND" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
    }
 
    # NORMAL STATUS TYPE
    # ALWAYS CHECK CHIME / AC POWER / BATTERY STATUS / BACKLIGHT / BEEPS
-   if ($status_type >= 10) {
+   if ($status_type->{keypad}) {
 
-         # PARSE codes
-         my $status_codes = substr( $CmdStr, 1, 12 );
-         my $fault = substr( $CmdStr, 23, 3 );
-         my $panel_message = substr( $CmdStr, 61, 32);
+      # PARSE codes
+      my $status_codes = substr( $CmdStr, 1, 12 );
+      my $fault = substr( $CmdStr, 23, 3 );
+      my $panel_message = substr( $CmdStr, 61, 32);
 
-         # BACKLIGHT
-         $data = 3;
-         if ( substr($status_codes,$data,1) == "1" ) {
-            ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Panel backlight is on" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
-         }
+      # BACKLIGHT
+      $data = 3;
+      if ( substr($status_codes,$data,1) == "1" ) {
+         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Panel backlight is on" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+      }
 
-         # BEEPS
-         $data = 5;
-         if ( substr($status_codes,$data,1) != "0" ) {
-            $NumBeeps = substr($status_codes,$data,1);
-            ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Panel beeped $NumBeeps times" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
-         }
+      # BEEPS
+      $data = 5;
+      if ( substr($status_codes,$data,1) != "0" ) {
+         $NumBeeps = substr($status_codes,$data,1);
+         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Panel beeped $NumBeeps times" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+      }
 
-         # AC POWER
-         $data = 7;
-	 if ( substr($status_codes,$data,1) == "0" ) {
-            $$self{ac_power} = 0;
-            ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "AC Power has been lost" );
-         }
-         else {
-            $$self{ac_power} = 1;
-         }
+      # AC POWER
+      $data = 7;
+      if ( substr($status_codes,$data,1) == "0" ) {
+         $$self{ac_power} = 0;
+         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "AC Power has been lost" );
+      }
+      else {
+         $$self{ac_power} = 1;
+      }
 
-         # CHIME MODE
-         $data = 8;
-         if ( substr($status_codes,$data,1) == "0" ) { 
-            $self->{chime} = 0;
+      # CHIME MODE
+      $data = 8;
+      if ( substr($status_codes,$data,1) == "0" ) { 
+         $self->{chime} = 0;
 #            ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Chime is off" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
-         }
-         else {
-            $self->{chime} = 1;
+      }
+      else {
+         $self->{chime} = 1;
 #            ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Chime is on" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
-         }
-   
-         # BATTERY LOW
-         $data = 11;
-         if ( substr($status_codes,$data,1) == "1" ) {
-            $self->{battery_low} = 1;
-            ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Panel is low on battery" );
-         }
-         else {
-            $self->{battery_low} = 0;
-         }
+      }
 
+      # BATTERY LOW
+      $data = 11;
+      if ( substr($status_codes,$data,1) == "1" ) {
+         $self->{battery_low} = 1;
+         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Panel is low on battery" );
+      }
+      else {
+         $self->{battery_low} = 0;
+      }
    }
-
    return;
-
 }
 
 #    Determine if the status string requires parsing                    {{{
+# Returns a hash reference containing the message type
 sub GetStatusType {
    my $AdemcoStr   = shift;
-   my $ll       = length($AdemcoStr);
+   my $ll          = length($AdemcoStr);
+   my %msg_type;
+
+   # Keypad Type Messages are 94 Characters Long
    if ($ll eq 94) {
-      # Keypad Message 
-      # Format: Bit field,Numeric code,Raw data,Alphanumeric Keypad Message
-      # TODO I would be inclined to split by comma rather than use substr
+      $msg_type{keypad} = 1;
       my $substatus = substr($AdemcoStr, 61, 5);
       if ( $substatus eq "FAULT" ) {
          ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Fault zones available: $AdemcoStr") unless ($main::config_parms{AD2USB_debug_log} == 0);
-         return 11;
+         $msg_type{fault} = 1;
       }
       elsif ( $substatus eq "BYPAS" ) {
          ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Bypass zones available: $AdemcoStr") unless ($main::config_parms{AD2USB_debug_log} == 0);
-         return 12;
+         $msg_type{bypass} = 1;
       }
       elsif ($AdemcoStr =~ m/Hit \*|Press \*/) {
          ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Faults available: $AdemcoStr") unless ($main::config_parms{AD2USB_debug_log} == 0);
-         return 10;
+         $msg_type{fault_avail} = 1;
       }
       else {
-#         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Standard status received: $AdemcoStr");
-         return 13;
+         $msg_type{status} = 1;
       }
    }
    elsif (substr($AdemcoStr,0,5) eq "!RFX:") {
       ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Wireless status received.") unless ($main::config_parms{AD2USB_debug_log} == 0);
-      return 2;
+      $msg_type{wireless} = 1;
    }
    elsif (substr($AdemcoStr,0,5) eq "!EXP:") {
       ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Expander status received.") unless ($main::config_parms{AD2USB_debug_log} == 0);
-      return 3;
+      $msg_type{expander} = 1;
    }
    elsif (substr($AdemcoStr,0,5) eq "!REL:") {
       ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Relay status received.") unless ($main::config_parms{AD2USB_debug_log} == 0);
-      return 4;
+      $msg_type{relay} = 1;
    }
    elsif ($AdemcoStr eq "!Sending...done") {
       ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Command sent successfully.") unless ($main::config_parms{AD2USB_debug_log} == 0);
-      return 0;
+      $msg_type{cmd_sent} = 1;
    }
-   return -1;
+   else {
+      $msg_type{unknown} = 1;
+   }
+   return \%msg_type;
 }
 
 #}}}
