@@ -361,48 +361,30 @@ sub CheckCmd {
       my $ZoneNum;
       my $ZoneName;
       # Parse raw status strings
-      my $rf_id = substr( $CmdStr, 5, 7 );
-      my $rf_status = substr( $CmdStr, 13, 2 );
       my $lc = 0;
       my $wnum = 0;
 
-      # UNKNOWN
-      my $unknown_1 = 0;
-      $unknown_1 = 1 if (hex(substr($rf_status, 1, 1)) & 1) == 1;
-      # Parse for low battery signal
-      my $low_batt = 0;
-      $low_batt = 1 if (hex(substr($rf_status, 1, 1)) & 2) == 2;
-      # Parse for supervision flag
-      my $supervised = 0;
-      $supervised = 1 if (hex(substr($rf_status, 1, 1)) & 4) == 4;
-      # UNKNOWN
-      my $unknown_8 = 0;
-      $unknown_8 = 1 if (hex(substr($rf_status, 1, 1)) & 8) == 8;
-
-      # Parse loop faults
-      my $loop_fault_1 = 0;
-      $loop_fault_1 = 1 if (hex(substr($rf_status, 0, 1)) & 8) == 8;
-      my $loop_fault_2 = 0;
-      $loop_fault_2 = 1 if (hex(substr($rf_status, 0, 1)) & 2) == 2;
-      my $loop_fault_3 = 0;
-      $loop_fault_3 = 1 if (hex(substr($rf_status, 0, 1)) & 1) == 1;
-      my $loop_fault_4 = 0;
-      $loop_fault_4 = 1 if (hex(substr($rf_status, 0, 1)) & 4) == 4;
-
-      ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "WIRELESS: rf_id($rf_id) status($rf_status) loop1($loop_fault_1) loop2($loop_fault_2) loop3($loop_fault_3) loop4($loop_fault_4)" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
-      ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "WIRELESS: rf_id($rf_id) status($rf_status) low_batt($low_batt) supervised($supervised)" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+      ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "WIRELESS: rf_id("
+         .$status_type->{rf_id}.") status(".$status_type->{rf_status}.") loop1("
+         .$status_type->{rf_loop_fault_1}.") loop2(".$status_type->{rf_loop_fault_2}
+         .") loop3(".$status_type->{rf_loop_fault_3}.") loop4("
+         .$status_type->{rf_loop_fault_4}.")" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+      ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "WIRELESS: rf_id("
+         .$status_type->{rf_id}.") status(".$status_type->{rf_status}.") low_batt("
+         .$status_type->{rf_low_batt}.") supervised(".$status_type->{rf_supervised}
+         .")" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
 
       my $ZoneStatus = "ready";
       my $PartStatus = "";
       my @parsest;
       my $sensortype;
 
-      if (exists $main::config_parms{"AD2USB_wireless_$rf_id"}) {
+      if (exists $main::config_parms{"AD2USB_wireless_".$status_type->{rf_id}}) {
          # Assign zone
-         my @ParseNum = split(",", $main::config_parms{"AD2USB_wireless_$rf_id"});
+         my @ParseNum = split(",", $main::config_parms{"AD2USB_wireless_".$status_type->{rf_id}});
 
          # Assign status (zone and partition)
-         if ($low_batt == "1") {
+         if ($status_type->{rf_low_batt} == "1") {
             $ZoneStatus = "low battery";
          }
    
@@ -418,10 +400,10 @@ sub CheckCmd {
                $ZoneName = "Unknown";
                $ZoneName = $main::config_parms{"AD2USB_zone_$ZoneNum"} if exists $main::config_parms{"AD2USB_zone_$ZoneNum"};
    
-               if ($ZoneLoop eq "1") {$MZoneLoop = $loop_fault_1}
-               if ($ZoneLoop eq "2") {$MZoneLoop = $loop_fault_2}
-               if ($ZoneLoop eq "3") {$MZoneLoop = $loop_fault_3}
-               if ($ZoneLoop eq "4") {$MZoneLoop = $loop_fault_4}
+               if ($ZoneLoop eq "1") {$MZoneLoop = $status_type->{rf_loop_fault_1}}
+               if ($ZoneLoop eq "2") {$MZoneLoop = $status_type->{rf_loop_fault_2}}
+               if ($ZoneLoop eq "3") {$MZoneLoop = $status_type->{rf_loop_fault_3}}
+               if ($ZoneLoop eq "4") {$MZoneLoop = $status_type->{rf_loop_fault_4}}
    
                if ("$MZoneLoop" eq "1") {
                   $ZoneStatus = "fault";
@@ -753,9 +735,22 @@ sub GetStatusType {
          $message{status} = 1;
       }
    }
-   elsif (substr($AdemcoStr,0,5) eq "!RFX:") {
+   elsif ($AdemcoStr =~ /!RFX:(\d{7}),(\d{2})/) {
       ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Wireless status received.") unless ($main::config_parms{AD2USB_debug_log} == 0);
       $message{wireless} = 1;
+      $message{rf_id} = $1;
+      $message{rf_status} = $2;
+      
+      $message{rf_unknown_1} = ((hex(substr($message{rf_status}, 1, 1)) & 1) == 1) ? 1 : 0;
+      $message{rf_low_batt} = ((hex(substr($message{rf_status}, 1, 1)) & 2) == 2) ? 1 : 0;
+      $message{rf_supervised} = ((hex(substr($message{rf_status}, 1, 1)) & 4) == 4) ? 1 : 0;
+      $message{rf_unknown_8} = ((hex(substr($message{rf_status}, 1, 1)) & 8) == 8) ? 1 : 0;
+
+      $message{rf_loop_fault_1} = ((hex(substr($message{rf_status}, 0, 1)) & 8) == 8) ? 1 : 0;
+      $message{rf_loop_fault_2} = ((hex(substr($message{rf_status}, 0, 1)) & 2) == 2) ? 1 : 0;
+      $message{rf_loop_fault_3} = ((hex(substr($message{rf_status}, 0, 1)) & 1) == 1) ? 1 : 0;
+      $message{rf_loop_fault_4} = ((hex(substr($message{rf_status}, 0, 1)) & 4) == 4) ? 1 : 0;
+
    }
    elsif (substr($AdemcoStr,0,5) eq "!EXP:") {
       ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Expander status received.") unless ($main::config_parms{AD2USB_debug_log} == 0);
