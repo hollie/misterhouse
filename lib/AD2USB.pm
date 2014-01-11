@@ -263,7 +263,7 @@ sub check_for_data {
          ::print_log("[AD2USB] " . $Cmd) if $main::Debug{AD2USB} >= 1;
 
          # Get the Message Type, and Ignore Duplicate Status Messages
-         my $status_type = GetStatusType($Cmd);
+         my $status_type = $self->GetStatusType($Cmd);
          if ($status_type->{keypad} && $Cmd eq $self->{last_cmd} &&
             (!$status_type->{fault})) {
             # This is a duplicate panel message with no important status
@@ -274,7 +274,7 @@ sub check_for_data {
             # relay or RF or zone expander message or something important
             # Log the message, parse it, and store it to detect future dupes
             ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "NONPANEL: $Cmd") unless ($main::config_parms{AD2USB_debug_log} == 0);
-            CheckCmd($Cmd);
+            $self->CheckCmd($Cmd);
             ResetAdemcoState();
             $self->{last_cmd} = $Cmd if ($status_type->{keypad});
          }
@@ -290,9 +290,8 @@ sub check_for_data {
 #    Validate the command and perform action                                {{{
 
 sub CheckCmd {
-   my $CmdStr = shift;
-   my $status_type = GetStatusType($CmdStr);
-   my $self = $Self;
+   my ($self, $CmdStr) = @_;
+   my $status_type = $self->GetStatusType($CmdStr);
    
    if ($status_type->{unknown}) {
       ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "UNKNOWN STATUS: $CmdStr" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
@@ -420,7 +419,7 @@ sub CheckCmd {
       $data = 0;
       if ( substr($status_codes,$data,1) == "1" ) {
          my $start = 1;
-         my $end = 11;
+         my $end = 11; #Why hardcoded at 11 zones?
          if ( substr($status_codes,6,1) ne "1" ) {
             # Reset all zones to ready if partition is ready and not bypassed
             ChangeZones( $start, $end, "ready", "", 1);
@@ -807,52 +806,65 @@ sub CheckCmd {
 }
 
 #    Determine if the status string requires parsing                    {{{
-# Returns a hash reference containing the message type
+# Returns a hash reference containing the message details
 sub GetStatusType {
-   my $AdemcoStr   = shift;
-   my $ll          = length($AdemcoStr);
-   my %msg_type;
+   my ($self, $AdemcoStr) = @_;
+   my %message;
 
-   # Keypad Type Messages are 94 Characters Long
-   if ($ll eq 94) {
-      $msg_type{keypad} = 1;
-      my $substatus = substr($AdemcoStr, 61, 5);
-      if ( $substatus eq "FAULT" ) {
+   # Panel Message Format
+   if ($AdemcoStr =~ /(!KPM:)?\[([\d-]*)\],(\d{3}),\[(.*)\],\"(.*)\"/) {
+      $message{keypad} = 1;
+
+      # Parse The Cmd into Message Parts
+      $message{bit_field} = $2;
+      $message{numeric_code} = $3;
+      $message{raw_data} = $4;
+      $message{alphanumeric} = $5;
+      my @flags = ('ready', 'armed_away_flag', 'armed_home_flag',
+      'backlight_flag', 'programming_flag', 'beep_count', 'bypassed_flag', 'ac_flag',
+      'chime_flag', 'alarm_past_flag', 'alarm_now_flag', 'battery_low_flag', 'no_delay_flag',
+      'fire_flag', 'zone_issue_flag', 'perimeter_only_flag');
+      for (my $i = 0; $i <= 15; $i++){
+         $message{$flags[$i]} = substr($message{bit_field}, $i, 1);
+      }
+
+      # Determine the Message Type
+      if ( $message{alphanumeric} =~ m/^FAULT/) {
          ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Fault zones available: $AdemcoStr") unless ($main::config_parms{AD2USB_debug_log} == 0);
-         $msg_type{fault} = 1;
+         $message{fault} = 1;
       }
-      elsif ( $substatus eq "BYPAS" ) {
+      elsif ( $message{alphanumeric} =~ m/^BYPAS/ ) {
          ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Bypass zones available: $AdemcoStr") unless ($main::config_parms{AD2USB_debug_log} == 0);
-         $msg_type{bypass} = 1;
+         $message{bypass} = 1;
       }
-      elsif ($AdemcoStr =~ m/Hit \*|Press \*/) {
+      elsif ($message{alphanumeric} =~ m/Hit \*|Press \*/) {
          ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Faults available: $AdemcoStr") unless ($main::config_parms{AD2USB_debug_log} == 0);
-         $msg_type{fault_avail} = 1;
+         $message{fault_avail} = 1;
       }
       else {
-         $msg_type{status} = 1;
+         $message{status} = 1;
       }
    }
    elsif (substr($AdemcoStr,0,5) eq "!RFX:") {
       ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Wireless status received.") unless ($main::config_parms{AD2USB_debug_log} == 0);
-      $msg_type{wireless} = 1;
+      $message{wireless} = 1;
    }
    elsif (substr($AdemcoStr,0,5) eq "!EXP:") {
       ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Expander status received.") unless ($main::config_parms{AD2USB_debug_log} == 0);
-      $msg_type{expander} = 1;
+      $message{expander} = 1;
    }
    elsif (substr($AdemcoStr,0,5) eq "!REL:") {
       ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Relay status received.") unless ($main::config_parms{AD2USB_debug_log} == 0);
-      $msg_type{relay} = 1;
+      $message{relay} = 1;
    }
    elsif ($AdemcoStr eq "!Sending...done") {
       ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Command sent successfully.") unless ($main::config_parms{AD2USB_debug_log} == 0);
-      $msg_type{cmd_sent} = 1;
+      $message{cmd_sent} = 1;
    }
    else {
-      $msg_type{unknown} = 1;
+      $message{unknown} = 1;
    }
-   return \%msg_type;
+   return \%message;
 }
 
 #}}}
