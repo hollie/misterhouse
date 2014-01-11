@@ -21,6 +21,7 @@ use strict;
 ##    and dcsfix defaults. Added in nosync_dtstamp and nodcsfix option to override.
 ##   NOTE: v4 requires the update 2014 vsdb calendar schema (adding a control attribute). 
 ##         Common module organizer 2014 and vsdb calendar.pl 1.6.0-3 required.
+##
 
 use lib '../lib', '../lib/site';
 use iCal::Parser;

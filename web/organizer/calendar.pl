@@ -15,7 +15,7 @@
 # or indirectly caused by this software.
 # 
 # Version History
-# 1.6.0-3 - 01/03/14 - added support for control calendars (hide them)
+# 1.6.0-3 - 01/04/14 - added support for control calendars (hide them)
 # 1.6.0-2 - 11/02/07 - minor bugfix to in icalsync name
 # 1.6.0-1 - 09/24/07 - Updated to organizer release 2.5.2 without admin login and ical customization
 #		       (1.6.0 added admin login & changed navigation)

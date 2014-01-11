@@ -1,6 +1,6 @@
 # Category = Time
 
-#@ This module is a significant update from v3, and has a few functions;
+#@ This module is a significant update from MH v2, and has a few functions;
 #@<br>
 #@ <ul>
 #@ <li> iCal2vsDB syncronization control. Imports iCal files (Apple iCal, 
