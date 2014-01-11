@@ -220,12 +220,14 @@ sub server_startup {
 #}}}
 
 #    check for incoming data on serial port                                 {{{
-# This is called once per loop by a Mainloop_pre hook 
+# This is called once per loop by a Mainloop_pre hook, it parses out the string
+# of data into individual messages.  
 sub check_for_data {
    my ($instance, $connecttype) = @_;
    my $self = get_object_by_instance($instance);
    my $NewCmd;
 
+   # Get the date from serial or tcp source
    if ($connecttype eq 'serial') {
       &main::check_for_generic_serial_data($instance);
       $NewCmd = $main::Serial_Ports{$instance}{data};
@@ -247,41 +249,37 @@ sub check_for_data {
       }
    }
 
-   # we need to buffer the information receive, because many command could be include in a single pass
-   $NewCmd = $self{IncompleteCmd} . $NewCmd if $self{IncompleteCmd};
-   $self{IncompleteCmd} = '';
+   # Return if nothing received
    return if !$NewCmd;
 
-   #We have a command to examine, split by line endings and parse data
+   # Prepend any prior message fragment
+   $NewCmd = $self{IncompleteCmd} . $NewCmd if $self{IncompleteCmd};
+   $self{IncompleteCmd} = '';
+
+   # Split Data into Individual Messages and Then Send the Message to be Parsed
    foreach my $Cmd (split("\n", $NewCmd)){
-      #Split leaves part of line ending so full message can be confirmed
+      # Split leaves part of line ending so full message can be confirmed
       if (substr($Cmd, -1) eq "\r"){
-         #strip off last line ending
+         # Valid Message, Strip off last line ending
          $Cmd = substr($Cmd, 0, -1);
          ::print_log("[AD2USB] " . $Cmd) if $main::Debug{AD2USB} >= 1;
+
+         # Get the Message Type, and Ignore Duplicate Status Messages
          my $status_type = GetStatusType($Cmd);
-         if ($status_type >= 10) {
-            # This is a panel message
-            if (($Cmd ne $self->{last_cmd}) || ($status_type == 11))  {
-               # This is a new message
-               ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "NEW: $Cmd") unless ($main::config_parms{AD2USB_debug_log} == 0);
-               CheckCmd($Cmd);
-               ResetAdemcoState();
-               $self->{last_cmd} = $Cmd;
-            }
-            else {
-               # This is a duplicate message
-               ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "DUPE: $Cmd") unless ($main::config_parms{AD2USB_debug_log} == 0);
-            }
+         if ($status_type >= 10 && $Cmd eq $self->{last_cmd} &&
+            $status_type != 11) {
+            # This is a duplicate panel message with no important status
+            ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "DUPE: $Cmd") unless ($main::config_parms{AD2USB_debug_log} == 0);
          }
          else {
-            # This is a relay or RF or zone expander message
+            # This is a non-dupe panel message or a fault panel message or a
+            # relay or RF or zone expander message or something important
+            # Log the message, parse it, and store it to detect future dupes
             ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "NONPANEL: $Cmd") unless ($main::config_parms{AD2USB_debug_log} == 0);
             CheckCmd($Cmd);
             ResetAdemcoState();
-            #$self->{last_cmd} = $Cmd;
+            $self->{last_cmd} = $Cmd if ($status_type >= 10);
          }
-         $Cmd = '';
       }
       else {
          # Save partial command for next serial read
