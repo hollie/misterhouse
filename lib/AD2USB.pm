@@ -273,7 +273,7 @@ sub check_for_data {
             # This is a non-dupe panel message or a fault panel message or a
             # relay or RF or zone expander message or something important
             # Log the message, parse it, and store it to detect future dupes
-            ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "NONPANEL: $Cmd") unless ($main::config_parms{AD2USB_debug_log} == 0);
+            ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "MSG: $Cmd") unless ($main::config_parms{AD2USB_debug_log} == 0);
             $self->CheckCmd($Cmd);
             ResetAdemcoState();
             $self->{last_cmd} = $Cmd if ($status_type->{keypad});
@@ -310,77 +310,35 @@ sub CheckCmd {
       cmd( $self, "ShowFaults" );
    }
    elsif ($status_type->{fault}) {
-      my $status_codes = substr( $CmdStr, 1, 12 );
-      my $fault = substr( $CmdStr, 23, 3 );
-      $fault = substr($CmdStr, 67, 2); #TODO Why do we set $fault twice? ^
-      $fault = "0$fault";
-      my $panel_message = substr( $CmdStr, 61, 32);
+      my $zone_padded = $status_type->{numeric_code};
+      my $zone_no_pad = int($zone_padded);
 
-      my $ZoneName = my $ZoneNum = $fault;
       my $PartNum = "1";
-      $ZoneName = $main::config_parms{"AD2USB_zone_${ZoneNum}"} if exists $main::config_parms{"AD2USB_zone_${ZoneNum}"};
-      $ZoneNum =~ s/^0*//;
-      $fault = $ZoneNum;
+      my $ZoneName = $main::config_parms{"AD2USB_zone_${zone_padded}"} if exists $main::config_parms{"AD2USB_zone_${zone_padded}"};
 
-      if (&MappedZones("00$ZoneNum")) { 
-         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Zone $ZoneNum is mapped to a Relay or RF ID, skipping normal monitoring!") } 
+      # Each fault message tells us two things, 1) this zone is faulted and 
+      # 2) all zones between this zone and the last fault are ready.
+      if (MappedZones($zone_padded)) {
+         #Why do we not reset mapped zones?  Don't they appear in the fault loop
+         #too?  
+         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Zone $zone_no_pad is mapped to a Relay, RF ID, or expander, skipping normal monitoring!") } 
       else {
-         #Check if this is the new lowest fault number and reset the zones before it
-         if (int($fault) <= int($self->{zone_lowest_fault})) {
-            $self->{zone_lowest_fault} = $fault;
-            #Reset zones to ready before the lowest
-            $start = 1;
-            $end = $self->{zone_lowest_fault} - 1;
-            ChangeZones( $start, $end, "ready", "bypass", 1);
+         #Reset the zones between the current zone and the last zone. If zones
+         #are sequential do nothing, if same zone, reset all other zones
+         if ($self->{zone_last_num} - $zone_no_pad > 1 
+            || $self->{zone_last_num} - $zone_no_pad == 0) {
+            ChangeZones( $self->{zone_last_num}+1, $zone_no_pad-1, "ready", "bypass", 1);
          }
 
-         #Check if this is a new highest fault number and reset zones after it
-         if (int($fault) > int($self->{zone_highest_fault})) {
-            $self->{zone_highest_fault} = $fault;
-            #Reset zones to ready after the highest
-            $start = $self->{zone_highest_fault} + 1;;
-            $end = 11;
-            ChangeZones( $start, $end, "ready", "bypass", 1);
-         }
-
-         # Check if this zone was already faulted
-         if ($self->{zone_status}{"$fault"} eq "fault") {
-
-            #Check if this fault is less than the last fault (and must now be the new lowest zone)
-            if (int($fault) <= int($self->{zone_last_num})) {
-               #This is the new lowest zone
-               $self->{zone_lowest_fault} = $fault;
-               #Reset zones to ready before the lowest
-               $start = 1;
-               $end = $self->{zone_lowest_fault} - 1;
-               ChangeZones( $start, $end, "ready", "bypass", 1);
-            }         
-
-            #Check if this fault is equal to the last fault (and must now be the only zone)
-            if (int($fault) == int($self->{zone_last_num})) {
-               #Reset zones to ready after the only one
-               $start = int($fault) + 1;
-               $end = 11;
-               ChangeZones( $start, $end, "ready", "bypass", 1);
-            }
-
-            #Check if this fault is greater than the last fault and reset the zones between it and the prior one
-            if (int($fault) > int($self->{zone_last_num})) {
-               $start = (($self->{zone_last_num} == $fault) ? 1 : int($self->{zone_last_num}) + 1);
-               $end = $fault - 1;
-               ChangeZones( $start, $end, "ready", "bypass", 1);
-            }
-         } #End Already Faulted
-
-         $self->{zone_now_msg}            = "$panel_message";
+         $self->{zone_now_msg}            = $status_type->{alphanumeric};
          $self->{zone_now_status}         = "fault";
-         $self->{zone_now_name}           = "$ZoneName";
-         $self->{zone_now_num}            = "$ZoneNum";
-         ChangeZones( int($ZoneNum), int($ZoneNum), "fault", "", 1);
-      } #Not MappedZones
-      $self->{partition_now_msg}       = "$panel_message"; 
+         $self->{zone_now_name}           = $ZoneName;
+         $self->{zone_now_num}            = $zone_no_pad;
+         ChangeZones( $zone_no_pad, $zone_no_pad, "fault", "", 1);
+      } #End MappedZones
+      $self->{partition_now_msg}       = $status_type->{alphanumeric}; 
       $self->{partition_now_status}    = "not ready";
-      $self->{partition_now_num}       = "$PartNum";
+      $self->{partition_now_num}       = $PartNum;
       ChangePartitions( int($PartNum), int($PartNum), "not ready", 1);
    }
    elsif ($status_type->{bypass}) {
@@ -456,7 +414,7 @@ sub CheckCmd {
          my $PartNum = my $PartName = "1";
          $PartName = $main::config_parms{"AD2USB_part_${PartNum}"} if exists $main::config_parms{"AD2USB_part_${PartNum}"};
 
-    my $mode = "ERROR";
+         my $mode = "ERROR";
          if (index($panel_message, "ALL SECURE")) {
             $mode = "armed away";
          }
@@ -870,28 +828,26 @@ sub GetStatusType {
 #}}}
 #    Change zone statuses for zone indices from start to end            {{{
 sub ChangeZones {
-   my $start  = @_[0];
-   my $end  = @_[1];
-   my $new_status = @_[2];
-   my $neq_status = @_[3];
-   my $log = @_[4];
+   my ($start, $end, $new_status, $neq_status, $log) = @_;
+   my $self = $Self; #Kludge
 
-   my $self = $Self;
-   for ($i = $start; $i <= $end; $i++) {
+   # Allow for reverse looping from 999->1
+   my $reverse = ($start > $end)? 1 : 0;
+   for ($i = $start; (!$reverse && $i <= $end) ||
+         ($reverse && ($i >= $start || $i <= $end)); $i++) {
       $current_status = $self->{zone_status}{"$i"};
       if (($current_status ne $new_status) && ($current_status ne $neq_status)) {
          if (($main::config_parms{AD2USB_zone_log} != 0) && ($log == 1)) {
-            my $ZoneNumPadded = $i; 
-            $ZoneNumPadded = sprintf("%3d", $ZoneNumPadded);
-            $ZoneNumPadded =~ tr/ /0/;
-            $ZoneName = "Unknown";
+            my $ZoneNumPadded = sprintf("%03d", $i);
+            my $ZoneName = "Unknown";
             $ZoneName = $main::config_parms{"AD2USB_zone_$ZoneNumPadded"}  if exists $main::config_parms{"AD2USB_zone_$ZoneNumPadded"};
             ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Zone $i ($ZoneName) changed from '$current_status' to '$new_status'" ) unless ($main::config_parms{AD2USB_zone_log} == 0);
          }
          $self->{zone_status}{"$i"} = $new_status;
-	 #  Set child object status if it is registered to the zone
-	 $$self{zone_object}{"$i"}->set($new_status, $$self{zone_object}{"$i"}) if defined $$self{zone_object}{"$i"};
+         #  Set child object status if it is registered to the zone
+         $$self{zone_object}{"$i"}->set($new_status, $$self{zone_object}{"$i"}) if defined $$self{zone_object}{"$i"};
       }
+      $i = 0 if $i == 999; #loop around
    }
 }
 
