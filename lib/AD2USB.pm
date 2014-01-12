@@ -313,7 +313,6 @@ sub CheckCmd {
    }
    elsif ($status_type->{fault}) {
       my $PartNum = "1";
-      my $ZoneName = $main::config_parms{"AD2USB_zone_${zone_padded}"};
 
       # Each fault message tells us two things, 1) this zone is faulted and 
       # 2) all zones between this zone and the last fault are ready.
@@ -337,7 +336,6 @@ sub CheckCmd {
    }
    elsif ($status_type->{bypass}) {
       my $PartNum = "1";
-      my $ZoneName = $main::config_parms{"AD2USB_zone_${zone_padded}"} if exists $main::config_parms{"AD2USB_zone_${zone_padded}"};
 
       ChangeZones( $zone_no_pad, $zone_no_pad, "bypass", "", 1);
       $self->{partition_now_msg}       = $status_type->{alphanumeric};
@@ -357,7 +355,7 @@ sub CheckCmd {
          .")" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
 
       if (exists $main::config_parms{"AD2USB_wireless_".$status_type->{rf_id}}) {
-         my ($MZoneLoop, $PartStatus, $ZoneNum, $ZoneName);
+         my ($MZoneLoop, $PartStatus, $ZoneNum);
          my $lc = 0;
          my $ZoneStatus = "ready";
 
@@ -372,9 +370,6 @@ sub CheckCmd {
             }
             else {
                my ($sensortype, $ZoneLoop) = split("", $wnum);
-               $ZoneName = "Unknown";
-               $ZoneName = $main::config_parms{"AD2USB_zone_$ZoneNum"} if exists $main::config_parms{"AD2USB_zone_$ZoneNum"};
-   
                if ($ZoneLoop eq "1") {$MZoneLoop = $status_type->{rf_loop_fault_1}}
                if ($ZoneLoop eq "2") {$MZoneLoop = $status_type->{rf_loop_fault_2}}
                if ($ZoneLoop eq "3") {$MZoneLoop = $status_type->{rf_loop_fault_3}}
@@ -405,8 +400,6 @@ sub CheckCmd {
 
       if (exists $main::config_parms{"AD2USB_expander_$exp_id$input_id"}) {
          my $ZoneNum = $main::config_parms{"AD2USB_expander_$exp_id$input_id"};
-         my $ZoneName = "Unknown";
-         $ZoneName = $main::config_parms{"AD2USB_zone_$ZoneNum"} if exists $main::config_parms{"AD2USB_zone_$ZoneNum"};
          # Assign status (zone and partition)
 
          my $ZoneStatus = "ready";
@@ -429,8 +422,6 @@ sub CheckCmd {
       if (exists $main::config_parms{"AD2USB_relay_$rel_id$rel_input_id"}) {
          # Assign zone
          my $ZoneNum = $main::config_parms{"AD2USB_relay_$rel_id$rel_input_id"};
-         my $ZoneName = "Unknown";
-         $ZoneName = $main::config_parms{"AD2USB_zone_$ZoneNum"} if exists $main::config_parms{"AD2USB_zone_$ZoneNum"};
 
          # Assign status (zone and partition)
          my $ZoneStatus = "ready";
@@ -568,11 +559,10 @@ sub CheckCmd {
 
          #TODO: figure out how to get a partition number
          my $PartName = my $PartNum = 1;
-         my $ZoneName = $main::config_parms{"AD2USB_zone_$zone_padded"} 
             if exists $main::config_parms{"AD2USB_zone_$zone_padded"};
          $PartName = $main::config_parms{"AD2USB_part_$PartName"} 
             if exists $main::config_parms{"AD2USB_part_$PartName"};
-         ::logit( $$self{log_file}, "$EventName - Zone $zone_no_pad ($ZoneName)" ) 
+         ::logit( $$self{log_file}, "$EventName - Zone $zone_no_pad (".$self->zone_name($zone_no_pad).")" ) 
             unless ($main::config_parms{AD2USB_part_log} == 0);
          ChangeZones( $zone_no_pad, $zone_no_pad, "alarm", "", 1);
          $self->{partition_now_msg}    = $status_type->{alphanumeric};
@@ -686,9 +676,9 @@ sub ChangeZones {
       if (($current_status ne $new_status) && ($current_status ne $neq_status)) {
          if (($main::config_parms{AD2USB_zone_log} != 0) && ($log == 1)) {
             my $ZoneNumPadded = sprintf("%03d", $i);
-            my $ZoneName = "Unknown";
-            $ZoneName = $main::config_parms{"AD2USB_zone_$ZoneNumPadded"}  if exists $main::config_parms{"AD2USB_zone_$ZoneNumPadded"};
-            ::logit( $$self{log_file}, "Zone $i ($ZoneName) changed from '$current_status' to '$new_status'" ) unless ($main::config_parms{AD2USB_zone_log} == 0);
+            ::logit( $$self{log_file}, "Zone $i (".$self->zone_name($i)
+               .") changed from '$current_status' to '$new_status'" )
+               unless ($main::config_parms{AD2USB_zone_log} == 0);
          }
          $self->{zone_status}{"$i"} = $new_status;
          #  Store Change for Zone_Now Function
@@ -727,11 +717,9 @@ sub ResetAdemcoState {
    if ( defined $self->{partition_now_num} ) {
       my $PartNum = $self->{partition_now_num};
       $self->{partition}{$PartNum}        = $self->{partition_now_num};
-      $self->{partition_msg}{$PartNum}    = $self->{partition_now_msg};
       $self->{partition_status}{$PartNum} = $self->{partition_now_status};
       $self->{partition_time}{$PartNum}   = &::time_date_stamp( 17, time );
       undef $self->{partition_now_num};
-      undef $self->{partition_now_msg};
       undef $self->{partition_now_status};
    }
 
@@ -869,12 +857,9 @@ sub zone_now {
 }
 
 sub zone_name {
-   my ( $class, $zone_num ) = @_;
+   my ( $self, $zone_num ) = @_;
    $zone_num = sprintf "%03s", $zone_num;
-   my $ZoneName = $main::config_parms{"AD2USB_zone_$zone_num"} 
-      if exists $main::config_parms{"AD2USB_zone_$zone_num"};
-   return $ZoneName if $ZoneName;
-   return $zone_num;
+   return $::config_parms{"AD2USB_zone_$zone_num"};
 }
 
 sub partition_now {
