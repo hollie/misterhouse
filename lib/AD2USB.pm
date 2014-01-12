@@ -311,29 +311,22 @@ sub CheckCmd {
    }
    elsif ($status_type->{fault}) {
       my $PartNum = "1";
-      my $ZoneName = $main::config_parms{"AD2USB_zone_${zone_padded}"} 
-         if exists $main::config_parms{"AD2USB_zone_${zone_padded}"};
+      my $ZoneName = $main::config_parms{"AD2USB_zone_${zone_padded}"};
 
       # Each fault message tells us two things, 1) this zone is faulted and 
       # 2) all zones between this zone and the last fault are ready.
-      if (MappedZones($zone_padded)) {
-         #Why do we not reset mapped zones?  Don't they appear in the fault loop
-         #too?  
-         ::logit( $self{log_file}, "Zone $zone_no_pad is mapped to a Relay, RF ID, or expander, skipping normal monitoring!") } 
-      else {
-         #Reset the zones between the current zone and the last zone. If zones
-         #are sequential do nothing, if same zone, reset all other zones
-         if ($self->{zone_last_num} - $zone_no_pad > 1 
-            || $self->{zone_last_num} - $zone_no_pad == 0) {
-            ChangeZones( $self->{zone_last_num}+1, $zone_no_pad-1, "ready", "bypass", 1);
-         }
+      
+      #Reset the zones between the current zone and the last zone. If zones
+      #are sequential do nothing, if same zone, reset all other zones
+      if ($self->{zone_last_num} - $zone_no_pad > 1 
+         || $self->{zone_last_num} - $zone_no_pad == 0) {
+         ChangeZones( $self->{zone_last_num}+1, $zone_no_pad-1, "ready", "bypass", 1);
+      }
 
-         $self->{zone_now_msg}            = $status_type->{alphanumeric};
-         $self->{zone_now_status}         = "fault";
-         $self->{zone_now_name}           = $ZoneName;
-         $self->{zone_now_num}            = $zone_no_pad;
-         ChangeZones( $zone_no_pad, $zone_no_pad, "fault", "", 1);
-      } #End MappedZones
+      $self->{zone_now_status}         = "fault";
+      $self->{zone_now_name}           = $ZoneName;
+      $self->{zone_now_num}            = $zone_no_pad;
+      ChangeZones( $zone_no_pad, $zone_no_pad, "fault", "", 1);
       $self->{partition_now_msg}       = $status_type->{alphanumeric}; 
       $self->{partition_now_status}    = "not ready";
       $self->{partition_now_num}       = $PartNum;
