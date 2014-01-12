@@ -273,7 +273,7 @@ sub check_for_data {
             # Log the message, parse it, and store it to detect future dupes
             ::logit( $self{log_file}, "MSG: $Cmd") unless ($main::config_parms{AD2USB_debug_log} == 0);
             $self->CheckCmd($Cmd);
-            ResetAdemcoState();
+            $self->ResetAdemcoState();
             $self->{last_cmd} = $Cmd if ($status_type->{keypad});
          }
       }
@@ -777,8 +777,7 @@ sub ChangePartitions {
 #}}}
 #    Reset Ademco state to simulate a "now" on some value ie: zone, temp etc.  {{{
 sub ResetAdemcoState {
-
-   my $self = $Self;
+   my ($self) = @_;
    # store faults (fault and bypass) for next message parsing
    if (($self->{zone_now_status} eq "fault") || ($self->{zone_now_status} eq "bypass")) {
       $self->{zone_last_status} = $self->{zone_now_status};
