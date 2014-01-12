@@ -323,8 +323,11 @@ sub CheckCmd {
          ChangeZones( $self->{zone_last_num}+1, $zone_no_pad-1, "ready", "bypass", 1);
       }
 
-      $self->{zone_last_num}            = $zone_no_pad;
+      # Set this zone to faulted
       ChangeZones( $zone_no_pad, $zone_no_pad, "fault", "", 1);
+      
+      # Store Zone Number for Use in Fault Loop
+      $self->{zone_last_num}            = $zone_no_pad;
       $self->{partition_now_msg}       = $status_type->{alphanumeric}; 
       $self->{partition_now_status}    = "not ready";
       $self->{partition_now_num}       = $PartNum;
