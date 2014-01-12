@@ -336,7 +336,6 @@ sub CheckCmd {
       my $PartNum = "1";
       my $ZoneName = $main::config_parms{"AD2USB_zone_${zone_padded}"} if exists $main::config_parms{"AD2USB_zone_${zone_padded}"};
       
-      $self->{zone_now_msg}            = $status_type->{alphanumeric};
       $self->{zone_now_status}         = "bypass";
       $self->{zone_now_name}           = $ZoneName;
       $self->{zone_now_num}            = $zone_no_pad;
@@ -387,14 +386,12 @@ sub CheckCmd {
                  $ZoneStatus = "ready";
                }
    
-               $self->{zone_now_msg}            = "$CmdStr";
                $self->{zone_now_status}         = "$ZoneStatus";
                $self->{zone_now_name}           = "$ZoneName";
                $self->{zone_now_num}            = "$ZoneNum";
                ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
                if ($sensortype eq "k") {
                   $ZoneStatus = "ready";
-                  $self->{zone_now_msg}            = "$CmdStr";
                   $self->{zone_now_status}         = "$ZoneStatus";
                   $self->{zone_now_name}           = "$ZoneName";
                   $self->{zone_now_num}            = "$ZoneNum";
@@ -425,7 +422,6 @@ sub CheckCmd {
             $PartStatus = "not ready";
          }
 
-         $self->{zone_now_msg}            = $status_type->{alphanumeric};
          $self->{zone_now_status}         = "$ZoneStatus";
          $self->{zone_now_name}           = "$ZoneName";
          $self->{zone_now_num}            = "$ZoneNum";
@@ -453,7 +449,6 @@ sub CheckCmd {
             $PartStatus = "not ready";
          }
 
-         $self->{zone_now_msg}            = "$CmdStr";
          $self->{zone_now_status}         = "$ZoneStatus";
          $self->{zone_now_name}           = "$ZoneName";
          $self->{zone_now_num}            = "$ZoneNum";
@@ -623,7 +618,6 @@ sub CheckCmd {
          ::logit( $self{log_file}, "$EventName - Zone $zone_no_pad ($ZoneName)" ) 
             unless ($main::config_parms{AD2USB_part_log} == 0);
          ChangeZones( $zone_no_pad, $zone_no_pad, "alarm", "", 1);
-         $self->{zone_now_msg}         = $status_type->{alphanumeric};
          $self->{zone_now_status}      = "alarm";
          $self->{zone_now_num}         = $zone_no_pad;
          $self->{partition_now_msg}    = $status_type->{alphanumeric};
@@ -782,13 +776,11 @@ sub ResetAdemcoState {
    if ( defined $self->{zone_now_num} ) {
       my $ZoneNum = $self->{zone_now_num};
       $self->{zone_num}{$ZoneNum}   = $self->{zone_now_num};
-      $self->{zone_msg}{$ZoneNum}    = $self->{zone_now_msg};
       $self->{zone_status}{$ZoneNum} = $self->{zone_now_status};
       $self->{zone_time}{$ZoneNum}   = &::time_date_stamp( 17, time );
       undef $self->{zone_now_num};
       undef $self->{zone_now_name};
       undef $self->{zone_now_status};
-      undef $self->{zone_now_msg};
    }
 
    # reset partition
@@ -927,10 +919,6 @@ sub cmd {
 
 sub zone_now {
    return $_[0]->{zone_now_name} if defined $_[0]->{zone_now_name};
-}
-
-sub zone_msg {
-   return $_[0]->{zone_now_msg} if defined $_[0]->{zone_now_msg};
 }
 
 sub zone_now_restore {
