@@ -222,6 +222,9 @@ sub check_for_data {
    my $self = get_object_by_instance($instance);
    my $NewCmd;
 
+   # Clear Zone_Now Function
+   $self->{zone_now} = ();
+
    # Get the date from serial or tcp source
    if ($connecttype eq 'serial') {
       &main::check_for_generic_serial_data($instance);
@@ -688,6 +691,8 @@ sub ChangeZones {
             ::logit( $$self{log_file}, "Zone $i ($ZoneName) changed from '$current_status' to '$new_status'" ) unless ($main::config_parms{AD2USB_zone_log} == 0);
          }
          $self->{zone_status}{"$i"} = $new_status;
+         #  Store Change for Zone_Now Function
+         $self->{zone_now}{"$i"} = 1;
          #  Set child object status if it is registered to the zone
          $$self{zone_object}{"$i"}->set($new_status, $$self{zone_object}{"$i"}) if defined $$self{zone_object}{"$i"};
       }
@@ -852,39 +857,22 @@ sub cmd {
 #}}}
 #    user call from MH                                                         {{{
 
-sub zone_now_restore {
-   return $_[0]->{zone_now_restore} if defined $_[0]->{zone_now_restore};
-}
-
-sub zone_now_tamper {
-   return $_[0]->{zone_now_tamper} if defined $_[0]->{zone_now_tamper};
-}
-
-sub zone_now_tamper_restore {
-   return $_[0]->{zone_now_tamper_restore} if defined $_[0]->{zone_now_tamper_restore};
-}
-
-sub zone_now_alarm {
-   return $_[0]->{zone_now_alarm} if defined $_[0]->{zone_now_alarm};
-}
-
-sub zone_now_alarm_restore {
-   return $_[0]->{zone_now_alarm_restore} if defined $_[0]->{zone_now_alarm_restore};
-}
-
-sub zone_now_fault {
-   return $_[0]->{zone_now_num} if defined $_[0]->{zone_now_num};
-}
-
 sub status_zone {
    my ( $class, $zone ) = @_;
    return $_[0]->{zone_status}{$zone} if defined $_[0]->{zone_status}{$zone};
 }
 
+sub zone_now {
+   my ( $self, $zone ) = @_;
+   $zone =~ s/^0*//;
+   return $self->{zone_now}{$zone};
+}
+
 sub zone_name {
    my ( $class, $zone_num ) = @_;
    $zone_num = sprintf "%03s", $zone_num;
-   my $ZoneName = $main::config_parms{"AD2USB_zone_$zone_num"} if exists $main::config_parms{"AD2USB_zone_$zone_num"};
+   my $ZoneName = $main::config_parms{"AD2USB_zone_$zone_num"} 
+      if exists $main::config_parms{"AD2USB_zone_$zone_num"};
    return $ZoneName if $ZoneName;
    return $zone_num;
 }
