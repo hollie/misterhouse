@@ -294,6 +294,7 @@ sub CheckCmd {
    my $status_type = $self->GetStatusType($CmdStr);
    my $zone_padded = $status_type->{numeric_code};
    my $zone_no_pad = int($zone_padded);
+   my $partition = $status_type->{partition};
    
    if ($status_type->{unknown}) {
       ::logit( $$self{log_file}, "UNKNOWN STATUS: $CmdStr" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
@@ -447,9 +448,6 @@ sub CheckCmd {
    # ALWAYS Check Bits in Keypad Message
    if ($status_type->{keypad}) {
       # If this was not a fault message then clear log of last fault msg
-      # TODO This may need to be adjusted if there are some message types that
-      # can be received while a zone is faulted.  Perhaps bypass messages or 
-      # maybed armed messages?
       $self->{zone_last_num} = "" unless $status_type->{fault};
       
       # Set things based on Bit Codes
@@ -559,7 +557,6 @@ sub CheckCmd {
 
          #TODO: figure out how to get a partition number
          my $PartName = my $PartNum = 1;
-            if exists $main::config_parms{"AD2USB_zone_$zone_padded"};
          $PartName = $main::config_parms{"AD2USB_part_$PartName"} 
             if exists $main::config_parms{"AD2USB_part_$PartName"};
          ::logit( $$self{log_file}, "$EventName - Zone $zone_no_pad (".$self->zone_name($zone_no_pad).")" ) 
@@ -596,6 +593,15 @@ sub GetStatusType {
       $message{numeric_code} = $3;
       $message{raw_data} = $4;
       $message{alphanumeric} = $5;
+      
+      # Relevant Partition Data is Apparently Contained in the Raw Data, 
+      # which contains a mask identifying the panels that each message is
+      # destined for.  Apparently this can be used to determine the partition
+      # number.  It isn't clear to me how this works, so for the time being
+      # everything is assumed to be partition 1.
+      $message{partition} = 1;
+      
+      # Decipher and Set Bit Flags
       my @flags = ('ready_flag', 'armed_away_flag', 'armed_home_flag',
       'backlight_flag', 'programming_flag', 'beep_count', 'bypassed_flag', 'ac_flag',
       'chime_flag', 'alarm_past_flag', 'alarm_now_flag', 'battery_low_flag', 'no_delay_flag',
@@ -665,7 +671,7 @@ sub GetStatusType {
 #}}}
 #    Change zone statuses for zone indices from start to end            {{{
 sub ChangeZones {
-   my ($start, $end, $new_status, $neq_status, $log) = @_;
+   my ($start, $end, $new_status, $neq_status, $log, $partition) = @_;
    my $self = $Self; #Kludge
 
    # Allow for reverse looping from 999->1
@@ -673,7 +679,9 @@ sub ChangeZones {
    for (my $i = $start; (!$reverse && $i <= $end) ||
          ($reverse && ($i >= $start || $i <= $end)); $i++) {
       my $current_status = $self->{zone_status}{"$i"};
-      if (($current_status ne $new_status) && ($current_status ne $neq_status)) {
+      # If partition set, then zone partition must equal that
+      if (($current_status ne $new_status) && ($current_status ne $neq_status)
+         && (!$partition || ($partition == $self->zone_partition($i)))) {
          if (($main::config_parms{AD2USB_zone_log} != 0) && ($log == 1)) {
             my $ZoneNumPadded = sprintf("%03d", $i);
             ::logit( $$self{log_file}, "Zone $i (".$self->zone_name($i)
@@ -860,6 +868,15 @@ sub zone_name {
    my ( $self, $zone_num ) = @_;
    $zone_num = sprintf "%03s", $zone_num;
    return $::config_parms{"AD2USB_zone_$zone_num"};
+}
+
+sub zone_partition {
+   my ( $self, $zone_num ) = @_;
+   $zone_num = sprintf "%03s", $zone_num;
+   my $partition = $::config_parms{"AD2USB_zone_${zone_num}_partition"};
+   # Default to partition 1
+   $partition = 1 unless $partition;
+   return $partition;
 }
 
 sub partition_now {
