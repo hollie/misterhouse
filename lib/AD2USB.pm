@@ -324,7 +324,6 @@ sub CheckCmd {
       }
 
       $self->{zone_now_status}         = "fault";
-      $self->{zone_now_name}           = $ZoneName;
       $self->{zone_now_num}            = $zone_no_pad;
       ChangeZones( $zone_no_pad, $zone_no_pad, "fault", "", 1);
       $self->{partition_now_msg}       = $status_type->{alphanumeric}; 
@@ -337,7 +336,6 @@ sub CheckCmd {
       my $ZoneName = $main::config_parms{"AD2USB_zone_${zone_padded}"} if exists $main::config_parms{"AD2USB_zone_${zone_padded}"};
       
       $self->{zone_now_status}         = "bypass";
-      $self->{zone_now_name}           = $ZoneName;
       $self->{zone_now_num}            = $zone_no_pad;
       ChangeZones( $zone_no_pad, $zone_no_pad, "bypass", "", 1);
       $self->{partition_now_msg}       = $status_type->{alphanumeric};
@@ -387,13 +385,11 @@ sub CheckCmd {
                }
    
                $self->{zone_now_status}         = "$ZoneStatus";
-               $self->{zone_now_name}           = "$ZoneName";
                $self->{zone_now_num}            = "$ZoneNum";
                ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
                if ($sensortype eq "k") {
                   $ZoneStatus = "ready";
                   $self->{zone_now_status}         = "$ZoneStatus";
-                  $self->{zone_now_name}           = "$ZoneName";
                   $self->{zone_now_num}            = "$ZoneNum";
                   ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
                }
@@ -423,7 +419,6 @@ sub CheckCmd {
          }
 
          $self->{zone_now_status}         = "$ZoneStatus";
-         $self->{zone_now_name}           = "$ZoneName";
          $self->{zone_now_num}            = "$ZoneNum";
          ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
       }
@@ -450,7 +445,6 @@ sub CheckCmd {
          }
 
          $self->{zone_now_status}         = "$ZoneStatus";
-         $self->{zone_now_name}           = "$ZoneName";
          $self->{zone_now_num}            = "$ZoneNum";
          ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
          # if (($self->{partition_status}{int($PartNum)}) eq "ready") { #only change the partition status if the current status is "ready". We dont change if the system is armed.
@@ -489,7 +483,6 @@ sub CheckCmd {
          # Reset state for fault checks
          $self->{zone_last_status} = "";
          $self->{zone_last_num} = "";
-         $self->{zone_last_name} = "";
       }
 
       # ARMED AWAY
@@ -521,7 +514,6 @@ sub CheckCmd {
          # Reset state for fault checks
          $self->{zone_last_status} = "";
          $self->{zone_last_num} = "";
-         $self->{zone_last_name} = "";
       }
 
       # ARMED HOME
@@ -539,7 +531,6 @@ sub CheckCmd {
          # Reset state for fault checks
          $self->{zone_last_status} = "";
          $self->{zone_last_num} = "";
-         $self->{zone_last_name} = "";
       }
 
       # BACKLIGHT
@@ -556,7 +547,6 @@ sub CheckCmd {
          # Reset state for fault checks
          $self->{zone_last_status} = "";
          $self->{zone_last_num} = "";
-         $self->{zone_last_name} = "";
       }
 
       # BEEPS
@@ -583,7 +573,6 @@ sub CheckCmd {
          # Reset state for fault checks
          $self->{zone_last_status} = "";
          $self->{zone_last_num} = "";
-         $self->{zone_last_name} = "";
       }
 
       # AC POWER
@@ -769,7 +758,6 @@ sub ResetAdemcoState {
    if (($self->{zone_now_status} eq "fault") || ($self->{zone_now_status} eq "bypass")) {
       $self->{zone_last_status} = $self->{zone_now_status};
       $self->{zone_last_num} = $self->{zone_now_num};
-      $self->{zone_last_name} = $self->{zone_now_name};
    }
 
    # reset zone
@@ -779,7 +767,6 @@ sub ResetAdemcoState {
       $self->{zone_status}{$ZoneNum} = $self->{zone_now_status};
       $self->{zone_time}{$ZoneNum}   = &::time_date_stamp( 17, time );
       undef $self->{zone_now_num};
-      undef $self->{zone_now_name};
       undef $self->{zone_now_status};
    }
 
@@ -916,10 +903,6 @@ sub cmd {
 
 #}}}
 #    user call from MH                                                         {{{
-
-sub zone_now {
-   return $_[0]->{zone_now_name} if defined $_[0]->{zone_now_name};
-}
 
 sub zone_now_restore {
    return $_[0]->{zone_now_restore} if defined $_[0]->{zone_now_restore};
