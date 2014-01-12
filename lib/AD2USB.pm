@@ -481,35 +481,22 @@ sub CheckCmd {
    # NORMAL STATUS TYPE
    # ALWAYS Check Bits in Keypad Message
    if ($status_type->{keypad}) {
-
-      # PARSE codes
-      my $panel_message = substr( $CmdStr, 61, 32);
+      # Set things based on Bit Codes
 
       # READY
-      if ( $status_type->{ready_flag} == "1" ) {
-         my $start = 1;
-         my $end = 11; #Why hardcoded at 11 zones?
-         if ( $status_type->{bypassed_flag} ne "1" ) {
-            # Reset all zones to ready if partition is ready and not bypassed
-            ChangeZones( $start, $end, "ready", "", 1);
-         }
-         else {
-            # If zones are bypassed, reset unbypassed zones to ready
-            for (my $i = $start; $i <= $end; $i++) {
-               my $current_status = $self->{zone_status}{"$i"};
-               if ($current_status eq "fault") {
-                  ChangeZones($i, $i, "ready", "bypass", 1);
-               }
-            }
-         }
+      if ( $status_type->{ready_flag}) {
+         my $bypass = ($status_type->{bypassed_flag}) ? 'bypass' : '';
+         # Reset all zones, if bypass enabled skip bypassed zones
+         ChangeZones( 1, 999, "ready", $bypass, 1);
 
-         my $PartName = my $PartNum = "1";
+         my $PartName = my $PartNum = 1;
 
-         $PartName = $main::config_parms{"AD2USB_part_${PartNum}"} if exists $main::config_parms{"AD2USB_part_${PartNum}"};
+         $PartName = $main::config_parms{"AD2USB_part_${PartNum}"} 
+            if exists $main::config_parms{"AD2USB_part_${PartNum}"};
          $self->{partition_now_msg}    = $status_type->{alphanumeric};
-         $self->{partition_now_num}    = "$PartNum";
+         $self->{partition_now_num}    = $PartNum;
          $self->{partition_now_status} = "ready";
-         ChangePartitions( int($PartNum), int($PartNum), "ready", 1);
+         ChangePartitions( $PartNum, $PartNum, "ready", 1);
          $self->{zone_lowest_fault} = 999;
          $self->{zone_highest_fault} = -1;            
 
@@ -520,25 +507,26 @@ sub CheckCmd {
       }
 
       # ARMED AWAY
-      if ( $status_type->{armed_away_flag} == "1" ) {
-         my $PartNum = my $PartName = "1";
-         $PartName = $main::config_parms{"AD2USB_part_${PartNum}"} if exists $main::config_parms{"AD2USB_part_${PartNum}"};
+      if ( $status_type->{armed_away_flag}) {
+         my $PartNum = my $PartName = 1;
+         $PartName = $main::config_parms{"AD2USB_part_${PartNum}"} 
+            if exists $main::config_parms{"AD2USB_part_${PartNum}"};
 
          my $mode = "ERROR";
-         if (index($panel_message, "ALL SECURE")) {
+         if (index($status_type->{alphanumeric}, "ALL SECURE")) {
             $mode = "armed away";
          }
-         elsif (index($panel_message, "You may exit now")) {
+         elsif (index($status_type->{alphanumeric}, "You may exit now")) {
             $mode = "exit delay";
          }
-         elsif (index($panel_message, "or alarm occurs")) {
+         elsif (index($status_type->{alphanumeric}, "or alarm occurs")) {
             $mode = "entry delay";
          }
-         elsif (index($panel_message, "ZONE BYPASSED")) {
+         elsif (index($status_type->{alphanumeric}, "ZONE BYPASSED")) {
             $mode = "armed away";
          }
 
-         set $self "$mode";
+         $self->set($mode);
          $self->{partition_now_msg}        = $status_type->{alphanumeric};
          $self->{partition_now_status}     = "$mode";
          $self->{partition_now_num}        = "$PartNum";
@@ -551,11 +539,12 @@ sub CheckCmd {
       }
 
       # ARMED HOME
-      if ( $status_type->{armed_home_flag} eq "1" ) {
-         my $PartNum = my $PartName = "1";
+      if ( $status_type->{armed_home_flag}) {
+         my $PartNum = my $PartName = 1;
 
          my $mode = "armed stay";
-         $PartName = $main::config_parms{"AD2USB_part_${PartNum}"} if exists $main::config_parms{"AD2USB_part_${PartNum}"};
+         $PartName = $main::config_parms{"AD2USB_part_${PartNum}"} 
+            if exists $main::config_parms{"AD2USB_part_${PartNum}"};
          $self->{partition_now_msg}        = $status_type->{alphanumeric};
          $self->{partition_now_status}     = "$mode";
          $self->{partition_now_num}        = "$PartNum";
@@ -568,13 +557,15 @@ sub CheckCmd {
       }
 
       # BACKLIGHT
-      if ( $status_type->{backlight_flag} == "1" ) {
-         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Panel backlight is on" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+      if ( $status_type->{backlight_flag}) {
+         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Panel backlight is on" ) 
+            unless ($main::config_parms{AD2USB_debug_log} == 0);
       }
 
       # PROGRAMMING MODE
-      if ( $status_type->{programming_flag} eq "1" ) {
-         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Panel is in programming mode" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+      if ( $status_type->{programming_flag}) {
+         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Panel is in programming mode" ) 
+            unless ($main::config_parms{AD2USB_debug_log} == 0);
 
          # Reset state for fault checks
          $self->{zone_last_status} = "";
@@ -583,13 +574,14 @@ sub CheckCmd {
       }
 
       # BEEPS
-      if ( $status_type->{beep_count} != "0" ) {
+      if ( $status_type->{beep_count}) {
          my $NumBeeps = $status_type->{beep_count};
-         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Panel beeped $NumBeeps times" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Panel beeped $NumBeeps times" ) 
+            unless ($main::config_parms{AD2USB_debug_log} == 0);
       }
 
       # A ZONE OR ZONES ARE BYPASSED
-      if ( $status_type->{bypassed_flag} == "1" ) {
+      if ( $status_type->{bypassed_flag}) {
 
          # Reset zones to ready that haven't appeared in the bypass loop
 #            if ($self->{zone_last_status} eq "bypass") {
@@ -609,56 +601,51 @@ sub CheckCmd {
       }
 
       # AC POWER
-      if ( $status_type->{ac_flag} == "0" ) {
+      $$self{ac_power} = 1;
+      if ( !$status_type->{ac_flag} ) {
          $$self{ac_power} = 0;
          ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "AC Power has been lost" );
       }
-      else {
-         $$self{ac_power} = 1;
-      }
 
       # CHIME MODE
-      if ( $status_type->{chime_flag} == "0" ) { 
-         $self->{chime} = 0;
-#            ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Chime is off" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
-      }
-      else {
-         $self->{chime} = 1;
-#            ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Chime is on" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+      $self->{chime} = 0;
+      if ( $status_type->{chime_flag}) { 
+         $self->{chime} = 1;#            ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Chime is off" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
       }
 
       # ALARM WAS TRIGGERED (Sticky until disarm)
-      if ( $status_type->{alarm_past_flag} == "1" ) {
+      if ( $status_type->{alarm_past_flag}) {
          my $EventName = "ALARM WAS TRIGGERED";
          ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "$EventName" ) unless ($main::config_parms{AD2USB_part_log} == 0);
       }
 
       # ALARM IS SOUNDING
-      if ( $status_type->{alarm_now_flag} == "1" ) {
+      if ( $status_type->{alarm_now_flag}) {
          my $EventName = "ALARM IS SOUNDING";
 
          #TODO: figure out how to get a partition number
-         my $PartName = my $PartNum = "1";
-         my $ZoneName = $main::config_parms{"AD2USB_zone_$zone_padded"}  if exists $main::config_parms{"AD2USB_zone_$zone_padded"};
-         $PartName = $main::config_parms{"AD2USB_part_$PartName"} if exists $main::config_parms{"AD2USB_part_$PartName"};
-         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "$EventName - Zone $zone_no_pad ($ZoneName)" ) unless ($main::config_parms{AD2USB_part_log} == 0);
+         my $PartName = my $PartNum = 1;
+         my $ZoneName = $main::config_parms{"AD2USB_zone_$zone_padded"} 
+            if exists $main::config_parms{"AD2USB_zone_$zone_padded"};
+         $PartName = $main::config_parms{"AD2USB_part_$PartName"} 
+            if exists $main::config_parms{"AD2USB_part_$PartName"};
+         ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "$EventName - Zone $zone_no_pad ($ZoneName)" ) 
+            unless ($main::config_parms{AD2USB_part_log} == 0);
          ChangeZones( $zone_no_pad, $zone_no_pad, "alarm", "", 1);
          $self->{zone_now_msg}         = $status_type->{alphanumeric};
          $self->{zone_now_status}      = "alarm";
          $self->{zone_now_num}         = $zone_no_pad;
          $self->{partition_now_msg}    = $status_type->{alphanumeric};
          $self->{partition_now_status} = "alarm";
-         $self->{partition_now_num}    = "$PartNum";
+         $self->{partition_now_num}    = $PartNum;
          ChangePartitions( int($PartNum), int($PartNum), "alarm", 1);
       }
 
       # BATTERY LOW
-      if ( $status_type->{battery_low_flag} == "1" ) {
+      $self->{battery_low} = 0;
+      if ( $status_type->{battery_low_flag}) {
          $self->{battery_low} = 1;
          ::logit( "$main::config_parms{data_dir}/logs/AD2USB.$main::Year_Month_Now.log", "Panel is low on battery" );
-      }
-      else {
-         $self->{battery_low} = 0;
       }
    }
    return;
