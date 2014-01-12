@@ -323,8 +323,7 @@ sub CheckCmd {
          ChangeZones( $self->{zone_last_num}+1, $zone_no_pad-1, "ready", "bypass", 1);
       }
 
-      $self->{zone_now_status}         = "fault";
-      $self->{zone_now_num}            = $zone_no_pad;
+      $self->{zone_last_num}            = $zone_no_pad;
       ChangeZones( $zone_no_pad, $zone_no_pad, "fault", "", 1);
       $self->{partition_now_msg}       = $status_type->{alphanumeric}; 
       $self->{partition_now_status}    = "not ready";
@@ -334,9 +333,7 @@ sub CheckCmd {
    elsif ($status_type->{bypass}) {
       my $PartNum = "1";
       my $ZoneName = $main::config_parms{"AD2USB_zone_${zone_padded}"} if exists $main::config_parms{"AD2USB_zone_${zone_padded}"};
-      
-      $self->{zone_now_status}         = "bypass";
-      $self->{zone_now_num}            = $zone_no_pad;
+
       ChangeZones( $zone_no_pad, $zone_no_pad, "bypass", "", 1);
       $self->{partition_now_msg}       = $status_type->{alphanumeric};
       $self->{partition_now_status}    = "not ready";
@@ -383,14 +380,10 @@ sub CheckCmd {
                } elsif ("$MZoneLoop" eq 0) {
                  $ZoneStatus = "ready";
                }
-   
-               $self->{zone_now_status}         = "$ZoneStatus";
-               $self->{zone_now_num}            = "$ZoneNum";
+
                ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
                if ($sensortype eq "k") {
                   $ZoneStatus = "ready";
-                  $self->{zone_now_status}         = "$ZoneStatus";
-                  $self->{zone_now_num}            = "$ZoneNum";
                   ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
                }
             }
@@ -418,8 +411,6 @@ sub CheckCmd {
             $PartStatus = "not ready";
          }
 
-         $self->{zone_now_status}         = "$ZoneStatus";
-         $self->{zone_now_num}            = "$ZoneNum";
          ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
       }
    }
@@ -444,8 +435,6 @@ sub CheckCmd {
             $PartStatus = "not ready";
          }
 
-         $self->{zone_now_status}         = "$ZoneStatus";
-         $self->{zone_now_num}            = "$ZoneNum";
          ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
          # if (($self->{partition_status}{int($PartNum)}) eq "ready") { #only change the partition status if the current status is "ready". We dont change if the system is armed.
          #  if ($PartStatus ne "") {
@@ -461,6 +450,12 @@ sub CheckCmd {
    # NORMAL STATUS TYPE
    # ALWAYS Check Bits in Keypad Message
    if ($status_type->{keypad}) {
+      # If this was not a fault message then clear log of last fault msg
+      # TODO This may need to be adjusted if there are some message types that
+      # can be received while a zone is faulted.  Perhaps bypass messages or 
+      # maybed armed messages?
+      $self->{zone_last_num} = "";
+      
       # Set things based on Bit Codes
 
       # READY
@@ -479,10 +474,6 @@ sub CheckCmd {
          ChangePartitions( $PartNum, $PartNum, "ready", 1);
          $self->{zone_lowest_fault} = 999;
          $self->{zone_highest_fault} = -1;            
-
-         # Reset state for fault checks
-         $self->{zone_last_status} = "";
-         $self->{zone_last_num} = "";
       }
 
       # ARMED AWAY
@@ -510,10 +501,6 @@ sub CheckCmd {
          $self->{partition_now_status}     = "$mode";
          $self->{partition_now_num}        = "$PartNum";
          ChangePartitions( int($PartNum), int($PartNum), "$mode", 1);
-
-         # Reset state for fault checks
-         $self->{zone_last_status} = "";
-         $self->{zone_last_num} = "";
       }
 
       # ARMED HOME
@@ -527,10 +514,6 @@ sub CheckCmd {
          $self->{partition_now_status}     = "$mode";
          $self->{partition_now_num}        = "$PartNum";
          ChangePartitions( int($PartNum), int($PartNum), "$mode", 1);
-
-         # Reset state for fault checks
-         $self->{zone_last_status} = "";
-         $self->{zone_last_num} = "";
       }
 
       # BACKLIGHT
@@ -543,10 +526,6 @@ sub CheckCmd {
       if ( $status_type->{programming_flag}) {
          ::logit( $self{log_file}, "Panel is in programming mode" ) 
             unless ($main::config_parms{AD2USB_debug_log} == 0);
-
-         # Reset state for fault checks
-         $self->{zone_last_status} = "";
-         $self->{zone_last_num} = "";
       }
 
       # BEEPS
@@ -558,21 +537,6 @@ sub CheckCmd {
 
       # A ZONE OR ZONES ARE BYPASSED
       if ( $status_type->{bypassed_flag}) {
-
-         # Reset zones to ready that haven't appeared in the bypass loop
-#            if ($self->{zone_last_status} eq "bypass") {
-#               if (int($fault) < int($self->{zone_now_num})) {
-#                  $start = int($self->{zone_now_num}) + 1;
-#                  $end = 12;
-#               }
-#               ChangeZones( $start, $end - 1, "ready", "", 1);
-#               $self->{zone_now_status} = "";
-#               $self->{zone_now_num} = "0";
-#            }
-
-         # Reset state for fault checks
-         $self->{zone_last_status} = "";
-         $self->{zone_last_num} = "";
       }
 
       # AC POWER
@@ -607,8 +571,6 @@ sub CheckCmd {
          ::logit( $self{log_file}, "$EventName - Zone $zone_no_pad ($ZoneName)" ) 
             unless ($main::config_parms{AD2USB_part_log} == 0);
          ChangeZones( $zone_no_pad, $zone_no_pad, "alarm", "", 1);
-         $self->{zone_now_status}      = "alarm";
-         $self->{zone_now_num}         = $zone_no_pad;
          $self->{partition_now_msg}    = $status_type->{alphanumeric};
          $self->{partition_now_status} = "alarm";
          $self->{partition_now_num}    = $PartNum;
@@ -754,21 +716,6 @@ sub ChangePartitions {
 #    Reset Ademco state to simulate a "now" on some value ie: zone, temp etc.  {{{
 sub ResetAdemcoState {
    my ($self) = @_;
-   # store faults (fault and bypass) for next message parsing
-   if (($self->{zone_now_status} eq "fault") || ($self->{zone_now_status} eq "bypass")) {
-      $self->{zone_last_status} = $self->{zone_now_status};
-      $self->{zone_last_num} = $self->{zone_now_num};
-   }
-
-   # reset zone
-   if ( defined $self->{zone_now_num} ) {
-      my $ZoneNum = $self->{zone_now_num};
-      $self->{zone_num}{$ZoneNum}   = $self->{zone_now_num};
-      $self->{zone_status}{$ZoneNum} = $self->{zone_now_status};
-      $self->{zone_time}{$ZoneNum}   = &::time_date_stamp( 17, time );
-      undef $self->{zone_now_num};
-      undef $self->{zone_now_status};
-   }
 
    # reset partition
    if ( defined $self->{partition_now_num} ) {
