@@ -116,7 +116,6 @@ sub new {
    my $self = new Generic_Item();
 
    # Initialize Variables
-   $$self{last_cmd}       = '';
    $$self{ac_power}       = 0;
    $$self{battery_low}    = 1;
    $$self{chime}          = 0;
@@ -457,7 +456,7 @@ sub CheckCmd {
       # TODO This may need to be adjusted if there are some message types that
       # can be received while a zone is faulted.  Perhaps bypass messages or 
       # maybed armed messages?
-      $self->{zone_last_num} = "";
+      $self->{zone_last_num} = "" unless $status_type->{fault};
       
       # Set things based on Bit Codes
 
@@ -466,7 +465,6 @@ sub CheckCmd {
          my $bypass = ($status_type->{bypassed_flag}) ? 'bypass' : '';
          # Reset all zones, if bypass enabled skip bypassed zones
          ChangeZones( 1, 999, "ready", $bypass, 1);
-
          my $PartName = my $PartNum = 1;
 
          $PartName = $main::config_parms{"AD2USB_part_${PartNum}"} 
@@ -693,7 +691,7 @@ sub ChangeZones {
          #  Set child object status if it is registered to the zone
          $$self{zone_object}{"$i"}->set($new_status, $$self{zone_object}{"$i"}) if defined $$self{zone_object}{"$i"};
       }
-      $i = 0 if $i == 999; #loop around
+      $i = 0 if ($i == 999 && $reverse); #loop around
    }
 }
 
