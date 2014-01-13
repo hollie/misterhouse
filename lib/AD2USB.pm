@@ -222,8 +222,9 @@ sub check_for_data {
    my $self = get_object_by_instance($instance);
    my $NewCmd;
 
-   # Clear Zone_Now Function
+   # Clear Zone and Partition_Now Function
    $self->{zone_now} = ();
+   $self->{partition_now} = ();
 
    # Get the date from serial or tcp source
    if ($connecttype eq 'serial') {
@@ -449,6 +450,7 @@ sub CheckCmd {
    if ($status_type->{keypad}) {
       # If this was not a fault message then clear log of last fault msg
       $self->{zone_last_num} = "" unless $status_type->{fault};
+      $self->{partition_msg}{$partition} = $status_type->{alphanumeric};
       
       # Set things based on Bit Codes
 
@@ -678,7 +680,7 @@ sub ChangeZones {
    my $reverse = ($start > $end)? 1 : 0;
    for (my $i = $start; (!$reverse && $i <= $end) ||
          ($reverse && ($i >= $start || $i <= $end)); $i++) {
-      my $current_status = $self->{zone_status}{"$i"};
+      my $current_status = $$self{$self->zone_partition($i)}{zone_status}{$i};
       # If partition set, then zone partition must equal that
       if (($current_status ne $new_status) && ($current_status ne $neq_status)
          && (!$partition || ($partition == $self->zone_partition($i)))) {
@@ -688,9 +690,11 @@ sub ChangeZones {
                .") changed from '$current_status' to '$new_status'" )
                unless ($main::config_parms{AD2USB_zone_log} == 0);
          }
-         $self->{zone_status}{"$i"} = $new_status;
+         $$self{$self->zone_partition($i)}{zone_status}{$i} = $new_status;
          #  Store Change for Zone_Now Function
          $self->{zone_now}{"$i"} = 1;
+         #  Store Change for Partition_Now Function
+         $self->{partition_now}{$partition} = 1;
          #  Set child object status if it is registered to the zone
          $$self{zone_object}{"$i"}->set($new_status, $$self{zone_object}{"$i"}) if defined $$self{zone_object}{"$i"};
       }
@@ -854,8 +858,9 @@ sub cmd {
 #    user call from MH                                                         {{{
 
 sub status_zone {
-   my ( $class, $zone ) = @_;
-   return $_[0]->{zone_status}{$zone} if defined $_[0]->{zone_status}{$zone};
+   my ( $self, $zone ) = @_;
+   $zone =~ s/^0*//;
+   return $$self{$self->zone_partition($zone)}{zone_status}{$zone};
 }
 
 sub zone_now {
@@ -880,20 +885,34 @@ sub zone_partition {
 }
 
 sub partition_now {
-   my ( $class, $part ) = @_;
-   return $_[0]->{partition_now_num} if defined $_[0]->{partition_now_num};
+   my ( $self, $part ) = @_;
+   return $self->{partition_now}{$part};
 }
 
-sub partition_now_msg {
-   my ( $class, $part ) = @_;
-   return $_[0]->{partition_now_msg} if defined $_[0]->{partition_now_msg};
+sub partition_msg {
+   my ( $self, $part ) = @_;
+   return $self->{partition_msg}{part};
 }
 
 sub partition_name {
    my ( $class, $part_num ) = @_;
-   my $PartName = $main::config_parms{"AD2USB_part_$part_num"} if exists $main::config_parms{"AD2USB_part_$part_num"};
-   return $PartName if $PartName;
-   return $part_num;
+   return $main::config_parms{"AD2USB_part_$part_num"};
+}
+
+sub status_partition {
+   my ( $self, $partition ) = @_;
+   my %partition_zones = %{$$self{$partition}{zone_status}};
+   my $partition_status = 'ready';
+   for my $zone (keys %partition_zones){
+      if ($partition_zones{$zone} eq 'fault'){
+         $partition_status = 'fault';
+         last;
+      }
+      elsif ($partition_zones{$zone} eq 'bypass'){
+         $partition_status = 'bypass';
+      }
+   }
+   return $partition_status;
 }
 
 sub cmd_list {
