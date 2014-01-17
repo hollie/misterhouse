@@ -101,8 +101,6 @@ use strict;
 
 @AD2USB::ISA = ('Generic_Item');
 
-my $Self;  #Kludge
-my %ErrorCode;
 my %Socket_Items; #Stores the socket instances and attributes
 my %Interfaces; #Stores the relationships btw instances and interfaces
 my %Configuration; #Stores the local config parms 
@@ -137,13 +135,10 @@ sub new {
    # AD2USB_part_log AD2USB_zone_log AD2USB_debug_log
 
    #Set all zones and partitions to ready
-   ChangeZones( 1, 100, "ready", "ready", 0);
-   ChangePartitions( 1, 1, "ready", 0);
+   $self->ChangeZones( 1, 999, "ready", "ready", 0);
 
    #Store Object with Instance Name
    $self->set_object_instance($instance);
-
-   $Self = $self; #Kludge
 
    return $self;
 }
@@ -357,9 +352,7 @@ sub CheckCmd {
       $self->{zone_last_num}            = $zone_no_pad;
    }
    elsif ($status_type->{bypass}) {
-      my $PartNum = "1";
-
-      ChangeZones( $zone_no_pad, $zone_no_pad, "bypass", "", 1);
+      $self->ChangeZones( $zone_no_pad, $zone_no_pad, "bypass", "", 1);
    }
    elsif ($status_type->{wireless}) {
       ::logit( $$self{log_file}, "WIRELESS: rf_id("
@@ -399,10 +392,10 @@ sub CheckCmd {
                  $ZoneStatus = "ready";
                }
 
-               ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
+               $self->ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
                if ($sensortype eq "k") {
                   $ZoneStatus = "ready";
-                  ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
+                  $self->ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
                }
             }
          $lc++
@@ -447,7 +440,12 @@ sub CheckCmd {
       if ( $status_type->{ready_flag}) {
          my $bypass = ($status_type->{bypassed_flag}) ? 'bypass' : '';
          # Reset all zones, if bypass enabled skip bypassed zones
-         ChangeZones( 1, 999, "ready", $bypass, 1);
+         foreach my $partition (@partitions){
+            $self->ChangeZones( 1, 999, "ready", $bypass, 1, $partition);
+         }
+         # TODO - If the partition is set to STAY, does a fault on a motion
+         # sensor cause the ready flag to be set to 0?  If not, then we need
+         # to avoid alterning mapped zones.
       }
 
       # ARMED AWAY
@@ -541,6 +539,7 @@ sub CheckCmd {
 # Returns a hash reference containing the message details
 sub GetStatusType {
    my ($self, $AdemcoStr) = @_;
+   my $instance = $self->{instance};
    my %message;
 
    # Panel Message Format
@@ -630,8 +629,8 @@ sub GetStatusType {
 #}}}
 #    Change zone statuses for zone indices from start to end            {{{
 sub ChangeZones {
-   my ($start, $end, $new_status, $neq_status, $log, $partition) = @_;
-   my $self = $Self; #Kludge
+   my ($self, $start, $end, $new_status, $neq_status, $log, $partition) = @_;
+   my $instance = $self->{instance};
 
    # Allow for reverse looping from 999->1
    my $reverse = ($start > $end)? 1 : 0;
@@ -714,24 +713,14 @@ sub DefineCmdMsg {
 
 #}}}
 #    Define hash with all zone numbers and names {{{
-sub ZoneName {
-   #my $self = $Self;
-   my @Name = ["none"];
-
-	foreach my $key (keys(%::config_parms)) {
-		next if $key !~ /^AD2USB_zone_(\d+)$/;
-		$Name[int($1)]=$::config_parms{$key};
-	}
-   return @Name;
-}
-
-
 sub MappedZones {
-	foreach my $mkey (keys(%::config_parms)) {
-                next if $mkey !~ /^AD2USB_(relay|wireless|expander)_(\d+)$/;
-                if ("@_" eq $::config_parms{$mkey}) { return 1 }
-        }
-    return 0;
+   my ($self) = @_;
+   my $instance = $self->{instance};
+   foreach my $mkey (keys(config_merge())) {
+      next if $mkey !~ /^${instance}_(relay|wireless|expander)_(\d+)$/;
+      if ("@_" eq config_merge($mkey)) { return 1 }
+    }
+   return 0;
 }
 
 #}}}
@@ -821,8 +810,9 @@ sub partition_msg {
 }
 
 sub partition_name {
-   my ( $class, $part_num ) = @_;
-   return $main::config_parms{"AD2USB_part_$part_num"};
+   my ( $self, $part_num ) = @_;
+   my $instance = $self->{instance};
+   return config_merge("${instance}_part_$part_num");
 }
 
 sub status_partition {
@@ -857,7 +847,7 @@ sub register {
    my ($self, $object, $zone_num ) = @_;
    &::print_log("Registering Child Object on zone $zone_num");
    $self->{zone_object}{$zone_num} = $object;
-   }
+}
 
 sub get_child_object_name {
    my ($self,$zone_num) = @_;
