@@ -120,9 +120,9 @@ sub new {
    $$self{chime}          = 0;
    $$self{keys_sent}      = 0;
    $$self{instance}       = $instance;
-   $$self{reconnect_time} = config_merge($instance.'_ser2sock_recon');
+   $$self{reconnect_time} = $::config_parms{$instance.'_ser2sock_recon'};
    $$self{reconnect_time} = 10 if !defined($$self{reconnect_time});
-   $$self{log_file}       = config_merge('data_dir')."/logs/AD2USB.$::Year_Month_Now.log";
+   $$self{log_file}       = $::config_parms{'data_dir'}."/logs/AD2USB.$::Year_Month_Now.log";
 
    bless $self, $class;
 
@@ -139,6 +139,9 @@ sub new {
 
    #Store Object with Instance Name
    $self->set_object_instance($instance);
+
+   #Load the Parameters from the INI file
+   $self->read_parms($instance);
 
    return $self;
 }
@@ -157,28 +160,42 @@ sub set_object_instance{
 }
 #}}}
 
-# This routine merges the ini and read_table_a parameters.  If an ini parameter
-# exists it takes precedence over the read_table_a parameter
-sub config_merge {
-   my ($parm) = @_;
-   if ($parm){
-      return $::config_parms{$parm} if exists($::config_parms{$parm});
-      return $Configuration{$parm};
-   }
-   else {
-      #This is a request for the full hash
-      my %config_hash;
-      foreach my $mkey (keys(%::config_parms)) {
-         next if $mkey =~ /_MHINTERNAL_/;
-         $config_hash{$mkey} = $::config_parms{$mkey};
+# Reads the ini settings and pushes them into the appropriate Hashes
+sub read_parms{
+   my ($self, $instance) = @_;
+   foreach my $mkey (keys(%::config_parms)) {
+      next if $mkey =~ /_MHINTERNAL_/;
+      #Load All Configuration Settings
+      $Configuration{$mkey} = $::config_parms{$mkey} if $mkey =~ /^AD2USB_/;
+      #Put wireless settings in correct hash
+      if ($mkey =~ /^${instance}_wireless_(.*)/){
+         $$self{wireless}{$1} = $::config_parms{$mkey};
       }
-      return %config_hash;
+      #Put expander settings in correct hash
+      if ($mkey =~ /^${instance}_expander_(.*)/){
+         $$self{expander}{$1} = $::config_parms{$mkey};
+      }
+      #Put relay settings in correct hash
+      if ($mkey =~ /^${instance}_relay_(.*)/){
+         $$self{relay}{$1} = $::config_parms{$mkey};
+      }
+      #Put Partition Addresses in Correct Hash
+      if ($mkey =~ /^${instance}_partition_(\d*)_address$/){
+         $$self{partition_address}{$1} = $::config_parms{$mkey};
+      }
+      #Put Zone Names in Correct Hash
+      if ($mkey =~ /^${instance}_partition_(\d*)$/){
+         $$self{zone_name}{$1} = $::config_parms{$mkey};
+      }
+      #Put Zone Partition Relationship in Correct Hash
+      if ($mkey =~ /^${instance}_zone_(\d*)_partition$/){
+         $$self{zone_partition}{$1} = $::config_parms{$mkey};
+      }
+      #Put Partition Name in Correct Hash
+      if ($mkey =~ /^${instance}_part_(\d)$/){
+         $$self{partition_name}{$1} = $::config_parms{$mkey};
+      }
    }
-}
-
-sub config_set{
-   my ($parm, $value) = @_;
-   $Configuration{$parm} = $value;
 }
 
 #    serial port configuration                                         {{{
@@ -204,13 +221,13 @@ sub serial_startup {
    my ($instance) = @_;
    my ($port, $BaudRate, $ip);
 
-   if (config_merge($instance . '_serial_port') and 
-         config_merge($instance . '_serial_port') ne '/dev/none') {
-      $port = config_merge($instance .'_serial_port');
-      $BaudRate = ( defined config_merge($instance . '_baudrate') ) ? config_merge("$instance" . '_baudrate') : 115200;
+   if ($::config_parms{$instance . '_serial_port'} and 
+         $::config_parms{$instance . '_serial_port'} ne '/dev/none') {
+      $port = $::config_parms{$instance .'_serial_port'};
+      $BaudRate = ( defined $::config_parms{$instance . '_baudrate'} ) ? $::config_parms{"$instance" . '_baudrate'} : 115200;
       if ( &main::serial_port_create( $instance, $port, $BaudRate, 'none', 'raw' ) ) {
          init( $::Serial_Ports{$instance}{object}, $port );
-         ::print_log("[AD2USB] initializing $instance on port $port at $BaudRate baud") if config_merge("debug") eq 'AD2USB';
+         ::print_log("[AD2USB] initializing $instance on port $port at $BaudRate baud") if $main::Debug{'AD2USB'};
          ::MainLoop_pre_add_hook( sub {AD2USB::check_for_data($instance, 'serial');}, 1 ) if $main::Serial_Ports{"$instance"}{object};
       }
    }
@@ -222,14 +239,14 @@ sub server_startup {
    my ($instance) = @_;
 
    $Socket_Items{"$instance"}{recon_timer} = ::Timer::new();
-   my $ip = config_merge("$instance".'_server_ip');
-   my $port = config_merge("$instance" . '_server_port');
-   ::print_log("  AD2USB.pm initializing $instance TCP session with $ip on port $port") if config_merge("debug") eq 'AD2USB';
+   my $ip = $::config_parms{"$instance".'_server_ip'};
+   my $port = $::config_parms{"$instance" . '_server_port'};
+   ::print_log("  AD2USB.pm initializing $instance TCP session with $ip on port $port") if $main::Debug{'AD2USB'};
    $Socket_Items{"$instance"}{'socket'} = new Socket_Item($instance, undef, "$ip:$port", $instance, 'tcp', 'raw');
    $Socket_Items{"$instance" . '_sender'}{'socket'} = new Socket_Item($instance . '_sender', undef, "$ip:$port", $instance . '_sender', 'tcp', 'rawout');
    $Socket_Items{"$instance"}{'socket'}->start;
    $Socket_Items{"$instance" . '_sender'}{'socket'}->start;
-   &::MainLoop_pre_add_hook( sub {AD2USB::check_for_data($instance, 'tcp');}, 1 );
+   ::MainLoop_pre_add_hook( sub {AD2USB::check_for_data($instance, 'tcp');}, 1 );
 }
 
 #}}}
@@ -377,7 +394,7 @@ sub CheckCmd {
             $ZoneStatus = "low battery";
          }
    
-         foreach my $wnum(split(",", config_merge($instance."_wireless_".$status_type->{rf_id}))) {
+         foreach my $wnum(split(",", $$self{wireless}{$status_type->{rf_id}})) {
             if ($lc % 2 == 0) { 
                $ZoneNum = $wnum;
             }
@@ -409,9 +426,9 @@ sub CheckCmd {
       my $input_id = $status_type->{exp_channel};
       my $status = $status_type->{exp_status};
 
-      ::logit( $$self{log_file}, "EXPANDER: exp_id($exp_id) input($input_id) status($status)" ) unless (config_merge($instance.'_debug_log') == 0);
+      $self->debug_log("EXPANDER: exp_id($exp_id) input($input_id) status($status)");
 
-      if (my $ZoneNum = config_merge($instance."_expander_$exp_id$input_id")) {
+      if (my $ZoneNum = $$self{expander}{$exp_id.$input_id}) {
          my $ZoneStatus = ($status == 01) ? "fault" : "ready";
          $self->ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
       }
@@ -421,9 +438,9 @@ sub CheckCmd {
       my $rel_input_id = $status_type->{rel_channel};
       my $rel_status = $status_type->{rel_status};
 
-      ::logit( $$self{log_file}, "RELAY: rel_id($rel_id) input($rel_input_id) status($rel_status)" ) unless (config_merge($instance.'_debug_log') == 0);
+      $self->debug_log("RELAY: rel_id($rel_id) input($rel_input_id) status($rel_status)");
 
-      if (my $ZoneNum = config_merge($instance."_relay_$rel_id$rel_input_id")) {
+      if (my $ZoneNum = $$self{relay}{$rel_id.$rel_input_id}) {
          my $ZoneStatus = ($rel_status == 01) ? "fault" : "ready";
          $self->ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
       }
@@ -688,15 +705,15 @@ sub DefineCmdMsg {
    my ($self) = @_;
    my $instance = $self->{instance};
    my %Return_Hash = (
-      "Disarm"                            => config_merge($instance."_user_master_code")."1",
-      "ArmAway"                           => config_merge($instance."_user_master_code")."2",
-      "ArmStay"                           => config_merge($instance."_user_master_code")."3",
-      "ArmAwayMax"                        => config_merge($instance."_user_master_code")."4",
-      "Test"                              => config_merge($instance."_user_master_code")."5",
-      "Bypass"                            => config_merge($instance."_user_master_code")."6#",
-      "ArmStayInstant"                    => config_merge($instance."_user_master_code")."7",
-      "Code"                              => config_merge($instance."_user_master_code")."8",
-      "Chime"                             => config_merge($instance."_user_master_code")."9",
+      "Disarm"                            => $Configuration{$instance."_user_master_code"}."1",
+      "ArmAway"                           => $Configuration{$instance."_user_master_code"}."2",
+      "ArmStay"                           => $Configuration{$instance."_user_master_code"}."3",
+      "ArmAwayMax"                        => $Configuration{$instance."_user_master_code"}."4",
+      "Test"                              => $Configuration{$instance."_user_master_code"}."5",
+      "Bypass"                            => $Configuration{$instance."_user_master_code"}."6#",
+      "ArmStayInstant"                    => $Configuration{$instance."_user_master_code"}."7",
+      "Code"                              => $Configuration{$instance."_user_master_code"}."8",
+      "Chime"                             => $Configuration{$instance."_user_master_code"}."9",
       "ToggleVoice"                       => '#024',
       "ShowFaults"                        => "*",
       "AD2USBReboot"                      => "=",
@@ -704,30 +721,30 @@ sub DefineCmdMsg {
    );
 
    my $two_digit_zone;
-   foreach my $key (keys {config_merge()}) {
+   foreach my $key (keys %Configuration) {
       #Create Commands for Relays
       if ($key =~ /^${instance}_output_(\D+)_(\d+)$/){
          if ($1 eq 'co') {
-            $Return_Hash{config_merge($key)."c"} = config_merge($instance."_user_master_code")."#70$2";
-            $Return_Hash{config_merge($key)."o"} = config_merge($instance."_user_master_code")."#80$2";
+            $Return_Hash{$Configuration{$key}."c"} = $Configuration{$instance."_user_master_code"}."#70$2";
+            $Return_Hash{$Configuration{$key}."o"} = $Configuration{$instance."_user_master_code"}."#80$2";
          }
          elsif ($1 eq 'oc') {
-            $Return_Hash{config_merge($key)."o"} = config_merge($instance."_user_master_code")."#80$2";
-            $Return_Hash{config_merge($key)."c"} = config_merge($instance."_user_master_code")."#70$2";
+            $Return_Hash{$Configuration{$key}."o"} = $Configuration{$instance."_user_master_code"}."#80$2";
+            $Return_Hash{$Configuration{$key}."c"} = $Configuration{$instance."_user_master_code"}."#70$2";
          }
          elsif ($1 eq 'o') {
-            $Return_Hash{config_merge($key)."o"} = config_merge($instance."_user_master_code")."#80$2";
+            $Return_Hash{$Configuration{$key}."o"} = $Configuration{$instance."_user_master_code"}."#80$2";
          }
          elsif ($1 eq 'c') {
-            $Return_Hash{config_merge($key)."c"} = config_merge($instance."_user_master_code")."#70$2";
+            $Return_Hash{$Configuration{$key}."c"} = $Configuration{$instance."_user_master_code"}."#70$2";
          }
       }
       #Create Commands for Zone Expanders
       elsif ($key =~ /^${instance}_expander_(\d+)$/) {
-         $two_digit_zone = substr(config_merge($key), 1); #Trim leading zero
-         $Return_Hash{"exp".config_merge($key)."c"} = "L$two_digit_zone"."0";
-         $Return_Hash{"exp".config_merge($key)."f"} = "L$two_digit_zone"."1";
-         $Return_Hash{"exp".config_merge($key)."p"} = "L$two_digit_zone"."2"; 
+         $two_digit_zone = substr($Configuration{$key}, 1); #Trim leading zero
+         $Return_Hash{"exp".$Configuration{$key}."c"} = "L$two_digit_zone"."0";
+         $Return_Hash{"exp".$Configuration{$key}."f"} = "L$two_digit_zone"."1";
+         $Return_Hash{"exp".$Configuration{$key}."p"} = "L$two_digit_zone"."2"; 
       }
    }
 
@@ -743,12 +760,17 @@ sub debug_log {
 #}}}
 #    Define hash with all zone numbers and names {{{
 sub MappedZones {
-   my ($self) = @_;
+   my ($self, $zone) = @_;
    my $instance = $self->{instance};
-   foreach my $mkey (keys(config_merge())) {
-      next if $mkey !~ /^${instance}_(relay|wireless|expander)_(\d+)$/;
-      if ("@_" eq config_merge($mkey)) { return 1 }
-    }
+   foreach my $mkey (keys $$self{relay}) {
+      if ($zone eq $$self{relay}{$mkey}) { return 1 }
+   }
+   foreach my $mkey (keys $$self{wireless}) {
+      if ($zone eq $$self{wireless}{$mkey}) { return 1 }
+   }
+   foreach my $mkey (keys $$self{expander}) {
+      if ($zone eq $$self{expander}{$mkey}) { return 1 }
+   }
    return 0;
 }
 
@@ -769,7 +791,7 @@ sub cmd {
    }
 
    # Exit if password is wrong
-   if ( ($password ne config_merge($instance.'_user_master_code')) && ($CmdName ne "ShowFaults" ) ) {
+   if ( ($password ne $Configuration{$instance.'_user_master_code'}) && ($CmdName ne "ShowFaults" ) ) {
       ::logit( $$self{log_file}, "Invalid password for command $CmdName ($password)");
       return;
    }
@@ -815,14 +837,14 @@ sub zone_name {
    my ( $self, $zone_num ) = @_;
    my $instance = $self->{instance};
    $zone_num = sprintf "%03s", $zone_num;
-   return config_merge($instance."_zone_$zone_num");
+   return $$self{zone_name}{$zone_num};
 }
 
 sub zone_partition {
    my ( $self, $zone_num ) = @_;
    my $instance = $self->{instance};
    $zone_num = sprintf "%03s", $zone_num;
-   my $partition = config_merge("${instance}_zone_${zone_num}_partition");
+   my $partition = $$self{zone_partition}{$zone_num};
    # Default to partition 1
    $partition = 1 unless $partition;
    return $partition;
@@ -841,7 +863,7 @@ sub partition_msg {
 sub partition_name {
    my ( $self, $part_num ) = @_;
    my $instance = $self->{instance};
-   return config_merge("${instance}_part_$part_num");
+   return $$self{partition_name}{$part_num};
 }
 
 sub status_partition {
