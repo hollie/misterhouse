@@ -454,10 +454,7 @@ sub CheckCmd {
 
       # ARMED AWAY
       if ( $status_type->{armed_away_flag}) {
-         my $PartNum = my $PartName = 1;
-         $PartName = config_merge($instance."_part_${PartNum}") 
-            if defined config_merge($instance."_part_${PartNum}");
-
+         # TODO The setting of modes needs to be done on partitions
          my $mode = "ERROR";
          if (index($status_type->{alphanumeric}, "ALL SECURE")) {
             $mode = "armed away";
