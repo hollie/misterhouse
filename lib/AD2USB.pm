@@ -314,7 +314,8 @@ sub CheckCmd {
    my $status_type = $self->GetStatusType($CmdStr);
    my $zone_padded = $status_type->{numeric_code};
    my $zone_no_pad = int($zone_padded);
-   my $partition = $status_type->{partition};
+   my @partitions = $status_type->{partition};
+   my $instance = $self->{instance};
    
    if ($status_type->{unknown}) {
       ::logit( $$self{log_file}, "UNKNOWN STATUS: $CmdStr" ) unless (config_merge($instance.'_debug_log') == 0);
@@ -333,23 +334,24 @@ sub CheckCmd {
       cmd( $self, "ShowFaults" );
    }
    elsif ($status_type->{fault}) {
-      my $PartNum = "1";
-
       # Each fault message tells us two things, 1) this zone is faulted and 
       # 2) all zones between this zone and the last fault are ready.
       
-      #Reset the zones between the current zone and the last zone. If zones
-      #are sequential do nothing, if same zone, reset all other zones
-      if ($self->{zone_last_num} - $zone_no_pad > 1 
-         || $self->{zone_last_num} - $zone_no_pad == 0) {
-         ChangeZones( $self->{zone_last_num}+1, $zone_no_pad-1, "ready", "bypass", 1);
+      #Loop through partions set in message
+      foreach my $partition (@partitions){
+         #Reset the zones between the current zone and the last zone. If zones
+         #are sequential do nothing, if same zone, reset all other zones
+         if ($self->{zone_last_num}{$partition} - $zone_no_pad > 1 
+            || $self->{zone_last_num}{$partition} - $zone_no_pad == 0) {
+            $self->ChangeZones( $self->{zone_last_num}{$partition}+1, $zone_no_pad-1, "ready", "bypass", 1, $partition);
+         }
+   
+         # Set this zone to faulted
+         $self->ChangeZones( $zone_no_pad, $zone_no_pad, "fault", "", 1);
+         
+         # Store Zone Number for Use in Fault Loop
+         $self->{zone_last_num}{$partition}           = $zone_no_pad;
       }
-
-      # Set this zone to faulted
-      ChangeZones( $zone_no_pad, $zone_no_pad, "fault", "", 1);
-      
-      # Store Zone Number for Use in Fault Loop
-      $self->{zone_last_num}            = $zone_no_pad;
    }
    elsif ($status_type->{bypass}) {
       $self->ChangeZones( $zone_no_pad, $zone_no_pad, "bypass", "", 1);
@@ -431,8 +433,10 @@ sub CheckCmd {
    # ALWAYS Check Bits in Keypad Message
    if ($status_type->{keypad}) {
       # If this was not a fault message then clear log of last fault msg
-      $self->{zone_last_num} = "" unless $status_type->{fault};
-      $self->{partition_msg}{$partition} = $status_type->{alphanumeric};
+      foreach my $partition (@partitions){
+         $self->{zone_last_num}{$partition} = "" unless $status_type->{fault};
+         $self->{partition_msg}{$partition} = $status_type->{alphanumeric};
+      }
       
       # Set things based on Bit Codes
 
@@ -451,8 +455,8 @@ sub CheckCmd {
       # ARMED AWAY
       if ( $status_type->{armed_away_flag}) {
          my $PartNum = my $PartName = 1;
-         $PartName = $main::config_parms{"AD2USB_part_${PartNum}"} 
-            if exists $main::config_parms{"AD2USB_part_${PartNum}"};
+         $PartName = config_merge($instance."_part_${PartNum}") 
+            if defined config_merge($instance."_part_${PartNum}");
 
          my $mode = "ERROR";
          if (index($status_type->{alphanumeric}, "ALL SECURE")) {
@@ -552,13 +556,40 @@ sub GetStatusType {
       $message{raw_data} = $4;
       $message{alphanumeric} = $5;
       
-      # Relevant Partition Data is Apparently Contained in the Raw Data, 
-      # which contains a mask identifying the panels that each message is
-      # destined for.  Apparently this can be used to determine the partition
-      # number.  It isn't clear to me how this works, so for the time being
-      # everything is assumed to be partition 1.
-      $message{partition} = 1;
-      
+      # Partition Data is Contained in the Raw Data, in the form of a bit mask 
+      # identifying the panels that each message is destined for.  By knowing 
+      # which panels are on which partitions, we can determine the partition of 
+      # this message.
+      my $address_mask = substr($message{raw_data}, 2, 8);
+      my @addresses;
+      for (my $b = 3; $b >= 0; $b--){
+          my $byte = hex(uc substr($address_mask, -2));
+          $address_mask = substr($address_mask, 0, -2);
+          for (my $i = 0; $i <= 7; $i++){
+              push (@addresses, (($b*8)+$i)) if ($byte &0b1);
+              $byte = $byte >> 1;
+          }
+      }
+      #Place message in partition if address is equal to partition, or no 
+      #address is specified (system wide messages).
+      my %partitions;
+      foreach my $key (keys {config_merge()}) {
+         if ($key =~ /^${instance}_partition_(\d)_address$/){
+            $partitions{$1} = 
+               config_merge($instance."_partition_".$1."_address");
+         }
+      }
+      foreach my $partition (keys %partitions){
+         my $part_addr = $partitions{$partition};
+         if (grep($part_addr, @addresses) || 
+            (scalar @addresses == 0)) {
+            push($message{partition}, $partition);
+         }
+      }
+      if (scalar $message{partition} == 0){
+         $message{partition} = (1); #Default to partition 1
+      }
+
       # Decipher and Set Bit Flags
       my @flags = ('ready_flag', 'armed_away_flag', 'armed_home_flag',
       'backlight_flag', 'programming_flag', 'beep_count', 'bypassed_flag', 'ac_flag',
@@ -755,7 +786,7 @@ sub cmd {
          if ($Socket_Items{$instance}{recon_timer}->inactive) {
             ::print_log("Connection to $instance sending instance of AD2USB was lost, I will try to reconnect in $$self{reconnect_time} seconds");
             $Socket_Items{$instance}{recon_timer}->set($$self{reconnect_time}, sub {
-               $Socket_Items{$instance}{'socket'}->start;
+               $Socket_Items{$instance . '_sender'}{'socket'}->start;
                $Socket_Items{$instance . '_sender'}{'socket'}->set("$CmdStr");
             });
          }
