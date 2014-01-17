@@ -582,22 +582,17 @@ sub GetStatusType {
       }
       #Place message in partition if address is equal to partition, or no 
       #address is specified (system wide messages).
-      my %partitions;
-      foreach my $key (keys {config_merge()}) {
-         if ($key =~ /^${instance}_partition_(\d)_address$/){
-            $partitions{$1} = 
-               config_merge($instance."_partition_".$1."_address");
-         }
-      }
-      foreach my $partition (keys %partitions){
-         my $part_addr = $partitions{$partition};
+      foreach my $partition (keys %{$$self{partition_address}}){
+         my $part_addr = $$self{partition_address}{$partition};
          if (grep($part_addr, @addresses) || 
             (scalar @addresses == 0)) {
-            push($message{partition}, $partition);
+            push(@{$message{partition}}, $partition);
          }
       }
       if (scalar $message{partition} == 0){
-         $message{partition} = (1); #Default to partition 1
+         # The addresses identified in this message did not match any defined
+         # partition addresses, default to putting in partition 1.
+         @{$message{partition}} = (1); #Default to partition 1
       }
 
       # Decipher and Set Bit Flags
@@ -692,7 +687,12 @@ sub ChangeZones {
          #  Store Change for Partition_Now Function
          $self->{partition_now}{$partition} = 1;
          #  Set child object status if it is registered to the zone
-         $$self{zone_object}{"$i"}->set($new_status, $$self{zone_object}{"$i"}) if defined $$self{zone_object}{"$i"};
+         $$self{zone_object}{"$i"}->set($new_status, $$self{zone_object}{"$i"}) 
+            if defined $$self{zone_object}{"$i"};
+         my $zone_partition = $self->zone_partition($i);
+         my $partition_status = $self->status_partition($zone_partition);
+         $$self{parition_object}{$zone_partition}->set($partition_status, $$self{zone_object}{"$i"}) 
+            if defined $$self{parition_object}{$zone_partition};
       }
       $i = 0 if ($i == 999 && $reverse); #loop around
    }
