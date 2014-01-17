@@ -105,6 +105,7 @@ my $Self;  #Kludge
 my %ErrorCode;
 my %Socket_Items; #Stores the socket instances and attributes
 my %Interfaces; #Stores the relationships btw instances and interfaces
+my %Configuration; #Stores the local config parms 
 
 #    Starting a new object                                                  {{{
 # Called by user code `$AD2USB = new AD2USB`
@@ -121,9 +122,9 @@ sub new {
    $$self{chime}          = 0;
    $$self{keys_sent}      = 0;
    $$self{instance}       = $instance;
-   $$self{reconnect_time} = $::config_parms{'AD2USB_ser2sock_recon'};
+   $$self{reconnect_time} = config_merge($instance.'_ser2sock_recon');
    $$self{reconnect_time} = 10 if !defined($$self{reconnect_time});
-   $$self{log_file}       = "$::config_parms{data_dir}/logs/AD2USB.$::Year_Month_Now.log";
+   $$self{log_file}       = config_merge('data_dir')."/logs/AD2USB.$::Year_Month_Now.log";
 
    bless $self, $class;
 
@@ -161,6 +162,30 @@ sub set_object_instance{
 }
 #}}}
 
+# This routine merges the ini and read_table_a parameters.  If an ini parameter
+# exists it takes precedence over the read_table_a parameter
+sub config_merge {
+   my ($parm) = @_;
+   if ($parm){
+      return $::config_parms{$parm} if exists($::config_parms{$parm});
+      return $Configuration{$parm};
+   }
+   else {
+      #This is a request for the full hash
+      my %config_hash;
+      foreach my $mkey (keys(%::config_parms)) {
+         next if $mkey =~ /_MHINTERNAL_/;
+         $config_hash{$mkey} = $::config_parms{$mkey};
+      }
+      return %config_hash;
+   }
+}
+
+sub config_set{
+   my ($parm, $value) = @_;
+   $Configuration{$parm} = $value;
+}
+
 #    serial port configuration                                         {{{
 sub init {
 
@@ -184,13 +209,13 @@ sub serial_startup {
    my ($instance) = @_;
    my ($port, $BaudRate, $ip);
 
-   if ($::config_parms{$instance . '_serial_port'} and 
-         $::config_parms{$instance . '_serial_port'} ne '/dev/none') {
-      $port = $::config_parms{$instance .'_serial_port'};
-      $BaudRate = ( defined $::config_parms{$instance . '_baudrate'} ) ? $main::config_parms{"$instance" . '_baudrate'} : 115200;
+   if (config_merge($instance . '_serial_port') and 
+         config_merge($instance . '_serial_port') ne '/dev/none') {
+      $port = config_merge($instance .'_serial_port');
+      $BaudRate = ( defined config_merge($instance . '_baudrate') ) ? config_merge("$instance" . '_baudrate') : 115200;
       if ( &main::serial_port_create( $instance, $port, $BaudRate, 'none', 'raw' ) ) {
          init( $::Serial_Ports{$instance}{object}, $port );
-         ::print_log("[AD2USB] initializing $instance on port $port at $BaudRate baud") if $main::config_parms{debug} eq 'AD2USB';
+         ::print_log("[AD2USB] initializing $instance on port $port at $BaudRate baud") if config_merge("debug") eq 'AD2USB';
          ::MainLoop_pre_add_hook( sub {AD2USB::check_for_data($instance, 'serial');}, 1 ) if $main::Serial_Ports{"$instance"}{object};
       }
    }
@@ -202,11 +227,11 @@ sub server_startup {
    my ($instance) = @_;
 
    $Socket_Items{"$instance"}{recon_timer} = ::Timer::new();
-   my $ip = $::config_parms{"$instance".'_server_ip'};
-   my $port = $::config_parms{"$instance" . '_server_port'};
-   ::print_log("  AD2USB.pm initializing $instance TCP session with $ip on port $port") if $main::config_parms{debug} eq 'AD2USB';
-   $Socket_Items{"$instance"}{'socket'} = new Socket_Item($instance, undef, "$ip:$port", 'AD2USB', 'tcp', 'raw');
-   $Socket_Items{"$instance" . '_sender'}{'socket'} = new Socket_Item($instance . '_sender', undef, "$ip:$port", 'AD2USB_SENDER', 'tcp', 'rawout');
+   my $ip = config_merge("$instance".'_server_ip');
+   my $port = config_merge("$instance" . '_server_port');
+   ::print_log("  AD2USB.pm initializing $instance TCP session with $ip on port $port") if config_merge("debug") eq 'AD2USB';
+   $Socket_Items{"$instance"}{'socket'} = new Socket_Item($instance, undef, "$ip:$port", $instance, 'tcp', 'raw');
+   $Socket_Items{"$instance" . '_sender'}{'socket'} = new Socket_Item($instance . '_sender', undef, "$ip:$port", $instance . '_sender', 'tcp', 'rawout');
    $Socket_Items{"$instance"}{'socket'}->start;
    $Socket_Items{"$instance" . '_sender'}{'socket'}->start;
    &::MainLoop_pre_add_hook( sub {AD2USB::check_for_data($instance, 'tcp');}, 1 );
@@ -268,15 +293,14 @@ sub check_for_data {
          if ($status_type->{keypad} && $Cmd eq $self->{last_cmd} &&
             (!$status_type->{fault})) {
             # This is a duplicate panel message with no important status
-            ::logit( $$self{log_file}, "DUPE: $Cmd") unless ($main::config_parms{AD2USB_debug_log} == 0);
+            ::logit( $$self{log_file}, "DUPE: $Cmd") unless (config_merge($instance .'_debug_log') == 0);
          }
          else {
             # This is a non-dupe panel message or a fault panel message or a
             # relay or RF or zone expander message or something important
             # Log the message, parse it, and store it to detect future dupes
-            ::logit( $$self{log_file}, "MSG: $Cmd") unless ($main::config_parms{AD2USB_debug_log} == 0);
+            ::logit( $$self{log_file}, "MSG: $Cmd") unless (config_merge($instance.'_debug_log') == 0);
             $self->CheckCmd($Cmd);
-            $self->ResetAdemcoState();
             $self->{last_cmd} = $Cmd if ($status_type->{keypad});
          }
       }
@@ -298,15 +322,15 @@ sub CheckCmd {
    my $partition = $status_type->{partition};
    
    if ($status_type->{unknown}) {
-      ::logit( $$self{log_file}, "UNKNOWN STATUS: $CmdStr" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+      ::logit( $$self{log_file}, "UNKNOWN STATUS: $CmdStr" ) unless (config_merge($instance.'_debug_log') == 0);
    }
    elsif ($status_type->{cmd_sent}) {
       if ($self->{keys_sent} == 0) {
-         ::logit( $$self{log_file}, "Key sent from ANOTHER panel." ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+         ::logit( $$self{log_file}, "Key sent from ANOTHER panel." ) unless (config_merge($instance.'_debug_log') == 0);
       }
       else {
          $self->{keys_sent}--;
-         ::logit( $$self{log_file}, "Key received ($self->{keys_sent} left)" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+         ::logit( $$self{log_file}, "Key received ($self->{keys_sent} left)" ) unless (config_merge($instance.'_debug_log') == 0);
       }
    }
    elsif ($status_type->{fault_avail}) {
@@ -342,13 +366,13 @@ sub CheckCmd {
          .$status_type->{rf_id}.") status(".$status_type->{rf_status}.") loop1("
          .$status_type->{rf_loop_fault_1}.") loop2(".$status_type->{rf_loop_fault_2}
          .") loop3(".$status_type->{rf_loop_fault_3}.") loop4("
-         .$status_type->{rf_loop_fault_4}.")" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+         .$status_type->{rf_loop_fault_4}.")" ) unless (config_merge($instance.'_debug_log') == 0);
       ::logit( $$self{log_file}, "WIRELESS: rf_id("
          .$status_type->{rf_id}.") status(".$status_type->{rf_status}.") low_batt("
          .$status_type->{rf_low_batt}.") supervised(".$status_type->{rf_supervised}
-         .")" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+         .")" ) unless (config_merge($instance.'_debug_log') == 0);
 
-      if (exists $main::config_parms{"AD2USB_wireless_".$status_type->{rf_id}}) {
+      if (defined config_merge($instance . "_wireless_".$status_type->{rf_id})) {
          my ($MZoneLoop, $PartStatus, $ZoneNum);
          my $lc = 0;
          my $ZoneStatus = "ready";
@@ -358,7 +382,7 @@ sub CheckCmd {
             $ZoneStatus = "low battery";
          }
    
-         foreach my $wnum(split(",", $main::config_parms{"AD2USB_wireless_".$status_type->{rf_id}})) {
+         foreach my $wnum(split(",", config_merge($instance."_wireless_".$status_type->{rf_id}))) {
             if ($lc % 2 == 0) { 
                $ZoneNum = $wnum;
             }
@@ -390,20 +414,11 @@ sub CheckCmd {
       my $input_id = $status_type->{exp_channel};
       my $status = $status_type->{exp_status};
 
-      ::logit( $$self{log_file}, "EXPANDER: exp_id($exp_id) input($input_id) status($status)" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+      ::logit( $$self{log_file}, "EXPANDER: exp_id($exp_id) input($input_id) status($status)" ) unless (config_merge($instance.'_debug_log') == 0);
 
-      if (exists $main::config_parms{"AD2USB_expander_$exp_id$input_id"}) {
-         my $ZoneNum = $main::config_parms{"AD2USB_expander_$exp_id$input_id"};
-         # Assign status (zone and partition)
-
-         my $ZoneStatus = "ready";
-         my $PartStatus = "";
-         if ($status == 01) {
-            $ZoneStatus = "fault";
-            $PartStatus = "not ready";
-         }
-
-         ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
+      if (my $ZoneNum = config_merge($instance."_expander_$exp_id$input_id")) {
+         my $ZoneStatus = ($status == 01) ? "fault" : "ready";
+         $self->ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
       }
    }
    elsif ($status_type->{relay}) {
@@ -411,29 +426,11 @@ sub CheckCmd {
       my $rel_input_id = $status_type->{rel_channel};
       my $rel_status = $status_type->{rel_status};
 
-      ::logit( $$self{log_file}, "RELAY: rel_id($rel_id) input($rel_input_id) status($rel_status)" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+      ::logit( $$self{log_file}, "RELAY: rel_id($rel_id) input($rel_input_id) status($rel_status)" ) unless (config_merge($instance.'_debug_log') == 0);
 
-      if (exists $main::config_parms{"AD2USB_relay_$rel_id$rel_input_id"}) {
-         # Assign zone
-         my $ZoneNum = $main::config_parms{"AD2USB_relay_$rel_id$rel_input_id"};
-
-         # Assign status (zone and partition)
-         my $ZoneStatus = "ready";
-         my $PartStatus = "";
-         if ($rel_status == 01) {
-            $ZoneStatus = "fault";
-            $PartStatus = "not ready";
-         }
-
-         ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
-         # if (($self->{partition_status}{int($PartNum)}) eq "ready") { #only change the partition status if the current status is "ready". We dont change if the system is armed.
-         #  if ($PartStatus ne "") {
-         #     $self->{partition_now_msg}       = "$CmdStr";
-         #     $self->{partition_now_status}    = "$PartStatus";
-         #     $self->{partition_now_num}       = "$PartNum";
-         #     ChangePartitions( int($PartNum), int($PartNum), "$PartStatus", 1);
-         #  }
-         # }
+      if (my $ZoneNum = config_merge($instance."_relay_$rel_id$rel_input_id")) {
+         my $ZoneStatus = ($rel_status == 01) ? "fault" : "ready";
+         $self->ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
       }
    }
 
@@ -484,20 +481,20 @@ sub CheckCmd {
       # BACKLIGHT
       if ( $status_type->{backlight_flag}) {
          ::logit( $$self{log_file}, "Panel backlight is on" ) 
-            unless ($main::config_parms{AD2USB_debug_log} == 0);
+            unless (config_merge($instance.'_debug_log') == 0);
       }
 
       # PROGRAMMING MODE
       if ( $status_type->{programming_flag}) {
          ::logit( $$self{log_file}, "Panel is in programming mode" ) 
-            unless ($main::config_parms{AD2USB_debug_log} == 0);
+            unless (config_merge($instance.'_debug_log') == 0);
       }
 
       # BEEPS
       if ( $status_type->{beep_count}) {
          my $NumBeeps = $status_type->{beep_count};
          ::logit( $$self{log_file}, "Panel beeped $NumBeeps times" ) 
-            unless ($main::config_parms{AD2USB_debug_log} == 0);
+            unless (config_merge($instance.'_debug_log') == 0);
       }
 
       # A ZONE OR ZONES ARE BYPASSED
@@ -514,20 +511,20 @@ sub CheckCmd {
       # CHIME MODE
       $self->{chime} = 0;
       if ( $status_type->{chime_flag}) { 
-         $self->{chime} = 1;#            ::logit( $$self{log_file}, "Chime is off" ) unless ($main::config_parms{AD2USB_debug_log} == 0);
+         $self->{chime} = 1;#            ::logit( $$self{log_file}, "Chime is off" ) unless (config_merge($instance.'_debug_log') == 0);
       }
 
       # ALARM WAS TRIGGERED (Sticky until disarm)
       if ( $status_type->{alarm_past_flag}) {
          my $EventName = "ALARM WAS TRIGGERED";
-         ::logit( $$self{log_file}, "$EventName" ) unless ($main::config_parms{AD2USB_part_log} == 0);
+         ::logit( $$self{log_file}, "$EventName" ) unless (config_merge($instance.'_part_log') == 0);
       }
 
       # ALARM IS SOUNDING
       if ( $status_type->{alarm_now_flag}) {
          ::logit( $$self{log_file}, "ALARM IS SOUNDING - Zone $zone_no_pad (".$self->zone_name($zone_no_pad).")" ) 
-            unless ($main::config_parms{AD2USB_part_log} == 0);
-         ChangeZones( $zone_no_pad, $zone_no_pad, "alarm", "", 1);
+            unless (config_merge($instance.'_part_log') == 0);
+         $self->ChangeZones( $zone_no_pad, $zone_no_pad, "alarm", "", 1);
       }
 
       # BATTERY LOW
@@ -574,15 +571,15 @@ sub GetStatusType {
 
       # Determine the Message Type
       if ( $message{alphanumeric} =~ m/^FAULT/) {
-         ::logit( $$self{log_file}, "Fault zones available: $AdemcoStr") unless ($main::config_parms{AD2USB_debug_log} == 0);
+         ::logit( $$self{log_file}, "Fault zones available: $AdemcoStr") unless (config_merge($instance.'_debug_log') == 0);
          $message{fault} = 1;
       }
       elsif ( $message{alphanumeric} =~ m/^BYPAS/ ) {
-         ::logit( $$self{log_file}, "Bypass zones available: $AdemcoStr") unless ($main::config_parms{AD2USB_debug_log} == 0);
+         ::logit( $$self{log_file}, "Bypass zones available: $AdemcoStr") unless (config_merge($instance.'_debug_log') == 0);
          $message{bypass} = 1;
       }
       elsif ($message{alphanumeric} =~ m/Hit \*|Press \*/) {
-         ::logit( $$self{log_file}, "Faults available: $AdemcoStr") unless ($main::config_parms{AD2USB_debug_log} == 0);
+         ::logit( $$self{log_file}, "Faults available: $AdemcoStr") unless (config_merge($instance.'_debug_log') == 0);
          $message{fault_avail} = 1;
       }
       else {
@@ -590,7 +587,7 @@ sub GetStatusType {
       }
    }
    elsif ($AdemcoStr =~ /!RFX:(\d{7}),(\d{2})/) {
-      ::logit( $$self{log_file}, "Wireless status received.") unless ($main::config_parms{AD2USB_debug_log} == 0);
+      ::logit( $$self{log_file}, "Wireless status received.") unless (config_merge($instance.'_debug_log') == 0);
       $message{wireless} = 1;
       $message{rf_id} = $1;
       $message{rf_status} = $2;
@@ -607,21 +604,21 @@ sub GetStatusType {
 
    }
    elsif ($AdemcoStr =~ /!EXP:(\d{2}),(\d{2}),(\d{2})/) {
-      ::logit( $$self{log_file}, "Expander status received.") unless ($main::config_parms{AD2USB_debug_log} == 0);
+      ::logit( $$self{log_file}, "Expander status received.") unless (config_merge($instance.'_debug_log') == 0);
       $message{expander} = 1;
       $message{exp_address} = $1;
       $message{exp_channel} = $2;
       $message{exp_status} = $3;
    }
    elsif ($AdemcoStr =~ /!REL:(\d{2}),(\d{2}),(\d{2})/) {
-      ::logit( $$self{log_file}, "Relay status received.") unless ($main::config_parms{AD2USB_debug_log} == 0);
+      ::logit( $$self{log_file}, "Relay status received.") unless (config_merge($instance.'_debug_log') == 0);
       $message{relay} = 1;
       $message{rel_address} = $1;
       $message{rel_channel} = $2;
       $message{rel_status} = $3;
    }
    elsif ($AdemcoStr =~ /!Sending\.\.\.done/) {
-      ::logit( $$self{log_file}, "Command sent successfully.") unless ($main::config_parms{AD2USB_debug_log} == 0);
+      ::logit( $$self{log_file}, "Command sent successfully.") unless (config_merge($instance.'_debug_log') == 0);
       $message{cmd_sent} = 1;
    }
    else {
@@ -644,11 +641,11 @@ sub ChangeZones {
       # If partition set, then zone partition must equal that
       if (($current_status ne $new_status) && ($current_status ne $neq_status)
          && (!$partition || ($partition == $self->zone_partition($i)))) {
-         if (($main::config_parms{AD2USB_zone_log} != 0) && ($log == 1)) {
+         if ((config_merge($instance.'_zone_log') != 0) && ($log == 1)) {
             my $ZoneNumPadded = sprintf("%03d", $i);
             ::logit( $$self{log_file}, "Zone $i (".$self->zone_name($i)
                .") changed from '$current_status' to '$new_status'" )
-               unless ($main::config_parms{AD2USB_zone_log} == 0);
+               unless (config_merge($instance.'_zone_log') == 0);
          }
          $$self{$self->zone_partition($i)}{zone_status}{$i} = $new_status;
          #  Store Change for Zone_Now Function
@@ -663,54 +660,21 @@ sub ChangeZones {
 }
 
 #}}}
-#    Change partition statuses for partition indices from start to end  {{{
-sub ChangePartitions {
-   my ($start, $end, $new_status, $log) = @_;
 
-   my $self = $Self;
-   for (my $i = $start; $i <= $end; $i++) {
-      my $current_status = $self->{partition_status}{"$i"};
-      if ($current_status ne $new_status) {
-         if (($main::config_parms{AD2USB_part_log} != 0) && ($log == 1)) {
-            my $PartName = $main::config_parms{"AD2USB_part_$i"}  if exists $main::config_parms{"AD2USB_part_$i"};
-            ::logit( $$self{log_file}, "Partition $i ($PartName) changed from '$current_status' to '$new_status'" ) unless ($main::config_parms{AD2USB_part_log} == 0);
-         }
-         $self->{partition_status}{"$i"} = $new_status;
-      }
-   }
-}
-
-#}}}
-#    Reset Ademco state to simulate a "now" on some value ie: zone, temp etc.  {{{
-sub ResetAdemcoState {
-   my ($self) = @_;
-
-   # reset partition
-   if ( defined $self->{partition_now_num} ) {
-      my $PartNum = $self->{partition_now_num};
-      $self->{partition}{$PartNum}        = $self->{partition_now_num};
-      $self->{partition_status}{$PartNum} = $self->{partition_now_status};
-      $self->{partition_time}{$PartNum}   = &::time_date_stamp( 17, time );
-      undef $self->{partition_now_num};
-      undef $self->{partition_now_status};
-   }
-
-   return;
-}
-
-#}}}
 #    Define hash with Ademco commands                                           {{{
 sub DefineCmdMsg {
+   my ($self) = @_;
+   my $instance = $self->{instance};
    my %Return_Hash = (
-      "Disarm"                            => "$::config_parms{AD2USB_user_master_code}1",
-      "ArmAway"                           => "$::config_parms{AD2USB_user_master_code}2",
-      "ArmStay"                           => "$::config_parms{AD2USB_user_master_code}3",
-      "ArmAwayMax"                        => "$::config_parms{AD2USB_user_master_code}4",
-      "Test"                              => "$::config_parms{AD2USB_user_master_code}5",
-      "Bypass"                            => "$::config_parms{AD2USB_user_master_code}6#",
-      "ArmStayInstant"                    => "$::config_parms{AD2USB_user_master_code}7",
-      "Code"                              => "$::config_parms{AD2USB_user_master_code}8",
-      "Chime"                             => "$::config_parms{AD2USB_user_master_code}9",
+      "Disarm"                            => config_merge($instance."_user_master_code")."1",
+      "ArmAway"                           => config_merge($instance."_user_master_code")."2",
+      "ArmStay"                           => config_merge($instance."_user_master_code")."3",
+      "ArmAwayMax"                        => config_merge($instance."_user_master_code")."4",
+      "Test"                              => config_merge($instance."_user_master_code")."5",
+      "Bypass"                            => config_merge($instance."_user_master_code")."6#",
+      "ArmStayInstant"                    => config_merge($instance."_user_master_code")."7",
+      "Code"                              => config_merge($instance."_user_master_code")."8",
+      "Chime"                             => config_merge($instance."_user_master_code")."9",
       "ToggleVoice"                       => '#024',
       "ShowFaults"                        => "*",
       "AD2USBReboot"                      => "=",
@@ -718,30 +682,30 @@ sub DefineCmdMsg {
    );
 
    my $two_digit_zone;
-   foreach my $key (keys(%::config_parms)) {
+   foreach my $key (keys {config_merge()}) {
       #Create Commands for Relays
-      if ($key =~ /^AD2USB_output_(\D+)_(\d+)$/){
+      if ($key =~ /^${instance}_output_(\D+)_(\d+)$/){
          if ($1 eq 'co') {
-            $Return_Hash{"$::config_parms{$key}c"} = "$::config_parms{AD2USB_user_master_code}#70$2";
-            $Return_Hash{"$::config_parms{$key}o"} = "$::config_parms{AD2USB_user_master_code}#80$2";
+            $Return_Hash{config_merge($key)."c"} = config_merge($instance."_user_master_code")."#70$2";
+            $Return_Hash{config_merge($key)."o"} = config_merge($instance."_user_master_code")."#80$2";
          }
          elsif ($1 eq 'oc') {
-            $Return_Hash{"$::config_parms{$key}o"} = "$::config_parms{AD2USB_user_master_code}#80$2";
-            $Return_Hash{"$::config_parms{$key}c"} = "$::config_parms{AD2USB_user_master_code}#70$2";
+            $Return_Hash{config_merge($key)."o"} = config_merge($instance."_user_master_code")."#80$2";
+            $Return_Hash{config_merge($key)."c"} = config_merge($instance."_user_master_code")."#70$2";
          }
          elsif ($1 eq 'o') {
-            $Return_Hash{"$::config_parms{$key}o"} = "$::config_parms{AD2USB_user_master_code}#80$2";
+            $Return_Hash{config_merge($key)."o"} = config_merge($instance."_user_master_code")."#80$2";
          }
          elsif ($1 eq 'c') {
-            $Return_Hash{"$::config_parms{$key}c"} = "$::config_parms{AD2USB_user_master_code}#70$2";
+            $Return_Hash{config_merge($key)."c"} = config_merge($instance."_user_master_code")."#70$2";
          }
       }
       #Create Commands for Zone Expanders
-      elsif ($key =~ /^AD2USB_expander_(\d+)$/) {
-         $two_digit_zone = substr($::config_parms{$key}, 1); #Trim leading zero
-         $Return_Hash{"exp$::config_parms{$key}c"} = "L$two_digit_zone"."0";
-         $Return_Hash{"exp$::config_parms{$key}f"} = "L$two_digit_zone"."1";
-         $Return_Hash{"exp$::config_parms{$key}p"} = "L$two_digit_zone"."2"; 
+      elsif ($key =~ /^${instance}_expander_(\d+)$/) {
+         $two_digit_zone = substr(config_merge($key), 1); #Trim leading zero
+         $Return_Hash{"exp".config_merge($key)."c"} = "L$two_digit_zone"."0";
+         $Return_Hash{"exp".config_merge($key)."f"} = "L$two_digit_zone"."1";
+         $Return_Hash{"exp".config_merge($key)."p"} = "L$two_digit_zone"."2"; 
       }
    }
 
@@ -787,12 +751,12 @@ sub cmd {
    }
 
    # Exit if password is wrong
-   if ( ($password ne $::config_parms{AD2USB_user_master_code}) && ($CmdName ne "ShowFaults" ) ) {
+   if ( ($password ne config_merge($instance.'_user_master_code')) && ($CmdName ne "ShowFaults" ) ) {
       ::logit( $$self{log_file}, "Invalid password for command $CmdName ($password)");
       return;
    }
 
-   ::logit( $$self{log_file}, ">>> Sending to ADEMCO panel                      $CmdName ($cmd)" ) unless ($main::config_parms{$instance . '_debug_log'} == 0);
+   ::logit( $$self{log_file}, ">>> Sending to ADEMCO panel                      $CmdName ($cmd)" ) unless (config_merge($instance . '_debug_log') == 0);
    $self->{keys_sent} = $self->{keys_sent} + length($CmdStr);
    if (defined $Socket_Items{$instance}) {
       if ($Socket_Items{$instance . '_sender'}{'socket'}->active) {
@@ -831,14 +795,16 @@ sub zone_now {
 
 sub zone_name {
    my ( $self, $zone_num ) = @_;
+   my $instance = $self->{instance};
    $zone_num = sprintf "%03s", $zone_num;
-   return $::config_parms{"AD2USB_zone_$zone_num"};
+   return config_merge($instance."_zone_$zone_num");
 }
 
 sub zone_partition {
    my ( $self, $zone_num ) = @_;
+   my $instance = $self->{instance};
    $zone_num = sprintf "%03s", $zone_num;
-   my $partition = $::config_parms{"AD2USB_zone_${zone_num}_partition"};
+   my $partition = config_merge("${instance}_zone_${zone_num}_partition");
    # Default to partition 1
    $partition = 1 unless $partition;
    return $partition;
