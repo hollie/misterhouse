@@ -893,11 +893,16 @@ sub cmd_list {
    }
 }
 #}}}
-##Used to register a child object to the zone. Allows for MH-style Door & Motion sensors {{{
+##Used to register a child object to a zone or partition. Allows for MH-style Door & Motion sensors {{{
 sub register {
-   my ($self, $object, $zone_num ) = @_;
-   &::print_log("Registering Child Object on zone $zone_num");
-   $self->{zone_object}{$zone_num} = $object;
+   my ($self, $object, $num ) = @_;
+   &::print_log("Registering Child Object on zone $num");
+   if ($object->isa('AD2USB_Motion_Item') || $object->isa('AD2USB_Door_Item')) {
+      $self->{zone_object}{$num} = $object;
+   }
+   elsif ($object->isa('AD2USB_Partition')) {
+      $self->{partition_object}{$num} = $object;
+   }
 }
 
 sub get_child_object_name {
@@ -926,22 +931,17 @@ package AD2USB_Door_Item;
 
 sub new
 {
-   my ($class,$object,$zone) = @_;
+   my ($class,$interface,$zone,$partition) = @_;
 
    my $self = new Generic_Item();
    bless $self,$class;
 
-   $$self{m_write} = 0;
-   $$self{m_timerCheck} = new Timer() unless $$self{m_timerCheck};
-   $$self{m_timerAlarm} = new Timer() unless $$self{m_timerAlarm};
-   $$self{'alarm_action'} = '';
    $$self{last_open} = 0;
    $$self{last_closed} = 0;
-   $$self{zone_number} = $zone;
-   $$self{master_object} = $object;
    $$self{item_type} = 'door';
-   $object->register($self,$zone);
-
+   $interface->register($self,$zone);
+   $zone = sprintf("%03d", $zone);
+   $$self{zone_partition}{$zone} = $partition;
    return $self;
 
 }
@@ -956,25 +956,13 @@ sub set
          &::print_log("AD2USB_Door_Item($$self{object_name})::set($p_state, $p_setby)") if $main::Debug{AD2USB};
       }
 
-      if ($p_state =~ /^fault/) {
+      if ($p_state =~ /^fault/ || $p_state eq 'on') {
          $p_state = 'open';
          $$self{last_open} = $::Time;
 
-      } elsif ($p_state =~ /^ready/) {
+      } elsif ($p_state =~ /^ready/ || $p_state eq 'off') {
          $p_state = 'closed';
          $$self{last_closed} = $::Time;
-
-      # Other door sensors?
-      } elsif ($p_state eq 'on') {
-         $p_state = 'open';
-         $$self{last_open} = $::Time;
-
-      } elsif ($p_state eq 'off') {
-         $p_state = 'closed';
-         $$self{last_closed} = $::Time;
-
-      } else {
-      	 $p_state = 'check';
       }
 
       $self->SUPER::set($p_state,$p_setby);
@@ -995,48 +983,23 @@ sub get_child_item_type {
    return $$self{item_type};
 }
 
-#Left in these methods to maintain compatibility. Since we're not tracking inactivity, these won't return proper results. {{{
-
-sub set_alarm($$$) {
-   my ($self, $time, $action, $repeat_time) = @_;
-   $$self{'alarm_action'} = $action;
-   $$self{'alarm_time'} = $time;
-   $$self{'alarm_repeat_time'} = $repeat_time if defined $repeat_time;
-   &::print_log ("AD2USB_Door_Item:: set_alarm not supported");
-
-}
-
-sub set_inactivity_alarm($$$) {
-   my ($self, $time, $action) = @_;
-   $$self{'inactivity_action'} = $action;
-   $$self{'inactivity_time'} = $time*3600;
-   &::print_log("AD2USB_Door_Item:: set_inactivity_alarm not supported");
-
-}
-
 #}}}
 package AD2USB_Motion_Item;
 @AD2USB_Motion_Item::ISA = ('Generic_Item');
 
 sub new
 {
-   my ($class,$object,$zone) = @_;
+   my ($class,$interface,$zone,$partition) = @_;
 
    my $self = new Generic_Item();
    bless $self,$class;
 
-   $$self{m_write} = 0;
-   $$self{m_timerCheck} = new Timer() unless $$self{m_timerCheck};
-   $$self{m_timerAlarm} = new Timer() unless $$self{m_timerAlarm};
-   $$self{'alarm_action'} = '';
    $$self{last_still} = 0;
    $$self{last_motion} = 0;
-   $$self{zone_number} = $zone;
-   $$self{master_object} = $object;
    $$self{item_type} = 'motion';
-
-   $object->register($self,$zone);
-
+   $interface->register($self,$zone);
+   $zone = sprintf("%03d", $zone);
+   $$self{zone_partition}{$zone} = $partition;
    return $self;
 
 }
@@ -1055,13 +1018,9 @@ sub set
    if ($p_state =~ /^fault/i) {
       $p_state = 'motion';
       $$self{last_motion} = $::Time;
-
    } elsif ($p_state =~ /^ready/i) {
       $p_state = 'still';
       $$self{last_still} = $::Time;
-
-   } else {
-      $p_state = 'check';
    }
 
 	$self->SUPER::set($p_state, $p_setby);
@@ -1082,22 +1041,19 @@ sub get_child_item_type {
    return $$self{item_type};
 }
 
-#Left in these methods to maintain compatibility. Since we're not tracking inactivity, these won't return proper results. {{{
-sub delay_off()
+package AD2USB_Partition;
+@AD2USB_Partition::ISA = ('Generic_Item');
+
+sub new
 {
-	my ($self,$p_time) = @_;
-	$$self{m_delay_off} = $p_time if defined $p_time;
-	&::print_log("AD2USB_Motion_Item:: delay_off not supported");
-	return $$self{m_delay_off};
+   my ($class,$interface, $partition, $address) = @_;
+   my $self = new Generic_Item();
+   bless $self,$class;
+   $$interface{partition_address}{$partition} = $address;
+   $interface->register($self,$partition);
+   return $self;
 }
 
-sub set_inactivity_alarm($$$) {
-   my ($self, $time, $action) = @_;
-   $$self{'inactivity_action'} = $action;
-   $$self{'inactivity_time'} = $time*3600;
-	$$self{m_timerCheck}->set($time*3600, $self);
-	&::print_log("AD2USB_Motion_Item:: set_inactivity_alarm not supported");
-}
 
 =back
 
