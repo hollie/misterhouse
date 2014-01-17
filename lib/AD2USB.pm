@@ -288,13 +288,13 @@ sub check_for_data {
          if ($status_type->{keypad} && $Cmd eq $self->{last_cmd} &&
             (!$status_type->{fault})) {
             # This is a duplicate panel message with no important status
-            ::logit( $$self{log_file}, "DUPE: $Cmd") unless (config_merge($instance .'_debug_log') == 0);
+            $self->debug_log("DUPE: $Cmd");
          }
          else {
             # This is a non-dupe panel message or a fault panel message or a
             # relay or RF or zone expander message or something important
             # Log the message, parse it, and store it to detect future dupes
-            ::logit( $$self{log_file}, "MSG: $Cmd") unless (config_merge($instance.'_debug_log') == 0);
+            $self->debug_log("MSG: $Cmd");
             $self->CheckCmd($Cmd);
             $self->{last_cmd} = $Cmd if ($status_type->{keypad});
          }
@@ -318,15 +318,15 @@ sub CheckCmd {
    my $instance = $self->{instance};
    
    if ($status_type->{unknown}) {
-      ::logit( $$self{log_file}, "UNKNOWN STATUS: $CmdStr" ) unless (config_merge($instance.'_debug_log') == 0);
+      $self->debug_log("UNKNOWN STATUS: $CmdStr");
    }
    elsif ($status_type->{cmd_sent}) {
       if ($self->{keys_sent} == 0) {
-         ::logit( $$self{log_file}, "Key sent from ANOTHER panel." ) unless (config_merge($instance.'_debug_log') == 0);
+         $self->debug_log("Key sent from ANOTHER panel.");
       }
       else {
          $self->{keys_sent}--;
-         ::logit( $$self{log_file}, "Key received ($self->{keys_sent} left)" ) unless (config_merge($instance.'_debug_log') == 0);
+         $self->debug_log("Key received ($self->{keys_sent} left)");
       }
    }
    elsif ($status_type->{fault_avail}) {
@@ -357,17 +357,17 @@ sub CheckCmd {
       $self->ChangeZones( $zone_no_pad, $zone_no_pad, "bypass", "", 1);
    }
    elsif ($status_type->{wireless}) {
-      ::logit( $$self{log_file}, "WIRELESS: rf_id("
+      $self->debug_log( $$self{log_file}, "WIRELESS: rf_id("
          .$status_type->{rf_id}.") status(".$status_type->{rf_status}.") loop1("
          .$status_type->{rf_loop_fault_1}.") loop2(".$status_type->{rf_loop_fault_2}
          .") loop3(".$status_type->{rf_loop_fault_3}.") loop4("
-         .$status_type->{rf_loop_fault_4}.")" ) unless (config_merge($instance.'_debug_log') == 0);
-      ::logit( $$self{log_file}, "WIRELESS: rf_id("
+         .$status_type->{rf_loop_fault_4}.")" );
+      $self->debug_log( $$self{log_file}, "WIRELESS: rf_id("
          .$status_type->{rf_id}.") status(".$status_type->{rf_status}.") low_batt("
          .$status_type->{rf_low_batt}.") supervised(".$status_type->{rf_supervised}
-         .")" ) unless (config_merge($instance.'_debug_log') == 0);
+         .")" );
 
-      if (defined config_merge($instance . "_wireless_".$status_type->{rf_id})) {
+      if (defined $$self{wireless}{$status_type->{rf_id}}) {
          my ($MZoneLoop, $PartStatus, $ZoneNum);
          my $lc = 0;
          my $ZoneStatus = "ready";
@@ -479,21 +479,18 @@ sub CheckCmd {
 
       # BACKLIGHT
       if ( $status_type->{backlight_flag}) {
-         ::logit( $$self{log_file}, "Panel backlight is on" ) 
-            unless (config_merge($instance.'_debug_log') == 0);
+         $self->debug_log("Panel backlight is on");
       }
 
       # PROGRAMMING MODE
       if ( $status_type->{programming_flag}) {
-         ::logit( $$self{log_file}, "Panel is in programming mode" ) 
-            unless (config_merge($instance.'_debug_log') == 0);
+         $self->debug_log("Panel is in programming mode"); 
       }
 
       # BEEPS
       if ( $status_type->{beep_count}) {
          my $NumBeeps = $status_type->{beep_count};
-         ::logit( $$self{log_file}, "Panel beeped $NumBeeps times" ) 
-            unless (config_merge($instance.'_debug_log') == 0);
+         $self->debug_log("Panel beeped $NumBeeps times"); 
       }
 
       # A ZONE OR ZONES ARE BYPASSED
@@ -504,25 +501,24 @@ sub CheckCmd {
       $$self{ac_power} = 1;
       if ( !$status_type->{ac_flag} ) {
          $$self{ac_power} = 0;
-         ::logit( $$self{log_file}, "AC Power has been lost" );
+         $self->debug_log("AC Power has been lost");;
       }
 
       # CHIME MODE
       $self->{chime} = 0;
       if ( $status_type->{chime_flag}) { 
-         $self->{chime} = 1;#            ::logit( $$self{log_file}, "Chime is off" ) unless (config_merge($instance.'_debug_log') == 0);
+         $self->{chime} = 1;#            $self->debug_log("Chime is off");
       }
 
       # ALARM WAS TRIGGERED (Sticky until disarm)
       if ( $status_type->{alarm_past_flag}) {
          my $EventName = "ALARM WAS TRIGGERED";
-         ::logit( $$self{log_file}, "$EventName" ) unless (config_merge($instance.'_part_log') == 0);
+         $self->debug_log( $$self{log_file}, "$EventName" );
       }
 
       # ALARM IS SOUNDING
       if ( $status_type->{alarm_now_flag}) {
-         ::logit( $$self{log_file}, "ALARM IS SOUNDING - Zone $zone_no_pad (".$self->zone_name($zone_no_pad).")" ) 
-            unless (config_merge($instance.'_part_log') == 0);
+         $self->debug_log( $$self{log_file}, "ALARM IS SOUNDING - Zone $zone_no_pad (".$self->zone_name($zone_no_pad).")" );
          $self->ChangeZones( $zone_no_pad, $zone_no_pad, "alarm", "", 1);
       }
 
@@ -530,7 +526,7 @@ sub CheckCmd {
       $self->{battery_low} = 0;
       if ( $status_type->{battery_low_flag}) {
          $self->{battery_low} = 1;
-         ::logit( $$self{log_file}, "Panel is low on battery" );
+         $self->debug_log("Panel is low on battery");;
       }
    }
    return;
@@ -598,15 +594,15 @@ sub GetStatusType {
 
       # Determine the Message Type
       if ( $message{alphanumeric} =~ m/^FAULT/) {
-         ::logit( $$self{log_file}, "Fault zones available: $AdemcoStr") unless (config_merge($instance.'_debug_log') == 0);
+         $self->debug_log("Fault zones available: $AdemcoStr");
          $message{fault} = 1;
       }
       elsif ( $message{alphanumeric} =~ m/^BYPAS/ ) {
-         ::logit( $$self{log_file}, "Bypass zones available: $AdemcoStr") unless (config_merge($instance.'_debug_log') == 0);
+         $self->debug_log("Bypass zones available: $AdemcoStr");
          $message{bypass} = 1;
       }
       elsif ($message{alphanumeric} =~ m/Hit \*|Press \*/) {
-         ::logit( $$self{log_file}, "Faults available: $AdemcoStr") unless (config_merge($instance.'_debug_log') == 0);
+         $self->debug_log("Faults available: $AdemcoStr");
          $message{fault_avail} = 1;
       }
       else {
@@ -614,7 +610,7 @@ sub GetStatusType {
       }
    }
    elsif ($AdemcoStr =~ /!RFX:(\d{7}),(\d{2})/) {
-      ::logit( $$self{log_file}, "Wireless status received.") unless (config_merge($instance.'_debug_log') == 0);
+      $self->debug_log("Wireless status received.");
       $message{wireless} = 1;
       $message{rf_id} = $1;
       $message{rf_status} = $2;
@@ -631,21 +627,21 @@ sub GetStatusType {
 
    }
    elsif ($AdemcoStr =~ /!EXP:(\d{2}),(\d{2}),(\d{2})/) {
-      ::logit( $$self{log_file}, "Expander status received.") unless (config_merge($instance.'_debug_log') == 0);
+      $self->debug_log("Expander status received.");
       $message{expander} = 1;
       $message{exp_address} = $1;
       $message{exp_channel} = $2;
       $message{exp_status} = $3;
    }
    elsif ($AdemcoStr =~ /!REL:(\d{2}),(\d{2}),(\d{2})/) {
-      ::logit( $$self{log_file}, "Relay status received.") unless (config_merge($instance.'_debug_log') == 0);
+      $self->debug_log("Relay status received.");
       $message{relay} = 1;
       $message{rel_address} = $1;
       $message{rel_channel} = $2;
       $message{rel_status} = $3;
    }
    elsif ($AdemcoStr =~ /!Sending\.\.\.done/) {
-      ::logit( $$self{log_file}, "Command sent successfully.") unless (config_merge($instance.'_debug_log') == 0);
+      $self->debug_log("Command sent successfully.");
       $message{cmd_sent} = 1;
    }
    else {
@@ -668,11 +664,10 @@ sub ChangeZones {
       # If partition set, then zone partition must equal that
       if (($current_status ne $new_status) && ($current_status ne $neq_status)
          && (!$partition || ($partition == $self->zone_partition($i)))) {
-         if ((config_merge($instance.'_zone_log') != 0) && ($log == 1)) {
+         if ($log == 1) {
             my $ZoneNumPadded = sprintf("%03d", $i);
-            ::logit( $$self{log_file}, "Zone $i (".$self->zone_name($i)
-               .") changed from '$current_status' to '$new_status'" )
-               unless (config_merge($instance.'_zone_log') == 0);
+            $self->debug_log( $$self{log_file}, "Zone $i (".$self->zone_name($i)
+               .") changed from '$current_status' to '$new_status'" );
          }
          $$self{$self->zone_partition($i)}{zone_status}{$i} = $new_status;
          #  Store Change for Zone_Now Function
@@ -739,6 +734,12 @@ sub DefineCmdMsg {
    return \%Return_Hash;
 }
 
+sub debug_log {
+   my ($self, $text) = @_;
+   my $instance = $$self{instance};
+   ::logit( $$self{log_file}, $text) unless ($Configuration{$instance.'_debug_log'} == 0);
+}
+
 #}}}
 #    Define hash with all zone numbers and names {{{
 sub MappedZones {
@@ -773,7 +774,7 @@ sub cmd {
       return;
    }
 
-   ::logit( $$self{log_file}, ">>> Sending to ADEMCO panel                      $CmdName ($cmd)" ) unless (config_merge($instance . '_debug_log') == 0);
+   $self->debug_log(">>> Sending to ADEMCO panel              $CmdName ($cmd)");
    $self->{keys_sent} = $self->{keys_sent} + length($CmdStr);
    if (defined $Socket_Items{$instance}) {
       if ($Socket_Items{$instance . '_sender'}{'socket'}->active) {
