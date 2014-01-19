@@ -73,11 +73,14 @@ uses a different set of commands and this code will offer only limited, if any
 support at all, for EZIO devices.
 
 The state that the relay is in when the device is linked to the PLM matters if
-you are using relay mode Momentary_A.
+you are using relay mode Momentary_A (I think).
 
 =head2 BUGS
 
-The relay state will not be accurate if you are using a momentary mode.
+The implementation of Momentary_A needs work.  It can be properly set on the
+device, however it isn't clear how the preference for ON of OFF is selected.
+This is likely done in D1-D3 in the responder link.  Setting the link to OFF
+in the definition may be enough to make it work, I don't yet know.
 
 =head2 INHERITS
 
@@ -134,7 +137,9 @@ sub new
 	my $self = new Insteon::BaseDevice($p_deviceid, $p_interface);
 	$$self{operating_flags} = \%operating_flags;
 	bless $self, $class;
-	$self->restore_data('momentary_time');
+	$self->restore_data('momentary_time', 'relay_mode');
+	$$self{momentary_time} = 20 unless defined($$self{momentary_time});
+	$$self{relay_mode} = 'latching' unless defined($$self{relay_mode});
 	$$self{momentary_timer} = new Timer;
 	return $self;
 }
@@ -159,6 +164,7 @@ sub set
 			($curr_milli - $$self{child_set_milliseconds} < $window)) {
 			::print_log("[Insteon::IOLinc] Received duplicate ". $self->get_object_name
 				. " sensor " . $p_state . " message, ignoring.") if $self->debuglevel(1, 'insteon');
+			$self->dupe_count_log(1) if $self->can('dupe_count_log');
 		}
 		else {
 			::print_log("[Insteon::IOLinc] Received ". $self->get_object_name
@@ -231,11 +237,21 @@ sub _is_info_request
 		$output .= ($flags & 0x40) ? "Trigger Reverse: On; " : "Trigger Reverse: Off; ";
 		if (!($flags & 0x08)){
 			$output .= "Latching: On.";
+			$$self{relay_mode} = 'latching';
 		} else {
 			my $momentary_state = '';
-			$momentary_state .= "Momentary_B: On." if $flags & 0x10;
-			$momentary_state .= "Momentary_C: On." if $flags & 0x80;
-			$momentary_state .= "Momentary_A: On." if $momentary_state eq '';
+			if ($flags & 0x10){
+				$$self{relay_mode} = 'momentary_b';
+				$momentary_state .= "Momentary_B: On."
+			}
+			elsif ($flags & 0x80){
+				$$self{relay_mode} = 'momentary_c';
+				$momentary_state .= "Momentary_C: On."
+			}
+			else {
+				$$self{relay_mode} = 'momentary_a';
+				$momentary_state .= "Momentary_A: On."
+			}
 			$output .= $momentary_state;
 		}
 		::print_log("[Insteon::IOLinc] Device Settings are: $output");
@@ -276,10 +292,11 @@ sub _process_message {
 	elsif ($msg{command} eq "extended_set_get" && $msg{is_extended}) {
 		if (substr($msg{extra},0,6) eq "000101") {
 			$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
-			#D4 = Time; 
+			#D4 = Time;
+			$$self{momentary_time} = hex(substr($msg{extra}, 8, 2));
 			main::print_log("[Insteon::IOLinc] The Momentary Time Setting ".
 				"on device ". $self->get_object_name . " is set to: ".
-				hex(substr($msg{extra}, 8, 2)) . " tenths of a second.");
+				$$self{momentary_time} . " tenths of a second.");
 			$clear_message = 1;
 			$self->_process_command_stack(%msg);
 		} else {
@@ -299,12 +316,44 @@ sub _process_message {
 	return $clear_message;
 }
 
+=item C<is_acknowledged([ack])>
+
+Hijacks the routine in BaseObject.  This is used to set a timer to revert the 
+relay state if a momentary state is used.
+
+=cut
+
+sub is_acknowledged
+{
+	my ($self, $p_ack) = @_;
+	if (defined $p_ack && $p_ack && defined $$self{pending_state}
+		&& $$self{relay_mode} ne 'latching') {
+		#We are in a momentary mode, set a timer to reset the relay after the 
+		#defined momentary time. This seems preferable over using set_with_timer
+		#as this will only trigger if the device actually acknowledges the 
+		#state change
+		my $object_name = $self->get_object_name();
+		my $action = $object_name .'->set_receive(OFF,'.$object_name.')';
+		#While the IOLinc can do momentary times down to .2 seconds, the timer
+		#module can only do 1 second increments.  I figure this slight 
+		#difference is trivial.
+		my $time = int(($$self{momentary_time}/10) + 0.5);
+		$time = 1 unless ($time >= 1);
+		$$self{momentary_timer}->set($time,$action);
+		::print_log("[Insteon::IOLinc] Relay in momentary mode, resetting state "
+			. "of $object_name to OFF in $time second(s)") if $self->debuglevel(1, 'insteon');
+	}
+	return $self->SUPER::is_acknowledged($p_ack);
+}
+
 =item C<set_momentary_time(time)>
 
 $time in tenths of seconds (deciseconds) is the length of time the relay will close when 
 a Momentary mode is is selected in C<set_relay_mode>.
 
-Default 20
+Acceptable Values for time: [2-255]
+
+Default: 20 (2 Seconds)
 
 =cut
 
@@ -312,12 +361,8 @@ sub set_momentary_time
 {
 	my ($self, $momentary_time) = @_;
 	my $root = $self->get_root();
-	if ($momentary_time == 0){
-		::print_log("[Insteon::IOLinc] Setting " . $self->get_object_name . 
-			" to Latching Relay Mode." ) if $self->debuglevel(1, 'insteon');
-	} 
-	elsif ($momentary_time <= 255) {
-		$momentary_time = 2 if $momentary_time == 1; #Can't set to 1
+	if ($momentary_time <= 255) {
+		$momentary_time = 2 if $momentary_time <= 1; #Can't set to 1 or 0
 		::print_log("[Insteon::IOLinc] Setting Momentary Time to $momentary_time " .
 			"tenths of a second for " . $self->get_object_name) if $self->debuglevel(1, 'insteon');
 	}
@@ -339,7 +384,9 @@ sub set_momentary_time
 
 =item C<get_momentary_time()>
 
-Prints the device's current momentary time setting to the log.
+Prints the device's current momentary time setting to the log. And stores it in 
+memory so that MH can reset the state of the relay after the appropriate amount
+of time
 
 =cut
 
@@ -404,7 +451,11 @@ Latching: The relay will remain open or closed until another command is received
 Momentary time is ignored.
 
 Momentary_A: The relay will close momentarily. If it is Linked while On it will 
-respond to On. If it is Linked while Off it will respond to Off.
+respond to On. If it is Linked while Off it will respond to Off. (This setting
+is likely not implemented properly by MH, if you need this setting you will have
+to be a guinea pig and test it out for us. Questions: Can this be achieved by 
+defining links as off? When this is used, how does the IOLinc respond to direct
+ON and OFF commands rather than All-Link Commands?)
 
 Momentary_B: Both - On and Off both cause the relay to close momentarily.
 
@@ -424,23 +475,26 @@ sub set_relay_mode
 		$parent->set_operating_flag('momentary_a_off');
 		$parent->set_operating_flag('momentary_b_off');
 		$parent->set_operating_flag('momentary_c_off');
-		$$self{momentary_time} = 0;
+		$$self{relay_mode} = 'latching';
 	}
 	#Momentary A must be on for any Momentary setting
 	elsif (lc($relay_mode) eq 'momentary_a'){
 		$parent->set_operating_flag('momentary_b_off');
 		$parent->set_operating_flag('momentary_c_off');
 		$parent->set_operating_flag('momentary_a_on');
+		$$self{relay_mode} = 'momentary_a';
 	}
 	elsif (lc($relay_mode) eq 'momentary_b'){
 		$parent->set_operating_flag('momentary_a_on');
 		$parent->set_operating_flag('momentary_c_off');
 		$parent->set_operating_flag('momentary_b_on');
+		$$self{relay_mode} = 'momentary_b';
 	}
 	elsif (lc($relay_mode) eq 'momentary_c'){
 		$parent->set_operating_flag('momentary_a_on');
 		$parent->set_operating_flag('momentary_b_off');
 		$parent->set_operating_flag('momentary_c_on');
+		$$self{relay_mode} = 'momentary_c';
 	}
 	return;
 }

@@ -232,7 +232,7 @@ sub send
         	if ($self->send_attempts > 0)
                 {
 			if ((ref $self->setby && $self->setby->debuglevel(1, 'insteon')) ||
-				((!ref $self->setby) && ::debug{'insteon'})){
+				((!ref $self->setby) && ::Debug{'insteon'})){
 				::print_log("[Insteon::BaseMessage] WARN: now resending "
 				. $self->to_string() . " after " . $self->send_attempts
 				. " attempts.");
