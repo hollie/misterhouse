@@ -775,6 +775,9 @@ sub _parse_data {
 			&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $self->debuglevel(4, 'insteon');
 			my $link_address = substr($message_data,4,6);
 			&::print_log("[Insteon_PLM] DEBUG2: ALL-Linking Completed with $link_address ($message_data)") if $self->debuglevel(2, 'insteon');
+			my $device_object = Insteon::get_object($link_address);
+			$device_object->devcat(substr($message_data,10,4));
+			$device_object->firmware(substr($message_data,14,2));
 			if ($self->active_message->success_callback){
 				main::print_log("[Insteon::Insteon_PLM] DEBUG4: Now calling message success callback: "
 					. $self->active_message->success_callback) if $self->debuglevel(4, 'insteon');

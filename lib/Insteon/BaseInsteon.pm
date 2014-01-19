@@ -1493,7 +1493,15 @@ sub link_to_interface_i2cs
 		$success_callback = $success_callback_prefix . "'2')";
 		$self->enter_linking_mode($p_group, $success_callback, $failure_callback);	
 	}
-	elsif ($step == 2) { #Scan device to get an accurate link table
+	elsif ($step == 2) { #Insert Link Record in PLM, Scan Device link table
+		#Insert the record into MH cache of the PLM's link table
+		my $device_id = $self->device_id;
+		my $data1 = substr($self->devcat, 0, 2);
+		my $data2 = substr($self->devcat, 2, 2);
+		my $data3 = $self->firmware;
+		$self->interface()->_aldb->add_link_to_hash('A2', '00', '0', 
+			$device_id, $data1, $data2, $data3);
+		#Scan device to get an accurate link table
 		#return to normal link_to_interface routine if successful
 		$success_callback_prefix = $self->get_object_name."->link_to_interface('$p_group','$p_data3',";
 		$success_callback = $success_callback_prefix . "'1')";
