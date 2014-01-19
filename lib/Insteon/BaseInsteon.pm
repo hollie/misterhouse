@@ -1416,7 +1416,7 @@ sub link_to_interface
 		$failure_callback = $self->get_object_name."->link_to_interface_i2cs(\"$p_group\",\"$p_data3\")";
 		$self->get_engine_version($success_callback, $failure_callback);	
 	}
-	elsif ($step == 1) { #Add Link from object->PLM
+	elsif ($step == 1) { #Add Controller Link from object->PLM
 		$success_callback = $success_callback_prefix . "\"2\")";
 		my %link_info = ( object => $self->interface, group => $p_group, is_controller => 1,
 			callback => "$success_callback", failure_callback=> "$failure_callback");
@@ -1430,13 +1430,13 @@ sub link_to_interface
 	              ", does not have an ALDB object.  Linking is not permitted.");
 	        }
 	}
-	elsif ($step == 2){ #Add Link from PLM->object
+	elsif ($step == 2){ #Add Responder Link to PLM for object->PLM
 		$success_callback = $success_callback_prefix . "\"3\")";
 		my $link_info = "deviceid=" . lc ($self->device_id) . " group=$p_group is_controller=0 " .
 			"callback=$success_callback failure_callback=$failure_callback";	
 	        $self->interface->add_link($link_info);
 	}
-	elsif ($step == 3){ #Add surrogate link on device if surrogate exists
+	elsif ($step == 3){ #Add surrogate responder link on device if surrogate exists
 		if (ref $$self{surrogate}){
 			$success_callback = $success_callback_prefix . "\"4\")";
 			my $surrogate_group = $$self{surrogate}->group;
@@ -1451,7 +1451,7 @@ sub link_to_interface
 				' for device ' .$self->get_object_name);	
 		}
 	}
-	elsif ($step == 4){ #Add surrogate link on PLM if surrogate exists
+	elsif ($step == 4){ #Add surrogate controller link on PLM if surrogate exists
 		$success_callback = $success_callback_prefix . "\"5\")";
 		my $surrogate_group = $$self{surrogate}->group;
 		my %link_info = ( deviceid=> lc($self->device_id), 
@@ -1499,7 +1499,7 @@ sub link_to_interface_i2cs
 		my $data1 = substr($self->devcat, 0, 2);
 		my $data2 = substr($self->devcat, 2, 2);
 		my $data3 = $self->firmware;
-		$self->interface()->_aldb->add_link_to_hash('A2', '00', '0', 
+		$self->interface()->_aldb->add_link_to_hash('E2', '00', '1', 
 			$device_id, $data1, $data2, $data3);
 		#Scan device to get an accurate link table
 		#return to normal link_to_interface routine if successful
