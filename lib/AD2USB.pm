@@ -122,7 +122,8 @@ sub new {
    $$self{instance}       = $instance;
    $$self{reconnect_time} = $::config_parms{$instance.'_ser2sock_recon'};
    $$self{reconnect_time} = 10 if !defined($$self{reconnect_time});
-   $$self{log_file}       = $::config_parms{'data_dir'}."/logs/AD2USB.$::Year_Month_Now.log";
+   my $year_mon           = &::time_date_stamp( 10, time );
+   $$self{log_file}       = $::config_parms{'data_dir'}."/logs/AD2USB.$year_mon.log";
 
    bless $self, $class;
 
@@ -277,7 +278,7 @@ sub check_for_data {
          # restart the TCP connection if its lost.
          if ($Socket_Items{$instance}{recon_timer}->inactive) {
             &main::print_log("Connection to $instance instance of AD2USB was lost, I will try to reconnect in $$self{reconnect_time} seconds");
-            # ::logit( $$self{log_file}, "AD2USB.pm ser2sock connection lost! Trying to reconnect." );
+            # ::logit("AD2USB.pm ser2sock connection lost! Trying to reconnect." );
             $Socket_Items{$instance}{recon_timer}->set($$self{reconnect_time}, sub {
                $Socket_Items{$instance}{'socket'}->start;
             });
@@ -331,7 +332,8 @@ sub CheckCmd {
    my $status_type = $self->GetStatusType($CmdStr);
    my $zone_padded = $status_type->{numeric_code};
    my $zone_no_pad = int($zone_padded);
-   my @partitions = $status_type->{partition};
+   my @partitions = @{$status_type->{partition}} 
+      if exists $status_type->{partition};
    my $instance = $self->{instance};
    
    if ($status_type->{unknown}) {
@@ -374,12 +376,12 @@ sub CheckCmd {
       $self->ChangeZones( $zone_no_pad, $zone_no_pad, "bypass", "", 1);
    }
    elsif ($status_type->{wireless}) {
-      $self->debug_log( $$self{log_file}, "WIRELESS: rf_id("
+      $self->debug_log("WIRELESS: rf_id("
          .$status_type->{rf_id}.") status(".$status_type->{rf_status}.") loop1("
          .$status_type->{rf_loop_fault_1}.") loop2(".$status_type->{rf_loop_fault_2}
          .") loop3(".$status_type->{rf_loop_fault_3}.") loop4("
          .$status_type->{rf_loop_fault_4}.")" );
-      $self->debug_log( $$self{log_file}, "WIRELESS: rf_id("
+      $self->debug_log("WIRELESS: rf_id("
          .$status_type->{rf_id}.") status(".$status_type->{rf_status}.") low_batt("
          .$status_type->{rf_low_batt}.") supervised(".$status_type->{rf_supervised}
          .")" );
@@ -461,12 +463,9 @@ sub CheckCmd {
       if ( $status_type->{ready_flag}) {
          my $bypass = ($status_type->{bypassed_flag}) ? 'bypass' : '';
          # Reset all zones, if bypass enabled skip bypassed zones
-         foreach my $partition (@partitions){
+         for my $partition (@partitions){
             $self->ChangeZones( 1, 999, "ready", $bypass, 1, $partition);
          }
-         # TODO - If the partition is set to STAY, does a fault on a motion
-         # sensor cause the ready flag to be set to 0?  If not, then we need
-         # to avoid alterning mapped zones.
       }
 
       # ARMED AWAY
@@ -530,12 +529,12 @@ sub CheckCmd {
       # ALARM WAS TRIGGERED (Sticky until disarm)
       if ( $status_type->{alarm_past_flag}) {
          my $EventName = "ALARM WAS TRIGGERED";
-         $self->debug_log( $$self{log_file}, "$EventName" );
+         $self->debug_log("$EventName" );
       }
 
       # ALARM IS SOUNDING
       if ( $status_type->{alarm_now_flag}) {
-         $self->debug_log( $$self{log_file}, "ALARM IS SOUNDING - Zone $zone_no_pad (".$self->zone_name($zone_no_pad).")" );
+         $self->debug_log("ALARM IS SOUNDING - Zone $zone_no_pad (".$self->zone_name($zone_no_pad).")" );
          $self->ChangeZones( $zone_no_pad, $zone_no_pad, "alarm", "", 1);
       }
 
@@ -592,7 +591,7 @@ sub GetStatusType {
       if (scalar $message{partition} == 0){
          # The addresses identified in this message did not match any defined
          # partition addresses, default to putting in partition 1.
-         @{$message{partition}} = (1); #Default to partition 1
+         push(@{$message{partition}}, 1); #Default to partition 1
       }
 
       # Decipher and Set Bit Flags
@@ -678,7 +677,7 @@ sub ChangeZones {
          && (!$partition || ($partition == $self->zone_partition($i)))) {
          if ($log == 1) {
             my $ZoneNumPadded = sprintf("%03d", $i);
-            $self->debug_log( $$self{log_file}, "Zone $i (".$self->zone_name($i)
+            $self->debug_log( "Zone $i (".$self->zone_name($i)
                .") changed from '$current_status' to '$new_status'" );
          }
          $$self{$self->zone_partition($i)}{zone_status}{$i} = $new_status;
@@ -786,13 +785,13 @@ sub cmd {
 
    # Exit if unknown command
    if ( $CmdName =~ /^unknown/ ) {
-      ::logit( $$self{log_file}, "Invalid ADEMCO panel command : $CmdName ($cmd)");
+      ::logit("Invalid ADEMCO panel command : $CmdName ($cmd)");
       return;
    }
 
    # Exit if password is wrong
    if ( ($password ne $Configuration{$instance.'_user_master_code'}) && ($CmdName ne "ShowFaults" ) ) {
-      ::logit( $$self{log_file}, "Invalid password for command $CmdName ($password)");
+      ::logit("Invalid password for command $CmdName ($password)");
       return;
    }
 
