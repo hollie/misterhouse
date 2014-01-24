@@ -2770,6 +2770,31 @@ sub add_link
 	}
 }
 
+=item C<add_link_to_hash()>
+
+This is used by the C<Insteon::BaseInterface::link_to_interface_i2cs> routine.
+This routine manually adds a record to MH's cache of the PLM ALDB.  Normally
+you only want to add records during a scan of the ALDB, so use this routine 
+with caution.
+
+=cut
+
+sub add_link_to_hash {
+	my ($self, $flags, $group, $is_controller, 
+		$device_id, $data1, $data2, $data3) = @_;
+	my $linkkey = $self->get_linkkey($device_id, $group, $is_controller, $data3);
+	$$self{aldb}{$linkkey}{flags} = lc $flags;
+	$$self{aldb}{$linkkey}{group} = lc $group;
+	$$self{aldb}{$linkkey}{is_controller} = $is_controller;
+	$$self{aldb}{$linkkey}{deviceid} = lc $device_id;
+	$$self{aldb}{$linkkey}{data1} = lc $data1;
+	$$self{aldb}{$linkkey}{data2} = lc $data2;
+	$$self{aldb}{$linkkey}{data3} = lc $data3;
+	$$self{aldb}{$linkkey}{inuse} = 1;
+	$self->health('good') if($self->health() eq 'empty');
+	return;
+}
+
 =item C<has_link(link_details)>
 
 Checks and returns true if a link with the passed details exists on the device
