@@ -353,18 +353,26 @@ sub CheckCmd {
       cmd( $self, "ShowFaults" );
    }
    elsif ($status_type->{fault}) {
-      # Each fault message tells us two things, 1) this zone is faulted and 
-      # 2) all zones between this zone and the last fault are ready.
-      
       #Loop through partions set in message
       foreach my $partition (@partitions){
-         #Reset the zones between the current zone and the last zone. If zones
-         #are sequential do nothing, if same zone, reset all other zones
+         #If zone numbers are sequential, there is nothing to do.
+         #Reset the zones between the current zone and the last zone. 
          #Do not reset mapped zones, specific messages are recevied for these
-         if ($self->{zone_last_num}{$partition} - $zone_no_pad > 1 
-            || $self->{zone_last_num}{$partition} - $zone_no_pad == 0) {
-            $self->ChangeZones( $self->{zone_last_num}{$partition}+1, 
-               $zone_no_pad-1, "ready", "bypass", 1, $partition,1);
+         #If the current zone is lower than the previous zone, only reset zones
+         #in between if highest zone has remained constant for one full cycle
+         if ($self->{zone_last_num}{$partition} - $zone_no_pad != 1) {
+            if (($self->{zone_last_num}{$partition} <= $zone_no_pad) &&
+               $self->{highest_zone}{$partition} != $self->{zone_last_num}{$partition}){
+               $self->{highest_zone}{$partition} = $zone_no_pad;
+               # Do not reset the zones in between.  This is a new highest zone
+               # number.  Can't be sure if the zone list completed a full cycle
+            }
+            else {
+               $self->ChangeZones( $self->{zone_last_num}{$partition}+1, 
+                  $zone_no_pad-1, "ready", "bypass", 1, $partition,1);
+               $self->{highest_zone}{$partition} = $zone_no_pad 
+                  if ($self->{zone_last_num}{$partition} <= $zone_no_pad);
+            }
          }
    
          # Set this zone to faulted
@@ -698,7 +706,7 @@ sub ChangeZones {
       # If partition set, then zone partition must equal that
       if (($current_status ne $new_status) && ($current_status ne $neq_status)
          && (!$partition || ($partition == $self->zone_partition($i)))
-         && (!$skip_mapped || (!$self->is_zone_mapped($i))) {
+         && (!$skip_mapped || (!$self->is_zone_mapped($i)))) {
          if ($log == 1) {
             my $ZoneNumPadded = sprintf("%03d", $i);
             $self->debug_log( "Zone $i (".$self->zone_name($i)
