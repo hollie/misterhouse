@@ -360,9 +360,11 @@ sub CheckCmd {
       foreach my $partition (@partitions){
          #Reset the zones between the current zone and the last zone. If zones
          #are sequential do nothing, if same zone, reset all other zones
+         #Do not reset mapped zones, specific messages are recevied for these
          if ($self->{zone_last_num}{$partition} - $zone_no_pad > 1 
             || $self->{zone_last_num}{$partition} - $zone_no_pad == 0) {
-            $self->ChangeZones( $self->{zone_last_num}{$partition}+1, $zone_no_pad-1, "ready", "bypass", 1, $partition);
+            $self->ChangeZones( $self->{zone_last_num}{$partition}+1, 
+               $zone_no_pad-1, "ready", "bypass", 1, $partition,1);
          }
    
          # Set this zone to faulted
@@ -684,7 +686,8 @@ sub GetStatusType {
 #}}}
 #    Change zone statuses for zone indices from start to end            {{{
 sub ChangeZones {
-   my ($self, $start, $end, $new_status, $neq_status, $log, $partition) = @_;
+   my ($self, $start, $end, $new_status, $neq_status, $log, $partition, 
+      $skip_mapped) = @_;
    my $instance = $self->{instance};
 
    # Allow for reverse looping from 999->1
@@ -694,7 +697,8 @@ sub ChangeZones {
       my $current_status = $$self{$self->zone_partition($i)}{zone_status}{$i};
       # If partition set, then zone partition must equal that
       if (($current_status ne $new_status) && ($current_status ne $neq_status)
-         && (!$partition || ($partition == $self->zone_partition($i)))) {
+         && (!$partition || ($partition == $self->zone_partition($i)))
+         && (!$skip_mapped || (!$self->is_zone_mapped($i))) {
          if ($log == 1) {
             my $ZoneNumPadded = sprintf("%03d", $i);
             $self->debug_log( "Zone $i (".$self->zone_name($i)
@@ -778,9 +782,9 @@ sub debug_log {
 
 #}}}
 #    Define hash with all zone numbers and names {{{
-sub MappedZones {
+sub is_zone_mapped {
    my ($self, $zone) = @_;
-   my $instance = $self->{instance};
+   $zone = sprintf "%03s", $zone;
    foreach my $mkey (keys $$self{relay}) {
       if ($zone eq $$self{relay}{$mkey}) { return 1 }
    }
