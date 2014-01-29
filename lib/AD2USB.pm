@@ -458,10 +458,16 @@ sub CheckCmd {
       }
       
       # Set things based on Bit Codes
+      
+      # Prep mode for future use
+      my $mode = '';
+      $mode = 'fault' if $status_type->{fault};
 
       # READY
       if ( $status_type->{ready_flag}) {
          my $bypass = ($status_type->{bypassed_flag}) ? 'bypass' : '';
+         $mode = 'ready';
+         $mode = 'bypass' if $bypass;
          # Reset all zones, if bypass enabled skip bypassed zones
          for my $partition (@partitions){
             $self->ChangeZones( 1, 999, "ready", $bypass, 1, $partition);
@@ -471,7 +477,7 @@ sub CheckCmd {
       # ARMED AWAY
       if ( $status_type->{armed_away_flag}) {
          # TODO The setting of modes needs to be done on partitions
-         my $mode = "ERROR";
+         my $mode = "armed away - error";
          if (index($status_type->{alphanumeric}, "ALL SECURE")) {
             $mode = "armed away";
          }
@@ -482,15 +488,25 @@ sub CheckCmd {
             $mode = "entry delay";
          }
          elsif (index($status_type->{alphanumeric}, "ZONE BYPASSED")) {
-            $mode = "armed away";
+            $mode = "armed away - bypass";
          }
-
-         $self->set($mode);
       }
 
       # ARMED HOME
       if ( $status_type->{armed_home_flag}) {
-         $self->set("armed stay");
+         $mode = "armed stay - error";
+         if (index($status_type->{alphanumeric}, "You may exit now")) {
+            $mode = "exit delay";
+         }
+         elsif (index($status_type->{alphanumeric}, "or alarm occurs")) {
+            $mode = "entry delay";
+         }
+         elsif (index($status_type->{alphanumeric}, "ZONE BYPASSED")) {
+            $mode = "armed stay - bypass";
+         }
+         elsif (index($status_type->{alphanumeric}, "***STAY***")) {
+            $mode = "armed stay";
+         }
       }
 
       # BACKLIGHT
@@ -500,6 +516,7 @@ sub CheckCmd {
 
       # PROGRAMMING MODE
       if ( $status_type->{programming_flag}) {
+         $mode = "programming";
          $self->debug_log("Panel is in programming mode"); 
       }
 
@@ -509,14 +526,11 @@ sub CheckCmd {
          $self->debug_log("Panel beeped $NumBeeps times"); 
       }
 
-      # A ZONE OR ZONES ARE BYPASSED
-      if ( $status_type->{bypassed_flag}) {
-      }
-
       # AC POWER
       $$self{ac_power} = 1;
       if ( !$status_type->{ac_flag} ) {
          $$self{ac_power} = 0;
+         $mode = "ac power lost";
          $self->debug_log("AC Power has been lost");;
       }
 
@@ -529,11 +543,13 @@ sub CheckCmd {
       # ALARM WAS TRIGGERED (Sticky until disarm)
       if ( $status_type->{alarm_past_flag}) {
          my $EventName = "ALARM WAS TRIGGERED";
+         $mode = "alarm was triggered";
          $self->debug_log("$EventName" );
       }
 
       # ALARM IS SOUNDING
       if ( $status_type->{alarm_now_flag}) {
+         $mode = "alarm now sounding";
          $self->debug_log("ALARM IS SOUNDING - Zone $zone_no_pad (".$self->zone_name($zone_no_pad).")" );
          $self->ChangeZones( $zone_no_pad, $zone_no_pad, "alarm", "", 1);
       }
@@ -542,7 +558,11 @@ sub CheckCmd {
       $self->{battery_low} = 0;
       if ( $status_type->{battery_low_flag}) {
          $self->{battery_low} = 1;
+         $mode = "battery low";
          $self->debug_log("Panel is low on battery");;
+      }
+      if ($mode ne $self->state && $mode ne ''){
+         $self->set($mode);
       }
    }
    return;
