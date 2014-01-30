@@ -122,6 +122,7 @@ sub new {
    $$self{instance}       = $instance;
    $$self{reconnect_time} = $::config_parms{$instance.'_ser2sock_recon'};
    $$self{reconnect_time} = 10 if !defined($$self{reconnect_time});
+   $$self{max_zones}      = 250; #The current max zones by any panel, can be increased
    my $year_mon           = &::time_date_stamp( 10, time );
    $$self{log_file}       = $::config_parms{'data_dir'}."/logs/AD2USB.$year_mon.log";
 
@@ -136,7 +137,7 @@ sub new {
    # AD2USB_part_log AD2USB_zone_log AD2USB_debug_log
 
    #Set all zones and partitions to ready
-   $self->ChangeZones( 1, 999, "ready", "ready", 0);
+   $self->ChangeZones( 1, $$self{max_zones}, "ready", "ready", 0);
 
    #Store Object with Instance Name
    $self->set_object_instance($instance);
@@ -307,13 +308,14 @@ sub check_for_data {
             (!$status_type->{fault})) {
             # This is a duplicate panel message with no important status
             $self->debug_log("DUPE: $Cmd");
+::print_log("[krk] end dupe " . &main::get_tickcount);
          }
          else {
             # This is a non-dupe panel message or a fault panel message or a
             # relay or RF or zone expander message or something important
             # Log the message, parse it, and store it to detect future dupes
             $self->debug_log("MSG: $Cmd");
-            $self->CheckCmd($Cmd);
+            $self->CheckCmd($status_type);
             $self->{last_cmd} = $Cmd if ($status_type->{keypad});
          }
       }
@@ -328,8 +330,7 @@ sub check_for_data {
 #    Validate the command and perform action                                {{{
 
 sub CheckCmd {
-   my ($self, $CmdStr) = @_;
-   my $status_type = $self->GetStatusType($CmdStr);
+   my ($self, $status_type) = @_;
    my $zone_padded = $status_type->{numeric_code};
    my $zone_no_pad = int($zone_padded);
    my @partitions = @{$status_type->{partition}} 
@@ -337,7 +338,7 @@ sub CheckCmd {
    my $instance = $self->{instance};
    
    if ($status_type->{unknown}) {
-      $self->debug_log("UNKNOWN STATUS: $CmdStr");
+      $self->debug_log("UNKNOWN STATUS: $status_type->{cmd}");
    }
    elsif ($status_type->{cmd_sent}) {
       if ($self->{keys_sent} == 0) {
@@ -480,7 +481,7 @@ sub CheckCmd {
          $mode = 'bypass' if $bypass;
          # Reset all zones, if bypass enabled skip bypassed zones
          for my $partition (@partitions){
-            $self->ChangeZones( 1, 999, "ready", $bypass, 1, $partition);
+            $self->ChangeZones( 1, $$self{max_zones}, "ready", $bypass, 1, $partition);
          }
       }
 
@@ -584,6 +585,7 @@ sub GetStatusType {
    my ($self, $AdemcoStr) = @_;
    my $instance = $self->{instance};
    my %message;
+   $message{cmd} = $AdemcoStr;
 
    # Panel Message Format
    if ($AdemcoStr =~ /(!KPM:)?\[([\d-]*)\],(\d{3}),\[(.*)\],\"(.*)\"/) {
@@ -697,8 +699,9 @@ sub ChangeZones {
    my ($self, $start, $end, $new_status, $neq_status, $log, $partition, 
       $skip_mapped) = @_;
    my $instance = $self->{instance};
+   $end = $$self{max_zones} if $end <=0 ;
 
-   # Allow for reverse looping from 999->1
+   # Allow for reverse looping from max_zones->1
    my $reverse = ($start > $end)? 1 : 0;
    for (my $i = $start; (!$reverse && $i <= $end) ||
          ($reverse && ($i >= $start || $i <= $end)); $i++) {
@@ -725,7 +728,7 @@ sub ChangeZones {
          $$self{parition_object}{$zone_partition}->set($partition_status, $$self{zone_object}{"$i"}) 
             if defined $$self{parition_object}{$zone_partition};
       }
-      $i = 0 if ($i == 999 && $reverse); #loop around
+      $i = 0 if ($i == $$self{max_zones} && $reverse); #loop around
    }
 }
 
@@ -789,18 +792,24 @@ sub debug_log {
 }
 
 #}}}
-#    Define hash with all zone numbers and names {{{
+#    Returns true if zone is mapped {{{
 sub is_zone_mapped {
    my ($self, $zone) = @_;
    $zone = sprintf "%03s", $zone;
-   foreach my $mkey (keys $$self{relay}) {
-      if ($zone eq $$self{relay}{$mkey}) { return 1 }
+   if (defined $$self{relay}){
+      foreach my $mkey (keys $$self{relay}) {
+         if ($zone eq $$self{relay}{$mkey}) { return 1 }
+      }
    }
-   foreach my $mkey (keys $$self{wireless}) {
-      if ($zone eq $$self{wireless}{$mkey}) { return 1 }
+   if (defined $$self{wireless}){
+      foreach my $mkey (keys $$self{wireless}) {
+         if ($zone eq $$self{wireless}{$mkey}) { return 1 }
+      }
    }
-   foreach my $mkey (keys $$self{expander}) {
-      if ($zone eq $$self{expander}{$mkey}) { return 1 }
+   if (defined $$self{expander}){
+      foreach my $mkey (keys $$self{expander}) {
+         if ($zone eq $$self{expander}{$mkey}) { return 1 }
+      }
    }
    return 0;
 }
