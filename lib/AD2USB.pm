@@ -308,7 +308,6 @@ sub check_for_data {
             (!$status_type->{fault})) {
             # This is a duplicate panel message with no important status
             $self->debug_log("DUPE: $Cmd");
-::print_log("[krk] end dupe " . &main::get_tickcount);
          }
          else {
             # This is a non-dupe panel message or a fault panel message or a
