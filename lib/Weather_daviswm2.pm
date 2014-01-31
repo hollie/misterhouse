@@ -344,7 +344,7 @@ sub process{
 		);
 	}
 	
-	$$wptr{TempIndoor}=$indoor_temp-4;
+	$$wptr{TempIndoor}=$indoor_temp;
 	$$wptr{TempOutdoor}=$outdoor_temp;
 	$$wptr{DewIndoor}=$indoor_dewpoint;
 	$$wptr{DewOutdoor}=$outdoor_dewpoint; 
