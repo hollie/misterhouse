@@ -344,7 +344,7 @@ sub process{
 		);
 	}
 	
-	$$wptr{TempIndoor}=$indoor_temp;
+	$$wptr{TempIndoor}=$indoor_temp-4;
 	$$wptr{TempOutdoor}=$outdoor_temp;
 	$$wptr{DewIndoor}=$indoor_dewpoint;
 	$$wptr{DewOutdoor}=$outdoor_dewpoint; 
@@ -359,7 +359,6 @@ sub process{
 	$$wptr{RainTotal}=$total_rain;
 	$$wptr{RainRate}=$rain_rate;
 	$$wptr{BaromDelta}=$barom_tendency;
-	$$wptr{Conditions}="cloudy";
 		
 	if ($::Debug{weather}) {
 		foreach my $key qw(
