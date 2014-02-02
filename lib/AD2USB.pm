@@ -384,7 +384,7 @@ sub CheckCmd {
          #Do not reset mapped zones, specific messages are recevied for these
          #If the current zone is lower than the previous zone, only reset zones
          #in between if highest zone has remained constant for one full cycle
-         if ($self->{zone_last_num}{$partition} - $zone_no_pad != 1) {
+         if ($zone_no_pad - $self->{zone_last_num}{$partition} != 1) {
             if (($self->{zone_last_num}{$partition} <= $zone_no_pad) &&
                $self->{highest_zone}{$partition} != $self->{zone_last_num}{$partition}){
                $self->{highest_zone}{$partition} = $zone_no_pad;
@@ -708,12 +708,20 @@ sub ChangeZones {
    my ($self, $start, $end, $new_status, $neq_status, $log, $partition, 
       $skip_mapped) = @_;
    my $instance = $self->{instance};
-   $end = $$self{max_zones} if $end <=0 ;
+   #Prevent improper start and end to suppress never ending loops.
+   $end = $$self{max_zones} if ($end <=0 || $end > $$self{max_zones});
+   $start = 1 if ($start <=0 || $start > $$self{max_zones});
 
    # Allow for reverse looping from max_zones->1
    my $reverse = ($start > $end)? 1 : 0;
-   for (my $i = $start; (!$reverse && $i <= $end) ||
-         ($reverse && ($i >= $start || $i <= $end)); $i++) {
+   
+   # Prevent infinite loop scenario
+   my $y = 0;
+
+   for (my $i = $start; ($y <= $$self{max_zones}) &&
+         ((!$reverse && $i <= $end) ||
+         ($reverse && ($i >= $start || $i <= $end)));
+         $i++) {
       my $current_status = $$self{$self->zone_partition($i)}{zone_status}{$i};
       # If partition set, then zone partition must equal that
       if (($current_status ne $new_status) && ($current_status ne $neq_status)
@@ -737,6 +745,7 @@ sub ChangeZones {
          $$self{parition_object}{$zone_partition}->set($partition_status, $$self{zone_object}{"$i"}) 
             if defined $$self{parition_object}{$zone_partition};
       }
+      $y++;
       $i = 0 if ($i == $$self{max_zones} && $reverse); #loop around
    }
 }
