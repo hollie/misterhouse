@@ -171,7 +171,31 @@ sub read_parms{
       $Configuration{$mkey} = $::config_parms{$mkey} if $mkey =~ /^AD2USB_/;
       #Put wireless settings in correct hash
       if ($mkey =~ /^${instance}_wireless_(.*)/){
-         $$self{wireless}{$1} = $::config_parms{$mkey};
+         if (index($::config_parms{$mkey}, ',') <= 0){
+            #Supports new style ini parameter, wherein each zone is a separate entry:
+            #AD2USB_wireless_[RF_ID],[LOOP],[TYPE]=[ZONE] such as:
+            #AD2USB_wireless_1234567,1,k=10
+            $$self{wireless}{$1} = $::config_parms{$mkey};
+         }
+         else {
+            #This code supports the old style ini of wirelss parameters:
+            #AD2USB_wireless_[RF_ID]=[ZONE],[TYPE][LOOP](,repeat) such as:
+            #AD2USB_wireless_1234567=10,s1
+            my $rf_id = $1;
+            my $lc = 0;
+            my $ZoneNum;
+            foreach my $wnum(split(",", $::config_parms{$mkey})) {
+               if ($lc % 2 == 0) { 
+                  $ZoneNum = $wnum;
+               }
+               else {
+                  my ($sensortype, $ZoneLoop) = split("", $wnum);
+                  $$self{wireless}{"$rf_id,$ZoneLoop,$sensortype"} 
+                     = $ZoneNum;
+               }
+               $lc++;
+            }
+         }
       }
       #Put expander settings in correct hash
       if ($mkey =~ /^${instance}_expander_(.*)/){
@@ -186,7 +210,7 @@ sub read_parms{
          $$self{partition_address}{$1} = $::config_parms{$mkey};
       }
       #Put Zone Names in Correct Hash
-      if ($mkey =~ /^${instance}_partition_(\d*)$/){
+      if ($mkey =~ /^${instance}_zone_(\d*)$/){
          $$self{zone_name}{$1} = $::config_parms{$mkey};
       }
       #Put Zone Partition Relationship in Correct Hash
@@ -386,8 +410,9 @@ sub CheckCmd {
       $self->ChangeZones( $zone_no_pad, $zone_no_pad, "bypass", "", 1);
    }
    elsif ($status_type->{wireless}) {
+      my $rf_id = $status_type->{rf_id};
       $self->debug_log("WIRELESS: rf_id("
-         .$status_type->{rf_id}.") status(".$status_type->{rf_status}.") loop1("
+         .$rf_id.") status(".$status_type->{rf_status}.") loop1("
          .$status_type->{rf_loop_fault_1}.") loop2(".$status_type->{rf_loop_fault_2}
          .") loop3(".$status_type->{rf_loop_fault_3}.") loop4("
          .$status_type->{rf_loop_fault_4}.")" );
@@ -396,40 +421,25 @@ sub CheckCmd {
          .$status_type->{rf_low_batt}.") supervised(".$status_type->{rf_supervised}
          .")" );
 
-      if (defined $$self{wireless}{$status_type->{rf_id}}) {
-         my ($MZoneLoop, $PartStatus, $ZoneNum);
-         my $lc = 0;
-         my $ZoneStatus = "ready";
+      foreach my $rf_key (keys $$self{wireless}){
+         if ($rf_key =~ /^${rf_id}(.*)/) {
+            my $LoopNum = 1;
+            my $SensorType = 's';
+            ($LoopNum, $SensorType) = split(',', $1);
+            my $ZoneNum = $$self{wireless}{$rf_key};
 
-         # Assign status (zone and partition)
-         if ($status_type->{rf_low_batt} == "1") {
-            $ZoneStatus = "low battery";
-         }
-   
-         foreach my $wnum(split(",", $$self{wireless}{$status_type->{rf_id}})) {
-            if ($lc % 2 == 0) { 
-               $ZoneNum = $wnum;
+            my $ZoneStatus = "ready";
+            if ($status_type->{rf_low_batt} == "1") {
+               $ZoneStatus = "low battery";
             }
-            else {
-               my ($sensortype, $ZoneLoop) = split("", $wnum);
-               if ($ZoneLoop eq "1") {$MZoneLoop = $status_type->{rf_loop_fault_1}}
-               if ($ZoneLoop eq "2") {$MZoneLoop = $status_type->{rf_loop_fault_2}}
-               if ($ZoneLoop eq "3") {$MZoneLoop = $status_type->{rf_loop_fault_3}}
-               if ($ZoneLoop eq "4") {$MZoneLoop = $status_type->{rf_loop_fault_4}}
-   
-               if ("$MZoneLoop" eq "1") {
-                  $ZoneStatus = "fault";
-               } elsif ("$MZoneLoop" eq 0) {
-                 $ZoneStatus = "ready";
-               }
+            if ($status_type->{'rf_loop_fault_'.$LoopNum}) {
+               $ZoneStatus = "fault";
+            }
 
-               $self->ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
-               if ($sensortype eq "k") {
-                  $ZoneStatus = "ready";
-                  $self->ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
-               }
-            }
-         $lc++
+            $self->ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
+            $self->ChangeZones( int($ZoneNum), int($ZoneNum), "ready", "", 1) 
+               if ($SensorType eq "k"); #Toggle key buttons back to ready 
+               #Not sure this works, set functions are called per loop
          }
       }
    }
