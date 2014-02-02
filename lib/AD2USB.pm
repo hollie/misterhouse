@@ -944,10 +944,22 @@ sub cmd_list {
 #}}}
 ##Used to register a child object to a zone or partition. Allows for MH-style Door & Motion sensors {{{
 sub register {
-   my ($self, $object, $num ) = @_;
+   my ($self, $object, $num, $expander,$relay,$wireless) = @_;
    &::print_log("Registering Child Object on zone $num");
-   if ($object->isa('AD2USB_Motion_Item') || $object->isa('AD2USB_Door_Item')) {
+   if ($object->isa('AD2USB_Item')) {
       $self->{zone_object}{$num} = $object;
+      #Put wireless settings in correct hash
+      if (defined $wireless){
+         $$self{wireless}{$wireless} = $num;
+      }
+      #Put expander settings in correct hash
+      if (defined $expander){
+         $$self{expander}{$expander} = $num;
+      }
+      #Put relay settings in correct hash
+      if (defined $relay){
+         $$self{relay}{$relay} = $num;
+      }
    }
    elsif ($object->isa('AD2USB_Partition')) {
       $self->{partition_object}{$num} = $object;
@@ -974,23 +986,24 @@ sub get_child_object_name {
 #
 # inactivity timers are not working...don't know if those are relevant for panel items.
 
-package AD2USB_Door_Item;
+package AD2USB_Item;
 
-@AD2USB_Door_Item::ISA = ('Generic_Item');
+@AD2USB_Item::ISA = ('Generic_Item');
 
 sub new
 {
-   my ($class,$interface,$zone,$partition) = @_;
+   my ($class,$type,$interface,$zone,$partition,$expander,$relay,$wireless) = @_;
 
    my $self = new Generic_Item();
    bless $self,$class;
 
-   $$self{last_open} = 0;
-   $$self{last_closed} = 0;
-   $$self{item_type} = 'door';
-   $interface->register($self,$zone);
+   $$self{last_fault} = 0;
+   $$self{last_ready} = 0;
+   $$self{item_type} = lc($type);
+   $interface->register($self,$zone,$expander,$relay,$wireless);
    $zone = sprintf("%03d", $zone);
    $$self{zone_partition}{$zone} = $partition;
+   $self->set($interface->status_zone($zone), $self); #Set correct state on startup
    return $self;
 
 }
@@ -1000,18 +1013,22 @@ sub set
    my ($self,$p_state,$p_setby) = @_;
 
       if (ref $p_setby and $p_setby->can('get_set_by')) {
-         &::print_log("AD2USB_Door_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name} was set by " . $p_setby->get_set_by) if $main::Debug{AD2USB};
+         ::print_log("AD2USB_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name} was set by " . $p_setby->get_set_by) if $main::Debug{AD2USB};
       } else {
-         &::print_log("AD2USB_Door_Item($$self{object_name})::set($p_state, $p_setby)") if $main::Debug{AD2USB};
+         ::print_log("AD2USB_Item($$self{object_name})::set($p_state, $p_setby)") if $main::Debug{AD2USB};
       }
 
       if ($p_state =~ /^fault/ || $p_state eq 'on') {
-         $p_state = 'open';
-         $$self{last_open} = $::Time;
+         $p_state = 'fault';
+         $p_state = 'open' if $$self{item_type} eq 'door';
+         $p_state = 'motion' if $$self{item_type} eq 'motion';
+         $$self{last_fault} = $::Time;
 
       } elsif ($p_state =~ /^ready/ || $p_state eq 'off') {
-         $p_state = 'closed';
-         $$self{last_closed} = $::Time;
+         $p_state = 'ready';
+         $p_state = 'closed' if $$self{item_type} eq 'door';
+         $p_state = 'still' if $$self{item_type} eq 'motion';
+         $$self{last_ready} = $::Time;
       }
 
       $self->SUPER::set($p_state,$p_setby);
@@ -1019,12 +1036,22 @@ sub set
    
 sub get_last_close_time {
    my ($self) = @_;
-   return $$self{last_closed};
+   return $$self{last_ready};
 }
 
 sub get_last_open_time {
    my ($self) = @_;
-   return $$self{last_open};
+   return $$self{last_fault};
+}
+
+sub get_last_still_time {
+   my ($self) = @_;
+   return $$self{last_ready};
+}
+
+sub get_last_motion_time {
+   my ($self) = @_;
+   return $$self{last_fault};
 }
 
 sub get_child_item_type {
@@ -1033,62 +1060,6 @@ sub get_child_item_type {
 }
 
 #}}}
-package AD2USB_Motion_Item;
-@AD2USB_Motion_Item::ISA = ('Generic_Item');
-
-sub new
-{
-   my ($class,$interface,$zone,$partition) = @_;
-
-   my $self = new Generic_Item();
-   bless $self,$class;
-
-   $$self{last_still} = 0;
-   $$self{last_motion} = 0;
-   $$self{item_type} = 'motion';
-   $interface->register($self,$zone);
-   $zone = sprintf("%03d", $zone);
-   $$self{zone_partition}{$zone} = $partition;
-   return $self;
-
-}
-
-sub set
-{
-	my ($self,$p_state,$p_setby) = @_;
-
-
-   if (ref $p_setby and $p_setby->can('get_set_by')) {
-      &::print_log("AD2USB_Motion_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name} was set by " . $p_setby->get_set_by) if $main::Debug{AD2USB};
-   } else {
-      &::print_log("AD2USB_Motion_Item($$self{object_name})::set($p_state, $p_setby)") if $main::Debug{AD2USB};
-   }
-
-   if ($p_state =~ /^fault/i) {
-      $p_state = 'motion';
-      $$self{last_motion} = $::Time;
-   } elsif ($p_state =~ /^ready/i) {
-      $p_state = 'still';
-      $$self{last_still} = $::Time;
-   }
-
-	$self->SUPER::set($p_state, $p_setby);
-}
-
-sub get_last_still_time {
-   my ($self) = @_;
-   return $$self{last_still};
-}
-
-sub get_last_motion_time {
-   my ($self) = @_;
-   return $$self{last_motion};
-}
-
-sub get_child_item_type {
-   my ($self) = @_;
-   return $$self{item_type};
-}
 
 package AD2USB_Partition;
 @AD2USB_Partition::ISA = ('Generic_Item');
