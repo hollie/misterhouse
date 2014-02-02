@@ -28,7 +28,8 @@ use Insteon::BaseInsteon;
 use Insteon::AllLinkDatabase;
 use Insteon::MessageDecoder;
 
-@Insteon_PLM::ISA = ('Serial_Item','Insteon::BaseInterface');
+#@Insteon_PLM::ISA = ('Serial_Item','Socket_Item','Insteon::BaseInterface');
+my $PLM_socket = undef;
 
 
 my %prefix = (
@@ -71,6 +72,10 @@ Creates a new serial port connection.
 
 sub serial_startup {
    my ($instance) = @_;
+   my $PLM_use_tcp =0;
+   $PLM_use_tcp    = $::config_parms{$instance . "_use_TCP"};
+   if ($PLM_use_tcp == 1) {return;}
+
    my $port       = $::config_parms{$instance . "_serial_port"};
    if (!defined($port)) {
       main::print_log("WARN: ".$instance."_serial_port missing from INI params!");
@@ -92,8 +97,27 @@ sub new {
    my ($class, $port_name, $p_deviceid) = @_;
    $port_name = 'Insteon_PLM' if !$port_name;
    my $port       = $::config_parms{$port_name . "_serial_port"};
-   if (!defined($port)) {
-      main::print_log("WARN: ".$port_name."_serial_port missing from INI params!");
+   my $PLM_use_tcp =0;
+   $PLM_use_tcp    = $::config_parms{$port_name . "_use_TCP"};
+   my $PLM_tcp_host       = 0;
+   my $PLM_tcp_port       = 0;
+
+
+   if ($PLM_use_tcp == 1)
+   {
+	@Insteon_PLM::ISA = ('Socket_Item','Insteon::BaseInterface');
+    	$PLM_tcp_host       = $::config_parms{$port_name . "_TCP_host"};
+    	$PLM_tcp_port       = $::config_parms{$port_name . "_TCP_port"};
+    	&::print_log("[Insteon_PLM] 2412N using TCP,  tcp_host=$PLM_tcp_host,  tcp_port=$PLM_tcp_port");
+   }
+   else
+   {
+    	if (!defined($port)) {
+    		main::print_log("WARN: ".$port_name."_serial_port missing from INI params!");
+    	}
+    	@Insteon_PLM::ISA = ('Serial_Item','Insteon::BaseInterface');
+    	$PLM_use_tcp =0;
+    	&::print_log("[Insteon_PLM] 2412[US] using serial,  serial_port=$port");
    }
 
    my $self = new Insteon::BaseInterface();
@@ -102,12 +126,23 @@ sub new {
    $$self{state_now} = '';
    $$self{port_name} = $port_name;
    $$self{port} = $port;
+   $$self{use_tcp} = $PLM_use_tcp;
+   $$self{tcp_host} = $PLM_tcp_host;
+   $$self{tcp_port} = $PLM_tcp_port;
 	$$self{last_command} = '';
 	$$self{_prior_data_fragment} = '';
    bless $self, $class;
    $self->restore_data('debug', 'corrupt_count_log');
    $$self{corrupt_count_log} = 0;
    $$self{aldb} = new Insteon::ALDB_PLM($self);
+   if ($PLM_use_tcp == 1)
+   {
+   	my $tcp_hostport = "$PLM_tcp_host:$PLM_tcp_port";
+      
+   	$PLM_socket = new Socket_Item(undef, undef, $tcp_hostport, 'Insteon PLM 2412N', 'tcp', 'raw');
+      	start $PLM_socket;
+      	$$self{socket} = $PLM_socket;
+   }
 
    &Insteon::add($self);
 
@@ -186,9 +221,28 @@ calles C<process_queue()>.
 sub check_for_data {
 
 	my ($self) = @_;
+	my $PLM_use_tcp =0;
+	#$PLM_use_tcp    = $::config_parms{$self . "_use_TCP"};
+	$PLM_use_tcp    = $$self{use_tcp};
       	my $port_name = $$self{port_name};
-      	&::check_for_generic_serial_data($port_name) if $::Serial_Ports{$port_name}{object};
-      	my $data = $::Serial_Ports{$port_name}{data};
+	my $data = undef;
+	if ($PLM_use_tcp == 1) 
+	{
+		if ((not active $PLM_socket) and (($main::Second % 6) == 0) and $::New_Second) 
+		{
+			&::print_log("[Insteon PLM] resetting socket connection");		      
+			start $PLM_socket;
+		}
+		$data = said $PLM_socket;
+      		#&::print_log("[Insteon PLM] data recieved $data") if $data;
+		
+	}
+	else
+	{      	
+      		&::check_for_generic_serial_data($port_name) if $::Serial_Ports{$port_name}{object};
+      		$data = $::Serial_Ports{$port_name}{data};
+      	}
+
       	# always check for data first; if it exists, then process; otherwise check if pending commands exist
       	if ($data)
         {
@@ -381,9 +435,22 @@ Causes a message to be sent to the serial port.
 sub _send_cmd {
 	my ($self, $message, $cmd_timeout) = @_;
 	my $instance = $$self{port_name};
-	if (!(ref $main::Serial_Ports{$instance}{object})) {
+	my $PLM_use_tcp = $$self{use_tcp};
+	if ($PLM_use_tcp == 1) 
+	{
+		#stop $PLM_socket;
+		if (not connected $PLM_socket) 
+		{
+		      &::print_log("[Insteon PLM] starting socket connection ");
+		      start $PLM_socket;
+		}	
+	}
+	else
+	{
+	     if (!(ref $main::Serial_Ports{$instance}{object})) {
 		print "WARN: Insteon_PLM serial port not initialized!\n";
 		return;
+		}
 	}
 	unshift(@{$$self{command_history}},$::Time);
 	$self->transmit_in_progress(1);
@@ -425,8 +492,16 @@ sub _send_cmd {
 		&::print_log( "[Insteon_PLM] DEBUG3: Sending  PLM raw data: ".lc($command)) if $debug_obj->debuglevel(3, 'insteon');
 		&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($command)) if $debug_obj->debuglevel(4, 'insteon');
 		my $data = pack("H*",$command);
-		$main::Serial_Ports{$instance}{object}->write($data) if $main::Serial_Ports{$instance};
-	
+		if ($PLM_use_tcp == 1) 
+		{
+			my $port_name = $PLM_socket->{port_name};
+			my $sentBytes = $main::Socket_Ports{$port_name}{sock}->send($data) if $main::Socket_Ports{$port_name}{sock};
+			#print "Insteon_2412N $sentBytes bytes sent ($data)[$command]\n";
+		}
+		else
+		{
+			$main::Serial_Ports{$instance}{object}->write($data) if $main::Serial_Ports{$instance};
+		}	
 	
 		if ($delay) {
 			$self->_set_timeout('xmit',$delay * 1000);
