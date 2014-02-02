@@ -602,7 +602,9 @@ sub _parse_data {
 							package main;
 							eval ($self->active_message->success_callback);
 							&::print_log("[Insteon_PLM] WARN1: Error encountered during ack callback: " . $@)
-								if $@ and $self->active_message->setby->debuglevel(1, 'insteon');
+								if ($@ && $self->active_message->can('setby') 
+								&& ref $self->active_message->setby 
+								&& $self->active_message->setby->debuglevel(1, 'insteon'));
 							package Insteon_PLM;
                                         	}
                                                 # clear the active message because we're done
@@ -641,7 +643,9 @@ sub _parse_data {
 							package main;
 							eval ($callback);
 							&::print_log("[Insteon_PLM] WARN1: Error encountered during ack callback: " . $@)
-								if $@ and $self->active_message->setby->debuglevel(1, 'insteon');
+								if ($@ && $self->active_message->can('setby') 
+								&& ref $self->active_message->setby 
+								&& $self->active_message->setby->debuglevel(1, 'insteon'));
 							package Insteon_PLM;	
                                                 }
 					}
@@ -915,27 +919,29 @@ sub _parse_data {
                 { #ALL-Link Cleanup Status Report
 			&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($parsed_data)) if $self->debuglevel(4, 'insteon');
 			my $cleanup_ack = substr($message_data,0,2);
-			if ($cleanup_ack eq '15')
-                        {
-				&::print_log("[Insteon_PLM] WARN1: All-link cleanup failure for scene: "
-                                	. $self->active_message->setby->get_object_name . ". Retrying in 1 second.")
-					if $self->active_message->setby->debuglevel(1, 'insteon');
-                                $self->retry_active_message();
-                                # except that we should cause a bit of a delay to let things settle out
-				$self->_set_timeout('xmit', 1000);
-				$process_next_command = 0;
-			}
-                        else
-                        {
-                        	my $message_to_string = ($self->active_message) ? $self->active_message->to_string() : "";
-				&::print_log("[Insteon_PLM] Received all-link cleanup success: $message_to_string")
-                                	if $self->active_message->setby->debuglevel(1, 'insteon');
-				if (ref $self->active_message && ref $self->active_message->setby){
-					my $object = $self->active_message->setby;
-					$object->is_acknowledged(1);
-					$object->_process_command_stack();
+			if (ref $self->active_message){
+				if ($cleanup_ack eq '15')
+	                        {
+					&::print_log("[Insteon_PLM] WARN1: All-link cleanup failure for scene: "
+	                                	. $self->active_message->setby->get_object_name . ". Retrying in 1 second.")
+						if $self->active_message->setby->debuglevel(1, 'insteon');
+	                                $self->retry_active_message();
+	                                # except that we should cause a bit of a delay to let things settle out
+					$self->_set_timeout('xmit', 1000);
+					$process_next_command = 0;
 				}
-                                $self->clear_active_message();
+	                        else
+	                        {
+	                        	my $message_to_string = ($self->active_message) ? $self->active_message->to_string() : "";
+					&::print_log("[Insteon_PLM] Received all-link cleanup success: $message_to_string")
+	                                	if $self->active_message->setby->debuglevel(1, 'insteon');
+					if (ref $self->active_message && ref $self->active_message->setby){
+						my $object = $self->active_message->setby;
+						$object->is_acknowledged(1);
+						$object->_process_command_stack();
+					}
+	                                $self->clear_active_message();
+				}
 			}
 		}
                 elsif (substr($parsed_data,0,2) eq '15')
