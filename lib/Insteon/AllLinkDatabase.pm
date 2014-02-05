@@ -2542,6 +2542,7 @@ sub delete_orphan_links
 	my ($self, $audit_mode) = @_;
 
         &::print_log("[Insteon::ALDB_PLM] #### NOW BEGINNING DELETE ORPHAN LINKS ####");
+	@{$$self{_delete_device_failures}} = ();
 
 	$self->SUPER::delete_orphan_links($audit_mode);
 
