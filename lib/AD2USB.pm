@@ -742,8 +742,8 @@ sub ChangeZones {
             if defined $$self{zone_object}{"$i"};
          my $zone_partition = $self->zone_partition($i);
          my $partition_status = $self->status_partition($zone_partition);
-         $$self{parition_object}{$zone_partition}->set($partition_status, $$self{zone_object}{"$i"}) 
-            if defined $$self{parition_object}{$zone_partition};
+         $$self{partition_object}{$zone_partition}->set($partition_status, $$self{zone_object}{"$i"}) 
+            if defined $$self{partition_object}{$zone_partition};
       }
       $y++;
       $i = 0 if ($i == $$self{max_zones} && $reverse); #loop around
