@@ -1,4 +1,4 @@
-=head1 B<AD2USB>
+=head1 B<AD2>
 
 =head2 SYNOPSIS
 
@@ -6,7 +6,7 @@
 
 =head2 DESCRIPTION
 
-Module that monitors a serial device for the AD2USB for known events and 
+Module for interfacing with the AD2 line of products.  Monitors known events and 
 maintains the state of the Ademco system in memory. Module also sends
 instructions to the panel as requested.
 
@@ -14,7 +14,7 @@ instructions to the panel as requested.
 
 Older versions of this library relied almost exclusively on ini parameters.
 This revised library provides extensive support for using an mht file to define 
-AD2USB objects and only requires setting ini parameters for the initial AD2USB 
+AD2 objects and only requires setting ini parameters for the initial AD2 
 Interface configuration. [Feb 5, 2014]
 
 At minimum, you must define the Interface.  In addition, this library provides
@@ -47,36 +47,36 @@ This library envisions that a user may connect multiple AD2 Interfaces to
 MisterHouse.  In order to distinguish between each interface, each interface
 must use a unique prefix.  This prefix must take the following form:
 
-   AD2USB[_digits]
+   AD2[_digits]
 
 Wherein the _digits suffix is optional.  Each of the following prefixes 
 define separate Interfaces:
 
-   AD2USB
-   AD2USB_1
-   AD2USB_11
+   AD2
+   AD2_1
+   AD2_11
 
 =head4 Direct Connections (USB or Serial)
 
 INI file:
 
-   AD2USB_serial_port=/dev/ttyAMA0
+   AD2_serial_port=/dev/ttyAMA0
 
 Wherein the format for the parameter name is:
 
-   AD2USB-Prefix_serial_port
+   AD2-Prefix_serial_port
 
 =head4 IP Connections (Ser2Sock)
 
 INI file:
 
-   AD2USB_server_ip=192.168.11.17
-   AD2USB_server_port=10000
+   AD2_server_ip=192.168.11.17
+   AD2_server_port=10000
 
 Wherein the format for the parameter name is:
 
-   AD2USB-Prefix_server_ip
-   AD2USB-Prefix_server_port
+   AD2-Prefix_server_ip
+   AD2-Prefix_server_port
 
 =head4 Defining the Interface Object (All Connection Types)
 
@@ -85,19 +85,19 @@ object.  The object can be defined in either an mht file or user code.
 
 In mht file:
 
-   AD2_INTERFACE, $AD2_Interface, AD2USB
+   AD2_INTERFACE, $AD2_Interface, AD2
 
 Wherein the format for the definition is:
 
-   AD2_INTERFACE, Object Name, AD2USB-Prefix
+   AD2_INTERFACE, Object Name, AD2-Prefix
 
 In user code:
 
-   $AD2USB = new AD2USB(AD2USB);
+   $AD2 = new AD2(AD2);
 
 Wherein the format for the definition is:
 
-   $AD2USB = new AD2USB(AD2USB-Prefix);
+   $AD2 = new AD2(AD2-Prefix);
 
 =head3 Partition Configuration
 
@@ -117,10 +117,10 @@ L<Generic_Item>
 
 =cut
 
-package AD2USB;
+package AD2;
 use strict;
 
-@AD2USB::ISA = ('Generic_Item');
+@AD2::ISA = ('Generic_Item');
 
 my %Socket_Items; #Stores the socket instances and attributes
 my %Interfaces; #Stores the relationships btw instances and interfaces
@@ -134,7 +134,7 @@ Instantiates a new object.
 
 sub new {
    my ($class, $instance) = @_;
-   $instance = "AD2USB" if (!defined($instance));
+   $instance = "AD2" if (!defined($instance));
    ::print_log("Starting $instance instance of ADEMCO panel interface module");
 
    my $self = new Generic_Item();
@@ -149,7 +149,7 @@ sub new {
    $$self{reconnect_time} = 10 if !defined($$self{reconnect_time});
    $$self{max_zones}      = 250; #The current max zones by any panel, can be increased
    my $year_mon           = &::time_date_stamp( 10, time );
-   $$self{log_file}       = $::config_parms{'data_dir'}."/logs/AD2USB.$year_mon.log";
+   $$self{log_file}       = $::config_parms{'data_dir'}."/logs/AD2.$year_mon.log";
 
    bless $self, $class;
 
@@ -159,7 +159,7 @@ sub new {
 
    # The following logs default to being enabled, can only be disabled by 
    # proactively setting their ini parameters to 0:
-   # AD2USB_part_log AD2USB_zone_log AD2USB_debug_log
+   # AD2_part_log AD2_zone_log AD2_debug_log
 
    #Set all zones and partitions to ready
    $self->ChangeZones( 1, $$self{max_zones}, "ready", "ready", 0);
@@ -202,19 +202,19 @@ sub read_parms{
    foreach my $mkey (keys(%::config_parms)) {
       next if $mkey =~ /_MHINTERNAL_/;
       #Load All Configuration Settings
-      $Configuration{$mkey} = $::config_parms{$mkey} if $mkey =~ /^AD2USB_/;
+      $Configuration{$mkey} = $::config_parms{$mkey} if $mkey =~ /^AD2_/;
       #Put wireless settings in correct hash
       if ($mkey =~ /^${instance}_wireless_(.*)/){
          if (index($::config_parms{$mkey}, ',') <= 0){
             #Supports new style ini parameter, wherein each zone is a separate entry:
-            #AD2USB_wireless_[RF_ID],[LOOP],[TYPE]=[ZONE] such as:
-            #AD2USB_wireless_1234567,1,k=10
+            #AD2_wireless_[RF_ID],[LOOP],[TYPE]=[ZONE] such as:
+            #AD2_wireless_1234567,1,k=10
             $$self{wireless}{$1} = $::config_parms{$mkey};
          }
          else {
             #This code supports the old style ini of wirelss parameters:
-            #AD2USB_wireless_[RF_ID]=[ZONE],[TYPE][LOOP](,repeat) such as:
-            #AD2USB_wireless_1234567=10,s1
+            #AD2_wireless_[RF_ID]=[ZONE],[TYPE][LOOP](,repeat) such as:
+            #AD2_wireless_1234567=10,s1
             my $rf_id = $1;
             my $lc = 0;
             my $ZoneNum;
@@ -296,8 +296,8 @@ sub serial_startup {
       $BaudRate = ( defined $::config_parms{$instance . '_baudrate'} ) ? $::config_parms{"$instance" . '_baudrate'} : 115200;
       if ( &main::serial_port_create( $instance, $port, $BaudRate, 'none', 'raw' ) ) {
          init( $::Serial_Ports{$instance}{object}, $port );
-         ::print_log("[AD2USB] initializing $instance on port $port at $BaudRate baud") if $main::Debug{'AD2USB'};
-         ::MainLoop_pre_add_hook( sub {AD2USB::check_for_data($instance, 'serial');}, 1 ) if $main::Serial_Ports{"$instance"}{object};
+         ::print_log("[AD2] initializing $instance on port $port at $BaudRate baud") if $main::Debug{'AD2'};
+         ::MainLoop_pre_add_hook( sub {AD2::check_for_data($instance, 'serial');}, 1 ) if $main::Serial_Ports{"$instance"}{object};
       }
    }
 }
@@ -314,12 +314,12 @@ sub server_startup {
    $Socket_Items{"$instance"}{recon_timer} = ::Timer::new();
    my $ip = $::config_parms{"$instance".'_server_ip'};
    my $port = $::config_parms{"$instance" . '_server_port'};
-   ::print_log("  AD2USB.pm initializing $instance TCP session with $ip on port $port") if $main::Debug{'AD2USB'};
+   ::print_log("  AD2.pm initializing $instance TCP session with $ip on port $port") if $main::Debug{'AD2'};
    $Socket_Items{"$instance"}{'socket'} = new Socket_Item($instance, undef, "$ip:$port", $instance, 'tcp', 'raw');
    $Socket_Items{"$instance" . '_sender'}{'socket'} = new Socket_Item($instance . '_sender', undef, "$ip:$port", $instance . '_sender', 'tcp', 'rawout');
    $Socket_Items{"$instance"}{'socket'}->start;
    $Socket_Items{"$instance" . '_sender'}{'socket'}->start;
-   ::MainLoop_pre_add_hook( sub {AD2USB::check_for_data($instance, 'tcp');}, 1 );
+   ::MainLoop_pre_add_hook( sub {AD2::check_for_data($instance, 'tcp');}, 1 );
 }
 
 =item C<check_for_data()>
@@ -354,8 +354,8 @@ sub check_for_data {
       } else {
          # restart the TCP connection if its lost.
          if ($Socket_Items{$instance}{recon_timer}->inactive) {
-            &main::print_log("Connection to $instance instance of AD2USB was lost, I will try to reconnect in $$self{reconnect_time} seconds");
-            # ::logit("AD2USB.pm ser2sock connection lost! Trying to reconnect." );
+            &main::print_log("Connection to $instance instance of AD2 was lost, I will try to reconnect in $$self{reconnect_time} seconds");
+            # ::logit("AD2.pm ser2sock connection lost! Trying to reconnect." );
             $Socket_Items{$instance}{recon_timer}->set($$self{reconnect_time}, sub {
                $Socket_Items{$instance}{'socket'}->start;
             });
@@ -376,7 +376,7 @@ sub check_for_data {
       if (substr($Cmd, -1) eq "\r"){
          # Valid Message, Strip off last line ending
          $Cmd = substr($Cmd, 0, -1);
-         ::print_log("[AD2USB] " . $Cmd) if $main::Debug{AD2USB} >= 1;
+         ::print_log("[AD2] " . $Cmd) if $main::Debug{AD2} >= 1;
 
          # Get the Message Type, and Ignore Duplicate Status Messages
          my $status_type = $self->GetStatusType($Cmd);
@@ -852,8 +852,8 @@ sub DefineCmdMsg {
       "Chime"                             => $Configuration{$instance."_user_master_code"}."9",
       "ToggleVoice"                       => '#024',
       "ShowFaults"                        => "*",
-      "AD2USBReboot"                      => "=",
-      "AD2USBConfigure"                   => "!"
+      "AD2Reboot"                      => "=",
+      "AD2Configure"                   => "!"
    );
 
    my $two_digit_zone;
@@ -889,7 +889,7 @@ sub DefineCmdMsg {
 
 =item C<debug_log()>
 
-Used to log messages to the specific AD2USB log file.
+Used to log messages to the specific AD2 log file.
 
 This can likely be eliminated once testing is complete and replaced with the new
 debug routine in Generic_Item.
@@ -966,7 +966,7 @@ sub cmd {
       } else {
          # restart the TCP connection if its lost.
          if ($Socket_Items{$instance}{recon_timer}->inactive) {
-            ::print_log("Connection to $instance sending instance of AD2USB was lost, I will try to reconnect in $$self{reconnect_time} seconds");
+            ::print_log("Connection to $instance sending instance of AD2 was lost, I will try to reconnect in $$self{reconnect_time} seconds");
             $Socket_Items{$instance}{recon_timer}->set($$self{reconnect_time}, sub {
                $Socket_Items{$instance . '_sender'}{'socket'}->start;
                $Socket_Items{$instance . '_sender'}{'socket'}->set("$CmdStr");
@@ -1140,7 +1140,7 @@ Used to associate child objects with the interface.
 sub register {
    my ($self, $object, $num, $expander,$relay,$wireless) = @_;
    &::print_log("Registering Child Object on zone $num");
-   if ($object->isa('AD2USB_Item')) {
+   if ($object->isa('AD2_Item')) {
       $self->{zone_object}{$num} = $object;
       #Put wireless settings in correct hash
       if (defined $wireless){
@@ -1155,7 +1155,7 @@ sub register {
          $$self{relay}{$relay} = $num;
       }
    }
-   elsif ($object->isa('AD2USB_Partition')) {
+   elsif ($object->isa('AD2_Partition')) {
       $self->{partition_object}{$num} = $object;
    }
 }
@@ -1174,14 +1174,14 @@ sub get_child_object_name {
 
 =back
 
-=head1 B<AD2USB_Item>
+=head1 B<AD2_Item>
 
 =head2 SYNOPSIS
 
 User code:
 
-    $front_door = new AD2USB_Item('door','AD2USB', 5, 1);
-    $upstairs_motion = new AD2USB_Item('motion','AD2USB', 5, 1);
+    $front_door = new AD2_Item('door','AD2', 5, 1);
+    $upstairs_motion = new AD2_Item('motion','AD2', 5, 1);
 
 See C<new()> for a more detailed description of the arguments.
 
@@ -1207,9 +1207,9 @@ L<Generic_Item>
 
 =cut
 
-package AD2USB_Item;
+package AD2_Item;
 
-@AD2USB_Item::ISA = ('Generic_Item');
+@AD2_Item::ISA = ('Generic_Item');
 
 =item C<new($type,$interface,$zone,$partition,$expander,$relay,$wireless)>
 
@@ -1258,9 +1258,9 @@ sub set
    my ($self,$p_state,$p_setby) = @_;
 
       if (ref $p_setby and $p_setby->can('get_set_by')) {
-         ::print_log("AD2USB_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name} was set by " . $p_setby->get_set_by) if $main::Debug{AD2USB};
+         ::print_log("AD2_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name} was set by " . $p_setby->get_set_by) if $main::Debug{AD2};
       } else {
-         ::print_log("AD2USB_Item($$self{object_name})::set($p_state, $p_setby)") if $main::Debug{AD2USB};
+         ::print_log("AD2_Item($$self{object_name})::set($p_state, $p_setby)") if $main::Debug{AD2};
       }
 
       if ($p_state =~ /^fault/ || $p_state eq 'on') {
@@ -1347,13 +1347,13 @@ sub get_last_motion_time {
 
 =back
 
-=head1 B<AD2USB_Partition>
+=head1 B<AD2_Partition>
 
 =head2 SYNOPSIS
 
 User code:
 
-    $partition_1 = new AD2USB_Partition('AD2USB', 1, 31);
+    $partition_1 = new AD2_Partition('AD2', 1, 31);
 
 See C<new()> for a more detailed description of the arguments.
 
@@ -1366,7 +1366,7 @@ In mht file:
 Provides support for creating MH-Style child objects for each partition.
 
 For an explanation of what a partition is, please see the Description section
-of C<AD2USB>.  
+of C<AD2>.  
 
 The Partition is used primarily as a stand in for the alarm panel.  The 
 Partition object is used to arm/disarm the panel as well as to check on the 
@@ -1382,8 +1382,8 @@ L<Generic_Item>
 
 =cut
 
-package AD2USB_Partition;
-@AD2USB_Partition::ISA = ('Generic_Item');
+package AD2_Partition;
+@AD2_Partition::ISA = ('Generic_Item');
 
 =item C<new($interface, $partition, $address)>
 
