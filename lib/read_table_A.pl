@@ -1036,6 +1036,14 @@ sub read_table_A {
             $code .= "use Philips_Hue;\n";
         }
     }
+    #-------------- AD2 Objects -----------------
+    elsif($type eq "AD2_INTERFACE") {
+        require AD2;
+        my ($name, $instance, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "AD2($instance,$other)";
+    }
+    #-------------- End AD2 Objects -------------
     else {
         print "\nUnrecognized .mht entry: $record\n";
         return;
