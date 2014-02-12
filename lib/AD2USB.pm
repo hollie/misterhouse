@@ -10,42 +10,103 @@ Module that monitors a serial device for the AD2USB for known events and
 maintains the state of the Ademco system in memory. Module also sends
 instructions to the panel as requested.
 
-=head2 CONNFIGURATION
+=head2 CONFIGURATION
 
-This is only a start of the documentation of the configuration for this module.
-At the moment, I am just documenting the main changes that I have made
+Older versions of this library relied almost exclusively on ini parameters.
+This revised library provides extensive support for using an mht file to define 
+AD2USB objects and only requires setting ini parameters for the initial AD2USB 
+Interface configuration. [Feb 5, 2014]
 
-=head3 Serial Connections (USB or Serial)
+At minimum, you must define the Interface.  In addition, this library provides
+for the ability to define separate objects for each zone and relay.  This allows
+for the display of these zones as separate items in the MH interface and allows
+users to interact directly with these objects using the basic Generic_Item
+functions such as tie_event.
 
-Add the following commands to your INI file:
+Finally, this library permits the definition of Partitions.  Partitions are
+available on all Ademco panels, but they are likely foreign to most users as
+more than one Partition is rarely used.  In short, Partitions allow for what
+appears to be multiple distinct alarm systems to share a single alarm board.
+Each zone and alarm panel is assigned to a Partition.  For example, a business
+may use partition 1 for the front office and partition 2 for the warehouse, this
+allows warehouse personel to arm/disarm the warehouse but not the front office
+while providing a single point of contact for the alarm monitoring company.
 
-AD2USB_serial_port=/dev/ttyAMA0
+Within MisterHouse, the Partition is used primarily as a stand in for the alarm
+panel.  The Partition object is used to arm/disarm the panel as well as to check
+on the agregate state of all of the zones.
 
-=head3 IP Connections (Ser2Sock)
+=head3 Interface Configuration
 
-AD2USB_server_ip=192.168.11.17
-AD2USB_server_port=10000
+There is a small difference in configuring the AD2 Interface for direct 
+connections (Serial or USB) or IP Connections (Ser2Sock).
 
-=head3 Code Inserts for All Devices
+=head4 AD2-Prefix
 
-$AD2USB = new AD2USB;
+This library envisions that a user may connect multiple AD2 Interfaces to
+MisterHouse.  In order to distinguish between each interface, each interface
+must use a unique prefix.  This prefix must take the following form:
 
-=head3 For Additional Devices (Multiple Seperate Panels)
+   AD2USB[_digits]
 
-Each additional device can be defined as follows:
+Wherein the _digits suffix is optional.  Each of the following prefixes 
+define separate Interfaces:
 
-AD2USB_1_serial_port=/dev/ttyAMA0
+   AD2USB
+   AD2USB_1
+   AD2USB_11
 
-OR
+=head4 Direct Connections (USB or Serial)
 
-AD2USB_1_server_ip=192.168.11.17
-AD2USB_1_server_port=10000
+INI file:
 
-PLUS
+   AD2USB_serial_port=/dev/ttyAMA0
 
-$AD2USB_1 = new AD2USB('AD2USB_1');
+Wherein the format for the parameter name is:
 
-Each addition panel should be iterated by 1.
+   AD2USB-Prefix_serial_port
+
+=head4 IP Connections (Ser2Sock)
+
+INI file:
+
+   AD2USB_server_ip=192.168.11.17
+   AD2USB_server_port=10000
+
+Wherein the format for the parameter name is:
+
+   AD2USB-Prefix_server_ip
+   AD2USB-Prefix_server_port
+
+=head4 Defining the Interface Object (All Connection Types)
+
+In addition to the above configuration, you must also define the interface
+object.  The object can be defined in either an mht file or user code.
+
+In mht file:
+
+   AD2_INTERFACE, $AD2_Interface, AD2USB
+
+Wherein the format for the definition is:
+
+   AD2_INTERFACE, Object Name, AD2USB-Prefix
+
+In user code:
+
+   $AD2USB = new AD2USB(AD2USB);
+
+Wherein the format for the definition is:
+
+   $AD2USB = new AD2USB(AD2USB-Prefix);
+
+=head3 Partition Configuration
+
+See AD2_Partition
+
+=head3 Zone Configuration
+
+See AD2_Item
+
 =head2 INHERITS
 
 L<Generic_Item>
@@ -56,46 +117,6 @@ L<Generic_Item>
 
 =cut
 
-# ###########################################################################
-# Name: AD2USB Monitoring Module
-#
-# Description:
-#   Module that monitors a serial device for the AD2USB for known events and 
-#   maintains the state of the Ademco system in memory. Module also sends
-#   instructions to the panel as requested.
-#
-# Author: Kirk Friedenberger (kfriedenberger@gmail.com)
-# $Revision: $
-# $Date: $
-#
-# Change log:
-# - Added relay support (Wayne Gatlin, wayne@razorcla.ws)
-# - Added 2-way zone expander support (Wayne Gatlin, wayne@razorcla.ws)
-# - Completed Wireless support (Wayne Gatlin, wayne@razorcla.ws)  
-# - Added ser2sock support (Wayne Gatlin, wayne@razorcla.ws)
-# - Added in child MH-Style objects (Door & Motion items) (H Plato, hplato@gmail.com)
-##############################################################################
-# Copyright Kirk Friedenberger (kfriedenberger@gmail.com), 2013, All rights reserved
-##############################################################################
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-# 
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-# 
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
-############################################################################### 
-
 package AD2USB;
 use strict;
 
@@ -105,8 +126,12 @@ my %Socket_Items; #Stores the socket instances and attributes
 my %Interfaces; #Stores the relationships btw instances and interfaces
 my %Configuration; #Stores the local config parms 
 
-#    Starting a new object                                                  {{{
-# Called by user code `$AD2USB = new AD2USB`
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
+
 sub new {
    my ($class, $instance) = @_;
    $instance = "AD2USB" if (!defined($instance));
@@ -140,7 +165,7 @@ sub new {
    $self->ChangeZones( 1, $$self{max_zones}, "ready", "ready", 0);
 
    #Store Object with Instance Name
-   $self->set_object_instance($instance);
+   $self->_set_object_instance($instance);
 
    #Load the Parameters from the INI file
    $self->read_parms($instance);
@@ -148,21 +173,30 @@ sub new {
    return $self;
 }
 
-#}}}
+=item C<get_object_by_instance($instance)>
 
-#    Set/Get Object by Instance                                        {{{
+Takes a scalar instance name, AD2-Prefix, and returns the object associated with
+that name.
+
+=cut
+
 sub get_object_by_instance{
    my ($instance) = @_;
    return $Interfaces{$instance};
 }
 
-sub set_object_instance{
+sub _set_object_instance{
    my ($self, $instance) = @_;
    $Interfaces{$instance} = $self;
 }
-#}}}
 
-# Reads the ini settings and pushes them into the appropriate Hashes
+=item C<read_parms()>
+
+Causes MH to read the ini parameters and load them into the local configuration
+hash.  This is necessary in order to join together ini and mht defined features.
+
+=cut
+
 sub read_parms{
    my ($self, $instance) = @_;
    foreach my $mkey (keys(%::config_parms)) {
@@ -224,7 +258,12 @@ sub read_parms{
    }
 }
 
-#    serial port configuration                                         {{{
+=item C<init()>
+
+Used to initialize the serial port.
+
+=cut
+
 sub init {
 
    my ($serial_port) = @_;
@@ -241,8 +280,12 @@ sub init {
 
 }
 
-#}}}
-#    module startup / enabling serial port                             {{{
+=item C<serial_startup()>
+
+Called by the MH main script as a result of defining a serial port.
+
+=cut
+
 sub serial_startup {
    my ($instance) = @_;
    my ($port, $BaudRate, $ip);
@@ -259,8 +302,12 @@ sub serial_startup {
    }
 }
 
-#}}}
-#    startup /enable socket port                                       {{{
+=item C<server_startup()>
+
+Called by the MH main script as a result of defining a server port.
+
+=cut
+
 sub server_startup {
    my ($instance) = @_;
 
@@ -275,11 +322,16 @@ sub server_startup {
    ::MainLoop_pre_add_hook( sub {AD2USB::check_for_data($instance, 'tcp');}, 1 );
 }
 
-#}}}
+=item C<check_for_data()>
 
-#    check for incoming data on serial port                                 {{{
-# This is called once per loop by a Mainloop_pre hook, it parses out the string
-# of data into individual messages.  
+Called at the start of every loop. This checks either the serial or server port
+for new data.  If data is found, the data is broken down into individual
+messages and sent to C<GetStatusType> to be parsed.  The message is then 
+compared to the previous data received if this is a duplicate message it is 
+logged and ignored.  If this is a new message it is sent to C<CheckCmd>.
+
+=cut
+
 sub check_for_data {
    my ($instance, $connecttype) = @_;
    my $self = get_object_by_instance($instance);
@@ -349,8 +401,12 @@ sub check_for_data {
    }
 }
 
-#}}}
-#    Validate the command and perform action                                {{{
+=item C<CheckCmd()>
+
+This routine takes the parsed message and performs the necessary actions that
+result.
+
+=cut
 
 sub CheckCmd {
    my ($self, $status_type) = @_;
@@ -588,8 +644,13 @@ sub CheckCmd {
    return;
 }
 
-#    Determine if the status string requires parsing                    {{{
-# Returns a hash reference containing the message details
+=item C<GetStatusType()>
+
+This routine parses a message passed in the form of a string and returns a hash
+filled with the resulting message data.
+
+=cut
+
 sub GetStatusType {
    my ($self, $AdemcoStr) = @_;
    my $instance = $self->{instance};
@@ -702,8 +763,26 @@ sub GetStatusType {
    return \%message;
 }
 
-#}}}
-#    Change zone statuses for zone indices from start to end            {{{
+=item C<ChangeZones($start, $end, $new_status, $neq_status, $log, 
+   $partition, $skip_mapped)>
+
+This routine changes the defined zones to the state that was passed.
+
+$start = Zone number to start at
+$end   = Zone number to end at
+
+All zones between and including $start and $end will be updated.  If $start is
+greater than $end, the routine will loop around at the max_zones value.
+
+$new_status = The status to which the zones should be changed too.
+$neq_status = Do not alter zones that are equal to this status.
+$log        = If true will log its actions
+$partition  = Only change zones on the defined partition
+$skip_mapped= If true, zones which are mapped (expander, relay, wireless) will
+not be affected
+
+=cut
+
 sub ChangeZones {
    my ($self, $start, $end, $new_status, $neq_status, $log, $partition, 
       $skip_mapped) = @_;
@@ -750,9 +829,14 @@ sub ChangeZones {
    }
 }
 
-#}}}
+=item C<DefineCmdMsg()>
 
-#    Define hash with Ademco commands                                           {{{
+Creates the Hash of available commands.
+
+This undoubtedly still needs work.
+
+=cut
+
 sub DefineCmdMsg {
    my ($self) = @_;
    my $instance = $self->{instance};
@@ -803,14 +887,28 @@ sub DefineCmdMsg {
    return \%Return_Hash;
 }
 
+=item C<debug_log()>
+
+Used to log messages to the specific AD2USB log file.
+
+This can likely be eliminated once testing is complete and replaced with the new
+debug routine in Generic_Item.
+
+=cut
+
 sub debug_log {
    my ($self, $text) = @_;
    my $instance = $$self{instance};
    ::logit( $$self{log_file}, $text) unless ($Configuration{$instance.'_debug_log'} == 0);
 }
 
-#}}}
-#    Returns true if zone is mapped {{{
+=item C<is_zone_mapped($zone)>
+
+Takes a zone number as a parameter and returns true if it is mapped to a relay,
+wireless, or expander.
+
+=cut
+
 sub is_zone_mapped {
    my ($self, $zone) = @_;
    $zone = sprintf "%03s", $zone;
@@ -832,8 +930,14 @@ sub is_zone_mapped {
    return 0;
 }
 
-#}}}
-#    Sending command to ADEMCO panel                                           {{{
+=item C<cmd()>
+
+Used to send commands to the Interface.
+
+Needs work.
+
+=cut
+
 sub cmd {
    my ( $self, $cmd, $password ) = @_;
    my $instance = $$self{instance};
@@ -876,8 +980,15 @@ sub cmd {
    return "Sending to ADEMCO panel: $CmdName ($cmd)";
 }
 
-#}}}
-#    user call from MH                                                         {{{
+=item C<status_zone($zone)>
+
+Takes a zone number and returns its status.
+
+If an object exists for this zone you can also use:
+
+$object->state;
+
+=cut
 
 sub status_zone {
    my ( $self, $zone ) = @_;
@@ -885,11 +996,31 @@ sub status_zone {
    return $$self{$self->zone_partition($zone)}{zone_status}{$zone};
 }
 
+=item C<zone_now($zone)>
+
+Takes a zone number and returns its status if the zone status was set on this 
+loop.
+
+If an object exists for this zone you can also use:
+
+$object->state_now;
+
+=cut
+
 sub zone_now {
    my ( $self, $zone ) = @_;
    $zone =~ s/^0*//;
    return $self->{zone_now}{$zone};
 }
+
+=item C<zone_name($zone)>
+
+Takes a zone number and returns its name.
+
+The name is not used very much, likely was more necessary before zones were
+made into individual objects.
+
+=cut
 
 sub zone_name {
    my ( $self, $zone_num ) = @_;
@@ -897,6 +1028,12 @@ sub zone_name {
    $zone_num = sprintf "%03s", $zone_num;
    return $$self{zone_name}{$zone_num};
 }
+
+=item C<zone_partition($zone)>
+
+Takes a zone number and returns the partition that it is a member of.
+
+=cut
 
 sub zone_partition {
    my ( $self, $zone_num ) = @_;
@@ -908,21 +1045,58 @@ sub zone_partition {
    return $partition;
 }
 
+=item C<partition_now($part)>
+
+Takes a partition number and returns its status if its status was set on this
+loop.
+
+If an object exists for this partition you can also use:
+
+$object->state_now;
+
+=cut
+
 sub partition_now {
    my ( $self, $part ) = @_;
    return $self->{partition_now}{$part};
 }
+
+=item C<partition_msg($part)>
+
+Takes a partition number and returns the last alphanumeric message that was sent
+by this partition.
+
+=cut
 
 sub partition_msg {
    my ( $self, $part ) = @_;
    return $self->{partition_msg}{part};
 }
 
+=item C<partition_name($part)>
+
+Takes a partition number and returns its name.
+
+The name is not used very much, likely was more necessary before partitions were
+made into individual objects.
+
+=cut
+
 sub partition_name {
    my ( $self, $part_num ) = @_;
    my $instance = $self->{instance};
    return $$self{partition_name}{$part_num};
 }
+
+=item C<status_partition($part)>
+
+Takes a partition number and returns its status.
+
+If an object exists for this partition you can also use:
+
+$object->state;
+
+=cut
 
 sub status_partition {
    my ( $self, $partition ) = @_;
@@ -944,14 +1118,25 @@ sub status_partition {
    return $partition_status;
 }
 
+=item C<cmd_list()>
+
+Returns the list of available commands.
+
+=cut
+
 sub cmd_list {
    my ($self) = @_;
    foreach my $k ( sort keys %{$self->{CmdMsg}} ) {
       &::print_log("$k");
    }
 }
-#}}}
-##Used to register a child object to a zone or partition. Allows for MH-style Door & Motion sensors {{{
+
+=item C<register()>
+
+Used to associate child objects with the interface.
+
+=cut
+
 sub register {
    my ($self, $object, $num, $expander,$relay,$wireless) = @_;
    &::print_log("Registering Child Object on zone $num");
@@ -975,29 +1160,74 @@ sub register {
    }
 }
 
+=item C<get_child_object_name($zone)>
+
+Takes a zone number and returns the name of the child object associated with it.
+
+=cut
+
 sub get_child_object_name {
    my ($self,$zone_num) = @_;
    my $object = $self->{zone_object}{$zone_num};
    return $object->get_object_name() if defined ($object);
 }
 
-#}}}
-# MH-Style child objects
-# These allow zones to behave like Door_Items and Motion Sensors
-# to use, just create the item with the Master AD2USB object and the appropriate zone
-#
-# ie. 
-# $AD2USB = new AD2USB;
-# $Front_door = new AD2USB_Door_Item($AD2USB,1);
-#   states include open, closed and check
-# $Front_motion = new AD2USB_Motion_Item($AD2USB,2);
-#   states include motion and still
-#
-# inactivity timers are not working...don't know if those are relevant for panel items.
+=back
+
+=head1 B<AD2USB_Item>
+
+=head2 SYNOPSIS
+
+User code:
+
+    $front_door = new AD2USB_Item('door','AD2USB', 5, 1);
+    $upstairs_motion = new AD2USB_Item('motion','AD2USB', 5, 1);
+
+See C<new()> for a more detailed description of the arguments.
+
+In mht file:
+
+[NOT COMPLETED YET]
+
+=head2 DESCRIPTION
+
+Provides support for creating MH-Style child objects for each zone.  These allow
+zones to behave like Generic_Items.  For example, Generic_Item subroutines such
+as C<tie_event> and C<get_idle_time> can be used with these devices.
+
+To use these, you must first create the appropriate AD2 Interface object.
+
+=head2 INHERITS
+
+L<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 package AD2USB_Item;
 
 @AD2USB_Item::ISA = ('Generic_Item');
+
+=item C<new($type,$interface,$zone,$partition,$expander,$relay,$wireless)>
+
+Instantiates a new object.
+
+$type      = May be either 'door' or 'motion'.  This just defines the states for
+the object
+$interface = The AD2-Prefix of the interface that this zone is found on
+$zone      = The zone number of this zone
+$partition = The partition number of this zone, usually 1
+
+Zone Mapping
+
+$expander  = If not null, the expander address that the zone is mapped to.
+$relay     = If not null, the relay address that the zone is mapped to.
+$wireless  = If not null, the wireless address that the zone is mapped to.
+
+=cut
 
 sub new
 {
@@ -1016,6 +1246,12 @@ sub new
    return $self;
 
 }
+
+=item C<set()>
+
+Sets the object's state.
+
+=cut
 
 sub set
 {
@@ -1042,36 +1278,126 @@ sub set
 
       $self->SUPER::set($p_state,$p_setby);
 }
-   
-sub get_last_close_time {
-   my ($self) = @_;
-   return $$self{last_ready};
-}
 
-sub get_last_open_time {
-   my ($self) = @_;
-   return $$self{last_fault};
-}
+=item C<get_child_item_type()>
 
-sub get_last_still_time {
-   my ($self) = @_;
-   return $$self{last_ready};
-}
+Returns the item type, either 'motion' or 'door'.
 
-sub get_last_motion_time {
-   my ($self) = @_;
-   return $$self{last_fault};
-}
+=cut
 
 sub get_child_item_type {
    my ($self) = @_;
    return $$self{item_type};
 }
 
-#}}}
+=back
+
+=head2 Extraneous Methods
+
+The following methods seem to me to be unnecessary in light of the functions
+available in C<Generic_Item>.
+
+=over
+
+=cut
+
+=item C<get_last_close_time()>
+
+Returns the time the object was closed.
+
+=cut
+
+sub get_last_close_time {
+   my ($self) = @_;
+   return $$self{last_ready};
+}
+
+=item C<get_last_open_time()>
+
+Returns the time the object was opened.
+
+=cut
+
+sub get_last_open_time {
+   my ($self) = @_;
+   return $$self{last_fault};
+}
+
+=item C<get_last_still_time()>
+
+Returns the time the object was still.
+
+=cut
+
+sub get_last_still_time {
+   my ($self) = @_;
+   return $$self{last_ready};
+}
+
+=item C<get_last_motion_time()>
+
+Returns the time the object was motion.
+
+=cut
+
+sub get_last_motion_time {
+   my ($self) = @_;
+   return $$self{last_fault};
+}
+
+=back
+
+=head1 B<AD2USB_Partition>
+
+=head2 SYNOPSIS
+
+User code:
+
+    $partition_1 = new AD2USB_Partition('AD2USB', 1, 31);
+
+See C<new()> for a more detailed description of the arguments.
+
+In mht file:
+
+[NOT COMPLETED YET]
+
+=head2 DESCRIPTION
+
+Provides support for creating MH-Style child objects for each partition.
+
+For an explanation of what a partition is, please see the Description section
+of C<AD2USB>.  
+
+The Partition is used primarily as a stand in for the alarm panel.  The 
+Partition object is used to arm/disarm the panel as well as to check on the 
+agregate state of all of the zones that are within this partition.
+
+=head2 INHERITS
+
+L<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
 
 package AD2USB_Partition;
 @AD2USB_Partition::ISA = ('Generic_Item');
+
+=item C<new($interface, $partition, $address)>
+
+Instantiates a new object.
+
+$interface = The AD2-Prefix of the interface that this zone is found on
+$partition = The partition number, usually 1
+$address   = The address of a panel that is assigned to this partition.  For
+non-addressable systems this should be set to 31.
+
+While there may be multiple panels on a partition, and as a result multiple
+addresses, only ONE address is needed in $address.
+
+=cut
 
 sub new
 {
@@ -1092,6 +1418,11 @@ sub new
 
 =head2 AUTHOR
 
+Kirk Friedenberger <kfriedenberger@gmail.com>
+Wayne Gatlin <wayne@razorcla.ws>
+H Plato <hplato@gmail.com>
+Kevin Robert Keegan
+
 =head2 SEE ALSO
 
 =head2 LICENSE
@@ -1105,9 +1436,3 @@ You should have received a copy of the GNU General Public License along with thi
 =cut
 
 1;
-
-#}}}
-#$Log:$
-
-__END__
-
