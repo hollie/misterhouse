@@ -50,7 +50,7 @@ must use a unique prefix.  This prefix must take the following form:
    AD2[_digits]
 
 Wherein the _digits suffix is optional.  Each of the following prefixes 
-define separate Interfaces:
+would define a separate Interface:
 
    AD2
    AD2_1
@@ -769,15 +769,20 @@ sub GetStatusType {
 This routine changes the defined zones to the state that was passed.
 
 $start = Zone number to start at
+
 $end   = Zone number to end at
 
 All zones between and including $start and $end will be updated.  If $start is
 greater than $end, the routine will loop around at the max_zones value.
 
 $new_status = The status to which the zones should be changed too.
+
 $neq_status = Do not alter zones that are equal to this status.
+
 $log        = If true will log its actions
+
 $partition  = Only change zones on the defined partition
+
 $skip_mapped= If true, zones which are mapped (expander, relay, wireless) will
 not be affected
 
@@ -1181,13 +1186,74 @@ sub get_child_object_name {
 User code:
 
     $front_door = new AD2_Item('door','AD2', 5, 1);
-    $upstairs_motion = new AD2_Item('motion','AD2', 5, 1);
+    $upstairs_motion = new AD2_Item('motion','AD2', 6, 1);
+    $generic_zone = new AD2_Item('','AD2', 7, 1);
 
 See C<new()> for a more detailed description of the arguments.
 
 In mht file:
 
-[NOT COMPLETED YET]
+	AD2_DOOR_ITEM, $front_door, AD2, 5, 1, EXP=0101
+	AD2_MOTION_ITEM, $upstairs_motion, AD2, 6, 1, REL=1301
+	AD2_GENERIC_ITEM, $generic_zone, AD2, 7, 1, RFX=0014936,4,k
+
+Wherein the format for the definition is:
+
+   AD2_DOOR_ITEM, Object Name, AD2-Prefix, Zone Number, Partition Number, Expander/Relay/Wireless Address
+
+The type of items can be DOOR (open/close) MOTION (motion/still) and GENERIC
+(fault/ready).
+
+=head3 EXPANDER/RELAY/WIRELESS ADDRESS
+
+The last item is the Expander, Relay, or Wireless address if it applicable.  For
+hardwired zones this last item should be left blank.  
+
+=head4 EXPANSION BOARDS
+
+For zones wired to an expansion board, the prefix EXP= should be used.  The 
+address is the expansion board id (2 digits, 0 padded if required) concatenated 
+with the expansion input number (2 digits, 0 padded if required) such as 0101 or
+1304.
+
+=head4 RELAY MAPPINGS
+
+The state of hardwired zones can only be obtained from the alphanumeric messages
+that scroll by on the panel screens.  If multiple zones are tripped, it may take
+a few seconds for the status of a hardwired zone to be updated.  Moreover, the
+status of a hardwired zone cannot be obtained while the system is armed because
+no alphanumeric messages are displayed while armed.
+
+To overcome these limitations, depending on your alarm panel model, you can map
+a hardwired zone to a relay.  In essence, if a zone that is mapped to a relay
+the alarm panel will close the relay whenever the zone is faulted and open the 
+relay when the zone is ready.  Luckily, this relay can be a virtual device. The
+messages sent by the alarm panel to open/close a virtual relay are sent 
+immediatly and are not affected by the state of the alarm.
+
+To setup relay mappings, consult your alarm panel's instruction manual for 
+programing a relay board and mapping zones to it.  Some alarm panels have limited
+capabilities when it comes to relays.  Specifically, you want to refer to section
+of your manual that discusses *80 programming.
+
+For hardwired zones mapped to a relay board, the prefix REL= should be used.  The 
+address is the relay board id (2 digits, 0 padded if required) concatenated 
+with the relay output number (2 digits, 0 padded if required) such as 0101 or
+1304.
+
+=head4 WIRELESS DEVICES
+
+For wireless zones, the prefix RFX= should be used.  The address is the wireless
+ID (7 digits) followed by a comma, the loop number, followed by a comma, and the
+wireless device type.  All of this without any spaces.  The loop number need
+only be specified if it is not 1.  Generally, the loop number for most devices
+is 1.  Similarly, the device type need only be specified if the wireless device
+is a keypad, in which case the type is the letter k.  The following are valid
+wireless addresses:
+
+	RFX=0014936,4,k
+	RFX=0101538
+	RFX=5848878,1,k
 
 =head2 DESCRIPTION
 
@@ -1215,17 +1281,30 @@ package AD2_Item;
 
 Instantiates a new object.
 
-$type      = May be either 'door' or 'motion'.  This just defines the states for
-the object
+$type      = May be either 'door', 'motion', or ''.  This just defines the states for
+the object.  door = open/closed, motion = motion/still, '' = fault/ready
+
 $interface = The AD2-Prefix of the interface that this zone is found on
+
 $zone      = The zone number of this zone
+
 $partition = The partition number of this zone, usually 1
 
 Zone Mapping
 
 $expander  = If not null, the expander address that the zone is mapped to.
+
 $relay     = If not null, the relay address that the zone is mapped to.
-$wireless  = If not null, the wireless address that the zone is mapped to.
+
+$wireless  = If not null, the wireless address that the zone is mapped to in the
+form of [RF_ID],[LOOP],[TYPE].
+
+The wireless address is the wireless ID (7 digits) followed by a comma, the 
+loop number, followed by a comma, and the wireless device type.  All of this 
+without any spaces.  The loop number need only be specified if it is not 1.  
+Generally, the loop number for most devices is 1.  Similarly, the device type 
+need only be specified if the wireless device is a keypad, in which case the 
+type is the letter k.
 
 =cut
 
@@ -1359,7 +1438,15 @@ See C<new()> for a more detailed description of the arguments.
 
 In mht file:
 
-[NOT COMPLETED YET]
+	AD2_PARTITION, $partition_1, AD2, 1, 31
+
+Wherein the format is
+
+	AD2_PARTITION, Object Name, AD2-Prefix, Partition Number, Address
+
+The address is the address of a panel that is assigned to this partition.  
+Multiple panels may be assigned to a partition, only one address is required.
+If your system is a non-addressable system, 31 should be used as the address.
 
 =head2 DESCRIPTION
 
@@ -1390,7 +1477,9 @@ package AD2_Partition;
 Instantiates a new object.
 
 $interface = The AD2-Prefix of the interface that this zone is found on
+
 $partition = The partition number, usually 1
+
 $address   = The address of a panel that is assigned to this partition.  For
 non-addressable systems this should be set to 31.
 
@@ -1418,10 +1507,8 @@ sub new
 
 =head2 AUTHOR
 
-Kirk Friedenberger <kfriedenberger@gmail.com>
-Wayne Gatlin <wayne@razorcla.ws>
-H Plato <hplato@gmail.com>
-Kevin Robert Keegan
+Kirk Friedenberger <kfriedenberger@gmail.com>, Wayne Gatlin <wayne@razorcla.ws>
+H Plato <hplato@gmail.com>, Kevin Robert Keegan
 
 =head2 SEE ALSO
 
