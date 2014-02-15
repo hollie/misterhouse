@@ -13,6 +13,7 @@ Configure the required pushover settings in your mh.private.ini file:
   Pushover_user =  <User or Group ID from Pushover.net registraton>
   Pushover_priority = [-1 | 0 | 1 | 2]  Default message priority,  defaults to 0.
   Pushover_title = "MisterHouse" Default title for messages if none provided 
+  Pushover_disable = 1  Disable notifications.  Messages will still be logged
 
 Create a pushover instance in the .mht file, or in user code:
 
@@ -110,8 +111,9 @@ sub new {
     $self->{speak}    = 1;    # Speak notifications and acknowledgments
 
     # Merge the mh.private.ini defaults into the object
-    foreach (qw( token user priority title server retry expire speak)) {
-        $self->{$_} = $params->{$_} || $::config_parms{"Pushover_$_"};
+    foreach (qw( token user priority title server retry expire speak disable)) {
+        $self->{$_} = $params->{$_};
+        $self->{$_} = $::config_parms{"Pushover_$_"} unless defined $self->{$_};
     }
     $self->{server} ||= 'https://api.pushover.net/';
 
@@ -128,7 +130,9 @@ sub new {
     $self->{_receiptTimer} =
       Timer->new();    # Ref for the Timer object for acknowledgment checking
 
-    &::print_log("[Pushover] Pushover object initialized");
+    my $note = ( $self->{disable} ) ? '- Notifications disabled' : '';
+
+    &::print_log("[Pushover] Pushover object initialized $note");
     &::print_log( "[Pushover] " . Data::Dumper::Dumper( \$self ) ) if TRACE;
 
     return bless( $self, $class );
@@ -165,30 +169,36 @@ sub notify {
     my $callparms = {};
     $callparms->{message} = $message || " ";
 
+    # Allow notify parameter to override global disable parameter
+    my $disable = $self->{disable};
+    $disable = $params->{disable} if ( defined $params->{disable} );
+
+    my $note = ($disable) ? '- Notifications disabled' : '';
+
     # Copy the calling hash since we need to modify it.
     if ( defined $params ) {
         foreach ( keys $params ) {
+            next if ( $_ eq 'disable' );   # internal override, not for pushover
             $callparms->{$_} = $params->{$_};
         }
     }
 
-    # Merge in the defaults, They can be overridden
-    foreach (qw( token user priority title)) {
-        next unless ( $self->{$_} );
+    # Merge in the message defaults, They can be overridden
+    foreach (qw( token user priority title url url_title sound retry expire )) {
+        next unless ( defined $self->{$_} );
         $callparms->{$_} = $self->{$_} unless defined $callparms->{$_};
     }
 
-    #Priority 2 messages require a retry and expire timer
+ #Priority 2 messages require a retry and expire timer, make sure they are valid
     if ( $callparms->{priority} == 2 ) {
 
-        $callparms->{retry} = $self->{retry} || 30
-          unless defined $callparms->{retry};
+        $callparms->{retry} ||= 30;
         $callparms->{retry} = 30 if ( $callparms->{retry} < 30 );
 
-        $callparms->{expire} = $self->{expire} || 3600
-          unless defined $callparms->{expire};
+        $callparms->{expire} ||= 3600;
         $callparms->{expire} = 86400 if ( $callparms->{expire} > 86400 );
     }
+
     &::print_log(
         "[Pushover] Notify parameters: " . Data::Dumper::Dumper( \$callparms ) )
       if TRACE;
@@ -211,12 +221,20 @@ sub notify {
 
     $self->{_lastSent}{$msgsig} = time();
 
-    my $resp = LWP::UserAgent->new()
-      ->post( $self->{server} . '1/messages.json', $callparms, );
+    my $resp;
+    $resp =
+      LWP::UserAgent->new()
+      ->post( $self->{server} . '1/messages.json', $callparms, )
+      unless $disable;
+    &::print_log("[Pushover] message: $callparms->{message} $note");
+    &::speak("Pushover notification $callparms->{message} $note")
+      if $self->{speak};
+
+    return if $disable;    # Don't check the response if posting is disabled
+
     &::print_log(
         "[Pushover] Notify results: " . Data::Dumper::Dumper( \$resp ) )
       if TRACE;
-    &::speak("Pushover notification $callparms->{message}") if $self->{speak};
 
     my $decoded_json = JSON::decode_json( $resp->content() );
     if ( $resp->is_success() ) {
