@@ -104,6 +104,15 @@ Any of these parameters may be specified in mh.private.ini by prefixing them wit
 
 sub new {
     my ( $class, $params ) = @_;
+
+    if ( defined $params && ref($params) ne 'HASH' ) {
+        &::print_log(
+"[Pushover] ERROR!  Pushover->new() invalid parameter hash - Pushover disabled"
+        );
+        $params = {};
+        $params->{disable} = 1;
+    }
+
     $params = {} unless defined $params;
 
     my $self = {};
@@ -171,13 +180,24 @@ sub notify {
 
     # Allow notify parameter to override global disable parameter
     my $disable = $self->{disable};
-    $disable = $params->{disable} if ( defined $params->{disable} );
+
+    if ( defined $params && ref($params) ne 'HASH' ) {
+        &::print_log(
+"[Pushover] ERROR!  notify called with invalid parameter hash - parameters ignored"
+        );
+        &::print_log(
+"[Pushover] Usage: ->push(\"Message\", { priority => 1, title => \"Some title\"})"
+        );
+    }
+    else {
+        $disable = $params->{disable} if ( defined $params->{disable} );
+    }
 
     my $note = ($disable) ? '- Notifications disabled' : '';
 
     # Copy the calling hash since we need to modify it.
-    if ( defined $params ) {
-        foreach ( keys $params ) {
+    if ( defined $params && ref($params) eq 'HASH' ) {
+        foreach ( keys %{$params} ) {
             next if ( $_ eq 'disable' );   # internal override, not for pushover
             $callparms->{$_} = $params->{$_};
         }
