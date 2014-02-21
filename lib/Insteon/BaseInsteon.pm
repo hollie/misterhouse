@@ -647,6 +647,17 @@ sub message_type
     return $msg_type;
 }
 
+=item C<_is_info_request()>
+
+Used to process messages from the device which lack a command code.  Currently
+the only known message like this is a response to a (19) Light Status Request.
+In these responses, C1 is the ALDB Delta of the device.
+
+The get_engine_version check is out of place here, should be moved to
+C<_process_message>
+
+=cut
+
 sub _is_info_request
 {
 	my ($self, $cmd, $ack_setby, %msg) = @_;
@@ -995,7 +1006,9 @@ sub _process_command_stack
                                 or $message->command eq 'thermostat_get_zone_info'
                                 or $message->command eq 'extended_set_get'
                                 or $message->command eq 'ping'
-                                or $message->command eq 'linking_mode' 
+                                or $message->command eq 'linking_mode'
+                                or $message->command eq 'imeter_query'
+                                or $message->command eq 'imeter_reset'
                                 )
                         {
 				$$self{awaiting_ack} = 1;
@@ -1280,6 +1293,8 @@ our %message_types = (
    poke_internal => 0x2d,
    extended_set_get => 0x2e,
    read_write_aldb => 0x2f,
+   imeter_reset => 0x80,
+   imeter_query => 0x82,
 );
 
 
