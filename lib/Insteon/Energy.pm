@@ -461,8 +461,8 @@ sub request_status
 {
 	my ($self,$requestor) = @_;
 	$$self{m_status_request_pending} = ($requestor) ? $requestor : 1;
-	my $extra .= '0' x 30;
-    my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'imeter_query', $extra);
+	my $extra = '00';
+    my $message = new Insteon::InsteonMessage('insteon_send', $self, 'imeter_query', $extra);
     $self->_send_cmd($message);
     return;
 }
