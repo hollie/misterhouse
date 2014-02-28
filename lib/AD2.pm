@@ -85,7 +85,7 @@ object.  The object can be defined in either an mht file or user code.
 
 In mht file:
 
-   AD2_INTERFACE, $AD2_Interface, AD2
+   AD2_INTERFACE, AD2_Interface, AD2
 
 Wherein the format for the definition is:
 
@@ -1193,9 +1193,10 @@ See C<new()> for a more detailed description of the arguments.
 
 In mht file:
 
-	AD2_DOOR_ITEM, $front_door, AD2, 5, 1, EXP=0101
-	AD2_MOTION_ITEM, $upstairs_motion, AD2, 6, 1, REL=1301
-	AD2_GENERIC_ITEM, $generic_zone, AD2, 7, 1, RFX=0014936,4,k
+	AD2_DOOR_ITEM, back_door, AD2, 4, 1, HARDWIRED
+	AD2_DOOR_ITEM, front_door, AD2, 5, 1, EXP=0101
+	AD2_MOTION_ITEM, upstairs_motion, AD2, 6, 1, REL=1301
+	AD2_GENERIC_ITEM, generic_zone, AD2, 7, 1, RFX=0014936,4,k
 
 Wherein the format for the definition is:
 
@@ -1204,10 +1205,10 @@ Wherein the format for the definition is:
 The type of items can be DOOR (open/close) MOTION (motion/still) and GENERIC
 (fault/ready).
 
-=head3 EXPANDER/RELAY/WIRELESS ADDRESS
+=head3 HARDWIRED/EXPANDER/RELAY/WIRELESS ADDRESS
 
 The last item is the Expander, Relay, or Wireless address if it applicable.  For
-hardwired zones this last item should be left blank.  
+hardwired zones this last item should be HARDWIRED.  
 
 =head4 EXPANSION BOARDS
 
@@ -1318,6 +1319,7 @@ sub new
    $$self{last_fault} = 0;
    $$self{last_ready} = 0;
    $$self{item_type} = lc($type);
+   $interface = AD2::get_object_by_instance($interface);
    $interface->register($self,$zone,$expander,$relay,$wireless);
    $zone = sprintf("%03d", $zone);
    $$self{zone_partition}{$zone} = $partition;
@@ -1438,7 +1440,7 @@ See C<new()> for a more detailed description of the arguments.
 
 In mht file:
 
-	AD2_PARTITION, $partition_1, AD2, 1, 31
+	AD2_PARTITION, partition_1, AD2, 1, 31
 
 Wherein the format is
 
@@ -1493,6 +1495,7 @@ sub new
    my ($class,$interface, $partition, $address) = @_;
    my $self = new Generic_Item();
    bless $self,$class;
+   $interface = AD2::get_object_by_instance($interface);
    $$interface{partition_address}{$partition} = $address;
    $interface->register($self,$partition);
    return $self;
