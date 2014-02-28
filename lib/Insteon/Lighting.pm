@@ -1130,7 +1130,7 @@ sub derive_message
 {
 	my ($self, $p_command, $p_extra) = @_;
 	if ($self->is_root){
-		$self->SUPER::derive_message($self, $p_command, $p_extra);
+		$self->SUPER::derive_message($p_command, $p_extra);
 	} 
 	else {
 		my $level;

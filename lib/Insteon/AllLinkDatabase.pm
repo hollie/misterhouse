@@ -95,7 +95,9 @@ sub get_linkkey {
 	my $linkkey = $deviceid . $group . $is_controller;
 	# Data3 is irrelevant for the PLM itself, b/c for controller records
 	# data3 will always be equal to group.  And for responder records it 
-	# should always be 00, therefor blank data3 so it isn't used
+	# can be equal to anything without causing an issue.  MH generally sets
+	# data3 on the PLM to 00, but manual linking will set it to the linked
+	# devices firmware version.  Here we set it to 00 so it is ignored.
 	if ($$self{device}->isa('Insteon_PLM')){
 		$data3 = '00';
 	}
@@ -1172,15 +1174,9 @@ sub has_link
 	}
 	my $key = $self->get_linkkey($deviceid, $group, $is_controller, $data3);
 
-	#Now that we have a linkkey, compare the linkkey's data3 value.
 	my $found = 0;
-	if (defined $$self{aldb}{$key}) {
-		#Ask self what we should have in data3
-		$data3 = $$self{device}->link_data3($data3,$is_controller);
-		
-		$found++ if( $$self{aldb}{$key}{data3} == $data3);
-	}
-	
+	$found++ if (defined $$self{aldb}{$key});
+
 	return ($found);
 }
 
@@ -2546,6 +2542,7 @@ sub delete_orphan_links
 	my ($self, $audit_mode) = @_;
 
         &::print_log("[Insteon::ALDB_PLM] #### NOW BEGINNING DELETE ORPHAN LINKS ####");
+	@{$$self{_delete_device_failures}} = ();
 
 	$self->SUPER::delete_orphan_links($audit_mode);
 
@@ -2770,6 +2767,31 @@ sub add_link
 	}
 }
 
+=item C<add_link_to_hash()>
+
+This is used by the C<Insteon::BaseInterface::link_to_interface_i2cs> routine.
+This routine manually adds a record to MH's cache of the PLM ALDB.  Normally
+you only want to add records during a scan of the ALDB, so use this routine 
+with caution.
+
+=cut
+
+sub add_link_to_hash {
+	my ($self, $flags, $group, $is_controller, 
+		$device_id, $data1, $data2, $data3) = @_;
+	my $linkkey = $self->get_linkkey($device_id, $group, $is_controller, $data3);
+	$$self{aldb}{$linkkey}{flags} = lc $flags;
+	$$self{aldb}{$linkkey}{group} = lc $group;
+	$$self{aldb}{$linkkey}{is_controller} = $is_controller;
+	$$self{aldb}{$linkkey}{deviceid} = lc $device_id;
+	$$self{aldb}{$linkkey}{data1} = lc $data1;
+	$$self{aldb}{$linkkey}{data2} = lc $data2;
+	$$self{aldb}{$linkkey}{data3} = lc $data3;
+	$$self{aldb}{$linkkey}{inuse} = 1;
+	$self->health('good') if($self->health() eq 'empty');
+	return;
+}
+
 =item C<has_link(link_details)>
 
 Checks and returns true if a link with the passed details exists on the device
@@ -2783,14 +2805,8 @@ sub has_link
 	my $key = $self->get_linkkey($insteon_object->device_id, 
 				$group, $is_controller, $data3);
 
-	#Now that we have a linkkey, compare the linkkey's data3 value.
 	my $found = 0;
-	if (defined $$self{aldb}{$key}) {
-		#Ask self what we should have in data3
-		$data3 = $$self{device}->link_data3($data3,$is_controller);
-		
-		$found++ if( $$self{aldb}{$key}{data3} == $data3);
-	}
+	$found++ if (defined $$self{aldb}{$key});
 
 	return ($found);
 }
