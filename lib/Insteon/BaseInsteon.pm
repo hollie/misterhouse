@@ -3121,7 +3121,7 @@ sub sync_links
 
 		# If this is an attempt to create a link between two objects on the same
 		# device, then skip.  Currently, a KPL can do this with a seperate
-		# routine, but intralinks are tolerated by any other known devices
+		# routine, but IntraDevice links are not allowed by any other known device
 		if ($member_root eq $insteon_object){
 		    ::print_log("[Insteon::Sync_Links] Skipping intralink to $member_name.")
 			    if $insteon_object->debuglevel(2, 'insteon');

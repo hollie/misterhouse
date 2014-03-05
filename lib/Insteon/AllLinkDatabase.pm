@@ -506,6 +506,14 @@ sub delete_orphan_links
 		%delete_req = (%delete_req, deviceid => $deviceid, group => $group,
 			is_controller => $is_controller, data3 => $data3);
 
+        # IntraDevice links - Currently, a KPL can do this with a seperate
+		# routine, but intralinks are not tolerated by any other known devices
+		if ($self_id eq $deviceid){
+			$delete_req{cause} = "IntraDevice links are not allowed in ALDB.";
+			push @{$$self{delete_queue}}, \%delete_req;
+			next LINKKEY;
+		}
+
 		# Is the linked device defined in MH?
 		if (! ref $linked_device) {
 			$delete_req{cause} = "no device with deviceid: $deviceid could be found";
