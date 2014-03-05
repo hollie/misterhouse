@@ -936,6 +936,75 @@ sub link_data3
 	return $link_data3;
 }
 
+=item C<sync_intradevice_links()>
+
+IntraDevice Links are links between buttons on the same KPL.  There are two
+types of IntraDevice Links FOLLOW and OFF.
+
+FOLLOW
+
+Follow links are links which cause one button to be a slave to a master button. 
+The slave button will always follow the state of the master button whenever the
+master button is pressed.  For example, if Button A is defined as the master
+to the slave Button B, then any time button A is pressed button B will follow.
+If button A is turned on, button B will turn on.  Same thing with Off.  However,
+button B can still be independently controlled.  That is button B can be turned
+on or off manually, without affecting button A.  That is unless a reverse master
+-slave relationship is defined.
+
+To define Follow links, simply define a normal Insteon scene definition where
+the scene controller is the master button and the scene responder is the slave
+button.  To enable the follow functionality the on_level must be defined as NOT
+zero.  The ramp rate is ignored and on_level will be converted to 100%.
+
+    SCENE_MEMBER, kpl_button_B, kpl_button_A, 100% #Button B will follow A
+    #In the following pressing Button A will cause B, C & D to turn on.
+    #SCENE_Build is not much help here.
+    SCENE_BUILD, kpl_scene, kpl_button_A,   1,    0,    80%
+    SCENE_BUILD, kpl_scene, kpl_button_B,   0,    1,    100%
+    SCENE_BUILD, kpl_scene, kpl_button_C,   0,    1,    100%
+    SCENE_BUILD, kpl_scene, kpl_button_D,   0,    1,    100%
+
+OFF
+
+Off links are links in which turning ON a master button will cause all slave
+buttons to turn OFF.  This is commonly used for "radio" style buttons to control
+a fan.  The buttons may be defined as Off, Low, Med, & High.  We only want one
+state to be active at any given time.  To accomplish this, we define a series
+of master slave relationships between all of the buttons.  Notably, you these
+type of definitions do not have to affect all buttons, you can define Off links
+that only join 2 buttons.  Similar to Follow links, these also do not have to be
+two way links.
+
+To define Off links, simply define a normal Insteon scene definition where
+the scene controller is the master button and the scene responder is the slave
+button.  To enable the off functionality the on_level must be defined as ZERO.
+The ramp rate is ignored.
+
+    SCENE_MEMBER, kpl_button_B, kpl_button_A, 0% #Turning ON A will turn OFF B
+    
+The following is an example for how to enable radio buttons, where only one
+button can be activated at a time.
+
+    SCENE_BUILD, kpl_scene, kpl_button_A,   1,    1,    0%
+    SCENE_BUILD, kpl_scene, kpl_button_B,   1,    1,    0%
+    SCENE_BUILD, kpl_scene, kpl_button_C,   1,    1,    0%
+    SCENE_BUILD, kpl_scene, kpl_button_D,   1,    1,    0%
+
+SYNCING
+
+To sync these links, simply run this command after creating the necessary link
+definitions.  This routine will perform both the "sync and delete" steps to
+bring the links on the device into compliance with the definitions in 
+MisterHouse.  There is no "scan" feature for IntraDevice links.
+
+=cut
+
+sub sync_intradevice_links
+{
+	my () = @_;
+}
+
 =back
 
 =head2 AUTHOR
