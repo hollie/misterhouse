@@ -941,7 +941,7 @@ sub link_data3
 IntraDevice Links are links between buttons on the same KPL.  There are two
 types of IntraDevice Links FOLLOW and OFF.
 
-FOLLOW
+B<FOLLOW>
 
 Follow links are links which cause one button to be a slave to a master button. 
 The slave button will always follow the state of the master button whenever the
@@ -965,7 +965,7 @@ zero.  The ramp rate is ignored and on_level will be converted to 100%.
     SCENE_BUILD, kpl_scene, kpl_button_C,   0,    1,    100%
     SCENE_BUILD, kpl_scene, kpl_button_D,   0,    1,    100%
 
-OFF
+B<OFF>
 
 Off links are links in which turning ON a master button will cause all slave
 buttons to turn OFF.  This is commonly used for "radio" style buttons to control
@@ -991,7 +991,7 @@ button can be activated at a time.
     SCENE_BUILD, kpl_scene, kpl_button_C,   1,    1,    0%
     SCENE_BUILD, kpl_scene, kpl_button_D,   1,    1,    0%
 
-SYNCING
+B<SYNCING>
 
 To sync these links, simply run this command after creating the necessary link
 definitions.  This routine will perform both the "sync and delete" steps to
@@ -1002,14 +1002,51 @@ MisterHouse.  There is no "scan" feature for IntraDevice links.
 
 sub sync_intradevice_links
 {
-	my () = @_;
+	my ($self) = @_;
+	$self = $self->get_root();
+	# First Calculate the value of all bytes
+	my %button_mask;
+	my %button_type;
+	# Find all subgroup items check groups from 1 - 8;
+	for ($dec_group = 1; $dec_group <= 8; $dec_group++) {
+		$group = sprintf("%02X", $dec_group);
+		$subgroup_object = Insteon::get_object($device_id, $group);
+		if (ref $subgroup_object){
+            #SubGroup Object Exists, Now Look for IntraDevice Link on Object
+            foreach my $member_ref (keys %{$$subgroup_object{members}}) {
+		        my $member = $$subgroup_object{members}{$member_ref}{object};
+		        my $member_group = hex($member->group);
+		        my $member_root = $member->get_root;
+        		if ($member_root eq $self){
+        		    #This is an IntraDevice Link, Set button mask
+	                $button_mask{$dec_group} |= 0b1 << ($member_group-1);
+                    my $tgt_on_level = 
+                        $$subgroup_object{members}{$member_ref}{on_level};
+		            $tgt_on_level = '100' unless defined $tgt_on_level;
+		            $tgt_on_level =~ s/(\d+)%?/$1/;
+		            if ($tgt_on_level <= 0) {
+		                #This is an Off Link, Set type
+		                $button_type{$dec_group} |= 0b1 << ($member_group-1);
+		            }
+        		}
+            }
+		}
+	}
+
+	# Now write those bytes to the device
+	if ($self->engine_version eq 'I1') {
+	    #send to ALDB and use peek/poke commands there
+	}
+	else {
+	    #process here in another routine
+	}
 }
 
 =back
 
 =head2 AUTHOR
 
-Gregg Limming 
+Gregg Limming, Kevin Robert Keegan 
 
 =head2 LICENSE
 
