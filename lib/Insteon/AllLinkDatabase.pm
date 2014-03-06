@@ -1762,10 +1762,32 @@ sub _on_peek
             my %byte_hash = %{$$self{_intradevice_hash_ref}};
 			my $byte = $byte_hash{$$self{_mem_lsb}};
 			$byte = '00' if $byte eq '';
+			$byte = sprintf("%02X", $byte);
+			if (uc($msg{extra}) ne uc ($byte)){
                         $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'poke');
                         $message->extra($byte);
                         $message->failure_callback($$self{_failure_callback}); #KRK, I don't think this is set
                         $self->_send_cmd($message);
+			}
+            else {
+                if ($$self{_mem_lsb} eq '51') {
+                    ::print_log("[Insteon::KeyPadLinc] Successfully wrote IntraDevice ".
+                        "links for " . $$self{device}->get_object_name .
+                        " now asking device to reread settings from memory.");
+                    $message = new Insteon::InsteonMessage('insteon_send', 
+                        $$self{device}, 'do_read_ee');
+                    $message->failure_callback($$self{_failure_callback});
+                    $self->_send_cmd($message);
+                }
+                else {
+                    #Skip the toggle memory location
+                    $$self{_mem_lsb} = '49' if ($$self{_mem_lsb} eq '48');
+                    $$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+                    $message->extra($$self{_mem_lsb});
+                    $message->failure_callback($$self{_failure_callback});  #KRK again not sure this exists
+    			    $self->_send_cmd($message);
+                }
+            }
 		}
 		else {
 		::print_log("[Insteon::ALDB_i1] " . $$self{device}->get_object_name 
@@ -1827,13 +1849,16 @@ L<Insteon::Lighting::sync_intradevice_links()|Insteon::Lighting/Insteon::KeyPadL
 sub update_intradevice_links
 {
 	my ($self, $intradevice_hash_ref, $aldb_check) = @_;
+	$$self{_intradevice_hash_ref} = $intradevice_hash_ref 
+	    if $intradevice_hash_ref ne '';
+::print_log("[krk] hash_ref = $intradevice_hash_ref, check = $aldb_check");
 	if (defined($aldb_check)){
 		$$self{_mem_activity} = 'update_intradevice';
-		$$self{_intradevice_hash_ref} = $intradevice_hash_ref;
 		$self->_peek('0241'); # 0241 is the first address
 	} else {
-		$$self{_aldb_unchanged_callback} = '&Insteon::ALDB_i1::update_intradevice_links('.$$self{device}->{object_name}."->_aldb, $intradevice_hash_ref, 1)";
-		$$self{_aldb_changed_callback} = '&Insteon::ALDB_i1::update_intradevice_links('.$$self{device}->{object_name}."->_aldb, $intradevice_hash_ref, 1)";
+		$$self{_aldb_unchanged_callback} = '&Insteon::ALDB_i1::update_intradevice_links('.$$self{device}->{object_name}."->_aldb, '', 1)";
+		$$self{_aldb_changed_callback} = '&Insteon::ALDB_i1::update_intradevice_links('.$$self{device}->{object_name}."->_aldb, '', 1)";
+::print_log("[krk] callback = " . $$self{_aldb_unchanged_callback});
 		$self->query_aldb_delta("check");
 	}
 }
