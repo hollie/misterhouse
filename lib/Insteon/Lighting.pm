@@ -1005,12 +1005,12 @@ sub sync_intradevice_links
 	my ($self) = @_;
 	$self = $self->get_root();
 	# First Calculate the value of all bytes
-	my %button_mask;
-	my %button_type;
+	my %byte_hash;      #Key is the lsb of the byte location
+	my $lsb;            #used to store the lsb address
 	# Find all subgroup items check groups from 1 - 8;
-	for ($dec_group = 1; $dec_group <= 8; $dec_group++) {
-		$group = sprintf("%02X", $dec_group);
-		$subgroup_object = Insteon::get_object($device_id, $group);
+	for (my $dec_group = 1; $dec_group <= 8; $dec_group++) {
+		my $group = sprintf("%02X", $dec_group);
+		my $subgroup_object = Insteon::get_object($self->device_id, $group);
 		if (ref $subgroup_object){
             #SubGroup Object Exists, Now Look for IntraDevice Link on Object
             foreach my $member_ref (keys %{$$subgroup_object{members}}) {
@@ -1019,14 +1019,16 @@ sub sync_intradevice_links
 		        my $member_root = $member->get_root;
         		if ($member_root eq $self){
         		    #This is an IntraDevice Link, Set button mask
-	                $button_mask{$dec_group} |= 0b1 << ($member_group-1);
+        		    $lsb = sprintf("%02X", 64+$dec_group);
+	                $byte_hash{$lsb} |= 0b1 << ($member_group-1);
                     my $tgt_on_level = 
                         $$subgroup_object{members}{$member_ref}{on_level};
 		            $tgt_on_level = '100' unless defined $tgt_on_level;
 		            $tgt_on_level =~ s/(\d+)%?/$1/;
 		            if ($tgt_on_level <= 0) {
 		                #This is an Off Link, Set type
-		                $button_type{$dec_group} |= 0b1 << ($member_group-1);
+		                $lsb = sprintf("%02X", 73+$dec_group);
+		                $byte_hash{$lsb} |= 0b1 << ($member_group-1);
 		            }
         		}
             }
@@ -1036,9 +1038,10 @@ sub sync_intradevice_links
 	# Now write those bytes to the device
 	if ($self->engine_version eq 'I1') {
 	    #send to ALDB and use peek/poke commands there
+	    $self->_aldb->update_intradevice_links(\%byte_hash);
 	}
 	else {
-	    #process here in another routine
+	    #process in this file in another routine
 	}
 }
 

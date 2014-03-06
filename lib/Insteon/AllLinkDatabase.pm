@@ -1388,6 +1388,26 @@ sub _on_poke
 		# Put the new ALDB Delta into memory
 		$self->query_aldb_delta('set');
 	}
+        elsif ($$self{_mem_activity} eq 'update_intradevice')
+        {
+            if ($$self{_mem_lsb} eq '51') {
+                ::print_log("[Insteon::KeyPadLinc] Successfully wrote IntraDevice ".
+                    "links for " . $$self{device}->get_object_name .
+                    " now asking device to reread settings from memory.");
+                $message = new Insteon::InsteonMessage('insteon_send', 
+                    $$self{device}, 'do_read_ee');
+                $message->failure_callback($$self{_failure_callback});
+                $self->_send_cmd($message);
+            }
+            else {
+                #Skip the toggle memory location
+                $$self{_mem_lsb} = '49' if ($$self{_mem_lsb} eq '48');
+                $$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+                $message->extra($$self{_mem_lsb});
+                $message->failure_callback($$self{_failure_callback});  #KRK again not sure this exists
+			    $self->_send_cmd($message);
+            }
+        }
 }
 
 sub _on_peek
@@ -1437,6 +1457,10 @@ sub _on_peek
                         elsif ($$self{_mem_activity} eq 'add')
                         {
 				$$self{_mem_action} = 'aldb_flag';
+			}
+                        elsif ($$self{_mem_activity} eq 'update_intradevice')
+                        {
+				$$self{_mem_action} = 'update_intradevice';
 			}
                        	$message->extra($$self{_mem_lsb});
                         $message->failure_callback($$self{_failure_callback});
@@ -1733,6 +1757,16 @@ sub _on_peek
                         $message->failure_callback($$self{_failure_callback});
                         $self->_send_cmd($message);
 		}
+                elsif ($$self{_mem_action} eq 'update_intradevice')
+                {
+            my %byte_hash = %{$$self{_intradevice_hash_ref}};
+			my $byte = $byte_hash{$$self{_mem_lsb}};
+			$byte = '00' if $byte eq '';
+                        $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'poke');
+                        $message->extra($byte);
+                        $message->failure_callback($$self{_failure_callback}); #KRK, I don't think this is set
+                        $self->_send_cmd($message);
+		}
 		else {
 		::print_log("[Insteon::ALDB_i1] " . $$self{device}->get_object_name 
 			. ": unhandled _mem_action=".$$self{_mem_action})
@@ -1778,6 +1812,28 @@ sub update_flags
 	} else {
 		$$self{_aldb_unchanged_callback} = '&Insteon::ALDB_i1::update_flags('.$$self{device}->{object_name}."->_aldb, '$flags', 1)";
 		$$self{_aldb_changed_callback} = '&Insteon::ALDB_i1::update_flags('.$$self{device}->{object_name}."->_aldb, '$flags', 1)";
+		$self->query_aldb_delta("check");
+	}
+}
+
+=item C<update_intradevice_links()>
+
+Used to update the IntraDevice Links on a device.  Currently these only exist on
+KeypadLinc devices.  This routine is called by 
+L<Insteon::Lighting::sync_intradevice_links()|Insteon::Lighting/Insteon::KeyPadLincRelay>.
+
+=cut
+
+sub update_intradevice_links
+{
+	my ($self, $intradevice_hash_ref, $aldb_check) = @_;
+	if (defined($aldb_check)){
+		$$self{_mem_activity} = 'update_intradevice';
+		$$self{_intradevice_hash_ref} = $intradevice_hash_ref;
+		$self->_peek('0241'); # 0241 is the first address
+	} else {
+		$$self{_aldb_unchanged_callback} = '&Insteon::ALDB_i1::update_intradevice_links('.$$self{device}->{object_name}."->_aldb, $intradevice_hash_ref, 1)";
+		$$self{_aldb_changed_callback} = '&Insteon::ALDB_i1::update_intradevice_links('.$$self{device}->{object_name}."->_aldb, $intradevice_hash_ref, 1)";
 		$self->query_aldb_delta("check");
 	}
 }
