@@ -447,6 +447,25 @@ sub new
 	return $self;
 }
 
+=item C<set(state[,setby,response])>
+
+The iMeter really can't be set to anything, but refreshing the power and usage
+seems like the most common thing that would be done.  As such, setting the state
+to refresh will cause MH to query these values.
+
+=cut
+
+sub set
+{
+	my ($self,$p_state,$p_setby,$p_response) = @_;
+	if (lc($p_state) eq 'refresh'){
+	    $self->request_status();   
+	}
+	else {
+	    ::print_log("[Insteon::iMeter] failed state validation with state=$p_state");    
+	}
+}
+
 =item C<request_status([requestor])>
 
 Requests the current status of the device and calls C<set()> on the response.  
@@ -505,7 +524,8 @@ sub _process_message {
             if ($intenergy < 4261412864) {
                 # 1 Accumulated energy is equal to: 65535 watts/AC Cycle.
                 # 65535 is the maximum value of a 16 bit number.
-            	$$self{'accumenergy'} = ($intenergy * 65535) / (1000 * 60.0 * 60.0 * 60.0);
+            	$$self{'accumenergy'} = sprintf("%.2f", ($intenergy * 65535) 
+            	    / (1000 * 60.0 * 60.0 * 60.0));
             } 
     		::print_log("[Insteon::iMeter] received status for " .
     			$self->get_object_name . ". Current Usage: $$self{'power'}/watts ".
@@ -568,6 +588,20 @@ sub reset_accumulated_usage
     return $$self{'accumenergy'};
 }
 
+=item C<get_power()>
+
+Returns the last read power value usage.  There is no logging function for power
+because it is viewable in the state of the device.  Indeed this function is
+fuplicative of simply calling $self->state.
+
+=cut
+
+sub get_power
+{
+    my ($self) = @_;
+    return $$self{'power'};
+}
+
 =item C<get_voice_cmds>
 
 Returns a hash of voice commands where the key is the voice command name and the
@@ -597,6 +631,8 @@ sub get_voice_cmds
     }
     return \%voice_cmds;
 }
+
+
 
 =back
 
