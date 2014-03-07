@@ -461,7 +461,7 @@ sub set
 	if (lc($p_state) eq 'refresh'){
 	    $self->request_status();   
 	}
-	else {
+	elsif ($p_setby ne $self) {
 	    ::print_log("[Insteon::iMeter] failed state validation with state=$p_state");    
 	}
 }
@@ -479,7 +479,6 @@ command
 sub request_status
 {
 	my ($self,$requestor) = @_;
-	$$self{m_status_request_pending} = ($requestor) ? $requestor : 1;
 	my $extra = '00';
     my $message = new Insteon::InsteonMessage('insteon_send', $self, 'imeter_query', $extra);
     $self->_send_cmd($message);
@@ -530,10 +529,8 @@ sub _process_message {
     		::print_log("[Insteon::iMeter] received status for " .
     			$self->get_object_name . ". Current Usage: $$self{'power'}/watts ".
     			"Accumulated Usage: $$self{'accumenergy'}/kWh Hops left: $msg{hopsleft}");
-    		$ack_setby = $$self{m_status_request_pending}
-    		    if ref $$self{m_status_request_pending};
-    		$self->SUPER::set($$self{'power'}, $ack_setby);
-    		delete($$self{m_status_request_pending});
+    		#Forced setby to be $Self as nothing can control iMeter
+    		$self->SUPER::set($$self{'power'}, $self);
 		}
 	}
 	else {
