@@ -530,7 +530,7 @@ sub _process_message {
     			$self->get_object_name . ". Current Usage: $$self{'power'}/watts ".
     			"Accumulated Usage: $$self{'accumenergy'}/kWh Hops left: $msg{hopsleft}");
     		#Forced setby to be $Self as nothing can control iMeter
-    		$self->SUPER::set($$self{'power'}, $self);
+    		$self->Generic_Item::set($$self{'power'}, $self);
 		}
 	}
 	else {
