@@ -510,7 +510,6 @@ sub _process_message {
 	}
 	elsif ($msg{command} eq "imeter_query" && $msg{is_extended}) {
 		if (substr($msg{extra},0,2) eq "00") {
-		    $clear_message = 1;
     		# Power is D7-D8; Accumulated Energy is D9-D12.
     		# CRC16 Signature is D13-D14, we currently ignore this check
             my ($load,$intenergy) = $msg{extra} =~ m/^.{14}(.{4})(.{8})/;
@@ -531,6 +530,9 @@ sub _process_message {
     			"Accumulated Usage: $$self{'accumenergy'}/kWh Hops left: $msg{hopsleft}");
     		#Forced setby to be $Self as nothing can control iMeter
     		$self->Generic_Item::set($$self{'power'}, $self);
+    		#Clear message from message queue
+    		$clear_message = 1;
+            $self->_process_command_stack(%msg);
 		}
 	}
 	else {
