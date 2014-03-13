@@ -1057,6 +1057,36 @@ Identifies the port on which the PLM is attached.  Example:
 
     Insteon_PLM_serial_port=/dev/ttyS4
 
+=item Insteon_PLM_use_TCP
+
+Setting this to 1, will enable MisterHouse to use a networked PLM such as the
+Insteon Hub.  This functionality seems fairly stable, but has not been 
+extensively tested.
+
+You will also need to set values for C<Insteon_PLM_TCP_host> and 
+C<Insteon_PLM_TCP_port>.
+
+There are a few quirks when using a networked PLM, they include:
+
+The communication may be slightly slower with the network PLM.  In order to
+prevent MisterHouse from clobbering the device it is recommended that you
+set the C<Insteon_PLM_xmit_delay> to 1 second.  Testing may reveal that slightly
+lower delays are also acceptable.
+
+Changes made using the hub's web interface will not be understood by MisterHouse.
+Device states may become out of sync. (It is possible that future coding may
+be able to overcome this limiation)
+
+=item Insteon_PLM_TCP_host
+
+If using a network PLM, set this to the IP address of the PLM.  See 
+C<Insteon_PLM_use_TCP>.
+
+=item Insteon_PLM_TCP_port
+
+If using a network PLM, set this to the port address of the PLM.  Generally, the
+port number is 9761.  See C<Insteon_PLM_use_TCP>.
+
 =item Insteon_PLM_xmit_delay
 
 Sets the minimum amount of seconds that must elapse between sending Insteon messages 
