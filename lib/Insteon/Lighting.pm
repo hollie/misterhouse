@@ -909,7 +909,8 @@ sub get_voice_cmds
             'set 6 button - backlight off' => "$object_name->update_flags(\"04\")",
             'set 6 button - backlight normal' => "$object_name->update_flags(\"00\")",
             'sync all device links' => "$object_name->sync_all_links()",
-            'AUDIT sync all device links' => "$object_name->sync_all_links(1)"
+            'AUDIT sync all device links' => "$object_name->sync_all_links(1)",
+            'sync intradevice links' => "$object_name->sync_intradevice_links()",
         );
     }
     return \%voice_cmds;
@@ -1009,6 +1010,10 @@ sub sync_intradevice_links
 	# First Calculate the value of all bytes
 	my %byte_hash;      #Key is the lsb of the byte location
 	my $lsb;            #used to store the lsb address
+	
+	::print_log('[Insteon::KeyPadLinc] ' . $self->get_object_name . 'will be '.
+	    'programmed with the following IntraDevice Links:');
+	
 	# Find all subgroup items check groups from 1 - 8;
 	for (my $dec_group = 1; $dec_group <= 8; $dec_group++) {
 		my $group = sprintf("%02X", $dec_group);
@@ -1027,11 +1032,15 @@ sub sync_intradevice_links
                         $$subgroup_object{members}{$member_ref}{on_level};
 		            $tgt_on_level = '100' unless defined $tgt_on_level;
 		            $tgt_on_level =~ s/(\d+)%?/$1/;
+		            my $link_type = "FOLLOW";
 		            if ($tgt_on_level <= 0) {
 		                #This is an Off Link, Set type
 		                $lsb = sprintf("%02X", 73+$dec_group);
 		                $byte_hash{$lsb} |= 0b1 << ($member_group-1);
+		                $link_type = "TURN OFF";
 		            }
+		            ::print_log("[Insteon::KeyPadLinc] Group $member_group will ".
+	                    "$link_type when Group $dec_group is pressed.");
         		}
             }
 		}
@@ -1170,40 +1179,6 @@ sub new
 	$$self{operating_flags} = \%Insteon::KeyPadLincRelay::operating_flags;
 	bless $self,$class;
 	return $self;
-}
-
-=item C<get_voice_cmds>
-
-Returns a hash of voice commands where the key is the voice command name and the
-value is the perl code to run when the voice command name is called.
-
-Higher classes which inherit this object may add to this list of voice commands by
-redefining this routine while inheriting this routine using the SUPER function.
-
-This routine is called by L<Insteon::generate_voice_commands> to generate the
-necessary voice commands.
-
-=cut 
-
-sub get_voice_cmds
-{
-    my ($self) = @_;
-    my $object_name = $self->get_object_name;
-    my %voice_cmds = (
-        %{$self->SUPER::get_voice_cmds}
-    );
-    if ($self->is_root){
-        %voice_cmds = (
-            %voice_cmds,
-            'set 8 button - backlight dim' => "$object_name->update_flags(\"0a\")",
-            'set 8 button - backlight off' => "$object_name->update_flags(\"06\")",
-            'set 8 button - backlight normal' => "$object_name->update_flags(\"02\")",
-            'set 6 button - backlight dim' => "$object_name->update_flags(\"08\")",
-            'set 6 button - backlight off' => "$object_name->update_flags(\"04\")",
-            'set 6 button - backlight normal' => "$object_name->update_flags(\"00\")"
-        );
-    }
-    return \%voice_cmds;
 }
 
 # The subgroup items are not dimmable, so call BaseInsteon for them
