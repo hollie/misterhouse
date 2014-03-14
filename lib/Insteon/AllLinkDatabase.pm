@@ -1851,14 +1851,12 @@ sub update_intradevice_links
 	my ($self, $intradevice_hash_ref, $aldb_check) = @_;
 	$$self{_intradevice_hash_ref} = $intradevice_hash_ref 
 	    if $intradevice_hash_ref ne '';
-::print_log("[krk] hash_ref = $intradevice_hash_ref, check = $aldb_check");
 	if (defined($aldb_check)){
 		$$self{_mem_activity} = 'update_intradevice';
 		$self->_peek('0241'); # 0241 is the first address
 	} else {
 		$$self{_aldb_unchanged_callback} = '&Insteon::ALDB_i1::update_intradevice_links('.$$self{device}->{object_name}."->_aldb, '', 1)";
 		$$self{_aldb_changed_callback} = '&Insteon::ALDB_i1::update_intradevice_links('.$$self{device}->{object_name}."->_aldb, '', 1)";
-::print_log("[krk] callback = " . $$self{_aldb_unchanged_callback});
 		$self->query_aldb_delta("check");
 	}
 }

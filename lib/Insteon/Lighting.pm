@@ -938,8 +938,10 @@ sub link_data3
 
 =item C<sync_intradevice_links()>
 
-IntraDevice Links are links between buttons on the same KPL.  There are two
-types of IntraDevice Links FOLLOW and OFF.
+IntraDevice Links are links between buttons on the same KPL.  These links are
+not stored in the same manner as InterDevice links. Therefore this routine can
+be used to sync the IntraDevice links.  There are two types of IntraDevice Links
+FOLLOW and OFF.
 
 B<FOLLOW>
 
@@ -1041,8 +1043,63 @@ sub sync_intradevice_links
 	    $self->_aldb->update_intradevice_links(\%byte_hash);
 	}
 	else {
-	    #process in this file in another routine
+	    $self->_write_intradevice_links(\%byte_hash, 1, 2);
 	}
+}
+
+=item C<_write_intradevice_links()>
+
+The i2 routine for writing the IntraDevice links to i2 devices.  Should not be
+called directly.
+
+=cut
+
+sub _write_intradevice_links {
+    my ($self, $intradevice_hash_ref, $group, $sub) = @_;
+	$$self{_intradevice_hash_ref} = $intradevice_hash_ref 
+	    if $intradevice_hash_ref ne '';
+
+    # Create Key Value
+    my $enable_key = sprintf("%02X", 64+$group);
+    my $type_key = sprintf("%02X", 73+$group);
+
+    # Convert i1 style masks to i2 style masks, it appears i2 masks work diff
+    my $enable_mask = $$self{_intradevice_hash_ref}{$enable_key};
+    my $type_mask = $$self{_intradevice_hash_ref}{$type_key};
+    $enable_mask = 0 if $enable_mask eq '';
+    $type_mask = 0 if $type_mask eq '';
+    my $mask = $enable_mask ^ $type_mask; #follow mask
+    if ($sub == 3){
+        $mask = $enable_mask & $type_mask; #Off mask
+    }
+
+    # Define our callbacks
+    my $next_group = ($sub == 2) ? $group : $group +1;
+    my $next_sub = ($sub == 2) ? 3 : 2;
+    my $success_callback = $self->get_object_name . 
+        "->_write_intradevice_links('',$next_group,$next_sub)";
+    my $failure_callback = "::print_log('[Insteon::KeyPadLinc] ERROR - Syncing".
+        "IntraDevice Links to ".$self->get_object_name." failed.')";
+    if ($group == 8 && $sub == 3){
+    $success_callback = "::print_log('[Insteon::KeyPadLinc] Successfully wrote ".
+        "IntraDevice links for " . $self->get_object_name . "')";
+    }
+
+    # Now write values to device
+	my $extra = "00" . sprintf("%02X",$group) . "0" . $sub . sprintf("%02X",$mask);
+	my $message = $self->simple_message('extended_set_get', $extra);
+    $message->failure_callback($failure_callback);
+	$message->success_callback($success_callback);
+	$self->_send_cmd($message);
+}
+
+## Creates an Extended Message, and Pads it with 0s to proper length
+sub simple_message {
+	my ($self,$type,$extra) = @_;
+	my $message;
+    $extra .= '0' x (30 - length $extra);
+	$message = new Insteon::InsteonMessage('insteon_ext_send', $self, $type, $extra);
+	return $message;
 }
 
 =back
