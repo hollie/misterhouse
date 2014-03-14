@@ -4,14 +4,12 @@
 
 =head2 1.1: What OSes can it run on?
 
-It has been tested on Windows 95, 98, NT 4.0, 2K, XP, Vista (!) and 7.  
+It has been tested on Windows >= XP.  
 On Unix, it has been run on Linux (Ubuntu, Debian, Fedora and others), AIX, and Sun.
 
 In theory, any OS that runs perl should be able to run mh.  In practice, some platforms will likely have strange Serial Interfaces, so the Serial I/O related function would take some work.
 
 =head2 1.2: How can I make it run faster and use less memory?
-
-On my Celron 400 Mhz computer running Windows 98, using 60 code files with 6000 lines of code, mh takes 10% the cpu, running at 9 passes per second and using about 30 MB of memory.
 
 If you are happy with the Web interface and don't need the Tk interface, turn it off by editing the Tk mh.ini parm or run:
 
@@ -187,40 +185,7 @@ Then run mh using these parameters:
 
 Note, you can run this test mh quickly without stopping your normal mh.
 
-=head2 1.13: What are the advantages/disadvantages to running the compiled versions of mh?
-
-Advantages:
-
-=over
-
-=item *
-
-You don't need the latest version of perl installed
-
-=item *
-
-You don't have to install additional perl modules
-
-=back
-
-Disadvantages:
-
-=over
-
-=item *
-
-For some reason, starting mh with the compiled versions is slower.  On my windows box, it is 10 seconds -vs- 20 seconds.
-
-=item *
-
-You can apply quick patches to mh, -vs- downloading a larger, less frequently updated mh.exe file.
-
-=back
-
-The memory and cpu used, once mh is started, is the same.
-
-
-=head2 1.14: How does mh read and use the user code in code_dir
+=head2 1.13: How does mh read and use the user code in code_dir
 
 Each time mh is started or a Reload is done, mh will re-read all the .pl code members
 in the code_dir directory (this is a mh.ini parm)
@@ -237,7 +202,7 @@ evals the &loop_code code (it does an eval, rather then execute it directly, so 
 not kill mh), sleeps for a bit, then repeats.
 
 
-=head2 1.15 How can I control mh from a non-mh web server like Apache?
+=head2 1.14 How can I control mh from a non-mh web server like Apache?
 
 You can think of the built in mh web server as 2 parts:
 
@@ -257,7 +222,7 @@ You can also use something like mh/code/common/mhsend_server.pl
 and then read/write to sockets directly from non-mh web server cgi scripts.
 Or have the web server script simply call mh/bin/mhsend to run mh commands.
 
-=head2 1.16 Is there a front-end tool for defining/editing mh items/events?
+=head2 1.15 Is there a front-end tool for defining/editing mh items/events?
 
 Not yet, but you can now define items/events in a table-like format.
 This should allow us to enable a gui or web based front end tools for editing.
@@ -272,7 +237,7 @@ at the top of the table.  Then mh will process (on starup and reload) each recor
 Examples are in mh/code/bruce/*.mht and mh/code/test/*.mht.
 If you want to create another table format, all you need to do is create a mh/lib/read_table_xyz.pl member, then set Format=xyz.
 
-=head2 1.17: How can I use Family Radios with MisterHouse?
+=head2 1.16: How can I use Family Radios with MisterHouse?
 
 =begin html
 There is seperate FAQ on the FRS topic in
@@ -281,7 +246,7 @@ There is seperate FAQ on the FRS topic in
 =end html
 
 
-=head2 1.18: Is there a way to tell if MH is shutdown correctly or not?
+=head2 1.17: Is there a way to tell if MH is shutdown correctly or not?
 
 On windows, mh/bin/mh.bat checks errorlevel and on linux, mh/bin/mhl finds the return code via $?.
 Both of these shells will restart mh unless they detect a normal exit (rc=1).
@@ -300,7 +265,7 @@ code in mh/code/common/mh_control.pl will set $Power_Supply, so you can do somet
  }
 
 
-=head2 1.19: How can I use an Internet Appliance with MisterHouse?
+=head2 1.18: How can I use an Internet Appliance with MisterHouse?
 
 =begin html
 There is seperate FAQ on varous Internet Appliances in
@@ -309,7 +274,7 @@ There is seperate FAQ on varous Internet Appliances in
 =end html
 
 
-=head2 1.20: Where is perl program code located?
+=head2 1.19: Where is perl program code located?
 
 From Harald Koch on 2/2002.
 
@@ -493,7 +458,7 @@ Here are a few:
 
 =head2 2.8: Can I use mh to control other windows
 
-On Windows (95,98, NT), you can use the SendKeys to send keystrokes to other windows.  See mh.html for details.
+On Windows you can use the SendKeys to send keystrokes to other windows.  See mh.html for details.
 
 If anyone knows of an equivalent function for linux, let me know.  Linux is usually clever enough to have
 command line options, so there is less of a need here.
@@ -1244,21 +1209,7 @@ or asynchronous modes are as easy as (audio_mode sync) or (audio_mode async)
 
 =head1 4: Windows specific questions
 
-=head2 4.1: mh seems to cause some windows to hang
-
-If you are experiencing problems with windows not popping up when they should (e.g. control panel or install shield), you will want to install DCOM 1.3, available from here:
-
-  http://www.microsoft.com/com/dcom/dcom98/dcom1_3.asp
-
-Note, I had run all the 'Windows updates', including the Service Pack 2, but
-I still had the problem until I installed the above.
-
-For Windows 95, the update is at:
-
-  http://www.microsoft.com/com/dcom/dcom95/dcom1_3.asp
-
-
-=head2 4.2: How do I set setup networking between Windows boxes
+=head2 4.1: How do I set setup networking between Windows boxes
 
 You need to have the TCP/IP protocol enabled for your Networking Interface Card (NIC).
 If you use a modem to reach the internet, you already have TCP/IP enable for the dial up adaptor,
@@ -1269,7 +1220,7 @@ You can find instuctions on how to do this at: http://win98central.acauth.com/in
 IP addresses that start with 10. (e.g. 10.0.0.1) are reserved for internal lans, so you can use
 10.0.0.1, 10.0.0.2, etc.
 
-=head2 4.3 How do I run MH when not logged in to Win2K or XP?
+=head2 4.2 How do I run MH when not logged in Windows?
 
 You can run any program as a service, using a program called srvany.exe,
 available in the Resource Kit, or from here:
