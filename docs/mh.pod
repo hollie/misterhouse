@@ -10,7 +10,7 @@ mh - MisterHouse Home Automation Program
 =head1 SYNOPSIS
 
 B<mh> is a perl program for time, event, web, socket, and voice based home control functions.  It currently
-runs on Windows 95/98/NT and on Unix platforms, including Linux and Mac OSX.
+runs on Windows >= XP and on Unix platforms, including Linux and Mac OSX.
 
 perl objects are used for various types of items to give a powerful but
 concise programming interface.  Here is some example code:
@@ -69,9 +69,9 @@ This will log all 'print' statements to test1.log and turn on all serial related
 
 =begin html
 The system requirements and installation instructions are detailed in
-<a href="install.html">mh/docs/install.html</a>
+<a href="install.html">/docs/install.html</a>
 <p>There is also a FAQ that covers misc. topics in
-<a href="faq.html">mh/docs/faq.html</a>
+<a href="faq.html">/docs/faq.html</a>
 <p>We have a wiki at
 <a href="http://misterhouse.wikispaces.com">http://misterhouse.wikispaces.com</a>
 for user-supplied documentation.
@@ -86,7 +86,7 @@ for user-supplied documentation.
 
 Items and events are defined by using your favorite text editor and creating members
 of perl code in a directory of your choice.  For example, all the code that runs
-my house is in the /mh/code/bruce directory.
+in Bruce's house is in the /mh/code/bruce directory.
 
 After starting mh, in addition to the timed, serial, or X10 based events that you
 defined, you can trigger mh actions with any of the following:
@@ -140,7 +140,7 @@ Here are the basic steps of the mh program:
        Check for timers actions
        Check for external command files
        Evaluate the &user_loop function
-       Sleep for a while (default is 100 milliseconds), so mh does not hog the CPU.
+       Sleep for a while (default is 50 milliseconds), so mh does not hog the CPU.
 
 The interpreted nature of perl allows us to change/add/delete an event member quickly,
 without re-starting mh.   After changing code, you tell mh to re-load the user event code (step 2 above).
@@ -158,12 +158,6 @@ The reference book is "Programming Perl, 3rd edition" by Larry Wall, Tom Christe
 another good book that has a ton of examples in it.
 
 I fun way to slowly learn perl is with to get a perl FAQ per day.  You can sign up here: http://perl.faq-by-day.org
-
-For those of you using the compiled, instead of the interpreted, version of mh, the
-standard perl documentation can be found at
-http://www.perl.com/pub/v/documentation ,
-http://language.perl.com/CPAN/doc/manual/html/index.html and/or
-http://www.activestate.com/ActivePerl/docs
 
 Perl can be a pretty intimidating language to learn, due to its many options and functions, but
 for the purposes of using it to code mh events, there are only a few simple rules to keep in mind.
@@ -270,17 +264,6 @@ If you use a different port, you can still get to the port with 'telnet localhos
 Set this (or w=1) to enable perl -w warning messages on potential code errors.
 mh runs about 10% slower with this option on.
 
-
-=item run=perl_script
-
-This parms allow the compile mh.exe to act as a general purpose perl interpreter, so we can run any
-arbitrary perl script, without having to have perl installed.   See the get_weather.bat, get_tv_grid.bat,
-or set_clock.bat files for examples.   This also allows is to use the mh run command to spawn a separate
-mh process to run longer running perl steps, even if we do not have perl installed.  A Win32 'fork' command
-would be cleaner, but alas, no forks.
-
-
-
 =item debug=
 
 =item log=
@@ -333,7 +316,7 @@ Time/Date Variables
   %Moon
 
 The complete list of global variables can be found on the Widgets menu of the default web page
-or at the top of mh/bin/mh.
+or at the top of /bin/mh.
 
 The %Moon array has
 $Moon{phase}, $Moon{brightness}, $Moon{age}, and $Moon{new,first,full,last} entries.
@@ -2445,9 +2428,7 @@ If this file does not exist, the telnet.pl and web interface will be enable for 
 If it does exist, and the correct password is not entered, the telnet.pl and web function will not
 implement the requested commands.
 
-The set_password command is used to create and check this password.  If you are running the un-compiled perl and
-do not have Tk installed, the password will have to be passed in with the -password parm (set_password -h for more help).
-This can be run from a shell prompt or with the mh mh_control "set the password" command.
+The set_password command is used to create and check this password.
 
 If you want to change the password, delete the password file and rerun set_password.
 
@@ -2593,28 +2574,6 @@ menus with a web based phone simulator at http://www.yospace.com
 or download a phone simulator from http://phone.com .
 Other browsers are listed at http://www.palowireless.com/wap/browsers.asp ,
 although I didn't have much luck with http://www.wapsilon.com or /http://www.gelon.net .
-
-Tellme.com currently offers free 1-800 access to their VR and TTS engines, using vxml (Voice XML) menus.
-You can view the mh vxml menus by pointing a XML compatible browser (e.g. IE) to this address:
-
-   http://localhost:8080/sub?menu_vxml
-
-When ready to try with tellme, sign up for a free developer
-id, which will be your extension number.  I used Home0 (46630).
-Then you can go to my studio and enter your URL:
-
-   http://studio.tellme.com/mystudio/mystudio.cgi
-
-   http://your_domain/sub?menu_vxml
-
-where your_domain is your domain name or ip address.
-To test, dial: 1-800-555-8965 (VXML) and enter your developer ID and Pin.
-When you have it working, click on the MyExtentions, enter the same
-URL and check the enable checkbox.  Now you can dial:
-
-   1-800-555-8355  (wait for 'tellme more') 1-yourextention
-
-
 
 =head2 Customizing the Tk Interface
 
@@ -3109,7 +3068,7 @@ might be interested in, and I'll include it in the distribution.
 If you would rather see it mh in your windows tray, rather in the taskbar, here is a
 useful utility that will let you move any program to the tray: http://www.teamcti.com/TrayIt
 
-Another handy utility for windows 95/98 users will help you monitor how much CPU and memory mh takes.
+Another handy utility for Windows users will help you monitor how much CPU and memory mh takes.
 TaskInfo80, available at http://www.iarsn.com/index.html
 
 If you are getting the message "Out of environment space" try adding these records:
@@ -3287,12 +3246,17 @@ Here is a list of articles written about MisterHouse:
   http://misterhouse.net/articles.html
 
 You can subscribe and/or view the mailing list at
-http://sourceforge.net/mail/?group_id=1365
+https://lists.sourceforge.net/lists/listinfo/misterhouse-users
 You can view the archive at
-http://lists.sourceforge.net/pipermail/misterhouse-users/
+https://sourceforge.net/p/misterhouse/mailman/misterhouse-users/
 and search it at
-http://lists.sourceforge.net/mailman/listinfo/misterhouse-users
+https://sourceforge.net/search/?group_id=1365&type_of_search=mlists
+you can also view and search the mailing list archive at:
+http://misterhouse.10964.n7.nabble.com/
 
+You can post to the mailing list using nabble as well, however you will  
+need to subscribe to the mailing list first, before any messages from nabble
+will be accepted on the list.
 
 Jan Dubois has a fun page of other ticks you can do with
 perl on windows at http://opensource.activestate.com/authors/jandubois/Perl/TPC3/fun.html
