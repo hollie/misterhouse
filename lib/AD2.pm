@@ -477,7 +477,7 @@ sub CheckCmd {
          .$status_type->{rf_low_batt}.") supervised(".$status_type->{rf_supervised}
          .")" );
 
-      foreach my $rf_key (keys $$self{wireless}){
+      foreach my $rf_key (keys %{$$self{wireless}}){
          if ($rf_key =~ /^${rf_id}(.*)/) {
             my $LoopNum = 1;
             my $SensorType = 's';
@@ -918,17 +918,17 @@ sub is_zone_mapped {
    my ($self, $zone) = @_;
    $zone = sprintf "%03s", $zone;
    if (defined $$self{relay}){
-      foreach my $mkey (keys $$self{relay}) {
+      foreach my $mkey (keys %{$$self{relay}}) {
          if ($zone eq $$self{relay}{$mkey}) { return 1 }
       }
    }
    if (defined $$self{wireless}){
-      foreach my $mkey (keys $$self{wireless}) {
+      foreach my $mkey (keys %{$$self{wireless}}) {
          if ($zone eq $$self{wireless}{$mkey}) { return 1 }
       }
    }
    if (defined $$self{expander}){
-      foreach my $mkey (keys $$self{expander}) {
+      foreach my $mkey (keys %{$$self{expander}}) {
          if ($zone eq $$self{expander}{$mkey}) { return 1 }
       }
    }
