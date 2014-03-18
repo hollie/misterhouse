@@ -51,7 +51,6 @@ if (said $v_get_weather_warning or changed $f_weather_forecast_warning or $Reloa
 		}
 	}
 	$Weather{Warning} =~ s/^\ \ *$//;
-	print_log("WEATHER WARNING: $Weather{Warning}");
 	#$v_get_weather_warning ->respond("app=weather Weather warnings prepared.") if said $v_get_weather_warning;
 
 	run_voice_cmd 'Read weather warnings' unless $Reload;

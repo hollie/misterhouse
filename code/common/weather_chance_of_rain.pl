@@ -88,9 +88,7 @@ Tuesday: Mostly sunny except for patchy morning low clouds and fog. Highs
 
 	foreach my $line (read_all $f_weather_forecast_chance_of_rain) {
 		next if $line =~ /^as of/i;
-		if ($line =~ /^warning:(.*)/i) {
-			next;
-		}
+		next if $line =~ /^warning:/i;
 		if (my ($day, $forecast) = $line =~ /^([\w ]+): (.+)/) {
 			$forecasts{$day} = $forecast;
 			$Weather{"Forecast Days"} .= $day . '|';
@@ -132,22 +130,20 @@ Tuesday: Mostly sunny except for patchy morning low clouds and fog. Highs
 	}
 	unless ($text) { 
 		$Weather{chance_of_rain} = 'There is no rain or snow in the forecast.';
-		return;
+	} else {
+        	$Weather{"ChanceOfRainPercent"} = undef;
+        	$Weather{"ChanceOfSnowPercent"} = undef;
+        	$Weather{"ChanceOf" . ucfirst($current_precip) . "Percent"} = $current_chance if defined $current_chance;
+
+        	my $tomorrow = $days[($Wday + 1) % 7];
+        	$text =~ s/$tomorrow/tomorrow/g;
+        	$text = 'There is' . $text;
+        	$text =~ s/,$/./;
+        	$text =~ s/a 8/an 8/g;
+        	$text =~ s/,([^,]+)$/ and$1/;
+        	$Weather{chance_of_rain} = $text;
+        	$v_get_chance_of_rain->respond("app=rain Precipitation forecast prepared.") if said $v_get_chance_of_rain;
 	}
-	$Weather{"ChanceOfRainPercent"} = undef;
-	$Weather{"ChanceOfSnowPercent"} = undef;
-	$Weather{"ChanceOf" . ucfirst($current_precip) . "Percent"} = $current_chance if defined $current_chance;
-
-
-
-	my $tomorrow = $days[($Wday + 1) % 7];
-	$text =~ s/$tomorrow/tomorrow/g;
-	$text = 'There is' . $text;
-	$text =~ s/,$/./;
-	$text =~ s/a 8/an 8/g;
-	$text =~ s/,([^,]+)$/ and$1/;
-	$Weather{chance_of_rain} = $text;
-	$v_get_chance_of_rain->respond("app=rain Precipitation forecast prepared.") if said $v_get_chance_of_rain;
 }
 
 
