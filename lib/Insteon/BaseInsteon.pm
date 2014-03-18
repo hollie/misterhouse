@@ -3093,7 +3093,7 @@ sub sync_links
 	}
 
 	# Loop members
-	foreach my $member_ref (keys %{$$self{members}}) {
+	MEMBER: foreach my $member_ref (keys %{$$self{members}}) {
 		my $member = $$self{members}{$member_ref}{object};
 		
 		# find real device if member is a Light_Item
@@ -3118,6 +3118,15 @@ sub sync_links
 								$self->group,
 								'0',
 								$member->group);
+
+		# If this is an attempt to create a link between two objects on the same
+		# device, then skip.  Currently, a KPL can do this with a seperate
+		# routine, but IntraDevice links are not allowed by any other known device
+		if ($member_root eq $insteon_object){
+		    ::print_log("[Insteon::Sync_Links] Skipping intralink to $member_name.")
+			    if $insteon_object->debuglevel(2, 'insteon');
+		    next MEMBER;
+		}
 
 		# 3. Does the responder link exist
 		if (!$member_root->has_link($insteon_object, $self->group, 0, $member->group) &&
