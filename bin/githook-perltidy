@@ -12,6 +12,16 @@ use constant POST_HOOK_FILE => '.githook-perltidy';
 
 my $self = basename($0);
 
+# Allow script to be run from any directory
+if ( $0 =~ /(\\|\/)/ ) {
+    my ( $Pgm_Path, $Pgm_Name ) = $0 =~ /^(.*)[\\\/]([^.]+)/;
+    chdir $Pgm_Path;
+}
+chdir "..";
+$self = "bin/$self";
+$self =~ tr!\/!\\! if $^O eq "MSWin32"; #Windows Hack
+
+
 sub usage {
     die "usage: $self COMMAND
 
@@ -33,7 +43,7 @@ sub get_perltidyrc {
         $rc = catfile( $ENV{GIT_DIR}, updir(), '.perltidyrc' );
     }
     else {
-        $rc = '.perltidyrc';
+        $rc = 'bin/.perltidyrc';
     }
 
     if ( system("git ls-files --error-unmatch $rc > /dev/null 2>&1") != 0 ) {
