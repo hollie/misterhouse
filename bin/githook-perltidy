@@ -19,8 +19,6 @@ if ( $0 =~ /(\\|\/)/ ) {
 }
 chdir "..";
 $self = "bin/$self";
-$self =~ tr!\/!\\! if $^O eq "MSWin32"; #Windows Hack
-
 
 sub usage {
     die "usage: $self COMMAND
