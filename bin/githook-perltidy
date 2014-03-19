@@ -1,4 +1,4 @@
-#!perl
+#!/usr/bin/perl
 use strict;
 use warnings;
 use Carp qw/croak/;
@@ -6,7 +6,7 @@ use File::Slurp;
 use File::Basename;
 use File::Spec::Functions qw/catfile catdir updir/;
 use Perl::Tidy;
-use Pod::Tidy;
+#use Pod::Tidy;
 use Time::Piece;
 use constant POST_HOOK_FILE => '.githook-perltidy';
 
