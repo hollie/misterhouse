@@ -14,14 +14,21 @@
  Revision History
 
  Version 0.1		January 04, 2005
+ Version 0.2 - March, 2014, Use Github Tags URL, Ignore develop-ref version
  And so it begins...
 
 =cut
 
+use JSON qw( decode_json );
+
 # noloop=start
-my $mhdl_url = "http://www.misterhouse.net/download.html";
+my $mhdl_url = "https://api.github.com/repos/hollie/misterhouse/tags";
 my $mhdl_file = "$config_parms{data_dir}/web/mh_download.html";
 $p_mhdl_page = new Process_Item("get_url -quiet \"$mhdl_url\" \"$mhdl_file\"");
+
+my $mhdl_date_url = "";
+my $mhdl_date_file = "$config_parms{data_dir}/web/mh_download_date.html";
+$p_mhdl_date_page = new Process_Item;
 # noloop=stop
 
 $v_mhdl_page = new Voice_Cmd("Check Misterhouse version");
@@ -45,7 +52,7 @@ sub calc_age {
     my $time = shift;
     #*** This is a hack (same as earthquakes)
     #*** Surely PERL can turn a date string into a time hash!
-    my ($qmnth, $qdate, $qyear) = $time =~ m!(\S+)/(\S+)/(\S+)!;
+    my ($qyear, $qmnth, $qdate) = $time =~ m!(\d+)-(\d+)-(\d+)T!;
 
     my $diff = (time - timelocal(0,0,0,$qdate,$qmnth-1,$qyear));
 
@@ -63,8 +70,12 @@ if (said $v_version) {
 
 	my ($maj,$min,$version_str) = &parse_version();
 
-	if (($Save{mhdl_maj} > $maj) or (($Save{mhdl_maj} == $maj) and ($Save{mhdl_min} > $min))) {
+	if ((($Save{mhdl_maj} > $maj) or (($Save{mhdl_maj} == $maj) and ($Save{mhdl_min} > $min)))
+	        and ($maj !~ m/^develop-ref/)) {
         	respond("app=control I am version $version_str and $Save{mhdl_maj}.$Save{mhdl_min} was released " . &calc_age($Save{mhdl_date}) . '.');
+	}
+	elsif ($maj =~ m/^develop-ref/){
+	        respond("app=control You are running the development branch, it has no version releases.");
 	}
 	else {
         	respond("app=control I am version $version_str.");
@@ -91,29 +102,49 @@ if (said $v_mhdl_page) {
 if (done_now $p_mhdl_page) {
     my @html = file_read($mhdl_file);
     print_log("Download page retrieved");
-    foreach(@html) {
-	next unless /Version (\d+)\.(\d+).*released on (\d+\/\d+\/\d+)/;
-	$Save{mhdl_maj} = $1;
-	$Save{mhdl_min} = $2;
-	$Save{mhdl_date} = $3;
-	last;
+    my $json = decode_json( @html );
+    my ($mhdl_date_url, $maj, $min);
+    foreach (@{$json}) {
+    	next unless $_->{name} =~ m/^v(\d+)\.(\d+)/;
+    	next unless (($1 > $maj) or ($1 == $maj and $2 > $min)); 
+    	$maj = $1;
+    	$min = $2;
+    	$mhdl_date_url = $_->{commit}{url};
     }
+    $Save{mhdl_maj} = $maj;
+    $Save{mhdl_min} = $min;
+    my $msg;
+    if (&net_connect_check) {
+        $msg = 'Checking version date...';
+    	print_log("Retrieving download date page");
+    	set $p_mhdl_date_page "get_url -quiet \"$mhdl_date_url\" \"$mhdl_date_file\"";
+    	start $p_mhdl_date_page;
+    }
+    else {
+    	$msg = "app=control Unable to check version date while disconnected from the Internet";
+    }
+    respond("app=control $msg");
+}
 
-
+if (done_now $p_mhdl_date_page) {
+    my @html = file_read($mhdl_date_file);
+    print_log("Download date page retrieved");
+    my $json = decode_json( @html );
+    $Save{mhdl_date} = $json->{commit}{author}{date};
    if (defined $Save{mhdl_maj} and defined $Save{mhdl_min}) {
 	my ($maj,$min,$version_str) = &parse_version();
-	if (($Save{mhdl_maj} > $maj) or (($Save{mhdl_maj} == $maj) and ($Save{mhdl_min} > $min))) {
-	    $v_mhdl_page->respond("important=1 connected=0 app=control I am version $version_str and version $Save{mhdl_maj}.$Save{mhdl_min} was released " . &calc_age($Save{mhdl_date} . '.'));
+	if ((($Save{mhdl_maj} > $maj) or (($Save{mhdl_maj} == $maj) and ($Save{mhdl_min} > $min)))
+	        and ($maj !~ m/^develop-ref/)) {
+	    respond("important=1 connected=0 app=control I am version $version_str and version $Save{mhdl_maj}.$Save{mhdl_min} was released " . &calc_age($Save{mhdl_date} . '.'));
+	}
+	elsif ($maj =~ m/^develop-ref/){
+	    respond("connected=0 app=control You are running the development branch, it has no version releases.");
 	}
 	else {
 		# Voice command is only code to start this process, so check its set_by
-		$v_mhdl_page->respond("connected=0 app=control Version $version_str is current.");
+		respond("connected=0 app=control Version $version_str is current.");
 	}
    }
-
-
-
-
 }
 
 # create trigger to download version info at 6PM (or on dial-up connect)
