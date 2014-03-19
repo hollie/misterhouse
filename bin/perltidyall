@@ -1,4 +1,4 @@
-#!/usr/perl
+#!/usr/bin/perl
 
 # This file will run perltidy on all perl files in the repository
 
