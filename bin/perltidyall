@@ -1,0 +1,50 @@
+#!/usr/perl
+
+# This file will run perltidy on all perl files in the repository
+
+use strict;
+use warnings;
+
+print "Running PerlTidy on all Perl files in the MisterHouse repository. ".
+  "This may take a few minutes to complete, press Ctrl+C to cancel.\n";
+
+# Allow script to be run from any directory
+if ( $0 =~ /(\\|\/)/ ) {
+    my ( $Pgm_Path, $Pgm_Name ) = $0 =~ /^(.*)[\\\/]([^.]+)/;
+    chdir $Pgm_Path;
+}
+
+# Recursively scans each directory
+sub read_dir {
+    my ($dir_sub) = @_;
+    opendir( DIR, $dir_sub ) or die $!;
+    my ( @results, @dir_results );
+    while ( my $file = readdir(DIR) ) {
+        next if ( $file =~ m/^\./ );
+        if ( -d "$dir_sub/$file" ) {    #Directory
+            push( @dir_results, "$dir_sub/$file" );
+        }
+        elsif ( $file =~ m/\.(pl|pod|pm|t)$/i ) {    #These are perl extensions
+            push( @results, "$dir_sub/$file" );
+        }
+        else {    #Unknown extension, look for perl interpreter in first line
+            open( my $fh2, '<', "$dir_sub/$file" ) || die "open $file: $!";
+            my $possible = <$fh2> || next;
+            next unless $possible =~ m/^#!.*perl\W/;
+            push( @results, "$dir_sub/$file" );
+        }
+    }
+    closedir(DIR);
+
+    #Recursively scan each sub directory
+    foreach (@dir_results) {
+        push( @results, read_dir($_) );
+    }
+    return @results;
+}
+
+my $command = "perltidy " . join( " ", read_dir("..") );
+
+`$command`;
+
+exit 0;
