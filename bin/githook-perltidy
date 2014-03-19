@@ -6,6 +6,7 @@ use File::Slurp;
 use File::Basename;
 use File::Spec::Functions qw/catfile catdir updir/;
 use Perl::Tidy;
+
 #use Pod::Tidy;
 use Time::Piece;
 use constant POST_HOOK_FILE => '.githook-perltidy';
@@ -43,8 +44,9 @@ sub get_perltidyrc {
     else {
         $rc = 'bin/.perltidyrc';
     }
-
-    if ( system("git ls-files --error-unmatch $rc > /dev/null 2>&1") != 0 ) {
+    my $null = "/dev/null";
+    $null = "NUL" if $^O eq "MSWin32";
+    if ( system("git ls-files --error-unmatch $rc > $null 2>&1") != 0 ) {
         die "$self: You have no .perltidyrc in your repository.\n";
     }
     return $rc;
