@@ -38,7 +38,7 @@ sub run {
 sub get_perltidyrc {
     my $rc;
     if ( $ENV{GIT_DIR} ) {
-        $rc = catfile( $ENV{GIT_DIR}, updir(), '.perltidyrc' );
+        $rc = catfile( $ENV{GIT_DIR}, updir(), 'bin/.perltidyrc' );
     }
     else {
         $rc = 'bin/.perltidyrc';
