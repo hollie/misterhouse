@@ -9,13 +9,19 @@ use strict;
 ##
 ## Date::Calc
 ## DateTime::TimeZone
+## Crypt::SSLeay is required if using https
 ##
 ## All other libs should exist w/i the core mh lib/site dir structure
 ##
 
 ## Changelog 3.4 10-04-06: for some reason ical parser is adding an 'ical' level in the
 ##  ical parse hash from a Darwin Calendar Server. Added a dcsfix option
-
+##
+##  v4.0 01-2014: Date bugfix, added https method, added control calendar, and made sync_dtstamp
+##    and dcsfix defaults. Added in nosync_dtstamp and nodcsfix option to override.
+##   NOTE: v4 requires the update 2014 vsdb calendar schema (adding a control attribute). 
+##         Common module organizer 2014 and vsdb calendar.pl 1.6.0-3 required.
+##
 
 use lib '../lib', '../lib/site';
 use iCal::Parser;
@@ -33,12 +39,11 @@ use vsLock;
 # verify todos (uninitialized string message?)
 # verify locking works as expected
 
-
 my $progname = "ical2vsdb";
-my $progver  = "v3.4 10-04-06";
+my $progver  = "v4 01-2014";
 my $DB = 0;
 
-my $days_before = 180; # defaults to avoid large vsdb databases, can be overriden
+my $days_before = -180; # defaults to avoid large vsdb databases, can be overriden
 my $days_after = 180;  #
 
 my $config_file= "";
@@ -55,6 +60,7 @@ $config_file = $ARGV[0] if $ARGV[0];
 &help if ((lc $config_file eq "-h") or (lc $config_file eq "--h") or ($config_file eq ""));
 
 print "iCal to vsDB Misterhouse import ($progname $progver) starting...\n";
+print "Debug Level $DB\n" if ($DB);
 
 &purge_icals if ($config_file eq "--purge-ical-info");
 
@@ -120,10 +126,12 @@ while (1) {
 	print "done\n";
 	$process = 1;
 
-    } elsif ((lc $ical_data[$loop]->{method} eq "http") or (lc $ical_data[$loop]->{method} eq "webcal")) {
-        print "Fetching via LWP...";
+    } elsif ((lc $ical_data[$loop]->{method} eq "http") or (lc $ical_data[$loop]->{method} eq "https") or (lc $ical_data[$loop]->{method} eq "webcal")) {
         my $ua = new LWP::UserAgent;
-	my $req = new HTTP::Request GET => "http://" . $calendar_loc;
+        my $method = "http";
+        $method .= "s" if (lc $ical_data[$loop]->{method} eq "https");
+        print "Fetching via LWP:$method...";
+	my $req = new HTTP::Request GET => $method . "://" . $calendar_loc;
         if ($ical_data[$loop]->{username}) {
            $req->authorization_basic($ical_data[$loop]->{username},$ical_data[$loop]->{password});
         }
@@ -162,7 +170,7 @@ while (1) {
 
   if ($process) {
 
-    if ($ical_data[$loop]->{options}->{sync_dtstamp}) {
+    unless ($ical_data[$loop]->{options}->{nosync_dtstamp}) {
 	print "Syncing DTSTAMP attributes from CREATED...\n";
         $data =~ s/DTSTAMP:(.*)\n//g;
         $data =~ s/CREATED:(.*)\n/CREATED:$1\nDTSTAMP:$1\n/g;
@@ -178,7 +186,7 @@ while (1) {
 #    print "Debug: Hash=$ical_data[$loop]->{hash}\n" if (defined $ical_data[$loop]->{hash});
 
     if (!(defined $ical_data[$loop]->{hash}) or ($ical_data[$loop]->{hash} ne $digest)) {
-       print "New Calendar entries. Processing iCal...";
+       print "New Calendar entries. Processing iCal.";
        if ($ical_data[$loop]->{method} ne "dir") {
 	   eval {$parser->parse_strings($data); };
        }
@@ -299,14 +307,16 @@ sub parse_cal {
   my $opt_speak_todo = 0;
   my $opt_holiday = 0;
   my $opt_vacation = 0;
+  my $opt_control = 0;
 
   $opt_speak_cal = 1 if (exists $options->{speak_cal});
   $opt_speak_todo = 1 if (exists $options->{speak_todo});
   $opt_holiday = 1 if (exists $options->{holiday});
   $opt_vacation = 1 if (exists $options->{vacation});
+  $opt_control = 1 if (exists $options->{control});
+
   my ($opt_sourcename) = $options->{name} if (defined $options->{name});
-  $cal = $cal->{ical} if (exists $options->{dcsfix});
-  print "Fixing Darwin Calendar Server Settings...\n" if ($DB and (exists $options->{dcsfix}));
+  $cal = $cal->{ical} unless (exists $options->{nodcsfix});
   my $calname = $cal->{cals}->[0]->{'X-WR-CALNAME'};
   $calname = $opt_sourcename if $opt_sourcename;
 
@@ -334,16 +344,17 @@ sub parse_cal {
 	  print "."; #give some progress
 	  while (my $uid = each %{$cal->{events}->{$year}->{$month}->{$day}}) {
 		my $delta;
-
 		#is this event in range?
 		if ($days_before or $days_after) {
 		   $delta  = Delta_Days($lyear,$lmon,$lday, $year,$month,$day);
 		}
+		print "EventID:$uid, before=$days_before after=$days_after delta=$delta\n" if ($DB>2);
 
 		#if not then skip the item
 		next if ((($days_before) and ($days_before > $delta)) or
-		         (($days_after) and ($days_after < $delta)));		
-
+		         (($days_after) and ($days_after < $delta)));	
+			
+		print "Processing EventID:$uid\n" if ($DB >2);
 		my $event_ref = $cal->{events}->{$year}->{$month}->{$day}->{$uid};
 		my $starttime = "12:00 am"; # starttime and endtime are initialized the same if all day
                 my $endtime = "12:00 am";
@@ -380,6 +391,8 @@ sub parse_cal {
 		$holiday = "on" if $opt_holiday;
 		my $vacation = "off";
 		$vacation = "on" if $opt_vacation;
+		my $control = "off";
+		$control = "on" if $opt_control;
 
                 my $description = $event_ref->{DESCRIPTION} || '';
                 if ($description) {
@@ -399,6 +412,7 @@ sub parse_cal {
 		$out_cals[$count]->{DETAILS} = $description;
 		$out_cals[$count]->{HOLIDAY} = $holiday;
 		$out_cals[$count]->{VACATION} = $vacation;
+		$out_cals[$count]->{CONTROL} = $control;
 		$out_cals[$count]->{SOURCE} = $source;
 		$out_cals[$count]->{REMINDER} = $reminder;
 		$out_cals[$count]->{ENDTIME} = $endtime;
@@ -542,7 +556,8 @@ sub init {
 	    $ical_data[$count]->{options}->{$key} = $value;
 	  }
 	  $ical_data[$count]->{hash} = "none";
-	  
+	  print "Applying second level ical parsing (set nodscfix if this breaks anything) ...\n" unless (exists $ical_data[$count]->{options}->{nodcsfix});
+
 	  my ($method, $loc) = split(/:\/\//,$url);
           if ($loc) {
              my ($username, $password, $uri) = $loc =~ /^(\S+):(\S+)@(\S+)/i;
@@ -593,12 +608,14 @@ sub help {
 
   print "usage\t$progname CONFIGURATION_FILE OUTPUT_DIR\n";
   print " or\t$progname --purge-ical-info OUTPUT_DIR\n";
+  print "version $progver\n";
   print "\n\n";
   print " -- CONFIG FILE SYNTAX -- \n";
   print "TYPE<tab>VALUE<tab>option\n\n";
   print "TYPE = cfg_version|ical|days_before|days_after|sleep\n";
   print "VALUE = parameter value or ical location (http://, file://, dir://)\n";
-  print "OPTION = comma delimited values (holiday,name=Joe User,speak_todos,vacation,sync_dtstamp)\n";
+  print "OPTION = comma delimited values (holiday,name=Joe User,speak_todos,vacation,\n";
+  print "			control, nodcsfix, nosync_dtstamp)\n";
   print "\n";
 
   die;

@@ -909,7 +909,8 @@ sub get_voice_cmds
             'set 6 button - backlight off' => "$object_name->update_flags(\"04\")",
             'set 6 button - backlight normal' => "$object_name->update_flags(\"00\")",
             'sync all device links' => "$object_name->sync_all_links()",
-            'AUDIT sync all device links' => "$object_name->sync_all_links(1)"
+            'AUDIT sync all device links' => "$object_name->sync_all_links(1)",
+            'sync intradevice links' => "$object_name->sync_intradevice_links()",
         );
     }
     return \%voice_cmds;
@@ -936,11 +937,185 @@ sub link_data3
 	return $link_data3;
 }
 
+=item C<sync_intradevice_links()>
+
+IntraDevice Links are links between buttons on the same KPL.  These links are
+not stored in the same manner as InterDevice links. Therefore this routine can
+be used to sync the IntraDevice links.  There are two types of IntraDevice Links
+FOLLOW and OFF.
+
+B<FOLLOW>
+
+Follow links are links which cause one button to be a slave to a master button. 
+The slave button will always follow the state of the master button whenever the
+master button is pressed.  For example, if Button A is defined as the master
+to the slave Button B, then any time button A is pressed button B will follow.
+If button A is turned on, button B will turn on.  Same thing with Off.  However,
+button B can still be independently controlled.  That is button B can be turned
+on or off manually, without affecting button A.  That is unless a reverse master
+-slave relationship is defined.
+
+To define Follow links, simply define a normal Insteon scene definition where
+the scene controller is the master button and the scene responder is the slave
+button.  To enable the follow functionality the on_level must be defined as NOT
+zero.  The ramp rate is ignored and on_level will be converted to 100%.
+
+    SCENE_MEMBER, kpl_button_B, kpl_button_A, 100% #Button B will follow A
+    #In the following pressing Button A will cause B, C & D to turn on.
+    #SCENE_Build is not much help here.
+    SCENE_BUILD, kpl_scene, kpl_button_A,   1,    0,    80%
+    SCENE_BUILD, kpl_scene, kpl_button_B,   0,    1,    100%
+    SCENE_BUILD, kpl_scene, kpl_button_C,   0,    1,    100%
+    SCENE_BUILD, kpl_scene, kpl_button_D,   0,    1,    100%
+
+B<OFF>
+
+Off links are links in which turning ON a master button will cause all slave
+buttons to turn OFF.  This is commonly used for "radio" style buttons to control
+a fan.  The buttons may be defined as Off, Low, Med, & High.  We only want one
+state to be active at any given time.  To accomplish this, we define a series
+of master slave relationships between all of the buttons.  Notably, you these
+type of definitions do not have to affect all buttons, you can define Off links
+that only join 2 buttons.  Similar to Follow links, these also do not have to be
+two way links.
+
+To define Off links, simply define a normal Insteon scene definition where
+the scene controller is the master button and the scene responder is the slave
+button.  To enable the off functionality the on_level must be defined as ZERO.
+The ramp rate is ignored.
+
+    SCENE_MEMBER, kpl_button_B, kpl_button_A, 0% #Turning ON A will turn OFF B
+    
+The following is an example for how to enable radio buttons, where only one
+button can be activated at a time.
+
+    SCENE_BUILD, kpl_scene, kpl_button_A,   1,    1,    0%
+    SCENE_BUILD, kpl_scene, kpl_button_B,   1,    1,    0%
+    SCENE_BUILD, kpl_scene, kpl_button_C,   1,    1,    0%
+    SCENE_BUILD, kpl_scene, kpl_button_D,   1,    1,    0%
+
+B<SYNCING>
+
+To sync these links, simply run this command after creating the necessary link
+definitions.  This routine will perform both the "sync and delete" steps to
+bring the links on the device into compliance with the definitions in 
+MisterHouse.  There is no "scan" feature for IntraDevice links.
+
+=cut
+
+sub sync_intradevice_links
+{
+	my ($self) = @_;
+	$self = $self->get_root();
+	# First Calculate the value of all bytes
+	my %byte_hash;      #Key is the lsb of the byte location
+	my $lsb;            #used to store the lsb address
+	
+	::print_log('[Insteon::KeyPadLinc] ' . $self->get_object_name . 'will be '.
+	    'programmed with the following IntraDevice Links:');
+	
+	# Find all subgroup items check groups from 1 - 8;
+	for (my $dec_group = 1; $dec_group <= 8; $dec_group++) {
+		my $group = sprintf("%02X", $dec_group);
+		my $subgroup_object = Insteon::get_object($self->device_id, $group);
+		if (ref $subgroup_object){
+            #SubGroup Object Exists, Now Look for IntraDevice Link on Object
+            foreach my $member_ref (keys %{$$subgroup_object{members}}) {
+		        my $member = $$subgroup_object{members}{$member_ref}{object};
+		        my $member_group = hex($member->group);
+		        my $member_root = $member->get_root;
+        		if ($member_root eq $self){
+        		    #This is an IntraDevice Link, Set button mask
+        		    $lsb = sprintf("%02X", 64+$dec_group);
+	                $byte_hash{$lsb} |= 0b1 << ($member_group-1);
+                    my $tgt_on_level = 
+                        $$subgroup_object{members}{$member_ref}{on_level};
+		            $tgt_on_level = '100' unless defined $tgt_on_level;
+		            $tgt_on_level =~ s/(\d+)%?/$1/;
+		            my $link_type = "FOLLOW";
+		            if ($tgt_on_level <= 0) {
+		                #This is an Off Link, Set type
+		                $lsb = sprintf("%02X", 73+$dec_group);
+		                $byte_hash{$lsb} |= 0b1 << ($member_group-1);
+		                $link_type = "TURN OFF";
+		            }
+		            ::print_log("[Insteon::KeyPadLinc] Group $member_group will ".
+	                    "$link_type when Group $dec_group is pressed.");
+        		}
+            }
+		}
+	}
+
+	# Now write those bytes to the device
+	if ($self->engine_version eq 'I1') {
+	    #send to ALDB and use peek/poke commands there
+	    $self->_aldb->update_intradevice_links(\%byte_hash);
+	}
+	else {
+	    $self->_write_intradevice_links(\%byte_hash, 1, 2);
+	}
+}
+
+=item C<_write_intradevice_links()>
+
+The i2 routine for writing the IntraDevice links to i2 devices.  Should not be
+called directly.
+
+=cut
+
+sub _write_intradevice_links {
+    my ($self, $intradevice_hash_ref, $group, $sub) = @_;
+	$$self{_intradevice_hash_ref} = $intradevice_hash_ref 
+	    if $intradevice_hash_ref ne '';
+
+    # Create Key Value
+    my $enable_key = sprintf("%02X", 64+$group);
+    my $type_key = sprintf("%02X", 73+$group);
+
+    # Convert i1 style masks to i2 style masks, it appears i2 masks work diff
+    my $enable_mask = $$self{_intradevice_hash_ref}{$enable_key};
+    my $type_mask = $$self{_intradevice_hash_ref}{$type_key};
+    $enable_mask = 0 if $enable_mask eq '';
+    $type_mask = 0 if $type_mask eq '';
+    my $mask = $enable_mask ^ $type_mask; #follow mask
+    if ($sub == 3){
+        $mask = $enable_mask & $type_mask; #Off mask
+    }
+
+    # Define our callbacks
+    my $next_group = ($sub == 2) ? $group : $group +1;
+    my $next_sub = ($sub == 2) ? 3 : 2;
+    my $success_callback = $self->get_object_name . 
+        "->_write_intradevice_links('',$next_group,$next_sub)";
+    my $failure_callback = "::print_log('[Insteon::KeyPadLinc] ERROR - Syncing".
+        "IntraDevice Links to ".$self->get_object_name." failed.')";
+    if ($group == 8 && $sub == 3){
+    $success_callback = "::print_log('[Insteon::KeyPadLinc] Successfully wrote ".
+        "IntraDevice links for " . $self->get_object_name . "')";
+    }
+
+    # Now write values to device
+	my $extra = "00" . sprintf("%02X",$group) . "0" . $sub . sprintf("%02X",$mask);
+	my $message = $self->simple_message('extended_set_get', $extra);
+    $message->failure_callback($failure_callback);
+	$message->success_callback($success_callback);
+	$self->_send_cmd($message);
+}
+
+## Creates an Extended Message, and Pads it with 0s to proper length
+sub simple_message {
+	my ($self,$type,$extra) = @_;
+	my $message;
+    $extra .= '0' x (30 - length $extra);
+	$message = new Insteon::InsteonMessage('insteon_ext_send', $self, $type, $extra);
+	return $message;
+}
+
 =back
 
 =head2 AUTHOR
 
-Gregg Limming 
+Gregg Limming, Kevin Robert Keegan 
 
 =head2 LICENSE
 
@@ -1004,40 +1179,6 @@ sub new
 	$$self{operating_flags} = \%Insteon::KeyPadLincRelay::operating_flags;
 	bless $self,$class;
 	return $self;
-}
-
-=item C<get_voice_cmds>
-
-Returns a hash of voice commands where the key is the voice command name and the
-value is the perl code to run when the voice command name is called.
-
-Higher classes which inherit this object may add to this list of voice commands by
-redefining this routine while inheriting this routine using the SUPER function.
-
-This routine is called by L<Insteon::generate_voice_commands> to generate the
-necessary voice commands.
-
-=cut 
-
-sub get_voice_cmds
-{
-    my ($self) = @_;
-    my $object_name = $self->get_object_name;
-    my %voice_cmds = (
-        %{$self->SUPER::get_voice_cmds}
-    );
-    if ($self->is_root){
-        %voice_cmds = (
-            %voice_cmds,
-            'set 8 button - backlight dim' => "$object_name->update_flags(\"0a\")",
-            'set 8 button - backlight off' => "$object_name->update_flags(\"06\")",
-            'set 8 button - backlight normal' => "$object_name->update_flags(\"02\")",
-            'set 6 button - backlight dim' => "$object_name->update_flags(\"08\")",
-            'set 6 button - backlight off' => "$object_name->update_flags(\"04\")",
-            'set 6 button - backlight normal' => "$object_name->update_flags(\"00\")"
-        );
-    }
-    return \%voice_cmds;
 }
 
 # The subgroup items are not dimmable, so call BaseInsteon for them

@@ -29,6 +29,7 @@ sub read_table_init_A {
 
 sub read_table_A {
     my ($record) = @_;
+    my $record_raw = $record;
     
     if($record =~ /^#/ or $record =~ /^\s*$/) {
        return;
@@ -287,7 +288,7 @@ sub read_table_A {
     }
     elsif($type eq "CODE") {
 	# This is for simple one line additions such as setting an attribute or adding an image.
-	($object) = "$record" =~ /CODE,\s+(.*)/;
+	($object) = "$record_raw" =~ /CODE,\s+(.*)/;
 	$code = "$object\n";
 	$object = '';
     }

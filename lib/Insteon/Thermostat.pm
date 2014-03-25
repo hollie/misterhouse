@@ -423,6 +423,7 @@ sub _process_message
 			"for ". $self->get_object_name) if $self->debuglevel(1, 'insteon');	
 		$self->_cool_sp((hex($msg{extra})/2));
 		$clear_message = 1;
+		$self->_process_command_stack(%msg);
 	}
 	elsif ($msg{command} eq "thermostat_setpoint_heat" && $msg{is_ack}){
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
@@ -430,6 +431,7 @@ sub _process_message
 			"for ". $self->get_object_name) if $self->debuglevel(1, 'insteon');	
 		$self->_heat_sp((hex($msg{extra})/2));
 		$clear_message = 1;
+		$self->_process_command_stack(%msg);
 	}
 	elsif ($$self{_zone_action} eq 'setpoint' && $$self{m_pending_setpoint}) {
 		$self->default_hop_count($msg{maxhops}-$msg{hopsleft});
@@ -440,6 +442,7 @@ sub _process_message
 		$$self{m_setpoint_pending} = 0;
 		$$self{_zone_action} = undef;
 		$clear_message = 1;
+		$self->_process_command_stack(%msg);
 	} else {
 		$clear_message = $self->SUPER::_process_message($p_setby,%msg);
 	}

@@ -506,6 +506,7 @@ sub sync_all_links
 	my ($audit_mode) = @_;
         &main::print_log("[Sync all links] Starting now!");
         @_sync_devices = ();
+        @_sync_device_failures = ();
 	# iterate over all registered objects and compare whether the link tables match defined scene linkages in known Insteon_Links
 	for my $obj (&Insteon::find_members('Insteon::BaseController'))
 	{
