@@ -157,6 +157,7 @@ B<Insteon::BaseDevice>
 =head1 Methods
 
 =over
+
 =cut
 
 package Insteon::Thermostat;
@@ -199,7 +200,9 @@ sub new {
 =item C<poll_mode()>
 
 Causes thermostat to return mode; detected as state change if mode changes
+
 =cut
+
 sub poll_mode {
    my ($self) = @_;
    $$self{_control_action} = "mode";
@@ -211,7 +214,9 @@ sub poll_mode {
 =item C<fan()>
 
 Sets fan to 'on' or 'auto'
+
 =cut
+
 sub fan{
 	my ($self, $state) = @_;
 	$state = lc($state);
@@ -233,7 +238,9 @@ sub fan{
 =item C<cool_setpoint()>
 
 Sets a new cool setpoint.
+
 =cut
+
 sub cool_setpoint{
 	my ($self, $temp) = @_;
       main::print_log("[Insteon::Thermostat] Cool setpoint -> $temp") if $self->debuglevel(1, 'insteon');
@@ -247,7 +254,9 @@ sub cool_setpoint{
 =item C<heat_setpoint()>
 
 Sets a new heat setpoint.
+
 =cut
+
 sub heat_setpoint{
 	my ($self, $temp) = @_;
 	main::print_log("[Insteon::Thermostat] Heat setpoint -> $temp") if $self->debuglevel(1, 'insteon');
@@ -261,7 +270,9 @@ sub heat_setpoint{
 =item C<poll_temp()>
 
 Causes thermostat to return temp; detected as state change.
+
 =cut
+
 sub poll_temp {
    my ($self) = @_;
    $$self{_zone_action} = "temp";
@@ -273,7 +284,9 @@ sub poll_temp {
 =item C<get_temp()>
 
 Returns the current temperature at the thermostat. 
+
 =cut
+
 sub get_temp() {
    my ($self) = @_;
    return $$self{'temp'};
@@ -283,7 +296,9 @@ sub get_temp() {
 
 Causes thermostat to return setpoint(s); detected as state change if setpoint changes. 
 Returns setpoint based on mode, auto modes return both heat and cool. 
+
 =cut
+
 # The setpoint is returned in 2 messages while in the auto modes.
 # The heat setpoint is returned in the ACK, which is followed by 
 # a direct message containing the cool setpoint.  Because of this,
@@ -300,7 +315,9 @@ sub poll_setpoint {
 =item C<get_heat_sp()>
 
 Returns the current heat setpoint. 
+
 =cut
+
 sub get_heat_sp() {
    my ($self) = @_;
    return $$self{'heat_sp'};
@@ -309,7 +326,9 @@ sub get_heat_sp() {
 =item C<get_cool_sp()>
 
 Returns the current cool setpoint. 
+
 =cut
+
 sub get_cool_sp() {
    my ($self) = @_;
    return $$self{'cool_sp'};
@@ -354,7 +373,9 @@ sub _mode() {
 =item C<get_mode()>
 
 Returns the last mode returned by C<poll_mode()>  I2CS devices will report auto for both auto and program_auto. 
+
 =cut
+
 sub get_mode() {
    my ($self) = @_;
    return $$self{'mode'};
@@ -363,7 +384,9 @@ sub get_mode() {
 =item C<get_fan_mode()>
 
 Returns the current fan mode (fan_on or fan_auto) 
+
 =cut
+
 sub get_fan_mode() {
    my ($self) = @_;
    return $$self{'fan_mode'};
@@ -486,6 +509,32 @@ sub request_status { return 0 }
 
 sub level { return 0 }
 
+=back
+
+=head1 NAME
+
+B<Thermo_i1> - Insteon Thermo_I1
+
+=head1 DESCRIPTION
+
+Enables support for Insteon Thermostat version i1.
+
+=head1 SYNOPSIS
+
+=head1 AUTHOR
+
+Kevin Robert Keegan <kevin@krkeegan.com>
+
+=head1 INHERITS
+
+B<Insteon::Thermostat>
+
+=head1 Methods
+
+=over
+
+=cut
+
 
 package Insteon::Thermo_i1;
 use strict;
@@ -497,7 +546,9 @@ use strict;
 Sets system mode to argument: 'off', 'heat', 'cool', 'auto', 'program_heat', 
 'program_cool', 'program_auto'.  The 2441TH thermostat does not have program_heat
  or program_cool.
+
 =cut
+
 sub mode{
 	my ($self, $state) = @_;
 	$state = lc($state);
@@ -568,6 +619,32 @@ sub simple_message {
 	$message = new Insteon::InsteonMessage('insteon_send', $self, $type, $extra);
 	return $message;
 }
+
+=back
+
+=head1 NAME
+
+B<Thermo_i2> - Insteon Thermo_i2
+
+=head1 DESCRIPTION
+
+Enables support for Insteon Thermostat version i2.
+
+=head1 SYNOPSIS
+
+=head1 AUTHOR
+
+Kevin Robert Keegan <kevin@krkeegan.com>
+
+=head1 INHERITS
+
+B<Insteon::Thermostat>
+
+=head1 Methods
+
+=over
+
+=cut
 
 package Insteon::Thermo_i2CS;
 use strict;
@@ -672,6 +749,7 @@ a combination of "Heating; Cooling; Dehumidifying; Humidifying; or Off." Only
 available for I2CS devices.
 
 =cut
+
 sub get_status() {
 	my ($self) = @_;
 	my $root = $self->get_root();
@@ -689,6 +767,7 @@ sub get_status() {
 Prints the currently known status to the log as a text string.
 
 =cut
+
 sub print_status() {
 	my ($self) = @_;
 	my $root = $self->get_root();
@@ -721,7 +800,9 @@ sub print_status() {
 =item C<get_humid()>
 
 Returns the current humidity at the thermostat. 
+
 =cut
+
 sub get_humid() {
    my ($self) = @_;
    return $$self{'humid'};
@@ -1071,7 +1152,9 @@ sub _low_humid_sp {
 =item C<get_high_humid_sp()>
 
 Returns the current high humidity setpoint. 
+
 =cut
+
 sub get_high_humid_sp {
 	my ($self) = @_;
 	return $$self{high_humid_sp};
@@ -1080,7 +1163,9 @@ sub get_high_humid_sp {
 =item C<get_low_humid_sp()>
 
 Returns the current low humidity setpoint. 
+
 =cut
+
 sub get_low_humid_sp {
 	my ($self) = @_;
 	return $$self{low_humid_sp};
@@ -1092,6 +1177,7 @@ sub get_low_humid_sp {
 Sets system mode to argument: 'off', 'heat', 'cool', 'auto', 'program_heat', 
 'program_cool', 'program_auto'.  The 2441TH thermostat does not have program_heat
  or program_cool.
+
 =cut
 
 sub mode{
@@ -1128,7 +1214,9 @@ sub simple_message {
 =item C<sync_time()>
 
 Sets the data and time of the thermostat based on the time of the MH server.
+
 =cut
+
 sub sync_time {
 	my ($self) = @_;
 	#In order to set the time, we need to know the current value of other data
@@ -1143,6 +1231,7 @@ sub sync_time {
 Sets the high humidity setpoint.
 
 =cut
+
 sub high_humid_setpoint {
 	my ($self, $value) = @_;
 	main::print_log("[Insteon::Thermo_i2CS] Setting high humid setpoint -> $value") if $self->debuglevel(1, 'insteon');
@@ -1167,6 +1256,7 @@ sub high_humid_setpoint {
 Sets the low humidity setpoint.
 
 =cut
+
 sub low_humid_setpoint {
 	my ($self, $value) = @_;
 	main::print_log("[Insteon::Thermo_i2CS] Setting low humid setpoint -> $value") if $self->debuglevel(1, 'insteon');
@@ -1234,6 +1324,32 @@ sub get_voice_cmds
     return \%voice_cmds;
 }
 
+=back
+
+=head1 NAME
+
+B<Thermo_mode> - Insteon Thermo_mode
+
+=head1 DESCRIPTION
+
+A child object that contains the mode state of the thermostat.
+
+=head1 SYNOPSIS
+
+=head1 AUTHOR
+
+Kevin Robert Keegan <kevin@krkeegan.com>
+
+=head1 INHERITS
+
+B<Generic_Item>
+
+=head1 Methods
+
+=over
+
+=cut
+
 package Insteon::Thermo_mode;
 use strict;
 
@@ -1269,6 +1385,32 @@ sub set_receive {
 	my ($self, $p_state) = @_;
 	$self->SUPER::set($p_state);
 }
+
+=back
+
+=head1 NAME
+
+B<Thermo_fan> - Insteon Thermo_fan
+
+=head1 DESCRIPTION
+
+A child object that contains the fan state of the thermostat.
+
+=head1 SYNOPSIS
+
+=head1 AUTHOR
+
+Kevin Robert Keegan <kevin@krkeegan.com>
+
+=head1 INHERITS
+
+B<Generic_Item>
+
+=head1 Methods
+
+=over
+
+=cut
 
 package Insteon::Thermo_fan;
 use strict;
@@ -1306,6 +1448,32 @@ sub set_receive {
 	$self->SUPER::set($p_state);
 }
 
+=back
+
+=head1 NAME
+
+B<Thermo_temp> - Insteon Thermo_temp
+
+=head1 DESCRIPTION
+
+A child object that contains the ambient temperature of the thermostat.
+
+=head1 SYNOPSIS
+
+=head1 AUTHOR
+
+Kevin Robert Keegan <kevin@krkeegan.com>
+
+=head1 INHERITS
+
+B<Generic_Item>
+
+=head1 Methods
+
+=over
+
+=cut
+
 package Insteon::Thermo_temp;
 use strict;
 
@@ -1326,6 +1494,32 @@ sub set_receive {
 	$self->SUPER::set($p_state);
 }
 
+=back
+
+=head1 NAME
+
+B<Thermo_humidity> - Insteon Thermo_humidity
+
+=head1 DESCRIPTION
+
+A child object that contains the ambient humidity of the thermostat.
+
+=head1 SYNOPSIS
+
+=head1 AUTHOR
+
+Kevin Robert Keegan <kevin@krkeegan.com>
+
+=head1 INHERITS
+
+B<Generic_Item>
+
+=head1 Methods
+
+=over
+
+=cut
+
 package Insteon::Thermo_humidity;
 use strict;
 
@@ -1345,6 +1539,32 @@ sub set_receive {
 	my ($self, $p_state) = @_;
 	$self->SUPER::set($p_state);
 }
+
+=back
+
+=head1 NAME
+
+B<Thermo_setpoint_h> - Insteon Thermo_setpoint_h
+
+=head1 DESCRIPTION
+
+A child object that contains the heat setpoint of the thermostat.
+
+=head1 SYNOPSIS
+
+=head1 AUTHOR
+
+Kevin Robert Keegan <kevin@krkeegan.com>
+
+=head1 INHERITS
+
+B<Generic_Item>
+
+=head1 Methods
+
+=over
+
+=cut
 
 package Insteon::Thermo_setpoint_h;
 use strict;
@@ -1387,6 +1607,32 @@ sub set_receive {
 	$self->SUPER::set($p_state);
 }
 
+=back
+
+=head1 NAME
+
+B<Thermo_setpoint_c> - Insteon Thermo_setpoint_c
+
+=head1 DESCRIPTION
+
+A child object that contains the cool setpoint of the thermostat.
+
+=head1 SYNOPSIS
+
+=head1 AUTHOR
+
+Kevin Robert Keegan <kevin@krkeegan.com>
+
+=head1 INHERITS
+
+B<Generic_Item>
+
+=head1 Methods
+
+=over
+
+=cut
+
 package Insteon::Thermo_setpoint_c;
 use strict;
 
@@ -1428,6 +1674,33 @@ sub set_receive {
 	$self->SUPER::set($p_state);
 }
 
+=back
+
+=head1 NAME
+
+B<Thermo_status> - Insteon Thermo_status
+
+=head1 DESCRIPTION
+
+A child object that contains the status (heating, cooling, ...) state of the
+thermostat.
+
+=head1 SYNOPSIS
+
+=head1 AUTHOR
+
+Kevin Robert Keegan <kevin@krkeegan.com>
+
+=head1 INHERITS
+
+B<Generic_Item>
+
+=head1 Methods
+
+=over
+
+=cut
+
 package Insteon::Thermo_status;
 use strict;
 
@@ -1447,6 +1720,32 @@ sub set_receive {
 	my ($self, $p_state) = @_;
 	$self->SUPER::set($p_state);
 }
+
+=back
+
+=head1 NAME
+
+B<Thermo_setpoint_humid_h> - Insteon Thermo_humid_h
+
+=head1 DESCRIPTION
+
+A child object that contains the high numidity setpoint of the thermostat.
+
+=head1 SYNOPSIS
+
+=head1 AUTHOR
+
+Kevin Robert Keegan <kevin@krkeegan.com>
+
+=head1 INHERITS
+
+B<Generic_Item>
+
+=head1 Methods
+
+=over
+
+=cut
 
 package Insteon::Thermo_setpoint_humid_h;
 use strict;
@@ -1488,6 +1787,32 @@ sub set_receive {
 	my ($self, $p_state) = @_;
 	$self->SUPER::set($p_state);
 }
+
+=back
+
+=head1 NAME
+
+B<Thermo_humid_l> - Insteon Thermo_humid_l
+
+=head1 DESCRIPTION
+
+A child object that contains the low humidity setpoint of the thermostat.
+
+=head1 SYNOPSIS
+
+=head1 AUTHOR
+
+Kevin Robert Keegan <kevin@krkeegan.com>
+
+=head1 INHERITS
+
+B<Generic_Item>
+
+=head1 Methods
+
+=over
+
+=cut
 
 package Insteon::Thermo_setpoint_humid_l;
 use strict;
@@ -1531,6 +1856,7 @@ sub set_receive {
 }
 
 1;
+
 =back
 
 =head1 LICENSE
