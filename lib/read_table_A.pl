@@ -182,6 +182,18 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon::Irrigation(\'$address\', $other)";
     }
+    elsif($type eq "INSTEON_SYNCHROLINC") {
+        require Insteon::Energy;
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon::SynchroLinc(\'$address\', $other)";
+    }
+    elsif($type eq "INSTEON_IMETER") {
+        require Insteon::Energy;
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon::iMeter(\'$address\', $other)";
+    }
     # ----------------------------------------------------------------------
     elsif($type eq 'FROG') {
         require 'FroggyRita.pm';
