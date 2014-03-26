@@ -467,6 +467,7 @@ sub _send_cmd {
 		. sprintf('%.2f',$incurred_delay_time) . " seconds") if $self->debuglevel(2, 'insteon');
         	$command = $prefix{x10_send} . $command;
 		$delay = $$self{xmit_x10_delay};
+		$self->_set_timeout('command', '1000'); # a commmand needs to be PLM ack'd w/i 1 seconds or a retry is attempted
                 # clear command timeout so that we don't wait for an insteon ack before sending the next command
 	} else {
                 my $command_type = $message->command_type;
@@ -476,7 +477,7 @@ sub _send_cmd {
                 $command = $prefix{$command_type} . $command;
                 if ($command_type eq 'all_link_send' or $command_type eq 'insteon_send' or $command_type eq 'insteon_ext_send' or $command_type eq 'all_link_direct_cleanup')
                 {
-         		$self->_set_timeout('command', $cmd_timeout); # a commmand needs to be PLM ack'd w/i 3 seconds or it gets dropped
+         		$self->_set_timeout('command', $cmd_timeout); # a commmand needs to be ack'd by device w/i $cmd_timeout or a retry is attempted
                 }
         }
 	my $is_extended = ($message->can('command_type') && $message->command_type eq "insteon_ext_send") ? 1 : 0;
@@ -622,6 +623,7 @@ sub _parse_data {
                                         #   AND if the current, pending message is the X10 message
 					if (($parsed_data =~ /$prefix{x10_send}\w{4}06/) && ($pending_message->isa('Insteon::X10Message')))
                                         {
+                				$self->_clear_timeout('command');
                 				$self->clear_active_message();
 					}
 
