@@ -181,7 +181,7 @@ sub get_register
 	my $response;
 	for (my $index=$start;$index<$start+$end;$index++)
 	{
-		$response.=sprintf("%02X",@{$$self{'registers'}}->[$index]);
+		$response.=sprintf("%02X",$$self{'registers'}->[$index]);
 	}
 	return $response;
 }

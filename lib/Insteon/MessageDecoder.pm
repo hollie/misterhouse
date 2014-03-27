@@ -660,7 +660,8 @@ sub plm_decode {
 						      '01'=>'Find Next All-Link Record',
 						      '20'=>'Update/Add All-Link Record',
 						      '40'=>'Update/Add Controller All-Link Record',
-						      '41'=>'Update/Add Responder All-Link Record');
+						      '41'=>'Update/Add Responder All-Link Record',
+						      '80'=>'Delete All-Link Record');
 				$plm_message .= sprintf("%20s: (",'Control code').substr($plm_string,4,2).") ".$control_string{substr($plm_string,4,2)}."\n";
 				$plm_message .= sprintf("%20s: ",'All-Link Flags').substr($plm_string,6,2)."\n";
 				my $flags = hex(substr($plm_string,6,2));
@@ -918,7 +919,7 @@ You can find documentation for this module with the perldoc command.
 
 =head1 SEE ALSO
 
-L<Insteon Command Tables 20070925a|www.insteon.net/pdf/INSTEON_Command_Tables_20070925a.pdf>
+L<http://www.insteon.net/pdf/INSTEON_Command_Tables_20070925a.pdf>
 
 PLM command details can be found in the 2412S Developers Guide.  This 
 document is not supplied by SmartHome but may be available through an 

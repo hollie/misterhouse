@@ -19,12 +19,17 @@
 $mh_volume         = new Generic_Item;
 $mh_speakers       = new Generic_Item;
 $mh_speakers_timer = new Timer;
-$Info{Volume_Control} = 'Command Line' if $Reload and $config_parms{volume_get_cmd} and $config_parms{volume_set_cmd};
+$Info{Volume_Control} = 'Command Line' if $Reload and $config_parms{volume_master_get_cmd} and $config_parms{volume_master_set_cmd};
 
+################################################
+# Allow for default volume control. Reset on startup.
+################################################
+&set_volume_master_wrapper($mh_volume->{state}) if $Startup and defined $mh_volume->{state}; #noloop
+&set_volume_wav($config_parms{volume_wav_default_volume}) if $Startup and defined $config_parms{volume_wav_default_volume}; #noloop
 
-                                # Allow for default volume control. Reset on startup.
-
-&set_volume3($mh_volume->{state}) if $Startup and defined $mh_volume->{state}; #noloop
+if (defined($state = state_now $mh_volume) and $state ne '') {
+	&set_volume_master_wrapper($state);
+}
 
 $Tk_objects{sliders}{volume} = &tk_scalebar(\$mh_volume, 0, 'Volume') if $MW and $Reload and $Run_Members{mh_sound};
 
@@ -66,9 +71,15 @@ sub put_volume_back {
 
 	# MSv5 has nothing to do with the mixer
 
-    if (defined $volume_previous and ($Voice_Text::VTxt_version ne 'msv5' or $wav_did_it)) {
-    	print_log("Putting volume back to $volume_previous");
-	set_volume2($volume_previous);
+    if (defined $config_parms{volume_wav_default_volume} and ($Voice_Text::VTxt_version ne 'msv5' or $wav_did_it)) {
+    	print_log("Putting wav volume back to $config_parms{volume_wav_default_volume}");
+	&set_volume_wav($config_parms{volume_wav_default_volume});
+
+	if ($volume_master_changed) {
+            $volume_master_changed=0;
+            &set_volume_master_wrapper($mh_volume->{state});
+        }
+
     }
 
 }
@@ -77,6 +88,7 @@ sub put_volume_back {
 if (!$is_speaking_flag and $is_speaking) {
 #   print_log 'Speakers on';
     $is_speaking_flag = 1;
+    print_log "Setting speakers ON";
     set $mh_speakers ON;
                                 # The following has no effect :(
 #   &Voice_Cmd::deactivate if $OS_win; # So mh does not listen to itself
@@ -84,7 +96,7 @@ if (!$is_speaking_flag and $is_speaking) {
 if ($is_speaking_flag and !$is_speaking) {
    # *** v5 has nothing to do with the mixer
 
-   print_log "Speakers off, volume reset to $volume_previous" if defined $volume_previous and $Voice_Text::VTxt_version ne 'msv5';
+   print_log "Speakers off, volume reset to $volume_wav_previous" if defined $volume_wav_previous and $Voice_Text::VTxt_version ne 'msv5';
    &put_volume_back();
 
 }
@@ -105,7 +117,18 @@ if ($state = said $test_speech_flags) {
 
 $Tk_objects{volume_status}->configure(-value => $mh_volume->{state}) if $Tk_objects{volume_status} and (state_now $mh_volume);
 
-sub set_volume3 {
+
+sub set_volume_master {
+    my ($volume) = @_;
+
+    if ($Info{Volume_Control} eq 'Command Line') {
+	my $volume_cmd=$config_parms{volume_master_set_cmd};
+        print_log eval qq("$volume_cmd");
+        my $r = system eval qq("$volume_cmd");
+    }
+}
+
+sub set_volume_master_wrapper {
     my $state = shift;
     if (!$Info{Volume_Control}) {
         print_log "Volume control not enabled";
@@ -116,39 +139,62 @@ sub set_volume3 {
         set $mh_volume 100;
     }
     else {
-        print_log "Setting mixer volume to $state";
-        set_volume2($state);
+        print_log "Setting master volume to $state";
+        &set_volume_master($state);
     }
     $Tk_objects{volume_status}->configure(-value => $state) if $Tk_objects{volume_status};
 
 }
 
-
-if (defined($state = state_now $mh_volume) and $state ne '') {
-	&set_volume3($state);
+sub set_volume_wav {
+    my ($volume) = @_;
+    my $volume_wav_previous;
+    if ($Info{Volume_Control} eq 'Command Line') {
+        print_log "$config_parms{volume_wav_get_cmd}";
+        $volume_wav_previous = `$config_parms{volume_wav_get_cmd}`;
+        chomp $volume_wav_previous;
+	my $volume_cmd=$config_parms{volume_wav_set_cmd};
+        print_log eval qq("$volume_cmd");
+        my $r = system eval qq("$volume_cmd");
+    }
+    print_log "Previous wav volume was $volume_wav_previous";
+    #return $volume_wav_previous;
 }
-                                # Set hooks so set_volume is called whenever speak or play is called
-&Speak_pre_add_hook(\&set_volume) if $Reload;
-&Play_pre_add_hook (\&set_volume) if $Reload;
+
+# Set hooks so set_volume is called whenever speak or play is called
+&Speak_pre_add_hook(\&set_volume_pre_hook) if $Reload;
+&Play_pre_add_hook (\&set_volume_pre_hook) if $Reload;
 
 #noloop=start
-my $volume_previous;
+my $volume_master_changed=0;
+my $volume_wav_previous;
 #noloop=stop
-sub set_volume {
+sub set_volume_pre_hook {
+    print_log "FUNCTION: set_volume_pre_hook";
     return if $is_speaking and $Voice_Text::VTxt_version ne 'msv5';     # Speaking volume wins over play volume (unless using MSv5!)
     return unless $Info{Volume_Control}; # Verify we have a volume control module installed
     my %parms = @_;
                                 # msv5 changes volume with xml tags in lib/Voice_Text.pm
     return if $parms{text} and $Voice_Text::VTxt_version eq 'msv5';
 
-    undef $volume_previous;
+    undef $volume_wav_previous;
     my $volume = $parms{volume};
+    my $mode = $parms{mode};
 
 	# *** Oops the following line is wrong--mh_volume is linked to mixer
 	# Not to be used as the default for playing WAV's, speaking, etc.
 
     #$volume = $mh_volume->{state} unless $volume;
     return unless $volume;
+
+    unless ($mode) {
+        if (defined $mode_mh) { # *** Outdated (?)
+            $mode = state $mode_mh;
+        } else {
+            $mode = $Save{mode};
+        }
+    }
+    return if $mode eq 'mute' or $mode eq 'offline';
 
                                 # Set a timer since we can not detect when a wav file is done
     if ($parms{time}) {
@@ -157,43 +203,21 @@ sub set_volume {
 
 
     if ($parms{time} or ($parms{text} and $Voice_Text::VTxt_version ne 'msv5')) {
-        print_log "Setting mixer volume to $volume";
+	print_log "Setting wav volume to $volume";
 	$volume = 100 if $volume > 100;
 
-        $volume_previous = set_volume2($volume);
+	$volume_wav_previous = &set_volume_wav($volume);
+        
+	if($parms{mhvolume}) {
+		$volume_master_changed=1;
+        	&set_volume_master_wrapper($parms{mhvolume});
+	}
 
     }
 }
 
-sub set_volume2 {
-    my ($volume) = @_;
-    my $volume_previous;
-    if ($Info{Volume_Control} eq 'Command Line') {
-        $volume_previous = `$config_parms{volume_get_cmd}`;
-        chomp $volume_previous;
-        my $r = system eval qq("$config_parms{volume_set_cmd} $volume");
-    }
-    elsif ($Info{Volume_Control} eq 'Win32::Sound' and !$config_parms{sound_volume_skip}            ) {
 
-	# *** nothing here to pull volume level from Windows! Will leave at this volume until next sound
-	# hack here (should actually work pretty well since mh_sound is sync'ed to volume now.)
-
-	$volume_previous = $mh_volume->{state};
-
-        $volume = int 255 * $volume / 100;   # (0->100 =>  0->255)
-        $volume = $volume + ($volume << 16); # Hack to fix a bug in Win32::Sound::Volume
-        &Win32::Sound::Volume($volume);
-    }
-    elsif ($Info{Volume_Control} eq 'Audio::Mixer') {
-        my @vol = Audio::Mixer::get_cval('vol');
-        $volume_previous = ($vol[0] + $vol[1]) / 2;
-#       Audio::Mixer::set_cval('vol', $volume);
-        Audio::Mixer::set_cval('spkr', $volume);
-    }
-    return $volume_previous;
-}
-
-                                # Allow for a pre-speak/play wav file
+# Allow for a pre-speak/play wav file
 &Speak_pre_add_hook(\&sound_pre_speak) if $Reload and $config_parms{sound_pre_speak};
 &Play_pre_add_hook (\&sound_pre_play)  if $Reload and $config_parms{sound_pre_play};
 
@@ -204,7 +228,7 @@ sub sound_pre_speak {
 
 # ***  Config parm for this pause!
 
-    #&sleep_time(400);           # So the TTS engine doesn't grab the sound card first
+    #&sleep_time(400); # So the TTS engine doesn't grab the sound card first
 }
 sub sound_pre_play {
     my %parms = @_;
@@ -213,7 +237,7 @@ sub sound_pre_play {
 }
 
 
-                                # Allow for restarting of TTS engine
+# Allow for restarting of TTS engine
 $restart_tts = new Voice_Cmd 'Restart the TTS engine';
 $restart_tts-> set_info('This will restart the voice Text To Speech engine, in case it died for some reason');
 

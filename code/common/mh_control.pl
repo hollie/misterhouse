@@ -7,12 +7,12 @@
 #@ update docs.  This script also defines and lets you set the various modes.
 
 # Reload MisterHouse
-$v_reload_code  = new Voice_Cmd("[Reload,re load] code");
+$v_reload_code  = new Voice_Cmd("{Reload,re load} code");
 $v_reload_code->set_info('Load mh.ini, icon, and/or code changes');
 $v_reload_code->tie_event('push(@Nextpass_Actions, \&read_code)'); # noloop
 
 # Force reload MisterHouse
-$v_reload_code2 = new Voice_Cmd("Force [Reload,re load] code");
+$v_reload_code2 = new Voice_Cmd("Force {Reload,re load} code");
 $v_reload_code2->set_info('Force a code reload of all modules');
 $v_reload_code2->tie_event('push(@Nextpass_Actions, # noloop
   \&read_code_forced)'); # noloop
@@ -103,7 +103,13 @@ $v_restart_mh = new Voice_Cmd 'Restart Mister House';
 $v_restart_mh->set_info( 'Restarts Misterhouse.  This will only work if ' .
   'you start with mh/bin/mhl') if !$OS_win;
 $v_restart_mh->set_info('Restarts Misterhouse.') if $OS_win;
-$v_restart_mh->tie_event('&exit_pgm(1)'); # noloop
+$v_restart_mh->tie_event('&restart_mh()'); # noloop
+
+sub restart_mh{
+	$exit_timer = new  Timer;
+	print_log "MisterHouse will restart in 2 seconds.";
+	$exit_timer->set(2, '&exit_pgm(1)');
+}
 
 # This will be abend.  
 # Allow for no msg on first time use where this flag is not set yet.
@@ -529,14 +535,12 @@ sub handle_repeat_last_spoken_state() {
 # Clear the web cache directory
 $v_clear_cache = new Voice_Cmd 'Clear the web cache directory', '';
 $v_clear_cache->set_info(
-    'Delete all the auto-generated .jpg files in mh/web/cache');
+    'Delete all the auto-generated .jpg files in html_alias_cache directory');
 $v_clear_cache->tie_event('&handle_clear_cache_state()'); # noloop
 sub handle_clear_cache_state() {
     my $cmd = ($OS_win) ? 'del' : 'rm';
-    $cmd .= " $config_parms{html_dir}/cache/*.jpg";
-    $cmd =~ s|/|\\|g if $OS_win;
-    system $cmd;
-    $cmd .= " $config_parms{html_dir}/cache/*.wav";
+    $cmd .= " $config_parms{html_alias_cache}/*.jpg";
+    $cmd .= " $config_parms{html_alias_cache}/*.wav";
     $cmd =~ s|/|\\|g if $OS_win;
     system $cmd;
     print_log "Ran: $cmd";

@@ -13,8 +13,14 @@
 ## Mark Radke
 ##
 
+if($Startup || $Reload){
+    &Weather_Common::weather_add_hook(\&weather_summary_update);
+}
 
-if ($New_Minute) {
+$v_weather_summary_update = new Voice_Cmd("Update weather summary");
+if(said $v_weather_summary_update) {&weather_summary_update;}
+
+sub weather_summary_update {
 ##
 ## '&#176' puts in a degree symbol
 ##

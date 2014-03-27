@@ -7,3 +7,4 @@ A:link { color: blue; }
 A:visited { color: lightblue; }
 A:active { color: brown; } 
 A:hover { color: green; }
+PRE { white-space:pre-wrap; font-family:courier, monospace; display:inline; font-size:10pt;}

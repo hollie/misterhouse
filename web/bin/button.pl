@@ -1,9 +1,14 @@
+#
+# Create buttons with JPEG images generated on-the-fly using the GD module.
+#
+# For text buttons:  <img src="/bin/button.pl?<text you want>" border="0">
+#     Example: <img src="/bin/button.pl?Close%20Garage%20Door" border="0">
+#
+# For item buttons:  <img src="/bin/button.pl?<item_name>&item&<item_state>" border="0">
+#     Example: <img src="/bin/button.pl?$breakfast_nook_light&item&off" border="0">
+#
 
 $^W = 0;                        # Avoid redefined sub msgs
-
-# Create jpeg buttons on-the-fly with GD module
-# For text buttons:  <img src="/bin/button.pl?text you want" border="0">
-# For item buttons:  <img src="/bin/button.pl?item_name&item&item_state" border="0">
 
 # Authority: anyone
 
@@ -27,35 +32,45 @@ $image_file =~ s/ *$//;           # Drop trailing blanks
 $image_file .= "_$type"  if $type;
 $image_file .= "_$state" if $state;
 $image_file =~ s/ /_/g;           # Blanks in file names are nasty
-$image_file = "/cache/$image_file.jpg";
+$image_file = "/$image_file.jpg";
 
-
+# Set to 1 if you'd like to disable the image cache. Normally you should
+# not need to do this because it affects performance (MisterHouse needs
+# to re-generate the button image every time). This is only useful if you
+# are tweaking your button images and need new images re-generated every
+# time the button generation script (this script) is called.
 my $nocache = 0;
-#$nocache = 1;
-if (-e "$config_parms{data_dir}$image_file" or $nocache) {
-    return $image_file if $file_name_only;
+
+if (-e "$config_parms{html_alias_cache}$image_file" && !$nocache) {
+    return "/cache".$image_file if $file_name_only;
 #   print "Returning data from: $image_file\n";
-    my $data = file_read "$config_parms{data_dir}$image_file";
-    return &mime_header($image_file, 1, length $data) . $data;
+    my $data = file_read "$config_parms{html_alias_cache}$image_file";
+    return &mime_header("/cache".$image_file, 1, length $data) . $data;
 }
 
                                 # Look for an icon
 my ($icon, $light);
+
 if ($type eq 'item') {
     my $object = &get_object_by_name($text);
     ($icon) = &http_get_local_file(&html_find_icon_image($object, 'voice'));
-#   $light = 1 if $text =~ /light/i or $text =~ /lite/i;
-    $light = 1 if $object->isa('X10_Item') and !$object->isa('X10_Appliance');
-    $light = 1 if $object->isa('EIB2_Item');
+
+    if ( ($object->isa('X10_Item') and !$object->isa('X10_Appliance') )
+	|| $object->isa('Insteon::BaseLight')
+	|| $object->isa('EIB2_Item')
+	|| $text =~ /light|lite/i) {
+	$light = 1;
+    }
+} else {
+    # Uncomment this to put in images into group, category icons.  Seem too small to be useful.
+    #($icon) = &http_get_local_file(&html_find_icon_image($text, 'text'));
 }
-else {
-# Uncomment this to put in images into group, category icons.  Seem too small to be useful.
-#   ($icon) = &http_get_local_file(&html_find_icon_image($text, 'text'));
-}
+
 undef $icon if $icon and $icon !~ /.jpg$/i;  # GD does not do gifs :(
 my $image_icon = GD::Image->newFromJpeg($icon) if $icon;
 
 my $image;
+
 if ($image_icon or $type eq 'item') {
 
                        # Template = blank_on/off/unk or blank_light_on/off/dim
@@ -170,9 +185,9 @@ my $white = $image->colorClosest(255,255,255);
 $image->transparent($white);
 
                                 # Write out a copy to the cache
-print "Writing image to cache: $config_parms{data_dir}$image_file\n";
+print "Writing image to cache: $config_parms{html_alias_cache}$image_file\n";
 my $jpeg = $image->jpeg;
-file_write "$config_parms{data_dir}$image_file", $jpeg;
+file_write "$config_parms{html_alias_cache}$image_file", $jpeg;
 
-return $image_file if $file_name_only;
-return &mime_header($image_file, 1, length $jpeg) . $jpeg;
+return "/cache".$image_file if $file_name_only;
+return &mime_header("/cache".$image_file, 1, length $jpeg) . $jpeg;

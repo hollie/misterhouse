@@ -101,9 +101,9 @@ if (my $state = said $v_show_internet_weather_forecast) {
     	$forecast = read_all $f_weather_forecast;
 
 	if (length($forecast) < 50) {
-		respond "app=weather Last weather forecast received was incomplete."
+		respond("app=weather Last weather forecast received was incomplete.");
 	} else {
-		respond "app=weather $forecast";
+		respond("app=weather $forecast");
 	}
 }
 
@@ -113,7 +113,7 @@ if (my $state = said $v_show_internet_weather_conditions) {
 	$conditions = read_all $f_weather_conditions;
 	$conditions = normalize_conditions($conditions);
 
-	respond "app=weather $conditions";
+	respond("app=weather $conditions");
 }
 
 if (done_now $p_weather_forecast) {
@@ -140,7 +140,7 @@ if (done_now $p_weather_data or done_now $p_weather_conditions) {
 
 		$conditions = normalize_conditions($conditions);
 
-	    $w{TempOutdoor}  = $1 if $conditions =~ /(\d+) degrees/i;
+	    $w{TempOutdoor}  = $1 if $conditions =~ /(-?\d+) degrees/i;
 	    if ($conditions =~ /(\d+)\%/) {
 		    $w{HumidOutdoor} = $1;
 		    $w{HumidOutdoorMeasured}=1; # tell Weather_Common that we directly measured humidity

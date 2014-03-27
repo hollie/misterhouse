@@ -33,8 +33,8 @@ sub new
 
 	my $self = new Insteon::BaseDevice($p_deviceid,$p_interface);
 	bless $self,$class;
-        # include very basic states
-        @{$$self{states}} = ('on','off');
+        # include very basic states; off first so web interface up/down works
+        $self->set_states('off','on');
 
 	return $self;
 }
@@ -58,6 +58,31 @@ sub level
 	}
 	return $$self{level};
 
+}
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds},
+        'on' => "$object_name->set(\"on\")",
+        'off' => "$object_name->set(\"off\")"
+    );
+    return \%voice_cmds;
 }
 
 =back
@@ -140,6 +165,39 @@ my %ramp_h2n = (
 						'1f' =>    .1
 );
 
+=item C<derive_link_state([state])>
+
+Overrides routine in BaseObject. Takes the various states available to insteon 
+devices and returns a derived state of on, off, or 0%-100%.
+
+=cut
+
+sub derive_link_state
+{
+	my ($self, $p_state) = @_;
+	#Convert Relative State to Absolute State
+	if ($p_state =~ /^([+-])(\d+)/) {
+		my $rel_state = $1 . $2;
+		my $curr_state = '100';
+		$curr_state = '0' if ($self->state eq 'off');
+		$curr_state = $1 if $self->state =~ /(\d{1,3})/;
+		$p_state = $curr_state + $rel_state;
+		$p_state = 100 if ($p_state > 100);
+		$p_state = 0 if ($p_state < 0);
+	}
+	
+	my $link_state = 'on';
+	if (grep(/$p_state/i, @{['on_fast', 'off', 'off_fast']})) {
+		$link_state = $p_state;
+	}
+	elsif ($p_state =~ /\d+%?/)
+	{
+		$p_state =~ /(\d+)%?/;
+		$link_state = $1 . '%';
+	}
+	return $link_state;
+}
+
 =item C<convert_ramp(ramp_seconds)>
 
 Takes ramp_seconds in numeric seconds and returns the hexadecimal value of that 
@@ -193,13 +251,7 @@ sub convert_level
 	my $level = 'ff';
 	if (defined ($on_level)) {
 		$on_level =~ s/(\d+)%?/$1/;
-		if ($on_level eq '100') {
-			$level = 'ff';
-		} elsif ($on_level eq '0') {
-			$level = '00';
-		} else {
-			$level = sprintf('%02X',$on_level * 2.55);
-		}
+		$level = sprintf('%02X',int(($on_level * 2.55) + .5));
 	}
 	return $level;
 }
@@ -216,14 +268,105 @@ sub new
 
 	my $self = new Insteon::BaseLight($p_deviceid,$p_interface);
 	bless $self,$class;
+	
+	if( $main::config_parms{insteon_menu_states}) {
+		$self->set_states(split( ',', $main::config_parms{insteon_menu_states}));
+	}
+	
 	return $self;
+}
+
+=item C<local_onlevel(level)>
+
+Sets and returns the local onlevel for the device in MH only. Level is a 
+percentage from 0%-100%.
+
+This setting can be pushed to the device using C<update_local_properties>.
+
+Parameters: level [0-100]
+
+Returns: [0-100]
+
+=cut
+
+sub local_onlevel
+{
+	my ($self, $p_onlevel) = @_;
+	if (defined $p_onlevel)
+        {
+		my ($onlevel) = $p_onlevel =~ /(\d+)%?/;
+		$$self{_onlevel} = $onlevel;
+	}
+	return $$self{_onlevel};
+}
+
+=item C<local_ramprate(rate)>
+
+Sets and returns the local ramp rate for the device in MH only. Rate is a time
+between .1 and 540 seconds.  Only 32 rate steps exist, to MH will pick a time
+equal to of the closest below this time.
+
+This setting can be pushed to the device using C<update_local_properties>.
+
+Parameters: rate = ramp rate [.1s - 540s] see C<convert_ramp> for valid values
+
+Returns: hexadecimal representation of the ramprate.
+
+=cut
+
+sub local_ramprate
+{
+	my ($self, $p_ramprate) = @_;
+	if (defined $p_ramprate) {
+		$$self{_ramprate} = &Insteon::DimmableLight::convert_ramp($p_ramprate);
+	}
+	return $$self{_ramprate};
+
+}
+
+=item C<update_local_properties()>
+
+Pushes the values set in C<local_onlevel()> and C<local_ramprate()> to the device.
+
+I1 Devices:
+
+The device will only reread these values when it is power-cycled.  This can be
+done by pulling the air-gap for 4 seconds or unplugging the device.
+
+I2 & I2CS Devices
+
+The device will immediately read and update the values.
+
+=cut
+
+sub update_local_properties
+{
+	my ($self) = @_;
+	if ($self->engine_version eq 'I1'){
+       		$self->_aldb->update_local_properties() if $self->_aldb;
+	}
+	else {
+		#Queue Ramp Rate First
+		my $extra = '000005' . $self->local_ramprate();
+		$extra .= '0' x (30 - length $extra);
+		my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
+		$self->_send_cmd($message);
+		
+		#Now queue on level
+		$extra = '000006' . ::Insteon::DimmableLight::convert_level($self->local_onlevel());
+		$extra .= '0' x (30 - length $extra);
+		$message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
+		$self->_send_cmd($message);
+	}
 }
 
 =item C<level(p_level)>
 
-Takes the p_level, and stores it as a numeric level in memory.  If the p_level 
+Stores and returns the objects current on_level as a percentage. If p_level 
 is ON and the device has a defined local_onlevel, the local_onlevel is stored 
 as the numeric level in memory.
+
+Returns [0-100]
 
 =cut
 
@@ -253,6 +396,36 @@ sub level
 	}
 	return $$self{level};
 
+}
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my $insteon_menu_states = $main::config_parms{insteon_menu_states} if $main::config_parms{insteon_menu_states};
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds},
+        'update onlevel/ramprate' => "$object_name->update_local_properties"
+    );
+    if ($insteon_menu_states){
+        foreach my $state (split(/,/,$insteon_menu_states)) {
+            $voice_cmds{$state} = "$object_name->set(\"$state\")";
+        }
+    }
+    return \%voice_cmds;
 }
 
 =back
@@ -291,6 +464,7 @@ Provides support for the Insteon ApplianceLinc.
 =head2 INHERITS
 
 L<Insteon::BaseLight|Insteon::Lighting/Insteon::BaseLight>
+L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
 
 =head2 METHODS
 
@@ -303,7 +477,7 @@ package Insteon::ApplianceLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::ApplianceLinc::ISA = ('Insteon::BaseLight');
+@Insteon::ApplianceLinc::ISA = ('Insteon::BaseLight','Insteon::DeviceController');
 
 =item C<new()>
 
@@ -318,24 +492,6 @@ sub new
 	my $self = new Insteon::BaseLight($p_deviceid,$p_interface);
 	bless $self,$class;
 	return $self;
-}
-
-=item C<set(state[,setby,response])>
-
-Handles setting and receiving states from the device.
-
-NOTE - Maybe this should be moved to BaseLight, or something farther up the stack?
-The only thing this routine does is convert p_state with derive_link_state.
-
-=cut
-
-sub set
-{
-	my ($self, $p_state, $p_setby, $p_respond) = @_;
-
-	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
-
-	return $self->Insteon::BaseDevice::set($link_state, $p_setby, $p_respond);
 }
 
 =back
@@ -470,22 +626,35 @@ sub new
 	return $self;
 }
 
-=item C<set(state[,setby,response])>
 
-Handles setting and receiving states from the device.
+=item C<link_data3>
 
-NOTE - Maybe this should be moved to BaseLight, or something farther up the stack?
-The only thing this routine does is convert p_state with derive_link_state.
+Returns the data3 value that should be used when creating a link for this device.  
+This sub overides the parent class to map group 01 to data3 01.  This is required 
+by the I2CS In-LineLinc Relay.
 
-=cut
+=cut 
 
-sub set
+sub link_data3
 {
-	my ($self, $p_state, $p_setby, $p_respond) = @_;
+	my ($self, $group, $is_controller) = @_;
 
-	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
+	my $link_data3 = $self->SUPER::link_data3($group, $is_controller);
 
-	return $self->Insteon::DeviceController::set($link_state, $p_setby, $p_respond);
+	if( !$is_controller) {  #is_responder
+		#For I2CS devices the default data3 for responder links is 01.
+		#This is to support the I2CS In-LineLinc Relay.  There may be more 
+		#permutations of the 00 vs. 01 problem and I1 devices may have 
+		#the same requirement.  This code is a work in progress as more 
+		#information is gathered about Relay type devices.
+		if ($self->can('engine_version') && $self->engine_version eq 'I2CS') {
+			#Default to 01 if no group was supplied
+			#Otherwise just return the group
+			$link_data3 = ($group) ? $group : '01';
+		}
+	}
+
+	return $link_data3;
 }
 
 =back
@@ -554,24 +723,6 @@ sub new
 	return $self;
 }
 
-=item C<set(state[,setby,response])>
-
-Handles setting and receiving states from the device.
-
-NOTE - This is just silly, the only thing this routine does is push the set 
-command to the L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController> 
-class.  Simply reording the class 
-inheritance of this object would remove the need to do this.
-
-=cut
-
-sub set
-{
-	my ($self, $p_state, $p_setby, $p_respond) = @_;
-
-	return $self->Insteon::DeviceController::set($p_state, $p_setby, $p_respond);
-}
-
 =back
 
 =head2 AUTHOR
@@ -612,7 +763,8 @@ Provides support for the Insteon KeypadLinc Relay.
 =head2 INHERITS
 
 L<Insteon::BaseLight|Insteon::Lighting/Insteon::BaseLight>, 
-L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
+L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>,
+L<Insteon::Insteon::MultigroupDevice|Insteon::BaseInsteon/Insteon::Insteon::MultigroupDevice>
 
 =head2 METHODS
 
@@ -625,7 +777,22 @@ package Insteon::KeyPadLincRelay;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::KeyPadLincRelay::ISA = ('Insteon::BaseLight','Insteon::DeviceController');
+@Insteon::KeyPadLincRelay::ISA = ('Insteon::BaseLight','Insteon::DeviceController', 'Insteon::MultigroupDevice');
+
+our %operating_flags = (
+   'program_lock_on' => '00',
+   'program_lock_off' => '01',
+   'led_on_during_tx' => '02',
+   'led_off_during_tx' => '03',
+   'resume_dim_on' => '04',
+   'resume_dim_off' => '05',
+   '8_key_mode' => '06',
+   '6_key_mode' => '07',
+   'led_off' => '08',
+   'led_enabled' => '09',
+   'key_beep_enabled' => '0a',
+   'key_beep_off' => '0b'
+);
 
 =item C<new()>
 
@@ -636,8 +803,8 @@ Instantiates a new object.
 sub new
 {
 	my ($class,$p_deviceid,$p_interface) = @_;
-
 	my $self = new Insteon::BaseLight($p_deviceid,$p_interface);
+	$$self{operating_flags} = \%operating_flags;
 	bless $self,$class;
 	return $self;
 }
@@ -652,43 +819,303 @@ subordinate buttons.
 sub set
 {
 	my ($self, $p_state, $p_setby, $p_respond) = @_;
-
-	my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
-
-	if (!($self->is_root))
+	if (!($self->is_root) and !(ref $p_setby && $p_setby eq $self))
 	{
-		my $rslt_code = $self->Insteon::BaseController::set($p_state, $p_setby, $p_respond);
-		return $rslt_code if $rslt_code;
-
-		if (ref $p_setby and $p_setby->isa('Insteon::BaseDevice'))
-		{
-			$self->Insteon::BaseObject::set($p_state, $p_setby, $p_respond);
+		if (ref $$self{surrogate} && ($$self{surrogate}->isa('Insteon::InterfaceController'))) {
+			$$self{surrogate}->set($p_state, $p_setby, $p_respond);
 		}
-		elsif (ref $$self{surrogate} && ($$self{surrogate}->isa('Insteon::InterfaceController')))
-		{
-			$$self{surrogate}->set($link_state, $p_setby, $p_respond)
-				unless ref $p_setby and $p_setby eq $self;
-		}
-		else
-		{
-			&::print_log("[Insteon::KeyPadLinc] You may not directly attempt to set a keypadlinc's button "
-				. "unless you have defined a reverse link with the \"surrogate\" keyword");
+		else {
+			::print_log("[Insteon::KeyPadLinc] You may not directly attempt to set a keypadlinc's button "
+				."unless you have defined a reverse link with the \"surrogate\" keyword");
 		}
 	}
 	else
 	{
-		return $self->Insteon::DeviceController::set($link_state, $p_setby, $p_respond);
+		return $self->SUPER::set($p_state, $p_setby, $p_respond);
+	}
+}
+
+=item C<update_flags(flags)>
+
+Can be used to set the button layout and light level on a keypadlinc.  Flag 
+options include:
+
+    '0a' - 8 button; backlighting dim
+    '06' - 8 button; backlighting off
+    '02' - 8 button; backlighting normal
+
+    '08' - 6 button; backlighting dim
+    '04' - 6 button; backlighting off
+    '00' - 6 button; backlighting normal
+
+=cut
+
+sub update_flags
+{
+	my ($self, $flags) = @_;
+	return unless defined $flags;
+	if ($self->engine_version eq 'I1') {
+		$self->_aldb->update_flags($flags) if $self->_aldb;
+	}
+	else {
+		if ($flags & 0x02) {
+			$self->set_operating_flag('8_key_mode');
+		} 
+		else {
+			$self->set_operating_flag('6_key_mode');	
+		}
+		if ($flags & 0x04) {
+			$self->set_operating_flag('led_off');
+		}
+		else {
+			$self->set_operating_flag('led_enabled');	
+		}
+		if ($flags & 0x08) {
+			$self->set_operating_flag('resume_dim_on');
+		}
+		else {
+			$self->set_operating_flag('resume_dim_off');
+		}
+	}
+}
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds}
+    );
+    if ($self->is_root){
+        %voice_cmds = (
+            %voice_cmds,
+            'set 8 button - backlight dim' => "$object_name->update_flags(\"0a\")",
+            'set 8 button - backlight off' => "$object_name->update_flags(\"06\")",
+            'set 8 button - backlight normal' => "$object_name->update_flags(\"02\")",
+            'set 6 button - backlight dim' => "$object_name->update_flags(\"08\")",
+            'set 6 button - backlight off' => "$object_name->update_flags(\"04\")",
+            'set 6 button - backlight normal' => "$object_name->update_flags(\"00\")",
+            'sync all device links' => "$object_name->sync_all_links()",
+            'AUDIT sync all device links' => "$object_name->sync_all_links(1)",
+            'sync intradevice links' => "$object_name->sync_intradevice_links()",
+        );
+    }
+    return \%voice_cmds;
+}
+
+=item C<link_data3>
+
+Returns the data3 value that should be used when creating a link for this device.  
+This sub overides the parent class to map group 01 to data3 01.  This is required 
+by all of the KeypadLinc family.
+
+=cut 
+
+sub link_data3
+{
+	my ($self, $group, $is_controller) = @_;
+
+	my $link_data3 = $self->SUPER::link_data3($group, $is_controller);
+
+	#Default to 01 if no group was supplied
+	#Otherwise just return the group
+	$link_data3 = ($group) ? $group : '01' if( !$is_controller);
+
+	return $link_data3;
+}
+
+=item C<sync_intradevice_links()>
+
+IntraDevice Links are links between buttons on the same KPL.  These links are
+not stored in the same manner as InterDevice links. Therefore this routine can
+be used to sync the IntraDevice links.  There are two types of IntraDevice Links
+FOLLOW and OFF.
+
+B<FOLLOW>
+
+Follow links are links which cause one button to be a slave to a master button. 
+The slave button will always follow the state of the master button whenever the
+master button is pressed.  For example, if Button A is defined as the master
+to the slave Button B, then any time button A is pressed button B will follow.
+If button A is turned on, button B will turn on.  Same thing with Off.  However,
+button B can still be independently controlled.  That is button B can be turned
+on or off manually, without affecting button A.  That is unless a reverse master
+-slave relationship is defined.
+
+To define Follow links, simply define a normal Insteon scene definition where
+the scene controller is the master button and the scene responder is the slave
+button.  To enable the follow functionality the on_level must be defined as NOT
+zero.  The ramp rate is ignored and on_level will be converted to 100%.
+
+    SCENE_MEMBER, kpl_button_B, kpl_button_A, 100% #Button B will follow A
+    #In the following pressing Button A will cause B, C & D to turn on.
+    #SCENE_Build is not much help here.
+    SCENE_BUILD, kpl_scene, kpl_button_A,   1,    0,    80%
+    SCENE_BUILD, kpl_scene, kpl_button_B,   0,    1,    100%
+    SCENE_BUILD, kpl_scene, kpl_button_C,   0,    1,    100%
+    SCENE_BUILD, kpl_scene, kpl_button_D,   0,    1,    100%
+
+B<OFF>
+
+Off links are links in which turning ON a master button will cause all slave
+buttons to turn OFF.  This is commonly used for "radio" style buttons to control
+a fan.  The buttons may be defined as Off, Low, Med, & High.  We only want one
+state to be active at any given time.  To accomplish this, we define a series
+of master slave relationships between all of the buttons.  Notably, you these
+type of definitions do not have to affect all buttons, you can define Off links
+that only join 2 buttons.  Similar to Follow links, these also do not have to be
+two way links.
+
+To define Off links, simply define a normal Insteon scene definition where
+the scene controller is the master button and the scene responder is the slave
+button.  To enable the off functionality the on_level must be defined as ZERO.
+The ramp rate is ignored.
+
+    SCENE_MEMBER, kpl_button_B, kpl_button_A, 0% #Turning ON A will turn OFF B
+    
+The following is an example for how to enable radio buttons, where only one
+button can be activated at a time.
+
+    SCENE_BUILD, kpl_scene, kpl_button_A,   1,    1,    0%
+    SCENE_BUILD, kpl_scene, kpl_button_B,   1,    1,    0%
+    SCENE_BUILD, kpl_scene, kpl_button_C,   1,    1,    0%
+    SCENE_BUILD, kpl_scene, kpl_button_D,   1,    1,    0%
+
+B<SYNCING>
+
+To sync these links, simply run this command after creating the necessary link
+definitions.  This routine will perform both the "sync and delete" steps to
+bring the links on the device into compliance with the definitions in 
+MisterHouse.  There is no "scan" feature for IntraDevice links.
+
+=cut
+
+sub sync_intradevice_links
+{
+	my ($self) = @_;
+	$self = $self->get_root();
+	# First Calculate the value of all bytes
+	my %byte_hash;      #Key is the lsb of the byte location
+	my $lsb;            #used to store the lsb address
+	
+	::print_log('[Insteon::KeyPadLinc] ' . $self->get_object_name . 'will be '.
+	    'programmed with the following IntraDevice Links:');
+	
+	# Find all subgroup items check groups from 1 - 8;
+	for (my $dec_group = 1; $dec_group <= 8; $dec_group++) {
+		my $group = sprintf("%02X", $dec_group);
+		my $subgroup_object = Insteon::get_object($self->device_id, $group);
+		if (ref $subgroup_object){
+            #SubGroup Object Exists, Now Look for IntraDevice Link on Object
+            foreach my $member_ref (keys %{$$subgroup_object{members}}) {
+		        my $member = $$subgroup_object{members}{$member_ref}{object};
+		        my $member_group = hex($member->group);
+		        my $member_root = $member->get_root;
+        		if ($member_root eq $self){
+        		    #This is an IntraDevice Link, Set button mask
+        		    $lsb = sprintf("%02X", 64+$dec_group);
+	                $byte_hash{$lsb} |= 0b1 << ($member_group-1);
+                    my $tgt_on_level = 
+                        $$subgroup_object{members}{$member_ref}{on_level};
+		            $tgt_on_level = '100' unless defined $tgt_on_level;
+		            $tgt_on_level =~ s/(\d+)%?/$1/;
+		            my $link_type = "FOLLOW";
+		            if ($tgt_on_level <= 0) {
+		                #This is an Off Link, Set type
+		                $lsb = sprintf("%02X", 73+$dec_group);
+		                $byte_hash{$lsb} |= 0b1 << ($member_group-1);
+		                $link_type = "TURN OFF";
+		            }
+		            ::print_log("[Insteon::KeyPadLinc] Group $member_group will ".
+	                    "$link_type when Group $dec_group is pressed.");
+        		}
+            }
+		}
 	}
 
-	return 0;
+	# Now write those bytes to the device
+	if ($self->engine_version eq 'I1') {
+	    #send to ALDB and use peek/poke commands there
+	    $self->_aldb->update_intradevice_links(\%byte_hash);
+	}
+	else {
+	    $self->_write_intradevice_links(\%byte_hash, 1, 2);
+	}
+}
 
+=item C<_write_intradevice_links()>
+
+The i2 routine for writing the IntraDevice links to i2 devices.  Should not be
+called directly.
+
+=cut
+
+sub _write_intradevice_links {
+    my ($self, $intradevice_hash_ref, $group, $sub) = @_;
+	$$self{_intradevice_hash_ref} = $intradevice_hash_ref 
+	    if $intradevice_hash_ref ne '';
+
+    # Create Key Value
+    my $enable_key = sprintf("%02X", 64+$group);
+    my $type_key = sprintf("%02X", 73+$group);
+
+    # Convert i1 style masks to i2 style masks, it appears i2 masks work diff
+    my $enable_mask = $$self{_intradevice_hash_ref}{$enable_key};
+    my $type_mask = $$self{_intradevice_hash_ref}{$type_key};
+    $enable_mask = 0 if $enable_mask eq '';
+    $type_mask = 0 if $type_mask eq '';
+    my $mask = $enable_mask ^ $type_mask; #follow mask
+    if ($sub == 3){
+        $mask = $enable_mask & $type_mask; #Off mask
+    }
+
+    # Define our callbacks
+    my $next_group = ($sub == 2) ? $group : $group +1;
+    my $next_sub = ($sub == 2) ? 3 : 2;
+    my $success_callback = $self->get_object_name . 
+        "->_write_intradevice_links('',$next_group,$next_sub)";
+    my $failure_callback = "::print_log('[Insteon::KeyPadLinc] ERROR - Syncing".
+        "IntraDevice Links to ".$self->get_object_name." failed.')";
+    if ($group == 8 && $sub == 3){
+    $success_callback = "::print_log('[Insteon::KeyPadLinc] Successfully wrote ".
+        "IntraDevice links for " . $self->get_object_name . "')";
+    }
+
+    # Now write values to device
+	my $extra = "00" . sprintf("%02X",$group) . "0" . $sub . sprintf("%02X",$mask);
+	my $message = $self->simple_message('extended_set_get', $extra);
+    $message->failure_callback($failure_callback);
+	$message->success_callback($success_callback);
+	$self->_send_cmd($message);
+}
+
+## Creates an Extended Message, and Pads it with 0s to proper length
+sub simple_message {
+	my ($self,$type,$extra) = @_;
+	my $message;
+    $extra .= '0' x (30 - length $extra);
+	$message = new Insteon::InsteonMessage('insteon_ext_send', $self, $type, $extra);
+	return $message;
 }
 
 =back
 
 =head2 AUTHOR
 
-Gregg Limming 
+Gregg Limming, Kevin Robert Keegan 
 
 =head2 LICENSE
 
@@ -737,7 +1164,7 @@ package Insteon::KeyPadLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::KeyPadLinc::ISA = ('Insteon::DimmableLight','Insteon::DeviceController');
+@Insteon::KeyPadLinc::ISA = ('Insteon::KeyPadLincRelay', 'Insteon::DimmableLight','Insteon::DeviceController');
 
 =item C<new()>
 
@@ -748,55 +1175,22 @@ Instantiates a new object.
 sub new
 {
 	my ($class,$p_deviceid,$p_interface) = @_;
-
 	my $self = new Insteon::DimmableLight($p_deviceid,$p_interface);
+	$$self{operating_flags} = \%Insteon::KeyPadLincRelay::operating_flags;
 	bless $self,$class;
 	return $self;
 }
 
-=item C<set(state[,setby,response])>
+# The subgroup items are not dimmable, so call BaseInsteon for them
 
-Handles setting and receiving states from the device and specifically its 
-subordinate buttons.
-
-NOTE: This could be merged somehow with the set() function in 
-C<Insteon::KeyPadLincRelay>
-
-=cut
-
-sub set
+sub derive_link_state
 {
-	my ($self, $p_state, $p_setby, $p_respond) = @_;
-
-	if (!($self->is_root))
-	{
-		my $rslt_code = $self->Insteon::BaseController::set($p_state, $p_setby, $p_respond);
-		return $rslt_code if $rslt_code;
-
-		my $link_state = &Insteon::BaseObject::derive_link_state($p_state);
-
-		if (ref $p_setby and $p_setby->isa('Insteon::BaseDevice'))
-		{
-			$self->Insteon::BaseObject::set($p_state, $p_setby, $p_respond);
-		}
-		elsif (ref $$self{surrogate} && ($$self{surrogate}->isa('Insteon::InterfaceController')))
-		{
-			$$self{surrogate}->set($link_state, $p_setby, $p_respond)
-				unless ref $p_setby and $p_setby eq $self;
-		}
-		else
-		{
-			&::print_log("[Insteon::KeyPadLinc] You may not directly attempt to set a keypadlinc's button "
-				. "unless you have defined a reverse link with the \"surrogate\" keyword");
-		}
+	my ($self, $p_state) = @_;
+	if ($self->group eq '01'){
+		return $self->SUPER::derive_link_state($p_state);
+	} else {
+		return $self->Insteon::BaseObject::derive_link_state($p_state);
 	}
-	else
-	{
-		return $self->Insteon::DeviceController::set($p_state, $p_setby, $p_respond);
-	}
-
-	return 0;
-
 }
 
 =back
@@ -837,7 +1231,8 @@ Provides support for the Insteon FanLinc.
 =head2 INHERITS
 
 L<Insteon::DimmableLight|Insteon::Lighting/Insteon::DimmableLight>, 
-L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
+L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>,
+L<Insteon::Insteon::MultigroupDevice|Insteon::BaseInsteon/Insteon::Insteon::MultigroupDevice>
 
 =head2 METHODS
 
@@ -850,7 +1245,7 @@ package Insteon::FanLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::FanLinc::ISA = ('Insteon::DimmableLight','Insteon::DeviceController');
+@Insteon::FanLinc::ISA = ('Insteon::DimmableLight','Insteon::DeviceController', 'Insteon::MultigroupDevice');
 
 =item C<new()>
 
@@ -866,53 +1261,36 @@ sub new
 	return $self;
 }
 
-=item C<set(state[,setby,response])>
+=item C<derive_message([command,extra])>
 
-Handles setting and receiving states from the device and specifically its 
-fan object.
+Generates set commands for the fan, light requests are passed to BaseObject
 
 =cut
 
-sub set
+sub derive_message
 {
-	my ($self, $p_state, $p_setby, $p_respond) = @_;
-	if ($self->is_root()){
-		return $self->Insteon::DeviceController::set($p_state, $p_setby, $p_respond);
-	} else {
-		if ($self->_is_valid_state($p_state)) {
-			# always reset the is_locally_set property unless set_by is the device
-			$$self{m_is_locally_set} = 0 unless ref $p_setby and $p_setby eq $self;
-
-			# handle invalid state for non-dimmable devices
-			my $level = $p_state;
-			if ($p_state eq 'dim' or $p_state eq 'bright') {
-				$p_state = 'on';
-			}
-			elsif ($p_state eq 'toggle')
-			{
-				$p_state = 'off' if ($self->state eq 'on');
-				$p_state = 'on' if ($self->state eq 'off');
-			}
-			$level = '00' if ($p_state eq 'off');
-			$level = 'ff' if ($p_state eq 'on');
-			# Setting Fan Level
-			my $setby_name = $p_setby;
-			$setby_name = $p_setby->get_object_name() if (ref $p_setby and $p_setby->can('get_object_name'));
-			my $parent = $self->get_root();
-			$level = ::Insteon::DimmableLight::convert_level($level) if ($level ne '00' && $level ne 'ff');
-			my $extra = $level ."0200000000000000000000000000";
-			my $message = new Insteon::InsteonMessage('insteon_ext_send', $parent, 'on', $extra);
-			$parent->_send_cmd($message);
-			::print_log("[Insteon::FanLinc] " . $self->get_object_name() . "::set($p_state, $setby_name)")
-				if $main::Debug{insteon};
-			$self->is_acknowledged(0);
-			$$self{pending_state} = $p_state;
-			$$self{pending_setby} = $p_setby;
-			$$self{pending_response} = $p_respond;
-			$$parent{child_pending_state} = $self->group();
-		} else {
-			::print_log("[Insteon::FanLinc] failed state validation with state=$p_state");
-		}	
+	my ($self, $p_command, $p_extra) = @_;
+	if ($self->is_root){
+		$self->SUPER::derive_message($p_command, $p_extra);
+	} 
+	else {
+		my $level;
+	
+		#msg id
+		my ($command, $subcommand) = split(/:/, $p_command, 2);
+		$command=lc($command);
+		
+		if ($command eq 'on')
+		{
+			$command='100';
+		} 
+		elsif ($command eq 'off'){
+			$command = '00';
+		}
+		$command = ::Insteon::DimmableLight::convert_level($command);
+		my $extra = $command ."0200000000000000000000000000";
+		my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'on', $extra);
+		return $message;
 	}
 }
 
@@ -955,10 +1333,10 @@ sub _is_info_request
 	if ($$parent{child_status_request_pending}) {
 		$is_info_request++;
 		my $child_obj = Insteon::get_object($self->device_id, '02');
-		my $child_state = &Insteon::BaseObject::derive_link_state(hex($msg{extra}));
+		my $child_state = $child_obj->derive_link_state(hex($msg{extra}));
 		&::print_log("[Insteon::FanLinc] received status for " .
 			$child_obj->{object_name} . " of: $child_state "
-			. "hops left: $msg{hopsleft}") if $main::Debug{insteon};
+			. "hops left: $msg{hopsleft}") if $self->debuglevel(1, 'insteon');
 		$ack_setby = $$child_obj{m_status_request_pending} if ref $$child_obj{m_status_request_pending};
 		$child_obj->SUPER::set($child_state, $ack_setby);
 		delete($$parent{child_status_request_pending});
@@ -989,11 +1367,41 @@ sub is_acknowledged
 		$$child_obj{pending_setby} = undef;
 		$$child_obj{pending_response} = undef;
 		$$parent{child_pending_state} = undef;
-		&::print_log("[Insteon::FanLinc] received command/state acknowledge from " . $child_obj->{object_name}) if $main::Debug{insteon};
+		&::print_log("[Insteon::FanLinc] received command/state acknowledge from " . $child_obj->{object_name}) if $self->debuglevel(1, 'insteon');
 		return $$self{is_acknowledged};
 	} else {
 		return $self->SUPER::is_acknowledged($p_ack);
 	}
+}
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds}
+    );
+    if ($self->is_root){
+        %voice_cmds = (
+            %voice_cmds,
+            'sync all device links' => "$object_name->sync_all_links()",
+            'AUDIT sync all device links' => "$object_name->sync_all_links(1)"
+        );
+    }
+    return \%voice_cmds;
 }
 
 =back

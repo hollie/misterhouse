@@ -78,15 +78,15 @@ my $ImageFile = $Text . "_" . $Name;
 $ImageFile =~ s/^\$//;    # Drop leading blank on object name
 $ImageFile =~ s/ *$//;    # Drop trailing blanks
 $ImageFile =~ s/ /_/g;    # Blanks in file names are nasty
-$ImageFile = "/cache/$ImageFile.$ButtonType";
+$ImageFile = "/$ImageFile.$ButtonType";
 
 print "$ScriptName: Cache file should be $config_parms{data_dir}/$ImageFile\n" if $Debug{$ScriptName};
 
 # We hit the cache, so we give back the image and exit
-if ( -f "$config_parms{data_dir}/$ImageFile" ) {
-   print "$ScriptName: Hit cached file $config_parms{data_dir}/$ImageFile\n" if $Debug{$ScriptName};
-   my $data = file_read("$config_parms{data_dir}$ImageFile");
-   return &mime_header( $ImageFile, 1, length $data ) . $data;
+if ( -f "$config_parms{html_alias_cache}/$ImageFile" ) {
+   print "$ScriptName: Hit cached file $config_parms{html_alias_cache}/$ImageFile\n" if $Debug{$ScriptName};
+   my $data = file_read("$config_parms{html_alias_cache}$ImageFile");
+   return &mime_header( "/cache".$ImageFile, 1, length $data ) . $data;
 }
 print "$ScriptName: Cache file not found\n" if $Debug{$ScriptName};
 
@@ -306,13 +306,13 @@ if ($GDTemplate) {
    }
    my $ButtonFile = $GDTemplate->$ButtonType();
    if ( $ButtonOK ) {
-   print "$ScriptName: Writing button to cache: $config_parms{data_dir}/$ImageFile\n" if $Debug{$ScriptName};
-   file_write( "$config_parms{data_dir}/$ImageFile", $ButtonFile );
+   print "$ScriptName: Writing button to cache: $config_parms{html_alias_cache}/$ImageFile\n" if $Debug{$ScriptName};
+   file_write( "$config_parms{html_alias_cache}/$ImageFile", $ButtonFile );
    } else {
-   print "$ScriptName: Button $config_parms{data_dir}/$ImageFile not written to cache\n";
+   print "$ScriptName: Button $config_parms{html_alias_cache}/$ImageFile not written to cache\n";
    }
 
-   return &mime_header( $ImageFile, 1, length $ButtonFile ) . $ButtonFile;
+   return &mime_header( "/cache".$ImageFile, 1, length $ButtonFile ) . $ButtonFile;
 }
 else {
    print "$ScriptName: Error generating image\n";
