@@ -24,6 +24,7 @@ Create a pushover instance in the .mht file, or in user code:
 
 A user code file overriding parameters normally specified in mh.private.ini.   All of the parameters are optional if properly configured in the ini file.
 
+    use Pushover;
     my $push = new Pushover( {token => '1234qwer1234qewr1234qwer',
                               user =>  '2345wert2345wert2345qwer',
 			      title => 'Home Notification',
@@ -36,7 +37,7 @@ Any of the parameters provided when initializing the Pushover instance may also 
 provided on the message send.  They will be merged with and override the default
 values provided on initialization.   See the method documentation for below more details.
 
-  $push->send( "Some important message", { title => 'Security Alert', priority => 2 });
+  $push->notify( "Some important message", { title => 'Security Alert', priority => 2 });
 
 =head2 DESCRIPTION
 
@@ -88,14 +89,19 @@ Creates a new Pushover object. The parameter hash is optional.  Defaults will be
 
 B<This must be excluded from the primary misterhouse loop, or the acknowledgment checking and duplicate message rate limiting will be lost>
 
-  my $push = Pushover->new( {   priority => 0,            # Set default Message priority,  -1, 0, 1, 2
-  				retry    => 60,           # Set default retry priority 2 notification every 60 seconds
-				expire   => 3600,         # Set default expration of the retry timer 
-				title    => "Some title", # Set default title for messages
-			 	token    => "xxxx...",    # Set the API Token 
-				user     => "xxxx...",    # Set the target user or group id
-				speak	 => 1,		  # Enable or disable speak of notifications and acknowledgment
-				server   => "...",        # Override the Pushover server URL.  Defaults to the public pushover server
+  my $push = Pushover->new( {   priority  => 0,            # Set default Message priority,  -1, 0, 1, 2
+  				retry     => 60,           # Set default retry priority 2 notification every 60 seconds
+				expire    => 3600,         # Set default expration of the retry timer 
+				title     => "Some title", # Set default title for messages
+			 	token     => "xxxx...",    # Set the API Token 
+				user      => "xxxx...",    # Set the target user or group id
+				device    => "droid4",     # Set the target device (leaving this unset goes to all devices)
+				url       => "http://x..", # Set the URL
+				url_title => "A url",      # Set the title for the URL
+				timestamp => "1331249662", # Set the timestamp
+				sound     => "incoming",   # Set the sound to be played
+				speak	  => 1,		   # Enable or disable speak of notifications and acknowledgment
+				server    => "...",        # Override the Pushover server URL.  Defaults to the public pushover server
 				       });
 
 Any of these parameters may be specified in mh.private.ini by prefixing them with "Pushover_"
