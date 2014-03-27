@@ -107,6 +107,12 @@ See AD2_Partition
 
 See AD2_Item
 
+=head2 TODO
+
+- Add support for control of emulated zones on the AD2 device.  Would allow 
+MisterHouse to "communicate" with the alarm panel.  Perhaps to trigger an alarm
+if certain conditions are met.
+
 =head2 INHERITS
 
 L<Generic_Item>
@@ -851,19 +857,19 @@ sub DefineCmdMsg {
    my ($self) = @_;
    my $instance = $self->{instance};
    my %Return_Hash = (
-      "Disarm"                            => $Configuration{$instance."_user_master_code"}."1",
-      "ArmAway"                           => $Configuration{$instance."_user_master_code"}."2",
-      "ArmStay"                           => $Configuration{$instance."_user_master_code"}."3",
-      "ArmAwayMax"                        => $Configuration{$instance."_user_master_code"}."4",
-      "Test"                              => $Configuration{$instance."_user_master_code"}."5",
-      "Bypass"                            => $Configuration{$instance."_user_master_code"}."6#",
-      "ArmStayInstant"                    => $Configuration{$instance."_user_master_code"}."7",
-      "Code"                              => $Configuration{$instance."_user_master_code"}."8",
-      "Chime"                             => $Configuration{$instance."_user_master_code"}."9",
-      "ToggleVoice"                       => '#024',
-      "ShowFaults"                        => "*",
-      "AD2Reboot"                      => "=",
-      "AD2Configure"                   => "!"
+      "Disarm"          => $Configuration{$instance."_user_master_code"}."1",
+      "ArmAway"         => $Configuration{$instance."_user_master_code"}."2",
+      "ArmStay"         => $Configuration{$instance."_user_master_code"}."3",
+      "ArmAwayMax"      => $Configuration{$instance."_user_master_code"}."4",
+      "Test"            => $Configuration{$instance."_user_master_code"}."5",
+      "Bypass"          => $Configuration{$instance."_user_master_code"}."6#",
+      "ArmStayInstant"  => $Configuration{$instance."_user_master_code"}."7",
+      "Code"            => $Configuration{$instance."_user_master_code"}."8",
+      "Chime"           => $Configuration{$instance."_user_master_code"}."9",
+      "ToggleVoice"     => '#024',
+      "ShowFaults"      => "*",
+      "AD2Reboot"       => "=",
+      "AD2Configure"    => "!"
    );
 
    my $two_digit_zone;
@@ -895,6 +901,17 @@ sub DefineCmdMsg {
    }
 
    return \%Return_Hash;
+}
+
+sub output_cmd {
+   my ($self, $cmd, $output) = @_;
+   my $instance = $self->{instance};
+   if ($cmd =~ /start/i){
+      $Configuration{$instance."_user_master_code"}."#7$output";
+   }
+   else {
+      $Configuration{$instance."_user_master_code"}."#8$output";
+   }
 }
 
 =item C<debug_log()>
@@ -1203,6 +1220,9 @@ sub register {
    elsif ($object->isa('AD2_Partition')) {
       $self->{partition_object}{$num} = $object;
    }
+   elsif ($object->isa('AD2_Output')) {
+      $self->{output_object}{$num} = $object;
+   }
 }
 
 =item C<get_child_object_name($zone)>
@@ -1252,7 +1272,7 @@ hardwired zones this last item should be HARDWIRED.
 
 =head4 EXPANSION BOARDS
 
-For zones wired to an expansion board, the prefix EXP= should be used.  The 
+For zones wired to an expansion board, the prefix B<EXP=> should be used.  The 
 address is the expansion board id (2 digits, 0 padded if required) concatenated 
 with the expansion input number (2 digits, 0 padded if required) such as 0101 or
 1304.
@@ -1277,14 +1297,14 @@ programing a relay board and mapping zones to it.  Some alarm panels have limite
 capabilities when it comes to relays.  Specifically, you want to refer to section
 of your manual that discusses *80 programming.
 
-For hardwired zones mapped to a relay board, the prefix REL= should be used.  The 
+For hardwired zones mapped to a relay board, the prefix B<REL=> should be used.  The 
 address is the relay board id (2 digits, 0 padded if required) concatenated 
 with the relay output number (2 digits, 0 padded if required) such as 0101 or
 1304.
 
 =head4 WIRELESS DEVICES
 
-For wireless zones, the prefix RFX= should be used.  The address is the wireless
+For wireless zones, the prefix B<RFX=> should be used.  The address is the wireless
 ID (7 digits) followed by a period, the loop number, followed by a period, and the
 wireless device type.  All of this without any spaces.  The loop number need
 only be specified if it is not 1.  Generally, the loop number for most devices
@@ -1599,6 +1619,121 @@ sub set {
 			. $p_state . " for parition " . $self->get_object_name);
 		$$self{interface}->cmd($p_state);
 	}
+	else {
+	   $$self{interface}->set($p_state);   
+	}
+}
+
+=back
+
+=head1 B<AD2_Output>
+
+=head2 SYNOPSIS
+
+User code:
+
+    $desk_lamp = new AD2_Output('AD2', 01);
+
+See C<new()> for a more detailed description of the arguments.
+
+In mht file:
+
+	AD2_OUTPUT, desk_lamp, AD2, 01
+
+Wherein the format for the definition is:
+
+   AD2_OUTPUT, Object Name, AD2-Prefix, Output Number
+
+=head2 DESCRIPTION
+
+Provides support for creating MH-Style child objects for each output device.  
+These allow output devices to behave like Generic_Items.  For example, 
+Generic_Item subroutines such as C<tie_event> and C<get_idle_time> can be used
+with these devices.
+
+To use these, you must first create the appropriate AD2 Interface object.
+
+An output device is generally a relay, but it could be an X10 device, connected
+to the alarm panel.  The alarm panel can control the state of this relay.  See
+the *80 programming menu for your alarm panel for more details.
+
+Note: These relays are not to be confused with the emulated relays that are used
+to track the state of hardwired zones in some instances.
+
+=head3 Alarm Code
+
+See the note above above in the partition description regarding the use of the
+alarm code.
+
+If you elect not to store you alarm code in you ini file, you will need to
+set the code first and then call start/stop.  For Example:
+   
+   $desk_lamp->set("1234");
+   $desk_lamp->set("Start");
+
+
+=head2 INHERITS
+
+L<Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
+
+package AD2_Output;
+
+@AD2_Output::ISA = ('Generic_Item');
+
+=item C<new($interface,$output)>
+
+
+=cut
+
+sub new
+{
+   my ($class,$interface,$output) = @_;
+
+   my $self = new Generic_Item();
+   bless $self,$class;
+
+   $interface = AD2::get_object_by_instance($interface);
+   $$self{interface} = $interface;
+   $output = sprintf("%02d", $output);
+   $$self{output} = $output;
+   $interface->register($self,$output);
+   @{$$self{states}} = ('Start','Stop');
+   return $self;
+
+}
+
+=item C<set()>
+
+Sets the object's state.
+
+=cut
+
+sub set
+{
+   my ($self,$p_state,$p_setby) = @_;
+
+      if (ref $p_setby and $p_setby->can('get_set_by')) {
+         ::print_log("AD2_Output($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name} was set by " . $p_setby->get_set_by) if $main::Debug{AD2};
+      } else {
+         ::print_log("AD2_Output($$self{object_name})::set($p_state, $p_setby)") if $main::Debug{AD2};
+      }
+      my $reported_state;
+      if ($p_state =~ /^start/i || $p_state =~ /^stop/i) {
+         $reported_state = $p_state;
+         $$self{interface}->output_cmd($p_state, $$self{output});
+      } 
+      else {
+         $reported_state = '';
+         $$self{interface}->set($p_state); 
+      }
+
+      $self->SUPER::set($reported_state,$p_setby);
 }
 
 =back
