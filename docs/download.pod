@@ -9,13 +9,13 @@ modify the code/common/mh_release.pl file to search the new format!!
 
 =head1 Current Stable
 
-B<Version 3.0> - released on 06/20/2013
+B<Version 3.1> - released on 03/30/2014
 
 =over
 
 =item Linux, Windows and MacOS
 
-L<https://api.github.com/repos/hollie/misterhouse/zipball/v3.0>
+L<https://api.github.com/repos/hollie/misterhouse/zipball/v3.1>
 
 The Windows only compiled version of Misterhouse is sadly no longer supported.
 
@@ -27,7 +27,7 @@ A large (30MB) zip of optional files (mainly sound files) is here: L<http://mist
 
 =head1 Previous Stable
 
-B<Version 2.200> - released on 03/02/2012
+B<Version 3.0> - released on 06/20/2013
 
 =over
 
@@ -36,7 +36,7 @@ B<Version 2.200> - released on 03/02/2012
 =begin HTML
 
 <strong>
-<a href='https://api.github.com/repos/hollie/misterhouse/zipball/v2.200' target='_blank'>https://api.github.com/repos/hollie/misterhouse/zipball/v2.200</a>
+<a href='https://api.github.com/repos/hollie/misterhouse/zipball/v3.0' target='_blank'>https://api.github.com/repos/hollie/misterhouse/zipball/v3.0</a>
 </strong>
 
 =end HTML
