@@ -207,8 +207,8 @@ sub read_parms{
       if ($mkey =~ /^${instance}_wireless_(.*)/){
          if (index($::config_parms{$mkey}, ',') <= 0){
             #Supports new style ini parameter, wherein each zone is a separate entry:
-            #AD2_wireless_[RF_ID],[LOOP],[TYPE]=[ZONE] such as:
-            #AD2_wireless_1234567,1,k=10
+            #AD2_wireless_[RF_ID].[LOOP].[TYPE]=[ZONE] such as:
+            #AD2_wireless_1234567.1.k=10
             $$self{wireless}{$1} = $::config_parms{$mkey};
          }
          else {
@@ -224,7 +224,7 @@ sub read_parms{
                }
                else {
                   my ($sensortype, $ZoneLoop) = split("", $wnum);
-                  $$self{wireless}{"$rf_id,$ZoneLoop,$sensortype"} 
+                  $$self{wireless}{"$rf_id.$ZoneLoop.$sensortype"} 
                      = $ZoneNum;
                }
                $lc++;
@@ -340,8 +340,16 @@ sub check_for_data {
    # Clear Zone and Partition_Now Function
    $self->{zone_now} = ();
    $self->{partition_now} = ();
+   
+   # Reset any wireless keyfobs to ready
+   foreach my $rf_key (keys %{$$self{wireless}}){
+      if ($rf_key =~ /.*\..*\.k/i) {
+         $self->ChangeZones( int($$self{wireless}{$rf_key}), 
+            int($$self{wireless}{$rf_key}), "ready", "", 1); 
+      }
+   }
 
-   # Get the date from serial or tcp source
+   # Get the data from serial or tcp source
    if ($connecttype eq 'serial') {
       &main::check_for_generic_serial_data($instance);
       $NewCmd = $main::Serial_Ports{$instance}{data};
@@ -478,10 +486,10 @@ sub CheckCmd {
          .")" );
 
       foreach my $rf_key (keys %{$$self{wireless}}){
-         if ($rf_key =~ /^${rf_id}(.*)/) {
+         if ($rf_key =~ /^${rf_id}\.?(.*)/) {
             my $LoopNum = 1;
             my $SensorType = 's';
-            ($LoopNum, $SensorType) = split(',', $1);
+            ($LoopNum, $SensorType) = split('.', $1);
             my $ZoneNum = $$self{wireless}{$rf_key};
 
             my $ZoneStatus = "ready";
@@ -493,9 +501,6 @@ sub CheckCmd {
             }
 
             $self->ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
-            $self->ChangeZones( int($ZoneNum), int($ZoneNum), "ready", "", 1) 
-               if ($SensorType eq "k"); #Toggle key buttons back to ready 
-               #Not sure this works, set functions are called per loop
          }
       }
    }
@@ -1231,7 +1236,7 @@ In mht file:
 	AD2_DOOR_ITEM, back_door, AD2, 4, 1, HARDWIRED
 	AD2_DOOR_ITEM, front_door, AD2, 5, 1, EXP=0101
 	AD2_MOTION_ITEM, upstairs_motion, AD2, 6, 1, REL=1301
-	AD2_GENERIC_ITEM, generic_zone, AD2, 7, 1, RFX=0014936,4,k
+	AD2_GENERIC_ITEM, generic_zone, AD2, 7, 1, RFX=0014936.4.k
 
 Wherein the format for the definition is:
 
@@ -1280,16 +1285,16 @@ with the relay output number (2 digits, 0 padded if required) such as 0101 or
 =head4 WIRELESS DEVICES
 
 For wireless zones, the prefix RFX= should be used.  The address is the wireless
-ID (7 digits) followed by a comma, the loop number, followed by a comma, and the
+ID (7 digits) followed by a period, the loop number, followed by a period, and the
 wireless device type.  All of this without any spaces.  The loop number need
 only be specified if it is not 1.  Generally, the loop number for most devices
 is 1.  Similarly, the device type need only be specified if the wireless device
 is a keypad, in which case the type is the letter k.  The following are valid
 wireless addresses:
 
-	RFX=0014936,4,k
+	RFX=0014936.4.k
 	RFX=0101538
-	RFX=5848878,1,k
+	RFX=5848878.1.k
 
 =head2 DESCRIPTION
 
@@ -1333,10 +1338,10 @@ $expander  = If not null, the expander address that the zone is mapped to.
 $relay     = If not null, the relay address that the zone is mapped to.
 
 $wireless  = If not null, the wireless address that the zone is mapped to in the
-form of [RF_ID],[LOOP],[TYPE].
+form of [RF_ID].[LOOP].[TYPE].
 
-The wireless address is the wireless ID (7 digits) followed by a comma, the 
-loop number, followed by a comma, and the wireless device type.  All of this 
+The wireless address is the wireless ID (7 digits) followed by a period, the 
+loop number, followed by a period, and the wireless device type.  All of this 
 without any spaces.  The loop number need only be specified if it is not 1.  
 Generally, the loop number for most devices is 1.  Similarly, the device type 
 need only be specified if the wireless device is a keypad, in which case the 
