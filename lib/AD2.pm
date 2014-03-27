@@ -354,7 +354,7 @@ sub check_for_data {
       } else {
          # restart the TCP connection if its lost.
          if ($Socket_Items{$instance}{recon_timer}->inactive) {
-            &main::print_log("Connection to $instance instance of AD2 was lost, I will try to reconnect in $$self{reconnect_time} seconds");
+            ::print_log("Connection to $instance instance of AD2 was lost, I will try to reconnect in $$self{reconnect_time} seconds");
             # ::logit("AD2.pm ser2sock connection lost! Trying to reconnect." );
             $Socket_Items{$instance}{recon_timer}->set($$self{reconnect_time}, sub {
                $Socket_Items{$instance}{'socket'}->start;
@@ -937,9 +937,10 @@ sub is_zone_mapped {
 
 =item C<cmd()>
 
-Used to send commands to the Interface.
+Older method used to send commands to the Interface.
 
-Needs work.
+Has potential security flaws.  It certainly allows for a brute force attack
+to identify the Master Code.  Potentially other flaws too.
 
 =cut
 
@@ -983,6 +984,40 @@ sub cmd {
       $main::Serial_Ports{$instance}{'socket'}->write("$CmdStr");
    }
    return "Sending to ADEMCO panel: $CmdName ($cmd)";
+}
+
+=item C<set()>
+
+Used to send commands to the interface.
+
+=cut
+
+sub set {
+   my ($self, $p_state, $p_setby, $p_response) = @_;
+   my $instance = $$self{instance};
+   $p_state = lc($p_state);
+   my $cmd = ( exists $self->{CmdMsg}->{$p_state} ) ? $self->{CmdMsg}->{$p_state} : $p_state;
+
+   $self->debug_log(">>> Sending to ADEMCO panel              $p_state ($cmd)");
+   $self->{keys_sent} = $self->{keys_sent} + length($cmd);
+   if (defined $Socket_Items{$instance}) {
+      if ($Socket_Items{$instance . '_sender'}{'socket'}->active) {
+         $Socket_Items{$instance . '_sender'}{'socket'}->set("$cmd");
+      } else {
+         # restart the TCP connection if its lost.
+         if ($Socket_Items{$instance}{recon_timer}->inactive) {
+            ::print_log("Connection to $instance sending instance of AD2 was lost, I will try to reconnect in $$self{reconnect_time} seconds");
+            $Socket_Items{$instance}{recon_timer}->set($$self{reconnect_time}, sub {
+               $Socket_Items{$instance . '_sender'}{'socket'}->start;
+               $Socket_Items{$instance . '_sender'}{'socket'}->set("$cmd");
+            });
+         }
+      }
+   }
+   else {
+      $main::Serial_Ports{$instance}{'socket'}->write("$cmd");
+   }
+   return;
 }
 
 =item C<status_zone($zone)>
@@ -1461,6 +1496,48 @@ The Partition is used primarily as a stand in for the alarm panel.  The
 Partition object is used to arm/disarm the panel as well as to check on the 
 agregate state of all of the zones that are within this partition.
 
+The partition object can be set to:
+        
+      Disarm            - Disarm the system
+      ArmAway           - Arm the entire system with an exit delay
+      ArmStay           - Arm the perimeter with an exit delay
+      ArmAwayMax        - Arm entire system with NO delay
+      Test              - Places the system into the test mode
+      Bypass            - Bypass or exclude specific zones from arming
+      ArmStayInstant    - Arm the perimeter with NO delay
+      Code              - Used to program alarm including codes
+      Chime             - Turns the the audible fault notification on/off
+      ToggleVoice       - Turns on/off the audible voice if available
+
+All of the above commands require an alarm code except for the ToggleVoice
+command.
+
+=head3 Use of Alarm Code
+
+You have two options for entering your alarm code.  B<First>, you can preprogram
+your alarm code into you ini file using the following parameter:
+        
+        AD2_user_master_code=1234
+
+Where, AD2 is your AD2-Prefix.  If you elect to use this system, the above
+commands can be run by anyone with access to your MisterHouse installation.
+You will not be required to enter your alarm code again.  This includes the
+ability to disarm the system.  Obviously, only elect this design if you are
+comfortable with the security of your MisterHouse installation.
+
+Note: In the future, it may be possible to use a secondary code that allows for the
+arming of the system, but not disarming.  This would slightly decrease the
+security risk, but would still create a "harassment" risk in that if your
+MisterHouse installation is hacked, your alarm could easily be triggered.
+
+B<Second> if you do not place your alarm code in your ini file, you must then
+set your alarm code before setting any of the above states.  For example:
+        
+        $partition_1->set("1234");
+        $partition_1->set("Disarm");
+
+These commands must be sent within 4-5 seconds of each other.
+
 =head2 INHERITS
 
 L<Generic_Item>
@@ -1498,9 +1575,26 @@ sub new
    $interface = AD2::get_object_by_instance($interface);
    $$interface{partition_address}{$partition} = $address;
    $interface->register($self,$partition);
+   $$self{interface} = $interface;
+   @{$$self{states}} = ('Disarm', 'ArmAway','ArmStay','ArmAwayMax','Test','Bypass',
+        'ArmStayInstant','Code','Chime','ToggleVoice');
    return $self;
 }
 
+sub set {
+    my ($self, $p_state, $p_setby, $p_response) = @_;
+	my $found_state = 0;
+	foreach my $test_state (@{$$self{states}}){
+		if (lc($test_state) eq lc($p_state)){
+			$found_state = 1;
+		}
+	}
+	if ($found_state){
+		::print_log("[AD2::Partition] Received request to "
+			. $p_state . " for parition " . $self->get_object_name);
+		$$self{interface}->cmd($p_state);
+	}
+}
 
 =back
 
