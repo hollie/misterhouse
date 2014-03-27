@@ -310,19 +310,17 @@ sub queue_message
 	if (defined $message)
 	{
         	my $setby = $message->setby;
-		if ($self->_is_duplicate($message->interface_data) && !($message->isa('Insteon::X10Message')))
-                {
-			&main::print_log("[Insteon::BaseInterface] Attempt to queue command already in queue; skipping ...") if $self->debuglevel(1, 'insteon');
+		if ($self->_is_duplicate($message->interface_data) 
+		        && !($message->isa('Insteon::X10Message'))){
+			::print_log("[Insteon::BaseInterface] WARN queuing a ".
+			        "duplicate command already in queue.") 
+			        if $self->debuglevel(1, 'insteon');
 		}
-                else
-                {
-			if ($setby and ref($setby) and $setby->can('set_retry_timeout')
-                           and $setby->get_object_name)
-                        {
-				$message->callback($setby->get_object_name . "->set_retry_timeout()");
-			}
-			unshift(@{$$self{command_stack2}}, $message);
+		if ($setby and ref($setby) and $setby->can('set_retry_timeout')
+                   and $setby->get_object_name) {
+			$message->callback($setby->get_object_name . "->set_retry_timeout()");
 		}
+		unshift(@{$$self{command_stack2}}, $message);
 	}
         # and, begin processing either this entry or the oldest one in the queue
         $self->process_queue();
