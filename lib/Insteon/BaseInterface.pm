@@ -380,7 +380,7 @@ sub process_queue
                                        	$failed_message->setby->fail_count_log(1) 
                                        		if $failed_message->setby->can('fail_count_log');
 				}
-				else
+				elsif (!$failed_message->isa('Insteon::X10Message'))
 				{
 					&main::print_log("[Insteon::BaseInterface] WARN! Unable to clear acknowledge for "
 						. ((defined($failed_message->setby)) ? $failed_message->setby->get_object_name : "undefined"));

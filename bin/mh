@@ -6714,11 +6714,16 @@ sub x10_dim_level_decode {
     return $level_p;
 }
 
+sub log_inc {
+        print_log('Perl @INC contains: ' . join(", ",@INC));
+}
+
 #---------------------------------------------------------------------------
 
                                 # Lets do it.  Note, we put this at the bottom so
                                 # we can delare global arrays like %table_hcodes and %table_month
 &setup;
+&log_inc;
 &read_code;                     # Load all menus
 &monitor_commands;
 
