@@ -5,7 +5,7 @@ use Telephony_Item;
 package Telephony_Interface;
 @Telephony_Interface::ISA = ('Telephony_Item');
 
-my ($hooks_added, @list_ports, %list_objects, %type_by_port, %caller_id_data);
+my ($hooks_added, @list_ports, %list_objects, %type_by_port, %caller_id_data, $cid_server_connect);
 
 # US Robotics 56k Voice model 0525 -> rockewell
 
@@ -16,7 +16,8 @@ my %table = (default     => ['ATE1V1X4&C1&D2S0=0+VCID=1',          38400, 'dtr']
              supra       => ['ats0=0#cid=1',                       38400, 'dtr'],
              cirruslogic => ['ats0=0+vcid=1',                      38400, 'dtr'],
              zyxel       => ['ATE1V1S40.2=1S41.6=1S42.2=1&L1M3N1', 38400, 'dtr'],
-             netcallerid => ['', 4800, '']);
+             netcallerid => ['', 4800, ''],
+             ncid        => ['', 0, '']);
 
 sub new {
     my ($class, $name, $port, $type)= @_;
@@ -56,21 +57,33 @@ sub open_port {
     my $name =    $$self{name};
     my $type = lc $$self{type};
     my $port =    $$self{port};
-    return if $main::Serial_Ports{$name}; # Already open
-    push @list_ports, $name;
-    $type_by_port{$name} = $type;
-    my $baudrate  = 38400;
-    my $handshake = 'dtr';
-    if ($table{$type}) {
-        $baudrate  = $table{$type}[1];
-        $handshake = $table{$type}[2];
+    if ($port =~ /.*:\d*/) {
+        # This is a hostname/IP:port, so open a Socket_Item instead
+        return if $main::Socket_Ports{$name}; # Already open
+        print "Telephony_Interface port open:  n=$name t=$type p=$port\n"
+          if $main::Debug{phone};
+        $cid_server_connect = new Socket_Item( undef, undef, $port, $name, 'tcp', 'record');
+        start $cid_server_connect;
+        $type_by_port{$name} = $type;
+        push @list_ports, $name;
     }
-    print "Telephony_Interface port open:  n=$name t=$type p=$port b=$baudrate h=$handshake\n"
-      if $main::Debug{phone};
-    if ($port) {
-        &::serial_port_create($name, $port, $baudrate, $handshake);
-        push(@::Generic_Serial_Ports, $name);
-        &init unless $port =~ /proxy/;
+    else {
+        return if $main::Serial_Ports{$name}; # Already open
+        push @list_ports, $name;
+        $type_by_port{$name} = $type;
+        my $baudrate  = 38400;
+        my $handshake = 'dtr';
+        if ($table{$type}) {
+            $baudrate  = $table{$type}[1];
+            $handshake = $table{$type}[2];
+        }
+        print "Telephony_Interface port open:  n=$name t=$type p=$port b=$baudrate h=$handshake\n"
+          if $main::Debug{phone};
+        if ($port) {
+            &::serial_port_create($name, $port, $baudrate, $handshake);
+            push(@::Generic_Serial_Ports, $name);
+            &init unless $port =~ /proxy/;
+        }
     }
 }
 
@@ -90,7 +103,17 @@ sub reload_reset {
 
 sub check_for_data {
     for my $port (@list_ports) {
-        if (my $data = $main::Serial_Ports{$port}{data_record}) {
+        if ($cid_server_connect && (my $data = said $cid_server_connect)) {
+            print "Phone data: $data.\n" if $main::Debug{phone};
+            if ($data =~ /^CID:/) { 
+                &::print_log("Callerid: $data");
+                &process_cid_data($port, $data);
+            }
+            else {
+                &process_phone_data($port, 'ring') if $data =~ /ring/i;
+            }
+        }
+        elsif (my $data = $main::Serial_Ports{$port}{data_record}) {
             $main::Serial_Ports{$port}{data_record} = undef;
                                 # Ignore garbage data (ascii is between ! thru ~)
             $data = '' if $data !~ /^[\n\r\t !-~]+$/;
@@ -151,10 +174,14 @@ sub process_cid_data {
         ($name)                        = $data =~ /NAME(.*?)\++$/ unless $date;
         ($number)                      = $data =~ /NMBR(.+)\.{3}/ unless $name;
     }
+# Old NCID format
 # NCID data=CID:*DATE*10202003*TIME*0019*NMBR*2125551212*MESG*NONE*NAME*INFORMATION*
+# New NCID format
+# NCID data=CID: *DATE*03272014*TIME*1734*LINE*1234*NMBR*2125551212*MESG*NONE*NAME*OUT-OF-AREA*
 # http://ncid.sourceforge.net/
     elsif ($type eq 'ncid') {
-        ($date, $time, $number, $name) = $data =~/CID:\*DATE\*(\d{8})\*TIME\*(\d{4})\*NMBR\*(\d{10})\*MESG\*.*\*NAME\*([^\*]+)\*$/;
+        ($date, $time, $number, $name) = $data =~/CID:\s\*DATE\*(\d{8})\*TIME\*(\d{4})\*LINE\*[^\*]+\*NMBR\*(\d*)\*MESG\*.*\*NAME\*([^\*]+)\*$/;
+        print "Phone NCID: date='$date', time='$time', number='$number', name='$name'.\n" if $main::Debug{phone};
     }
     elsif ($type eq 'zyxel'or $type eq 'motorola') {
         ($date)   = $data =~ /TIME: *(\S+)\s\S+/s;
