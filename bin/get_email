@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 # -*- Perl -*-
 #---------------------------------------------------------------------------
 #  File:
@@ -11,6 +11,8 @@
 #      http://misterhouse.net/mh/bin/get_email
 #  Change log:
 #    03/26/99  Created.
+#  Notes: 
+#    check required modules in lib/imap_utils.pl
 #
 #  This software is licensed under the terms of the GNU public license.
 #  Copyright 1999 Bruce Winter
