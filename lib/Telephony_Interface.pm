@@ -60,7 +60,7 @@ sub open_port {
     if ($port =~ /.*:\d*/) {
         # This is a hostname/IP:port, so open a Socket_Item instead
         return if $main::Socket_Ports{$name}; # Already open
-        print "Telephony_Interface port open:  n=$name t=$type p=$port\n"
+        &::print_log("Telephony_Interface port open:  n=$name t=$type p=$port")
           if $main::Debug{phone};
         $cid_server_connect = new Socket_Item( undef, undef, $port, $name, 'tcp', 'record');
         start $cid_server_connect;
@@ -77,7 +77,7 @@ sub open_port {
             $baudrate  = $table{$type}[1];
             $handshake = $table{$type}[2];
         }
-        print "Telephony_Interface port open:  n=$name t=$type p=$port b=$baudrate h=$handshake\n"
+        &::print_log("Telephony_Interface port open:  n=$name t=$type p=$port b=$baudrate h=$handshake")
           if $main::Debug{phone};
         if ($port) {
             &::serial_port_create($name, $port, $baudrate, $handshake);
@@ -104,7 +104,7 @@ sub reload_reset {
 sub check_for_data {
     for my $port (@list_ports) {
         if ($cid_server_connect && (my $data = said $cid_server_connect)) {
-            print "Phone data: $data.\n" if $main::Debug{phone};
+            &::print_log("Phone data: $data.") if $main::Debug{phone};
             if ($data =~ /^CID:/) { 
                 &::print_log("Callerid: $data");
                 &process_cid_data($port, $data);
@@ -118,7 +118,7 @@ sub check_for_data {
                                 # Ignore garbage data (ascii is between ! thru ~)
             $data = '' if $data !~ /^[\n\r\t !-~]+$/;
             $caller_id_data{$port} .= ' ' . $data;
-            print "Phone data: $data.\n" if $main::Debug{phone};
+            &::print_log("Phone data: $data.") if $main::Debug{phone};
             if (($caller_id_data{$port} =~ /NAME.+NU?MBE?R/s) or
                 ($caller_id_data{$port} =~ /NU?MBE?R.+NAME/s) or
                 ($caller_id_data{$port} =~ /NU?MBE?R.+MESG/s) or
@@ -141,7 +141,7 @@ sub process_phone_data {
     my ($port, $data) = @_;
                                 # Set all objects monitoring this port
     for my $object(@{$list_objects{$port}}) {
-        print "Setting Telephony_Interface object $$object{name} to $data.\n";
+        &::print_log("Setting Telephony_Interface object $$object{name} to $data.");
         $object->SUPER::set('ring') if $data eq 'ring';
 		$object->ring_count($object->ring_count()+1);  # Where/when does this get reset??
     }
@@ -181,7 +181,7 @@ sub process_cid_data {
 # http://ncid.sourceforge.net/
     elsif ($type eq 'ncid') {
         ($date, $time, $number, $name) = $data =~/CID:\s\*DATE\*(\d{8})\*TIME\*(\d{4})\*LINE\*[^\*]+\*NMBR\*(\d*)\*MESG\*.*\*NAME\*([^\*]+)\*$/;
-        print "Phone NCID: date='$date', time='$time', number='$number', name='$name'.\n" if $main::Debug{phone};
+        &::print_log("Phone NCID: date='$date', time='$time', number='$number', name='$name'.") if $main::Debug{phone};
     }
     elsif ($type eq 'zyxel'or $type eq 'motorola') {
         ($date)   = $data =~ /TIME: *(\S+)\s\S+/s;
@@ -211,7 +211,7 @@ sub process_cid_data {
     $number = '' unless $number;
 
     unless ($name or $number) {
-        print "\nCallerid data not parsed: p=$port t=$type d=$data date=$date time=$time number=$number name=$name\n";
+        &::print_log("Callerid data not parsed: p=$port t=$type d=$data date=$date time=$time number=$number name=$name");
         return;
     }
 
@@ -230,9 +230,10 @@ sub process_cid_data {
     $cid_type = 'N' if $number =~ /^[\d\- ]+$/;	  # Override the type if the number is known
 
 
-    print "Callerid data: port=$port type=$type cid_type=$cid_type name=$name number=$number date=$date time=$time\n   data=$data.\n"
-      if $main::Debug{phone};
-
+    if ($main::Debug{phone}) {
+        &::print_log("Callerid data1: port=$port type=$type cid_type=$cid_type name=$name number=$number date=$date time=$time");
+        &::print_log("Callerid data2: data=$data.");
+    }
                                 # Set all objects monitoring this port
     for my $object(@{$list_objects{$port}}) {
         $object->address($port);
