@@ -229,19 +229,18 @@ sub get_pump_enabled() {
    return $$self{'pump_enabled'};
 }
 
-=item C<get_timers()>
+=item C<get_timers([0-4])>
 
-Sends a request to the device asking for it to respond with the current timers. 
-It does not appear that there is code to interpret the response provided by the 
-device.
+Sends a request to the device asking for it to respond with the times for the
+specified program.  Program 0 is the default/manual timer. 
 
 =cut
 
 sub get_timers() {
-   my ($self) = @_;
+   my ($self, $program) = @_;
    my $cmd = 'sprinkler_timers_request';
-   my $subcmd = 0x1;
-   my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, $cmd, $subcmd);
+   my $subcmd = sprintf("%02X", $program);
+   my $message = new Insteon::InsteonMessage('insteon_send', $self, $cmd, $subcmd);
    $self->_send_cmd($message);
    return;
 }
@@ -271,7 +270,7 @@ sub _is_info_request {
       $$self{'valve_is_running'} = ($val >> 7) & 1;
       &::print_log("[Insteon::Irrigation] active_valve_id: $$self{'active_valve_id'},"
         . " valve_is_running: $$self{'valve_is_running'}, active_program: $$self{'active_program_number'},"
-        . " program_is_running: $$self{'program_is_running'}, pump_enabled: $$self{'pump_enabled'}") if $self->debuglevel(1, 'insteon');
+        . " program_is_running: $$self{'program_is_running'}, pump_enabled: $$self{'pump_enabled'}");
    }
    else {
       #Check if this was a generic info_request
@@ -279,6 +278,52 @@ sub _is_info_request {
    }
    return $is_info_request;
 
+}
+
+=item C<_process_message()>
+
+Handles incoming messages from the device which are unique to this device, 
+specifically this handles the C<get_timers()> response for the device, 
+all other responses are handed off to the C<Insteon::BaseObject::_process_message()>.
+
+=cut
+
+sub _process_message {
+	my ($self,$p_setby,%msg) = @_;
+	my $clear_message = 0;
+	my $pending_cmd = ($$self{_prior_msg}) ? $$self{_prior_msg}->command : $msg{command};
+	my $ack_setby = (ref $$self{m_status_request_pending}) ? $$self{m_status_request_pending} : $p_setby;
+	if ($msg{is_ack} && $self->_is_info_request($pending_cmd,$ack_setby,%msg)) {
+		$clear_message = 1;
+		$$self{m_status_request_pending} = 0;
+		$self->_process_command_stack(%msg);
+	}
+	# The device uses cmd 0x41 differently depending on STD or EXT Msgs
+	elsif ($msg{command} eq "sprinkler_valve_off" && $msg{is_extended}) {
+    	my $program = substr($msg{extra},0,2);
+        my $timer_1 = hex(substr($msg{extra},2,2));
+        my $timer_2 = hex(substr($msg{extra},4,2));
+        my $timer_3 = hex(substr($msg{extra},6,2));
+        my $timer_4 = hex(substr($msg{extra},8,2));
+        my $timer_5 = hex(substr($msg{extra},10,2));
+        my $timer_6 = hex(substr($msg{extra},12,2));
+        my $timer_7 = hex(substr($msg{extra},14,2));
+        my $timer_8 = hex(substr($msg{extra},16,2));
+
+        #Print Resulting Message
+        ::print_log("[Insteon::Irrigation] The Timers for Program $program are"
+            ." as follows:\n Valve 1 = $timer_1\n Valve 2 = $timer_2\n"
+            ." Valve 3 = $timer_3\n Valve 4 = $timer_4\n Valve 5 = $timer_5\n"
+            ." Valve 6 = $timer_6\n Valve 7 = $timer_7\n Valve 8 = $timer_8");
+
+		#Clear message from message queue
+		$clear_message = 1;
+        $self->_process_command_stack(%msg);
+	}
+	else {
+		$clear_message = $self->SUPER::_process_message($p_setby,%msg);
+	}
+	return $clear_message;
 }
 
 =back
