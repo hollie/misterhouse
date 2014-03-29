@@ -145,7 +145,7 @@ sub set_valve {
 =item C<set_program(program_id, proggram_state)>
 
 Used to directly control programs.  Program_id is a two digit number 00-03, 
-valve_state may be on or off.
+proggram_state may be on or off.
 
 =cut
 
