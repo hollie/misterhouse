@@ -90,8 +90,11 @@ sub new {
    $$self{program_is_running} = undef;
    $$self{pump_enabled} = undef;
    $$self{valve_is_running} = undef;
-   $self->restore_data('active_valve_id', 'active_program_number', 'program_is_running', 'pump_enabled', 'valve_is_running');
+   $self->restore_data('active_valve_id', 'active_program_number', 
+    'program_is_running', 'pump_enabled', 'valve_is_running', 'timer_0',
+    'timer_1', 'timer_2', 'timer_3', 'timer_4');
    $$self{message_types} = \%message_types;
+   $$self{status_timer} = new Timer;
    return $self;
 }
 
@@ -229,15 +232,21 @@ sub get_pump_enabled() {
    return $$self{'pump_enabled'};
 }
 
-=item C<get_timers([0-4])>
+=item C<get_timers()>
 
 Sends a request to the device asking for it to respond with the times for the
-specified program.  Program 0 is the default/manual timer. 
+all programs.  The times are then cached in MisterHouse.
+
+The EZFlora does not update MisterHouse when a timer has expired.  As a result,
+MisterHouse has to query the device to periodically determine what is going on.
+If MisterHouse has an understanding of the timers, it can query the device at
+the proper times.
 
 =cut
 
 sub get_timers() {
    my ($self, $program) = @_;
+   $program = 0 unless (defined $program);
    my $cmd = 'sprinkler_timers_request';
    my $subcmd = sprintf("%02X", $program);
    my $message = new Insteon::InsteonMessage('insteon_send', $self, $cmd, $subcmd);
@@ -296,7 +305,6 @@ sub _is_info_request {
         or $cmd eq 'sprinkler_program_off') {
       $is_info_request = 1;
       my $val = hex($msg{extra});
-      &::print_log("[Insteon::Irrigation] Processing data for $cmd with value: $val") if $self->debuglevel(1, 'insteon');
       $$self{'active_valve_id'} = ($val & 7) + 1;
       $$self{'active_program_number'} = (($val >> 3) & 3) + 1;
       $$self{'program_is_running'} = ($val >> 5) & 1;
@@ -305,6 +313,19 @@ sub _is_info_request {
       &::print_log("[Insteon::Irrigation] active_valve_id: $$self{'active_valve_id'},"
         . " valve_is_running: $$self{'valve_is_running'}, active_program: $$self{'active_program_number'},"
         . " program_is_running: $$self{'program_is_running'}, pump_enabled: $$self{'pump_enabled'}");
+        
+      # Set a timer to check the status of the device after we expect the timer
+      # for the current valve to run out.
+      if ($$self{'valve_is_running'} && $$self{status_timer}->inactive){
+          my $action = $self->get_object_name . "->request_status()";
+          my $program = 0;
+          $program = $$self{'active_program_number'} 
+            if ($$self{'program_is_running'});
+          my $time = $self->_valve_timer($program,
+            $$self{'active_valve_id'});
+          $time = ($time * 60) + 5; #Add 5 seconds to allow things to happen.
+          $$self{status_timer}->set($time,$action);
+      }
    }
    else {
       #Check if this was a generic info_request
@@ -334,22 +355,31 @@ sub _process_message {
 	}
 	# The device uses cmd 0x41 differently depending on STD or EXT Msgs
 	elsif ($msg{command} eq "sprinkler_valve_off" && $msg{is_extended}) {
-    	my $program = substr($msg{extra},0,2);
-        my $timer_1 = hex(substr($msg{extra},2,2));
-        my $timer_2 = hex(substr($msg{extra},4,2));
-        my $timer_3 = hex(substr($msg{extra},6,2));
-        my $timer_4 = hex(substr($msg{extra},8,2));
-        my $timer_5 = hex(substr($msg{extra},10,2));
-        my $timer_6 = hex(substr($msg{extra},12,2));
-        my $timer_7 = hex(substr($msg{extra},14,2));
-        my $timer_8 = hex(substr($msg{extra},16,2));
-
-        #Print Resulting Message
-        ::print_log("[Insteon::Irrigation] The Timers for Program $program are"
-            ." as follows:\n Valve 1 = $timer_1\n Valve 2 = $timer_2\n"
-            ." Valve 3 = $timer_3\n Valve 4 = $timer_4\n Valve 5 = $timer_5\n"
-            ." Valve 6 = $timer_6\n Valve 7 = $timer_7\n Valve 8 = $timer_8");
-
+    	my $program = hex(substr($msg{extra},0,2));
+    	for (my $i; $i<= 8; $i++){
+    	    my $time = hex(substr($msg{extra},$i*2,2));
+    	    $self->_valve_timer($program, $i, $time);
+    	}
+        
+        if ($program < 4){
+            $self->get_timers($program+1);
+        }
+        else {
+            my $output = "[Insteon::Irrigation] The timers for " 
+                . $self->get_object_name . " are:\n";
+                $output .= "      Program 0:      Program 1:      Program 2:      ".
+                    "Program 3:      Program 4:\n";
+            for (my $i_v = 0; $i_v <= 8; $i_v++){
+                $output .= '  ';
+                for (my $i_p = 0; $i_p <= 4; $i_p++){
+                    $output .= "     Valve $i_v:" . 
+                        sprintf("% 3d", $self->_valve_timer($i_p, $i_v, ));
+                }
+                $output .= "\n";
+            }
+            ::print_log($output);
+        }
+        
 		#Clear message from message queue
 		$clear_message = 1;
         $self->_process_command_stack(%msg);
@@ -358,6 +388,18 @@ sub _process_message {
 		$clear_message = $self->SUPER::_process_message($p_setby,%msg);
 	}
 	return $clear_message;
+}
+
+
+# Used to store and retreive the valve times
+sub _valve_timer {
+    my ($self, $program, $valve, $time) = @_;
+    if (defined $time){
+        # Not the ideal way to store this, but restore_data can't handle hashes
+    	# or arrays. So we store the times in a string similar to the msg payload.
+    	substr($$self{'timer_' . $program},(($valve-1)*3),3) = sprintf("%03d", $time);
+    }
+    return int(substr($$self{'timer_' . $program},(($valve-1)*3),3));
 }
 
 =item C<enable_pump(boolean)>
