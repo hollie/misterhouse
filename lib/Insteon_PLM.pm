@@ -965,8 +965,8 @@ sub _parse_data {
         		::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($data)) 
                                 if $self->debuglevel(4, 'insteon');
         	        
-        		$self->device_id(substr($data,0,6));
-        		$self->firmware(substr($data,10,2));
+        		$self->device_id(substr($data,4,6));
+        		$self->firmware(substr($data,14,2));
                         $self->on_interface_info_received();
                         
                         $data = substr($data, 18);
