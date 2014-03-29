@@ -63,7 +63,6 @@ package Insteon::Irrigation;
 
 our %message_types = (
 	%Insteon::BaseDevice::message_types,
-	sprinkler_status => 0x27,
 	sprinkler_control => 0x44,
 	sprinkler_valve_on => 0x40,
 	sprinkler_valve_off => 0x41,
@@ -260,8 +259,7 @@ sub _is_info_request {
         or $cmd eq 'sprinkler_valve_on'
         or $cmd eq 'sprinkler_valve_off'
         or $cmd eq 'sprinkler_program_on'
-        or $cmd eq 'sprinkler_program_off',
-        or $cmd eq 'sprinkler_status') {
+        or $cmd eq 'sprinkler_program_off') {
       $is_info_request = 1;
       my $val = hex($msg{extra});
       &::print_log("[Insteon::Irrigation] Processing data for $cmd with value: $val") if $self->debuglevel(1, 'insteon');
@@ -345,30 +343,6 @@ sub enable_pump {
    }
    else {
        ::print_log("[Insteon::Irrigation] Setting valve 8 to act as regular valve.");
-   }
-   my $message = new Insteon::InsteonMessage('insteon_send', $self, 'sprinkler_control', $subcmd);
-   $self->_send_cmd($message);
-   return;
-}
-
-=item C<enable_status(boolean)>
-
-If set to true, this will cause the device to send a status message whenever
-a valve changes status during a program.  If not set, MH will not be informed
-of the status of each of the valves during a program.  It is HIGHLY recommended 
-that you enable this feature.
-
-=cut
-
-sub enable_status {
-   my ($self, $enable) = @_;
-   my $subcmd = '0A';
-   if ($enable){
-       $subcmd = '09';
-       ::print_log("[Insteon::Irrigation] Enabling valve status messages.");
-   }
-   else {
-       ::print_log("[Insteon::Irrigation] Disabling valve status messages.");
    }
    my $message = new Insteon::InsteonMessage('insteon_send', $self, 'sprinkler_control', $subcmd);
    $self->_send_cmd($message);
