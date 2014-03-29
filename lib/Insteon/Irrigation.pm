@@ -95,19 +95,25 @@ sub new {
    return $self;
 }
 
-=item C<poll_valve_status()>
+=item C<request_status()>
 
 Sends a message to the device requesting the valve status.  The response from the
 device is printed to the log and stores the result in memory. 
 
 =cut
 
-sub poll_valve_status {
-   my ($self) = @_;
+sub request_status {
+   my ($self, $requestor) = @_;
    my $subcmd = '02';
    my $message = new Insteon::InsteonMessage('insteon_send', $self, 'sprinkler_control', $subcmd);
    $self->_send_cmd($message);
    return;
+}
+
+#Deprecated Routine Name
+sub poll_valve_status {
+    my ($self) = @_;
+    $self->request_status();
 }
 
 =item C<set_valve(valve_id, valve_state)>
@@ -274,16 +280,6 @@ sub _is_info_request {
    return $is_info_request;
 
 }
-
-=item C<request_status()>
-
-This does nothing and returns 0, it prevents a request_status message, which the
-device does not support, from being sent to the device.
-
-=cut
-
-# Overload methods we don't use, but would otherwise cause Insteon traffic.
-sub request_status { return 0 }
 
 =back
 
