@@ -5,7 +5,7 @@ use Telephony_Item;
 package Telephony_Interface;
 @Telephony_Interface::ISA = ('Telephony_Item');
 
-my ($hooks_added, @list_ports, %list_objects, %type_by_port, %caller_id_data, $cid_server_connect);
+my ($hooks_added, @list_ports, %list_objects, %type_by_port, %caller_id_data, $cid_server_connect, $cid_server_timer);
 
 # US Robotics 56k Voice model 0525 -> rockewell
 
@@ -64,6 +64,8 @@ sub open_port {
           if $main::Debug{phone};
         $cid_server_connect = new Socket_Item( undef, undef, $port, $name, 'tcp', 'record');
         start $cid_server_connect;
+        $cid_server_timer = new Timer; 
+        set $cid_server_timer 10;
         $type_by_port{$name} = $type;
         push @list_ports, $name;
     }
@@ -103,14 +105,21 @@ sub reload_reset {
 
 sub check_for_data {
     for my $port (@list_ports) {
-        if ($cid_server_connect && (my $data = said $cid_server_connect)) {
-            &::print_log("Phone data: $data.") if $main::Debug{phone};
-            if ($data =~ /^CID:/) { 
-                &::print_log("Callerid: $data");
-                &process_cid_data($port, $data);
+        if ($cid_server_connect) {
+            if (my $data = said $cid_server_connect) {
+                &::print_log("Phone data: $data.") if $main::Debug{phone};
+                if ($data =~ /^CID:/) { 
+                    &::print_log("Callerid: $data");
+                    &process_cid_data($port, $data);
+                }
+                else {
+                    &process_phone_data($port, 'ring') if $data =~ /ring/i;
+                }
             }
-            else {
-                &process_phone_data($port, 'ring') if $data =~ /ring/i;
+            elsif (!(active $cid_server_connect) && (expired $cid_server_timer)) {
+                &::print_log("Callerid: Socket is not active, attempting to reconnect.");
+                start $cid_server_connect;
+                set $cid_server_timer 10; # Set the timer for 10 seconds before we try again so we don't thrash
             }
         }
         elsif (my $data = $main::Serial_Ports{$port}{data_record}) {
