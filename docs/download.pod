@@ -9,7 +9,7 @@ modify the code/common/mh_release.pl file to search the new format!!
 
 =head1 Current Stable
 
-B<Version 3.1> - released on 03/30/2014
+B<Version 3.1> - released on 03/31/2014
 
 =over
 
