@@ -303,31 +303,9 @@ sub _is_info_request {
         or $cmd eq 'sprinkler_valve_on'
         or $cmd eq 'sprinkler_valve_off'
         or $cmd eq 'sprinkler_program_on'
-        or $cmd eq 'sprinkler_program_off',
-        or $cmd eq 'sprinkler_status') {
+        or $cmd eq 'sprinkler_program_off') {
       $is_info_request = 1;
-      my $val = hex($msg{extra});
-      $$self{'active_valve_id'} = ($val & 7) + 1;
-      $$self{'active_program_number'} = (($val >> 3) & 3) + 1;
-      $$self{'program_is_running'} = ($val >> 5) & 1;
-      $$self{'pump_enabled'} = ($val >> 6) & 1;
-      $$self{'valve_is_running'} = ($val >> 7) & 1;
-      &::print_log("[Insteon::Irrigation] active_valve_id: $$self{'active_valve_id'},"
-        . " valve_is_running: $$self{'valve_is_running'}, active_program: $$self{'active_program_number'},"
-        . " program_is_running: $$self{'program_is_running'}, pump_enabled: $$self{'pump_enabled'}");
-        
-      # Set a timer to check the status of the device after we expect the timer
-      # for the current valve to run out.
-      if ($$self{'valve_is_running'} && $$self{status_timer}->inactive){
-          my $action = $self->get_object_name . "->request_status()";
-          my $program = 0;
-          $program = $$self{'active_program_number'} 
-            if ($$self{'program_is_running'});
-          my $time = $self->_valve_timer($program,
-            $$self{'active_valve_id'});
-          $time = ($time * 60) + 5; #Add 5 seconds to allow things to happen.
-          $$self{status_timer}->set($time,$action);
-      }
+      $self->_process_status($msg{extra});
    }
    else {
       #Check if this was a generic info_request
@@ -335,6 +313,38 @@ sub _is_info_request {
    }
    return $is_info_request;
 
+}
+sub _process_status {
+    my ($self, $val) = @_;
+    $val = hex($val);
+    $$self{'active_valve_id'} = ($val & 7) + 1;
+    $$self{'active_program_number'} = (($val >> 3) & 3) + 1;
+    $$self{'program_is_running'} = ($val >> 5) & 1;
+    $$self{'pump_enabled'} = ($val >> 6) & 1;
+    $$self{'valve_is_running'} = ($val >> 7) & 1;
+    &::print_log("[Insteon::Irrigation] active_valve_id: $$self{'active_valve_id'},"
+    . " valve_is_running: $$self{'valve_is_running'}, active_program: $$self{'active_program_number'},"
+    . " program_is_running: $$self{'program_is_running'}, pump_enabled: $$self{'pump_enabled'}");
+    
+    # Set a timer to check the status of the device after we expect the timer
+    # for the current valve to run out.
+    if ($$self{'valve_is_running'}){
+        my $action = $self->get_object_name . "->_timer_query()";
+        my $program = 0;
+        $program = $$self{'active_program_number'} 
+        if ($$self{'program_is_running'});
+        my $time = $self->_valve_timer($program,
+        $$self{'active_valve_id'});
+        $time = ($time * 60) + 5; #Add 5 seconds to allow things to happen.
+        $$self{status_timer}->set($time,$action);
+    }
+}
+
+# Used by the timer to check the status of the device.  Will only run if MH
+# believes that a valve is still on
+sub _timer_query {
+    my ($self) = @_;
+    $self->request_status() if ($$self{'valve_is_running'});
 }
 
 =item C<_process_message()>
@@ -354,6 +364,13 @@ sub _process_message {
 		$clear_message = 1;
 		$$self{m_status_request_pending} = 0;
 		$self->_process_command_stack(%msg);
+	}
+	elsif ($msg{type} eq 'broadcast' && $msg{cmd_code} eq '27') {
+        #These are the broadcast status messages from the device.
+        $self->_process_status($msg{dev_attribs});
+        ::print_log("[Insteon::Irrigation] Received broadcast status update.") 
+            if $self->debuglevel(2, 'insteon');
+        $self->_process_command_stack(%msg);
 	}
 	# The device uses cmd 0x41 differently depending on STD or EXT Msgs
 	elsif ($msg{command} eq "sprinkler_valve_off" && $msg{is_extended}) {
@@ -431,8 +448,11 @@ sub enable_pump {
 
 If set to true, this will cause the device to send a status message whenever
 a valve changes status during a program.  If not set, MH will not be informed
-of the status of each of the valves during a program.  It is HIGHLY recommended 
-that you enable this feature.
+of the status of each of the valves during a program.
+
+These messages appear to only be available if you put your PLM in monitor mode.
+At the moment, there does not appear to be any downside to this, but use at
+your own risk.
 
 =cut
 
