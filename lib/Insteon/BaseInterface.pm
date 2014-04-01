@@ -492,9 +492,65 @@ sub delete_orphan_links
         return $self->_aldb->delete_orphan_links($audit_mode) if $self->_aldb;
 }
 
+=item C<plm_get_config>
+
+Used to obtain the configuration flags from the PLM.  May be used in conjunction
+with C<enable_monitor_mode>.
+
+=cut
+
+sub plm_get_config {
+    my ($self) = @_;
+    $self->queue_message(new Insteon::InsteonMessage('plm_get_config', $self));
+}
+
+sub plm_config {
+	my ($self, $p_config) = @_;
+	$$self{config} = $p_config if defined $p_config;
+	return $$self{config};
+}
+
+=item C<enable_monitor_mode(boolean)>
+
+If boolean is true, enables monitor mode on the PLM, else disables monitor mode.
+If you have manually set any other PLM flags (unlikely), you should first call 
+C<plm_get_config> to prevent these settings from being altered.
+
+=cut
+
+sub enable_monitor_mode {
+        my ($self, $enable) = @_;
+        my $config = hex($self->plm_config);
+        if ($enable){
+                $config = $config | 64;
+        }
+        else {
+                $config = $config & 191;
+        }
+        my $message = new Insteon::InsteonMessage('plm_set_config', $self);
+        $message->interface_data(sprintf("%02X",$config));
+        $self->queue_message($message);
+}
+
 ######################
 ### EVENT HANDLERS ###
 ######################
+
+=item C<on_interface_config_received>
+
+Called to process the plm_get_config request sent by the C<plm_get_config()> command.
+Prints output to log.
+
+=cut
+
+sub on_interface_config_received
+{
+	my ($self,$data) = @_;
+	$data = $self->plm_config(substr($data,0,2));
+	&::print_log("[Insteon_PLM] PLM config flags: $data")
+		if $self->debuglevel(1, 'insteon');
+        $self->clear_active_message();
+}
 
 =item C<on_interface_info_received>
 

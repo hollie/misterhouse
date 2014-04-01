@@ -971,6 +971,13 @@ sub _parse_data {
                         
                         $data = substr($data, 18);
         	}
+        	elsif ($record_type eq $prefix{plm_get_config} and (length($data) >= 12)){
+        		::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($data)) 
+                                if $self->debuglevel(4, 'insteon');
+                        my $message_data = substr($data,4,8);
+                        $self->on_interface_config_received($message_data);
+                        $data = substr($data, 18);
+        	}
         	else {
         	        # No more processing can be done now, wait for more data
         	        $process_data = 0;

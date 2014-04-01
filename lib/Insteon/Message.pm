@@ -430,8 +430,8 @@ sub command_to_hash
 			$msg{type} = 'broadcast';
 			$msg{devcat} = substr($p_state,6,4);
 			$msg{firmware} = substr($p_state,10,2);
-			$msg{is_master} = substr($p_state,16,2);
-			$msg{dev_attribs} = substr($p_state,18,2);
+			$msg{is_master} = substr($p_state,14,2);
+			$msg{dev_attribs} = substr($p_state,16,2);
 		}
                 elsif ($msgflag ==6)
                 {
