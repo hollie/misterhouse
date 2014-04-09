@@ -334,6 +334,22 @@ sub _process_status {
         #Only set the timer if it is something worthwhile ie actually set.
         $$self{status_timer}->set($time,$action) if $time > 5;
     }
+    
+    # Set child objects if they exist
+    my $valve = $$self{'active_valve_id'};
+    my $program = $$self{'active_program_number'};
+    my $valve_status = 'off';
+    $valve_status = 'on' if ($$self{'valve_is_running'});
+    my $program_status = 'off';
+    $program_status = 'on' if ($$self{'program_is_running'});
+    if (ref $$self{'child_valve_'.$valve} &&
+        (lc($$self{'child_valve_'.$valve}->state) ne $valve_status)){
+        $$self{'child_valve_'.$valve}->set_receive($valve_status);
+    }
+    if (ref $$self{'child_program_'.$program} &&
+        (lc($$self{'child_program_'.$program}->state) ne $program_status)){
+        $$self{'child_program_'.$program}->set_receive($program_status);
+    }
 }
 
 # Used by the timer to check the status of the device.  Will only run if MH
@@ -480,6 +496,177 @@ Kevin Robert Keegan
 
 L<http://www.simplehomenet.com/Downloads/EZRain%20Command%20Set.pdf>,
 L<http://www.simplehomenet.com/Downloads/EZFlora%20Command%20Set.pdf>
+
+=head1 Irrigation_valve
+
+=head1 DESCRIPTION
+
+A child object for an irrigation valve.
+
+=head1 SYNOPSIS
+
+When defining the children, you need to identify who their parent is.
+
+        $valve_1 = new Insteon::Irrigation_valve($irrigation, 1);
+        $valve_1->set(ON); #Turn ON the valve for the default time
+        $valve_1->set('5 min'); #Turn ON the valve for 5 minutes only
+        $valve_1->set_states('off', '5 min', 'on'); #set the states to display
+
+=head1 AUTHOR
+
+Kevin Robert Keegan <kevin@krkeegan.com>
+
+=head1 INHERITS
+
+B<Generic_Item>
+
+=head1 Methods
+
+=over
+
+=cut
+
+package Insteon::Irrigation_valve;
+use strict;
+
+@Insteon::Irrigation_valve::ISA = ('Generic_Item');
+
+sub new {
+	my ($class, $parent, $valve) = @_;
+	my $self = new Generic_Item();
+	bless $self, $class;
+	$$self{parent} = $parent;
+	$$self{valve} = $valve;
+	@{$$self{states}} = ('Off', '5 min', '15 min', ' 30 min', 'On');
+	$$self{parent}{'child_valve_'.$valve} = $self;
+	$$self{timer} = new Timer;
+	return $self;
+}
+
+=item C<set()>
+
+Use just like the set function for any other descendant of a Generic_Item.
+
+Accepts on and off commands and will parse the number portion out of any command
+into the number of minutes.  So '5 min' will cause the valve to turn ON for 5
+minutes.
+
+NOTE: The maximum amount of time the valve can be turned on for is determined
+by the default setting, contained in program 0.  Turning on the child object
+for longer than the default setting will result in the valve running for the
+default length and then turning off.
+
+=cut
+
+sub set {
+	my ($self, $p_state, $p_setby, $p_response) = @_;
+	if ($p_state =~ /(on|off)/i){
+	        $p_state = $1;
+	        ::print_log("[Insteon::Irrigation] Received request to set ".
+	                $self->get_object_name . " $p_state.");
+                $$self{parent}->set_valve($$self{valve}, $p_state);
+	}
+	elsif ($p_state =~ /(\d*)/) {
+	        $p_state = $1;
+	        ::print_log("[Insteon::Irrigation] Received request to set ".
+	                $self->get_object_name . " ON for $p_state minutes.");
+                $$self{parent}->set_valve($$self{valve}, 'on');
+                #Set timer to turn off
+                my $action = $$self{parent}->get_object_name . "->set_valve(".
+                        $$self{valve} .", 'off')";
+                my $time = ($p_state * 60);
+                $$self{timer}->set($time,$action);
+	}
+	else {
+	        ::print_log("[Insteon::Irrigation] Cannot set ". 
+	                $self->get_object_name . " to unknown state of $p_state.");
+        }
+}
+
+sub set_receive {
+	my ($self, $p_state) = @_;
+	if ($p_state =~ /off/i){
+	        #Clear any off timers that are outstanding
+	        $$self{timer}->unset;
+	}
+	$self->SUPER::set($p_state);
+}
+
+=back
+
+=head1 Irrigation_program
+
+=head1 DESCRIPTION
+
+A child object for an irrigation program.
+
+=head1 SYNOPSIS
+
+When defining the children, you need to identify who their parent is.
+
+        $program_1 = new Insteon::Irrigation_program($irrigation, 1);
+        $program_1->set(ON); #Turn ON the program
+
+=head1 AUTHOR
+
+Kevin Robert Keegan <kevin@krkeegan.com>
+
+=head1 INHERITS
+
+B<Generic_Item>
+
+=head1 Methods
+
+=over
+
+=cut
+
+package Insteon::Irrigation_program;
+use strict;
+
+@Insteon::Irrigation_program::ISA = ('Generic_Item');
+
+sub new {
+	my ($class, $parent, $program) = @_;
+	my $self = new Generic_Item();
+	bless $self, $class;
+	$$self{parent} = $parent;
+	$$self{program} = $program;
+	@{$$self{states}} = ('Off', 'On');
+	$$self{parent}{'child_program_'.$program} = $self;
+	$$self{timer} = new Timer;
+	return $self;
+}
+
+=item C<set()>
+
+Use just like the set function for any other descendant of a Generic_Item.
+
+Accepts on and off commands.
+
+=cut
+
+sub set {
+	my ($self, $p_state, $p_setby, $p_response) = @_;
+	if ($p_state =~ /(on|off)/i){
+	        $p_state = $1;
+	        ::print_log("[Insteon::Irrigation] Received request to set ".
+	                $self->get_object_name . " $p_state.");
+                $$self{parent}->set_valve($$self{valve}, $p_state);
+	}
+	else {
+	        ::print_log("[Insteon::Irrigation] Cannot set ". 
+	                $self->get_object_name . " to unknown state of $p_state.");
+        }
+}
+
+sub set_receive {
+	my ($self, $p_state) = @_;
+	$self->SUPER::set($p_state);
+}
+
+
+=back
 
 =head2 LICENSE
 
