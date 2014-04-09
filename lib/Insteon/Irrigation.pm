@@ -20,23 +20,21 @@ Turning on a valve:
 	
     $v_valve_on = new Voice_Cmd "Turn on valve [1,2,3,4,5,6,7,8]";
     if (my $valve = state_now $v_valve_on) {
-    	$valve--;
-    	set_valve $irrigation "0$valve", "on";
+    	set_valve $irrigation "$valve", "on";
     }
 
 Turning off a valve:
 	
     $v_valve_off = new Voice_Cmd "Turn off valve [1,2,3,4,5,6,7,8]";
     if (my $valve = state_now $v_valve_off) {
-    	$valve--;
-    	set_valve $irrigation "0$valve", "off";
+    	set_valve $irrigation "$valve", "off";
     }
 
 Requesting valve status:
 	
     $v_valve_status = new Voice_Cmd "Request valve status";
     if (state_now $v_valve_status) {
-    	poll_valve_status $irrigation;
+    	request_status $irrigation;
     }
 
 =head2 DESCRIPTION
@@ -122,14 +120,14 @@ sub poll_valve_status {
 
 =item C<set_valve(valve_id, valve_state)>
 
-Used to directly control valves.  Valve_id is a two digit number 00-07, 
-valve_state may be on or off.
+Used to directly control valves.  Valve_id may be 1-8, valve_state may be on 
+or off.
 
 =cut
 
 sub set_valve {
    my ($self, $valve_id, $state) = @_;
-   my $subcmd = $valve_id;
+   my $subcmd = sprintf("%02X", $valve_id-1);
    my $cmd = undef;
    if ($state eq 'on') {
       $cmd = 'sprinkler_valve_on';
@@ -148,14 +146,14 @@ sub set_valve {
 
 =item C<set_program(program_id, proggram_state)>
 
-Used to directly control programs.  Program_id is a two digit number 00-03, 
-proggram_state may be on or off.
+Used to directly control programs.  Program_id may be 1-4, program_state may be 
+on or off.
 
 =cut
 
 sub set_program {
    my ($self, $program_id, $state) = @_;
-   my $subcmd = $program_id;
+   my $subcmd = sprintf("%02X", $program_id-1);
    my $cmd = undef;
    if ($state eq 'on') {
       $cmd = 'sprinkler_program_on';
@@ -271,18 +269,16 @@ By default, each valve is set to 30 minutes for each program.
 =cut
 
 sub set_timers() {
-   my ($self, $program, $v1, $v2, $v3, $v4, $v5, $v6, $v7, $v8) = @_;
+   my ($self, $program, @time_array) = @_;
    #Command is reused in different format for EXT msgs
    my $cmd = 'sprinkler_valve_on';
    my $extra = sprintf("%02X", $program);
-   $extra .= sprintf("%02X", $v1);
-   $extra .= sprintf("%02X", $v2);
-   $extra .= sprintf("%02X", $v3);
-   $extra .= sprintf("%02X", $v4);
-   $extra .= sprintf("%02X", $v5);
-   $extra .= sprintf("%02X", $v6);
-   $extra .= sprintf("%02X", $v7);
-   $extra .= sprintf("%02X", $v8);
+   foreach my $time (@time_array){
+        #Store values in MH Cache
+        $self->_valve_timer($program, $time);
+        #compose message data
+        $extra .= sprintf("%02X", $time);
+   }
    $extra .= '0' x (30 - length $extra);
    my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, $cmd, $extra);
    $self->_send_cmd($message);
@@ -333,10 +329,10 @@ sub _process_status {
         my $program = 0;
         $program = $$self{'active_program_number'} 
         if ($$self{'program_is_running'});
-        my $time = $self->_valve_timer($program,
-        $$self{'active_valve_id'});
+        my $time = $self->_valve_timer($program, $$self{'active_valve_id'});
         $time = ($time * 60) + 5; #Add 5 seconds to allow things to happen.
-        $$self{status_timer}->set($time,$action);
+        #Only set the timer if it is something worthwhile ie actually set.
+        $$self{status_timer}->set($time,$action) if $time > 5;
     }
 }
 
@@ -388,7 +384,7 @@ sub _process_message {
                 . $self->get_object_name . " are:\n";
                 $output .= "      Program 0:      Program 1:      Program 2:      ".
                     "Program 3:      Program 4:\n";
-            for (my $i_v = 0; $i_v <= 8; $i_v++){
+            for (my $i_v = 1; $i_v <= 8; $i_v++){
                 $output .= '  ';
                 for (my $i_p = 0; $i_p <= 4; $i_p++){
                     $output .= "     Valve $i_v:" . 
@@ -410,7 +406,7 @@ sub _process_message {
 }
 
 
-# Used to store and retreive the valve times
+# Used to store and retreive the valve times from MH cache
 sub _valve_timer {
     my ($self, $program, $valve, $time) = @_;
     if (defined $time){
@@ -451,8 +447,8 @@ a valve changes status during a program.  If not set, MH will not be informed
 of the status of each of the valves during a program.
 
 These messages appear to only be available if you put your PLM in monitor mode.
-At the moment, there does not appear to be any downside to this, but use at
-your own risk.
+At the moment, there does not appear to be any downside to running MH with your
+PLM in monitor mode, but do this at your own risk.
 
 =cut
 
