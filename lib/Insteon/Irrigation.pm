@@ -129,9 +129,9 @@ sub set_valve {
    my ($self, $valve_id, $state) = @_;
    my $subcmd = sprintf("%02X", $valve_id-1);
    my $cmd = undef;
-   if ($state eq 'on') {
+   if (lc($state) eq 'on') {
       $cmd = 'sprinkler_valve_on';
-   } elsif ($state eq 'off') {
+   } elsif (lc($state) eq 'off') {
       $cmd = 'sprinkler_valve_off';
    }
    unless ($cmd and $subcmd) {
@@ -155,9 +155,9 @@ sub set_program {
    my ($self, $program_id, $state) = @_;
    my $subcmd = sprintf("%02X", $program_id-1);
    my $cmd = undef;
-   if ($state eq 'on') {
+   if (lc($state) eq 'on') {
       $cmd = 'sprinkler_program_on';
-   } elsif ($state eq 'off') {
+   } elsif (lc($state) eq 'off') {
       $cmd = 'sprinkler_program_off';
    }
    unless ($cmd and $subcmd) {
@@ -338,17 +338,25 @@ sub _process_status {
     # Set child objects if they exist
     my $valve = $$self{'active_valve_id'};
     my $program = $$self{'active_program_number'};
-    my $valve_status = 'off';
-    $valve_status = 'on' if ($$self{'valve_is_running'});
-    my $program_status = 'off';
-    $program_status = 'on' if ($$self{'program_is_running'});
-    if (ref $$self{'child_valve_'.$valve} &&
-        (lc($$self{'child_valve_'.$valve}->state) ne $valve_status)){
-        $$self{'child_valve_'.$valve}->set_receive($valve_status);
+    
+    # Loop valves, updating state of all that have changed
+    for (my $v = 1; $v <= 8; $v++){
+        my $valve_status = 'off';
+        $valve_status = 'on' if ($$self{'valve_is_running'} && $v == $valve);
+        if (ref $$self{'child_valve_'.$v} &&
+            (lc($$self{'child_valve_'.$v}->state) ne $valve_status)){
+            $$self{'child_valve_'.$v}->set_receive($valve_status);
+        }
     }
-    if (ref $$self{'child_program_'.$program} &&
-        (lc($$self{'child_program_'.$program}->state) ne $program_status)){
-        $$self{'child_program_'.$program}->set_receive($program_status);
+    
+    # Loop programs, updating state of all that have changed
+    for (my $p = 1; $p <= 4; $p++){
+        my $program_status = 'off';
+        $program_status = 'on' if ($$self{'program_is_running'} && $p == $program);
+        if (ref $$self{'child_program_'.$p} &&
+            (lc($$self{'child_program_'.$p}->state) ne $program_status)){
+            $$self{'child_program_'.$p}->set_receive($program_status);
+        }
     }
 }
 
@@ -539,7 +547,7 @@ sub new {
 	$$self{valve} = $valve;
 	@{$$self{states}} = ('Off', '5 min', '15 min', ' 30 min', 'On');
 	$$self{parent}{'child_valve_'.$valve} = $self;
-	$$self{timer} = new Timer;
+	$$self{state_timer} = new Timer;
 	return $self;
 }
 
@@ -566,7 +574,7 @@ sub set {
 	                $self->get_object_name . " $p_state.");
                 $$self{parent}->set_valve($$self{valve}, $p_state);
 	}
-	elsif ($p_state =~ /(\d*)/) {
+	elsif ($p_state =~ /(\d+)/) {
 	        $p_state = $1;
 	        ::print_log("[Insteon::Irrigation] Received request to set ".
 	                $self->get_object_name . " ON for $p_state minutes.");
@@ -575,7 +583,7 @@ sub set {
                 my $action = $$self{parent}->get_object_name . "->set_valve(".
                         $$self{valve} .", 'off')";
                 my $time = ($p_state * 60);
-                $$self{timer}->set($time,$action);
+                $$self{state_timer}->set($time,$action);
 	}
 	else {
 	        ::print_log("[Insteon::Irrigation] Cannot set ". 
@@ -587,7 +595,7 @@ sub set_receive {
 	my ($self, $p_state) = @_;
 	if ($p_state =~ /off/i){
 	        #Clear any off timers that are outstanding
-	        $$self{timer}->unset;
+	        $$self{state_timer}->set(0);
 	}
 	$self->SUPER::set($p_state);
 }
@@ -634,7 +642,7 @@ sub new {
 	$$self{program} = $program;
 	@{$$self{states}} = ('Off', 'On');
 	$$self{parent}{'child_program_'.$program} = $self;
-	$$self{timer} = new Timer;
+	$$self{state_timer} = new Timer;
 	return $self;
 }
 
@@ -652,7 +660,7 @@ sub set {
 	        $p_state = $1;
 	        ::print_log("[Insteon::Irrigation] Received request to set ".
 	                $self->get_object_name . " $p_state.");
-                $$self{parent}->set_valve($$self{valve}, $p_state);
+                $$self{parent}->set_program($$self{program}, $p_state);
 	}
 	else {
 	        ::print_log("[Insteon::Irrigation] Cannot set ". 
