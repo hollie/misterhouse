@@ -1207,6 +1207,343 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 
 You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+=head1 B<Insteon::MicroSwitchRelay>
+
+=head2 SYNOPSIS
+
+User code:
+
+    use Insteon::MicroSwitchRelay;
+    $light_device = new Insteon::MicroSwitchRelay('12.34.56',$myPLM);
+
+In mht file:
+
+    INSTEON_MICROSWITCHRELAY, 12.34.56, light_device, All_Lights
+
+=head2 DESCRIPTION
+
+Provides support for the Insteon Micro On/Off Module.
+
+=head2 INHERITS
+
+L<Insteon::DimmableLight|Insteon::Lighting/Insteon::DimmableLight>, 
+L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
+
+=head2 METHODS
+
+=over
+
+=cut
+
+package Insteon::MicroSwitchRelay;
+
+use strict;
+use Insteon::BaseInsteon;
+
+@Insteon::MicroSwitchRelay::ISA = ('Insteon::BaseLight','Insteon::DeviceController');
+
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
+
+sub new
+{
+	my ($class,$p_deviceid,$p_interface) = @_;
+	my $self = new Insteon::DimmableLight($p_deviceid,$p_interface);
+	$$self{operating_flags} = \%Insteon::MicroSwitchRelay::operating_flags;
+	bless $self,$class;
+	return $self;
+}
+
+our %operating_flags = (
+   'momentary' => '21',
+   'dual' => '1f',
+   'latching' => '20',
+   'single' => '1e',
+   '3-way' => '22',
+   '1-way' => '23',
+   'blink_traffic' => '02',
+   'no_blink_traffic' => '03',
+   'no_blink_error' => '14',
+   'blink_error' => '15',
+   'beep_button' => '0a',
+   'no_beep_button' => '0b',
+   'p_lock' => '00',
+   'p_unlock' => '01'
+);
+
+=item C<set_mode(mode)>
+
+Can be used to set the mode of the device.  Options are:
+
+Latching, Single_Momentary, Dual_Momentary
+
+=cut
+
+sub set_mode
+{
+	my ($self, $mode) = @_;
+	return unless defined $mode;
+	my $name = $self->get_object_name;
+
+        ::print_log("[Insteon::MicroSwitch] Setting mode of $name to $mode.");
+
+	if ($mode =~ /momentary/i) {
+		$self->set_operating_flag('momentary');
+	} 
+	else {
+		$self->set_operating_flag('latching');	
+	}
+	if ($mode =~ /dual/i) {
+		$self->set_operating_flag('dual');
+	}
+	else {
+		$self->set_operating_flag('single');	
+	}
+}
+
+=item C<enable_3_way(boolean)>
+
+Only has an effect in latching mode.  If set to true enables three way.
+
+=cut
+
+sub enable_3_way
+{
+	my ($self, $is_true) = @_;
+	return unless defined $is_true;
+	my $name = $self->get_object_name;
+
+	if ($is_true) {
+                ::print_log("[Insteon::MicroSwitch] Setting $name to 3-way.");
+		$self->set_operating_flag('3-way');
+	} 
+	else {
+	        ::print_log("[Insteon::MicroSwitch] Setting $name to 1-way.");
+		$self->set_operating_flag('1-way');	
+	}
+}
+
+=item C<enable_blink_traffic(boolean)>
+
+If boolean is true, LED will blink on traffic.
+
+=cut
+
+sub enable_blink_traffic
+{
+	my ($self, $is_true) = @_;
+	return unless defined $is_true;
+	my $name = $self->get_object_name;
+
+	if ($is_true) {
+                ::print_log("[Insteon::MicroSwitch] Setting LED on $name to".
+                        " blink on traffic.");
+		$self->set_operating_flag('blink_traffic');
+	} 
+	else {
+                ::print_log("[Insteon::MicroSwitch] Setting LED on $name to".
+                        " not blink on traffic.");
+		$self->set_operating_flag('no_blink_traffic');	
+	}
+}
+
+=item C<enable_blink_error(boolean)>
+
+If boolean is true, LED will blink on error.
+
+=cut
+
+sub enable_blink_error
+{
+	my ($self, $is_true) = @_;
+	return unless defined $is_true;
+	my $name = $self->get_object_name;
+
+	if ($is_true) {
+                ::print_log("[Insteon::MicroSwitch] Setting LED on $name to".
+                        " blink on error.");
+		$self->set_operating_flag('blink_error');
+	} 
+	else {
+                ::print_log("[Insteon::MicroSwitch] Setting LED on $name to".
+                        " not blink on error.");
+		$self->set_operating_flag('no_blink_error');	
+	}
+}
+
+=item C<enable_beep_button(boolean)>
+
+If boolean is true, a beep will sound when button is pressed.
+
+=cut
+
+sub enable_beep_button
+{
+	my ($self, $is_true) = @_;
+	return unless defined $is_true;
+	my $name = $self->get_object_name;
+
+	if ($is_true) {
+                ::print_log("[Insteon::MicroSwitch] Setting $name to".
+                        " beep on button press.");
+		$self->set_operating_flag('beep_button');
+	} 
+	else {
+                ::print_log("[Insteon::MicroSwitch] Setting $name to".
+                        " not beep on button press.");
+		$self->set_operating_flag('no_beep_button');	
+	}
+}
+
+=item C<led_level([0-100])>
+
+Sets the LED to brightness percentage.
+
+=cut
+
+sub led_level
+{
+	my ($self, $level) = @_;
+	return unless defined $level;
+	my $name = $self->get_object_name;
+
+        ::print_log("[Insteon::MicroSwitch] Setting LED level of $name to".
+                " $level.");
+
+        #For whatever reason 100% = 127 and 50% = 64
+        $level = $level * 1.28;
+        $level = 127 if $level > 127;
+        $level = 0 if $level < 0;
+        
+	my $extra = '000107' . sprintf('%02X', $level);
+	$extra .= '0' x (30 - length $extra);
+	my $message = new Insteon::InsteonMessage('insteon_ext_send', $self, 'extended_set_get', $extra);
+	$self->_send_cmd($message);
+}
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut 
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds}
+    );
+    if ($self->is_root){
+        %voice_cmds = (
+            %voice_cmds,
+            'set latching mode' => "$object_name->set_mode(\"latching\")",
+            'set single momentary mode' => "$object_name->set_mode(\"single_momentary\")",
+            'set dual momentary mode' => "$object_name->set_mode(\"dual_momentary\")",
+            'set to 3-way' => "$object_name->enable_3_way(1)",
+            'set to 1-way' => "$object_name->enable_3_way(0)",
+            'set LED to blink on traffic' => "$object_name->enable_blink_traffic(1)",
+            'set LED to not blink on traffic' => "$object_name->enable_blink_traffic(0)",
+            'set LED to blink on error' => "$object_name->enable_blink_error(1)",
+            'set LED to not blink on error' => "$object_name->enable_blink_error(0)",
+            'set device to beep on button press' => "$object_name->enable_beep_button(1)",
+            'set device to not beep on button press' => "$object_name->enable_beep_button(0)",
+            'set LED to 100%' => "$object_name->led_level(100)",
+            'set LED to 50%' => "$object_name->led_level(50)",
+            'set LED to 0%' => "$object_name->led_level(\"0\")",
+        );
+    }
+    return \%voice_cmds;
+}
+
+=back
+
+=head2 AUTHOR
+
+Kevin Robert Keegan
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=head1 B<Insteon::MicroSwitch>
+
+=head2 SYNOPSIS
+
+User code:
+
+    use Insteon::MicroSwitch;
+    $light_device = new Insteon::MicroSwitch('12.34.56',$myPLM);
+
+In mht file:
+
+    INSTEON_MICROSWITCH, 12.34.56, light_device, All_Lights
+
+=head2 DESCRIPTION
+
+Provides support for the Insteon Micro Dimmer Module.
+
+=head2 INHERITS
+
+L<Insteon::DimmableLight|Insteon::Lighting/Insteon::DimmableLight>, 
+L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
+
+=head2 METHODS
+
+=over
+
+=cut
+
+package Insteon::MicroSwitch;
+
+use strict;
+use Insteon::BaseInsteon;
+
+@Insteon::MicroSwitch::ISA = ('Insteon::MicroSwitchRelay', 'Insteon::DimmableLight','Insteon::DeviceController');
+
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
+
+sub new
+{
+	my ($class,$p_deviceid,$p_interface) = @_;
+	my $self = new Insteon::DimmableLight($p_deviceid,$p_interface);
+	$$self{operating_flags} = \%Insteon::MicroSwitchRelay::operating_flags;
+	bless $self,$class;
+	return $self;
+}
+
+=back
+
+=head2 AUTHOR
+
+Kevin Robert Keegan
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
 =cut
 
 =head1 B<Insteon::FanLinc>

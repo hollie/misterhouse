@@ -194,6 +194,18 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon::iMeter(\'$address\', $other)";
     }
+    elsif($type eq "INSTEON_MICROSWITCH") {
+        require Insteon::Lighting;
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon::MicroSwitch(\'$address\', $other)";
+    }
+    elsif($type eq "INSTEON_MICROSWITCHRELAY") {
+        require Insteon::Lighting;
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon::MicroSwitchRelay(\'$address\', $other)";
+    }    
     # ----------------------------------------------------------------------
     elsif($type eq 'FROG') {
         require 'FroggyRita.pm';
