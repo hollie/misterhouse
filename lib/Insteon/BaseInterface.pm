@@ -607,6 +607,7 @@ sub on_standard_insteon_received
                 	$object->max_hops_count($msg{maxhops}) if $object->can('max_hops_count');
                 	$object->hops_left_count($msg{hopsleft}) if $object->can('hops_left_count');
                     $object->incoming_count_log(1) if $object->can('incoming_count_log');
+                    $object->last_contact(time);
                 	if ($msg{type} ne 'broadcast')
                         {
                 		$msg{command} = $object->message_type($msg{cmd_code});
@@ -739,6 +740,11 @@ sub on_standard_insteon_received
                         	# ask the object to process the received message and update its state
 		   		$object->_process_message($self, %msg);
                         }
+                        if ($self->is_deaf){
+                                #See if deaf device has commands waiting to be 
+                                #sent
+                                $self->_process_command_stack();
+                        }
 		}
                 else 
                 {
@@ -788,6 +794,7 @@ sub on_extended_insteon_received
                 	$object->max_hops_count($msg{maxhops}) if $object->can('max_hops_count');
                 	$object->hops_left_count($msg{hopsleft}) if $object->can('hops_left_count');
                     $object->incoming_count_log(1) if $object->can('incoming_count_log');
+                    $object->last_contact(time);
                 	if ($msg{type} ne 'broadcast')
                         {
                 		$msg{command} = $object->message_type($msg{cmd_code});
@@ -808,6 +815,11 @@ sub on_extended_insteon_received
 				}
 				$self->clear_active_message();
 			}
+                        if ($self->is_deaf){
+                                #See if deaf device has commands waiting to be 
+                                #sent
+                                $self->_process_command_stack();
+                        }
 		}
                 else
                 {
