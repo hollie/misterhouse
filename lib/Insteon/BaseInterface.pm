@@ -740,11 +740,11 @@ sub on_standard_insteon_received
                         	# ask the object to process the received message and update its state
 		   		$object->_process_message($self, %msg);
                         }
-                        if ($self->is_deaf){
+                        if ($object->is_deaf){
                                 #See if deaf device has commands waiting to be 
                                 #sent
-                                $self->_process_command_stack();
-                        }
+                                $object->_process_command_stack();
+                        } 
 		}
                 else 
                 {
@@ -815,10 +815,10 @@ sub on_extended_insteon_received
 				}
 				$self->clear_active_message();
 			}
-                        if ($self->is_deaf){
+                        if ($object->is_deaf){
                                 #See if deaf device has commands waiting to be 
                                 #sent
-                                $self->_process_command_stack();
+                                $object->_process_command_stack();
                         }
 		}
                 else

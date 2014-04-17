@@ -1205,6 +1205,26 @@ sub is_responder
 	}
 }
 
+=item C<is_awake()>
+
+Returns true if the device has made contact within the time allowed by 
+C<awake_time> or if time allowed for C<manual_awake) has not elapsed.
+
+=cut
+
+sub is_awake
+{
+        my ($self) = @_;
+        return 1 unless $self->isa('Insteon::BaseDevice');
+        my $is_awake = 0;
+        if (((time - $$self{last_contact}) <= $$self{awake_time}) ||
+                $$self{manual_awake} >= time){
+                $is_awake = 1;
+        }
+        $is_awake = 1 unless ($self->is_deaf);
+        return $is_awake;
+}
+
 =back
 
 =head2 INI PARAMETERS
@@ -1435,25 +1455,6 @@ sub manual_awake
 	my ($self, $p_time) = @_;
 	$$self{manual_awake} = time + $p_time if $p_time;
 	return $$self{manual_awake};
-}
-
-=item C<is_awake()>
-
-Returns true if the device has made contact within the time allowed by 
-C<awake_time> or if time allowed for C<manual_awake) has not elapsed.
-
-=cut
-
-sub is_awake
-{
-        my ($self) = @_;
-        my $is_awake = 0;
-        if (((time - $$self{last_contact}) <= $$self{awake_time}) ||
-                $$self{manual_awake} >= time){
-                $is_awake = 1;
-        }
-        $is_awake = 1 unless ($self->is_deaf);
-        return $is_awake;
 }
 
 =item C<rate([rate])>
