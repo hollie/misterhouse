@@ -1369,6 +1369,7 @@ sub new
     $$self{hops_left_count} = 0;
     $$self{max_hops_count} = 0;
     $$self{outgoing_hop_count} = 0;
+    $$self{awake_time} = 2 unless $$self{awake_time};
 
 
 	return $self;
