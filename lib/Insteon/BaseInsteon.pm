@@ -1343,7 +1343,7 @@ sub new
 	$self->restore_data('devcat', 'firmware', 'level', 'retry_count_log', 'fail_count_log', 
         'outgoing_count_log', 'incoming_count_log', 'corrupt_count_log',
         'dupe_count_log', 'hops_left_count', 'max_hops_count',
-        'outgoing_hop_count');
+        'outgoing_hop_count', 'awake_time');
 
 	$self->initialize();
 	$self->rate(undef);
@@ -1383,6 +1383,53 @@ sub initialize
 	$$self{m_write} = 1;
 	$$self{m_is_locally_set} = 0;
 	# persist local, simple attribs
+}
+
+=item C<awake_time([time])>
+
+Used to store and return the associated awake time of a device.  This only
+applies to deaf devices.
+
+If provided, stores awake time.
+
+=cut
+
+sub awake_time
+{
+	my ($self, $p_time) = @_;
+	$$self{awake_time} = $p_time if $p_time;
+	return $$self{awake_time};
+}
+
+=item C<last_contact([time])>
+
+Used to store and return the time of the last contact from a device.  This only
+applies to deaf devices.
+
+=cut
+
+sub last_contact
+{
+	my ($self, $p_time) = @_;
+	$$self{last_contact} = $p_time if $p_time;
+	return $$self{last_contact};
+}
+
+=item C<manual_awake([time])>
+
+Used to manually flag the device as awake for a period of time.  This will
+cause all messages from MH to be immediately sent to the device instead of
+being held until next contact.  This should be used when you have manually
+set the device to be awake such as by holding the set button until the device 
+beeps.  Used only for deaf devices.
+
+=cut
+
+sub manual_awake
+{
+	my ($self, $p_time) = @_;
+	$$self{manual_awake} = $p_time if $p_time;
+	return $$self{manual_awake};
 }
 
 =item C<rate([rate])>
