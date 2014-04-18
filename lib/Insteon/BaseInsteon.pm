@@ -3145,13 +3145,7 @@ sub sync_links
 	
 	# Warn if device is deaf or ALDB out of sync
 	my $insteon_object_is_syncable = 1;
-	if ($insteon_object->is_deaf && $skip_deaf) {
-		::print_log("[Insteon::BaseController] $self_link_name is deaf, only responder links will be added to devices "
-			."controlled by this device.  To sync links on this device, put it in awake mode and run the 'Sync Links' "
-			."command on this specific device.");
-		$insteon_object_is_syncable = 0;
-	}
-	elsif ($insteon_object->_aldb->health ne 'good' && $insteon_object->_aldb->health ne 'empty'){
+	if ($insteon_object->_aldb->health ne 'good' && $insteon_object->_aldb->health ne 'empty'){
 		::print_log("[Insteon::BaseController] WARN! The ALDB of $self_link_name is ".$insteon_object->_aldb->health
 			.", links will be added to devices "
 			."linked to this device, but no links will be added to $self_link_name.  Please rescan this device and attempt "
@@ -3350,13 +3344,17 @@ sub _process_sync_queue {
 	if ($num_sync_queue) {
 		my $link_req_ptr = shift(@{$$self{sync_queue}});
 		my %link_req = %$link_req_ptr;
-		if ($link_req{cmd} eq 'update') {
-			my $link_member = $link_req{member};
-			$link_member->update_link(%link_req);
-		} elsif ($link_req{cmd} eq 'add') {
-			my $link_member = $link_req{member};
-			$link_member->add_link(%link_req);
+		my $link_member = $link_req{member};
+		if ($link_member->is_deaf){
+		        $link_member->_build_deaf_sync_queue($link_req_ptr);
+		        $self->_process_sync_queue();
 		}
+		elsif ($link_req{cmd} eq 'update') {
+        		$link_member->update_link(%link_req);
+        	} 
+        	elsif ($link_req{cmd} eq 'add') {
+        		$link_member->add_link(%link_req);
+        	}
 	} elsif ($$self{sync_queue_callback}) {
 		my $callback = $$self{sync_queue_callback};
 		if ($$self{sync_queue_failure}){
@@ -3364,12 +3362,67 @@ sub _process_sync_queue {
 		}
 		package main;
 		eval ($callback);
-		&::print_log("[Insteon::BaseController] error in sync links callback: " . $@)
+		::print_log("[Insteon::BaseController] ERROR in sync links callback: " . $@)
 			if $@ and $self->debuglevel(1, 'insteon');
 		package Insteon::BaseController;
 	} else {
-		main::print_log($self->get_object_name." completed sync links");
+		::print_log("[Insteon::BaseController] Completed sync links for: "
+		        .$self->get_object_name);
 	}
+}
+
+######
+#
+# The following three routines are used to queue links to be synced on deaf 
+# devices these requests will be processed the next time the device wakes up
+#
+######
+
+sub _build_deaf_sync_queue {
+        my ($self, $link_req_ptr) = @_;
+        my %link_req = %$link_req_ptr;
+        my $self_link_name = $self->get_object_name;
+	%link_req = ( callback => "$self_link_name->_process_deaf_sync_queue()",
+                failure_callback => "$self_link_name->_process_deaf_sync_queue_failure()");
+        push @{$$self{deaf_sync_queue}}, \%link_req;
+        if (!$$self{deaf_sync_queue_flag}){
+                ::print_log("[Insteon::BaseController] Sync requests for "
+                 .$self_link_name. " will not be processed until it is awake.");
+                $self->_process_deaf_sync_queue();        
+        }
+}
+
+sub _process_deaf_sync_queue {
+        my ($self) = @_;
+        my $num_sync_queue = @{$$self{deaf_sync_queue}};
+        if ($num_sync_queue) {
+                $$self{deaf_sync_queue_flag} = 1; #Sync requests are pending
+	        my $link_req_ptr = shift(@{$$self{deaf_sync_queue}});
+		my %link_req = %$link_req_ptr;
+		my $link_member = $link_req{member};
+        	if ($link_req{cmd} eq 'update') {
+        		$link_member->update_link(%link_req);
+        	} 
+        	elsif ($link_req{cmd} eq 'add') {
+        		$link_member->add_link(%link_req);
+        	}
+        }
+        else {
+                ::print_log($self->get_object_name." completed the delayed "
+		        ."sync links request");
+		if ($$self{deaf_sync_queue_failure}) {
+                        ::print_log("However, some failures occured while "
+		                ."syncing links on " . $self->get_object_name);
+		}
+		$$self{deaf_sync_queue_flag} = 0;
+		$$self{deaf_sync_queue_failure} = 0;
+	}
+}
+
+sub _process_deaf_sync_queue_failure {
+        my ($self) = @_;
+        $$self{deaf_sync_queue_failure} = 1;
+        $self->_process_deaf_sync_queue();
 }
 
 =item C<set_linked_devices(state)>

@@ -548,31 +548,27 @@ call _get_next_linksync_failure() if sync_links() fails.
 
 sub _get_next_linksync
 {
-   	$current_scan_device = shift @_scan_devices;
 	my $sync_req_ptr = shift(@_sync_devices);
         my %sync_req = ($sync_req_ptr) ? %$sync_req_ptr : undef;
-        if (%sync_req)
-        {
-
+        if (%sync_req) {
         	$current_sync_device = $sync_req{'sync_object'};
         }
-        else
-        {
+        else {
         	$current_sync_device = undef;
         }
 
-	if ($current_sync_device)
-        {
+	if ($current_sync_device) {
           	&main::print_log("[Sync all links] Now syncing: "
                 	. $current_sync_device->get_object_name . " ("
                         . ($_sync_cnt - scalar @_sync_devices)
                         . " of $_sync_cnt)");
 		my $skip_deaf = 1;
                 # pass first the success callback followed by the failure callback
-          	$current_sync_device->sync_links($sync_req{'audit_mode'}, '&Insteon::_get_next_linksync()','&Insteon::_get_next_linksync_failure()', $skip_deaf);
+          	$current_sync_device->sync_links($sync_req{'audit_mode'}, 
+          	        '&Insteon::_get_next_linksync()',
+          	        '&Insteon::_get_next_linksync_failure()', $skip_deaf);
     	}
-        else
-        {
+        else {
           	&main::print_log("[Sync all links] All links have completed syncing");
                 my $_sync_failure_cnt = scalar @_sync_device_failures;
                 if ($_sync_failure_cnt){
@@ -581,7 +577,8 @@ sub _get_next_linksync
 				$obj_list .= $failed_obj->get_object_name .", ";
 			}
 			::print_log("[Sync all links] WARN! Failures occured, "
-				."some links involving the following objects remain out-of-sync: $obj_list");
+				."some links involving the following objects "
+				."remain out-of-sync: $obj_list");
 		}
     	}
 
