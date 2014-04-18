@@ -451,31 +451,20 @@ Gets the next device to scan.
 sub _get_next_linkscan
 {
 	my($skip_unchanged, $changed_device) = @_;
-	my $checking = 0;
-	if (!defined($changed_device)) {
-		$current_scan_device = shift @_scan_devices;
-		if ($skip_unchanged && $current_scan_device && ($current_scan_device != &Insteon::active_interface)){
-			## check if aldb_delta has changed;
-			$current_scan_device->_aldb->{_aldb_unchanged_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.')';
-			$current_scan_device->_aldb->{_aldb_changed_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.', '.$current_scan_device->get_object_name.')';
-			$current_scan_device->_aldb->{_failure_callback} = '&Insteon::_get_next_linkscan_failure('.$skip_unchanged.')';
-			$current_scan_device->_aldb->query_aldb_delta("check");
-			$checking = 1;
-		}
-	} else {
-		$current_scan_device = $changed_device;
-	}
-	if ($current_scan_device && ($checking == 0))
-        {
-          	&main::print_log("[Scan all link tables] Now scanning: "
+	$current_scan_device = shift @_scan_devices;
+	if ($current_scan_device) {
+          	::print_log("[Scan all link tables] Now scanning: "
                 	. $current_scan_device->get_object_name . " ("
                         . ($_scan_cnt - scalar @_scan_devices)
                         . " of $_scan_cnt)");
                 # pass first the success callback followed by the failure callback
-          	$current_scan_device->scan_link_table('&Insteon::_get_next_linkscan('.$skip_unchanged.')','&Insteon::_get_next_linkscan_failure('.$skip_unchanged.')');
-    	} elsif (scalar(@_scan_devices) == 0 && ($checking == 0))
-    	{
-          	&main::print_log("[Scan all link tables] All tables have completed scanning");
+          	$current_scan_device->scan_link_table(
+          	     '&Insteon::_get_next_linkscan('.$skip_unchanged.')',
+          	     '&Insteon::_get_next_linkscan_failure('.$skip_unchanged.')',
+          	     $skip_unchanged);
+    	} 
+    	else {
+          	::print_log("[Scan all link tables] All tables have completed scanning");
                 my $_scan_failure_cnt = scalar @_scan_device_failures;
                 if ($_scan_failure_cnt){
 			my $obj_list;

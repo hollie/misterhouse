@@ -1943,13 +1943,19 @@ Scans a device link table and caches a copy.
 
 sub scan_link_table
 {
-	my ($self, $success_callback, $failure_callback) = @_;
-        my $aldb = $self->get_root()->_aldb;
-        if ($aldb)
-        {
-        	return $aldb->scan_link_table($success_callback, $failure_callback);
+	my ($self, $success_callback, $failure_callback, $skip_unchanged) = @_;
+	my $aldb = $self->get_root()->_aldb;
+	if ($skip_unchanged) {
+	    my $self_name = $self->get_object_name();
+		## check if aldb_delta has changed;
+		$aldb->{_aldb_unchanged_callback} = $success_callback;
+		$aldb->{_aldb_changed_callback} = $self_name."->scan_link_table(
+		    '$success_callback', '$failure_callback')";
+		$aldb->{_failure_callback} = $failure_callback;
+		$aldb->query_aldb_delta("check");
+	} else {
+        $aldb->scan_link_table($success_callback, $failure_callback);
 	}
-
 }
 
 =item C<log_aldb_status()>
