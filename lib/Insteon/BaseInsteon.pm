@@ -2815,6 +2815,7 @@ sub get_voice_cmds
                 %voice_cmds,
                 'delete orphan links' => "$object_name->delete_orphan_links(0)",
                 '(AUDIT) delete orphan links' => "$object_name->delete_orphan_links(1)",
+                'mark as manually awake' => "$object_name->manual_awake(240)"
             );
         }
     }

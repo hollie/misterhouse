@@ -78,6 +78,10 @@ Deleting the orphan links will make your devices happier.  If you have unintende
 links on your devices, they can run slower and may unnecessarily increase the 
 number of messages sent on your network.
 
+B<Note:> This command will not run on deaf devices such as motion sensors or
+remotelincs.  These devices need to be "awake" to receive commands.  So please
+run this same command on deaf devices directly.
+
 =item C<AUDIT Delete Orphan Links>
 
 Does the same thing as C<Delete Orphan Links> but doesn't actually delete anything
@@ -101,6 +105,10 @@ This is helpful when adding a bunch of new devices, new scenes, or cleaning thin
 up.
 
 See the workflow described in C<Delete Orphan Links>.
+
+B<Note:> This command will not run on deaf devices such as motion sensors or
+remotelincs.  These devices need to be "awake" to receive commands.  So please
+run this same command on deaf devices directly.
 
 =item C<AUDIT Sync All Links>
 
@@ -134,6 +142,31 @@ Logs some details about each device to the log.  See C<log_all_ADLB_status()>
 
 =back
 
+=item C<Enable Monitor Mode>
+
+Places the PLM into "Monitor Mode."  The documentation is a little unclear on
+what this does.  In practice, this enables the PLM to receive B<Broadcast> 
+messages from devices which are in the PLM's link database.  So far, I have
+encountered two important broadcast messages, 1) EZFlora (EZRain) can send
+out broadcast messages whenever a valve changes state, 2) Each device will
+send out a broadcast message whenever you hold down the set button for 10
+seconds.  Within MisterHouse this message is used to mark a deaf device as
+awake for 4 minutes.  If Monitor Mode is not enabled, MisterHouse will not
+see either of these messages.
+
+Please be warned, since the documentation is rather vague on what this setting
+does, please consider this setting a B<Beta> feature.  Other users with other
+setups or devices may discover problems with this setting, but at least for me
+I do not see a downside to enabling this feature.
+
+=back
+
+=item C<Disable Monitor Mode>
+
+Disables B<Monitor Mode> defined above.
+
+=back
+
 =head3 Devices
 
 =over
@@ -150,6 +183,11 @@ Turns the device off.
 
 Similar to C<Sync All Links> above, but this will only add links that are related
 to this device.  Useful when adding a new device.
+
+On deaf devices, this command will perform its tasks the next time the device
+is awake.  You can awaken a device temporarily by triggering it (walk in front
+of a motion sensor, press a button on a remotelinc).  Or you can place the 
+device in awake mode for a longer period of time.  See B<Mark as Manually Awake>
 
 =item C<Link to Interface>
 
@@ -299,6 +337,39 @@ controlled by MH and is not reset by calling C<reset_message_stats>
 =item C<Reset Message Stats>
 
 Resets the message stats back to 0 for this device.
+
+=item C<Mark as Manually Awake>
+
+Flags the device as being awake for 4 minutes.  Only applicable to deaf devices
+such as motion sensors and remotelincs.  You must first press and hold the set
+button for 10 seconds on the device to put it into awake mode.  Then tell
+MisterHouse that you have done this by using this command.  Alternatively, if
+you enable B<Monitor Mode> on the PLM, MisterHouse will see when you press the
+set button of a device for ten seconds, and automatically mark it as awake for
+you.
+
+=item C<(AUDIT) Sync Links>
+
+Only available on deaf devices such as motion sensors and remotelincs.  Similar 
+to C<AUDIT Sync All Links> above in the PLM, but this will only report links
+that B<would> be added to this device should you run B<Sync Links>.
+
+=item C<(AUDIT) Delete Orphan Links>
+
+Only available on deaf devices such as motion sensors and remotelincs.  Similar 
+to C<AUDIT Delete Orphan Links> above in the PLM, but this will only report links
+that B<would> be deleted from this device should you run B<Delete Orphan Links>.
+
+=item C<Delete Orphan Links>
+
+Only available on deaf devices such as motion sensors and remotelincs.  Similar 
+to C<Delete Orphan Links> above in the PLM, but this will only delete links
+from this device that are unnecessary or no longer used.
+
+On deaf devices, this command will perform its tasks the next time the device
+is awake.  You can awaken a device temporarily by triggering it (walk in front
+of a motion sensor, press a button on a remotelinc).  Or you can place the 
+device in awake mode for a longer period of time.  See B<Mark as Manually Awake>
 
 =back
 

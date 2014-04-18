@@ -1017,7 +1017,9 @@ sub get_voice_cmds
         'reset all message stats' => "Insteon::reset_all_message_stats",
         'stress test ALL devices' => "Insteon::stress_test_all(5,1)",
         'ping test ALL devices' => "Insteon::ping_all(5)",
-        'log all device ALDB status' => "Insteon::log_all_ADLB_status"
+        'log all device ALDB status' => "Insteon::log_all_ADLB_status",
+        'enable monitor mode' => "$object_name->enable_monitor_mode(1)",
+        'disable monitor mode' => "$object_name->enable_monitor_mode(0)",
     );
     return \%voice_cmds;
 }
