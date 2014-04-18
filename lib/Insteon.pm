@@ -311,7 +311,7 @@ Resets the message stats back to 0 for this device.
 
 my (@_insteon_plm,@_insteon_device,@_insteon_link,@_scannable_link,$_scan_cnt,$_sync_cnt,$_sync_failure_cnt);
 my $init_complete;
-my (@_scan_devices,@_scan_device_failures,$current_scan_device);
+my (@_scan_devices,@_scan_deaf_devices,@_scan_device_failures,$current_scan_device);
 my (@_sync_devices,@_sync_device_failures,$current_sync_device);
 my ($_stress_test_count, $_stress_test_one_pass, @_stress_test_devices);
 my ($_ping_count, @_ping_devices);
@@ -386,6 +386,7 @@ sub scan_all_linktables
         my @candidate_devices = ();
         # clear @_scan_devices
         @_scan_devices = ();
+        @_scan_deaf_devices = ();
         @_scan_device_failures = ();
         $current_scan_device = undef;
         # alwayws include the active interface (e.g., plm)
@@ -400,8 +401,7 @@ sub scan_all_linktables
         	{
         		my $candidate_object = $_;
         		if ($candidate_object->is_root and
-                		!($candidate_object->is_deaf
-                		or $candidate_object->isa('Insteon::InterfaceController')))
+                		!($candidate_object->isa('Insteon::InterfaceController')))
                 	{
 		       		push @_scan_devices, $candidate_object;
                 		&main::print_log("[Scan all linktables] INFO1: "
@@ -453,26 +453,44 @@ sub _get_next_linkscan
 	my($skip_unchanged, $changed_device) = @_;
 	$current_scan_device = shift @_scan_devices;
 	if ($current_scan_device) {
-          	::print_log("[Scan all link tables] Now scanning: "
-                	. $current_scan_device->get_object_name . " ("
-                        . ($_scan_cnt - scalar @_scan_devices)
-                        . " of $_scan_cnt)");
-                # pass first the success callback followed by the failure callback
-          	$current_scan_device->scan_link_table(
-          	     '&Insteon::_get_next_linkscan('.$skip_unchanged.')',
-          	     '&Insteon::_get_next_linkscan_failure('.$skip_unchanged.')',
-          	     $skip_unchanged);
+	        if ($current_scan_device->is_deaf){
+	                # Store deaf devices for scanning at the end
+	                push(@_scan_deaf_devices, $current_scan_device);
+	                &Insteon::_get_next_linkscan($skip_unchanged);
+	        }
+	        else {
+                  	::print_log("[Scan all link tables] Now scanning: "
+                        	. $current_scan_device->get_object_name . " ("
+                                . ($_scan_cnt - scalar @_scan_devices)
+                                . " of $_scan_cnt)");
+                        # pass first the success callback followed by the failure callback
+                  	$current_scan_device->scan_link_table(
+                  	     '&Insteon::_get_next_linkscan('.$skip_unchanged.')',
+                  	     '&Insteon::_get_next_linkscan_failure('.$skip_unchanged.')',
+                  	     $skip_unchanged);
+	        }
     	} 
     	else {
-          	::print_log("[Scan all link tables] All tables have completed scanning");
-                my $_scan_failure_cnt = scalar @_scan_device_failures;
-                if ($_scan_failure_cnt){
+          	::print_log("[Scan all link tables] Completed scanning of all regular items.");
+                if (scalar @_scan_device_failures){
 			my $obj_list;
 			for my $failed_obj (@_scan_device_failures){
 				$obj_list .= $failed_obj->get_object_name .", ";
 			}
-			::print_log("[Scan all link tables] However, some failures "
-				."were noted with the following devices: $obj_list");
+			::print_log("[Scan all link tables] WARN, unable to "
+			." complete a scan of the following devices: $obj_list");
+		}
+                if (scalar @_scan_deaf_devices){
+			my $obj_list;
+			for my $deaf_obj (@_scan_deaf_devices){
+				$obj_list .= $deaf_obj->get_object_name .", ";
+			}
+			::print_log("[Scan all link tables] Will attempt to scan"
+			        ." the following deaf devices the next time they"
+			        ." wakeup: $obj_list");
+			for my $deaf_obj (@_scan_deaf_devices){
+				$deaf_obj->scan_link_table('','',$skip_unchanged);
+			}
 		}
     	}
 }
