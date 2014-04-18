@@ -925,6 +925,7 @@ sub _process_message
 	} elsif ($msg{type} eq 'broadcast') {
 		$self->devcat($msg{devcat});
 		$self->firmware($msg{firmware});
+		$self->manual_awake(240);
 		&::print_log("[Insteon::BaseObject] device category: $msg{devcat}"
 			. " firmware: $msg{firmware} received for " . $self->{object_name});
 	} else {
@@ -1139,6 +1140,14 @@ sub get_voice_cmds
         #here
         'sync links' => $self->get_object_name . '->sync_links(0)'
     );
+    # for deaf devices, the device level is the only version of sync links
+    # so add an audit command
+    if ($self->is_deaf && $self->is_root){
+        %voice_cmds = (
+            %voice_cmds,
+            '(AUDIT) sync links' => $self->get_object_name . '->sync_links(1)'
+        );
+    }
     return \%voice_cmds;
 }
 
@@ -2800,7 +2809,14 @@ sub get_voice_cmds
             'run stress test' => "$object_name->stress_test(5)",
             'run ping test' => "$object_name->ping(5)",
             'log links' => "$object_name->log_alllink_table()"
-        )
+        );
+        if ($self->is_deaf){
+            %voice_cmds = (
+                %voice_cmds,
+                'delete orphan links' => "$object_name->delete_orphan_links(0)",
+                '(AUDIT) delete orphan links' => "$object_name->delete_orphan_links(1)",
+            );
+        }
     }
     return \%voice_cmds;
 }
