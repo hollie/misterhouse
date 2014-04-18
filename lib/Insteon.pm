@@ -489,7 +489,16 @@ sub _get_next_linkscan
 			        ." the following deaf devices the next time they"
 			        ." wakeup: $obj_list");
 			for my $deaf_obj (@_scan_deaf_devices){
-				$deaf_obj->scan_link_table('','',$skip_unchanged);
+			        my $success_callback = "::print_log(qq|[Scan all".
+			                " link tables] Delayed scan successfully".
+			                " completed for: " . 
+			                $deaf_obj->get_object_name . "|)";
+			        my $failure_callback = "::print_log(qq|[Scan all".
+			                " link tables] WARN: The delayed scan ".
+			                " failed for: " . 
+			                $deaf_obj->get_object_name . "|)";
+				$deaf_obj->scan_link_table($success_callback,
+				        $failure_callback,$skip_unchanged);
 			}
 		}
     	}
