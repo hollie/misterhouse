@@ -254,6 +254,10 @@ sub send
                         		if $self->setby->debuglevel(1, 'insteon');
                         	$$self{no_hop_increase} = undef;
                         }
+                        
+                        # If No PLM-Receipt has been received for this message
+                        # then attempt to reconnect the PLM
+                        $interface->serial_restart() unless $self->plm_receipt;
                 }
 
                 # need to set timeout as a function of retries; also need to alter hop count
@@ -262,6 +266,10 @@ sub send
                     $self->setby->outgoing_hop_count($self->setby->default_hop_count)
                     	if $self->setby->can('outgoing_hop_count');
                 }
+                
+                # Clear PLM-Receipt Flag
+                $self->plm_receipt(0);
+                
                 $self->send_attempts($self->send_attempts + 1);
 		$interface->_send_cmd($self, $self->send_timeout);
 		if ($self->callback)
@@ -326,6 +334,22 @@ sub to_string
 	my ($self) = @_;
         return $self->interface_data;
 }
+
+=item C<plm_receipt()>
+
+Used to track whether the PLM has acknowledged receiving this message, either
+an ACK or NAK.  This is used to determine situations in which the serial
+connection to the PLM may have collapsed and may need to be restarted.
+
+=cut
+
+sub plm_receipt
+{
+	my ($self, $receipt) = @_;
+        $$self{plm_receipt} = $receipt if defined $receipt;
+        return $$self{plm_receipt};
+}
+
 
 =back
 

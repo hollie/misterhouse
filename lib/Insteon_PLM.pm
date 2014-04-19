@@ -87,6 +87,25 @@ sub serial_startup {
 
 }
 
+=item C<serial_restart()>
+
+Attempt to restart/reconnect the serial port connection.
+
+=cut
+
+sub serial_restart {
+   my ($self) = @_;
+   my $instance = $$self{port_name};
+   my $PLM_use_tcp = $::config_parms{$instance . "_use_TCP"};
+   
+   # TCP Port gets reconnected elsewhere
+   return if $PLM_use_tcp;
+
+   ::print_log("[Insteon_PLM] WARN: The PLM did not respond to the last command."
+        ." The port may have closed, attempting to reopen the port.");
+   ::serial_port_open($instance);
+}
+
 =item C<new()>
 
 Instantiates a new object.
@@ -620,6 +639,9 @@ sub _parse_data {
         
         	# STEP 4b Is this a PLM Response to a command MH sent?      
         	if ($is_ack) {
+        	        #Note Receipt of PLM ACK
+        	        $pending_message->plm_receipt(1);
+        	        
         		::print_log( "[Insteon_PLM] DEBUG4:\n".
         	                Insteon::MessageDecoder::plm_decode($data)) 
         	                if $debug_obj->debuglevel(4, 'insteon');
@@ -676,6 +698,9 @@ sub _parse_data {
         		$data =~ s/^$ackcmd//;
         	}
                 elsif ($is_nack) {
+                        #Note Receipt of PLM NAK
+        	        $pending_message->plm_receipt(1);
+        	        
         		::print_log( "[Insteon_PLM] DEBUG4:\n".
         	                Insteon::MessageDecoder::plm_decode($data)) 
         	                if $debug_obj->debuglevel(4, 'insteon');
@@ -759,6 +784,9 @@ sub _parse_data {
         		$data =~ s/^$nackcmd//;
         	}
         	elsif ($is_badcmd){
+        	       #Note Receipt of PLM Bad Cmd
+        	        $pending_message->plm_receipt(1);
+        	        
         		::print_log( "[Insteon_PLM] DEBUG4:\n".
         	                Insteon::MessageDecoder::plm_decode($data)) 
         	                if $debug_obj->debuglevel(4, 'insteon');
@@ -910,6 +938,9 @@ sub _parse_data {
                         $data = substr($data, 12);
         	}
                 elsif ($record_type eq $prefix{all_link_record} and (length($data) >= 20)) { 
+        	        #Note Receipt of PLM Response
+        	        $pending_message->plm_receipt(1);
+                        
                         #ALL-Link Record Response
                         my $message_data = substr($data,4,16);
         		&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($data)) 
@@ -962,6 +993,9 @@ sub _parse_data {
         		$data = substr($data, 6);
         	}
         	elsif ($record_type eq $prefix{plm_info} and (length($data) >= 18)){
+        	        #Note Receipt of PLM Response
+        	        $pending_message->plm_receipt(1);
+        	        
         		::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($data)) 
                                 if $self->debuglevel(4, 'insteon');
         	        
@@ -972,6 +1006,9 @@ sub _parse_data {
                         $data = substr($data, 18);
         	}
         	elsif ($record_type eq $prefix{plm_get_config} and (length($data) >= 12)){
+        	        #Note Receipt of PLM Response
+        	        $pending_message->plm_receipt(1);
+        	        
         		::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($data)) 
                                 if $self->debuglevel(4, 'insteon');
                         my $message_data = substr($data,4,8);
