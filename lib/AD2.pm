@@ -107,6 +107,18 @@ See AD2_Partition
 
 See AD2_Item
 
+=head2 NOTES
+
+Hardwired zones are difficult for us to deal with.  Due to their nature, the
+AD2 board only receives Alphanumberic fault messages for these zones and never
+receives ready messages.  Due to the way these Alphanumeric fault messages
+cycle around, the resetting of a hardwired zone from fault to ready may take
+a bit longer then expected.  Additionally, in certain circumstances a hardwired
+zone will be reset from fault to ready improperly, it will be tripped back to 
+fault a few seconds later.  The only way to avoid these annoyances is to map
+your hardwired zones to fake relays.  See the discussion of B<Relay Mappings>
+in the AD2_Item documentation below.
+
 =head2 TODO
 
 - Add support for control of emulated zones on the AD2 device.  Would allow 
@@ -449,27 +461,57 @@ sub CheckCmd {
    elsif ($status_type->{fault}) {
       #Loop through partions set in message
       foreach my $partition (@partitions){
-         #If zone numbers are sequential, there is nothing to do.
-         #Reset the zones between the current zone and the last zone. 
-         #Do not reset mapped zones, specific messages are recevied for these
-         #If the current zone is lower than the previous zone, only reset zones
-         #in between if highest zone has remained constant for one full cycle
-         if ($zone_no_pad - $self->{zone_last_num}{$partition} != 1) {
-            if (($self->{zone_last_num}{$partition} <= $zone_no_pad) &&
-               $self->{highest_zone}{$partition} != $self->{zone_last_num}{$partition}){
-               $self->{highest_zone}{$partition} = $zone_no_pad;
-               # Do not reset the zones in between.  This is a new highest zone
-               # number.  Can't be sure if the zone list completed a full cycle
+         #Parsing Alpha Fault messages is difficult. Only fault messages are
+         #reported, no per zone ready messages.  Fault messages cycle through
+         #from lowest to highest.  However, a new fault is immediately reported
+         #and the cycle then starts from the bottom again.
+         
+         #This means, that we can immediately set zones to fault. But to return
+         #to ready, we basically need the the highest and lowest zones to 
+         #remain constant for one cycle before chaning all other zones back
+         #to ready.  This works reasonable well, although there can be a big
+         #delay in returning a zone to ready.  Additionally, in certain 
+         #circumstances, a zone may be improperly returned to ready.
+         
+         #We do not mess with mapped zones, specific direct messages are 
+         #recevied for these (luckily)
+         
+         #Setup variables for testing of cycle first
+         if ($zone_no_pad < $self->{zone_last_num}{$partition}){
+            #This zone is lower than the last zone reported.
+            if($zone_no_pad == $self->{lowest_zone}{$partition}){
+               #Same lowest zone as last time
+               $self->{lowest_zone_unchanged}{$partition} = 1;
             }
             else {
-               $self->ChangeZones( $self->{zone_last_num}{$partition}+1, 
-                  $zone_no_pad-1, "ready", "bypass", 1, $partition,1);
-               $self->{highest_zone}{$partition} = $zone_no_pad 
-                  if ($self->{zone_last_num}{$partition} <= $zone_no_pad);
+               #New lowest zone, is at least a new cycle, could be new fault
+               $self->{lowest_zone}{$partition} = $zone_no_pad;
+               $self->{lowest_zone_unchanged}{$partition} = 0;
+            }
+            #Now examine previous zone, it becomes new highest zone
+            if($self->{zone_last_num}{$partition} == $self->{highest_zone}{$partition}){
+               #Same highest zone as last time
+               $self->{highest_zone_unchanged}{$partition} = 1;
+            }
+            else {
+               #New highest zone, is at least a new cycle, could be new fault
+               $self->{highest_zone}{$partition} = $self->{zone_last_num}{$partition};
+               $self->{highest_zone_unchanged}{$partition} = 0;
             }
          }
+         
+         #If cycle is still consistent, then reset all zones between reported
+         #faults.  Obviously skip this if the zones are sequentially increasing
+         #since there are no zones in between.
+         if ($self->{highest_zone_unchanged}{$partition} 
+            && $self->{lowest_zone_unchanged}{$partition}
+            && (($zone_no_pad - $self->{zone_last_num}{$partition}) != 1)) {
+            #Reset the zones between the current zone and the last zone.
+            $self->ChangeZones( $self->{zone_last_num}{$partition}+1, 
+               $zone_no_pad-1, "ready", "bypass", 1, $partition,1);
+         }
    
-         # Set this zone to faulted
+         # Always set the reported zone to fault
          $self->ChangeZones( $zone_no_pad, $zone_no_pad, "fault", "", 1);
          
          # Store Zone Number for Use in Fault Loop
@@ -837,7 +879,7 @@ sub ChangeZones {
             if defined $$self{zone_object}{"$i"};
          my $zone_partition = $self->zone_partition($i);
          my $partition_status = $self->status_partition($zone_partition);
-         $$self{partition_object}{$zone_partition}->set($partition_status, $$self{zone_object}{"$i"}) 
+         $$self{partition_object}{$zone_partition}->set_receive($partition_status, $$self{zone_object}{"$i"}) 
             if defined $$self{partition_object}{$zone_partition};
       }
       $y++;
@@ -985,7 +1027,6 @@ sub cmd {
       ::logit("Invalid password for command $CmdName ($password)");
       return;
    }
-
    $self->debug_log(">>> Sending to ADEMCO panel              $CmdName ($cmd)");
    $self->{keys_sent} = $self->{keys_sent} + length($CmdStr);
    if (defined $Socket_Items{$instance}) {
@@ -1019,7 +1060,9 @@ sub set {
    my $instance = $$self{instance};
    $p_state = lc($p_state);
    my $cmd = ( exists $self->{CmdMsg}->{$p_state} ) ? $self->{CmdMsg}->{$p_state} : $p_state;
-
+::print_log("AD2 ------------");
+use Carp;
+print Carp::longmess;
    $self->debug_log(">>> Sending to ADEMCO panel              $p_state ($cmd)");
    $self->{keys_sent} = $self->{keys_sent} + length($cmd);
    if (defined $Socket_Items{$instance}) {
@@ -1616,12 +1659,17 @@ sub set {
 	}
 	if ($found_state){
 		::print_log("[AD2::Partition] Received request to "
-			. $p_state . " for parition " . $self->get_object_name);
+			. $p_state . " for partition " . $self->get_object_name);
 		$$self{interface}->cmd($p_state);
 	}
 	else {
 	   $$self{interface}->set($p_state);   
 	}
+}
+
+sub set_receive {
+    my ($self, $p_state, $p_setby, $p_response) = @_;
+    return $self->SUPER::set($p_state, $p_setby, $p_response);
 }
 
 =back
