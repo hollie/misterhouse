@@ -103,7 +103,16 @@ sub serial_restart {
 
    ::print_log("[Insteon_PLM] WARN: The PLM did not respond to the last command."
         ." The port may have closed, attempting to reopen the port.");
-   ::serial_port_open($instance);
+
+   #prep vars
+   my $port       = $::config_parms{$instance . "_serial_port"};
+   my $speed = 19200;
+
+   #close the port
+   ::serial_port_close($instance);
+
+   #Try and open it again
+   ::serial_port_create($instance, $port, $speed,'none','raw');
 }
 
 =item C<new()>

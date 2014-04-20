@@ -5702,6 +5702,19 @@ sub serial_port_open {
 #   print "np=@serial_parms\n";
 }
 
+sub serial_port_close {
+   my ($name) = @_;
+   my $port = $Serial_Ports{$name}{port};
+   
+   # Recommended Steps to Close a Serial Port from CPAN
+   $Serial_Ports{$name}{object}->close() || ::print_log("[Insteon_PLM] Close of serial port failed.");
+   undef $Serial_Ports{$name}{object};
+   
+   # Remove all references in Global Vars
+   delete $Serial_Ports{object_by_port}{$port};
+   delete $Serial_Ports{$name};
+}
+
 
 sub set_sun_time {
     my @parms = (latitude  =>  $config_parms{latitude}, longitude => $config_parms{longitude},
