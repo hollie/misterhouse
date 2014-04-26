@@ -45,8 +45,7 @@ Provides basic support for the EzFlora (aka EzRain) sprinkler controller.
 
 =head2 INHERITS
 
-L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>, 
-L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
+L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>
 
 =head2 METHODS
 
@@ -59,7 +58,7 @@ use Insteon::BaseInsteon;
 
 package Insteon::Irrigation;
 
-@Insteon::Irrigation::ISA = ('Insteon::BaseDevice','Insteon::DeviceController');
+@Insteon::Irrigation::ISA = ('Insteon::BaseDevice');
 
 our %message_types = (
 	%Insteon::BaseDevice::message_types,

@@ -11,7 +11,9 @@ In user code:
 
 =head2 DESCRIPTION
 
-Generic class implementation of an Insteon Device.
+Generic class implementation of an Insteon Object.  This is inherited by all
+insteon objects both real (SwitchLinc) and virtual (PLM Scene), with the
+exception of the PLM itself, which does not inherit any of these functions.
 
 =head2 INHERITS
 
@@ -1127,12 +1129,8 @@ sub get_voice_cmds
 {
     my ($self) = @_;
     my %voice_cmds = (
-        #The Sync Links routine really resides in DeviceController, but that
-        #class seems a little redundant as in practice all devices are controllers
-        #in some sense.  As a result, that class will likely be folded into 
-        #BaseObject/Device at some future date.  In order to avoid a bizarre
-        #inheritance of this routine by higher classes, this command was placed
-        #here
+        #The Sync Links routine really resides in BaseController, maybe move this
+        #there
         'sync links' => $self->get_object_name . '->sync_links(0)'
     );
     return \%voice_cmds;
@@ -1249,7 +1247,10 @@ You should have received a copy of the GNU General Public License along with thi
 
 =head2 DESCRIPTION
 
-Generic class implementation of a Base Insteon Device.
+Generic class implementation of a Base Insteon Device such as a SwitchLinc.
+This class is inherited by all physical Insteon devices with the
+exception of the PLM itself, which does not inherit any of these functions.
+These functions are also not inherited by virtual devices such as a PLM Scene.
 
 =head2 INHERITS
 
@@ -1263,7 +1264,7 @@ L<Insteon::BaseObject|Insteon::BaseInsteon/Insteon::BaseObject>
 
 package Insteon::BaseDevice;
 
-@Insteon::BaseDevice::ISA = ('Insteon::BaseObject');
+@Insteon::BaseDevice::ISA = ('Insteon::BaseController');
 
 our %message_types = (
    %Insteon::BaseObject::message_types,
@@ -2809,9 +2810,6 @@ one group.  This includes, KeyPadLincs, RemoteLincs, FanLincs, Thermostats
 
 Nothing.
 
-This package is meant to provide supplemental support and should only be added
-as a secondary inheritance to an object.
-
 =head2 METHODS
 
 =over
@@ -2948,7 +2946,8 @@ You should have received a copy of the GNU General Public License along with thi
 
 =head2 DESCRIPTION
 
-Generic class implementation of an Insteon Controller.
+Generic class implementation of an Insteon Controller, this is inherited by
+both virtual (PLM Scene) and real (Switchlinc) objects.
 
 =head2 INHERITS
 
@@ -2964,7 +2963,7 @@ package Insteon::BaseController;
 
 use strict;
 
-@Insteon::BaseController::ISA = ('Generic_Item');
+@Insteon::BaseController::ISA = ('Insteon::BaseObject');
 
 =item C<new()>
 
@@ -3519,98 +3518,6 @@ You should have received a copy of the GNU General Public License along with thi
 =cut
 
 ####################################
-###            #####################
-### DeviceController ###############
-###                  ###############
-####################################
-
-=head1 B<Insteon::DeviceController>
-
-=head2 DESCRIPTION
-
-Generic class implementation of an Device Controller.
-
-=head2 INHERITS
-
-L<Insteon::BaseController|Insteon::BaseInsteon/Insteon::BaseController>
-
-=head2 METHODS
-
-=over
-
-=cut
-
-package Insteon::DeviceController;
-
-use strict;
-
-@Insteon::DeviceController::ISA = ('Insteon::BaseController');
-
-=item C<new()>
-
-Instantiates a new object.
-
-=cut
-
-sub new
-{
-	my ($class,$p_deviceid,$p_interface,$p_devcat) = @_;
-
-	# note that $p_deviceid will be 00.00.00:<groupnum> if the link uses the interface as the controller
-	my $self = new Insteon::BaseController($p_deviceid,$p_interface);
-	bless $self,$class;
-	return $self;
-}
-
-=item C<request_status([requestor])>
-
-Requests the current status of the device and calls C<set()> on the response.  
-This will trigger tied_events.
-
-=cut
-
-sub request_status
-{
-	my ($self,$requestor) = @_;
-#	if ($self->group ne '01') {
-	if ($$self{members} and !($self->isa('Insteon::InterfaceController'))
-             and (!(ref $requestor) or ($requestor eq $self))) {
-		&::print_log("[Insteon::DeviceController] requesting status for members of " . $$self{object_name});
-		foreach my $member (keys %{$$self{members}}) {
-			next unless $member->isa('Insteon::BaseObject');
-			my $member_obj = $$self{members}{$member}{object};
-			next if $requestor eq $member_obj;
-                        if ($member_obj->isa('Insteon::BaseDevice')) {
-			   &::print_log("[Insteon::DeviceController] checking status of " . $member_obj->get_object_name()
-				. " for requestor " . $requestor->get_object_name());
-			   $member_obj->request_status($self);
-                        }
-		}
-	}
-        # the following has bad assumptions in that we don't always know if a device is a responder
-        #    since it could be a slave
-	if ($self->is_root && $self->is_responder) {
-		$self->Insteon::BaseDevice::request_status($requestor);
-	}
-}
-
-=back
-
-=head2 AUTHOR
-
-Gregg Liming / gregg@limings.net, Kevin Robert Keegan, Michael Stovenour
-
-=head2 LICENSE
-
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-
-=cut
-
-####################################
 ###                     ############
 ### InterfaceController ############
 ###                     ############
@@ -3620,7 +3527,7 @@ You should have received a copy of the GNU General Public License along with thi
 
 =head2 DESCRIPTION
 
-Generic class implementation of an Interface Controller.  These are the PLM Scenes.
+Generic class implementation that supports PLM Scenes.
 
 =head2 INHERITS
 

@@ -464,7 +464,6 @@ Provides support for the Insteon ApplianceLinc.
 =head2 INHERITS
 
 L<Insteon::BaseLight|Insteon::Lighting/Insteon::BaseLight>
-L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
 
 =head2 METHODS
 
@@ -477,7 +476,7 @@ package Insteon::ApplianceLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::ApplianceLinc::ISA = ('Insteon::BaseLight','Insteon::DeviceController');
+@Insteon::ApplianceLinc::ISA = ('Insteon::BaseLight');
 
 =item C<new()>
 
@@ -530,7 +529,7 @@ Provides support for the Insteon LampLinc.
 =head2 INHERITS
 
 L<Insteon::DimmableLight|Insteon::Lighting/Insteon::DimmableLight>, 
-L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
+
 
 =head2 METHODS
 
@@ -543,7 +542,7 @@ package Insteon::LampLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::LampLinc::ISA = ('Insteon::DimmableLight','Insteon::DeviceController');
+@Insteon::LampLinc::ISA = ('Insteon::DimmableLight');
 
 =item C<new()>
 
@@ -596,7 +595,7 @@ Provides support for the Insteon SwitchLinc Relay.
 =head2 INHERITS
 
 L<Insteon::BaseLight|Insteon::Lighting/Insteon::BaseLight>,
-L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
+
 
 =head2 METHODS
 
@@ -609,7 +608,7 @@ package Insteon::SwitchLincRelay;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::SwitchLincRelay::ISA = ('Insteon::BaseLight','Insteon::DeviceController');
+@Insteon::SwitchLincRelay::ISA = ('Insteon::BaseLight');
 
 =item C<new()>
 
@@ -693,7 +692,7 @@ Provides support for the Insteon SwitchLinc.
 =head2 INHERITS
 
 L<Insteon::DimmableLight|Insteon::Lighting/Insteon::DimmableLight>, 
-L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
+
 
 =head2 METHODS
 
@@ -706,7 +705,7 @@ package Insteon::SwitchLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::SwitchLinc::ISA = ('Insteon::DimmableLight','Insteon::DeviceController');
+@Insteon::SwitchLinc::ISA = ('Insteon::DimmableLight');
 
 =item C<new()>
 
@@ -763,7 +762,7 @@ Provides support for the Insteon KeypadLinc Relay.
 =head2 INHERITS
 
 L<Insteon::BaseLight|Insteon::Lighting/Insteon::BaseLight>, 
-L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>,
+,
 L<Insteon::Insteon::MultigroupDevice|Insteon::BaseInsteon/Insteon::Insteon::MultigroupDevice>
 
 =head2 METHODS
@@ -777,7 +776,7 @@ package Insteon::KeyPadLincRelay;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::KeyPadLincRelay::ISA = ('Insteon::BaseLight','Insteon::DeviceController', 'Insteon::MultigroupDevice');
+@Insteon::KeyPadLincRelay::ISA = ('Insteon::BaseLight', 'Insteon::MultigroupDevice');
 
 our %operating_flags = (
    'program_lock_on' => '00',
@@ -1151,7 +1150,7 @@ Provides support for the Insteon KeypadLinc.
 =head2 INHERITS
 
 L<Insteon::DimmableLight|Insteon::Lighting/Insteon::DimmableLight>, 
-L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
+
 
 =head2 METHODS
 
@@ -1164,7 +1163,7 @@ package Insteon::KeyPadLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::KeyPadLinc::ISA = ('Insteon::KeyPadLincRelay', 'Insteon::DimmableLight','Insteon::DeviceController');
+@Insteon::KeyPadLinc::ISA = ('Insteon::KeyPadLincRelay', 'Insteon::DimmableLight');
 
 =item C<new()>
 
@@ -1227,7 +1226,7 @@ Provides support for the Insteon Micro On/Off Module.
 =head2 INHERITS
 
 L<Insteon::DimmableLight|Insteon::Lighting/Insteon::DimmableLight>, 
-L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
+
 
 =head2 METHODS
 
@@ -1240,7 +1239,7 @@ package Insteon::MicroSwitchRelay;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::MicroSwitchRelay::ISA = ('Insteon::BaseLight','Insteon::DeviceController');
+@Insteon::MicroSwitchRelay::ISA = ('Insteon::BaseLight');
 
 =item C<new()>
 
@@ -1500,7 +1499,7 @@ Provides support for the Insteon Micro Dimmer Module.
 =head2 INHERITS
 
 L<Insteon::DimmableLight|Insteon::Lighting/Insteon::DimmableLight>, 
-L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
+
 
 =head2 METHODS
 
@@ -1513,7 +1512,7 @@ package Insteon::MicroSwitch;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::MicroSwitch::ISA = ('Insteon::MicroSwitchRelay', 'Insteon::DimmableLight','Insteon::DeviceController');
+@Insteon::MicroSwitch::ISA = ('Insteon::MicroSwitchRelay', 'Insteon::DimmableLight');
 
 =item C<new()>
 
@@ -1568,7 +1567,7 @@ Provides support for the Insteon FanLinc.
 =head2 INHERITS
 
 L<Insteon::DimmableLight|Insteon::Lighting/Insteon::DimmableLight>, 
-L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>,
+,
 L<Insteon::Insteon::MultigroupDevice|Insteon::BaseInsteon/Insteon::Insteon::MultigroupDevice>
 
 =head2 METHODS
@@ -1582,7 +1581,7 @@ package Insteon::FanLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::FanLinc::ISA = ('Insteon::DimmableLight','Insteon::DeviceController', 'Insteon::MultigroupDevice');
+@Insteon::FanLinc::ISA = ('Insteon::DimmableLight', 'Insteon::MultigroupDevice');
 
 =item C<new()>
 
