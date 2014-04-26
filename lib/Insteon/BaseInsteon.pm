@@ -927,6 +927,7 @@ sub _process_message
 	} elsif ($msg{type} eq 'broadcast') {
 		$self->devcat($msg{devcat});
 		$self->firmware($msg{firmware});
+		$self->manual_awake(240);
 		&::print_log("[Insteon::BaseObject] device category: $msg{devcat}"
 			. " firmware: $msg{firmware} received for " . $self->{object_name});
 	} else {
@@ -984,7 +985,7 @@ sub _process_command_stack
 		# for now, be "dumb" and just unset it
 		$$self{awaiting_ack} = 0;
 	}
-	if (!($$self{awaiting_ack})) {
+	if (!($$self{awaiting_ack}) && $self->is_awake) {
 		my $callback = undef;
 		my $message = pop(@{$$self{command_stack}});
 		# convert ptr to cmd hash
@@ -1037,7 +1038,11 @@ sub _process_command_stack
 				if $@ and $self->debuglevel(1, 'insteon');
 			package Insteon::BaseObject;
 		}
-	} else {
+	} elsif (!$self->is_awake){
+	        ::print_log("[Insteon::BaseObject] ". $self->get_object_name .
+	                " is deaf and not currently awake. Queuing commands" .
+	                " until device wakes up.");
+	}else {
 #		&::print_log("[Insteon_Device] " . $self->get_object_name . " command queued but not yet sent; awaiting ack from prior command") if $self->debuglevel(1, 'insteon');
 	}
 }
@@ -1133,6 +1138,14 @@ sub get_voice_cmds
         #there
         'sync links' => $self->get_object_name . '->sync_links(0)'
     );
+    # for deaf devices, the device level is the only version of sync links
+    # so add an audit command
+    if ($self->is_deaf && $self->is_root){
+        %voice_cmds = (
+            %voice_cmds,
+            '(AUDIT) sync links' => $self->get_object_name . '->sync_links(1)'
+        );
+    }
     return \%voice_cmds;
 }
 
@@ -1197,6 +1210,26 @@ sub is_responder
 			return 0;
 		}
 	}
+}
+
+=item C<is_awake()>
+
+Returns true if the device has made contact within the time allowed by 
+C<awake_time> or if time allowed for C<manual_awake) has not elapsed.
+
+=cut
+
+sub is_awake
+{
+        my ($self) = @_;
+        return 1 unless $self->isa('Insteon::BaseDevice');
+        my $is_awake = 0;
+        if (((time - $$self{last_contact}) <= $$self{awake_time}) ||
+                $$self{manual_awake} >= time){
+                $is_awake = 1;
+        }
+        $is_awake = 1 unless ($self->is_deaf);
+        return $is_awake;
 }
 
 =back
@@ -1344,7 +1377,7 @@ sub new
 	$self->restore_data('devcat', 'firmware', 'level', 'retry_count_log', 'fail_count_log', 
         'outgoing_count_log', 'incoming_count_log', 'corrupt_count_log',
         'dupe_count_log', 'hops_left_count', 'max_hops_count',
-        'outgoing_hop_count');
+        'outgoing_hop_count', 'awake_time');
 
 	$self->initialize();
 	$self->rate(undef);
@@ -1366,6 +1399,7 @@ sub new
     $$self{hops_left_count} = 0;
     $$self{max_hops_count} = 0;
     $$self{outgoing_hop_count} = 0;
+    $$self{awake_time} = 2 unless $$self{awake_time};
 
 
 	return $self;
@@ -1384,6 +1418,53 @@ sub initialize
 	$$self{m_write} = 1;
 	$$self{m_is_locally_set} = 0;
 	# persist local, simple attribs
+}
+
+=item C<awake_time([time])>
+
+Used to store and return the associated awake time of a device.  This only
+applies to deaf devices.
+
+If provided, stores awake time.
+
+=cut
+
+sub awake_time
+{
+	my ($self, $p_time) = @_;
+	$$self{awake_time} = $p_time if $p_time;
+	return $$self{awake_time};
+}
+
+=item C<last_contact([time])>
+
+Used to store and return the time of the last contact from a device.  This only
+applies to deaf devices.
+
+=cut
+
+sub last_contact
+{
+	my ($self, $p_time) = @_;
+	$$self{last_contact} = $p_time if $p_time;
+	return $$self{last_contact};
+}
+
+=item C<manual_awake([time])>
+
+Used to manually flag the device as awake for a period of time.  This will
+cause all messages from MH to be immediately sent to the device instead of
+being held until next contact.  This should be used when you have manually
+set the device to be awake such as by holding the set button until the device 
+beeps.  Used only for deaf devices.
+
+=cut
+
+sub manual_awake
+{
+	my ($self, $p_time) = @_;
+	$$self{manual_awake} = time + $p_time if $p_time;
+	return $$self{manual_awake};
 }
 
 =item C<rate([rate])>
@@ -1872,13 +1953,19 @@ Scans a device link table and caches a copy.
 
 sub scan_link_table
 {
-	my ($self, $success_callback, $failure_callback) = @_;
-        my $aldb = $self->get_root()->_aldb;
-        if ($aldb)
-        {
-        	return $aldb->scan_link_table($success_callback, $failure_callback);
+	my ($self, $success_callback, $failure_callback, $skip_unchanged) = @_;
+	my $aldb = $self->get_root()->_aldb;
+	if ($skip_unchanged) {
+	    my $self_name = $self->get_object_name();
+		## check if aldb_delta has changed;
+		$aldb->{_aldb_unchanged_callback} = $success_callback;
+		$aldb->{_aldb_changed_callback} = $self_name."->scan_link_table(
+		    '$success_callback', '$failure_callback')";
+		$aldb->{_failure_callback} = $failure_callback;
+		$aldb->query_aldb_delta("check");
+	} else {
+        $aldb->scan_link_table($success_callback, $failure_callback);
 	}
-
 }
 
 =item C<log_aldb_status()>
@@ -2197,8 +2284,8 @@ does nothing.
 
 sub delete_orphan_links
 {
-	my ($self, $audit_mode, $failure_callback) = @_;
-        return $self->_aldb->delete_orphan_links($audit_mode, $failure_callback) if $self->_aldb;
+	my ($self, $audit_mode, $failure_callback, $is_batch_mode) = @_;
+        return $self->_aldb->delete_orphan_links($audit_mode, $failure_callback,$is_batch_mode) if $self->_aldb;
 }
 
 sub _process_delete_queue {
@@ -2723,7 +2810,15 @@ sub get_voice_cmds
             'run stress test' => "$object_name->stress_test(5)",
             'run ping test' => "$object_name->ping(5)",
             'log links' => "$object_name->log_alllink_table()"
-        )
+        );
+        if ($self->is_deaf){
+            %voice_cmds = (
+                %voice_cmds,
+                'delete orphan links' => "$object_name->delete_orphan_links(0)",
+                '(AUDIT) delete orphan links' => "$object_name->delete_orphan_links(1)",
+                'mark as manually awake' => "$object_name->manual_awake(240)"
+            );
+        }
     }
     return \%voice_cmds;
 }
@@ -3271,13 +3366,17 @@ sub _process_sync_queue {
 	if ($num_sync_queue) {
 		my $link_req_ptr = shift(@{$$self{sync_queue}});
 		my %link_req = %$link_req_ptr;
-		if ($link_req{cmd} eq 'update') {
-			my $link_member = $link_req{member};
-			$link_member->update_link(%link_req);
-		} elsif ($link_req{cmd} eq 'add') {
-			my $link_member = $link_req{member};
-			$link_member->add_link(%link_req);
+		my $link_member = $link_req{member};
+		if ($link_member->is_deaf){
+		        $link_member->_build_deaf_sync_queue($link_req_ptr);
+		        $self->_process_sync_queue();
 		}
+		elsif ($link_req{cmd} eq 'update') {
+        		$link_member->update_link(%link_req);
+        	} 
+        	elsif ($link_req{cmd} eq 'add') {
+        		$link_member->add_link(%link_req);
+        	}
 	} elsif ($$self{sync_queue_callback}) {
 		my $callback = $$self{sync_queue_callback};
 		if ($$self{sync_queue_failure}){
@@ -3285,12 +3384,68 @@ sub _process_sync_queue {
 		}
 		package main;
 		eval ($callback);
-		&::print_log("[Insteon::BaseController] error in sync links callback: " . $@)
+		::print_log("[Insteon::BaseController] ERROR in sync links callback: " . $@)
 			if $@ and $self->debuglevel(1, 'insteon');
 		package Insteon::BaseController;
 	} else {
-		main::print_log($self->get_object_name." completed sync links");
+		::print_log("[Insteon::BaseController] Completed sync links for: "
+		        .$self->get_object_name);
+                if ($$self{deaf_sync_queue_flag}){
+		        ::print_log("[Insteon::BaseController] Links on "
+		                .$self->get_object_name . " will sync the next "
+		                ."time the device is awake."); 
+                        $self->_process_deaf_sync_queue();
+                }
 	}
+}
+
+######
+#
+# The following three routines are used to queue links to be synced on deaf 
+# devices these requests will be processed the next time the device wakes up
+#
+######
+
+sub _build_deaf_sync_queue {
+        my ($self, $link_req_ptr) = @_;
+        my %link_req = %$link_req_ptr;
+        my $self_link_name = $self->get_object_name;
+        $$self{deaf_sync_queue_flag} = 1; #Sync requests are pending
+	%link_req = ( callback => "$self_link_name->_process_deaf_sync_queue()",
+                failure_callback => "$self_link_name->_process_deaf_sync_queue_failure()");
+        push @{$$self{deaf_sync_queue}}, \%link_req;
+}
+
+sub _process_deaf_sync_queue {
+        my ($self) = @_;
+        my $num_sync_queue = @{$$self{deaf_sync_queue}};
+        if ($num_sync_queue) {
+	        my $link_req_ptr = shift(@{$$self{deaf_sync_queue}});
+		my %link_req = %$link_req_ptr;
+		my $link_member = $link_req{member};
+        	if ($link_req{cmd} eq 'update') {
+        		$link_member->update_link(%link_req);
+        	} 
+        	elsif ($link_req{cmd} eq 'add') {
+        		$link_member->add_link(%link_req);
+        	}
+        }
+        else {
+                ::print_log("[Insteon::BaseController] Completed the delayed "
+                        ."sync links request on " . $self->get_object_name);
+		if ($$self{deaf_sync_queue_failure}) {
+                        ::print_log("[Insteon::BaseController] However, some "
+                                ."failures occured.");
+		}
+		$$self{deaf_sync_queue_flag} = 0;
+		$$self{deaf_sync_queue_failure} = 0;
+	}
+}
+
+sub _process_deaf_sync_queue_failure {
+        my ($self) = @_;
+        $$self{deaf_sync_queue_failure} = 1;
+        $self->_process_deaf_sync_queue();
 }
 
 =item C<set_linked_devices(state)>
