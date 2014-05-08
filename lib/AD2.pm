@@ -1060,9 +1060,6 @@ sub set {
    my $instance = $$self{instance};
    $p_state = lc($p_state);
    my $cmd = ( exists $self->{CmdMsg}->{$p_state} ) ? $self->{CmdMsg}->{$p_state} : $p_state;
-::print_log("AD2 ------------");
-use Carp;
-print Carp::longmess;
    $self->debug_log(">>> Sending to ADEMCO panel              $p_state ($cmd)");
    $self->{keys_sent} = $self->{keys_sent} + length($cmd);
    if (defined $Socket_Items{$instance}) {
