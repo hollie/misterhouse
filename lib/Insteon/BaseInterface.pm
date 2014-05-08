@@ -661,41 +661,47 @@ sub on_standard_insteon_received
                                         }
                                         elsif ($msg{type} eq 'cleanup')
                                         {
-                                        	my $setby_object = $object;
-                                                $object = &Insteon::get_object('000000', $msg{extra});
-                                                if ($object)
+                                                my $group_object = &Insteon::get_object('000000', $msg{extra});
+                                                if ($group_object)
                                                 {
                                                 	# prevent re-processing transmit queue until after clearing occurs
                                                 	$self->transmit_in_progress(1);
 							# Don't clear active message as ACK is only one of many
 							if (($msg{extra} == $self->active_message->setby->group)){
                                                                 &main::print_log("[Insteon::BaseInterface] DEBUG3: Cleanup message received for scene "
-                                                                	. $object->get_object_name . " from " . $setby_object->get_object_name)
-                                                                	if $object->debuglevel(3, 'insteon');
+                                                                	. $group_object->get_object_name . " from " . $object->get_object_name)
+                                                                	if $group_object->debuglevel(3, 'insteon');
 							} elsif ($self->active_message->command_type eq 'all_link_direct_cleanup' &&
 								lc($self->active_message->setby->device_id) eq $msg{source}) 
 							{
-								&::print_log("[Insteon::BaseInterface] DEBUG2: ALL-Linking Direct Completed with ". $self->active_message->setby->get_object_name) if $object->debuglevel(2, 'insteon');
+								&::print_log("[Insteon::BaseInterface] DEBUG2: ALL-Linking Direct Completed with ". $self->active_message->setby->get_object_name) if $group_object->debuglevel(2, 'insteon');
 								$self->clear_active_message();
 							}
 							else {
 								&main::print_log("[Insteon::BaseInterface] DEBUG3: Cleanup message received from "
-								. $setby_object->get_object_name . " for scene "
-								. $object->get_object_name . ", but group in recent message " 
+								. $object->get_object_name . " for scene "
+								. $group_object->get_object_name . ", but group in recent message " 
 								. $msg{extra}. " did not match group in "
 								. "prior sent message group " . $self->active_message->setby->group) 
-									if $object->debuglevel(3, 'insteon');
+									if $group_object->debuglevel(3, 'insteon');
                                 			}
                                 			# If ACK or NACK received then PLM is still working on the ALL Link Command
                                 			# Increase the command timeout to wait for next one
                                 			$self->_set_timeout('command', 3000);
                                                 }
+                                                elsif ($msg{is_nack} && lc($msg{extra}) eq 'ff'){
+                                                	::print_log("[Insteon::BaseInterface] ERROR: " . $object->get_object_name 
+                                                	     . " does not have a responder record for the most recent command"
+                                                	     . " sent by the PLM.  Try scanning " . $object->get_object_name 
+                                                	     . " and then running 'sync links' on the most recently used "
+                                                	     . " PLM Scene.");  
+                                                }
                                                 else
                                                 {
                                                 	&main::print_log("[Insteon::BaseInterface] ERROR: received cleanup message from "
-                                                             . $setby_object->get_object_name . " that does not correspond to a valid PLM group. Corrupted message is assumed "
+                                                             . $object->get_object_name . " that does not correspond to a valid PLM group. Corrupted message is assumed "
                                                              . "and will be skipped! Was group " . $msg{extra});
-                                                    $setby_object->corrupt_count_log(1) if $setby_object->can('corrupt_count_log');
+                                                    $object->corrupt_count_log(1) if $object->can('corrupt_count_log');
                                                 }
                                         }
                                         else #not direct or cleanup
