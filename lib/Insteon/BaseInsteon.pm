@@ -1464,6 +1464,8 @@ sub manual_awake
 {
 	my ($self, $p_time) = @_;
 	$$self{manual_awake} = time + $p_time if $p_time;
+	#Start sending any messages that are queued for the device 
+	$self->_process_command_stack();
 	return $$self{manual_awake};
 }
 
