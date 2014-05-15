@@ -275,7 +275,7 @@ sub default_hop_count
 	if (defined($hop_count)){
 		::print_log("[Insteon::BaseObject] DEBUG3: Adding hop count of " . $hop_count . " to hop_array of "
 			. $self->get_object_name) if $self->debuglevel(3, 'insteon');
-		if (!(@{$$self{hop_array}})) {
+		if (!$$self{hop_array} || !(@{$$self{hop_array}})) {
 			unshift(@{$$self{hop_array}}, $$self{default_hop_count});
 			$$self{hop_sum} = $$self{default_hop_count};
 		}
