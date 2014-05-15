@@ -704,6 +704,12 @@ sub _parse_data {
 				$self->_clear_timeout('command');
 				$self->clear_active_message();
         		}
+        		elsif ($record_type eq $prefix{plm_set_config}) {
+        		        # The PLM ACK is all we get in response to
+        		        # setting the config parameters
+				$self->clear_active_message();
+        		}
+        		
         		$data =~ s/^$ackcmd//;
         	}
                 elsif ($is_nack) {

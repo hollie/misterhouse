@@ -3367,7 +3367,7 @@ sub _process_sync_queue {
 		my $link_req_ptr = shift(@{$$self{sync_queue}});
 		my %link_req = %$link_req_ptr;
 		my $link_member = $link_req{member};
-		if ($link_member->is_deaf){
+		if ($link_member->is_deaf && !$link_member->is_awake){
 		        $link_member->_build_deaf_sync_queue($link_req_ptr);
 		        $self->_process_sync_queue();
 		}
