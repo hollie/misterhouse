@@ -190,10 +190,14 @@ sub derive_link_state
 	if (grep(/$p_state/i, @{['on_fast', 'off', 'off_fast']})) {
 		$link_state = $p_state;
 	}
-	elsif ($p_state =~ /\d+%?/)
+	elsif ($p_state =~ /(\d+)%?/)
 	{
-		$p_state =~ /(\d+)%?/;
-		$link_state = $1 . '%';
+		if ($1 == 0) {
+		        $link_state = 'off';
+		}
+		else {
+		        $link_state = $1 . '%';
+		}
 	}
 	return $link_state;
 }
