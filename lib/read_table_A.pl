@@ -1061,6 +1061,55 @@ sub read_table_A {
             $code .= "use Philips_Hue;\n";
         }
     }
+    #-------------- AD2 Objects -----------------
+    elsif($type eq "AD2_INTERFACE") {
+        require AD2;
+        my ($instance);
+        ($name, $instance, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "AD2('$instance','$other')";
+    }
+    elsif($type eq "AD2_DOOR_ITEM") {
+        require AD2;
+        my ($instance,$expander,$relay,$wireless, $zone, $partition);
+        ($name, $instance, $zone, $partition, $address, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        my ($map, $address) = split('=', $address);
+        $expander = $address if (uc($map) eq "EXP");
+        $relay = $address if (uc($map) eq "REL");
+        $wireless = $address if (uc($map) eq "RFX");
+        $object = "AD2_Item('door','$instance','$zone','$partition','$expander','$relay','$wireless','$other')";
+    }
+    elsif($type eq "AD2_MOTION_ITEM") {
+        require AD2;
+        my ($instance,$expander,$relay,$wireless, $zone, $partition);
+        ($name, $instance, $zone, $partition, $address, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        my ($map, $address) = split('=', $address);
+        $expander = $address if (uc($map) eq "EXP");
+        $relay = $address if (uc($map) eq "REL");
+        $wireless = $address if (uc($map) eq "RFX");
+        $object = "AD2_Item('motion','$instance','$zone','$partition','$expander','$relay','$wireless','$other')";
+    }
+    elsif($type eq "AD2_GENERIC_ITEM") {
+        require AD2;
+        my ($instance,$expander,$relay,$wireless, $zone, $partition);
+        ($name, $instance, $zone, $partition, $address, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        my ($map, $address) = split('=', $address);
+        $expander = $address if (uc($map) eq "EXP");
+        $relay = $address if (uc($map) eq "REL");
+        $wireless = $address if (uc($map) eq "RFX");
+        $object = "AD2_Item('','$instance','$zone','$partition','$expander','$relay','$wireless','$other')";
+    }
+    elsif($type eq "AD2_PARTITION") {
+        require AD2;
+        my ($instance,$number);
+        ($name, $instance, $number, $address, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "AD2_Partition('$instance','$number','$address','$other')";
+    }
+    #-------------- End AD2 Objects -------------
     else {
         print "\nUnrecognized .mht entry: $record\n";
         return;
