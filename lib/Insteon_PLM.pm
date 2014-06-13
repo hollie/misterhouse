@@ -900,19 +900,19 @@ sub _parse_data {
         		my $device_object = Insteon::get_object($link_address);
         		$device_object->devcat(substr($message_data,10,4));
         		$device_object->firmware(substr($message_data,14,2));
-        		if (ref $self->active_message && 
-        			$self->active_message->success_callback){
-        			main::print_log("[Insteon::Insteon_PLM] DEBUG4: Now calling message success callback: "
-        				. $self->active_message->success_callback) if $self->debuglevel(4, 'insteon');
-        			package main;
-        				eval $self->active_message->success_callback;
-        				::print_log("[Insteon::Insteon_PLM] problem w/ success callback: $@") if $@;
-        			package Insteon::BaseObject;
+        		if (ref $self->active_message) {
+        		        if ($self->active_message->success_callback){
+	        			main::print_log("[Insteon::Insteon_PLM] DEBUG4: Now calling message success callback: "
+	        				. $self->active_message->success_callback) if $self->debuglevel(4, 'insteon');
+	        			package main;
+	        				eval $self->active_message->success_callback;
+	        				::print_log("[Insteon::Insteon_PLM] problem w/ success callback: $@") if $@;
+	        			package Insteon::BaseObject;
+        		        }
+	        		#Clear awaiting_ack flag
+	        		$self->active_message->setby->_process_command_stack(0);
+	                        $self->clear_active_message();       
         		}
-        		#Clear awaiting_ack flag
-        		$self->active_message->setby->_process_command_stack(0);
-                        $self->clear_active_message();
-                        
                         $data = substr($data, 20);
         	}
                 elsif ($record_type eq $prefix{all_link_clean_failed} and (length($data) >= 12)) { 
