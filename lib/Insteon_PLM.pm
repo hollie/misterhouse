@@ -619,7 +619,8 @@ sub _parse_data {
                 }
                 
         	# STEP 4a Is this a PLM Response to a command we sent? Prep Vars
-        	my ($is_ack, $is_nack, $is_badcmd, $ackcmd, $nackcmd, $badcmd);
+        	my ($is_ack, $is_nack, $is_badcmd) = (0) x 3;
+        	my ($ackcmd, $nackcmd, $badcmd) = ("") x 3;
         	my $pending_message = $self->active_message;
         
         	if ($pending_message) {
