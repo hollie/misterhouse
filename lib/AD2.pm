@@ -691,7 +691,7 @@ sub CheckCmd {
          $self->debug_log("Panel is low on battery");;
       }
       if ($mode ne $self->state && $mode ne ''){
-         $self->set($mode);
+         $self->set_receive($mode);
       }
    }
    return;
@@ -1080,6 +1080,17 @@ sub set {
       $main::Serial_Ports{$instance}{'socket'}->write("$cmd");
    }
    return;
+}
+
+=item C<set_receive()>
+
+Used internally to update the state of the object inside MisterHouse.
+
+=cut
+
+sub set_receive {
+    my ($self, $p_state, $p_setby, $p_response) = @_;
+    return $self->SUPER::set($p_state, $p_setby, $p_response);
 }
 
 =item C<status_zone($zone)>
@@ -1774,6 +1785,8 @@ sub set
          $$self{interface}->output_cmd($p_state, $$self{output});
       } 
       else {
+         # This may be an attempt to send the alarm code, not sure if this is
+         # a good way to handle this
          $reported_state = '';
          $$self{interface}->set($p_state); 
       }
