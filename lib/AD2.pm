@@ -179,9 +179,6 @@ sub new {
    # proactively setting their ini parameters to 0:
    # AD2_part_log AD2_zone_log AD2_debug_log
 
-   #Set all zones and partitions to ready
-   $self->ChangeZones( 1, $$self{max_zones}, "ready", "ready", 0);
-
    #Store Object with Instance Name
    $self->_set_object_instance($instance);
 
@@ -189,6 +186,34 @@ sub new {
    $self->read_parms($instance);
 
    return $self;
+}
+
+=item C<restore_string()>
+
+This is called by mh on exit to save the cached states of the zones to 
+persistant data.  
+
+NOTE:  It would probably be easier/better to simply have the child
+objects each store their own state using the built-in MH methods.  However, 
+this would require users to define the child objects and would break the 
+original code design.
+
+=cut
+
+sub restore_string
+{
+	my ($self) = @_;
+	# Do the normal restore_string
+	my $restore_string = $self->SUPER::restore_string();
+	# Add our custom routine to save the zone states
+	for my $partition (keys %{$$self{partition_address}}){
+	   for my $zone (keys %{$$self{$partition}{zone_status}}){
+	      my $status = $$self{$partition}{zone_status}{$zone};
+	      $restore_string .= $self->{object_name} 
+	         . "->ChangeZones($zone, $zone, q~$status~, 0, 0, $partition, 0);\n";
+	   }
+	}
+	return $restore_string;
 }
 
 =item C<get_object_by_instance($instance)>
@@ -806,9 +831,12 @@ sub GetStatusType {
       $message{rel_channel} = $2;
       $message{rel_status} = $3;
    }
-   elsif ($AdemcoStr =~ /!Sending\.\.\.done/) {
+   elsif ($AdemcoStr =~ /!Sending\.*done/) {
       $self->debug_log("Command sent successfully.");
       $message{cmd_sent} = 1;
+   }
+   elsif ($AdemcoStr =~ /!SER2SOCK/) {
+      $self->debug_log("Ser2Sock Message: $AdemcoStr");
    }
    else {
       $message{unknown} = 1;
@@ -876,7 +904,8 @@ sub ChangeZones {
          $self->{partition_now}{$partition} = 1;
          #  Set child object status if it is registered to the zone
          $$self{zone_object}{"$i"}->set($new_status, $$self{zone_object}{"$i"}) 
-            if defined $$self{zone_object}{"$i"};
+            if (defined $$self{zone_object}{"$i"} 
+               && $$self{zone_object}{"$i"}->state ne $new_status);
          my $zone_partition = $self->zone_partition($i);
          my $partition_status = $self->status_partition($zone_partition);
          $$self{partition_object}{$zone_partition}->set_receive($partition_status, $$self{zone_object}{"$i"}) 
@@ -1252,8 +1281,8 @@ Used to associate child objects with the interface.
 
 sub register {
    my ($self, $object, $num, $expander,$relay,$wireless) = @_;
-   &::print_log("Registering Child Object on zone $num");
    if ($object->isa('AD2_Item')) {
+      ::print_log("Registering Child Object for zone $num");
       $self->{zone_object}{$num} = $object;
       #Put wireless settings in correct hash
       if (defined $wireless){
@@ -1269,9 +1298,11 @@ sub register {
       }
    }
    elsif ($object->isa('AD2_Partition')) {
+      ::print_log("Registering Child Object for partition $num");
       $self->{partition_object}{$num} = $object;
    }
    elsif ($object->isa('AD2_Output')) {
+      ::print_log("Registering Child Object for output $num");
       $self->{output_object}{$num} = $object;
    }
 }
@@ -1434,7 +1465,6 @@ sub new
    $interface->register($self,$zone,$expander,$relay,$wireless);
    $zone = sprintf("%03d", $zone);
    $$self{zone_partition}{$zone} = $partition;
-   $self->set($interface->status_zone($zone), $self); #Set correct state on startup
    return $self;
 
 }
