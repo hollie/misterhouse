@@ -646,9 +646,35 @@ sub _parse_data {
                         $is_nack = 1 if ($data =~ /^($nackcmd)/);
                         $is_badcmd = 1 if ($data =~ /^($badcmd)/);
         	}
+
+                # Step 4b Check if this is a unique PLM Response
+        	if ($record_type eq $prefix{plm_info} and (length($data) >= 18)){
+        	        #Note Receipt of PLM Response
+        	        $pending_message->plm_receipt(1);
+        	        
+        		::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($data)) 
+                                if $self->debuglevel(4, 'insteon');
+        	        
+        		$self->device_id(substr($data,4,6));
+        		$self->firmware(substr($data,14,2));
+                        $self->on_interface_info_received();
+                        
+                        $data = substr($data, 18);
+        	}
+        	elsif ($record_type eq $prefix{plm_get_config} and (length($data) >= 12)){
+        	        #Note Receipt of PLM Response
+        	        $pending_message->plm_receipt(1);
+        	        
+        		::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($data)) 
+                                if $self->debuglevel(4, 'insteon');
+                        my $message_data = substr($data,4,8);
+                        $self->on_interface_config_received($message_data);
+                        $data = substr($data, 18);
+        	}                
+
         
-        	# STEP 4b Is this a PLM Response to a command MH sent?      
-        	if ($is_ack) {
+        	# STEP 4c Is this a PLM Response to a command MH sent?      
+        	elsif ($is_ack) {
         	        #Note Receipt of PLM ACK
         	        $pending_message->plm_receipt(1);
         	        
@@ -1007,29 +1033,6 @@ sub _parse_data {
         		}
         		
         		$data = substr($data, 6);
-        	}
-        	elsif ($record_type eq $prefix{plm_info} and (length($data) >= 18)){
-        	        #Note Receipt of PLM Response
-        	        $pending_message->plm_receipt(1);
-        	        
-        		::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($data)) 
-                                if $self->debuglevel(4, 'insteon');
-        	        
-        		$self->device_id(substr($data,4,6));
-        		$self->firmware(substr($data,14,2));
-                        $self->on_interface_info_received();
-                        
-                        $data = substr($data, 18);
-        	}
-        	elsif ($record_type eq $prefix{plm_get_config} and (length($data) >= 12)){
-        	        #Note Receipt of PLM Response
-        	        $pending_message->plm_receipt(1);
-        	        
-        		::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($data)) 
-                                if $self->debuglevel(4, 'insteon');
-                        my $message_data = substr($data,4,8);
-                        $self->on_interface_config_received($message_data);
-                        $data = substr($data, 18);
         	}
         	else {
         	        # No more processing can be done now, wait for more data
