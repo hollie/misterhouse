@@ -179,9 +179,6 @@ sub new {
    # proactively setting their ini parameters to 0:
    # AD2_part_log AD2_zone_log AD2_debug_log
 
-   #Set all zones and partitions to ready
-   $self->ChangeZones( 1, $$self{max_zones}, "ready", "ready", 0);
-
    #Store Object with Instance Name
    $self->_set_object_instance($instance);
 
@@ -189,6 +186,37 @@ sub new {
    $self->read_parms($instance);
 
    return $self;
+}
+
+=item C<restore_string()>
+
+This is called by mh on exit to save the cached states of the zones to 
+persistant data.  
+
+NOTE:  It would probably be easier/better to simply have the child
+objects each store their own state using the built-in MH methods.  However, 
+this would require users to define the child objects and would break the 
+original code design.
+
+=cut
+
+sub restore_string
+{
+	my ($self) = @_;
+	# Do the normal restore_string
+	my $restore_string = $self->SUPER::restore_string();
+	# Add our custom routine to save the zone states
+	for my $partition (keys %{$$self{partition_address}}){
+	   for my $zone (keys %{$$self{$partition}{zone_status}}){
+	      my $status = $$self{$partition}{zone_status}{$zone};
+	      $restore_string .= $self->{object_name} 
+	         . "->ChangeZoneState($zone, q~$status~, 0);\n";
+	      my $bypass = $$self{$partition}{zone_bypass}{$zone};
+	      $restore_string .= $self->{object_name} 
+	         . "->zone_bypassed($zone, $bypass);\n";	      
+	   }
+	}
+	return $restore_string;
 }
 
 =item C<get_object_by_instance($instance)>
@@ -362,8 +390,7 @@ sub check_for_data {
    # Reset any wireless keyfobs to ready
    foreach my $rf_key (keys %{$$self{wireless}}){
       if ($rf_key =~ /.*\..*\.k/i) {
-         $self->ChangeZones( int($$self{wireless}{$rf_key}), 
-            int($$self{wireless}{$rf_key}), "ready", "", 1); 
+         $self->ChangeZoneState( int($$self{wireless}{$rf_key}), "ready", 1); 
       }
    }
 
@@ -507,19 +534,46 @@ sub CheckCmd {
             && $self->{lowest_zone_unchanged}{$partition}
             && (($zone_no_pad - $self->{zone_last_num}{$partition}) != 1)) {
             #Reset the zones between the current zone and the last zone.
-            $self->ChangeZones( $self->{zone_last_num}{$partition}+1, 
-               $zone_no_pad-1, "ready", "bypass", 1, $partition,1);
+            my $start = $self->{zone_last_num}{$partition}+1;
+            my $end = $zone_no_pad-1;
+         
+            # Allow for reverse looping from max_zones->1
+            my $reverse = ($start > $end)? 1 : 0;
+            
+            # Prevent infinite loop scenario
+            my $y = 0;
+            
+            # Loop through zones setting them as required
+            for (my $i = $start; ($y <= $$self{max_zones}) &&
+               ((!$reverse && $i <= $end) ||
+               ($reverse && ($i >= $start || $i <= $end)));
+               $i++) {
+               # Only alter zones in this partition
+               if ($partition == $self->zone_partition($i)) {
+                  # Skip Mapped or Bypassed Zones
+                  if (!$self->is_zone_mapped($i) && 
+                     !$self->zone_bypassed($i)){
+                     $self->ChangeZoneState( $i, "ready", 1);
+                  }
+               }
+               $y++;
+               $i = 0 if ($i == $$self{max_zones} && $reverse); #loop around
+            }
          }
    
          # Always set the reported zone to fault
-         $self->ChangeZones( $zone_no_pad, $zone_no_pad, "fault", "", 1);
+         $self->ChangeZoneState( $zone_no_pad, "fault", 1);
          
          # Store Zone Number for Use in Fault Loop
          $self->{zone_last_num}{$partition}           = $zone_no_pad;
       }
    }
    elsif ($status_type->{bypass}) {
-      $self->ChangeZones( $zone_no_pad, $zone_no_pad, "bypass", "", 1);
+      # Skip Mapped Zones
+      if (!$self->is_zone_mapped($zone_no_pad)){
+         $self->ChangeZoneState( $zone_no_pad, "bypass", 1);
+      }
+      $self->zone_bypassed($zone_no_pad, 1);
    }
    elsif ($status_type->{wireless}) {
       my $rf_id = $status_type->{rf_id};
@@ -548,7 +602,7 @@ sub CheckCmd {
                $ZoneStatus = "fault";
             }
 
-            $self->ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
+            $self->ChangeZoneState( int($ZoneNum), "$ZoneStatus", 1);
          }
       }
    }
@@ -561,7 +615,7 @@ sub CheckCmd {
 
       if (my $ZoneNum = $$self{expander}{$exp_id.$input_id}) {
          my $ZoneStatus = ($status == 01) ? "fault" : "ready";
-         $self->ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
+         $self->ChangeZoneState( int($ZoneNum), "$ZoneStatus", 1);
       }
    }
    elsif ($status_type->{relay}) {
@@ -573,7 +627,7 @@ sub CheckCmd {
 
       if (my $ZoneNum = $$self{relay}{$rel_id.$rel_input_id}) {
          my $ZoneStatus = ($rel_status == 01) ? "fault" : "ready";
-         $self->ChangeZones( int($ZoneNum), int($ZoneNum), "$ZoneStatus", "", 1);
+         $self->ChangeZoneState( int($ZoneNum), "$ZoneStatus", 1);
       }
    }
 
@@ -594,12 +648,35 @@ sub CheckCmd {
 
       # READY
       if ( $status_type->{ready_flag}) {
-         my $bypass = ($status_type->{bypassed_flag}) ? 'bypass' : '';
+         my $bypass = $status_type->{bypassed_flag};
          $mode = 'ready';
          $mode = 'bypass' if $bypass;
          # Reset all zones, if bypass enabled skip bypassed zones
          for my $partition (@partitions){
-            $self->ChangeZones( 1, $$self{max_zones}, "ready", $bypass, 1, $partition);
+            for (my $i = 1; $i <= $$self{max_zones}; $i++){
+               # Only work with zones in this partition
+               if ($partition == $self->zone_partition($i)) {
+                  # Only change state of non-mapped zones
+                  if (!$self->is_zone_mapped($i)){
+                     # Change if not-bypassed or bypass not enabled
+                     if (!$bypass || !$self->zone_bypassed($i)){
+                        $self->ChangeZoneState( $i, "ready", 1);
+                     }
+                  }
+               }
+            }
+         }
+      }
+
+      # NOT BYPASSED
+      if (!$status_type->{bypassed_flag}) {
+         for my $partition (@partitions){
+            for (my $i = 1; $i <= $$self{max_zones}; $i++){
+               # Only work with zones in this partition
+               if ($partition == $self->zone_partition($i)) {
+                  $self->zone_bypassed( $zone_no_pad, 0);
+               }
+            }
          }
       }
 
@@ -680,7 +757,7 @@ sub CheckCmd {
       if ( $status_type->{alarm_now_flag}) {
          $mode = "alarm now sounding";
          $self->debug_log("ALARM IS SOUNDING - Zone $zone_no_pad (".$self->zone_name($zone_no_pad).")" );
-         $self->ChangeZones( $zone_no_pad, $zone_no_pad, "alarm", "", 1);
+         $self->ChangeZoneState( $zone_no_pad, "alarm", 1);
       }
 
       # BATTERY LOW
@@ -691,7 +768,7 @@ sub CheckCmd {
          $self->debug_log("Panel is low on battery");;
       }
       if ($mode ne $self->state && $mode ne ''){
-         $self->set($mode);
+         $self->set_receive($mode);
       }
    }
    return;
@@ -763,7 +840,7 @@ sub GetStatusType {
          $self->debug_log("Fault zones available: $AdemcoStr");
          $message{fault} = 1;
       }
-      elsif ( $message{alphanumeric} =~ m/^BYPAS/ ) {
+      elsif ( $message{alphanumeric} =~ m/^BYPAS \d/ ) {
          $self->debug_log("Bypass zones available: $AdemcoStr");
          $message{bypass} = 1;
       }
@@ -806,84 +883,99 @@ sub GetStatusType {
       $message{rel_channel} = $2;
       $message{rel_status} = $3;
    }
-   elsif ($AdemcoStr =~ /!Sending\.\.\.done/) {
+   elsif ($AdemcoStr =~ /!Sending\.*done/) {
       $self->debug_log("Command sent successfully.");
       $message{cmd_sent} = 1;
+   }
+   elsif ($AdemcoStr =~ /!SER2SOCK/) {
+      $self->debug_log("Ser2Sock Message: $AdemcoStr");
    }
    else {
       $message{unknown} = 1;
    }
+
    return \%message;
 }
 
-=item C<ChangeZones($start, $end, $new_status, $neq_status, $log, 
-   $partition, $skip_mapped)>
+=item C<ChangeZoneState($zone, $new_status, $log)>
 
-This routine changes the defined zones to the state that was passed.
+This routine changes the defined zone to the state that was passed.  Will also
+update any child objects that exist as well as other necessary routines
 
-$start = Zone number to start at
-
-$end   = Zone number to end at
-
-All zones between and including $start and $end will be updated.  If $start is
-greater than $end, the routine will loop around at the max_zones value.
+$zone = Zone number to start at
 
 $new_status = The status to which the zones should be changed too.
 
-$neq_status = Do not alter zones that are equal to this status.
-
 $log        = If true will log its actions
-
-$partition  = Only change zones on the defined partition
-
-$skip_mapped= If true, zones which are mapped (expander, relay, wireless) will
-not be affected
 
 =cut
 
-sub ChangeZones {
-   my ($self, $start, $end, $new_status, $neq_status, $log, $partition, 
-      $skip_mapped) = @_;
+sub ChangeZoneState {
+   my ($self, $zone, $new_status, $log) = @_;
    my $instance = $self->{instance};
-   #Prevent improper start and end to suppress never ending loops.
-   $end = $$self{max_zones} if ($end <=0 || $end > $$self{max_zones});
-   $start = 1 if ($start <=0 || $start > $$self{max_zones});
-
-   # Allow for reverse looping from max_zones->1
-   my $reverse = ($start > $end)? 1 : 0;
    
-   # Prevent infinite loop scenario
-   my $y = 0;
-
-   for (my $i = $start; ($y <= $$self{max_zones}) &&
-         ((!$reverse && $i <= $end) ||
-         ($reverse && ($i >= $start || $i <= $end)));
-         $i++) {
-      my $current_status = $$self{$self->zone_partition($i)}{zone_status}{$i};
-      # If partition set, then zone partition must equal that
-      if (($current_status ne $new_status) && ($current_status ne $neq_status)
-         && (!$partition || ($partition == $self->zone_partition($i)))
-         && (!$skip_mapped || (!$self->is_zone_mapped($i)))) {
-         if ($log == 1) {
-            my $ZoneNumPadded = sprintf("%03d", $i);
-            $self->debug_log( "Zone $i (".$self->zone_name($i)
-               .") changed from '$current_status' to '$new_status'" );
-         }
-         $$self{$self->zone_partition($i)}{zone_status}{$i} = $new_status;
-         #  Store Change for Zone_Now Function
-         $self->{zone_now}{"$i"} = 1;
-         #  Store Change for Partition_Now Function
-         $self->{partition_now}{$partition} = 1;
-         #  Set child object status if it is registered to the zone
-         $$self{zone_object}{"$i"}->set($new_status, $$self{zone_object}{"$i"}) 
-            if defined $$self{zone_object}{"$i"};
-         my $zone_partition = $self->zone_partition($i);
-         my $partition_status = $self->status_partition($zone_partition);
-         $$self{partition_object}{$zone_partition}->set_receive($partition_status, $$self{zone_object}{"$i"}) 
-            if defined $$self{partition_object}{$zone_partition};
+   # This routine is called a lot, only update zones if they have changed
+   if ($self->status_zone($zone) ne $new_status){
+      #  Set the new state
+      $$self{$self->zone_partition($zone)}{zone_status}{$zone} = $new_status;
+      #  Store Change for Zone_Now Function
+      $self->{zone_now}{"$zone"} = 1;
+      #  Store Change for Partition_Now Function
+      $self->{partition_now}{$self->zone_partition($zone)} = 1;
+      $self->update_child_object($zone);
+      # Update child partition
+      my $zone_partition = $self->zone_partition($zone);
+      my $partition_status = $self->status_partition($zone_partition);
+      $$self{partition_object}{$zone_partition}->set_receive($partition_status, $$self{zone_object}{"$zone"}) 
+         if defined $$self{partition_object}{$zone_partition};
+      #  Log everything if requested
+      if ($log == 1) {
+         my $ZoneNumPadded = sprintf("%03d", $zone);
+         $self->debug_log( "Zone $zone (".$self->zone_name($zone)
+            .") changed to '$new_status'" );
       }
-      $y++;
-      $i = 0 if ($i == $$self{max_zones} && $reverse); #loop around
+   }
+}
+
+=item C<zone_bypassed($zone, $bypass)>
+
+Sets or gets the bypass state of a zone.  The state of mapped zones is always
+accurately reported.  Non-mapped hardwired zones have no state when they are 
+bypassed, we cannot determine their fault status.  As such, the state of
+non-mapped hardwired zones will be "bypass" when they are bypassed.
+
+The state of child objects is similar with the exception that the state of 
+mapped zones will be appended with " - bypass" if they are currently bypassed.
+
+This routine will always accurately return the bypass state of a zone.  The
+funtion will return true if bypassed or false if not.  To set the bypass state 
+simply pass it as $bypass.
+
+=cut
+
+sub zone_bypassed {
+   my ($self, $zone, $bypass) = @_;
+   if (defined $bypass) {
+      my $old_bypass = $self->zone_bypassed($zone);
+      $$self{$self->zone_partition($zone)}{zone_bypass}{$zone} = $bypass;
+      if ($old_bypass ne $bypass){
+         $self->update_child_object($zone);
+      }
+   }
+   return $$self{$self->zone_partition($zone)}{zone_bypass}{$zone};
+}
+
+sub update_child_object {
+   my ($self, $zone) = @_;
+   #  Prep bypass variable
+   my $status = $self->status_zone($zone);
+   if ($self->zone_bypassed($zone) && $self->is_zone_mapped($zone)){
+      $status .= " - bypass";
+   }
+   #  Set child object status if it is registered to the zone
+   if (defined $$self{zone_object}{"$zone"} && 
+      $$self{zone_object}{"$zone"}->state ne $status) {
+      $$self{zone_object}{"$zone"}->set($status, $$self{zone_object}{"$zone"});
    }
 }
 
@@ -1082,6 +1174,17 @@ sub set {
    return;
 }
 
+=item C<set_receive()>
+
+Used internally to update the state of the object inside MisterHouse.
+
+=cut
+
+sub set_receive {
+    my ($self, $p_state, $p_setby, $p_response) = @_;
+    return $self->SUPER::set($p_state, $p_setby, $p_response);
+}
+
 =item C<status_zone($zone)>
 
 Takes a zone number and returns its status.
@@ -1241,9 +1344,10 @@ Used to associate child objects with the interface.
 
 sub register {
    my ($self, $object, $num, $expander,$relay,$wireless) = @_;
-   &::print_log("Registering Child Object on zone $num");
    if ($object->isa('AD2_Item')) {
+      ::print_log("Registering Child Object for zone $num");
       $self->{zone_object}{$num} = $object;
+      $num = sprintf("%03d", $num);
       #Put wireless settings in correct hash
       if (defined $wireless){
          $$self{wireless}{$wireless} = $num;
@@ -1258,9 +1362,11 @@ sub register {
       }
    }
    elsif ($object->isa('AD2_Partition')) {
+      ::print_log("Registering Child Object for partition $num");
       $self->{partition_object}{$num} = $object;
    }
    elsif ($object->isa('AD2_Output')) {
+      ::print_log("Registering Child Object for output $num");
       $self->{output_object}{$num} = $object;
    }
 }
@@ -1423,7 +1529,6 @@ sub new
    $interface->register($self,$zone,$expander,$relay,$wireless);
    $zone = sprintf("%03d", $zone);
    $$self{zone_partition}{$zone} = $partition;
-   $self->set($interface->status_zone($zone), $self); #Set correct state on startup
    return $self;
 
 }
@@ -1444,16 +1549,14 @@ sub set
          ::print_log("AD2_Item($$self{object_name})::set($p_state, $p_setby)") if $main::Debug{AD2};
       }
 
-      if ($p_state =~ /^fault/ || $p_state eq 'on') {
-         $p_state = 'fault';
-         $p_state = 'open' if $$self{item_type} eq 'door';
-         $p_state = 'motion' if $$self{item_type} eq 'motion';
+      if ($p_state =~ /^fault/) {
+         $p_state =~ s/fault/open/ if $$self{item_type} eq 'door';
+         $p_state =~ s/fault/motion/ if $$self{item_type} eq 'motion';
          $$self{last_fault} = $::Time;
 
-      } elsif ($p_state =~ /^ready/ || $p_state eq 'off') {
-         $p_state = 'ready';
-         $p_state = 'closed' if $$self{item_type} eq 'door';
-         $p_state = 'still' if $$self{item_type} eq 'motion';
+      } elsif ($p_state =~ /^ready/) {
+         $p_state =~ s/ready/closed/ if $$self{item_type} eq 'door';
+         $p_state =~ s/ready/still/ if $$self{item_type} eq 'motion';
          $$self{last_ready} = $::Time;
       }
 
@@ -1774,6 +1877,8 @@ sub set
          $$self{interface}->output_cmd($p_state, $$self{output});
       } 
       else {
+         # This may be an attempt to send the alarm code, not sure if this is
+         # a good way to handle this
          $reported_state = '';
          $$self{interface}->set($p_state); 
       }
