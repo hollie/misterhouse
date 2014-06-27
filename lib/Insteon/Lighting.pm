@@ -1779,7 +1779,7 @@ Provides support for the Insteon BulbLinc.
 
 =head3 FEATURES
 
-The BulbLinc has no physical set button; therefore, linking is initiated by cutting and restoring power to the device.  This feature can be disabled for environments in which all links are configured via software means.  The 'disable_linking_on_startup' command provides for this option.
+The BulbLinc has no physical set button; therefore, linking is initiated by cutting and restoring power to the device.  This feature can be disabled for environments where all links are configured via software means and this behavior is unnecessary.  The 'enable_linking_on_powerup' command provides for this option.
 
 =head2 INHERITS
 
@@ -1821,7 +1821,7 @@ sub new
 
 =item C<enable_linking_on_powerup(boolean)>
 
-If boolean is true, the BulbLinc will enter linking mode on power-up.
+If boolean is true, the BulbLinc will perform a "complete linking as responder" on every power-up.
 
 =cut
 
