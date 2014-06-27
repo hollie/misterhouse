@@ -1760,4 +1760,131 @@ You should have received a copy of the GNU General Public License along with thi
 
 =cut
 
+=head1 B<Insteon::BulbLinc>
+
+=head2 SYNOPSIS
+
+User code:
+
+    use Insteon::BulbLinc;
+    $bulb_device = new Insteon::BulbLinc('12.34.56',$myPLM);
+
+In mht file:
+
+    INSTEON_BULBLINC, 12.34.56, bulb_device, All_Lights
+
+=head2 DESCRIPTION
+
+Provides support for the Insteon BulbLinc.
+
+=head3 FEATURES
+
+The BulbLinc has no physical set button; therefore, linking is initiated by cutting and restoring power to the device.  This feature can be disabled for environments where all links are configured via software means and this behavior is unnecessary.  The 'enable_linking_on_powerup' command provides for this option.
+
+=head2 INHERITS
+
+L<Insteon::DimmableLight|Insteon::Lighting/Insteon::DimmableLight>, 
+
+=head2 METHODS
+
+=over
+
+=cut
+
+package Insteon::BulbLinc;
+
+use strict;
+use Insteon::BaseInsteon;
+
+@Insteon::BulbLinc::ISA = ('Insteon::DimmableLight');
+
+our %operating_flags = (
+   'linking_on_powerup_on' => '01',
+   'linking_on_powerup_off' => '00'
+);
+
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
+
+sub new
+{
+	my ($class,$p_deviceid,$p_interface) = @_;
+
+	my $self = new Insteon::DimmableLight($p_deviceid,$p_interface);
+	$$self{operating_flags} = \%operating_flags;
+	bless $self,$class;
+	return $self;
+}
+
+=item C<enable_linking_on_powerup(boolean)>
+
+If boolean is true, the BulbLinc will perform a "complete linking as responder" on every power-up.
+
+=cut
+
+sub enable_linking_on_powerup
+{
+        my ($self, $is_true) = @_;
+        return unless defined $is_true;
+        my $name = $self->get_object_name;
+
+        if ($is_true) {
+                ::print_log("[Insteon::BulbLinc] Enabling Linking on Startup on $name");
+                $self->set_operating_flag('linking_on_powerup_on');
+        }
+        else {
+                ::print_log("[Insteon::BulbLinc] Disabling Linking on Startup on $name");
+                $self->set_operating_flag('linking_on_powerup_off');
+        }
+}
+
+=item C<get_voice_cmds>
+
+Returns a hash of voice commands where the key is the voice command name and the
+value is the perl code to run when the voice command name is called.
+
+Higher classes which inherit this object may add to this list of voice commands by
+redefining this routine while inheriting this routine using the SUPER function.
+
+This routine is called by L<Insteon::generate_voice_commands> to generate the
+necessary voice commands.
+
+=cut
+
+sub get_voice_cmds
+{
+    my ($self) = @_;
+    my $object_name = $self->get_object_name;
+    my %voice_cmds = (
+        %{$self->SUPER::get_voice_cmds}
+    );
+    if ($self->is_root){
+        %voice_cmds = (
+            %voice_cmds,
+            'set linking on powerup on' => "$object_name->enable_linking_on_powerup(1)",
+            'set linking on powerup off' => "$object_name->enable_linking_on_powerup(0)"
+        );
+    }
+    return \%voice_cmds;
+}
+
+=back
+
+=head2 AUTHOR
+
+Jared J. Fernandez
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
 1

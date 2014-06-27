@@ -99,6 +99,12 @@ sub read_table_A {
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon::LampLinc(\'$address\',$other)";
     }
+    elsif($type eq "INSTEON_BULBLINC") {
+        require Insteon::Lighting;
+        ($address, $name, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "Insteon::BulbLinc(\'$address\',$other)";
+    }
     elsif($type eq "INSTEON_APPLIANCELINC") {
         require Insteon::Lighting;
         ($address, $name, $grouplist, @other) = @item_info;
