@@ -72,7 +72,7 @@ use Data::Dumper;
 use LWP::UserAgent;
 use JSON;
 
-use constant TRACE => 1;    # enable for verbose tracing
+use constant TRACE => 0;    # enable for verbose tracing
 
 =head2 METHODS
 
