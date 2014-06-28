@@ -40,6 +40,11 @@ initialization.   See the method documentation for below more details.
 The returned $iden is the pushed message identification hash.  In the future 
 this can be used to delete and possibly modify a push.
 
+The parameter device_iden is by default left blank, thus causing the push to be 
+sent to all of your devices.  If you specify a device_iden, the push will be
+sent to that device only.  Alternatively, if you specify an email address, the
+push will be sent to that user.
+
 =head2 DESCRIPTION
 
 The Pushbullet instance establishes the defaults for pushes.
@@ -67,7 +72,7 @@ use Data::Dumper;
 use LWP::UserAgent;
 use JSON;
 
-use constant TRACE => 0;    # enable for verbose tracing
+use constant TRACE => 1;    # enable for verbose tracing
 
 =head2 METHODS
 
@@ -130,16 +135,24 @@ sub new {
 
 }
 
-=item C<push_note(p_self, p_note, p_paramater_hash)>
+=back
 
-A user friendly interface to push a note.  The note text, p_note, is the only mandatory parameter.  
+=head3 User Friendly Push_ Functions
+
+The various push_note, push_link, push_address ... functions are designed to be 
+user friendly.  Each function takes the required parameters as scalar values.
+The last parameter is an optional hash, that can be used to pass additional
+optional parameters to pushbullet.
 
 The optional parameter hash can be used to override defaults, or specify additional
-information for the notification.  The list is not exclusive.  Additional parameters will be passed
-in the POST to Pushbullet.com.  This allows support of any API parameter as defined at http://docs.pushbullet.com
+information for the notification.  Additional parameters will be passed as part of
+the JSON content to Pushbullet.com.  This allows support of any API parameter 
+as defined at http://docs.pushbullet.com, even those that do not exist yet.
 
-  $push->push_note("Some urgent message", {  
-					  title       => "Some title", # Override title of message
+The following is an example of the push_note function.  The other functions
+work similarly.
+
+  $push->push_note("MisterHouse Title", "Some urgent message", {  
 					  token       => "xxxx...",    # Override the API Token - probably not useful
 					  device_iden => "xxxx..."     # The device to which the note should be sent to
 				       });
@@ -147,14 +160,132 @@ in the POST to Pushbullet.com.  This allows support of any API parameter as defi
 By default, the device_iden is left blank, which causes the notes to be sent to
 all devices on your account.
 
+=over
+
+=cut
+
+=item C<push_note(p_self, p_title, p_body, p_paramater_hash)>
+
+A user friendly interface to push a note.  The note title and text, p_title p_body, 
+are the only mandatory parameters.  
+
 =cut
 
 sub push_note {
-    my ( $self, $message, $params ) = @_;
+    my ( $self, $title, $message, $params ) = @_;
     
-    $params = $self->check_params_hash($params);
+    $params = $self->_check_params_hash($params);
     $params->{type} = "note"; #Force type to note when using this function
     $params->{body} = $message || " ";
+    $params->{title} = $title || " ";
+    $params->{action} = "POST";
+    $params->{path} = "v2/pushes";
+    
+    return $self->push_hash($params);
+}
+
+=item C<push_link(p_self, p_title, p_url, p_paramater_hash)>
+
+A user friendly interface to push a url.  The url title and address, p_title p_url, 
+are the only mandatory parameters.
+
+The url push can optionally include a message in the body.  It can be passed to 
+the function as follows:
+
+    $push->push_link("MisterHouse Docs", "http://misterhouse.net", {  
+			         body       => "If you have questions about MisterHouse please go here."
+                     });
+
+=cut
+
+sub push_link {
+    my ( $self, $title, $url, $params ) = @_;
+    
+    $params = $self->_check_params_hash($params);
+    $params->{type} = "link"; #Force type to note when using this function
+    $params->{url} = $url || " ";
+    $params->{title} = $title || " ";
+    $params->{action} = "POST";
+    $params->{path} = "v2/pushes";
+    
+    return $self->push_hash($params);
+}
+
+=item C<push_address(p_self, p_name, p_address, p_paramater_hash)>
+
+A user friendly interface to push a geographic address.  The address name and 
+address, p_name p_address, are the only mandatory parameters.
+
+=cut
+
+sub push_address {
+    my ( $self, $name, $address, $params ) = @_;
+    
+    $params = $self->_check_params_hash($params);
+    $params->{type} = "address"; #Force type to note when using this function
+    $params->{name} = $name || " ";
+    $params->{address} = $address || " ";
+    $params->{action} = "POST";
+    $params->{path} = "v2/pushes";
+    
+    return $self->push_hash($params);
+}
+
+=item C<push_list(p_self, p_title, p_item_array_ref, p_paramater_hash)>
+
+A user friendly interface to push a list of items.  The list title and 
+items, p_title p_item_array_ref, are the only mandatory parameters.
+
+p_item_array_ref must be passed as an array referrence.  Such as:
+
+    $push->push_list("Grocery List", "http://misterhouse.net", 
+                    ['apple', 'banana', 'orange']
+                    );
+
+=cut
+
+sub push_list {
+    my ( $self, $title, $item_array_ref, $params ) = @_;
+    
+    $params = $self->_check_params_hash($params);
+    $params->{type} = "list"; #Force type to note when using this function
+    $params->{title} = $title || " ";
+    $params->{action} = "POST";
+    $params->{path} = "v2/pushes";
+    if ( defined $item_array_ref && ref($item_array_ref) eq 'ARRAY' ) {
+        $params->{items} = @$item_array_ref;
+    }
+    else {
+        $params->{items} = [];
+    }
+    
+    return $self->push_hash($params);
+}
+
+=item C<push_file(p_self, p_name, p_type, p_url, p_paramater_hash)>
+
+A user friendly interface to push a file.  The file name, type, and 
+url are required parameters.
+
+p_type is a mime type, such as "image/jpeg"
+
+An optional body message can be passed as body on the parameter hash.
+
+Pushbullet offers a storage service that can be used to upload and store files
+for pushing.  Currently, this feature is not enabled in MisterHouse.
+
+=cut
+
+sub push_file {
+    my ( $self, $file_name, $file_type, $file_url, $params ) = @_;
+    
+    $params = $self->_check_params_hash($params);
+    $params->{type} = "file"; #Force type to note when using this function
+    $params->{file_name} = $file_name || " ";
+    $params->{file_type} = $file_type || " ";
+    $params->{file_url} = $file_url || " ";
+    $params->{action} = "POST";
+    $params->{path} = "v2/pushes";
     
     return $self->push_hash($params);
 }
@@ -176,7 +307,9 @@ http://docs.pushbullet.com
 					  body        => "Note text",
 					  title       => "Some title", # Override title of message
 					  token       => "xxxx...",    # Override the API Token - probably not useful
-					  device_iden => "xxxx..."     # The device to which the note should be sent to
+					  device_iden => "xxxx...",     # The device to which the note should be sent to
+					  action      => "POST",        # The request type to use (GET, POST, DELETE)
+					  path        => "v2/pushes"   # This is the general path, some functions use slightly diff paths
 				       });
 
 By default, the device_iden is left blank, which causes the pushes to be sent to
@@ -189,25 +322,23 @@ sub push_hash {
 
     my $callparams = {};
 
-    # Allow passed parameter to override global disable parameter
-    my $disable = $self->{config}{disable};
+    # Load Ini Params if no other param specified can be overridden
+    foreach (keys $self->{config}) {
+        $params->{$_} = $self->{config}{$_} unless defined $params->{$_};
+    }
 
     # Copy the calling hash since we need to modify it.
     if ( defined $params && ref($params) eq 'HASH' ) {
         foreach ( keys %{$params} ) {
-            $disable = $params->{$_} if ( $_ eq 'disable' );
             # Skip non-pushbullet parameters
-            next if (grep(/$_/i, @{['disable', 'speak', 'server']}));
+            next if ($_ =~ /(disable|speak|server|action|token|path)/);
             $callparams->{$_} = $params->{$_};
         }
     }
     
+    # Allow passed parameter to override global disable parameter
+    my $disable = $params->{disable};
     my $note = ($disable) ? '- Notifications disabled' : '';
-
-    # Merge in the message defaults, They can be overridden
-    foreach (keys $self->{config}) {
-        $callparams->{$_} = $self->{config}{$_} unless defined $callparams->{$_};
-    }
 
     &::print_log(
         "[Pushbullet] Push Hash parameters: " . Data::Dumper::Dumper( \$callparams ) )
@@ -215,10 +346,12 @@ sub push_hash {
     
     # Form browser and request
     my $browser = LWP::UserAgent->new;
-    my $req =  HTTP::Request->new( POST => $self->{config}{server} . 'v2/pushes');
-    $req->content(JSON::encode_json($callparams));
-    $req->authorization_basic( $self->{config}{token}, "" );
-    $req->content_type('application/json'); # Posting JSON content is preferred
+    my $req =  HTTP::Request->new( $params->{action} => $params->{server} . $params->{path});
+    if (keys $callparams){
+        $req->content(JSON::encode_json($callparams));
+        $req->content_type('application/json'); # Posting JSON content is preferred
+    }
+    $req->authorization_basic( $params->{token}, "" );
     my $resp;
     # Do not perform reqest if disabled
     $resp = $browser->request( $req ) unless ($disable);
@@ -229,7 +362,7 @@ sub push_hash {
     $description = $callparams->{body} if (defined $callparams->{body});
     &::print_log("[Pushbullet] message: $description $note");
     &::speak("Pushbullet notification $description $note")
-      if $self->{config}{speak};
+      if $params->{speak};
 
     return if $disable;    # Don't check the response if posting is disabled
 
@@ -253,7 +386,55 @@ sub push_hash {
     }
 }
 
-sub check_params_hash {
+=item C<delete_push($p_self, $p_push_iden)>
+
+This can be used to delete a push.  The only required parameter is the p_push_iden.
+This is the hash identification which is returned by the push_ functions.
+
+For example, you may only want a notification to last an hour:
+
+    $push_timer = new Timer;
+    my $push_iden = $push->push_note("MisterHouse", "Good morning");
+    set $push_timer 60*60, "get_object_by_name('push')->delete_push('$push_iden');";
+
+The above code will require that you have registered the object by name using
+register_object_by_name.
+
+=cut
+
+sub delete_push {
+    my ($self, $push_iden, $params) = @_;
+    
+    $params = $self->_check_params_hash($params);
+    $params->{action} = "DELETE";
+    $params->{path} = "v2/pushes/" . $push_iden;
+    
+    return $self->push_hash($params);
+    
+}
+
+sub get_push_history {
+    # Not yet supported
+    return 1;
+}
+
+sub get_device_list {
+    # Not yet supported
+    return 1;
+}   
+
+sub get_contact_list {
+    # Not yet supported
+    return 1;
+}
+
+sub upload_file {
+    # Not yet supported
+    return 1;
+}
+
+
+sub _check_params_hash {
     my ($self, $params) = @_;
     if ( defined $params && ref($params) ne 'HASH' ) {
         &::print_log(
