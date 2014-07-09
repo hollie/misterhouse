@@ -50,7 +50,7 @@ sub poll_all
 {
    my $scan_at_startup = $main::config_parms{Insteon_PLM_scan_at_startup};
    $scan_at_startup = 1 unless defined $scan_at_startup;
-   if ($scan_at_startup && $main::Save{mh_exit} ne 'normal'){
+   if (!$main::Reload && $scan_at_startup && $main::Save{mh_exit} ne 'normal'){
       ::print_log("[Insteon] Skipping startup scan because MisterHouse did not "
       	."exit cleanly.");
    	  $scan_at_startup = 0;
