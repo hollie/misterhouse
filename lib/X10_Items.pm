@@ -76,7 +76,6 @@ Since this item is inherits from Generic_Item, you can use the set_with_timer me
   set_with_timer $watchdog_light '20%', 5 if file_unchanged $watchdog_file;
 
 
-
 =head1 DESCRIPTION
 
 =head1 INHERITS
@@ -243,6 +242,7 @@ sub set_interface {
         } elsif ( defined $interface_object and $interface_object->isa('Insteon_PLM')) {
             print "[X10] for id $id, x10 interface supplied ($interface) and supported by an Insteon PLM\n" if $localDebug;
             $self->{interface} = $interface_object;
+            $self->{interface}->add($self);
         } else {
             # we can't find a real interface, so use a Dummy_Interface
             print "[X10] warning, using dummy interface for id $id and supplied interface $interface\n" if $localDebug;
@@ -1536,8 +1536,12 @@ sub init {
                                 # Note: name is require, as $self->{object_name} is not
                                 # set yet on startup :(
 sub new {
-    my ($class, $id, $name, $type) = @_;
-    my $self = X10_Item->new();
+##    my ($class, $id, $name, $type) = @_;
+##    my $self = X10_Item->new();
+    my ($class, $id, $name, $type, $interface) = @_;
+    print "[X10_Sensor] class=$class, id=$id, name=$name, interface=$interface\n" if $main::Debug{x10};
+    my $self = X10_Item->new($id, $interface, $type);
+
 
     $$self{state} = '';
     bless $self, $class;
