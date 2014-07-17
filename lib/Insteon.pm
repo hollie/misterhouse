@@ -1243,8 +1243,8 @@ sub _active_interface
    if (!($$self{active_interface}) and $interface) {
       &main::print_log("[Insteon] Setting up initialization hooks") if $main::Debug{insteon};
       &main::MainLoop_pre_add_hook(\&Insteon::BaseInterface::check_for_data, 1);
-      &main::Reload_post_add_hook(\&Insteon::check_all_aldb_versions, 1);
-      &main::Reload_post_add_hook(\&Insteon::BaseInterface::poll_all, 1);
+      &main::Reload_post_add_hook(\&Insteon::check_all_aldb_versions);
+      &main::Reload_post_add_hook(\&Insteon::BaseInterface::poll_all);
       $init_complete = 0;
       &main::MainLoop_pre_add_hook(\&Insteon::init, 1);
       &main::Reload_post_add_hook(\&Insteon::check_thermo_versions, 1);

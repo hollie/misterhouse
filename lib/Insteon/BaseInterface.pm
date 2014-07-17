@@ -35,7 +35,7 @@ sub check_for_data
 
 =item C<poll_all>
 
-Called on startup or reload.  Will always request and print the plm_info, which 
+Called at startup.  Will always request and print the plm_info, which 
 contains the PLM revision number, to the log on startup.
 
 If Insteon_PLM_scan_at_startup is set to 1 in the ini file, this routine will poll
@@ -50,7 +50,7 @@ sub poll_all
 {
    my $scan_at_startup = $main::config_parms{Insteon_PLM_scan_at_startup};
    $scan_at_startup = 1 unless defined $scan_at_startup;
-   if (!$main::Reload && $scan_at_startup && $main::Save{mh_exit} ne 'normal'){
+   if ($scan_at_startup && $main::Save{mh_exit} ne 'normal'){
       ::print_log("[Insteon] Skipping startup scan because MisterHouse did not "
       	."exit cleanly.");
    	  $scan_at_startup = 0;
