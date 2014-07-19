@@ -402,7 +402,57 @@ sub get_mode {
     return $self->get_value("hvac_mode");
 }
 
-#sub get_fan_mode, can we just look at fan_timeout and see if expired?
+sub get_fan_state {
+    my ($self) = @_;
+    return $self->get_value("fan_timer_active");
+}
+
+sub set_fan_state {
+    my ($self, $state) = @_;
+    $state = lc($state);
+    if ($state ne 'true' || $state ne 'false'){
+        ::print_log("[Nest] set_fan_state must be true or false");
+        return;
+    }
+    $$self{interface}->write_data($self, 'fan_timer_active', $state);
+}
+
+sub set_target_temp {
+    my ($self, $state) = @_;
+    unless ($state =~ /^\d+(\.\d+)?$/){
+        ::print_log("[Nest] set_target_temp must be a number");
+        return;
+    }
+    $$self{interface}->write_data($self, 'target_temperature_' . $$self{scale}, $state);
+}
+
+sub set_target_temp_high {
+    my ($self, $state) = @_;
+    unless ($state =~ /^\d+(\.\d+)?$/){
+        ::print_log("[Nest] set_target_temp_high must be a number");
+        return;
+    }
+    $$self{interface}->write_data($self, 'target_temperature_high_' . $$self{scale}, $state);
+}
+
+sub set_target_temp_low {
+    my ($self, $state) = @_;
+    unless ($state =~ /^\d+(\.\d+)?$/){
+        ::print_log("[Nest] set_target_temp_low must be a number");
+        return;
+    }
+    $$self{interface}->write_data($self, 'target_temperature_low_' . $$self{scale}, $state);
+}
+
+sub set_hvac_mode {
+    my ($self, $state) = @_;
+    $state = lc($state);
+    if ($state ne 'heat' || $state ne 'cool' || $state ne 'heat-cool' || $state ne 'off'){
+        ::print_log("[Nest] set_hvac_mode must be one of: heat, cool, heat-cool, or off.");
+        return;
+    }
+    $$self{interface}->write_data($self, 'hvac_mode' . $$self{scale}, $state);
+}
 
 #Oddity, the humidity is listed on the Nest website, but there is no
 #api access listed or reported for it yet
@@ -651,3 +701,16 @@ sub get_away_status {
     my ($self) = @_;
     return $self->get_value("away");
 }
+
+sub set_away_status {
+    my ($self, $state) = @_;
+    $state = lc($state);
+    if ($state ne 'home' || $state ne 'away'){
+        ::print_log("[Nest] set_away_status must be either home or away.");
+        return;
+    }
+    $$self{interface}->write_data($self, 'away' . $$self{scale}, $state);
+}
+
+#I did not add high level support for the ETA feature, although it can be
+#set using the low level write_data function with a bit of work
