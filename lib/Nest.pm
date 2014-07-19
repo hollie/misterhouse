@@ -12,19 +12,21 @@ use HTTP::Request;
 @Nest::ISA = ('Socket_Item');
 
 sub new {
-    my ($class, $port_name, $url) = @_;
+    my ($class, $port_name, $auth, $url) = @_;
     my $self = {};
     $port_name = 'Nest' if !$port_name;
+    $url = "https://developer-api.nest.com/.json" if !$url;
     $$self{port_name} = $port_name;
     $$self{url} = $url;
-    $$self{children} = [];
+    $$self{auth} = $auth;
   	bless $self, $class;
-  	$self->connect_stream($$self{url});
+  	$self->connect_stream();
   	return $self;
 }
 
 sub connect_stream {
     my ($self, $url) = @_;
+    $url = $$self{url} . "?auth=" . $$self{auth} if ($url eq '');
     $url = new URI::URL $url;
     
     if (defined $$self{socket}) {
@@ -167,6 +169,36 @@ sub parse_data {
         die ("[Nest] The Nest authorization token has expired");
     }
     return;
+}
+
+sub write_data {
+    my ($self, $parent, $value, $data, $url) = @_;
+    if ($url eq '') {
+        $url = 'https://developer-api.nest.com/';
+        $url .= $$parent{class} . "/";
+        $url .= $$parent{type} . "/" if ($$parent{type} ne '');
+        $url .= $parent->device_id . "/";
+        $url .= $value . "?auth=" . $$self{auth};
+    }
+    ::print_log("Attempting $url");
+    my $json = lc($data);
+    #true false and numbers should not have quotes
+    unless ($json eq 'true' || $json eq 'false' || $json =~ /^\d+(\.\d+)?$/){
+        $json = '"' . $json . '"';
+    }
+    my $req = HTTP::Request->new( 'PUT', $url );
+    $req->header( 'Content-Type' => 'application/json' );
+    $req->content( $json );
+    $req->protocol('HTTP/1.1');
+    ::print_log($req->as_string);
+    my $lwp = LWP::UserAgent->new;
+    my $r = $lwp->request( $req );
+    if ($r->code == 307){
+        # This is a location redirect
+        ::print_log "redirecting to " . $r->header( 'location' ) . "\n";
+        return $self->write_data($parent, $value, $data, $r->header( 'location' ));
+    }
+    print $r->as_string;
 }
 
 sub print_devices {
