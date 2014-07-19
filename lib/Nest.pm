@@ -276,7 +276,7 @@ sub device_id {
     my ($self) = @_;
     my $type_hash;
     my $parent = $$self{parent};
-    if (defined $$self{type}) {
+    if ($$self{type} ne '') {
         $type_hash = $$self{interface}{JSON}{data}{$$self{class}}{$$self{type}};
     }
     else {
@@ -598,3 +598,24 @@ sub get_battery {
 }
 
 ##Home/Away is in the structure
+
+package Nest_Structure;
+
+use strict;
+
+@Nest_Structure::ISA = ('Nest_Child');
+
+sub new {
+    my ($class, $name, $interface) = @_;
+    my $self = new Nest_Child($interface, '', {'away'=>''});
+    bless $self, $class;
+    $$self{class} = 'structures', 
+    $$self{type} = '',
+    $$self{name} = $name,
+  	return $self;
+}
+
+sub get_away_status {
+    my ($self) = @_;
+    return $self->get_value("away");
+}
