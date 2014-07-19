@@ -275,6 +275,7 @@ sub new {
 sub device_id {
     my ($self) = @_;
     my $type_hash;
+    my $parent = $$self{parent};
     if (defined $$self{type}) {
         $type_hash = $$self{interface}{JSON}{data}{$$self{class}}{$$self{type}};
     }
@@ -284,11 +285,11 @@ sub device_id {
     for (keys %{$type_hash}){
         my $device_id = $_;
         my $device_name = $$type_hash{$device_id}{name};
-        if ($$self{name} eq $device_id || ($$self{name} eq $device_name)) {
+        if ($$parent{name} eq $device_id || ($$parent{name} eq $device_name)) {
             return $device_id;
         }
     }
-    ::print_log("[Nest] ERROR, no device by the name " . $$self{name} . " was found.");
+    ::print_log("[Nest] ERROR, no device by the name " . $$parent{name} . " was found.");
     return 0;
 }
 
@@ -305,6 +306,17 @@ sub data_changed {
 sub set_receive {
 	my ($self, $p_state, $p_setby, $p_response) = @_;
 	$self->SUPER::set($p_state, $p_setby, $p_response);
+}
+
+sub get_value {
+    my ($self, $value) = @_;
+    my $device_id = $self->device_id;
+    if ($$self{type} ne '') {
+        return $$self{interface}{JSON}{data}{$$self{class}}{$$self{type}}{$device_id}{$value};
+    }
+    else {
+        return $$self{interface}{JSON}{data}{$$self{class}}{$device_id}{$value};
+    }
 }
 
 package Nest_Thermostat;
@@ -325,12 +337,6 @@ sub new {
     $$self{name} = $name,
     $$self{scale} = $scale;
   	return $self;
-}
-
-sub get_value {
-    my ($self, $value) = @_;
-    my $device_id = $self->device_id;
-    return $$self{interface}{JSON}{data}{devices}{thermostats}{$device_id}{$value};
 }
 
 sub get_temp {
