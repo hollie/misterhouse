@@ -534,4 +534,67 @@ sub new {
   	return $self;
 }
 
+package Nest_Smoke_CO_Alarm;
+
+use strict;
+
+@Nest_Smoke_CO_Alarm::ISA = ('Nest_Child');
+
+sub new {
+    my ($class, $name, $interface) = @_;
+    my $self = new Nest_Child($interface, '', {
+                            'co_alarm_state'=>'',
+                            'smoke_alarm_state'=>'',
+                            'battery_health'=>''
+                        });
+    bless $self, $class;
+    $$self{class} = 'devices', 
+    $$self{type} = 'smoke_co_alarms',
+    $$self{name} = $name,
+  	return $self;
+}
+
+sub data_changed {
+    my ($self, $value_name, $new_value) = @_;
+    ::print_log("[Nest_Smoke_CO_Alarm] Data changed called $value_name, $new_value");
+    $$self{$value_name} = $new_value;
+    my $state = '';
+    if ($$self{co_alarm_state} eq 'emergency'){
+        $state .= 'Emergency - CO Detected - move to fresh air';
+    }
+    if ($$self{smoke_alarm_state} eq 'emergency'){
+        $state .= " / " if $state ne '';
+        $state .= 'Emergency - Smoke Detected - move to fresh air';
+    }
+    if ($$self{co_alarm_state} eq 'warning'){
+        $state .= " / " if $state ne '';
+        $state .= 'Warning - CO Detected';
+    }
+    if ($$self{smoke_alarm_state} eq 'warning'){
+        $state .= " / " if $state ne '';
+        $state .= 'Warning - Smoke Detected';
+    }
+    if ($$self{battery_health} eq 'replace'){
+        $state .= " / " if $state ne '';
+        $state .= 'Battery Low - replace soon';
+    }
+    $state = 'ok' if ($state eq '');
+    $self->set_receive($state);
+}
+
+sub get_co {
+    my ($self) = @_;
+    return $self->get_value("co_alarm_state");
+}
+
+sub get_smoke {
+    my ($self) = @_;
+    return $self->get_value("smoke_alarm_state");
+}
+
+sub get_battery {
+    my ($self) = @_;
+    return $self->get_value("battery_health");
+}
+
 ##Home/Away is in the structure
