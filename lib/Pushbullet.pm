@@ -20,7 +20,7 @@ Create a pushbullet instance in the .mht file, or in user code:
 .mht file:
 
   CODE, require Pushbullet; #noloop 
-  CODE, my $push = new Pushbullet(); #noloop
+  CODE, $push = new Pushbullet(); #noloop
 
 A user code file overriding parameters normally specified in mh.private.ini.   All of the parameters are optional if properly configured in the ini file.
 
@@ -117,7 +117,7 @@ sub new {
         # Only look for pushbullet settings
         if ($mkey =~ /^Pushbullet_(.*$)/) {
             # Drop the prefix
-            $self->{config}{$1} = $::config_parms{$1};
+            $self->{config}{$1} = $::config_parms{"Pushbullet_".$1};
         }
     }
     
@@ -380,7 +380,7 @@ sub push_hash {
     }
     else {
         &::print_log(
-"[Pushbullet] ERROR: POST Failed: Status: $decoded_json->{status} - $decoded_json->{errors} "
+"[Pushbullet] ERROR: POST Failed: Status: $decoded_json->{error}{type} - $decoded_json->{error}{message} "
         );
         return;
     }
