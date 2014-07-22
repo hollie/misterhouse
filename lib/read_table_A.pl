@@ -1019,12 +1019,16 @@ sub read_table_A {
         my ($scene_name, $on_level, $ramp_rate);
         ($name, $scene_name, $on_level, $ramp_rate) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
+        ::print_log("[Read_Table_A] WARNING: SCENE_MEMBER $scene_name: Expecting 2-4 parameters, got " . scalar @item_info ) unless ( scalar @item_info >= 2 && @item_info < 5 );
+
         if( ! $packages{Scene}++ ) {   # first time for this object type?
             $code .= "use Scene;\n";
         }
         if (($objects{$scene_name}) and ($objects{$name})) {
            if ($on_level) {
+              _validate_Insteon_on_level( "SCENE_MEMBER $scene_name", $on_level );
               if ($ramp_rate) {
+                 _validate_Insteon_ramp_rate( "SCENE_MEMBER $scene_name", $ramp_rate );
                  $code .= sprintf "\$%-35s -> add(\$%s,'%s','%s');\n",
                             $scene_name, $name, $on_level, $ramp_rate;
               } else {
@@ -1043,16 +1047,24 @@ sub read_table_A {
 	#SCENE_BUILD, scene_name, scene_member, is_controller?, is_responder?, onlevel, ramprate
         my ($scene_member, $is_scene_controller, $is_scene_responder, $on_level, $ramp_rate);
         ($name, $scene_member, $is_scene_controller, $is_scene_responder, $on_level, $ramp_rate) = @item_info;
+
+        # Validations
+        ::print_log("[Read_Table_A] WARNING: SCENE_BUILD $name: Expecting 5 parameters, got " . scalar @item_info ) unless ( scalar @item_info >= 4 && @item_info < 7 );
+        ::print_log("[Read_Table_A] WARNING: SCENE_BUILD $name: controller should be 0 or 1, got \"$is_scene_controller\" " ) unless ( $is_scene_controller eq '1' || $is_scene_controller eq '0' );
+        ::print_log("[Read_Table_A] WARNING: SCENE_BUILD $name: responder should be 0 or 1, got \"$is_scene_responder\" " ) unless ( $is_scene_responder eq '1' || $is_scene_responder eq '0' );
+        _validate_Insteon_on_level( "SCENE_BUILD $name", $on_level ) if ( defined $on_level );
+        _validate_Insteon_ramp_rate( "SCENE_BUILD $name", $ramp_rate ) if ( defined $ramp_rate );
+
         if( ! $packages{Scene}++ ) {   # first time for this object type?
             $code .= "use Scene;\n";
         }
-	if ($is_scene_controller){
-		$scene_build_controllers{$name}{$scene_member} = "1";
-	}
-	if ($is_scene_responder){
-		$scene_build_responders{$name}{$scene_member} = "$on_level,$ramp_rate";
-	}
-	$object = '';
+        if ($is_scene_controller){
+            $scene_build_controllers{$name}{$scene_member} = "1";
+        }
+        if ($is_scene_responder){
+            $scene_build_responders{$name}{$scene_member} = "$on_level,$ramp_rate";
+        }
+        $object = '';
     }
     elsif ($type eq "PHILIPS_HUE"){
     	($address, $name, $grouplist, @other) = @item_info;
@@ -1206,6 +1218,18 @@ sub read_table_finish_A {
         }
     }
     return $code;
+}
+
+sub _validate_Insteon_on_level {
+    # ($name, $level ) = @_
+        ::print_log("[Read_Table_A] WARNING: $_[0]: On level should be 0-100%, got \"$_[1]\" " )
+          unless ( $_[1] =~ m/^(\d+)%?$/ && $1 <= 100 && $1 >= 0 );
+}
+
+sub _validate_Insteon_ramp_rate {
+    # ($name, $ramp_rate ) = @_
+        ::print_log("[Read_Table_A] WARNING: $_[0]: Ramp rate should be 0-540 seconds, got \"$_[1]\" " )
+          unless ( $_[1] =~ m/^([.0-9]+)s?$/ && $1 <= 540 && $1 >= 0 );
 }
 
 1;
