@@ -180,7 +180,6 @@ sub write_data {
         $url .= $parent->device_id . "/";
         $url .= $value . "?auth=" . $$self{auth};
     }
-    ::print_log("Attempting $url");
     my $json = lc($data);
     #true false and numbers should not have quotes
     unless ($json eq 'true' || $json eq 'false' || $json =~ /^\d+(\.\d+)?$/){
@@ -190,7 +189,6 @@ sub write_data {
     $req->header( 'Content-Type' => 'application/json' );
     $req->content( $json );
     $req->protocol('HTTP/1.1');
-    ::print_log($req->as_string);
     my $lwp = LWP::UserAgent->new;
     my $r = $lwp->request( $req );
     if ($r->code == 307){
@@ -198,7 +196,6 @@ sub write_data {
         ::print_log "redirecting to " . $r->header( 'location' ) . "\n";
         return $self->write_data($parent, $value, $data, $r->header( 'location' ));
     }
-    print $r->as_string;
 }
 
 sub print_devices {
@@ -337,6 +334,10 @@ sub data_changed {
 
 sub set_receive {
 	my ($self, $p_state, $p_setby, $p_response) = @_;
+	if (defined $$self{parent}{state_pending}){
+	    ($p_setby, $p_response) = @{$$self{parent}{state_pending}};
+	    delete $$self{parent}{state_pending};
+	}
 	$self->SUPER::set($p_state, $p_setby, $p_response);
 }
 
@@ -408,50 +409,55 @@ sub get_fan_state {
 }
 
 sub set_fan_state {
-    my ($self, $state) = @_;
+    my ($self, $state, $p_setby, $p_response) = @_;
     $state = lc($state);
-    if ($state ne 'true' || $state ne 'false'){
+    if ($state ne 'true' && $state ne 'false'){
         ::print_log("[Nest] set_fan_state must be true or false");
         return;
     }
     $$self{interface}->write_data($self, 'fan_timer_active', $state);
+    $$self{state_pending} = [$p_setby, $p_response];
 }
 
 sub set_target_temp {
-    my ($self, $state) = @_;
+    my ($self, $state, $p_setby, $p_response) = @_;
     unless ($state =~ /^\d+(\.\d+)?$/){
         ::print_log("[Nest] set_target_temp must be a number");
         return;
     }
     $$self{interface}->write_data($self, 'target_temperature_' . $$self{scale}, $state);
+    $$self{state_pending} = [$p_setby, $p_response];
 }
 
 sub set_target_temp_high {
-    my ($self, $state) = @_;
+    my ($self, $state, $p_setby, $p_response) = @_;
     unless ($state =~ /^\d+(\.\d+)?$/){
         ::print_log("[Nest] set_target_temp_high must be a number");
         return;
     }
     $$self{interface}->write_data($self, 'target_temperature_high_' . $$self{scale}, $state);
+    $$self{state_pending} = [$p_setby, $p_response];
 }
 
 sub set_target_temp_low {
-    my ($self, $state) = @_;
+    my ($self, $state, $p_setby, $p_response) = @_;
     unless ($state =~ /^\d+(\.\d+)?$/){
         ::print_log("[Nest] set_target_temp_low must be a number");
         return;
     }
     $$self{interface}->write_data($self, 'target_temperature_low_' . $$self{scale}, $state);
+    $$self{state_pending} = [$p_setby, $p_response];
 }
 
 sub set_hvac_mode {
-    my ($self, $state) = @_;
+    my ($self, $state, $p_setby, $p_response) = @_;
     $state = lc($state);
-    if ($state ne 'heat' || $state ne 'cool' || $state ne 'heat-cool' || $state ne 'off'){
-        ::print_log("[Nest] set_hvac_mode must be one of: heat, cool, heat-cool, or off.");
+    if ($state ne 'heat' && $state ne 'cool' && $state ne 'heat-cool' && $state ne 'off'){
+        ::print_log("[Nest] set_hvac_mode must be one of: heat, cool, heat-cool, or off. Not $state.");
         return;
     }
-    $$self{interface}->write_data($self, 'hvac_mode' . $$self{scale}, $state);
+    $$self{state_pending} = [$p_setby, $p_response];
+    $$self{interface}->write_data($self, 'hvac_mode', $state);
 }
 
 #Oddity, the humidity is listed on the Nest website, but there is no
@@ -460,8 +466,6 @@ sub set_hvac_mode {
 # Similarly, the api doesn't tell us if the device is heating or cooling atm
 
 package Nest_Thermo_Fan;
-
-#FAN [on,off how long?] (on, off)
 
 use strict;
 
@@ -474,6 +478,7 @@ sub new {
         $parent,
         {'fan_timer_active'=>''}
     );
+    $$self{states} = ['on','off'];
   	bless $self, $class;
   	return $self;
 }
@@ -482,7 +487,18 @@ sub set_receive {
 	my ($self, $p_state, $p_setby, $p_response) = @_;
 	my $state = "on";
 	$state = "off" if ($p_state eq 'false');
+	if (defined $$self{parent}{state_pending}){
+	    ($p_setby, $p_response) = @{$$self{parent}{state_pending}};
+	    delete $$self{parent}{state_pending};
+	}
 	$self->SUPER::set($state, $p_setby, $p_response);
+}
+
+sub set {
+    my ($self, $p_state, $p_setby, $p_response) = @_;
+    $p_state = "true" if (lc($p_state) eq 'on');
+	$p_state = "false" if (lc($p_state) eq 'off');
+    $$self{parent}->set_fan_state($p_state,$p_setby,$p_response);
 }
 
 package Nest_Thermo_Leaf;
@@ -508,6 +524,10 @@ sub set_receive {
 	my ($self, $p_state, $p_setby, $p_response) = @_;
 	my $state = "on";
 	$state = "off" if ($p_state eq 'false');
+	if (defined $$self{parent}{state_pending}){
+	    ($p_setby, $p_response) = @{$$self{parent}{state_pending}};
+	    delete $$self{parent}{state_pending};
+	}
 	$self->SUPER::set($state, $p_setby, $p_response);
 }
 
@@ -526,8 +546,15 @@ sub new {
         $parent,
         {'hvac_mode'=>''}
     );
+    $$self{states} = ['heat', 'cool', 'heat-cool', 'off'];
   	bless $self, $class;
   	return $self;
+}
+
+sub set {
+    my ($self, $p_state, $p_setby, $p_response) = @_;
+    ::print_log("Setting $p_setby, $p_response");
+    $$self{parent}->set_hvac_mode($p_state,$p_setby,$p_response);
 }
 
 #Target temp [temp] (warmer, cooler)
@@ -544,8 +571,20 @@ sub new {
         $parent,
         {'target_temperature_' . $scale => ''}
     );
+    $$self{states} = ['cooler','warmer'];
   	bless $self, $class;
   	return $self;
+}
+
+sub set {
+    my ($self, $p_state, $p_setby, $p_response) = @_;
+    if (lc($p_state) eq 'warmer') {
+        $p_state = $$self{parent}->get_target_sp + 1;
+    }
+    elsif (lc($p_state) eq 'cooler') {
+        $p_state = $$self{parent}->get_target_sp - 1;
+    }
+    $$self{parent}->set_target_temp($p_state,$p_setby,$p_response);
 }
 
 #Target high for heat-cool [temp] (warmer, cooler)
@@ -561,8 +600,20 @@ sub new {
         $parent,
         {'target_temperature_high_' . $scale => ''}
     );
+    $$self{states} = ['cooler','warmer'];
   	bless $self, $class;
   	return $self;
+}
+
+sub set {
+    my ($self, $p_state, $p_setby, $p_response) = @_;
+    if (lc($p_state) eq 'warmer') {
+        $p_state = $$self{parent}->get_heat_sp + 1;
+    }
+    elsif (lc($p_state) eq 'cooler') {
+        $p_state = $$self{parent}->get_heat_sp - 1;
+    }
+    $$self{parent}->set_target_temp_high($p_state,$p_setby,$p_response);
 }
 
 #Target low for heat-cool [temp] (warmer, cooler)
@@ -578,11 +629,23 @@ sub new {
         $parent,
         {'target_temperature_low_' . $scale => ''}
     );
+    $$self{states} = ['cooler','warmer'];
   	bless $self, $class;
   	return $self;
 }
 
-#Target high for heat-cool [temp] (warmer, cooler)
+sub set {
+    my ($self, $p_state, $p_setby, $p_response) = @_;
+    if (lc($p_state) eq 'warmer') {
+        $p_state = $$self{parent}->get_cool_sp + 1;
+    }
+    elsif (lc($p_state) eq 'cooler') {
+        $p_state = $$self{parent}->get_cool_sp - 1;
+    }
+    $$self{parent}->set_target_temp_low($p_state,$p_setby,$p_response);
+}
+
+
 package Nest_Thermo_Away_High;
 use strict;
 @Nest_Thermo_Away_High::ISA = ('Nest_Child');
@@ -599,7 +662,6 @@ sub new {
   	return $self;
 }
 
-#Target low for heat-cool [temp] (warmer, cooler)
 package Nest_Thermo_Away_Low;
 use strict;
 @Nest_Thermo_Away_Low::ISA = ('Nest_Child');
@@ -694,6 +756,7 @@ sub new {
     $$self{class} = 'structures', 
     $$self{type} = '',
     $$self{name} = $name,
+    $$self{states} = ['home','away'];
   	return $self;
 }
 
@@ -703,14 +766,21 @@ sub get_away_status {
 }
 
 sub set_away_status {
-    my ($self, $state) = @_;
+    my ($self, $state, $p_setby, $p_response) = @_;
     $state = lc($state);
-    if ($state ne 'home' || $state ne 'away'){
+    if ($state ne 'home' && $state ne 'away'){
         ::print_log("[Nest] set_away_status must be either home or away.");
         return;
     }
-    $$self{interface}->write_data($self, 'away' . $$self{scale}, $state);
+    $$self{interface}->write_data($self, 'away', $state);
+    $$self{state_pending} = [$p_setby, $p_response];
 }
+
+sub set {
+    my ($self, $p_state, $p_setby, $p_response) = @_;
+    $self->set_away_status($p_state,$p_setby,$p_response);
+}
+
 
 #I did not add high level support for the ETA feature, although it can be
 #set using the low level write_data function with a bit of work
