@@ -3278,7 +3278,7 @@ sub sync_links
 				$requires_update = 1;
 				$cause .= "Ramp rate ";
 			}
-			elsif ($cur_on_level-1 > $tgt_on_level && $cur_on_level+1 < $tgt_on_level){
+			elsif ($cur_on_level-1 > $tgt_on_level || $cur_on_level+1 < $tgt_on_level){
 				$requires_update = 1;
 				$cause .= "On level ";
 			}
