@@ -577,12 +577,12 @@ Handles setting the state of the object inside MisterHouse
 =cut
 
 sub set_receive {
-	my ($self, $p_state, $p_setby, $p_response) = @_;
-	if (defined $$self{parent}{state_pending}){
-	    ($p_setby, $p_response) = @{$$self{parent}{state_pending}};
-	    delete $$self{parent}{state_pending};
-	}
-	$self->SUPER::set($p_state, $p_setby, $p_response);
+    my ($self, $p_state, $p_setby, $p_response) = @_;
+    if (defined $$self{parent}{state_pending}){
+        ($p_setby, $p_response) = @{$$self{parent}{state_pending}};
+        delete $$self{parent}{state_pending};
+    }
+    $self->SUPER::set($p_state, $p_setby, $p_response);
 }
 
 =item C<get_value($value)>
@@ -862,35 +862,35 @@ C<Nest_Generic>
 
 use strict;
 
-@Nest_Thermo_Fan::ISA = ('Nest_Child');
+@Nest_Thermo_Fan::ISA = ('Nest_Generic');
 
 sub new {
     my ($class, $parent) = @_;
-    my $self = new Nest_Child(
+    my $self = new Nest_Generic(
         $$parent{interface}, 
         $parent,
         {'fan_timer_active'=>''}
     );
     $$self{states} = ['on','off'];
-  	bless $self, $class;
-  	return $self;
+    bless $self, $class;
+    return $self;
 }
 
 sub set_receive {
-	my ($self, $p_state, $p_setby, $p_response) = @_;
-	my $state = "on";
-	$state = "off" if ($p_state eq 'false');
-	if (defined $$self{parent}{state_pending}){
-	    ($p_setby, $p_response) = @{$$self{parent}{state_pending}};
-	    delete $$self{parent}{state_pending};
-	}
-	$self->SUPER::set($state, $p_setby, $p_response);
+    my ($self, $p_state, $p_setby, $p_response) = @_;
+    my $state = "on";
+    $state = "off" if ($p_state eq 'false');
+    if (defined $$self{parent}{state_pending}){
+        ($p_setby, $p_response) = @{$$self{parent}{state_pending}};
+        delete $$self{parent}{state_pending};
+    }
+    $self->SUPER::set($state, $p_setby, $p_response);
 }
 
 sub set {
     my ($self, $p_state, $p_setby, $p_response) = @_;
     $p_state = "true" if (lc($p_state) eq 'on');
-	$p_state = "false" if (lc($p_state) eq 'off');
+    $p_state = "false" if (lc($p_state) eq 'off');
     $$self{parent}->set_fan_state($p_state,$p_setby,$p_response);
 }
 
@@ -921,28 +921,28 @@ C<Nest_Generic>
 
 use strict;
 
-@Nest_Thermo_Leaf::ISA = ('Nest_Child');
+@Nest_Thermo_Leaf::ISA = ('Nest_Generic');
 
 sub new {
     my ($class, $parent) = @_;
-    my $self = new Nest_Child(
+    my $self = new Nest_Generic(
         $$parent{interface}, 
         $parent,
         {'has_leaf'=>''}
     );
-  	bless $self, $class;
-  	return $self;
+    bless $self, $class;
+    return $self;
 }
 
 sub set_receive {
-	my ($self, $p_state, $p_setby, $p_response) = @_;
-	my $state = "on";
-	$state = "off" if ($p_state eq 'false');
-	if (defined $$self{parent}{state_pending}){
-	    ($p_setby, $p_response) = @{$$self{parent}{state_pending}};
-	    delete $$self{parent}{state_pending};
-	}
-	$self->SUPER::set($state, $p_setby, $p_response);
+    my ($self, $p_state, $p_setby, $p_response) = @_;
+    my $state = "on";
+    $state = "off" if ($p_state eq 'false');
+    if (defined $$self{parent}{state_pending}){
+        ($p_setby, $p_response) = @{$$self{parent}{state_pending}};
+        delete $$self{parent}{state_pending};
+    }
+    $self->SUPER::set($state, $p_setby, $p_response);
 }
 
 package Nest_Thermo_Mode;
