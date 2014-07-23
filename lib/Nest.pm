@@ -164,16 +164,18 @@ also be set using the INI parameter B<Nest_auth_token>.
 =cut
 
 sub new {
-    my ($class, $port_name, $auth, $url) = @_;
+    my ($class, $auth, $port_name, $url) = @_;
     my $self = {};
     $port_name = 'Nest' if !$port_name;
     $url = "https://developer-api.nest.com/.json" if !$url;
+    $auth = $::config_parms{$port_name . "_auth_token"} if !$auth;
     $$self{port_name} = $port_name;
     $$self{url} = $url;
     $$self{auth} = $auth;
-  	bless $self, $class;
-  	$self->connect_stream();
-  	return $self;
+    bless $self, $class;
+    $self->connect_stream();
+    ::MainLoop_pre_add_hook(sub {$self->check_for_data();}, 1);
+    return $self;
 }
 
 # Establishes the connection to Nest
@@ -191,7 +193,7 @@ sub connect_stream {
         PeerHost => $url->host, PeerPort => $url->port, Blocking => 0
     ) or die $@; # first create simple N-B socket with IO::Socket::INET
     
-  	my $select = IO::Select->new($$self{socket}); # wait until it connected
+    my $select = IO::Select->new($$self{socket}); # wait until it connected
     if ($select->can_write) {
         ::print_log "[Nest Interface] IO::Socket::INET connected";
     }
@@ -260,44 +262,44 @@ sub connect_stream {
 # Run once per loop to check for data present on the connection
 
 sub check_for_data {
-	my ($self) = @_;
+    my ($self) = @_;
     if ($$self{socket}->connected && (time - $$self{'keep-alive'} < 70)) {
-    	# sysread will only read the contents of a single SSL frame
-    	if ($$self{socket}->sysread(my $buf, 1024)){
-    	    $$self{data} .= $buf;
-    	    if ($buf =~ /\n\n$/){
-    	        # We reached the end of the message packet
-    	        ::print_log("[Nest Data]" . $$self{data});
-    	        
-    	        # Split out event and data for processing
-    	        my @lines = split("\n", $$self{data});
-    	        my ($event, $data);
-    	        for (@lines){
-    	            # Pull out events and data
-    	            my ($key, $value) = split(":", $_,2);
-    	            if ($key =~ /event/){
-    	                $event = $value;
-    	            }
-    	            elsif ($key =~ /data/ && defined($event)){
-    	                $data = $value;
-    	            }
-    	            
-    	            if (defined($event) && defined($data)){
-    	                $self->parse_data($event, $data);
-    	                $event = '';
-    	                $data = '';
-    	            }
-    	        }
-    	        
-    	        # Clear data storage
-    	        $$self{data} = "";
-    	    }
-    	}
+        # sysread will only read the contents of a single SSL frame
+        if ($$self{socket}->sysread(my $buf, 1024)){
+            $$self{data} .= $buf;
+            if ($buf =~ /\n\n$/){
+                # We reached the end of the message packet
+                ::print_log("[Nest Data]" . $$self{data});
+                
+                # Split out event and data for processing
+                my @lines = split("\n", $$self{data});
+                my ($event, $data);
+                for (@lines){
+                    # Pull out events and data
+                    my ($key, $value) = split(":", $_,2);
+                    if ($key =~ /event/){
+                        $event = $value;
+                    }
+                    elsif ($key =~ /data/ && defined($event)){
+                        $data = $value;
+                    }
+                    
+                    if (defined($event) && defined($data)){
+                        $self->parse_data($event, $data);
+                        $event = '';
+                        $data = '';
+                    }
+                }
+                
+                # Clear data storage
+                $$self{data} = "";
+            }
+        }
     }
     else {
         # The connection died, or the keep-alive messages stopped, restart it
         ::print_log("[Nest Interface] Connection died, restarting");
-        $self->connect_stream($$self{url});
+        $self->connect_stream();
     }
 }
 
