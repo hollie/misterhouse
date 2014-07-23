@@ -1,6 +1,149 @@
+=head1 B<Nest>
+
+=head2 SYNOPSIS
+
+This module allows MisterHouse to communicate with the public Nest API which 
+currently allows interation with Nest Thermostats and Smoke/CO Detectors.  
+
+=head2 CONFIGURATION
+
+Nest uses OAuth technology to authorize access to your account.  The nice thing
+is that at any point in the future, you can sign into your Nest account and 
+revoke any access tokens that you have issued.
+
+To start the authorization process, go to the following URL:
+    
+L<https://misterhouse-nest.appspot.com/>
+
+Read everything on that page and follow the instructions.  At the end of the
+process, the webpage will provide you with a line to add to your mh.private.ini
+file.  It will be a long line! Copy the entire line and place it in your
+mh.private.ini file:
+
+  Nest_auth_token=<API token from Nest registration>
+
+Create a Nest instance in the .mht file, or in user code:
+
+.mht file:
+
+  CODE, require Nest; #noloop 
+  CODE, $nest = new Nest_Interface(); #noloop
+  CODE, $nest_thermo = new Nest_Thermostat('Entryway', $nest, 'f'); #noloop
+  CODE, $nest_thermo_mode = new Nest_Thermo_Mode($nest_thermo); #noloop
+  CODE, $nest_alarm = new Nest_Smoke_CO_Alarm('Kitchen', $nest); #noloop
+  CODE, $nest_home = new Nest_Structure('Home', $nest); #noloop
+
+Explanations of the parameters is contained below in the documentation for each
+module.
+
+=head2 OVERVIEW
+
+Because this module uses the public Nest API, it should provide stable support
+for a long time.  However, by relying on the public API, this module is also
+limited to supplying only the features currently supported by Nest.  Currently
+some features which are present on the device and the Nest website, such as
+humidity, are not yet available in the API and as a result are not specifically
+supported by this module.
+
+The low level commands in this module were written with the exepectation of
+future additions to the public Nest API.  The code should permit advanced users
+to interact with any future additions to the API without requiring an update to
+this module.
+
+This module is broken down into a few parts: 
+    
+=head3 NEST_INTERFACE
+
+This handles the interaction between the Nest API servers and MisterHouse.  
+This is the object that is required.  An advanced user could interact with
+the Nest API solely through this object.
+
+=head3 NEST_GENERIC
+
+This provides a generic base for building objects that receive data from the 
+interface.  This object is inherited by all parent and child objects and
+in most cases, a user will not need to worry about this object.
+
+=head3 PARENT ITEMS
+
+These currently include B<Nest_Smoke_CO_Alarm>, B<Nest_Thermostat>, and 
+B<Nest_Structure>.  This classes provide more specific support for each of the 
+current Nest type of objects. These objects provide all of the access needed to 
+interact with each of the devices in a user friendly way.
+
+=head3 CHILD ITEMS 
+
+Currently these are named B<Nest_Thermo_>.... These are very specific objects 
+that provide very specific support for individual features on the Nest 
+Thermostats. I have in the past commonly referred to these as child objects.  
+In general, the state of these objects reports the state of a single parameter 
+on the thermostat.  A few of the objects also offer writable features that allow 
+changing certain parameters on the thermostat.
+
+=cut
+
 package Nest_Interface;
 
+=head1 B<Nest_Interface>
+
+=head2 SYNOPSIS
+
+This module allows MisterHouse to communicate with the public Nest API which 
+currently allows interation with Nest Thermostats and Smoke/CO Detectors. 
+
+=head2 CONFIGURATION
+
+Nest uses OAuth technology to authorize access to your account.  The nice thing
+is that at any point in the future, you can sign into your Nest account and 
+revoke any access tokens that you have issued.
+
+To start the authorization process, go to the following URL:
+    
+L<https://misterhouse-nest.appspot.com/>
+
+Read everything on that page and follow the instructions.  At the end of the
+process, the webpage will provide you with a line to add to your mh.private.ini
+file.  It will be a long line! Copy the entire line and place it in your
+mh.private.ini file:
+
+  Nest_auth_token=<API token from Nest registration>
+
+Create a Nest instance in the .mht file, or in user code:
+
+.mht file:
+
+  CODE, require Nest; #noloop 
+  CODE, $nest = new Nest_Interface(); #noloop
+
+=head2 DESCRIPTION
+
+This handles the interaction between the Nest API servers and MisterHouse.  
+This is the object that is required.  An advanced user could interact with
+the Nest API solely through this object.
+
+=head2 INHERITS
+
+C<Socket_Item>
+
+=cut
+
+@Nest_Interface::ISA = ('Socket_Item');
+
 use strict;
+
+=head2 DEPENDENCIES
+
+  JSON              - Used for encoding/decoding the JSON data
+  IO::Socket::SSL   - SSL Used to establish a secure connection to Nest servers
+  IO::Socket::INET  - Nest uses a RESTful Streaming protocol which requires a 
+                      special code setup to keep the HTTP socket constantly open.
+  IO::Select        - Used to manage the HTTP socket
+  URI::URL          - Used for deciphering URLs
+  HTTP::Response    - Used for handling the responses from Nest
+  HTTP::Request     - Used for sending requests to Nest
+
+=cut
+
 use JSON;
 use IO::Socket::SSL;
 use IO::Socket::INET;
@@ -9,7 +152,16 @@ use URI::URL;
 use HTTP::Response;
 use HTTP::Request;
 
-@Nest::ISA = ('Socket_Item');
+=head2 METHODS
+
+=over
+
+=item C<new(port_name, $auth, $url>
+
+Creates a new Nest Interface.  The only required parameter is auth, which can
+also be set using the INI parameter B<Nest_auth_token>.
+
+=cut
 
 sub new {
     my ($class, $port_name, $auth, $url) = @_;
@@ -23,6 +175,8 @@ sub new {
   	$self->connect_stream();
   	return $self;
 }
+
+# Establishes the connection to Nest
 
 sub connect_stream {
     my ($self, $url) = @_;
@@ -103,6 +257,8 @@ sub connect_stream {
     return $$self{socket};
 }
 
+# Run once per loop to check for data present on the connection
+
 sub check_for_data {
 	my ($self) = @_;
     if ($$self{socket}->connected && (time - $$self{'keep-alive'} < 70)) {
@@ -145,6 +301,8 @@ sub check_for_data {
     }
 }
 
+# If data is found on the connection with Nest, this parses out the data
+
 sub parse_data {
     my ($self, $event, $data) = @_;
     if ($event =~ /keep-alive/){
@@ -170,6 +328,25 @@ sub parse_data {
     }
     return;
 }
+
+=item C<write_data($parent, $value, $data, $url)>
+
+This is used to write parameters to the Nest servers.
+
+    $parent   -   (alternative) a reference to the parent object (thermostat, 
+                  smoke detector, structure) that this data should be written to
+    $value    -   The name of the value to write
+    $data     -   The data to be written
+    $url      -   (alternative) the full url to be written to 
+ 
+  
+Either the parent or the URL must be defined.  If the url is defined, it 
+will trump the parent.
+
+Advanced users can use this function to directly write JSON data to Nest.  
+Otherwise it is used by the more user friendly objects.
+
+=cut
 
 sub write_data {
     my ($self, $parent, $value, $data, $url) = @_;
@@ -198,6 +375,12 @@ sub write_data {
     }
 }
 
+=item C<print_devices()>
+
+Prints the name and device_id of all devices found in the Nest account.
+
+=cut
+
 sub print_devices {
     my ($self) = @_;
     my $output = "[Nest] The list of devices reported by Nest is:\n";
@@ -214,6 +397,12 @@ sub print_devices {
     ::print_log($output);
 }
 
+=item C<print_structures()>
+
+Prints the name and device_id of all structures found in the Nest account.
+
+=cut
+
 sub print_structures {
     my ($self) = @_;
     my $output = "[Nest] The list of structures reported by Nest is:\n";
@@ -225,9 +414,17 @@ sub print_structures {
     ::print_log($output);
 }
 
-# Used to register actions to take when a specific JSON value changes
-# the variables $value and $state will be expanded on eval and will
-# contain the name of the value that has changed and its new state
+=item C<register($parent, $value, $action)>
+
+Used to register actions to be run if a specific JSON value changes.
+
+    $parent   - The parent object on which the value should be monitored 
+                (thermostat, smoke detector, structure)
+    $value    - The parameter to monitor for changes
+    $action   - A Code Reference to run when the json changes.  The code reference
+                will be passed two arguments, the parameter name and value.
+
+=cut
 
 sub register {
     my ($self, $parent, $object, $value, $action) = @_;
@@ -261,7 +458,7 @@ sub compare_json {
     }    
 }
 
-##Converts the names in the register hash to IDs, and then puts them into
+# Converts the names in the register hash to IDs, and then puts them into
 # the monitor hash.
 
 sub convert_to_ids {
@@ -282,11 +479,47 @@ sub convert_to_ids {
     delete $$self{register};
 }
 
-package Nest_Child;
+package Nest_Generic;
+
+=back
+
+=head1 B<Nest_Generic>
+
+=head2 SYNOPSIS
+
+This is a generic module primarily meant to be inherited by higher level more
+user friendly modules.  The average user should just ignore this module. 
+
+=cut 
 
 use strict;
 
-@Nest_Child::ISA = ('Generic_Item');
+=head2 INHERITS
+
+C<Generic_Item>
+
+=cut
+
+@Nest_Generic::ISA = ('Generic_Item');
+
+=head2 METHODS
+
+=over
+
+=item C<new($interface, $parent, $monitor_hash>
+
+Creates a new Nest_Generic.
+
+    $interface    - The Nest_Interface through which this device can be found.
+    $parent       - The parent interface of this object, if not specified the
+                  the parent will be set to Self.
+    $monitor_hash - A hash ref, {$value => $action}, where $value is the JSON 
+                  value that should be monitored with $action equal to the code 
+                  reference that should be run on changes.  The hash ref can
+                  contain an infinite number of key value pairs.  If no action
+                  is specified, it will use the default data_chanted routine.
+
+=cut
 
 sub new {
     my ($class, $interface, $parent, $monitor_hash) = @_;
@@ -300,6 +533,12 @@ sub new {
 	}
   	return $self;
 }
+
+=item C<device_id()>
+
+Returns the device_id of an object.
+
+=cut
 
 sub device_id {
     my ($self) = @_;
@@ -322,15 +561,25 @@ sub device_id {
     return 0;
 }
 
-# Called by data_updated if data has changed.  In most cases we can ignore the
-# value name and just set the state of the child to new_value more sophisticated
-# children can hijack this method to do more complex tasks
+=item C<data_changed()>
+
+The default action to be called when the JSON data has changed.  In most cases 
+we can ignore the value name and just set the state of the child to new_value.
+More sophisticated children can hijack this method to do more complex tasks.
+
+=cut
 
 sub data_changed {
     my ($self, $value_name, $new_value) = @_;
     ::print_log("[Nest] Data changed called $value_name, $new_value");
     $self->set_receive($new_value);
 }
+
+=item C<set_receive()>
+
+Handles setting the state of the object inside MisterHouse
+
+=cut
 
 sub set_receive {
 	my ($self, $p_state, $p_setby, $p_response) = @_;
@@ -340,6 +589,12 @@ sub set_receive {
 	}
 	$self->SUPER::set($p_state, $p_setby, $p_response);
 }
+
+=item C<get_value($value)>
+
+Returns the JSON data contained in value for this device.
+
+=cut
 
 sub get_value {
     my ($self, $value) = @_;
@@ -354,59 +609,152 @@ sub get_value {
 
 package Nest_Thermostat;
 
+=back
+
+=head1 B<Nest_Thermostat>
+
+=head2 SYNOPSIS
+
+This is a high level module for interacting with the Nest Thermostat.  It is
+generally user friendly and contains many functions which are similar to other
+thermostat modules.
+
+The state of this object will be the ambient temperature reported by the 
+thermostat.  This object does not accept set commands.  You can use all of the 
+remaining C<Generic_Item> including c<state>, c<state_now>, c<tie_event> to 
+interact with this object.
+
+=head2 CONFIGURATION
+
+Create a Nest thermostat instance in the .mht file:
+
+.mht file:
+
+  CODE, $nest_thermo = new Nest_Thermostat('Entryway', $nest, 'f'); #noloop
+
+The arguments:
+
+    1. The first argument can be either I<the name of the device> or the I<device id>.
+       If using the name, this must be the exact verbatim name as listed on the Nest 
+       website.  Alternatively, if you want to allow for future name changes without 
+       breaking your installation, you can get the device id using the 
+       L<print_devices()|Nest_Interface::print_devices> routine.
+    2. The second argument is the interface object
+    3. The third argument is either [f,c] and denotes the temperature scale you prefer
+
+=cut 
+
 use strict;
 
-@Nest_Thermostat::ISA = ('Nest_Child');
+=head2 INHERITS
+
+C<Nest_Generic>
+
+=cut
+
+@Nest_Thermostat::ISA = ('Nest_Generic');
+
+=head2 METHODS
+
+=over
+
+=item C<new($name, $interface, $scale)>
+
+Creates a new Nest_Generic.
+
+    $name         - The name or device if of the Thermostat
+    $interface    - The interface object
+    $scale        - Either [c,f] denoting your prefered temperature scale
+
+
+=cut
 
 sub new {
     my ($class, $name, $interface, $scale) = @_;
     $scale = lc($scale);
     $scale = "f" unless ($scale eq "c");
     my $monitor_value = "ambient_temperature_" . $scale;
-    my $self = new Nest_Child($interface, '', {$monitor_value=>''});
+    my $self = new Nest_Generic($interface, '', {$monitor_value=>''});
     bless $self, $class;
     $$self{class} = 'devices', 
     $$self{type} = 'thermostats',
     $$self{name} = $name,
     $$self{scale} = $scale;
-  	return $self;
+    return $self;
 }
+
+=item C<get_temp()>
+
+Returns the current ambient temperature.
+
+=cut
 
 sub get_temp {
     my ($self) = @_;
     return $self->get_value("ambient_temperature_" . $$self{scale});
 }
 
-# Used in the combined Heat - Cool Mode Only
+=item C<get_heat_sp()>
+
+Returns the current heat setpoint for the combined heat-cool mode.
+
+=cut
 
 sub get_heat_sp {
     my ($self) = @_;
     return $self->get_value("target_temperature_high_" . $$self{scale});
 }
 
-# Used in the combined Heat - Cool Mode Only
+=item C<get_cool_sp()>
+
+Returns the current cool setpoint for the combined heat-cool mode.
+
+=cut
 
 sub get_cool_sp {
     my ($self) = @_;
     return $self->get_value("target_temperature_low_" . $$self{scale});
 }
 
-# Used in either the Heating or Cooling mode
+=item C<get_target_sp()>
+
+Returns the current target setpoint for either the heat or cool mode.  The
+combined heat-cool mode uses its own functions.
+
+=cut
 
 sub get_target_sp {
     my ($self) = @_;
     return $self->get_value("target_temperature_" . $$self{scale});
 }
 
+=item C<get_mode()>
+
+Return the current mode.
+
+=cut
+
 sub get_mode {
     my ($self) = @_;
     return $self->get_value("hvac_mode");
 }
 
+=item C<get_fan_state()>
+
+Return the current fan state.
+
+=cut
+
 sub get_fan_state {
     my ($self) = @_;
     return $self->get_value("fan_timer_active");
 }
+
+=item C<set_fan_state($state, $p_setby, $p_response)>
+
+Sets the fan state to $state, must be [true,false].
+
+=cut
 
 sub set_fan_state {
     my ($self, $state, $p_setby, $p_response) = @_;
@@ -419,6 +767,12 @@ sub set_fan_state {
     $$self{state_pending} = [$p_setby, $p_response];
 }
 
+=item C<set_target_temp($state, $p_setby, $p_response)>
+
+Sets the target temp for the heat or cool mode to $state.
+
+=cut
+
 sub set_target_temp {
     my ($self, $state, $p_setby, $p_response) = @_;
     unless ($state =~ /^\d+(\.\d+)?$/){
@@ -428,6 +782,12 @@ sub set_target_temp {
     $$self{interface}->write_data($self, 'target_temperature_' . $$self{scale}, $state);
     $$self{state_pending} = [$p_setby, $p_response];
 }
+
+=item C<set_target_temp_high($state, $p_setby, $p_response)>
+
+Sets the heat target temp for the combined heat-cool mode to $state.
+
+=cut
 
 sub set_target_temp_high {
     my ($self, $state, $p_setby, $p_response) = @_;
@@ -439,6 +799,12 @@ sub set_target_temp_high {
     $$self{state_pending} = [$p_setby, $p_response];
 }
 
+=item C<set_target_temp_low($state, $p_setby, $p_response)>
+
+Sets the cool target temp for the combined heat-cool mode to $state.
+
+=cut
+
 sub set_target_temp_low {
     my ($self, $state, $p_setby, $p_response) = @_;
     unless ($state =~ /^\d+(\.\d+)?$/){
@@ -448,6 +814,12 @@ sub set_target_temp_low {
     $$self{interface}->write_data($self, 'target_temperature_low_' . $$self{scale}, $state);
     $$self{state_pending} = [$p_setby, $p_response];
 }
+
+=item C<set_hvac_mode($state, $p_setby, $p_response)>
+
+Sets the mode to $state, must be [heat,cool,heat-cool,off]
+
+=cut
 
 sub set_hvac_mode {
     my ($self, $state, $p_setby, $p_response) = @_;
@@ -466,6 +838,32 @@ sub set_hvac_mode {
 # Similarly, the api doesn't tell us if the device is heating or cooling atm
 
 package Nest_Thermo_Fan;
+
+=back
+
+=head1 B<Nest_Thermo_Fan>
+
+=head2 SYNOPSIS
+
+This is a very high level module for interacting with the Nest Thermostat Fan.
+This type of object is often referred to as a child device.  It displays the
+state of the fan and allows for enabling or disabling it.  The object inherits
+all of the C<Generic_Item> methods, including c<set>, c<state>, c<state_now>, 
+c<tie_event>.
+
+=head2 CONFIGURATION
+
+.mht file:
+
+  CODE, $thermo_fan = new Nest_Thermo_Fan($nest_thermo); #noloop
+
+The only argument required is the thermostat object.
+
+=head2 INHERITS
+
+C<Nest_Generic>
+
+=cut
 
 use strict;
 
@@ -503,7 +901,28 @@ sub set {
 
 package Nest_Thermo_Leaf;
 
-#Leaf [on,off]
+=head1 B<Nest_Thermo_Leaf>
+
+=head2 SYNOPSIS
+
+This is a very high level module for interacting with the Nest Thermostat Leaf.
+This type of object is often referred to as a child device.  It displays the
+state of the leaf.  The object inherits all of the C<Generic_Item> methods, 
+including c<state>, c<state_now>, c<tie_event>.
+
+=head2 CONFIGURATION
+
+.mht file:
+
+  CODE, $thermo_leaf = new Nest_Thermo_Leaf($nest_thermo); #noloop
+
+The only argument required is the thermostat object.
+
+=head2 INHERITS
+
+C<Nest_Generic>
+
+=cut
 
 use strict;
 
@@ -533,7 +952,29 @@ sub set_receive {
 
 package Nest_Thermo_Mode;
 
-#Mode [current] (heat, cool, off, heat/cool)
+=head1 B<Nest_Thermo_Mode>
+
+=head2 SYNOPSIS
+
+This is a very high level module for interacting with the Nest Thermostat Mode.
+This type of object is often referred to as a child device.  It displays the
+mode of the thermostat and allows for setting the modes.  The object inherits
+all of the C<Generic_Item> methods, including c<set>, c<state>, c<state_now>, 
+c<tie_event>.
+
+=head2 CONFIGURATION
+
+.mht file:
+
+  CODE, $thermo_mode = new Nest_Thermo_Mode($nest_thermo); #noloop
+
+The only argument required is the thermostat object.
+
+=head2 INHERITS
+
+C<Nest_Generic>
+
+=cut
 
 use strict;
 
@@ -645,6 +1086,30 @@ sub set {
     $$self{parent}->set_target_temp_low($p_state,$p_setby,$p_response);
 }
 
+=head1 B<Nest_Thermo_Away_High>
+
+=head2 SYNOPSIS
+
+This is a very high level module for interacting with the Nest Thermostat High 
+Away Target Temperature.
+This type of object is often referred to as a child device.  It displays the
+setpoint of the thermostat and but cannot be changed.  The object inherits
+all of the C<Generic_Item> methods, including c<state>, c<state_now>, 
+c<tie_event>.
+
+=head2 CONFIGURATION
+
+.mht file:
+
+  CODE, $thermo_param = new Nest_Thermo_Away_High($nest_thermo); #noloop
+
+The only argument required is the thermostat object.
+
+=head2 INHERITS
+
+C<Nest_Generic>
+
+=cut
 
 package Nest_Thermo_Away_High;
 use strict;
@@ -661,6 +1126,31 @@ sub new {
   	bless $self, $class;
   	return $self;
 }
+
+=head1 B<Nest_Thermo_Away_Low>
+
+=head2 SYNOPSIS
+
+This is a very high level module for interacting with the Nest Thermostat High 
+Away Target Temperature.
+This type of object is often referred to as a child device.  It displays the
+setpoint of the thermostat and but cannot be changed.  The object inherits
+all of the C<Generic_Item> methods, including c<state>, c<state_now>, 
+c<tie_event>.
+
+=head2 CONFIGURATION
+
+.mht file:
+
+  CODE, $thermo_param = new Nest_Thermo_Away_Low($nest_thermo); #noloop
+
+The only argument required is the thermostat object.
+
+=head2 INHERITS
+
+C<Nest_Generic>
+
+=cut
 
 package Nest_Thermo_Away_Low;
 use strict;
@@ -680,9 +1170,62 @@ sub new {
 
 package Nest_Smoke_CO_Alarm;
 
+=head1 B<Nest_Smoke_CO_Alarm>
+
+=head2 SYNOPSIS
+
+This is a high level module for interacting with the Nest Smoke Alarm.  It is
+generally user friendly.
+
+The state of this object will be the combined state of both the CO and smoke 
+alarm plus the battery state.  If everything it OK the state will be OK.  Any
+emergency state will be listed first, followed by a warning state, followed by
+a battery health warning.  You CANNOT set the state of this object, as the 
+detector is a read only device.  You can use all of the the C<Generic_Item> 
+methods, including c<set>, c<state>, c<state_now>, c<tie_event> to interact with
+this object.
+
+=head2 CONFIGURATION
+
+Create a Nest smoke alarm instance in the .mht file:
+
+.mht file:
+
+  CODE, $nest_alarm = new Nest_Smoke_CO_Alarm('Kitchen', $nest); #noloop
+
+The arguments:
+
+    1. The first argument can be either I<the name of the device> or the I<device id>.
+       If using the name, this must be the exact verbatim name as listed on the Nest 
+       website.  Alternatively, if you want to allow for future name changes without 
+       breaking your installation, you can get the device id using the 
+       L<print_devices()|Nest_Interface::print_devices> routine.
+    2. The second argument is the interface object
+
+=cut 
+
 use strict;
 
-@Nest_Smoke_CO_Alarm::ISA = ('Nest_Child');
+=head2 INHERITS
+
+C<Nest_Generic>
+
+=cut
+
+@Nest_Smoke_CO_Alarm::ISA = ('Nest_Generic');
+
+=head2 METHODS
+
+=over
+
+=item C<new($name, $interface)>
+
+Creates a new Nest_Generic.
+
+    $name         - The name or device if of the Thermostat
+    $interface    - The interface object
+
+=cut
 
 sub new {
     my ($class, $name, $interface) = @_;
@@ -726,15 +1269,33 @@ sub data_changed {
     $self->set_receive($state);
 }
 
+=item C<get_co()>
+
+Returns the carbon monoxide alarm state. [ok,warning,emergency]
+
+=cut
+
 sub get_co {
     my ($self) = @_;
     return $self->get_value("co_alarm_state");
 }
 
+=item C<get_smoke()>
+
+Returns the smoke alarm state. [ok,warning,emergency]
+
+=cut
+
 sub get_smoke {
     my ($self) = @_;
     return $self->get_value("smoke_alarm_state");
 }
+
+=item C<get_battery()>
+
+Returns the detector battery health. [ok,replace]
+
+=cut
 
 sub get_battery {
     my ($self) = @_;
@@ -745,25 +1306,89 @@ sub get_battery {
 
 package Nest_Structure;
 
+=back
+
+=head1 B<Nest_Structure>
+
+=head2 SYNOPSIS
+
+This is a high level module for interacting with the Nest Structure object.  It is
+generally user friendly.
+
+The state of this object will be set to the home/away state of the structure. You
+can use all of the the C<Generic_Item> methods, including c<set>, c<state>, c<state_now>, 
+c<tie_event> to interact with this object.
+
+=head2 CONFIGURATION
+
+Create a Nest structure instance in the .mht file:
+
+.mht file:
+
+  CODE, $nest_home = new Nest_Structure('Home', $nest); #noloop
+
+The arguments:
+
+    1. The first argument can be either I<the name of the structure> or the I<structure id>.
+       If using the name, this must be the exact verbatim name as listed on the Nest 
+       website.  Alternatively, if you want to allow for future name changes without 
+       breaking your installation, you can get the device id using the 
+       L<print_structures()|Nest_Interface::print_structures> routine.
+    2. The second argument is the interface object
+
+=cut 
+
 use strict;
 
-@Nest_Structure::ISA = ('Nest_Child');
+=head2 INHERITS
+
+C<Nest_Generic>
+
+=cut
+
+@Nest_Structure::ISA = ('Nest_Generic');
+
+=head2 METHODS
+
+=over
+
+=item C<new($name, $interface)>
+
+Creates a new Nest_Generic.
+
+    $name         - The name or device if of the Thermostat
+    $interface    - The interface object
+
+=cut
 
 sub new {
     my ($class, $name, $interface) = @_;
-    my $self = new Nest_Child($interface, '', {'away'=>''});
+    my $self = new Nest_Generic($interface, '', {'away'=>''});
     bless $self, $class;
     $$self{class} = 'structures', 
     $$self{type} = '',
     $$self{name} = $name,
     $$self{states} = ['home','away'];
-  	return $self;
+    return $self;
 }
+
+=item C<get_away_status()>
+
+Returns the state of the structure. [home,away]
+
+=cut
 
 sub get_away_status {
     my ($self) = @_;
     return $self->get_value("away");
 }
+
+=item C<set_away_status($state, $p_setby, $p_response)>
+
+Sets the state of the structure.  $State must be [home,away].  This will cause
+all devices inside this structure to change to the set state.
+
+=cut
 
 sub set_away_status {
     my ($self, $state, $p_setby, $p_response) = @_;
@@ -784,3 +1409,23 @@ sub set {
 
 #I did not add high level support for the ETA feature, although it can be
 #set using the low level write_data function with a bit of work
+
+=back
+
+=head1 AUTHOR
+
+Kevin Robert Keegan
+
+=head1 SEE ALSO
+
+http://developer.nest.com/
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
