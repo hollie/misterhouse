@@ -517,15 +517,16 @@ Creates a new Nest_Generic.
 
 sub new {
     my ($class, $interface, $parent, $monitor_hash) = @_;
-	my $self = new Generic_Item();
-	bless $self, $class;
+    my $self = new Generic_Item();
+    bless $self, $class;
     $$self{interface} = $interface;
     $$self{parent} = $parent;
     $$self{parent} = $self if ($$self{parent} eq '');
     while (my ($monitor_value, $action) = each %{$monitor_hash}){
-	    $$self{interface}->register($$self{parent}, $self, $monitor_value, $action);
-	}
-  	return $self;
+        my $action = sub {$self->data_changed(@_);} if $action eq '';
+        $$self{interface}->register($$self{parent}, $monitor_value, $action);
+    }
+    return $self;
 }
 
 =item C<device_id()>
@@ -972,18 +973,18 @@ C<Nest_Generic>
 
 use strict;
 
-@Nest_Thermo_Mode::ISA = ('Nest_Child');
+@Nest_Thermo_Mode::ISA = ('Nest_Generic');
 
 sub new {
     my ($class, $parent) = @_;
-    my $self = new Nest_Child(
+    my $self = new Nest_Generic(
         $$parent{interface}, 
         $parent,
         {'hvac_mode'=>''}
     );
     $$self{states} = ['heat', 'cool', 'heat-cool', 'off'];
-  	bless $self, $class;
-  	return $self;
+    bless $self, $class;
+    return $self;
 }
 
 sub set {
@@ -992,23 +993,46 @@ sub set {
     $$self{parent}->set_hvac_mode($p_state,$p_setby,$p_response);
 }
 
-#Target temp [temp] (warmer, cooler)
+=head1 B<Nest_Thermo_Target>
+
+=head2 SYNOPSIS
+
+This is a very high level module for interacting with the Nest Thermostat Target
+Temperature.  This is used in either the heat or the cool modes.
+This type of object is often referred to as a child device.  It displays the
+setpoint of the thermostat and allows for setting the temperature.  The object inherits
+all of the C<Generic_Item> methods, including c<set>, c<state>, c<state_now>, 
+c<tie_event>.
+
+=head2 CONFIGURATION
+
+.mht file:
+
+  CODE, $thermo_param = new Nest_Thermo_Target($nest_thermo); #noloop
+
+The only argument required is the thermostat object.
+
+=head2 INHERITS
+
+C<Nest_Generic>
+
+=cut
 
 package Nest_Thermo_Target;
 use strict;
-@Nest_Thermo_Target::ISA = ('Nest_Child');
+@Nest_Thermo_Target::ISA = ('Nest_Generic');
 
 sub new {
     my ($class, $parent) = @_;
     my $scale = $$parent{scale};
-    my $self = new Nest_Child(
+    my $self = new Nest_Generic(
         $$parent{interface}, 
         $parent,
         {'target_temperature_' . $scale => ''}
     );
     $$self{states} = ['cooler','warmer'];
-  	bless $self, $class;
-  	return $self;
+    bless $self, $class;
+    return $self;
 }
 
 sub set {
@@ -1022,22 +1046,46 @@ sub set {
     $$self{parent}->set_target_temp($p_state,$p_setby,$p_response);
 }
 
-#Target high for heat-cool [temp] (warmer, cooler)
+=head1 B<Nest_Thermo_Target_High>
+
+=head2 SYNOPSIS
+
+This is a very high level module for interacting with the Nest Thermostat High 
+Target Temperature.  This is used only in the heat-cool mode.
+This type of object is often referred to as a child device.  It displays the
+setpoint of the thermostat and allows for setting the temperature.  The object inherits
+all of the C<Generic_Item> methods, including c<set>, c<state>, c<state_now>, 
+c<tie_event>.
+
+=head2 CONFIGURATION
+
+.mht file:
+
+  CODE, $thermo_param = new Nest_Thermo_Target_High($nest_thermo); #noloop
+
+The only argument required is the thermostat object.
+
+=head2 INHERITS
+
+C<Nest_Generic>
+
+=cut
+
 package Nest_Thermo_Target_High;
 use strict;
-@Nest_Thermo_Target_High::ISA = ('Nest_Child');
+@Nest_Thermo_Target_High::ISA = ('Nest_Generic');
 
 sub new {
     my ($class, $parent) = @_;
     my $scale = $$parent{scale};
-    my $self = new Nest_Child(
+    my $self = new Nest_Generic(
         $$parent{interface}, 
         $parent,
         {'target_temperature_high_' . $scale => ''}
     );
     $$self{states} = ['cooler','warmer'];
-  	bless $self, $class;
-  	return $self;
+    bless $self, $class;
+    return $self;
 }
 
 sub set {
@@ -1051,22 +1099,46 @@ sub set {
     $$self{parent}->set_target_temp_high($p_state,$p_setby,$p_response);
 }
 
-#Target low for heat-cool [temp] (warmer, cooler)
+=head1 B<Nest_Thermo_Target_Low>
+
+=head2 SYNOPSIS
+
+This is a very high level module for interacting with the Nest Thermostat Low 
+Target Temperature.  This is used only in the heat-cool mode.
+This type of object is often referred to as a child device.  It displays the
+setpoint of the thermostat and allows for setting the temperature.  The object inherits
+all of the C<Generic_Item> methods, including c<set>, c<state>, c<state_now>, 
+c<tie_event>.
+
+=head2 CONFIGURATION
+
+.mht file:
+
+  CODE, $thermo_param = new Nest_Thermo_Target_Low($nest_thermo); #noloop
+
+The only argument required is the thermostat object.
+
+=head2 INHERITS
+
+C<Nest_Generic>
+
+=cut
+
 package Nest_Thermo_Target_Low;
 use strict;
-@Nest_Thermo_Target_Low::ISA = ('Nest_Child');
+@Nest_Thermo_Target_Low::ISA = ('Nest_Generic');
 
 sub new {
     my ($class, $parent) = @_;
     my $scale = $$parent{scale};
-    my $self = new Nest_Child(
+    my $self = new Nest_Generic(
         $$parent{interface}, 
         $parent,
         {'target_temperature_low_' . $scale => ''}
     );
     $$self{states} = ['cooler','warmer'];
-  	bless $self, $class;
-  	return $self;
+    bless $self, $class;
+    return $self;
 }
 
 sub set {
@@ -1107,18 +1179,18 @@ C<Nest_Generic>
 
 package Nest_Thermo_Away_High;
 use strict;
-@Nest_Thermo_Away_High::ISA = ('Nest_Child');
+@Nest_Thermo_Away_High::ISA = ('Nest_Generic');
 
 sub new {
     my ($class, $parent) = @_;
     my $scale = $$parent{scale};
-    my $self = new Nest_Child(
+    my $self = new Nest_Generic(
         $$parent{interface}, 
         $parent,
         {'away_temperature_high_' . $scale => ''}
     );
-  	bless $self, $class;
-  	return $self;
+    bless $self, $class;
+    return $self;
 }
 
 =head1 B<Nest_Thermo_Away_Low>
@@ -1148,18 +1220,18 @@ C<Nest_Generic>
 
 package Nest_Thermo_Away_Low;
 use strict;
-@Nest_Thermo_Away_Low::ISA = ('Nest_Child');
+@Nest_Thermo_Away_Low::ISA = ('Nest_Generic');
 
 sub new {
     my ($class, $parent) = @_;
     my $scale = $$parent{scale};
-    my $self = new Nest_Child(
+    my $self = new Nest_Generic(
         $$parent{interface}, 
         $parent,
         {'away_temperature_low_' . $scale => ''}
     );
-  	bless $self, $class;
-  	return $self;
+    bless $self, $class;
+    return $self;
 }
 
 package Nest_Smoke_CO_Alarm;
@@ -1223,7 +1295,7 @@ Creates a new Nest_Generic.
 
 sub new {
     my ($class, $name, $interface) = @_;
-    my $self = new Nest_Child($interface, '', {
+    my $self = new Nest_Generic($interface, '', {
                             'co_alarm_state'=>'',
                             'smoke_alarm_state'=>'',
                             'battery_health'=>''
@@ -1232,7 +1304,7 @@ sub new {
     $$self{class} = 'devices', 
     $$self{type} = 'smoke_co_alarms',
     $$self{name} = $name,
-  	return $self;
+    return $self;
 }
 
 sub data_changed {
