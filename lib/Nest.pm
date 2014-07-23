@@ -429,8 +429,8 @@ Used to register actions to be run if a specific JSON value changes.
 =cut
 
 sub register {
-    my ($self, $parent, $object, $value, $action) = @_;
-    push (@{$$self{register}}, [$parent, $object, $value,$action]);
+    my ($self, $parent, $value, $action) = @_;
+    push (@{$$self{register}}, [$parent, $value, $action]);
 }
 
 # Walk through the JSON hash and looks for changes from previous json hash if a 
@@ -449,12 +449,7 @@ sub compare_json {
         }
         elsif ($value ne $prev_value && ref $monitior_value eq 'ARRAY') {
             for my $action (@{$monitior_value}){
-                ::print_log("[Nest] eval'ing $action");
-                package main;
-                eval($action);
-			    ::print_log("[Nest] error in evaling action: " . $@)
-					if $@;
-				package Nest_Interface;
+                &$action($key,$value);
             }
         }
     }    
@@ -466,11 +461,8 @@ sub compare_json {
 sub convert_to_ids {
     my ($self) = @_;
     for my $array_ref (@{$$self{register}}){
-        my ($parent, $object, $value, $action) = @{$array_ref};
+        my ($parent, $value, $action) = @{$array_ref};
         my $device_id = $parent->device_id();
-        if ($action eq ''){
-            $action = $object->get_object_name . '->data_changed($key,$value)';
-        }
         if ($$parent{type} ne '') {
             push(@{$$self{monitor}{data}{$$parent{class}}{$$parent{type}}{$device_id}{$value}},$action);
         }
