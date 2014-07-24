@@ -156,10 +156,19 @@ use HTTP::Request;
 
 =over
 
-=item C<new(port_name, $auth, $url>
+=item C<new($auth, $port_name, $url>
 
 Creates a new Nest Interface.  The only required parameter is auth, which can
 also be set using the INI parameter B<Nest_auth_token>.
+
+port_name -  defaults to Nest.  If you are using multiple Nest Interfaces,
+I would imagine this to be very rare.  Then the subsequent interfaces
+must have a different port name.  You must also change the prefix of the
+auth INI parameter to match the new port name.
+
+url - I have no idea when this would be used.  But if you wanted to use
+a different url than what Nest provides, maybe for testing or some beta
+group, then you can provide the url here.
 
 =cut
 
@@ -172,9 +181,11 @@ sub new {
     $$self{port_name} = $port_name;
     $$self{url} = $url;
     $$self{auth} = $auth;
+    $$self{reconnect_timer} = new Timer;
+    $$self{enabled} = 1;
     bless $self, $class;
     $self->connect_stream();
-    ::MainLoop_pre_add_hook(sub {$self->check_for_data();}, 1);
+    ::MainLoop_pre_add_hook(sub {$self->check_for_data();}, 'persistent');
     return $self;
 }
 
@@ -187,12 +198,24 @@ sub connect_stream {
     
     if (defined $$self{socket}) {
         $$self{socket}->close;
+        delete $$self{socket};
+        $self->reconnect_delay(1, $url);
+        return;
     }
     
     $$self{socket} = IO::Socket::INET->new(
-        PeerHost => $url->host, PeerPort => $url->port, Blocking => 0
-    ) or die $@; # first create simple N-B socket with IO::Socket::INET
+        PeerHost => $url->host, 
+        PeerPort => $url->port, 
+        Blocking => 0,
+        Timeout  => 30,
+    );
     
+    unless ($$self{socket}) {
+        ::print_log("[Nest] ERROR connecting to Nest server: " . $@);
+        $self->reconnect_delay();
+        return;
+    }
+     
     my $select = IO::Select->new($$self{socket}); # wait until it connected
     if ($select->can_write) {
         ::print_log "[Nest Interface] IO::Socket::INET connected";
@@ -216,7 +239,9 @@ sub connect_stream {
                 $select->can_write;
             }
             else {
-                die "[Nest Interface] IO::Socket::SSL unknown error: ", $SSL_ERROR;
+                ::print_log("[Nest] ERROR connecting to Nest server: " . $SSL_ERROR);
+                $self->reconnect_delay();
+                return;
             }
         }
     }
@@ -229,47 +254,64 @@ sub connect_stream {
     );
     $request->protocol('HTTP/1.1');
     #print "requesting data:\n" . $request->as_string;
-    $$self{socket}->syswrite($request->as_string) or die $!;
-    
-    # The first frame seems to always be the HTTP response without content
-    if ($select->can_read && $$self{socket}->sysread(my $buf, 1024)) {
-        my $r = HTTP::Response->parse( $buf );
-        if ($r->code == 307){
-            # This is a location redirect
-            $$self{socket}->close;
-            print "redirecting to " . $r->header( 'location' ) . "\n";
-            $$self{socket} = $self->connect_stream($r->header( 'location' ));
-        }
-        elsif ($r->code == 401){
-            die ("Error, your authorization was rejected.  Please check your settings.");
-        }
-        elsif ($r->code == 200){
-            # Successful response
-            print "Success: \n" .  $r->as_string . "\n";
-            $$self{'keep-alive'} = time;
-        }
-        else {
-            die (
-                "Error unable to connect to stream response was: \n".
-                $r->as_string
-            );
-        }
+    unless ($$self{socket}->syswrite($request->as_string)){
+        ::print_log("[Nest] ERROR connecting to Nest server: " . $!);
+        $self->reconnect_delay();
+        return;
     }
-
+    
+    $$self{'keep-alive'} = time;
     return $$self{socket};
+}
+
+# Used to try reconnecting after a delay if there was an error
+
+sub reconnect_delay {
+    my ($self, $seconds, $url) = @_;
+    my $action = sub {$self->connect_stream($url)};
+    if (!$seconds) {
+        $seconds = 60;
+        ::print_log("[Nest] Will try to connect again in 1 minute.");
+    }
+    $$self{reconnect_timer}->set($seconds,$action);
 }
 
 # Run once per loop to check for data present on the connection
 
 sub check_for_data {
     my ($self) = @_;
-    if ($$self{socket}->connected && (time - $$self{'keep-alive'} < 70)) {
+    if (defined $$self{socket} 
+        && $$self{socket}->connected 
+        && (time - $$self{'keep-alive'} < 70)) {
         # sysread will only read the contents of a single SSL frame
         if ($$self{socket}->sysread(my $buf, 1024)){
             $$self{data} .= $buf;
-            if ($buf =~ /\n\n$/){
-                # We reached the end of the message packet
-                ::print_log("[Nest Data]" . $$self{data});
+            if ($$self{data} =~ /^HTTP/){ # Start of new stream
+                my $r = HTTP::Response->parse( $buf );
+                if ($r->code == 307){
+                    # This is a location redirect
+                    ::print_log "redirecting to " . $r->header( 'location' ) . "\n";
+                    $$self{socket} = $self->connect_stream($r->header( 'location' ));
+                }
+                elsif ($r->code == 401){
+                    ::print_log("[Nest] ERROR, your authorization was rejected. "
+                        ."Please check your settings.");
+                    $$self{enabled} = 0;
+                }
+                elsif ($r->code == 200){
+                    # Successful response
+                    ::print_log("[Nest] Successfully connected to stream");
+                }
+                else {
+                    ::print_log("[Nest] ERROR, unable to connect stream. "
+                        ."Response was: " . $r->as_string);
+                    $self->reconnect_delay();
+                }
+                $$self{data} = "";
+            }
+            elsif ($buf =~ /\n\n$/){
+                # We reached the end of the message packet in an existing stream
+                ::print_log("[Nest Data] :\n" . $$self{data});
                 
                 # Split out event and data for processing
                 my @lines = split("\n", $$self{data});
@@ -296,10 +338,10 @@ sub check_for_data {
             }
         }
     }
-    else {
+    elsif ($$self{reconnect_timer}->inactive && $$self{enabled}) {
         # The connection died, or the keep-alive messages stopped, restart it
         ::print_log("[Nest Interface] Connection died, restarting");
-        $self->connect_stream();
+        $self->reconnect_delay(1);
     }
 }
 
@@ -326,7 +368,8 @@ sub parse_data {
         # Sent when auth parameter is no longer valid
         # Accoring to Nest, the auth token is essentially non-expiring,
         # so this shouldn't happen.
-        die ("[Nest] The Nest authorization token has expired");
+        ::print_log("[Nest] ERROR, your Nest authorization token has expired.");
+        $$self{enabled} = 0;
     }
     return;
 }
