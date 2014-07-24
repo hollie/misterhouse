@@ -697,8 +697,16 @@ More sophisticated children can hijack this method to do more complex tasks.
 
 sub data_changed {
     my ($self, $value_name, $new_value) = @_;
+    my ($setby, $response);
     $self->debug("Data changed called $value_name, $new_value", $info);
-    $self->set_receive($new_value);
+    if (defined $$self{parent}{state_pending}{$value_name}){
+        ($setby, $response) = @{$$self{parent}{state_pending}{$value_name}};
+        delete $$self{parent}{state_pending}{$value_name};
+    }
+    else {
+        $setby = $$self{interface};
+    }
+    $self->set_receive($new_value, $setby, $response);
 }
 
 =item C<set_receive()>
@@ -709,10 +717,6 @@ Handles setting the state of the object inside MisterHouse
 
 sub set_receive {
     my ($self, $p_state, $p_setby, $p_response) = @_;
-    if (defined $$self{parent}{state_pending}){
-        ($p_setby, $p_response) = @{$$self{parent}{state_pending}};
-        delete $$self{parent}{state_pending};
-    }
     $self->SUPER::set($p_state, $p_setby, $p_response);
 }
 
@@ -890,7 +894,7 @@ sub set_fan_state {
         return;
     }
     $$self{interface}->write_data($self, 'fan_timer_active', $state);
-    $$self{state_pending} = [$p_setby, $p_response];
+    $$self{state_pending}{fan_timer_active} = [$p_setby, $p_response];
 }
 
 =item C<set_target_temp($state, $p_setby, $p_response)>
@@ -905,8 +909,9 @@ sub set_target_temp {
         $self->debug("set_target_temp must be a number");
         return;
     }
-    $$self{interface}->write_data($self, 'target_temperature_' . $$self{scale}, $state);
-    $$self{state_pending} = [$p_setby, $p_response];
+    my $value = 'target_temperature_' . $$self{scale};
+    $$self{interface}->write_data($self, $value, $state);
+    $$self{state_pending}{$value} = [$p_setby, $p_response];
 }
 
 =item C<set_target_temp_high($state, $p_setby, $p_response)>
@@ -921,8 +926,9 @@ sub set_target_temp_high {
         $self->debug("set_target_temp_high must be a number");
         return;
     }
-    $$self{interface}->write_data($self, 'target_temperature_high_' . $$self{scale}, $state);
-    $$self{state_pending} = [$p_setby, $p_response];
+    my $value = 'target_temperature_high_' . $$self{scale};
+    $$self{interface}->write_data($self, $value, $state);
+    $$self{state_pending}{$value} = [$p_setby, $p_response];
 }
 
 =item C<set_target_temp_low($state, $p_setby, $p_response)>
@@ -937,8 +943,9 @@ sub set_target_temp_low {
         $self->debug("set_target_temp_low must be a number");
         return;
     }
-    $$self{interface}->write_data($self, 'target_temperature_low_' . $$self{scale}, $state);
-    $$self{state_pending} = [$p_setby, $p_response];
+    my $value = 'target_temperature_low_' . $$self{scale};
+    $$self{interface}->write_data($self, $value, $state);
+    $$self{state_pending}{$value} = [$p_setby, $p_response];
 }
 
 =item C<set_hvac_mode($state, $p_setby, $p_response)>
@@ -954,7 +961,7 @@ sub set_hvac_mode {
         $self->debug("set_hvac_mode must be one of: heat, cool, heat-cool, or off. Not $state.");
         return;
     }
-    $$self{state_pending} = [$p_setby, $p_response];
+    $$self{state_pending}{hvac_mode} = [$p_setby, $p_response];
     $$self{interface}->write_data($self, 'hvac_mode', $state);
 }
 
@@ -1011,10 +1018,6 @@ sub set_receive {
     my ($self, $p_state, $p_setby, $p_response) = @_;
     my $state = "on";
     $state = "off" if ($p_state eq 'false');
-    if (defined $$self{parent}{state_pending}){
-        ($p_setby, $p_response) = @{$$self{parent}{state_pending}};
-        delete $$self{parent}{state_pending};
-    }
     $self->SUPER::set($state, $p_setby, $p_response);
 }
 
@@ -1069,10 +1072,6 @@ sub set_receive {
     my ($self, $p_state, $p_setby, $p_response) = @_;
     my $state = "on";
     $state = "off" if ($p_state eq 'false');
-    if (defined $$self{parent}{state_pending}){
-        ($p_setby, $p_response) = @{$$self{parent}{state_pending}};
-        delete $$self{parent}{state_pending};
-    }
     $self->SUPER::set($state, $p_setby, $p_response);
 }
 
@@ -1595,7 +1594,7 @@ sub set_away_status {
         return;
     }
     $$self{interface}->write_data($self, 'away', $state);
-    $$self{state_pending} = [$p_setby, $p_response];
+    $$self{state_pending}{away} = [$p_setby, $p_response];
 }
 
 sub set {
