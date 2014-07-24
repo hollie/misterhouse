@@ -82,6 +82,28 @@ changing certain parameters on the thermostat.
 
 =cut
 
+package Nest;
+
+# Used solely to provide a consistent logging feature
+
+use strict;
+
+#log levels
+my $warn  = 1;
+my $info  = 2;
+my $trace = 3;
+
+sub debug {
+    my ($self, $message, $level) = @_;
+    $level = 0 if $level eq '';
+    my $line = '';
+    my @caller = caller(0);
+    if ($::Debug{'nest'} >= $level || $level == 0){
+        $line = " at line " . $caller[2] if $::Debug{'nest'} >= $trace;
+        ::print_log("[" . $caller[0] . "] " . $message . $line);
+    }
+}
+
 package Nest_Interface;
 
 =head1 B<Nest_Interface>
@@ -123,11 +145,11 @@ the Nest API solely through this object.
 
 =head2 INHERITS
 
-C<Socket_Item>
+C<Nest>
 
 =cut
 
-@Nest_Interface::ISA = ('Socket_Item');
+@Nest_Interface::ISA = ('Nest');
 
 use strict;
 
@@ -216,14 +238,14 @@ sub connect_stream {
     );
     
     unless ($$self{socket}) {
-        ::print_log("[Nest] ERROR connecting to Nest server: " . $@);
+        $self->debug("ERROR connecting to Nest server: " . $@);
         $self->reconnect_delay();
         return;
     }
      
     my $select = IO::Select->new($$self{socket}); # wait until it connected
     if ($select->can_write) {
-        ::print_log "[Nest Interface] IO::Socket::INET connected";
+        $self->debug("IO::Socket::INET connected", $info);
     }
     
     # upgrade socket to IO::Socket::SSL
@@ -232,11 +254,10 @@ sub connect_stream {
     # make non-blocking SSL handshake
     while (1) {
         if ($$self{socket}->connect_SSL) { # will not block
-            ::print_log "[Nest Interface] IO::Socket::SSL connected";
+            $self->debug("IO::Socket::SSL connected", $info);
             last;
         }
         else { # handshake still incomplete
-            #::print_log "[Nest Interface] IO::Socket::SSL not connected yet";
             if ($SSL_ERROR == SSL_WANT_READ) {
                 $select->can_read;
             }
@@ -244,7 +265,7 @@ sub connect_stream {
                 $select->can_write;
             }
             else {
-                ::print_log("[Nest] ERROR connecting to Nest server: " . $SSL_ERROR);
+                $self->debug("ERROR connecting to Nest server: " . $SSL_ERROR);
                 $self->reconnect_delay();
                 return;
             }
@@ -258,9 +279,8 @@ sub connect_stream {
         ["Accept", "text/event-stream", "Host", $url->host]
     );
     $request->protocol('HTTP/1.1');
-    #print "requesting data:\n" . $request->as_string;
     unless ($$self{socket}->syswrite($request->as_string)){
-        ::print_log("[Nest] ERROR connecting to Nest server: " . $!);
+        $self->debug("ERROR connecting to Nest server: " . $!);
         $self->reconnect_delay();
         return;
     }
@@ -276,7 +296,7 @@ sub reconnect_delay {
     my $action = sub {$self->connect_stream($url)};
     if (!$seconds) {
         $seconds = 60;
-        ::print_log("[Nest] Will try to connect again in 1 minute.");
+        $self->debug("Will try to connect again in 1 minute.");
     }
     $$self{reconnect_timer}->set($seconds,$action);
 }
@@ -295,20 +315,20 @@ sub check_for_data {
                 my $r = HTTP::Response->parse( $buf );
                 if ($r->code == 307){
                     # This is a location redirect
-                    ::print_log "redirecting to " . $r->header( 'location' ) . "\n";
+                    $self->debug("redirecting to " . $r->header( 'location' ), $trace);
                     $$self{socket} = $self->connect_stream($r->header( 'location' ));
                 }
                 elsif ($r->code == 401){
-                    ::print_log("[Nest] ERROR, your authorization was rejected. "
+                    $self->debug("ERROR, your authorization was rejected. "
                         ."Please check your settings.");
                     $$self{enabled} = 0;
                 }
                 elsif ($r->code == 200){
                     # Successful response
-                    ::print_log("[Nest] Successfully connected to stream");
+                    $self->debug("Successfully connected to stream", $warn);
                 }
                 else {
-                    ::print_log("[Nest] ERROR, unable to connect stream. "
+                    $self->debug("ERROR, unable to connect stream. "
                         ."Response was: " . $r->as_string);
                     $self->reconnect_delay();
                 }
@@ -316,7 +336,7 @@ sub check_for_data {
             }
             elsif ($buf =~ /\n\n$/){
                 # We reached the end of the message packet in an existing stream
-                ::print_log("[Nest Data] :\n" . $$self{data});
+                $self->debug("Data :\n" . $$self{data}, $trace);
                 
                 # Split out event and data for processing
                 my @lines = split("\n", $$self{data});
@@ -345,7 +365,7 @@ sub check_for_data {
     }
     elsif ($$self{reconnect_timer}->inactive && $$self{enabled}) {
         # The connection died, or the keep-alive messages stopped, restart it
-        ::print_log("[Nest Interface] Connection died, restarting");
+        $self->debug("Connection died, restarting", $warn);
         $self->reconnect_delay(1);
     }
 }
@@ -356,7 +376,7 @@ sub parse_data {
     my ($self, $event, $data) = @_;
     if ($event =~ /keep-alive/){
         $$self{'keep-alive'} = time;
-        ::print_log("[Nest Keep Alive]");
+        $self->debug("Keep Alive", $info);
     }
     elsif ($event =~ /put/){
         $$self{'keep-alive'} = time;
@@ -373,7 +393,7 @@ sub parse_data {
         # Sent when auth parameter is no longer valid
         # Accoring to Nest, the auth token is essentially non-expiring,
         # so this shouldn't happen.
-        ::print_log("[Nest] ERROR, your Nest authorization token has expired.");
+        $self->debug("ERROR, your Nest authorization token has expired.");
         $$self{enabled} = 0;
     }
     return;
@@ -413,6 +433,8 @@ sub write_data {
         $json = '"' . $json . '"';
     }
     
+    $self->debug("writing $json to $url", $trace);
+    
     # Use a process item to prevent blocking
     if (!$$self{write_process_active}){
         $$self{write_process}->set("&Nest_Interface::_write_data_process('$url','$json')");
@@ -443,7 +465,8 @@ sub _write_data_process {
     my $r = $lwp->request( $req );
     if ($r->code == 307){
         # This is a location redirect
-        ::print_log "redirecting to " . $r->header( 'location' ) . "\n";
+        ::print_log("[Nest_Interface] redirecting to " . $r->header( 'location' ))
+            if $::Debug{'nest'} >=3;
         return _write_data_process($r->header( 'location' ), $json);
     }
     ::file_write("$::config_parms{data_dir}/nest.resp", $r->as_string());
@@ -459,16 +482,16 @@ sub write_process_handler {
         unlink("$::config_parms{data_dir}/nest.resp");
         my $r = HTTP::Response->parse( $resp_string );
         if ($r->code == 401){
-            ::print_log("[Nest] ERROR, your authorization was rejected. "
+            $self->debug("ERROR, your authorization was rejected. "
                 ."Please check your settings.");
         }
         elsif ($r->code == 200){
             # Successful response
-            ::print_log("[Nest] Successfully wrote data");
+            $self->debug("Successfully wrote data", $info);
         }
         else {
             my $content = decode_json $r->content;
-            ::print_log("[Nest] ERROR, unable to write data to Nest server. "
+            $self->debug("ERROR, unable to write data to Nest server. "
                 . $r->status_line . " - " . $$content{error});
         }
         
@@ -493,7 +516,7 @@ Prints the name and device_id of all devices found in the Nest account.
 
 sub print_devices {
     my ($self) = @_;
-    my $output = "[Nest] The list of devices reported by Nest is:\n";
+    my $output = "The list of devices reported by Nest is:\n";
     for (keys %{$$self{JSON}{data}{devices}}){
         my $device_type = $_;
         $output .= "        $device_type =\n";
@@ -504,7 +527,7 @@ sub print_devices {
             $output .= "            Name: $device_name ID: $device_id\n";
         }
     }
-    ::print_log($output);
+    $self->debug($output);
 }
 
 =item C<print_structures()>
@@ -515,13 +538,13 @@ Prints the name and device_id of all structures found in the Nest account.
 
 sub print_structures {
     my ($self) = @_;
-    my $output = "[Nest] The list of structures reported by Nest is:\n";
+    my $output = "The list of structures reported by Nest is:\n";
     for (keys %{$$self{JSON}{data}{structures}}){
         my $structure_id = $_;
         my $structure_name = $$self{JSON}{data}{structures}{$structure_id}{name};
         $output .= "        Name: $structure_name ID: $structure_id\n";
     }
-    ::print_log($output);
+    $self->debug($output);
 }
 
 =item C<register($parent, $value, $action)>
@@ -602,7 +625,7 @@ C<Generic_Item>
 
 =cut
 
-@Nest_Generic::ISA = ('Generic_Item');
+@Nest_Generic::ISA = ('Generic_Item', 'Nest');
 
 =head2 METHODS
 
@@ -660,7 +683,7 @@ sub device_id {
             return $device_id;
         }
     }
-    ::print_log("[Nest] ERROR, no device by the name " . $$parent{name} . " was found.");
+    $self->debug("ERROR, no device by the name " . $$parent{name} . " was found.");
     return 0;
 }
 
@@ -674,7 +697,7 @@ More sophisticated children can hijack this method to do more complex tasks.
 
 sub data_changed {
     my ($self, $value_name, $new_value) = @_;
-    ::print_log("[Nest] Data changed called $value_name, $new_value");
+    $self->debug("Data changed called $value_name, $new_value", $info);
     $self->set_receive($new_value);
 }
 
@@ -863,7 +886,7 @@ sub set_fan_state {
     my ($self, $state, $p_setby, $p_response) = @_;
     $state = lc($state);
     if ($state ne 'true' && $state ne 'false'){
-        ::print_log("[Nest] set_fan_state must be true or false");
+        $self->debug("set_fan_state must be true or false");
         return;
     }
     $$self{interface}->write_data($self, 'fan_timer_active', $state);
@@ -879,7 +902,7 @@ Sets the target temp for the heat or cool mode to $state.
 sub set_target_temp {
     my ($self, $state, $p_setby, $p_response) = @_;
     unless ($state =~ /^\d+(\.\d+)?$/){
-        ::print_log("[Nest] set_target_temp must be a number");
+        $self->debug("set_target_temp must be a number");
         return;
     }
     $$self{interface}->write_data($self, 'target_temperature_' . $$self{scale}, $state);
@@ -895,7 +918,7 @@ Sets the heat target temp for the combined heat-cool mode to $state.
 sub set_target_temp_high {
     my ($self, $state, $p_setby, $p_response) = @_;
     unless ($state =~ /^\d+(\.\d+)?$/){
-        ::print_log("[Nest] set_target_temp_high must be a number");
+        $self->debug("set_target_temp_high must be a number");
         return;
     }
     $$self{interface}->write_data($self, 'target_temperature_high_' . $$self{scale}, $state);
@@ -911,7 +934,7 @@ Sets the cool target temp for the combined heat-cool mode to $state.
 sub set_target_temp_low {
     my ($self, $state, $p_setby, $p_response) = @_;
     unless ($state =~ /^\d+(\.\d+)?$/){
-        ::print_log("[Nest] set_target_temp_low must be a number");
+        $self->debug("set_target_temp_low must be a number");
         return;
     }
     $$self{interface}->write_data($self, 'target_temperature_low_' . $$self{scale}, $state);
@@ -928,7 +951,7 @@ sub set_hvac_mode {
     my ($self, $state, $p_setby, $p_response) = @_;
     $state = lc($state);
     if ($state ne 'heat' && $state ne 'cool' && $state ne 'heat-cool' && $state ne 'off'){
-        ::print_log("[Nest] set_hvac_mode must be one of: heat, cool, heat-cool, or off. Not $state.");
+        $self->debug("set_hvac_mode must be one of: heat, cool, heat-cool, or off. Not $state.");
         return;
     }
     $$self{state_pending} = [$p_setby, $p_response];
@@ -1097,7 +1120,7 @@ sub new {
 
 sub set {
     my ($self, $p_state, $p_setby, $p_response) = @_;
-    ::print_log("Setting $p_setby, $p_response");
+    $self->debug("Setting $p_state, $p_setby, $p_response", $info);
     $$self{parent}->set_hvac_mode($p_state,$p_setby,$p_response);
 }
 
@@ -1417,7 +1440,7 @@ sub new {
 
 sub data_changed {
     my ($self, $value_name, $new_value) = @_;
-    ::print_log("[Nest_Smoke_CO_Alarm] Data changed called $value_name, $new_value");
+    $self->debug("Data changed called $value_name, $new_value", $info);
     $$self{$value_name} = $new_value;
     my $state = '';
     if ($$self{co_alarm_state} eq 'emergency'){
@@ -1568,7 +1591,7 @@ sub set_away_status {
     my ($self, $state, $p_setby, $p_response) = @_;
     $state = lc($state);
     if ($state ne 'home' && $state ne 'away'){
-        ::print_log("[Nest] set_away_status must be either home or away.");
+        $self->debug("set_away_status must be either home or away.");
         return;
     }
     $$self{interface}->write_data($self, 'away', $state);
