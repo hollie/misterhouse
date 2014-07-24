@@ -182,6 +182,11 @@ sub new {
     $$self{url} = $url;
     $$self{auth} = $auth;
     $$self{reconnect_timer} = new Timer;
+    $$self{write_process} = new Process_Item;
+    $$self{write_process}->set_timeout(30);
+    $$self{write_process_active} = 0;
+    $$self{write_process_queue} = [];
+    $$self{write_process_code} = sub {$self->write_process_handler();};
     $$self{enabled} = 1;
     bless $self, $class;
     $self->connect_stream();
@@ -407,6 +412,29 @@ sub write_data {
     unless ($json eq 'true' || $json eq 'false' || $json =~ /^\d+(\.\d+)?$/){
         $json = '"' . $json . '"';
     }
+    
+    # Use a process item to prevent blocking
+    if (!$$self{write_process_active}){
+        $$self{write_process}->set("&Nest_Interface::_write_data_process('$url','$json')");
+        $$self{write_process}->start();
+        $$self{write_process_active} = 1;
+        
+        # Add hook to check for completion of process
+        ::MainLoop_pre_add_hook($$self{write_process_code}, 'persistent');
+    }
+    else {
+        push(
+            @{$$self{write_process_queue}}, 
+            "&Nest_Interface::_write_data_process('$url','$json')"
+        );
+    }
+}
+
+# This is run as a separate process to prevent blocking errors. Can't use get_url
+# because it doesn't have the PUT method or the content-type header
+
+sub _write_data_process {
+    my ($url, $json) = @_;
     my $req = HTTP::Request->new( 'PUT', $url );
     $req->header( 'Content-Type' => 'application/json' );
     $req->content( $json );
@@ -416,7 +444,44 @@ sub write_data {
     if ($r->code == 307){
         # This is a location redirect
         ::print_log "redirecting to " . $r->header( 'location' ) . "\n";
-        return $self->write_data($parent, $value, $data, $r->header( 'location' ));
+        return _write_data_process($r->header( 'location' ), $json);
+    }
+    ::file_write("$::config_parms{data_dir}/nest.resp", $r->as_string());
+}
+
+# This routine is set as a hook when a write process is running.  When the 
+# write process completes, this routine checks the contents of the response
+
+sub write_process_handler {
+    my ($self) = @_;
+    if ($$self{write_process}->done_now){
+        my $resp_string = ::file_read("$::config_parms{data_dir}/nest.resp");
+        unlink("$::config_parms{data_dir}/nest.resp");
+        my $r = HTTP::Response->parse( $resp_string );
+        if ($r->code == 401){
+            ::print_log("[Nest] ERROR, your authorization was rejected. "
+                ."Please check your settings.");
+        }
+        elsif ($r->code == 200){
+            # Successful response
+            ::print_log("[Nest] Successfully wrote data");
+        }
+        else {
+            my $content = decode_json $r->content;
+            ::print_log("[Nest] ERROR, unable to write data to Nest server. "
+                . $r->status_line . " - " . $$content{error});
+        }
+        
+        # Look see if there is a queue of write commands
+        if (scalar @{$$self{write_process_queue}}) {
+            my $process = shift @{$$self{write_process_queue}};
+            $$self{write_process}->set($process);
+            $$self{write_process}->start();
+        }
+        else{
+            $$self{write_process_active} = 0;
+            ::MainLoop_pre_drop_hook($$self{write_process_code});
+        }
     }
 }
 
