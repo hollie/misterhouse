@@ -13,7 +13,6 @@ while [ 1 = 1 ]; do
 
     echo
     echo Deleting startup file
-#   rm -f mh.started
     touch mh.startup
 
 # Avoid a memory leak problem in Red Hat 8
@@ -29,13 +28,18 @@ while [ 1 = 1 ]; do
        exit
     fi
     
-#   if [ ! -f mh.started ]; then
-    if [   -f mh.startup ]; then
+    if [ -f mh.startup ]; then
        echo mh failed on startup ... will not restart
        exit
     fi
     
-    echo mh had an unexpected exit ... sleep a bit, then restarting
+    if [ $rc = 99 ]; then
+       echo -n restart requested 
+    else
+       echo -n mh had an unexpected exit 
+    fi
+    
+    echo " ... sleep a bit, then restarting"
     date >> mh_restart.log
     sleep 5
 
