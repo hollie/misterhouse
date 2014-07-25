@@ -95,7 +95,6 @@ certain threshold.
 =head2 INHERITS
 
 L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>, 
-L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
 
 =head2 METHODS
 
@@ -108,7 +107,7 @@ package Insteon::MotionSensor;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::MotionSensor::ISA = ('Insteon::BaseDevice', 'Insteon::DeviceController');
+@Insteon::MotionSensor::ISA = ('Insteon::BaseDevice');
 
 =item C<new()>
 
@@ -718,8 +717,7 @@ expense of additional battery usage.
 
 =head2 INHERITS
 
-L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>, 
-L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
+L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>
 
 =head2 METHODS
 
@@ -732,7 +730,7 @@ package Insteon::TriggerLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::TriggerLinc::ISA = ('Insteon::BaseDevice','Insteon::DeviceController');
+@Insteon::TriggerLinc::ISA = ('Insteon::BaseDevice');
 
 my %message_types = (
 	%Insteon::BaseDevice::message_types

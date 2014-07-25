@@ -95,7 +95,9 @@ sub get_linkkey {
 	my $linkkey = $deviceid . $group . $is_controller;
 	# Data3 is irrelevant for the PLM itself, b/c for controller records
 	# data3 will always be equal to group.  And for responder records it 
-	# should always be 00, therefor blank data3 so it isn't used
+	# can be equal to anything without causing an issue.  MH generally sets
+	# data3 on the PLM to 00, but manual linking will set it to the linked
+	# devices firmware version.  Here we set it to 00 so it is ignored.
 	if ($$self{device}->isa('Insteon_PLM')){
 		$data3 = '00';
 	}
@@ -433,19 +435,21 @@ scanned and processed.
 
 sub delete_orphan_links
 {
-	my ($self, $audit_mode, $failure_callback) = @_;
+	my ($self, $audit_mode, $failure_callback, $is_batch_mode) = @_;
 	@{$$self{delete_queue}} = (); # reset the work queue
 	$$self{delete_queue_processed} = 0;
 	my $selfname = $$self{device}->get_object_name;
 
 	# first, make sure that the health of ALDB is ok
-	if ($self->health ne 'good' || $$self{device}->is_deaf) {
+	if ($self->health ne 'good' || ($$self{device}->is_deaf && $is_batch_mode)) {
 		my $sent_to_failure = 0;
 		if ($$self{device}->is_deaf) {
-			::print_log("[Insteon::AllLinkDatabase] Delete orphan links: Will not delete links on deaf device: $selfname");
+			::print_log("[Insteon::AllLinkDatabase] Will not delete ".
+			        "links on deaf device: $selfname. Run 'Delete ".
+			        "Orphan Links' directly on the device to do this.");
 		} 
 		elsif ($self->health eq 'empty'){
-			::print_log("[Insteon::AllLinkDatabase] Delete orphan links: Skipping $selfname, because it has no links");
+			::print_log("[Insteon::AllLinkDatabase] Skipping $selfname, because it has no links");
 		}
 		else {
 			::print_log("[Insteon::AllLinkDatabase] Delete orphan links: skipping $selfname because health: "
@@ -462,7 +466,7 @@ sub delete_orphan_links
 			}
 		}
 		if (!$$self{device}->isa('Insteon_PLM') && !$sent_to_failure){
-			$self->_process_delete_queue();
+			$self->_process_delete_queue($is_batch_mode);
 		}
 		return;
 	}
@@ -473,7 +477,7 @@ sub delete_orphan_links
 		next LINKKEY if ($linkkey eq 'empty');
 		
 		# Define delete request
-		my %delete_req = (callback => "$selfname->_aldb->_process_delete_queue()",
+		my %delete_req = (callback => "$selfname->_aldb->_process_delete_queue($is_batch_mode)",
 				  failure_callback => $failure_callback);
 
 		# Delete duplicate entries
@@ -503,6 +507,14 @@ sub delete_orphan_links
 		$data3_object = Insteon::get_object($self_id, $data3);
 		%delete_req = (%delete_req, deviceid => $deviceid, group => $group,
 			is_controller => $is_controller, data3 => $data3);
+
+        # IntraDevice links - Currently, a KPL can do this with a seperate
+		# routine, but intralinks are not tolerated by any other known devices
+		if ($self_id eq $deviceid){
+			$delete_req{cause} = "IntraDevice links are not allowed in ALDB.";
+			push @{$$self{delete_queue}}, \%delete_req;
+			next LINKKEY;
+		}
 
 		# Is the linked device defined in MH?
 		if (! ref $linked_device) {
@@ -651,12 +663,12 @@ sub delete_orphan_links
 		::print_log("[Insteon::AllLinkDatabase] ## Begin processing delete queue for: $selfname");
 	}
 	if (!$$self{device}->isa('Insteon_PLM')) {
-		$self->_process_delete_queue();
+		$self->_process_delete_queue($is_batch_mode);
 	}
 }
 
 sub _process_delete_queue {
-	my ($self) = @_;
+	my ($self, $is_batch_mode) = @_;
 	my $num_in_queue = @{$$self{delete_queue}};
 	if ($num_in_queue)
         {
@@ -681,7 +693,9 @@ sub _process_delete_queue {
         {
         	&::print_log("[Insteon::AllLinkDatabase] Nothing else to do for " . $$self{device}->get_object_name . " after deleting "
                 	. $$self{delete_queue_processed} . " links") if $self->{device}->debuglevel(1, 'insteon');
-		$$self{device}->interface->_aldb->_process_delete_queue($$self{delete_queue_processed});
+		if ($is_batch_mode){
+		        $$self{device}->interface->_aldb->_process_delete_queue($$self{delete_queue_processed});
+		}
 	}
 }
 
@@ -1172,15 +1186,9 @@ sub has_link
 	}
 	my $key = $self->get_linkkey($deviceid, $group, $is_controller, $data3);
 
-	#Now that we have a linkkey, compare the linkkey's data3 value.
 	my $found = 0;
-	if (defined $$self{aldb}{$key}) {
-		#Ask self what we should have in data3
-		$data3 = $$self{device}->link_data3($data3,$is_controller);
-		
-		$found++ if( $$self{aldb}{$key}{data3} == $data3);
-	}
-	
+	$found++ if (defined $$self{aldb}{$key});
+
 	return ($found);
 }
 
@@ -1384,6 +1392,26 @@ sub _on_poke
 		# Put the new ALDB Delta into memory
 		$self->query_aldb_delta('set');
 	}
+        elsif ($$self{_mem_activity} eq 'update_intradevice')
+        {
+            if ($$self{_mem_lsb} eq '51') {
+                ::print_log("[Insteon::KeyPadLinc] Successfully wrote IntraDevice ".
+                    "links for " . $$self{device}->get_object_name .
+                    " now asking device to reread settings from memory.");
+                $message = new Insteon::InsteonMessage('insteon_send', 
+                    $$self{device}, 'do_read_ee');
+                $message->failure_callback($$self{_failure_callback});
+                $self->_send_cmd($message);
+            }
+            else {
+                #Skip the toggle memory location
+                $$self{_mem_lsb} = '49' if ($$self{_mem_lsb} eq '48');
+                $$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+                $message->extra($$self{_mem_lsb});
+                $message->failure_callback($$self{_failure_callback});  #KRK again not sure this exists
+			    $self->_send_cmd($message);
+            }
+        }
 }
 
 sub _on_peek
@@ -1433,6 +1461,10 @@ sub _on_peek
                         elsif ($$self{_mem_activity} eq 'add')
                         {
 				$$self{_mem_action} = 'aldb_flag';
+			}
+                        elsif ($$self{_mem_activity} eq 'update_intradevice')
+                        {
+				$$self{_mem_action} = 'update_intradevice';
 			}
                        	$message->extra($$self{_mem_lsb});
                         $message->failure_callback($$self{_failure_callback});
@@ -1729,6 +1761,38 @@ sub _on_peek
                         $message->failure_callback($$self{_failure_callback});
                         $self->_send_cmd($message);
 		}
+                elsif ($$self{_mem_action} eq 'update_intradevice')
+                {
+            my %byte_hash = %{$$self{_intradevice_hash_ref}};
+			my $byte = $byte_hash{$$self{_mem_lsb}};
+			$byte = '00' if $byte eq '';
+			$byte = sprintf("%02X", $byte);
+			if (uc($msg{extra}) ne uc ($byte)){
+                        $message = new Insteon::InsteonMessage('insteon_send', $$self{device}, 'poke');
+                        $message->extra($byte);
+                        $message->failure_callback($$self{_failure_callback}); #KRK, I don't think this is set
+                        $self->_send_cmd($message);
+			}
+            else {
+                if ($$self{_mem_lsb} eq '51') {
+                    ::print_log("[Insteon::KeyPadLinc] Successfully wrote IntraDevice ".
+                        "links for " . $$self{device}->get_object_name .
+                        " now asking device to reread settings from memory.");
+                    $message = new Insteon::InsteonMessage('insteon_send', 
+                        $$self{device}, 'do_read_ee');
+                    $message->failure_callback($$self{_failure_callback});
+                    $self->_send_cmd($message);
+                }
+                else {
+                    #Skip the toggle memory location
+                    $$self{_mem_lsb} = '49' if ($$self{_mem_lsb} eq '48');
+                    $$self{_mem_lsb} = sprintf("%02X", hex($$self{_mem_lsb}) + 1);
+                    $message->extra($$self{_mem_lsb});
+                    $message->failure_callback($$self{_failure_callback});  #KRK again not sure this exists
+    			    $self->_send_cmd($message);
+                }
+            }
+		}
 		else {
 		::print_log("[Insteon::ALDB_i1] " . $$self{device}->get_object_name 
 			. ": unhandled _mem_action=".$$self{_mem_action})
@@ -1774,6 +1838,29 @@ sub update_flags
 	} else {
 		$$self{_aldb_unchanged_callback} = '&Insteon::ALDB_i1::update_flags('.$$self{device}->{object_name}."->_aldb, '$flags', 1)";
 		$$self{_aldb_changed_callback} = '&Insteon::ALDB_i1::update_flags('.$$self{device}->{object_name}."->_aldb, '$flags', 1)";
+		$self->query_aldb_delta("check");
+	}
+}
+
+=item C<update_intradevice_links()>
+
+Used to update the IntraDevice Links on a device.  Currently these only exist on
+KeypadLinc devices.  This routine is called by 
+L<Insteon::Lighting::sync_intradevice_links()|Insteon::Lighting/Insteon::KeyPadLincRelay>.
+
+=cut
+
+sub update_intradevice_links
+{
+	my ($self, $intradevice_hash_ref, $aldb_check) = @_;
+	$$self{_intradevice_hash_ref} = $intradevice_hash_ref 
+	    if $intradevice_hash_ref ne '';
+	if (defined($aldb_check)){
+		$$self{_mem_activity} = 'update_intradevice';
+		$self->_peek('0241'); # 0241 is the first address
+	} else {
+		$$self{_aldb_unchanged_callback} = '&Insteon::ALDB_i1::update_intradevice_links('.$$self{device}->{object_name}."->_aldb, '', 1)";
+		$$self{_aldb_changed_callback} = '&Insteon::ALDB_i1::update_intradevice_links('.$$self{device}->{object_name}."->_aldb, '', 1)";
 		$self->query_aldb_delta("check");
 	}
 }
@@ -2546,6 +2633,7 @@ sub delete_orphan_links
 	my ($self, $audit_mode) = @_;
 
         &::print_log("[Insteon::ALDB_PLM] #### NOW BEGINNING DELETE ORPHAN LINKS ####");
+	@{$$self{_delete_device_failures}} = ();
 
 	$self->SUPER::delete_orphan_links($audit_mode);
 
@@ -2577,7 +2665,8 @@ sub _process_delete_queue {
 		if ($delete_req{'root_object'})
                 {
 			$$self{current_delete_device} = $delete_req{'root_object'}->get_object_name;
-			$delete_req{'root_object'}->delete_orphan_links(($delete_req{'audit_mode'}) ? 1 : 0, $failure_callback);
+			my $is_batch_mode = 1;
+			$delete_req{'root_object'}->delete_orphan_links(($delete_req{'audit_mode'}) ? 1 : 0, $failure_callback, $is_batch_mode);
 		}
                 else
                 {
@@ -2770,6 +2859,31 @@ sub add_link
 	}
 }
 
+=item C<add_link_to_hash()>
+
+This is used by the C<Insteon::BaseInterface::link_to_interface_i2cs> routine.
+This routine manually adds a record to MH's cache of the PLM ALDB.  Normally
+you only want to add records during a scan of the ALDB, so use this routine 
+with caution.
+
+=cut
+
+sub add_link_to_hash {
+	my ($self, $flags, $group, $is_controller, 
+		$device_id, $data1, $data2, $data3) = @_;
+	my $linkkey = $self->get_linkkey($device_id, $group, $is_controller, $data3);
+	$$self{aldb}{$linkkey}{flags} = lc $flags;
+	$$self{aldb}{$linkkey}{group} = lc $group;
+	$$self{aldb}{$linkkey}{is_controller} = $is_controller;
+	$$self{aldb}{$linkkey}{deviceid} = lc $device_id;
+	$$self{aldb}{$linkkey}{data1} = lc $data1;
+	$$self{aldb}{$linkkey}{data2} = lc $data2;
+	$$self{aldb}{$linkkey}{data3} = lc $data3;
+	$$self{aldb}{$linkkey}{inuse} = 1;
+	$self->health('good') if($self->health() eq 'empty');
+	return;
+}
+
 =item C<has_link(link_details)>
 
 Checks and returns true if a link with the passed details exists on the device
@@ -2783,14 +2897,8 @@ sub has_link
 	my $key = $self->get_linkkey($insteon_object->device_id, 
 				$group, $is_controller, $data3);
 
-	#Now that we have a linkkey, compare the linkkey's data3 value.
 	my $found = 0;
-	if (defined $$self{aldb}{$key}) {
-		#Ask self what we should have in data3
-		$data3 = $$self{device}->link_data3($data3,$is_controller);
-		
-		$found++ if( $$self{aldb}{$key}{data3} == $data3);
-	}
+	$found++ if (defined $$self{aldb}{$key});
 
 	return ($found);
 }

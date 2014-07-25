@@ -17,7 +17,7 @@ Gordon Meyer wrote a somewhat dated but still nice <a href="get_to_know_mh.html"
 
 =head1 System Requirements
 
-MisterHouse has been run on all the Windows OSes
+MisterHouse has been run on Windows >= XP
 and the unix OSes Linux, FreeBSD, AIX, and Mac OSX.  In theory, much
 of the functionality should work on any platform that can run Perl.
 
@@ -63,9 +63,6 @@ This is not the preferred way to run MisterHouse for long term use but will get 
 started quickly if you just want to check out the capabilities.  Later you should 
 create separate code/* and data/* directories so that you can upgrade MisterHouse 
 without overwriting your own customizations.
-
-Note: Some old zip programs (e.g. winzip 5.6) may not preserve long file names.
-This program works ok:  http://misterhouse.net/public/unzip.exe
 
 =head2 Unix users
 
@@ -185,77 +182,6 @@ file from http://misterhouse.net/public/libdb.dll to some other directory in you
 
 All other required packages should either be in the MisterHouse distribution or is now installed by default in the
 standard Activestate distribution, including the Tk module (used to be separate).
-
-=head2 Step 3: Download and Install the Speech Engines
-
-NOTE:  This is old information for older versions of Windows.  Windows XP and later
-come with TTS installed.
-
-You can skip this step if you do not want to enable TTS and VR, but much of the fun of
-MisterHouse comes from the 2-way speech.
-If you are running Windows 2000 or XP, the older V4 TTS engine is probably already installed.
-
-If you are running Win95, the Perl OLE interface to the MS speech engines
-require that you have DCOM 1.2 or higher installed.
-The DCOM 1.3 upgrade is 1.2 Meg and available at
-http://www.microsoft.com/com/dcom/dcom95/dcom1_3.asp .
-
-If you are running an older Win98, you will need the DCOM 1.3 update, available from:
-http://www.microsoft.com/com/dcom/dcom98/dcom1_3.asp .
-If you don't have this update, MisterHouse will run, but you may occasionally see windows (like control panel or install shield)
-not start right away, especially if you run without the Tk interface (mh -tk 0).
-
-You can use either the old 4.0 or new 5.1 or both Microsoft speech engines.
-The 5.1 VR engine does not work in MisterHouse yet, due to a perl problem handling COM events.
-The 5.1 TTS engine has more options (e.g. on the fly voice selection, XML flag support),
-but does not work on Win 95.
-You can have both V4 and V5 TTS engines installed, and select which to use with the voice_text=MSV4 or MSV5 mh.ini parm.
-
-=head3 MS SDK 4.0 instructions
-
-You can download the required files from the 4.0 SDK Suite from here:   http://www.microsoft.com/downloads/release.asp?ReleaseID=26299 .
-Get SAPI4SDKSUITE.exe - 40 MB.  Simply run the .exe to install.
-
-If you install the above SDK, you can skip the reset of this section.
-You can avoid the installing the whole SDK by downloading just the required files
-from here: http://misterhouse.net/public/speech
-Avoid downloading with Netscape, as for some reason it does not load the file as a binary file.
-Verify the file sizes match these:
-
-   7674104 Aug  6  2000 msttsl.exe
-   6935288 Aug  6  2000 mscsrgl.exe
-   1013356 Aug  6  2000 speech_api.zip
-
-Running msttsl.exe will install the TTS engine.  mscsrgl.exe will install the VR engine.
-Unzip speech_api.zip, then run spchapi.exe to install the speech API.
-
-Unzip msvoice.zip from speech_api.zip into a directory to store the msvoice app in (e.g. /misterhouse/msvoice).
-Then run msvoice.exe to start the "Microsoft Voice" application.
-Once running, you can use the "Voice Command Options" menu from the green V in your tray to pick your default voice.
-
-To enable VR from MisterHouse, set this mh.ini parm:  voice_cmd = MS (or MSV4)
-
-Other TTS engines, including those for British English, Dutch, French, German, Italian, Portuguese, and Spanish
-can be downloaded from http://www.nextup.com/TextAloud/SpeechEngine/voices.html
-
-=head3 MS SDK 5.1 instructions
-
-In theory, the 5.1 MS TTS and VR engines can be installed separately, but they are distributed from Microsoft
-only as .msm files, which can only be used by a program that creates .msi install files.  I have not yet found
-an easy and free way to create a .msi file (suggestions welcome).  So for now, the only option is to install the
-full 70 mb 5.1 SDK, available from here:  http://download.microsoft.com/download/speechSDK/SDK/5.1/WXP/EN-US/speechsdk51.exe
-
-After installing, the default mh.ini voice_text=MS parm will default to the new V5 engine.  Use MSV4 to switch
-back to the old V4 engine.
-The SDK comes with the voices  MS Mike, Sam, Mary, and (optional) Japanese and Chinese voices.
-
-The AT&T Natural Voices TTS engine ( http://www.naturalvoices.com ) is the best sounding TTS engine yet.
-AT&T no longer sells them from their site, but you can get 2 voices from http://www.nextup.com/attnv.html
-for about $40 ($25 for the voices, $15 for a nextup product, required to qualify for the voices).
-Additional voices are $35.
-
-Another new source of great voices is from Cepstral at http://www.cepstral.com . Lots of voices for Windows and Linux for $30 each.
-
 
 =head1 UNIX Detailed Install Instructions
 

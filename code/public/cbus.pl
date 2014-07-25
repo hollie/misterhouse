@@ -84,6 +84,19 @@
 #            Changed DEV to DEBUG for commonality.
 #            Monitor and Talker attempt to always run unless in DEBUG state.
 #
+#	V3.0.1	 2013-11-22
+#	         Fixed to work with C-Gate Version: v2.9.7 (build 2569), which returns
+#	         cbus addresses in the form NETWORK/APPLICATION/GROUP rather than
+#	         //PROJECT/NETWORK/APPLICATION/GROUP.
+#	         Add logging to aid debugging cbus_builder
+#	         Contributed by Jon Whitear <jonATwhitearDOTorg>
+#
+#	V3.0.2   2013-11-25
+#			 Add support for both formats of return code, i.e. NETWORK/APPLICATION/GROUP 
+#	         and //PROJECT/NETWORK/APPLICATION/GROUP.
+#
+#	V3.0.3	 2013-11-28
+#			 Test debug flag for logging statements.
 #
 # How Cgate integrates with MH
 #
@@ -153,7 +166,7 @@
 ##############################################################################
 ##############################################################################
 ###########                                                     ##############
-###########    Globals, Startup, Menus, Voice COmmands          ##############
+###########    Globals, Startup, Menus, Voice Commands          ##############
 ###########                                                     ##############
 ##############################################################################
 ##############################################################################
@@ -237,6 +250,9 @@ sub cbus_configure {
         $cbus_system_debug = 1;
         print_log "CBus: DEBUG mode - No CGate communications started";
     }
+    
+    print_log "CBus: MisterHouse CBus debug mode - additional logging enabled" if $Debug{cbus};
+    
 }
 
 
@@ -261,9 +277,9 @@ if (my $data = said $v_cbus_builder) {
     if ($data eq 'Run') {
         load_def_file();
         if (not defined $cbus_def) {
-            # Their was no cbus def file to load.
+            # There was no cbus def file to load.
             # Help out a new user, by auto-building the def file.
-            # Otherwise, their will be nothing to build.
+            # Otherwise, there will be nothing to build.
             print_log "CBus: Builder is initiating scan of CGate";
             scan_cgate();
         }
@@ -315,11 +331,11 @@ sub load_def_file {
     $cbus_def_filename = $config_parms{code_dir} . "/" . 
                             $config_parms{cbus_dat_file};
     if (not -e $cbus_def_filename) {
-        print_log "CBus: Definition file $cbus_def_filename does not exist";
+        print_log "CBus: load_def_file() XML definition file $cbus_def_filename does not exist";
         return;
     }
 
-    print_log "CBus: Builder - Loading CBus config from file ".
+    print_log "CBus: load_def_file () Loading CBus config from XML file ".
                 $cbus_def_filename;
     $cbus_def = XMLin($cbus_def_filename, 
                       ForceArray => ['mh_group', 'note'], 
@@ -330,7 +346,7 @@ sub load_def_file {
     delete $cbus_def->{'Creation_Date'};
     delete $cbus_def->{'Version'};
 
-    # print_log Dumper($cbus_def);
+     #print_log Dumper($cbus_def);
 }
 
 
@@ -355,7 +371,7 @@ sub load_def_file {
 sub scan_cgate {
     # Initiate scan of CGate data
     # The scan is controlled by code in the Talker mh main loop code
-    print_log "CBus: Scanning CGate...";
+    print_log "CBus: scan_cgate() Scanning CGate...";
 
     # Cleanup from any previous scan and initialise flags/counters
     @cbus_net_list = [ ];
@@ -370,7 +386,7 @@ sub scan_cgate {
     if (defined $cbus_project_name) {
         set $cbus_talker "project load " . $cbus_project_name;
         set $cbus_talker "project use " . $cbus_project_name;
-        print_log "CBus: Command - project start " . $cbus_project_name;
+        print_log "CBus: scan_cgate() Command - project start " . $cbus_project_name;
         set $cbus_talker "project start " . $cbus_project_name;
     }
 
@@ -423,12 +439,16 @@ sub write_def_file {
                         );
 
     # Write the file to disk
+    print_log "CBus: write_def_file() Writing XML definition to $cbus_def_filename,";
     $xml_file->XMLout($cbus_def, 
                       OutputFile => $cbus_def_filename,
                     );
 }
 
-#sub dump_cbus_data {
+sub dump_cbus_data {
+
+     print_log "CBus: Device list function disabled";
+
 #    # Basic diagnostic routine for dumping the cbus objects hash
 #    my $count = 0;
 #    my $msg = "<H2>CBUS Device Listing</H2><HR>";
@@ -448,7 +468,7 @@ sub write_def_file {
 #    
 #    $msg .= "<HR><p>List CBus Devices: Listed $count CBus devices<p>";
 #    display $msg;
-#}
+}
 
 
 #
@@ -472,20 +492,20 @@ sub build_cbus_file {
 
     # Setup output filename
     if ($cbus_build_debug) {
-        print_log "CBus: Builder - Start CBus build in TEST mode";
+        print_log "CBus: build_cbus_file() Start CBus build in TEST mode";
         $cbus_file = $config_parms{code_dir} . "/cbus_procedures.pl.test";
     
     } else {
-        print_log "CBus: Builder - Starting build";
+        print_log "CBus: build_cbus_file() Starting build";
         $cbus_file = $config_parms{code_dir} . "/cbus_procedures.pl";
     }
     
     rename ($cbus_file,  $cbus_file . '.old')
-        or print_log "CBus: Builder - Could not backup $cbus_file: $!";
+        or print_log "CBus: build_cbus_file() Could not backup $cbus_file: $!";
     
-    print_log "CBus: Builder - Saving CBus configs to $cbus_file";
+    print_log "CBus: build_cbus_file() Saving CBus configs to $cbus_file";
     open (CF, ">$cbus_file")
-        or print_log "CBus: Builder - Could not open $cbus_file: $!";
+        or print_log "CBus: build_cbus_file() Could not open $cbus_file: $!";
     
     print CF "# Category=CBus_Items\n#\n#\n";
     print CF "# Created: $Time_Now, from cbus.xml file: \"$config_parms{cbus_dat_file}\"\n";
@@ -663,9 +683,9 @@ sub build_cbus_file {
     print CF "#\n#\n# EOF\n#\n#\n";
 
     close (CF)
-        or print_log "Could not close $cbus_file: $!";
+        or print_log "CBbus: build_cbus_file() Could not close $cbus_file: $!";
 
-    print_log "CBus: Builder - Completed CBus build to $cbus_file";
+    print_log "CBUs: build_cbus_file() Completed CBus build to $cbus_file";
         
 }
 
@@ -691,6 +711,7 @@ if (not active $cbus_monitor and not $cbus_system_debug) {
     # Currently set to 5 seconds 
     if ($New_Minute or ($New_Second and $cbus_monitor_retry++ > $CBUS_RETRY_SECS) ) {
         $cbus_monitor_retry = 0;
+        print_log "CBus: Restarting CBus Monitor" if $Debug{cbus};
         cbus_monitor_start();
     }
 }
@@ -894,6 +915,7 @@ if (not active $cbus_talker and not $cbus_system_debug) {
     # Currently set to 5 seconds 
     if ($New_Minute or ($New_Second and $cbus_talker_retry++ > $CBUS_RETRY_SECS)) {
         $cbus_talker_retry = 0;
+        print_log "CBus: Restarting CBus Talker" if $Debug{cbus};
         cbus_talker_start(); 
     }
 }
@@ -1045,6 +1067,51 @@ sub attempt_level_sync {
 }
 
 #
+# Add an address or group to the hash
+#
+
+sub add_address_to_hash {
+	my ($addr, $name) = @_;
+	my $addr_type;
+	
+	if ($addr =~ /\/p\/(\d+)/) {    
+		# Data is for a CBus device eg. switch, relay, dimmer
+		$addr_type = 'unit';	
+		$addr = $1;
+	} else {
+		# Data is for a CBus "group"
+		$addr_type = 'group';
+	}
+
+	print_log "CBus: add_address_to_hash() Addr $addr is $name of type $addr_type";
+
+	# Store the CBus name and address in the cbus_def hash
+	if ($addr_type eq 'group') {
+		if (not exists $cbus_def->{group}{$addr}) {
+			print_log "CBus: add_address_to_hash() group not defined yet, ".
+						"adding $addr, $name";
+			$cbus_def->{group}{$addr} = {     
+				name => $name,
+				note =>["Added by MisterHouse $Date_Now $Time_Now"],
+				type => 'dimmer',
+				mh_group => ['CBus']
+			};
+			# print_log Dumper($cbus_def);
+		}
+	} elsif ($addr_type eq 'unit') {
+		if (not exists $cbus_def->{unit}{$addr}) {
+			print_log "CBus: add_address_to_hash() unit not defined yet, ".
+						"adding $addr, $name";
+			$cbus_def->{unit}{$addr} = {     
+				name => $name,
+				note => ["Added by MisterHouse $Date_Now $Time_Now"]
+			};
+		}
+	}
+
+}
+
+#
 # Main MH Loop Code for  ***** TALKER *****
 #
 # Process data returned from CBus server after a command is sent
@@ -1057,6 +1124,8 @@ if (my $cbus_data = said $cbus_talker) {
         $msg_id = $1;
         $msg_code = $2;
     }
+
+###### Message code 320: Tree information. Returned from the tree command.
 
     if ($msg_code == 320) {
         if (not $cbus_got_tree_list) {
@@ -1073,6 +1142,7 @@ if (my $cbus_data = said $cbus_talker) {
             } else {
                 # CGate is listing CBus "groups"
                 if ($cbus_data =~ /end/) {
+		            print_log "CBus: end of CBus scan data, got tree list" if $Debug{cbus};
                     $cbus_got_tree_list = 1;
                 } elsif ($cbus_data =~ /(\/\/.+\/\d+\/\d+\/\d+).+level=(\d+)/) {
                     print_log "CBus: scanned group=$1 at level $2";
@@ -1082,51 +1152,36 @@ if (my $cbus_data = said $cbus_talker) {
             }
         }
 
+###### Message code 342: DBGet response (not documented in CGate Server Guide 1.0.)
+
     } elsif ($msg_code == 342) {
-        if ($cbus_scanning_cgate) {
-            if ($cbus_data =~ /(\/\/.+\/\d+\/[a-z\d]+\/\d+)\/TagName=(.+)/) {
+        if ($cbus_scanning_cgate) {  
+         
+            print_log "CBus: Message 342 response data: $cbus_data" if $Debug{cbus}; 
+                   
+            if ($cbus_data =~ /\d+\s+(\d+\/[a-z\d]+\/\d+)\/TagName=(.+)/) {
+                #response matched against "new" format, i.e. network/app/group                
                 my ($addr, $name) = ($1, $2);
+                $addr = "//$cbus_project_name/$addr";
+
                 $cbus_scan_last_addr_seen = $addr;
                 # $name =~ s/ /_/g;  Change spaces, depends on user usage...
-
-                my $addr_type;
-                if ($addr =~ /\/p\/(\d+)/) {    
-                    # Data is for a CBus device eg. switch, relay, dimmer
-                    $addr_type = 'unit';
-                    $addr = $1;
-                } else {
-                    # Data is for a CBus "group"
-                    $addr_type = 'group';
-                }
-
-                print_log "CBus: Addr $addr is $name of type $addr_type";
-
-                # Store the CBus name and address in the cbus_def hash
-                if ($addr_type eq 'group') {
-                    if (not exists $cbus_def->{group}{$addr}) {
-                        print_log "CBus: group not defined yet, ".
-                                    "adding $addr, $name";
-                        $cbus_def->{group}{$addr} = {     
-                            name => $name,
-                            note =>["Added by MisterHouse $Date_Now $Time_Now"],
-                            type => 'dimmer',
-                            mh_group => ['CBus']
-                        };
-                        # print_log Dumper($cbus_def);
-                    }
-                } elsif ($addr_type eq 'unit') {
-                    if (not exists $cbus_def->{unit}{$addr}) {
-                        print_log "CBus: unit not defined yet, ".
-                                    "adding $addr, $name";
-                        $cbus_def->{unit}{$addr} = {     
-                            name => $name,
-                            note => ["Added by MisterHouse $Date_Now $Time_Now"]
-                        };
-                    }
-                }
+                add_address_to_hash($addr, $name);
+                
+			} elsif ($cbus_data =~ /(\/\/.+\/\d+\/[a-z\d]+\/\d+)\/TagName=(.+)/) {
+                #response matched against "old" format, i.e. //project/network/app/group
+                my ($addr, $name) = ($1, $2);
+            
+                $cbus_scan_last_addr_seen = $addr;
+                # $name =~ s/ /_/g;  Change spaces, depends on user usage...
+                add_address_to_hash($addr, $name);            
+            
             }
-        }
-
+            print_log "Cbus: end message" if $Debug{cbus};
+	    }
+	
+###### Message code 300: Object information, for example: 300 1/56/1: level=200	
+	
     } elsif ($msg_code == 300) {
 
         if ($cbus_data =~ /(sessionID=.+)/) {
@@ -1181,8 +1236,12 @@ if (my $cbus_data = said $cbus_talker) {
             print_log "CBus: UNEXPECTED 300 msg \"$cbus_data\"";
         }
 
+###### Message code 200: Completed successfully
+
     } elsif ($msg_code == 200) {
         print_log "CBus: Cmd OK - $cbus_data" if $Debug{cbus};
+
+###### Message code 201: Service ready
 
     } elsif ($msg_code == 201) {
         print_log "CBus: Comms established - $cbus_data";
@@ -1204,8 +1263,13 @@ if (my $cbus_data = said $cbus_talker) {
             eval_with_timer $cmd, 2;
         }
 
+###### Message code 401: Bad object or device ID
+
     } elsif ($msg_code == 401) {
         print_log "CBus: $cbus_data";
+
+###### Message code 408: Indicates that a SET, GET or other method
+###### failed for a given object
 
     } elsif ($msg_code == 408) {
         print_log "CBus: **** Failed Cmd - $cbus_data";
@@ -1220,6 +1284,8 @@ if (my $cbus_data = said $cbus_talker) {
                 print_log "CBus: 2nd failure - abandoning command";
             }
         }
+
+###### Message code unhandled
 
     } else {
         print_log "CBus: Cmd port - UNHANDLED: $cbus_data";
@@ -1251,6 +1317,7 @@ if (active $cbus_talker and $cbus_scanning_cgate) {
         } else {
             # All networks scanned - set completion flag
             ### FIXME - RichardM test with two networks??
+            print_log "Cbus: leaving scanning mode" if $Debug{cbus};
             $cbus_scanning_cgate = 0;
             print_log "CBus: CBus server scan complete";
             write_def_file();
@@ -1259,17 +1326,19 @@ if (active $cbus_talker and $cbus_scanning_cgate) {
     } elsif ($cbus_got_tree_list) {
         if ($cbus_group_idx < @cbus_group_list) {
             my $group = $cbus_group_list[$cbus_group_idx++];
+	        print_log "Cbus: dbget group $group" if $Debug{cbus};
             set $cbus_talker "dbget $group/TagName";
 
         } elsif ($cbus_unit_idx < @cbus_unit_list) {
             my $unit = $cbus_unit_list[$cbus_unit_idx++];
+            print_log "Cbus: dbget unit $unit" if $Debug{cbus};
             set $cbus_talker "dbget $unit/TagName";
         
-        } else {
-            if ($cbus_scan_last_addr_seen eq 
-                            $cbus_unit_list[$#cbus_unit_list]) {
+        } else {	
+            if ($cbus_scan_last_addr_seen eq $cbus_unit_list[$#cbus_unit_list]) {
                 # Tree Scan complete - set tree completion flag
-                $cbus_scanning_tree = 0;
+                print_log "Cbus: leaving scanning mode" if $Debug{cbus};
+				$cbus_scanning_tree = 0;
             }
         }
 
