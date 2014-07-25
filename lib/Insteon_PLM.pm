@@ -1211,6 +1211,28 @@ to send a message to the PLM.  If this is set to 1, downgrades the delay to only
 .3 seconds.  Most of the issues which caused the PLM to overload have been handled
 it is unlikely that you would need to set this.
 
+=item Insteon_PLM_reconnect_count
+
+The PLM acknowledges the receipt of a command from MisterHouse with an ACK 
+message.  It is very rare for a well functioning PLM to fail to send the ACK
+message.  In many cases, the failure to receive an ACK message from the PLM
+is a sign that the connection between MisterHouse and the PLM (Serial or USB)
+has died.
+
+This setting defines the number of missed ACK messages that must occur for
+MisterHouse to deem the PLM connection lost.  The number of missed ACK messages
+must all occur while sending a single Insteon command.  So if you want this 
+to do anything, this number needs to be less than or equal to the 
+Insteon_retry_count.  Once the number of missed ACK messages occurs, MisterHouse
+will attempt to reconnect the PLM.  For some people, the reconnect routine
+causes errors, so you may want to test this out by manually pulling the
+connection cable to the PLM to see how your system will react.
+
+By default, this is set to 99, essentially disabling an automatic restart.
+
+Note the ACK messages discussed here refer to PLM ACK messages not the ACK
+messages received from an Insteon device in response to a command.
+
 =back
 
 =head2 NOTES
