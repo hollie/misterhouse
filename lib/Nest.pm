@@ -28,10 +28,12 @@ Create a Nest instance in the .mht file, or in user code:
 
   CODE, require Nest; #noloop 
   CODE, $nest = new Nest_Interface(); #noloop
+  CODE, $myhouse = new Group(); #noloop
   CODE, $nest_thermo = new Nest_Thermostat('Entryway', $nest, 'f'); #noloop
   CODE, $nest_thermo_mode = new Nest_Thermo_Mode($nest_thermo); #noloop
   CODE, $nest_alarm = new Nest_Smoke_CO_Alarm('Kitchen', $nest); #noloop
   CODE, $nest_home = new Nest_Structure('Home', $nest); #noloop
+  CODE, $myhouse->add($nest_thermo, $nest_thermo_mode, $nest_alarm, $nest_home); #noloop
 
 Explanations of the parameters is contained below in the documentation for each
 module.
