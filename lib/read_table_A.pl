@@ -1,4 +1,5 @@
 use strict;
+use warnings;
 
 # Format = A
 #
@@ -95,42 +96,70 @@ sub read_table_A {
     }
     elsif($type eq "INSTEON_LAMPLINC") {
         require Insteon::Lighting;
+        validate_def(  $type,
+                       ['insteon_address,1','name,1'],
+                       \@item_info
+                     );
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon::LampLinc(\'$address\',$other)";
     }
     elsif($type eq "INSTEON_BULBLINC") {
         require Insteon::Lighting;
+        validate_def(  $type,
+                       ['insteon_address,1','name,1'],
+                       \@item_info
+                     );
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon::BulbLinc(\'$address\',$other)";
     }
     elsif($type eq "INSTEON_APPLIANCELINC") {
         require Insteon::Lighting;
+        validate_def(  $type,
+                       ['insteon_address,1','name,1'],
+                       \@item_info
+                     );
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon::ApplianceLinc(\'$address\',$other)";
     }
     elsif($type eq "INSTEON_SWITCHLINC") {
         require Insteon::Lighting;
+        validate_def(  $type,
+                       ['insteon_address,1','name,1'],
+                       \@item_info
+                     );
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon::SwitchLinc(\'$address\',$other)";
     }
     elsif($type eq "INSTEON_SWITCHLINCRELAY") {
         require Insteon::Lighting;
+        validate_def(  $type,
+                       ['insteon_address,1','name,1'],
+                       \@item_info
+                     );
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon::SwitchLincRelay(\'$address\',$other)";
     }
     elsif($type eq "INSTEON_KEYPADLINC") {
         require Insteon::Lighting;
+        validate_def(  $type,
+                       ['MASK:XX.XX.XX:DD,1','name,1'],
+                       \@item_info
+                     );
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon::KeyPadLinc(\'$address\', $other)";
     }
     elsif($type eq "INSTEON_KEYPADLINCRELAY") {
         require Insteon::Lighting;
+        validate_def(  $type,
+                       ['MASK:XX.XX.XX:DD,1','name,1'],
+                       \@item_info
+                     );
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon::KeyPadLincRelay(\'$address\', $other)";
@@ -155,6 +184,10 @@ sub read_table_A {
     }
     elsif($type eq "INSTEON_IOLINC") {
         require Insteon::IOLinc;
+        validate_def(  $type,
+                       ['insteon_address,1','name,1'],
+                       \@item_info
+                     );
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
         $object = "Insteon::IOLinc(\'$address\', $other)";
@@ -1017,18 +1050,19 @@ sub read_table_A {
 	}
     elsif($type eq "SCENE_MEMBER") {
         my ($scene_name, $on_level, $ramp_rate);
+        validate_def(  $type,
+                       ['name,1','name,1', 'insteon_on_level,0','insteon_ramp_rate,0'],
+                       \@item_info
+                     );
         ($name, $scene_name, $on_level, $ramp_rate) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
-        ::print_log("[Read_Table_A] WARNING: SCENE_MEMBER $scene_name: Expecting 2-4 parameters, got " . scalar @item_info ) unless ( scalar @item_info >= 2 && @item_info < 5 );
 
         if( ! $packages{Scene}++ ) {   # first time for this object type?
             $code .= "use Scene;\n";
         }
         if (($objects{$scene_name}) and ($objects{$name})) {
            if ($on_level) {
-              _validate_Insteon_on_level( "SCENE_MEMBER $scene_name", $on_level );
               if ($ramp_rate) {
-                 _validate_Insteon_ramp_rate( "SCENE_MEMBER $scene_name", $ramp_rate );
                  $code .= sprintf "\$%-35s -> add(\$%s,'%s','%s');\n",
                             $scene_name, $name, $on_level, $ramp_rate;
               } else {
@@ -1046,14 +1080,12 @@ sub read_table_A {
     elsif($type eq "SCENE_BUILD") {
 	#SCENE_BUILD, scene_name, scene_member, is_controller?, is_responder?, onlevel, ramprate
         my ($scene_member, $is_scene_controller, $is_scene_responder, $on_level, $ramp_rate);
-        ($name, $scene_member, $is_scene_controller, $is_scene_responder, $on_level, $ramp_rate) = @item_info;
+        validate_def(  $type,
+                       ['name,1','name,1', 'boolean,0','boolean,0','insteon_on_level,0','insteon_ramp_rate,0'],
+                       \@item_info
+                     );
 
-        # Validations
-        ::print_log("[Read_Table_A] WARNING: SCENE_BUILD $name: Expecting 5 parameters, got " . scalar @item_info ) unless ( scalar @item_info >= 4 && @item_info < 7 );
-        ::print_log("[Read_Table_A] WARNING: SCENE_BUILD $name: controller should be 0 or 1, got \"$is_scene_controller\" " ) unless ( $is_scene_controller eq '1' || $is_scene_controller eq '0' );
-        ::print_log("[Read_Table_A] WARNING: SCENE_BUILD $name: responder should be 0 or 1, got \"$is_scene_responder\" " ) unless ( $is_scene_responder eq '1' || $is_scene_responder eq '0' );
-        _validate_Insteon_on_level( "SCENE_BUILD $name", $on_level ) if ( defined $on_level );
-        _validate_Insteon_ramp_rate( "SCENE_BUILD $name", $ramp_rate ) if ( defined $ramp_rate );
+        ($name, $scene_member, $is_scene_controller, $is_scene_responder, $on_level, $ramp_rate) = @item_info;
 
         if( ! $packages{Scene}++ ) {   # first time for this object type?
             $code .= "use Scene;\n";
@@ -1220,17 +1252,67 @@ sub read_table_finish_A {
     return $code;
 }
 
-sub _validate_Insteon_on_level {
-    # ($name, $level ) = @_
-        ::print_log("[Read_Table_A] WARNING: $_[0]: On level should be 0-100%, got \"$_[1]\" " )
-          unless ( $_[1] =~ m/^(\d+)%?$/ && $1 <= 100 && $1 >= 0 );
-}
+ #This is called inside each definition, this is using SCENE_BUILD as an example:
+ #validate_def('INSTEON_SWITCHLINC',['name,1','name,1', 'boolean,0','boolean,0','insteon_on_level,0','insteon_ramp_rate,0'], \@item_info);
+ #
+ # #Global validation routine:
+ sub validate_def {
+     my ($type, $req_array, $passed_values) = @_;
+     my $paramNum = 0;
+     my $paramCount = scalar @{$passed_values};   # Number of parameters passed on the item
+     foreach my $req_line (@{$req_array}) {
+         my ($type, $required) = split(',',$req_line);
 
-sub _validate_Insteon_ramp_rate {
-    # ($name, $ramp_rate ) = @_
-        ::print_log("[Read_Table_A] WARNING: $_[0]: Ramp rate should be 0-540 seconds, got \"$_[1]\" " )
-          unless ( $_[1] =~ m/^([.0-9]+)s?$/ && $1 <= 540 && $1 >= 0 );
-}
+         if ( defined $$passed_values[$paramNum] && $$passed_values[$paramNum] ne '') {
+             if ($type eq 'boolean'){
+                 ::print_log("Error item $paramNum in definition, should be 0 or 1") unless ($$passed_values[$paramNum] =~ /^(0|1)$/);
+             }
+             elsif ($type eq 'name'){
+                 ::print_log("Error item $paramNum in definition, can only use characters A-z and _") unless ($$passed_values[$paramNum] =~ /^[\w_]*$/);
+             }
+             elsif ($type eq 'insteon_on_level'){
+                ::print_log("[Read_Table_A] WARNING: $_[0]: $$passed_values[0] On level should be 0-100%, got \"$$passed_values[$paramNum]\" " )
+                  unless ( $$passed_values[$paramNum] =~ m/^(\d+)%?$/ && $1 <= 100 && $1 >= 0 );
+             }
+             elsif ($type eq 'insteon_ramp_rate'){
+                ::print_log("[Read_Table_A] WARNING: $_[0]: $$passed_values[0] Ramp rate should be 0-540 seconds, got \"$$passed_values[$paramNum]\" " )
+                  unless ( $$passed_values[$paramNum] =~ m/^([.0-9]+)s?$/ && $1 <= 540 && $1 >= 0 );
+             }
+             elsif ($type eq 'insteon_address') {
+                my ( $x1, $x2, $x3 ) = $$passed_values[$paramNum] =~ m/^([A-F0-9]{2})\.([A-F0-9]{2})\.([A-F0-9]{2})$/i;
+                ::print_log("[Read_Table_A] WARNING: $_[0]: $$passed_values[0] Insteon Address should be xx.xx.xx, got \"$$passed_values[$paramNum]\" " )
+                  unless ( $x1 && $x2 && $x3 );
+             }
+             #  Mask validation   X = Hex digit,   D = decimal digit,   any other character requires exact match
+             elsif ($type =~ m/^MASK:(.*)/) {
+                 my $mpos = 0;
+                 my $mask = $1;
+                 my $merror = '';
+                 foreach my $mc ( split(//, $mask) ) {
+                    my $c = substr($$passed_values[$paramNum], $mpos, 1);
+                    if ( $mc eq 'X' ) {
+                        $merror = $mpos+1 unless ( $c =~ m/[A-F0-9]/i );
+                    }
+                    elsif ( $mc eq 'D' ) {
+                        $merror = $mpos+1 unless ( $c =~ m/[0-9]/i );
+                    }
+                    else {
+                        $merror = $mpos+1 unless ( $c eq $mc );
+                    }
+                    last if $merror;
+                    $mpos++;
+                 }
+                 ::print_log("[Read_Table_A] WARNING: $_[0]: $$passed_values[0]: Error in position $merror of $$passed_values[$paramNum], expected $mask") if $merror;
+             }
+         }
+         else {
+             if ($required ){
+                 ::print_log("Error, item $paramNum is required in the definition");
+             }
+         }
+         $paramNum++;
+     }
+ }
 
 1;
 
