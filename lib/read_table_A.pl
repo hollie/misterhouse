@@ -1,5 +1,5 @@
 use strict;
-use warnings;
+#use warnings;
 
 # Format = A
 #
@@ -96,73 +96,59 @@ sub read_table_A {
     }
     elsif($type eq "INSTEON_LAMPLINC") {
         require Insteon::Lighting;
-        validate_def(  $type,
-                       ['insteon_address,1','name,1'],
-                       \@item_info
-                     );
-        ($address, $name, $grouplist, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "Insteon::LampLinc(\'$address\',$other)";
+        if (validate_def(  $type, ['insteon_address,1','name,1'], \@item_info) ) {
+            ($address, $name, $grouplist, @other) = @item_info;
+            $other = join ', ', (map {"'$_'"} @other); # Quote data
+            $object = "Insteon::LampLinc(\'$address\',$other)";
+        }
     }
     elsif($type eq "INSTEON_BULBLINC") {
         require Insteon::Lighting;
-        validate_def(  $type,
-                       ['insteon_address,1','name,1'],
-                       \@item_info
-                     );
-        ($address, $name, $grouplist, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "Insteon::BulbLinc(\'$address\',$other)";
+        if (validate_def(  $type, ['insteon_address,1','name,1'], \@item_info) ) {
+            ($address, $name, $grouplist, @other) = @item_info;
+            $other = join ', ', (map {"'$_'"} @other); # Quote data
+            $object = "Insteon::BulbLinc(\'$address\',$other)";
+        }
     }
     elsif($type eq "INSTEON_APPLIANCELINC") {
         require Insteon::Lighting;
-        validate_def(  $type,
-                       ['insteon_address,1','name,1'],
-                       \@item_info
-                     );
-        ($address, $name, $grouplist, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "Insteon::ApplianceLinc(\'$address\',$other)";
+        if (validate_def(  $type, ['insteon_address,1','name,1'], \@item_info) ) {
+            ($address, $name, $grouplist, @other) = @item_info;
+            $other = join ', ', (map {"'$_'"} @other); # Quote data
+            $object = "Insteon::ApplianceLinc(\'$address\',$other)";
+        }
     }
     elsif($type eq "INSTEON_SWITCHLINC") {
         require Insteon::Lighting;
-        validate_def(  $type,
-                       ['insteon_address,1','name,1'],
-                       \@item_info
-                     );
-        ($address, $name, $grouplist, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "Insteon::SwitchLinc(\'$address\',$other)";
+        if(validate_def(  $type, ['insteon_address,1','name,1'], \@item_info) ) {
+            ($address, $name, $grouplist, @other) = @item_info;
+            $other = join ', ', (map {"'$_'"} @other); # Quote data
+            $object = "Insteon::SwitchLinc(\'$address\',$other)";
+        }
     }
     elsif($type eq "INSTEON_SWITCHLINCRELAY") {
         require Insteon::Lighting;
-        validate_def(  $type,
-                       ['insteon_address,1','name,1'],
-                       \@item_info
-                     );
-        ($address, $name, $grouplist, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "Insteon::SwitchLincRelay(\'$address\',$other)";
+        if(validate_def(  $type, ['insteon_address,1','name,1'], \@item_info) ) {
+            ($address, $name, $grouplist, @other) = @item_info;
+            $other = join ', ', (map {"'$_'"} @other); # Quote data
+            $object = "Insteon::SwitchLincRelay(\'$address\',$other)";
+        }
     }
     elsif($type eq "INSTEON_KEYPADLINC") {
         require Insteon::Lighting;
-        validate_def(  $type,
-                       ['MASK:XX.XX.XX:DD,1','name,1'],
-                       \@item_info
-                     );
-        ($address, $name, $grouplist, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "Insteon::KeyPadLinc(\'$address\', $other)";
+        if(validate_def(  $type, ['MASK:XX.XX.XX:DD,1','name,1'], \@item_info) ) {
+            ($address, $name, $grouplist, @other) = @item_info;
+            $other = join ', ', (map {"'$_'"} @other); # Quote data
+            $object = "Insteon::KeyPadLinc(\'$address\', $other)";
+        }
     }
     elsif($type eq "INSTEON_KEYPADLINCRELAY") {
         require Insteon::Lighting;
-        validate_def(  $type,
-                       ['MASK:XX.XX.XX:DD,1','name,1'],
-                       \@item_info
-                     );
-        ($address, $name, $grouplist, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "Insteon::KeyPadLincRelay(\'$address\', $other)";
+        if(validate_def(  $type, ['MASK:XX.XX.XX:DD,1','name,1'], \@item_info) ) {
+            ($address, $name, $grouplist, @other) = @item_info;
+            $other = join ', ', (map {"'$_'"} @other); # Quote data
+            $object = "Insteon::KeyPadLincRelay(\'$address\', $other)";
+        }
     }
     elsif($type eq "INSTEON_REMOTELINC") {
         require Insteon::Controller;
@@ -184,13 +170,11 @@ sub read_table_A {
     }
     elsif($type eq "INSTEON_IOLINC") {
         require Insteon::IOLinc;
-        validate_def(  $type,
-                       ['insteon_address,1','name,1'],
-                       \@item_info
-                     );
-        ($address, $name, $grouplist, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "Insteon::IOLinc(\'$address\', $other)";
+        if(validate_def(  $type, ['insteon_address,1','name,1'], \@item_info) ) {
+            ($address, $name, $grouplist, @other) = @item_info;
+            $other = join ', ', (map {"'$_'"} @other); # Quote data
+            $object = "Insteon::IOLinc(\'$address\', $other)";
+        }
     }
     elsif($type eq "INSTEON_FANLINC") {
         require Insteon::Lighting;
@@ -253,14 +237,18 @@ sub read_table_A {
         $object = "FroggyRita('$address', $other)";
     }
     elsif($type eq "X10A") {
-        ($address, $name, $grouplist, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "X10_Appliance('$address', $other)";
+        if(validate_def(  $type, ['x10_address,1','name,1'], \@item_info) ) {
+            ($address, $name, $grouplist, @other) = @item_info;
+            $other = join ', ', (map {"'$_'"} @other); # Quote data
+            $object = "X10_Appliance('$address', $other)";
+        }
     }
     elsif($type eq "X10I") {
-        ($address, $name, $grouplist, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "X10_Item('$address', $other)";
+        if(validate_def(  $type, ['x10_address,1','name,1'], \@item_info) ) {
+            ($address, $name, $grouplist, @other) = @item_info;
+            $other = join ', ', (map {"'$_'"} @other); # Quote data
+            $object = "X10_Item('$address', $other)";
+        }
     }
     elsif($type eq "X10TR") {
         ($address, $name, $grouplist, @other) = @item_info;
@@ -273,14 +261,18 @@ sub read_table_A {
         $object = "X10_Ote('$address', $other)";
     }
     elsif($type eq "X10SL") {
-        ($address, $name, $grouplist, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other);
-        $object = "X10_Switchlinc('$address', $other)";
+        if(validate_def(  $type, ['x10_address,1','name,1'], \@item_info) ) {
+            ($address, $name, $grouplist, @other) = @item_info;
+            $other = join ', ', (map {"'$_'"} @other);
+            $object = "X10_Switchlinc('$address', $other)";
+        }
     }
     elsif($type eq "X10AL") {
-        ($address, $name, $grouplist, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other);
-        $object = "X10_Appliancelinc('$address', $other)";
+        if(validate_def(  $type, ['x10_address,1','name,1'], \@item_info) ) {
+            ($address, $name, $grouplist, @other) = @item_info;
+            $other = join ', ', (map {"'$_'"} @other);
+            $object = "X10_Appliancelinc('$address', $other)";
+        }
     }
     elsif($type eq "X10KL") {
         ($address, $name, $grouplist, @other) = @item_info;
@@ -288,9 +280,11 @@ sub read_table_A {
         $object = "X10_Keypadlinc('$address', $other)";
     }
     elsif($type eq "X10LL") {
-        ($address, $name, $grouplist, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other);
-        $object = "X10_Lamplinc('$address', $other)";
+        if(validate_def(  $type, ['x10_address,1','name,1'], \@item_info) ) {
+            ($address, $name, $grouplist, @other) = @item_info;
+            $other = join ', ', (map {"'$_'"} @other);
+            $object = "X10_Lamplinc('$address', $other)";
+        }
     }
     elsif($type eq "X10RL") {
         ($address, $name, $grouplist, @other) = @item_info;
@@ -318,9 +312,11 @@ sub read_table_A {
         $object = "RCS_Item('$address', $other)";
     }
     elsif($type eq "X10MS") {
-        ($address, $name, $grouplist, @other) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other); # Quote data
-        $object = "X10_Sensor('$address', '$name', $other)";
+        if(validate_def(  $type, ['x10_address,1','name,1'], \@item_info) ) {
+            ($address, $name, $grouplist, @other) = @item_info;
+            $other = join ', ', (map {"'$_'"} @other); # Quote data
+            $object = "X10_Sensor('$address', '$name', $other)";
+        }
     }
     elsif($type eq "RF") {
         ($address, $name, $grouplist, @other) = @item_info;
@@ -1050,53 +1046,49 @@ sub read_table_A {
 	}
     elsif($type eq "SCENE_MEMBER") {
         my ($scene_name, $on_level, $ramp_rate);
-        validate_def(  $type,
-                       ['name,1','name,1', 'insteon_on_level,0','insteon_ramp_rate,0'],
-                       \@item_info
-                     );
-        ($name, $scene_name, $on_level, $ramp_rate) = @item_info;
-        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        if(validate_def(  $type, ['name,1','name,1', 'insteon_on_level,0','insteon_ramp_rate,0'], \@item_info) ) {
+            ($name, $scene_name, $on_level, $ramp_rate) = @item_info;
+            $other = join ', ', (map {"'$_'"} @other); # Quote data
 
-        if( ! $packages{Scene}++ ) {   # first time for this object type?
-            $code .= "use Scene;\n";
+            if( ! $packages{Scene}++ ) {   # first time for this object type?
+                $code .= "use Scene;\n";
+            }
+            if (($objects{$scene_name}) and ($objects{$name})) {
+               if ($on_level) {
+                  if ($ramp_rate) {
+                     $code .= sprintf "\$%-35s -> add(\$%s,'%s','%s');\n",
+                                $scene_name, $name, $on_level, $ramp_rate;
+                  } else {
+                     $code .= sprintf "\$%-35s -> add(\$%s,'%s');\n", $scene_name, $name, $on_level;
+                  }
+               } else {
+                  $code .= sprintf "\$%-35s -> add(\$%s);\n", $scene_name, $name;
+               }
+            } else {
+               print "\nThere is no object called $scene_name defined.  Ignoring SCENE_MEMBER entry.\n" unless $objects{$scene_name};
+               print "\nThere is no object called $name defined.  Ignoring SCENE_MEMBER entry.\n" unless $objects{$name};
+            }
+            $object = '';
         }
-        if (($objects{$scene_name}) and ($objects{$name})) {
-           if ($on_level) {
-              if ($ramp_rate) {
-                 $code .= sprintf "\$%-35s -> add(\$%s,'%s','%s');\n",
-                            $scene_name, $name, $on_level, $ramp_rate;
-              } else {
-                 $code .= sprintf "\$%-35s -> add(\$%s,'%s');\n", $scene_name, $name, $on_level;
-              }
-           } else {
-              $code .= sprintf "\$%-35s -> add(\$%s);\n", $scene_name, $name;
-           }
-        } else {
-           print "\nThere is no object called $scene_name defined.  Ignoring SCENE_MEMBER entry.\n" unless $objects{$scene_name};
-           print "\nThere is no object called $name defined.  Ignoring SCENE_MEMBER entry.\n" unless $objects{$name};
-        }
-        $object = '';
     }
     elsif($type eq "SCENE_BUILD") {
 	#SCENE_BUILD, scene_name, scene_member, is_controller?, is_responder?, onlevel, ramprate
         my ($scene_member, $is_scene_controller, $is_scene_responder, $on_level, $ramp_rate);
-        validate_def(  $type,
-                       ['name,1','name,1', 'boolean,0','boolean,0','insteon_on_level,0','insteon_ramp_rate,0'],
-                       \@item_info
-                     );
+        if (validate_def(  $type, ['name,1','name,1', 'boolean,0','boolean,0','insteon_on_level,0','insteon_ramp_rate,0'], \@item_info)) {
 
-        ($name, $scene_member, $is_scene_controller, $is_scene_responder, $on_level, $ramp_rate) = @item_info;
+            ($name, $scene_member, $is_scene_controller, $is_scene_responder, $on_level, $ramp_rate) = @item_info;
 
-        if( ! $packages{Scene}++ ) {   # first time for this object type?
-            $code .= "use Scene;\n";
+            if( ! $packages{Scene}++ ) {   # first time for this object type?
+                $code .= "use Scene;\n";
+            }
+            if ($is_scene_controller){
+                $scene_build_controllers{$name}{$scene_member} = "1";
+            }
+            if ($is_scene_responder){
+                $scene_build_responders{$name}{$scene_member} = "$on_level,$ramp_rate";
+            }
+            $object = '';
         }
-        if ($is_scene_controller){
-            $scene_build_controllers{$name}{$scene_member} = "1";
-        }
-        if ($is_scene_responder){
-            $scene_build_responders{$name}{$scene_member} = "$on_level,$ramp_rate";
-        }
-        $object = '';
     }
     elsif ($type eq "PHILIPS_HUE"){
     	($address, $name, $grouplist, @other) = @item_info;
@@ -1252,11 +1244,11 @@ sub read_table_finish_A {
     return $code;
 }
 
- #This is called inside each definition, this is using SCENE_BUILD as an example:
- #validate_def('INSTEON_SWITCHLINC',['name,1','name,1', 'boolean,0','boolean,0','insteon_on_level,0','insteon_ramp_rate,0'], \@item_info);
- #
- # #Global validation routine:
- sub validate_def {
+#This is called inside each definition, this is using SCENE_BUILD as an example:
+#validate_def('INSTEON_SWITCHLINC',['name,1','name,1', 'boolean,0','boolean,0','insteon_on_level,0','insteon_ramp_rate,0'], \@item_info);
+#
+# #Global validation routine:
+sub validate_def {
      my ($type, $req_array, $passed_values) = @_;
      my $paramNum = 0;
      my $paramCount = scalar @{$passed_values};   # Number of parameters passed on the item
@@ -1268,7 +1260,11 @@ sub read_table_finish_A {
                  ::print_log("Error item $paramNum in definition, should be 0 or 1") unless ($$passed_values[$paramNum] =~ /^(0|1)$/);
              }
              elsif ($type eq 'name'){
-                 ::print_log("Error item $paramNum in definition, can only use characters A-z and _") unless ($$passed_values[$paramNum] =~ /^[\w_]*$/);
+                 unless ($$passed_values[$paramNum] =~ /^[A-Z_][A-Z0-9_]*$/i) {
+                     ::print_log("[Read_Table_A] ERROR: $_[0]: $$passed_values[0], can only use characters A-z and _  Found \"$$passed_values[$paramNum]\", Definition skipped.");
+                     ::print_log("[Read_table-A]        $_[0], " . join (', ', @$passed_values ));
+                     return 0;
+                 }
              }
              elsif ($type eq 'insteon_on_level'){
                 ::print_log("[Read_Table_A] WARNING: $_[0]: $$passed_values[0] On level should be 0-100%, got \"$$passed_values[$paramNum]\" " )
@@ -1280,8 +1276,19 @@ sub read_table_finish_A {
              }
              elsif ($type eq 'insteon_address') {
                 my ( $x1, $x2, $x3 ) = $$passed_values[$paramNum] =~ m/^([A-F0-9]{2})\.([A-F0-9]{2})\.([A-F0-9]{2})$/i;
-                ::print_log("[Read_Table_A] WARNING: $_[0]: $$passed_values[0] Insteon Address should be xx.xx.xx, got \"$$passed_values[$paramNum]\" " )
-                  unless ( $x1 && $x2 && $x3 );
+                unless ( $x1 && $x2 && $x3 ) {
+                    ::print_log("[Read_Table_A] ERROR: $_[0]: $$passed_values[0] Insteon Address should be xx.xx.xx, got \"$$passed_values[$paramNum]\" " );
+                    ::print_log("[Read_table-A]        $_[0], " . join (', ', @$passed_values ));
+                    return 0;
+                }
+             }
+             elsif ($type eq 'x10_address') {
+                 my ( $ha, $da ) = $$passed_values[$paramNum] =~ m/^([A-P])([0-9]{1,2})$/i;
+                 unless ( $ha && $da && $da < 17 ) {
+                     ::print_log("[Read_Table_A] ERROR: $_[0]: $$passed_values[0] X10 Address should be 2-3 characters,  House code A-P, Device 1-16, got \"$$passed_values[$paramNum]\", Definition skipped." );
+                     ::print_log("[Read_table-A]        $_[0], " . join (', ', @$passed_values ));
+                     return 0;
+                 }
              }
              #  Mask validation   X = Hex digit,   D = decimal digit,   any other character requires exact match
              elsif ($type =~ m/^MASK:(.*)/) {
@@ -1302,17 +1309,23 @@ sub read_table_finish_A {
                     last if $merror;
                     $mpos++;
                  }
-                 ::print_log("[Read_Table_A] WARNING: $_[0]: $$passed_values[0]: Error in position $merror of $$passed_values[$paramNum], expected $mask") if $merror;
+                 if ( $merror ) {
+                     ::print_log("[Read_Table_A] ERROR: $_[0]: $$passed_values[0]: Error in position $merror of $$passed_values[$paramNum], expected $mask");
+                     ::print_log("[Read_table-A]        $_[0], " . join (', ', @$passed_values ));
+                     return 0;
+                 }
              }
          }
          else {
              if ($required ){
-                 ::print_log("Error, item $paramNum is required in the definition");
+                 ::print_log("Error, item $paramNum is required in the definition, definition skipped.");
+                 return 0;
              }
          }
          $paramNum++;
      }
- }
+     return 1;
+}
 
 1;
 
