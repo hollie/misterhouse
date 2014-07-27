@@ -423,7 +423,8 @@ sub set_receive {
 
     &set_x10_level($self, $state);
     $self->SUPER::set_receive($state, $set_by);
-    $self->{interface}->set_receive($state, $set_by);
+    $self->{interface}->set_receive($state, $set_by) 
+        unless $self->{interface}->isa('Insteon_PLM');
 }
 
 =item C<set_x10_level>
