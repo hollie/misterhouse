@@ -4,7 +4,8 @@
 #@ <a href="http://tbone.biol.sc.edu/tide">University of Southern Carolina Tide Predictor</a>.
 #@ Set the weather_tide_site ini parameter to the tide site closest to you. 
 
-# 12/04/05 created by David Norwood based on idea by Joey French 
+# Version 1.1 07/29/14 Fixed description and ini parameter reference - Jared J. Fernandez
+# Version 1.0 12/04/05 created by David Norwood based on idea by Joey French 
 
 
 #noloop=start
