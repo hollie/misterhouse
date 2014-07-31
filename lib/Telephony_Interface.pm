@@ -1,3 +1,45 @@
+=head1 B<Telephony_Interface>
+
+=head2 SYNOPSIS
+
+In the ini you must define a device such as:
+
+    callerid_port = localhost:3333
+    callerid_name = acheron-ncid
+    callerid_type = ncid
+
+=head2 DESCRIPTION
+
+Provides support for common serial and network attached Caller ID devices. 
+The majority of serial devices are basically modems, but some chipsets better 
+support CID features than others. The following CID device types are supported:
+
+    default         Default modem
+    motorola        Motorola modem
+    powerbit        Intertex (Powerbit, Telia)
+    rockwell        Rockwell chipset modems
+    supra           Supra modems
+    cirruslogic     Cirrus Logic chipset modems
+    zyxel           Zyxel modems
+    netcallerid     NetCallerID devices (no longer available)
+    ncid            NCID - Network Caller ID server
+
+=head3 NCID
+
+When using callerid_type = ncid, the callerid_port must be given in the format I<hostname/IP:port> such as:
+
+    callerid_port = localhost:3333
+
+=head2 INHERITS
+
+L<Telephony_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
+
 use strict;
 
 use Telephony_Item;
@@ -18,6 +60,12 @@ my %table = (default     => ['ATE1V1X4&C1&D2S0=0+VCID=1',          38400, 'dtr']
              zyxel       => ['ATE1V1S40.2=1S41.6=1S42.2=1&L1M3N1', 38400, 'dtr'],
              netcallerid => ['', 4800, ''],
              ncid        => ['', 0, '']);
+
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
 
 sub new {
     my ($class, $name, $port, $type)= @_;
@@ -51,6 +99,12 @@ sub new {
     }
     return $self;
 }
+
+=item C<open_port()>
+
+Open the given serial port or network socket.
+
+=cut
 
 sub open_port {
     my ($self) = @_;
@@ -89,6 +143,12 @@ sub open_port {
     }
 }
 
+=item C<init()>
+
+Initialize the serial device
+
+=cut
+
 sub init {
     my ($self) = @_;
     my $name =    $$self{name};
@@ -99,9 +159,21 @@ sub init {
     }
 }
 
+=item C<reload_reset()>
+
+Unload any defined devices and force a reset.
+
+=cut
+
 sub reload_reset {
     undef %list_objects;
 }
+
+=item C<check_for_data()>
+
+Look for new data on the serial port or network socket.
+
+=cut
 
 sub check_for_data {
     for my $port (@list_ports) {
@@ -145,6 +217,12 @@ sub check_for_data {
     }
 }
 
+=item C<process_phone_data($port, $data)>
+
+Process misc phone data like rings
+
+=cut
+
                                 # Process Other phone data
 sub process_phone_data {
     my ($port, $data) = @_;
@@ -155,6 +233,12 @@ sub process_phone_data {
 		$object->ring_count($object->ring_count()+1);  # Where/when does this get reset??
     }
 }
+
+=item C<process_cid_data($port, $data)>
+
+Process CID data from the device.
+
+=cut
 
                                 # Process Caller ID data
 sub process_cid_data {
@@ -254,6 +338,11 @@ sub process_cid_data {
     }
 }
 
+=item C<set($p_state, $p_setby)>
+
+Set the device on or off hook
+
+=cut
 
 sub set {
     my ($self, $p_state, $p_setby) = @_;
@@ -266,11 +355,42 @@ sub set {
     $self->SUPER::set($p_state, $p_setby);
 }
 
+=item C<set_test($data)>
+
+Used for testing.
+
+=cut
+
 sub set_test {
     my ($self, $data) = @_;
     my $name = $$self{name};
     $main::Serial_Ports{$name}{data_record} = $data;
 }
+
+
+=back
+
+=head2 AUTHOR
+
+Chris Witte,
+Bruce Winter,
+Matthew Williams,
+Brian Rudy
+
+=head2 SEE ALSO
+
+L<NCID - Network Caller ID|http://ncid.sourceforge.net/ncid/ncid.html>
+
+=head2 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+=cut
+
 
 1;
 
