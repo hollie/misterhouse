@@ -334,7 +334,7 @@ var print_log = function(time) {
 	}
 	$.ajax({
 	type: "GET",
-	url: "/LONG_POLL?ia7_utils::print_log_changes("+time+")",
+	url: "/LONG_POLL?json('print_log','time="+time+",long_poll')",
 	dataType: "json",
 	success: function( json ) {
 		for (var i = (json.print_log.text.length-1); i >= 0; i--){

@@ -320,7 +320,14 @@ sub json {
 		my @log;
 		my $name;
 		if ($options{time}{active}){
-			@log = ::print_log_since($options{time}{members}[0]);
+			my ($time) = $options{time}{members}[0];
+			if (int($time) >= int(::print_log_current_time())
+				&& $options{long_poll}{active}){
+				#This is used by the long_poll request type if there is nothing
+				#to return, we need to return an empty response
+				return;
+			}
+			@log = ::print_log_since($time);
 		} else {
 			@log = ::print_log_since();
 		}

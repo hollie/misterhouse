@@ -7,7 +7,6 @@
 
 use strict;
 require 'http_utils.pl';
-use ia7_utils;
 
 #no warnings 'uninitialized';   # These seem to always show up.  Dang, will not work with 5.0
 
