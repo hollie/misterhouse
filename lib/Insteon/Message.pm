@@ -256,8 +256,12 @@ sub send
                         }
                         
                         # If No PLM-Receipt has been received for this message
-                        # then attempt to reconnect the PLM
-                        $interface->serial_restart() unless $self->plm_receipt;
+                        # then check to see if we are supposed to restart the PLM
+                        if (!$self->plm_receipt) {
+				if ($self->is_plm_down($interface) <= 0){
+					$interface->serial_restart();
+				}
+                        }
                 }
 
                 # need to set timeout as a function of retries; also need to alter hop count
@@ -348,6 +352,37 @@ sub plm_receipt
 	my ($self, $receipt) = @_;
         $$self{plm_receipt} = $receipt if defined $receipt;
         return $$self{plm_receipt};
+}
+
+=item C<is_plm_down()>
+
+Used to determine whether the PLM needs to be restarted.  The PLM should ACK the
+receipt of every command MisterHouse sends to it.  If no ACK is received then
+plm_receipt is zero on the retry attempt.  If the number of sequential no ACK 
+instances for a specific command reaches the defined number, MisterHouse will 
+attempt to reconnect the PLM port.  You can set the threshold to any number you 
+like, but if the no ACK number is higher than your retry number, which defaults 
+to 5, then the PLM will never be restarted.  The no ACK number can be set using
+the ini key:
+
+B<Insteon_PLM_reconnect_count>
+
+by default this number will be set to 99, which in will prevent the PLM from 
+being restarted.  If you have PLM disconnect issues, try setting this to 2 or 3.
+The restart code has been known to be incompatible with certain perl installations.
+
+=cut
+
+sub is_plm_down
+{
+	my ($self, $interface) = @_;
+	my $instance = $$interface{port_name};
+	my $reconnect_count = 99;
+	$reconnect_count = $::config_parms{$instance . "_reconnect_count"} 
+		if defined $::config_parms{$instance . "_reconnect_count"};
+	$$self{is_plm_down} = $reconnect_count unless defined $$self{is_plm_down};
+        $$self{is_plm_down} -= 1;
+        return $$self{is_plm_down};
 }
 
 

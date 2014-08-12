@@ -5744,7 +5744,7 @@ sub serial_port_close {
    my $port = $Serial_Ports{$name}{port};
    
    # Recommended Steps to Close a Serial Port from CPAN
-   $Serial_Ports{$name}{object}->close() || ::print_log("[Insteon_PLM] Close of serial port failed.");
+   $Serial_Ports{$name}{object}->close() if (defined $Serial_Ports{$name}{object});
    undef $Serial_Ports{$name}{object};
    
    # Remove all references in Global Vars

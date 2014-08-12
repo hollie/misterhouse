@@ -242,7 +242,6 @@ sub set_interface {
         } elsif ( defined $interface_object and $interface_object->isa('Insteon_PLM')) {
             print "[X10] for id $id, x10 interface supplied ($interface) and supported by an Insteon PLM\n" if $localDebug;
             $self->{interface} = $interface_object;
-            $self->{interface}->add($self);
         } else {
             # we can't find a real interface, so use a Dummy_Interface
             print "[X10] warning, using dummy interface for id $id and supplied interface $interface\n" if $localDebug;
@@ -423,7 +422,8 @@ sub set_receive {
 
     &set_x10_level($self, $state);
     $self->SUPER::set_receive($state, $set_by);
-    $self->{interface}->set_receive($state, $set_by);
+    $self->{interface}->set_receive($state, $set_by) 
+        unless $self->{interface}->isa('Insteon_PLM');
 }
 
 =item C<set_x10_level>
