@@ -113,7 +113,12 @@ sub json {
 			$group =~ s/\$|\%|\&|\@//g;
 			$json{'groups'}{$group} = {};
 			unless ( $options{truncate} ) {
-				foreach my $object ( list $group_object) {
+				#$group->list(undef, undef,$no_child_members)
+				my $not_recursive = 0;
+				$not_recursive = 1 if ($options{not_recursive}{active});
+				foreach my $object ( 
+					$group_object->list(undef, undef,$not_recursive)
+					) {
 					$name = $object->{object_name};
 					$name =~ s/\$|\%|\&|\@//g;
 					$json{'groups'}{$group}{$name} =

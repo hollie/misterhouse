@@ -71,8 +71,11 @@ function changePage (){
 		for (var i = 0; i < collection_keys_arr.length; i++){
 			var nav_link, nav_name;
 			if (collection_keys_arr[i].substring(0,1) == "$"){
+				//We are browsing the contents of an object, currently only 
+				//group objects can be browsed recursively.  Possibly use different
+				//prefix if other recursively browsable formats are later added
 				nav_name = collection_keys_arr[i].replace("$", '');
-				nav_link = ''; //ATM There is only a single level of these
+				nav_link = '#request=list&type=groups&name='+nav_name; //ATM There is only a single level of these
 			}
 			else {
 				nav_link = collection_json.collections[collection_keys_arr[i]].link;
@@ -113,7 +116,11 @@ function variableList(value){
 var loadList = function(listType,listValue,collection_key) {
 	var url;
 	if (listValue !== undefined){
-		url = "/sub?json("+listType+"="+listValue+",fields=text|type|state|states)";
+		var recursive = '';
+		if (listType == 'groups') {
+			recursive = ',not_recursive';
+		}
+		url = "/sub?json("+listType+"="+listValue+",'fields=text|type|state|states|label"+recursive+"')";
 	} 
 	else {
 		url = "/sub?json("+listType+",truncate)";
@@ -189,6 +196,18 @@ var loadList = function(listType,listValue,collection_key) {
 						}
 						entity_arr.push(button_html);
 					} //Voice Command Button
+					else if(json[listType][division][entity].type == "Group"){
+						var object = json[listType][division][entity];
+						button_text = entity;
+						if (object.label !== undefined) button_text = object.label;
+						//Put entities into button
+						button_html = "<div style='vertical-align:middle'><a role='button' listType='"+listType+"'";
+						button_html += "class='btn btn-default btn-lg btn-block btn-list btn-division'";
+						button_html += "href='#request=list&collection_key="+collection_key+",$" + entity + "&type="+listType+"&name="+entity+"' >";
+						button_html += "" +button_text+"</a></div>";
+						entity_arr.push(button_html);
+						continue;
+					}
 					else {
 						var object = json[listType][division][entity];
 						var state = object.state;
