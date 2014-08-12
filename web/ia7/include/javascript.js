@@ -193,8 +193,9 @@ var loadList = function(listType,listValue,collection_key) {
 						var object = json[listType][division][entity];
 						var state = object.state;
 						var name = entity;
+						if (object.label !== undefined) name = object.label;
 						//Put objects into button
-						button_html = "<div style='vertical-align:middle'><button entity='"+name+"' division='"+division+"' ";
+						button_html = "<div style='vertical-align:middle'><button entity='"+entity+"' division='"+division+"' ";
 						button_html += "class='btn btn-default btn-lg btn-block btn-list btn-popover btn-state-cmd'>";
 						button_html += name+"<span class='pull-right'>"+state+"</span></button></div>";
 						entity_arr.push(button_html);

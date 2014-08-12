@@ -463,7 +463,7 @@ sub json_object_detail {
 	my $object_name = $object->{object_name};
 	my %json_objects;
 	my @f = qw( category filename measurement rf_id set_by
-	  state states state_log type
+	  state states state_log type label
 	  idle_time text html seconds_remaining level);
 
 	foreach my $f ( sort @f ) {
