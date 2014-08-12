@@ -6,6 +6,7 @@
 # $Revision$
 
 use strict;
+use Text::ParseWords;
 require 'http_utils.pl';
 
 #no warnings 'uninitialized';   # These seem to always show up.  Dang, will not work with 5.0
@@ -889,11 +890,8 @@ sub html_sub {
                                 # Check for authorization
             if (($Authorized or $Password_Allow{"&$sub_name"} and $Password_Allow{"&$sub_name"} eq 'anyone')) {
                                 # If not quoted, split to multiple argument according to ,
-#               $sub_arg = "'$sub_arg'" if $sub_arg and $sub_arg !~ /^[\'\"]/; # Add quotes if needed
-                unless ($sub_arg =~ /^[\'\"]/) {
-                    my @args = split ',', $sub_arg;
-                    $sub_arg = join  ',', map {"'$_'"} @args;
-                }
+                my @args = parse_line(',', 0, $sub_arg);
+                $sub_arg = join  ',', map {"'$_'"} @args;
                 return(undef, "&$sub_name($sub_arg)");
             }
             else {
