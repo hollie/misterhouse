@@ -272,8 +272,8 @@ var loadList = function(listType,listValue,collection_key) {
 			$('#control').find('.control-dialog').attr("entity", $(this).attr("entity"));
 			$('#control').find('.states').html('<div class="btn-group"></div>');
 			var modal_states = json[listType][$(this).attr("division")][$(this).attr("entity")].states;
-			for (var k in modal_states){
-				$('#control').find('.states').find('.btn-group').append("<button class='btn btn-default'>"+modal_states[k]+"</button>");
+			for (var i = 0; i < modal_states.length; i++){
+				$('#control').find('.states').find('.btn-group').append("<button class='btn btn-default'>"+modal_states[i]+"</button>");
 			}
 			$('#control').find('.states').find(".btn-default").click(function (){
 				url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();

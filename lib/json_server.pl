@@ -505,17 +505,7 @@ sub json_object_detail {
 		else {
 			print_log "json: object_dets didn't find $f" if $Debug{json};
 		}
-		if ( ref $value eq 'ARRAY' ) {
-			my $i = 0;
-			foreach (@$value) {
-				$_ = 'No Value' unless defined $_;
-				$json_objects{$f}{$i} = $_;
-				$i = $i + 1;
-			}
-		}
-		else {
-			$json_objects{$f} = $value if defined $value;
-		}
+		$json_objects{$f} = $value if defined $value;
 	}
 	return \%json_objects;
 }
