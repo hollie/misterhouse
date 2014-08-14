@@ -3489,7 +3489,7 @@ sub set_linked_devices
 					$$self{members}{$member_ref}{resume_state} = $light->state;
 					$member->manual($light, $ramp_rate);
 					if (lc $link_state ne 'on'){
-						$local_state = $light->$link_state;
+						$local_state = $light->derive_link_state($link_state);
 					}
 					$light->set_receive($local_state,$self);
 				}
