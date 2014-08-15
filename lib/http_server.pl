@@ -1365,7 +1365,7 @@ sub html_file {
 
 				# Return right away if the file has not changed
 #http:   header key=If-Modified-Since value=Sat, 27 Mar 2004 02:49:29 GMT; length=1685.
-    if ($cache and $Http{'If-Modified-Since'} and $Http{'If-Modified-Since'} =~ /(.+? GMT);/) {
+    if ($cache and $Http{'If-Modified-Since'} and $Http{'If-Modified-Since'} =~ /(.+? GMT)/) {
 	my $time2 = &str2time($1);
 	my $time3 = (stat($file))[9];
 	print "db web file cache check: f=$file t=$time2/$time3\n"  if $main::Debug{http3};
