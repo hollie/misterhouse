@@ -46,26 +46,20 @@ sub json {
 	my ( $request, $options ) = @_;
 	my ( %json, $json, $json_types, $json_groups, $json_categories, $json_vars,
 		$json_objects );
+	my $output_time = ::get_tickcount();
 
 	return &json_usage unless $request;
 
 	my %request;
 	foreach ( split ',', $request ) {
 		my ( $k, undef, $v ) = /(\w+)(=(.+))?/;
-		$request{$k}{active} = 1;
-		$request{$k}{members} = [ split /\|/, $v ] if $k and $v;
+		$request{$k} = [ split /\|/, $v ] ;#if $k and $v;
 	}
 
 	my %options;
 	foreach ( split ',', $options ) {
 		my ( $k, undef, $v ) = /(\w+)(=(.+))?/;
-		$options{$k}{active} = 1;
-		$options{$k}{members} = [ split /\|/, $v ] if $k and $v;
-	}
-
-	my %fields;
-	foreach ( @{ $options{fields}{members} } ) {
-		$fields{$_} = 1;
+		$options{$k} = [ split /\|/, $v ] ;#if $k and $v;
 	}
 
 	print_log "json: request=$request options=$options" if $Debug{json};
@@ -74,8 +68,8 @@ sub json {
 	if ( $request{types} ) {
 		my @types;
 		my $name;
-		if ( $request{types}{members} and @{ $request{types}{members} } ) {
-			@types = @{ $request{types}{members} };
+		if ( $request{types} and @{ $request{types} } ) {
+			@types = @{ $request{types}};
 		}
 		else {
 			@types = @Object_Types;
@@ -83,14 +77,17 @@ sub json {
 		foreach my $type ( sort @types ) {
 			print_log "json: type $type" if $Debug{json};
 			$type =~ s/\$|\%|\&|\@//g;
-			$json{'types'}{$type} = {};
-			unless ( $options{truncate} ) {
+			if ( $options{truncate} ) {
+				$json{'types'}{$type} = {};
+			}
+			else {
 				foreach my $object ( sort &list_objects_by_type($type) ) {
 					$object = &get_object_by_name($object);
 					$name   = $object->{object_name};
 					$name =~ s/\$|\%|\&|\@//g;
-					$json{'types'}{$type}{$name} =
-					  &json_object_detail( $object, %fields );
+					if (my $data = &json_object_detail( $object, %options )){
+						$json{'types'}{$type}{$name} = $data;
+					}
 				}
 			}
 		}
@@ -100,8 +97,8 @@ sub json {
 	if ( $request{groups} ) {
 		my @groups;
 		my $name;
-		if ( $request{groups}{members} and @{ $request{groups}{members} } ) {
-			@groups = @{ $request{groups}{members} };
+		if ( $request{groups} and @{ $request{groups} } ) {
+			@groups = @{ $request{groups} };
 		}
 		else {
 			@groups = &list_objects_by_type('Group');
@@ -111,18 +108,20 @@ sub json {
 			my $group_object = &get_object_by_name($group);
 			next unless $group_object;
 			$group =~ s/\$|\%|\&|\@//g;
-			$json{'groups'}{$group} = {};
-			unless ( $options{truncate} ) {
-				#$group->list(undef, undef,$no_child_members)
+			if ( $options{truncate} ) {
+				$json{'groups'}{$group} = {};
+			}
+			else {
 				my $not_recursive = 0;
-				$not_recursive = 1 if ($options{not_recursive}{active});
+				$not_recursive = 1 if ($options{not_recursive});
 				foreach my $object ( 
 					$group_object->list(undef, undef,$not_recursive)
 					) {
 					$name = $object->{object_name};
 					$name =~ s/\$|\%|\&|\@//g;
-					$json{'groups'}{$group}{$name} =
-					  &json_object_detail( $object, %fields );
+					if (my $data = &json_object_detail( $object, %options )){
+						$json{'groups'}{$group}{$name} = $data;
+					}
 				}
 			}
 		}
@@ -132,10 +131,10 @@ sub json {
 	if ( $request{categories} ) {
 		my @categories;
 		my $name;
-		if ( $request{categories}{members}
-			and @{ $request{categories}{members} } )
+		if ( $request{categories}
+			and @{ $request{categories} } )
 		{
-			@categories = @{ $request{categories}{members} };
+			@categories = @{ $request{categories} };
 		}
 		else {
 			@categories = &list_code_webnames('Voice_Cmd');
@@ -144,8 +143,10 @@ sub json {
 			print_log "json: cat $category" if $Debug{json};
 			next if $category =~ /^none$/;
 			$category =~ s/\$|\%|\&|\@//g;
-			$json{categories}{$category} = {};
-			unless ( $options{truncate} ) {
+			if ( $options{truncate} ) {
+				$json{categories}{$category} = {};
+			}
+			else {
 				foreach my $name ( sort &list_objects_by_webname($category) ) {
 					my ( $object, $type );
 					$object = &get_object_by_name($name);
@@ -154,8 +155,9 @@ sub json {
 					$type   = ref $object;
 					print_log "json: o $name t $type" if $Debug{json};
 					next unless $type eq 'Voice_Cmd';
-					$json{categories}{$category}{$name} =
-					  &json_object_detail( $object, %fields );
+					if (my $data = &json_object_detail( $object, %options )){
+						$json{categories}{$category}{$name} = $data;
+					}
 				}
 			}
 		}
@@ -164,8 +166,8 @@ sub json {
 	# List objects
 	if ( $request{objects} ) {
 		my @objects;
-		if ( $request{objects}{members} and @{ $request{objects}{members} } ) {
-			@objects = @{ $request{objects}{members} };
+		if ( $request{objects} and @{ $request{objects} } ) {
+			@objects = @{ $request{objects} };
 		}
 		else {
 			foreach my $object_type (@Object_Types) {
@@ -178,15 +180,17 @@ sub json {
 			$name = $o->{object_name};
 			$name =~ s/\$|\%|\&|\@//g;
 			print_log "json: object name=$name ref=" . ref $o if $Debug{json};
-			$json{objects}{$name} = &json_object_detail( $o, %fields );
+			if (my $data = &json_object_detail( $o, %options )){
+				$json{objects}{$name} = $data;
+			}
 		}
 	}
 
 	# List subroutines
 	if ( $request{subs} ) {
 		my $name;
-		if ( $request{subs}{members} and @{ $request{subs}{members} } ) {
-			foreach my $member ( @{ $request{subs}{members} } ) {
+		if ( $request{subs} and @{ $request{subs} } ) {
+			foreach my $member ( @{ $request{subs} } ) {
 				no strict 'refs';
 				my $ref;
 				eval "\$ref = \\$member";
@@ -206,9 +210,9 @@ sub json {
 
 	# List packages
 	if ( $request{packages} or $request{package} ) {
-		if ( $request{packages}{members} and @{ $request{packages}{members} } )
+		if ( $request{packages} and @{ $request{packages} } )
 		{
-			foreach my $member ( @{ $request{packages}{members} } ) {
+			foreach my $member ( @{ $request{packages} } ) {
 				no strict 'refs';
 				my ( $type, $base ) = $member =~ /^(.)(.*)/;
 				my $ref;
@@ -232,12 +236,12 @@ sub json {
 
 	# List Global vars
 	if ( $request{vars} or $request{var} ) {
-		if (   ( $request{vars}{members} and @{ $request{vars}{members} } )
-			or ( $request{var}{members} and @{ $request{var}{members} } ) )
+		if (   ( $request{vars} and @{ $request{vars} } )
+			or ( $request{var} and @{ $request{var} } ) )
 		{
 
-			foreach my $member ( @{ $request{vars}{members} },
-				@{ $request{var}{members} } )
+			foreach my $member ( @{ $request{vars} },
+				@{ $request{var} } )
 			{
 				no strict 'refs';
 				my ( $type, $name ) = $member =~ /^([\$\@\%\&])?(.+)/;
@@ -324,20 +328,17 @@ sub json {
 	if ( $request{print_log} ) {
 		my @log;
 		my $name;
-		if ($options{time}{active}){
-			my ($time) = $options{time}{members}[0];
-			if (int($time) >= int(::print_log_current_time())
-				&& $options{long_poll}{active}){
-				#This is used by the long_poll request type if there is nothing
-				#to return, we need to return an empty response
-				return;
-			}
+		my $time = $options{time}[0];
+		if ($options{time} 
+			&& int($time) < int(::print_log_current_time())){
+			#Only return messages since time
 			@log = ::print_log_since($time);
-		} else {
+		} elsif (!$options{time}) {
 			@log = ::print_log_since();
 		}
-		$json{'print_log'}{text} = \@log;
-		$json{'print_log'}{time} = ::print_log_current_time();
+		if (scalar(@log) > 0) {
+			$json{'print_log'}{text} = \@log;
+		}
 	}
 
 	# List hash values
@@ -349,8 +350,8 @@ sub json {
 		my $req = lc $hash;
 		my $ref = \%::;
 		next unless $request{$req};
-		if ( $request{$req}{members} and @{ $request{$req}{members} } ) {
-			foreach my $member ( @{ $request{$req}{members} } ) {
+		if ( $request{$req} and @{ $request{$req} } ) {
+			foreach my $member ( @{ $request{$req} } ) {
 				my $iref = \${$ref}{$hash}{$member};
 				my ($k, $r) = &json_walk_var( $iref, "$hash\{$member\}" );
 				$json{$hash}{$member} = $r;
@@ -361,10 +362,21 @@ sub json {
 		}
 	}
 	print_log Dumper(%json) if $Debug{json};
-    $json = JSON->new->allow_nonref;
-	# Translate special characters
-	$json = $json->pretty->encode( \%json );
-	return &json_page($json);
+	if ((!$options{long_poll}) || %json){
+		#Insert time, used to determine if things have changed
+		$json{time} = $output_time;
+		#Insert the query we were sent, for debugging and updating
+		#$json{request} = [split(',', $request)];
+		#$json{options} =  [split(',', $options)];
+		$json{request} = \%request;
+		$json{options} =  \%options;		
+		#Only return an empty set if long_poll is not active
+	    $json = JSON->new->allow_nonref;
+		# Translate special characters
+		$json = $json->pretty->encode( \%json );
+		return &json_page($json);
+	}
+	return;
 }
 
 sub json_walk_var {
@@ -459,13 +471,35 @@ sub json_walk_var {
 }
 
 sub json_object_detail {
-	my ( $object, %fields ) = @_;
+	my ( $object, %options ) = @_;
+	my %fields;
+	foreach ( @{ $options{fields} } ) {
+		$fields{$_} = 1;
+	}
 	return if exists $fields{none} and $fields{none};
 	my $ref = ref \$object;
 	return unless $ref eq 'REF';
 	return if $object->can('hidden') and $object->hidden;
 	$fields{all} = 1 unless %fields;
 	my $object_name = $object->{object_name};
+	
+	my $time = $options{time}[0];
+	if ($options{time}){
+		if (!($object->can('get_idle_time'))){
+			#Items that do not have an idle time do not get reported at all in updates
+			return;
+		}
+		elsif ($object->get_idle_time eq ''){
+			#Items that have NEVER been set to a state have a null idle time
+			return;
+		}
+		elsif (int($time) >= (int(::get_tickcount) - ($object->get_idle_time*1000))) {
+			#Should get_tickcount be replaced with output_time??
+			#Object has not changed since time, so return undefined
+			return;
+		}
+	}
+
 	my %json_objects;
 	my @f = qw( category filename measurement rf_id set_by
 	  state states state_log type label

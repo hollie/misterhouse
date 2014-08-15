@@ -1,4 +1,5 @@
 var collection_json;  //global storage for collection database
+var entity_store = {}; //global storage of entities
 
 //Takes the current location and parses the achor element into a hash
 function URLToHash() {
@@ -120,10 +121,11 @@ var loadList = function(listType,listValue,collection_key) {
 		if (listType == 'groups') {
 			recursive = ',not_recursive';
 		}
-		url = "/sub?json("+listType+"="+listValue+",'fields=text|type|state|states|label"+recursive+"')";
+		url = "/sub?json("+listType+"="+listValue+",'fields=text|type|state|states|label|idle_time"+recursive+"')";
 	} 
 	else {
-		url = "/sub?json("+listType+",truncate)";
+		var recursive = ',not_recursive';
+		url = "/sub?json("+listType+",'fields=text|type|state|states|label|idle_time"+recursive+"')";
 	}
 	$.ajax({
 	type: "GET",
@@ -135,6 +137,10 @@ var loadList = function(listType,listValue,collection_key) {
 		var entity_arr = [];
 		var list_output = "";
 		for (var json_type in json){
+			if (json_type == 'time' || json_type == 'request' || json_type == 'options') {
+				//These are management values
+				continue;
+			}
 			if (json_type.toLowerCase() == 'save' || json_type.toLowerCase() == 'vars' ){ //variables list
 				var keys = [];
 				for (var key in json[json_type]) {
@@ -160,9 +166,9 @@ var loadList = function(listType,listValue,collection_key) {
 					entity_arr.push(button_html);
 					continue;
 				}//end truncated list
-				for (var entity in json[listType][division]){
-					if (json[listType][division][entity].type == "Voice_Cmd"){
-						button_text = json[listType][division][entity].text;
+				for (var entity in json[json_type][division]){
+					if (json[json_type][division][entity].type == "Voice_Cmd"){
+						button_text = json[json_type][division][entity].text;
 						//Choose the first alternative of {} group
 						while (button_text.indexOf('{') >= 0){
 							var regex = /([^\{]*)\{([^,]*)[^\}]*\}(.*)/;
@@ -196,27 +202,26 @@ var loadList = function(listType,listValue,collection_key) {
 						}
 						entity_arr.push(button_html);
 					} //Voice Command Button
-					else if(json[listType][division][entity].type == "Group"){
-						var object = json[listType][division][entity];
+					else if(json[json_type][division][entity].type == "Group"){
+						var object = json[json_type][division][entity];
 						button_text = entity;
 						if (object.label !== undefined) button_text = object.label;
 						//Put entities into button
-						button_html = "<div style='vertical-align:middle'><a role='button' listType='"+listType+"'";
+						button_html = "<div style='vertical-align:middle'><a role='button' listType='"+json_type+"'";
 						button_html += "class='btn btn-default btn-lg btn-block btn-list btn-division'";
-						button_html += "href='#request=list&collection_key="+collection_key+",$" + entity + "&type="+listType+"&name="+entity+"' >";
+						button_html += "href='#request=list&collection_key="+collection_key+",$" + entity + "&type="+json_type+"&name="+entity+"' >";
 						button_html += "" +button_text+"</a></div>";
 						entity_arr.push(button_html);
 						continue;
 					}
 					else {
-						var object = json[listType][division][entity];
-						var state = object.state;
+						entity_store[entity] = json[json_type][division][entity];
 						var name = entity;
-						if (object.label !== undefined) name = object.label;
+						if (entity_store[entity].label !== undefined) name = entity_store[entity].label;
 						//Put objects into button
 						button_html = "<div style='vertical-align:middle'><button entity='"+entity+"' division='"+division+"' ";
 						button_html += "class='btn btn-default btn-lg btn-block btn-list btn-popover btn-state-cmd'>";
-						button_html += name+"<span class='pull-right'>"+state+"</span></button></div>";
+						button_html += name+"<span class='pull-right'>"+entity_store[entity].state+"</span></button></div>";
 						entity_arr.push(button_html);
 					} //Not voice command button
 				}//entity each loop
@@ -266,12 +271,15 @@ var loadList = function(listType,listValue,collection_key) {
 			});
 		});
 		$(".btn-state-cmd").click( function () {
+			var entity = $(this).attr("entity");
+			var name = entity;
+			if (entity_store[entity].label !== undefined) name = entity_store[entity].label;
 			$('#control').modal('show');
-			var modal_state = json[listType][$(this).attr("division")][$(this).attr("entity")].state;
-			$('#control').find('.object-title').html($(this).attr("entity") + " - " + modal_state);
-			$('#control').find('.control-dialog').attr("entity", $(this).attr("entity"));
+			var modal_state = entity_store[entity].state;
+			$('#control').find('.object-title').html(name + " - " + entity_store[entity].state);
+			$('#control').find('.control-dialog').attr("entity", entity);
 			$('#control').find('.states').html('<div class="btn-group"></div>');
-			var modal_states = json[listType][$(this).attr("division")][$(this).attr("entity")].states;
+			var modal_states = entity_store[entity].states;
 			for (var i = 0; i < modal_states.length; i++){
 				$('#control').find('.states').find('.btn-group').append("<button class='btn btn-default'>"+modal_states[i]+"</button>");
 			}
@@ -281,9 +289,76 @@ var loadList = function(listType,listValue,collection_key) {
 				$.get( url);
 			});
 		});
+		
+		// Continuously check for updates if this was a group type request
+		updateList(json['request'], json['options'], json['time']);
 		}//success function
 	});  //ajax request
 };//loadlistfunction
+
+//Used to dynamically update the state of a list
+var updateList = function(request, options, time) {
+	//There is probably a better way to rebuild the query, but this works
+	options['long_poll'] = [];
+	options['time'] = [time];
+	var args = "'";
+	var i = 0;
+	for (var key in request) {
+		if (i > 0) {
+			args += ",";
+		}
+		args += key + "=" + request[key].join('|');
+		i++;
+	}
+	args += "','";
+	i = 0;
+	for (var key in options) {
+		if (i > 0) {
+			args += ",";
+		}
+		args += key + "=" + options[key].join('|');
+		i++;
+	}
+	args +="'";
+	var url = "/LONG_POLL?json("+args+")";
+	$.ajax({
+		type: "GET",
+		url: url,
+		dataType: "json",
+		success: function( json, textStatus, jqXHR) {
+			var requestTime = time;
+			if (jqXHR.status == 200) {
+				for (var json_type in json){
+					//we likely want a specific parser for handling the JSON response
+					if (json_type == 'time' || json_type == 'request' || json_type == 'options') {
+						//These are management values
+						continue;
+					}
+					for (var division in json[json_type]){
+						for (var entity in json[json_type][division]){
+							$('button[entity="'+entity+'"]').find('.pull-right').text(
+								json[json_type][division][entity]['state']
+							);
+							entity_store[entity].state = json[json_type][division][entity]['state'];
+						}
+					}
+				}
+				requestTime = json['time'];
+			}
+			if (jqXHR.status == 200 || jqXHR.status == 204) {
+				//Call update again, if page is still here
+				//KRK best way to handle this is likely to check the URL hash
+				var urlHash = URLToHash();
+				if (urlHash['name'] == request['groups'][0]){
+					//While we don't anticipate handling a list of groups, this 
+					//may error out if a list was used
+					updateList(request, options, requestTime);
+				}
+			}
+		}, // End success
+	});  //ajax request
+};//loadlistfunction
+
 
 //Prints all of the navigation items for Ia7
 var loadCollection = function(collection_keys) {
@@ -353,19 +428,28 @@ var print_log = function(time) {
 		time = 0;
 	}
 	$.ajax({
-	type: "GET",
-	url: "/LONG_POLL?json('print_log','time="+time+",long_poll')",
-	dataType: "json",
-	success: function( json ) {
-		for (var i = (json.print_log.text.length-1); i >= 0; i--){
-			var line = String(json.print_log.text[i]);
-			line = line.replace(/\n/g,"<br>");
-			$('#list').prepend("<li style='font-family:courier, monospace;white-space:pre-wrap;font-size:small;padding-left: 13em;text-indent: -13em;position:relative;'>"+line+"</li>");
+		type: "GET",
+		url: "/LONG_POLL?json('print_log','time="+time+",long_poll')",
+		dataType: "json",
+		success: function( json, statusText, jqXHR ) {
+			var requestTime = time;
+			if (jqXHR.status == 200) {
+				for (var i = (json.print_log.text.length-1); i >= 0; i--){
+					var line = String(json.print_log.text[i]);
+					line = line.replace(/\n/g,"<br>");
+					$('#list').prepend("<li style='font-family:courier, monospace;white-space:pre-wrap;font-size:small;padding-left: 13em;text-indent: -13em;position:relative;'>"+line+"</li>");
+				}
+				requestTime = json['time'];
+			}
+			if (jqXHR.status == 200 || jqXHR.status == 204) {
+				//Call update again, if page is still here
+				//KRK best way to handle this is likely to check the URL hash
+				if ($('#row_log').length !== 0){
+					//If the print log page is still active request more data
+					print_log(requestTime);
+				}
+			}		
 		}
-		if ($('#row_log').length !== 0){
-			print_log(json.print_log.time);
-		}
-	}
 	});
 };
 
