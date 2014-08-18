@@ -129,7 +129,7 @@ if (done_now $p_mhdl_page) {
 if (done_now $p_mhdl_date_page) {
     my @html = file_read($mhdl_date_file);
     print_log("Download date page retrieved");
-    my $json = decode_json( @html );
+    my $json = JSON::PP::decode_json( @html );
     $Save{mhdl_date} = $json->{commit}{author}{date};
    if (defined $Save{mhdl_maj} and defined $Save{mhdl_min}) {
 	my ($maj,$min,$version_str) = &parse_version();
