@@ -101,8 +101,6 @@ if (said $v_mhdl_page) {
 
 if (done_now $p_mhdl_page) {
     my @html = file_read($mhdl_file);
-#print Dumper(@html);
-#print "Using JSON::PP module version: $JSON::PP::VERSION\n";
     print_log("Download page retrieved");
     my $json = decode_json( @html );
     my ($mhdl_date_url, $maj, $min);
