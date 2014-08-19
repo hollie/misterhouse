@@ -44,136 +44,61 @@ use JSON;
 use IO::Compress::Gzip qw(gzip);
 
 sub json {
-	my ( $request, $options ) = @_;
-	my ( %json, $json, $json_types, $json_groups, $json_categories, $json_vars,
-		$json_objects );
+	my ( $method, $path, $args ) = @_;
+	my ( %json, %json_data, $json_vars, $json_objects);
 	my $output_time = ::get_tickcount();
 
-	return &json_usage unless $request;
+	# Remove leading and trailing slashes
+	$path =~ s/^\/|\/$//g;
+	my @path = split ('/', $path);
 
-	my %request;
-	foreach ( split ',', $request ) {
+	my %args;
+	foreach ( split '&', $args ) {
 		my ( $k, undef, $v ) = /(\w+)(=(.+))?/;
-		$request{$k} = [ split /\|/, $v ] ;#if $k and $v;
+		$args{$k} = [ split /,/, $v ] ;
 	}
 
-	my %options;
-	foreach ( split ',', $options ) {
-		my ( $k, undef, $v ) = /(\w+)(=(.+))?/;
-		$options{$k} = [ split /\|/, $v ] ;#if $k and $v;
-	}
+	print_log "json: method= $method path=$path args=$args" if $Debug{json};
 
-	print_log "json: request=$request options=$options" if $Debug{json};
-
-	# List objects by type
-	if ( $request{types} ) {
-		my @types;
-		my $name;
-		if ( $request{types} and @{ $request{types} } ) {
-			@types = @{ $request{types}};
-		}
-		else {
-			@types = @Object_Types;
-		}
+	# List known types
+	if ($path[0] eq 'types' || $path[0] eq '') {
+		my @types = @Object_Types;
+		$json_data{'types'} = [];
 		foreach my $type ( sort @types ) {
 			print_log "json: type $type" if $Debug{json};
-			$type =~ s/\$|\%|\&|\@//g;
-			if ( $options{truncate} ) {
-				$json{'types'}{$type} = {};
-			}
-			else {
-				foreach my $object ( sort &list_objects_by_type($type) ) {
-					$object = &get_object_by_name($object);
-					$name   = $object->{object_name};
-					$name =~ s/\$|\%|\&|\@//g;
-					if (my $data = &json_object_detail( $object, %options )){
-						$json{'types'}{$type}{$name} = $data;
-					}
-				}
-			}
+			push($json_data{'types'}, $type);
 		}
 	}
 
-	# List objects by groups
-	if ( $request{groups} ) {
-		my @groups;
-		my $name;
-		if ( $request{groups} and @{ $request{groups} } ) {
-			@groups = @{ $request{groups} };
-		}
-		else {
-			@groups = &list_objects_by_type('Group');
-		}
+	# List known groups
+	if ($path[0] eq 'groups' || $path[0] eq '') {
+		my @groups = &list_objects_by_type('Group');
+		$json_data{'groups'} = [];
 		foreach my $group ( sort @groups ) {
 			print_log "json: group $group" if $Debug{json};
-			my $group_object = &get_object_by_name($group);
-			next unless $group_object;
 			$group =~ s/\$|\%|\&|\@//g;
-			if ( $options{truncate} ) {
-				$json{'groups'}{$group} = {};
-			}
-			else {
-				my $not_recursive = 0;
-				$not_recursive = 1 if ($options{not_recursive});
-				foreach my $object ( 
-					$group_object->list(undef, undef,$not_recursive)
-					) {
-					$name = $object->{object_name};
-					$name =~ s/\$|\%|\&|\@//g;
-					if (my $data = &json_object_detail( $object, %options )){
-						$json{'groups'}{$group}{$name} = $data;
-					}
-				}
-			}
+			push($json_data{'groups'}, $group);
 		}
 	}
 
-	# List voice commands by category
-	if ( $request{categories} ) {
-		my @categories;
-		my $name;
-		if ( $request{categories}
-			and @{ $request{categories} } )
-		{
-			@categories = @{ $request{categories} };
-		}
-		else {
-			@categories = &list_code_webnames('Voice_Cmd');
-		}
+	# List known categories
+	if ($path[0] eq 'categories' || $path[0] eq '') {
+		my @categories = &list_code_webnames('Voice_Cmd');
+		$json_data{'categories'} = [];
 		for my $category ( sort @categories ) {
 			print_log "json: cat $category" if $Debug{json};
-			next if $category =~ /^none$/;
-			$category =~ s/\$|\%|\&|\@//g;
-			if ( $options{truncate} ) {
-				$json{categories}{$category} = {};
-			}
-			else {
-				foreach my $name ( sort &list_objects_by_webname($category) ) {
-					my ( $object, $type );
-					$object = &get_object_by_name($name);
-					$name   = $object->{object_name};
-					$name =~ s/\$|\%|\&|\@//g;
-					$type   = ref $object;
-					print_log "json: o $name t $type" if $Debug{json};
-					next unless $type eq 'Voice_Cmd';
-					if (my $data = &json_object_detail( $object, %options )){
-						$json{categories}{$category}{$name} = $data;
-					}
-				}
-			}
+			push($json_data{'categories'}, $category);
 		}
 	}
 
 	# List objects
-	if ( $request{objects} ) {
+	if ($path[0] eq 'objects' || $path[0] eq '') {
+		# Group memberships are stored only as group->item associations
+		# This converts that to items->groups 
+		my $object_group = json_group_field();
 		my @objects;
-		if ( $request{objects} and @{ $request{objects} } ) {
-			@objects = @{ $request{objects} };
-		}
-		else {
-			foreach my $object_type (@Object_Types) {
-				push @objects, &list_objects_by_type($object_type);
-			}
+		foreach my $object_type (list_object_types()) {
+			push @objects, &list_objects_by_type($object_type);
 		}
 		foreach my $o ( map { &get_object_by_name($_) } sort @objects ) {
 			next unless $o;
@@ -181,164 +106,83 @@ sub json {
 			$name = $o->{object_name};
 			$name =~ s/\$|\%|\&|\@//g;
 			print_log "json: object name=$name ref=" . ref $o if $Debug{json};
-			if (my $data = &json_object_detail( $o, %options )){
-				$json{objects}{$name} = $data;
+			if (my $data = &json_object_detail( $o, \%args, $object_group )){
+				$json_data{objects}{$name} = $data;
 			}
 		}
 	}
 
 	# List subroutines
-	if ( $request{subs} ) {
+	if ($path[0] eq 'subs' || $path[0] eq '') {
 		my $name;
-		if ( $request{subs} and @{ $request{subs} } ) {
-			foreach my $member ( @{ $request{subs} } ) {
-				no strict 'refs';
-				my $ref;
-				eval "\$ref = \\$member";
-				print_log "json subs error: $@" if $@;
-				$json{subs}{$member} = &json_walk_var( $ref, $member, ('CODE') );
-				print_log Dumper(%json) if $Debug{json};
-			}
-		}
-		else {
-			my $ref = \%::;
-			foreach my $key ( sort { lc $a cmp lc $b } keys %$ref ) {
-				my $iref = ${$ref}{$key};
-				$json{subs}{$key} = &json_walk_var( $iref, $key, ('CODE') );
-			}
+		my $ref = \%::;
+		foreach my $key ( sort { lc $a cmp lc $b } keys %$ref ) {
+			my $iref = ${$ref}{$key};
+			$json_data{subs}{$key} = &json_walk_var( $iref, $key, ('CODE') );
 		}
 	}
 
 	# List packages
-	if ( $request{packages} or $request{package} ) {
-		if ( $request{packages} and @{ $request{packages} } )
-		{
-			foreach my $member ( @{ $request{packages} } ) {
-				no strict 'refs';
-				my ( $type, $base ) = $member =~ /^(.)(.*)/;
-				my $ref;
-				eval "\$ref = \\$member";
-				print_log "json packages error: $@" if $@;
-				$json{packages}{$member} =
-				  &json_walk_var( $ref, $member, qw( SCALAR ARRAY HASH CODE ) );
-			}
+	if ($path[0] eq 'packages' || $path[0] eq '') {
+		my $ref = \%::;
+		foreach my $key ( sort { lc $a cmp lc $b } keys %$ref ) {
+			next unless $key =~ /.+::$/;
+			next if $key eq 'main::';
+			my $iref = ${$ref}{$key};
+			my ($k, $r) = &json_walk_var( $iref, $key, qw( SCALAR ARRAY HASH CODE ) );
+			$json_data{packages}{$k} = $r if $k ne "";
 		}
-		else {
-			my $ref = \%::;
-			foreach my $key ( sort { lc $a cmp lc $b } keys %$ref ) {
-				next unless $key =~ /.+::$/;
-				next if $key eq 'main::';
-				my $iref = ${$ref}{$key};
-				my ($k, $r) = &json_walk_var( $iref, $key, qw( SCALAR ARRAY HASH CODE ) );
-				$json{packages}{$k} = $r if $k ne "";
-			}
-		}
+
 	}
 
 	# List Global vars
-	if ( $request{vars} or $request{var} ) {
-		if (   ( $request{vars} and @{ $request{vars} } )
-			or ( $request{var} and @{ $request{var} } ) )
-		{
+	if ($path[0] eq 'vars' || $path[0] eq '') {
+		my $ref = \%::;
+		my %json_vars;
+		foreach my $key ( sort { lc $a cmp lc $b } keys %$ref ) {
+			next unless $key =~ /^[[:print:]]+$/;
+			next if $key =~ /::$/;
+			next if $key =~ /^.$/;
+			next if $key =~ /^__/;
+			next if $key =~ /^_</;
+			next if $key eq 'ARGV';
+			next if $key eq 'CARP_NOT';
+			next if $key eq 'ENV';
+			next if $key eq 'INC';
+			next if $key eq 'ISA';
+			next if $key eq 'SIG';
+			next if $key eq 'config_parms';    # Covered elsewhere
+			next if $key eq 'Menus';           # Covered elsewhere
+			next if $key eq 'photos';          # Covered elsewhere
+			next if $key eq 'Save';            # Covered elsewhere
+			next if $key eq 'Socket_Ports';    # Covered elsewhere
+			next if $key eq 'triggers';        # Covered elsewhere
+			next if $key eq 'User_Code';       # Covered elsewhere
+			next if $key eq 'Weather';         # Covered elsewhere
+			my $iref = ${$ref}{$key};
 
-			foreach my $member ( @{ $request{vars} },
-				@{ $request{var} } )
-			{
-				no strict 'refs';
-				my ( $type, $name ) = $member =~ /^([\$\@\%\&])?(.+)/;
-				my $ref;
-				my @types = ("\$","\@","\%", "\&");
-				my $rtype;
-				my $var;
-				my $valid=0;
-				foreach (@types){
-					$type = $_;
-					$var = $_ .$name;
-					if (eval "defined $var"){
-						$rtype = eval "ref $var";
-						$member = $var;
-						$valid=1;
-						last;
-					}
-				}
-				unless( $valid == 1 ){
-					$json{vars}{$name} = "Undefined";
-					$type=undef;
-					$rtype=undef;
-				}
-				if ( $rtype and $type ) {
-					eval "\$ref = \\$type\{ \$$name \}";
-					$json{vars} = &json_walk_var( $ref, $name ) if $ref;
-				}
-				elsif ($type) {
-					eval "\$ref = \\$member";
-					my %res;
-					if ($ref){
-						 my ($k, $r) = &json_walk_var( $ref, $name );
-						 $json{vars}{$k} = $r;
-					}
-				}
-				elsif ( $member =~ /.+::$/ ) {
-					eval "\$ref = \\\%$member";
-					$json{vars} =
-					  &json_walk_var( $ref, $name,
-						qw( SCALAR ARRAY HASH CODE ) )
-					  if $ref;
-				}
-				elsif ($valid == 1) {
-					eval "\$ref = $member";
-					$json{vars} = &json_walk_var( $ref, $name ) if $ref;
-				}
-				print_log "json: assignment eval error = $@" if $@;
-			}
+			# this is for constants
+			$iref = $$iref if ref $iref eq 'SCALAR';
+			%json_vars = ( %json_vars, &json_walk_var( $iref, $key ) );
 		}
-		else {
-			my $ref = \%::;
-			my %json_vars;
-			foreach my $key ( sort { lc $a cmp lc $b } keys %$ref ) {
-				next unless $key =~ /^[[:print:]]+$/;
-				next if $key =~ /::$/;
-				next if $key =~ /^.$/;
-				next if $key =~ /^__/;
-				next if $key =~ /^_</;
-				next if $key eq 'ARGV';
-				next if $key eq 'CARP_NOT';
-				next if $key eq 'ENV';
-				next if $key eq 'INC';
-				next if $key eq 'ISA';
-				next if $key eq 'SIG';
-				next if $key eq 'config_parms';    # Covered elsewhere
-				next if $key eq 'Menus';           # Covered elsewhere
-				next if $key eq 'photos';          # Covered elsewhere
-				next if $key eq 'Save';            # Covered elsewhere
-				next if $key eq 'Socket_Ports';    # Covered elsewhere
-				next if $key eq 'triggers';        # Covered elsewhere
-				next if $key eq 'User_Code';       # Covered elsewhere
-				next if $key eq 'Weather';         # Covered elsewhere
-				my $iref = ${$ref}{$key};
-
-				# this is for constants
-				$iref = $$iref if ref $iref eq 'SCALAR';
-				%json_vars = ( %json_vars, &json_walk_var( $iref, $key ) );
-			}
-			$json{vars} = \%json_vars;
-		}
+		$json_data{vars} = \%json_vars;
 	}
 
 	# List print_log phrases
-	if ( $request{print_log} ) {
+	if ( $path[0] eq 'print_log' || $path[0] eq '' ) {
 		my @log;
 		my $name;
-		my $time = $options{time}[0];
-		if ($options{time} 
+		my $time = $args{time}[0];
+		if ($args{time} 
 			&& int($time) < int(::print_log_current_time())){
 			#Only return messages since time
 			@log = ::print_log_since($time);
-		} elsif (!$options{time}) {
+		} elsif (!$args{time}) {
 			@log = ::print_log_since();
 		}
 		if (scalar(@log) > 0) {
-			$json{'print_log'}{text} = \@log;
+			$json_data{'print_log'} = [];
+			push($json_data{'print_log'}, @log);
 		}
 	}
 
@@ -346,38 +190,60 @@ sub json {
 	foreach my $hash (
 		qw( config_parms Menus photos Save Socket_Ports triggers
 		User_Code Weather )
-	  )
-	{
-		my $req = lc $hash;
-		my $ref = \%::;
-		next unless $request{$req};
-		if ( $request{$req} and @{ $request{$req} } ) {
-			foreach my $member ( @{ $request{$req} } ) {
-				my $iref = \${$ref}{$hash}{$member};
-				my ($k, $r) = &json_walk_var( $iref, "$hash\{$member\}" );
-				$json{$hash}{$member} = $r;
-			}
+	  ){
+	  	if ( $path[0] eq $hash || $path[0] eq '' ) {
+			my $req = lc $hash;
+			my $ref = \%::;
+			$json_data{$hash} = {json_walk_var(${$ref}{$hash},$hash)}->{$hash};
+	  	}
+	}
+	
+	print_log Dumper(%json) if $Debug{json};
+	if ((!$args{long_poll}) || %json){
+		#Insert time, used to determine if things have changed
+		$json{meta}{time} = $output_time;
+		#Insert the query we were sent, for debugging and updating
+		$json{meta}{request} = \@path;
+		$json{meta}{options} =  \%args;		
+		#Merge in appropriate Data and Data
+		if (scalar(@path) > 0) {
+			%json = %{json_get_sub_element(\@path, \%json_data, \%json)};
 		}
 		else {
-			%json = &json_walk_var( ${$ref}{$hash}, $hash );
+			$json{data} = \%json_data;
 		}
-	}
-	print_log Dumper(%json) if $Debug{json};
-	if ((!$options{long_poll}) || %json){
-		#Insert time, used to determine if things have changed
-		$json{time} = $output_time;
-		#Insert the query we were sent, for debugging and updating
-		#$json{request} = [split(',', $request)];
-		#$json{options} =  [split(',', $options)];
-		$json{request} = \%request;
-		$json{options} =  \%options;		
-		#Only return an empty set if long_poll is not active
-	    $json = JSON->new->allow_nonref;
+		
+	    my $json_raw = JSON->new->allow_nonref;
 		# Translate special characters
-		$json = $json->pretty->encode( \%json );
-		return &json_page($json);
+		$json_raw = $json_raw->pretty->encode( \%json );
+		return &json_page($json_raw);
 	}
 	return;
+}
+
+sub json_get_sub_element {
+	my ($element_ref, $json_ref, $out_ref, $error_path) = @_;
+	$error_path = "/" unless $error_path;
+	my $path = shift(@{$element_ref});
+	$error_path .= $path . "/";
+	if (ref $json_ref eq 'HASH' && exists $json_ref->{$path}){
+		if (scalar(@{$element_ref}) > 0){
+			return json_get_sub_element($element_ref, $json_ref->{$path}, $out_ref, $error_path);
+		}
+		else {
+			#This is the end of the line
+			$out_ref->{data} = $json_ref->{$path};
+			return $out_ref;
+		}
+	}
+	else {
+		#Error this path is invalid
+		$out_ref->{error} = {
+			'msg' 		=> 'Path does not exist.',
+			'detail' 	=> $error_path
+		};
+		return $out_ref;
+	}
 }
 
 sub json_walk_var {
@@ -472,9 +338,9 @@ sub json_walk_var {
 }
 
 sub json_object_detail {
-	my ( $object, %options ) = @_;
+	my ( $object, $args, $object_group ) = @_;
 	my %fields;
-	foreach ( @{ $options{fields} } ) {
+	foreach ( @{ $args->{fields} } ) {
 		$fields{$_} = 1;
 	}
 	return if exists $fields{none} and $fields{none};
@@ -484,8 +350,8 @@ sub json_object_detail {
 	$fields{all} = 1 unless %fields;
 	my $object_name = $object->{object_name};
 	
-	my $time = $options{time}[0];
-	if ($options{time}){
+	my $time = $args->{time}[0];
+	if ($time > 0){
 		if (!($object->can('get_idle_time'))){
 			#Items that do not have an idle time do not get reported at all in updates
 			return;
@@ -542,7 +408,27 @@ sub json_object_detail {
 		}
 		$json_objects{$f} = $value if defined $value;
 	}
+
+	$json_objects{groups} = $object_group->{$object_name} if defined $object_group->{$object_name};
 	return \%json_objects;
+}
+
+sub json_group_field {
+	my %object_group;
+	
+	my @groups = &list_objects_by_type('Group');
+	foreach my $group ( sort @groups ) {
+		my $group_object = &get_object_by_name($group);
+		foreach my $object ( 
+			$group_object->list(undef, undef,1)
+			) {
+			my $name = $object->{object_name};
+			$group =~ s/\$|\%|\&|\@//g;
+			push (@{$object_group{$name}}, $group);
+		}
+	}
+	
+	return \%object_group;
 }
 
 sub json_page {
@@ -587,7 +473,7 @@ eof
 	my @requests = qw( types groups categories config_parms socket_ports
 	  user_code weather save objects photos subs menus triggers packages vars print_log);
 
-	my %options = (
+	my %args = (
 		fields => {
 			applyto => 'types|groups|categories|objects',
 		},
@@ -598,13 +484,13 @@ eof
 	foreach my $r (@requests) {
 		my $url = "/sub?json($r)";
 		$html .= "<h2>$r</h2>\n<p><a href='$url'>$url</a></p>\n<ul>\n";
-		foreach my $opt ( sort keys %options ) {
-			if ( $options{$opt}{applyto} eq 'all' or grep /^$r$/,
-				split /\|/, $options{$opt}{applyto} )
+		foreach my $opt ( sort keys %args ) {
+			if ( $args{$opt}{applyto} eq 'all' or grep /^$r$/,
+				split /\|/, $args{$opt}{applyto} )
 			{
 				$url = "/sub?json($r,$opt";
-				if ( defined $options{$opt}{example} ) {
-					foreach ( split /\|/, $options{$opt}{example} ) {
+				if ( defined $args{$opt}{example} ) {
+					foreach ( split /\|/, $args{$opt}{example} ) {
 						print_log "json: r $r opt $opt ex $_" if $Debug{json};
 						$html .= "<li><a href='$url=$_)'>$url=$_)</a></li>\n";
 					}
