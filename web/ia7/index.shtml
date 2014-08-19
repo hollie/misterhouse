@@ -22,6 +22,12 @@
 	<link href="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.5.0/bootstrap3-editable/css/bootstrap-editable.css" rel="stylesheet"/>
   <script src="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.5.0/bootstrap3-editable/js/bootstrap-editable.min.js"></script>
 	
+	<!-- A custom jquery UI script to enable sortable items -->
+	<script src="include/jquery-ui-1.11.1.custom.min.js"></script>
+	
+	<!-- Enables Jquery UI functions to work on touch interfaces -->
+  <script src="//cdnjs.cloudflare.com/ajax/libs/jqueryui-touch-punch/0.2.3/jquery.ui.touch-punch.min.js"></script>
+	
 	<!-- ia7 JS File-->
 	<script src="/ia7/include/javascript.js"></script>
 	
@@ -82,7 +88,12 @@
 <body>
 <div class='row'>
 	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
-		  <h3>MisterHouse</h3>
+		  <h3>
+		  	MisterHouse
+			  <button id="toolButton" type="button" class="btn btn-default pull-right">
+  				<i class="fa fa-gear"></i>
+				</button>
+		  </h3>
 		<ol id='nav' class="breadcrumb">
 		</ol>
 	</div>
@@ -132,6 +143,25 @@
     </div><!-- /.modal-content -->
   </div><!-- /.modal-dialog -->
 </div><!-- /.modal -->
+<!-- Tool Modal -->
+<div class="modal fade" id="optionsModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog options-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title" id="myModalLabel"><span class="object-title"></span>
+	        <div class="btn-group btn-group-sm pull-right">
+	        	<button type="button" class="btn btn-default" data-dismiss="modal"><i class="fa fa-times"></i></button>
+	        </div>
+        </h4>
+      </div>
+      <div class="modal-body">
+        <div id="options">
+        </div>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
 <script type="text/javascript">
 
 </script>

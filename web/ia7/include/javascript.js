@@ -1,5 +1,6 @@
 var collection_json;  //global storage for collection database
 var entity_store = {}; //global storage of entities
+var updateSocket;
 
 //Takes the current location and parses the achor element into a hash
 function URLToHash() {
@@ -351,7 +352,11 @@ var updateList = function(request, options, time) {
 	}
 	args +="'";
 	var url = "/LONG_POLL?json("+args+")";
-	$.ajax({
+	if (updateSocket !== undefined && updateSocket.readyState != 4){
+		// Only allow one update thread to run at once
+		updateSocket.abort();
+	}
+	updateSocket = $.ajax({
 		type: "GET",
 		url: url,
 		dataType: "json",
@@ -554,5 +559,18 @@ $(document).ready(function() {
 	//Watch for future changes in hash
 	$(window).bind('hashchange', function() {
 		changePage();
+	});
+	$("#toolButton").click( function () {
+		var entity = $("#toolButton").attr('entity');
+		console.log(entity);
+		$('#optionsModal').modal('show');
+		$('#optionsModal').find('.object-title').html(entity + " - Options");
+		$('#optionsModal').find('.options-dialog').attr("entity", entity);
+		$('#optionsModal').find('#options').html('<ul id="sortable" class="list-group"></ul>');
+		for (var i = 0; i <= entity_store[entity].sort_order.length; i++){
+			$('#sortable').append('<li class="list-group-item">'+entity_store[entity].sort_order[i]+'</li>');
+		}
+		$( "#sortable" ).sortable();
+        //$( "#sortable" ).disableSelection();
 	});
 });
