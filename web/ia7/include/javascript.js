@@ -121,11 +121,11 @@ var loadList = function(listType,listValue,collection_key) {
 		if (listType == 'groups') {
 			recursive = ',not_recursive';
 		}
-		url = "/sub?json("+listType+"="+listValue+",'fields=text|type|state|states|label|idle_time"+recursive+"')";
+		url = "/sub?json("+listType+"="+listValue+",'fields=text|type|state|states|label|idle_time|sort_order"+recursive+"')";
 	} 
 	else {
 		var recursive = ',not_recursive';
-		url = "/sub?json("+listType+",'fields=text|type|state|states|label|idle_time"+recursive+"')";
+		url = "/sub?json("+listType+",'fields=text|type|state|states|label|idle_time|sort_order"+recursive+"')";
 	}
 	$.ajax({
 	type: "GET",
@@ -166,7 +166,36 @@ var loadList = function(listType,listValue,collection_key) {
 					entity_arr.push(button_html);
 					continue;
 				}//end truncated list
-				for (var entity in json[json_type][division]){
+				if (json_type == 'groups'){
+					$('#toolButton').attr("entity", division);
+				}
+				// Build list entities
+				var entity_list = [];
+				for(var k in json[json_type][division]) entity_list.push(k);
+				var sort_list = json[json_type][division].sort_order;
+				// Sort that list if a sort exists, probably exists a shorter way to
+				// write the sort
+				entity_list.sort(function(a,b) {
+					if (sort_list.indexOf(a) < 0) {
+						return 1;
+					}
+					else if (sort_list.indexOf(b) < 0) {
+						return -1;
+					}
+					else {
+						return sort_list.indexOf(a) - sort_list.indexOf(b);
+					}
+				});
+				if (entity_store[division] === undefined){
+					entity_store[division] = {};
+				}
+				entity_store[division].sort_order = entity_list;
+				for (var i = 0; i < entity_list.length; i++) {
+					var entity = entity_list[i];
+					if (json[json_type][division][entity].type === undefined){
+						// This is not an entity, likely a value of the root obj
+						continue;
+					}
 					if (json[json_type][division][entity].type == "Voice_Cmd"){
 						button_text = json[json_type][division][entity].text;
 						//Choose the first alternative of {} group
@@ -203,6 +232,7 @@ var loadList = function(listType,listValue,collection_key) {
 						entity_arr.push(button_html);
 					} //Voice Command Button
 					else if(json[json_type][division][entity].type == "Group"){
+						entity_store[entity] = json[json_type][division][entity];
 						var object = json[json_type][division][entity];
 						button_text = entity;
 						if (object.label !== undefined) button_text = object.label;
@@ -336,6 +366,10 @@ var updateList = function(request, options, time) {
 					}
 					for (var division in json[json_type]){
 						for (var entity in json[json_type][division]){
+							if (json[json_type][division][entity].type === undefined){
+								// This is not an entity, likely a value of the root obj
+								continue;
+							}
 							$('button[entity="'+entity+'"]').find('.pull-right').text(
 								json[json_type][division][entity]['state']
 							);
@@ -358,7 +392,6 @@ var updateList = function(request, options, time) {
 		}, // End success
 	});  //ajax request
 };//loadlistfunction
-
 
 //Prints all of the navigation items for Ia7
 var loadCollection = function(collection_keys) {
