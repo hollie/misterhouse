@@ -41,6 +41,7 @@ use strict;
 
 use HTML::Entities;    # So we can encode characters like <>& etc
 use JSON;
+use IO::Compress::Gzip qw(gzip);
 
 sub json {
 	my ( $request, $options ) = @_;
@@ -545,12 +546,15 @@ sub json_object_detail {
 }
 
 sub json_page {
-	my ($json) = @_;
+	my ($json_raw) = @_;
+	my $json;
+	gzip \$json_raw => \$json;
 
 	return <<eof;
 HTTP/1.0 200 OK
 Server: MisterHouse
 Content-type: application/json
+Content-Encoding: gzip
 
 $json
 eof
