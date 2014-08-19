@@ -212,4 +212,6 @@ Lieven Hollevoet  lieven@lika.be
   Gregg Liming for the idea that we should not rely on the heartbeat messages to get the 
      status of the Squeezebox.
 
+=cut
+
 1;
