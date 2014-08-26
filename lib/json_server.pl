@@ -40,65 +40,66 @@ B<NONE>
 use strict;
 
 use HTML::Entities;    # So we can encode characters like <>& etc
-use JSON;
+use JSON qw(decode_json);
 use IO::Compress::Gzip qw(gzip);
 
 sub json {
-	my ( $method, $path, $args ) = @_;
+	my ( $method, $args_str) = @_;
 	my ( %json, %json_data, $json_vars, $json_objects);
 	my $output_time = ::get_tickcount();
 
-	# Remove leading and trailing slashes
-	$path =~ s/^\/|\/$//g;
-	my @path = split ('/', $path);
-
 	my %args;
-	foreach ( split '&', $args ) {
+	foreach ( split '&', $args_str ) {
 		my ( $k, undef, $v ) = /(\w+)(=(.+))?/;
 		$args{$k} = [ split /,/, $v ] ;
 	}
-
-	print_log "json: method= $method path=$path args=$args" if $Debug{json};
-
-	# List known types
-	if ($path[0] eq 'types' || $path[0] eq '') {
-		my @types = @Object_Types;
-		$json_data{'types'} = [];
-		foreach my $type ( sort @types ) {
-			print_log "json: type $type" if $Debug{json};
-			push($json_data{'types'}, $type);
+	
+	# Build hash of fields requested for easy reference
+	my %fields;
+	if ($args{fields}){
+		foreach ( @{ $args{fields} } ) {
+			$fields{$_} = 1;
 		}
 	}
+	$fields{all} = 1 unless %fields;
+	
+	# Get path and then remove from args hash
+	my $path_str = $args{path}[0];
+	delete $args{path};
+	$path_str =~ s/^\/|\/$//g;
+	my @path = split ('/', $path_str);	
 
-	# List known groups
-	if ($path[0] eq 'groups' || $path[0] eq '') {
-		my @groups = &list_objects_by_type('Group');
-		$json_data{'groups'} = [];
-		foreach my $group ( sort @groups ) {
-			print_log "json: group $group" if $Debug{json};
-			$group =~ s/\$|\%|\&|\@//g;
-			push($json_data{'groups'}, $group);
-		}
-	}
-
-	# List known categories
-	if ($path[0] eq 'categories' || $path[0] eq '') {
-		my @categories = &list_code_webnames('Voice_Cmd');
-		$json_data{'categories'} = [];
-		for my $category ( sort @categories ) {
-			print_log "json: cat $category" if $Debug{json};
-			push($json_data{'categories'}, $category);
-		}
+	print_log "json: method= $method path=$path_str args=$args_str" if $Debug{json};
+	# List defined collections
+	if ($path[0] eq 'collections' || $path[0] eq '') {
+		my $collection_file = "$Pgm_Root/data/web/collections.json";
+		$collection_file = "$config_parms{data_dir}/web/collections.json"
+			if -e "$config_parms{data_dir}/web/collections.json";
+		# Consider copying the source file to the user data dir here.
+		my $json_collections = file_read($collection_file);
+		$json_data{'collections'} = decode_json($json_collections);
 	}
 
 	# List objects
 	if ($path[0] eq 'objects' || $path[0] eq '') {
-		# Group memberships are stored only as group->item associations
-		# This converts that to items->groups 
-		my $object_group = json_group_field();
+		$json_data{objects} = {};
 		my @objects;
-		foreach my $object_type (list_object_types()) {
-			push @objects, &list_objects_by_type($object_type);
+		# Building the list of parent groups for each object
+		# we could use &::list_groups_by_object() for each object, but that sub
+		# is time consuming, particularly when called numerous times.  Instead,
+		# we create a lookup table one time, saving a lot of processing time.
+		my $parent_table = build_parent_table();
+
+		# Restrict object list by type here to make things faster
+		if ($args{type}){
+			for (@{$args{type}}){
+				push @objects, &list_objects_by_type($_);
+			}
+		}
+		else {
+			foreach my $object_type (list_object_types()) {
+				push @objects, &list_objects_by_type($object_type);
+			}
 		}
 		foreach my $o ( map { &get_object_by_name($_) } sort @objects ) {
 			next unless $o;
@@ -106,12 +107,38 @@ sub json {
 			$name = $o->{object_name};
 			$name =~ s/\$|\%|\&|\@//g;
 			print_log "json: object name=$name ref=" . ref $o if $Debug{json};
-			if (my $data = &json_object_detail( $o, \%args, $object_group )){
+			if (my $data = &json_object_detail( $o, \%args, \%fields, $parent_table)){
 				$json_data{objects}{$name} = $data;
 			}
 		}
-	}
 
+		# Insert categories as an object
+		my @categories = &list_code_webnames('Voice_Cmd');
+		for my $category ( sort @categories ) {
+			print_log "json: cat $category" if $Debug{json};
+			my $temp_object = {
+								'type' => 'Category',
+								'members' => ''
+							  };
+			if (filter_object($temp_object, \%args)){
+				$json_data{objects}{$category} = $temp_object;
+			}
+		}
+
+		# List known types as objects
+		my @types = @Object_Types;
+		foreach my $type ( sort @types ) {
+			print_log "json: type $type" if $Debug{json};
+			my $temp_object = {
+								'type' => 'Type',
+								'members' => ''
+							  };			
+			if (filter_object($temp_object, \%args)){
+				$json_data{objects}{$type} = $temp_object;
+			}
+		}
+	}
+;
 	# List subroutines
 	if ($path[0] eq 'subs' || $path[0] eq '') {
 		my $name;
@@ -151,14 +178,6 @@ sub json {
 			next if $key eq 'INC';
 			next if $key eq 'ISA';
 			next if $key eq 'SIG';
-			next if $key eq 'config_parms';    # Covered elsewhere
-			next if $key eq 'Menus';           # Covered elsewhere
-			next if $key eq 'photos';          # Covered elsewhere
-			next if $key eq 'Save';            # Covered elsewhere
-			next if $key eq 'Socket_Ports';    # Covered elsewhere
-			next if $key eq 'triggers';        # Covered elsewhere
-			next if $key eq 'User_Code';       # Covered elsewhere
-			next if $key eq 'Weather';         # Covered elsewhere
 			my $iref = ${$ref}{$key};
 
 			# this is for constants
@@ -172,11 +191,10 @@ sub json {
 	if ( $path[0] eq 'print_log' || $path[0] eq '' ) {
 		my @log;
 		my $name;
-		my $time = $args{time}[0];
 		if ($args{time} 
-			&& int($time) < int(::print_log_current_time())){
+			&& int($args{time}[0]) < int(::print_log_current_time())){
 			#Only return messages since time
-			@log = ::print_log_since($time);
+			@log = ::print_log_since($args{time}[0]);
 		} elsif (!$args{time}) {
 			@log = ::print_log_since();
 		}
@@ -186,63 +204,66 @@ sub json {
 		}
 	}
 
-	# List hash values
-	foreach my $hash (
-		qw( config_parms Menus photos Save Socket_Ports triggers
-		User_Code Weather )
-	  ){
-	  	if ( $path[0] eq $hash || $path[0] eq '' ) {
-			my $req = lc $hash;
-			my $ref = \%::;
-			$json_data{$hash} = {json_walk_var(${$ref}{$hash},$hash)}->{$hash};
-	  	}
+	print_log Dumper(%json_data) if $Debug{json};
+	
+	# Select appropriate data based on path request
+	my $output_ref;
+	if (scalar(@path) > 0) {
+		my @element_list = @path; #Prevent Altering the Master Reference
+		$output_ref = json_get_sub_element(\@element_list, \%json_data);
+	}
+
+	# If this is a long_poll and there is no data, simply return
+	if ($args{long_poll} && (!$output_ref)){
+		return;
 	}
 	
-	print_log Dumper(%json) if $Debug{json};
-	if ((!$args{long_poll}) || %json){
-		#Insert time, used to determine if things have changed
-		$json{meta}{time} = $output_time;
-		#Insert the query we were sent, for debugging and updating
-		$json{meta}{request} = \@path;
-		$json{meta}{options} =  \%args;		
-		#Merge in appropriate Data and Data
-		if (scalar(@path) > 0) {
-			%json = %{json_get_sub_element(\@path, \%json_data, \%json)};
-		}
-		else {
-			$json{data} = \%json_data;
-		}
-		
-	    my $json_raw = JSON->new->allow_nonref;
-		# Translate special characters
-		$json_raw = $json_raw->pretty->encode( \%json );
-		return &json_page($json_raw);
+	# Insert Data or Error Message
+	if ($output_ref) {
+		$json{data} = $output_ref;
 	}
-	return;
+	else {
+		$json{error}{msg} = 'No data, or path does not exist.';
+	}
+	
+	#Insert Meta Data fields
+	$json{meta}{time} = $output_time;
+	$json{meta}{path} = \@path;
+	$json{meta}{args} =  \%args;
+	
+    my $json_raw = JSON->new->allow_nonref;
+	# Translate special characters
+	$json_raw = $json_raw->pretty->encode( \%json );
+	return &json_page($json_raw);
+
 }
 
 sub json_get_sub_element {
-	my ($element_ref, $json_ref, $out_ref, $error_path) = @_;
+	my ($element_ref, $json_ref, $error_path) = @_;
+	my $out_ref = {};
 	$error_path = "/" unless $error_path;
 	my $path = shift(@{$element_ref});
 	$error_path .= $path . "/";
 	if (ref $json_ref eq 'HASH' && exists $json_ref->{$path}){
 		if (scalar(@{$element_ref}) > 0){
-			return json_get_sub_element($element_ref, $json_ref->{$path}, $out_ref, $error_path);
+			return json_get_sub_element($element_ref, $json_ref->{$path}, $error_path);
 		}
 		else {
 			#This is the end of the line
-			$out_ref->{data} = $json_ref->{$path};
+			$out_ref = $json_ref->{$path};
+			
+			#Check if this ref is empty
+			if (ref $out_ref eq 'ARRAY' && scalar(@{$out_ref}) == 0){
+				return;
+			}
+			elsif (ref $out_ref eq 'HASH' && (!%{$out_ref})){
+				return;
+			}
 			return $out_ref;
 		}
 	}
 	else {
-		#Error this path is invalid
-		$out_ref->{error} = {
-			'msg' 		=> 'Path does not exist.',
-			'detail' 	=> $error_path
-		};
-		return $out_ref;
+		return;
 	}
 }
 
@@ -337,21 +358,36 @@ sub json_walk_var {
 	return %json_vars;
 }
 
+sub build_parent_table {
+    my @groups;
+    my %parent_table;
+    for my $group_name (&list_objects_by_type('Group')) {
+		my $group = &get_object_by_name($group_name);
+		$group_name =~ s/\$|\%|\&|\@//g;
+		for my $object ($group->list(undef, undef,1)) {
+			my $obj_name = $object->get_object_name;
+				push (@{$parent_table{$obj_name}}, $group_name);
+		}
+    }
+    return \%parent_table;
+}
+
 sub json_object_detail {
-	my ( $object, $args, $object_group ) = @_;
-	my %fields;
-	foreach ( @{ $args->{fields} } ) {
-		$fields{$_} = 1;
-	}
-	return if exists $fields{none} and $fields{none};
+	my ( $object, $args_ref, $fields_ref, $parent_table ) = @_;
+	# Use our own arguments hash so we can modify it
+	my %args = %{$args_ref};
+	my %fields = %{$fields_ref};
+	
+	# Skip this process if all fields are specifically excluded
+	return if exists $fields{none};
+	
 	my $ref = ref \$object;
 	return unless $ref eq 'REF';
-	return if $object->can('hidden') and $object->hidden;
-	$fields{all} = 1 unless %fields;
+	return if $object->can('hidden') and $object->hidden; #Not sure about this
 	my $object_name = $object->{object_name};
 	
-	my $time = $args->{time}[0];
-	if ($time > 0){
+	# Skip object if time arg supplied and not changed
+	if ($args{time} && $args{time}[0] > 0){
 		if (!($object->can('get_idle_time'))){
 			#Items that do not have an idle time do not get reported at all in updates
 			return;
@@ -360,7 +396,7 @@ sub json_object_detail {
 			#Items that have NEVER been set to a state have a null idle time
 			return;
 		}
-		elsif (int($time) >= (int(::get_tickcount) - ($object->get_idle_time*1000))) {
+		elsif (int($args{time}[0]) >= (int(::get_tickcount) - ($object->get_idle_time*1000))) {
 			#Should get_tickcount be replaced with output_time??
 			#Object has not changed since time, so return undefined
 			return;
@@ -368,12 +404,16 @@ sub json_object_detail {
 	}
 
 	my %json_objects;
-	my @f = qw( category filename measurement rf_id set_by
-	  state states state_log type label sort_order
+	my %json_complete_object;
+	my @f = qw( category filename measurement rf_id set_by members
+	  state states state_log type label sort_order groups parents
 	  idle_time text html seconds_remaining level);
 
+	# Build list of fields based on those requested.
 	foreach my $f ( sort @f ) {
-		next unless $fields{all} or $fields{$f};
+		# Lets skip fields that are neither called for nor filtered on
+		next unless ($fields{all} or $fields{$f} or $args{$f});
+		
 		my $value;
 		my $method = $f;
 		if (
@@ -382,6 +422,11 @@ sub json_object_detail {
 				and $object->can($method) )
 		  )
 		{
+			if ($f eq 'type'){
+				# We need to hard code type, b/c x10 has a subroutine called
+				# type that screws with us.
+				$method = 'get_type';
+			}
 			if ( $f eq 'states' or $f eq 'state_log' ) {
 				my @a = $object->$method;
 				$value = \@a;
@@ -393,6 +438,23 @@ sub json_object_detail {
 			print_log "json: object_dets f $f m $method v $value"
 			  if $Debug{json};
 		}
+		elsif ($f eq 'members'){
+			## Currently only list members for group items, but at some point we
+			## can add linked items too.
+			if (ref($object) eq 'Group') {
+				$value = [];
+				for my $obj_name (&list_objects_by_group($object->get_object_name, 1)) {
+					$obj_name =~ s/\$|\%|\&|\@//g;
+					push ($value, $obj_name);
+				}
+			}
+		}	
+		elsif ($f eq 'parents'){
+			$value = [];
+			for my $group_name ($$parent_table{$object_name}) {
+				$value = $group_name;
+			}			
+		}		
 		elsif ( exists $object->{$f} ) {
 			$value = $object->{$f};
 			$value = encode_entities( $value, "\200-\377&<>" );
@@ -406,45 +468,71 @@ sub json_object_detail {
 		else {
 			print_log "json: object_dets didn't find $f" if $Debug{json};
 		}
-		$json_objects{$f} = $value if defined $value;
-	}
 
-	$json_objects{groups} = $object_group->{$object_name} if defined $object_group->{$object_name};
-	return \%json_objects;
+		if (($fields{all} or $fields{$f}) && defined $value){
+			$json_objects{$f} = $value;
+		}
+		$json_complete_object{$f} = $value;
+	}
+    
+    if (filter_object(\%json_complete_object, $args_ref)){
+		return \%json_objects;
+    }
+    else {
+    	return;
+    }
 }
 
-sub json_group_field {
-	my %object_group;
-	
-	my @groups = &list_objects_by_type('Group');
-	foreach my $group ( sort @groups ) {
-		my $group_object = &get_object_by_name($group);
-		foreach my $object ( 
-			$group_object->list(undef, undef,1)
-			) {
-			my $name = $object->{object_name};
-			$group =~ s/\$|\%|\&|\@//g;
-			push (@{$object_group{$name}}, $group);
+sub filter_object {
+	my ($object, $args_ref) = @_;
+	my %args = %{$args_ref};
+	# Check if object has required parameters
+	for my $f (keys %args){
+		# Skip special fields
+		next if (lc($f) eq 'time');
+		next if (lc($f) eq 'fields');
+		next if (lc($f) eq 'long_poll');
+		next if ($f eq '');
+		if ($$object{$f}) {
+			for my $test_val (@{$args{$f}}) {
+				if (ref $$object{$f} eq 'ARRAY'){
+					my $notfound = 1;
+					for (@{$$object{$f}}) {
+						if ($test_val eq $_) {
+							$notfound = 0;
+							last;
+						}
+					}
+					return if ($notfound);
+				}
+				elsif ($test_val ne $$object{$f}) {
+					# Required value was not a match
+					# not sure how the same value could equal an array of values
+					# but leave here for possible future expansion
+					return;
+				}
+			}
+		}
+		else {
+			#Object lacks the required field
+			return 0;
 		}
 	}
-	
-	return \%object_group;
+	return 1;
 }
 
 sub json_page {
 	my ($json_raw) = @_;
 	my $json;
 	gzip \$json_raw => \$json;
+	my $output = "HTTP/1.0 200 OK\r\n";
+	$output .= "Server: MisterHouse\r\n";
+    $output .= "Content-type: application/json\r\n";
+	$output .= "Content-Encoding: gzip\r\n";
+	$output .= "\r\n";
+	$output .= $json;
 
-	return <<eof;
-HTTP/1.0 200 OK
-Server: MisterHouse
-Content-type: application/json
-Content-Encoding: gzip
-
-$json
-eof
-
+	return $output;
 }
 
 sub json_entities_encode {

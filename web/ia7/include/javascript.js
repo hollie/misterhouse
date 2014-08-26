@@ -1,5 +1,5 @@
-var collection_json;  //global storage for collection database
 var entity_store = {}; //global storage of entities
+var json_store = {};
 var updateSocket;
 
 //Takes the current location and parses the achor element into a hash
@@ -26,25 +26,95 @@ function HashtoURL(URLHash) {
 	return location.path + "#" + pairs.join('&');
 }
 
+//Takes a hash and spits out the JSON request argument string
+function HashtoJSONArgs(URLHash) {
+	var pairs = [];
+	for (var key in URLHash){
+		if (key.indexOf("_") === 0){
+			//Do not include private arguments
+			continue;
+		}
+		if (URLHash.hasOwnProperty(key)){
+			pairs.push(encodeURIComponent(key) + '=' + encodeURIComponent(URLHash[key]));
+		}
+	}
+	return pairs.join('&');
+}
+
+//Stores the JSON data in the proper location based on the path requested
+function JSONStore (json){
+	var newJSON = {};
+	for (var i = json.meta.path.length-1; i >= 0; i--){
+		var path = json.meta.path[i];
+		if ($.isEmptyObject(newJSON)){
+			newJSON[path] = json.data;
+		}
+		else {
+			var tempJSON = {};
+			tempJSON[path] = newJSON;
+			newJSON = tempJSON;
+		}
+	}
+	newJSON.meta = json.meta;
+	//Merge the new JSON data structure into our stored structure
+	$.extend( true, json_store, newJSON );
+}
+
+//Get the JSON data for the defined path
+function getJSONDataByPath (path){
+	if (json_store === undefined){
+		return undefined;
+	}
+	var returnJSON = json_store;
+	path = path.replace(/^\/|\/$/g, "");
+	var pathArr = path.split('/');
+	for (var i = 0; i < pathArr.length; i++){
+		if (returnJSON[pathArr[i]] !== undefined){
+			returnJSON = returnJSON[pathArr[i]];
+		}
+		else {
+			// We don't have this data
+			return undefined;
+		}
+	}
+	return returnJSON;
+}
+
+
 //Called anytime the page changes
 function changePage (){
-	if (collection_json === undefined){
+	var URLHash = URLToHash();
+	if (URLHash.path === undefined) {
+		// This must be a call to root.  To speed things up, only request
+		// collections
+		URLHash.path = "collections";
+	}
+	if (getJSONDataByPath("collections") === undefined){
+		// We need at minimum the basic collections data to render all pages
+		// (the breadcrumb)
+		// NOTE may want to think about how to handle dynamic changes to the 
+		// collections list
 		$.ajax({
 			type: "GET",
-			url: '/ia7/include/collections.pl',
+			url: "/sub?json('GET','path=collections')",
 			dataType: "json",
 			success: function( json ) {
-				collection_json = json;
+				JSONStore(json);
 				changePage();
 			}
 		});
 	} 
-	else { //We have the database
-		var URLHash = URLToHash();
-		if (URLHash.request == 'list'){
-			loadList(URLHash.type,URLHash.name, URLHash.collection_key);
+	else {
+		//Trim leading and trailing slashes from path
+		var path = URLHash.path.replace(/^\/|\/$/g, "");
+		if (path.indexOf('objects') === 0){
+			//this is a temporary bodge
+			loadList();
 		}
-		else if(URLHash.request == 'page'){
+		else if (path.indexOf('vars') === 0){
+			loadVars();
+		}
+		else if(URLHash._request == 'page'){
 			$.get(URLHash.link, function( data ) {
 				data = data.replace(/<link[^>]*>/img, ''); //Remove stylesheets
 				data = data.replace(/<title[^>]*>((\r|\n|.)*?)<\/title[^>]*>/img, ''); //Remove title
@@ -55,18 +125,18 @@ function changePage (){
 				$('#row_page').html(data);
 			});
 		}
-		else if(URLHash.request == 'print_log'){
+		else if(path.indexOf('print_log') === 0){
 			print_log();
 		}
-		else if(URLHash.request == 'trigger'){
+		else if(URLHash._request == 'trigger'){
 			trigger();
 		}
 		else { //default response is to load a collection
-			loadCollection(URLHash.collection_key);
+			loadCollection(URLHash._collection_key);
 		}
 		//update the breadcrumb
 		$('#nav').html('');
-		var collection_keys_arr = URLHash.collection_key;
+		var collection_keys_arr = URLHash._collection_key;
 		if (collection_keys_arr === undefined) collection_keys_arr = '0';
 		collection_keys_arr = collection_keys_arr.split(',');
 		var breadcrumb = '';
@@ -77,11 +147,11 @@ function changePage (){
 				//group objects can be browsed recursively.  Possibly use different
 				//prefix if other recursively browsable formats are later added
 				nav_name = collection_keys_arr[i].replace("$", '');
-				nav_link = '#request=list&type=groups&name='+nav_name; //ATM There is only a single level of these
+				nav_link = '#path=/objects&parents='+nav_name;
 			}
 			else {
-				nav_link = collection_json.collections[collection_keys_arr[i]].link;
-				nav_name = collection_json.collections[collection_keys_arr[i]].name;
+				nav_link = json_store.collections[collection_keys_arr[i]].link;
+				nav_name = json_store.collections[collection_keys_arr[i]].name;
 			}
 			nav_link = buildLink (nav_link, breadcrumb + collection_keys_arr[i]);
 			breadcrumb += collection_keys_arr[i] + ",";
@@ -94,6 +164,38 @@ function changePage (){
 			}
 		}
 	}
+}
+
+function loadVars (){ //variables list
+	var URLHash = URLToHash();
+	$.ajax({
+		type: "GET",
+		url: "/sub?json('GET','"+HashtoJSONArgs(URLHash)+"')",
+		dataType: "json",
+		success: function( json ) {
+			JSONStore(json);
+			var list_output = "";
+			var keys = [];
+			for (var key in json.data) {
+				keys.push(key);
+			}
+			keys.sort ();
+			for (var i = 0; i < keys.length; i++){
+				var value = variableList(json.data[keys[i]]);
+				var name = keys[i];
+				var list_html = "<ul><li><b>" + name + ":</b>" + value+"</li></ul>";
+				list_output += (list_html);
+			}
+		
+			//Print list output if exists;
+			if (list_output !== ""){
+				$('#list_content').html('');
+				$('#list_content').append("<div id='buffer_vars' class='row top-buffer'>");
+				$('#buffer_vars').append("<div id='row_vars' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+				$('#row_vars').append(list_output);
+			}
+		}
+	});
 }
 
 //Recursively parses a JSON entity to print all variables 
@@ -115,67 +217,52 @@ function variableList(value){
 }
 
 //Prints a JSON generated list of MH objects
-var loadList = function(listType,listValue,collection_key) {
-	var url;
-	if (listValue !== undefined){
-		var recursive = '';
-		if (listType == 'groups') {
-			recursive = ',not_recursive';
-		}
-		url = "/sub?json("+listType+"="+listValue+",'fields=text|type|state|states|label|idle_time|sort_order"+recursive+"')";
-	} 
-	else {
-		var recursive = ',not_recursive';
-		url = "/sub?json("+listType+",'fields=text|type|state|states|label|idle_time|sort_order"+recursive+"')";
+var loadList = function() {
+	var URLHash = URLToHash();
+	if (getJSONDataByPath("objects") === undefined && URLHash.path !== 'objects'){
+		// We need at least some basic info on all objects
+		$.ajax({
+			type: "GET",
+			url: "/sub?json('GET','path=objects&fields=sort_order')",
+			dataType: "json",
+			success: function( json ) {
+				JSONStore(json);
+				loadList();
+			}
+		});
+		return;
 	}
+	var collection_key = URLHash._collection_key;
+	var button_text = '';
+	var button_html = '';
+	var entity_arr = [];
+	URLHash.fields = "category,label,sort_order,state,states,type,text";
 	$.ajax({
-	type: "GET",
-	url: url,
-	dataType: "json",
-	success: function( json ) {
-		var button_text = '';
-		var button_html = '';
-		var entity_arr = [];
-		var list_output = "";
-		for (var json_type in json){
-			if (json_type == 'time' || json_type == 'request' || json_type == 'options') {
-				//These are management values
-				continue;
+		type: "GET",
+		url: "/sub?json('GET','"+HashtoJSONArgs(URLHash)+"')",
+		dataType: "json",
+		success: function( json ) {
+			//Save this to the JSON store
+			JSONStore(json);
+			
+			// Catch Empty Responses
+			if ($.isEmptyObject(json.data)) {
+				entity_arr.push("No objects found");
 			}
-			if (json_type.toLowerCase() == 'save' || json_type.toLowerCase() == 'vars' ){ //variables list
-				var keys = [];
-				for (var key in json[json_type]) {
-					keys.push(key);
-				}
-				keys.sort ();
-				for (var i = 0; i < keys.length; i++){
-					var value = variableList(json[json_type][keys[i]]);
-					var name = keys[i];
-					var list_html = "<ul><li><b>" + name + ":</b>" + value+"</li></ul>";
-					list_output += (list_html);
-				}
-				continue;
+
+			// Build sorted list of objects
+			var entity_list = [];
+			for(var k in json.data) entity_list.push(k);
+			var sort_list;
+			if (URLHash.parents !== undefined && 
+				json_store.objects[URLHash.parents] !== undefined &&
+				json_store.objects[URLHash.parents].sort_order !== undefined) {
+				sort_list = json_store.objects[URLHash.parents].sort_order;
 			}
-			for (var division in json[json_type]){
-				if (listValue === undefined){ //truncated list
-					button_text = division;
-					//Put entities into button
-					button_html = "<div style='vertical-align:middle'><a role='button' listType='"+listType+"'";
-					button_html += "class='btn btn-default btn-lg btn-block btn-list btn-division'";
-					button_html += "href='#request=list&collection_key="+collection_key+",$" + button_text + "&type="+listType+"&name="+button_text+"' >";
-					button_html += "" +button_text+"</a></div>";
-					entity_arr.push(button_html);
-					continue;
-				}//end truncated list
-				if (json_type == 'groups'){
-					$('#toolButton').attr("entity", division);
-				}
-				// Build list entities
-				var entity_list = [];
-				for(var k in json[json_type][division]) entity_list.push(k);
-				var sort_list = json[json_type][division].sort_order;
-				// Sort that list if a sort exists, probably exists a shorter way to
-				// write the sort
+			
+			// Sort that list if a sort exists, probably exists a shorter way to
+			// write the sort
+			if (sort_list !== undefined){
 				entity_list.sort(function(a,b) {
 					if (sort_list.indexOf(a) < 0) {
 						return 1;
@@ -187,211 +274,182 @@ var loadList = function(listType,listValue,collection_key) {
 						return sort_list.indexOf(a) - sort_list.indexOf(b);
 					}
 				});
-				if (entity_store[division] === undefined){
-					entity_store[division] = {};
+			}
+
+			for (var i = 0; i < entity_list.length; i++) {
+				var entity = entity_list[i];
+				if (json_store.objects[entity].type === undefined){
+					// This is not an entity, likely a value of the root obj
+					continue;
 				}
-				entity_store[division].sort_order = entity_list;
-				for (var i = 0; i < entity_list.length; i++) {
-					var entity = entity_list[i];
-					if (json[json_type][division][entity].type === undefined){
-						// This is not an entity, likely a value of the root obj
-						continue;
+				if (json_store.objects[entity].type == "Voice_Cmd"){
+					button_text = json_store.objects[entity].text;
+					//Choose the first alternative of {} group
+					while (button_text.indexOf('{') >= 0){
+						var regex = /([^\{]*)\{([^,]*)[^\}]*\}(.*)/;
+						button_text = button_text.replace(regex, "$1$2$3");
 					}
-					if (json[json_type][division][entity].type == "Voice_Cmd"){
-						button_text = json[json_type][division][entity].text;
-						//Choose the first alternative of {} group
-						while (button_text.indexOf('{') >= 0){
-							var regex = /([^\{]*)\{([^,]*)[^\}]*\}(.*)/;
-							button_text = button_text.replace(regex, "$1$2$3");
+					//Put each option in [] into toggle list, use first option by default
+					if (button_text.indexOf('[') >= 0){
+						var regex = /(.*)\[([^\]]*)\](.*)/;
+						var options = button_text.replace(regex, "$2");
+						var button_text_start = button_text.replace(regex, "$1");
+						var button_text_end = button_text.replace(regex, "$3");
+						options = options.split(',');
+						button_html = '<div class="btn-group btn-block fillsplit">';
+						button_html += '<div class="leadcontainer">';
+						button_html += '<button type="button" class="btn btn-default dropdown-lead btn-lg btn-list btn-voice-cmd">'+button_text_start + "<u>" + options[0] + "</u>" + button_text_end+'</button>';
+						button_html += '</div>';
+						button_html += '<button type="button" class="btn btn-default btn-lg dropdown-toggle pull-right btn-list-dropdown" data-toggle="dropdown">';
+						button_html += '<span class="caret"></span>';
+						button_html += '<span class="sr-only">Toggle Dropdown</span>';
+						button_html += '</button>';
+						button_html += '<ul class="dropdown-menu dropdown-voice-cmd" role="menu">';
+						for (var j=0,len=options.length; j<len; j++) { 
+							button_html += '<li><a href="#">'+options[j]+'</a></li>';
 						}
-						//Put each option in [] into toggle list, use first option by default
-						if (button_text.indexOf('[') >= 0){
-							var regex = /(.*)\[([^\]]*)\](.*)/;
-							var options = button_text.replace(regex, "$2");
-							var button_text_start = button_text.replace(regex, "$1");
-							var button_text_end = button_text.replace(regex, "$3");
-							options = options.split(',');
-							button_html = '<div class="btn-group btn-block fillsplit">';
-							button_html += '<div class="leadcontainer">';
-							button_html += '<button type="button" class="btn btn-default dropdown-lead btn-lg btn-list btn-voice-cmd">'+button_text_start + "<u>" + options[0] + "</u>" + button_text_end+'</button>';
-							button_html += '</div>';
-							button_html += '<button type="button" class="btn btn-default btn-lg dropdown-toggle pull-right btn-list-dropdown" data-toggle="dropdown">';
-							button_html += '<span class="caret"></span>';
-							button_html += '<span class="sr-only">Toggle Dropdown</span>';
-							button_html += '</button>';
-							button_html += '<ul class="dropdown-menu dropdown-voice-cmd" role="menu">';
-							for (var i=0,len=options.length; i<len; i++) { 
-								button_html += '<li><a href="#">'+options[i]+'</a></li>';
-							}
-							button_html += '</ul>';
-							button_html += '</div>';
-						}
-						else {
-							button_html = "<div style='vertical-align:middle'><button type='button' class='btn btn-default btn-lg btn-block btn-list btn-voice-cmd'>";
-							button_html += "" +button_text+"</button></div>";
-						}
-						entity_arr.push(button_html);
-					} //Voice Command Button
-					else if(json[json_type][division][entity].type == "Group"){
-						entity_store[entity] = json[json_type][division][entity];
-						var object = json[json_type][division][entity];
-						button_text = entity;
-						if (object.label !== undefined) button_text = object.label;
-						//Put entities into button
-						button_html = "<div style='vertical-align:middle'><a role='button' listType='"+json_type+"'";
-						button_html += "class='btn btn-default btn-lg btn-block btn-list btn-division'";
-						button_html += "href='#request=list&collection_key="+collection_key+",$" + entity + "&type="+json_type+"&name="+entity+"' >";
-						button_html += "" +button_text+"</a></div>";
-						entity_arr.push(button_html);
-						continue;
+						button_html += '</ul>';
+						button_html += '</div>';
 					}
 					else {
-						entity_store[entity] = json[json_type][division][entity];
-						var name = entity;
-						if (entity_store[entity].label !== undefined) name = entity_store[entity].label;
-						//Put objects into button
-						button_html = "<div style='vertical-align:middle'><button entity='"+entity+"' division='"+division+"' ";
-						button_html += "class='btn btn-default btn-lg btn-block btn-list btn-popover btn-state-cmd'>";
-						button_html += name+"<span class='pull-right'>"+entity_store[entity].state+"</span></button></div>";
-						entity_arr.push(button_html);
-					} //Not voice command button
-				}//entity each loop
-			}//division loop
-		}//json_type loop
-		//clear list_content if we have something to print
-		if (entity_arr.length > 0 || list_output !== ""){
-			$('#list_content').html('');
-		}
-		//loop through array and print buttons
-		var row = 0;
-		var column = 1;
-		for (var i = 0; i < entity_arr.length; i++){
-			if (column == 1){
-				$('#list_content').append("<div id='buffer"+row+"' class='row top-buffer'>");
-				$('#buffer'+row).append("<div id='row" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+						button_html = "<div style='vertical-align:middle'><button type='button' class='btn btn-default btn-lg btn-block btn-list btn-voice-cmd'>";
+						button_html += "" +button_text+"</button></div>";
+					}
+					entity_arr.push(button_html);
+				} //Voice Command Button
+				else if(json_store.objects[entity].type == "Group" ||
+					    json_store.objects[entity].type == "Type" ||
+					    json_store.objects[entity].type == "Category"){
+					json_store.objects[entity] = json_store.objects[entity];
+					var object = json_store.objects[entity];
+					button_text = entity;
+					if (object.label !== undefined) button_text = object.label;
+					//Put entities into button
+					var filter_args = "parents="+entity;
+					if (json_store.objects[entity].type == "Category"){
+						filter_args = "type=Voice_Cmd&category="+entity;
+					}
+					else if (json_store.objects[entity].type == "Type") {
+						filter_args = "type="+entity;
+					}
+					button_html = "<div style='vertical-align:middle'><a role='button' listType='objects'";
+					button_html += "class='btn btn-default btn-lg btn-block btn-list btn-division'";
+					button_html += "href='#path=/objects&"+filter_args+"&_collection_key="+collection_key+",$" + entity +"' >";
+					button_html += "" +button_text+"</a></div>";
+					entity_arr.push(button_html);
+					continue;
+				}
+				else {
+					// These are controllable MH objects
+					json_store.objects[entity] = json_store.objects[entity];
+					var name = entity;
+					if (json_store.objects[entity].label !== undefined) name = json_store.objects[entity].label;
+					//Put objects into button
+					button_html = "<div style='vertical-align:middle'><button entity='"+entity+"' ";
+					button_html += "class='btn btn-default btn-lg btn-block btn-list btn-popover btn-state-cmd'>";
+					button_html += name+"<span class='pull-right'>"+json_store.objects[entity].state+"</span></button></div>";
+					entity_arr.push(button_html);
+				}
+			}//entity each loop
+			
+			//loop through array and print buttons
+			var row = 0;
+			var column = 1;
+			for (var i = 0; i < entity_arr.length; i++){
+				if (i === 0) {
+					$('#list_content').html('');
+				}
+				if (column == 1){
+					$('#list_content').append("<div id='buffer"+row+"' class='row top-buffer'>");
+					$('#buffer'+row).append("<div id='row" + row + "' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+				}
+				$('#row'+row).append("<div class='col-sm-4'>" + entity_arr[i] + "</div>");
+				if (column == 3){
+					column = 0;
+					row++;
+				}
+				column++;
 			}
-			$('#row'+row).append("<div class='col-sm-4'>" + entity_arr[i] + "</div>");
-			if (column == 3){
-				column = 0;
-				row++;
-			}
-			column++;
-		}
-		//Print list output if exists;
-		if (list_output !== ""){
-			$('#list_content').append("<div id='buffer_vars' class='row top-buffer'>");
-			$('#buffer_vars').append("<div id='row_vars' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
-			$('#row_vars').append(list_output);
-		}
-		//Affix functions to all button clicks
-		$(".dropdown-voice-cmd > li > a").click( function (e) {
-			var button_group = $(this).parents('.btn-group');
-			button_group.find('.leadcontainer > .dropdown-lead >u').html($(this).text());
-			e.preventDefault();
-		});
-		$(".btn-voice-cmd").click( function () {
-			var voice_cmd = $(this).text().replace(/ /g, "_");
-			var url = '/RUN;last_response?select_cmd=' + voice_cmd;
-			$.get( url, function(data) {
-				var start = data.toLowerCase().indexOf('<body>') + 6;
-				var end = data.toLowerCase().indexOf('</body>');
-				$('#lastResponse').find('.modal-body').html(data.substring(start, end));
-				$('#lastResponse').modal({
-					show: true
+			
+			//Affix functions to all button clicks
+			$(".dropdown-voice-cmd > li > a").click( function (e) {
+				var button_group = $(this).parents('.btn-group');
+				button_group.find('.leadcontainer > .dropdown-lead >u').html($(this).text());
+				e.preventDefault();
+			});
+			$(".btn-voice-cmd").click( function () {
+				var voice_cmd = $(this).text().replace(/ /g, "_");
+				var url = '/RUN;last_response?select_cmd=' + voice_cmd;
+				$.get( url, function(data) {
+					var start = data.toLowerCase().indexOf('<body>') + 6;
+					var end = data.toLowerCase().indexOf('</body>');
+					$('#lastResponse').find('.modal-body').html(data.substring(start, end));
+					$('#lastResponse').modal({
+						show: true
+					});
 				});
 			});
-		});
-		$(".btn-state-cmd").click( function () {
-			var entity = $(this).attr("entity");
-			var name = entity;
-			if (entity_store[entity].label !== undefined) name = entity_store[entity].label;
-			$('#control').modal('show');
-			var modal_state = entity_store[entity].state;
-			$('#control').find('.object-title').html(name + " - " + entity_store[entity].state);
-			$('#control').find('.control-dialog').attr("entity", entity);
-			$('#control').find('.states').html('<div class="btn-group"></div>');
-			var modal_states = entity_store[entity].states;
-			for (var i = 0; i < modal_states.length; i++){
-				$('#control').find('.states').find('.btn-group').append("<button class='btn btn-default'>"+modal_states[i]+"</button>");
-			}
-			$('#control').find('.states').find(".btn-default").click(function (){
-				url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
-				$('#control').modal('hide');
-				$.get( url);
+			$(".btn-state-cmd").click( function () {
+				var entity = $(this).attr("entity");
+				var name = entity;
+				if (json_store.objects[entity].label !== undefined) name = json_store.objects[entity].label;
+				$('#control').modal('show');
+				var modal_state = json_store.objects[entity].state;
+				$('#control').find('.object-title').html(name + " - " + json_store.objects[entity].state);
+				$('#control').find('.control-dialog').attr("entity", entity);
+				$('#control').find('.states').html('<div class="btn-group"></div>');
+				var modal_states = json_store.objects[entity].states;
+				for (var i = 0; i < modal_states.length; i++){
+					$('#control').find('.states').find('.btn-group').append("<button class='btn btn-default'>"+modal_states[i]+"</button>");
+				}
+				$('#control').find('.states').find(".btn-default").click(function (){
+					url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
+					$('#control').modal('hide');
+					$.get( url);
+				});
 			});
-		});
-		
-		// Continuously check for updates if this was a group type request
-		updateList(json['request'], json['options'], json['time']);
-		}//success function
-	});  //ajax request
+
+		}
+	});
+	// Continuously check for updates if this was a group type request
+	updateList(URLHash.path);
+
 };//loadlistfunction
 
-//Used to dynamically update the state of a list
-var updateList = function(request, options, time) {
-	//There is probably a better way to rebuild the query, but this works
-	options['long_poll'] = [];
-	options['time'] = [time];
-	var args = "'";
-	var i = 0;
-	for (var key in request) {
-		if (i > 0) {
-			args += ",";
-		}
-		args += key + "=" + request[key].join('|');
-		i++;
-	}
-	args += "','";
-	i = 0;
-	for (var key in options) {
-		if (i > 0) {
-			args += ",";
-		}
-		args += key + "=" + options[key].join('|');
-		i++;
-	}
-	args +="'";
-	var url = "/LONG_POLL?json("+args+")";
+//Used to dynamically update the state of objects
+var updateList = function(path) {
+	var URLHash = URLToHash();
+	URLHash.fields = "state,type";
+	URLHash.long_poll = 'true';
+	URLHash.time = json_store.meta.time;
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
 		// Only allow one update thread to run at once
 		updateSocket.abort();
 	}
 	updateSocket = $.ajax({
 		type: "GET",
-		url: url,
+		url: "/LONG_POLL?json('GET','"+HashtoJSONArgs(URLHash)+"')",
 		dataType: "json",
 		success: function( json, textStatus, jqXHR) {
-			var requestTime = time;
 			if (jqXHR.status == 200) {
-				for (var json_type in json){
-					//we likely want a specific parser for handling the JSON response
-					if (json_type == 'time' || json_type == 'request' || json_type == 'options') {
-						//These are management values
+				JSONStore(json);
+				for (var entity in json.data){
+					if (json.data[entity].type === undefined){
+						// This is not an entity, skip it
 						continue;
 					}
-					for (var division in json[json_type]){
-						for (var entity in json[json_type][division]){
-							if (json[json_type][division][entity].type === undefined){
-								// This is not an entity, likely a value of the root obj
-								continue;
-							}
-							$('button[entity="'+entity+'"]').find('.pull-right').text(
-								json[json_type][division][entity]['state']
-							);
-							entity_store[entity].state = json[json_type][division][entity]['state'];
-						}
-					}
+					$('button[entity="'+entity+'"]').find('.pull-right').text(
+						json.data[entity].state
+					);
 				}
-				requestTime = json['time'];
 			}
 			if (jqXHR.status == 200 || jqXHR.status == 204) {
 				//Call update again, if page is still here
 				//KRK best way to handle this is likely to check the URL hash
-				var urlHash = URLToHash();
-				if (urlHash['name'] == request['groups'][0]){
+				if (URLHash.path == path){
 					//While we don't anticipate handling a list of groups, this 
 					//may error out if a list was used
-					updateList(request, options, requestTime);
+					updateList(path);
 				}
 			}
 		}, // End success
@@ -404,20 +462,20 @@ var loadCollection = function(collection_keys) {
 	var collection_keys_arr = collection_keys.split(",");
 	var last_collection_key = collection_keys_arr[collection_keys_arr.length-1];
 	var entity_arr = [];
-	var entity_sort = collection_json.collections[last_collection_key].children;
+	var entity_sort = json_store.collections[last_collection_key].children;
 	if (entity_sort.length <= 0){
 		entity_arr.push("Childless Collection");
 	}
 	for (var i = 0; i < entity_sort.length; i++){
 		var collection = entity_sort[i];
-		if (!(collection in collection_json.collections)) continue;
-		var link = collection_json.collections[collection].link;
-		var icon = collection_json.collections[collection].icon;
-		var name = collection_json.collections[collection].name;
+		if (!(collection in json_store.collections)) continue;
+		var link = json_store.collections[collection].link;
+		var icon = json_store.collections[collection].icon;
+		var name = json_store.collections[collection].name;
 		var next_collection_keys = collection_keys + "," + entity_sort[i];
 		link = buildLink (link, next_collection_keys);
-		if (collection_json.collections[collection].external !== undefined) {
-			link = collection_json.collections[collection].external;
+		if (json_store.collections[collection].external !== undefined) {
+			link = json_store.collections[collection].external;
 		}
 		var button_html = "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
 		entity_arr.push(button_html);
@@ -448,36 +506,45 @@ function buildLink (link, collection_keys){
 		link = "#";
 	} 
 	else if (link.indexOf("#") === -1){
-		link = "#request=page&link="+link+"&";
+		link = "#_request=page&link="+link+"&";
 	}
 	else {
 		link += "&";
 	}
-	link += "collection_key="+ collection_keys;
+	link += "_collection_key="+ collection_keys;
 	return link;
 }
 
 //Outputs a constantly updating print log
 var print_log = function(time) {
+	var URLHash = URLToHash();
 	if (typeof time === 'undefined'){
 		$('#list_content').html("<div id='print_log' class='row top-buffer'>");
 		$('#print_log').append("<div id='row_log' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
 		$('#row_log').append("<ul id='list'></ul>");
 		time = 0;
 	}
-	$.ajax({
+	URLHash.time = time;
+	URLHash.long_poll = 'true';
+	if (updateSocket !== undefined && updateSocket.readyState != 4){
+		// Only allow one update thread to run at once
+		updateSocket.abort();
+	}
+	updateSocket = $.ajax({
 		type: "GET",
-		url: "/LONG_POLL?json('print_log','time="+time+",long_poll')",
+		url: "/LONG_POLL?json('GET','"+HashtoJSONArgs(URLHash)+"')",
+		//url: "/LONG_POLL?json('print_log','time="+time+",long_poll')",
 		dataType: "json",
 		success: function( json, statusText, jqXHR ) {
 			var requestTime = time;
 			if (jqXHR.status == 200) {
-				for (var i = (json.print_log.text.length-1); i >= 0; i--){
-					var line = String(json.print_log.text[i]);
+				JSONStore(json);
+				for (var i = (json.data.length-1); i >= 0; i--){
+					var line = String(json.data[i]);
 					line = line.replace(/\n/g,"<br>");
 					$('#list').prepend("<li style='font-family:courier, monospace;white-space:pre-wrap;font-size:small;padding-left: 13em;text-indent: -13em;position:relative;'>"+line+"</li>");
 				}
-				requestTime = json['time'];
+				requestTime = json.meta.time;
 			}
 			if (jqXHR.status == 200 || jqXHR.status == 204) {
 				//Call update again, if page is still here
@@ -562,7 +629,6 @@ $(document).ready(function() {
 	});
 	$("#toolButton").click( function () {
 		var entity = $("#toolButton").attr('entity');
-		console.log(entity);
 		$('#optionsModal').modal('show');
 		$('#optionsModal').find('.object-title').html(entity + " - Options");
 		$('#optionsModal').find('.options-dialog').attr("entity", entity);
