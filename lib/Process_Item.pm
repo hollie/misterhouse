@@ -467,6 +467,16 @@ sub nice_level {
     }
 }
 
+=item C<get_type()>
+
+Returns the class (or type, in Misterhouse terminology) of this item.
+
+=cut
+
+sub get_type {
+    return ref $_[0];
+}
+
 #
 # $Log: Process_Item.pm,v $
 # Revision 1.30  2005/10/02 23:53:39  winter
