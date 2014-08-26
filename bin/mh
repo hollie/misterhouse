@@ -4036,11 +4036,9 @@ sub print_log_since {
     my $index;
     for my $i (0 .. $#Print_Log_Time) {
     	$index = $i;
-        if ($time eq $Print_Log_Time[$i]){
+        if ($time >= $Print_Log_Time[$i]){
+            # We have already seen this message, so the prior index is what we need
             $index--;
-            last;
-        }
-        elsif ($time >= $Print_Log_Time[$i]){
             last;
         }
     }
