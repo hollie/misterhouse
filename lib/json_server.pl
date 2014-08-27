@@ -388,6 +388,10 @@ sub json_object_detail {
 	
 	# Skip object if time arg supplied and not changed
 	if ($args{time} && $args{time}[0] > 0){
+		# Idle times are only reported in seconds
+		my $request_time = int($args{time}[0] / 1000); # Convert to seconds
+		my $current_time = int(::get_tickcount() / 1000); # Convert to seconds
+		
 		if (!($object->can('get_idle_time'))){
 			#Items that do not have an idle time do not get reported at all in updates
 			return;
@@ -396,7 +400,7 @@ sub json_object_detail {
 			#Items that have NEVER been set to a state have a null idle time
 			return;
 		}
-		elsif (int($args{time}[0]) >= (int(::get_tickcount) - ($object->get_idle_time*1000))) {
+		elsif ($request_time >= ($current_time - $object->get_idle_time)) {
 			#Should get_tickcount be replaced with output_time??
 			#Object has not changed since time, so return undefined
 			return;
