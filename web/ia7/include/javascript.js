@@ -105,10 +105,12 @@ function changePage (){
 		});
 	} 
 	else {
+		// Clear Options Entity by Default
+		$("#toolButton").attr('entity', '');
+		
 		//Trim leading and trailing slashes from path
 		var path = URLHash.path.replace(/^\/|\/$/g, "");
 		if (path.indexOf('objects') === 0){
-			//this is a temporary bodge
 			loadList();
 		}
 		else if (path.indexOf('vars') === 0){
@@ -219,11 +221,11 @@ function variableList(value){
 //Prints a JSON generated list of MH objects
 var loadList = function() {
 	var URLHash = URLToHash();
-	if (getJSONDataByPath("objects") === undefined && URLHash.path !== 'objects'){
+	if (getJSONDataByPath("objects") === undefined){
 		// We need at least some basic info on all objects
 		$.ajax({
 			type: "GET",
-			url: "/sub?json('GET','path=objects&fields=sort_order')",
+			url: "/sub?json('GET','path=objects&fields=sort_order,members,label')",
 			dataType: "json",
 			success: function( json ) {
 				JSONStore(json);
@@ -236,7 +238,7 @@ var loadList = function() {
 	var button_text = '';
 	var button_html = '';
 	var entity_arr = [];
-	URLHash.fields = "category,label,sort_order,state,states,type,text";
+	URLHash.fields = "category,label,sort_order,members,state,states,type,text";
 	$.ajax({
 		type: "GET",
 		url: "/sub?json('GET','"+HashtoJSONArgs(URLHash)+"')",
@@ -260,20 +262,18 @@ var loadList = function() {
 				sort_list = json_store.objects[URLHash.parents].sort_order;
 			}
 			
+			// Set Options Modal Entity
+			// "Parent" entity can be different depending on the manner in which
+			// the list is requested, need to figure out a heirarchy at some point
+			// Currently, we only handle groups, so we only deal with parent
+			if (URLHash.parents !== undefined) {
+				$("#toolButton").attr('entity', URLHash.parents);
+			}			
+			
 			// Sort that list if a sort exists, probably exists a shorter way to
 			// write the sort
 			if (sort_list !== undefined){
-				entity_list.sort(function(a,b) {
-					if (sort_list.indexOf(a) < 0) {
-						return 1;
-					}
-					else if (sort_list.indexOf(b) < 0) {
-						return -1;
-					}
-					else {
-						return sort_list.indexOf(a) - sort_list.indexOf(b);
-					}
-				});
+				entity_list = sortArrayByArray(entity_list, sort_list);
 			}
 
 			for (var i = 0; i < entity_list.length; i++) {
@@ -415,6 +415,21 @@ var loadList = function() {
 	updateList(URLHash.path);
 
 };//loadlistfunction
+
+var sortArrayByArray = function (listArray, sortArray){
+	listArray.sort(function(a,b) {
+		if (sortArray.indexOf(a) < 0) {
+			return 1;
+		}
+		else if (sortArray.indexOf(b) < 0) {
+			return -1;
+		}
+		else {
+			return sortArray.indexOf(a) - sortArray.indexOf(b);
+		}
+	});
+	return listArray;
+};
 
 //Used to dynamically update the state of objects
 var updateList = function(path) {
@@ -633,10 +648,24 @@ $(document).ready(function() {
 		$('#optionsModal').find('.object-title').html(entity + " - Options");
 		$('#optionsModal').find('.options-dialog').attr("entity", entity);
 		$('#optionsModal').find('#options').html('<ul id="sortable" class="list-group"></ul>');
-		for (var i = 0; i <= entity_store[entity].sort_order.length; i++){
-			$('#sortable').append('<li class="list-group-item">'+entity_store[entity].sort_order[i]+'</li>');
+		var entityList = json_store.objects[entity].members;
+		var sortList = json_store.objects[entity].sort_order;
+		entityList = sortArrayByArray(entityList, sortList);
+		for (var i = 0; i < entityList.length; i++){
+			var entityLabel = entityList[i];
+			if ( json_store.objects[entityList[i]].label !== undefined) {
+				entityLabel = json_store.objects[entityList[i]].label;
+			}
+			$('#sortable').append('<li id="'+entityList[i]+'" class="list-group-item">'+entityLabel+'</li>');
 		}
-		$( "#sortable" ).sortable();
         //$( "#sortable" ).disableSelection();
+		$( "#sortable" ).sortable({
+		  update: function( event, ui ) {
+		  	//Get Sorted Array of Entities
+		  	var sortedIDs = $( "#sortable" ).sortable( "toArray" );
+		  	// call ajax method to PUT this sort data onto the server
+		  	// currently we lack PUT capabilities
+		  }
+		});
 	});
 });
