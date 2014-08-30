@@ -232,7 +232,7 @@ sub send
         	if ($self->send_attempts > 0)
                 {
 			if ((ref $self->setby && $self->setby->debuglevel(1, 'insteon')) ||
-				((!ref $self->setby) && ::Debug{'insteon'})){
+				((!ref $self->setby) && $::Debug{'insteon'})){
 				::print_log("[Insteon::BaseMessage] WARN: now resending "
 				. $self->to_string() . " after " . $self->send_attempts
 				. " attempts.");
@@ -254,6 +254,14 @@ sub send
                         		if $self->setby->debuglevel(1, 'insteon');
                         	$$self{no_hop_increase} = undef;
                         }
+                        
+                        # If No PLM-Receipt has been received for this message
+                        # then check to see if we are supposed to restart the PLM
+                        if (!$self->plm_receipt) {
+				if ($self->is_plm_down($interface) <= 0){
+					$interface->serial_restart();
+				}
+                        }
                 }
 
                 # need to set timeout as a function of retries; also need to alter hop count
@@ -262,6 +270,10 @@ sub send
                     $self->setby->outgoing_hop_count($self->setby->default_hop_count)
                     	if $self->setby->can('outgoing_hop_count');
                 }
+                
+                # Clear PLM-Receipt Flag
+                $self->plm_receipt(0);
+                
                 $self->send_attempts($self->send_attempts + 1);
 		$interface->_send_cmd($self, $self->send_timeout);
 		if ($self->callback)
@@ -326,6 +338,53 @@ sub to_string
 	my ($self) = @_;
         return $self->interface_data;
 }
+
+=item C<plm_receipt()>
+
+Used to track whether the PLM has acknowledged receiving this message, either
+an ACK or NAK.  This is used to determine situations in which the serial
+connection to the PLM may have collapsed and may need to be restarted.
+
+=cut
+
+sub plm_receipt
+{
+	my ($self, $receipt) = @_;
+        $$self{plm_receipt} = $receipt if defined $receipt;
+        return $$self{plm_receipt};
+}
+
+=item C<is_plm_down()>
+
+Used to determine whether the PLM needs to be restarted.  The PLM should ACK the
+receipt of every command MisterHouse sends to it.  If no ACK is received then
+plm_receipt is zero on the retry attempt.  If the number of sequential no ACK 
+instances for a specific command reaches the defined number, MisterHouse will 
+attempt to reconnect the PLM port.  You can set the threshold to any number you 
+like, but if the no ACK number is higher than your retry number, which defaults 
+to 5, then the PLM will never be restarted.  The no ACK number can be set using
+the ini key:
+
+B<Insteon_PLM_reconnect_count>
+
+by default this number will be set to 99, which in will prevent the PLM from 
+being restarted.  If you have PLM disconnect issues, try setting this to 2 or 3.
+The restart code has been known to be incompatible with certain perl installations.
+
+=cut
+
+sub is_plm_down
+{
+	my ($self, $interface) = @_;
+	my $instance = $$interface{port_name};
+	my $reconnect_count = 99;
+	$reconnect_count = $::config_parms{$instance . "_reconnect_count"} 
+		if defined $::config_parms{$instance . "_reconnect_count"};
+	$$self{is_plm_down} = $reconnect_count unless defined $$self{is_plm_down};
+        $$self{is_plm_down} -= 1;
+        return $$self{is_plm_down};
+}
+
 
 =back
 
@@ -430,8 +489,8 @@ sub command_to_hash
 			$msg{type} = 'broadcast';
 			$msg{devcat} = substr($p_state,6,4);
 			$msg{firmware} = substr($p_state,10,2);
-			$msg{is_master} = substr($p_state,16,2);
-			$msg{dev_attribs} = substr($p_state,18,2);
+			$msg{is_master} = substr($p_state,14,2);
+			$msg{dev_attribs} = substr($p_state,16,2);
 		}
                 elsif ($msgflag ==6)
                 {

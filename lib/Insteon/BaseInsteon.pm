@@ -11,7 +11,9 @@ In user code:
 
 =head2 DESCRIPTION
 
-Generic class implementation of an Insteon Device.
+Generic class implementation of an Insteon Object.  This is inherited by all
+insteon objects both real (SwitchLinc) and virtual (PLM Scene), with the
+exception of the PLM itself, which does not inherit any of these functions.
 
 =head2 INHERITS
 
@@ -273,7 +275,7 @@ sub default_hop_count
 	if (defined($hop_count)){
 		::print_log("[Insteon::BaseObject] DEBUG3: Adding hop count of " . $hop_count . " to hop_array of "
 			. $self->get_object_name) if $self->debuglevel(3, 'insteon');
-		if (!defined(@{$$self{hop_array}})) {
+		if (!$$self{hop_array} || !(@{$$self{hop_array}})) {
 			unshift(@{$$self{hop_array}}, $$self{default_hop_count});
 			$$self{hop_sum} = $$self{default_hop_count};
 		}
@@ -647,6 +649,17 @@ sub message_type
     return $msg_type;
 }
 
+=item C<_is_info_request()>
+
+Used to process messages from the device which lack a command code.  Currently
+the only known message like this is a response to a (19) Light Status Request.
+In these responses, C1 is the ALDB Delta of the device.
+
+The get_engine_version check is out of place here, should be moved to
+C<_process_message>
+
+=cut
+
 sub _is_info_request
 {
 	my ($self, $cmd, $ack_setby, %msg) = @_;
@@ -914,6 +927,7 @@ sub _process_message
 	} elsif ($msg{type} eq 'broadcast') {
 		$self->devcat($msg{devcat});
 		$self->firmware($msg{firmware});
+		$self->manual_awake(240);
 		&::print_log("[Insteon::BaseObject] device category: $msg{devcat}"
 			. " firmware: $msg{firmware} received for " . $self->{object_name});
 	} else {
@@ -971,7 +985,7 @@ sub _process_command_stack
 		# for now, be "dumb" and just unset it
 		$$self{awaiting_ack} = 0;
 	}
-	if (!($$self{awaiting_ack})) {
+	if (!($$self{awaiting_ack}) && $self->is_awake) {
 		my $callback = undef;
 		my $message = pop(@{$$self{command_stack}});
 		# convert ptr to cmd hash
@@ -995,7 +1009,9 @@ sub _process_command_stack
                                 or $message->command eq 'thermostat_get_zone_info'
                                 or $message->command eq 'extended_set_get'
                                 or $message->command eq 'ping'
-                                or $message->command eq 'linking_mode' 
+                                or $message->command eq 'linking_mode'
+                                or $message->command eq 'imeter_query'
+                                or $message->command eq 'imeter_reset'
                                 )
                         {
 				$$self{awaiting_ack} = 1;
@@ -1022,7 +1038,11 @@ sub _process_command_stack
 				if $@ and $self->debuglevel(1, 'insteon');
 			package Insteon::BaseObject;
 		}
-	} else {
+	} elsif (!$self->is_awake){
+	        ::print_log("[Insteon::BaseObject] ". $self->get_object_name .
+	                " is deaf and not currently awake. Queuing commands" .
+	                " until device wakes up.");
+	}else {
 #		&::print_log("[Insteon_Device] " . $self->get_object_name . " command queued but not yet sent; awaiting ack from prior command") if $self->debuglevel(1, 'insteon');
 	}
 }
@@ -1114,14 +1134,18 @@ sub get_voice_cmds
 {
     my ($self) = @_;
     my %voice_cmds = (
-        #The Sync Links routine really resides in DeviceController, but that
-        #class seems a little redundant as in practice all devices are controllers
-        #in some sense.  As a result, that class will likely be folded into 
-        #BaseObject/Device at some future date.  In order to avoid a bizarre
-        #inheritance of this routine by higher classes, this command was placed
-        #here
+        #The Sync Links routine really resides in BaseController, maybe move this
+        #there
         'sync links' => $self->get_object_name . '->sync_links(0)'
     );
+    # for deaf devices, the device level is the only version of sync links
+    # so add an audit command
+    if ($self->is_deaf && $self->is_root){
+        %voice_cmds = (
+            %voice_cmds,
+            '(AUDIT) sync links' => $self->get_object_name . '->sync_links(1)'
+        );
+    }
     return \%voice_cmds;
 }
 
@@ -1188,6 +1212,26 @@ sub is_responder
 	}
 }
 
+=item C<is_awake()>
+
+Returns true if the device has made contact within the time allowed by 
+C<awake_time> or if time allowed for C<manual_awake) has not elapsed.
+
+=cut
+
+sub is_awake
+{
+        my ($self) = @_;
+        return 1 unless $self->isa('Insteon::BaseDevice');
+        my $is_awake = 0;
+        if (((time - $$self{last_contact}) <= $$self{awake_time}) ||
+                $$self{manual_awake} >= time){
+                $is_awake = 1;
+        }
+        $is_awake = 1 unless ($self->is_deaf);
+        return $is_awake;
+}
+
 =back
 
 =head2 INI PARAMETERS
@@ -1236,7 +1280,10 @@ You should have received a copy of the GNU General Public License along with thi
 
 =head2 DESCRIPTION
 
-Generic class implementation of a Base Insteon Device.
+Generic class implementation of a Base Insteon Device such as a SwitchLinc.
+This class is inherited by all physical Insteon devices with the
+exception of the PLM itself, which does not inherit any of these functions.
+These functions are also not inherited by virtual devices such as a PLM Scene.
 
 =head2 INHERITS
 
@@ -1250,7 +1297,7 @@ L<Insteon::BaseObject|Insteon::BaseInsteon/Insteon::BaseObject>
 
 package Insteon::BaseDevice;
 
-@Insteon::BaseDevice::ISA = ('Insteon::BaseObject');
+@Insteon::BaseDevice::ISA = ('Insteon::BaseController');
 
 our %message_types = (
    %Insteon::BaseObject::message_types,
@@ -1280,6 +1327,8 @@ our %message_types = (
    poke_internal => 0x2d,
    extended_set_get => 0x2e,
    read_write_aldb => 0x2f,
+   imeter_reset => 0x80,
+   imeter_query => 0x82,
 );
 
 
@@ -1328,7 +1377,7 @@ sub new
 	$self->restore_data('devcat', 'firmware', 'level', 'retry_count_log', 'fail_count_log', 
         'outgoing_count_log', 'incoming_count_log', 'corrupt_count_log',
         'dupe_count_log', 'hops_left_count', 'max_hops_count',
-        'outgoing_hop_count');
+        'outgoing_hop_count', 'awake_time');
 
 	$self->initialize();
 	$self->rate(undef);
@@ -1350,6 +1399,7 @@ sub new
     $$self{hops_left_count} = 0;
     $$self{max_hops_count} = 0;
     $$self{outgoing_hop_count} = 0;
+    $$self{awake_time} = 2 unless $$self{awake_time};
 
 
 	return $self;
@@ -1368,6 +1418,55 @@ sub initialize
 	$$self{m_write} = 1;
 	$$self{m_is_locally_set} = 0;
 	# persist local, simple attribs
+}
+
+=item C<awake_time([time])>
+
+Used to store and return the associated awake time of a device.  This only
+applies to deaf devices.
+
+If provided, stores awake time.
+
+=cut
+
+sub awake_time
+{
+	my ($self, $p_time) = @_;
+	$$self{awake_time} = $p_time if $p_time;
+	return $$self{awake_time};
+}
+
+=item C<last_contact([time])>
+
+Used to store and return the time of the last contact from a device.  This only
+applies to deaf devices.
+
+=cut
+
+sub last_contact
+{
+	my ($self, $p_time) = @_;
+	$$self{last_contact} = $p_time if $p_time;
+	return $$self{last_contact};
+}
+
+=item C<manual_awake([time])>
+
+Used to manually flag the device as awake for a period of time.  This will
+cause all messages from MH to be immediately sent to the device instead of
+being held until next contact.  This should be used when you have manually
+set the device to be awake such as by holding the set button until the device 
+beeps.  Used only for deaf devices.
+
+=cut
+
+sub manual_awake
+{
+	my ($self, $p_time) = @_;
+	$$self{manual_awake} = time + $p_time if $p_time;
+	#Start sending any messages that are queued for the device 
+	$self->_process_command_stack();
+	return $$self{manual_awake};
 }
 
 =item C<rate([rate])>
@@ -1856,13 +1955,19 @@ Scans a device link table and caches a copy.
 
 sub scan_link_table
 {
-	my ($self, $success_callback, $failure_callback) = @_;
-        my $aldb = $self->get_root()->_aldb;
-        if ($aldb)
-        {
-        	return $aldb->scan_link_table($success_callback, $failure_callback);
+	my ($self, $success_callback, $failure_callback, $skip_unchanged) = @_;
+	my $aldb = $self->get_root()->_aldb;
+	if ($skip_unchanged) {
+	    my $self_name = $self->get_object_name();
+		## check if aldb_delta has changed;
+		$aldb->{_aldb_unchanged_callback} = $success_callback;
+		$aldb->{_aldb_changed_callback} = $self_name."->scan_link_table(
+		    '$success_callback', '$failure_callback')";
+		$aldb->{_failure_callback} = $failure_callback;
+		$aldb->query_aldb_delta("check");
+	} else {
+        $aldb->scan_link_table($success_callback, $failure_callback);
 	}
-
 }
 
 =item C<log_aldb_status()>
@@ -2181,8 +2286,8 @@ does nothing.
 
 sub delete_orphan_links
 {
-	my ($self, $audit_mode, $failure_callback) = @_;
-        return $self->_aldb->delete_orphan_links($audit_mode, $failure_callback) if $self->_aldb;
+	my ($self, $audit_mode, $failure_callback, $is_batch_mode) = @_;
+        return $self->_aldb->delete_orphan_links($audit_mode, $failure_callback,$is_batch_mode) if $self->_aldb;
 }
 
 sub _process_delete_queue {
@@ -2707,7 +2812,15 @@ sub get_voice_cmds
             'run stress test' => "$object_name->stress_test(5)",
             'run ping test' => "$object_name->ping(5)",
             'log links' => "$object_name->log_alllink_table()"
-        )
+        );
+        if ($self->is_deaf){
+            %voice_cmds = (
+                %voice_cmds,
+                'delete orphan links' => "$object_name->delete_orphan_links(0)",
+                '(AUDIT) delete orphan links' => "$object_name->delete_orphan_links(1)",
+                'mark as manually awake' => "$object_name->manual_awake(240)"
+            );
+        }
     }
     return \%voice_cmds;
 }
@@ -2793,9 +2906,6 @@ one group.  This includes, KeyPadLincs, RemoteLincs, FanLincs, Thermostats
 =head2 INHERITS
 
 Nothing.
-
-This package is meant to provide supplemental support and should only be added
-as a secondary inheritance to an object.
 
 =head2 METHODS
 
@@ -2933,7 +3043,8 @@ You should have received a copy of the GNU General Public License along with thi
 
 =head2 DESCRIPTION
 
-Generic class implementation of an Insteon Controller.
+Generic class implementation of an Insteon Controller, this is inherited by
+both virtual (PLM Scene) and real (Switchlinc) objects.
 
 =head2 INHERITS
 
@@ -2949,7 +3060,7 @@ package Insteon::BaseController;
 
 use strict;
 
-@Insteon::BaseController::ISA = ('Generic_Item');
+@Insteon::BaseController::ISA = ('Insteon::BaseObject');
 
 =item C<new()>
 
@@ -3167,7 +3278,7 @@ sub sync_links
 				$requires_update = 1;
 				$cause .= "Ramp rate ";
 			}
-			elsif ($cur_on_level-1 > $tgt_on_level && $cur_on_level+1 < $tgt_on_level){
+			elsif ($cur_on_level-1 > $tgt_on_level || $cur_on_level+1 < $tgt_on_level){
 				$requires_update = 1;
 				$cause .= "On level ";
 			}
@@ -3257,13 +3368,17 @@ sub _process_sync_queue {
 	if ($num_sync_queue) {
 		my $link_req_ptr = shift(@{$$self{sync_queue}});
 		my %link_req = %$link_req_ptr;
-		if ($link_req{cmd} eq 'update') {
-			my $link_member = $link_req{member};
-			$link_member->update_link(%link_req);
-		} elsif ($link_req{cmd} eq 'add') {
-			my $link_member = $link_req{member};
-			$link_member->add_link(%link_req);
+		my $link_member = $link_req{member};
+		if ($link_member->is_deaf && !$link_member->is_awake){
+		        $link_member->_build_deaf_sync_queue($link_req_ptr);
+		        $self->_process_sync_queue();
 		}
+		elsif ($link_req{cmd} eq 'update') {
+        		$link_member->update_link(%link_req);
+        	} 
+        	elsif ($link_req{cmd} eq 'add') {
+        		$link_member->add_link(%link_req);
+        	}
 	} elsif ($$self{sync_queue_callback}) {
 		my $callback = $$self{sync_queue_callback};
 		if ($$self{sync_queue_failure}){
@@ -3271,12 +3386,68 @@ sub _process_sync_queue {
 		}
 		package main;
 		eval ($callback);
-		&::print_log("[Insteon::BaseController] error in sync links callback: " . $@)
+		::print_log("[Insteon::BaseController] ERROR in sync links callback: " . $@)
 			if $@ and $self->debuglevel(1, 'insteon');
 		package Insteon::BaseController;
 	} else {
-		main::print_log($self->get_object_name." completed sync links");
+		::print_log("[Insteon::BaseController] Completed sync links for: "
+		        .$self->get_object_name);
+                if ($$self{deaf_sync_queue_flag}){
+		        ::print_log("[Insteon::BaseController] Links on "
+		                .$self->get_object_name . " will sync the next "
+		                ."time the device is awake."); 
+                        $self->_process_deaf_sync_queue();
+                }
 	}
+}
+
+######
+#
+# The following three routines are used to queue links to be synced on deaf 
+# devices these requests will be processed the next time the device wakes up
+#
+######
+
+sub _build_deaf_sync_queue {
+        my ($self, $link_req_ptr) = @_;
+        my %link_req = %$link_req_ptr;
+        my $self_link_name = $self->get_object_name;
+        $$self{deaf_sync_queue_flag} = 1; #Sync requests are pending
+	%link_req = ( callback => "$self_link_name->_process_deaf_sync_queue()",
+                failure_callback => "$self_link_name->_process_deaf_sync_queue_failure()");
+        push @{$$self{deaf_sync_queue}}, \%link_req;
+}
+
+sub _process_deaf_sync_queue {
+        my ($self) = @_;
+        my $num_sync_queue = @{$$self{deaf_sync_queue}};
+        if ($num_sync_queue) {
+	        my $link_req_ptr = shift(@{$$self{deaf_sync_queue}});
+		my %link_req = %$link_req_ptr;
+		my $link_member = $link_req{member};
+        	if ($link_req{cmd} eq 'update') {
+        		$link_member->update_link(%link_req);
+        	} 
+        	elsif ($link_req{cmd} eq 'add') {
+        		$link_member->add_link(%link_req);
+        	}
+        }
+        else {
+                ::print_log("[Insteon::BaseController] Completed the delayed "
+                        ."sync links request on " . $self->get_object_name);
+		if ($$self{deaf_sync_queue_failure}) {
+                        ::print_log("[Insteon::BaseController] However, some "
+                                ."failures occured.");
+		}
+		$$self{deaf_sync_queue_flag} = 0;
+		$$self{deaf_sync_queue_failure} = 0;
+	}
+}
+
+sub _process_deaf_sync_queue_failure {
+        my ($self) = @_;
+        $$self{deaf_sync_queue_failure} = 1;
+        $self->_process_deaf_sync_queue();
 }
 
 =item C<set_linked_devices(state)>
@@ -3318,7 +3489,7 @@ sub set_linked_devices
 					$$self{members}{$member_ref}{resume_state} = $light->state;
 					$member->manual($light, $ramp_rate);
 					if (lc $link_state ne 'on'){
-						$local_state = $light->$link_state;
+						$local_state = $light->derive_link_state($link_state);
 					}
 					$light->set_receive($local_state,$self);
 				}
@@ -3504,98 +3675,6 @@ You should have received a copy of the GNU General Public License along with thi
 =cut
 
 ####################################
-###            #####################
-### DeviceController ###############
-###                  ###############
-####################################
-
-=head1 B<Insteon::DeviceController>
-
-=head2 DESCRIPTION
-
-Generic class implementation of an Device Controller.
-
-=head2 INHERITS
-
-L<Insteon::BaseController|Insteon::BaseInsteon/Insteon::BaseController>
-
-=head2 METHODS
-
-=over
-
-=cut
-
-package Insteon::DeviceController;
-
-use strict;
-
-@Insteon::DeviceController::ISA = ('Insteon::BaseController');
-
-=item C<new()>
-
-Instantiates a new object.
-
-=cut
-
-sub new
-{
-	my ($class,$p_deviceid,$p_interface,$p_devcat) = @_;
-
-	# note that $p_deviceid will be 00.00.00:<groupnum> if the link uses the interface as the controller
-	my $self = new Insteon::BaseController($p_deviceid,$p_interface);
-	bless $self,$class;
-	return $self;
-}
-
-=item C<request_status([requestor])>
-
-Requests the current status of the device and calls C<set()> on the response.  
-This will trigger tied_events.
-
-=cut
-
-sub request_status
-{
-	my ($self,$requestor) = @_;
-#	if ($self->group ne '01') {
-	if ($$self{members} and !($self->isa('Insteon::InterfaceController'))
-             and (!(ref $requestor) or ($requestor eq $self))) {
-		&::print_log("[Insteon::DeviceController] requesting status for members of " . $$self{object_name});
-		foreach my $member (keys %{$$self{members}}) {
-			next unless $member->isa('Insteon::BaseObject');
-			my $member_obj = $$self{members}{$member}{object};
-			next if $requestor eq $member_obj;
-                        if ($member_obj->isa('Insteon::BaseDevice')) {
-			   &::print_log("[Insteon::DeviceController] checking status of " . $member_obj->get_object_name()
-				. " for requestor " . $requestor->get_object_name());
-			   $member_obj->request_status($self);
-                        }
-		}
-	}
-        # the following has bad assumptions in that we don't always know if a device is a responder
-        #    since it could be a slave
-	if ($self->is_root && $self->is_responder) {
-		$self->Insteon::BaseDevice::request_status($requestor);
-	}
-}
-
-=back
-
-=head2 AUTHOR
-
-Gregg Liming / gregg@limings.net, Kevin Robert Keegan, Michael Stovenour
-
-=head2 LICENSE
-
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-
-=cut
-
-####################################
 ###                     ############
 ### InterfaceController ############
 ###                     ############
@@ -3605,7 +3684,7 @@ You should have received a copy of the GNU General Public License along with thi
 
 =head2 DESCRIPTION
 
-Generic class implementation of an Interface Controller.  These are the PLM Scenes.
+Generic class implementation that supports PLM Scenes.
 
 =head2 INHERITS
 

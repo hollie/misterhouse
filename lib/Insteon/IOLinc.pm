@@ -85,7 +85,6 @@ in the definition may be enough to make it work, I don't yet know.
 =head2 INHERITS
 
 L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>, 
-L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
 
 =head2 METHODS
 
@@ -98,7 +97,7 @@ use Insteon::BaseInsteon;
 
 package Insteon::IOLinc;
 
-@Insteon::IOLinc::ISA = ('Insteon::BaseDevice', 'Insteon::DeviceController');
+@Insteon::IOLinc::ISA = ('Insteon::BaseDevice');
 
 my %operating_flags = (
    'program_lock_on' => '00',
