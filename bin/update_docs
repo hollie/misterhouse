@@ -280,9 +280,11 @@ else {
 foreach my $doc ( keys %podfiles ) {
     my $podfile = "$docdir/$doc";
     my $ind     = "";
+    my $docdir2 = $docdir;
     if ( $doc eq "items.pod" or $doc eq "modules.pod" ) {
         $podfile = "$outdir/$doc";
         $ind     = "--noindex";
+        $docdir2 = '..';
     }
     $doc =~ s/\.pod$//i;
     my $htmlfile = "$outdir/$doc.html";
@@ -297,7 +299,7 @@ foreach my $doc ( keys %podfiles ) {
         pod2html(
             "--infile=$podfile",    "--outfile=$htmlfile",
             "--noheader",
-            "--htmldir=$outdir",    "--podroot=$docdir",
+            "--htmldir=$outdir",    "--podroot=$docdir2",
             "--podpath=.",          "--css=/lib/pod.css",
             $ind
         );
