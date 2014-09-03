@@ -18,6 +18,7 @@ sub read_dir {
     my ( @results, @dir_results );
     while ( my $file = readdir(DIR) ) {
         next if ( $file =~ m/^\./ );
+        next if ( -l "$dir_sub/$file" );    # Skip symlinks
         if ( lc("$dir_sub/$file") =~ /^\.\.\/lib\/site/ )
         {    #Skip distributed perl modules
             next;
