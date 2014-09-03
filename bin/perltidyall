@@ -60,7 +60,7 @@ if ( $argument eq '--delete_bak_err' ) {
     print "\n-----------------------------\n\n";
     print "PerlTidyAll Cleanup Complete\n\n";
 }
-else {
+elsif ( $argument eq '' ) {
     print "\nRunning PerlTidy on all Perl files in the MisterHouse repository. "
       . "This may take a few minutes to complete, press Ctrl+C to cancel.\n";
     my $command = "perltidy " . join( " ", read_dir( "..", 'read' ) );
@@ -76,6 +76,12 @@ else {
       . "review the changes made and if you are satisfied with the results you can "
       . " delete the backup and error files by running the following command:\n\n";
     print "perltidyall --delete_bak_err\n\n";
+}
+else {
+    print
+      "\nERROR - Unrecognized Argument\n\nPerlTidyAll may be run without any "
+      . "arguments or with the --delete_bak_err argument to delete backup and log"
+      . " files.\n";
 }
 
 exit 0;
