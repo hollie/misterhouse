@@ -17,6 +17,7 @@ my $relay1   = new Owfs_Item ( "05.14312A000000"); # heater
 if (new_minute) {
   if ($relay1->get( "PIO" ) ) {
       $relay1->set( "PIO", 0);
+  }
   else {
      $relay1->set( "PIO", 1)
   }

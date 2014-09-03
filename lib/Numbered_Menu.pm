@@ -307,11 +307,6 @@ sub next
 	}
 }
 
-sub sequence_item
-{
-	my ($self) = @_;
-	$self->next();
-}
 
 sub previous
 {

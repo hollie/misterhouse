@@ -19,6 +19,6 @@
 
 #Here is another:
 
- $keychain1  = new X10_Item 'A5'
+ $keychain1  = new X10_Item 'A5';
  $keychain1 -> tie_items($outside_lights);
 

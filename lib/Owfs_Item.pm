@@ -1309,6 +1309,16 @@ sub new {
     return $self;
 }
 
+package Owfs_DS2405_pio;
+use strict;
+
+use constant;
+use constant ON  => 'on';
+use constant OFF => 'off';
+use constant PIO   => 0;
+use constant SENSE => 1;
+use constant LATCH => 2;
+
 @Owfs_DS2405_pio::ISA = ('Owfs_Switch');
 
 sub new {
@@ -1317,6 +1327,16 @@ sub new {
     bless $self,$class;
     return $self;
 }
+
+package Owfs_DS2405_sense;
+use strict;
+
+use constant;
+use constant ON  => 'on';
+use constant OFF => 'off';
+use constant PIO   => 0;
+use constant SENSE => 1;
+use constant LATCH => 2;
 
 @Owfs_DS2405_sense::ISA = ('Owfs_Switch');
 

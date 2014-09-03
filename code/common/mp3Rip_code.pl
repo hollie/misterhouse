@@ -634,10 +634,6 @@ sub mp3Rip_is_cdinfo_ready {
    return $get_cdinfo_process->done();
 }
 
-sub mp3Rip_is_cdinfo_ready {
-   return $get_cdinfo_process->done();
-}
-
 sub mp3Rip_parse_cdinfo {
    unless (-s "$config_parms{mp3Rip_work_dir}/cd-info.curr") {
       return (undef, undef, undef);

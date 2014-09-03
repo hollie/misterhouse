@@ -74,7 +74,7 @@ sub voicemails
 			{
 				my ($dt, $tm, $ext) = split /\./, $FileName;
 				my $size = -s $config_parms{voicemail_dir} . "/" . $FileName;
- q				$tm =~ s/-/:/g;
+				$tm =~ s/-/:/g;
 				$htmlcode .= "<TR CLASS=\"wvtrow\">";
 				$htmlcode .= "<TD WIDTH=\"70\"><A HREF=\"/bin/vmail_streamer.pl?$FileName\">";
 				$htmlcode .= "<IMG BORDER=\"0\" SRC=\"/graphics/icons/listen.png\"></A>";

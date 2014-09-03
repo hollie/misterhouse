@@ -112,7 +112,7 @@ MAINMENU:  while (1==1) {
                      &send_ivr_socket ("testlamp off"); #put in valid voicecommand 
                      $iv->addmsg("lamp");
                      $iv->addmsg("is");
-                     $iv->addmsg("off";
+                     $iv->addmsg("off");
                      $iv->playfile||&closeall;    
                      }
                      elsif ($dtmfin eq '8') {

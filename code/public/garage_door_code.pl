@@ -15,7 +15,7 @@ http://www.norcoalarms.com/ezStore123/DTProductZoom.asp?productID=531
 =cut
 
 # Category=Doors
->From doors.pl
+#>From doors.pl
 ######################################################
 # Miscellaneous Door stuff
 #####################################################

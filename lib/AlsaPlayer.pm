@@ -819,11 +819,6 @@ sub get_artist {
    return $$self{'artist'};
 }
 
-sub get_playlist_length {
-   my ($self) = @_;
-   return $$self{'playlist_length'};
-}
-
 sub halt {
    my ($self) = @_;
    $$self{'halted'} = 1;

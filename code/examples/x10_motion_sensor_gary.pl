@@ -108,8 +108,6 @@ if (state_now $motion eq ON) {
     }
 }
 
-}
-
 if (state_now $motion eq OFF) {
     if ((state $motion_unit) eq 'carport sense 2') {
 	#set $x10_sounder ON;
