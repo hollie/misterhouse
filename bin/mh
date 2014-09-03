@@ -5900,9 +5900,27 @@ sub read_user_code {
         $noloop_flag = $noloop_statement_flag = $pod_flag = 0;
 
         #       push (@Item_Code, "my $item_file_name; # Used to see which files items came from \n");
-        my ( $code, $code_flag );
+        my ( $code, $code_flag, $split_line );
         for my $temp ( @{ $User_Code{$file} } ) {
             $record = $temp;    # Do not want to modify stuff in User_Code
+
+            # With the introduction of PerlTidy some 'new' statements may be split
+            # over two or more lines.  I believe they will always be broken at the
+            # equals sign. This attempts to compress those lines back into a 
+            # single line for parsing.
+            if ( $record !~ /\;/ && $record =~ /=$/) {
+
+                # If there is no semicolon and the line ends in an equals sign,
+                # then assume this isn't a complete statement.
+                $split_line = "$split_line" . "$record";
+                next;
+            }
+
+            # Here we reconstruct multiple lines
+            if ( $split_line ne '' ) {
+                $record = $split_line . $record;
+            }
+            $split_line = '';
 
             #           push(@Item_Code, "\$item_file_name = '$file';\n");
 
