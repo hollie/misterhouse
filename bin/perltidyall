@@ -47,7 +47,7 @@ sub read_dir {
     return @results;
 }
 
-my $argument = shift @ARGV;
+my $argument = shift @ARGV || "";
 
 if ($argument eq '--delete_bak_err'){
     print "\nDeleting PerlTidy backup files and error logs.\n";
