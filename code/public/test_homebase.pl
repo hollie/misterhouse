@@ -71,7 +71,6 @@ if ($state = said $v_homebase_test) {
      }
 
 }
-} # Added by Bob ??
 
 
 # set_time format??

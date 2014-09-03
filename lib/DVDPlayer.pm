@@ -46,7 +46,7 @@ sub find_program_path {
 		unless ($windvd_path) {
 			$windvd_path = $Registry->{'Classes/Applications/Windvd.exe/shell/open/command//'};
 			$windvd_path = $1 if $windvd_path =~ /"(.*?)"/;
-			$windvd_path =~ s/\x20"*\%\d"*/g; # remove parameter templates (%1, "%2", etc.)
+			$windvd_path =~ s/\x20"*\%\d"*//g; # remove parameter templates (%1, "%2", etc.)
 		}
 		return $windvd_path;
 	}
