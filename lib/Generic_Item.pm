@@ -901,7 +901,7 @@ TODO
 
 sub get_fp_location {
     my ($self) = @_;
-    if (! defined @{$$self{location}} ) { return }
+    if (! @{$$self{location}} ) { return }
     return @{$$self{location}};
 }
 

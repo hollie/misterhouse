@@ -16,7 +16,8 @@ Requires the following perl modules:
   Time::Zone
 
 if the IMAP scan hangs before authenticating against the gmail account, reinstall the
-IO::Socket::SSL
+IO::Socket::SSL. On OS X you need to install openssl before attempting to install the 
+SSL-related Perl modules. The easiest way to do this is through homebrew (brew install openssl)
 
 Todo: parse unread messages
 

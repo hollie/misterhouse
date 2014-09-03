@@ -25,7 +25,7 @@ my %stocks;                     # This is where the data will be stored
 
 # More info on how this magic url was derived can be found here:
 #    http://www.padz.net/~djpadz/YahooQuote/
-my $stock_url = 'http://quote.yahoo.com/d?f=snl1d1t1c1p2va2bapomwerr1dyj1x\&s=' . join('%20', @stock_symbols);
+my $stock_url = 'http://download.finance.yahoo.com/d?f=snl1d1t1c1p2va2bapomwerr1dyj1x\&s=' . join('%20', @stock_symbols);
 my @stock_keys = ('SName', 'LName', 'Last', 'Date', 'Time', 'Change', 'PChange',
                   'Volume', 'Avg Volume', 'Bid', 'Ask', 'Prev Close', 'Open',
                   'Day Range', '52-Week Range', 'EPS', 'P/E Ratio', 'Div Pay Date',
@@ -198,6 +198,8 @@ if ($Reload) {
       unless &trigger_get('get stocks');
 }
 
+# 07 Jul 14, Jared J. Fernandez
+# Updated stocks URL due to change by Yahoo.
 
 # 27 Dec 05, David Norwood
 # Someone else also added back the stock alerts in the last release.  I removed the duplicate code.
