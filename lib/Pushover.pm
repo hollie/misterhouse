@@ -107,7 +107,7 @@ sub new {
 
     if ( defined $params && ref($params) ne 'HASH' ) {
         &::print_log(
-"[Pushover] ERROR!  Pushover->new() invalid parameter hash - Pushover disabled"
+            "[Pushover] ERROR!  Pushover->new() invalid parameter hash - Pushover disabled"
         );
         $params = {};
         $params->{disable} = 1;
@@ -183,10 +183,10 @@ sub notify {
 
     if ( defined $params && ref($params) ne 'HASH' ) {
         &::print_log(
-"[Pushover] ERROR!  notify called with invalid parameter hash - parameters ignored"
+            "[Pushover] ERROR!  notify called with invalid parameter hash - parameters ignored"
         );
         &::print_log(
-"[Pushover] Usage: ->push(\"Message\", { priority => 1, title => \"Some title\"})"
+            "[Pushover] Usage: ->push(\"Message\", { priority => 1, title => \"Some title\"})"
         );
     }
     else {
@@ -209,7 +209,7 @@ sub notify {
         $callparms->{$_} = $self->{$_} unless defined $callparms->{$_};
     }
 
- #Priority 2 messages require a retry and expire timer, make sure they are valid
+    #Priority 2 messages require a retry and expire timer, make sure they are valid
     if ( $callparms->{priority} == 2 ) {
 
         $callparms->{retry} ||= 30;
@@ -232,7 +232,7 @@ sub notify {
     if ( my $lasttime = $self->{_lastSent}{$msgsig} ) {
         if ( time() < $lasttime + DUPWINDOW ) {
             &::print_log(
-"[Pushover] Skipped duplicate notification: $callparms->{message} within "
+                "[Pushover] Skipped duplicate notification: $callparms->{message} within "
                   . DUPWINDOW
                   . " seconds." );
             return;
@@ -271,7 +271,7 @@ sub notify {
     }
     else {
         &::print_log(
-"[Pushover] ERROR: POST Failed: Status: $decoded_json->{status} - $decoded_json->{errors} "
+            "[Pushover] ERROR: POST Failed: Status: $decoded_json->{status} - $decoded_json->{errors} "
         );
     }
 
@@ -319,7 +319,7 @@ sub _checkReceipt {
             }
             elsif ( $decoded_json->{expired} ) {
                 &::speak(
-"Pushover message expired without acknowledment: $self->{_receipts}{$_}"
+                    "Pushover message expired without acknowledment: $self->{_receipts}{$_}"
                 ) if $self->{speak};
                 &::print_log( "[Pushover] "
                       . $self->{_receipts}{$_}

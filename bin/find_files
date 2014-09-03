@@ -16,18 +16,23 @@ Copyright 1998-2001 Bruce Winter
 
 use strict;
 
-my($Pgm_Path, $Pgm_Name, $Version);
+my ( $Pgm_Path, $Pgm_Name, $Version );
+
 BEGIN {
-    ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
-    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ($Version) =
+      q$Revision$ =~ /: (\S+)/;   # Note: revision number is auto-updated by cvs
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
 }
 
 my %parms;
 use Getopt::Long;
-if (!&GetOptions(\%parms, 'h', 'help', 'v', 'boxes=s', 'skip=s', 'dirs=s') or
-    !@ARGV or $parms{h} or $parms{help}) {
-    print<<eof;
+if (   !&GetOptions( \%parms, 'h', 'help', 'v', 'boxes=s', 'skip=s', 'dirs=s' )
+    or !@ARGV
+    or $parms{h}
+    or $parms{help} )
+{
+    print <<eof;
 
 $Pgm_Name finds files on shared networked Windows and samba directories
 
@@ -53,33 +58,33 @@ eof
     exit;
 }
 
-my (@boxes, @shares, %counts, $search, @skip, @found);
+my ( @boxes, @shares, %counts, $search, @skip, @found );
 my $time_start = time;
 
 $search = shift;
-@skip   = split ',', $parms{skip}  if $parms{skip};
+@skip   = split ',', $parms{skip} if $parms{skip};
 @boxes  = split ',', $parms{boxes} if $parms{boxes};
 @shares = split ',', $parms{dirs};
-@skip   = qw(^/program ^/win) unless @skip; # Skip program and windows dirs
+@skip   = qw(^/program ^/win) unless @skip;      # Skip program and windows dirs
 @boxes  = &find_boxes unless @boxes;
 @shares = &find_shares(@boxes) unless @shares;
 
-$| = 1;                         # Turn on command buffering (e.g. flush on every print)
+$| = 1;    # Turn on command buffering (e.g. flush on every print)
 print "\nSearching for $search in @shares\n\n";
 for my $share (@shares) {
     print "Traversing share $share\n";
     &read_dir($share);
 }
 
-print "\nRead $counts{dir} directories and $counts{file} files.\n  - Found  $counts{found} files that match $search\n";
+print
+  "\nRead $counts{dir} directories and $counts{file} files.\n  - Found  $counts{found} files that match $search\n";
 print "\nFound files:\n  ", join "\n  ", @found if @found;
-print "\nRun took ", scalar(time)-$time_start, " seconds\n";
-
+print "\nRun took ", scalar(time) - $time_start, " seconds\n";
 
 sub find_boxes {
     print "\nFinding networked box names...\n";
     my @boxes;
-    for (split "\n", `net view`) {
+    for ( split "\n", `net view` ) {
         push @boxes, $1 if /^\\\\(\S+)/;
     }
     return @boxes;
@@ -91,8 +96,8 @@ sub find_shares {
     print "Finding shares on @boxes\n";
     for my $box (@boxes) {
         $box = '\\\\' . $box;
-        for (split "\n", `net view $box`) {
-            my ($share, $type) = split;
+        for ( split "\n", `net view $box` ) {
+            my ( $share, $type ) = split;
             next unless $type eq 'Disk';
             $share = $box . '\\' . $share;
             push @shares, $share;
@@ -101,22 +106,28 @@ sub find_shares {
     return @shares;
 }
 
-                                # This way of finding shares requires WMI to be installed
-                                #  - See find_win_programs for more info.
-                                #  - Probably no advantage to this.  Will not search linux samba shares.
+# This way of finding shares requires WMI to be installed
+#  - See find_win_programs for more info.
+#  - Probably no advantage to this.  Will not search linux samba shares.
 sub find_shares_wmi {
     my @boxes = @_;
     my @shares;
     print "Finding shares on @boxes\n";
     use Win32::OLE;
     for my $box (@boxes) {
-        if(my $WMI = Win32::OLE->GetObject("WinMgmts:{impersonationLevel=impersonate}!//$box")) {
-            for my $share (Win32::OLE::in($WMI->InstancesOf('Win32_Share'))) {
-                next unless $share->{Type} == 0;     # Look at shares only
-                next if     $share->{Name} =~ /\$$/; # Ignore hidden shares
+        if (
+            my $WMI = Win32::OLE->GetObject(
+                "WinMgmts:{impersonationLevel=impersonate}!//$box")
+          )
+        {
+            for my $share ( Win32::OLE::in( $WMI->InstancesOf('Win32_Share') ) )
+            {
+                next unless $share->{Type} == 0;    # Look at shares only
+                next if $share->{Name} =~ /\$$/;    # Ignore hidden shares
                 push @shares, "//$box/$share->{Name}";
                 printf "%-8s  Name: %s,  Type: %s, Status: %s  Path: %s\n",
-                $box, $share->{Name}, $share->{Type}, $share->{Status}, $share->{Path};
+                  $box, $share->{Name}, $share->{Type}, $share->{Status},
+                  $share->{Path};
             }
         }
     }
@@ -124,26 +135,25 @@ sub find_shares_wmi {
 }
 
 sub read_dir {
-    my($dir) = @_;
+    my ($dir) = @_;
     return if grep $dir =~ /$_/i, @skip;
     print "  - Reading files in $dir\n" if $parms{v};
     $counts{dir}++;
-    opendir(DIR, $dir) or do {print "Error in dir open: $!\n"; return};
+    opendir( DIR, $dir ) or do { print "Error in dir open: $!\n"; return };
     my @files = readdir DIR;
     close DIR;
 
-    for my $file (sort @files) {
+    for my $file ( sort @files ) {
         next if $file eq '.' or $file eq '..';
         $file = "$dir/$file";
         &read_dir($file), next if -d $file;
         $counts{file}++;
-        if ($file =~ /$search/i) {
+        if ( $file =~ /$search/i ) {
             $counts{found}++;
             push @found, $file;
         }
     }
 }
-           
 
 #
 # $Log: find_files,v $

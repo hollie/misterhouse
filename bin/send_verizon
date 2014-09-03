@@ -1,51 +1,49 @@
 #!/usr/bin/perl -w
 
 use Net::Telnet ();
-$TO = '4436040090' ;
-$FROM = 'mrhouse' ;
+$TO   = '4436040090';
+$FROM = 'mrhouse';
 
-
-&send_text_message(to=>$TO, from=>'me', msg=>'hmm+dunno123') ;
-
+&send_text_message( to => $TO, from => 'me', msg => 'hmm+dunno123' );
 
 sub send_text_message {
-	my %parms = @_ ;
+    my %parms = @_;
 
-	my( $to, $from, $msg ) ;
-	$to 	= $parms{to} ;
-	$from	= $parms{from} ;
-	$msg	= $parms{msg} ;
+    my ( $to, $from, $msg );
+    $to   = $parms{to};
+    $from = $parms{from};
+    $msg  = $parms{msg};
 
-	$to 	= $TO	unless ( $to ) ;
-	$from	= $FROM unless ( $from ) ;
-	
-	unless( $msg ) {  print "Error: No Text Message to send\n"; return ; } ;
-	
-	print "Starting to send message\n" ;
+    $to   = $TO   unless ($to);
+    $from = $FROM unless ($from);
 
-	my($run_id) = &get_run_id  ;
-	print "Session ID='$run_id'" . "\n";
+    unless ($msg) { print "Error: No Text Message to send\n"; return; }
 
-	print "\n" ;
-	my $formatted_msg = &create_msg(to=>$to, from=>$from, msg=>$msg, id=> $run_id) ;
+    print "Starting to send message\n";
 
-	&submit_message( $formatted_msg ) ;
+    my ($run_id) = &get_run_id;
+    print "Session ID='$run_id'" . "\n";
+
+    print "\n";
+    my $formatted_msg =
+      &create_msg( to => $to, from => $from, msg => $msg, id => $run_id );
+
+    &submit_message($formatted_msg);
 
 }
 
-
 sub submit_message {
-	my( $txt_msg ) = @_ ;
-	$t = new Net::Telnet; 
+    my ($txt_msg) = @_;
+    $t = new Net::Telnet;
 
-	$t->open(Host => "151.144.246.160", Port => 80); 
-	$t->print($txt_msg); 
+    $t->open( Host => "151.144.246.160", Port => 80 );
+    $t->print($txt_msg);
 }
 
 sub get_run_id {
-	$t = new Net::Telnet; 
+    $t = new Net::Telnet;
 
-my $get_seq = "GET / HTTP/1.1
+    my $get_seq = "GET / HTTP/1.1
 Accept: image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, application/vnd.ms-powerpoint, application/vnd.ms-excel, application/msword, */*
 Accept-Language: en-us
 Accept-Encoding: gzip, deflate
@@ -54,42 +52,43 @@ Host: www.vtext.com
 Connection: Keep-Alive
 Cookie: timeZoneOffset=240; @#nopop#=TCS; timeZoneOffset=240; @#nopop#=TCS
 
-" ;
-	$t->open(Host => "151.144.246.160", Port => 80); 
-	$t->print($get_seq); 
+";
+    $t->open( Host => "151.144.246.160", Port => 80 );
+    $t->print($get_seq);
 
-	my ($reply) = $t->waitfor('/path/');	# The word 'path' comes right after jrun ID
+    my ($reply) =
+      $t->waitfor('/path/');    # The word 'path' comes right after jrun ID
 
-	if( $reply =~ /jrunsessionid=([0-9]*);/ )
-	{
-		#print "Session ID='$1'\n" ;
-		return $1 ;
-	}else{
-		print "ERROR: Didn't get the jrunsessionid\n" ;
-	}
+    if ( $reply =~ /jrunsessionid=([0-9]*);/ ) {
+
+        #print "Session ID='$1'\n" ;
+        return $1;
+    }
+    else {
+        print "ERROR: Didn't get the jrunsessionid\n";
+    }
 
 }
 
-
 sub create_msg {
-	my %parms = @_ ;
+    my %parms = @_;
 
-	my( $to, $from, $msg, $id ) ;
-  	$to 	= $parms{to} ;
-	$from	= $parms{from} ;
-	$msg	= $parms{msg} ;
-	$id	= $parms{id} ;
+    my ( $to, $from, $msg, $id );
+    $to   = $parms{to};
+    $from = $parms{from};
+    $msg  = $parms{msg};
+    $id   = $parms{id};
 
+    $message2 = $msg;
 
-	$message2  = $msg ;
-	#$message2 = 'Here+goes+%233' ;
+    #$message2 = 'Here+goes+%233' ;
 
-	$reply = 'mrhouse@umbc.edu' ;
-	$callback = '' ;
+    $reply    = 'mrhouse@umbc.edu';
+    $callback = '';
 
-print "SENDING TO: $to, $from, $msg, $id \n" ; 
-	
-my $msg_txt = "POST /results.jsp HTTP/1.1
+    print "SENDING TO: $to, $from, $msg, $id \n";
+
+    my $msg_txt = "POST /results.jsp HTTP/1.1
 Accept: image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, application/vnd.ms-powerpoint, application/vnd.ms-excel, application/msword, */*
 Referer: http://vtext.com/
 Accept-Language: en-us
@@ -108,11 +107,8 @@ return=Messaging.jsp&showDisclaimer=y&Send.x=Yes&TCS_MSG_TRACKING_IDS=0.28665100
 
 ";
 
-	return $msg_txt ;
+    return $msg_txt;
 }
 
-
-
 #return=Messaging.jsp&showDisclaimer=y&Send.x=Yes&TCS_MSG_TRACKING_IDS=0.2866510050680794&showgroup=n&SRCADDR=&min=4436040090&mins=&subject=fred&message=Here+goes+%233&trackResponses=No&senderName=ffrey1\@umbc.edu&from=1234567&priority=normal&tCharacterCount=122
-
 

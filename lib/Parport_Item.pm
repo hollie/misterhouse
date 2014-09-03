@@ -1,3 +1,4 @@
+
 =head1 B<Parallel port item>
 
 =head2 SYNOPSIS
@@ -29,7 +30,6 @@ B<Generic_Item>
 
 =cut
 
-
 #!/usr/bin/perl
 
 use Device::ParallelPort;
@@ -41,17 +41,17 @@ my $parport;
 my $parport_uninitialized = 1;
 my @Parport_Items;
 my %input_pin_to_bit = (
-    '10'=>'14',
-    '11'=>'15',
-    '12'=>'13',
-    '13'=>'12',
-    '15'=>'11'
+    '10' => '14',
+    '11' => '15',
+    '12' => '13',
+    '13' => '12',
+    '15' => '11'
 );
 
 @Parport_Item::ISA = ('Generic_Item');
 
 # Add a hook so this gets initialized at startup/reload (note: for serial items the startup sub gets called automatically)
-&main::Reload_post_add_hook(\&Parport_Item::startup, 'persistent');
+&main::Reload_post_add_hook( \&Parport_Item::startup, 'persistent' );
 
 =head2 METHODS
 
@@ -62,71 +62,76 @@ my %input_pin_to_bit = (
 =cut
 
 sub startup {
-    if ($parport_uninitialized)
-    {
-        $parport = Device::ParallelPort->new('auto:0');
+    if ($parport_uninitialized) {
+        $parport               = Device::ParallelPort->new('auto:0');
         $parport_uninitialized = 0;
-        &::MainLoop_pre_add_hook(\&Parport_Item::get_pin_state, 'persistent');
+        &::MainLoop_pre_add_hook( \&Parport_Item::get_pin_state, 'persistent' );
     }
 }
-
 
 =item C<new()>
 
 =cut
 
-sub new
-{
-    my ($class, $pin, $logic_level_for_on, $description) = @_;
-    if (exists($input_pin_to_bit{$pin}))
-    {
-        my $self={};
-        bless $self,$class;
-        $$self{'pin'} = $pin;
+sub new {
+    my ( $class, $pin, $logic_level_for_on, $description ) = @_;
+    if ( exists( $input_pin_to_bit{$pin} ) ) {
+        my $self = {};
+        bless $self, $class;
+        $$self{'pin'}         = $pin;
         $$self{'description'} = $description;
         $$self{state}         = undef;
         $$self{said}          = undef;
         $$self{state_now}     = undef;
         $$self{state_changed} = undef;
         push @Parport_Items, $self;
-        push(@{$$self{states}}, 'on', 'off');
+        push( @{ $$self{states} }, 'on', 'off' );
 
         return $self;
-    } else 
-    {
-        &main::print_log("Parport_Item: ERROR: Unsupported pin ($pin) for $description");
+    }
+    else {
+        &main::print_log(
+            "Parport_Item: ERROR: Unsupported pin ($pin) for $description");
         die "Parport_Item: ERROR: Unsupported pin ($pin) for $description";
     }
 }
-
 
 =item C<get_pin_state()>
 
 =cut
 
 sub get_pin_state {
-   # Check the state of input pins 10 times per second.  This should be adequate for general use but the holdoff can be eliminated if fastest response is required. 
-    if ($::New_Msecond_100)
-    {
-        foreach my $item (@Parport_Items)
-        {
+
+    # Check the state of input pins 10 times per second.  This should be adequate for general use but the holdoff can be eliminated if fastest response is required.
+    if ($::New_Msecond_100) {
+        foreach my $item (@Parport_Items) {
             my $pin = $item->{'pin'};
 
-            my $pin_state = $parport->get_bit($input_pin_to_bit{$pin});
+            my $pin_state = $parport->get_bit( $input_pin_to_bit{$pin} );
 
             # Only make an update if the state changed
             # The register value for pin 11 (BUSY) is inverted so un-invert the logic here
-            if (($item->{'state'} eq 'on') && ((($pin eq '11') && ($pin_state == '1')) || ($pin_state == '0')))
+            if (
+                ( $item->{'state'} eq 'on' )
+                && (   ( ( $pin eq '11' ) && ( $pin_state == '1' ) )
+                    || ( $pin_state == '0' ) )
+              )
             {
-                &Generic_Item::set_states_for_next_pass($item, 'off', 'Parallel Port');
-            } elsif (($item->{'state'} eq 'off') && ((($pin eq '11') && ($pin_state == '0')) || ($pin_state == '1')))
+                &Generic_Item::set_states_for_next_pass( $item, 'off',
+                    'Parallel Port' );
+            }
+            elsif (
+                ( $item->{'state'} eq 'off' )
+                && (   ( ( $pin eq '11' ) && ( $pin_state == '0' ) )
+                    || ( $pin_state == '1' ) )
+              )
             {
-                &Generic_Item::set_states_for_next_pass($item, 'on', 'Parallel Port');
+                &Generic_Item::set_states_for_next_pass( $item, 'on',
+                    'Parallel Port' );
             }
         }
     }
 }
-
 
 =back
 

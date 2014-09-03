@@ -32,18 +32,19 @@ are any problems please let me know.
 
 =cut
 
+Category = Test
 
-Category=Test
-
-$restartTimer = new Timer;
+  $restartTimer = new Timer;
 
 ############################
 # The default port is 4560 #
 ############################
 
 # noloop=start
-$directivo = new Socket_Item(undef, undef, "192.168.0.103:4560",'tivo', 'tcp', 'record');
+$directivo = new Socket_Item( undef, undef, "192.168.0.103:4560", 'tivo', 'tcp',
+    'record' );
 start $directivo;
+
 # noloop=stop
 
 # LWRP = Line Wrap 1=On 0=off
@@ -62,42 +63,46 @@ start $directivo;
 
 # Sends the 345 to the tivo (the equiv of changing to channel 345 with
 # your remote
-# set $directtivo "SENDKEY: 3 4 5"; 
+# set $directtivo "SENDKEY: 3 4 5";
 
 # said $directtivo can return
 # event xxx or remote xxx
-# eg. "event NOWPLAYING" telling you that the tivo has just entered 
+# eg. "event NOWPLAYING" telling you that the tivo has just entered
 # the NOWPLAYING screen. I have not taken the time to figure out
 # all of the event names so you may get e.g 'event 8' returned.
 #
-# e.g "remote CHANNELUP" the channel up button was just pressed on the 
+# e.g "remote CHANNELUP" the channel up button was just pressed on the
 # remote.
 
+$test1 = new Voice_Cmd("direct tivo to [FoxE,FoxW,COM]");
 
-$test1 = new  Voice_Cmd("direct tivo to [FoxE,FoxW,COM]");
-
-
-
-if ($state_test = said $test1) {
-	if (active $directivo) {
-   		if ($state_test eq "FoxE") {
-   			set $directivo "SENDKEY: 3 8 8";
-		} elsif ($state_test eq "FoxW") {
-   			set $directivo "SENDKEY: 3 8 9";	
-		} elsif ($state_test eq "COM") {
-   			set $directivo "SENDKEY: 2 4 9";
-		}
-		set $directivo "OSD: *LWRP*1*SECS*5*FGCL*2*BGCL*1*XPOS*1*YPOS*1*TEXT*$state_test*";
-	}
-} 
-
-if ($said_dtivo = said $directivo) {
-	set $directivo "OSD: *LWRP*1*SECS*5*FGCL*2*BGCL*1*XPOS*1*YPOS*1*TEXT*$said_dtivo*";
+if ( $state_test = said $test1) {
+    if ( active $directivo) {
+        if ( $state_test eq "FoxE" ) {
+            set $directivo "SENDKEY: 3 8 8";
+        }
+        elsif ( $state_test eq "FoxW" ) {
+            set $directivo "SENDKEY: 3 8 9";
+        }
+        elsif ( $state_test eq "COM" ) {
+            set $directivo "SENDKEY: 2 4 9";
+        }
+        set $directivo
+          "OSD: *LWRP*1*SECS*5*FGCL*2*BGCL*1*XPOS*1*YPOS*1*TEXT*$state_test*";
+    }
 }
 
+if ( $said_dtivo = said $directivo) {
+    set $directivo
+      "OSD: *LWRP*1*SECS*5*FGCL*2*BGCL*1*XPOS*1*YPOS*1*TEXT*$said_dtivo*";
+}
 
-if (inactive_now $directivo) {
-   print_log "Direct Tivo Telnet session closed";
-   set restartTimer 10, sub {$directivo = new Socket_Item(undef, undef, "192.168.0.103:4560",'tivo', 'tcp', 'record');};
+if ( inactive_now $directivo) {
+    print_log "Direct Tivo Telnet session closed";
+    set restartTimer 10, sub {
+        $directivo =
+          new Socket_Item( undef, undef, "192.168.0.103:4560", 'tivo', 'tcp',
+            'record' );
+    };
 
 }

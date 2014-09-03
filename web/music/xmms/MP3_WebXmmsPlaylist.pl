@@ -1,6 +1,6 @@
 #$Id$
 
-# this script will display the current Xmms playlist, 
+# this script will display the current Xmms playlist,
 # and will also display the playlist file (m3u).
 # this work with closely with MP3_WebXmmsCtrl.pl. All the call
 # to this script are done via the other script.
@@ -15,7 +15,7 @@ use Xmms::Remote();
 my $remote = Xmms::Remote->new;
 
 my $RC;
-my ( $Cmd, $arg ) = split ( /=/, $ARGV[0] );
+my ( $Cmd, $arg ) = split( /=/, $ARGV[0] );
 $Cmd = ( $Cmd eq "" ) ? "refresh" : $Cmd;
 $Cmd = lc($Cmd);
 
@@ -56,13 +56,14 @@ if ( $Cmd eq "list" ) {
     while ( $File = readdir(DIR) ) { push @LIST, $File; }
     @SORTLIST = sort @LIST;
 
-    foreach $File(@SORTLIST) {
+    foreach $File (@SORTLIST) {
         if ( -f $File && $File =~ /m3u/ ) {
             my $DisplayName = $File;
             $DisplayName =~ tr/_/ /;
             $DisplayName =~ s/-/ - /g;
             $DisplayName =~ s/.m3u$//;
-            $HTTP = $HTTP . "<td><a href=/jukebox/MP3_WebXmmsPlaylist.pl?Add=$arg/$File target=MP3_Playlist>$DisplayName</a></td><tr>\n";
+            $HTTP = $HTTP
+              . "<td><a href=/jukebox/MP3_WebXmmsPlaylist.pl?Add=$arg/$File target=MP3_Playlist>$DisplayName</a></td><tr>\n";
         }
     }
     $HTTP = $HTTP . "</table>\n";
@@ -70,10 +71,11 @@ if ( $Cmd eq "list" ) {
 
 # this will add new song, from the choosen playlist
 if ( $Cmd eq "add" ) {
-    if ( Xmms_Control("load_playlist_file","$PlayListDir\/$arg") ) {
-       DisplayPlaylist();
-    } else {
-    return CantOpenDir();
+    if ( Xmms_Control( "load_playlist_file", "$PlayListDir\/$arg" ) ) {
+        DisplayPlaylist();
+    }
+    else {
+        return CantOpenDir();
     }
 }
 
@@ -81,12 +83,12 @@ if ( $Cmd eq "add" ) {
 # the current playlist, to simulate a shuffle
 #
 if ( $Cmd eq "shuffle" ) {
-    Xmms_Control("shuffle","on");
+    Xmms_Control( "shuffle", "on" );
     DisplayPlaylist();
 }
 
 if ( $Cmd eq "sort" ) {
-    Xmms_Control("shuffle","off");
+    Xmms_Control( "shuffle", "off" );
     DisplayPlaylist();
 }
 
@@ -98,17 +100,20 @@ return $HTTP;
 sub DisplayPlaylist {
     my $LIST = Xmms_Control("get_playlist_titles");
     if ( @$LIST == 0 ) {
-        $HTTP = $HTTP . "<H1><CENTER>There is no track in the playlist</CENTER></H1>\n";
+        $HTTP = $HTTP
+          . "<H1><CENTER>There is no track in the playlist</CENTER></H1>\n";
     }
     else {
         $HTTP = $HTTP . "<table width=100% borders=0>\n";
         my $pos = 1;
 
-        foreach $item(@$LIST) {
-            my $Time = Xmms_Control("get_playlist_timestr", $pos - 1 );
-            my $Str = "                                                            ";
+        foreach $item (@$LIST) {
+            my $Time = Xmms_Control( "get_playlist_timestr", $pos - 1 );
+            my $Str =
+              "                                                            ";
             $Str = substr( "$pos. $item", 1 );
-            $HTTP = $HTTP . "<td><a href=/jukebox/MP3_WebXmmsPlaylist.pl?Jump=$pos target=MP3_Playlist>$pos. $item</a><right> .... $Time</right></td><tr>\n";
+            $HTTP = $HTTP
+              . "<td><a href=/jukebox/MP3_WebXmmsPlaylist.pl?Jump=$pos target=MP3_Playlist>$pos. $item</a><right> .... $Time</right></td><tr>\n";
             $pos++;
         }
         $HTTP = $HTTP . "</table>\n";
@@ -120,7 +125,8 @@ sub Header {
     my $HTTP = "<html><body>\n";
     $HTTP = $HTTP . "<meta http-equiv='Pragma' content='no-cache'>\n";
     $HTTP = $HTTP . "<meta http-equiv='Expires' content='-1'>\n";
-    $HTTP = $HTTP . "<meta http-equiv='Refresh' content='60;url=/jukebox/MP3_WebXmmsPlaylist.pl'>\n";
+    $HTTP = $HTTP
+      . "<meta http-equiv='Refresh' content='60;url=/jukebox/MP3_WebXmmsPlaylist.pl'>\n";
     $HTTP = $HTTP . "<base target ='MP3_Playlist'>\n";
     return $HTTP;
 }

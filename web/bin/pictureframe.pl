@@ -26,9 +26,9 @@
 #
 # Audrey tips:
 #
-# If you press the Browser button while the browser is 
+# If you press the Browser button while the browser is
 # already visible, the menu will slide away! The maximum visible
-# size is 640 x 480. 
+# size is 640 x 480.
 #
 # Since Audrey's image display is not so great, you might want
 # to use low JPEG compression. This will speed up image loading too.
@@ -40,25 +40,26 @@
 #   You can just hit power button to turn off
 #
 
-my ($html, @picnames);
+my ( $html, @picnames );
 
-my $webpath  = $config_parms{pictureframe_dir};
+my $webpath = $config_parms{pictureframe_dir};
 my ($picdir) = &http_get_local_file($webpath);
 
-                                # Open the directory and read files
-opendir(DIR, $picdir) or print "Error in opening $picdir\n";
-for (readdir(DIR)) {
+# Open the directory and read files
+opendir( DIR, $picdir ) or print "Error in opening $picdir\n";
+for ( readdir(DIR) ) {
     next unless /.+\.(jpg|jpeg|gif|png)$/;
     s/ /%20/g;
     push @picnames, $_;
 }
 
-                                # Get random record
-my $index = 1 + int((@picnames) * rand);
-my $showpic = $picnames[$index - 1];
+# Get random record
+my $index = 1 + int( (@picnames) * rand );
+my $showpic = $picnames[ $index - 1 ];
 
 $config_parms{pictureframe_url} = '/ia5' unless $config_parms{pictureframe_url};
-                                # Create image tag
+
+# Create image tag
 return "
 <body background='$webpath\/$showpic'>
 <table><tr>

@@ -1,40 +1,45 @@
 #!/usr/bin/perl
 # -*- Perl -*-
 
-                                # Can be used stand alone, but most useful when called from mh
-                                # For example: 
-                                #       @ARGV = (\$Save{wakeup_time}, "Enter wakeup time:");
-                                #       do "$Pgm_PathU/tk_entry";    
-                                # 
+# Can be used stand alone, but most useful when called from mh
+# For example:
+#       @ARGV = (\$Save{wakeup_time}, "Enter wakeup time:");
+#       do "$Pgm_PathU/tk_entry";
+#
 
 use strict;
 use Tk;
 use vars '%Save';
-my ($top, $f1, $loop);
+my ( $top, $f1, $loop );
 
-my ($pvar, $label) = @ARGV;
-$label = "Enter data:" unless $label;
-$pvar = \$Save{test_output} unless $pvar;
+my ( $pvar, $label ) = @ARGV;
+$label = "Enter data:"       unless $label;
+$pvar  = \$Save{test_output} unless $pvar;
 
 &get_input;
 &MainLoop if $loop;
 
 sub get_input {
     if ($main::MW) {
-        $top = $main::MW->Toplevel;
-        $loop=0;
+        $top  = $main::MW->Toplevel;
+        $loop = 0;
     }
-    else{ 
-        $top = MainWindow->new;  
-        $loop=1;
+    else {
+        $top  = MainWindow->new;
+        $loop = 1;
     }
 
     $f1 = $top->Frame->pack;
-    $f1->Label(-text => $label, -font => 'fixed',
-               -takefocus => 1) -> pack(-side => 'left');
-    my $entry = $f1->Entry(-textvariable => $pvar,
-                           -width => 10) -> pack(-side => 'left');
-    $entry->bind('<Return>', sub {&my_exit($$pvar)}); 
+    $f1->Label(
+        -text      => $label,
+        -font      => 'fixed',
+        -takefocus => 1
+    )->pack( -side => 'left' );
+    my $entry = $f1->Entry(
+        -textvariable => $pvar,
+        -width        => 10
+    )->pack( -side => 'left' );
+    $entry->bind( '<Return>', sub { &my_exit($$pvar) } );
     $top->raise;
     $top->focusForce;
 }

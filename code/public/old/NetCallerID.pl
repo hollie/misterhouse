@@ -21,7 +21,7 @@
 # ###DATE06182106...NMBR7045551212...NAMESPAULDING TIMOT+++
 #
 # The device was purchased from http://www.cyberguys.com
-# 
+#
 # Also see mh/code/bruce/phone_netcallid.pl for another example.
 #
 
@@ -30,123 +30,133 @@
 
 # define variables
 use vars qw($PhoneName $PhoneNumber $PhoneTime $PhoneDate);
-my ($NameDone, $NumberDone);
-my ($callerbn, $PhoneNumberz);
-my ($PhoneDateLog, $PhoneTimeLog, $PhoneNameLog, $PhoneNumberLog, @callloglines, $CallLogTempLine);
-my ($last, $first, $middle, $areacode, $local_number, $caller);
+my ( $NameDone, $NumberDone );
+my ( $callerbn, $PhoneNumberz );
+my (
+    $PhoneDateLog,   $PhoneTimeLog, $PhoneNameLog,
+    $PhoneNumberLog, @callloglines, $CallLogTempLine
+);
+my ( $last, $first, $middle, $areacode, $local_number, $caller );
 my $Num_Of_Calls = 0;
 
+$NetCallerID = new Serial_Item( undef, undef, 'serial5' );
+if ( my $NetCaller = said $NetCallerID) {
+    print "$NetCaller\n";
+    ( $PhoneNumber, $PhoneName ) =
+      $NetCaller =~ /^.+\.NMBR(\d+)\.{3}NAME(.+)\+{3}$/;
+    print "Name = $PhoneName, Number = $PhoneNumber\n"
+      ;    # make sure I am getting what I think I want.
+    $NumberDone = "yes";
+    $NameDone   = "yes";
 
-$NetCallerID = new Serial_Item (undef, undef, 'serial5');
-if (my $NetCaller = said $NetCallerID)
-{
-  print "$NetCaller\n";
-  ($PhoneNumber, $PhoneName) = $NetCaller =~ /^.+\.NMBR(\d+)\.{3}NAME(.+)\+{3}$/;
-  print "Name = $PhoneName, Number = $PhoneNumber\n";# make sure I am getting what I think I want.
-  $NumberDone = "yes";
-  $NameDone = "yes";
+    ( $last, $first, $middle ) = ( split( ' ', $PhoneName ) )[ 0, 1, 2 ];
+    $first = ucfirst( lc($first) );
+    $first = ucfirst( lc($middle) )
+      if length($first) == 1;    # Last M First format
+    $last = ucfirst( lc($last) );
 
-  ($last, $first, $middle) = (split(' ', $PhoneName))[0, 1, 2];
-  $first = ucfirst(lc($first));
-  $first = ucfirst(lc($middle)) if length($first) == 1; # Last M First format
-  $last  = ucfirst(lc($last));
+    $areacode     = ( substr( $PhoneNumber, 0, 3 ) );
+    $local_number = ( substr( $PhoneNumber, 3, 7 ) );
+    $PhoneNumberz =
+        substr( $PhoneNumber, 0, 3 ) . "-"
+      . substr( $PhoneNumber, 3, 3 ) . "-"
+      . substr( $PhoneNumber, 6, 4 );
 
-  $areacode = (substr($PhoneNumber, 0, 3));
-  $local_number = (substr($PhoneNumber, 3, 7));
-  $PhoneNumberz = substr($PhoneNumber, 0, 3) . "-" . substr($PhoneNumber, 3, 3) . "-" . substr($PhoneNumber, 6, 4);
+    # if there is no caller id info, you get the following data from the NetCallerID
+    # I don't know what shows up if teh caller is a private number
+    #   "###DATE06191942...NMBR...NAME-UNKNOWN CALLER-+++";
+    #
+    # the $PhoneName and the $PhoneNumber data will be empty
 
-  # if there is no caller id info, you get the following data from the NetCallerID
-  # I don't know what shows up if teh caller is a private number
-  #   "###DATE06191942...NMBR...NAME-UNKNOWN CALLER-+++";
-  #
-  # the $PhoneName and the $PhoneNumber data will be empty
-
-  if (!$PhoneName)
-  {
-    $PhoneNumber = "";
-    $areacode = "";
-    $local_number = "";
-    $caller = "Out of the Area";
-    $PhoneName = "Out of the Area";
-    $last = "Out of the Area";
-  }
+    if ( !$PhoneName ) {
+        $PhoneNumber  = "";
+        $areacode     = "";
+        $local_number = "";
+        $caller       = "Out of the Area";
+        $PhoneName    = "Out of the Area";
+        $last         = "Out of the Area";
+    }
 }
 
-  if ($NumberDone eq "yes" and $NameDone eq "yes")
-  {
+if ( $NumberDone eq "yes" and $NameDone eq "yes" ) {
     $NumberDone = 0;
-    $NameDone = 0;
-    $Num_Of_Calls++; # increment number of callers
+    $NameDone   = 0;
+    $Num_Of_Calls++;    # increment number of callers
 
     # get current date and time for logging
     $PhoneDate = $Date_Now;
     $PhoneTime = $Time_Now;
 
     # check the caller_ID list to see if there is a match
-    if ($callerbn = $Caller_ID::name_by_number{$PhoneNumberz})
-    {
-      $caller = $callerbn;
+    if ( $callerbn = $Caller_ID::name_by_number{$PhoneNumberz} ) {
+        $caller = $callerbn;
     }
-    else
-    {
-#      $caller = "$first $last";
-      $caller = "$last"; #The last name is typically the only complete  name you will get, depending on the length of the person's name
-      # print_msg "caller name = $caller, last name = $last";
+    else {
+        #      $caller = "$first $last";
+        $caller = "$last"
+          ; #The last name is typically the only complete  name you will get, depending on the length of the person's name
+            # print_msg "caller name = $caller, last name = $last";
     }
 
     # Log the data for use by display_callers
-    logit("$config_parms{data_dir}/phone/logs/callerid.$Year_Month_Now.log", "$PhoneNumber $PhoneName");
-    logit_dbm("$config_parms{data_dir}/phone/callerid.dbm", $PhoneNumber, "$Time_Now $Date_Now $Year name=$PhoneName");
+    logit( "$config_parms{data_dir}/phone/logs/callerid.$Year_Month_Now.log",
+        "$PhoneNumber $PhoneName" );
+    logit_dbm( "$config_parms{data_dir}/phone/callerid.dbm",
+        $PhoneNumber, "$Time_Now $Date_Now $Year name=$PhoneName" );
 
     # If the incoming area code is the same, drop it from being spoken.
-    if ($areacode eq $config_parms{local_area_code})
-    {
-      $PhoneNumber = $local_number;
+    if ( $areacode eq $config_parms{local_area_code} ) {
+        $PhoneNumber = $local_number;
     }
 
     # Put pauses in between area code, exchange, and number for
     # announce reasons
-    if (length($PhoneNumber) == 7)
-    {
-      $PhoneNumber = substr($PhoneNumber, 0, 3) . "." . substr($PhoneNumber, 3, 4);
+    if ( length($PhoneNumber) == 7 ) {
+        $PhoneNumber =
+          substr( $PhoneNumber, 0, 3 ) . "." . substr( $PhoneNumber, 3, 4 );
     }
-    if (length($PhoneNumber) == 10)
-    {
-      $PhoneNumber = substr($PhoneNumber, 0, 3) . "." . substr($PhoneNumber, 3, 3) . "." . substr($PhoneNumber, 6, 4);
+    if ( length($PhoneNumber) == 10 ) {
+        $PhoneNumber =
+            substr( $PhoneNumber, 0, 3 ) . "."
+          . substr( $PhoneNumber, 3, 3 ) . "."
+          . substr( $PhoneNumber, 6, 4 );
     }
 
     # Log the data in a special file to announce from Palmpad
     # I haven't implimented the other end of this yet
-    open(CALLLOG, ">>$config_parms{code_dir}/calllog.log");
-    print (CALLLOG "$PhoneDate\t$PhoneTime\t$caller\t$PhoneNumber\n");
+    open( CALLLOG, ">>$config_parms{code_dir}/calllog.log" );
+    print( CALLLOG "$PhoneDate\t$PhoneTime\t$caller\t$PhoneNumber\n" );
     close CALLLOG;
 
-    if ($caller eq "Out of the Area")
-    {
-#      print_msg "PHONE: Caller's Identification not available.";
-      speak "Caller's Identification not available.";
+    if ( $caller eq "Out of the Area" ) {
+
+        #      print_msg "PHONE: Caller's Identification not available.";
+        speak "Caller's Identification not available.";
     }
-    else
-    {
-#      print_msg "PHONE: $caller is calling. Number is $PhoneNumber.";
-      speak "$caller is calling. Number is $PhoneNumber.";
-      # add the ability to send email with the caller info
+    else {
+        #      print_msg "PHONE: $caller is calling. Number is $PhoneNumber.";
+        speak "$caller is calling. Number is $PhoneNumber.";
+
+        # add the ability to send email with the caller info
     }
-  }
+}
 
 # Monthly Phone Log Backup
-if ($New_Month)
-{
-  my $dbm_file = "$config_parms{data_dir}/phone/callerid.dbm";
-  print_log "Backing up Phone Log to logs\\$dbm_file.$Year_Month_Now";
+if ($New_Month) {
+    my $dbm_file = "$config_parms{data_dir}/phone/callerid.dbm";
+    print_log "Backing up Phone Log to logs\\$dbm_file.$Year_Month_Now";
 
-  copy("$dbm_file.dir", "$dbm_file.$Year_Month_Now.dir") or print_log "Error in phone dbm copy 1: $!";
-  copy("$dbm_file.pag", "$dbm_file.$Year_Month_Now.pag") or print_log "Error in phone dbm copy 2: $!";
+    copy( "$dbm_file.dir", "$dbm_file.$Year_Month_Now.dir" )
+      or print_log "Error in phone dbm copy 1: $!";
+    copy( "$dbm_file.pag", "$dbm_file.$Year_Month_Now.pag" )
+      or print_log "Error in phone dbm copy 2: $!";
 
-  # dbm_copy will delete any bad entries (those with binary characters) from the file.
+    # dbm_copy will delete any bad entries (those with binary characters) from the file.
 
-  system("dbm_copy $dbm_file");
-  copy("$dbm_file.backup.dir", "$dbm_file.dir") or print_log "Error in phone dbm copy 3: $!";
-  copy("$dbm_file.backup.pag", "$dbm_file.pag") or print_log "Error in phone dbm copy 4: $!";
+    system("dbm_copy $dbm_file");
+    copy( "$dbm_file.backup.dir", "$dbm_file.dir" )
+      or print_log "Error in phone dbm copy 3: $!";
+    copy( "$dbm_file.backup.pag", "$dbm_file.pag" )
+      or print_log "Error in phone dbm copy 4: $!";
 }
 

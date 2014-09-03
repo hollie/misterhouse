@@ -1,7 +1,7 @@
 # Category = Audrey
 
 #@ This module augments audreyspeak.pl to add volume control to events
-#@ played and spoken to an Audrey.  
+#@ played and spoken to an Audrey.
 #@ If the volume isn't being adjusted before the audio plays, then
 #@ use the parameter audrey_volume_pause to set the number of
 #@ milliseconds the routine should sleep before allowing the audio to play.
@@ -59,46 +59,57 @@ In addition to the instructions in audreyspeak.pl you will need
 =cut
 
 #Tell MH to call our routine each time something is spoken or played
-&Speak_parms_add_hook(\&Audrey_volume_adjust) if $Reload;
-&Play_parms_add_hook(\&Audrey_volume_adjust) if $Reload;
+&Speak_parms_add_hook( \&Audrey_volume_adjust ) if $Reload;
+&Play_parms_add_hook( \&Audrey_volume_adjust )  if $Reload;
 
-my ($audreyWrIndex, $audreyRdIndex, $audreyMaxIndex, @speakRooms, @speakVolume);
+my ( $audreyWrIndex, $audreyRdIndex, $audreyMaxIndex, @speakRooms,
+    @speakVolume );
 
 #MH is about to say or play something.  Adjust the volume if necessary.
 sub Audrey_volume_adjust {
     my ($parms) = @_;
     my $volume = $$parms{volume};
-    return if !$volume or ($Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $$parms{mode} !~ /unmute/i);
-    $volume =~ s/%//g; # Audrey doesn't like percent signs in the volume setting.  It should be a raw number from 0 to 100.
-#   my $MHWeb = get_ip_address . ":" . $config_parms{http_port};
-#   my $MHWeb = hostname() . ":" . $config_parms{http_port};
+    return
+      if !$volume
+      or (  $Save{mode}
+        and ( $Save{mode} eq 'mute' or $Save{mode} eq 'offline' )
+        and $$parms{mode} !~ /unmute/i );
+    $volume =~ s/%//g
+      ; # Audrey doesn't like percent signs in the volume setting.  It should be a raw number from 0 to 100.
+
+    #   my $MHWeb = get_ip_address . ":" . $config_parms{http_port};
+    #   my $MHWeb = hostname() . ":" . $config_parms{http_port};
     my $MHWeb = $Info{IPAddress_local} . ":" . $config_parms{http_port};
     my @rooms = split ',', lc $$parms{rooms};
-    # determine which if any audreys to adjust the volume based on rooms paramter 
-    # whenever audrey_use_rooms is defined, otherwise, we send to all audreys
-    if (!exists $config_parms{audrey_use_rooms} || grep(/all/, @rooms) ) {
-      @rooms = ();
-      for my $audrey (split ',', $config_parms{Audrey_IPs}) {
-        $audrey =~ /(\S+)\-(\S+)/;
-        my $room = lc $1;
-        my $ip = $2;
-        push @rooms, $room;
-	run "get_url -quiet http://$ip/volume.shtml?$volume /dev/null";
-      }
-    } else {
-      my @audreyRooms = ();
-      for my $audrey (split ',', $config_parms{Audrey_IPs}) {
-        $audrey =~ /(\S+)\-(\S+)/;
-        my $room = lc $1;
-        my $ip = $2;
-        if ( grep(/$room/, @rooms) ) {
-          push @audreyRooms, $room;
-	  run "get_url -quiet http://$ip/cgi-bin/volume?$volume /dev/null";
-        }
-      }
-      @rooms = @audreyRooms;
-    }
-    return if (!@rooms);
 
-    &sleep_time($config_parms{audrey_volume_pause}) if $config_parms{audrey_volume_pause};
+    # determine which if any audreys to adjust the volume based on rooms paramter
+    # whenever audrey_use_rooms is defined, otherwise, we send to all audreys
+    if ( !exists $config_parms{audrey_use_rooms} || grep( /all/, @rooms ) ) {
+        @rooms = ();
+        for my $audrey ( split ',', $config_parms{Audrey_IPs} ) {
+            $audrey =~ /(\S+)\-(\S+)/;
+            my $room = lc $1;
+            my $ip   = $2;
+            push @rooms, $room;
+            run "get_url -quiet http://$ip/volume.shtml?$volume /dev/null";
+        }
+    }
+    else {
+        my @audreyRooms = ();
+        for my $audrey ( split ',', $config_parms{Audrey_IPs} ) {
+            $audrey =~ /(\S+)\-(\S+)/;
+            my $room = lc $1;
+            my $ip   = $2;
+            if ( grep( /$room/, @rooms ) ) {
+                push @audreyRooms, $room;
+                run
+                  "get_url -quiet http://$ip/cgi-bin/volume?$volume /dev/null";
+            }
+        }
+        @rooms = @audreyRooms;
+    }
+    return if ( !@rooms );
+
+    &sleep_time( $config_parms{audrey_volume_pause} )
+      if $config_parms{audrey_volume_pause};
 }

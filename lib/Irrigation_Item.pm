@@ -1,3 +1,4 @@
+
 =head1 NAME
 
 B<Irrigation_Item>
@@ -86,230 +87,232 @@ package Irrigation_Item;
 
 @Irrigation_Item::ISA = ('Base_Item');
 
-sub initialize
-{
-	my ($self) = @_;
+sub initialize {
+    my ($self) = @_;
 
-	$$self{m_write} = 1;
-	$$self{m_timerCycle} = new Timer();
-	$$self{m_zoneCurrent} = 0;
-	$$self{m_zoneHammer} = 0;
-	$$self{m_zoneHammerTime} = 0;
-	$$self{m_zoneHammerTimer} = new Timer();
-	$$self{m_zoneMaximum} = 1*60*60; #if no time is specified this is the failsafe time
-	$$self{m_ETData}[12];
-	$self->zone_count(8); #default 8 zones
+    $$self{m_write}           = 1;
+    $$self{m_timerCycle}      = new Timer();
+    $$self{m_zoneCurrent}     = 0;
+    $$self{m_zoneHammer}      = 0;
+    $$self{m_zoneHammerTime}  = 0;
+    $$self{m_zoneHammerTimer} = new Timer();
+    $$self{m_zoneMaximum} =
+      1 * 60 * 60;    #if no time is specified this is the failsafe time
+    $$self{m_ETData}[12];
+    $self->zone_count(8);    #default 8 zones
 }
 
-sub set
-{
-	my ($self,$p_state,$p_setby,$p_respond) = @_;
+sub set {
+    my ( $self, $p_state, $p_setby, $p_respond ) = @_;
 
-	my $l_final_state = undef;
+    my $l_final_state = undef;
 
-#	&::print_log("Irrigation Set:". $p_state . ":" . $p_setby);
-	#Timer is up
-	if ($p_setby eq $$self{m_timerCycle}) { ### Timer calling us back
-		if ($self->single() ne 1 and $self->zone_current() ne 0) {
-			$self->cascade();
-			$l_final_state = 'zone_change';
-		} elsif ($self->single() eq 1)  {
-			$self->zone($self->zone_current(),'off');
-			$self->single(0);
-			$self->zone_current(0);
-			$l_final_state = 'off';
-			&::print_log("Irrigation Single Stopped");
-		} else {
-			$l_final_state = 'off';
-			&::print_log("Irrigation Cycle Stopped");
-		}
-	#Water hammer timer expiration
-	} elsif ($p_setby eq $$self{m_zoneHammerTimer}) {
-		$self->zone($$self{m_zoneHammer},'off');		
-	# Turned us on for start of cycle
-	} elsif (lc($p_state) eq 'on') {
-		$self->cascade();
-		$l_final_state = 'on';
-	# Turned off (end cycle)
-	} elsif (lc($p_state) eq 'off') {
-		$$self{m_timerCycle}->set('off');
-		$self->zone($self->zone_current(),'off');
-		$self->zone_current(0);
-		$l_final_state = 'off';
-	}
+    #	&::print_log("Irrigation Set:". $p_state . ":" . $p_setby);
+    #Timer is up
+    if ( $p_setby eq $$self{m_timerCycle} ) {    ### Timer calling us back
+        if ( $self->single() ne 1 and $self->zone_current() ne 0 ) {
+            $self->cascade();
+            $l_final_state = 'zone_change';
+        }
+        elsif ( $self->single() eq 1 ) {
+            $self->zone( $self->zone_current(), 'off' );
+            $self->single(0);
+            $self->zone_current(0);
+            $l_final_state = 'off';
+            &::print_log("Irrigation Single Stopped");
+        }
+        else {
+            $l_final_state = 'off';
+            &::print_log("Irrigation Cycle Stopped");
+        }
 
-#	$self->SUPER::set($l_final_state,$p_setby,$p_respond) if defined $l_final_state;
-#			$self->SUPER::set($l_final_state,$self,$p_respond);
-}
-	
-sub cascade
-{
-	my ($self) = @_;
+        #Water hammer timer expiration
+    }
+    elsif ( $p_setby eq $$self{m_zoneHammerTimer} ) {
+        $self->zone( $$self{m_zoneHammer}, 'off' );
 
-	if ($self->zone_hammer() > 0 and
-		$self->zone_current() ne 0) { #If there is a specified anti-hammer time
-		#Start a zone hammer timer to delay the off command
-		$$self{m_zoneHammer} = $self->zone_current();
-		$$self{m_zoneHammerTimer}->set($self->zone_hammer(),$self);
-	} else { # No hammer protection on, just turn off
-		$self->zone($self->zone_current(),'off') if $self->zone_current() ne 0;
-	}
-	my $next_zone = $self->zone_next();
-	if ($next_zone ne 0) #go to next zone if there is one
-	{
-#		&::print_log("Irrigation_Cascade". $next_zone . ":");
-		$self->zone($next_zone,'on',$self->zone_time($next_zone));
-	} else { #No More zones left
-#		$$self{m_timerCycle}->set('off'); #re-dundant
-		$self->zone_current(0);
-		&::print_log("Irrigation Cycle Stopped");
-	}
+        # Turned us on for start of cycle
+    }
+    elsif ( lc($p_state) eq 'on' ) {
+        $self->cascade();
+        $l_final_state = 'on';
+
+        # Turned off (end cycle)
+    }
+    elsif ( lc($p_state) eq 'off' ) {
+        $$self{m_timerCycle}->set('off');
+        $self->zone( $self->zone_current(), 'off' );
+        $self->zone_current(0);
+        $l_final_state = 'off';
+    }
+
+    #	$self->SUPER::set($l_final_state,$p_setby,$p_respond) if defined $l_final_state;
+    #			$self->SUPER::set($l_final_state,$self,$p_respond);
 }
 
-sub zone_next
-{
-	my ($self,$p_current) = @_;
-	$p_current = $self->zone_current() if not defined $p_current;
+sub cascade {
+    my ($self) = @_;
 
-	for (my $index = $p_current+1; $index< $self->zone_count() ; $index++)
-	{
-		if ($self->zone_active($index) eq 1)
-		{
-			return $index;
-		}
-	}
-	return 0;
+    if (    $self->zone_hammer() > 0
+        and $self->zone_current() ne 0 )
+    {    #If there is a specified anti-hammer time
+            #Start a zone hammer timer to delay the off command
+        $$self{m_zoneHammer} = $self->zone_current();
+        $$self{m_zoneHammerTimer}->set( $self->zone_hammer(), $self );
+    }
+    else {    # No hammer protection on, just turn off
+        $self->zone( $self->zone_current(), 'off' )
+          if $self->zone_current() ne 0;
+    }
+    my $next_zone = $self->zone_next();
+    if ( $next_zone ne 0 )    #go to next zone if there is one
+    {
+        #		&::print_log("Irrigation_Cascade". $next_zone . ":");
+        $self->zone( $next_zone, 'on', $self->zone_time($next_zone) );
+    }
+    else {                    #No More zones left
+
+        #		$$self{m_timerCycle}->set('off'); #re-dundant
+        $self->zone_current(0);
+        &::print_log("Irrigation Cycle Stopped");
+    }
 }
 
-sub zone_previous
-{
-	my ($self,$p_current) = @_;
-	$p_current = $self->zone_current() if not defined $p_current;
-	#start at one index lower
-	$p_current = $p_current - 1 if ($p_current > 0);
-	for (my $index = $p_current; $index>=0 ; $index--)
-	{
-		if ($self->zone_active($index) eq 1)
-		{
-			return $index;
-		}
-	}
-	return 0;
+sub zone_next {
+    my ( $self, $p_current ) = @_;
+    $p_current = $self->zone_current() if not defined $p_current;
+
+    for ( my $index = $p_current + 1; $index < $self->zone_count(); $index++ ) {
+        if ( $self->zone_active($index) eq 1 ) {
+            return $index;
+        }
+    }
+    return 0;
 }
 
-sub zone_active
-{
-	my ($self,$p_zone,$p_blnActive) = @_;
-#	&::print_log("here1:$p_zone,$p_blnActive");
-	$$self{m_zoneActive}[$p_zone-1] = $p_blnActive if defined $p_blnActive;
-	return $$self{m_zoneActive}[$p_zone-1];
+sub zone_previous {
+    my ( $self, $p_current ) = @_;
+    $p_current = $self->zone_current() if not defined $p_current;
+
+    #start at one index lower
+    $p_current = $p_current - 1 if ( $p_current > 0 );
+    for ( my $index = $p_current; $index >= 0; $index-- ) {
+        if ( $self->zone_active($index) eq 1 ) {
+            return $index;
+        }
+    }
+    return 0;
 }
 
-sub zone_time
-{
-	my ($self,$p_zone,$p_time) = @_;
-#	&::print_log("zonetime:$self:$p_zone,$p_time");
-	$$self{m_zoneTime}[$p_zone-1] = $p_time if defined $p_time;
-	return $$self{m_zoneTime}[$p_zone-1];
+sub zone_active {
+    my ( $self, $p_zone, $p_blnActive ) = @_;
+
+    #	&::print_log("here1:$p_zone,$p_blnActive");
+    $$self{m_zoneActive}[ $p_zone - 1 ] = $p_blnActive if defined $p_blnActive;
+    return $$self{m_zoneActive}[ $p_zone - 1 ];
 }
 
-sub zone_hammer
-{
-	my ($self,$p_time) = @_;
-	$$self{m_zoneHammerTime} = $p_time if defined $p_time;
-	return $$self{m_zoneHammerTime};
+sub zone_time {
+    my ( $self, $p_zone, $p_time ) = @_;
+
+    #	&::print_log("zonetime:$self:$p_zone,$p_time");
+    $$self{m_zoneTime}[ $p_zone - 1 ] = $p_time if defined $p_time;
+    return $$self{m_zoneTime}[ $p_zone - 1 ];
 }
 
-sub zone_single
-{
-	my ($self,$p_zone,$p_time) = @_;
-	$self->single(1);
-	$self->zone($p_zone,$p_time);	
-	return 1;
+sub zone_hammer {
+    my ( $self, $p_time ) = @_;
+    $$self{m_zoneHammerTime} = $p_time if defined $p_time;
+    return $$self{m_zoneHammerTime};
 }
 
-sub zone_count
-{
-	my ($self,$p_count) = @_;
-
-#	&::print_log("IRR:Count:$p_count");
-	if (defined $p_count) 
-	{
-		$$self{m_zoneCount}=$p_count;
-		for (my $index=1;$index<=$p_count;$index++)
-		{
-			$self->zone_active($index,1); #default all zones active
-			$self->zone_time($index,10 * 60); #default 10 minutes
-#			$$self{m_zoneActive}[$index] = 1; #default all zone active
-#			$$self{m_zoneTime}[$index] = 30; #default 10 minutes
-		}
-	
-	}
-	return $$self{m_zoneCount};
+sub zone_single {
+    my ( $self, $p_zone, $p_time ) = @_;
+    $self->single(1);
+    $self->zone( $p_zone, $p_time );
+    return 1;
 }
 
-sub running
-{
-	my ($self,$p_blnState) = @_;
-#	$$self{m_isRunning} = $p_blnState if defined $p_blnState;
-#	return $$self{m_isRunning};
-	if ($self->zone_current() ne 0) {
-		return 1;
-	} else {
-		return 0;
-	}
+sub zone_count {
+    my ( $self, $p_count ) = @_;
+
+    #	&::print_log("IRR:Count:$p_count");
+    if ( defined $p_count ) {
+        $$self{m_zoneCount} = $p_count;
+        for ( my $index = 1; $index <= $p_count; $index++ ) {
+            $self->zone_active( $index, 1 );    #default all zones active
+            $self->zone_time( $index, 10 * 60 );    #default 10 minutes
+
+            #			$$self{m_zoneActive}[$index] = 1; #default all zone active
+            #			$$self{m_zoneTime}[$index] = 30; #default 10 minutes
+        }
+
+    }
+    return $$self{m_zoneCount};
 }
 
-sub zone_current
-{
-	my ($self,$p_zone) = @_;
-	$$self{m_zoneCurrent} = $p_zone if defined $p_zone;
-	return $$self{m_zoneCurrent};
+sub running {
+    my ( $self, $p_blnState ) = @_;
+
+    #	$$self{m_isRunning} = $p_blnState if defined $p_blnState;
+    #	return $$self{m_isRunning};
+    if ( $self->zone_current() ne 0 ) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
 }
 
-sub zone
-{
-	my ($self,$p_zone,$p_state,$p_time) = @_;
-
-	#turn on or off zone
-	if (lc($p_state) eq 'on')
-	{
-		&::print_log("Irrigation Zone:$p_zone:On:");
-		$self->zone_current($p_zone);
-		$self->SUPER::set('on:' . $p_zone);
-	} else {
-		&::print_log("Irrigiation Zone:$p_zone:Off:");
-		$self->SUPER::set('off:' . $p_zone);
-		if ($self->single() eq 1) { #if single shot mode, shut everything down
-			$self->zone_current(0);
-			$$self{m_timerCycle}->set('off');
-		} else { # if normal cycle mode, skip this zone
-			if ($self->zone_current() eq $p_zone and $$self{m_timerCycle}->active() eq 1) {
-				$$self{m_timerCycle}->set(1,$self);
-			}
-		}
-	}
-	#set time limit
-#		&::print_log("Irr:Timer:" , $p_time);
-	if (defined $p_time) {
-		$$self{m_timerCycle}->set($p_time,$self);
-	} elsif (lc($p_state) eq 'on') {
-		$$self{m_timerCycle}->set(1*60*60,$self); #Failsafe 1 hour limit
-	}
-
-	
+sub zone_current {
+    my ( $self, $p_zone ) = @_;
+    $$self{m_zoneCurrent} = $p_zone if defined $p_zone;
+    return $$self{m_zoneCurrent};
 }
 
-sub single
-{
-	my ($self,$p_blnSingle) = @_;
-	$$self{m_modeSingle} = $p_blnSingle if defined $p_blnSingle;
-	return $$self{m_modeSingle};	
+sub zone {
+    my ( $self, $p_zone, $p_state, $p_time ) = @_;
+
+    #turn on or off zone
+    if ( lc($p_state) eq 'on' ) {
+        &::print_log("Irrigation Zone:$p_zone:On:");
+        $self->zone_current($p_zone);
+        $self->SUPER::set( 'on:' . $p_zone );
+    }
+    else {
+        &::print_log("Irrigiation Zone:$p_zone:Off:");
+        $self->SUPER::set( 'off:' . $p_zone );
+        if ( $self->single() eq 1 ) { #if single shot mode, shut everything down
+            $self->zone_current(0);
+            $$self{m_timerCycle}->set('off');
+        }
+        else {                        # if normal cycle mode, skip this zone
+            if (    $self->zone_current() eq $p_zone
+                and $$self{m_timerCycle}->active() eq 1 )
+            {
+                $$self{m_timerCycle}->set( 1, $self );
+            }
+        }
+    }
+
+    #set time limit
+    #		&::print_log("Irr:Timer:" , $p_time);
+    if ( defined $p_time ) {
+        $$self{m_timerCycle}->set( $p_time, $self );
+    }
+    elsif ( lc($p_state) eq 'on' ) {
+        $$self{m_timerCycle}->set( 1 * 60 * 60, $self );  #Failsafe 1 hour limit
+    }
+
+}
+
+sub single {
+    my ( $self, $p_blnSingle ) = @_;
+    $$self{m_modeSingle} = $p_blnSingle if defined $p_blnSingle;
+    return $$self{m_modeSingle};
 }
 
 1;
-
-
 
 =back
 

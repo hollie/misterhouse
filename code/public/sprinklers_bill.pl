@@ -33,9 +33,13 @@ Bill
 #noloop=start
 
 # Morning watering cycle
-$Sprinklers->tie_time('30 05 * * *', 'on:5,5,2,5,5,2', 'log=irrigation.log Running first morning watering cycle');
+$Sprinklers->tie_time( '30 05 * * *', 'on:5,5,2,5,5,2',
+    'log=irrigation.log Running first morning watering cycle' );
+
 # Re-enabled in late May for more lawn water
-$Sprinklers->tie_time('30 06 * * *', 'on:5,5,2,5,5,2', 'log=irrigation.log Running second morning watering cycle');
+$Sprinklers->tie_time( '30 06 * * *', 'on:5,5,2,5,5,2',
+    'log=irrigation.log Running second morning watering cycle' );
+
 #$Sprinklers->tie_time('30 07 * * *', 'on:5,5,0,5,5,0', 'log=irrigation.log Running third morning watering cycle');
 
 # Evening watering cycle
@@ -45,19 +49,21 @@ $Sprinklers->tie_time('30 06 * * *', 'on:5,5,2,5,5,2', 'log=irrigation.log Runni
 #$Sprinklers->tie_time('$Time_Sunset-0:20', 'on:0,1,0,2', 'log=irrigation.log Running fourth evening watering cycle');
 
 # When watering is finished, set the default watering times (one minute perzone)
-$Sprinklers->tie_event('$Sprinklers->set_runtimes(1,1,1,1,1,1)','complete',
- 'log=irrigation.log Zone cascade complete, setting default run times');
+$Sprinklers->tie_event( '$Sprinklers->set_runtimes(1,1,1,1,1,1)',
+    'complete',
+    'log=irrigation.log Zone cascade complete, setting default run times' );
 
 # Enable the sprinklers every day at midnight (in case they were disabled for the day due to rain/weather/manual/etc)
-$SprinkerEnable->tie_time('00 00 * * *', 'on', 'log=irrigation.log Sending midnight sprinkler enable command');
+$SprinkerEnable->tie_time( '00 00 * * *', 'on',
+    'log=irrigation.log Sending midnight sprinkler enable command' );
 
 # Link the sprinkler test item to the sprinkler on command
-$SprinklerTest->tie_items($Sprinklers, "on", "on:1,1,1,1,1,1",
-'log=irrigation.log Sprinklers sent on due to sprinkler test command');
+$SprinklerTest->tie_items( $Sprinklers, "on", "on:1,1,1,1,1,1",
+    'log=irrigation.log Sprinklers sent on due to sprinkler test command' );
 
 # Filter ON commands to the zone cascade if the cold weather flag is set
-$Sprinklers->tie_filter('$Cold_outside->state() eq "1"', 'on',
-'log=irrigation.log Sprinkler run overridden due to cold weather');
+$Sprinklers->tie_filter( '$Cold_outside->state() eq "1"',
+    'on', 'log=irrigation.log Sprinkler run overridden due to cold weather' );
 
 #noloop=stop
 

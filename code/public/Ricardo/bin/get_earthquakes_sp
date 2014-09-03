@@ -23,23 +23,26 @@
 
 use strict;
 
-my ($Pgm_Path, $Pgm_Name);
+my ( $Pgm_Path, $Pgm_Name );
+
 BEGIN {
-    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
 }
 
-my ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+my ($Version) =
+  q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
 
 #print "Command: $Pgm_Name @ARGV\n";
 #print "Version: $Version\n";
 
 use Getopt::Long;
 my %parms;
-if (!&GetOptions(\%parms, "debug", "h", "help") or
-    @ARGV or
-    ($parms{h} or $parms{help})) {
-    print<<eof;
+if (  !&GetOptions( \%parms, "debug", "h", "help" )
+    or @ARGV
+    or ( $parms{h} or $parms{help} ) )
+{
+    print <<eof;
 
 $Pgm_Name gets earthquakes info
 
@@ -56,56 +59,61 @@ Usage:
 
 eof
     exit;
-  }
+}
 
 my %config_parms;
 
-
 my $caller = caller;
-my $return_flag = ($caller and $caller ne 'main') ? 1 : 0;
+my $return_flag = ( $caller and $caller ne 'main' ) ? 1 : 0;
 
-BEGIN { eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'" } # Use BEGIN eval to keep perl2exe happy
+BEGIN {
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'";
+}    # Use BEGIN eval to keep perl2exe happy
 
-require 'handy_utilities.pl';       # For read_mh_opts funcion
-&main::read_mh_opts(\%config_parms, $Pgm_Path);
+require 'handy_utilities.pl';    # For read_mh_opts funcion
+&main::read_mh_opts( \%config_parms, $Pgm_Path );
 
 use Date::Parse;
 use Date::Format;
 
 my $earthquakes_URL;
-$earthquakes_URL = 'http://pangea.ign.es/servidor/sismo/cnis/proximo/proximo.html';
-my $f_earthquakes_html = "$config_parms{data_dir}/../web/ia5/outside/earthquakes.html";
+$earthquakes_URL =
+  'http://pangea.ign.es/servidor/sismo/cnis/proximo/proximo.html';
+my $f_earthquakes_html =
+  "$config_parms{data_dir}/../web/ia5/outside/earthquakes.html";
 my $f_earthquakes_data = "$config_parms{data_dir}/earthquakes_data";
 
-my $debug = 1 if ($parms{debug});
+my $debug = 1 if ( $parms{debug} );
 
 ###################
 # get earthquakes #
 ###################
 
-get_url_ua($earthquakes_URL, $f_earthquakes_html);
+get_url_ua( $earthquakes_URL, $f_earthquakes_html );
 
-  my $html = &file_read($f_earthquakes_html);
-  $html =~ s|<html>|<html>\n<BASE href='http://pangea.ign.es/servidor/sismo/cnis/proximo/'>|i;
-  &file_write($f_earthquakes_html, $html);
-  print STDERR "File: $f_earthquakes_html, writen\n" if $debug;
-  my $text = &html_to_text($html);
+my $html = &file_read($f_earthquakes_html);
+$html =~
+  s|<html>|<html>\n<BASE href='http://pangea.ign.es/servidor/sismo/cnis/proximo/'>|i;
+&file_write( $f_earthquakes_html, $html );
+print STDERR "File: $f_earthquakes_html, writen\n" if $debug;
+my $text = &html_to_text($html);
 
-  my $new_quakes = "";
-  my $quake;
-  foreach (split /\n/, $text) {
+my $new_quakes = "";
+my $quake;
+foreach ( split /\n/, $text ) {
+
     #Only look at lines with quake data on them
-    if (/^(\d+)\s+(\S+)\s+(\S+)\s+(\S+)([NS])\s+(\S+)([EW])\s+(\S+)\s+(.+)/ ) {
-      $quake = $_;
-      print "Terremoto: $quake\n" if $debug;
-      $new_quakes = $new_quakes . $quake . "\n";
+    if (/^(\d+)\s+(\S+)\s+(\S+)\s+(\S+)([NS])\s+(\S+)([EW])\s+(\S+)\s+(.+)/) {
+        $quake = $_;
+        print "Terremoto: $quake\n" if $debug;
+        $new_quakes = $new_quakes . $quake . "\n";
     }
-  }
-  $text = $new_quakes;
-  $text =~ s/^(([^\n]*\n){1,21}).*/$1/s;   # Save last 21 quakes
-  print STDERR "File: $f_earthquakes_data\n" if $debug;
-  print STDERR "Terremotos text ---------->>>>\n$text\n" if $debug;
-  &file_write($f_earthquakes_data, $text);
+}
+$text = $new_quakes;
+$text =~ s/^(([^\n]*\n){1,21}).*/$1/s;    # Save last 21 quakes
+print STDERR "File: $f_earthquakes_data\n"             if $debug;
+print STDERR "Terremotos text ---------->>>>\n$text\n" if $debug;
+&file_write( $f_earthquakes_data, $text );
 
 exit(0);
 
@@ -115,47 +123,50 @@ exit(0);
 
 # from get_url
 sub get_url_ua {
-    my $url = shift;
+    my $url  = shift;
     my $file = shift;
 
     use LWP::UserAgent;
 
     my $ua = new LWP::UserAgent;
-    $config_parms{proxy} = $ENV{HTTP_PROXY}           unless $config_parms{proxy};
-    $ua -> proxy(['http', 'ftp'] => $config_parms{proxy}) if $config_parms{proxy};
+    $config_parms{proxy} = $ENV{HTTP_PROXY} unless $config_parms{proxy};
+    $ua->proxy( [ 'http', 'ftp' ] => $config_parms{proxy} )
+      if $config_parms{proxy};
 
-    $ua->timeout([120]);         # Time out after 60 seconds 
-    $ua->env_proxy(); 
+    $ua->timeout( [120] );    # Time out after 60 seconds
+    $ua->env_proxy();
 
-    my $request = new HTTP::Request('GET', $url);
+    my $request = new HTTP::Request( 'GET', $url );
     my $response;
 
-    print "Retrieving (with ua) $url into $file ...\n" unless $config_parms{quiet};
-    if ($file eq '/dev/null') {
+    print "Retrieving (with ua) $url into $file ...\n"
+      unless $config_parms{quiet};
+    if ( $file eq '/dev/null' ) {
         $response = $ua->simple_request($request);
     }
     else {
-        $response = $ua->simple_request($request, $file);
+        $response = $ua->simple_request( $request, $file );
     }
 
-    if ($response->is_error()) {
+    if ( $response->is_error() ) {
         printf "error: %s\n", $response->status_line;
     }
 }
 
-
-                         # html -> text, without memory leak!
+# html -> text, without memory leak!
 use HTML::TreeBuilder;
 use HTML::FormatText;
-sub html_to_text {
-    my ($tree, $format, $text);
-                                # This leaks memory!
-#   $text = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($_[0]));
 
-    $tree   = HTML::TreeBuilder->new();
-    $format = HTML::FormatText->new(leftmargin => 0, rightmargin => 150);
-    $tree -> parse($_[0]);
-    $text = $format -> format($tree);
-    $tree -> delete;  # Avoid a memory leak!
+sub html_to_text {
+    my ( $tree, $format, $text );
+
+    # This leaks memory!
+    #   $text = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($_[0]));
+
+    $tree = HTML::TreeBuilder->new();
+    $format = HTML::FormatText->new( leftmargin => 0, rightmargin => 150 );
+    $tree->parse( $_[0] );
+    $text = $format->format($tree);
+    $tree->delete;    # Avoid a memory leak!
     return $text;
 }
