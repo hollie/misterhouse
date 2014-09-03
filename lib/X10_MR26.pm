@@ -76,10 +76,9 @@ sub check_for_data {
     #  - Check time and loop count.  If mh paused (e.g. sending ir data)
     #    then we better also check loop count.
     #  - Process data only on the 2nd occurance, to avoid noise
-    my $time = &main::get_tickcount;
+    my $time        = &main::get_tickcount;
     my $repeat_time = $main::config_parms{MR26_multireceive_delay} or 400;
-    my $repeat_data =
-      ( $data eq $prev_data )
+    my $repeat_data = ( $data eq $prev_data )
       && ( $time < $prev_time + $repeat_time
         or $main::Loop_Count < $prev_loop + 7 );
     return if $repeat_data and $prev_done;

@@ -289,10 +289,7 @@ sub iphoneWebApp {
 
                 $html_group .= '
           <div class="iLayer" id="wa'
-                  . $item2
-                  . '_advanced" title="'
-                  . $name
-                  . ' Advanced">
+                  . $item2 . '_advanced" title="' . $name . ' Advanced">
             <div class="iMenu">
               <ul class="iArrow">
 ' . $html_groups1 . '

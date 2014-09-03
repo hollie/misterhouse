@@ -128,7 +128,10 @@ sub unfmt_udp_msg {
 }
 
 sub CID_TYPE_SUBSCRIBE { return (1); }
-sub CID_TYPE_UNSUBSCRIBE { return (2); } # Param2 is client computer name/address
+
+sub CID_TYPE_UNSUBSCRIBE {
+    return (2);
+}    # Param2 is client computer name/address
 sub CID_TYPE_INCOMING_CALL { return (3); }    # Param2 is caller's name
                                               # Param3 is caller's phone #
 sub CID_TYPE_ERROR_CALL { return (4); }   # Same as of ICallerIDNotify.OnError()

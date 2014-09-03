@@ -380,9 +380,11 @@ if (
               . ( ( $data{time} ) ? $data{time} : "12:00 am" );
             $data{enddt} =
               $data{date} . ' '
-              . ( ( $data{endtime} && $data{endtime} !~ /12:00 am/i )
+              . (
+                ( $data{endtime} && $data{endtime} !~ /12:00 am/i )
                 ? $data{endtime}
-                : "11:59 pm" );
+                : "11:59 pm"
+              );
 
             #changed to notify an array of email addresses
             $data{name_count} = 0;
@@ -680,9 +682,11 @@ sub generate_code {
                     }
                     else {
                         $reminder_diff = '00:'
-                          . ( ( $reminder_time >= 10 )
+                          . (
+                            ( $reminder_time >= 10 )
                             ? $reminder_time
-                            : "0$reminder_time" );
+                            : "0$reminder_time"
+                          );
                     }
                 }
                 $data{reminder_diff}  = $reminder_diff;

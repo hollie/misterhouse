@@ -3125,8 +3125,10 @@ sub check_for_tied_filters {
     unless ( $self->{states_nomultistate} ) {
         if ( $state =~ /;/ ) {
             print "Multiple states entry state=$state\n" if $Debug{state};
-            while ( my ( $currentstate, $remainingstate ) =
-                split( /;/, $state, 2 ) )
+            while (
+                my ( $currentstate, $remainingstate ) =
+                split( /;/, $state, 2 )
+              )
             {
                 print
                   "Multiple states split into state=$currentstate remainder=$remainingstate\n"
@@ -3795,8 +3797,7 @@ sub get_ip_address {
     my @host_data = gethostbyname($hostname);
     my @ip_addresses = map { inet_ntoa($_) } @host_data[ 4 .. $#host_data ];
     print "IP addresses for $hostname are @ip_addresses\n" if $Debug{misc};
-    return
-      wantarray
+    return wantarray
       ? @ip_addresses
       : $ip_addresses[-1]
       ;    # Assume last one is most interesting ... usually IP address
@@ -3859,8 +3860,7 @@ sub last_response {
 }
 
 sub list_code_files {
-    return
-      sort { lc($a) cmp lc($b) }
+    return sort { lc($a) cmp lc($b) }
       keys %object_names_by_file;    # Case insensitive sort
 }
 
@@ -5906,9 +5906,9 @@ sub read_user_code {
 
             # With the introduction of PerlTidy some 'new' statements may be split
             # over two or more lines.  I believe they will always be broken at the
-            # equals sign. This attempts to compress those lines back into a 
+            # equals sign. This attempts to compress those lines back into a
             # single line for parsing.
-            if ( $record !~ /\;/ && $record =~ /=$/) {
+            if ( $record !~ /\;/ && $record =~ /=$/ ) {
 
                 # If there is no semicolon and the line ends in an equals sign,
                 # then assume this isn't a complete statement.
@@ -6053,7 +6053,8 @@ sub read_user_code {
     # Sort Loop_Code into desired order
     for my $member_name (
         sort { $member_sort_order{$a} <=> $member_sort_order{$b} or $a cmp $b }
-        keys %Run_Members )
+        keys %Run_Members
+      )
     {
 
         next unless $Sub_Code{$member_name};
@@ -6655,11 +6656,12 @@ sub set_global_vars {
         else {
             $cpu_used = sprintf( "%3.1f%%", $cpu_used );
         }
-        $Tk_objects{label_cpu_used} =
-          "CPU $cpu_used"
-          . ( ( $config_parms{tk_loop_speed} )
+        $Tk_objects{label_cpu_used} = "CPU $cpu_used"
+          . (
+            ( $config_parms{tk_loop_speed} )
             ? sprintf( " Loops %3d", $Info{loop_speed} )
-            : '' );
+            : ''
+          );
         $Tk_objects{label_memory_used} =
           sprintf( "MB %3.1f/%3.1f", $Info{memory_virtual}, $Info{memory_real} )
           if $Info{memory_virtual};

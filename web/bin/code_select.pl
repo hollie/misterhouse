@@ -84,7 +84,8 @@ they'll be automatically activated within MisterHouse.|
             }
         }
         next
-          if $search and !(
+          if $search
+          and !(
                $category    =~ /$search/i
             or $file        =~ /$search/i
             or $description =~ /$search/i

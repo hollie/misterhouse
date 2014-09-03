@@ -612,7 +612,8 @@ sub sort_data {
 
     for $rec (
         sort { $calls{$class}{$b}{$sort_by} cmp $calls{$class}{$a}{$sort_by} }
-        keys %{ $calls{$class} } )
+        keys %{ $calls{$class} }
+      )
     {
         $count++;
         $data .= sprintf(

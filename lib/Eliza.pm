@@ -721,8 +721,7 @@ sub transform {
 
                 # Now let's check all the decomposition rules for that keyword.
                 DECOMP:
-                foreach $decomp ( @{ $self->{decomplist}->{$keyword} } )
-                {
+                foreach $decomp ( @{ $self->{decomplist}->{$keyword} } ) {
 
                     # Change '*' to '\b(.*)\b' in this decomposition rule,
                     # so we can use it for regular expressions.  Later,
@@ -785,8 +784,10 @@ sub transform {
                         }
 
                         # Pick out a reassembly rule at random.
-                        $reasmb = $these_reasmbs[
-                          int &{ $self->{myrand} }( scalar @these_reasmbs ) ];
+                        $reasmb =
+                          $these_reasmbs[
+                          int &{ $self->{myrand} }( scalar @these_reasmbs )
+                          ];
 
                         $self->debug_text(
                             $self->debug_text . sprintf "\t\t-->  $reasmb\n" );

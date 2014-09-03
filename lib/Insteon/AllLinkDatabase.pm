@@ -650,8 +650,7 @@ sub delete_orphan_links {
 
         # First, iterate over the controller object members to find the link definition
         MEMBERS:
-        foreach my $member_ref ( keys %{ $$controller_object{members} } )
-        {
+        foreach my $member_ref ( keys %{ $$controller_object{members} } ) {
             my $member = $$controller_object{members}{$member_ref}{object};
             if ( $member->isa('Light_Item') ) {
                 my @lights = $member->find_members('Insteon::BaseLight');

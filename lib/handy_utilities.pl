@@ -1494,8 +1494,7 @@ sub main::time_to_ampm {
     my $ampm = ( $hour < 12 ) ? "AM" : "PM";
     $hour -= 12 if $hour > 12;
     $hour = 12 if $hour == 0;
-    return
-      wantarray
+    return wantarray
       ? ( "$hour:$min $ampm", $hour, $min, $ampm )
       : "$hour:$min $ampm";
 }

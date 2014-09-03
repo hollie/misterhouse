@@ -467,8 +467,7 @@ Returns true if the trigger is active.
 sub trigger_active {
     my $name = shift;
     return (
-        exists $triggers{$name}
-          and ($triggers{$name}{type} eq 'NoExpire'
+        exists $triggers{$name} and ( $triggers{$name}{type} eq 'NoExpire'
             or $triggers{$name}{type} eq 'OneShot' )
           and ( not exists $triggers{$name}{'trigger_error'} )
     );

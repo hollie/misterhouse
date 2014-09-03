@@ -99,7 +99,8 @@ The following fils are all the code files in you code_dir list:  $config_parms{c
             }
         }
         next
-          if $search and !(
+          if $search
+          and !(
                $category    =~ /$search/i
             or $file        =~ /$search/i
             or $description =~ /$search/i

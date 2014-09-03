@@ -164,10 +164,11 @@ if ($GDTemplate) {
     my $MaxChar = 0;
     my $Pos     = 0;
     while ( $Pos < scalar(@lines) ) {
-        $MaxChar =
-          (   $MaxChar < length( $lines[$Pos] )
+        $MaxChar = (
+              $MaxChar < length( $lines[$Pos] )
             ? $MaxChar = length( $lines[$Pos] )
-            : $MaxChar );
+            : $MaxChar
+        );
         $lines[$Pos] = ucfirst( $lines[$Pos] );
         $Pos++;
     }

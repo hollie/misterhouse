@@ -342,10 +342,11 @@ sub generate_pronto {
                 {
                     #print "bit $bit\n";
                     if ( $modulation eq 'PPM' ) {
-                        my $phase =
-                          ( $bit
+                        my $phase = (
+                            $bit
                             ? ( split ',', $protocol{One} )[1]
-                            : ( split ',', $protocol{Zero} )[1] ) > 0;
+                            : ( split ',', $protocol{Zero} )[1]
+                        ) > 0;
 
                         #print "db $bit ph $phase c $current_phase \n";
                         if (1) {

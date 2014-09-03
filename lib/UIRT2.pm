@@ -485,9 +485,11 @@ sub struct_to_raw {
         foreach ( split '', unpack "b$length", pack 'C*', @bytes ) {
             $_ += 0;
             push @raw,
-              ( $i % 2
+              (
+                $i % 2
                 ? ( $_ ? $big_gap : $small_gap )
-                : ( $_ ? $big_pulse : $small_pulse ) );
+                : ( $_ ? $big_pulse : $small_pulse )
+              );
             $i++;
         }
         pop @raw unless @raw % 2;

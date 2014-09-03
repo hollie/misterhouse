@@ -336,10 +336,10 @@ sub process {
         grep { $_ = &::convert_in2mb($_); } ( $barometer, $barometer_sea );
     }
     if ( $main::config_parms{weather_uom_rain} eq 'mm' ) {
-        grep { $_ = &::convert_in2mm($_); } ( $total_rain );
+        grep { $_ = &::convert_in2mm($_); } ($total_rain);
     }
     if ( $main::config_parms{weather_uom_rain} eq 'mm/hr' ) {
-        grep { $_ = &::convert_in2mm($_); } ( $rain_rate );
+        grep { $_ = &::convert_in2mm($_); } ($rain_rate);
         $rain_rate = sprintf( '%.0f', $rain_rate );    # round to nearest mm/hr
     }
     else {
@@ -347,10 +347,10 @@ sub process {
           sprintf( '%.2f', $rain_rate );    # round to nearest 0.01 in/hr
     }
     if ( $main::config_parms{weather_uom_wind} eq 'kph' ) {
-        grep { $_ = &::convert_mile2km($_); } ( $wind_speed );
+        grep { $_ = &::convert_mile2km($_); } ($wind_speed);
     }
     if ( $main::config_parms{weather_uom_wind} eq 'm/s' ) {
-        grep { $_ = &::convert_mph2mps($_); } ( $wind_speed );
+        grep { $_ = &::convert_mph2mps($_); } ($wind_speed);
     }
 
     $$wptr{TempIndoor}    = $indoor_temp;

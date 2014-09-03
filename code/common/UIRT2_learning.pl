@@ -140,8 +140,7 @@ sub uirt2_update_html {
       <input type="radio" value="38" name=$uirt2_function_frequency'
       . ( $frequency == 38 ? ' checked' : '' ) . '>38
       <input type="radio" value="40" name=$uirt2_function_frequency'
-      . ( $frequency == 40 ? ' checked' : '' )
-      . '>40 kHz 
+      . ( $frequency == 40 ? ' checked' : '' ) . '>40 kHz 
       &nbsp&nbsp&nbsp Repeat <input value="' . $repeat
       . '" size="5" name=$uirt2_function_repeat>
       &nbsp&nbsp&nbsp <input type=submit value="Modify" name=$uirt2_function_modify><br>
@@ -172,8 +171,7 @@ sub uirt2_update_html {
       <tr><td colspan=4>
       Pronto Code<br>
       <textarea name=$uirt2_function_pcode Rows=8 COLS=84 wrap="hard">'
-      . $pronto
-      . '</textarea>  
+      . $pronto . '</textarea>  
       <input type=submit value="Import" name=$uirt2_function_import><br>
       You can find Pronto codes at <a target="_BLANK" href="http://www.remotecentral.com">Remote Central</a> and
       at <a target="_BLANK" href="http://ir.premisesystems.com/">Premise Systems</a>.<p>

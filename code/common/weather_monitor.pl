@@ -68,11 +68,11 @@ if ( $config_parms{weather_uom_temp} eq 'C' ) {
 }
 
 if ( $config_parms{weather_uom_wind} eq 'kph' ) {
-    grep { $_ = convert_mile2km($_) } ( $default_wind_gust_threshold );
+    grep { $_ = convert_mile2km($_) } ($default_wind_gust_threshold);
 }
 
 if ( $config_parms{weather_uom_wind} eq 'm/s' ) {
-    grep { $_ = convert_mph2mps($_) } ( $default_wind_gust_threshold );
+    grep { $_ = convert_mph2mps($_) } ($default_wind_gust_threshold);
 }
 
 $Weather{HeatWarningPoint} =

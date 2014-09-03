@@ -571,11 +571,11 @@ sub transmit_raw {
                 my $inter = ( ( shift @bytes ) * 256 + shift @bytes ) * .050;
                 my $delay = $inter;
                 while ( my $byte = shift @bytes ) {
-                    $delay +=
-                      $units *
-                      (   ( $byte & 0x80 )
+                    $delay += $units * (
+                          ( $byte & 0x80 )
                         ? ( $byte & 0x7f ) << 8 | shift @bytes
-                        : $byte );
+                        : $byte
+                    );
                 }
                 $delay -= .01 if $delay > .01;
 
@@ -733,9 +733,11 @@ sub struct_to_raw {
         foreach ( split '', unpack "b$length", pack 'C*', @bytes ) {
             $_ += 0;
             push @raw,
-              ( $i % 2
+              (
+                $i % 2
                 ? ( $_ ? $big_gap : $small_gap )
-                : ( $_ ? $big_pulse : $small_pulse ) );
+                : ( $_ ? $big_pulse : $small_pulse )
+              );
             $i++;
         }
         pop @raw unless @raw % 2;

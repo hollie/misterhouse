@@ -232,7 +232,10 @@ funtions that delineate the message types passed back and forth b/t acid client 
 =cut
 
 sub CID_TYPE_SUBSCRIBE { return (1); }
-sub CID_TYPE_UNSUBSCRIBE { return (2); } # Param2 is client computer name/address
+
+sub CID_TYPE_UNSUBSCRIBE {
+    return (2);
+}    # Param2 is client computer name/address
 
 sub CID_TYPE_INCOMING_CALL {
     return (3);

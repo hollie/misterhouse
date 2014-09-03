@@ -343,7 +343,8 @@ sub display {
             #                                   $$self{MW}->withdraw if $$self{time} % 2;   ... test to hide and unhide a window
             #                                     $$self{MW}->deiconify unless $$self{time} % 2;
         }
-      ) if $$self{time}
+      )
+      if $$self{time}
       and !$reuse_flag;
 
     $$self{MW}->bind( '<q>'      => sub { $self->destroy } );

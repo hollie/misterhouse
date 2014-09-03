@@ -66,9 +66,13 @@ if ( time_cron('* * * * *') ) {
 
 ### Only subroutines below this point ###
 
-sub deg_to_rad { ( $_[0] / 180 ) * ( 4 * atan2( 1, 1 ) ) } # convert degrees to radians
+sub deg_to_rad {
+    ( $_[0] / 180 ) * ( 4 * atan2( 1, 1 ) );
+}    # convert degrees to radians
 
-sub rad_to_deg { ( $_[0] / ( 4 * atan2( 1, 1 ) ) ) * 180 } # convert radians to degrees
+sub rad_to_deg {
+    ( $_[0] / ( 4 * atan2( 1, 1 ) ) ) * 180;
+}    # convert radians to degrees
 
 sub average_wind_dir {
     my $readings = 10;

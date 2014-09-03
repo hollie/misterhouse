@@ -50,8 +50,7 @@ sub rf_is_rfxsensor {
     my $found = ( $B0L == $B1L and ( 0xf - $B0H ) == $B1H );
 
     # check parity bits here
-    $found =
-      $found
+    $found = $found
       && ( $B3L ==
         ( 0xf - ( ( $B0H + $B0L + $B1H + $B1L + $B2H + $B2L + $B3H ) & 0xf ) )
       );
