@@ -21,7 +21,11 @@ sub read_dir {
     my ( @results, @dir_results );
     while ( my $file = readdir(DIR) ) {
         next if ( $file =~ m/^\./ );
-        if ( -d "$dir_sub/$file" ) {    #Directory
+        if ( lc("$dir_sub/$file") =~ /^\.\.\/lib\/site/ )
+        {    #Skip distributed perl modules
+            next;
+        }
+        elsif ( -d "$dir_sub/$file" ) {    #Directory
             push( @dir_results, "$dir_sub/$file" );
         }
         elsif ( $file =~ m/\.(pl|pod|pm|t)$/i ) {    #These are perl extensions
