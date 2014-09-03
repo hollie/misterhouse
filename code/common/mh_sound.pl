@@ -27,10 +27,13 @@ $Info{Volume_Control} = 'Command Line'
 ################################################
 # Allow for default volume control. Reset on startup.
 ################################################
+# noloop=start
 &set_volume_master_wrapper( $mh_volume->{state} )
-  if $Startup and defined $mh_volume->{state};    #noloop
+  if $Startup and defined $mh_volume->{state};
 &set_volume_wav( $config_parms{volume_wav_default_volume} )
-  if $Startup and defined $config_parms{volume_wav_default_volume};    #noloop
+  if $Startup and defined $config_parms{volume_wav_default_volume};
+
+# noloop=stop
 
 if ( defined( $state = state_now $mh_volume) and $state ne '' ) {
     &set_volume_master_wrapper($state);

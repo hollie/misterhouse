@@ -39,6 +39,7 @@ $cid_interface1 = new Telephony_Interface(
     $config_parms{callerid_type}
 );
 $cid_item = new CID_Lookup($cid_interface1);
+my $cid_interface2;
 
 if ( $Startup and defined( $config_parms{callerid2_name} ) ) {
     print_log("Creating and adding 2nd Caller ID interface");

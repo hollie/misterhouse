@@ -4,15 +4,16 @@
 #@ Does nothing on Linux at the moment
 
 # noloop=start
+$v_disk_space =
+  new Voice_Cmd("How much disk space is available on [$disk_drives]")
+  if ($OS_win);
+$v_disk_space2 = new Voice_Cmd("Show disk space")  if ($OS_win);
+$v_disk_space3 = new Voice_Cmd("Check disk space") if ($OS_win);
 if ($OS_win) {
     my $disk_drives = '';
     $disk_drives = join( ',', Win32::DriveInfo::DrivesInUse() );
-    $v_disk_space =
-      new Voice_Cmd("How much disk space is available on [$disk_drives]");
     $v_disk_space->set_info('This works only on Windows platforms');
-    $v_disk_space2 = new Voice_Cmd("Show disk space");
     $v_disk_space2->set_info('Shows disk space on all drives');
-    $v_disk_space3 = new Voice_Cmd("Check disk space");
     $v_disk_space3->set_info('Check disk space requirements');
 }
 
@@ -92,7 +93,8 @@ if ( said $v_disk_space2) {
       "\n\nDisk drive space (free / total megabytes) sorted by free space:\n";
     for my $drive (
         sort { $free_by_drive{$a} <=> $free_by_drive{$b} or $a cmp $b }
-        keys %free_by_drive )
+        keys %free_by_drive
+      )
     {
         $report .= sprintf( "%14s: %6.1f / %6.1f\n",
             $drive, $free_by_drive{$drive}, $total_by_drive{$drive} );

@@ -41,17 +41,21 @@
 $p_weather_update = new Process_Item;
 $v_weather_update =
   new Voice_Cmd '[Show results from,Run] wunderground.com upload';
-my $weather_update_html_path =
-  "$config_parms{data_dir}/web/wu-result.html";    #noloop
+
+# noloop=start
+my $weather_update_html_path = "$config_parms{data_dir}/web/wu-result.html";
+
+# noloop=stop
 
 # Create trigger
 
 if ($Reload) {
-    my $command =
-      "new_minute "
-      . ( ( $config_parms{wunderground_frequency} )
+    my $command = "new_minute "
+      . (
+        ( $config_parms{wunderground_frequency} )
         ? $config_parms{wunderground_frequency}
-        : 10 );
+        : 10
+      );
 
     &trigger_set( $command, "run_voice_cmd('Run wunderground.com upload')",
         'NoExpire', 'upload weather' )
