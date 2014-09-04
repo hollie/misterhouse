@@ -5038,10 +5038,10 @@ sub read_user_code {
             # over two or more lines.  I believe they will always be broken at the
             # equals sign. This attempts to compress those lines back into a 
             # single line for parsing.
-            if ( $record !~ /\;/ && $record =~ /=$/) {
-
+            if ( $record !~ /\;/ && ( $record =~ /=$/ || $split_line ne '' ) ) {
                 # If there is no semicolon and the line ends in an equals sign,
-                # then assume this isn't a complete statement.
+                # or we already have split line content then assume this isn't
+                # a complete statement.
                 $split_line = "$split_line" . "$record";
                 next;
             }
