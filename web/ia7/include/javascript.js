@@ -672,15 +672,23 @@ $(document).ready(function() {
 		$( "#sortable" ).sortable({
 		  update: function( event, ui ) {
 		  	var URLHash = URLToHash();
-		  	URLHash.test = "";
 		  	//Get Sorted Array of Entities
 		  	var outputJSON = $( "#sortable" ).sortable( "toArray" );
 		  	outputJSON = '["' + outputJSON.join('","') + '"]';
+		  	URLHash.path = "/objects/" + entity + "/sort_order";
+		  	delete URLHash.parents;
 			$.ajax({
 			    type: "PUT",
-			    url: "/json/"+HashtoJSONArgs(URLHash),
+			    url: "/json"+HashtoJSONArgs(URLHash),
 			    contentType: "application/json",
-			    data: outputJSON
+			    data: outputJSON,
+				dataType: "json",
+				success: function( json, textStatus, jqXHR) {
+					if (jqXHR.status == 200) {
+						JSONStore(json);
+						changePage ();
+					}
+				}
 			});
 		  }
 		});

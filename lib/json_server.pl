@@ -44,7 +44,7 @@ use JSON qw(decode_json);
 use IO::Compress::Gzip qw(gzip);
 
 sub json {
-	my ($request_type, $path, $arguments, $body) = @_;
+	my ($request_type, $path_str, $arguments, $body) = @_;
 
 	# Passed arguments can be used to override the global parameters
 	# This is necessary for using the LONG_POLL interface
@@ -72,8 +72,8 @@ sub json {
 	if ($body eq ''){
 		$body = $HTTP_BODY;
 	}
-	if ($path eq ''){
-		$path = $HTTP_REQUEST;
+	if ($path_str eq ''){
+		$path_str = $HTTP_REQUEST;
 	}
 
 	# Split arguments into arrays
@@ -82,26 +82,66 @@ sub json {
 		$args{$k} = [ split /,/, $arg_hash{$k} ] ;
 	}
 	
+	# Split Path into Array
+	$path_str =~ s/^\/json//i; # Remove leading 'json' path
+	$path_str =~ s/^\/|\/$//g; # Remove leadin trailing slash.
+	my @path = split ('/', $path_str);
+	
 	if (lc($request_type) eq "get"){
-		return json_get($request_type, $path, \%args, $body);
+		return json_get($request_type, \@path, \%args, $body);
 	}
 	elsif (lc($request_type) eq "put"){
-		json_put($request_type, $path, \%args, $body);
+		json_put($request_type, \@path, \%args, $body);
 	}
 }
 
 # Handles Put (UPDATE) Requests
 sub json_put {
 	my ($request_type, $path, $arguments, $body) = @_;
+	my ( %json);
 	my %args = %{$arguments};
+	my @path = @{$path};
+	my $output_time = ::get_tickcount();
 	$body = decode_json($body);
+	
+	# Currently we only know how to do things with objects
+	if ($path[0] eq 'objects') {
+		my $object = ::get_object_by_name($path[1]);
+		if (ref $object){
+			if ($path[2] ne '' && $object->can($path[2])){
+				my $method = $path[2];
+				my $response = $object->$method($body);
+				$json{data} = $response;
+			}
+			else {
+				$json{error}{msg} = 'Method not available on object';
+			}
+		}
+		else {
+			$json{error}{msg} = 'Unable to locate object by that name';
+		}
+	}
+	else {
+		$json{error}{msg} = 'PUT can only be used on the path objects';
+	}
+
+	#Insert Meta Data fields
+	$json{meta}{time} = $output_time;
+	$json{meta}{path} = \@path;
+	$json{meta}{args} =  \%args;
+	
+    my $json_raw = JSON->new->allow_nonref;
+	# Translate special characters
+	$json_raw = $json_raw->pretty->encode( \%json );
+	return &json_page($json_raw);
 }
 
 # Handles Get (READ) Requests
 sub json_get {
-	my ($request_type, $path_str, $arguments, $body) = @_;
+	my ($request_type, $path, $arguments, $body) = @_;
 
 	my %args = %{$arguments};
+	my @path = @{$path};
 	my ( %json, %json_data, $json_vars, $json_objects);
 	my $output_time = ::get_tickcount();
 	
@@ -114,9 +154,7 @@ sub json_get {
 	}
 	$fields{all} = 1 unless %fields;
 	
-	$path_str =~ s/^\/json//i; # Remove leading 'json' path
-	$path_str =~ s/^\/|\/$//g; # Remove leadin trailing slash.
-	my @path = split ('/', $path_str);	
+	
 
 	# List defined collections
 	if ($path[0] eq 'collections' || $path[0] eq '') {
