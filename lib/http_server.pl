@@ -273,7 +273,8 @@ sub http_process_request {
         # into the arguments, the following regex tests if the body is a valid
         # argument string.  If it is, the body is merged.
         if ($buf =~ /^([-\+=&;%@.\w_]*)\s*$/){
-            $get_arg .= "&" . $buf;
+            $get_arg .= "&" if ($get_arg ne '');
+            $get_arg .= $buf;
         }
 #       shutdown($socket->fileno(), 0);   # "how":  0=no more receives, 1=sends, 2=both
     }
