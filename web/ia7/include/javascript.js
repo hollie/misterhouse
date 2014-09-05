@@ -29,6 +29,11 @@ function HashtoURL(URLHash) {
 //Takes a hash and spits out the JSON request argument string
 function HashtoJSONArgs(URLHash) {
 	var pairs = [];
+	var path = "";
+	if (URLHash.path !== undefined) {
+		path = URLHash.path;
+	}
+	delete URLHash.path;
 	for (var key in URLHash){
 		if (key.indexOf("_") === 0){
 			//Do not include private arguments
@@ -38,7 +43,7 @@ function HashtoJSONArgs(URLHash) {
 			pairs.push(encodeURIComponent(key) + '=' + encodeURIComponent(URLHash[key]));
 		}
 	}
-	return pairs.join('&');
+	return path + "?" + pairs.join('&');
 }
 
 //Stores the JSON data in the proper location based on the path requested
@@ -96,7 +101,7 @@ function changePage (){
 		// collections list
 		$.ajax({
 			type: "GET",
-			url: "/sub?json('GET','path=collections')",
+			url: "/json/collections",
 			dataType: "json",
 			success: function( json ) {
 				JSONStore(json);
@@ -172,7 +177,7 @@ function loadVars (){ //variables list
 	var URLHash = URLToHash();
 	$.ajax({
 		type: "GET",
-		url: "/sub?json('GET','"+HashtoJSONArgs(URLHash)+"')",
+		url: "/json/"+HashtoJSONArgs(URLHash),
 		dataType: "json",
 		success: function( json ) {
 			JSONStore(json);
@@ -225,7 +230,7 @@ var loadList = function() {
 		// We need at least some basic info on all objects
 		$.ajax({
 			type: "GET",
-			url: "/sub?json('GET','path=objects&fields=sort_order,members,label')",
+			url: "/json/objects?fields=sort_order,members,label",
 			dataType: "json",
 			success: function( json ) {
 				JSONStore(json);
@@ -241,7 +246,7 @@ var loadList = function() {
 	URLHash.fields = "category,label,sort_order,members,state,states,type,text";
 	$.ajax({
 		type: "GET",
-		url: "/sub?json('GET','"+HashtoJSONArgs(URLHash)+"')",
+		url: "/json/"+HashtoJSONArgs(URLHash),
 		dataType: "json",
 		success: function( json ) {
 			//Save this to the JSON store
@@ -441,9 +446,12 @@ var updateList = function(path) {
 		// Only allow one update thread to run at once
 		updateSocket.abort();
 	}
+	var split_path = HashtoJSONArgs(URLHash).split("?");
+	var path_str = split_path[0];
+	var arg_str = split_path[1];
 	updateSocket = $.ajax({
 		type: "GET",
-		url: "/LONG_POLL?json('GET','"+HashtoJSONArgs(URLHash)+"')",
+		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
 		dataType: "json",
 		success: function( json, textStatus, jqXHR) {
 			if (jqXHR.status == 200) {
@@ -545,10 +553,12 @@ var print_log = function(time) {
 		// Only allow one update thread to run at once
 		updateSocket.abort();
 	}
+	var split_path = HashtoJSONArgs(URLHash).split("?");
+	var path_str = split_path[0];
+	var arg_str = split_path[1];	
 	updateSocket = $.ajax({
 		type: "GET",
-		url: "/LONG_POLL?json('GET','"+HashtoJSONArgs(URLHash)+"')",
-		//url: "/LONG_POLL?json('print_log','time="+time+",long_poll')",
+		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
 		dataType: "json",
 		success: function( json, statusText, jqXHR ) {
 			var requestTime = time;
@@ -577,7 +587,7 @@ var print_log = function(time) {
 var trigger = function() {
 	$.ajax({
 	type: "GET",
-	url: "/sub?json(triggers)",
+	url: "/json/triggers",
 	dataType: "json",
 	success: function( json ) {
 		var keys = [];
@@ -661,10 +671,17 @@ $(document).ready(function() {
         //$( "#sortable" ).disableSelection();
 		$( "#sortable" ).sortable({
 		  update: function( event, ui ) {
+		  	var URLHash = URLToHash();
+		  	URLHash.test = "";
 		  	//Get Sorted Array of Entities
-		  	var sortedIDs = $( "#sortable" ).sortable( "toArray" );
-		  	// call ajax method to PUT this sort data onto the server
-		  	// currently we lack PUT capabilities
+		  	var outputJSON = $( "#sortable" ).sortable( "toArray" );
+		  	outputJSON = '["' + outputJSON.join('","') + '"]';
+			$.ajax({
+			    type: "PUT",
+			    url: "/json/"+HashtoJSONArgs(URLHash),
+			    contentType: "application/json",
+			    data: outputJSON
+			});
 		  }
 		});
 	});

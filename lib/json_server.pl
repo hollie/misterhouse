@@ -44,15 +44,66 @@ use JSON qw(decode_json);
 use IO::Compress::Gzip qw(gzip);
 
 sub json {
-	my ( $method, $args_str) = @_;
+	my ($request_type, $path, $arguments, $body) = @_;
+
+	# Passed arguments can be used to override the global parameters
+	# This is necessary for using the LONG_POLL interface
+	if ($request_type eq ''){
+		$request_type = $HTTP_REQ_TYPE;
+	}
+	my %arg_hash = %HTTP_ARGV;
+	if ($arguments ne '') {
+		%arg_hash = ();
+		# Split the pairs apart first
+		# $pairs[0]="var1=val1", $pairs[1]="var2=val2", etc
+		my @pairs=split(/&/,$arguments);
+
+		# Now split each individual pair and store in the hash
+		foreach my $pair (@pairs) {
+			my ($name, $value) = $pair =~ /(.*?)=(.*)/;
+            if ($value) {
+                $value =~ tr/\+/ /;       # translate + back to spaces
+                $value =~ s/%([0-9a-fA-F]{2})/pack("C",hex($1))/ge;
+                                # Store in hash
+                $arg_hash{$name} = $value;
+            }
+		}
+	}
+	if ($body eq ''){
+		$body = $HTTP_BODY;
+	}
+	if ($path eq ''){
+		$path = $HTTP_REQUEST;
+	}
+
+	# Split arguments into arrays
+	my %args;
+	foreach my $k ( keys %arg_hash ) {
+		$args{$k} = [ split /,/, $arg_hash{$k} ] ;
+	}
+	
+	if (lc($request_type) eq "get"){
+		return json_get($request_type, $path, \%args, $body);
+	}
+	elsif (lc($request_type) eq "put"){
+		json_put($request_type, $path, \%args, $body);
+	}
+}
+
+# Handles Put (UPDATE) Requests
+sub json_put {
+	my ($request_type, $path, $arguments, $body) = @_;
+	my %args = %{$arguments};
+	$body = decode_json($body);
+}
+
+# Handles Get (READ) Requests
+sub json_get {
+	my ($request_type, $path_str, $arguments, $body) = @_;
+
+	my %args = %{$arguments};
 	my ( %json, %json_data, $json_vars, $json_objects);
 	my $output_time = ::get_tickcount();
-
-	my %args;
-	foreach ( split '&', $args_str ) {
-		my ( $k, undef, $v ) = /(\w+)(=(.+))?/;
-		$args{$k} = [ split /,/, $v ] ;
-	}
 	
 	# Build hash of fields requested for easy reference
 	my %fields;
@@ -63,13 +114,10 @@ sub json {
 	}
 	$fields{all} = 1 unless %fields;
 	
-	# Get path and then remove from args hash
-	my $path_str = $args{path}[0];
-	delete $args{path};
-	$path_str =~ s/^\/|\/$//g;
+	$path_str =~ s/^\/json//i; # Remove leading 'json' path
+	$path_str =~ s/^\/|\/$//g; # Remove leadin trailing slash.
 	my @path = split ('/', $path_str);	
 
-	print_log "json: method= $method path=$path_str args=$args_str" if $Debug{json};
 	# List defined collections
 	if ($path[0] eq 'collections' || $path[0] eq '') {
 		my $collection_file = "$Pgm_Root/data/web/collections.json";
@@ -235,7 +283,7 @@ sub json {
 	# Translate special characters
 	$json_raw = $json_raw->pretty->encode( \%json );
 	return &json_page($json_raw);
-
+	
 }
 
 sub json_get_sub_element {

@@ -11,7 +11,7 @@ require 'http_utils.pl';
 
 #no warnings 'uninitialized';   # These seem to always show up.  Dang, will not work with 5.0
 
-use vars qw(%Http %Cookies %Included_HTML %HTTP_ARGV $HTTP_REQUEST);
+use vars qw(%Http %Cookies %Included_HTML %HTTP_ARGV $HTTP_REQUEST $HTTP_BODY $HTTP_REQ_TYPE);
 $Authorized = 0;
 
 my($leave_socket_open_passes, $leave_socket_open_action);
@@ -150,7 +150,7 @@ sub http_process_request {
         $_ = <$socket>;
         last unless $_ and /\S/;
         $temp .= $_;
-        if (/^ *(GET|POST) /) {
+        if (/^ *(GET|POST|PUT) /) {
             $header = $_;
         }
         elsif (my ($key, $value) = /(\S+?)\: ?(.+?)[\n\r]+/) {
@@ -248,8 +248,9 @@ sub http_process_request {
         $Authorized = &password_check($Cookies{password}, 'http', 'crypted');
     }
 
-    my ($req_typ, $get_req, $get_arg) = $header =~ m|^(GET\|POST) (\/[^ \?]*)\??(\S+)? HTTP|;
+    my ($req_typ, $get_req, $get_arg) = $header =~ m|^(GET\|POST\|PUT) (\/[^ \?]*)\??(\S+)? HTTP|;
     $get_arg = '' unless defined $get_arg;
+    $HTTP_REQ_TYPE = $req_typ;
 
     $get_arg =~ s/(.*)\&__async.*/$1/;  # RaK: Fast hack to ensure async requests
 
@@ -258,13 +259,22 @@ sub http_process_request {
     print "http: gr=$get_req ga=$get_arg " .
           "A=$Authorized format=$Http{format} ua=$Http{'User-Agent'} h=$header"
         if $main::Debug{http};
-    if ($req_typ eq "POST") {
-        $get_arg .= '&' if $get_arg;
+    if ($req_typ eq "POST" || $req_typ eq "PUT") {
         my $cl = $Http{'Content-Length'} || $Http{'Content-length'}; # Netscape uses lower case l
         print "http POST query has $cl bytes of args\n" if $main::Debug{http};
         my $buf;
         read $socket, $buf, $cl;
-        $get_arg .= $buf;
+        # Save the body into the global var
+        $HTTP_BODY = $buf;
+        # This is a bad practice to merge the body and arguments together as the
+        # body may not always contain an argument string.  It may contain JSON
+        # data, binary data, or anything.
+        # Since I can't figure out if any bad code relies on merging the body
+        # into the arguments, the following regex tests if the body is a valid
+        # argument string.  If it is, the body is merged.
+        if ($buf =~ /^([-\+=&;%@.\w_]*)\s*$/){
+            $get_arg .= "&" . $buf;
+        }
 #       shutdown($socket->fileno(), 0);   # "how":  0=no more receives, 1=sends, 2=both
     }
 
@@ -410,6 +420,9 @@ sub http_process_request {
     }
                                 # See if the request was for a file
     if (&test_for_file($socket, $get_req, $get_arg)) {
+    }
+    elsif ($get_req =~ /^\/JSON/i){
+        &print_socket_fork($socket, json());
     }
                                 # Test for RUN commands
     elsif  ($get_req =~ /\/RUN$/i or
