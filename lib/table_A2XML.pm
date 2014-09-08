@@ -1,3 +1,4 @@
+
 =head1 B<table_A2XML>
 
 =head2 SYNOPSIS
@@ -42,108 +43,116 @@ B<NONE>
 =cut
 
 use strict;
+
 package table_A2XML;
 use FileHandle;
 use Carp;
 
-sub convert{
-	my($tgt,$dest)=@_;
-	my $xml_out ;
-	my $format=0;
-	my $in_file=new FileHandle $tgt;
-	confess "can't read [$tgt]\n" unless $in_file;
-	while(<$in_file>){
-	    if (/Format\s*=\s*(\S+)/i && $1 eq "A") {  ## we're hard-wired for tbl A 
-		$format=$1;
-		$xml_out = new FileHandle ">$dest";
-		confess "can't write [$dest]\n" unless $xml_out;
-		print $xml_out &warning_banner($tgt);
-		print $xml_out "<items>\n";
-		next;
-	    }
-	    next unless($format);	
+sub convert {
+    my ( $tgt, $dest ) = @_;
+    my $xml_out;
+    my $format  = 0;
+    my $in_file = new FileHandle $tgt;
+    confess "can't read [$tgt]\n" unless $in_file;
+    while (<$in_file>) {
+        if ( /Format\s*=\s*(\S+)/i && $1 eq "A" )
+        {    ## we're hard-wired for tbl A
+            $format  = $1;
+            $xml_out = new FileHandle ">$dest";
+            confess "can't write [$dest]\n" unless $xml_out;
+            print $xml_out &warning_banner($tgt);
+            print $xml_out "<items>\n";
+            next;
+        }
+        next unless ($format);
 
-	    my ($code, $address, $name, $object, $grouplist, $comparison, $limit, @other, $other, $vcommand, $occupancy, $pa_type);
-	    my ($type);
-	    my ($comment);
-	    my(@item_info);
-	    
-	    chomp;
-		s/\s+$//g;   ## try to consume any extra cf or lf from win32 files
+        my (
+            $code,      $address,    $name,      $object,
+            $grouplist, $comparison, $limit,     @other,
+            $other,     $vcommand,   $occupancy, $pa_type
+        );
+        my ($type);
+        my ($comment);
+        my (@item_info);
 
-	    next if(/^\s*$/);	
-            &escape_xml_chars($_);
-	    if(s/^\s*(#+)/$1/g){
-		next if(/^[\s#]*$/);	
-		$comment=$_;
-		s/#//g;
-		print $xml_out "<user_comment>$_</user_comment>\n";
-		next;
-	    }
+        chomp;
+        s/\s+$//g;    ## try to consume any extra cf or lf from win32 files
 
-	    ($type,@item_info) = split(',\s*', $_);
-	    $type=uc $type;
-	    if($type eq "GROUP" || $type eq "GENERIC"||$type eq "OCCUPANCY"){
-		($name,$grouplist,@other)=@item_info;
-	    }	
-	    elsif($type eq "VOICE" ){
-		($name,@other)=@item_info;
-		(@other)=join ',' , @other;  ### VOICE commands aren't split.
-	    }	
-	    elsif($type eq "PRESENCE" ){
-		($object,$occupancy,$name,$grouplist,@other)=@item_info;
-	    }	
-	    elsif($type eq "PA" ){
-		($address,$name,$grouplist,$other,$pa_type)=@item_info;
-	    }	
-		
-	    else{
-		($address,$name,$grouplist,@other)=@item_info;
-	    }
+        next if (/^\s*$/);
+        &escape_xml_chars($_);
+        if (s/^\s*(#+)/$1/g) {
+            next if (/^[\s#]*$/);
+            $comment = $_;
+            s/#//g;
+            print $xml_out "<user_comment>$_</user_comment>\n";
+            next;
+        }
 
-		print $xml_out "\t<item>\n";
-		print $xml_out "\t\t<type>$type</type>\n";
-		print $xml_out "\t\t<address>$address</address>\n" if($address);
-		print $xml_out "\t\t<name>$name</name>\n";
+        ( $type, @item_info ) = split( ',\s*', $_ );
+        $type = uc $type;
+        if ( $type eq "GROUP" || $type eq "GENERIC" || $type eq "OCCUPANCY" ) {
+            ( $name, $grouplist, @other ) = @item_info;
+        }
+        elsif ( $type eq "VOICE" ) {
+            ( $name, @other ) = @item_info;
+            (@other) = join ',', @other;    ### VOICE commands aren't split.
+        }
+        elsif ( $type eq "PRESENCE" ) {
+            ( $object, $occupancy, $name, $grouplist, @other ) = @item_info;
+        }
+        elsif ( $type eq "PA" ) {
+            ( $address, $name, $grouplist, $other, $pa_type ) = @item_info;
+        }
 
-		### generate a separate group tag for each group.
-		foreach my $group (split(/\|/,$grouplist)){  
-			my $fp_loc;  ## extract the floorplan attributes
-			if($group =~s/\((\S+?)\).*//){
-				$fp_loc=' fp_loc="'  . $1 . '"';
-				$fp_loc=~s/;/,/g;
-			}
-			print $xml_out "\t\t<group$fp_loc>$group</group>\n";
-			
-		}
+        else {
+            ( $address, $name, $grouplist, @other ) = @item_info;
+        }
 
-		## the parse code expects the @other group to be positional dependant
-		##  tags.  we'll oblige by including individual "other" tags foreach
-		##  array element.
-		foreach my $other (@other,$other){
-			print $xml_out "\t\t<other>$other</other>\n" if($other);
-		}
+        print $xml_out "\t<item>\n";
+        print $xml_out "\t\t<type>$type</type>\n";
+        print $xml_out "\t\t<address>$address</address>\n" if ($address);
+        print $xml_out "\t\t<name>$name</name>\n";
 
-		##  special tags for PRESENCE...
-		print $xml_out "\t\t<object>$object</object>\n" if($object);
-		print $xml_out "\t\t<occupancy>$occupancy</occupancy>\n" if($occupancy);
+        ### generate a separate group tag for each group.
+        foreach my $group ( split( /\|/, $grouplist ) ) {
+            my $fp_loc;    ## extract the floorplan attributes
+            if ( $group =~ s/\((\S+?)\).*// ) {
+                $fp_loc = ' fp_loc="' . $1 . '"';
+                $fp_loc =~ s/;/,/g;
+            }
+            print $xml_out "\t\t<group$fp_loc>$group</group>\n";
 
-		##  special tags for PA
-		print $xml_out "\t\t<pa_type>$pa_type</pa_type>\n" if($pa_type);
+        }
 
+        ## the parse code expects the @other group to be positional dependant
+        ##  tags.  we'll oblige by including individual "other" tags foreach
+        ##  array element.
+        foreach my $other ( @other, $other ) {
+            print $xml_out "\t\t<other>$other</other>\n" if ($other);
+        }
 
-		print $xml_out "\t</item>\n";
-	    
-	}
-	&_cntrl_brk($xml_out);  ## final brk.
+        ##  special tags for PRESENCE...
+        print $xml_out "\t\t<object>$object</object>\n" if ($object);
+        print $xml_out "\t\t<occupancy>$occupancy</occupancy>\n"
+          if ($occupancy);
+
+        ##  special tags for PA
+        print $xml_out "\t\t<pa_type>$pa_type</pa_type>\n" if ($pa_type);
+
+        print $xml_out "\t</item>\n";
+
+    }
+    &_cntrl_brk($xml_out);    ## final brk.
 }
-sub _cntrl_brk{
-	my($xml_out)=@_;
-		$xml_out && print $xml_out "</items>\n";
+
+sub _cntrl_brk {
+    my ($xml_out) = @_;
+    $xml_out && print $xml_out "</items>\n";
 }
-sub warning_banner{
-	my($src_file)=@_;
-	return <<END_BANNER;
+
+sub warning_banner {
+    my ($src_file) = @_;
+    return <<END_BANNER;
 <!--
 ###########################################################
 ###########################################################
@@ -168,16 +177,16 @@ sub warning_banner{
 -->
 END_BANNER
 }
-sub escape_xml_chars{
-	## modify the callers copy of the data directly thru @_
-	foreach my $data (@_){
-		$data=~s/&/&amp;/g;    ## amp first so we don't whack the &lt;
-		$data=~s/</&lt;/g;
-		$data=~s/>/&gt;/g;
-	}
+
+sub escape_xml_chars {
+    ## modify the callers copy of the data directly thru @_
+    foreach my $data (@_) {
+        $data =~ s/&/&amp;/g;    ## amp first so we don't whack the &lt;
+        $data =~ s/</&lt;/g;
+        $data =~ s/>/&gt;/g;
+    }
 }
 1;
-
 
 =back
 

@@ -1,3 +1,4 @@
+
 =head1 B<PlayList>
 
 =head2 SYNOPSIS
@@ -62,114 +63,123 @@ use strict;
 
 package PlayList;
 
-sub new
-{
-	my ($class) = @_;
-	my $self={};
-   @{$$self{'list'}} = ();
-	bless $self,$class;
-	return $self;
+sub new {
+    my ($class) = @_;
+    my $self = {};
+    @{ $$self{'list'} } = ();
+    bless $self, $class;
+    return $self;
 }
 
 sub _get_m3u {
-   my ($file) = @_;
-   my @ret = ();
-   my $basename = $file;
-   $basename =~ s/\/[^\/]+\.m3u$//;
-   if (open (LIST, $file)) {
-      while (my $line = <LIST>) {
-         chomp($line);
-         $line =~ s/\r$//;
-         # Skip winamp extended info
-         next if $line =~ /^#/;
-         # Convert backslashes to forward-slashes
-         $line =~ s=\\=/=g;
-         unless ($line =~ /^\//) {
-            $line = ($basename . '/' . $line);
-         }
-         push @ret, $line;
-      }
-      close(LIST);
-   }
-   return (@ret);
+    my ($file)   = @_;
+    my @ret      = ();
+    my $basename = $file;
+    $basename =~ s/\/[^\/]+\.m3u$//;
+    if ( open( LIST, $file ) ) {
+        while ( my $line = <LIST> ) {
+            chomp($line);
+            $line =~ s/\r$//;
+
+            # Skip winamp extended info
+            next if $line =~ /^#/;
+
+            # Convert backslashes to forward-slashes
+            $line =~ s=\\=/=g;
+            unless ( $line =~ /^\// ) {
+                $line = ( $basename . '/' . $line );
+            }
+            push @ret, $line;
+        }
+        close(LIST);
+    }
+    return (@ret);
 }
 
 sub _get_dir {
-   my ($dir, $ext) = @_;
-   my @ret = ();
-   my @dirs = ();
-   if (opendir (DIR, $dir)) {
-      while (my $entry = readdir(DIR)) {
-         next if $entry =~ /^\./;
-         if (-d $dir . '/' . $entry) {
-            push @dirs, $dir . '/' . $entry;
-         } elsif (($entry =~ /\.m3u$/) and (not $ext or ($ext eq 'm3u'))) {
-            push @ret, &_get_m3u($dir . '/' . $entry);
-         } elsif (($entry =~ /\.mp3$/) and (not $ext or ($ext eq 'mp3'))) {
-            push @ret, "$dir/$entry";
-         }
-      }
-      close(DIR);
-   }
-   foreach (@dirs) {
-      push @ret, &_get_dir($_);
-   }
-   return (@ret);
+    my ( $dir, $ext ) = @_;
+    my @ret  = ();
+    my @dirs = ();
+    if ( opendir( DIR, $dir ) ) {
+        while ( my $entry = readdir(DIR) ) {
+            next if $entry =~ /^\./;
+            if ( -d $dir . '/' . $entry ) {
+                push @dirs, $dir . '/' . $entry;
+            }
+            elsif ( ( $entry =~ /\.m3u$/ )
+                and ( not $ext or ( $ext eq 'm3u' ) ) )
+            {
+                push @ret, &_get_m3u( $dir . '/' . $entry );
+            }
+            elsif ( ( $entry =~ /\.mp3$/ )
+                and ( not $ext or ( $ext eq 'mp3' ) ) )
+            {
+                push @ret, "$dir/$entry";
+            }
+        }
+        close(DIR);
+    }
+    foreach (@dirs) {
+        push @ret, &_get_dir($_);
+    }
+    return (@ret);
 }
 
 sub _do_remove_files {
-   my ($self, @files) = @_;
-   foreach my $file (@files) {
-      for (my $i = 0; $i <= $#{$$self{'list'}}; $i++) {
-         if ($$self{'list'}->[$i] eq $file) {
-            splice @{$$self{'list'}}, $i, 1;
-         }
-      }
-   }
-   foreach (@{$$self{'registrations'}}) {
-      $_->_remove_playlist_files(@files);
-   }
+    my ( $self, @files ) = @_;
+    foreach my $file (@files) {
+        for ( my $i = 0; $i <= $#{ $$self{'list'} }; $i++ ) {
+            if ( $$self{'list'}->[$i] eq $file ) {
+                splice @{ $$self{'list'} }, $i, 1;
+            }
+        }
+    }
+    foreach ( @{ $$self{'registrations'} } ) {
+        $_->_remove_playlist_files(@files);
+    }
 }
 
 sub _register {
-   my ($self, $ptr) = @_;
-   $ptr->_add_playlist_files(@{$$self{'list'}});
-   for (my $i = 0; $i <= $#{$$self{'registrations'}}; $i++) {
-      if ($$self{'registrations'}->[$i] eq $ptr) {
-         return;
-      }
-   }
-   push @{$$self{'registrations'}}, $ptr;
+    my ( $self, $ptr ) = @_;
+    $ptr->_add_playlist_files( @{ $$self{'list'} } );
+    for ( my $i = 0; $i <= $#{ $$self{'registrations'} }; $i++ ) {
+        if ( $$self{'registrations'}->[$i] eq $ptr ) {
+            return;
+        }
+    }
+    push @{ $$self{'registrations'} }, $ptr;
 }
 
 sub _unregister {
-   my ($self, $ptr) = @_;
-   for (my $i = 0; $i <= $#{$$self{'registrations'}}; $i++) {
-      if ($$self{'registrations'}->[$i] eq $ptr) {
-         splice @{$$self{'registrations'}}, $i, 1;
-      }
-   }
-   $ptr->_remove_playlist_files(@{$$self{'list'}});
+    my ( $self, $ptr ) = @_;
+    for ( my $i = 0; $i <= $#{ $$self{'registrations'} }; $i++ ) {
+        if ( $$self{'registrations'}->[$i] eq $ptr ) {
+            splice @{ $$self{'registrations'} }, $i, 1;
+        }
+    }
+    $ptr->_remove_playlist_files( @{ $$self{'list'} } );
 }
 
 sub _add_files {
-   my ($self, $ext, @files) = @_;
-   my @new = ();
-   foreach (@files) {
-      if (($_ =~ /\.m3u$/) and (not $ext or ($ext eq 'm3u'))) {
-         push @new, &_get_m3u($_, $ext);
-      } elsif (-d $_) {
-         push @new, &_get_dir($_, $ext);
-      } else {
-         push @new, $_;
-      }
-   }
-   if (@new) {
-      push @{$$self{'list'}}, @new;
-      foreach (@{$$self{'registrations'}}) {
-         $_->_add_playlist_files(@new);
-      }
-   }
+    my ( $self, $ext, @files ) = @_;
+    my @new = ();
+    foreach (@files) {
+        if ( ( $_ =~ /\.m3u$/ ) and ( not $ext or ( $ext eq 'm3u' ) ) ) {
+            push @new, &_get_m3u( $_, $ext );
+        }
+        elsif ( -d $_ ) {
+            push @new, &_get_dir( $_, $ext );
+        }
+        else {
+            push @new, $_;
+        }
+    }
+    if (@new) {
+        push @{ $$self{'list'} }, @new;
+        foreach ( @{ $$self{'registrations'} } ) {
+            $_->_add_playlist_files(@new);
+        }
+    }
 }
 
 =item C<add_files(list)>
@@ -180,8 +190,8 @@ playlist object (and any players with this object attached).
 =cut
 
 sub add_files {
-   my ($self, @files) = @_;
-   $self->_add_files('', @files);
+    my ( $self, @files ) = @_;
+    $self->_add_files( '', @files );
 }
 
 =item C<add_mp3_files(list)>
@@ -192,8 +202,8 @@ playlist object (and any players with this object attached).
 =cut
 
 sub add_mp3_files {
-   my ($self, @files) = @_;
-   $self->_add_files('mp3', @files);
+    my ( $self, @files ) = @_;
+    $self->_add_files( 'mp3', @files );
 }
 
 =item C<add_m3u_files(list)>
@@ -204,8 +214,8 @@ or that are found in a directory (recursively) that was specified.
 =cut
 
 sub add_m3u_files {
-   my ($self, @files) = @_;
-   $self->_add_files('m3u', @files);
+    my ( $self, @files ) = @_;
+    $self->_add_files( 'm3u', @files );
 }
 
 =item C<remove_files(list)>
@@ -216,20 +226,22 @@ this playlist object (and any players with this object attached).
 =cut
 
 sub remove_files {
-   my ($self, @files) = @_;
-   my @remove = ();
-   foreach (@files) {
-      if ($_ =~ /\.m3u$/) {
-         push @remove, &_get_m3u($_);
-      } elsif (-d $_) {
-         push @remove, &_get_dir($_);
-      } else {
-         push @remove, $_;
-      }
-   }
-   if (@remove) {
-      $self->_do_remove_files(@remove);
-   }
+    my ( $self, @files ) = @_;
+    my @remove = ();
+    foreach (@files) {
+        if ( $_ =~ /\.m3u$/ ) {
+            push @remove, &_get_m3u($_);
+        }
+        elsif ( -d $_ ) {
+            push @remove, &_get_dir($_);
+        }
+        else {
+            push @remove, $_;
+        }
+    }
+    if (@remove) {
+        $self->_do_remove_files(@remove);
+    }
 }
 
 =item C<clear()>
@@ -239,8 +251,8 @@ Empties this playlist.
 =cut
 
 sub clear {
-   my ($self) = @_;
-   $self->_do_remove_files(@{$$self{'list'}});
+    my ($self) = @_;
+    $self->_do_remove_files( @{ $$self{'list'} } );
 }
 
 =item C<randomize_by_dir()>
@@ -255,31 +267,32 @@ this to basically sort by directory.
 =cut
 
 sub randomize_by_dir {
-   my ($self) = @_;
-   my @orig_list = sort @{$$self{'list'}};
-   my @dirlist;
-   @{$$self{'list'}} = ();
-   my $lastdir = '';
-   foreach (@orig_list) {
-      # First, get list of directories...
-      my $dir = $_;
-      $dir =~ s/\/[^\/]+$//;
-      $dir =~ s/-Disc_\d$//;
-      unless ($dir eq $lastdir) {
-         $lastdir = $dir;
-         push @dirlist, $dir;
-      }
-   }
-   while (@dirlist) {
-      my $random_num = int(rand($#dirlist + 1));
-      my $random_dir = $dirlist[$random_num];
-      for (my $i = 0; $i <= $#orig_list; $i++) {
-         if ($orig_list[$i] =~ /^\Q$random_dir\E(-Disc_\d)?\//) {
-            push @{$$self{'list'}}, $orig_list[$i];
-         }
-      }
-      splice @dirlist, $random_num, 1;
-   }
+    my ($self) = @_;
+    my @orig_list = sort @{ $$self{'list'} };
+    my @dirlist;
+    @{ $$self{'list'} } = ();
+    my $lastdir = '';
+    foreach (@orig_list) {
+
+        # First, get list of directories...
+        my $dir = $_;
+        $dir =~ s/\/[^\/]+$//;
+        $dir =~ s/-Disc_\d$//;
+        unless ( $dir eq $lastdir ) {
+            $lastdir = $dir;
+            push @dirlist, $dir;
+        }
+    }
+    while (@dirlist) {
+        my $random_num = int( rand( $#dirlist + 1 ) );
+        my $random_dir = $dirlist[$random_num];
+        for ( my $i = 0; $i <= $#orig_list; $i++ ) {
+            if ( $orig_list[$i] =~ /^\Q$random_dir\E(-Disc_\d)?\// ) {
+                push @{ $$self{'list'} }, $orig_list[$i];
+            }
+        }
+        splice @dirlist, $random_num, 1;
+    }
 }
 
 =item C<randomize()>
@@ -290,18 +303,17 @@ order of all songs currently in the playlist.
 =cut
 
 sub randomize {
-   my ($self) = @_;
-   my @orig_list = @{$$self{'list'}};
-   @{$$self{'list'}} = ();
-   while (@orig_list) {
-      my $random = int(rand($#orig_list + 1));
-      push @{$$self{'list'}}, $orig_list[$random];
-      splice @orig_list, $random, 1;
-   }
+    my ($self) = @_;
+    my @orig_list = @{ $$self{'list'} };
+    @{ $$self{'list'} } = ();
+    while (@orig_list) {
+        my $random = int( rand( $#orig_list + 1 ) );
+        push @{ $$self{'list'} }, $orig_list[$random];
+        splice @orig_list, $random, 1;
+    }
 }
 
 1;
-
 
 =back
 

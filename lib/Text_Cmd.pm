@@ -44,7 +44,7 @@ B<Generic_Item>
 
 =cut
 
-my ($hooks_added, @list_objects);
+my ( $hooks_added, @list_objects );
 
 @Text_Cmd::ISA = ('Generic_Item');
 
@@ -55,12 +55,12 @@ $re_string - is any valid regular expresion.  Use the () grouping to pick the da
 =cut
 
 sub new {
-    my ($class, $text) = @_;
+    my ( $class, $text ) = @_;
     my $self = {};
     $$self{state} = '';
-    $$self{text} = $text;
+    $$self{text}  = $text;
     bless $self, $class;
-    &::Reload_pre_add_hook(\&Text_Cmd::reload_reset, 1) unless $hooks_added++;
+    &::Reload_pre_add_hook( \&Text_Cmd::reload_reset, 1 ) unless $hooks_added++;
     push @list_objects, $self;
     return $self;
 }
@@ -70,32 +70,36 @@ sub reload_reset {
 }
 
 sub set_matches {
-    my ($text, $set_by, $no_log, $respond) = @_;
-    $set_by  = 'unknown' unless $set_by;
+    my ( $text, $set_by, $no_log, $respond ) = @_;
+    $set_by = 'unknown' unless $set_by;
     my @list_matches;
     for my $object (@list_objects) {
-        my ($state) = &check_match($object, $text);
+        my ($state) = &check_match( $object, $text );
         next unless defined $state;
         set $object $state, $set_by, $respond;
-        &main::print_log("Text_Cmd match: '$text' matches $object->{object_name} text '$object->{text}'") unless $no_log;
+        &main::print_log(
+            "Text_Cmd match: '$text' matches $object->{object_name} text '$object->{text}'"
+        ) unless $no_log;
         push @list_matches, $object;
     }
     return @list_matches;
 }
 
 sub check_match {
-    my ($self, $text) = @_;
+    my ( $self, $text ) = @_;
     my $filter = $$self{text};
-#   print "Testing $text against $filter\n";
-    $text =~ s/^ *//;           # Drop leading         
-    $text =~ s/ *$//;           # Drop trailing
-    if ($text =~ /^$filter$/i) {
+
+    #   print "Testing $text against $filter\n";
+    $text =~ s/^ *//;    # Drop leading
+    $text =~ s/ *$//;    # Drop trailing
+    if ( $text =~ /^$filter$/i ) {
         my $state = $1;
         $state .= "|$2" if defined $2;
         $state .= "|$3" if defined $3;
         $state .= "|$4" if defined $4;
         $state = 1 unless defined $state;
-#       print "Matched with $1,$2,$3. s=$state\n";
+
+        #       print "Matched with $1,$2,$3. s=$state\n";
         return $state;
     }
     return undef;
@@ -138,8 +142,6 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 =cut
-
-
 
 #
 # $Log: Text_Cmd.pm,v $

@@ -51,7 +51,7 @@ display font => 'fixed', text => $memory_leak_log if said $v_memory_leak_log;
 
 $v_memory_check = new Voice_Cmd '[Start,Stop] the memory leak checker';
 $v_memory_check->set_info( 'This will disable each code file for a while,'
-  . ' to determine which is causing a memory leak' );
+      . ' to determine which is causing a memory leak' );
 $t_memory_check = new Timer;
 
 my ( @memory_leak_members, $memory_leak_index, $memory_leak_member );

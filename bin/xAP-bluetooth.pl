@@ -1,3 +1,4 @@
+
 =begin comment
 
 This xAP application monitors bluetooth connections, so we can 
@@ -21,107 +22,126 @@ use strict;
 use IO::Socket::INET;
 $|++;
 
-my ($address, $name, $bt_threshold) = @ARGV or die "Missing the phone mac address\n";
+my ( $address, $name, $bt_threshold ) = @ARGV
+  or die "Missing the phone mac address\n";
 
-printf "Will monitor bluetooth stats for address=%s name=%s device=%s\n", $address, $name, devname($address);
+printf "Will monitor bluetooth stats for address=%s name=%s device=%s\n",
+  $address, $name, devname($address);
 
-                                # Setup constants
-my ($bt_debug, $bt_linger);
+# Setup constants
+my ( $bt_debug, $bt_linger );
 $bt_debug     = $ENV{bt_debug};
 $bt_linger    = $ENV{bt_linger};
 $bt_threshold = $ENV{bt_threshold} unless defined $bt_threshold;
 
-$bt_debug     = 0 unless $bt_debug;
-$bt_linger    = 3 unless $bt_linger;    # No. of measurements above/below threshold before changing state
+$bt_debug = 0 unless $bt_debug;
+$bt_linger = 3
+  unless
+  $bt_linger;  # No. of measurements above/below threshold before changing state
 $bt_threshold = 1 unless defined $bt_threshold;
-
 
 my $XAP_PORT       = 3639;
 my $XAP_GUID       = 'FF123400';
 my $XAP_ME         = 'mhouse';
 my $XAP_SOURCE     = 'mh';
 my $XAP_INSTANCE   = 'xAP-bluetooth';
-my $MAXLEN         = 1500;      # Max size of a UDP packet
-my $HBEAT_INTERVAL = 120;       # Send every 2 minutes
+my $MAXLEN         = 1500;              # Max size of a UDP packet
+my $HBEAT_INTERVAL = 120;               # Send every 2 minutes
 
+# Create a broadcast socket for sending data
+my $xap_send = new IO::Socket::INET->new(
+    PeerPort  => $XAP_PORT,
+    Proto     => 'udp',
+    PeerAddr  => inet_ntoa(INADDR_BROADCAST),
+    Broadcast => 1
+) or die "Could not create xap sender\n";
 
-                                # Create a broadcast socket for sending data
-my $xap_send = new IO::Socket::INET
-  ->new(PeerPort => $XAP_PORT, Proto => 'udp', PeerAddr => inet_ntoa(INADDR_BROADCAST), Broadcast => 1 ) or
-  die "Could not create xap sender\n";
-
-                                # If a hub is not active, bind directly for listening
-my $xap_listen = new IO::Socket::INET
-  ->new(LocalAddr=>inet_ntoa(INADDR_ANY), LocalPort => $XAP_PORT, Proto => 'udp', Broadcast => 1 );
+# If a hub is not active, bind directly for listening
+my $xap_listen = new IO::Socket::INET->new(
+    LocalAddr => inet_ntoa(INADDR_ANY),
+    LocalPort => $XAP_PORT,
+    Proto     => 'udp',
+    Broadcast => 1
+);
 
 if ($xap_listen) {
-    print "No hub active.  Listening on broadcast socket", $xap_listen->sockport(), "\n";
+    print "No hub active.  Listening on broadcast socket",
+      $xap_listen->sockport(), "\n";
 }
 else {
-                                # Hub is active.  Loop until we find an available port
+    # Hub is active.  Loop until we find an available port
     print "Hub is active, search for free relay port\n";
-    for my $p ($XAP_PORT .. $XAP_PORT+100) {
-      $XAP_PORT = $p;
-      last if $xap_listen = new IO::Socket::INET
-	->new(LocalAddr => 'localhost', LocalPort => $p, Proto => 'udp');
+    for my $p ( $XAP_PORT .. $XAP_PORT + 100 ) {
+        $XAP_PORT = $p;
+        last
+          if $xap_listen = new IO::Socket::INET->new(
+            LocalAddr => 'localhost',
+            LocalPort => $p,
+            Proto     => 'udp'
+          );
     }
     die "Could not create xap listener\n" unless $xap_listen;
     print "Listening on relay socket ", $xap_listen->sockport(), "\n";
 }
 
 &send_heartbeat;
-                                # Do the loop
+
+# Do the loop
 while (1) {
-    if (-e '/tmp/xAP-bluetooth.exit') {
+    if ( -e '/tmp/xAP-bluetooth.exit' ) {
         print "Exiting\n";
         exit;
     }
-    select undef, undef, undef, 1.0; # Sleep a bit
+    select undef, undef, undef, 1.0;    # Sleep a bit
     my $time = time;
-    &send_heartbeat if !($time % $HBEAT_INTERVAL);
-    if (!($time % 2)) {
-       my $status = &get_bt_status($address);
-       &send_xap_data($address, $name, $status) if $status;
-    } 
+    &send_heartbeat if !( $time % $HBEAT_INTERVAL );
+    if ( !( $time % 2 ) ) {
+        my $status = &get_bt_status($address);
+        &send_xap_data( $address, $name, $status ) if $status;
+    }
 
-                                # Check for incoming xap traffic ... not needed here.
+    # Check for incoming xap traffic ... not needed here.
     my $rin = '';
-    vec($rin, $xap_listen->fileno(), 1) = 1;
-    if (select($rin, undef, undef, 0)) {
+    vec( $rin, $xap_listen->fileno(), 1 ) = 1;
+    if ( select( $rin, undef, undef, 0 ) ) {
         my $xap_rx_msg;
-        recv($xap_listen, $xap_rx_msg, $MAXLEN, 0) or die "recv: $!";
-#       print "\n------------- Incoming message -------------\n$xap_rx_msg\n";
+        recv( $xap_listen, $xap_rx_msg, $MAXLEN, 0 ) or die "recv: $!";
+
+        #       print "\n------------- Incoming message -------------\n$xap_rx_msg\n";
     }
 }
 
 sub send_heartbeat {
     print "Sending heartbeat on port ", $xap_send->peerport, "\n" if $bt_debug;
-    print $xap_send "xap-hbeat\n{\nv=12\nhop=1\nuid=$XAP_GUID\nclass=xap-hbeat.alive\n" .
-      "source=$XAP_ME.$XAP_SOURCE.$XAP_INSTANCE\ninterval=$HBEAT_INTERVAL\nport=$XAP_PORT\npid=$$\n}\n";
+    print $xap_send
+      "xap-hbeat\n{\nv=12\nhop=1\nuid=$XAP_GUID\nclass=xap-hbeat.alive\n"
+      . "source=$XAP_ME.$XAP_SOURCE.$XAP_INSTANCE\ninterval=$HBEAT_INTERVAL\nport=$XAP_PORT\npid=$$\n}\n";
 }
 
 sub send_xap_data {
-    my ($address, $name, $status) = @_;
+    my ( $address, $name, $status ) = @_;
     print "\nSending address=$address status=$status\n";
-    my $msg = "xap-header\n{\nv=12\nhop=1\nuid=$XAP_GUID\nsource=$XAP_ME.$XAP_SOURCE.$XAP_INSTANCE\n";
+    my $msg =
+      "xap-header\n{\nv=12\nhop=1\nuid=$XAP_GUID\nsource=$XAP_ME.$XAP_SOURCE.$XAP_INSTANCE\n";
     $msg .= "class=xap-bt.status\n}\nxap-bt.status\n{\n";
     $msg .= "address=$address\nname=$name\nstatus=$status\n}\n";
     print $xap_send $msg;
 }
 
-my ($state, @bt_stack);
+my ( $state, @bt_stack );
 
 sub get_bt_status {
 
     my ($address) = @_;
 
     unless ($state) {
-	$state = 'far';
-	@bt_stack = ();
+        $state    = 'far';
+        @bt_stack = ();
     }
-				# Trim the stack
-    while (@bt_stack >= $bt_linger) {
-	shift @bt_stack;
+
+    # Trim the stack
+    while ( @bt_stack >= $bt_linger ) {
+        shift @bt_stack;
     }
 
     print '-' if $bt_debug;
@@ -130,25 +150,28 @@ sub get_bt_status {
     $current_rssi = -20 if $current_rssi eq '';
 
     push @bt_stack, $current_rssi;
-  
-    printf "[%s] a=%s, n=%s, s=%s, t=%s, l=%s, s=%s, stack=@bt_stack\n", scalar localtime,
-            $address, $name, $current_rssi, $bt_threshold, $bt_linger, $state if $bt_debug;
 
-				# Check if we need to change state
-    if ($state eq 'far') {
-	for my $measurement (@bt_stack) {
-	    return undef if $measurement <= $bt_threshold;
-	}
-	$state = 'near';
+    printf "[%s] a=%s, n=%s, s=%s, t=%s, l=%s, s=%s, stack=@bt_stack\n",
+      scalar localtime,
+      $address, $name, $current_rssi, $bt_threshold, $bt_linger, $state
+      if $bt_debug;
+
+    # Check if we need to change state
+    if ( $state eq 'far' ) {
+        for my $measurement (@bt_stack) {
+            return undef if $measurement <= $bt_threshold;
+        }
+        $state = 'near';
     }
-    elsif ($state eq 'near') {
-	for my $measurement (@bt_stack) {
-	    return undef if $measurement > $bt_threshold;
-	}
-	$state = 'far';
+    elsif ( $state eq 'near' ) {
+        for my $measurement (@bt_stack) {
+            return undef if $measurement > $bt_threshold;
+        }
+        $state = 'far';
     }
-				# Ignore startup state
-    return (@bt_stack < $bt_linger) ? undef : $state;
+
+    # Ignore startup state
+    return ( @bt_stack < $bt_linger ) ? undef : $state;
 
 }
 
@@ -156,7 +179,7 @@ sub get_bt_status {
 
 # This part is the Inline C code interface to the bluez library.
 
-# C code adapted from hcitool.c 
+# C code adapted from hcitool.c
 # Copyright (C) 2000-2001 Qualcomm Incorporated
 # Written 2000,2001 by Maxim Krasnyansky <maxk@qualcomm.com>
 # http://bluez.sourceforge.net

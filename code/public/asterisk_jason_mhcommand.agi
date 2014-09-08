@@ -1,11 +1,12 @@
 #!/usr/bin/perl -W
 # Jason Sharpee <jason@sharpee.com>
 # Based on code from Patrick?
-use IO::Socket::INET;  
+use IO::Socket::INET;
 
 use Asterisk::AGI;
 $AGI = new Asterisk::AGI;
 my %input = $AGI->ReadParse();
+
 #$AGI->setcallback(\&agi_handler);
 #$mydir = dirname(0);
 $command = $ARGV[0];
@@ -13,61 +14,74 @@ $command = $ARGV[0];
 #print "Starting\n";
 
 # Default xAP UDP port
-$port=3639;
+$port = 3639;
 
 # How this app is known in the xAP world
-$XAP_GUID="FF000100";
-$XAP_ME="Asterisk";
-$XAP_SOURCE="AGI";
-$XAP_INSTANCE="Perl";
-$XAP_CLASS="command.external";
+$XAP_GUID     = "FF000100";
+$XAP_ME       = "Asterisk";
+$XAP_SOURCE   = "AGI";
+$XAP_INSTANCE = "Perl";
+$XAP_CLASS    = "command.external";
 
-# The hub will disconnect this application after 2 heartbeats 
+# The hub will disconnect this application after 2 heartbeats
 # have elapsed. Normally we would use a timer to send
 # regular heartbeats at say 30s intervals -- in this example
 # we just send the heartbeat once, so this app will "go deaf"
 # after 1200*2 = 2400 seconds.
-$HBEAT_INTERVAL=1200;
+$HBEAT_INTERVAL = 1200;
 
 # Max size of a UDP packet
-$MAXLEN=1500;
+$MAXLEN = 1500;
 
 # Attempt to create a broadcast socket on which all
 # outgoing xAP messages will be sent. If we can't create this, we
 # can't continue
 
-my $xap_send = new IO::Socket::INET->new(PeerPort => $port, Proto =>
-'udp', PeerAddr => inet_ntoa(INADDR_BROADCAST), Broadcast => 1 );
+my $xap_send = new IO::Socket::INET->new(
+    PeerPort  => $port,
+    Proto     => 'udp',
+    PeerAddr  => inet_ntoa(INADDR_BROADCAST),
+    Broadcast => 1
+);
 die "Could not create xap sender\n" unless $xap_send;
 
 # If a hub is not active, we can directly bind a broadcast
 # receiver to the broadcast port.
 
 $xap_listen = new IO::Socket::INET->new(
-LocalAddr=>inet_ntoa(INADDR_ANY), LocalPort => $port, Proto => 'udp',
-Broadcast => 1 );
+    LocalAddr => inet_ntoa(INADDR_ANY),
+    LocalPort => $port,
+    Proto     => 'udp',
+    Broadcast => 1
+);
 
 if ($xap_listen) {
-#	 print "No hub active\n";
-#	 print "Listening on broadcast socket",$xap_listen->sockport(),"\n";
-} else {
 
-# If we couldn't bind to the broadcast port, a hub must be
-# active. The hub relays on the loopback interface, starting
-# from port 3639. Work our way though the ports, until
-# we find one that is available
+    #	 print "No hub active\n";
+    #	 print "Listening on broadcast socket",$xap_listen->sockport(),"\n";
+}
+else {
 
-#print "Hub is active, search for free relay port\n";
+    # If we couldn't bind to the broadcast port, a hub must be
+    # active. The hub relays on the loopback interface, starting
+    # from port 3639. Work our way though the ports, until
+    # we find one that is available
 
-for my $p ($port .. $port+100) {
-     $port = $p;
-     last if $xap_listen = new
-IO::Socket::INET->new(LocalAddr=>localhost, LocalPort => $p, Proto =>
-'udp');
-  }
-  
-die "Could not create xap listener\n" unless $xap_listen;
-#print "Listening on relay socket ", $xap_listen->sockport(), "\n";
+    #print "Hub is active, search for free relay port\n";
+
+    for my $p ( $port .. $port + 100 ) {
+        $port = $p;
+        last
+          if $xap_listen = new IO::Socket::INET->new(
+            LocalAddr => localhost,
+            LocalPort => $p,
+            Proto     => 'udp'
+          );
+    }
+
+    die "Could not create xap listener\n" unless $xap_listen;
+
+    #print "Listening on relay socket ", $xap_listen->sockport(), "\n";
 }
 
 # Now send a heartbeat to the broadcast socket. This will be
@@ -81,9 +95,9 @@ die "Could not create xap listener\n" unless $xap_listen;
 
 # Compose and send a heartbeat
 print $xap_send "xap-hbeat\n{\nv=12\nhop=1\nuid=", $XAP_GUID,
-"\nclass=xap-hbeat.alive\nsource=",
-$XAP_ME,".",$XAP_SOURCE,".",$XAP_INSTANCE,"\ninterval=",$HBEAT_INTERVAL,
-"\nport=",$port,"\n}\n";
+  "\nclass=xap-hbeat.alive\nsource=",
+  $XAP_ME, ".", $XAP_SOURCE, ".", $XAP_INSTANCE, "\ninterval=", $HBEAT_INTERVAL,
+  "\nport=", $port, "\n}\n";
 
 # Send command
 #print "My Command1: $response\n";
@@ -98,34 +112,40 @@ print $xap_send $commandstr;
 # them
 
 while (<$xap_listen>) {
-	recv($xap_listen, $xap_rx_msg, $MAXLEN, 0) or die "recv: $!";
-#	print "\n------------- Incoming message -------------\n $xap_rx_msg\n";
-	if ($xap_rx_msg=~/class\=command\.response/) {
-		$xap_rx_msg=~s/\n+/ /g; #Get rid of newlines
-		$xap_rx_msg=~s/ +/ /g; #Get rid of extra spaces
-		$xap_rx_msg=~/response\=(.*)\}/g; #rip out the response
-		$response = $1; 
-		last; #done
-	}
-}
-#print "*******" . $response;
-$AGI->exec(AGI,"\"cepstral.agi|$response\"");
+    recv( $xap_listen, $xap_rx_msg, $MAXLEN, 0 ) or die "recv: $!";
 
+    #	print "\n------------- Incoming message -------------\n $xap_rx_msg\n";
+    if ( $xap_rx_msg =~ /class\=command\.response/ ) {
+        $xap_rx_msg =~ s/\n+/ /g;              #Get rid of newlines
+        $xap_rx_msg =~ s/ +/ /g;               #Get rid of extra spaces
+        $xap_rx_msg =~ /response\=(.*)\}/g;    #rip out the response
+        $response = $1;
+        last;                                  #done
+    }
+}
+
+#print "*******" . $response;
+$AGI->exec( AGI, "\"cepstral.agi|$response\"" );
 
 # Perl Demo for xAP
 # ends
-sub send_voice
-{
-	my ($p_command) = @_;
-	my $response;
+sub send_voice {
+    my ($p_command) = @_;
+    my $response;
 
-	$response = "xap-header\n{\nv=12\nhop=1\nuid=". $XAP_GUID .
-			"\nclass=" . $XAP_CLASS . "\nsource=" .
-			$XAP_ME ."." . $XAP_SOURCE . 
-			"." . $XAP_INSTANCE;
-	 
-#	$response = $response .	"\nport=" . $port ;
-	$response=$response. "\n}\n";
-	$response=$response . $XAP_CLASS . "\n{\ncommand=" . $p_command . "\n" . "}\n";
-	return $response;
+    $response =
+        "xap-header\n{\nv=12\nhop=1\nuid="
+      . $XAP_GUID
+      . "\nclass="
+      . $XAP_CLASS
+      . "\nsource="
+      . $XAP_ME . "."
+      . $XAP_SOURCE . "."
+      . $XAP_INSTANCE;
+
+    #	$response = $response .	"\nport=" . $port ;
+    $response = $response . "\n}\n";
+    $response =
+      $response . $XAP_CLASS . "\n{\ncommand=" . $p_command . "\n" . "}\n";
+    return $response;
 }

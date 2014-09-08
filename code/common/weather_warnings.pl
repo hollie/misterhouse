@@ -7,62 +7,70 @@
 #@ internet_weather.pl (US only).  If there is WARNING text at the top of the forecast
 #@ an announcement is made.
 #@ The forecast is updated when a new internet weather forecast is received.
-#@ To modify when it is spoken (or disable it), go to the 
+#@ To modify when it is spoken (or disable it), go to the
 #@ <a href=/bin/triggers.pl> triggers page </a>
 #@ and modify the 'read weather warnings' trigger.
 
 # 01/05/2014 Created by Steve Switzer (steve@switzerny.org)
 
-$f_weather_forecast_warning = new File_Item "$config_parms{data_dir}/web/weather_forecast.txt";
+$f_weather_forecast_warning =
+  new File_Item "$config_parms{data_dir}/web/weather_forecast.txt";
 set_watch $f_weather_forecast_warning if $Reload;
 
 $v_get_weather_warning = new Voice_Cmd 'Get the weather warnings', 0;
-$v_get_weather_warning-> set_info('Gets weather warnings');
+$v_get_weather_warning->set_info('Gets weather warnings');
 
 $v_weather_warning = new Voice_Cmd 'Read weather warnings', 0;
-$v_weather_warning-> set_info('Reads and weather warnings, if present.');
-$v_weather_warning-> set_authority('anyone');
+$v_weather_warning->set_info('Reads and weather warnings, if present.');
+$v_weather_warning->set_authority('anyone');
 
-if (said $v_weather_warning) {
-	my $response = $Weather{Warning};
-	print_log($response);
-	$v_weather_warning->respond("app=weatherwarning important=1 Weather Warning: $response") unless $response =~ /^$/i;
+if ( said $v_weather_warning) {
+    my $response = $Weather{Warning};
+    print_log($response);
+    $v_weather_warning->respond(
+        "app=weatherwarning important=1 Weather Warning: $response")
+      unless $response =~ /^$/i;
 }
 
+if (   said $v_get_weather_warning
+    or changed $f_weather_forecast_warning
+    or $Reload )
+{
+    #$v_get_weather_warning ->respond("app=weather Checking weather warnings...") if said $v_get_weather_warning;
 
-if (said $v_get_weather_warning or changed $f_weather_forecast_warning or $Reload) {
-	#$v_get_weather_warning ->respond("app=weather Checking weather warnings...") if said $v_get_weather_warning;
+    set_watch $f_weather_forecast_warning;
 
-	set_watch $f_weather_forecast_warning;
+    undef $Weather{Warning};
+    foreach my $line ( read_all $f_weather_forecast_warning) {
+        next if $line =~ /^as of/i;
+        if ( $line =~ /^warning:(.*)/i ) {
+            $Weather{Warning} .= '';
+            chomp;
+            $line = $1;
+            $line =~ s/\ est\ / /i;
+            $line =~ s/\ am\ / A M /i;
+            $line =~ s/...$/ /i;
+            $Weather{Warning} .= ' ' if $Weather{Warning} ne '';
+            $Weather{Warning} .= $line;
+            next;
+        }
+    }
+    $Weather{Warning} =~ s/^\ \ *$//;
 
-	undef $Weather{Warning};
-	foreach my $line (read_all $f_weather_forecast_warning) {
-		next if $line =~ /^as of/i;
-		if ($line =~ /^warning:(.*)/i) {
-			$Weather{Warning} .= '';
-			chomp;
-			$line = $1;
-			$line =~ s/\ est\ / /i;
-			$line =~ s/\ am\ / A M /i;
-			$line =~ s/...$/ /i;
-			$Weather{Warning} .= ' ' if $Weather{Warning} ne '';
-			$Weather{Warning} .= $line;
-			next;
-		}
-	}
-	$Weather{Warning} =~ s/^\ \ *$//;
-	#$v_get_weather_warning ->respond("app=weather Weather warnings prepared.") if said $v_get_weather_warning;
+    #$v_get_weather_warning ->respond("app=weather Weather warnings prepared.") if said $v_get_weather_warning;
 
-	run_voice_cmd 'Read weather warnings' unless $Reload;
+    run_voice_cmd 'Read weather warnings' unless $Reload;
 
 }
-
 
 # lets allow the user to control via triggers
-if ($Reload) { 
-	&trigger_set("time_cron '11 8,11,16,19 * * *'", 
-	  "run_voice_cmd 'Read weather warnings'", 'NoExpire', 'read weather warnings') 
-	  unless &trigger_get('read weather warnings');
+if ($Reload) {
+    &trigger_set(
+        "time_cron '11 8,11,16,19 * * *'",
+        "run_voice_cmd 'Read weather warnings'",
+        'NoExpire',
+        'read weather warnings'
+    ) unless &trigger_get('read weather warnings');
 }
 
 =begin comment

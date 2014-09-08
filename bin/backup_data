@@ -12,21 +12,32 @@
 #    - 03/03/01  Created.
 #    - The rest of the change log is at the bottom of this file.
 #
-#  This free software is licensed under the terms of the GNU public license. 
+#  This free software is licensed under the terms of the GNU public license.
 #  Copyright 1998-2001 Bruce Winter
 #
 #---------------------------------------------------------------------------
 
 use strict;
-my($Pgm_Path, $Pgm_Name, $Version);
+my ( $Pgm_Path, $Pgm_Name, $Version );
+
 BEGIN {
-    ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
-    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ($Version) =
+      q$Revision$ =~ /: (\S+)/;   # Note: revision number is auto-updated by cvs
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
 }
 my %parms;
 use Getopt::Long;
-if (!&GetOptions(\%parms, 'h', 'help', 'file=s', 'size=i', 'skip=s', 'age=s', 'no_zip', 'no_date', 'int' ) or 
-    !@ARGV or $parms{h} or $parms{help}) { print<<eof;
+if (
+    !&GetOptions(
+        \%parms, 'h',      'help',    'file=s', 'size=i', 'skip=s',
+        'age=s', 'no_zip', 'no_date', 'int'
+    )
+    or !@ARGV
+    or $parms{h}
+    or $parms{help}
+  )
+{
+    print <<eof;
 
 $Pgm_Name walks directories and stores selected files to gziped tar files.
 
@@ -70,22 +81,25 @@ eof
 &get_files;
 &tar_files;
 
-my (%counts, @files, $tar, $log, $msg);
-sub setup { 
-    if ($parms{int}) {
+my ( %counts, @files, $tar, $log, $msg );
+
+sub setup {
+    if ( $parms{int} ) {
         eval 'use Archive::Tar';
         die "Error in Archive::Tar: $@\n" if $@;
         $tar = Archive::Tar->new();
     }
 
-    my($mday, $month, $year) = (localtime)[3,4,5];
-    my $date = sprintf "_%s_%02d_%02d", $year+1900, ++$month, $mday;
+    my ( $mday, $month, $year ) = (localtime)[ 3, 4, 5 ];
+    my $date = sprintf "_%s_%02d_%02d", $year + 1900, ++$month, $mday;
 
-    $parms{size}  = 100      unless $parms{size};
-    $parms{file}  = 'backup' unless $parms{file};
-    $parms{file} .= $date    unless $parms{no_date};
+    $parms{size} = 100      unless $parms{size};
+    $parms{file} = 'backup' unless $parms{file};
+    $parms{file} .= $date unless $parms{no_date};
     $parms{file} .= '.tar';
-    $parms{file} .= '.gz'    unless $parms{no_zip} or (!$parms{int} and $^O eq 'MSWin32');
+    $parms{file} .= '.gz'
+      unless $parms{no_zip}
+      or ( !$parms{int} and $^O eq 'MSWin32' );
 
 }
 
@@ -94,55 +108,69 @@ sub get_files {
         print "\nTraversing dir $dir\n";
         push @files, &read_dir($dir);
     }
-    $msg  = "\nRead $counts{dir} directories:\n";
-    $msg .= sprintf " -  Storing %5.1f MB of data from %4d files\n", $counts{size}/10**6, $counts{file};
-    $msg .= sprintf " -  Skipped %5.1f MB of data from %4d files with size > $parms{size} KBytes\n", $counts{size_size}/10**6, $counts{count_size};
-    $msg .= sprintf " -  Skipped %5.1f MB of data from %4d files with name = $parms{skip}\n", $counts{size_skip}/10**6, $counts{count_skip};
-    $msg .= sprintf " -  Skipped %5.1f MB of data from %4d files with age  > $parms{age}\n",  $counts{size_age}/10**6,  $counts{count_age};
+    $msg = "\nRead $counts{dir} directories:\n";
+    $msg .= sprintf " -  Storing %5.1f MB of data from %4d files\n",
+      $counts{size} / 10**6, $counts{file};
+    $msg .=
+      sprintf
+      " -  Skipped %5.1f MB of data from %4d files with size > $parms{size} KBytes\n",
+      $counts{size_size} / 10**6, $counts{count_size};
+    $msg .=
+      sprintf
+      " -  Skipped %5.1f MB of data from %4d files with name = $parms{skip}\n",
+      $counts{size_skip} / 10**6, $counts{count_skip};
+    $msg .=
+      sprintf
+      " -  Skipped %5.1f MB of data from %4d files with age  > $parms{age}\n",
+      $counts{size_age} / 10**6, $counts{count_age};
     print $msg;
     $log .= $msg;
 }
 
 sub tar_files {
-    if ($parms{int}) {
+    if ( $parms{int} ) {
         print "\nAdding files ...\n";
-        $tar->add_data('backup.log', $log);
+        $tar->add_data( 'backup.log', $log );
         $tar->add_files(@files);
         print "Writing tar file ...\n";
-        $tar->write($parms{file}, !$parms{no_zip});
+        $tar->write( $parms{file}, !$parms{no_zip} );
     }
     else {
-        open  LIST, ">tar_files.list" or die "Error, could not open tar_files.list: $!\n";
+        open LIST, ">tar_files.list"
+          or die "Error, could not open tar_files.list: $!\n";
         print LIST join "\n", @files;
         close LIST;
-                                # The tar -z gzip does not work with tar on dos :(
-        my $options = ($parms{no_zip} or $^O eq 'MSWin32') ? '-cf' : 'czf';
-#       my $pgm = "tar -T tar_files.list $options $parms{file}";
+
+        # The tar -z gzip does not work with tar on dos :(
+        my $options = ( $parms{no_zip} or $^O eq 'MSWin32' ) ? '-cf' : 'czf';
+
+        #       my $pgm = "tar -T tar_files.list $options $parms{file}";
         my $pgm = "tar $options $parms{file} -T tar_files.list";
         print "\nRunning: $pgm\n";
         system $pgm;
-        if ($^O eq 'MSWin32' and !$parms{no_zip}) {
+        if ( $^O eq 'MSWin32' and !$parms{no_zip} ) {
             print "Running: gzip $parms{file}\n";
             unlink $parms{file} . '.gz';
             system "gzip $parms{file}\n";
             $parms{file} .= '.gz';
         }
     }
-    my ($size, $date) = (stat $parms{file})[7,9];
-    printf "\nFile stats: %s  %s  %s\n\n", $parms{file}, $size, scalar localtime $date ;
+    my ( $size, $date ) = ( stat $parms{file} )[ 7, 9 ];
+    printf "\nFile stats: %s  %s  %s\n\n", $parms{file}, $size,
+      scalar localtime $date;
 }
 
 sub read_dir {
-    my($dir) = @_;
+    my ($dir) = @_;
     print "  - Reading files in $dir\n";
     $counts{dir}++;
-    opendir(DIR, $dir) or do {print "Error in dir open: $!\n"; return};
+    opendir( DIR, $dir ) or do { print "Error in dir open: $!\n"; return };
     my @files;
-    for my $file (sort readdir DIR) {
+    for my $file ( sort readdir DIR ) {
         next if $file eq '.' or $file eq '..';
         $file = "$dir/$file";
         my $size = -s $file;
-        if ($parms{skip} and $file =~ /$parms{skip}/i) {
+        if ( $parms{skip} and $file =~ /$parms{skip}/i ) {
             my $msg = sprintf "     - File skipped: %9d %s\n", $size, $file;
             print $msg;
             $log .= $msg;
@@ -150,11 +178,11 @@ sub read_dir {
             $counts{size_skip} += $size;
             next;
         }
-        elsif (-d $file) {
+        elsif ( -d $file ) {
             push @files, &read_dir($file);
             next;
         }
-        elsif ($size > $parms{size}*1000) {
+        elsif ( $size > $parms{size} * 1000 ) {
             my $msg = sprintf "     - File too big: %9d %s\n", $size, $file;
             print $msg;
             $log .= $msg;
@@ -162,10 +190,11 @@ sub read_dir {
             $counts{size_size} += $size;
             next;
         }
-        elsif ($parms{age} and -M $file > $parms{age}) {
-#           my $msg = sprintf "     - File too old: %9d %s\n", $size, $file;
-#           print $msg;
-#           $log .= $msg;
+        elsif ( $parms{age} and -M $file > $parms{age} ) {
+
+            #           my $msg = sprintf "     - File too old: %9d %s\n", $size, $file;
+            #           print $msg;
+            #           $log .= $msg;
             $counts{count_age}++;
             $counts{size_age} += $size;
             next;
@@ -177,7 +206,6 @@ sub read_dir {
     close DIR;
     return @files;
 }
-           
 
 #
 # $Log: backup_data,v $

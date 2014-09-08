@@ -1,5 +1,6 @@
 # Category = Phone
 #
+
 =begin comment
 
  This will recv callerid msgs from an audrey running the 
@@ -21,50 +22,49 @@ $Revision$
 use audrey_cid;
 my $audrey_ip;
 
-
 my $cid_name;
 my $cid_number;
-($cid_name,$cid_number)=&audrey_cid::read();
-if($cid_number){ # did we get anything?
-	my $caller_id_data;
+( $cid_name, $cid_number ) = &audrey_cid::read();
+if ($cid_number) {    # did we get anything?
+    my $caller_id_data;
 
-	# Speak incoming callerID data and log it
-    
-	my $caller=$cid_name;   #probably need to reformat this.
+    # Speak incoming callerID data and log it
 
-	if ($caller eq '')
-	{
-		$caller= "Unknown" ;
-	}
+    my $caller = $cid_name;    #probably need to reformat this.
 
-	if ($cid_number eq 'Private')
-	{
-		$caller = "Private" ;
-	}
+    if ( $caller eq '' ) {
+        $caller = "Unknown";
+    }
 
-	if ($caller eq 'No Data')
-	{
-		$caller = "Unknown" ;
-	}
+    if ( $cid_number eq 'Private' ) {
+        $caller = "Private";
+    }
 
-	my $cid_string="Call from $caller" ;
+    if ( $caller eq 'No Data' ) {
+        $caller = "Unknown";
+    }
 
-	print_log "CallerId info : $cid_number [$cid_name]";
+    my $cid_string = "Call from $caller";
 
+    print_log "CallerId info : $cid_number [$cid_name]";
 
-                                # If we have other callerID interfaces (e.g. phone_modem.pl)
-                                # lets not repeat ourselfs here. 
-    unless ($Time - $Save{phone_callerid_Time} < 3) {
-        $Save{phone_callerid_nmbr} = $cid_number; # Save last caller for display in lcdproc.pl
+    # If we have other callerID interfaces (e.g. phone_modem.pl)
+    # lets not repeat ourselfs here.
+    unless ( $Time - $Save{phone_callerid_Time} < 3 ) {
+        $Save{phone_callerid_nmbr} =
+          $cid_number;    # Save last caller for display in lcdproc.pl
         $Save{phone_callerid_time} = "$Hour:$Minute";
         $Save{phone_callerid_Time} = $Time;
 
-#       play rooms => 'all', file => 'ringin.wav,ringin.wav'; # Simulate a phone ring
-# speak "Call from $caller"; # gv added & deleted previous and this statement
-speak voice => 'Female', text => $cid_string ;
-      #  speak("rooms=all_and_out mode=unmuted $caller");
-        logit("$config_parms{data_dir}/phone/logs/callerid.$Year_Month_Now.log",
-              "$cid_number name=$cid_name data=NA line=W");
-        logit_dbm("$config_parms{data_dir}/phone/callerid.dbm", $cid_number, "$Time_Now $Date_Now $Year name=$cid_name");
+        #       play rooms => 'all', file => 'ringin.wav,ringin.wav'; # Simulate a phone ring
+        # speak "Call from $caller"; # gv added & deleted previous and this statement
+        speak voice => 'Female', text => $cid_string;
+
+        #  speak("rooms=all_and_out mode=unmuted $caller");
+        logit(
+            "$config_parms{data_dir}/phone/logs/callerid.$Year_Month_Now.log",
+            "$cid_number name=$cid_name data=NA line=W" );
+        logit_dbm( "$config_parms{data_dir}/phone/callerid.dbm",
+            $cid_number, "$Time_Now $Date_Now $Year name=$cid_name" );
     }
 }

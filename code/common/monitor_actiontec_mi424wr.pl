@@ -38,7 +38,7 @@ if ($Reload) {
       unless -d "$config_parms{data_dir}/rrd/";
     &create_actiontec_rrd($Time) unless -e $RRD;
     $Included_HTML{'Internet'} .=
-qq(<h3>Actiontec Throughput<p><img src='sub;?graph_actiontec_rrd()'><p>\n\n\n);
+      qq(<h3>Actiontec Throughput<p><img src='sub;?graph_actiontec_rrd()'><p>\n\n\n);
     $actiontec_host = $config_parms{'actiontec_host'}
       if $config_parms{'actiontec_host'};
     $actiontec_url = "http://$actiontec_host";
@@ -89,7 +89,7 @@ if ( done_now $p_get_actiontec) {
             }
             print_log "actiontec post data: $post_data" if $debug;
             set $p_get_actiontec
-qq|get_url $quiet -post "$post_data" $actiontec_url$url $f_actiontec|;
+              qq|get_url $quiet -post "$post_data" $actiontec_url$url $f_actiontec|;
             $p_get_actiontec->start;
         }
         else {
@@ -109,7 +109,7 @@ qq|get_url $quiet -post "$post_data" $actiontec_url$url $f_actiontec|;
             }
             print_log "actiontec post data: $post_data" if $debug;
             set $p_get_actiontec
-qq|get_url $quiet -post "$post_data" $actiontec_url$url $f_actiontec|;
+              qq|get_url $quiet -post "$post_data" $actiontec_url$url $f_actiontec|;
             $p_get_actiontec->start;
         }
         else {
@@ -129,7 +129,7 @@ qq|get_url $quiet -post "$post_data" $actiontec_url$url $f_actiontec|;
             }
             print_log "actiontec post data: $post_data" if $debug;
             set $p_get_actiontec
-qq|get_url $quiet -post "$post_data" $actiontec_url$url $f_actiontec|;
+              qq|get_url $quiet -post "$post_data" $actiontec_url$url $f_actiontec|;
             $p_get_actiontec->start;
         }
         else {
@@ -149,7 +149,7 @@ qq|get_url $quiet -post "$post_data" $actiontec_url$url $f_actiontec|;
             }
             print_log "actiontec post data: $post_data" if $debug;
             set $p_get_actiontec
-qq|get_url $quiet -post "$post_data" $actiontec_url$url $f_actiontec|;
+              qq|get_url $quiet -post "$post_data" $actiontec_url$url $f_actiontec|;
             $p_get_actiontec->start;
         }
         else {
@@ -169,7 +169,7 @@ qq|get_url $quiet -post "$post_data" $actiontec_url$url $f_actiontec|;
             }
             print_log "actiontec post data: $post_data" if $debug;
             set $p_get_actiontec
-qq|get_url $quiet -post "$post_data" $actiontec_url$url $f_actiontec|;
+              qq|get_url $quiet -post "$post_data" $actiontec_url$url $f_actiontec|;
             $p_get_actiontec->start;
         }
         else {
@@ -308,6 +308,6 @@ sub graph_actiontec_rrd {
     my $err = RRDs::error;
     print_log "actiontec graph error $err\n" if $err;
     unlink "$config_parms{data_dir}/rrd/actiontec.jpg";
-`convert $config_parms{data_dir}/rrd/actiontec.png $config_parms{data_dir}/rrd/actiontec.jpg`;
+    `convert $config_parms{data_dir}/rrd/actiontec.png $config_parms{data_dir}/rrd/actiontec.jpg`;
     return file_read "$config_parms{data_dir}/rrd/actiontec.jpg";
 }

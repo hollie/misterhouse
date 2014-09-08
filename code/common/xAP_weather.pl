@@ -14,37 +14,38 @@
 #xAP_weather = new xAP_Item('weather.report', 'mi4.weather.egll');
 $xAP_weather = new xAP_Item('weather.report');
 
-if ($state = state_now $xAP_weather) {
+if ( $state = state_now $xAP_weather) {
     my $source = $xAP_weather->{'xap-header'}{source};
-    $source =~ s/mi4.weather.//; # Drop prefix
+    $source =~ s/mi4.weather.//;    # Drop prefix
     my $data;
-    for my $key (sort keys %{$xAP_weather->{'weather.report'}}) {
+    for my $key ( sort keys %{ $xAP_weather->{'weather.report'} } ) {
         my $value = $xAP_weather->{'weather.report'}{$key};
         $Weather{$source}{$key} = $value;
         $data .= "$key=$value, " unless $key eq 'date';
     }
     print_log "xAP weather $source: $data" if $Debug{xap};
 
-                           # Optionally set standard Weather keys (used in web status line)
-    if (lc $config_parms{weather_source} eq $source) {
-        if ($config_parms{weather_uom_temp} eq 'C') {
-            $Weather{TempOutdoor}   = $xAP_weather->{'weather.report'}{tempc};
-            $Weather{DewOutdoor}    = $xAP_weather->{'weather.report'}{dewc};
-            $Weather{WindAvgSpeed}  = $xAP_weather->{'weather.report'}{windk};
+    # Optionally set standard Weather keys (used in web status line)
+    if ( lc $config_parms{weather_source} eq $source ) {
+        if ( $config_parms{weather_uom_temp} eq 'C' ) {
+            $Weather{TempOutdoor}  = $xAP_weather->{'weather.report'}{tempc};
+            $Weather{DewOutdoor}   = $xAP_weather->{'weather.report'}{dewc};
+            $Weather{WindAvgSpeed} = $xAP_weather->{'weather.report'}{windk};
         }
         else {
-            $Weather{TempOutdoor}   = $xAP_weather->{'weather.report'}{tempf};
-            $Weather{DewOutdoor}    = $xAP_weather->{'weather.report'}{dewf};
-            $Weather{WindAvgSpeed}  = $xAP_weather->{'weather.report'}{windm};
+            $Weather{TempOutdoor}  = $xAP_weather->{'weather.report'}{tempf};
+            $Weather{DewOutdoor}   = $xAP_weather->{'weather.report'}{dewf};
+            $Weather{WindAvgSpeed} = $xAP_weather->{'weather.report'}{windm};
         }
-        $Weather{WindAvgDir}    = $xAP_weather->{'weather.report'}{winddirc};
-        $Weather{Barom}         = $xAP_weather->{'weather.report'}{airpressure};
-        $Weather{Icon}          = $xAP_weather->{'weather.report'}{icon};
+        $Weather{WindAvgDir} = $xAP_weather->{'weather.report'}{winddirc};
+        $Weather{Barom}      = $xAP_weather->{'weather.report'}{airpressure};
+        $Weather{Icon}       = $xAP_weather->{'weather.report'}{icon};
 
         $Weather{Summary_Short} = "$Weather{Icon} $Weather{TempOutdoor}";
-        $Weather{Summary_Short}.= ", barom=$Weather{Barom}" if $Weather{Barom};
+        $Weather{Summary_Short} .= ", barom=$Weather{Barom}" if $Weather{Barom};
         $Weather{Wind} = "$Weather{WindAvgSpeed} from the $Weather{WindAvgDir}";
-        print_log "xAP weather: $Weather{Summary_Short} wind $Weather{Wind}" if $Debug{xap};
+        print_log "xAP weather: $Weather{Summary_Short} wind $Weather{Wind}"
+          if $Debug{xap};
     }
 }
 

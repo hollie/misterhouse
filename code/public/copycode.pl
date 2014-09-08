@@ -70,112 +70,140 @@
 # copycode
 #
 
-$v_copy_code = new  Voice_Cmd('copy code');
-&copycode if ($state = said $v_copy_code);
+$v_copy_code = new Voice_Cmd('copy code');
+&copycode if ( $state = said $v_copy_code);
 
 sub copycode {
-  my $maincomputer = "192.168.1.2";
-  my $codedrive = "z:";
+    my $maincomputer = "192.168.1.2";
+    my $codedrive    = "z:";
 
-  my @files = ();
-  my @filestocopy = ();
-  my @computers = ();
-  my @lines = ();
-  my ($file, $line, $computer, $variable_phrase, $phrase_start, $phrase_length, $var_end_pos, $count, $outline);
+    my @files       = ();
+    my @filestocopy = ();
+    my @computers   = ();
+    my @lines       = ();
+    my (
+        $file,            $line,         $computer,
+        $variable_phrase, $phrase_start, $phrase_length,
+        $var_end_pos,     $count,        $outline
+    );
 
-#                                            Find the files in the master/code directory that
-#                                            we want to copy
-  opendir(DIR, "$codedrive/master/code");
-  @files = readdir DIR;
-  close DIR;
-#                                            Drop items from the list that are not .pl
-  @files = grep(/^[a-z0-9].*\.pl$/i, @files);
-  if (@files  > 0) {
-    foreach $file (@files) {
-      open (PERLIN, "$codedrive/master/code/$file");
-      @lines = <PERLIN>;
-      close (PERLIN);
-      chomp(@lines);
-#                                            Check to see if we are supposed to copy this file
-      if (grep(/# copycode/, @lines)) {
-#                                            Build another array of just the files we are
-#                                            supposed to copy and use it later
-        push (@filestocopy, $file);
-        open (TEMPOUT, ">$codedrive/template/code/$file");
-        foreach $line (@lines) {
-          if (substr($line,0,10) eq '# Category'){
-            print TEMPOUT "$line\n\n";
-            print TEMPOUT "# This file is automatically created by running the copycode\n";
-            print TEMPOUT "# program in the master code directory.  Any changes made to\n";
-            print TEMPOUT "# this file will be overwritten the next time it is run.\n";
-            print TEMPOUT "# You should make changes to the appropiate file in the master\n";
-            print TEMPOUT "# code directory then re-run the copycode program.\n\n";
-          }
-          elsif (substr($line,1,2) eq 'v_') {
-            $phrase_start = 0;
-            $phrase_length = 0;
-            $var_end_pos = 0;
-            $variable_phrase = "no";
-            for ($count=0; $count <= length($line); $count++) {
-              if ($phrase_start eq 0) {
-                if ((substr($line,$count,1) eq " ") && ($var_end_pos eq 0)) {
-                  $var_end_pos = $count;
+    #                                            Find the files in the master/code directory that
+    #                                            we want to copy
+    opendir( DIR, "$codedrive/master/code" );
+    @files = readdir DIR;
+    close DIR;
+
+    #                                            Drop items from the list that are not .pl
+    @files = grep( /^[a-z0-9].*\.pl$/i, @files );
+    if ( @files > 0 ) {
+        foreach $file (@files) {
+            open( PERLIN, "$codedrive/master/code/$file" );
+            @lines = <PERLIN>;
+            close(PERLIN);
+            chomp(@lines);
+
+            #                                            Check to see if we are supposed to copy this file
+            if ( grep( /# copycode/, @lines ) ) {
+
+                #                                            Build another array of just the files we are
+                #                                            supposed to copy and use it later
+                push( @filestocopy, $file );
+                open( TEMPOUT, ">$codedrive/template/code/$file" );
+                foreach $line (@lines) {
+                    if ( substr( $line, 0, 10 ) eq '# Category' ) {
+                        print TEMPOUT "$line\n\n";
+                        print TEMPOUT
+                          "# This file is automatically created by running the copycode\n";
+                        print TEMPOUT
+                          "# program in the master code directory.  Any changes made to\n";
+                        print TEMPOUT
+                          "# this file will be overwritten the next time it is run.\n";
+                        print TEMPOUT
+                          "# You should make changes to the appropiate file in the master\n";
+                        print TEMPOUT
+                          "# code directory then re-run the copycode program.\n\n";
+                    }
+                    elsif ( substr( $line, 1, 2 ) eq 'v_' ) {
+                        $phrase_start    = 0;
+                        $phrase_length   = 0;
+                        $var_end_pos     = 0;
+                        $variable_phrase = "no";
+                        for ( $count = 0; $count <= length($line); $count++ ) {
+                            if ( $phrase_start eq 0 ) {
+                                if (   ( substr( $line, $count, 1 ) eq " " )
+                                    && ( $var_end_pos eq 0 ) )
+                                {
+                                    $var_end_pos = $count;
+                                }
+                                elsif ( substr( $line, $count, 1 ) eq "'" ) {
+                                    $phrase_start  = ++$count;
+                                    $phrase_length = 0;
+                                }
+                            }
+                            else {
+                                $phrase_length++;
+                                if (   ( substr( $line, $count, 1 ) eq "'" )
+                                    || ( substr( $line, $count, 1 ) eq "[" ) )
+                                {
+                                    if ( substr( $line, $count, 1 ) eq "[" ) {
+                                        $variable_phrase = "yes";
+                                    }
+                                    $count = length($line) + 1;
+                                }
+                            }
+                        }
+                        if ( $phrase_start > 0 ) {
+                            print TEMPOUT "$line\n";
+                            if ( $variable_phrase eq "yes" ) {
+                                $outline =
+                                  "run \"mhsend -host $maincomputer -run \'"
+                                  . substr( $line, $phrase_start,
+                                    $phrase_length )
+                                  . "\$state\'\" if \$state = said "
+                                  . substr( $line, 0, $var_end_pos ) . "\;";
+                            }
+                            else {
+                                $outline =
+                                  "run \"mhsend -host $maincomputer -run \'"
+                                  . substr( $line, $phrase_start,
+                                    $phrase_length )
+                                  . "\'\" if \$state = said "
+                                  . substr( $line, 0, $var_end_pos ) . "\;";
+                            }
+                            print TEMPOUT "$outline\n\n";
+                        }
+                    }
                 }
-                elsif (substr($line,$count,1) eq "'") {
-                  $phrase_start = ++$count;
-                  $phrase_length = 0;
-                }
-              }
-              else {
-                $phrase_length++;
-                if ((substr($line,$count,1) eq "'") || (substr($line,$count,1) eq "[")) {
-                  if (substr($line,$count,1) eq "[") {
-                    $variable_phrase = "yes";
-                  }
-                  $count = length($line) +1;
-                }
-              }
+                close(TEMPOUT);
+                print_log "$file copied";
             }
-            if ($phrase_start > 0) {
-              print TEMPOUT "$line\n";
-              if ($variable_phrase eq "yes") {
-                $outline = "run \"mhsend -host $maincomputer -run \'" . substr($line,$phrase_start,$phrase_length) . "\$state\'\" if \$state = said " . substr($line,0,$var_end_pos) . "\;";
-              }
-              else {
-                $outline = "run \"mhsend -host $maincomputer -run \'" . substr($line,$phrase_start,$phrase_length) . "\'\" if \$state = said " . substr($line,0,$var_end_pos) . "\;";
-              }
-              print TEMPOUT "$outline\n\n";
+        }
+    }
+
+    #  Copy the created files from the template directory to the computer directories
+    opendir( DIR, "$codedrive" );
+    @computers = readdir DIR;
+    close DIR;
+
+    #  Drop items from the list with names of '.', '..', 'master', and 'template'
+    @computers = grep( !/^\.\.?\z/ && !/master/ && !/template/, @computers );
+
+    foreach $computer (@computers) {
+
+        #  Of the remaining items in the list we only want the directories
+        #  that have a subdirectory named 'code'
+        if ( -d "$codedrive/$computer/code" ) {
+            foreach $file (@filestocopy) {
+                open( TEMPIN, "$codedrive/template/code/$file" );
+                @lines = <TEMPIN>;
+                close(TEMPIN);
+                open( PERLOUT, ">$codedrive/$computer/code/$file" );
+                foreach $line (@lines) {
+                    print PERLOUT "$line";
+                }
+                close(PERLOUT);
             }
-          }
+            print_log "files copied to $computer";
         }
-        close (TEMPOUT);
-        print_log "$file copied";
-      }
     }
-  }
-
-#  Copy the created files from the template directory to the computer directories
-  opendir(DIR, "$codedrive");
-  @computers = readdir DIR;
-  close DIR;
-#  Drop items from the list with names of '.', '..', 'master', and 'template'
-  @computers = grep(!/^\.\.?\z/ && !/master/ && !/template/, @computers);
-
-  foreach $computer (@computers) {
-#  Of the remaining items in the list we only want the directories
-#  that have a subdirectory named 'code'
-    if (-d "$codedrive/$computer/code") {
-      foreach $file (@filestocopy) {
-        open (TEMPIN, "$codedrive/template/code/$file");
-        @lines = <TEMPIN>;
-        close (TEMPIN);
-        open (PERLOUT, ">$codedrive/$computer/code/$file");
-        foreach $line (@lines) {
-          print PERLOUT "$line";
-        }
-        close (PERLOUT);
-      }
-      print_log "files copied to $computer";
-    }
-  }
 }

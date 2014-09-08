@@ -1,3 +1,4 @@
+
 =head1 B<Fan_Control>
 
 =head2 SYNOPSIS
@@ -42,106 +43,113 @@ my $fan_socket = undef;
 my %fan_control_lights;
 
 sub startup {
-   if (not $fan_socket and $main::config_parms{fancontrol_host} and $main::config_parms{fancontrol_port}) {
-      my $port = "$main::config_parms{fancontrol_host}:$main::config_parms{fancontrol_port}";
-      $fan_socket = new Socket_Item(undef, undef, $port, 'fancontrol', 'tcp', 'record');
-      start $fan_socket;
-      &::MainLoop_pre_add_hook(\&Fan_Control::check_for_data, 'persistent');
-   }
+    if (    not $fan_socket
+        and $main::config_parms{fancontrol_host}
+        and $main::config_parms{fancontrol_port} )
+    {
+        my $port =
+          "$main::config_parms{fancontrol_host}:$main::config_parms{fancontrol_port}";
+        $fan_socket =
+          new Socket_Item( undef, undef, $port, 'fancontrol', 'tcp', 'record' );
+        start $fan_socket;
+        &::MainLoop_pre_add_hook( \&Fan_Control::check_for_data, 'persistent' );
+    }
 }
 
 sub check_for_data {
-   if ((not active $fan_socket) and (($main::Second % 6) == 0) and $::New_Second) {
-      start $fan_socket;
-   }
-   if (my $msg = said $fan_socket) {
-      if ($msg =~ /fan (\S+) light (\S+)/) {
-         if ($fan_control_lights{$1}) {
-            #print STDERR "Setting fan $1 to state", lc $2, "\n";
-            #&main::print_log("Setting fan $1 to state" . lc($2));
-            if ($fan_control_lights{$1}->{'already_set'}) {
-               $fan_control_lights{$1}->set_states_for_next_pass(lc($2), 'remote');
-            } else {
-               $fan_control_lights{$1}->{'already_set'} = 1;
-               $fan_control_lights{$1}->set_states_for_next_pass(lc($2));
+    if (    ( not active $fan_socket)
+        and ( ( $main::Second % 6 ) == 0 )
+        and $::New_Second )
+    {
+        start $fan_socket;
+    }
+    if ( my $msg = said $fan_socket) {
+        if ( $msg =~ /fan (\S+) light (\S+)/ ) {
+            if ( $fan_control_lights{$1} ) {
+
+                #print STDERR "Setting fan $1 to state", lc $2, "\n";
+                #&main::print_log("Setting fan $1 to state" . lc($2));
+                if ( $fan_control_lights{$1}->{'already_set'} ) {
+                    $fan_control_lights{$1}
+                      ->set_states_for_next_pass( lc($2), 'remote' );
+                }
+                else {
+                    $fan_control_lights{$1}->{'already_set'} = 1;
+                    $fan_control_lights{$1}->set_states_for_next_pass( lc($2) );
+                }
             }
-         }
-      }
-   }
+        }
+    }
 }
 
 package Fan_Light;
 
 @Fan_Light::ISA = ('Generic_Item');
 
-sub new
-{
-	my ($class, $name) = @_;
-	my $self={};
-	bless $self,$class;
-   $$self{'name'} = $name;
-   $fan_control_lights{$name} = $self;
-   push(@{$$self{states}}, 'on', 'off');
-	return $self;
+sub new {
+    my ( $class, $name ) = @_;
+    my $self = {};
+    bless $self, $class;
+    $$self{'name'} = $name;
+    $fan_control_lights{$name} = $self;
+    push( @{ $$self{states} }, 'on', 'off' );
+    return $self;
 }
 
 sub setstate_off {
-   my ($self, $substate) = @_;
-   set $fan_socket "fan $$self{'name'} light off";
+    my ( $self, $substate ) = @_;
+    set $fan_socket "fan $$self{'name'} light off";
 }
 
 sub setstate_on {
-   my ($self, $substate) = @_;
-   set $fan_socket "fan $$self{'name'} light on";
+    my ( $self, $substate ) = @_;
+    set $fan_socket "fan $$self{'name'} light on";
 }
 
 package Fan_Motor;
 
 @Fan_Motor::ISA = ('Generic_Item');
 
-sub new
-{
-	my ($class, $name) = @_;
-	my $self={};
-	bless $self,$class;
-   $$self{'name'} = $name;
-   $$self{'off_timer'} = new Timer();
-   push(@{$$self{states}}, 'off', 'low', 'med', 'high');
-	return $self;
+sub new {
+    my ( $class, $name ) = @_;
+    my $self = {};
+    bless $self, $class;
+    $$self{'name'}      = $name;
+    $$self{'off_timer'} = new Timer();
+    push( @{ $$self{states} }, 'off', 'low', 'med', 'high' );
+    return $self;
 }
 
 sub delay_off {
-   my ($self, $delay) = @_;
-   $$self{'off_timer'}->set($delay, $self);
+    my ( $self, $delay ) = @_;
+    $$self{'off_timer'}->set( $delay, $self );
 }
 
 sub setstate_off {
-   my ($self) = @_;
-   set $fan_socket "fan $$self{'name'} motor off";
-   $$self{'off_timer'}->stop();
+    my ($self) = @_;
+    set $fan_socket "fan $$self{'name'} motor off";
+    $$self{'off_timer'}->stop();
 }
 
 sub setstate_low {
-   my ($self) = @_;
-   set $fan_socket "fan $$self{'name'} motor low";
-   $$self{'off_timer'}->stop();
+    my ($self) = @_;
+    set $fan_socket "fan $$self{'name'} motor low";
+    $$self{'off_timer'}->stop();
 }
 
 sub setstate_med {
-   my ($self) = @_;
-   set $fan_socket "fan $$self{'name'} motor med";
-   $$self{'off_timer'}->stop();
+    my ($self) = @_;
+    set $fan_socket "fan $$self{'name'} motor med";
+    $$self{'off_timer'}->stop();
 }
 
 sub setstate_high {
-   my ($self) = @_;
-   set $fan_socket "fan $$self{'name'} motor high";
-   $$self{'off_timer'}->stop();
+    my ($self) = @_;
+    set $fan_socket "fan $$self{'name'} motor high";
+    $$self{'off_timer'}->stop();
 }
 
 1;
-
-
 
 =back
 

@@ -1,3 +1,4 @@
+
 =head1 B<Nest>
 
 =head2 SYNOPSIS
@@ -96,13 +97,13 @@ my $info  = 2;
 my $trace = 3;
 
 sub debug {
-    my ($self, $message, $level) = @_;
+    my ( $self, $message, $level ) = @_;
     $level = 0 if $level eq '';
-    my $line = '';
+    my $line   = '';
     my @caller = caller(0);
-    if ($::Debug{'nest'} >= $level || $level == 0){
+    if ( $::Debug{'nest'} >= $level || $level == 0 ) {
         $line = " at line " . $caller[2] if $::Debug{'nest'} >= $trace;
-        ::print_log("[" . $caller[0] . "] " . $message . $line);
+        ::print_log( "[" . $caller[0] . "] " . $message . $line );
     }
 }
 
@@ -197,96 +198,95 @@ group, then you can provide the url here.
 =cut
 
 sub new {
-    my ($class, $auth, $port_name, $url) = @_;
+    my ( $class, $auth, $port_name, $url ) = @_;
     my $self = {};
-    $port_name = 'Nest' if !$port_name;
-    $url = "https://developer-api.nest.com/.json" if !$url;
-    $auth = $::config_parms{$port_name . "_auth_token"} if !$auth;
-    $$self{port_name} = $port_name;
-    $$self{url} = $url;
-    $$self{auth} = $auth;
+    $port_name = 'Nest'                                        if !$port_name;
+    $url       = "https://developer-api.nest.com/.json"        if !$url;
+    $auth      = $::config_parms{ $port_name . "_auth_token" } if !$auth;
+    $$self{port_name}       = $port_name;
+    $$self{url}             = $url;
+    $$self{auth}            = $auth;
     $$self{reconnect_timer} = new Timer;
-    $$self{write_process} = new Process_Item;
+    $$self{write_process}   = new Process_Item;
     $$self{write_process}->set_timeout(30);
     $$self{write_process_active} = 0;
-    $$self{write_process_queue} = [];
-    $$self{write_process_code} = sub {$self->write_process_handler();};
-    $$self{enabled} = 1;
+    $$self{write_process_queue}  = [];
+    $$self{write_process_code}   = sub { $self->write_process_handler(); };
+    $$self{enabled}              = 1;
     bless $self, $class;
     $self->connect_stream();
-    ::MainLoop_pre_add_hook(sub {$self->check_for_data();}, 'persistent');
+    ::MainLoop_pre_add_hook( sub { $self->check_for_data(); }, 'persistent' );
     return $self;
 }
 
 # Establishes the connection to Nest
 
 sub connect_stream {
-    my ($self, $url) = @_;
-    $url = $$self{url} . "?auth=" . $$self{auth} if ($url eq '');
+    my ( $self, $url ) = @_;
+    $url = $$self{url} . "?auth=" . $$self{auth} if ( $url eq '' );
     $url = new URI::URL $url;
-    
-    if (defined $$self{socket}) {
+
+    if ( defined $$self{socket} ) {
         $$self{socket}->close;
         delete $$self{socket};
-        $self->reconnect_delay(1, $url);
+        $self->reconnect_delay( 1, $url );
         return;
     }
-    
+
     $$self{socket} = IO::Socket::INET->new(
-        PeerHost => $url->host, 
-        PeerPort => $url->port, 
+        PeerHost => $url->host,
+        PeerPort => $url->port,
         Blocking => 0,
         Timeout  => 30,
     );
-    
-    unless ($$self{socket}) {
-        $self->debug("ERROR connecting to Nest server: " . $@);
+
+    unless ( $$self{socket} ) {
+        $self->debug( "ERROR connecting to Nest server: " . $@ );
         $self->reconnect_delay();
         return;
     }
-     
-    my $select = IO::Select->new($$self{socket}); # wait until it connected
-    if ($select->can_write) {
-        $self->debug("IO::Socket::INET connected", $info);
+
+    my $select = IO::Select->new( $$self{socket} );    # wait until it connected
+    if ( $select->can_write ) {
+        $self->debug( "IO::Socket::INET connected", $info );
     }
-    
+
     # upgrade socket to IO::Socket::SSL
-    IO::Socket::SSL->start_SSL($$self{socket}, SSL_startHandshake => 0);
-    
+    IO::Socket::SSL->start_SSL( $$self{socket}, SSL_startHandshake => 0 );
+
     # make non-blocking SSL handshake
     while (1) {
-        if ($$self{socket}->connect_SSL) { # will not block
-            $self->debug("IO::Socket::SSL connected", $info);
+        if ( $$self{socket}->connect_SSL ) {           # will not block
+            $self->debug( "IO::Socket::SSL connected", $info );
             last;
         }
-        else { # handshake still incomplete
-            if ($SSL_ERROR == SSL_WANT_READ) {
+        else {    # handshake still incomplete
+            if ( $SSL_ERROR == SSL_WANT_READ ) {
                 $select->can_read;
             }
-            elsif ($SSL_ERROR == SSL_WANT_WRITE) {
+            elsif ( $SSL_ERROR == SSL_WANT_WRITE ) {
                 $select->can_write;
             }
             else {
-                $self->debug("ERROR connecting to Nest server: " . $SSL_ERROR);
+                $self->debug(
+                    "ERROR connecting to Nest server: " . $SSL_ERROR );
                 $self->reconnect_delay();
                 return;
             }
         }
     }
-    
+
     # Request specific location
-    my $request = HTTP::Request->new(
-        'GET', 
-        $url->full_path, 
-        ["Accept", "text/event-stream", "Host", $url->host]
-    );
+    my $request =
+      HTTP::Request->new( 'GET', $url->full_path,
+        [ "Accept", "text/event-stream", "Host", $url->host ] );
     $request->protocol('HTTP/1.1');
-    unless ($$self{socket}->syswrite($request->as_string)){
-        $self->debug("ERROR connecting to Nest server: " . $!);
+    unless ( $$self{socket}->syswrite( $request->as_string ) ) {
+        $self->debug( "ERROR connecting to Nest server: " . $! );
         $self->reconnect_delay();
         return;
     }
-    
+
     $$self{'keep-alive'} = time;
     return $$self{socket};
 }
@@ -294,80 +294,89 @@ sub connect_stream {
 # Used to try reconnecting after a delay if there was an error
 
 sub reconnect_delay {
-    my ($self, $seconds, $url) = @_;
-    my $action = sub {$self->connect_stream($url)};
-    if (!$seconds) {
+    my ( $self, $seconds, $url ) = @_;
+    my $action = sub { $self->connect_stream($url) };
+    if ( !$seconds ) {
         $seconds = 60;
         $self->debug("Will try to connect again in 1 minute.");
     }
-    $$self{reconnect_timer}->set($seconds,$action);
+    $$self{reconnect_timer}->set( $seconds, $action );
 }
 
 # Run once per loop to check for data present on the connection
 
 sub check_for_data {
     my ($self) = @_;
-    if (defined $$self{socket} 
-        && $$self{socket}->connected 
-        && (time - $$self{'keep-alive'} < 70)) {
+    if (   defined $$self{socket}
+        && $$self{socket}->connected
+        && ( time - $$self{'keep-alive'} < 70 ) )
+    {
         # sysread will only read the contents of a single SSL frame
-        if ($$self{socket}->sysread(my $buf, 1024)){
+        if ( $$self{socket}->sysread( my $buf, 1024 ) ) {
             $$self{data} .= $buf;
-            if ($$self{data} =~ /^HTTP/){ # Start of new stream
-                my $r = HTTP::Response->parse( $buf );
-                if ($r->code == 307){
+            if ( $$self{data} =~ /^HTTP/ ) {    # Start of new stream
+                my $r = HTTP::Response->parse($buf);
+                if ( $r->code == 307 ) {
+
                     # This is a location redirect
-                    $self->debug("redirecting to " . $r->header( 'location' ), $trace);
-                    $$self{socket} = $self->connect_stream($r->header( 'location' ));
+                    $self->debug( "redirecting to " . $r->header('location'),
+                        $trace );
+                    $$self{socket} =
+                      $self->connect_stream( $r->header('location') );
                 }
-                elsif ($r->code == 401){
-                    $self->debug("ERROR, your authorization was rejected. "
-                        ."Please check your settings.");
+                elsif ( $r->code == 401 ) {
+                    $self->debug( "ERROR, your authorization was rejected. "
+                          . "Please check your settings." );
                     $$self{enabled} = 0;
                 }
-                elsif ($r->code == 200){
+                elsif ( $r->code == 200 ) {
+
                     # Successful response
-                    $self->debug("Successfully connected to stream", $warn);
+                    $self->debug( "Successfully connected to stream", $warn );
                 }
                 else {
-                    $self->debug("ERROR, unable to connect stream. "
-                        ."Response was: " . $r->as_string);
+                    $self->debug( "ERROR, unable to connect stream. "
+                          . "Response was: "
+                          . $r->as_string );
                     $self->reconnect_delay();
                 }
                 $$self{data} = "";
             }
-            elsif ($buf =~ /\n\n$/){
+            elsif ( $buf =~ /\n\n$/ ) {
+
                 # We reached the end of the message packet in an existing stream
-                $self->debug("Data :\n" . $$self{data}, $trace);
-                
+                $self->debug( "Data :\n" . $$self{data}, $trace );
+
                 # Split out event and data for processing
-                my @lines = split("\n", $$self{data});
-                my ($event, $data);
-                for (@lines){
+                my @lines = split( "\n", $$self{data} );
+                my ( $event, $data );
+                for (@lines) {
+
                     # Pull out events and data
-                    my ($key, $value) = split(":", $_,2);
-                    if ($key =~ /event/){
+                    my ( $key, $value ) = split( ":", $_, 2 );
+                    if ( $key =~ /event/ ) {
                         $event = $value;
                     }
-                    elsif ($key =~ /data/ && defined($event)){
+                    elsif ( $key =~ /data/ && defined($event) ) {
                         $data = $value;
                     }
-                    
-                    if (defined($event) && defined($data)){
-                        $self->parse_data($event, $data);
+
+                    if ( defined($event) && defined($data) ) {
+                        $self->parse_data( $event, $data );
                         $event = '';
-                        $data = '';
+                        $data  = '';
                     }
                 }
-                
+
                 # Clear data storage
                 $$self{data} = "";
             }
         }
     }
-    elsif ($$self{reconnect_timer}->inactive && $$self{enabled}) {
+    elsif ( $$self{reconnect_timer}->inactive && $$self{enabled} ) {
+
         # The connection died, or the keep-alive messages stopped, restart it
-        $self->debug("Connection died, restarting", $warn);
+        $self->debug( "Connection died, restarting", $warn );
         $self->reconnect_delay(1);
     }
 }
@@ -375,23 +384,26 @@ sub check_for_data {
 # If data is found on the connection with Nest, this parses out the data
 
 sub parse_data {
-    my ($self, $event, $data) = @_;
-    if ($event =~ /keep-alive/){
+    my ( $self, $event, $data ) = @_;
+    if ( $event =~ /keep-alive/ ) {
         $$self{'keep-alive'} = time;
-        $self->debug("Keep Alive", $info);
+        $self->debug( "Keep Alive", $info );
     }
-    elsif ($event =~ /put/){
+    elsif ( $event =~ /put/ ) {
         $$self{'keep-alive'} = time;
+
         #This is the first JSON packet received after connecting
         $$self{prev_JSON} = $$self{JSON};
-        $$self{JSON} = decode_json $data;
-        if (!defined $$self{prev_JSON}){
+        $$self{JSON}      = decode_json $data;
+        if ( !defined $$self{prev_JSON} ) {
+
             #this is the first run so convert the names to ids
-            $self->convert_to_ids($$self{monitor});
+            $self->convert_to_ids( $$self{monitor} );
         }
-        $self->compare_json($$self{JSON}, $$self{prev_JSON}, $$self{monitor});
+        $self->compare_json( $$self{JSON}, $$self{prev_JSON}, $$self{monitor} );
     }
-    elsif ($event =~ /auth_revoked/){
+    elsif ( $event =~ /auth_revoked/ ) {
+
         # Sent when auth parameter is no longer valid
         # Accoring to Nest, the auth token is essentially non-expiring,
         # so this shouldn't happen.
@@ -421,34 +433,36 @@ Otherwise it is used by the more user friendly objects.
 =cut
 
 sub write_data {
-    my ($self, $parent, $value, $data, $url) = @_;
-    if ($url eq '') {
+    my ( $self, $parent, $value, $data, $url ) = @_;
+    if ( $url eq '' ) {
         $url = 'https://developer-api.nest.com/';
         $url .= $$parent{class} . "/";
-        $url .= $$parent{type} . "/" if ($$parent{type} ne '');
+        $url .= $$parent{type} . "/" if ( $$parent{type} ne '' );
         $url .= $parent->device_id . "/";
         $url .= $value . "?auth=" . $$self{auth};
     }
     my $json = lc($data);
+
     #true false and numbers should not have quotes
-    unless ($json eq 'true' || $json eq 'false' || $json =~ /^\d+(\.\d+)?$/){
+    unless ( $json eq 'true' || $json eq 'false' || $json =~ /^\d+(\.\d+)?$/ ) {
         $json = '"' . $json . '"';
     }
-    
-    $self->debug("writing $json to $url", $trace);
-    
+
+    $self->debug( "writing $json to $url", $trace );
+
     # Use a process item to prevent blocking
-    if (!$$self{write_process_active}){
-        $$self{write_process}->set("&Nest_Interface::_write_data_process('$url','$json')");
+    if ( !$$self{write_process_active} ) {
+        $$self{write_process}
+          ->set("&Nest_Interface::_write_data_process('$url','$json')");
         $$self{write_process}->start();
         $$self{write_process_active} = 1;
-        
+
         # Add hook to check for completion of process
-        ::MainLoop_pre_add_hook($$self{write_process_code}, 'persistent');
+        ::MainLoop_pre_add_hook( $$self{write_process_code}, 'persistent' );
     }
     else {
         push(
-            @{$$self{write_process_queue}}, 
+            @{ $$self{write_process_queue} },
             "&Nest_Interface::_write_data_process('$url','$json')"
         );
     }
@@ -458,54 +472,58 @@ sub write_data {
 # because it doesn't have the PUT method or the content-type header
 
 sub _write_data_process {
-    my ($url, $json) = @_;
+    my ( $url, $json ) = @_;
     my $req = HTTP::Request->new( 'PUT', $url );
     $req->header( 'Content-Type' => 'application/json' );
-    $req->content( $json );
+    $req->content($json);
     $req->protocol('HTTP/1.1');
     my $lwp = LWP::UserAgent->new;
-    my $r = $lwp->request( $req );
-    if ($r->code == 307){
+    my $r   = $lwp->request($req);
+    if ( $r->code == 307 ) {
+
         # This is a location redirect
-        ::print_log("[Nest_Interface] redirecting to " . $r->header( 'location' ))
-            if $::Debug{'nest'} >=3;
-        return _write_data_process($r->header( 'location' ), $json);
+        ::print_log(
+            "[Nest_Interface] redirecting to " . $r->header('location') )
+          if $::Debug{'nest'} >= 3;
+        return _write_data_process( $r->header('location'), $json );
     }
-    ::file_write("$::config_parms{data_dir}/nest.resp", $r->as_string());
+    ::file_write( "$::config_parms{data_dir}/nest.resp", $r->as_string() );
 }
 
-# This routine is set as a hook when a write process is running.  When the 
+# This routine is set as a hook when a write process is running.  When the
 # write process completes, this routine checks the contents of the response
 
 sub write_process_handler {
     my ($self) = @_;
-    if ($$self{write_process}->done_now){
+    if ( $$self{write_process}->done_now ) {
         my $resp_string = ::file_read("$::config_parms{data_dir}/nest.resp");
         unlink("$::config_parms{data_dir}/nest.resp");
-        my $r = HTTP::Response->parse( $resp_string );
-        if ($r->code == 401){
-            $self->debug("ERROR, your authorization was rejected. "
-                ."Please check your settings.");
+        my $r = HTTP::Response->parse($resp_string);
+        if ( $r->code == 401 ) {
+            $self->debug( "ERROR, your authorization was rejected. "
+                  . "Please check your settings." );
         }
-        elsif ($r->code == 200){
+        elsif ( $r->code == 200 ) {
+
             # Successful response
-            $self->debug("Successfully wrote data", $info);
+            $self->debug( "Successfully wrote data", $info );
         }
         else {
             my $content = decode_json $r->content;
-            $self->debug("ERROR, unable to write data to Nest server. "
-                . $r->status_line . " - " . $$content{error});
+            $self->debug( "ERROR, unable to write data to Nest server. "
+                  . $r->status_line . " - "
+                  . $$content{error} );
         }
-        
+
         # Look see if there is a queue of write commands
-        if (scalar @{$$self{write_process_queue}}) {
-            my $process = shift @{$$self{write_process_queue}};
+        if ( scalar @{ $$self{write_process_queue} } ) {
+            my $process = shift @{ $$self{write_process_queue} };
             $$self{write_process}->set($process);
             $$self{write_process}->start();
         }
-        else{
+        else {
             $$self{write_process_active} = 0;
-            ::MainLoop_pre_drop_hook($$self{write_process_code});
+            ::MainLoop_pre_drop_hook( $$self{write_process_code} );
         }
     }
 }
@@ -519,13 +537,13 @@ Prints the name and device_id of all devices found in the Nest account.
 sub print_devices {
     my ($self) = @_;
     my $output = "The list of devices reported by Nest is:\n";
-    for (keys %{$$self{JSON}{data}{devices}}){
+    for ( keys %{ $$self{JSON}{data}{devices} } ) {
         my $device_type = $_;
         $output .= "        $device_type =\n";
-        for (keys %{$$self{JSON}{data}{devices}{$device_type}}){
+        for ( keys %{ $$self{JSON}{data}{devices}{$device_type} } ) {
             my $device_id = $_;
-            my $device_name = $$self{JSON}{data}{devices}{$device_type}
-                {$device_id}{name};
+            my $device_name =
+              $$self{JSON}{data}{devices}{$device_type}{$device_id}{name};
             $output .= "            Name: $device_name ID: $device_id\n";
         }
     }
@@ -541,9 +559,10 @@ Prints the name and device_id of all structures found in the Nest account.
 sub print_structures {
     my ($self) = @_;
     my $output = "The list of structures reported by Nest is:\n";
-    for (keys %{$$self{JSON}{data}{structures}}){
+    for ( keys %{ $$self{JSON}{data}{structures} } ) {
         my $structure_id = $_;
-        my $structure_name = $$self{JSON}{data}{structures}{$structure_id}{name};
+        my $structure_name =
+          $$self{JSON}{data}{structures}{$structure_id}{name};
         $output .= "        Name: $structure_name ID: $structure_id\n";
     }
     $self->debug($output);
@@ -562,30 +581,31 @@ Used to register actions to be run if a specific JSON value changes.
 =cut
 
 sub register {
-    my ($self, $parent, $value, $action) = @_;
-    push (@{$$self{register}}, [$parent, $value, $action]);
+    my ( $self, $parent, $value, $action ) = @_;
+    push( @{ $$self{register} }, [ $parent, $value, $action ] );
 }
 
-# Walk through the JSON hash and looks for changes from previous json hash if a 
+# Walk through the JSON hash and looks for changes from previous json hash if a
 # change is found, looks for children to notify and notifies them.
 
 sub compare_json {
-    my ($self, $json, $prev_json, $monitor_hash) = @_;
-    while (my ($key, $value) = each %{$json}) {
-        # Use empty hash reference is it doesn't exist      
+    my ( $self, $json, $prev_json, $monitor_hash ) = @_;
+    while ( my ( $key, $value ) = each %{$json} ) {
+
+        # Use empty hash reference is it doesn't exist
         my $prev_value = {};
         $prev_value = $$prev_json{$key} if exists $$prev_json{$key};
         my $monitior_value = {};
         $monitior_value = $$monitor_hash{$key} if exists $$monitor_hash{$key};
-        if ('HASH' eq ref $value) {
-            $self->compare_json($value, $prev_value, $monitior_value);
+        if ( 'HASH' eq ref $value ) {
+            $self->compare_json( $value, $prev_value, $monitior_value );
         }
-        elsif ($value ne $prev_value && ref $monitior_value eq 'ARRAY') {
-            for my $action (@{$monitior_value}){
-                &$action($key,$value);
+        elsif ( $value ne $prev_value && ref $monitior_value eq 'ARRAY' ) {
+            for my $action ( @{$monitior_value} ) {
+                &$action( $key, $value );
             }
         }
-    }    
+    }
 }
 
 # Converts the names in the register hash to IDs, and then puts them into
@@ -593,14 +613,25 @@ sub compare_json {
 
 sub convert_to_ids {
     my ($self) = @_;
-    for my $array_ref (@{$$self{register}}){
-        my ($parent, $value, $action) = @{$array_ref};
+    for my $array_ref ( @{ $$self{register} } ) {
+        my ( $parent, $value, $action ) = @{$array_ref};
         my $device_id = $parent->device_id();
-        if ($$parent{type} ne '') {
-            push(@{$$self{monitor}{data}{$$parent{class}}{$$parent{type}}{$device_id}{$value}},$action);
+        if ( $$parent{type} ne '' ) {
+            push(
+                @{
+                    $$self{monitor}{data}{ $$parent{class} }{ $$parent{type} }
+                      {$device_id}{$value}
+                },
+                $action
+            );
         }
         else {
-            push(@{$$self{monitor}{data}{$$parent{class}}{$device_id}{$value}},$action);  
+            push(
+                @{
+                    $$self{monitor}{data}{ $$parent{class} }{$device_id}{$value}
+                },
+                $action
+            );
         }
     }
     delete $$self{register};
@@ -627,7 +658,7 @@ C<Generic_Item>
 
 =cut
 
-@Nest_Generic::ISA = ('Generic_Item', 'Nest');
+@Nest_Generic::ISA = ( 'Generic_Item', 'Nest' );
 
 =head2 METHODS
 
@@ -649,15 +680,16 @@ Creates a new Nest_Generic.
 =cut
 
 sub new {
-    my ($class, $interface, $parent, $monitor_hash) = @_;
+    my ( $class, $interface, $parent, $monitor_hash ) = @_;
     my $self = new Generic_Item();
     bless $self, $class;
     $$self{interface} = $interface;
-    $$self{parent} = $parent;
-    $$self{parent} = $self if ($$self{parent} eq '');
-    while (my ($monitor_value, $action) = each %{$monitor_hash}){
-        my $action = sub {$self->data_changed(@_);} if $action eq '';
-        $$self{interface}->register($$self{parent}, $monitor_value, $action);
+    $$self{parent}    = $parent;
+    $$self{parent}    = $self if ( $$self{parent} eq '' );
+    while ( my ( $monitor_value, $action ) = each %{$monitor_hash} ) {
+        my $action = sub { $self->data_changed(@_); }
+          if $action eq '';
+        $$self{interface}->register( $$self{parent}, $monitor_value, $action );
     }
     return $self;
 }
@@ -672,20 +704,24 @@ sub device_id {
     my ($self) = @_;
     my $type_hash;
     my $parent = $$self{parent};
-    if ($$self{type} ne '') {
-        $type_hash = $$self{interface}{JSON}{data}{$$self{class}}{$$self{type}};
+    if ( $$self{type} ne '' ) {
+        $type_hash =
+          $$self{interface}{JSON}{data}{ $$self{class} }{ $$self{type} };
     }
     else {
-        $type_hash = $$self{interface}{JSON}{data}{$$self{class}};
+        $type_hash = $$self{interface}{JSON}{data}{ $$self{class} };
     }
-    for (keys %{$type_hash}){
-        my $device_id = $_;
+    for ( keys %{$type_hash} ) {
+        my $device_id   = $_;
         my $device_name = $$type_hash{$device_id}{name};
-        if ($$parent{name} eq $device_id || ($$parent{name} eq $device_name)) {
+        if ( $$parent{name} eq $device_id
+            || ( $$parent{name} eq $device_name ) )
+        {
             return $device_id;
         }
     }
-    $self->debug("ERROR, no device by the name " . $$parent{name} . " was found.");
+    $self->debug(
+        "ERROR, no device by the name " . $$parent{name} . " was found." );
     return 0;
 }
 
@@ -698,17 +734,17 @@ More sophisticated children can hijack this method to do more complex tasks.
 =cut
 
 sub data_changed {
-    my ($self, $value_name, $new_value) = @_;
-    my ($setby, $response);
-    $self->debug("Data changed called $value_name, $new_value", $info);
-    if (defined $$self{parent}{state_pending}{$value_name}){
-        ($setby, $response) = @{$$self{parent}{state_pending}{$value_name}};
+    my ( $self, $value_name, $new_value ) = @_;
+    my ( $setby, $response );
+    $self->debug( "Data changed called $value_name, $new_value", $info );
+    if ( defined $$self{parent}{state_pending}{$value_name} ) {
+        ( $setby, $response ) = @{ $$self{parent}{state_pending}{$value_name} };
         delete $$self{parent}{state_pending}{$value_name};
     }
     else {
         $setby = $$self{interface};
     }
-    $self->set_receive($new_value, $setby, $response);
+    $self->set_receive( $new_value, $setby, $response );
 }
 
 =item C<set_receive()>
@@ -718,8 +754,8 @@ Handles setting the state of the object inside MisterHouse
 =cut
 
 sub set_receive {
-    my ($self, $p_state, $p_setby, $p_response) = @_;
-    $self->SUPER::set($p_state, $p_setby, $p_response);
+    my ( $self, $p_state, $p_setby, $p_response ) = @_;
+    $self->SUPER::set( $p_state, $p_setby, $p_response );
 }
 
 =item C<get_value($value)>
@@ -729,13 +765,15 @@ Returns the JSON data contained in value for this device.
 =cut
 
 sub get_value {
-    my ($self, $value) = @_;
+    my ( $self, $value ) = @_;
     my $device_id = $self->device_id;
-    if ($$self{type} ne '') {
-        return $$self{interface}{JSON}{data}{$$self{class}}{$$self{type}}{$device_id}{$value};
+    if ( $$self{type} ne '' ) {
+        return $$self{interface}{JSON}{data}{ $$self{class} }{ $$self{type} }
+          {$device_id}{$value};
     }
     else {
-        return $$self{interface}{JSON}{data}{$$self{class}}{$device_id}{$value};
+        return $$self{interface}{JSON}{data}{ $$self{class} }{$device_id}
+          {$value};
     }
 }
 
@@ -802,16 +840,16 @@ Creates a new Nest_Generic.
 =cut
 
 sub new {
-    my ($class, $name, $interface, $scale) = @_;
+    my ( $class, $name, $interface, $scale ) = @_;
     $scale = lc($scale);
-    $scale = "f" unless ($scale eq "c");
+    $scale = "f" unless ( $scale eq "c" );
     my $monitor_value = "ambient_temperature_" . $scale;
-    my $self = new Nest_Generic($interface, '', {$monitor_value=>''});
+    my $self = new Nest_Generic( $interface, '', { $monitor_value => '' } );
     bless $self, $class;
-    $$self{class} = 'devices', 
-    $$self{type} = 'thermostats',
-    $$self{name} = $name,
-    $$self{scale} = $scale;
+    $$self{class}   = 'devices',
+      $$self{type}  = 'thermostats',
+      $$self{name}  = $name,
+      $$self{scale} = $scale;
     return $self;
 }
 
@@ -823,7 +861,7 @@ Returns the current ambient temperature.
 
 sub get_temp {
     my ($self) = @_;
-    return $self->get_value("ambient_temperature_" . $$self{scale});
+    return $self->get_value( "ambient_temperature_" . $$self{scale} );
 }
 
 =item C<get_heat_sp()>
@@ -834,7 +872,7 @@ Returns the current heat setpoint for the combined heat-cool mode.
 
 sub get_heat_sp {
     my ($self) = @_;
-    return $self->get_value("target_temperature_high_" . $$self{scale});
+    return $self->get_value( "target_temperature_high_" . $$self{scale} );
 }
 
 =item C<get_cool_sp()>
@@ -845,7 +883,7 @@ Returns the current cool setpoint for the combined heat-cool mode.
 
 sub get_cool_sp {
     my ($self) = @_;
-    return $self->get_value("target_temperature_low_" . $$self{scale});
+    return $self->get_value( "target_temperature_low_" . $$self{scale} );
 }
 
 =item C<get_target_sp()>
@@ -857,7 +895,7 @@ combined heat-cool mode uses its own functions.
 
 sub get_target_sp {
     my ($self) = @_;
-    return $self->get_value("target_temperature_" . $$self{scale});
+    return $self->get_value( "target_temperature_" . $$self{scale} );
 }
 
 =item C<get_mode()>
@@ -889,14 +927,14 @@ Sets the fan state to $state, must be [true,false].
 =cut
 
 sub set_fan_state {
-    my ($self, $state, $p_setby, $p_response) = @_;
+    my ( $self, $state, $p_setby, $p_response ) = @_;
     $state = lc($state);
-    if ($state ne 'true' && $state ne 'false'){
+    if ( $state ne 'true' && $state ne 'false' ) {
         $self->debug("set_fan_state must be true or false");
         return;
     }
-    $$self{interface}->write_data($self, 'fan_timer_active', $state);
-    $$self{state_pending}{fan_timer_active} = [$p_setby, $p_response];
+    $$self{interface}->write_data( $self, 'fan_timer_active', $state );
+    $$self{state_pending}{fan_timer_active} = [ $p_setby, $p_response ];
 }
 
 =item C<set_target_temp($state, $p_setby, $p_response)>
@@ -906,14 +944,14 @@ Sets the target temp for the heat or cool mode to $state.
 =cut
 
 sub set_target_temp {
-    my ($self, $state, $p_setby, $p_response) = @_;
-    unless ($state =~ /^\d+(\.\d+)?$/){
+    my ( $self, $state, $p_setby, $p_response ) = @_;
+    unless ( $state =~ /^\d+(\.\d+)?$/ ) {
         $self->debug("set_target_temp must be a number");
         return;
     }
     my $value = 'target_temperature_' . $$self{scale};
-    $$self{interface}->write_data($self, $value, $state);
-    $$self{state_pending}{$value} = [$p_setby, $p_response];
+    $$self{interface}->write_data( $self, $value, $state );
+    $$self{state_pending}{$value} = [ $p_setby, $p_response ];
 }
 
 =item C<set_target_temp_high($state, $p_setby, $p_response)>
@@ -923,14 +961,14 @@ Sets the heat target temp for the combined heat-cool mode to $state.
 =cut
 
 sub set_target_temp_high {
-    my ($self, $state, $p_setby, $p_response) = @_;
-    unless ($state =~ /^\d+(\.\d+)?$/){
+    my ( $self, $state, $p_setby, $p_response ) = @_;
+    unless ( $state =~ /^\d+(\.\d+)?$/ ) {
         $self->debug("set_target_temp_high must be a number");
         return;
     }
     my $value = 'target_temperature_high_' . $$self{scale};
-    $$self{interface}->write_data($self, $value, $state);
-    $$self{state_pending}{$value} = [$p_setby, $p_response];
+    $$self{interface}->write_data( $self, $value, $state );
+    $$self{state_pending}{$value} = [ $p_setby, $p_response ];
 }
 
 =item C<set_target_temp_low($state, $p_setby, $p_response)>
@@ -940,14 +978,14 @@ Sets the cool target temp for the combined heat-cool mode to $state.
 =cut
 
 sub set_target_temp_low {
-    my ($self, $state, $p_setby, $p_response) = @_;
-    unless ($state =~ /^\d+(\.\d+)?$/){
+    my ( $self, $state, $p_setby, $p_response ) = @_;
+    unless ( $state =~ /^\d+(\.\d+)?$/ ) {
         $self->debug("set_target_temp_low must be a number");
         return;
     }
     my $value = 'target_temperature_low_' . $$self{scale};
-    $$self{interface}->write_data($self, $value, $state);
-    $$self{state_pending}{$value} = [$p_setby, $p_response];
+    $$self{interface}->write_data( $self, $value, $state );
+    $$self{state_pending}{$value} = [ $p_setby, $p_response ];
 }
 
 =item C<set_hvac_mode($state, $p_setby, $p_response)>
@@ -957,14 +995,20 @@ Sets the mode to $state, must be [heat,cool,heat-cool,off]
 =cut
 
 sub set_hvac_mode {
-    my ($self, $state, $p_setby, $p_response) = @_;
+    my ( $self, $state, $p_setby, $p_response ) = @_;
     $state = lc($state);
-    if ($state ne 'heat' && $state ne 'cool' && $state ne 'heat-cool' && $state ne 'off'){
-        $self->debug("set_hvac_mode must be one of: heat, cool, heat-cool, or off. Not $state.");
+    if (   $state ne 'heat'
+        && $state ne 'cool'
+        && $state ne 'heat-cool'
+        && $state ne 'off' )
+    {
+        $self->debug(
+            "set_hvac_mode must be one of: heat, cool, heat-cool, or off. Not $state."
+        );
         return;
     }
-    $$self{state_pending}{hvac_mode} = [$p_setby, $p_response];
-    $$self{interface}->write_data($self, 'hvac_mode', $state);
+    $$self{state_pending}{hvac_mode} = [ $p_setby, $p_response ];
+    $$self{interface}->write_data( $self, 'hvac_mode', $state );
 }
 
 #Oddity, the humidity is listed on the Nest website, but there is no
@@ -1005,29 +1049,27 @@ use strict;
 @Nest_Thermo_Fan::ISA = ('Nest_Generic');
 
 sub new {
-    my ($class, $parent) = @_;
-    my $self = new Nest_Generic(
-        $$parent{interface}, 
-        $parent,
-        {'fan_timer_active'=>''}
-    );
-    $$self{states} = ['on','off'];
+    my ( $class, $parent ) = @_;
+    my $self =
+      new Nest_Generic( $$parent{interface}, $parent,
+        { 'fan_timer_active' => '' } );
+    $$self{states} = [ 'on', 'off' ];
     bless $self, $class;
     return $self;
 }
 
 sub set_receive {
-    my ($self, $p_state, $p_setby, $p_response) = @_;
+    my ( $self, $p_state, $p_setby, $p_response ) = @_;
     my $state = "on";
-    $state = "off" if ($p_state eq 'false');
-    $self->SUPER::set($state, $p_setby, $p_response);
+    $state = "off" if ( $p_state eq 'false' );
+    $self->SUPER::set( $state, $p_setby, $p_response );
 }
 
 sub set {
-    my ($self, $p_state, $p_setby, $p_response) = @_;
-    $p_state = "true" if (lc($p_state) eq 'on');
-    $p_state = "false" if (lc($p_state) eq 'off');
-    $$self{parent}->set_fan_state($p_state,$p_setby,$p_response);
+    my ( $self, $p_state, $p_setby, $p_response ) = @_;
+    $p_state = "true"  if ( lc($p_state) eq 'on' );
+    $p_state = "false" if ( lc($p_state) eq 'off' );
+    $$self{parent}->set_fan_state( $p_state, $p_setby, $p_response );
 }
 
 package Nest_Thermo_Leaf;
@@ -1060,21 +1102,18 @@ use strict;
 @Nest_Thermo_Leaf::ISA = ('Nest_Generic');
 
 sub new {
-    my ($class, $parent) = @_;
-    my $self = new Nest_Generic(
-        $$parent{interface}, 
-        $parent,
-        {'has_leaf'=>''}
-    );
+    my ( $class, $parent ) = @_;
+    my $self =
+      new Nest_Generic( $$parent{interface}, $parent, { 'has_leaf' => '' } );
     bless $self, $class;
     return $self;
 }
 
 sub set_receive {
-    my ($self, $p_state, $p_setby, $p_response) = @_;
+    my ( $self, $p_state, $p_setby, $p_response ) = @_;
     my $state = "on";
-    $state = "off" if ($p_state eq 'false');
-    $self->SUPER::set($state, $p_setby, $p_response);
+    $state = "off" if ( $p_state eq 'false' );
+    $self->SUPER::set( $state, $p_setby, $p_response );
 }
 
 package Nest_Thermo_Mode;
@@ -1108,21 +1147,18 @@ use strict;
 @Nest_Thermo_Mode::ISA = ('Nest_Generic');
 
 sub new {
-    my ($class, $parent) = @_;
-    my $self = new Nest_Generic(
-        $$parent{interface}, 
-        $parent,
-        {'hvac_mode'=>''}
-    );
-    $$self{states} = ['heat', 'cool', 'heat-cool', 'off'];
+    my ( $class, $parent ) = @_;
+    my $self =
+      new Nest_Generic( $$parent{interface}, $parent, { 'hvac_mode' => '' } );
+    $$self{states} = [ 'heat', 'cool', 'heat-cool', 'off' ];
     bless $self, $class;
     return $self;
 }
 
 sub set {
-    my ($self, $p_state, $p_setby, $p_response) = @_;
-    $self->debug("Setting $p_state, $p_setby, $p_response", $info);
-    $$self{parent}->set_hvac_mode($p_state,$p_setby,$p_response);
+    my ( $self, $p_state, $p_setby, $p_response ) = @_;
+    $self->debug( "Setting $p_state, $p_setby, $p_response", $info );
+    $$self{parent}->set_hvac_mode( $p_state, $p_setby, $p_response );
 }
 
 =head1 B<Nest_Thermo_Target>
@@ -1155,27 +1191,25 @@ use strict;
 @Nest_Thermo_Target::ISA = ('Nest_Generic');
 
 sub new {
-    my ($class, $parent) = @_;
+    my ( $class, $parent ) = @_;
     my $scale = $$parent{scale};
-    my $self = new Nest_Generic(
-        $$parent{interface}, 
-        $parent,
-        {'target_temperature_' . $scale => ''}
-    );
-    $$self{states} = ['cooler','warmer'];
+    my $self =
+      new Nest_Generic( $$parent{interface}, $parent,
+        { 'target_temperature_' . $scale => '' } );
+    $$self{states} = [ 'cooler', 'warmer' ];
     bless $self, $class;
     return $self;
 }
 
 sub set {
-    my ($self, $p_state, $p_setby, $p_response) = @_;
-    if (lc($p_state) eq 'warmer') {
+    my ( $self, $p_state, $p_setby, $p_response ) = @_;
+    if ( lc($p_state) eq 'warmer' ) {
         $p_state = $$self{parent}->get_target_sp + 1;
     }
-    elsif (lc($p_state) eq 'cooler') {
+    elsif ( lc($p_state) eq 'cooler' ) {
         $p_state = $$self{parent}->get_target_sp - 1;
     }
-    $$self{parent}->set_target_temp($p_state,$p_setby,$p_response);
+    $$self{parent}->set_target_temp( $p_state, $p_setby, $p_response );
 }
 
 =head1 B<Nest_Thermo_Target_High>
@@ -1208,27 +1242,25 @@ use strict;
 @Nest_Thermo_Target_High::ISA = ('Nest_Generic');
 
 sub new {
-    my ($class, $parent) = @_;
+    my ( $class, $parent ) = @_;
     my $scale = $$parent{scale};
-    my $self = new Nest_Generic(
-        $$parent{interface}, 
-        $parent,
-        {'target_temperature_high_' . $scale => ''}
-    );
-    $$self{states} = ['cooler','warmer'];
+    my $self =
+      new Nest_Generic( $$parent{interface}, $parent,
+        { 'target_temperature_high_' . $scale => '' } );
+    $$self{states} = [ 'cooler', 'warmer' ];
     bless $self, $class;
     return $self;
 }
 
 sub set {
-    my ($self, $p_state, $p_setby, $p_response) = @_;
-    if (lc($p_state) eq 'warmer') {
+    my ( $self, $p_state, $p_setby, $p_response ) = @_;
+    if ( lc($p_state) eq 'warmer' ) {
         $p_state = $$self{parent}->get_heat_sp + 1;
     }
-    elsif (lc($p_state) eq 'cooler') {
+    elsif ( lc($p_state) eq 'cooler' ) {
         $p_state = $$self{parent}->get_heat_sp - 1;
     }
-    $$self{parent}->set_target_temp_high($p_state,$p_setby,$p_response);
+    $$self{parent}->set_target_temp_high( $p_state, $p_setby, $p_response );
 }
 
 =head1 B<Nest_Thermo_Target_Low>
@@ -1261,27 +1293,25 @@ use strict;
 @Nest_Thermo_Target_Low::ISA = ('Nest_Generic');
 
 sub new {
-    my ($class, $parent) = @_;
+    my ( $class, $parent ) = @_;
     my $scale = $$parent{scale};
-    my $self = new Nest_Generic(
-        $$parent{interface}, 
-        $parent,
-        {'target_temperature_low_' . $scale => ''}
-    );
-    $$self{states} = ['cooler','warmer'];
+    my $self =
+      new Nest_Generic( $$parent{interface}, $parent,
+        { 'target_temperature_low_' . $scale => '' } );
+    $$self{states} = [ 'cooler', 'warmer' ];
     bless $self, $class;
     return $self;
 }
 
 sub set {
-    my ($self, $p_state, $p_setby, $p_response) = @_;
-    if (lc($p_state) eq 'warmer') {
+    my ( $self, $p_state, $p_setby, $p_response ) = @_;
+    if ( lc($p_state) eq 'warmer' ) {
         $p_state = $$self{parent}->get_cool_sp + 1;
     }
-    elsif (lc($p_state) eq 'cooler') {
+    elsif ( lc($p_state) eq 'cooler' ) {
         $p_state = $$self{parent}->get_cool_sp - 1;
     }
-    $$self{parent}->set_target_temp_low($p_state,$p_setby,$p_response);
+    $$self{parent}->set_target_temp_low( $p_state, $p_setby, $p_response );
 }
 
 =head1 B<Nest_Thermo_Away_High>
@@ -1314,13 +1344,11 @@ use strict;
 @Nest_Thermo_Away_High::ISA = ('Nest_Generic');
 
 sub new {
-    my ($class, $parent) = @_;
+    my ( $class, $parent ) = @_;
     my $scale = $$parent{scale};
-    my $self = new Nest_Generic(
-        $$parent{interface}, 
-        $parent,
-        {'away_temperature_high_' . $scale => ''}
-    );
+    my $self =
+      new Nest_Generic( $$parent{interface}, $parent,
+        { 'away_temperature_high_' . $scale => '' } );
     bless $self, $class;
     return $self;
 }
@@ -1355,13 +1383,11 @@ use strict;
 @Nest_Thermo_Away_Low::ISA = ('Nest_Generic');
 
 sub new {
-    my ($class, $parent) = @_;
+    my ( $class, $parent ) = @_;
     my $scale = $$parent{scale};
-    my $self = new Nest_Generic(
-        $$parent{interface}, 
-        $parent,
-        {'away_temperature_low_' . $scale => ''}
-    );
+    my $self =
+      new Nest_Generic( $$parent{interface}, $parent,
+        { 'away_temperature_low_' . $scale => '' } );
     bless $self, $class;
     return $self;
 }
@@ -1426,44 +1452,48 @@ Creates a new Nest_Generic.
 =cut
 
 sub new {
-    my ($class, $name, $interface) = @_;
-    my $self = new Nest_Generic($interface, '', {
-                            'co_alarm_state'=>'',
-                            'smoke_alarm_state'=>'',
-                            'battery_health'=>''
-                        });
+    my ( $class, $name, $interface ) = @_;
+    my $self = new Nest_Generic(
+        $interface,
+        '',
+        {
+            'co_alarm_state'    => '',
+            'smoke_alarm_state' => '',
+            'battery_health'    => ''
+        }
+    );
     bless $self, $class;
-    $$self{class} = 'devices', 
-    $$self{type} = 'smoke_co_alarms',
-    $$self{name} = $name,
-    return $self;
+    $$self{class}  = 'devices',
+      $$self{type} = 'smoke_co_alarms',
+      $$self{name} = $name,
+      return $self;
 }
 
 sub data_changed {
-    my ($self, $value_name, $new_value) = @_;
-    $self->debug("Data changed called $value_name, $new_value", $info);
+    my ( $self, $value_name, $new_value ) = @_;
+    $self->debug( "Data changed called $value_name, $new_value", $info );
     $$self{$value_name} = $new_value;
     my $state = '';
-    if ($$self{co_alarm_state} eq 'emergency'){
+    if ( $$self{co_alarm_state} eq 'emergency' ) {
         $state .= 'Emergency - CO Detected - move to fresh air';
     }
-    if ($$self{smoke_alarm_state} eq 'emergency'){
+    if ( $$self{smoke_alarm_state} eq 'emergency' ) {
         $state .= " / " if $state ne '';
         $state .= 'Emergency - Smoke Detected - move to fresh air';
     }
-    if ($$self{co_alarm_state} eq 'warning'){
+    if ( $$self{co_alarm_state} eq 'warning' ) {
         $state .= " / " if $state ne '';
         $state .= 'Warning - CO Detected';
     }
-    if ($$self{smoke_alarm_state} eq 'warning'){
+    if ( $$self{smoke_alarm_state} eq 'warning' ) {
         $state .= " / " if $state ne '';
         $state .= 'Warning - Smoke Detected';
     }
-    if ($$self{battery_health} eq 'replace'){
+    if ( $$self{battery_health} eq 'replace' ) {
         $state .= " / " if $state ne '';
         $state .= 'Battery Low - replace soon';
     }
-    $state = 'ok' if ($state eq '');
+    $state = 'ok' if ( $state eq '' );
     $self->set_receive($state);
 }
 
@@ -1560,13 +1590,13 @@ Creates a new Nest_Generic.
 =cut
 
 sub new {
-    my ($class, $name, $interface) = @_;
-    my $self = new Nest_Generic($interface, '', {'away'=>''});
+    my ( $class, $name, $interface ) = @_;
+    my $self = new Nest_Generic( $interface, '', { 'away' => '' } );
     bless $self, $class;
-    $$self{class} = 'structures', 
-    $$self{type} = '',
-    $$self{name} = $name,
-    $$self{states} = ['home','away'];
+    $$self{class}    = 'structures',
+      $$self{type}   = '',
+      $$self{name}   = $name,
+      $$self{states} = [ 'home', 'away' ];
     return $self;
 }
 
@@ -1589,21 +1619,20 @@ all devices inside this structure to change to the set state.
 =cut
 
 sub set_away_status {
-    my ($self, $state, $p_setby, $p_response) = @_;
+    my ( $self, $state, $p_setby, $p_response ) = @_;
     $state = lc($state);
-    if ($state ne 'home' && $state ne 'away'){
+    if ( $state ne 'home' && $state ne 'away' ) {
         $self->debug("set_away_status must be either home or away.");
         return;
     }
-    $$self{interface}->write_data($self, 'away', $state);
-    $$self{state_pending}{away} = [$p_setby, $p_response];
+    $$self{interface}->write_data( $self, 'away', $state );
+    $$self{state_pending}{away} = [ $p_setby, $p_response ];
 }
 
 sub set {
-    my ($self, $p_state, $p_setby, $p_response) = @_;
-    $self->set_away_status($p_state,$p_setby,$p_response);
+    my ( $self, $p_state, $p_setby, $p_response ) = @_;
+    $self->set_away_status( $p_state, $p_setby, $p_response );
 }
-
 
 #I did not add high level support for the ETA feature, although it can be
 #set using the low level write_data function with a bit of work

@@ -1,3 +1,4 @@
+
 =head1 B<SchoolDays>
 
 =head2 SYNOPSIS
@@ -40,7 +41,6 @@ use Time::Local;
 
 package SchoolDays;
 
-
 =item C<new>
 
 Initialize with school name, session dates, and exceptions
@@ -48,107 +48,123 @@ Initialize with school name, session dates, and exceptions
 =cut
 
 sub new {
-    my ($class, $school, $school_terms, $school_inset, $logging) = @_;
+    my ( $class, $school, $school_terms, $school_inset, $logging ) = @_;
     my $self = {};
-    my ($term, $inset);
+    my ( $term, $inset );
 
     bless $self;
 
-    $self->{class} = $class;
-    $self->{school} = $school;
+    $self->{class}   = $class;
+    $self->{school}  = $school;
     $self->{logging} = $logging;
-    $self->{terms} = [];
-    $self->{insets} = [];
+    $self->{terms}   = [];
+    $self->{insets}  = [];
 
     $self->_log("new: $school, $school_terms, $school_inset, $logging");
 
     # Load Term dates
-    foreach (split(",", $school_terms)) {
-	my ($start,$finish) = split("-");
+    foreach ( split( ",", $school_terms ) ) {
+        my ( $start, $finish ) = split("-");
 
-	push @{$self->{terms}}, [ $self->_convert_to_ISO8601_date($start),
-				  $self->_convert_to_ISO8601_date($finish) ];
+        push @{ $self->{terms} },
+          [
+            $self->_convert_to_ISO8601_date($start),
+            $self->_convert_to_ISO8601_date($finish)
+          ];
     }
-   
+
     # Load inset dates
-    foreach (split(",", $school_inset)) {
+    foreach ( split( ",", $school_inset ) ) {
 
-	if (m/-/) {
-	    my ($start,$finish) = split("-");
+        if (m/-/) {
+            my ( $start, $finish ) = split("-");
 
-	    push @{$self->{insets}}, [ $self->_convert_to_ISO8601_date($start),
-				       $self->_convert_to_ISO8601_date($finish) ];
-	} else {
-	    my $date = $self->_convert_to_ISO8601_date($_);
+            push @{ $self->{insets} },
+              [
+                $self->_convert_to_ISO8601_date($start),
+                $self->_convert_to_ISO8601_date($finish)
+              ];
+        }
+        else {
+            my $date = $self->_convert_to_ISO8601_date($_);
 
-	    push @{$self->{insets}}, [ $date, $date ];
-	}
+            push @{ $self->{insets} }, [ $date, $date ];
+        }
     }
 
     $self->_log("Term dates:");
-    foreach (@{$self->{terms}}) {
-	my ($start, $finish) = @{$_};
-	
-	$self->_log("\t" . $self->_hr_date($start) . " - " . $self->_hr_date($finish));
+    foreach ( @{ $self->{terms} } ) {
+        my ( $start, $finish ) = @{$_};
+
+        $self->_log(
+            "\t" . $self->_hr_date($start) . " - " . $self->_hr_date($finish) );
     }
     $self->_log("In-session breaks:");
-    foreach (@{$self->{insets}}) {
-	my ($start, $finish) = @{$_};
+    foreach ( @{ $self->{insets} } ) {
+        my ( $start, $finish ) = @{$_};
 
-	if ($start eq $finish) {
-	    $self->_log("\t" . $self->_hr_date($start));
-	} else {
-	    $self->_log("\t" . $self->_hr_date($start) . " - " . $self->_hr_date($finish));
-	}
+        if ( $start eq $finish ) {
+            $self->_log( "\t" . $self->_hr_date($start) );
+        }
+        else {
+            $self->_log( "\t"
+                  . $self->_hr_date($start) . " - "
+                  . $self->_hr_date($finish) );
+        }
     }
 
     return $self;
 }
 
-
 #---------------------------------------------
 sub _convert_to_ISO8601_date {
-    my ($self, $date) = @_;
+    my ( $self, $date ) = @_;
 
     $self->_log("convert: $date");
 
-    my ($y,$m,$d);
-    my ($yyyy,$mm,$dd);
+    my ( $y,    $m,  $d );
+    my ( $yyyy, $mm, $dd );
 
-    if ($main::config_parms{"date_format"} =~ /ddmm/) {
-	($d,$m,$y) = split("/",$date);
-    } else {
-	($m,$d,$y) = split("/",$date);
+    if ( $main::config_parms{"date_format"} =~ /ddmm/ ) {
+        ( $d, $m, $y ) = split( "/", $date );
+    }
+    else {
+        ( $m, $d, $y ) = split( "/", $date );
     }
 
-    if (length($m) == 1) {
-	$mm = "0".$m;
-    } else {
-	$mm = $m;
+    if ( length($m) == 1 ) {
+        $mm = "0" . $m;
+    }
+    else {
+        $mm = $m;
     }
 
-    if (length($d) == 1) {
-	$dd = "0".$d;
-    } else {
-	$dd = $d;
+    if ( length($d) == 1 ) {
+        $dd = "0" . $d;
+    }
+    else {
+        $dd = $d;
     }
 
-    if (!defined $y) {
-	$yyyy = $main::Year;
-    } else {
-	$yyyy = $y if length($y) == 4;
-	$yyyy = "20".$y if length($y) == 2;     # This will *only* work until 2099.
+    if ( !defined $y ) {
+        $yyyy = $main::Year;
+    }
+    else {
+        $yyyy = $y if length($y) == 4;
+        $yyyy = "20" . $y
+          if length($y) == 2;    # This will *only* work until 2099.
     }
 
     # 1 Hour into the day
-    if ($main::config_parms{"date_format"} =~ /ddmm/) {
-	$self->_log("convert out = $dd/$mm/$yyyy");
-    } else {
-	$self->_log("convert out = $mm/$dd/$yyyy");
+    if ( $main::config_parms{"date_format"} =~ /ddmm/ ) {
+        $self->_log("convert out = $dd/$mm/$yyyy");
+    }
+    else {
+        $self->_log("convert out = $mm/$dd/$yyyy");
     }
 
     #Months are 0..11
-    return Time::Local::timelocal(0, 0, 1, $dd, $mm-1, $yyyy);
+    return Time::Local::timelocal( 0, 0, 1, $dd, $mm - 1, $yyyy );
 }
 
 =item C<_get_epoch_date>
@@ -161,10 +177,11 @@ sub _get_epoch_date {
     my ($self) = @_;
     my $iso_date;
 
-    if ($main::config_parms{"date_format"} =~ /ddmm/) {
-		$iso_date = $main::Mday . "/" . $main::Month . "/" . $main::Year;
-    } else {
-		$iso_date = $main::Month . "/" . $main::Mday . "/" . $main::Year;
+    if ( $main::config_parms{"date_format"} =~ /ddmm/ ) {
+        $iso_date = $main::Mday . "/" . $main::Month . "/" . $main::Year;
+    }
+    else {
+        $iso_date = $main::Month . "/" . $main::Mday . "/" . $main::Year;
     }
 
     return $self->_convert_to_ISO8601_date($iso_date);
@@ -177,9 +194,9 @@ Return human readable date
 =cut
 
 sub _hr_date {
-    my ($self, $date) = @_;
+    my ( $self, $date ) = @_;
 
-    return POSIX::strftime("%d %b %Y", localtime($date));
+    return POSIX::strftime( "%d %b %Y", localtime($date) );
 }
 
 =item C<_log>
@@ -189,10 +206,10 @@ Log a message
 =cut
 
 sub _log {
-    my ($self, $msg) = @_;
+    my ( $self, $msg ) = @_;
 
-    if ($self->{logging}) {
-		main::print_log("$self->{class}: $self->{school} $msg");
+    if ( $self->{logging} ) {
+        main::print_log("$self->{class}: $self->{school} $msg");
     }
 }
 
@@ -203,7 +220,7 @@ Toggle logging
 =cut
 
 sub set_logging {
-    my ($self, $logging) = @_;
+    my ( $self, $logging ) = @_;
 
     $self->{logging} = $logging;
 
@@ -217,39 +234,41 @@ Is the supplied day a school day
 =cut
 
 sub is_schoolday {
-    my ($self, $testdate) = @_;
+    my ( $self, $testdate ) = @_;
 
-    # We can accept dd/mm/yy or an epoch number   
-    if ($testdate =~ /\//) {
-	$testdate = $self->_convert_to_ISO8601_date($testdate);
+    # We can accept dd/mm/yy or an epoch number
+    if ( $testdate =~ /\// ) {
+        $testdate = $self->_convert_to_ISO8601_date($testdate);
     }
-    $self->_log("is_schoolday($testdate, " . $self->_hr_date($testdate) . ")");
+    $self->_log(
+        "is_schoolday($testdate, " . $self->_hr_date($testdate) . ")" );
 
     # No school at the weekend
-    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($testdate);
-    if (($wday == 6) || ($wday == 0)) {
-	return 0;
+    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) =
+      localtime($testdate);
+    if ( ( $wday == 6 ) || ( $wday == 0 ) ) {
+        return 0;
     }
-      
+
     #Check term dates
-    foreach my $j (@{$self->{terms}}) {
-	my ($start, $finish) = @{$j};
+    foreach my $j ( @{ $self->{terms} } ) {
+        my ( $start, $finish ) = @{$j};
 
-	if (($testdate >= $start) and ($testdate <= $finish)) {
-	    $self->_log("\t is during a term");
+        if ( ( $testdate >= $start ) and ( $testdate <= $finish ) ) {
+            $self->_log("\t is during a term");
 
-	    # Now check if it's an inset day
-	    foreach my $k (@{$self->{insets}}) {
-		my ($start, $finish) = @{$k};
+            # Now check if it's an inset day
+            foreach my $k ( @{ $self->{insets} } ) {
+                my ( $start, $finish ) = @{$k};
 
-		if (($testdate >= $start) and ($testdate <= $finish)) {
-		    $self->_log("\t is during an in-session break");
-		    return 0;
-		}
-	    }
-	    $self->_log("\t is not during an in-session break");
-	    return 1;
-	}
+                if ( ( $testdate >= $start ) and ( $testdate <= $finish ) ) {
+                    $self->_log("\t is during an in-session break");
+                    return 0;
+                }
+            }
+            $self->_log("\t is not during an in-session break");
+            return 1;
+        }
     }
 
     $self->_log("\t is not during a term");
@@ -264,15 +283,15 @@ Is the supplied day a school night
 =cut
 
 sub is_schoolnight {
-    my ($self, $testdate) = @_;
-   
+    my ( $self, $testdate ) = @_;
+
     my $testdate_tomorrow;
-   
-    # We can accept dd/mm/yy or an epoch number   
-    if ($testdate =~ /\//) {
-		$testdate = $self->_convert_to_ISO8601_date($testdate);
+
+    # We can accept dd/mm/yy or an epoch number
+    if ( $testdate =~ /\// ) {
+        $testdate = $self->_convert_to_ISO8601_date($testdate);
     }
-   
+
     #Get tomorrows date
     $testdate += 86400;
 
@@ -289,7 +308,7 @@ Is today a school day?
 sub is_school_today {
     my ($self) = @_;
 
-    return $self->is_schoolday($self->_get_epoch_date());
+    return $self->is_schoolday( $self->_get_epoch_date() );
 }
 
 =item C<is_school_tomorrow>
@@ -301,7 +320,7 @@ Is tomorrow a school day?
 sub is_school_tomorrow {
     my ($self) = @_;
 
-    return $self->is_schoolnight($self->_get_epoch_date());
+    return $self->is_schoolnight( $self->_get_epoch_date() );
 }
 
 1;
