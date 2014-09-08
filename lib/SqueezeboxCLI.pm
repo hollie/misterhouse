@@ -190,6 +190,8 @@ sub new {
     $$self{sb_name}   = $name;
     $$self{interface} = $interface;
     $$self{interface}->add_player($self);
+    # Ensure we can turn the SB on and off
+	$self->addStates ('on', 'off');
     return $self;
 }
 
@@ -199,6 +201,7 @@ sub process_cli_response {
 
     if ( $response =~ /^power (\d)/ ) {
         $self->debug( $$self{object_name} . " power is " . $1 );
+        
     }
 }
 
@@ -208,9 +211,44 @@ Handles setting the state of the object inside MisterHouse
 
 =cut
 
-sub set_receive {
-    my ( $self, $p_state, $p_setby, $p_response ) = @_;
-    $self->SUPER::set( $p_state, $p_setby, $p_response );
+#sub set_receive {
+#    my ( $self, $p_state, $p_setby, $p_response ) = @_;
+#    $self->SUPER::set( $p_state, $p_setby, $p_response );
+#    $self->debug( $$self{object_name} . " setting from MH state to " . $p_state . " by " . $p_setby);
+#    print 'Test';
+#}
+
+=item C<default_setstate()>
+
+Handle state changes of the Squeezeboxes
+
+=cut
+
+sub default_setstate
+{
+    my ($self, $state, $substate, $set_by) = @_;
+    	
+    my $cmnd = ($state =~ /^off/i) ? 'stop' : 'play';
+    	
+    return -1 if ($self->state eq $state); # Don't propagate state unless it has changed.
+    $self->debug("[SqueezeboxCLI] Request " . $self->get_object_name . " turn " . $cmnd );
+        
+	if ($cmnd eq 'stop') {
+    	$$self{interface}{squeezecenter}->set($$self{sb_name} . ' power 0');
+	} else {	
+	    $$self{interface}{squeezecenter}->set($$self{sb_name} . ' power 1');
+    }
+	
 }
 
+=item C<addStates()>
+
+Add states to the device
+
+=cut
+
+sub addStates {
+    my $self = shift;
+    push(@{$$self{states}}, @_) unless $self->{displayonly};
+}
 1;
