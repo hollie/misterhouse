@@ -949,8 +949,15 @@ sub _parse_data {
         		        # it is unlikely that d1-d3 would be identical.
         		        # However, that seems sloppy.  For the time being
         		        # simply mark PLM aldb as unhealthy, and move on.
-
-        		        $self->_aldb->health('out-of-sync');
+                                if (ref $self->active_message && $self->active_message->success_callback){
+                                        # This is LIKELY a delete in response to a MH
+                                        # request.  This is a bad way to check for
+                                        # this, but not sure what else to do.
+                                        # As a result, don't change health status
+                                }
+                                else {
+        		                $self->_aldb->health('out-of-sync');
+                                }
         		}
 
         		#Run success callback if it exists
