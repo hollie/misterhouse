@@ -926,6 +926,14 @@ sub _parse_data {
         		my $device_object = Insteon::get_object($link_address);
         		$device_object->devcat(substr($message_data,10,4));
         		$device_object->firmware(substr($message_data,14,2));
+
+        		#Insert the record into MH cache of the PLM's link table
+        		my $data1 = substr($device_object->devcat, 0, 2);
+        		my $data2 = substr($device_object->devcat, 2, 2);
+        		my $data3 = $device_object->firmware;
+        		$self->_aldb->add_link_to_hash('E2', '00', '1', $link_address, $data1, $data2, $data3);
+
+        		#Run success callback if it exists
         		if (ref $self->active_message) {
         		        if ($self->active_message->success_callback){
 	        			main::print_log("[Insteon::Insteon_PLM] DEBUG4: Now calling message success callback: "
