@@ -19,7 +19,7 @@
 
 =cut
 
-use JSON qw( decode_json );
+use JSON::PP (); # Do not import any functions as it could conflict with the JSON imported functions from other locations in the code
 
 # noloop=start
 my $mhdl_url = "https://api.github.com/repos/hollie/misterhouse/tags";
@@ -102,7 +102,7 @@ if (said $v_mhdl_page) {
 if (done_now $p_mhdl_page) {
     my @html = file_read($mhdl_file);
     print_log("Download page retrieved");
-    my $json = decode_json( @html );
+    my $json = JSON::PP::decode_json( @html ); # Use the PP version of the call as otherwise this function fails at least on OS X 10.9.4 with Perl 5.18.2
     my ($mhdl_date_url, $maj, $min);
     foreach (@{$json}) {
     	next unless $_->{name} =~ m/^v(\d+)\.(\d+)/;
@@ -129,7 +129,7 @@ if (done_now $p_mhdl_page) {
 if (done_now $p_mhdl_date_page) {
     my @html = file_read($mhdl_date_file);
     print_log("Download date page retrieved");
-    my $json = decode_json( @html );
+    my $json = JSON::PP::decode_json( @html );
     $Save{mhdl_date} = $json->{commit}{author}{date};
    if (defined $Save{mhdl_maj} and defined $Save{mhdl_min}) {
 	my ($maj,$min,$version_str) = &parse_version();
