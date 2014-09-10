@@ -931,7 +931,27 @@ sub _parse_data {
         		my $data1 = substr($device_object->devcat, 0, 2);
         		my $data2 = substr($device_object->devcat, 2, 2);
         		my $data3 = $device_object->firmware;
-        		$self->_aldb->add_link_to_hash('E2', '00', '1', $link_address, $data1, $data2, $data3);
+        		my $type = substr($message_data,0,2);
+        		my $group = substr($message_data,2,2);
+        		
+        		#Select type of link (00 - responder, 01 - master, ff - delete)
+        		if ($type eq '00'){
+        		        $self->_aldb->add_link_to_hash('A2', $group, '0', $link_address, $data1, $data2, $data3);
+        		}
+        		elsif ($type eq '01'){
+        		        $self->_aldb->add_link_to_hash('E2', $group, '1', $link_address, $data1, $data2, $data3);
+        		}
+        		elsif (lc($type) eq 'ff'){
+        		        # This is a delete request.
+        		        # The problem is that the message from the PLM
+        		        # does not identify whether the link deleted was
+        		        # a responder or controller.  We could guess, b/c
+        		        # it is unlikely that d1-d3 would be identical.
+        		        # However, that seems sloppy.  For the time being
+        		        # simply mark PLM aldb as unhealthy, and move on.
+
+        		        $self->_aldb->health('out-of-sync');
+        		}
 
         		#Run success callback if it exists
         		if (ref $self->active_message) {
@@ -1009,7 +1029,7 @@ sub _parse_data {
         		&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($data)) 
         		        if $self->debuglevel(4, 'insteon');
         		main::print_log("[Insteon_PLM] Detected PLM user reset to factory defaults");
-        		
+        		$self->_aldb->health('out-of-sync');
         		$data = substr($data, 4);
         	}
                 elsif ($record_type eq $prefix{all_link_clean_status} and (length($data) >= 6)) { 

@@ -2861,10 +2861,11 @@ sub add_link
 
 =item C<add_link_to_hash()>
 
-This is used by the C<Insteon::BaseInterface::link_to_interface_i2cs> routine.
-This routine manually adds a record to MH's cache of the PLM ALDB.  Normally
-you only want to add records during a scan of the ALDB, so use this routine 
-with caution.
+This is used in response to an all_link_complete command received by the PLM.
+This may be from the C<Insteon::BaseInterface::link_to_interface_i2cs> routine, 
+or it may be as a result of a manual link creation. This routine manually adds 
+a record to MH's cache of the PLM ALDB.  Normally you only want to add records 
+during a scan of the ALDB, so use this routine with caution.
 
 =cut
 
