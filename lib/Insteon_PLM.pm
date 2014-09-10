@@ -1039,6 +1039,19 @@ sub _parse_data {
         		$self->_aldb->health('out-of-sync');
         		$data = substr($data, 4);
         	}
+        	elsif ($record_type eq $prefix{plm_reset} and (length($data) >= 6)) {
+        		&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($data)) 
+        		        if $self->debuglevel(4, 'insteon');
+        		if (substr($data,4,2) eq '06'){
+        		        ::print_log("[Insteon_PLM] Received ACK to software reset request");
+        		        $self->_aldb->health('out-of-sync');
+        		}
+        		else {
+        		        ::print_log("[Insteon_PLM] ERROR Received NACK to software reset request");
+        		}
+        		
+        		$data = substr($data, 6);
+        	}
                 elsif ($record_type eq $prefix{all_link_clean_status} and (length($data) >= 6)) { 
                         #ALL-Link Cleanup Status Report
                         my $message_data = substr($data,4,2);
