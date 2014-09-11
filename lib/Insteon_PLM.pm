@@ -381,8 +381,8 @@ sub scan_link_table
 {
 	my ($self,$callback, $failure, $skip_unchanged) = @_;
 	#$$self{links} = undef; # clear out the old
-	if ($skip_unchanged || $self->_aldb->health =~ /(empty)|(good)/) {
-	        ::print_log('[Scan Link Tables] - PLM Link Table is good, skipping.');
+	if ($skip_unchanged && $self->_aldb->health =~ /(empty)|(unchanged)/) {
+	        ::print_log('[Scan Link Tables] - PLM Link Table is unchanged, skipping.');
 		package main;
 		eval ($callback);
 		&::print_log("[Insteon_PLM] WARN1: Error encountered during scan callback: " . $@)
@@ -772,11 +772,11 @@ sub _parse_data {
                                 	$self->_aldb->health("empty");
                                 }
                                 else {
-                                	$self->_aldb->health("good");
+                                	$self->_aldb->health("unchanged");
                                 }
                                 $self->_aldb->scandatetime(&main::get_tickcount);
         			&::print_log("[Insteon_PLM] " . $self->get_object_name 
-        				. " completed link memory scan: status: " . $self->_aldb->health())
+        				. " completed link memory scan. Status: " . $self->_aldb->health())
         				if $self->debuglevel(1, 'insteon');
         			if ($$self{_mem_callback}) {
         				my $callback = $$self{_mem_callback};
@@ -967,7 +967,7 @@ sub _parse_data {
                                         # As a result, don't change health status
                                 }
                                 else {
-        		                $self->_aldb->health('out-of-sync');
+        		                $self->_aldb->health('changed');
                                 }
         		}
 
@@ -1047,7 +1047,7 @@ sub _parse_data {
         		&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($data)) 
         		        if $self->debuglevel(4, 'insteon');
         		main::print_log("[Insteon_PLM] Detected PLM user reset to factory defaults");
-        		$self->_aldb->health('out-of-sync');
+        		$self->_aldb->health('changed');
         		$data = substr($data, 4);
         	}
         	elsif ($record_type eq $prefix{plm_reset} and (length($data) >= 6)) {
@@ -1055,7 +1055,7 @@ sub _parse_data {
         		        if $self->debuglevel(4, 'insteon');
         		if (substr($data,4,2) eq '06'){
         		        ::print_log("[Insteon_PLM] Received ACK to software reset request");
-        		        $self->_aldb->health('out-of-sync');
+        		        $self->_aldb->health('changed');
         		}
         		else {
         		        ::print_log("[Insteon_PLM] ERROR Received NACK to software reset request");

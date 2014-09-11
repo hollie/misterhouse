@@ -63,7 +63,7 @@ sub aldb_version
 	return $$self{aldb_version};
 }
 
-=item C<health([out-of-sync|unknown|empty|good])>
+=item C<health([changed|unknown|empty|unchanged])>
 
 Used to track the health of MisterHouse's copy of a device's ALDB.
 
@@ -82,11 +82,7 @@ sub health
 
 =item C<get_linkkey($deviceid, $group, $is_controller, $data3)>
 
-Used to track the health of MisterHouse's copy of a device's ALDB.
-
-If provided, saves status to memory.
-
-Returns the saved health status.
+Returns the key in the ALDB hash that identifies this link.
 
 =cut
 
@@ -164,9 +160,9 @@ sub query_aldb_delta
 {
         my ($self, $action) = @_;
         $$self{aldb_delta_action} = $action;
-        if ($action eq "check" && $self->health ne "good" && $self->health ne "empty"){
+        if ($action eq "check" && $self->health ne "unchanged" && $self->health ne "empty"){
 		&::print_log("[Insteon::AllLinkDatabase] WARN The link table for "
-			. $self->{device}->get_object_name . " is out-of-sync.");
+			. $self->{device}->get_object_name . " has changed.");
 		if (defined $self->{_aldb_changed_callback}) {
 			package main;
 			my $callback = $self->{_aldb_changed_callback};
@@ -314,7 +310,7 @@ sub scan_link_table
 	$$self{_mem_activity} = 'scan';
 	$$self{_success_callback} = ($success_callback) ? $success_callback : undef;
 	$$self{_failure_callback} = ($failure_callback) ? $failure_callback : undef;
-	$self->health('out-of-sync'); # allow acknowledge to set otherwise
+	$self->health('changed'); # allow acknowledge to set otherwise
 	if($self->isa('Insteon::ALDB_i1')) {
 		$self->_peek('0FF8',0);
 	} else {
@@ -441,7 +437,7 @@ sub delete_orphan_links
 	my $selfname = $$self{device}->get_object_name;
 
 	# first, make sure that the health of ALDB is ok
-	if ($self->health ne 'good' || ($$self{device}->is_deaf && $is_batch_mode)) {
+	if ($self->health ne 'unchanged' || ($$self{device}->is_deaf && $is_batch_mode)) {
 		my $sent_to_failure = 0;
 		if ($$self{device}->is_deaf) {
 			::print_log("[Insteon::AllLinkDatabase] Will not delete ".
@@ -452,7 +448,7 @@ sub delete_orphan_links
 			::print_log("[Insteon::AllLinkDatabase] Skipping $selfname, because it has no links");
 		}
 		else {
-			::print_log("[Insteon::AllLinkDatabase] Delete orphan links: skipping $selfname because health: "
+			::print_log("[Insteon::AllLinkDatabase] Delete orphan links: skipping $selfname because the link table is: "
 				. $self->health . ". Please rescan the link table of this device and rerun delete "
 				. "orphans if necessary");
 			#log the failure
@@ -607,10 +603,10 @@ sub delete_orphan_links
 		}
 		
 		# Do not delete links to unhealthy devices 
-		if ($linked_device->_aldb->health ne 'good' && $linked_device->_aldb->health ne 'empty') {
+		if ($linked_device->_aldb->health ne 'unchanged' && $linked_device->_aldb->health ne 'empty') {
 			$delete_req{skip} = "$selfname -- Skipping check for reciprocal links on "
-				. $linked_device->get_object_name . " because aldb health of that device is "
-				. $linked_device->_aldb->health . ". Please rescan this device.";
+				. $linked_device->get_object_name . " because link table of that device has "
+				. $linked_device->_aldb->health . ". Please rescan the link table on this device.";
 			next LINKKEY;
 		}
 		
@@ -1047,7 +1043,7 @@ sub log_alllink_table
 
 	&::print_log("[Insteon::AllLinkDatabase] Link table for "
         	. $$self{device}->get_object_name
-                . " health: " . $self->health);
+                . " is: " . $self->health);
 
 	# We want to log links sorted by ALDB address. Since the ALDB
 	# addresses are scattered throughout the %{$$self{aldb}} hash,
@@ -1084,7 +1080,7 @@ sub log_alllink_table
 	}
 
 	# Finally traverse the ALDB, but this time sorted by ALDB address
-        if ($self->health eq 'good')
+        if ($self->health eq 'unchanged')
         {
 		foreach my $address (sort keys %aldb)
            	{
@@ -1164,7 +1160,7 @@ sub log_alllink_table
         }
         else
         {
-		main::print_log("[Insteon::AllLinkDatabase] ALDB is ".$self->health." and will not be listed");
+		main::print_log("[Insteon::AllLinkDatabase] The link table is ".$self->health." and will not be listed");
         }
 }
 
@@ -1334,11 +1330,11 @@ sub _on_poke
 				$$self{aldb}{$aldbkey}{deviceid} = lc $$self{pending_aldb}{deviceid};
 				$$self{aldb}{$aldbkey}{group} = lc $$self{pending_aldb}{group};
 				$$self{aldb}{$aldbkey}{address} = $$self{pending_aldb}{address};
-				$self->health("good");
+				$self->health("unchanged");
 			}
 			# clear out mem_activity flag
 			$$self{_mem_activity} = undef;
-			$self->health("good");
+			$self->health("unchanged");
 			# Put the new ALDB Delta into memory
 			$self->query_aldb_delta('set');
 		}
@@ -1388,7 +1384,7 @@ sub _on_poke
 							$$self{pending_aldb}{data3});
 			delete $$self{aldb}{$key};
 		}
-		$self->health("good");
+		$self->health("unchanged");
 		# Put the new ALDB Delta into memory
 		$self->query_aldb_delta('set');
 	}
@@ -1502,12 +1498,12 @@ sub _on_peek
 					}
                                         else
                                         {
-                                        	$self->health("good");
+                                        	$self->health("unchanged");
                                         }
 
 					&::print_log("[Insteon::ALDB_i1] " . $$self{device}->get_object_name . " completed link memory scan")
 						if $self->{device}->debuglevel(1, 'insteon');
-					$self->health("good");
+					$self->health("unchanged");
 					# Put the new ALDB Delta into memory
 					$self->query_aldb_delta('set');
 				}
@@ -2138,13 +2134,13 @@ sub on_read_write_aldb
 				}
 				else
 				{
-					$self->health("good");
+					$self->health("unchanged");
 				}
 
 				&::print_log("[Insteon::ALDB_i2] " . $$self{device}->get_object_name 
-					. " completed link memory scan: status: " . $self->health())
+					. " completed link memory scan.  Status: " . $self->health())
 					if $self->{device}->debuglevel(1, 'insteon');
-				$self->health("good");
+				$self->health("unchanged");
 				# Put the new ALDB Delta into memory
 				$self->query_aldb_delta('set');
 			}
@@ -2218,7 +2214,7 @@ sub on_read_write_aldb
 			main::print_log("[Insteon::ALDB_i2] DEBUG3: " . $$self{device}->get_object_name 
 				. " link write completed for [".$$self{aldb}{$aldbkey}{address}."]")
 				if $self->{device}->debuglevel(3, 'insteon');
-			$self->health("good");
+			$self->health("unchanged");
 			# Put the new ALDB Delta into memory
 			$self->query_aldb_delta('set');
 		} else {
@@ -2236,7 +2232,7 @@ sub on_read_write_aldb
 							$$self{pending_aldb}{data3});
 				delete $$self{aldb}{$key};
 			}
-			$self->health("good");
+			$self->health("unchanged");
 			# Put the new ALDB Delta into memory
 			$self->query_aldb_delta('set');
 		}
@@ -2604,7 +2600,7 @@ Sends the request for the first alllink entry on the PLM.
 sub get_first_alllink
 {
 	my ($self) = @_;
-        $self->health('out-of-sync'); # set as corrupt and allow acknowledge to set otherwise
+        $self->health('changed'); # set as corrupt and allow acknowledge to set otherwise
 	$$self{device}->queue_message(new Insteon::InsteonMessage('all_link_first_rec', $$self{device}));
 }
 
@@ -2702,7 +2698,7 @@ sub _process_delete_queue_failure {
 	push @{$$self{_delete_device_failures}}, $$self{current_delete_device};
 	::print_log("[Insteon::ALDB_PLM] WARN: failure occurred when deleting orphan links from: "
 			. $$self{current_delete_device} . ".  Moving on...");
-	$self->health('out-of-sync');
+	$self->health('changed');
 	$self->_process_delete_queue;
 
 }
@@ -2850,7 +2846,7 @@ sub add_link
 		$$self{aldb}{$linkkey}{data2} = lc $data2;
 		$$self{aldb}{$linkkey}{data3} = lc $data3;
 		$$self{aldb}{$linkkey}{inuse} = 1;
-		$self->health('good') if($self->health() eq 'empty');
+		$self->health('unchanged') if($self->health() eq 'empty');
                 my $message =  new Insteon::InsteonMessage('all_link_manage_rec', $$self{device});
                 $message->interface_data($cmd);
 		$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
@@ -2882,7 +2878,7 @@ sub add_link_to_hash {
 	$$self{aldb}{$linkkey}{data2} = lc $data2;
 	$$self{aldb}{$linkkey}{data3} = lc $data3;
 	$$self{aldb}{$linkkey}{inuse} = 1;
-	$self->health('good') if($self->health() eq 'empty');
+	$self->health('unchanged') if($self->health() eq 'empty');
 	return;
 }
 
