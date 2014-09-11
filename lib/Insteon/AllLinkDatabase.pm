@@ -2702,6 +2702,7 @@ sub _process_delete_queue_failure {
 	push @{$$self{_delete_device_failures}}, $$self{current_delete_device};
 	::print_log("[Insteon::ALDB_PLM] WARN: failure occurred when deleting orphan links from: "
 			. $$self{current_delete_device} . ".  Moving on...");
+	$self->health('out-of-sync');
 	$self->_process_delete_queue;
 
 }

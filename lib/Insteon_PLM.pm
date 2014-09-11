@@ -379,12 +379,23 @@ Causes MisterHouse to scan the link table of the PLM only.
 
 sub scan_link_table
 {
-	my ($self,$callback) = @_;
+	my ($self,$callback, $failure, $skip_unchanged) = @_;
 	#$$self{links} = undef; # clear out the old
-        $$self{aldb} = new Insteon::ALDB_PLM($self);
-	$$self{_mem_activity} = 'scan';
-        $$self{_mem_callback} = ($callback) ? $callback : undef;
-	$self->_aldb->get_first_alllink();
+	if ($skip_unchanged || $self->_aldb->health =~ /(empty)|(good)/) {
+	        ::print_log('[Scan Link Tables] - PLM Link Table is good, skipping.');
+		package main;
+		eval ($callback);
+		&::print_log("[Insteon_PLM] WARN1: Error encountered during scan callback: " . $@)
+			if $@ and $self->debuglevel(1, 'insteon');
+		package Insteon_PLM;
+	}
+	else {
+	        #ALDB Cache is unhealthy, or scan forced
+                $$self{aldb} = new Insteon::ALDB_PLM($self);
+        	$$self{_mem_activity} = 'scan';
+                $$self{_mem_callback} = ($callback) ? $callback : undef;
+        	$self->_aldb->get_first_alllink();
+	}
 }
 
 =item C<initiate_linking_as_controller([p_group])>
