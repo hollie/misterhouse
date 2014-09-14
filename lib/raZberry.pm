@@ -338,9 +338,13 @@ sub set {
    		$self->{level} = $p_state;
    		my $n_state;
    		if ($p_state == 100) {
-   		   $n_state = "ON";
+   		   $n_state = "on";
    		} elsif ($p_state == 0) {
-   		   $n_state = "OFF" 
+   		   $n_state = "off";
+   		} elsif ($p_state == 25) {
+   		   $n_state = "low"; 
+   		} elsif ($p_state == 50) {
+   		   $n_state = "med"; 
    		} else {
    		   $n_state .= "$p_state%";
    		}
