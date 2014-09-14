@@ -13,16 +13,32 @@ preparations need to be done to get the code up and running:
 
 Create the Squeezebox devices in the mht file or in user code:
 
+Note: [parameters] are optional.
+
 .mht file:
 
   CODE, require SqueezeboxCLI; #noloop 
-  CODE, $sb_living  = new SqueezeboxCLI('living', <server_name>); #noloop
-  CODE, $sb_kitchen = new SqueezeboxCLI('kitchen', <servername>); #noloop
+  CODE, $squeezecenter = new SqueezeboxCLI_Interface('hostname'); #noloop 
+  CODE, $sb_living  = new SqueezeboxCLI('living', $squeezecenter, [coupled_device], [auto_off_time]); #noloop
+  CODE, $sb_kitchen = new SqueezeboxCLI('kitchen', $squeezecenter, [coupled_device], [auto_off_time]); #noloop
+  
+Optional parameters:
+
+=over
+
+=item you can add a 'coupled device' to the Squeezebox. You would typically use this
+when you want to switch the amplifier together with the Squeezebox. Couple a device with:
+  CODE, $sb_living->couple_device($amplifier_living);
+
+=item you can set an 'auto-off' time in minutes. When the player gets paused, you can define after how many minutes is should be turned off completely.
+This is useful when you have defined a coupled device to avoid the amplifier to be on for too long after a playlist is paused.
+
+=back
 
 =head2 OVERVIEW
 
-This module allows control over a player through the telnet command line interface of
-the server.
+This module allows to control and to monitor the state over a player through the telnet 
+command line interface of the server.
 
 =cut
 
@@ -127,7 +143,6 @@ sub check_for_data {
                 $self->debug( "Adding $player_name to the MAC lookup", 2 );
                 $$self{players_mac}{$player_mac}
                     = $$self{players}{$player_name};
-                return;
             }
 
         }
@@ -167,6 +182,7 @@ sub add_player {
 
     # Determine the MAC address of the player by requesting the status
     $$self{squeezecenter}->set( $player->{sb_name} . " status" );
+
 }
 
 package SqueezeboxCLI_Player;
@@ -184,39 +200,82 @@ use URI::Escape;
 @SqueezeboxCLI_Player::ISA = ( 'Generic_Item', "SqueezeboxCLI" );
 
 sub new {
-    my ( $class, $name, $interface ) = @_;
+    my ( $class, $name, $interface, $coupled_device, $auto_off_time ) = @_;
     my $self = new Generic_Item();
     bless $self, $class;
-    $$self{sb_name}   = $name;
-    $$self{interface} = $interface;
+    $$self{sb_name}        = $name;
+    $$self{interface}      = $interface;
+    $$self{coupled_device} = $coupled_device || "";
+    $$self{auto_off_time}  = $auto_off_time || 0;
+    $$self{auto_off_timer} = new Timer;
     $$self{interface}->add_player($self);
+
     # Ensure we can turn the SB on and off
-	$self->addStates ('on', 'off');
+    $self->addStates( 'on', 'off' );
     return $self;
 }
 
 sub process_cli_response {
     my ( $self, $response ) = @_;
+
+    # Remove URI escape sequences
+    $response = uri_unescape($response);
+
+    # Ignore the following messages, we're currently not using them
+    return if ( $response =~ /^prefset/ );
+    return if ( $response =~ /^menustatus/ );
+
     $self->debug( $self->get_object_name() . ": processing $response", 2 );
 
-    if ( $response =~ /^power (\d)/ ) {
-        $self->debug( $$self{object_name} . " power is " . $1 );
-        
+    if ( $response =~ /power[:| ](\d)/ ) {
+        my $command = ( $1 == 1 ) ? 'ON' : 'OFF';
+        $self->set( $command, 'cli' );
+        $self->debug( $$self{object_name}
+                . " power is "
+                . $1
+                . " command is $command" );
+
+        # Turn off the coupled device immediately if the SB is turned off
+        if ( $$self{coupled_device} ne "" && $command eq 'OFF' ) {
+            $$self{coupled_device}->set($command);
+            $$self{auto_off_timer}->unset();
+        }
+
     }
+    if ( $response =~ /mixer volume[:| ](\d+)/ ) {
+        $$self{mixer_volume} = $1;
+        $self->debug( $$self{object_name} . " mixer volume is " . $1 );
+    }
+    if ( $response =~ /^pause (\d)/ || /mode[:| ]pause/ ) {
+
+        # If we are paused then maybe we need to fire the auto-off timer
+        if ( $1 == '1' ) {
+
+            # Don't auto-off if the setting is '0';
+            return if ( $$self{auto_off_time} == 0 );
+
+            # Otherwise program the auto-off timer
+            my $action = sub { $self->default_setstate('off'); };
+            $$self{auto_off_timer}
+                ->set( $$self{auto_off_time} * 60, $action );
+            $self->debug( $$self{object_name} . " auto-off timer set" );
+        }
+    }
+    if ( $response =~ /mode[:| ]play/ ) {
+
+# In case an auto-off timer is active we need to disable it when we start playing
+        $self->debug(
+            $$self{object_name} . " mode is playing, auto-timeoff cleared " );
+        $$self{auto_off_timer}->unset();
+
+        # Control the coupled device too if it is defined
+        if ( $$self{coupled_device} ne "" ) {
+            $$self{coupled_device}->set('on');
+        }
+
+    }
+
 }
-
-=item C<set_receive()>
-
-Handles setting the state of the object inside MisterHouse
-
-=cut
-
-#sub set_receive {
-#    my ( $self, $p_state, $p_setby, $p_response ) = @_;
-#    $self->SUPER::set( $p_state, $p_setby, $p_response );
-#    $self->debug( $$self{object_name} . " setting from MH state to " . $p_state . " by " . $p_setby);
-#    print 'Test';
-#}
 
 =item C<default_setstate()>
 
@@ -224,21 +283,31 @@ Handle state changes of the Squeezeboxes
 
 =cut
 
-sub default_setstate
-{
-    my ($self, $state, $substate, $set_by) = @_;
-    	
-    my $cmnd = ($state =~ /^off/i) ? 'stop' : 'play';
-    	
-    return -1 if ($self->state eq $state); # Don't propagate state unless it has changed.
-    $self->debug("[SqueezeboxCLI] Request " . $self->get_object_name . " turn " . $cmnd );
-        
-	if ($cmnd eq 'stop') {
-    	$$self{interface}{squeezecenter}->set($$self{sb_name} . ' power 0');
-	} else {	
-	    $$self{interface}{squeezecenter}->set($$self{sb_name} . ' power 1');
+sub default_setstate {
+    my ( $self, $state, $substate, $set_by ) = @_;
+
+    # If we're set by the CLI then we don't need to send out the command again
+    return -1 if ( $set_by eq 'cli' );
+
+    my $cmnd = ( $state =~ /^off/i ) ? 'stop' : 'play';
+
+    return -1
+        if ( $self->state eq $state )
+        ;    # Don't propagate state unless it has changed.
+    $self->debug( "[SqueezeboxCLI] Request "
+            . $self->get_object_name
+            . " turn "
+            . $cmnd
+            . ' after '
+            . $state );
+
+    if ( $cmnd eq 'stop' ) {
+        $$self{interface}{squeezecenter}->set( $$self{sb_name} . ' power 0' );
     }
-	
+    else {
+        $$self{interface}{squeezecenter}->set( $$self{sb_name} . ' power 1' );
+    }
+
 }
 
 =item C<addStates()>
@@ -249,6 +318,20 @@ Add states to the device
 
 sub addStates {
     my $self = shift;
-    push(@{$$self{states}}, @_) unless $self->{displayonly};
+    push( @{ $$self{states} }, @_ ) unless $self->{displayonly};
+}
+
+=item C<couple_device(amplifier)>
+
+Couple another MisterHouse object to the Squeezebox device so that this device follows the
+state of the Squeezebox. This can e.g. be used to switch an amplifier on when the
+Squeezebox starts playing.
+
+=cut
+
+sub couple_device {
+    my ( $self, $device ) = @_;
+
+    $$self{coupled_device} = $device;
 }
 1;
