@@ -175,7 +175,7 @@ sub query_aldb_delta
         } elsif ($action eq "check" && ((&main::get_tickcount - $self->scandatetime()) <= 2000)){
 		#if we just did a aldb_query less than 2 seconds ago, don't repeat
 		&::print_log("[Insteon::AllLinkDatabase] The link table for "
-			. $self->{device}->get_object_name . " is in sync.");
+			. $self->{device}->get_object_name . " is unchanged.");
 		#Further extend Scan Time in case of serial aldb requests
 		$self->scandatetime(&main::get_tickcount);
 		if (defined $self->{_aldb_unchanged_callback}) {
@@ -345,7 +345,7 @@ sub delete_link
 	$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
 	$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
 	if (!defined($link_parms{aldb_check}) && (!$$self{device}->isa('Insteon_PLM'))){
-		## Check whether ALDB is in sync
+		## Check whether ALDB has changed
 		$self->{callback_parms} = \%link_parms;
 		$$self{_aldb_unchanged_callback} = '&Insteon::AllLinkDatabase::delete_link('.$$self{device}->{object_name}."->_aldb, 'ok')";
 		$$self{_aldb_changed_callback} = '&Insteon::AllLinkDatabase::delete_link('.$$self{device}->{object_name}."->_aldb, 'fail')";
@@ -866,7 +866,7 @@ sub add_link
 	$$self{_success_callback} = ($link_parms{callback}) ? $link_parms{callback} : undef;
 	$$self{_failure_callback} = ($link_parms{failure_callback}) ? $link_parms{failure_callback} : undef;
 	if (!defined($link_parms{aldb_check}) && (!$$self{device}->isa('Insteon_PLM'))){
-		## Check whether ALDB is in sync
+		## Check whether ALDB has changed
 		$self->{callback_parms} = \%link_parms;
 		$$self{_aldb_unchanged_callback} = '&Insteon::AllLinkDatabase::add_link('.$$self{device}->{object_name}."->_aldb, 'ok')";
 		$$self{_aldb_changed_callback} = '&Insteon::AllLinkDatabase::add_link('.$$self{device}->{object_name}."->_aldb, 'fail')";
@@ -991,7 +991,7 @@ sub update_link
 	my $deviceid = $insteon_object->device_id;
 	my $key = $self->get_linkkey($deviceid, $group, $is_controller, $data3);
 	if (!defined($link_parms{aldb_check}) && (!$$self{device}->isa('Insteon_PLM'))){
-		## Check whether ALDB is in sync
+		## Check whether ALDB has changed
 		$self->{callback_parms} = \%link_parms;
 		$$self{_aldb_unchanged_callback} = '&Insteon::AllLinkDatabase::update_link('.$$self{device}->{object_name}."->_aldb, 'ok')";
 		$$self{_aldb_changed_callback} = '&Insteon::AllLinkDatabase::update_link('.$$self{device}->{object_name}."->_aldb, 'fail')";

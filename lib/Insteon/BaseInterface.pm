@@ -1013,7 +1013,7 @@ sub get_voice_cmds
         'plm - cancel linking' => "$object_name->cancel_linking",
         'plm - log links' => "$object_name->log_alllink_table",
         'plm - scan PLM link table' => "$object_name->scan_link_table(\"" . '\$self->log_alllink_table' . "\")",
-        'plm - scan changed device link tables' => "Insteon::scan_all_linktables(1)",
+        'global - scan changed device link tables' => "Insteon::scan_all_linktables(1)",
         'global - delete orphan links' => "$object_name->delete_orphan_links",
         'global - audit delete orphan links' => "$object_name->delete_orphan_links(1)",
         'global - force scan all device link tables' => "Insteon::scan_all_linktables",
