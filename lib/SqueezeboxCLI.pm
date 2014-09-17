@@ -209,6 +209,8 @@ sub new {
     $$self{auto_off_time}  = $auto_off_time || 0;
     $$self{auto_off_timer} = new Timer;
     $$self{interface}->add_player($self);
+    $$self{'notification_active'} = 0;
+    $$self{'notification_command_fired'} = 0;
 
     # Ensure we can turn the SB on and off
     $self->addStates( 'on', 'off' );
@@ -246,23 +248,24 @@ sub process_cli_response {
         $$self{mixer_volume} = $1;
         $self->debug( $$self{object_name} . " mixer volume is " . $1 );
     }
-    if ( $response =~ /^pause (\d)/ || /mode[:| ]pause/ ) {
+    if ( $response =~ /^pause 1/ || $response =~ /mode[:| ][pause|stop]/ ) {
+		$$self{mode} = 'pause';
+		
+    	# Don't auto-off if the setting is '0';
+        return if ( $$self{auto_off_time} == 0 );
+        
+        # Don't auto-off if we're already off
+        return if ( $self->state() eq 'OFF');
 
-        # If we are paused then maybe we need to fire the auto-off timer
-        if ( $1 == '1' ) {
-
-            # Don't auto-off if the setting is '0';
-            return if ( $$self{auto_off_time} == 0 );
-
-            # Otherwise program the auto-off timer
-            my $action = sub { $self->default_setstate('off'); };
-            $$self{auto_off_timer}
-                ->set( $$self{auto_off_time} * 60, $action );
-            $self->debug( $$self{object_name} . " auto-off timer set" );
-        }
+        # Otherwise program the auto-off timer
+        my $action = sub { $self->default_setstate('off', 'timer'); };
+        $$self{auto_off_timer}
+            ->set( $$self{auto_off_time} * 60, $action );
+        $self->debug( $$self{object_name} . " auto-off timer set" );
+        
     }
     if ( $response =~ /mode[:| ]play/ ) {
-
+		$$self{mode} = 'play';
 # In case an auto-off timer is active we need to disable it when we start playing
         $self->debug(
             $$self{object_name} . " mode is playing, auto-timeoff cleared " );
@@ -273,6 +276,29 @@ sub process_cli_response {
             $$self{coupled_device}->set('on');
         }
 
+    }
+    if ( $response =~ /playlist repeat[:| ](\d)/) {
+    	$$self{repeat} = $1;
+    	$self->debug(
+            $$self{object_name} . " repeat mode is $1" );
+    }
+    if ( $response =~ /time (\d+.?\d+?)/) {
+    	$$self{'time'} = $1;
+    	$self->debug(
+            $$self{object_name} . " time is $1" );    	
+    }
+    
+    # Restore the SB status when the notification is finisched playing
+    if ( $response =~ /playlist stop/ && $$self{notification_active}) {
+    	$$self{notification_active} = 0;
+	    $self->restore_sb_state();
+    }
+    
+    # We need this to know when the notification is loaded, then the next 'done' means
+    # the notification is done. This way we don't need to poll and hence stall MisterHouse
+    if ( $response =~ /playlist load_done/ && $$self{notification_command_fired}) {
+    	$$self{notification_active} = 1;
+    	$$self{notification_command_fired} = 0;
     }
 
 }
@@ -294,18 +320,18 @@ sub default_setstate {
     return -1
         if ( $self->state eq $state )
         ;    # Don't propagate state unless it has changed.
-    $self->debug( "[SqueezeboxCLI] Request "
+    $self->debug( "Request "
             . $self->get_object_name
             . " turn "
             . $cmnd
             . ' after '
             . $state );
 
-    if ( $cmnd eq 'stop' ) {
-        $$self{interface}{squeezecenter}->set( $$self{sb_name} . ' power 0' );
+    if ( $state =~ /^off/i ) {
+        $self->send_cmd( $$self{sb_name} . ' power 0' );
     }
     else {
-        $$self{interface}{squeezecenter}->set( $$self{sb_name} . ' power 1' );
+        $self->send_cmd( $$self{sb_name} . ' power 1' );
     }
 
 }
@@ -333,5 +359,98 @@ sub couple_device {
     my ( $self, $device ) = @_;
 
     $$self{coupled_device} = $device;
+}
+
+=item C<play_notification(notification)>
+
+Play a notification on this squeezebox. The notification can either be a file or an URL.
+This function stops the current playback, plays the notification and then returns the
+Squeezebox to the previous state. Credits to @rudybrian for writing the first version 
+of this code and his permission to re-use it!
+
+=cut
+
+sub play_notification {
+	my ( $self, $notification ) = @_;
+		
+	# Save the state
+	$self->save_sb_state();
+	
+	# Pause playback if required
+	if ($$self{mode} eq "play") {
+		$self->send_cmd("pause 1 1");
+	}
+	
+	# Get the current playback position
+	$self->send_cmd("time ?");
+	
+	# Save the current playlist
+	$self->send_cmd("playlist save prenotification_playlist");
+	
+	# Set the repeat to none
+	$self->send_cmd("playlist repeat 0");
+	
+	# Play notification
+	# Ensure we know we're playing a notification.
+	$$self{'notification_command_fired'} = 1;
+
+	$self->send_cmd("playlist play $notification");
+	#$self->send_cmd("mode play");
+	
+}
+
+=item C<save_sb_state> 
+
+Saves the current state of the Squeezebox so that it can be restored later
+
+=cut
+
+sub save_sb_state {
+	my $self = shift;
+	
+	$$self{'prev_state'}->{'mode'}   = $$self{'mode'};
+	$$self{'prev_state'}->{'state'}  = $self->state();
+	$$self{'prev_state'}->{'repeat'} = $$self{'repeat'};
+	$self->debug(
+            $$self{object_name} . " saved state to be: mode:" . $$self{'prev_state'}->{'mode'} . " state:" . $$self{'prev_state'}->{'state'} . " repeat:" .  $$self{'prev_state'}->{'repeat'}  );
+	
+}
+
+=item C<restore_sb_state> 
+
+Resume the Squeezebox state from the previously saved state
+
+=cut
+
+sub restore_sb_state {
+	my $self = shift;
+	
+	$self->debug(
+            $$self{object_name} . " restoring the SB state" );
+
+	# Restore playlist/mode
+	if ($$self{prev_state}->{'mode'} eq 'play') {
+		$self->send_cmd("playlist resume prenotification_playlist");
+		$self->send_cmd("time " . $$self{'time'});
+	} else {
+		$self->send_cmd("playlist resume prenotification_playlist noplay:1");
+	}
+	
+	# And restore repeat state
+	$self->send_cmd("playlist repeat " . $$self{'prev_state'}->{'repeat'});
+		
+}
+
+=item C<send_cmd(command)>
+
+Helper function to send a command to the squeezebox over the CLI
+
+=cut
+
+sub send_cmd {
+	my ($self, $cmd) = @_;
+	$$self{interface}{squeezecenter}->set( $$self{sb_name} . ' ' . $cmd );	
+	$self->debug(
+            $$self{object_name} . " sending command '$cmd'" );    
 }
 1;
