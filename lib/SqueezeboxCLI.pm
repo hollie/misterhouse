@@ -19,8 +19,8 @@ Note: [parameters] are optional.
 
   CODE, require SqueezeboxCLI; #noloop 
   CODE, $squeezecenter = new SqueezeboxCLI_Interface('hostname'); #noloop 
-  CODE, $sb_living  = new SqueezeboxCLI('living', $squeezecenter, [coupled_device], [auto_off_time]); #noloop
-  CODE, $sb_kitchen = new SqueezeboxCLI('kitchen', $squeezecenter, [coupled_device], [auto_off_time]); #noloop
+  CODE, $sb_living  = new SqueezeboxCLI_Player('living', $squeezecenter, [coupled_device], [auto_off_time]); #noloop
+  CODE, $sb_kitchen = new SqueezeboxCLI_Player('kitchen', $squeezecenter, [coupled_device], [auto_off_time]); #noloop
   
 Optional parameters:
 
@@ -158,7 +158,11 @@ sub check_for_data {
                 "Passing message to player '$1' for further processing", 4 );
 
             # Pass the message to the correct object for processing
-            $$self{players_mac}{$1}->process_cli_response($2);
+            # but only do this for players we're supposed to manage
+            my $player = $1;
+            if (defined $$self{players_mac}{$player}) {
+            	$$self{players_mac}{$player}->process_cli_response($2);
+            }
         }
         else {
             $self->debug("Received unknown text: $data");
