@@ -39,6 +39,7 @@ To play a file or URL from your user code you can use this function call:
 
 $sb_kitchen->play_notification('/Volumes/Media/speech/test1.wave');
 
+For additional debugging, add the option squeezeboxcli:3 to the 'debug' entry to your mh.ini.private file.
 
 =head2 OVERVIEW
 
@@ -273,8 +274,8 @@ sub process_cli_response {
                     . $self->state() );
         }
     }
-    if ( ( $response =~ /^pause 0/ ) ) {
-
+    if ( ( $response =~ /pause 0/ ) ) {
+		# Removed the /^ requirement because the classic player reports 'playlist pause 0' instead of 'pause 0' like the radio does
         # Request the current mode if pause is 0
         $self->send_cmd("mode ?");
     }
