@@ -408,7 +408,7 @@ sub play_notification {
     $self->send_cmd("time ?");
 
     # Save the current playlist
-    $self->send_cmd("playlist save prenotification_playlist");
+    $self->send_cmd("playlist save prenotification_playlist_" . $self{object_name});
 
     # Set the repeat to none
     $self->send_cmd("playlist repeat 0");
