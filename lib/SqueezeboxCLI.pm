@@ -301,11 +301,15 @@ sub process_cli_response {
     }
     if ( $response =~ /playlist repeat[:| ](\d)/ ) {
         $$self{repeat} = $1;
-        $self->debug( $$self{object_name} . " repeat mode is $1" );
+        $self->debug( $$self{object_name} . " repeat mode is $1", 3);
     }
     if ( $response =~ /time (\d+.\d+)/ ) {
         $$self{'time'} = $1;
-        $self->debug( $$self{object_name} . " time is $1" );
+        $self->debug( $$self{object_name} . " time is $1", 3);
+    }
+    if ( $response =~ /volume[:| ](\d+)/){
+    	$$self{'volume'} = $1;
+    	$self->debug( $$self{object_name} . " volume is $1", 3);
     }
 
     # Restore the SB status when the notification is finisched playing
@@ -389,20 +393,27 @@ sub couple_device {
     $$self{coupled_device} = $device;
 }
 
-=item C<play_notification(notification)>
+=item C<play_notification(notification, <optional_volume>)>
 
 Play a notification on this squeezebox. The notification can either be a file or an URL.
 This function stops the current playback, plays the notification and then returns the
 Squeezebox to the previous state. Credits to @rudybrian for writing the first version 
 of this code and his permission to re-use it!
 
+You can pass an extra parameter <volume> that is used for the notification.
+
 =cut
 
 sub play_notification {
-    my ( $self, $notification ) = @_;
+    my ( $self, $notification, $volume ) = @_;
 
     # Save the state
     $self->save_sb_state();
+    
+    # Modify the volume if required
+    if (defined $volume && ($volume > 0 && $volume < 100 )) {
+    	$self->send_cmd("mixer volume " . $volume);
+    }
 
     # Pause playback if required
     if ( $self->state() eq "play" ) {
@@ -439,6 +450,8 @@ sub save_sb_state {
 
     $$self{'prev_state'}->{'state'}  = $self->state();
     $$self{'prev_state'}->{'repeat'} = $$self{'repeat'};
+    $$self{'prev_state'}->{'volume'} = $$self{'volume'};
+    
     $self->debug( $$self{object_name}
             . " saved state to be: state:"
             . $$self{'prev_state'}->{'state'}
@@ -458,6 +471,9 @@ sub restore_sb_state {
 
     $self->debug( $$self{object_name} . " restoring the SB state" );
 
+	# Restore the volume
+	$self->send_cmd("mixer volume " . $$self{'prev_state'}->{'volume'});
+	
     # Restore playlist/mode
     if ( $$self{prev_state}->{'state'} eq 'play' ) {
         $self->send_cmd("playlist resume prenotification_playlist");
