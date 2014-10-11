@@ -198,8 +198,34 @@ use URI::Escape;
 
 @SqueezeboxCLI_Player::ISA = ( 'Generic_Item', "SqueezeboxCLI" );
 
+=item C<new(name, interface, amplifier, auto_off_time)>
+
+Creates a Squeezebox_Player object. The following parameter are required:
+
+=over
+
+=item name: the 'friendly' name of the squeezebox in squeezecenter. This parameter is used to link this object to the correct status messages in the CLI interface of squeezecenter
+
+=item interface: the object that is the CLI interface to assign this player to.
+
+=back
+
+The following parameters are optional
+
+=over
+
+=item amplifier: the object that needs to be enabled and disabled together with the squeezebox
+
+=item auto_off_time: the time (in minutes) the squeezebox and the optional attached amplifier should be turned off after a playlist has ended
+
+=item preheat_time: the time (in seconds) the amplifier should be turned on before a notification is played if the amplifier is off. This enables the amplifier to turn on and enable the speakers before the notification is played.
+
+=back
+
+=cut
+
 sub new {
-    my ( $class, $name, $interface, $coupled_device, $auto_off_time ) = @_;
+    my ( $class, $name, $interface, $coupled_device, $auto_off_time, $preheat_time ) = @_;
     my $self = new Generic_Item();
     bless $self, $class;
     $$self{sb_name}        = $name;
@@ -207,6 +233,8 @@ sub new {
     $$self{coupled_device} = $coupled_device || "";
     $$self{auto_off_time}  = $auto_off_time || 0;
     $$self{auto_off_timer} = new Timer;
+    $$self{preheat_time}   = $preheat_time || 0;
+    $$self{preheat_timer}  = new Timer;
     $$self{interface}->add_player($self);
     $$self{'notification_active'}        = 0;
     $$self{'notification_command_fired'} = 0;
@@ -215,6 +243,13 @@ sub new {
     $self->addStates( 'on', 'off', 'play', 'pause' );
     return $self;
 }
+
+=item C<process_cli_response()>
+
+Interprete the data that is received from the CLI interface. Called from the 
+gateway module.
+
+=cut
 
 sub process_cli_response {
     my ( $self, $response ) = @_;
@@ -402,11 +437,29 @@ of this code and his permission to re-use it!
 
 You can pass an extra parameter <volume> that is used for the notification.
 
+Note: currently this function does not support multiple notifications being pushed at the same time
+
 =cut
 
 sub play_notification {
+
     my ( $self, $notification, $volume ) = @_;
 
+	# If the amplifier is defined and it is not on and we need to preheat, let's do it
+	if ($$self{'coupled_device'} ne '' and $$self{'coupled_device'}->state() ne 'on' and $$self{'preheat_time'}) {
+	
+	    $self->debug( $$self{object_name}
+            . " Preheating the amplifier and delaying the notification. We'll be back when the speakers are on");
+            
+		# Turn on
+		$$self{coupled_device}->set('on');
+		
+		# Program timer to play the notification later
+        my $action = sub { $self->play_notification($notification, $volume); };
+        $$self{preheat_timer}->set( $$self{preheat_time}, $action );
+        return;
+	}
+	
     # Save the state
     $self->save_sb_state();
     
@@ -438,6 +491,46 @@ sub play_notification {
     #$self->send_cmd("mode play");
 
 }
+
+=item C<play(media, [volume])>
+
+Changes the playlist to a new media file
+
+Parameters are the media (a file or an URL) and optionally the volume at which to play the media.
+
+=cut
+
+sub play {
+	my ($self, $playlist, $volume) = @_;
+	
+	# Modify the volume if required
+    if (defined $volume && ($volume > 0 && $volume < 100 )) {
+    	$self->send_cmd("mixer volume " . $volume);
+    }
+
+	$self->send_cmd("playlist play $playlist");
+}
+
+=item C<play_playlist(name, [volume])>
+
+Changes the playlist to a new playlist. 
+
+Parameters are the playlist name and optionally the volume at which to play the media.
+
+=cut
+
+sub play_playlist {
+	my ($self, $playlist, $volume) = @_;
+	
+	# Modify the volume if required
+    if (defined $volume && ($volume > 0 && $volume < 100 )) {
+    	$self->send_cmd("mixer volume " . $volume);
+    }
+
+	$self->send_cmd("playlistcontrol cmd:load playlist_name:$playlist");
+	
+}
+
 
 =item C<save_sb_state> 
 
@@ -476,7 +569,7 @@ sub restore_sb_state {
 	
     # Restore playlist/mode
     if ( $$self{prev_state}->{'state'} eq 'play' ) {
-        $self->send_cmd("playlist resume prenotification_playlist");
+        $self->send_cmd("playlist resume prenotification_playlist_" . $$self{object_name});
         $self->send_cmd( "time " . $$self{'time'} );
     }
     else {
