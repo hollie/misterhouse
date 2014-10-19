@@ -288,7 +288,7 @@ sub process_cli_response {
         $$self{mixer_volume} = $1;
         $self->debug( $$self{object_name} . " mixer volume is " . $1 );
     }
-    if ( ( $response =~ /^pause 1/ || $response =~ /mode[:| ][pause|stop]/ )
+    if ( ( $response =~ /^pause 1/ || $response =~ /mode[:| ][pause|stop]/ || $response =~ /playlist stop/ )
         && $self->state() ne 'off' )
     {
         $self->debug( $$self{object_name}
