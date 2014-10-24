@@ -66,6 +66,20 @@ defined as the controller.
 
 Instructions for this object are contained in C<Insteon::IOLinc_sensor>.
 
+=head3 DOOR CHILD OBJECT
+
+IOLinc devices are often used to monitor/control doors such as garage doors (Smarthome
+has a full kit for this). The Insteon::IOLinc_door simplifies this use case by creating
+an object that has open/closed states, as well as sets the device to the proper
+Momentary_B mode.
+
+However, if you want to directly link an obect to the sensor 
+be sure to use the normal SCENE_MEMBER code in your mht file with the IOLinc
+defined as the controller.
+
+Instructions for this object are contained in C<Insteon::IOLinc_door>.
+
+
 =head2 NOTES
 
 This module works with the Insteon IOLinc device from Smarthome.  The EZIO device
