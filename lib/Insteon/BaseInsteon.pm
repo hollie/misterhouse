@@ -161,6 +161,9 @@ sub interface
 {
 	my ($self,$p_interface) = @_;
         if (defined $p_interface) {
+        	if (ref $p_interface ne 'Insteon_PLM'){
+        		$p_interface = ::get_object_by_name($p_interface);
+        	}
 		$$self{interface} = $p_interface;
         }
         elsif (!($$self{interface}))
