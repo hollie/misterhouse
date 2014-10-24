@@ -268,12 +268,12 @@ sub get_dev_status {
 }
 
 sub get_error_count {
-   my ($self) @_;
+   my ($self) = @_;
    return ($self->{data}->{retry});
 }
 
 sub reset_error_count {
-   my ($self) @_;
+   my ($self) = @_;
    $self->{data}->{retry} = 0;
 }
 
