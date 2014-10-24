@@ -14,76 +14,45 @@ In items.mht:
 
     TBD
     
-Turning on a device:
-
-    $io_device->set('on');
-
-Turning off a device:
-
-    $io_device->set('off');
-
-Requesting sensor status: 
-
-    $io_device->request_sensor_status();
-
-Print the Current Device Settings to the log:
-
-    $io_device->get_operating_flag();
-
 =head2 DESCRIPTION
 
-Support for the Insteon IOLinc.
+Support for the Rasberry PI raZberry GPIO card. Uses web services to poll connected
+device status, as well as control zwave items.
 
-The IOLinc is a strange device in that commands sent to it control one aspect
-of the device, but commands received from it are from another aspect of the
-device.
+The controller object itself doesn't do anything, it serves as the conduit to connect MH
+to the zwave network. The only real useful method is display_all_devices in which the razberry
+will echo all the devices that it knows about.
+
+=head3 NEW OBJECT
+
+To create a new object;
+
+  $mh_object = new raZberry('<IP address or hostname of raZberry','poll seconds')
+
+poll seconds defaults to 5, which seems to work well for me.
 
 =head3 LINKING
 
-As a result of the IOLinc's oddities, when the IOLinc is set as a controller
-of another device, that other device will be controlled by the sensor state.
-However, when the IOLinc is set as a responder in a link, the relay of the
-IOLinc will change with the commands sent by the controller.
+To add zwave devices to the raZberry just follow the raZberry user guide.
 
-=head3 STATE REPORTED IN MisterHouse
+=head3 CHILD OBJECTS
 
-MisterHouse objects are only designed to hold the state of a single aspect.  As a 
-result of the IOLinc's oddities, the $io_device defined using the examples above
-will track the state of the relay only.  The state of the sensor can be obtained
-using the C<request_sensor_status()> command.
-
-One more oddity is that using the "set" button on the side of the device to 
-change the state of the relay, will cause MH to perceive this as a change in 
-the state of the sensor, thus placing the sensor and relay objects out of sync.
-
-=head3 SENSOR STATE CHILD OBJECT
-
-To create a device that directly tracks the state of the sensor, you can use 
-C<Insteon::IOLinc_sensor>.  The state of the child object will reflect the state 
-of the sensor and it will be automatically updated as long as the IOLinc is 
-linked to the 
-
-However, if you want to directly link an obect to the sensor 
-be sure to use the normal SCENE_MEMBER code in your mht file with the IOLinc
-defined as the controller.
-
-Instructions for this object are contained in C<Insteon::IOLinc_sensor>.
-
-=head2 NOTES
-
-This module works with the Insteon IOLinc device from Smarthome.  The EZIO device
-uses a different set of commands and this code will offer only limited, if any
-support at all, for EZIO devices.
-
-The state that the relay is in when the device is linked to the PLM matters if
-you are using relay mode Momentary_A.
-
-=head2 BUGS
-
-#check that local control updates razberry. Might have to update devices @ poll time.
+The only child device is a dimmer module as I use the Leviton VRF01-1LZ fan controller
 
 
-=head2 METHODS
+Turning on a device:
+
+    $raz_dimmer->set('on');
+
+To help control fans there are also, low, med and high states.
+
+Turning off a device:
+
+    $raz_dimmer->set('off');
+
+To get the actual dim level:
+
+    $raz_dimmer->level;
 
 =over
 
@@ -100,8 +69,6 @@ use HTTP::Request::Common qw(POST);
 use JSON::XS;
 use Data::Dumper;
 
-#todo 
-# - dump_all_devices to see everything raZberry knows
 
 @raZberry::ISA = ('Generic_Item');
 
@@ -208,6 +175,7 @@ sub set_dev {
   	my ($isSuccessResponse1,$status) = _get_JSON_data($self, 'devices', $cmd);
     unless ($isSuccessResponse1) {
   			&main::print_log("[raZberry] Problem retrieving data from " . $self->{host});
+  			$self->{data}->{retry}++;
     		return ('0');
     	}
 
@@ -244,6 +212,7 @@ sub _get_JSON_data {
     $self->{updating} = 0;
     if (! $isSuccessResponse ) {
 	&main::print_log("[raZberry] Warning, failed to get data. Response code $responseCode");
+  	$self->{data}->{retry}++;
 	return ('0');
     }
     return ('1') if ($mode eq "force_update");
@@ -298,6 +267,16 @@ sub get_dev_status {
 
 }
 
+sub get_error_count {
+   my ($self) @_;
+   return ($self->{data}->{retry});
+}
+
+sub reset_error_count {
+   my ($self) @_;
+   $self->{data}->{retry} = 0;
+}
+
 sub register {
    my ($self, $object, $dev, $options ) = @_;
    &main::print_log("[raZberry] Registering Device ID $dev to controller"); 
@@ -318,7 +297,7 @@ sub new {
 
    my $self={};
    bless $self,$class;
-   push(@{$$self{states}}, 'off','low','med','on','10%', '20%', '30%','40%','50%','60%','70%','80%','90%');
+   push(@{$$self{states}}, 'off','low','med','high','on','10%', '20%', '30%','40%','50%','60%','70%','80%','90%');
 
    $$self{master_object} = $object;
    $$self{devid} = $devid;
@@ -341,10 +320,12 @@ sub set {
    		   $n_state = "on";
    		} elsif ($p_state == 0) {
    		   $n_state = "off";
-   		} elsif ($p_state == 25) {
+   		} elsif ($p_state == 5) {
    		   $n_state = "low"; 
    		} elsif ($p_state == 50) {
    		   $n_state = "med"; 
+     		} elsif ($p_state == 95) {
+   		   $n_state = "high"; 	
    		} else {
    		   $n_state .= "$p_state%";
    		}
@@ -355,9 +336,11 @@ sub set {
 	   if ((lc $p_state eq "off") or (lc $p_state eq "on")) {
            $$self{master_object}->set_dev($$self{devid},$p_state);
        } elsif (lc $p_state eq "low") {
-       	   $$self{master_object}->set_dev($$self{devid},"level=25");
+       	   $$self{master_object}->set_dev($$self{devid},"level=5");
        } elsif (lc $p_state eq "med") {
-       	   $$self{master_object}->set_dev($$self{devid},"level=50");
+       	   $$self{master_object}->set_dev($$self{devid},"level=55");
+        } elsif (lc $p_state eq "high") {
+       	   $$self{master_object}->set_dev($$self{devid},"level=95");  
        } elsif (($p_state eq "100%") or ($p_state =~ m/^\d{1,2}\%$/)) {
 			my ($n_state) = ($p_state =~ /(\d+)%/);
 			$$self{master_object}->set_dev($$self{devid},"level=$n_state");
