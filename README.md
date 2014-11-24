@@ -10,4 +10,3 @@ Perl open source home automation program. It's fun, it's free, and it's entirely
 
 * Active Development Repository - [GitHub hollie/misterhouse](https://github.com/hollie/misterhouse)
 
-The MisterHouse wiki with more information is located here: http://misterhouse.wikispaces.com/
