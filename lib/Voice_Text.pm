@@ -451,7 +451,8 @@ sub speak_text {
         my $google_file = "$main::config_parms{data_dir}/mh_temp.google-$random.mp3";
 
         # Make the request, store the result in the google temp file
-        my $ua_request = HTTP::Request->new('GET' => "http://translate.google.com/translate_tts?tl=en&q=".qq[ $parms{text} ]);
+        my $language = ($main::config_parms{language}) ? lc($main::config_parms{language}) : "en";
+        my $ua_request = HTTP::Request->new('GET' => "http://translate.google.com/translate_tts?tl=$language&q=".qq[ $parms{text} ]);
         my $ua_response = $ua->request($ua_request, $google_file);
 
         # Log the failure
@@ -461,11 +462,12 @@ sub speak_text {
         }
 
         # Convert the returned mp3 file to a wav, and clean up the temp file
-        system("ffmpeg", "-loglevel", "panic", "-i", "$google_file", "$out_file");
+        my $sound_converter = ($main::config_parms{sound_converter}) ? $main::config_parms{sound_converter} : "ffmpeg";
+        system($sound_converter, '-v', 'panic', '-i', $google_file, $out_file);
         unlink($google_file);
 
         # Play the wav file, clean up only if we are not being forced to file
-        system($main::config_parms{sound_program}, $out_file) unless $parms{to_file};
+        system("$main::config_parms{sound_program} $out_file") unless $parms{to_file};
         unlink($out_file) unless $parms{to_file};
     }
     elsif ($speak_pgm) {

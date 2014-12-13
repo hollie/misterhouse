@@ -78,6 +78,10 @@ Deleting the orphan links will make your devices happier.  If you have unintende
 links on your devices, they can run slower and may unnecessarily increase the 
 number of messages sent on your network.
 
+B<Note:> This command will not run on deaf devices such as motion sensors or
+remotelincs.  These devices need to be "awake" to receive commands.  So please
+run this same command on deaf devices directly.
+
 =item C<AUDIT Delete Orphan Links>
 
 Does the same thing as C<Delete Orphan Links> but doesn't actually delete anything
@@ -101,6 +105,10 @@ This is helpful when adding a bunch of new devices, new scenes, or cleaning thin
 up.
 
 See the workflow described in C<Delete Orphan Links>.
+
+B<Note:> This command will not run on deaf devices such as motion sensors or
+remotelincs.  These devices need to be "awake" to receive commands.  So please
+run this same command on deaf devices directly.
 
 =item C<AUDIT Sync All Links>
 
@@ -134,6 +142,31 @@ Logs some details about each device to the log.  See C<log_all_ADLB_status()>
 
 =back
 
+=item C<Enable Monitor Mode>
+
+Places the PLM into "Monitor Mode."  The documentation is a little unclear on
+what this does.  In practice, this enables the PLM to receive B<Broadcast> 
+messages from devices which are in the PLM's link database.  So far, I have
+encountered two important broadcast messages, 1) EZFlora (EZRain) can send
+out broadcast messages whenever a valve changes state, 2) Each device will
+send out a broadcast message whenever you hold down the set button for 10
+seconds.  Within MisterHouse this message is used to mark a deaf device as
+awake for 4 minutes.  If Monitor Mode is not enabled, MisterHouse will not
+see either of these messages.
+
+Please be warned, since the documentation is rather vague on what this setting
+does, please consider this setting a B<Beta> feature.  Other users with other
+setups or devices may discover problems with this setting, but at least for me
+I do not see a downside to enabling this feature.
+
+=back
+
+=item C<Disable Monitor Mode>
+
+Disables B<Monitor Mode> defined above.
+
+=back
+
 =head3 Devices
 
 =over
@@ -150,6 +183,11 @@ Turns the device off.
 
 Similar to C<Sync All Links> above, but this will only add links that are related
 to this device.  Useful when adding a new device.
+
+On deaf devices, this command will perform its tasks the next time the device
+is awake.  You can awaken a device temporarily by triggering it (walk in front
+of a motion sensor, press a button on a remotelinc).  Or you can place the 
+device in awake mode for a longer period of time.  See B<Mark as Manually Awake>
 
 =item C<Link to Interface>
 
@@ -300,6 +338,39 @@ controlled by MH and is not reset by calling C<reset_message_stats>
 
 Resets the message stats back to 0 for this device.
 
+=item C<Mark as Manually Awake>
+
+Flags the device as being awake for 4 minutes.  Only applicable to deaf devices
+such as motion sensors and remotelincs.  You must first press and hold the set
+button for 10 seconds on the device to put it into awake mode.  Then tell
+MisterHouse that you have done this by using this command.  Alternatively, if
+you enable B<Monitor Mode> on the PLM, MisterHouse will see when you press the
+set button of a device for ten seconds, and automatically mark it as awake for
+you.
+
+=item C<(AUDIT) Sync Links>
+
+Only available on deaf devices such as motion sensors and remotelincs.  Similar 
+to C<AUDIT Sync All Links> above in the PLM, but this will only report links
+that B<would> be added to this device should you run B<Sync Links>.
+
+=item C<(AUDIT) Delete Orphan Links>
+
+Only available on deaf devices such as motion sensors and remotelincs.  Similar 
+to C<AUDIT Delete Orphan Links> above in the PLM, but this will only report links
+that B<would> be deleted from this device should you run B<Delete Orphan Links>.
+
+=item C<Delete Orphan Links>
+
+Only available on deaf devices such as motion sensors and remotelincs.  Similar 
+to C<Delete Orphan Links> above in the PLM, but this will only delete links
+from this device that are unnecessary or no longer used.
+
+On deaf devices, this command will perform its tasks the next time the device
+is awake.  You can awaken a device temporarily by triggering it (walk in front
+of a motion sensor, press a button on a remotelinc).  Or you can place the 
+device in awake mode for a longer period of time.  See B<Mark as Manually Awake>
+
 =back
 
 =head2 METHODS
@@ -394,30 +465,32 @@ sub scan_all_linktables
        	push @candidate_devices, &Insteon::find_members("Insteon::BaseDevice");
 
         # don't try to scan devices that are not responders
-        if (@candidate_devices)
-        {
-        	foreach (@candidate_devices)
-        	{
+        if (@candidate_devices) {
+        	foreach (@candidate_devices) {
         		my $candidate_object = $_;
-        		if ($candidate_object->is_root and
-                		!($candidate_object->is_deaf
-                		or $candidate_object->isa('Insteon::InterfaceController')))
+        		if ($candidate_object->is_deaf){
+        		        ::print_log("[Scan all linktables] INFO: !!! "
+                        		. $candidate_object->get_object_name
+                        		. " is deaf. To scan this object you"
+                        		. " must run 'Scan Link Table' on it"
+                        		. " directly.");
+        		}
+        		elsif ($candidate_object->is_root and
+                		!($candidate_object->isa('Insteon::InterfaceController')))
                 	{
 		       		push @_scan_devices, $candidate_object;
                 		&main::print_log("[Scan all linktables] INFO1: "
                         		. $candidate_object->get_object_name
                         		. " will be scanned.") if $candidate_object->debuglevel(1, 'insteon');
         		}
-                	else
-                	{
+                	else {
                 		&main::print_log("[Scan all linktables] INFO: !!! "
                         		. $candidate_object->get_object_name
                         		. " is NOT a candidate for scanning.");
                 	}
 		}
         }
-        else
-        {
+        else {
         	&main::print_log("[Scan all linktables] WARN: No insteon devices could be found");
         }
         $_scan_cnt = scalar @_scan_devices;
@@ -451,39 +524,27 @@ Gets the next device to scan.
 sub _get_next_linkscan
 {
 	my($skip_unchanged, $changed_device) = @_;
-	my $checking = 0;
-	if (!defined($changed_device)) {
-		$current_scan_device = shift @_scan_devices;
-		if ($skip_unchanged && $current_scan_device && ($current_scan_device != &Insteon::active_interface)){
-			## check if aldb_delta has changed;
-			$current_scan_device->_aldb->{_aldb_unchanged_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.')';
-			$current_scan_device->_aldb->{_aldb_changed_callback} = '&Insteon::_get_next_linkscan('.$skip_unchanged.', '.$current_scan_device->get_object_name.')';
-			$current_scan_device->_aldb->{_failure_callback} = '&Insteon::_get_next_linkscan_failure('.$skip_unchanged.')';
-			$current_scan_device->_aldb->query_aldb_delta("check");
-			$checking = 1;
-		}
-	} else {
-		$current_scan_device = $changed_device;
-	}
-	if ($current_scan_device && ($checking == 0))
-        {
-          	&main::print_log("[Scan all link tables] Now scanning: "
+	$current_scan_device = shift @_scan_devices;
+	if ($current_scan_device) {
+          	::print_log("[Scan all link tables] Now scanning: "
                 	. $current_scan_device->get_object_name . " ("
                         . ($_scan_cnt - scalar @_scan_devices)
                         . " of $_scan_cnt)");
                 # pass first the success callback followed by the failure callback
-          	$current_scan_device->scan_link_table('&Insteon::_get_next_linkscan('.$skip_unchanged.')','&Insteon::_get_next_linkscan_failure('.$skip_unchanged.')');
-    	} elsif (scalar(@_scan_devices) == 0 && ($checking == 0))
-    	{
-          	&main::print_log("[Scan all link tables] All tables have completed scanning");
-                my $_scan_failure_cnt = scalar @_scan_device_failures;
-                if ($_scan_failure_cnt){
+          	$current_scan_device->scan_link_table(
+          	     '&Insteon::_get_next_linkscan('.$skip_unchanged.')',
+          	     '&Insteon::_get_next_linkscan_failure('.$skip_unchanged.')',
+          	     $skip_unchanged);
+    	} 
+    	else {
+          	::print_log("[Scan all link tables] Completed scanning of all regular items.");
+                if (scalar @_scan_device_failures){
 			my $obj_list;
 			for my $failed_obj (@_scan_device_failures){
 				$obj_list .= $failed_obj->get_object_name .", ";
 			}
-			::print_log("[Scan all link tables] However, some failures "
-				."were noted with the following devices: $obj_list");
+			::print_log("[Scan all link tables] WARN, unable to "
+			." complete a scan of the following devices: $obj_list");
 		}
     	}
 }
@@ -532,31 +593,27 @@ call _get_next_linksync_failure() if sync_links() fails.
 
 sub _get_next_linksync
 {
-   	$current_scan_device = shift @_scan_devices;
 	my $sync_req_ptr = shift(@_sync_devices);
         my %sync_req = ($sync_req_ptr) ? %$sync_req_ptr : undef;
-        if (%sync_req)
-        {
-
+        if (%sync_req) {
         	$current_sync_device = $sync_req{'sync_object'};
         }
-        else
-        {
+        else {
         	$current_sync_device = undef;
         }
 
-	if ($current_sync_device)
-        {
+	if ($current_sync_device) {
           	&main::print_log("[Sync all links] Now syncing: "
                 	. $current_sync_device->get_object_name . " ("
                         . ($_sync_cnt - scalar @_sync_devices)
                         . " of $_sync_cnt)");
 		my $skip_deaf = 1;
                 # pass first the success callback followed by the failure callback
-          	$current_sync_device->sync_links($sync_req{'audit_mode'}, '&Insteon::_get_next_linksync()','&Insteon::_get_next_linksync_failure()', $skip_deaf);
+          	$current_sync_device->sync_links($sync_req{'audit_mode'}, 
+          	        '&Insteon::_get_next_linksync()',
+          	        '&Insteon::_get_next_linksync_failure()', $skip_deaf);
     	}
-        else
-        {
+        else {
           	&main::print_log("[Sync all links] All links have completed syncing");
                 my $_sync_failure_cnt = scalar @_sync_device_failures;
                 if ($_sync_failure_cnt){
@@ -565,7 +622,8 @@ sub _get_next_linksync
 				$obj_list .= $failed_obj->get_object_name .", ";
 			}
 			::print_log("[Sync all links] WARN! Failures occured, "
-				."some links involving the following objects remain out-of-sync: $obj_list");
+				."some links involving the following objects "
+				."remain out-of-sync: $obj_list");
 		}
     	}
 

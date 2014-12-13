@@ -137,7 +137,7 @@ sub read_flags {
                 $flags = substr($flags, 2);
             }
         }
-        print "Homebase did not respond to read_flags request\n" unless defined @flags;
+        print "Homebase did not respond to read_flags request\n" unless @flags;
         return @flags;
     }
     else {
@@ -160,7 +160,7 @@ sub read_variables {
         @vars = split /\r\n/, $buffer;
         my $count = @vars;
         print "$count HomeBase var records were read\n";
-        print "Homebase did not respond to read_flags request\n" unless defined @vars;
+        print "Homebase did not respond to read_flags request\n" unless @vars;
         return @vars;
     }
     else {

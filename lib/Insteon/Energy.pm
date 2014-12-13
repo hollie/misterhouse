@@ -53,8 +53,7 @@ it may require a factory reset.
 
 =head2 INHERITS
 
-L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>, 
-L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
+L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>
 
 =head2 METHODS
 
@@ -67,7 +66,7 @@ use Insteon::BaseInsteon;
 
 package Insteon::SynchroLinc;
 
-@Insteon::SynchroLinc::ISA = ('Insteon::BaseDevice','Insteon::DeviceController');
+@Insteon::SynchroLinc::ISA = ('Insteon::BaseDevice');
 
 =item C<new()>
 
@@ -414,8 +413,7 @@ the following examples:
 
 =head2 INHERITS
 
-L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>, 
-L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>
+L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>
 
 =head2 METHODS
 
@@ -428,7 +426,7 @@ use Insteon::BaseInsteon;
 
 package Insteon::iMeter;
 
-@Insteon::iMeter::ISA = ('Insteon::BaseDevice','Insteon::DeviceController');
+@Insteon::iMeter::ISA = ('Insteon::BaseDevice');
 
 =item C<new()>
 

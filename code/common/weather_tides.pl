@@ -1,10 +1,11 @@
 # Category = Weather
 
 #@ This script collects information about ocean tides, moonrise and moonset from the 
-#@ <a href=http://tbone.biol.sc.edu/tide>University of Southern Carolina Tide Predictor<a>.
+#@ <a href="http://tbone.biol.sc.edu/tide">University of Southern Carolina Tide Predictor</a>.
 #@ Set the weather_tide_site ini parameter to the tide site closest to you. 
 
-# 12/04/05 created by David Norwood based on idea by Joey French 
+# Version 1.1 07/29/14 Fixed description and ini parameter reference - Jared J. Fernandez
+# Version 1.0 12/04/05 created by David Norwood based on idea by Joey French 
 
 
 #noloop=start
@@ -15,7 +16,7 @@
 	$v_read_tides = new Voice_Cmd 'When is the next [High Tide,Low Tide,Moonrise,Moonset]?';
 	$v_read_tides ->set_info('Show tide, moonrise and moonset information from the Internet');
 	$p_get_tides = new Process_Item;
-	$tide_site = $config_parms{'weather_tide_site'} if $config_parms{'weather_tide_site'}; 
+	$tide_site = $config_parms{weather_tide_site} if $config_parms{weather_tide_site}; 
 	$tide_site = &escape($tide_site);
 	set $p_get_tides "get_url http://tbone.biol.sc.edu/tide/tideshow.cgi?site=$tide_site $f_tides";
 	trigger_delete "get tide info";
