@@ -435,19 +435,21 @@ scanned and processed.
 
 sub delete_orphan_links
 {
-	my ($self, $audit_mode, $failure_callback) = @_;
+	my ($self, $audit_mode, $failure_callback, $is_batch_mode) = @_;
 	@{$$self{delete_queue}} = (); # reset the work queue
 	$$self{delete_queue_processed} = 0;
 	my $selfname = $$self{device}->get_object_name;
 
 	# first, make sure that the health of ALDB is ok
-	if ($self->health ne 'good' || $$self{device}->is_deaf) {
+	if ($self->health ne 'good' || ($$self{device}->is_deaf && $is_batch_mode)) {
 		my $sent_to_failure = 0;
 		if ($$self{device}->is_deaf) {
-			::print_log("[Insteon::AllLinkDatabase] Delete orphan links: Will not delete links on deaf device: $selfname");
+			::print_log("[Insteon::AllLinkDatabase] Will not delete ".
+			        "links on deaf device: $selfname. Run 'Delete ".
+			        "Orphan Links' directly on the device to do this.");
 		} 
 		elsif ($self->health eq 'empty'){
-			::print_log("[Insteon::AllLinkDatabase] Delete orphan links: Skipping $selfname, because it has no links");
+			::print_log("[Insteon::AllLinkDatabase] Skipping $selfname, because it has no links");
 		}
 		else {
 			::print_log("[Insteon::AllLinkDatabase] Delete orphan links: skipping $selfname because health: "
@@ -464,7 +466,7 @@ sub delete_orphan_links
 			}
 		}
 		if (!$$self{device}->isa('Insteon_PLM') && !$sent_to_failure){
-			$self->_process_delete_queue();
+			$self->_process_delete_queue($is_batch_mode);
 		}
 		return;
 	}
@@ -475,7 +477,7 @@ sub delete_orphan_links
 		next LINKKEY if ($linkkey eq 'empty');
 		
 		# Define delete request
-		my %delete_req = (callback => "$selfname->_aldb->_process_delete_queue()",
+		my %delete_req = (callback => "$selfname->_aldb->_process_delete_queue($is_batch_mode)",
 				  failure_callback => $failure_callback);
 
 		# Delete duplicate entries
@@ -661,12 +663,12 @@ sub delete_orphan_links
 		::print_log("[Insteon::AllLinkDatabase] ## Begin processing delete queue for: $selfname");
 	}
 	if (!$$self{device}->isa('Insteon_PLM')) {
-		$self->_process_delete_queue();
+		$self->_process_delete_queue($is_batch_mode);
 	}
 }
 
 sub _process_delete_queue {
-	my ($self) = @_;
+	my ($self, $is_batch_mode) = @_;
 	my $num_in_queue = @{$$self{delete_queue}};
 	if ($num_in_queue)
         {
@@ -691,7 +693,9 @@ sub _process_delete_queue {
         {
         	&::print_log("[Insteon::AllLinkDatabase] Nothing else to do for " . $$self{device}->get_object_name . " after deleting "
                 	. $$self{delete_queue_processed} . " links") if $self->{device}->debuglevel(1, 'insteon');
-		$$self{device}->interface->_aldb->_process_delete_queue($$self{delete_queue_processed});
+		if ($is_batch_mode){
+		        $$self{device}->interface->_aldb->_process_delete_queue($$self{delete_queue_processed});
+		}
 	}
 }
 
@@ -2661,7 +2665,8 @@ sub _process_delete_queue {
 		if ($delete_req{'root_object'})
                 {
 			$$self{current_delete_device} = $delete_req{'root_object'}->get_object_name;
-			$delete_req{'root_object'}->delete_orphan_links(($delete_req{'audit_mode'}) ? 1 : 0, $failure_callback);
+			my $is_batch_mode = 1;
+			$delete_req{'root_object'}->delete_orphan_links(($delete_req{'audit_mode'}) ? 1 : 0, $failure_callback, $is_batch_mode);
 		}
                 else
                 {
