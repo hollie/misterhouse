@@ -169,13 +169,14 @@ sub web_fp_item #render all items based on type
 		 $p_obj->isa('Weeder_Light')   or
 		 $p_obj->isa('UPB_Device')     or
 		 $p_obj->isa('Insteon_Device') or
+		 $p_obj->isa('Insteon::DeviceController') or
+		 $p_obj->isa('Insteon::BaseLight') or
 		 $p_obj->isa('UPB_Link')       or
 		 $p_obj->isa('EIB_Item')       or
 		 $p_obj->isa('EIB1GItem')      or
 		 $p_obj->isa('EIB2_Item')      or
 		 $p_obj->isa('EIO_Item')       or
 		 $p_obj->isa('UIO_Item')       or
-		 $p_obj->isa('Generic_Item')   or
 		 $p_obj->isa('X10_Item')
 		 ) {
 		if ($p_obj->state eq 'off') {
@@ -252,6 +253,14 @@ sub web_fp_item #render all items based on type
 	} elsif ($p_obj->isa('iButton')) {
 		$l_text=web_fp_filter_name($p_obj->{object_name});
 		$l_text.=':' . $p_obj->read_temp();
+	} elsif ($p_obj->isa('Generic_Item') ) {
+		if ($p_obj->state eq 'off') {
+			$l_image='fp-light-off.gif';
+			$l_state='on';
+		} else {
+			$l_image='fp-light-on.gif';
+			$l_state='off';
+		}
 	} else { #Unknown object
 		$l_text=web_fp_filter_name($p_obj->{object_name});
 		$l_text.=':' . $p_obj->state();
