@@ -71,7 +71,7 @@ use Data::Dumper;
 # -------------------- START OF SUBROUTINES --------------------
 # --------------------------------------------------------------
 
-my $zway_vdev="ZWayVDev";
+my $zway_vdev="ZWayVDev_zway";
 our %rest;
 $rest{api} = "";
 $rest{devices} = "devices";
@@ -95,7 +95,7 @@ sub new {
    $self->{host} = $host;
    $self->{port} = 8083;
    $self->{port} = $port if ($port);        
-   $self->{debug} = 0;
+   $self->{debug} = 5;
    $self->{lastupdate} = undef;
    $self->{timeout} = 5; #300;
 
@@ -118,7 +118,7 @@ sub poll {
    for my $dev (keys %{$self->{data}->{force_update}}) {
     	&main::print_log("[raZberry] Forcing update to device $dev to account for local changes") if ($self->{debug});
     	my $cmd;
-    	my ($devid,$instance,$class) = (split /:/,$dev)[0,1,2];
+    	my ($devid,$instance,$class) = (split /-/,$dev)[0,1,2];
     	$cmd = "%5B" . $devid . "%5D.instances%5B" . $instance . "%5D.commandClasses%5B" . $class ."%5D.Get()";
     	&main::print_log("cmd=$cmd") if ($self->{debug} > 1);
     	my ($isSuccessResponse0,$status) = _get_JSON_data($self, 'force_update', $cmd);
@@ -135,7 +135,8 @@ sub poll {
   		  $self->{lastupdate} = $devices->{data}->{updateTime};  		
   		  foreach my $item (@{$devices->{data}->{devices}}) {  		    
   		      &main::print_log("Found:" . $item->{id} . " with level " . $item->{metrics}->{level} . " and updated " . $item->{updateTime} . ".") if ($self->{debug});
-  		      my ($id) = (split /_/,$item->{id})[1];
+  		      my ($id) = (split /_/,$item->{id})[2];
+print "id=$id\n";
   		      $self->{data}->{devices}->{$id}->{level} = $item->{metrics}->{level};
   		      $self->{data}->{devices}->{$id}->{updateTime} = $item->{updateTime};
   		      $self->{data}->{devices}->{$id}->{devicetype} = $item->{deviceType};
