@@ -68,9 +68,9 @@ sub derive_link_state
 	}
 	
 	my $link_state = 'on';
-	if ($p_state eq 'off' or $p_state eq 'off_fast' or $p_state eq 'on_fast')
+	if ($p_state eq 'off' or $p_state eq 'off_fast')
 	{
-		$link_state = $p_state;
+		$link_state = 'off';
 	}
 	elsif ($p_state =~ /\d+%?/)
 	{
