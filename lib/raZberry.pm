@@ -95,7 +95,7 @@ sub new {
    $self->{host} = $host;
    $self->{port} = 8083;
    $self->{port} = $port if ($port);        
-   $self->{debug} = 5;
+   $self->{debug} = 0;
    $self->{lastupdate} = undef;
    $self->{timeout} = 5; #300;
 
@@ -136,7 +136,7 @@ sub poll {
   		  foreach my $item (@{$devices->{data}->{devices}}) {  		    
   		      &main::print_log("Found:" . $item->{id} . " with level " . $item->{metrics}->{level} . " and updated " . $item->{updateTime} . ".") if ($self->{debug});
   		      my ($id) = (split /_/,$item->{id})[2];
-print "id=$id\n";
+		      #print "id=$id\n";
   		      $self->{data}->{devices}->{$id}->{level} = $item->{metrics}->{level};
   		      $self->{data}->{devices}->{$id}->{updateTime} = $item->{updateTime};
   		      $self->{data}->{devices}->{$id}->{devicetype} = $item->{deviceType};
