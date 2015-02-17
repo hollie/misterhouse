@@ -213,11 +213,18 @@ sub _get_JSON_data {
 	        $self->{child_object}->{comm}->set("online",'poll');
 	      }
 	   }
-	}    
- 
-    my $response = JSON::XS->new->decode ($responseObj->content);
+	} 
+	my $response;   
+    eval {
+      $response = JSON::XS->new->decode ($responseObj->content);
+    };
+  # catch crashes:
+  if($@){
+    print "[Venstar Colortouch:" . $self->{data}->{name} ."] ERROR! JSON parser crashed! $@\n";
+    return ('0');
+  } else {
     return ($isSuccessResponse, $response)
-  
+  }
   	} else {
 		main::print_log("[Venstar Colortouch:". $self->{data}->{name} . "] Warning, not fetching data due to operation in progress");
 		return ('0');
@@ -441,7 +448,11 @@ sub stop_timer {
 sub start_timer {
   my ($self) = @_;
   
-  $self->{timer}->set($self->{config}->{poll_seconds}, sub {&Venstar_Colortouch::_poll_check($self)}, -1);
+  if (defined $self->{timer}) {  
+     $self->{timer}->set($self->{config}->{poll_seconds}, sub {&Venstar_Colortouch::_poll_check($self)}, -1);
+    } else {
+  	main::print_log("[Venstar Colortouch:". $self->{data}->{name} . "] Warning, start_timer called but timer undefined");
+  }
 }
 
 sub print_info {
@@ -1172,7 +1183,7 @@ sub set {
 	if ($p_setby eq 'poll') {
         $self->SUPER::set($p_state);
     } else {
-	if (($p_state >= 1) and ($p_state <= 98)) {
+	if (($p_state >= 0) and ($p_state <= 98)) {
            $$self{master_object}->set_hum_sp($p_state);
 	} else {
 	   main::print_log("[Venstar Colortouch Humidity_SP] Error. Unknown set state $p_state");
