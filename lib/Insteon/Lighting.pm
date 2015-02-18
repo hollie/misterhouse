@@ -861,6 +861,7 @@ sub update_flags
 		$self->_aldb->update_flags($flags) if $self->_aldb;
 	}
 	else {
+		$flags = hex($flags);
 		if ($flags & 0x02) {
 			$self->set_operating_flag('8_key_mode');
 		} 
