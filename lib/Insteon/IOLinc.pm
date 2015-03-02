@@ -66,6 +66,20 @@ defined as the controller.
 
 Instructions for this object are contained in C<Insteon::IOLinc_sensor>.
 
+=head3 DOOR CHILD OBJECT
+
+IOLinc devices are often used to monitor/control doors such as garage doors (Smarthome
+has a full kit for this). The Insteon::IOLinc_door simplifies this use case by creating
+an object that has open/closed states, as well as sets the device to the proper
+Momentary_B mode.
+
+However, if you want to directly link an obect to the sensor 
+be sure to use the normal SCENE_MEMBER code in your mht file with the IOLinc
+defined as the controller.
+
+Instructions for this object are contained in C<Insteon::IOLinc_door>.
+
+
 =head2 NOTES
 
 This module works with the Insteon IOLinc device from Smarthome.  The EZIO device
@@ -173,6 +187,9 @@ sub set
 			if (ref $$self{child_sensor}){
 				$$self{child_sensor}->set_receive($p_state, $p_setby, $p_respond);
 			}
+			if (ref $$self{child_door}){
+				$$self{child_door}->set_receive($p_state, $p_setby, $p_respond);
+			}
 		}
 	}
 	else {
@@ -222,6 +239,10 @@ sub _is_info_request
 		$ack_setby = $$self{child_sensor} if ref $$self{child_sensor};
 		if (ref $$self{child_sensor}){
 			$$self{child_sensor}->set_receive($child_state, $ack_setby);
+		}
+		$ack_setby = $$self{child_door} if ref $$self{child_door};
+		if (ref $$self{child_door}){
+			$$self{child_door}->set_receive($child_state, $ack_setby);
 		}
 		delete($$parent{child_status_request_pending});
 	} 
@@ -632,5 +653,91 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 =cut
+
+=head1 B<Insteon::IOLinc_door>
+
+=head2 SYNOPSIS
+
+User Code:
+
+    $io_device_door = new Insteon::IOLinc_door($io_device);
+
+Where $io_device is the parent device defined above.
+
+=head2 DESCRIPTION
+
+Creates a door_item like device when the IOLinc is used to track/control a door, such
+as the garage door kit. Provides and open and closed state, and a set will trigger a
+relay close.  Adding this object will place the parent device into Momentary B mode. 
+
+Tie_events can be used on this child object.  However, if you want to directly 
+link an obect to the sensor be sure to use the normal SCENE_MEMBER code in your 
+mht file with the main IOLinc device defined as the controller.
+
+=head2 INHERITS
+
+L<Generic_Item|Generic_Item>
+
+=head2 METHODS
+
+=over
+
+=cut
+
+package Insteon::IOLinc_door;
+use strict;
+
+@Insteon::IOLinc_door::ISA = ('Generic_Item');
+
+=item C<new()>
+
+Instantiates a new object.
+
+=cut
+
+sub new {
+	my ($class, $parent) = @_;
+	my $self = new Generic_Item();
+	bless $self, $class;
+	$$self{parent} = $parent;
+	$$self{parent}{child_door} = $self;
+	@{$$self{states}} = ('open','closed','error');
+	$parent->set_relay_mode("Momentary_B");
+	return $self;
+}
+
+=item C<set_receive()>
+
+Receives sensor state messages from the parent object and sets the state of this 
+device accordingly.
+
+=cut
+
+sub set_receive {
+	my ($self, $p_state, $p_setby, $p_respond) = @_;
+	my $n_state;
+	if ($p_state eq "on") {
+		$n_state = "open";
+	} elsif ($p_state eq "off") {
+		$n_state = "closed";
+	} else {
+		$n_state = "error";
+	}
+	$self->SUPER::set($n_state, $p_setby, $p_respond);
+}
+
+=item C<set_receive()>
+
+Triggers the relay if the set request state differs from the current state. 
+
+=cut
+
+sub set {
+	my ($self, $p_state, $p_setby, $p_respond) = @_;
+	main::print_log("[Insteon::IOlinc_door] set method called. current state: " . $self->state . " set to state: " . $p_state) if $self->debuglevel(1, 'insteon');
+
+	$$self{parent}->set("on") if ($p_state ne $self->state);
+}
+
 
 1;
