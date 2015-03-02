@@ -292,7 +292,7 @@ sub map_to_weather {
           my $rrd_ref = &AnalogSensor_Item::weather_to_rrd(lc $p_hash_ref);
           my $sensor_names = $main::config_parms{weather_graph_sensor_names};
            if ($sensor_names) {
-              if ($sensor_names !~ /$rrd_ref/i) {
+              if ($sensor_names !~ /$rrd_ref\W/i) {
                  $sensor_names .= ", $rrd_ref => $p_sensor_name";
                  $main::config_parms{weather_graph_sensor_names} = $sensor_names;
                  print "[AnalogSensor] weather_graph_sensor_names: $sensor_names\n" if $main::Debug{analogsensor};
