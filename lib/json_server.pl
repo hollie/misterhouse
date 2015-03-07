@@ -289,6 +289,23 @@ sub json_get {
 			push($json_data{'print_log'}, @log);
 		}
 	}
+	
+		# List speak phrases
+	if ( $path[0] eq 'print_speaklog' || $path[0] eq '' ) {
+		my @log;
+		my $name;
+		if ($args{time} 
+			&& int($args{time}[0]) < int(::print_speaklog_current_time())){
+			#Only return messages since time
+			@log = ::print_speaklog_since($args{time}[0]);
+		} elsif (!$args{time}) {
+			@log = ::print_speaklog_since();
+		}
+		if (scalar(@log) > 0) {
+			$json_data{'print_speaklog'} = [];
+			push($json_data{'print_speaklog'}, @log);
+		}
+	}
 
 	print_log Dumper(%json_data) if $Debug{json};
 	
@@ -649,14 +666,14 @@ Content-type: text/html
 <h2>JSON Server</h2>
 eof
 	my @requests = qw( types groups categories config_parms socket_ports
-	  user_code weather save objects photos subs menus triggers packages vars print_log);
+	  user_code weather save objects photos subs menus triggers packages vars print_log print_speaklog);
 
 	my %args = (
 		fields => {
 			applyto => 'types|groups|categories|objects',
 		},
 		time => {
-			applyto => 'print_log',
+			applyto => 'print_log|print_speaklog',
 		}
 	);
 	foreach my $r (@requests) {

@@ -114,7 +114,7 @@ use vars qw(%Run_Members);
 
 my ($Pgm_PathU);
 my ($Loop_Speed, @Loop_Speeds, $Loop_Sleep_Time, $Loop_Tk_Passes, $Web_Play_Index);
-my (@Requested_Files, @Print_Log, @Print_Log_Time, @Display_Log, @Speak_Log, @Error_Log);
+my (@Requested_Files, @Print_Log, @Print_Log_Time, @Display_Log, @Speak_Log, @Speak_Log_Time, @Error_Log, @Error_Log_Time);
 
 my ($exit_flag, $xcmd_file, %file_code_times, %file_code_times2, %file_change_times);
 my (@Loop_Code, @Sub_Code, %Sub_Code, %Run_Members, %Run_Members_Error_Count, %Benchmark_Members, @Item_Code, @Item_Code_Objects);
@@ -1141,11 +1141,14 @@ sub open_logs {
     @log = &file_tail($speak_log, $config_parms{max_log_entries});
     chomp @log;
     @Speak_Log = reverse @log;
+    @Speak_Log_Time = (1)x scalar @Speak_Log;
+
 #    unshift @Speak_Log, "$Time_Date ---------- Restart ---------- ";
 
     @log = &file_tail($error_log, $config_parms{max_log_entries});
     chomp @log;
     @Error_Log = reverse @log;
+    @Error_Log_Time = (1)x scalar @Error_Log;
     unshift @Error_Log, "$Time_Date ---------- Restart ---------- ";
 
 
@@ -4110,6 +4113,53 @@ sub print_speaklog {
     }
     print SPEAKLOG "$Time_Date $data\n";
 }
+
+sub print_speaklog_last {
+                                # Return the last how_many speak phrases
+    my ($how_many) = @_;
+    my $count = @Speak_Log;
+    if ($how_many == 1) {
+        return $Speak_Log[0];
+    }
+    elsif ($how_many >= $count) {
+        return @Speak_Log;
+    }
+    else {
+        return (@Speak_Log[0 .. ($how_many-1)]);
+    }
+}
+
+sub print_speaklog_since {
+                                # Return the speak phrases since time
+    my ($time) = @_;
+    #Search from front to back, we are likely looking for an entry near the front
+    my $index;
+    for my $i (0 .. $#Speak_Log_Time) {
+    	$index = $i;
+        if ($time >= $Speak_Log_Time[$i]){
+            # We have already seen this message, so the prior index is what we need
+            $index--;
+            last;
+        }
+    }
+    my $count = @Speak_Log;
+    if ($index < 0) {
+        return;
+    }
+    elsif (($index+1) >= $count) {
+        return @Speak_Log;
+    }
+    else {
+        return (@Speak_Log[0 .. $index]);
+    }
+}
+
+sub print_speaklog_current_time {
+                                # Return the time of most recent speak phrase
+    return $Speak_Log_Time[0] unless (scalar @Speak_Log_Time <= 0);
+    return 0;
+}
+
 
 sub process_external_command {
     my ($cmd, $warning_flag, $set_by, $respond_target) = @_;

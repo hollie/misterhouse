@@ -60,6 +60,8 @@ my %mime_types = (
 my (%http_dirs, %html_icons, $html_info_overlib, %password_protect_dirs, %http_agent_formats, %http_agent_sizes);
 
 my ($http_fork_mem, $http_fork_page, $http_fork_count);
+my ($mobile_html);
+
 if ($config_parms{http_fork} eq 'memmap') {
     $http_fork_mem  = new Win32::MemMap;
     $http_fork_page = $http_fork_mem->GetGranularitySize();
@@ -201,7 +203,11 @@ sub http_process_request {
 #Compaq IA1: Mozilla/4.0 (compatible; MSIE 4.01; Windows CE; MSN Companion 2.0; 800x600; Compaq).
 #Aquapad:    Mozilla/4.0 (compatible; MSIE 4.01; Windows NT Windows CE)
 #Opera: Mozilla/4.0 (compatible; MSIE 5.0; Linux 2.4.6-rmk1-np2-embedix armv4l; 240x320) Opera 5.0  [en]
-
+#iPhone: Mozilla/5.0 (iPhone; CPU iPhone OS 8_1_3 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) Version/8.0 Mobile/12B466 Safari/600.1.4
+   $mobile_html = 0;
+   if (($Http{'User-Agent'} =~ /iPhone/i) or ($Http{'User-Agent'} =~ /Android/i)) {
+       $mobile_html = 1 if (defined $main::config_parms{html_file_mobile});
+   }
 #   print "db ua=$Http{'User-Agent'}\n";
     if ($Http{'User-Agent'}) {
         $Http{'User-Agent-Size'} = $1 if $Http{'User-Agent'} =~ /\d{2,}x(\d){2,}/;
@@ -281,6 +287,8 @@ sub http_process_request {
 
     if (!$get_req or $get_req eq '/') {
         $get_req = $main::config_parms{'html_file' . $Http{format}};
+        $get_req = $main::config_parms{'html_file_mobile'} if $mobile_html;
+
         $get_req = '/' . $get_req unless $get_req =~ /^\//; # Leading / is optional
         my $referer = "http://$Http{Host}";
                                 # Some browsers (e.g. Audrey) do not echo port in Host data

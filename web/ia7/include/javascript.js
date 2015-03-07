@@ -1,6 +1,9 @@
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
+var display_mode;
+if (display_mode == undefined) display_mode = "simple";
+
 
 //Takes the current location and parses the achor element into a hash
 function URLToHash() {
@@ -135,13 +138,17 @@ function changePage (){
 		else if(path.indexOf('print_log') === 0){
 			print_log();
 		}
+		else if(path.indexOf('print_speaklog') === 0){
+			print_speaklog();
+		}
 		else if(URLHash._request == 'trigger'){
 			trigger();
 		}
 		else { //default response is to load a collection
 			loadCollection(URLHash._collection_key);
 		}
-		//update the breadcrumb
+		//update the breadcrumb: 
+		// Weird end-case, The Group from browse items is broken with parents on the URL
 		$('#nav').html('');
 		var collection_keys_arr = URLHash._collection_key;
 		if (collection_keys_arr === undefined) collection_keys_arr = '0';
@@ -155,6 +162,9 @@ function changePage (){
 				//prefix if other recursively browsable formats are later added
 				nav_name = collection_keys_arr[i].replace("$", '');
 				nav_link = '#path=/objects&parents='+nav_name;
+				if (nav_name == "Group") nav_link = '#path=objects&type=Group';
+				if (json_store.objects[nav_name].label != undefined) nav_name = (json_store.objects[nav_name].label);
+
 			}
 			else {
 				nav_link = json_store.collections[collection_keys_arr[i]].link;
@@ -348,10 +358,11 @@ var loadList = function() {
 					// These are controllable MH objects
 					json_store.objects[entity] = json_store.objects[entity];
 					var name = entity;
+					var color = getButtonColor(json_store.objects[entity].state);
 					if (json_store.objects[entity].label !== undefined) name = json_store.objects[entity].label;
 					//Put objects into button
 					button_html = "<div style='vertical-align:middle'><button entity='"+entity+"' ";
-					button_html += "class='btn btn-default btn-lg btn-block btn-list btn-popover btn-state-cmd'>";
+					button_html += "class='btn btn-"+color+" btn-lg btn-block btn-list btn-popover btn-state-cmd'>";
 					button_html += name+"<span class='pull-right'>"+json_store.objects[entity].state+"</span></button></div>";
 					entity_arr.push(button_html);
 				}
@@ -402,15 +413,39 @@ var loadList = function() {
 				var modal_state = json_store.objects[entity].state;
 				$('#control').find('.object-title').html(name + " - " + json_store.objects[entity].state);
 				$('#control').find('.control-dialog').attr("entity", entity);
-				$('#control').find('.states').html('<div class="btn-group"></div>');
+				$('#control').find('.states').html('<div class="btn-group stategrp0 btn-block"></div>');
 				var modal_states = json_store.objects[entity].states;
+				var buttonlength = 0;
+				var stategrp = 0;
+				var advanced_html = "";
 				for (var i = 0; i < modal_states.length; i++){
-					$('#control').find('.states').find('.btn-group').append("<button class='btn btn-default'>"+modal_states[i]+"</button>");
+					if (filterSubstate(modal_states[i]) == 1) {
+					   advanced_html += "<button class='btn btn-default hidden'>"+modal_states[i]+"</button>";
+					   continue //TODO!! will have to figure out how to have all the methods, but to display pretty.
+					} else {
+					   buttonlength += 2 + modal_states[i].length
+					}
+					if (buttonlength >= 25) {
+					    stategrp++;
+					    $('#control').find('.states').append("<div class='btn-group stategrp"+stategrp+" btn-block'></div>");
+						buttonlength = 0;
+ 					}
+					var color = getButtonColor(modal_states[i])
+					var disabled = ""
+					if (modal_states[i] == json_store.objects[entity].state) {
+					  disabled = "disabled";
+					}
+					$('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-3 btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");
 				}
-				$('#control').find('.states').find(".btn-default").click(function (){
+				$('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
+				$('#control').find('.states').find('.btn').click(function (){
 					url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
 					$('#control').modal('hide');
 					$.get( url);
+				});
+				//TODO show all states if gear is pressed.
+				$('.mhstatemode').on('click', function(){
+  				   $('#control').find('.states').find('.btn').removeClass('hidden');
 				});
 			});
 
@@ -420,6 +455,69 @@ var loadList = function() {
 	updateList(URLHash.path);
 
 };//loadlistfunction
+
+var getButtonColor = function (state) {
+	var color = "default";
+	if (state == "on" || state == "open" || state == "unarmed") {
+		 color = "success";
+	} else if (state == "motion" || state == "closed" || state == "armed") {
+		 color = "danger";
+	} else if (state == undefined || state == "unknown" ) {
+		 color = "info";
+	} else if (state == "low" || state == "med" || state.indexOf('%') >= 0 || state == "light") { 
+		 color = "warning";
+	}
+	return color;
+};
+
+var filterSubstate = function (state) {
+ 	// ideally the gear icon on the set page will remove the filter
+    var filter = 0
+    // remove 11,12,13... all the mod 10 states
+    if (state.indexOf('%') >= 0) {
+    
+       var number = parseInt(state, 10)
+       if (number % 20 != 0) {
+         filter = 1
+        }
+    }
+    
+    if (state == "manual" ||
+    	state == "double on" ||
+    	state == "double off" ||
+    	state == "triple on" ||
+    	state == "triple off" ||
+    	state == "status on" ||
+    	state == "status off" ||
+    	state == "status on" ||
+    	state == "clear" ||
+    	state == "setramprate" ||
+    	state == "setonlevel" ||
+    	state == "addscenemembership" ||
+    	state == "setsceneramprate" ||
+    	state == "deletescenemembership" ||
+    	state == "disablex10transmit" ||
+    	state == "enablex10transmit" ||
+    	state == "set ramp rate" ||
+    	state == "set on level" ||
+    	state == "add to scene" ||
+    	state == "remove from scene" ||
+    	state == "set scene ramp rate" ||
+    	state == "disable transmit" ||
+    	state == "enable transmit" ||
+    	state == "disable programming" ||
+    	state == "enable programming" ||
+    	state == "0%" ||
+    	state == "100%" ||
+    	state == "error" ||
+        state == "status" ) {
+        filter = 1
+    }
+    
+    return filter;
+};
+        
+
 
 var sortArrayByArray = function (listArray, sortArray){
 	listArray.sort(function(a,b) {
@@ -461,9 +559,16 @@ var updateList = function(path) {
 						// This is not an entity, skip it
 						continue;
 					}
+					var color = getButtonColor(json.data[entity].state);
 					$('button[entity="'+entity+'"]').find('.pull-right').text(
-						json.data[entity].state
-					);
+						json.data[entity].state);
+					$('button[entity="'+entity+'"]').removeClass("btn-default");
+					$('button[entity="'+entity+'"]').removeClass("btn-success");
+					$('button[entity="'+entity+'"]').removeClass("btn-warning");
+					$('button[entity="'+entity+'"]').removeClass("btn-danger");
+					$('button[entity="'+entity+'"]').removeClass("btn-info");
+					$('button[entity="'+entity+'"]').addClass("btn-"+color);
+					
 				}
 			}
 			if (jqXHR.status == 200 || jqXHR.status == 204) {
@@ -495,12 +600,15 @@ var loadCollection = function(collection_keys) {
 		var link = json_store.collections[collection].link;
 		var icon = json_store.collections[collection].icon;
 		var name = json_store.collections[collection].name;
+		var mode = json_store.collections[collection].mode;
+		var hidden = "";
+		if (mode != display_mode && mode != undefined ) hidden = "hidden"; //Hide any simple/advanced buttons
 		var next_collection_keys = collection_keys + "," + entity_sort[i];
 		link = buildLink (link, next_collection_keys);
 		if (json_store.collections[collection].external !== undefined) {
 			link = json_store.collections[collection].external;
 		}
-		var button_html = "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
+		var button_html = "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list "+hidden+"' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
 		entity_arr.push(button_html);
 	}
 	//loop through array and print buttons
@@ -567,7 +675,7 @@ var print_log = function(time) {
 				for (var i = (json.data.length-1); i >= 0; i--){
 					var line = String(json.data[i]);
 					line = line.replace(/\n/g,"<br>");
-					$('#list').prepend("<li style='font-family:courier, monospace;white-space:pre-wrap;font-size:small;padding-left: 13em;text-indent: -13em;position:relative;'>"+line+"</li>");
+					if (line) $('#list').prepend("<li style='font-family:courier, monospace;white-space:pre-wrap;font-size:small;position:relative;'>"+line+"</li>");
 				}
 				requestTime = json.meta.time;
 			}
@@ -582,6 +690,52 @@ var print_log = function(time) {
 		}
 	});
 };
+
+//Outputs a constantly updating print log
+var print_speaklog = function(time) {
+	var URLHash = URLToHash();
+	if (typeof time === 'undefined'){
+		$('#list_content').html("<div id='print_speaklog' class='row top-buffer'>");
+		$('#print_speaklog').append("<div id='row_log' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+		$('#row_log').append("<ul id='list'></ul>");
+		time = 0;
+	}
+	URLHash.time = time;
+	URLHash.long_poll = 'true';
+	if (updateSocket !== undefined && updateSocket.readyState != 4){
+		// Only allow one update thread to run at once
+		updateSocket.abort();
+	}
+	var split_path = HashtoJSONArgs(URLHash).split("?");
+	var path_str = split_path[0];
+	var arg_str = split_path[1];	
+	updateSocket = $.ajax({
+		type: "GET",
+		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
+		dataType: "json",
+		success: function( json, statusText, jqXHR ) {
+			var requestTime = time;
+			if (jqXHR.status == 200) {
+				JSONStore(json);
+				for (var i = (json.data.length-1); i >= 0; i--){
+					var line = String(json.data[i]);
+					line = line.replace(/\n/g,"<br>");
+					if (line) $('#list').prepend("<li style='font-family:courier, monospace;white-space:pre-wrap;font-size:small;position:relative;'>"+line+"</li>");
+				}
+				requestTime = json.meta.time;
+			}
+			if (jqXHR.status == 200 || jqXHR.status == 204) {
+				//Call update again, if page is still here
+				//KRK best way to handle this is likely to check the URL hash
+				if ($('#row_log').length !== 0){
+					//If the print log page is still active request more data
+					print_speaklog(requestTime);
+				}
+			}		
+		}
+	});
+};
+
 
 //Outputs the list of triggers
 var trigger = function() {
@@ -655,20 +809,67 @@ $(document).ready(function() {
 	$("#toolButton").click( function () {
 		var entity = $("#toolButton").attr('entity');
 		$('#optionsModal').modal('show');
-		$('#optionsModal').find('.object-title').html(entity + " - Options");
-		$('#optionsModal').find('.options-dialog').attr("entity", entity);
-		$('#optionsModal').find('#options').html('<ul id="sortable" class="list-group"></ul>');
-		var entityList = json_store.objects[entity].members;
-		var sortList = json_store.objects[entity].sort_order;
-		entityList = sortArrayByArray(entityList, sortList);
-		for (var i = 0; i < entityList.length; i++){
-			var entityLabel = entityList[i];
-			if ( json_store.objects[entityList[i]].label !== undefined) {
-				entityLabel = json_store.objects[entityList[i]].label;
-			}
-			$('#sortable').append('<li id="'+entityList[i]+'" class="list-group-item">'+entityLabel+'</li>');
+		$('#optionsModal').find('.object-title').html("Mr.House Options");
+		$('#optionsModal').find('.options-dialog').attr("entity", "options");
+		
+		$('#optionsModal').find('.modal-body').html('<div class="btn-group btn-block" data-toggle="buttons"></div>');
+		var simple_active = "active";
+		var simple_checked = "checked";
+		var advanced_active = "";
+		var advanced_checked = ""
+		if (display_mode == "advanced") {
+			simple_active = "";
+			simple_checked = "";
+			advanced_active = "active";
+			advanced_checked = "checked"
 		}
-        //$( "#sortable" ).disableSelection();
+		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-sm-6 "+simple_active+"'><input type='radio' name='mhmode2' id='simple' autocomplete='off'"+simple_checked+">simple</label>");
+		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-sm-6 "+advanced_active+"'><input type='radio' name='mhmode2' id='advanced' autocomplete='off'"+advanced_checked+">advanced</label>");
+		$('.mhmode').on('click', function(){
+			display_mode = $(this).find('input').attr('id');	
+			changePage();
+  		});
+		// TODO parse the collection ID 500 and build a list of buttons
+		var opt_collection_keys = 0;
+		var opt_entity_html = "";
+		var opt_entity_sort = json_store.collections[500].children;
+		if (opt_entity_sort.length <= 0){
+		opt_entity_html = "Childless Collection";
+		} else {
+		    for (var i = 0; i < opt_entity_sort.length; i++){
+				var collection = opt_entity_sort[i];
+				if (!(collection in json_store.collections)) continue;
+				var link = json_store.collections[collection].link;
+				var icon = json_store.collections[collection].icon;
+				var name = json_store.collections[collection].name;
+				var opt_next_collection_keys = opt_collection_keys + "," + opt_entity_sort[i];
+				link = buildLink (link, opt_next_collection_keys);
+				if (json_store.collections[collection].external !== undefined) {
+					link = json_store.collections[collection].external;
+				}
+				opt_entity_html += "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
+			}
+		}
+		$('#optionsModal').find('.modal-body').append(opt_entity_html);						
+		$('#optionsModal').find('.btn-list').click(function (){
+			$('#optionsModal').modal('hide');
+		});
+		//$('#optionsModal').find('.modal-body').append('<a class="btn btn-default btn-lg btn-block btn-list" role="button" href="/ia7/#path=/objects&type=Voice_Cmd&category=MisterHouse&_collection_key=0,1,15" link-type="collection"><i class="fa fa-home fa-2x fa-fw"></i>Browse MrHouse</a>');						
+
+		//$('#optionsModal').find('#options').html('<ul id="sortable" class="list-group"></ul>');
+		//var entityList = json_store.objects[entity].members;
+		//var sortList = json_store.objects[entity].sort_order;
+		//entityList = sortArrayByArray(entityList, sortList);
+		//for (var i = 0; i < entityList.length; i++){
+		//	var entityLabel = entityList[i];
+		//	if ( json_store.objects[entityList[i]].label !== undefined) {
+		//		entityLabel = json_store.objects[entityList[i]].label;
+		//	}
+		//	$('#sortable').append('<li id="'+entityList[i]+'" class="list-group-item">'+entityLabel+'</li>');
+		//	
+		//
+		//}
+        ////$( "#sortable" ).disableSelection();
 		$( "#sortable" ).sortable({
 		  update: function( event, ui ) {
 		  	var URLHash = URLToHash();
