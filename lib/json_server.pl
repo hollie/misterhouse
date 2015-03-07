@@ -324,6 +324,10 @@ sub json_get {
 	# Insert Data or Error Message
 	if ($output_ref) {
 		$json{data} = $output_ref;
+#	   foreach my $key (sort (keys(%{$output_ref}))) {
+#	   print "db:key = $key\n";
+#  		 $json{data}{$key} = $output_ref->{$key};
+#		}
 	}
 	else {
 		$json{error}{msg} = 'No data, or path does not exist.';
@@ -336,6 +340,7 @@ sub json_get {
 	
     my $json_raw = JSON->new->allow_nonref;
 	# Translate special characters
+	$json_raw->canonical(1);
 	$json_raw = $json_raw->pretty->encode( \%json );
 	return &json_page($json_raw);
 	
