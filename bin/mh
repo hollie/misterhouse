@@ -4102,6 +4102,9 @@ sub print_speaklog {
 #   unshift (@Speak_Log, "$Time_Now $data");
     unshift (@Speak_Log, "$Time_Date $data");
     pop @Speak_Log if @Speak_Log > $config_parms{max_log_entries};
+    unshift (@Speak_Log_Time, &get_tickcount);
+    pop @Speak_Log_Time if @Speak_Log_Time > @Speak_Log;
+
 
     if ($Tk_objects{speak_window}) {
                                 # Most recent at top ... if we put it on the bottom, we have to constantly
@@ -4138,6 +4141,7 @@ sub print_speaklog_since {
     my $index;
     for my $i (0 .. $#Speak_Log_Time) {
     	$index = $i;
+    	print "db/mh/since: i=$i time=$time, plt=$Print_Log_Time[$i] slt=$Speak_Log_Time[$i]\n";
         if ($time >= $Print_Log_Time[$i]){ #TODO: Problem
             # We have already seen this message, so the prior index is what we need
             $index--;
@@ -4158,7 +4162,9 @@ sub print_speaklog_since {
 
 sub print_speaklog_current_time {
                                 # Return the time of most recent speak phrase
-    return $Print_Log_Time[0] unless (scalar @Print_Log_Time <= 0);
+
+    print "db/mh/curr: plt=$Print_Log_Time[0] slt=$Speak_Log_Time[0]\n";
+    return $Print_Log_Time[0] unless (scalar @Speak_Log_Time <= 0);
     return 0;
 }
 
