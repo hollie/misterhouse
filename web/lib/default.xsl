@@ -32,6 +32,26 @@
           </ul>
           </ul>
         </xsl:for-each>
+        <xsl:for-each select="print_speaklog">
+          <ul>
+          <li>Speak Log:</li>
+          <ul>
+          <xsl:for-each select="time">
+            <li>Time=<xsl:value-of select="."/></li>
+          </xsl:for-each>
+          <xsl:for-each select="text">
+            <li>Text:<ul>
+              <xsl:for-each select="value">
+                <li style="white-space:pre;">
+                  <xsl:value-of select="."/>
+                </li>
+              </xsl:for-each>
+              </ul>
+            </li>
+          </xsl:for-each>
+          </ul>
+          </ul>
+        </xsl:for-each>
         <xsl:for-each select="//vars">
           <ul>
             <xsl:call-template name="var"/>

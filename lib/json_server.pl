@@ -340,7 +340,7 @@ sub json_get {
 	
     my $json_raw = JSON->new->allow_nonref;
 	# Translate special characters
-	$json_raw->canonical(1);
+	$json_raw->canonical(1); #Order the data so that objects show alphabetically
 	$json_raw = $json_raw->pretty->encode( \%json );
 	return &json_page($json_raw);
 	

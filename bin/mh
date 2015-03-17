@@ -1131,23 +1131,23 @@ sub open_logs {
     my $speak_log = "$config_parms{data_dir}/logs/speak.log";
     my $error_log = "$config_parms{data_dir}/logs/error.log";
 
-    my (@log);
+    my (@log,@speaklog,@errorlog);
     @log = &file_tail($print_log, $config_parms{max_log_entries});
     chomp @log;
     @Print_Log = reverse @log;
     unshift @Print_Log, "$Time_Date ---------- Restart ---------- ";
     @Print_Log_Time = (1)x scalar @Print_Log;
 
-    @log = &file_tail($speak_log, $config_parms{max_log_entries});
-    chomp @log;
-    @Speak_Log = reverse @log;
+    @speaklog = &file_tail($speak_log, $config_parms{max_log_entries});
+    chomp @speaklog;
+    @Speak_Log = reverse @speaklog;
     @Speak_Log_Time = (1)x scalar @Speak_Log;
 
 #    unshift @Speak_Log, "$Time_Date ---------- Restart ---------- ";
 
-    @log = &file_tail($error_log, $config_parms{max_log_entries});
-    chomp @log;
-    @Error_Log = reverse @log;
+    @errorlog = &file_tail($error_log, $config_parms{max_log_entries});
+    chomp @errorlog;
+    @Error_Log = reverse @errorlog;
     @Error_Log_Time = (1)x scalar @Error_Log;
     unshift @Error_Log, "$Time_Date ---------- Restart ---------- ";
 
@@ -4096,12 +4096,12 @@ sub print_speaklog {
 #   my ($data) = @_;
     my $data = "@_";
 
+    $data =~ s/<\/?voice.*?>//g;  # Drop XML speech tags
+    $data =~ s/\n *$//;           # Drop trailing cr
+
 #   unshift (@Speak_Log, "$Time_Now $data");
     unshift (@Speak_Log, "$Time_Date $data");
     pop @Speak_Log if @Speak_Log > $config_parms{max_log_entries};
-
-    $data =~ s/<\/?voice.*?>//g;  # Drop XML speech tags
-    $data =~ s/\n *$//;           # Drop trailing cr
 
     if ($Tk_objects{speak_window}) {
                                 # Most recent at top ... if we put it on the bottom, we have to constantly
@@ -4112,6 +4112,8 @@ sub print_speaklog {
         print "$data\n" unless $config_parms{no_log} =~ /speak/ or $Startup; # On startup no print needed as it is just the "System Restarted" message (or an error with its own debug info)
     }
     print SPEAKLOG "$Time_Date $data\n";
+    
+    return;
 }
 
 sub print_speaklog_last {
@@ -4136,7 +4138,7 @@ sub print_speaklog_since {
     my $index;
     for my $i (0 .. $#Speak_Log_Time) {
     	$index = $i;
-        if ($time >= $Speak_Log_Time[$i]){
+        if ($time >= $Print_Log_Time[$i]){ #TODO: Problem
             # We have already seen this message, so the prior index is what we need
             $index--;
             last;
@@ -4156,7 +4158,7 @@ sub print_speaklog_since {
 
 sub print_speaklog_current_time {
                                 # Return the time of most recent speak phrase
-    return $Speak_Log_Time[0] unless (scalar @Speak_Log_Time <= 0);
+    return $Print_Log_Time[0] unless (scalar @Print_Log_Time <= 0);
     return 0;
 }
 
