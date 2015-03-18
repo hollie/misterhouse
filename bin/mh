@@ -4141,8 +4141,8 @@ sub print_speaklog_since {
     my $index;
     for my $i (0 .. $#Speak_Log_Time) {
     	$index = $i;
-    	print "db/mh/since: i=$i time=$time, plt=$Print_Log_Time[$i] slt=$Speak_Log_Time[$i]\n";
-        if ($time >= $Print_Log_Time[$i]){ #TODO: Problem
+    	#print "db/mh/since: i=$i time=$time, plt=$Print_Log_Time[$i] slt=$Speak_Log_Time[$i]\n";
+        if ($time >= $Speak_Log_Time[$i]){ #TODO: Problem
             # We have already seen this message, so the prior index is what we need
             $index--;
             last;
@@ -4156,6 +4156,7 @@ sub print_speaklog_since {
         return @Speak_Log;
     }
     else {
+    	print "db/mh/since [ " . @Speak_Log[0 .. $index]. "]\n";
         return (@Speak_Log[0 .. $index]);
     }
 }
@@ -4163,8 +4164,8 @@ sub print_speaklog_since {
 sub print_speaklog_current_time {
                                 # Return the time of most recent speak phrase
 
-    print "db/mh/curr: plt=$Print_Log_Time[0] slt=$Speak_Log_Time[0]\n";
-    return $Print_Log_Time[0] unless (scalar @Speak_Log_Time <= 0);
+    #print "db/mh/curr: time=" . &get_tickcount . " plt=$Print_Log_Time[0] slt=$Speak_Log_Time[0]\n";
+    return $Print_Log_Time[0] unless (scalar @Speak_Log_Time <= 0); #TODO HP should return $Speak_Log_Time
     return 0;
 }
 

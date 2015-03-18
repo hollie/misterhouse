@@ -60,7 +60,6 @@ my %mime_types = (
 my (%http_dirs, %html_icons, $html_info_overlib, %password_protect_dirs, %http_agent_formats, %http_agent_sizes);
 
 my ($http_fork_mem, $http_fork_page, $http_fork_count);
-my ($mobile_html);
 
 if ($config_parms{http_fork} eq 'memmap') {
     $http_fork_mem  = new Win32::MemMap;
@@ -204,33 +203,49 @@ sub http_process_request {
 #Aquapad:    Mozilla/4.0 (compatible; MSIE 4.01; Windows NT Windows CE)
 #Opera: Mozilla/4.0 (compatible; MSIE 5.0; Linux 2.4.6-rmk1-np2-embedix armv4l; 240x320) Opera 5.0  [en]
 #iPhone: Mozilla/5.0 (iPhone; CPU iPhone OS 8_1_3 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) Version/8.0 Mobile/12B466 Safari/600.1.4
-   $mobile_html = 0;
+
+   my $ia7_enable = 'none';
+   $ia7_enable = $main::config_parms{'ia7_enable'} if defined $main::config_parms{'ia7_enable'};   
+   my $mobile_html = 0;
+   my $modern_browser = 0;
    if (($Http{'User-Agent'} =~ /iPhone/i) or ($Http{'User-Agent'} =~ /Android/i)) {
-       $mobile_html = 1 if (defined $main::config_parms{html_file_mobile});
+       $mobile_html = 1;
    }
+   if (($Http{'User-Agent'} =~ /AppleWebKit/i) or 
+       ($Http{'User-Agent'} =~ /Chrome/i) or
+       ($Http{'User-Agent'} =~ /Gecko/i) or
+       ($Http{'User-Agent'} =~ /iPad/i)) {
+       	$modern_browser = 1;
+    }
+   
 #   print "db ua=$Http{'User-Agent'}\n";
     if ($Http{'User-Agent'}) {
         $Http{'User-Agent-Size'} = $1 if $Http{'User-Agent'} =~ /\d{2,}x(\d){2,}/;
         if ($Http{'User-Agent'} =~ /Windows CE/i) {
             $Http{'User-Agent'}    =  'MSCE';
+            $modern_browser = 0;
         }
         elsif ($Http{'User-Agent'} =~ /Audrey/i) {
             $Http{'User-Agent'}    =  'Audrey';
+            $modern_browser = 0;
         }
         elsif ($Http{'User-Agent'} =~ /Photon/i) {
             $Http{'User-Agent'}    =  'Photon';
+            $modern_browser = 0;
         }
         elsif ($Http{'User-Agent'} =~ /MSIE/i) {
             $Http{'User-Agent'}    =  'MSIE';
         }
         elsif ($Http{'User-Agent'} =~ /Netscape6/i) {
             $Http{'User-Agent'}    =  'Netscape6';
+            $modern_browser = 0;
         }
         elsif ($Http{'User-Agent'} =~ /Mozilla/i) {
             $Http{'User-Agent'}    =  'Mozilla';
         }
         elsif ($Http{'User-Agent'} =~ /embedix/i) {
             $Http{'User-Agent'}    =  'Zaurus';
+            $modern_browser = 0;
         }
         elsif ($Http{'User-Agent'} =~ /Opera/i) {
             $Http{'User-Agent'}    =  'Opera';
@@ -238,6 +253,7 @@ sub http_process_request {
     }
     else {
         $Http{'User-Agent'} = '';
+        $modern_browser = 0;
     }
 
     $Http{format} = '';
@@ -287,7 +303,8 @@ sub http_process_request {
 
     if (!$get_req or $get_req eq '/') {
         $get_req = $main::config_parms{'html_file' . $Http{format}};
-        $get_req = $main::config_parms{'html_file_mobile'} if $mobile_html;
+        $get_req = '/ia7/' if (((lc $ia7_enable eq "mobile") or (lc $ia7_enable eq "all")) and $mobile_html);
+        $get_req = '/ia7/' if ((lc $ia7_enable eq "all") and $modern_browser);
 
         $get_req = '/' . $get_req unless $get_req =~ /^\//; # Leading / is optional
         my $referer = "http://$Http{Host}";

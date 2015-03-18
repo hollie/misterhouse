@@ -292,12 +292,14 @@ sub json_get {
 	
 		# List speak phrases
 	if ( $path[0] eq 'print_speaklog' || $path[0] eq '' ) {
-		my @log;
+		my (@log,@tmp);
 		my $name;
 		if ($args{time} 
 			&& int($args{time}[0]) < int(::print_speaklog_current_time())){
 			#Only return messages since time
 			@log = ::print_speaklog_since($args{time}[0]);
+			push @log,''; #TODO HP - Kludge, the javascript seems to want an extra line in the array for some reason
+			#print "db/json: " . join(", ",@log) . "\n";
 		} elsif (!$args{time}) {
 			@log = ::print_speaklog_since();
 		}
