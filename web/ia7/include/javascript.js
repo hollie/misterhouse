@@ -1,3 +1,10 @@
+// Optimization opportunity
+// common code for setting states, should move to subroutine
+// Should be able to merge print_log, print_speaklog and the non-existant print_errorlog into a
+//   single method
+// updateStaticPage has lots of copy paste
+
+
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
@@ -162,7 +169,7 @@ function changePage (){
 				//prefix if other recursively browsable formats are later added
 				nav_name = collection_keys_arr[i].replace("$", '');
 				nav_link = '#path=/objects&parents='+nav_name;
-				if (nav_name == "Group") nav_link = '#path=objects&type=Group';
+				if (nav_name == "Group") nav_link = '#path=objects&type=Group'; //Hardcode this use case
 				if (json_store.objects[nav_name].label != undefined) nav_name = (json_store.objects[nav_name].label);
 
 			}
@@ -313,9 +320,9 @@ var loadList = function() {
 						options = options.split(',');
 						button_html = '<div class="btn-group btn-block fillsplit">';
 						button_html += '<div class="leadcontainer">';
-						button_html += '<button type="button" class="btn btn-default dropdown-lead btn-lg btn-list btn-voice-cmd">'+button_text_start + "<u>" + options[0] + "</u>" + button_text_end+'</button>';
+						button_html += '<button type="button" class="btn btn-default dropdown-lead btn-lg btn-list btn-voice-cmd navbutton-padding">'+button_text_start + "<u>" + options[0] + "</u>" + button_text_end+'</button>';
 						button_html += '</div>';
-						button_html += '<button type="button" class="btn btn-default btn-lg dropdown-toggle pull-right btn-list-dropdown" data-toggle="dropdown">';
+						button_html += '<button type="button" class="btn btn-default btn-lg dropdown-toggle pull-right btn-list-dropdown navbutton-padding" data-toggle="dropdown">';
 						button_html += '<span class="caret"></span>';
 						button_html += '<span class="sr-only">Toggle Dropdown</span>';
 						button_html += '</button>';
@@ -327,7 +334,7 @@ var loadList = function() {
 						button_html += '</div>';
 					}
 					else {
-						button_html = "<div style='vertical-align:middle'><button type='button' class='btn btn-default btn-lg btn-block btn-list btn-voice-cmd'>";
+						button_html = "<div style='vertical-align:middle'><button type='button' class='btn btn-default btn-lg btn-block btn-list btn-voice-cmd navbutton-padding'>";
 						button_html += "" +button_text+"</button></div>";
 					}
 					entity_arr.push(button_html);
@@ -348,7 +355,7 @@ var loadList = function() {
 						filter_args = "type="+entity;
 					}
 					button_html = "<div style='vertical-align:middle'><a role='button' listType='objects'";
-					button_html += "class='btn btn-default btn-lg btn-block btn-list btn-division'";
+					button_html += "class='btn btn-default btn-lg btn-block btn-list btn-division navbutton-padding'";
 					button_html += "href='#path=/objects&"+filter_args+"&_collection_key="+collection_key+",$" + entity +"' >";
 					button_html += "" +button_text+"</a></div>";
 					entity_arr.push(button_html);
@@ -362,7 +369,7 @@ var loadList = function() {
 					if (json_store.objects[entity].label !== undefined) name = json_store.objects[entity].label;
 					//Put objects into button
 					button_html = "<div style='vertical-align:middle'><button entity='"+entity+"' ";
-					button_html += "class='btn btn-"+color+" btn-lg btn-block btn-list btn-popover btn-state-cmd'>";
+					button_html += "class='btn btn-"+color+" btn-lg btn-block btn-list btn-popover btn-state-cmd navbutton-padding'>";
 					button_html += name+"<span class='pull-right'>"+json_store.objects[entity].state+"</span></button></div>";
 					entity_arr.push(button_html);
 				}
@@ -421,9 +428,9 @@ var loadList = function() {
 				for (var i = 0; i < modal_states.length; i++){
 					if (filterSubstate(modal_states[i]) == 1) {
 					   advanced_html += "<button class='btn btn-default hidden'>"+modal_states[i]+"</button>";
-					   continue //TODO!! will have to figure out how to have all the methods, but to display pretty.
+					   continue 
 					} else {
-					   buttonlength += 2 + modal_states[i].length
+					   buttonlength += 2 + modal_states[i].length //TODO: Maybe just count buttons to create groups.
 					}
 					if (buttonlength >= 25) {
 					    stategrp++;
@@ -443,7 +450,6 @@ var loadList = function() {
 					$('#control').modal('hide');
 					$.get( url);
 				});
-				//TODO show all states if gear is pressed.
 				$('.mhstatemode').on('click', function(){
   				   $('#control').find('.states').find('.btn').removeClass('hidden');
 				});
@@ -458,9 +464,9 @@ var loadList = function() {
 
 var getButtonColor = function (state) {
 	var color = "default";
-	if (state == "on" || state == "open" || state == "unarmed") {
+	if (state == "on" || state == "open" || state == "disarmed" || state == "up" || state == "100%" || state == "online") {
 		 color = "success";
-	} else if (state == "motion" || state == "closed" || state == "armed") {
+	} else if (state == "motion" || state == "closed" || state == "armed" || state == "down" || state == "offline") {
 		 color = "danger";
 	} else if (state == undefined || state == "unknown" ) {
 		 color = "info";
@@ -584,6 +590,120 @@ var updateList = function(path) {
 	});  //ajax request
 };//loadlistfunction
 
+var updateStaticPage = function(link,time) {
+// Loop through objects and get entity name
+// update entity based on mh module.
+	var entity;
+//	alert("link="+link+" time="+time);
+	var states_loaded = 0;
+	if (link != undefined) {
+  		states_loaded = 1;
+	}
+  
+	var URLHash = URLToHash();
+	URLHash.fields = "state,states,label,type";
+	URLHash.long_poll = 'true';
+	URLHash.time = json_store.meta.time;
+	if (updateSocket !== undefined && updateSocket.readyState != 4){
+		// Only allow one update thread to run at once
+		updateSocket.abort();
+	}
+	var split_path = HashtoJSONArgs(URLHash).split("?");
+	var path_str = split_path[0];
+	var arg_str = split_path[1];
+	path_str = "/objects"  // override, for now, would be good to add voice_cmds
+	//arg_str=link=%2Fia7%2Fhouse%2Fgarage.shtml&fields=state%2Ctype&long_poll=true&time=1426011733833.94
+	arg_str = "fields=state,states,label&long_poll=true&time="+time;
+	//alert("path_str="+path_str+" arg_str="+arg_str)
+	updateSocket = $.ajax({
+		type: "GET",
+		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
+		dataType: "json",
+		success: function( json, textStatus, jqXHR) {
+			var requestTime = time;
+			if (jqXHR.status == 200) {
+				JSONStore(json);
+				requestTime = json_store.meta.time;
+				$('button[entity]').each(function(index) {
+				if ($(this).attr('entity') != '' && json.data[$(this).attr('entity')] != undefined ) { //need an entity item for this to work.
+					entity = $(this).attr('entity');
+					//alert ("entity="+entity+" this="+$(this).attr('entity'));
+					//alert ("state "+json.data[entity].state)
+					var color = getButtonColor(json.data[entity].state);
+					$('button[entity="'+entity+'"]').find('.pull-right').text(
+						json.data[entity].state);
+					$('button[entity="'+entity+'"]').removeClass("btn-default");
+					$('button[entity="'+entity+'"]').removeClass("btn-success");
+					$('button[entity="'+entity+'"]').removeClass("btn-warning");
+					$('button[entity="'+entity+'"]').removeClass("btn-danger");
+					$('button[entity="'+entity+'"]').removeClass("btn-info");
+					$('button[entity="'+entity+'"]').addClass("btn-"+color);
+				
+				//don't run this if stategrp0 exists	
+					if (states_loaded == 0) {
+				    	$(".btn-state-cmd").click( function () {
+						var entity = $(this).attr("entity");
+						var name = entity;
+						if (json_store.objects[entity].label !== undefined) name = json_store.objects[entity].label;
+						$('#control').modal('show');
+						var modal_state = json_store.objects[entity].state;
+						$('#control').find('.object-title').html(name + " - " + json_store.objects[entity].state);
+						$('#control').find('.control-dialog').attr("entity", entity);
+						$('#control').find('.states').html('<div class="btn-group stategrp0 btn-block"></div>');
+						var modal_states = json_store.objects[entity].states;
+						var buttonlength = 0;
+						var stategrp = 0;
+						var advanced_html = "";
+						for (var i = 0; i < modal_states.length; i++){
+							if (filterSubstate(modal_states[i]) == 1) {
+					   		advanced_html += "<button class='btn btn-default hidden'>"+modal_states[i]+"</button>";
+					   		continue 
+						} else {
+					   		buttonlength += 2 + modal_states[i].length //TODO: Maybe just count buttons to create groups.
+						}
+						if (buttonlength >= 25) {
+					    	stategrp++;
+					    	$('#control').find('.states').append("<div class='btn-group stategrp"+stategrp+" btn-block'></div>");
+							buttonlength = 0;
+ 						}
+						var color = getButtonColor(modal_states[i])
+						var disabled = ""
+						if (modal_states[i] == json_store.objects[entity].state) {
+					  		disabled = "disabled";
+						}
+						$('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-3 btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");
+					}
+					$('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
+					$('#control').find('.states').find('.btn').click(function (){
+					url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
+					$('#control').modal('hide');
+					$.get( url);
+				});
+					$('.mhstatemode').on('click', function(){
+  				    	$('#control').find('.states').find('.btn').removeClass('hidden');
+				    });
+				});
+			}																
+		}			
+	});
+			}
+			//alert ("checking for reload");
+			if (jqXHR.status == 200 || jqXHR.status == 204) {
+//				//Call update again, if page is still here
+//				//KRK best way to handle this is likely to check the URL hash
+				//alert("URL="+URLHash.link+" link="+link)
+				if (URLHash.link == link || link == undefined){
+//					//While we don't anticipate handling a list of groups, this 
+//					//may error out if a list was used
+					//testingObj(json_store.meta.time);
+				updateStaticPage(URLHash.link,requestTime);
+				}
+			}
+		}, // End success
+	});  //ajax request
+}
+
+	
 //Prints all of the navigation items for Ia7
 var loadCollection = function(collection_keys) {
 	if (collection_keys === undefined) collection_keys = '0';
@@ -608,7 +728,7 @@ var loadCollection = function(collection_keys) {
 		if (json_store.collections[collection].external !== undefined) {
 			link = json_store.collections[collection].external;
 		}
-		var button_html = "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list "+hidden+"' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
+		var button_html = "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list "+hidden+" navbutton-padding' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
 		entity_arr.push(button_html);
 	}
 	//loop through array and print buttons
@@ -648,6 +768,7 @@ function buildLink (link, collection_keys){
 
 //Outputs a constantly updating print log
 var print_log = function(time) {
+
 	var URLHash = URLToHash();
 	if (typeof time === 'undefined'){
 		$('#list_content').html("<div id='print_log' class='row top-buffer'>");
@@ -678,6 +799,7 @@ var print_log = function(time) {
 					if (line) $('#list').prepend("<li style='font-family:courier, monospace;white-space:pre-wrap;font-size:small;position:relative;'>"+line+"</li>");
 				}
 				requestTime = json.meta.time;
+
 			}
 			if (jqXHR.status == 200 || jqXHR.status == 204) {
 				//Call update again, if page is still here
@@ -691,32 +813,37 @@ var print_log = function(time) {
 	});
 };
 
-//Outputs a constantly updating print log
+//Outputs a constantly updating speak log
 var print_speaklog = function(time) {
 	var URLHash = URLToHash();
+		//alert("starting speaklog "+time);
 	if (typeof time === 'undefined'){
 		$('#list_content').html("<div id='print_speaklog' class='row top-buffer'>");
-		$('#print_speaklog').append("<div id='row_log' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
-		$('#row_log').append("<ul id='list'></ul>");
+		$('#print_speaklog').append("<div id='row_speaklog' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+		$('#row_speaklog').append("<ul id='list'></ul>");
 		time = 0;
 	}
 	URLHash.time = time;
 	URLHash.long_poll = 'true';
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
 		// Only allow one update thread to run at once
+		alert("aborting socket");
 		updateSocket.abort();
 	}
 	var split_path = HashtoJSONArgs(URLHash).split("?");
 	var path_str = split_path[0];
 	var arg_str = split_path[1];	
+	//alert("starting updateSocket " +path_str+" "+arg_str);
 	updateSocket = $.ajax({
 		type: "GET",
 		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
 		dataType: "json",
 		success: function( json, statusText, jqXHR ) {
+			//alert("success "+jqXHR.status);
 			var requestTime = time;
 			if (jqXHR.status == 200) {
 				JSONStore(json);
+				//alert("json length "+json.data.length);
 				for (var i = (json.data.length-1); i >= 0; i--){
 					var line = String(json.data[i]);
 					line = line.replace(/\n/g,"<br>");
@@ -724,16 +851,20 @@ var print_speaklog = function(time) {
 				}
 				requestTime = json.meta.time;
 			}
+			//alert("jqXHR.status "+jqXHR.status+" time "+requestTime) ;
 			if (jqXHR.status == 200 || jqXHR.status == 204) {
 				//Call update again, if page is still here
 				//KRK best way to handle this is likely to check the URL hash
-				if ($('#row_log').length !== 0){
+				if ($('#row_speaklog').length !== 0){
 					//If the print log page is still active request more data
+					//alert("requesting page"+requestTime);
 					print_speaklog(requestTime);
 				}
 			}		
 		}
 	});
+	//alert("ending updateSocket");
+
 };
 
 
@@ -829,7 +960,7 @@ $(document).ready(function() {
 			display_mode = $(this).find('input').attr('id');	
 			changePage();
   		});
-		// TODO parse the collection ID 500 and build a list of buttons
+		// parse the collection ID 500 and build a list of buttons
 		var opt_collection_keys = 0;
 		var opt_entity_html = "";
 		var opt_entity_sort = json_store.collections[500].children;
