@@ -130,6 +130,7 @@ sub new {
     $$self{said}          = undef;
     $$self{state_now}     = undef;
     $$self{state_changed} = undef;
+    $self->restore_data('sort_order');
     return $self;
 }
 
@@ -1363,6 +1364,25 @@ sub debuglevel
 	return 1 if $main::Debug{$debug_group} >= $debug_level;
 	return 1 if defined $objname && $main::Debug{$objname} >= $debug_level;
 	return 0;
+}
+
+=item C<sort_order($ref_list_of_member_names)>
+
+Used to store an ordered list of object names.  The purpose of which is to be 
+used to arrange the list of member objects in a specific order.
+
+NOTE:  This routine does not verify that the objects are in fact members of this
+object.
+
+=cut
+
+sub sort_order
+{
+	my ($self, $list_ref) = @_;
+	if (defined $list_ref) {
+	    $$self{sort_order} = join(',', @{$list_ref});
+	}
+    return [split(',', $$self{sort_order})];
 }
 
 =back

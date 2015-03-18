@@ -75,6 +75,9 @@ sub checkForUpdate {
 
   if (${$$self{expireTime}} < time()) {
     &main::print_log ("checkForUpdate waiter for sub ${$$self{sub}} timed out, closing socket") if $main::Debug{ajax};
+    # Sending a status code makes it easier to distinish No Content from a lost
+    # connection on the client end.
+    &::print_socket_fork (${$$self{waitingSocket}}, "HTTP/1.0 204 No Content\n\n");
     ${$$self{waitingSocket}}->close;
     return 1;
   }

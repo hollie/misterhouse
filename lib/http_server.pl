@@ -6,11 +6,12 @@
 # $Revision$
 
 use strict;
+use Text::ParseWords;
 require 'http_utils.pl';
 
 #no warnings 'uninitialized';   # These seem to always show up.  Dang, will not work with 5.0
 
-use vars qw(%Http %Cookies %Included_HTML %HTTP_ARGV $HTTP_REQUEST);
+use vars qw(%Http %Cookies %Included_HTML %HTTP_ARGV $HTTP_REQUEST $HTTP_BODY $HTTP_REQ_TYPE);
 $Authorized = 0;
 
 my($leave_socket_open_passes, $leave_socket_open_action);
@@ -59,6 +60,7 @@ my %mime_types = (
 my (%http_dirs, %html_icons, $html_info_overlib, %password_protect_dirs, %http_agent_formats, %http_agent_sizes);
 
 my ($http_fork_mem, $http_fork_page, $http_fork_count);
+
 if ($config_parms{http_fork} eq 'memmap') {
     $http_fork_mem  = new Win32::MemMap;
     $http_fork_page = $http_fork_mem->GetGranularitySize();
@@ -149,7 +151,7 @@ sub http_process_request {
         $_ = <$socket>;
         last unless $_ and /\S/;
         $temp .= $_;
-        if (/^ *(GET|POST) /) {
+        if (/^ *(GET|POST|PUT) /) {
             $header = $_;
         }
         elsif (my ($key, $value) = /(\S+?)\: ?(.+?)[\n\r]+/) {
@@ -200,30 +202,50 @@ sub http_process_request {
 #Compaq IA1: Mozilla/4.0 (compatible; MSIE 4.01; Windows CE; MSN Companion 2.0; 800x600; Compaq).
 #Aquapad:    Mozilla/4.0 (compatible; MSIE 4.01; Windows NT Windows CE)
 #Opera: Mozilla/4.0 (compatible; MSIE 5.0; Linux 2.4.6-rmk1-np2-embedix armv4l; 240x320) Opera 5.0  [en]
+#iPhone: Mozilla/5.0 (iPhone; CPU iPhone OS 8_1_3 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) Version/8.0 Mobile/12B466 Safari/600.1.4
 
+   my $ia7_enable = 'none';
+   $ia7_enable = $main::config_parms{'ia7_enable'} if defined $main::config_parms{'ia7_enable'};   
+   my $mobile_html = 0;
+   my $modern_browser = 0;
+   if (($Http{'User-Agent'} =~ /iPhone/i) or ($Http{'User-Agent'} =~ /Android/i)) {
+       $mobile_html = 1;
+   }
+   if (($Http{'User-Agent'} =~ /AppleWebKit/i) or 
+       ($Http{'User-Agent'} =~ /Chrome/i) or
+       ($Http{'User-Agent'} =~ /Gecko/i) or
+       ($Http{'User-Agent'} =~ /iPad/i)) {
+       	$modern_browser = 1;
+    }
+   
 #   print "db ua=$Http{'User-Agent'}\n";
     if ($Http{'User-Agent'}) {
         $Http{'User-Agent-Size'} = $1 if $Http{'User-Agent'} =~ /\d{2,}x(\d){2,}/;
         if ($Http{'User-Agent'} =~ /Windows CE/i) {
             $Http{'User-Agent'}    =  'MSCE';
+            $modern_browser = 0;
         }
         elsif ($Http{'User-Agent'} =~ /Audrey/i) {
             $Http{'User-Agent'}    =  'Audrey';
+            $modern_browser = 0;
         }
         elsif ($Http{'User-Agent'} =~ /Photon/i) {
             $Http{'User-Agent'}    =  'Photon';
+            $modern_browser = 0;
         }
         elsif ($Http{'User-Agent'} =~ /MSIE/i) {
             $Http{'User-Agent'}    =  'MSIE';
         }
         elsif ($Http{'User-Agent'} =~ /Netscape6/i) {
             $Http{'User-Agent'}    =  'Netscape6';
+            $modern_browser = 0;
         }
         elsif ($Http{'User-Agent'} =~ /Mozilla/i) {
             $Http{'User-Agent'}    =  'Mozilla';
         }
         elsif ($Http{'User-Agent'} =~ /embedix/i) {
             $Http{'User-Agent'}    =  'Zaurus';
+            $modern_browser = 0;
         }
         elsif ($Http{'User-Agent'} =~ /Opera/i) {
             $Http{'User-Agent'}    =  'Opera';
@@ -231,6 +253,7 @@ sub http_process_request {
     }
     else {
         $Http{'User-Agent'} = '';
+        $modern_browser = 0;
     }
 
     $Http{format} = '';
@@ -247,8 +270,9 @@ sub http_process_request {
         $Authorized = &password_check($Cookies{password}, 'http', 'crypted');
     }
 
-    my ($req_typ, $get_req, $get_arg) = $header =~ m|^(GET\|POST) (\/[^ \?]*)\??(\S+)? HTTP|;
+    my ($req_typ, $get_req, $get_arg) = $header =~ m|^(GET\|POST\|PUT) (\/[^ \?]*)\??(\S+)? HTTP|;
     $get_arg = '' unless defined $get_arg;
+    $HTTP_REQ_TYPE = $req_typ;
 
     $get_arg =~ s/(.*)\&__async.*/$1/;  # RaK: Fast hack to ensure async requests
 
@@ -257,18 +281,31 @@ sub http_process_request {
     print "http: gr=$get_req ga=$get_arg " .
           "A=$Authorized format=$Http{format} ua=$Http{'User-Agent'} h=$header"
         if $main::Debug{http};
-    if ($req_typ eq "POST") {
-        $get_arg .= '&' if $get_arg;
+    if ($req_typ eq "POST" || $req_typ eq "PUT") {
         my $cl = $Http{'Content-Length'} || $Http{'Content-length'}; # Netscape uses lower case l
         print "http POST query has $cl bytes of args\n" if $main::Debug{http};
         my $buf;
         read $socket, $buf, $cl;
-        $get_arg .= $buf;
+        # Save the body into the global var
+        $HTTP_BODY = $buf;
+        # This is a bad practice to merge the body and arguments together as the
+        # body may not always contain an argument string.  It may contain JSON
+        # data, binary data, or anything.
+        # Since I can't figure out if any bad code relies on merging the body
+        # into the arguments, the following regex tests if the body is a valid
+        # argument string.  If it is, the body is merged.
+        if ($buf =~ /^([-\+=&;%@.\w_]*)\s*$/){
+            $get_arg .= "&" if ($get_arg ne '');
+            $get_arg .= $buf;
+        }
 #       shutdown($socket->fileno(), 0);   # "how":  0=no more receives, 1=sends, 2=both
     }
 
     if (!$get_req or $get_req eq '/') {
         $get_req = $main::config_parms{'html_file' . $Http{format}};
+        $get_req = '/ia7/' if (((lc $ia7_enable eq "mobile") or (lc $ia7_enable eq "all")) and $mobile_html);
+        $get_req = '/ia7/' if ((lc $ia7_enable eq "all") and $modern_browser);
+
         $get_req = '/' . $get_req unless $get_req =~ /^\//; # Leading / is optional
         my $referer = "http://$Http{Host}";
                                 # Some browsers (e.g. Audrey) do not echo port in Host data
@@ -409,6 +446,9 @@ sub http_process_request {
     }
                                 # See if the request was for a file
     if (&test_for_file($socket, $get_req, $get_arg)) {
+    }
+    elsif ($get_req =~ /^\/JSON/i){
+        &print_socket_fork($socket, json());
     }
                                 # Test for RUN commands
     elsif  ($get_req =~ /\/RUN$/i or
@@ -889,11 +929,8 @@ sub html_sub {
                                 # Check for authorization
             if (($Authorized or $Password_Allow{"&$sub_name"} and $Password_Allow{"&$sub_name"} eq 'anyone')) {
                                 # If not quoted, split to multiple argument according to ,
-#               $sub_arg = "'$sub_arg'" if $sub_arg and $sub_arg !~ /^[\'\"]/; # Add quotes if needed
-                unless ($sub_arg =~ /^[\'\"]/) {
-                    my @args = split ',', $sub_arg;
-                    $sub_arg = join  ',', map {"'$_'"} @args;
-                }
+                my @args = parse_line(',', 0, $sub_arg);
+                $sub_arg = join  ',', map {"'$_'"} @args;
                 return(undef, "&$sub_name($sub_arg)");
             }
             else {
@@ -1367,7 +1404,7 @@ sub html_file {
 
 				# Return right away if the file has not changed
 #http:   header key=If-Modified-Since value=Sat, 27 Mar 2004 02:49:29 GMT; length=1685.
-    if ($cache and $Http{'If-Modified-Since'} and $Http{'If-Modified-Since'} =~ /(.+? GMT);/) {
+    if ($cache and $Http{'If-Modified-Since'} and $Http{'If-Modified-Since'} =~ /(.+? GMT)/) {
 	my $time2 = &str2time($1);
 	my $time3 = (stat($file))[9];
 	print "db web file cache check: f=$file t=$time2/$time3\n"  if $main::Debug{http3};
