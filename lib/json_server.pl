@@ -286,7 +286,7 @@ sub json_get {
 		}
 		if (scalar(@log) > 0) {
 			$json_data{'print_log'} = [];
-			push($json_data{'print_log'}, @log);
+			push(@{$json_data{'print_log'}}, @log);
 		}
 	}
 	
@@ -305,7 +305,7 @@ sub json_get {
 		}
 		if (scalar(@log) > 0) {
 			$json_data{'print_speaklog'} = [];
-			push($json_data{'print_speaklog'}, @log);
+			push(@{$json_data{'print_speaklog'}}, @log);
 		}
 	}
 
@@ -559,7 +559,7 @@ sub json_object_detail {
 				$value = [];
 				for my $obj_name (&list_objects_by_group($object->get_object_name, 1)) {
 					$obj_name =~ s/\$|\%|\&|\@//g;
-					push ($value, $obj_name);
+					push (@{$value}, $obj_name);
 				}
 			}
 		}	
