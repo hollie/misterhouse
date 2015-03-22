@@ -1103,6 +1103,19 @@ sub read_table_A {
             $code .= "use Philips_Hue;\n";
         }
     }
+    elsif ($type eq "PHILIPS_LUX"){
+    	($address, $name, $grouplist, @other) = @item_info;
+    	$other = join ', ', (map {"'$_'"} @other); # Quote data
+        if($other){
+            $object = "Philips_Lux('$address',$other)";
+        }
+        else{
+            $object = "Philips_Lux('$address')";
+        }
+        if( ! $packages{Philips_Hue}++ ) {   # first time for this object type?
+            $code .= "use Philips_Hue;\n";
+        }
+    }
     #-------------- AD2 Objects -----------------
     elsif($type eq "AD2_INTERFACE") {
         require AD2;

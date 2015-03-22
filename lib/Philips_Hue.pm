@@ -276,4 +276,56 @@ sub _calc_bri_command
 #
 #}
 
+
+=head1 B<Philips_Lux>
+
+=head2 SYNOPSIS
+
+Support for the Philips Lux devices
+
+=head2 DESCRIPTION
+
+This module inherits from Philips_Hue and disables the features that are not available on a Lux light. Basically this means everything that has to do with color settings.
+
+=cut
+
+package Philips_Lux;
+
+@Philips_Lux::ISA = ('Philips_Hue');
+
+sub effect
+{
+	my $self = shift();
+	
+	return;
+	
+}
+
+
+sub ct_k
+{
+	my ($self, $value) = @_;
+
+	::print_log('hue', "Setting color temperature not supported on Lux light");
+	
+	return;
+
+}
+
+sub hs
+{
+	my ($self, $hue, $sat) = @_;
+
+	::print_log('hue', "Setting hue and saturation not supported on Lux light");
+
+}
+
+sub hsb
+{
+	my ($self, $hue, $sat, $bri) = @_;
+	
+	::print_log('hue', "Setting hue, saturation and brightness not supported on Lux light");
+
+}
+
 1;
