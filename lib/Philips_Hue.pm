@@ -164,6 +164,9 @@ sub effect
 	
 	::print_log('hue', "Effect '$effect' request, current lamp state is $light_state");
 
+	# Do not continue if state is undefined to avoid loops.
+	return if ($light_state eq "");
+	
 	# Light needs to be on to be able to program an effect
 	$self->set('on');
 	
