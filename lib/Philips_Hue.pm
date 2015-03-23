@@ -118,7 +118,7 @@ sub new {
     $$self{hue}     = new Device::Hue('bridge' => $$self{gateway}, 'key' => $$self{apikey}, 'debug' => 0);
     $$self{light}   = $$self{hue}->light($$self{lamp_id});
     
-    $self->addStates ('on', 'off');
+    $self->addStates ('on', 'off', '20%', '40%', '60%', '80%');
 	
     return $self;
 }
@@ -139,6 +139,7 @@ sub default_setstate
     my ($self, $state, $substate, $set_by) = @_;
         
     my $cmnd = ($state =~ /^off/i) ? 'off' : 'on';
+    $cmnd = $state if ($state =~ /\%/);
     	
     return -1 if ($self->state eq $state); # Don't propagate state unless it has changed.
     
@@ -150,8 +151,14 @@ sub default_setstate
     	$self->effect('none');
     }
     
-    $$self{light}->$cmnd;
-
+    if ($cmnd =~ /(\d+)\%/) {
+    	::print_log('hue', "Sending brightness $1");
+    	$self->bri($1);
+    } else {
+    	::print_log('hue', "Sending command $cmnd");    
+    	$$self{light}->$cmnd;
+	}
+	
 	return;
 	
 }
