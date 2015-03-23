@@ -703,5 +703,18 @@
      "link" : "/ia5/modes/browse.shtml",
      "name" : "Browse Modes",
      "icon" : "fa-th"
-  }
+  },
+  "500" : {
+     "icon" : "fa-home",
+     "name" : "Gear Settings",
+     "children" : [
+       501
+
+     ]
+   },
+   "501" : {
+     "link" : "/UNSET_PASSWORD?user=admin",
+     "name" : "Authorize",
+     "icon" : "fa-lock"
+  }  
 }
