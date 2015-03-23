@@ -118,7 +118,7 @@ sub new {
     $$self{hue}     = new Device::Hue('bridge' => $$self{gateway}, 'key' => $$self{apikey}, 'debug' => 0);
     $$self{light}   = $$self{hue}->light($$self{lamp_id});
     
-    $self->addStates ('on', 'off', '20%', '40%', '60%', '80%');
+    $self->addStates ('on', 'off', '20%', '40%', '60%', '80%', '100%');
 	
     return $self;
 }
@@ -147,7 +147,8 @@ sub default_setstate
 	::print_log('hue', "Command settings: '" . $$self{gateway} . "' - '" . $$self{apikey} . "' - '" . $$self{lamp_id} . "' : '" . $cmnd. "'");
 	
     # Disable the effect commands when we turn off the light
-    if ($cmnd eq 'off') {
+    if ($cmnd eq 'off' || $cmnd eq 'on') {
+    	::print_log('hue', "Sending effect 'none'");
     	$self->effect('none');
     }
     
@@ -186,7 +187,7 @@ sub effect
 	}
 	
 	# If the light was off and effect is none, ensure it is back off after we sent the command
-	if ($light_state eq 'off') {
+	if ($light_state eq 'off' && $effect eq 'none') {
 		::print_log('hue', "Restoring light state to off");
 		$$self{light}->off;
 	}
