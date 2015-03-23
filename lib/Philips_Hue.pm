@@ -175,10 +175,10 @@ sub effect
 	return if ($light_state eq "");
 	
 	# Light needs to be on to be able to program an effect
-	$self->set('on');
+	$$self{light}->on;
 	
 	# Send effect command
-	::print_log('hue', "Sending effect command");
+	::print_log('hue', "Sending effect command '$effect'");
 	if ($effect ne 'off') {
 		$$self{light}->set_state({'effect' => $effect});
 	} else {
@@ -186,9 +186,9 @@ sub effect
 	}
 	
 	# If the light was off and effect is none, ensure it is back off after we sent the command
-	if ($light_state ne 'on' && $effect ne 'on') {
+	if ($light_state eq 'off') {
 		::print_log('hue', "Restoring light state to off");
-		$self->set('off');
+		$$self{light}->off;
 	}
 	
 }
