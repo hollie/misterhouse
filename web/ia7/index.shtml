@@ -2,31 +2,37 @@
 <html><head><title>MisterHouse</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	
 	<!--Font Awesome-->
-	<link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css" rel="stylesheet">
+	<link href="/ia7/include/font-awesome.4.0.3.min.css" rel="stylesheet">
+
+	<!--Weather Icons-->
+	<link href="/ia7/include/weather-icons.1.3.css" rel="stylesheet">
 	
 	<!-- Jquery -->
-	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+	<script src="/ia7/include/jquery.1.10.2.min.js"></script>
 	
 	<!--Bootstrap-->
 	<!-- Latest compiled and minified CSS -->
-	<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css">
+	<link rel="stylesheet" href="/ia7/include/bootstrap.3.0.2.min.css">
 	
 	<!-- Optional theme -->
-	<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap-theme.min.css">
+	<link rel="stylesheet" href="/ia7/include/bootstrap-theme.3.0.2.min.css">
 	
 	<!-- Latest compiled and minified bootstrap JavaScript -->
-	<script src="//netdna.bootstrapcdn.com/bootstrap/3.0.2/js/bootstrap.min.js"></script>
+	<script src="/ia7/include/bootstrap.3.0.2.min.js"></script>
 	
 	<!-- bootstrap editable -->
-	<link href="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.5.0/bootstrap3-editable/css/bootstrap-editable.css" rel="stylesheet"/>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.5.0/bootstrap3-editable/js/bootstrap-editable.min.js"></script>
+	<link href="/ia7/include/bootstrap3-editable.1.5.0.css" rel="stylesheet"/>
+  <script src="/ia7/include/bootstrap3-editable.1.5.0.min.js"></script>
 	
 	<!-- A custom jquery UI script to enable sortable items -->
 	<script src="include/jquery-ui-1.11.1.custom.min.js"></script>
 	
 	<!-- Enables Jquery UI functions to work on touch interfaces -->
-  <script src="//cdnjs.cloudflare.com/ajax/libs/jqueryui-touch-punch/0.2.3/jquery.ui.touch-punch.min.js"></script>
+  <script src="/ia7/include/jquery.ui.touch-punch.0.2.3.min.js"></script>
 	
 	<!-- ia7 JS File-->
 	<script src="/ia7/include/javascript.js"></script>
@@ -87,6 +93,9 @@
     	margin-left: 3px;
     	margin-top: -4px;
 	}
+	.navbutton-padding {
+		margin-top: 3px;
+	}
 	.toolbar-right-end {
 		margin-right: 15px;
 	}
@@ -101,14 +110,15 @@
   				<i class="fa fa-gear"></i>
 				</button>
 				
-			  <button id="mhstatus" type="button" class="btn btn-success toolbar-btn pull-right">
-  				online
+			  <button id="mhstatus" entity="ia7_status" type="button" class="btn btn-info toolbar-btn pull-right">
+  				<span class='pull-right'>checking</span>
 				</button>		  	
 		  </h3>
 		<ol id='nav' class="breadcrumb">
 		</ol>
 	</div>
 </div>
+
 <div id="list_content">
 </div>
 <div class='row top-buffer'>
@@ -176,4 +186,5 @@
 <script type="text/javascript">
 
 </script>
+
 </body></html>

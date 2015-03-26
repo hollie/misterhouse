@@ -590,6 +590,58 @@ var updateList = function(path) {
 	});  //ajax request
 };//loadlistfunction
 
+var updateItem = function(item,link,time) {
+	var URLHash = URLToHash();
+	URLHash.fields = "state";
+	URLHash.long_poll = 'true';
+	//URLHash.time = json_store.meta.time;
+	if (updateSocket !== undefined && updateSocket.readyState != 4){
+		// Only allow one update thread to run at once
+		updateSocket.abort();
+	}
+	if (time === undefined) {
+		time = "";
+	}
+	var split_path = HashtoJSONArgs(URLHash).split("?");
+	var path_str = split_path[0];
+	var arg_str = split_path[1];
+	path_str = "/objects"  // override, for now, would be good to add voice_cmds
+	//arg_str=link=%2Fia7%2Fhouse%2Fgarage.shtml&fields=state%2Ctype&long_poll=true&time=1426011733833.94
+	//arg_str = "fields=state,states,label&long_poll=true&time="+time;
+	arg_str = "fields=state&long_poll=true&items="+item+"&time="+time;
+	//alert("path_str="+path_str+" arg_str="+arg_str)
+	updateSocket = $.ajax({
+		type: "GET",
+		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
+		dataType: "json",
+		success: function( json, textStatus, jqXHR) {
+			var requestTime = time;
+			if (jqXHR.status == 200) {
+				JSONStore(json);
+				requestTime = json_store.meta.time;
+				var color = getButtonColor(json.data[item].state);
+				$('button[entity="'+item+'"]').find('.pull-right').text(
+					json.data[item].state);
+				$('button[entity="'+item+'"]').removeClass("btn-default");
+				$('button[entity="'+item+'"]').removeClass("btn-success");
+				$('button[entity="'+item+'"]').removeClass("btn-warning");
+				$('button[entity="'+item+'"]').removeClass("btn-danger");
+				$('button[entity="'+item+'"]').removeClass("btn-info");
+				$('button[entity="'+item+'"]').addClass("btn-"+color);
+			}
+			if (jqXHR.status == 200 || jqXHR.status == 204) {
+
+				if (URLHash.link == link || link == undefined){
+//					//While we don't anticipate handling a list of groups, this 
+//					//may error out if a list was used
+					//testingObj(json_store.meta.time);
+				updateItem(item,URLHash.link,requestTime);
+				}
+			}
+		}, // End success
+	});  //ajax request
+}
+
 var updateStaticPage = function(link,time) {
 // Loop through objects and get entity name
 // update entity based on mh module.
@@ -599,7 +651,13 @@ var updateStaticPage = function(link,time) {
 	if (link != undefined) {
   		states_loaded = 1;
 	}
-  
+	var items = '';
+    $('button[entity]').each(function(index) {
+        if (index != 0) { //TODO really kludgy
+          items += $(this).attr('entity')+",";
+   		 }
+   	})
+    //alert ("items = "+items);
 	var URLHash = URLToHash();
 	URLHash.fields = "state,states,label,type";
 	URLHash.long_poll = 'true';
@@ -613,7 +671,8 @@ var updateStaticPage = function(link,time) {
 	var arg_str = split_path[1];
 	path_str = "/objects"  // override, for now, would be good to add voice_cmds
 	//arg_str=link=%2Fia7%2Fhouse%2Fgarage.shtml&fields=state%2Ctype&long_poll=true&time=1426011733833.94
-	arg_str = "fields=state,states,label&long_poll=true&time="+time;
+	//arg_str = "fields=state,states,label&long_poll=true&time="+time;
+	arg_str = "fields=state%2Cstates%2Clabel&long_poll=true&items="+items+"&time="+time;
 	//alert("path_str="+path_str+" arg_str="+arg_str)
 	updateSocket = $.ajax({
 		type: "GET",
@@ -728,7 +787,9 @@ var loadCollection = function(collection_keys) {
 		if (json_store.collections[collection].external !== undefined) {
 			link = json_store.collections[collection].external;
 		}
-		var button_html = "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list "+hidden+" navbutton-padding' role='button'><i class='fa "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
+		var icon_set = "fa";
+		if (icon.indexOf("wi-") !=-1) icon_set = "wi";
+		var button_html = "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list "+hidden+" navbutton-padding' role='button'><i class='"+icon_set+" "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
 		entity_arr.push(button_html);
 	}
 	//loop through array and print buttons
@@ -827,7 +888,6 @@ var print_speaklog = function(time) {
 	URLHash.long_poll = 'true';
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
 		// Only allow one update thread to run at once
-		alert("aborting socket");
 		updateSocket.abort();
 	}
 	var split_path = HashtoJSONArgs(URLHash).split("?");
@@ -937,6 +997,13 @@ $(document).ready(function() {
 	$(window).bind('hashchange', function() {
 		changePage();
 	});
+	$("#mhstatus").click( function () {
+		var link = json_store.collections[600].link;
+		link = buildLink (link, "0,600");
+	//    window.location.href = "/ia7/#path=/objects&parents=group1&_collection_key=0,1,17,$group1";
+	    window.location.href = link;
+	});
+	updateItem("ia7_status");
 	$("#toolButton").click( function () {
 		var entity = $("#toolButton").attr('entity');
 		$('#optionsModal').modal('show');
@@ -985,6 +1052,7 @@ $(document).ready(function() {
 		$('#optionsModal').find('.btn-list').click(function (){
 			$('#optionsModal').modal('hide');
 		});
+		
 		//$('#optionsModal').find('.modal-body').append('<a class="btn btn-default btn-lg btn-block btn-list" role="button" href="/ia7/#path=/objects&type=Voice_Cmd&category=MisterHouse&_collection_key=0,1,15" link-type="collection"><i class="fa fa-home fa-2x fa-fw"></i>Browse MrHouse</a>');						
 
 		//$('#optionsModal').find('#options').html('<ul id="sortable" class="list-group"></ul>');
