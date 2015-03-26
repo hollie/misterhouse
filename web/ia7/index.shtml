@@ -7,6 +7,9 @@
 	
 	<!--Font Awesome-->
 	<link href="/ia7/include/font-awesome.4.0.3.min.css" rel="stylesheet">
+
+	<!--Weather Icons-->
+	<link href="/ia7/include/weather-icons.1.3.css" rel="stylesheet">
 	
 	<!-- Jquery -->
 	<script src="/ia7/include/jquery.1.10.2.min.js"></script>
@@ -107,7 +110,7 @@
   				<i class="fa fa-gear"></i>
 				</button>
 				
-			  <button id="mhstatus" entityx="ia7_status" type="button" class="btn btn-info toolbar-btn pull-right">
+			  <button id="mhstatus" entity="ia7_status" type="button" class="btn btn-info toolbar-btn pull-right">
   				<span class='pull-right'>checking</span>
 				</button>		  	
 		  </h3>
@@ -183,4 +186,5 @@
 <script type="text/javascript">
 
 </script>
+
 </body></html>

@@ -170,11 +170,24 @@ sub json_get {
 	if ($path[0] eq 'objects' || $path[0] eq '') {
 		$json_data{objects} = {};
 		my @objects;
+
 		# Building the list of parent groups for each object
 		# we could use &::list_groups_by_object() for each object, but that sub
 		# is time consuming, particularly when called numerous times.  Instead,
 		# we create a lookup table one time, saving a lot of processing time.
 		my $parent_table = build_parent_table();
+
+		if ($args{items} && $args{items}[0] ne "") {
+			foreach my $name (@{$args{items}}){
+			   #$name =~ s/\$|\%|\&|\@//g;
+			   my $o = &get_object_by_name($name);
+			   print_log "json: object name=$name ref=" . ref $o if $Debug{json};
+			   if (my $data = &json_object_detail( $o, \%args, \%fields, $parent_table)){
+				   $json_data{objects}{$name} = $data;
+			   }
+			}
+		} else {
+
 
 		# Restrict object list by type here to make things faster
 		if ($args{type}){
@@ -224,6 +237,7 @@ sub json_get {
 			}
 		}
 	}
+  }
 ;
 	# List subroutines
 	if ($path[0] eq 'subs' || $path[0] eq '') {
@@ -286,7 +300,7 @@ sub json_get {
 		}
 		if (scalar(@log) > 0) {
 			$json_data{'print_log'} = [];
-			push($json_data{'print_log'}, @log);
+			push(@{$json_data{'print_log'}}, @log);
 		}
 	}
 	
@@ -305,7 +319,7 @@ sub json_get {
 		}
 		if (scalar(@log) > 0) {
 			$json_data{'print_speaklog'} = [];
-			push($json_data{'print_speaklog'}, @log);
+			push(@{$json_data{'print_speaklog'}}, @log);
 		}
 	}
 
@@ -549,8 +563,7 @@ sub json_object_detail {
 				$value = $object->$method;
 				$value = encode_entities( $value, "\200-\377&<>" );
 			}
-			print_log "json: object_dets f $f m $method v $value"
-			  if $Debug{json};
+			print_log "json: object_dets f $f m $method v $value" if $Debug{json};
 		}
 		elsif ($f eq 'members'){
 			## Currently only list members for group items, but at some point we
@@ -606,6 +619,7 @@ sub filter_object {
 		next if (lc($f) eq 'time');
 		next if (lc($f) eq 'fields');
 		next if (lc($f) eq 'long_poll');
+		next if (lc($f) eq 'items'); #HP, we should already have parsed the items
 		next if ($f eq '');
 		if ($$object{$f}) {
 			for my $test_val (@{$args{$f}}) {

@@ -319,7 +319,6 @@
   "1" : {
      "children" : [
         13,
-        14,
         15,
         16,
         17,
@@ -448,12 +447,12 @@
      "link" : "/bin/shopping_list.pl"
   },
   "48" : {
-     "link" : "/ia5/modes/main.shtml",
+     "link" : "/ia7/house/modes.shtml",
      "icon" : "fa-tasks",
      "name" : "Control Modes & Events"
   },
   "37" : {
-     "link" : "/ia5/statistics/speechlog.shtml",
+     "link" : "/ia7/#path=/print_speaklog",
      "name" : "View Speech Log",
      "icon" : "fa-bullhorn"
   },
@@ -561,7 +560,7 @@
      ]
   },
   "97" : {
-     "link" : "/speech",
+     "link" : "/ia7/#path=/print_speaklog",
      "icon" : "fa-bullhorn",
      "name" : "View Speech Log"
   },
@@ -613,8 +612,70 @@
   "61" : {
      "icon" : "fa-bolt",
      "name" : "Weather Station",
-     "link" : "/ia5/outside/weather_index.shtml"
+     "children" : [
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125
+    ]
+  },  
+  "116" : {
+  	"icon" : "fa-search",
+  	"name" : "Weather Zoom",
+  	"link" : "/bin/weather_graph_zoom.pl"
   },
+  "117" : {
+  	"icon" : "fa-leaf",
+  	"name" : "Outdoor Temp",
+  	"link" : "/bin/weather_graph.pl?tempout"
+  },
+  "118" : {
+  	"icon" : "wi-thermometer",
+  	"name" : "Indoor Temp",
+  	"link" : "/bin/weather_graph.pl?tempin"
+  },
+  "119" : {
+  	"icon" : "wi-sprinkle",
+  	"name" : "Outdoor Humidity",
+  	"link" : "/bin/weather_graph.pl?humout"
+  },
+  "120" : {
+  	"icon" : "wi-sprinkles",
+  	"name" : "Indoor Humidity",
+  	"link" : "/bin/weather_graph.pl?humin"
+  },
+  "121" : {
+  	"icon" : "wi-strong-wind",
+  	"name" : "Wind Speed",
+  	"link" : "/bin/weather_graph.pl?windspeed"
+  },
+  "122" : {
+  	"icon" : "fa-arrows",
+  	"name" : "Wind Direction",
+  	"link" : "/bin/weather_graph.pl?winddir"
+  },
+  "123" : {
+  	"icon" : "wi-rain",
+  	"name" : "Total Rain",
+  	"link" : "/bin/weather_graph.pl?raintotal"
+  },   
+  "124" : {
+  	"icon" : "wi-sprinkle",
+  	"name" : "Rain Rate",
+  	"link" : "/bin/weather_graph.pl?rainrate"
+  },  
+  "125" : {
+  	"icon" : "wi-cloud-refresh",
+  	"name" : "Baro Pressure",
+  	"link" : "/bin/weather_graph.pl?press"
+  }, 
+ 
   "92" : {
      "name" : "Local Movies",
      "external" : "http://www.google.com/search?&q=movie%3A+91403",
@@ -716,5 +777,9 @@
      "link" : "/UNSET_PASSWORD?user=admin",
      "name" : "Authorize",
      "icon" : "fa-lock"
-  }  
+  },
+	"600" : {
+     "link" : "/ia7/#path=/objects&parents=ia7_status_items",
+     "name" : "Status"
+  }    
 }
