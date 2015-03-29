@@ -507,7 +507,7 @@ sub json_object_detail {
 	
 	my $ref = ref \$object;
 	return unless $ref eq 'REF';
-	return if $object->can('hidden') and $object->hidden; #Not sure about this
+	#return if $object->can('hidden') and $object->hidden; #Not sure about this HP - instead just assign a property
 	my $object_name = $object->{object_name};
 	
 	# Skip object if time arg supplied and not changed
@@ -534,7 +534,7 @@ sub json_object_detail {
 	my %json_objects;
 	my %json_complete_object;
 	my @f = qw( category filename measurement rf_id set_by members
-	  state states state_log type label sort_order groups parents
+	  state states state_log type label sort_order groups hidden parents
 	  idle_time text html seconds_remaining level);
 
 	# Build list of fields based on those requested.
@@ -558,6 +558,14 @@ sub json_object_detail {
 			if ( $f eq 'states' or $f eq 'state_log' ) {
 				my @a = $object->$method;
 				$value = \@a;
+			}
+			if ( $f eq 'hidden' ) {
+				my $a = $object->$method;
+				if ($a == 1 or $a eq "1") {
+				   $value = "true";
+				} else {
+					$value = "false";
+				}
 			}
 			else {
 				$value = $object->$method;

@@ -260,7 +260,7 @@ var loadList = function() {
 	var button_text = '';
 	var button_html = '';
 	var entity_arr = [];
-	URLHash.fields = "category,label,sort_order,members,state,states,type,text";
+	URLHash.fields = "category,label,sort_order,members,state,states,state_log,hidden,type,text";
 	$.ajax({
 		type: "GET",
 		url: "/json/"+HashtoJSONArgs(URLHash),
@@ -302,6 +302,10 @@ var loadList = function() {
 				var entity = entity_list[i];
 				if (json_store.objects[entity].type === undefined){
 					// This is not an entity, likely a value of the root obj
+					continue;
+				}
+				if (json_store.objects[entity].hidden === "true"){
+					// This is an entity with the hidden property, so skip it
 					continue;
 				}
 				if (json_store.objects[entity].type == "Voice_Cmd"){
@@ -450,8 +454,21 @@ var loadList = function() {
 					$('#control').modal('hide');
 					$.get( url);
 				});
+//state log show last 4 (separate out set_by as advanced) - keeps being added to each time it opens
+				$('#control').find('.modal-body').find('.obj_log').remove();
+				$('#control').find('.modal-body').find('.obj_log').remove();
+
+				$('#control').find('.modal-body').append("<div class='obj_log'><h4>Object Log</h4>");
+				for (var i = 0; i < 4; i++) {
+				   if (json_store.objects[entity].state_log[i] == undefined) continue;
+				   var slog = json_store.objects[entity].state_log[i].split("set_by=");
+				   $('#control').find('.modal-body').append("<div class='obj_log'>"+slog[0]+"<span class='mh_set_by hidden'>set_by="+slog[1]+"</span><br></div>");
+				}
+				$('#control').find('.modal-body').append("</div>");
+
 				$('.mhstatemode').on('click', function(){
   				   $('#control').find('.states').find('.btn').removeClass('hidden');
+  				   $('#control').find('.mh_set_by').removeClass('hidden');
 				});
 			});
 
@@ -659,7 +676,7 @@ var updateStaticPage = function(link,time) {
    	})
     //alert ("items = "+items);
 	var URLHash = URLToHash();
-	URLHash.fields = "state,states,label,type";
+	URLHash.fields = "state,states,state_log,label,type";
 	URLHash.long_poll = 'true';
 	URLHash.time = json_store.meta.time;
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
@@ -672,7 +689,7 @@ var updateStaticPage = function(link,time) {
 	path_str = "/objects"  // override, for now, would be good to add voice_cmds
 	//arg_str=link=%2Fia7%2Fhouse%2Fgarage.shtml&fields=state%2Ctype&long_poll=true&time=1426011733833.94
 	//arg_str = "fields=state,states,label&long_poll=true&time="+time;
-	arg_str = "fields=state%2Cstates%2Clabel&long_poll=true&items="+items+"&time="+time;
+	arg_str = "fields=state%2Cstates%2Cstate_log%2Clabel&long_poll=true&items="+items+"&time="+time;
 	//alert("path_str="+path_str+" arg_str="+arg_str)
 	updateSocket = $.ajax({
 		type: "GET",
@@ -731,6 +748,7 @@ var updateStaticPage = function(link,time) {
 					  		disabled = "disabled";
 						}
 						$('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-3 btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");
+						
 					}
 					$('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
 					$('#control').find('.states').find('.btn').click(function (){
@@ -738,8 +756,23 @@ var updateStaticPage = function(link,time) {
 					$('#control').modal('hide');
 					$.get( url);
 				});
+//state log show last 4 (separate out set_by as advanced) - keeps being added to each time it opens
+				$('#control').find('.modal-body').find('.obj_log').remove();
+				$('#control').find('.modal-body').find('.obj_log').remove();
+
+				$('#control').find('.modal-body').append("<div class='obj_log'><h4>Object Log</h4>");
+				for (var i = 0; i < 4; i++) {
+				   if (json_store.objects[entity].state_log[i] == undefined) continue;
+				   var slog = json_store.objects[entity].state_log[i].split("set_by=");
+				   $('#control').find('.modal-body').append("<div class='obj_log'>"+slog[0]+"<span class='mh_set_by hidden'>set_by="+slog[1]+"</span><br></div>");
+				}
+				$('#control').find('.modal-body').append("</div>");
+
+				
 					$('.mhstatemode').on('click', function(){
   				    	$('#control').find('.states').find('.btn').removeClass('hidden');
+  				    	$('#control').find('.mh_set_by').removeClass('hidden');
+
 				    });
 				});
 			}																

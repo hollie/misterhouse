@@ -457,14 +457,13 @@ If set to 1, the object will not show up on Tk or Web menus.  Can only be run at
 =cut
 
 sub hidden {
-    return unless $main::Reload;
     my ($self, $flag) = @_;
-                                # Set it
     if (defined $flag) {
+        return unless $main::Reload;
         $self->{hidden} = $flag;
     }
     else {                      # Return it, but this currently only will work on $Reload.
-        return $self->{hidden};
+        return $self->{hidden}; # HP - really, no reason why this can't be a read-only method any time?
     }
 }
 
