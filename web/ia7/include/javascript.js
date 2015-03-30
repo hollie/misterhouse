@@ -304,7 +304,7 @@ var loadList = function() {
 					// This is not an entity, likely a value of the root obj
 					continue;
 				}
-				if (json_store.objects[entity].hidden === "true"){
+				if (json_store.objects[entity].hidden != undefined){
 					// This is an entity with the hidden property, so skip it
 					continue;
 				}
@@ -813,6 +813,10 @@ var loadCollection = function(collection_keys) {
 		var icon = json_store.collections[collection].icon;
 		var name = json_store.collections[collection].name;
 		var mode = json_store.collections[collection].mode;
+		if (json_store.collections[collection].iframe !== undefined) {
+			//strip out http:// if included
+			link = "/ia7/include/iframe.shtml?"+json_store.collections[collection].iframe;
+		}
 		var hidden = "";
 		if (mode != display_mode && mode != undefined ) hidden = "hidden"; //Hide any simple/advanced buttons
 		var next_collection_keys = collection_keys + "," + entity_sort[i];
@@ -1073,6 +1077,10 @@ $(document).ready(function() {
 				var link = json_store.collections[collection].link;
 				var icon = json_store.collections[collection].icon;
 				var name = json_store.collections[collection].name;
+				if (json_store.collections[collection].iframe !== undefined) {
+				   //strip out http:// if included
+				   link = "/ia7/include/iframe.shtml?"+json_store.collections[collection].iframe;
+				}
 				var opt_next_collection_keys = opt_collection_keys + "," + opt_entity_sort[i];
 				link = buildLink (link, opt_next_collection_keys);
 				if (json_store.collections[collection].external !== undefined) {

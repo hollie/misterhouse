@@ -507,7 +507,7 @@ sub json_object_detail {
 	
 	my $ref = ref \$object;
 	return unless $ref eq 'REF';
-	#return if $object->can('hidden') and $object->hidden; #Not sure about this HP - instead just assign a property
+	#return if $object->can('hidden') and $object->hidden; #Not sure about this, HP - should just return a hidden property
 	my $object_name = $object->{object_name};
 	
 	# Skip object if time arg supplied and not changed
@@ -559,14 +559,14 @@ sub json_object_detail {
 				my @a = $object->$method;
 				$value = \@a;
 			}
-			if ( $f eq 'hidden' ) {
-				my $a = $object->$method;
-				if ($a == 1 or $a eq "1") {
-				   $value = "true";
-				} else {
-					$value = "false";
-				}
-			}
+			#if ( $f eq 'hidden' ) {
+			#	my $a = $object->$method;
+			#	if ($a == 1 or $a eq "1") {
+			#		print_log "json true";
+			#	 } else {
+			#		print_log "json false";
+			#	 }
+			#}
 			else {
 				$value = $object->$method;
 				$value = encode_entities( $value, "\200-\377&<>" );
