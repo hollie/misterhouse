@@ -11,6 +11,9 @@
 	<!--Weather Icons-->
 	<link href="/ia7/include/weather-icons.1.3.css" rel="stylesheet">
 	
+	<!--Responsive Tables-->
+	<link href="/ia7/include/tables.css" rel="stylesheet">
+	
 	<!-- Jquery -->
 	<script src="/ia7/include/jquery.1.10.2.min.js"></script>
 	

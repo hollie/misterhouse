@@ -42,6 +42,7 @@ use strict;
 use HTML::Entities;    # So we can encode characters like <>& etc
 use JSON qw(decode_json);
 use IO::Compress::Gzip qw(gzip);
+use vars qw(%json_table);
 
 sub json {
 	my ($request_type, $path_str, $arguments, $body) = @_;
@@ -162,8 +163,16 @@ sub json_get {
 		$collection_file = "$config_parms{data_dir}/web/collections.json"
 			if -e "$config_parms{data_dir}/web/collections.json";
 		# Consider copying the source file to the user data dir here.
-		my $json_collections = file_read($collection_file);
-		$json_data{'collections'} = decode_json($json_collections);
+				
+		eval {
+		   my $json_collections = file_read($collection_file);
+		   $json_data{'collections'} = decode_json($json_collections); #HP, wrap this in eval to prevent MH crashes
+		};
+		if ($@){
+		  print_log "Json_Server.pl: WARNING: decode_json failed for collection.json. Please check this file!";
+		  $json_data{'collections'} = decode_json('{ "0" : { "name" : "error" } }'); #write a blank collection
+
+		}
 	}
 
 	# List objects
@@ -285,6 +294,16 @@ sub json_get {
 			%json_vars = ( %json_vars, &json_walk_var( $iref, $key ) );
 		}
 		$json_data{vars} = \%json_vars;
+	}
+
+	if ( $path[0] eq 'table_data') {
+	#print Dumper $json_table{$args{var}[0]};# if $Debug{json};
+		if ($args{var}) {
+			my $jt_time = int($json_table{$args{var}[0]}{time});
+			if (($args{time} && int($args{time}[0]) < $jt_time) or (!$args{time})) {
+			   $json_data{'table_data'} = $json_table{$args{var}[0]};
+			}
+		}
 	}
 
 	# List print_log phrases
@@ -732,6 +751,68 @@ eof
 eof
 
 	return $html;
+}
+
+
+sub json_table_create {
+	my ($key) = @_;
+
+  return 0 if (defined $json_table{$key}{exist});
+  
+  $json_table{$key}{exist} = 1;
+  return 1;
+}
+
+sub json_table_delete {
+	my ($key) = @_;
+
+  return 0 if (!defined $json_table{$key}{exist});
+  
+  $json_table{$key} = {};
+  return 1;
+}
+
+sub json_table_put_header {
+	my ($key,$pos,$value) = @_;
+
+  return 0 if (!defined $json_table{$key}{exist});
+  
+  $json_table{$key}{head}[$pos] = $value;
+  return 1;
+}
+
+sub json_table_get_header {
+	my ($key,$pos) = @_;
+
+  return 0 if (!defined $json_table{$key}{exist});
+  
+  return $json_table{$key}{head}[$pos];
+}
+
+sub json_table_put_data {
+	my ($key,$posx,$posy,$value) = @_;
+
+  return 0 if (!defined $json_table{$key}{exist});
+  
+  $json_table{$key}{data}[$posx][$posy] = $value;
+  return 1;
+}
+
+sub json_table_get_data {
+	my ($key,$posx,$posy) = @_;
+
+  return 0 if (!defined $json_table{$key}{data}[$posx][$posy]);
+  
+  return $json_table{$key}{data}[$posx][$posy];
+}
+
+sub json_table_push {
+	my ($key) = @_;
+
+  return 0 if (!defined $json_table{$key});
+  
+  $json_table{$key}{time} = &get_tickcount;
+  return 1;
 }
 
 return 1;    # Make require happy

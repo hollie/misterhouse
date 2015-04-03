@@ -148,6 +148,11 @@ function changePage (){
 		else if(path.indexOf('print_speaklog') === 0){
 			print_speaklog();
 		}
+		else if(path.indexOf('display_table') === 0){
+			var path_arg = path.split('?');
+			//alert ("path_arg="+path_arg[1]);
+			display_table(path_arg[1]);
+		}
 		else if(URLHash._request == 'trigger'){
 			trigger();
 		}
@@ -961,6 +966,84 @@ var print_speaklog = function(time) {
 		}
 	});
 	//alert("ending updateSocket");
+
+};
+
+var display_table = function(table,time) {
+
+	var URLHash = URLToHash();
+	if (typeof time === 'undefined'){
+		$('#list_content').html("<div id='display_table' class='row top-buffer'>");
+		$('#display_table').append("<div id='rtable' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+
+		//$('#display_table').append("<table><thead><tr>");
+		//$('#display_table').append("<div id='table_header' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+		//$('#table_header').append("<table><thead><tr>");
+		time = 0;
+	}
+	//exit if no table variable specified...
+	URLHash.time = time;
+	URLHash.long_poll = 'true';
+	if (updateSocket !== undefined && updateSocket.readyState != 4){
+		// Only allow one update thread to run at once
+		updateSocket.abort();
+	}
+	var split_path = HashtoJSONArgs(URLHash).split("?");
+	var path_str = split_path[0];
+	var arg_str = split_path[1];	
+	path_str = "/table_data"  // override, for now, would be good to add voice_cmds
+	//arg_str=link=%2Fia7%2Fhouse%2Fgarage.shtml&fields=state%2Ctype&long_poll=true&time=1426011733833.94
+	//arg_str = "fields=state,states,label&long_poll=true&time="+time;
+	arg_str = "var="+table+"&long_poll=true&time="+time;
+	updateSocket = $.ajax({
+		type: "GET",
+		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
+		dataType: "json",
+		success: function( json, statusText, jqXHR ) {
+			var requestTime = time;
+			if (jqXHR.status == 200) {
+				JSONStore(json);
+				var html = "<table class='table table-curved'><thead><tr>";
+				for (var i = 0; i < json.data.head.length; i++){
+					var head = String(json.data.head[i]);
+					//head = head.replace(/\n/g,"<br>");
+					//if (head) $('#table_header').append("<th>"+head+"</th>");
+				html += "<th>"+head+"</th>";
+				}
+				html += "</tr></thead><tbody>";
+				//$('#table_header').append("</tr></thead><div id='table_content' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+				//$('#table_content').append("<tbody>");
+				for (var i = 0; i < json.data.data.length; i++){
+					//$('#table_content').append("<tr>");
+					html +="<tr>";
+					for (var j = 0; j < json.data.data[i].length; j++){
+					   var line = String(json.data.data[i][j]);
+					   //line = line.replace(/\n/g,"<br>");
+					   //if (line) $('#table_content').append("<td data-title='"+json.data.head[j]+"'>"+line+"</td>");
+					  //html += "<td data-title='"+json.data.head[j]+"'>"+line+"</td>";
+					  	html += "<td data-title='"+json.data.head[j]+"'>"+line+"</td>";
+
+						}
+				//$('#table_content').append("</tr>");
+				html += "</tr>";
+				}
+				html += "</tbody></table></div>";
+				//$('#table_content').append("</tbody></div></table></div>");	
+				requestTime = json.meta.time;
+				$('#rtable').html(html);
+
+			}
+			if (jqXHR.status == 200 || jqXHR.status == 204) {
+				//Call update again, if page is still here
+				//KRK best way to handle this is likely to check the URL hash
+				if ($('#display_table').length !== 0){
+					//If the print log page is still active request more data
+					display_table(table,requestTime);
+				}
+			}		
+		}
+	});
+
 
 };
 
