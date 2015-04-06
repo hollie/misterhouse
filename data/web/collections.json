@@ -132,6 +132,7 @@
   "106" : {
      "link" : "/organizer/calendar.pl",
      "name" : "Calendar",
+     "keys" : "true",
      "icon" : "fa-calendar"
   },
   "52" : {
@@ -194,6 +195,7 @@
   "108" : {
      "link" : "/organizer/tasks.pl",
      "name" : "TODO List",
+     "keys" : "true",
      "icon" : "fa-list"
   },
   "94" : {
@@ -383,7 +385,7 @@
   "113" : {
      "name" : "LED Clock",
      "icon" : "fa-clock-o",
-     "link" : "/clock"
+     "link" : "/clock/index.html"
   },
   "71" : {
      "name" : "Camera Files",
@@ -479,6 +481,7 @@
   "107" : {
      "link" : "/organizer/contacts.pl",
      "icon" : "fa-book",
+     "keys" : "true",
      "name" : "Address Book"
   },
   "26" : {

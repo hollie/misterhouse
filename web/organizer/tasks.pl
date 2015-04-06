@@ -12,6 +12,7 @@
 # or indirectly caused by this software.
 # 
 # Version History
+# 1.6.0-2 - 04/06/15 - IA7 Aware
 # 1.6.0-1 - 09/24/07 - Updated to Organizer release 2.5.2 (1.6.0 js fixes, added recordcount)
 # 1.4.8-4 - 08/19/07 - iCal2vsdb integration (requires v2104 database)
 # 1.4.8-3 - 04/29/07 - minor fixes
@@ -130,15 +131,31 @@ print "
 ";
 
 my ($objCGI) = new CGI;
+my $ia7_keys = $objCGI->param('ia7');
+# want to get the prefix and suffix for creating IA7 URLs
+my $web_mode = "IA5";
+my $ia7_prefix = ""; 
+my $ia7_suffix = ""; 
+my $img_prefix = "";
+
+if ($ia7_keys) {
+	$ia7_prefix = "/ia7/#_request=page&link=";
+	$ia7_suffix = "ia7=" . $ia7_keys . "&_collection_key=" . $ia7_keys;
+	$img_prefix = "/organizer/";
+	$web_mode = "IA7";	
+}
+
 my ($command) = $objCGI->param('vsCOM') || "";
 my ($showCompleted) = $objCGI->param('vsSC') || 0;
 my ($idNum) = $objCGI->param('vsID') || "";
 my ($scriptName) = $ENV{'SCRIPT_NAME'} || "tasks.pl";
+$scriptName = $ia7_prefix . "/organizer/tasks.pl" if ($web_mode eq "IA7");
 my ($filePath) = $ENV{"CWD"} . "/" . $fileName;
 $filePath = "$config_parms{organizer_dir}/$fileName";
 my ($activePage) = $objCGI->param('vsAP') || "1";
 my ($sortField) = $objCGI->param('vsSORT') || "";
 $pageSize = $objCGI->param('vsPS') if $objCGI->param('vsPS');
+
 
 
 print "<form action='" . $scriptName . "' method='post'>\n";
@@ -200,6 +217,8 @@ print "
 print "vsDB Module Version " . $objDB->Version . "<br>";
 print "vsLock Module Version " . $objLock->Version;
 print "<br>ical2vsdb sync 1.0";
+print " Web interface: " . $web_mode;
+
 print "
 	</font><p>
 	</font>
@@ -235,9 +254,9 @@ sub PrintAllRecords {
 	#}
 
 	if ($showCompleted) {
-		print " <input type='submit' value='Hide Completed' onclick=\"self.location='$scriptName?vsSORT=$sortField&vsPS=$pageSize';return false\">\n";
+		print " <input type='submit' value='Hide Completed' onclick=\"self.location='$scriptName?vsSORT=$sortField&vsPS=$pageSize&" . $ia7_suffix . "';return false\">\n";
 	} else {
-		print " <input type='submit' value='Show Completed' onclick=\"self.location='$scriptName?vsSORT=$sortField&vsSC=1&vsPS=$pageSize';return false\">\n";
+		print " <input type='submit' value='Show Completed' onclick=\"self.location='$scriptName?vsSORT=$sortField&vsSC=1&vsPS=$pageSize&" . $ia7_suffix . "';return false\">\n";
 	}
 	print "</td></tr></table>\n";
 
@@ -245,7 +264,7 @@ sub PrintAllRecords {
 	print "<tr valign='top' bgcolor='#CCCCCC'>\n";
 	print "<td>&nbsp;</td>\n";
 	foreach $fieldName (@showFields) {
-		print "<td><b><font face='arial' size='2'><a href='$scriptName?vsSORT=$fieldName&vsPS=$pageSize&vsSC=$showCompleted'>" . $fieldName . "</a></font></b></td>\n";
+		print "<td><b><font face='arial' size='2'><a href='$scriptName?vsSORT=$fieldName&vsPS=$pageSize&vsSC=$showCompleted&" . $ia7_suffix . "'>" . $fieldName . "</a></font></b></td>\n";
 	}
 	print "</tr>\n";
 	my $link_open;
@@ -254,8 +273,9 @@ sub PrintAllRecords {
 		print "<tr valign='top' bgcolor='$dataLightColor'>\n";
 		my $icon = $detailIcon;
 		my $source = $objMyDB->FieldValue("SOURCE");
-        	$icon = "images/ical_2.jpg" if ($source =~ /^ical=/);
-        $link_open = "<a href='" . $scriptName . "?vsSORT=$sortField&vsPS=$pageSize&vsAP=$activePage&vsCOM=EDIT&vsID=" . $objMyDB->FieldValue("ID") . "'>";
+        $icon = "images/ical_2.jpg" if ($source =~ /^ical=/);
+        $icon = $img_prefix . $icon;
+        $link_open = "<a href='" . $scriptName . "?vsSORT=$sortField&vsPS=$pageSize&vsAP=$activePage&vsCOM=EDIT&vsID=" . $objMyDB->FieldValue("ID") . "&" . $ia7_suffix . "'>";
         $link_close = "</a>";
 		print "<td>" . $link_open . "<img src='$icon' alt='Details' border='0'></font>" . $link_close . "</td>\n";
 		foreach $fieldName (@showFields) {
@@ -357,6 +377,7 @@ sub PrintCurrentRecord {
 	print "<input type='hidden' name='vsPS' value='$pageSize'>\n";
 	print "<input type='hidden' name='vsCOM' value='UPDATE'>\n";
 	print "<input type='hidden' name='SOURCE' value='local'>\n";
+	print "<input type='hidden' name='ia7' value='$ia7_keys'>\n";
 	print "<input type='submit' value='Update' >\n";
 	print "<input style=\"COLOR: maroon;\" type='reset' value='Delete'  onclick=\"if (confirm('Permenantly delete this task?')) {self.location='$scriptName?vsSORT=$sortField&vsAP=$activePage&vsPS=$pageSize&vsSC=$showCompleted&vsCOM=DELETE&vsID=" . $objMyDB->FieldValue("ID") . "';return false;} else {return false;};\">\n";
 	print "<input type='reset' value='Cancel' onclick=\"window.history.go(-1);return false;\">\n";
@@ -407,6 +428,8 @@ sub PrintBlankRecord {
 	print "<input type='hidden' name='vsPS' value='$pageSize'>\n";
 	print "<input type='hidden' name='SOURCE' value='local'>\n";
 	print "<input type='hidden' name='vsCOM' value='INSERT'>\n";
+	print "<input type='hidden' name='ia7' value='$ia7_keys'>\n";
+
 	print "<input type='submit' value='Add'>\n";
 	print "<input type='reset' value='Cancel' onclick=\"window.history.go(-1);return false;\">\n";
 	print "<p>\n";

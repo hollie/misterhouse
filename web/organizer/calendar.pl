@@ -15,6 +15,7 @@
 # or indirectly caused by this software.
 # 
 # Version History
+# 1.6.0-4 - 04/05/15 - IA7 Aware
 # 1.6.0-3 - 01/04/14 - added support for control calendars (hide them)
 # 1.6.0-2 - 11/02/07 - minor bugfix to in icalsync name
 # 1.6.0-1 - 09/24/07 - Updated to organizer release 2.5.2 without admin login and ical customization
@@ -31,7 +32,7 @@
 # 1.5.2   - 08/22/01 - added file locking
 # ----------------------------------------------------------------------------
 
-my $VERSION = "1.6.0-3";
+my $VERSION = "1.6.0-4";
 
 BEGIN {
 #	$SIG{__WARN__} = \&FatalError;
@@ -112,6 +113,27 @@ my ($objConfig) = new vsDB(
 	file => $configFilePath,
 	delimiter => "\t",
 );
+my ($objCGI) = new CGI;
+#my $URL =  $ENV{HTTP_QUERY_STRING};
+my $ia7_keys = $objCGI->param('ia7');
+# want to get the prefix and suffix for creating IA7 URLs
+my $web_mode = "IA5";
+my $ia7_prefix = ""; 
+my $ia7_suffix = ""; 
+my $img_prefix = "";
+
+#foreach my $key (sort(keys(%ENV))) {
+#    print "$key = $ENV{$key}<br>\n";
+#}
+#print "keys=$ia7_keys";
+# http://127.0.0.1:8080/ia7/#_request=page&link=/organizer/calendar.pl&_collection_key=0,11,106
+if ($ia7_keys) {
+	$ia7_prefix = "/ia7/#_request=page&link=";
+	$ia7_suffix = "ia7=" . $ia7_keys . "&_collection_key=" . $ia7_keys;
+	$web_mode = "IA7";	
+	$img_prefix = "/organizer/";
+}
+
 $objConfig->Open;
 my ($title) = $objConfig->FieldValue("Title");
 my ($bodyTag) = $objConfig->FieldValue("BodyTag");
@@ -149,7 +171,7 @@ print "
 	<p>
 ";
 my ($scriptName) = $ENV{'SCRIPT_NAME'} || "calendar.pl";
-my ($objCGI) = new CGI;
+$scriptName = $ia7_prefix . "/organizer/calendar.pl" if ($web_mode eq "IA7");
 my @dateArray = localtime(time);
 my ($month) = $objCGI->param('vsMonth') || $dateArray[4]+1;
 my ($year) = $objCGI->param('vsYear') || $dateArray[5]+1900;
@@ -160,6 +182,10 @@ my ($showDefault) = 0;
 
 ## --- Custom
 my ($showDayDetails) = $objCGI->param('vsSD') || 0;
+#print "vsSD=$showDayDetails";
+#my $URL1 = $objCGI->param('ia7');
+#print "URL1=$URL1";
+
 my ($showforAudrey) = $objCGI->param('vsMA') || 0;
 my ($noShowDayDetails) = 1;
 my ($cellSize) = 25;
@@ -222,6 +248,7 @@ print "vsDB Module Version " . $objDB->Version . "<br>";
 print "vsLock Module Version " . $objLock->Version;
 print "<br>MisterAudrey Version" if ($showforAudrey);
 print "<br>ical2vsdb sync 1.0";
+print " Web interface: " . $web_mode;
 print "
 	</font><p>
 	</font>
@@ -264,20 +291,20 @@ sub PrintDefault {
 	# display the navigation
     print "<form><table width='100%' bgcolor='$dataDarkColor' border='1' cellspacing='0' cellpadding='2'><tr><td align='center'>\n";
     print "<font size='2' face='arial,helvetica'><b>\n";
-    print "<a href='$scriptName?vsSD=$showDayDetails&vsMonth=$month&vsYear=" . ($year - 1) . "'>&lt;&lt;</a>\n";
-    print "&nbsp;<a href='$scriptName?vsSD=$showDayDetails&vsMonth=$pmonth&vsYear=$pyear'>&lt;</a>\n";
+    print "<a href='$scriptName?vsSD=$showDayDetails&vsMonth=$month&vsYear=" . ($year - 1) . "&" . $ia7_suffix . "'>&lt;&lt;</a>\n";
+    print "&nbsp;<a href='$scriptName?vsSD=$showDayDetails&vsMonth=$pmonth&vsYear=$pyear&" . $ia7_suffix . "'>&lt;</a>\n";
 	print "<select name='month' onchange=\"document.location='$scriptName?vsSD=$showDayDetails&' + this.options[this.selectedIndex].value;return true;\">\n";
-	print "<option value='vsMonth=$pmonth&vsYear=$pyear'>$pmonth / $pyear</option>\n";
-	print "<option value='vsMonth=$month&vsYear=$year' selected>$month / $year</option>\n";
+	print "<option value='vsMonth=$pmonth&vsYear=$pyear&" . $ia7_suffix . "'>$pmonth / $pyear</option>\n";
+	print "<option value='vsMonth=$month&vsYear=$year&" . $ia7_suffix . "' selected>$month / $year</option>\n";
 	my ($nM) = $month;
 	my ($nY) = $year;
 	for (my $count = 1;$count < 12;$count++) {
 		NextMonth(\$nM,\$nY);
-		print "<option value='vsMonth=$nM&vsYear=$nY'>$nM / $nY</option>\n";	
+		print "<option value='vsMonth=$nM&vsYear=$nY&" . $ia7_suffix . "'>$nM / $nY</option>\n";	
 	}	
 	print "</select>\n";
-    print " <a href='$scriptName?vsSD=$showDayDetails&vsMonth=$nmonth&vsYear=$nyear'>&gt;</a>\n";
-    print "&nbsp;<a href='$scriptName?vsSD=$showDayDetails&vsMonth=$month&vsYear=" . ($year + 1) . "'>&gt;&gt;</a>\n";
+    print " <a href='$scriptName?vsSD=$showDayDetails&vsMonth=$nmonth&vsYear=$nyear&" . $ia7_suffix . "'>&gt;</a>\n";
+    print "&nbsp;<a href='$scriptName?vsSD=$showDayDetails&vsMonth=$month&vsYear=" . ($year + 1) . "&" . $ia7_suffix . "'>&gt;&gt;</a>\n";
 	print "</b></font>\n";
 	print "</td></tr></table></form>";
 
@@ -347,7 +374,8 @@ sub PrintDay {
     	   my $icon = $detailIcon;
     	   my $source = $objMyDb->FieldValue("SOURCE");
     	   $icon = "images/ical_1.jpg" if ($source =~ /^ical=/);
-    	   my $link = "<a href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsCOM=EDIT&vsMonth=$month&vsYear=$year&vsDay=$day&vsID=" . $objMyDb->FieldValue("ID") . "'>";
+    	   $icon = $img_prefix . $icon;
+    	   my $link = "<a href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsCOM=EDIT&vsMonth=$month&vsYear=$year&vsDay=$day&vsID=" . $objMyDb->FieldValue("ID") . "&" . $ia7_suffix . "'>";
 	   print "<tr $custcolor><td>" . $link . "<img src='$icon' border='0'></a></td>";
 	   print "<td><font size='2' face='arial,helvetica'>" . $objMyDb->FieldValue("TIME") . "&nbsp;</font></td>";
 	   print "<td>" . $link . "<font size='2' face='arial,helvetica'>" . $objMyDb->FieldValue("EVENT") . "&nbsp;</font></td></a></tr>\n";
@@ -386,9 +414,9 @@ sub PrintMonth {
     print "<p>\n";
     print "<font face='arial,helvetica' size='2'><b>$months[$month-1] $year</b></font>\n";
 	if ($showDayDetails) {
-		print " <font size='1'>[<a href='$scriptName?vsSD=0&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year'>Hide Details</a>]</font>\n"
+		print " <font size='1'>[<a href='$scriptName?vsSD=0&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year&" . $ia7_suffix . "'>Hide Details</a>]</font>\n"
 	} else {
-		print " <font size='1'>[<a href='$scriptName?vsSD=1&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year'>Show Details</a>]</font>\n"
+		print " <font size='1'>[<a href='$scriptName?vsSD=1&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year&" . $ia7_suffix . "'>Show Details</a>]</font>\n"
 	}		
     print "<table border='1' cellspacing='0' cellpadding='2'>\n";
 
@@ -453,16 +481,16 @@ sub PrintMonth {
 		}		    
 
 		if ($objMyDb->EOF) {
-		    print "<a $style href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year&vsDay=$weekDayCount'>$weekDayCount</a><br>";
+		    print "<a $style href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year&vsDay=$weekDayCount&" . $ia7_suffix . "'>$weekDayCount</a><br>";
 		} else {
 	#$style = "style=\"color:$dataHolidayColor\"" if ($objMyDb->FieldValue("HOLIDAY") eq "on");
-		    print "<b><a $style href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year&vsDay=$weekDayCount'>$weekDayCount</a></b><br>";
+		    print "<b><a $style href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year&vsDay=$weekDayCount&" . $ia7_suffix . "'>$weekDayCount</a></b><br>";
 		}			
 
 		if ($showDayDetails) {
 		    print "<font size='1'>";
 		    while (!$objMyDb->EOF) {
-			print "<a href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsCOM=EDIT&vsMonth=$month&vsYear=$year&vsDay=$weekDayCount&vsID=" . $objMyDb->FieldValue("ID") . "'>" .$objMyDb->FieldValue("EVENT") . "</a><br>"	unless  ($objMyDb->FieldValue("CONTROL") eq "on"); #Don't display CONTROL calendars;
+			print "<a href='$scriptName?vsSD=$showDayDetails&vsMA=$showforAudrey&vsCOM=EDIT&vsMonth=$month&vsYear=$year&vsDay=$weekDayCount&vsID=" . $objMyDb->FieldValue("ID") . "&" . $ia7_suffix . "'>" .$objMyDb->FieldValue("EVENT") . "</a><br>"	unless  ($objMyDb->FieldValue("CONTROL") eq "on"); #Don't display CONTROL calendars;
 			$objMyDb->MoveNext;
 		    }
 		    print "</font>";
@@ -692,6 +720,7 @@ sub PrintCurrentRecord {
 	    print "<input type='submit' value='Delete' onclick=\"if (confirm('Delete This Record?')) {self.location='$scriptName?vsCOM=DELETE&vsSD=$showDayDetails&vsMA=$showforAudrey&vsMonth=$month&vsYear=$year&vsDay=$day&vsID=" . $objMyDB->FieldValue("ID") . "';return false;} else {return false;};\">\n";
 	 } else {
 		print "<input type='hidden' name='DATE' value='$year.$month.$day'>\n";
+		print "<input type='hidden' name='ia7' value='$ia7_keys'>\n";
 	    print "<input type='hidden' name='vsCOM' value='INSERT'>\n";
 	    print "<input type='submit' value='Add'>\n";
 	 }

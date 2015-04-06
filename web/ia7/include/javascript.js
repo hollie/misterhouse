@@ -56,6 +56,25 @@ function HashtoJSONArgs(URLHash) {
 	return path + "?" + pairs.join('&');
 }
 
+//Gets any arguments in the URL that aren't part of IA7
+function HashPathArgs(URLHash) {
+	var loc = location.href.split('?');
+	if (loc[1] === undefined) {
+		return;
+	}
+	var pairs = loc[1].split('&');
+	var rpairs = [];
+	for (var i = 0; i < pairs.length; i++) {
+		var pair = pairs[i].split('=');
+		if (pair[0].indexOf("_") === 0){
+			//Do not include private arguments
+			continue;
+		}
+		rpairs.push(pair[0]+"="+pair[1]);
+	}
+	return  rpairs.join('&');
+}
+
 //Stores the JSON data in the proper location based on the path requested
 function JSONStore (json){
 	var newJSON = {};
@@ -132,7 +151,14 @@ function changePage (){
 			loadVars();
 		}
 		else if(URLHash._request == 'page'){
-			$.get(URLHash.link, function( data ) {
+			var link = URLHash.link.replace(/\?+.*/,''); //HP for some reason, this often has the first arg with no value, ie ?bob
+			var args = HashPathArgs(URLHash);
+			if (args !== undefined) {
+				link += "?"+args;
+			}
+			//alert("link="+link);
+			//$.get(URLHash.link, function( data ) {
+			$.get(link, function( data ) {
 				data = data.replace(/<link[^>]*>/img, ''); //Remove stylesheets
 				data = data.replace(/<title[^>]*>((\r|\n|.)*?)<\/title[^>]*>/img, ''); //Remove title
 				data = data.replace(/<meta[^>]*>/img, ''); //Remove meta refresh
@@ -821,13 +847,21 @@ var loadCollection = function(collection_keys) {
 		var icon = json_store.collections[collection].icon;
 		var name = json_store.collections[collection].name;
 		var mode = json_store.collections[collection].mode;
+		var keys = json_store.collections[collection].keys; //for legacy CGI scripts to recreate proper URL
+		
 		if (json_store.collections[collection].iframe !== undefined) {
-			//strip out http:// if included
 			link = "/ia7/include/iframe.shtml?"+json_store.collections[collection].iframe;
 		}
 		var hidden = "";
 		if (mode != display_mode && mode != undefined ) hidden = "hidden"; //Hide any simple/advanced buttons
 		var next_collection_keys = collection_keys + "," + entity_sort[i];
+		if (keys === "true") {
+			var arg = "?";
+			if (link.indexOf("?") >= 0 ) { //already has arguments, so just add one on
+				arg = "&";
+			}
+			link += arg+"ia7="+next_collection_keys;
+		}		
 		link = buildLink (link, next_collection_keys);
 		if (json_store.collections[collection].external !== undefined) {
 			link = json_store.collections[collection].external;

@@ -12,6 +12,7 @@
 # or indirectly caused by this software.
 # 
 # Version History
+# 1.5.3-1 - 04/06/15 - IA7 Aware
 # 1.5.3 - 09/09/05
 # 1.5.2 - 02/15/02 - altered toolbar, fixed FNF Error
 # 1.5.1 - 11/22/01 - added search toolbar, removed "eval" when including libs
@@ -19,7 +20,7 @@
 # 1.4.3 - 08/22/01 - added file locking
 # ----------------------------------------------------------------------------
 
-my $VERSION = "1.5.3";
+my $VERSION = "1.5.3-1";
 
 BEGIN {
 #	$SIG{__WARN__} = \&FatalError;
@@ -127,9 +128,24 @@ print "
 ";
 
 my ($objCGI) = new CGI;
+my $ia7_keys = $objCGI->param('ia7');
+# want to get the prefix and suffix for creating IA7 URLs
+my $web_mode = "IA5";
+my $ia7_prefix = ""; 
+my $ia7_suffix = ""; 
+my $img_prefix = "";
+
+if ($ia7_keys) {
+	$ia7_prefix = "/ia7/#_request=page&link=";
+	$ia7_suffix = "ia7=" . $ia7_keys . "&_collection_key=" . $ia7_keys;
+	$img_prefix = "/organizer/";
+	$web_mode = "IA7";	
+}
+
 my ($command) = $objCGI->param('vsCOM') || "";
 my ($idNum) = $objCGI->param('vsID') || "";
 my ($scriptName) = $ENV{'SCRIPT_NAME'} || "contacts.pl";
+$scriptName = $ia7_prefix . "/organizer/tasks.pl" if ($web_mode eq "IA7");
 my ($filePath) = $ENV{"CWD"} . "/" . $fileName;
 $filePath = "$config_parms{organizer_dir}/$fileName";
 my ($activePage) = $objCGI->param('vsAP') || "1";
@@ -199,6 +215,8 @@ print "
 print "vsDB Module Version " . $objDB->Version . "<br>";
 print "vsLock Module Version " . $objLock->Version;
 print "<br>MisterAudrey Version" if ($showforAudrey);
+print " Web interface: " . $web_mode;
+
 print "
 	</font><p>
 	</font>
@@ -234,12 +252,12 @@ sub PrintAllRecords {
 	print "<table cellspacing='2' cellpadding='2' border='0'><tr valign='middle'><td bgcolor='$dataDarkColor'>\n";
 	if (!$showforAudrey) {
 	  if ($showAll) {
-		print "<input type='button' onclick=\"window.location='$scriptName?vsALL=0';\" value='Show $pageSize Per Page'>";
+		print "<input type='button' onclick=\"window.location='$scriptName?vsALL=0&" . $ia7_suffix . "';\" value='Show $pageSize Per Page'>";
 	  } else {
-		print "<input type='button' onclick=\"window.location='$scriptName?vsALL=1';\" value='Show All'>";
+		print "<input type='button' onclick=\"window.location='$scriptName?vsALL=1&" . $ia7_suffix . "';\" value='Show All'>";
 	  }
 	}
-	print "&nbsp;<input type='button' onclick=\"window.location='$scriptName?vsSORT=$sortField&vsMA=$showforAudrey&vsAP=$activePage&vsCOM=ADD';\" value='New Contact'>\n";
+	print "&nbsp;<input type='button' onclick=\"window.location='$scriptName?vsSORT=$sortField&vsMA=$showforAudrey&vsAP=$activePage&vsCOM=ADD&" . $ia7_suffix . "';\" value='New Contact'>\n";
 	print "</td><td>\n";
 	print "</td><td bgcolor='$dataDarkColor'>\n";
 	print "<select name='vsFilterField'>\n";
@@ -268,12 +286,12 @@ sub PrintAllRecords {
 	print "<tr valign='top' bgcolor='#CCCCCC'>\n";
 	print "<td>&nbsp;</td>\n";
 	foreach $fieldName (@showFields) {
-		print "<td><b><font face='arial' size='2'><a href='$scriptName?vsALL=$showAll&vsMA=$showforAudrey&vsSORT=$fieldName&vsFilterField=$filterField&vsFilterValue=$filterValue'>" . $fieldName . "</a></font></b></td>\n";
+		print "<td><b><font face='arial' size='2'><a href='$scriptName?vsALL=$showAll&vsMA=$showforAudrey&vsSORT=$fieldName&vsFilterField=$filterField&vsFilterValue=$filterValue&" . $ia7_suffix . "'>" . $fieldName . "</a></font></b></td>\n";
 	}
 	print "</tr>\n";
 	while (!$objMyDB->EOF && $count < $visiblePageSize) {
 		print "<tr valign='top' bgcolor='$dataLightColor'>\n";
-		print "<td><font face='arial' size='1'><a href='" . $scriptName . "?vsAP=$activePage&vsMA=$showforAudrey&vsSORT=$sortField&vsCOM=EDIT&vsID=" . $objMyDB->FieldValue("ID") . "'><img src='$detailIcon' alt='Details' border='0'></a></font></td>\n";
+		print "<td><font face='arial' size='1'><a href='" . $scriptName . "?vsAP=$activePage&vsMA=$showforAudrey&vsSORT=$sortField&vsCOM=EDIT&vsID=" . $objMyDB->FieldValue("ID") . "&" . $ia7_suffix . "'><img src='" . $img_prefix . "$detailIcon' alt='Details' border='0'></a></font></td>\n";
 		foreach $fieldName (@showFields) {
 			$fieldValue = $objMyDB->FieldValue($fieldName);
 			$fieldValue = "&nbsp;" if ($fieldValue eq "");
@@ -292,10 +310,10 @@ sub PrintAllRecords {
 
 	print "Result Page " . $activePage . " of " . $pageCount;
 	if ($activePage > 1) {
-		print " <a href='?vsALL=$showAll&vsMA=$showforAudrey&vsSORT=$sortField&vsAP=" . ($activePage - 1) . "&vsFilterField=$filterField&vsFilterValue=$filterValue'>Previous</a>";
+		print " <a href='?vsALL=$showAll&vsMA=$showforAudrey&vsSORT=$sortField&vsAP=" . ($activePage - 1) . "&vsFilterField=$filterField&vsFilterValue=$filterValue&" . $ia7_suffix . "'>Previous</a>";
 	}
 	if ($activePage < $pageCount) {
-		print " <a href='?vsALL=$showAll&vsMA=$showforAudrey&vsSORT=$sortField&vsAP=" . ($activePage + 1) . "&vsFilterField=$filterField&vsFilterValue=$filterValue'>Next</a>";
+		print " <a href='?vsALL=$showAll&vsMA=$showforAudrey&vsSORT=$sortField&vsAP=" . ($activePage + 1) . "&vsFilterField=$filterField&vsFilterValue=$filterValue&" . $ia7_suffix . "'>Next</a>";
 	}
 	print " (" . $objMyDB->RecordCount . " Records)\n";
 }
@@ -338,7 +356,7 @@ sub PrintCurrentRecord {
 	    print "<input type='hidden' name='vsCOM' value='INSERT'>\n";
 	    print "<input type='submit' value='Add'>\n";
 	}
-
+	print "<input type='hidden' name='ia7' value='$ia7_keys'>\n";
 	print "<input type='reset' value='Cancel' onclick=\"window.history.go(-1);return false;\">\n";
 	print "<p>\n";
 }
