@@ -132,6 +132,7 @@
   "106" : {
      "link" : "/organizer/calendar.pl",
      "name" : "Calendar",
+     "keys" : "true",
      "icon" : "fa-calendar"
   },
   "52" : {
@@ -194,6 +195,7 @@
   "108" : {
      "link" : "/organizer/tasks.pl",
      "name" : "TODO List",
+     "keys" : "true",
      "icon" : "fa-list"
   },
   "94" : {
@@ -237,7 +239,7 @@
      "link" : "/ia7/#path=/objects&type=Voice_Cmd&category=Photos"
   },
   "59" : {
-     "external" : "http://www.weather.com/weather/local/91403",
+     "iframe" : "http://www.weather.com/weather/local/91403",
      "icon" : "fa-cloud",
      "name" : "Weather.com - Local"
   },
@@ -383,7 +385,7 @@
   "113" : {
      "name" : "LED Clock",
      "icon" : "fa-clock-o",
-     "link" : "/clock"
+     "link" : "/clock/index.html"
   },
   "71" : {
      "name" : "Camera Files",
@@ -429,7 +431,7 @@
   "98" : {
      "icon" : "fa-volume-up",
      "name" : "Speak Text",
-     "link" : "/ia5/speak/speakframe.html"
+     "link" : "/ia7/house/speaktext.shtml"
   },
   "96" : {
      "link" : "/ia7/#path=/objects&type=Voice_Cmd&category=Music",
@@ -479,6 +481,7 @@
   "107" : {
      "link" : "/organizer/contacts.pl",
      "icon" : "fa-book",
+     "keys" : "true",
      "name" : "Address Book"
   },
   "26" : {
@@ -689,7 +692,7 @@
   "58" : {
      "name" : "Weather Underground",
      "icon" : "fa-sun-o",
-     "external" : "http://www.wunderground.com/cgi-bin/findweather/getForecast?query=91403"
+     "iframe" : "http://www.wunderground.com/cgi-bin/findweather/getForecast?query=91403"
   },
   "115" : {
      "name" : "Browse Timed_Events",
@@ -778,7 +781,7 @@
      "name" : "Authorize",
      "icon" : "fa-lock"
   },
-	"600" : {
+   "600" : {
      "link" : "/ia7/#path=/objects&parents=ia7_status_items",
      "name" : "Status"
   }    
