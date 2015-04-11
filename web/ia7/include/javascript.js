@@ -176,8 +176,11 @@ function changePage (){
 		}
 		else if(path.indexOf('display_table') === 0){
 			var path_arg = path.split('?');
-			//alert ("path_arg="+path_arg[1]);
 			display_table(path_arg[1]);
+		}
+		else if(path.indexOf('floorplan') === 0){
+			var path_arg = path.split('?');
+			floorplan(path_arg[1]);
 		}
 		else if(URLHash._request == 'trigger'){
 			trigger();
@@ -487,18 +490,20 @@ var loadList = function() {
 					   $('#control').modal('hide');
 					   $.get( url);
 				   });
+				} else {
+					//remove states from anything that doesn't have more than 1 state
+					$('#control').find('.states').find('.btn-group').remove();
 				}
-//state log show last 4 (separate out set_by as advanced) - keeps being added to each time it opens
-				$('#control').find('.modal-body').find('.obj_log').remove();
+				//state log show last 4 (separate out set_by as advanced) - keeps being added to each time it opens
+				// could load all log items, and only unhide the last 4 -- maybe later
 				$('#control').find('.modal-body').find('.obj_log').remove();
 
 				$('#control').find('.modal-body').append("<div class='obj_log'><h4>Object Log</h4>");
 				for (var i = 0; i < 4; i++) {
-				   if (json_store.objects[entity].state_log[i] == undefined) continue;
-				   var slog = json_store.objects[entity].state_log[i].split("set_by=");
-				   $('#control').find('.modal-body').append("<div class='obj_log'>"+slog[0]+"<span class='mh_set_by hidden'>set_by="+slog[1]+"</span><br></div>");
+				   	if (json_store.objects[entity].state_log[i] == undefined) continue;
+				   	var slog = json_store.objects[entity].state_log[i].split("set_by=");
+				   	$('#control').find('.obj_log').append(slog[0]+"<span class='mh_set_by hidden'>set_by="+slog[1]+"</span><br>");
 				}
-				$('#control').find('.modal-body').append("</div>");
 
 				$('.mhstatemode').on('click', function(){
   				   $('#control').find('.states').find('.btn').removeClass('hidden');
@@ -594,7 +599,7 @@ var sortArrayByArray = function (listArray, sortArray){
 //Used to dynamically update the state of objects
 var updateList = function(path) {
 	var URLHash = URLToHash();
-	URLHash.fields = "state,type";
+	URLHash.fields = "state,state_log,type";
 	URLHash.long_poll = 'true';
 	URLHash.time = json_store.meta.time;
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
@@ -759,49 +764,55 @@ var updateStaticPage = function(link,time) {
 						var modal_state = json_store.objects[entity].state;
 						$('#control').find('.object-title').html(name + " - " + json_store.objects[entity].state);
 						$('#control').find('.control-dialog').attr("entity", entity);
-						$('#control').find('.states').html('<div class="btn-group stategrp0 btn-block"></div>');
 						var modal_states = json_store.objects[entity].states;
-						var buttonlength = 0;
-						var stategrp = 0;
-						var advanced_html = "";
-						for (var i = 0; i < modal_states.length; i++){
-							if (filterSubstate(modal_states[i]) == 1) {
-					   		advanced_html += "<button class='btn btn-default hidden'>"+modal_states[i]+"</button>";
-					   		continue 
-						} else {
-					   		buttonlength += 2 + modal_states[i].length //TODO: Maybe just count buttons to create groups.
-						}
-						if (buttonlength >= 25) {
-					    	stategrp++;
-					    	$('#control').find('.states').append("<div class='btn-group stategrp"+stategrp+" btn-block'></div>");
-							buttonlength = 0;
- 						}
-						var color = getButtonColor(modal_states[i])
-						var disabled = ""
-						if (modal_states[i] == json_store.objects[entity].state) {
-					  		disabled = "disabled";
-						}
-						$('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-3 btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");
+						// HP need to have at least 2 states to be a controllable object...
+						if (modal_states.length > 1) {
+							$('#control').find('.states').html('<div class="btn-group stategrp0 btn-block"></div>');
+							var modal_states = json_store.objects[entity].states;
+							var buttonlength = 0;
+							var stategrp = 0;
+							var advanced_html = "";
+							for (var i = 0; i < modal_states.length; i++){
+								if (filterSubstate(modal_states[i]) == 1) {
+					   			advanced_html += "<button class='btn btn-default hidden'>"+modal_states[i]+"</button>";
+					   			continue 
+							} else {
+					   			buttonlength += 2 + modal_states[i].length //TODO: Maybe just count buttons to create groups.
+							}
+							if (buttonlength >= 25) {
+					    		stategrp++;
+					    		$('#control').find('.states').append("<div class='btn-group stategrp"+stategrp+" btn-block'></div>");
+								buttonlength = 0;
+ 							}
+							var color = getButtonColor(modal_states[i])
+							var disabled = ""
+							if (modal_states[i] == json_store.objects[entity].state) {
+					  			disabled = "disabled";
+							}
+							$('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-3 btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");
 						
-					}
-					$('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
-					$('#control').find('.states').find('.btn').click(function (){
-					url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
-					$('#control').modal('hide');
-					$.get( url);
-				});
-//state log show last 4 (separate out set_by as advanced) - keeps being added to each time it opens
-				$('#control').find('.modal-body').find('.obj_log').remove();
+						}
+						$('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
+						$('#control').find('.states').find('.btn').click(function (){
+							url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
+							$('#control').modal('hide');
+							$.get( url);
+						});
+				} else {
+					//remove states from anything that doesn't have more than 1 state
+					$('#control').find('.states').find('.btn-group').remove();
+				}
+				//state log show last 4 (separate out set_by as advanced) - keeps being added to each time it opens
 				$('#control').find('.modal-body').find('.obj_log').remove();
 
-				$('#control').find('.modal-body').append("<div class='obj_log'><h4>Object Log</h4>");
 				for (var i = 0; i < 4; i++) {
 				   if (json_store.objects[entity].state_log[i] == undefined) continue;
 				   var slog = json_store.objects[entity].state_log[i].split("set_by=");
-				   $('#control').find('.modal-body').append("<div class='obj_log'>"+slog[0]+"<span class='mh_set_by hidden'>set_by="+slog[1]+"</span><br></div>");
+				   //obj_html += slog[0]+"<span class='mh_set_by hidden'>set_by="+slog[1]+"</span><br>";				   
+				   $('#control').find('.obj_log').append(slog[0]+"<span class='mh_set_by hidden'>set_by="+slog[1]+"</span><br>");
+				   //$('#control').find('.modal-body').append("<div class='obj_log'>"+slog[0]+"<span class='mh_set_by hidden'>set_by="+slog[1]+"</span><br></div>");
 				}
-				$('#control').find('.modal-body').append("</div>");
-
+				//$('#control').find('.obj_log').append(obj_html);
 				
 					$('.mhstatemode').on('click', function(){
   				    	$('#control').find('.states').find('.btn').removeClass('hidden');
@@ -1004,7 +1015,7 @@ var display_table = function(table,time) {
 	var URLHash = URLToHash();
 	if (typeof time === 'undefined'){
 		$('#list_content').html("<div id='display_table' class='row top-buffer'>");
-		$('#display_table').append("<div id='rtable' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+		$('#display_table').append("<div id='rtable' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
 		time = 0;
 	}
 	URLHash.time = time;
@@ -1062,6 +1073,84 @@ var display_table = function(table,time) {
 
 };
 
+
+var floorplan = function(group,time) {
+	var URLHash = URLToHash();
+	if (typeof time === 'undefined'){
+  		$('#list_content').html("<div id='floorplan' class='row top-buffer'>");
+  		$('#floorplan').append("<div id='graphic' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+  		time = 0;
+  		$('#graphic').prepend('<img id="fp_graphic" height="700" width="700" src="/ia7/graphics/floorplan-'+group+'.png" />');
+  		//$('#fp_graphic').attr('src', '/ia7/graphics/FloorPlan-'+group+'.png');
+  	}
+  	
+ 	if (updateSocket !== undefined && updateSocket.readyState != 4){
+  		// Only allow one update thread to run at once
+  		updateSocket.abort();
+ 	} 
+
+ 	var path_str = "/objects";  
+ 	var arg_str = "parents="+group+"&fields=fp_location,state,fp_icons,type&long_poll=true&time="+time;
+
+ 	updateSocket = $.ajax({
+  		type: "GET",
+  		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
+  		dataType: "json",
+  		success: function( json, statusText, jqXHR ) {
+   			var requestTime = time;
+    		if (jqXHR.status == 200) {
+     			JSONStore(json);
+     			for (var entity in json.data) {
+    				var location = get_fp_location(json.data[entity].fp_location);
+   					var image = get_fp_image(json.data[entity]);
+      				//alert("entity="+entity+" fp="+json.data[entity].fp_location[0]+" loc="+location+" img="+image); 
+      				//if entity exists, then replace graphic if not then append new html 
+      				//why does this fire twice??  
+      				//if ($("#graphic img").hasClass("entity="+entity)) {
+      				if ($('#entity_'+entity).length > 0) {
+      					$('#entity_'+entity).attr('src',"/ia7/graphics/"+image);
+      				} else {				   					
+						$('#graphic').append('<img id="entity_'+entity+'" class="entity='+entity+' floorplan" style="'+location+'" src="/ia7/graphics/'+image+'" />'); 
+					}
+ 				}
+    			requestTime = json.meta.time;
+   			 }
+   			if (jqXHR.status == 200 || jqXHR.status == 204) {
+    		//Call update again, if page is still here
+    		//KRK best way to handle this is likely to check the URL hash
+    			if ($('#floorplan').length !== 0){
+     				//If the floorplan page is still active request more data
+     				floorplan(group,requestTime);
+    			}
+    		}
+   		}  
+ 	});
+};
+
+
+var get_fp_location = function(coords) {
+  var location = "position: absolute; ";
+  location += "top: "+coords[0]+"px;";
+  location += "left: "+coords[1]+"px";
+  return location;
+}
+
+var get_fp_image = function(item,size,orientation) {
+  	var image_name;
+ 	//if (item.fp_icons !== undefined) {
+ 	//	if item.fp_icons.return item.fp_icons[state];
+  		if(item.type == "Light_Item" || item.type == "Fan_Light" ||
+    		item.type == "Insteon_Device" || item.type == "UPB_Link" ||
+    		item.type == "X10_Appliance" ) {
+ 		if (item.state == "on") {
+  			return "fp-light-on.png";
+ 		} else if (item.state == "off") {
+  			return "fp-light-off.png";
+ 		} else {
+  			return "fp-light-dim.png";
+ 		}
+  	}
+}
 
 //Outputs the list of triggers
 var trigger = function() {
@@ -1156,8 +1245,8 @@ $(document).ready(function() {
 			advanced_active = "active";
 			advanced_checked = "checked"
 		}
-		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-sm-6 "+simple_active+"'><input type='radio' name='mhmode2' id='simple' autocomplete='off'"+simple_checked+">simple</label>");
-		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-sm-6 "+advanced_active+"'><input type='radio' name='mhmode2' id='advanced' autocomplete='off'"+advanced_checked+">advanced</label>");
+		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-6 col-sm-6"+simple_active+"'><input type='radio' name='mhmode2' id='simple' autocomplete='off'"+simple_checked+">simple</label>");
+		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-6 col-sm-6"+advanced_active+"'><input type='radio' name='mhmode2' id='advanced' autocomplete='off'"+advanced_checked+">advanced</label>");
 		$('.mhmode').on('click', function(){
 			display_mode = $(this).find('input').attr('id');	
 			changePage();
