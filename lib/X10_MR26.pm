@@ -58,7 +58,7 @@ sub check_for_data {
 
     # Sending commands to another device on the same serial port may have dropped
     # the DTR signal, so let the MR-26 know we're ready to recieve data again
-    $main::Serial_Ports{MR26}{object}->dtr_active(1);
+    $main::Serial_Ports{MR26}{object}->dtr_active(1) or warn "Could not set dtr_active(1)";
 
     &main::check_for_generic_serial_data('MR26');
     my $data = $main::Serial_Ports{MR26}{data_record};

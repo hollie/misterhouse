@@ -67,7 +67,7 @@ sub init
 
     $serial_port->handshake("none");         #&? Should this be DTR?
 
-    $serial_port->dtr_active(1);		
+    $serial_port->dtr_active(1) or warn "Could not set dtr_active(1)";		
     $serial_port->rts_active(0);		
     select (undef, undef, undef, .100); 	# Sleep a bit
     ::print_log "Stargate485 init\n" if $main::Debug{Stargate485};
