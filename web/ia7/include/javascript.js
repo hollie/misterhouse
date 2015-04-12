@@ -1090,7 +1090,7 @@ var floorplan = function(group,time) {
  	} 
 
  	var path_str = "/objects";  
- 	var arg_str = "parents="+group+"&fields=fp_location,state,fp_icons,type&long_poll=true&time="+time;
+ 	var arg_str = "parents="+group+"&fields=fp_location,state,states,state_log,fp_icons,type&long_poll=true&time="+time;
 
  	updateSocket = $.ajax({
   		type: "GET",
@@ -1101,17 +1101,17 @@ var floorplan = function(group,time) {
     		if (jqXHR.status == 200) {
      			JSONStore(json);
      			for (var entity in json.data) {
-    				var location = get_fp_location(json.data[entity].fp_location);
-   					var image = get_fp_image(json.data[entity]);
-      				//alert("entity="+entity+" fp="+json.data[entity].fp_location[0]+" loc="+location+" img="+image); 
-      				//if entity exists, then replace graphic if not then append new html 
-      				//why does this fire twice??  
-      				//if ($("#graphic img").hasClass("entity="+entity)) {
-      				if ($('#entity_'+entity).length > 0) {
-      					$('#entity_'+entity).attr('src',"/ia7/graphics/"+image);
-      				} else {				   					
-						$('#graphic').append('<img id="entity_'+entity+'" class="entity='+entity+' floorplan" style="'+location+'" src="/ia7/graphics/'+image+'" />'); 
-					}
+					for (var i=0 ; i < json.data[entity].fp_location.length-1; i=i+2){ //allow for multiple graphics
+						//alert("length="+json.data[entity].fp_location.length+" i="+i+" x="+json.data[entity].fp_location[i]+" y="+json.data[entity].fp_location[i+1]+" ent_length="+$('#entity_'+entity).length);
+    					var location = get_fp_location(json.data[entity].fp_location,i);
+   						var image = get_fp_image(json.data[entity]);
+      					if ($('#entity_'+entity+i).length > 0) {
+      						$('#entity_'+entity+i).attr('src',"/ia7/graphics/"+image);
+      					} else {				   					
+							$('#graphic').append('<img id="entity_'+entity+i+'" class="entity='+entity+i+' floorplan" style="'+location+'" src="/ia7/graphics/'+image+'" />');
+							create_state_modal('#entity_'+entity+i,entity); 
+						}
+ 					}
  				}
     			requestTime = json.meta.time;
    			 }
@@ -1128,10 +1128,10 @@ var floorplan = function(group,time) {
 };
 
 
-var get_fp_location = function(coords) {
+var get_fp_location = function(item,index) {
   var location = "position: absolute; ";
-  location += "top: "+coords[0]+"px;";
-  location += "left: "+coords[1]+"px";
+  location += "top: "+item[index]+"px;";
+  location += "left: "+item[index+1]+"px";
   return location;
 }
 
@@ -1139,9 +1139,12 @@ var get_fp_image = function(item,size,orientation) {
   	var image_name;
  	//if (item.fp_icons !== undefined) {
  	//	if item.fp_icons.return item.fp_icons[state];
-  		if(item.type == "Light_Item" || item.type == "Fan_Light" ||
+  	if(item.type == "Light_Item" || item.type == "Fan_Light" ||
     		item.type == "Insteon_Device" || item.type == "UPB_Link" ||
-    		item.type == "X10_Appliance" ) {
+    		item.type == "EIB_Item" || item.type == "EIB1_Item" ||
+    		item.type == "EIB2_Item" || item.type == "EIO_Item" ||
+    		item.type == "UIO_Item" || item.type == "X10_Item" ||    		
+    		item.type == "xPL_Plugwise" || item.type == "X10_Appliance") {
  		if (item.state == "on") {
   			return "fp-light-on.png";
  		} else if (item.state == "off") {
@@ -1150,7 +1153,94 @@ var get_fp_image = function(item,size,orientation) {
   			return "fp-light-dim.png";
  		}
   	}
+  	
+  	if(item.type == "Motion_Item" || item.type == "X10_Sensor" ||
+    		item.type == "Insteon::MotionSensor" ) {
+ 		if (item.state == "on" || item.state == "motion" ) {
+  			return "fp-motion-motion.png";
+ 		} else if (item.state == "off" || item.state == "still") {
+  			return "fp-motion-still.png";
+ 		}  else {
+ 			return "fp-unknown.png";
+ 		}
+  	}
+  	
+  	if(item.type == "Door_Item" ) {
+ 		if (item.state == "open") {
+  			return "fp-door-closed.png";
+ 		} else if (item.state == "closed") {
+  			return "fp-door-closed.png";
+ 		} else {
+  			return "fp-unknown.png";
+ 		}
+  	}  	
 }
+
+var create_state_modal = function(iclass,entity) {
+	$(iclass).click( function () {
+		var name = entity;
+		if (json_store.objects[entity].label !== undefined) name = json_store.objects[entity].label;
+		$('#control').modal('show');
+		var modal_state = json_store.objects[entity].state;
+		$('#control').find('.object-title').html(name + " - " + json_store.objects[entity].state);
+		$('#control').find('.control-dialog').attr("entity", entity);
+		var modal_states = json_store.objects[entity].states;
+		// HP need to have at least 2 states to be a controllable object...
+		if (modal_states.length > 1) {
+			$('#control').find('.states').html('<div class="btn-group stategrp0 btn-block"></div>');
+			var modal_states = json_store.objects[entity].states;
+			var buttonlength = 0;
+			var stategrp = 0;
+			var advanced_html = "";
+			for (var i = 0; i < modal_states.length; i++){
+				if (filterSubstate(modal_states[i]) == 1) {
+				advanced_html += "<button class='btn btn-default hidden'>"+modal_states[i]+"</button>";
+				continue 
+			} else {
+				buttonlength += 2 + modal_states[i].length //TODO: Maybe just count buttons to create groups.
+			}
+			if (buttonlength >= 25) {
+				stategrp++;
+				$('#control').find('.states').append("<div class='btn-group stategrp"+stategrp+" btn-block'></div>");
+				buttonlength = 0;
+			}
+			var color = getButtonColor(modal_states[i])
+			var disabled = ""
+			if (modal_states[i] == json_store.objects[entity].state) {
+				disabled = "disabled";
+			}
+			$('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-3 btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");
+						
+		}
+		$('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
+		$('#control').find('.states').find('.btn').click(function (){
+			url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
+			$('#control').modal('hide');
+			$.get( url);
+		});
+		} else {
+			//remove states from anything that doesn't have more than 1 state
+			$('#control').find('.states').find('.btn-group').remove();
+		}
+		//state log show last 4 (separate out set_by as advanced) - keeps being added to each time it opens
+		// could load all log items, and only unhide the last 4 -- maybe later
+		$('#control').find('.modal-body').find('.obj_log').remove();
+
+		$('#control').find('.modal-body').append("<div class='obj_log'><h4>Object Log</h4>");
+		for (var i = 0; i < 4; i++) {
+			if (json_store.objects[entity].state_log[i] == undefined) continue;
+			var slog = json_store.objects[entity].state_log[i].split("set_by=");
+			$('#control').find('.obj_log').append(slog[0]+"<span class='mh_set_by hidden'>set_by="+slog[1]+"</span><br>");
+		}
+				
+		$('.mhstatemode').on('click', function(){
+			$('#control').find('.states').find('.btn').removeClass('hidden');
+			$('#control').find('.mh_set_by').removeClass('hidden');
+		});
+	});
+}	
+
+
 
 //Outputs the list of triggers
 var trigger = function() {
