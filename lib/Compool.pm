@@ -87,7 +87,7 @@ sub init
 
     $serial_port->is_handshake("none");         #&? Should this be DTR?
 
-    $serial_port->dtr_active(1);		
+    $serial_port->dtr_active(1) or warn "Could not set dtr_active(1)";		
     $serial_port->rts_active(0);		
     select (undef, undef, undef, .100); 	# Sleep a bit
     ::print_log "Compool init\n" if $main::Debug{compool};
@@ -647,7 +647,7 @@ sub send_command
     # The API resets errors when reading status, $LatchErrorFlags
     # is all $ErrorFlags since they were last explicitly cleared
 
-    #$serial_port->dtr_active(1);
+    #$serial_port->dtr_active(1) or warn "Could not set dtr_active(1)";
     $serial_port->rts_active(1);
 #   select (undef, undef, undef, .05); # Sleep a bit
     select (undef, undef, undef, .04); # Sleep a bit
@@ -655,7 +655,7 @@ sub send_command
     {
  #      select (undef, undef, undef, .02); # Sleep a bit
         select (undef, undef, undef, .025); # Sleep a bit
-        #$serial_port->dtr_active(1);
+        #$serial_port->dtr_active(1) or warn "Could not set dtr_active(1)";
         $serial_port->rts_active(0);
         print "Compool send command ok\n" if $main::Debug{compool} and $main::Debug{compool} >= 3;
 
@@ -668,7 +668,7 @@ sub send_command
     {
 #       select (undef, undef, undef, .02); # Sleep a bit
         select (undef, undef, undef, .05); # Sleep a bit
-        #$serial_port->dtr_active(1);
+        #$serial_port->dtr_active(1) or warn "Could not set dtr_active(1)";
         $serial_port->rts_active(0);
         print "Compool send command failed sent " . $temp. " bytes\n";
         return -1;

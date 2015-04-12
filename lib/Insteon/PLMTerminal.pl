@@ -131,7 +131,7 @@ $device->databits(8);
 $device->baudrate(19200);
 $device->parity("none");
 $device->stopbits(1);
-$device->dtr_active(1);
+$device->dtr_active(1) or warn "Could not set dtr_active(1)";
 $device->handshake("none");
 $device->read_char_time(0);    # don't wait for each character
 $device->read_const_time(RX_BLOCKTIME); # wait RX_BLOCKTIME (ms) per unfulfilled "read" call
