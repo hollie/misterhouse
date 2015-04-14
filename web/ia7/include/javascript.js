@@ -153,9 +153,8 @@ function changePage (){
 		else if(URLHash._request == 'page'){
 			var link = URLHash.link.replace(/\?+.*/,''); //HP for some reason, this often has the first arg with no value, ie ?bob
 			var args = HashPathArgs(URLHash);
-			args = args.replace(/\=undefined/img,''); //HP sometimes arguments are just items and not key=value...
-			//alert("args="+args);
 			if (args !== undefined) {
+				args = args.replace(/\=undefined/img,''); //HP sometimes arguments are just items and not key=value...
 				link += "?"+args;
 			}
 			//alert("link="+link);
