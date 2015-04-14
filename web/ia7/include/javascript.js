@@ -153,10 +153,12 @@ function changePage (){
 		else if(URLHash._request == 'page'){
 			var link = URLHash.link.replace(/\?+.*/,''); //HP for some reason, this often has the first arg with no value, ie ?bob
 			var args = HashPathArgs(URLHash);
+			args = args.replace(/\=undefined/img,''); //HP sometimes arguments are just items and not key=value...
+			alert("args="+args);
 			if (args !== undefined) {
 				link += "?"+args;
 			}
-			//alert("link="+link);
+			alert("link="+link);
 			//$.get(URLHash.link, function( data ) {
 			$.get(link, function( data ) {
 				data = data.replace(/<link[^>]*>/img, ''); //Remove stylesheets
