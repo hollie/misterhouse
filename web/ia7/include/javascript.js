@@ -173,7 +173,7 @@ function changePage (){
 			print_log();
 		}
 		else if(path.indexOf('print_speaklog') === 0){
-			print_speaklog();
+			print_log("speak");
 		}
 		else if(path.indexOf('display_table') === 0){
 			var path_arg = path.split('?');
@@ -453,65 +453,8 @@ var loadList = function() {
 			});
 			$(".btn-state-cmd").click( function () {
 				var entity = $(this).attr("entity");
-				var name = entity;
-				if (json_store.objects[entity].label !== undefined) name = json_store.objects[entity].label;
-				$('#control').modal('show');
-				var modal_state = json_store.objects[entity].state;
-				$('#control').find('.object-title').html(name + " - " + json_store.objects[entity].state);
-				$('#control').find('.control-dialog').attr("entity", entity);
-				var modal_states = json_store.objects[entity].states;
-				// HP need to have at least 2 states to be a controllable object...
-				if (modal_states.length > 1) {
-				   $('#control').find('.states').html('<div class="btn-group stategrp0 btn-block"></div>');
-				   var buttonlength = 0;
-				   var stategrp = 0;
-				   var advanced_html = "";
-				   for (var i = 0; i < modal_states.length; i++){
-					   if (filterSubstate(modal_states[i]) == 1) {
-					      advanced_html += "<button class='btn btn-default hidden'>"+modal_states[i]+"</button>";
-					      continue 
-					   } else {
-					      buttonlength += 2 + modal_states[i].length //TODO: Maybe just count buttons to create groups.
-					   }
-					   if (buttonlength >= 25) {
-					       stategrp++;
-					       $('#control').find('.states').append("<div class='btn-group stategrp"+stategrp+" btn-block'></div>");
-						   buttonlength = 0;
- 					   }
-					   var color = getButtonColor(modal_states[i])
-					   var disabled = ""
-					   if (modal_states[i] == json_store.objects[entity].state) {
-					     disabled = "disabled";
-					   }
-					   $('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-3 btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");
-				   }
-				   $('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
-				   $('#control').find('.states').find('.btn').click(function (){
-					   url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
-					   $('#control').modal('hide');
-					   $.get( url);
-				   });
-				} else {
-					//remove states from anything that doesn't have more than 1 state
-					$('#control').find('.states').find('.btn-group').remove();
-				}
-				//state log show last 4 (separate out set_by as advanced) - keeps being added to each time it opens
-				// could load all log items, and only unhide the last 4 -- maybe later
-				$('#control').find('.modal-body').find('.obj_log').remove();
-
-				$('#control').find('.modal-body').append("<div class='obj_log'><h4>Object Log</h4>");
-				for (var i = 0; i < 4; i++) {
-				   	if (json_store.objects[entity].state_log[i] == undefined) continue;
-				   	var slog = json_store.objects[entity].state_log[i].split("set_by=");
-				   	$('#control').find('.obj_log').append(slog[0]+"<span class='mh_set_by hidden'>set_by="+slog[1]+"</span><br>");
-				}
-
-				$('.mhstatemode').on('click', function(){
-  				   $('#control').find('.states').find('.btn').removeClass('hidden');
-  				   $('#control').find('.mh_set_by').removeClass('hidden');
-				});
+				create_state_modal(entity);
 			});
-
 		}
 	});
 	// Continuously check for updates if this was a group type request
@@ -750,7 +693,10 @@ var updateStaticPage = function(link,time) {
 				
 						//don't run this if stategrp0 exists	
 						if (states_loaded == 0) {
-							create_state_modal('button[entity="'+entity+'"]',entity);
+			                $(".btn-state-cmd").click( function () {
+                                var entity = $(this).attr("entity");			
+								create_state_modal(entity);
+							});
 						}																
 					}			
 				});
@@ -846,7 +792,7 @@ function buildLink (link, collection_keys){
 }
 
 //Outputs a constantly updating print log
-var print_log = function(time) {
+var print_log = function(type,time) {
 
 	var URLHash = URLToHash();
 	if (typeof time === 'undefined'){
@@ -863,6 +809,7 @@ var print_log = function(time) {
 	}
 	var split_path = HashtoJSONArgs(URLHash).split("?");
 	var path_str = split_path[0];
+	if (type == "speak") path_str = "/print_speaklog";
 	var arg_str = split_path[1];	
 	updateSocket = $.ajax({
 		type: "GET",
@@ -884,58 +831,13 @@ var print_log = function(time) {
 				//KRK best way to handle this is likely to check the URL hash
 				if ($('#row_log').length !== 0){
 					//If the print log page is still active request more data
-					print_log(requestTime);
+					print_log(type,requestTime);
 				}
 			}		
 		}
 	});
 };
 
-//Outputs a constantly updating speak log
-var print_speaklog = function(time) {
-	var URLHash = URLToHash();
-		//alert("starting speaklog "+time);
-	if (typeof time === 'undefined'){
-		$('#list_content').html("<div id='print_speaklog' class='row top-buffer'>");
-		$('#print_speaklog').append("<div id='row_speaklog' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
-		$('#row_speaklog').append("<ul id='list'></ul>");
-		time = 0;
-	}
-	URLHash.time = time;
-	URLHash.long_poll = 'true';
-	if (updateSocket !== undefined && updateSocket.readyState != 4){
-		// Only allow one update thread to run at once
-		updateSocket.abort();
-	}
-	var split_path = HashtoJSONArgs(URLHash).split("?");
-	var path_str = split_path[0];
-	var arg_str = split_path[1];	
-	updateSocket = $.ajax({
-		type: "GET",
-		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
-		dataType: "json",
-		success: function( json, statusText, jqXHR ) {
-			var requestTime = time;
-			if (jqXHR.status == 200) {
-				JSONStore(json);
-				for (var i = (json.data.length-1); i >= 0; i--){
-					var line = String(json.data[i]);
-					line = line.replace(/\n/g,"<br>");
-					if (line) $('#list').prepend("<li style='font-family:courier, monospace;white-space:pre-wrap;font-size:small;position:relative;'>"+line+"</li>");
-				}
-				requestTime = json.meta.time;
-			}
-			if (jqXHR.status == 200 || jqXHR.status == 204) {
-				//Call update again, if page is still here
-				//KRK best way to handle this is likely to check the URL hash
-				if ($('#row_speaklog').length !== 0){
-					//If the print log page is still active request more data
-					print_speaklog(requestTime);
-				}
-			}		
-		}
-	});
-};
 
 //Creates a table based on the $json_table data structure. desktop & mobile design
 var display_table = function(table,time) {
@@ -1032,7 +934,10 @@ var floorplan = function(group,time) {
       						$('#entity_'+entity+i).attr('src',"/ia7/graphics/"+image);
       					} else {				   					
 							$('#graphic').append('<img id="entity_'+entity+i+'" class="entity='+entity+i+' floorplan" style="'+location+'" src="/ia7/graphics/'+image+'" />');
-							create_state_modal('#entity_'+entity+i,entity); 
+							$(".btn-state-cmd").click( function () {
+								create_state_modal(entity);
+							});
+							//create_state_modal('#entity_'+entity+i,entity); 
 						}
  					}
  				}
@@ -1061,8 +966,8 @@ var get_fp_location = function(item,index) {
 var get_fp_image = function(item,size,orientation) {
   	var image_name;
  	if (item.fp_icons !== undefined) {
- 		var mystate = item.state;
- 		alert("Has a button defined state="+item.fp_icons[item.state]);
+ 		//alert("Has a button defined state="+item.fp_icons[item.state]);
+ 		if (item.fp_icons[item.state] !== undefined) return item.fp_icons[item.state];
  	}
  	//	if item.fp_icons.return item.fp_icons[state];
   	if(item.type == "Light_Item" || item.type == "Fan_Light" ||
@@ -1102,8 +1007,7 @@ var get_fp_image = function(item,size,orientation) {
   	}  	
 }
 
-var create_state_modal = function(iclass,entity) {
-	$(iclass).click( function () {
+var create_state_modal = function(entity) {
 		var name = entity;
 		if (json_store.objects[entity].label !== undefined) name = json_store.objects[entity].label;
 		$('#control').modal('show');
@@ -1163,9 +1067,7 @@ var create_state_modal = function(iclass,entity) {
 			$('#control').find('.states').find('.btn').removeClass('hidden');
 			$('#control').find('.mh_set_by').removeClass('hidden');
 		});
-	});
 }	
-
 
 
 //Outputs the list of triggers
@@ -1294,48 +1196,6 @@ $(document).ready(function() {
 		$('#optionsModal').find('.modal-body').append(opt_entity_html);						
 		$('#optionsModal').find('.btn-list').click(function (){
 			$('#optionsModal').modal('hide');
-		});
-
-		// Future code that would allow for realtime button rearranging and then saving via the sort_order method
-		//		
-		//$('#optionsModal').find('.modal-body').append('<a class="btn btn-default btn-lg btn-block btn-list" role="button" href="/ia7/#path=/objects&type=Voice_Cmd&category=MisterHouse&_collection_key=0,1,15" link-type="collection"><i class="fa fa-home fa-2x fa-fw"></i>Browse MrHouse</a>');						
-
-		//$('#optionsModal').find('#options').html('<ul id="sortable" class="list-group"></ul>');
-		//var entityList = json_store.objects[entity].members;
-		//var sortList = json_store.objects[entity].sort_order;
-		//entityList = sortArrayByArray(entityList, sortList);
-		//for (var i = 0; i < entityList.length; i++){
-		//	var entityLabel = entityList[i];
-		//	if ( json_store.objects[entityList[i]].label !== undefined) {
-		//		entityLabel = json_store.objects[entityList[i]].label;
-		//	}
-		//	$('#sortable').append('<li id="'+entityList[i]+'" class="list-group-item">'+entityLabel+'</li>');
-		//	
-		//
-		//}
-        ////$( "#sortable" ).disableSelection();
-		$( "#sortable" ).sortable({
-		  update: function( event, ui ) {
-		  	var URLHash = URLToHash();
-		  	//Get Sorted Array of Entities
-		  	var outputJSON = $( "#sortable" ).sortable( "toArray" );
-		  	outputJSON = '["' + outputJSON.join('","') + '"]';
-		  	URLHash.path = "/objects/" + entity + "/sort_order";
-		  	delete URLHash.parents;
-			$.ajax({
-			    type: "PUT",
-			    url: "/json"+HashtoJSONArgs(URLHash),
-			    contentType: "application/json",
-			    data: outputJSON,
-				dataType: "json",
-				success: function( json, textStatus, jqXHR) {
-					if (jqXHR.status == 200) {
-						JSONStore(json);
-						changePage ();
-					}
-				}
-			});
-		  }
 		});
 	});
 });
