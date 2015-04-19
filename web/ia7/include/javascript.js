@@ -902,17 +902,36 @@ var display_table = function(table,time) {
 
 var floorplan = function(group,time) {
 	var URLHash = URLToHash();
+	var baseimg_width;
 	if (typeof time === 'undefined'){
   		$('#list_content').html("<div id='floorplan' class='row top-buffer'>");
   		$('#floorplan').append("<div id='graphic' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
   		time = 0;
-  		$('#graphic').prepend('<img id="fp_graphic" height="700" width="700" src="/ia7/graphics/floorplan-'+group+'.png" />');
+  		$('#graphic').prepend('<center><img id="fp_graphic" width="" src="/ia7/graphics/floorplan-'+group+'.png" /></center>');
+  		baseimg_width = $(window).width();
+    	if (baseimg_width > 990) baseimg_width = 800;
+    	$('#fp_graphic').attr("width",baseimg_width+"px");
   	}
   	
  	if (updateSocket !== undefined && updateSocket.readyState != 4){
   		// Only allow one update thread to run at once
   		updateSocket.abort();
  	} 
+	//resize window if changed
+	window.onresize = function(){
+    	baseimg_width = $(window).width();
+   		if (baseimg_width > 990) baseimg_width = 800;
+    	$('#fp_graphic').attr("width",baseimg_width+"px");
+    	// update the location of all the objects...
+    	$(".floorplan_item").each(function(index) {
+    		var classstr = $(this).attr("class");
+    		var coords = classstr.split(/coords=/)[1];
+    		var fp_location = coords.split(/x/);
+    		var location = get_fp_location(fp_location,0);
+    		//alert("fp_location="+fp_location+" location="+location); 
+    		$(this).attr("style",location);
+		});
+	}
 
  	var path_str = "/objects";  
  	var arg_str = "parents="+group+"&fields=fp_location,state,states,state_log,fp_icons,type&long_poll=true&time="+time;
@@ -930,15 +949,16 @@ var floorplan = function(group,time) {
 						//alert("length="+json.data[entity].fp_location.length+" i="+i+" x="+json.data[entity].fp_location[i]+" y="+json.data[entity].fp_location[i+1]+" ent_length="+$('#entity_'+entity).length);
     					var location = get_fp_location(json.data[entity].fp_location,i);
    						var image = get_fp_image(json.data[entity]);
-      					if ($('#entity_'+entity+i).length > 0) {
-      						$('#entity_'+entity+i).attr('src',"/ia7/graphics/"+image);
+      					if ($('#entity_'+entity+'_'+i).length > 0) {
+      						$('#entity_'+entity+'_'+i).attr('src',"/ia7/graphics/"+image);
       					} else {				   					
-							$('#graphic').append('<img id="entity_'+entity+i+'" class="entity='+entity+i+' floorplan" style="'+location+'" src="/ia7/graphics/'+image+'" />');
-							$(".btn-state-cmd").click( function () {
-								create_state_modal(entity);
-							});
+							$('#graphic').append('<img id="entity_'+entity+'_'+i+'" class="entity='+entity+'_'+i+' floorplan_item coords='+json.data[entity].fp_location[i]+'x'+json.data[entity].fp_location[i+1]+'" style="'+location+'" src="/ia7/graphics/'+image+'" />');
 							//create_state_modal('#entity_'+entity+i,entity); 
 						}
+						$('#entity_'+entity+'_'+i).click( function () {
+							var fp_entity = $(this).attr("id").split(/_/)[1]; //get the true entity from the ID
+							create_state_modal(fp_entity);
+						});	
  					}
  				}
     			requestTime = json.meta.time;
@@ -955,12 +975,31 @@ var floorplan = function(group,time) {
  	});
 };
 
-
+//have to figure out height, and the jumps at 991 and 1200
 var get_fp_location = function(item,index) {
-  var location = "position: absolute; ";
-  location += "top: "+item[index]+"px;";
-  location += "left: "+item[index+1]+"px";
-  return location;
+	var baseimg_width = $(window).width();
+	var tmargin = 0;
+	var lmargin = 0;
+  	console.log("baseimg_width 1="+baseimg_width); 
+	var baseimg_height = baseimg_width; //$(window).height() - 60;
+  	if (baseimg_width > 990) {
+  		lmargin = (baseimg_width - 980) / 2;
+  		tmargin = 20;
+  		if (baseimg_width > 1200) {
+  			lmargin = (baseimg_width - 1180) / 2;
+  		}
+  		baseimg_width = 800;
+  		baseimg_height = 679;
+  		//baseimg_height =  $('#fp_graphic').attr("height");
+
+  	}
+  	var location = "position: absolute; ";
+  	var top = parseInt((baseimg_height * item[index] / 100)+tmargin);
+  	var left = parseInt((baseimg_width * item[index+1] / 100)+lmargin);
+  	console.log("baseimg_width="+baseimg_width+" top="+top+" left="+left); 
+  	location += "top: "+top+"px;";
+  	location += "left: "+left+"px";
+  	return location;
 }
 
 var get_fp_image = function(item,size,orientation) {
