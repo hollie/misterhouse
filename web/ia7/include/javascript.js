@@ -956,9 +956,9 @@ var floorplan = function(group,time) {
 							//create_state_modal('#entity_'+entity+i,entity); 
 						}
 						$('#entity_'+entity+'_'+i).click( function () {
-							//var fp_entity = $(this).attr("id").split(/entity_/)[1]; //strip out entity_ and last _... item names can have underscores in them.
-							var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and last _... item names can have underscores in them.
-							alert("entity="+fp_entity);
+							//var fp_entity = $(this).attr("id").split(/entity_/)[1]; //
+							var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
+							//alert("entity="+fp_entity);
 							create_state_modal(fp_entity);
 						});	
  					}
