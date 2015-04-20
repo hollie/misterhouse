@@ -956,7 +956,9 @@ var floorplan = function(group,time) {
 							//create_state_modal('#entity_'+entity+i,entity); 
 						}
 						$('#entity_'+entity+'_'+i).click( function () {
-							var fp_entity = $(this).attr("id").split(/_/)[1]; //get the true entity from the ID
+							//var fp_entity = $(this).attr("id").split(/entity_/)[1]; //strip out entity_ and last _... item names can have underscores in them.
+							var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and last _... item names can have underscores in them.
+							alert("entity="+fp_entity);
 							create_state_modal(fp_entity);
 						});	
  					}
@@ -1011,6 +1013,8 @@ var get_fp_image = function(item,size,orientation) {
  	//	if item.fp_icons.return item.fp_icons[state];
   	if(item.type == "Light_Item" || item.type == "Fan_Light" ||
     		item.type == "Insteon_Device" || item.type == "UPB_Link" ||
+    		item.type == "Insteon::SwitchLinc" || item.type == "Insteon::SwitchLincRelay" ||    
+    		item.type == "Insteon::KeyPadLinc" ||   		    				
     		item.type == "EIB_Item" || item.type == "EIB1_Item" ||
     		item.type == "EIB2_Item" || item.type == "EIO_Item" ||
     		item.type == "UIO_Item" || item.type == "X10_Item" ||    		
@@ -1044,6 +1048,8 @@ var get_fp_image = function(item,size,orientation) {
   			return "fp-unknown.png";
  		}
   	}  	
+  	
+  	return "fp-unknown.png";
 }
 
 var create_state_modal = function(entity) {
