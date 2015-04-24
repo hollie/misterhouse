@@ -1,7 +1,7 @@
 <div class='row top-buffer'>
 	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
 		<div class='col-sm-12'>
-			<p><strong>Version:</strong> <!--#include var="$Version"--><br>
+			<p><strong>Version: </strong>4.0 <!--#include var="$Version"--><br>
 			<strong>Modified:</strong> <!--#include var="$Version_date"--><br>
 			<strong>OS:</strong> <!--#include var="$^O"--><br>
 			<strong>Perl:</strong> <!--#include code="sprintf '%vd', $^V;"--><br>

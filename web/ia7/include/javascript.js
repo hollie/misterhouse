@@ -980,10 +980,11 @@ var floorplan = function(group,time) {
 //have to figure out height, and the jumps at 991 and 1200
 var get_fp_location = function(item,index) {
 	var baseimg_width = $(window).width();
+	//var baseimg_height = $(window).height() - 60;
+	var baseimg_height = $('#fp_graphic').height();	
 	var tmargin = 0;
 	var lmargin = 0;
-  	console.log("baseimg_width 1="+baseimg_width); 
-	var baseimg_height = baseimg_width; //$(window).height() - 60;
+  	//console.log("baseimg_width="+baseimg_width+"baseimg_height="+baseimg_height+" h2="+baseimg_height2); 
   	if (baseimg_width > 990) {
   		lmargin = (baseimg_width - 980) / 2;
   		tmargin = 20;
@@ -991,8 +992,6 @@ var get_fp_location = function(item,index) {
   			lmargin = (baseimg_width - 1180) / 2;
   		}
   		baseimg_width = 800;
-  		baseimg_height = 679;
-  		//baseimg_height =  $('#fp_graphic').attr("height");
 
   	}
   	var location = "position: absolute; ";
