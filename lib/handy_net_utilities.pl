@@ -1487,6 +1487,28 @@ sub main::net_mail_summary {
         $date_received = $date unless $date_received;
 
 	# Parse any unicode from headers...
+	if ($sender =~ m/=\?/) {
+	   		print "Unicode detected. Decoding MIME-Header sender $sender to " if $parms{debug} or $main::Debug{net};
+	   		$sender = decode("MIME-Header", $sender);
+	   		print "$sender.\n" if $parms{debug} or $main::Debug{net};
+	} 	
+	if ($to =~ m/=\?/) {
+	   		print "Unicode detected. Decoding MIME-Header to $to to " if $parms{debug} or $main::Debug{net};
+	   		$to = decode("MIME-Header", $to);
+	   		print "$to.\n" if $parms{debug} or $main::Debug{net};
+	} 
+	if ($cc =~ m/=\?/) {
+	   		print "Unicode detected. Decoding MIME-Header cc $cc to " if $parms{debug} or $main::Debug{net};
+	   		$cc = decode("MIME-Header", $cc);
+	   		print "$cc.\n" if $parms{debug} or $main::Debug{net};
+	} 
+	if ($subject =~ m/=\?/) {
+	   		print "Unicode detected. Decoding MIME-Header subject $subject to " if $parms{debug} or $main::Debug{net};
+	   		$subject = decode("MIME-Header", $subject);
+	   		print "$subject.\n" if $parms{debug} or $main::Debug{net};
+	} 
+	
+	#special parse from so we can speak it out
 	$from =~ s/\"//g;
     $from =~ s/^\s+//; #remove spaces
 
