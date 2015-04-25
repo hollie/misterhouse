@@ -154,6 +154,7 @@ function changePage (){
 			var link = URLHash.link.replace(/\?+.*/,''); //HP for some reason, this often has the first arg with no value, ie ?bob
 			var args = HashPathArgs(URLHash);
 			if (args !== undefined) {
+				args = args.replace(/\=undefined/img,''); //HP sometimes arguments are just items and not key=value...
 				link += "?"+args;
 			}
 			//alert("link="+link);
@@ -172,12 +173,15 @@ function changePage (){
 			print_log();
 		}
 		else if(path.indexOf('print_speaklog') === 0){
-			print_speaklog();
+			print_log("speak");
 		}
 		else if(path.indexOf('display_table') === 0){
 			var path_arg = path.split('?');
-			//alert ("path_arg="+path_arg[1]);
 			display_table(path_arg[1]);
+		}
+		else if(path.indexOf('floorplan') === 0){
+			var path_arg = path.split('?');
+			floorplan(path_arg[1]);
 		}
 		else if(URLHash._request == 'trigger'){
 			trigger();
@@ -449,63 +453,8 @@ var loadList = function() {
 			});
 			$(".btn-state-cmd").click( function () {
 				var entity = $(this).attr("entity");
-				var name = entity;
-				if (json_store.objects[entity].label !== undefined) name = json_store.objects[entity].label;
-				$('#control').modal('show');
-				var modal_state = json_store.objects[entity].state;
-				$('#control').find('.object-title').html(name + " - " + json_store.objects[entity].state);
-				$('#control').find('.control-dialog').attr("entity", entity);
-				var modal_states = json_store.objects[entity].states;
-				// HP need to have at least 2 states to be a controllable object...
-				if (modal_states.length > 1) {
-				   $('#control').find('.states').html('<div class="btn-group stategrp0 btn-block"></div>');
-				   var buttonlength = 0;
-				   var stategrp = 0;
-				   var advanced_html = "";
-				   for (var i = 0; i < modal_states.length; i++){
-					   if (filterSubstate(modal_states[i]) == 1) {
-					      advanced_html += "<button class='btn btn-default hidden'>"+modal_states[i]+"</button>";
-					      continue 
-					   } else {
-					      buttonlength += 2 + modal_states[i].length //TODO: Maybe just count buttons to create groups.
-					   }
-					   if (buttonlength >= 25) {
-					       stategrp++;
-					       $('#control').find('.states').append("<div class='btn-group stategrp"+stategrp+" btn-block'></div>");
-						   buttonlength = 0;
- 					   }
-					   var color = getButtonColor(modal_states[i])
-					   var disabled = ""
-					   if (modal_states[i] == json_store.objects[entity].state) {
-					     disabled = "disabled";
-					   }
-					   $('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-3 btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");
-				   }
-				   $('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
-				   $('#control').find('.states').find('.btn').click(function (){
-					   url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
-					   $('#control').modal('hide');
-					   $.get( url);
-				   });
-				}
-//state log show last 4 (separate out set_by as advanced) - keeps being added to each time it opens
-				$('#control').find('.modal-body').find('.obj_log').remove();
-				$('#control').find('.modal-body').find('.obj_log').remove();
-
-				$('#control').find('.modal-body').append("<div class='obj_log'><h4>Object Log</h4>");
-				for (var i = 0; i < 4; i++) {
-				   if (json_store.objects[entity].state_log[i] == undefined) continue;
-				   var slog = json_store.objects[entity].state_log[i].split("set_by=");
-				   $('#control').find('.modal-body').append("<div class='obj_log'>"+slog[0]+"<span class='mh_set_by hidden'>set_by="+slog[1]+"</span><br></div>");
-				}
-				$('#control').find('.modal-body').append("</div>");
-
-				$('.mhstatemode').on('click', function(){
-  				   $('#control').find('.states').find('.btn').removeClass('hidden');
-  				   $('#control').find('.mh_set_by').removeClass('hidden');
-				});
+				create_state_modal(entity);
 			});
-
 		}
 	});
 	// Continuously check for updates if this was a group type request
@@ -594,7 +543,7 @@ var sortArrayByArray = function (listArray, sortArray){
 //Used to dynamically update the state of objects
 var updateList = function(path) {
 	var URLHash = URLToHash();
-	URLHash.fields = "state,type";
+	URLHash.fields = "state,state_log,type";
 	URLHash.long_poll = 'true';
 	URLHash.time = json_store.meta.time;
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
@@ -697,7 +646,6 @@ var updateStaticPage = function(link,time) {
 // Loop through objects and get entity name
 // update entity based on mh module.
 	var entity;
-//	alert("link="+link+" time="+time);
 	var states_loaded = 0;
 	if (link != undefined) {
   		states_loaded = 1;
@@ -708,7 +656,6 @@ var updateStaticPage = function(link,time) {
           items += $(this).attr('entity')+",";
    		 }
    	})
-    //alert ("items = "+items);
 	var URLHash = URLToHash();
 	URLHash.fields = "state,states,state_log,label,type";
 	URLHash.long_poll = 'true';
@@ -717,14 +664,10 @@ var updateStaticPage = function(link,time) {
 		// Only allow one update thread to run at once
 		updateSocket.abort();
 	}
-	var split_path = HashtoJSONArgs(URLHash).split("?");
-	var path_str = split_path[0];
-	var arg_str = split_path[1];
-	path_str = "/objects"  // override, for now, would be good to add voice_cmds
-	//arg_str=link=%2Fia7%2Fhouse%2Fgarage.shtml&fields=state%2Ctype&long_poll=true&time=1426011733833.94
-	//arg_str = "fields=state,states,label&long_poll=true&time="+time;
-	arg_str = "fields=state%2Cstates%2Cstate_log%2Clabel&long_poll=true&items="+items+"&time="+time;
-	//alert("path_str="+path_str+" arg_str="+arg_str)
+
+	var path_str = "/objects"  // override, for now, would be good to add voice_cmds
+	var arg_str = "fields=state%2Cstates%2Cstate_log%2Clabel&long_poll=true&items="+items+"&time="+time;
+
 	updateSocket = $.ajax({
 		type: "GET",
 		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
@@ -735,98 +678,40 @@ var updateStaticPage = function(link,time) {
 				JSONStore(json);
 				requestTime = json_store.meta.time;
 				$('button[entity]').each(function(index) {
-				if ($(this).attr('entity') != '' && json.data[$(this).attr('entity')] != undefined ) { //need an entity item for this to work.
-					entity = $(this).attr('entity');
-					//alert ("entity="+entity+" this="+$(this).attr('entity'));
-					//alert ("state "+json.data[entity].state)
-					var color = getButtonColor(json.data[entity].state);
-					$('button[entity="'+entity+'"]').find('.pull-right').text(
-						json.data[entity].state);
-					$('button[entity="'+entity+'"]').removeClass("btn-default");
-					$('button[entity="'+entity+'"]').removeClass("btn-success");
-					$('button[entity="'+entity+'"]').removeClass("btn-warning");
-					$('button[entity="'+entity+'"]').removeClass("btn-danger");
-					$('button[entity="'+entity+'"]').removeClass("btn-info");
-					$('button[entity="'+entity+'"]').addClass("btn-"+color);
+					if ($(this).attr('entity') != '' && json.data[$(this).attr('entity')] != undefined ) { //need an entity item for this to work.
+						entity = $(this).attr('entity');
+						//alert ("entity="+entity+" this="+$(this).attr('entity'));
+						//alert ("state "+json.data[entity].state)
+						var color = getButtonColor(json.data[entity].state);
+						$('button[entity="'+entity+'"]').find('.pull-right').text(json.data[entity].state);
+						$('button[entity="'+entity+'"]').removeClass("btn-default");
+						$('button[entity="'+entity+'"]').removeClass("btn-success");
+						$('button[entity="'+entity+'"]').removeClass("btn-warning");
+						$('button[entity="'+entity+'"]').removeClass("btn-danger");
+						$('button[entity="'+entity+'"]').removeClass("btn-info");
+						$('button[entity="'+entity+'"]').addClass("btn-"+color);
 				
-				//don't run this if stategrp0 exists	
-					if (states_loaded == 0) {
-				    	$(".btn-state-cmd").click( function () {
-						var entity = $(this).attr("entity");
-						var name = entity;
-						if (json_store.objects[entity].label !== undefined) name = json_store.objects[entity].label;
-						$('#control').modal('show');
-						var modal_state = json_store.objects[entity].state;
-						$('#control').find('.object-title').html(name + " - " + json_store.objects[entity].state);
-						$('#control').find('.control-dialog').attr("entity", entity);
-						$('#control').find('.states').html('<div class="btn-group stategrp0 btn-block"></div>');
-						var modal_states = json_store.objects[entity].states;
-						var buttonlength = 0;
-						var stategrp = 0;
-						var advanced_html = "";
-						for (var i = 0; i < modal_states.length; i++){
-							if (filterSubstate(modal_states[i]) == 1) {
-					   		advanced_html += "<button class='btn btn-default hidden'>"+modal_states[i]+"</button>";
-					   		continue 
-						} else {
-					   		buttonlength += 2 + modal_states[i].length //TODO: Maybe just count buttons to create groups.
-						}
-						if (buttonlength >= 25) {
-					    	stategrp++;
-					    	$('#control').find('.states').append("<div class='btn-group stategrp"+stategrp+" btn-block'></div>");
-							buttonlength = 0;
- 						}
-						var color = getButtonColor(modal_states[i])
-						var disabled = ""
-						if (modal_states[i] == json_store.objects[entity].state) {
-					  		disabled = "disabled";
-						}
-						$('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-3 btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");
-						
-					}
-					$('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
-					$('#control').find('.states').find('.btn').click(function (){
-					url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
-					$('#control').modal('hide');
-					$.get( url);
+						//don't run this if stategrp0 exists	
+						if (states_loaded == 0) {
+			                $(".btn-state-cmd").click( function () {
+                                var entity = $(this).attr("entity");			
+								create_state_modal(entity);
+							});
+						}																
+					}			
 				});
-//state log show last 4 (separate out set_by as advanced) - keeps being added to each time it opens
-				$('#control').find('.modal-body').find('.obj_log').remove();
-				$('#control').find('.modal-body').find('.obj_log').remove();
-
-				$('#control').find('.modal-body').append("<div class='obj_log'><h4>Object Log</h4>");
-				for (var i = 0; i < 4; i++) {
-				   if (json_store.objects[entity].state_log[i] == undefined) continue;
-				   var slog = json_store.objects[entity].state_log[i].split("set_by=");
-				   $('#control').find('.modal-body').append("<div class='obj_log'>"+slog[0]+"<span class='mh_set_by hidden'>set_by="+slog[1]+"</span><br></div>");
-				}
-				$('#control').find('.modal-body').append("</div>");
-
-				
-					$('.mhstatemode').on('click', function(){
-  				    	$('#control').find('.states').find('.btn').removeClass('hidden');
-  				    	$('#control').find('.mh_set_by').removeClass('hidden');
-
-				    });
-				});
-			}																
-		}			
-	});
 			}
-			//alert ("checking for reload");
 			if (jqXHR.status == 200 || jqXHR.status == 204) {
-//				//Call update again, if page is still here
-//				//KRK best way to handle this is likely to check the URL hash
-				//alert("URL="+URLHash.link+" link="+link)
+				//Call update again, if page is still here
+				//KRK best way to handle this is likely to check the URL hash
 				if (URLHash.link == link || link == undefined){
-//					//While we don't anticipate handling a list of groups, this 
-//					//may error out if a list was used
-					//testingObj(json_store.meta.time);
-				updateStaticPage(URLHash.link,requestTime);
+					//While we don't anticipate handling a list of groups, this 
+					//may error out if a list was used
+					updateStaticPage(URLHash.link,requestTime);
 				}
 			}
-		}, // End success
-	});  //ajax request
+		}, 
+	});  
 }
 
 	
@@ -907,7 +792,7 @@ function buildLink (link, collection_keys){
 }
 
 //Outputs a constantly updating print log
-var print_log = function(time) {
+var print_log = function(type,time) {
 
 	var URLHash = URLToHash();
 	if (typeof time === 'undefined'){
@@ -924,6 +809,7 @@ var print_log = function(time) {
 	}
 	var split_path = HashtoJSONArgs(URLHash).split("?");
 	var path_str = split_path[0];
+	if (type == "speak") path_str = "/print_speaklog";
 	var arg_str = split_path[1];	
 	updateSocket = $.ajax({
 		type: "GET",
@@ -945,58 +831,13 @@ var print_log = function(time) {
 				//KRK best way to handle this is likely to check the URL hash
 				if ($('#row_log').length !== 0){
 					//If the print log page is still active request more data
-					print_log(requestTime);
+					print_log(type,requestTime);
 				}
 			}		
 		}
 	});
 };
 
-//Outputs a constantly updating speak log
-var print_speaklog = function(time) {
-	var URLHash = URLToHash();
-		//alert("starting speaklog "+time);
-	if (typeof time === 'undefined'){
-		$('#list_content').html("<div id='print_speaklog' class='row top-buffer'>");
-		$('#print_speaklog').append("<div id='row_speaklog' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
-		$('#row_speaklog').append("<ul id='list'></ul>");
-		time = 0;
-	}
-	URLHash.time = time;
-	URLHash.long_poll = 'true';
-	if (updateSocket !== undefined && updateSocket.readyState != 4){
-		// Only allow one update thread to run at once
-		updateSocket.abort();
-	}
-	var split_path = HashtoJSONArgs(URLHash).split("?");
-	var path_str = split_path[0];
-	var arg_str = split_path[1];	
-	updateSocket = $.ajax({
-		type: "GET",
-		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
-		dataType: "json",
-		success: function( json, statusText, jqXHR ) {
-			var requestTime = time;
-			if (jqXHR.status == 200) {
-				JSONStore(json);
-				for (var i = (json.data.length-1); i >= 0; i--){
-					var line = String(json.data[i]);
-					line = line.replace(/\n/g,"<br>");
-					if (line) $('#list').prepend("<li style='font-family:courier, monospace;white-space:pre-wrap;font-size:small;position:relative;'>"+line+"</li>");
-				}
-				requestTime = json.meta.time;
-			}
-			if (jqXHR.status == 200 || jqXHR.status == 204) {
-				//Call update again, if page is still here
-				//KRK best way to handle this is likely to check the URL hash
-				if ($('#row_speaklog').length !== 0){
-					//If the print log page is still active request more data
-					print_speaklog(requestTime);
-				}
-			}		
-		}
-	});
-};
 
 //Creates a table based on the $json_table data structure. desktop & mobile design
 var display_table = function(table,time) {
@@ -1004,7 +845,7 @@ var display_table = function(table,time) {
 	var URLHash = URLToHash();
 	if (typeof time === 'undefined'){
 		$('#list_content').html("<div id='display_table' class='row top-buffer'>");
-		$('#display_table').append("<div id='rtable' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+		$('#display_table').append("<div id='rtable' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
 		time = 0;
 	}
 	URLHash.time = time;
@@ -1028,7 +869,6 @@ var display_table = function(table,time) {
 				var html = "<table class='table table-curved'><thead><tr>";
 				for (var i = 0; i < json.data.head.length; i++){
 					var head = String(json.data.head[i]);
-					//head = head.replace(/\n/g,"<br>");
 					html += "<th>"+head+"</th>";
 				}
 				html += "</tr></thead><tbody>";
@@ -1037,7 +877,6 @@ var display_table = function(table,time) {
 					html +="<tr>";
 					for (var j = 0; j < json.data.data[i].length; j++){
 					   var line = String(json.data.data[i][j]);
-					   //line = line.replace(/\n/g,"<br>");
 					  	html += "<td data-title='"+json.data.head[j]+"'>"+line+"</td>";
 
 						}
@@ -1058,9 +897,221 @@ var display_table = function(table,time) {
 			}		
 		}
 	});
-
-
 };
+
+
+var floorplan = function(group,time) {
+	var URLHash = URLToHash();
+	var baseimg_width;
+	if (typeof time === 'undefined'){
+  		$('#list_content').html("<div id='floorplan' class='row top-buffer'>");
+  		$('#floorplan').append("<div id='graphic' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>");
+  		time = 0;
+  		$('#graphic').prepend('<center><img id="fp_graphic" width="" src="/ia7/graphics/floorplan-'+group+'.png" /></center>');
+  		baseimg_width = $(window).width();
+    	if (baseimg_width > 990) baseimg_width = 800;
+    	$('#fp_graphic').attr("width",baseimg_width+"px");
+  	}
+  	
+ 	if (updateSocket !== undefined && updateSocket.readyState != 4){
+  		// Only allow one update thread to run at once
+  		updateSocket.abort();
+ 	} 
+	//resize window if changed
+	window.onresize = function(){
+    	baseimg_width = $(window).width();
+   		if (baseimg_width > 990) baseimg_width = 800;
+    	$('#fp_graphic').attr("width",baseimg_width+"px");
+    	// update the location of all the objects...
+    	$(".floorplan_item").each(function(index) {
+    		var classstr = $(this).attr("class");
+    		var coords = classstr.split(/coords=/)[1];
+    		var fp_location = coords.split(/x/);
+    		var location = get_fp_location(fp_location,0);
+    		//alert("fp_location="+fp_location+" location="+location); 
+    		$(this).attr("style",location);
+		});
+	}
+
+ 	var path_str = "/objects";  
+ 	var arg_str = "parents="+group+"&fields=fp_location,state,states,state_log,fp_icons,type&long_poll=true&time="+time;
+
+ 	updateSocket = $.ajax({
+  		type: "GET",
+  		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
+  		dataType: "json",
+  		success: function( json, statusText, jqXHR ) {
+   			var requestTime = time;
+    		if (jqXHR.status == 200) {
+     			JSONStore(json);
+     			for (var entity in json.data) {
+					for (var i=0 ; i < json.data[entity].fp_location.length-1; i=i+2){ //allow for multiple graphics
+						//alert("length="+json.data[entity].fp_location.length+" i="+i+" x="+json.data[entity].fp_location[i]+" y="+json.data[entity].fp_location[i+1]+" ent_length="+$('#entity_'+entity).length);
+    					var location = get_fp_location(json.data[entity].fp_location,i);
+   						var image = get_fp_image(json.data[entity]);
+      					if ($('#entity_'+entity+'_'+i).length > 0) {
+      						$('#entity_'+entity+'_'+i).attr('src',"/ia7/graphics/"+image);
+      					} else {				   					
+							$('#graphic').append('<img id="entity_'+entity+'_'+i+'" class="entity='+entity+'_'+i+' floorplan_item coords='+json.data[entity].fp_location[i]+'x'+json.data[entity].fp_location[i+1]+'" style="'+location+'" src="/ia7/graphics/'+image+'" />');
+							//create_state_modal('#entity_'+entity+i,entity); 
+						}
+						$('#entity_'+entity+'_'+i).click( function () {
+							//var fp_entity = $(this).attr("id").split(/entity_/)[1]; //
+							var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
+							//alert("entity="+fp_entity);
+							create_state_modal(fp_entity);
+						});	
+ 					}
+ 				}
+    			requestTime = json.meta.time;
+   			 }
+   			if (jqXHR.status == 200 || jqXHR.status == 204) {
+    		//Call update again, if page is still here
+    		//KRK best way to handle this is likely to check the URL hash
+    			if ($('#floorplan').length !== 0){
+     				//If the floorplan page is still active request more data
+     				floorplan(group,requestTime);
+    			}
+    		}
+   		}  
+ 	});
+};
+
+//have to figure out height, and the jumps at 991 and 1200
+var get_fp_location = function(item,index) {
+	var baseimg_width = $(window).width();
+	//var baseimg_height = $(window).height() - 60;
+	var baseimg_height = $('#fp_graphic').height();	
+	var tmargin = 0;
+	var lmargin = 0;
+  	//console.log("baseimg_width="+baseimg_width+"baseimg_height="+baseimg_height+" h2="+baseimg_height2); 
+  	if (baseimg_width > 990) {
+  		lmargin = (baseimg_width - 980) / 2;
+  		tmargin = 20;
+  		if (baseimg_width > 1200) {
+  			lmargin = (baseimg_width - 1180) / 2;
+  		}
+  		baseimg_width = 800;
+
+  	}
+  	var location = "position: absolute; ";
+  	var top = parseInt((baseimg_height * item[index] / 100)+tmargin);
+  	var left = parseInt((baseimg_width * item[index+1] / 100)+lmargin);
+  	console.log("baseimg_width="+baseimg_width+" top="+top+" left="+left); 
+  	location += "top: "+top+"px;";
+  	location += "left: "+left+"px";
+  	return location;
+}
+
+var get_fp_image = function(item,size,orientation) {
+  	var image_name;
+ 	if (item.fp_icons !== undefined) {
+ 		//alert("Has a button defined state="+item.fp_icons[item.state]);
+ 		if (item.fp_icons[item.state] !== undefined) return item.fp_icons[item.state];
+ 	}
+ 	//	if item.fp_icons.return item.fp_icons[state];
+  	if(item.type == "Light_Item" || item.type == "Fan_Light" ||
+    		item.type == "Insteon_Device" || item.type == "UPB_Link" ||
+    		item.type == "Insteon::SwitchLinc" || item.type == "Insteon::SwitchLincRelay" ||    
+    		item.type == "Insteon::KeyPadLinc" ||   		    				
+    		item.type == "EIB_Item" || item.type == "EIB1_Item" ||
+    		item.type == "EIB2_Item" || item.type == "EIO_Item" ||
+    		item.type == "UIO_Item" || item.type == "X10_Item" ||    		
+    		item.type == "xPL_Plugwise" || item.type == "X10_Appliance") {
+ 		if (item.state == "on") {
+  			return "fp-light-on.png";
+ 		} else if (item.state == "off") {
+  			return "fp-light-off.png";
+ 		} else {
+  			return "fp-light-dim.png";
+ 		}
+  	}
+  	
+  	if(item.type == "Motion_Item" || item.type == "X10_Sensor" ||
+    		item.type == "Insteon::MotionSensor" ) {
+ 		if (item.state == "on" || item.state == "motion" ) {
+  			return "fp-motion-motion.png";
+ 		} else if (item.state == "off" || item.state == "still") {
+  			return "fp-motion-still.png";
+ 		}  else {
+ 			return "fp-unknown.png";
+ 		}
+  	}
+  	
+  	if(item.type == "Door_Item" ) {
+ 		if (item.state == "open") {
+  			return "fp-door-closed.png";
+ 		} else if (item.state == "closed") {
+  			return "fp-door-closed.png";
+ 		} else {
+  			return "fp-unknown.png";
+ 		}
+  	}  	
+  	
+  	return "fp-unknown.png";
+}
+
+var create_state_modal = function(entity) {
+		var name = entity;
+		if (json_store.objects[entity].label !== undefined) name = json_store.objects[entity].label;
+		$('#control').modal('show');
+		var modal_state = json_store.objects[entity].state;
+		$('#control').find('.object-title').html(name + " - " + json_store.objects[entity].state);
+		$('#control').find('.control-dialog').attr("entity", entity);
+		var modal_states = json_store.objects[entity].states;
+		// HP need to have at least 2 states to be a controllable object...
+		if (modal_states.length > 1) {
+			$('#control').find('.states').html('<div class="btn-group stategrp0 btn-block"></div>');
+			var modal_states = json_store.objects[entity].states;
+			var buttonlength = 0;
+			var stategrp = 0;
+			var advanced_html = "";
+			for (var i = 0; i < modal_states.length; i++){
+				if (filterSubstate(modal_states[i]) == 1) {
+				advanced_html += "<button class='btn btn-default hidden'>"+modal_states[i]+"</button>";
+				continue 
+			} else {
+				buttonlength += 2 + modal_states[i].length //TODO: Maybe just count buttons to create groups.
+			}
+			if (buttonlength >= 25) {
+				stategrp++;
+				$('#control').find('.states').append("<div class='btn-group stategrp"+stategrp+" btn-block'></div>");
+				buttonlength = 0;
+			}
+			var color = getButtonColor(modal_states[i])
+			var disabled = ""
+			if (modal_states[i] == json_store.objects[entity].state) {
+				disabled = "disabled";
+			}
+			$('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-3 btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");
+						
+		}
+		$('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
+		$('#control').find('.states').find('.btn').click(function (){
+			url= '/SET;none?select_item='+$(this).parents('.control-dialog').attr("entity")+'&select_state='+$(this).text();
+			$('#control').modal('hide');
+			$.get( url);
+		});
+		} else {
+			//remove states from anything that doesn't have more than 1 state
+			$('#control').find('.states').find('.btn-group').remove();
+		}
+		//state log show last 4 (separate out set_by as advanced) - keeps being added to each time it opens
+		// could load all log items, and only unhide the last 4 -- maybe later
+		$('#control').find('.modal-body').find('.obj_log').remove();
+
+		$('#control').find('.modal-body').append("<div class='obj_log'><h4>Object Log</h4>");
+		for (var i = 0; i < 4; i++) {
+			if (json_store.objects[entity].state_log[i] == undefined) continue;
+			var slog = json_store.objects[entity].state_log[i].split("set_by=");
+			$('#control').find('.obj_log').append(slog[0]+"<span class='mh_set_by hidden'>set_by="+slog[1]+"</span><br>");
+		}
+				
+		$('.mhstatemode').on('click', function(){
+			$('#control').find('.states').find('.btn').removeClass('hidden');
+			$('#control').find('.mh_set_by').removeClass('hidden');
+		});
+}	
 
 
 //Outputs the list of triggers
@@ -1156,8 +1207,8 @@ $(document).ready(function() {
 			advanced_active = "active";
 			advanced_checked = "checked"
 		}
-		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-sm-6 "+simple_active+"'><input type='radio' name='mhmode2' id='simple' autocomplete='off'"+simple_checked+">simple</label>");
-		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-sm-6 "+advanced_active+"'><input type='radio' name='mhmode2' id='advanced' autocomplete='off'"+advanced_checked+">advanced</label>");
+		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-6 col-sm-6"+simple_active+"'><input type='radio' name='mhmode2' id='simple' autocomplete='off'"+simple_checked+">simple</label>");
+		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-6 col-sm-6"+advanced_active+"'><input type='radio' name='mhmode2' id='advanced' autocomplete='off'"+advanced_checked+">advanced</label>");
 		$('.mhmode').on('click', function(){
 			display_mode = $(this).find('input').attr('id');	
 			changePage();
@@ -1176,7 +1227,6 @@ $(document).ready(function() {
 				var icon = json_store.collections[collection].icon;
 				var name = json_store.collections[collection].name;
 				if (json_store.collections[collection].iframe !== undefined) {
-				   //strip out http:// if included
 				   link = "/ia7/include/iframe.shtml?"+json_store.collections[collection].iframe;
 				}
 				var opt_next_collection_keys = opt_collection_keys + "," + opt_entity_sort[i];
@@ -1190,46 +1240,6 @@ $(document).ready(function() {
 		$('#optionsModal').find('.modal-body').append(opt_entity_html);						
 		$('#optionsModal').find('.btn-list').click(function (){
 			$('#optionsModal').modal('hide');
-		});
-		
-		//$('#optionsModal').find('.modal-body').append('<a class="btn btn-default btn-lg btn-block btn-list" role="button" href="/ia7/#path=/objects&type=Voice_Cmd&category=MisterHouse&_collection_key=0,1,15" link-type="collection"><i class="fa fa-home fa-2x fa-fw"></i>Browse MrHouse</a>');						
-
-		//$('#optionsModal').find('#options').html('<ul id="sortable" class="list-group"></ul>');
-		//var entityList = json_store.objects[entity].members;
-		//var sortList = json_store.objects[entity].sort_order;
-		//entityList = sortArrayByArray(entityList, sortList);
-		//for (var i = 0; i < entityList.length; i++){
-		//	var entityLabel = entityList[i];
-		//	if ( json_store.objects[entityList[i]].label !== undefined) {
-		//		entityLabel = json_store.objects[entityList[i]].label;
-		//	}
-		//	$('#sortable').append('<li id="'+entityList[i]+'" class="list-group-item">'+entityLabel+'</li>');
-		//	
-		//
-		//}
-        ////$( "#sortable" ).disableSelection();
-		$( "#sortable" ).sortable({
-		  update: function( event, ui ) {
-		  	var URLHash = URLToHash();
-		  	//Get Sorted Array of Entities
-		  	var outputJSON = $( "#sortable" ).sortable( "toArray" );
-		  	outputJSON = '["' + outputJSON.join('","') + '"]';
-		  	URLHash.path = "/objects/" + entity + "/sort_order";
-		  	delete URLHash.parents;
-			$.ajax({
-			    type: "PUT",
-			    url: "/json"+HashtoJSONArgs(URLHash),
-			    contentType: "application/json",
-			    data: outputJSON,
-				dataType: "json",
-				success: function( json, textStatus, jqXHR) {
-					if (jqXHR.status == 200) {
-						JSONStore(json);
-						changePage ();
-					}
-				}
-			});
-		  }
 		});
 	});
 });

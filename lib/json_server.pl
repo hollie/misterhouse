@@ -554,7 +554,7 @@ sub json_object_detail {
 	my %json_complete_object;
 	my @f = qw( category filename measurement rf_id set_by members
 	  state states state_log type label sort_order groups hidden parents
-	  idle_time text html seconds_remaining level);
+	  idle_time text html seconds_remaining fp_location fp_icons level);
 
 	# Build list of fields based on those requested.
 	foreach my $f ( sort @f ) {
@@ -574,9 +574,16 @@ sub json_object_detail {
 				# type that screws with us.
 				$method = 'get_type';
 			}
-			if ( $f eq 'states' or $f eq 'state_log' ) {
+			if ( $f eq 'states' or $f eq 'state_log' or $f eq 'fp_location' ) {
 				my @a = $object->$method;
 				$value = \@a;
+			} elsif ($f eq 'fp_icons') {
+				my %a = $object->$method;
+				#my @b;
+				#foreach my $key (sort(keys %a)) {
+				#	push (@b, "$key : $a{$key}") if ($key);
+				#}
+				$value = \%a unless (exists $a{""}); #don't return a null value
 			}
 			#if ( $f eq 'hidden' ) {
 			#	my $a = $object->$method;
