@@ -1488,23 +1488,36 @@ sub main::net_mail_summary {
 
 	# Parse any unicode from headers...
 	$from =~ s/\"//g;
-	if ($from =~ m/=\?/) {
-	   print "Unicode detected. Decoding MIME-Header from $from to " if $parms{debug} or $main::Debug{net};
-	   $from = decode("MIME-Header", $from);
-	   print "$from.\n" if $parms{debug} or $main::Debug{net};
-	} 
-                                # Process 'from' into speakable name
-        ($from_name) = $from =~ /\((.+)\)/;
-        ($from_name) = $from =~ / *(.+?) *</ unless $from_name;
+    $from =~ s/^\s+//; #remove spaces
+
+	#parse two special cases:
+	# '"last, first: org (sub-org)" <email@email.com>'
+	#$' <email@email.com>'
+
+
+	if ($from =~ m/^\</) { #just an email address with no friendly name, so just return the email address
+		($from_name) = $from =~ /^\<(.*)\>$/; #remove < and > from email address
+	} else {
+	
+		if ($from =~ m/=\?/) {
+	   		print "Unicode detected. Decoding MIME-Header from $from to " if $parms{debug} or $main::Debug{net};
+	   		$from = decode("MIME-Header", $from);
+	   		print "$from.\n" if $parms{debug} or $main::Debug{net};
+		} 
+         # Process 'from' into speakable name
+#       ($from_name) = $from =~ /\((.+)\)/;  #remove this. I don't know why you'd want to just select text in ()?
+        ($from_name) = $from =~ / *(.+?) *</;
         ($from_name) = $from =~ / *(\S+) *@/ unless $from_name;
         $from_name = $from unless $from_name; # Sometimes @ is carried onto next record
         $from_name =~ tr/_/ /;
 #       $from_name =~ tr/"//;
         $from_name =~ s/\"//g;  # "first last"
         $from_name = "$2 $1" if $from_name =~ /(\S+), +(\S+)/; # last, first
+		$from_name =~ s/://g; #:'s have no place in an email address
 #       $from_name =~ s/ (\S)\. / $1 /;  # Drop the "." after middle initial abreviation.
                                          # Spammers blank this out, so no point in warning about it
-#       print "Warning, net_mail_summary: No From name found: from=$from, header=$header\n" unless $from_name;
+    }
+       print "Warning, net_mail_summary: No From name found: from=$from, header=$header\n" unless $from_name;
 
         my $age_msg = int((time -  str2time($date_received)) / 60);
         print "Warning, net_mail_summary: age is negative: age=$age_msg, date=$date_received\n" if $age_msg < 0;
