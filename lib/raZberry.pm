@@ -6,6 +6,7 @@ In user code:
 
     use raZberry.pm;
     $razberry_controller  = new raZberry('192.168.0.100',1);
+    $razberry_comm		  = new raZberry_comm($razberry_controller);
     $family_room_fan      = new raZberry_dimmer($razberry_controller,'2:0:38','force_update');
 
 So far only raZberry_dimmer is a working child object
@@ -16,43 +17,35 @@ In items.mht:
     
 =head2 DESCRIPTION
 
-Support for the Rasberry PI raZberry GPIO card. Uses web services to poll connected
-device status, as well as control zwave items.
+  Uses w
 
-The controller object itself doesn't do anything, it serves as the conduit to connect MH
-to the zwave network. The only real useful method is display_all_devices in which the razberry
-will echo all the devices that it knows about.
+=head3 LINKING ZWAVE devices
 
-=head3 NEW OBJECT
+Devices need to first linked inside the razberry using the included web interface.
 
-To create a new object;
+=head3 STATE REPORTED IN MisterHouse
 
-  $mh_object = new raZberry('<IP address or hostname of raZberry','poll seconds')
+The Razberry is polled on a regular basis in order to update local objects. By default, 
+the razberry is polled every 5 seconds
 
-poll seconds defaults to 5, which seems to work well for me.
+=head3 SENSOR STATE CHILD OBJECT
 
-=head3 LINKING
+Each device class will need a child object, as the controller object is just a gateway
+to the hardware. Currently the only working device is a razberry_dimmer, and has only
+been tested with the leviton fan
 
-To add zwave devices to the raZberry just follow the raZberry user guide.
+There is also a communication object to allow for alerting and monitoring of the
+razberry controller.
 
-=head3 CHILD OBJECTS
-
-The only child device is a dimmer module as I use the Leviton VRF01-1LZ fan controller
+=head2 NOTES
 
 
-Turning on a device:
 
-    $raz_dimmer->set('on');
+=head2 BUGS
 
-To help control fans there are also, low, med and high states.
 
-Turning off a device:
 
-    $raz_dimmer->set('off');
-
-To get the actual dim level:
-
-    $raz_dimmer->level;
+=head2 METHODS
 
 =over
 
@@ -69,6 +62,8 @@ use HTTP::Request::Common qw(POST);
 use JSON::XS;
 use Data::Dumper;
 
+#todo 
+# - dump_all_devices to see everything raZberry knows
 
 @raZberry::ISA = ('Generic_Item');
 
@@ -76,7 +71,7 @@ use Data::Dumper;
 # -------------------- START OF SUBROUTINES --------------------
 # --------------------------------------------------------------
 
-my $zway_vdev="ZWayVDev";
+my $zway_vdev="ZWayVDev_zway";
 our %rest;
 $rest{api} = "";
 $rest{devices} = "devices";
@@ -102,6 +97,8 @@ sub new {
    $self->{port} = $port if ($port);        
    $self->{debug} = 0;
    $self->{lastupdate} = undef;
+   $self->{timeout} = 5; #300;
+
 
    $self->{timer} = new Timer;
    $self->start_timer;
@@ -121,7 +118,7 @@ sub poll {
    for my $dev (keys %{$self->{data}->{force_update}}) {
     	&main::print_log("[raZberry] Forcing update to device $dev to account for local changes") if ($self->{debug});
     	my $cmd;
-    	my ($devid,$instance,$class) = (split /:/,$dev)[0,1,2];
+    	my ($devid,$instance,$class) = (split /-/,$dev)[0,1,2];
     	$cmd = "%5B" . $devid . "%5D.instances%5B" . $instance . "%5D.commandClasses%5B" . $class ."%5D.Get()";
     	&main::print_log("cmd=$cmd") if ($self->{debug} > 1);
     	my ($isSuccessResponse0,$status) = _get_JSON_data($self, 'force_update', $cmd);
@@ -138,7 +135,8 @@ sub poll {
   		  $self->{lastupdate} = $devices->{data}->{updateTime};  		
   		  foreach my $item (@{$devices->{data}->{devices}}) {  		    
   		      &main::print_log("Found:" . $item->{id} . " with level " . $item->{metrics}->{level} . " and updated " . $item->{updateTime} . ".") if ($self->{debug});
-  		      my ($id) = (split /_/,$item->{id})[1];
+  		      my ($id) = (split /_/,$item->{id})[2];
+		      #print "id=$id\n";
   		      $self->{data}->{devices}->{$id}->{level} = $item->{metrics}->{level};
   		      $self->{data}->{devices}->{$id}->{updateTime} = $item->{updateTime};
   		      $self->{data}->{devices}->{$id}->{devicetype} = $item->{deviceType};
@@ -175,7 +173,6 @@ sub set_dev {
   	my ($isSuccessResponse1,$status) = _get_JSON_data($self, 'devices', $cmd);
     unless ($isSuccessResponse1) {
   			&main::print_log("[raZberry] Problem retrieving data from " . $self->{host});
-  			$self->{data}->{retry}++;
     		return ('0');
     	}
 
@@ -192,6 +189,8 @@ sub _get_JSON_data {
   
     $self->{updating} = 1;
     my $ua = new LWP::UserAgent(keep_alive=>1);
+    $ua->timeout($self->{timeout});
+
     my $host = $self->{host};
     my $port = $self->{port};
     my $params = "";
@@ -211,10 +210,21 @@ sub _get_JSON_data {
     my $isSuccessResponse = $responseCode < 400;
     $self->{updating} = 0;
     if (! $isSuccessResponse ) {
-	&main::print_log("[raZberry] Warning, failed to get data. Response code $responseCode");
-  	$self->{data}->{retry}++;
+	   &main::print_log("[raZberry] Warning, failed to get data. Response code $responseCode");
+	   if (defined $self->{child_object}->{comm}) {
+	   	   if ($self->{child_object}->{comm}->state() ne "offline") {
+	          main::print_log "Communication Tracking object found. Updating..." if ($self->{loglevel});
+	          $self->{child_object}->{comm}->set("offline",'poll');
+	       }
+	    }
 	return ('0');
     }
+    if (defined $self->{child_object}->{comm}) {
+	    if ($self->{child_object}->{comm}->state() ne "online") {
+	       main::print_log "Communication Tracking object found. Updating..." if ($self->{loglevel});
+	       $self->{child_object}->{comm}->set("online",'poll');
+	       }
+	    }
     return ('1') if ($mode eq "force_update");
     my $response = JSON::XS->new->decode ($responseObj->content);
     return ($isSuccessResponse, $response)
@@ -267,23 +277,18 @@ sub get_dev_status {
 
 }
 
-sub get_error_count {
-   my ($self) = @_;
-   return ($self->{data}->{retry});
-}
-
-sub reset_error_count {
-   my ($self) = @_;
-   $self->{data}->{retry} = 0;
-}
-
 sub register {
    my ($self, $object, $dev, $options ) = @_;
-   &main::print_log("[raZberry] Registering Device ID $dev to controller"); 
-   $self->{child_object}->{$dev} = $object;
-   if ($options =~ m/force_update/) {
-      $self->{data}->{force_update}->{$dev} = 1;
-      &main::print_log("[raZberry] Forcing Controller to contact Device $dev at each poll"); 
+   if (lc $dev eq 'comm') {
+      &main::print_log("[raZberry] Registering Communication object to controller"); 
+      $self->{child_object}->{'comm'} = $object;
+   } else {
+      &main::print_log("[raZberry] Registering Device ID $dev to controller"); 
+      $self->{child_object}->{$dev} = $object;
+      if ($options =~ m/force_update/) {
+         $self->{data}->{force_update}->{$dev} = 1;
+         &main::print_log("[raZberry] Forcing Controller to contact Device $dev at each poll"); 
+      }
    }
 }
 
@@ -355,5 +360,32 @@ sub level {
   
   return ($self->{level});
 }
+
+package raZberry_comm;
+
+@raZberry_comm::ISA = ('Generic_Item');
+
+sub new
+{
+   my ($class,$object) = @_;
+
+   my $self={};
+   bless $self,$class;
+
+   $$self{master_object} = $object;
+   push(@{$$self{states}}, 'online','offline');
+   $object->register($self,'comm');
+   return $self;
+
+}
+
+sub set {
+   my ($self,$p_state,$p_setby) = @_;
+
+	if ($p_setby eq 'poll') {
+        $self->SUPER::set($p_state);
+    } 
+} 
+
 
 1;
