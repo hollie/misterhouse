@@ -162,7 +162,8 @@ sub json_get {
 		my $collection_file = "$Pgm_Root/data/web/collections.json";
 		$collection_file = "$config_parms{data_dir}/web/collections.json"
 			if -e "$config_parms{data_dir}/web/collections.json";
-		# Consider copying the source file to the user data dir here.
+		$collection_file = "$config_parms{ia7_data_dir}/collections.json"
+			if -e "$config_parms{ia7_data_dir}/collections.json";
 				
 		eval {
 		   my $json_collections = file_read($collection_file);
@@ -171,6 +172,25 @@ sub json_get {
 		if ($@){
 		  print_log "Json_Server.pl: WARNING: decode_json failed for collection.json. Please check this file!";
 		  $json_data{'collections'} = decode_json('{ "0" : { "name" : "error" } }'); #write a blank collection
+
+		}
+	}
+
+	# List ia7 preferences
+	if ($path[0] eq 'ia7_config' || $path[0] eq '') {
+		my $prefs_file = "$Pgm_Root/data/web/ia7_config.json";
+		$prefs_file = "$config_parms{data_dir}/web/ia7_config.json"
+			if -e "$config_parms{data_dir}/web/ia7_config.json";
+		$prefs_file = "$config_parms{ia7_data_dir}/ia7_config.json"
+			if -e "$config_parms{ia7_data_dir}/ia7_config.json";
+				
+		eval {
+		   my $prefs = file_read($prefs_file);
+		   $json_data{'ia7_config'} = decode_json($prefs); #HP, wrap this in eval to prevent MH crashes
+		};
+		if ($@){
+		  print_log "Json_Server.pl: WARNING: decode_json failed for ia7_config.json. Please check this file!";
+		  $json_data{'ia7_config'} = decode_json('{ "prefs" : { "status" : "error" } }'); #write a blank collection
 
 		}
 	}

@@ -123,6 +123,26 @@ function changePage (){
 		// collections
 		URLHash.path = "collections";
 	}
+	if (getJSONDataByPath("ia7_config") === undefined){
+		// We need at minimum the basic collections data to render all pages
+		// (the breadcrumb)
+		// NOTE may want to think about how to handle dynamic changes to the 
+		// collections list
+		$.ajax({
+			type: "GET",
+			url: "/json/ia7_config",
+			dataType: "json",
+			success: function( json ) {
+				JSONStore(json);
+				changePage();
+			}
+		});
+	} else {
+		if (json_store.ia7_config.prefs.header_button == "no") {
+			//console.log("remove header button");
+			$("#mhstatus").remove();
+		}
+	}
 	if (getJSONDataByPath("collections") === undefined){
 		// We need at minimum the basic collections data to render all pages
 		// (the breadcrumb)
@@ -1096,17 +1116,18 @@ var create_state_modal = function(entity) {
 			//remove states from anything that doesn't have more than 1 state
 			$('#control').find('.states').find('.btn-group').remove();
 		}
-		//state log show last 4 (separate out set_by as advanced) - keeps being added to each time it opens
-		// could load all log items, and only unhide the last 4 -- maybe later
-		$('#control').find('.modal-body').find('.obj_log').remove();
+		if (json_store.ia7_config.prefs.state_log_show !== "no") {
+			//state log show last 4 (separate out set_by as advanced) - keeps being added to each time it opens
+			// could load all log items, and only unhide the last 4 -- maybe later
+			$('#control').find('.modal-body').find('.obj_log').remove();
 
-		$('#control').find('.modal-body').append("<div class='obj_log'><h4>Object Log</h4>");
-		for (var i = 0; i < 4; i++) {
-			if (json_store.objects[entity].state_log[i] == undefined) continue;
-			var slog = json_store.objects[entity].state_log[i].split("set_by=");
-			$('#control').find('.obj_log').append(slog[0]+"<span class='mh_set_by hidden'>set_by="+slog[1]+"</span><br>");
-		}
-				
+			$('#control').find('.modal-body').append("<div class='obj_log'><h4>Object Log</h4>");
+			for (var i = 0; i < json_store.ia7_config.prefs.state_log_entries; i++) {
+				if (json_store.objects[entity].state_log[i] == undefined) continue;
+				var slog = json_store.objects[entity].state_log[i].split("set_by=");
+				$('#control').find('.obj_log').append(slog[0]+"<span class='mh_set_by hidden'>set_by="+slog[1]+"</span><br>");
+			}
+		}		
 		$('.mhstatemode').on('click', function(){
 			$('#control').find('.states').find('.btn').removeClass('hidden');
 			$('#control').find('.mh_set_by').removeClass('hidden');
