@@ -85,7 +85,7 @@ sub new {
    $self->{password} = $pwd;       
    $self->{debug} = 0;
    $self->{loglevel} = 1;
-   $self->{timeout} = 15; #300;
+   $self->{timeout} = 4; #300;
    push(@{$$self{states}}, 'enabled', 'disabled');   
 
    $self->_init;
@@ -117,12 +117,22 @@ sub _init {
 
     if ($osp) { #->{fwv} > 213) {
     
-      main::print_log("[OpenSprinkler] OpenSprinkler hardware $osp->{hwv} found with firmware $osp->{fmv}");
+      main::print_log("[OpenSprinkler] OpenSprinkler found (v$osp->{hwv} / $osp->{fwv})");
       my ($isSuccessResponse2,$stations) = $self->_get_JSON_data('station_info');
 	  for my $index (0 .. $#{$stations->{snames}}) {
     	#print "$index: $stations->{snames}[$index]\n";
     	$self->{data}->{stations}->[$index]->{name} = $stations->{snames}[$index];
 	  }      
+		# Check to see if station is disabled, Bitwise operation
+		for my $stn_dis ( 0 .. $#{$stations->{stn_dis}}) {
+  			my $bin = sprintf "%08b", $stations->{stn_dis}[$stn_dis];
+  			for my $bit ( 0 .. 7) {
+  				my $station_id = (($stn_dis * 8) + $bit);
+  				my $disabled =  substr $bin,(7-$bit),1;
+  				$self->{data}->{stations}->[$station_id]->{status} = ($disabled == 0 ) ? "enabled" : "disabled";
+  			}
+		}
+#print Dumper $self;	  		
 		$self->{previous}->{info}->{waterlevel} = $osp->{wl};
 		$self->{previous}->{info}->{rs} = "init";
 		$self->{previous}->{info}->{state} = "disabled";
@@ -356,6 +366,7 @@ sub process_data {
 	
 	
 	for my $index (0 .. $#{$self->{data}->{stations}}) {
+		next if ($self->{data}->{stations}->[$index]->{status} eq "disabled"); 
 		my $previous = "init";
 		$previous = $self->{previous}->{data}->{stations}->[$index]->{state} if (defined $self->{previous}->{data}->{stations}->[$index]->{state});
 		if ($previous ne $self->{data}->{stations}->[$index]->{state}) {
