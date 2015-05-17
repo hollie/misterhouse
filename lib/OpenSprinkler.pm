@@ -642,7 +642,7 @@ sub new {
 
    $$self{master_object} = $object;
    push(@{$$self{states}}, 'online','offline');
-	SUPER::set('offline');
+   $self->SUPER::set('offline');
    $object->register($self,'comm');
    return $self;
 
