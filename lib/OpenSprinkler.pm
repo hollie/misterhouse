@@ -57,14 +57,15 @@ $rest{get_log} = "jl";
 
 
 our %result;
-$result{1} = "Success";
-$result{2} = "Unauthorized";
-$result{3} = "Mismatch";
-$result{4} = "Data Missing";
-$result{5} = "Out of Range";
-$result{6} = "Data Format";
-$result{7} = "Error Page Not Found"; 
-$result{8} = "Not Permitted";
+$result{1} = "success";
+$result{2} = "unauthorized";
+$result{3} = "mismatch";
+$result{4} = "data missing";
+$result{5} = "out of Range";
+$result{6} = "data format";
+$result{7} = "error page not found"; 
+$result{8} = "not permitted";
+$result{9} = "unknown error";
 
 sub new {
    my ($class, $host,$pwd,$poll) = @_;
@@ -220,14 +221,12 @@ sub poll {
 sub _get_JSON_data {
   my ($self, $mode, $cmd) = @_;
 
-  unless  ($self->{updating}) {
-    $cmd = "" unless ($cmd);
-    $self->{updating} = 1;
     my $ua = new LWP::UserAgent(keep_alive=>1);
     $ua->timeout($self->{timeout});
 
     my $host = $self->{host};
     my $password = $self->{password};
+    $cmd = "" unless ($cmd);
     print "Opening http://$host/$rest{$mode}?pw=$password$cmd...\n" if ($self->{debug});
     my $request = HTTP::Request->new(GET => "http://$host/$rest{$mode}?pw=$password$cmd");
     #$request->content_type("application/x-www-form-urlencoded");
@@ -238,7 +237,6 @@ sub _get_JSON_data {
     my $responseCode = $responseObj->code;
     print 'Response code: ' . $responseCode . "\n" if $self->{debug};
     my $isSuccessResponse = $responseCode < 400;
-    $self->{updating} = 0;
     if (! $isSuccessResponse ) {
 	main::print_log("[OpenSprinkler] Warning, failed to get data. Response code $responseCode");
     if (defined $self->{child_object}->{comm}) {
@@ -262,17 +260,35 @@ sub _get_JSON_data {
     };
   # catch crashes:
   if($@){
-    print "[OpenSprinkler:" . $self->{data}->{name} ."] ERROR! JSON parser crashed! $@\n";
+    print "[OpenSprinkler] ERROR! JSON parser crashed! $@\n";
     return ('0');
   } else {
-    return ($isSuccessResponse, $response)
-  }
-  	} else {
-		main::print_log("[OpenSprinkler] Warning, not fetching data due to operation in progress");
-		return ('0');
-	}
+      return ($isSuccessResponse, $response);
+    }
 }
 
+sub _push_JSON_data {
+  my ($self, $mode, $cmd) = @_;
+
+  unless  ($self->{updating}) {
+    $self->{updating} = 1;   
+    my ($isSuccessResponse,$response) = $self->_get_JSON_data($mode,$cmd);
+    $self->{updating} = 0;
+    if (defined $response->{"result"}) {
+       my $result_code = 9;
+       $result_code = $response->{"result"} if (defined $response->{"result"});
+       print "[OpenSpinkler] JSON fetch operation result is " .$result{$result_code} . "\n" if (($self->{loglevel}) or ($result_code != 1));
+       return ($isSuccessResponse, $result{$result_code});
+    } else {
+    	main::print_log("[OpenSprinkler] Warning, unknown response from data push");	
+    	return ('0');
+    }
+  } else {
+		main::print_log("[OpenSprinkler] Warning, not pushing data due to operation in progress");
+		return ('0');
+	}
+}    
+    
 sub register {
    my ($self, $object, $type, $number ) = @_;
    #my $name;
@@ -460,7 +476,7 @@ sub set_station {
   } else {
     $cmd .= "&en=0";
   }
-  my ($isSuccessResponse,$status) = $self->_get_JSON_data('test_station',$cmd);
+  my ($isSuccessResponse,$status) = $self->_push_JSON_data('test_station',$cmd);
   if ($isSuccessResponse) {
    #print "DB status=$status\n";
     if ($status eq "success") { #todo parse return value
@@ -520,7 +536,7 @@ sub reboot {
   	my ($self) = @_;
   
   	my $cmd = "&rbt=1";
-  	my ($isSuccessResponse,$status) = $self->_get_JSON_data('set_vars',$cmd);
+  	my ($isSuccessResponse,$status) = $self->_push_JSON_data('set_vars',$cmd);
   
 	return ($status);
 }
@@ -529,7 +545,7 @@ sub reset {
   	my ($self) = @_;
   
   	my $cmd = "&rsn=1";
-  	my ($isSuccessResponse,$status) = $self->_get_JSON_data('set_vars',$cmd);
+  	my ($isSuccessResponse,$status) = $self->_push_JSON_data('set_vars',$cmd);
   
 	return ($status);
 }
@@ -550,7 +566,7 @@ sub set_rain_delay {
   	my ($self,$hours) = @_;
   
   	my $cmd = "&rsn=$hours";
-  	my ($isSuccessResponse,$status) = $self->_get_JSON_data('set_vars',$cmd);
+  	my ($isSuccessResponse,$status) = $self->_push_JSON_data('set_vars',$cmd);
   
 	return ($status);
 }
@@ -577,11 +593,11 @@ sub set {
 
   		my ($isSuccessResponse,$status) = $self->_get_JSON_data('set_vars',$cmd);
   		if ($isSuccessResponse) {
-    		if ($status eq "success") { #todo parse return value
+    		if ($status eq "success") {
       			$self->poll;
       			return (1);
     		} else {
-        		main::print_log("[OpenSprinkler] Error. Could not set state to $p_state");
+        		main::print_log("[OpenSprinkler] Error. Could not set state to $p_state. Status is $status");
         		return (0);
     		}
   		} else {
@@ -642,7 +658,7 @@ sub new {
 
    $$self{master_object} = $object;
    push(@{$$self{states}}, 'online','offline');
-   $self->SUPER::set('offline');
+   $self->set('offline');
    $object->register($self,'comm');
    return $self;
 
