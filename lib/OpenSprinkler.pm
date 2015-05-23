@@ -9,30 +9,28 @@ use JSON::XS;
 use Data::Dumper;
 
 
-
-
 # $os1        = new OpenSprinkler('192.168.0.100','md5-password',poll);
 #
 # $os_wl = new OpenSprinkler_Waterlevel($os1);
 # $os_rs = new OpenSprinkler_Rainstatus($os1);
 # $front_garden   = new OpenSprinkler_Station($os1,0,60);
+# $os_program = new OpenSprinkler_Program($os1,"Current");
 #
 # $os1_comm		= new OpenSprinkler_Comm($os1);
 # methods
 #	-set disable
 #	-reboot
 #	-reset
-#   - get_waterlevel
+#   -get_waterlevel
 
 
 #todo 
+# - program control, haven't tested with spaces & special characters
 # - log runtimes. Maybe into a dbm file? log_runtimes method with destination.
 #?? disabling the opensprinkler doesn't turn off the stations?
-#?? parse return codes better, 
 #?? print logs
 # # make the data poll non-blocking, turn off timer
 #
-# State can only be set by stat. Set mode will change the mode.
 
 
 @OpenSprinkler::ISA = ('Generic_Item');
@@ -52,6 +50,8 @@ $rest{station_info} = "jn";
 $rest{get_stations} = "js";
 $rest{set_stations} = "cs";
 $rest{test_station} = "cm";
+$rest{get_programs} = "jp";
+$rest{set_program} = "cp";
 
 $rest{get_log} = "jl";
 
@@ -174,9 +174,9 @@ sub poll {
   		my ($isSuccessResponse1,$vars) = $self->_get_JSON_data('get_vars');
   		my ($isSuccessResponse2,$options) = $self->_get_JSON_data('get_options');
   		my ($isSuccessResponse3,$stations) = $self->_get_JSON_data('get_stations');
-
+  		my ($isSuccessResponse4,$programs) = $self->_get_JSON_data('get_programs');
   
-  		if ($isSuccessResponse1 and $isSuccessResponse2 and $isSuccessResponse3) {
+  		if ($isSuccessResponse1 and $isSuccessResponse2 and $isSuccessResponse3 and $isSuccessResponse4) {
     		$self->{data}->{name} = $vars->{loc};
     		$self->{data}->{loc} = $vars->{loc};
 	   		$self->{data}->{options} = $options;
@@ -192,6 +192,14 @@ sub poll {
     			print "$index: $stations->{sn}[$index]\n" if ($self->{debug});
     			$self->{data}->{stations}->[$index]->{state} = ($stations->{sn}[$index] == 0 ) ? "off" : "on";
 	  		} 
+	 		for my $index (0 .. $#{$programs->{pd}}) {
+    			print "$index [flag=$programs->{pd}[$index][0]] [name=$programs->{pd}[$index][5]]\n" if ($self->{debug});
+    			$self->{data}->{programs}->{$programs->{pd}[$index][5]}->{status} = ($programs->{pd}[$index][0] % 2 == 1 ) ? "enabled" : "disabled"; #if number is odd, then bit 0 set and disabled
+    			$self->{data}->{programs}->{$programs->{pd}[$index][5]}->{flag} = $programs->{pd}[$index][0];  
+    			$self->{data}->{programs}->{$programs->{pd}[$index][5]}->{pid} = $index;      			
+    			$self->{data}->{programs}->{$programs->{pd}[$index][5]}->{data} = "$programs->{pd}[$index][1],$programs->{pd}[$index][2],[" . join(",",@{$programs->{pd}[$index][3]}) . "],[" . join(",",@{$programs->{pd}[$index][4]}) . "]";
+	  		} 
+    		$self->{data}->{nprograms} = $programs->{nprogs};	  		
     		$self->{data}->{nstations} = $stations->{nstations};
     		$self->{data}->{timestamp} = time;
     		$self->{data}->{retry} = 0;
@@ -229,6 +237,11 @@ sub _get_JSON_data {
     $cmd = "" unless ($cmd);
     print "Opening http://$host/$rest{$mode}?pw=$password$cmd...\n" if ($self->{debug});
     my $request = HTTP::Request->new(GET => "http://$host/$rest{$mode}?pw=$password$cmd");
+    
+    # Violate RFC 2396 by forcing broken query string. Opensprinkler expectes [ and ] in URL
+	#${$request->uri} =~ s/%5B/[/; 
+	#${$request->uri} =~ s/%5D/]/; 	
+
     #$request->content_type("application/x-www-form-urlencoded");
 
     my $responseObj = $ua->request($request);
@@ -277,7 +290,7 @@ sub _push_JSON_data {
     if (defined $response->{"result"}) {
        my $result_code = 9;
        $result_code = $response->{"result"} if (defined $response->{"result"});
-       print "[OpenSpinkler] JSON fetch operation result is " .$result{$result_code} . "\n" if (($self->{loglevel}) or ($result_code != 1));
+       main::print_log "[OpenSprinkler] JSON fetch operation result is " .$result{$result_code} . "\n" if (($self->{loglevel}) or ($result_code != 1));
        return ($isSuccessResponse, $result{$result_code});
     } else {
     	main::print_log("[OpenSprinkler] Warning, unknown response from data push");	
@@ -288,15 +301,44 @@ sub _push_JSON_data {
 		return ('0');
 	}
 }    
+
+sub _url_encode {
+    my ($s) = @_;
+	#print "url [$s]\n";
+    $s =~ s/ /+/g;
+    #$s =~ s/([^A-Za-z0-9\+-])/sprintf("%%%02X", ord($1))/seg;
+	$s =~ s/([^^A-Za-z0-9\-_.!~*'()])/ sprintf "%%%0x", ord $1 /eg;
+    return $s;
+}
+
+sub _setflag {
+	my ($flag,$state) = @_;
+	
+	my $bin = sprintf "%08b",$flag;
+	my $enable = substr $bin,-1,1;
+	my $bit = "0";
+	$bit = "1" if (lc $state eq "enabled");
+
+	my $newbin = $bin;
+	substr ($newbin,-1,1) = $bit;
+	#print "[state=$state] [flag=$flag] [bin=$bin] [enable=$enable] [bit=$bit] [newbin=$newbin]\n";
+
+	return (oct "0b$newbin");
+}
     
 sub register {
-   my ($self, $object, $type, $number ) = @_;
+   my ($self, $object, $type, $id ) = @_;
    #my $name;
    #$name = $$object{object_name};  #TODO: Why can't we get the name of the child object?
    if (lc $type eq "station") {
-      &main::print_log("[OpenSprinkler] Registering station $number child object"); 
-      $self->{child_object}->{station}->{$number} = $object;
-      $object->set_label($self->{data}->{stations}->[$number]->{name});
+      &main::print_log("[OpenSprinkler] Registering station $id child object"); 
+      $self->{child_object}->{station}->{$id} = $object;
+      $object->set_label($self->{data}->{stations}->[$id]->{name});
+   } elsif (lc $type eq "program") {
+      &main::print_log("[OpenSprinkler] Registering program $id child object"); 
+      $self->{child_object}->{program}->{$id} = $object;   
+      $object->set_label($id);
+
    } else {
       &main::print_log("[OpenSprinkler] Registering $type child object"); 
 
@@ -371,6 +413,13 @@ sub print_info {
 	main::print_log("[OpenSprinkler] Wunderground key " . $self->{data}->{vars}->{wtkey});
 	main::print_log("[OpenSprinkler] *Sun Rises at " . $self->get_sunrise());
 	main::print_log("[OpenSprinkler] *Sun Sets at " . $self->get_sunset());
+	if (defined $self->{data}->{programs}) {
+		main::print_log("[OpenSprinkler] Programs found:");
+		for my $key (keys %{$self->{data}->{programs}}) {
+			main::print_log("[OpenSprinkler]\t" . $key . " is " . $self->{data}->{programs}->{$key}->{status});
+		}
+	}
+
 
 }
 
@@ -394,6 +443,19 @@ sub process_data {
 	  		}
 		}
 	}
+	
+	for my $key (keys $self->{data}->{programs}) {
+		my $previous = "init";
+		$previous = $self->{previous}->{data}->{programs}->{$key}->{status} if (defined $self->{previous}->{data}->{programs}->{$key}->{status});
+		if ($previous ne $self->{data}->{programs}->{$key}->{status}) {
+	  		main::print_log("[OpenSprinkler] Program $key changed from $previous to $self->{data}->{programs}->{$key}->{status}") if ($self->{loglevel});
+	  		$self->{previous}->{data}->{programs}->{$key}->{status} = $self->{data}->{programs}->{$key}->{status};
+	  		if (defined $self->{child_object}->{program}->{$key}) {
+	  			main::print_log "Child object found. Updating..." if ($self->{loglevel});
+	  			$self->{child_object}->{program}->{$key}->set($self->{data}->{programs}->{$key}->{status},'poll');
+	  		}
+		}
+	}	
 	
 	if ($self->{previous}->{info}->{state} ne $self->{data}->{info}->{state}) {
 	  main::print_log("[OpenSprinkler] State changed from $self->{previous}->{info}->{state} to $self->{data}->{info}->{state}") if ($self->{loglevel});
@@ -467,7 +529,8 @@ sub set_station {
 
   my ($self,$station,$state,$time) = @_;
 
-  return if (lc $state eq $self->{state});
+  return unless (defined $self->{data}->{stations}->[$station]->{state});
+  return if (lc $state eq $self->{data}->{stations}->[$station]->{state});
 
   #print "db: set_station state=$state, station=$station time=$time\n";
   my $cmd = "&sid=" . $station;
@@ -484,6 +547,43 @@ sub set_station {
       return (1);
     } else {
         main::print_log("[OpenSprinkler] Error. Could not set station to $state");
+        return (0);
+    }
+  } else {
+     main::print_log("[OpenSprinkler] Error. Could not send data to OpenSprinkler");
+  	return (0);
+  }
+
+}
+
+sub get_program {
+  my ($self,$name) = @_;
+
+  return ($self->{data}->{programs}->{$name}->{state});
+
+}
+
+sub set_program {
+
+  my ($self,$name,$state) = @_;
+
+  return unless (defined $self->{data}->{programs}->{$name});
+  return if (lc $state eq $self->{data}->{programs}->{$name}->{status});
+  my $cmd = "&pid=" . $self->{data}->{programs}->{$name}->{pid};
+  $cmd .= "&v=[" . _setflag($self->{data}->{programs}->{$name}->{flag},$state) . ",";
+  $cmd .= $self->{data}->{programs}->{$name}->{data} . "]";
+  $cmd .= "&name=" . _url_encode($name);
+  
+  #print "cmd=$cmd\n"; 
+
+  my ($isSuccessResponse,$status) = $self->_push_JSON_data('set_program',$cmd);
+  if ($isSuccessResponse) {
+   #print "DB status=$status\n";
+    if ($status eq "success") { #todo parse return value
+      $self->poll;
+      return (1);
+    } else {
+        main::print_log("[OpenSprinkler] Error. Could not set program to $state");
         return (0);
     }
   } else {
@@ -645,6 +745,36 @@ sub set {
     }
 }
 
+package OpenSprinkler_Program;
+
+@OpenSprinkler_Program::ISA = ('Generic_Item');
+
+sub new
+{
+   my ($class,$object, $name) = @_;
+
+   my $self={};
+   bless $self,$class;
+
+   $$self{master_object} = $object;
+   $$self{program} = $name;
+   push(@{$$self{states}}, 'enabled','disabled');
+   $object->register($self,'program',$name);
+   $self->set($object->get_program($name),'poll');
+   return $self;
+
+}
+
+sub set {
+   my ($self,$p_state,$p_setby,$time_override) = @_;
+
+	if ($p_setby eq 'poll') {
+    #print "db: setting by poll to $p_state\n";
+        $self->SUPER::set($p_state);
+    } else {
+        $$self{master_object}->set_program($$self{program},$p_state);
+    }
+}
 
 package OpenSprinkler_Comm;
 
@@ -666,10 +796,11 @@ sub new {
 
 sub set {
    my ($self,$p_state,$p_setby) = @_;
-
-	if ($p_setby eq 'poll') {
-        $self->SUPER::set($p_state);
-    } 
+	if (defined $p_setby) {
+		if ($p_setby eq 'poll') {
+        	$self->SUPER::set($p_state);
+    	} 
+    }
 } 
 
 package OpenSprinkler_Waterlevel;
@@ -693,9 +824,11 @@ sub new {
 sub set {
    my ($self,$p_state,$p_setby) = @_;
 
-	if ($p_setby eq 'poll') {
-        $self->SUPER::set($p_state);
-    } 
+	if (defined $p_setby) {
+		if ($p_setby eq 'poll') {
+        	$self->SUPER::set($p_state);
+    	} 
+    }
 } 
 
 package OpenSprinkler_Rainstatus;
