@@ -193,11 +193,13 @@ sub poll {
     			$self->{data}->{stations}->[$index]->{state} = ($stations->{sn}[$index] == 0 ) ? "off" : "on";
 	  		} 
 	 		for my $index (0 .. $#{$programs->{pd}}) {
-    			print "$index [flag=$programs->{pd}[$index][0]] [name=$programs->{pd}[$index][5]]\n" if ($self->{debug});
-    			$self->{data}->{programs}->{$programs->{pd}[$index][5]}->{status} = ($programs->{pd}[$index][0] % 2 == 1 ) ? "enabled" : "disabled"; #if number is odd, then bit 0 set and disabled
-    			$self->{data}->{programs}->{$programs->{pd}[$index][5]}->{flag} = $programs->{pd}[$index][0];  
-    			$self->{data}->{programs}->{$programs->{pd}[$index][5]}->{pid} = $index;      			
-    			$self->{data}->{programs}->{$programs->{pd}[$index][5]}->{data} = "$programs->{pd}[$index][1],$programs->{pd}[$index][2],[" . join(",",@{$programs->{pd}[$index][3]}) . "],[" . join(",",@{$programs->{pd}[$index][4]}) . "]";
+	 			my $name = $programs->{pd}[$index][5];
+	 			$name =~ s/\+/ /g; #replace any + with spaces
+    			print "$index [flag=$programs->{pd}[$index][0]] [osname=$programs->{pd}[$index][5]] [name=$name]\n" if ($self->{debug});
+    			$self->{data}->{programs}->{$name}->{status} = ($programs->{pd}[$index][0] % 2 == 1 ) ? "enabled" : "disabled"; #if number is odd, then bit 0 set and disabled
+    			$self->{data}->{programs}->{$name}->{flag} = $programs->{pd}[$index][0];  
+    			$self->{data}->{programs}->{$name}->{pid} = $index;      			
+    			$self->{data}->{programs}->{$name}->{data} = "$programs->{pd}[$index][1],$programs->{pd}[$index][2],[" . join(",",@{$programs->{pd}[$index][3]}) . "],[" . join(",",@{$programs->{pd}[$index][4]}) . "]";
 	  		} 
     		$self->{data}->{nprograms} = $programs->{nprogs};	  		
     		$self->{data}->{nstations} = $stations->{nstations};
@@ -444,7 +446,7 @@ sub process_data {
 		}
 	}
 	
-	for my $key (keys $self->{data}->{programs}) {
+	for my $key (keys %{$self->{data}->{programs}}) {
 		my $previous = "init";
 		$previous = $self->{previous}->{data}->{programs}->{$key}->{status} if (defined $self->{previous}->{data}->{programs}->{$key}->{status});
 		if ($previous ne $self->{data}->{programs}->{$key}->{status}) {
@@ -574,7 +576,7 @@ sub set_program {
   $cmd .= $self->{data}->{programs}->{$name}->{data} . "]";
   $cmd .= "&name=" . _url_encode($name);
   
-  #print "cmd=$cmd\n"; 
+  #print "XXXX cmd=$cmd\n"; 
 
   my ($isSuccessResponse,$status) = $self->_push_JSON_data('set_program',$cmd);
   if ($isSuccessResponse) {
