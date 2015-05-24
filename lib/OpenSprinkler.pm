@@ -194,7 +194,6 @@ sub poll {
 	  		} 
 	 		for my $index (0 .. $#{$programs->{pd}}) {
 	 			my $name = $programs->{pd}[$index][5];
-	 			$name =~ s/\+/ /g; #replace any + with spaces
     			print "$index [flag=$programs->{pd}[$index][0]] [osname=$programs->{pd}[$index][5]] [name=$name]\n" if ($self->{debug});
     			$self->{data}->{programs}->{$name}->{status} = ($programs->{pd}[$index][0] % 2 == 1 ) ? "enabled" : "disabled"; #if number is odd, then bit 0 set and disabled
     			$self->{data}->{programs}->{$name}->{flag} = $programs->{pd}[$index][0];  
@@ -307,9 +306,8 @@ sub _push_JSON_data {
 sub _url_encode {
     my ($s) = @_;
 	#print "url [$s]\n";
-    $s =~ s/ /+/g;
     #$s =~ s/([^A-Za-z0-9\+-])/sprintf("%%%02X", ord($1))/seg;
-	$s =~ s/([^^A-Za-z0-9\-_.!~*'()])/ sprintf "%%%0x", ord $1 /eg;
+	$s =~ s/([^^A-Za-z0-9\-_.!~*'()])/ sprintf "%%%0X", ord $1 /eg;
     return $s;
 }
 
