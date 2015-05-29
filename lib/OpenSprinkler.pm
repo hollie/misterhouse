@@ -630,7 +630,7 @@ sub reboot {
   	my ($self) = @_;
   
   	my $cmd = "&rbt=1";
-  	my ($isSuccessResponse,$status) = $self->_push_JSON_data('set_vars',$cmd);
+  	my ($isSuccessResponse,$status) = $self->_get_JSON_data('set_vars',$cmd);
   
 	return ($status);
 }
@@ -659,7 +659,7 @@ sub  get_rainstatus {
 sub set_rain_delay {
   	my ($self,$hours) = @_;
   
-  	my $cmd = "&rsn=$hours";
+  	my $cmd = "&rd=$hours";
   	my ($isSuccessResponse,$status) = $self->_push_JSON_data('set_vars',$cmd);
   
 	return ($status);
