@@ -201,7 +201,7 @@ sub _get_JSON_data {
 	main::print_log("[Venstar Colortouch:". $self->{data}->{name} . "] Warning, failed to get data. Response code $responseCode");
     if (defined $self->{child_object}->{comm}) {
       	if ($self->{child_object}->{comm}->state() ne "offline") {
-	    main::print_log "[Venstar Colortouch] Communication Tracking object found. Updating..." if ($self->{loglevel});
+	    main::print_log "[Venstar Colortouch] Communication Tracking object found. Updating to offline..." if ($self->{loglevel});
 	    $self->{child_object}->{comm}->set("offline",'poll');
 	    }
 	}
@@ -209,7 +209,7 @@ sub _get_JSON_data {
     } else {
        if (defined $self->{child_object}->{comm}) {
        	 if ($self->{child_object}->{comm}->state() ne "online") {
-	        main::print_log "[Venstar Colortouch] Communication Tracking object found. Updating..." if ($self->{loglevel});
+	        main::print_log "[Venstar Colortouch] Communication Tracking object found. Updating to online..." if ($self->{loglevel});
 	        $self->{child_object}->{comm}->set("online",'poll');
 	      }
 	   }
@@ -234,6 +234,28 @@ sub _get_JSON_data {
 sub _push_JSON_data {
   my ($self, $type, $params) = @_;
   
+  	my (@fan,@fanstate,@modename,@statename,@schedule,@home);
+	$fan[0] = "auto";
+	$fan[1] = "on";
+	$fanstate[0] = "off";
+	$fanstate[1] = "running";
+	$home[0] = "home";
+	$home[1] = "away";
+	$modename[0] = "off";
+	$modename[1] = "heating";
+	$modename[2] = "cooling";
+	$modename[3] = "auto";
+	$statename[0] = "idle";
+	$statename[1] = "heating";
+	$statename[2] = "cooling";
+	$statename[3] = "lockout";
+	$statename[4] = "error";
+	$schedule[0] = "morning (occupied1)";
+	$schedule[1] = "day (occupied2)";
+	$schedule[2] = "evening (occupied3)";
+	$schedule[3] = "night (occupied4)";
+	$schedule[255] = "inactive";
+	
   my $cmd;
   #print "VCT DB: $params\n";
   $self->stop_timer; #stop timer to prevent a clash of updates
@@ -268,14 +290,14 @@ sub _push_JSON_data {
     }
 
 	if ($caway ne $away) {
-    	main::print_log("[Venstar Colortouch:". $self->{data}->{name} . "] Changing Away from $caway to $away");
+    	main::print_log("[Venstar Colortouch:". $self->{data}->{name} . "] Changing Away from $home[$caway] to $home[$away]");
     $newaway = $away;
    } else {
     $newaway = $caway;
     }
     
     if ($csched ne $sched) {
-    	main::print_log("[Venstar Colortouch:". $self->{data}->{name} . "] Changing Schedule from $csched to $sched");
+    	main::print_log("[Venstar Colortouch:". $self->{data}->{name} . "] Changing Schedule from $schedule[$csched] to $schedule[$sched]");
     $newsched = $sched;
    } else {
     $newsched = $csched;
@@ -296,7 +318,7 @@ sub _push_JSON_data {
     }
   
   $cmd = "tempunits=$newunits&away=$newaway&schedule=$newsched&hum_setpoint=$newhumsp&dehum_setpoint=$newdehumsp";
-  main::print_log("Sending Settings command $cmd to " . $self->{host});# if $self->{debug};
+  main::print_log("Sending Settings command $cmd to " . $self->{host}) if $self->{debug};
   
   } elsif ($type eq 'control') {
   #mode=0&fan=0&heattemp=70&cooltemp=75
@@ -316,18 +338,18 @@ sub _push_JSON_data {
   $heattemp = $cheattemp if (!$heattemp);
   $cooltemp = $ccooltemp if (!$cooltemp);
   
-  main::print_log("data1=$isSuccessResponse,$cmode,$cfan,$cheattemp,$ccooltemp,$setpointdelta"); #TODO pass object to get debug
-  main::print_log("data2=$mode,$fan,$heattemp,$cooltemp"); #TODO debug
+  main::print_log("data1=$isSuccessResponse,$cmode,$cfan,$cheattemp,$ccooltemp,$setpointdelta") if $self->{debug}; #TODO pass object to get debug
+  main::print_log("data2=$mode,$fan,$heattemp,$cooltemp") if $self->{debug}; #TODO debug
   
   if ($cmode ne $mode) {
-    main::print_log("[Venstar Colortouch:". $self->{data}->{name} . "] Changing mode from $cmode to $mode");
+    main::print_log("[Venstar Colortouch:". $self->{data}->{name} . "] Changing mode from $modename[$cmode] to $modename[$mode]");
     $newmode = $mode;
    } else {
     $newmode = $cmode;
     }
     
   if ($cfan ne $fan) {
-    main::print_log("[Venstar Colortouch:". $self->{data}->{name} . "] Changing fan from $cfan to $fan");
+    main::print_log("[Venstar Colortouch:". $self->{data}->{name} . "] Changing fan from $fanstate[$cfan] to $fanstate[$fan]");
     $newfan = $fan;
    } else {
     $newfan = $cfan;
