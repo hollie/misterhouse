@@ -213,7 +213,7 @@ sub _get_JSON_data {
 	   &main::print_log("[raZberry] Warning, failed to get data. Response code $responseCode");
 	   if (defined $self->{child_object}->{comm}) {
 	   	   if ($self->{child_object}->{comm}->state() ne "offline") {
-	          main::print_log "Communication Tracking object found. Updating..." if ($self->{loglevel});
+	          main::print_log "Communication Tracking object found. Updating to offline..." if ($self->{loglevel});
 	          $self->{child_object}->{comm}->set("offline",'poll');
 	       }
 	    }
@@ -221,7 +221,7 @@ sub _get_JSON_data {
     }
     if (defined $self->{child_object}->{comm}) {
 	    if ($self->{child_object}->{comm}->state() ne "online") {
-	       main::print_log "Communication Tracking object found. Updating..." if ($self->{loglevel});
+	       main::print_log "Communication Tracking object found. Updating to online..." if ($self->{loglevel});
 	       $self->{child_object}->{comm}->set("online",'poll');
 	       }
 	    }
