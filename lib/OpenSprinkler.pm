@@ -223,7 +223,7 @@ sub poll {
 #print Dumper $self;
     	if (defined $self->{child_object}->{comm}) {
     		if ($self->{child_object}->{comm}->state() ne "online") {
-	  			main::print_log "[OpenSprinkler] Communication Tracking object found. Updating..." if ($self->{loglevel});
+	  			main::print_log "[OpenSprinkler] Communication Tracking object found. Updating to online..." if ($self->{loglevel});
 	  		  	$self->{child_object}->{comm}->set("online",'poll');
 	  		}
 	  	}
@@ -233,7 +233,7 @@ sub poll {
   		$self->{data}->{retry}++;
   		if (defined $self->{child_object}->{comm}) {
   			if ($self->{child_object}->{comm}->state() ne "offline") {
-	  			main::print_log "[OpenSprinkler] Communication Tracking object found. Updating..." if ($self->{loglevel});
+	  			main::print_log "[OpenSprinkler] Communication Tracking object found. Updating to offline..." if ($self->{loglevel});
 	  		 	$self->{child_object}->{comm}->set("offline",'poll');
 	  		}
 		}
@@ -259,10 +259,10 @@ sub _get_JSON_data {
 	#${$request->uri} =~ s/%5D/]/; 	
 
     #$request->content_type("application/x-www-form-urlencoded");
-
+	
     my $responseObj = $ua->request($request);
     print $responseObj->content."\n--------------------\n" if $self->{debug};
- 
+     
     my $responseCode = $responseObj->code;
     print 'Response code: ' . $responseCode . "\n" if $self->{debug};
     my $isSuccessResponse = $responseCode < 400;
@@ -270,7 +270,7 @@ sub _get_JSON_data {
 		main::print_log("[OpenSprinkler] Warning, failed to get data. Response code $responseCode");
     	if (defined $self->{child_object}->{comm}) {
       		if ($self->{child_object}->{comm}->state() ne "offline") {
-	    		main::print_log "[OpenSprinkler] Communication Tracking object found. Updating..." if ($self->{loglevel});
+	    		main::print_log "[OpenSprinkler] Communication Tracking object found. Updating to offline..." if ($self->{loglevel});
 	    		$self->{child_object}->{comm}->set("offline",'poll');
 	    	}
 		}
@@ -278,11 +278,14 @@ sub _get_JSON_data {
     } else {
     	if (defined $self->{child_object}->{comm}) {
        		if ($self->{child_object}->{comm}->state() ne "online") {
-	        	main::print_log "[OpenSprinkler] Communication Tracking object found. Updating..." if ($self->{loglevel});
+	        	main::print_log "[OpenSprinkler] Communication Tracking object found. Updating to online..." if ($self->{loglevel});
 	        	$self->{child_object}->{comm}->set("online",'poll');
 	      	}
 		}
-	} 
+	}
+	 
+	return ($isSuccessResponse,'1') if ($cmd eq "&rbt=1"); #kludge, reboot kills the OSP, so we don't get a return code, just always return success
+
 	my $response;   
     eval {
     	$response = JSON::XS->new->decode ($responseObj->content);
