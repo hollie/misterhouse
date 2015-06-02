@@ -118,7 +118,7 @@ sub new {
     $$self{hue}     = new Device::Hue('bridge' => $$self{gateway}, 'key' => $$self{apikey}, 'debug' => 0);
     $$self{light}   = $$self{hue}->light($$self{lamp_id});
     
-    $self->addStates ('on', 'off');
+    $self->addStates ('on', 'off', '20%', '40%', '60%', '80%', '100%');
 	
     return $self;
 }
@@ -139,6 +139,7 @@ sub default_setstate
     my ($self, $state, $substate, $set_by) = @_;
         
     my $cmnd = ($state =~ /^off/i) ? 'off' : 'on';
+    $cmnd = $state if ($state =~ /\%/);
     	
     return -1 if ($self->state eq $state); # Don't propagate state unless it has changed.
     
@@ -146,12 +147,19 @@ sub default_setstate
 	::print_log('hue', "Command settings: '" . $$self{gateway} . "' - '" . $$self{apikey} . "' - '" . $$self{lamp_id} . "' : '" . $cmnd. "'");
 	
     # Disable the effect commands when we turn off the light
-    if ($cmnd eq 'off') {
+    if ($cmnd eq 'off' || $cmnd eq 'on') {
+    	::print_log('hue', "Sending effect 'none'");
     	$self->effect('none');
     }
     
-    $$self{light}->$cmnd;
-
+    if ($cmnd =~ /(\d+)\%/) {
+    	::print_log('hue', "Sending brightness $1");
+    	$self->bri($1);
+    } else {
+    	::print_log('hue', "Sending command $cmnd");    
+    	$$self{light}->$cmnd;
+	}
+	
 	return;
 	
 }
@@ -164,11 +172,14 @@ sub effect
 	
 	::print_log('hue', "Effect '$effect' request, current lamp state is $light_state");
 
+	# Do not continue if state is undefined to avoid loops.
+	return if ($light_state eq "");
+	
 	# Light needs to be on to be able to program an effect
-	$self->set('on');
+	$$self{light}->on;
 	
 	# Send effect command
-	::print_log('hue', "Sending effect command");
+	::print_log('hue', "Sending effect command '$effect'");
 	if ($effect ne 'off') {
 		$$self{light}->set_state({'effect' => $effect});
 	} else {
@@ -176,9 +187,9 @@ sub effect
 	}
 	
 	# If the light was off and effect is none, ensure it is back off after we sent the command
-	if ($light_state ne 'on' && $effect ne 'on') {
+	if ($light_state eq 'off' && $effect eq 'none') {
 		::print_log('hue', "Restoring light state to off");
-		$self->set('off');
+		$$self{light}->off;
 	}
 	
 }
@@ -275,5 +286,57 @@ sub _calc_bri_command
 #	::print_log('hue', "Setting transition time to $value s for next command");
 #
 #}
+
+
+=head1 B<Philips_Lux>
+
+=head2 SYNOPSIS
+
+Support for the Philips Lux devices
+
+=head2 DESCRIPTION
+
+This module inherits from Philips_Hue and disables the features that are not available on a Lux light. Basically this means everything that has to do with color settings.
+
+=cut
+
+package Philips_Lux;
+
+@Philips_Lux::ISA = ('Philips_Hue');
+
+sub effect
+{
+	my $self = shift();
+	
+	return;
+	
+}
+
+
+sub ct_k
+{
+	my ($self, $value) = @_;
+
+	::print_log('hue', "Setting color temperature not supported on Lux light");
+	
+	return;
+
+}
+
+sub hs
+{
+	my ($self, $hue, $sat) = @_;
+
+	::print_log('hue', "Setting hue and saturation not supported on Lux light");
+
+}
+
+sub hsb
+{
+	my ($self, $hue, $sat, $bri) = @_;
+	
+	::print_log('hue', "Setting hue, saturation and brightness not supported on Lux light");
+
+}
 
 1;
