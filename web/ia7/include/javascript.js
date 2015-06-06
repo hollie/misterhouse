@@ -224,7 +224,7 @@ function changePage (){
 				nav_name = collection_keys_arr[i].replace("$", '');
 				nav_link = '#path=/objects&parents='+nav_name;
 				if (nav_name == "Group") nav_link = '#path=objects&type=Group'; //Hardcode this use case
-				if (json_store.objects[nav_name].label != undefined) nav_name = (json_store.objects[nav_name].label);
+				if (json_store.objects[nav_name].label !== undefined) nav_name = (json_store.objects[nav_name].label);
 
 			}
 			else {
@@ -348,9 +348,9 @@ var loadList = function() {
 			
 			// Sort that list if a sort exists, probably exists a shorter way to
 			// write the sort
-			if (sort_list !== undefined){
-				entity_list = sortArrayByArray(entity_list, sort_list);
-			}
+//			if (sort_list !== undefined){
+//				entity_list = sortArrayByArray(entity_list, sort_list);
+//			}
 
 			for (var i = 0; i < entity_list.length; i++) {
 				var entity = entity_list[i];

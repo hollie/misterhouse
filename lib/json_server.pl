@@ -527,11 +527,16 @@ sub build_parent_table {
     for my $group_name (&list_objects_by_type('Group')) {
 		my $group = &get_object_by_name($group_name);
 		$group_name =~ s/\$|\%|\&|\@//g;
-		for my $object ($group->list(undef, undef,1)) {
-			my $obj_name = $object->get_object_name;
+		unless (defined $group) {
+			print_log "json: build_parent_table, group_name $group_name doesn't have an object?" if $Debug{json};
+			next;
+		} else {
+			for my $object ($group->list(undef, undef,1)) {
+				my $obj_name = $object->get_object_name;
 				push (@{$parent_table{$obj_name}}, $group_name);
-		}
-    }
+				}
+    		}
+    	}
     return \%parent_table;
 }
 
@@ -624,10 +629,13 @@ sub json_object_detail {
 			## can add linked items too.
 			if (ref($object) eq 'Group') {
 				$value = [];
+				my @tmp; ## pull all the members into a temp array that can be sorted
 				for my $obj_name (&list_objects_by_group($object->get_object_name, 1)) {
 					$obj_name =~ s/\$|\%|\&|\@//g;
-					push (@{$value}, $obj_name);
+					#push (@{$value}, $obj_name);
+					push (@tmp, $obj_name);
 				}
+				push (@{$value}, sort @tmp);
 			}
 		}	
 		elsif ($f eq 'parents'){
