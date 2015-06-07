@@ -7,7 +7,7 @@ In user code:
     use raZberry.pm;
     $razberry_controller  = new raZberry('192.168.0.100',1);
     $razberry_comm		  = new raZberry_comm($razberry_controller);
-    $family_room_fan      = new raZberry_dimmer($razberry_controller,'2:0:38','force_update');
+    $family_room_fan      = new raZberry_dimmer($razberry_controller,'2-0-38','force_update');
 
 So far only raZberry_dimmer is a working child object
 
@@ -70,8 +70,15 @@ use Data::Dumper;
 
 # -------------------- START OF SUBROUTINES --------------------
 # --------------------------------------------------------------
+my %zway_system;
+$zway_system{version} = "2";
+$zway_system{delim}{1} = ":";
+$zway_system{delim}{2} = "-";
+$zway_system{id}{1} = "1";
+$zway_system{id}{2} = "2";
 
 my $zway_vdev="ZWayVDev_zway";
+
 our %rest;
 $rest{api} = "";
 $rest{devices} = "devices";
@@ -128,6 +135,11 @@ sub poll {
     		return ('0');
     	}
      }
+     
+    for my $dev (keys %{$self->{data}->{ping}}) {
+    	&main::print_log("[raZberry] Keep_alive: Pinging device $dev...");# if ($self->{debug});
+    	&main::print_log("ping_dev $dev");# if ($self->{debug});
+	}
     
   	 my ($isSuccessResponse1,$devices) = _get_JSON_data($self, 'devices', $cmd);
      print Dumper $devices if ($self->{debug} > 1);  
@@ -136,7 +148,7 @@ sub poll {
   		  foreach my $item (@{$devices->{data}->{devices}}) {  		    
   		      &main::print_log("Found:" . $item->{id} . " with level " . $item->{metrics}->{level} . " and updated " . $item->{updateTime} . ".") if ($self->{debug});
   		      my ($id) = (split /_/,$item->{id})[2];
-		      #print "id=$id\n";
+print "id=$id\n";
   		      $self->{data}->{devices}->{$id}->{level} = $item->{metrics}->{level};
   		      $self->{data}->{devices}->{$id}->{updateTime} = $item->{updateTime};
   		      $self->{data}->{devices}->{$id}->{devicetype} = $item->{deviceType};
@@ -181,6 +193,26 @@ sub set_dev {
 
 }
 
+sub ping_dev {
+  	my ($self,$device) = @_;
+  	#curl --globoff "http://mhip:8083/ZWaveAPI/Run/devices[x].SendNoOperation()"
+  	my ($devid,$instance,$class) = (split /-/,$device)[0,1,2];
+  	&main::print_log("[raZberry] Pinging device $device ($devid)...") if ($self->{debug});
+	my $cmd;
+    $cmd = "/devices[" . $devid . "]SendNoOperation()";
+	&main::print_log("cmd=$cmd") if ($self->{debug} > 1);
+   	my ($isSuccessResponse0,$status) = _get_JSON_data($self, 'ping', $cmd);
+   	unless ($isSuccessResponse0) {
+  		&main::print_log("[raZberry] Error: Problem retrieving data from " . $self->{host});
+  		$self->{data}->{retry}++;
+    	return ('0');
+    } 
+    return ($status);
+}
+
+sub update_dev {
+}
+
 #------------------------------------------------------------------------------------
 sub _get_JSON_data {
   my ($self,$mode,$cmd) = @_;
@@ -196,7 +228,7 @@ sub _get_JSON_data {
     my $params = "";
     $params = $cmd if ($cmd);
     my $method = "ZAutomation/api/v1";
-    $method = "ZWaveAPI/Run" if ($mode eq "force_update");
+    $method = "ZWaveAPI/Run" if (($mode eq "force_update") or ($mode eq "ping"));
     &main::print_log("[raZberry] contacting http://$host:$port/$method/$rest{$mode}$params") if ($self->{debug});
 
     my $request = HTTP::Request->new(GET => "http://$host:$port/$method/$rest{$mode}$params");
@@ -213,7 +245,7 @@ sub _get_JSON_data {
 	   &main::print_log("[raZberry] Warning, failed to get data. Response code $responseCode");
 	   if (defined $self->{child_object}->{comm}) {
 	   	   if ($self->{child_object}->{comm}->state() ne "offline") {
-	          main::print_log "Communication Tracking object found. Updating to offline..." if ($self->{loglevel});
+	          main::print_log "Communication Tracking object found. Updating from " . child_object}->{comm}->state() . " to offline..." if ($self->{loglevel});
 	          $self->{child_object}->{comm}->set("offline",'poll');
 	       }
 	    }
@@ -221,7 +253,7 @@ sub _get_JSON_data {
     }
     if (defined $self->{child_object}->{comm}) {
 	    if ($self->{child_object}->{comm}->state() ne "online") {
-	       main::print_log "Communication Tracking object found. Updating to online..." if ($self->{loglevel});
+	       main::print_log "Communication Tracking object found. Updating from " . child_object}->{comm}->state() . " to online..." if ($self->{loglevel});
 	       $self->{child_object}->{comm}->set("online",'poll');
 	       }
 	    }
@@ -289,6 +321,10 @@ sub register {
          $self->{data}->{force_update}->{$dev} = 1;
          &main::print_log("[raZberry] Forcing Controller to contact Device $dev at each poll"); 
       }
+      if ($options =~ m/keep_alive/) {
+         $self->{data}->{ping}->{$dev} = 1;
+         &main::print_log("[raZberry] Forcing Controller to ping Device $dev at each poll"); 
+      }      
    }
 }
 
@@ -359,6 +395,12 @@ sub level {
   my ($self) = @_;
   
   return ($self->{level});
+}
+
+sub ping {
+	my ($self) = @_;
+	
+	$$self{master_object}->ping_dev($$self{devid});
 }
 
 package raZberry_comm;
