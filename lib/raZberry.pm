@@ -102,7 +102,7 @@ sub new {
    $self->{host} = $host;
    $self->{port} = 8083;
    $self->{port} = $port if ($port);        
-   $self->{debug} = 5;
+   $self->{debug} = 0;
    $self->{lastupdate} = undef;
    $self->{timeout} = 5; #300;
 
@@ -199,8 +199,8 @@ sub ping_dev {
   	my ($devid,$instance,$class) = (split /-/,$device)[0,1,2];
   	&main::print_log("[raZberry] Pinging device $device ($devid)...") if ($self->{debug});
 	my $cmd;
-    $cmd = "/devices[" . $devid . "]SendNoOperation()";
-	&main::print_log("cmd=$cmd") if ($self->{debug} > 1);
+    $cmd = "/devices%5B" . $devid . "%5D.SendNoOperation()";
+	&main::print_log("ping cmd=$cmd");# if ($self->{debug} > 1);
    	my ($isSuccessResponse0,$status) = _get_JSON_data($self, 'ping', $cmd);
    	unless ($isSuccessResponse0) {
   		&main::print_log("[raZberry] Error: Problem retrieving data from " . $self->{host});
@@ -257,7 +257,7 @@ sub _get_JSON_data {
 	       $self->{child_object}->{comm}->set("online",'poll');
 	       }
 	    }
-    return ('1') if ($mode eq "force_update");
+    return ('1') if (($mode eq "force_update") or ($mode eq "ping")); #these come backs as nulls, so just return.
     my $response = JSON::XS->new->decode ($responseObj->content);
     return ($isSuccessResponse, $response)
   
