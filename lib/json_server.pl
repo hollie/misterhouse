@@ -162,7 +162,8 @@ sub json_get {
 		my $collection_file = "$Pgm_Root/data/web/collections.json";
 		$collection_file = "$config_parms{data_dir}/web/collections.json"
 			if -e "$config_parms{data_dir}/web/collections.json";
-		# Consider copying the source file to the user data dir here.
+		$collection_file = "$config_parms{ia7_data_dir}/collections.json"
+			if -e "$config_parms{ia7_data_dir}/collections.json";
 				
 		eval {
 		   my $json_collections = file_read($collection_file);
@@ -171,6 +172,25 @@ sub json_get {
 		if ($@){
 		  print_log "Json_Server.pl: WARNING: decode_json failed for collection.json. Please check this file!";
 		  $json_data{'collections'} = decode_json('{ "0" : { "name" : "error" } }'); #write a blank collection
+
+		}
+	}
+
+	# List ia7 preferences
+	if ($path[0] eq 'ia7_config' || $path[0] eq '') {
+		my $prefs_file = "$Pgm_Root/data/web/ia7_config.json";
+		$prefs_file = "$config_parms{data_dir}/web/ia7_config.json"
+			if -e "$config_parms{data_dir}/web/ia7_config.json";
+		$prefs_file = "$config_parms{ia7_data_dir}/ia7_config.json"
+			if -e "$config_parms{ia7_data_dir}/ia7_config.json";
+				
+		eval {
+		   my $prefs = file_read($prefs_file);
+		   $json_data{'ia7_config'} = decode_json($prefs); #HP, wrap this in eval to prevent MH crashes
+		};
+		if ($@){
+		  print_log "Json_Server.pl: WARNING: decode_json failed for ia7_config.json. Please check this file!";
+		  $json_data{'ia7_config'} = decode_json('{ "prefs" : { "status" : "error" } }'); #write a blank collection
 
 		}
 	}
@@ -507,11 +527,16 @@ sub build_parent_table {
     for my $group_name (&list_objects_by_type('Group')) {
 		my $group = &get_object_by_name($group_name);
 		$group_name =~ s/\$|\%|\&|\@//g;
-		for my $object ($group->list(undef, undef,1)) {
-			my $obj_name = $object->get_object_name;
+		unless (defined $group) {
+			print_log "json: build_parent_table, group_name $group_name doesn't have an object?" if $Debug{json};
+			next;
+		} else {
+			for my $object ($group->list(undef, undef,1)) {
+				my $obj_name = $object->get_object_name;
 				push (@{$parent_table{$obj_name}}, $group_name);
-		}
-    }
+				}
+    		}
+    	}
     return \%parent_table;
 }
 
@@ -604,10 +629,13 @@ sub json_object_detail {
 			## can add linked items too.
 			if (ref($object) eq 'Group') {
 				$value = [];
+				my @tmp; ## pull all the members into a temp array that can be sorted
 				for my $obj_name (&list_objects_by_group($object->get_object_name, 1)) {
 					$obj_name =~ s/\$|\%|\&|\@//g;
-					push (@{$value}, $obj_name);
+					#push (@{$value}, $obj_name);
+					push (@tmp, $obj_name);
 				}
+				push (@{$value}, sort @tmp);
 			}
 		}	
 		elsif ($f eq 'parents'){

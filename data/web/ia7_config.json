@@ -1,0 +1,8 @@
+{
+  "prefs" : {
+     "header_button" : "yes",
+     "state_log_show" : "yes",
+     "state_log_entries" : "4",
+     "always_double_buttons" : "no"
+  }
+}
