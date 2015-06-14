@@ -1,8 +1,11 @@
-{
+{ 
   "prefs" : {
      "header_button" : "yes",
      "state_log_show" : "yes",
      "state_log_entries" : "4",
-     "always_double_buttons" : "no"
+     "always_double_buttons" : "yes",
+     "fp_icon_size" : "32",
+     "fp_state_popovers" : "no",
+     "substate_percentages" : "20"
   }
 }

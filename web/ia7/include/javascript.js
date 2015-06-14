@@ -997,7 +997,7 @@ var floorplan = function(group,time) {
 	}
 
  	var path_str = "/objects";  
- 	var arg_str = "parents="+group+"&fields=fp_location,state,states,state_log,fp_icons,type&long_poll=true&time="+time;
+ 	var arg_str = "parents="+group+"&fields=fp_location,state,states,state_log,fp_icons,img,link,label,type&long_poll=true&time="+time;
 
  	updateSocket = $.ajax({
   		type: "GET",
@@ -1011,19 +1011,97 @@ var floorplan = function(group,time) {
 					for (var i=0 ; i < json.data[entity].fp_location.length-1; i=i+2){ //allow for multiple graphics
 						//alert("length="+json.data[entity].fp_location.length+" i="+i+" x="+json.data[entity].fp_location[i]+" y="+json.data[entity].fp_location[i+1]+" ent_length="+$('#entity_'+entity).length);
     					var location = get_fp_location(json.data[entity].fp_location,i);
+    					var popover = 0;
+    					if ((json.data[entity].type == "FPCamera_Item") ||
+    						(json_store.ia7_config.prefs.fp_state_popovers == "yes")) popover = 1 
+    					console.log("popover="+popover+" config="+json_store.ia7_config.prefs.fp_state_popovers)
+    					var popover_html = "";
+    					if (popover) popover_html = 'data-toggle="popover" data-trigger="focus" tabindex="0"' 
+    					
    						var image = get_fp_image(json.data[entity]);
       					if ($('#entity_'+entity+'_'+i).length > 0) {
       						$('#entity_'+entity+'_'+i).attr('src',"/ia7/graphics/"+image);
       					} else {				   					
-							$('#graphic').append('<img id="entity_'+entity+'_'+i+'" class="entity='+entity+'_'+i+' floorplan_item coords='+json.data[entity].fp_location[i]+'x'+json.data[entity].fp_location[i+1]+'" style="'+location+'" src="/ia7/graphics/'+image+'" />');
+							$('#graphic').append('<img '+popover_html+' id="entity_'+entity+'_'+i+'" class="entity='+entity+'_'+i+' floorplan_item coords='+json.data[entity].fp_location[i]+'x'+json.data[entity].fp_location[i+1]+'" style="'+location+'" src="/ia7/graphics/'+image+'" />');
 							//create_state_modal('#entity_'+entity+i,entity); 
 						}
-						$('#entity_'+entity+'_'+i).click( function () {
-							//var fp_entity = $(this).attr("id").split(/entity_/)[1]; //
-							var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
-							//alert("entity="+fp_entity);
-							create_state_modal(fp_entity);
-						});	
+						// create unique popovers for Camera items
+						if (json.data[entity].type == "FPCamera_Item") {
+							var name = entity;
+							if (json.data[entity].label !== undefined) name = json.data[entity].label
+							var a_start = "";
+							var a_end = "";
+							if (json.data[entity].link !== undefined) {
+								a_start = '<a href="'+json.data[entity].link+'">'
+								a_end = '</a>';
+							}
+							//console.log("name="+entity+" label = "+json.data[entity].label);
+							//console.log("link = "+json.data[entity].get_img);
+							$('[data-toggle="popover"]').popover({
+								placement : 'auto bottom', //placement of the popover. also can use top, bottom, left or right
+      							title : name, 
+      							html: 'true', //needed to show html of course
+      							content : '<div id="popOverBox">'+a_start+'<img src="'+json.data[entity].img+'" width="251" height="201" />'+a_end+'</div>'
+							});
+						} else {
+							if (popover) {								
+								
+								$('[data-toggle="popover"]').popover({
+									placement : 'auto bottom', //placement of the popover. also can use top, bottom, left or right
+      								title : function() {
+      									var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
+      									var name = fp_entity;
+										if (json_store.objects[fp_entity].label !== undefined) name = json_store.objects[fp_entity].label;								
+      									return name+" - "+json_store.objects[fp_entity].state;
+      									}, 
+      								html: 'true', //needed to show html of course
+      								content : function() {
+      									var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
+										var po_states = json_store.objects[fp_entity].states;
+										var html = '<div id="popOverBox">';
+										// HP need to have at least 2 states to be a controllable object...
+										if (po_states.length > 1) {
+											html = '<div class="btn-group stategrp0 btn-block">';
+											var buttons = 0;
+											var stategrp = 0;
+											for (var i = 0; i < po_states.length; i++){
+												if (filterSubstate(po_states[i]) == 1) {
+													continue 
+												} else {
+//TODO: Maybe just count buttons to create groups, organize them a bit better, <4 buttons, do a block?
+													buttons++ 
+												}
+											if (buttons > 2) {
+												stategrp++;
+												html += "</div><div class='btn-group btn-block stategrp"+stategrp+"'>";
+												buttons = 0;
+											}
+											var color = getButtonColor(po_states[i])
+											var disabled = ""
+											if (po_states[i] == json_store.objects[fp_entity].state) {
+												disabled = "disabled";
+											}
+											html += "<button class='btn col-sm-6 col-xs-6 btn-"+color+" "+disabled+"'"
+											var url= '/SET;none?select_item='+fp_entity+'&select_state='+po_states[i];
+											html += ' onclick="$.get('
+											html += "'"+url+"')"
+											html += '">'+po_states[i]+'</button>';
+										}
+									}
+									html += "</div>"
+									return html
+								}
+
+								});
+							} else {
+								$('#entity_'+entity+'_'+i).click( function () {
+									//var fp_entity = $(this).attr("id").split(/entity_/)[1]; //
+									var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
+									//alert("entity="+fp_entity);
+									create_state_modal(fp_entity);
+								});	
+							}
+						}
  					}
  				}
     			requestTime = json.meta.time;
@@ -1082,36 +1160,46 @@ var get_fp_image = function(item,size,orientation) {
     		item.type == "UIO_Item" || item.type == "X10_Item" ||    		
     		item.type == "xPL_Plugwise" || item.type == "X10_Appliance") {
  		if (item.state == "on") {
-  			return "fp-light-on.png";
+  			return "fp_light_green_32.png";
  		} else if (item.state == "off") {
-  			return "fp-light-off.png";
+  			return "fp_light_def_32.png";
  		} else {
-  			return "fp-light-dim.png";
+  			return "fp_light_orange_32.png";
  		}
   	}
   	
   	if(item.type == "Motion_Item" || item.type == "X10_Sensor" ||
     		item.type == "Insteon::MotionSensor" ) {
  		if (item.state == "on" || item.state == "motion" ) {
-  			return "fp-motion-motion.png";
+  			return "fp_motion_red_32.png";
  		} else if (item.state == "off" || item.state == "still") {
-  			return "fp-motion-still.png";
+  			return "fp_motion_green_32.png";
  		}  else {
- 			return "fp-unknown.png";
+ 			return "fp_motion_blue_32.png";
  		}
   	}
   	
   	if(item.type == "Door_Item" ) {
  		if (item.state == "open") {
-  			return "fp-door-closed.png";
+  			return "fp_door_red_32.png";
  		} else if (item.state == "closed") {
-  			return "fp-door-closed.png";
+  			return "fp_door_green_32.png";
  		} else {
-  			return "fp-unknown.png";
+  			return "fp_door_blue_32.png";
  		}
   	}  	
+
+  	if(item.type == "FPCamera_Item" ) {
+ 			return "fp_camera_def_32.png";
+ 		}
   	
-  	return "fp-unknown.png";
+  	return "fp_unknown_blue_32.png";
+}
+
+var create_img_popover = function(entity) {
+}
+
+var create_state_popover = function(entity) {
 }
 
 var create_state_modal = function(entity) {
