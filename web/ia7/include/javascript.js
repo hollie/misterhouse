@@ -1014,7 +1014,7 @@ var floorplan = function(group,time) {
     					var popover = 0;
     					if ((json.data[entity].type == "FPCamera_Item") ||
     						(json_store.ia7_config.prefs.fp_state_popovers == "yes")) popover = 1 
-    					console.log("popover="+popover+" config="+json_store.ia7_config.prefs.fp_state_popovers)
+    					//console.log("popover="+popover+" config="+json_store.ia7_config.prefs.fp_state_popovers)
     					var popover_html = "";
     					if (popover) popover_html = 'data-toggle="popover" data-trigger="focus" tabindex="0"' 
     					
@@ -1070,25 +1070,29 @@ var floorplan = function(group,time) {
 												} else {
 //TODO: Maybe just count buttons to create groups, organize them a bit better, <4 buttons, do a block?
 													buttons++ 
+												//}
+												if (buttons > 2) {
+													stategrp++;
+													html += "</div><div class='btn-group btn-block stategrp"+stategrp+"'>";
+													buttons = 1;
 												}
-											if (buttons > 2) {
-												stategrp++;
-												html += "</div><div class='btn-group btn-block stategrp"+stategrp+"'>";
-												buttons = 0;
+												//console.log ("name="+fp_entity+" buttons="+buttons)
+										
+												var color = getButtonColor(po_states[i])
+												var disabled = ""
+												if (po_states[i] == json_store.objects[fp_entity].state) {
+													disabled = "disabled";
+												}
+												html += "<button class='btn col-sm-6 col-xs-6 btn-"+color+" "+disabled+"'"
+												var url= '/SET;none?select_item='+fp_entity+'&select_state='+po_states[i];
+												html += ' onclick="$.get('
+												html += "'"+url+"')"
+												html += '">'+po_states[i]+'</button>';
 											}
-											var color = getButtonColor(po_states[i])
-											var disabled = ""
-											if (po_states[i] == json_store.objects[fp_entity].state) {
-												disabled = "disabled";
-											}
-											html += "<button class='btn col-sm-6 col-xs-6 btn-"+color+" "+disabled+"'"
-											var url= '/SET;none?select_item='+fp_entity+'&select_state='+po_states[i];
-											html += ' onclick="$.get('
-											html += "'"+url+"')"
-											html += '">'+po_states[i]+'</button>';
 										}
 									}
-									html += "</div>"
+									html += "</div></div>"
+									//console.log("html="+html)
 									return html
 								}
 
@@ -1138,7 +1142,7 @@ var get_fp_location = function(item,index) {
   	var location = "position: absolute; ";
   	var top = parseInt((baseimg_height * item[index] / 100)+tmargin);
   	var left = parseInt((baseimg_width * item[index+1] / 100)+lmargin);
-  	console.log("baseimg_width="+baseimg_width+" top="+top+" left="+left); 
+  	//console.log("baseimg_width="+baseimg_width+" top="+top+" left="+left); 
   	location += "top: "+top+"px;";
   	location += "left: "+left+"px";
   	return location;
