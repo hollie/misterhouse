@@ -9,6 +9,8 @@ use strict;
 use Text::ParseWords;
 require 'http_utils.pl';
 
+use IO::Socket::IP;
+
 #no warnings 'uninitialized';   # These seem to always show up.  Dang, will not work with 5.0
 
 use vars qw(%Http %Cookies %Included_HTML %HTTP_ARGV $HTTP_REQUEST $HTTP_BODY $HTTP_REQ_TYPE);
@@ -133,8 +135,9 @@ sub http_process_request {
 
                                 # Find ip address (used to bypass password check)
     my $peer = $socket->peername;
-    my ($port, $iaddr) = unpack_sockaddr_in($peer) if $peer;
-    my $client_ip_address = inet_ntoa($iaddr) if $iaddr;
+    my $port = $socket->peerport;
+    my $iaddr = $socket->peeraddr;
+    my $client_ip_address = $socket->peerhost;
     $Socket_Ports{http}{client_ip_address} = $client_ip_address;
 
     $Authorized = &password_check(undef, 'http');  # Returns authorized userid

@@ -630,7 +630,7 @@ sub setup {
 #   use FreezeThaw qw(freeze thaw cmpStr safeFreeze cmpStrHard);
     use IO::Handle;
     use IO::Socket;
-#   use IO::Socket::INET;       # Gives us the INADDR constants, used in xAP.pm ... not in 5.0 :(
+    use IO::Socket::IP -register;         
     use LWP::Simple;            # For pgms like set_clock that need to grab data from urls
 #   use MIME::Base64;           # Needed for uudecode/uuencode in http_server and mhsend_server
     use Net::FTP;               # For uploading stuff
@@ -825,6 +825,10 @@ sub setup {
 	my $pretty_port_name = $port_name;
 	$pretty_port_name =~ s/_/\x20/g; # a slight improvement
 
+		#if ($pretty_port_name eq 'http') {
+		#	print "http server on IPv6...\n";
+		#	$address = '::1';
+		#}
         printf " - creating %-15s on %3s %s %5s %s\n", $pretty_port_name, $proto, $address, $port, $datatype;
 
         $Socket_Ports{$port_name}{port}     = $port;
@@ -5935,27 +5939,34 @@ sub socket_open {
     my ($port_name) = @_;
     my $proto   = $Socket_Ports{$port_name}{protocol};
     my $port    = $Socket_Ports{$port_name}{port};
-    my $address = $Socket_Ports{$port_name}{address};
+    my $address = $Socket_Ports{$port_name}{address} || "localhost";
     print "Opening socket port $port_name on port $port\n" if $Debug{$port_name};
     unless ($port) {
         print "\nError, no port specified for ip server $port_name\n";
         return;
     }
     if ($proto eq 'tcp') {
-        $Socket_Ports{$port_name}{sock} =
-            new IO::Socket::INET->new(LocalPort => $port, LocalAddr => $address,
-                                      Proto => 'tcp', Reuse => 1, Listen => 10) or
+        $Socket_Ports{$port_name}{sock} = IO::Socket::IP->new(
+        LocalPort => $port, 
+        LocalAddr => $address, 
+        Proto => 'tcp', 
+        Reuse => 1, 
+        Listen => 10) or
             die "Couldn't start a tcp server on $port_name $port: $@\nTo get mh to run, blank out or change the ${port_name}_port in mh.ini\n";
+		my $familyname = ( $Socket_Ports{$port_name}{sock}->sockdomain == PF_INET6 ) ? "IPv6" :
+                 ( $Socket_Ports{$port_name}{sock}->sockdomain == PF_INET  ) ? "IPv4" :
+    			"unknown";
+		print ("* Opened socket [$address : $port : $familyname]\n");
     } elsif ($proto eq 'udp') {
         if ($address) {
             $Socket_Ports{$port_name}{sock} =
-                new IO::Socket::INET->new(PeerPort => $port, Proto => 'udp',
+                new IO::Socket::IP->new(PeerPort => $port, Proto => 'udp',
                                           PeerAddr => $address, Broadcast => 1) or
                 die "Couldn't start a udp peer server on $port_name $port: $@\n";
         }
         else {
             $Socket_Ports{$port_name}{sock} =
-                new IO::Socket::INET->new(LocalPort => $port, Proto => 'udp', Broadcast => 1,
+                new IO::Socket::IP->new(LocalPort => $port, Proto => 'udp', Broadcast => 1,
                                           LocalAddr => '0.0.0.0') or
 #                                         LocalAddr => inet_ntoa(INADDR_ANY)) or
                 die "Couldn't start a udp server on $port_name $port: $@\n";

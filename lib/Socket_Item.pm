@@ -44,6 +44,8 @@ package Socket_Item;
 
 @Socket_Item::ISA = ('Generic_Item');
 
+use IO::Socket::IP;
+
 my (%socket_item_by_id);
 
 sub reset {
@@ -136,7 +138,7 @@ sub start {
             return $main::Socket_Ports{$port_name}{sock};
         }
         print "Socket Item connecting to $host on port $port\n" if $main::Debug{socket};
-        if (my $sock = new IO::Socket::INET->new(PeerAddr => $host,
+        if (my $sock = new IO::Socket::IP->new(Domain    => PF_INET6, PeerAddr => $host,
                                                  PeerPort => $port,
                                                  Proto => $host_proto,
                                                  Broadcast => $broadcast
