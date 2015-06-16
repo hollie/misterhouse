@@ -101,7 +101,12 @@
 	}
 	.toolbar-right-end {
 		margin-right: 15px;
-	}
+	}	
+	.icon-larger:before 
+	{
+  		font-size: 46px;
+  		margin-left: -10px;
+	}	
 	</style>
 </head>
 <body>

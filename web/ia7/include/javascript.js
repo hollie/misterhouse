@@ -1,8 +1,6 @@
 // Optimization opportunity
-// common code for setting states, should move to subroutine
-// Should be able to merge print_log, print_speaklog and the non-existant print_errorlog into a
-//   single method
-// updateStaticPage has lots of copy paste
+//  add print_errorlog
+//  updateStaticPage has lots of copy paste
 
 
 var entity_store = {}; //global storage of entities
@@ -123,6 +121,27 @@ function changePage (){
 		// collections
 		URLHash.path = "collections";
 	}
+	if (getJSONDataByPath("ia7_config") === undefined){
+		// We need at minimum the basic collections data to render all pages
+		// (the breadcrumb)
+		// NOTE may want to think about how to handle dynamic changes to the 
+		// collections list
+		$.ajax({
+			type: "GET",
+			url: "/json/ia7_config",
+			dataType: "json",
+			success: function( json ) {
+				JSONStore(json);
+				changePage();
+			}
+		});
+	} else {
+		//console.log("x "+json_store.ia7_config.prefs.substate_percentages);
+		if (json_store.ia7_config.prefs.header_button == "no") {
+			$("#mhstatus").remove();
+		}
+		if (json_store.ia7_config.prefs.substate_percentages === undefined) json_store.ia7_config.prefs.substate_percentages = 20;
+	}
 	if (getJSONDataByPath("collections") === undefined){
 		// We need at minimum the basic collections data to render all pages
 		// (the breadcrumb)
@@ -205,7 +224,7 @@ function changePage (){
 				nav_name = collection_keys_arr[i].replace("$", '');
 				nav_link = '#path=/objects&parents='+nav_name;
 				if (nav_name == "Group") nav_link = '#path=objects&type=Group'; //Hardcode this use case
-				if (json_store.objects[nav_name].label != undefined) nav_name = (json_store.objects[nav_name].label);
+				if (json_store.objects[nav_name].label !== undefined) nav_name = (json_store.objects[nav_name].label);
 
 			}
 			else {
@@ -329,9 +348,9 @@ var loadList = function() {
 			
 			// Sort that list if a sort exists, probably exists a shorter way to
 			// write the sort
-			if (sort_list !== undefined){
-				entity_list = sortArrayByArray(entity_list, sort_list);
-			}
+//			if (sort_list !== undefined){
+//				entity_list = sortArrayByArray(entity_list, sort_list);
+//			}
 
 			for (var i = 0; i < entity_list.length; i++) {
 				var entity = entity_list[i];
@@ -407,9 +426,13 @@ var loadList = function() {
 					var color = getButtonColor(json_store.objects[entity].state);
 					if (json_store.objects[entity].label !== undefined) name = json_store.objects[entity].label;
 					//Put objects into button
+					var dbl_btn = "";
+					if (json_store.ia7_config.prefs.always_double_buttons == "yes") {
+						if (name.length < 30) dbl_btn = "<br>"; 
+					}
 					button_html = "<div style='vertical-align:middle'><button entity='"+entity+"' ";
 					button_html += "class='btn btn-"+color+" btn-lg btn-block btn-list btn-popover btn-state-cmd navbutton-padding'>";
-					button_html += name+"<span class='pull-right'>"+json_store.objects[entity].state+"</span></button></div>";
+					button_html += name+dbl_btn+"<span class='pull-right'>"+json_store.objects[entity].state+"</span></button></div>";
 					entity_arr.push(button_html);
 				}
 			}//entity each loop
@@ -483,7 +506,7 @@ var filterSubstate = function (state) {
     if (state.indexOf('%') >= 0) {
     
        var number = parseInt(state, 10)
-       if (number % 20 != 0) {
+       if (number % json_store.ia7_config.prefs.substate_percentages != 0) {
          filter = 1
         }
     }
@@ -602,13 +625,10 @@ var updateItem = function(item,link,time) {
 	if (time === undefined) {
 		time = "";
 	}
-	var split_path = HashtoJSONArgs(URLHash).split("?");
-	var path_str = split_path[0];
-	var arg_str = split_path[1];
-	path_str = "/objects"  // override, for now, would be good to add voice_cmds
+	var path_str = "/objects"  // override, for now, would be good to add voice_cmds
 	//arg_str=link=%2Fia7%2Fhouse%2Fgarage.shtml&fields=state%2Ctype&long_poll=true&time=1426011733833.94
 	//arg_str = "fields=state,states,label&long_poll=true&time="+time;
-	arg_str = "fields=state&long_poll=true&items="+item+"&time="+time;
+	var arg_str = "fields=state,states,label,state_log&long_poll=true&items="+item+"&time="+time;
 	//alert("path_str="+path_str+" arg_str="+arg_str)
 	updateSocket = $.ajax({
 		type: "GET",
@@ -721,6 +741,7 @@ var loadCollection = function(collection_keys) {
 	var collection_keys_arr = collection_keys.split(",");
 	var last_collection_key = collection_keys_arr[collection_keys_arr.length-1];
 	var entity_arr = [];
+	var items = "";
 	var entity_sort = json_store.collections[last_collection_key].children;
 	if (entity_sort.length <= 0){
 		entity_arr.push("Childless Collection");
@@ -733,28 +754,57 @@ var loadCollection = function(collection_keys) {
 		var name = json_store.collections[collection].name;
 		var mode = json_store.collections[collection].mode;
 		var keys = json_store.collections[collection].keys; //for legacy CGI scripts to recreate proper URL
+		var item = json_store.collections[collection].item;
 		
-		if (json_store.collections[collection].iframe !== undefined) {
-			link = "/ia7/include/iframe.shtml?"+json_store.collections[collection].iframe;
-		}
-		var hidden = "";
-		if (mode != display_mode && mode != undefined ) hidden = "hidden"; //Hide any simple/advanced buttons
-		var next_collection_keys = collection_keys + "," + entity_sort[i];
-		if (keys === "true") {
-			var arg = "?";
-			if (link.indexOf("?") >= 0 ) { //already has arguments, so just add one on
-				arg = "&";
+		if (item !== undefined) {
+			if (json_store.objects[item] === undefined) {
+				var path_str = "/objects";
+				var arg_str = "fields=state,states,label,state_log&items="+item;
+				$.ajax({
+					type: "GET",
+					url: "/json"+path_str+"?"+arg_str,
+					dataType: "json",
+					success: function( json ) {
+						JSONStore(json);
+						loadCollection(collection_keys);
+						}
+				});
+			} else {
+				var name = item;
+				var color = getButtonColor(json_store.objects[item].state);
+				if (json_store.objects[item].label !== undefined) name = json_store.objects[item].label;
+				var dbl_btn = "";
+				if (name.length < 30) dbl_btn = "<br>"; 
+				var button_html = "<div style='vertical-align:middle'><button entity='"+item+"' ";
+				button_html += "class='btn btn-"+color+" btn-lg btn-block btn-list btn-popover btn-state-cmd navbutton-padding'>";
+				button_html += name+dbl_btn+"<span class='pull-right'>"+json_store.objects[item].state+"</span></button></div>";
+				entity_arr.push(button_html);
+				items += item+",";		
 			}
-			link += arg+"ia7="+next_collection_keys;
-		}		
-		link = buildLink (link, next_collection_keys);
-		if (json_store.collections[collection].external !== undefined) {
-			link = json_store.collections[collection].external;
+		
+		} else {		
+			if (json_store.collections[collection].iframe !== undefined) {
+				link = "/ia7/include/iframe.shtml?"+json_store.collections[collection].iframe;
+			}
+			var hidden = "";
+			if (mode != display_mode && mode != undefined ) hidden = "hidden"; //Hide any simple/advanced buttons
+			var next_collection_keys = collection_keys + "," + entity_sort[i];
+			if (keys === "true") {
+				var arg = "?";
+				if (link.indexOf("?") >= 0 ) { //already has arguments, so just add one on
+					arg = "&";
+				}
+				link += arg+"ia7="+next_collection_keys;
+			}		
+			link = buildLink (link, next_collection_keys);
+			if (json_store.collections[collection].external !== undefined) {
+				link = json_store.collections[collection].external;
+			}
+			var icon_set = "fa";
+			if (icon.indexOf("wi-") !=-1) icon_set = "wi";
+			var button_html = "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list "+hidden+" navbutton-padding' role='button'><i class='"+icon_set+" "+icon+" icon-larger fa-2x fa-fw'></i>"+name+"</a>";
+			entity_arr.push(button_html);
 		}
-		var icon_set = "fa";
-		if (icon.indexOf("wi-") !=-1) icon_set = "wi";
-		var button_html = "<a link-type='collection' href='"+link+"' class='btn btn-default btn-lg btn-block btn-list "+hidden+" navbutton-padding' role='button'><i class='"+icon_set+" "+icon+" fa-2x fa-fw'></i>"+name+"</a>";
-		entity_arr.push(button_html);
 	}
 	//loop through array and print buttons
 	var row = 0;
@@ -774,6 +824,19 @@ var loadCollection = function(collection_keys) {
 		}
 		column++;
 	}
+	// if any items present, then create modals and activate updateItem...
+	if (items !== "") {
+		items = items.slice(0,-1); //remove last comma
+		//console.log("items="+items);
+		$('.btn-state-cmd').click( function () {			
+			var entity = $(this).attr("entity");
+			//console.log("entity="+entity);
+			create_state_modal(entity);
+		});
+// test multiple items at some point
+		updateItem(items);
+	}	
+	
 };
 
 //Constructs a link, likely should be replaced by HashToURL
@@ -1068,14 +1131,15 @@ var create_state_modal = function(entity) {
 			var advanced_html = "";
 			for (var i = 0; i < modal_states.length; i++){
 				if (filterSubstate(modal_states[i]) == 1) {
-				advanced_html += "<button class='btn btn-default hidden'>"+modal_states[i]+"</button>";
+				advanced_html += "<button class='btn btn-default col-sm-3 col-xs-3 hidden'>"+modal_states[i]+"</button>";
 				continue 
 			} else {
-				buttonlength += 2 + modal_states[i].length //TODO: Maybe just count buttons to create groups.
+//TODO: Maybe just count buttons to create groups, organize them a bit better, <4 buttons, do a block?
+				buttonlength += 2 + modal_states[i].length 
 			}
 			if (buttonlength >= 25) {
 				stategrp++;
-				$('#control').find('.states').append("<div class='btn-group stategrp"+stategrp+" btn-block'></div>");
+				$('#control').find('.states').append("<div class='btn-group btn-block stategrp"+stategrp+"'></div>");
 				buttonlength = 0;
 			}
 			var color = getButtonColor(modal_states[i])
@@ -1083,7 +1147,7 @@ var create_state_modal = function(entity) {
 			if (modal_states[i] == json_store.objects[entity].state) {
 				disabled = "disabled";
 			}
-			$('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-3 btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");
+			$('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-3 col-xs-3 btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");
 						
 		}
 		$('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
@@ -1096,17 +1160,18 @@ var create_state_modal = function(entity) {
 			//remove states from anything that doesn't have more than 1 state
 			$('#control').find('.states').find('.btn-group').remove();
 		}
-		//state log show last 4 (separate out set_by as advanced) - keeps being added to each time it opens
-		// could load all log items, and only unhide the last 4 -- maybe later
-		$('#control').find('.modal-body').find('.obj_log').remove();
+		if (json_store.ia7_config.prefs.state_log_show !== "no") {
+			//state log show last 4 (separate out set_by as advanced) - keeps being added to each time it opens
+			// could load all log items, and only unhide the last 4 -- maybe later
+			$('#control').find('.modal-body').find('.obj_log').remove();
 
-		$('#control').find('.modal-body').append("<div class='obj_log'><h4>Object Log</h4>");
-		for (var i = 0; i < 4; i++) {
-			if (json_store.objects[entity].state_log[i] == undefined) continue;
-			var slog = json_store.objects[entity].state_log[i].split("set_by=");
-			$('#control').find('.obj_log').append(slog[0]+"<span class='mh_set_by hidden'>set_by="+slog[1]+"</span><br>");
-		}
-				
+			$('#control').find('.modal-body').append("<div class='obj_log'><h4>Object Log</h4>");
+			for (var i = 0; i < json_store.ia7_config.prefs.state_log_entries; i++) {
+				if (json_store.objects[entity].state_log[i] == undefined) continue;
+				var slog = json_store.objects[entity].state_log[i].split("set_by=");
+				$('#control').find('.obj_log').append(slog[0]+"<span class='mh_set_by hidden'>set_by="+slog[1]+"</span><br>");
+			}
+		}		
 		$('.mhstatemode').on('click', function(){
 			$('#control').find('.states').find('.btn').removeClass('hidden');
 			$('#control').find('.mh_set_by').removeClass('hidden');
@@ -1243,3 +1308,18 @@ $(document).ready(function() {
 		});
 	});
 });
+
+//
+// LICENSE
+//
+// This program is free software; you can redistribute it and/or modify it under the terms of
+//   the GNU General Public License as published by the Free Software Foundation; 
+//   either version 2 of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+//   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+//   See the GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License along with this program;
+//   if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+//
