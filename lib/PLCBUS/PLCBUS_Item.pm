@@ -23,7 +23,8 @@ sub new {
     $self->{home} = $home;
     $self->{unit} = $unit;
     $self->{name} = $name;
-    $self->set_states( qw |on off bright dim blink status_req get_signal_strength get_noise_strength 1_phase 3_phase use_mh_ini_phase_mode |);
+    my @default_states =  qw|on off bright dim status_req get_signal_strength get_noise_strength 1_phase 3_phase use_mh_ini_phase_mode|;
+    $self->set_states(@default_states);
     $self->_logd("ctor $self->{name} home: $self->{home} unit: $self->{unit}"); 
     PLCBUS->instance()->add_device($self);
     $self->restore_data('phase_override');
@@ -105,11 +106,12 @@ sub command {
     my $unit = $self->{unit};
     PLCBUS->instance()->queue_command( { home => $home, unit => $unit, cmd => $cmd, d1=> $d1, d2 => $d2});
 }
-package PLCBUS_1141;
-@PLCBUS_1141::ISA = ('PLCBUS_Item');
 
-package PLCBUS_4825;
-@PLCBUS_4825::ISA = ('PLCBUS_Item');
+#package PLCBUS_1141;
+#@PLCBUS_1141::ISA = ('PLCBUS_Item');
+#
+#package PLCBUS_4825;
+#@PLCBUS_4825::ISA = ('PLCBUS_Item');
 
 ## sub new {
 ##     my ($class, $name, $home,$unit) = @_;
@@ -145,7 +147,5 @@ sub new {
     PLCBUS->instance()->add_device($self);
     return $self;
 }
-#sub _set { }
-
 
 1;
