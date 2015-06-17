@@ -16,73 +16,6 @@ use Data::Dumper qw(Dumper);
 use List::Util qw(sum first);
 my @command_queue;
 my $current_cmd;
-my %hex_to_cmd =(
-    ##  * = contains data
-    ##  + = needs feedback
-
-    0x00 => "all_unit_off",           #  In Same HOME, “All Units Off”.
-    0x01 => "all_lts_on",              #  In Same HOME, “All Lights On”.
-    0x02 => "on",                      #  In Same HOME +UNIT, “One UNIT On”.  +
-    0x03 => "off",                     #  In Same HOME + UNIT,”One UNIT Off”. +
-    0x04 => "dim",                     #  In Same HOME + UNIT,”One UNIT Dim”. *+
-    0x05 => "bright",                  #  In Same HOME + UNIT,”One UNIT Brig hten” *+
-    0x06 => "all_light_off",           #  In Same HOME, “All Lights Off”.
-    0x07 => "all_user_lts_on",         #  Under Same USER, “All USER Lig hts On”.
-    0x08 => "all_user_unit_off",       #  Under Same USER, “All USER U nits Off”.
-    0x09 => "all_user_light_off",      #  Under Same USER, “All USER L ights Off”
-    0x0A => "blink",                   #  In Same HOME+ UNIT, “One Light Blin k”. *+
-    0x0B => "fade_stop",               #  In Same HOME+ UNIT, “One light S top Dimming”. +
-    0x0C => "presetdim",               #  In Same HOME+UNIT, “Preset Brigh tness Level”. *+
-    0x0D => "status_on",               #  Status feedback as “ON”.*
-    0x0E => "status_off",              #  Status feedback as “OFF”.
-    0x0F => "status_req",              #  Status Checking
-    0x10 => "r_master_addrs_setup",    #  Setup the main addre ss of Receiver. *+
-    0x11 => "t_master_addrs_setup",    #  Setup the main addr ess of Transmitter. *+
-    0x12 => "scenes_addrs_setup",      #  Setup Scene address *
-    0x13 => "scenes_addrs_erase",      #  Clean    Scene    address    under the    same HOME+UNIT
-    0x14 => "all_scenes_addrs_erase",  #  Clean all the Scene a ddresses in each receiver. *+
-    0x15 => "",                        #  * for future
-    0x16 => "",                        #  * for future
-    0x17 => "",                        #  * for future
-    0x18 => "get_signal_strength",     #  Check the Signal Stre ngth. +
-    0x19 => "get_noise_strength",      #  Check the Noise Streng th.   +
-    0x1A => "report_signal_strength",  #  Report the Signal Stren gth. *
-    0x1B => "report_noise_strength",   #  Report the Noise Str ength. *
-    0x1C => "get_all_id_pulse",        #  (THE SAME USER AND THE SAME HOM E) Check the ID PULSE in the same USER + HOME.
-    0x1D => "get_only_on_id_pulse",    #  (THE SAME USER AND THE SAME HOME) Check the Only ON ID PULSE in the same USER+ HOME.
-    0x1E => "report_all_id_pulse",     #  （ For 3-phase power line only ）
-    0x1F => "report_only_on_pulse",    #  （ For 3-phase power line only ）
-);
-
-## NOTES
-# 3-Phase coupler has no Adress
-# Pc2Plcbus interface has no adress 
-#   * homeVisu sends blink command to usercode 0 home A unit 0 to check for echo on the BUS
-#     no unit will react to this command.
-#     if the echo is seen => 1141 is plugged in (should I do this too?)
-#
-# to learn phase the coupler our user code:
-#   * phase coupler will not repeat commands with unknown user code
-#   * press coupler button 5s => LED off
-#   * send any command => LED off => user code learned.
-#
-# on/off
-#   In 3-Phase 'on', 'off' get seperate reply 'status_on/off',
-#   in 1-Phase only the on/off is with R_ACK_SW flag set is received
-#
-# get_only_on_id_pulse
-#   3-Phase answer is 'report_only_on_pulse'
-#   1-Phase answer is 'get_only_on_id_pulse' with only R_SW flag
-#
-#
-# LINK: if set 1 means target adress is scene address (adress of linked devices) (Link Packet)
-#       if 0 means direct packet towards 1 Module (Direct Packet)
-#
-# ????
-#   * how to display current brightness level in ia7 Button 
-#   * how to display set phase mode for device?
-########
-
 my %cmd_to_hex =(
     ##  + = needs feedback
     all_unit_off => {
@@ -117,14 +50,14 @@ my %cmd_to_hex =(
         expected_response => [ 'status_off' ],
         description => "In Same HOME & UNIT, ”One UNIT Off”. +",
     },
-    dim => { 
+    dim => {
         cmd => 0x04,
         flags => 0x20,
         data => 1,
         description => "In Same HOME & UNIT, ”One UNIT Dim”. *+",
         expected_response => undef,
     },
-    bright => { 
+    bright => {
         cmd => 0x05,
         flags => 0x20,
         data => 1,
@@ -274,7 +207,7 @@ my %cmd_to_hex =(
         description => "Check the Signal Stre ngth. +",
         expected_response => [ 'report_signal_strength' ],
     },
-    get_noise_strength => { 
+    get_noise_strength => {
         cmd => 0x19,
         flags => 0x20,
         data => 0,
@@ -329,11 +262,79 @@ my %cmd_to_hex =(
     },
 );
 
+my %hex_to_cmd =(
+    ##  * = contains data
+    ##  + = needs feedback
+
+    0x00 => "all_unit_off",           #  In Same HOME, “All Units Off”.
+    0x01 => "all_lts_on",              #  In Same HOME, “All Lights On”.
+    0x02 => "on",                      #  In Same HOME +UNIT, “One UNIT On”.  +
+    0x03 => "off",                     #  In Same HOME + UNIT,”One UNIT Off”. +
+    0x04 => "dim",                     #  In Same HOME + UNIT,”One UNIT Dim”. *+
+    0x05 => "bright",                  #  In Same HOME + UNIT,”One UNIT Brighten” *+
+    0x06 => "all_light_off",           #  In Same HOME, “All Lights Off”.
+    0x07 => "all_user_lts_on",         #  Under Same USER, “All USER Lights On”.
+    0x08 => "all_user_unit_off",       #  Under Same USER, “All USER Units Off”.
+    0x09 => "all_user_light_off",      #  Under Same USER, “All USER Lights Off”
+    0x0A => "blink",                   #  In Same HOME+ UNIT, “One Light Blink”. *+
+    0x0B => "fade_stop",               #  In Same HOME+ UNIT, “One light Stop Dimming”. +
+    0x0C => "presetdim",               #  In Same HOME+UNIT, “Preset Brightness Level”. *+
+    0x0D => "status_on",               #  Status feedback as “ON”.*
+    0x0E => "status_off",              #  Status feedback as “OFF”.
+    0x0F => "status_req",              #  Status Checking
+    0x10 => "r_master_addrs_setup",    #  Setup the main address of Receiver. *+
+    0x11 => "t_master_addrs_setup",    #  Setup the main address of Transmitter. *+
+    0x12 => "scenes_addrs_setup",      #  Setup Scene address *
+    0x13 => "scenes_addrs_erase",      #  Clean    Scene    address    under the    same HOME+UNIT
+    0x14 => "all_scenes_addrs_erase",  #  Clean all the Scene addresses in each receiver. *+
+    0x15 => "",                        #  * for future
+    0x16 => "",                        #  * for future
+    0x17 => "",                        #  * for future
+    0x18 => "get_signal_strength",     #  Check the Signal Strength. +
+    0x19 => "get_noise_strength",      #  Check the Noise Strength.   +
+    0x1A => "report_signal_strength",  #  Report the Signal Strength. *
+    0x1B => "report_noise_strength",   #  Report the Noise Strength. *
+    0x1C => "get_all_id_pulse",        #  (THE SAME USER AND THE SAME HOM E) Check the ID PULSE in the same USER + HOME.
+    0x1D => "get_only_on_id_pulse",    #  (THE SAME USER AND THE SAME HOME) Check the Only ON ID PULSE in the same USER+ HOME.
+    0x1E => "report_all_id_pulse",     #  （ For 3-phase power line only ）
+    0x1F => "report_only_on_pulse",    #  （ For 3-phase power line only ）
+);
+
+## NOTES
+# 3-Phase coupler has no Address
+# Pc2Plcbus interface has no address 
+#   * homeVisu sends blink command to usercode 0 home A unit 0 to check for echo on the BUS
+#     no unit will react to this command.
+#     if the echo is seen => 1141 is plugged in (should I do this too?)
+#
+# to learn phase the coupler our user code:
+#   * phase coupler will not repeat commands with unknown user code
+#   * press coupler button 5s => LED off
+#   * send any command => LED off => user code learned.
+#
+# on/off
+#   In 3-Phase 'on', 'off' get seperate reply 'status_on/off',
+#   in 1-Phase only the on/off is with R_ACK_SW flag set is received
+#
+# get_only_on_id_pulse
+#   3-Phase answer is 'report_only_on_pulse'
+#   1-Phase answer is 'get_only_on_id_pulse' with only R_SW flag
+#
+#
+# LINK: if set 1 means target adress is scene address (adress of linked devices) (Link Packet)
+#       if 0 means direct packet towards 1 Module (Direct Packet)
+#
+# ????
+#   * how to display current brightness level in ia7 Button 
+#   * how to display set phase mode for device?
+########
+
 my $select;
-my $plc_command_server;
-my %plc_devices = ();
-my $plcbus_group;
-my $homes = (); # hash for home->unit
+my %plc_devices = (); # stores a hash of homes. Each home hold a hash of plcbus modules
+my $homes = (); # only used for code generation so we know which home commands have alreay been created
+my $plcbussrv_proc = new Process_Item(); # to start/stop the plcbussrv server
+my $plcbussrv_port = $::config_parms{plcbussrv_port} || 4567;
+my $plcbussrv_connection; # holds the connection to the plcbussrv
 
 sub _log{
     my $prefix = "PLCBUS";
@@ -359,29 +360,6 @@ sub hex_rep($){
     return sprintf("%02x", shift);
 }
 
-
-my $dev;
-sub _start_serial_port(){
-    my  $serial_device = $::config_parms{plcbus_serial_port};
-    my $plc_dev = Device::SerialPort->new($serial_device);
-    if (!$plc_dev){
-        _log "Error opening serial port '$serial_device': $!";
-        return 0;
-    }
-    $plc_dev->baudrate(9600);
-    $plc_dev->databits(8);
-    $plc_dev->parity("none");
-    $plc_dev->stopbits(1);
-    $plc_dev->handshake("none");
-    $plc_dev->read_const_time(10);
-    $plc_dev->write_settings;
-    $dev = $plc_dev;
-    _log("serial port '$serial_device' opened");
-    return 1;
-}
-
-
-my $server_proc = new Process_Item();
 sub _new_instance {
     my ($class) = @_;
     my $self  = bless { }, $class;
@@ -389,15 +367,11 @@ sub _new_instance {
     _log("debuglevel: $::Debug{plcbus}");
     my $serial = $::config_parms{plcbus_serial_port};
     die ("plcbus interface missing. Set 'plcbus_serial_port' in mh.private.ini") unless $serial;
-    
-#    _start_serial_port();
 
-    #  my $c = "plcbus_command_server.pl  --device /dev/plcbus --port 4567 &>1 >> /home/tob/plc.log";
-
-    my $c = "plcbussrv /dev/plcbus 4567"; # &>1 > /home/tob/plc.log";
+    my $c = "plcbussrv /dev/plcbus $plcbussrv_port"; # &>1 > /home/tob/plc.log";
      _log($c);
-     set $server_proc $c;
-     start $server_proc;
+     set $plcbussrv_proc $c;
+     start $plcbussrv_proc;
 
     _connect_command_server();
 
@@ -405,30 +379,31 @@ sub _new_instance {
     &::Exit_add_hook(\&_on_exit);
 
 
-    _logd("plcbus manager created.");
+    _logd("Manager created.");
     return $self;
 }
 
 sub _connect_command_server(){
-    $plc_command_server = new IO::Socket::INET (
+    $plcbussrv_connection = new IO::Socket::INET (
         PeerHost => 'localhost',
-        PeerPort => '4567',
+        PeerPort => $plcbussrv_port,
         Proto => 'tcp',
         Timeout => 2000,
-    ) ;#or die "could not connect to plc_command_server.pl";
-    if ($plc_command_server){
-        $plc_command_server->blocking(0);
-        $select = IO::Select->new($plc_command_server);
+    ) ;#or die "could not connect to plcbussrv_connection.pl";
+    if ($plcbussrv_connection){
+        $plcbussrv_connection->blocking(0);
+        $select = IO::Select->new($plcbussrv_connection);
     }
 }
+
 sub _on_exit(){
-    if ($plc_command_server){
-        $plc_command_server->close();
-        $plc_command_server = undef;
+    if ($plcbussrv_connection){
+        $plcbussrv_connection->close();
+        $plcbussrv_connection = undef;
         _log("closed connection to commandserver");
     }
     _log("stopping server");
-    $server_proc->stop();
+    $plcbussrv_proc->stop();
     _log("commandserver stopped");
     $current_cmd = undef;
     _log("Exiting...");
@@ -436,7 +411,7 @@ sub _on_exit(){
 
 sub _get_user_code(){
     if (!$::config_parms{plcbus_user_code}){
-        _log("'plcbus_user_code' not set falling back to default '0xff'");
+        _logd("'plcbus_user_code' not set falling back to default '0xff'");
         return 0xff;
     }
     else {
@@ -750,7 +725,7 @@ sub _can_transmit(){
         return 0;
     }
 
-    if (!$plc_command_server || !$select){
+    if (!$plcbussrv_connection || !$select){
         _log("not connected to plcpus command server can't transmit, dropping all pending commands");
         @command_queue = ();
         return 0;
@@ -769,9 +744,9 @@ sub _read_from_server(){
             my $data;
             my $rv = $c->recv($data, 9, 0);
             unless (defined($rv) and length($data)) {
-                $select->remove($plc_command_server);
+                $select->remove($plcbussrv_connection);
                 $select = undef;
-                $plc_command_server = undef;
+                $plcbussrv_connection = undef;
                 _log("Connection to comman server broken, trying to reconnect.");
                 _connect_command_server();
             }
@@ -944,7 +919,7 @@ sub _write_current_command {
     $m .= "   => ". _command_to_string ($tx_command);
     my $tx = pack('C*', $tx_STX,$tx_length, $usercode, $tx_home_unit, $tx_command, $tx_data1, $tx_data2, $tx_ETX);
 
-    my $result = $plc_command_server->send($tx);
+    my $result = $plcbussrv_connection->send($tx);
 
     $current_cmd->{last_write} = [Time::HiRes::gettimeofday()];
     $last_data_to_from_bus =  [Time::HiRes::gettimeofday()];
@@ -1043,6 +1018,7 @@ sub get_cmd_list($){
     $cmdlist =~ s/_/ /g;
     return $cmdlist;
 }
+
 sub generate_code(@){
     my ($type, $address, $name, $grouplist) = @_;
     my ($home,$unit) = _split_homeunit($address);
@@ -1059,8 +1035,13 @@ sub generate_code(@){
     elsif ($type =~ /^PLCBUS_Scene.*/i){
         $object =  "PLCBUS_Scene('$name', '$home','$unit')";
     }
+    elsif ($type =~ /^PLCBUS.*/i){
+        _log("Unknown PLCBUS device type '$type'. Creating generic PLCBUS item");
+        $object =  "PLCBUS_Item('$name', '$home','$unit')";
+    }
     else{
-        _log("WTF WTFWTFWTFWTFWTFWTFWTF")
+        _logW("WTF WTFWTFWTFWTFWTFWTFWTF");
+        return;
         #   $object = "PLCBUS_Item('$name', '$home', '$unit')";
     }
     my $more;
@@ -1098,46 +1079,151 @@ sub generate_code(@){
 }
 
 1;
-=head_PLCBUS
 
-=head2 mh.private.ini
+=head1 NAME
 
-configuration settings:
+PLCBUS - use the PLCBUS with misterhouse
+
+=head1 DESCRIPTION
+
+Enables the use of PLCBUS modules with misterhouse. To send/receive data from
+the bus a PLCBUS2-T 1141 device is required.
+
+All testing was done with the USB variant but there should be no difference.
+
+This module depends on a separate server process 'plcbussrv' to connect to the
+PLCBUS. You can get the tool from L<https://github.com/tobser/plcbussrv>, see
+README.md for installation instructions. The server process is automatically
+started by this module
+
+
+=head1 mh.private.ini
 
     plcbus_serial_port=/dev/plcbus
-
     plcbus_phase_mode=3
-
     plcbus_user_code=0xAB
-
-    plcbus_command_file=/home/tob/plcbuscommands
-
+    plcbus_command_file=/tmp/plcbuscommands
+    plcbussrv_port=4567
     debug=plcbus:2|plcbus_module:2
+
 =over
 
-=item C<plcbus_serial_port>
+=item B<plcbus_serial_port>
 
-filename of your 1141
+Filename of your 1141
 
-=item C<plcbus_phase_mode>
+=item B<plcbus_phase_mode>
 
-optional.
-set to 1 or 3, default is 1
+Set to 1 or 3, default is 1
 
-=item C<plcbus_user_code>
+=item B<plcbus_user_code>
 
-usercode for your houes, default is 0xff
+The PLCBUS user code. All all modules including the 3-Phasecouple must be setup
+with the same user code otherwise they will not react to commands if not set the
+default of 0xff is used
 
-=item C<plcbus_command_file>
+=item B<plcbus_command_file>
 
-send arbitrary plcbus commands
+Can be used to execute arbitrary PLCBUS commands not available through the web
+interface. See SETTING UP A NEW PLCBUS MODULE on how to use it.
 
-if set to a file eg. /tmp/plcbuscommand 
+For a list of available commands take a look at %cmd_to_hex at the beginning of
+PLCBUS.pm
 
- echo "B,3,on\nB,2,on\nB,4,on" >> /tmp/plcbuscommand
+=item B<plcbussrv_port>
 
-the three commands will be sent
+TCP port to use for the plcbussrv server process. Default is '4567'
 
 =back
+
+=head2 SAMPLE .MHT FILE
+
+    Format = A
+    # PLCBUS_TYPE,   address,  name,                groups
+    PLCBUS_2026G,    B2,       StandardLamp,        Property|livingroom(10;10)
+    PLCBUS_2263DAU,  B4,       StaircaseLightning,  Property|staircase(5;20)
+    PLCBUS_2026G,    B5,       TvLamp,              Property|livingroom(20;20)
+    PLCBUS_Scene,    O2,       TestScene
+
+=head2 GROUPS
+
+The module automatically creates one "PLCBUS"-group which contains all PLCBUS
+modules and PLCBUS voice commands.
+
+For each home code a separate group is created e.g. "PLCBUS_B". This group
+contains all units with address B* and also the voice commands which are specific
+to the home code B.
+
+=head2 VOICE COMMANDS
+
+Voice commands for the user code and for all home address are created. Those are
+worded as found in the documentation for the serial interface of the 1141. This
+may and probably will change in future.
+
+=head2 PLCBUS ITEMS
+
+For now all devices can only go into on/off state You can set addition states to
+execute specific PLCBUS commands e.g. 'status_req' to retrieve the current state
+of the module. 'status_req' will also change the on/off state of the module if
+an answer was received. Other commands such as to get the signal strength do not
+change the state of the item. You have to check the misterhouse log for the
+result of those commands.
+
+There are 3 special states '1_phase', '3-phase' and 'use_mh_ini_phase_mode' to
+use a specific phase mode for one unit. This command is stored per unit, and is
+also restored between misterhouse restarts. 'use_mh_ini_phase_mode' deletes the setting
+and the phase mode specified in mh.ini is used.
+
+=head1 SETTING UP A NEW PLCBUS MODULE
+
+You may want to enable full debug output in for PLCBUS in your private mh.ini
+file to see what's actually going on:
+
+    debug=plcbus:2|plcbus_module:2
+
+Let's say we purchased a new PLCBUS_2026G plug in module. First we need to decide
+for an address for our new module, e.g. B<C7> and create a 
+new entry in our mht file:
+
+    PLCBUS_2026G,    C7,       newTestLamp
+
+Now reload or restart misterhouse. Misterhouse should now create the new device
+and start the B<plcbussrv> server, which you should have installed already. If
+not 
+see the DESCRIPTION for a link.
+
+If all went as expected you should find your new device in the PLCBUS_C group:
+
+L<http://misterhouse/ia7/#path=/objects&parents=PLCBUS_C&_collection_key=0,1,17,$PLCBUS_C>
+
+Now we have to tell the module about its new address. All modules I used so far
+are brought into setup mode by pressing the setup button for 5s. The LED starts
+blinking as soon as the module changes into setup mode. The 3-Phasecouple is an
+exception, its LED turns of as soon as it changed to setup
+mode.
+
+As soon as the LED start to blink you have to send a 'on' command to the module.
+Either by changing its state via the web interface to 'on' or by using the PCLBUS
+command file (see mh.private.ini setting)
+
+    echo c,7,on > /tmp/plcbuscommands
+
+If the module stops blinking and the attached light turns off, the module now
+knows its own address and should react to your commands. To change the
+brightness level and fade rate try the following command
+
+    echo c,7,presetdim,60,7 > /tmp/plcbuscommands
+
+For less information on available commands see the documentation for the 1141
+RS-232 Interface. You can get it in the download section of the PLCBUS forum
+L<http://www.plc-bus.info/downloads.php?cat=2> (you need to be logged in)
+
+Now start playing with your new toys. But not too much, cause your 1141 and/or
+your phase couple may get annoyed :-(
+
+
+=head1 AUTHOR
+
+Tobias Sachs diespambox@gmx.net
 
 =cut
