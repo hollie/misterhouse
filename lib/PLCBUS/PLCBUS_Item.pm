@@ -67,15 +67,10 @@ sub _set {
 }
 
 sub set {
-    my ($self, $new_state) = @_;
-    if ($new_state ~~ [ "on", "off" ] ){
-        $self->_set($new_state);
-        $self->command($new_state);
-    }
-    elsif ($new_state ~~ [  "bright", "dim",
-                            "status req", "blink",
-                            "get signal strength",
-                            "get noise strength" ]){
+    my ( $self, $new_state ) = @_;
+    my @plc_cmds = [ "on", "off", "bright", "dim", "status req", "blink",
+                     "get signal strength", "get noise strength"];
+    if ($new_state ~~  @plc_cmds){
         $new_state =~ s/ /_/g;
         $self->command($new_state);
     }
