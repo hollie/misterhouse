@@ -993,6 +993,14 @@ var floorplan = function(group,time) {
     		var location = get_fp_location(fp_location,0);
     		//alert("fp_location="+fp_location+" location="+location); 
     		$(this).attr("style",location);
+//iphone scale
+			var baseimg_width = $(window).width();
+			if (baseimg_width < 500) {
+      			$(this).attr('src',$(this).attr('src').replace('48.png','32.png'))
+			} else {
+			    $(this).attr('src',$(this).attr('src').replace('32.png','48.png'))
+			}
+
 		});
 	}
 
@@ -1150,6 +1158,10 @@ var get_fp_location = function(item,index) {
 
 var get_fp_image = function(item,size,orientation) {
   	var image_name;
+  	var image_color = getButtonColor(item.state)
+	var baseimg_width = $(window).width();
+  	var image_size = "48"
+  	if (baseimg_width < 500) image_size = "32" // iphone scaling
  	if (item.fp_icons !== undefined) {
  		//alert("Has a button defined state="+item.fp_icons[item.state]);
  		if (item.fp_icons[item.state] !== undefined) return item.fp_icons[item.state];
@@ -1163,41 +1175,26 @@ var get_fp_image = function(item,size,orientation) {
     		item.type == "EIB2_Item" || item.type == "EIO_Item" ||
     		item.type == "UIO_Item" || item.type == "X10_Item" ||    		
     		item.type == "xPL_Plugwise" || item.type == "X10_Appliance") {
- 		if (item.state == "on") {
-  			return "fp_light_green_32.png";
- 		} else if (item.state == "off") {
-  			return "fp_light_def_32.png";
- 		} else {
-  			return "fp_light_orange_32.png";
- 		}
+
+  			return "fp_light_"+image_color+"_"+image_size+".png";
   	}
   	
   	if(item.type == "Motion_Item" || item.type == "X10_Sensor" ||
     		item.type == "Insteon::MotionSensor" ) {
- 		if (item.state == "on" || item.state == "motion" ) {
-  			return "fp_motion_red_32.png";
- 		} else if (item.state == "off" || item.state == "still") {
-  			return "fp_motion_green_32.png";
- 		}  else {
- 			return "fp_motion_blue_32.png";
- 		}
+  			return "fp_motion_"+image_color+"_"+image_size+".png";
+
   	}
   	
   	if(item.type == "Door_Item" ) {
- 		if (item.state == "open") {
-  			return "fp_door_red_32.png";
- 		} else if (item.state == "closed") {
-  			return "fp_door_green_32.png";
- 		} else {
-  			return "fp_door_blue_32.png";
- 		}
+  			return "fp_door_"+image_color+"_"+image_size+".png";
+
   	}  	
 
   	if(item.type == "FPCamera_Item" ) {
- 			return "fp_camera_def_32.png";
+ 			return "fp_camera_default_"+image_size+".png";
  		}
   	
-  	return "fp_unknown_blue_32.png";
+  	return "fp_unknown_info_"+image_size+".png";
 }
 
 var create_img_popover = function(entity) {
