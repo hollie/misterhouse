@@ -499,7 +499,7 @@ sub _handle_incoming_commands{
             return 1;
         }
         if($current_cmd->{three_phase}
-            && $dec->{REPRQ}
+            && !$dec->{REPRQ}
             && !$rxtx->{R_ITSELF}){
             $current_cmd->{replay_seen} = 1;
             #_logd("Received replay from PLCBUS phase coupler.");
