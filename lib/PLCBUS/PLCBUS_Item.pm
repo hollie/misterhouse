@@ -2,14 +2,16 @@ use strict;
 use warnings;
 use experimental 'smartmatch';
 use PLCBUS ;
+
 package PLCBUS_Item;
 @PLCBUS_Item::ISA = ('Generic_Item');
-our %plcbus_items_table;
+
 sub _logd ($$) {
     return unless ($::Debug{plcbus_module} && $::Debug{plcbus_module} > 1);
     my ($self, @msg) = @_;
     $self->_log(@msg) 
 }
+
 sub _log{
     return unless $::Debug{plcbus_module};
     my ($self, @msg) = @_;
@@ -31,7 +33,7 @@ sub new {
     return $self;
 }
 
-    sub handle_incoming {
+sub handle_incoming {
     my ($self, $c) = @_;
     my $msg ;
     if ($c->{cmd} eq "status_on"){
@@ -101,26 +103,6 @@ sub command {
     my $unit = $self->{unit};
     PLCBUS->instance()->queue_command( { home => $home, unit => $unit, cmd => $cmd, d1=> $d1, d2 => $d2});
 }
-
-#package PLCBUS_1141;
-#@PLCBUS_1141::ISA = ('PLCBUS_Item');
-#
-#package PLCBUS_4825;
-#@PLCBUS_4825::ISA = ('PLCBUS_Item');
-
-## sub new {
-##     my ($class, $name, $home,$unit) = @_;
-##     my $self = { };
-##     bless $self, $class;
-##     $self->{home} = $home;
-##     $self->{unit} = $unit;
-##     $self->{name} = $name;
-## #    $self->set_states( qw ||);
-##     $self->_logd("ctor $self->{name} home: $self->{home} unit: $self->{unit}"); 
-##     PLCBUS->instance()->add_device($self);
-##     return $self;
-## }
-#sub _set { }
 
 package PLCBUS_2026;
 @PLCBUS_2026::ISA = ('PLCBUS_Item');
