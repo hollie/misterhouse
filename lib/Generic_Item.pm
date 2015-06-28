@@ -957,6 +957,37 @@ sub get_fp_icons {
     }
 }
 
+=item C<set_fp_icons_set(name)>
+
+Sets the icons group used by the IA7 floorplan web interface.  The name contains the 
+group name of icons that can be found in /web/ia7/graphics.
+Can only be run at startup or reload.
+
+=cut
+
+sub set_fp_icon_set {
+    return unless $main::Reload;
+    my ($self, $icons) = @_;
+    $$self{fp_icon_set}=$icons;
+}
+
+=item C<get_fp_icons()>
+
+Returns the name of the icon set used by the floorplan IA7 web interface that were set 
+by C<set_fp_icon_set>.
+
+=cut
+
+sub get_fp_icon_set {
+    my ($self) = @_;
+    if ($$self{fp_icon_set}) {
+        return $$self{fp_icon_set};
+    } else {
+        return undef;
+    }
+}
+
+
 =item C<set_states(states)>
 
 Sets valid states to states, which is a list or array.  Can only be run at startup or reload.  TODO

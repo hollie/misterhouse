@@ -1005,7 +1005,7 @@ var floorplan = function(group,time) {
 	}
 
  	var path_str = "/objects";  
- 	var arg_str = "parents="+group+"&fields=fp_location,state,states,state_log,fp_icons,img,link,label,type&long_poll=true&time="+time;
+ 	var arg_str = "parents="+group+"&fields=fp_location,state,states,state_log,fp_icons,fp_icon_set,img,link,label,type&long_poll=true&time="+time;
 
  	updateSocket = $.ajax({
   		type: "GET",
@@ -1166,6 +1166,10 @@ var get_fp_image = function(item,size,orientation) {
  		//alert("Has a button defined state="+item.fp_icons[item.state]);
  		if (item.fp_icons[item.state] !== undefined) return item.fp_icons[item.state];
  	}
+ 	if (item.fp_icon_set !== undefined) {
+ 		//alert("Has a button defined state="+item.fp_icons[item.state]);
+  		return "fp_"+item.fp_icon_set+"_"+image_color+"_"+image_size+".png";
+ 	} 	
  	//	if item.fp_icons.return item.fp_icons[state];
   	if(item.type == "Light_Item" || item.type == "Fan_Light" ||
     		item.type == "Insteon_Device" || item.type == "UPB_Link" ||
