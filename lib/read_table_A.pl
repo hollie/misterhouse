@@ -1166,10 +1166,10 @@ sub read_table_A {
     }
     #-------------- End AD2 Objects -------------
     elsif($type =~ /PLCBUS_.*/){
-        require PLCBUS;
+        use PLCBUS;
         $packages{PLCBUS}++;
         ( $address, $name, $grouplist, @other) = @item_info;
-        ($object,$grouplist,$additional_code) = PLCBUS::generate_code($type, @item_info);
+        ($object,$grouplist,$additional_code) = PLCBUS->generate_code($type, @item_info);
     }
     else {
         print "\nUnrecognized .mht entry: $record\n";
