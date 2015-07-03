@@ -47,6 +47,10 @@ This module allows to control and to monitor the state over a Squeezebox player 
 command line interface of the server. It also allows you to play notifications. Notifications
 can either be local files or URLs.
 
+=head2 DEBUG
+
+This module has debugging facilities at various verbosity levels that can be enabled by setting the squeezebox_cli debug parameter in mh.private.ini
+
 =cut
 
 package SqueezeboxCLI;
@@ -65,9 +69,9 @@ sub debug {
     $level = 0 if $level eq '';
     my $line   = '';
     my @caller = caller(0);
-    if ( $::Debug{'squeezeboxcli'} >= $level || $level == 0 ) {
+    if ( $main::Debug{'squeezebox_cli'} >= $level || $level == 0 ) {
         $line = " at line " . $caller[2]
-            if $::Debug{'squeezeboxcli'} >= $trace;
+            if $main::Debug{'squeezebox_cli'} >= $trace;
         ::print_log( "[" . $caller[0] . "] " . $message . $line );
     }
 }
@@ -76,10 +80,18 @@ package SqueezeboxCLI_Interface;
 
 use strict;
 
+=head2 DEPENDENCIES
+
+  URI::Escape       - The CLI interface uses an escaped format
+
+=cut
+
+use URI::Escape;
+
 @SqueezeboxCLI_Interface::ISA = ( 'Generic_Item', 'SqueezeboxCLI' );
 
 sub new {
-    my ( $class, $server, $port, $user, $pass ) = @_;
+    my ( $class, $server, $port, $user, $pass, $spotify_enabled ) = @_;
     my $self = new Generic_Item();
     bless $self, $class;
     $$self{server}          = $server;
@@ -87,11 +99,13 @@ sub new {
     $$self{login}           = $user . " " . $pass || "";
     $$self{players}         = {};
     $$self{reconnect_timer} = new Timer;
+    $$self{spotify_enabled} = $spotify_enabled || 0;
     $$self{squeezecenter}
         = new Socket_Item( undef, undef, $$self{server} . ":" . $$self{port},
         "squeezecenter_cli", 'tcp', 'record' );
     $self->login();
     ::MainLoop_pre_add_hook( sub { $self->check_for_data(); }, 'persistent' );
+    $self->spotify_request_playlists() if ($spotify_enabled);
     return $self;
 }
 
@@ -132,10 +146,10 @@ sub reconnect_delay {
 sub check_for_data {
     my ($self) = @_;
 
-    unless ( $$self{squeezecenter}->connected() ) {
-        $self->reconnect_delay();
-        return;
-    }
+    #unless ( $$self{squeezecenter}->connected() ) {
+    #    $self->reconnect_delay();
+    #    return;
+    #}
 
     if ( my $data = $self->{squeezecenter}->said() ) {
 
@@ -154,6 +168,23 @@ sub check_for_data {
 
         }
 
+		if ( $data =~ /[\w|%]{27}\s+spotify\s+(.+)/) {
+			my $message = uri_unescape($1);
+
+            $self->debug(
+                "Received spotify response, parsing '$message'", 2);
+                
+                
+                if ($message =~ /items \d+ \d+ item_id:3 title:Playlists (.+)/){
+                	$self->spotify_parse_playlists($1);
+                	return;
+                }
+                
+                $self->debug("Received unknown spotify data: $message");
+                return;
+		
+		}
+		
         if ( $data =~ /([\w|%]{27})\s+(.+)/ ) {
             $self->debug(
                 "Passing message to player '$1' for further processing", 4 );
@@ -164,6 +195,10 @@ sub check_for_data {
             if (defined $$self{players_mac}{$player}) {
             	$$self{players_mac}{$player}->process_cli_response($2);
             }
+        }
+        # Ignore the response of our initial command
+        if ( $data =~ /listen 1/){
+        	return;
         }
         else {
             $self->debug("Received unknown text: $data");
@@ -182,6 +217,26 @@ sub add_player {
     # Determine the MAC address of the player by requesting the status
     $$self{squeezecenter}->set( $player->{sb_name} . " status" );
 
+}
+
+sub spotify_request_playlists {
+	my $self = shift();
+	
+	$$self{squeezecenter}->set("spotify items 0 100 item_id:3");
+}
+
+sub spotify_parse_playlists {
+	my ($self, $data) = @_;
+	
+	while ($data =~ /id:(\d+\.\d+)\s+name:(.+?)\stype:(playlist|opml)\sisaudio:([0|1])\shasitems:1/g){
+		$self->debug( "Found playlist: $1 - $2 - $3" ) if ($3 eq 'playlist');
+		$self->debug( "Found folder: $1 - $2 - $3" ) if ($3 eq 'opml');
+
+	}
+	
+	if ($data =~ /count:(\d+)/) {
+		$self->debug( "Number of spotify playlists: $1" );
+	}
 }
 
 package SqueezeboxCLI_Player;
