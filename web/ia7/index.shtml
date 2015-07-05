@@ -4,6 +4,12 @@
 	
 	<meta name="apple-mobile-web-app-capable" content="yes">
 	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<link rel="apple-touch-icon" href="touch-icon_60.png">
+	<link rel="apple-touch-icon" sizes="76x76" href="touch-icon_76.png">
+	<link rel="apple-touch-icon" sizes="120x120" href="touch-icon_120.png">
+	<link rel="apple-touch-icon" sizes="152x152" href="touch-icon_152.png">
+	<link rel="apple-touch-icon" sizes="180x180" href="touch-icon_180.png">
+	<link rel="shortcut icon" href="touch-icon_76.png" type="image/x-icon">
 	
 	<!--Font Awesome-->
 	<link href="/ia7/include/font-awesome.4.0.3.min.css" rel="stylesheet">
