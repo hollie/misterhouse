@@ -44,8 +44,14 @@ use Data::Dumper;
 #  $os1->get_waterlevel()
 #  $os1->get_rainstatus()
 
+#  New with 2.15, adjust the weather adjustment parameters
+#  ($temp,$rain,$humid) = $os1->get_eto_params()
+#  or
+#   $temp = $os1->get_eto_params('temp');
+#  $os1->set_eto_humid(temp,rain,humid)
+
 # General Notes:
-#	-only tested with firmware 2.14
+#	-only tested with firmware 2.14, 2.15
 
 # Child object Notes:
 #	Master
@@ -102,7 +108,8 @@ sub new {
    	$self->{data} = undef;
    	$self->{child_object} = undef;
    	$self->{config}->{cache_time} = 5;
-   	$self->{config}->{cache_time} = $::config_params{OpenSprinkler_config_cache_time} if defined $::config_params{OpenSprinkler_config_cache_time};
+    $self->{config}->{poll_seconds} = $main::config_parms{OpenSprinkler_poll_seconds} if (defined $main::config_parms{OpenSprinkler_poll_seconds});
+   	$self->{config}->{cache_time} = $::config_params{OpenSprinkler_config_cache_time} if (defined $::config_params{OpenSprinkler_config_cache_time});
    	$self->{config}->{tz} = $::config_params{time_zone}; 
    	$self->{config}->{poll_seconds} = 10;
    	$self->{config}->{poll_seconds} = $poll if ($poll);
@@ -114,12 +121,18 @@ sub new {
    	$self->{password} = $pwd;       
    	$self->{debug} = 0;
    	$self->{loglevel} = 1;
-   	$self->{timeout} = 4; #300;
+	$self->{status} = "";
+   	$self->{timeout} = 2; #300;
+   	$self->{timeout} = $main::config_parms{OpenSprinkler_timeout} if (defined $main::config_parms{OpenSprinker_timeout});
    	push(@{$$self{states}}, 'enabled', 'disabled');   
 
-   	$self->_init;
+   	my $init = $self->_init;
    	$self->{timer} = new Timer;
-   	$self->start_timer;
+   	if ($init) {
+   		$self->start_timer;
+   	} else {
+    	main::print_log("[OpenSprinkler] Object polling disabled");
+   	}
    	return $self;
 }
 
@@ -141,6 +154,10 @@ sub _init {
 
   	if ($isSuccessResponse1) {
     	if ($osp) {
+    		if (not defined $osp->{hwv}) {
+    			main::print_log("[OpenSprinkler] Fatal. Hardware version not found. Might have wrong password");
+    			return('0');
+    		}
       		main::print_log("[OpenSprinkler] OpenSprinkler found (v$osp->{hwv} / $osp->{fwv})");
       		my ($isSuccessResponse2,$stations) = $self->_get_JSON_data('station_info');
 	  		for my $index (0 .. $#{$stations->{snames}}) {
@@ -161,6 +178,9 @@ sub _init {
 			$self->{previous}->{info}->{rs} = "init";
 			$self->{previous}->{info}->{state} = "disabled";
 			$self->{previous}->{info}->{adjustment_method} = "init";
+			$self->{previous}->{info}->{adjustment_details}->{temp} = "init";	
+			$self->{previous}->{info}->{adjustment_details}->{rain} = "init";			
+			$self->{previous}->{info}->{adjustment_details}->{humid} = "init";			
 			$self->{previous}->{info}->{rain_sensor_status} = "init";
 			$self->{previous}->{info}->{sunrise} = 0;
 			$self->{previous}->{info}->{sunset} = 0;
@@ -168,22 +188,24 @@ sub _init {
         		main::print_log("[OpenSprinkler] Data Successfully Retrieved");
         		$self->{active} = 1;
     			$self->print_info();
+    			$self->{status} = "online";
     			$self->set($self->{data}->{info}->{state},'poll');
       		} else {
         		main::print_log("[OpenSprinkler] Problem retrieving initial data");
         		$self->{active} = 0;
-        		return ('1');
+       			$self->{status} = "offline";
       		}
      	} else {
        		main::print_log("[OpenSprinkler] Unknown device " . $self->{host});
        		$self->{active} = 0;
-       		return ('1');
+       		return ('0');
     	}
    } else {
     	main::print_log("[OpenSprinkler] Error. Unable to connect to " . $self->{host});
     	$self->{active} = 0;
-    	return ('1');
+    	return ('0');
    }
+   return ('1');
 }
 
 sub poll {
@@ -201,6 +223,11 @@ sub poll {
    		$self->{data}->{info}->{state} = ($vars->{en} == 0 ) ? "disabled" : "enabled";
 		$self->{data}->{info}->{waterlevel} = $options->{wl};
 		$self->{data}->{info}->{adjustment_method} = ($options->{uwt} == 0) ? "manual" : "zimmerman";
+		if ($self->{data}->{options}->{fwv} > 214) {
+			$self->{data}->{info}->{adjustment_details}->{temp} = $vars->{wto}->{t};
+			$self->{data}->{info}->{adjustment_details}->{humid} = $vars->{wto}->{h};
+			$self->{data}->{info}->{adjustment_details}->{rain} = $vars->{wto}->{r};
+		}
 		$self->{data}->{info}->{rain_sensor_status} = ($vars->{rs} == 0) ? "off" : "on";
 		$self->{data}->{info}->{sunrise} = $vars->{sunrise};
 		$self->{data}->{info}->{sunset} = $vars->{sunset};
@@ -218,26 +245,29 @@ sub poll {
 	  	} 
     	$self->{data}->{nprograms} = $programs->{nprogs};	  		
     	$self->{data}->{nstations} = $stations->{nstations};
+    	    	
     	$self->{data}->{timestamp} = time;
     	$self->{data}->{retry} = 0;
 #print Dumper $self;
-    	if (defined $self->{child_object}->{comm}) {
-    		if ($self->{child_object}->{comm}->state() ne "online") {
-	  			main::print_log "[OpenSprinkler] Communication Tracking object found. Updating to online..." if ($self->{loglevel});
-	  		  	$self->{child_object}->{comm}->set("online",'poll');
-	  		}
-	  	}
-    	return ('1');
-  	} else {
-  		main::print_log("[OpenSprinkler] Problem retrieving poll data from " . $self->{host});
-  		$self->{data}->{retry}++;
-  		if (defined $self->{child_object}->{comm}) {
-  			if ($self->{child_object}->{comm}->state() ne "offline") {
-	  			main::print_log "[OpenSprinkler] Communication Tracking object found. Updating to offline..." if ($self->{loglevel});
-	  		 	$self->{child_object}->{comm}->set("offline",'poll');
-	  		}
-		}
-    	return ('0');
+#    	if (defined $self->{child_object}->{comm}) {
+#    		if ($self->{status} eq "offline") {
+#	  			main::print_log "[OpenSprinkler] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to online..." if ($self->{loglevel});
+#	  			$self->{status} = "online";
+#	  		  	$self->{child_object}->{comm}->set("online",'poll');
+#	  		}
+#	  	}
+ #   	return ('1');
+  #	} else {
+  	#	main::print_log("[OpenSprinkler] Problem retrieving poll data from " . $self->{host});
+  	#	$self->{data}->{retry}++;
+  	#	if (defined $self->{child_object}->{comm}) {
+  	#		if ($self->{status} eq "online") {
+	 # 			main::print_log "[OpenSprinkler] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to offline..." if ($self->{loglevel});
+	  #			$self->{status} = "offline";
+	  	#	 	$self->{child_object}->{comm}->set("offline",'poll');
+	  	#	}
+		#}
+    	#return ('0');
   	}
 }
 
@@ -269,16 +299,18 @@ sub _get_JSON_data {
     if (! $isSuccessResponse ) {
 		main::print_log("[OpenSprinkler] Warning, failed to get data. Response code $responseCode");
     	if (defined $self->{child_object}->{comm}) {
-      		if ($self->{child_object}->{comm}->state() ne "offline") {
-	    		main::print_log "[OpenSprinkler] Communication Tracking object found. Updating to offline..." if ($self->{loglevel});
+      		if ($self->{status} eq "online") {
+	    		main::print_log "[OpenSprinkler] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to offline..." if ($self->{loglevel});
+	    		$self->{status} = "offline";
 	    		$self->{child_object}->{comm}->set("offline",'poll');
 	    	}
 		}
 	return ('0');
     } else {
     	if (defined $self->{child_object}->{comm}) {
-       		if ($self->{child_object}->{comm}->state() ne "online") {
-	        	main::print_log "[OpenSprinkler] Communication Tracking object found. Updating to online..." if ($self->{loglevel});
+       		if ($self->{status} eq "offline") {
+	        	main::print_log "[OpenSprinkler] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to online..." if ($self->{loglevel});
+	        	$self->{status} = "online";
 	        	$self->{child_object}->{comm}->set("online",'poll');
 	      	}
 		}
@@ -419,6 +451,9 @@ sub print_info {
 	main::print_log("[OpenSprinkler] LCD Dimming " . $self->{data}->{options}->{dim});
 	main::print_log("[OpenSprinkler] Relay Pulse Time " . $self->{data}->{options}->{rlp}) if defined ($self->{data}->{options}->{rlp});
 	main::print_log("[OpenSprinkler] *Weather adjustment Method " . $self->{data}->{info}->{adjustment_method});
+	if ($self->{data}->{options}->{fwv} > 214) {
+		main::print_log("[OpenSprinkler] \t *Weather adjustment details. Temp=" . $self->{data}->{info}->{adjustment_details}->{temp} . " Humid=" . $self->{data}->{info}->{adjustment_details}->{humid} . " Rain=" . $self->{data}->{info}->{adjustment_details}->{rain});
+	}
 	main::print_log("[OpenSprinkler] Logging " . $enabled[$self->{data}->{options}->{lg}]);
 	main::print_log("[OpenSprinkler] Zone expansion boards " . $self->{data}->{options}->{dexp});
 	main::print_log("[OpenSprinkler] Max zone expansion boards " . $self->{data}->{options}->{mexp});
@@ -511,7 +546,23 @@ sub process_data {
 	  	main::print_log("[OpenSprinkler] Adjustment Method changed from $self->{previous}->{info}->{adjustment_method} to $self->{data}->{info}->{adjustment_method}") if ($self->{loglevel});
 	  	$self->{previous}->{info}->{adjustment_method} = $self->{data}->{info}->{adjustment_method};
 	}
-		
+	if ($self->{data}->{options}->{fwv} > 214) {
+	
+		if ($self->{previous}->{info}->{adjustment_details}->{temp} ne $self->{data}->{info}->{adjustment_details}->{temp}) {
+	  		main::print_log("[OpenSprinkler] Adjustment detail temp changed from $self->{previous}->{info}->{adjustment_details}->{temp} to $self->{data}->{info}->{adjustment_details}->{temp}") if ($self->{loglevel});
+	  		$self->{previous}->{info}->{adjustment_details}->{temp} = $self->{data}->{info}->{adjustment_details}->{temp};
+		}
+
+		if ($self->{previous}->{info}->{adjustment_details}->{humid} ne $self->{data}->{info}->{adjustment_details}->{humid}) {
+	  		main::print_log("[OpenSprinkler] Adjustment detail humid changed from $self->{previous}->{info}->{adjustment_details}->{humid} to $self->{data}->{info}->{adjustment_details}->{humid}") if ($self->{loglevel});
+	  		$self->{previous}->{info}->{adjustment_details}->{humid} = $self->{data}->{info}->{adjustment_details}->{humid};
+		}
+	
+		if ($self->{previous}->{info}->{adjustment_details}->{rain} ne $self->{data}->{info}->{adjustment_details}->{rain}) {
+	  		main::print_log("[OpenSprinkler] Adjustment detail rain changed from $self->{previous}->{info}->{adjustment_details}->{rain} to $self->{data}->{info}->{adjustment_details}->{rain}") if ($self->{loglevel});
+	  		$self->{previous}->{info}->{adjustment_details}->{rain} = $self->{data}->{info}->{adjustment_details}->{rain};
+		}
+	}		
 }
 
 
@@ -652,6 +703,70 @@ sub  get_waterlevel {
 	
 	return ($self->{data}->{info}->{waterlevel});
 }
+
+sub  get_rainstatus {
+	my ($self) = @_;
+	
+	return ($self->{data}->{info}->{rain_sensor_status});
+}
+
+sub  get_wto_params {
+	my ($self,$param) = @_;
+	if ($self->{data}->{options}->{fwv} < 215) {
+		  main::print_log("[OpenSprinkler] Error wto settings not available on firmware 2.14 or older");
+		  return undef;
+	}
+
+	if ($param) {
+		if (defined  $self->{data}->{info}->{adjustment_details}->{$param}) {
+			return $self->{data}->{info}->{adjustment_details}->{$param};
+		} else {
+	  		main::print_log("[OpenSprinkler] Error unknown wto parameter $param");
+	  		return undef;
+	  	}	
+	}
+	return ($self->{data}->{info}->{adjustment_details}->{humid},$self->{data}->{info}->{adjustment_details}->{temp},$self->{data}->{info}->{adjustment_details}->{rain});
+}
+
+sub set_wto_params {
+	my ($self,$humid,$temp,$rain) = @_;
+	$humid = $self->{data}->{info}->{adjustment_details}->{humid} if ($humid eq "");
+	$temp = $self->{data}->{info}->{adjustment_details}->{temp} if ($temp eq "");
+	$rain = $self->{data}->{info}->{adjustment_details}->{rain} if ($rain eq "");
+
+	my $string = _url_encode('"h":' . $humid . ',"t":' . $temp . ',"r":' . $rain);
+  	my $cmd = "&wto=$string";
+	#print "wto cmd = $cmd\n";
+  	my ($isSuccessResponse,$status) = $self->_push_JSON_data('set_options',$cmd);
+    if ($status eq "success") { #todo parse return value
+      		$self->poll;
+      		return (1);
+    	} else {
+        	main::print_log("[OpenSprinkler] Error. Could not set wto parameter to $humid,$temp,$rain");
+        	return (0);
+    	}}
+
+sub set_wto_temp {
+	my ($self,$temp) = @_;
+	
+	my $status = $self->set_wto_params("",$temp,"");
+	return ($status);
+}
+
+sub set_wto_humid {
+	my ($self,$humid) = @_;
+	
+	my $status = $self->set_wto_params($humid,"","");
+	return ($status);
+}
+
+sub set_wto_rain {
+	my ($self,$rain) = @_;
+	
+	my $status = $self->set_wto_params("","",$rain);
+	return ($status);
+}
+
 
 sub  get_rainstatus {
 	my ($self) = @_;
