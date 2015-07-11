@@ -71,6 +71,7 @@ sub new {
    $self->{host} = $host;        
    $self->{debug} = 0;
    $self->{loglevel} = 1;
+   $self->{status} = "";
    $self->{timeout} = 15; #300;
 
    $self->_init;
@@ -154,23 +155,23 @@ sub poll {
     		$self->{data}->{sensors} = $sensors;
     		$self->{data}->{timestamp} = time;
     		$self->{data}->{retry} = 0;
-    		if (defined $self->{child_object}->{comm}) {
-    			if ($self->{child_object}->{comm}->state() ne "online") {
-	  		       main::print_log "[Venstar Colortouch] Communication Tracking object found. Updating..." if ($self->{loglevel});
-	  		       $self->{child_object}->{comm}->set("online",'poll');
-	  		   }
-	  	    }
+    		#if (defined $self->{child_object}->{comm}) {
+    		#	if ($self->{child_object}->{comm}->state() ne "online") {
+	  		#       main::print_log "[Venstar Colortouch:". $self->{data}->{name} . "]] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to online..." if ($self->{loglevel});
+	  		#       $self->{child_object}->{comm}->set("online",'poll');
+	  		#   }
+	  	    #}
     		return ('1');
-  		} else {
-  			main::print_log("[Venstar Colortouch:". $self->{data}->{name} . "] Problem retrieving poll data from " . $self->{host});
-  			$self->{data}->{retry}++;
-  			if (defined $self->{child_object}->{comm}) {
-  			   if ($self->{child_object}->{comm}->state() ne "offline") {
-	  		      main::print_log "[Venstar Colortouch] Communication Tracking object found. Updating..." if ($self->{loglevel});
-	  		      $self->{child_object}->{comm}->set("offline",'poll');
-	  		   }
-	  	    }
-    		return ('0');
+  		#} else {
+  		#	main::print_log("[Venstar Colortouch:". $self->{data}->{name} . "] Problem retrieving poll data from " . $self->{host});
+  		#	$self->{data}->{retry}++;
+  		#	if (defined $self->{child_object}->{comm}) {
+  		#	   if ($self->{child_object}->{comm}->state() ne "offline") {
+	  	#	      main::print_log "[Venstar Colortouch:". $self->{data}->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to offline..." if ($self->{loglevel});
+	  	#	      $self->{child_object}->{comm}->set("offline",'poll');
+	  	#	   }
+	  	#   }
+    	#	return ('0');
   		}
 
 }
@@ -200,16 +201,18 @@ sub _get_JSON_data {
     if (! $isSuccessResponse ) {
 	main::print_log("[Venstar Colortouch:". $self->{data}->{name} . "] Warning, failed to get data. Response code $responseCode");
     if (defined $self->{child_object}->{comm}) {
-      	if ($self->{child_object}->{comm}->state() ne "offline") {
-	    main::print_log "[Venstar Colortouch] Communication Tracking object found. Updating to offline..." if ($self->{loglevel});
+      	if ($self->{status} eq "online") {
+	    main::print_log "[Venstar Colortouch:". $self->{data}->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to offline..." if ($self->{loglevel});
+	    $self->{status} = "offline";
 	    $self->{child_object}->{comm}->set("offline",'poll');
 	    }
 	}
 	return ('0');
     } else {
        if (defined $self->{child_object}->{comm}) {
-       	 if ($self->{child_object}->{comm}->state() ne "online") {
-	        main::print_log "[Venstar Colortouch] Communication Tracking object found. Updating to online..." if ($self->{loglevel});
+       	 if ($self->{status} eq "offline") {
+	        main::print_log "[Venstar Colortouch:". $self->{data}->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to online..." if ($self->{loglevel});
+	    	$self->{status} = "online";
 	        $self->{child_object}->{comm}->set("online",'poll');
 	      }
 	   }
@@ -413,15 +416,17 @@ sub _push_JSON_data {
   if (! $isSuccessResponse ) {
 	main::print_log("[Venstar Colortouch:". $self->{data}->{name} . "] Warning, failed to push data. Response code $responseCode");
     if (defined $self->{child_object}->{comm}) {
-    	if ($self->{child_object}->{comm}->state() ne "offline") {
-	      main::print_log "[Venstar Colortouch] Communication Tracking object found. Updating..." if ($self->{loglevel});
+    	if ($self->{status} eq "online") {
+	      main::print_log "[Venstar Colortouch:". $self->{data}->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to offline..." if ($self->{loglevel});
+		  $self->{status} = "offline";
 	      $self->{child_object}->{comm}->set("offline",'poll');
 	    }
 	}
   } else {
     if (defined $self->{child_object}->{comm}) {
-       if ($self->{child_object}->{comm}->state() ne "online") {
-	     main::print_log "[Venstar Colortouch] Communication Tracking object found. Updating..." if ($self->{loglevel});
+       if ($self->{status} eq "offline") {
+	     main::print_log "[Venstar Colortouch:". $self->{data}->{name} . "] Communication Tracking object found. Updating from " . $self->{child_object}->{comm}->state() . " to online..." if ($self->{loglevel});
+		 $self->{status} = "online";
 	     $self->{child_object}->{comm}->set("online",'poll');
 	    }
 	}
