@@ -400,7 +400,7 @@ var loadList = function() {
 				else if(json_store.objects[entity].type == "Group" ||
 					    json_store.objects[entity].type == "Type" ||
 					    json_store.objects[entity].type == "Category"){
-					json_store.objects[entity] = json_store.objects[entity];
+					//??json_store.objects[entity] = json_store.objects[entity];
 					var object = json_store.objects[entity];
 					button_text = entity;
 					if (object.label !== undefined) button_text = object.label;
@@ -412,10 +412,14 @@ var loadList = function() {
 					else if (json_store.objects[entity].type == "Type") {
 						filter_args = "type="+entity;
 					}
+					var dbl_btn = "";
+					if (json_store.ia7_config.prefs.always_double_buttons == "yes") {
+						if (entity.length < 30) dbl_btn = "<br><br>"; 
+					}
 					button_html = "<div style='vertical-align:middle'><a role='button' listType='objects'";
 					button_html += "class='btn btn-default btn-lg btn-block btn-list btn-division navbutton-padding'";
-					button_html += "href='#path=/objects&"+filter_args+"&_collection_key="+collection_key+",$" + entity +"' >";
-					button_html += "" +button_text+"</a></div>";
+					button_html += "href='#path=/objects&"+filter_args+"&_collection_key="+collection_key+",$" + entity + "' >";
+					button_html += "" +button_text + dbl_btn +"</a></div>";
 					entity_arr.push(button_html);
 					continue;
 				}
@@ -429,7 +433,7 @@ var loadList = function() {
 					var dbl_btn = "";
 					if (json_store.ia7_config.prefs.always_double_buttons == "yes") {
 						if (name.length < 30) dbl_btn = "<br>"; 
-						if (json_store.objects[entity].state == undefined) dbl_btn += "<br>";
+			//			if (json_store.objects[entity].state == undefined) dbl_btn += "<br>";
 					}
 					button_html = "<div style='vertical-align:middle'><button entity='"+entity+"' ";
 					button_html += "class='btn btn-"+color+" btn-lg btn-block btn-list btn-popover btn-state-cmd navbutton-padding'>";
