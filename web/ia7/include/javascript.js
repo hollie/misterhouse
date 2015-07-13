@@ -1245,6 +1245,18 @@ var create_state_modal = function(entity) {
 			if (modal_states[i] == json_store.objects[entity].state) {
 				disabled = "disabled";
 			}
+			//global override
+			if (json_store.ia7_config.prefs.disable_current_state == "no") {
+            	disabled = "";
+			}
+			//per object override
+			if (json_store.ia7_config.objects[entity] !== undefined) {
+                if (json_store.ia7_config.objects[entity].disable_current_state == "yes") {
+                                disabled = "disabled";
+                } else {
+                                disabled = "";
+                }
+			}
 			$('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-3 col-xs-3 btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");
 						
 		}
