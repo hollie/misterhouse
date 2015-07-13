@@ -1052,7 +1052,7 @@ sub generate_code(@){
         #   $object = "PLCBUS_Item('$name', '$home', '$unit')";
     }
 
-    my $more 
+    my $more ;
     ## 3 spaces instead of "my " means global mh object!
     if (!$homes->{$home})
     {
