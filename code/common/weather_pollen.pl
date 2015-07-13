@@ -55,17 +55,19 @@ $p_pollen_forecast = new Process_Item("get_url http://www.claritin.com/weatherpo
 &parse_pollen_forecast if (($Reload) && (-e $pollen_file));
 
 sub parse_pollen_forecast {
-	my @pollen_data = file_read($pollen_file) || warn "Unable to open pollen data file.";
+	my $pollen_data = file_read($pollen_file) || warn "Unable to open pollen data file.";
 	# The JSON file that is retuned by the service is malformed; these substitutions clean it up so that the perl JSON module can parse it.
-	for (@pollen_data) {
+	for ($pollen_data) {
 		s/\"\{/\{/;
 		s/\\//g;
 		s/\}\"/\}/;
 	}
-	my $json = decode_json(@pollen_data) || warn "Error parsing pollen info from file.";
+	my $json = decode_json($pollen_data) || warn "Error parsing pollen info from file.";
 	$main::Weather{TodayPollenCount} = $json->{pollenForecast}{forecast}[0];
 	$main::Weather{TomorrowPollenCount} = $json->{pollenForecast}{forecast}[1];
 	$main::Weather{TodayPollenType} = $json->{pollenForecast}{pp};
+	# Format the pollen type text to remove any leading spaces or trailing periods.
+	$main::Weather{TodayPollenType} =~ s/^\s//;
 	$main::Weather{TodayPollenType} =~ s/\.//;
 }
 
