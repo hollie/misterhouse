@@ -1265,7 +1265,7 @@ var create_state_modal = function(entity) {
 				disabled = "disabled";
 			}
 			//global override
-			if (json_store.ia7_config.prefs.disable_current_state == "no") {
+			if (json_store.ia7_config.prefs.disable_current_state !== undefined && json_store.ia7_config.prefs.disable_current_state == "no") {
             	disabled = "";
 			}
 			//per object override
