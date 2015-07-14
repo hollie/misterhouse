@@ -1257,7 +1257,7 @@ var create_state_modal = function(entity) {
 			if (buttonlength > group_buttons) {
 				stategrp++;
 				$('#control').find('.states').append("<div class='btn-group btn-block stategrp"+stategrp+"'></div>");
-				buttonlength = 0;
+				buttonlength = 1;
 			}
 			var color = getButtonColor(modal_states[i])
 			var disabled = ""
@@ -1269,8 +1269,8 @@ var create_state_modal = function(entity) {
             	disabled = "";
 			}
 			//per object override
-			if (json_store.ia7_config.objects[entity] !== undefined) {
-                if (json_store.ia7_config.objects[entity].disable_current_state == "yes") {
+			if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
+                if (json_store.ia7_config.objects[entity].disable_current_state !== undefined && json_store.ia7_config.objects[entity].disable_current_state == "yes") {
                                 disabled = "disabled";
                 } else {
                                 disabled = "";
