@@ -25,13 +25,13 @@
 	
 	<!--Bootstrap-->
 	<!-- Latest compiled and minified CSS -->
-	<link rel="stylesheet" href="/ia7/include/bootstrap.3.0.2.min.css">
+	<link rel="stylesheet" href="/ia7/include/bootstrap.3.3.5.min.css">
 	
 	<!-- Optional theme -->
-	<link rel="stylesheet" href="/ia7/include/bootstrap-theme.3.0.2.min.css">
+	<link rel="stylesheet" href="/ia7/include/bootstrap-theme.3.3.5.min.css">
 	
 	<!-- Latest compiled and minified bootstrap JavaScript -->
-	<script src="/ia7/include/bootstrap.3.0.2.min.js"></script>
+	<script src="/ia7/include/bootstrap.3.3.5.min.js"></script>
 	
 	<!-- bootstrap editable -->
 	<link href="/ia7/include/bootstrap3-editable.1.5.0.css" rel="stylesheet"/>

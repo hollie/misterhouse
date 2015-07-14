@@ -1221,21 +1221,40 @@ var create_state_modal = function(entity) {
 		$('#control').find('.control-dialog').attr("entity", entity);
 		var modal_states = json_store.objects[entity].states;
 		// HP need to have at least 2 states to be a controllable object...
+		if (modal_states == undefined) modal_states = 1;
 		if (modal_states.length > 1) {
 			$('#control').find('.states').html('<div class="btn-group stategrp0 btn-block"></div>');
 			var modal_states = json_store.objects[entity].states;
 			var buttonlength = 0;
 			var stategrp = 0;
 			var advanced_html = "";
+			var display_buttons = 0;
+			var grid_buttons = 3;
+			var group_buttons = 4;
+			// get number of displayed buttons so we can display nicely.
+			for (var i = 0; i < modal_states.length; i++){
+				if (filterSubstate(modal_states[i]) !== 1) display_buttons++
+			}
+			if (display_buttons == 2) {
+				grid_buttons = 6;
+				group_buttons = 2;
+			}
+			if (display_buttons % 3 == 0) {
+				grid_buttons = 4;
+				group_buttons = 3;
+			}
+			//console.log("display buttons="+display_buttons+" grid_buttons="+grid_buttons+" group_buttons="+group_buttons); 
+			
 			for (var i = 0; i < modal_states.length; i++){
 				if (filterSubstate(modal_states[i]) == 1) {
-				advanced_html += "<button class='btn btn-default col-sm-3 col-xs-3 hidden'>"+modal_states[i]+"</button>";
+				advanced_html += "<button class='btn btn-default col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" hidden'>"+modal_states[i]+"</button>";
 				continue 
 			} else {
-//TODO: Maybe just count buttons to create groups, organize them a bit better, <4 buttons, do a block?
-				buttonlength += 2 + modal_states[i].length 
+				//buttonlength += 2 + modal_states[i].length 
+				buttonlength ++;
 			}
-			if (buttonlength >= 25) {
+			//if (buttonlength >= 25) {
+			if (buttonlength > group_buttons) {
 				stategrp++;
 				$('#control').find('.states').append("<div class='btn-group btn-block stategrp"+stategrp+"'></div>");
 				buttonlength = 0;
@@ -1257,7 +1276,7 @@ var create_state_modal = function(entity) {
                                 disabled = "";
                 }
 			}
-			$('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-3 col-xs-3 btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");
+			$('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");
 						
 		}
 		$('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
