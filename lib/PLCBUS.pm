@@ -328,25 +328,29 @@ my %hex_to_cmd =(
 ########
 
 
+sub __log{
+    my ($msg, $global_log, $loglevel) = @_;
+    &main::print_log("PLC: $msg") if $global_log;
+    &::logit("$main::config_parms{data_dir}/logs/plcbus.log", "$loglevel: $msg");
+}
 sub _log{
-    my $prefix = "PLCBUS";
-    &main::print_log("$prefix: @_");
-}
-sub _logd{
-    return unless $::Debug{plcbus};
-    _log(@_);
-}
-sub _logdd{
-    return unless ($::Debug{plcbus} && $::Debug{plcbus} > 1);
-    _log(@_);
-}
-sub _logddd{
-    return unless ($::Debug{plcbus} && $::Debug{plcbus} > 2);
-    _log(@_);
+    __log("@_", 1, "I");
 }
 
 sub _logw{
-    _log("W: @_");
+    __log("@_", 1, "W");
+}
+
+sub _logd{
+    __log("@_", $::Debug{plcbus}, "V");
+}
+sub _logdd{
+    my $mh_log = ($::Debug{plcbus} && $::Debug{plcbus} > 1);
+    __log("@_", $mh_log, "D");
+}
+sub _logddd{
+    my $mh_log = ($::Debug{plcbus} && $::Debug{plcbus} > 2);
+    __log("@_", $mh_log, "T");
 }
 
 sub bin_rep($){
@@ -359,7 +363,12 @@ sub hex_rep($){
 sub _new_instance {
     my ($class) = @_;
     my $self  = bless { }, $class;
-    _log("debuglevel: $::Debug{plcbus}");
+    if($::Debug{plcbus}){
+        _log("debug log: $::Debug{plcbus}") ;
+    }
+    else{
+        _log("plcbus debug logging disabled.") ;
+    }
     my $serial = $::config_parms{plcbus_serial_port};
     die ("plcbus interface missing. Set 'plcbus_serial_port' in mh.private.ini") unless $serial;
 
@@ -430,7 +439,7 @@ sub add_device($){
     my $home = $dev->{home};
     my $unit = $dev->{unit};
     $self->{plc_devices}{$home}{$unit}  = $dev;
-    _logd ("$dev->{name} $home$unit added");
+    _logd ("$home$unit $dev->{name} added to devicelist");
 }
 
 sub _handle_commands (){
@@ -441,7 +450,7 @@ sub _handle_commands (){
     return unless $self->_can_transmit();
 
     $self->{current_cmd} = shift @{$self->{command_queue}};
-    _logddd("sending: ". Dumper($self->{current_cmd}));
+    #_logddd("sending: ". Dumper($self->{current_cmd}));
     $self->_write_current_command();
     $self->_log_waiting_commands();
 }
@@ -474,6 +483,8 @@ sub _handle_incoming_commands{
     my $rxtx = $dec->{rxtx};
 
     if (defined($self->{current_cmd})){
+        $dec->{setby} = $self->{current_cmd}->{setby};
+        $dec->{respond} = $self->{current_cmd}->{respond};
         if ($rxtx->{R_ITSELF}) {
             $self->{current_cmd}->{echo_seen} = 1;
             # _logd("Received myself on PLCBUS.");
@@ -572,7 +583,8 @@ sub _check_external_plcbus_command_file(){
                 unit => $d[1],
                 cmd  => $d[2],
                 d1   => $d[3],
-                d2   => $d[4]
+                d2   => $d[4],
+                setby => 'pclbus cmd file',
             }) unless ($line eq "");
     }
     close FD;
@@ -621,8 +633,8 @@ sub _is_current_command_complete(){
     if ($ok && !$self->{current_cmd}->{completed}){
         $self->{current_cmd}->{completed} = 1;
         $self->{current_cmd}->{duration} = Time::HiRes::tv_interval($self->{current_cmd}->{last_write});
-        _logdd("completion of '$self->{current_cmd}->{cmd}' took $self->{current_cmd}->{duration} (max allowed: ". $self->_get_timeout().")");
-        $self->{current_cmd} = undef;
+        my $name = "$self->{current_cmd}->{home}$self->{current_cmd}->{unit}";
+        _logdd("$name completed within $self->{current_cmd}->{duration} (allowed: ". $self->_get_timeout().")");
     }
     return $ok;
 }
@@ -631,7 +643,7 @@ sub _get_timeout(){
     my ($self) =@_;
     my $t_one_packet = 0.500;#worst case to send on comand on the BUS
     my $timeout = $t_one_packet;
-    $timeout += 0.300; # mh loop time  is 0.250 if all goes well.. but 
+    $timeout += 0.300; # grace time...
     if ($self->{current_cmd}->{three_phase}){
         $timeout += $t_one_packet; # replay from phasecoupler
     }
@@ -658,28 +670,24 @@ sub _has_current_command_timeout(){
     if($diff < $maxwait){
         return 0;
     }
-    my $c=$self->_get_module_name($self->{current_cmd}->{home},$self->{current_cmd}->{unit}). ",$self->{current_cmd}->{cmd}";
-    if($self->{current_cmd}->{data}){
-        $c .= ",$self->{current_cmd}->{d1}" ;
-        $c .= ",$self->{current_cmd}->{d2}" ;
-    }
-    $c .= ",";
-    $c .= $self->{current_cmd}->{three_phase}? "3" : "1";
-    $c .= "-Phase";
-    my $msg = "TIMEOUT($diff) '$c': ";
+    my ($home,$unit) =($self->{current_cmd}->{home},$self->{current_cmd}->{unit});
+    my $name = "$home$unit";
+    my $c = $self->{current_cmd}->{three_phase}? "3" : "1";
+    $c .= "-Phase command";
+    my $msg = "timeout $c after ${diff}s ";
     if ($self->{current_cmd}->{what}){
         $msg .=  $self->{current_cmd}->{what};
     }
-    _logw("$msg");#\n" .Dumper($self->{current_cmd}));
+    _logw("$name $msg");#\n" .Dumper($self->{current_cmd}));
     return 1;
 }
 
 sub _get_module_name($$){
-    my ($self, $home,$unit) = @_;
+    my ($self, $home, $unit) = @_;
     my $name = "$home$unit";
     my $module =$self->{plc_devices}{$home}{$unit};
     if ($module) {
-        $name = "$module->{name}($name)";
+        $name .= " $module->{name}";
     }
     return $name;
 }
@@ -690,18 +698,13 @@ sub _check_current_command(){
          _logddd("no ongoing cmd");
         return 1;
     }
-    elsif ($self->_is_current_command_complete()){
-         _logddd("cmd deleted after completed");
-        $self->{current_cmd} = undef; 
-        return 1;
+
+    my $delete_cmd = 0;
+    if ($self->_is_current_command_complete()){
+        $delete_cmd = 1;
     }
     elsif ($self->_has_current_command_timeout()){
-         $self->{current_cmd} = undef; 
-         _logddd("cmd deleted after timeout");
-        return 1;
-    }
-    else{
-        return 0;
+        $delete_cmd = 1;
     }
 }
 
@@ -841,7 +844,7 @@ sub _decode_incoming($) {
         $rx_decoded->{d2} = $rx_data2;
     }
 
-    my $m =  "< $home$unit:" . sprintf (" %02x"x scalar @rx, @rx) . " => ";
+    my $m =  "$home$unit RX " . sprintf (" %02x"x scalar @rx, @rx) . " => ";
 
     $m .=  _command_to_string ($rx_command);
 
@@ -881,7 +884,14 @@ sub queue_command {
     }
 
     push (@{$self->{command_queue}},$command);
-    _logd("queued '$command->{home}$command->{unit} $command->{cmd}'");
+
+    my $msg = $self->_get_module_name($command->{home}, $command->{unit});
+
+    $msg .= " queued '$command->{cmd}";
+    $msg .= " d1=$command->{d1}" if $command->{d1};
+    $msg .= " d2=$command->{d2}" if $command->{d2};
+    $msg .= "'";
+    _logd($msg);
 }
 
 sub _write_current_command {
@@ -910,8 +920,8 @@ sub _write_current_command {
 
     my $usercode = _get_user_code();
 
-    my $m = sprintf("> $home$unit:". " %02x"x8 , $tx_STX, $tx_length, $usercode, $tx_home_unit, $tx_command, $tx_data1, $tx_data2, $tx_ETX);
-    $m .= "   => ". _command_to_string ($tx_command);
+    my $m = sprintf("$home$unit TX ". " %02x"x8 , $tx_STX, $tx_length, $usercode, $tx_home_unit, $tx_command, $tx_data1, $tx_data2, $tx_ETX);
+    $m .= "    => ". _command_to_string ($tx_command);
     my $tx = pack('C*', $tx_STX,$tx_length, $usercode, $tx_home_unit, $tx_command, $tx_data1, $tx_data2, $tx_ETX);
 
     my $result = $self->{plcbussrv_connection}->send($tx);
@@ -1043,7 +1053,7 @@ sub generate_code(@){
    my $home_name = "PLCBUS_$home";
    # $grouplist .= "|$phome";
 
-    _logd("$address: '$type' => '$name', groups: '$grouplist'");
+    _logd("$address $name '$type' groups: '$grouplist'");
     my $object ;
     if ($type =~ /^PLCBUS_(\d{4}).*/i){
         $object =  "PLCBUS_$1('$name', '$home','$unit', '$grouplist')";
@@ -1326,23 +1336,31 @@ sub get_voice_cmds {
 sub handle_incoming {
     my ( $self, $c ) = @_;
     my $msg;
+    my $setby = "PLCBUSInc" ;
+    $setby =$c->{setby} if ($c->{setby});
+
+    my $data = "";
+    $data .= "d1=$c->{d1} " if $c->{d1};
+    $data .= "d2=$c->{d2}"  if $c->{d2};
     if ( $c->{cmd} eq "status_on" ) {
-        $msg = "On " . $c->{d1};
-        $self->_set("on","PLCBUSInc");
+        $msg = "On $data";
+        $self->_set("on", $setby);
     }
     elsif ( $c->{cmd} eq "status_off" ) {
-        $msg = "Off";
-        $self->_set("off","PLCBUSInc");
+        $msg = "Off $data";
+        $self->_set("off", $setby);
     }
     elsif ( $c->{cmd} eq "report_signal_strength" ) {
-        $msg = "Signal strength is " . $c->{d1};
+        $msg = "Signal strength is $data";
     }
     elsif ( $c->{cmd} eq "report_noise_strength" ) {
-        $msg = "Noise is " . $c->{d1};
+        $msg = "Noise is $data";
     }
 
     if ($msg) {
-        &::speak("$self->{name} $msg") if $::config_parms{plcbus_speak};
+        if ($c->{respond}){
+            &::respond($c->{respond}, $msg);
+        }
         $self->_log($msg);
     }
 }
@@ -1392,7 +1410,7 @@ sub set {
 
     if ($new_state ~~ @light_cmds) {
         if ( $new_state ne $self->{state} ) {
-            $self->command($new_state); 
+            $self->command($new_state, undef, undef, $setby, $respond); 
         }
         else { 
             $self->_logd("Already in state $new_state"); 
@@ -1403,7 +1421,7 @@ sub set {
     }
     elsif ( $new_state ~~ @plc_cmds ) {
         $new_state =~ s/ /_/g;
-        $self->command($new_state); 
+        $self->command($new_state, undef, undef, $setby, $respond); 
     }
     elsif ( $new_state =~ /(.*) phase/ ) {
         if ( $1 =~ /.*mh ini.*/ ) {
@@ -1422,7 +1440,7 @@ sub set {
 }
 
 sub command {
-    my ( $self, $cmd, $d1, $d2 ) = @_;
+    my ( $self, $cmd, $d1, $d2, $setby, $respond ) = @_;
     my $msg = "$cmd";
     $msg .= " d1=$d1" if $d1;
     $msg .= " d2=$d2" if $d2;
@@ -1431,7 +1449,9 @@ sub command {
     my $unit = $self->{unit};
     PLCBUS->instance()
         ->queue_command(
-        { home => $home, unit => $unit, cmd => $cmd, d1 => $d1, d2 => $d2 } );
+            { home => $home, unit => $unit, cmd => $cmd,
+                d1 => $d1, d2 => $d2, setby => $setby,
+                respond => $respond} );
 }
 
 sub _get_phase_mode(){
