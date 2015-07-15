@@ -435,8 +435,15 @@ var loadList = function() {
 						if (name.length < 30) dbl_btn = "<br>"; 
 			//			if (json_store.objects[entity].state == undefined) dbl_btn += "<br>";
 					}
+					// direct control item, differentiate the button
+					var btn_direct = "";
+					if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
+                		if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
+                            btn_direct = "btn-direct";
+                		}
+                	} 
 					button_html = "<div style='vertical-align:middle'><button entity='"+entity+"' ";
-					button_html += "class='btn btn-"+color+" btn-lg btn-block btn-list btn-popover btn-state-cmd navbutton-padding'>";
+					button_html += "class='btn btn-"+color+" btn-lg btn-block btn-list btn-popover "+btn_direct+" btn-state-cmd navbutton-padding'>";
 					button_html += name+dbl_btn+"<span class='pull-right'>"+json_store.objects[entity].state+"</span></button></div>";
 					entity_arr.push(button_html);
 				}
@@ -481,8 +488,31 @@ var loadList = function() {
 			});
 			$(".btn-state-cmd").click( function () {
 				var entity = $(this).attr("entity");
-				create_state_modal(entity);
+				if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
+                	if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
+                         //console.log("This is a direct control object "+entity+" state="+json_store.objects[entity].state+" length="+json_store.objects[entity].states.length);
+                         var new_state = "";
+                         var possible_states = 0;
+                         for (var i = 0; i < json_store.objects[entity].states.length; i++){
+                         	if (filterSubstate(json_store.objects[entity].states[i]) == 1) continue;
+                         	//console.log("state "+i+" is "+json_store.objects[entity].states[i])
+                         	possible_states++;
+                         	if (json_store.objects[entity].states[i] !== json_store.objects[entity].state) new_state = json_store.objects[entity].states[i]
+                         	}
+                        //console.log("End states = "+i+" new_state="+new_state)
+						if ((possible_states > 2) || (new_state == "")) alert("Check configuration of "+entity+". "+possible_states+" states detected for direct control object. State is "+new_state);
+						url= '/SET;none?select_item='+entity+'&select_state='+new_state;
+						$.get( url);
+                	} 
+				} else {				
+					create_state_modal(entity);
+				}
 			});
+			$(".btn-state-cmd").mayTriggerLongClicks().on( 'longClick', function() {		
+				var entity = $(this).attr("entity");
+				create_state_modal(entity);
+			});			
+			
 		}
 	});
 	// Continuously check for updates if this was a group type request
@@ -1081,7 +1111,6 @@ var floorplan = function(group,time) {
 												if (filterSubstate(po_states[i]) == 1) {
 													continue 
 												} else {
-//TODO: Maybe just count buttons to create groups, organize them a bit better, <4 buttons, do a block?
 													buttons++ 
 												//}
 												if (buttons > 2) {
@@ -1092,6 +1121,7 @@ var floorplan = function(group,time) {
 												//console.log ("name="+fp_entity+" buttons="+buttons)
 										
 												var color = getButtonColor(po_states[i])
+//TODO disabled override
 												var disabled = ""
 												if (po_states[i] == json_store.objects[fp_entity].state) {
 													disabled = "disabled";
@@ -1118,6 +1148,10 @@ var floorplan = function(group,time) {
 									create_state_modal(fp_entity);
 								});	
 							}
+							$('#entity_'+entity+'_'+i).mayTriggerLongClicks().on( 'longClick', function() {		
+									var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
+									create_state_modal(fp_entity);
+							});	
 						}
  					}
  				}
