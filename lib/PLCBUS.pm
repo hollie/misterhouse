@@ -717,7 +717,6 @@ sub _can_transmit(){
     }
 
     if(scalar @{$self->{command_queue}} == 0){
-        _logddd("CMD queue is empty");
         return 0;
     }
 
