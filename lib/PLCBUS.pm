@@ -734,10 +734,13 @@ sub _can_transmit(){
     # stupid plcbus pc interface seems to get to hot and
     # or chokes if it gets too much/too fast/too often data, i don't 
     # get it... bitchy thingy... hope this helps
+    #
+    # there is also a chance of the last command beeing repeated by 
+    # the coupler or the the sender e.g. report_only_on_pulse
     my $diff= Time::HiRes::tv_interval($last_data_to_from_bus);
-    if($diff < 0.750) 
+    if($diff < 0.500) 
     {
-        _logddd("to early... $diff");
+        #_logddd("to early... $diff");
         return 0;
     }
 
