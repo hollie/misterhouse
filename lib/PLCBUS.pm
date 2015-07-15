@@ -1282,15 +1282,20 @@ package PLCBUS_Item;
 @PLCBUS_Item::ISA = ('Generic_Item');
 
 sub _logd ($$) {
-    return unless ( $::Debug{plcbus_module} && $::Debug{plcbus_module} > 1 );
     my ( $self, @msg ) = @_;
-    $self->_log(@msg);
+    my $global_log = ( $::Debug{plcbus_module} && $::Debug{plcbus_module} > 1 );
+    $self->__log("@msg", $global_log ,"V");
 }
 
 sub _log {
-    return unless $::Debug{plcbus_module};
     my ( $self, @msg ) = @_;
-    PLCBUS::_log("$self->{name}: @msg");
+    my $global_log = $::Debug{plcbus_module};
+    $self->__log("@msg", $global_log ,"I");
+}
+
+sub __log($$$){
+    my ( $self, $msg, $global_log, $level ) = @_;
+    PLCBUS::__log("$self->{name}: $msg", $global_log ,$level);
 }
 
 sub new {
