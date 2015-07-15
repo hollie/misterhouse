@@ -707,6 +707,16 @@ sub _check_current_command(){
     elsif ($self->_has_current_command_timeout()){
         $delete_cmd = 1;
     }
+
+    if ($delete_cmd)
+    {
+        _logdd("command removed");
+        $self->{current_cmd} = undef;
+        return 0;
+    }
+
+    return 1;
+
 }
 
 my $last_data_to_from_bus = [Time::HiRes::gettimeofday()];
