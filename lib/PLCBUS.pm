@@ -697,7 +697,6 @@ sub _get_module_name($$){
 sub _check_current_command(){
     my ($self) = @_;
     if (!defined($self->{current_cmd})){
-         _logddd("no ongoing cmd");
         return 1;
     }
 
