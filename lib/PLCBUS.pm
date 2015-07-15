@@ -331,7 +331,9 @@ my %hex_to_cmd =(
 sub __log{
     my ($msg, $global_log, $loglevel) = @_;
     &main::print_log("PLC: $msg") if $global_log;
-    &::logit("$main::config_parms{data_dir}/logs/plcbus.log", "$loglevel: $msg");
+
+    my $logfile = "$main::config_parms{data_dir}/logs/plcbus.log";
+    &::logit($logfile, "$loglevel: $msg") if $::config_parms{plcbus_logfile};
 }
 sub _log{
     __log("@_", 1, "I");
@@ -1134,6 +1136,7 @@ started by this module
     plcbus_command_file=/tmp/plcbuscommands
     plcbussrv_port=4567
     debug=plcbus:2|plcbus_module:2
+    plcbus_logfile=1
 
 =over
 
@@ -1162,6 +1165,16 @@ PLCBUS.pm
 =item B<plcbussrv_port>
 
 TCP port to use for the plcbussrv server process. Default is '4567'
+
+=item B<plcbus_logfile>
+
+if set to '1' a seperate logfile
+"$main::config_parms{data_dir}/logs/plcbus.log" with all plcbus logging is
+created. This may help to keep the global mh logfile clean while still being
+able to debug plcbus. All logmessages are written regardless of your 'debug='
+setting.
+
+if set to '0' or omitted, no logfile is created.
 
 =back
 
