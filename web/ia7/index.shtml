@@ -24,11 +24,6 @@
 	<script src="/ia7/include/jquery.1.10.2.min.js"></script>
 	<script src="/ia7/include/jquery.longclick-1.0.min.js"></script>
 	
-	<!-- <script src="/ia7/include/jquery.mobile-1.4.5.min.js"></script> -->
-	<!-- <link rel="stylesheet" href="/ia7/include/jquery.mobile-1.4.5.min.css"> -->
-	<!-- <script src="/ia7/include/jquery-1.11.3.min.js"></script> -->
-	<!-- <script src="/ia7/include/jquery.mobile-1.4.5.min.js"></script> -->
-	
 	<!--Bootstrap-->
 	<!-- Latest compiled and minified CSS -->
 	<link rel="stylesheet" href="/ia7/include/bootstrap.3.3.5.min.css">
@@ -41,10 +36,10 @@
 	
 	<!-- bootstrap editable -->
 	<link href="/ia7/include/bootstrap3-editable.1.5.0.css" rel="stylesheet"/>
-  <script src="/ia7/include/bootstrap3-editable.1.5.0.min.js"></script>
+    <script src="/ia7/include/bootstrap3-editable.1.5.0.min.js"></script>
 	
 	<!-- A custom jquery UI script to enable sortable items -->
-	<script src="include/jquery-ui-1.11.1.custom.min.js"></script>
+	<!-- <script src="include/jquery-ui-1.11.1.custom.min.js"></script> -->
 	
 	<!-- Enables Jquery UI functions to work on touch interfaces -->
   	<!-- <script src="/ia7/include/jquery.ui.touch-punch.0.2.3.min.js"></script> -->

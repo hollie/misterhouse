@@ -503,7 +503,9 @@ var loadList = function() {
 						if ((possible_states > 2) || (new_state == "")) alert("Check configuration of "+entity+". "+possible_states+" states detected for direct control object. State is "+new_state);
 						url= '/SET;none?select_item='+entity+'&select_state='+new_state;
 						$.get( url);
-                	} 
+                	} else {
+                		create_state_modal(entity);
+                	}
 				} else {				
 					create_state_modal(entity);
 				}
