@@ -382,7 +382,9 @@ sub _new_instance {
      $self->{plcbussrv_proc} = new Process_Item(); # to start/stop the plcbussrv server
      $self->{plcbussrv_port} = $::config_parms{plcbussrv_port} || 4567;
 
-    my $c = "plcbussrv /dev/plcbus $self->{plcbussrv_port}"; # &>1 > /home/tob/plc.log";
+     my $plcbusserv_log = "/dev/null";
+     $plcbusserv_log = $::config_parms{plcbussrv_logfile} if $::config_parms{plcbussrv_logfile};
+    my $c = "plcbussrv /dev/plcbus $self->{plcbussrv_port} &>1 > $plcbusserv_log";
      _log($c);
      $self->{plcbussrv_proc}->set($c);
      $self->{plcbussrv_proc}->start();
@@ -1295,7 +1297,8 @@ sub _log {
 
 sub __log($$$){
     my ( $self, $msg, $global_log, $level ) = @_;
-    PLCBUS::__log("$self->{name}: $msg", $global_log ,$level);
+    my $name = "$self->{home}$self->{unit} $self->{name}:";
+    PLCBUS::__log(" $msg", $global_log ,$level);
 }
 
 sub new {
@@ -1307,7 +1310,7 @@ sub new {
     $self->{name} = $name;
     $self->{groups} = $grouplist;
     my @default_states =
-        qw|on off bright dim |;
+        qw|on off bright dim status_req get_noise_strength get_signal_strength|;
     $self->set_states(@default_states);
     $self->_logd("ctor $self->{name} home: $self->{home} unit: $self->{unit}");
     PLCBUS->instance()->add_device($self);
@@ -1444,9 +1447,9 @@ sub set {
         else { 
             $self->_logd("Already in state $new_state"); 
         }
-        if ($new_state eq "on" or $new_state eq "off"){
-            $self->_set($new_state, $setby, $respond);
-        }
+#        if ($new_state eq "on" or $new_state eq "off"){
+#            $self->_set($new_state, $setby, $respond);
+#        }
     }
     elsif ( $new_state ~~ @plc_cmds ) {
         $new_state =~ s/ /_/g;
@@ -1473,7 +1476,6 @@ sub command {
     my $msg = "$cmd";
     $msg .= " d1=$d1" if $d1;
     $msg .= " d2=$d2" if $d2;
-    $self->_logd("send '$msg'");
     my $home = $self->{home};
     my $unit = $self->{unit};
     PLCBUS->instance()
