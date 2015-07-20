@@ -374,20 +374,21 @@ sub _new_instance {
     my $serial = $::config_parms{plcbus_serial_port};
     die ("plcbus interface missing. Set 'plcbus_serial_port' in mh.private.ini") unless $serial;
 
+    $self->{last_data_to_from_bus} = [Time::HiRes::gettimeofday()];
 
-     $self->{current_cmd} = undef; ## currrent active command
-     $self->{command_queue} = []; ## qued commands
-     $self->{plc_devices} = (); # stores a hash of homes. Each home hold a hash of plcbus modules
-     $self->{homes} = (); # only used for code generation so we know which home commands have alreay been created
-     $self->{plcbussrv_proc} = new Process_Item(); # to start/stop the plcbussrv server
-     $self->{plcbussrv_port} = $::config_parms{plcbussrv_port} || 4567;
+    $self->{current_cmd} = undef; ## currrent active command
+    $self->{command_queue} = []; ## qued commands
+    $self->{plc_devices} = (); # stores a hash of homes. Each home hold a hash of plcbus modules
+    $self->{homes} = (); # only used for code generation so we know which home commands have alreay been created
+    $self->{plcbussrv_proc} = new Process_Item(); # to start/stop the plcbussrv server
+    $self->{plcbussrv_port} = $::config_parms{plcbussrv_port} || 4567;
 
-     my $plcbusserv_log = "/dev/null";
-     $plcbusserv_log = $::config_parms{plcbussrv_logfile} if $::config_parms{plcbussrv_logfile};
+    my $plcbusserv_log = "/dev/null";
+    $plcbusserv_log = $::config_parms{plcbussrv_logfile} if $::config_parms{plcbussrv_logfile};
     my $c = "plcbussrv /dev/plcbus $self->{plcbussrv_port} &>1 > $plcbusserv_log";
-     _log($c);
-     $self->{plcbussrv_proc}->set($c);
-     $self->{plcbussrv_proc}->start();
+    _log($c);
+    $self->{plcbussrv_proc}->set($c);
+    $self->{plcbussrv_proc}->start();
     $self->_connect_command_server();
 
     &::MainLoop_pre_add_hook(\&_handle_commands, 'persistent', $self);
@@ -714,14 +715,13 @@ sub _check_current_command(){
     {
         _logdd("command removed");
         $self->{current_cmd} = undef;
-        return 0;
+        return 1;
     }
 
-    return 1;
+    return 0;
 
 }
 
-my $last_data_to_from_bus = [Time::HiRes::gettimeofday()];
 sub _can_transmit(){
     my ($self) = @_;
     if ($self->_check_current_command() == 0){
@@ -739,8 +739,8 @@ sub _can_transmit(){
     #
     # there is also a chance of the last command beeing repeated by 
     # the coupler or the the sender e.g. report_only_on_pulse
-    my $diff= Time::HiRes::tv_interval($last_data_to_from_bus);
-    if($diff < 0.500) 
+    my $diff= Time::HiRes::tv_interval($self->{last_data_to_from_bus});
+    if($diff < 0.500)
     {
         #_logddd("to early... $diff");
         return 0;
@@ -786,7 +786,7 @@ sub _read_packet(){
     my ($self) = @_;
     READ_MORE:
     while (my $b = $self->_read_from_server()){
-        $last_data_to_from_bus =  [Time::HiRes::gettimeofday()];
+        $self->{last_data_to_from_bus} =  [Time::HiRes::gettimeofday()];
         my @u = unpack('C*', $b);
         for my $cur (@u){
             if(scalar @rx_tmp == 0){
@@ -942,7 +942,7 @@ sub _write_current_command {
     my $result = $self->{plcbussrv_connection}->send($tx);
 
     $self->{current_cmd}->{last_write} = [Time::HiRes::gettimeofday()];
-    $last_data_to_from_bus =  [Time::HiRes::gettimeofday()];
+    $self->{last_data_to_from_bus} =  [Time::HiRes::gettimeofday()];
     if (!$result) {
         _log($m . ": WRITE TO COMAND SERVER FAILED");
     }
@@ -1365,6 +1365,12 @@ sub get_voice_cmds {
     return \%voice_cmds;
 }
 
+sub default_setstate{
+    my ( $self, @rest ) = @_;
+    $self->_log("default_setstate @rest");
+
+}
+
 sub handle_incoming {
     my ( $self, $c ) = @_;
     my $msg;
@@ -1376,7 +1382,11 @@ sub handle_incoming {
     $data .= "d2=$c->{d2}"  if $c->{d2};
     if ( $c->{cmd} eq "status_on" ) {
         $msg = "On $data";
-        $self->_set("on", $setby);
+        my $mState = 'on';
+        if ($c->{d1}){
+            #$mState .= ":$c->{d1}";
+        }
+        $self->_set($mState, $setby);
     }
     elsif ( $c->{cmd} eq "status_off" ) {
         $msg = "Off $data";
@@ -1444,7 +1454,7 @@ sub set {
         if ( $new_state ne $self->{state} ) {
             $self->command($new_state, undef, undef, $setby, $respond); 
         }
-        else { 
+        else {
             $self->_logd("Already in state $new_state"); 
         }
 #        if ($new_state eq "on" or $new_state eq "off"){
