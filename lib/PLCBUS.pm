@@ -231,7 +231,7 @@ my %cmd_to_hex =(
         flags => 0x00,
         data => 0,
         description => "(THE SAME USER AND THE SAME HOME) Check the ID PULSE in the same USER & HOME.",
-        expected_response => ['report_all_id_pulse'],
+        expected_response => [ 'report_all_id_pulse' ],
         home_cmd => 1,
         noreplay => 1,
     },
@@ -239,9 +239,8 @@ my %cmd_to_hex =(
         cmd => 0x1D,
         flags => 0x00,
         data => 0,
-        expected_response => ['report_only_on_pulse' ],
+        expected_response => [ 'report_only_on_pulse' ],
         home_cmd => 1,
-        noreplay => 1 ,
         description => "(THE SAME USER AND THE SAME HOME) Check the Only ON ID PULSE in the same USER & HOME."
     },
     report_all_id_pulse => {
@@ -529,6 +528,15 @@ sub _handle_incoming_commands{
        $self->_handle_REPORT_ONLY_ON_PULSE($current_cmd_home,$dec->{d1},$dec->{d2});
        return 1;
    }
+   elsif ($cmd =~ /^report_all_id_pulse$/){
+       # use home of the current command, it looks like 1141/4825(?) sometimes sends home code of previous/random home :-/
+       my $current_cmd_home = $home;
+       if (defined($self->{current_cmd})){
+           $current_cmd_home = $self->{current_cmd}->{home};
+       }
+       $self->_handle_REPORT_ALL_ID_PULSE($current_cmd_home,$dec->{d1},$dec->{d2});
+       return 1;
+   }
    else{
        my $module = $self->{plc_devices}{$home}{$unit};
        if ($module) {
@@ -549,18 +557,33 @@ sub _handle_incoming_commands{
          if ($module) {
              if ( $d_all & (1 << $i)){
                  $module->_set('on');
-                 $on .= ";" if ($on) ;
-                 $on.= $unit;
+                 $on .= " " if ($on) ;
+                 $on .= $self->_get_module_name($home,$unit);
              }
              else{
                  $module->_set('off');
-                 $off .= ";" if ($off);
-                 $off.= $unit;
+                 $off .= " " if ($off);
+                 $off .= $self->_get_module_name($home,$unit);
              }
          }
      }
-     _log("$home: ". bin_rep($d1).bin_rep($d2));
+     _logdd("$home report_only_on_pulse 'd1d2': '". bin_rep($d1).bin_rep($d2)."'");
      _log("$home ON : '$on' OFF: '$off'");
+ }
+
+ sub _handle_REPORT_ALL_ID_PULSE($$$){
+     my ($self, $home,$d1,$d2) = @_;
+     my $d_all = $d1.$d2;
+     my $exist = "";
+     for my $i (0..15){
+         my $unit = $i +1;
+         if ( $d_all & (1 << $i)){
+             $exist .= " " if ($exist) ;
+             $exist .= "$home$unit";
+         }
+     }
+     _logdd("$home report_all_id_pulse 'd1d2': '". bin_rep($d1).bin_rep($d2)."'");
+     _log("$home present: $exist");
  }
 
 sub _check_external_plcbus_command_file(){
@@ -609,23 +632,23 @@ sub _is_current_command_complete(){
    if(!(defined ($self->{current_cmd}))){
        return 1;
    }
-
+    my $current = $self->{current_cmd};
     my $ok = 1;
     my $what;
-    if(!$self->{current_cmd}->{echo_seen}) {
+    if(!$current->{echo_seen}) {
         $what = $what ."'echo' ";
         $ok = 0;
     }
-    if($self->{current_cmd}->{waits_for_ack} && ! $self->{current_cmd}->{ack_seen}){
+    if($current->{waits_for_ack} && ! $current->{ack_seen}){
         $what .= "'ack' ";
         $ok = 0;
     }
-    if($self->{current_cmd}->{expected_response} && !$self->{current_cmd}->{expected_response_seen}){
+    if($current->{expected_response} && !$current->{expected_response_seen}){
         $what .= "'response (". join ("|", @{ $self->{current_cmd}->{expected_response}}). ")' ";
         $ok = 0;
     }
-    if($self->{current_cmd}->{three_phase} && (!$cmd_to_hex{$self->{current_cmd}->{cmd}}{noreplay} && !$self->{current_cmd}->{replay_seen})){
-        if($self->{current_cmd}->{expected_response} && $self->{current_cmd}->{expected_response_seen}){
+    if($current->{three_phase} && (!$cmd_to_hex{$current->{cmd}}{noreplay} && !$current->{replay_seen})){
+        if($current->{expected_response} && $current->{expected_response_seen}){
             ## if we saw teh expected response we do not care for the replay fron the couple
             # if the 1141 is under heavy use it does seem to miss responses..
         }
@@ -633,11 +656,23 @@ sub _is_current_command_complete(){
         $ok = 0;
     }
     if ($what){
-        $self->{current_cmd}->{what} = "waiting for $what";
+        $current->{what} = "waiting for $what";
     }
-    if ($ok && !$self->{current_cmd}->{completed}){
-        $self->{current_cmd}->{completed} = 1;
-        $self->{current_cmd}->{duration} = Time::HiRes::tv_interval($self->{current_cmd}->{last_write});
+
+    if ( ($current->{cmd} eq "on" or $current->{cmd} eq "off")
+         and $current->{three_phase} == 0 and $current->{ack_seen}){
+        _logdd("Considering 1-Phase command completed, because ACK was received");
+        $ok = 1;
+        $current->{completed} = 1;
+        my $module = $self->{plc_devices}->{$current->{home}}->{$current->{unit}};
+        $module->_set($current->{cmd},$current->{setby},$current->{respond});
+    }
+    elsif ($ok && !$self->{current_cmd}->{completed}){
+        $current->{completed} = 1;
+    }
+
+    if ($current->{completed}){
+        $current->{duration} = Time::HiRes::tv_interval($current->{last_write});
         my $name = "$self->{current_cmd}->{home}$self->{current_cmd}->{unit}";
         _logdd("$name completed within $self->{current_cmd}->{duration} (allowed: ". $self->_get_timeout().")");
     }
@@ -679,7 +714,7 @@ sub _has_current_command_timeout(){
     my $name = "$home$unit";
     my $c = $self->{current_cmd}->{three_phase}? "3" : "1";
     $c .= "-Phase command";
-    my $msg = "timeout $c after ${diff}s ";
+    my $msg = "timeout $c after ". sprintf("%.3f", ${diff}). "s ";
     if ($self->{current_cmd}->{what}){
         $msg .=  $self->{current_cmd}->{what};
     }
@@ -1115,11 +1150,26 @@ sub generate_code(@){
         $more .= "     respond \"queued comand \$status for all\";\n";
         $more .= "     PLCBUS->instance()->queue_command( {home => 'A', unit => 0, cmd => \$status});\n";
         $more .= " }\n";
+
+        $more .= "   \$PLCBUS_scan_house = new Voice_Cmd(\"PLCBUS scan house\");\n";
+        $more .= ::store_object_data("\$PLCBUS_scan_house", 'Voice_Cmd', 'PLCBUS', 'PLCBUS');
+        $more .= " if (my \$status = said \$PLCBUS_scan_house){\n";
+        $more .= "     \$status =~ s/ /_/g;\n";
+        $more .= "     respond \"scanning home codes A .. P\";\n";
+        $more .= "     PLCBUS->instance()->scan_whole_hose();\n";
+        $more .= " }\n";
     }
     # if ($more){
     #     _logdd($more);
     # }
     return ($object, $grouplist, $more);
+}
+
+sub scan_whole_hose{
+    my ($self) = @_;
+    foreach my $home ( "A" .. "P" ){
+        $self->queue_command ({ home => $home, unit => 0, cmd => 'report_all_id_pulse' });
+    }
 }
 
 1;
@@ -1283,22 +1333,22 @@ Tobias Sachs diespambox@gmx.net
 package PLCBUS_Item;
 @PLCBUS_Item::ISA = ('Generic_Item');
 
-sub _logd ($$) {
+sub _logd{
     my ( $self, @msg ) = @_;
     my $global_log = ( $::Debug{plcbus_module} && $::Debug{plcbus_module} > 1 );
     $self->__log("@msg", $global_log ,"V");
 }
 
-sub _log {
+sub _log{
     my ( $self, @msg ) = @_;
     my $global_log = $::Debug{plcbus_module};
     $self->__log("@msg", $global_log ,"I");
 }
 
-sub __log($$$){
+sub __log{
     my ( $self, $msg, $global_log, $level ) = @_;
     my $name = "$self->{home}$self->{unit} $self->{name}:";
-    PLCBUS::__log(" $msg", $global_log ,$level);
+    PLCBUS::__log("$name $msg", $global_log ,$level);
 }
 
 sub new {
@@ -1310,7 +1360,7 @@ sub new {
     $self->{name} = $name;
     $self->{groups} = $grouplist;
     my @default_states =
-        qw|on off bright dim status_req get_noise_strength get_signal_strength|;
+        qw|on off bright dim status_req get_noise_strength get_signal_strength status_on status_off|;
     $self->set_states(@default_states);
     $self->_logd("ctor $self->{name} home: $self->{home} unit: $self->{unit}");
     PLCBUS->instance()->add_device($self);
@@ -1367,8 +1417,12 @@ sub get_voice_cmds {
 
 sub default_setstate{
     my ( $self, @rest ) = @_;
-    $self->_log("default_setstate @rest");
-
+    my $msg = "";
+    foreach my $x (@rest){
+        $msg .= ", " if (length $msg > 0);
+        $msg .= $x if $x;
+    }
+    $self->_log("default_setstate: '$msg'");
 }
 
 sub handle_incoming {
@@ -1438,6 +1492,7 @@ sub preset_dim {
 
 my @light_cmds = [ "on", "off", "bright", "dim" ];
 my @plc_cmds = [ "status req", "blink",
+        "status on", "status off",
         "get signal strength",
         "get noise strength"
     ];
@@ -1495,7 +1550,7 @@ sub command {
                 respond => $respond} );
 }
 
-sub _get_phase_mode(){
+sub _get_phase_mode{
     my ($self) = @_;
     my $mode ;
     if ($self->{phase_override}){
