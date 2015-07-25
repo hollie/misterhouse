@@ -34,8 +34,9 @@ use Data::Dumper;
 #
 # Program: OpenSprinkler_Program(master,"program name");
 #	- program-name MUST match the name of the program in the OS for this to work.
-#	- allows for enabling/disabling programs
+#	- allows for enabling/disabling programs and loading start times and run times
 # 	$os_program		= new OpenSprinkler_Program($os1,"Current");
+#   $os_program->load_values("[-1,-1,-1,-1]","[1,2,3,4,5,6,7]")
 #
 
 # Opensprinkler operations
@@ -64,8 +65,13 @@ use Data::Dumper;
 #	- disabling the opensprinkler doesn't turn off any running stations.
 #	- the architecture can create pauses -- long term adopt Kevin's approach w/ Nests
 #	- no ability to print logs. The built-in web interface does this well already
+#	- add in time and runtime change checking
 
-# v1.0 release
+# v1.2 release
+# Changelog
+#	- v1.0 Initial Release
+#	- v1.1 Support for 2.15 options
+#	- v1.2 Added in ability to load values into a program
 
 @OpenSprinkler::ISA = ('Generic_Item');
 
@@ -241,7 +247,9 @@ sub poll {
     		$self->{data}->{programs}->{$name}->{status} = ($programs->{pd}[$index][0] % 2 == 1 ) ? "enabled" : "disabled"; #if number is odd, then bit 0 set and disabled
     		$self->{data}->{programs}->{$name}->{flag} = $programs->{pd}[$index][0];  
     		$self->{data}->{programs}->{$name}->{pid} = $index;      			
-    		$self->{data}->{programs}->{$name}->{data} = "$programs->{pd}[$index][1],$programs->{pd}[$index][2],[" . join(",",@{$programs->{pd}[$index][3]}) . "],[" . join(",",@{$programs->{pd}[$index][4]}) . "]";
+    		$self->{data}->{programs}->{$name}->{data1} = "$programs->{pd}[$index][1],$programs->{pd}[$index][2]";
+    		$self->{data}->{programs}->{$name}->{data2} = "[" . join(",",@{$programs->{pd}[$index][3]}) . "]";
+    		$self->{data}->{programs}->{$name}->{data3} = "[" . join(",",@{$programs->{pd}[$index][4]}) . "]";
 	  	} 
     	$self->{data}->{nprograms} = $programs->{nprogs};	  		
     	$self->{data}->{nstations} = $stations->{nstations};
@@ -621,7 +629,9 @@ sub set_program {
   	return if (lc $state eq $self->{data}->{programs}->{$name}->{status});
   	my $cmd = "&pid=" . $self->{data}->{programs}->{$name}->{pid};
   	$cmd .= "&v=[" . _setflag($self->{data}->{programs}->{$name}->{flag},$state) . ",";
-  	$cmd .= $self->{data}->{programs}->{$name}->{data} . "]";
+  	$cmd .= $self->{data}->{programs}->{$name}->{data1} . ",";
+  	$cmd .= $self->{data}->{programs}->{$name}->{data2} . ",";
+  	$cmd .= $self->{data}->{programs}->{$name}->{data3} . "]";
   	$cmd .= "&name=" . _url_encode($name);
   
   	#print "XXXX cmd=$cmd\n"; 
@@ -634,6 +644,57 @@ sub set_program {
       		return (1);
     	} else {
         	main::print_log("[OpenSprinkler] Error. Could not set program to $state");
+        	return (0);
+    	}
+  	} else {
+     	main::print_log("[OpenSprinkler] Error. Could not send data to OpenSprinkler");
+  		return (0);
+  	}
+}
+
+sub set_program_runtimes {
+
+  	my ($self,$name,$start,$runtimes) = @_;
+
+  	return unless (defined $self->{data}->{programs}->{$name});
+	$start =~ s/\s//g;
+	$runtimes =~ s/[\[\]\s]//g; #remove whitespace and brackets
+    my @s1 = split(",", $start);
+    my @r1 = split(",", $runtimes);
+    my @s2 = split(",", $self->{data}->{programs}->{$name}->{data2});
+    my @r2 = split(",", $self->{data}->{programs}->{$name}->{data3});
+    
+	if (scalar(@s1) != scalar(@s2)) {
+	    main::print_log("[OpenSprinkler] Error set_program_runtimes. invalid start time data to be loaded $start");
+		return;
+	}
+		
+	if (scalar(@r1) != scalar(@2)) {
+		#pad the missing stations 
+		for (my $i=($#r1+1);$i<=$#r2;$i++) {
+			#print $i . " ";
+			push @r1,$r2[$i];
+		}		
+		$runtimes = join(",",@r1);
+	}
+
+  	my $cmd = "&pid=" . $self->{data}->{programs}->{$name}->{pid};
+  	$cmd .= "&v=[" . $self->{data}->{programs}->{$name}->{flag} . ",";
+  	$cmd .= $self->{data}->{programs}->{$name}->{data1} . ",";
+  	$cmd .= $start . ",";
+  	$cmd .= "[" . $runtimes . "]]";
+  	$cmd .= "&name=" . _url_encode($name);
+  
+  	#print "program runtimes cmd=$cmd\n"; 
+
+  	my ($isSuccessResponse,$status) = $self->_push_JSON_data('set_program',$cmd);
+  	if ($isSuccessResponse) {
+   		#print "DB status=$status\n";
+    	if ($status eq "success") { #todo parse return value
+      		$self->poll;
+      		return (1);
+    	} else {
+        	main::print_log("[OpenSprinkler] Error. Could not set program runtime values to $start,$runtimes");
         	return (0);
     	}
   	} else {
@@ -884,6 +945,19 @@ sub set {
     } else {
         $$self{master_object}->set_program($$self{program},$p_state);
     }
+}
+
+sub get_runtimes {
+	my ($self) = @_;
+	return ("[" . $$self{master_object}->{data}->{programs}->{$$self{program}}->{data2} . "]", "[" . $$self{master_object}->{data}->{programs}->{$$self{program}}->{data3} . "]");
+}
+
+sub set_runtimes {
+	# expects values in the following format [[-1,-1,-1,-1],[time1,time2,time3...]]
+  	my ($self,$times,$runtimes) = @_;
+
+    $$self{master_object}->set_program_runtimes($$self{program},$times,$runtimes);
+
 }
 
 package OpenSprinkler_Comm;
