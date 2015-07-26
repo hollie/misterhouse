@@ -2,6 +2,21 @@
 =begin comment
     @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
+    =head1 B<MQTT_Device>
+
+    Neil Cherry <ncherry@linuxha.com>
+
+    =head2 SYNOPSIS
+
+    A MQTT Interface and Item module for Misterhouse
+
+    =head2 DESCRIPTION
+
+    Misterhouse MQTT interface for use with any MQTT service
+
+    MQTT website: http://mqtt.org/
+    MQTT Test service: http//test.mosquitto.org/ (test.mosquitto.org port 1883)
+
 File:
     mqtt.pm
 
@@ -17,7 +32,7 @@ Description:
 
     Based loosely on the UPMPIM.pm and SqueezeCLI.pm code
     - Jason Sharpee (UPB)
-    -  (SqueezeCLI)
+    - Lieven Hollevoet (SqueezeCLI)
 
 License:
     This free software is licensed under the terms of the GNU public license.
@@ -27,17 +42,33 @@ Usage:
     .mht file:
 
         # MQTT stuff
-        CODE, require mqtt; #noloop 
-        CODE, $mqtt_1 = new mqtt('mqtt_1', '127.0.0.1', 1883, 'home/ha/#', 121); #noloop 
-        #CODE, $mqtt_2 = new mqtt('mqtt_2', 'test.mosquitto.org', 1883, 'home/test/#', 122); #noloop 
-        #CODE, $mqtt_3 = new mqtt('mqtt_3', '127.0.0.1', 1883, 'home/network/#', 122); #noloop 
-        CODE, $CR_Temp = new mqtt_Item($mqtt_1, "home/ha/text/x10/1"); #noloop
+        CODE, require mqtt; #noloop
+        #
+        CODE, $mqtt_1 = new mqtt('mqtt_1', '127.0.0.1', 1883, 'home/ha/#', "", "", 121);
+        CODE, $mqtt_2 = new mqtt('mqtt_2', 'test.mosquitto.org', 1883, 'home/test/#', "", "", 122);
+        CODE, $mqtt_3 = new mqtt('mqtt_3', '127.0.0.1', 1883, 'home/network/#', "", "", 122); #noloop
+        #
+        CODE, $CR_Temp = new mqtt_Item($mqtt_1, "home/ha/text/x10/1");
+        CODE, $M2_Temp = new mqtt_Item($mqtt_2, "test.mosquitto.org/test/x10/1");
+        CODE, $M3_Temp = new mqtt_Item($mqtt_3, "home/network/test/x10/1");
+        #
+        CODE, $CR_Temp->set("On");
+        CODE, $M2_Temp->set("Off");
+        CODE, $M3_Temp->set("On");
 
-        CODE, $CR_Temp->set("Off");
+    and my mqtt.pl in my code dir:
+
+        #
+        if ($New_Minute and !($Minute % 30)) {
+            my $state = ('on' eq state $M2_Temp) ? 'off' : 'on';
+            set $M2_Temp $state;
+            my $remark = "M2 Light set to $state";
+            print_log "$remark";
+        }
 
     CLI generation of a command to the CR_Temp
 
-        mosquitto_pub -d -h 127.0.0.1 -q 0 -t home/ha/text/x10/1 -m "Off" 
+        mosquitto_pub -d -h test.mosquitto.org -q 0 -t test.mosquitto.org/test/x10/1 -m "Off"
 
 Example initialization:
 
@@ -49,32 +80,11 @@ Notes:
     Special Thanks to:
     Bruce Winter - MH
     Jason Sharpee - MH UPB pkg
+    Lieven Hollevoet - SqueezeCLI.pm
 
     @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-    =head1 B<MQTT_Device>
-
-    Neil Cherry <ncherry@linuxha.com>
-
-    =head2 SYNOPSIS
-
-    NONE
-
-    =head2 DESCRIPTION
-
-    Misterhouse MQTT interface for use with any MQTT service
-
-    MQTT website: http://mqtt.org/
-
-Notes:
-
-Need:
-    MQTT Device
-    test.mosquitto.org
-    1883
-    or
-    mozart.uucp
-    1883
+    =head2 B<Notes:>
 
     The test.mosquitto.org server listens on ports 1883, 8883, 8884 and
     8885. Port 1883 is the standard unencrypted MQTT port and can be used
@@ -84,46 +94,47 @@ Need:
 
     Web sockets are not supported here in MH
 
-    MQTT Item Pub (WO)
-    Device
-    'topic'
-
-    MQTT Item Sub (RO)
-    Device
-    'topic'
-
     Topics (examples)
-    #
-    /ha/#
-    /ha/house/livingroom/lamp/
-    /ha/weather/temp
-    /ha/weather/windspeed/
+        #
+        ha/#
+        ha/house/livingroom/lamp
+        ha/weather/temp
+        ha/weather/windspeed
 
     For now we'll use the wildcard. I'll think about a rewrite later without the
     wild card support. I don't recommend using the '#' if the MQTT is test.mqtt.org
     Rather pick something a bit more unique like /username/ha/# and play from there
 
     Because of the wildcard it probably makes sense to support multiple mqtt
-    connections. This would allow for:
+    connections on 1 or more servers. This would allow for:
 
-    home/ha/x10/#
-    home/ha/z-wave/#
-    home/ha/zigbee/#
+        home/ha/x10/#
+        home/ha/z-wave/#
+        home/ha/zigbee/#
 
     instead of:
 
-    #
+        home/#
+
+    or
+
+        #
 
     Which could cover things like this:
 
-    home/email/...
-    home/statistics/...
-    offsite/...
+        home/email/...
+        home/statistics/...
+        offsite/...
 
-    If you're using a home mqtt then this might not be such as issue.
+    and just about everything else on this server too. :-)
 
-    The intial device needs some kind of way to tell that it's still connected to
-    the MQTT server (MQTT Ping comes to mind).
+    If you're using a home mqtt server then this might not be such as issue.
+    Give this command a try and see the amount of traffic generated:
+
+        mosquitto_sub -d -h test.mosquitto.org -t "#"
+
+    The intial device needs some kind of way to tell that it's still connected
+    to the MQTT server (MQTT Ping comes to mind).
 
     =head2 INHERITS
 
@@ -134,6 +145,25 @@ Need:
     =over
 
     =item B<UnDoc>
+
+    =item B<ToDo>
+
+    There are a number of things that need to be done. There is a lack of error
+    checking and connectivity checks and restoration. I'm sure there are a huge
+    number of features that need to be added.
+
+    @FIXME: Topic handling needs work, if the same host:port is used the first
+            instance (same socket) is used but this causes issues and at
+            reconnect we need to resubscribe. There is no way to do that now
+            (we'll need to resubscribe all the same socket related subscriptions)
+    @FIXME: user_name/password isn't working, I don't know why yet
+    @FIXME: We're really not checking for ConnAck or SubAck.
+    @FIXME: there is no reconnect logic
+    @FIXME: No SSL
+    @FIXME: Lots of error checking needs to be done
+    @FIXME: Use of uninitialized value
+    @TODO:  Callbacks to handle decoding of the tiopic messages
+    @TODO:  Analog device and string device handling
 
 =cut
 # ------------------------------------------------------------------------------
@@ -161,22 +191,97 @@ use Data::Dumper;
 eval "use bytes";  # Not on all installs, so eval to avoid errors
 
 # Need to share this with the outside world
-my $verbose = 5;
 my $buf     = '';
 my $msg_id  = 1;
 
 my %MQTT_Data;
 
+$main::Debug{mqtt} = 1;
 # ------------------------------------------------------------------------------
 sub dump() {
     &main::print_log("*** mqtt Dumper (MQTT_Data):\n" . Dumper(\%MQTT_Data) . "***");
 }
 
 # ------------------------------------------------------------------------------
+=item <mqtt_reconnect()>
+
+Okay, I can see this is going to get complicated and require I do a rewrite of
+the subscription handling. When we reconnect we want to also resubscribe.
+Currently we can't do that.
+
+=cut
+sub mqtt_reconnect() {
+    my ($self) = @_;
+
+    ###
+    ### Do we need to do a clean up on the existing socket before we reconnect?
+    ### Will a close do that for us ?
+    ###
+    $$self{socket}->close();
+
+    &main::print_log("*** mqtt $$self{instance} mqtt_connect Socket ($$self{host}:$$self{port},$$self{keep_alive_timer}) ") if($main::Debug{mqtt}||1);
+
+    ### 1) open a socket (host, port and keepalive
+    my $socket = IO::Socket::INET->new(PeerAddr => $self->{host} . ':' . $self->{port},
+                                       Timeout  => $self->{keep_alive_timer}, );
+
+    # Can't use this at this time
+    # $socket = new main::Socket_Item(undef, undef, "$host:$port", $instance);
+
+    &main::print_log("*** mqtt $$self{instance} Socket check #1 ($$self{keep_alive_timer}) [ $! ]: " . ($self->isConnected() ? "Connected" : "Failed")) if($main::Debug{mqtt});
+    return if(!defined($socket));
+
+    $self->{socket}            = $socket;
+    $self->{got_ping_response} = 1;
+    $self->{next_ping}         = $self->{keep_alive_timer};
+
+    # --------------------------------------------------------------------------
+    ### 2) Send MQTT_CONNECT
+    $self->send_mqtt_msg(message_type => MQTT_CONNECT, keep_alive_timer => $self->{keep_alive_timer});
+
+    ### 3) Check for ACK or fail
+    &main::print_log("*** mqtt $$self{instance} Socket check #2 ($$self{keep_alive_timer}) [ $! ]: " . ($self->isConnected() ? "Connected" : "Failed")) if($main::Debug{mqtt});
+
+    my $msg = read_mqtt_msg_timeout($self, $buf);
+    if(!$msg) {
+	&main::print_log ("XXX mqtt $$self{instance} No ConnAck ");
+        #exit 1;
+	return;
+    }
+
+    # We should actually get a SubAck but who is checking (yes, I know I should)
+    &main::print_log ("*** mqtt $$self{instance} Received: " . $msg->string) if ($main::Debug{mqtt});
+
+    ### ------------------------------------------------------------------------
+
+    ###
+    ### Here is where we need to make the changes to support multiple
+    ### subscriptions.
+    ###
+
+    ### 4) Send a subscribe '#' (we'll have many of these, one for each device)
+    ###    I don't know if this is a good idea or not but that's what I intend to do for now
+    $self->send_mqtt_msg(message_type => MQTT_SUBSCRIBE,
+			 message_id => $msg_id++,
+			 topics => [ map { [ $_ => MQTT_QOS_AT_MOST_ONCE ] } $self->{topic} ]);
+
+    ### 5) Check for ACK or fail
+    ###    we really should check for a SubAck and that it's the correct SubAck
+    $msg = $self->read_mqtt_msg_timeout($buf) or &main::print_log ("*** mqtt $$self{instance} Received: ". "No SubAck");
+    &main::print_log ("*** mqtt $$self{instance} Sub 1 Received: " .  "$$msg{string}") if($main::Debug{mqtt});
+
+    ### ------------------------------------------------------------------------
+
+    ### 6) check for data
+    &main::print_log ("*** mqtt $$self{instance} Initializing MQTT re_connection ...") if($main::Debug{mqtt});
+}
+# ------------------------------------------------------------------------------
 =item <mqtt_connect()>
 =cut
 sub mqtt_connect() {
     my ($self) = @_;
+
+    &main::print_log("*** mqtt mqtt_connect Socket ($$self{host}:$$self{port},$$self{keep_alive_timer}) ") if($main::Debug{mqtt}||1);
 
     ### 1) open a socket (host, port and keepalive
     my $socket = IO::Socket::INET->new(PeerAddr => $self->{host} . ':' . $self->{port},
@@ -200,13 +305,13 @@ sub mqtt_connect() {
 
     my $msg = read_mqtt_msg_timeout($self, $buf);
     if(!$msg) {
-	&main::print_log ("XXX mqtt No ConnAck ");
-        exit 1;
+	&main::print_log ("XXX mqtt $$self{instance} No ConnAck ");
+        #exit 1;
 	return;
     }
 
     # We should actually get a SubAck but who is checking (yes, I know I should)
-    &main::print_log ("*** mqtt Received: " . $msg->string) if ($main::Debug{mqtt});
+    &main::print_log ("*** mqtt $$self{instance} Received: " . $msg->string) if ($main::Debug{mqtt});
 
     ### 4) Send a subscribe '#' (we'll have many of these, one for each device)
     ###    I don't know if this is a good idea or not but that's what I intend to do for now
@@ -215,11 +320,17 @@ sub mqtt_connect() {
 			 topics => [ map { [ $_ => MQTT_QOS_AT_MOST_ONCE ] } $self->{topic} ]);
 
     ### 5) Check for ACK or fail
-    $msg = $self->read_mqtt_msg($buf) or &main::print_log ("*** mqtt Received: ". "No SubAck");
-    &main::print_log ("*** mqtt $$self{instance} Sub 1 Received: " .  "$$msg{string}") if($main::Debug{mqtt});
+    $msg = $self->read_mqtt_msg_timeout($buf) or &main::print_log ("*** mqtt $$self{instance} Received: " . "No SubAck");
+    if($main::Debug{mqtt}) {
+	my $s = defined($$msg{string}) ? "($$msg{string})" : '(--No $$msg{string}--)';
+	###
+	### IF we're not getting $$msg{string} then what are we getting ?
+	###
+	&main::print_log ("*** mqtt $$self{instance} Sub 1 Received: " .  "$s"); # @FIXME: Use of uninitialized value
+    }
 
     ### 6) check for data
-    &main::print_log ("*** mqtt Initializing MQTT connection ...") if($main::Debug{mqtt});
+    &main::print_log ("*** mqtt $$self{instance} Initializing MQTT connection ...") if($main::Debug{mqtt});
 }
 # ------------------------------------------------------------------------------
 =item C<isConnected()>
@@ -230,13 +341,21 @@ sub isConnected {
     return $$self{socket}->connected;
 }
 # ------------------------------------------------------------------------------
+=item C<isNotConnected()>
+=cut
+sub isNotConnected {
+    my ($self) = @_;
+
+    return !$$self{socket}->connected;
+}
+# ------------------------------------------------------------------------------
 =item C<new()>
 
     Used to send commands to the interface.
 
 =cut
 sub new {
-    my ($class, $instance, $host, $port, $topic, $keep_alive_timer) = @_;
+    my ($class, $instance, $host, $port, $topic, $user, $password, $keep_alive_timer) = @_;
 
     my $self = {};
 
@@ -260,13 +379,19 @@ sub new {
 
 		    ### 5) Check for ACK or fail
 		    $buf = '';
-		    my $msg = read_mqtt_msg($self, $buf) or &main::print_log ("*** mqtt Received: ". "No SubAck");
+		    my $msg = read_mqtt_msg($self, $buf) or &main::print_log ("*** mqtt $$self{instance} Received: ". "No SubAck");
 		    &main::print_log ("*** mqtt $inst Sub 2 Received: " .  $msg->string) if($main::Debug{mqtt});
 		}
 
 		# This is the little messages that appear when MH starts
 		&main::print_log ("*** Reusing $inst (instead of $instance) on $host:$port $topic");
 
+		###
+		### Ran into an issue doing it this way, it renames the object to the last
+		### object name it encounters :(
+		### I guess what I need to to create a new object but copy everything from the
+		### previous one
+		###
 		return $MQTT_Data{$inst}{self};
 	    }
 	}
@@ -275,22 +400,22 @@ sub new {
     # This is the little messages that appear when MH starts
     &main::print_log ("*** Creating $instance on $host:$port $topic");;
 
-    $$self{state}            = '';
+    $$self{state}            = 'off';
     $$self{said}             = '';
-    $$self{state_now}        = '';
+    $$self{state_now}        = 'off';
 
     @{$$self{command_stack}} = ();
 
     $$self{instance}         = $instance;
 
-    $$self{host}             = $host             || "127.0.0.1";
+    $$self{host}             = "$host"           || "127.0.0.1";
     $$self{port}             = $port             || 1883;
     # Use the wildcard here, not in the mqtt_Item
     $$self{topic}            = "$topic"          || "home/ha/#";
     # Currently not used
-    #$$self{user}            = $user             || "guest";
+    $$self{user_name}        = "$user"           || "";
     # Currently not used
-    #$$self{password}        = $password         || "guest";
+    $$self{password}         = "$password"       || "";
     $$self{keep_alive_timer} = $keep_alive_timer || 120;
 
     #
@@ -299,6 +424,8 @@ sub new {
 
     bless $self, $class;
 
+    $self->set_states("off","on");
+
     $MQTT_Data{$instance}{self} = $self;
 
     if($main::Debug{mqtt}) {
@@ -306,6 +433,8 @@ sub new {
 	&main::print_log("*** Host       = $$self{host}");
 	&main::print_log("*** Port       = $$self{port}");
 	&main::print_log("*** Topic      = $$self{topic}");
+	&main::print_log("*** User       = $$self{user_name}");
+	&main::print_log("*** Password   = $$self{password}");
 	&main::print_log("*** Keep Alive = $$self{keep_alive_timer}");
     }
     ### ------------------------------------------------------------------------
@@ -321,11 +450,12 @@ sub new {
 	&main::print_log ("*** mqtt added MQTT check_for_data ...");
 	&::MainLoop_pre_add_hook(\&mqtt::check_for_data, 1);
     } else {
-	&main::print_log ("*** mqtt already added MQTT poll ..." . scalar(keys %MQTT_Data) );
-	&main::print_log ("*** mqtt already added MQTT poll ... but that's okay" );
+	#&main::print_log ("*** mqtt already added MQTT poll ..." . scalar(keys %MQTT_Data) );
+	#&main::print_log ("*** mqtt already added MQTT poll ... but that's okay" );
 	#exit 1;
     }
 
+    $self->set('on', $self);
     return $self;
 }
 # ------------------------------------------------------------------------------
@@ -342,6 +472,30 @@ sub check_for_data {
 	my $self = $MQTT_Data{$inst}{self};
 
 	### MQTT stuff below
+
+	# Check for connectivity
+	if($self->isNotConnected()) {
+	    ###
+	    ### This needs a lot of work
+	    ###
+	    ### @FIXME: failed connection
+	    if('off' ne $self->{state}) {
+		# First say something
+		&main::print_log ("*** mqtt $inst failed ($$self{host}/$$self{port}/$$self{topic})");
+		# Then do something (reconnect)
+
+		# check the state to see if it's off already
+=begin comment
+03/29/15 11:17:47 AM *** mqtt mqtt_4 failed (m11.cloudmqtt.com/15050/home/network/#)
+03/29/15 11:17:47 AM *** mqtt mqtt set mqtt_4: [(off), undefined set_by, $mqtt_4]
+03/29/15 11:17:47 AM *** mqtt mqtt set mqtt_4: isa mqtt
+=cut
+		$self->set('off', $self);
+	    }
+
+	    # Skip if we're not connected
+	    next ;
+	}
 
 	# This one doesn't block
 	my $msg = read_mqtt_msg($self, $buf);
@@ -364,8 +518,8 @@ sub check_for_data {
 		### Someone published something, deal with it
 		###
 		if ($main::Debug{mqtt}) {
-		    &main::print_log ("*** mqtt check_for_data rcv'd: T:" . $msg->topic, ", M:", $msg->message);
-		    &main::print_log ("*** mqtt check_for_data rcv'd: S:" . $msg->string . ",");
+		    &main::print_log ("*** mqtt $inst check_for_data rcv'd: T:" . $msg->topic, ", M:", $msg->message);
+		    &main::print_log ("*** mqtt $inst check_for_data rcv'd: S:" . $msg->string . ",");
 		}
 
 		###
@@ -375,7 +529,7 @@ sub check_for_data {
 		###
 		### We also need the instance to know who set the obj
 		###
-		$self->parse_data_to_obj($msg, $inst);
+		$self->parse_data_to_obj($msg, $inst, $self);
 
 	    } elsif ($msg->message_type == MQTT_PINGRESP) {
 		$$self{got_ping_response} = 1;
@@ -446,7 +600,7 @@ sub send_mqtt_msg {
 sub read_mqtt_msg {
     my $self = shift;
 
-    my $select = IO::Select->new($$self{socket});
+    my $select  = IO::Select->new($$self{socket});
     my $timeout = $$self{next_ping} - Time::HiRes::time;
 
     do {
@@ -523,17 +677,35 @@ sub read_mqtt_msg_timeout {
 sub set {
     my ($self, $msg, $set_by) = @_;
 
-    my $data;
+    if($main::Debug{mqtt} || 1) {
+	my $xStr = defined($msg) ? "($msg)" : "undefined message";
+	$xStr   .= defined($set_by) ? ", ($set_by)" : ", undefined set_by";
+	$xStr   .= ", Obj: " . defined($$self{object_name}) ? ", $$self{object_name}" : ", undefined object_name"; # @FIXME: Use of uninitialized value
 
-    ###
-    ### Okay here is the hard part
-    ### I need the instance socket, the obj's topic and message
-    ### in order to send the message
-    ###
-    $$self{instance}->pub_msg(message_type => MQTT_PUBLISH,
-			      retain       => $$self{retain},
-			      topic        => $$self{topic},
-			      message      => $msg);
+	&main::print_log ("*** mqtt mqtt set $$self{instance}: [$xStr]");
+	&main::print_log ($self->isa('mqtt') ? "*** mqtt mqtt set $$self{instance}: isa mqtt" : "*** mqtt mqtt set $$self{instance}: is nota mqtt");
+    }
+
+    return unless($msg);
+
+
+    if($self->isa('mqtt')) {
+	# I really want to use this to allow the user to manually
+	# connect and disconnect the socket
+	
+	#
+	$self->SUPER::set($msg, $set_by) if defined $msg;
+    } else {
+	###
+	### Okay here is the hard part
+	### I need the instance socket, the obj's topic and message
+	### in order to send the message
+	###
+	$$self{instance}->pub_msg(message_type => MQTT_PUBLISH,
+				  retain       => $$self{retain},
+				  topic        => $$self{topic},
+				  message      => $msg);
+    }
 }
 # ------------------------------------------------------------------------------
 =item C<(pub_msg())>
@@ -545,6 +717,16 @@ sub set {
 ###
 sub pub_msg {
     my $self = shift;
+
+    # Check for connectivity
+    if($self->isNotConnected()) {
+	# First say something
+	&main::print_log ("*** mqtt $$self{instance} failed ($$self{host}/$$self{port}/$$self{topic})");
+	# Then do something (reconnect)
+
+	# Skip if we're not connected
+	return ;
+    }
 
     $self->send_mqtt_msg(@_);
 }
@@ -750,20 +932,24 @@ sub set {
     # propogation
     # FIXME: Use of uninitialized value in string eq at /home/njc/dev/mh/bin/../lib/mqtt.pm line 752
     #return if (ref $p_setby and $p_setby->can('get_set_by') and
-    #	       $p_setby->{set_by} eq $self); ### FIXME: Use of uninitialized value in string eq at /home/njc/dev/mh/bin/../lib/mqtt.pm 771
+    #	       $p_setby->{set_by} eq $self);
 
     if (defined($p_setby) && $p_setby eq $self->interface()) {
 	###
 	### Incoming (MQTT to MH)
 	###
-	&::print_log("*** mqtt mqtt_Item nom to MH " . $self->get_object_name() . "::set($msg, $p_setby)") if $main::Debug{mqtt};
+	&::print_log("*** mqtt mqtt_Item nom to MQTT to MH " . $self->get_object_name() . "::set($msg, $p_setby)") if $main::Debug{mqtt};
     } else {
 	###
 	### Outgoing (MH to MQTT)
 	###
-	#&::print_log("*** mqtt mqtt_Item nom to MQTT " . $self->get_object_name() . "::set($msg, $p_setby)") if $main::Debug{mqtt};
-	&::print_log("*** mqtt mqtt_Item nom to MH " . $self->get_object_name() . ' no ::set($msg, $p_setby)') if $main::Debug{mqtt};
-
+	if($main::Debug{mqtt}) {
+	    if(defined($self->get_object_name())) {
+		&::print_log("*** mqtt mqtt_Item nom to MH to MQTT (" . $self->get_object_name() . ') no p_setby ::set($msg, $p_setby)');
+	    } else {
+		&::print_log('*** mqtt mqtt_Item nom to MH to MQTT () no p_setby ::set($msg, $p_setby)');
+	    }
+	}
 	###
 	### I need the instance socket, the obj's topic and message
 	### in order to send the message
@@ -783,4 +969,109 @@ sub set {
 1;
 
 =begin comment
+The set_by has me currently puzzled, I'm not sure of it's purpose
+
+The state, state_now and said aren't exactly helping much either ;-)
+
+03/24/15 10:19:49 AM *** mqtt mqtt set mqtt_1: [(on), (web [192.168.24.232])]
+03/24/15 10:19:49 AM *** mqtt mqtt set mqtt_1:
+$VAR1 = \bless( {
+                   'states' => [
+                                 'off',
+                                 'on'
+                               ],
+                   'state_now' => '',
+                   'state' => '',
+                   'objects' => [
+                                  bless( {
+                                           'legacy_target' => undef,
+                                           'tied_objects' => {},
+                                           'states' => [
+                                                         'off',
+                                                         'on'
+                                                       ],
+                                           'QOS' => 0,
+                                           'state_changed' => undef,
+                                           'set_by' => undef,
+                                           'state_prev' => 'x1xon',
+                                           'set_time' => '1427120068',
+                                           'state_now' => undef,
+                                           'state' => 'x1xon',
+                                           'target' => '',
+                                           'setby_next_pass' => [],
+                                           'state_next_pass' => [],
+                                           'state_log' => [
+                                                            '03/20/15 02:51:04 PM x1xon set_by=$mqtt_3',
+                                                            '03/20/15 01:15:50 PM x1xon set_by=$mqtt_1',
+                                                            '03/20/15 01:15:00 PM x1xon set_by=$mqtt_1',
+                                                            '03/20/15 01:01:35 PM on set_by=$mqtt_1',
+                                                          ],
+                                           'category' => 'Other',
+                                           'topic' => 'home/ha/text/x10/1',
+                                           'said' => undef,
+                                           'retain' => 0,
+                                           'tied_events' => {},
+                                           'change_pass' => 1,
+                                           'target_next_pass' => [],
+                                           'instance' => ${$VAR1},
+                                           'message' => '',
+                                           'filename' => 'CapeCod_table',
+                                           'object_name' => '$CR_Temp'
+                                         }, 'mqtt_Item' ),
+                                  bless( {
+                                           'legacy_target' => undef,
+                                           'tied_objects' => {},
+                                           'states' => [
+                                                         'off',
+                                                         'on'
+                                                       ],
+                                           'QOS' => 0,
+                                           'state_changed' => undef,
+                                           'set_by' => ${$VAR1},
+                                           'state_prev' => 'x1xon',
+                                           'set_time' => 1427206784,
+                                           'state_now' => undef,
+                                           'state' => 'x1xon',
+                                           'target' => '',
+                                           'setby_next_pass' => [],
+                                           'state_next_pass' => [],
+                                           'state_log' => [
+                                                            '03/24/15 10:19:44 AM x1xon set_by=$mqtt_3',
+                                                            '03/24/15 10:18:08 AM x1xon set_by=$mqtt_3',
+                                                            '03/24/15 10:15:54 AM x1xon set_by=$mqtt_3',
+                                                            '03/24/15 10:12:59 AM x1xon set_by=$mqtt_3',
+                                                            '03/24/15 10:10:10 AM x1xon set_by=$mqtt_3',
+                                                            '03/24/15 08:22:51 AM x1xon set_by=$mqtt_3',
+                                                            '03/23/15 11:08:48 AM x1xon set_by=$mqtt_3',
+                                                            '03/20/15 02:51:02 PM x1xon set_by='
+                                                          ],
+                                           'category' => 'Other',
+                                           'topic' => 'home/network/test/x10/1',
+                                           'said' => undef,
+                                           'retain' => 0,
+                                           'tied_events' => {},
+                                           'change_pass' => 9,
+                                           'target_next_pass' => [],
+                                           'instance' => ${$VAR1},
+                                           'message' => '',
+                                           'filename' => 'CapeCod_table',
+                                           'object_name' => '$M3_Temp'
+                                         }, 'mqtt_Item' )
+                                ],
+                   'command_stack' => [],
+                   'category' => 'Other',
+                   'topic' => 'home/ha/#',
+                   'got_ping_response' => 1,
+                   'said' => '',
+                   'instance' => 'mqtt_1',
+                   'port' => 1883,
+                   'keep_alive_timer' => 121,
+                   'host' => '127.0.0.1',
+                   'socket' => bless( \*Symbol::GEN6, 'IO::Socket::INET' ),
+                   'filename' => 'CapeCod_table',
+                   'next_ping' => '1427206904.98476',
+                   'object_name' => '$mqtt_3'
+                 }, 'mqtt' );
+
+--------------------------------------------------------------------------------
 =cut
