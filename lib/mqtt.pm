@@ -156,7 +156,6 @@ Notes:
             instance (same socket) is used but this causes issues and at
             reconnect we need to resubscribe. There is no way to do that now
             (we'll need to resubscribe all the same socket related subscriptions)
-    @FIXME: user_name/password isn't working, I don't know why yet
     @FIXME: We're really not checking for ConnAck or SubAck.
     @FIXME: there is no reconnect logic
     @FIXME: No SSL
@@ -237,7 +236,7 @@ sub mqtt_reconnect() {
 
     # --------------------------------------------------------------------------
     ### 2) Send MQTT_CONNECT
-    $self->send_mqtt_msg(message_type => MQTT_CONNECT, keep_alive_timer => $self->{keep_alive_timer});
+    $self->send_mqtt_msg(message_type => MQTT_CONNECT, keep_alive_timer => $self->{keep_alive_timer}, user_name => $self->{user_name}, password => $self->{password});
 
     ### 3) Check for ACK or fail
     &main::print_log("*** mqtt $$self{instance} Socket check #2 ($$self{keep_alive_timer}) [ $! ]: " . ($self->isConnected() ? "Connected" : "Failed")) if($main::Debug{mqtt});
@@ -298,7 +297,7 @@ sub mqtt_connect() {
 
     # --------------------------------------------------------------------------
     ### 2) Send MQTT_CONNECT
-    $self->send_mqtt_msg(message_type => MQTT_CONNECT, keep_alive_timer => $self->{keep_alive_timer});
+    $self->send_mqtt_msg(message_type => MQTT_CONNECT, keep_alive_timer => $self->{keep_alive_timer}, , user_name => $self->{user_name}, password => $self->{password});
 
     ### 3) Check for ACK or fail
     &main::print_log("*** mqtt Socket check ($$self{keep_alive_timer}) [ $! ]: " . ($self->isConnected() ? "Connected" : "Failed")) if($main::Debug{mqtt});
