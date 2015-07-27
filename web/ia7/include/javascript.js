@@ -400,7 +400,7 @@ var loadList = function() {
 				else if(json_store.objects[entity].type == "Group" ||
 					    json_store.objects[entity].type == "Type" ||
 					    json_store.objects[entity].type == "Category"){
-					json_store.objects[entity] = json_store.objects[entity];
+					//??json_store.objects[entity] = json_store.objects[entity];
 					var object = json_store.objects[entity];
 					button_text = entity;
 					if (object.label !== undefined) button_text = object.label;
@@ -412,10 +412,14 @@ var loadList = function() {
 					else if (json_store.objects[entity].type == "Type") {
 						filter_args = "type="+entity;
 					}
+					var dbl_btn = "";
+					if (json_store.ia7_config.prefs.always_double_buttons == "yes") {
+						if (entity.length < 30) dbl_btn = "<br><br>"; 
+					}
 					button_html = "<div style='vertical-align:middle'><a role='button' listType='objects'";
 					button_html += "class='btn btn-default btn-lg btn-block btn-list btn-division navbutton-padding'";
-					button_html += "href='#path=/objects&"+filter_args+"&_collection_key="+collection_key+",$" + entity +"' >";
-					button_html += "" +button_text+"</a></div>";
+					button_html += "href='#path=/objects&"+filter_args+"&_collection_key="+collection_key+",$" + entity + "' >";
+					button_html += "" +button_text + dbl_btn +"</a></div>";
 					entity_arr.push(button_html);
 					continue;
 				}
@@ -429,9 +433,17 @@ var loadList = function() {
 					var dbl_btn = "";
 					if (json_store.ia7_config.prefs.always_double_buttons == "yes") {
 						if (name.length < 30) dbl_btn = "<br>"; 
+			//			if (json_store.objects[entity].state == undefined) dbl_btn += "<br>";
 					}
+					// direct control item, differentiate the button
+					var btn_direct = "";
+					if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
+                		if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
+                            btn_direct = "btn-direct";
+                		}
+                	} 
 					button_html = "<div style='vertical-align:middle'><button entity='"+entity+"' ";
-					button_html += "class='btn btn-"+color+" btn-lg btn-block btn-list btn-popover btn-state-cmd navbutton-padding'>";
+					button_html += "class='btn btn-"+color+" btn-lg btn-block btn-list btn-popover "+btn_direct+" btn-state-cmd navbutton-padding'>";
 					button_html += name+dbl_btn+"<span class='pull-right'>"+json_store.objects[entity].state+"</span></button></div>";
 					entity_arr.push(button_html);
 				}
@@ -476,8 +488,33 @@ var loadList = function() {
 			});
 			$(".btn-state-cmd").click( function () {
 				var entity = $(this).attr("entity");
-				create_state_modal(entity);
+				if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
+                	if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
+                         //console.log("This is a direct control object "+entity+" state="+json_store.objects[entity].state+" length="+json_store.objects[entity].states.length);
+                         var new_state = "";
+                         var possible_states = 0;
+                         for (var i = 0; i < json_store.objects[entity].states.length; i++){
+                         	if (filterSubstate(json_store.objects[entity].states[i]) == 1) continue;
+                         	//console.log("state "+i+" is "+json_store.objects[entity].states[i])
+                         	possible_states++;
+                         	if (json_store.objects[entity].states[i] !== json_store.objects[entity].state) new_state = json_store.objects[entity].states[i]
+                         	}
+                        //console.log("End states = "+i+" new_state="+new_state)
+						if ((possible_states > 2) || (new_state == "")) alert("Check configuration of "+entity+". "+possible_states+" states detected for direct control object. State is "+new_state);
+						url= '/SET;none?select_item='+entity+'&select_state='+new_state;
+						$.get( url);
+                	} else {
+                		create_state_modal(entity);
+                	}
+				} else {				
+					create_state_modal(entity);
+				}
 			});
+			$(".btn-state-cmd").mayTriggerLongClicks().on( 'longClick', function() {		
+				var entity = $(this).attr("entity");
+				create_state_modal(entity);
+			});			
+			
 		}
 	});
 	// Continuously check for updates if this was a group type request
@@ -993,11 +1030,19 @@ var floorplan = function(group,time) {
     		var location = get_fp_location(fp_location,0);
     		//alert("fp_location="+fp_location+" location="+location); 
     		$(this).attr("style",location);
+//iphone scale
+			var baseimg_width = $(window).width();
+			if (baseimg_width < 500) {
+      			$(this).attr('src',$(this).attr('src').replace('48.png','32.png'))
+			} else {
+			    $(this).attr('src',$(this).attr('src').replace('32.png','48.png'))
+			}
+
 		});
 	}
 
  	var path_str = "/objects";  
- 	var arg_str = "parents="+group+"&fields=fp_location,state,states,state_log,fp_icons,type&long_poll=true&time="+time;
+ 	var arg_str = "parents="+group+"&fields=fp_location,state,states,state_log,fp_icons,fp_icon_set,img,link,label,type&long_poll=true&time="+time;
 
  	updateSocket = $.ajax({
   		type: "GET",
@@ -1011,19 +1056,105 @@ var floorplan = function(group,time) {
 					for (var i=0 ; i < json.data[entity].fp_location.length-1; i=i+2){ //allow for multiple graphics
 						//alert("length="+json.data[entity].fp_location.length+" i="+i+" x="+json.data[entity].fp_location[i]+" y="+json.data[entity].fp_location[i+1]+" ent_length="+$('#entity_'+entity).length);
     					var location = get_fp_location(json.data[entity].fp_location,i);
+    					var popover = 0;
+    					if ((json.data[entity].type == "FPCamera_Item") ||
+    						(json_store.ia7_config.prefs.fp_state_popovers == "yes")) popover = 1 
+    					//console.log("popover="+popover+" config="+json_store.ia7_config.prefs.fp_state_popovers)
+    					var popover_html = "";
+    					if (popover) popover_html = 'data-toggle="popover" data-trigger="focus" tabindex="0"' 
+    					
    						var image = get_fp_image(json.data[entity]);
       					if ($('#entity_'+entity+'_'+i).length > 0) {
       						$('#entity_'+entity+'_'+i).attr('src',"/ia7/graphics/"+image);
       					} else {				   					
-							$('#graphic').append('<img id="entity_'+entity+'_'+i+'" class="entity='+entity+'_'+i+' floorplan_item coords='+json.data[entity].fp_location[i]+'x'+json.data[entity].fp_location[i+1]+'" style="'+location+'" src="/ia7/graphics/'+image+'" />');
+							$('#graphic').append('<img '+popover_html+' id="entity_'+entity+'_'+i+'" class="entity='+entity+'_'+i+' floorplan_item coords='+json.data[entity].fp_location[i]+'x'+json.data[entity].fp_location[i+1]+'" style="'+location+'" src="/ia7/graphics/'+image+'" />');
 							//create_state_modal('#entity_'+entity+i,entity); 
 						}
-						$('#entity_'+entity+'_'+i).click( function () {
-							//var fp_entity = $(this).attr("id").split(/entity_/)[1]; //
-							var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
-							//alert("entity="+fp_entity);
-							create_state_modal(fp_entity);
-						});	
+						// create unique popovers for Camera items
+						if (json.data[entity].type == "FPCamera_Item") {
+							var name = entity;
+							if (json.data[entity].label !== undefined) name = json.data[entity].label
+							var a_start = "";
+							var a_end = "";
+							if (json.data[entity].link !== undefined) {
+								a_start = '<a href="'+json.data[entity].link+'">'
+								a_end = '</a>';
+							}
+							//console.log("name="+entity+" label = "+json.data[entity].label);
+							//console.log("link = "+json.data[entity].get_img);
+							$('[data-toggle="popover"]').popover({
+								placement : 'auto bottom', //placement of the popover. also can use top, bottom, left or right
+      							title : name, 
+      							html: 'true', //needed to show html of course
+      							content : '<div id="popOverBox">'+a_start+'<img src="'+json.data[entity].img+'" width="251" height="201" />'+a_end+'</div>'
+							});
+						} else {
+							if (popover) {								
+								
+								$('[data-toggle="popover"]').popover({
+									placement : 'auto bottom', //placement of the popover. also can use top, bottom, left or right
+      								title : function() {
+      									var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
+      									var name = fp_entity;
+										if (json_store.objects[fp_entity].label !== undefined) name = json_store.objects[fp_entity].label;								
+      									return name+" - "+json_store.objects[fp_entity].state;
+      									}, 
+      								html: 'true', //needed to show html of course
+      								content : function() {
+      									var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
+										var po_states = json_store.objects[fp_entity].states;
+										var html = '<div id="popOverBox">';
+										// HP need to have at least 2 states to be a controllable object...
+										if (po_states.length > 1) {
+											html = '<div class="btn-group stategrp0 btn-block">';
+											var buttons = 0;
+											var stategrp = 0;
+											for (var i = 0; i < po_states.length; i++){
+												if (filterSubstate(po_states[i]) == 1) {
+													continue 
+												} else {
+													buttons++ 
+												//}
+												if (buttons > 2) {
+													stategrp++;
+													html += "</div><div class='btn-group btn-block stategrp"+stategrp+"'>";
+													buttons = 1;
+												}
+												//console.log ("name="+fp_entity+" buttons="+buttons)
+										
+												var color = getButtonColor(po_states[i])
+//TODO disabled override
+												var disabled = ""
+												if (po_states[i] == json_store.objects[fp_entity].state) {
+													disabled = "disabled";
+												}
+												html += "<button class='btn col-sm-6 col-xs-6 btn-"+color+" "+disabled+"'"
+												var url= '/SET;none?select_item='+fp_entity+'&select_state='+po_states[i];
+												html += ' onclick="$.get('
+												html += "'"+url+"')"
+												html += '">'+po_states[i]+'</button>';
+											}
+										}
+									}
+									html += "</div></div>"
+									//console.log("html="+html)
+									return html
+								}
+
+								});
+							} else {
+								$('#entity_'+entity+'_'+i).click( function () {
+									//var fp_entity = $(this).attr("id").split(/entity_/)[1]; //
+									var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
+									//alert("entity="+fp_entity);
+									create_state_modal(fp_entity);
+								});	
+							}
+							$('#entity_'+entity+'_'+i).mayTriggerLongClicks().on( 'longClick', function() {		
+									var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
+									create_state_modal(fp_entity);
+							});	
+						}
  					}
  				}
     			requestTime = json.meta.time;
@@ -1060,7 +1191,7 @@ var get_fp_location = function(item,index) {
   	var location = "position: absolute; ";
   	var top = parseInt((baseimg_height * item[index] / 100)+tmargin);
   	var left = parseInt((baseimg_width * item[index+1] / 100)+lmargin);
-  	console.log("baseimg_width="+baseimg_width+" top="+top+" left="+left); 
+  	//console.log("baseimg_width="+baseimg_width+" top="+top+" left="+left); 
   	location += "top: "+top+"px;";
   	location += "left: "+left+"px";
   	return location;
@@ -1068,10 +1199,18 @@ var get_fp_location = function(item,index) {
 
 var get_fp_image = function(item,size,orientation) {
   	var image_name;
+  	var image_color = getButtonColor(item.state)
+	var baseimg_width = $(window).width();
+  	var image_size = "48"
+  	if (baseimg_width < 500) image_size = "32" // iphone scaling
  	if (item.fp_icons !== undefined) {
  		//alert("Has a button defined state="+item.fp_icons[item.state]);
  		if (item.fp_icons[item.state] !== undefined) return item.fp_icons[item.state];
  	}
+ 	if (item.fp_icon_set !== undefined) {
+ 		//alert("Has a button defined state="+item.fp_icons[item.state]);
+  		return "fp_"+item.fp_icon_set+"_"+image_color+"_"+image_size+".png";
+ 	} 	
  	//	if item.fp_icons.return item.fp_icons[state];
   	if(item.type == "Light_Item" || item.type == "Fan_Light" ||
     		item.type == "Insteon_Device" || item.type == "UPB_Link" ||
@@ -1081,37 +1220,32 @@ var get_fp_image = function(item,size,orientation) {
     		item.type == "EIB2_Item" || item.type == "EIO_Item" ||
     		item.type == "UIO_Item" || item.type == "X10_Item" ||    		
     		item.type == "xPL_Plugwise" || item.type == "X10_Appliance") {
- 		if (item.state == "on") {
-  			return "fp-light-on.png";
- 		} else if (item.state == "off") {
-  			return "fp-light-off.png";
- 		} else {
-  			return "fp-light-dim.png";
- 		}
+
+  			return "fp_light_"+image_color+"_"+image_size+".png";
   	}
   	
   	if(item.type == "Motion_Item" || item.type == "X10_Sensor" ||
     		item.type == "Insteon::MotionSensor" ) {
- 		if (item.state == "on" || item.state == "motion" ) {
-  			return "fp-motion-motion.png";
- 		} else if (item.state == "off" || item.state == "still") {
-  			return "fp-motion-still.png";
- 		}  else {
- 			return "fp-unknown.png";
- 		}
+  			return "fp_motion_"+image_color+"_"+image_size+".png";
+
   	}
   	
   	if(item.type == "Door_Item" ) {
- 		if (item.state == "open") {
-  			return "fp-door-closed.png";
- 		} else if (item.state == "closed") {
-  			return "fp-door-closed.png";
- 		} else {
-  			return "fp-unknown.png";
- 		}
+  			return "fp_door_"+image_color+"_"+image_size+".png";
+
   	}  	
+
+  	if(item.type == "FPCamera_Item" ) {
+ 			return "fp_camera_default_"+image_size+".png";
+ 		}
   	
-  	return "fp-unknown.png";
+  	return "fp_unknown_info_"+image_size+".png";
+}
+
+var create_img_popover = function(entity) {
+}
+
+var create_state_popover = function(entity) {
 }
 
 var create_state_modal = function(entity) {
@@ -1123,31 +1257,62 @@ var create_state_modal = function(entity) {
 		$('#control').find('.control-dialog').attr("entity", entity);
 		var modal_states = json_store.objects[entity].states;
 		// HP need to have at least 2 states to be a controllable object...
+		if (modal_states == undefined) modal_states = 1;
 		if (modal_states.length > 1) {
 			$('#control').find('.states').html('<div class="btn-group stategrp0 btn-block"></div>');
 			var modal_states = json_store.objects[entity].states;
 			var buttonlength = 0;
 			var stategrp = 0;
 			var advanced_html = "";
+			var display_buttons = 0;
+			var grid_buttons = 3;
+			var group_buttons = 4;
+			// get number of displayed buttons so we can display nicely.
+			for (var i = 0; i < modal_states.length; i++){
+				if (filterSubstate(modal_states[i]) !== 1) display_buttons++
+			}
+			if (display_buttons == 2) {
+				grid_buttons = 6;
+				group_buttons = 2;
+			}
+			if (display_buttons % 3 == 0) {
+				grid_buttons = 4;
+				group_buttons = 3;
+			}
+			//console.log("display buttons="+display_buttons+" grid_buttons="+grid_buttons+" group_buttons="+group_buttons); 
+			
 			for (var i = 0; i < modal_states.length; i++){
 				if (filterSubstate(modal_states[i]) == 1) {
-				advanced_html += "<button class='btn btn-default col-sm-3 col-xs-3 hidden'>"+modal_states[i]+"</button>";
+				advanced_html += "<button class='btn btn-default col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" hidden'>"+modal_states[i]+"</button>";
 				continue 
 			} else {
-//TODO: Maybe just count buttons to create groups, organize them a bit better, <4 buttons, do a block?
-				buttonlength += 2 + modal_states[i].length 
+				//buttonlength += 2 + modal_states[i].length 
+				buttonlength ++;
 			}
-			if (buttonlength >= 25) {
+			//if (buttonlength >= 25) {
+			if (buttonlength > group_buttons) {
 				stategrp++;
 				$('#control').find('.states').append("<div class='btn-group btn-block stategrp"+stategrp+"'></div>");
-				buttonlength = 0;
+				buttonlength = 1;
 			}
 			var color = getButtonColor(modal_states[i])
 			var disabled = ""
 			if (modal_states[i] == json_store.objects[entity].state) {
 				disabled = "disabled";
 			}
-			$('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-3 col-xs-3 btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");
+			//global override
+			if (json_store.ia7_config.prefs.disable_current_state !== undefined && json_store.ia7_config.prefs.disable_current_state == "no") {
+            	disabled = "";
+			}
+			//per object override
+			if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
+                if (json_store.ia7_config.objects[entity].disable_current_state !== undefined && json_store.ia7_config.objects[entity].disable_current_state == "yes") {
+                                disabled = "disabled";
+                } else {
+                                disabled = "";
+                }
+			}
+			$('#control').find('.states').find(".stategrp"+stategrp).append("<button class='btn col-sm-"+grid_buttons+" col-xs-"+grid_buttons+" btn-"+color+" "+disabled+"'>"+modal_states[i]+"</button>");
 						
 		}
 		$('#control').find('.states').append("<div class='btn-group advanced btn-block'>"+advanced_html+"</div>");
