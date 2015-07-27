@@ -359,6 +359,8 @@ sub main::net_jabber_signon {
     $port     = $main::config_parms{net_jabber_port}      unless $port;
     $resource = $main::config_parms{net_jabber_resource}  unless $resource;
     my $tls   = $main::config_parms{net_jabber_tls};
+    my $certs = $main::config_parms{net_jabber_certs_path};
+    $certs = '/etc/ssl/certs/' unless $certs;
     my $component   = $main::config_parms{net_jabber_component_name};
 
     $server   = 'jabber.com' unless $server;
@@ -372,15 +374,14 @@ sub main::net_jabber_signon {
     $jabber_connection = new Net::Jabber::Client();
 #   $jabber_connection = Net::Jabber::Client->new(debuglevel => 2, debugtime  => 1 , debugfile  =>  "/tmp/jabber.log");
 
-	my $success=0;
-    if ($component) {
-    	$success=$jabber_connection->Connect(hostname => $server, port => $port, tls => $tls, componentname => $component);
-    } else {
-    	$success=$jabber_connection->Connect(hostname => $server, port => $port, tls => $tls);
-    }
-
+    my %options =( hostname => $server,
+                   port => $port,
+                   tls => $tls,
+                   ssl_ca_path => $certs);
+    $options{componentname} = $component if ($component);
+    my $success = $jabber_connection->Connect(%options);
     unless ($success) {
-        print "  - Error:  Jabber server is down or connection was not allowed. jc=$jabber_connection\n";
+        print "  - Error:  Jabber server is down or connection was not allowed. jc=$jabber_connection: '$@'\n";
         undef $jabber_connection;
         return;
     }
