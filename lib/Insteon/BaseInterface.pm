@@ -35,7 +35,7 @@ sub check_for_data
 
 =item C<poll_all>
 
-Called on startup or reload.  Will always request and print the plm_info, which 
+Called at startup.  Will always request and print the plm_info, which 
 contains the PLM revision number, to the log on startup.
 
 If Insteon_PLM_scan_at_startup is set to 1 in the ini file, this routine will poll
