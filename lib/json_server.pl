@@ -39,6 +39,7 @@ B<NONE>
 
 use strict;
 
+use RRDTool::Rawish;
 use HTML::Entities;    # So we can encode characters like <>& etc
 use JSON qw(decode_json);
 use IO::Compress::Gzip qw(gzip);
@@ -194,6 +195,97 @@ sub json_get {
 
 		}
 	}
+	
+	# List rrd config settings
+	if ($path[0] eq 'rrd_config' || $path[0] eq 'rrd' || $path[0] eq '') {
+		my $prefs_file = "$Pgm_Root/data/web/ia7_rrd_config.json";
+		$prefs_file = "$config_parms{data_dir}/web/ia7_rrd_config.json"
+			if -e "$config_parms{data_dir}/web/ia7_rrd_config.json";
+		$prefs_file = "$config_parms{ia7_data_dir}/ia7_rrd_config.json"
+			if -e "$config_parms{ia7_data_dir}/ia7_rrd_config.json";
+				
+		eval {
+		   my $prefs = file_read($prefs_file);
+		   $json_data{'rrd_config'} = decode_json($prefs); #HP, wrap this in eval to prevent MH crashes
+		};
+		if ($@){
+		  print_log "Json_Server.pl: WARNING: decode_json failed for ia7_rrd_config.json. Please check this file!";
+		}
+	}	
+	
+	# RRD data routines
+	if ($path[0] eq 'rrd' || $path[0] eq '') {
+		my $path = "$config_parms{data_dir}/rrd";
+		$path = $json_data{'rrd_config'}->{'path'} if (defined $json_data{'rrd_config'}->{'path'});
+		my $rrd_file = "weather.rrd";
+		$rrd_file = $json_data{'rrd_config'}->{'default_rrd'} if (defined $json_data{'rrd_config'}->{'default_rrd'});
+		my $default_cf = "AVERAGE";
+		$default_cf = $json_data{'rrd_config'}->{'default_cf'} if (defined $json_data{'rrd_config'}->{'default_cf'});
+		
+		#if a group, get the DS's
+		my @dss = ();
+		my @defs = ();
+		my @xports = ();
+		my @dataset = ();
+		my $index = 0;
+		my @round = ();
+		my %data;
+		my $end = "now";
+		
+		if (defined $args{start}[0]) {
+
+			my $start = $args{start}[0];
+			$end = $args{end}[0] if (defined $args{end}[0]);
+			if (defined $args{group}[0]) {
+			#go through all the defined DSs and if the group name and stash in $args{ds} the array of DSs
+			}
+		
+			foreach my $ds (@{$args{ds}}) {
+  				push @dss, $ds;
+  				#if it doesn't exist as a ds then skip
+  				my $cf = $default_cf;
+  				$default_cf = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'cf'} if (defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'cf'});
+  				push @defs, "DEF:$ds=$path/$rrd_file:$ds:$default_cf";
+  				push @xports, "XPORT:$ds";
+  				$dataset[$index]->{'label'} = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'label'} if (defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'label'});
+  				$round[$index] = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'round'} if (defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'round'});
+  				$index++;
+    		}
+
+    		push @defs,@xports;
+			print "defs=" . join (',',@defs) . "\n";
+			print "start=$start end=$end\n";	
+		
+			my $rrd = RRDTool::Rawish->new(rrdfile => "$path/$rrd_file");
+			my $xml=$rrd->xport([@defs],{'--start' => $start, '--end' => $end,});
+			my @lines = split/\n/,$xml;
+
+			foreach my $line (@lines) {
+				#print "line=$line\n";
+				my ($time) = $line =~ /\<row\>\<t\>(\d*)\<\/t\>/;
+				my (@values) = $line =~ /\<v\>([e.+\d]*|NaN)\<\/v\>/g;
+				if ($time) {
+					#print "[$time";
+					my $index = 0;
+					foreach my $value (@values) {
+						my $value1 = sprintf("%.10g", $value);
+						$value1 = ($value1 - 32) * (5/9) if ($config_parms{weather_uom_temp} eq 'C');
+						$value1 = sprintf("%." . $round[$index] . "f",$value1) if (defined $round[$index]);
+						$value1 =~ s/\.?0*$//; #remove unneccessary trailing decimals
+						$value1 = "null" if (lc $value1 eq "nan");
+						push @{$dataset[$index]->{data}},"$time,$value1";
+						$index++;
+					}
+				}
+			}
+		}
+		$data{'data'} = \@dataset;
+		$data{'options'} = $json_data{'rrd_config'}->{'options'} if (defined $json_data{'rrd_config'}->{'options'});
+		#$json_data{'rrd'} = \@dataset;
+		$json_data{'rrd'} = \%data; 
+		print Dumper %data;
+	}
+		
 
 	# List objects
 	if ($path[0] eq 'objects' || $path[0] eq '') {
@@ -319,9 +411,44 @@ sub json_get {
 	if ( $path[0] eq 'table_data') {
 	#print Dumper $json_table{$args{var}[0]};# if $Debug{json};
 		if ($args{var}) {
+my $length = $#{$json_table{$args{var}[0]}->{data}} + 1;
+print "json_db: length = $length start=" . $args{start}[0] . " records=" . $args{records}[0] . "\n";
+
+#need to check if vars and keys exist
+
+my $start = 0;
+$start = $args{start}[0] if ($args{start}[0]);
+my $records = 0;
+$records = $args{records}[0] if ($args{records}[0]);
+
+if ($length < ($start + $records)) {
+	print "db: will have to request data, $length, $start, $records\n";
+	print "&" . $json_table{$args{var}[0]}{hook} . "($start,$records)\n";
+	my $hook = 	$json_table{$args{var}[0]}{hook} . "($start,$records)";
+
+	#eval (&get_inbound_data($start,$records));
+	eval ("&$hook");
+	if ($@) {
+		  print_log "Json_Server.pl: WARNING: fetch data failed for " . $args{var}[0] . " " . $json_table{$args{var}[0]}{hook} . "!";
+		}
+
+}
+#if requesting data beyond what's available, fetch it.
+#test bad table
+#remove data from hash		
 			my $jt_time = int($json_table{$args{var}[0]}{time});
 			if (($args{time} && int($args{time}[0]) < $jt_time) or (!$args{time})) {
-			   $json_data{'table_data'} = $json_table{$args{var}[0]};
+				#$json_data->{'table_data'} = $json_table{$args{var}[0]};
+				#need to copy all the data since we can adjust starts and records
+				
+				$json_data{'table_data'}{exist} = $json_table{$args{var}[0]}{exist};
+				$json_data{'table_data'}{head} = $json_table{$args{var}[0]}{head};
+				$json_data{'table_data'}{page} = $json_table{$args{var}[0]}{page};
+				$json_data{'table_data'}{hook} = $json_table{$args{var}[0]}{hook};
+				@{$json_data{'table_data'}->{data}} = map { [@$_] } @{$json_table{$args{var}[0]}->{data}};
+
+				splice @{$json_data{'table_data'}->{data}}, 0 ,$args{start}[0] if ($args{start}[0]);
+				splice @{$json_data{'table_data'}->{data}}, $args{records}[0] if ($args{records}[0]);
 			}
 		}
 	}
@@ -792,62 +919,153 @@ eof
 sub json_table_create {
 	my ($key) = @_;
 
-  return 0 if (defined $json_table{$key}{exist});
+	return 0 if (defined $json_table{$key}{exist});
   
-  $json_table{$key}{exist} = 1;
-  return 1;
+	$json_table{$key}{exist} = 1;
+	return 1;
 }
 
 sub json_table_delete {
 	my ($key) = @_;
 
-  return 0 if (!defined $json_table{$key}{exist});
+	return 0 if (!defined $json_table{$key}{exist});
   
-  $json_table{$key} = {};
-  return 1;
+	$json_table{$key} = {};
+	return 1;
 }
 
 sub json_table_put_header {
 	my ($key,$pos,$value) = @_;
 
-  return 0 if (!defined $json_table{$key}{exist});
+	return 0 if (!defined $json_table{$key}{exist});
   
-  $json_table{$key}{head}[$pos] = $value;
-  return 1;
+  	$json_table{$key}{head}[$pos] = $value;
+  	return 1;
 }
 
 sub json_table_get_header {
 	my ($key,$pos) = @_;
 
-  return 0 if (!defined $json_table{$key}{exist});
+	return 0 if (!defined $json_table{$key}{exist});
   
-  return $json_table{$key}{head}[$pos];
+  	return $json_table{$key}{head}[$pos];
 }
 
 sub json_table_put_data {
 	my ($key,$posx,$posy,$value) = @_;
 
-  return 0 if (!defined $json_table{$key}{exist});
+	return 0 if (!defined $json_table{$key}{exist});
   
-  $json_table{$key}{data}[$posx][$posy] = $value;
-  return 1;
+	$json_table{$key}{data}[$posx][$posy] = $value;
+	return 1;
 }
 
 sub json_table_get_data {
 	my ($key,$posx,$posy) = @_;
 
-  return 0 if (!defined $json_table{$key}{data}[$posx][$posy]);
+	return 0 if (!defined $json_table{$key}{data}[$posx][$posy]);
   
-  return $json_table{$key}{data}[$posx][$posy];
+	return $json_table{$key}{data}[$posx][$posy];
 }
 
 sub json_table_push {
 	my ($key) = @_;
 
-  return 0 if (!defined $json_table{$key});
+	return 0 if (!defined $json_table{$key});
   
-  $json_table{$key}{time} = &get_tickcount;
-  return 1;
+	$json_table{$key}{time} = &get_tickcount;
+	return 1;
+}
+
+sub json_table_insert_data_row {
+# insert a row at a given location
+	my ($key,$posx,@posy) = @_;
+
+	return 0 if (!defined $json_table{$key}{exist});
+
+	splice @{$json_table{$key}{data}},$posx, 0, @posy;
+
+	return 1;
+}
+
+sub json_table_delete_data_row {
+# will shrink array
+	my ($key,$posx) = @_;
+
+	return 0 if (!defined $json_table{$key}{exist});
+
+	splice @{$json_table{$key}{data}},$posx;
+
+	return 1;
+}
+
+sub json_table_get_table_length {
+# number of rows contained
+	my ($key) = @_;
+  
+	return 0 if (!defined $json_table{$key}{exist});
+
+	my $length = $#{$json_table{$key}->{data}} + 1;
+
+	return $length;
+}
+
+sub json_table_set_page_size {
+	my ($key,$length) = @_;
+  
+	return 0 if (!defined $json_table{$key}{exist});
+
+	$json_table{$key}{page} = $length;
+
+	return 1;
+}
+  
+  
+sub json_table_get_page_size {
+	my ($key) = @_;
+	return 0 if (!defined $json_table{$key}{exist});
+
+	if (defined $json_table{$key}{page}) {
+		return $json_table{$key}{page};
+	} else {
+		return 0;
+	}
+}
+  
+sub json_table_set_fetch_routine {
+# what code to pull new data in.
+	my ($key,$code) = @_;
+	
+	return 0 if (!defined $json_table{$key}{exist});	
+	
+	$json_table{$key}{hook} = $code;
+	
+	return 0;
+}
+
+sub json_table_fetch_data {
+  my ($key,$posx,$records) = @_;
+
+	return 0 if (!defined $json_table{$key}{hook});	
+
+
+	my @data = &{$json_table{$key}{hook}}($posx,$records);
+	my $l = &json_get_table_length($key) + 1;
+	my $r = 0;
+	foreach my $row (@data) {
+		my $e = 0;
+		foreach my $element (@$row) {
+			&json_table_put_data($r+$l,$e,$data[$r][$e]);
+			$e++;
+		}
+		$r++;
+	}
+	&json_table_push($key);
+	return 0;
+}
+
+sub json_table_purge_data {
+  my ($key,$posx,$records) = @_;
 }
 
 return 1;    # Make require happy
