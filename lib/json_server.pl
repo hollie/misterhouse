@@ -216,19 +216,21 @@ sub json_get {
 	# RRD data routines
 	if ($path[0] eq 'rrd' || $path[0] eq '') {
 		my $path = "$config_parms{data_dir}/rrd";
-		$path = $json_data{'rrd_config'}->{'path'} if (defined $json_data{'rrd_config'}->{'path'});
+		$path = $json_data{'rrd_config'}->{'prefs'}->{'path'} if (defined $json_data{'rrd_config'}->{'prefs'}->{'path'});
 		my $rrd_file = "weather.rrd";
-		$rrd_file = $json_data{'rrd_config'}->{'default_rrd'} if (defined $json_data{'rrd_config'}->{'default_rrd'});
+		$rrd_file = $json_data{'rrd_config'}->{'prefs'}->{'default_rrd'} if (defined $json_data{'rrd_config'}->{'prefs'}->{'default_rrd'});
 		my $default_cf = "AVERAGE";
-		$default_cf = $json_data{'rrd_config'}->{'default_cf'} if (defined $json_data{'rrd_config'}->{'default_cf'});
+		$default_cf = $json_data{'rrd_config'}->{'prefs'}->{'default_cf'} if (defined $json_data{'rrd_config'}->{'prefs'}->{'default_cf'});
 		
-		#if a group, get the DS's
 		my @dss = ();
 		my @defs = ();
 		my @xports = ();
 		my @dataset = ();
 		my $index = 0;
 		my @round = ();
+		my $celsius = 0;
+		$celsius = 1 if ($config_parms{weather_uom_temp} eq 'C');
+		$celsius = 1 if (lc $json_data{'rrd_config'}->{'prefs'}->{'uom'} eq "celsius");
 		my %data;
 		my $end = "now";
 		
@@ -236,10 +238,20 @@ sub json_get {
 
 			my $start = $args{start}[0];
 			$end = $args{end}[0] if (defined $args{end}[0]);
-			if (defined $args{group}[0]) {
+			
 			#go through all the defined DSs and if the group name and stash in $args{ds} the array of DSs
+
+			if (defined $args{group}[0]) {
+				@{$args{ds}} = (); #override any DSs specified in the URL
+				for my $dsg (keys $json_data{'rrd_config'}->{'ds'}) {
+					if (defined $json_data{'rrd_config'}->{'ds'}->{$dsg}->{'group'}) {
+						foreach my $group (split /,/,$json_data{'rrd_config'}->{'ds'}->{$dsg}->{'group'}) {
+							push @{$args{ds}}, $dsg if (lc $group) eq (lc $args{group}[0]);
+						}
+					}
+				}
 			}
-		
+							
 			foreach my $ds (@{$args{ds}}) {
   				push @dss, $ds;
   				#if it doesn't exist as a ds then skip
@@ -253,8 +265,8 @@ sub json_get {
     		}
 
     		push @defs,@xports;
-			print "defs=" . join (',',@defs) . "\n";
-			print "start=$start end=$end\n";	
+			#print "defs=" . join (',',@defs) . "\n";
+			#print "start=$start end=$end\n";	
 		
 			my $rrd = RRDTool::Rawish->new(rrdfile => "$path/$rrd_file");
 			my $xml=$rrd->xport([@defs],{'--start' => $start, '--end' => $end,});
@@ -263,17 +275,26 @@ sub json_get {
 			foreach my $line (@lines) {
 				#print "line=$line\n";
 				my ($time) = $line =~ /\<row\>\<t\>(\d*)\<\/t\>/;
+				$time = $time * 1000;
 				my (@values) = $line =~ /\<v\>([e.+\d]*|NaN)\<\/v\>/g;
 				if ($time) {
 					#print "[$time";
 					my $index = 0;
 					foreach my $value (@values) {
 						my $value1 = sprintf("%.10g", $value);
-						$value1 = ($value1 - 32) * (5/9) if ($config_parms{weather_uom_temp} eq 'C');
+			#print "value=$value,value1=$value1,";
+						$value1 = ($value1 - 32) * (5/9) if ($celsius);
 						$value1 = sprintf("%." . $round[$index] . "f",$value1) if (defined $round[$index]);
-						$value1 =~ s/\.?0*$//; #remove unneccessary trailing decimals
+			#print "value1=$value1\n";
+						$value1 =~ s/\.?0*$// unless ($value1 == 0); #remove unneccessary trailing decimals
 						$value1 = "null" if (lc $value1 eq "nan");
-						push @{$dataset[$index]->{data}},"$time,$value1";
+			#print "value1=$value1\n";
+						#my @array = ();
+						#$array[0] = $time;
+						#$array[1] = $value1;
+						##push @{$dataset[$index]->{data}},"$time,$value1"; ###Need to get a 2d array here####***
+						push @{$dataset[$index]->{data}},[$time,$value1]; 
+						#push @{$dataset[$index]->{data}},@array;
 						$index++;
 					}
 				}
@@ -281,9 +302,11 @@ sub json_get {
 		}
 		$data{'data'} = \@dataset;
 		$data{'options'} = $json_data{'rrd_config'}->{'options'} if (defined $json_data{'rrd_config'}->{'options'});
+		$data{'periods'} = $json_data{'rrd_config'}->{'periods'} if (defined $json_data{'rrd_config'}->{'periods'});
+
 		#$json_data{'rrd'} = \@dataset;
 		$json_data{'rrd'} = \%data; 
-		print Dumper %data;
+		#print Dumper %data;
 	}
 		
 

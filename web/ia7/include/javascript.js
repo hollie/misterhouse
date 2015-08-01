@@ -202,6 +202,10 @@ function changePage (){
 			var path_arg = path.split('?');
 			floorplan(path_arg[1]);
 		}
+		else if(path.indexOf('rrd') === 0){
+			var path_arg = path.split('?');
+			graph_rrd(path_arg[1],path_arg[2]);
+		}		
 		else if(URLHash._request == 'trigger'){
 			trigger();
 		}
@@ -972,15 +976,15 @@ var display_table = function(table,time) {
 					html += "<th>"+head+"</th>";
 				}
 				html += "</tr></thead><tbody>";
-
-				for (var i = 0; i < json.data.data.length; i++){
-					html +="<tr>";
-					for (var j = 0; j < json.data.data[i].length; j++){
-					   var line = String(json.data.data[i][j]);
-					  	html += "<td data-title='"+json.data.head[j]+"'>"+line+"</td>";
-
-						}
-					html += "</tr>";
+				if (json.data.data !== undefined) {  //If no data, at least show the header
+					for (var i = 0; i < json.data.data.length; i++){
+						html +="<tr>";
+						for (var j = 0; j < json.data.data[i].length; j++){
+					   		var line = String(json.data.data[i][j]);
+					  		html += "<td data-title='"+json.data.head[j]+"'>"+line+"</td>";
+							}
+						html += "</tr>";
+					}
 				}
 				html += "</tbody></table></div>";
 				requestTime = json.meta.time;
@@ -999,6 +1003,113 @@ var display_table = function(table,time) {
 	});
 };
 
+
+//Creates a table based on the $json_table data structure. desktop & mobile design
+var graph_rrd = function(start,group,time) {
+
+	var URLHash = URLToHash();
+	if (typeof time === 'undefined'){
+		$('#list_content').html("<div id='top-graph' class='row top-buffer'>");
+		$('#top-graph').append("<div id='rrd-periods' class='row col-xs-4 col-md-4'>");
+		$('#top-graph').append("<div id='rrd-graph' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
+		$('#top-graph').append("<div id='legend'>");
+		time = 0;
+	}
+	URLHash.time = time;
+	URLHash.long_poll = 'true';
+	if (updateSocket !== undefined && updateSocket.readyState != 4){
+		// Only allow one update thread to run at once
+		updateSocket.abort();
+	}	
+	var path_str = "/rrd"  
+	var arg_str = "start="+start+"&group="+group+"&long_poll=true&time="+time;
+	updateSocket = $.ajax({
+		type: "GET",
+		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
+		dataType: "json",
+		success: function( json, statusText, jqXHR ) {
+			var requestTime = time;
+			if (jqXHR.status == 200) {
+				JSONStore(json);
+				// HP should probably use jquery, but couldn't get sequencing right.
+				// HP jquery would allow selected values to be replaced in the future.
+
+				if (json.data.data !== undefined) {  //If no data, at least show the header and an error
+
+				}	
+				var dropdown_html = '<div class="dropdown"><button class="btn btn-default rrd-period-dropdown" type="button" data-toggle="dropdown">';
+				var dropdown_html_list = "";
+				var dropdown_current = "Unknown  ";
+
+				$.each(json.data.periods, function(key, value) {
+    				console.log(key, value);
+    				if (start === value.split(",")[1]) {
+    					dropdown_current = value.split(",")[0]+"  ";
+    				} else {
+    					dropdown_html_list += '<li><a href="javascript:void(0);" class="rx1" id="rrdperiod'+key+'" ';
+    					//dropdown_html_list += 'onclick=graph_rrd('+value.split(",")[1]+','+group+','+time+');';
+    					dropdown_html_list += '>'+value.split(",")[0]+'</a></li>';
+ 
+    				}
+				});
+				dropdown_html += dropdown_current+'<span class="caret"></span></button><ul class="dropdown-menu">';
+				dropdown_html += dropdown_html_list;
+				dropdown_html += '</ul></div>';
+
+				$('#rrd-periods').append(dropdown_html);
+
+				// put the selection list on the side.
+				for (var i = 0; i < json.data.data.length; i++){
+					console.log("selection="+json.data.data[i].label);
+					var legli = $('<li />').appendTo('#legend');
+
+					$('<input name="' + json.data.data[i].label + '" id="' + json.data.data[i].label + '" type="checkbox" checked="checked" />').appendTo(legli);
+					$('<label>', {
+						 text: json.data.data[i].label,
+					    'for': json.data.data[i].label
+						}).appendTo(legli);
+				}
+				
+ 
+		function plotAccordingToChoices() {
+    		var data = [];
+
+    		$('#legend').find("input:checked").each(function() {
+        		var key = this.name;
+
+        		for (var i = 0; i < json.data.data.length; i++) {
+            		if (json.data.data[i].label === key) {
+                		data.push(json.data.data[i]);
+                		return true;
+           		 	}
+       		 	}
+    		});
+    
+    		$.plot($("#rrd-graph"), data, options);
+		}
+
+		// Add the Flot version string to the footer
+			//$.plot('#rrd-graph', json.data.data, json.data.options);
+		plotAccordingToChoices();
+		$('#legend').find("input").change(plotAccordingToChoices);		
+			//$('#legend').find("input").change(graph_rrd(start,group,time));
+
+
+			requestTime = json.meta.time;
+//#flot				$('#rtable').html(html);
+
+			}
+			if (jqXHR.status == 200 || jqXHR.status == 204) {
+				//Call update again, if page is still here
+				//KRK best way to handle this is likely to check the URL hash
+				if ($('#graph').length !== 0){
+					//If the display table page is still active request more data
+					//graph_rrd(start,group,requestTime);
+				}
+			}		
+		}
+	});
+};
 
 var floorplan = function(group,time) {
 	var URLHash = URLToHash();
@@ -1230,7 +1341,7 @@ var get_fp_image = function(item,size,orientation) {
 
   	}
   	
-  	if(item.type == "Door_Item" ) {
+  	if(item.type == "Door_Item" || item.type == "Insteon::IOLinc_door") {
   			return "fp_door_"+image_color+"_"+image_size+".png";
 
   	}  	

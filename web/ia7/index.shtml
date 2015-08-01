@@ -44,6 +44,13 @@
 	<!-- Enables Jquery UI functions to work on touch interfaces -->
   	<!-- <script src="/ia7/include/jquery.ui.touch-punch.0.2.3.min.js"></script> -->
 	
+	<!-- Flot libraries for graphing RRDs -->
+	<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.min.js"></script>
+	<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.selection.min.js"></script>
+	<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.resize.min.js"></script>
+	<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.time.min.js"></script>
+	
+	
 	<!-- ia7 JS File-->
 	<script src="/ia7/include/javascript.js"></script>
 	
@@ -123,6 +130,19 @@
   		font-size: 46px;
   		margin-left: -10px;
 	}	
+	.rrd-period-dropdown
+	{
+		margin-left:20px;
+	}
+	#top-graph
+	{
+		margin-left: 10px;
+	}
+	#rrd-graph
+	{
+    	width:800px;
+    	height:500px;
+	}
 	</style>
 </head>
 <body>
