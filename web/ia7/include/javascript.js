@@ -1012,7 +1012,7 @@ var graph_rrd = function(start,group,time) {
 		$('#list_content').html("<div id='top-graph' class='row top-buffer'>");
 		$('#top-graph').append("<div id='rrd-periods' class='row col-xs-4 col-md-4'>");
 		$('#top-graph').append("<div id='rrd-graph' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
-		$('#top-graph').append("<div id='legend'>");
+		$('#top-graph').append("<div id='legend'><br><br>");
 		time = 0;
 	}
 	URLHash.time = time;
@@ -1037,7 +1037,7 @@ var graph_rrd = function(start,group,time) {
 				if (json.data.data !== undefined) {  //If no data, at least show the header and an error
 
 				}	
-				var dropdown_html = '<div class="dropdown"><button class="btn btn-default rrd-period-dropdown" type="button" data-toggle="dropdown">';
+				var dropdown_html = '<div class="dropdown"><button class="btn btn-default rrd-period-dropdown" data-target="#" type="button" data-toggle="dropdown">';
 				var dropdown_html_list = "";
 				var dropdown_current = "Unknown  ";
 
@@ -1046,7 +1046,7 @@ var graph_rrd = function(start,group,time) {
     				if (start === value.split(",")[1]) {
     					dropdown_current = value.split(",")[0]+"  ";
     				} else {
-    					dropdown_html_list += '<li><a href="javascript:void(0);" class="rx1" id="rrdperiod'+key+'" ';
+    					dropdown_html_list += '<li><a href="javascript: void(0)" id="rrdperiod_'+key+'" ';
     					//dropdown_html_list += 'onclick=graph_rrd('+value.split(",")[1]+','+group+','+time+');';
     					dropdown_html_list += '>'+value.split(",")[0]+'</a></li>';
  
@@ -1058,18 +1058,28 @@ var graph_rrd = function(start,group,time) {
 
 				$('#rrd-periods').append(dropdown_html);
 
+				$('.dropdown').on('click', '.dropdown-menu li a', function(e){
+    				e.stopPropagation();
+    				var period = $(this).attr("id").match(/rrdperiod_(.*)/)[1]; 
+    				var new_start = json.data.periods[period].split(',')[1];
+   					console.log("please work graph_rrd("+new_start+","+group+")");
+					$('.open').removeClass('open');
+					graph_rrd(new_start,group);
+
+				});
+
 				// put the selection list on the side.
 				for (var i = 0; i < json.data.data.length; i++){
 					console.log("selection="+json.data.data[i].label);
-					var legli = $('<li />').appendTo('#legend');
+					var legli = $('<li style="list-style:none;"/>').appendTo('#legend');
 
 					$('<input name="' + json.data.data[i].label + '" id="' + json.data.data[i].label + '" type="checkbox" checked="checked" />').appendTo(legli);
 					$('<label>', {
+						 class: "rrd-legend",
 						 text: json.data.data[i].label,
 					    'for': json.data.data[i].label
 						}).appendTo(legli);
 				}
-				
  
 		function plotAccordingToChoices() {
     		var data = [];
@@ -1085,15 +1095,51 @@ var graph_rrd = function(start,group,time) {
        		 	}
     		});
     
-    		$.plot($("#rrd-graph"), data, options);
+    		$.plot($("#rrd-graph"), data, json.data.options);
 		}
 
-		// Add the Flot version string to the footer
-			//$.plot('#rrd-graph', json.data.data, json.data.options);
+		var previousPoint = null;
+
+		$("#rrd-graph").bind("plothover", function(event, pos, item) {
+    		$("#x").text(pos.x.toFixed(2));
+    		$("#y").text(pos.y.toFixed(2));
+
+    		if (item) {
+        		if (previousPoint != item.datapoint) {
+            	previousPoint = item.datapoint;
+
+            	$("#tooltip").remove();
+            	var x = item.datapoint[0].toFixed(2),
+                y = item.datapoint[1].toFixed(2);
+
+            	showTooltip(item.pageX, item.pageY, item.series.label + " " + y);
+        	}
+    	} else {
+        	$("#tooltip").remove();
+        	previousPoint = null;
+    	}
+		});
+
+		function showTooltip(x, y, contents) {
+    		$('<div id="tooltip">' + contents + '</div>').css({
+        		position: 'absolute',
+        		display: 'none',
+        		top: y + 5,
+        		left: x + 15,
+        		border: '1px solid #fdd',
+        		padding: '2px',
+        		backgroundColor: '#fee',
+        		opacity: 0.80
+    		}).appendTo("body").fadeIn(200);
+		}
+
 		plotAccordingToChoices();
 		$('#legend').find("input").change(plotAccordingToChoices);		
 			//$('#legend').find("input").change(graph_rrd(start,group,time));
 
+		//$('.legendColorBox > div').each(function(i){
+    	//	$(this).clone().prependTo($('#legend').find("li").eq(i));
+		//});
 
 			requestTime = json.meta.time;
 //#flot				$('#rtable').html(html);
@@ -1104,7 +1150,7 @@ var graph_rrd = function(start,group,time) {
 				//KRK best way to handle this is likely to check the URL hash
 				if ($('#graph').length !== 0){
 					//If the display table page is still active request more data
-					//graph_rrd(start,group,requestTime);
+					graph_rrd(start,group,requestTime);
 				}
 			}		
 		}

@@ -134,13 +134,17 @@
 	{
 		margin-left:20px;
 	}
+	.rrd-legend
+	{	
+    	margin-left:8px;
+	}
 	#top-graph
 	{
 		margin-left: 10px;
 	}
 	#rrd-graph
 	{
-    	width:800px;
+    	width:700px;
     	height:500px;
 	}
 	</style>

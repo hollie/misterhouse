@@ -275,6 +275,7 @@ sub json_get {
 			foreach my $line (@lines) {
 				#print "line=$line\n";
 				my ($time) = $line =~ /\<row\>\<t\>(\d*)\<\/t\>/;
+				next if (int($args{time}[0]) < $time); #only return new items
 				$time = $time * 1000;
 				my (@values) = $line =~ /\<v\>([e.+\d]*|NaN)\<\/v\>/g;
 				if ($time) {
