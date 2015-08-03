@@ -708,6 +708,7 @@ sub get_sunrise {
   	my $AMPM = "AM";
   	my $hour = int ($self->{data}->{vars}->{sunrise} / 60);
   	my $minute = $self->{data}->{vars}->{sunrise} % 60;
+  	$minute = "0" . $minute if ($minute < 10);
   	if ($hour > 12) {
   		$hour = $hour - 12;
   		$AMPM= "PM";
@@ -721,6 +722,7 @@ sub get_sunset {
   	my $AMPM = "AM";
   	my $hour = int($self->{data}->{vars}->{sunset} / 60);
   	my $minute = $self->{data}->{vars}->{sunset} % 60;
+   	$minute = "0" . $minute if ($minute < 10); 	
   	if ($hour > 12) {
   		$hour = $hour - 12;
   		$AMPM= "PM";
