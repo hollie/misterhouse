@@ -944,7 +944,7 @@ var print_log = function(type,time) {
 
 
 //Creates a table based on the $json_table data structure. desktop & mobile design
-var display_table = function(table,time) {
+var display_table = function(table,records,time) {
 
 	var URLHash = URLToHash();
 	if (typeof time === 'undefined'){
@@ -959,7 +959,10 @@ var display_table = function(table,time) {
 		updateSocket.abort();
 	}	
 	var path_str = "/table_data"  
-	var arg_str = "var="+table+"&long_poll=true&time="+time;
+	var arg_records = "";
+	var page_size;
+	if (records !== undefined) arg_records = "&records="+records;
+	var arg_str = "var="+table+arg_records+"&start=0&long_poll=true&time="+time;
 	updateSocket = $.ajax({
 		type: "GET",
 		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
@@ -978,6 +981,10 @@ var display_table = function(table,time) {
 				html += "</tr></thead><tbody>";
 				if (json.data.data !== undefined) {  //If no data, at least show the header
 					for (var i = 0; i < json.data.data.length; i++){
+						page_size = json.data.page_size + (json.data.page_size * json.data.page);
+						if (json.data.page !== undefined && page_size < i) {
+							continue;
+						}
 						html +="<tr>";
 						for (var j = 0; j < json.data.data[i].length; j++){
 					   		var line = String(json.data.data[i][j]);
@@ -989,6 +996,18 @@ var display_table = function(table,time) {
 				html += "</tbody></table></div>";
 				requestTime = json.meta.time;
 				$('#rtable').html(html);
+				
+				if (json.data.hook !== undefined && $('#more_row').length === 0) { //there is an option to pull more data
+					console.log("More Data!"+$('#more_row').length);
+					$('#display_table').append("<div id='more_row' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
+					$('#more_row').append('<div class="table_more"><button class="btn btn-default toolbar-right-end right-end pull-right table_btn_more" type="button">');
+					$('.table_btn_more').append('next  <i class="fa fa-caret-right"></i>');
+					
+					$('.table_btn_more').click('on', function () {
+						var new_page_size = json.data.page_size + (json.data.page_size * (json.data.page + 1));
+						display_table(table,new_page_size,requestTime);
+					});
+				}
 
 			}
 			if (jqXHR.status == 200 || jqXHR.status == 204) {
@@ -996,7 +1015,7 @@ var display_table = function(table,time) {
 				//KRK best way to handle this is likely to check the URL hash
 				if ($('#display_table').length !== 0){
 					//If the display table page is still active request more data
-					display_table(table,requestTime);
+					display_table(table,page_size,requestTime);
 				}
 			}		
 		}
@@ -1015,6 +1034,7 @@ var graph_rrd = function(start,group,time) {
 		$('#top-graph').append("<div id='legend'><br><br>");
 		time = 0;
 	}
+		
 	URLHash.time = time;
 	URLHash.long_poll = 'true';
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
@@ -1097,7 +1117,30 @@ var graph_rrd = function(start,group,time) {
     
     		$.plot($("#rrd-graph"), data, json.data.options);
 		}
+		
+		window.onresize = function(){
+    		var base_width = $(window).width();
+   			if (base_width > 990) base_width = 990;
+   			var graph_width = base_width - 200; //give some room for the legend
+    		$('#rrd-graph').css("width",graph_width+"px");
+    		//$("#mainTable").css("width", 100);
 
+    		console.log("base="+base_width+" graph="+graph_width);
+    		$('#rrd-graph').text(''); 
+    		$('#rrd-grpha').show();
+    		plotAccordingToChoices();
+
+		}
+
+		
+    	$('#rrd-graph').resize(function () {
+    		console.log("Placeholder is now "
+                           + $(this).width() + "x" + $(this).height()
+                           + " pixels");
+    	});
+    	
+
+    	
 		var previousPoint = null;
 
 		$("#rrd-graph").bind("plothover", function(event, pos, item) {
@@ -1111,8 +1154,10 @@ var graph_rrd = function(start,group,time) {
             	$("#tooltip").remove();
             	var x = item.datapoint[0].toFixed(2),
                 y = item.datapoint[1].toFixed(2);
-
-            	showTooltip(item.pageX, item.pageY, item.series.label + " " + y);
+				var date = new Date(parseInt(x));
+				var date_str = date.toString(); //split("GMT")[0];
+				var nice_date = date_str.split(" GMT")[0];
+            	showTooltip(item.pageX, item.pageY, item.series.label + " " + y + "<br>" + nice_date);
         	}
     	} else {
         	$("#tooltip").remove();

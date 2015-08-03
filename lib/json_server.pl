@@ -228,7 +228,10 @@ sub json_get {
 		my @dataset = ();
 		my $index = 0;
 		my @round = ();
+		my @type = ();
 		my $celsius = 0;
+		my $arg_time = 0;
+		$arg_time = int($args{time}[0]) if (defined int($args{time}[0]));
 		$celsius = 1 if ($config_parms{weather_uom_temp} eq 'C');
 		$celsius = 1 if (lc $json_data{'rrd_config'}->{'prefs'}->{'uom'} eq "celsius");
 		my %data;
@@ -256,11 +259,18 @@ sub json_get {
   				push @dss, $ds;
   				#if it doesn't exist as a ds then skip
   				my $cf = $default_cf;
-  				$default_cf = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'cf'} if (defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'cf'});
-  				push @defs, "DEF:$ds=$path/$rrd_file:$ds:$default_cf";
+  				$cf = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'cf'} if (defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'cf'});
+  				push @defs, "DEF:$ds=$path/$rrd_file:$ds:$cf";
   				push @xports, "XPORT:$ds";
   				$dataset[$index]->{'label'} = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'label'} if (defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'label'});
+  				$dataset[$index]->{'yaxes'} = 1;
+  				$dataset[$index]->{'color'} = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'color'} if (defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'color'});
+				if (lc $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'} eq "bar") {
+  					$dataset[$index]->{'bars'}->{'show'} = "true";
+  					$dataset[$index]->{'yaxes'} = 2;
+  				}
   				$round[$index] = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'round'} if (defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'round'});
+  				$type[$index] = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'} if (defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'});
   				$index++;
     		}
 
@@ -275,16 +285,18 @@ sub json_get {
 			foreach my $line (@lines) {
 				#print "line=$line\n";
 				my ($time) = $line =~ /\<row\>\<t\>(\d*)\<\/t\>/;
-				next if (int($args{time}[0]) < $time); #only return new items
-				$time = $time * 1000;
+				$time = $time * 1000; #javascript is in milliseconds
+print "time=$time, $arg_time\n";
+				next if ($arg_time > int($time)); #only return new items
 				my (@values) = $line =~ /\<v\>([e.+\d]*|NaN)\<\/v\>/g;
 				if ($time) {
+print "time2\n";
 					#print "[$time";
 					my $index = 0;
 					foreach my $value (@values) {
 						my $value1 = sprintf("%.10g", $value);
 			#print "value=$value,value1=$value1,";
-						$value1 = ($value1 - 32) * (5/9) if ($celsius);
+						$value1 = ($value1 - 32) * (5/9) if (($celsius) and (lc $type[$index] eq "temperature"));
 						$value1 = sprintf("%." . $round[$index] . "f",$value1) if (defined $round[$index]);
 			#print "value1=$value1\n";
 						$value1 =~ s/\.?0*$// unless ($value1 == 0); #remove unneccessary trailing decimals
@@ -433,33 +445,36 @@ sub json_get {
 	}
 
 	if ( $path[0] eq 'table_data') {
-	#print Dumper $json_table{$args{var}[0]};# if $Debug{json};
 		if ($args{var}) {
-my $length = $#{$json_table{$args{var}[0]}->{data}} + 1;
+			my $length = $#{$json_table{$args{var}[0]}->{data}} + 1;
 print "json_db: length = $length start=" . $args{start}[0] . " records=" . $args{records}[0] . "\n";
 
 #need to check if vars and keys exist
 
-my $start = 0;
-$start = $args{start}[0] if ($args{start}[0]);
-my $records = 0;
-$records = $args{records}[0] if ($args{records}[0]);
+			my $start = 0;
+			$start = $args{start}[0] if ($args{start}[0]);
+			my $records = 0;
+			my $page = 0;
+			my $page = $json_table{$args{var}[0]}{page} if (defined $json_table{$args{var}[0]}{page});
+			$records = $args{records}[0] if ($args{records}[0]);
 
-if ($length < ($start + $records)) {
-	print "db: will have to request data, $length, $start, $records\n";
-	print "&" . $json_table{$args{var}[0]}{hook} . "($start,$records)\n";
-	my $hook = 	$json_table{$args{var}[0]}{hook} . "($start,$records)";
+			if ($length < ($start + $records)) {
+				print "db: will have to request data, $length, $start, $records\n";
+				print "&" . $json_table{$args{var}[0]}{hook} . "($start,$records)\n";
+				my $hook = 	$json_table{$args{var}[0]}{hook} . "($start,$records)";
 
-	#eval (&get_inbound_data($start,$records));
-	eval ("&$hook");
-	if ($@) {
-		  print_log "Json_Server.pl: WARNING: fetch data failed for " . $args{var}[0] . " " . $json_table{$args{var}[0]}{hook} . "!";
-		}
-
-}
-#if requesting data beyond what's available, fetch it.
-#test bad table
-#remove data from hash		
+			#eval (&get_inbound_data($start,$records));
+				eval ("&$hook");
+				if ($@) {
+		  			print_log "Json_Server.pl: WARNING: fetch data failed for " . $args{var}[0] . " " . $json_table{$args{var}[0]}{hook} . "!";
+				} else {
+		  			$page++ if (scalar @{$json_table{$args{var}[0]}->{data}} > $json_table{$args{var}[0]}{page_size});
+				}
+				#$json_table{$args{var}[0]}{page} = $page;
+			}
+			#if requesting data beyond what's available, fetch it.
+			#test bad table
+			#remove data from hash		
 			my $jt_time = int($json_table{$args{var}[0]}{time});
 			if (($args{time} && int($args{time}[0]) < $jt_time) or (!$args{time})) {
 				#$json_data->{'table_data'} = $json_table{$args{var}[0]};
@@ -467,15 +482,18 @@ if ($length < ($start + $records)) {
 				
 				$json_data{'table_data'}{exist} = $json_table{$args{var}[0]}{exist};
 				$json_data{'table_data'}{head} = $json_table{$args{var}[0]}{head};
-				$json_data{'table_data'}{page} = $json_table{$args{var}[0]}{page};
+				$json_data{'table_data'}{page_size} = $json_table{$args{var}[0]}{page_size};
 				$json_data{'table_data'}{hook} = $json_table{$args{var}[0]}{hook};
+				$json_data{'table_data'}{page} = $page;				
 				@{$json_data{'table_data'}->{data}} = map { [@$_] } @{$json_table{$args{var}[0]}->{data}};
 
 				splice @{$json_data{'table_data'}->{data}}, 0 ,$args{start}[0] if ($args{start}[0]);
 				splice @{$json_data{'table_data'}->{data}}, $args{records}[0] if ($args{records}[0]);
+				$json_data{'table_data'}{records} = scalar @{$json_data{'table_data'}->{data}};
+	print "db=$json_data{'table_data'}{records}\n";
+				}
 			}
 		}
-	}
 
 	# List print_log phrases
 	if ( $path[0] eq 'print_log' || $path[0] eq '' ) {
@@ -1039,7 +1057,7 @@ sub json_table_set_page_size {
   
 	return 0 if (!defined $json_table{$key}{exist});
 
-	$json_table{$key}{page} = $length;
+	$json_table{$key}{page_size} = $length;
 
 	return 1;
 }
@@ -1049,8 +1067,8 @@ sub json_table_get_page_size {
 	my ($key) = @_;
 	return 0 if (!defined $json_table{$key}{exist});
 
-	if (defined $json_table{$key}{page}) {
-		return $json_table{$key}{page};
+	if (defined $json_table{$key}{page_size}) {
+		return $json_table{$key}{page_size};
 	} else {
 		return 0;
 	}
@@ -1072,8 +1090,12 @@ sub json_table_fetch_data {
 
 	return 0 if (!defined $json_table{$key}{hook});	
 
-
-	my @data = &{$json_table{$key}{hook}}($posx,$records);
+	my @data;
+	eval (@data = &{$json_table{$key}{hook}}($posx,$records));
+	if ($@) {
+		  print_log "Json_Server.pl: WARNING: fetch data failed for " . $key . " " . $json_table{$key}{hook} . "!";
+		  return 0
+	}
 	my $l = &json_get_table_length($key) + 1;
 	my $r = 0;
 	foreach my $row (@data) {
