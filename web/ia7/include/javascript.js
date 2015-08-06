@@ -1029,9 +1029,11 @@ var graph_rrd = function(start,group,time) {
 	var URLHash = URLToHash();
 	if (typeof time === 'undefined'){
 		$('#list_content').html("<div id='top-graph' class='row top-buffer'>");
-		$('#top-graph').append("<div id='rrd-periods' class='row col-xs-4 col-md-4'>");
+		$('#top-graph').append("<div id='rrd-periods' class='row'>");
 		$('#top-graph').append("<div id='rrd-graph' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
-		$('#top-graph').append("<div id='legend'><br><br>");
+		$('#top-graph').append("<div id='rrd-legend' class='rrd-legend-class'>");
+	//	$('#top-graph').append("<div id='legend class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'><br><br>");
+
 		time = 0;
 	}
 		
@@ -1091,11 +1093,11 @@ var graph_rrd = function(start,group,time) {
 				// put the selection list on the side.
 				for (var i = 0; i < json.data.data.length; i++){
 					console.log("selection="+json.data.data[i].label);
-					var legli = $('<li style="list-style:none;"/>').appendTo('#legend');
+					var legli = $('<li style="list-style:none;"/>').appendTo('#rrd-legend');
 
 					$('<input name="' + json.data.data[i].label + '" id="' + json.data.data[i].label + '" type="checkbox" checked="checked" />').appendTo(legli);
 					$('<label>', {
-						 class: "rrd-legend",
+						 class: "rrd-legend-class",
 						 text: json.data.data[i].label,
 					    'for': json.data.data[i].label
 						}).appendTo(legli);
@@ -1104,7 +1106,7 @@ var graph_rrd = function(start,group,time) {
 		function plotAccordingToChoices() {
     		var data = [];
 
-    		$('#legend').find("input:checked").each(function() {
+    		$('#rrd-legend').find("input:checked").each(function() {
         		var key = this.name;
 
         		for (var i = 0; i < json.data.data.length; i++) {
@@ -1122,23 +1124,24 @@ var graph_rrd = function(start,group,time) {
     		var base_width = $(window).width();
    			if (base_width > 990) base_width = 990;
    			var graph_width = base_width - 200; //give some room for the legend
+			if (base_width < 701) {
+				//put legend below graph
+				console.log("do something");
+				//$('#legend').after($('#rrd-graph').html());
+				//$('.rrd-legend-class').css("display","block");
+				//$('.rrd-legend-class').css("float","none");
+				graph_width=base_width - 10;
+			}
     		$('#rrd-graph').css("width",graph_width+"px");
-    		//$("#mainTable").css("width", 100);
+    		//$('#rrd-graph').css("padding-bottom", "500px");
 
+    		//$("#mainTable").css("width", 100);
     		console.log("base="+base_width+" graph="+graph_width);
     		$('#rrd-graph').text(''); 
-    		$('#rrd-grpha').show();
+    		$('#rrd-graph').show(); //check
     		plotAccordingToChoices();
 
 		}
-
-		
-    	$('#rrd-graph').resize(function () {
-    		console.log("Placeholder is now "
-                           + $(this).width() + "x" + $(this).height()
-                           + " pixels");
-    	});
-    	
 
     	
 		var previousPoint = null;
@@ -1177,9 +1180,11 @@ var graph_rrd = function(start,group,time) {
         		opacity: 0.80
     		}).appendTo("body").fadeIn(200);
 		}
-
+		window.onresize(); // get all settings based on current window size
 		plotAccordingToChoices();
-		$('#legend').find("input").change(plotAccordingToChoices);		
+		$('#rrd-graph').append('<br>');
+
+		$('#rrd-legend').find("input").change(plotAccordingToChoices);		
 			//$('#legend').find("input").change(graph_rrd(start,group,time));
 
 		//$('.legendColorBox > div').each(function(i){

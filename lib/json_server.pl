@@ -263,12 +263,19 @@ sub json_get {
   				push @defs, "DEF:$ds=$path/$rrd_file:$ds:$cf";
   				push @xports, "XPORT:$ds";
   				$dataset[$index]->{'label'} = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'label'} if (defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'label'});
-  				$dataset[$index]->{'yaxes'} = 1;
   				$dataset[$index]->{'color'} = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'color'} if (defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'color'});
 				if (lc $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'} eq "bar") {
   					$dataset[$index]->{'bars'}->{'show'} = "true";
-  					$dataset[$index]->{'yaxes'} = 2;
-  				}
+  					$dataset[$index]->{'bars'}->{'fill'} = "0";
+   					$dataset[$index]->{'bars'}->{'lineWidth'} = 0;
+   					#$dataset[$index]->{'bars'}->{'barWidth'} = 8 * 60 * 60 * 1000;  #calculate barwidth based on data range
+#TODO - bar width on data range
+  					$dataset[$index]->{'bars'}->{'fillColor'}->{'colors'}[0]->{'opacity'} = 0.3;
+  					$dataset[$index]->{'bars'}->{'fillColor'}->{'colors'}[1]->{'opacity'} = 0.3;
+  					$dataset[$index]->{'yaxis'} = 2;
+  				} else {
+   					$dataset[$index]->{'lines'}->{'show'} = "true";
+ 				}
   				$round[$index] = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'round'} if (defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'round'});
   				$type[$index] = $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'} if (defined $json_data{'rrd_config'}->{'ds'}->{$ds}->{'type'});
   				$index++;
@@ -284,6 +291,12 @@ sub json_get {
 
 			foreach my $line (@lines) {
 				#print "line=$line\n";
+				my ($step) = $line =~ /\<step\>(\d+)\<\/step\>/; #this is the width for any bar charts
+				if ($step) {
+					for my $i (0..$#dataset) {
+						$dataset[$i]->{'bars'}->{'barWidth'} = int($step) * 1000 if (defined $dataset[$i]->{'bars'});
+					}
+				}
 				my ($time) = $line =~ /\<row\>\<t\>(\d*)\<\/t\>/;
 				$time = $time * 1000; #javascript is in milliseconds
 print "time=$time, $arg_time\n";

@@ -134,7 +134,7 @@
 	{
 		margin-left:20px;
 	}
-	.rrd-legend
+	.rrd-legend-class
 	{	
     	margin-left:8px;
 	}
