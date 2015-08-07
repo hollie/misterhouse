@@ -460,7 +460,7 @@ sub json_get {
 	if ( $path[0] eq 'table_data') {
 		if ($args{var}) {
 			my $length = $#{$json_table{$args{var}[0]}->{data}} + 1;
-print "json_db: length = $length start=" . $args{start}[0] . " records=" . $args{records}[0] . "\n";
+#print "json_db: length = $length start=" . $args{start}[0] . " records=" . $args{records}[0] . "\n";
 
 #need to check if vars and keys exist
 
@@ -471,24 +471,25 @@ print "json_db: length = $length start=" . $args{start}[0] . " records=" . $args
 			my $page = $json_table{$args{var}[0]}{page} if (defined $json_table{$args{var}[0]}{page});
 			$records = $args{records}[0] if ($args{records}[0]);
 
-			if ($length < ($start + $records)) {
-				print "db: will have to request data, $length, $start, $records\n";
-				print "&" . $json_table{$args{var}[0]}{hook} . "($start,$records)\n";
-				my $hook = 	$json_table{$args{var}[0]}{hook} . "($start,$records)";
-
-			#eval (&get_inbound_data($start,$records));
-				eval ("&$hook");
-				if ($@) {
-		  			print_log "Json_Server.pl: WARNING: fetch data failed for " . $args{var}[0] . " " . $json_table{$args{var}[0]}{hook} . "!";
-				} else {
-		  			$page++ if (scalar @{$json_table{$args{var}[0]}->{data}} > $json_table{$args{var}[0]}{page_size});
-				}
-				#$json_table{$args{var}[0]}{page} = $page;
-			}
+	#		if ($length < ($start + $records)) {
+	#			print "db: will have to request data, $length, $start, $records\n";
+	#			print "&" . $json_table{$args{var}[0]}{hook} . "($start,$records)\n";
+	#			my $hook = 	$json_table{$args{var}[0]}{hook} . "($start,$records)";
+	#
+	#		#eval (&get_inbound_data($start,$records));
+	#			eval ("&$hook");
+	#			if ($@) {
+	#	  			print_log "Json_Server.pl: WARNING: fetch data failed for " . $args{var}[0] . " " . $json_table{$args{var}[0]}{hook} . "!";
+	#			} else {
+	#	  			$page++ if (scalar @{$json_table{$args{var}[0]}->{data}} > $json_table{$args{var}[0]}{page_size});
+	#			}
+	#			#$json_table{$args{var}[0]}{page} = $page;
+	#		}
 			#if requesting data beyond what's available, fetch it.
 			#test bad table
 			#remove data from hash		
 			my $jt_time = int($json_table{$args{var}[0]}{time});
+#print "arg time = " . int($args{time}[0]) . " table time = " .$jt_time . "\n";
 			if (($args{time} && int($args{time}[0]) < $jt_time) or (!$args{time})) {
 				#$json_data->{'table_data'} = $json_table{$args{var}[0]};
 				#need to copy all the data since we can adjust starts and records
