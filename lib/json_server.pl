@@ -299,11 +299,11 @@ sub json_get {
 				}
 				my ($time) = $line =~ /\<row\>\<t\>(\d*)\<\/t\>/;
 				$time = $time * 1000; #javascript is in milliseconds
-print "time=$time, $arg_time\n";
+#print "time=$time, $arg_time\n";
 				next if ($arg_time > int($time)); #only return new items
 				my (@values) = $line =~ /\<v\>([e.+\d]*|NaN)\<\/v\>/g;
 				if ($time) {
-print "time2\n";
+#print "time2\n";
 					#print "[$time";
 					my $index = 0;
 					foreach my $value (@values) {
@@ -503,7 +503,7 @@ print "json_db: length = $length start=" . $args{start}[0] . " records=" . $args
 				splice @{$json_data{'table_data'}->{data}}, 0 ,$args{start}[0] if ($args{start}[0]);
 				splice @{$json_data{'table_data'}->{data}}, $args{records}[0] if ($args{records}[0]);
 				$json_data{'table_data'}{records} = scalar @{$json_data{'table_data'}->{data}};
-	print "db=$json_data{'table_data'}{records}\n";
+	#print "db=$json_data{'table_data'}{records}\n";
 				}
 			}
 		}

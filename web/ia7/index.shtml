@@ -147,6 +147,7 @@
     	width:700px;
     	height:500px;
     	min-width:200px;
+    	float:left;
 	}
 	</style>
 </head>
