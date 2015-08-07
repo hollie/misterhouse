@@ -505,6 +505,7 @@ sub process_data {
 	
 	for my $key (keys %{$self->{data}->{programs}}) {
 		my $previous = "init";
+		next unless (defined $self->{data}->{programs}->{$key}->{status});
 		$previous = $self->{previous}->{data}->{programs}->{$key}->{status} if (defined $self->{previous}->{data}->{programs}->{$key}->{status});
 		if ($previous ne $self->{data}->{programs}->{$key}->{status}) {
 	  		main::print_log("[OpenSprinkler] Program $key changed from $previous to $self->{data}->{programs}->{$key}->{status}") if ($self->{loglevel});
