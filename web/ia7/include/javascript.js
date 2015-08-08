@@ -1089,6 +1089,13 @@ var graph_rrd = function(start,group,time) {
 					graph_rrd(new_start,group);
 				});
 
+				//sort the legend
+				json.data.data.sort(function(a, b){
+    				if(a.label < b.label) return -1;
+    				if(a.label > b.label) return 1;
+    				return 0;
+				})
+
 					// put the selection list on the side.
 				for (var i = 0; i < json.data.data.length; i++){
 					//console.log("selection="+json.data.data[i].label);

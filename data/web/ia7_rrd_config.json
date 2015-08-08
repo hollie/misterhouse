@@ -1,0 +1,192 @@
+{ 
+  	"prefs" : {
+     	"default_cf" :"AVERAGE",
+     	"uom" : "celsius"
+  	},
+  	"ds" : {
+    	"temp" : {
+  	  	  	"type" : "temperature",
+  	  	 	"label" : "Outside Temperature",
+  	  	  	"color" : "#330099",
+  	  	  	"round" : "1",
+  	  	  	"group" : "outdoor_temp,temp"
+  	  	},
+    	"dew" : {
+  	  	  	"type" : "temperature",
+  	  	 	"label" : "Dew Point",
+  	  	  	"color" : "#00ff00",
+  	  	  	"round" : "1",
+  	  	  	"group" : "outdoor_temp,temp"
+  	  	},
+    	"apparent" : {
+  	  	  	"type" : "temperature",
+  	  	 	"label" : "Apparent Temperature",
+  	  	  	"color" : "#3300FF",
+  	  	  	"round" : "1",
+  	  	  	"group" : "outdoor_temp,temp"
+  	  	},  	  	
+  	  	"humid" : {
+  	  	  	"type" : "humidity",
+  	  	  	"label" : "Outside Humidity",
+  	  	  	"color" : "#330099",
+  	  	  	"round" : "1",
+  	  	  	"group" : "outdoor_humid,humid" 	  
+  	  	},	
+  	  	"intemp" : {
+  	  	  	"type" : "temperature",
+  	  	 	"label" : "Indoor Temp",
+  	  	  	"color" : "#2B65EC",
+  	  	  	"round" : "1",
+  	  	  	"group" : "indoor_temp,temp"
+  	  	},
+  	  	"tempspare1" : {
+  	  	  	"type" : "temperature",
+  	  	  	"label" : "Temp1",
+  	  	  	"color" : "#FF0000",
+  	  	  	"round" : "1",
+  	  	  	"group" : "indoor_temp,temp"
+  	  	},
+  	  	"tempspare2" : {
+  	  	  	"type" : "temperature",
+  	  	  	"label" : "Temp2",
+  	  	  	"color" : "#009933",
+  	  	  	"round" : "1",
+  	  	  	"group" : "indoor_temp,temp"  
+  	  	},
+  	  	"tempspare3" : {
+  	  	  	"type" : "temperature",
+  	  	  	"label" : "Temp3",
+  	  	  	"color" : "#FBB117",
+  	  	  	"round" : "1",
+  	  	  	"group" : "indoor_temp,temp" 
+  	  	},
+  	  	"tempspare4" : {
+  	  	  	"type" : "temperature",
+  	  	  	"label" : "Temp4",
+  	  	  	"color" : "#CC33CC",
+  	  	  	"round" : "1",
+  	  	  	"group" : "indoor_temp,temp" 
+  	  	},
+  	  	"tempspare5" : {
+  	  	  	"type" : "temperature",
+  	  	  	"label" : "Temp5",
+  	  	  	"color" : "#00FF00",
+  	  	  	"round" : "1",
+  	  	  	"group" : "indoor_temp,temp" 	  
+  	  	},
+  	  	"tempspare6" : {
+  	  	  	"type" : "temperature",
+  	  	  	"label" : "Temp6",
+  	  	  	"color" : "#FF99CC",
+  	  	  	"round" : "1",
+  	  	  	"group" : "indoor_temp,temp"  
+  	  	},
+  	  	"tempspare7" : {
+  	  	  	"type" : "bar",
+  	  	  	"label" : "Main Heating",
+  	  	  	"color" : "red",
+  	  	  	"cf"	: "MAX",
+  	  	  	"group" : "area,temp"	  
+  	  	},
+  	  	"tempspare8" : {
+  	  	  	"type" : "bar",
+  	  	  	"label" : "Main Cooling",
+  	  	  	"color" : "blue",
+  	  	  	"cf"	: "MAX",
+  	  	  	"group" : "area"	  
+  	  	},
+  	  	"tempspare9" : {
+  	  	  	"type" : "bar",
+  	  	  	"label" : "Second Heating",
+  	  	  	"color" : "red",
+  	  	  	"cf"	: "MAX",
+  	  	  	"group" : "area,temp"	  
+  	  	},
+  	  	"tempspare10" : {
+  	  	  	"type" : "bar",
+  	  	  	"label" : "Second Cooling",
+  	  	  	"color" : "blue",
+  	  	  	"cf"	: "MAX",
+  	  	  	"group" : "area,temp"	  
+  	  	},
+  	  	"inhumid" : {
+  	  	  	"type" : "humidity",
+  	  	  	"label" : "Indoor Humidity",
+  	  	  	"color" : "#990000",
+  	  	  	"group" : "indoor_humid,humid"	  
+  	  	},
+  	  	"humidspare1" : {
+  	  	  	"type" : "humidity",
+  	  	  	"label" : "Humid 1",
+  	  	  	"color" : "#FF0000",
+  	  	  	"group" : "indoor_humid,humid"	  
+  	  	},
+  	  	"speed" : {
+  	  	  	"type" : "speed",
+  	  	  	"label" : "Wind Speed",
+  	  	  	"color" : "#330099",
+  	  	  	"group" : "wind_speed"	  
+  	  	},
+  	  	"dir" : {
+  	  	  	"type" : "direction",
+  	  	  	"label" : "Wind Direction",
+  	  	  	"color" : "#330099",
+  	  	  	"group" : "wind_dir"	  
+  	  	},
+  	  	"press" : {
+  	  	  	"type" : "pressure",
+  	  	  	"label" : "Barometer",
+  	  	  	"color" : "#330099",
+  	  	  	"group" : "outside_press"	  
+  	  	},
+  	  	"rain" : {
+  	  	  	"type" : "rain",
+  	  	  	"label" : "Total Rain",
+  	  	  	"color" : "#3300FF",
+  	  	  	"group" : "rain"	  
+  	  	},
+  	  	"rate" : {
+  	  	  	"type" : "rain",
+  	  	  	"label" : "Rain Rate",
+  	  	  	"color" : "#330099",
+  	  	  	"group" : "rain"	  
+  	  	}    	  	  	  	  	  	   	  	    	  	  	  	  	  	
+  	  },
+	"options" : {
+		"legend": {
+			"show": "true"
+		},
+		"xaxis": {
+			"mode" : "time",
+			"timezone": "browser"
+		},
+		"grid": {
+        	"hoverable" : "true"
+    	},
+       "yaxes" : [{
+           "position" : "left"
+       },
+        {
+            "max" : "1",
+            "show" : "false",
+            "ticks" : 0
+        }],
+		"selection": {
+			"mode": "x"
+		}
+	},
+	"periods" : {
+		"1"  : "6 hours,now-6hour",
+		"2"  : "12 hours,now-12hour",
+		"3"  : "1 day,now-1day",
+		"4"  : "2 days,now-2day",
+		"5"  : "1 week,now-1week",
+		"6"  : "2 week,now-2week",
+ 		"7"  : "1 month,now-1month",
+ 		"8"  : "2 months,now-2month",	 
+ 		"9"  : "6 months,now-6month",	 
+ 		"10" : "1 year,now-1year",
+ 		"11" : "2 years,now-2year",	 
+ 		"12" : "5 years,now-5year"
+ 	}	  	
+}
