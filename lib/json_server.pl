@@ -301,20 +301,20 @@ sub json_get {
 				$time = $time * 1000; #javascript is in milliseconds
 #print "time=$time, $arg_time\n";
 				next if ($arg_time > int($time)); #only return new items
-				my (@values) = $line =~ /\<v\>([e.+\d]*|NaN)\<\/v\>/g;
+				my (@values) = $line =~ /\<v\>(-?[e.+-\d]*|NaN)\<\/v\>/g;
 				if ($time) {
-#print "time2\n";
+print "line=$line\n";
 					#print "[$time";
 					my $index = 0;
 					foreach my $value (@values) {
 						my $value1 = sprintf("%.10g", $value);
-			#print "value=$value,value1=$value1,";
+			print "index=$index,value=$value,value1=$value1,";
 						$value1 = ($value1 - 32) * (5/9) if (($celsius) and (lc $type[$index] eq "temperature"));
 						$value1 = sprintf("%." . $round[$index] . "f",$value1) if (defined $round[$index]);
-			#print "value1=$value1\n";
+			print "value1=$value1";
 						$value1 =~ s/\.?0*$// unless ($value1 == 0); #remove unneccessary trailing decimals
 						$value1 = "null" if (lc $value1 eq "nan");
-			#print "value1=$value1\n";
+			print "value1=$value1\n";
 						#my @array = ();
 						#$array[0] = $time;
 						#$array[1] = $value1;
