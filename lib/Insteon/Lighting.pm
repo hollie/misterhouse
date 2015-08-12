@@ -1715,6 +1715,28 @@ sub is_acknowledged
 	}
 }
 
+=item C<enable_led(boolean)>
+
+If boolean is true, status LEDs will be enabled.
+
+=cut
+
+sub enable_led
+{
+	my ($self, $is_true) = @_;
+	return unless defined $is_true;
+	my $name = $self->get_object_name;
+
+	if ($is_true) {
+		::print_log("[Insteon::FanLinc] Enabling LEDs on $name. After doing this, you may have to turn both the fan and the light on/off in order for the change to take effect.");
+		$self->set_operating_flag('led_enabled');
+	} 
+	else {
+		::print_log("[Insteon::FanLinc] Disabling LEDs on $name. After doing this, you may have to turn both the fan and the light on/off in order for the change to take effect.");
+		$self->set_operating_flag('led_off');
+	}
+}
+
 =item C<get_voice_cmds>
 
 Returns a hash of voice commands where the key is the voice command name and the
@@ -1738,6 +1760,8 @@ sub get_voice_cmds
     if ($self->is_root){
         %voice_cmds = (
             %voice_cmds,
+            'enable status LEDs' => "$object_name->enable_led(1)",
+            'disable status LEDs' => "$object_name->enable_led(0)",
             'sync all device links' => "$object_name->sync_all_links()",
             'AUDIT sync all device links' => "$object_name->sync_all_links(1)"
         );
