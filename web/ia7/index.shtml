@@ -132,11 +132,11 @@
 	}	
 	.rrd-period-dropdown
 	{
-		margin-left:20px;
+		margin-left:55px;
 	}
 	.rrd-legend-class
 	{	
-    	margin-left:8px;
+    	margin-left:10px;
 	}
 	#top-graph
 	{
@@ -148,6 +148,7 @@
     	height:500px;
     	min-width:200px;
     	float:left;
+    	margin-left:-10px;
 	}
 	</style>
 </head>
