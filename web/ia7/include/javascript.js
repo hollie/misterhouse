@@ -982,7 +982,9 @@ var display_table = function(table,records,time) {
 				if (json.data.data !== undefined) {  //If no data, at least show the header
 					for (var i = 0; i < json.data.data.length; i++){
 						page_size = json.data.page_size + (json.data.page_size * json.data.page);
-						if (json.data.page !== undefined && page_size < i) {
+						if (json.data.page !== undefined && page_size < i &&
+						    json_store.ia7_config.prefs.enable_data_table_more !== undefined && 
+					        json_store.ia7_config.prefs.enable_data_table_more === "yes") {) {
 							continue;
 						}
 						html +="<tr>";
