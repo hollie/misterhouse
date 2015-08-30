@@ -47,7 +47,7 @@
 
 use JSON qw( decode_json );
 
-my $pollen_file = "$config_parms{data_dir}/web/pollen_forecast.json";
+my $pollen_file = "$config_parms{data_dir}/web/pollen_forecast.html";
 
 $v_get_pollen_forecast = new Voice_Cmd('[Get,Check] pollen forecast');
 $v_get_pollen_forecast->set_info("Downloads and parses the pollen forecast data.  The 'check' option reads out the result after parsing is complete.");
@@ -55,25 +55,38 @@ $v_get_pollen_forecast->set_info("Downloads and parses the pollen forecast data.
 $v_read_pollen_forecast = new Voice_Cmd('Read pollen forecast');
 $v_read_pollen_forecast->set_info("Reads out the previously fetched pollen forecast.");
 
-$p_pollen_forecast = new Process_Item("get_url http://www.claritin.com/weatherpollenservice/weatherpollenservice.svc/getforecast/$config_parms{zip_code} $pollen_file");
+$p_pollen_forecast = new Process_Item("get_url http://www.wunderground.com/DisplayPollen.asp?Zipcode=$config_parms{zip_code} $pollen_file");
 
 &parse_pollen_forecast if (($Reload) && (-e $pollen_file));
 
 sub parse_pollen_forecast {
-	my $pollen_data = file_read($pollen_file) || warn "Unable to open pollen data file.";
-	# The JSON file that is retuned by the service is malformed; these substitutions clean it up so that the perl JSON module can parse it.
-	for ($pollen_data) {
-		s/\"\{/\{/;
-		s/\\//g;
-		s/\}\"/\}/;
+	my ($pollentype, $pollencount, $pollenleveltable);
+	open(FILE,"$config_parms{data_dir}/web/pollen_forecast.html") || warn "Unable to open pollen data file.";
+	while (<FILE>) {
+		if (/<h3><strong>Pollen Type:<\/strong>\s?([A-Za-z\/ ,]+)\.?<\/h3>/) {
+			$main::Weather{TodayPollenType} = $1;
+			$pollentype = 1;
+		} elsif (/<td class="levels">/) {
+			$pollenleveltable = 1;
+		} elsif ($pollenleveltable) {
+			if (/<p>(\d\.\d+)<\/p>/) {
+				if (!defined $pollencount) {
+					$main::Weather{TodayPollenCount} = $1;
+					$pollencount = 1;
+					$pollenleveltable = '';
+				} else {
+					$main::Weather{TomorrowPollenCount} = $1;
+					$pollencount++;
+					$pollenleveltable = '';
+				}
+			}
+		}
+                last if ($pollentype && ($pollencount == 2));
 	}
-	my $json = decode_json($pollen_data) || warn "Error parsing pollen info from file.";
-	$main::Weather{TodayPollenCount} = $json->{pollenForecast}{forecast}[0];
-	$main::Weather{TomorrowPollenCount} = $json->{pollenForecast}{forecast}[1];
-	$main::Weather{TodayPollenType} = $json->{pollenForecast}{pp};
-	# Format the pollen type text to remove any leading spaces or trailing periods.
-	$main::Weather{TodayPollenType} =~ s/^\s//;
-	$main::Weather{TodayPollenType} =~ s/\.//;
+	close(FILE);
+	unless ($pollentype && $pollencount) {
+		warn "Error parsing pollen info.";
+	}
 }
 
 if ($state = said $v_get_pollen_forecast) {
