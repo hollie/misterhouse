@@ -1,42 +1,47 @@
 #Category=Weather
 
-#@ This module gets the pollen forecast from Claritin.com and puts the predominant pollen
-#@ type and pollen count into the %Weather hash.
+#@ This module gets the pollen forecast from Wunderground.com and puts the predominant pollen
+#@ types and pollen count into the %Weather hash.
 #@
 #@ Uses mh.ini parameter zip_code
 
-# Get pollen count forecast from Claritin.com and put it and the predominant pollen
+# Get pollen count forecast from Wunderground.com and put it and the predominant pollen
 # type into the %Weather hash.
-# Technically there is a 4 day forecast, but I have seen it vary so widely
-# from day 2 and what day 1 will say tomorrow that I don't count on it for
-# more than the current day.
+# Technically there is a 4 day forecast, but the future forecast varies widely, so not
+# all values are included.
 #
 #uses mh.ini parameter zip_code=
 #
 #info from:
-#http://www.claritin.com/weatherpollenservice/weatherpollenservice.svc/getforecast/64119
+#http://www.wunderground.com/DisplayPollen.asp?Zipcode=[zipcode]
 #
 
 # weather_pollen.pl
 # Original Author:  Kent Noonan
-# Revision:  1.3
-# Date:  07/14/2014
+# Revision:  1.4
+# Date:  08/30/2015
 
 =begin comment
 
- 1.0 Initial Release
-     Kent Noonan - ca. 12/16/2001
- 1.1 Revisions
-     David J. Mark - 06/12/2006
- 1.2 Updated to use new Trigger design.
-     Bruce Winter - 06/25/2006
- 1.3 Updated to use the JSON WeatherPollenService from Claratin.com
-     since Pollen.com has added countermeasures to prevent screenscraping
-     that would take much more code to parse.  The WeatherPollenService
-     has a better API that seems to provide the same data as most other
-     online pollen forecasting services.  In addition to switching service
-     providers, I've also done some general cleanup & improvements.
-     Jared J. Fernandez - 07/14/2014
+ 1.0   Initial Release
+       Kent Noonan - ca. 12/16/2001
+ 1.1   Revisions
+       David J. Mark - 06/12/2006
+ 1.2   Updated to use new Trigger design.
+       Bruce Winter - 06/25/2006
+ 1.3   Updated to use the JSON WeatherPollenService from Claratin.com
+       since Pollen.com has added countermeasures to prevent screenscraping
+       that would take much more code to parse.  The WeatherPollenService
+       has a better API that seems to provide the same data as most other
+       online pollen forecasting services.  In addition to switching service
+       providers, I've also done some general cleanup & improvements.
+       Jared J. Fernandez - 07/14/2014
+ 1.3.1 Minor change to support newer version of perl that treat single element
+       arrays differently.
+       Jared J. Fernandez - 07/06/2015
+ 1.4   Switched to use Wunderground.com because Claritin discontinued support
+       of their JSON API service.
+       Jared J. Fernandez - 08/30/2015
 
 =cut
 
