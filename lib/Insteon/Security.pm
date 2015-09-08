@@ -487,7 +487,9 @@ sub get_voice_cmds
         'enable on only mode' => "$object_name->enable_on_only(1)",
         'disable on only mode' => "$object_name->enable_on_only(0)",
         'enable all motion mode' => "$object_name->enable_all_motion(1)",
-        'disable all motion mode' => "$object_name->enable_all_motion(0)"
+        'disable all motion mode' => "$object_name->enable_all_motion(0)",
+        'enable LED' => "$object_name->set_led_brightness(255)",
+        'disable LED' => "$object_name->set_led_brightness(0)"
     );
     return \%voice_cmds;
 }
