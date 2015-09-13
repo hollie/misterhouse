@@ -144,11 +144,14 @@ sub set {
 			      my ($humid, $humid_scale) = $source->text =~ /^(-?\d*\.?\d*)\s*(\S*)/;
 			      $device->measurement($humid) if defined($humid);
                            }
-			} elsif ($device->type eq 'temp') {
+			} elsif ($device->type eq 'temp') { 
 			# parse the data from the text member using the last char for scale
                         # TO-DO: perform conversion if temp_scale is not what device wants
 				my ($temp, $temp_scale) = $source->text =~ /^(-?\d*\.?\d*)\s*(\S*)/;
 				$device->measurement($temp) if defined($temp);
+			} elsif ($device->type eq 'solar') {
+		                my $solar = $source->level;
+                                $device->measurement($solar) if defined($solar);	
 			}
 			last; # we're done as only one setby
 		}
