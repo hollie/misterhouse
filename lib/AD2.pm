@@ -1136,7 +1136,7 @@ sub cmd {
       }
    }
    else {
-      $main::Serial_Ports{$instance}{'socket'}->write("$CmdStr");
+      $main::Serial_Ports{$instance}{object}->write("$CmdStr");
    }
    return "Sending to ADEMCO panel: $CmdName ($cmd)";
 }
