@@ -984,7 +984,7 @@ var display_table = function(table,records,time) {
 						page_size = json.data.page_size + (json.data.page_size * json.data.page);
 						if (json.data.page !== undefined && page_size < i &&
 						    json_store.ia7_config.prefs.enable_data_table_more !== undefined && 
-					        json_store.ia7_config.prefs.enable_data_table_more === "yes") {) {
+					        json_store.ia7_config.prefs.enable_data_table_more === "yes") {
 							continue;
 						}
 						html +="<tr>";
