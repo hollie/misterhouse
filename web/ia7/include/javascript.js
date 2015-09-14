@@ -202,6 +202,10 @@ function changePage (){
 			var path_arg = path.split('?');
 			floorplan(path_arg[1]);
 		}
+		else if(path.indexOf('rrd') === 0){
+			var path_arg = path.split('?');
+			graph_rrd(path_arg[1],path_arg[2]);
+		}		
 		else if(URLHash._request == 'trigger'){
 			trigger();
 		}
@@ -940,7 +944,7 @@ var print_log = function(type,time) {
 
 
 //Creates a table based on the $json_table data structure. desktop & mobile design
-var display_table = function(table,time) {
+var display_table = function(table,records,time) {
 
 	var URLHash = URLToHash();
 	if (typeof time === 'undefined'){
@@ -955,7 +959,10 @@ var display_table = function(table,time) {
 		updateSocket.abort();
 	}	
 	var path_str = "/table_data"  
-	var arg_str = "var="+table+"&long_poll=true&time="+time;
+	var arg_records = "";
+	var page_size;
+	if (records !== undefined) arg_records = "&records="+records;
+	var arg_str = "var="+table+arg_records+"&start=0&long_poll=true&time="+time;
 	updateSocket = $.ajax({
 		type: "GET",
 		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
@@ -972,19 +979,38 @@ var display_table = function(table,time) {
 					html += "<th>"+head+"</th>";
 				}
 				html += "</tr></thead><tbody>";
-
-				for (var i = 0; i < json.data.data.length; i++){
-					html +="<tr>";
-					for (var j = 0; j < json.data.data[i].length; j++){
-					   var line = String(json.data.data[i][j]);
-					  	html += "<td data-title='"+json.data.head[j]+"'>"+line+"</td>";
-
+				if (json.data.data !== undefined) {  //If no data, at least show the header
+					for (var i = 0; i < json.data.data.length; i++){
+						page_size = json.data.page_size + (json.data.page_size * json.data.page);
+						if (json.data.page !== undefined && page_size < i &&
+						    json_store.ia7_config.prefs.enable_data_table_more !== undefined && 
+					        json_store.ia7_config.prefs.enable_data_table_more === "yes") {) {
+							continue;
 						}
-					html += "</tr>";
+						html +="<tr>";
+						for (var j = 0; j < json.data.data[i].length; j++){
+					   		var line = String(json.data.data[i][j]);
+					  		html += "<td data-title='"+json.data.head[j]+"'>"+line+"</td>";
+							}
+						html += "</tr>";
+					}
 				}
 				html += "</tbody></table></div>";
 				requestTime = json.meta.time;
 				$('#rtable').html(html);
+				if (json_store.ia7_config.prefs.enable_data_table_more !== undefined && json_store.ia7_config.prefs.enable_data_table_more === "yes") {
+					if (json.data.hook !== undefined && $('#more_row').length === 0) { //there is an option to pull more data
+						//console.log("More Data!"+$('#more_row').length);
+						$('#display_table').append("<div id='more_row' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
+						$('#more_row').append('<div class="table_more"><button class="btn btn-default toolbar-right-end right-end pull-right table_btn_more" type="button">');
+						$('.table_btn_more').append('next  <i class="fa fa-caret-right"></i>');
+					
+						$('.table_btn_more').click('on', function () {
+							var new_page_size = json.data.page_size + (json.data.page_size * (json.data.page + 1));
+							display_table(table,new_page_size,requestTime);
+						});
+					}
+				}
 
 			}
 			if (jqXHR.status == 200 || jqXHR.status == 204) {
@@ -992,13 +1018,191 @@ var display_table = function(table,time) {
 				//KRK best way to handle this is likely to check the URL hash
 				if ($('#display_table').length !== 0){
 					//If the display table page is still active request more data
-					display_table(table,requestTime);
+					display_table(table,page_size,requestTime);
 				}
 			}		
 		}
 	});
 };
 
+
+//Creates a table based on the $json_table data structure. desktop & mobile design
+var graph_rrd = function(start,group,time) {
+
+	var URLHash = URLToHash();
+	if (typeof time === 'undefined'){
+		$('#list_content').html("<div id='top-graph' class='row top-buffer'>");
+		$('#top-graph').append("<div id='rrd-periods' class='row'>");
+		$('#top-graph').append("<div id='rrd-graph' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
+		$('#top-graph').append("<div id='rrd-legend' class='rrd-legend-class'><br>");
+	//	$('#top-graph').append("<div id='legend class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'><br><br>");
+
+		time = 0;
+	}
+		
+	URLHash.time = time;
+	URLHash.long_poll = 'true';
+	if (updateSocket !== undefined && updateSocket.readyState != 4){
+		// Only allow one update thread to run at once
+		updateSocket.abort();
+	}	
+	var path_str = "/rrd"  
+	var arg_str = "start="+start+"&group="+group+"&long_poll=true&time="+time;
+	updateSocket = $.ajax({
+		type: "GET",
+		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
+		dataType: "json",
+		success: function( json, statusText, jqXHR ) {
+			var requestTime = time;
+			if (jqXHR.status == 200) {
+				JSONStore(json);
+				// HP should probably use jquery, but couldn't get sequencing right.
+				// HP jquery would allow selected values to be replaced in the future.
+
+				if (json.data.data !== undefined) {  //If no data, at least show the header and an error
+//TODO
+				}	
+				var dropdown_html = '<div class="dropdown"><button class="btn btn-default rrd-period-dropdown" data-target="#" type="button" data-toggle="dropdown">';
+				var dropdown_html_list = "";
+				var dropdown_current = "Unknown  ";
+
+				$.each(json.data.periods, function(key, value) {
+    				//console.log(key, value);
+    				if (start === value.split(",")[1]) {
+    					dropdown_current = value.split(",")[0]+"  ";
+    				} else {
+    					dropdown_html_list += '<li><a href="javascript: void(0)" id="rrdperiod_'+key+'" ';
+    					//dropdown_html_list += 'onclick=graph_rrd('+value.split(",")[1]+','+group+','+time+');';
+    					dropdown_html_list += '>'+value.split(",")[0]+'</a></li>';
+ 
+    				}
+				});
+				dropdown_html += dropdown_current+'<span class="caret"></span></button><ul class="dropdown-menu">';
+				dropdown_html += dropdown_html_list;
+				dropdown_html += '</ul></div>';
+				
+				$('#rrd-periods').append(dropdown_html);
+
+				$('.dropdown').on('click', '.dropdown-menu li a', function(e){
+					e.stopPropagation();
+    				var period = $(this).attr("id").match(/rrdperiod_(.*)/)[1]; 
+    				var new_start = json.data.periods[period].split(',')[1];
+					$('.open').removeClass('open');
+					graph_rrd(new_start,group);
+				});
+
+				//sort the legend
+				json.data.data.sort(function(a, b){
+    				if(a.label < b.label) return -1;
+    				if(a.label > b.label) return 1;
+    				return 0;
+				})
+
+					// put the selection list on the side.
+				for (var i = 0; i < json.data.data.length; i++){
+					//console.log("selection="+json.data.data[i].label);
+					var legli = $('<li style="list-style:none;"/>').appendTo('#rrd-legend');
+					$('<input name="' + json.data.data[i].label + '" id="' + json.data.data[i].label + '" type="checkbox" checked="checked" />').appendTo(legli);
+					$('<label>', {
+						class: "rrd-legend-class",
+						text: json.data.data[i].label,
+				    	'for': json.data.data[i].label
+						}).appendTo(legli);
+				}
+ 
+				function plotAccordingToChoices() {
+    				var data = [];
+
+    				$('#rrd-legend').find("input:checked").each(function() {
+        				var key = this.name;
+        				for (var i = 0; i < json.data.data.length; i++) {
+            				if (json.data.data[i].label === key) {
+                			data.push(json.data.data[i]);
+                			return true;
+           		 			}
+       		 			}
+    				});
+    				$.plot($("#rrd-graph"), data, json.data.options);
+    				$('.legend').hide();	
+				}
+		
+				window.onresize = function(){
+    				var base_width = $(window).width();
+   					if (base_width > 990) base_width = 990;
+   					var graph_width = base_width - 200; //give some room for the legend
+					if (base_width < 701) {
+						//put legend below graph
+						graph_width=base_width; // - 10;
+					} 
+    				$('#rrd-graph').css("width",graph_width+"px");
+    				//console.log("base="+base_width+" graph="+graph_width);
+    				$('#rrd-graph').text(''); 
+    				$('#rrd-graph').show(); //check
+    				plotAccordingToChoices();
+
+				}
+
+				var previousPoint = null;
+
+				$("#rrd-graph").bind("plothover", function(event, pos, item) {
+    				$("#x").text(pos.x.toFixed(2));
+    				$("#y").text(pos.y.toFixed(2));
+    				if (item) {
+        				if (previousPoint != item.datapoint) {
+            			previousPoint = item.datapoint;
+            			$("#tooltip").remove();
+            			var x = item.datapoint[0].toFixed(2),
+                		y = item.datapoint[1].toFixed(2);
+						var date = new Date(parseInt(x));
+						var date_str = date.toString(); //split("GMT")[0];
+						var nice_date = date_str.split(" GMT")[0];
+            			showTooltip(item.pageX, item.pageY, item.series.label + " " + y + "<br>" + nice_date);
+        				}
+    				} else {
+        				$("#tooltip").remove();
+        				previousPoint = null;
+    				}
+				});
+
+				function showTooltip(x, y, contents) {
+    				$('<div id="tooltip">' + contents + '</div>').css({
+        				position: 'absolute',
+        				display: 'none',
+        				top: y + 5,
+        				left: x + 15,
+        				border: '1px solid #fdd',
+        				padding: '2px',
+        				backgroundColor: '#fee',
+        				opacity: 0.80
+    				}).appendTo("body").fadeIn(200);
+				}
+
+				window.onresize(); // get all settings based on current window size
+				plotAccordingToChoices();
+
+				$('#rrd-legend').find("input").change(plotAccordingToChoices);		
+
+				$('.legendColorBox > div > div').each(function(i){
+					var color = $(this).css("border-left-color");
+					//console.log("color="+color);
+    				//$(this).clone().prependTo($('#rrd-legend').find("li").eq(i));
+    				$('#rrd-legend').find("li").eq(i).prepend('<span style="width:4px;height:4px;border: 0px;background: '+color+';">&nbsp;&nbsp;&nbsp;</span>&nbsp');
+					});
+				requestTime = json.meta.time;
+
+			}
+			if (jqXHR.status == 200 || jqXHR.status == 204) {
+				//Call update again, if page is still here
+				//KRK best way to handle this is likely to check the URL hash
+				if ($('#top-graph').length !== 0){
+//TODO live updates
+					//If the graph  page is still active request more data
+//					graph_rrd(start,group,requestTime);
+				}
+			}		
+		}
+	});
+};
 
 var floorplan = function(group,time) {
 	var URLHash = URLToHash();
@@ -1230,7 +1434,7 @@ var get_fp_image = function(item,size,orientation) {
 
   	}
   	
-  	if(item.type == "Door_Item" ) {
+  	if(item.type == "Door_Item" || item.type == "Insteon::IOLinc_door") {
   			return "fp_door_"+image_color+"_"+image_size+".png";
 
   	}  	
