@@ -916,8 +916,9 @@ sub html_sub {
     if ($data =~ /^(.+)\)\?(\d+),(\d+)$/) {
         $data = "$1,xy=$2|$3)";
     }
-                                # Allow for &sub1 and &sub1(args)
-    if ((($sub_name, $sub_arg) = $data =~ /^\&(\S+?)\((.*)\)$/) or
+
+    # Allow for &sub1 and &sub1(args)
+    if ((($sub_name, $sub_arg) = $data =~ /\&([^\&]+?)\((.*)\)$/) or
         (($sub_name)           = $data =~ /^\&(\S+)$/)) {
         $sub_arg = '' unless defined $sub_arg; # Avoid uninit warninng
 #       $sub_ref = \&{$sub_name};  # This does not work ... code refs are always auto-created :(
@@ -972,12 +973,12 @@ sub html_response {
 #           $leave_socket_open_action = "&speak_log_last(1)"; # Only show the last spoken text
 #           $leave_socket_open_action = "&Voice_Text::last_spoken(1)"; # Only show the last spoken text
         }
-        elsif ($h_response =~ /^http:\S+$/i or $h_response =~ /^reff?erer/i) {
+        elsif ($h_response =~ /^https?:\S+$/i or $h_response =~ /^reff?erer/i) {
                                 # Allow to use just the base part of the referer
                                 #  - some browsers (audrey) do not return full referer url :(
                                 #    so allow for referer(url)...
             if (my ($rurl) = $h_response =~ /^reff?erer(\S+)/) {
-                $Http{Referer} =~ m|(http://\S+?)/|;
+                $Http{Referer} =~ m|(https?://\S+?)/|;
                 $h_response = $1 . $rurl;
             }
             elsif ($h_response =~ /^reff?erer/) {
@@ -1705,7 +1706,7 @@ eof
     $body = 'No data' unless $body;
 
                                 # Allow for redirect and pre-formated responses (e.g. vxml response)
-    return http_redirect($body)    if $body =~ /^http:\S+$/i;
+    return http_redirect($body)    if $body =~ /^https?:\S+$/i;
     return $body                   if $body =~ /^HTTP\//; # HTTP/1.0 200 OK
 
 
@@ -2769,7 +2770,7 @@ sub unescape {
 sub referer {
     my ($r) = @_;
     $r =~ tr/\|/?/;
-    $Http{Referer} =~ m|(http://\S+?)/|;
+    $Http{Referer} =~ m|(https?://\S+?)/|;
     $r = $1 . $r unless $r =~ /^http/;
     return $r;
 }
