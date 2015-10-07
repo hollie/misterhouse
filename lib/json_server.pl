@@ -246,7 +246,7 @@ sub json_get {
 
 			if (defined $args{group}[0]) {
 				@{$args{ds}} = (); #override any DSs specified in the URL
-				for my $dsg (keys $json_data{'rrd_config'}->{'ds'}) {
+				for my $dsg (keys %{$json_data{'rrd_config'}->{'ds'}}) {
 					if (defined $json_data{'rrd_config'}->{'ds'}->{$dsg}->{'group'}) {
 						foreach my $group (split /,/,$json_data{'rrd_config'}->{'ds'}->{$dsg}->{'group'}) {
 							push @{$args{ds}}, $dsg if (lc $group) eq (lc $args{group}[0]);
