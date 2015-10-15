@@ -1,44 +1,22 @@
-=head1 B<imap_utils>
-
-=head2 SYNOPSIS
-
-NONE
-
-=head2 DESCRIPTION
-
-Adds IMAP message scan and gmail sending ability.
-
-Requires the following perl modules:
-
-  Mail::IMAPClient
-  IO::Socket::SSL
-  IO::Socket::INET
-  Time::Zone
-
-if the IMAP scan hangs before authenticating against the gmail account, reinstall the
-IO::Socket::SSL. On OS X you need to install openssl before attempting to install the 
-SSL-related Perl modules. The easiest way to do this is through homebrew (brew install openssl)
-
-Todo: parse unread messages
-
-=head2 INHERITS
-
-B<NONE>
-
-=head2 METHODS
-
-=over
-
-=item B<UnDoc>
-
-=cut
-
 #!/usr/bin/perl
 
 # v 0.1 - initial test concept, inspired by Pete's script - H. Plato - 2 June 2008
 # v 0.2 - added pete's gmail send function, gmail list folders, better error checking
 
 # v 0.3 - removed gmail send to it's own library, added ssl as an option.
+
+# Adds IMAP message scan and gmail sending ability.
+# Requires the following perl modules
+#   Mail::IMAPClient
+#   IO::Socket::SSL
+#   IO::Socket::INET
+#   Time::Zone
+#
+# if the IMAP scan hangs before authenticating against the gmail account, reinstall the
+# IO::Socket::SSL
+#
+# Todo: 
+# - parse unread messages
 
 package imap_utils;
 
@@ -49,7 +27,7 @@ use IO::Socket::SSL;
 use IO::Socket::INET;
 use POSIX;
 use Time::Zone;
-use Encode qw(encode decode);
+use Encode qw(encode decode find_encoding);
 
 sub main::get_imap {
 
@@ -207,14 +185,60 @@ if ($client->IsAuthenticated()) {
 	$processed_count++;
 	my $from = $client->get_header($msgid, "From");
 	my $to = $client->get_header($msgid, "To");
-	my $cc = $client->get_header($msgid, "CC");
+	my $cc = "";
+	$cc = $client->get_header($msgid, "CC");
+	my $subject = "<No Subject>";
+	$subject = $client->get_header($msgid, "Subject");
 	my $msgdate = $client->get_header($msgid, "Date");
 	$from =~ s/\"//g;
-	if ($from =~ m/=\?/) {
-	   print "Unicode detected. Decoding MIME-Header from $from to " if $debug;
-	   $from = decode("MIME-Header", $from);
-	   print "$from.\n" if $debug;
-	} 
+	if ($from =~ m/\=\?([0-9A-Za-z\-_]+)\?.\?.*\?\=/) {
+	   my $enc_check = find_encoding($1);
+  	   if ($enc_check) {
+	     print "Unicode $1 detected. Decoding MIME-Header 'from' from $from to " if $debug;
+	     $from = decode("MIME-Header", $from);
+	     print "$from.\n" if $debug;
+	     }
+	    else {
+	     print "WARNING: Unknown unicode detected $1 for 'from' $from\n";
+	    }
+	}
+
+	if ($to =~ m/\=\?([0-9A-Za-z\-_]+)\?.\?.*\?\=/) {
+	   my $enc_check = find_encoding($1);
+  	   if ($enc_check) {
+	     print "Unicode $1 detected. Decoding MIME-Header 'to' from $to to " if $debug;
+	     $to = decode("MIME-Header", $to);
+	     print "$to.\n" if $debug;
+	     }
+	    else {
+	     print "WARNING: Unknown unicode detected $1 for 'to' $to\n";
+	    }
+	}
+
+	if ($cc =~ m/\=\?([0-9A-Za-z\-_]+)\?.\?.*\?\=/) {
+	   my $enc_check = find_encoding($1);
+  	   if ($enc_check) {
+	     print "Unicode $1 detected. Decoding MIME-Header 'cc' from $cc to " if $debug;
+	     $cc = decode("MIME-Header", $cc);
+	     print "$cc.\n" if $debug;
+	     }
+	    else {
+	     print "WARNING: Unknown unicode detected $1 for 'cc' $cc\n";
+	    }
+	}
+
+	if ($subject =~ m/\=\?([0-9A-Za-z\-_]+)\?.\?.*\?\=/) {
+	   my $enc_check = find_encoding($1);
+  	   if ($enc_check) {
+	     print "Unicode $1 detected. Decoding MIME-Header 'subject' from $subject to " if $debug;
+	     $subject = decode("MIME-Header", $subject);
+	     print "$subject.\n" if $debug;
+	     }
+	    else {
+	     print "WARNING: Unknown unicode detected $1 for 'subject' $subject\n";
+	    }
+	}
+
 #	decode("MIME-Header", $from) if ($from =~ m/=\?/);
 	$email_addresses{$from}++;
 	my $name = $from;
@@ -224,7 +248,6 @@ if ($client->IsAuthenticated()) {
 	$name =~ s/\s$//g;
 	$email_names{$name}++;
 
-	my $subject= $client->get_header($msgid, "Subject");
 	my $body;
 	if ($size) {
 	   $body = $client->bodypart_string($msgid,1,$size);
@@ -343,6 +366,8 @@ sub _check_age {
 my %month;
 my $epochtime;
 my $time = time();
+my $dst_disable = 0;
+$dst_disable =  $main::config_parms{"imap_dst_fix"} if (defined $main::config_parms{"imap_dst_fix"});
 
 $month{jan} = 1;
 $month{feb} = 2;
@@ -366,43 +391,17 @@ my $monnum = $month{lc $mon} - 1;
 $year = $year - 1900;
 $epochtime = mktime ($sec, $min, $hour, $day, $monnum, $year);
 
-#print "time=$time, epochtime=$epochtime";
+#print "db: imap_utils.pl: time=$time, epochtime=$epochtime";
 
-$epochtime = $epochtime - 3600 if $dst;
+$epochtime = $epochtime - 3600 if ($dst and !$dst_disable);
 $epochtime = $epochtime + $offset;
 
 #my $diff = ($time - $epochtime);
 #print ",epochtime after offset=$epochtime, diff=$diff\n"; 
 
 my $return = (($time - $epochtime) <= ($age * 60));
-#print "diff=$diff, return=$return\n";
+#print "db: imap_utils.pl: diff=$diff, return=$return\n";
 return $return
 }
 
 1;
-
-
-=back
-
-=head2 INI PARAMETERS
-
-NONE
-
-=head2 AUTHOR
-
-UNK
-
-=head2 SEE ALSO
-
-NONE
-
-=head2 LICENSE
-
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-
-=cut
-

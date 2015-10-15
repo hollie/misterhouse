@@ -319,7 +319,7 @@ sub init {
    $serial_port->stopbits(1);
    $serial_port->handshake('none');
    $serial_port->datatype('raw');
-   $serial_port->dtr_active(1);
+   $serial_port->dtr_active(1) or warn "Could not set dtr_active(1)";
    $serial_port->rts_active(0);
 
    select( undef, undef, undef, .100 );    # Sleep a bit
@@ -1136,7 +1136,7 @@ sub cmd {
       }
    }
    else {
-      $main::Serial_Ports{$instance}{'socket'}->write("$CmdStr");
+      $main::Serial_Ports{$instance}{object}->write("$CmdStr");
    }
    return "Sending to ADEMCO panel: $CmdName ($cmd)";
 }

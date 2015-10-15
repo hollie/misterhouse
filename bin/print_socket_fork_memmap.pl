@@ -11,21 +11,44 @@
 # string in via a memory map, rather than a slow external file read and write.
 
 my ($Pgm_Path, $Pgm_Name);
+
+#Provide a BuildNumber function with output similar to the 
+#ActiveState Perl Win32::BuildNumber for running on other
+#Windows Perl ports (e.g. Strawberry perl)
+sub buildNumber {
+	if( defined &Win32::BuildNumber) {
+		return &Win32::BuildNumber;
+	} elsif( defined $^V) {
+		my ($major,$minor, $patch) = split('\.',sprintf( "%vd", $^V));
+		$patch = sprintf("%02d",$patch);
+		return ($minor.$patch)*1;
+	} else {
+		my ($major,$minor_patch) = split('\.',$]);
+		my ($minor, $patch) = ($minor_patch =~ /(.{1,3})/g);
+		$minor = sprintf("%02d",$minor);
+		$patch = sprintf("%02d",$patch);
+		return( ($minor.$patch)*1);
+	}
+}
+
 BEGIN {
     ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.*)\.?/; 
     $Pgm_Path = '.' unless $Pgm_Path; 
 
 		 # Need to set up INC so we can find the MemMap module
-    my $build = &Win32::BuildNumber;
+    my $build = buildNumber();
     if ($build < 600) {
-	push @INC, './../lib/site_win50';
+		push @INC, './../lib/site_win50';
     }
     elsif ($build < 800) {
-	push @INC, './../lib/site_win56';
+		push @INC, './../lib/site_win56';
     }
-    else {
-	push @INC, './../lib/site_win58';
+    elsif ($build < 900) {
+		push @INC, './../lib/site_win58';
     }
+	elsif ($build < 1300 and $build > 1199) {
+		push @INC, "./../lib/site_win512";
+	}
     push @INC, './../lib/site';
     push @INC, './../lib';
 }

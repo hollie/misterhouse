@@ -275,6 +275,50 @@ sub xml {
         $xml .= "  </vars>\n";
     }
 
+    # List print_log phrases
+    if ( $request{print_log} ) {
+        $xml .= "  <print_log>\n";
+        my $time = ::print_log_current_time();
+        $xml .= "    <time>$time</time>\n";
+        my @log;
+        $xml .= "    <text>\n";
+        if ($options{time}{active}){
+            @log = ::print_log_since($options{time}{members}[0]);
+        } else {
+            @log = ::print_log_since();
+        }
+        my $value = \@log;
+        $value = encode_entities( $value, "\200-\377&<>" );
+        foreach (@$value) {
+            $_ = 'undef' unless defined $_;
+            $xml .= "      <value>$_</value>\n";
+        }
+        $xml .= "    </text>\n";
+        $xml .= "  </print_log>\n";
+    }
+
+    # List speak phrases
+    if ( $request{print_speaklog} ) {
+        $xml .= "  <print_speaklog>\n";
+        my $time = ::print_speaklog_current_time();
+        $xml .= "    <time>$time</time>\n";
+        my @log;
+        $xml .= "    <text>\n";
+        if ($options{time}{active}){
+            @log = ::print_speaklog_since($options{time}{members}[0]);
+        } else {
+            @log = ::print_speaklog_since();
+        }
+        my $value = \@log;
+        $value = encode_entities( $value, "\200-\377&<>" );
+        foreach (@$value) {
+            $_ = 'undef' unless defined $_;
+            $xml .= "      <value>$_</value>\n";
+        }
+        $xml .= "    </text>\n";
+        $xml .= "  </print_speaklog>\n";
+    }
+
     # List hash values
     foreach my $hash (
         qw( config_parms Menus photos Save Socket_Ports triggers

@@ -81,7 +81,7 @@ sub init
     $serial_port->parity("none");
     $serial_port->stopbits(1);
 
-    $serial_port->dtr_active(1);		
+    $serial_port->dtr_active(1) or warn "Could not set dtr_active(1)";		
     $serial_port->rts_active(1);		
     select (undef, undef, undef, .100); 	# Sleep a bit
 }

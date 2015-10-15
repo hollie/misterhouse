@@ -394,7 +394,7 @@ sub init {
    $serial_port->stopbits(2);
    $serial_port->handshake('none');
    $serial_port->datatype('raw');
-   $serial_port->dtr_active(0);
+   $serial_port->dtr_active(0) or warn "Could not set dtr_active(0)";
    $serial_port->rts_active(1);
 }
 
