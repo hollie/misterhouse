@@ -161,6 +161,9 @@ sub interface
 {
 	my ($self,$p_interface) = @_;
         if (defined $p_interface) {
+        	if (ref $p_interface ne 'Insteon_PLM'){
+        		$p_interface = ::get_object_by_name($p_interface);
+        	}
 		$$self{interface} = $p_interface;
         }
         elsif (!($$self{interface}))
@@ -704,7 +707,7 @@ sub _is_info_request
 		{
 			if ($self->_aldb->aldb_delta() eq $msg{cmd_code}){
 				&::print_log("[Insteon::BaseObject] The link table for "
-					. $self->{object_name} . " is in sync.");
+					. $self->{object_name} . " is unchanged.");
 				#Link Table Scan Successful, Record Current Time
 				$self->_aldb->scandatetime(&main::get_tickcount);
 				if (defined $self->_aldb->{_aldb_unchanged_callback}) {
@@ -713,8 +716,8 @@ sub _is_info_request
 				}
 			} else {
 				&::print_log("[Insteon::BaseObject] WARN The link table for "
-					. $self->{object_name} . " is out-of-sync.");
-				$self->_aldb->health('out-of-sync');
+					. $self->{object_name} . " has changed.");
+				$self->_aldb->health('changed');
 				if (defined $self->_aldb->{_aldb_changed_callback}) {
 					$callback = $self->_aldb->{_aldb_changed_callback};
 					$self->_aldb->{_aldb_changed_callback} = undef;
@@ -722,7 +725,7 @@ sub _is_info_request
 			}
 		}
 		$self->_aldb->{aldb_delta_action} = undef;
-		$self->_aldb->health('out-of-sync') if($self->_aldb->aldb_delta() ne $msg{cmd_code});
+		$self->_aldb->health('changed') if($self->_aldb->aldb_delta() ne $msg{cmd_code});
 		if ($callback){
 			package main;
 			eval ($callback);
@@ -838,7 +841,7 @@ sub _process_message
 			else
                         {
 				if (($pending_cmd eq 'do_read_ee') && 
-					($self->_aldb->health eq "good" || $self->_aldb->health eq "empty") &&
+					($self->_aldb->health eq "unchanged" || $self->_aldb->health eq "empty") &&
 					($self->isa('Insteon::KeyPadLincRelay') || $self->isa('Insteon::KeyPadLinc'))){
 					## Update_Flags ends up here, set aldb_delta to new value
 					$self->_aldb->query_aldb_delta("set");
@@ -3169,7 +3172,7 @@ sub sync_links
 			."command on this specific device.");
 		$insteon_object_is_syncable = 0;
 	}
-	elsif ($insteon_object->_aldb->health ne 'good' && $insteon_object->_aldb->health ne 'empty'){
+	elsif ($insteon_object->_aldb->health ne 'unchanged' && $insteon_object->_aldb->health ne 'empty'){
 		::print_log("[Insteon::BaseController] WARN! The ALDB of $self_link_name is ".$insteon_object->_aldb->health
 			.", links will be added to devices "
 			."linked to this device, but no links will be added to $self_link_name.  Please rescan this device and attempt "
@@ -3241,7 +3244,7 @@ sub sync_links
 
 		# 3. Does the responder link exist
 		if (!$member_root->has_link($insteon_object, $self->group, 0, $member->group) &&
-		($member_root->_aldb->health eq 'good' || $member_root->_aldb->health eq 'empty')){
+		($member_root->_aldb->health eq 'unchanged' || $member_root->_aldb->health eq 'empty')){
 			my %link_req = ( member => $member, cmd => 'add', object => $insteon_object,
 				group => $self->group, is_controller => 0,
 				on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,
@@ -3252,7 +3255,7 @@ sub sync_links
 			push @{$$self{sync_queue}}, \%link_req;
 			$has_link = 0;
 		} 
-		elsif ($member_root->_aldb->health ne 'good' && $member_root->_aldb->health ne 'empty'){
+		elsif ($member_root->_aldb->health ne 'unchanged' && $member_root->_aldb->health ne 'empty'){
 			my %link_req = ( member => $member, cmd => 'add', object => $insteon_object,
 				group => $self->group, is_controller => 0,
 				on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,
@@ -3303,7 +3306,7 @@ sub sync_links
 			}
 		}
 		if ($requires_update &&
-		($member_root->_aldb->health eq 'good' || $member_root->_aldb->health eq 'empty')) {
+		($member_root->_aldb->health eq 'unchanged' || $member_root->_aldb->health eq 'empty')) {
 			my %link_req = ( member => $member, cmd => 'update', object => $insteon_object,
 				group => $self->group, is_controller => 0,
 				on_level => $tgt_on_level, ramp_rate => $tgt_ramp_rate,

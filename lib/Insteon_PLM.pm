@@ -379,12 +379,23 @@ Causes MisterHouse to scan the link table of the PLM only.
 
 sub scan_link_table
 {
-	my ($self,$callback) = @_;
+	my ($self,$callback, $failure, $skip_unchanged) = @_;
 	#$$self{links} = undef; # clear out the old
-        $$self{aldb} = new Insteon::ALDB_PLM($self);
-	$$self{_mem_activity} = 'scan';
-        $$self{_mem_callback} = ($callback) ? $callback : undef;
-	$self->_aldb->get_first_alllink();
+	if ($skip_unchanged && $self->_aldb->health =~ /(empty)|(unchanged)/) {
+	        ::print_log('[Scan Link Tables] - PLM Link Table is unchanged, skipping.');
+		package main;
+		eval ($callback);
+		&::print_log("[Insteon_PLM] WARN1: Error encountered during scan callback: " . $@)
+			if $@ and $self->debuglevel(1, 'insteon');
+		package Insteon_PLM;
+	}
+	else {
+	        #ALDB Cache is unhealthy, or scan forced
+                $$self{aldb} = new Insteon::ALDB_PLM($self);
+        	$$self{_mem_activity} = 'scan';
+                $$self{_mem_callback} = ($callback) ? $callback : undef;
+        	$self->_aldb->get_first_alllink();
+	}
 }
 
 =item C<initiate_linking_as_controller([p_group])>
@@ -761,11 +772,11 @@ sub _parse_data {
                                 	$self->_aldb->health("empty");
                                 }
                                 else {
-                                	$self->_aldb->health("good");
+                                	$self->_aldb->health("unchanged");
                                 }
                                 $self->_aldb->scandatetime(&main::get_tickcount);
         			&::print_log("[Insteon_PLM] " . $self->get_object_name 
-        				. " completed link memory scan: status: " . $self->_aldb->health())
+        				. " completed link memory scan. Status: " . $self->_aldb->health())
         				if $self->debuglevel(1, 'insteon');
         			if ($$self{_mem_callback}) {
         				my $callback = $$self{_mem_callback};
@@ -926,6 +937,41 @@ sub _parse_data {
         		my $device_object = Insteon::get_object($link_address);
         		$device_object->devcat(substr($message_data,10,4));
         		$device_object->firmware(substr($message_data,14,2));
+
+        		#Insert the record into MH cache of the PLM's link table
+        		my $data1 = substr($device_object->devcat, 0, 2);
+        		my $data2 = substr($device_object->devcat, 2, 2);
+        		my $data3 = $device_object->firmware;
+        		my $type = substr($message_data,0,2);
+        		my $group = substr($message_data,2,2);
+        		
+        		#Select type of link (00 - responder, 01 - master, ff - delete)
+        		if ($type eq '00'){
+        		        $self->_aldb->add_link_to_hash('A2', $group, '0', $link_address, $data1, $data2, $data3);
+        		}
+        		elsif ($type eq '01'){
+        		        $self->_aldb->add_link_to_hash('E2', $group, '1', $link_address, $data1, $data2, $data3);
+        		}
+        		elsif (lc($type) eq 'ff'){
+        		        # This is a delete request.
+        		        # The problem is that the message from the PLM
+        		        # does not identify whether the link deleted was
+        		        # a responder or controller.  We could guess, b/c
+        		        # it is unlikely that d1-d3 would be identical.
+        		        # However, that seems sloppy.  For the time being
+        		        # simply mark PLM aldb as unhealthy, and move on.
+                                if (ref $self->active_message && $self->active_message->success_callback){
+                                        # This is LIKELY a delete in response to a MH
+                                        # request.  This is a bad way to check for
+                                        # this, but not sure what else to do.
+                                        # As a result, don't change health status
+                                }
+                                else {
+        		                $self->_aldb->health('changed');
+                                }
+        		}
+
+        		#Run success callback if it exists
         		if (ref $self->active_message) {
         		        if ($self->active_message->success_callback){
 	        			main::print_log("[Insteon::Insteon_PLM] DEBUG4: Now calling message success callback: "
@@ -1001,8 +1047,21 @@ sub _parse_data {
         		&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($data)) 
         		        if $self->debuglevel(4, 'insteon');
         		main::print_log("[Insteon_PLM] Detected PLM user reset to factory defaults");
-        		
+        		$self->_aldb->health('changed');
         		$data = substr($data, 4);
+        	}
+        	elsif ($record_type eq $prefix{plm_reset} and (length($data) >= 6)) {
+        		&::print_log( "[Insteon_PLM] DEBUG4:\n".Insteon::MessageDecoder::plm_decode($data)) 
+        		        if $self->debuglevel(4, 'insteon');
+        		if (substr($data,4,2) eq '06'){
+        		        ::print_log("[Insteon_PLM] Received ACK to software reset request");
+        		        $self->_aldb->health('changed');
+        		}
+        		else {
+        		        ::print_log("[Insteon_PLM] ERROR Received NACK to software reset request");
+        		}
+        		
+        		$data = substr($data, 6);
         	}
                 elsif ($record_type eq $prefix{all_link_clean_status} and (length($data) >= 6)) { 
                         #ALL-Link Cleanup Status Report

@@ -130,6 +130,7 @@ sub new {
     $$self{said}          = undef;
     $$self{state_now}     = undef;
     $$self{state_changed} = undef;
+    $self->restore_data('sort_order');
     return $self;
 }
 
@@ -456,14 +457,13 @@ If set to 1, the object will not show up on Tk or Web menus.  Can only be run at
 =cut
 
 sub hidden {
-    return unless $main::Reload;
     my ($self, $flag) = @_;
-                                # Set it
     if (defined $flag) {
+        return unless $main::Reload;
         $self->{hidden} = $flag;
     }
     else {                      # Return it, but this currently only will work on $Reload.
-        return $self->{hidden};
+        return $self->{hidden}; # HP - really, no reason why this can't be a read-only method any time?
     }
 }
 
@@ -901,7 +901,7 @@ TODO
 
 sub get_fp_location {
     my ($self) = @_;
-    if (! @{$$self{location}} ) { return }
+    if (! defined $$self{location} ) { return }
     return @{$$self{location}};
 }
 
@@ -956,6 +956,37 @@ sub get_fp_icons {
         return undef;
     }
 }
+
+=item C<set_fp_icons_set(name)>
+
+Sets the icons group used by the IA7 floorplan web interface.  The name contains the 
+group name of icons that can be found in /web/ia7/graphics.
+Can only be run at startup or reload.
+
+=cut
+
+sub set_fp_icon_set {
+    return unless $main::Reload;
+    my ($self, $icons) = @_;
+    $$self{fp_icon_set}=$icons;
+}
+
+=item C<get_fp_icons()>
+
+Returns the name of the icon set used by the floorplan IA7 web interface that were set 
+by C<set_fp_icon_set>.
+
+=cut
+
+sub get_fp_icon_set {
+    my ($self) = @_;
+    if ($$self{fp_icon_set}) {
+        return $$self{fp_icon_set};
+    } else {
+        return undef;
+    }
+}
+
 
 =item C<set_states(states)>
 
@@ -1363,6 +1394,25 @@ sub debuglevel
 	return 1 if $main::Debug{$debug_group} >= $debug_level;
 	return 1 if defined $objname && $main::Debug{$objname} >= $debug_level;
 	return 0;
+}
+
+=item C<sort_order($ref_list_of_member_names)>
+
+Used to store an ordered list of object names.  The purpose of which is to be 
+used to arrange the list of member objects in a specific order.
+
+NOTE:  This routine does not verify that the objects are in fact members of this
+object.
+
+=cut
+
+sub sort_order
+{
+	my ($self, $list_ref) = @_;
+	if (defined $list_ref) {
+	    $$self{sort_order} = join(',', @{$list_ref});
+	}
+    return [split(',', $$self{sort_order})];
 }
 
 =back

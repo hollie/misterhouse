@@ -566,7 +566,7 @@ sub usb_uirt_send {
 	push @bytes, $checksum;
 	$hex .= sprintf '%02x', $checksum;
 	print "USB_UIRT sending $hex\n";
-	$main::Serial_Ports{USB_UIRT}{object}->dtr_active(0);
+	$main::Serial_Ports{USB_UIRT}{object}->dtr_active(0) or warn "Could not set dtr_active(0)";
 	$main::Serial_Ports{USB_UIRT}{object}->write(pack 'C*', @bytes);
 }
 

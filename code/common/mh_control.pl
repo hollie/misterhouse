@@ -99,16 +99,18 @@ sub handle_http_control_state() {
 run_voice_cmd 'Check the http server', undef, 'time', 1 if new_minute 1;
 
 # Restart MisterHouse
-$v_restart_mh = new Voice_Cmd 'Restart Mister House';
-$v_restart_mh->set_info( 'Restarts Misterhouse.  This will only work if ' .
+$v_restart_mh = new Voice_Cmd '[Restart,Exit] Mister House';
+$v_restart_mh->set_info( 'Restarts/Exits Misterhouse.  This will only work if ' .
   'you start with mh/bin/mhl') if !$OS_win;
-$v_restart_mh->set_info('Restarts Misterhouse.') if $OS_win;
-$v_restart_mh->tie_event('&restart_mh()'); # noloop
+$v_restart_mh->set_info('Restarts/Exits Misterhouse.') if $OS_win;
+$v_restart_mh->tie_event('&restart_mh($state)'); # noloop
 
 sub restart_mh{
+	my ($command) = @_;
+	my $restart = ($command eq "Restart") ? 1 : 0;
 	$exit_timer = new  Timer;
-	print_log "MisterHouse will restart in 2 seconds.";
-	$exit_timer->set(2, '&exit_pgm(1)');
+	print_log "MisterHouse will ".lc($command)." in 2 seconds.";
+	$exit_timer->set(2, "&exit_pgm($restart)");
 }
 
 # This will be abend.  

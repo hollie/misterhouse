@@ -56,7 +56,7 @@ sub init
 
     #$serial_port->is_handshake("none");         #&? Should this be DTR?
 
-    $serial_port->dtr_active(1);		
+    $serial_port->dtr_active(1) or warn "Could not set dtr_active(1)";		
     $serial_port->rts_active(0);		
     select (undef, undef, undef, .100); 	# Sleep a bit
     ::print_log "Xantech init\n" if $main::Debug{xantech};

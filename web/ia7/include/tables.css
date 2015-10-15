@@ -1,0 +1,118 @@
+.table-curved {
+    border-collapse: separate;
+}
+.table-curved {
+    border: solid #ccc 1px;
+    border-radius: 6px;
+    border-left:0px;
+}
+.table-curved td, .table-curved th {
+    border-left: 1px solid #ccc;
+    border-top: 1px solid #ccc;
+}
+.table-curved th {
+    border-top: none;
+}
+.table-curved th:first-child {
+    border-radius: 6px 0 0 0;
+}
+.table-curved th:last-child {
+    border-radius: 0 6px 0 0;
+}
+.table-curved th:only-child{
+    border-radius: 6px 6px 0 0;
+}
+.table-curved tr:last-child td:first-child {
+    border-radius: 0 0 0 6px;
+}
+.table-curved tr:last-child td:last-child {
+    border-radius: 0 0 6px 0;
+}
+
+
+#rtable p {
+	margin: 20px 0; 
+}
+
+	/* 
+	Generic Styling, for Desktops/Laptops 
+	*/
+	 #rtable table { 
+		width: 97%; 
+		margin-top: 8px;
+		margin-left: 15px;
+		margin-right: 15px;
+	}
+	/* Zebra striping */
+	#rtable tr:nth-of-type(even) { 
+		background: #eee; 
+	}
+	#rtable th { 
+		font-weight: bold; 
+		background: #eee; 
+
+	}
+	#rtable td, th { 
+		padding: 6px; 
+		text-align: left; 
+	}
+	
+	/* 
+	Max width before this PARTICULAR table gets nasty
+	This query will take effect for any screen smaller than 760px
+	and also iPads specifically.
+	*/
+	@media 
+	only screen and (max-width: 760px),
+	(min-device-width: 768px) and (max-device-width: 1024px)  {
+	
+		/* Force table to not be like tables anymore */
+		#rtable table, thead, tbody, th, td, tr { 
+			display: block; 
+		}
+		
+		/* Hide table headers (but not display: none;, for accessibility) */
+		#rtable thead tr { 
+			position: absolute;
+			top: -9999px;
+			left: -9999px;
+		}
+		
+		#rtable tr { border: 1px solid #ccc; }
+		
+		#rtable td { 
+			/* Behave  like a "row" */
+			border: none;
+			border-bottom: 1px solid #eee; 
+			position: relative;
+			padding-left: 50%; 
+		}
+		
+		#rtable td:before { 
+			/* Now like a table header */
+			position: absolute;
+			/* Top/left values mimic padding */
+			top: 6px;
+			left: 6px;
+			width: 45%; 
+			padding-right: 10px; 
+			white-space: nowrap;
+		}
+		
+		/*
+		Label the data
+		*/
+		#rtable td:before { content: attr(data-title); }
+	}
+	
+	/* Smartphones (portrait and landscape) ----------- */
+	@media only screen
+	and (min-device-width : 320px)
+	and (max-device-width : 480px) {
+		#rtable body { 
+			padding: 0; 
+			margin: 0; 
+			width: 320px; }
+		}
+	
+	}

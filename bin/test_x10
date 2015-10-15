@@ -73,7 +73,7 @@ $device->databits(8);
 $device->baudrate(4800);
 $device->parity("none");
 $device->stopbits(1);
-$device->dtr_active(1);
+$device->dtr_active(1) or warn "Could not set dtr_active(1)";
 $device->handshake("none");
 $device->write_settings || die "Could not set up port\n";
 

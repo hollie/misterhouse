@@ -109,7 +109,7 @@ sub set_dtr {
     my ($self, $state) = @_;
     my $port_name = $self->{port_name};
     if (my $serial_port = $main::Serial_Ports{$port_name}{object}) {
-        $main::Serial_Ports{$port_name}{object}->dtr_active($state);
+        $main::Serial_Ports{$port_name}{object}->dtr_active($state) or warn "Could not set dtr_active($state)";
         print "Serial_port $port_name dtr set to $state\n" if $main::Debug{serial};
     }
     else {

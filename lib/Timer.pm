@@ -496,6 +496,16 @@ sub query {
     return $time;
 }
 
+=item C<get_type()>
+
+Returns the class (or type, in Misterhouse terminology) of this item.
+
+=cut
+
+sub get_type {
+    return ref $_[0];
+}
+
 1;
 
 =back
