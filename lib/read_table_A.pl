@@ -393,6 +393,20 @@ sub read_table_A {
         ($name, $grouplist, @other) = @item_info;
         $object = "Occupancy_Monitor( $other)";
     }
+    elsif($type eq "DSC") {
+        require 'dsc.pm';
+        ($name, $grouplist, @other) = @item_info;
+        # $grouplist translates to $type in the new object definition call
+        $object = "DSC('$name', '$grouplist')";
+    }
+    elsif($type eq "DSC_PARTITION") {
+        ($name, $object, $address, $other, $grouplist, @other) = @item_info;
+        $object = "DSC::Partition(\$$object, '$address')";
+    }
+    elsif($type eq "DSC_ZONE") {
+        ($name, $object, $address, $other, $grouplist, @other) = @item_info;
+        $object = "DSC::Zone(\$$object, '$address', '$other')";
+    }
     elsif($type eq "MUSICA") {
         require 'Musica.pm';
         ($name, $grouplist, @other) = @item_info;
@@ -957,7 +971,7 @@ sub read_table_A {
         if( ! $packages{xPL_Squeezebox}++ ) {   # first time for this object type?
             $code .= "use xPL_Squeezebox;\n";
         }
-    }    
+    }
     elsif($type eq "XPL_SECURITYGATEWAY") {
         ($address, $name, $grouplist, @other) = @item_info;
         $other = join ', ', (map {"'$_'"} @other); # Quote data
@@ -1215,7 +1229,7 @@ sub read_table_finish_A {
         $code .= "\n#SCENE_BUILD Definition for scene: $scene\n";
 
         if($objects{$scene}) {
-            #Since an object exists with the same name as the scene, 
+            #Since an object exists with the same name as the scene,
             #make it a controller of the scene, too. Hopefully it can be a controller
             $scene_build_controllers{$scene}{$scene}="1";
         }
@@ -1227,14 +1241,14 @@ sub read_table_finish_A {
 	            	#Make a link to each responder in the responder hash
 	                while (my ($scene_responder, $responder_data) = each(%{$scene_build_responders{$scene}})) {
 	                    my ($on_level, $ramp_rate) = split(',', $responder_data);
-	
+
 	                    if (($objects{$scene_responder}) and ($scene_responder ne $scene_controller)) {
 	                        if ($on_level) {
 	                            if ($ramp_rate) {
 	                                $code .= sprintf "\$%-35s -> add(\$%s,'%s','%s');\n",
 	                                    $scene_controller, $scene_responder, $on_level, $ramp_rate;
 	                            } else {
-	                                $code .= sprintf "\$%-35s -> add(\$%s,'%s');\n", 
+	                                $code .= sprintf "\$%-35s -> add(\$%s,'%s');\n",
 	                                    $scene_controller, $scene_responder, $on_level;
 	                            }
 	                        } else {
@@ -1242,13 +1256,13 @@ sub read_table_finish_A {
 	                        }
 	                    }
 	                }
-	
+
 	            } else {
 	                ::print_log("[Read_Table_A] ERROR: There is no object ".
 	                	"called $scene_controller defined.  Ignoring SCENE_BUILD entry.");
 	            }
 	        }
-        } 
+        }
         else {
         	::print_log("[Read_Table_A] ERROR: There is no controller ".
 	                "defined for $scene.  Ignoring SCENE_BUILD entry.");
