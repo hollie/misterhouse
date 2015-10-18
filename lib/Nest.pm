@@ -385,13 +385,15 @@ sub parse_data {
         #This is the first JSON packet received after connecting
         $$self{prev_JSON} = $$self{JSON};
         $$self{JSON} = decode_json $data;
-        if (!defined $$self{prev_JSON}){
+        if (!defined $$self{prev_JSON}{data}{devices}){
             #this is the first run so convert the names to ids
             $self->convert_to_ids($$self{monitor});
         }
         $self->compare_json($$self{JSON}, $$self{prev_JSON}, $$self{monitor});
-        #print "*** Object *** " . Data::Dumper::Dumper( \$self);
-
+        #print "*** Object *** \n";
+	#print Data::Dumper::Dumper( \$self);
+	#print Data::Dumper::Dumper( \$self->{monitor});
+	#print "*** Object *** \n";
     }
     elsif ($event =~ /auth_revoked/){
         # Sent when auth parameter is no longer valid
@@ -597,6 +599,7 @@ sub convert_to_ids {
     my ($self) = @_;
     for my $array_ref (@{$$self{register}}){
         my ($parent, $value, $action) = @{$array_ref};
+	$self->debug("Nest Initial data load convert_to_ids " . $value);
         my $device_id = $parent->device_id();
         if ($$parent{type} ne '') {
             push(@{$$self{monitor}{data}{$$parent{class}}{$$parent{type}}{$device_id}{$value}},$action);
@@ -610,14 +613,14 @@ sub convert_to_ids {
 
 =item C<client_version()>
 
-Prints the Misterhouse Client Version. Client version of 2 is required for humidity and hvac_state
+Prints the Misterhouse Client Version. Client version of 2 is required for humidity and hvac_state. Returns -1 if unknown version, or if the data hasn't been parsed yet
 
 =cut
 
 sub client_version {
 	my ($self) = @_;
-	my $version = 0;
-	$version = $$self{JSON}{data}{metadata}{client_version};
+	my $version = -1;
+	$version = $$self{JSON}{data}{metadata}{client_version} if defined ($$self{JSON}{data}{metadata}{client_version});
 	return ($version);
 
 }
