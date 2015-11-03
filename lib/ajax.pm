@@ -23,7 +23,6 @@ NONE
 #
 
 use strict;
-use Data::Dumper;
 #use diagnostics;
 
 sub html_ajax_long_poll () {
