@@ -44,6 +44,12 @@ use HTML::Entities;    # So we can encode characters like <>& etc
 use JSON qw(decode_json);
 use IO::Compress::Gzip qw(gzip);
 use vars qw(%json_table);
+my @json_notifications = (); #noloop
+
+#TODO clean notifications array at startup
+
+
+#use vars qw(@json_notifications);
 
 sub json {
 	my ($request_type, $path_str, $arguments, $body) = @_;
@@ -221,7 +227,9 @@ sub json_get {
 		$rrd_file = $json_data{'rrd_config'}->{'prefs'}->{'default_rrd'} if (defined $json_data{'rrd_config'}->{'prefs'}->{'default_rrd'});
 		my $default_cf = "AVERAGE";
 		$default_cf = $json_data{'rrd_config'}->{'prefs'}->{'default_cf'} if (defined $json_data{'rrd_config'}->{'prefs'}->{'default_cf'});
-		
+		my $default_timestamp = "true";
+		$default_timestamp = $json_data{'rrd_config'}->{'prefs'}->{'get_last_update'} if (defined $json_data{'rrd_config'}->{'prefs'}->{'get_last_update'});
+
 		my @dss = ();
 		my @defs = ();
 		my @xports = ();
@@ -231,6 +239,7 @@ sub json_get {
 		my @type = ();
 		my $celsius = 0;
 		my $arg_time = 0;
+		my $xml_info;
 		$arg_time = int($args{time}[0]) if (defined int($args{time}[0]));
 		$celsius = 1 if ($config_parms{weather_uom_temp} eq 'C');
 		$celsius = 1 if (lc $json_data{'rrd_config'}->{'prefs'}->{'uom'} eq "celsius");
@@ -246,7 +255,7 @@ sub json_get {
 
 			if (defined $args{group}[0]) {
 				@{$args{ds}} = (); #override any DSs specified in the URL
-				for my $dsg (keys $json_data{'rrd_config'}->{'ds'}) {
+				for my $dsg (keys %{$json_data{'rrd_config'}->{'ds'}}) {
 					if (defined $json_data{'rrd_config'}->{'ds'}->{$dsg}->{'group'}) {
 						foreach my $group (split /,/,$json_data{'rrd_config'}->{'ds'}->{$dsg}->{'group'}) {
 							push @{$args{ds}}, $dsg if (lc $group) eq (lc $args{group}[0]);
@@ -282,11 +291,9 @@ sub json_get {
     		}
 
     		push @defs,@xports;
-			#print "defs=" . join (',',@defs) . "\n";
-			#print "start=$start end=$end\n";	
-		
 			my $rrd = RRDTool::Rawish->new(rrdfile => "$path/$rrd_file");
 			my $xml=$rrd->xport([@defs],{'--start' => $start, '--end' => $end,});
+			$xml_info=$rrd->info if ($default_timestamp eq "true");
 			my @lines = split/\n/,$xml;
 
 			foreach my $line (@lines) {
@@ -299,28 +306,17 @@ sub json_get {
 				}
 				my ($time) = $line =~ /\<row\>\<t\>(\d*)\<\/t\>/;
 				$time = $time * 1000; #javascript is in milliseconds
-#print "time=$time, $arg_time\n";
 				next if ($arg_time > int($time)); #only return new items
 				my (@values) = $line =~ /\<v\>(-?[e.+-\d]*|NaN)\<\/v\>/g;
 				if ($time) {
-#print "line=$line\n";
-					#print "[$time";
 					my $index = 0;
 					foreach my $value (@values) {
 						my $value1 = sprintf("%.10g", $value);
-			#print "index=$index,value=$value,value1=$value1,";
 						$value1 = ($value1 - 32) * (5/9) if (($celsius) and (lc $type[$index] eq "temperature"));
 						$value1 = sprintf("%." . $round[$index] . "f",$value1) if (defined $round[$index]);
-			#print "value1=$value1";
 						$value1 =~ s/\.?0*$// unless ($value1 == 0); #remove unneccessary trailing decimals
 						$value1 = "null" if (lc $value1 eq "nan");
-			#print "value1=$value1\n";
-						#my @array = ();
-						#$array[0] = $time;
-						#$array[1] = $value1;
-						##push @{$dataset[$index]->{data}},"$time,$value1"; ###Need to get a 2d array here####***
 						push @{$dataset[$index]->{data}},[$time,$value1]; 
-						#push @{$dataset[$index]->{data}},@array;
 						$index++;
 					}
 				}
@@ -329,10 +325,10 @@ sub json_get {
 		$data{'data'} = \@dataset;
 		$data{'options'} = $json_data{'rrd_config'}->{'options'} if (defined $json_data{'rrd_config'}->{'options'});
 		$data{'periods'} = $json_data{'rrd_config'}->{'periods'} if (defined $json_data{'rrd_config'}->{'periods'});
-
+		$data{'last_update'} = $xml_info->{'last_update'} * 1000 if (defined $xml_info->{'last_update'});
 		#$json_data{'rrd'} = \@dataset;
 		$json_data{'rrd'} = \%data; 
-		#print Dumper %data;
+		#print Dumper $xml_info;
 	}
 		
 
@@ -456,12 +452,29 @@ sub json_get {
 		}
 		$json_data{vars} = \%json_vars;
 	}
+#print "db:path[0] = $path[0]\n";
+
+	if ( $path[0] eq 'notifications' ) {
+#print "in notifications\n";
+
+		for my $i (0..$#json_notifications) {
+			my $n_time = int($json_notifications[$i]{time});
+print "i=$i n_time=$n_time args{time} = $args{time} args{time}[0]=$args{time}[0]\n";
+			#print "json notifications db: $n_time\n";
+			#if (($n_time) and (($args{time} && int($args{time}[0]) < $n_time) or (!$args{time}))) {
+			if (($n_time) and ((defined $args{time} && int($args{time}[0]) < $n_time))) {			
+					print "json notifications db: in loop $i\n";
+					print "pushing text:" . $json_notifications[$i]->{text} . "\n";
+					push(@{$json_data{'notifications'}}, $json_notifications[$i]);
+			} else {
+				#if older than 5 minutes, then remove the array values to keep things tidy
+			}
+		}	
+	}
 
 	if ( $path[0] eq 'table_data') {
 		if ($args{var}) {
 			my $length = $#{$json_table{$args{var}[0]}->{data}} + 1;
-#print "json_db: length = $length start=" . $args{start}[0] . " records=" . $args{records}[0] . "\n";
-
 #need to check if vars and keys exist
 
 			my $start = 0;
@@ -471,27 +484,11 @@ sub json_get {
 			my $page = $json_table{$args{var}[0]}{page} if (defined $json_table{$args{var}[0]}{page});
 			$records = $args{records}[0] if ($args{records}[0]);
 
-	#		if ($length < ($start + $records)) {
-	#			print "db: will have to request data, $length, $start, $records\n";
-	#			print "&" . $json_table{$args{var}[0]}{hook} . "($start,$records)\n";
-	#			my $hook = 	$json_table{$args{var}[0]}{hook} . "($start,$records)";
-	#
-	#		#eval (&get_inbound_data($start,$records));
-	#			eval ("&$hook");
-	#			if ($@) {
-	#	  			print_log "Json_Server.pl: WARNING: fetch data failed for " . $args{var}[0] . " " . $json_table{$args{var}[0]}{hook} . "!";
-	#			} else {
-	#	  			$page++ if (scalar @{$json_table{$args{var}[0]}->{data}} > $json_table{$args{var}[0]}{page_size});
-	#			}
-	#			#$json_table{$args{var}[0]}{page} = $page;
-	#		}
-			#if requesting data beyond what's available, fetch it.
-			#test bad table
-			#remove data from hash		
+# TODO: At some point have a hook that pulls in more data into the table if it's missing
+#  ie read a file
+
 			my $jt_time = int($json_table{$args{var}[0]}{time});
-#print "arg time = " . int($args{time}[0]) . " table time = " .$jt_time . "\n";
 			if (($args{time} && int($args{time}[0]) < $jt_time) or (!$args{time})) {
-				#$json_data->{'table_data'} = $json_table{$args{var}[0]};
 				#need to copy all the data since we can adjust starts and records
 				
 				$json_data{'table_data'}{exist} = $json_table{$args{var}[0]}{exist};
@@ -504,7 +501,6 @@ sub json_get {
 				splice @{$json_data{'table_data'}->{data}}, 0 ,$args{start}[0] if ($args{start}[0]);
 				splice @{$json_data{'table_data'}->{data}}, $args{records}[0] if ($args{records}[0]);
 				$json_data{'table_data'}{records} = scalar @{$json_data{'table_data'}->{data}};
-	#print "db=$json_data{'table_data'}{records}\n";
 				}
 			}
 		}
@@ -545,7 +541,7 @@ sub json_get {
 		}
 	}
 
-	print_log Dumper(%json_data) if $Debug{json};
+	#print_log Dumper(%json_data);## if $Debug{json};
 	
 	# Select appropriate data based on path request
 	my $output_ref;
@@ -554,11 +550,15 @@ sub json_get {
 		$output_ref = json_get_sub_element(\@element_list, \%json_data);
 	}
 
+	#print Dumper $output_ref;
+	#print "before long poll return args{long_poll}=$args{long_poll} output_ref=$output_ref\n";
+
 	# If this is a long_poll and there is no data, simply return
 	if ($args{long_poll} && (!$output_ref)){
 		return;
 	}
-	
+	#print "after long poll return args{long_poll}=$args{long_poll} output_ref=$output_ref\n";
+
 	# Insert Data or Error Message
 	if ($output_ref) {
 		$json{data} = $output_ref;
@@ -1127,6 +1127,24 @@ sub json_table_fetch_data {
 sub json_table_purge_data {
   my ($key,$posx,$records) = @_;
 }
+
+sub json_notification {
+  	my ($type,$data) = @_;
+  	print "db:type=$type\n";
+  	$data->{type}=$type;
+  	for my $i (0..$#json_notifications) {
+	#clean up any old notifications, or empty entries (ie less than 5 seconds old)
+		my $n_time = int($json_notifications[$i]{time});
+		if ((&get_tickcount > $n_time + 5000) or (!defined $json_notifications[$i]{time})) {
+			splice  @json_notifications,$i,1;
+		}
+	}
+  	print Dumper $data;
+  	push @json_notifications,$data;
+ 
+  	print Dumper \@json_notifications
+}
+  
 
 return 1;    # Make require happy
 

@@ -6,6 +6,7 @@
 var entity_store = {}; //global storage of entities
 var json_store = {};
 var updateSocket;
+var updateSocketN; //Second socket for notifications
 var display_mode;
 if (display_mode == undefined) display_mode = "simple";
 
@@ -142,6 +143,7 @@ function changePage (){
 		}
 		if (json_store.ia7_config.prefs.substate_percentages === undefined) json_store.ia7_config.prefs.substate_percentages = 20;
 	}
+	//get_notifications();
 	if (getJSONDataByPath("collections") === undefined){
 		// We need at minimum the basic collections data to render all pages
 		// (the breadcrumb)
@@ -198,6 +200,13 @@ function changePage (){
 			var path_arg = path.split('?');
 			display_table(path_arg[1]);
 		}
+//----
+		else if(path.indexOf('notifications') === 0){
+			var path_arg = path.split('?');
+			get_notifications();
+		}
+//----			
+		
 		else if(path.indexOf('floorplan') === 0){
 			var path_arg = path.split('?');
 			floorplan(path_arg[1]);
@@ -661,6 +670,7 @@ var updateItem = function(item,link,time) {
 	//URLHash.time = json_store.meta.time;
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
 		// Only allow one update thread to run at once
+		console.log("updateItem: Aborting update. updateSocket="+updateSocket.readyState);
 		updateSocket.abort();
 	}
 	if (time === undefined) {
@@ -673,7 +683,7 @@ var updateItem = function(item,link,time) {
 	//alert("path_str="+path_str+" arg_str="+arg_str)
 	updateSocket = $.ajax({
 		type: "GET",
-		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
+		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",		
 		dataType: "json",
 		success: function( json, textStatus, jqXHR) {
 			var requestTime = time;
@@ -943,6 +953,78 @@ var print_log = function(type,time) {
 };
 
 
+var get_notifications = function(time) {
+	console.log("NotifyTime1:"+time);
+	if (time === undefined) time = 0;
+	//console.log("NotifyTime2:"+time);	
+	if (updateSocketN !== undefined && updateSocketN.readyState != 4){
+		// Only allow one update thread to run at once
+		console.log ("notify aborted "+updateSocketN.readyState);
+		updateSocketN.abort();
+	}
+	//var arg_str = "time="+time;
+	var arg_str = "long_poll=true&time="+time;	
+	var path_str = "/notifications";
+	//console.log ("notify loop "+time);
+	updateSocketN = $.ajax({
+		type: "GET",
+		//url: "/json/notifications?"+arg_str,
+		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",		
+		dataType: "json",
+		success: function( json, statusText, jqXHR ) {
+			var requestTime = time;	
+			console.log ("notify success "+jqXHR.status+" time="+requestTime);	
+			if (jqXHR.status == 200) {
+				if (json.data !== undefined) {
+					//JSONStore(json);
+					for (var i = 0; i < json.data.length; i++){
+						var url = String(json.data[i].url);
+						var mode = String(json.data[i].mode);
+						var text = String(json.data[i].text);
+						var type = String(json.data[i].type);
+						console.log("Notify: "+i+" "+type+" "+url+" "+mode+" "+text);
+						if (type == "speech" || type == "sound") {
+							//$('#sound_element').html("<audio><embed src='"+url+"' hidden=true autostart=true loop=false></audio>");
+							var audioElement = document.createElement('audio');
+							audioElement.setAttribute('src', url);				
+    						audioElement.setAttribute('autoplay', 'autoplay');
+    						//audioElement.load()
+							$.get();
+    						audioElement.addEventListener("load", function() {
+            					audioElement.play();
+    							}, true);		
+							//audioElement.Play();
+						} else if (type == "banner") {
+							console.log("banner");
+							var alert_type = "info";
+							$("#alert-area").append($("<div class='alert-message alert alerts alert-" + alert_type + " fade in' data-alert><p> " + text + " </p></div>"));
+   	 						$(".alert-message").delay(4000).fadeOut("slow", function () { $(this).remove(); });
+						} else if (type == "alert") {
+							//replace with jquery 
+							alert(text);
+						}
+					}
+				}
+				console.log("Notify2:"+requestTime);
+				requestTime = json.meta.time;
+				console.log("Notify3:"+requestTime);
+				
+			}
+			//if (jqXHR.status == 200 || jqXHR.status == 204) {
+					console.log("Get_notifications()");
+					get_notifications(requestTime);
+			//	}
+		},
+		complete: function(event,jqXHR)	{
+			console.log("in complete");
+		},
+		error: function(jqXHR,status,error) {
+			console.log("notify in error:"+error);
+		}
+	});
+};
+
+
 //Creates a table based on the $json_table data structure. desktop & mobile design
 var display_table = function(table,records,time) {
 
@@ -984,7 +1066,7 @@ var display_table = function(table,records,time) {
 						page_size = json.data.page_size + (json.data.page_size * json.data.page);
 						if (json.data.page !== undefined && page_size < i &&
 						    json_store.ia7_config.prefs.enable_data_table_more !== undefined && 
-					        json_store.ia7_config.prefs.enable_data_table_more === "yes") {) {
+					        json_store.ia7_config.prefs.enable_data_table_more === "yes") {
 							continue;
 						}
 						html +="<tr>";
@@ -1082,6 +1164,13 @@ var graph_rrd = function(start,group,time) {
 				dropdown_html += '</ul></div>';
 				
 				$('#rrd-periods').append(dropdown_html);
+				
+				var last_timestamp = "unavailable";
+				if (json.data.last_update !== undefined) {
+					last_timestamp = new Date(json.data.last_update);
+				}
+				//TODO Move this to html
+				console.log ("RRD Last Updated:"+last_timestamp);				
 
 				$('.dropdown').on('click', '.dropdown-menu li a', function(e){
 					e.stopPropagation();
@@ -1128,7 +1217,8 @@ var graph_rrd = function(start,group,time) {
 		
 				window.onresize = function(){
     				var base_width = $(window).width();
-   					if (base_width > 990) base_width = 990;
+   					//if (base_width > 990) base_width = 990;
+   					// styling changes @992, so then add a 30 right and left margin
    					var graph_width = base_width - 200; //give some room for the legend
 					if (base_width < 701) {
 						//put legend below graph
@@ -1624,6 +1714,9 @@ $(document).ready(function() {
 	    window.location.href = link;
 	});
 	updateItem("ia7_status");
+	
+	//get_notifications();	
+	
 	$("#toolButton").click( function () {
 		var entity = $("#toolButton").attr('entity');
 		$('#optionsModal').modal('show');
@@ -1641,8 +1734,8 @@ $(document).ready(function() {
 			advanced_active = "active";
 			advanced_checked = "checked"
 		}
-		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-6 col-sm-6"+simple_active+"'><input type='radio' name='mhmode2' id='simple' autocomplete='off'"+simple_checked+">simple</label>");
-		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-6 col-sm-6"+advanced_active+"'><input type='radio' name='mhmode2' id='advanced' autocomplete='off'"+advanced_checked+">advanced</label>");
+		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-6 col-sm-6 "+simple_active+"'><input type='radio' name='mhmode2' id='simple' autocomplete='off'"+simple_checked+">simple</label>");
+		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-6 col-sm-6 "+advanced_active+"'><input type='radio' name='mhmode2' id='advanced' autocomplete='off'"+advanced_checked+">advanced</label>");
 		$('.mhmode').on('click', function(){
 			display_mode = $(this).find('input').attr('id');	
 			changePage();
