@@ -23,6 +23,7 @@ NONE
 #
 
 use strict;
+use Data::Dumper;
 #use diagnostics;
 
 sub html_ajax_long_poll () {
@@ -91,7 +92,8 @@ sub checkForUpdate {
   if ($xml) {
     &main::print_log ("checkForUpdate sub ${$$self{sub}} returned $xml") if $main::Debug{ajax};
     &::print_socket_fork (${$$self{waitingSocket}}, $xml);
-    ${$$self{waitingSocket}}->close;
+    &main::print_log ("Closing Socket " . ${$$self{waitingSocket}}) if $main::Debug{ajax};
+    ${$$self{waitingSocket}}->shutdown(2); #Changed this from close() to shutdown(2). In some cases, the parent port wasn't being closed -- ie. speech events
     ${$$self{changed}} = 1;
   } else {
     ${$$self{changed}} = 0;
