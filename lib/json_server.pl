@@ -455,19 +455,17 @@ sub json_get {
 #print "db:path[0] = $path[0]\n";
 
 	if ( $path[0] eq 'notifications' ) {
-#print "in notifications\n";
 
 		for my $i (0..$#json_notifications) {
 			my $n_time = int($json_notifications[$i]{time});
-print "i=$i n_time=$n_time args{time} = $args{time} args{time}[0]=$args{time}[0]\n";
-			#print "json notifications db: $n_time\n";
+			my $x = $args{time}[0]; #Weird, does nothing, but notifications doesn't work if removed...
 			#if (($n_time) and (($args{time} && int($args{time}[0]) < $n_time) or (!$args{time}))) {
 			if (($n_time) and ((defined $args{time} && int($args{time}[0]) < $n_time))) {			
-					print "json notifications db: in loop $i\n";
-					print "pushing text:" . $json_notifications[$i]->{text} . "\n";
+					#print "json notifications db: in loop $i\n";
+					#print "pushing text:" . $json_notifications[$i]->{text} . "\n";
 					push(@{$json_data{'notifications'}}, $json_notifications[$i]);
 			} else {
-				#if older than 5 minutes, then remove the array values to keep things tidy
+				#if older than X minutes, then remove the array values to keep things tidy
 			}
 		}	
 	}
@@ -475,7 +473,7 @@ print "i=$i n_time=$n_time args{time} = $args{time} args{time}[0]=$args{time}[0]
 	if ( $path[0] eq 'table_data') {
 		if ($args{var}) {
 			my $length = $#{$json_table{$args{var}[0]}->{data}} + 1;
-#need to check if vars and keys exist
+			#need to check if vars and keys exist
 
 			my $start = 0;
 			$start = $args{start}[0] if ($args{start}[0]);
@@ -541,7 +539,7 @@ print "i=$i n_time=$n_time args{time} = $args{time} args{time}[0]=$args{time}[0]
 		}
 	}
 
-	#print_log Dumper(%json_data);## if $Debug{json};
+	print_log Dumper(%json_data) if $Debug{json};
 	
 	# Select appropriate data based on path request
 	my $output_ref;
@@ -550,14 +548,10 @@ print "i=$i n_time=$n_time args{time} = $args{time} args{time}[0]=$args{time}[0]
 		$output_ref = json_get_sub_element(\@element_list, \%json_data);
 	}
 
-	#print Dumper $output_ref;
-	#print "before long poll return args{long_poll}=$args{long_poll} output_ref=$output_ref\n";
-
 	# If this is a long_poll and there is no data, simply return
 	if ($args{long_poll} && (!$output_ref)){
 		return;
 	}
-	#print "after long poll return args{long_poll}=$args{long_poll} output_ref=$output_ref\n";
 
 	# Insert Data or Error Message
 	if ($output_ref) {
@@ -1130,7 +1124,7 @@ sub json_table_purge_data {
 
 sub json_notification {
   	my ($type,$data) = @_;
-  	print "db:type=$type\n";
+  	#print "db:type=$type\n";
   	$data->{type}=$type;
   	for my $i (0..$#json_notifications) {
 	#clean up any old notifications, or empty entries (ie less than 5 seconds old)
@@ -1139,10 +1133,10 @@ sub json_notification {
 			splice  @json_notifications,$i,1;
 		}
 	}
-  	print Dumper $data;
+  	#print Dumper $data;
   	push @json_notifications,$data;
  
-  	print Dumper \@json_notifications
+  	#print Dumper \@json_notifications
 }
   
 

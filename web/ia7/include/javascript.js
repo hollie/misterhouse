@@ -9,7 +9,9 @@ var updateSocket;
 var updateSocketN; //Second socket for notifications
 var display_mode;
 if (display_mode == undefined) display_mode = "simple";
-
+var notifications;
+var speech_sound;
+var speech_banner;
 
 //Takes the current location and parses the achor element into a hash
 function URLToHash() {
@@ -137,11 +139,33 @@ function changePage (){
 			}
 		});
 	} else {
-		//console.log("x "+json_store.ia7_config.prefs.substate_percentages);
-		if (json_store.ia7_config.prefs.header_button == "no") {
-			$("#mhstatus").remove();
-		}
+		if (json_store.ia7_config.prefs.header_button == "no") $("#mhstatus").remove();
 		if (json_store.ia7_config.prefs.substate_percentages === undefined) json_store.ia7_config.prefs.substate_percentages = 20;
+		// First time loading, set the default speech notifications
+		if (speech_sound === undefined) {
+			if ((json_store.ia7_config.prefs.speech_default !== undefined) && (json_store.ia7_config.prefs.speech_default.search("audio") >= 0 )) {
+				console.log("speech_sound = yes "+speech_sound+" "+json_store.ia7_config.prefs.speech_default);
+				speech_sound = "yes";
+			} else {
+				console.log("speech_sound = no "+speech_sound+" "+json_store.ia7_config.prefs.speech_default);		
+				speech_sound = "no";
+			}
+		}
+		if (speech_banner === undefined) {
+			if ((json_store.ia7_config.prefs.speech_default !== undefined) && (json_store.ia7_config.prefs.speech_default.search("banner") >= 0 )) {
+				console.log("speech_banner = yes "+speech_banner+" "+json_store.ia7_config.prefs.speech_default);
+				speech_banner = "yes";
+			} else {
+				console.log("speech_banner = no "+speech_banner+" "+json_store.ia7_config.prefs.speech_default);		
+				speech_banner = "no";
+			}
+		}
+		if ((json_store.ia7_config.prefs.notifications !== undefined) && (json_store.ia7_config.prefs.notifications == "no" )) {
+			  	notifications = "disabled";
+			  	speech_sound = "no";
+			  	speech_banenr = "no";
+		}
+
 	}
 	//get_notifications();
 	if (getJSONDataByPath("collections") === undefined){
@@ -954,12 +978,12 @@ var print_log = function(type,time) {
 
 
 var get_notifications = function(time) {
-	console.log("NotifyTime1:"+time);
+	//console.log("NotifyTime1:"+time);
 	if (time === undefined) time = 0;
 	//console.log("NotifyTime2:"+time);	
 	if (updateSocketN !== undefined && updateSocketN.readyState != 4){
 		// Only allow one update thread to run at once
-		console.log ("notify aborted "+updateSocketN.readyState);
+		console.log ("Notify aborted "+updateSocketN.readyState);
 		updateSocketN.abort();
 	}
 	//var arg_str = "time="+time;
@@ -997,7 +1021,7 @@ var get_notifications = function(time) {
 						} else if (type == "banner") {
 							console.log("banner");
 							var alert_type = "info";
-							$("#alert-area").append($("<div class='alert-message alert alerts alert-" + alert_type + " fade in' data-alert><p> " + text + " </p></div>"));
+							$("#alert-area").append($("<div class='alert-message alert alerts alert-" + alert_type + " fade in' data-alert><p><i class='fa fa-info-circle'></i><strong>  Notification:</strong> " + text + " </p></div>"));
    	 						$(".alert-message").delay(4000).fadeOut("slow", function () { $(this).remove(); });
 						} else if (type == "alert") {
 							//replace with jquery 
@@ -1005,21 +1029,21 @@ var get_notifications = function(time) {
 						}
 					}
 				}
-				console.log("Notify2:"+requestTime);
+				//console.log("Notify2:"+requestTime);
 				requestTime = json.meta.time;
-				console.log("Notify3:"+requestTime);
+				//console.log("Notify3:"+requestTime);
 				
 			}
-			//if (jqXHR.status == 200 || jqXHR.status == 204) {
-					console.log("Get_notifications()");
+			if (jqXHR.status == 200 || jqXHR.status == 204) {
+					//console.log("Get_notifications()");
 					get_notifications(requestTime);
-			//	}
+				}
 		},
 		complete: function(event,jqXHR)	{
-			console.log("in complete");
+			//console.log("in complete");
 		},
 		error: function(jqXHR,status,error) {
-			console.log("notify in error:"+error);
+			//console.log("notify in error:"+error);
 		}
 	});
 };
@@ -1734,12 +1758,63 @@ $(document).ready(function() {
 			advanced_active = "active";
 			advanced_checked = "checked"
 		}
+		
 		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-6 col-sm-6 "+simple_active+"'><input type='radio' name='mhmode2' id='simple' autocomplete='off'"+simple_checked+">simple</label>");
 		$('#optionsModal').find('.modal-body').find('.btn-group').append("<label class='btn btn-default mhmode col-xs-6 col-sm-6 "+advanced_active+"'><input type='radio' name='mhmode2' id='advanced' autocomplete='off'"+advanced_checked+">advanced</label>");
 		$('.mhmode').on('click', function(){
 			display_mode = $(this).find('input').attr('id');	
 			changePage();
   		});
+  		
+  		var sound_active = "";
+  		var banner_active = "";
+  		var off_active = "active";
+  		var notifications = "";
+  		if (speech_banner === "yes") {
+  			banner_active = "active";
+  			off_active = "";
+  		}
+   		if (speech_sound === "yes") {
+  			sound_active = "active";
+  			off_active = "";
+  		} 
+     	if (notifications === "disabled") {
+  			sound_active = "";
+  			off_active = "";
+  			banner_active = "";
+  		}				 
+  		// if notifications disabled then disable all the buttons
+   		$('#optionsModal').find('.modal-body').append('<div class="btn-group btn-block btn-notifications" data-toggle="buttons"></div>');
+		$('#optionsModal').find('.modal-body').find('.btn-notifications').append("<label class='btn btn-default mhnotify col-xs-6 col-sm-6 disabled'><input type='checkbox' name='mhnotify0' id='speech' autocomplete='off'>Speech</label>");
+		$('#optionsModal').find('.modal-body').find('.btn-notifications').append("<label class='btn btn-default mhnotify mhnotifyopt col-xs-2 col-sm-2 "+sound_active+" "+notifications+"'><input type='checkbox' name='mhnotify1' id='sound' autocomplete='off'>Sound</label>");
+		$('#optionsModal').find('.modal-body').find('.btn-notifications').append("<label class='btn btn-default mhnotify mhnotifyopt col-xs-2 col-sm-2 "+banner_active+" "+notifications+"'><input type='checkbox' name='mhnotify2' id='banner' autocomplete='off'>Banner</label>");
+		$('#optionsModal').find('.modal-body').find('.btn-notifications').append("<label class='btn btn-default mhnotify mhnotifyoff col-xs-2 col-sm-2 "+off_active+" "+notifications+"'><input type='checkbox' name='mhnotify3' id='off' autocomplete='off'>Off</label>");
+ 		$('.mhnotify').on('click', function(){
+			var speech_mode = $(this).find('input').attr('id');
+			var button_active = $(this).hasClass('active');
+			if (speech_mode == "off") {
+				$('.mhnotifyopt').removeClass('active');
+				speech_sound = "no";
+				speech_banner = "no";
+			} else {
+				if (speech_mode === "sound") {
+					if (button_active === true) {
+						speech_sound = "no";
+					} else {
+						speech_sound = "yes";
+					}
+				} else if (speech_mode === "banner") {
+					if (button_active === true) {
+						speech_banner = "no";
+					} else {
+						speech_banner = "yes";
+					}
+				}
+				$('.mhnotifyoff').removeClass('active');
+				if ((speech_banner === "no") && (speech_sound === "no")) $('.mhnotifyoff').addClass('active');
+			}
+			//if off, then unselect others
+  		});  		
 		// parse the collection ID 500 and build a list of buttons
 		var opt_collection_keys = 0;
 		var opt_entity_html = "";

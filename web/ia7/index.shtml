@@ -132,7 +132,7 @@
 	}	
 	.rrd-period-dropdown
 	{
-		margin-left:55px;
+		margin-left:45px;
 	}
 	.rrd-legend-class
 	{	
@@ -149,6 +149,12 @@
     	min-width:200px;
     	float:left;
     	margin-left:-10px;
+	}
+	.alerts {
+  		position: absolute;
+  		top: 3px;
+  		left: 17px;
+  		right: 17px;
 	}
 	</style>
 </head>
@@ -167,14 +173,19 @@
 		  </h3>
 		<ol id='nav' class="breadcrumb">
 		</ol>
+			<div id="alert-area"></div>
+
 	</div>
+
 </div>
 
 <div id="list_content">
 </div>
 <div class='row top-buffer'>
+
         <div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
                 <div class='col-sm-12 col-center'>
+                		<div id="sound_element"></div>
                         <!-- Put Footer Stuff Here -->
                         <!--#include file="/bin/tagline.pl"--><br>
                         <!--#include file="/bin/uptime.pl"-->&nbsp;&nbsp;<!--#include file="$config_parms{web_href_counter}"-->
@@ -233,5 +244,6 @@
     </div><!-- /.modal-content -->
   </div><!-- /.modal-dialog -->
 </div><!-- /.modal -->
-
+<div id="dialog-confirm" title="Notification">
+</div
 </body></html>
