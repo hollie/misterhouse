@@ -1125,7 +1125,8 @@ sub json_table_purge_data {
 sub json_notification {
   	my ($type,$data) = @_;
   	#print "db:type=$type\n";
-  	$data->{type}=$type;
+  	$data->{type} = $type;
+  	$data->{time} = &::get_tickcount;
   	for my $i (0..$#json_notifications) {
 	#clean up any old notifications, or empty entries (ie less than 5 seconds old)
 		my $n_time = int($json_notifications[$i]{time});

@@ -163,7 +163,7 @@ function changePage (){
 		if ((json_store.ia7_config.prefs.notifications !== undefined) && (json_store.ia7_config.prefs.notifications == "no" )) {
 			  	notifications = "disabled";
 			  	speech_sound = "no";
-			  	speech_banenr = "no";
+			  	speech_banner = "no";
 		}
 
 	}
@@ -1000,50 +1000,51 @@ var get_notifications = function(time) {
 			console.log ("notify success "+jqXHR.status+" time="+requestTime);	
 			if (jqXHR.status == 200) {
 				if (json.data !== undefined) {
-					//JSONStore(json);
 					for (var i = 0; i < json.data.length; i++){
 						var url = String(json.data[i].url);
 						var mode = String(json.data[i].mode);
 						var text = String(json.data[i].text);
 						var type = String(json.data[i].type);
+						var color = String(json.data[i].color);
+						// add in other banner_types
+						// jquery alert
 						console.log("Notify: "+i+" "+type+" "+url+" "+mode+" "+text);
-						if (type == "speech" || type == "sound") {
-							//$('#sound_element').html("<audio><embed src='"+url+"' hidden=true autostart=true loop=false></audio>");
+						if ((type == "speech" || type == "sound") && (speech_sound == "yes")) {
 							var audioElement = document.createElement('audio');
 							audioElement.setAttribute('src', url);				
     						audioElement.setAttribute('autoplay', 'autoplay');
-    						//audioElement.load()
 							$.get();
     						audioElement.addEventListener("load", function() {
             					audioElement.play();
     							}, true);		
-							//audioElement.Play();
-						} else if (type == "banner") {
+						}
+						if (type == "banner" || speech_banner == "yes") {
 							console.log("banner");
 							var alert_type = "info";
+							if (color !== undefined) {
+								if (color == "green") {
+									alert_type = "success";
+								} else if (color == "red") {
+									alert_type = "danger";
+								} else if (color == "yellow") {
+									alert_type = "warning";
+								}
+							}
 							$("#alert-area").append($("<div class='alert-message alert alerts alert-" + alert_type + " fade in' data-alert><p><i class='fa fa-info-circle'></i><strong>  Notification:</strong> " + text + " </p></div>"));
    	 						$(".alert-message").delay(4000).fadeOut("slow", function () { $(this).remove(); });
-						} else if (type == "alert") {
+						}
+						if (type == "alert") {
 							//replace with jquery 
 							alert(text);
 						}
 					}
 				}
-				//console.log("Notify2:"+requestTime);
-				requestTime = json.meta.time;
-				//console.log("Notify3:"+requestTime);
-				
+				requestTime = json.meta.time;				
 			}
 			if (jqXHR.status == 200 || jqXHR.status == 204) {
 					//console.log("Get_notifications()");
 					get_notifications(requestTime);
 				}
-		},
-		complete: function(event,jqXHR)	{
-			//console.log("in complete");
-		},
-		error: function(jqXHR,status,error) {
-			//console.log("notify in error:"+error);
 		}
 	});
 };
@@ -1737,9 +1738,10 @@ $(document).ready(function() {
 	//    window.location.href = "/ia7/#path=/objects&parents=group1&_collection_key=0,1,17,$group1";
 	    window.location.href = link;
 	});
-	updateItem("ia7_status");
 	
-	//get_notifications();	
+	// Load up 'globals' -- notification and the status
+	updateItem("ia7_status");	
+	get_notifications();	
 	
 	$("#toolButton").click( function () {
 		var entity = $("#toolButton").attr('entity');
