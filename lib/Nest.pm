@@ -385,11 +385,15 @@ sub parse_data {
         #This is the first JSON packet received after connecting
         $$self{prev_JSON} = $$self{JSON};
         $$self{JSON} = decode_json $data;
-        if (!defined $$self{prev_JSON}){
+        if (!defined $$self{prev_JSON}{data}{devices}){
             #this is the first run so convert the names to ids
             $self->convert_to_ids($$self{monitor});
         }
         $self->compare_json($$self{JSON}, $$self{prev_JSON}, $$self{monitor});
+        #print "*** Object *** \n";
+	#print Data::Dumper::Dumper( \$self);
+	#print Data::Dumper::Dumper( \$self->{monitor});
+	#print "*** Object *** \n";
     }
     elsif ($event =~ /auth_revoked/){
         # Sent when auth parameter is no longer valid
@@ -595,6 +599,7 @@ sub convert_to_ids {
     my ($self) = @_;
     for my $array_ref (@{$$self{register}}){
         my ($parent, $value, $action) = @{$array_ref};
+	$self->debug("Nest Initial data load convert_to_ids " . $value);
         my $device_id = $parent->device_id();
         if ($$parent{type} ne '') {
             push(@{$$self{monitor}{data}{$$parent{class}}{$$parent{type}}{$device_id}{$value}},$action);
@@ -604,6 +609,20 @@ sub convert_to_ids {
         }
     }
     delete $$self{register};
+}
+
+=item C<client_version()>
+
+Prints the Misterhouse Client Version. Client version of 2 is required for humidity and hvac_state. Returns -1 if unknown version, or if the data hasn't been parsed yet
+
+=cut
+
+sub client_version {
+	my ($self) = @_;
+	my $version = -1;
+	$version = $$self{JSON}{data}{metadata}{client_version} if defined ($$self{JSON}{data}{metadata}{client_version});
+	return ($version);
+
 }
 
 package Nest_Generic;
@@ -644,7 +663,7 @@ Creates a new Nest_Generic.
                   value that should be monitored with $action equal to the code 
                   reference that should be run on changes.  The hash ref can
                   contain an infinite number of key value pairs.  If no action
-                  is specified, it will use the default data_chanted routine.
+                  is specified, it will use the default data_changed routine.
 
 =cut
 
@@ -888,6 +907,28 @@ Sets the fan state to $state, must be [true,false].
 
 =cut
 
+=item C<get_humidity()>
+
+Return the current humidity value.
+
+=cut
+
+sub get_humidity {
+    my ($self) = @_;
+    return $self->get_value("humidity");
+}
+
+=item C<get_hvac_state()>
+
+Return the current thermostat state (heating, cooling, off).
+
+=cut
+
+sub get_hvac_state {
+    my ($self) = @_;
+    return $self->get_value("hvac_state");
+}
+
 sub set_fan_state {
     my ($self, $state, $p_setby, $p_response) = @_;
     $state = lc($state);
@@ -966,11 +1007,6 @@ sub set_hvac_mode {
     $$self{state_pending}{hvac_mode} = [$p_setby, $p_response];
     $$self{interface}->write_data($self, 'hvac_mode', $state);
 }
-
-#Oddity, the humidity is listed on the Nest website, but there is no
-#api access listed or reported for it yet
-
-# Similarly, the api doesn't tell us if the device is heating or cooling atm
 
 package Nest_Thermo_Fan;
 
@@ -1076,6 +1112,87 @@ sub set_receive {
     $state = "off" if ($p_state eq 'false');
     $self->SUPER::set($state, $p_setby, $p_response);
 }
+
+package Nest_Thermo_Humidity;
+
+=head1 B<Nest_Thermo_Humidity>
+
+=head2 SYNOPSIS
+
+This is a very high level module for viewing with the Nest Thermostat Humidity value.
+This type of object is often referred to as a child device.  It displays the
+current humidity.  The object inherits all of the C<Generic_Item> methods, 
+including c<state>, c<state_now>, c<tie_event>.
+
+=head2 CONFIGURATION
+
+.mht file:
+
+  CODE, $thermo_humid = new Nest_Thermo_Humidity($nest_thermo); #noloop
+
+The only argument required is the thermostat object.
+
+=head2 INHERITS
+
+C<Nest_Generic>
+
+=cut
+
+use strict;
+
+@Nest_Thermo_Humidity::ISA = ('Nest_Generic');
+
+sub new {
+    my ($class, $parent) = @_;
+    my $self = new Nest_Generic(
+        $$parent{interface}, 
+        $parent,
+        {'humidity'=>''}
+    );
+    bless $self, $class;
+    return $self;
+}
+
+package Nest_Thermo_HVAC_State;
+
+=head1 B<Nest_Thermo_HVAC_State>
+
+=head2 SYNOPSIS
+
+This is a very high level module for viewing the Nest Thermostat operating state.
+This type of object is often referred to as a child device.  It displays the
+current status (heating, cooling, off).  The object inherits all of the C<Generic_Item> methods, 
+including c<state>, c<state_now>, c<tie_event>.
+
+=head2 CONFIGURATION
+
+.mht file:
+
+  CODE, $thermo_hvac_state = new Nest_Thermo_HVAC_State($nest_thermo); #noloop
+
+The only argument required is the thermostat object.
+
+=head2 INHERITS
+
+C<Nest_Generic>
+
+=cut
+
+use strict;
+
+@Nest_Thermo_HVAC_State::ISA = ('Nest_Generic');
+
+sub new {
+    my ($class, $parent) = @_;
+    my $self = new Nest_Generic(
+        $$parent{interface}, 
+        $parent,
+        {'hvac_state'=>''}
+    );
+    bless $self, $class;
+    return $self;
+}
+
 
 package Nest_Thermo_Mode;
 
