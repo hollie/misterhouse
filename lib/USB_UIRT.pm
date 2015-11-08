@@ -14,6 +14,8 @@ To enable this module, add these entries to your .ini file:
 
 usb_uirt_module=USB_UIRT
 usb_uirt_port=/dev/ttyUSB1	# optional, defaults to /dev/ttyUSB0, not used on Windows
+usb_uirt_tx_timeout=XXX #defaults to 500. Increase if long codes don't send 
+usb_uirt_rx_timeout=XXX #defaults to 600. Increase if long codes don't arrive
 
 Learning 
 
@@ -69,6 +71,10 @@ my $learning = 0;
 my $dbm_file ="$main::config_parms{data_dir}/usb_uirt_codes.dbm";
 my ($db, %DBM, @learned, $device, $function, $frequency, $repeat, @transmit_queue, @learn_queue, @learn_frequencies, $transmit_timeout, $learn_timeout, $receive_timeout);
 my ($DrvHandle);
+my $tx_timeout = 500;
+$tx_timeout = $main::config_parms{usb_uirt_tx_timeout} if (defined $main::config_parms{usb_uirt_tx_timeout});
+my $rx_timeout = 600;
+$rx_timeout = $main::config_parms{usb_uirt_rx_timeout} if (defined $main::config_parms{usb_uirt_rx_timeout});
 
 use constant UUIRTDRV_CFG_LEDRX    => 0x01;	# Indicator LED on USB-UIRT blinks when remote signals are received
 use constant UUIRTDRV_CFG_LEDTX    => 0x02;	# Indicator LED on USB-UIRT lights during IR transmission
@@ -200,7 +206,7 @@ sub receive_code {
 	my $code = uc unpack 'H*', pack 'C*', @bytes;
 	return if $code eq $prev;
 	$prev = $code;
-	$receive_timeout = &main::get_tickcount + 600;
+	$receive_timeout = &main::get_tickcount + $rx_timeout;
 
 	&main::main::print_log("USB_UIRT Code: $code");
 	&main::process_serial_data($code);
@@ -401,6 +407,7 @@ sub get_config {
 		$UirtConfig & UUIRTDRV_CFG_XLEARN ? 1 : 0,
 		$UirtConfig & UUIRTDRV_CFG_PREVUIR ? 1 : 0,
 	);
+	print "USB-UIRT TX timeout:" . $tx_timeout . " RX timeout:" . $rx_timeout . "\n";
 	return $UirtConfig;
 }
 
@@ -515,7 +522,7 @@ sub transmit_raw {
 			get_response(1);
 		}
 	}
-	$transmit_timeout = &main::get_tickcount + 500;
+	$transmit_timeout = &main::get_tickcount + $tx_timeout;
 	return;
 }
 
@@ -523,8 +530,8 @@ sub transmit_pronto {
 	my $pronto = shift;
 	my $repeat = shift;
 	$pronto =~ s/[^0-9a-f ]//igs;
+	print "\nTransmitting repeat $repeat code $pronto via USB-UIRT device...\n";
 	if ($^O eq 'MSWin32') {
-		print "\nTransmitting repeat $repeat code $pronto via USB-UIRT device...\n";
 		my ($reserved0, $reserved1);
 		my $IRCodeFormat = UUIRTDRV_IRFMT_PRONTO;
 		if (!UUIRTTransmitIR($DrvHandle, $pronto, $IRCodeFormat, $repeat, 0, 0, $reserved0, $reserved1)) {
@@ -534,7 +541,7 @@ sub transmit_pronto {
 		else {
 			print("...IR Transmission Complete!\n");
 		}
-		$transmit_timeout = &main::get_tickcount + 500;
+		$transmit_timeout = &main::get_tickcount + $tx_timeout;
 	}
 	else {
 		&transmit_raw(&encode_ir_string(&pronto_to_raw($pronto, $repeat))); 
@@ -544,7 +551,7 @@ sub transmit_pronto {
 
 sub transmit_struct {
  	my @bytes = unpack('C*', pack 'H*', shift);
-	$transmit_timeout = &main::get_tickcount + 500;
+	$transmit_timeout = &main::get_tickcount + $tx_timeout;
 	usb_uirt_send(0x37, $#bytes + 2, @bytes);
 	get_response(1);
 }
