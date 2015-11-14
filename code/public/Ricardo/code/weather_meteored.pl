@@ -27,16 +27,17 @@ my $f_weather_data = "$config_parms{data_dir}/weather_data";
 $f_weather_file = new File_Item($f_weather_data);
 
 # The obligatory voice command.
-$v_weather_page = new  Voice_Cmd('[Reget,Get,Read,Show] internet weather');
-$v_weather_page-> set_info("Weather conditions for $config_parms{weather_meteored_city}");
-$v_weather_page-> set_authority('anyone');
+$v_weather_page = new Voice_Cmd('[Reget,Get,Read,Show] internet weather');
+$v_weather_page->set_info(
+    "Weather conditions for $config_parms{weather_meteored_city}");
+$v_weather_page->set_authority('anyone');
 
 #$v_weather_forecast = new  Voice_Cmd('[Read,Show] weather forecast');
 #$v_weather_forecast-> set_info("Weather forecast for $config_parms{weather_meteored_city}");
 #$v_weather_forecast-> set_authority('anyone');
 
-speak &format_ec_weather    if said $v_weather_page eq 'Read';
-respond &format_ec_weather  if said $v_weather_page eq 'Show';
+speak &format_ec_weather   if said $v_weather_page eq 'Read';
+respond &format_ec_weather if said $v_weather_page eq 'Show';
 
 #speak &format_ec_forecast   if said $v_weather_forecast eq 'Read';
 #respond &format_ec_forecast if said $v_weather_forecast eq 'Show';
@@ -45,17 +46,19 @@ respond &format_ec_weather  if said $v_weather_page eq 'Show';
 # fetch subprocess. When it is done, fetch_ec_weather reads the resulting data
 # back into the main misterhouse process.
 
-&get_ec_weather(0)  if ((said $v_weather_page eq 'Get') or
-			time_cron("0,15,30,45 * * * *"));
-&get_ec_weather(1)  if (said $v_weather_page eq 'Reget');
+&get_ec_weather(0)
+  if ( ( said $v_weather_page eq 'Get' )
+    or time_cron("0,15,30,45 * * * *") );
+&get_ec_weather(1) if ( said $v_weather_page eq 'Reget' );
 
-&fetch_ec_weather   if (changed $f_weather_file);
-&fetch_ec_weather   if ($Startup);
+&fetch_ec_weather if ( changed $f_weather_file);
+&fetch_ec_weather if ($Startup);
 
-if ($Startup || $Reload) {
+if ( $Startup || $Reload ) {
+
     # ugly; we need temperature sensors instead...
-#    $Weather{TempIndoor} = '25';
-#    $Weather{HumidIndoor} = '40';
+    #    $Weather{TempIndoor} = '25';
+    #    $Weather{HumidIndoor} = '40';
 }
 
 # Other code modules (eg. internet_jabber.pl) can call these without having to
@@ -63,10 +66,10 @@ if ($Startup || $Reload) {
 sub read_ec_weather {
     respond &format_ec_weather;
 }
+
 sub display_ec_weather {
     display &format_ec_weather;
 }
-
 
 # This subroutine formats a speakable (well, mostly) summary of the current
 # weather conditions and short term forecast.
@@ -77,36 +80,44 @@ sub format_ec_weather {
     $temp = $Weather{TempOutdoor};
 
     $data = "El tiempo es " . $Weather{Conditions} . ". ";
-    $data .= "Hay " . sprintf("%d",$temp) . " grados afuera";
-    $data .= ", con sensación térmica de " . $Weather{WindChill} . " grados" if ($Weather{WindChill} != $temp);
+    $data .= "Hay " . sprintf( "%d", $temp ) . " grados afuera";
+    $data .= ", con sensación térmica de " . $Weather{WindChill} . " grados"
+      if ( $Weather{WindChill} != $temp );
     $data .= ". ";
 
-    if ($Weather{TempOutdoor} > -10) {
-	$data .= "La humedad es del " . $Weather{HumidOutdoor} .
-		" %, y un punto de condensación de " . $Weather{DewpointOutdoor} . " grados. ";
+    if ( $Weather{TempOutdoor} > -10 ) {
+        $data .=
+            "La humedad es del "
+          . $Weather{HumidOutdoor}
+          . " %, y un punto de condensación de "
+          . $Weather{DewpointOutdoor}
+          . " grados. ";
     }
 
-    if ($Weather{WindAvg}) {
-	$data .= "Viento del " . convert_direction($Weather{WindAvgDir}) . " a " . $Weather{WindAvg} . " kilometros por hora";
-#	$data .= ", con ráfagas de " . $Weather{WindGust} . " kilometros por hora" if ($Weather{WindGust});
-	$data .= ". ";
+    if ( $Weather{WindAvg} ) {
+        $data .=
+            "Viento del "
+          . convert_direction( $Weather{WindAvgDir} ) . " a "
+          . $Weather{WindAvg}
+          . " kilometros por hora";
+
+        #	$data .= ", con ráfagas de " . $Weather{WindGust} . " kilometros por hora" if ($Weather{WindGust});
+        $data .= ". ";
     }
     else {
-	$data .= "Viento en calma. ";
+        $data .= "Viento en calma. ";
     }
 
-#    $data .= $Weather_Forecast[1];
+    #    $data .= $Weather_Forecast[1];
 
-#    $data =~ s%km/h%kilometers per hour%;
+    #    $data =~ s%km/h%kilometers per hour%;
 
     return $data;
 }
 
-
 sub format_ec_forecast {
-    return join("\n", @Weather_Forecast);
+    return join( "\n", @Weather_Forecast );
 }
-
 
 # Fetch the raw HTML weather page from the es.weather.yahoo.com
 # update the parsed data file.
@@ -115,23 +126,24 @@ sub get_ec_weather {
 
     my $pgm = "get_weather_meteored";
     $pgm .= " -reget" if $force;
-    
+
     #print_log "running $pgm";
     run $pgm;
+
     #print_log "Weather update started";
 
     set_watch $f_weather_file;
 }
-
 
 # this routine fetches the (raw) weather data from the parsing subprocess, and
 # reads it back into the main MH variables. (I cheat by using an eval :-). I
 # then do any other formatting necessary; this separates the low-level *parsing*
 # from higher-level formatting.
 sub fetch_ec_weather {
+
     #get data from file
     open IN, $f_weather_data;
-    local $/ = undef;       # Slurp the whole file at once
+    local $/ = undef;    # Slurp the whole file at once
     my $weather_data = <IN>;
     close IN;
 
@@ -139,44 +151,41 @@ sub fetch_ec_weather {
     eval $weather_data;
     warn "eval failed: $@" if $@;
     $Weather{Conditions} =~ s/(.*)\s+$/$1/s;
- 
+
     # ugly; we need temperature sensors instead...
-    $Weather{TempIndoor} = '';
+    $Weather{TempIndoor}  = '';
     $Weather{HumidIndoor} = '';
 
     # calculate the wind chill factor.
-    if (!$Weather{WindChill}) {
-	$Weather{WindChill} = &windchill($Weather{TempOutdoor}, $Weather{WindAvg});
+    if ( !$Weather{WindChill} ) {
+        $Weather{WindChill} =
+          &windchill( $Weather{TempOutdoor}, $Weather{WindAvg} );
     }
 
-    if (!$Weather{DewpointOutdoor}) {
-	$Weather{DewpointOutdoor} = &dewpoint($Weather{TempOutdoor}, $Weather{HumidOutdoor});
+    if ( !$Weather{DewpointOutdoor} ) {
+        $Weather{DewpointOutdoor} =
+          &dewpoint( $Weather{TempOutdoor}, $Weather{HumidOutdoor} );
     }
 
     # create the summaries used by the MH web (and tk?) displays.
-    if ($Weather{TempOutdoor} != $Weather{WindChill}) {
-	    $Weather{Summary_Short} = sprintf("%2dº/%2dº %3d%%",
-                              $Weather{TempOutdoor}, $Weather{WindChill},
-                              $Weather{HumidOutdoor});
-    	    $Weather{Summary} = sprintf("out/chill: %2dºC/%2dºC Humid:%3d%%",
-                              $Weather{TempOutdoor}, $Weather{WindChill},
-                              $Weather{HumidOutdoor});
+    if ( $Weather{TempOutdoor} != $Weather{WindChill} ) {
+        $Weather{Summary_Short} = sprintf( "%2dº/%2dº %3d%%",
+            $Weather{TempOutdoor}, $Weather{WindChill},
+            $Weather{HumidOutdoor} );
+        $Weather{Summary} = sprintf( "out/chill: %2dºC/%2dºC Humid:%3d%%",
+            $Weather{TempOutdoor}, $Weather{WindChill},
+            $Weather{HumidOutdoor} );
     }
     else {
-	    $Weather{Summary_Short} = sprintf("%2dºC %3d%%",
-                              $Weather{TempOutdoor}, 
-                              $Weather{HumidOutdoor});
-    	    $Weather{Summary} = sprintf("out:%2dºC Humid:%3d%%",
-                              $Weather{TempOutdoor}, 
-                              $Weather{HumidOutdoor});
+        $Weather{Summary_Short} = sprintf( "%2dºC %3d%%",
+            $Weather{TempOutdoor}, $Weather{HumidOutdoor} );
+        $Weather{Summary} = sprintf( "out:%2dºC Humid:%3d%%",
+            $Weather{TempOutdoor}, $Weather{HumidOutdoor} );
     }
-
 
     # and for fun, speak the current weather to anyone who is listening.
     #&read_ec_weather;
 }
-
-
 
 # Find the wind chill equivalent temperature (in degrees Celsius) based on a
 # given air temperature and wind velocity, using the new (2001) Environment
@@ -195,43 +204,49 @@ sub windchill {
 
     my $chill;
 
-    if (($wind<5) || ($wind>100) || ($temp<-50) || ($temp>5)) {
+    if ( ( $wind < 5 ) || ( $wind > 100 ) || ( $temp < -50 ) || ( $temp > 5 ) )
+    {
         $chill = '';
     }
     else {
-        $chill=(13.12 + 0.6215*$temp - 11.37*($wind**0.16) + 0.3965*$temp*($wind**0.16));
-	$chill=int($chill+0.5);
+        $chill =
+          ( 13.12 + 0.6215 * $temp -
+              11.37 * ( $wind**0.16 ) +
+              0.3965 * $temp * ( $wind**0.16 ) );
+        $chill = int( $chill + 0.5 );
 
-	print "temp $temp wind $wind chill $chill\n";
+        print "temp $temp wind $wind chill $chill\n";
     }
 
     return $chill;
 }
 
-
 # Find the dewpoint, given temperature and relative humidity. Source:
 # http://www.atd.ucar.edu/weather_fl/dewpoint.html
 #
 sub dewpoint {
-    my $temp = shift;
+    my $temp     = shift;
     my $humidity = shift;
 
-    $temp += 273.15;	# convert to Kelvin
-    $humidity /= 100;	# convert from percent to fraction
+    $temp += 273.15;    # convert to Kelvin
+    $humidity /= 100;   # convert from percent to fraction
 
     # saturation vapour pressure
-    my $e_sw = 6.1078
-		* exp(5.0065 * log(273.15/$temp))
-		* exp(24.846 * (1 - (273.15/$temp)));
+    my $e_sw =
+      6.1078 *
+      exp( 5.0065 * log( 273.15 / $temp ) ) *
+      exp( 24.846 * ( 1 - ( 273.15 / $temp ) ) );
 
     # current vapour pressure
     my $e_vp = $humidity * $e_sw;
 
     # final
     my $dewpoint = 0;
-    if ($e_vp != 0) {
-        $dewpoint = (237.3 * log($e_vp/6.1078)) / (17.27 - (log($e_vp/6.1078)));
-        $dewpoint=int($dewpoint+0.5);
+    if ( $e_vp != 0 ) {
+        $dewpoint =
+          ( 237.3 * log( $e_vp / 6.1078 ) ) /
+          ( 17.27 - ( log( $e_vp / 6.1078 ) ) );
+        $dewpoint = int( $dewpoint + 0.5 );
     }
     return $dewpoint;
 }

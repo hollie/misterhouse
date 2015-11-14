@@ -6,88 +6,97 @@ use RRDp;
 
 my $targetdir = "/home/brian/public_html";
 my $GRAPHTYPE = "GIF";
-my $indir = "/home/brian/misterhouse/rrd/temp";
+my $indir     = "/home/brian/misterhouse/rrd/temp";
 
 # format is   filename         => Label for plot
-my %plots = ( "basement"       => "Basement",
-	      "guest_room"     => "Guest Room",
-	      "kitchen"        => "Kitchen",
-	      "baby_room"      => "Baby Room",
-	      "master_bedroom" => "Master Bedroom",
-#	      "outside"        => "Outside",
-	    );
+my %plots = (
+    "basement"       => "Basement",
+    "guest_room"     => "Guest Room",
+    "kitchen"        => "Kitchen",
+    "baby_room"      => "Baby Room",
+    "master_bedroom" => "Master Bedroom",
 
-my $curtime=time;
-my $lastday = ($curtime - (24*60*60));
+    #	      "outside"        => "Outside",
+);
+
+my $curtime = time;
+my $lastday = ( $curtime - ( 24 * 60 * 60 ) );
+
 #my $lastday = ($curtime - (1*60*60));
-my $yestday = ($curtime - (2*24*60*60));
-my $curyest = ($curtime - (24*60*60));
-my $lastweek = ($curtime - (7*24*60*60));
-my $priorweek = ($curtime - (14*24*60*60));
+my $yestday   = ( $curtime - ( 2 * 24 * 60 * 60 ) );
+my $curyest   = ( $curtime - ( 24 * 60 * 60 ) );
+my $lastweek  = ( $curtime - ( 7 * 24 * 60 * 60 ) );
+my $priorweek = ( $curtime - ( 14 * 24 * 60 * 60 ) );
 
-	      
-my @colors = qw( ff000c 00ffee e804f4 ff6500 56ba43 a86212 0029f9 15ff00 a0a0a0 );
+my @colors =
+  qw( ff000c 00ffee e804f4 ff6500 56ba43 a86212 0029f9 15ff00 a0a0a0 );
 
-my $graphtype = lc( $GRAPHTYPE );
-my ($plot_last, $plot_average, $probes );
+my $graphtype = lc($GRAPHTYPE);
+my ( $plot_last, $plot_average, $probes );
 $plot_last = $plot_average = $probes = "\n";
 my $count = 0;
 foreach my $i ( keys %plots ) {
-    $plot_last .= "DEF:$i=$indir/$i.rrd:temp:LAST\n";
+    $plot_last    .= "DEF:$i=$indir/$i.rrd:temp:LAST\n";
     $plot_average .= "DEF:$i=$indir/$i.rrd:temp:AVERAGE\n";
-    my $probeTitle = $plots{ $i } . ( " " x (15 - length( $plots{ $i } ) ) );
-    $probes .= "LINE1:$i#$colors[$count]:'$probeTitle'\nGPRINT:$i:LAST:'Cur\\:%3.2lf%s'\nGPRINT:$i:MIN:'Min\\:%3.2lf%s'\nGPRINT:$i:MAX:'Max\\:%3.2lf%s'\nGPRINT:$i:AVERAGE:'Ave\\:%3.2lf%s'\nCOMMENT:'\\c'\n";
+    my $probeTitle = $plots{$i} . ( " " x ( 15 - length( $plots{$i} ) ) );
+    $probes .=
+      "LINE1:$i#$colors[$count]:'$probeTitle'\nGPRINT:$i:LAST:'Cur\\:%3.2lf%s'\nGPRINT:$i:MIN:'Min\\:%3.2lf%s'\nGPRINT:$i:MAX:'Max\\:%3.2lf%s'\nGPRINT:$i:AVERAGE:'Ave\\:%3.2lf%s'\nCOMMENT:'\\c'\n";
     $count++;
 }
 my $comment = "
 	COMMENT:'\\s'
 	COMMENT:'\\s'
-	COMMENT:'Graph created on: ".localtime(time())."\\c'
+	COMMENT:'Graph created on: " . localtime( time() ) . "\\c'
 ";
 
 RRDp::start "/usr/bin/rrdtool";
 
-RRDp::cmd "graph $targetdir/house_temps-today.$graphtype -s $lastday -e $curtime ",
-	"--title \"Temperature Readings for Past 24 Hours\" ",
-	"--vertical-label 'Temperature'",
-	"-a $GRAPHTYPE",
-	"-h 400 -w 850",
-#	"-u 85",
-	"-l 60 -u 70",
-	"-y 5:1",
-	"-x HOUR:1:HOUR:1:HOUR:2:60:%H:%M",
-	"$plot_last",
-	"$probes",
-	"$comment";
+RRDp::cmd
+  "graph $targetdir/house_temps-today.$graphtype -s $lastday -e $curtime ",
+  "--title \"Temperature Readings for Past 24 Hours\" ",
+  "--vertical-label 'Temperature'",
+  "-a $GRAPHTYPE",
+  "-h 400 -w 850",
+
+  #	"-u 85",
+  "-l 60 -u 70",
+  "-y 5:1",
+  "-x HOUR:1:HOUR:1:HOUR:2:60:%H:%M",
+  "$plot_last",
+  "$probes",
+  "$comment";
 
 my $answer = RRDp::read;
 print "$$answer";
 
-RRDp::cmd "graph $targetdir/house_temps-yesterday.$graphtype -s $yestday -e $curyest ",
-	"--title \"Temperature Readings for 24-48 Hours Ago\" ",
-	"--vertical-label 'Temperature'",
-	"-a $GRAPHTYPE",
-	"-h 400 -w 850",
-#	"-u 85",
-	"-l 60 -u 70",
-	"-y 5:1",
-	"-x HOUR:1:HOUR:1:HOUR:2:60:%H:%M",
-	"$plot_last",
-	"$probes",
-	"$comment";
+RRDp::cmd
+  "graph $targetdir/house_temps-yesterday.$graphtype -s $yestday -e $curyest ",
+  "--title \"Temperature Readings for 24-48 Hours Ago\" ",
+  "--vertical-label 'Temperature'",
+  "-a $GRAPHTYPE",
+  "-h 400 -w 850",
+
+  #	"-u 85",
+  "-l 60 -u 70",
+  "-y 5:1",
+  "-x HOUR:1:HOUR:1:HOUR:2:60:%H:%M",
+  "$plot_last",
+  "$probes",
+  "$comment";
 my $answer = RRDp::read;
 print "$$answer";
 
-RRDp::cmd "graph $targetdir/house_temps-prior2weeks.$graphtype -s $priorweek -e $curtime ",
-	"--title \"Hourly Temperature Readings for Past 14 Days\" ",
-	"--vertical-label 'Temperature'",
-	"-a $GRAPHTYPE",
-	"-h 200 -w 1400",
-	"-l 60 -u 70",
-	"-x HOUR:6:HOUR:6:DAY:1:86400:%D",
-	"$plot_average",
-	"$probes",
-	"$comment";
+RRDp::cmd
+  "graph $targetdir/house_temps-prior2weeks.$graphtype -s $priorweek -e $curtime ",
+  "--title \"Hourly Temperature Readings for Past 14 Days\" ",
+  "--vertical-label 'Temperature'",
+  "-a $GRAPHTYPE",
+  "-h 200 -w 1400",
+  "-l 60 -u 70",
+  "-x HOUR:6:HOUR:6:DAY:1:86400:%D",
+  "$plot_average",
+  "$probes",
+  "$comment";
 
 my $answer = RRDp::read;
 print "$$answer";
@@ -107,5 +116,4 @@ print "$$answer";
 #print "$$answer";
 
 RRDp::end;
-
 

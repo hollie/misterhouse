@@ -4,7 +4,6 @@ use strict;
 use lib "..";
 use Insteon::MessageDecoder;
 
-
 #0250 1e5d8e 1edc30 2b 0d02
 plm_decode_print('02525700');
 plm_decode_print('02525a80');
@@ -83,7 +82,7 @@ plm_decode_print('02621f058c1f2e000100000000000000000000000000');
 plm_decode_print('02511f058c1edc30112e000101000020201cfe3f0001000000');
 
 sub plm_decode_print {
-	my ($plm_string) = @_;
-	print( "PLM Message: $plm_string\n");
-	print( Insteon::MessageDecoder::plm_decode($plm_string)."\n");
+    my ($plm_string) = @_;
+    print("PLM Message: $plm_string\n");
+    print( Insteon::MessageDecoder::plm_decode($plm_string) . "\n" );
 }

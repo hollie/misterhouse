@@ -11,7 +11,7 @@
 #      http://misterhouse.net/mh/bin/get_email
 #  Change log:
 #    03/26/99  Created.
-#  Notes: 
+#  Notes:
 #    check required modules in lib/imap_utils.pl
 #
 #  This software is licensed under the terms of the GNU public license.
@@ -19,26 +19,34 @@
 #
 #---------------------------------------------------------------------------
 
-
 use strict;
 
 #package get_mail;               # So we can do the faster 'do' from mh, and not mess it up.
 
-my ($Pgm_Path, $Pgm_Name, $Version);
-use vars '$Pgm_Root';           # So we can see it in eval var subs in read_parms
+my ( $Pgm_Path, $Pgm_Name, $Version );
+use vars '$Pgm_Root';    # So we can see it in eval var subs in read_parms
+
 BEGIN {
-    ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
-    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ($Version) =
+      q$Revision$ =~ /: (\S+)/;   # Note: revision number is auto-updated by cvs
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
     $Pgm_Root = "$Pgm_Path/..";
-    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # Use BEGIN eval to keep perl2exe happy
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"
+      ;                           # Use BEGIN eval to keep perl2exe happy
 }
 
 use Getopt::Long;
 use vars qw(%config_parms %config_parms_startup);
-if (!&GetOptions(\%config_parms_startup, 'quiet', 'debug', 'h', 'help', 'net_mail_scan_age=s') or
-    @ARGV or $config_parms_startup{h} or $config_parms_startup{help}) {
-    print<<eof;
+if (
+    !&GetOptions( \%config_parms_startup, 'quiet', 'debug', 'h', 'help',
+        'net_mail_scan_age=s' )
+    or @ARGV
+    or $config_parms_startup{h}
+    or $config_parms_startup{help}
+  )
+{
+    print <<eof;
 
   $Pgm_Name (version $Version) gets mail stuff.
 
@@ -50,56 +58,64 @@ if (!&GetOptions(\%config_parms_startup, 'quiet', 'debug', 'h', 'help', 'net_mai
 
 eof
 
-  exit;
+    exit;
 }
 
 &setup;
 &check_accounts;
 
-my (@email_accounts, %email_prev, %email_type, $email_rule, $results_new, $results_unread, $results_unread2);
+my (
+    @email_accounts, %email_prev,     %email_type, $email_rule,
+    $results_new,    $results_unread, $results_unread2
+);
+
 sub setup {
 
     require 'handy_utilities.pl';
     require 'handy_net_utilities.pl';
 
-    &main::read_mh_opts(\%config_parms, $Pgm_Path);
+    &main::read_mh_opts( \%config_parms, $Pgm_Path );
 
-    for my $parm (keys %config_parms_startup) {
+    for my $parm ( keys %config_parms_startup ) {
         $config_parms{$parm} = $config_parms_startup{$parm};
     }
-				# Ignore any non-email debug parm in .ini file or command line flag used
-    $config_parms{debug} = undef unless $config_parms{debug} eq 'email' or $config_parms_startup{debug};
 
-                                # Get email parms
-    for my $parm (sort keys %config_parms) {
-        next unless $config_parms{$parm}; # Ignore blank parms
-        next if $parm =~ /net_mail_send/; # Ignore the send mail account
-	my ($name) =  $parm =~ /net_mail_(\S+)_server$/;
-        push(@email_accounts, $name) if $name;
-	$email_type{$name} = "pop3";
-	$email_type{$name} = $config_parms{"net_mail_${name}_type"} if defined($config_parms{"net_mail_${name}_type"});
+    # Ignore any non-email debug parm in .ini file or command line flag used
+    $config_parms{debug} = undef
+      unless $config_parms{debug} eq 'email' or $config_parms_startup{debug};
+
+    # Get email parms
+    for my $parm ( sort keys %config_parms ) {
+        next unless $config_parms{$parm};    # Ignore blank parms
+        next if $parm =~ /net_mail_send/;    # Ignore the send mail account
+        my ($name) = $parm =~ /net_mail_(\S+)_server$/;
+        push( @email_accounts, $name ) if $name;
+        $email_type{$name} = "pop3";
+        $email_type{$name} = $config_parms{"net_mail_${name}_type"}
+          if defined( $config_parms{"net_mail_${name}_type"} );
     }
     print "Checking email accounts: @email_accounts\n" if $config_parms{debug};
 
-                                # Read file with results from last email check
+    # Read file with results from last email check
     my @data = &file_read("$config_parms{data_dir}/get_email.data");
 
-                                # Allow age-based mail reading, rather than unread mail
+    # Allow age-based mail reading, rather than unread mail
     undef @data if $config_parms{net_mail_scan_age};
 
     for my $data (@data) {
         chomp $data;
-        my($account, @list) = split($;, $data);
+        my ( $account, @list ) = split( $;, $data );
         $email_prev{$account} = \@list;
     }
 
     my $rule = "$config_parms{code_dir}/get_email_rule.pl";
-    if (-e $rule) {
+    if ( -e $rule ) {
         print "Requiring external $rule\n" unless $config_parms{quiet};
         require $rule;
         $email_rule = 1;
     }
-                                # Setting to 0, instead of undef, disables some errata
+
+    # Setting to 0, instead of undef, disables some errata
     $config_parms{debug} = 0 if $config_parms{quiet} and !$config_parms{debug};
 }
 
@@ -109,267 +125,324 @@ sub check_accounts {
     my $message_counts = "";
 
     unlink("$config_parms{data_dir}/email/summary.html");
-    my ($email_file_data, $summary);
+    my ( $email_file_data, $summary );
 
     my $time = localtime;
-    $summary = qq[$time &nbsp;&nbsp; <A HREF='/email/latest.html'>Latest emails</A><br>];
+    $summary =
+      qq[$time &nbsp;&nbsp; <A HREF='/email/latest.html'>Latest emails</A><br>];
 
     my $wday = (localtime)[6];
-    my  $day = ('sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun')[$wday];
+    my $day = ( 'sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun' )[$wday];
 
-#   my $msgcnt_flag = 'Email:';
-    my ($msgcnt_flag, $msg_latest);
+    #   my $msgcnt_flag = 'Email:';
+    my ( $msgcnt_flag, $msg_latest );
     for my $account (@email_accounts) {
-        print "checking $email_type{$account} account=$account "  unless $config_parms{quiet};
+        print "checking $email_type{$account} account=$account "
+          unless $config_parms{quiet};
 
-	my $msgcnt;
-	my $msgsize;
-	my $msgptr;
-	my $msg_unread;
-	my $msgcnt_prev;
+        my $msgcnt;
+        my $msgsize;
+        my $msgptr;
+        my $msg_unread;
+        my $msgcnt_prev;
 
-	if (lc $email_type{$account} eq "imap") {
-	   eval "require 'imap_utils.pl'";
-           if ($@) {
-             print "Error in loading imap_utils: $@\n";
-             print "To use imap, you need check the dependancies\n";
-             die;
-           }
-	   print "\nAccessing IMAP account $account...\n" unless $config_parms{quiet};
-	   ($msgcnt, $msgsize, $msg_unread, $msgptr) = &get_imap(account => $account, 
-							  age => $config_parms{net_mail_scan_age},
-							  quiet =>  $config_parms{quiet},
-							  debug => $config_parms{debug});
-	   if ($msgcnt) {
-   	       $msg_inbox_total = $msgcnt;
-               print "There are $msgcnt mail messages for $account\n"  unless $config_parms{quiet};
-	   }  
-
-	} else {
-           ($msgcnt, $msgsize) = &net_mail_stats(account => $account, debug => $config_parms{debug});
-
-           # If count is < last time, assume we have read previous messages and reset for next pass
-           # If count is > last time, read only new messages
-           $msgcnt_prev = @{$email_prev{$account}} if $email_prev{$account};
-           if (defined $msgcnt and $msgcnt < $msgcnt_prev) {
-               delete $email_prev{$account};
-               unlink("$config_parms{data_dir}/email/latest.html");
-               $msgcnt = 0;
-           } elsif ($msgcnt > $msgcnt_prev) {
-   	       $msg_inbox_total = $msgcnt;
-               print "There are $msgcnt mail messages for $account\n"  unless $config_parms{quiet};
-               $msgptr = &net_mail_summary(account => $account,
-                                           first => 1, last => $msgcnt,
-                                           age   => $config_parms{net_mail_scan_age},
-                                           debug => $config_parms{debug});
-
-                                # If you leave mail in the mailbox and use scan_age, we need to
-                                # reset this to only report new msgs, not total msgs
-	       $msg_unread = $msgcnt;
-               if ($config_parms{net_mail_scan_age}) {
-                   $msg_unread = ($$msgptr{from_name}) ? @{$$msgptr{from_name}} : 0;
-               }         
-	   }
-	}
-	#print "Building HTML Code...\n" unless $config_parms{quiet};
-	   if ($msgsize) {
-	     my $nice_size;
-	     $nice_size = "($msgsize bytes)" if ($msgsize < 1024);
-	     $nice_size = sprintf ("(%.2f kB)",$msgsize / 1024) if ($msgsize >= 1024);
-	     $nice_size = sprintf ("(%.2f MB)",$msgsize / 1024 / 1024)  if ($msgsize >= (1024 * 1024));
-	     $nice_size = sprintf ("(%.2f GB)",$msgsize / 1024 / 1024 / 1024) if ($msgsize >= (1024 * 1024 * 1024));
-	     $msgsize = $nice_size;
-	   }
-	   my $message_s = "s";
-	   $message_s = "" if ($msgcnt == 1);
-           $summary .= qq[&nbsp;&nbsp;&nbsp;$msgcnt message$message_s ($msg_unread unread) $msgsize in ] .
-            qq[$account: $config_parms{"net_mail_${account}_address"}, $config_parms{"net_mail_${account}_user"}<BR>\n];
-
-            if ($$msgptr{from_name}) {
-      my @list = @{$$msgptr{from_name}};
-
-                                # Use a rule to modify name of sender
-                                # Changing $name will modify @list ($name is an implicit alias).
-                my $cnt = -1;
-                for my $name (@list) {
-                    $cnt++;
-
-                    my $subject = $$msgptr{subject}[$cnt];
-                    my $to      = $$msgptr{to}[$cnt];
-                    my $cc      = $$msgptr{cc}[$cnt];
-                    my $replyto = $$msgptr{replyto}[$cnt];
-                    my $sender  = $$msgptr{sender}[$cnt];
-                    my $from    = $$msgptr{from}[$cnt];
-                    my $number  = $$msgptr{number}[$cnt];
-                    my $body    = $$msgptr{body}[$cnt];
-
-                    $to   .= ", $cc"     if $cc;
-                    $from .= ", $sender" if $sender;
-
-                                # Delete attachements
-                                # The g in gsm will do this without the while loop
-
-#                   print "dbx get_email body=$body.\n";
-
-                    $body  =~ s/Content-Disposition: attachment.+?filename=(.+?)^.+/Attachment deleted: $1/gsm;
-#                   while ($body =~ m/Content-Disposition: attachment.+?filename=(.+?\").+?NextPart.+?\n/s) {
-#                       $body =~ s/Content-Disposition: attachment.+?filename=(.+?\").+?NextPart.+?\n/Attachment removed: $1\n\n/sm;
-#                   }
-
-
-                    $name = &get_email_rule($name, $to, $subject, $from, $body) if $email_rule;
-
-                    $name = 'filtered' unless $name;
-
-                    next if $name =~ /no store/; # Do not index/store
-
-                    print "Reading text for subject=$subject\n" unless $config_parms{quiet};
-
-                                # Scan/summarize email
-                                #  - .scan is deleted in code_dir/internet_mail.pl after scanning for commands
-                                #  - .html will be deleted (in get_email) only after email has been read
-                    logit("$config_parms{data_dir}/get_email.scan",
-                          "Msg: $number From:$$msgptr{from}[$cnt]  To:$to  Subject:$subject  Body:$body");
-#                   print "dbx get_email s=$subject body=$body\n";
-
-                    use HTML::Entities; # So we can encode stuff like <bruce@misterhouse.net>
-                    $to      = encode_entities $to;
-                    $replyto = encode_entities $replyto;
-                    $from    = encode_entities $from;
-                    $subject = encode_entities $subject;
-                    if ($body =~ /^(.*?)<html>(.*)$/is) {
-                        $body = "<pre>$1</pre>\n<html><p>\n$2";
-#                       $body = "<div>$body</div>";  # Try to bound bad/untermintated html tags ... doesn't help
-                    }
-                    else {
-                        $body = encode_entities $body;
-                        $body = "<pre>$body</pre>";
-                    }
-
-                    my $href = time . $cnt; # An arbitrary index
-                    my $href_prev = $href - 1 unless $cnt == 0;
-                    my $href_next = $href + 1 unless $cnt == $#list;
-                    $href_prev = 'top' unless $href_prev; # No easy way to track prev href
-
-                    my $time_date = &time_date_stamp(14, time);
-                    my $html;
-#                   $html = 'Date: ' . &time_date_stamp($config_parms{time_format_log} , time) . "<br>\n";
-#                   $html = 'Date: ' . &time_date_stamp(14, time) . "<br>\n"; # Log format same as .scan logit
-                    $html = "<a href='#$href_prev'>Previous</a> , ";
-                    $html .= "<a href='#$href_next'>Next</a>\n" if $href_next;
-                    $html .= "<br><b>Date:</b> $time_date<br>\n"; # Log format same as .scan logit
-                    $html .= "<b>To:</b>$to<br>\n<b>From:</b> <a href='mailto:$from'>$name</a><br>\n<b>Reply to:</b> <a href='mailto:$replyto'>$replyto</a><br>\n<b>Subject:</b>$subject<br>\n";
-                    $html .= "<blockquote>$body</blockquote><br><hr>\n";
-
-                                            # Track the latest mail separately
-#                   logit("$config_parms{data_dir}/email/latest.html", $html, 0);
-                    $msg_latest .= $html;
-
-                                # Log by account and day of week
-                    my  $log = "$config_parms{data_dir}/email/${account}_${day}.shtml";
-                    my  $logi= "$config_parms{data_dir}/email/${account}_${day}_index.html";
-                    unlink $log if time - (stat $log)[9] > 3600*24; # Reset if from last week
-                    unless (-e $log) {
-                        unlink $logi;
-                        my $html2 =  "<table cellspacing=5>\n<tr><th><b>Msg</b></th><th><b>Received</b></th>";
-                        $html2 .= "<th><b>From</b></th><th><b>Subject</b></th></tr></b>\n";
-                        logit($logi, $html2, 0);
-                        $html2  = qq[<LINK REL='STYLESHEET' HREF='/default.css' TYPE='text/css'>\n];
-                        $html2 .= qq[<!--\#include file="/email/${account}_${day}_index.html"-->\n</table>\n<hr>\n];
-                        logit($log, $html2, 0);
-                    }
-
-		    #if msgcnt_prev is undefined then the message numbers will never be right
-		    #in that case, read in the last line to see what the last msg # was
-		    my $lastline;
-		    $lastline = file_tail($logi,1) unless (defined $msgcnt_prev);
-
-	            ($msgcnt_prev) = $lastline =~ /\<tr\>\<td\>(\d+)\<\/td\>/ unless (defined $msgcnt_prev);
-		    $msgcnt_prev = 0 unless (defined $msgcnt_prev);
-                    my $msgcnt2 = sprintf ("%02d", $msgcnt_prev + $cnt + 1);
-	            $html  = "($msgcnt2) <a name='$href' href='#top'>Back to Index</a> , " . $html;
-
-                    logit($log, $html, 0);
-
-                    my $index = "<tr><td>$msgcnt2</td><td><a href='#$href'>$time_date</a></td><td><a href='mailto:$from'>$name</a>";
-                    $index .= "</td><td><a href='#$href'>$subject</a></td></tr>\n";
-                    logit($logi, $index, 0);
-                }
-
-                                # Add to previously read names
-                push(@{$email_prev{$account}}, @list);
-
-                $results_new .= &make_name_list($account, @{$email_prev{$account}});
-
+        if ( lc $email_type{$account} eq "imap" ) {
+            eval "require 'imap_utils.pl'";
+            if ($@) {
+                print "Error in loading imap_utils: $@\n";
+                print "To use imap, you need check the dependancies\n";
+                die;
             }
-        #}?
+            print "\nAccessing IMAP account $account...\n"
+              unless $config_parms{quiet};
+            ( $msgcnt, $msgsize, $msg_unread, $msgptr ) = &get_imap(
+                account => $account,
+                age     => $config_parms{net_mail_scan_age},
+                quiet   => $config_parms{quiet},
+                debug   => $config_parms{debug}
+            );
+            if ($msgcnt) {
+                $msg_inbox_total = $msgcnt;
+                print "There are $msgcnt mail messages for $account\n"
+                  unless $config_parms{quiet};
+            }
 
-#-----
-        if ($msg_latest) {
-                                # If new mail is age based, need to reset latest.html every time
-            unlink("$config_parms{data_dir}/email/latest.html") if $config_parms{net_mail_scan_age};
-            logit("$config_parms{data_dir}/email/latest.html", $msg_latest, 0);
+        }
+        else {
+            ( $msgcnt, $msgsize ) = &net_mail_stats(
+                account => $account,
+                debug   => $config_parms{debug}
+            );
+
+            # If count is < last time, assume we have read previous messages and reset for next pass
+            # If count is > last time, read only new messages
+            $msgcnt_prev = @{ $email_prev{$account} } if $email_prev{$account};
+            if ( defined $msgcnt and $msgcnt < $msgcnt_prev ) {
+                delete $email_prev{$account};
+                unlink("$config_parms{data_dir}/email/latest.html");
+                $msgcnt = 0;
+            }
+            elsif ( $msgcnt > $msgcnt_prev ) {
+                $msg_inbox_total = $msgcnt;
+                print "There are $msgcnt mail messages for $account\n"
+                  unless $config_parms{quiet};
+                $msgptr = &net_mail_summary(
+                    account => $account,
+                    first   => 1,
+                    last    => $msgcnt,
+                    age     => $config_parms{net_mail_scan_age},
+                    debug   => $config_parms{debug}
+                );
+
+                # If you leave mail in the mailbox and use scan_age, we need to
+                # reset this to only report new msgs, not total msgs
+                $msg_unread = $msgcnt;
+                if ( $config_parms{net_mail_scan_age} ) {
+                    $msg_unread =
+                      ( $$msgptr{from_name} ) ? @{ $$msgptr{from_name} } : 0;
+                }
+            }
         }
 
-#        $msgcnt_flag .= sprintf("%3d", ($config_parms{net_mail_scan_age})?$msg_inbox_total:$msgcnt);
-# gmail can have thousands of messages, instead, just add a space...
-       $message_counts .= " " . ($config_parms{net_mail_scan_age}?$msg_inbox_total:$msgcnt);
+        #print "Building HTML Code...\n" unless $config_parms{quiet};
+        if ($msgsize) {
+            my $nice_size;
+            $nice_size = "($msgsize bytes)" if ( $msgsize < 1024 );
+            $nice_size = sprintf( "(%.2f kB)", $msgsize / 1024 )
+              if ( $msgsize >= 1024 );
+            $nice_size = sprintf( "(%.2f MB)", $msgsize / 1024 / 1024 )
+              if ( $msgsize >= ( 1024 * 1024 ) );
+            $nice_size = sprintf( "(%.2f GB)", $msgsize / 1024 / 1024 / 1024 )
+              if ( $msgsize >= ( 1024 * 1024 * 1024 ) );
+            $msgsize = $nice_size;
+        }
+        my $message_s = "s";
+        $message_s = "" if ( $msgcnt == 1 );
+        $summary .=
+          qq[&nbsp;&nbsp;&nbsp;$msgcnt message$message_s ($msg_unread unread) $msgsize in ]
+          . qq[$account: $config_parms{"net_mail_${account}_address"}, $config_parms{"net_mail_${account}_user"}<BR>\n];
 
-        my $temp = &make_name_list($account, @{$email_prev{$account}});
-        $results_unread  .= $temp;
-                                # Create html version with a link
-        $temp =~ s|^(.+) has |&nbsp;&nbsp;&nbsp;<A HREF='/email/${account}_${day}.shtml'>$1</A> has |;
+        if ( $$msgptr{from_name} ) {
+            my @list = @{ $$msgptr{from_name} };
+
+            # Use a rule to modify name of sender
+            # Changing $name will modify @list ($name is an implicit alias).
+            my $cnt = -1;
+            for my $name (@list) {
+                $cnt++;
+
+                my $subject = $$msgptr{subject}[$cnt];
+                my $to      = $$msgptr{to}[$cnt];
+                my $cc      = $$msgptr{cc}[$cnt];
+                my $replyto = $$msgptr{replyto}[$cnt];
+                my $sender  = $$msgptr{sender}[$cnt];
+                my $from    = $$msgptr{from}[$cnt];
+                my $number  = $$msgptr{number}[$cnt];
+                my $body    = $$msgptr{body}[$cnt];
+
+                $to   .= ", $cc"     if $cc;
+                $from .= ", $sender" if $sender;
+
+                # Delete attachements
+                # The g in gsm will do this without the while loop
+
+                #                   print "dbx get_email body=$body.\n";
+
+                $body =~
+                  s/Content-Disposition: attachment.+?filename=(.+?)^.+/Attachment deleted: $1/gsm;
+
+                #                   while ($body =~ m/Content-Disposition: attachment.+?filename=(.+?\").+?NextPart.+?\n/s) {
+                #                       $body =~ s/Content-Disposition: attachment.+?filename=(.+?\").+?NextPart.+?\n/Attachment removed: $1\n\n/sm;
+                #                   }
+
+                $name = &get_email_rule( $name, $to, $subject, $from, $body )
+                  if $email_rule;
+
+                $name = 'filtered' unless $name;
+
+                next if $name =~ /no store/;    # Do not index/store
+
+                print "Reading text for subject=$subject\n"
+                  unless $config_parms{quiet};
+
+                # Scan/summarize email
+                #  - .scan is deleted in code_dir/internet_mail.pl after scanning for commands
+                #  - .html will be deleted (in get_email) only after email has been read
+                logit( "$config_parms{data_dir}/get_email.scan",
+                    "Msg: $number From:$$msgptr{from}[$cnt]  To:$to  Subject:$subject  Body:$body"
+                );
+
+                #                   print "dbx get_email s=$subject body=$body\n";
+
+                use HTML::Entities
+                  ;    # So we can encode stuff like <bruce@misterhouse.net>
+                $to      = encode_entities $to;
+                $replyto = encode_entities $replyto;
+                $from    = encode_entities $from;
+                $subject = encode_entities $subject;
+                if ( $body =~ /^(.*?)<html>(.*)$/is ) {
+                    $body = "<pre>$1</pre>\n<html><p>\n$2";
+
+                    #                       $body = "<div>$body</div>";  # Try to bound bad/untermintated html tags ... doesn't help
+                }
+                else {
+                    $body = encode_entities $body;
+                    $body = "<pre>$body</pre>";
+                }
+
+                my $href = time . $cnt;                     # An arbitrary index
+                my $href_prev = $href - 1 unless $cnt == 0;
+                my $href_next = $href + 1 unless $cnt == $#list;
+                $href_prev = 'top'
+                  unless $href_prev;    # No easy way to track prev href
+
+                my $time_date = &time_date_stamp( 14, time );
+                my $html;
+
+                #                   $html = 'Date: ' . &time_date_stamp($config_parms{time_format_log} , time) . "<br>\n";
+                #                   $html = 'Date: ' . &time_date_stamp(14, time) . "<br>\n"; # Log format same as .scan logit
+                $html = "<a href='#$href_prev'>Previous</a> , ";
+                $html .= "<a href='#$href_next'>Next</a>\n" if $href_next;
+                $html .= "<br><b>Date:</b> $time_date<br>\n"
+                  ;    # Log format same as .scan logit
+                $html .=
+                  "<b>To:</b>$to<br>\n<b>From:</b> <a href='mailto:$from'>$name</a><br>\n<b>Reply to:</b> <a href='mailto:$replyto'>$replyto</a><br>\n<b>Subject:</b>$subject<br>\n";
+                $html .= "<blockquote>$body</blockquote><br><hr>\n";
+
+                # Track the latest mail separately
+                #                   logit("$config_parms{data_dir}/email/latest.html", $html, 0);
+                $msg_latest .= $html;
+
+                # Log by account and day of week
+                my $log =
+                  "$config_parms{data_dir}/email/${account}_${day}.shtml";
+                my $logi =
+                  "$config_parms{data_dir}/email/${account}_${day}_index.html";
+                unlink $log
+                  if time - ( stat $log )[9] >
+                  3600 * 24;    # Reset if from last week
+                unless ( -e $log ) {
+                    unlink $logi;
+                    my $html2 =
+                      "<table cellspacing=5>\n<tr><th><b>Msg</b></th><th><b>Received</b></th>";
+                    $html2 .=
+                      "<th><b>From</b></th><th><b>Subject</b></th></tr></b>\n";
+                    logit( $logi, $html2, 0 );
+                    $html2 =
+                      qq[<LINK REL='STYLESHEET' HREF='/default.css' TYPE='text/css'>\n];
+                    $html2 .=
+                      qq[<!--\#include file="/email/${account}_${day}_index.html"-->\n</table>\n<hr>\n];
+                    logit( $log, $html2, 0 );
+                }
+
+                #if msgcnt_prev is undefined then the message numbers will never be right
+                #in that case, read in the last line to see what the last msg # was
+                my $lastline;
+                $lastline = file_tail( $logi, 1 )
+                  unless ( defined $msgcnt_prev );
+
+                ($msgcnt_prev) = $lastline =~ /\<tr\>\<td\>(\d+)\<\/td\>/
+                  unless ( defined $msgcnt_prev );
+                $msgcnt_prev = 0 unless ( defined $msgcnt_prev );
+                my $msgcnt2 = sprintf( "%02d", $msgcnt_prev + $cnt + 1 );
+                $html =
+                  "($msgcnt2) <a name='$href' href='#top'>Back to Index</a> , "
+                  . $html;
+
+                logit( $log, $html, 0 );
+
+                my $index =
+                  "<tr><td>$msgcnt2</td><td><a href='#$href'>$time_date</a></td><td><a href='mailto:$from'>$name</a>";
+                $index .= "</td><td><a href='#$href'>$subject</a></td></tr>\n";
+                logit( $logi, $index, 0 );
+            }
+
+            # Add to previously read names
+            push( @{ $email_prev{$account} }, @list );
+
+            $results_new .=
+              &make_name_list( $account, @{ $email_prev{$account} } );
+
+        }
+
+        #}?
+
+        #-----
+        if ($msg_latest) {
+
+            # If new mail is age based, need to reset latest.html every time
+            unlink("$config_parms{data_dir}/email/latest.html")
+              if $config_parms{net_mail_scan_age};
+            logit( "$config_parms{data_dir}/email/latest.html", $msg_latest,
+                0 );
+        }
+
+        #        $msgcnt_flag .= sprintf("%3d", ($config_parms{net_mail_scan_age})?$msg_inbox_total:$msgcnt);
+        # gmail can have thousands of messages, instead, just add a space...
+        $message_counts .= " "
+          . ( $config_parms{net_mail_scan_age} ? $msg_inbox_total : $msgcnt );
+
+        my $temp = &make_name_list( $account, @{ $email_prev{$account} } );
+        $results_unread .= $temp;
+
+        # Create html version with a link
+        $temp =~
+          s|^(.+) has |&nbsp;&nbsp;&nbsp;<A HREF='/email/${account}_${day}.shtml'>$1</A> has |;
 
         $results_unread2 .= $temp . "<br>" if $temp;
 
-                                # Save parsed data, so we don't have to re-read next time
-        $email_file_data .= (join($;, $account, @{$email_prev{$account}})) . "\n" if
-            $email_prev{$account} and @{$email_prev{$account}};
+        # Save parsed data, so we don't have to re-read next time
+        $email_file_data .=
+          ( join( $;, $account, @{ $email_prev{$account} } ) ) . "\n"
+          if $email_prev{$account} and @{ $email_prev{$account} };
 
     }
-    &file_write("$config_parms{data_dir}/get_email.data", $email_file_data);
-    &file_write("$config_parms{data_dir}/get_email.txt",  $results_new);
-    &file_write("$config_parms{data_dir}/get_email2.txt", $results_unread);
-    &file_write("$config_parms{data_dir}/get_email.flag", $message_counts);
+    &file_write( "$config_parms{data_dir}/get_email.data", $email_file_data );
+    &file_write( "$config_parms{data_dir}/get_email.txt",  $results_new );
+    &file_write( "$config_parms{data_dir}/get_email2.txt", $results_unread );
+    &file_write( "$config_parms{data_dir}/get_email.flag", $message_counts );
 
     $results_unread =~ s/account /<P>Account /gs;
 
     $summary .= "$results_unread2";
 
-    logit("$config_parms{data_dir}/email/summary.html", $summary, 0);
+    logit( "$config_parms{data_dir}/email/summary.html", $summary, 0 );
 
-    unless ($config_parms{quiet}) {
-        print "\nNew\n", $results_new;
+    unless ( $config_parms{quiet} ) {
+        print "\nNew\n",    $results_new;
         print "\nUnread\n", $results_unread;
     }
 }
 
 sub make_name_list {
-    my ($account, @list) = @_;
+    my ( $account, @list ) = @_;
 
     my $account2 = $account;
-    $account2 =~ tr/_/ /; # Make speakable
+    $account2 =~ tr/_/ /;    # Make speakable
 
-    @list = grep !/^filtered/i, @list; # Delete blank names (filtered out from the above get_email_rule)
+    @list = grep !/^filtered/i,
+      @list;   # Delete blank names (filtered out from the above get_email_rule)
     my $cnt = @list;
 
     return unless $cnt;
 
+    # Make fred@xyz.com a bit more pronouncable
+    # Naw, this gets put to a displayed file also,
+    # so lets leave it.  Added .com et all to pronounceable_words.list
+    #   for (@list) {
+    #       $_ =~ s/\./ Dot /g ;    # ...change "." to the word "Dot"
+    #       $_ =~ s/\@/ At /g ;     # ...change \@  to the word "At"
+    #   }
 
-                                # Make fred@xyz.com a bit more pronouncable
-                                # Naw, this gets put to a displayed file also,
-                                # so lets leave it.  Added .com et all to pronounceable_words.list
-#   for (@list) {
-#       $_ =~ s/\./ Dot /g ;    # ...change "." to the word "Dot"
-#       $_ =~ s/\@/ At /g ;     # ...change \@  to the word "At"
-#   }
+    return ("$account2 has "
+          . plural( $cnt, 'new message' )
+          . " from "
+          . &speakify_list(@list)
+          . ".\n" );
 
-    return ("$account2 has " . plural($cnt, 'new message') .
-        " from " . &speakify_list(@list) . ".\n");
-#   return ("Email account $account2 has " . plural($cnt, 'new email message') .
+    #   return ("Email account $account2 has " . plural($cnt, 'new email message') .
 
 }
-
 
 #
 # $Log: get_email,v $

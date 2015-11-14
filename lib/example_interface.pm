@@ -1,3 +1,4 @@
+
 =head1 B<example_interface>
 
 =head2 SYNOPSIS
@@ -44,7 +45,6 @@ B<Serial_Item>
 
 =cut
 
-
 use strict;
 
 package example_interface;
@@ -52,8 +52,10 @@ package example_interface;
 @example_interface::ISA = ('Serial_Item');
 
 sub startup {
-    &main::serial_port_create('example_interface', $main::config_parms{example_interface_port}, 4800, 'none');
-    &::MainLoop_pre_add_hook(  \&example_interface::check_for_data, 1 );
+    &main::serial_port_create( 'example_interface',
+        $main::config_parms{example_interface_port},
+        4800, 'none' );
+    &::MainLoop_pre_add_hook( \&example_interface::check_for_data, 1 );
 }
 
 sub check_for_data {
@@ -61,15 +63,16 @@ sub check_for_data {
 }
 
 sub set {
-    my ($self, $state, $set_by) = @_;
+    my ( $self, $state, $set_by ) = @_;
 
     my $serial_data;
-                                # Allow for upper/mixed case (e.g. treat ON the same as on ... so X10_Items is simpler)
-    if (defined $self->{id_by_state}{$state}) {
+
+    # Allow for upper/mixed case (e.g. treat ON the same as on ... so X10_Items is simpler)
+    if ( defined $self->{id_by_state}{$state} ) {
         $serial_data = $self->{id_by_state}{$state};
     }
-    elsif (defined $self->{id_by_state}{lc $state}) {
-        $serial_data = $self->{id_by_state}{lc $state};
+    elsif ( defined $self->{id_by_state}{ lc $state } ) {
+        $serial_data = $self->{id_by_state}{ lc $state };
     }
     else {
         $serial_data = $state;
@@ -78,12 +81,11 @@ sub set {
     print "Setting example_interface to $state -> $serial_data\n";
     $main::Serial_Ports{example_interface}{object}->write($serial_data);
 
-    &Generic_Item::set_states_for_next_pass($self, $state, $set_by);
+    &Generic_Item::set_states_for_next_pass( $self, $state, $set_by );
 
 }
 
 1;
-
 
 =back
 

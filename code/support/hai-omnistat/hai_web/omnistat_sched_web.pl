@@ -33,82 +33,91 @@ my $i;
 my $location;
 my $stat;
 my $debug = '';
-my $NAME="omnistat_sched_web.pl";
+my $NAME  = "omnistat_sched_web.pl";
 
-Omnistat::omnistat_debug("$NAME: got args ".join(", ", @ARGV));
+Omnistat::omnistat_debug( "$NAME: got args " . join( ", ", @ARGV ) );
 
 #Get the thermostat to work on if provided in the URL
 $location = $ARGV[0];
+
 #this turns http://server:8080/hai/$NAME?location=bar into 'bar' -- merlin
 if ( $location =~ /([^=]+)=(.+)/ and $2 ne "" ) {
-  $location = $2;
-  Omnistat::omnistat_debug("$NAME: Got location $location from URL");
+    $location = $2;
+    Omnistat::omnistat_debug("$NAME: Got location $location from URL");
 }
 my @locations;    #Holds the names of all the stats
 
 #Get omnistat object names
 foreach my $object_type (&::list_object_types) {
-  foreach my $object_name ( &::list_objects_by_type($object_type) ) {
-    my $object = &::get_object_by_name("$object_name");
-    $object = $object_name unless $object;
-    if ( $object and $object->isa('Omnistat') ) {
-      Omnistat::omnistat_debug("$NAME: Found stat $object_name");
-      push @locations, $object_name;
-      if (not $location) {
-        $location = $object_name;
-        Omnistat::omnistat_debug("$NAME: Will set location to $location");
-      }
+    foreach my $object_name ( &::list_objects_by_type($object_type) ) {
+        my $object = &::get_object_by_name("$object_name");
+        $object = $object_name unless $object;
+        if ( $object and $object->isa('Omnistat') ) {
+            Omnistat::omnistat_debug("$NAME: Found stat $object_name");
+            push @locations, $object_name;
+            if ( not $location ) {
+                $location = $object_name;
+                Omnistat::omnistat_debug(
+                    "$NAME: Will set location to $location");
+            }
+        }
     }
-  }
 }
-
 
 #Now, we should either have a location from the URL or from the object list
 $stat = &::get_object_by_name("$location");
 
-if (not $stat) {
-  if (not $location) {
-    die "$NAME was not able to get an omnistat object, check your stat definitions in mycode/omnistat.pl";
-  } else {
-    die "$NAME was not able to get an omnistat object with location \"$location\"";
-  }
-} else {
-  Omnistat::omnistat_debug("$NAME: will work with stat $location");
+if ( not $stat ) {
+    if ( not $location ) {
+        die
+          "$NAME was not able to get an omnistat object, check your stat definitions in mycode/omnistat.pl";
+    }
+    else {
+        die
+          "$NAME was not able to get an omnistat object with location \"$location\"";
+    }
+}
+else {
+    Omnistat::omnistat_debug("$NAME: will work with stat $location");
 }
 
 my $IsOmnistat2 = 0;
-$IsOmnistat2 = 1 if ($stat->is_omnistat2);
+$IsOmnistat2 = 1 if ( $stat->is_omnistat2 );
 
 #Loop through the arguments passed
-for ( $i = 1 ; $i <= $#ARGV ; $i++ ) {
-  Omnistat::omnistat_debug("$NAME: looking at arg# $i: $ARGV[$i]");
-  # support 24H time like the rest of the educated world :) -- merlin
-  if ( $ARGV[$i] =~ /(\w+?)=(\d+$|[012]?[0-9]:\d+(?: AM| PM|))/ and $2 ne "" ) {
-    #see if its a temp or time
-    if ( $i % 3 != 1 ) {
-      #It's a temp
-      my $temp;
-      Omnistat::omnistat_debug("$NAME: parsing temp arg# $i $1 => $2");
-      $reg  = $i + 20;                         #Get the register to set
-      $reg  = sprintf( "0x%x", $reg );
-      $temp = &Omnistat::translate_temp($2);
-      $stat->set_reg( $reg, $temp );
-      $_ = "Set temp reg #$reg to $2 ($temp)";
-      $debug = $debug . "$_<br>\n";
-      Omnistat::omnistat_log($_);
-    } else {
-      #It's a time
-      my $time;
-      Omnistat::omnistat_debug("$NAME: parsing time arg# $i $1 => $2");
-      $reg  = $i + 20;                         #Get the register to set
-      $reg  = sprintf( "0x%x", $reg );
-      $time = &Omnistat::translate_time($2);
-      $stat->set_reg( $reg, $time );
-      $_ = "Set time reg #$reg to $2 ($time)";
-      $debug = $debug . "$_<br>\n";
-      Omnistat::omnistat_log($_);
+for ( $i = 1; $i <= $#ARGV; $i++ ) {
+    Omnistat::omnistat_debug("$NAME: looking at arg# $i: $ARGV[$i]");
+
+    # support 24H time like the rest of the educated world :) -- merlin
+    if ( $ARGV[$i] =~ /(\w+?)=(\d+$|[012]?[0-9]:\d+(?: AM| PM|))/ and $2 ne "" )
+    {
+        #see if its a temp or time
+        if ( $i % 3 != 1 ) {
+
+            #It's a temp
+            my $temp;
+            Omnistat::omnistat_debug("$NAME: parsing temp arg# $i $1 => $2");
+            $reg  = $i + 20;                         #Get the register to set
+            $reg  = sprintf( "0x%x", $reg );
+            $temp = &Omnistat::translate_temp($2);
+            $stat->set_reg( $reg, $temp );
+            $_     = "Set temp reg #$reg to $2 ($temp)";
+            $debug = $debug . "$_<br>\n";
+            Omnistat::omnistat_log($_);
+        }
+        else {
+            #It's a time
+            my $time;
+            Omnistat::omnistat_debug("$NAME: parsing time arg# $i $1 => $2");
+            $reg  = $i + 20;                         #Get the register to set
+            $reg  = sprintf( "0x%x", $reg );
+            $time = &Omnistat::translate_time($2);
+            $stat->set_reg( $reg, $time );
+            $_     = "Set time reg #$reg to $2 ($time)";
+            $debug = $debug . "$_<br>\n";
+            Omnistat::omnistat_log($_);
+        }
     }
-  }
 }
 
 # Weekday (RC-xx) or Monday (Omnistat2)
@@ -129,12 +138,12 @@ $days[0][3][2] = &Omnistat::translate_temp($wnh);
 
 # Tuesday to Friday for Omnistat2
 my $weekday_or_monday = 'Weekday';
-if ($IsOmnistat2) 
-{
+if ($IsOmnistat2) {
+
     # Used later down to display Monday or Weekday for the first day.
     $weekday_or_monday = 'Monday';
-    ( $wmt, $wmc, $wmh, $wdt, $wdc, $wdh, $wet, $wec, $weh, $wnt, $wnc, $wnh ) =
-      split ' ', $stat->read_cached_reg( "0x4B", 12 );
+    ( $wmt, $wmc, $wmh, $wdt, $wdc, $wdh, $wet, $wec, $weh, $wnt, $wnc, $wnh )
+      = split ' ', $stat->read_cached_reg( "0x4B", 12 );
     $days[1][0][0] = &Omnistat::translate_time($wmt);
     $days[1][0][1] = &Omnistat::translate_temp($wmc);
     $days[1][0][2] = &Omnistat::translate_temp($wmh);
@@ -147,7 +156,7 @@ if ($IsOmnistat2)
     $days[1][3][0] = &Omnistat::translate_time($wnt);
     $days[1][3][1] = &Omnistat::translate_temp($wnc);
     $days[1][3][2] = &Omnistat::translate_temp($wnh);
-      split ' ', $stat->read_cached_reg( "0x57", 12 );
+    split ' ', $stat->read_cached_reg( "0x57", 12 );
     $days[2][0][0] = &Omnistat::translate_time($wmt);
     $days[2][0][1] = &Omnistat::translate_temp($wmc);
     $days[2][0][2] = &Omnistat::translate_temp($wmh);
@@ -160,7 +169,7 @@ if ($IsOmnistat2)
     $days[2][3][0] = &Omnistat::translate_time($wnt);
     $days[2][3][1] = &Omnistat::translate_temp($wnc);
     $days[2][3][2] = &Omnistat::translate_temp($wnh);
-      split ' ', $stat->read_cached_reg( "0x63", 12 );
+    split ' ', $stat->read_cached_reg( "0x63", 12 );
     $days[3][0][0] = &Omnistat::translate_time($wmt);
     $days[3][0][1] = &Omnistat::translate_temp($wmc);
     $days[3][0][2] = &Omnistat::translate_temp($wmh);
@@ -173,7 +182,7 @@ if ($IsOmnistat2)
     $days[3][3][0] = &Omnistat::translate_time($wnt);
     $days[3][3][1] = &Omnistat::translate_temp($wnc);
     $days[3][3][2] = &Omnistat::translate_temp($wnh);
-      split ' ', $stat->read_cached_reg( "0x6F", 12 );
+    split ' ', $stat->read_cached_reg( "0x6F", 12 );
     $days[4][0][0] = &Omnistat::translate_time($wmt);
     $days[4][0][1] = &Omnistat::translate_temp($wmc);
     $days[4][0][2] = &Omnistat::translate_temp($wmh);
@@ -228,9 +237,10 @@ $days[6][3][2] = &Omnistat::translate_temp($wnh);
 #$vaca[1][0] = &Omnistat::translate_time($ved);
 #$vaca[1][1] = &Omnistat::translate_time($veh);
 
-my $pretty_name = &pretty_object_name($location)." (".$stat->get_stat_type().")";
+my $pretty_name =
+  &pretty_object_name($location) . " (" . $stat->get_stat_type() . ")";
 
-$html          = '<html><body>' . &html_header('Browse Items') . "
+$html = '<html><body>' . &html_header('Browse Items') . "
 <!DOCTYPE HTML PUBLIC '-//W3C//DTD HTML 4.01 Transitional//EN'>
 <html>
 <head>
@@ -244,23 +254,36 @@ Thermostat ";
 
 #Create the list of thermostats
 if ( $#locations > 0 ) {
-  #Omnistat::omnistat_debug("$NAME: Got multiple locations (".($#locations+1).") for drop down menu");
 
-  $html = $html . "<select name ='location' onChange='this.form.submit();'>";
+    #Omnistat::omnistat_debug("$NAME: Got multiple locations (".($#locations+1).") for drop down menu");
 
-  foreach my $statname (@locations) {
-    if ( $location eq $statname ) {
-      #Omnistat::omnistat_debug("$NAME: Selecting $statname in drop down menu since it is location $location. Objects are ".&::get_object_by_name($statname)." and ".&::get_object_by_name($statname));
-      $html = $html . "<option SELECTED  value ='$statname'>" . &pretty_object_name($statname) . "</option>";
-    } else {
-      $html = $html . "<option value ='$statname'>" . &pretty_object_name($statname) . "</option>";
+    $html = $html . "<select name ='location' onChange='this.form.submit();'>";
+
+    foreach my $statname (@locations) {
+        if ( $location eq $statname ) {
+
+            #Omnistat::omnistat_debug("$NAME: Selecting $statname in drop down menu since it is location $location. Objects are ".&::get_object_by_name($statname)." and ".&::get_object_by_name($statname));
+            $html =
+                $html
+              . "<option SELECTED  value ='$statname'>"
+              . &pretty_object_name($statname)
+              . "</option>";
+        }
+        else {
+            $html =
+                $html
+              . "<option value ='$statname'>"
+              . &pretty_object_name($statname)
+              . "</option>";
+        }
     }
-  }
-  $html = $html . "</select>";
-} else {
-  Omnistat::omnistat_debug("$NAME: Got single location $location, skipping drop down menu");
-  $html = $html . $pretty_name;
-  $html = $html . "<input name='location' value='$location' type='hidden'>";
+    $html = $html . "</select>";
+}
+else {
+    Omnistat::omnistat_debug(
+        "$NAME: Got single location $location, skipping drop down menu");
+    $html = $html . $pretty_name;
+    $html = $html . "<input name='location' value='$location' type='hidden'>";
 }
 
 $html .= "
@@ -379,7 +402,7 @@ $weekday_or_monday<br>
         <br> ";
 
 if ($IsOmnistat2) {
-$html .= "
+    $html .= "
 Tuesday<br>
         </small></td>
         <td style='vertical-align: top; text-align: center;'><small>Morning<br>

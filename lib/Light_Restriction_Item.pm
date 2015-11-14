@@ -1,3 +1,4 @@
+
 =head1 B<Light_Restriction_Item>
 
 =head2 SYNOPSIS
@@ -80,153 +81,172 @@ package Light_Restriction_Item;
 my @CheckScalars;
 my @CheckStartup;
 
-sub initialize
-{
-	my ($self) = @_;
-   $$self{m_write} = 0;
-	$$self{state}='light_ok';
-   $$self{'hash_ref'} = undef;
-   $$self{'hash_key'} = undef;
-   $$self{'scalar_ref'} = undef;
-   $$self{'ok_values'} = undef;
-   $$self{'last_watched_val'} = undef;
-   $$self{'attached_object'} = undef;
+sub initialize {
+    my ($self) = @_;
+    $$self{m_write}            = 0;
+    $$self{state}              = 'light_ok';
+    $$self{'hash_ref'}         = undef;
+    $$self{'hash_key'}         = undef;
+    $$self{'scalar_ref'}       = undef;
+    $$self{'ok_values'}        = undef;
+    $$self{'last_watched_val'} = undef;
+    $$self{'attached_object'}  = undef;
 }
 
 sub _check_values {
-   if ($main::Startup or $main::Reload) {
-      foreach (@CheckStartup) {
-         if ($$_{'attached_object'}) {
-            &::print_log("$$_{object_name}: Checking attached object after startup") if $main::Debug{occupancy};
-            $_->_check_watched_value($$_{'attached_object'}->state());
-         }
-      }
-   }
-   if ($main::New_Second) {
-      foreach (@CheckScalars) {
-         $_->_check_scalar();
-      }
-   }
+    if ( $main::Startup or $main::Reload ) {
+        foreach (@CheckStartup) {
+            if ( $$_{'attached_object'} ) {
+                &::print_log(
+                    "$$_{object_name}: Checking attached object after startup")
+                  if $main::Debug{occupancy};
+                $_->_check_watched_value( $$_{'attached_object'}->state() );
+            }
+        }
+    }
+    if ($main::New_Second) {
+        foreach (@CheckScalars) {
+            $_->_check_scalar();
+        }
+    }
 }
 
 sub _check_scalar {
-   my ($self) = @_;
-   if (ref $$self{'scalar_ref'}) {
-      $self->_check_watched_value(${$$self{'scalar_ref'}});
-   } elsif (ref $$self{'hash_ref'} and $$self{'hash_key'}) {
-      $self->_check_watched_value($$self{'hash_ref'}->{$$self{'hash_key'}});
-   }
+    my ($self) = @_;
+    if ( ref $$self{'scalar_ref'} ) {
+        $self->_check_watched_value( ${ $$self{'scalar_ref'} } );
+    }
+    elsif ( ref $$self{'hash_ref'} and $$self{'hash_key'} ) {
+        $self->_check_watched_value(
+            $$self{'hash_ref'}->{ $$self{'hash_key'} } );
+    }
 }
 
 sub _check_watched_value ($$) {
-   my ($self, $value) = @_;
-   if ($value ne $$self{'last_watched_val'}) {
-      &::print_log("$$self{object_name}: New value $value different than $$self{last_watched_val}") if $main::Debug{occupancy};
-      $$self{'last_watched_val'} = $value;
-      if ($$self{'ok_values'}) {
-         foreach (@{$$self{'ok_values'}}) {
-            if ($$self{'last_watched_val'} eq $_) {
-               # New scalar value is one of the OK ones
-               &::print_log("$$self{object_name}: New value $value matches ok values: light_ok") if $main::Debug{occupancy};
-               unless ($self->state() eq 'light_ok') {
-                  $self->SUPER::set('light_ok');
-               }
-               return;
+    my ( $self, $value ) = @_;
+    if ( $value ne $$self{'last_watched_val'} ) {
+        &::print_log(
+            "$$self{object_name}: New value $value different than $$self{last_watched_val}"
+        ) if $main::Debug{occupancy};
+        $$self{'last_watched_val'} = $value;
+        if ( $$self{'ok_values'} ) {
+            foreach ( @{ $$self{'ok_values'} } ) {
+                if ( $$self{'last_watched_val'} eq $_ ) {
+
+                    # New scalar value is one of the OK ones
+                    &::print_log(
+                        "$$self{object_name}: New value $value matches ok values: light_ok"
+                    ) if $main::Debug{occupancy};
+                    unless ( $self->state() eq 'light_ok' ) {
+                        $self->SUPER::set('light_ok');
+                    }
+                    return;
+                }
             }
-         }
-      } else {
-         if ($$self{'last_watched_val'}) {
-            unless ($self->state() eq 'light_ok') {
-               &::print_log("$$self{object_name}: New value $value is true: light_ok") if $main::Debug{occupancy};
-               $self->SUPER::set('light_ok');
+        }
+        else {
+            if ( $$self{'last_watched_val'} ) {
+                unless ( $self->state() eq 'light_ok' ) {
+                    &::print_log(
+                        "$$self{object_name}: New value $value is true: light_ok"
+                    ) if $main::Debug{occupancy};
+                    $self->SUPER::set('light_ok');
+                }
+                return;
             }
-            return;
-         }
-      }
-      &::print_log("$$self{object_name}: no_light") if $main::Debug{occupancy};
-      unless ($self->state() eq 'no_light') {
-         $self->SUPER::set('no_light');
-      }
-   }
+        }
+        &::print_log("$$self{object_name}: no_light")
+          if $main::Debug{occupancy};
+        unless ( $self->state() eq 'no_light' ) {
+            $self->SUPER::set('no_light');
+        }
+    }
 }
 
 sub finish_attach {
-   my ($self, @ok_values) = @_;
-   if (@ok_values) {
-      @{$$self{'ok_values'}} = ();
-      push @{$$self{'ok_values'}}, @ok_values;
-   } else {
-      $$self{'ok_values'} = undef;
-   }
-   if (($#CheckScalars == -1) and ($#CheckStartup == -1)) {
-      &::MainLoop_pre_add_hook(\&Light_Restriction_Item::_check_values, 1);
-   }
+    my ( $self, @ok_values ) = @_;
+    if (@ok_values) {
+        @{ $$self{'ok_values'} } = ();
+        push @{ $$self{'ok_values'} }, @ok_values;
+    }
+    else {
+        $$self{'ok_values'} = undef;
+    }
+    if ( ( $#CheckScalars == -1 ) and ( $#CheckStartup == -1 ) ) {
+        &::MainLoop_pre_add_hook( \&Light_Restriction_Item::_check_values, 1 );
+    }
 }
 
 sub attach_object {
-   my ($self, $p_obj, @ok_values) = @_;
-   $$self{'attached_object'} = $p_obj;
-   $p_obj->tie_items($self);
-   $self->finish_attach(@ok_values);
-   foreach (@CheckStartup) {
-      return if ($_ eq $self);
-   }
-   push @CheckStartup, $self;
-   $self->_check_watched_value($p_obj->state());
+    my ( $self, $p_obj, @ok_values ) = @_;
+    $$self{'attached_object'} = $p_obj;
+    $p_obj->tie_items($self);
+    $self->finish_attach(@ok_values);
+    foreach (@CheckStartup) {
+        return if ( $_ eq $self );
+    }
+    push @CheckStartup, $self;
+    $self->_check_watched_value( $p_obj->state() );
 }
 
 sub attach_hash_key {
-   my ($self, $hash_ref, $hash_key, @ok_values) = @_;
-   if (ref $hash_ref) {
-      $$self{'hash_ref'} = $hash_ref;
-      $$self{'hash_key'} = $hash_key;
-      $self->finish_attach(@ok_values);
-      foreach (@CheckScalars) {
-         return if ($_ eq $self);
-      }
-      push @CheckScalars, $self;
-   } else {
-      print "ERROR: Light_Restriction_Item::attach_hash_key() called with a non-reference first parameter!\n";
-   }
+    my ( $self, $hash_ref, $hash_key, @ok_values ) = @_;
+    if ( ref $hash_ref ) {
+        $$self{'hash_ref'} = $hash_ref;
+        $$self{'hash_key'} = $hash_key;
+        $self->finish_attach(@ok_values);
+        foreach (@CheckScalars) {
+            return if ( $_ eq $self );
+        }
+        push @CheckScalars, $self;
+    }
+    else {
+        print
+          "ERROR: Light_Restriction_Item::attach_hash_key() called with a non-reference first parameter!\n";
+    }
 }
 
 sub attach_scalar {
-   my ($self, $scalar_ref, @ok_values) = @_;
-   if (ref $scalar_ref) {
-      $$self{'scalar_ref'} = $scalar_ref;
-      $self->finish_attach(@ok_values);
-      foreach (@CheckScalars) {
-         return if ($_ eq $self);
-      }
-      push @CheckScalars, $self;
-   } else {
-      print "ERROR: Light_Restriction_Item::attach_scalar() called with a non-reference first parameter!\n";
-   }
+    my ( $self, $scalar_ref, @ok_values ) = @_;
+    if ( ref $scalar_ref ) {
+        $$self{'scalar_ref'} = $scalar_ref;
+        $self->finish_attach(@ok_values);
+        foreach (@CheckScalars) {
+            return if ( $_ eq $self );
+        }
+        push @CheckScalars, $self;
+    }
+    else {
+        print
+          "ERROR: Light_Restriction_Item::attach_scalar() called with a non-reference first parameter!\n";
+    }
 }
 
-sub set
-{
-	my ($self, $p_state, $p_setby, $p_response) = @_;
-	my $l_state;
+sub set {
+    my ( $self, $p_state, $p_setby, $p_response ) = @_;
+    my $l_state;
 
-   if ($p_setby and ($p_setby eq $$self{'attached_object'})) {
-      # Our tied object's state changed...
-      $self->_check_watched_value($p_state) if $p_state;
-   } else {
-	   if ($p_state eq 'on') {
-   		$l_state = 'light_ok';
-   	} elsif ($p_state eq 'off') {
-   		$l_state = 'no_light';
-   	} else {
-   		$l_state = $p_state;
-   	}
-   	$self->SUPER::set($l_state, $p_setby, $p_response);
-   }
+    if ( $p_setby and ( $p_setby eq $$self{'attached_object'} ) ) {
+
+        # Our tied object's state changed...
+        $self->_check_watched_value($p_state) if $p_state;
+    }
+    else {
+        if ( $p_state eq 'on' ) {
+            $l_state = 'light_ok';
+        }
+        elsif ( $p_state eq 'off' ) {
+            $l_state = 'no_light';
+        }
+        else {
+            $l_state = $p_state;
+        }
+        $self->SUPER::set( $l_state, $p_setby, $p_response );
+    }
 
 }
 
 1;
-
 
 =back
 

@@ -17,7 +17,7 @@
 # webCamRegisterCam("Driveway", "http://192.168.0.223/usr/yoics0.jpg", 1);
 # ini parameters wc_address=ip.address,Description
 
-#For HTML out 
+#For HTML out
 #<a href="cam0.shtml" target="camwin"><img src="http://192.168.0.223/usr/yoics0.jpg" width='176' height='144'></a>
 
 #
@@ -32,62 +32,64 @@
 #
 #	url-to-image	output is a fully formatted html page with a fullscreen image(url)
 #			for full html only page image viewing
-#	
+#
 #  if a url-to-image is passed the column formatting is disreguarded and not used
 #
 #
-
-
 
 # Get the config parameter for each webcam
 # We use the wc_address_x from 0 to wc_max - 1
 
 # if we pass anything in output changes to html snippet
-my  $outmode = @ARGV[0] ; # arg is number of columns to format to
-my  $arg2 = @ARGV[1]; # if we have a second arg it is the url for full frame
-my  ($outimage,$rest ) = split / /,$arg2 ; # because we may have extra stuff
-    
-my  $html="<!-- $outmode @ARGV --> \n ";
-my  $across = 1 ;  # how many across are we now ?
+my $outmode = @ARGV[0];   # arg is number of columns to format to
+my $arg2    = @ARGV[1];   # if we have a second arg it is the url for full frame
+my ( $outimage, $rest ) = split / /, $arg2;    # because we may have extra stuff
 
-my  $wcMax = $config_parms{wc_max};		# max cams
-    $wcMax = "4" unless $config_parms{wc_max};  # default it 
+my $html   = "<!-- $outmode @ARGV --> \n ";
+my $across = 1;                                # how many across are we now ?
 
-my  $wcx="" unless $config_parms{wc_address_1};
+my $wcMax = $config_parms{wc_max};             # max cams
+$wcMax = "4" unless $config_parms{wc_max};     # default it
+
+my $wcx = "" unless $config_parms{wc_address_1};
 
 my $wc_bg_color = $config_parms{wc_bg_color};
-   $wc_bg_color = '0x333366' unless $config_parms{wc_bg_color};
+$wc_bg_color = '0x333366' unless $config_parms{wc_bg_color};
 
+my $scriptlet = "<script>\n";                  #"";
 
-my $scriptlet="<script>\n"; #"";
-
-
-$html .= "<table align='CENTER'><tr>" ;
+$html .= "<table align='CENTER'><tr>";
 
 # this is where we loop through all our camera entries
-for ( $wcx=1 ; $wcx<$wcMax + 1 ; $wcx++){
+for ( $wcx = 1; $wcx < $wcMax + 1; $wcx++ ) {
+
     # check this wc setting for exist
-    my $wcThis="wc_address_$wcx";
-    my $wcData="x" unless $config_parms{$wcThis};
-    
-        
-    if ( $wcData ne "x" ){
-    
-	#Add this cameras settings into the string
-	my $wcURL = $config_parms{$wcThis};
-	my ($wcURL,$wcDescr ) = split(/\,/, $wcURL );
-	$scriptlet .= "webCamRegisterCam(\"". $wcx.": $wcDescr\", \"$wcURL\", $wcx); \n";
-	
-	$html .= "<td BGCOLOR='" . $wc_bg_color . "'><CENTER><a href='/bin/wc_settings.pl/?1&" .  $wcURL . "' target='output'><img src='$wcURL' width='176' height='144'><br>$wcx: $wcDescr</a></CENTER></td>" ;
-	
-	# add some breaks so we can specify how many wide
-	if ( ($outmode - $across) <= 0 ){
-	    $html .= "</tr><tr>";
-	    $across = 0 ;
-	}
-	$across++ ;
+    my $wcThis = "wc_address_$wcx";
+    my $wcData = "x" unless $config_parms{$wcThis};
+
+    if ( $wcData ne "x" ) {
+
+        #Add this cameras settings into the string
+        my $wcURL = $config_parms{$wcThis};
+        my ( $wcURL, $wcDescr ) = split( /\,/, $wcURL );
+        $scriptlet .=
+          "webCamRegisterCam(\"" . $wcx . ": $wcDescr\", \"$wcURL\", $wcx); \n";
+
+        $html .=
+            "<td BGCOLOR='"
+          . $wc_bg_color
+          . "'><CENTER><a href='/bin/wc_settings.pl/?1&"
+          . $wcURL
+          . "' target='output'><img src='$wcURL' width='176' height='144'><br>$wcx: $wcDescr</a></CENTER></td>";
+
+        # add some breaks so we can specify how many wide
+        if ( ( $outmode - $across ) <= 0 ) {
+            $html .= "</tr><tr>";
+            $across = 0;
+        }
+        $across++;
     }
-    
+
 }
 $html .= "</tr></table>";
 
@@ -110,11 +112,13 @@ my $framed = "<html><head>
 	    </body></html>
 	    ";
 
-if ( $outmode > 0 and !$outimage ){
-    return $html ;
-} elsif ( !$outmode and !$outimage ) {
-    return $scriptlet ;
-} elsif ( $outmode and $outimage ){
+if ( $outmode > 0 and !$outimage ) {
+    return $html;
+}
+elsif ( !$outmode and !$outimage ) {
+    return $scriptlet;
+}
+elsif ( $outmode and $outimage ) {
     return $framed;
 }
- 
+

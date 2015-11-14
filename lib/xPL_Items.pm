@@ -83,7 +83,7 @@ my (
 sub startup {
     return
       if $started++
-    ;    # Allows us to call with $Reload or with xpl_module mh.ini parm
+      ;    # Allows us to call with $Reload or with xpl_module mh.ini parm
 
     # In case you don't want xpl for some reason
     return if $::config_parms{xpl_disable};
@@ -108,12 +108,13 @@ sub startup {
 
         # Find and use the first open port
         my $port_listen;
-	for my $p (49352 .. 65535) {
-	    $port_listen = $p;
-	    last if &open_port( $port_listen, 'listen', 'xpl_listen', 1, 1);
-	}
-	# The socket code will select a free local port if given 0
-	# not working on ubuntu 12.04
+        for my $p ( 49352 .. 65535 ) {
+            $port_listen = $p;
+            last if &open_port( $port_listen, 'listen', 'xpl_listen', 1, 1 );
+        }
+
+        # The socket code will select a free local port if given 0
+        # not working on ubuntu 12.04
         #&open_port( 0, 'listen', 'xpl_listen', 1, 1 );
         #$port_listen = $::Socket_Ports{'xpl_listen'}{port};
         $xpl_listen = new Socket_Item( undef, undef, 'xpl_listen' );
@@ -134,9 +135,9 @@ sub startup {
                 &open_port( $port_listen, 'send', $port_name, 1, 1 );
             }
             else {
-                print " - mh automatically switching out of xPL Hub mode.  " .
-                  "Another application is binding to the hub port ($port)\n";
-		$xpl_hub_listen = undef;
+                print " - mh automatically switching out of xPL Hub mode.  "
+                  . "Another application is binding to the hub port ($port)\n";
+                $xpl_hub_listen = undef;
             }
         }
 
@@ -189,8 +190,8 @@ sub main::display_xpl_osd_basic {
         $text = "\\n$text" unless $text =~ /\\n\S+/i;
     }
     &xPL::send( 'xPL', $address,
-        'osd.basic' => { command => 'write', delay => $duration, text => $text }
-    );
+        'osd.basic' =>
+          { command => 'write', delay => $duration, text => $text } );
 }
 
 sub open_port {
@@ -204,7 +205,7 @@ sub open_port {
     if ( $send_listen eq 'send' ) {
         my $dest_address;
         if ($local) {
-            if ($main::OS_win || $::Info{'OS_name'} eq 'cygwin') {
+            if ( $main::OS_win || $::Info{'OS_name'} eq 'cygwin' ) {
                 $dest_address = $::Info{IPAddress_local} unless $dest_address;
             }
             else {
@@ -222,8 +223,9 @@ sub open_port {
             Broadcast => 1
         );
 
-        print "db xPL_Items open_port: pn=$port_name l=$local PeerPort=$port " .
-          "PeerAddr=$dest_address" if $main::Debug{xpl};
+        print "db xPL_Items open_port: pn=$port_name l=$local PeerPort=$port "
+          . "PeerAddr=$dest_address"
+          if $main::Debug{xpl};
     }
     else {
         my $listen_address;
@@ -232,7 +234,7 @@ sub open_port {
             $listen_address = $::config_parms{'xpl_address'}
               unless $listen_address;
         }
-        if ($main::OS_win || $::Info{'OS_name'} eq 'cygwin') {
+        if ( $main::OS_win || $::Info{'OS_name'} eq 'cygwin' ) {
             $listen_address = $::Info{IPAddress_local} unless $listen_address;
         }
         else {
@@ -246,10 +248,11 @@ sub open_port {
             LocalAddr => $listen_address,
             Broadcast => 1
         );
-        $port = $sock->sockport() if ($port == 0);
-		
-        print "db xPL_Items open_port: pn=$port_name l=$local LocalPort=$port " .
-          "LocalAddr=$listen_address" if $main::Debug{xpl};
+        $port = $sock->sockport() if ( $port == 0 );
+
+        print "db xPL_Items open_port: pn=$port_name l=$local LocalPort=$port "
+          . "LocalAddr=$listen_address"
+          if $main::Debug{xpl};
     }
     unless ($sock) {
         print " -- FAILED\n" if $main::Debug{xpl};
@@ -267,7 +270,7 @@ sub open_port {
     $::Socket_Ports{$port_name}{datatype} = 'raw';
     $::Socket_Ports{$port_name}{port}     = $port;
     $::Socket_Ports{$port_name}{sock}     = $sock;
-    $::Socket_Ports{$port_name}{socka} = $sock; # UDP ports are always "active"
+    $::Socket_Ports{$port_name}{socka} = $sock;  # UDP ports are always "active"
 
     return $sock;
 }
@@ -312,8 +315,8 @@ sub parse_data {
             $source = $value if $section =~ /^xpl/ and $key =~ /^source$/i;
             $target = $value if $section =~ /^xpl/ and $key =~ /^target$/i;
             if ( exists( $d{$section}{$key} ) ) {
-                $d{$section}{$key} .= ","
-                  . $value;        # xpl allows "continuation lines"
+                $d{$section}{$key} .=
+                  "," . $value;             # xpl allows "continuation lines"
             }
             else {
                 $d{$section}{$key} = $value;
@@ -328,10 +331,11 @@ sub parse_data {
             $msg_type ? $class = $section : $msg_type = $section;
         }
     }
+
     # define target as '*' if undefined
     $target = '*' if !($target);
 
-    return(\%d, $source, $class, $target, $msg_type);
+    return ( \%d, $source, $class, $target, $msg_type );
 }
 
 sub _process_incoming_xpl_hub_data {
@@ -339,7 +343,7 @@ sub _process_incoming_xpl_hub_data {
     my $ip_address = $::config_parms{'ipaddress_xpl'};
     $ip_address = $::Info{IPAddress_local} unless $ip_address;
 
-    my ($xpl_data, $source, $class, $target, $msg_type) = &parse_data($data);
+    my ( $xpl_data, $source, $class, $target, $msg_type ) = &parse_data($data);
 
     return unless $source;
 
@@ -348,6 +352,7 @@ sub _process_incoming_xpl_hub_data {
     # Log hearbeats of other apps; ignore hbeat.basic messages as these
     # should not be handled by the hub
     if ( $$xpl_data{'hbeat.app'} ) {
+
         # rely on the xPL-message's remote-ip attribute in the hbeat.app
         # as the basis for performing IP comparisons
         my $sender_ip_address = $$xpl_data{'hbeat.app'}{'remote-ip'};
@@ -376,8 +381,8 @@ sub _process_incoming_xpl_hub_data {
     # As a hub, echo data to other xpl listeners unless it's our transmission
     for $port ( keys %xpl_hub_ports ) {
         my $sock = $::Socket_Ports{"xpl_send_$port"}{sock};
-        print "db2 xpl hub: sending xpl data to p=$port destination=" .
-          "$xpl_hub_ports{$port} s=$sock d=\n$data.\n"
+        print "db2 xpl hub: sending xpl data to p=$port destination="
+          . "$xpl_hub_ports{$port} s=$sock d=\n$data.\n"
           if $main::Debug{xpl} and $main::Debug{xpl} == 2;
         print $sock $data if defined($sock);
     }
@@ -386,7 +391,7 @@ sub _process_incoming_xpl_hub_data {
 sub _process_incoming_xpl_data {
     my ($data) = @_;
 
-    my ($xpl_data, $source, $class, $target, $msg_type) = &parse_data($data);
+    my ( $xpl_data, $source, $class, $target, $msg_type ) = &parse_data($data);
 
     print "db1 xpl check: s=$source c=$class t=$target d=\n$data\n"
       if $main::Debug{xpl} and $main::Debug{xpl} == 1;
@@ -408,6 +413,7 @@ sub _process_incoming_xpl_data {
 
     # continue processing unless we are the source (e.g., heart-beat)
     if ( !( $source eq &xPL::get_xpl_mh_source_info() ) ) {
+
         # Set states in matching xPL objects
         for my $name (@xpl_item_names)
         {    #(&::list_objects_by_type('xPL_Item')) {
@@ -490,11 +496,11 @@ sub _process_incoming_xpl_data {
                     # it may include useful info, e.g., slimserver).
                     $$o{changed} .= "$section : $key = $value | "
                       unless $section eq 'xpl-stat'
-                          or $section eq 'xpl-trig'
-                          or $section eq 'xpl-cmnd'
-                          or ( $section eq 'hbeat.app' and $key ne 'status' );
-                    print "db3 xpl state check m=$$o{state_monitor} key=" .
-                      "$section : $key  value=$value\n"
+                      or $section eq 'xpl-trig'
+                      or $section eq 'xpl-cmnd'
+                      or ( $section eq 'hbeat.app' and $key ne 'status' );
+                    print "db3 xpl state check m=$$o{state_monitor} key="
+                      . "$section : $key  value=$value\n"
                       if $main::Debug{xpl};    # and $main::Debug{xpl} == 3;
                     if ( $$o{state_monitor} ) {
                         foreach my $state_monitor (
@@ -505,7 +511,7 @@ sub _process_incoming_xpl_data {
                             {
                                 print "db3 xpl setting state to $value\n"
                                   if $main::Debug{xpl}
-                                      and $main::Debug{xpl} == 3;
+                                  and $main::Debug{xpl} == 3;
                                 $state_value = $value;
                             }
                         }
@@ -521,13 +527,14 @@ sub _process_incoming_xpl_data {
 
             # Can not use Generic_Item set method, as state_next_pass
             # only carries state, not all other $section data, to the next pass
-#           $o -> SUPER::set($state_value, 'xPL') if defined $state_value;
+            #           $o -> SUPER::set($state_value, 'xPL') if defined $state_value;
 
-            $o->received( $data );
+            $o->received($data);
             if ( defined $state_value and $state_value ne '' ) {
                 my $set_by_name = 'xPL';
                 $set_by_name .= " [$source]";
                 $o->set_now( $state_value, $set_by_name );
+
                 #$o->SUPER::set_now( $state_value, $set_by_name );
                 $o->state_now_msg_type("$msg_type");
             }
@@ -586,7 +593,7 @@ sub send {
     my ( $protocol, $class_address, @data ) = @_;
 
     print "db5 xPL send: ca=$class_address d=@data xpl_send=$xpl_send\n"
-      if ($main::Debug{xpl} and $main::Debug{xpl} == 5);
+      if ( $main::Debug{xpl} and $main::Debug{xpl} == 5 );
 
     my $target = $class_address;
     &sendXpl( $target, 'cmnd', @data );
@@ -635,8 +642,8 @@ sub sendXpl {
         }
     }
     else {
-        print "WARNING! xPL is disabled and you are trying to send xPL " .
-          "data!! (xPL::sendXpl())\n";
+        print "WARNING! xPL is disabled and you are trying to send xPL "
+          . "data!! (xPL::sendXpl())\n";
     }
 }
 
@@ -650,18 +657,22 @@ sub send_xpl_heartbeat {
 
     my $msg;
     if ($xpl_send) {
-        $msg = "xpl-stat\n{\nhop=1\nsource=" . &xPL::get_xpl_mh_source_info()
+        $msg =
+            "xpl-stat\n{\nhop=1\nsource="
+          . &xPL::get_xpl_mh_source_info()
           . "\ntarget=*\n}\nhbeat.app\n{\ninterval=$xpl_hbeat_interval\nport="
           . "$port\nremote-ip=$ip_address\n}\n";
 
         # check to see if all of the sockets are still valid
         &xPL::_handleStaleXplSockets();
-        if ($::Socket_Ports{'xpl_send'}{socka}) {
+        if ( $::Socket_Ports{'xpl_send'}{socka} ) {
             $xpl_send->set($msg);
             print "db6 xPL heartbeat: $msg.\n"
               if $main::Debug{xpl} and $main::Debug{xpl} == 6;
-        } else {
-            print "Error in xPL_Item::send_heartbeat.  send socket not active\n";
+        }
+        else {
+            print
+              "Error in xPL_Item::send_heartbeat.  send socket not active\n";
         }
     }
     else {
@@ -732,8 +743,8 @@ sub _handleStaleXplSockets {
             }
         }
 
-    # no need to check each hub "responder" socket as it is automatically
-    # reopened on receipt of client's heartbeat
+        # no need to check each hub "responder" socket as it is automatically
+        # reopened on receipt of client's heartbeat
     }
 }
 
@@ -1020,7 +1031,7 @@ sub tie_value_convertor {
 sub device_monitor {
     my ( $self, $monitor_info ) = @_;
     if ($monitor_info) {
-	my ($key,$value) = $monitor_info =~ /(\S+)\s*[:=]\s*(.+)/;
+        my ( $key, $value ) = $monitor_info =~ /(\S+)\s*[:=]\s*(.+)/;
         if ( !( $value or $value =~ /^0/ ) ) {
             $value = ($key) ? $key : $monitor_info;
             $key = 'device';
@@ -1040,8 +1051,9 @@ sub device_monitor {
 
 sub default_setstate {
     my ( $self, $state, $substate, $set_by ) = @_;
+
     # Send data, unless we are processing incoming data
-    return if !(ref $set_by) and $set_by =~ /^xpl/i;
+    return if !( ref $set_by ) and $set_by =~ /^xpl/i;
     my @parms;
 
     if ( $$self{_on_set_message} ) {
@@ -1068,7 +1080,7 @@ sub default_setstate {
         for my $section ( sort keys %{ $$self{sections} } ) {
             next
               unless $$self{sections}{$section} eq
-                  'send';    # Do not echo received data
+              'send';    # Do not echo received data
             push @parms, $section, $$self{$section};
         }
     }
@@ -1150,7 +1162,7 @@ sub ignore_message {
     my $ignore_message = 0;
     if ( $$self{_device_id_key} and $self->class_name ) {
         print
-"Device monitoring enabled: key=$$self{_device_id_key}, id=$$self{_device_id}, tested value="
+          "Device monitoring enabled: key=$$self{_device_id_key}, id=$$self{_device_id}, tested value="
           . $$p_data{ $self->class_name }{ $$self{_device_id_key} } . "\n"
           if $main::Debug{xpl};
         $ignore_message =
@@ -1171,18 +1183,18 @@ sub new {
     my ( $source, $deviceid ) = $p_source =~ /(\S+)?:([\S ]+)/;
     $source = $p_source unless $source;
     my $self = $class->SUPER::new($source);
-    if ($p_type)
-    {
-       $$self{sensor_type} = $p_type;
-       if ($p_type eq 'output') # define a default message to be sent out on a call to the "set" method
-       {
-         # the following can always be overwritten
-          $self->on_set_message('control.basic' => { 'z##current' => '$state' });
-       }
+    if ($p_type) {
+        $$self{sensor_type} = $p_type;
+        if ( $p_type eq 'output'
+          ) # define a default message to be sent out on a call to the "set" method
+        {
+            # the following can always be overwritten
+            $self->on_set_message(
+                'control.basic' => { 'z##current' => '$state' } );
+        }
     }
-    else
-    {
-       $$self{sensor_type} = 'input'; # set a default
+    else {
+        $$self{sensor_type} = 'input';    # set a default
     }
     my $statekey = 'current';
     $statekey = $p_statekey if $p_statekey;
@@ -1222,7 +1234,7 @@ sub ignore_message {
     my ( $self, $p_data ) = @_;
     return 1
       if $self->SUPER::ignore_message($p_data)
-    ;    # user xPL_Item's filter against deviceid
+      ;    # user xPL_Item's filter against deviceid
     return ( $$p_data{'sensor.basic'}{type} ne $$self{sensor_type} ) ? 1 : 0;
 }
 
@@ -1266,7 +1278,7 @@ sub ignore_message {
     my ( $self, $p_data ) = @_;
     return 1
       if $self->SUPER::ignore_message($p_data)
-    ;    # user xPL_Item's filter against deviceid
+      ;    # user xPL_Item's filter against deviceid
     return ( $$p_data{'ups.basic'} or $$p_data{'hbeat.app'} ) ? 0 : 1;
 }
 
@@ -1318,7 +1330,7 @@ sub ignore_message {
     my ( $self, $p_data ) = @_;
     return 1
       if $self->SUPER::ignore_message($p_data)
-    ;    # user xPL_Item's filter against deviceid
+      ;    # user xPL_Item's filter against deviceid
     if ( $$self{type} ) {
         return ( $$p_data{'x10.security'}{type} ne $$self{type} ) ? 1 : 0;
     }

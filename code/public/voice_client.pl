@@ -1,3 +1,4 @@
+
 =begin comment
 
 voice_client.pl
@@ -32,59 +33,60 @@ use Win32::Sound;
 use IO::Socket;
 use IO::Select;
 
-my ($host, $port, $VTxt, $VTxt_version, $VTxt_stream, $data, $password, $askforpass, $socket);
-my ($sel, $attempts, $connected, $rh, $buf, @ready);
-
+my (
+    $host, $port,     $VTxt,       $VTxt_version, $VTxt_stream,
+    $data, $password, $askforpass, $socket
+);
+my ( $sel, $attempts, $connected, $rh, $buf, @ready );
 
 # Get host and port
-($host, $port) = @ARGV[0] =~ /(.*):(.*)/;
+( $host, $port ) = @ARGV[0] =~ /(.*):(.*)/;
 $password = @ARGV[1];
 
-if ($host eq '') {
+if ( $host eq '' ) {
     print "Voice Server Host (i.e. machine.location.com): ";
     $host = <STDIN>;
     chop $host;
     $askforpass = 1;
 }
 
-if ($port eq '') {
+if ( $port eq '' ) {
     print "Voice Server port (i.e. 23): ";
     $port = <STDIN>;
     chop $port;
 }
 
-if ($askforpass == 1) {
+if ( $askforpass == 1 ) {
     print "Voice Server password (can be blank): ";
     $password = <STDIN>;
     chop $password;
 }
 
-
 # Open Speech Engine
-if ($VTxt = Win32::OLE->new('Sapi.SpVoice')) {
+if ( $VTxt = Win32::OLE->new('Sapi.SpVoice') ) {
     $VTxt_version = 'msv5';
-    $VTxt_stream = Win32::OLE->new('Sapi.SpFileStream');
-} else {
+    $VTxt_stream  = Win32::OLE->new('Sapi.SpFileStream');
+}
+else {
     $VTxt = Win32::OLE->new('Speech.VoiceText');
     die "Couldn't open speech engine" unless $VTxt;
-    $VTxt->Register("Local PC", "perl voice_client.pl");
+    $VTxt->Register( "Local PC", "perl voice_client.pl" );
 }
-
 
 $|++;
 
-
-$socket = new IO::Socket::INET (PeerAddr => $host, PeerPort => $port, Proto => 'tcp')
-    or die "\nCould not create socket to $host port $port: $!\n";
+$socket =
+  new IO::Socket::INET( PeerAddr => $host, PeerPort => $port, Proto => 'tcp' )
+  or die "\nCould not create socket to $host port $port: $!\n";
 
 $sel = new IO::Select($socket);
 
 &SendPassword($password);
 
 while (1) {
-    @ready = $sel->can_read(120);            #120 second time-out
+    @ready = $sel->can_read(120);    #120 second time-out
 
-    if (@ready == 0) {
+    if ( @ready == 0 ) {
         &ProcessData("Warning, socket stale.");
         &Reconnect;
     }
@@ -93,7 +95,8 @@ while (1) {
         $buf = <$rh>;
         if ($buf) {
             &ProcessData($buf);
-        } else {
+        }
+        else {
             close($rh);
             &Reconnect;
         }
@@ -101,22 +104,29 @@ while (1) {
 }
 
 sub Reconnect {
-#    &speak("Connection closed. Attempting to reconnect");
 
-    $attempts = 0;
+    #    &speak("Connection closed. Attempting to reconnect");
+
+    $attempts  = 0;
     $connected = 0;
-    while ($connected == 0) {
+    while ( $connected == 0 ) {
         $attempts = $attempts + 1;
-#        &speak("Attempt $attempts");
-        $socket = new IO::Socket::INET (PeerAddr => $host, PeerPort => $port, Proto => 'tcp');
-        if ($attempts == 10) {
+
+        #        &speak("Attempt $attempts");
+        $socket = new IO::Socket::INET(
+            PeerAddr => $host,
+            PeerPort => $port,
+            Proto    => 'tcp'
+        );
+        if ( $attempts == 10 ) {
             &speak("Failed to reconnect, ending program");
             sleep 2;
             die "Failed to reconnect to MisterHouse Voice Server";
         }
-        if ($socket ne '') { 
-            $connected = 1; 
-        } else {
+        if ( $socket ne '' ) {
+            $connected = 1;
+        }
+        else {
             sleep 10;
         }
     }
@@ -125,62 +135,60 @@ sub Reconnect {
 }
 
 sub SendPassword {
+
     #Need to add a can_write here - if we send too early, we can lock up
 
     my ($password) = @_;
-    $password = pack("u", "voiceclient:$password");
+    $password = pack( "u", "voiceclient:$password" );
     print $socket "Authorization: Basic $password\n\n";
 }
-
 
 sub ProcessData {
     my ($data) = @_;
     chop $data;
     chop $data;
 
-    if ($data eq 'PING') { 
-        $data = ''; 
-    }
-
-    if ($data eq 'RELOAD') { 
-        &Reconnect; 
+    if ( $data eq 'PING' ) {
         $data = '';
     }
 
-    if ($data =~ /PLAY: (.*)/) {
+    if ( $data eq 'RELOAD' ) {
+        &Reconnect;
+        $data = '';
+    }
+
+    if ( $data =~ /PLAY: (.*)/ ) {
         my $file = "$1";
-        if ($file ne '') {
-          my $time_now = sprintf("%2d:%02d",(localtime)[2],(localtime)[1]);
-          print "$time_now Playing file $file\n";
-          Win32::Sound::Play($file, 0 | SND_NOSTOP);
+        if ( $file ne '' ) {
+            my $time_now =
+              sprintf( "%2d:%02d", (localtime)[2], (localtime)[1] );
+            print "$time_now Playing file $file\n";
+            Win32::Sound::Play( $file, 0 | SND_NOSTOP );
         }
         $data = '';
     }
-    if ($data ne '') {
+    if ( $data ne '' ) {
         &speak($data);
     }
 }
 
-
 sub speak {
     my ($text) = @_;
 
-    my $time_now = sprintf("%2d:%02d",(localtime)[2],(localtime)[1]);
+    my $time_now = sprintf( "%2d:%02d", (localtime)[2], (localtime)[1] );
     print "$time_now $text\n";
-    if ($VTxt_version eq 'msv5') {
+    if ( $VTxt_version eq 'msv5' ) {
+
         #$text = "<pitch absmiddle='5'/> " . $text;
         #$text = "<rate absspeed='0'/> " . $text;
         #$text = "<volume level='100'/> " . $text;
         #$text = "<voice required='Name=Sample TTS voice'/> " . $text;
     }
-    $VTxt->Speak($text, 0);
+    $VTxt->Speak( $text, 0 );
 }
-
 
 sub uuencode {
     my ($string) = @_;
-    return pack("u", $string);
+    return pack( "u", $string );
 }
-
-
 

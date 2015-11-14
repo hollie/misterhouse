@@ -5,17 +5,22 @@
 
 $browser_test = new Voice_Cmd 'Test browser [1,2,3]';
 
-if ($state = said $browser_test) {
+if ( $state = said $browser_test) {
     print_log "Running browser test $state";
-    if ($state == 1) {
-        if (my $window = &sendkeys_find_window('Explorer', 'C:\Progra~1\Intern~1\IEXPLORE.EXE')) {
+    if ( $state == 1 ) {
+        if (
+            my $window = &sendkeys_find_window(
+                'Explorer', 'C:\Progra~1\Intern~1\IEXPLORE.EXE'
+            )
+          )
+        {
             my $keys = '\\ctrl\\o\\ctrl-\\';
-            &SendKeys($window, $keys, 1);
+            &SendKeys( $window, $keys, 1 );
         }
         sleep .4;
-        if (my $window = &sendkeys_find_window('Open')) {
+        if ( my $window = &sendkeys_find_window('Open') ) {
             my $keys = 'http://misterhouse.net\\ret\\';
-            &SendKeys($window, $keys, 1);
-        }	
+            &SendKeys( $window, $keys, 1 );
+        }
     }
 }

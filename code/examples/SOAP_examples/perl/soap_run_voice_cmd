@@ -13,10 +13,9 @@ my $soap = SOAP::Lite->uri('urn:mhsoap')->proxy($endpoint);
 
 my $som = $soap->RunVoiceCommand($vcmd);
 
-if ($som->fault) {
-	die "$0: Operation failed: " . $som->faultstring;
+if ( $som->fault ) {
+    die "$0: Operation failed: " . $som->faultstring;
 }
 
 exit;
-
 

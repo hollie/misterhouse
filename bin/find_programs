@@ -43,18 +43,23 @@ Copyright 1998-2001 Bruce Winter
 
 use strict;
 
-my($Pgm_Path, $Pgm_Name, $Version);
+my ( $Pgm_Path, $Pgm_Name, $Version );
+
 BEGIN {
-    ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
-    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ($Version) =
+      q$Revision$ =~ /: (\S+)/;   # Note: revision number is auto-updated by cvs
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
 }
 
 my %parms;
 use Getopt::Long;
-if (!&GetOptions(\%parms, 'h', 'help', 'all') or
-    !@ARGV or $parms{h} or $parms{help}) {
-    print<<eof;
+if (   !&GetOptions( \%parms, 'h', 'help', 'all' )
+    or !@ARGV
+    or $parms{h}
+    or $parms{help} )
+{
+    print <<eof;
 
 $Pgm_Name finds programs running on networked Windows computers.
 
@@ -84,42 +89,52 @@ eof
 use Win32::OLE;
 
 my @boxes = split ',', shift;
-my $find  = shift;
+my $find = shift;
 
 for my $box (@boxes) {
     print "\nFinding programs on $box\n";
-    my ($count, $results) = &wmi_processes($box);
+    my ( $count, $results ) = &wmi_processes($box);
     print "  Total processes: $count\n$results";
 }
 
 sub wmi_processes {
     my ($box) = @_;
     my $list;
-                                # Ignore common WIN98 and win2000 processes
+
+    # Ignore common WIN98 and win2000 processes
     my @ignore_list = qw(DDHELP EXPLORE HPSJVXD .DLL MPREXE MSTASK
-                         REXPROXY RPCSS RSRCMTR STIMON SYSTRAY TASKMON WINMGMT
-                         cmd csrss 4nt explore lsass mstask mgsys services spool smss svchost svcjpst system
-                         taskmgr winmgmt regsvc system winlogon
-                         defwatch rtvscan stisvc vptray OSA msgsys mgabg pdesk);
+      REXPROXY RPCSS RSRCMTR STIMON SYSTRAY TASKMON WINMGMT
+      cmd csrss 4nt explore lsass mstask mgsys services spool smss svchost svcjpst system
+      taskmgr winmgmt regsvc system winlogon
+      defwatch rtvscan stisvc vptray OSA msgsys mgabg pdesk);
 
     my $count = 0;
-    if(my $WMI = Win32::OLE->GetObject("WinMgmts:{impersonationLevel=impersonate}!//$box")) {
-        for my $process (Win32::OLE::in($WMI->InstancesOf('Win32_Process'))) {
+    if (
+        my $WMI = Win32::OLE->GetObject(
+            "WinMgmts:{impersonationLevel=impersonate}!//$box")
+      )
+    {
+        for my $process ( Win32::OLE::in( $WMI->InstancesOf('Win32_Process') ) )
+        {
             my $name = $process->{Name};
             $count++;
             next if !$parms{all} and grep $name =~ /$_/i, @ignore_list;
             next if $find and $name !~ /$find/i;
-            $list .= sprintf " PID:%5d,%5d Pgm:%-15s Threads:%3s Mem:%6.2f,%6.2f Date: %s\n",
-            $process->{ProcessID}, $process->{ParentProcessID}, $process->{Name}, $process->{ThreadCount}, 
-            $process->{WorkingSetSize}/10**6, $process->{PeakWorkingSetSize}/10**6, $process->{CreationDate};
+            $list .=
+              sprintf
+              " PID:%5d,%5d Pgm:%-15s Threads:%3s Mem:%6.2f,%6.2f Date: %s\n",
+              $process->{ProcessID}, $process->{ParentProcessID},
+              $process->{Name},      $process->{ThreadCount},
+              $process->{WorkingSetSize} / 10**6,
+              $process->{PeakWorkingSetSize} / 10**6, $process->{CreationDate};
         }
     }
     else {
-        print "WMI unable to connect to \\$box:" . Win32::OLE->LastError() . "\n";
+        print "WMI unable to connect to \\$box:"
+          . Win32::OLE->LastError() . "\n";
     }
-    return($count, $list);
+    return ( $count, $list );
 }
-
 
 #
 # $Log: find_programs,v $

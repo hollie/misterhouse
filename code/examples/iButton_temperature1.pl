@@ -23,13 +23,13 @@ IBUTTON, 1000000029a364,    ib_temp4
 
 =cut
 
-$v_iButton_readtemp  = new Voice_Cmd "Read the iButton temperature [1,2,3,4]";
+$v_iButton_readtemp = new Voice_Cmd "Read the iButton temperature [1,2,3,4]";
 
-my @ib_temps = ($ib_temp1, $ib_temp2, $ib_temp3, $ib_temp4);
+my @ib_temps = ( $ib_temp1, $ib_temp2, $ib_temp3, $ib_temp4 );
 
-                                # Read one temp
-if ($state = said $v_iButton_readtemp) {
-    my $ib = $ib_temps[$state - 1];
+# Read one temp
+if ( $state = said $v_iButton_readtemp) {
+    my $ib   = $ib_temps[ $state - 1 ];
     my $temp = read_temp $ib;
     speak "Temp from button 1 is $temp";
 }

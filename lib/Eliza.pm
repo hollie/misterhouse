@@ -1,28 +1,27 @@
 ###################################################################
 
 package Chatbot::Eliza;
- 
-# Copyright (c) 1997-1999 John Nolan. All rights reserved. 
-# This program is free software.  You may modify and/or 
-# distribute it under the same terms as Perl itself.  
-# This copyright notice must remain attached to the file.  
+
+# Copyright (c) 1997-1999 John Nolan. All rights reserved.
+# This program is free software.  You may modify and/or
+# distribute it under the same terms as Perl itself.
+# This copyright notice must remain attached to the file.
 #
-# You can run this file through either pod2man or pod2html 
-# to produce pretty documentation in manual or html file format 
+# You can run this file through either pod2man or pod2html
+# to produce pretty documentation in manual or html file format
 # (these utilities are part of the Perl 5 distribution).
 #
 # POD documentation is distributed throughout the actual code
-# so that it also functions as comments.  
+# so that it also functions as comments.
 
-require 5.003; 
+require 5.003;
 use strict;
 use Carp;
 
-use vars qw($VERSION @ISA $AUTOLOAD); 
+use vars qw($VERSION @ISA $AUTOLOAD);
 
 $VERSION = '0.93';
 sub Version { $VERSION; }
-
 
 ####################################################################
 # ---{ B E G I N   P O D   D O C U M E N T A T I O N }--------------
@@ -271,38 +270,36 @@ just by reading the source code.
 
 =cut
 
-
 my %fields = (
-	name 		=> 'Eliza',
-	scriptfile	=> '',
+    name       => 'Eliza',
+    scriptfile => '',
 
-	debug 		=> 0,
-	debug_text	=> '',
-	transform_text	=> '',
-	prompts_on	=> 1,
-	memory_on       => 1,
-	botprompt	=> '',
-	userprompt	=> '',
+    debug          => 0,
+    debug_text     => '',
+    transform_text => '',
+    prompts_on     => 1,
+    memory_on      => 1,
+    botprompt      => '',
+    userprompt     => '',
 
-	myrand          => sub { rand($_[0]); },
+    myrand => sub { rand( $_[0] ); },
 
-	keyranks	=> undef,
-	decomplist	=> undef,
-	reasmblist	=> undef,
-	reasmblist_for_memory	=> undef,
+    keyranks              => undef,
+    decomplist            => undef,
+    reasmblist            => undef,
+    reasmblist_for_memory => undef,
 
-	pre		=> undef,
-	post		=> undef,
-	synon		=> undef,
-	initial		=> undef,
-	final		=> undef,
-	quit		=> undef, 
+    pre     => undef,
+    post    => undef,
+    synon   => undef,
+    initial => undef,
+    final   => undef,
+    quit    => undef,
 
-	max_memory_size			=> 5,
-	likelihood_of_using_memory	=> 1,
-	memory				=> undef,
+    max_memory_size            => 5,
+    likelihood_of_using_memory => 1,
+    memory                     => undef,
 );
-
 
 ####################################################################
 # ---{ B E G I N   M E T H O D S }----------------------------------
@@ -332,57 +329,58 @@ of the format of the script file.
 =cut
 
 sub new {
-	my ($that,$name,$scriptfile) = @_;
-	my $class = ref($that) || $that;
-	my $self = {
-		_permitted => \%fields,
-		%fields,
-	};
-	bless $self, $class;
-	$self->_initialize($name,$scriptfile);
-	return $self;
-} # end method new
+    my ( $that, $name, $scriptfile ) = @_;
+    my $class = ref($that) || $that;
+    my $self = {
+        _permitted => \%fields,
+        %fields,
+    };
+    bless $self, $class;
+    $self->_initialize( $name, $scriptfile );
+    return $self;
+}    # end method new
 
 sub _initialize {
-	my ($self,$param1,$param2) = @_;
+    my ( $self, $param1, $param2 ) = @_;
 
-	if (defined $param1 and ref $param1 eq "HASH") {
+    if ( defined $param1 and ref $param1 eq "HASH" ) {
 
-		# Allow the calling program to pass in intial parameters
-		# as an anonymous hash
-		map { $self->{$_} = $param1->{$_}; } keys %$param1;
+        # Allow the calling program to pass in intial parameters
+        # as an anonymous hash
+        map { $self->{$_} = $param1->{$_}; } keys %$param1;
 
-		$self->parse_script_data( $self->{scriptfile} );
+        $self->parse_script_data( $self->{scriptfile} );
 
-	} else {
-		$self->name($param1) if $param1;
-		$self->parse_script_data($param2);
-	} 
+    }
+    else {
+        $self->name($param1) if $param1;
+        $self->parse_script_data($param2);
+    }
 
-	# Initialize the memory array ref at instantiation time,
-	# rather than at class definition time. 
-	# (Thanks to Randal Schwartz and Robert Chin for fixing this bug.) 
-	#
-	$self->{memory} = [];
+    # Initialize the memory array ref at instantiation time,
+    # rather than at class definition time.
+    # (Thanks to Randal Schwartz and Robert Chin for fixing this bug.)
+    #
+    $self->{memory} = [];
 }
 
 sub AUTOLOAD {
-	my $self = shift;
-	my $class = ref($self) || croak "$self is not an object : $!\n";
-	my $field = $AUTOLOAD;
-	$field =~ s/.*://; # Strip fully-qualified portion
+    my $self  = shift;
+    my $class = ref($self) || croak "$self is not an object : $!\n";
+    my $field = $AUTOLOAD;
+    $field =~ s/.*://;    # Strip fully-qualified portion
 
-	unless (exists $self->{"_permitted"}->{$field} ) {
-		croak "Can't access `$field' field in object of class $class : $!\n";
-	}
+    unless ( exists $self->{"_permitted"}->{$field} ) {
+        croak "Can't access `$field' field in object of class $class : $!\n";
+    }
 
-	if (@_) {
-		return $self->{$field} = shift;
-	} else {
-		return $self->{$field};
-	}
-} # end method AUTOLOAD
-
+    if (@_) {
+        return $self->{$field} = shift;
+    }
+    else {
+        return $self->{$field};
+    }
+}    # end method AUTOLOAD
 
 ####################################################################
 # --- command_interface ---
@@ -413,86 +411,83 @@ method and print out the contents of the Eliza instance's memory.
 =cut
 
 sub command_interface {
-	my $self = shift;
-	my ($user_input, $previous_user_input, $reply);
+    my $self = shift;
+    my ( $user_input, $previous_user_input, $reply );
 
-	$user_input = "";
+    $user_input = "";
 
-	$self->botprompt($self->name . ":\t");	# Eliza's prompt 
-	$self->userprompt("you:\t");     	# User's prompt
+    $self->botprompt( $self->name . ":\t" );    # Eliza's prompt
+    $self->userprompt("you:\t");                # User's prompt
 
-	# Seed the random number generator.
-	srand( time() ^ ($$ + ($$ << 15)) );  
+    # Seed the random number generator.
+    srand( time() ^ ( $$ + ( $$ << 15 ) ) );
 
-	# Print the Eliza prompt
-	print $self->botprompt if $self->prompts_on;
+    # Print the Eliza prompt
+    print $self->botprompt if $self->prompts_on;
 
-	# Print an initial greeting
-	print "$self->{initial}->[ int &{$self->{myrand}}( scalar @{ $self->{initial} } ) ]\n";
+    # Print an initial greeting
+    print
+      "$self->{initial}->[ int &{$self->{myrand}}( scalar @{ $self->{initial} } ) ]\n";
 
+    ###################################################################
+    # command loop.  This loop should go on forever,
+    # until we explicity break out of it.
+    #
+    while (1) {
 
-	###################################################################
-	# command loop.  This loop should go on forever,
-	# until we explicity break out of it. 
-	#
-	while (1) {
+        print $self->userprompt if $self->prompts_on;
 
-		print $self->userprompt if $self->prompts_on;
+        $previous_user_input = $user_input;
+        chomp( $user_input = <STDIN> );
 
-		$previous_user_input = $user_input;
-		chomp( $user_input = <STDIN> ); 
+        # If the user wants to quit,
+        # print out a farewell and quit.
+        if ( $self->_testquit($user_input) ) {
+            $reply =
+              "$self->{final}->[ int &{$self->{myrand}}( scalar @{$self->{final}} ) ]";
+            print $self->botprompt if $self->prompts_on;
+            print "$reply\n";
+            last;
+        }
 
+        # If the user enters the word "debug",
+        # then toggle on/off this Eliza's debug output.
+        if ( $user_input eq "debug" ) {
+            $self->debug( !$self->debug );
+            $user_input = $previous_user_input;
+        }
 
-		# If the user wants to quit,
-		# print out a farewell and quit.
-		if ($self->_testquit($user_input) ) {
-			$reply = "$self->{final}->[ int &{$self->{myrand}}( scalar @{$self->{final}} ) ]";
-			print $self->botprompt if $self->prompts_on;
-			print "$reply\n";
-			last;
-		} 
+        # If the user enters the word "memory",
+        # then use the _debug_memory method to dump out
+        # the current contents of Eliza's memory
+        if ( $user_input eq "memory" or $user_input eq "debug memory" ) {
+            print $self->_debug_memory();
+            redo;
+        }
 
-		# If the user enters the word "debug",
-		# then toggle on/off this Eliza's debug output.
-		if ($user_input eq "debug") {
-			$self->debug( ! $self->debug );
-			$user_input = $previous_user_input;
-		}
+        # If the user enters the word "debug that",
+        # then dump out the debugging of the
+        # most recent call to transform.
+        if ( $user_input eq "debug that" ) {
+            print $self->debug_text();
+            redo;
+        }
 
-		# If the user enters the word "memory",
-		# then use the _debug_memory method to dump out
-		# the current contents of Eliza's memory
-		if ($user_input eq "memory" or $user_input eq "debug memory") {
-			print $self->_debug_memory();
-			redo;
-		}
+        # Invoke the transform method
+        # to generate a reply.
+        $reply = $self->transform($user_input);
 
-		# If the user enters the word "debug that",
-		# then dump out the debugging of the 
-		# most recent call to transform.  
-		if ($user_input eq "debug that") {
-			print $self->debug_text();
-			redo;
-		}
+        # Print out the debugging text if debugging is set to on.
+        # This variable should have been set by the transform method.
+        print $self->debug_text if $self->debug;
 
-		# Invoke the transform method
-		# to generate a reply.
-		$reply = $self->transform( $user_input );
+        # Print the actual reply
+        print $self->botprompt if $self->prompts_on;
+        print "$reply\n";
 
+    }    # End UI command loop.
 
-		# Print out the debugging text if debugging is set to on.
-		# This variable should have been set by the transform method.
-		print $self->debug_text if $self->debug;
-
-		# Print the actual reply
-		print $self->botprompt if $self->prompts_on;
-		print "$reply\n";
-
-	} # End UI command loop.  
-
-
-} # End method command_interface
-
+}    # End method command_interface
 
 ####################################################################
 # --- preprocess ---
@@ -515,23 +510,23 @@ during the parse of the script.
 =cut
 
 sub preprocess {
-	my ($self,$string) = @_;
+    my ( $self, $string ) = @_;
 
-	my ($i, @wordsout, @wordsin, $keyword);
+    my ( $i, @wordsout, @wordsin, $keyword );
 
-	@wordsout = @wordsin = split / /, $string;
+    @wordsout = @wordsin = split / /, $string;
 
-	WORD: for ($i = 0; $i < @wordsin; $i++) {
-		foreach $keyword (keys %{ $self->{pre} }) {
-			if ($wordsin[$i] =~ /\b$keyword\b/i ) {
-				($wordsout[$i] = $wordsin[$i]) =~ s/$keyword/$self->{pre}->{$keyword}/ig;
-				next WORD;
-			}
-		}
-	}
-	return join ' ', @wordsout;
+    WORD: for ( $i = 0; $i < @wordsin; $i++ ) {
+        foreach $keyword ( keys %{ $self->{pre} } ) {
+            if ( $wordsin[$i] =~ /\b$keyword\b/i ) {
+                ( $wordsout[$i] = $wordsin[$i] ) =~
+                  s/$keyword/$self->{pre}->{$keyword}/ig;
+                next WORD;
+            }
+        }
+    }
+    return join ' ', @wordsout;
 }
-
 
 ####################################################################
 # --- postprocess ---
@@ -551,21 +546,22 @@ during the parse of the script.
 =cut
 
 sub postprocess {
-	my ($self,$string) = @_;
+    my ( $self, $string ) = @_;
 
-	my ($i, @wordsout, @wordsin, $keyword);
+    my ( $i, @wordsout, @wordsin, $keyword );
 
-	@wordsin = @wordsout = split (/ /, $string);
+    @wordsin = @wordsout = split( / /, $string );
 
-	WORD: for ($i = 0; $i < @wordsin; $i++) {
-		foreach $keyword (keys %{ $self->{post} }) {
-			if ($wordsin[$i] =~ /\b$keyword\b/i ) {
-				($wordsout[$i] = $wordsin[$i]) =~ s/$keyword/$self->{post}->{$keyword}/ig;
-				next WORD;
-			}
-		}
-	}
-	return join ' ', @wordsout;
+    WORD: for ( $i = 0; $i < @wordsin; $i++ ) {
+        foreach $keyword ( keys %{ $self->{post} } ) {
+            if ( $wordsin[$i] =~ /\b$keyword\b/i ) {
+                ( $wordsout[$i] = $wordsin[$i] ) =~
+                  s/$keyword/$self->{post}->{$keyword}/ig;
+                next WORD;
+            }
+        }
+    }
+    return join ' ', @wordsout;
 }
 
 ####################################################################
@@ -583,15 +579,14 @@ These words are listed in the script, under the keyword "quit".
 =cut
 
 sub _testquit {
-	my ($self,$string) = @_;
+    my ( $self, $string ) = @_;
 
-	my ($quitword, @wordsin);
+    my ( $quitword, @wordsin );
 
-	foreach $quitword (@{ $self->{quit} }) {
-		return 1 if ($string =~ /\b$quitword\b/i ) ;
-	}
+    foreach $quitword ( @{ $self->{quit} } ) {
+        return 1 if ( $string =~ /\b$quitword\b/i );
+    }
 }
-
 
 ####################################################################
 # --- _debug_memory ---
@@ -608,21 +603,21 @@ the contents of Eliza's memory stack.
 
 sub _debug_memory {
 
-	my ($self) = @_;
+    my ($self) = @_;
 
-	my $string = "\t";           
-	$string .= $#{ $self->memory } + 1;
-	$string .= " item(s) in memory stack:\n";
+    my $string = "\t";
+    $string .= $#{ $self->memory } + 1;
+    $string .= " item(s) in memory stack:\n";
 
-	# [Thanks to Roy Stephan for helping me adjust this bit]
-	#
-	foreach (@{ $self->memory } ) { 
+    # [Thanks to Roy Stephan for helping me adjust this bit]
+    #
+    foreach ( @{ $self->memory } ) {
 
-		my $line = $_; 
-		$string .= sprintf "\t\t->$line\n" ;
-	};
+        my $line = $_;
+        $string .= sprintf "\t\t->$line\n";
+    }
 
-	return $string;
+    return $string;
 }
 
 ####################################################################
@@ -673,147 +668,166 @@ inappropriately, it is ignored.
 
 =cut
 
-sub transform{
-	my ($self,$string,$use_memory) = @_;
+sub transform {
+    my ( $self, $string, $use_memory ) = @_;
 
-	# Initialize the debugging text buffer.
-	$self->debug_text('');
+    # Initialize the debugging text buffer.
+    $self->debug_text('');
 
-	$self->debug_text(sprintf "\t[Pulling string \"$string\" from memory.]\n")
-		if $use_memory;
+    $self->debug_text( sprintf "\t[Pulling string \"$string\" from memory.]\n" )
+      if $use_memory;
 
-	my ($i, @string_parts, $string_part, $rank, $goto, $reasmb, $keyword, 
-		$decomp, $this_decomp, $reasmbkey, @these_reasmbs,
-		@decomp_matches, $synonyms, $synonym_index);
+    my (
+        $i,           @string_parts, $string_part,   $rank,
+        $goto,        $reasmb,       $keyword,       $decomp,
+        $this_decomp, $reasmbkey,    @these_reasmbs, @decomp_matches,
+        $synonyms,    $synonym_index
+    );
 
-   # Default to a really low rank. 
-	$rank   = -2;
-	$reasmb = "";
-	$goto   = "";
+    # Default to a really low rank.
+    $rank   = -2;
+    $reasmb = "";
+    $goto   = "";
 
-	# First run the string through the preprocessor.  
-	$string = $self->preprocess( $string );
+    # First run the string through the preprocessor.
+    $string = $self->preprocess($string);
 
-	# Convert punctuation to periods.  We will assume that commas
-	# and certain conjunctions separate distinct thoughts/sentences.  
-	$string =~ s/[?!,]/./g;
-	$string =~ s/but/./g;
+    # Convert punctuation to periods.  We will assume that commas
+    # and certain conjunctions separate distinct thoughts/sentences.
+    $string =~ s/[?!,]/./g;
+    $string =~ s/but/./g;
 
-	# Split the string by periods into an array
-	@string_parts = split /\./, $string ;
+    # Split the string by periods into an array
+    @string_parts = split /\./, $string;
 
-	# Examine each part of the input string in turn.
-	STRING_PARTS: foreach $string_part (@string_parts) {
+    # Examine each part of the input string in turn.
+    STRING_PARTS: foreach $string_part (@string_parts) {
 
-	# Run through the whole list of keywords.  
-	KEYWORD: foreach $keyword (keys %{ $self->{decomplist} }) {
+        # Run through the whole list of keywords.
+        KEYWORD: foreach $keyword ( keys %{ $self->{decomplist} } ) {
 
-		# Check to see if the input string contains a keyword
-		# which outranks any we have found previously
-		# (On first loop, rank is set to -2.)
-		if ( ($string_part =~ /\b$keyword\b/i or $keyword eq $goto) 
-		     and 
-		     $rank < $self->{keyranks}->{$keyword}  
-		   ) 
-		{
-			# If we find one, then set $rank to equal 
-			# the rank of that keyword. 
-			$rank = $self->{keyranks}->{$keyword};
+            # Check to see if the input string contains a keyword
+            # which outranks any we have found previously
+            # (On first loop, rank is set to -2.)
+            if ( ( $string_part =~ /\b$keyword\b/i or $keyword eq $goto )
+                and $rank < $self->{keyranks}->{$keyword} )
+            {
+                # If we find one, then set $rank to equal
+                # the rank of that keyword.
+                $rank = $self->{keyranks}->{$keyword};
 
-			$self->debug_text($self->debug_text . sprintf "\t$rank> $keyword");
+                $self->debug_text(
+                    $self->debug_text . sprintf "\t$rank> $keyword" );
 
-			# Now let's check all the decomposition rules for that keyword. 
-			DECOMP: foreach $decomp (@{ $self->{decomplist}->{$keyword} }) {
+                # Now let's check all the decomposition rules for that keyword.
+                DECOMP:
+                foreach $decomp ( @{ $self->{decomplist}->{$keyword} } ) {
 
-				# Change '*' to '\b(.*)\b' in this decomposition rule,
-				# so we can use it for regular expressions.  Later, 
-				# we will want to isolate individual matches to each wildcard. 
-				($this_decomp = $decomp) =~ s/\s*\*\s*/\\b\(\.\*\)\\b/g;
+                    # Change '*' to '\b(.*)\b' in this decomposition rule,
+                    # so we can use it for regular expressions.  Later,
+                    # we will want to isolate individual matches to each wildcard.
+                    ( $this_decomp = $decomp ) =~ s/\s*\*\s*/\\b\(\.\*\)\\b/g;
 
-				# If this docomposition rule contains a word which begins with '@', 
-				# then the script also contained some synonyms for that word.  
-				# Find them all using %synon and generate a regular expression 
-				# containing all of them. 
-				if ($this_decomp =~ /\@/ ) {
-					($synonym_index = $this_decomp) =~ s/.*\@(\w*).*/$1/i ;
-					$synonyms = join ('|', @{ $self->{synon}->{$synonym_index} });
-					$this_decomp =~ s/(.*)\@$synonym_index(.*)/$1($synonym_index\|$synonyms)$2/g;
-				}
+                    # If this docomposition rule contains a word which begins with '@',
+                    # then the script also contained some synonyms for that word.
+                    # Find them all using %synon and generate a regular expression
+                    # containing all of them.
+                    if ( $this_decomp =~ /\@/ ) {
+                        ( $synonym_index = $this_decomp ) =~ s/.*\@(\w*).*/$1/i;
+                        $synonyms =
+                          join( '|', @{ $self->{synon}->{$synonym_index} } );
+                        $this_decomp =~
+                          s/(.*)\@$synonym_index(.*)/$1($synonym_index\|$synonyms)$2/g;
+                    }
 
-				$self->debug_text($self->debug_text .  sprintf "\n\t\t: $decomp");
+                    $self->debug_text(
+                        $self->debug_text . sprintf "\n\t\t: $decomp" );
 
-				# Using the regular expression we just generated, 
-				# match against the input string.  Use empty "()"'s to 
-				# eliminate warnings about uninitialized variables. 
-				if ($string_part =~ /$this_decomp()()()()()()()()()()/i) {
+                    # Using the regular expression we just generated,
+                    # match against the input string.  Use empty "()"'s to
+                    # eliminate warnings about uninitialized variables.
+                    if ( $string_part =~ /$this_decomp()()()()()()()()()()/i ) {
 
-					# If this decomp rule matched the string, 
-					# then create an array, so that we can refer to matches
-					# to individual wildcards.  Use '0' as a placeholder
-					# (we don't want to refer to any "zeroth" wildcard).
-					@decomp_matches = ("0", $1, $2, $3, $4, $5, $6, $7, $8, $9); 
-					$self->debug_text($self->debug_text . sprintf " : @decomp_matches\n");
+                        # If this decomp rule matched the string,
+                        # then create an array, so that we can refer to matches
+                        # to individual wildcards.  Use '0' as a placeholder
+                        # (we don't want to refer to any "zeroth" wildcard).
+                        @decomp_matches =
+                          ( "0", $1, $2, $3, $4, $5, $6, $7, $8, $9 );
+                        $self->debug_text( $self->debug_text
+                              . sprintf " : @decomp_matches\n" );
 
-					# Using the keyword and the decomposition rule,
-					# reconstruct a key for the list of reassamble rules.
-					$reasmbkey = join ($;,$keyword,$decomp);
+                        # Using the keyword and the decomposition rule,
+                        # reconstruct a key for the list of reassamble rules.
+                        $reasmbkey = join( $;, $keyword, $decomp );
 
-					# Get the list of possible reassembly rules for this key. 
-					#
-					if (defined $use_memory and $#{ $self->{reasmblist_for_memory}->{$reasmbkey} } >= 0) {
+                        # Get the list of possible reassembly rules for this key.
+                        #
+                        if ( defined $use_memory
+                            and
+                            $#{ $self->{reasmblist_for_memory}->{$reasmbkey} }
+                            >= 0 )
+                        {
 
-						# If this transform function was invoked with the memory flag, 
-						# and there are in fact reassembly rules which are appropriate
-						# for pulling out of memory, then include them.  
-						@these_reasmbs = @{ $self->{reasmblist_for_memory}->{$reasmbkey} }
+                            # If this transform function was invoked with the memory flag,
+                            # and there are in fact reassembly rules which are appropriate
+                            # for pulling out of memory, then include them.
+                            @these_reasmbs =
+                              @{ $self->{reasmblist_for_memory}->{$reasmbkey} }
 
-					} else {
+                        }
+                        else {
 
-						# Otherwise, just use the plain reassembly rules.
-						# (This is what normally happens.)
-						@these_reasmbs = @{ $self->{reasmblist}->{$reasmbkey} }
-					}
+                            # Otherwise, just use the plain reassembly rules.
+                            # (This is what normally happens.)
+                            @these_reasmbs =
+                              @{ $self->{reasmblist}->{$reasmbkey} };
+                        }
 
-					# Pick out a reassembly rule at random. 
-					$reasmb = $these_reasmbs[ int &{$self->{myrand}}( scalar @these_reasmbs ) ];
+                        # Pick out a reassembly rule at random.
+                        $reasmb = $these_reasmbs[ int &{ $self->{myrand} }
+                          ( scalar @these_reasmbs ) ];
 
-					$self->debug_text($self->debug_text . sprintf "\t\t-->  $reasmb\n");
+                        $self->debug_text(
+                            $self->debug_text . sprintf "\t\t-->  $reasmb\n" );
 
-					# If the reassembly rule we picked contains the word "goto",
-					# then we start over with a new keyword.  Set $keyword to equal
-					# that word, and start the whole loop over. 
-					if ($reasmb =~ m/^goto\s(\w*).*/i) {
-						$self->debug_text($self->debug_text . sprintf "\$1 = $1\n");
-						$goto = $keyword = $1;
-						$rank = -2;
-						redo KEYWORD;
-					}
+                        # If the reassembly rule we picked contains the word "goto",
+                        # then we start over with a new keyword.  Set $keyword to equal
+                        # that word, and start the whole loop over.
+                        if ( $reasmb =~ m/^goto\s(\w*).*/i ) {
+                            $self->debug_text(
+                                $self->debug_text . sprintf "\$1 = $1\n" );
+                            $goto = $keyword = $1;
+                            $rank = -2;
+                            redo KEYWORD;
+                        }
 
-					# Otherwise, using the matches to wildcards which we stored above,
-					# insert words from the input string back into the reassembly rule. 
-					# [THANKS to XXX for submitting a buxfix here]
-					for ($i=1; $i <= $#decomp_matches; $i++) {
-						$decomp_matches[$i] = $self->postprocess( $decomp_matches[$i] );
-						$decomp_matches[$i] =~ s/([,;?!]|\.*)$//;
-						$reasmb =~ s/\($i\)/$decomp_matches[$i]/g;
-					}
+                        # Otherwise, using the matches to wildcards which we stored above,
+                        # insert words from the input string back into the reassembly rule.
+                        # [THANKS to XXX for submitting a buxfix here]
+                        for ( $i = 1; $i <= $#decomp_matches; $i++ ) {
+                            $decomp_matches[$i] =
+                              $self->postprocess( $decomp_matches[$i] );
+                            $decomp_matches[$i] =~ s/([,;?!]|\.*)$//;
+                            $reasmb =~ s/\($i\)/$decomp_matches[$i]/g;
+                        }
 
-					# Move on to the next keyword.  If no other keywords match,
-					# then we'll end up actually using the $reasmb string 
-					# we just generated above.
-					next KEYWORD ;
+                        # Move on to the next keyword.  If no other keywords match,
+                        # then we'll end up actually using the $reasmb string
+                        # we just generated above.
+                        next KEYWORD;
 
-				}  # End if ($string_part =~ /$this_decomp/i) 
+                    }    # End if ($string_part =~ /$this_decomp/i)
 
-				$self->debug_text($self->debug_text . sprintf "\n");
+                    $self->debug_text( $self->debug_text . sprintf "\n" );
 
-			} # End DECOMP: foreach $decomp (@{ $self->{decomplist}->{$keyword} }) 
+                } # End DECOMP: foreach $decomp (@{ $self->{decomplist}->{$keyword} })
 
-		} # End if ( ($string_part =~ /\b$keyword\b/i or $keyword eq $goto) 
+            }  # End if ( ($string_part =~ /\b$keyword\b/i or $keyword eq $goto)
 
-	} # End KEYWORD: foreach $keyword (keys %{ $self->{decomplist})
-	
-	} # End STRING_PARTS: foreach $string_part (@string_parts) {
+        }    # End KEYWORD: foreach $keyword (keys %{ $self->{decomplist})
+
+    }    # End STRING_PARTS: foreach $string_part (@string_parts) {
 
 =head2 How memory is used
 
@@ -846,58 +860,63 @@ script data only has 4 such items.
 
 =cut
 
-	if ($reasmb eq "") {
+    if ( $reasmb eq "" ) {
 
-		# If all else fails, call this method recursively 
-		# and make sure that it has something to parse. 
-		# Use a string from memory if anything is available. 
-		#
-		if ($#{ $self->memory } >= 0 and &{$self->{myrand}}() <= $self->likelihood_of_using_memory) {
+        # If all else fails, call this method recursively
+        # and make sure that it has something to parse.
+        # Use a string from memory if anything is available.
+        #
+        if ( $#{ $self->memory } >= 0
+            and &{ $self->{myrand} }() <= $self->likelihood_of_using_memory )
+        {
 
-			$reasmb =  $self->transform( shift @{ $self->memory }, "use memory" );
+            $reasmb =
+              $self->transform( shift @{ $self->memory }, "use memory" );
 
-		} elsif(!$string) {
-			$reasmb =  $self->transform("xblank");
-		} else {
-			$reasmb =  $self->transform("xnone");
-		}
+        }
+        elsif ( !$string ) {
+            $reasmb = $self->transform("xblank");
+        }
+        else {
+            $reasmb = $self->transform("xnone");
+        }
 
-	} elsif ($self->memory_on) {   
+    }
+    elsif ( $self->memory_on ) {
 
-		# If memory is switched on, then we handle memory. 
+        # If memory is switched on, then we handle memory.
 
-		# Now that we have successfully transformed this string, 
-		# push it onto the end of the memory stack... unless, of course,
-		# that's where we got it from in the first place, or if the rank
-		# is not the kind we remember.
-		if (
-				$#{ $self->{reasmblist_for_memory}->{$reasmbkey} } >= 0
-				and
-				not defined $use_memory
-		) {
+        # Now that we have successfully transformed this string,
+        # push it onto the end of the memory stack... unless, of course,
+        # that's where we got it from in the first place, or if the rank
+        # is not the kind we remember.
+        if ( $#{ $self->{reasmblist_for_memory}->{$reasmbkey} } >= 0
+            and not defined $use_memory )
+        {
 
-			push  @{ $self->memory },$string ;
-		}
+            push @{ $self->memory }, $string;
+        }
 
-		# Shift out the least-recent item from the bottom 
-		# of the memory stack if the stack exceeds the max size. 
-		shift @{ $self->memory } if $#{ $self->memory } >= $self->max_memory_size;
+        # Shift out the least-recent item from the bottom
+        # of the memory stack if the stack exceeds the max size.
+        shift @{ $self->memory }
+          if $#{ $self->memory } >= $self->max_memory_size;
 
-		$self->debug_text($self->debug_text 
-			. sprintf("\t%d item(s) in memory.\n", $#{ $self->memory } + 1 ) ) ;
+        $self->debug_text( $self->debug_text
+              . sprintf( "\t%d item(s) in memory.\n", $#{ $self->memory } + 1 )
+        );
 
-	} # End if ($reasmb eq "")
+    }    # End if ($reasmb eq "")
 
-	$reasmb =~ tr/ / /s;       # Eliminate any duplicate space characters. 
-	$reasmb =~ s/[ ][?]$/?/;   # Eliminate any spaces before the question mark. 
+    $reasmb =~ tr/ / /s;        # Eliminate any duplicate space characters.
+    $reasmb =~ s/[ ][?]$/?/;    # Eliminate any spaces before the question mark.
 
-	# Save the return string so that forgetful calling programs
-	# can ask the bot what the last reply was. 
-	$self->transform_text($reasmb);
+    # Save the return string so that forgetful calling programs
+    # can ask the bot what the last reply was.
+    $self->transform_text($reasmb);
 
-	return $reasmb ;
+    return $reasmb;
 }
-
 
 ####################################################################
 # --- parse_script_data ---
@@ -1011,105 +1030,109 @@ Six other arrays are created: C<%reasm_for_memory, %pre, %post,
 
 sub parse_script_data {
 
-	my ($self,$scriptfile) = @_;
-	my @scriptlines;
+    my ( $self, $scriptfile ) = @_;
+    my @scriptlines;
 
-	if ($scriptfile) {
+    if ($scriptfile) {
 
-		# If we have an external script file, open it 
-		# and read it in (the whole thing, all at once). 
-		open  (SCRIPTFILE, "<$scriptfile") 
-			or die "Could not read from file $scriptfile : $!\n";
-		@scriptlines = <SCRIPTFILE>; # read in script data 
-		$self->scriptfile($scriptfile);
-		close (SCRIPTFILE);
+        # If we have an external script file, open it
+        # and read it in (the whole thing, all at once).
+        open( SCRIPTFILE, "<$scriptfile" )
+          or die "Could not read from file $scriptfile : $!\n";
+        @scriptlines = <SCRIPTFILE>;    # read in script data
+        $self->scriptfile($scriptfile);
+        close(SCRIPTFILE);
 
-	} else {
+    }
+    else {
 
-		# Otherwise, read in the data from the bottom 
-		# of this file.  This data might be read several
-		# times, so we save the offset pointer and
-		# reset it when we're done.
-		my $where= tell(DATA);
-		@scriptlines = <DATA>;  # read in script data 
-		seek(DATA, $where, 0);
-		$self->scriptfile('');
-	}
+        # Otherwise, read in the data from the bottom
+        # of this file.  This data might be read several
+        # times, so we save the offset pointer and
+        # reset it when we're done.
+        my $where = tell(DATA);
+        @scriptlines = <DATA>;    # read in script data
+        seek( DATA, $where, 0 );
+        $self->scriptfile('');
+    }
 
-	my ($entrytype, $entry, $key, $value) ;
-	my $thiskey    = ""; 
-	my $thisdecomp = "";
+    my ( $entrytype, $entry, $key, $value );
+    my $thiskey    = "";
+    my $thisdecomp = "";
 
-	############################################################
-	# Examine each line of script data.  
-	for (@scriptlines) { 
+    ############################################################
+    # Examine each line of script data.
+    for (@scriptlines) {
 
-		# Skip comments and lines with only whitespace.
-		next if (/^\s*#/ || /^\s*$/);  
+        # Skip comments and lines with only whitespace.
+        next if ( /^\s*#/ || /^\s*$/ );
 
-		# Split entrytype and entry, using a colon as the delimiter.
-		($entrytype, $entry) = $_ =~ m/^\s*(\S*)\s*:\s*(.*)\s*$/;
+        # Split entrytype and entry, using a colon as the delimiter.
+        ( $entrytype, $entry ) = $_ =~ m/^\s*(\S*)\s*:\s*(.*)\s*$/;
 
-		# Case loop, based on the entrytype.
-		for ($entrytype) {   
+        # Case loop, based on the entrytype.
+        for ($entrytype) {
 
-			/quit/		and do { push @{ $self->{quit}    }, $entry; last; };
-			/initial/	and do { push @{ $self->{initial} }, $entry; last; };
-			/final/		and do { push @{ $self->{final}   }, $entry; last; };
+            /quit/    and do { push @{ $self->{quit} },    $entry; last; };
+            /initial/ and do { push @{ $self->{initial} }, $entry; last; };
+            /final/   and do { push @{ $self->{final} },   $entry; last; };
 
-			/decomp/	and do { 
-						die "$0: error parsing script:  decomposition rule with no keyword.\n" 
-							if $thiskey eq "";
-						$thisdecomp = join($;,$thiskey,$entry);
-						push @{ $self->{decomplist}->{$thiskey} }, $entry ; 
-						last; 
-					};
+            /decomp/ and do {
+                die
+                  "$0: error parsing script:  decomposition rule with no keyword.\n"
+                  if $thiskey eq "";
+                $thisdecomp = join( $;, $thiskey, $entry );
+                push @{ $self->{decomplist}->{$thiskey} }, $entry;
+                last;
+            };
 
-			/reasmb/	and do { 
-						die "$0: error parsing script:  reassembly rule with no decomposition rule.\n" 
-							if $thisdecomp eq "";
-						push @{ $self->{reasmblist}->{$thisdecomp} }, $entry ;  
-						last; 
-					};
+            /reasmb/ and do {
+                die
+                  "$0: error parsing script:  reassembly rule with no decomposition rule.\n"
+                  if $thisdecomp eq "";
+                push @{ $self->{reasmblist}->{$thisdecomp} }, $entry;
+                last;
+            };
 
-			/reasm_for_memory/	and do { 
-						die "$0: error parsing script:  reassembly rule with no decomposition rule.\n" 
-							if $thisdecomp eq "";
-						push @{ $self->{reasmblist_for_memory}->{$thisdecomp} }, $entry ;  
-						last; 
-					};
+            /reasm_for_memory/ and do {
+                die
+                  "$0: error parsing script:  reassembly rule with no decomposition rule.\n"
+                  if $thisdecomp eq "";
+                push @{ $self->{reasmblist_for_memory}->{$thisdecomp} }, $entry;
+                last;
+            };
 
-			# The entrytypes below actually expect to see a key and value
-			# pair in the entry, so we split them out.  The first word, 
-			# separated by a space, is the key, and everything else is 
-			# an array of values.
+            # The entrytypes below actually expect to see a key and value
+            # pair in the entry, so we split them out.  The first word,
+            # separated by a space, is the key, and everything else is
+            # an array of values.
 
-			($key,$value) = $entry =~ m/^\s*(\S*)\s*(.*)/;
+            ( $key, $value ) = $entry =~ m/^\s*(\S*)\s*(.*)/;
 
-			/pre/		and do { $self->{pre}->{$key}   = $value; last; };
-			/post/		and do { $self->{post}->{$key}  = $value; last; };
+            /pre/  and do { $self->{pre}->{$key}  = $value; last; };
+            /post/ and do { $self->{post}->{$key} = $value; last; };
 
-			# synon expects an array, so we split $value into an array, using " " as delimiter.  
-			/synon/		and do { $self->{synon}->{$key} = [ split /\ /, $value ]; last; };
+            # synon expects an array, so we split $value into an array, using " " as delimiter.
+            /synon/
+              and do { $self->{synon}->{$key} = [ split /\ /, $value ]; last; };
 
-			/key/		and do { 
-						$thiskey = $key; 
-						$thisdecomp = "";
-						$self->{keyranks}->{$thiskey} = $value ; 
-						last;
-					};
-	
-		}  # End for ($entrytype) (case loop) 
+            /key/ and do {
+                $thiskey                      = $key;
+                $thisdecomp                   = "";
+                $self->{keyranks}->{$thiskey} = $value;
+                last;
+            };
 
-	}  # End for (@scriptlines)
+        }    # End for ($entrytype) (case loop)
 
-}  # End of method parse_script_data
+    }    # End for (@scriptlines)
+
+}    # End of method parse_script_data
 
 # ---{ E N D   M E T H O D S }----------------------------------
 ####################################################################
 
-1;  	# Return a true value.  
-
+1;    # Return a true value.
 
 =head1 AUTHOR
 
@@ -1120,25 +1143,23 @@ Script format devised by Charles Hayden.
 
 =cut
 
-
-
 ####################################################################
 # ---{ B E G I N   D E F A U L T   S C R I P T   D A T A }----------
 #
-#  This script was prepared by Chris Hayden.  Hayden's Eliza 
-#  program was written in Java, however, it attempted to match 
-#  the functionality of Weizenbaum's original program as closely 
-#  as possible.  
+#  This script was prepared by Chris Hayden.  Hayden's Eliza
+#  program was written in Java, however, it attempted to match
+#  the functionality of Weizenbaum's original program as closely
+#  as possible.
 #
-#  Hayden's script format was quite different from Weizenbaum's, 
-#  but it maintained the same content.  I have adapted Hayden's 
-#  script format, since it was simple and convenient enough 
-#  for my purposes.  
+#  Hayden's script format was quite different from Weizenbaum's,
+#  but it maintained the same content.  I have adapted Hayden's
+#  script format, since it was simple and convenient enough
+#  for my purposes.
 #
-#  I've made small modifications here and there.  
+#  I've made small modifications here and there.
 #
 
-# We use the token __DATA__ rather than __END__, 
+# We use the token __DATA__ rather than __END__,
 # so that all this data is visible within the current package.
 
 __DATA__
