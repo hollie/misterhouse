@@ -21,23 +21,31 @@
 
 use strict;
 
-my ($Pgm_Path, $Pgm_Name);
+my ( $Pgm_Path, $Pgm_Name );
+
 BEGIN {
-    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
 }
 
-my ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+my ($Version) =
+  q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
 
 #print "Command: $Pgm_Name @ARGV\n";
 #print "Version: $Version\n";
 
 use Getopt::Long;
 my %parms;
-if (!&GetOptions(\%parms, "h", "help", "v", "city:s", "zone:s", "state:s",
-                 "data=s", "no_log") or @ARGV or
-    ($parms{h} or $parms{help})) {
-    print<<eof;
+if (
+    !&GetOptions(
+        \%parms,   "h",      "help", "v", "city:s", "zone:s",
+        "state:s", "data=s", "no_log"
+    )
+    or @ARGV
+    or ( $parms{h} or $parms{help} )
+  )
+{
+    print <<eof;
 
 $Pgm_Name gets weather info
 
@@ -63,9 +71,9 @@ Usage:
 
 eof
     exit;
-  }
+}
 
-my ($conditions, $forecast, %data);
+my ( $conditions, $forecast, %data );
 my %config_parms;
 
 $parms{city}  = 'Rochester'  unless $parms{city};
@@ -76,48 +84,57 @@ $data{conditions}++ if $parms{data} eq 'all' or $parms{data} eq 'conditions';
 $data{forecast}++   if $parms{data} eq 'all' or $parms{data} eq 'forecast';
 
 use vars '$opt_v';
-$opt_v++ if $parms{v};          # Geo::Weather looks at this
+$opt_v++ if $parms{v};    # Geo::Weather looks at this
 
 my $caller = caller;
-my $return_flag = ($caller and $caller ne 'main') ? 1 : 0;
+my $return_flag = ( $caller and $caller ne 'main' ) ? 1 : 0;
 
 #use my_lib "$Pgm_Path/../lib/site"; # See note in lib/mh_perl2exe.pl for lib -> my_lib explaination
-BEGIN { eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'" } # Use BEGIN eval to keep perl2exe happy
+BEGIN {
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'";
+}                         # Use BEGIN eval to keep perl2exe happy
 
-require 'handy_utilities.pl';       # For read_mh_opts funcion
-&main::read_mh_opts(\%config_parms, $Pgm_Path);
+require 'handy_utilities.pl';    # For read_mh_opts funcion
+&main::read_mh_opts( \%config_parms, $Pgm_Path );
 
 use Geo::WeatherNOAA;
 
 $Geo::WeatherNOAA::proxy_from_env = 1;
 
-if ($data{conditions}) {
+if ( $data{conditions} ) {
     print "\nGetting the current weather for $parms{city}, $parms{state}\n";
-    $conditions = print_current($parms{city}, $parms{state},undef,undef,undef,1);
+    $conditions =
+      print_current( $parms{city}, $parms{state}, undef, undef, undef, 1 );
     $conditions =~ s/&deg;F/ degrees /;
     $conditions =~ s/ in\./ inches. /g;
 }
 
-if ($data{forecast}) {
+if ( $data{forecast} ) {
     print "Getting the forecast for $parms{zone}, $parms{state}\n";
-    $forecast = print_forecast($parms{zone}, $parms{state},undef,undef,undef,1);
-    $forecast =~ s/Geo::WeatherNOAA.pm .+\n//; # Drop geo version
-    #$forecast =~ s/\.\.\./\. /g;
+    $forecast =
+      print_forecast( $parms{zone}, $parms{state}, undef, undef, undef, 1 );
+    $forecast =~ s/Geo::WeatherNOAA.pm .+\n//;    # Drop geo version
+                                                  #$forecast =~ s/\.\.\./\. /g;
     $forecast =~ s/(\()(EDT|EST|CDT|CST|MDT|MST|PDT|PST)(\) *)//g;
 }
 
-unless ($parms{no_log}) {
-    file_write("$config_parms{data_dir}/web/weather_conditions.txt", $conditions) if $data{conditions};
-    file_write("$config_parms{data_dir}/web/weather_forecast.txt", $forecast) if $data{forecast};
-                                # Hmmm, this fails from a mh run command :(
-#    system("\\mh\\bin\\house.bat show internet weather data");
-#    system("\\mh\\bin\\speak hi");
-#    sleep 3;
+unless ( $parms{no_log} ) {
+    file_write( "$config_parms{data_dir}/web/weather_conditions.txt",
+        $conditions )
+      if $data{conditions};
+    file_write( "$config_parms{data_dir}/web/weather_forecast.txt", $forecast )
+      if $data{forecast};
+
+    # Hmmm, this fails from a mh run command :(
+    #    system("\\mh\\bin\\house.bat show internet weather data");
+    #    system("\\mh\\bin\\speak hi");
+    #    sleep 3;
 }
 
 if ($return_flag) {
-                                # Dang ... a 'do pgm' can only return a scalar, not a list :(
-    if ($data{conditions}) {
+
+    # Dang ... a 'do pgm' can only return a scalar, not a list :(
+    if ( $data{conditions} ) {
         return $conditions;
     }
     else {
@@ -125,13 +142,14 @@ if ($return_flag) {
     }
 }
 else {
-    if ($data{conditions}) {
+    if ( $data{conditions} ) {
         print "\nCurrent conditions: $conditions\n";
     }
-    if ($data{forecast}) {
+    if ( $data{forecast} ) {
         print "\nThe forecast is $forecast\n\n";
-#       print "The extended forecast is $forecast{EXTENDED}\n\n";
-#       print "This information was updated $forecast{Date} and covers $forecast{Coverage}\n\n";
+
+        #       print "The extended forecast is $forecast{EXTENDED}\n\n";
+        #       print "This information was updated $forecast{Date} and covers $forecast{Coverage}\n\n";
     }
 }
 

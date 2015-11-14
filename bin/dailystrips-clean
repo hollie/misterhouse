@@ -12,7 +12,6 @@
 # Current Revision: 1.0.1
 #
 
-
 # Set up
 use strict;
 no strict qw(refs);
@@ -20,24 +19,22 @@ no strict qw(refs);
 use POSIX qw(strftime);
 use Getopt::Long;
 
-
 # Variables
-my (%options, $version, $time_today, @files);
+my ( %options, $version, $time_today, @files );
 
 $version = "1.0.1";
 
 $time_today = time;
 
-
 # Get options
-GetOptions(\%options, 'quiet|q','verbose|v','test|t','dir=s','archive|a','version|v','help|h')
-	or exit 1;
-
+GetOptions(
+    \%options, 'quiet|q',   'verbose|v', 'test|t',
+    'dir=s',   'archive|a', 'version|v', 'help|h'
+) or exit 1;
 
 # Help and version override anything else
-if ($options{'help'}) {
-	print
-"Usage: $0 [OPTIONS] DAYS
+if ( $options{'help'} ) {
+    print "Usage: $0 [OPTIONS] DAYS
 DAYS is the number of days to keep.
 
 Options:
@@ -52,121 +49,113 @@ Options:
 
 Bugs and comments to dailystrips\@amedico.dhs.org\n";
 
-	exit;
+    exit;
 }
 
-if ($options{'version'}) {
-		print "dailystrips-clean version $version\n";
-		exit;
+if ( $options{'version'} ) {
+    print "dailystrips-clean version $version\n";
+    exit;
 }
 
-
-unless (defined $ARGV[0]) {
-	die "Error: no number of days specified\n";
-} else {
-	$options{'days'} = $ARGV[0];
-	if ($options{'days'} =~ m/\D/) {
-		die "Error:number of days must be numeric\n";
-	}
-	
-	if ($options{'days'} =~ m/\D/) {
-		die "Error:number of days must be numeric\n";
-	}
+unless ( defined $ARGV[0] ) {
+    die "Error: no number of days specified\n";
 }
+else {
+    $options{'days'} = $ARGV[0];
+    if ( $options{'days'} =~ m/\D/ ) {
+        die "Error:number of days must be numeric\n";
+    }
 
+    if ( $options{'days'} =~ m/\D/ ) {
+        die "Error:number of days must be numeric\n";
+    }
+}
 
 # verbose overrides quiet
-if ($options{'verbose'} and $options{'quiet'}) {
-	undef $options{'quiet'};
+if ( $options{'verbose'} and $options{'quiet'} ) {
+    undef $options{'quiet'};
 }
-
-
 
 # get list of existing files
-if ($options{'dir'} and (not $options{'dir'} =~ /\/$/)) {
-	$options{'dir'} .= "/";
+if ( $options{'dir'} and ( not $options{'dir'} =~ /\/$/ ) ) {
+    $options{'dir'} .= "/";
 }
 
-@files = grep(/\d{4}\.\d{2}\.\d{2}/, glob("$options{'dir'}*"));
+@files = grep( /\d{4}\.\d{2}\.\d{2}/, glob("$options{'dir'}*") );
 for (@files) {
-	if ($options{'verbose'}) {
-		print "Existing file: $_\n";
-	}
+    if ( $options{'verbose'} ) {
+        print "Existing file: $_\n";
+    }
 }
-
 
 # filter out files to keep
-for (0 .. $options{'days'} - 1) {
-	my $save_day = strftime("\%Y.\%m.\%d", localtime ($time_today - (86400 * $_)));
-	
-	unless ($options{'quiet'}) {
-		print "Keeping files for: $save_day\n";
-	}
-	
-	@files = grep(!/$save_day/, @files);	
+for ( 0 .. $options{'days'} - 1 ) {
+    my $save_day =
+      strftime( "\%Y.\%m.\%d", localtime( $time_today - ( 86400 * $_ ) ) );
+
+    unless ( $options{'quiet'} ) {
+        print "Keeping files for: $save_day\n";
+    }
+
+    @files = grep( !/$save_day/, @files );
 }
 
 # remove anything that's still on the list
 for (@files) {
-	if ($options{'verbose'}) {
-		print "Removing file/directory: $_\n";
-	}
-	
-	unless ($options{'test'}) {
-		if (-d $_) {
-			my $dir_not_empty;
-			
-			foreach my $sub (glob("$_/*")) {
-				unless (unlink("$sub")) {
-					warn "Could not remove file $sub: $!\n";
-					$dir_not_empty = 1;
-				}
-			}
-			
-			if ($dir_not_empty) {
-				warn "Directory $_ not empty, cannot remove\n";
-			} else {
-				rmdir($_) or warn "Could not remove directory $_: $!\n";
-			}
-		}
-		
-		else {
-			unlink($_) or warn "Could not remove file $_: $!\n";
-		}
-	}
+    if ( $options{'verbose'} ) {
+        print "Removing file/directory: $_\n";
+    }
+
+    unless ( $options{'test'} ) {
+        if ( -d $_ ) {
+            my $dir_not_empty;
+
+            foreach my $sub ( glob("$_/*") ) {
+                unless ( unlink("$sub") ) {
+                    warn "Could not remove file $sub: $!\n";
+                    $dir_not_empty = 1;
+                }
+            }
+
+            if ($dir_not_empty) {
+                warn "Directory $_ not empty, cannot remove\n";
+            }
+            else {
+                rmdir($_) or warn "Could not remove directory $_: $!\n";
+            }
+        }
+
+        else {
+            unlink($_) or warn "Could not remove file $_: $!\n";
+        }
+    }
 }
 
-if ($options{'archive'})
-{
-	if (open(ARCHIVE,"<$options{'dir'}archive.html"))
-	{
-		my $oldest = strftime("\%Y.\%m.\%d", localtime ($time_today - (86400 * ($options{'days'}-1))));
-		my $out;
-		
-		while(<ARCHIVE>)
-		{
-			if (/(\d{4}\.\d{2}\.\d{2})/)
-			{
-				if ($1 lt $oldest)
-				{
-					$_ = "";
-				}
-			}
-			$out .= $_;
-		}
-		
-		close(ARCHIVE);
-		if (open(ARCHIVE,">$options{'dir'}archive.html"))
-		{
-			print ARCHIVE $out;
-		}
-		else
-		{
-			warn "Error: cannot update archive.html - could not write file: $!\n";
-		}		
-	}
-	else
-	{
-		warn "Error: cannot update archive.html - could not read file: $!\n";
-	}
+if ( $options{'archive'} ) {
+    if ( open( ARCHIVE, "<$options{'dir'}archive.html" ) ) {
+        my $oldest = strftime( "\%Y.\%m.\%d",
+            localtime( $time_today - ( 86400 * ( $options{'days'} - 1 ) ) ) );
+        my $out;
+
+        while (<ARCHIVE>) {
+            if (/(\d{4}\.\d{2}\.\d{2})/) {
+                if ( $1 lt $oldest ) {
+                    $_ = "";
+                }
+            }
+            $out .= $_;
+        }
+
+        close(ARCHIVE);
+        if ( open( ARCHIVE, ">$options{'dir'}archive.html" ) ) {
+            print ARCHIVE $out;
+        }
+        else {
+            warn
+              "Error: cannot update archive.html - could not write file: $!\n";
+        }
+    }
+    else {
+        warn "Error: cannot update archive.html - could not read file: $!\n";
+    }
 }

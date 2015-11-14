@@ -43,7 +43,7 @@
 # div.keyboard td input.small {padding-left:4px;padding-right:4px;width:2em}
 
 sub insert_keyboard_style {
-	return qq[
+    return qq[
 <style type="text/css">
 div.keyboard td {
 	text-align: center;
@@ -67,115 +67,126 @@ div.keyboard input.spacebar {
 }
 
 sub insert_keyboard {
-	my ($options)=@_;	# pass a hash reference of options
+    my ($options) = @_;    # pass a hash reference of options
 
-	if (ref($options) ne 'HASH') {
-		return 'virtual_keyboard: You must pass a hash reference.';
-	}
+    if ( ref($options) ne 'HASH' ) {
+        return 'virtual_keyboard: You must pass a hash reference.';
+    }
 
-	my $form=$$options{form};
-	my $target=$$options{target};
-	my $autocap=$$options{autocap};
-	my $hide_button=$$options{hide_button};
-	my $numeric_keypad=$$options{numeric_keypad};
+    my $form           = $$options{form};
+    my $target         = $$options{target};
+    my $autocap        = $$options{autocap};
+    my $hide_button    = $$options{hide_button};
+    my $numeric_keypad = $$options{numeric_keypad};
 
-	if (!$form) {
-		return 'virtual_keyboard: You must specify a form.';
-	}
+    if ( !$form ) {
+        return 'virtual_keyboard: You must specify a form.';
+    }
 
-	if (!$target) {
-		return 'virtual_keyboard: You must specify a target.';
-	}
+    if ( !$target ) {
+        return 'virtual_keyboard: You must specify a target.';
+    }
 
-#	my @rows=qw/`1234567890-= qwertyuiop[]\ asdfghjkl;' zxcvbnm,.\//;  # This gives warnings with use diagnostics
-	my @rows=("`1234567890-=", "qwertyuiop[]\\", "asdfghjkl;'", "zxcvbnm,.\/");
+    #	my @rows=qw/`1234567890-= qwertyuiop[]\ asdfghjkl;' zxcvbnm,.\//;  # This gives warnings with use diagnostics
+    my @rows =
+      ( "`1234567890-=", "qwertyuiop[]\\", "asdfghjkl;'", "zxcvbnm,.\/" );
 
-	my $result=qq[<div class="keyboard">
+    my $result = qq[<div class="keyboard">
 <br/>
 <form name="keyboard" action="">
 <table class="container">
 <tr><td>
 <table class="main">];
 
-	my $row = 0;
-	for (@rows) {
-		$result .= '<tr><td>';
-		my @chars=split(//,$_);
-		my $column = 0;
-		for (@chars) {
-			my $value=$_;
+    my $row = 0;
+    for (@rows) {
+        $result .= '<tr><td>';
+        my @chars = split( //, $_ );
+        my $column = 0;
+        for (@chars) {
+            my $value = $_;
 
-			$value='&quot;' if $value eq '"';
-			$value='&amp;' if $value eq '&';
+            $value = '&quot;' if $value eq '"';
+            $value = '&amp;'  if $value eq '&';
 
-			if ($row == 1 && $column == 0) {
-				$result .= qq[<input class="special" type="button" onclick="keyboard_next_control()" value="Tab">];
-			}
+            if ( $row == 1 && $column == 0 ) {
+                $result .=
+                  qq[<input class="special" type="button" onclick="keyboard_next_control()" value="Tab">];
+            }
 
-			if ($row == 2 && $column == 0) {
-				$result .= qq[<input class="special" type="button" value="Caps" onclick="keyboard_caps_pressed(this)">];
-			}
+            if ( $row == 2 && $column == 0 ) {
+                $result .=
+                  qq[<input class="special" type="button" value="Caps" onclick="keyboard_caps_pressed(this)">];
+            }
 
-			if ($row == 3 && $column == 0) {
-				$result .= qq[<input class="special" type="button" value="Shift" onclick="keyboard_shift_pressed(this)">];
-			}
+            if ( $row == 3 && $column == 0 ) {
+                $result .=
+                  qq[<input class="special" type="button" value="Shift" onclick="keyboard_shift_pressed(this)">];
+            }
 
-			$result .= qq[<input type="button" onclick="keyboard_insert_char(this.value)" class="small" value="$value">];
-			$column++;
-		}
+            $result .=
+              qq[<input type="button" onclick="keyboard_insert_char(this.value)" class="small" value="$value">];
+            $column++;
+        }
 
-		if ($row == 0) {
-			$result .= qq[<input class="special" type="button" onclick="keyboard_delete_char()" value="Backspace">];
-		}
+        if ( $row == 0 ) {
+            $result .=
+              qq[<input class="special" type="button" onclick="keyboard_delete_char()" value="Backspace">];
+        }
 
-		if ($row == 2) {
-			$result .= qq[<input class="special" type="button" onclick="keyboard_form.submit()" value="Enter">];
-		}
+        if ( $row == 2 ) {
+            $result .=
+              qq[<input class="special" type="button" onclick="keyboard_form.submit()" value="Enter">];
+        }
 
-		if ($row == 3) {
-			$result .= qq[<input class="special" type="button" value="Shift" onclick="keyboard_shift_pressed(this)">];
-		}
-		$row++;
-		$result .= "</td></tr>";
-	}
+        if ( $row == 3 ) {
+            $result .=
+              qq[<input class="special" type="button" value="Shift" onclick="keyboard_shift_pressed(this)">];
+        }
+        $row++;
+        $result .= "</td></tr>";
+    }
 
-	$result.=qq[<tr>
+    $result .= qq[<tr>
 <td><input class="special" type="button" onclick="keyboard_delete_all()" value="Clear">
 <input class="spacebar special" type="button" onclick="keyboard_insert_char(' ')" value="Space">];
 
-	if ($hide_button) {
-		$result .= qq[<input name="hide" value="Hide" type="button" onclick="hideKeyboard()">];
-	}
+    if ($hide_button) {
+        $result .=
+          qq[<input name="hide" value="Hide" type="button" onclick="hideKeyboard()">];
+    }
 
-	$result .= '</td></tr></table></td>';
+    $result .= '</td></tr></table></td>';
 
-	if ($numeric_keypad) {
+    if ($numeric_keypad) {
 
-		@rows=qw/123 456 789 0/;
+        @rows = qw/123 456 789 0/;
 
-		$result .= '<td><table class="numeric">';
+        $result .= '<td><table class="numeric">';
 
-		$row = 0;
-		for (@rows) {
-			my $column = 0;
-			$result .= '<tr><td>';
-			my @chars=split(//,$_);
-			for (@chars) {
-				my $value=$_;
-				$result .= qq[<input type="button" onclick="keyboard_insert_char(this.value)" class="small" value="$value">];
-				$column++;
-			}
-			if ($row == 3 ) {
-				$result .= qq[<input class="keyboard" type="button" onclick="keyboard_delete_all()" value="Clear">];
-			}
+        $row = 0;
+        for (@rows) {
+            my $column = 0;
+            $result .= '<tr><td>';
+            my @chars = split( //, $_ );
+            for (@chars) {
+                my $value = $_;
+                $result .=
+                  qq[<input type="button" onclick="keyboard_insert_char(this.value)" class="small" value="$value">];
+                $column++;
+            }
+            if ( $row == 3 ) {
+                $result .=
+                  qq[<input class="keyboard" type="button" onclick="keyboard_delete_all()" value="Clear">];
+            }
 
-			$result .= '</td></tr>';
-			$row++;
-		}
-		$result .= '</table></td>';
-	}
+            $result .= '</td></tr>';
+            $row++;
+        }
+        $result .= '</table></td>';
+    }
 
-	$result.=qq[</tr></table></form>
+    $result .= qq[</tr></table></form>
 <script language="javascript" type="text/javascript">
 <!--
 
@@ -243,8 +254,8 @@ function keyboard_insert_char(letter) {
 		keyboard_update_buttons();
 	}
 ];
-	if ($autocap) {
-		$result.=qq[
+    if ($autocap) {
+        $result .= qq[
 	if (keyboard_textbox.value.length == 0) {
 		letter=letter.toUpperCase();
 	} else {
@@ -253,8 +264,8 @@ function keyboard_insert_char(letter) {
 		}
 	}
 		];
-	}
-	$result.=qq[
+    }
+    $result .= qq[
 	keyboard_textbox.value=keyboard_textbox.value + letter;
 }
 
@@ -323,7 +334,7 @@ function keyboard_update_buttons() {
 </script>
 </div>
 ];
-	return $result;
+    return $result;
 }
 
 # end of Virtual Keyboard section

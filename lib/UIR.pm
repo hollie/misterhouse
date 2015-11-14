@@ -30,46 +30,45 @@ package UIR;
 
 @UIR::ISA = ('Serial_Item');
 
-my $to = new Timer;
+my $to   = new Timer;
 my $prev = '';
 
-
 sub startup {
-	my $baudrate = 9600;
-	my $port = 'COM1';
-	$baudrate = $main::config_parms{uir_baudrate} if $main::config_parms{uir_baudrate};
-	$port = $main::config_parms{uir_port} if $main::config_parms{uir_port};
-	&main::serial_port_create('UIR', $port, $baudrate, 'none', 'raw');
-	&::MainLoop_pre_add_hook(  \&UIR::check_for_data, 1 );
+    my $baudrate = 9600;
+    my $port     = 'COM1';
+    $baudrate = $main::config_parms{uir_baudrate}
+      if $main::config_parms{uir_baudrate};
+    $port = $main::config_parms{uir_port} if $main::config_parms{uir_port};
+    &main::serial_port_create( 'UIR', $port, $baudrate, 'none', 'raw' );
+    &::MainLoop_pre_add_hook( \&UIR::check_for_data, 1 );
 }
 
 sub check_for_data {
-	my ($self) = @_;
-	$prev = '' if expired $to;
-	&main::check_for_generic_serial_data('UIR');
-	my $data = $main::Serial_Ports{UIR}{data};
-	$main::Serial_Ports{UIR}{data} = '';
-	return unless $data;
+    my ($self) = @_;
+    $prev = '' if expired $to;
+    &main::check_for_generic_serial_data('UIR');
+    my $data = $main::Serial_Ports{UIR}{data};
+    $main::Serial_Ports{UIR}{data} = '';
+    return unless $data;
 
-	$main::Serial_Ports{UIR}{data} = substr($data, 6) if length $data > 6;
-	my @bytes = unpack 'C6', $data;
-	my $state = '';
-	foreach (@bytes) {
-		$state .= sprintf '%02x', $_;
-	}
-	return if $state eq $prev;
-	$prev = $state;
-	set $to 1;
-	
-	&main::main::print_log("UIR Code: $state");
+    $main::Serial_Ports{UIR}{data} = substr( $data, 6 ) if length $data > 6;
+    my @bytes = unpack 'C6', $data;
+    my $state = '';
+    foreach (@bytes) {
+        $state .= sprintf '%02x', $_;
+    }
+    return if $state eq $prev;
+    $prev = $state;
+    set $to 1;
 
-                                # Set state of all UIR objects
-	for my $name (&main::list_objects_by_type('UIR')) {
-		my $object = &main::get_object_by_name($name);
-		$object -> set($state);
-	}
+    &main::main::print_log("UIR Code: $state");
+
+    # Set state of all UIR objects
+    for my $name ( &main::list_objects_by_type('UIR') ) {
+        my $object = &main::get_object_by_name($name);
+        $object->set($state);
+    }
 }
-
 
 1;
 

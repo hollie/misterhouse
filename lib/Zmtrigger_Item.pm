@@ -1,3 +1,4 @@
+
 =head1 B<Zmtrigger_Item>
 
 
@@ -45,10 +46,9 @@ B<Generic_Item>
 
 =cut
 
-package Zmtrigger_Item; 
+package Zmtrigger_Item;
 
 @Zmtrigger_Item::ISA = ('Generic_Item');
-
 
 =item C<new($monitor_id,$max_duration,$score,$description)>
 
@@ -65,39 +65,40 @@ $description OPTIONAL Specifies the default description of the trigger to be dis
 =cut
 
 sub new {
-  my ($class, $monitor_id, $max_duration, $score, $description) = @_;
-  my $self = {};
-  bless $self,$class;
+    my ( $class, $monitor_id, $max_duration, $score, $description ) = @_;
+    my $self = {};
+    bless $self, $class;
 
-  if (defined $monitor_id){
-    $self->{monitor_id} = $monitor_id;
+    if ( defined $monitor_id ) {
+        $self->{monitor_id} = $monitor_id;
     }
-   else {
-    &::print_log("[Zmtrigger_Item] WARN You must specify a monitor_id when creating a new Zmtrigger_Item");
-    return;
+    else {
+        &::print_log(
+            "[Zmtrigger_Item] WARN You must specify a monitor_id when creating a new Zmtrigger_Item"
+        );
+        return;
     }
-  if (defined $max_duration){
-    $self->{max_duration} = $max_duration;
+    if ( defined $max_duration ) {
+        $self->{max_duration} = $max_duration;
     }
-   else {
-    $self->{max_duration} = $main::config_parms{zm_trigger_max_duration};
+    else {
+        $self->{max_duration} = $main::config_parms{zm_trigger_max_duration};
     }
-  if (defined $score){
-    $self->{score} = $score;
+    if ( defined $score ) {
+        $self->{score} = $score;
     }
-   else {
-    $self->{score} = $main::config_parms{zm_trigger_score};
+    else {
+        $self->{score} = $main::config_parms{zm_trigger_score};
     }
-  if (defined $description){
-    $self->{description} = $description;
+    if ( defined $description ) {
+        $self->{description} = $description;
     }
-   else {
-    $self->{description} = $main::config_parms{zm_trigger_description};
+    else {
+        $self->{description} = $main::config_parms{zm_trigger_description};
     }
 
-  return $self
+    return $self;
 }
-
 
 =item C<set($state)>
 
@@ -111,39 +112,47 @@ $state: Should only be ON or OFF
 =cut
 
 sub set {
-  my ($self, $state, $max_duration, $score, $description) = @_;
+    my ( $self, $state, $max_duration, $score, $description ) = @_;
 
-  #  Build the data stream
-  my $data = $self->{monitor_id};
-  if ($state eq "on") {
-    $data .= "|on+" . $self->{max_duration} . "|" . $self->{score} . "|" . $self->{description};
+    #  Build the data stream
+    my $data = $self->{monitor_id};
+    if ( $state eq "on" ) {
+        $data .= "|on+"
+          . $self->{max_duration} . "|"
+          . $self->{score} . "|"
+          . $self->{description};
     }
-   elsif ($state eq "off") {
-    $data .= "|cancel";
+    elsif ( $state eq "off" ) {
+        $data .= "|cancel";
     }
-   else {
-    &::print_log("[Zmtrigger_Item] WARN A valid state(on,off) must be specified when calling SET");
-    return;
-    }
-
-  if (!defined $zm_connect) {  # If not already, Create the Socket_Item
-    my $address = $main::config_parms{zm_server_address} . ":" . $main::config_parms{zm_server_port};
-
-    &::print_log("[Zmtrigger_Item] Creating Socket_Item zm_connect at:-$address-");
-    $zm_connect = new Socket_Item( undef, undef, $address );
+    else {
+        &::print_log(
+            "[Zmtrigger_Item] WARN A valid state(on,off) must be specified when calling SET"
+        );
+        return;
     }
 
-  start $zm_connect;  # Connect the telnet session
-  if (active $zm_connect) {  # send the data to the telnet session if it is active
-    &::print_log("[Zmtrigger_Item] Active connection found sending:-$data-");
-    set $zm_connect $data;
-    }
-  stop $zm_connect;  # Disconnect the telnet session
+    if ( !defined $zm_connect ) {    # If not already, Create the Socket_Item
+        my $address = $main::config_parms{zm_server_address} . ":"
+          . $main::config_parms{zm_server_port};
 
-  }
+        &::print_log(
+            "[Zmtrigger_Item] Creating Socket_Item zm_connect at:-$address-");
+        $zm_connect = new Socket_Item( undef, undef, $address );
+    }
+
+    start $zm_connect;               # Connect the telnet session
+    if ( active $zm_connect)
+    {    # send the data to the telnet session if it is active
+        &::print_log(
+            "[Zmtrigger_Item] Active connection found sending:-$data-");
+        set $zm_connect $data;
+    }
+    stop $zm_connect;    # Disconnect the telnet session
+
+}
 
 1;
-
 
 =back
 

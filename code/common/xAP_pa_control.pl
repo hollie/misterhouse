@@ -33,15 +33,15 @@ Special Thanks to:
 
 use PAobj;
 
-$xapctrl = new PAobj('xap','xap');
-$xplctrl = new PAobj('xpl','xpl');
+$xapctrl = new PAobj( 'xap', 'xap' );
+$xplctrl = new PAobj( 'xpl', 'xpl' );
 
 $xapctrl->init() if $Reload;
 $xplctrl->init() if $Reload;
 
 # Stuff to flag which rooms to turn on based on "rooms=" parm in speak command
-&Speak_pre_add_hook(\&xap_pa_control_stub) if $Reload;
-&Play_pre_add_hook (\&xap_pa_control_stub) if $Reload;
+&Speak_pre_add_hook( \&xap_pa_control_stub ) if $Reload;
+&Play_pre_add_hook( \&xap_pa_control_stub )  if $Reload;
 
 sub xap_pa_control_stub {
     my (%parms) = @_;
@@ -51,20 +51,22 @@ sub xap_pa_control_stub {
     my @pazones;
     my $mode = $parms{mode};
     unless ($mode) {
-        if (defined $mode_mh) {
+        if ( defined $mode_mh ) {
             $mode = state $mode_mh;
-        } else {
+        }
+        else {
             $mode = $Save{mode};
         }
     }
     return if $mode eq 'mute' or $mode eq 'offline';
 
     my $rooms = $parms{rooms};
+
     #print "pa_stub db: rooms=$rooms, mode=$mode\n";
 
     my $msg = $parms{text};
-    $xapctrl->set_xap($rooms,$mode,%parms);
-    $xplctrl->set_xpl($rooms,$mode,%parms);
+    $xapctrl->set_xap( $rooms, $mode, %parms );
+    $xplctrl->set_xpl( $rooms, $mode, %parms );
 }
 
 =begin comment

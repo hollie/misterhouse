@@ -1,3 +1,4 @@
+
 =head1 B<SoapServer>
 
 =head2 SYNOPSIS
@@ -43,51 +44,68 @@ class
 =cut
 
 sub handle {
-  my $self = shift;
-  my $content = shift;
-  my $headers = shift;
-  
-  my $results = '';
+    my $self    = shift;
+    my $content = shift;
+    my $headers = shift;
 
-  my $length = $headers->{'Content-Length'} || $headers->{'Content-length'} || 0;
+    my $results = '';
 
-  if (!$length) {     
-    $self->response(HTTP::Response->new(411)) # LENGTH REQUIRED
-  } elsif (defined $SOAP::Constants::MAX_CONTENT_SIZE && $length > $SOAP::Constants::MAX_CONTENT_SIZE) {
-    $self->response(HTTP::Response->new(413)) # REQUEST ENTITY TOO LARGE
-  } else { 
-	# This appears to be broken.  MS .Net by default trys to use the HTTP 1.1 Continue header
-	# and SOAP::Lite seems to support it but I don't think we can keep the socket open in misterhouse.
-   	# I think this should probably return a 417 Status instead of the 100.  .Net always complains that
-	# connection was unexpectedly closed.
-    if ($headers->{'Expect'} =~ /\b100-Continue\b/i) {
-      return "HTTP/1.1 100 Continue\r\n\r\n";
+    my $length =
+      $headers->{'Content-Length'} || $headers->{'Content-length'} || 0;
+
+    if ( !$length ) {
+        $self->response( HTTP::Response->new(411) )    # LENGTH REQUIRED
     }
-    
-	# stole this line from the http_server.pl file.  Just need to break the request down
- 	# I think SOAP will almost always be a POST request but better be sure
-	my ($req_typ, $uri, $get_arg) = $headers->{'request'} =~ m|^(GET\|POST) (\/[^ \?]*)\??(\S+)? HTTP|;
+    elsif ( defined $SOAP::Constants::MAX_CONTENT_SIZE
+        && $length > $SOAP::Constants::MAX_CONTENT_SIZE )
+    {
+        $self->response( HTTP::Response->new(413) )   # REQUEST ENTITY TOO LARGE
+    }
+    else {
+        # This appears to be broken.  MS .Net by default trys to use the HTTP 1.1 Continue header
+        # and SOAP::Lite seems to support it but I don't think we can keep the socket open in misterhouse.
+        # I think this should probably return a 417 Status instead of the 100.  .Net always complains that
+        # connection was unexpectedly closed.
+        if ( $headers->{'Expect'} =~ /\b100-Continue\b/i ) {
+            return "HTTP/1.1 100 Continue\r\n\r\n";
+        }
 
-	# Create  a new HTTP::Request to pass to the SOAP::Transport::HTTP::Server class
-    $self->request(HTTP::Request->new( 
-      $req_typ,
-	  $uri,
-      HTTP::Headers->new(map {(m/SOAPACTION/i) ?('SOAPAction'):($_) => $headers->{$_}} keys %$headers),
-      $content
-    ));
-    $self->SOAP::Transport::HTTP::Server::handle;
-  }
+        # stole this line from the http_server.pl file.  Just need to break the request down
+        # I think SOAP will almost always be a POST request but better be sure
+        my ( $req_typ, $uri, $get_arg ) =
+          $headers->{'request'} =~ m|^(GET\|POST) (\/[^ \?]*)\??(\S+)? HTTP|;
 
-  my $crlf = "\015\012";
-  my $code = $self->response->code;
+        # Create  a new HTTP::Request to pass to the SOAP::Transport::HTTP::Server class
+        $self->request(
+            HTTP::Request->new(
+                $req_typ, $uri,
+                HTTP::Headers->new(
+                    map {
+                            (m/SOAPACTION/i)
+                          ? ('SOAPAction')
+                          : ($_) => $headers->{$_}
+                    } keys %$headers
+                ),
+                $content
+            )
+        );
+        $self->SOAP::Transport::HTTP::Server::handle;
+    }
 
-  $results .= "HTTP/1.0 $code " . HTTP::Status::status_message($code) . $crlf
-	. $self->response->headers_as_string($crlf) . $crlf . $self->response->content;
-  return $results;
+    my $crlf = "\015\012";
+    my $code = $self->response->code;
+
+    $results .=
+        "HTTP/1.0 $code "
+      . HTTP::Status::status_message($code)
+      . $crlf
+      . $self->response->headers_as_string($crlf)
+      . $crlf
+      . $self->response->content;
+    return $results;
 }
 
 1;
-
 
 =back
 

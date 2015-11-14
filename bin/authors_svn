@@ -9,48 +9,52 @@ use strict;
 # which translates to docs/updates.txt.  Updates.txt then gets parsed
 # by mh/bin/authors.
 
-my ($author, $date, $changes);
+my ( $author, $date, $changes );
 
-my %names = (andymc        => 'Andrew McLaren',
-             blecher       => 'Joe Blecher',
-             david_mrhouse => 'David Satterfield',
-             dnorwood2     => 'David Norwood',
-             gliming       => 'Gregg Liming', 
-             hplato        => 'Howard Plato',
-             'i-owns-u'    => 'Ryan Davies',
-             jduda         => 'Jim Duda',
-             mattrwilliams => 'Matthew Williams',
-             petamem       => 'PetaMem Research', 
-	     pjf02536      => 'Pete Flaherty',
-             posjodin      => 'Peter Sj�din',
-             tbs007        => 'Tim Spaulding',
-             troycarpenter => 'Troy Carpenter',
-             winter        => 'Bruce Winter', 
-	     zonyl         => 'Jason Sharpee',
-    );
+my %names = (
+    andymc        => 'Andrew McLaren',
+    blecher       => 'Joe Blecher',
+    david_mrhouse => 'David Satterfield',
+    dnorwood2     => 'David Norwood',
+    gliming       => 'Gregg Liming',
+    hplato        => 'Howard Plato',
+    'i-owns-u'    => 'Ryan Davies',
+    jduda         => 'Jim Duda',
+    mattrwilliams => 'Matthew Williams',
+    petamem       => 'PetaMem Research',
+    pjf02536      => 'Pete Flaherty',
+    posjodin      => 'Peter Sj�din',
+    tbs007        => 'Tim Spaulding',
+    troycarpenter => 'Troy Carpenter',
+    winter        => 'Bruce Winter',
+    zonyl         => 'Jason Sharpee',
+);
 
 while (<>) {
-				# viewvc html format
+
+    # viewvc html format
     if (/^Modified (.+?) \S+ (\S+) UTC.+ (\S+)$/) {
-	print "$author :: $date\n - $changes\n" if $author;
-	$changes = '';
-	$author = $3;  $date = "$1 $2";
-        $author = $names{$author} if $names{$author};
-	next;
+        print "$author :: $date\n - $changes\n" if $author;
+        $changes = '';
+        $author  = $3;
+        $date    = "$1 $2";
+        $author  = $names{$author} if $names{$author};
+        next;
     }
-				# svn log format
+
+    # svn log format
     if (/^r\d+ \| (\S+) .+\((.+)\)/) {
-	print "$author :: $date\n - $changes\n" if $author;
-	$changes = '';
-	$author = $1;  $date = $2;
-        $author = $names{$author} if $names{$author};
-	next;
+        print "$author :: $date\n - $changes\n" if $author;
+        $changes = '';
+        $author  = $1;
+        $date    = $2;
+        $author  = $names{$author} if $names{$author};
+        next;
     }
 
     next if /^Revision / or /^Original Path/ or /^ *$/ or /^---/;
     $changes .= $_;
 }
-
 
 __END__
 

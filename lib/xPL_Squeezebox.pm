@@ -1,3 +1,4 @@
+
 =head1 B<xPL_Squeezebox>
 
 =head2 DESCRIPTION
@@ -63,20 +64,21 @@ Creates a new object
 =cut
 
 sub new {
-    my ($class, $p_source) = @_;
+    my ( $class, $p_source ) = @_;
     my $source = 'slimdev-slimserv.' . $p_source;
-    my $self = $class->SUPER::new($source);
+    my $self   = $class->SUPER::new($source);
     $self->SUPER::class_name('audio.basic');
     $$self{state_monitor} = "audio.basic : status";
 
-	# Ensure we can turn the SB on and off
-	$self->addStates ('on', 'off');
-	
-	# Save this object in the list of devices so that we can use the list in the request_all_stat function
-	push @device_list, $self;
+    # Ensure we can turn the SB on and off
+    $self->addStates( 'on', 'off' );
 
-	&::print_log("[xPL_Squeezebox] Created device $source") if $main::Debug{xpl_squeezebox};
-	
+    # Save this object in the list of devices so that we can use the list in the request_all_stat function
+    push @device_list, $self;
+
+    &::print_log("[xPL_Squeezebox] Created device $source")
+      if $main::Debug{xpl_squeezebox};
+
     return $self;
 }
 
@@ -94,9 +96,9 @@ If it would we could here simply use
 =cut
 
 sub request_all_stat {
-	foreach (@device_list) {
-		$_->request_stat();
-	}
+    foreach (@device_list) {
+        $_->request_stat();
+    }
 }
 
 =item C<request_stat()>
@@ -107,7 +109,7 @@ Request the status of a single Squeezebox
 
 sub request_stat {
     my ($self) = @_;
-    $self->SUPER::send_cmnd('audio.request' => { 'cmd' => 'status' });
+    $self->SUPER::send_cmnd( 'audio.request' => { 'cmd' => 'status' } );
 }
 
 =item C<id()>
@@ -129,7 +131,7 @@ Add states to the device
 
 sub addStates {
     my $self = shift;
-    push(@{$$self{states}}, @_) unless $self->{displayonly};
+    push( @{ $$self{states} }, @_ ) unless $self->{displayonly};
 }
 
 =item C<ignore_message()>
@@ -139,10 +141,10 @@ Determine what xPL messages will be interpreted
 =cut
 
 sub ignore_message {
-    my ($self, $p_data) = @_;
+    my ( $self, $p_data ) = @_;
     my $ignore_msg = 0;
-    if (!(defined($$p_data{'audio.basic'}))){
-		$ignore_msg = 1;
+    if ( !( defined( $$p_data{'audio.basic'} ) ) ) {
+        $ignore_msg = 1;
     }
     return $ignore_msg;
 }
@@ -153,33 +155,45 @@ Handle state changes of the Squeezeboxes
 
 =cut
 
-sub default_setstate
-{
-    my ($self, $state, $substate, $set_by) = @_;
-    if ($set_by =~ /^xpl/i) {
-    	if ($$self{changed} =~ /audio\.basic/) {
-           &::print_log("[xPL_Squeezebox] " . $self->get_object_name
-                . " state is $state") if $main::Debug{xpl_squeezebox};
-           # TO-DO: process all of the other pertinent attributes available
-    	   return -1 if $self->state eq $state; # don't propagate state unless it has changed
-		}
-    } else {
-    	my $cmnd = ($state =~ /^off/i) ? 'stop' : 'play';
-    	
-    	return -1 if ($self->state eq $state); # Don't propagate state unless it has changed.
-        &::print_log("[xPL_Squeezebox] Request " . $self->get_object_name
-		     . " turn " . $cmnd 
-	    ) if $main::Debug{xpl_squeezebox};
-        
-		if ($cmnd eq 'stop') {
-	    	$self->SUPER::send_cmnd('audio.slimserv' => {'extended' => 'power 0'});
-	    } else {	
-    		$self->SUPER::send_cmnd('audio.slimserv' => {'command' => $cmnd});
-    	}
+sub default_setstate {
+    my ( $self, $state, $substate, $set_by ) = @_;
+    if ( $set_by =~ /^xpl/i ) {
+        if ( $$self{changed} =~ /audio\.basic/ ) {
+            &::print_log( "[xPL_Squeezebox] "
+                  . $self->get_object_name
+                  . " state is $state" )
+              if $main::Debug{xpl_squeezebox};
 
-    	return;
+            # TO-DO: process all of the other pertinent attributes available
+            return -1
+              if $self->state eq
+              $state;    # don't propagate state unless it has changed
+        }
     }
-	
+    else {
+        my $cmnd = ( $state =~ /^off/i ) ? 'stop' : 'play';
+
+        return -1
+          if ( $self->state eq $state )
+          ;              # Don't propagate state unless it has changed.
+        &::print_log( "[xPL_Squeezebox] Request "
+              . $self->get_object_name
+              . " turn "
+              . $cmnd )
+          if $main::Debug{xpl_squeezebox};
+
+        if ( $cmnd eq 'stop' ) {
+            $self->SUPER::send_cmnd(
+                'audio.slimserv' => { 'extended' => 'power 0' } );
+        }
+        else {
+            $self->SUPER::send_cmnd(
+                'audio.slimserv' => { 'command' => $cmnd } );
+        }
+
+        return;
+    }
+
 }
 
 =item C<play(file/URL)>
@@ -189,13 +203,12 @@ application) or an URL that should be played on the device.
 
 =cut
 
-sub play
-{
-	my ($self, $file, $source) = @_;
-	
-	$self->SUPER::send_cmnd('audio.slimserv' => {'command' => $file} );
-	
-	return;
+sub play {
+    my ( $self, $file, $source ) = @_;
+
+    $self->SUPER::send_cmnd( 'audio.slimserv' => { 'command' => $file } );
+
+    return;
 }
 
 =back 

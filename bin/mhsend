@@ -1,30 +1,39 @@
 #!/usr/bin/perl
 # -*- Perl -*-
-#--------------------------------------------------------------------------- 
-#  File: 
+#---------------------------------------------------------------------------
+#  File:
 #      mhsend
-#  Description: 
+#  Description:
 #      Sends data to mh over the inter/intranet
-#  Author: 
+#  Author:
 #      Bruce Winter  bruce@misterhouse.net
-#  Latest version: 
+#  Latest version:
 #      http://misterhouse.net/mh/bin/mhsend
-#  Change log: 
+#  Change log:
 #    09/14/99  Created.   Change log is at the bottom of this file.
 #
-#  This software is licensed under the terms of the GNU public license.  
-#  Copyright 1999 Bruce Winter 
+#  This software is licensed under the terms of the GNU public license.
+#  Copyright 1999 Bruce Winter
 #
-#--------------------------------------------------------------------------- 
+#---------------------------------------------------------------------------
 
-use strict; 
+use strict;
 
-my ($Pgm_Path, $Pgm_Name, %parms);
+my ( $Pgm_Path, $Pgm_Name, %parms );
 use Getopt::Long;
-if (!&GetOptions(\%parms, "h", "help", "host=s", "port=s", "stdin", "password=s",
-                 "log:s", "file=s", "display:n", "state", "speak", "run") or
-    (@ARGV == 0 and !$parms{stdin}) or $parms{h} or $parms{help}) {  
-    print<<eof; 
+if (
+    !&GetOptions(
+        \%parms,  "h",         "help",       "host=s",
+        "port=s", "stdin",     "password=s", "log:s",
+        "file=s", "display:n", "state",      "speak",
+        "run"
+    )
+    or ( @ARGV == 0 and !$parms{stdin} )
+    or $parms{h}
+    or $parms{help}
+  )
+{
+    print <<eof;
 
   $Pgm_Name sends data to the MisterHouse program, through the internet/intranet.
   Data will be put in the mh/data/mhsend directory
@@ -59,7 +68,7 @@ if (!&GetOptions(\%parms, "h", "help", "host=s", "port=s", "stdin", "password=s"
 
 eof
 
-  exit; 
+    exit;
 }
 
 my $data;
@@ -67,32 +76,35 @@ my $data;
 &send;
 
 sub setup {
-                                # Do some setup stuff
-    $|++;    
+
+    # Do some setup stuff
+    $|++;
 
     BEGIN {
-        ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+        ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
         ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-        eval "use lib '$Pgm_Path/../lib'"; # Use BEGIN eval to keep perl2exe happy
+        eval
+          "use lib '$Pgm_Path/../lib'";  # Use BEGIN eval to keep perl2exe happy
     }
 
     $parms{host} = 'localhost' unless $parms{host};
-    $parms{port} = '8084' unless $parms{port};
+    $parms{port} = '8084'      unless $parms{port};
 
-                                # Get the data to send
-    if ($parms{stdin}) {
+    # Get the data to send
+    if ( $parms{stdin} ) {
         while (<>) {
             $data .= $_;
         }
     }
-    elsif (@ARGV == 1 and -e $ARGV[0]) {
-        open (DATA, $ARGV[0]) or die "Could not open input file $ARGV[0]: $!\n";
+    elsif ( @ARGV == 1 and -e $ARGV[0] ) {
+        open( DATA, $ARGV[0] )
+          or die "Could not open input file $ARGV[0]: $!\n";
         while (<DATA>) {
             $data .= $_;
         }
     }
     else {
-        $data = join(' ', @ARGV);
+        $data = join( ' ', @ARGV );
     }
 }
 
@@ -100,57 +112,61 @@ sub send {
     use IO::Socket;
     my $l = length $data;
     print "Sending $l bytes of data to $parms{host} port $parms{port}, ";
-    my $socket = new IO::Socket::INET (PeerAddr => $parms{host}, PeerPort => $parms{port}, Proto => 'tcp') or 
-        die "\nCould not create socket: $!\n";
+    my $socket = new IO::Socket::INET(
+        PeerAddr => $parms{host},
+        PeerPort => $parms{port},
+        Proto    => 'tcp'
+    ) or die "\nCould not create socket: $!\n";
     print "socket made, ";
 
     my $action;
-    if ($parms{speak}) {
+    if ( $parms{speak} ) {
         $action = 'speak';
     }
-    elsif (defined $parms{display}) {
+    elsif ( defined $parms{display} ) {
         $action = "display $parms{display}";
     }
-    elsif ($parms{file}) {
+    elsif ( $parms{file} ) {
         $action = "file $parms{file}";
     }
-    elsif ($parms{log}) {
+    elsif ( $parms{log} ) {
         $action = "log $parms{log}";
     }
-    elsif ($parms{state}) {
+    elsif ( $parms{state} ) {
         $action = "state $parms{state}";
     }
-    elsif ($parms{run}) {
+    elsif ( $parms{run} ) {
         $action = "run";
     }
     else {
         $action = "log default";
     }
-           
+
     print $socket "$action\n";
 
-                                # Lets us uuencode to 'hide' the password.  
-                                # Not sure if this exactly the same as http password encoding.
-    my $password = pack("u", "mhsend:$parms{password}");
+    # Lets us uuencode to 'hide' the password.
+    # Not sure if this exactly the same as http password encoding.
+    my $password = pack( "u", "mhsend:$parms{password}" );
     print $socket "Authorization: Basic $password\n\n";
 
-    print $socket  $data;
+    print $socket $data;
     print "data sent\n";
 
     sleep 1;
 
-    shutdown $socket, 1;        # This closes writes, but still allows reads
+    shutdown $socket, 1;    # This closes writes, but still allows reads
 
     print "Response: ";
-#   <$socket>;                  # First record is blank (not sure why)
+
+    #   <$socket>;                  # First record is blank (not sure why)
     while (<$socket>) {
         print $_;
     }
     print "\n";
-}    
+}
 
-                                # Not sure about this ...
+# Not sure about this ...
 sub main::uuencode {
     my ($string) = @_;
-    return pack("u", $string);
+    return pack( "u", $string );
 }

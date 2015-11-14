@@ -21,23 +21,26 @@
 
 use strict;
 
-my ($Pgm_Path, $Pgm_Name);
+my ( $Pgm_Path, $Pgm_Name );
+
 BEGIN {
-    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
 }
 
-my ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+my ($Version) =
+  q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
 
 #print "Command: $Pgm_Name @ARGV\n";
 #print "Version: $Version\n";
 
 use Getopt::Long;
 my %parms;
-if (!&GetOptions(\%parms, "debug", "h", "help") or
-    @ARGV or
-    ($parms{h} or $parms{help})) {
-    print<<eof;
+if (  !&GetOptions( \%parms, "debug", "h", "help" )
+    or @ARGV
+    or ( $parms{h} or $parms{help} ) )
+{
+    print <<eof;
 
 $Pgm_Name gets news (Spain)
 
@@ -51,18 +54,19 @@ Usage:
 
 eof
     exit;
-  }
+}
 
 my %config_parms;
 
-
 my $caller = caller;
-my $return_flag = ($caller and $caller ne 'main') ? 1 : 0;
+my $return_flag = ( $caller and $caller ne 'main' ) ? 1 : 0;
 
-BEGIN { eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'" } # Use BEGIN eval to keep perl2exe happy
+BEGIN {
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'";
+}    # Use BEGIN eval to keep perl2exe happy
 
-require 'handy_utilities.pl';       # For read_mh_opts funcion
-&main::read_mh_opts(\%config_parms, $Pgm_Path);
+require 'handy_utilities.pl';    # For read_mh_opts funcion
+&main::read_mh_opts( \%config_parms, $Pgm_Path );
 
 use Date::Parse;
 use Date::Format;
@@ -72,60 +76,60 @@ $news_URL = 'http://actualidad.wanadoo.es/home.html';
 my $f_news_html = "$config_parms{data_dir}/../web/ia5/news/news.html";
 my $f_news_data = "$config_parms{data_dir}/news_data";
 
-my $debug = 1 if ($parms{debug});
+my $debug = 1 if ( $parms{debug} );
 
 ###################
 # get earthquakes #
 ###################
 
-get_url_ua($news_URL, $f_news_html);
+get_url_ua( $news_URL, $f_news_html );
 
-  my $html = &file_read($f_news_html);
-  $html =~ s|<html>|<html>\n<BASE href='http://actualidad.wanadoo.es/'>|i;
-  &file_write($f_news_html, $html);
-  print STDERR "File: $f_news_html, writen\n" if $debug;
-  my $text;
-  my $line;
-  my $capture = 0;
+my $html = &file_read($f_news_html);
+$html =~ s|<html>|<html>\n<BASE href='http://actualidad.wanadoo.es/'>|i;
+&file_write( $f_news_html, $html );
+print STDERR "File: $f_news_html, writen\n" if $debug;
+my $text;
+my $line;
+my $capture = 0;
 
-  for $line (split "\n", $html) {
-      if ($line =~ m!class="categoria"!) {
-          $line = remove_html($line);
-	  $line =~ s/\[\+\]//g;
-	  $line =~ s/;$//;
-	  $line =~ s/^\s+//;
-	  $text .= $line . "\n";
-	  print "Categoria: $line \n" if $debug;
-      }
-      if ($line =~ m!class="ttbdy"!) {
-          $line = remove_html($line);
-	  $line =~ s/\[\+\]//g;
-	  $line =~ s/;$//;
-	  $line =~ s/^\s+//;
-	  $text .= $line . "\n";
-	  print "Titular: $line \n" if $debug;
-      }
-      if ($line =~ m!class="txbdy"!) {
-	  $capture = 1;
-      }
+for $line ( split "\n", $html ) {
+    if ( $line =~ m!class="categoria"! ) {
+        $line = remove_html($line);
+        $line =~ s/\[\+\]//g;
+        $line =~ s/;$//;
+        $line =~ s/^\s+//;
+        $text .= $line . "\n";
+        print "Categoria: $line \n" if $debug;
+    }
+    if ( $line =~ m!class="ttbdy"! ) {
+        $line = remove_html($line);
+        $line =~ s/\[\+\]//g;
+        $line =~ s/;$//;
+        $line =~ s/^\s+//;
+        $text .= $line . "\n";
+        print "Titular: $line \n" if $debug;
+    }
+    if ( $line =~ m!class="txbdy"! ) {
+        $capture = 1;
+    }
 
-      if ($capture) {
-	  if ($line =~ m!<\/div>!) {$capture =0}
-          $line = remove_html($line);
-	  $line =~ s/\[\+\]//g;
-	  $line =~ s/;$//;
-	  $line =~ s/^\s+//;
-	  $text .= $line;
-	  if (!$capture) {$text .= "\n"}
-	  print "Noticia: $line \n" if $debug;
-      }
+    if ($capture) {
+        if ( $line =~ m!<\/div>! ) { $capture = 0 }
+        $line = remove_html($line);
+        $line =~ s/\[\+\]//g;
+        $line =~ s/;$//;
+        $line =~ s/^\s+//;
+        $text .= $line;
+        if ( !$capture ) { $text .= "\n" }
+        print "Noticia: $line \n" if $debug;
+    }
 
-  }
+}
 
-  $text =~ s/\n+/\n/g;
-  print STDERR "File: $f_news_data\n" if $debug;
-  print STDERR "News text ---------->>>>\n$text\n" if $debug;
-  &file_write($f_news_data, $text);
+$text =~ s/\n+/\n/g;
+print STDERR "File: $f_news_data\n"              if $debug;
+print STDERR "News text ---------->>>>\n$text\n" if $debug;
+&file_write( $f_news_data, $text );
 
 exit(0);
 
@@ -135,34 +139,35 @@ exit(0);
 
 # from get_url
 sub get_url_ua {
-    my $url = shift;
+    my $url  = shift;
     my $file = shift;
 
     use LWP::UserAgent;
 
     my $ua = new LWP::UserAgent;
-    $config_parms{proxy} = $ENV{HTTP_PROXY}           unless $config_parms{proxy};
-    $ua -> proxy(['http', 'ftp'] => $config_parms{proxy}) if $config_parms{proxy};
+    $config_parms{proxy} = $ENV{HTTP_PROXY} unless $config_parms{proxy};
+    $ua->proxy( [ 'http', 'ftp' ] => $config_parms{proxy} )
+      if $config_parms{proxy};
 
-    $ua->timeout([120]);         # Time out after 60 seconds 
-    $ua->env_proxy(); 
+    $ua->timeout( [120] );    # Time out after 60 seconds
+    $ua->env_proxy();
 
-    my $request = new HTTP::Request('GET', $url);
+    my $request = new HTTP::Request( 'GET', $url );
     my $response;
 
-    print "Retrieving (with ua) $url into $file ...\n" unless $config_parms{quiet};
-    if ($file eq '/dev/null') {
+    print "Retrieving (with ua) $url into $file ...\n"
+      unless $config_parms{quiet};
+    if ( $file eq '/dev/null' ) {
         $response = $ua->simple_request($request);
     }
     else {
-        $response = $ua->simple_request($request, $file);
+        $response = $ua->simple_request( $request, $file );
     }
 
-    if ($response->is_error()) {
+    if ( $response->is_error() ) {
         printf "error: %s\n", $response->status_line;
     }
 }
-
 
 sub remove_html {
     my $html = shift;

@@ -16,12 +16,13 @@
 #@<tr><td>Storage location for<br>webcam images</td><td>wc_slide_dir=<b>/cameras</b></td></tr>
 #@</table>
 
-my $wc_max			= $config_parms{wc_max};
+my $wc_max = $config_parms{wc_max};
 
-my $wc_address_1		= $config_parms{wc_address_1};
-my $wc_address_2		= $config_parms{wc_address_2};
-my $wc_address_3		= $config_parms{wc_address_3};
-my $wc_address_4		= $config_parms{wc_address_4};
+my $wc_address_1 = $config_parms{wc_address_1};
+my $wc_address_2 = $config_parms{wc_address_2};
+my $wc_address_3 = $config_parms{wc_address_3};
+my $wc_address_4 = $config_parms{wc_address_4};
 
-my $wc_slide_dir		= $config_parms{wc_slide_dir};
+my $wc_slide_dir = $config_parms{wc_slide_dir};
+
 #my $wc_bg_color		= $config_parms{wc_bg_color};

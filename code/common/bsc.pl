@@ -3,7 +3,7 @@
 use BSC;
 
 #@ This code will monitor mh items and send out state changes via xAP BSC.
-#@ In addition, it will accepts commands via xAP BSC and update the 
+#@ In addition, it will accepts commands via xAP BSC and update the
 #@ corresponding states of mh items.
 
 =begin comment
@@ -34,55 +34,63 @@ use BSC;
 # bsc_prefer_abstract = 0
 
 my $bsc_info_interval = $::config_parms{bsc_info_interval};
-$bsc_info_interval = 10 if !$bsc_info_interval; # send out BSC info messages every 10 minutes
+$bsc_info_interval = 10
+  if !$bsc_info_interval;    # send out BSC info messages every 10 minutes
 
 my $bsc_prefer_abstract = $::config_parms{bsc_prefer_abstract};
-$bsc_prefer_abstract = 0 unless $bsc_prefer_abstract; # support x10 devices in favor of abstract ones
+$bsc_prefer_abstract = 0
+  unless $bsc_prefer_abstract;   # support x10 devices in favor of abstract ones
 
 if ($::Startup) {
-   $bsc_x10_device = new BSCMH_Item(BSCMH_Item::DEVICE_TYPE_X10);
-   $bsc_abstract_device = new BSCMH_Item(BSCMH_Item::DEVICE_TYPE_ABSTRACT);
-   $bsc_presence_device = new BSCMH_Item(BSCMH_Item::DEVICE_TYPE_PRESENCE);
+    $bsc_x10_device      = new BSCMH_Item(BSCMH_Item::DEVICE_TYPE_X10);
+    $bsc_abstract_device = new BSCMH_Item(BSCMH_Item::DEVICE_TYPE_ABSTRACT);
+    $bsc_presence_device = new BSCMH_Item(BSCMH_Item::DEVICE_TYPE_PRESENCE);
 
-   if (!($bsc_prefer_abstract)) {
-      # register each device type that will be supported
-      # TO-DO: provide an easy method for the user to select
-      #        the device types to be supported other than commenting the below in/out
-      $bsc_x10_device->register_device_type(BSCMH_Item::X10_ITEM);
-      $bsc_x10_device->register_device_type(BSCMH_Item::X10_APPLIANCE);
-      $bsc_x10_device->register_device_type(BSCMH_Item::X10_TRANSMITTER);
-      $bsc_x10_device->register_device_type(BSCMH_Item::X10_RF_RECEIVER);
-      $bsc_x10_device->register_device_type(BSCMH_Item::X10_GARAGE_DOOR);
-      $bsc_x10_device->register_device_type(BSCMH_Item::X10_IRRIGATION_CONTROLLER);
-      $bsc_x10_device->register_device_type(BSCMH_Item::X10_SWITCHLINC);
-      $bsc_x10_device->register_device_type(BSCMH_Item::X10_TEMPLINC);
-      $bsc_x10_device->register_device_type(BSCMH_Item::X10_OTE);
-      $bsc_x10_device->register_device_type(BSCMH_Item::X10_SENSOR);
-   } else {
-      # TO-DO: extend the support for abstract device types
-      $bsc_abstract_device->register_device_type(BSCMH_Item::MOTION_ITEM);
-      $bsc_abstract_device->register_device_type(BSCMH_Item::LIGHT_ITEM);
-   }
+    if ( !($bsc_prefer_abstract) ) {
 
-   # TO-DO handle ability to enable/disable presence monitoring
-   if (1 == 1) {
-      $bsc_presence_device->register_device_type(BSCMH_Item::PRESENCE_MONITOR);
-   }
+        # register each device type that will be supported
+        # TO-DO: provide an easy method for the user to select
+        #        the device types to be supported other than commenting the below in/out
+        $bsc_x10_device->register_device_type(BSCMH_Item::X10_ITEM);
+        $bsc_x10_device->register_device_type(BSCMH_Item::X10_APPLIANCE);
+        $bsc_x10_device->register_device_type(BSCMH_Item::X10_TRANSMITTER);
+        $bsc_x10_device->register_device_type(BSCMH_Item::X10_RF_RECEIVER);
+        $bsc_x10_device->register_device_type(BSCMH_Item::X10_GARAGE_DOOR);
+        $bsc_x10_device
+          ->register_device_type(BSCMH_Item::X10_IRRIGATION_CONTROLLER);
+        $bsc_x10_device->register_device_type(BSCMH_Item::X10_SWITCHLINC);
+        $bsc_x10_device->register_device_type(BSCMH_Item::X10_TEMPLINC);
+        $bsc_x10_device->register_device_type(BSCMH_Item::X10_OTE);
+        $bsc_x10_device->register_device_type(BSCMH_Item::X10_SENSOR);
+    }
+    else {
+        # TO-DO: extend the support for abstract device types
+        $bsc_abstract_device->register_device_type(BSCMH_Item::MOTION_ITEM);
+        $bsc_abstract_device->register_device_type(BSCMH_Item::LIGHT_ITEM);
+    }
 
-   # initiate sending a block of info messages for all devices handled by this BSCMH item
-   &send_info;
-   # and, create a timer to do same
-   $bsc_info_timer = new Timer;
-   # set the timer to run send_info forever
-   $bsc_info_timer->set($bsc_info_interval*60, \&send_info, -1);
+    # TO-DO handle ability to enable/disable presence monitoring
+    if ( 1 == 1 ) {
+        $bsc_presence_device
+          ->register_device_type(BSCMH_Item::PRESENCE_MONITOR);
+    }
 
-   # to register individual objects, do something like:
-   # $bsc_x10_device->register_obj('some_mh_x10_item_name',BSCMH_Item::DEVICE_TYPE_X10);
+    # initiate sending a block of info messages for all devices handled by this BSCMH item
+    &send_info;
+
+    # and, create a timer to do same
+    $bsc_info_timer = new Timer;
+
+    # set the timer to run send_info forever
+    $bsc_info_timer->set( $bsc_info_interval * 60, \&send_info, -1 );
+
+    # to register individual objects, do something like:
+    # $bsc_x10_device->register_obj('some_mh_x10_item_name',BSCMH_Item::DEVICE_TYPE_X10);
 }
 
 sub send_info {
-   $bsc_x10_device->do_info();
-   $bsc_abstract_device->do_info();
-   $bsc_presence_device->do_info();
+    $bsc_x10_device->do_info();
+    $bsc_abstract_device->do_info();
+    $bsc_presence_device->do_info();
 }
 

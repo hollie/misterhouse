@@ -95,17 +95,15 @@
 no strict;
 
 #$DATA_DIR= 'data' ;
-$DATA_DIR= $config_parms{data_dir};
+$DATA_DIR = $config_parms{data_dir};
 
 print "db dd=$DATA_DIR\n";
-
 
 # Set this to a list of allowed usernames, to restrict who REMOTE_USER can
 #   be, or leave empty for no restrictions.  This guards against a few
 #   potential security holes.  For example, someone could make a symbolic
 #   link to your copy of this script, bypassing any password-protection.
-@ALLOWED_USERS= qw( ) ;
-
+@ALLOWED_USERS = qw( );
 
 # If you run this setuid or setgid, there is a slight security risk
 #   of someone running this from the command line in another directory
@@ -115,85 +113,77 @@ print "db dd=$DATA_DIR\n";
 
 # Username or UID the Web server runs under (either will work).
 # If you set this, the program will verify this is the real user running it.
-$WEB_SERVER_USER= '' ;
+$WEB_SERVER_USER = '';
 
 # Directory where this program should be run, i.e. where it lives.
 # If you set this, the program will chdir to the directory before running.
-$HOME_DIRECTORY= '' ;
-
+$HOME_DIRECTORY = '';
 
 # The delimiter between fields in the DBM file, if none is specified.
-$DEFAULT_DELIM= "\0" ;
-
+$DEFAULT_DELIM = "\0";
 
 #----- END OF (USEFUL) USER CONFIGURATION ----------------------------
 
-use Fcntl qw(:DEFAULT :flock) ;
+use Fcntl qw(:DEFAULT :flock);
+
 #use NDBM_File ;
 
-
 # Where all the lock files go. This will be created if it doesn't exist.
-$lockdir= "$DATA_DIR/locks" ;
+$lockdir = "$DATA_DIR/locks";
 
 # The default title for simple error responses
-$errtitle= "$0 error" ;
-
+$errtitle = "$0 error";
 
 # Guard against unauthorized access, if needed
 if (@ALLOWED_USERS) {
     &HTMLdie("Sorry, you're not authorized to run this script.")
-        unless grep( ($_ eq $ENV{'REMOTE_USER'} ), @ALLOWED_USERS ) ;
+      unless grep( ( $_ eq $ENV{'REMOTE_USER'} ), @ALLOWED_USERS );
 }
-
 
 # Guard against a slim security hole
 chdir($HOME_DIRECTORY) || &HTMLdie("Couldn't chdir: $!")
-    if $HOME_DIRECTORY ne '' ;
+  if $HOME_DIRECTORY ne '';
 
 # Guard against a slim security hole, take 2
-if ($WEB_SERVER_USER ne '') {
+if ( $WEB_SERVER_USER ne '' ) {
+
     # First, convert to numeric UID if needed
-    $WEB_SERVER_USER= getpwnam($WEB_SERVER_USER) if $WEB_SERVER_USER=~ /\D/ ;
-    &HTMLdie("Access forbidden.") unless ( $WEB_SERVER_USER == $< ) ;
+    $WEB_SERVER_USER = getpwnam($WEB_SERVER_USER) if $WEB_SERVER_USER =~ /\D/;
+    &HTMLdie("Access forbidden.") unless ( $WEB_SERVER_USER == $< );
 }
 
+%in = &getcgivars;
+$in{'file'} =~ s/(^\s*|\s*$)//g;    # standardize on no leading/trailing blanks
+$in{'referer'} ||= $ENV{'HTTP_REFERER'};
 
-%in= &getcgivars ;
-$in{'file'}=~ s/(^\s*|\s*$)//g ;   # standardize on no leading/trailing blanks
-$in{'referer'}||= $ENV{'HTTP_REFERER'} ;
-
-&displaystartform unless $in{'file'} ;
+&displaystartform unless $in{'file'};
 
 # Only allow files with no paths.
 # Heck, only allow word chars for now.
 &HTMLdie("The filename '$in{'file'}' is not allowed.")
-    if ($in{'file'}=~ m#/|\.\.#) || ($in{'file'}=~ /[^\w.-]/) ;
-
+  if ( $in{'file'} =~ m#/|\.\.# ) || ( $in{'file'} =~ /[^\w.-]/ );
 
 # Homespun lock mechanism-- can't figure out how to use flock() on DBM file :(
 # Make a lock file to get a lock on-- safer for interruptable processes.
-mkdir($lockdir, 0777) || &HTMLdie("Couldn't create lock directory: $!")
-    unless -e $lockdir ;
-chmod(0777, $lockdir) ;                  # otherwise, it's tough to get rid of
-$lockfile= "$lockdir/$in{'file'}.lock";  # safe because $in{'file'} is safe
-system('touch', $lockfile) unless -e $lockfile ;
-open(DB_LOCK, ">$lockfile") || &HTMLdie("Couldn't open lockfile: $!") ;
+mkdir( $lockdir, 0777 ) || &HTMLdie("Couldn't create lock directory: $!")
+  unless -e $lockdir;
+chmod( 0777, $lockdir );    # otherwise, it's tough to get rid of
+$lockfile = "$lockdir/$in{'file'}.lock";    # safe because $in{'file'} is safe
+system( 'touch', $lockfile ) unless -e $lockfile;
+open( DB_LOCK, ">$lockfile" ) || &HTMLdie("Couldn't open lockfile: $!");
 
 # For some reason, LOCK_SH doesn't always work-- gets "Bad file number".  :P
 #   So, we'll just do an exclusive lock for everything.  Best we can do.  :(
-flock(DB_LOCK, LOCK_EX) || &HTMLdie("Couldn't get lock: $!") ;
-
+flock( DB_LOCK, LOCK_EX ) || &HTMLdie("Couldn't get lock: $!");
 
 # $now is saved in the form, and is used for safe updates.
 # Note that file will not be modified until at least the end of this script,
 #   so $now is "equivalent" to the time the form will be generated.
-$now= time ;    # for (@goodmen)
-
+$now = time;    # for (@goodmen)
 
 #tie (%DBM,  'DB_File',  $dbm_file,  O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file: $!";
 #tie %dbdata, 'NDBM_File', "$DATA_DIR/$in{'file'}", O_RDWR|O_CREAT, 0664 ;
-tie %dbdata, 'DB_File', "$DATA_DIR/$in{'file'}", O_RDWR|O_CREAT, 0664 ;
-
+tie %dbdata, 'DB_File', "$DATA_DIR/$in{'file'}", O_RDWR | O_CREAT, 0664;
 
 # Used to test modification time for safe updates.
 # DBM filenames vary, so see which files exist.  Try .pag, else take .db.
@@ -201,133 +191,130 @@ tie %dbdata, 'DB_File', "$DATA_DIR/$in{'file'}", O_RDWR|O_CREAT, 0664 ;
 #$dbfilename= "$DATA_DIR/$in{'file'}.pag" unless -e $dbfilename;
 #$dbfilename= "$DATA_DIR/$in{'file'}.png" unless -e $dbfilename;
 #$dbfilename= "$DATA_DIR/$in{'file'}.db"  unless -e $dbfilename;
-$dbfilename= "$DATA_DIR/$in{'file'}";
-
+$dbfilename = "$DATA_DIR/$in{'file'}";
 
 # Perhaps we should allow the user to read the file even if it's not
 #   writable?  To do so, set $topmsg, and alter the flags on "tie", above.
-&HTMLdie("Web server couldn't create DBM file: $dbfilename") unless -e $dbfilename ;
-&HTMLdie("DBM file isn't readable by Web server: $dbfilename") unless -r $dbfilename ;
-&HTMLdie("DBM file isn't writable by Web server: $dbfilename") unless -w $dbfilename ;
+&HTMLdie("Web server couldn't create DBM file: $dbfilename")
+  unless -e $dbfilename;
+&HTMLdie("DBM file isn't readable by Web server: $dbfilename")
+  unless -r $dbfilename;
+&HTMLdie("DBM file isn't writable by Web server: $dbfilename")
+  unless -w $dbfilename;
 
-
-&calcglobals ;
-
+&calcglobals;
 
 #----- end of initialization, main block below -----------------------
 
-
 # a catch-all way to cancel actions: show message and do default command
-if ($in{'noconfirm'}) {
-    $topmsg= "<h2><font color=red>\u$safein{'cmd'} cancelled.</font></h2>" ;
-    $in{'cmd'}= $safein{'cmd'}= '' ;
+if ( $in{'noconfirm'} ) {
+    $topmsg = "<h2><font color=red>\u$safein{'cmd'} cancelled.</font></h2>";
+    $in{'cmd'} = $safein{'cmd'} = '';
 }
-
 
 # Main switch statement
 
-if (($in{'cmd'} eq 'show') || ($in{'cmd'} eq '')) {
-    &displaymaintable ;
+if ( ( $in{'cmd'} eq 'show' ) || ( $in{'cmd'} eq '' ) ) {
+    &displaymaintable;
 
-} elsif ($in{'cmd'} eq 'edit') {
-    &displayeditform ;
+}
+elsif ( $in{'cmd'} eq 'edit' ) {
+    &displayeditform;
 
-} elsif ($in{'cmd'} eq 'add') {
-    &addrecord ;
-    $topmsg= "<h2><font color=green>Record added.</font></h2>" ;
-    &displaymaintable ;
+}
+elsif ( $in{'cmd'} eq 'add' ) {
+    &addrecord;
+    $topmsg = "<h2><font color=green>Record added.</font></h2>";
+    &displaymaintable;
 
-} elsif ($in{'cmd'} eq 'update') {
-    &updaterecord ;
-    $topmsg= "<h2><font color=green>Record updated.</font></h2>" ;
-    &displaymaintable ;
+}
+elsif ( $in{'cmd'} eq 'update' ) {
+    &updaterecord;
+    $topmsg = "<h2><font color=green>Record updated.</font></h2>";
+    &displaymaintable;
 
-} elsif ($in{'cmd'} eq 'delete') {
-    &deleterecord ;
-    $topmsg= "<h2><font color=green>Record deleted.</font></h2>" ;
-    &displaymaintable ;
+}
+elsif ( $in{'cmd'} eq 'delete' ) {
+    &deleterecord;
+    $topmsg = "<h2><font color=green>Record deleted.</font></h2>";
+    &displaymaintable;
 
-
-} else {
-    &HTMLdie("The command <b>$safein{'cmd'}</b> is not supported.",
-             "Command not supported") ;
+}
+else {
+    &HTMLdie( "The command <b>$safein{'cmd'}</b> is not supported.",
+        "Command not supported" );
 
 }
 
-
 untie %dbdata;
 
-close(DB_LOCK) ;
+close(DB_LOCK);
 
 # unlink $lockfile ;   # not needed, but optional
 
 return;
-
 
 #----- blocks to perform the various commands ------------------------
 
 # Add a new record to the DBM file
 sub addrecord {
 
-    unless ($in{'confirm'}) {
-        if (defined($dbdata{$in{'key'}})) {
-            &verifycmd("A record with that key already exists.  You should "
-            . "normally use the Update function to change an existing "
-            . "record.  Would you like to overwrite the existing record "
-                . "with the values you just entered?") ;
+    unless ( $in{'confirm'} ) {
+        if ( defined( $dbdata{ $in{'key'} } ) ) {
+            &verifycmd( "A record with that key already exists.  You should "
+                  . "normally use the Update function to change an existing "
+                  . "record.  Would you like to overwrite the existing record "
+                  . "with the values you just entered?" );
         }
     }
 
     # Generate sequential key if key was not entered
-    if (!length($in{'key'})) {
-        $in{'key'}= sprintf("%05d",
-                            int((sort { $b<=>$a } keys %dbdata)[0]) + 1) ;
+    if ( !length( $in{'key'} ) ) {
+        $in{'key'} =
+          sprintf( "%05d", int( ( sort { $b <=> $a } keys %dbdata )[0] ) + 1 );
     }
 
-    &putfieldstodb ;
+    &putfieldstodb;
 }
-
 
 # Update a record in the DBM file
 sub updaterecord {
 
-    unless ($in{'confirm'}) {
+    unless ( $in{'confirm'} ) {
 
-        unless (defined($dbdata{$in{'key'}})) {
-            &verifycmd("That record has apparently been deleted recently.  "
-            . "Would you like to add it back with the values you just "
-            . "entered?") ;
+        unless ( defined( $dbdata{ $in{'key'} } ) ) {
+            &verifycmd( "That record has apparently been deleted recently.  "
+                  . "Would you like to add it back with the values you just "
+                  . "entered?" );
         }
 
-        if ($in{'time'} && $in{'time'}<(stat($dbfilename))[9]) {
-            &verifycmd("The database has changed since this record was "
-            . "presented to you for editing.  The record itself may or "
-                . "may not have changed.  Do you still want to update "
-            . "this record?") ;
+        if ( $in{'time'} && $in{'time'} < ( stat($dbfilename) )[9] ) {
+            &verifycmd( "The database has changed since this record was "
+                  . "presented to you for editing.  The record itself may or "
+                  . "may not have changed.  Do you still want to update "
+                  . "this record?" );
         }
     }
 
-    &putfieldstodb ;
+    &putfieldstodb;
 }
-
 
 # Delete a record from the DBM file
 sub deleterecord {
 
-    unless ($in{'confirm'}) {
-        verifycmd("Are you sure you want to delete this record?") ;
+    unless ( $in{'confirm'} ) {
+        verifycmd("Are you sure you want to delete this record?");
     }
 
-    delete($dbdata{$in{'key'}}) ;
+    delete( $dbdata{ $in{'key'} } );
 }
-
 
 # Require the user to verify a command
 sub verifycmd {
-    my($msg)= @_ ;
-    my($userdata)= &hiddenvars(
-            &subhash(*in, 'key', grep(/^in_\d\d\d$/, keys %in)) ) ;
-    &printheader ;
+    my ($msg) = @_;
+    my ($userdata) =
+      &hiddenvars( &subhash( *in, 'key', grep( /^in_\d\d\d$/, keys %in ) ) );
+    &printheader;
     print <<EOF ;
 <h3><font color=red>Warning:</font>  $msg</h3>
 
@@ -345,70 +332,69 @@ helpful here, to view current data or recover lost data.</i>
 
 EOF
 
-    &printfooter ;
+    &printfooter;
 
-#   exit ;   # hmm, not the cleanest
+    #   exit ;   # hmm, not the cleanest
     return;
 }
-
-
 
 # Copy "in_nnn" fields into $dbdata{$in{'key'}} (used by add and update)
 # Currently, this does NOT fill in gaps in data, e.g. (in_001, in_003) is
 #   only two fields, not three with a blank one in the middle.
 sub putfieldstodb {
+
     # create full data string, removing empty fields at the end
-    my(@field)= sort grep(/^in_\d\d\d$/, keys %in) ;
-    $#field-- while ( ($#field>0) && !length($in{$field[$#field]}));
+    my (@field) = sort grep( /^in_\d\d\d$/, keys %in );
+    $#field-- while ( ( $#field > 0 ) && !length( $in{ $field[$#field] } ) );
 
     # Normalize raw CRLF into LF, to accommodate brain-dead OS's
-    foreach (@field) { $in{$_}=~ s/\r\n/\n/g }
+    foreach (@field) { $in{$_} =~ s/\r\n/\n/g }
 
-    $dbdata{$in{'key'}}= join($delim, map { &slashunescape($_) } @in{@field}) ;
+    $dbdata{ $in{'key'} } =
+      join( $delim, map { &slashunescape($_) } @in{@field} );
 }
-
 
 #----- translation to/from slash-escaped string format ---------------
 
 # unescape the user input into raw data
 sub slashunescape {
-    my($s)= @_ ;
-    $s=~ s/(\\(n|r|t|f|b|a|e|0(?!\d\d)|\d\d\d|x[0-9A-Fa-f]{2}|c.|\\))/
-    eval qq(\"$1\") /ge ;
-    return $s ;
+    my ($s) = @_;
+    $s =~ s/(\\(n|r|t|f|b|a|e|0(?!\d\d)|\d\d\d|x[0-9A-Fa-f]{2}|c.|\\))/
+    eval qq(\"$1\") /ge;
+    return $s;
 }
 
 # use backslashes to escape string, to make it suitable for input form
 sub slashescape {
-    my($s)= @_ ;
-    $s=~ s/\\/\\\\/g ;
-    $s=~ s/\n/\\n/g ;
-    $s=~ s/\r/\\r/g ;
-    $s=~ s/\t/\\t/g ;
-    $s=~ s/\f/\\f/g ;
-    $s=~ s/\x08/\\b/g ;
-    $s=~ s/\a/\\a/g ;
-    $s=~ s/\e/\\e/g ;
-    $s=~ s/\0(?!\d\d)/\\0/ ;
-    $s=~ s/([\ca-\cz])/   "\\c" . chr(ord($1)+64) /ge ;
-    $s=~ s/([^\x20-\x7e])/ "\\x" . sprintf("%02x",ord($1)) /ge ;
-    return $s ;
+    my ($s) = @_;
+    $s =~ s/\\/\\\\/g;
+    $s =~ s/\n/\\n/g;
+    $s =~ s/\r/\\r/g;
+    $s =~ s/\t/\\t/g;
+    $s =~ s/\f/\\f/g;
+    $s =~ s/\x08/\\b/g;
+    $s =~ s/\a/\\a/g;
+    $s =~ s/\e/\\e/g;
+    $s =~ s/\0(?!\d\d)/\\0/;
+    $s =~ s/([\ca-\cz])/   "\\c" . chr(ord($1)+64) /ge;
+    $s =~ s/([^\x20-\x7e])/ "\\x" . sprintf("%02x",ord($1)) /ge;
+    return $s;
 }
 
 # Identical to &slashescape(), except doesn't escape \n
 sub slashescapetextarea {
-    my($s)= @_ ;
-    $s=~ s/\\/\\\\/g ;
-    $s=~ s/\r/\\r/g ;
-    $s=~ s/\t/\\t/g ;
-    $s=~ s/\f/\\f/g ;
-    $s=~ s/\x08/\\b/g ;
-    $s=~ s/\a/\\a/g ;
-    $s=~ s/\e/\\e/g ;
-    $s=~ s/\0(?!\d\d)/\\0/ ;
-    $s=~ s/([\ca-\ci\ck-\cz])/   "\\c" . chr(ord($1)+64) /ge ;
-    $s=~ s/([^\x20-\x7e\n])/ "\\x" . sprintf("%02x",ord($1)) /ge ;
-    return $s ;
+    my ($s) = @_;
+    $s =~ s/\\/\\\\/g;
+    $s =~ s/\r/\\r/g;
+    $s =~ s/\t/\\t/g;
+    $s =~ s/\f/\\f/g;
+    $s =~ s/\x08/\\b/g;
+    $s =~ s/\a/\\a/g;
+    $s =~ s/\e/\\e/g;
+    $s =~ s/\0(?!\d\d)/\\0/;
+    $s =~ s/([\ca-\ci\ck-\cz])/   "\\c" . chr(ord($1)+64) /ge;
+    $s =~ s/([^\x20-\x7e\n])/ "\\x" . sprintf("%02x",ord($1)) /ge;
+    return $s;
 }
 
 #----- routines to calculate various globals and arrays --------------
@@ -417,68 +403,72 @@ sub slashescapetextarea {
 # Order is sometimes important here.
 # None of these should need recalculating; they should all be constant.
 sub calcglobals {
-    @safein{keys %in}= map { &HTMLescape($_) } values %in ;
+    @safein{ keys %in } = map { &HTMLescape($_) } values %in;
 
     # Save database definition to send to script again
-    $dbdefnget= &urlencodelist(&subhash(*in, qw(file delim columns referer))) ;
-    $dbdefnpost= &hiddenvars(&subhash(*in, qw(file delim columns referer))) ;
+    $dbdefnget =
+      &urlencodelist( &subhash( *in, qw(file delim columns referer) ) );
+    $dbdefnpost =
+      &hiddenvars( &subhash( *in, qw(file delim columns referer) ) );
 
-    $delim= ($in{'delim'}=~ /\d/)
-            ? join("", map { chr } ($in{'delim'}=~ /(\d+)/g) )
-            : $DEFAULT_DELIM ;
-    $safedelim= &slashescape($delim) ;
+    $delim =
+      ( $in{'delim'} =~ /\d/ )
+      ? join( "", map { chr } ( $in{'delim'} =~ /(\d+)/g ) )
+      : $DEFAULT_DELIM;
+    $safedelim = &slashescape($delim);
 
     # Columns are "title:flags"; store in @title and @flags[]{flags}.
     # Flags are one char and may take numeric value, e.g. "title:a5b11cd".
     # Default flag value is 1.  Initial numeric value stored in 'preflag'. (?)
     # could be cleaner here...
-    @column= (split(/\s*,\s*/, $in{'columns'})) ;
-    for (0..$#column) { ($title[$_],$flags[$_])= split(/:/, $column[$_], 2) }
-    @title= map { &HTMLescape($_) } @title ;
-    foreach (0..$#flags) {
-        ($flags[$_])= { 'preflag', split(/([a-zA-Z])/, $flags[$_]) } ;
-        foreach $key (keys %{$flags[$_]}) {
-            $flags[$_]{$key}= '1' unless length($flags[$_]{$key}) ;
+    @column = ( split( /\s*,\s*/, $in{'columns'} ) );
+    for ( 0 .. $#column ) {
+        ( $title[$_], $flags[$_] ) = split( /:/, $column[$_], 2 );
+    }
+    @title = map { &HTMLescape($_) } @title;
+    foreach ( 0 .. $#flags ) {
+        ( $flags[$_] ) = { 'preflag', split( /([a-zA-Z])/, $flags[$_] ) };
+        foreach $key ( keys %{ $flags[$_] } ) {
+            $flags[$_]{$key} = '1' unless length( $flags[$_]{$key} );
         }
     }
 
 }
-
 
 # Find current parameters of table
 # columns start with column 0
 sub calctablesize {
-    &findmaxwidths ;
-    $lastcol= ($#column>$#maxwidth)  ? $#column  : $#maxwidth ;
+    &findmaxwidths;
+    $lastcol = ( $#column > $#maxwidth ) ? $#column : $#maxwidth;
 }
-
 
 # Find maximum widths of data in columns
 # jsm-- field array could be saved to use later, for speed?
 sub findmaxwidths {
-    @maxwidth= () ;
-    @maxheight= () ;
-    foreach $key (keys %dbdata) {
-        my($i, $numlines) ;
-        foreach (split(/$delim/, $dbdata{$key})) {
+    @maxwidth  = ();
+    @maxheight = ();
+    foreach $key ( keys %dbdata ) {
+        my ( $i, $numlines );
+        foreach ( split( /$delim/, $dbdata{$key} ) ) {
+
             # @maxheight() calc is only needed for textareas, but let's
             #   figure all of them, may come in handy.
-            $numlines= s/\n/\n/g + 1 ;
-            $maxheight[$i]= $numlines if $maxheight[$i]<$numlines ;
-            if ($flags[$i]{'t'}) {
-                foreach my $l (split(/\n/)) {
-                    $l= &slashescape($l) ;
-                    $maxwidth[$i]= length($l) if $maxwidth[$i]<length($l) ;
+            $numlines = s/\n/\n/g + 1;
+            $maxheight[$i] = $numlines if $maxheight[$i] < $numlines;
+            if ( $flags[$i]{'t'} ) {
+                foreach my $l ( split(/\n/) ) {
+                    $l = &slashescape($l);
+                    $maxwidth[$i] = length($l) if $maxwidth[$i] < length($l);
                 }
-            } else {
-                $_= &slashescape($_) ;
-                $maxwidth[$i]= length if $maxwidth[$i]<length ;
             }
-            $i++ ;
+            else {
+                $_ = &slashescape($_);
+                $maxwidth[$i] = length if $maxwidth[$i] < length;
+            }
+            $i++;
         }
     }
 }
-
 
 #-----  Main display routines  ---------------------------------------
 
@@ -502,7 +492,6 @@ $topmsg
 EOF
 }
 
-
 # Print common footer
 sub printfooter {
     print <<EOF ;
@@ -519,13 +508,12 @@ $debug
 EOF
 }
 
-
 # Display the main table to the user
 sub displaymaintable {
-    my($numrecs)= scalar(keys %dbdata) ;
-    my($plural)= ($numrecs==1)  ? ''  : 's' ;
-    my($safekey, $safekeyurl, $safefield, $has_backslashes) ;
-    &printheader ;
+    my ($numrecs) = scalar( keys %dbdata );
+    my ($plural) = ( $numrecs == 1 ) ? '' : 's';
+    my ( $safekey, $safekeyurl, $safefield, $has_backslashes );
+    &printheader;
     print <<EOF ;
 
 <h2>$numrecs record$plural shown</h2>
@@ -545,13 +533,13 @@ sub displaymaintable {
     <th><font color=blue>key</font></th>
 EOF
 
-    for (0..$#column) { print "    <th>$title[$_]</th>\n" }
+    for ( 0 .. $#column ) { print "    <th>$title[$_]</th>\n" }
 
-    print "</tr>\n" ;
+    print "</tr>\n";
 
-    foreach $key (sort keys %dbdata) {
-        $safekey= &HTMLescape(&slashescape($key)) ;
-        $safekeyurl= &urlencode($key) ;
+    foreach $key ( sort keys %dbdata ) {
+        $safekey    = &HTMLescape( &slashescape($key) );
+        $safekeyurl = &urlencode($key);
         print <<EOF ;
     <td><font color=blue>
         <a href="$ENV{'SCRIPT_NAME'}?$dbdefnget&cmd=edit&key=$safekeyurl">$safekey</a>
@@ -559,19 +547,19 @@ EOF
 EOF
 
         # show \n as line break, but show all other control codes as "\..."
-        foreach (split(/$delim/, $dbdata{$key})) {
-            $safefield= &HTMLescape(&slashescapetextarea($_)) ;
-            $safefield=~ s/\n/<br>\n/g ;
-            print "    <td>", $safefield, "</td>\n" ;
-            $has_backslashes||= ($safefield=~ /\\/) ;
+        foreach ( split( /$delim/, $dbdata{$key} ) ) {
+            $safefield = &HTMLescape( &slashescapetextarea($_) );
+            $safefield =~ s/\n/<br>\n/g;
+            print "    <td>", $safefield, "</td>\n";
+            $has_backslashes ||= ( $safefield =~ /\\/ );
         }
-        print "</tr>\n" ;
+        print "</tr>\n";
     }
 
-
-    print "</table>\n\n" ;
-    print "<p><b><i>* Backslashes indicate escaped characters, as in Perl.</i></b>\n\n"
-        if $has_backslashes ;
+    print "</table>\n\n";
+    print
+      "<p><b><i>* Backslashes indicate escaped characters, as in Perl.</i></b>\n\n"
+      if $has_backslashes;
 
     print <<EOF ;
 <p><hr>
@@ -598,21 +586,23 @@ $dbdefnpost
     <td><b><font color=blue><input name="key" size=20></font><b></td></tr>
 EOF
 
-    &calctablesize ;
-    my($fieldname, $width, $height, $rostar) ;
-    for (0..$lastcol) {
-        $fieldname= sprintf("in_%03d", $_+1) ;   # max 999 fields
-        $rostar= $flags[$_]{'r'}  ?'*'  :'' ;
-        print "<tr valign=top><td><b>$title[$_]:$rostar</b></td>\n" ;
-        if ($flags[$_]{'t'}) {
-            $width= $maxwidth[$_]>20  ? $maxwidth[$_]  : 20 ;
-            $width= $width<60         ? $width         : 60 ;
-            $height= $maxheight[$_]>1  ? $maxheight[$_]+1  : 2 ;
-            $height= $height<10        ? $height           : 10 ;
-            print qq(    <td><textarea name="$fieldname" rows=$height cols=$width></textarea></td></tr>\n) ;
-        } else {
-            $width= $maxwidth[$_]  ? $maxwidth[$_]+1  : 20 ;
-            print qq(    <td><input name="$fieldname" size=$width></td></tr>\n) ;
+    &calctablesize;
+    my ( $fieldname, $width, $height, $rostar );
+    for ( 0 .. $lastcol ) {
+        $fieldname = sprintf( "in_%03d", $_ + 1 );    # max 999 fields
+        $rostar = $flags[$_]{'r'} ? '*' : '';
+        print "<tr valign=top><td><b>$title[$_]:$rostar</b></td>\n";
+        if ( $flags[$_]{'t'} ) {
+            $width  = $maxwidth[$_] > 20 ? $maxwidth[$_]      : 20;
+            $width  = $width < 60        ? $width             : 60;
+            $height = $maxheight[$_] > 1 ? $maxheight[$_] + 1 : 2;
+            $height = $height < 10       ? $height            : 10;
+            print
+              qq(    <td><textarea name="$fieldname" rows=$height cols=$width></textarea></td></tr>\n);
+        }
+        else {
+            $width = $maxwidth[$_] ? $maxwidth[$_] + 1 : 20;
+            print qq(    <td><input name="$fieldname" size=$width></td></tr>\n);
         }
     }
 
@@ -633,21 +623,19 @@ EOF
 
 EOF
 
-    &printfooter ;
+    &printfooter;
 
-} # sub displaymaintable()
-
-
+}    # sub displaymaintable()
 
 # Display a form with a record to edit
 sub displayeditform {
-    my(@field, @safefield, $fieldname, $width) ;
-    my($safekey)= &slashescape($safein{'key'}) ;
+    my ( @field, @safefield, $fieldname, $width );
+    my ($safekey) = &slashescape( $safein{'key'} );
 
     &HTMLdie("That record was just deleted.")
-        unless defined($dbdata{$in{'key'}}) ;
+      unless defined( $dbdata{ $in{'key'} } );
 
-    &printheader ;
+    &printheader;
 
     print <<EOF ;
 
@@ -677,34 +665,42 @@ may cause problems.
     <td><b><font color=blue>$safein{'key'}</font><b></td></tr>
 EOF
 
-    &calctablesize ;
-    @field= split(/$delim/, $dbdata{$in{'key'}}) ;
-    @safefield= map { &HTMLescape(&slashescape($_)) } @field ;
-    for (0..$lastcol) {
-        $fieldname= sprintf("in_%03d", $_+1) ;   # max 999 fields
-        print "<tr valign=top><td><b>$title[$_]:</b></td>\n" ;
+    &calctablesize;
+    @field = split( /$delim/, $dbdata{ $in{'key'} } );
+    @safefield = map { &HTMLescape( &slashescape($_) ) } @field;
+    for ( 0 .. $lastcol ) {
+        $fieldname = sprintf( "in_%03d", $_ + 1 );    # max 999 fields
+        print "<tr valign=top><td><b>$title[$_]:</b></td>\n";
 
         # text areas
-        if ($flags[$_]{'t'}) {
-            my($safefieldta)= &HTMLescape(&slashescapetextarea($field[$_])) ;
-            if ($flags[$_]{'r'}) {
-                $safefieldta=~ s/\n/<br>\n/g ;
-                print qq(    <td><input type=hidden name="$fieldname" value="$safefield[$_]">$safefieldta</td></tr>\n) ;
-            } else {
-                $width= $maxwidth[$_]>20  ? $maxwidth[$_]  : 20 ;
-                $width= $width<60         ? $width         : 60 ;
-                $height= $maxheight[$_]>1  ? $maxheight[$_]+1  : 2 ;
-                $height= $height<10        ? $height           : 10 ;
-                print qq(    <td><textarea name="$fieldname" rows=$height cols=$width>$safefieldta</textarea></td></tr>\n) ;
+        if ( $flags[$_]{'t'} ) {
+            my ($safefieldta) =
+              &HTMLescape( &slashescapetextarea( $field[$_] ) );
+            if ( $flags[$_]{'r'} ) {
+                $safefieldta =~ s/\n/<br>\n/g;
+                print
+                  qq(    <td><input type=hidden name="$fieldname" value="$safefield[$_]">$safefieldta</td></tr>\n);
+            }
+            else {
+                $width  = $maxwidth[$_] > 20 ? $maxwidth[$_]      : 20;
+                $width  = $width < 60        ? $width             : 60;
+                $height = $maxheight[$_] > 1 ? $maxheight[$_] + 1 : 2;
+                $height = $height < 10       ? $height            : 10;
+                print
+                  qq(    <td><textarea name="$fieldname" rows=$height cols=$width>$safefieldta</textarea></td></tr>\n);
             }
 
-        # ordinary text fields
-        } else {
-            if ($flags[$_]{'r'}) {
-                print qq(    <td><input type=hidden name="$fieldname" value="$safefield[$_]">$safefield[$_]</td></tr>\n) ;
-            } else {
-                $width= $maxwidth[$_]  ? $maxwidth[$_]+1  : 20 ;
-                print qq(    <td><input name="$fieldname" value="$safefield[$_]" size="$width"></td></tr>\n) ;
+            # ordinary text fields
+        }
+        else {
+            if ( $flags[$_]{'r'} ) {
+                print
+                  qq(    <td><input type=hidden name="$fieldname" value="$safefield[$_]">$safefield[$_]</td></tr>\n);
+            }
+            else {
+                $width = $maxwidth[$_] ? $maxwidth[$_] + 1 : 20;
+                print
+                  qq(    <td><input name="$fieldname" value="$safefield[$_]" size="$width"></td></tr>\n);
             }
         }
 
@@ -744,11 +740,9 @@ $dbdefnpost
 
 EOF
 
-    &printfooter ;
+    &printfooter;
 
-} # sub displayeditform()
-
-
+}    # sub displayeditform()
 
 # Display a starting form to the user if no database has been named.
 # jsm-- how could color improve this?
@@ -828,13 +822,12 @@ Content-type: text/html
 
 EOF
 
-    &printfooter ;
+    &printfooter;
 
-#   exit ;
+    #   exit ;
     return;
 
-} # sub displaystartform()
-
+}    # sub displaystartform()
 
 #----- Utilities copied in from other places -------------------------
 
@@ -845,47 +838,49 @@ EOF
 # When using multipart/form-data, cannot handle multiple files with same
 #   name; cannot handle multipart/mixed type with several files.
 sub getcgivars {
-    local($in, %in) ;
-    local($name, $value) ;
+    local ( $in,   %in );
+    local ( $name, $value );
 
     # First, read entire string of CGI vars into $in
-    if ($ENV{'REQUEST_METHOD'} eq 'GET') {
-        $in= $ENV{'QUERY_STRING'} ;
+    if ( $ENV{'REQUEST_METHOD'} eq 'GET' ) {
+        $in = $ENV{'QUERY_STRING'};
 
-    } elsif ($ENV{'REQUEST_METHOD'} eq 'POST') {
-        $env_ct= $ENV{'CONTENT_TYPE'} ;
-        if ($env_ct=~ m#^application/x-www-form-urlencoded\b#i) {
+    }
+    elsif ( $ENV{'REQUEST_METHOD'} eq 'POST' ) {
+        $env_ct = $ENV{'CONTENT_TYPE'};
+        if ( $env_ct =~ m#^application/x-www-form-urlencoded\b#i ) {
             $ENV{'CONTENT_LENGTH'}
-                || &HTMLdie("No Content-Length sent with the POST request.") ;
-            read(STDIN, $in, $ENV{'CONTENT_LENGTH'}) ;
-        } else {
-            &HTMLdie("Unsupported Content-Type: $env_ct") ;
+              || &HTMLdie("No Content-Length sent with the POST request.");
+            read( STDIN, $in, $ENV{'CONTENT_LENGTH'} );
+        }
+        else {
+            &HTMLdie("Unsupported Content-Type: $env_ct");
         }
 
-    } else {
-        &HTMLdie("Script was called with unsupported REQUEST_METHOD.") ;
+    }
+    else {
+        &HTMLdie("Script was called with unsupported REQUEST_METHOD.");
     }
 
     # Resolve and unencode name/value pairs into %in
-    foreach (split('&', $in)) {
-        s/\+/ /g ;
-        ($name, $value)= split('=', $_, 2) ;
-        $name=~ s/%(..)/sprintf("%c",hex($1))/ge ;
-        $value=~ s/%(..)/sprintf("%c",hex($1))/ge ;
-        $in{$name}.= "\0" if defined($in{$name}) ;  # concatenate multiple vars
-        $in{$name}.= $value ;
+    foreach ( split( '&', $in ) ) {
+        s/\+/ /g;
+        ( $name, $value ) = split( '=', $_, 2 );
+        $name =~ s/%(..)/sprintf("%c",hex($1))/ge;
+        $value =~ s/%(..)/sprintf("%c",hex($1))/ge;
+        $in{$name} .= "\0" if defined( $in{$name} ); # concatenate multiple vars
+        $in{$name} .= $value;
     }
 
-    return %in ;
+    return %in;
 
 }
-
 
 # Die, outputting HTML error page
 # If no $title, use global $errtitle, or else default title
 sub HTMLdie {
-    local($msg,$title)= @_ ;
-    $title= ($title || $errtitle || "CGI Error") ;
+    local ( $msg, $title ) = @_;
+    $title = ( $title || $errtitle || "CGI Error" );
     print <<EOF ;
 Content-Type: text/html
 
@@ -900,61 +895,59 @@ Content-Type: text/html
 </html>
 EOF
 
-#    exit ;
+    #    exit ;
     return;
 }
 
-
 # Returns the URL-encoded version of a string
 sub urlencode {
-    local($s)= @_ ;
-    $s=~ s/(\W)/ '%' . sprintf('%02x',ord($1)) /ge ;
-    return $s ;
+    local ($s) = @_;
+    $s =~ s/(\W)/ '%' . sprintf('%02x',ord($1)) /ge;
+    return $s;
 }
 
 # create URL-encoded QUERY_STRING for an associative array
 sub urlencodelist {
-    local(%a)= @_ ;
-    return join('&', map { &urlencode($_) . '=' . &urlencode($a{$_}) }
-                grep( defined($a{$_}), keys %a) ) ;
+    local (%a) = @_;
+    return join( '&',
+        map { &urlencode($_) . '=' . &urlencode( $a{$_} ) }
+        grep( defined( $a{$_} ), keys %a ) );
 }
-
 
 # returns a subset of associative array
 sub subhash {
-    local(*a, @keys)= @_ ;
-    local(%ret) ;
-    @ret{@keys}= @a{@keys} ;
-    return %ret ;
+    local ( *a, @keys ) = @_;
+    local (%ret);
+    @ret{@keys} = @a{@keys};
+    return %ret;
 }
-
-
 
 # Escape any &"<> chars to &xxx; and return resulting string
 sub HTMLescape {
-    local($s)= @_ ;
-    $s=~ s/&/&amp;/g ;      # must be before all others
-    $s=~ s/"/&quot;/g ;
-    $s=~ s/</&lt;/g ;
-    $s=~ s/>/&gt;/g ;
-    return $s ;
+    local ($s) = @_;
+    $s =~ s/&/&amp;/g;    # must be before all others
+    $s =~ s/"/&quot;/g;
+    $s =~ s/</&lt;/g;
+    $s =~ s/>/&gt;/g;
+    return $s;
 }
-
 
 # create hidden form variables for an associative array
 sub hiddenvars {
-    local(%a)= @_ ;
-    local($ret) ;
+    local (%a) = @_;
+    local ($ret);
 
-    foreach (keys %a) {
-        if (defined($a{$_})) {
-            $ret.= '<input type=hidden name="' . &HTMLescape($_)
-                    . '" value="' . &HTMLescape($a{$_}) . "\">\n" ;
+    foreach ( keys %a ) {
+        if ( defined( $a{$_} ) ) {
+            $ret .=
+                '<input type=hidden name="'
+              . &HTMLescape($_)
+              . '" value="'
+              . &HTMLescape( $a{$_} ) . "\">\n";
         }
     }
-    return $ret ;
+    return $ret;
 }
-
 
 #---------------------------------------------------------------------
 #

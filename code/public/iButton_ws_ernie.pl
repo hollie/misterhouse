@@ -17,17 +17,21 @@
 
 use RRDs;
 
-$weather = new iButton::Weather( CHIPS => [ qw( 0100000364767D64 01000003647679B8 010000036476788F
-                                                01000003647677AB 010000036476769C 0100000364767AE1
-                                                0100000364767BD6 0100000364767C53 1D00000000C6B14D
-                                                120000000AC22A42 1000000025CBA26A) ] );
+$weather = new iButton::Weather(
+    CHIPS => [
+        qw( 0100000364767D64 01000003647679B8 010000036476788F
+          01000003647677AB 010000036476769C 0100000364767AE1
+          0100000364767BD6 0100000364767C53 1D00000000C6B14D
+          120000000AC22A42 1000000025CBA26A)
+    ]
+);
 
 my $humsensor = new iButton(qw(2600000006CF9FB0));
 
+my $plotdir = $config_parms{iButton_plot};
 
-my $plotdir=$config_parms{iButton_plot};
+if ($New_Minute) {
 
-if ($New_Minute){
     #print_log "TIME: $Time";
     my $temp = $weather->read_temp;
     my $DS2438_tempF;
@@ -38,73 +42,162 @@ if ($New_Minute){
     my $dewpointF;
     my $dewpointC;
     my $windspeed = $weather->read_windspeed;
-    my $dir = $weather->read_dir;
+    my $dir       = $weather->read_dir;
 
-
-    # 
-    $DS2438_tempC = $humsensor->Get_Temp_2438; #read DS2438 temp in Celsius
-    $DS2438_Vad = $humsensor->Get_Vad_2438;   #read DS2438 Vad
-    $DS2438_Vdd = $humsensor->Get_Vdd_2438; #read DS2438 Vdd
-    # $DS2438_Vsens = $humsensor->Get_Vsens_2438; #read DS2438 Vsens - not useful here, but other models use it
-    #   David Bray says...
-    # Here is a snipit of C code that computes dew point:
-    # I don't know which units you want so here is both -- outTemp is in F
-    #       // compute the dewpoint from relative humidity
-    #    outTempC = (outTempF - 32)/9*5;
-    #       // evp is the environmental vapor pressure
-    #    evp = (humid/100) * 0.611 * exp(17.27 * outTempC/(outTempC + 237.3));
-    #       // yes there are 2 different numbers 237.3 and 273.15
-    #    dewpointC = (116.9 + 237.3 * log(evp))/(16.78 - log(evp));
-    #    dewpointF = dewpointC * 9/5+32;
+    #
+    $DS2438_tempC = $humsensor->Get_Temp_2438;    #read DS2438 temp in Celsius
+    $DS2438_Vad   = $humsensor->Get_Vad_2438;     #read DS2438 Vad
+    $DS2438_Vdd   = $humsensor->Get_Vdd_2438;     #read DS2438 Vdd
+      # $DS2438_Vsens = $humsensor->Get_Vsens_2438; #read DS2438 Vsens - not useful here, but other models use it
+      #   David Bray says...
+      # Here is a snipit of C code that computes dew point:
+      # I don't know which units you want so here is both -- outTemp is in F
+      #       // compute the dewpoint from relative humidity
+      #    outTempC = (outTempF - 32)/9*5;
+      #       // evp is the environmental vapor pressure
+      #    evp = (humid/100) * 0.611 * exp(17.27 * outTempC/(outTempC + 237.3));
+      #       // yes there are 2 different numbers 237.3 and 273.15
+      #    dewpointC = (116.9 + 237.3 * log(evp))/(16.78 - log(evp));
+      #    dewpointF = dewpointC * 9/5+32;
 
     # Relative Humidity
-    if ((defined $DS2438_Vad) && (defined $DS2438_Vdd))
-    {
-        $RH = ((($DS2438_Vad/$DS2438_Vdd) - 0.16) / 0.0062) * (1.0546 - 0.00216 * $DS2438_tempC);
+    if ( ( defined $DS2438_Vad ) && ( defined $DS2438_Vdd ) ) {
+        $RH =
+          ( ( ( $DS2438_Vad / $DS2438_Vdd ) - 0.16 ) / 0.0062 ) *
+          ( 1.0546 - 0.00216 * $DS2438_tempC );
+
         # Saturation Vapor over water
-        my $evp = ($RH/100) * 0.611 * exp(17.27 * $DS2438_tempC/($DS2438_tempC + 237.3));
+        my $evp = ( $RH / 100 ) * 0.611 *
+          exp( 17.27 * $DS2438_tempC / ( $DS2438_tempC + 237.3 ) );
+
         # temperature to which air must be cooled in order to have condensation
-        my $dewpointC = (116.9 + 237.3 * log($evp))/(16.78 - log($evp));
+        my $dewpointC = ( 116.9 + 237.3 * log($evp) ) / ( 16.78 - log($evp) );
 
         #Americanize the values
-        $dewpointF = ($dewpointC * 9)/5+32;
-        $DS2438_tempF = ($DS2438_tempC * 9)/5+32;
+        $dewpointF    = ( $dewpointC * 9 ) / 5 + 32;
+        $DS2438_tempF = ( $DS2438_tempC * 9 ) / 5 + 32;
+
         #print_log "DS2438: Vad=". $DS2438_Vad . " Vdd=" . $DS2438_Vdd . " Temp2=" . $DS2438_tempF . " RH=" . sprintf ("%3.2f",$RH); # for debugging
     }
-    else
-    {
-        print_log "DS2438: Vad=". $DS2438_Vad . " Vdd=" . $DS2438_Vdd . " Null Vals Temp2=" . $DS2438_tempF . " Temp=" . $temp;
+    else {
+        print_log "DS2438: Vad="
+          . $DS2438_Vad . " Vdd="
+          . $DS2438_Vdd
+          . " Null Vals Temp2="
+          . $DS2438_tempF
+          . " Temp="
+          . $temp;
     }
 
-
-    if ($Minute % 5)
-    {
+    if ( $Minute % 5 ) {
         #
-        RRDs::update("$plotdir/temp.rrd","N:$temp","N:$DS2438_tempF","N:$dewpointF") if (defined $temp && defined $DS2438_tempF && defined $dewpointF);
-        RRDs::update("$plotdir/humid.rrd","N:$RH") if defined $RH;
+        RRDs::update(
+            "$plotdir/temp.rrd", "N:$temp",
+            "N:$DS2438_tempF",   "N:$dewpointF"
+        ) if ( defined $temp && defined $DS2438_tempF && defined $dewpointF );
+        RRDs::update( "$plotdir/humid.rrd", "N:$RH" ) if defined $RH;
     }
-    if (($Minute == 50) && ($Second == 0)) {
+    if ( ( $Minute == 50 ) && ( $Second == 0 ) ) {
 
-        if (defined $temp)
-        {
-            speak "$temp degrees" if (($Hour > 7) && ($Hour < 21));
+        if ( defined $temp ) {
+            speak "$temp degrees" if ( ( $Hour > 7 ) && ( $Hour < 21 ) );
             print_log "Temp = $temp F";
         }
-        print_log "Temp2    = " . sprintf ("%3.2f",$DS2438_tempF) . " F  Humidity = " . sprintf ("%3.2f",$RH) . " %  Dewpoint = " . sprintf ("%3.2f",$dewpointF) . " F  Speed = $windspeed MPH  Direction = $dir" if defined $dir;
-        my $timehr=$Time-10000;
-        my $timeday=$Time-86400;
-        my $timewk=$Time-604800;
+        print_log "Temp2    = "
+          . sprintf( "%3.2f", $DS2438_tempF )
+          . " F  Humidity = "
+          . sprintf( "%3.2f", $RH )
+          . " %  Dewpoint = "
+          . sprintf( "%3.2f", $dewpointF )
+          . " F  Speed = $windspeed MPH  Direction = $dir"
+          if defined $dir;
+        my $timehr  = $Time - 10000;
+        my $timeday = $Time - 86400;
+        my $timewk  = $Time - 604800;
 
         #Plot temp,temp2,dewpoint
-        (my $junk1, my $junk2, my $junk3)=RRDs::graph("$plotdir/temp.gif", "--title=Temperature", "--vertical-label=degrees F", "DEF:mytemp=$plotdir/temp.rrd:temp:AVERAGE","DEF:mytemp2=$plotdir/temp.rrd:temp2:AVERAGE","DEF:mytemp3=$plotdir/temp.rrd:temp3:AVERAGE", "LINE2:mytemp#ff0000:weather station","LINE2:mytemp2#0000ff:humsensor","LINE2:mytemp3#00ff00:dewpoint", "--start=1025144197");
-        (my $junk1, my $junk2, my $junk3)=RRDs::graph("$plotdir/temphr.gif", "--title=Temperature", "--vertical-label=degrees F", "DEF:mytemp=$plotdir/temp.rrd:temp:AVERAGE","DEF:mytemp2=$plotdir/temp.rrd:temp2:AVERAGE","DEF:mytemp3=$plotdir/temp.rrd:temp3:AVERAGE", "LINE2:mytemp#ff0000:weather station","LINE2:mytemp2#0000ff:humsensor","LINE2:mytemp3#00ff00:dewpoint", "--start=$timehr");
-        (my $junk1, my $junk2, my $junk3)=RRDs::graph("$plotdir/tempday.gif", "--title=Temperature", "--vertical-label=degrees F", "DEF:mytemp=$plotdir/temp.rrd:temp:AVERAGE","DEF:mytemp2=$plotdir/temp.rrd:temp2:AVERAGE","DEF:mytemp3=$plotdir/temp.rrd:temp3:AVERAGE", "LINE2:mytemp#ff0000:weather station","LINE2:mytemp2#0000ff:humsensor","LINE2:mytemp3#00ff00:dewpoint", "--start=$timeday");
-        (my $junk1, my $junk2, my $junk3)=RRDs::graph("$plotdir/tempwk.gif", "--title=Temperature", "--vertical-label=degrees F", "DEF:mytemp=$plotdir/temp.rrd:temp:AVERAGE","DEF:mytemp2=$plotdir/temp.rrd:temp2:AVERAGE","DEF:mytemp3=$plotdir/temp.rrd:temp3:AVERAGE", "LINE2:mytemp#ff0000:weather station","LINE2:mytemp2#0000ff:humsensor","LINE2:mytemp3#00ff00:dewpoint", "--start=$timewk");
+        ( my $junk1, my $junk2, my $junk3 ) = RRDs::graph(
+            "$plotdir/temp.gif",
+            "--title=Temperature",
+            "--vertical-label=degrees F",
+            "DEF:mytemp=$plotdir/temp.rrd:temp:AVERAGE",
+            "DEF:mytemp2=$plotdir/temp.rrd:temp2:AVERAGE",
+            "DEF:mytemp3=$plotdir/temp.rrd:temp3:AVERAGE",
+            "LINE2:mytemp#ff0000:weather station",
+            "LINE2:mytemp2#0000ff:humsensor",
+            "LINE2:mytemp3#00ff00:dewpoint",
+            "--start=1025144197"
+        );
+        ( my $junk1, my $junk2, my $junk3 ) = RRDs::graph(
+            "$plotdir/temphr.gif",
+            "--title=Temperature",
+            "--vertical-label=degrees F",
+            "DEF:mytemp=$plotdir/temp.rrd:temp:AVERAGE",
+            "DEF:mytemp2=$plotdir/temp.rrd:temp2:AVERAGE",
+            "DEF:mytemp3=$plotdir/temp.rrd:temp3:AVERAGE",
+            "LINE2:mytemp#ff0000:weather station",
+            "LINE2:mytemp2#0000ff:humsensor",
+            "LINE2:mytemp3#00ff00:dewpoint",
+            "--start=$timehr"
+        );
+        ( my $junk1, my $junk2, my $junk3 ) = RRDs::graph(
+            "$plotdir/tempday.gif",
+            "--title=Temperature",
+            "--vertical-label=degrees F",
+            "DEF:mytemp=$plotdir/temp.rrd:temp:AVERAGE",
+            "DEF:mytemp2=$plotdir/temp.rrd:temp2:AVERAGE",
+            "DEF:mytemp3=$plotdir/temp.rrd:temp3:AVERAGE",
+            "LINE2:mytemp#ff0000:weather station",
+            "LINE2:mytemp2#0000ff:humsensor",
+            "LINE2:mytemp3#00ff00:dewpoint",
+            "--start=$timeday"
+        );
+        ( my $junk1, my $junk2, my $junk3 ) = RRDs::graph(
+            "$plotdir/tempwk.gif",
+            "--title=Temperature",
+            "--vertical-label=degrees F",
+            "DEF:mytemp=$plotdir/temp.rrd:temp:AVERAGE",
+            "DEF:mytemp2=$plotdir/temp.rrd:temp2:AVERAGE",
+            "DEF:mytemp3=$plotdir/temp.rrd:temp3:AVERAGE",
+            "LINE2:mytemp#ff0000:weather station",
+            "LINE2:mytemp2#0000ff:humsensor",
+            "LINE2:mytemp3#00ff00:dewpoint",
+            "--start=$timewk"
+        );
+
         #Plot humidity
-        (my $junk1, my $junk2, my $junk3)=RRDs::graph("$plotdir/humid.gif", "--title=Humidity", "--vertical-label=%", "DEF:myhumid=$plotdir/humid.rrd:humid:AVERAGE", "LINE2:myhumid#ff0000:humidity", "--start=1025144197");
-        (my $junk1, my $junk2, my $junk3)=RRDs::graph("$plotdir/humidhr.gif", "--title=Humidity", "--vertical-label=%", "DEF:myhumid=$plotdir/humid.rrd:humid:AVERAGE", "LINE2:myhumid#ff0000:humidity", "--start=$timehr");
-        (my $junk1, my $junk2, my $junk3)=RRDs::graph("$plotdir/humidday.gif", "--title=Humidity", "--vertical-label=%", "DEF:myhumid=$plotdir/humid.rrd:humid:AVERAGE", "LINE2:myhumid#ff0000:humidity", "--start=$timeday");
-        (my $junk1, my $junk2, my $junk3)=RRDs::graph("$plotdir/humidwk.gif", "--title=Humidity", "--vertical-label=%", "DEF:myhumid=$plotdir/humid.rrd:humid:AVERAGE", "LINE2:myhumid#ff0000:humidity", "--start=$timewk");
+        ( my $junk1, my $junk2, my $junk3 ) = RRDs::graph(
+            "$plotdir/humid.gif",
+            "--title=Humidity",
+            "--vertical-label=%",
+            "DEF:myhumid=$plotdir/humid.rrd:humid:AVERAGE",
+            "LINE2:myhumid#ff0000:humidity",
+            "--start=1025144197"
+        );
+        ( my $junk1, my $junk2, my $junk3 ) = RRDs::graph(
+            "$plotdir/humidhr.gif",
+            "--title=Humidity",
+            "--vertical-label=%",
+            "DEF:myhumid=$plotdir/humid.rrd:humid:AVERAGE",
+            "LINE2:myhumid#ff0000:humidity",
+            "--start=$timehr"
+        );
+        ( my $junk1, my $junk2, my $junk3 ) = RRDs::graph(
+            "$plotdir/humidday.gif",
+            "--title=Humidity",
+            "--vertical-label=%",
+            "DEF:myhumid=$plotdir/humid.rrd:humid:AVERAGE",
+            "LINE2:myhumid#ff0000:humidity",
+            "--start=$timeday"
+        );
+        ( my $junk1, my $junk2, my $junk3 ) = RRDs::graph(
+            "$plotdir/humidwk.gif",
+            "--title=Humidity",
+            "--vertical-label=%",
+            "DEF:myhumid=$plotdir/humid.rrd:humid:AVERAGE",
+            "LINE2:myhumid#ff0000:humidity",
+            "--start=$timewk"
+        );
     }
 }
 

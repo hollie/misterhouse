@@ -1,3 +1,4 @@
+
 =head1 B<Socket_Item>
 
 =head2 SYNOPSIS
@@ -47,11 +48,11 @@ package Socket_Item;
 my (%socket_item_by_id);
 
 sub reset {
-    undef %socket_item_by_id;   # Reset on code re-load
+    undef %socket_item_by_id;    # Reset on code re-load
 }
 
 sub socket_item_by_id {
-    my($id) = @_;
+    my ($id) = @_;
     return $socket_item_by_id{$id};
 }
 
@@ -60,24 +61,30 @@ sub socket_item_by_id {
 =cut
 
 sub new {
-    my ($class, $id, $state, $host_port, $port_name, $host_proto, $datatype, $break, $broadcast) = @_;
+    my (
+        $class,      $id,       $state, $host_port, $port_name,
+        $host_proto, $datatype, $break, $broadcast
+    ) = @_;
 
-#    print "dbx1 creating socket on port $host_port name=$port_name\n";
-    my $self = {state => ''};
+    #    print "dbx1 creating socket on port $host_port name=$port_name\n";
+    my $self = { state => '' };
 
     $port_name = $host_port unless $port_name;
-    print "\n\nWarning: duplicate ID codes on different socket_Item objects: id=$id\n\n" if $id and $socket_item_by_id{$id};
-    $$self{port_name} = $port_name;
-    $$self{host_port} = $host_port;
-    $$self{server} = 1 if $host_port and $host_port !~ /(\S+)\:(\S+)/;
+    print
+      "\n\nWarning: duplicate ID codes on different socket_Item objects: id=$id\n\n"
+      if $id and $socket_item_by_id{$id};
+    $$self{port_name}     = $port_name;
+    $$self{host_port}     = $host_port;
+    $$self{server}        = 1 if $host_port and $host_port !~ /(\S+)\:(\S+)/;
     $$self{host_protocol} = $host_proto;
     $main::Socket_Ports{$port_name}{host_port} = $host_port if $host_port;
     $main::Socket_Ports{$port_name}{datatype}  = $datatype  if $datatype;
     $main::Socket_Ports{$port_name}{break}     = $break     if $break;
-    $$self{broadcast} = $broadcast if $broadcast;
-    &add($self, $id, $state);
+    $$self{broadcast}                          = $broadcast if $broadcast;
+    &add( $self, $id, $state );
     bless $self, $class;
-    $self->state_overload('off'); # By default, do not process ~;: strings as substate/multistate
+    $self->state_overload('off')
+      ;    # By default, do not process ~;: strings as substate/multistate
     return $self;
 }
 
@@ -88,7 +95,7 @@ Allows you to change the server_name/port.
 =cut
 
 sub set_port {
-    my ($self, $host_port) = @_;
+    my ( $self, $host_port ) = @_;
     $$self{host_port} = $host_port;
 }
 
@@ -107,12 +114,13 @@ sub set_port {
 =cut
 
 sub add {
-    my ($self, $id, $state) = @_;
-    $$self{state_by_id}{$id} = $state if $id;
-    $$self{id_by_state}{$state} = $id if $state; # Note: State is optional
-    push(@{$$self{states}}, $state);
+    my ( $self, $id, $state ) = @_;
+    $$self{state_by_id}{$id}    = $state if $id;
+    $$self{id_by_state}{$state} = $id    if $state;    # Note: State is optional
+    push( @{ $$self{states} }, $state );
     $socket_item_by_id{$id} = $self if $id;
-#    print "db sid=", %socket_Item::socket_item_by_id, "\n";
+
+    #    print "db sid=", %socket_Item::socket_item_by_id, "\n";
 }
 
 =item C<start>
@@ -122,39 +130,47 @@ Connect to the specified port.  This allows mh to act as a client, rather than a
 =cut
 
 sub start {
-    my ($self) = @_;
+    my ($self)     = @_;
     my $port_name  = $self->{port_name};
     my $host_port  = $self->{host_port};
     my $host_proto = $self->{host_protocol};
-    my $broadcast = $self->{broadcast};
+    my $broadcast  = $self->{broadcast};
     $host_proto = 'tcp' unless $host_proto;
-    $broadcast = 0 unless $broadcast;
-    my ($host, $port) = $host_port =~ /(\S+)\:(\S+)/;
+    $broadcast  = 0     unless $broadcast;
+    my ( $host, $port ) = $host_port =~ /(\S+)\:(\S+)/;
+
     if ($port) {
-        if ($main::Socket_Ports{$port_name}{sock}) {
+        if ( $main::Socket_Ports{$port_name}{sock} ) {
             &::print_log("Socket already opened for $port_name");
             return $main::Socket_Ports{$port_name}{sock};
         }
-        print "Socket Item connecting to $host on port $port\n" if $main::Debug{socket};
-        if (my $sock = new IO::Socket::INET->new(PeerAddr => $host,
-                                                 PeerPort => $port,
-                                                 Proto => $host_proto,
-                                                 Broadcast => $broadcast
-                                                 )) {
-# Timeout => 0,  # Does not help with 2 second pauses on unavailable  addresses :(
-            $main::Socket_Ports{$port_name}{sock}  = $sock;
-            $main::Socket_Ports{$port_name}{socka} = $sock;
+        print "Socket Item connecting to $host on port $port\n"
+          if $main::Debug{socket};
+        if (
+            my $sock = new IO::Socket::INET->new(
+                PeerAddr  => $host,
+                PeerPort  => $port,
+                Proto     => $host_proto,
+                Broadcast => $broadcast
+            )
+          )
+        {
+            # Timeout => 0,  # Does not help with 2 second pauses on unavailable  addresses :(
+            $main::Socket_Ports{$port_name}{sock}                  = $sock;
+            $main::Socket_Ports{$port_name}{socka}                 = $sock;
             $main::Socket_Ports{$port_name}{active_this_pass_flag} = 1;
             $sock->autoflush(1);
             return $sock;
         }
         else {
-            print "Socket_Item client start error:  could not start a tcp client socket\n" .
-              " - host=$host port=$port: $@\n";
+            print
+              "Socket_Item client start error:  could not start a tcp client socket\n"
+              . " - host=$host port=$port: $@\n";
         }
     }
     else {
-        print "Socket_Item client start error:  address is not in the form host:port.  open failed.  port=$port_name address=$host_port\n";
+        print
+          "Socket_Item client start error:  address is not in the form host:port.  open failed.  port=$port_name address=$host_port\n";
     }
     return 0;
 }
@@ -178,10 +194,10 @@ Returns 1 if the socket is available, 0 if not
 =cut
 
 sub is_available {
-    my ($self) = @_;
+    my ($self)     = @_;
     my $host_port  = $self->{host_port};
     my $host_proto = $self->{host_protocol};
-    return &net_socket_check($host_port, $host_proto);
+    return &net_socket_check( $host_port, $host_proto );
 }
 
 =item C<active>
@@ -193,7 +209,8 @@ True if the port is active.
 sub active {
     my $port_name = $_[0]->{port_name};
     return $main::Socket_Ports{$port_name}{socka};
-#     or  scalar @{$main::Socket_Ports{$port_name}{clients}}
+
+    #     or  scalar @{$main::Socket_Ports{$port_name}{clients}}
 }
 
 =item C<active_now>
@@ -222,56 +239,61 @@ sub inactive_now {
 # note that the far end is returned as "ipaddress:port"
 # useful for confirming whether a client socket is still "alive"
 sub connected {
-	my $self=shift;
-	my $socket=$self->active;
+    my $self   = shift;
+    my $socket = $self->active;
 
-	if (!$socket) {
-		return 0;
-	}
+    if ( !$socket ) {
+        return 0;
+    }
 
-	my $peerAddress=$socket->connected;
+    my $peerAddress = $socket->connected;
 
-	if (defined ($peerAddress)) {
-		my ($port, $iaddr) = &Socket::sockaddr_in($peerAddress);
-		$peerAddress=&Socket::inet_ntoa($iaddr).":$port";
-	}
-	return $peerAddress;
+    if ( defined($peerAddress) ) {
+        my ( $port, $iaddr ) = &Socket::sockaddr_in($peerAddress);
+        $peerAddress = &Socket::inet_ntoa($iaddr) . ":$port";
+    }
+    return $peerAddress;
 }
 
 # returns the ipaddress:port that sent the latest received data
 sub peer {
-	my $self=shift;
+    my $self = shift;
 
     my $host_proto = $self->{host_protocol};
     $host_proto = 'tcp' unless $host_proto;
-    my $port_name=$self->{port_name};
-    my $sock=$::Socket_Ports{$port_name}{socka};
+    my $port_name = $self->{port_name};
+    my $sock      = $::Socket_Ports{$port_name}{socka};
 
-    if (!$sock) {
-    	return undef;
-	}
+    if ( !$sock ) {
+        return undef;
+    }
 
-    if ($host_proto eq 'tcp') {
-    	# if we are a server, then return the IP address of the latest client
-    	# to send data
-    	if ($self->{server}) {
-    		my $port=
-    		return $::Socket_Ports{$port_name}{client_ip_address}.':'.
-    			$::Socket_Ports{$port_name}{client_port};
-		}
-		# we are a client, ask the socket to return the IP address of our peer
-		return $sock->peerhost.':'.$sock->peerport;;
-    } else {
-    	# if we are a server, then return the IP address of the latest client
-    	# to send data
-    	if ($self->{server}) {
-    		return &Socket::inet_ntoa($::Socket_Ports{$port_name}{from_ip}).':'.
-    			$::Socket_Ports{$port_name}{from_port};
-		}
-		# we are a client, ask the socket to return the IP address of our peer
-		return $sock->peerhost.':'.$sock->peerport;;
-	}
-	return "That's unpossible";
+    if ( $host_proto eq 'tcp' ) {
+
+        # if we are a server, then return the IP address of the latest client
+        # to send data
+        if ( $self->{server} ) {
+            my $port =
+              return $::Socket_Ports{$port_name}{client_ip_address} . ':'
+              . $::Socket_Ports{$port_name}{client_port};
+        }
+
+        # we are a client, ask the socket to return the IP address of our peer
+        return $sock->peerhost . ':' . $sock->peerport;
+    }
+    else {
+        # if we are a server, then return the IP address of the latest client
+        # to send data
+        if ( $self->{server} ) {
+            return
+                &Socket::inet_ntoa( $::Socket_Ports{$port_name}{from_ip} ) . ':'
+              . $::Socket_Ports{$port_name}{from_port};
+        }
+
+        # we are a client, ask the socket to return the IP address of our peer
+        return $sock->peerhost . ':' . $sock->peerport;
+    }
+    return "That's unpossible";
 }
 
 =item C<said>
@@ -285,15 +307,17 @@ sub said {
     my $port_name = $_[0]->{port_name};
 
     my $data;
-    my $datatype  = $main::Socket_Ports{$port_name}{datatype};
-    if ($datatype and $datatype eq 'raw') {
+    my $datatype = $main::Socket_Ports{$port_name}{datatype};
+    if ( $datatype and $datatype eq 'raw' ) {
         $data = $main::Socket_Ports{$port_name}{data};
-#       $main::Socket_Ports{$port_name}{data} = '';
+
+        #       $main::Socket_Ports{$port_name}{data} = '';
         $main::Socket_Ports{$port_name}{data} = undef;
     }
     else {
         $data = $main::Socket_Ports{$port_name}{data_record};
-        $main::Socket_Ports{$port_name}{data_record} = undef; # Maybe this should be reset in main loop??
+        $main::Socket_Ports{$port_name}{data_record} =
+          undef;    # Maybe this should be reset in main loop??
     }
     return $data;
 }
@@ -306,17 +330,18 @@ Reads and returns the next record from the socket handle
 
 sub said_next {
     my $port_name = $_[0]->{port_name};
-    my $sock = $main::Socket_Ports{$port_name}{socka};
+    my $sock      = $main::Socket_Ports{$port_name}{socka};
     my $data;
-    my $datatype  = $main::Socket_Ports{$port_name}{datatype};
-    my $break     = $main::Socket_Ports{$port_name}{break};
-                 # Assume break on \n unless we specify datatype or break char
-    unless ($datatype eq 'raw' or $break) {
+    my $datatype = $main::Socket_Ports{$port_name}{datatype};
+    my $break    = $main::Socket_Ports{$port_name}{break};
+
+    # Assume break on \n unless we specify datatype or break char
+    unless ( $datatype eq 'raw' or $break ) {
         $data = <$sock>;
         chomp $data;
     }
     else {
-        recv($sock, $data, 1500, 0);
+        recv( $sock, $data, 1500, 0 );
     }
     return $data;
 }
@@ -342,10 +367,11 @@ Use this to control echoing of incoming characters:
 =cut
 
 sub set_echo {
-    my ($self, $echo) = @_;
+    my ( $self, $echo ) = @_;
     my $port_name = $self->{port_name};
-    $self->{echo} = $echo;      # Not used, but for easy references
-    $main::config_parms{"${port_name}_echo"} = $echo; # THIS is what gets quered by mh
+    $self->{echo} = $echo;    # Not used, but for easy references
+    $main::config_parms{"${port_name}_echo"} =
+      $echo;                  # THIS is what gets quered by mh
 }
 
 =item C<set>
@@ -362,16 +388,16 @@ Values are:
 =cut
 
 sub set {
-    my ($self, $state, $ip_address) = @_;
+    my ( $self, $state, $ip_address ) = @_;
 
-    return if &main::check_for_tied_filters($self, $state);
+    return if &main::check_for_tied_filters( $self, $state );
 
     $self->{state} = $state;
 
     return unless %main::Socket_Ports;
 
     my $socket_data;
-    if (defined $self->{id_by_state}{$state}) {
+    if ( defined $self->{id_by_state}{$state} ) {
         $socket_data = $self->{id_by_state}{$state};
     }
     else {
@@ -380,57 +406,73 @@ sub set {
 
     my $port_name = $self->{port_name};
 
-    print "Socket_Item: self=$self port=$port_name state=$state ip=$ip_address data=$socket_data\n" if $main::Debug{socket};
+    print
+      "Socket_Item: self=$self port=$port_name state=$state ip=$ip_address data=$socket_data\n"
+      if $main::Debug{socket};
 
     return if $main::Save{mode} and $main::Save{mode} eq 'offline';
 
-    unless ($main::Socket_Ports{$port_name}{sock}) {
-        print "Error, socket port $port_name has not been set: data=$socket_data\n";
+    unless ( $main::Socket_Ports{$port_name}{sock} ) {
+        print
+          "Error, socket port $port_name has not been set: data=$socket_data\n";
         return;
     }
 
     my @sockets;
     if ($ip_address) {
-        if ($main::Socket_Ports{$port_name}{clients}) {
-            if ($ip_address =~ /^\d+$/) {
-                if (defined $main::Socket_Ports{$port_name}{clients}[$ip_address]) {
-                    push @sockets, $main::Socket_Ports{$port_name}{clients}[$ip_address][0];
+        if ( $main::Socket_Ports{$port_name}{clients} ) {
+            if ( $ip_address =~ /^\d+$/ ) {
+                if (
+                    defined $main::Socket_Ports{$port_name}{clients}
+                    [$ip_address] )
+                {
+                    push @sockets,
+                      $main::Socket_Ports{$port_name}{clients}[$ip_address][0];
                 }
                 else {
-                    print "Socket_Item: Error, set client ip number $ip_address is not active\n";
+                    print
+                      "Socket_Item: Error, set client ip number $ip_address is not active\n";
                 }
             }
             else {
-                for my $ptr (@{$main::Socket_Ports{$port_name}{clients}}) {
-                    my ($socka, $client_ip_address, $client_port, $data) = @{$ptr};
-                    print "Testing socket client ip address: $client_ip_address:$client_port\n" if $main::Debug{socket};
-                    push @sockets, $socka if $socka and $client_ip_address =~ /$ip_address/ or
-                      $ip_address eq 'all' or $ip_address eq $socka;
+                for my $ptr ( @{ $main::Socket_Ports{$port_name}{clients} } ) {
+                    my ( $socka, $client_ip_address, $client_port, $data ) =
+                      @{$ptr};
+                    print
+                      "Testing socket client ip address: $client_ip_address:$client_port\n"
+                      if $main::Debug{socket};
+                    push @sockets, $socka
+                      if $socka and $client_ip_address =~ /$ip_address/
+                      or $ip_address eq 'all'
+                      or $ip_address eq $socka;
                 }
             }
         }
         else {
-            push @sockets, $main::Socket_Ports{$port_name}{socka} if $main::Socket_Ports{$port_name}{socka};
+            push @sockets, $main::Socket_Ports{$port_name}{socka}
+              if $main::Socket_Ports{$port_name}{socka};
         }
     }
     else {
-        push @sockets, $main::Socket_Ports{$port_name}{socka} if $main::Socket_Ports{$port_name}{socka};
+        push @sockets, $main::Socket_Ports{$port_name}{socka}
+          if $main::Socket_Ports{$port_name}{socka};
     }
 
     unless (@sockets) {
-        print "Error, socket port $port_name is not active on a socket_item set for data=$socket_data\n";
+        print
+          "Error, socket port $port_name is not active on a socket_item set for data=$socket_data\n";
         return;
     }
 
-                                # Dos telnet wants to see \r.  Doesn't seem to hurt
-                                # unix telnet or other pgms (e.g. viavoice_server)
-    my $datatype  = $main::Socket_Ports{$port_name}{datatype};
-    my $break     = $main::Socket_Ports{$port_name}{break};
-    $break = "\r\n" unless $break or ($datatype and $datatype =~ 'raw');
+    # Dos telnet wants to see \r.  Doesn't seem to hurt
+    # unix telnet or other pgms (e.g. viavoice_server)
+    my $datatype = $main::Socket_Ports{$port_name}{datatype};
+    my $break    = $main::Socket_Ports{$port_name}{break};
+    $break = "\r\n" unless $break or ( $datatype and $datatype =~ 'raw' );
     $socket_data .= $break if defined $break;
 
     for my $sock (@sockets) {
-        next unless $sock; # Shouldn't need this ?
+        next unless $sock;    # Shouldn't need this ?
         print "db print to $sock: $socket_data\n" if $main::Debug{socket};
         print $sock $socket_data;
     }
@@ -460,14 +502,14 @@ Used to send a series of strings to the port, waiting for a specified prompt for
 
 sub set_expect_check {
     my ($self) = @_;
-    if (my $data = said $self) {
+    if ( my $data = said $self) {
         print "set_expect: $$self{port_name} said $data\n";
-        my $prompt = quotemeta ${$$self{set_expect_cmds}}[0];
-        if ($data =~ /$prompt/i) {
-            my ($prompt, $cmd) =  splice @{$$self{set_expect_cmds}}, 0, 2;
+        my $prompt = quotemeta ${ $$self{set_expect_cmds} }[0];
+        if ( $data =~ /$prompt/i ) {
+            my ( $prompt, $cmd ) = splice @{ $$self{set_expect_cmds} }, 0, 2;
             &main::print_log("set_expect: $$self{port_name} $prompt");
-            $self->set($cmd . "\n");
-            unless (@{$$self{set_expect_cmds}}) {
+            $self->set( $cmd . "\n" );
+            unless ( @{ $$self{set_expect_cmds} } ) {
                 &main::print_log("set_expect: $$self{port_name} done");
                 $self->stop;
                 $$self{set_expect_timer}->unset;
@@ -475,7 +517,7 @@ sub set_expect_check {
             }
         }
     }
-    if ($$self{set_expect_timer}->expired) {
+    if ( $$self{set_expect_timer}->expired ) {
         &main::print_log("set_expect: $$self{port_name} timed out");
         $self->stop;
         &::MainLoop_pre_drop_hook( \&Socket_Item::set_expect_check );

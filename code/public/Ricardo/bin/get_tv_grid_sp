@@ -23,22 +23,27 @@
 
 use strict;
 
-my ($Pgm_Path, $Pgm_Name);
+my ( $Pgm_Path, $Pgm_Name );
+
 BEGIN {
-    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
 }
 
-my ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+my ($Version) =
+  q$Revision$ =~ /: (\S+)/;    # Note: revision number is auto-updated by cvs
 
 use Getopt::Long;
-use vars '%config_parms';  # Not a my, as called from handy_net_utils
+use vars '%config_parms';      # Not a my, as called from handy_net_utils
+
 #my %config_parms;
 
-require 'handy_utilities.pl';      # For read_mh_opts
-&main::read_mh_opts(\%config_parms, $Pgm_Path);
+require 'handy_utilities.pl';    # For read_mh_opts
+&main::read_mh_opts( \%config_parms, $Pgm_Path );
 
-BEGIN { eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'" } # Use BEGIN eval to keep perl2exe happy
+BEGIN {
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'";
+}                                # Use BEGIN eval to keep perl2exe happy
 
 #======================================================================
 # Variable declarations and other init
@@ -46,8 +51,8 @@ BEGIN { eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'" } # Use BEGIN
 # Globals
 #
 my ( %parms, $infile, $outfile, %channels_skip, %channels_keep, $channel_data );
-my (@hours, %providers, @uas);
-my  (%DBM, %DBM2);
+my ( @hours, %providers, @uas );
+my ( %DBM, %DBM2 );
 
 %channels_skip = ();
 %channels_keep = ();
@@ -55,11 +60,17 @@ my  (%DBM, %DBM2);
 #======================================================================
 # Check invocation options, and print usage message if necessary
 #======================================================================
-if (!&GetOptions(\%parms, "h", "help", "infile=s", "outfile=s", "outdir=s",
-   "reget", "redo", "db=s", "name=s", "debug", "channels=s") or @ARGV or
-   ($parms{h} or $parms{help}))
+if (
+    !&GetOptions(
+        \%parms,     "h",        "help",  "infile=s",
+        "outfile=s", "outdir=s", "reget", "redo",
+        "db=s",      "name=s",   "debug", "channels=s"
+    )
+    or @ARGV
+    or ( $parms{h} or $parms{help} )
+  )
 {
-   print<<eof;
+    print <<eof;
 $Pgm_Name gets a TV grid/schedule using get_tv_cplus_grid
 it to be used by the MisterHouse program to create TV event reminders.
 Creates a DBM for use by get_tv_info.
@@ -88,34 +99,37 @@ Creates a DBM for use by get_tv_info.
    $Pgm_Name -channels CP,CP2,CMA,CMADOS,AXN
 
 eof
-  exit;
+    exit;
 }
 use vars qw($Time);
 
-    my $debug = $parms{debug};
-    setup();
+my $debug = $parms{debug};
+setup();
 
-    my %channel_name = ('TVE1', '1-TVE1', 
-	                'TVE2', '2-La+2+de+TVE', 
-			'A3', 	'3-Antena+3', 
-			'TELE5', '4-Tele+5', 
-			'TM3', 	'6-Telemadrid', 
-			'CUATRO', '22-cuatro', 
-			'CCMTV', '17-PROGRAMACION+DE+CASTILLA+LA+MANCHA+TELEVISI%D3N');
+my %channel_name = (
+    'TVE1',   '1-TVE1',
+    'TVE2',   '2-La+2+de+TVE',
+    'A3',     '3-Antena+3',
+    'TELE5',  '4-Tele+5',
+    'TM3',    '6-Telemadrid',
+    'CUATRO', '22-cuatro',
+    'CCMTV',  '17-PROGRAMACION+DE+CASTILLA+LA+MANCHA+TELEVISI%D3N'
+);
 
-    foreach (split /,/, $parms{channels}) {
-        my $channel = $_;
-	my $current_date_gen = time_date_stamp(18, $Time);
-	my $current_date_cplus = time_date_stamp(17, $Time);
-	$current_date_cplus =~ s!(.*)\s.*!$1!;
-	print "Reading channel $channel data, date= $current_date_cplus\n" if $debug;
-	if ($channel_name{$channel}) {
-            get_general_grid($channel,$current_date_gen);
-        }
-	else {
-            get_cplus_grid($channel,$current_date_cplus);
-        }
+foreach ( split /,/, $parms{channels} ) {
+    my $channel            = $_;
+    my $current_date_gen   = time_date_stamp( 18, $Time );
+    my $current_date_cplus = time_date_stamp( 17, $Time );
+    $current_date_cplus =~ s!(.*)\s.*!$1!;
+    print "Reading channel $channel data, date= $current_date_cplus\n"
+      if $debug;
+    if ( $channel_name{$channel} ) {
+        get_general_grid( $channel, $current_date_gen );
     }
+    else {
+        get_cplus_grid( $channel, $current_date_cplus );
+    }
+}
 
 print "Grid Update for $parms{db} complete\n";
 
@@ -128,7 +142,8 @@ exit(0);
 # get tv_grid for digital+ #
 ############################
 sub get_cplus_grid {
-    my ($tv_channel, $date) =@_;
+    my ( $tv_channel, $date ) = @_;
+
     #tv_channel: TVE1, TVE2, TELE5, A3, TM3, CCMTV
     #date in format YYYYMMDD
 
@@ -139,41 +154,51 @@ sub get_cplus_grid {
     my $ch_name;
     my $ch_number;
 
-    for($i=1;$i<=2;$i++) {
+    for ( $i = 1; $i <= 2; $i++ ) {
         my $tv_grid_URL;
-        $tv_grid_URL = 'http://www.plus.es/codigo/television/guiatv/resultado.asp?tipo=dh5&c=' .$tv_channel . '&pr=L&dia=i' . $date . '&f=TO&usu=&pag=' . $i;
-        $f_tv_grid_html = "$config_parms{data_dir}/web/tv_channel_$tv_channel.html";
-        $f_tv_grid_data = "$config_parms{data_dir}/tv_channel_${tv_channel}_data";
+        $tv_grid_URL =
+          'http://www.plus.es/codigo/television/guiatv/resultado.asp?tipo=dh5&c='
+          . $tv_channel
+          . '&pr=L&dia=i'
+          . $date
+          . '&f=TO&usu=&pag='
+          . $i;
+        $f_tv_grid_html =
+          "$config_parms{data_dir}/web/tv_channel_$tv_channel.html";
+        $f_tv_grid_data =
+          "$config_parms{data_dir}/tv_channel_${tv_channel}_data";
 
-        get_url_ua($tv_grid_URL, $f_tv_grid_html);
+        get_url_ua( $tv_grid_URL, $f_tv_grid_html );
 
         my $html = &file_read($f_tv_grid_html);
         print STDERR "File: $f_tv_grid_html, writen\n" if $debug;
         $html =~ s/.*<th class=\"titulocadena\"><a//s;
+
         #print STDERR "$html\n" if $debug;
 
         #get channel name and number
-        ($ch_name, $ch_number) = $html =~ m!title="(.+)\|\sdial\s(\d+)!;
+        ( $ch_name, $ch_number ) = $html =~ m!title="(.+)\|\sdial\s(\d+)!;
 
         # remove classification information
         $html =~ s/<span class="nivelmoral02.*?<\/span>//g;
         print "Channel: $ch_name, dial: $ch_number\n" if $debug;
 
         my $tv_grid = "";
-        foreach (split /\n/, $html) {
-          #Only look at lines with tv programm data on them
-          if (/<a class="ee" title="(.*?)" href=/) {
-            $tv_grid .= $1 . "\n";
-            print "Programa $1\n" if $debug;
-          }
+        foreach ( split /\n/, $html ) {
+
+            #Only look at lines with tv programm data on them
+            if (/<a class="ee" title="(.*?)" href=/) {
+                $tv_grid .= $1 . "\n";
+                print "Programa $1\n" if $debug;
+            }
         }
         $text .= $tv_grid;
     }
-    print STDERR "File: $f_tv_grid_data\n" if $debug;
+    print STDERR "File: $f_tv_grid_data\n"                   if $debug;
     print STDERR "Programas TV text ---------->>>>\n$text\n" if $debug;
-    &file_write($f_tv_grid_data, $text);
+    &file_write( $f_tv_grid_data, $text );
 
-    &processFileCPlus($tv_channel, $ch_number, $ch_name, $text);
+    &processFileCPlus( $tv_channel, $ch_number, $ch_name, $text );
 
 }
 
@@ -182,161 +207,187 @@ sub get_cplus_grid {
 # get tv_grid for general tv channels (not salletite)#
 ######################################################
 sub get_general_grid {
-    my ($tv_channel, $date) =@_;
+    my ( $tv_channel, $date ) = @_;
+
     #tv_channel: TVE1, TVE2, TELE5, A3, TM3, CCMTV
     #date in format YYYYMMDD
 
     my $tv_grid_URL;
-    $tv_grid_URL = 'http://www.elpais.es/parrillatv/resultados.html?franja=&tipo=&canal=' . $channel_name{$tv_channel} . '&dia=' . $date;
-    my $f_tv_grid_html = "$config_parms{data_dir}/web/tv_channel_$tv_channel.html";
-    my $f_tv_grid_data = "$config_parms{data_dir}/tv_channel_${tv_channel}_data";
+    $tv_grid_URL =
+        'http://www.elpais.es/parrillatv/resultados.html?franja=&tipo=&canal='
+      . $channel_name{$tv_channel} . '&dia='
+      . $date;
+    my $f_tv_grid_html =
+      "$config_parms{data_dir}/web/tv_channel_$tv_channel.html";
+    my $f_tv_grid_data =
+      "$config_parms{data_dir}/tv_channel_${tv_channel}_data";
 
-    get_url_ua($tv_grid_URL, $f_tv_grid_html);
+    get_url_ua( $tv_grid_URL, $f_tv_grid_html );
 
-      my $html = &file_read($f_tv_grid_html);
-      print STDERR "File: $f_tv_grid_html, writen\n" if $debug;
-      my $text = &html_to_text($html);
+    my $html = &file_read($f_tv_grid_html);
+    print STDERR "File: $f_tv_grid_html, writen\n" if $debug;
+    my $text = &html_to_text($html);
 
-      $text =~ s/.*Criterios: //s;
-      $text =~ s/\n\[IMAGE\].*//s;
-      $text =~ s/\n+/\n/g;
+    $text =~ s/.*Criterios: //s;
+    $text =~ s/\n\[IMAGE\].*//s;
+    $text =~ s/\n+/\n/g;
 
-      print STDERR "File: $f_tv_grid_data\n" if $debug;
-      print STDERR "Programas TV text ---------->>>>\n$text\n" if $debug;
-      &file_write($f_tv_grid_data, $text);
+    print STDERR "File: $f_tv_grid_data\n"                   if $debug;
+    print STDERR "Programas TV text ---------->>>>\n$text\n" if $debug;
+    &file_write( $f_tv_grid_data, $text );
 
-      &processFilePais($tv_channel, $text);
+    &processFilePais( $tv_channel, $text );
 
 }
 
 #======================================================================
 # SUB: processFileCPlus
 #======================================================================
-sub processFileCPlus
-{
-   my ($ch_key, $ch_number, $ch_name, $textdata) = @_;
-   print "CH_NUMBER:$ch_number, CH_NAME: $ch_name, \nTEXT:\n$textdata\n" if $debug;
+sub processFileCPlus {
+    my ( $ch_key, $ch_number, $ch_name, $textdata ) = @_;
+    print "CH_NUMBER:$ch_number, CH_NAME: $ch_name, \nTEXT:\n$textdata\n"
+      if $debug;
 
-   my $pgm_date = &time_date_stamp(11, $Time);
-#   $pgm_date =~ s/^(\d+)\/(\d+)/$2\/$1/g if ($config_parms{date_format} =~ m!ddmm!);
-   print "date format: $config_parms{date_format}\n" if $debug;
-   my ($time_start, $time_end, $time_first);
-   my ($time_pgm, $pgm_type, $pgm_name, $pgm_desc);
+    my $pgm_date = &time_date_stamp( 11, $Time );
 
-   foreach (split /\n/, $textdata) {
-      #Only look at lines with tv programm data on them
-      if (m!^.+?:.+\|!) {
-          ($pgm_name, $pgm_desc, $time_start, $time_end, $pgm_type) = $_ =~ m!^(.+?):\s+(.+)\|.*?\|.*?(\d\d:\d\d)h\. - (\d+:\d+)h\.\s+\((.+)-.*?\)!;
-      }
-      else {
-          ($pgm_name, $time_start, $time_end, $pgm_type) = $_ =~ m!^(.+)\|.*?\|.*?(\d\d:\d\d)h\. - (\d+:\d+)h\.\s+\((.+)-.*?\)!;
-          $pgm_desc = "";
-      }
-      store_in_dbm($ch_key, $ch_name, $ch_number, adjust_date($pgm_date,$time_start,$time_first), $time_start, $time_end, $pgm_type, $pgm_name, $pgm_desc);
+    #   $pgm_date =~ s/^(\d+)\/(\d+)/$2\/$1/g if ($config_parms{date_format} =~ m!ddmm!);
+    print "date format: $config_parms{date_format}\n" if $debug;
+    my ( $time_start, $time_end, $time_first );
+    my ( $time_pgm, $pgm_type, $pgm_name, $pgm_desc );
 
-      print "Programa $_\n" if $debug;
-      print "--> $time_start, $time_end, $pgm_type, $pgm_name, $pgm_desc\n" if $debug;
+    foreach ( split /\n/, $textdata ) {
 
-   }
+        #Only look at lines with tv programm data on them
+        if (m!^.+?:.+\|!) {
+            ( $pgm_name, $pgm_desc, $time_start, $time_end, $pgm_type ) = $_ =~
+              m!^(.+?):\s+(.+)\|.*?\|.*?(\d\d:\d\d)h\. - (\d+:\d+)h\.\s+\((.+)-.*?\)!;
+        }
+        else {
+            ( $pgm_name, $time_start, $time_end, $pgm_type ) = $_ =~
+              m!^(.+)\|.*?\|.*?(\d\d:\d\d)h\. - (\d+:\d+)h\.\s+\((.+)-.*?\)!;
+            $pgm_desc = "";
+        }
+        store_in_dbm(
+            $ch_key, $ch_name,
+            $ch_number,  adjust_date( $pgm_date, $time_start, $time_first ),
+            $time_start, $time_end,
+            $pgm_type,   $pgm_name,
+            $pgm_desc
+        );
+
+        print "Programa $_\n" if $debug;
+        print "--> $time_start, $time_end, $pgm_type, $pgm_name, $pgm_desc\n"
+          if $debug;
+
+    }
 }
 
 #======================================================================
 # SUB: processFilePais
 #======================================================================
-sub processFilePais
-{
-   my ($ch_key,$textdata) = @_;
+sub processFilePais {
+    my ( $ch_key, $textdata ) = @_;
 
-   #------------------------------------------------------------
-   # Read first line and get channel no., and channel name
-   #------------------------------------------------------------
-   my ($ch_name) = $textdata =~ m!Día:.*\sTipo: Todos los tipos\. Canal:\s(.+)\. Franja: Todo el día!;
-   print "Channel: $ch_name\n" if $debug;
+    #------------------------------------------------------------
+    # Read first line and get channel no., and channel name
+    #------------------------------------------------------------
+    my ($ch_name) = $textdata =~
+      m!Día:.*\sTipo: Todos los tipos\. Canal:\s(.+)\. Franja: Todo el día!;
+    print "Channel: $ch_name\n" if $debug;
 
-   # delete 2 head lines
-   $textdata =~ s/.*Hora Programa Canal Tipo\n//s;
+    # delete 2 head lines
+    $textdata =~ s/.*Hora Programa Canal Tipo\n//s;
 
-   my $pgm_date = &time_date_stamp(11, $Time);
-   my ($time_start, $time_end, $time_first);
-   my ($time_pgm, $pgm_type, $pgm_name, $pgm_desc);
+    my $pgm_date = &time_date_stamp( 11, $Time );
+    my ( $time_start, $time_end, $time_first );
+    my ( $time_pgm, $pgm_type, $pgm_name, $pgm_desc );
 
-   foreach (split /\n/, $textdata) {
-      if (/^(\d+:\d+)\s+(.+)/ ) {
-	if ($time_start) {
-	    ($time_end) =  $_ =~ m!^(\d+:\d+)\s!;
-            store_in_dbm($ch_key, $ch_name, 0, adjust_date($pgm_date,$time_start,$time_first), $time_start, $time_end, $pgm_type, $pgm_name, $pgm_desc);
-	    $time_start = '';
-	}
+    foreach ( split /\n/, $textdata ) {
+        if (/^(\d+:\d+)\s+(.+)/) {
+            if ($time_start) {
+                ($time_end) = $_ =~ m!^(\d+:\d+)\s!;
+                store_in_dbm( $ch_key, $ch_name, 0,
+                    adjust_date( $pgm_date, $time_start, $time_first ),
+                    $time_start, $time_end, $pgm_type, $pgm_name, $pgm_desc );
+                $time_start = '';
+            }
 
-	($time_pgm, $pgm_name, $pgm_type) = $_ =~ m!^(\d\d:\d\d)\s(.*)\s$ch_name\s(.*)!;
-	$time_start = $time_pgm;
-	if (!$time_first) { $time_first = $time_pgm}
-	$pgm_desc = '';
-        print "Programa $_\n" if $debug;
-	print "--> $time_start, $pgm_type, $pgm_name\n" if $debug;
+            ( $time_pgm, $pgm_name, $pgm_type ) =
+              $_ =~ m!^(\d\d:\d\d)\s(.*)\s$ch_name\s(.*)!;
+            $time_start = $time_pgm;
+            if ( !$time_first ) { $time_first = $time_pgm }
+            $pgm_desc = '';
+            print "Programa $_\n"                           if $debug;
+            print "--> $time_start, $pgm_type, $pgm_name\n" if $debug;
 
-      }
-      else {
-        $pgm_desc .= $_;
-      }
+        }
+        else {
+            $pgm_desc .= $_;
+        }
 
-   }
-   if ($time_start) {
-      $time_end = $time_first;
-      store_in_dbm($ch_key, $ch_name, 0, adjust_date($pgm_date,$time_start,$time_first), $time_start, $time_end, $pgm_type, $pgm_name, $pgm_desc);
-      $time_start = '';
-   }
+    }
+    if ($time_start) {
+        $time_end = $time_first;
+        store_in_dbm( $ch_key, $ch_name, 0,
+            adjust_date( $pgm_date, $time_start, $time_first ),
+            $time_start, $time_end, $pgm_type, $pgm_name, $pgm_desc );
+        $time_start = '';
+    }
 }
-
 
 #------------------------------------------------------------
 # Store the data in the DBM
 #------------------------------------------------------------
-sub store_in_dbm
-{
-   my ($ch_key, $ch_name, $ch_number, $pgm_date, $time_start, $time_end, $pgm_type, $pgm_name, $pgm_desc) = @_;
-   my $db_key = join($;, $ch_key, $pgm_date, $time_start);
-   my $db_data= join($;, $pgm_name, $pgm_type, $time_end, $pgm_desc);
-   $DBM{$db_key} = $db_data;
-   $DBM2{$ch_key} = join($;, $ch_number, $ch_name);
-   print "db key=$db_key\n   data=$db_data.\n" if $debug;
+sub store_in_dbm {
+    my (
+        $ch_key,   $ch_name,  $ch_number, $pgm_date, $time_start,
+        $time_end, $pgm_type, $pgm_name,  $pgm_desc
+    ) = @_;
+    my $db_key = join( $;, $ch_key, $pgm_date, $time_start );
+    my $db_data = join( $;, $pgm_name, $pgm_type, $time_end, $pgm_desc );
+    $DBM{$db_key} = $db_data;
+    $DBM2{$ch_key} = join( $;, $ch_number, $ch_name );
+    print "db key=$db_key\n   data=$db_data.\n" if $debug;
 }
 
 #======================================================================
 # SUB: setup
 # Process invocation parameters prior to doing any real work
 #======================================================================
-sub setup
-{
-   #------------------------------------------------------------
-   # Process Incoming Parameters, defaulting as necessary
-   #------------------------------------------------------------
-   $parms{channels} = "TVE1,TVE2,A3,TELE5,TM3,CP,CP2,CPC1,CPC2,CPC3,CMA,CMADOS,CL13,FOXGE,AXN" unless $parms{channels};
-   $parms{db}      = 'tv'  unless $parms{db};
-   $parms{outdir}  ="$config_parms{html_dir}/$parms{db}"
+sub setup {
+
+    #------------------------------------------------------------
+    # Process Incoming Parameters, defaulting as necessary
+    #------------------------------------------------------------
+    $parms{channels} =
+      "TVE1,TVE2,A3,TELE5,TM3,CP,CP2,CPC1,CPC2,CPC3,CMA,CMADOS,CL13,FOXGE,AXN"
+      unless $parms{channels};
+    $parms{db} = 'tv' unless $parms{db};
+    $parms{outdir} = "$config_parms{html_dir}/$parms{db}"
       unless $parms{outdir};
-   $parms{name}    = $config_parms{$parms{db}.'_name'} unless $parms{name};
+    $parms{name} = $config_parms{ $parms{db} . '_name' } unless $parms{name};
 
+    $parms{redo}  = 1 if $parms{reget};
+    $parms{reget} = 1 if $parms{get_providers};
 
-   $parms{redo}  = 1 if $parms{reget};
-   $parms{reget} = 1 if $parms{get_providers};
+    # Set up DBM files
+    my $dbm_file  = "$config_parms{data_dir}/$parms{db}_programs.dbm";
+    my $dbm_file2 = "$config_parms{data_dir}/$parms{db}_channels.dbm";
+    print "Files will be stored to $parms{outdir}\n";
+    print "Tieing to $dbm_file\n";
+    use Fcntl;
+    use DB_File;
+    tie( %DBM, 'DB_File', $dbm_file, O_RDWR | O_CREAT, 0666 )
+      or print "\nError, can not open dbm file $dbm_file: $!";
+    tie( %DBM2, 'DB_File', $dbm_file2, O_RDWR | O_CREAT, 0666 )
+      or print "\nError, can not open dbm file $dbm_file2: $!";
 
-   # Set up DBM files
-   my $dbm_file  = "$config_parms{data_dir}/$parms{db}_programs.dbm";
-   my $dbm_file2 = "$config_parms{data_dir}/$parms{db}_channels.dbm";
-   print "Files will be stored to $parms{outdir}\n";
-   print "Tieing to $dbm_file\n";
-   use Fcntl;
-   use DB_File;
-   tie (%DBM,  'DB_File',  $dbm_file,  O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file: $!";
-   tie (%DBM2, 'DB_File',  $dbm_file2, O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file2: $!";
+    #clear DBM and DBM2 contents
+    %DBM  = ();
+    %DBM2 = ();
 
-   #clear DBM and DBM2 contents
-   %DBM = ();
-   %DBM2 = ();
-
-   # Create any directories that need creating.
-   createOutputDirs();
+    # Create any directories that need creating.
+    createOutputDirs();
 
 }
 
@@ -344,27 +395,24 @@ sub setup
 # SUB: createOutputDirs
 # Create any directories/files that need creating prior to downloads
 #======================================================================
-sub createOutputDirs
-{
-   #------------------------------------------------------------
-   # Create directories needed for downloading data
-   #------------------------------------------------------------
-   mkdir $parms{outdir}, 0777 unless -d $parms{outdir};
-   mkdir "$parms{outdir}/logos", 0777 unless -d "$parms{outdir}/logos";
-   mkdir "$parms{outdir}/download", 0777 unless -d "$parms{outdir}/download";
+sub createOutputDirs {
 
-   if ( ! -d $parms{outdir} )
-   {
-      print "FAILED TO MAKE DIR: $parms{outdir} \n";
-   }
-   if ( ! -d $parms{outdir}."/logos" )
-   {
-      print "FAILED TO MAKE DIR: $parms{outdir}/logos \n";
-   }
-   if ( ! -d $parms{outdir}."/download" )
-   {
-      print "FAILED TO MAKE DIR: $parms{outdir}/download \n";
-   }
+    #------------------------------------------------------------
+    # Create directories needed for downloading data
+    #------------------------------------------------------------
+    mkdir $parms{outdir}, 0777 unless -d $parms{outdir};
+    mkdir "$parms{outdir}/logos",    0777 unless -d "$parms{outdir}/logos";
+    mkdir "$parms{outdir}/download", 0777 unless -d "$parms{outdir}/download";
+
+    if ( !-d $parms{outdir} ) {
+        print "FAILED TO MAKE DIR: $parms{outdir} \n";
+    }
+    if ( !-d $parms{outdir} . "/logos" ) {
+        print "FAILED TO MAKE DIR: $parms{outdir}/logos \n";
+    }
+    if ( !-d $parms{outdir} . "/download" ) {
+        print "FAILED TO MAKE DIR: $parms{outdir}/download \n";
+    }
 }
 
 ###############
@@ -373,82 +421,92 @@ sub createOutputDirs
 
 # from get_url
 sub get_url_ua {
-    my $url = shift;
+    my $url  = shift;
     my $file = shift;
 
     use LWP::UserAgent;
 
     my $ua = new LWP::UserAgent;
-    $config_parms{proxy} = $ENV{HTTP_PROXY}           unless $config_parms{proxy};
-    $ua -> proxy(['http', 'ftp'] => $config_parms{proxy}) if $config_parms{proxy};
+    $config_parms{proxy} = $ENV{HTTP_PROXY} unless $config_parms{proxy};
+    $ua->proxy( [ 'http', 'ftp' ] => $config_parms{proxy} )
+      if $config_parms{proxy};
 
-    $ua->timeout([120]);         # Time out after 60 seconds 
-    $ua->env_proxy(); 
+    $ua->timeout( [120] );    # Time out after 60 seconds
+    $ua->env_proxy();
 
-    my $request = new HTTP::Request('GET', $url);
+    my $request = new HTTP::Request( 'GET', $url );
     my $response;
 
-    print "Retrieving (with ua) $url into $file ...\n" unless $config_parms{quiet};
-    if ($file eq '/dev/null') {
+    print "Retrieving (with ua) $url into $file ...\n"
+      unless $config_parms{quiet};
+    if ( $file eq '/dev/null' ) {
         $response = $ua->simple_request($request);
     }
     else {
-        $response = $ua->simple_request($request, $file);
+        $response = $ua->simple_request( $request, $file );
     }
 
-    if ($response->is_error()) {
+    if ( $response->is_error() ) {
         printf "error: %s\n", $response->status_line;
     }
 }
 
-
-                         # html -> text, without memory leak!
+# html -> text, without memory leak!
 use HTML::TreeBuilder;
 use HTML::FormatText;
-sub html_to_text {
-    my ($tree, $format, $text);
-                                # This leaks memory!
-#   $text = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($_[0]));
 
-    $tree   = HTML::TreeBuilder->new();
-    $format = HTML::FormatText->new(leftmargin => 0, rightmargin => 150);
-    $tree -> parse($_[0]);
-    $text = $format -> format($tree);
-    $tree -> delete;  # Avoid a memory leak!
+sub html_to_text {
+    my ( $tree, $format, $text );
+
+    # This leaks memory!
+    #   $text = HTML::FormatText->new(lm => 0, rm => 150)->format(HTML::TreeBuilder->new()->parse($_[0]));
+
+    $tree = HTML::TreeBuilder->new();
+    $format = HTML::FormatText->new( leftmargin => 0, rightmargin => 150 );
+    $tree->parse( $_[0] );
+    $text = $format->format($tree);
+    $tree->delete;    # Avoid a memory leak!
     return $text;
 }
 
 use Time::Local;
+
 #======================================================================
 # SUB: adjust_date
 # adjust date if program time is before first morning program time
 # this means, program time is next day
 #======================================================================
 sub adjust_date {
+
     # all times in localtime
-    my ($date, $time, $time_first) = @_;
+    my ( $date, $time, $time_first ) = @_;
+
     #Split it up
-    my ($phour, $pminu) = $time =~ m!(\d+):(\d+)!;
-    my ($fhour, $fminu) = $time_first =~ m!(\d+):(\d+)!;
-    my ($pday, $pmonth, $pyear);
-    if ( $config_parms{date_format} =~ m!ddmm!) {
-	    ($pday, $pmonth, $pyear) = $date =~ m!(\d+)\/(\d+)\/(\d+)!;
+    my ( $phour, $pminu ) = $time =~ m!(\d+):(\d+)!;
+    my ( $fhour, $fminu ) = $time_first =~ m!(\d+):(\d+)!;
+    my ( $pday, $pmonth, $pyear );
+    if ( $config_parms{date_format} =~ m!ddmm! ) {
+        ( $pday, $pmonth, $pyear ) = $date =~ m!(\d+)\/(\d+)\/(\d+)!;
     }
     else {
-	    ($pmonth, $pday, $pyear) = $date =~ m!(\d+)\/(\d+)\/(\d+)!;
+        ( $pmonth, $pday, $pyear ) = $date =~ m!(\d+)\/(\d+)\/(\d+)!;
     }
+
     #Merge it (year > 2000)
-    my $ptime = timelocal(0,$pminu,$phour,$pday,$pmonth-1,$pyear+100);
-    my $ftime = timelocal(0,$fminu,$fhour,$pday,$pmonth-1,$pyear+100);
+    my $ptime =
+      timelocal( 0, $pminu, $phour, $pday, $pmonth - 1, $pyear + 100 );
+    my $ftime =
+      timelocal( 0, $fminu, $fhour, $pday, $pmonth - 1, $pyear + 100 );
 
     #check if program time is before first morning program time
     #this means, program time is next day
-    if ($ptime < $ftime) { $ptime += 24 * 60 * 60 }
+    if ( $ptime < $ftime ) { $ptime += 24 * 60 * 60 }
 
     #return formated date
-    my $res = &time_date_stamp(11, $ptime);
-#   my ($day, $month, $year) = (localtime($ptime))[3,4,5];
-#   my $res = sprintf("%02d/%02d", $day, ++$month);
+    my $res = &time_date_stamp( 11, $ptime );
+
+    #   my ($day, $month, $year) = (localtime($ptime))[3,4,5];
+    #   my $res = sprintf("%02d/%02d", $day, ++$month);
     return $res;
 
 }

@@ -19,7 +19,7 @@ use strict;
 ##
 ##  v4.0 01-2014: Date bugfix, added https method, added control calendar, and made sync_dtstamp
 ##    and dcsfix defaults. Added in nosync_dtstamp and nodcsfix option to override.
-##   NOTE: v4 requires the update 2014 vsdb calendar schema (adding a control attribute). 
+##   NOTE: v4 requires the update 2014 vsdb calendar schema (adding a control attribute).
 ##         Common module organizer 2014 and vsdb calendar.pl 1.6.0-3 required.
 ##
 
@@ -41,28 +41,32 @@ use vsLock;
 
 my $progname = "ical2vsdb";
 my $progver  = "v4 01-2014";
-my $DB = 0;
+my $DB       = 0;
 
-my $days_before = -180; # defaults to avoid large vsdb databases, can be overriden
-my $days_after = 180;  #
+my $days_before =
+  -180;    # defaults to avoid large vsdb databases, can be overriden
+my $days_after = 180;    #
 
-my $config_file= "";
+my $config_file    = "";
 my $config_version = 2;
-my $vsdb_cal_file = "calendar.tab";
+my $vsdb_cal_file  = "calendar.tab";
 my $vsdb_todo_file = "tasks.tab";
-my $sleep_time = 900;                #poll cycle default is 15 minutes
-my $md5file = "";
-my $local_cache = "";
-my $data = "";
+my $sleep_time     = 900;              #poll cycle default is 15 minutes
+my $md5file        = "";
+my $local_cache    = "";
+my $data           = "";
 
 $config_file = $ARGV[0] if $ARGV[0];
 
-&help if ((lc $config_file eq "-h") or (lc $config_file eq "--h") or ($config_file eq ""));
+&help
+  if ( ( lc $config_file eq "-h" )
+    or ( lc $config_file eq "--h" )
+    or ( $config_file eq "" ) );
 
 print "iCal to vsDB Misterhouse import ($progname $progver) starting...\n";
 print "Debug Level $DB\n" if ($DB);
 
-&purge_icals if ($config_file eq "--purge-ical-info");
+&purge_icals if ( $config_file eq "--purge-ical-info" );
 
 print "Using configuration File: $config_file\n" if ($DB);
 
@@ -70,641 +74,769 @@ my @ical_data = ();
 my @master_cal;
 my @master_todo;
 my @changed_icals;
-my $output_dir = "";
-my $count = 0;
+my $output_dir  = "";
+my $count       = 0;
 my $date_format = 'ddmm';
-
 
 #------------------- Init ---------------------------
 
 $count = &init;
 
-if (($count == 0) or ($output_dir eq "")) {
-	die "Error with Config File. Exiting";
+if ( ( $count == 0 ) or ( $output_dir eq "" ) ) {
+    die "Error with Config File. Exiting";
 }
 
 # overwrite any initialized output dir if passed via the command line
 
-&read_md5file if ($md5file ne "");
+&read_md5file if ( $md5file ne "" );
 print "Writing http requests to local cache: $local_cache\n" if $local_cache;
 print "Processing $count iCals";
 print ", $days_after days in the future" if $days_after;
 my $abs_days_before = abs $days_before;
-print ", $abs_days_before in the past" if $abs_days_before;
+print ", $abs_days_before in the past"            if $abs_days_before;
 print "\nTarget vsdb directory is :$output_dir\n" if ($DB);
-print "MD5 temp file is :$md5file\n" if ($md5file ne "" and $DB);
-
+print "MD5 temp file is :$md5file\n"              if ( $md5file ne "" and $DB );
 
 #------------- Main Processing Loop -----------------
 #BEGIN
 while (1) {
 
- print "\nBeginning scan for calendars...\n";
+    print "\nBeginning scan for calendars...\n";
 
- for (my $loop = 0; $loop < scalar (@ical_data); $loop++) {
+    for ( my $loop = 0; $loop < scalar(@ical_data); $loop++ ) {
 
-   my $process = 0;
-   my @cal_data;
+        my $process = 0;
+        my @cal_data;
 
-   my $calendar_loc = $ical_data[$loop]->{loc};
-   my $parser=iCal::Parser->new();
+        my $calendar_loc = $ical_data[$loop]->{loc};
+        my $parser       = iCal::Parser->new();
 
-# -------------- Calendar Scan -----------------------
+        # -------------- Calendar Scan -----------------------
 
-   print "\nProcessing Calendar: ";
-   if (defined $ical_data[$loop]->{options}->{name}) {
-      print "$ical_data[$loop]->{options}->{name} ...\n";
-   } else {
-      print "$calendar_loc ...\n";
-   }
-
-   if (lc $ical_data[$loop]->{method} eq "file") {
-        print "Opening File...";
-	open ICALFILE, $calendar_loc or die "Couldn't open file: $!"; 
-	$data= join("", <ICALFILE>); 
-	close ICALFILE;
-	print "done\n";
-	$process = 1;
-
-    } elsif ((lc $ical_data[$loop]->{method} eq "http") or (lc $ical_data[$loop]->{method} eq "https") or (lc $ical_data[$loop]->{method} eq "webcal")) {
-        my $ua = new LWP::UserAgent;
-        my $method = "http";
-        $method .= "s" if (lc $ical_data[$loop]->{method} eq "https");
-        print "Fetching via LWP:$method...";
-	my $req = new HTTP::Request GET => $method . "://" . $calendar_loc;
-        if ($ical_data[$loop]->{username}) {
-           $req->authorization_basic($ical_data[$loop]->{username},$ical_data[$loop]->{password});
+        print "\nProcessing Calendar: ";
+        if ( defined $ical_data[$loop]->{options}->{name} ) {
+            print "$ical_data[$loop]->{options}->{name} ...\n";
         }
-        my $results = $ua->request($req);
-        if (!($results->is_success)) {
-           print "Error.\nThe calendar specified by $calendar_loc could not be retrieved: " . $results->status_line . "\n";
-        } else {
-           $data = $results->content;
-	   print "done\n";
-	   $process = 1;
+        else {
+            print "$calendar_loc ...\n";
         }
 
-   } elsif (lc $ical_data[$loop]->{method} eq "dir") {
-	my $d_parser = iCal::Parser->new();
-	my $count = 0;
-        print "Opening Directory (multi-ical)...";
-	opendir (DIR, $calendar_loc);
-	my @directory = readdir(DIR);
-	closedir (DIR);
-	foreach my $filename (@directory) {
-	  $process += $d_parser->parse("$calendar_loc/$filename");
-	  $count++;
-	}
-	print "done. $count files parsed.\n";
-	$parser =$d_parser->calendar;
-	$data = Dumper $parser;
+        if ( lc $ical_data[$loop]->{method} eq "file" ) {
+            print "Opening File...";
+            open ICALFILE, $calendar_loc or die "Couldn't open file: $!";
+            $data = join( "", <ICALFILE> );
+            close ICALFILE;
+            print "done\n";
+            $process = 1;
 
-   } else {
+        }
+        elsif (( lc $ical_data[$loop]->{method} eq "http" )
+            or ( lc $ical_data[$loop]->{method} eq "https" )
+            or ( lc $ical_data[$loop]->{method} eq "webcal" ) )
+        {
+            my $ua     = new LWP::UserAgent;
+            my $method = "http";
+            $method .= "s" if ( lc $ical_data[$loop]->{method} eq "https" );
+            print "Fetching via LWP:$method...";
+            my $req = new HTTP::Request GET => $method . "://" . $calendar_loc;
+            if ( $ical_data[$loop]->{username} ) {
+                $req->authorization_basic(
+                    $ical_data[$loop]->{username},
+                    $ical_data[$loop]->{password}
+                );
+            }
+            my $results = $ua->request($req);
+            if ( !( $results->is_success ) ) {
+                print
+                  "Error.\nThe calendar specified by $calendar_loc could not be retrieved: "
+                  . $results->status_line . "\n";
+            }
+            else {
+                $data = $results->content;
+                print "done\n";
+                $process = 1;
+            }
 
-	print "Unknown method $ical_data[$loop]->{method}\n";
-        $process=0;
-   }
-	
+        }
+        elsif ( lc $ical_data[$loop]->{method} eq "dir" ) {
+            my $d_parser = iCal::Parser->new();
+            my $count    = 0;
+            print "Opening Directory (multi-ical)...";
+            opendir( DIR, $calendar_loc );
+            my @directory = readdir(DIR);
+            closedir(DIR);
+            foreach my $filename (@directory) {
+                $process += $d_parser->parse("$calendar_loc/$filename");
+                $count++;
+            }
+            print "done. $count files parsed.\n";
+            $parser = $d_parser->calendar;
+            $data   = Dumper $parser;
 
-#-------- iCal Processing (if changed) -----------------
+        }
+        else {
 
-  if ($process) {
+            print "Unknown method $ical_data[$loop]->{method}\n";
+            $process = 0;
+        }
 
-    unless ($ical_data[$loop]->{options}->{nosync_dtstamp}) {
-	print "Syncing DTSTAMP attributes from CREATED...\n";
-        $data =~ s/DTSTAMP:(.*)\n//g;
-        $data =~ s/CREATED:(.*)\n/CREATED:$1\nDTSTAMP:$1\n/g;
+        #-------- iCal Processing (if changed) -----------------
+
+        if ($process) {
+
+            unless ( $ical_data[$loop]->{options}->{nosync_dtstamp} ) {
+                print "Syncing DTSTAMP attributes from CREATED...\n";
+                $data =~ s/DTSTAMP:(.*)\n//g;
+                $data =~ s/CREATED:(.*)\n/CREATED:$1\nDTSTAMP:$1\n/g;
+            }
+
+            # Ical:DateTime chokes on trigger appointments with 0 time
+            $data =~ s/TRIGGER:P(.*)0(.*)\n/TRIGGER:-PT1M\n/g;
+
+            #print "\n\n$data\n";
+
+            my $digest = md5_hex($data);
+
+            #    print "Debug: MD5=$digest\n";
+            #    print "Debug: Hash=$ical_data[$loop]->{hash}\n" if (defined $ical_data[$loop]->{hash});
+
+            if (  !( defined $ical_data[$loop]->{hash} )
+                or ( $ical_data[$loop]->{hash} ne $digest ) )
+            {
+                print "New Calendar entries. Processing iCal.";
+                if ( $ical_data[$loop]->{method} ne "dir" ) {
+                    eval { $parser->parse_strings($data); };
+                }
+                if ($@) {
+                    print "Error parsing strings. ICal ignored\n";
+                    print "Error: $@\n";
+                }
+                else {
+                    $parser = $parser->calendar
+                      unless $ical_data[$loop]->{method} ne "dir";
+                    print ".";
+
+                    #print Dumper $parser;
+                    $ical_data[$loop]->{hash} = $digest;
+                    my ( $data_info, $data_cals, $data_todos ) =
+                      parse_cal( $parser, $ical_data[$loop]->{options} );
+                    push( @changed_icals, @$data_info[0] );
+                    push( @master_cal,    @$data_cals );
+                    push( @master_todo,   @$data_todos );
+                    print ".";
+                    &cache_local( $data, $ical_data[$loop]->{options}->{name} )
+                      if $local_cache;
+                    print "done\n";
+                    print "Calendar Info:" if $DB;
+                    print @$data_info[0] . "," . @$data_info[1] . "\n" if $DB;
+                }
+            }
+            else {
+                print "iCal unchanged, no processing required.\n";
+            }
+        }
     }
 
-# Ical:DateTime chokes on trigger appointments with 0 time
-    $data =~ s/TRIGGER:P(.*)0(.*)\n/TRIGGER:-PT1M\n/g;
-#print "\n\n$data\n";
+    #--------------- Update the vsdb database ------------------
 
-    my $digest = md5_hex($data);
+    if (@changed_icals) {
+        print "Updating databases for @changed_icals ...\n";
 
-#    print "Debug: MD5=$digest\n";
-#    print "Debug: Hash=$ical_data[$loop]->{hash}\n" if (defined $ical_data[$loop]->{hash});
-
-    if (!(defined $ical_data[$loop]->{hash}) or ($ical_data[$loop]->{hash} ne $digest)) {
-       print "New Calendar entries. Processing iCal.";
-       if ($ical_data[$loop]->{method} ne "dir") {
-	   eval {$parser->parse_strings($data); };
-       }
-       if ($@) {
-	print "Error parsing strings. ICal ignored\n";
-	print "Error: $@\n";
-       } else {
-	$parser = $parser->calendar unless $ical_data[$loop]->{method} ne "dir";
-        print ".";
-#print Dumper $parser;
-        $ical_data[$loop]->{hash} = $digest;
-        my ($data_info, $data_cals, $data_todos) = parse_cal($parser, $ical_data[$loop]->{options});
-        push (@changed_icals, @$data_info[0]);
-        push (@master_cal, @$data_cals);
-        push (@master_todo, @$data_todos);
-        print ".";
-        &cache_local($data,$ical_data[$loop]->{options}->{name}) if $local_cache;
+        #print Dumper @master_cal;
+        update_db( "$output_dir/$vsdb_cal_file", \@changed_icals,
+            \@master_cal );
+        update_db( "$output_dir/$vsdb_todo_file", \@changed_icals,
+            \@master_todo );
         print "done\n";
-        print "Calendar Info:" if $DB;
-        print @$data_info[0] . "," . @$data_info[1] . "\n" if $DB;
-      }
-    } else {
-       print "iCal unchanged, no processing required.\n";
-       }
     }
- }
 
-#--------------- Update the vsdb database ------------------
-
-  if (@changed_icals) {
-       print "Updating databases for @changed_icals ...\n";
-
-#print Dumper @master_cal;
-       update_db("$output_dir/$vsdb_cal_file",\@changed_icals,\@master_cal);
-       update_db("$output_dir/$vsdb_todo_file",\@changed_icals,\@master_todo);
-       print "done\n";
-  }
-
-#--------------- Empty data structures and sleep ------------
-  @master_cal = ();
-  @master_todo = ();
-  @changed_icals = ();
-  if ($sleep_time) {
-     sleep $sleep_time;
-  } else {
-     last;
-  }
+    #--------------- Empty data structures and sleep ------------
+    @master_cal    = ();
+    @master_todo   = ();
+    @changed_icals = ();
+    if ($sleep_time) {
+        sleep $sleep_time;
+    }
+    else {
+        last;
+    }
 }
 
 print "Process Completed.\n";
+
 #END
 
 #-----------------------------------------------------------------
-   
-
 
 sub update_db {
 
-       my $filename = $_[0];
-       my $icals = $_[1];
-       my $data = $_[2];
-       my $count = 0;
+    my $filename = $_[0];
+    my $icals    = $_[1];
+    my $data     = $_[2];
+    my $count    = 0;
 
+    my ($objDB) = new vsDB( file => $filename );
 
-  my ($objDB) = new vsDB(file => $filename);
+    # --- lock the datafile locking code ----
+    my ($objLock) = new vsLock( -warn => 1, -max => 5, delay => 1 );
 
-# --- lock the datafile locking code ----
-my ($objLock) = new vsLock(-warn => 1, -max => 5, delay => 1);
-
-if (!$objLock->lock($filename)) { print "Problem locking file";
-} else {
-
- if (!$objDB->Open) { print "Problem opening file!";
-
- } else {
-# ---	
-  while (!$objDB->EOF) {
-     my $delete = 0;
-     foreach my $ical (@$icals) {
-	$delete = $ical if ($objDB->FieldValue('SOURCE') =~ m/ical=$ical/i);
-        }
-     if ($delete) {
-	print "Deleting " . $objDB->FieldValue("ID") . " source=$delete\n" if $DB;
-	$objDB->Delete();
-     } else {
-        $objDB->MoveNext;
-     }
-  }
-
-  #Add the new data
-  $objDB->MoveLast;
-  foreach my $item (@{$data}) {
-    $objDB->AddNew;
-    my ($newId) = $objDB->Max("ID") || 0;
-    $newId = int($newId) + 1;
-    $objDB->FieldValue("ID",$newId);
-    while (my $key = each %{$item}) {
-      print "Adding $key,$item->{$key}\n" if ((defined $item->{$key}) and ($DB > 2));
-      $objDB->FieldValue("$key","$item->{$key}") if defined $item->{$key};
+    if ( !$objLock->lock($filename) ) {
+        print "Problem locking file";
     }
-  }
-  $objDB->Commit;
-  $objDB->Close;
-  $objLock->unlock($filename)
-  }
- }
-# flush the hashes if md5file is enabled
-&flush_md5file if ($md5file ne "");
+    else {
+
+        if ( !$objDB->Open ) {
+            print "Problem opening file!";
+
+        }
+        else {
+            # ---
+            while ( !$objDB->EOF ) {
+                my $delete = 0;
+                foreach my $ical (@$icals) {
+                    $delete = $ical
+                      if ( $objDB->FieldValue('SOURCE') =~ m/ical=$ical/i );
+                }
+                if ($delete) {
+                    print "Deleting "
+                      . $objDB->FieldValue("ID")
+                      . " source=$delete\n"
+                      if $DB;
+                    $objDB->Delete();
+                }
+                else {
+                    $objDB->MoveNext;
+                }
+            }
+
+            #Add the new data
+            $objDB->MoveLast;
+            foreach my $item ( @{$data} ) {
+                $objDB->AddNew;
+                my ($newId) = $objDB->Max("ID") || 0;
+                $newId = int($newId) + 1;
+                $objDB->FieldValue( "ID", $newId );
+                while ( my $key = each %{$item} ) {
+                    print "Adding $key,$item->{$key}\n"
+                      if ( ( defined $item->{$key} ) and ( $DB > 2 ) );
+                    $objDB->FieldValue( "$key", "$item->{$key}" )
+                      if defined $item->{$key};
+                }
+            }
+            $objDB->Commit;
+            $objDB->Close;
+            $objLock->unlock($filename);
+        }
+    }
+
+    # flush the hashes if md5file is enabled
+    &flush_md5file if ( $md5file ne "" );
 }
 
 sub parse_cal {
 
-  my $cal = $_[0];
-  my $options = $_[1];
-  my (@out_info, @out_cals, @out_todos);
+    my $cal     = $_[0];
+    my $options = $_[1];
+    my ( @out_info, @out_cals, @out_todos );
 
-  my $opt_speak_cal = 0;
-  my $opt_speak_todo = 0;
-  my $opt_holiday = 0;
-  my $opt_vacation = 0;
-  my $opt_control = 0;
+    my $opt_speak_cal  = 0;
+    my $opt_speak_todo = 0;
+    my $opt_holiday    = 0;
+    my $opt_vacation   = 0;
+    my $opt_control    = 0;
 
-  $opt_speak_cal = 1 if (exists $options->{speak_cal});
-  $opt_speak_todo = 1 if (exists $options->{speak_todo});
-  $opt_holiday = 1 if (exists $options->{holiday});
-  $opt_vacation = 1 if (exists $options->{vacation});
-  $opt_control = 1 if (exists $options->{control});
+    $opt_speak_cal  = 1 if ( exists $options->{speak_cal} );
+    $opt_speak_todo = 1 if ( exists $options->{speak_todo} );
+    $opt_holiday    = 1 if ( exists $options->{holiday} );
+    $opt_vacation   = 1 if ( exists $options->{vacation} );
+    $opt_control    = 1 if ( exists $options->{control} );
 
-  my ($opt_sourcename) = $options->{name} if (defined $options->{name});
-  $cal = $cal->{ical} unless (exists $options->{nodcsfix});
-  my $calname = $cal->{cals}->[0]->{'X-WR-CALNAME'};
-  $calname = $opt_sourcename if $opt_sourcename;
+    my ($opt_sourcename) = $options->{name} if ( defined $options->{name} );
+    $cal = $cal->{ical} unless ( exists $options->{nodcsfix} );
+    my $calname = $cal->{cals}->[0]->{'X-WR-CALNAME'};
+    $calname = $opt_sourcename if $opt_sourcename;
 
-  my $caldesc = $cal->{cals}->[0]->{'X-WR-CALDESC'};
-  $caldesc = "none" if !$caldesc;
-  my ($lsec,$lmin,$lhour,$lday,$lmon,$lyear,$t4,$t5,$t6) = localtime();
-  $lyear += 1900;
-  $lmon++;
-  $lsec = "00" if ($lsec == 0);
-  $lmin = "00" if ($lmin == 0);
-  my $source = "ical=$calname";
-  if ($date_format =~ /ddmm/i) {
-     $source .= " sync=$lday" . "/" . $lmon . "/" . "$lyear $lhour" . ":" . $lmin . ":" . $lsec;
-  } else {
-     $source .= " sync=$lmon" . "/" . $lday . "/" . "$lyear $lhour" . ":" . $lmin . ":" . $lsec;
-  }
-  push @out_info, $calname;
-  push @out_info, $caldesc;
-  my $count = 0;
+    my $caldesc = $cal->{cals}->[0]->{'X-WR-CALDESC'};
+    $caldesc = "none" if !$caldesc;
+    my ( $lsec, $lmin, $lhour, $lday, $lmon, $lyear, $t4, $t5, $t6 ) =
+      localtime();
+    $lyear += 1900;
+    $lmon++;
+    $lsec = "00" if ( $lsec == 0 );
+    $lmin = "00" if ( $lmin == 0 );
+    my $source = "ical=$calname";
 
-#print Dumper $cal;
-  while (my $year = each %{$cal->{events}}) {
-    while (my $month = each %{$cal->{events}->{$year}}) {
-       while (my $day = each %{$cal->{events}->{$year}->{$month}}) {
-	  print "."; #give some progress
-	  while (my $uid = each %{$cal->{events}->{$year}->{$month}->{$day}}) {
-		my $delta;
-		#is this event in range?
-		if ($days_before or $days_after) {
-		   $delta  = Delta_Days($lyear,$lmon,$lday, $year,$month,$day);
-		}
-		print "EventID:$uid, before=$days_before after=$days_after delta=$delta\n" if ($DB>2);
+    if ( $date_format =~ /ddmm/i ) {
+        $source .=
+            " sync=$lday" . "/"
+          . $lmon . "/"
+          . "$lyear $lhour" . ":"
+          . $lmin . ":"
+          . $lsec;
+    }
+    else {
+        $source .=
+            " sync=$lmon" . "/"
+          . $lday . "/"
+          . "$lyear $lhour" . ":"
+          . $lmin . ":"
+          . $lsec;
+    }
+    push @out_info, $calname;
+    push @out_info, $caldesc;
+    my $count = 0;
 
-		#if not then skip the item
-		next if ((($days_before) and ($days_before > $delta)) or
-		         (($days_after) and ($days_after < $delta)));	
-			
-		print "Processing EventID:$uid\n" if ($DB >2);
-		my $event_ref = $cal->{events}->{$year}->{$month}->{$day}->{$uid};
-		my $starttime = "12:00 am"; # starttime and endtime are initialized the same if all day
-                my $endtime = "12:00 am";
-		#What is the time of the event, or is it all day?
-		if (not defined ($event_ref->{allday})) { 
-		   my $starthour = $event_ref->{DTSTART}->{local_c}->{hour};
-		   my $am_pm = ($starthour >= 12) ? "pm" : "am";
-		   $starthour = ($starthour + 11) % 12 + 1;
-		   $starttime = sprintf("%2s", $starthour) . ":" . 
-                         sprintf("%02s", $event_ref->{DTSTART}->{local_c}->{minute}) . " $am_pm";
-		   my $endhour = $event_ref->{DTEND}->{local_c}->{hour};
-		   $am_pm = ($endhour >= 12) ? "pm" : "am";
-		   $endhour = ($endhour + 11) % 12 + 1;
-		   $endtime = sprintf("%2s", $endhour) . ":" . 
-                         sprintf("%02s", $event_ref->{DTEND}->{local_c}->{minute}) . " $am_pm";
-		}
+    #print Dumper $cal;
+    while ( my $year = each %{ $cal->{events} } ) {
+        while ( my $month = each %{ $cal->{events}->{$year} } ) {
+            while ( my $day = each %{ $cal->{events}->{$year}->{$month} } ) {
+                print ".";    #give some progress
+                while ( my $uid =
+                    each %{ $cal->{events}->{$year}->{$month}->{$day} } )
+                {
+                    my $delta;
 
-                my $reminder = '';
-		if ($event_ref->{VALARM}) {
-                   foreach my $alarm (@{$event_ref->{VALARM}}) {
-                      if ($alarm->{when} && $event_ref->{DTSTART}) {
-                         my $duration = $event_ref->{DTSTART} - $alarm->{when};
-                         $reminder .= ($reminder) ? ',' : '';
-                         if ($duration->delta_days) {
-                            $reminder .= $duration->delta_days . 'd';
-                         } else {
-                            $reminder .= $duration->delta_minutes . 'm';
-                         }
-                      }
-                   }
+                    #is this event in range?
+                    if ( $days_before or $days_after ) {
+                        $delta =
+                          Delta_Days( $lyear, $lmon, $lday, $year, $month,
+                            $day );
+                    }
+                    print
+                      "EventID:$uid, before=$days_before after=$days_after delta=$delta\n"
+                      if ( $DB > 2 );
+
+                    #if not then skip the item
+                    next
+                      if ( ( ($days_before) and ( $days_before > $delta ) )
+                        or ( ($days_after) and ( $days_after < $delta ) ) );
+
+                    print "Processing EventID:$uid\n" if ( $DB > 2 );
+                    my $event_ref =
+                      $cal->{events}->{$year}->{$month}->{$day}->{$uid};
+                    my $starttime = "12:00 am"
+                      ; # starttime and endtime are initialized the same if all day
+                    my $endtime = "12:00 am";
+
+                    #What is the time of the event, or is it all day?
+                    if ( not defined( $event_ref->{allday} ) ) {
+                        my $starthour =
+                          $event_ref->{DTSTART}->{local_c}->{hour};
+                        my $am_pm = ( $starthour >= 12 ) ? "pm" : "am";
+                        $starthour = ( $starthour + 11 ) % 12 + 1;
+                        $starttime =
+                          sprintf( "%2s", $starthour ) . ":"
+                          . sprintf( "%02s",
+                            $event_ref->{DTSTART}->{local_c}->{minute} )
+                          . " $am_pm";
+                        my $endhour = $event_ref->{DTEND}->{local_c}->{hour};
+                        $am_pm = ( $endhour >= 12 ) ? "pm" : "am";
+                        $endhour = ( $endhour + 11 ) % 12 + 1;
+                        $endtime =
+                          sprintf( "%2s", $endhour ) . ":"
+                          . sprintf( "%02s",
+                            $event_ref->{DTEND}->{local_c}->{minute} )
+                          . " $am_pm";
+                    }
+
+                    my $reminder = '';
+                    if ( $event_ref->{VALARM} ) {
+                        foreach my $alarm ( @{ $event_ref->{VALARM} } ) {
+                            if ( $alarm->{when} && $event_ref->{DTSTART} ) {
+                                my $duration =
+                                  $event_ref->{DTSTART} - $alarm->{when};
+                                $reminder .= ($reminder) ? ',' : '';
+                                if ( $duration->delta_days ) {
+                                    $reminder .= $duration->delta_days . 'd';
+                                }
+                                else {
+                                    $reminder .= $duration->delta_minutes . 'm';
+                                }
+                            }
+                        }
+                    }
+
+                    #MH Specific attributes
+                    my $holiday = "off";
+                    $holiday = "on" if $opt_holiday;
+                    my $vacation = "off";
+                    $vacation = "on" if $opt_vacation;
+                    my $control = "off";
+                    $control = "on" if $opt_control;
+
+                    my $description = $event_ref->{DESCRIPTION} || '';
+                    if ($description) {
+                        $description =~ s/\*\~//g;
+                        $description =~ s/\\n\*?//g;
+                        $description =~ s/\\//g;
+                    }
+                    my $location = $event_ref->{LOCATION};
+                    $description .= ' location: ' . $location
+                      if $location && $description !~ /\Q$location\E/;
+
+                    #package all the ical data up in a hash
+
+                    $out_cals[$count]->{DATE} =
+                      $year . "." . $month . "." . $day;
+                    $out_cals[$count]->{TIME}     = $starttime;
+                    $out_cals[$count]->{EVENT}    = $event_ref->{SUMMARY};
+                    $out_cals[$count]->{CATEGORY} = $event_ref->{CATEGORIES};
+                    $out_cals[$count]->{DETAILS}  = $description;
+                    $out_cals[$count]->{HOLIDAY}  = $holiday;
+                    $out_cals[$count]->{VACATION} = $vacation;
+                    $out_cals[$count]->{CONTROL}  = $control;
+                    $out_cals[$count]->{SOURCE}   = $source;
+                    $out_cals[$count]->{REMINDER} = $reminder;
+                    $out_cals[$count]->{ENDTIME}  = $endtime;
+
+                    $count++;
                 }
-		#MH Specific attributes
-		my $holiday = "off";
-		$holiday = "on" if $opt_holiday;
-		my $vacation = "off";
-		$vacation = "on" if $opt_vacation;
-		my $control = "off";
-		$control = "on" if $opt_control;
 
-                my $description = $event_ref->{DESCRIPTION} || '';
-                if ($description) {
-                   $description =~ s/\*\~//g;
-                   $description =~ s/\\n\*?//g;
-                   $description =~ s/\\//g;
-                }
-                my $location = $event_ref->{LOCATION};
-                $description .= ' location: ' . $location if $location && $description !~ /\Q$location\E/;
-
-		#package all the ical data up in a hash
-
-		$out_cals[$count]->{DATE} = $year . "." . $month . "." . $day;
-		$out_cals[$count]->{TIME} = $starttime;
-		$out_cals[$count]->{EVENT} = $event_ref->{SUMMARY};
-		$out_cals[$count]->{CATEGORY} = $event_ref->{CATEGORIES};
-		$out_cals[$count]->{DETAILS} = $description;
-		$out_cals[$count]->{HOLIDAY} = $holiday;
-		$out_cals[$count]->{VACATION} = $vacation;
-		$out_cals[$count]->{CONTROL} = $control;
-		$out_cals[$count]->{SOURCE} = $source;
-		$out_cals[$count]->{REMINDER} = $reminder;
-		$out_cals[$count]->{ENDTIME} = $endtime;
-
-		$count++;
-	    }
-
-	}
-     }
-  }
-  print "db: $count calendar records processed\n" if $DB;
-
-
-  my @todos = $cal->{todos};
-  $count = 0;
-  foreach my $todo (@{$cal->{todos}}) {
-      my $completed = "No";
-      if (defined $todo->{STATUS}) {
-        $completed = "Yes" if ($todo->{STATUS} eq "COMPLETED");
-      }
-      $completed = "Yes" if (defined $todo->{COMPLETED}); #some older ical servers don't have status
-      print "db: task=" . $todo->{SUMMARY} . " status=" if ($DB);
-      print  $todo->{STATUS} if ((defined $todo->{STATUS}) and ($DB));
-      print " complete=" if ($DB);
-      print  $todo->{COMPLETED} if ((defined $todo->{COMPLETED}) and ($DB));
-      print " completed=$completed\n" if ($DB);
-
-      my $duedate = '';
-      my $duetime = '';
-      my $startdate = '';
-      my $starttime = '';
-      if ($todo->{DUE}->{local_c}->{day} and $todo->{DUE}->{local_c}->{month} and $todo->{DUE}->{local_c}->{year}) {
-        if ($date_format =~ /ddmm/i) {
-            $duedate = $todo->{DUE}->{local_c}->{day} . "/" . $todo->{DUE}->{local_c}->{month} 
-                      . "/" . $todo->{DUE}->{local_c}->{year};
-        } else {
-            $duedate = $todo->{DUE}->{local_c}->{month} . "/" . $todo->{DUE}->{local_c}->{day} 
-                      . "/" . $todo->{DUE}->{local_c}->{year};
+            }
         }
-        if ($todo->{DTSTART}->{local_c}->{day} and $todo->{DTSTART}->{local_c}->{month} and $todo->{DTSTART}->{local_c}->{year}) {
-           if ($date_format =~ /ddmm/i) {
-              $startdate = $todo->{DTSTART}->{local_c}->{day} . "/" . $todo->{DTSTART}->{local_c}->{month}
-                      . "/" . $todo->{DTSTART}->{local_c}->{year};
-           } else {
-              $startdate = $todo->{DTSTART}->{local_c}->{month} . "/" . $todo->{DTSTART}->{local_c}->{day}
-                      . "/" . $todo->{DTSTART}->{local_c}->{year};
-           }
+    }
+    print "db: $count calendar records processed\n" if $DB;
+
+    my @todos = $cal->{todos};
+    $count = 0;
+    foreach my $todo ( @{ $cal->{todos} } ) {
+        my $completed = "No";
+        if ( defined $todo->{STATUS} ) {
+            $completed = "Yes" if ( $todo->{STATUS} eq "COMPLETED" );
         }
-	my $endhour = $todo->{DUE}->{local_c}->{hour};
-	my $am_pm = ($endhour >= 12) ? "pm" : "am";
-	$endhour = ($endhour + 11) % 12 + 1;
-	$duetime = sprintf("%2s", $endhour) . ":" . sprintf("%02s", $todo->{DUE}->{local_c}->{minute}) . " $am_pm";
-        $duetime = '' if $duetime =~ /0:00/;
- 	my $starthour = $todo->{DTSTART}->{local_c}->{hour};
-	$am_pm = ($starthour >= 12) ? "pm" : "am";
-	$starthour = ($starthour + 11) % 12 + 1;
-	$starttime = sprintf("%2s", $starthour) . ":" . sprintf("%02s", $todo->{DTSTART}->{local_c}->{minute}) . " $am_pm";
-        $starttime = '' if $duetime =~ /0:00/;
-      }
-      my $reminder = '';
-      if ($todo->{VALARM}) {
-         foreach my $alarm (@{$todo->{VALARM}}) {
-            if ($alarm->{when} && $duedate) {
-                my $duration = $todo->{DUE} - $alarm->{when};
-                my $delta = '';
-                if ($duration->delta_days) {
-                   $delta = $duration->delta_days . 'd';
-                } else {
-                   $delta = $duration->delta_minutes . 'm';
+        $completed = "Yes"
+          if ( defined $todo->{COMPLETED} )
+          ;    #some older ical servers don't have status
+        print "db: task=" . $todo->{SUMMARY} . " status=" if ($DB);
+        print $todo->{STATUS} if ( ( defined $todo->{STATUS} ) and ($DB) );
+        print " complete=" if ($DB);
+        print $todo->{COMPLETED}
+          if ( ( defined $todo->{COMPLETED} ) and ($DB) );
+        print " completed=$completed\n" if ($DB);
+
+        my $duedate   = '';
+        my $duetime   = '';
+        my $startdate = '';
+        my $starttime = '';
+        if (    $todo->{DUE}->{local_c}->{day}
+            and $todo->{DUE}->{local_c}->{month}
+            and $todo->{DUE}->{local_c}->{year} )
+        {
+
+            if ( $date_format =~ /ddmm/i ) {
+                $duedate =
+                    $todo->{DUE}->{local_c}->{day} . "/"
+                  . $todo->{DUE}->{local_c}->{month} . "/"
+                  . $todo->{DUE}->{local_c}->{year};
+            }
+            else {
+                $duedate =
+                    $todo->{DUE}->{local_c}->{month} . "/"
+                  . $todo->{DUE}->{local_c}->{day} . "/"
+                  . $todo->{DUE}->{local_c}->{year};
+            }
+            if (    $todo->{DTSTART}->{local_c}->{day}
+                and $todo->{DTSTART}->{local_c}->{month}
+                and $todo->{DTSTART}->{local_c}->{year} )
+            {
+                if ( $date_format =~ /ddmm/i ) {
+                    $startdate =
+                        $todo->{DTSTART}->{local_c}->{day} . "/"
+                      . $todo->{DTSTART}->{local_c}->{month} . "/"
+                      . $todo->{DTSTART}->{local_c}->{year};
                 }
-                if ($reminder !~ /$delta/) { # prevent duplicates
-                   $reminder .= ($reminder) ? ',' : '';
-                   $reminder .= $delta;
+                else {
+                    $startdate =
+                        $todo->{DTSTART}->{local_c}->{month} . "/"
+                      . $todo->{DTSTART}->{local_c}->{day} . "/"
+                      . $todo->{DTSTART}->{local_c}->{year};
                 }
             }
-         }
-      }
+            my $endhour = $todo->{DUE}->{local_c}->{hour};
+            my $am_pm = ( $endhour >= 12 ) ? "pm" : "am";
+            $endhour = ( $endhour + 11 ) % 12 + 1;
+            $duetime =
+                sprintf( "%2s", $endhour ) . ":"
+              . sprintf( "%02s", $todo->{DUE}->{local_c}->{minute} )
+              . " $am_pm";
+            $duetime = '' if $duetime =~ /0:00/;
+            my $starthour = $todo->{DTSTART}->{local_c}->{hour};
+            $am_pm = ( $starthour >= 12 ) ? "pm" : "am";
+            $starthour = ( $starthour + 11 ) % 12 + 1;
+            $starttime =
+                sprintf( "%2s", $starthour ) . ":"
+              . sprintf( "%02s", $todo->{DTSTART}->{local_c}->{minute} )
+              . " $am_pm";
+            $starttime = '' if $duetime =~ /0:00/;
+        }
+        my $reminder = '';
+        if ( $todo->{VALARM} ) {
+            foreach my $alarm ( @{ $todo->{VALARM} } ) {
+                if ( $alarm->{when} && $duedate ) {
+                    my $duration = $todo->{DUE} - $alarm->{when};
+                    my $delta    = '';
+                    if ( $duration->delta_days ) {
+                        $delta = $duration->delta_days . 'd';
+                    }
+                    else {
+                        $delta = $duration->delta_minutes . 'm';
+                    }
+                    if ( $reminder !~ /$delta/ ) {    # prevent duplicates
+                        $reminder .= ($reminder) ? ',' : '';
+                        $reminder .= $delta;
+                    }
+                }
+            }
+        }
 
-      my $speak = "No";
-      $speak = "Yes" if $opt_speak_todo;
+        my $speak = "No";
+        $speak = "Yes" if $opt_speak_todo;
 
-      my $notes = $todo->{DESCRIPTION};
-      $notes = "" if !$notes;
+        my $notes = $todo->{DESCRIPTION};
+        $notes = "" if !$notes;
 
-      $out_todos[$count]->{Complete} = $completed;
-      $out_todos[$count]->{Description} = $todo->{SUMMARY};
-      $out_todos[$count]->{DueDate} = $duedate . (($duetime) ? ' ' . $duetime : '');
-      $out_todos[$count]->{AssignedTo} = $calname;
-      $out_todos[$count]->{Notes} = $notes;
-      $out_todos[$count]->{SPEAK} = ($reminder) ? 'Yes' : $speak; # override speak logic if an explicit reminder exists
-      $out_todos[$count]->{SOURCE} = $source;
-      $out_todos[$count]->{REMINDER} = $reminder;
-      $out_todos[$count]->{STARTDATE} = $startdate . (($starttime) ? ' ' . $starttime : '');
-      $out_todos[$count]->{CATEGORY} = $todo->{CATEGORIES};
-      $count++;
-  }
-  print "db: $count todo records processed\n" if $DB;
-  return (\@out_info, \@out_cals, \@out_todos);
+        $out_todos[$count]->{Complete}    = $completed;
+        $out_todos[$count]->{Description} = $todo->{SUMMARY};
+        $out_todos[$count]->{DueDate} =
+          $duedate . ( ($duetime) ? ' ' . $duetime : '' );
+        $out_todos[$count]->{AssignedTo} = $calname;
+        $out_todos[$count]->{Notes}      = $notes;
+        $out_todos[$count]->{SPEAK} =
+          ($reminder)
+          ? 'Yes'
+          : $speak;    # override speak logic if an explicit reminder exists
+        $out_todos[$count]->{SOURCE}   = $source;
+        $out_todos[$count]->{REMINDER} = $reminder;
+        $out_todos[$count]->{STARTDATE} =
+          $startdate . ( ($starttime) ? ' ' . $starttime : '' );
+        $out_todos[$count]->{CATEGORY} = $todo->{CATEGORIES};
+        $count++;
+    }
+    print "db: $count todo records processed\n" if $DB;
+    return ( \@out_info, \@out_cals, \@out_todos );
 }
 
 sub init {
 
-  my $count = 0;
-  my $version = 0;
-  open (CFGFILE,$config_file) || die "Error: Cannot open config file $config_file!";
+    my $count   = 0;
+    my $version = 0;
+    open( CFGFILE, $config_file )
+      || die "Error: Cannot open config file $config_file!";
 
-  while (<CFGFILE>) {
-	s/#.*//;
-	next if /^(\s)*$/; #skip blank lines
-	my $line = $_;
-	chomp($line);
-	my ($type, $url, $options) = split(/\t/,$line);
-	$options = "" if !$options;
+    while (<CFGFILE>) {
+        s/#.*//;
+        next if /^(\s)*$/;    #skip blank lines
+        my $line = $_;
+        chomp($line);
+        my ( $type, $url, $options ) = split( /\t/, $line );
+        $options = "" if !$options;
 
-	if (lc $type eq "output_dir" ) {
-	  $output_dir = $url;
-	
-	} elsif (lc $type eq "days_before" ) {
-	  $days_before=0-$url;
+        if ( lc $type eq "output_dir" ) {
+            $output_dir = $url;
 
-	} elsif (lc $type eq "days_after" ) {
-	  $days_after=$url;
+        }
+        elsif ( lc $type eq "days_before" ) {
+            $days_before = 0 - $url;
 
-	} elsif (lc $type eq "sleep_delay" ) {
-	  $sleep_time=$url;
+        }
+        elsif ( lc $type eq "days_after" ) {
+            $days_after = $url;
 
-	} elsif (lc $type eq "md5file" ) {
-	  $md5file=$url;
+        }
+        elsif ( lc $type eq "sleep_delay" ) {
+            $sleep_time = $url;
 
-	} elsif (lc $type eq "cfg_version" ) {
-	  $version=$url;
+        }
+        elsif ( lc $type eq "md5file" ) {
+            $md5file = $url;
 
-	} elsif (lc $type eq "local_cache_dir" ) {
-	  $local_cache=$url;
-	
-	} else {
-	  $ical_data[$count]->{type} = $type;
-	  foreach my $opt (split /,/,lc $options) {
-	    my ($key,$value) = split /=/,$opt;
-	    $value = 1 unless (defined $value);
-	    $ical_data[$count]->{options}->{$key} = $value;
-	  }
-	  $ical_data[$count]->{hash} = "none";
-	  print "Applying second level ical parsing (set nodscfix if this breaks anything) ...\n" unless (exists $ical_data[$count]->{options}->{nodcsfix});
+        }
+        elsif ( lc $type eq "cfg_version" ) {
+            $version = $url;
 
-	  my ($method, $loc) = split(/:\/\//,$url);
-          if ($loc) {
-             my ($username, $password, $uri) = $loc =~ /^(\S+):(\S+)@(\S+)/i;
-             if ($username and $password) {
-                print "parsed username: $username and password: $password and uri: $uri\n" if ($DB);
-                $loc = $uri;
-                $ical_data[$count]->{username} = $username;
-                $ical_data[$count]->{password} = $password;
-             }
-          }
-          print "db: method=$method, location=$loc\n" if ($DB);
-	  $ical_data[$count]->{method} = $method;
-	  if ($method eq lc "dir") {
-		$loc = "/" . $loc if !($loc =~ /^\//);
-		chop $loc  if ($loc =~ /\/$/);
-	  }
-	  $ical_data[$count]->{loc} = $loc;
-	  $count++;
-	  }
-  }
-  close(CFGFILE);
+        }
+        elsif ( lc $type eq "local_cache_dir" ) {
+            $local_cache = $url;
 
-  die "Incompatible configuration file version!" if ($version != $config_version);
-  # overwrite output_dir if passed in from command line
-  $output_dir = $ARGV[1] if $ARGV[1];
-  $date_format = $ARGV[2] if $ARGV[2];
-  $md5file = 'ical2vsdb.md5' unless $md5file;
-  $md5file = $output_dir . "/" . $md5file if ($md5file ne "");
+        }
+        else {
+            $ical_data[$count]->{type} = $type;
+            foreach my $opt ( split /,/, lc $options ) {
+                my ( $key, $value ) = split /=/, $opt;
+                $value = 1 unless ( defined $value );
+                $ical_data[$count]->{options}->{$key} = $value;
+            }
+            $ical_data[$count]->{hash} = "none";
+            print
+              "Applying second level ical parsing (set nodscfix if this breaks anything) ...\n"
+              unless ( exists $ical_data[$count]->{options}->{nodcsfix} );
 
-# do some sanity checking...
+            my ( $method, $loc ) = split( /:\/\//, $url );
+            if ($loc) {
+                my ( $username, $password, $uri ) =
+                  $loc =~ /^(\S+):(\S+)@(\S+)/i;
+                if ( $username and $password ) {
+                    print
+                      "parsed username: $username and password: $password and uri: $uri\n"
+                      if ($DB);
+                    $loc                           = $uri;
+                    $ical_data[$count]->{username} = $username;
+                    $ical_data[$count]->{password} = $password;
+                }
+            }
+            print "db: method=$method, location=$loc\n" if ($DB);
+            $ical_data[$count]->{method} = $method;
+            if ( $method eq lc "dir" ) {
+                $loc = "/" . $loc if !( $loc =~ /^\// );
+                chop $loc if ( $loc =~ /\/$/ );
+            }
+            $ical_data[$count]->{loc} = $loc;
+            $count++;
+        }
+    }
+    close(CFGFILE);
 
-  print "Error: No iCals to Process!\n" if ($count == 0 );
+    die "Incompatible configuration file version!"
+      if ( $version != $config_version );
 
-  if (! -e "$output_dir/$vsdb_cal_file") {
-    print "Error: Target Calendar file not found at $output_dir/$vsdb_cal_file!\n";
-    $count = 0;
-  }
+    # overwrite output_dir if passed in from command line
+    $output_dir  = $ARGV[1] if $ARGV[1];
+    $date_format = $ARGV[2] if $ARGV[2];
+    $md5file = 'ical2vsdb.md5' unless $md5file;
+    $md5file = $output_dir . "/" . $md5file if ( $md5file ne "" );
 
-  if (! -e "$output_dir/$vsdb_todo_file") {
-    print "Error: Target Todo file not found at $output_dir/$vsdb_todo_file!\n";
-    $count = 0;
-  }
+    # do some sanity checking...
 
-  return ($count);
+    print "Error: No iCals to Process!\n" if ( $count == 0 );
+
+    if ( !-e "$output_dir/$vsdb_cal_file" ) {
+        print
+          "Error: Target Calendar file not found at $output_dir/$vsdb_cal_file!\n";
+        $count = 0;
+    }
+
+    if ( !-e "$output_dir/$vsdb_todo_file" ) {
+        print
+          "Error: Target Todo file not found at $output_dir/$vsdb_todo_file!\n";
+        $count = 0;
+    }
+
+    return ($count);
 }
 
 sub help {
 
-  print "usage\t$progname CONFIGURATION_FILE OUTPUT_DIR\n";
-  print " or\t$progname --purge-ical-info OUTPUT_DIR\n";
-  print "version $progver\n";
-  print "\n\n";
-  print " -- CONFIG FILE SYNTAX -- \n";
-  print "TYPE<tab>VALUE<tab>option\n\n";
-  print "TYPE = cfg_version|ical|days_before|days_after|sleep\n";
-  print "VALUE = parameter value or ical location (http://, file://, dir://)\n";
-  print "OPTION = comma delimited values (holiday,name=Joe User,speak_todos,vacation,\n";
-  print "			control, nodcsfix, nosync_dtstamp)\n";
-  print "\n";
+    print "usage\t$progname CONFIGURATION_FILE OUTPUT_DIR\n";
+    print " or\t$progname --purge-ical-info OUTPUT_DIR\n";
+    print "version $progver\n";
+    print "\n\n";
+    print " -- CONFIG FILE SYNTAX -- \n";
+    print "TYPE<tab>VALUE<tab>option\n\n";
+    print "TYPE = cfg_version|ical|days_before|days_after|sleep\n";
+    print
+      "VALUE = parameter value or ical location (http://, file://, dir://)\n";
+    print
+      "OPTION = comma delimited values (holiday,name=Joe User,speak_todos,vacation,\n";
+    print "			control, nodcsfix, nosync_dtstamp)\n";
+    print "\n";
 
-  die;
+    die;
 }
 
 sub read_md5file {
 
-  if (!(-e $md5file)) {
-     open (MD5FILE,"> $md5file");
-     close (MD5FILE);
-  }
-  if ( -e $md5file ) {
-    my $count = 0;
-    my %md5;
-    open (MD5FILE,$md5file) || die "Error: Cannot read md5 file $md5file!";
-
-    while (<MD5FILE>) {
-	my $line = $_;
-	chomp($line);
-	my ($loc, $hash) = split(/\t/,$line);
-	$md5{$loc} = $hash;
+    if ( !( -e $md5file ) ) {
+        open( MD5FILE, "> $md5file" );
+        close(MD5FILE);
     }
+    if ( -e $md5file ) {
+        my $count = 0;
+        my %md5;
+        open( MD5FILE, $md5file )
+          || die "Error: Cannot read md5 file $md5file!";
 
-    for (my $loop = 0; $loop < scalar (@ical_data); $loop++) {
-      $ical_data[$loop]->{hash} = $md5{$ical_data[$loop]->{loc}};
+        while (<MD5FILE>) {
+            my $line = $_;
+            chomp($line);
+            my ( $loc, $hash ) = split( /\t/, $line );
+            $md5{$loc} = $hash;
+        }
+
+        for ( my $loop = 0; $loop < scalar(@ical_data); $loop++ ) {
+            $ical_data[$loop]->{hash} = $md5{ $ical_data[$loop]->{loc} };
+        }
+        close(MD5FILE);
     }
-    close (MD5FILE);
-  }
 }
 
 sub flush_md5file {
 
-  my %md5;
-  open (MD5FILE,">$md5file") || die "Error: Cannot write md5 file $md5file!";
+    my %md5;
+    open( MD5FILE, ">$md5file" )
+      || die "Error: Cannot write md5 file $md5file!";
 
-  for (my $loop = 0; $loop < scalar (@ical_data); $loop++) {
-   print MD5FILE "$ical_data[$loop]->{loc}\t$ical_data[$loop]->{hash}\n";
-  }
-  
-  close (MD5FILE);
+    for ( my $loop = 0; $loop < scalar(@ical_data); $loop++ ) {
+        print MD5FILE "$ical_data[$loop]->{loc}\t$ical_data[$loop]->{hash}\n";
+    }
+
+    close(MD5FILE);
 }
 
 sub cache_local {
 
-  my ($data,$filename) = @_;
-  $filename =~ s/ /_/g;
-  unless ($data) { 
-   print "No data to write!\n";
-   return
-  }
-  open (CACHE,">$local_cache/$filename.ics") || warn "Error: Cannot write local cache file $local_cache/$filename.ics!";
-  print CACHE $data;
- 
-  close (CACHE);
+    my ( $data, $filename ) = @_;
+    $filename =~ s/ /_/g;
+    unless ($data) {
+        print "No data to write!\n";
+        return;
+    }
+    open( CACHE, ">$local_cache/$filename.ics" )
+      || warn
+      "Error: Cannot write local cache file $local_cache/$filename.ics!";
+    print CACHE $data;
+
+    close(CACHE);
 }
 
 sub purge_icals {
 
-  my $output_dir = $ARGV[1];
-  my @vsdb_files = ("$output_dir/$vsdb_cal_file","$output_dir/$vsdb_todo_file");
+    my $output_dir = $ARGV[1];
+    my @vsdb_files =
+      ( "$output_dir/$vsdb_cal_file", "$output_dir/$vsdb_todo_file" );
 
-  foreach my $filename (@vsdb_files) {
-  print "Purging iCal information from $filename...";
-   my ($objDB) = new vsDB(file => $filename);
-   my ($objLock) = new vsLock(-warn => 1, -max => 5, delay => 1);
+    foreach my $filename (@vsdb_files) {
+        print "Purging iCal information from $filename...";
+        my ($objDB) = new vsDB( file => $filename );
+        my ($objLock) = new vsLock( -warn => 1, -max => 5, delay => 1 );
 
-     if (!$objLock->lock($filename)) { print "Problem locking file";
-     } else {
+        if ( !$objLock->lock($filename) ) {
+            print "Problem locking file";
+        }
+        else {
 
-       if (!$objDB->Open) { print "Problem opening file!";
-       } else {
-
-         while (!$objDB->EOF) {
-            my $delete = 0;
-            my $source = $objDB->FieldValue('SOURCE');
-            ($delete) = $source =~ /ical=(.*)/;
-
-            if ($delete) {
-	       $objDB->Delete();
-            } else {
-               $objDB->MoveNext;
+            if ( !$objDB->Open ) {
+                print "Problem opening file!";
             }
-         }
-       }
-      }
-      $objDB->Commit;
-      $objDB->Close;
-      $objLock->unlock($filename)
-      }
-die;
+            else {
+
+                while ( !$objDB->EOF ) {
+                    my $delete = 0;
+                    my $source = $objDB->FieldValue('SOURCE');
+                    ($delete) = $source =~ /ical=(.*)/;
+
+                    if ($delete) {
+                        $objDB->Delete();
+                    }
+                    else {
+                        $objDB->MoveNext;
+                    }
+                }
+            }
+        }
+        $objDB->Commit;
+        $objDB->Close;
+        $objLock->unlock($filename);
+    }
+    die;
 }
 
