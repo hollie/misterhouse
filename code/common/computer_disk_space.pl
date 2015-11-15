@@ -92,7 +92,8 @@ if ( said $v_disk_space2) {
       "\n\nDisk drive space (free / total megabytes) sorted by free space:\n";
     for my $drive (
         sort { $free_by_drive{$a} <=> $free_by_drive{$b} or $a cmp $b }
-        keys %free_by_drive )
+        keys %free_by_drive
+      )
     {
         $report .= sprintf( "%14s: %6.1f / %6.1f\n",
             $drive, $free_by_drive{$drive}, $total_by_drive{$drive} );

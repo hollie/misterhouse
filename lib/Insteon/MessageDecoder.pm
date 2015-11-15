@@ -1956,12 +1956,12 @@ sub plm_decode {
                     sprintf( "%20s: ACK is ", 'Bit 5' )
                   . ( $flags & 0b00100000 ? 'required' : 'not required' )
                   . "\n";
-                $plm_message .=
-                  sprintf( "%20s: Record has ", 'Bit 1' )
-                  . ( $flags & 0b00000001
+                $plm_message .= sprintf( "%20s: Record has ", 'Bit 1' )
+                  . (
+                    $flags & 0b00000001
                     ? 'been used before'
-                    : 'not been used before' )
-                  . "\n";
+                    : 'not been used before'
+                  ) . "\n";
                 $plm_message .= sprintf( "%20s: ", 'All-Link Group' )
                   . substr( $plm_string, 6, 2 ) . "\n";
                 $plm_message .=
@@ -2134,12 +2134,12 @@ sub plm_decode {
                     sprintf( "%20s: ACK is ", 'Bit 5' )
                   . ( $flags & 0b00100000 ? 'required' : 'not required' )
                   . "\n";
-                $plm_message .=
-                  sprintf( "%20s: Record has ", 'Bit 1' )
-                  . ( $flags & 0b00000001
+                $plm_message .= sprintf( "%20s: Record has ", 'Bit 1' )
+                  . (
+                    $flags & 0b00000001
                     ? 'been used before'
-                    : 'not been used before' )
-                  . "\n";
+                    : 'not been used before'
+                  ) . "\n";
                 $plm_message .= sprintf( "%20s: ", 'All-Link Group' )
                   . substr( $plm_string, 8, 2 ) . "\n";
                 $plm_message .=
@@ -2208,8 +2208,8 @@ sub plm_decode {
                   . (
                     substr( $plm_string, $plm_ack_pos, 2 ) eq '06'
                     ? "ACK"
-                    : "NACK" )
-                  . "\n";
+                    : "NACK"
+                  ) . "\n";
             }
             $finished++;
         }    #if($FSM==)

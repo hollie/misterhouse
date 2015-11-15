@@ -140,8 +140,7 @@ sub usb_uirt_update_html {
       <input type=submit name=$usb_uirt_function_rename value="Rename"><br>
       <input type=submit name=$usb_uirt_function_send value="Send"><br>
       Frequency <input size="3" value="'
-      . $frequency
-      . '" name=$usb_uirt_function_frequency>
+      . $frequency . '" name=$usb_uirt_function_frequency>
       &nbsp&nbsp&nbsp Repeat <input value="' . $repeat
       . '" size="2" name=$usb_uirt_function_repeat>
       &nbsp&nbsp&nbsp <input type=submit value="Modify" name=$usb_uirt_function_modify><br>
@@ -154,8 +153,7 @@ Repeat for the other functions on that device.
 Pronto codes start with 0000, and USB-UIRT Raw codes start with either F##R## or R##.<p>
       <b>Code</b><br>
       <textarea name=$usb_uirt_function_code Rows=8 COLS=84 wrap="hard">'
-      . ( $raw ? $raw : $pronto )
-      . '</textarea>
+      . ( $raw ? $raw : $pronto ) . '</textarea>
       <input type=submit value="Import" name=$usb_uirt_function_import><br>
       ' . ( $raw ? "<p>Pronto code: $pronto<p>" : '' ) . '
       You can find Pronto codes at <a target="_BLANK" href="http://www.remotecentral.com">Remote Central</a> and
@@ -193,8 +191,7 @@ You do not need to create a device or function above.<p>
     $html .= '
       Last learned raw code (for debugging)<br>
       <textarea name=$usb_uirt_function_raw Rows=8 COLS=100 wrap="hard">'
-      . $raw
-      . '</textarea>  
+      . $raw . '</textarea>  
       ' if $raw;
     $html .= '
       <a target="control" href="SUB;referer?usb_uirt_update_html()">Refresh</a><br>

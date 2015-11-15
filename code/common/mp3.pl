@@ -163,10 +163,11 @@ sub mp3_playlists {
     return 'none_found' unless $mp3names;    # ???
     chop $mp3names;                          # Drop last ,
     print_log "Music playlists: "
-      . ( ( length $mp3names < 500 )
+      . (
+        ( length $mp3names < 500 )
         ? $mp3names
-        : ( substr $mp3names, 0, 500 ) . '...' )
-      if $Startup;
+        : ( substr $mp3names, 0, 500 ) . '...'
+      ) if $Startup;
     return $mp3names, %mp3files;
 }
 

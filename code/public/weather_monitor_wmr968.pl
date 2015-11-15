@@ -72,7 +72,7 @@ $DewSpare2        = new Weather_Item 'DewSpare2';
 if ($New_Minute) {
 
     #    $Weather{sun_sensor} = $analog{sun_sensor}; # From sensors.pl weeder input
-    if ( time_greater_than("$Time_Sunrise + 2:00")
+    if (    time_greater_than("$Time_Sunrise + 2:00")
         and time_less_than("$Time_Sunset  - 5:00") )
     {
         $Weather{Conditions} =

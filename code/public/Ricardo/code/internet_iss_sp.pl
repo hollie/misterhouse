@@ -80,24 +80,27 @@ eof
 
             #           print "db t=$text\na=@a\n";
             #           print "db testing time: $a[1]/$a[0] $a[3]\n";
-            $time_s =
-              my_str2time( $config_parms{date_format} =~ /ddmm/
+            $time_s = my_str2time(
+                $config_parms{date_format} =~ /ddmm/
                 ? "$a[0]/$a[1] $a[3]"
-                : "$a[1]/$a[0] $a[3]" ) +
+                : "$a[1]/$a[0] $a[3]"
+              ) +
               3600 * $config_parms{time_zone};
             $time_s += 3600
               if (localtime)[8];    # Adjust for daylight savings time
-            $time_m =
-              my_str2time( $config_parms{date_format} =~ /ddmm/
+            $time_m = my_str2time(
+                $config_parms{date_format} =~ /ddmm/
                 ? "$a[0]/$a[1] $a[6]"
-                : "$a[1]/$a[0] $a[6]" ) +
+                : "$a[1]/$a[0] $a[6]"
+              ) +
               3600 * $config_parms{time_zone};
             $time_m += 3600
               if (localtime)[8];    # Adjust for daylight savings time
-            $time_e =
-              my_str2time( $config_parms{date_format} =~ /ddmm/
+            $time_e = my_str2time(
+                $config_parms{date_format} =~ /ddmm/
                 ? "$a[0]/$a[1] $a[9]"
-                : "$a[1]/$a[0] $a[9]" ) +
+                : "$a[1]/$a[0] $a[9]"
+              ) +
               3600 * $config_parms{time_zone};
             $time_e += 3600
               if (localtime)[8];    # Adjust for daylight savings time

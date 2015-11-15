@@ -164,10 +164,11 @@ sub voice_over {
                     my $forecast;
                     @forecast_days = split /\|/, $Weather{"Forecast Days"};
 
-                    my $forecast_day =
-                      $forecast_days[ ( $forecast_days[0] =~ /warning/ )
+                    my $forecast_day = $forecast_days[
+                      ( $forecast_days[0] =~ /warning/ )
                       ? 1
-                      : 0 ];
+                      : 0
+                    ];
                     $forecast = $Weather{"Forecast $forecast_day"};
 
                     $speech = "How are you? It is $Time_Now";

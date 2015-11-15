@@ -14,14 +14,15 @@ $v_reload_code->tie_event('push(@Nextpass_Actions, \&read_code)');    # noloop
 # Force reload MisterHouse
 $v_reload_code2 = new Voice_Cmd("Force {Reload,re load} code");
 $v_reload_code2->set_info('Force a code reload of all modules');
-$v_reload_code2->tie_event(
-    'push(@Nextpass_Actions, # noloop
-  \&read_code_forced)'
-);                                                                    # noloop
+
+# noloop=start
+$v_reload_code2->tie_event('push(@Nextpass_Actions,\&read_code_forced)');
+
+# noloop=stop
 
 # Start/stop voice recognition
 $v_listen = new Voice_Cmd( "[Start,Stop] listening", 0 );
-$v_listen->tie_event('&handle_listen_state()');                       # noloop
+$v_listen->tie_event('&handle_listen_state()');    # noloop
 
 sub handle_listen_state() {
     my $state = state $v_listen;
@@ -115,7 +116,7 @@ $v_restart_mh->tie_event('&restart_mh($state)');    # noloop
 sub restart_mh {
     my ($command) = @_;
     my $restart = ( $command eq "Restart" ) ? 1 : 0;
-    $exit_timer = new Timer;
+    my $exit_timer = new Timer;
     print_log "MisterHouse will " . lc($command) . " in 2 seconds.";
     $exit_timer->set( 2, "&exit_pgm($restart)" );
 }
@@ -605,9 +606,11 @@ sub handle_run_command_state() {
 # Allow web users to search the code
 # Set from web menu mh/web/ia5/house/search.shtml
 $search_command_string = new Generic_Item;
-$search_command_string->tie_event(    # noloop
-    '&handle_search_command_string_state()'
-);                                    # noloop
+
+# noloop=start
+$search_command_string->tie_event('&handle_search_command_string_state()');
+
+# noloop=stop
 
 sub handle_search_command_string_state() {
 

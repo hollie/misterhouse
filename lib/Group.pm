@@ -319,9 +319,11 @@ sub set {
                           )
                         {
                             print "Setting $hc to $state with "
-                              . ( ( $state eq 'on' )
+                              . (
+                                ( $state eq 'on' )
                                 ? 'All Lights On'
-                                : 'All Off' )
+                                : 'All Off'
+                              )
                               . "\n"
                               if ( $main::Debug{group} );
                             &Serial_Item::send_x10_data( $controller,

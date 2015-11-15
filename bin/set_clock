@@ -116,9 +116,12 @@ else {
     else {
         #perl2exe_include IO::Socket
         eval "use IO::Socket";
-        if ( my $sock =
-            new IO::Socket::INET->new( PeerAddr => $parms{server},
-                Proto => 'tcp' ) )
+        if (
+            my $sock = new IO::Socket::INET->new(
+                PeerAddr => $parms{server},
+                Proto    => 'tcp'
+            )
+          )
         {
             while (<$sock>) {
                 $time_record .= $_;

@@ -47,11 +47,12 @@ my $weather_update_html_path =
 # Create trigger
 
 if ($Reload) {
-    my $command =
-      "new_minute "
-      . ( ( $config_parms{wunderground_frequency} )
+    my $command = "new_minute "
+      . (
+        ( $config_parms{wunderground_frequency} )
         ? $config_parms{wunderground_frequency}
-        : 10 );
+        : 10
+      );
 
     &trigger_set( $command, "run_voice_cmd('Run wunderground.com upload')",
         'NoExpire', 'upload weather' )

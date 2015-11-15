@@ -21,8 +21,10 @@ for my $file ( readdir DIR ) {
 close DIR;
 
 my %files_picked;
-for my $file ( sort { $file_data{$b}{date} <=> $file_data{$a}{date} }
-    keys %file_data )
+for my $file (
+    sort { $file_data{$b}{date} <=> $file_data{$a}{date} }
+    keys %file_data
+  )
 {
     my ($root) = $file =~ /(\S+?)_/;
     if (  !$files_picked{$root}

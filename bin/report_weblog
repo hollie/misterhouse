@@ -198,8 +198,10 @@ sub read_data {
 
     open( DATAOUT, ">${prefix}client.txt" )
       or die "Error, could not open ${prefix}client.txt: $!\n";
-    foreach ( sort { $hits{client_time}{$a} cmp $hits{client_time}{$b} }
-        keys %{ $hits{client} } )
+    foreach (
+        sort { $hits{client_time}{$a} cmp $hits{client_time}{$b} }
+        keys %{ $hits{client} }
+      )
     {
         print DATAOUT
           join( "\t", $hits{client_time}{$_}, $hits{client}{$_}, $_ ), "\n";

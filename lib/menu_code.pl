@@ -400,9 +400,11 @@ sub menu_run {
         my $setby = ( lc $format =~ /^h/i ) ? 'web' : 'notweb';
         $setby .= " [$Socket_Ports{http}{client_ip_address}]"
           if $Socket_Ports{http}{client_ip_address} and $setby eq 'web';
-        unless ( ( $setby eq 'notweb' )
+        unless (
+            ( $setby eq 'notweb' )
             ? &run_voice_cmd($cmd)
-            : &run_voice_cmd( $cmd, 'mh', $setby ) )
+            : &run_voice_cmd( $cmd, 'mh', $setby )
+          )
         {
             #           package main;   # Need this if we had this code in a package
             eval $action;

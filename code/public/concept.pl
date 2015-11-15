@@ -20,6 +20,7 @@
 my %concept_data;
 my @concept_groups;
 my @concept_categories;
+my ( $concept_monitor, $concept_talker );
 my $last_concept_event_state = "un-initialised";
 my $last_concept_control_state;
 

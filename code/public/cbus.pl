@@ -189,6 +189,8 @@ my $CBUS_RETRY_SECS    = 5;
 my $cbus_talker_retry  = $CBUS_RETRY_SECS + 1;
 my $cbus_monitor_retry = $CBUS_RETRY_SECS + 1;
 
+my ( $cbus_monitor, cbus_talker );
+
 my $cbus_system_debug = 0;
 my $cbus_def;
 my @cbus_net_list;

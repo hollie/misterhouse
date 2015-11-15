@@ -27,14 +27,22 @@ $Info{Volume_Control} = 'Command Line'
 ################################################
 # Allow for default volume control. Reset on startup.
 ################################################
+
+# noloop=start
+
 &set_volume_master_wrapper( $mh_volume->{state} )
-  if $Startup and defined $mh_volume->{state};    #noloop
+  if $Startup and defined $mh_volume->{state};
 &set_volume_wav( $config_parms{volume_wav_default_volume} )
-  if $Startup and defined $config_parms{volume_wav_default_volume};    #noloop
+  if $Startup and defined $config_parms{volume_wav_default_volume};
 
 if ( defined( $state = state_now $mh_volume) and $state ne '' ) {
     &set_volume_master_wrapper($state);
 }
+
+my $volume_master_changed = 0;
+my $volume_wav_previous;
+
+# noloop=start
 
 $Tk_objects{sliders}{volume} = &tk_scalebar( \$mh_volume, 0, 'Volume' )
   if $MW
@@ -190,11 +198,6 @@ sub set_volume_wav {
 &Speak_pre_add_hook( \&set_volume_pre_hook ) if $Reload;
 &Play_pre_add_hook( \&set_volume_pre_hook )  if $Reload;
 
-#noloop=start
-my $volume_master_changed = 0;
-my $volume_wav_previous;
-
-#noloop=stop
 sub set_volume_pre_hook {
     print_log "FUNCTION: set_volume_pre_hook";
     return

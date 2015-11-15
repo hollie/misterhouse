@@ -784,7 +784,7 @@ use Insteon::BaseInsteon;
 
 @Insteon::TriggerLinc::ISA = ('Insteon::BaseDevice');
 
-my %message_types = ( %Insteon::BaseDevice::message_types );
+my %message_types = (%Insteon::BaseDevice::message_types);
 
 =item C<new()>
 

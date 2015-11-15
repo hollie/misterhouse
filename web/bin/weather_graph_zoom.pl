@@ -604,97 +604,117 @@ sub create_rrdgraph_zoom {
         or $sensor1 eq 'dewspare3'
         or $sensor1 eq 'chill' )
     {
-        $libuom =
-          ( $config_parms{weather_uom_temp} eq 'C'
+        $libuom = (
+            $config_parms{weather_uom_temp} eq 'C'
             ? "\"Degrees Celcius\","
-            : "\"Degrees Fahrenheit\"," );
-        $strvar =
-          ( $config_parms{weather_uom_temp} eq 'C'
+            : "\"Degrees Fahrenheit\","
+        );
+        $strvar = (
+            $config_parms{weather_uom_temp} eq 'C'
             ? "\"CDEF:fvar=var,32,-,5,9,/,*\","
-            : "\"CDEF:fvar=var\"," );
-        $strminvar =
-          ( $config_parms{weather_uom_temp} eq 'C'
+            : "\"CDEF:fvar=var\","
+        );
+        $strminvar = (
+            $config_parms{weather_uom_temp} eq 'C'
             ? "\"CDEF:fmindata=mindata,32,-,5,9,/,*\","
-            : "\"CDEF:fmindata=mindata\"," );
-        $strmaxvar =
-          ( $config_parms{weather_uom_temp} eq 'C'
+            : "\"CDEF:fmindata=mindata\","
+        );
+        $strmaxvar = (
+            $config_parms{weather_uom_temp} eq 'C'
             ? "\"CDEF:fmaxdata=maxdata,32,-,5,9,/,*\","
-            : "\"CDEF:fmaxdata=maxdata\"," );
+            : "\"CDEF:fmaxdata=maxdata\","
+        );
     }
     if ( $sensor1 eq 'press' ) {
-        $libuom =
-          ( $config_parms{weather_uom_baro} eq 'mb'
+        $libuom = (
+            $config_parms{weather_uom_baro} eq 'mb'
             ? "\"Millibars (mb)\","
-            : "\"inch mercury (inHg)\"," );
-        $strvar =
-          ( $config_parms{weather_uom_baro} eq 'mb'
+            : "\"inch mercury (inHg)\","
+        );
+        $strvar = (
+            $config_parms{weather_uom_baro} eq 'mb'
             ? "\"CDEF:fvar=var,0.029529987508,/\","
-            : "\"CDEF:fvar=var\"," );
-        $strminvar =
-          ( $config_parms{weather_uom_baro} eq 'mb'
+            : "\"CDEF:fvar=var\","
+        );
+        $strminvar = (
+            $config_parms{weather_uom_baro} eq 'mb'
             ? "\"CDEF:fmindata=mindata,0.029529987508,/\","
-            : "\"CDEF:fmindata=mindata\"," );
-        $strmaxvar =
-          ( $config_parms{weather_uom_baro} eq 'mb'
+            : "\"CDEF:fmindata=mindata\","
+        );
+        $strmaxvar = (
+            $config_parms{weather_uom_baro} eq 'mb'
             ? "\"CDEF:fmaxdata=maxdata,0.029529987508,/\","
-            : "\"CDEF:fmaxdata=maxdata\"," );
+            : "\"CDEF:fmaxdata=maxdata\","
+        );
     }
     if ( $sensor1 eq 'dir' or $sensor1 eq 'avgdir' ) {
         $libuom = "\"Degrees\",";
     }
     if ( $sensor1 eq 'speed' or $sensor1 eq 'avgspeed' ) {
-        $libuom =
-          ( $config_parms{weather_uom_wind} eq 'kph'
+        $libuom = (
+            $config_parms{weather_uom_wind} eq 'kph'
             ? "\"Killometers per hour (kph)\","
-            : "\"Miles per hour (mph)\"," );
-        $strvar =
-          ( $config_parms{weather_uom_wind} eq 'kph'
+            : "\"Miles per hour (mph)\","
+        );
+        $strvar = (
+            $config_parms{weather_uom_wind} eq 'kph'
             ? "\"CDEF:fvar=var,1.609344,*\","
-            : "\"CDEF:fvar=var\"," );
-        $strminvar =
-          ( $config_parms{weather_uom_wind} eq 'kph'
+            : "\"CDEF:fvar=var\","
+        );
+        $strminvar = (
+            $config_parms{weather_uom_wind} eq 'kph'
             ? "\"CDEF:fmindata=mindata,1.609344,*\","
-            : "\"CDEF:fmindata=mindata\"," );
-        $strmaxvar =
-          ( $config_parms{weather_uom_wind} eq 'kph'
+            : "\"CDEF:fmindata=mindata\","
+        );
+        $strmaxvar = (
+            $config_parms{weather_uom_wind} eq 'kph'
             ? "\"CDEF:fmaxdata=maxdata,1.609344,*\","
-            : "\"CDEF:fmaxdata=maxdata\"," );
+            : "\"CDEF:fmaxdata=maxdata\","
+        );
     }
     if ( $sensor1 eq 'rate' ) {
-        $libuom =
-          ( $config_parms{weather_uom_rainrate} eq 'mm/hr'
+        $libuom = (
+            $config_parms{weather_uom_rainrate} eq 'mm/hr'
             ? "\"Millimeters per hour (mm/hr)\","
-            : "\"Inches per hour (in/hr)\"," );
-        $strvar =
-          ( $config_parms{weather_uom_rainrate} eq 'mm/hr'
+            : "\"Inches per hour (in/hr)\","
+        );
+        $strvar = (
+            $config_parms{weather_uom_rainrate} eq 'mm/hr'
             ? "\"CDEF:fvar=var,0.0393700787402,/\","
-            : "\"CDEF:fvar=var\"," );
-        $strminvar =
-          ( $config_parms{weather_uom_rainrate} eq 'mm/hr'
+            : "\"CDEF:fvar=var\","
+        );
+        $strminvar = (
+            $config_parms{weather_uom_rainrate} eq 'mm/hr'
             ? "\"CDEF:fmindata=mindata,0.0393700787402,/\","
-            : "\"CDEF:fmindata=mindata\"," );
-        $strmaxvar =
-          ( $config_parms{weather_uom_rainrate} eq 'mm/hr'
+            : "\"CDEF:fmindata=mindata\","
+        );
+        $strmaxvar = (
+            $config_parms{weather_uom_rainrate} eq 'mm/hr'
             ? "\"CDEF:fmaxdata=maxdata,0.0393700787402,/\","
-            : "\"CDEF:fmaxdata=maxdata\"," );
+            : "\"CDEF:fmaxdata=maxdata\","
+        );
     }
     if ( $sensor1 eq 'rain' ) {
-        $libuom =
-          ( $config_parms{weather_uom_rain} eq 'mm'
+        $libuom = (
+            $config_parms{weather_uom_rain} eq 'mm'
             ? "\"Millimeters (mm)\","
-            : "\"Inches (in)\"," );
-        $strvar =
-          ( $config_parms{weather_uom_rain} eq 'mm'
+            : "\"Inches (in)\","
+        );
+        $strvar = (
+            $config_parms{weather_uom_rain} eq 'mm'
             ? "\"CDEF:fvar=var,0.0393700787402,/\","
-            : "\"CDEF:fvar=var\"," );
-        $strminvar =
-          ( $config_parms{weather_uom_rain} eq 'mm'
+            : "\"CDEF:fvar=var\","
+        );
+        $strminvar = (
+            $config_parms{weather_uom_rain} eq 'mm'
             ? "\"CDEF:fmindata=mindata,0.0393700787402,/\","
-            : "\"CDEF:fmindata=mindata\"," );
-        $strmaxvar =
-          ( $config_parms{weather_uom_rain} eq 'mm'
+            : "\"CDEF:fmindata=mindata\","
+        );
+        $strmaxvar = (
+            $config_parms{weather_uom_rain} eq 'mm'
             ? "\"CDEF:fmaxdata=maxdata,0.0393700787402,/\","
-            : "\"CDEF:fmaxdata=maxdata\"," );
+            : "\"CDEF:fmaxdata=maxdata\","
+        );
     }
     if (   $sensor1 eq 'humid'
         or $sensor1 eq 'inhumid'
@@ -749,17 +769,23 @@ sub create_rrdgraph_zoom {
       . ":MAX\","
       . "$strmaxvar"
 
-      . ( $sensor2 ne "nosensor"
+      . (
+        $sensor2 ne "nosensor"
         ? "\"DEF:var2=$rrd_dir:" . $sensor2 . ":AVERAGE\","
-        : '' )
+        : ''
+      )
       . ( $sensor2 ne "nosensor" ? "$strvar2" : '' )
-      . ( $sensor2 ne "nosensor"
+      . (
+        $sensor2 ne "nosensor"
         ? "\"DEF:mindata2=$rrd_dir:" . $sensor2 . ":MIN\","
-        : '' )
+        : ''
+      )
       . ( $sensor2 ne "nosensor" ? "$strminvar2" : '' )
-      . ( $sensor2 ne "nosensor"
+      . (
+        $sensor2 ne "nosensor"
         ? "\"DEF:maxdata2=$rrd_dir:" . $sensor2 . ":MAX\","
-        : '' )
+        : ''
+      )
       . ( $sensor2 ne "nosensor" ? "$strmaxvar2" : '' )
       . "\"CDEF:wipeout=var,UN,INF,UNKN,IF\","
       . "\"CDEF:wipeout2=var,UN,NEGINF,UNKN,IF\","
@@ -771,20 +797,30 @@ sub create_rrdgraph_zoom {
 "GPRINT:fvar:AVERAGE:Avg \\\\: %5.1lf",
 "GPRINT:fvar:LAST:Last \\\\: %5.1lf\\\\n",
 ^
-      . ( $sensor2 ne "nosensor"
+      . (
+        $sensor2 ne "nosensor"
         ? "\"LINE2:fvar2#$colordatamoy2:"
           . sprintf( "%-${max}s", $libsensor2 )
           . " (Average)\","
-        : '' )
-      . ( $sensor2 ne "nosensor" ? "\"GPRINT:fmindata2:MIN:Min \\\\: %5.1lf\","
-        : '' )
-      . ( $sensor2 ne "nosensor" ? "\"GPRINT:fmaxdata2:MAX:Max \\\\: %5.1lf\","
-        : '' )
-      . ( $sensor2 ne "nosensor" ? "\"GPRINT:fvar2:AVERAGE:Avg \\\\: %5.1lf\","
-        : '' )
-      . ( $sensor2 ne "nosensor"
+        : ''
+      )
+      . (
+        $sensor2 ne "nosensor" ? "\"GPRINT:fmindata2:MIN:Min \\\\: %5.1lf\","
+        : ''
+      )
+      . (
+        $sensor2 ne "nosensor" ? "\"GPRINT:fmaxdata2:MAX:Max \\\\: %5.1lf\","
+        : ''
+      )
+      . (
+        $sensor2 ne "nosensor" ? "\"GPRINT:fvar2:AVERAGE:Avg \\\\: %5.1lf\","
+        : ''
+      )
+      . (
+        $sensor2 ne "nosensor"
         ? "\"GPRINT:fvar2:LAST:Last \\\\: %5.1lf\\\\n\","
-        : '' )
+        : ''
+      )
       . qq^
 "AREA:wipeout#$colorna:No data\\\\n",
 "AREA:wipeout2#$colorna:No data\\\\n",

@@ -12,13 +12,15 @@
 #@ This code is a good example of how to use mh as a socket_server.
 
 # set the banners
-
+# noloop=start
 $config_parms{telnet_welcome_banner} =
   "Welcome to Mister House Socket Port 1!  Type exit/quit/bye/ctrl-D to exit."
-  unless $config_parms{telnet_welcome_banner};    # noloop
+  unless $config_parms{telnet_welcome_banner};
 $config_parms{telnet_exit_banner} =
   "Bye for now.  Y'all come back now, ya hear!"
-  unless $config_parms{telnet_exit_banner};       # noloop
+  unless $config_parms{telnet_exit_banner};
+
+# noloop=stop
 
 # Examples on how to read and write data to a tcp socket port
 $telnet_server = new Socket_Item( $config_parms{telnet_welcome_banner} . "\n\r",

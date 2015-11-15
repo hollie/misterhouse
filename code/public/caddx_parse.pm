@@ -1159,8 +1159,7 @@
                     push(
                         @msgdata,
                         [
-                            '4:',
-                            'X-10 function code (see table that follows)',
+                            '4:', 'X-10 function code (see table that follows)',
                             $datum
                         ]
                     );
