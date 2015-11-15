@@ -19,10 +19,10 @@ my (%groups, %objects, %packages, %addresses, %scene_build_controllers, %scene_b
 
 sub read_table_init_A {
                                 # reset known groups
-	&::print_log("Initialized read_table_A.pl");
-	%groups=();
-	%objects=();
-	%packages=();
+        &::print_log("Initialized read_table_A.pl");
+        %groups=();
+        %objects=();
+        %packages=();
         %addresses=();
         %scene_build_controllers=();
         %scene_build_responders=();
@@ -37,7 +37,7 @@ sub read_table_A {
     }
     $record =~ s/\s*#.*$//;
 
-    my ($code, $address, $name, $object, $grouplist, $comparison, $limit, @other, $other, $vcommand, $occupancy,$network,$password, $interface);
+    my ($code, $address, $name, $object, $grouplist, $comparison, $limit, @other, $other, $vcommand, $occupancy,$network,$password, $interface, $additional_code);
     my(@item_info) = split(',\s*', $record);
     my $type = uc shift @item_info;
 
@@ -1165,6 +1165,12 @@ sub read_table_A {
         $object = "AD2_Partition('$instance','$number','$address','$other')";
     }
     #-------------- End AD2 Objects -------------
+    elsif($type =~ /PLCBUS_.*/){
+        use PLCBUS;
+        $packages{PLCBUS}++;
+        ( $address, $name, $grouplist, @other) = @item_info;
+        ($object,$grouplist,$additional_code) = PLCBUS->generate_code($type, @item_info);
+    }
     else {
         print "\nUnrecognized .mht entry: $record\n";
         return;
@@ -1201,7 +1207,10 @@ sub read_table_A {
             $code .= sprintf "\$%-35s -> add(\$%s);\n", $group, $name unless $groups{$group}{$name};
             $groups{$group}{$name}++;
         }
+    }
 
+    if ($additional_code){ 
+        $code .= $additional_code;
     }
 
     return $code;
