@@ -37,6 +37,10 @@
 	<!-- bootstrap editable -->
 	<link href="/ia7/include/bootstrap3-editable.1.5.0.css" rel="stylesheet"/>
     <script src="/ia7/include/bootstrap3-editable.1.5.0.min.js"></script>
+
+	<!-- Nicer Dialog Boxes -->
+	<link href="/ia7/include/jquery.alerts.css" rel="stylesheet"/>	
+    <script src="/ia7/include/jquery.alerts.js"></script>
 	
 	<!-- A custom jquery UI script to enable sortable items -->
 	<!-- <script src="include/jquery-ui-1.11.1.custom.min.js"></script> -->
@@ -187,13 +191,13 @@
 <div class='row top-buffer'>
 
         <div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
-                <div class='col-sm-12 col-center'>
+                <div id="footer_stuff" class='col-sm-12 col-center'>
                 		<div id="sound_element"></div>
                         <!-- Put Footer Stuff Here -->
                         <!--#include file="/bin/tagline.pl"--><br>
                         <!--#include file="/bin/uptime.pl"-->&nbsp;&nbsp;<!--#include file="$config_parms{web_href_counter}"-->
                 </div>
-        </d
+        </div>
 <!-- Voice Command Modal -->
 <div class="modal fade" id="lastResponse" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
   <div class="modal-dialog">

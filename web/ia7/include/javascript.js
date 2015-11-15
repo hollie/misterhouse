@@ -178,6 +178,9 @@ function changePage (){
 		// Clear Options Entity by Default
 		$("#toolButton").attr('entity', '');
 		
+		// Remove the RRD Last Updated 
+		$('#Last_updated').remove()
+		
 		//Trim leading and trailing slashes from path
 		var path = URLHash.path.replace(/^\/|\/$/g, "");
 		if (path.indexOf('objects') === 0){
@@ -954,7 +957,7 @@ var print_log = function(type,time) {
 
 
 var get_notifications = function(time) {
-	if (time === undefined) time = 0;
+	if (time === undefined) time = new Date().getTime();
 	if (updateSocketN !== undefined && updateSocketN.readyState != 4){
 		// Only allow one update thread to run at once
 		console.log ("Notify aborted "+updateSocketN.readyState);
@@ -977,8 +980,8 @@ var get_notifications = function(time) {
 						var type = String(json.data[i].type);
 						var color = String(json.data[i].color);
 						// add in other banner_types
-						// jquery alert
-						if ((type == "speech" || type == "sound") && (speech_sound == "yes")) {
+						console.log("type="+type);
+						if ((type == "sound" ) || ((type == "speech") && (speech_sound == "yes"))) {
 							var audioElement = document.createElement('audio');
 							audioElement.setAttribute('src', url);				
     						audioElement.setAttribute('autoplay', 'autoplay');
@@ -987,7 +990,7 @@ var get_notifications = function(time) {
             					audioElement.play();
     							}, true);		
 						}
-						if (type == "banner" || speech_banner == "yes") {
+						if (type == "banner" || ((type == "speech") && (speech_banner == "yes"))) {
 							var alert_type = "info";
 							if (color !== undefined) {
 								if (color == "green") {
@@ -1007,8 +1010,7 @@ var get_notifications = function(time) {
    	 						$(".alert-message").delay(4000).fadeOut("slow", function () { $(this).remove(); });
 						}
 						if (type == "alert") {
-							//replace with jquery 
-							alert(text);
+							jAlert(text,'MH Notifications');
 						}
 					}
 				}
@@ -1104,7 +1106,6 @@ var display_table = function(table,records,time) {
 };
 
 
-//Creates a table based on the $json_table data structure. desktop & mobile design
 var graph_rrd = function(start,group,time) {
 
 	var URLHash = URLToHash();
@@ -1113,7 +1114,6 @@ var graph_rrd = function(start,group,time) {
 		$('#top-graph').append("<div id='rrd-periods' class='row'>");
 		$('#top-graph').append("<div id='rrd-graph' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
 		$('#top-graph').append("<div id='rrd-legend' class='rrd-legend-class'><br>");
-	//	$('#top-graph').append("<div id='legend class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'><br><br>");
 
 		time = 0;
 	}
@@ -1165,8 +1165,10 @@ var graph_rrd = function(start,group,time) {
 				if (json.data.last_update !== undefined) {
 					last_timestamp = new Date(json.data.last_update);
 				}
-				//TODO Move this to html
-				console.log ("RRD Last Updated:"+last_timestamp);				
+				//Update the footer database updated time
+				console.log ("Last Updated:"+last_timestamp);
+				$('#footer_stuff').prepend("<div id='Last_updated'>RRD Database Last Updated:"+last_timestamp+"</div>");
+				
 
 				$('.dropdown').on('click', '.dropdown-menu li a', function(e){
 					e.stopPropagation();
@@ -1314,9 +1316,8 @@ var floorplan = function(group,time) {
     		var coords = classstr.split(/coords=/)[1];
     		var fp_location = coords.split(/x/);
     		var location = get_fp_location(fp_location,0);
-    		//alert("fp_location="+fp_location+" location="+location); 
     		$(this).attr("style",location);
-//iphone scale
+			//iphone scale
 			var baseimg_width = $(window).width();
 			if (baseimg_width < 500) {
       			$(this).attr('src',$(this).attr('src').replace('48.png','32.png'))
