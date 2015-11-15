@@ -159,8 +159,8 @@ sub set {
                     or ( !$obj->can('writable') ) )
                 {    #check for "settable" objects
                     &::print_log( $self->get_object_name()
-                          . "::set($p_state, $$p_setby{object_name}) -> $$obj{object_name}"
-                    ) if $main::Debug{occupancy};
+                          . "::set($p_state, $p_setby) -> $$obj{object_name}" )
+                      if $main::Debug{occupancy};
 
                     #					$obj->set($p_state,$p_setby,$p_response);
                     # don't attempt to set sensors

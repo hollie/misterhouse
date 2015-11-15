@@ -40,9 +40,10 @@ sub read_table_A {
     $record =~ s/\s*#.*$//;
 
     my (
-        $code,       $address, $name,     $object, $grouplist,
-        $comparison, $limit,   @other,    $other,  $vcommand,
-        $occupancy,  $network, $password, $interface
+        $code,      $address,    $name,      $object,
+        $grouplist, $comparison, $limit,     @other,
+        $other,     $vcommand,   $occupancy, $network,
+        $password,  $interface,  $additional_code
     );
     my (@item_info) = split( ',\s*', $record );
     my $type = uc shift @item_info;
@@ -1360,6 +1361,15 @@ sub read_table_A {
     }
 
     #-------------- End AD2 Objects -------------
+    elsif ( $type =~ /PLCBUS_.*/ ) {
+        $packages{PLCBUS}++;
+        ( $address, $name, $grouplist, @other ) = @item_info;
+        ( $object, $grouplist, $additional_code ) =
+          PLCBUS->generate_code( $type, @item_info );
+        if ( !$packages{PLCBUS}++ ) {    # first time for this object type?
+            $code .= "use PLCBUS;\n";
+        }
+    }
     else {
         print "\nUnrecognized .mht entry: $record\n";
         return;
@@ -1400,7 +1410,10 @@ sub read_table_A {
               unless $groups{$group}{$name};
             $groups{$group}{$name}++;
         }
+    }
 
+    if ($additional_code) {
+        $code .= $additional_code;
     }
 
     return $code;

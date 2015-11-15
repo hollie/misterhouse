@@ -1587,14 +1587,16 @@ sub _send_next_cmd {
             if ( $$self{'zones'}[$zone] ) {
 
                 # Check to make sure the zone still isn't turning on
-                &::print_log(
-                    "$self->{'port_name'}: just_turned_on=$$self{'zones'}[$zone]->{'just_turned_on'} (zone $zone)"
-                ) if $main::Debug{musica};
                 if ( $$self{'zones'}[$zone]->{'just_turned_on'} ) {
+                    &::print_log(
+                        "$self->{'port_name'}: just_turned_on=$$self{'zones'}[$zone]->{'just_turned_on'} (zone $zone)"
+                    ) if $main::Debug{musica};
                     my $moved = '';
 
                     # See if we can find a command for another zone meanwhile
-                    for ( my $i = 0; $i <= { @{ $$self{'queue'} } }; $i++ ) {
+                    for ( my $i = 0;
+                        $i <= scalar( @{ $$self{'queue'} } ); $i++ )
+                    {
                         if ( $$self{'queue'}->[$i] =~ /^[^\/]+\/(\d+)/ ) {
                             if ( $$self{'zones'}[$1]
                                 and
