@@ -1,6 +1,4 @@
-// Optimization opportunity
-//  add print_errorlog
-//  updateStaticPage has lots of copy paste
+// v1.1
 
 
 var entity_store = {}; //global storage of entities
@@ -125,10 +123,7 @@ function changePage (){
 		URLHash.path = "collections";
 	}
 	if (getJSONDataByPath("ia7_config") === undefined){
-		// We need at minimum the basic collections data to render all pages
-		// (the breadcrumb)
-		// NOTE may want to think about how to handle dynamic changes to the 
-		// collections list
+		// Load all the specific preferences
 		$.ajax({
 			type: "GET",
 			url: "/json/ia7_config",
@@ -144,30 +139,26 @@ function changePage (){
 		// First time loading, set the default speech notifications
 		if (speech_sound === undefined) {
 			if ((json_store.ia7_config.prefs.speech_default !== undefined) && (json_store.ia7_config.prefs.speech_default.search("audio") >= 0 )) {
-				console.log("speech_sound = yes "+speech_sound+" "+json_store.ia7_config.prefs.speech_default);
 				speech_sound = "yes";
 			} else {
-				console.log("speech_sound = no "+speech_sound+" "+json_store.ia7_config.prefs.speech_default);		
 				speech_sound = "no";
 			}
 		}
 		if (speech_banner === undefined) {
 			if ((json_store.ia7_config.prefs.speech_default !== undefined) && (json_store.ia7_config.prefs.speech_default.search("banner") >= 0 )) {
-				console.log("speech_banner = yes "+speech_banner+" "+json_store.ia7_config.prefs.speech_default);
 				speech_banner = "yes";
 			} else {
-				console.log("speech_banner = no "+speech_banner+" "+json_store.ia7_config.prefs.speech_default);		
 				speech_banner = "no";
 			}
 		}
-		if ((json_store.ia7_config.prefs.notifications !== undefined) && (json_store.ia7_config.prefs.notifications == "no" )) {
+		if ((json_store.ia7_config.prefs.notifications == undefined) || ((json_store.ia7_config.prefs.notifications !== undefined) && (json_store.ia7_config.prefs.notifications == "no" ))) {
 			  	notifications = "disabled";
 			  	speech_sound = "no";
 			  	speech_banner = "no";
+		} else {
+				notifications = "enabled";
 		}
-
 	}
-	//get_notifications();
 	if (getJSONDataByPath("collections") === undefined){
 		// We need at minimum the basic collections data to render all pages
 		// (the breadcrumb)
@@ -202,8 +193,7 @@ function changePage (){
 				args = args.replace(/\=undefined/img,''); //HP sometimes arguments are just items and not key=value...
 				link += "?"+args;
 			}
-			//alert("link="+link);
-			//$.get(URLHash.link, function( data ) {
+
 			$.get(link, function( data ) {
 				data = data.replace(/<link[^>]*>/img, ''); //Remove stylesheets
 				data = data.replace(/<title[^>]*>((\r|\n|.)*?)<\/title[^>]*>/img, ''); //Remove title
@@ -223,14 +213,7 @@ function changePage (){
 		else if(path.indexOf('display_table') === 0){
 			var path_arg = path.split('?');
 			display_table(path_arg[1]);
-		}
-//----
-		else if(path.indexOf('notifications') === 0){
-			var path_arg = path.split('?');
-			get_notifications();
-		}
-//----			
-		
+		}	
 		else if(path.indexOf('floorplan') === 0){
 			var path_arg = path.split('?');
 			floorplan(path_arg[1]);
@@ -385,6 +368,8 @@ var loadList = function() {
 			
 			// Sort that list if a sort exists, probably exists a shorter way to
 			// write the sort
+			// Sorting code removed. Original design idea that buttons could be moved
+			// Around by the end user. Possible function for the future.
 //			if (sort_list !== undefined){
 //				entity_list = sortArrayByArray(entity_list, sort_list);
 //			}
@@ -470,7 +455,6 @@ var loadList = function() {
 					var dbl_btn = "";
 					if (json_store.ia7_config.prefs.always_double_buttons == "yes") {
 						if (name.length < 30) dbl_btn = "<br>"; 
-			//			if (json_store.objects[entity].state == undefined) dbl_btn += "<br>";
 					}
 					// direct control item, differentiate the button
 					var btn_direct = "";
@@ -527,16 +511,13 @@ var loadList = function() {
 				var entity = $(this).attr("entity");
 				if (json_store.ia7_config.objects !== undefined && json_store.ia7_config.objects[entity] !== undefined) {
                 	if (json_store.ia7_config.objects[entity].direct_control !== undefined && json_store.ia7_config.objects[entity].direct_control == "yes") {
-                         //console.log("This is a direct control object "+entity+" state="+json_store.objects[entity].state+" length="+json_store.objects[entity].states.length);
                          var new_state = "";
                          var possible_states = 0;
                          for (var i = 0; i < json_store.objects[entity].states.length; i++){
                          	if (filterSubstate(json_store.objects[entity].states[i]) == 1) continue;
-                         	//console.log("state "+i+" is "+json_store.objects[entity].states[i])
                          	possible_states++;
                          	if (json_store.objects[entity].states[i] !== json_store.objects[entity].state) new_state = json_store.objects[entity].states[i]
                          	}
-                        //console.log("End states = "+i+" new_state="+new_state)
 						if ((possible_states > 2) || (new_state == "")) alert("Check configuration of "+entity+". "+possible_states+" states detected for direct control object. State is "+new_state);
 						url= '/SET;none?select_item='+entity+'&select_state='+new_state;
 						$.get( url);
@@ -694,17 +675,14 @@ var updateItem = function(item,link,time) {
 	//URLHash.time = json_store.meta.time;
 	if (updateSocket !== undefined && updateSocket.readyState != 4){
 		// Only allow one update thread to run at once
-		console.log("updateItem: Aborting update. updateSocket="+updateSocket.readyState);
+		//console.log("updateItem: Aborting update. updateSocket="+updateSocket.readyState);
 		updateSocket.abort();
 	}
 	if (time === undefined) {
 		time = "";
 	}
 	var path_str = "/objects"  // override, for now, would be good to add voice_cmds
-	//arg_str=link=%2Fia7%2Fhouse%2Fgarage.shtml&fields=state%2Ctype&long_poll=true&time=1426011733833.94
-	//arg_str = "fields=state,states,label&long_poll=true&time="+time;
 	var arg_str = "fields=state,states,label,state_log&long_poll=true&items="+item+"&time="+time;
-	//alert("path_str="+path_str+" arg_str="+arg_str)
 	updateSocket = $.ajax({
 		type: "GET",
 		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",		
@@ -902,10 +880,8 @@ var loadCollection = function(collection_keys) {
 	// if any items present, then create modals and activate updateItem...
 	if (items !== "") {
 		items = items.slice(0,-1); //remove last comma
-		//console.log("items="+items);
 		$('.btn-state-cmd').click( function () {			
 			var entity = $(this).attr("entity");
-			//console.log("entity="+entity);
 			create_state_modal(entity);
 		});
 // test multiple items at some point
@@ -978,26 +954,20 @@ var print_log = function(type,time) {
 
 
 var get_notifications = function(time) {
-	//console.log("NotifyTime1:"+time);
 	if (time === undefined) time = 0;
-	//console.log("NotifyTime2:"+time);	
 	if (updateSocketN !== undefined && updateSocketN.readyState != 4){
 		// Only allow one update thread to run at once
 		console.log ("Notify aborted "+updateSocketN.readyState);
 		updateSocketN.abort();
 	}
-	//var arg_str = "time="+time;
 	var arg_str = "long_poll=true&time="+time;	
 	var path_str = "/notifications";
-	//console.log ("notify loop "+time);
 	updateSocketN = $.ajax({
 		type: "GET",
-		//url: "/json/notifications?"+arg_str,
 		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",		
 		dataType: "json",
 		success: function( json, statusText, jqXHR ) {
 			var requestTime = time;	
-			console.log ("notify success "+jqXHR.status+" time="+requestTime);	
 			if (jqXHR.status == 200) {
 				if (json.data !== undefined) {
 					for (var i = 0; i < json.data.length; i++){
@@ -1008,7 +978,6 @@ var get_notifications = function(time) {
 						var color = String(json.data[i].color);
 						// add in other banner_types
 						// jquery alert
-						console.log("Notify: "+i+" "+type+" "+url+" "+mode+" "+text);
 						if ((type == "speech" || type == "sound") && (speech_sound == "yes")) {
 							var audioElement = document.createElement('audio');
 							audioElement.setAttribute('src', url);				
@@ -1019,7 +988,6 @@ var get_notifications = function(time) {
     							}, true);		
 						}
 						if (type == "banner" || speech_banner == "yes") {
-							console.log("banner");
 							var alert_type = "info";
 							if (color !== undefined) {
 								if (color == "green") {
@@ -1030,7 +998,12 @@ var get_notifications = function(time) {
 									alert_type = "warning";
 								}
 							}
-							$("#alert-area").append($("<div class='alert-message alert alerts alert-" + alert_type + " fade in' data-alert><p><i class='fa fa-info-circle'></i><strong>  Notification:</strong> " + text + " </p></div>"));
+							var mobile = "";
+							if ($(window).width() <= 768) { // override the responsive mobile top-buffer
+							  mobile = "mobile-alert";
+							  console.log ("mobile notification");
+							}
+							$("#alert-area").append($("<div class='alert-message alert alerts "+mobile+" alert-" + alert_type + " fade in' data-alert><p><i class='fa fa-info-circle'></i><strong>  Notification:</strong> " + text + " </p></div>"));
    	 						$(".alert-message").delay(4000).fadeOut("slow", function () { $(this).remove(); });
 						}
 						if (type == "alert") {
@@ -1042,7 +1015,6 @@ var get_notifications = function(time) {
 				requestTime = json.meta.time;				
 			}
 			if (jqXHR.status == 200 || jqXHR.status == 204) {
-					//console.log("Get_notifications()");
 					get_notifications(requestTime);
 				}
 		}
@@ -1107,7 +1079,6 @@ var display_table = function(table,records,time) {
 				$('#rtable').html(html);
 				if (json_store.ia7_config.prefs.enable_data_table_more !== undefined && json_store.ia7_config.prefs.enable_data_table_more === "yes") {
 					if (json.data.hook !== undefined && $('#more_row').length === 0) { //there is an option to pull more data
-						//console.log("More Data!"+$('#more_row').length);
 						$('#display_table').append("<div id='more_row' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 col-xs-11 col-xs-offset-0'>");
 						$('#more_row').append('<div class="table_more"><button class="btn btn-default toolbar-right-end right-end pull-right table_btn_more" type="button">');
 						$('.table_btn_more').append('next  <i class="fa fa-caret-right"></i>');
@@ -1154,10 +1125,12 @@ var graph_rrd = function(start,group,time) {
 		updateSocket.abort();
 	}	
 	var path_str = "/rrd"  
-	var arg_str = "start="+start+"&group="+group+"&long_poll=true&time="+time;
+	//var arg_str = "start="+start+"&group="+group+"&long_poll=true&time="+time;
+	var arg_str = "start="+start+"&group="+group+"&time="+time;
 	updateSocket = $.ajax({
 		type: "GET",
-		url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
+		//url: "/LONG_POLL?json('GET','"+path_str+"','"+arg_str+"')",
+		url: "/json"+path_str+"?"+arg_str,		
 		dataType: "json",
 		success: function( json, statusText, jqXHR ) {
 			var requestTime = time;
@@ -1174,12 +1147,10 @@ var graph_rrd = function(start,group,time) {
 				var dropdown_current = "Unknown  ";
 
 				$.each(json.data.periods, function(key, value) {
-    				//console.log(key, value);
     				if (start === value.split(",")[1]) {
     					dropdown_current = value.split(",")[0]+"  ";
     				} else {
     					dropdown_html_list += '<li><a href="javascript: void(0)" id="rrdperiod_'+key+'" ';
-    					//dropdown_html_list += 'onclick=graph_rrd('+value.split(",")[1]+','+group+','+time+');';
     					dropdown_html_list += '>'+value.split(",")[0]+'</a></li>';
  
     				}
@@ -1214,7 +1185,6 @@ var graph_rrd = function(start,group,time) {
 
 					// put the selection list on the side.
 				for (var i = 0; i < json.data.data.length; i++){
-					//console.log("selection="+json.data.data[i].label);
 					var legli = $('<li style="list-style:none;"/>').appendTo('#rrd-legend');
 					$('<input name="' + json.data.data[i].label + '" id="' + json.data.data[i].label + '" type="checkbox" checked="checked" />').appendTo(legli);
 					$('<label>', {
@@ -1250,7 +1220,6 @@ var graph_rrd = function(start,group,time) {
 						graph_width=base_width; // - 10;
 					} 
     				$('#rrd-graph').css("width",graph_width+"px");
-    				//console.log("base="+base_width+" graph="+graph_width);
     				$('#rrd-graph').text(''); 
     				$('#rrd-graph').show(); //check
     				plotAccordingToChoices();
@@ -1299,8 +1268,6 @@ var graph_rrd = function(start,group,time) {
 
 				$('.legendColorBox > div > div').each(function(i){
 					var color = $(this).css("border-left-color");
-					//console.log("color="+color);
-    				//$(this).clone().prependTo($('#rrd-legend').find("li").eq(i));
     				$('#rrd-legend').find("li").eq(i).prepend('<span style="width:4px;height:4px;border: 0px;background: '+color+';">&nbsp;&nbsp;&nbsp;</span>&nbsp');
 					});
 				requestTime = json.meta.time;
@@ -1373,12 +1340,10 @@ var floorplan = function(group,time) {
      			JSONStore(json);
      			for (var entity in json.data) {
 					for (var i=0 ; i < json.data[entity].fp_location.length-1; i=i+2){ //allow for multiple graphics
-						//alert("length="+json.data[entity].fp_location.length+" i="+i+" x="+json.data[entity].fp_location[i]+" y="+json.data[entity].fp_location[i+1]+" ent_length="+$('#entity_'+entity).length);
     					var location = get_fp_location(json.data[entity].fp_location,i);
     					var popover = 0;
     					if ((json.data[entity].type == "FPCamera_Item") ||
     						(json_store.ia7_config.prefs.fp_state_popovers == "yes")) popover = 1 
-    					//console.log("popover="+popover+" config="+json_store.ia7_config.prefs.fp_state_popovers)
     					var popover_html = "";
     					if (popover) popover_html = 'data-toggle="popover" data-trigger="focus" tabindex="0"' 
     					
@@ -1387,7 +1352,6 @@ var floorplan = function(group,time) {
       						$('#entity_'+entity+'_'+i).attr('src',"/ia7/graphics/"+image);
       					} else {				   					
 							$('#graphic').append('<img '+popover_html+' id="entity_'+entity+'_'+i+'" class="entity='+entity+'_'+i+' floorplan_item coords='+json.data[entity].fp_location[i]+'x'+json.data[entity].fp_location[i+1]+'" style="'+location+'" src="/ia7/graphics/'+image+'" />');
-							//create_state_modal('#entity_'+entity+i,entity); 
 						}
 						// create unique popovers for Camera items
 						if (json.data[entity].type == "FPCamera_Item") {
@@ -1399,8 +1363,6 @@ var floorplan = function(group,time) {
 								a_start = '<a href="'+json.data[entity].link+'">'
 								a_end = '</a>';
 							}
-							//console.log("name="+entity+" label = "+json.data[entity].label);
-							//console.log("link = "+json.data[entity].get_img);
 							$('[data-toggle="popover"]').popover({
 								placement : 'auto bottom', //placement of the popover. also can use top, bottom, left or right
       							title : name, 
@@ -1439,7 +1401,6 @@ var floorplan = function(group,time) {
 													html += "</div><div class='btn-group btn-block stategrp"+stategrp+"'>";
 													buttons = 1;
 												}
-												//console.log ("name="+fp_entity+" buttons="+buttons)
 										
 												var color = getButtonColor(po_states[i])
 //TODO disabled override
@@ -1456,16 +1417,13 @@ var floorplan = function(group,time) {
 										}
 									}
 									html += "</div></div>"
-									//console.log("html="+html)
 									return html
 								}
 
 								});
 							} else {
 								$('#entity_'+entity+'_'+i).click( function () {
-									//var fp_entity = $(this).attr("id").split(/entity_/)[1]; //
 									var fp_entity = $(this).attr("id").match(/entity_(.*)_\d+$/)[1]; //strip out entity_ and ending _X ... item names can have underscores in them.
-									//alert("entity="+fp_entity);
 									create_state_modal(fp_entity);
 								});	
 							}
@@ -1497,7 +1455,6 @@ var get_fp_location = function(item,index) {
 	var baseimg_height = $('#fp_graphic').height();	
 	var tmargin = 0;
 	var lmargin = 0;
-  	//console.log("baseimg_width="+baseimg_width+"baseimg_height="+baseimg_height+" h2="+baseimg_height2); 
   	if (baseimg_width > 990) {
   		lmargin = (baseimg_width - 980) / 2;
   		tmargin = 20;
@@ -1510,7 +1467,6 @@ var get_fp_location = function(item,index) {
   	var location = "position: absolute; ";
   	var top = parseInt((baseimg_height * item[index] / 100)+tmargin);
   	var left = parseInt((baseimg_width * item[index+1] / 100)+lmargin);
-  	//console.log("baseimg_width="+baseimg_width+" top="+top+" left="+left); 
   	location += "top: "+top+"px;";
   	location += "left: "+left+"px";
   	return location;
@@ -1523,11 +1479,9 @@ var get_fp_image = function(item,size,orientation) {
   	var image_size = "48"
   	if (baseimg_width < 500) image_size = "32" // iphone scaling
  	if (item.fp_icons !== undefined) {
- 		//alert("Has a button defined state="+item.fp_icons[item.state]);
  		if (item.fp_icons[item.state] !== undefined) return item.fp_icons[item.state];
  	}
  	if (item.fp_icon_set !== undefined) {
- 		//alert("Has a button defined state="+item.fp_icons[item.state]);
   		return "fp_"+item.fp_icon_set+"_"+image_color+"_"+image_size+".png";
  	} 	
  	//	if item.fp_icons.return item.fp_icons[state];
@@ -1598,7 +1552,6 @@ var create_state_modal = function(entity) {
 				grid_buttons = 4;
 				group_buttons = 3;
 			}
-			//console.log("display buttons="+display_buttons+" grid_buttons="+grid_buttons+" group_buttons="+group_buttons); 
 			
 			for (var i = 0; i < modal_states.length; i++){
 				if (filterSubstate(modal_states[i]) == 1) {
@@ -1735,7 +1688,6 @@ $(document).ready(function() {
 	$("#mhstatus").click( function () {
 		var link = json_store.collections[600].link;
 		link = buildLink (link, "0,600");
-	//    window.location.href = "/ia7/#path=/objects&parents=group1&_collection_key=0,1,17,$group1";
 	    window.location.href = link;
 	});
 	
@@ -1771,7 +1723,6 @@ $(document).ready(function() {
   		var sound_active = "";
   		var banner_active = "";
   		var off_active = "active";
-  		var notifications = "";
   		if (speech_banner === "yes") {
   			banner_active = "active";
   			off_active = "";
@@ -1781,10 +1732,10 @@ $(document).ready(function() {
   			off_active = "";
   		} 
      	if (notifications === "disabled") {
-  			sound_active = "";
-  			off_active = "";
-  			banner_active = "";
-  		}				 
+  			sound_active = "active";
+  			off_active = "active";
+  			banner_active = "active";
+  		}				
   		// if notifications disabled then disable all the buttons
    		$('#optionsModal').find('.modal-body').append('<div class="btn-group btn-block btn-notifications" data-toggle="buttons"></div>');
 		$('#optionsModal').find('.modal-body').find('.btn-notifications').append("<label class='btn btn-default mhnotify col-xs-6 col-sm-6 disabled'><input type='checkbox' name='mhnotify0' id='speech' autocomplete='off'>Speech</label>");

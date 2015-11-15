@@ -569,6 +569,7 @@ sub json_get {
 	$json{meta}{time} = $output_time;
 	$json{meta}{path} = \@path;
 	$json{meta}{args} =  \%args;
+	$json{meta}{client_ip} = $Http{Client_address};
 	
     my $json_raw = JSON->new->allow_nonref;
 	# Translate special characters

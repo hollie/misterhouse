@@ -156,6 +156,9 @@
   		left: 17px;
   		right: 17px;
 	}
+	.mobile-alert {
+			margin-top:-22px !important;
+	}
 	</style>
 </head>
 <body>
