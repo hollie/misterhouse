@@ -179,7 +179,7 @@ function changePage (){
 		$("#toolButton").attr('entity', '');
 		
 		// Remove the RRD Last Updated 
-		$('#Last_updated').remove()
+		$('#Last_updated').remove();
 		
 		//Trim leading and trailing slashes from path
 		var path = URLHash.path.replace(/^\/|\/$/g, "");
@@ -1167,6 +1167,7 @@ var graph_rrd = function(start,group,time) {
 				}
 				//Update the footer database updated time
 				console.log ("Last Updated:"+last_timestamp);
+				$('#Last_updated').remove();		
 				$('#footer_stuff').prepend("<div id='Last_updated'>RRD Database Last Updated:"+last_timestamp+"</div>");
 				
 
