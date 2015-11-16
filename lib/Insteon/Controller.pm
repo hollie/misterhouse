@@ -41,7 +41,6 @@ must first be put into "awake mode."
 =head2 INHERITS
 
 L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>, 
-L<Insteon::DeviceController|Insteon::BaseInsteon/Insteon::DeviceController>, 
 L<Insteon::Insteon::MultigroupDevice|Insteon::BaseInsteon/Insteon::Insteon::MultigroupDevice>
 
 =head2 METHODS
@@ -55,7 +54,7 @@ package Insteon::RemoteLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::RemoteLinc::ISA = ('Insteon::BaseDevice','Insteon::DeviceController', 'Insteon::MultigroupDevice');
+@Insteon::RemoteLinc::ISA = ('Insteon::BaseDevice', 'Insteon::MultigroupDevice');
 
 my %message_types = (
 	%Insteon::BaseDevice::message_types,
@@ -83,39 +82,6 @@ sub new
 	$$self{is_responder} = 0;
 	$$self{is_deaf} = 1;
 	return $self;
-}
-
-=item C<derive_link_state([state])>
-
-Overrides routine in BaseObject. Takes the various states available to insteon
-devices and returns a derived state of on, off, or 0%-100%.
-
-=cut
-
-sub derive_link_state
-{
-        my ($self, $p_state) = @_;
-        #Convert Relative State to Absolute State
-        if ($p_state =~ /^([+-])(\d+)/) {
-                my $rel_state = $1 . $2;
-                my $curr_state = '100';
-                $curr_state = '0' if ($self->state eq 'off');
-                $curr_state = $1 if $self->state =~ /(\d{1,3})/;
-                $p_state = $curr_state + $rel_state;
-                $p_state = 100 if ($p_state > 100);
-                $p_state = 0 if ($p_state < 0);
-        }
-
-        my $link_state = 'on';
-        if (grep(/$p_state/i, @{['on_fast', 'off', 'off_fast']})) {
-                $link_state = $p_state;
-        }
-        elsif ($p_state =~ /\d+%?/)
-        {
-                $p_state =~ /(\d+)%?/;
-                $link_state = $1 . '%';
-        }
-        return $link_state;
 }
 
 =item C<set_awake_time([0-255 seconds])>
