@@ -980,7 +980,7 @@ var get_notifications = function(time) {
 						var type = String(json.data[i].type);
 						var color = String(json.data[i].color);
 						// add in other banner_types
-						console.log("type="+type);
+						//console.log("type="+type);
 						if ((type == "sound" ) || ((type == "speech") && (speech_sound == "yes"))) {
 							var audioElement = document.createElement('audio');
 							audioElement.setAttribute('src', url);				
@@ -1004,7 +1004,7 @@ var get_notifications = function(time) {
 							var mobile = "";
 							if ($(window).width() <= 768) { // override the responsive mobile top-buffer
 							  mobile = "mobile-alert";
-							  console.log ("mobile notification");
+							  //console.log ("mobile notification");
 							}
 							$("#alert-area").append($("<div class='alert-message alert alerts "+mobile+" alert-" + alert_type + " fade in' data-alert><p><i class='fa fa-info-circle'></i><strong>  Notification:</strong> " + text + " </p></div>"));
    	 						$(".alert-message").delay(4000).fadeOut("slow", function () { $(this).remove(); });
@@ -1725,6 +1725,12 @@ $(document).ready(function() {
   		var sound_active = "";
   		var banner_active = "";
   		var off_active = "active";
+  		var sound_label = "Sound";
+  		var banner_label = "Banner";
+  		if ($(window).width() <= 768) { // make icons for mobile
+			sound_label = "<i class='fa fa-volume-up'></i>";
+			banner_label = "<i class='fa fa-list-ul'></i>";
+		}
   		if (speech_banner === "yes") {
   			banner_active = "active";
   			off_active = "";
@@ -1741,8 +1747,8 @@ $(document).ready(function() {
   		// if notifications disabled then disable all the buttons
    		$('#optionsModal').find('.modal-body').append('<div class="btn-group btn-block btn-notifications" data-toggle="buttons"></div>');
 		$('#optionsModal').find('.modal-body').find('.btn-notifications').append("<label class='btn btn-default mhnotify col-xs-6 col-sm-6 disabled'><input type='checkbox' name='mhnotify0' id='speech' autocomplete='off'>Speech</label>");
-		$('#optionsModal').find('.modal-body').find('.btn-notifications').append("<label class='btn btn-default mhnotify mhnotifyopt col-xs-2 col-sm-2 "+sound_active+" "+notifications+"'><input type='checkbox' name='mhnotify1' id='sound' autocomplete='off'>Sound</label>");
-		$('#optionsModal').find('.modal-body').find('.btn-notifications').append("<label class='btn btn-default mhnotify mhnotifyopt col-xs-2 col-sm-2 "+banner_active+" "+notifications+"'><input type='checkbox' name='mhnotify2' id='banner' autocomplete='off'>Banner</label>");
+		$('#optionsModal').find('.modal-body').find('.btn-notifications').append("<label class='btn btn-default mhnotify mhnotifyopt col-xs-2 col-sm-2 "+sound_active+" "+notifications+"'><input type='checkbox' name='mhnotify1' id='sound' autocomplete='off'>"+sound_label+"</label>");
+		$('#optionsModal').find('.modal-body').find('.btn-notifications').append("<label class='btn btn-default mhnotify mhnotifyopt col-xs-2 col-sm-2 "+banner_active+" "+notifications+"'><input type='checkbox' name='mhnotify2' id='banner' autocomplete='off'>"+banner_label+"</label>");
 		$('#optionsModal').find('.modal-body').find('.btn-notifications').append("<label class='btn btn-default mhnotify mhnotifyoff col-xs-2 col-sm-2 "+off_active+" "+notifications+"'><input type='checkbox' name='mhnotify3' id='off' autocomplete='off'>Off</label>");
  		$('.mhnotify').on('click', function(){
 			var speech_mode = $(this).find('input').attr('id');

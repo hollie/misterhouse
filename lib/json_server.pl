@@ -46,10 +46,6 @@ use IO::Compress::Gzip qw(gzip);
 use vars qw(%json_table);
 my @json_notifications = (); #noloop
 
-#TODO clean notifications array at startup
-
-
-#use vars qw(@json_notifications);
 
 sub json {
 	my ($request_type, $path_str, $arguments, $body) = @_;
@@ -326,9 +322,7 @@ sub json_get {
 		$data{'options'} = $json_data{'rrd_config'}->{'options'} if (defined $json_data{'rrd_config'}->{'options'});
 		$data{'periods'} = $json_data{'rrd_config'}->{'periods'} if (defined $json_data{'rrd_config'}->{'periods'});
 		$data{'last_update'} = $xml_info->{'last_update'} * 1000 if (defined $xml_info->{'last_update'});
-		#$json_data{'rrd'} = \@dataset;
 		$json_data{'rrd'} = \%data; 
-		#print Dumper $xml_info;
 	}
 		
 
@@ -452,17 +446,13 @@ sub json_get {
 		}
 		$json_data{vars} = \%json_vars;
 	}
-#print "db:path[0] = $path[0]\n";
 
 	if ( $path[0] eq 'notifications' ) {
 
 		for my $i (0..$#json_notifications) {
 			my $n_time = int($json_notifications[$i]{time});
 			my $x = $args{time}[0]; #Weird, does nothing, but notifications doesn't work if removed...
-			#if (($n_time) and (($args{time} && int($args{time}[0]) < $n_time) or (!$args{time}))) {
 			if (($n_time) and ((defined $args{time} && int($args{time}[0]) < $n_time))) {			
-					#print "json notifications db: in loop $i\n";
-					#print "pushing text:" . $json_notifications[$i]->{text} . "\n";
 					push(@{$json_data{'notifications'}}, $json_notifications[$i]);
 			} else {
 				#if older than X minutes, then remove the array values to keep things tidy
@@ -529,7 +519,6 @@ sub json_get {
 			#Only return messages since time
 			@log = ::print_speaklog_since($args{time}[0]);
 			push @log,''; #TODO HP - Kludge, the javascript seems to want an extra line in the array for some reason
-			#print "db/json: " . join(", ",@log) . "\n";
 		} elsif (!$args{time}) {
 			@log = ::print_speaklog_since();
 		}
@@ -556,10 +545,6 @@ sub json_get {
 	# Insert Data or Error Message
 	if ($output_ref) {
 		$json{data} = $output_ref;
-#	   foreach my $key (sort (keys(%{$output_ref}))) {
-#	   print "db:key = $key\n";
-#  		 $json{data}{$key} = $output_ref->{$key};
-#		}
 	}
 	else {
 		$json{error}{msg} = 'No data, or path does not exist.';
@@ -1125,7 +1110,6 @@ sub json_table_purge_data {
 
 sub json_notification {
   	my ($type,$data) = @_;
-  	#print "db:type=$type\n";
   	$data->{type} = $type;
   	$data->{time} = &::get_tickcount;
   	for my $i (0..$#json_notifications) {
@@ -1135,11 +1119,8 @@ sub json_notification {
 			splice  @json_notifications,$i,1;
 		}
 	}
-  	#print Dumper $data;
   	push @json_notifications,$data;
- 
-  	#print Dumper \@json_notifications
-}
+ }
   
 
 return 1;    # Make require happy
