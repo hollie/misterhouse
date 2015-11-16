@@ -41,6 +41,7 @@ must first be put into "awake mode."
 =head2 INHERITS
 
 L<Insteon::BaseDevice|Insteon::BaseInsteon/Insteon::BaseDevice>, 
+L<Insteon::DimmableLight|Insteon::Lighting/Insteon::DimmableLight>, 
 L<Insteon::Insteon::MultigroupDevice|Insteon::BaseInsteon/Insteon::Insteon::MultigroupDevice>
 
 =head2 METHODS
@@ -54,7 +55,7 @@ package Insteon::RemoteLinc;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::RemoteLinc::ISA = ('Insteon::BaseDevice', 'Insteon::MultigroupDevice');
+@Insteon::RemoteLinc::ISA = ('Insteon::DimmableLight', 'Insteon::MultigroupDevice');
 
 my %message_types = (
 	%Insteon::BaseDevice::message_types,
