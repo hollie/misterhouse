@@ -7,14 +7,13 @@ In user code:
     use raZberry.pm;
     $razberry_controller  = new raZberry('192.168.0.100',1);
     $razberry_comm		  = new raZberry_comm($razberry_controller);
-    $family_room_fan      = new raZberry_dimmer($razberry_controller,'2-0-38','force_update');
-    $family_room_blind	  = new raZberry_blind($razberry_controller,'3-0-38');
+    $family_room_fan      = new raZberry_dimmer($razberry_controller,'2','force_update');
+    $family_room_blind	  = new raZberry_blind($razberry_controller,'3');
+    $front_lock			  = new raZberry_blind($razberry_controller,'4');
 
-So far only raZberry_dimmer, and raZberry_blind are working child objects
-device format ID-0-XX
-	ID = device ID
-	0  = static
-	XX = ??
+So far only raZberry_dimmer, raZberry_lock and raZberry_blind are working child objects
+
+raZberry_<child>(<controller>,<device id>,<options)
 
 
 In items.mht:
@@ -53,7 +52,7 @@ v1.2
   X attempts a Y seconds apart.
 
 http calls can cause pauses. There are a few possible options around this;
-- push output to a file and then read the file. This is generally how
+- push output to a file and then read the file. This is generally how other modules work.
 
 config parmas
 
@@ -107,6 +106,10 @@ $rest{off} = "command/off";
 $rest{up} = "command/up";
 $rest{down} = "command/down";
 $rest{stop} = "command/stop";
+$rest{open} = "command/open";
+$rest{close} = "command/close";
+$rest{close} = "command/close";
+$rest{closed} = "command/close";
 $rest{level} = "command/exact?level=";
 $rest{force_update} = "devices";
 $rest{ping} = "devices";
@@ -535,14 +538,108 @@ sub isfailed {
 	$$self{master_object}->isfailed_dev($$self{devid});
 }
 
+package raZberry_lock;
+#only tested with Kwikset 914
 
+@raZberry_lock::ISA = ('Generic_Item');
+
+sub new {
+   my ($class,$object,$devid,$options) = @_;
+
+   my $self={};
+   bless $self,$class;
+   push(@{$$self{states}}, 'locked','unlocked');
+
+   $$self{master_object} = $object;
+   my $devid_battery = $devid . "-0-128";
+   $devid = $devid . "-0-98";
+   $$self{devid} = $devid;
+   $$self{devid_battery} = $devid_battery;
+
+   $object->register($self,$devid,$options);
+   $object->register($self,$devid_battery,$options);
+   
+   #$self->set($object->get_dev_status,$devid,'poll');
+   $self->{level} = ""; 
+   $self->{battery_alert} = 0;
+   $self->{battery_poll_seconds} = 12*60*60;
+   $self->{battery_timer} = new Timer;
+   $self->{debug} = $object->{debug}; 
+   $self->_battery_timer;
+   return $self;
+}
+
+sub set {
+   my ($self,$p_state,$p_setby) = @_;
+# if level is open/closed its the state. if level is a number its the battery
+# object states are locked and unlocked, but zwave sees close and open
+	my %map_states;
+	$map_states{close} = "locked";
+	$map_states{open} = "unlocked";
+	$map_states{locked} = "close";
+	$map_states{unlocked} = "open";
+	
+   if ($p_setby eq 'poll') {
+    	main::print_log("[raZberry_lock] Setting value to " . $map_states{$p_state} . ". Level is " . $self->{level}) if ($self->{debug});
+   		if (($p_state eq "open") or ($p_state eq "close")) {
+   			$self->SUPER::set($map_states{$p_state});
+   		} elsif (($p_state >= 0) or ($p_state <= 100)) { #battery level
+   			$self->{level} = $p_state;
+   		} else {
+   		    main::print_log("[raZberry_lock] Unknown value $p_state in poll set");
+   		}
+
+    } else {
+	   if ((lc $p_state eq "locked") or (lc $p_state eq "unlocked")) {
+           $$self{master_object}->set_dev($$self{devid},$map_states{$p_state}); 
+	   } else {
+	        main::print_log("[raZberry_lock] Error. Unknown set state " . $map_states{$p_state});
+	   }
+    }
+}
+
+sub level {
+  my ($self) = @_;
+  
+  return ($self->{level});
+}
+
+sub ping {
+	my ($self) = @_;
+	
+	$$self{master_object}->ping_dev($$self{devid});
+}
+
+sub isfailed {
+	my ($self) = @_;
+	
+	$$self{master_object}->isfailed_dev($$self{devid});
+}
+
+sub battery_check {
+	my ($self) = @_;
+	return if ($self->{level} eq "");
+   	main::print_log("[raZberry_lock] INFO Battery currently at " . $self->{level} . "%");
+   	if (($self->{level} < 30) and ($self->{battery_alert} == 0 )){
+   		$self->{battery_alert} = 1;
+		main::speak("Warning, Zwave lock battery has less than 30% charge");
+	} else {
+		$self->{battery_alert} = 0;
+	}
+}
+
+sub _battery_timer {
+  my ($self) = @_;
+  
+  $self->{battery_timer}->set($self->{battery_poll_seconds}, sub {&raZberry_lock::battery_check($self)}, -1);
+}
 
 package raZberry_comm;
 
 @raZberry_comm::ISA = ('Generic_Item');
 
-sub new
-{
+sub new {
+
    my ($class,$object) = @_;
 
    my $self={};
@@ -562,6 +659,5 @@ sub set {
         $self->SUPER::set($p_state);
     } 
 } 
-
 
 1;
