@@ -46,6 +46,10 @@ razberry controller.
 
 =head2 NOTES
 
+v1.3
+- added in locks
+- added in ability to add and remove lock users
+
 v1.2
 - added in ability to 'ping' device
 - added a check to see if the device is 'dead'. If dead it will attempt a ping for
@@ -80,9 +84,6 @@ use HTTP::Request::Common qw(POST);
 use JSON::XS;
 use Data::Dumper;
 
-#todo 
-# - dump_all_devices to see everything raZberry knows
-
 @raZberry::ISA = ('Generic_Item');
 
 
@@ -114,6 +115,8 @@ $rest{level} = "command/exact?level=";
 $rest{force_update} = "devices";
 $rest{ping} = "devices";
 $rest{isfailed} = "devices";
+$rest{usercode_data} = "devices";
+$rest{usercode} = "devices";
 
 
 
@@ -283,7 +286,7 @@ sub _get_JSON_data {
     my $params = "";
     $params = $cmd if ($cmd);
     my $method = "ZAutomation/api/v1";
-    $method = "ZWaveAPI/Run" if (($mode eq "force_update") or ($mode eq "ping") or ($mode eq "isfailed"));
+    $method = "ZWaveAPI/Run" if (($mode eq "force_update") or ($mode eq "ping") or ($mode eq "isfailed") or ($mode eq "usercode") or ($mode eq "usercode_data"));
     &main::print_log("[raZberry] contacting http://$host:$port/$method/$rest{$mode}$params") if ($self->{debug});
 
     my $request = HTTP::Request->new(GET => "http://$host:$port/$method/$rest{$mode}$params");
@@ -314,7 +317,7 @@ sub _get_JSON_data {
 	      		$self->{child_object}->{comm}->set("online",'poll');
 	       }
     }
-    return ('1') if (($mode eq "force_update") or ($mode eq "ping")); #these come backs as nulls, so just return.
+    return ('1') if (($mode eq "force_update") or ($mode eq "ping") or ($mode eq "usercode")); #these come backs as nulls which crashes JSON::XS, so just return.
     return ($responseObj->content) if ($mode eq "isfailed");
     my $response = JSON::XS->new->decode ($responseObj->content);
     return ($isSuccessResponse, $response)
@@ -542,6 +545,7 @@ package raZberry_lock;
 #only tested with Kwikset 914
 
 @raZberry_lock::ISA = ('Generic_Item');
+use Data::Dumper;
 
 sub new {
    my ($class,$object,$devid,$options) = @_;
@@ -561,6 +565,7 @@ sub new {
    
    #$self->set($object->get_dev_status,$devid,'poll');
    $self->{level} = ""; 
+   $self->{user_data_delay} = 10;
    $self->{battery_alert} = 0;
    $self->{battery_poll_seconds} = 12*60*60;
    $self->{battery_timer} = new Timer;
@@ -580,7 +585,7 @@ sub set {
 	$map_states{unlocked} = "open";
 	
    if ($p_setby eq 'poll') {
-    	main::print_log("[raZberry_lock] Setting value to " . $map_states{$p_state} . ". Level is " . $self->{level}) if ($self->{debug});
+    	main::print_log("[raZberry_lock] Setting value to $p_state: " . $map_states{$p_state} . ". Level is " . $self->{level}) if ($self->{debug});
    		if (($p_state eq "open") or ($p_state eq "close")) {
    			$self->SUPER::set($map_states{$p_state});
    		} elsif (($p_state >= 0) or ($p_state <= 100)) { #battery level
@@ -618,7 +623,10 @@ sub isfailed {
 
 sub battery_check {
 	my ($self) = @_;
-	return if ($self->{level} eq "");
+	if ($self->{level} eq "") {
+   	main::print_log("[raZberry_lock] INFO Battery level currently undefined");	
+		return;
+	}
    	main::print_log("[raZberry_lock] INFO Battery currently at " . $self->{level} . "%");
    	if (($self->{level} < 30) and ($self->{battery_alert} == 0 )){
    		$self->{battery_alert} = 1;
@@ -628,10 +636,99 @@ sub battery_check {
 	}
 }
 
+sub enable_user {
+	my ($self,$userid,$code) = @_;
+	my ($status) = 0;
+	
+	$status = $self->_control_user($userid,$code,"1");
+	#delay for the lock to process the code and then read in the users
+	main::eval_with_timer (sub {&raZberry_lock::_update_users($self)},$self->{user_data_delay});
+	return ($status);
+}
+
+sub disable_user {
+	my ($self,$userid) = @_;
+	my ($status) = 0;
+	my $code = "1234";
+	main::print_log("[raZberry_lock] WARN user $userid is not in user table") unless (defined $self->{users}->{$userid}->{status});	
+	$status = $self->_control_user($userid,$code,"0");
+	#delay for the lock to process the code and then read in the users
+	main::eval_with_timer (sub {&raZberry_lock::_update_users($self)},$self->{user_data_delay});
+	return ($status);	
+}
+
+sub is_user_enabled {
+	my ($self,$userid) = @_;
+	my $return = 0;
+	$return =  $self->{users}->{$userid}->{status} if (defined $self->{users}->{$userid}->{status});
+	return $return;
+}
+
+sub print_users {
+	my ($self,$force) = @_;
+	
+	$self->_update_users unless ((defined $self->{users}) or (lc $force eq "force"));
+	foreach my $key (keys %{$self->{users}}) {
+		my $status = "enabled";
+		$status = "disabled" if ($self->{users}->{$key}->{status} == 0);
+		main::print_log("[raZberry_lock] User: $key Status: $status");
+	}
+}
+
 sub _battery_timer {
   my ($self) = @_;
   
   $self->{battery_timer}->set($self->{battery_poll_seconds}, sub {&raZberry_lock::battery_check($self)}, -1);
+}
+
+sub _control_user {
+	my ($self,$userid,$code,$control) = @_;
+	#curl --globoff "http://rasip:8083/ZWaveAPI/Run/devices[x].UserCode.Set(userid,code,control)"
+
+    my $cmd;
+    my ($devid,$instance,$class) = (split /-/,$self->{devid})[0,1,2];
+    $cmd = "%5B" . $devid . "%5D.UserCode.Set(" . $userid . "," . $code . "," . $control . ")";
+  	&main::print_log("[raZberry] Enabling usercodes $userid ($devid)...") if ($self->{debug});
+    &main::print_log("cmd=$cmd") if ($self->{debug} > 1);
+    my ($isSuccessResponse0,$status) = &raZberry::_get_JSON_data($self->{master_object}, 'usercode', $cmd);
+    unless ($isSuccessResponse0) {
+  		&main::print_log("[raZberry] Error: Problem retrieving data from " . $self->{host});
+  		$self->{data}->{retry}++;
+    	return ('0');
+    }	
+}
+
+sub _update_users {
+  	my ($self,$device) = @_;
+  	#curl --globoff "http://192.168.0.155:8083/ZWaveAPI/Run/devices[7].UserCode.data"
+    my $cmd;
+    my ($devid,$instance,$class) = (split /-/,$self->{devid})[0,1,2];
+    $cmd = "%5B" . $devid . "%5D.UserCode.Get()";
+  	&main::print_log("[raZberry] Getting local usercodes ($devid)...") if ($self->{debug});
+    &main::print_log("cmd=$cmd") if ($self->{debug} > 1);
+    my ($isSuccessResponse0,$status) = &raZberry::_get_JSON_data($self->{master_object}, 'usercode', $cmd);
+    unless ($isSuccessResponse0) {
+  		&main::print_log("[raZberry] Error: Problem retrieving data from " . $self->{host});
+  		$self->{data}->{retry}++;
+    	return ('0');
+    }
+    $cmd = "%5B" . $devid . "%5D.UserCode.data";
+  	&main::print_log("[raZberry] Downloading local usercodes from $devid...") if ($self->{debug});
+    &main::print_log("cmd=$cmd") if ($self->{debug} > 1);
+    my ($isSuccessResponse1,$response) = &raZberry::_get_JSON_data($self->{master_object}, 'usercode_data', $cmd);
+    unless ($isSuccessResponse1) {
+  		&main::print_log("[raZberry] Error: Problem retrieving data from " . $self->{host});
+  		$self->{data}->{retry}++;
+    	return ('0');
+    }
+    print Dumper $response if ($self->{debug} > 1);
+    foreach my $key (keys %{$response}) {
+	if ($key =~ m/^[0-9]*$/) { #a number, so a user code
+		$self->{users}->{"$key"}->{status} = $response->{"$key"}->{status}->{value};
+	} 
+    }  		    
+
+    return ('1');
 }
 
 package raZberry_comm;
