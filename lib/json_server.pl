@@ -194,7 +194,16 @@ sub json_get {
 		if ($@){
 		  print_log "Json_Server.pl: WARNING: decode_json failed for ia7_config.json. Please check this file!";
 		  $json_data{'ia7_config'} = decode_json('{ "prefs" : { "status" : "error" } }'); #write a blank collection
-
+		}
+		# Look at the client ip overrides, and replace any pref key with the client_ip specific item
+		if (defined $json_data{'ia7_config'}->{clients}->{$Http{Client_address}}) {
+			print_log "Json_Server.pl: Client override section for $Http{Client_address} found";
+			for my $key (keys $json_data{'ia7_config'}->{clients}->{$Http{Client_address}}) {
+				print_log "Json_Server.pl: Client key=$key, value = $json_data{'ia7_config'}->{clients}->{$Http{Client_address}}->{$key}";
+				print_log "Json_Server.pl: Master value = $json_data{'ia7_config'}->{prefs}->{$key}";
+				$json_data{'ia7_config'}->{prefs}->{$key} = $json_data{'ia7_config'}->{clients}->{$Http{Client_address}}->{$key};
+			}
+			delete $json_data{'ia7_config'}->{clients};
 		}
 	}
 	
@@ -310,7 +319,7 @@ sub json_get {
 						my $value1 = sprintf("%.10g", $value);
 						$value1 = ($value1 - 32) * (5/9) if (($celsius) and (lc $type[$index] eq "temperature"));
 						$value1 = sprintf("%." . $round[$index] . "f",$value1) if (defined $round[$index]);
-						$value1 =~ s/\.?0*$// unless ($value1 == 0); #remove unneccessary trailing decimals
+						$value1 =~ s/\.0*$// unless ($value1 == 0); #remove unneccessary trailing decimals
 						$value1 = "null" if (lc $value1 eq "nan");
 						push @{$dataset[$index]->{data}},[$time,$value1]; 
 						$index++;

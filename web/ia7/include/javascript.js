@@ -10,6 +10,11 @@ if (display_mode == undefined) display_mode = "simple";
 var notifications;
 var speech_sound;
 var speech_banner;
+var audio_init;
+var audioElement = document.getElementById('sound_element');
+
+var ctx; //audio context
+var buf; //audio buffer
 
 //Takes the current location and parses the achor element into a hash
 function URLToHash() {
@@ -545,9 +550,9 @@ var loadList = function() {
 
 var getButtonColor = function (state) {
 	var color = "default";
-	if (state == "on" || state == "open" || state == "disarmed" || state == "unarmed" || state == "ready" || state == "dry" || state == "up" || state == "100%" || state == "online") {
+	if (state == "on" || state == "open" || state == "disarmed" || state == "unarmed" || state == "ready" || state == "dry" || state == "up" || state == "100%" || state == "online" || state == "unlocked") {
 		 color = "success";
-	} else if (state == "motion" || state == "closed" || state == "armed" || state == "wet" || state == "fault" || state == "down" || state == "offline") {
+	} else if (state == "motion" || state == "closed" || state == "armed" || state == "wet" || state == "fault" || state == "down" || state == "offline" || state == "locked") {
 		 color = "danger";
 	} else if (state == undefined || state == "unknown" ) {
 		 color = "info";
@@ -982,13 +987,23 @@ var get_notifications = function(time) {
 						// add in other banner_types
 						//console.log("type="+type);
 						if ((type == "sound" ) || ((type == "speech") && (speech_sound == "yes"))) {
-							var audioElement = document.createElement('audio');
-							audioElement.setAttribute('src', url);				
-    						audioElement.setAttribute('autoplay', 'autoplay');
-							$.get();
-    						audioElement.addEventListener("load", function() {
-            					audioElement.play();
-    							}, true);		
+							if (webaudio_device == "yes") {
+								//window.addEventListener("load", function() {
+									console.log("WebAudio Device");
+								//	webaudio_play(url);
+								//	},true);
+								//webaudio_play(url);
+							} else {
+								audio_play(document.getElementById('sound_element'),url)
+
+//								var audioElement = document.createElement('audio');
+//								audioElement.setAttribute('src', url);				
+//    							audioElement.setAttribute('autoplay', 'autoplay');
+//								$.get();
+//    							audioElement.addEventListener("load", function() {
+//            						audioElement.play();
+//    								}, true);
+    						}		
 						}
 						if (type == "banner" || ((type == "speech") && (speech_banner == "yes"))) {
 							var alert_type = "info";
@@ -1022,6 +1037,78 @@ var get_notifications = function(time) {
 		}
 	});
 };
+
+var webaudio_device = function() {
+	if (json_store.ia7_config.prefs.webaudio !== undefined) {
+		if (json_store.ia7_config.prefs.webaudio === "yes") {
+			return "yes";
+		} else {
+			return "no";
+		}
+	}
+	if (navigator.userAgent.match(/(iPod|iPhone|iPad)/))
+		return "yes";
+	if (navigator.userAgent.match(/Android/))
+		return "no";
+			
+	return "no";
+}
+
+var webaudio_play = function(url) {
+	console.log("webaudio play "+url);
+	ctx = new webkitAudioContext(); //is there a better API for this?
+    var req = new XMLHttpRequest();
+    req.open("GET",url,true);
+    req.responseType = "arraybuffer";
+    req.send();
+    req.onload = function() {
+    	console.log("loaded");
+        //decode the loaded data
+        ctx.decodeAudioData(req.response, function(buffer) {
+        	//create a source node from the buffer
+    		var src = ctx.createBufferSource(); 
+    		src.buffer = buffer;
+    		//connect to the final output node (the speakers)
+    		src.connect(ctx.destination);
+    		//play immediately
+    		console.log("now playing...");
+    		src.start(0);
+            //src.noteOn ? src.noteOn(0) : src.start(0);
+        	});
+    	};
+}
+
+function audio_play(audioElement,srcUrl)
+{
+  console.log ("in Audio2:"+srcUrl);
+  audioElement.pause();
+  audioElement.src=''; //force playback to stop and quit buffering. Not sure if this is strictly necessary.
+  audioElement.src=srcUrl;
+  audioElement.currentSrc=srcUrl;
+  audioElement.load();
+  playWhenReady();
+}
+
+function playWhenReady()
+{//wait for media element to be ready, then play
+  audioElement=document.getElementById('sound_element');
+  var audioReady=audioElement.readyState;
+  audioElement.play();
+  if(audioReady>2) {
+    audioElement.play();
+  } else if(audioElement.error) {
+      var errorText=['(no error)','User interrupted download','Network error caused interruption','Miscellaneous problem with media data','Cannot actually decode this media'];
+      console.log("Something went wrong!\n"+errorText[audioElement.error.code]);
+  } else { //check for media ready again in half a second
+      setTimeout(playWhenReady,500);
+  }
+}
+
+
+
+
+
+
 
 
 //Creates a table based on the $json_table data structure. desktop & mobile design
@@ -1698,6 +1785,13 @@ $(document).ready(function() {
 	get_notifications();	
 	
 	$("#toolButton").click( function () {
+		// Need a 'click' event to turn on sound for mobile devices
+		//if (audio_init === undefined) {
+		//	audioElement = document.getElementById('sound_element');
+		//	audioElement.play();
+		//}
+		audio_init = 1;
+		//
 		var entity = $("#toolButton").attr('entity');
 		$('#optionsModal').modal('show');
 		$('#optionsModal').find('.object-title').html("Mr.House Options");
