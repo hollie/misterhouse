@@ -312,7 +312,7 @@ sub json_get {
 						$value1 = ($value1 - 32) * (5/9) if (($celsius) and (lc $type[$index] eq "temperature"));
 						$value1 = sprintf("%." . $round[$index] . "f",$value1) if (defined $round[$index]);
 			#print "value1=$value1";
-						$value1 =~ s/\.?0*$// unless ($value1 == 0); #remove unneccessary trailing decimals
+						$value1 =~ s/\.0*$// unless ($value1 == 0); #remove unneccessary trailing decimals
 						$value1 = "null" if (lc $value1 eq "nan");
 			#print "value1=$value1\n";
 						#my @array = ();
