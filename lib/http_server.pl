@@ -8,7 +8,8 @@
 use strict;
 use Text::ParseWords;
 require 'http_utils.pl';
-
+$main::Debug{http} = 4;
+use Data::Dumper;
 #no warnings 'uninitialized';   # These seem to always show up.  Dang, will not work with 5.0
 
 use vars qw(%Http %Cookies %Included_HTML %HTTP_ARGV $HTTP_REQUEST $HTTP_BODY $HTTP_REQ_TYPE);
@@ -161,12 +162,20 @@ sub http_process_request {
     }
     unless ($header) {
                                 # Ignore empty requests, like from 'check the http server' command
-        print "http: Error, not header request.  header=$temp\n" if $main::Debug{http} and $temp;
+        print "http: Error, not header request.  header=[$temp]\n" if $main::Debug{http} and $temp;
+        my ($type,$file) = ($temp =~ /^(\S*)\s(.*)\sHTTP/);
+        print "t=[$type] f=[$file]\n";
+        if ($type eq "HEAD") {
+        	print "yes\n";
+        	print $socket &mime_header($file, 1,4592100);
+        }
         return;
     }
 
     $Socket_Ports{http}{data_record} = $header;
-
+	print "http: Header = $header\n" if $main::Debug{http};
+	print Dumper %Http if $main::Debug{http};
+	print "http: Range Header encountered: $Http{Range}\n" if (defined $Http{Range});
     $Http{loop}    = $Loop_Count; # Track which pass we last processes a web request
     $Http{request} = $header;
     $Http{Referer} = '' unless $Http{Referer}; # Avoid uninitilized var errors
@@ -1401,13 +1410,15 @@ sub html_file {
 
 				# Do not cach shtml files
     my ($cache) = ($file =~ /\.shtm?l?$/ or $file =~ /\.vxml?$/) ? 0 : 1;
-
-				# Return right away if the file has not changed
+	($cache) = (defined $Http{Range}) ? 0 : 1;
+	
+				# Return right away if the file has not changed, don't return a cache entry if there is
+				# a http Range header though...
 #http:   header key=If-Modified-Since value=Sat, 27 Mar 2004 02:49:29 GMT; length=1685.
     if ($cache and $Http{'If-Modified-Since'} and $Http{'If-Modified-Since'} =~ /(.+? GMT)/) {
 	my $time2 = &str2time($1);
 	my $time3 = (stat($file))[9];
-	print "db web file cache check: f=$file t=$time2/$time3\n"  if $main::Debug{http3};
+	print "db web file cache check: f=$file t=$time2/$time3\n"  if $main::Debug{http};
 	if ($time3 <= $time2) {
 	    return "HTTP/1.0 304 Not Modified\nServer: MisterHouse\n";
 	}
@@ -1422,7 +1433,7 @@ sub html_file {
         return;
     }
 
-
+    print "http: processing file\n" if $main::Debug{http};
 
                                 # Allow for 'server side include' directives
                                 #  <!--#include file="whatever"-->
@@ -1437,6 +1448,7 @@ sub html_file {
                                 # Note: These differ from classic .cgi in that they return
                                 #       the results, rather than print them to stdout.
     elsif ($file =~ /\.(pl|cgi)$/) {
+         print "Processing perl or CGI file: $file\n" if $main::Debug{http};   
         my $code = join('', <HTML>);
 
                                 # Check if authorized
@@ -1476,6 +1488,7 @@ sub html_file {
 #       print "Http_server  .pl file results:$html.\n" if $main::Debug{http};
     }
     else {
+        print "http: Reading file: $file\n" if $main::Debug{http};
         binmode HTML;
 #       my $data = join '', <HTML>;
 	       # Read entire file at once instead of line by line ... faster
@@ -1483,7 +1496,16 @@ sub html_file {
         { local $/ = undef;
           $data = join('', <HTML>);
         }
-        $html = &mime_header($file, 1, length $data) unless $no_header;
+        my $full_length = length $data;
+        
+        if (defined $Http{Range}) {
+        	my ($start,$end) = $Http{Range} =~ /bytes=(\d*)-(\d*)/;
+        	$end = (length $data) - $start if ($end eq "");
+        	print "http:start=$start end=$end\n";
+        	my $tmpdata = substr $data, $start, $end;
+        	$data = $tmpdata;
+        }
+        $html = &mime_header($file, 1, length $data, $Http{Range}, $full_length) unless $no_header;
         $html .= $data;
     }
     close HTML;
@@ -1621,7 +1643,7 @@ sub html_cgi {
 }
 
 sub mime_header {
-    my ($file_or_type, $cache, $length) = @_;
+    my ($file_or_type, $cache, $length, $range, $full_length) = @_;
 				# Allow for passing filename or filetype
     my ($mime, $date);
     if ($mime = $mime_types{$file_or_type}) {
@@ -1635,8 +1657,9 @@ sub mime_header {
 #       $date = &time_date_stamp(19, $time);
     }
 #   print "dbx2 m=$mime f=$file_or_type\n";
-
-    my $header = "HTTP/1.0 200 OK\nServer: MisterHouse\nContent-type: $mime\n";
+	my $code = "HTTP/1.0 200 OK";
+	$code = "HTTP/1.1 206 Partial Content" if $range;
+    my $header = "$code\nServer: MisterHouse\nContent-Type: $mime\n";
 #   $header .= ($cache) ? "Cache-Control: max-age=1000000\n" : "Cache-Control: no-cache\n";
     if ($cache) {
 	$header .= "Last-Modified: $date\n";
@@ -1647,6 +1670,11 @@ sub mime_header {
 
                                 # Allow for a length header, as this allows for faster 'persistant' connections
     $header .= "Content-Length: $length\n" if $length;
+    (my $range_bytes) = $range =~ /bytes=(.*)/;
+	$header .= "Content-Range: bytes " . $range_bytes . "/" . $full_length . "\n" if $range_bytes;
+	$header .= "Accept-Ranges: bytes\n";
+	
+	print "returned header = $header\n";
 
     return $header . "\n";
 #Expires: Mon, 01 Jul 2002 08:00:00 GMT
@@ -2636,10 +2664,13 @@ sub print_socket_fork {
 	    }
         }
         else {
+        	my $keep_alive = 0;
+        	$keep_alive = 1 if ((defined $Http{Connection}) and ($Http{Connection} eq "keep-alive"));
             &print_socket_fork_unix($socket, $html);
         }
     }
     else {
+    	print "http: printing with regular socket l=$length s=$socket\n" if $main::Debug{http};
         print $socket $html;
     }
 }
