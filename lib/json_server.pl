@@ -374,7 +374,7 @@ sub json_get {
                           if ( defined $round[$index] );
 
                         #print "value1=$value1";
-                        $value1 =~ s/\.?0*$//
+                        $value1 =~ s/\.0*$//
                           unless ( $value1 == 0 )
                           ;    #remove unneccessary trailing decimals
                         $value1 = "null" if ( lc $value1 eq "nan" );
