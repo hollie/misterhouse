@@ -132,7 +132,9 @@ sub reconnect_delay {
 sub check_for_data {
     my ($self) = @_;
 
-    unless ( $$self{squeezecenter}->connected() || $$self{reconnect_timer}->active() ) {
+    unless ( $$self{squeezecenter}->connected()
+        || $$self{reconnect_timer}->active() )
+    {
         $self->reconnect_delay();
         return;
     }

@@ -823,9 +823,11 @@ sub set {
           : ", undefined object_name";    # @FIXME: Use of uninitialized value
 
         &main::print_log("*** mqtt mqtt set $$self{instance}: [$xStr]");
-        &main::print_log( $self->isa('mqtt')
+        &main::print_log(
+            $self->isa('mqtt')
             ? "*** mqtt mqtt set $$self{instance}: isa mqtt"
-            : "*** mqtt mqtt set $$self{instance}: is nota mqtt" );
+            : "*** mqtt mqtt set $$self{instance}: is nota mqtt"
+        );
     }
 
     return unless ($msg);
