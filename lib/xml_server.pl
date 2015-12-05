@@ -282,9 +282,10 @@ sub xml {
         $xml .= "    <time>$time</time>\n";
         my @log;
         $xml .= "    <text>\n";
-        if ($options{time}{active}){
-            @log = ::print_log_since($options{time}{members}[0]);
-        } else {
+        if ( $options{time}{active} ) {
+            @log = ::print_log_since( $options{time}{members}[0] );
+        }
+        else {
             @log = ::print_log_since();
         }
         my $value = \@log;
@@ -304,9 +305,10 @@ sub xml {
         $xml .= "    <time>$time</time>\n";
         my @log;
         $xml .= "    <text>\n";
-        if ($options{time}{active}){
-            @log = ::print_speaklog_since($options{time}{members}[0]);
-        } else {
+        if ( $options{time}{active} ) {
+            @log = ::print_speaklog_since( $options{time}{members}[0] );
+        }
+        else {
             @log = ::print_speaklog_since();
         }
         my $value = \@log;
@@ -347,7 +349,7 @@ sub xml {
     $xml = encode_entities( $xml, "\200-\377&" );
     $options{xsl}{members}[0] = ''
       if exists $options{xsl}
-          and not defined $options{xsl}{members}[0];
+      and not defined $options{xsl}{members}[0];
     return &xml_page( $xml, $options{xsl}{members}[0] );
 }
 
@@ -377,9 +379,9 @@ sub walk_var {
     }
 
     my ( $iref, $iname );
-    for ( my $i = $indent ; $i-- ; $i > 0 ) { $xml_vars .= '  ' }
+    for ( my $i = $indent; $i--; $i > 0 ) { $xml_vars .= '  ' }
     $xml_vars .= "<var>\n";
-    for ( my $i = $indent + 1 ; $i-- ; $i > 0 ) { $xml_vars .= '  ' }
+    for ( my $i = $indent + 1; $i--; $i > 0 ) { $xml_vars .= '  ' }
     $name = encode_entities($name);
 
     if ( $type eq '' ) {
@@ -425,7 +427,7 @@ sub walk_var {
         $xml_vars .= "<name>\&$name</name>\n";
     }
 
-    for ( my $i = $indent ; $i-- ; $i > 0 ) { $xml_vars .= '  ' }
+    for ( my $i = $indent; $i--; $i > 0 ) { $xml_vars .= '  ' }
     $xml_vars .= "</var>\n";
 
     return $xml_vars;

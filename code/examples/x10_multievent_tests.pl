@@ -18,24 +18,23 @@
 #   XD2DJ    -> "Test sensor2 ON"
 #   XD2DK    -> "Test sensor2 OFF"
 
+$test_sensor1 = new Serial_Item( 'XD1DJ', ON );
+$test_sensor1->add( 'XD1DK', OFF );
 
-$test_sensor1      = new  Serial_Item('XD1DJ', ON);
-$test_sensor1    ->     add          ('XD1DK', OFF);
+$test_sensor2 = new Serial_Item( 'XD2', 'motion' );
+$test_sensor2->add( 'XDJ', ON );
+$test_sensor2->add( 'XDK', OFF );
 
-$test_sensor2      = new  Serial_Item('XD2', 'motion');
-$test_sensor2    ->     add          ('XDJ',   ON);
-$test_sensor2    ->     add          ('XDK',   OFF);
-
-print_log "Test sensor1 was triggered to $state" if $state = state_now $test_sensor1;
-print_log "Test sensor2 was triggered to $state" if $state = state_now $test_sensor2;
-
+print_log "Test sensor1 was triggered to $state"
+  if $state = state_now $test_sensor1;
+print_log "Test sensor2 was triggered to $state"
+  if $state = state_now $test_sensor2;
 
 # Here is an example of detecting multi-key input from X10 controllers
 
 # This detects a double push of A1-ON (code=A1, on=AJ) with Palm remote.
 $test_button2 = new Serial_Item 'XA1AJA1AJ';
 speak "Palm A1 key was pressed twice" if state_now $test_button2;
-
 
 # This would detect O1 button on a X10 maxi-controler was pushed twice.
 $test_button3 = new Serial_Item 'XO1O1';

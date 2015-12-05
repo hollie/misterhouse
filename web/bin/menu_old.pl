@@ -3,9 +3,9 @@ sub menu_frame {
 
     my $menu_group = shift @_;
     $menu_group = 'default' unless $menu_group;
-    my $menu1       = $Menus{$menu_group}{menu_list}[0];
-    my $menu2 = ${$Menus{$menu_group}{$menu1}{items}[0]}{goto};
-    my $menu3 = ${$Menus{$menu_group}{$menu2}{items}[0]}{goto};
+    my $menu1 = $Menus{$menu_group}{menu_list}[0];
+    my $menu2 = ${ $Menus{$menu_group}{$menu1}{items}[0] }{goto};
+    my $menu3 = ${ $Menus{$menu_group}{$menu2}{items}[0] }{goto};
     $menu1 =~ s/ /%20/g;
     $menu2 =~ s/ /%20/g;
     $menu3 =~ s/ /%20/g;
@@ -27,42 +27,46 @@ sub menu_frame {
 }
 
 sub menu_list {
-    my ($menu_group, $menu, $frame) = @_;
+    my ( $menu_group, $menu, $frame ) = @_;
     $menu_group = 'default' unless $menu_group;
-    $menu       = $Menus{$menu_group}{menu_list}[0] unless $menu;
+    $menu = $Menus{$menu_group}{menu_list}[0] unless $menu;
 
     my $target = $frame;
     $target++;
     $target = 'speech' if $target eq 'menu4';
     my $html = "<base target='$target'><table  width='100%'>\n";
-    $html .= "<tr><td align='middle' bgColor='#cccccc'><font size='+3'>$menu</font></td></tr>\n";
+    $html .=
+      "<tr><td align='middle' bgColor='#cccccc'><font size='+3'>$menu</font></td></tr>\n";
     my $item = 0;
-    my $ptr = $Menus{$menu_group};
-    for my $ptr2 (@{$$ptr{$menu}{items}}) {
+    my $ptr  = $Menus{$menu_group};
+    for my $ptr2 ( @{ $$ptr{$menu}{items} } ) {
         my $html_item;
-        my ($href, $text);
-                                # Action item
-        if ($$ptr2{A}) {
-                                # Multiple states
-            if ($$ptr2{Dstates}) {
-                $href = "/bin/menu.pl?states&$menu_group&$menu&$item";
+        my ( $href, $text );
+
+        # Action item
+        if ( $$ptr2{A} ) {
+
+            # Multiple states
+            if ( $$ptr2{Dstates} ) {
+                $href   = "/bin/menu.pl?states&$menu_group&$menu&$item";
                 $target = 'speech';
-                $text  = $$ptr2{Dprefix};
+                $text   = $$ptr2{Dprefix};
                 $text .= "...$$ptr2{Dsuffix}" if $$ptr2{Dsuffix};
             }
-                                # One state
+
+            # One state
             else {
-                $href = "/sub?menu_run($menu_group,$menu,$item,,h)";
+                $href   = "/sub?menu_run($menu_group,$menu,$item,,h)";
                 $target = 'speech';
-                $text = $$ptr2{D};
+                $text   = $$ptr2{D};
             }
         }
-        elsif ($$ptr2{R}) {
+        elsif ( $$ptr2{R} ) {
             $href = "sub?menu_run($menu_group,$menu,$item,,h)";
             $text = $$ptr2{D};
         }
 
-                                # Menu item
+        # Menu item
         else {
             my $goto = $$ptr2{goto};
             print "dbx g=$goto.\n";
@@ -72,11 +76,11 @@ sub menu_list {
         }
         $item++;
 
-#       $href =~ tr/ /_/;
+        #       $href =~ tr/ /_/;
         $href =~ s/ /%20/g;
         $text =~ s/ /%20/g;
         my $link = "<font size='+3'>$text</font>";
-        if ($Info{module_GD}) {
+        if ( $Info{module_GD} ) {
             $link = "<img src='/bin/button.pl?$text' alt='$text' border='0'>";
         }
         $html .= "<tr><td align='middle' bgColor='#ffffff'>";
@@ -88,13 +92,15 @@ sub menu_list {
 }
 
 sub menu_states {
-    my ($menu_group, $menu, $item) = @_;
+    my ( $menu_group, $menu, $item ) = @_;
     my $ptr2 = $Menus{$menu_group}{$menu}{items}[$item];
 
     my $state = 0;
-    my $html = "<table border=1 width='100%' height='100%'><tr><td>$$ptr2{Dprefix}</td>";
-    for my $state_name (@{$$ptr2{Dstates}}) {
-        $html .= "<td><a href='/sub?menu_run($menu_group,$menu,$item,$state,h)' target='speech'>$state_name</a></td>\n";
+    my $html =
+      "<table border=1 width='100%' height='100%'><tr><td>$$ptr2{Dprefix}</td>";
+    for my $state_name ( @{ $$ptr2{Dstates} } ) {
+        $html .=
+          "<td><a href='/sub?menu_run($menu_group,$menu,$item,$state,h)' target='speech'>$state_name</a></td>\n";
         $state++;
     }
     $html .= "</table>";
@@ -103,10 +109,10 @@ sub menu_states {
 
 my $func = shift;
 my $html = '<html>';
-if ($func eq 'states') {
+if ( $func eq 'states' ) {
     $html = &menu_states(@ARGV);
 }
-elsif ($func eq 'list') {
+elsif ( $func eq 'list' ) {
     $html = &menu_list(@ARGV);
 }
 else {
@@ -114,5 +120,5 @@ else {
 }
 
 #return $html;
-return &html_page('', "<html>$html</html>");
+return &html_page( '', "<html>$html</html>" );
 

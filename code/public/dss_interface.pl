@@ -54,12 +54,14 @@ www.pcmx.net/dtvcon/ and www.isd.net/mevenmo/sonydsscodes.html
 
 my $state_test;
 my $said_dss;
-$test = new  Voice_Cmd("dss to [GetTime,GetChannel,FoxE,FoxW,COM,SetChannel 284,SetChannel 382,SetChannel 383]");
+$test = new Voice_Cmd(
+    "dss to [GetTime,GetChannel,FoxE,FoxW,COM,SetChannel 284,SetChannel 382,SetChannel 383]"
+);
 
-$dss = new dss_interface (undef,undef,'dss');
-$dss -> add ("SetChannel 388","FoxE");
-$dss -> add ("SetChannel 389","FoxW");
-$dss -> add ("SetChannel 249","COM");
+$dss = new dss_interface( undef, undef, 'dss' );
+$dss->add( "SetChannel 388", "FoxE" );
+$dss->add( "SetChannel 389", "FoxW" );
+$dss->add( "SetChannel 249", "COM" );
 
 $state_test = state_now $test;
 print "$state_test \n" if $state_test;

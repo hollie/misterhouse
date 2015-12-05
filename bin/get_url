@@ -2,24 +2,33 @@
 # -*- Perl -*-
 
 use strict;
-                                # Point to mh LWP, in case local perl does not have it installed
-my ($Pgm_Path, $Pgm_Name);
+
+# Point to mh LWP, in case local perl does not have it installed
+my ( $Pgm_Path, $Pgm_Name );
+
 BEGIN {
-    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.*)\.?/;
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.*)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
+    eval
+      "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
 }
 
-my (%config_parms, %parms);
+my ( %config_parms, %parms );
 
 use Getopt::Long;
-#print "get_url: @ARGV\n";
-if (!&GetOptions(\%parms, 'h', 'help',
-                 'quiet', 'cookies=s', 'cookie_file_in=s', 'cookie_file_out=s', 'post=s', 'header=s',
-                 'userid=s', 'password=s') or
-    !@ARGV or $parms{h} or $parms{help}) {
 
-    print<<eof;
+#print "get_url: @ARGV\n";
+if (
+    !&GetOptions( \%parms, 'h', 'help',
+        'quiet', 'cookies=s', 'cookie_file_in=s', 'cookie_file_out=s',
+        'post=s', 'header=s', 'userid=s', 'password=s' )
+    or !@ARGV
+    or $parms{h}
+    or $parms{help}
+  )
+{
+
+    print <<eof;
 
     $Pgm_Name gets a web page and echos it to STDOUT or a local file.
 
@@ -53,86 +62,100 @@ eof
     exit;
 }
 
-my $url  = shift;
+my $url = shift;
 $url = 'http://' . $url unless $url =~ /^(\S+):\/\//;
 
-                                # Get parms from mh.ini
+# Get parms from mh.ini
 require 'handy_utilities.pl';
-&main::read_mh_opts(\%config_parms, $Pgm_Path);
+&main::read_mh_opts( \%config_parms, $Pgm_Path );
 
-                                # Allow for this ... get_url > $file is better/safer, but
-                                # background processes in windows really messes up with > :(
+# Allow for this ... get_url > $file is better/safer, but
+# background processes in windows really messes up with > :(
 my $file = shift;
 
-$parms{cookies} = &file_read($parms{cookie_file_in}) if $parms{cookie_file_in};
+$parms{cookies} = &file_read( $parms{cookie_file_in} )
+  if $parms{cookie_file_in};
 
-
-if (($config_parms{get_url} eq 'useragent') or $parms{post} or $parms{header} or
-    $parms{cookies} or $parms{cookie_file_out} or $parms{password}) {
-    &use_ua;                    # This fails for some people.  Required if using a proxy
+if (   ( $config_parms{get_url} eq 'useragent' )
+    or $parms{post}
+    or $parms{header}
+    or $parms{cookies}
+    or $parms{cookie_file_out}
+    or $parms{password} )
+{
+    &use_ua;    # This fails for some people.  Required if using a proxy
 }
 else {
-    &use_get;                   # The simple get does not have a timeout :(
+    &use_get;    # The simple get does not have a timeout :(
 }
 
 sub use_ua {
     use LWP::UserAgent;
-#   use HTTP::Request;
-#   use HTTP::Response;
-#   require LWP::UserAgent;
+
+    #   use HTTP::Request;
+    #   use HTTP::Response;
+    #   require LWP::UserAgent;
 
     my $ua = new LWP::UserAgent;
-    $config_parms{proxy} = $ENV{http_proxy}           unless $config_parms{proxy};
-    $config_parms{proxy} = $ENV{HTTP_PROXY}           unless $config_parms{proxy}; # Just in case (lc is the standard)
-    $ua -> proxy(['http', 'ftp'] => $config_parms{proxy}) if $config_parms{proxy};
+    $config_parms{proxy} = $ENV{http_proxy} unless $config_parms{proxy};
+    $config_parms{proxy} = $ENV{HTTP_PROXY}
+      unless $config_parms{proxy};    # Just in case (lc is the standard)
+    $ua->proxy( [ 'http', 'ftp' ] => $config_parms{proxy} )
+      if $config_parms{proxy};
 
-    $ua->timeout([120]);         # Time out after 60 seconds
+    $ua->timeout( [120] );            # Time out after 60 seconds
     $ua->env_proxy();
-    $ua->agent($config_parms{get_url_ua}) if $config_parms{get_url_ua};
+    $ua->agent( $config_parms{get_url_ua} ) if $config_parms{get_url_ua};
 
     my $request;
-    if ($parms{post}) {
-      $request = new HTTP::Request('POST' => $url);
-      $request->content_type('application/x-www-form-urlencoded');
-      $request->content($parms{post});
-    } else {
-      $request = new HTTP::Request('GET', $url);
+    if ( $parms{post} ) {
+        $request = new HTTP::Request( 'POST' => $url );
+        $request->content_type('application/x-www-form-urlencoded');
+        $request->content( $parms{post} );
+    }
+    else {
+        $request = new HTTP::Request( 'GET', $url );
     }
 
-    if ($parms{userid} or $parms{password}) {
-#       $ua->credentials("192.168.0.1", "Linksys BEFW11S4", $parms{userid}, $parms{password});
-        $request->authorization_basic($parms{userid}, $parms{password});
+    if ( $parms{userid} or $parms{password} ) {
+
+        #       $ua->credentials("192.168.0.1", "Linksys BEFW11S4", $parms{userid}, $parms{password});
+        $request->authorization_basic( $parms{userid}, $parms{password} );
     }
 
-    if ($parms{cookies}) {
-       $request->header('Cookie' => $parms{cookies});
+    if ( $parms{cookies} ) {
+        $request->header( 'Cookie' => $parms{cookies} );
     }
     my $response;
 
     if ($file) {
         print "Retrieving (with ua) $url into $file ..." unless $parms{quiet};
-        if ($file eq '/dev/null') {
+        if ( $file eq '/dev/null' ) {
             $response = $ua->request($request);
         }
         else {
-            $response = $ua->request($request, $file);   # Old UserAgent code
+            $response = $ua->request( $request, $file );    # Old UserAgent code
         }
         print " url retrieved.\n" unless $parms{quiet};
-        if ($parms{header}) {
-           open (OUT, ">$parms{header}") or die "Error, could not open file '$parms{header}' for output: $!\n";
-           binmode OUT;
-           print OUT $response->headers_as_string();
-           close OUT;
+        if ( $parms{header} ) {
+            open( OUT, ">$parms{header}" )
+              or die
+              "Error, could not open file '$parms{header}' for output: $!\n";
+            binmode OUT;
+            print OUT $response->headers_as_string();
+            close OUT;
         }
-        if ($parms{cookie_file_out}) {
+        if ( $parms{cookie_file_out} ) {
             my $cookies;
-            for my $header (split /\n/, $response->headers_as_string()) {
-                if (my ($name, $value) = $header =~ /^Set-Cookie: ([^=]+)=([^;]+)/) {
+            for my $header ( split /\n/, $response->headers_as_string() ) {
+                if ( my ( $name, $value ) =
+                    $header =~ /^Set-Cookie: ([^=]+)=([^;]+)/ )
+                {
                     $cookies .= "$name=$value; ";
                 }
             }
             $cookies =~ s/;\s*$//;
-            &file_write($parms{cookie_file_out}, $cookies);
+            &file_write( $parms{cookie_file_out}, $cookies );
         }
         exit;
     }
@@ -140,7 +163,7 @@ sub use_ua {
         $response = $ua->request($request);
         print $response->content();
     }
-    if ($response->is_error()) {
+    if ( $response->is_error() ) {
         printf " %s\n", $response->status_line;
     }
 }
@@ -148,14 +171,17 @@ sub use_ua {
 sub use_get {
     use LWP::Simple;
     if ($file) {
-        print "Retrieving (with simple) $url into $file ..." unless $parms{quiet};
+        print "Retrieving (with simple) $url into $file ..."
+          unless $parms{quiet};
 
         # Do not use simple get ... it will not time out :(
         my $data = get $url;
-#       print $data;
-        unless ($file eq '/dev/null') {
+
+        #       print $data;
+        unless ( $file eq '/dev/null' ) {
             if ($data) {
-                open (OUT, ">$file") or die "Error, could not open file '$file' for output: $!\n";
+                open( OUT, ">$file" )
+                  or die "Error, could not open file '$file' for output: $!\n";
                 binmode OUT;
                 print OUT $data;
                 close OUT;

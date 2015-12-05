@@ -1,3 +1,4 @@
+
 =head1 B<Motion_Item>
 
 =head2 SYNOPSIS
@@ -72,68 +73,85 @@ package Motion_Item;
 
 @Motion_Item::ISA = ('Base_Item');
 
-sub initialize
-{
-	my ($self) = @_;
-   $$self{m_write} = 0;
-	$$self{m_timeout} = new Timer() unless $$self{m_timeout};
-	$$self{m_timeout}->set(2*60,$self);
-	$$self{m_timerCheck} = new Timer() unless $$self{m_timerCheck};
-#	$$self{m_timerCheck}->set(24*60*60,$self);
-   # Default to a print_log message after 24 hours of inactivity
-   $$self{'inactivity_time'} = 24*3600;
-   # initialize states array
-   @{$$self{states}} = ('motion','still');
+sub initialize {
+    my ($self) = @_;
+    $$self{m_write} = 0;
+    $$self{m_timeout} = new Timer() unless $$self{m_timeout};
+    $$self{m_timeout}->set( 2 * 60, $self );
+    $$self{m_timerCheck} = new Timer() unless $$self{m_timerCheck};
+
+    #	$$self{m_timerCheck}->set(24*60*60,$self);
+    # Default to a print_log message after 24 hours of inactivity
+    $$self{'inactivity_time'} = 24 * 3600;
+
+    # initialize states array
+    @{ $$self{states} } = ( 'motion', 'still' );
 }
 
-sub set
-{
-	my ($self,$p_state,$p_setby) = @_;
+sub set {
+    my ( $self, $p_state, $p_setby ) = @_;
 
-   # Ignore the dark/light and normal states
-   if (($p_state eq 'dark') or ($p_state eq 'light') or ($p_state =~ /^normal/i)) {
-      return;
-   }
+    # Ignore the dark/light and normal states
+    if (   ( $p_state eq 'dark' )
+        or ( $p_state eq 'light' )
+        or ( $p_state =~ /^normal/i ) )
+    {
+        return;
+    }
 
-   if (ref $p_setby and $p_setby->can('get_set_by')) {
-      &::print_log("Motion_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name} was set by " . $p_setby->get_set_by) if $main::Debug{occupancy};
-   } else {
-      &::print_log("Motion_Item($$self{object_name})::set($p_state, $p_setby)") if $main::Debug{occupancy};
-   }
+    if ( ref $p_setby and $p_setby->can('get_set_by') ) {
+        &::print_log(
+            "Motion_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name} was set by "
+              . $p_setby->get_set_by )
+          if $main::Debug{occupancy};
+    }
+    else {
+        &::print_log(
+            "Motion_Item($$self{object_name})::set($p_state, $p_setby)")
+          if $main::Debug{occupancy};
+    }
 
-   # Hawkeye (MS13) motion detector and security sensors
-   if (($p_state eq 'on') or ($p_state =~ /^alert/i)) {
-      $p_state = 'motion';
-   } elsif (($p_state eq 'off')) { #or ($p_state =~ /^normal/i)) {
-      $p_state = 'still';
-   }
+    # Hawkeye (MS13) motion detector and security sensors
+    if ( ( $p_state eq 'on' ) or ( $p_state =~ /^alert/i ) ) {
+        $p_state = 'motion';
+    }
+    elsif ( ( $p_state eq 'off' ) ) {    #or ($p_state =~ /^normal/i)) {
+        $p_state = 'still';
+    }
 
-	if ($p_state eq 'motion') { # Received ON
-#		$main::DBI->prepare("insert into Events (Object,ObjectType,State) values ('$$self{object_name}','motion','$p_state');")->execute();
-		$$self{m_timeout}->set(2*60,$self);
-		$$self{m_timerCheck}->set($$self{'inactivity_time'}, $self);
-	} elsif ($p_setby eq $$self{m_timerCheck}) { # Check timer expired
-      if ($$self{'inactivity_action'}) {
-         package main;
-         eval $$self{'inactivity_action'};
-         package Motion_Item;
-      } else {
-         &::print_log("$$self{object_name}->Has not received motion in 24hrs");
-      }
-      $p_state = 'check';
-	} elsif ($p_setby eq $$self{m_timeout}) { # Timer expired
-		$p_state='still';
-	} elsif ($p_state eq 'still') { # Motion OFF
-		$$self{m_timeout}->unset() if defined $$self{m_timeout}
-	}
-	$self->SUPER::set($p_state, $p_setby);
+    if ( $p_state eq 'motion' ) {        # Received ON
+
+        #		$main::DBI->prepare("insert into Events (Object,ObjectType,State) values ('$$self{object_name}','motion','$p_state');")->execute();
+        $$self{m_timeout}->set( 2 * 60, $self );
+        $$self{m_timerCheck}->set( $$self{'inactivity_time'}, $self );
+    }
+    elsif ( $p_setby eq $$self{m_timerCheck} ) {    # Check timer expired
+        if ( $$self{'inactivity_action'} ) {
+
+            package main;
+            eval $$self{'inactivity_action'};
+
+            package Motion_Item;
+        }
+        else {
+            &::print_log(
+                "$$self{object_name}->Has not received motion in 24hrs");
+        }
+        $p_state = 'check';
+    }
+    elsif ( $p_setby eq $$self{m_timeout} ) {    # Timer expired
+        $p_state = 'still';
+    }
+    elsif ( $p_state eq 'still' ) {              # Motion OFF
+        $$self{m_timeout}->unset() if defined $$self{m_timeout};
+    }
+    $self->SUPER::set( $p_state, $p_setby );
 }
 
-sub delay_off()
-{
-	my ($self,$p_time) = @_;
-	$$self{m_delay_off} = $p_time if defined $p_time;
-	return $$self{m_delay_off};
+sub delay_off() {
+    my ( $self, $p_time ) = @_;
+    $$self{m_delay_off} = $p_time if defined $p_time;
+    return $$self{m_delay_off};
 }
 
 =item C<set_inactivity_alarm($$$)>
@@ -143,14 +161,13 @@ If an inactivity alarm is set, the specified action is executed.  if no notifica
 =cut
 
 sub set_inactivity_alarm($$$) {
-   my ($self, $time, $action) = @_;
-   $$self{'inactivity_action'} = $action;
-   $$self{'inactivity_time'} = $time*3600;
-	$$self{m_timerCheck}->set($time*3600, $self);
+    my ( $self, $time, $action ) = @_;
+    $$self{'inactivity_action'} = $action;
+    $$self{'inactivity_time'}   = $time * 3600;
+    $$self{m_timerCheck}->set( $time * 3600, $self );
 }
 
 1;
-
 
 =back
 

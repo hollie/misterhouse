@@ -88,47 +88,70 @@ use Image::Magick;
 use File::Find;
 use Getopt::Long;
 
-                                # Declare parms and defaults
-my ($size, $dir, $exts, $border, $replace, $annotate, $prefix, $skip, $help, $verbose, $colorfill) =
-    ('640x480', '', 'bmp,gif,jpg,jpeg,mng,pcd,pcx,png,tga,tiff,xpm', 1, 0, 0, 'sm1', '', 0, 0, 'black');
-my (%exts, $rc, %counts, $file_in, $file_out, $outdir);
+# Declare parms and defaults
+my (
+    $size,   $dir,  $exts, $border,  $replace, $annotate,
+    $prefix, $skip, $help, $verbose, $colorfill
+  )
+  = (
+    '640x480', '', 'bmp,gif,jpg,jpeg,mng,pcd,pcx,png,tga,tiff,xpm',
+    1, 0, 0, 'sm1', '', 0, 0, 'black'
+  );
+my ( %exts, $rc, %counts, $file_in, $file_out, $outdir );
 $counts{resized} = $counts{existed} = 0;
 
-                                # Changes defaults if specified on command line
-&help if (!GetOptions('size:s' => \$size, 'directory=s' => \$dir, 'outdir=s' => \$outdir,
-                      'file_in=s' => \$file_in, 'file_out=s' => \$file_out, 'colorfill:s' => \$colorfill,
-                      'prefix:s' => \$prefix, 'skip:s' => \$skip, 'extensions:s' => \$exts,
-                      'border=s' => \$border, 'replace=s' => \$replace, 'anotate=s' => \$annotate,
-                      'help' => \$help, 'verbose' => \$verbose) or $help or !($dir or ($file_in and $file_out)));
+# Changes defaults if specified on command line
+&help
+  if (
+    !GetOptions(
+        'size:s'       => \$size,
+        'directory=s'  => \$dir,
+        'outdir=s'     => \$outdir,
+        'file_in=s'    => \$file_in,
+        'file_out=s'   => \$file_out,
+        'colorfill:s'  => \$colorfill,
+        'prefix:s'     => \$prefix,
+        'skip:s'       => \$skip,
+        'extensions:s' => \$exts,
+        'border=s'     => \$border,
+        'replace=s'    => \$replace,
+        'anotate=s'    => \$annotate,
+        'help'         => \$help,
+        'verbose'      => \$verbose
+    )
+    or $help
+    or !( $dir or ( $file_in and $file_out ) )
+  );
 
-                                # Creates a hash of valid image extensions
-map {$exts{$_} = 1}  split(/[ ,]/, $exts);
+# Creates a hash of valid image extensions
+map { $exts{$_} = 1 } split( /[ ,]/, $exts );
 
-                                # Use SizexSize if only one dimention given
+# Use SizexSize if only one dimention given
 $size = "${size}x$size" if $size =~ /^\d+$/;
-my ($size_w, $size_h) = split 'x', $size;
+my ( $size_w, $size_h ) = split 'x', $size;
 
-                                # Recurses, starting from within the current directory, 
+# Recurses, starting from within the current directory,
 print "\nShrinking images to $size with border=$border\n";
 
-if ($file_in and $file_out) {
+if ( $file_in and $file_out ) {
     $counts{resized}++;
-    &resize_img($file_in, $file_out);
+    &resize_img( $file_in, $file_out );
 }
 else {
-    find({wanted => \&get_img, no_chdir => 1}, $dir);
+    find( { wanted => \&get_img, no_chdir => 1 }, $dir );
 }
-print " - Resized $counts{resized} images ($counts{existed} images not replaced)\n";
+print
+  " - Resized $counts{resized} images ($counts{existed} images not replaced)\n";
 
 sub get_img() {
     my $full_file = $_;
-    if (-f $full_file) {
+    if ( -f $full_file ) {
         my $subdir = $File::Find::dir;
-        my $file = $full_file;
+        my $file   = $full_file;
         $file =~ s/^$subdir//;
-        my ($root, $ext) = $file =~ /(.+)\.(.+)/;
+        my ( $root, $ext ) = $file =~ /(.+)\.(.+)/;
         $root = '' unless $root;
-        $ext = '' unless $ext;
+        $ext  = '' unless $ext;
         my $file_new = $prefix eq '' ? "$root.$ext" : "${prefix}_$root.$ext";
         if ($outdir) {
             $subdir =~ s/^$dir//;
@@ -140,46 +163,66 @@ sub get_img() {
                 $dir2 .= "/$dir3";
                 mkdir $dir2, 0777 unless -d $dir2;
             }
-        } else {
+        }
+        else {
             $file_new = "$subdir/$file_new";
         }
-        return unless $ext and $exts{lc $ext};
+        return unless $ext and $exts{ lc $ext };
         return if $root =~ /^${prefix}_/;
         return if $skip and $root =~ /^${skip}/;
-        if (-f $file_new and !$replace) {
-            print "  $File::Find::dir/$file_new \tfiles already exists\n" if $verbose;
+        if ( -f $file_new and !$replace ) {
+            print "  $File::Find::dir/$file_new \tfiles already exists\n"
+              if $verbose;
             $counts{existed}++;
             return;
         }
         $counts{resized}++;
-        &resize_img($full_file, $file_new);
-                                # Change time-date stampe to match the original file
-        my ($atime, $mtime) = (stat($full_file))[8,9];
-        utime($atime, $mtime, $file_new);    
+        &resize_img( $full_file, $file_new );
+
+        # Change time-date stampe to match the original file
+        my ( $atime, $mtime ) = ( stat($full_file) )[ 8, 9 ];
+        utime( $atime, $mtime, $file_new );
     }
 }
-sub resize_img{
-    my ($file, $file_new) = @_;
+
+sub resize_img {
+    my ( $file, $file_new ) = @_;
     print "  $file  \t-> $file_new\n";
     my $img = new Image::Magick;
     warn($rc) if $rc = $img->Read($file);
-# Resize is not in the older versions ... no need for it unless we use blur or filter
-#   warn($rc) if $rc = $img->Resize(geometry => $size);
-    warn($rc) if $rc = $img->Scale(geometry => $size);
+
+    # Resize is not in the older versions ... no need for it unless we use blur or filter
+    #   warn($rc) if $rc = $img->Resize(geometry => $size);
+    warn($rc) if $rc = $img->Scale( geometry => $size );
     if ($border) {
-        my ($w, $h) = $img->Get('columns', 'rows');
-        $w = ($size_w - $w) / 2;
-        $h = ($size_h - $h) / 2;
-        warn($rc) if $rc = $img->Border(geometry => $size, width => $w, height => $h, fill => $colorfill);
+        my ( $w, $h ) = $img->Get( 'columns', 'rows' );
+        $w = ( $size_w - $w ) / 2;
+        $h = ( $size_h - $h ) / 2;
+        warn($rc)
+          if $rc = $img->Border(
+            geometry => $size,
+            width    => $w,
+            height   => $h,
+            fill     => $colorfill
+          );
     }
-                                # Does not work ... gives Warning 315: no delegates configuration file found (delegates.mgk)
+
+    # Does not work ... gives Warning 315: no delegates configuration file found (delegates.mgk)
     if ($annotate) {
         $annotate = $file if $annotate == 1;
-        warn($rc) if $rc = $img->Annotate(text => $annotate, font => 'Fixed', stroke => 'black', pointsize => 10, x => 10, y => 10);
+        warn($rc)
+          if $rc = $img->Annotate(
+            text      => $annotate,
+            font      => 'Fixed',
+            stroke    => 'black',
+            pointsize => 10,
+            x         => 10,
+            y         => 10
+          );
     }
     warn($rc) if $rc = $img->Write($file_new);
 
-}   
+}
 
 #
 # $Log: image_resize,v $

@@ -34,28 +34,32 @@
 #---------------------------------------------------------------------------
 
 use strict;
-my($Pgm_Path, $Pgm_Name, $Version);
+my ( $Pgm_Path, $Pgm_Name, $Version );
+
 BEGIN {
-    ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
-    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.*)\.?/;
+    ($Version) =
+      q$Revision$ =~ /: (\S+)/;   # Note: revision number is auto-updated by cvs
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.*)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
+    eval
+      "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
 }
 
 use Getopt::Long;
 my (%parms);
-if (!&GetOptions(\%parms,
-                 "version=s",
-                 "folder=s",
-                 "quiet",
-                 "debug",
-                 "all",
-                 "dump_body",
-                 "pl_file=s",
-                 "date=s", "days=s", "date_end=s",
-                 "h", "help") or
-    @ARGV > 0 or $parms{h} or $parms{help}) {
-    print<<eof;
+if (
+    !&GetOptions(
+        \%parms,  "version=s", "folder=s",   "quiet",
+        "debug",  "all",       "dump_body",  "pl_file=s",
+        "date=s", "days=s",    "date_end=s", "h",
+        "help"
+    )
+    or @ARGV > 0
+    or $parms{h}
+    or $parms{help}
+  )
+{
+    print <<eof;
 
 $Pgm_Name reads Outlook folder data and optionally creates
 a mh code file to implement calendar events.
@@ -100,165 +104,193 @@ a mh code file to implement calendar events.
     $Pgm_Name
 
 eof
-  exit;
+    exit;
 }
 
-my($items);                     # Globals
+my ($items);    # Globals
 
 &setup;
 &find_items;
 
 sub setup {
-                                # Use EVENTS to run OLE as a single-threaded apartment, so MAPI.Session works
+
+    # Use EVENTS to run OLE as a single-threaded apartment, so MAPI.Session works
     use Win32::OLE qw(valof EVENTS);
-    use Win32::OLE::Variant;    # Simply including this somehow auto-converts $start and $end times from Win32::OLE::Variant objects ?
+    use Win32::OLE::Variant
+      ; # Simply including this somehow auto-converts $start and $end times from Win32::OLE::Variant objects ?
 
-    require 'handy_utilities.pl'; # For misc. functions (e.g. time/date stamp routines)
+    require 'handy_utilities.pl'
+      ;    # For misc. functions (e.g. time/date stamp routines)
 
-                                # Apparently the 97 way also works for Outlook 2000, so let that be the default.
-#   $parms{version} = '97' unless $parms{version};
-#   $parms{version} = '97' if $parms{version} eq '2000';
+    # Apparently the 97 way also works for Outlook 2000, so let that be the default.
+    #   $parms{version} = '97' unless $parms{version};
+    #   $parms{version} = '97' if $parms{version} eq '2000';
     $parms{version} = '97' if $parms{version} ne '98';
 
-                                # O97 data, commented out, from help on "Outlook Constants" in  Z:\VALUPACK\MOREHELP\Vbaoutl.hlp
-                                # O98 data, from http://www.cdolive.com/cdo10.htm
+    # O97 data, commented out, from help on "Outlook Constants" in  Z:\VALUPACK\MOREHELP\Vbaoutl.hlp
+    # O98 data, from http://www.cdolive.com/cdo10.htm
     my %ol_folder;
-    if ($parms{version} eq '97') {
-        %ol_folder = (Deleted => 3,
-                      Outbox  => 4,
-                      SentMail=> 5,
-                      Inbox   => 6,
-                      Calendar=> 9,
-                      Contacts=> 10,
-                      Journal => 11,
-                      Notes =>   12,
-                      Tasks =>   13,
-                      Calendar2=>13,
-                      Draft =>   16)
+    if ( $parms{version} eq '97' ) {
+        %ol_folder = (
+            Deleted   => 3,
+            Outbox    => 4,
+            SentMail  => 5,
+            Inbox     => 6,
+            Calendar  => 9,
+            Contacts  => 10,
+            Journal   => 11,
+            Notes     => 12,
+            Tasks     => 13,
+            Calendar2 => 13,
+            Draft     => 16
+        );
     }
     else {
-        %ol_folder = (Deleted => 4,
-                      Outbox  => 2,
-                      SentMail=> 3,
-                      Inbox   => 1,
-                      Calendar=> 0,
-                      Contacts=> 5,
-                      Journal => 6,
-                      Notes =>   7,
-                      Tasks =>   8);
+        %ol_folder = (
+            Deleted  => 4,
+            Outbox   => 2,
+            SentMail => 3,
+            Inbox    => 1,
+            Calendar => 0,
+            Contacts => 5,
+            Journal  => 6,
+            Notes    => 7,
+            Tasks    => 8
+        );
     }
 
-
-                                # Setup the defaults
+    # Setup the defaults
     $parms{folder} = 'Calendar' unless $parms{folder};
-    my $folder_number = $ol_folder{$parms{folder}};
-    $parms{date} = &time_date_stamp(11) unless $parms{date}; # Returns mm/dd/yy
+    my $folder_number = $ol_folder{ $parms{folder} };
+    $parms{date} = &time_date_stamp(11) unless $parms{date};  # Returns mm/dd/yy
     $parms{date_end} = $parms{date} unless $parms{date_end};
-    $parms{date_end} = &time_date_stamp(11, time + 3600*24*$parms{days}) if $parms{days};
+    $parms{date_end} = &time_date_stamp( 11, time + 3600 * 24 * $parms{days} )
+      if $parms{days};
 
-    print "Searching $parms{folder} num=$folder_number: Start: $parms{date}  Stop: $parms{date_end}\n" unless $parms{quiet};
+    print
+      "Searching $parms{folder} num=$folder_number: Start: $parms{date}  Stop: $parms{date_end}\n"
+      unless $parms{quiet};
 
-    my ($Outlook, $folder);
-    if ($parms{version} eq '97') {
-        my $Outlook0 = Win32::OLE->new('Outlook.Application') or
-            die "Error, could not create Outlook object: \n  ", Win32::OLE->LastError;
-        $Outlook  = $Outlook0->GetNamespace("MAPI") or
-            die "Error, could not find Outlook MAPI namespace: \n  ", Win32::OLE->LastError;
+    my ( $Outlook, $folder );
+    if ( $parms{version} eq '97' ) {
+        my $Outlook0 = Win32::OLE->new('Outlook.Application')
+          or die "Error, could not create Outlook object: \n  ",
+          Win32::OLE->LastError;
+        $Outlook = $Outlook0->GetNamespace("MAPI")
+          or die "Error, could not find Outlook MAPI namespace: \n  ",
+          Win32::OLE->LastError;
     }
     else {
-        $Outlook = Win32::OLE->new('MAPI.Session') or
-            die "Error, could not create Outlook object:\n  ", Win32::OLE->LastError;
+        $Outlook = Win32::OLE->new('MAPI.Session')
+          or die "Error, could not create Outlook object:\n  ",
+          Win32::OLE->LastError;
         $Outlook->Logon;
     }
 
-    my $folder = $Outlook->GetDefaultFolder($folder_number) or
-        die "Error, could not find folder $parms{folder} = $folder_number:\n  ", Win32::OLE->LastError;
+    my $folder = $Outlook->GetDefaultFolder($folder_number)
+      or
+      die "Error, could not find folder $parms{folder} = $folder_number:\n  ",
+      Win32::OLE->LastError;
 
-    if ($parms{version} eq '97') {
-        $items = $folder->Items or die "Error, could not find items in folder $parms{folder}:\n  ",Win32::OLE->LastError;
-        $items->{IncludeRecurrences} = 1; # Lets us see recurring items
+    if ( $parms{version} eq '97' ) {
+        $items = $folder->Items
+          or die "Error, could not find items in folder $parms{folder}:\n  ",
+          Win32::OLE->LastError;
+        $items->{IncludeRecurrences} = 1;    # Lets us see recurring items
         $items->Sort("[Start]");
     }
     else {
-        $items  = $folder->Messages or die "Error, could not find items in folder $parms{folder}:\n  ",Win32::OLE->LastError;
+        $items = $folder->Messages
+          or die "Error, could not find items in folder $parms{folder}:\n  ",
+          Win32::OLE->LastError;
     }
 
-    print "folder=$parms{folder},folder_number=$folder_number,folder=$folder,items=$items\n\n" if $parms{debug};
+    print
+      "folder=$parms{folder},folder_number=$folder_number,folder=$folder,items=$items\n\n"
+      if $parms{debug};
 
-    open (PL, ">$parms{pl_file}") or die "Error, could not open PL_File $parms{pl_file} for output: $!\n" if $parms{pl_file};
+    open( PL, ">$parms{pl_file}" )
+      or die "Error, could not open PL_File $parms{pl_file} for output: $!\n"
+      if $parms{pl_file};
 
     print PL "\n#@ Auto-generated from bin/outlook_read\n\n";
 
 }
 
 sub find_items {
-                                # Find first appointment matching the criteria
+
+    # Find first appointment matching the criteria
     my ($item);
-    if ($parms{version} eq '97') {
+    if ( $parms{version} eq '97' ) {
         my $criteria;
-        if ($parms{folder} eq 'Calendar') {
-            $criteria = qq{[Start] >= "$parms{date} 12:00 AM" and [Start] <= "$parms{date_end} 11:59 PM"};
+        if ( $parms{folder} eq 'Calendar' ) {
+            $criteria =
+              qq{[Start] >= "$parms{date} 12:00 AM" and [Start] <= "$parms{date_end} 11:59 PM"};
         }
-        if (!$parms{all}) {
-           $item = $items->Find($criteria);
+        if ( !$parms{all} ) {
+            $item = $items->Find($criteria);
         }
         else {
-           $item = $items->GetFirst;
+            $item = $items->GetFirst;
         }
         print "item=$item items=$items  crit=$criteria\n" if $parms{debug};
     }
     else {
-        if ($parms{folder} eq 'Calendar') {
+        if ( $parms{folder} eq 'Calendar' ) {
             my $filter = $items->Filter;
-            $filter->Fields->Add(0x00610040, "$parms{date} 12:00 AM");
-            $filter->Fields->Add(0x00600040, "$parms{date_end} 11:59 PM");
+            $filter->Fields->Add( 0x00610040, "$parms{date} 12:00 AM" );
+            $filter->Fields->Add( 0x00600040, "$parms{date_end} 11:59 PM" );
         }
         $item = $items->GetFirst;
     }
 
-                                # Loop thru all matching entries
+    # Loop thru all matching entries
     while ($item) {
         my $subject = $item->Subject;
 
-        my ($start, $end);
+        my ( $start, $end );
 
-        if (!$parms{all}) {
-           if ($parms{version} eq '97') {
-               $start = valof $item->{Start};
-               $end   = valof $item->End;
-#              print "db end=", $end->Date("M'/'d'/'yyyy"), "\n";
-           }
-           else {
-               $start = $item->StartTime;
-               $end   = $item->EndTime;
-           }
-                                   # Delete seconds off of start and end times
-           $start =~ s/\:\d\d / /;
-           $end   =~ s/\:\d\d / /;
-        }
+        if ( !$parms{all} ) {
+            if ( $parms{version} eq '97' ) {
+                $start = valof $item->{Start};
+                $end   = valof $item->End;
 
-        printf ("start=%-20s end=%-20s  subject=%s\n", $start, $end, $subject) unless $parms{quiet};
-
-        if( !$parms{dump_body} ) {
-           if (my($channel, $show) = $subject =~ /^ *vcr +(\d+) +(.+)/i) {
-               &create_vcr_event($start, $end, $channel, $show);
-           }
-           else {
-               &create_other_event($start, $subject);
-           }
-        }
-        else {
-           my $body = $item->Body;
-#          printf( "$body\n" );
-           &dump_body( $subject, $body );
-        }
-
-        if ($parms{version} eq '97') {
-            if (!$parms{all}) {
-               $item = $items->FindNext;
+                #              print "db end=", $end->Date("M'/'d'/'yyyy"), "\n";
             }
             else {
-               $item = $items->GetNext;
+                $start = $item->StartTime;
+                $end   = $item->EndTime;
+            }
+
+            # Delete seconds off of start and end times
+            $start =~ s/\:\d\d / /;
+            $end =~ s/\:\d\d / /;
+        }
+
+        printf( "start=%-20s end=%-20s  subject=%s\n", $start, $end, $subject )
+          unless $parms{quiet};
+
+        if ( !$parms{dump_body} ) {
+            if ( my ( $channel, $show ) = $subject =~ /^ *vcr +(\d+) +(.+)/i ) {
+                &create_vcr_event( $start, $end, $channel, $show );
+            }
+            else {
+                &create_other_event( $start, $subject );
+            }
+        }
+        else {
+            my $body = $item->Body;
+
+            #          printf( "$body\n" );
+            &dump_body( $subject, $body );
+        }
+
+        if ( $parms{version} eq '97' ) {
+            if ( !$parms{all} ) {
+                $item = $items->FindNext;
+            }
+            else {
+                $item = $items->GetNext;
             }
         }
         else {
@@ -268,20 +300,21 @@ sub find_items {
 }
 
 sub create_vcr_event {
-    my ($start, $end, $channel, $show) = @_;
+    my ( $start, $end, $channel, $show ) = @_;
 
     my $channel_commified;
-    if (length($channel) == 1) {
+    if ( length($channel) == 1 ) {
         $channel_commified = "0,$channel";
     }
     else {
-        $channel_commified = substr($channel,0,1) . "," . substr($channel,1,1);
+        $channel_commified =
+          substr( $channel, 0, 1 ) . "," . substr( $channel, 1, 1 );
     }
 
     print "VCR on channel $channel from $start to $end\n" unless $parms{quiet};
 
-    if ($parms{pl_file}) {
-        my $string =<<eof;
+    if ( $parms{pl_file} ) {
+        my $string = <<eof;
 if (time_now '$start - 00:02') {
    speak "rooms=all \$Time_Now. VCR recording will be started in 2 minutes for $show on channel $channel";
 }
@@ -299,16 +332,16 @@ eof
 }
 
 sub create_other_event {
-    my ($start, $subject) = @_;
+    my ( $start, $subject ) = @_;
 
-                                # If no time is specified, pick a default ... not midnight :)
-    unless ($start =~ /:/) {
+    # If no time is specified, pick a default ... not midnight :)
+    unless ( $start =~ /:/ ) {
         $subject = "Today is $subject";
-        $start  .= " 12:00 PM";
+        $start .= " 12:00 PM";
     }
 
-                                # If it is a command, run it, otherwise speak it.
-    my $string =<<eof;
+    # If it is a command, run it, otherwise speak it.
+    my $string = <<eof;
 if (time_now '$start') {
    if (run_voice_cmd q[$subject]) {
       print_log q[Running Outlook command: $subject];
@@ -328,9 +361,8 @@ eof
     print PL $string;
 }
 
-
 sub dump_body {
-    my ($subject, $body) = @_;
+    my ( $subject, $body ) = @_;
 
     print PL "### $subject ####\n\n";
     print PL $body;

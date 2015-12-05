@@ -94,98 +94,135 @@ use Weather_Common;
 my $owwhost = $config_parms{owwserver_host_port};
 $owwhost = "localhost:8888" unless $owwhost;
 
-$ibws   = new  Socket_Item(undef, undef, $owwhost, 'ibws', 'tcp', 'raw');
+$ibws = new Socket_Item( undef, undef, $owwhost, 'ibws', 'tcp', 'raw' );
 
-$ibws_v = new  Voice_Cmd "[Start,Stop,Speak] the ibutton weather station client";
-$ibws_v-> set_info('Connects to the ibutton weather station server');
+$ibws_v = new Voice_Cmd "[Start,Stop,Speak] the ibutton weather station client";
+$ibws_v->set_info('Connects to the ibutton weather station server');
 
 # REF var refs        0           1               2              3            4             5             6       7          8        9         10       11        12           13
-my @weather_vars = qw(TempOutdoor TempOutdoorHigh TempOutdoorLow WindAvgSpeed WindGustSpeed WindSpeedHigh WindDir WindAvgDir RainRate RainTotal RainWeek RainMonth HumidOutdoor Barom );
-# Ref dir nos   0       1                  2            3                 4      5                 6            7                  8       9                  10           11                12     13                14           15           
-my @direction=("North","North North East","North East","East North East","East","East South	 East","South East","South South East","South","South South West","South West","West South West","West","West North West","North West","North North West");
-my @directionshort=("N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW");
+my @weather_vars =
+  qw(TempOutdoor TempOutdoorHigh TempOutdoorLow WindAvgSpeed WindGustSpeed WindSpeedHigh WindDir WindAvgDir RainRate RainTotal RainWeek RainMonth HumidOutdoor Barom );
+
+# Ref dir nos   0       1                  2            3                 4      5                 6            7                  8       9                  10           11                12     13                14           15
+my @direction = (
+    "North",
+    "North North East",
+    "North East",
+    "East North East",
+    "East",
+    "East South	 East",
+    "South East",
+    "South South East",
+    "South",
+    "South South West",
+    "South West",
+    "West South West",
+    "West",
+    "West North West",
+    "North West",
+    "North North West"
+);
+my @directionshort = (
+    "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+    "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"
+);
 
 set $ibws_v 'Start' if $Startup;
 
-if (time_cron '31 * * * *') {
-	run_voice_cmd 'Start the ibutton weather station client';
+if ( time_cron '31 * * * *' ) {
+    run_voice_cmd 'Start the ibutton weather station client';
 }
 
 #if (time_cron '0,15,30,45 7-21 * * *') {
 #	run_voice_cmd 'Speak the ibutton weather station client';
 #}
 
-if (my $data = said $ibws) {
-  print_log "ibws server said: $data" if $Debug{oww};
-  my @data = split /\s+/, $data;			# Split up the individual Data elements
+if ( my $data = said $ibws) {
+    print_log "ibws server said: $data" if $Debug{oww};
+    my @data = split /\s+/, $data;    # Split up the individual Data elements
 
-# ----------------------------------------------------------------------------
-#                               ------ COLLECT and Sort the Data -------
-   for (my $i = 0; $i < 14; $i++) {			# ???????? -1 ???????????
-     print_log "Processing data at $i which is $weather_vars[$i] value of $data[$i]" if $Debug{oww};
-      my $key = $weather_vars[$i];			# Get the Name of the data key
+    # ----------------------------------------------------------------------------
+    #                               ------ COLLECT and Sort the Data -------
+    for ( my $i = 0; $i < 14; $i++ ) {    # ???????? -1 ???????????
+        print_log
+          "Processing data at $i which is $weather_vars[$i] value of $data[$i]"
+          if $Debug{oww};
+        my $key = $weather_vars[$i];      # Get the Name of the data key
 
-      if ($i < 3) {					# 0-TempOutdoor 1-TempOutdoorHigh 2-TempOutdoorLow
-        $Weather{$key} = $data[$i];
-        $Weather{$key} = &main::convert_c2f($data[$i]) if ($main::config_parms{weather_uom_temp} eq 'F');
-      }
+        if ( $i < 3 ) {    # 0-TempOutdoor 1-TempOutdoorHigh 2-TempOutdoorLow
+            $Weather{$key} = $data[$i];
+            $Weather{$key} = &main::convert_c2f( $data[$i] )
+              if ( $main::config_parms{weather_uom_temp} eq 'F' );
+        }
 
-      if (($i >= 3) && ($i <= 5)) {			# 3-WindSpeed 4-WindGustSpeed 5-WindSpeedHigh
-        $Weather{$key} = $data[$i];                     # mps
-        $Weather{$key} = &main::convert_mps2kph($data[$i]) if ($main::config_parms{weather_uom_wind} eq 'kph');
-        $Weather{$key} = &main::convert_mps2mph($data[$i]) if ($main::config_parms{weather_uom_wind} eq 'mph');
-      }
+        if ( ( $i >= 3 ) && ( $i <= 5 ) )
+        {                  # 3-WindSpeed 4-WindGustSpeed 5-WindSpeedHigh
+            $Weather{$key} = $data[$i];                            # mps
+            $Weather{$key} = &main::convert_mps2kph( $data[$i] )
+              if ( $main::config_parms{weather_uom_wind} eq 'kph' );
+            $Weather{$key} = &main::convert_mps2mph( $data[$i] )
+              if ( $main::config_parms{weather_uom_wind} eq 'mph' );
+        }
 
-      if (($i == 6)||($i == 7)) {			# 6-WindDir 7-WindAvgDir
-        $Weather{$key} = $data[$i];
-      }
+        if ( ( $i == 6 ) || ( $i == 7 ) ) {    # 6-WindDir 7-WindAvgDir
+            $Weather{$key} = $data[$i];
+        }
 
-      if ($i == 8) {                                    # 8-RainRate
-        $Weather{$key} = $data[$i];
-        $Weather{$key} = &main::convert_in2mm($data[$i]) if ($main::config_parms{weather_uom_rainrate} eq 'mm/hr');
-      }
-      if (($i >= 9) && ($i <= 11)) {			# 9-RainTotal 10-RainWeek 11-RainMonth
-        $Weather{$key} = $data[$i];
-        $Weather{$key} = &main::convert_in2mm($data[$i]) if ($main::config_parms{weather_uom_rain} eq 'mm');
-      }
-      if ($i == 12) {                                   # 12-Humidity
-        $Weather{$key} = sprintf("%.2f",$data[$i]);
-      }
-      if ($i == 13) {                                   # 13-Barometric Pressure
-        $Weather{$key} = $data[$i];
-        $Weather{$key} = &main::convert_mb2in($data[$i]) if ($main::config_parms{weather_uom_baro} eq 'in');
-      }
-  }
-  $Weather{WindAvgDir} = ( $Weather{WindDir} * 22.5 );  #convert to rrd degrees
-  $Weather{WindGustDir} = $Weather{WindAvgDir} ;	# Because rrd wants this and we dont have it
-  foreach my $key (@weather_vars) {
-    print_log "Weather:: key: $key data: $Weather{$key}" if $Debug{oww};
-  }
-  &weather_updated;
-}
-# ----------------------------------------------------------------------------
-
-if ($state = said $ibws_v) {
-  print_log "${state}ing the ibutton weather station client";
-
-  if ($state eq 'Start') {
-    unless (active $ibws) {
-      print_log 'Starting a connection to ibws';
-      start $ibws;
+        if ( $i == 8 ) {                       # 8-RainRate
+            $Weather{$key} = $data[$i];
+            $Weather{$key} = &main::convert_in2mm( $data[$i] )
+              if ( $main::config_parms{weather_uom_rainrate} eq 'mm/hr' );
+        }
+        if ( ( $i >= 9 ) && ( $i <= 11 ) )
+        {    # 9-RainTotal 10-RainWeek 11-RainMonth
+            $Weather{$key} = $data[$i];
+            $Weather{$key} = &main::convert_in2mm( $data[$i] )
+              if ( $main::config_parms{weather_uom_rain} eq 'mm' );
+        }
+        if ( $i == 12 ) {    # 12-Humidity
+            $Weather{$key} = sprintf( "%.2f", $data[$i] );
+        }
+        if ( $i == 13 ) {    # 13-Barometric Pressure
+            $Weather{$key} = $data[$i];
+            $Weather{$key} = &main::convert_mb2in( $data[$i] )
+              if ( $main::config_parms{weather_uom_baro} eq 'in' );
+        }
     }
-
-  } elsif ($state eq 'Stop' and active $ibws) {
-    print_log "closing ibws";
-    stop $ibws;
-
-  } elsif ($state eq 'Speak') {
-    my $msg = "\nThe Current temperature is $Weather{TempOutdoor}\nA high of $Weather{TempOutdoorHigh}\nA low of $Weather{TempOutdoorLow}.\n";
-    $msg .= "Current Wind Speed is $Weather{WindAvgSpeed} miles per hour\nGusts of $Weather{WindSpeedPeak}\nHigh of $Weather{WindSpeedHigh}.\nWind Direction is $direction[$Weather{WindDir}]\nWind direction average $direction[$Weather{WindAvgDir}].\n";
-#   $msg .= "The Current Rainfall Rate is $Weather{RainRate} inches per hour.\nToday's total rainfall is $Weather{RainTotal} inches\n$Weather{RainWeek} inches for the week\n$Weather{RainMonth} inches for the month.\n";
-    print_log $msg;
-    speak $msg;
-  }
+    $Weather{WindAvgDir} = ( $Weather{WindDir} * 22.5 ); #convert to rrd degrees
+    $Weather{WindGustDir} =
+      $Weather{WindAvgDir};    # Because rrd wants this and we dont have it
+    foreach my $key (@weather_vars) {
+        print_log "Weather:: key: $key data: $Weather{$key}" if $Debug{oww};
+    }
+    &weather_updated;
 }
 
+# ----------------------------------------------------------------------------
 
+if ( $state = said $ibws_v) {
+    print_log "${state}ing the ibutton weather station client";
+
+    if ( $state eq 'Start' ) {
+        unless ( active $ibws) {
+            print_log 'Starting a connection to ibws';
+            start $ibws;
+        }
+
+    }
+    elsif ( $state eq 'Stop' and active $ibws) {
+        print_log "closing ibws";
+        stop $ibws;
+
+    }
+    elsif ( $state eq 'Speak' ) {
+        my $msg =
+          "\nThe Current temperature is $Weather{TempOutdoor}\nA high of $Weather{TempOutdoorHigh}\nA low of $Weather{TempOutdoorLow}.\n";
+        $msg .=
+          "Current Wind Speed is $Weather{WindAvgSpeed} miles per hour\nGusts of $Weather{WindSpeedPeak}\nHigh of $Weather{WindSpeedHigh}.\nWind Direction is $direction[$Weather{WindDir}]\nWind direction average $direction[$Weather{WindAvgDir}].\n";
+
+        #   $msg .= "The Current Rainfall Rate is $Weather{RainRate} inches per hour.\nToday's total rainfall is $Weather{RainTotal} inches\n$Weather{RainWeek} inches for the week\n$Weather{RainMonth} inches for the month.\n";
+        print_log $msg;
+        speak $msg;
+    }
+}
 

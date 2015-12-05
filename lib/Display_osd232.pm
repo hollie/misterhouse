@@ -1,3 +1,4 @@
+
 =head1 B<Display_osd232>
 
 =head2 SYNOPSIS
@@ -19,74 +20,77 @@ B<NONE>
 =cut
 
 use strict;
+
 package Display_osd232;
 
 use vars qw(@ISA @EXPORT @EXPORT_OK);
 
 require Exporter;
 
-@ISA=qw(Exporter);
+@ISA = qw(Exporter);
 
-@EXPORT=qw(
-osdCLRblack
-osdCLRblue
-oseCLRgreen
-osdCLRcyan
-osdCLRred
-osdCLRmagenta
-osdCLRyellow
-osdCLRwhite
-osdCTLcolor
+@EXPORT = qw(
+  osdCLRblack
+  osdCLRblue
+  oseCLRgreen
+  osdCLRcyan
+  osdCLRred
+  osdCLRmagenta
+  osdCLRyellow
+  osdCLRwhite
+  osdCTLcolor
 );
 
-use constant osdCLRblack=>0;
-use constant osdCLRblue=>1;
-use constant osdCLRgreen=>2;
-use constant osdCLRcyan=>3;
-use constant osdCLRred=>4;
-use constant osdCLRmagenta=>5;
-use constant osdCLRyellow=>6;
-use constant osdCLRwhite=>7;
+use constant osdCLRblack   => 0;
+use constant osdCLRblue    => 1;
+use constant osdCLRgreen   => 2;
+use constant osdCLRcyan    => 3;
+use constant osdCLRred     => 4;
+use constant osdCLRmagenta => 5;
+use constant osdCLRyellow  => 6;
+use constant osdCLRwhite   => 7;
 
-use constant osdCTLmode=>128;		# parm=1: 0=overlay, 1=full screen
-use constant osdCTLposition=>129;	# parm=2: xpos(1-28), ypos(1-11)
-use constant osdCTLclear=>130;		# parm=0: (wait 10 ms after command sent)
-use constant osdCTLvisible=>131;	# parm=1: 0=hide text, 1=show text
-use constant osdCTLtranslucent=>132;	# parm=1: 0=off, 1=on
-use constant osdCTLbgcolor=>133;	# parm=1: see osdCLRxxxxxx above
-use constant osdCTLzoom=>134;		# parm=3: zoom row (1-11), h-zoom (1-4), v-zoom (1-4)
-use constant osdCTLcolor=>135;		# parm-1: see osdCLRxxxxxx above
-use constant osdCTLblink=>136;		# parm=1: 0=off, 1=on
-use constant osdCTLreset=>137;		# parm=0: (wait 10 ms after command sent)
-use constant osdCTLvertoff=>138;	# parm=1: vertical position offset (1-63)
-use constant osdCTLhorzoff=>139;	# parm=1: horizontal position offset (1-58)
-use constant osdCTLframe=>140;		# parm=1: black character frame 0=off, 1=on
+use constant osdCTLmode        => 128; # parm=1: 0=overlay, 1=full screen
+use constant osdCTLposition    => 129; # parm=2: xpos(1-28), ypos(1-11)
+use constant osdCTLclear       => 130; # parm=0: (wait 10 ms after command sent)
+use constant osdCTLvisible     => 131; # parm=1: 0=hide text, 1=show text
+use constant osdCTLtranslucent => 132; # parm=1: 0=off, 1=on
+use constant osdCTLbgcolor     => 133; # parm=1: see osdCLRxxxxxx above
+use constant osdCTLzoom =>
+  134;    # parm=3: zoom row (1-11), h-zoom (1-4), v-zoom (1-4)
+use constant osdCTLcolor   => 135;   # parm-1: see osdCLRxxxxxx above
+use constant osdCTLblink   => 136;   # parm=1: 0=off, 1=on
+use constant osdCTLreset   => 137;   # parm=0: (wait 10 ms after command sent)
+use constant osdCTLvertoff => 138;   # parm=1: vertical position offset (1-63)
+use constant osdCTLhorzoff => 139;   # parm=1: horizontal position offset (1-58)
+use constant osdCTLframe   => 140;   # parm=1: black character frame 0=off, 1=on
 
 sub new {
-    my $classname  = shift;         # What class are we constructing?
-    my $this = {};             # Allocate new memory
+    my $classname = shift;           # What class are we constructing?
+    my $this      = {};              # Allocate new memory
 
-    bless($this, $classname);       # Mark it of the right type
-    $this->_init(@_);               # Call _init with remaining args
+    bless( $this, $classname );      # Mark it of the right type
+    $this->_init(@_);                # Call _init with remaining args
     return $this;
 }
 
 sub _init {
     my $this = shift;
 
-    $this->{PAGES} = {};	# Hash to store the pages
-    $this->{pagecount}=0;
-    $this->{currentpage}=0;
-    $this->{fliptimer}=&Timer::new();
-    $this->{flipping}=0;
-    $this->{fliparray}=[];	# Array to store list of flip-able pages
-    if (@_) {			# Save any other initialization parameters
+    $this->{PAGES}       = {};              # Hash to store the pages
+    $this->{pagecount}   = 0;
+    $this->{currentpage} = 0;
+    $this->{fliptimer}   = &Timer::new();
+    $this->{flipping}    = 0;
+    $this->{fliparray} = [];    # Array to store list of flip-able pages
+    if (@_) {                   # Save any other initialization parameters
         my %extra = @_;
-        @$this{keys %extra} = values %extra;
+        @$this{ keys %extra } = values %extra;
     }
-    $this->{PORT}="/dev/osd232" unless $this->{PORT};
-    $this->{SPEED}="4800" unless $this->{SPEED};
-    &main::serial_port_create('osd232',$this->{PORT},$this->{SPEED},'none','raw');
+    $this->{PORT}  = "/dev/osd232" unless $this->{PORT};
+    $this->{SPEED} = "4800"        unless $this->{SPEED};
+    &main::serial_port_create( 'osd232', $this->{PORT}, $this->{SPEED}, 'none',
+        'raw' );
     $this->reset();
 }
 
@@ -100,12 +104,12 @@ sub addpage {
     my $this = shift;
 
     if (@_) {
-	my $pageref = shift;
-	$this->{PAGES}->{$pageref->pagename()}=$pageref;
-	$this->{pagecount}++;
-	if ($pageref->flip()) {
-	    push(@{$this->{fliparray}},$pageref->pagename());
-	}
+        my $pageref = shift;
+        $this->{PAGES}->{ $pageref->pagename() } = $pageref;
+        $this->{pagecount}++;
+        if ( $pageref->flip() ) {
+            push( @{ $this->{fliparray} }, $pageref->pagename() );
+        }
     }
 }
 
@@ -119,10 +123,12 @@ sub deletepage {
     my $this = shift;
 
     if (@_) {
-	my $pagename=shift;
-	delete $this->{PAGES}->{$pagename} if exists $this->{PAGES}->{$pagename};
-	$this->{pagecount}--;
-	# (***need code to re-do fliparray)
+        my $pagename = shift;
+        delete $this->{PAGES}->{$pagename}
+          if exists $this->{PAGES}->{$pagename};
+        $this->{pagecount}--;
+
+        # (***need code to re-do fliparray)
     }
 }
 
@@ -136,8 +142,9 @@ sub printpage {
     my $this = shift;
 
     if (@_) {
-	my $pagename = shift;
-	$this->{PAGES}->{$pagename}->print() if exists $this->{PAGES}->{$pagename};
+        my $pagename = shift;
+        $this->{PAGES}->{$pagename}->print()
+          if exists $this->{PAGES}->{$pagename};
     }
 }
 
@@ -150,10 +157,10 @@ Start flipping between the defined pages
 sub startflipping {
     my $this = shift;
 
-    my $flipcount=@{$this->{fliparray}};
-    if ($flipcount>0) {
-    &Timer::set($this->{fliptimer},$this->currentfliprate());
-	$this->{flipping}=1;
+    my $flipcount = @{ $this->{fliparray} };
+    if ( $flipcount > 0 ) {
+        &Timer::set( $this->{fliptimer}, $this->currentfliprate() );
+        $this->{flipping} = 1;
     }
 }
 
@@ -166,10 +173,10 @@ Stop flipping pages, the screen will be left on whatever page was last displayed
 sub stopflipping {
     my $this = shift;
 
-    if ($this->flipping()) {
-	$this->{flipping}=0;
+    if ( $this->flipping() ) {
+        $this->{flipping} = 0;
     }
-    &Timer::stop($this->{fliptimer});
+    &Timer::stop( $this->{fliptimer} );
 }
 
 =item C<flippage()>
@@ -178,15 +185,15 @@ Flip to the next page (*** need option to flip to specific page)
 
 =cut
 
-sub flippage{
+sub flippage {
     my $this = shift;
 
     $this->{currentpage}++;
-    if ($this->{currentpage} > (@{$this->{fliparray}}-1)) {
-	$this->{currentpage}=0;
+    if ( $this->{currentpage} > ( @{ $this->{fliparray} } - 1 ) ) {
+        $this->{currentpage} = 0;
     }
-    $this->showpage(@{$this->{fliparray}}[$this->{currentpage}]);
-    &Timer::set($this->{fliptimer},$this->currentfliprate());
+    $this->showpage( @{ $this->{fliparray} }[ $this->{currentpage} ] );
+    &Timer::set( $this->{fliptimer}, $this->currentfliprate() );
 }
 
 =item C<currentfliprate()>
@@ -195,9 +202,9 @@ Get the length of time to display the current page we're flipping to. This is ei
 
 =cut
 
-sub currentfliprate{
-    my $this = shift;
-    my $pagename=@{$this->{fliparray}}[$this->{currentpage}];
+sub currentfliprate {
+    my $this     = shift;
+    my $pagename = @{ $this->{fliparray} }[ $this->{currentpage} ];
 
     return $this->fliprate() unless $this->{PAGES}->{$pagename}->fliprate();
     return $this->{PAGES}->{$pagename}->fliprate();
@@ -251,10 +258,11 @@ Reset the osd232 requires minimum of 10ms delay after reset command
 sub reset {
     my $this = shift;
 
-    $main::Serial_Ports{osd232}{object}->write(chr(osdCTLreset));
-    select undef, undef, undef, 0.02; # delay 20ms just to be safe
-    $this->{overlay}=1 unless $this->{overlay};
-    $main::Serial_Ports{osd232}{object}->write(chr(osdCTLmode).chr($this->{overlay}));
+    $main::Serial_Ports{osd232}{object}->write( chr(osdCTLreset) );
+    select undef, undef, undef, 0.02;    # delay 20ms just to be safe
+    $this->{overlay} = 1 unless $this->{overlay};
+    $main::Serial_Ports{osd232}{object}
+      ->write( chr(osdCTLmode) . chr( $this->{overlay} ) );
     $this->clearscreen();
 }
 
@@ -265,8 +273,8 @@ Clear the osd232 display requires minimum of 10ms delay after command
 =cut
 
 sub clearscreen {
-    $main::Serial_Ports{osd232}{object}->write(chr(osdCTLclear));
-    select undef, undef, undef, 0.02; # delay 20ms just to be safe
+    $main::Serial_Ports{osd232}{object}->write( chr(osdCTLclear) );
+    select undef, undef, undef, 0.02;    # delay 20ms just to be safe
 }
 
 =item C<showdisplay()>
@@ -276,7 +284,7 @@ Show the current osd232 display text on the video output signal (***Combine show
 =cut
 
 sub showdisplay {
-    $main::Serial_Ports{osd232}{object}->write(chr(osdCTLvisible).chr(1));
+    $main::Serial_Ports{osd232}{object}->write( chr(osdCTLvisible) . chr(1) );
 }
 
 =item C<hidedisplay()>
@@ -286,7 +294,7 @@ hide the current osd232 display text on the video output signal
 =cut
 
 sub hidedisplay {
-    $main::Serial_Ports{osd232}{object}->write(chr(osdCTLvisible).chr(0));
+    $main::Serial_Ports{osd232}{object}->write( chr(osdCTLvisible) . chr(0) );
 }
 
 =item C<background(COLOR)>
@@ -296,9 +304,10 @@ set the display background color
 =cut
 
 sub background {
-    my ($this,$color) = @_;
+    my ( $this, $color ) = @_;
 
-    $main::Serial_Ports{osd232}{object}->write(chr(osdCTLbgcolor).chr($color));
+    $main::Serial_Ports{osd232}{object}
+      ->write( chr(osdCTLbgcolor) . chr($color) );
 }
 
 =item C<showpage(PAGE NAME)>
@@ -308,14 +317,14 @@ write a page of text to the osd232 buffer
 =cut
 
 sub showpage {
-    my ($this,$pagename)=@_;
+    my ( $this, $pagename ) = @_;
 
-    if (exists $this->{PAGES}->{$pagename}) {
-	$this->hidedisplay();
-	$this->clearscreen();
-	$this->background($this->{PAGES}->{$pagename}->bgcolor());
+    if ( exists $this->{PAGES}->{$pagename} ) {
+        $this->hidedisplay();
+        $this->clearscreen();
+        $this->background( $this->{PAGES}->{$pagename}->bgcolor() );
         $this->{PAGES}->{$pagename}->writedisplay();
-	$this->showdisplay();
+        $this->showdisplay();
     }
 }
 
@@ -379,11 +388,11 @@ B<NONE>
 package Display_osd232page;
 
 sub new {
-    my $classname  = shift;         # What class are we constructing?
-    my $this = {};             # Allocate new memory
+    my $classname = shift;    # What class are we constructing?
+    my $this      = {};       # Allocate new memory
 
-    bless($this, $classname);       # Mark it of the right type
-    $this->_init(@_);               # Call _init with remaining args
+    bless( $this, $classname );    # Mark it of the right type
+    $this->_init(@_);              # Call _init with remaining args
     return $this;
 }
 
@@ -393,12 +402,14 @@ sub _init {
 
     if (@_) {
         my %extra = @_;
-        @$this{keys %extra} = values %extra;
+        @$this{ keys %extra } = values %extra;
     }
     $this->pagename("Page") unless $this->pagename();
+
     #if a default background color isn't passed as a parameter
     #set this pages background to black
     $this->bgcolor(0) unless $this->{BGCOLOR};
+
     # flip to added pages by default unless explicity told not to
     $this->flip(1) unless $this->{FLIP};
 }
@@ -477,9 +488,9 @@ sub addline {
     my $this = shift;
 
     if (@_) {
-    	my $line=shift;
+        my $line  = shift;
         my %extra = @_;
-	$this->{LINES}->{$line}={%extra};
+        $this->{LINES}->{$line} = {%extra};
     }
 }
 
@@ -493,10 +504,12 @@ sub deleteline {
     my $this = shift;
 
     if (@_) {
-        my $linename=shift;
-        delete $this->{LINES}->{$linename} if exists $this->{LINES}->{$linename};
+        my $linename = shift;
+        delete $this->{LINES}->{$linename}
+          if exists $this->{LINES}->{$linename};
     }
 }
+
 =item C<values(LINE NAME,VALUE HASH KEY)>
 
 set or return a value from a lines hash
@@ -506,7 +519,7 @@ set or return a value from a lines hash
 sub linekeyvalue {
     my $this = shift;
     my $line = shift;
-    my $key = shift;
+    my $key  = shift;
 
     if (@_) { $this->{LINES}->{$line}->{$key} = shift }
     return $this->{LINES}->{$line}->{$key};
@@ -519,9 +532,9 @@ A convenience function to change the text of a line.
 =cut
 
 sub settext {
-    my ($this,$line,$value)=@_;
+    my ( $this, $line, $value ) = @_;
 
-    $this->linekeyvalue($line,"TEXT",$value);
+    $this->linekeyvalue( $line, "TEXT", $value );
 }
 
 =item C<print()>
@@ -535,16 +548,16 @@ sub print {
     my $line;
     my $element;
 
-    print "Page: ".$this->{PAGENAME}."\n\n";
-    foreach $line (keys %{$this->{LINES}}) {
-	print "Line: ".$line."\n";
-	foreach $element (keys %{$this->{LINES}->{$line}}) {
+    print "Page: " . $this->{PAGENAME} . "\n\n";
+    foreach $line ( keys %{ $this->{LINES} } ) {
+        print "Line: " . $line . "\n";
+        foreach $element ( keys %{ $this->{LINES}->{$line} } ) {
             print $element;
-	    print " : ";
-	    print $this->{LINES}->{$line}->{$element};
-	    print "\n";
-	}
-    print "\n";
+            print " : ";
+            print $this->{LINES}->{$line}->{$element};
+            print "\n";
+        }
+        print "\n";
     }
 }
 
@@ -555,24 +568,30 @@ Write the content of all lines to the osd232 display memory.  Note that whether 
 =cut
 
 sub writedisplay {
-    my $this=shift;
+    my $this = shift;
     my $line;
     my $outstring;
 
-    foreach $line (keys %{$this->{LINES}}) {
-	if ($this->{LINES}->{$line}->{'X'} && $this->{LINES}->{$line}->{'Y'}) {
-	    $outstring=chr(129).chr($this->{LINES}->{$line}->{'X'}).chr($this->{LINES}->{$line}->{'Y'});
-	}
-	if ($this->{LINES}->{$line}->{'TEXTCOLOR'}) {
-	    $outstring=$outstring.chr(135).chr($this->{LINES}->{$line}->{'TEXTCOLOR'});
-	}
-	$outstring=$outstring.$this->{LINES}->{$line}->{'TEXT'};
-	$main::Serial_Ports{osd232}{object}->write($outstring);
+    foreach $line ( keys %{ $this->{LINES} } ) {
+        if ( $this->{LINES}->{$line}->{'X'} && $this->{LINES}->{$line}->{'Y'} )
+        {
+            $outstring =
+                chr(129)
+              . chr( $this->{LINES}->{$line}->{'X'} )
+              . chr( $this->{LINES}->{$line}->{'Y'} );
+        }
+        if ( $this->{LINES}->{$line}->{'TEXTCOLOR'} ) {
+            $outstring =
+                $outstring
+              . chr(135)
+              . chr( $this->{LINES}->{$line}->{'TEXTCOLOR'} );
+        }
+        $outstring = $outstring . $this->{LINES}->{$line}->{'TEXT'};
+        $main::Serial_Ports{osd232}{object}->write($outstring);
     }
 }
 
 1;
-
 
 =back
 

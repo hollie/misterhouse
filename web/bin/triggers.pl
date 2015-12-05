@@ -9,13 +9,13 @@ This code is used to list and manipulate triggers.  See
 =cut
 
 use strict;
-$^W = 0;                        # Avoid redefined sub msgs
+$^W = 0;    # Avoid redefined sub msgs
 
-my ($function, @parms) = @ARGV;
+my ( $function, @parms ) = @ARGV;
 
 #print "dbx a=@ARGV.\n";
 
-if ($function eq 'add') {
+if ( $function eq 'add' ) {
     return &web_trigger_add();
 }
 else {
@@ -24,16 +24,18 @@ else {
 
 sub web_trigger_list {
 
-    &_triggers_save;             # Check for changes to write out
+    &_triggers_save;    # Check for changes to write out
 
-                                # Create header and 'add a trigger' form
+    # Create header and 'add a trigger' form
     my $html = &html_header('Triggers Menu');
 
-    my $form_trigger = &html_form_select('trigger1', 0, 'time_now', '',
-          qw(time_now time_cron time_random new_second new_minute new_hour $New_Hour $New_Day $New_Week $New_Month $New_Year));
+    my $form_trigger = &html_form_select( 'trigger1', 0, 'time_now', '',
+        qw(time_now time_cron time_random new_second new_minute new_hour $New_Hour $New_Day $New_Week $New_Month $New_Year)
+    );
 
-    my $form_code    = &html_form_select('code1', 0, 'speak', '',
-          qw(speak play display print_log set run run_voice_cmd net_im_send net_mail_send get));
+    my $form_code = &html_form_select( 'code1', 0, 'speak', '',
+        qw(speak play display print_log set run run_voice_cmd net_im_send net_mail_send get)
+    );
 
     $html = qq|
 <HTML>
@@ -76,28 +78,40 @@ $form_code
 
 |;
 
-                                # Add an index
+    # Add an index
     $html .= "<a href=/bin/triggers.pl>Refresh</a>\n";
     $html .= "<B>Trigger Index: <B>\n";
-    for my $category ('OneShot', 'NoExpire', 'Disabled', 'Expired') {
+    for my $category ( 'OneShot', 'NoExpire', 'Disabled', 'Expired' ) {
         $html .= "<a href='#$category'>$category</a>\n";
     }
 
     my $type_prev;
-                                # Sort in indexed order
-    for my $name (sort {my $t1 = $triggers{$a}{type};  my $t2 = $triggers{$b}{type};
-                        $t1 = 0 if $t1 eq 'OneShot';  $t2 = 0 if $t2 eq 'OneShot';
-                        $t1 = 1 if $t1 eq 'NoExpire'; $t2 = 1 if $t2 eq 'NoExpire';
-                        $t1 cmp $t2 or lc $a cmp lc $b} keys %triggers) {
 
-        my ($trigger, $code, $type, $triggered, $trigger_error, $code_error) = trigger_get($name);
+    # Sort in indexed order
+    for my $name (
+        sort {
+            my $t1 = $triggers{$a}{type};
+            my $t2 = $triggers{$b}{type};
+            $t1 = 0 if $t1 eq 'OneShot';
+            $t2 = 0 if $t2 eq 'OneShot';
+            $t1 = 1 if $t1 eq 'NoExpire';
+            $t2 = 1 if $t2 eq 'NoExpire';
+            $t1 cmp $t2 or lc $a cmp lc $b
+        } keys %triggers
+      )
+    {
 
-        if ($type_prev ne $type) {
+        my ( $trigger, $code, $type, $triggered, $trigger_error, $code_error )
+          = trigger_get($name);
+
+        if ( $type_prev ne $type ) {
             $html .= "</table>\n" if $type_prev;
-            $type_prev =  $type;
-            $html .= "<p><B>$type:</B> (<a name='$type' href='#Top'>back to top</a>)\n";
+            $type_prev = $type;
+            $html .=
+              "<p><B>$type:</B> (<a name='$type' href='#Top'>back to top</a>)\n";
             $html .= qq|<table class="EditTrigger" border width="100%">\n|;
-            $html .= "<tr><th></th><th>Name</th><th>Trigger Event</th><th>Action Code</th><th>Type</th><th>Last Run</th></tr>\n";
+            $html .=
+              "<tr><th></th><th>Name</th><th>Trigger Event</th><th>Action Code</th><th>Type</th><th>Last Run</th></tr>\n";
         }
 
         my $name2 = $name;
@@ -107,69 +121,91 @@ $form_code
         $code =~ s/"/&quot;/g;
 
         $html .= "<td>";
-        $html .= "<a href=/SUB;/bin/triggers.pl?trigger_copy('$name2')>Copy</a>\n";
-        $html .= "    <a href=/SUB;/bin/triggers.pl?trigger_delete('$name2')>Delete</a>\n";
-        $html .= "    <a href=/SUB;/bin/triggers.pl?trigger_run('$name2')>Run</a></td>\n";
+        $html .=
+          "<a href=/SUB;/bin/triggers.pl?trigger_copy('$name2')>Copy</a>\n";
+        $html .=
+          "    <a href=/SUB;/bin/triggers.pl?trigger_delete('$name2')>Delete</a>\n";
+        $html .=
+          "    <a href=/SUB;/bin/triggers.pl?trigger_run('$name2')>Run</a></td>\n";
 
-        $html .= &html_form_input_set_func('trigger_rename', '/bin/triggers.pl', $name, $name);
+        $html .=
+          &html_form_input_set_func( 'trigger_rename', '/bin/triggers.pl',
+            $name, $name );
         $html .= qq|<span class="error">\n| if $trigger_error;
-        $html .= &html_form_input_set_func('trigger_set_trigger', '/bin/triggers.pl', $name, $trigger);
+        $html .=
+          &html_form_input_set_func( 'trigger_set_trigger', '/bin/triggers.pl',
+            $name, $trigger );
         $html .= "</span>\n" if $trigger_error;
         $html .= qq|<span class="error">\n| if $code_error;
-        $html .= &html_form_input_set_func('trigger_set_code', '/bin/triggers.pl', $name, $code);
+        $html .=
+          &html_form_input_set_func( 'trigger_set_code', '/bin/triggers.pl',
+            $name, $code );
         $html .= "</span>\n" if $code_error;
-        $html .= &html_form_select_set_func('trigger_set_type', '/bin/triggers.pl', $name, $type,
-                                  'OneShot', 'NoExpire', 'Disabled', 'Expired');
+        $html .=
+          &html_form_select_set_func( 'trigger_set_type', '/bin/triggers.pl',
+            $name, $type, 'OneShot', 'NoExpire', 'Disabled', 'Expired' );
 
         if ($triggered) {
-            my $triggered_date = &time_date_stamp(7, $triggered) if $triggered;
+            my $triggered_date = &time_date_stamp( 7, $triggered )
+              if $triggered;
             $html .= "<td>$triggered_date</td>\n";
         }
 
         $html .= "</tr>\n\n";
 
-        $html .= qq|<tr class="error">\n\n<td colspan=7>Trigger Event Error: $trigger_error</td></tr>\n|  
+        $html .=
+          qq|<tr class="error">\n\n<td colspan=7>Trigger Event Error: $trigger_error</td></tr>\n|
           if $trigger_error;
-        $html .= qq|<tr class="error">\n\n<td colspan=7>Action Code Error: $code_error</td></tr>\n| 
+        $html .=
+          qq|<tr class="error">\n\n<td colspan=7>Action Code Error: $code_error</td></tr>\n|
           if $code_error;
     }
     $html .= "</table>\n";
-    return &html_page('', $html);
+    return &html_page( '', $html );
 }
 
 sub web_trigger_add {
-                                # Allow un-authorized users to browse only (if listed in password_allow)
-    return &html_page('', 'Not authorized to make updates') unless $Authorized eq 'admin';
 
-                                # Process form
+    # Allow un-authorized users to browse only (if listed in password_allow)
+    return &html_page( '', 'Not authorized to make updates' )
+      unless $Authorized eq 'admin';
+
+    # Process form
     if (@parms) {
-#       print "db p=@parms\n";
+
+        #       print "db p=@parms\n";
         my %p;
         for my $p (@parms) {
             $p{$1} = $2 if $p =~ /(.+?)=(.+)/;
         }
-        my $trigger = ($p{trigger1}) ? "$p{trigger1} '$p{trigger2}'" : $p{trigger2};
+        my $trigger =
+          ( $p{trigger1} ) ? "$p{trigger1} '$p{trigger2}'" : $p{trigger2};
         my $code;
-        if ($p{code1}) {
-          unless ($p{code1} eq 'set') {
-		$p{code2} =~ s/\'/\\'/g;
-		$p{code2} = "'$p{code2}'";
-	    }
+        if ( $p{code1} ) {
+            unless ( $p{code1} eq 'set' ) {
+                $p{code2} =~ s/\'/\\'/g;
+                $p{code2} = "'$p{code2}'";
+            }
             $code = "$p{code1} $p{code2}";
         }
         else {
             $code = $p{code2};
         }
-#       print "db t=$trigger c=$code\n";
-        &trigger_set($trigger, $code, $p{type}, $p{name});
+
+        #       print "db t=$trigger c=$code\n";
+        &trigger_set( $trigger, $code, $p{type}, $p{name} );
         return &http_redirect('/bin/triggers.pl');
     }
-                                # Create form
+
+    # Create form
     else {
-        my $html = "Add a trigger:<form action='/bin/triggers.pl?add' method=post>\n";
+        my $html =
+          "Add a trigger:<form action='/bin/triggers.pl?add' method=post>\n";
         $html .= qq|<br>Name   <input type=input name=name    value="Test">\n|;
-        $html .= qq|<br>Trigger<input type=input name=trigger value="time_now '12 pm'">\n|;
-        $html .= qq|<br>Event  <input type=input name=code    value="speak 'hi'">\n|;
+        $html .=
+          qq|<br>Trigger<input type=input name=trigger value="time_now '12 pm'">\n|;
+        $html .=
+          qq|<br>Event  <input type=input name=code    value="speak 'hi'">\n|;
         $html .= qq|<br>Type <select name='type'>
 <option value='OneShot' selected>OneShot</option>
 <option value='NoExpire'>NoExpire</option>
@@ -178,6 +214,6 @@ sub web_trigger_add {
 </select>
 |;
         $html .= qq|<br><input type=submit value='Create'></form>\n|;
-        return &html_page('', $html);
+        return &html_page( '', $html );
     }
 }
