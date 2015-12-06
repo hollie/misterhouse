@@ -8,8 +8,7 @@
 use strict;
 use Text::ParseWords;
 require 'http_utils.pl';
-$main::Debug{http} = 4;
-use Data::Dumper;
+#use Data::Dumper;
 #no warnings 'uninitialized';   # These seem to always show up.  Dang, will not work with 5.0
 
 use vars qw(%Http %Cookies %Included_HTML %HTTP_ARGV $HTTP_REQUEST $HTTP_BODY $HTTP_REQ_TYPE);
@@ -174,8 +173,8 @@ sub http_process_request {
 
     $Socket_Ports{http}{data_record} = $header;
 	print "http: Header = $header\n" if $main::Debug{http};
-	print Dumper %Http if $main::Debug{http};
-	print "http: Range Header encountered: $Http{Range}\n" if (defined $Http{Range});
+	#print Dumper %Http if $main::Debug{http};
+	print "http: Range Header $Http{Range} encountered for $header\n" if (defined $Http{Range});
     $Http{loop}    = $Loop_Count; # Track which pass we last processes a web request
     $Http{request} = $header;
     $Http{Referer} = '' unless $Http{Referer}; # Avoid uninitilized var errors
@@ -1498,10 +1497,14 @@ sub html_file {
         }
         my $full_length = length $data;
         
+        # yes, this is somewhat inefficient to read in the whole file only to then
+        # take a subset of the requested bytes. There are more effective means however
+        # since this is only in place to stream wav speak files to safari clients, it
+        # minimizes the overall change to http_server.
         if (defined $Http{Range}) {
         	my ($start,$end) = $Http{Range} =~ /bytes=(\d*)-(\d*)/;
         	$end = (length $data) - $start if ($end eq "");
-        	print "http:start=$start end=$end\n";
+        	print "http:start=$start end=$end\n" if ($main::Debug{http});
         	my $tmpdata = substr $data, $start, $end;
         	$data = $tmpdata;
         }
@@ -1670,8 +1673,14 @@ sub mime_header {
 
                                 # Allow for a length header, as this allows for faster 'persistant' connections
     $header .= "Content-Length: $length\n" if $length;
-    (my $range_bytes) = $range =~ /bytes=(.*)/;
-	$header .= "Content-Range: bytes " . $range_bytes . "/" . $full_length . "\n" if $range_bytes;
+    #(my $range_bytes) = $range =~ /bytes=(.*)/;
+    my ($start,$end) = $range =~ /bytes=(\d*)-(\d*)/;
+    $end = ($full_length) - $start - 1 if ($end eq "");
+	#$header .= "Content-Range: bytes " . $range_bytes . "/" . $full_length . "\n" if $range_bytes;
+	#print "http: Server responds: bytes " . $range_bytes . "/" . $full_length . "\n" if $range_bytes;
+	$header .= "Content-Range: bytes " . $start . "-" . $end . "/" . $full_length . "\n" if $range;
+	print "http: Server responds: bytes " . $start . "-" . $end . "/" . $full_length . "\n" if $range;
+
 	$header .= "Accept-Ranges: bytes\n";
 	
 	print "returned header = $header\n";

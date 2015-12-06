@@ -170,6 +170,7 @@ sub json_get {
 				
 		eval {
 		   my $json_collections = file_read($collection_file);
+		   $json_collections =~ s/\$config_parms\{(.+?)\}/$config_parms{$1}/gs;
 		   $json_data{'collections'} = decode_json($json_collections); #HP, wrap this in eval to prevent MH crashes
 		};
 		if ($@){
@@ -886,6 +887,7 @@ sub filter_object {
 sub json_page {
 	my ($json_raw) = @_;
 	my $json;
+	#utf8::encode( $json_raw ); #may need to wrap gzip in an eval and encode it if errors develop. It crashes if a < is in the text
 	gzip \$json_raw => \$json;
 	my $output = "HTTP/1.0 200 OK\r\n";
 	$output .= "Server: MisterHouse\r\n";

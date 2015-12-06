@@ -995,6 +995,7 @@ var get_notifications = function(time) {
 								//webaudio_play(url);
 							} else {
 								audio_play(document.getElementById('sound_element'),url)
+								//webaudio_play(url);
 
 //								var audioElement = document.createElement('audio');
 //								audioElement.setAttribute('src', url);				
@@ -1081,10 +1082,10 @@ var webaudio_play = function(url) {
 function audio_play(audioElement,srcUrl)
 {
   console.log ("in Audio2:"+srcUrl);
-  audioElement.pause();
+  //audioElement.pause();
   audioElement.src=''; //force playback to stop and quit buffering. Not sure if this is strictly necessary.
   audioElement.src=srcUrl;
-  audioElement.currentSrc=srcUrl;
+  //audioElement.currentSrc=srcUrl;
   audioElement.load();
   playWhenReady();
 }
@@ -1093,6 +1094,7 @@ function playWhenReady()
 {//wait for media element to be ready, then play
   audioElement=document.getElementById('sound_element');
   var audioReady=audioElement.readyState;
+  console.log("playWhenReady = "+audioReady);
   audioElement.play();
   if(audioReady>2) {
     audioElement.play();
