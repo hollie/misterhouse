@@ -987,24 +987,12 @@ var get_notifications = function(time) {
 						// add in other banner_types
 						//console.log("type="+type);
 						if ((type == "sound" ) || ((type == "speech") && (speech_sound == "yes"))) {
-							if (webaudio_device == "yes") {
-								//window.addEventListener("load", function() {
-									console.log("WebAudio Device");
-								//	webaudio_play(url);
-								//	},true);
+//							if (webaudio_device == "yes") {
 								//webaudio_play(url);
-							} else {
+//							} else {
 								audio_play(document.getElementById('sound_element'),url)
 								//webaudio_play(url);
-
-//								var audioElement = document.createElement('audio');
-//								audioElement.setAttribute('src', url);				
-//    							audioElement.setAttribute('autoplay', 'autoplay');
-//								$.get();
-//    							audioElement.addEventListener("load", function() {
-//            						audioElement.play();
-//    								}, true);
-    						}		
+//    						}		
 						}
 						if (type == "banner" || ((type == "speech") && (speech_banner == "yes"))) {
 							var alert_type = "info";
@@ -1040,6 +1028,7 @@ var get_notifications = function(time) {
 };
 
 var webaudio_device = function() {
+	//placeholder to turn on webaudio in the future
 	if (json_store.ia7_config.prefs.webaudio !== undefined) {
 		if (json_store.ia7_config.prefs.webaudio === "yes") {
 			return "yes";
@@ -1057,7 +1046,7 @@ var webaudio_device = function() {
 
 var webaudio_play = function(url) {
 	console.log("webaudio play "+url);
-	ctx = new webkitAudioContext(); //is there a better API for this?
+	ctx = new webkitAudioContext(); //There are 2 APIs? AudioContext and webkitAudioContext?
     var req = new XMLHttpRequest();
     req.open("GET",url,true);
     req.responseType = "arraybuffer";
@@ -1081,11 +1070,12 @@ var webaudio_play = function(url) {
 
 function audio_play(audioElement,srcUrl)
 {
-  console.log ("in Audio2:"+srcUrl);
-  //audioElement.pause();
+  console.log ("in audio_play:"+srcUrl);
+  audioElement.pause();
   audioElement.src=''; //force playback to stop and quit buffering. Not sure if this is strictly necessary.
+  $("#sound_element2").attr("src", srcUrl);  
   audioElement.src=srcUrl;
-  //audioElement.currentSrc=srcUrl;
+  audioElement.currentSrc=srcUrl;
   audioElement.load();
   playWhenReady();
 }
@@ -1095,7 +1085,7 @@ function playWhenReady()
   audioElement=document.getElementById('sound_element');
   var audioReady=audioElement.readyState;
   console.log("playWhenReady = "+audioReady);
-  audioElement.play();
+  //audioElement.play();
   if(audioReady>2) {
     audioElement.play();
   } else if(audioElement.error) {
@@ -1105,11 +1095,6 @@ function playWhenReady()
       setTimeout(playWhenReady,500);
   }
 }
-
-
-
-
-
 
 
 

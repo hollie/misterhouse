@@ -9,6 +9,7 @@ use strict;
 use Text::ParseWords;
 require 'http_utils.pl';
 #use Data::Dumper;
+#$main::Debug{http} = 4;
 #no warnings 'uninitialized';   # These seem to always show up.  Dang, will not work with 5.0
 
 use vars qw(%Http %Cookies %Included_HTML %HTTP_ARGV $HTTP_REQUEST $HTTP_BODY $HTTP_REQ_TYPE);
@@ -174,7 +175,7 @@ sub http_process_request {
     $Socket_Ports{http}{data_record} = $header;
 	print "http: Header = $header\n" if $main::Debug{http};
 	#print Dumper %Http if $main::Debug{http};
-	print "http: Range Header $Http{Range} encountered for $header\n" if (defined $Http{Range});
+	print "http: Range Header $Http{Range} encountered for $header" if (defined $Http{Range});
     $Http{loop}    = $Loop_Count; # Track which pass we last processes a web request
     $Http{request} = $header;
     $Http{Referer} = '' unless $Http{Referer}; # Avoid uninitilized var errors
@@ -1679,11 +1680,11 @@ sub mime_header {
 	#$header .= "Content-Range: bytes " . $range_bytes . "/" . $full_length . "\n" if $range_bytes;
 	#print "http: Server responds: bytes " . $range_bytes . "/" . $full_length . "\n" if $range_bytes;
 	$header .= "Content-Range: bytes " . $start . "-" . $end . "/" . $full_length . "\n" if $range;
-	print "http: Server responds: bytes " . $start . "-" . $end . "/" . $full_length . "\n" if $range;
+	print "http: Server responds: HTTP/1.1 206; bytes " . $start . "-" . $end . "/" . $full_length . "\n" if $range;
 
 	$header .= "Accept-Ranges: bytes\n";
 	
-	print "returned header = $header\n";
+	print "returned header = $header\n" if ($main::Debug{http});
 
     return $header . "\n";
 #Expires: Mon, 01 Jul 2002 08:00:00 GMT
