@@ -140,6 +140,9 @@ function changePage (){
 		});
 	} else {
 		if (json_store.ia7_config.prefs.header_button == "no") $("#mhstatus").remove();
+		if (json_store.ia7_config.prefs.audio_controls !== undefined && json_store.ia7_config.prefs.audio_controls == "yes") {
+  			$("#sound_element").attr("controls", "controls");  //Show audio Controls
+  		}
 		if (json_store.ia7_config.prefs.substate_percentages === undefined) json_store.ia7_config.prefs.substate_percentages = 20;
 		// First time loading, set the default speech notifications
 		if (speech_sound === undefined) {
@@ -984,15 +987,9 @@ var get_notifications = function(time) {
 						var text = String(json.data[i].text);
 						var type = String(json.data[i].type);
 						var color = String(json.data[i].color);
-						// add in other banner_types
-						//console.log("type="+type);
+
 						if ((type == "sound" ) || ((type == "speech") && (speech_sound == "yes"))) {
-//							if (webaudio_device == "yes") {
-								//webaudio_play(url);
-//							} else {
-								audio_play(document.getElementById('sound_element'),url)
-								//webaudio_play(url);
-//    						}		
+							audio_play(document.getElementById('sound_element'),url)	
 						}
 						if (type == "banner" || ((type == "speech") && (speech_banner == "yes"))) {
 							var alert_type = "info";
@@ -1027,53 +1024,22 @@ var get_notifications = function(time) {
 	});
 };
 
-var webaudio_device = function() {
+var mobile_device = function() {
 	//placeholder to turn on webaudio in the future
-	if (json_store.ia7_config.prefs.webaudio !== undefined) {
-		if (json_store.ia7_config.prefs.webaudio === "yes") {
-			return "yes";
-		} else {
-			return "no";
-		}
-	}
+	var device = "no";
 	if (navigator.userAgent.match(/(iPod|iPhone|iPad)/))
-		return "yes";
+		device = "ios";
 	if (navigator.userAgent.match(/Android/))
-		return "no";
-			
-	return "no";
-}
-
-var webaudio_play = function(url) {
-	console.log("webaudio play "+url);
-	ctx = new webkitAudioContext(); //There are 2 APIs? AudioContext and webkitAudioContext?
-    var req = new XMLHttpRequest();
-    req.open("GET",url,true);
-    req.responseType = "arraybuffer";
-    req.send();
-    req.onload = function() {
-    	console.log("loaded");
-        //decode the loaded data
-        ctx.decodeAudioData(req.response, function(buffer) {
-        	//create a source node from the buffer
-    		var src = ctx.createBufferSource(); 
-    		src.buffer = buffer;
-    		//connect to the final output node (the speakers)
-    		src.connect(ctx.destination);
-    		//play immediately
-    		console.log("now playing...");
-    		src.start(0);
-            //src.noteOn ? src.noteOn(0) : src.start(0);
-        	});
-    	};
+		device = "android";
+	return device;
 }
 
 function audio_play(audioElement,srcUrl)
 {
-  console.log ("in audio_play:"+srcUrl);
+  //console.log ("in audio_play:"+srcUrl);
   audioElement.pause();
   audioElement.src=''; //force playback to stop and quit buffering. Not sure if this is strictly necessary.
-  $("#sound_element2").attr("src", srcUrl);  
+  $("#sound_element2").attr("src", srcUrl);  //needed for mobile
   audioElement.src=srcUrl;
   audioElement.currentSrc=srcUrl;
   audioElement.load();
@@ -1084,8 +1050,7 @@ function playWhenReady()
 {//wait for media element to be ready, then play
   audioElement=document.getElementById('sound_element');
   var audioReady=audioElement.readyState;
-  console.log("playWhenReady = "+audioReady);
-  //audioElement.play();
+  //console.log("playWhenReady = "+audioReady);
   if(audioReady>2) {
     audioElement.play();
   } else if(audioElement.error) {
@@ -1095,8 +1060,6 @@ function playWhenReady()
       setTimeout(playWhenReady,500);
   }
 }
-
-
 
 //Creates a table based on the $json_table data structure. desktop & mobile design
 var display_table = function(table,records,time) {
@@ -1761,6 +1724,7 @@ $(document).ready(function() {
 	$(window).bind('hashchange', function() {
 		changePage();
 	});
+	
 	$("#mhstatus").click( function () {
 		var link = json_store.collections[600].link;
 		link = buildLink (link, "0,600");
@@ -1773,11 +1737,13 @@ $(document).ready(function() {
 	
 	$("#toolButton").click( function () {
 		// Need a 'click' event to turn on sound for mobile devices
-		//if (audio_init === undefined) {
-		//	audioElement = document.getElementById('sound_element');
-		//	audioElement.play();
-		//}
-		audio_init = 1;
+		if (mobile_device() == "ios" ) {
+			if (audio_init === undefined) {
+				audioElement = document.getElementById('sound_element');
+				audioElement.play();
+			}
+			audio_init = 1;
+		}
 		//
 		var entity = $("#toolButton").attr('entity');
 		$('#optionsModal').modal('show');

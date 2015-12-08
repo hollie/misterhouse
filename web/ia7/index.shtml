@@ -192,10 +192,12 @@
 
         <div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
                 <div id="footer_stuff" class='col-sm-12 col-center'>
-                		<audio id="sound_element" name="sound_element" controls preload="auto"><source id="sound_element2" name="sound_element2" src="/wav.wav"></audio>
                         <!-- Put Footer Stuff Here -->
                         <!--#include file="/bin/tagline.pl"--><br>
                         <!--#include file="/bin/uptime.pl"-->&nbsp;&nbsp;<!--#include file="$config_parms{web_href_counter}"-->
+                </div>
+                <div id="sound_stuff" class='col-sm-12 col-center'>                
+                		<audio id="sound_element" name="sound_element" preload="auto"><source id="sound_element2" name="sound_element2"></audio>
                 </div>
         </div>
 <!-- Voice Command Modal -->
