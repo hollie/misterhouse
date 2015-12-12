@@ -6,15 +6,15 @@
 
 =head2 DESCRIPTION
 
-Module for interfacing with the AD2 line of products.  Monitors known events and
+Module for interfacing with the AD2 line of products.  Monitors known events and 
 maintains the state of the Ademco system in memory. Module also sends
 instructions to the panel as requested.
 
 =head2 CONFIGURATION
 
 Older versions of this library relied almost exclusively on ini parameters.
-This revised library provides extensive support for using an mht file to define
-AD2 objects and only requires setting ini parameters for the initial AD2
+This revised library provides extensive support for using an mht file to define 
+AD2 objects and only requires setting ini parameters for the initial AD2 
 Interface configuration. [Feb 5, 2014]
 
 At minimum, you must define the Interface.  In addition, this library provides
@@ -38,7 +38,7 @@ on the agregate state of all of the zones.
 
 =head3 Interface Configuration
 
-There is a small difference in configuring the AD2 Interface for direct
+There is a small difference in configuring the AD2 Interface for direct 
 connections (Serial or USB) or IP Connections (Ser2Sock).
 
 =head4 AD2-Prefix
@@ -49,7 +49,7 @@ must use a unique prefix.  This prefix must take the following form:
 
    AD2[_digits]
 
-Wherein the _digits suffix is optional.  Each of the following prefixes
+Wherein the _digits suffix is optional.  Each of the following prefixes 
 would define a separate Interface:
 
    AD2
@@ -114,14 +114,14 @@ AD2 board only receives Alphanumberic fault messages for these zones and never
 receives ready messages.  Due to the way these Alphanumeric fault messages
 cycle around, the resetting of a hardwired zone from fault to ready may take
 a bit longer then expected.  Additionally, in certain circumstances a hardwired
-zone will be reset from fault to ready improperly, it will be tripped back to
+zone will be reset from fault to ready improperly, it will be tripped back to 
 fault a few seconds later.  The only way to avoid these annoyances is to map
 your hardwired zones to fake relays.  See the discussion of B<Relay Mappings>
 in the AD2_Item documentation below.
 
 =head2 TODO
 
-- Add support for control of emulated zones on the AD2 device.  Would allow
+- Add support for control of emulated zones on the AD2 device.  Would allow 
 MisterHouse to "communicate" with the alarm panel.  Perhaps to trigger an alarm
 if certain conditions are met.
 
@@ -142,7 +142,7 @@ use strict;
 
 my %Socket_Items; #Stores the socket instances and attributes
 my %Interfaces; #Stores the relationships btw instances and interfaces
-my %Configuration; #Stores the local config parms
+my %Configuration; #Stores the local config parms 
 
 =item C<new()>
 
@@ -175,7 +175,7 @@ sub new {
    $$self{CmdMsg} = $self->DefineCmdMsg();
    $$self{CmdMsgRev} = {reverse %{$$self{CmdMsg}}}; #DeRef Hash, Rev, Conv to Ref
 
-   # The following logs default to being enabled, can only be disabled by
+   # The following logs default to being enabled, can only be disabled by 
    # proactively setting their ini parameters to 0:
    # AD2_part_log AD2_zone_log AD2_debug_log
 
@@ -190,33 +190,33 @@ sub new {
 
 =item C<restore_string()>
 
-This is called by mh on exit to save the cached states of the zones to
-persistant data.
+This is called by mh on exit to save the cached states of the zones to 
+persistant data.  
 
 NOTE:  It would probably be easier/better to simply have the child
-objects each store their own state using the built-in MH methods.  However,
-this would require users to define the child objects and would break the
+objects each store their own state using the built-in MH methods.  However, 
+this would require users to define the child objects and would break the 
 original code design.
 
 =cut
 
 sub restore_string
 {
-        my ($self) = @_;
-        # Do the normal restore_string
-        my $restore_string = $self->SUPER::restore_string();
-        # Add our custom routine to save the zone states
-        for my $partition (keys %{$$self{partition_address}}){
-           for my $zone (keys %{$$self{$partition}{zone_status}}){
-              my $status = $$self{$partition}{zone_status}{$zone};
-              $restore_string .= $self->{object_name}
-                 . "->ChangeZoneState($zone, q~$status~, 0);\n";
-              my $bypass = $$self{$partition}{zone_bypass}{$zone};
-              $restore_string .= $self->{object_name}
-                 . "->zone_bypassed($zone, $bypass);\n";
-           }
-        }
-        return $restore_string;
+	my ($self) = @_;
+	# Do the normal restore_string
+	my $restore_string = $self->SUPER::restore_string();
+	# Add our custom routine to save the zone states
+	for my $partition (keys %{$$self{partition_address}}){
+	   for my $zone (keys %{$$self{$partition}{zone_status}}){
+	      my $status = $$self{$partition}{zone_status}{$zone};
+	      $restore_string .= $self->{object_name} 
+	         . "->ChangeZoneState($zone, q~$status~, 0);\n";
+	      my $bypass = $$self{$partition}{zone_bypass}{$zone};
+	      $restore_string .= $self->{object_name} 
+	         . "->zone_bypassed($zone, $bypass);\n";	      
+	   }
+	}
+	return $restore_string;
 }
 
 =item C<get_object_by_instance($instance)>
@@ -265,12 +265,12 @@ sub read_parms{
             my $lc = 0;
             my $ZoneNum;
             foreach my $wnum(split(",", $::config_parms{$mkey})) {
-               if ($lc % 2 == 0) {
+               if ($lc % 2 == 0) { 
                   $ZoneNum = $wnum;
                }
                else {
                   my ($sensortype, $ZoneLoop) = split("", $wnum);
-                  $$self{wireless}{"$rf_id.$ZoneLoop.$sensortype"}
+                  $$self{wireless}{"$rf_id.$ZoneLoop.$sensortype"} 
                      = $ZoneNum;
                }
                $lc++;
@@ -336,7 +336,7 @@ sub serial_startup {
    my ($instance) = @_;
    my ($port, $BaudRate, $ip);
 
-   if ($::config_parms{$instance . '_serial_port'} and
+   if ($::config_parms{$instance . '_serial_port'} and 
          $::config_parms{$instance . '_serial_port'} ne '/dev/none') {
       $port = $::config_parms{$instance .'_serial_port'};
       $BaudRate = ( defined $::config_parms{$instance . '_baudrate'} ) ? $::config_parms{"$instance" . '_baudrate'} : 115200;
@@ -372,8 +372,8 @@ sub server_startup {
 
 Called at the start of every loop. This checks either the serial or server port
 for new data.  If data is found, the data is broken down into individual
-messages and sent to C<GetStatusType> to be parsed.  The message is then
-compared to the previous data received if this is a duplicate message it is
+messages and sent to C<GetStatusType> to be parsed.  The message is then 
+compared to the previous data received if this is a duplicate message it is 
 logged and ignored.  If this is a new message it is sent to C<CheckCmd>.
 
 =cut
@@ -386,11 +386,11 @@ sub check_for_data {
    # Clear Zone and Partition_Now Function
    $self->{zone_now} = ();
    $self->{partition_now} = ();
-
+   
    # Reset any wireless keyfobs to ready
    foreach my $rf_key (keys %{$$self{wireless}}){
       if ($rf_key =~ /.*\..*\.k/i) {
-         $self->ChangeZoneState( int($$self{wireless}{$rf_key}), "ready", 1);
+         $self->ChangeZoneState( int($$self{wireless}{$rf_key}), "ready", 1); 
       }
    }
 
@@ -465,10 +465,10 @@ sub CheckCmd {
    my ($self, $status_type) = @_;
    my $zone_padded = $status_type->{numeric_code};
    my $zone_no_pad = int($zone_padded);
-   my @partitions = @{$status_type->{partition}}
+   my @partitions = @{$status_type->{partition}} 
       if exists $status_type->{partition};
    my $instance = $self->{instance};
-
+   
    if ($status_type->{unknown}) {
       $self->debug_log("UNKNOWN STATUS: $status_type->{cmd}");
    }
@@ -492,17 +492,17 @@ sub CheckCmd {
          #reported, no per zone ready messages.  Fault messages cycle through
          #from lowest to highest.  However, a new fault is immediately reported
          #and the cycle then starts from the bottom again.
-
+         
          #This means, that we can immediately set zones to fault. But to return
-         #to ready, we basically need the the highest and lowest zones to
+         #to ready, we basically need the the highest and lowest zones to 
          #remain constant for one cycle before chaning all other zones back
          #to ready.  This works reasonable well, although there can be a big
-         #delay in returning a zone to ready.  Additionally, in certain
+         #delay in returning a zone to ready.  Additionally, in certain 
          #circumstances, a zone may be improperly returned to ready.
-
-         #We do not mess with mapped zones, specific direct messages are
+         
+         #We do not mess with mapped zones, specific direct messages are 
          #recevied for these (luckily)
-
+         
          #Setup variables for testing of cycle first
          if ($zone_no_pad < $self->{zone_last_num}{$partition}){
             #This zone is lower than the last zone reported.
@@ -526,23 +526,23 @@ sub CheckCmd {
                $self->{highest_zone_unchanged}{$partition} = 0;
             }
          }
-
+         
          #If cycle is still consistent, then reset all zones between reported
          #faults.  Obviously skip this if the zones are sequentially increasing
          #since there are no zones in between.
-         if ($self->{highest_zone_unchanged}{$partition}
+         if ($self->{highest_zone_unchanged}{$partition} 
             && $self->{lowest_zone_unchanged}{$partition}
             && (($zone_no_pad - $self->{zone_last_num}{$partition}) != 1)) {
             #Reset the zones between the current zone and the last zone.
             my $start = $self->{zone_last_num}{$partition}+1;
             my $end = $zone_no_pad-1;
-
+         
             # Allow for reverse looping from max_zones->1
             my $reverse = ($start > $end)? 1 : 0;
-
+            
             # Prevent infinite loop scenario
             my $y = 0;
-
+            
             # Loop through zones setting them as required
             for (my $i = $start; ($y <= $$self{max_zones}) &&
                ((!$reverse && $i <= $end) ||
@@ -551,7 +551,7 @@ sub CheckCmd {
                # Only alter zones in this partition
                if ($partition == $self->zone_partition($i)) {
                   # Skip Mapped or Bypassed Zones
-                  if (!$self->is_zone_mapped($i) &&
+                  if (!$self->is_zone_mapped($i) && 
                      !$self->zone_bypassed($i)){
                      $self->ChangeZoneState( $i, "ready", 1);
                   }
@@ -560,10 +560,10 @@ sub CheckCmd {
                $i = 0 if ($i == $$self{max_zones} && $reverse); #loop around
             }
          }
-
+   
          # Always set the reported zone to fault
          $self->ChangeZoneState( $zone_no_pad, "fault", 1);
-
+         
          # Store Zone Number for Use in Fault Loop
          $self->{zone_last_num}{$partition}           = $zone_no_pad;
       }
@@ -639,9 +639,9 @@ sub CheckCmd {
          $self->{zone_last_num}{$partition} = "" unless $status_type->{fault};
          $self->{partition_msg}{$partition} = $status_type->{alphanumeric};
       }
-
+      
       # Set things based on Bit Codes
-
+      
       # Prep mode for future use
       my $mode = '';
       $mode = 'fault' if $status_type->{fault};
@@ -699,7 +699,7 @@ sub CheckCmd {
       }
 
       # ARMED HOME
-        $self->debug_log("armed_home_flag = ". $status_type->{armed_home_flag} ." Alpha status = ". $status_type->{alphanumeric} . "| stay = ". index($status_type->{alphanumeric}, "***STAY***") . " exit delay = ". index($status_type->{alphanumeric}, "You may exit now") . "entry delay = ". index($status_type->{alphanumeric}, "or alarm occurs") );
+	$self->debug_log("armed_home_flag = ". $status_type->{armed_home_flag} ." Alpha status = ". $status_type->{alphanumeric} . "| stay = ". index($status_type->{alphanumeric}, "***STAY***") . " exit delay = ". index($status_type->{alphanumeric}, "You may exit now") . "entry delay = ". index($status_type->{alphanumeric}, "or alarm occurs") );
       if ( $status_type->{armed_home_flag}) {
          $mode = "armed stay - error";
          if (index($status_type->{alphanumeric}, "You may exit now") >= 1) {
@@ -724,13 +724,13 @@ sub CheckCmd {
       # PROGRAMMING MODE
       if ( $status_type->{programming_flag}) {
          $mode = "programming";
-         $self->debug_log("Panel is in programming mode");
+         $self->debug_log("Panel is in programming mode"); 
       }
 
       # BEEPS
       if ( $status_type->{beep_count}) {
          my $NumBeeps = $status_type->{beep_count};
-         $self->debug_log("Panel beeped $NumBeeps times");
+         $self->debug_log("Panel beeped $NumBeeps times"); 
       }
 
       # AC POWER
@@ -743,7 +743,7 @@ sub CheckCmd {
 
       # CHIME MODE
       $self->{chime} = 0;
-      if ( $status_type->{chime_flag}) {
+      if ( $status_type->{chime_flag}) { 
          $self->{chime} = 1;#            $self->debug_log("Chime is off");
       }
 
@@ -770,7 +770,7 @@ sub CheckCmd {
       }
 
       if ($mode ne $self->state && $mode ne ''){
-         $self->debug_log("Setting system state to >>>>> $mode");
+	 $self->debug_log("Setting system state to >>>>> $mode");
          $self->set_receive($mode);
       }
    }
@@ -799,10 +799,10 @@ sub GetStatusType {
       $message{numeric_code} = $3;
       $message{raw_data} = $4;
       $message{alphanumeric} = $5;
-
-      # Partition Data is Contained in the Raw Data, in the form of a bit mask
-      # identifying the panels that each message is destined for.  By knowing
-      # which panels are on which partitions, we can determine the partition of
+      
+      # Partition Data is Contained in the Raw Data, in the form of a bit mask 
+      # identifying the panels that each message is destined for.  By knowing 
+      # which panels are on which partitions, we can determine the partition of 
       # this message.
       my $address_mask = substr($message{raw_data}, 2, 8);
       my @addresses;
@@ -814,12 +814,12 @@ sub GetStatusType {
               $byte = $byte >> 1;
           }
       }
-      #Place message in partition if address is equal to partition, or no
+      #Place message in partition if address is equal to partition, or no 
       #address is specified (system wide messages).
-        $self->debug_log(">>> Message is for Partition address: ". @addresses );
+	$self->debug_log(">>> Message is for Partition address: ". @addresses );
       foreach my $partition (keys %{$$self{partition_address}}){
          my $part_addr = $$self{partition_address}{$partition};
-         if (grep($part_addr, @addresses) ||
+         if (grep($part_addr, @addresses) || 
             (scalar @addresses == 0)) {
             push(@{$message{partition}}, $partition);
          }
@@ -861,7 +861,7 @@ sub GetStatusType {
       $message{wireless} = 1;
       $message{rf_id} = $1;
       $message{rf_status} = $2;
-
+      
       $message{rf_unknown_1} = ((hex(substr($message{rf_status}, 1, 1)) & 1) == 1) ? 1 : 0;
       $message{rf_low_batt} = ((hex(substr($message{rf_status}, 1, 1)) & 2) == 2) ? 1 : 0;
       $message{rf_supervised} = ((hex(substr($message{rf_status}, 1, 1)) & 4) == 4) ? 1 : 0;
@@ -917,7 +917,7 @@ $log        = If true will log its actions
 sub ChangeZoneState {
    my ($self, $zone, $new_status, $log) = @_;
    my $instance = $self->{instance};
-
+   
    # This routine is called a lot, only update zones if they have changed
    if ($self->status_zone($zone) ne $new_status){
       #  Set the new state
@@ -930,7 +930,7 @@ sub ChangeZoneState {
       # Update child partition
       my $zone_partition = $self->zone_partition($zone);
       my $partition_status = $self->status_partition($zone_partition);
-      $$self{partition_object}{$zone_partition}->set_receive($partition_status, $$self{zone_object}{"$zone"})
+      $$self{partition_object}{$zone_partition}->set_receive($partition_status, $$self{zone_object}{"$zone"}) 
          if defined $$self{partition_object}{$zone_partition};
       #  Log everything if requested
       if ($log == 1) {
@@ -944,15 +944,15 @@ sub ChangeZoneState {
 =item C<zone_bypassed($zone, $bypass)>
 
 Sets or gets the bypass state of a zone.  The state of mapped zones is always
-accurately reported.  Non-mapped hardwired zones have no state when they are
+accurately reported.  Non-mapped hardwired zones have no state when they are 
 bypassed, we cannot determine their fault status.  As such, the state of
 non-mapped hardwired zones will be "bypass" when they are bypassed.
 
-The state of child objects is similar with the exception that the state of
+The state of child objects is similar with the exception that the state of 
 mapped zones will be appended with " - bypass" if they are currently bypassed.
 
 This routine will always accurately return the bypass state of a zone.  The
-funtion will return true if bypassed or false if not.  To set the bypass state
+funtion will return true if bypassed or false if not.  To set the bypass state 
 simply pass it as $bypass.
 
 =cut
@@ -977,7 +977,7 @@ sub update_child_object {
       $status .= " - bypass";
    }
    #  Set child object status if it is registered to the zone
-   if (defined $$self{zone_object}{"$zone"} &&
+   if (defined $$self{zone_object}{"$zone"} && 
       $$self{zone_object}{"$zone"}->state ne $status) {
       $$self{zone_object}{"$zone"}->set($status, $$self{zone_object}{"$zone"});
    }
@@ -1173,7 +1173,7 @@ sub set {
       }
    }
    else {
-      $main::Serial_Ports{$instance}{'socket'}->write("$cmd");
+      $main::Serial_Ports{$instance}{object}->write("$cmd");
    }
    return;
 }
@@ -1207,7 +1207,7 @@ sub status_zone {
 
 =item C<zone_now($zone)>
 
-Takes a zone number and returns its status if the zone status was set on this
+Takes a zone number and returns its status if the zone status was set on this 
 loop.
 
 If an object exists for this zone you can also use:
@@ -1403,10 +1403,10 @@ See C<new()> for a more detailed description of the arguments.
 
 In mht file:
 
-        AD2_DOOR_ITEM, back_door, AD2, 4, 1, HARDWIRED
-        AD2_DOOR_ITEM, front_door, AD2, 5, 1, EXP=0101
-        AD2_MOTION_ITEM, upstairs_motion, AD2, 6, 1, REL=1301
-        AD2_GENERIC_ITEM, generic_zone, AD2, 7, 1, RFX=0014936.4.k
+	AD2_DOOR_ITEM, back_door, AD2, 4, 1, HARDWIRED
+	AD2_DOOR_ITEM, front_door, AD2, 5, 1, EXP=0101
+	AD2_MOTION_ITEM, upstairs_motion, AD2, 6, 1, REL=1301
+	AD2_GENERIC_ITEM, generic_zone, AD2, 7, 1, RFX=0014936.4.k
 
 Wherein the format for the definition is:
 
@@ -1418,12 +1418,12 @@ The type of items can be DOOR (open/close) MOTION (motion/still) and GENERIC
 =head3 HARDWIRED/EXPANDER/RELAY/WIRELESS ADDRESS
 
 The last item is the Expander, Relay, or Wireless address if it applicable.  For
-hardwired zones this last item should be HARDWIRED.
+hardwired zones this last item should be HARDWIRED.  
 
 =head4 EXPANSION BOARDS
 
-For zones wired to an expansion board, the prefix B<EXP=> should be used.  The
-address is the expansion board id (2 digits, 0 padded if required) concatenated
+For zones wired to an expansion board, the prefix B<EXP=> should be used.  The 
+address is the expansion board id (2 digits, 0 padded if required) concatenated 
 with the expansion input number (2 digits, 0 padded if required) such as 0101 or
 1304.
 
@@ -1437,18 +1437,18 @@ no alphanumeric messages are displayed while armed.
 
 To overcome these limitations, depending on your alarm panel model, you can map
 a hardwired zone to a relay.  In essence, if a zone that is mapped to a relay
-the alarm panel will close the relay whenever the zone is faulted and open the
+the alarm panel will close the relay whenever the zone is faulted and open the 
 relay when the zone is ready.  Luckily, this relay can be a virtual device. The
-messages sent by the alarm panel to open/close a virtual relay are sent
+messages sent by the alarm panel to open/close a virtual relay are sent 
 immediatly and are not affected by the state of the alarm.
 
-To setup relay mappings, consult your alarm panel's instruction manual for
+To setup relay mappings, consult your alarm panel's instruction manual for 
 programing a relay board and mapping zones to it.  Some alarm panels have limited
 capabilities when it comes to relays.  Specifically, you want to refer to section
 of your manual that discusses *80 programming.
 
-For hardwired zones mapped to a relay board, the prefix B<REL=> should be used.  The
-address is the relay board id (2 digits, 0 padded if required) concatenated
+For hardwired zones mapped to a relay board, the prefix B<REL=> should be used.  The 
+address is the relay board id (2 digits, 0 padded if required) concatenated 
 with the relay output number (2 digits, 0 padded if required) such as 0101 or
 1304.
 
@@ -1462,9 +1462,9 @@ is 1.  Similarly, the device type need only be specified if the wireless device
 is a keypad, in which case the type is the letter k.  The following are valid
 wireless addresses:
 
-        RFX=0014936.4.k
-        RFX=0101538
-        RFX=5848878.1.k
+	RFX=0014936.4.k
+	RFX=0101538
+	RFX=5848878.1.k
 
 =head2 DESCRIPTION
 
@@ -1510,11 +1510,11 @@ $relay     = If not null, the relay address that the zone is mapped to.
 $wireless  = If not null, the wireless address that the zone is mapped to in the
 form of [RF_ID].[LOOP].[TYPE].
 
-The wireless address is the wireless ID (7 digits) followed by a period, the
-loop number, followed by a period, and the wireless device type.  All of this
-without any spaces.  The loop number need only be specified if it is not 1.
-Generally, the loop number for most devices is 1.  Similarly, the device type
-need only be specified if the wireless device is a keypad, in which case the
+The wireless address is the wireless ID (7 digits) followed by a period, the 
+loop number, followed by a period, and the wireless device type.  All of this 
+without any spaces.  The loop number need only be specified if it is not 1.  
+Generally, the loop number for most devices is 1.  Similarly, the device type 
+need only be specified if the wireless device is a keypad, in which case the 
 type is the letter k.
 
 =cut
@@ -1647,13 +1647,13 @@ See C<new()> for a more detailed description of the arguments.
 
 In mht file:
 
-        AD2_PARTITION, partition_1, AD2, 1, 31
+	AD2_PARTITION, partition_1, AD2, 1, 31
 
 Wherein the format is
 
-        AD2_PARTITION, Object Name, AD2-Prefix, Partition Number, Address
+	AD2_PARTITION, Object Name, AD2-Prefix, Partition Number, Address
 
-The address is the address of a panel that is assigned to this partition.
+The address is the address of a panel that is assigned to this partition.  
 Multiple panels may be assigned to a partition, only one address is required.
 If your system is a non-addressable system, 31 should be used as the address.
 
@@ -1662,14 +1662,14 @@ If your system is a non-addressable system, 31 should be used as the address.
 Provides support for creating MH-Style child objects for each partition.
 
 For an explanation of what a partition is, please see the Description section
-of C<AD2>.
+of C<AD2>.  
 
-The Partition is used primarily as a stand in for the alarm panel.  The
-Partition object is used to arm/disarm the panel as well as to check on the
+The Partition is used primarily as a stand in for the alarm panel.  The 
+Partition object is used to arm/disarm the panel as well as to check on the 
 agregate state of all of the zones that are within this partition.
 
 The partition object can be set to:
-
+        
       Disarm            - Disarm the system
       ArmAway           - Arm the entire system with an exit delay
       ArmStay           - Arm the perimeter with an exit delay
@@ -1688,7 +1688,7 @@ command.
 
 You have two options for entering your alarm code.  B<First>, you can preprogram
 your alarm code into you ini file using the following parameter:
-
+        
         AD2_user_master_code=1234
 
 Where, AD2 is your AD2-Prefix.  If you elect to use this system, the above
@@ -1704,7 +1704,7 @@ MisterHouse installation is hacked, your alarm could easily be triggered.
 
 B<Second> if you do not place your alarm code in your ini file, you must then
 set your alarm code before setting any of the above states.  For example:
-
+        
         $partition_1->set("1234");
         $partition_1->set("Disarm");
 
@@ -1755,20 +1755,20 @@ sub new
 
 sub set {
     my ($self, $p_state, $p_setby, $p_response) = @_;
-        my $found_state = 0;
-        foreach my $test_state (@{$$self{states}}){
-                if (lc($test_state) eq lc($p_state)){
-                        $found_state = 1;
-                }
-        }
-        if ($found_state){
-                ::print_log("[AD2::Partition] Received request to "
-                        . $p_state . " for partition " . $self->get_object_name);
-                $$self{interface}->set($p_state);
-        }
-        else {
-           $$self{interface}->set($p_state);
-        }
+	my $found_state = 0;
+	foreach my $test_state (@{$$self{states}}){
+		if (lc($test_state) eq lc($p_state)){
+			$found_state = 1;
+		}
+	}
+	if ($found_state){
+		::print_log("[AD2::Partition] Received request to "
+			. $p_state . " for partition " . $self->get_object_name);
+		$$self{interface}->set($p_state);
+	}
+	else {
+	   $$self{interface}->set($p_state);   
+	}
 }
 
 sub set_receive {
@@ -1790,7 +1790,7 @@ See C<new()> for a more detailed description of the arguments.
 
 In mht file:
 
-        AD2_OUTPUT, desk_lamp, AD2, 01
+	AD2_OUTPUT, desk_lamp, AD2, 01
 
 Wherein the format for the definition is:
 
@@ -1798,8 +1798,8 @@ Wherein the format for the definition is:
 
 =head2 DESCRIPTION
 
-Provides support for creating MH-Style child objects for each output device.
-These allow output devices to behave like Generic_Items.  For example,
+Provides support for creating MH-Style child objects for each output device.  
+These allow output devices to behave like Generic_Items.  For example, 
 Generic_Item subroutines such as C<tie_event> and C<get_idle_time> can be used
 with these devices.
 
@@ -1819,7 +1819,7 @@ alarm code.
 
 If you elect not to store you alarm code in you ini file, you will need to
 set the code first and then call start/stop.  For Example:
-
+   
    $desk_lamp->set("1234");
    $desk_lamp->set("Start");
 
@@ -1879,12 +1879,12 @@ sub set
       if ($p_state =~ /^start/i || $p_state =~ /^stop/i) {
          $reported_state = $p_state;
          $$self{interface}->set(($$self{interface}->output_cmd($p_state, $$self{output})));
-      }
+      } 
       else {
          # This may be an attempt to send the alarm code, not sure if this is
          # a good way to handle this
          $reported_state = '';
-         $$self{interface}->set($p_state);
+         $$self{interface}->set($p_state); 
       }
 
       $self->SUPER::set($reported_state,$p_setby);
