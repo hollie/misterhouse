@@ -588,12 +588,14 @@ sub CheckCmd {
          .")" );
 
       foreach my $rf_key (keys %{$$self{wireless}}){
-         if ($rf_key =~ /^${rf_id}\.?(.*)/) {
+         if ($rf_key =~ /^$rf_id\.?(.*)/) {
             my $LoopNum = 1;
             my $SensorType = 's';
-            ($LoopNum, $SensorType) = split('.', $1);
+	    my $Loopmap = $1;
+	    if ($Loopmap =~ /(\d{1,3})\.(\w{1})$/) { $LoopNum = $1; $SensorType = $2 }
+            if ($Loopmap =~ /^(\d{1,3})$/) { $LoopNum = $1 } 
             my $ZoneNum = $$self{wireless}{$rf_key};
-
+	    #$self->debug_log("WIRELESS: $rf_id Configured RFID $rf_key Loop: $LoopNum Type: $SensorType Zone: $ZoneNum Loopparse: $Loopmap");
             my $ZoneStatus = "ready";
             if ($status_type->{rf_low_batt} == "1") {
                $ZoneStatus = "low battery";
@@ -856,7 +858,7 @@ sub GetStatusType {
          $message{status} = 1;
       }
    }
-   elsif ($AdemcoStr =~ /!RFX:(\d{7}),(\d{2})/) {
+   elsif ($AdemcoStr =~ /!RFX:(\d{7}),(\w{2})/) {
       $self->debug_log("Wireless status received.");
       $message{wireless} = 1;
       $message{rf_id} = $1;
