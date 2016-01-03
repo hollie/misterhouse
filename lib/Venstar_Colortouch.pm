@@ -382,8 +382,8 @@ sub _push_JSON_data {
       $newheatsp=$cheattemp;
       }
     
-    if (($newheatsp - $newcoolsp) < $setpointdelta) {
-      main::print_log("[Venstar Colortouch:". $self->{data}->{name} . "] Error: Cooling and Heating setpoints need to be less than setpoint $setpointdelta");
+    if (($newheatsp - $newcoolsp) > $setpointdelta) {
+      main::print_log("[Venstar Colortouch:". $self->{data}->{name} . "] Error: Cooling ($newcoolsp) and Heating ($newheatsp) setpoints need to be less than setpoint $setpointdelta");
       main::print_log("[Venstar Colortouch:". $self->{data}->{name} . "] Not setting setpoints");
       $newcoolsp=$ccooltemp;
       $newheatsp=$cheattemp;
