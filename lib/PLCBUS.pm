@@ -404,6 +404,7 @@ sub _new_instance {
     my $c =
       "plcbussrv /dev/plcbus $self->{plcbussrv_port} &>1 > $plcbusserv_log";
     _log($c);
+    
     $self->{plcbussrv_proc}->set($c);
     $self->{plcbussrv_proc}->start();
     $self->_connect_command_server();
@@ -748,7 +749,6 @@ sub _get_timeout() {
         }
     }
 
-    #return 5;
     return $timeout;
 }
 
@@ -1512,36 +1512,28 @@ sub generate_voice_commands {
 sub get_voice_cmds {
     my ($self)      = @_;
     my $object_name = $self->{name};
+    my $level = '[5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100]';
     my %voice_cmds  = (
         'change_state' => [
             '[on,off,status req,get signal strength,get noise strength,1 phase,3 phase,use mh ini phase mode]',
             "\$$object_name->set(\$state)"
         ],
-        'bright_025' => [
-            'presetdim to 25% within [0,1,2,3,4,5,6,7,8,9,10]s',
-            "\$$object_name->preset_dim_from_voice_cmd( 25, \$state)"
-        ],
-        'bright_050' => [
-            'presetdim to 50% within [0,1,2,3,4,5,6,7,8,9,10]s',
-            "\$$object_name->preset_dim_from_voice_cmd( 50, \$state)"
-        ],
-        'bright_075' => [
-            'presetdim to 75% within [0,1,2,3,4,5,6,7,8,9,10]s',
-            "\$$object_name->preset_dim_from_voice_cmd( 75, \$state)"
-        ],
-        'bright_100' => [
-            'presetdim to 100% within [0,1,2,3,4,5,6,7,8,9,10]s',
-            "\$$object_name->preset_dim_from_voice_cmd(100, \$state)"
-        ],
         'bright_cmd' => [
-            'bright [25,50,75,100]%',
+            'bright '.$level.'%',
             "\$$object_name->command(\"bright\", \$state, 1)"
         ],
         'dim_cmd' => [
-            'dim [25,50,75,100]%',
+            'dim '.$level.'%',
             "\$$object_name->command(\"dim\", \$state, 1)"
         ],
     );
+
+    for (my $i = 5; $i <= 100; $i+= 5){
+        $voice_cmds{'bright_'.sprintf("%03d",$i)} = [
+            'presetdim to '.$i.'% within [0,1,2,3,4,5,6,7,8,9,10]s',
+            "\$$object_name->preset_dim_from_voice_cmd($i, \$state)"
+        ];
+    }
 
     return \%voice_cmds;
 }
@@ -1642,12 +1634,10 @@ sub set {
     $self->_logd($l);
 
     if ( $new_state ~~ @light_cmds ) {
-        if ( $new_state ne $self->{state} ) {
-            $self->command( $new_state, undef, undef, $setby, $respond );
+        if ( $new_state eq $self->{state} ) {
+            $self->_logd("Already in state $new_state, sending command anyway");
         }
-        else {
-            $self->_logd("Already in state $new_state");
-        }
+        $self->command( $new_state, undef, undef, $setby, $respond );
 
         #        if ($new_state eq "on" or $new_state eq "off"){
         #            $self->_set($new_state, $setby, $respond);
