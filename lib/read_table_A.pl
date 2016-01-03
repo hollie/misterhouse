@@ -1359,7 +1359,13 @@ sub read_table_A {
         $other = join ', ', ( map { "'$_'" } @other );    # Quote data
         $object = "AD2_Partition('$instance','$number','$address','$other')";
     }
-
+   elsif($type eq "AD2_OUTPUT") {
+        require AD2;
+        my ($instance,$output);
+        ($name, $instance, $output, $grouplist, @other) = @item_info;
+        $other = join ', ', (map {"'$_'"} @other); # Quote data
+        $object = "AD2_Output('$instance','$output','$other')";
+    }
     #-------------- End AD2 Objects -------------
     elsif ( $type =~ /PLCBUS_.*/ ) {
         require PLCBUS;
