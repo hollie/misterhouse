@@ -2,20 +2,29 @@
 
 use strict;
 
-my ($Pgm_Path, $Pgm_Name);
+my ( $Pgm_Path, $Pgm_Name );
+
 BEGIN {
-    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'";  # Use BEGIN eval to keep perl2exe happy
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"
+      ;    # Use BEGIN eval to keep perl2exe happy
 }
 
 my %parms;
 use Getopt::Long;
-if (!&GetOptions(\%parms, 'h', 'help',
-                 'user=s', 'password=s', 'server=s', 'account=s', 'from=s', 'to=s', 'subject=s',
-                 'mime=s', 'text=s', 'file=s', 'filename=s') or
-    @ARGV or ($parms{h} or $parms{help})) {
-    print<<eof;
+if (
+    !&GetOptions(
+        \%parms,      'h',         'help',      'user=s',
+        'password=s', 'server=s',  'account=s', 'from=s',
+        'to=s',       'subject=s', 'mime=s',    'text=s',
+        'file=s',     'filename=s'
+    )
+    or @ARGV
+    or ( $parms{h} or $parms{help} )
+  )
+{
+    print <<eof;
 
     $Pgm_Name sends email.  You may want to call this as a background process
     if you see the mh &net_mail_send function causes mh to pause.
@@ -59,12 +68,12 @@ eof
     exit;
 }
 
-require 'handy_utilities.pl';      # For read_mh_opts
-require 'handy_net_utilities.pl';  # For net_ftp
+require 'handy_utilities.pl';        # For read_mh_opts
+require 'handy_net_utilities.pl';    # For net_ftp
 
-                                # Read default mh.ini parms
+# Read default mh.ini parms
 use vars '%config_parms';
-&read_mh_opts(\%config_parms, $Pgm_Path);
+&read_mh_opts( \%config_parms, $Pgm_Path );
 
 &net_mail_send(%parms);
 

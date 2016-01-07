@@ -9,12 +9,12 @@
 #     See help text below
 #
 #  Author:
-#      Bruce Winter    bruce@misterhouse.net 
+#      Bruce Winter    bruce@misterhouse.net
 #
 #  Latest version:
 #      http://misterhouse.net
 #
-#  Inspired by: 
+#  Inspired by:
 #     http://www.itknowledge.com/tpj/programs/Issue_14/On_The_Fly_Plots/tally_hourly.pl
 #
 #  Requires Gnuplot, available from:
@@ -27,22 +27,27 @@
 
 use strict;
 
-my($Pgm_Path, $Pgm_Name);
+my ( $Pgm_Path, $Pgm_Name );
+
 BEGIN {
-    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.*)\.?/;
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.*)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval "use lib '$Pgm_Path/../lib/site'"
-    }
+    eval "use lib '$Pgm_Path/../lib/site'";
+}
 
 my %parms;
 use Getopt::Long;
-if (!&GetOptions(\%parms, "h", "help",
-                 "mailto=s", "mailserver=s", "ignore:s",
-                 "size=s", "type=s",
-                 "runid=s", "outdir=s",
-                 "debug") or @ARGV == 0 or 
-    ($parms{h} or $parms{help})) {
-    print<<eof;
+if (
+    !&GetOptions(
+        \%parms,        "h",        "help",   "mailto=s",
+        "mailserver=s", "ignore:s", "size=s", "type=s",
+        "runid=s",      "outdir=s", "debug"
+    )
+    or @ARGV == 0
+    or ( $parms{h} or $parms{help} )
+  )
+{
+    print <<eof;
 
 $Pgm_Name reads  MisterHouse and/or Apache web server logs and
 generates report graphs and optionally email them.
@@ -73,32 +78,32 @@ Usage:
 
 eof
 
-  exit;
+    exit;
 }
 
 print "Running $Pgm_Name @ARGV\n";
 
-                                # Globals
+# Globals
 my (%hits);
 
-                                # Setup defaults
+# Setup defaults
 $parms{mailserver} = "localhost" unless $parms{mailserver};
-$parms{outdir} = "." unless $parms{outdir};
-$parms{type} = "png" unless $parms{type};
-$parms{size} = ".5" unless $parms{size};
+$parms{outdir}     = "."         unless $parms{outdir};
+$parms{type}       = "png"       unless $parms{type};
+$parms{size}       = ".5"        unless $parms{size};
 my $prefix = $parms{outdir} . '/';
 $prefix .= $parms{runid} . "_" if $parms{runid};
 print "Output files will be prefixed with $prefix\n";
-#$parms{ignore} = 'house,dm,p90,c2,misterhouse,200.200.200.*' unless defined $parms{ignore};
-my @ignore_list = split(',', $parms{ignore});
 
+#$parms{ignore} = 'house,dm,p90,c2,misterhouse,200.200.200.*' unless defined $parms{ignore};
+my @ignore_list = split( ',', $parms{ignore} );
 
 &read_data(@ARGV);
 &generate_plots;
 &mail_report if $parms{mailto};
 print "All done\n";
 
-                                # Parse logfile and summarize data into .txt files
+# Parse logfile and summarize data into .txt files
 sub read_data {
     my (@logfiles) = @_;
 
@@ -106,38 +111,52 @@ sub read_data {
     print "Reading $logfile_cnt logfiles ...\n";
 
     for my $logfile (@logfiles) {
-        open (DATAIN,  $logfile) or die "Error, could not open $logfile: $!\n";
+        open( DATAIN, $logfile ) or die "Error, could not open $logfile: $!\n";
         while (<DATAIN>) {
-# Apache log example
-#house - - [24/Jul/1999:17:59:18 -0500] "GET /mh/code/Bruce/weather_monitor.pl HTTP/1.1" 304 -
-# Misterhouse log example
-#Sat, Jul 31  9:14 AM http 127.0.0.1
-#Sat, Jul 31  9:15 AM server_speak 200.200.200.5
-#Fri, Nov  5  9:39 PM server_speak 200.200.200.5
-#Fri 11/05/99 21:47:48 server_speak 200.200.200.5
-#Sun 09/21/03 20:29:07 192.168.0.81 /ia5/images/wind.gif 
-                                # Read Apache log
-            my ($client, $day, $hour, $min) = $_ =~ m!^(\S+) - - \[(\d+)/\w+/\d{4}:(\d+):(\d+):\d+ [\d+-]+\]!;
-                                # Alternate form of Apache log
-            ($day, $hour, $min,  $client) = $_ =~ /([a-z|A-Z]*) \d+\/\d+\/\d+(\d+):(\d+):\d+ ([a-z|A-Z|0-9|\.]*)/  unless $client;
-                                # Read Misterhouse log
-            unless (defined $hour) {
+
+            # Apache log example
+            #house - - [24/Jul/1999:17:59:18 -0500] "GET /mh/code/Bruce/weather_monitor.pl HTTP/1.1" 304 -
+            # Misterhouse log example
+            #Sat, Jul 31  9:14 AM http 127.0.0.1
+            #Sat, Jul 31  9:15 AM server_speak 200.200.200.5
+            #Fri, Nov  5  9:39 PM server_speak 200.200.200.5
+            #Fri 11/05/99 21:47:48 server_speak 200.200.200.5
+            #Sun 09/21/03 20:29:07 192.168.0.81 /ia5/images/wind.gif
+            # Read Apache log
+            my ( $client, $day, $hour, $min ) =
+              $_ =~ m!^(\S+) - - \[(\d+)/\w+/\d{4}:(\d+):(\d+):\d+ [\d+-]+\]!;
+
+            # Alternate form of Apache log
+            ( $day, $hour, $min, $client ) =
+              $_ =~
+              /([a-z|A-Z]*) \d+\/\d+\/\d+(\d+):(\d+):\d+ ([a-z|A-Z|0-9|\.]*)/
+              unless $client;
+
+            # Read Misterhouse log
+            unless ( defined $hour ) {
                 my $ampm;
-                ($day, $hour, $min, $ampm, $client) = $_ =~ m!^\S+, +\S+ +(\d+) +(\d+):(\d+) (\S+) \S+ (\S+)!;
-                ($day, $hour, $min, $ampm, $client) = $_ =~ m!^\S+ +\S+ +(\d+) +(\d+):(\d+):\d+ +\S+ (\S+)! unless $client;
-                ($day, $hour, $min, $client)        = $_ =~ m!^\S+ +\S+ +(\d+):(\d+):\d+ (\S+)! unless $client; # Current format
-#                print "db d=$day h=$hour ap=$ampm m=$min c=$client r=$_\n";
+                ( $day, $hour, $min, $ampm, $client ) =
+                  $_ =~ m!^\S+, +\S+ +(\d+) +(\d+):(\d+) (\S+) \S+ (\S+)!;
+                ( $day, $hour, $min, $ampm, $client ) =
+                  $_ =~ m!^\S+ +\S+ +(\d+) +(\d+):(\d+):\d+ +\S+ (\S+)!
+                  unless $client;
+                ( $day, $hour, $min, $client ) =
+                  $_ =~ m!^\S+ +\S+ +(\d+):(\d+):\d+ (\S+)!
+                  unless $client;    # Current format
+
+                #                print "db d=$day h=$hour ap=$ampm m=$min c=$client r=$_\n";
                 $hour += 12 if $ampm eq 'PM' and $hour != 12;
             }
 
             next unless defined $hour;
 
-                                # Ignore local clients
-            next if grep($client =~ /^$_$/, @ignore_list); # This takes longer
-#           next if grep($client eq $_, @ignore_list);
-            
-            my $dayhour = $day + sprintf("%0.2f", $hour/24);
-            
+            # Ignore local clients
+            next if grep( $client =~ /^$_$/, @ignore_list ); # This takes longer
+
+            #           next if grep($client eq $_, @ignore_list);
+
+            my $dayhour = $day + sprintf( "%0.2f", $hour / 24 );
+
             $hits{client}{$client}++;
             $hits{client_time}{$client} = "$day-$hour-$min";
             $hits{hour}{$hour}++;
@@ -149,37 +168,49 @@ sub read_data {
         }
     }
 
-    $hits{total_clients} = keys %{$hits{client}};
-    $hits{total_days}    = keys %{$hits{day}};
-    $hits{msg} = "Read $logfile_cnt logfiles, counted $hits{total} total hits from $hits{total_clients} clients in $hits{total_days} days";
+    $hits{total_clients} = keys %{ $hits{client} };
+    $hits{total_days}    = keys %{ $hits{day} };
+    $hits{msg} =
+      "Read $logfile_cnt logfiles, counted $hits{total} total hits from $hits{total_clients} clients in $hits{total_days} days";
     print $hits{msg}, "\n";
 
-    open (DATAOUT, ">${prefix}hour.txt") or die "Error, could not open ${prefix}hour.txt: $!\n";
-    foreach (sort {$a <=> $b} keys %{$hits{hour}}) {
-        print DATAOUT join("\t", $_, $hits{hour}{$_}),"\n";
+    open( DATAOUT, ">${prefix}hour.txt" )
+      or die "Error, could not open ${prefix}hour.txt: $!\n";
+    foreach ( sort { $a <=> $b } keys %{ $hits{hour} } ) {
+        print DATAOUT join( "\t", $_, $hits{hour}{$_} ), "\n";
     }
 
-    open (DATAOUT, ">${prefix}dayhour.txt") or die "Error, could not open ${prefix}dayhour.txt: $!\n";
-    foreach (sort {$a cmp $b} keys %{$hits{dayhour}}) {
-        my $client_cnt = keys %{$hits{dayhour_client}{$_}};
-        print DATAOUT join("\t", $_, int($hits{dayhour}{$_}/10), $client_cnt), "\n";
+    open( DATAOUT, ">${prefix}dayhour.txt" )
+      or die "Error, could not open ${prefix}dayhour.txt: $!\n";
+    foreach ( sort { $a cmp $b } keys %{ $hits{dayhour} } ) {
+        my $client_cnt = keys %{ $hits{dayhour_client}{$_} };
+        print DATAOUT
+          join( "\t", $_, int( $hits{dayhour}{$_} / 10 ), $client_cnt ), "\n";
     }
 
-    open (DATAOUT, ">${prefix}day.txt") or die "Error, could not open ${prefix}day.txt: $!\n";
-    foreach (sort {$a <=> $b} keys %{$hits{day}}) {
-        my $client_cnt = keys %{$hits{day_client}{$_}};
-        print DATAOUT join("\t", $_, int($hits{day}{$_}/10), $client_cnt),"\n";
+    open( DATAOUT, ">${prefix}day.txt" )
+      or die "Error, could not open ${prefix}day.txt: $!\n";
+    foreach ( sort { $a <=> $b } keys %{ $hits{day} } ) {
+        my $client_cnt = keys %{ $hits{day_client}{$_} };
+        print DATAOUT join( "\t", $_, int( $hits{day}{$_} / 10 ), $client_cnt ),
+          "\n";
     }
 
-    open (DATAOUT, ">${prefix}client.txt") or die "Error, could not open ${prefix}client.txt: $!\n";
-    foreach (sort {$hits{client_time}{$a} cmp $hits{client_time}{$b}} keys %{$hits{client}}) {
-        print DATAOUT join("\t", $hits{client_time}{$_}, $hits{client}{$_}, $_),"\n";
+    open( DATAOUT, ">${prefix}client.txt" )
+      or die "Error, could not open ${prefix}client.txt: $!\n";
+    foreach (
+        sort { $hits{client_time}{$a} cmp $hits{client_time}{$b} }
+        keys %{ $hits{client} }
+      )
+    {
+        print DATAOUT
+          join( "\t", $hits{client_time}{$_}, $hits{client}{$_}, $_ ), "\n";
     }
 
     close DATAOUT;
 }
 
-                                # Run gnuplot to generate plots
+# Run gnuplot to generate plots
 sub generate_plots {
 
     print "Generating $parms{type} plots\n";
@@ -188,8 +219,8 @@ sub generate_plots {
     unlink "${prefix}day.$parms{type}";
     unlink "${prefix}dayhour.$parms{type}";
 
-#   open (GP, "| gnuplot") || die "Couldn't open gnuplot: $!";
-    open (GP, ">${prefix}gnuplot.txt") || die "Couldn't open gnuplot.txt: $!";
+    #   open (GP, "| gnuplot") || die "Couldn't open gnuplot: $!";
+    open( GP, ">${prefix}gnuplot.txt" ) || die "Couldn't open gnuplot.txt: $!";
     print GP <<eof;
 #   set terminal postscript color
 #   set terminal gif small size 320,240 interlace
@@ -231,13 +262,14 @@ sub generate_plots {
 eof
     close GP;
     my $pgm = '/usr/local/bin/gnuplot';
-    $pgm = 'gnuplot' unless -e $pgm; # If not in standard spot, assume it is the path
+    $pgm = 'gnuplot'
+      unless -e $pgm;    # If not in standard spot, assume it is the path
     print "running: $pgm ${prefix}gnuplot.txt\n";
     system("$pgm ${prefix}gnuplot.txt");
-    
+
 }
 
-                                # Email report plots
+# Email report plots
 sub mail_report {
     eval "use MIME::Lite";
     if ($@) {
@@ -247,60 +279,68 @@ sub mail_report {
         return;
     }
 
-    my $date = localtime;
-    my $message = MIME::Lite->new(From => $Pgm_Name,
-                                  Subject => "Web Stats Report for $date",
-                      Type  => "image/$parms{type}",
-                      Encoding => 'base64',
-                      Path => "${prefix}dayhour.$parms{type}",
-                      Filename => "dayhour.$parms{type}",
-#                                 Type  => 'text/html',
-#                                 Encoding => '8bit',
-#                                 Path => "/projects/www/report_weblog.html",
-#                                 Filename => 'report_weblog.html',
-                                  To => $parms{mailto});
+    my $date    = localtime;
+    my $message = MIME::Lite->new(
+        From     => $Pgm_Name,
+        Subject  => "Web Stats Report for $date",
+        Type     => "image/$parms{type}",
+        Encoding => 'base64',
+        Path     => "${prefix}dayhour.$parms{type}",
+        Filename => "dayhour.$parms{type}",
 
-    $message->attach( 
-                      Type  => "image/$parms{type}",
-                      Encoding => 'base64',
-                      Path => "${prefix}day.$parms{type}",
-                      Filename => "day.$parms{type}");
+        #                                 Type  => 'text/html',
+        #                                 Encoding => '8bit',
+        #                                 Path => "/projects/www/report_weblog.html",
+        #                                 Filename => 'report_weblog.html',
+        To => $parms{mailto}
+    );
 
+    $message->attach(
+        Type     => "image/$parms{type}",
+        Encoding => 'base64',
+        Path     => "${prefix}day.$parms{type}",
+        Filename => "day.$parms{type}"
+    );
 
-    if ($^O eq "MSWin32") {
+    if ( $^O eq "MSWin32" ) {
         print "Using built in smtp code with server $parms{mailserver}\n";
-        MIME::Lite->send('smtp', $parms{mailserver}, Timeout => 20);
+        MIME::Lite->send( 'smtp', $parms{mailserver}, Timeout => 20 );
     }
     print "Sending report to $parms{mailto}\n";
     $message->send;
     return;
 
-#                                  Type => 'text/plain',
- #                                 Encoding => '7bit',
-#                                  Data => "$hits{msg}\n");
-    $message->attach( 
-                      Type  => "image/$parms{type}",
-                      Encoding => 'base64',
-#                      Type  => 'application/postscript',
-#                      Encoding => '8bit',
-                      Path => "${prefix}day.$parms{type}",
-                      Filename => "day.$parms{type}");
+    #                                  Type => 'text/plain',
+    #                                 Encoding => '7bit',
+    #                                  Data => "$hits{msg}\n");
+    $message->attach(
+        Type     => "image/$parms{type}",
+        Encoding => 'base64',
 
-    $message->attach( 
-                      Type  => "image/$parms{type}",
-                      Encoding => 'base64',
-#                      Type  => 'application/postscript',
-#                      Encoding => '8bit',
-                      Path => "${prefix}dayhour.$parms{type}",
-                      Filename => "dayhour.$parms{type}");
+        #                      Type  => 'application/postscript',
+        #                      Encoding => '8bit',
+        Path     => "${prefix}day.$parms{type}",
+        Filename => "day.$parms{type}"
+    );
 
-    $message->attach( 
-                      Type  => 'text/plain',
-                      Encoding => '7bit',
-                      Path => "${prefix}client.txt",
-                      Filename => "clients.txt");
+    $message->attach(
+        Type     => "image/$parms{type}",
+        Encoding => 'base64',
 
-    MIME::Lite->send('smtp', $parms{mailserver}, Timeout => 20);
+        #                      Type  => 'application/postscript',
+        #                      Encoding => '8bit',
+        Path     => "${prefix}dayhour.$parms{type}",
+        Filename => "dayhour.$parms{type}"
+    );
+
+    $message->attach(
+        Type     => 'text/plain',
+        Encoding => '7bit',
+        Path     => "${prefix}client.txt",
+        Filename => "clients.txt"
+    );
+
+    MIME::Lite->send( 'smtp', $parms{mailserver}, Timeout => 20 );
     print "Sending report to $parms{mailto}\n";
     $message->send;
 
@@ -344,5 +384,4 @@ sub mail_report {
 # - created
 #
 #
-
 

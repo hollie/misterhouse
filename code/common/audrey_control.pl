@@ -2,7 +2,7 @@
 
 #@ This module allows you to control your Audrey's screen, led lights,
 #@ and play built-in sounds. These are more robust than other methods
-#@ currently available. Audrey pre-configuration required, see code for 
+#@ currently available. Audrey pre-configuration required, see code for
 #@ instructions. Set mh.ini parm Audrey_IPs for your Audreys as follows:
 #@
 #@ Audrey_IPs=Kitchen-192.168.1.89,Bedroom-192.168.1.99
@@ -113,62 +113,75 @@ http://YourAudreyIP/beep.shtml?4 75       (turns volume to 75%)
 =cut
 
 # noloop=start
-  my (%AudreyList,$Audip,$Audname,$AudreyChoices);
-  $AudreyChoices = '';
-  for (split ',', $config_parms{Audrey_IPs}) {
-    ($Audname, $Audip) = /(.*)-(.*)/;
+my ( %AudreyList, $Audip, $Audname, $AudreyChoices );
+$AudreyChoices = '';
+for ( split ',', $config_parms{Audrey_IPs} ) {
+    ( $Audname, $Audip ) = /(.*)-(.*)/;
     $AudreyList{$Audname} = $Audip;
     $AudreyChoices .= $Audname . ',';
-  }
+}
+
 # noloop=stop
 
-$v_audrey_select = new Voice_Cmd("Select [$AudreyChoices] Audrey");
-$v_audrey_screen = new Voice_Cmd("Set Audrey [awake,asleep,toggle]");
-$v_audrey_top_light = new Voice_Cmd("Audrey top light [on,off,blinking]");
-$v_audrey_mail_light = new Voice_Cmd("Audrey mail light [on,off,blinking]");
+$v_audrey_select      = new Voice_Cmd("Select [$AudreyChoices] Audrey");
+$v_audrey_screen      = new Voice_Cmd("Set Audrey [awake,asleep,toggle]");
+$v_audrey_top_light   = new Voice_Cmd("Audrey top light [on,off,blinking]");
+$v_audrey_mail_light  = new Voice_Cmd("Audrey mail light [on,off,blinking]");
 $v_audrey_both_lights = new Voice_Cmd("Audrey lights both [on,off,blinking]");
-$v_audrey_beeps = new Voice_Cmd("Audrey beeps [enabled,disabled,stopped]");
-$v_audrey_sound_play = new Voice_Cmd("Play Audrey sound number [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]");
-$v_audrey_volume = new Voice_Cmd("Set Audrey volume to [1,10,20,25,30,40,50,60,70,75,80,90,100]");
-$v_audrey_remote = new Voice_Cmd("Push Audrey Button [browser,address_book,date_book,audrey_options,power_button,turn_knob_left,push_knob,turn_knob_right,mail,tab,enter]");
-$v_audrey_sound_play_by_name = new Voice_Cmd("Play Audrey sound [cancel,check,copy,cut,delete,help,major_high,menu_close,menu_open,minor_high,minor_low,paste,print,scroll_down,scroll_up,snapshot,warning,go_to_sleep,wake_up]");
+$v_audrey_beeps      = new Voice_Cmd("Audrey beeps [enabled,disabled,stopped]");
+$v_audrey_sound_play = new Voice_Cmd(
+    "Play Audrey sound number [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]"
+);
+$v_audrey_volume = new Voice_Cmd(
+    "Set Audrey volume to [1,10,20,25,30,40,50,60,70,75,80,90,100]");
+$v_audrey_remote = new Voice_Cmd(
+    "Push Audrey Button [browser,address_book,date_book,audrey_options,power_button,turn_knob_left,push_knob,turn_knob_right,mail,tab,enter]"
+);
+$v_audrey_sound_play_by_name = new Voice_Cmd(
+    "Play Audrey sound [cancel,check,copy,cut,delete,help,major_high,menu_close,menu_open,minor_high,minor_low,paste,print,scroll_down,scroll_up,snapshot,warning,go_to_sleep,wake_up]"
+);
 
-if (said $v_audrey_select) {
+if ( said $v_audrey_select) {
     my $state = $v_audrey_select->{state};
-    $v_audrey_select->respond("$state Audrey selected on IP $AudreyList{$state}");
+    $v_audrey_select->respond(
+        "$state Audrey selected on IP $AudreyList{$state}");
     $Save{current_audrey} = $AudreyList{$state};
 }
 
-if (said $v_audrey_screen) {
+if ( said $v_audrey_screen) {
     my $state = $v_audrey_screen->{state};
-    $v_audrey_screen->respond("$Save{current_audrey} Audrey screen set to $state");
-    $state = 0 if $state eq 'asleep';
-    $state = 1 if $state eq 'awake';
+    $v_audrey_screen->respond(
+        "$Save{current_audrey} Audrey screen set to $state");
+    $state = 0   if $state eq 'asleep';
+    $state = 1   if $state eq 'awake';
     $state = "t" if $state eq 'toggle';
     get "http://$Save{current_audrey}/screen.shtml?$state";
 }
 
-if (said $v_audrey_top_light) {
+if ( said $v_audrey_top_light) {
     my $state = $v_audrey_top_light->{state};
-    $v_audrey_top_light->respond("$Save{current_audrey} Audrey top light set to $state");
+    $v_audrey_top_light->respond(
+        "$Save{current_audrey} Audrey top light set to $state");
     $state = 0 if $state eq 'off';
     $state = 1 if $state eq 'on';
     $state = 2 if $state eq 'blinking';
     get "http://$Save{current_audrey}/led.shtml?t$state";
 }
 
-if (said $v_audrey_mail_light) {
+if ( said $v_audrey_mail_light) {
     my $state = $v_audrey_mail_light->{state};
-    $v_audrey_mail_light->respond("$Save{current_audrey} Audrey mail light set to $state");
+    $v_audrey_mail_light->respond(
+        "$Save{current_audrey} Audrey mail light set to $state");
     $state = 0 if $state eq 'off';
     $state = 1 if $state eq 'on';
     $state = 2 if $state eq 'blinking';
     get "http://$Save{current_audrey}/led.shtml?m$state";
 }
 
-if (said $v_audrey_both_lights) {
+if ( said $v_audrey_both_lights) {
     my $state = $v_audrey_both_lights->{state};
-    $v_audrey_both_lights->respond("Both $Save{current_audrey} Audrey lights set to $state");
+    $v_audrey_both_lights->respond(
+        "Both $Save{current_audrey} Audrey lights set to $state");
     $state = 0 if $state eq 'off';
     $state = 1 if $state eq 'on';
     $state = 2 if $state eq 'blinking';
@@ -176,28 +189,30 @@ if (said $v_audrey_both_lights) {
     get "http://$Save{current_audrey}/led.shtml?$state";
 }
 
-if (said $v_audrey_beeps) {
+if ( said $v_audrey_beeps) {
     my $state = $v_audrey_beeps->{state};
-    $v_audrey_beeps->respond("$Save{current_audrey} Audrey beeps set to $state");
+    $v_audrey_beeps->respond(
+        "$Save{current_audrey} Audrey beeps set to $state");
     $state = 1 if $state eq 'stopped';
     $state = 2 if $state eq 'disabled';
     $state = 3 if $state eq 'enabled';
     get "http://$Save{current_audrey}/beep.shtml?$state";
 }
 
-if (said $v_audrey_sound_play_by_name) {
+if ( said $v_audrey_sound_play_by_name) {
     my $state = $v_audrey_sound_play_by_name->{state};
-    $v_audrey_sound_play_by_name->respond("Playing $Save{current_audrey} Audrey sound $state");
-    $state =  0 if $state eq 'cancel';
-    $state =  1 if $state eq 'check';
-    $state =  2 if $state eq 'copy';
-    $state =  3 if $state eq 'cut';
-    $state =  4 if $state eq 'delete';
-    $state =  5 if $state eq 'help';
-    $state =  6 if $state eq 'major_high';
-    $state =  7 if $state eq 'menu_close';
-    $state =  8 if $state eq 'menu_open';
-    $state =  9 if $state eq 'minor_high';
+    $v_audrey_sound_play_by_name->respond(
+        "Playing $Save{current_audrey} Audrey sound $state");
+    $state = 0  if $state eq 'cancel';
+    $state = 1  if $state eq 'check';
+    $state = 2  if $state eq 'copy';
+    $state = 3  if $state eq 'cut';
+    $state = 4  if $state eq 'delete';
+    $state = 5  if $state eq 'help';
+    $state = 6  if $state eq 'major_high';
+    $state = 7  if $state eq 'menu_close';
+    $state = 8  if $state eq 'menu_open';
+    $state = 9  if $state eq 'minor_high';
     $state = 10 if $state eq 'minor_low';
     $state = 11 if $state eq 'paste';
     $state = 12 if $state eq 'print';
@@ -210,34 +225,35 @@ if (said $v_audrey_sound_play_by_name) {
     get "http://$Save{current_audrey}/beep.shtml?0 $state";
 }
 
-
-if (said $v_audrey_sound_play) {
+if ( said $v_audrey_sound_play) {
     my $state = $v_audrey_sound_play->{state};
-    $v_audrey_sound_play->respond("Playing $Save{current_audrey} Audrey sound $state");
+    $v_audrey_sound_play->respond(
+        "Playing $Save{current_audrey} Audrey sound $state");
     get "http://$Save{current_audrey}/beep.shtml?0 $state";
 }
 
-
-if (said $v_audrey_volume) {
+if ( said $v_audrey_volume) {
     my $state = $v_audrey_volume->{state};
-    $v_audrey_volume->respond("Setting $Save{current_audrey} Audrey volume to $state");
+    $v_audrey_volume->respond(
+        "Setting $Save{current_audrey} Audrey volume to $state");
     get "http://$Save{current_audrey}/volume.shtml?$state";
 }
 
-if (said $v_audrey_remote) {
+if ( said $v_audrey_remote) {
     my $state = $v_audrey_remote->{state};
-    $v_audrey_remote->respond("Pushing $Save{current_audrey} Audrey button $state");
-    $state =  '@BRW' if $state eq 'browser';
-    $state =  '@ADR' if $state eq 'address_book';
-    $state =  '@DAT' if $state eq 'date_book';
-    $state =  '@OPT' if $state eq 'audrey_options';
-    $state =  '@PWR' if $state eq 'power_button';
-    $state =  '@KLF' if $state eq 'turn_knob_left';
-    $state =  '@KPS' if $state eq 'push_knob';
-    $state =  '@KRT' if $state eq 'turn_knob_right';
-    $state =  '@MAIL' if $state eq 'mail';
-    $state =  '@TAB' if $state eq 'tab';
-    $state =  '@ENT' if $state eq 'enter';
+    $v_audrey_remote->respond(
+        "Pushing $Save{current_audrey} Audrey button $state");
+    $state = '@BRW'  if $state eq 'browser';
+    $state = '@ADR'  if $state eq 'address_book';
+    $state = '@DAT'  if $state eq 'date_book';
+    $state = '@OPT'  if $state eq 'audrey_options';
+    $state = '@PWR'  if $state eq 'power_button';
+    $state = '@KLF'  if $state eq 'turn_knob_left';
+    $state = '@KPS'  if $state eq 'push_knob';
+    $state = '@KRT'  if $state eq 'turn_knob_right';
+    $state = '@MAIL' if $state eq 'mail';
+    $state = '@TAB'  if $state eq 'tab';
+    $state = '@ENT'  if $state eq 'enter';
     get "http://$Save{current_audrey}/fireKey.shtml?string=$state";
 }
 

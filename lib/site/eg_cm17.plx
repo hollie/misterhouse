@@ -45,7 +45,7 @@ $serial_port->databits(8);
 $serial_port->baudrate(4800);
 $serial_port->parity("none");
 $serial_port->stopbits(1);
-$serial_port->dtr_active(1);
+$serial_port->dtr_active(1) or warn "Could not set dtr_active(1)";
 $serial_port->handshake("none");
 $serial_port->write_settings || die "Could not set up port\n";
 

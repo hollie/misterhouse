@@ -1,0 +1,36 @@
+<div class='row top-buffer'>
+	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
+			<p><strong>Temperature:</strong> <!--#include var="$some_mh_var"--><br>
+		</div>
+	</div>
+</div>
+
+<table cellSpacing=0 cellPadding=0 width="100%" border=0>  
+<center>
+<img src="http://local-zoneminder-server/cgi-bin/nph-zms?mode=jpeg&monitor=1&scale=100&maxfps=15" width="320" height="240"></img>
+</center>
+</table>
+<div id='buffer0' class='row top-buffer'>
+  <div id='row0' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
+
+	<div class="col-sm-4">
+	   <div style="vertical-align:middle">
+		<button entity='gen_door' class='btn btn-default btn-lg btn-list btn-popover btn-block btn-state-cmd navbutton-padding'>Garage Door<span class='pull-right'>loading...</span>
+		</button>
+	</div>
+	</div>
+
+
+	<div class="col-sm-4">
+		   <div style="vertical-align:middle">
+		<button entity='test_light' class='btn btn-default btn-lg btn-list btn-popover btn-block btn-state-cmd navbutton-padding'>Garage Light<span class='pull-right'>loading...</span>
+		</button>
+		</div>
+	</div>
+   </div>
+ </div>
+	
+<script>
+ updateStaticPage();
+</script>
+

@@ -1,3 +1,4 @@
+
 =head1 B<net_gmail_utils>
 
 =head2 SYNOPSIS
@@ -46,92 +47,98 @@ B<NONE>
 
 package net_gmail_utils;
 
-  use Email::Send;
-  use Email::Send::Gmail;
-  use Email::Simple;
-  use Email::Simple::Creator;
-
+use Email::Send;
+use Email::Send::Gmail;
+use Email::Simple;
+use Email::Simple::Creator;
 
 sub send_gmail {
 
     my %parms = @_;
-    my ($from, $to, $subject, $text, $port, $account, $mime, $baseref, $file, $filename);
-    my ($smtpusername, $smtppassword, $smtpencrypt );
+    my (
+        $from,    $to,   $subject, $text, $port,
+        $account, $mime, $baseref, $file, $filename
+    );
+    my ( $smtpusername, $smtppassword, $smtpencrypt );
 
+    $port         = $parms{port};
+    $account      = $parms{account};
+    $from         = $parms{from};
+    $to           = $parms{to};
+    $subject      = "Email from Misterhouse";
+    $subject      = $parms{subject} if ( defined $parms{subject} );
+    $mime         = $parms{mime};
+    $baseref      = $parms{baseref};
+    $text         = $parms{text};
+    $file         = $parms{file};
+    $filename     = $parms{filename};
+    $smtpusername = $parms{smtpusername};
+    $smtpusername = $parms{gmail_account} if ( defined $parms{gmail_account} );
+    $smtppassword = $parms{smtppassword};
+    $smtppassword = $parms{password} if ( defined $parms{password} );
 
-    $port    = $parms{port};
-    $account = $parms{account};
-    $from    = $parms{from};
-    $to      = $parms{to};
-    $subject = "Email from Misterhouse";
-    $subject = $parms{subject} if (defined $parms{subject});
-    $mime    = $parms{mime};
-    $baseref = $parms{baseref};
-    $text    = $parms{text};
-    $file    = $parms{file};
-    $filename= $parms{filename};
-    $smtpusername= $parms{smtpusername};
-    $smtpusername = $parms{gmail_account} if (defined $parms{gmail_account});
-    $smtppassword= $parms{smtppassword};
-    $smtppassword = $parms{password} if (defined $parms{password});
-
- #   my $priority= $parms{priority};
- #   $priority = 3 unless $priority;
+    #   my $priority= $parms{priority};
+    #   $priority = 3 unless $priority;
 
     $account = $main::config_parms{net_mail_send_account} unless $account;
-    $port    = $main::config_parms{"net_mail_${account}_server_send_port"}  unless (defined $port);
-    $port    = 25 unless (defined $port);
-    $from    = $main::config_parms{"net_mail_${account}_address"} unless (defined $from);
-    $to      = $main::config_parms{"net_mail_${account}_address"} unless (defined $to);
+    $port = $main::config_parms{"net_mail_${account}_server_send_port"}
+      unless ( defined $port );
+    $port = 25 unless ( defined $port );
+    $from = $main::config_parms{"net_mail_${account}_address"}
+      unless ( defined $from );
+    $to = $main::config_parms{"net_mail_${account}_address"}
+      unless ( defined $to );
 
-    my $timeout = $main::config_parms{"net_mail_${account}_server_send_timeout"};
+    my $timeout =
+      $main::config_parms{"net_mail_${account}_server_send_timeout"};
     $timeout = 20 unless $timeout;
 
-    $smtpusername= $main::config_parms{"net_mail_${account}_user"} unless $smtpusername;
-    $smtppassword= $main::config_parms{"net_mail_${account}_password"} unless $smtppassword;
+    $smtpusername = $main::config_parms{"net_mail_${account}_user"}
+      unless $smtpusername;
+    $smtppassword = $main::config_parms{"net_mail_${account}_password"}
+      unless $smtppassword;
 
     $from = $smtpusername unless $from;
 
+    #print "f=$from, t=$to, s=$subject, p=$port, u=$smtpusername, pw=$smtppassword, te=$text\n";
 
-#print "f=$from, t=$to, s=$subject, p=$port, u=$smtpusername, pw=$smtppassword, te=$text\n";
+    # Note I had some issuse using the escaped $Address from above, and just hardcoded it in
+    #  without the escapes for the sending section .... should be pretty easy to mod though
 
-  # Note I had some issuse using the escaped $Address from above, and just hardcoded it in
-  #  without the escapes for the sending section .... should be pretty easy to mod though
-  
-  my $email = Email::Simple->create(
-      header => [
-          From    => $from,
-          To      => $to,
-        #  To	  => 'anotheraddress@hotmail.com',
-          Subject => $subject,
-      ],
+    my $email = Email::Simple->create(
+        header => [
+            From => $from,
+            To   => $to,
 
-      body => $text ,
-  );
-    
-    $email->header_set('X-Mailer'=>'net_gmail_utils mh v0.1 - pjf/hp 2008');
+            #  To	  => 'anotheraddress@hotmail.com',
+            Subject => $subject,
+        ],
 
+        body => $text,
+    );
 
-  my $sender = Email::Send->new(
-      {   	mailer      => 'Gmail',
-    		Port	    => $port,
-        	mailer_args => [
+    $email->header_set( 'X-Mailer' => 'net_gmail_utils mh v0.1 - pjf/hp 2008' );
+
+    my $sender = Email::Send->new(
+        {
+            mailer      => 'Gmail',
+            Port        => $port,
+            mailer_args => [
                 username => $smtpusername,
                 password => $smtppassword,
-          ]
-      }
-  );
-  
-  eval { $sender->send($email) };
-  if ($@) {
-    print "Error sending gmail email: $@";
-    return;
-  }
-  $sender = '';
+            ]
+        }
+    );
+
+    eval { $sender->send($email) };
+    if ($@) {
+        print "Error sending gmail email: $@";
+        return;
+    }
+    $sender = '';
 }
 
 1;
-
 
 =back
 

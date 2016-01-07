@@ -28,50 +28,55 @@
 =cut
 
 $v_iButton_connect = new Voice_Cmd "[Connect,Disconnect] to the iButton bus";
-$v_iButton_connect -> set_info('Use this to free up the serial port or test the iButton start/stop calls');
+$v_iButton_connect->set_info(
+    'Use this to free up the serial port or test the iButton start/stop calls');
 
 $v_iButton_list = new Voice_Cmd "List all the iButton buttons";
-$v_iButton_list -> set_info('Lists the family and ID codes of all the buttons on the bus');
-$v_iButton_list -> set_authority('anyone');
+$v_iButton_list->set_info(
+    'Lists the family and ID codes of all the buttons on the bus');
+$v_iButton_list->set_authority('anyone');
 
-if (said $v_iButton_connect) {
+if ( said $v_iButton_connect) {
     my $state = $v_iButton_connect->{state};
 
-    if (!$config_parms{iButton_serial_port}) {
-	$v_iButton_connect->respond('app=error iButton bus is not configured.');
+    if ( !$config_parms{iButton_serial_port} ) {
+        $v_iButton_connect->respond('app=error iButton bus is not configured.');
     }
     else {
-        $v_iButton_connect->respond("app=ibutton $state" . 'ing to iButton bus...');
+        $v_iButton_connect->respond(
+            "app=ibutton $state" . 'ing to iButton bus...' );
 
-    	if ($state eq 'Connect') {
-        	print_log "&iButton::connect($config_parms{iButton_serial_port})";
-    	}
-    	else {
-        	print_log "&iButton::disconnect";
-    	}
-
+        if ( $state eq 'Connect' ) {
+            print_log "&iButton::connect($config_parms{iButton_serial_port})";
+        }
+        else {
+            print_log "&iButton::disconnect";
+        }
 
     }
 }
 
-                                # List all iButton devices
-if (said $v_iButton_list) {
+# List all iButton devices
+if ( said $v_iButton_list) {
     $v_iButton_list->respond('Looking for iButtons...');
     my $results = &iButton::scan_report();
-    $v_iButton_list->respond("List of iButtons:\n" . $results) if $results;
-    if ($config_parms{iButton_2_serial_port}) {
-        $results = &iButton::scan_report(undef, $config_parms{iButton_2_serial_port});
-        $v_iButton_list->respond("List of iButtons:\n" . $results) if $results;
+    $v_iButton_list->respond( "List of iButtons:\n" . $results ) if $results;
+    if ( $config_parms{iButton_2_serial_port} ) {
+        $results =
+          &iButton::scan_report( undef, $config_parms{iButton_2_serial_port} );
+        $v_iButton_list->respond( "List of iButtons:\n" . $results )
+          if $results;
     }
 }
 
-                                # Pick how often to check the bus ... it takes about 6 ms per device.
-                                # You can use the 'start a by name speed benchmark' command
-                                # to see how much time this is taking
+# Pick how often to check the bus ... it takes about 6 ms per device.
+# You can use the 'start a by name speed benchmark' command
+# to see how much time this is taking
 &iButton::monitor('01') if $New_Second;
-&iButton::monitor('01', $config_parms{iButton_2_serial_port} ) if $New_Second and $config_parms{iButton_2_serial_port};
-#iButton::monitor if $New_Msecond_500;
+&iButton::monitor( '01', $config_parms{iButton_2_serial_port} )
+  if $New_Second and $config_parms{iButton_2_serial_port};
 
+#iButton::monitor if $New_Msecond_500;
 
 # Here are Brian Paulson's notes on how to connect an iButton weather station.
 

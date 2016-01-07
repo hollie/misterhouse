@@ -74,56 +74,70 @@ use PocketSphinx;
 # Initialize the PocketSphinx library module
 
 # noloop=start
-&PocketSphinx_Control::startup( );
+&PocketSphinx_Control::startup();
+
 # noloop=stop
 
 # define some classes we need
-$v_pocketsphinx_reset  = new Voice_Cmd("reset pocket sphinx language files");
-$v_pocketsphinx_awake  = new Voice_Cmd($config_parms{pocketsphinx_awake_phrase},$config_parms{pocketsphinx_awake_response});
-$v_pocketsphinx_asleep = new Voice_Cmd($config_parms{pocketsphinx_asleep_phrase},$config_parms{pocketsphinx_timeout_response});
-$pocketsphinx_listener = new PocketSphinx_Listener ( "$config_parms{pocketsphinx_dev}", $config_parms{pocketsphinx_rate});
-$t_awake_timer         = new Timer;
+$v_pocketsphinx_reset = new Voice_Cmd("reset pocket sphinx language files");
+$v_pocketsphinx_awake = new Voice_Cmd(
+    $config_parms{pocketsphinx_awake_phrase},
+    $config_parms{pocketsphinx_awake_response}
+);
+$v_pocketsphinx_asleep = new Voice_Cmd(
+    $config_parms{pocketsphinx_asleep_phrase},
+    $config_parms{pocketsphinx_timeout_response}
+);
+$pocketsphinx_listener =
+  new PocketSphinx_Listener( "$config_parms{pocketsphinx_dev}",
+    $config_parms{pocketsphinx_rate} );
+$t_awake_timer = new Timer;
 
 # Set mode on startup and reload
-if ($Startup or $Reload) {
-  if ($Save{vr_mode} eq 'awake') {
-    if (defined $v_pocketsphinx_awake) {
-      set $v_pocketsphinx_awake 1;
+if ( $Startup or $Reload ) {
+    if ( $Save{vr_mode} eq 'awake' ) {
+        if ( defined $v_pocketsphinx_awake ) {
+            set $v_pocketsphinx_awake 1;
+        }
     }
-  }
-  elsif ($Save{vr_mode} eq 'asleep') {
-    if (defined $v_pocketsphinx_asleep) {
-      set $v_pocketsphinx_asleep 1;
+    elsif ( $Save{vr_mode} eq 'asleep' ) {
+        if ( defined $v_pocketsphinx_asleep ) {
+            set $v_pocketsphinx_asleep 1;
+        }
     }
-  }
-  print_log ("PocketSphinx:: set to $Save{vr_mode}") if $Debug{pocketsphinx};
+    print_log("PocketSphinx:: set to $Save{vr_mode}") if $Debug{pocketsphinx};
 }
 
 # process the VR awake phrase
-if (said $v_pocketsphinx_awake) {
-  print_log ("PocketSphinx:: VR mode set to awake") if $Debug{pocketsphinx};
-  $Save{vr_mode} = 'awake';
-  set $t_awake_timer $config_parms{pocketsphinx_awake_time} if (exists $config_parms{pocketsphinx_awake_time});
+if ( said $v_pocketsphinx_awake) {
+    print_log("PocketSphinx:: VR mode set to awake") if $Debug{pocketsphinx};
+    $Save{vr_mode} = 'awake';
+    set $t_awake_timer $config_parms{pocketsphinx_awake_time}
+      if ( exists $config_parms{pocketsphinx_awake_time} );
 }
 
 # Reset the timer so we stay in awake mode if VR is active
-if ($Save{vr_mode} eq 'awake' and &Voice_Cmd::said_this_pass and exists $config_parms{pocketsphinx_awake_time}) {
-  set $t_awake_timer $config_parms{pocketsphinx_awake_time} if (exists $config_parms{pocketsphinx_awake_time});
+if (    $Save{vr_mode} eq 'awake'
+    and &Voice_Cmd::said_this_pass
+    and exists $config_parms{pocketsphinx_awake_time} )
+{
+    set $t_awake_timer $config_parms{pocketsphinx_awake_time}
+      if ( exists $config_parms{pocketsphinx_awake_time} );
 }
 
 # process the VR asleep phrase
-if (said $v_pocketsphinx_asleep) {
-  print_log ("PocketSphinx:: VR mode set to asleep") if $Debug{pocketsphinx};
-  $Save{vr_mode} = 'asleep'; 
+if ( said $v_pocketsphinx_asleep) {
+    print_log("PocketSphinx:: VR mode set to asleep") if $Debug{pocketsphinx};
+    $Save{vr_mode} = 'asleep';
 }
 
 # Go to asleep mode if no command have ben heard recently
-if (expired $t_awake_timer and $Save{vr_mode} eq 'awake') {
-  print_log ("PocketSphinx:: active mode timed out") if $Debug{pocketsphinx};
-  set $v_pocketsphinx_asleep 1;
+if ( expired $t_awake_timer and $Save{vr_mode} eq 'awake' ) {
+    print_log("PocketSphinx:: active mode timed out") if $Debug{pocketsphinx};
+    set $v_pocketsphinx_asleep 1;
 }
 
 # reset the pocketsphinx language files to force a rebuild on next startup
-if (said $v_pocketsphinx_reset) {
-  &PocketSphinx_Control::reset_language_files( );
+if ( said $v_pocketsphinx_reset) {
+    &PocketSphinx_Control::reset_language_files();
 }

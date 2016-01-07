@@ -1,3 +1,4 @@
+
 =head1 B<Motion_Tracker>
 
 =head2 SYNOPSIS
@@ -35,28 +36,34 @@ package Motion_Tracker;
 @Motion_Tracker::ISA = ('Generic_Item');
 
 sub new {
-  my ($class,$sensor,$expire_timeout) = @_;
-  my $self = {};
-  bless $self,$class;
-  $$self{sensor} = $sensor;
-  # Default expire_timeout to 2 minutes
-  if ($expire_timeout == undef) {
-    $$self{expire_timeout} = 2*60;
-  }
-  else {
-    $$self{expire_timeout} = $expire_timeout;
-  }
-  # Create a timer...defaults to calling set() method when it expires
-  $$self{expire_timer} = new Timer();
-  # Set the sensor to call set() when it's state changes
-  $sensor->tie_items($self);
-  # Doesn't actually restore anything! Marks last_motion as being restorable.
-  $self->restore_data('last_motion');
-  # Track reads/writes to last_motion...why does perl allow access to 
-  # internal member variables?
-  tie $$self{last_motion}, 'Motion_Tracker', $self;
-  # TODO: Battery timer?
-  return $self;
+    my ( $class, $sensor, $expire_timeout ) = @_;
+    my $self = {};
+    bless $self, $class;
+    $$self{sensor} = $sensor;
+
+    # Default expire_timeout to 2 minutes
+    if ( $expire_timeout == undef ) {
+        $$self{expire_timeout} = 2 * 60;
+    }
+    else {
+        $$self{expire_timeout} = $expire_timeout;
+    }
+
+    # Create a timer...defaults to calling set() method when it expires
+    $$self{expire_timer} = new Timer();
+
+    # Set the sensor to call set() when it's state changes
+    $sensor->tie_items($self);
+
+    # Doesn't actually restore anything! Marks last_motion as being restorable.
+    $self->restore_data('last_motion');
+
+    # Track reads/writes to last_motion...why does perl allow access to
+    # internal member variables?
+    tie $$self{last_motion}, 'Motion_Tracker', $self;
+
+    # TODO: Battery timer?
+    return $self;
 }
 
 =item C<TIESCALAR>
@@ -66,8 +73,8 @@ Part of tie mechanism to track last_motion variable
 =cut
 
 sub TIESCALAR {
-  my ($class, $self) = @_;
-  return $self;
+    my ( $class, $self ) = @_;
+    return $self;
 }
 
 =item C<FETCH>
@@ -77,8 +84,8 @@ Part of tie mechanism to track last_motion variable
 =cut
 
 sub FETCH {
-  my ($self) = @_;
-  return $self->last_motion();
+    my ($self) = @_;
+    return $self->last_motion();
 }
 
 =item C<STORE>
@@ -88,9 +95,10 @@ Part of tie mechanism to track last_motion variable
 =cut
 
 sub STORE {
-  my ($self, $val) = @_;
-  #print 'Setting last_motion to ' . $val . '\n';
-  $self->last_motion($val);
+    my ( $self, $val ) = @_;
+
+    #print 'Setting last_motion to ' . $val . '\n';
+    $self->last_motion($val);
 }
 
 =item C<set>
@@ -100,21 +108,24 @@ Set the state of this tracker.  Valid states input states are 'motion', 'on', 'o
 =cut
 
 sub set {
-  my ($self, $p_state, $p_setby) = @_;
+    my ( $self, $p_state, $p_setby ) = @_;
 
-  if ($p_setby eq $$self{expire_timer}) {
-    $p_state = 'vacant';
-  }
-  elsif (($p_state eq 'dark') or ($p_state eq 'light') or ($p_state eq 'off') 
-         or ($p_state eq 'still')) {
-    # TODO: reset battery alarm timer
-    return;
-  }
-  elsif ($p_state eq 'on' or $p_state eq 'motion') {
-    $p_state = 'occupied';
-    $self->last_motion($::Time);
-  }
-  $self->SUPER::set($p_state, $p_setby);
+    if ( $p_setby eq $$self{expire_timer} ) {
+        $p_state = 'vacant';
+    }
+    elsif (( $p_state eq 'dark' )
+        or ( $p_state eq 'light' )
+        or ( $p_state eq 'off' )
+        or ( $p_state eq 'still' ) )
+    {
+        # TODO: reset battery alarm timer
+        return;
+    }
+    elsif ( $p_state eq 'on' or $p_state eq 'motion' ) {
+        $p_state = 'occupied';
+        $self->last_motion($::Time);
+    }
+    $self->SUPER::set( $p_state, $p_setby );
 }
 
 =item C<expire_timeout>
@@ -124,12 +135,12 @@ Get/set the expire timeout.  This controls how long after the last motion is see
 =cut
 
 sub expire_timeout {
-  my ($self, $expire_timeout) = @_;
-  if ($expire_timeout == undef) {
-    return $$self{expire_timeout};
-  }
-  $$self{expire_timeout} = $expire_timeout;
-  return $expire_timeout;
+    my ( $self, $expire_timeout ) = @_;
+    if ( $expire_timeout == undef ) {
+        return $$self{expire_timeout};
+    }
+    $$self{expire_timeout} = $expire_timeout;
+    return $expire_timeout;
 }
 
 =item C<age>
@@ -139,8 +150,8 @@ Return number of seconds since last motion was detected
 =cut
 
 sub age {
-  my ($self) = @_;
-  return $::Time - $self->last_motion();
+    my ($self) = @_;
+    return $::Time - $self->last_motion();
 }
 
 =item C<last_motion>
@@ -150,21 +161,23 @@ Get/set the last motion time.  Call with one argument to set last_motion, call w
 =cut
 
 sub last_motion {
-  my ($self, $last_motion) = @_;
-  if ($last_motion == undef) {
-    return $$self{last_motion};
-  }
-  $$self{last_motion} = $last_motion;
-  # Has the traker expired?  If so, then set state to vacant
-  if ($self->age() >= $self->expire_timeout()) {
-    $self->set('vacant');
-  }
-  else {
-    # Haven't expired yet, so setup timer to set state later on
-    # Note that I subtract the age() as time served :)
-    $$self{expire_timer}->set($self->expire_timeout() - $self->age(), $self);
-  }
-  return $last_motion;
+    my ( $self, $last_motion ) = @_;
+    if ( $last_motion == undef ) {
+        return $$self{last_motion};
+    }
+    $$self{last_motion} = $last_motion;
+
+    # Has the traker expired?  If so, then set state to vacant
+    if ( $self->age() >= $self->expire_timeout() ) {
+        $self->set('vacant');
+    }
+    else {
+        # Haven't expired yet, so setup timer to set state later on
+        # Note that I subtract the age() as time served :)
+        $$self{expire_timer}
+          ->set( $self->expire_timeout() - $self->age(), $self );
+    }
+    return $last_motion;
 }
 
 =item C<print_state>
@@ -174,12 +187,11 @@ Return vacant/occupied state and time since last motion as a string
 =cut
 
 sub print_state {
-  my ($self) = @_;
-  return $self->state() . " last motion " . $self->age() . " sec ago";
+    my ($self) = @_;
+    return $self->state() . " last motion " . $self->age() . " sec ago";
 }
 
 1;
-
 
 =back
 

@@ -13,89 +13,122 @@
 # - MH uses the definitions in items.mht
 #
 use strict;
-use POSIX;			# for strftime
+use POSIX;    # for strftime
 
 my $C3 = chr 3;
 
-$comfort = new Serial_Item($C3 . "LI1234\n", 'init', 'serial_comfort');
-
+$comfort = new Serial_Item( $C3 . "LI1234\n", 'init', 'serial_comfort' );
 
 if ($Reload) {
-     Comfort_Login();
+    Comfort_Login();
 }
 
+if ( $state = said $comfort) {
+    $state =~ tr/\x03\x0D\x0A//d;    #delete control-C, CR & LF
 
-
-
-if ($state = said $comfort) {
-    $state =~ tr/\x03\x0D\x0A//d;		#delete control-C, CR & LF
- 
-    print "Comfort Says : $state\n";		# debugging
-
+    print "Comfort Says : $state\n"; # debugging
 
     # split input string into parameters
-    my $c_command = substr($state, 0, 2);
-    my $c_p1 = hex(substr($state, 2, 2));
-    my $c_p2 = hex(substr($state, 4, 2));
-    
+    my $c_command = substr( $state, 0, 2 );
+    my $c_p1 = hex( substr( $state, 2, 2 ) );
+    my $c_p2 = hex( substr( $state, 4, 2 ) );
+
     #print "Command = $c_command, Port = $c_p1, State = $c_p2\n";
 
     #
     # define the names of the input ports. From 1..64.
-    my @comfort_names = ("Front Door", "Hall PIR", "Basement PIR", "Utility PIR", "Shower PIR",
-    "Garage PIR", "Basement Door", "Balcony Door", "Computer Room Door", "Garage Steps Door",
-    "Garage Front Door", "Spare", "Dark Sensor", "Garden PIR", "Spare", "Spare");
+    my @comfort_names = (
+        "Front Door",
+        "Hall PIR",
+        "Basement PIR",
+        "Utility PIR",
+        "Shower PIR",
+        "Garage PIR",
+        "Basement Door",
+        "Balcony Door",
+        "Computer Room Door",
+        "Garage Steps Door",
+        "Garage Front Door",
+        "Spare",
+        "Dark Sensor",
+        "Garden PIR",
+        "Spare",
+        "Spare"
+    );
 
-    my @comfort_states = ("OFF", "ON", "Short Circuit", "Open Circuit");
+    my @comfort_states = ( "OFF", "ON", "Short Circuit", "Open Circuit" );
 
-    my @comfort_alarm_states = ("Idle", "Trouble", "Alert", "Alarm");
+    my @comfort_alarm_states = ( "Idle", "Trouble", "Alert", "Alarm" );
 
-    my @comfort_modes = ("Security OFF", "Away Mode", "Night Mode", "Day Mode", "Vacation Mode");
+    my @comfort_modes = ( "Security OFF", "Away Mode", "Night Mode", "Day Mode",
+        "Vacation Mode" );
 
-    my @comfort_users = ("Keypad", "Response");
+    my @comfort_users = ( "Keypad", "Response" );
 
-    my @comfort_alarm_params = ("Intruder, zone", "Zone Trouble, zone", "Low Battery, NA",
-    "Power Fail, id", "Phone Trouble, NA", "Duress, user", "Arm Failure, user", "Not Used",
-    "Security Off, user", "System Armed, user", "Tamper, id", "Not Used", "Entry Warning, zone",
-    "Alarm Abort (disarmed in < 90 seconds), NA", "Siren Tamper, NA", "Bypass, zone", "Not Used",
-    "Dial Test, user", "Not Used", "Entry Alert, zone", "Fire (Response-activated), NA",
-    "Panic (Response-activated), NA", "Not Used", "New Message, user", "Doorbell pressed, id",
-    "Communications Failure (RS485), id", "Signin Tamper, id");
+    my @comfort_alarm_params = (
+        "Intruder, zone",
+        "Zone Trouble, zone",
+        "Low Battery, NA",
+        "Power Fail, id",
+        "Phone Trouble, NA",
+        "Duress, user",
+        "Arm Failure, user",
+        "Not Used",
+        "Security Off, user",
+        "System Armed, user",
+        "Tamper, id",
+        "Not Used",
+        "Entry Warning, zone",
+        "Alarm Abort (disarmed in < 90 seconds), NA",
+        "Siren Tamper, NA",
+        "Bypass, zone",
+        "Not Used",
+        "Dial Test, user",
+        "Not Used",
+        "Entry Alert, zone",
+        "Fire (Response-activated), NA",
+        "Panic (Response-activated), NA",
+        "Not Used",
+        "New Message, user",
+        "Doorbell pressed, id",
+        "Communications Failure (RS485), id",
+        "Signin Tamper, id"
+    );
 
+    if ( $c_command eq "IP" ) {
+        print_log "$comfort_names[$c_p1-1] : $comfort_states[$c_p2]";
 
-    if ($c_command eq "IP") {
-       print_log "$comfort_names[$c_p1-1] : $comfort_states[$c_p2]";
-
-       # By default, generic serial data is not checked for matches on items.
-       # this tests for items defined in items.mht
-       &main::process_serial_data($state);
-       
+        # By default, generic serial data is not checked for matches on items.
+        # this tests for items defined in items.mht
+        &main::process_serial_data($state);
 
     }
-    elsif ($c_command eq "LU") {
-       print_log "Login User : $c_p1 \n";
+    elsif ( $c_command eq "LU" ) {
+        print_log "Login User : $c_p1 \n";
 
     }
-    elsif ($c_command eq "AL") {
-       print_log "Alarm Type Report : $c_p1 $comfort_alarm_states[$c_p2]\n";
+    elsif ( $c_command eq "AL" ) {
+        print_log "Alarm Type Report : $c_p1 $comfort_alarm_states[$c_p2]\n";
 
     }
-    elsif ($c_command eq "AM") {
-       $c_p2 &= 127;				# mask off bit 8
-       print_log "System Alarm Report : $comfort_alarm_params[$c_p1] $c_p2\n";
+    elsif ( $c_command eq "AM" ) {
+        $c_p2 &= 127;    # mask off bit 8
+        print_log "System Alarm Report : $comfort_alarm_params[$c_p1] $c_p2\n";
 
     }
-    elsif ($c_command eq "MD") {
+    elsif ( $c_command eq "MD" ) {
 
-       if ($c_p2 < 16) {
-         print_log "Security Mode Changed to : $comfort_modes[$c_p1] by user $c_p2\n";
-       }
-       else {
-         print_log "Security Mode Changed to : $comfort_modes[$c_p1] by $comfort_users[$c_p2 - 90]\n";
-       }
+        if ( $c_p2 < 16 ) {
+            print_log
+              "Security Mode Changed to : $comfort_modes[$c_p1] by user $c_p2\n";
+        }
+        else {
+            print_log
+              "Security Mode Changed to : $comfort_modes[$c_p1] by $comfort_users[$c_p2 - 90]\n";
+        }
     }
     else {
-       print_log "Comfort said $state\n";
+        print_log "Comfort said $state\n";
 
     }
 
@@ -108,14 +141,13 @@ if ($state = said $comfort) {
 # (The problem is that you can't set the time if you are not logged in!
 # and if you login just before comfort kicks you off then you'll miss a days logging)
 if ($New_Minute) {
-   if (time_now("23:55:00")) {
-      Set_Comfort_Time();
-   }
-   if (time_now("00:01:00")) {
-      Comfort_Login();
-   }
+    if ( time_now("23:55:00") ) {
+        Set_Comfort_Time();
+    }
+    if ( time_now("00:01:00") ) {
+        Comfort_Login();
+    }
 }
-
 
 # ----------------------------------------------------------------------------------
 #
@@ -125,11 +157,10 @@ if ($New_Minute) {
 # "From Comfort version 4.114, a login on the UCM enables status reporting"
 # "Status reporting is disabled automatically at midnight every day"
 sub Comfort_Login() {
-    $comfort = new Serial_Item ($C3 . "LI1234\r", 'init', 'serial_comfort');
+    $comfort = new Serial_Item( $C3 . "LI1234\r", 'init', 'serial_comfort' );
     print_log "Comfort login ...";
-    set $comfort 'init';        # Login
+    set $comfort 'init';    # Login
 }
-
 
 # ----------------------------------------------------------------------------------
 #
@@ -138,10 +169,11 @@ sub Set_Comfort_Time() {
     my ($comfort_time_set_string);
 
     # comfort time testing
-    $comfort_time_set_string = strftime("%Y%m%d%H%M%S",localtime);
+    $comfort_time_set_string = strftime( "%Y%m%d%H%M%S", localtime );
     print_log "Setting Comfort Clock : $comfort_time_set_string\n";
 
-    $comfort -> add ($C3 . "DT" . $comfort_time_set_string . "\r", 'Set_Time', 'serial_comfort');
+    $comfort->add( $C3 . "DT" . $comfort_time_set_string . "\r",
+        'Set_Time', 'serial_comfort' );
     set $comfort 'Set_Time';
 }
 

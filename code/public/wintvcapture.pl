@@ -20,36 +20,40 @@ Bazyle Butcher.
 
 $v_CaptureWinTv32 = new Voice_Cmd("Capture Camera");
 
-if (said $v_CaptureWinTv32) {
-                            &CaptureWinTv32 ;
-                            }
+if ( said $v_CaptureWinTv32) {
+    &CaptureWinTv32;
+}
+
 # -------------------------------------------------------
 sub CaptureWinTv32 {
-speak "start capture";
+    speak "start capture";
+
     #my $string1 = '\\ALT\\f\\ALT-\\a\\ALT\\t\\ALT-\\j\\ALT\\n\\ALT-\\';
     #my $FileName = sprintf("Car_%s_%2.2i__%2.2i_%2.2i_%2.2i",$Year_Month_Now, substr($Date_Now, 9, 2), $Hour, $Minute, $Second);
     #my $FileName = "frontdoorcam";
     #my $string2 = '\\TAB\\\\TAB\\\\TAB\\\\TAB\\\\TAB\\\\TAB\\\\TAB\\90';
-    my $string1 = '\\ALT\\f\\ALT-\\a';
-    my $string3 = '\\ALT\\s\\ALT-\\';
-    my $FileName = "Q"; # long names are slow
+    my $string1  = '\\ALT\\f\\ALT-\\a';
+    my $string3  = '\\ALT\\s\\ALT-\\';
+    my $FileName = "Q";                   # long names are slow
 
-    my $KeyCommand = $string1.$FileName.$string3;
+    my $KeyCommand = $string1 . $FileName . $string3;
 
     #my $KeyCommand = $string1.$FileName.$string2.$string3; # building command like this is versatile
-# WinTV32 must be running, but you can minimise it
-    if (my $window = &sendkeys_find_window('WinTV32', 'WinTV32')) {
-        &SendKeys($window, $KeyCommand,    0, 300); # the 300 is a delay between key to give the program time, 
-#adjust for your CPU speed, I'm running 1500MHz. Start with a bigger number to see how it works
+    # WinTV32 must be running, but you can minimise it
+    if ( my $window = &sendkeys_find_window( 'WinTV32', 'WinTV32' ) ) {
+        &SendKeys( $window, $KeyCommand, 0, 300 )
+          ;    # the 300 is a delay between key to give the program time,
+
+        #adjust for your CPU speed, I'm running 1500MHz. Start with a bigger number to see how it works
         print_log "Picture captured";
     }
-    
-  #  my $SourcePath = 'c:\mh\mh\web\images\\'.$FileName.".jpg";
-  #  my $DestPath = 'E:\mh\data\proxy\carftp\\'.$FileName.".jpg";
 
-  #  print_log "CarCam SourcePath: $SourcePath";
-   # print_log "CarCam DestPath: $DestPath";
+    #  my $SourcePath = 'c:\mh\mh\web\images\\'.$FileName.".jpg";
+    #  my $DestPath = 'E:\mh\data\proxy\carftp\\'.$FileName.".jpg";
 
-  #  my $rc = copy("$SourcePath", "$DestPath") or print_log "Error copying carcam to proxy: $!";
-   # print_log "CarCam copy results: $rc";
-                     }#end of sub
+    #  print_log "CarCam SourcePath: $SourcePath";
+    # print_log "CarCam DestPath: $DestPath";
+
+    #  my $rc = copy("$SourcePath", "$DestPath") or print_log "Error copying carcam to proxy: $!";
+    # print_log "CarCam copy results: $rc";
+}    #end of sub

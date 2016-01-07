@@ -28,69 +28,79 @@ X10I,       N6,     party_mode_switch
 =cut
 
 $party_mode = new Generic_Item;
-$party_mode->set_states('enabled', 'disabled') if $Reload;
+$party_mode->set_states( 'enabled', 'disabled' ) if $Reload;
 
 $cmd_party_mode = new Voice_Cmd 'Party Mode';
 $cmd_party_mode->set_info('Turn on party mode.');
-if (said $cmd_party_mode) {
-   set $party_mode 'enabled';
+if ( said $cmd_party_mode) {
+    set $party_mode 'enabled';
 }
 
 $cmd_no_party_mode = new Voice_Cmd 'No Party Mode';
 $cmd_no_party_mode->set_info('Turn off party mode.');
-if (said $cmd_no_party_mode) {
-   set $party_mode 'disabled';
+if ( said $cmd_no_party_mode) {
+    set $party_mode 'disabled';
 }
 
 sub PartyLightsOn {
-   set $kitchen_lights ON;
-   set $kitchen_table_light ON;
-   set $fr_lamp ON;
-   set $dr_fan_light ON;
-   set $fr_track_lighting '50%';
-   set $party_mode_switch ON;
-   set $lr_curio_cabinet ON;
-   set $hutch_light ON;
-   set $front_porch_lights ON;
-   set $back_landscape ON;
-   set $front_landscape ON;
+    set $kitchen_lights ON;
+    set $kitchen_table_light ON;
+    set $fr_lamp ON;
+    set $dr_fan_light ON;
+    set $fr_track_lighting '50%';
+    set $party_mode_switch ON;
+    set $lr_curio_cabinet ON;
+    set $hutch_light ON;
+    set $front_porch_lights ON;
+    set $back_landscape ON;
+    set $front_landscape ON;
 }
 
 # Turns rest of lights on when it gets darker out
-if (time_now("$Time_Sunset - 0:30")) {
-   if (state $party_mode eq 'enabled') {
-      &PartyLightsOn();
-   }
+if ( time_now("$Time_Sunset - 0:30") ) {
+    if ( state $party_mode eq 'enabled' ) {
+        &PartyLightsOn();
+    }
 }
 
-if ($state = state_now $party_mode) {
-   if ($state eq 'enabled') {
-      speak('rooms' => 'kitchen', 'importance' => 'important', 'text' => 'Party Mode Enabled');
-      set $kitchen_lights ON;
-      set $kitchen_table_light ON;
-      if (time_greater_than("$Time_Sunset - 0:30")) {
-         &PartyLightsOn();
-      }
-      set $party_mode_switch ON;
-   } elsif ($state eq 'disabled') {
-      speak('rooms' => 'kitchen', 'importance' => 'important', 'text' => 'Party Mode Disabled');
-      set $kitchen_lights OFF;
-      set $dr_fan_light OFF;
-      set $fr_track_lighting OFF;
-      set $party_mode_switch OFF;
-      set $lr_curio_cabinet OFF;
-      set $hutch_light OFF;
-      set $back_landscape OFF;
-      &Check_Front_Porch_Lights();
-   }
+if ( $state = state_now $party_mode) {
+    if ( $state eq 'enabled' ) {
+        speak(
+            'rooms'      => 'kitchen',
+            'importance' => 'important',
+            'text'       => 'Party Mode Enabled'
+        );
+        set $kitchen_lights ON;
+        set $kitchen_table_light ON;
+        if ( time_greater_than("$Time_Sunset - 0:30") ) {
+            &PartyLightsOn();
+        }
+        set $party_mode_switch ON;
+    }
+    elsif ( $state eq 'disabled' ) {
+        speak(
+            'rooms'      => 'kitchen',
+            'importance' => 'important',
+            'text'       => 'Party Mode Disabled'
+        );
+        set $kitchen_lights OFF;
+        set $dr_fan_light OFF;
+        set $fr_track_lighting OFF;
+        set $party_mode_switch OFF;
+        set $lr_curio_cabinet OFF;
+        set $hutch_light OFF;
+        set $back_landscape OFF;
+        &Check_Front_Porch_Lights();
+    }
 }
 
-if ($state = state_now $party_mode_switch) {
-   if (get_set_by $party_mode_switch eq 'serial') {
-      if ($state eq ON) {
-         set $party_mode 'enabled';
-      } elsif ($state eq OFF) {
-         set $party_mode 'disabled';
-      }
-   }
+if ( $state = state_now $party_mode_switch) {
+    if ( get_set_by $party_mode_switch eq 'serial' ) {
+        if ( $state eq ON ) {
+            set $party_mode 'enabled';
+        }
+        elsif ( $state eq OFF ) {
+            set $party_mode 'disabled';
+        }
+    }
 }

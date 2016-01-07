@@ -1,12 +1,13 @@
 
 # read_phone_logs* is from phone_logs.pl code files
 my $html_calls;
-my @logs   = &read_phone_logs1('callerid');
-my @calls  = &read_phone_logs2(100, @logs);
+my @logs = &read_phone_logs1('callerid');
+my @calls = &read_phone_logs2( 100, @logs );
 for my $r (@calls) {
-    my ($time, $num, $name) = $r =~ /(.+\d+:\d+:\d+) (\S+) (.+)/;
+    my ( $time, $num, $name ) = $r =~ /(.+\d+:\d+:\d+) (\S+) (.+)/;
     next unless $num;
-    $html_calls .= "<tr vAlign=center bgColor='#cccccc'><td nowrap>$time</td><td nowrap>$num</td><td nowrap>$name</td></tr>";
+    $html_calls .=
+      "<tr vAlign=center bgColor='#cccccc'><td nowrap>$time</td><td nowrap>$num</td><td nowrap>$name</td></tr>";
 }
 
 #my $html_calls;
@@ -18,10 +19,8 @@ for my $r (@calls) {
 #}
 #close DATA;
 
-
-#my $html = "<html><body>\n<base target ='output'>\n" . 
-my $html = "<html><body>\n" .
-  &html_header('Recent Incoming Calls') . "
+#my $html = "<html><body>\n<base target ='output'>\n" .
+my $html = "<html><body>\n" . &html_header('Recent Incoming Calls') . "
 <table width=100% cellspacing=2><tbody><font face=COURIER size=2>
 <tr bgcolor='#999999'>
 <th align='middle'>Time</th>
@@ -33,4 +32,4 @@ $html_calls
 </html>
 ";
 
-return &html_page('', $html);
+return &html_page( '', $html );
