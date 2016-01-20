@@ -15,10 +15,10 @@ $v_generate_hb_config = new Voice_Cmd("Generate new Homebridge config.json file"
 
 if (said $v_generate_hb_config) {
 	my $config_json = "{\n\t\"bridge\": {\n";
-	$config_json .= "\t\t\"name\": " . $name . "\",\n";
-	$config_json .= "\t\t\"username\": " . $username . "\",\n";
-	$config_json .= "\t\t\"port\": " . $port . "\",\n";
-	$config_json .= "\t\t\"pin\": " . $pin . "\"\n\t},\n";
+	$config_json .= "\t\t\"name\": \"" . $name . "\",\n";
+	$config_json .= "\t\t\"username\": \"" . $username . "\",\n";
+	$config_json .= "\t\t\"port\": \"" . $port . "\",\n";
+	$config_json .= "\t\t\"pin\": \"" . $pin . "\"\n\t},\n";
 	$config_json .= "\t\"description\": \"MH Generated HomeKit Configuration v" . $version . " " . &time_date_stamp(17) . "\",\n";
 	
 	$config_json .= "\n\t\"accessories\": [\n";
