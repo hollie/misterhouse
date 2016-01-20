@@ -17,7 +17,7 @@ if (said $v_generate_hb_config) {
 	my $config_json = "{\n\t\"bridge\": {\n";
 	$config_json .= "\t\t\"name\": \"" . $name . "\",\n";
 	$config_json .= "\t\t\"username\": \"" . $username . "\",\n";
-	$config_json .= "\t\t\"port\": \"" . $port . "\",\n";
+	$config_json .= "\t\t\"port\": " . $port . ",\n";
 	$config_json .= "\t\t\"pin\": \"" . $pin . "\"\n\t},\n";
 	$config_json .= "\t\"description\": \"MH Generated HomeKit Configuration v" . $version . " " . &time_date_stamp(17) . "\",\n";
 	
@@ -32,7 +32,7 @@ if (said $v_generate_hb_config) {
 
 	$config_json .= "\t\t}\n\t]\n}\n";
 	print_log "Writing configuration to $filepath...";
-	print_log $config_json;
+	#print_log $config_json;
 	file_write($filepath, $config_json);
 }
 
@@ -65,9 +65,9 @@ sub add_group {
 		$on = $url_types{$type}{on} if (defined $url_types{$type}{on});
 		my $off = "off";
 		$off = $url_types{$type}{off} if (defined $url_types{$type}{off});	
-		$text .= "\t\t\"" . $on . "_url\": \"http://" . $Info{IPAddress_local} . "/SET;none?select_item=" . $member->{object_name} . "&select_state=" .$on . "\",\n";
-		$text .= "\t\t\"" . $off . "_url\": \"http://" . $Info{IPAddress_local} . "/SET;none?select_item=" . $member->{object_name} . "&select_state=" .$off . "\",\n";
-		$text .= "\t\t\"brightness_url\": \"http://" . $Info{IPAddress_local} . "/SET;none?select_item=" . $member->{object_name} . "&select_state=%VALUE%\",\n" if ($type eq "light");
+		$text .= "\t\t\"" . $on . "_url\": \"http://" . $Info{IPAddress_local} . ":" . $config_parms{http_port} . "/SET;none?select_item=" . $member->{object_name} . "&select_state=" .$on . "\",\n";
+		$text .= "\t\t\"" . $off . "_url\": \"http://" . $Info{IPAddress_local} . ":" . $config_parms{http_port} . "/SET;none?select_item=" . $member->{object_name} . "&select_state=" .$off . "\",\n";
+		$text .= "\t\t\"brightness_url\": \"http://" . $Info{IPAddress_local} . ":" . $config_parms{http_port} . "/SET;none?select_item=" . $member->{object_name} . "&select_state=%VALUE%\",\n" if ($type eq "light");
 		$text .= "\t\t\"deviceType\": \"" . $type . "\"\n";
 	}
 	return $text;
