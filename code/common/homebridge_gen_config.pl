@@ -1,4 +1,8 @@
-# cycle through 
+# Category = HomeKit Integration
+
+#@ This module generates a config.json to be used by the homebridge system
+#@ To use several groups need to be set up:
+#@   HB__<TYPE> where type is LIGHT, LOCK, FAN, GARAGEDOOR, BLINDS, SWITCH
 
 my $port = $config_parms{homebridge_port};
 $port = 51826 unless ($port);
