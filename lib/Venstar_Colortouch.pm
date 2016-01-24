@@ -60,7 +60,8 @@ sub new {
     $self->{config}->{cache_time} = $::config_params{venstar_config_cache_time}
       if defined $::config_params{venstar_config_cache_time};
     $self->{config}->{tz} =
-      $::config_params{time_zone}; #TODO Need to figure out DST for print runtimes
+      $::config_params{time_zone}
+      ;    #TODO Need to figure out DST for print runtimes
     $self->{config}->{poll_seconds} = 60;
     $self->{config}->{poll_seconds} = $poll if ($poll);
     $self->{config}->{poll_seconds} = 1
