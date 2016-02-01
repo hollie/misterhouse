@@ -2,7 +2,13 @@
 
 #@ This module generates a config.json to be used by the homebridge system
 #@ To use several groups need to be set up:
-#@   HB__<TYPE> where type is LIGHT, LOCK, FAN, GARAGEDOOR, BLINDS, SWITCH
+#@   HB__<TYPE> where type is LIGHT, LOCK, FAN, GARAGEDOOR, BLINDS, SWITCH, THERMOSTAT
+#@ Thermostat control only tested with a few models. 
+
+# TODO:
+# Status Calls: determine if an object is on or off
+
+# read_url = "http://mh/sub?hb_status('$item')";
 
 my $port = $config_parms{homebridge_port};
 $port = 51826 unless ($port);
@@ -12,7 +18,7 @@ my $pin = $config_parms{homebridge_pin};
 $pin = "031-45-154" unless ($pin);
 my $username = $config_parms{homebridge_username};
 $username = "CC:22:3D:E3:CE:30" unless ($username);
-my $version = "1.0";
+my $version = "2";
 my $filepath = $config_parms{data_dir} . "/homebridge_config.json";
 my $acc_count;
 $v_generate_hb_config = new Voice_Cmd("Generate new Homebridge config.json file");
@@ -33,6 +39,7 @@ if (said $v_generate_hb_config) {
   	$config_json .= add_group("lock");
   	$config_json .= add_group("garagedoor");
   	$config_json .= add_group("blinds");
+  	$config_json .= add_group("thermostat");
 
 	$config_json .= "\t\t}\n\t]\n}\n";
 	print_log "Writing configuration to $filepath...";
@@ -65,17 +72,62 @@ sub add_group {
 		$name =~ s/\$//g;
 		$name = $member->{label} if (defined $member->{label});
 		$text .= "\t\t\"name\": \"" . $name . "\",\n";
-		my $on = "on";
-		$on = $url_types{$type}{on} if (defined $url_types{$type}{on});
-		my $off = "off";
-		$off = $url_types{$type}{off} if (defined $url_types{$type}{off});	
-		$text .= "\t\t\"" . $on . "_url\": \"http://" . $Info{IPAddress_local} . ":" . $config_parms{http_port} . "/SET;none?select_item=" . $member->{object_name} . "&select_state=" .$on . "\",\n";
-		$text .= "\t\t\"" . $off . "_url\": \"http://" . $Info{IPAddress_local} . ":" . $config_parms{http_port} . "/SET;none?select_item=" . $member->{object_name} . "&select_state=" .$off . "\",\n";
-		$text .= "\t\t\"brightness_url\": \"http://" . $Info{IPAddress_local} . ":" . $config_parms{http_port} . "/SET;none?select_item=" . $member->{object_name} . "&select_state=%VALUE%\",\n" if ($type eq "light");
+		if ($type eq "thermostat") {
+			$text .= "\t\t\"setpoint_url\": \"http://" . $Info{IPAddress_local} . ":" . $config_parms{http_port} . "/sub?hb_thermo_setpoint(%27" . $member->{object_name} . "%27,%VALUE%)\",\n";
+		} else {
+			my $on = "on";
+			$on = $url_types{$type}{on} if (defined $url_types{$type}{on});
+			my $off = "off";
+			$off = $url_types{$type}{off} if (defined $url_types{$type}{off});	
+			$text .= "\t\t\"" . $on . "_url\": \"http://" . $Info{IPAddress_local} . ":" . $config_parms{http_port} . "/SET;none?select_item=" . $member->{object_name} . "&select_state=" .$on . "\",\n";
+			$text .= "\t\t\"" . $off . "_url\": \"http://" . $Info{IPAddress_local} . ":" . $config_parms{http_port} . "/SET;none?select_item=" . $member->{object_name} . "&select_state=" .$off . "\",\n";
+			$text .= "\t\t\"brightness_url\": \"http://" . $Info{IPAddress_local} . ":" . $config_parms{http_port} . "/SET;none?select_item=" . $member->{object_name} . "&select_state=%VALUE%\",\n" if ($type eq "light");
+			$text .= "\t\t\"speed_url\": \"http://" . $Info{IPAddress_local} . ":" . $config_parms{http_port} . "/SET;none?select_item=" . $member->{object_name} . "&select_state=%VALUE%\",\n" if ($type eq "fan");
+		}
 		$text .= "\t\t\"deviceType\": \"" . $type . "\"\n";
 	}
 	return $text;
 }
 		
+sub hb_status {
+     my ($item) = @_;
+     my $object   = &get_object_by_name($item);
+     my $state = $object->state;
+     my $status = "1     ";
+     $status = "0     " if (lc $state eq "off");
+     print_log "Homebridge: Status request: item=$item status=$status\n";
+     return "$status";
+}
 
+sub hb_thermo_setpoint {
+	my ($item,$value) = @_;
+	print_log "Homebridge temperature change request for $item to $value";
+	my $object = &get_object_by_name($item);
+	if (UNIVERSAL::isa($object,'Venstar_Colortouch')) {
+		print_log "Venstar Colortouch found";
+		my $sp_delay = 0;
+		if ($object->get_sched() eq "on") {
+			print_log "Thermostat on a schedule, turning off schedule for override";			
+			$object -> set_schedule("off");
+			$sp_delay = 5;
+		}
+		if (($object->get_mode() eq "cooling") or ($object->get_mode() eq "auto")) {
+			eval_with_timer '$' . $item . '->set_cool_sp(' .  $value . ')";', $sp_delay;
+		} else {
+			eval_with_timer '$' . $item . '->set_heat_sp(' .  $value . ')";', $sp_delay;
+		}
+
+	} elsif (UNIVERSAL::isa($object,'Nest_Thermostat')) {
+		print_log "Nest Thermostat found";
+		$object -> set_target_temp($value);
+
+	} elsif (UNIVERSAL::isa($object,'Insteon::Thermostat')) {
+		print_log "Insteon Thermostat found";
+		$object -> heat_setpoint($value);
+		#how to determine when to select heat or cooling?
+		#$object -> cool_setpoint($value)";
+	} else {
+		print_log "Unsupported Thermostat type";
+	} 
+}
 	
