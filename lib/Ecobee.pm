@@ -173,23 +173,6 @@ sub new {
     return $self;
 }
 
-# This is called every time the timer time elapses
-sub _poll_check {
-    my ($self) = @_;
-
-    main::print_log("[Ecobee] _poll_check initiated");
-    #main::run (sub {&Venstar_Colortouch::get_data($self)}); #spawn this off to run in the background
-    $self->get_data();
-}
-
-sub get_data {
-    my ($self) = @_;
-
-    main::print_log("[Ecobee] get_data initiated");
-    $self->poll;
-    $self->process_data;
-}
-
 sub _init {
     my ($self) = @_;
 
@@ -215,7 +198,8 @@ sub _check_auth {
           $self->_thermostat_summary();
           $self->_list_thermostats();
           #$self->print_devices();
-          main::print_log( "[Ecobee] Office temp is " . $self->get_temp("Monet Thermostat", "Office") );
+          main::print_log( "[Ecobee] Office temp is " . sprintf("%.1f", $self->get_temp("Monet Thermostat", "Office")/10) . " degrees F" );
+          main::print_log( "[Ecobee] Humidity is " . $self->get_humidity("Monet Thermostat", "Monet Thermostat") . "%");
           # The basic details should be populated now so we can start to poll
           $$self{ready} = 1;
           my $action = sub { $self->_poll() };
@@ -565,33 +549,6 @@ sub _get_JSON_data {
 }
 
 
-sub stop_timer {
-    my ($self) = @_;
-
-    if ( defined $self->{timer} ) {
-        $self->{timer}->stop() if ( $self->{timer}->active() );
-    }
-    else {
-        main::print_log( "[Venstar Colortouch:"
-              . $self->{data}->{name}
-              . "] Warning, stop_timer called but timer undefined" );
-    }
-}
-
-sub start_timer {
-    my ($self) = @_;
-
-    if ( defined $self->{timer} ) {
-        $self->{timer}->set( $self->{config}->{poll_seconds},
-            sub { &Venstar_Colortouch::_poll_check($self) }, -1 );
-    }
-    else {
-        main::print_log( "[Venstar Colortouch:"
-              . $self->{data}->{name}
-              . "] Warning, start_timer called but timer undefined" );
-    }
-}
-
 
 #------------
 # User access methods
@@ -612,6 +569,13 @@ sub print_devices {
     $self->debug($output);
 }
 
+
+=item C<get_temp()>
+
+Returns the temperature of the named temperature sensor registered with the given device (thermostat)
+
+=cut
+
 sub get_temp {
     my ($self,$device,$name) = @_;
     # Get the id of the given device
@@ -628,6 +592,41 @@ sub get_temp {
              return $$self{data}{devices}{$d_id}{remoteSensorsHash}{$key}{capability}{1}{value};
           }
        } 
+       return 0;
+    } else {
+       return 0;
+    }
+}
+
+
+=item C<get_humidity()>
+
+Returns the humidity of the named sensor registered with the given device (thermostat).
+Currently only the main thermostat device, not the remote sensors have humidity
+
+=cut
+
+sub get_humidity {
+    my ($self,$device,$name) = @_;
+    # Get the id of the given device
+    my $d_id;
+    foreach my $key (keys %{$$self{data}{devices}}) {
+       if ($$self{data}{devices}{$key}{name} eq $device) {
+          $d_id = $key;
+          last;
+       }
+    }
+    if ($d_id) {
+       foreach my $key (keys %{$$self{data}{devices}{$d_id}{remoteSensorsHash}}) {
+          if ($$self{data}{devices}{$d_id}{remoteSensorsHash}{$key}{name} eq $name) {
+             if ($$self{data}{devices}{$d_id}{remoteSensorsHash}{$key}{capability}{2}{type} eq "humidity") {
+                return $$self{data}{devices}{$d_id}{remoteSensorsHash}{$key}{capability}{2}{value};
+             } else {
+                # This sensor type doesn't have a humidity sensor. Only the main thermostat unit does
+                return 0;
+             }
+          }
+       }
        return 0;
     } else {
        return 0;
