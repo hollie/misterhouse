@@ -7,7 +7,7 @@
 $xap_bluetooth  = new xAP_Item('xap-bt.status');
 $presence_phone = new Generic_Item;
 
-if (state_now $xap_bluetooth) {
+if ( state_now $xap_bluetooth) {
     my $address = $$xap_bluetooth{'xap-bt.status'}{address};
     my $name    = $$xap_bluetooth{'xap-bt.status'}{name};
     my $status  = $$xap_bluetooth{'xap-bt.status'}{status};
@@ -15,11 +15,12 @@ if (state_now $xap_bluetooth) {
     set $presence_phone "$name $status";
 }
 
-$presence_phone -> tie_event('print_log "phone status: $state"');
+$presence_phone->tie_event('print_log "phone status: $state"');
 
-if ($state = state_now $presence_phone) {
-    my ($name, $status) = split ' ', $state;
-    my $greeting = ($status eq 'near') ? 'Hello' : 'Goodbye';
+if ( $state = state_now $presence_phone) {
+    my ( $name, $status ) = split ' ', $state;
+    my $greeting = ( $status eq 'near' ) ? 'Hello' : 'Goodbye';
     print_log "$greeting $name";
-#   speak "$greeting $name";
+
+    #   speak "$greeting $name";
 }

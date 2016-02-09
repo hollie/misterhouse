@@ -1,3 +1,4 @@
+
 =head1 B<RF_Item>
 
 =head2 SYNOPSIS
@@ -59,7 +60,7 @@ package RF_Item;
 @RF_Item::ISA = ('Generic_Item');
 
 sub new {
-    my ($class, $id, $name, $type) = @_;
+    my ( $class, $id, $name, $type ) = @_;
     my $self = &Generic_Item::new('Generic_Item');
 
     $$self{state} = '';
@@ -76,14 +77,17 @@ sub new {
 
     # Must be a 2 or 4 digit hex unit id or a one of our predefined classes (from
     # X10_RF.pm).
-    if (    $id !~ /^[0-9a-f]{2}$/
- 	and $id !~ /^[0-9a-f]{4}$/       						# CJB
-	and $id ne 'sensor'
-	and $id ne 'system'
-	and $id ne 'control'
-	and $id ne 'remote') {
+    if (
+            $id !~ /^[0-9a-f]{2}$/
+        and $id !~ /^[0-9a-f]{4}$/    # CJB
+        and $id ne 'sensor'
+        and $id ne 'system'
+        and $id ne 'control'
+        and $id ne 'remote'
+      )
+    {
 
-	&::print_log("RF_Item::new: invalid RF device id \"$id\"");
+        &::print_log("RF_Item::new: invalid RF device id \"$id\"");
     }
 
     return $self;
@@ -97,7 +101,6 @@ sub new {
 #
 
 1;
-
 
 =back
 

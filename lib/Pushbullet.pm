@@ -98,7 +98,7 @@ sub new {
 
     if ( defined $params && ref($params) ne 'HASH' ) {
         &::print_log(
-"[Pushbullet] ERROR!  Pushbullet->new() invalid parameter hash - Pushbullet disabled"
+            "[Pushbullet] ERROR!  Pushbullet->new() invalid parameter hash - Pushbullet disabled"
         );
         $params = {};
         $params->{disable} = 1;
@@ -107,22 +107,25 @@ sub new {
     $params = {} unless defined $params;
 
     my $self = {};
+
     # Set configuration defaults
-    $self->{config}{speak}    = 1;    # Speak notifications and acknowledgments
-    $self->{config}{server}   = 'https://api.pushbullet.com/';
+    $self->{config}{speak} = 1;    # Speak notifications and acknowledgments
+    $self->{config}{server} = 'https://api.pushbullet.com/';
 
     # mh.private.ini settings override the defaults
-    foreach my $mkey (keys(%::config_parms)) {
+    foreach my $mkey ( keys(%::config_parms) ) {
         next if $mkey =~ /_MHINTERNAL_/;
+
         # Only look for pushbullet settings
-        if ($mkey =~ /^Pushbullet_(.*$)/) {
+        if ( $mkey =~ /^Pushbullet_(.*$)/ ) {
+
             # Drop the prefix
-            $self->{config}{$1} = $::config_parms{"Pushbullet_".$1};
+            $self->{config}{$1} = $::config_parms{ "Pushbullet_" . $1 };
         }
     }
-    
+
     # Passed parameters overriding the ini settings
-    for (keys %{$params}){
+    for ( keys %{$params} ) {
         $self->{config}{$_} = $params->{$_};
     }
 
@@ -173,14 +176,14 @@ are the only mandatory parameters.
 
 sub push_note {
     my ( $self, $title, $message, $params ) = @_;
-    
+
     $params = $self->_check_params_hash($params);
-    $params->{type} = "note"; #Force type to note when using this function
-    $params->{body} = $message || " ";
-    $params->{title} = $title || " ";
+    $params->{type} = "note";    #Force type to note when using this function
+    $params->{body}   = $message || " ";
+    $params->{title}  = $title || " ";
     $params->{action} = "POST";
-    $params->{path} = "v2/pushes";
-    
+    $params->{path}   = "v2/pushes";
+
     return $self->push_hash($params);
 }
 
@@ -200,14 +203,14 @@ the function as follows:
 
 sub push_link {
     my ( $self, $title, $url, $params ) = @_;
-    
+
     $params = $self->_check_params_hash($params);
-    $params->{type} = "link"; #Force type to note when using this function
+    $params->{type} = "link";       #Force type to note when using this function
     $params->{url} = $url || " ";
-    $params->{title} = $title || " ";
+    $params->{title}  = $title || " ";
     $params->{action} = "POST";
-    $params->{path} = "v2/pushes";
-    
+    $params->{path}   = "v2/pushes";
+
     return $self->push_hash($params);
 }
 
@@ -220,14 +223,14 @@ address, p_name p_address, are the only mandatory parameters.
 
 sub push_address {
     my ( $self, $name, $address, $params ) = @_;
-    
+
     $params = $self->_check_params_hash($params);
-    $params->{type} = "address"; #Force type to note when using this function
+    $params->{type} = "address";    #Force type to note when using this function
     $params->{name} = $name || " ";
     $params->{address} = $address || " ";
-    $params->{action} = "POST";
-    $params->{path} = "v2/pushes";
-    
+    $params->{action}  = "POST";
+    $params->{path}    = "v2/pushes";
+
     return $self->push_hash($params);
 }
 
@@ -246,19 +249,19 @@ p_item_array_ref must be passed as an array referrence.  Such as:
 
 sub push_list {
     my ( $self, $title, $item_array_ref, $params ) = @_;
-    
+
     $params = $self->_check_params_hash($params);
-    $params->{type} = "list"; #Force type to note when using this function
-    $params->{title} = $title || " ";
+    $params->{type} = "list";    #Force type to note when using this function
+    $params->{title}  = $title || " ";
     $params->{action} = "POST";
-    $params->{path} = "v2/pushes";
+    $params->{path}   = "v2/pushes";
     if ( defined $item_array_ref && ref($item_array_ref) eq 'ARRAY' ) {
         $params->{items} = @$item_array_ref;
     }
     else {
         $params->{items} = [];
     }
-    
+
     return $self->push_hash($params);
 }
 
@@ -278,15 +281,15 @@ for pushing.  Currently, this feature is not enabled in MisterHouse.
 
 sub push_file {
     my ( $self, $file_name, $file_type, $file_url, $params ) = @_;
-    
+
     $params = $self->_check_params_hash($params);
-    $params->{type} = "file"; #Force type to note when using this function
+    $params->{type} = "file";    #Force type to note when using this function
     $params->{file_name} = $file_name || " ";
     $params->{file_type} = $file_type || " ";
-    $params->{file_url} = $file_url || " ";
-    $params->{action} = "POST";
-    $params->{path} = "v2/pushes";
-    
+    $params->{file_url}  = $file_url || " ";
+    $params->{action}    = "POST";
+    $params->{path}      = "v2/pushes";
+
     return $self->push_hash($params);
 }
 
@@ -323,43 +326,47 @@ sub push_hash {
     my $callparams = {};
 
     # Load Ini Params if no other param specified can be overridden
-    foreach (keys $self->{config}) {
+    foreach ( keys $self->{config} ) {
         $params->{$_} = $self->{config}{$_} unless defined $params->{$_};
     }
 
     # Copy the calling hash since we need to modify it.
     if ( defined $params && ref($params) eq 'HASH' ) {
         foreach ( keys %{$params} ) {
+
             # Skip non-pushbullet parameters
-            next if ($_ =~ /(disable|speak|server|action|token|path)/);
+            next if ( $_ =~ /(disable|speak|server|action|token|path)/ );
             $callparams->{$_} = $params->{$_};
         }
     }
-    
+
     # Allow passed parameter to override global disable parameter
     my $disable = $params->{disable};
     my $note = ($disable) ? '- Notifications disabled' : '';
 
-    &::print_log(
-        "[Pushbullet] Push Hash parameters: " . Data::Dumper::Dumper( \$callparams ) )
+    &::print_log( "[Pushbullet] Push Hash parameters: "
+          . Data::Dumper::Dumper( \$callparams ) )
       if TRACE;
-    
+
     # Form browser and request
     my $browser = LWP::UserAgent->new;
-    my $req =  HTTP::Request->new( $params->{action} => $params->{server} . $params->{path});
-    if (keys $callparams){
-        $req->content(JSON::encode_json($callparams));
-        $req->content_type('application/json'); # Posting JSON content is preferred
+    my $req     = HTTP::Request->new(
+        $params->{action} => $params->{server} . $params->{path} );
+    if ( keys $callparams ) {
+        $req->content( JSON::encode_json($callparams) );
+        $req->content_type('application/json')
+          ;    # Posting JSON content is preferred
     }
     $req->authorization_basic( $params->{token}, "" );
     my $resp;
+
     # Do not perform reqest if disabled
-    $resp = $browser->request( $req ) unless ($disable);
-    
+    $resp = $browser->request($req) unless ($disable);
+
     # Determine best way to describe message and log it
     my $description = $callparams->{title};
-    $description = $callparams->{name} if (defined $callparams->{name});
-    $description = $callparams->{body} if (defined $callparams->{body});
+    $description = $callparams->{name} if ( defined $callparams->{name} );
+    $description = $callparams->{body} if ( defined $callparams->{body} );
     &::print_log("[Pushbullet] message: $description $note");
     &::speak("Pushbullet notification $description $note")
       if $params->{speak};
@@ -371,16 +378,18 @@ sub push_hash {
       if TRACE;
 
     my $decoded_json = JSON::decode_json( $resp->content() );
-    
-    &::print_log( "[Pushbullet] " . Data::Dumper::Dumper( \$decoded_json ) ) if TRACE;
-    
+
+    &::print_log( "[Pushbullet] " . Data::Dumper::Dumper( \$decoded_json ) )
+      if TRACE;
+
     if ( $resp->is_success() ) {
+
         # Return push iden
         return $decoded_json->{'iden'};
     }
     else {
         &::print_log(
-"[Pushbullet] ERROR: POST Failed: Status: $decoded_json->{error}{type} - $decoded_json->{error}{message} "
+            "[Pushbullet] ERROR: POST Failed: Status: $decoded_json->{error}{type} - $decoded_json->{error}{message} "
         );
         return;
     }
@@ -403,42 +412,45 @@ register_object_by_name.
 =cut
 
 sub delete_push {
-    my ($self, $push_iden, $params) = @_;
-    
-    $params = $self->_check_params_hash($params);
+    my ( $self, $push_iden, $params ) = @_;
+
+    $params           = $self->_check_params_hash($params);
     $params->{action} = "DELETE";
-    $params->{path} = "v2/pushes/" . $push_iden;
-    
+    $params->{path}   = "v2/pushes/" . $push_iden;
+
     return $self->push_hash($params);
-    
+
 }
 
 sub get_push_history {
+
     # Not yet supported
     return 1;
 }
 
 sub get_device_list {
+
     # Not yet supported
     return 1;
-}   
+}
 
 sub get_contact_list {
+
     # Not yet supported
     return 1;
 }
 
 sub upload_file {
+
     # Not yet supported
     return 1;
 }
 
-
 sub _check_params_hash {
-    my ($self, $params) = @_;
+    my ( $self, $params ) = @_;
     if ( defined $params && ref($params) ne 'HASH' ) {
         &::print_log(
-"[Pushbullet] ERROR! called with invalid parameter hash - passed parameters ignored"
+            "[Pushbullet] ERROR! called with invalid parameter hash - passed parameters ignored"
         );
         return {};
     }

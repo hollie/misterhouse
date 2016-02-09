@@ -1,3 +1,4 @@
+
 =head1 B<handy_tk_utilities>
 
 =head2 SYNOPSIS
@@ -79,7 +80,7 @@ sub tk_setup_cascade_menus {
                 next unless $text;    # Only do voice items
                 next if $$object{hidden};
 
-               # Create category menu ... now that we know it will have entries!
+                # Create category menu ... now that we know it will have entries!
                 unless ( $Tk_objects{menu_command_by_cat}{$category} ) {
                     $Tk_objects{menu_command_by_cat}{$category} =
                       $Tk_objects{menu_commands}->menu->Menu;
@@ -90,8 +91,8 @@ sub tk_setup_cascade_menus {
                     );
                 }
 
-#                $Tk_objects{menu_command_by_cat}{$category}->
-#                    add('command', -label => 'state_log', command => sub{display join("\n", state_log $object)});
+                #                $Tk_objects{menu_command_by_cat}{$category}->
+                #                    add('command', -label => 'state_log', command => sub{display join("\n", state_log $object)});
 
                 my $filename = $object->{filename};
 
@@ -137,8 +138,8 @@ sub tk_setup_cascade_menus {
             -command => \&add_remove_items
         );
 
-# Timers do not have @states (only state), so can not be included
-#       for my $object_type ('Serial_Item', 'X10_Item', 'X10_Appliance', 'iButton', 'Compool_Item', 'Group') {
+        # Timers do not have @states (only state), so can not be included
+        #       for my $object_type ('Serial_Item', 'X10_Item', 'X10_Appliance', 'iButton', 'Compool_Item', 'Group') {
         for my $object_type (@Object_Types) {
 
             my @object_list = &list_objects_by_type($object_type);
@@ -169,7 +170,7 @@ sub tk_setup_cascade_menus {
             # Sort by filename first, then object name
             for my $object (
                 sort {
-                    $a->{filename} cmp $b->{filename}
+                         $a->{filename} cmp $b->{filename}
                       or $a->{object_name} cmp $b->{object_name}
                 } @objects
               )
@@ -177,9 +178,9 @@ sub tk_setup_cascade_menus {
 
                 next if $$object{hidden};
 
-# We must delete old ones first, otherwise we get a memory leak!
-#  - this one does not help!  Still leaks about .3 mb per reload with 40 or so items :(
-# *** How is this one special?
+                # We must delete old ones first, otherwise we get a memory leak!
+                #  - this one does not help!  Still leaks about .3 mb per reload with 40 or so items :(
+                # *** How is this one special?
 
                 $Tk_objects{menu_items_by_object}{$object}->delete( 0, 'end' )
                   if $Tk_objects{menu_items_by_object}{$object};
@@ -249,7 +250,7 @@ sub tk_setup_cascade_menus {
                 # Sort by filename first, then object name
                 for my $object (
                     sort {
-                        $a->{filename} cmp $b->{filename}
+                             $a->{filename} cmp $b->{filename}
                           or $a->{object_name} cmp $b->{object_name}
                     } list $group)
                 {
@@ -283,23 +284,23 @@ sub tk_object_states {
 
     return
       unless $object
-    ;    # *** Looks like a warning needed here (for calling code's developer)
+      ;    # *** Looks like a warning needed here (for calling code's developer)
 
     # Already have this object's menu created
     return $Tk_objects{menu_items_by_object}{$object}
       if !$menu
-          and $Tk_objects{menu_items_by_object}
-          {$object};    # Already have this object's menu created
+      and $Tk_objects{menu_items_by_object}{$object}
+      ;    # Already have this object's menu created
 
     return unless $object->{states}; # Only create menus for objects with states
     my @states      = @{ $object->{states} };
     my $object_type = ref $object;
 
-# *** NO! Groups have dynamically aggregated states assigned on reload. &aggregate_states needs to be in this script! Where is it in the SVN version?
+    # *** NO! Groups have dynamically aggregated states assigned on reload. &aggregate_states needs to be in this script! Where is it in the SVN version?
 
     @states = split ',', $config_parms{x10_menu_states}
       if $object_type eq 'X10_Item'
-          or $object_type eq 'Group';
+      or $object_type eq 'Group';
     return unless $states[0];
 
     $menu = $Tk_objects{$menu_parent}->menu->Menu
@@ -361,7 +362,7 @@ sub tk_button {
         my $pvar  = shift @data;
         $Tk_objects{button}{$pvar}->destroy
           if $Tk_objects{button}{$pvar}
-              and Exists( $Tk_objects{button}{$pvar} );
+          and Exists( $Tk_objects{button}{$pvar} );
         $Tk_objects{button}{$pvar} =
           $Tk_objects{grid}->Button( -text => $label, -command => $pvar );
         push( @widgets, $Tk_objects{button}{$pvar} );
@@ -424,7 +425,7 @@ sub tk_checkbutton {
         my $pvar  = shift @data;
         $Tk_objects{checkbutton}{$pvar}->destroy
           if $Tk_objects{checkbutton}{$pvar}
-              and Exists( $Tk_objects{checkbutton}{$pvar} );
+          and Exists( $Tk_objects{checkbutton}{$pvar} );
         $Tk_objects{checkbutton}{$pvar} =
           $Tk_objects{grid}->Checkbutton( -text => $label, -variable => $pvar );
 
@@ -453,13 +454,13 @@ sub tk_command_list {
         qw/Tree -separator : -exportselection 1 -scrollbars osoe /);
     &configure_element( 'edit', \$list );
 
-# These 2 commands give a 'can not find delegate.pl' msg on tk 8.020 (ok on 8.015).
-#   $list->Label(text => "Command or Search String")->pack(-side => 'top', -fill => 'x');
-#   $Tk_objects{command} = $list->Entry(-width => 20, -borderwidth => 4)->pack(-side => 'top', -fill => 'both');
+    # These 2 commands give a 'can not find delegate.pl' msg on tk 8.020 (ok on 8.015).
+    #   $list->Label(text => "Command or Search String")->pack(-side => 'top', -fill => 'x');
+    #   $Tk_objects{command} = $list->Entry(-width => 20, -borderwidth => 4)->pack(-side => 'top', -fill => 'both');
 
     my $f = $parent->Frame->pack( -side => 'top', -fill => 'x' );
 
-#    $f->Label(-text => "Command or Search:")->pack(-side => 'left', -fill => 'x');
+    #    $f->Label(-text => "Command or Search:")->pack(-side => 'left', -fill => 'x');
     $Tk_objects{command} =
       $f->BrowseEntry( -width => 20 )
       ->pack( -side => 'left', -fill => 'x', -expand => 1 );
@@ -476,10 +477,10 @@ sub tk_command_list {
 
     # *** Errored (?!);
 
- #	my $list = $Tk_objects{command}->Subwidget("slistbox")->Subwidget("listbox");
- #	&configure_element('edit', \$list);
+    #	my $list = $Tk_objects{command}->Subwidget("slistbox")->Subwidget("listbox");
+    #	&configure_element('edit', \$list);
 
-#$list->insert(0, &list_voice_cmds_match($config_parms{tk_startup_cmd})); # Init with all commands *** Need to persist the last command search!
+    #$list->insert(0, &list_voice_cmds_match($config_parms{tk_startup_cmd})); # Init with all commands *** Need to persist the last command search!
 
     my @cmds = &list_voice_cmds_match( $config_parms{tk_startup_cmd} );
 
@@ -529,7 +530,7 @@ sub tk_command_list {
             #my $cmd = $Tk_objects{command}->cget('-text');
             unless ( &process_external_command( $cmd, 0, 'tk' ) ) {
 
-               # No exact match ... create a list of commands that kind of match
+                # No exact match ... create a list of commands that kind of match
                 $last_cat = undef;
                 $list->delete('all');
                 my @cmds = &list_voice_cmds_match($cmd);
@@ -565,8 +566,8 @@ sub tk_command_list {
 sub tk_scalebar {
     return
       unless $Reload
-          and
-          $Tk_objects{grid}; # a crutch for ailing code that creates widgets at the wrong time (better to let them break!)
+      and $Tk_objects{grid}
+      ; # a crutch for ailing code that creates widgets at the wrong time (better to let them break!)
     my $tk;
     my ( $pvar, $col, $label, $from, $to, $row, $show_label ) = @_;
 
@@ -669,14 +670,14 @@ sub tk_entry {
         my $pvar  = shift @data;
         $Tk_objects{entry}{$label}->destroy
           if $Tk_objects{entry}{$label}
-              and Exists( $Tk_objects{entry}{$label} );
+          and Exists( $Tk_objects{entry}{$label} );
         $Tk_objects{entry}{$pvar}->destroy
           if $Tk_objects{entry}{$pvar} and Exists( $Tk_objects{entry}{$pvar} );
 
         $Tk_objects{entry}{$label} =
           $Tk_objects{grid}->Label( -text => $label, -anchor => 'w' );
 
-#           Label(-relief => 'groove', -text => $label, -anchor => 'w',  -bg => 'white', -font => $config_parms{tk_font});
+        #           Label(-relief => 'groove', -text => $label, -anchor => 'w',  -bg => 'white', -font => $config_parms{tk_font});
 
         &configure_element( 'label', \$Tk_objects{entry}{$label} );
 
@@ -709,10 +710,10 @@ sub tk_entry {
     #   if (@widgets > 2) {
     $widgets[0]->grid( @widgets[ 1 .. $#widgets ], -sticky => 'w' );
 
-#   }
-#   else {
-#       $widgets[0]->grid(@widgets[1..$#widgets], -columnspan => 2, -sticky => 'w');
-#   }
+    #   }
+    #   else {
+    #       $widgets[0]->grid(@widgets[1..$#widgets], -columnspan => 2, -sticky => 'w');
+    #   }
 
 }
 
@@ -740,7 +741,7 @@ sub tk_label_new {
 
         $Tk_objects{label}{$pvar}->pack( -fill => 'x', -expand => 1 );
 
-#           Label(-relief => 'sunken', -textvariable => $pvar, -anchor => 'w', -font => $font1);
+        #           Label(-relief => 'sunken', -textvariable => $pvar, -anchor => 'w', -font => $font1);
 
         push( @widgets, $Tk_objects{label}{$pvar} );
         &configure_element( 'label', \$Tk_objects{label}{$pvar} );
@@ -755,7 +756,6 @@ sub tk_label_new {
 
     #    }
 }
-
 
 =item C<tk_label tk_mlabel>
 
@@ -772,7 +772,6 @@ Example:
 
 =cut
 
-
 # *** Deprecated (labels populate status bar, not widget control pane.)
 
 sub tk_label {
@@ -788,7 +787,7 @@ sub tk_label {
         $Tk_objects{label}{$pvar}->destroy
           if $Tk_objects{label}{$pvar} and Exists( $Tk_objects{label}{$pvar} );
 
-  # Note: Use a fixed font, so label size does not change with changing letters.
+        # Note: Use a fixed font, so label size does not change with changing letters.
         $Tk_objects{label}{$pvar} = $Tk_objects{grid}->Label(
             -relief       => 'sunken',
             -textvariable => $pvar,
@@ -796,7 +795,7 @@ sub tk_label {
             -anchor       => 'w'
         );
 
-#           Label(-relief => 'sunken', -textvariable => $pvar, -anchor => 'w', -font => $font1);
+        #           Label(-relief => 'sunken', -textvariable => $pvar, -anchor => 'w', -font => $font1);
 
         &configure_element( 'log', \$Tk_objects{label}{$pvar} )
           ;    # these are log-like (need fixed-width font)
@@ -842,8 +841,8 @@ sub configure_element {
         }
         elsif ( $type ne 'toolbar' and $type ne 'progress' ) {
 
-# Get this error:  Can't set -font to `Times 10 bold' for Tk::Frame=HASH(0x73b0928): unknown option "-font" at C:/Perl/site/lib/Tk/Configure.pm line 46.
-#			$$p_element->configure(-font => $font) if $font;
+            # Get this error:  Can't set -font to `Times 10 bold' for Tk::Frame=HASH(0x73b0928): unknown option "-font" at C:/Perl/site/lib/Tk/Configure.pm line 46.
+            #			$$p_element->configure(-font => $font) if $font;
         }
         if ( $type eq 'progress' ) {
             $$p_element->configure( -colors => [ 0, $color ] ) if $color;
@@ -858,8 +857,8 @@ sub configure_element {
                 ]
               )
               if defined $colors
-                  and defined $flags
-                  and $flags;
+              and defined $flags
+              and $flags;
         }
         else {
             $$p_element->configure( -bg => $bgcolor ) if $bgcolor;
@@ -891,7 +890,7 @@ sub get_scheme_parameter {
         $key .= '_edit'   if $type eq 'edit';
         $key .= '_label'
           if $type eq 'label'
-        ; # *** label widget sends this or log, depending on parameter passed to it
+          ; # *** label widget sends this or log, depending on parameter passed to it
     }
     else {
         $key .= "_$type";
@@ -918,16 +917,16 @@ sub tk_mlabel {
     return unless $MW and $Tk_objects{menu_bar};
     my ( $pvar, $name ) = @_;
 
-# Allow for $name so we can reliably destroy on $Reload.
-# $pvar may be %Save or an object that changes on reloads :( # *** Why the frown here?  Do these not work properly?  Other labels do.
+    # Allow for $name so we can reliably destroy on $Reload.
+    # $pvar may be %Save or an object that changes on reloads :( # *** Why the frown here?  Do these not work properly?  Other labels do.
     $name = $pvar unless $name;
 
-# If an object, get its state
-#  - As of 2.88 (Generic_Item Tie update), object pointers don't work.  Data is not updated.
+    # If an object, get its state
+    #  - As of 2.88 (Generic_Item Tie update), object pointers don't work.  Data is not updated.
     my $pvar2 =
       ( ref $pvar ne 'SCALAR' and $pvar->can('set') ) ? \$$pvar{state} : $pvar;
 
-#   print "db2 testing mlabel pv=$pvar pv2=$pvar2 pv2v=$$pvar2  $Tk_objects{mlabel}{$pvar}\n";
+    #   print "db2 testing mlabel pv=$pvar pv2=$pvar2 pv2v=$$pvar2  $Tk_objects{mlabel}{$pvar}\n";
 
     $Tk_objects{mlabel}{$name}->destroy()
       if $Tk_objects{mlabel}{$name} and Exists( $Tk_objects{mlabel}{$name} );
@@ -985,11 +984,11 @@ sub tk_radiobutton {
     my ( $label, $pvar, $pvalue, $ptext, $callback, $widget ) = @_;
     $Tk_objects{radiobutton}{$pvar}->destroy
       if $Tk_objects{radiobutton}{$pvar}
-          and Exists( $Tk_objects{radiobutton}{$pvar} );
+      and Exists( $Tk_objects{radiobutton}{$pvar} );
     my @widgets;
     my @text = @$ptext
       if $ptext
-    ; # Copy, so we can do shift and still have the origial $ptext array available for html widget
+      ; # Copy, so we can do shift and still have the origial $ptext array available for html widget
     for my $value (@$pvalue) {
         my $text = shift @text;
         $text = $value unless defined $text;
@@ -1019,9 +1018,9 @@ sub tk_radiobutton {
       $Tk_objects{grid}->Label( -text => $label )
       ->grid( @widgets, -sticky => 'w' );
 
-#   $Tk_objects{radiobutton}{$pvar} = $Tk_objects{grid}->Label(-text => $label);
-#   &configure_element('frame', $Tk_objects{radiobutton}{$pvar});
-#   $Tk_objects{radiobutton}{$pvar}->grid(@widgets, -sticky => 'w');
+    #   $Tk_objects{radiobutton}{$pvar} = $Tk_objects{grid}->Label(-text => $label);
+    #   &configure_element('frame', $Tk_objects{radiobutton}{$pvar});
+    #   $Tk_objects{radiobutton}{$pvar}->grid(@widgets, -sticky => 'w');
 }
 
 sub help_about {
@@ -1035,7 +1034,7 @@ sub help_about {
         window_name => 'about',
         buttons     => 1,
         help =>
-'This is the about box. The System Info button displays OS and program status.'
+          'This is the about box. The System Info button displays OS and program status.'
     );
     unless ( $win->{activated} ) {
         play 'about';
@@ -1064,17 +1063,17 @@ sub tk_setup_windows {
     eval { $MW = MainWindow->new(); };
     if ($@) {
         print
-" - WARN: failed to setup main window.  This may be a x-windows permissions problem,\n";
+          " - WARN: failed to setup main window.  This may be a x-windows permissions problem,\n";
         print
-" -        a ssh forwarding problem or some other x-windows related problem.\n";
+          " -        a ssh forwarding problem or some other x-windows related problem.\n";
         print
-" -        You may wish to try \"wish\" to debug.  If using ssh, look into ForwardX11Trusted option\n";
+          " -        You may wish to try \"wish\" to debug.  If using ssh, look into ForwardX11Trusted option\n";
         return;
     }
     $MW->withdraw;    # Hide the window until we are all set up
                       # doesn't quite work on XP :(
 
-#$MW->protocol('WM_DELETE_WINDOW', sub { &display("To exit, use the File->Exit pulldown\n", 5)}
+    #$MW->protocol('WM_DELETE_WINDOW', sub { &display("To exit, use the File->Exit pulldown\n", 5)}
     $MW->protocol( 'WM_DELETE_WINDOW', sub { &exit_pgm() } );
 
     # Keep startup value so we resize only if it has changed since startup.
@@ -1090,17 +1089,19 @@ sub tk_setup_windows {
     );
     $MW->Icon( -image => $icon_image );
 
-#   $MW->optionAdd('*font' => 'systemfixed');
-#   $MW->optionAdd('*font' => $config_parms{tk_font_menus}) if $config_parms{tk_font_menus};
+    #   $MW->optionAdd('*font' => 'systemfixed');
+    #   $MW->optionAdd('*font' => $config_parms{tk_font_menus}) if $config_parms{tk_font_menus};
     &configure_element( 'window', \$MW );
 
     # This doesn't work :( So let's not call it! :)
     #    $MW->bind('Alt-Key-R'   => \&read_code);
     #    $MW->bind('Alt-Key-X'   => \&sig_handler);
 
-    $MW->title( ( $config_parms{title} )
+    $MW->title(
+        ( $config_parms{title} )
         ? eval "'$config_parms{title}'"
-        : "Misterhouse $Version PID: $$" );
+        : "Misterhouse $Version PID: $$"
+    );
 
     # Create menu bar and top-level menus
     $Tk_objects{menu_bar} = $MW->Frame->pack(
@@ -1134,7 +1135,7 @@ sub tk_setup_windows {
     );
     $Tk_objects{menu_view}->separator();
 
- # *** Move this (and debug options) to after loop code read (with groups, etc.)
+    # *** Move this (and debug options) to after loop code read (with groups, etc.)
 
     if ( $config_parms{tk_schemes} ) {
         $Tk_objects{menu_view_schemes} = $Tk_objects{menu_view}->menu->Menu;
@@ -1149,7 +1150,7 @@ sub tk_setup_windows {
 
         for ( sort @scheme_options ) {
             $sub =
-"sub {\$Invalidate_Window = 1; my \%opts = (tk_scheme => '$_'); print 'SCHEME = $_\n';  &write_mh_opts(\\%opts,0,1); &read_code_forced()}";
+              "sub {\$Invalidate_Window = 1; my \%opts = (tk_scheme => '$_'); print 'SCHEME = $_\n';  &write_mh_opts(\\%opts,0,1); &read_code_forced()}";
             $sub = eval $sub;
             print "Error in tk_scheme eval: error=$@\n" if $@;
             $Tk_objects{menu_view_schemes}->radiobutton(
@@ -1275,7 +1276,7 @@ sub tk_setup_windows {
     &tk_cascade_entry( 'Debug', $Tk_objects{menu_file},
         $Tk_objects{menu_file_debug} );
 
- #Loop through debug options (should build dynamically like "list debug options"
+    #Loop through debug options (should build dynamically like "list debug options"
 
     if ( $config_parms{debug_options} ) {
 
@@ -1304,16 +1305,15 @@ sub tk_setup_windows {
         -command     => \&sig_handler
     );
 
-# *** Is an object toggle "shortcut" on the main tb now (doesn't really belong on file menu.)
+    # *** Is an object toggle "shortcut" on the main tb now (doesn't really belong on file menu.)
 
-#    $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Normal',  -variable => \$Save{mode}, -value => 'normal');
-#    $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Mute',    -variable => \$Save{mode}, -value => 'mute');
-#    $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Offline', -variable => \$Save{mode}, -value => 'offline');
+    #    $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Normal',  -variable => \$Save{mode}, -value => 'normal');
+    #    $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Mute',    -variable => \$Save{mode}, -value => 'mute');
+    #    $Tk_objects{menu_file}->radiobutton(-label => 'Mode: Offline', -variable => \$Save{mode}, -value => 'offline');
 
 }
 
 return 1;
-
 
 =back
 

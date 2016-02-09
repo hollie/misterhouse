@@ -1,3 +1,4 @@
+
 =head1 B<SysDiag_xAP>
 
 =head2 SYNOPSIS
@@ -65,107 +66,120 @@ package SysDiag_xAP;
 
 sub new {
 
-	my ($class,$instance,$server) = @_;
-	my $self={};
-	bless $self, $class;
+    my ( $class, $instance, $server ) = @_;
+    my $self = {};
+    bless $self, $class;
 
-	$$self{source_map} = {};
-	$$self{instance} = $instance;
-	$$self{instance} = "house" unless (defined $instance);
-	$$self{server} = $server;
-	my $xap_address = "hpgl.psixc.$instance";
-        if ($instance =~ /^\S*\.\S*/) {
-		$xap_address = $instance;
-	}
-        $xap_address = $xap_address . ":" . lc $server;
-	my $xap_item = new xAP_Item('sysdiag.*', $xap_address);
-	print "Adding xAP_Item to SysDiag_xAP instance with address: $xap_address\n" if $::Debug{sysdiag};
-        my $friendly_name = "xap_sysdiag_$instance" . "_$server";
-        &main::store_object_data($xap_item, 'xAP_Item', $friendly_name, $friendly_name);
-        $$self{xap_item} = $xap_item;
-        # now tie our only xAP item to our self
-	$$self{xap_item}->tie_items($self);
-	return $self;
+    $$self{source_map} = {};
+    $$self{instance}   = $instance;
+    $$self{instance}   = "house" unless ( defined $instance );
+    $$self{server}     = $server;
+    my $xap_address = "hpgl.psixc.$instance";
+    if ( $instance =~ /^\S*\.\S*/ ) {
+        $xap_address = $instance;
+    }
+    $xap_address = $xap_address . ":" . lc $server;
+    my $xap_item = new xAP_Item( 'sysdiag.*', $xap_address );
+    print "Adding xAP_Item to SysDiag_xAP instance with address: $xap_address\n"
+      if $::Debug{sysdiag};
+    my $friendly_name = "xap_sysdiag_$instance" . "_$server";
+    &main::store_object_data( $xap_item, 'xAP_Item', $friendly_name,
+        $friendly_name );
+    $$self{xap_item} = $xap_item;
+
+    # now tie our only xAP item to our self
+    $$self{xap_item}->tie_items($self);
+    return $self;
 }
 
 sub add {
-	my ($self, @monitors) = @_;
-        if (@monitors) {
-		for my $monitor (@monitors) {
-			if ($monitor->isa('AnalogSensor_Item')) {
-                		my $key = $monitor->type . "." . $monitor->id;
-                		print "[SysDiag] Adding monitor: $key to "
-					. "sysdiag: $$self{instance}\n"
-		          		if $main::Debug{sysdiag};
-				$$self{m_monitors}{$key} = $monitor;
-				$self->SUPER::add($monitor); # add it so that it can set this object
-			}
-		}
-	}
+    my ( $self, @monitors ) = @_;
+    if (@monitors) {
+        for my $monitor (@monitors) {
+            if ( $monitor->isa('AnalogSensor_Item') ) {
+                my $key = $monitor->type . "." . $monitor->id;
+                print "[SysDiag] Adding monitor: $key to "
+                  . "sysdiag: $$self{instance}\n"
+                  if $main::Debug{sysdiag};
+                $$self{m_monitors}{$key} = $monitor;
+                $self->SUPER::add($monitor)
+                  ;    # add it so that it can set this object
+            }
+        }
+    }
 }
 
 sub set {
 
-	my ($self, $p_state, $p_setby, $p_response) = @_;
-	if ($$self{xap_item} eq $p_setby) {
-		for my $section_name (keys %{$$self{xap_item}}) {
-			if (($section_name =~ /^cpu/i)
-			    or ($section_name =~ /memory/i)
- 			    or ($section_name =~ /swap/i)
- 			    or ($section_name =~ /disk/i)
-			    or ($section_name =~ /temp/i)
- 			    or ($section_name =~ /network/i))
-                        {
-				$self->_process_section($section_name);
-			} 
-		}
-	}
+    my ( $self, $p_state, $p_setby, $p_response ) = @_;
+    if ( $$self{xap_item} eq $p_setby ) {
+        for my $section_name ( keys %{ $$self{xap_item} } ) {
+            if (   ( $section_name =~ /^cpu/i )
+                or ( $section_name =~ /memory/i )
+                or ( $section_name =~ /swap/i )
+                or ( $section_name =~ /disk/i )
+                or ( $section_name =~ /temp/i )
+                or ( $section_name =~ /network/i ) )
+            {
+                $self->_process_section($section_name);
+            }
+        }
+    }
 }
 
 sub _process_section {
-	my ($self, $section_name) = @_;
-        my $section = $$self{xap_item}{$section_name};
-        for my $subsection_name (keys %{$section}) {
-		print "[SysDiag] Processing $section_name.$subsection_name: " 
-                   . $section->{$subsection_name} . ":" if $main::Debug{sysdiag};
-                # now, copy it
-		$$self{diag}{$section_name}{$subsection_name} = $$section{$subsection_name};
-                # locate the corresponding device if it exists
-		# the naming convention must use a period as the delimitter
-		if (exists($$self{m_monitors}{$section_name . "." . $subsection_name})) {
-			my $monitor = $$self{m_monitors}{$section_name . "." . $subsection_name};
-			print "Exists $$section{$subsection_name} " if $main::Debug{sysdiag};
-			$monitor->measurement($$section{$subsection_name});
-		}
-		print "\n" if $main::Debug{sysdiag};
-        }
-}
+    my ( $self, $section_name ) = @_;
+    my $section = $$self{xap_item}{$section_name};
+    for my $subsection_name ( keys %{$section} ) {
+        print "[SysDiag] Processing $section_name.$subsection_name: "
+          . $section->{$subsection_name} . ":"
+          if $main::Debug{sysdiag};
 
+        # now, copy it
+        $$self{diag}{$section_name}{$subsection_name} =
+          $$section{$subsection_name};
+
+        # locate the corresponding device if it exists
+        # the naming convention must use a period as the delimitter
+        if (
+            exists(
+                $$self{m_monitors}{ $section_name . "." . $subsection_name }
+            )
+          )
+        {
+            my $monitor =
+              $$self{m_monitors}{ $section_name . "." . $subsection_name };
+            print "Exists $$section{$subsection_name} "
+              if $main::Debug{sysdiag};
+            $monitor->measurement( $$section{$subsection_name} );
+        }
+        print "\n" if $main::Debug{sysdiag};
+    }
+}
 
 sub get_diag {
 
-	my ($self,$address) = @_;
-	my $return = 0;
-	my ($device, $attribute) = $address =~ /^(.*)\.(.*)/;
+    my ( $self, $address ) = @_;
+    my $return = 0;
+    my ( $device, $attribute ) = $address =~ /^(.*)\.(.*)/;
 
-#	for my $test (keys %{$$self{diag}}) {
-#		print "[SysDiag:get_diag] $device, $attribute, $test, " . $$self{diag}{$device}{$attribute} . "\n";
-#	} 
-  	
+    #	for my $test (keys %{$$self{diag}}) {
+    #		print "[SysDiag:get_diag] $device, $attribute, $test, " . $$self{diag}{$device}{$attribute} . "\n";
+    #	}
 
-	if (exists($$self{diag}{$device}{$attribute})) {
+    if ( exists( $$self{diag}{$device}{$attribute} ) ) {
 
-		$return = $$self{diag}{$device}{$attribute};
+        $return = $$self{diag}{$device}{$attribute};
 
-	}
+    }
 
-	print "[SysDiag:get_diag] $device, $attribute, $return \n" if $main::Debug{sysdiag};
+    print "[SysDiag:get_diag] $device, $attribute, $return \n"
+      if $main::Debug{sysdiag};
 
-	return $return;
+    return $return;
 }
 
 1;
-
 
 =back
 

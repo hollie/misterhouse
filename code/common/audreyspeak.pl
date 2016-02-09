@@ -97,8 +97,8 @@ You must make certain modifications to your Audrey, as follows:
 
 #Tell MH to call our routine each time something is spoken
 
-if ($Startup or $Reload) {
-    &Speak_parms_add_hook(\&pre_speak_to_audrey);
+if ( $Startup or $Reload ) {
+    &Speak_parms_add_hook( \&pre_speak_to_audrey );
 }
 
 sub file_ready_for_audrey {
@@ -107,90 +107,108 @@ sub file_ready_for_audrey {
     my @rooms, $parms{audreySpeakRooms};
     my $MHWeb = $Info{IPAddress_local} . ":" . $config_parms{http_port};
     &print_log("file ready for audrey $speakFile @rooms") if $Debug{voice};
-    for my $audrey (split ',', $config_parms{Audrey_IPs}) {
-      my ($room, $ip) = $audrey =~ /(\S+)\-(\S+)/;
-      $room = lc $room;
-      if ( grep(/$room/, @{$parms{audreySpeakRooms}}) ) {
-        run "get_url -quiet http://$ip/mhspeak.shtml?http://$MHWeb/$speakFile /dev/null";
-      }
+    for my $audrey ( split ',', $config_parms{Audrey_IPs} ) {
+        my ( $room, $ip ) = $audrey =~ /(\S+)\-(\S+)/;
+        $room = lc $room;
+        if ( grep( /$room/, @{ $parms{audreySpeakRooms} } ) ) {
+            run
+              "get_url -quiet http://$ip/mhspeak.shtml?http://$MHWeb/$speakFile /dev/null";
+        }
     }
 }
 
 #MH just said something. Generate the same thing to our file (which is monitored above)
 sub pre_speak_to_audrey {
     my ($parms_ref) = @_;
-    return if $parms_ref->{mode} and ($parms_ref->{mode} eq 'mute' or $parms_ref->{mode} eq 'offline');
-    return if $Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $parms_ref->{mode} !~ /unmute/i;
+    return
+      if $parms_ref->{mode}
+      and ( $parms_ref->{mode} eq 'mute' or $parms_ref->{mode} eq 'offline' );
+    return
+          if $Save{mode}
+      and ( $Save{mode} eq 'mute' or $Save{mode} eq 'offline' )
+      and $parms_ref->{mode} !~ /unmute/i;
     my @rooms = split ',', lc $parms_ref->{rooms};
-    &print_log("pre_speak_to_audrey $parms_ref->{web_file} rooms: @rooms") if $Debug{voice};
+    &print_log("pre_speak_to_audrey $parms_ref->{web_file} rooms: @rooms")
+      if $Debug{voice};
 
     # determine which if any audreys to speak to; we honor the rooms paramter
     # whenever audrey_use_rooms is defined, otherwise, we send to all audreys
-    if (!exists $config_parms{audrey_use_rooms} || !exists $parms_ref->{rooms} || grep(/all/, @rooms)) {
-	@rooms = ();
-	for my $audrey (split ',', $config_parms{Audrey_IPs}) {
-	    my ($room,$ip) = $audrey =~ /(\S+)\-(\S+)/;
-	    $room = lc $room;
-	    push @rooms, $room;
-	}
-    } else {
-	my @audreyRooms = ();
-	for my $audrey (split ',', $config_parms{Audrey_IPs}) {
-	    my ($room,$ip) = $audrey =~ /(\S+)\-(\S+)/;
-	    $room = lc $room;
-	    if ( grep(/$room/, @rooms) ) {
-		push @audreyRooms, $room;
-	    }
-	}
-	@rooms = @audreyRooms;
+    if (   !exists $config_parms{audrey_use_rooms}
+        || !exists $parms_ref->{rooms}
+        || grep( /all/, @rooms ) )
+    {
+        @rooms = ();
+        for my $audrey ( split ',', $config_parms{Audrey_IPs} ) {
+            my ( $room, $ip ) = $audrey =~ /(\S+)\-(\S+)/;
+            $room = lc $room;
+            push @rooms, $room;
+        }
+    }
+    else {
+        my @audreyRooms = ();
+        for my $audrey ( split ',', $config_parms{Audrey_IPs} ) {
+            my ( $room, $ip ) = $audrey =~ /(\S+)\-(\S+)/;
+            $room = lc $room;
+            if ( grep( /$room/, @rooms ) ) {
+                push @audreyRooms, $room;
+            }
+        }
+        @rooms = @audreyRooms;
     }
     &print_log("pre_speak_to_audrey rooms: @rooms") if $Debug{voice};
-    return if (!@rooms);
+    return if ( !@rooms );
 
     # okay, process the speech and add to the process array
     $parms_ref->{web_file} = "web_file";
-    push(@{$parms_ref->{audreySpeakRooms}},@rooms);
-    push @{$parms_ref->{web_hook}},\&file_ready_for_audrey;
+    push( @{ $parms_ref->{audreySpeakRooms} }, @rooms );
+    push @{ $parms_ref->{web_hook} }, \&file_ready_for_audrey;
     $parms_ref->{async} = 1;
     $parms_ref->{async} = 0 if $config_parms{Audrey_speak_sync};
 }
 
 #Tell MH to call our routine each time a wav file is played
-&Play_parms_add_hook(\&pre_play_to_audrey) if $Reload;
+&Play_parms_add_hook( \&pre_play_to_audrey ) if $Reload;
 
 #MH just played a wav file. Copy it to our file (which is monitored above)
 sub pre_play_to_audrey {
     my ($parms_ref) = @_;
-    return if $Save{mode} and ($Save{mode} eq 'mute' or $Save{mode} eq 'offline') and $parms_ref->{mode} !~ /unmute/i;
+    return
+          if $Save{mode}
+      and ( $Save{mode} eq 'mute' or $Save{mode} eq 'offline' )
+      and $parms_ref->{mode} !~ /unmute/i;
 
-    # determine which if any audreys to speak to; we honor the rooms paramter 
+    # determine which if any audreys to speak to; we honor the rooms paramter
     # whenever audrey_use_rooms is defined, otherwise, we send to all audreys
     my @rooms = split ',', lc $parms_ref->{rooms};
     &print_log("pre play to audrey rooms: @rooms") if $Debug{voice};
-    if (!exists $config_parms{audrey_use_rooms} || !exists $parms_ref->{rooms} || grep(/all/, @rooms) ) {
-      @rooms = ();
-      for my $audrey (split ',', $config_parms{Audrey_IPs}) {
-        my ($room,$ip) = $audrey =~ /(\S+)\-(\S+)/;
-        $room = lc $room;
-        push @rooms, $room;
-      }
-    } else {
-      my @audreyRooms = ();
-      for my $audrey (split ',', $config_parms{Audrey_IPs}) {
-        my ($room,$ip) = $audrey =~ /(\S+)\-(\S+)/;
-	$room = lc $room;
-        if ( grep(/$room/, @rooms) ) {
-          push @audreyRooms, $room;
+    if (   !exists $config_parms{audrey_use_rooms}
+        || !exists $parms_ref->{rooms}
+        || grep( /all/, @rooms ) )
+    {
+        @rooms = ();
+        for my $audrey ( split ',', $config_parms{Audrey_IPs} ) {
+            my ( $room, $ip ) = $audrey =~ /(\S+)\-(\S+)/;
+            $room = lc $room;
+            push @rooms, $room;
         }
-      }
-      @rooms = @audreyRooms;
     }
-    my @testArray = ('a','b','c');
+    else {
+        my @audreyRooms = ();
+        for my $audrey ( split ',', $config_parms{Audrey_IPs} ) {
+            my ( $room, $ip ) = $audrey =~ /(\S+)\-(\S+)/;
+            $room = lc $room;
+            if ( grep( /$room/, @rooms ) ) {
+                push @audreyRooms, $room;
+            }
+        }
+        @rooms = @audreyRooms;
+    }
+    my @testArray = ( 'a', 'b', 'c' );
     &print_log("pre_play_to_audrey rooms: @rooms") if $Debug{voice};
-    return if (!@rooms);
+    return if ( !@rooms );
 
     $parms_ref->{web_file} = "web_file";
-    push(@{$parms_ref->{audreySpeakRooms}},@rooms);
-    push(@{$parms_ref->{web_hook}},\&file_ready_for_audrey);
+    push( @{ $parms_ref->{audreySpeakRooms} }, @rooms );
+    push( @{ $parms_ref->{web_hook} },         \&file_ready_for_audrey );
 }
 

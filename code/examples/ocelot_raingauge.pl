@@ -23,9 +23,8 @@ records it.
 
 =cut
 
-
 $ocelot_raingauge = new Serial_Item 'Rain';
 
-if (state_now $ocelot_raingauge) {
-	$Weather{RainTotal} += .01;
+if ( state_now $ocelot_raingauge) {
+    $Weather{RainTotal} += .01;
 }

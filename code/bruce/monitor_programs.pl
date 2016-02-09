@@ -9,37 +9,43 @@ track packets going to and from the internet.
 
 =cut
 
-$monitor_programs  = new Voice_Cmd 'What programs are running on [localhost,C1,C2,WARP,Z,P90,House]';
-$monitor_programs -> set_info('Uses Windows WMI to monitor programs on other computers in the house');
+$monitor_programs = new Voice_Cmd
+  'What programs are running on [localhost,C1,C2,WARP,Z,P90,House]';
+$monitor_programs->set_info(
+    'Uses Windows WMI to monitor programs on other computers in the house');
 
 $active_programs = new Generic_Item;
 
-my $monitor_program_results = "$config_parms{data_dir}/find_program_results.txt";
-$monitor_programs_p  = new Process_Item;
-$monitor_programs_p -> set_output($monitor_program_results);
+my $monitor_program_results =
+  "$config_parms{data_dir}/find_program_results.txt";
+$monitor_programs_p = new Process_Item;
+$monitor_programs_p->set_output($monitor_program_results);
 
-if (my $box = said $monitor_programs) {
-    set   $monitor_programs_p "find_programs $box";
+if ( my $box = said $monitor_programs) {
+    set $monitor_programs_p "find_programs $box";
     start $monitor_programs_p;
     $monitor_programs_p->{done_action} = 'display';
 }
-if (done_now $monitor_programs_p) {
-    my $results = file_read $monitor_program_results, 1, 1;
-    my $box = state $monitor_programs;
+if ( done_now $monitor_programs_p) {
+    my $results  = file_read $monitor_program_results, 1, 1;
+    my $box      = state $monitor_programs;
     my $programs = $results;
     $programs =~ s/.+? Pgm:(\S+)/$1,/gs;
     $programs =~ s/, .+//;
-                                #Do not log House, as it gets run often.  Use localhost if you want a display/log
-    if ($box eq 'House') {
+
+    #Do not log House, as it gets run often.  Use localhost if you want a display/log
+    if ( $box eq 'House' ) {
         set $active_programs $programs;
     }
     else {
-        logit "$config_parms{data_dir}/logs/monitor_programs.log", "$box: $programs";
-        display $results . "\nPrograms: $programs", 30, "Program Monitor results for $box", 'fixed' 
+        logit "$config_parms{data_dir}/logs/monitor_programs.log",
+          "$box: $programs";
+        display $results . "\nPrograms: $programs", 30,
+          "Program Monitor results for $box", 'fixed'
           if $monitor_programs_p->{done_action} eq 'display';
     }
 
-    my $eq_stats = $1.$2.$3 if $results =~ /(Pgm:)(eq|war3)(.+?)Date/;
+    my $eq_stats = $1 . $2 . $3 if $results =~ /(Pgm:)(eq|war3)(.+?)Date/;
     if ($eq_stats) {
         $Save{eq_time} += .1;
         $Save{eq_time} = round $Save{eq_time}, 1;
@@ -51,10 +57,10 @@ if (done_now $monitor_programs_p) {
 
 # Run once a minute.  Not at New_Minute cause lots of stuff runs then
 #run_voice_cmd 'What programs are running on House',undef,undef,1 if new_second 10;
-run_voice_cmd 'What programs are running on House',undef,undef,1 if $New_Second and $Second == 40;
+run_voice_cmd 'What programs are running on House', undef, undef, 1
+  if $New_Second and $Second == 40;
 
-
-                                # Keep an eye on Nick the gamester
+# Keep an eye on Nick the gamester
 #if (new_minute 30 and time_greater_than '8 am') {
 #    set   $monitor_programs_p "find_programs DM";
 #    start $monitor_programs_p;

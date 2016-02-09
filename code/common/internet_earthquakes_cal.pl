@@ -47,156 +47,190 @@ longitude .ini variable to be negative.
 
 # Add earthquake image to Informational category web page
 if ($Reload) {
-    $Included_HTML{'Informational'} .= qq(<h3>Latest California Earthquake<p><img src='/data/web/earthquakes_cal.gif?<!--#include code="int(100000*rand)"-->'><p>\n\n\n);
+    $Included_HTML{'Informational'} .=
+      qq(<h3>Latest California Earthquake<p><img src='/data/web/earthquakes_cal.gif?<!--#include code="int(100000*rand)"-->'><p>\n\n\n);
 }
 
 # Default Magnitude Thresholds
 my %Magnitude_thresholds = (
-    99999,  5.5,     # show anything anywhere over 5.5
-    500,    3.5,     # show anything within 500 miles over 3.5
-    100,    0,       # show anything within 100 miles any size
+    99999, 5.5,    # show anything anywhere over 5.5
+    500,   3.5,    # show anything within 500 miles over 3.5
+    100,   0,      # show anything within 100 miles any size
 );
 
-if ($config_parms{Earthquake_Magnitudes}) {
-  %Magnitude_thresholds = split ' ', $config_parms{Earthquake_Magnitudes};
+if ( $config_parms{Earthquake_Magnitudes} ) {
+    %Magnitude_thresholds = split ' ', $config_parms{Earthquake_Magnitudes};
 }
 
 # Maximum number of quakes to read
 my $Earthquake_Count = 5;
 
-if ($config_parms{Earthquake_Count}) {
-  $Earthquake_Count = $config_parms{Earthquake_Count};
+if ( $config_parms{Earthquake_Count} ) {
+    $Earthquake_Count = $config_parms{Earthquake_Count};
 }
 
-$f_earthquakes_cal_html = new File_Item("$config_parms{data_dir}/web/earthquakes_cal.html");
-$f_earthquakes_cal_gif  = new File_Item("$config_parms{data_dir}/web/earthquakes_cal.gif");
+$f_earthquakes_cal_html =
+  new File_Item("$config_parms{data_dir}/web/earthquakes_cal.html");
+$f_earthquakes_cal_gif =
+  new File_Item("$config_parms{data_dir}/web/earthquakes_cal.gif");
 
 my $image;
 $p_earthquakes_image_cal = new Process_Item;
-$p_earthquakes_cal = new Process_Item("get_url http://quake.wr.usgs.gov/recenteqs/Quakes/quakes0.htm " . $f_earthquakes_cal_html->name);
+$p_earthquakes_cal       = new Process_Item(
+    "get_url http://quake.wr.usgs.gov/recenteqs/Quakes/quakes0.htm "
+      . $f_earthquakes_cal_html->name );
 
-$v_earthquakes_cal =  new  Voice_Cmd('[Get,Show,Read,Clear] recent California earthquakes');
-$v_earthquakes_cal -> set_info('Display recent California earthquake information');
-$v_earthquakes_cal -> set_authority('anyone');
+$v_earthquakes_cal =
+  new Voice_Cmd('[Get,Show,Read,Clear] recent California earthquakes');
+$v_earthquakes_cal->set_info(
+    'Display recent California earthquake information');
+$v_earthquakes_cal->set_authority('anyone');
 
 $state = said $v_earthquakes_cal;
 
 if ( $state eq 'Get' ) {
-  unlink $f_earthquakes_cal_html->name;
-  if (&net_connect_check) {
-    # Use start instead of run so we can detect when it is done
-    start $p_earthquakes_cal;
-  }
+    unlink $f_earthquakes_cal_html->name;
+    if (&net_connect_check) {
+
+        # Use start instead of run so we can detect when it is done
+        start $p_earthquakes_cal;
+    }
 }
 
 if ( $state eq 'Show' ) {
-  my $text = $Save{quakes_cal};
-  $text =~ s/\t/\n/g;
-  display $text;
+    my $text = $Save{quakes_cal};
+    $text =~ s/\t/\n/g;
+    display $text;
 }
 
 if ( $state eq 'Clear' ) {
-  print_log "Clearing recent earthquakes ...";
-  $Save{quakes_cal} = "";
+    print_log "Clearing recent earthquakes ...";
+    $Save{quakes_cal} = "";
 }
 
 if ( $state eq 'Read' ) {
-  my $quake;
-  my $num = 0;
-  foreach (split /\t/, $Save{quakes_cal}) {
-    $quake = $_;
-    return unless $num < $Earthquake_Count;
-    $num += speak_quake_cal($quake);
-  }
+    my $quake;
+    my $num = 0;
+    foreach ( split /\t/, $Save{quakes_cal} ) {
+        $quake = $_;
+        return unless $num < $Earthquake_Count;
+        $num += speak_quake_cal($quake);
+    }
 }
 
-if (done_now $p_earthquakes_cal) {
-  my $new_quakes = "";
-  my ($quake, $search);
-  my $num = 0;
-  my $text = $f_earthquakes_cal_html->read_all;
-  $text =~ s/\r/\n/g;
-  $text =~ s/<[^>]*>//g;
-  foreach (split /\n/, $text) {
-    if (/^map /i) {
-      $search = $quake = $_;
-      $search =~ s/\(/\\(/;
-      $search =~ s/\)/\\)/;
-      if ($Save{quakes_cal} !~ /$search/) {
-        $new_quakes = $new_quakes . $quake . "\t";
-      }
-      else {
-        last;
-      }
+if ( done_now $p_earthquakes_cal) {
+    my $new_quakes = "";
+    my ( $quake, $search );
+    my $num  = 0;
+    my $text = $f_earthquakes_cal_html->read_all;
+    $text =~ s/\r/\n/g;
+    $text =~ s/<[^>]*>//g;
+    foreach ( split /\n/, $text ) {
+        if (/^map /i) {
+            $search = $quake = $_;
+            $search =~ s/\(/\\(/;
+            $search =~ s/\)/\\)/;
+            if ( $Save{quakes_cal} !~ /$search/ ) {
+                $new_quakes = $new_quakes . $quake . "\t";
+            }
+            else {
+                last;
+            }
+        }
     }
-  }
-  if ($new_quakes) {
-    $Save{quakes_cal} = $new_quakes . $Save{quakes_cal};
-#   $Save{quakes_cal} =~ s/^(([^\t]*\t){1,1000}).*/$1/;
-    $Save{quakes_cal} =~ s/^(([^\t]*\t){1,15}).*/$1/;   # Save last 15 quakes
-    $image = '';
-    foreach (split /\t/, $new_quakes) {
-      $quake = $_;
-      last unless $num < $Earthquake_Count;
-      $num += speak_quake_cal($quake);
+    if ($new_quakes) {
+        $Save{quakes_cal} = $new_quakes . $Save{quakes_cal};
+
+        #   $Save{quakes_cal} =~ s/^(([^\t]*\t){1,1000}).*/$1/;
+        $Save{quakes_cal} =~ s/^(([^\t]*\t){1,15}).*/$1/;  # Save last 15 quakes
+        $image = '';
+        foreach ( split /\t/, $new_quakes ) {
+            $quake = $_;
+            last unless $num < $Earthquake_Count;
+            $num += speak_quake_cal($quake);
+        }
+        set $p_earthquakes_image_cal "get_url $image "
+          . $f_earthquakes_cal_gif->name;
+        start $p_earthquakes_image_cal if $image;
     }
-    set $p_earthquakes_image_cal "get_url $image " . $f_earthquakes_cal_gif->name;
-    start $p_earthquakes_image_cal if $image;
-  }
 }
 
 use Math::Trig;
 
 sub calc_distance_cal {
-    my ($lat1, $lon1, $lat2, $lon2) = @_;
-    my ($c, $d);
-    $c = 57.3; # radian conversion factor
+    my ( $lat1, $lon1, $lat2, $lon2 ) = @_;
+    my ( $c, $d );
+    $c = 57.3;    # radian conversion factor
 
     $lat1 /= $c;
     $lat2 /= $c;
     $lon1 /= $c;
     $lon2 /= $c;
-    $d = 2*Math::Trig::asin(sqrt((sin(($lat1-$lat2)/2))**2 + 	cos($lat1)*cos($lat2)*(sin(($lon1-$lon2)/2))**2));
+    $d = 2 * Math::Trig::asin(
+        sqrt(
+            ( sin( ( $lat1 - $lat2 ) / 2 ) )**2 +
+              cos($lat1) * cos($lat2) * ( sin( ( $lon1 - $lon2 ) / 2 ) )**2
+        )
+    );
 
-    return $d*(.5*7915.6);  # convert to miles and return
+    return $d * ( .5 * 7915.6 );    # convert to miles and return
 }
 
 sub calc_age_cal {
     my $time = shift;
-    my ($qyear, $qmnth, $qdate, $qhour, $qminu, $qseco) = $time =~ m!(\S+)/(\S+)/(\S+)\s+(\S+):(\S+):(\S+)!;
-    my $qtime = timelocal($qseco,$qminu,$qhour,$qdate,$qmnth-1,$qyear-1900);
-    my $midnight = timelocal(0, 0, 0, $Mday, $Month - 1, $Year - 1900);
-    my $diff = (time - timelocal($qseco,$qminu,$qhour,$qdate,$qmnth-1,$qyear-1900));
+    my ( $qyear, $qmnth, $qdate, $qhour, $qminu, $qseco ) =
+      $time =~ m!(\S+)/(\S+)/(\S+)\s+(\S+):(\S+):(\S+)!;
+    my $qtime =
+      timelocal( $qseco, $qminu, $qhour, $qdate, $qmnth - 1, $qyear - 1900 );
+    my $midnight = timelocal( 0, 0, 0, $Mday, $Month - 1, $Year - 1900 );
+    my $diff = (
+        time - timelocal(
+            $qseco, $qminu, $qhour, $qdate, $qmnth - 1, $qyear - 1900
+        )
+    );
 
-    return int($diff/60) . " minutes ago " if ($diff < 60*120);
-    return int($diff/(60*60)) . " hours ago " if ($qtime > $midnight);
+    return int( $diff / 60 ) . " minutes ago " if ( $diff < 60 * 120 );
+    return int( $diff / ( 60 * 60 ) ) . " hours ago " if ( $qtime > $midnight );
     my $hour;
     $qhour =~ s!^0!!;
-    if ($qhour == 0) {$hour = "12 AM"}
-    elsif ($qhour < 12) {$hour = "$qhour AM"}
-    elsif ($qhour == 12) {$hour = "12 PM"}
-    else {$hour = $qhour - 12 . " PM"}
-    return "Yesterday at $hour " if ($qtime > $midnight - 60*60*24);
-    return int($diff/(60*60*24) + .5) . " days ago at $hour ";
+    if    ( $qhour == 0 )  { $hour = "12 AM" }
+    elsif ( $qhour < 12 )  { $hour = "$qhour AM" }
+    elsif ( $qhour == 12 ) { $hour = "12 PM" }
+    else                   { $hour = $qhour - 12 . " PM" }
+    return "Yesterday at $hour " if ( $qtime > $midnight - 60 * 60 * 24 );
+    return int( $diff / ( 60 * 60 * 24 ) + .5 ) . " days ago at $hour ";
 }
 
 sub speak_quake_cal {
+
     #map 1.3  2001/05/12 20:09:30 33.995N 116.818W 18.3    9 km ( 5 mi) NNW of Cabazon, CA
-    if (my ($qmagn, $qdate, $qtime, $qlatd, $qnoso, $qlong, $qeawe, $qdept, $qloca) =
-        $_ =~ m!map\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)([NS])\s+(\S+)([EW])\s+(\S+).+km.+mi.+[NSEW]+\s+of\s+(.+)!i ) {
-      $qlatd *= -1 if ( $qnoso eq "S" );
-      $qlong *= -1 if ( $qeawe eq "W" );
-      my $distance = sprintf "%d", calc_distance_cal($config_parms{latitude},
-        $config_parms{longitude}, $qlatd, $qlong) + .5;
-      for (keys %Magnitude_thresholds) {
-        if ( $distance <= $_ and $qmagn >= $Magnitude_thresholds{$_}) {
-          $image = 'http://quake.wr.usgs.gov/recenteqs/Maps/' . round(- $qlong) . '-' . round($qlatd) . '.gif';
-          $qloca =~ s/, CA$/ California/;
-          $qloca =~ s/, NV$/ Nevada/;
-          speak &calc_age_cal("$qdate $qtime") . "a magnitude $qmagn earthquake occurred $distance miles away near $qloca";
-          return 1;
+    if (
+        my (
+            $qmagn, $qdate, $qtime, $qlatd, $qnoso,
+            $qlong, $qeawe, $qdept, $qloca
+        )
+        = $_ =~
+        m!map\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)([NS])\s+(\S+)([EW])\s+(\S+).+km.+mi.+[NSEW]+\s+of\s+(.+)!i
+      )
+    {
+        $qlatd *= -1 if ( $qnoso eq "S" );
+        $qlong *= -1 if ( $qeawe eq "W" );
+        my $distance = sprintf "%d",
+          calc_distance_cal( $config_parms{latitude}, $config_parms{longitude},
+            $qlatd, $qlong ) + .5;
+        for ( keys %Magnitude_thresholds ) {
+            if ( $distance <= $_ and $qmagn >= $Magnitude_thresholds{$_} ) {
+                $image =
+                    'http://quake.wr.usgs.gov/recenteqs/Maps/'
+                  . round( -$qlong ) . '-'
+                  . round($qlatd) . '.gif';
+                $qloca =~ s/, CA$/ California/;
+                $qloca =~ s/, NV$/ Nevada/;
+                speak &calc_age_cal("$qdate $qtime")
+                  . "a magnitude $qmagn earthquake occurred $distance miles away near $qloca";
+                return 1;
+            }
         }
-      }
     }
     return 0;
 }
@@ -204,6 +238,9 @@ sub speak_quake_cal {
 # lets allow the user to control via triggers
 
 if ($Reload) {
-    &trigger_set('$New_Hour and net_connect_check', "run_voice_cmd 'Get recent California earthquakes'", 'NoExpire', 'get cal earthquakes')
-      unless &trigger_get('get cal earthquakes');
+    &trigger_set(
+        '$New_Hour and net_connect_check',
+        "run_voice_cmd 'Get recent California earthquakes'",
+        'NoExpire', 'get cal earthquakes'
+    ) unless &trigger_get('get cal earthquakes');
 }

@@ -24,39 +24,40 @@ serial2_datatype=raw
 
 =cut
 
-
 my $data;
 my @code;
 my $command;
-my %ir_creative = (2556888397	=>	'play',
-			 1487340877	=>	'stop',
-			 3626435917	=>	'pause',	
-			 952567117	=>	'eject',
-			 3091662157	=>	'previous',
-			 2022114637	=>	'rewind',
-			 4161209677	=>	'forward',
-			 83559757	=>	'next',
-			 2222654797	=>	'1',
-			 1153107277	=>	'2',
-			 3292202317	=>	'3',
-			 618333517	=>	'shift',
-			 2757428557	=>	'4',
-			 1687881037	=>	'5',
-			 3826976077	=>	'6',
-			 350946637	=>	'mouse',
-			 2490041677	=>	'7',
-			 1420494157	=>	'8',
-			 3559589197	=>	'9',
-			 885720397	=>	'vol+',
-			 3024815437	=>	'start',
-			 1955267917	=>	'0',
-			 4094362957	=>	'mute',
-			 217253197	=>	'vol-' );
+my %ir_creative = (
+    2556888397 => 'play',
+    1487340877 => 'stop',
+    3626435917 => 'pause',
+    952567117  => 'eject',
+    3091662157 => 'previous',
+    2022114637 => 'rewind',
+    4161209677 => 'forward',
+    83559757   => 'next',
+    2222654797 => '1',
+    1153107277 => '2',
+    3292202317 => '3',
+    618333517  => 'shift',
+    2757428557 => '4',
+    1687881037 => '5',
+    3826976077 => '6',
+    350946637  => 'mouse',
+    2490041677 => '7',
+    1420494157 => '8',
+    3559589197 => '9',
+    885720397  => 'vol+',
+    3024815437 => 'start',
+    1955267917 => '0',
+    4094362957 => 'mute',
+    217253197  => 'vol-'
+);
 
-$creative_remote = new Serial_Item(undef, undef, 'serial2');
+$creative_remote = new Serial_Item( undef, undef, 'serial2' );
 
 if ( $data = said $creative_remote ) {
-  @code = unpack("I*", $data);
-  $command = $ir_creative{join "", @code};
-  print_log "Creative: $command";
+    @code = unpack( "I*", $data );
+    $command = $ir_creative{ join "", @code };
+    print_log "Creative: $command";
 }

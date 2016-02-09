@@ -2,34 +2,35 @@
 
 # Category=All
 
-$movement_sensor      = new  Serial_Item('XAJ', ON);  # Need ON and OFF
-$movement_sensor ->     add             ('XAK', OFF); # Just once to control all Hawkeyes
-$movement_sensor_unit = new  Serial_Item('XA4', 'office'); # Add one line per Hawkeye, Set code to Hawkeye
-$movement_sensor_unit-> add             ('XA5', 'frontdoor');
-$movement_sensor_unit-> add             ('XA6', 'pool');
-$movement_sensor_unit-> add             ('XA7', 'serverroom');
+$movement_sensor = new Serial_Item( 'XAJ', ON );    # Need ON and OFF
+$movement_sensor->add( 'XAK', OFF );    # Just once to control all Hawkeyes
+$movement_sensor_unit = new Serial_Item( 'XA4', 'office' )
+  ;    # Add one line per Hawkeye, Set code to Hawkeye
+$movement_sensor_unit->add( 'XA5', 'frontdoor' );
+$movement_sensor_unit->add( 'XA6', 'pool' );
+$movement_sensor_unit->add( 'XA7', 'serverroom' );
 
-$timer_office 		= new  Timer(); # Set one timer per Hawkeye
-$timer_front_door 	= new  Timer();
-$timer_pool	 	= new  Timer();
-$timer_server_room 	= new  Timer();
+$timer_office      = new Timer();    # Set one timer per Hawkeye
+$timer_front_door  = new Timer();
+$timer_pool        = new Timer();
+$timer_server_room = new Timer();
 
-if (state_now $movement_sensor eq ON) {
-    if ((state $movement_sensor_unit) eq 'frontdoor') {
-        if (inactive $timer_front_door) {
+if ( state_now $movement_sensor eq ON ) {
+    if ( ( state $movement_sensor_unit) eq 'frontdoor' ) {
+        if ( inactive $timer_front_door) {
             my $mp3_status = get "http://ipaddress:port/isplaying?p=password";
             print_log $mp3_status ;
-            if ($mp3_status == 1) {
+            if ( $mp3_status == 1 ) {
                 get "http://ipaddress:port/PAUSE?p=password";
             }
-            play('file' => $config_parms{front_door});
-            if (active $timer_pool) {
+            play( 'file' => $config_parms{front_door} );
+            if ( active $timer_pool) {
                 set $pool_chimes ON;
             }
             sleep 3;
-            play('file' => $config_parms{front_door});
+            play( 'file' => $config_parms{front_door} );
             sleep 2;
-            if ($mp3_status == 1) {
+            if ( $mp3_status == 1 ) {
                 get "http://ipaddress:port/volumedown?p=password";
                 get "http://ipaddress:port/PLAY?p=password";
                 get "http://ipaddress:port/volumeup?p=password";
@@ -37,10 +38,11 @@ if (state_now $movement_sensor eq ON) {
         }
         set $timer_front_door 90;
     }
-    if ((state $movement_sensor_unit) eq 'pool') {
-        if (inactive $timer_pool) {
+    if ( ( state $movement_sensor_unit) eq 'pool' ) {
+        if ( inactive $timer_pool) {
+
             # Don't need the Winamp routines here since I already have it in mh_sound.pl
-            speak ("Someone is in the pool area");
+            speak("Someone is in the pool area");
         }
         set $timer_pool 60 * 25;
     }

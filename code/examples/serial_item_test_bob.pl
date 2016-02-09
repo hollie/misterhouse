@@ -16,43 +16,36 @@
 
 my $light1 = "";
 my $light2 = "";
-$light_sensor      = new  Serial_Item('XAJ', ON);
-$light_sensor ->     add             ('XAK', OFF);
-$light_sensor_unit = new  Serial_Item('XA1', 'right');
-$light_sensor_unit-> add             ('XA2', 'left');
-$light_timer = new  Timer();
+$light_sensor = new Serial_Item( 'XAJ', ON );
+$light_sensor->add( 'XAK', OFF );
+$light_sensor_unit = new Serial_Item( 'XA1', 'right' );
+$light_sensor_unit->add( 'XA2', 'left' );
+$light_timer = new Timer();
 
-if (inactive $light_timer)
-{
-    if (state_now $light_sensor eq ON)
-    {
- set $light_timer 10;
- if ((state $light_sensor_unit) eq 'right')
- {
-     print "right is on\n";
-     $light1 = "ON";
- }
- elsif ((state $light_sensor_unit) eq 'left')
- {
-     print "left is on\n";
-     $light2 = "ON";
- }
- print "light1 is $light1, light2 is $light2\n";
+if ( inactive $light_timer) {
+    if ( state_now $light_sensor eq ON ) {
+        set $light_timer 10;
+        if ( ( state $light_sensor_unit) eq 'right' ) {
+            print "right is on\n";
+            $light1 = "ON";
+        }
+        elsif ( ( state $light_sensor_unit) eq 'left' ) {
+            print "left is on\n";
+            $light2 = "ON";
+        }
+        print "light1 is $light1, light2 is $light2\n";
     }
-    elsif (state_now $light_sensor eq OFF)
-    {
- set $light_timer 10;
- if ((state $light_sensor_unit) eq 'right')
- {
-     print "right is off\n";
-     $light1 = "OFF";
- }
- elsif ((state $light_sensor_unit) eq 'left')
- {
-     print "left is off\n";
-     $light2 = "OFF";
- }
- print "light1 is $light1, light2 is $light2\n";
+    elsif ( state_now $light_sensor eq OFF ) {
+        set $light_timer 10;
+        if ( ( state $light_sensor_unit) eq 'right' ) {
+            print "right is off\n";
+            $light1 = "OFF";
+        }
+        elsif ( ( state $light_sensor_unit) eq 'left' ) {
+            print "left is off\n";
+            $light2 = "OFF";
+        }
+        print "light1 is $light1, light2 is $light2\n";
     }
 }
 

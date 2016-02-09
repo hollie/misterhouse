@@ -2580,7 +2580,7 @@ Additional useful constants may be exported eventually.
   $PortObj->purge_tx;
 
       # controlling outputs from the port
-  $PortObj->dtr_active(T);		# sends outputs direct to hardware
+  $PortObj->dtr_active(T) or warn "Could not set dtr_active(T)";		# sends outputs direct to hardware
   $PortObj->rts_active(Yes);		# returns status of API call
   $PortObj->break_active(N);		# NOT state of bit
 
@@ -2688,12 +2688,12 @@ when I<initialize> has completed successfully.
   $PortObj->is_stopbits(1);
   $PortObj->is_handshake("rts");
   $PortObj->is_buffers(4096, 4096);
-  $PortObj->dtr_active(T);
+  $PortObj->dtr_active(T) or warn "Could not set dtr_active(T)";
 
   @required = qw( BAUD DATA STOP PARITY );
   $PortObj->initialize(@required) || undef $PortObj;
 
-  $PortObj->dtr_active(f);
+  $PortObj->dtr_active(f) or warn "Could not set dtr_active(f)";
   $PortObj->is_baudrate(300);
 
   $PortObj->close || die;

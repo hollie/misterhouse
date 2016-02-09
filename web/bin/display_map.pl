@@ -9,21 +9,24 @@
 
 # Authority: anyone
 
-my ($x, $y, $text) = @ARGV;
+my ( $x, $y, $text ) = @ARGV;
 
 $text =~ s/ +/ /g;
+
 #y ($text2) = $text =~ /the +(\S+ +is +.+)/;
 my ($text2) = $text =~ /the +(\S+)/;
 
 # pre 1/2004: http://www.vicinity.com/gif?&CT=44.079865%3A-92.499625%3A20000&FAM=myblast&W=300&H=300
 #     2/2004: http://maps.aprsworld.net/mapserver/map.php?lat=44.08183&lon=-92.50450&label=car&scale=town
 
-my ($u1, $u2);
+my ( $u1, $u2 );
 $u1 = qq|http://www.vicinity.com/gif?&CT=$y\%3A$x\%3A|;
+
 #u2 = qq|&FAM=myblast&W=600&H=350|;
 $u2 = qq|&FAM=myblast&W=300&H=300|;
 
-$u1 = qq|http://maps.aprsworld.net/mapserver/map.php?lat=$y&lon=$x&label=$text2|;
+$u1 =
+  qq|http://maps.aprsworld.net/mapserver/map.php?lat=$y&lon=$x&label=$text2|;
 
 my $html = "<p><b>$text</b></p>\n";
 
@@ -37,5 +40,5 @@ $html .= "<img src='${u1}&scale=town'</img>\n";
 $html .= "<img src='${u1}&scale=county'</img>\n";
 $html .= "<img src='${u1}&scale=regional'</img>\n";
 
-return &html_page('', $html);
+return &html_page( '', $html );
 

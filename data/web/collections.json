@@ -1,0 +1,788 @@
+{
+  "82" : {
+     "external" : "http://www.yellowpages.com/",
+     "icon" : "fa-building-o",
+     "name" : "Yellow Pages"
+  },
+  "13" : {
+     "icon" : "fa-home",
+     "name" : "About MrHouse",
+     "link" : "/ia7/house/main.shtml"
+  },
+  "76" : {
+     "icon" : "fa-building-o",
+     "name" : "Floorplan View2",
+     "link" : "/ia5/security/floorplan.shtml"
+  },
+  "4" : {
+     "icon" : "fa-lightbulb-o",
+     "name" : "Lights & Appliances",
+     "children" : [
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57
+     ]
+  },
+  "89" : {
+     "external" : "http://tvguide.com/Listings/index.asp?I=70620&Zip=91403",
+     "icon" : "fa-book",
+     "name" : "TV Guide"
+  },
+  "32" : {
+     "name" : "Label Widgets",
+     "icon" : "fa-square-o",
+     "link" : "/ia7/widgets_label"
+  },
+  "84" : {
+     "name" : "Reverse Lookup",
+     "external" : "http://www.whitepages.com/find_person.pl?fid=p",
+     "icon" : "fa-sort-alpha-desc"
+  },
+  "41" : {
+     "link" : "/ia5/statistics/housestats.shtml",
+     "icon" : "fa-home",
+     "name" : "HouseServer Statistics"
+  },
+  "77" : {
+     "name" : "Recent Incoming Calls",
+     "icon" : "fa-arrow-down",
+     "link" : "/bin/phone_in.pl"
+  },
+  "0" : {
+     "icon" : "fa-home",
+     "name" : "Home",
+     "children" : [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+     ]
+  },
+  "64" : {
+     "name" : "Earthquakes",
+     "icon" : "fa-bullseye",
+     "link" : "/ia5/outside/earthquakes.shtml"
+  },
+  "29" : {
+     "link" : "/ia7/#path=/vars",
+     "name" : "List Global Variables",
+     "icon" : "fa-globe"
+  },
+  "65" : {
+     "link" : "/ia5/outside/sattelite.shtml",
+     "icon" : "fa-fire",
+     "name" : "Iridium Flares"
+  },
+  "87" : {
+     "link" : "/media/mhmedia.html",
+     "icon" : "fa-play-circle",
+     "name" : "Media Center"
+  },
+  "2" : {
+     "children" : [
+        43,
+        44,
+        45,
+        46,
+        47
+     ],
+     "icon" : "fa-envelope",
+     "name" : "Mail and News"
+  },
+  "42" : {
+     "link" : "/ia7/widgets_checkbox",
+     "name" : "Browse This Category",
+     "icon" : "fa-ellipsis-v"
+  },
+  "12" : {
+     "icon" : "fa-bar-chart-o",
+     "name" : "Statistics & Logged Data",
+     "children" : [
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42
+     ]
+  },
+  "47" : {
+     "name" : "Browse News",
+     "icon" : "fa-list-alt",
+     "link" : "/ia5/news/browse.shtml"
+  },
+  "39" : {
+     "icon" : "fa-floppy-o",
+     "name" : "View Backup Log",
+     "link" : "/ia5/statistics/backuplog.shtml"
+  },
+  "106" : {
+     "link" : "/organizer/calendar.pl",
+     "name" : "Calendar",
+     "keys" : "true",
+     "icon" : "fa-calendar"
+  },
+  "52" : {
+     "link" : "/ia7/#path=objects&type=X10_Item",
+     "name" : "Control X10 Items",
+     "icon" : "fa-info"
+  },
+  "73" : {
+     "icon" : "fa-pagelines",
+     "name" : "Backyard Camera",
+     "link" : "/ia5/security/backyardcam.shtml"
+  },
+  "51" : {
+     "icon" : "fa-group",
+     "name" : "Browse Groups",
+     "link" : "/ia7/#path=/objects&type=Group"
+  },
+  "69" : {
+     "link" : "/ia5/security/webcam.shtml",
+     "icon" : "fa-th-large",
+     "name" : "Windowed Overview"
+  },
+  "55" : {
+     "name" : "Browse All Lights",
+     "icon" : "fa-lightbulb-o",
+     "link" : "/ia7/#path=/objects&parents=All_Lights"
+  },
+  "8" : {
+     "children" : [
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96
+     ],
+     "name" : "TV/Radio Guide & MP3 Music",
+     "icon" : "fa-music"
+  },
+  "70" : {
+     "link" : "/ia5/security/wc_sshow.shtml",
+     "icon" : "fa-clock-o",
+     "name" : "Time Lapse Viewer"
+  },
+  "38" : {
+     "name" : "View Error Log",
+     "icon" : "fa-warning",
+     "link" : "/ia5/statistics/errorlog.shtml"
+  },
+  "63" : {
+     "icon" : "fa-moon-o",
+     "name" : "Sun & Moon Data",
+     "link" : "/ia5/outside/sunmoon.shtml"
+  },
+  "108" : {
+     "link" : "/organizer/tasks.pl",
+     "name" : "TODO List",
+     "keys" : "true",
+     "icon" : "fa-list"
+  },
+  "94" : {
+     "link" : "/ia5/entertain/internetradio.shtml",
+     "icon" : "fa-sitemap",
+     "name" : "Internet Radio"
+  },
+  "17" : {
+     "icon" : "fa-group",
+     "name" : "Browse Groups",
+     "link" : "/ia7/#path=objects&type=Group"
+  },
+  "67" : {
+     "name" : "Browse Category",
+     "icon" : "fa-archive",
+     "link" : "/ia5/outside/browse.shtml"
+  },
+  "7" : {
+     "children" : [
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85
+     ],
+     "name" : "Phone Calls & VoiceMail Msgs",
+     "icon" : "fa-phone"
+  },
+  "79" : {
+     "link" : "/bin/phone_search.pl",
+     "icon" : "fa-search",
+     "name" : "Search Calls"
+  },
+  "103" : {
+     "name" : "Browse Photos",
+     "icon" : "fa-archive",
+     "link" : "/ia7/#path=/objects&type=Voice_Cmd&category=Photos"
+  },
+  "59" : {
+     "iframe" : "http://www.weather.com/weather/local/91403",
+     "icon" : "fa-cloud",
+     "name" : "Weather.com - Local"
+  },
+  "80" : {
+     "icon" : "fa-list",
+     "name" : "Phone List",
+     "link" : "/bin/phone_list.pl"
+  },
+  "90" : {
+     "icon" : "fa-desktop",
+     "external" : "http://tvguide.com/tv",
+     "name" : "What's On Now"
+  },
+  "53" : {
+     "icon" : "fa-sitemap",
+     "name" : "Control X10 Appliances",
+     "link" : "/ia7/#path=objects&type=X10_Appliance"
+  },
+  "45" : {
+     "icon" : "fa-group",
+     "external" : "//groups.google.com/grphp",
+     "name" : "Newsgroups"
+  },
+  "93" : {
+     "icon" : "fa-signal",
+     "external" : "http://realguide.real.com/",
+     "name" : "Radio Guide"
+  },
+  "24" : {
+     "name" : "Edit Items",
+     "icon" : "fa-list",
+     "link" : "/bin/items.pl"
+  },
+  "81" : {
+     "link" : "/ia5/phone/voicemail.shtml",
+     "name" : "VoiceMail Messages",
+     "icon" : "fa-envelope-o"
+  },
+  "40" : {
+     "name" : "WebServer Statistics",
+     "icon" : "fa-link",
+     "link" : "/ia5/statistics/webstats.shtml"
+  },
+  "9" : {
+     "children" : [
+        97,
+        98,
+        99,
+        100
+     ],
+     "icon" : "fa-microphone",
+     "name" : "Speech"
+  },
+  "25" : {
+     "link" : "/bin/iniedit.pl",
+     "name" : "INI Editor",
+     "icon" : "fa-table"
+  },
+  "22" : {
+     "icon" : "fa-code",
+     "name" : "User Code Activation",
+     "link" : "/bin/code_unselect.pl"
+  },
+  "74" : {
+     "name" : "Desktop Camera",
+     "icon" : "fa-desktop",
+     "link" : "/ia5/security/desktopcam.shtml"
+  },
+  "33" : {
+     "link" : "/ia7/widgets_entry",
+     "icon" : "fa-pencil-square-o",
+     "name" : "Entry Widgets"
+  },
+  "62" : {
+     "icon" : "fa-dashboard",
+     "name" : "HVAC",
+     "link" : "/ia7/#path=/objects&parents=HVAC"
+  },
+  "1" : {
+     "children" : [
+        13,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        29,
+        30
+     ],
+     "name" : "Mr. House Home",
+     "icon" : "fa-home"
+  },
+  "21" : {
+     "link" : "/bin/code_select.pl",
+     "name" : "Common Code Activation",
+     "icon" : "fa-code"
+  },
+  "111" : {
+     "link" : "/bin/triggers.pl",
+     "name" : "Alarms",
+     "icon" : "fa-bell-o"
+  },
+  "99" : {
+     "name" : "Speech Settings",
+     "icon" : "fa-cog",
+     "link" : "/ia5/speak/speechsettings.shtml"
+  },
+  "104" : {
+     "link" : "/ia7/#path=/objects&type=Voice_Cmd&category=Entertainment",
+     "icon" : "fa-gamepad",
+     "name" : "Browse Entertainment"
+  },
+  "72" : {
+     "icon" : "fa-home",
+     "name" : "Frontdoor Camera",
+     "link" : "/ia5/security/frontdoor.shtml"
+  },
+  "3" : {
+     "icon" : "fa-tasks",
+     "name" : "Modes",
+     "children" : [
+        48,
+        49,
+        50
+     ]
+  },
+  "16" : {
+     "link" : "/ia7/#path=/objects&type=Category",
+     "icon" : "fa-archive",
+     "name" : "Browse Categories"
+  },
+  "110" : {
+     "link" : "/bin/ListManager.pl",
+     "name" : "List Manager",
+     "icon" : "fa-list-alt"
+  },
+  "101" : {
+     "link" : "/comics/index.html",
+     "name" : "Daily Comics",
+     "icon" : "fa-picture-o"
+  },
+  "113" : {
+     "name" : "LED Clock",
+     "icon" : "fa-clock-o",
+     "link" : "/clock/index.html"
+  },
+  "71" : {
+     "name" : "Camera Files",
+     "icon" : "fa-film",
+     "link" : "/cameras/"
+  },
+  "28" : {
+     "link" : "/bin/set_parm_tv_provider.pl",
+     "name" : "Setup TV Provider",
+     "icon" : "fa-desktop"
+  },
+  "5" : {
+     "children" : [
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67
+     ],
+     "icon" : "fa-umbrella",
+     "name" : "HVAC & Weather"
+  },
+  "68" : {
+     "icon" : "fa-video-camera",
+     "name" : "Basic Overview",
+     "link" : "/ia5/security/main.shtml"
+  },
+  "88" : {
+     "link" : "/tv",
+     "icon" : "fa-calendar-o",
+     "name" : "TV Today"
+  },
+  "31" : {
+     "link" : "/ia7/widgets",
+     "name" : "All Widgets",
+     "icon" : "fa-cogs"
+  },
+  "98" : {
+     "icon" : "fa-volume-up",
+     "name" : "Speak Text",
+     "link" : "/ia7/house/speaktext.shtml"
+  },
+  "96" : {
+     "link" : "/ia7/#path=/objects&type=Voice_Cmd&category=Music",
+     "name" : "Browse Music",
+     "icon" : "fa-headphones"
+  },
+  "44" : {
+     "name" : "Read CNN",
+     "external" : "//www.cnn.com",
+     "icon" : "fa-book"
+  },
+  "109" : {
+     "icon" : "fa-shopping-cart",
+     "name" : "Shopping List",
+     "link" : "/bin/shopping_list.pl"
+  },
+  "48" : {
+     "link" : "/ia7/house/modes.shtml",
+     "icon" : "fa-tasks",
+     "name" : "Control Modes & Events"
+  },
+  "37" : {
+     "link" : "/ia7/#path=/print_speaklog",
+     "name" : "View Speech Log",
+     "icon" : "fa-bullhorn"
+  },
+  "18" : {
+     "link" : "/ia7/#path=/objects&type=Type",
+     "name" : "Browse Items",
+     "icon" : "fa-info"
+  },
+  "6" : {
+     "name" : "Security Cameras",
+     "icon" : "fa-video-camera",
+     "children" : [
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76
+     ]
+  },
+  "107" : {
+     "link" : "/organizer/contacts.pl",
+     "icon" : "fa-book",
+     "keys" : "true",
+     "name" : "Address Book"
+  },
+  "26" : {
+     "link" : "/ia5/house/irman.shtml",
+     "name" : "Program IRMAN",
+     "icon" : "fa-rss"
+  },
+  "57" : {
+     "link" : "/bin/floorplan.pl",
+     "name" : "Floorplan View",
+     "icon" : "fa-home"
+  },
+  "49" : {
+     "link" : "/bin/menu.pl",
+     "icon" : "fa-list-alt",
+     "name" : "Menu Control"
+  },
+  "30" : {
+     "icon" : "fa-save",
+     "name" : "List Save Variables",
+     "link" : "/ia7/#path=/vars/Save"
+  },
+  "56" : {
+     "link" : "/ia7/#path=/objects&parents=Appliances",
+     "name" : "Browse Appliances",
+     "icon" : "fa-sitemap"
+  },
+  "14" : {
+     "name" : "About 3Com Audrey",
+     "icon" : "fa-desktop",
+     "link" : "/ia7/house/aboutaudrey.shtml"
+  },
+  "35" : {
+     "link" : "/ia7/widgets_checkbox",
+     "icon" : "fa-check-square-o",
+     "name" : "Checkbox Widgets"
+  },
+  "11" : {
+     "children" : [
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115
+     ],
+     "name" : "Events, Calendar, & Clock",
+     "icon" : "fa-calendar"
+  },
+  "10" : {
+     "children" : [
+        101,
+        102,
+        103,
+        104
+     ],
+     "name" : "Comics & Pictures",
+     "icon" : "fa-picture-o"
+  },
+  "34" : {
+     "link" : "/ia7/widgets_radiobutton",
+     "name" : "Radiobutton Widgets",
+     "icon" : "fa-dot-circle-o"
+  },
+  "19" : {
+     "name" : "Browse Widgets",
+     "icon" : "fa-gears",
+     "children" : [
+        31,
+        32,
+        33,
+        34,
+        35
+     ]
+  },
+  "97" : {
+     "link" : "/ia7/#path=/print_speaklog",
+     "icon" : "fa-bullhorn",
+     "name" : "View Speech Log"
+  },
+  "86" : {
+     "name" : "MP3 Jukebox",
+     "icon" : "fa-music",
+     "link" : "/misc/mp3.html"
+  },
+  "100" : {
+     "link" : "/ia7/#path=/objects&type=Voice_Cmd&category=Speech",
+     "name" : "Browse Speech",
+     "icon" : "fa-microphone"
+  },
+  "85" : {
+     "icon" : "fa-archive",
+     "name" : "Browse Phone",
+     "link" : "/ia7/#path=/objects&type=Voice_Cmd&category=Phone"
+  },
+  "15" : {
+     "name" : "Browse MrHouse",
+     "icon" : "fa-home",
+     "link" : "/ia7/#path=/objects&type=Voice_Cmd&category=MisterHouse"
+  },
+  "23" : {
+     "icon" : "fa-clock-o",
+     "name" : "Edit Triggers",
+     "link" : "/bin/triggers.pl"
+  },
+  "112" : {
+     "link" : "/misc/timers.shtml",
+     "icon" : "fa-exclamation",
+     "name" : "Timers"
+  },
+  "114" : {
+     "name" : "Browse Timers",
+     "icon" : "fa-exclamation-circle",
+     "link" : "/ia7/#path=/objects&type=Voice_Cmd&category=Timers"
+  },
+  "60" : {
+     "name" : "Weather.com - National",
+     "external" : "http://www.weather.com/maps/maptype/currentweatherusnational/index_large.html",
+     "icon" : "fa-globe"
+  },
+  "43" : {
+     "link" : "/ia5/news/main.shtml",
+     "name" : "Read e-mail",
+     "icon" : "fa-envelope"
+  },
+  "61" : {
+     "icon" : "fa-bolt",
+     "name" : "Weather Station",
+     "children" : [
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125
+    ]
+  },  
+  "116" : {
+  	"icon" : "fa-search",
+  	"name" : "Weather Zoom",
+  	"link" : "/bin/weather_graph_zoom.pl"
+  },
+  "117" : {
+  	"icon" : "fa-leaf",
+  	"name" : "Outdoor Temp",
+  	"link" : "/ia7/#path=/rrd?now-6hour?outdoor_temp"
+  },
+  "118" : {
+  	"icon" : "wi-thermometer",
+  	"name" : "Indoor Temp",
+  	"link" : "/ia7/#path=/rrd?now-6hour?indoor_temp"
+  },
+  "119" : {
+  	"icon" : "wi-sprinkle",
+  	"name" : "Outdoor Humidity",
+  	"link" : "/ia7/#path=/rrd?now-6hour?outdoor_humid"
+  },
+  "120" : {
+  	"icon" : "wi-sprinkles",
+  	"name" : "Indoor Humidity",
+  	"link" : "/ia7/#path=/rrd?now-6hour?indoor_humid"
+  },
+  "121" : {
+  	"icon" : "wi-strong-wind",
+  	"name" : "Wind Speed",
+  	"link" : "/ia7/#path=/rrd?now-6hour?wind_speed"
+  },
+  "122" : {
+  	"icon" : "fa-arrows",
+  	"name" : "Wind Direction",
+  	"link" : "/ia7/#path=/rrd?now-6hour?wind_dir"
+  },
+  "123" : {
+  	"icon" : "wi-rain",
+  	"name" : "Total Rain",
+  	"link" : "/ia7/#path=/rrd?now-6hour?rain"
+  },   
+  "124" : {
+  	"icon" : "wi-sprinkle",
+  	"name" : "Rain Rate",
+  	"link" : "/ia7/#path=/rrd?now-6hour?rain_rate"
+  },  
+  "125" : {
+  	"icon" : "wi-cloud-refresh",
+  	"name" : "Baro Pressure",
+  	"link" : "/ia7/#path=/rrd?now-6hour?outside_press"
+  }, 
+ 
+  "92" : {
+     "name" : "Local Movies",
+     "external" : "http://www.google.com/search?&q=movie%3A+91403",
+     "icon" : "fa-film"
+  },
+  "46" : {
+     "icon" : "fa-inbox",
+     "name" : "Postal Mailbox",
+     "link" : "/ia5/news/postalmail.shtml"
+  },
+  "58" : {
+     "name" : "Weather Underground",
+     "icon" : "fa-sun-o",
+     "iframe" : "http://www.wunderground.com/cgi-bin/findweather/getForecast?query=91403"
+  },
+  "115" : {
+     "name" : "Browse Timed_Events",
+     "icon" : "fa-archive",
+     "link" : "/ia7/#path=/objects&type=Voice_Cmd&category=Timed_Events"
+  },
+  "95" : {
+     "link" : "/ia7/#path=/objects&type=Voice_Cmd&category=Entertainment",
+     "name" : "Browse Entertainment",
+     "icon" : "fa-gamepad"
+  },
+  "27" : {
+     "icon" : "fa-wrench",
+     "name" : "Header Control",
+     "link" : "/bin/headercontrol.pl"
+  },
+  "78" : {
+     "name" : "Recent Outgoing Calls",
+     "icon" : "fa-arrow-up",
+     "link" : "/bin/phone_out.pl"
+  },
+  "102" : {
+     "name" : "Picture Frame",
+     "icon" : "fa-desktop",
+     "external" : "http://home.krkeegan.com:8081/misc/photos.shtml"
+  },
+  "105" : {
+     "link" : "/ia5/calendar/main.shtml",
+     "icon" : "fa-check",
+     "name" : "Calendar Facts"
+  },
+  "83" : {
+     "icon" : "fa-home",
+     "external" : "http://www.whitepages.com/",
+     "name" : "White Pages"
+  },
+  "20" : {
+     "name" : "Setup MrHouse",
+     "icon" : "fa-wrench",
+     "children" : [
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28
+     ]
+  },
+  "66" : {
+     "link" : "/ia5/outside/tracking.shtml",
+     "name" : "GPS/ APRS Tracking",
+     "icon" : "fa-road"
+  },
+  "91" : {
+     "name" : "TV Shortcuts",
+     "icon" : "fa-bookmark-o",
+     "link" : "/ia5/entertain/shortcuts.shtml"
+  },
+  "36" : {
+     "name" : "View Print Log",
+     "icon" : "fa-list",
+     "link" : "/ia7/#path=/print_log"
+  },
+  "75" : {
+     "name" : "Floorplan View",
+     "icon" : "fa-building-o",
+     "link" : "/bin/floorplan.pl"
+  },
+  "50" : {
+     "link" : "/ia5/modes/browse.shtml",
+     "name" : "Browse Modes",
+     "icon" : "fa-th"
+  },
+  "500" : {
+     "icon" : "fa-home",
+     "name" : "Gear Settings",
+     "children" : [
+       501
+
+     ]
+   },
+   "501" : {
+     "link" : "/UNSET_PASSWORD?user=admin",
+     "name" : "Authorize",
+     "icon" : "fa-lock"
+  },
+   "600" : {
+     "link" : "/ia7/#path=/objects&parents=ia7_status_items",
+     "name" : "Status"
+  }    
+}
