@@ -128,7 +128,7 @@ use URI::Escape;
 #
 # As of 1/31/2016 some API examples using cURL incorrectly show the authorize and token 
 # endpoints as https://api.ecobee.com/1/authorize and https://api.ecobee.com/1/token. 
-# However, these are actually https://api.ecobee.com/authorize https://api.ecobee.com/token.
+# However, these are actually https://api.ecobee.com/authorize and https://api.ecobee.com/token.
 # Other endpoints are versioned and appear to work correctly.
 
 #todo
@@ -197,9 +197,21 @@ sub _check_auth {
           main::print_log( "[Ecobee] We have tokens, lets proceed");
           $self->_thermostat_summary();
           $self->_list_thermostats();
+
+          ####
+          # Testing functions here. These will be removed eventually
+          ##
           #$self->print_devices();
+          main::print_log( "[Ecobee] actualTemperature is " . sprintf("%.1f", $self->get_temp("Monet Thermostat", "actualTemperature")/10) . " degrees F" );
+          main::print_log( "[Ecobee] desiredHeat is " . sprintf("%.1f", $self->get_desired_comfort("Monet Thermostat", "Heat")/10) . " degrees F" );
+          main::print_log( "[Ecobee] desiredCool is " . sprintf("%.1f", $self->get_desired_comfort("Monet Thermostat", "Cool")/10) . " degrees F" );
           main::print_log( "[Ecobee] Office temp is " . sprintf("%.1f", $self->get_temp("Monet Thermostat", "Office")/10) . " degrees F" );
+          main::print_log( "[Ecobee] actualHumidity is " . $self->get_humidity("Monet Thermostat", "actualHumidity") . "%");
+          main::print_log( "[Ecobee] desiredHumidity is " . $self->get_desired_comfort("Monet Thermostat", "Humidity") . "%");
           main::print_log( "[Ecobee] Humidity is " . $self->get_humidity("Monet Thermostat", "Monet Thermostat") . "%");
+          main::print_log( "[Ecobee] hvacMode is " . $self->get_setting("Monet Thermostat", "hvacMode") );
+          ####
+
           # The basic details should be populated now so we can start to poll
           $$self{ready} = 1;
           my $action = sub { $self->_poll() };
@@ -312,11 +324,49 @@ sub _list_thermostats {
                  $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}{capability}{$capability->{id}}{value} = $capability->{value};
               }
            }
-           # We need to do this for the configs and other stuff as well in this function
+           # We need to do this for the settings as well
+           foreach my $key (keys %{$device->{settings}}) {
+              $$self{data}{devices}{$device->{identifier}}{settings}{$key} = $device->{settings}{$key};
+           }
+           # We also need to get the Alerts and Events
+
            main::print_log( "[Ecobee]: " . $$self{data}{devices}{$device->{identifier}}{name} . " ID is " . $$self{data}{devices}{$device->{identifier}}{identifier} );
        }
     } else {
        main::print_log( "[Ecobee]: Uh, oh... Something went wrong with the thermostat list request" );
+    }
+}
+
+
+=item C<_get_settings()>
+
+Gets the current settings
+
+=cut
+
+sub _get_settings {
+    my ($self) = @_;
+    main::print_log( "[Ecobee]: Getting runtime and sensor data..." );
+    my $headers = HTTP::Headers->new(
+        'Content-Type' => 'text/json',
+        'Authorization' => 'Bearer ' . $$self{access_token}
+        );
+    my $json_body = '{"selection":{"selectionType":"registered","selectionMatch":"","includeSettings":"true"}}';
+    my ($isSuccessResponse1, $thermoparams) = $self->_get_JSON_data("GET", "thermostat",
+       '?format=json&body=' . uri_escape($json_body), $headers);
+    if ($isSuccessResponse1) {
+       main::print_log( "[Ecobee]: Settings response looks good." );
+       # We just asked for the settings this time
+       foreach my $device (@{$thermoparams->{thermostatList}}) {
+           foreach my $key (keys %{$device->{settings}}) {
+              if ($device->{settings}{$key} ne $$self{data}{devices}{$device->{identifier}}{settings}{$key}) {
+                 main::print_log( "[Ecobee]: settings parameter " . $key . " has changed from " . $$self{data}{devices}{$device->{identifier}}{settings}{$key} . " to " . $device->{settings}{$key});
+              }
+              $$self{data}{devices}{$device->{identifier}}{settings}{$key} = $device->{settings}{$key};
+           }
+       }
+    } else {
+       main::print_log( "[Ecobee]: Uh, oh... Something went wrong with the settings request" );
     }
 }
 
@@ -354,7 +404,7 @@ sub _get_runtime_with_sensors {
               $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}{type} = $index->{type};
               if (defined $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}{inUse}) {
                  if ($$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}{inUse} ne $index->{inUse}) {
-                    main::print_log( "[Ecobee]: " . $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}{name} . " (id " . $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}{id} . ") has changed from " . $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}{inUse} . " to " . $index->{inUse} );
+                    main::print_log( "[Ecobee]: " . $$self{data}{devices}{$device->{identifier}}{name} . ", sensor " . $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}{name} . " (id " . $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}{id} . ") has changed from " . $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}{inUse} . " to " . $index->{inUse} );
                  }
               }
               $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}{inUse} = $index->{inUse};
@@ -364,7 +414,7 @@ sub _get_runtime_with_sensors {
                  $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}{capability}{$capability->{id}}{type} = $capability->{type};
                  if (defined $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}{capability}{$capability->{id}}{value}) {
                     if ($$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}{capability}{$capability->{id}}{value} ne $capability->{value}) {
-                       main::print_log( "[Ecobee]: " . $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}{name} . " (id " . $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}{id} . ":" . $capability->{id} . ") has changed from " . $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}{capability}{$capability->{id}}{value} . " to " . $capability->{value} );
+                       main::print_log( "[Ecobee]: " . $$self{data}{devices}{$device->{identifier}}{name} . ", sensor " . $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}{name} . ", capability " . $capability->{type} . " (id " . $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}{id} . ":" . $capability->{id} . ") has changed from " . $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}{capability}{$capability->{id}}{value} . " to " . $capability->{value} );
                     }
                  }
                  $$self{data}{devices}{$device->{identifier}}{remoteSensorsHash}{$index->{id}}{capability}{$capability->{id}}{value} = $capability->{value};
@@ -418,6 +468,7 @@ sub _thermostat_summary {
              if ($$self{data}{devices}{$values[0]}{thermoRev} != $values[3]) {   
                 # This tells us that the thermostat program, hvac mode, settings or configuration has changed
                 main::print_log( "[Ecobee]: thermoRev has changed from " . $$self{data}{devices}{$values[0]}{thermoRev} . " to " . $values[3] );
+                $self->_get_settings();
              }
           }
           $$self{data}{devices}{$values[0]}{thermoRev} = $values[3];
@@ -471,11 +522,38 @@ sub _thermostat_summary {
           );
           my @values = split(':',$device);
           # we probably need to notify something if one of these changes
-          $$self{data}{devices}{$values[0]}{status} = \%default_status;
-          if (scalar @values > 1) {
-              foreach my $index (1..$#values) {
-                 $$self{data}{devices}{$values[0]}{status}{$values[$index]} = 1;
-              }
+          if (defined $$self{data}{devices}{$values[0]}{status}) {
+             # This isn't our first run, so see if something has changed
+             my $matched;
+             for my $stat (keys %default_status) {
+                if (scalar @values > 1) {
+                   $matched = 0;
+                   foreach my $index (1..$#values) {
+                      if ($values[$index] eq $stat) {
+                         if ($$self{data}{devices}{$values[0]}{status}{$values[$index]} == 0) {
+                            $$self{data}{devices}{$values[0]}{status}{$values[$index]} = 1;
+                            $matched = 1;
+                            main::print_log( "[Ecobee]: Status $stat has changed from off to on" );
+                         }
+                      }
+                   }
+                   if ((!$matched) && ($$self{data}{devices}{$values[0]}{status}{$stat} == 1)) {
+                      main::print_log( "[Ecobee]: Status $stat has changed from on to off" );
+                   } 
+                } else {
+                   if ($$self{data}{devices}{$values[0]}{status}{$stat} != 0) {
+                      $$self{data}{devices}{$values[0]}{status}{$stat} = 0;
+                      main::print_log( "[Ecobee]: Status $stat has changed from on to off" );
+                   }
+                }
+             }
+          } else {
+             $$self{data}{devices}{$values[0]}{status} = \%default_status;
+             if (scalar @values > 1) {
+                 foreach my $index (1..$#values) {
+                    $$self{data}{devices}{$values[0]}{status}{$values[$index]} = 1;
+                 }
+             }
           }
           #main::print_log( "[Ecobee]: " . $$self{data}{devices}{$values[0]}{name} . " fan is " . $$self{data}{devices}{$values[0]}{status}{fan} );
        }
@@ -587,12 +665,17 @@ sub get_temp {
        }
     }
     if ($d_id) {
-       foreach my $key (keys %{$$self{data}{devices}{$d_id}{remoteSensorsHash}}) {
-          if ($$self{data}{devices}{$d_id}{remoteSensorsHash}{$key}{name} eq $name) {
-             return $$self{data}{devices}{$d_id}{remoteSensorsHash}{$key}{capability}{1}{value};
-          }
-       } 
-       return 0;
+       if ($name eq "actualTemperature") {
+          # This is a special case where we return the runtime actualTemperature property instead of a sensor value
+          return $$self{data}{devices}{$d_id}{runtime}{actualTemperature};
+       } else {
+          foreach my $key (keys %{$$self{data}{devices}{$d_id}{remoteSensorsHash}}) {
+             if ($$self{data}{devices}{$d_id}{remoteSensorsHash}{$key}{name} eq $name) {
+                return $$self{data}{devices}{$d_id}{remoteSensorsHash}{$key}{capability}{1}{value};
+             }
+          } 
+          return 0;
+       }
     } else {
        return 0;
     }
@@ -617,21 +700,89 @@ sub get_humidity {
        }
     }
     if ($d_id) {
-       foreach my $key (keys %{$$self{data}{devices}{$d_id}{remoteSensorsHash}}) {
-          if ($$self{data}{devices}{$d_id}{remoteSensorsHash}{$key}{name} eq $name) {
-             if ($$self{data}{devices}{$d_id}{remoteSensorsHash}{$key}{capability}{2}{type} eq "humidity") {
-                return $$self{data}{devices}{$d_id}{remoteSensorsHash}{$key}{capability}{2}{value};
-             } else {
-                # This sensor type doesn't have a humidity sensor. Only the main thermostat unit does
-                return 0;
+       if ($name eq "actualHumidity") {
+          # This is a special case where we return the runtime actualHumidity property instead of a sensor value
+          return $$self{data}{devices}{$d_id}{runtime}{actualHumidity};
+       } else {
+          foreach my $key (keys %{$$self{data}{devices}{$d_id}{remoteSensorsHash}}) {
+             if ($$self{data}{devices}{$d_id}{remoteSensorsHash}{$key}{name} eq $name) {
+                if ($$self{data}{devices}{$d_id}{remoteSensorsHash}{$key}{capability}{2}{type} eq "humidity") {
+                   return $$self{data}{devices}{$d_id}{remoteSensorsHash}{$key}{capability}{2}{value};
+                } else {
+                   # This sensor type doesn't have a humidity sensor. Only the main thermostat unit does
+                   return 0;
+                }
              }
           }
+          return 0;
        }
-       return 0;
     } else {
        return 0;
     }
 }
+
+
+=item C<get_desired_comfort()>
+
+Returns the given runtime property for desiredX comfort setting. Known properties are:
+
+desiredHeat       => Heat
+desiredCool       => Cool
+desiredHumidity   => Humidity
+desiredDehumidity => Dehumidity
+desiredFanMode    => FanMode
+
+=cut
+
+sub get_desired_comfort {
+    my ($self,$device,$name) = @_;
+    # Get the id of the given device
+    my $d_id;
+    foreach my $key (keys %{$$self{data}{devices}}) {
+       if ($$self{data}{devices}{$key}{name} eq $device) {
+          $d_id = $key;
+          last;
+       }
+    }
+    if ($d_id) {
+       if (defined $$self{data}{devices}{$d_id}{runtime}{"desired" . $name}) {
+          return $$self{data}{devices}{$d_id}{runtime}{"desired" . $name};
+       } else {
+          return 0;
+       }
+    } else {
+       return 0;
+    }
+}
+
+
+=item C<get_setting()>
+
+Returns the given setting property.
+
+=cut
+
+sub get_setting {
+    my ($self,$device,$name) = @_;
+    # Get the id of the given device
+    my $d_id;
+    foreach my $key (keys %{$$self{data}{devices}}) {
+       if ($$self{data}{devices}{$key}{name} eq $device) {
+          $d_id = $key;
+          last;
+       }
+    }
+    if ($d_id) {
+       if (defined $$self{data}{devices}{$d_id}{settings}{$name}) {
+          return $$self{data}{devices}{$d_id}{settings}{$name};
+       } else {
+          return 0;
+       }
+    } else {
+       return 0;
+    }
+}
+
 
 #------------
 # User control methods
