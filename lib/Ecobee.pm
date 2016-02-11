@@ -210,6 +210,12 @@ sub _check_auth {
           main::print_log( "[Ecobee] desiredHumidity is " . $self->get_desired_comfort("Monet Thermostat", "Humidity") . "%");
           main::print_log( "[Ecobee] Humidity is " . $self->get_humidity("Monet Thermostat", "Monet Thermostat") . "%");
           main::print_log( "[Ecobee] hvacMode is " . $self->get_setting("Monet Thermostat", "hvacMode") );
+          my $alerts = $self->get_alert("Monet Thermostat");
+          if ($alerts) {
+             foreach my $key (keys %{$alerts}) {
+                main::print_log( "[Ecobee] Alert " . $key . ": (\"" . $alerts->{$key}{text} . "\")" );
+             }
+          }
           ####
 
           # The basic details should be populated now so we can start to poll
@@ -328,7 +334,13 @@ sub _list_thermostats {
            foreach my $key (keys %{$device->{settings}}) {
               $$self{data}{devices}{$device->{identifier}}{settings}{$key} = $device->{settings}{$key};
            }
-           # We also need to get the Alerts and Events
+           # Get the Alerts (provided as a JSON array)
+           foreach my $index (@{$device->{alerts}}) {
+              foreach my $key (keys %{$index}) {
+                 $$self{data}{devices}{$device->{identifier}}{alertsHash}{$index->{acknowledgeRef}}{$key} = $index->{$key};
+              }
+           }
+           # We also need to get the Events
 
            main::print_log( "[Ecobee]: " . $$self{data}{devices}{$device->{identifier}}{name} . " ID is " . $$self{data}{devices}{$device->{identifier}}{identifier} );
        }
@@ -346,7 +358,7 @@ Gets the current settings
 
 sub _get_settings {
     my ($self) = @_;
-    main::print_log( "[Ecobee]: Getting runtime and sensor data..." );
+    main::print_log( "[Ecobee]: Getting settings..." );
     my $headers = HTTP::Headers->new(
         'Content-Type' => 'text/json',
         'Authorization' => 'Bearer ' . $$self{access_token}
@@ -367,6 +379,56 @@ sub _get_settings {
        }
     } else {
        main::print_log( "[Ecobee]: Uh, oh... Something went wrong with the settings request" );
+    }
+}
+
+
+=item C<_get_alerts()>
+
+Gets the current alerts
+
+=cut
+
+sub _get_alerts {
+    my ($self) = @_;
+    main::print_log( "[Ecobee]: Getting alerts..." );
+    my $headers = HTTP::Headers->new(
+        'Content-Type' => 'text/json',
+        'Authorization' => 'Bearer ' . $$self{access_token}
+        );
+    my $json_body = '{"selection":{"selectionType":"registered","selectionMatch":"","includeAlerts":"true"}}';
+    my ($isSuccessResponse1, $thermoparams) = $self->_get_JSON_data("GET", "thermostat",
+       '?format=json&body=' . uri_escape($json_body), $headers);
+    if ($isSuccessResponse1) {
+       main::print_log( "[Ecobee]: Alerts response looks good." );
+       # We just asked for the settings this time
+       foreach my $device (@{$thermoparams->{thermostatList}}) {
+           # Look for events that have been acked and are no longer in the array
+           foreach my $key (keys %{$$self{data}{devices}{$device->{identifier}}{alertsHash}}) {
+              my $matched = 0;
+              foreach my $index (@{$device->{alerts}}) {
+                 if ($key eq $index->{acknowledgeRef}) {
+                    $matched = 1;
+                 }
+              }
+              if (!$matched) {
+                 # Alert has been acked
+                 main::print_log( "[Ecobee]: Alert $key: (\"" . $$self{data}{devices}{$device->{identifier}}{alertsHash}{$key}{text} . "\") has  been acked." );
+                 $$self{data}{devices}{$device->{identifier}}{alertsHash}{$key} = undef;
+              }
+           }
+           foreach my $index (@{$device->{alerts}}) {
+              if (defined $$self{data}{devices}{$device->{identifier}}{alertsHash}{$index->{acknowledgeRef}}) {
+                 # Do we need to see if something has changed? All of the alert properties should be static and the alert dissappears from the JSON array once acked.
+              } else {
+                 # This is a new alert
+                 main::print_log( "[Ecobee]: A new alert " . $index->{acknowledgeRef} . ": (\"" . $index->{text} . "\") has been generated." );
+                 $$self{data}{devices}{$device->{identifier}}{alertsHash}{$index->{acknowledgeRef}} = $index;
+              }
+           }
+       }
+    } else {
+       main::print_log( "[Ecobee]: Uh, oh... Something went wrong with the alerts request" );
     }
 }
 
@@ -477,6 +539,7 @@ sub _thermostat_summary {
              if ($$self{data}{devices}{$values[0]}{alertsRev} != $values[4]) {
                 # This tells us of a new alert is issued or an alert is modified (acked)
                 main::print_log( "[Ecobee]: alertsRev has changed from " . $$self{data}{devices}{$values[0]}{alertsRev} . " to " . $values[4] );
+                $self->_get_alerts();
              }
           }
           $$self{data}{devices}{$values[0]}{alertsRev} = $values[4];
@@ -763,7 +826,7 @@ Returns the given setting property.
 =cut
 
 sub get_setting {
-    my ($self,$device,$name) = @_;
+    my ($self,$device,$setting) = @_;
     # Get the id of the given device
     my $d_id;
     foreach my $key (keys %{$$self{data}{devices}}) {
@@ -773,12 +836,46 @@ sub get_setting {
        }
     }
     if ($d_id) {
-       if (defined $$self{data}{devices}{$d_id}{settings}{$name}) {
-          return $$self{data}{devices}{$d_id}{settings}{$name};
+       if (defined $$self{data}{devices}{$d_id}{settings}{$setting}) {
+          return $$self{data}{devices}{$d_id}{settings}{$setting};
        } else {
           return 0;
        }
     } else {
+       return 0;
+    }
+}
+
+
+=item C<get_alert()>
+
+Returns either the given alert by the given $id, or all of them if $id is undefined
+
+=cut
+
+sub get_alert {
+    my ($self,$device,$id) = @_;
+    # Get the id of the given device
+    my $d_id;
+    foreach my $key (keys %{$$self{data}{devices}}) {
+       if ($$self{data}{devices}{$key}{name} eq $device) {
+          $d_id = $key;
+          last;
+       }
+    }
+    if ($d_id) {
+       if (defined $id) {
+          if (defined $$self{data}{devices}{$d_id}{alertsHash}{$id}) {
+             return $$self{data}{devices}{$d_id}{alertsHash}{$id};
+          } else {
+             # Normal return is a hashref, so this is probably unwise
+             return 0;
+          }
+       } else {
+          return $$self{data}{devices}{$d_id}{alertsHash}; 
+       } 
+    } else {
+       # Normal return is a hashref, so this is probably unwise
        return 0;
     }
 }
