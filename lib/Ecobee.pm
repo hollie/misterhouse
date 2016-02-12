@@ -216,6 +216,13 @@ sub _check_auth {
                 main::print_log( "[Ecobee] Alert " . $key . ": (\"" . $alerts->{$key}{text} . "\")" );
              }
           }
+          my $events = $self->get_event("Monet Thermostat");
+          if ($events) {
+             foreach my $key (keys %{$events}) {
+                main::print_log( "[Ecobee] Event: $key" );
+             }
+          }
+
           ####
 
           # The basic details should be populated now so we can start to poll
@@ -249,6 +256,7 @@ sub _request_pin_auth {
        $$self{token_check_timer}->set($keyparams->{interval}, $action);
     }
 }
+
 
 # Poll for tokens
 sub _wait_for_tokens {
@@ -285,10 +293,12 @@ sub _refresh_tokens {
        $$self{refresh_token} = $tokenparams->{refresh_token};
     } else {
        # We need to handle the case where the refresh token has expired and start a new PIN authorization request.
-       main::print_log( "[Ecobee]: Uh, oh... Something went wrong with the refresh token request" );
+       main::print_log( "[Ecobee]: Uh, oh... Something went wrong with the refresh token request. Flushing tokens and requesting a new PIN" );
        # It looks like the tokens are FUBAR. We need to re-authenticate
        $$self{access_token} = undef;
        $$self{refresh_token} = undef;
+       $$self{ready} = 0; # This disables polling until the issue can be corrected
+       $self->_request_pin_auth(); 
     }
 }
 
@@ -340,7 +350,10 @@ sub _list_thermostats {
                  $$self{data}{devices}{$device->{identifier}}{alertsHash}{$index->{acknowledgeRef}}{$key} = $index->{$key};
               }
            }
-           # We also need to get the Events
+           # We also need to get the Events (provided as a JSON array, but does not contain a unique ID so we have to create our own to make this a hash)
+           foreach my $index (@{$device->{events}}) {
+              $$self{data}{devices}{$device->{identifier}}{eventsHash}{$index->{type} . "-" . $index->{name} . "-" . $index->{holdClimateRef}} = $index;
+           }
 
            main::print_log( "[Ecobee]: " . $$self{data}{devices}{$device->{identifier}}{name} . " ID is " . $$self{data}{devices}{$device->{identifier}}{identifier} );
        }
@@ -358,12 +371,12 @@ Gets the current settings
 
 sub _get_settings {
     my ($self) = @_;
-    main::print_log( "[Ecobee]: Getting settings..." );
+    main::print_log( "[Ecobee]: Getting settings and events..." );
     my $headers = HTTP::Headers->new(
         'Content-Type' => 'text/json',
         'Authorization' => 'Bearer ' . $$self{access_token}
         );
-    my $json_body = '{"selection":{"selectionType":"registered","selectionMatch":"","includeSettings":"true"}}';
+    my $json_body = '{"selection":{"selectionType":"registered","selectionMatch":"","includeSettings":"true","includeEvents":"true"}}';
     my ($isSuccessResponse1, $thermoparams) = $self->_get_JSON_data("GET", "thermostat",
        '?format=json&body=' . uri_escape($json_body), $headers);
     if ($isSuccessResponse1) {
@@ -375,6 +388,26 @@ sub _get_settings {
                  main::print_log( "[Ecobee]: settings parameter " . $key . " has changed from " . $$self{data}{devices}{$device->{identifier}}{settings}{$key} . " to " . $device->{settings}{$key});
               }
               $$self{data}{devices}{$device->{identifier}}{settings}{$key} = $device->{settings}{$key};
+           }
+           # create a temporary hash to compare current and previous events
+           my %temp_events;
+           foreach my $index (@{$device->{events}}) {
+              $temp_events{$index->{type} . "-" . $index->{name} . "-" . $index->{holdClimateRef}} = $index;
+           }
+           # Look for new events
+           foreach my $key (keys %temp_events) {
+              unless (defined $$self{data}{devices}{$device->{identifier}}{eventsHash}{$key}) {
+                 main::print_log( "[Ecobee]: New event added: $key" );
+                 $$self{data}{devices}{$device->{identifier}}{eventsHash}{$key} = \$temp_events{$key};
+              }
+           }
+           # Look for deleted events
+           foreach my $key (keys %{$$self{data}{devices}{$device->{identifier}}{eventsHash}}) {
+             unless (defined $temp_events{$key}) {
+                main::print_log( "[Ecobee]: Event deleted: $key" );
+                # This doesn't seem to work (the hashref is still there)
+                delete $$self{data}{devices}{$device->{identifier}}{eventsHash}{$key};
+             }
            }
        }
     } else {
@@ -414,7 +447,7 @@ sub _get_alerts {
               if (!$matched) {
                  # Alert has been acked
                  main::print_log( "[Ecobee]: Alert $key: (\"" . $$self{data}{devices}{$device->{identifier}}{alertsHash}{$key}{text} . "\") has  been acked." );
-                 $$self{data}{devices}{$device->{identifier}}{alertsHash}{$key} = undef;
+                 delete $$self{data}{devices}{$device->{identifier}}{alertsHash}{$key};
               }
            }
            foreach my $index (@{$device->{alerts}}) {
@@ -879,6 +912,41 @@ sub get_alert {
        return 0;
     }
 }
+
+
+=item C<get_event()>
+
+Returns either the given event by the given $id, or all of them if $id is undefined
+
+=cut
+
+sub get_event {
+    my ($self,$device,$id) = @_;
+    # Get the id of the given device
+    my $d_id;
+    foreach my $key (keys %{$$self{data}{devices}}) {
+       if ($$self{data}{devices}{$key}{name} eq $device) {
+          $d_id = $key;
+          last;
+       }
+    }
+    if ($d_id) {
+       if (defined $id) {
+          if (defined $$self{data}{devices}{$d_id}{eventsHash}{$id}) {
+             return $$self{data}{devices}{$d_id}{eventsHash}{$id};
+          } else {
+             # Normal return is a hashref, so this is probably unwise
+             return 0;
+          }
+       } else {
+          return $$self{data}{devices}{$d_id}{eventsHash};
+       }
+    } else {
+       # Normal return is a hashref, so this is probably unwise
+       return 0;
+    }
+}
+
 
 
 #------------
