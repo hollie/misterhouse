@@ -20,6 +20,7 @@ my $username = $config_parms{homebridge_username};
 $username = "CC:22:3D:E3:CE:30" unless ($username);
 my $version = "2";
 my $filepath = $config_parms{data_dir} . "/homebridge_config.json";
+$filepath = $config_parms{homebridge_config_dir} . "/config.json" if (defined $config_parms{homebridge_config_dir});
 my $acc_count;
 $v_generate_hb_config = new Voice_Cmd("Generate new Homebridge config.json file");
 
@@ -73,7 +74,9 @@ sub add_group {
 		$name = $member->{label} if (defined $member->{label});
 		$text .= "\t\t\"name\": \"" . $name . "\",\n";
 		if ($type eq "thermostat") {
-			$text .= "\t\t\"setpoint_url\": \"http://" . $Info{IPAddress_local} . ":" . $config_parms{http_port} . "/sub?hb_thermo_setpoint(%27" . $member->{object_name} . "%27,%VALUE%)\",\n";
+			my $name2 = $member->{object_name};
+			$name2 =~ s/\$//g;
+			$text .= "\t\t\"setpoint_url\": \"http://" . $Info{IPAddress_local} . ":" . $config_parms{http_port} . "/sub?hb_thermo_setpoint(%27" . $name2 . "%27,%VALUE%)\",\n";
 		} else {
 			my $on = "on";
 			$on = $url_types{$type}{on} if (defined $url_types{$type}{on});
@@ -101,33 +104,69 @@ sub hb_status {
 
 sub hb_thermo_setpoint {
 	my ($item,$value) = @_;
-	print_log "Homebridge temperature change request for $item to $value";
+	print_log "Homebridge: Temperature change request for $item to $value";
 	my $object = &get_object_by_name($item);
+	
 	if (UNIVERSAL::isa($object,'Venstar_Colortouch')) {
-		print_log "Venstar Colortouch found";
+		print_log "Homebridge: Thermostat Venstar Colortouch found";
 		my $sp_delay = 0;
 		if ($object->get_sched() eq "on") {
 			print_log "Thermostat on a schedule, turning off schedule for override";			
 			$object -> set_schedule("off");
 			$sp_delay = 5;
 		}
-		if (($object->get_mode() eq "cooling") or ($object->get_mode() eq "auto")) {
-			eval_with_timer '$' . $item . '->set_cool_sp(' .  $value . ')";', $sp_delay;
+		my $auto_mode = ""
+		$auto_mode = &calc_auto_mode($value,$object->get_temp()) if ($object->get_mode() eq "auto");
+		print_log "Homebridge: Thermostat calc mode is $auto_mode" if ($auto_mode);
+		if (($object->get_mode() eq "cooling") or ($auto_mode eq "cool")) {
+			if ($sp_delay) {
+				eval_with_timer '$' . $item . '->set_cool_sp(' .  $value . ');', $sp_delay;
+			} else {
+				$object -> set_cool_sp($value);
+			}
 		} else {
-			eval_with_timer '$' . $item . '->set_heat_sp(' .  $value . ')";', $sp_delay;
+			if ($sp_delay) {
+				eval_with_timer '$' . $item . '->set_heat_sp(' .  $value . ');', $sp_delay;
+			} else {
+				$object -> set_heat_sp($value);
+			}
 		}
 
 	} elsif (UNIVERSAL::isa($object,'Nest_Thermostat')) {
-		print_log "Nest Thermostat found";
+		print_log "Homebridge: Nest Thermostat found";
 		$object -> set_target_temp($value);
 
 	} elsif (UNIVERSAL::isa($object,'Insteon::Thermostat')) {
-		print_log "Insteon Thermostat found";
-		$object -> heat_setpoint($value);
-		#how to determine when to select heat or cooling?
-		#$object -> cool_setpoint($value)";
+		print_log "Homebridge: Insteon Thermostat found";
+		my $auto_mode = ""
+		$auto_mode = &calc_auto_mode($value) if ($object->get_mode() eq "auto");
+		print_log "Homebridge: Thermostat calc mode is $auto_mode" if ($auto_mode);
+		if (($object->get_mode() eq "cool") or ($auto_mode eq "cool")) {
+			$object -> cool_setpoint($value);
+		} else {
+			$object -> heat_setpoint($value);
+		}
 	} else {
 		print_log "Unsupported Thermostat type";
 	} 
 }
+
+sub calc_auto_mode {
+	my ($value,$intemp,$outtemp) = @_;
+	
+	my $mode = "heat";
+	my $cool_threshold = 8; #set to cool if outside less
+	my $outside = "";
+	$outside = $Weather{Outdoor} if (defined $Weather{TempOutdoor});
+	$outside = $outtemp if (defined $outtemp);
+	my $inside = "";
+	$inside = $Weather{Inside} if (defined $Weather{TempInside});
+	$inside = $intemp if (defined $intemp);
+	$mode = "cool" if ($value < $inside);
+	$mode = "heat" if (($value - $cool_threshold) > $outside);
+	
+	return $mode;
+}
+
+	
 	
