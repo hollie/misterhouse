@@ -44,6 +44,7 @@ Create an Ecobee instance in the .mht file, or is user code:
 
   CODE, require Ecobee; #noloop
   CODE, $ecobee = new Ecobee_Interface(); #noloop
+  CODE, $ecobee_thermo = new Ecobee_Thermostat('First floor', $ecobee); #noloop
 
 Explanations of the parameters is contained below in the documentation for each
 module.
@@ -195,8 +196,9 @@ sub _check_auth {
        } else {
           # Ok, we have tokens. Make sure they are current, then go get the initial state of the device, then start the time to look for updates
           main::print_log( "[Ecobee] We have tokens, lets proceed");
-          $self->_thermostat_summary();
-          $self->_list_thermostats();
+          $self->_thermostat_summary(); # This populates the revision numbers and operating state
+          $self->_list_thermostats(); # This gets the full initial state of each thermostat
+          $self->_get_groups(); # This gets the groups, their settings and the associated thermostats in each group
 
           ####
           # Testing functions here. These will be removed eventually
@@ -222,7 +224,6 @@ sub _check_auth {
                 main::print_log( "[Ecobee] Event: $key" );
              }
           }
-
           ####
 
           # The basic details should be populated now so we can start to poll
@@ -231,7 +232,7 @@ sub _check_auth {
           $$self{polling_timer}->set($$self{poll_interval}, $action);
        }
     } else {
-       # If we don't have tokens, we need the user to request a PIN and we need to wait until they request it
+       # If we don't have tokens, we need to get a PIN and wait until they user registers it
        # The access_token or refresh_token are undefined. This is probably the first run. Tell the user and wait
        main::print_log( "[Ecobee] Error: Token variables undefined. Please authenticate the PIN with the Ecobee portal. A request for a new PIN will follow this message.");
        $self->_request_pin_auth();
@@ -405,7 +406,6 @@ sub _get_settings {
            foreach my $key (keys %{$$self{data}{devices}{$device->{identifier}}{eventsHash}}) {
              unless (defined $temp_events{$key}) {
                 main::print_log( "[Ecobee]: Event deleted: $key" );
-                # This doesn't seem to work (the hashref is still there)
                 delete $$self{data}{devices}{$device->{identifier}}{eventsHash}{$key};
              }
            }
@@ -462,6 +462,34 @@ sub _get_alerts {
        }
     } else {
        main::print_log( "[Ecobee]: Uh, oh... Something went wrong with the alerts request" );
+    }
+}
+
+
+=item C<_get_groups()>
+
+Gets the group and grouping data for thermostats
+
+=cut
+
+sub _get_groups {
+    my ($self) = @_;
+    main::print_log( "[Ecobee]: Getting groups..." );
+    my $headers = HTTP::Headers->new(
+        'Content-Type' => 'text/json',
+        'Authorization' => 'Bearer ' . $$self{access_token}
+        );
+    my $json_body = '{"selection":{"selectionType":"registered"}}';
+    my ($isSuccessResponse1, $groupparams) = $self->_get_JSON_data("GET", "group",
+       '?format=json&body=' . uri_escape($json_body), $headers);
+    if ($isSuccessResponse1) {
+       main::print_log( "[Ecobee]: Groups response looks good." );
+       foreach my $group (@{$groupparams->{groups}}) {
+          # groupRef is the unique ID
+          $$self{data}{groups}{$group->{groupRef}} = $group;
+       }
+    } else {
+       main::print_log( "[Ecobee]: Uh, oh... Something went wrong with the groups request" );
     }
 }
 
@@ -723,6 +751,52 @@ sub _get_JSON_data {
 }
 
 
+=item C<register($parent, $value, $action)>
+
+Used to register actions to be run if a specific value changes.
+
+    $parent   - The parent object on which the value should be monitored 
+                (thermostat, remote sensor, group)
+    $value    - The parameter to monitor for changes
+    $action   - A Code Reference to run when the value changes.  The code reference
+                will be passed two arguments, the parameter name and value.
+
+=cut
+
+sub register {
+    my ( $self, $parent, $value, $action ) = @_;
+    push( @{ $$self{register} }, [ $parent, $value, $action ] );
+}
+
+
+# Walk through the JSON hash and looks for changes from previous json hash if a
+# change is found, looks for children to notify and notifies them.
+
+# This needs to be enhanced a bit from the original Nest version as we are dealing
+# with remote sensors that have the same set of properties that are associated with 
+# the same thermostat and the parameter names are not globally unique. As such, the 
+# monitor hash structure will be provided as a delimited string that must be parsed 
+# to get to the same key,value pair for comparison.
+
+sub compare_json {
+    my ( $self, $json, $prev_json, $monitor_hash ) = @_;
+    while ( my ( $key, $value ) = each %{$json} ) {
+        # Use empty hash reference is it doesn't exist
+        my $prev_value = {};
+        $prev_value = $$prev_json{$key} if exists $$prev_json{$key};
+        my $monitior_value = {};
+        $monitior_value = $$monitor_hash{$key} if exists $$monitor_hash{$key};
+        if ( 'HASH' eq ref $value ) {
+            $self->compare_json( $value, $prev_value, $monitior_value );
+        }
+        elsif ( $value ne $prev_value && ref $monitior_value eq 'ARRAY' ) {
+            for my $action ( @{$monitior_value} ) {
+                &$action( $key, $value );
+            }
+        }
+    }
+}
+
 
 #------------
 # User access methods
@@ -951,6 +1025,219 @@ sub get_event {
 
 #------------
 # User control methods
+
+
+package Ecobee_Generic;
+
+=back
+
+=head1 B<Ecobee_Generic>
+
+=head2 SYNOPSIS
+
+This is a generic module primarily meant to be inherited by higher level more
+user friendly modules.  The average user should just ignore this module. 
+
+=cut 
+
+use strict;
+
+=head2 INHERITS
+
+C<Generic_Item>
+
+=cut
+
+@Ecobee_Generic::ISA = ( 'Generic_Item', 'Ecobee' );
+
+=head2 METHODS
+
+=over
+
+=item C<new($interface, $parent, $monitor_hash>
+
+Creates a new Ecobee_Generic.
+    $interface    - The Ecobee_Interface through which this device can be found.
+    $parent       - The parent interface of this object, if not specified the
+                  the parent will be set to Self.
+    $monitor_hash - A hash ref, {$value => $action}, where $value is the JSON 
+                  value that should be monitored with $action equal to the code 
+                  reference that should be run on changes.  The hash ref can
+                  contain an infinite number of key value pairs.  If no action
+                  is specified, it will use the default data_changed routine.
+
+=cut
+
+sub new {
+    my ( $class, $interface, $parent, $monitor_hash ) = @_;
+    my $self = new Generic_Item();
+    bless $self, $class;
+    $$self{interface} = $interface;
+    $$self{parent}    = $parent;
+    $$self{parent}    = $self if ( $$self{parent} eq '' );
+    while ( my ( $monitor_value, $action ) = each %{$monitor_hash} ) {
+        my $action = sub { $self->data_changed(@_); } if $action eq '';
+        $$self{interface}->register( $$self{parent}, $monitor_value, $action );
+    }
+    return $self;
+}
+
+
+=item C<data_changed()>
+
+The default action to be called when the JSON data has changed.  In most cases 
+we can ignore the value name and just set the state of the child to new_value.
+More sophisticated children can hijack this method to do more complex tasks.
+
+=cut
+
+sub data_changed {
+    my ( $self, $value_name, $new_value ) = @_;
+    my ( $setby, $response );
+    $self->debug( "Data changed called $value_name, $new_value", $info );
+    if ( defined $$self{parent}{state_pending}{$value_name} ) {
+        ( $setby, $response ) = @{ $$self{parent}{state_pending}{$value_name} };
+        delete $$self{parent}{state_pending}{$value_name};
+    }
+    else {
+        $setby = $$self{interface};
+    }
+    $self->set_receive( $new_value, $setby, $response );
+}
+
+
+=item C<set_receive()>
+
+Handles setting the state of the object inside MisterHouse
+
+=cut
+
+sub set_receive {
+    my ( $self, $p_state, $p_setby, $p_response ) = @_;
+    $self->SUPER::set( $p_state, $p_setby, $p_response );
+}
+
+
+=item C<device_id()>
+
+Returns the device_id of an object.
+
+=cut
+
+sub device_id {
+    my ($self) = @_;
+    my $type_hash;
+    my $parent = $$self{parent};
+    for my $device_id ( keys %{$$self{interface}{data}{devices}} ) {
+        if ( $$parent{name} eq $$self{interface}{data}{devices}{$device_id}{name} ) {
+            return $device_id;
+        }
+    }
+    $self->debug(
+        "ERROR, no device by the name " . $$parent{name} . " was found." );
+    return 0;
+}
+
+
+=item C<get_value($value)>
+
+Returns the data contained in value for this device.
+
+=cut
+
+sub get_value {
+    my ( $self, $value ) = @_;
+    my $device_id = $self->device_id;
+    if (defined $$self{interface}{data}{devices}{$device_id}{$value}) {
+        return $$self{interface}{data}{devices}{$device_id}{$value};
+    } else {
+        $self->debug("ERROR, no value for $value on device $device_id was found." );
+        return 0;
+    }
+}
+
+
+package Ecobee_Thermostat;
+
+=back
+
+=head1 B<Ecobee_Thermostat>
+
+=head2 SYNOPSIS
+
+This is a high level module for interacting with the Ecobee Thermostat.  It is
+generally user friendly and contains many functions which are similar to other
+thermostat modules.
+
+The state of this object will be the ambient temperature reported by the 
+thermostat.  This object does not accept set commands.  You can use all of the 
+remaining C<Generic_Item> including c<state>, c<state_now>, c<tie_event> to 
+interact with this object.
+
+=head2 CONFIGURATION
+
+Create an Ecobee thermostat instance in the .mht file:
+
+.mht file:
+
+  CODE, $ecobee_thermo = new Ecobee_Thermostat('Entryway', $ecobee); #noloop
+
+The arguments:
+
+    1. The first argument is the I<the name of the device>.
+       The name must be the exact verbatim name as listed on the Ecobee 
+       website.  
+    2. The second argument is the interface object
+
+=cut 
+
+use strict;
+
+=head2 INHERITS
+
+C<Ecobee_Generic>
+
+=cut
+
+@Ecobee_Thermostat::ISA = ('Ecobee_Generic');
+
+=head2 METHODS
+
+=over
+
+=item C<new($name, $interface)>
+
+Creates a new Ecobee_Generic.
+
+    $name         - The name of the Thermostat
+    $interface    - The interface object
+
+=cut
+
+sub new {
+    my ( $class, $name, $interface ) = @_;
+    my $monitor_value = "ambient_temperature_"; # This will not work as-is
+    my $self = new Ecobee_Generic( $interface, '', { $monitor_value => '' } );
+    bless $self, $class;
+    $$self{class}   = 'devices',
+      $$self{type}  = 'thermostats',
+      $$self{name}  = $name;
+    return $self;
+}
+
+
+=item C<get_temp()>
+
+Returns the current ambient temperature.
+
+=cut
+
+sub get_temp {
+    my ($self) = @_;
+    my $runtime = $self->get_value( "runtime"); # This returns a hashref with all the runtime properties
+    #$self->debug("The actualTemperature is " . $runtime->{actualTemperature} );
+    return $runtime->{actualTemperature};
+}
 
 
 1;
