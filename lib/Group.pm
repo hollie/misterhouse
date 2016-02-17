@@ -54,7 +54,7 @@ package Group;
 
 sub new {
     my ($class, @items) = @_;
-    my $self = {state => undef};
+    my $self = new Generic_Item();
     $$self{members} = [];
     &add($self, @items) if @items;
     bless $self, $class;

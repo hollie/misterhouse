@@ -288,7 +288,8 @@ if (state_now $usb_uirt_function_import) {
 	my $device = $current_device;
 	my $function = $current_function;
 	my $repeat = state $usb_uirt_function_repeat;
-	$repeat = 3 unless $repeat =~ /^\d+$/ and $repeat > 0 and $repeat < 16;
+	$repeat = 3 unless $repeat =~ /^\d+$/ and $repeat > 0;
+	$repeat = 50 unless $repeat =~ /^\d+$/ and $repeat < 50;
 	my $frequency = state $usb_uirt_function_frequency;
 	my ($code1, $code2);
 	$code1 = $usb_uirt_function_code;
@@ -311,7 +312,8 @@ if (state_now $usb_uirt_function_new) {
 	$current_function = $funcnew if $funcnew;
 	my $frequency = state $usb_uirt_function_frequency;
 	my $repeat = state $usb_uirt_function_repeat;
-	$repeat = 3 unless $repeat =~ /^\d+$/ and $repeat > 0 and $repeat < 16;
+	$repeat = 3 unless $repeat =~ /^\d+$/ and $repeat > 0;
+	$repeat = 50 unless $repeat =~ /^\d+$/ and $repeat < 50;
 	my ($code1, $code2);
 	$code1 = $usb_uirt_function_code;
 	if ($code1 =~ /^0000 /) {
@@ -332,7 +334,8 @@ if (state_now $usb_uirt_function_modify) {
 	my ($frequency, $repeat, $code1, $code2) = USB_UIRT::get_ir_code($current_device, $current_function);
 	$frequency = state $usb_uirt_function_frequency;
 	$repeat = state $usb_uirt_function_repeat;
-	$repeat = 3 unless $repeat =~ /^\d+$/ and $repeat > 0 and $repeat < 16;
+	$repeat = 3 unless $repeat =~ /^\d+$/ and $repeat > 0;
+	$repeat = 50 unless $repeat =~ /^\d+$/ and $repeat < 50;
 	print_log "Modifying device $device function $function";
 	USB_UIRT::set_ir_code($device, $function, $frequency, $repeat, $code1, $code2);
 }

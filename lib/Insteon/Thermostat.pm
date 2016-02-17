@@ -150,8 +150,6 @@ Kevin Robert Keegan <kevin@krkeegan.com>
 
 =head1 INHERITS
 
-B<Insteon::DeviceController>
-
 B<Insteon::BaseDevice>
 
 =head1 Methods
@@ -165,7 +163,7 @@ package Insteon::Thermostat;
 use strict;
 use Insteon::BaseInsteon;
 
-@Insteon::Thermostat::ISA = ('Insteon::BaseDevice','Insteon::DeviceController');
+@Insteon::Thermostat::ISA = ('Insteon::BaseDevice');
 
 
 # -------------------- START OF SUBROUTINES --------------------

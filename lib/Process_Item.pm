@@ -190,9 +190,8 @@ sub start_next {
     my ($cmd_path, $cmd_args);
 
     if ($type eq 'eval') {
-        if ($main::OS_win and ($ENV{sourceExe} or &Win32::BuildNumber() < 600)) {
-            my $msg = "Sorry, {Process_Item eval fork only supported with windows perl build 5.6 or later.\n   cmd=$cmd";
-            print "$msg\n";
+        if ($main::OS_win ) {
+            my $msg = "Sorry, Process_Item eval fork only supported with linux.\n   cmd=$cmd";
             &main::print_log($msg);
             return;
         }
@@ -465,6 +464,16 @@ sub nice_level {
     } else {
        return undef;
     }
+}
+
+=item C<get_type()>
+
+Returns the class (or type, in Misterhouse terminology) of this item.
+
+=cut
+
+sub get_type {
+    return ref $_[0];
 }
 
 #

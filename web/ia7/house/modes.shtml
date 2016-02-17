@@ -1,0 +1,43 @@
+
+<div id='buffer0' class='row top-buffer'>
+  <div id='row0' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
+
+	<div class="col-sm-4">
+	   <div style="vertical-align:middle">
+		<button entity='mode_mh' class='btn btn-default btn-lg btn-list btn-popover btn-block btn-state-cmd navbutton-padding'>Mr.House Modes<span class='pull-right'>loading...</span>
+		</button>
+	</div>
+	</div>
+
+
+	<div class="col-sm-4">
+		   <div style="vertical-align:middle">
+		<button entity='mode_security' class='btn btn-default btn-lg btn-list btn-popover btn-block btn-state-cmd navbutton-padding'>Security Mode<span class='pull-right'>loading...</span>
+		</button>
+		</div>
+	</div>
+	
+	<div class="col-sm-4">
+		   <div style="vertical-align:middle">
+		<button entity='mode_occupied' class='btn btn-default btn-lg btn-list btn-popover btn-block btn-state-cmd navbutton-padding'>Occupied Mode<span class='pull-right'>loading...</span>
+		</button>
+		</div>
+	</div>
+  </div>
+</div>
+<div id='buffer1' class='row top-buffer'>
+  <div id='row1' class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
+ 	<div class="col-sm-4">
+		   <div style="vertical-align:middle">
+		<button entity='mode_sleeping' class='btn btn-default btn-lg btn-list btn-popover btn-block btn-state-cmd navbutton-padding'>Sleeping Mode<span class='pull-right'>loading...</span>
+		</button>
+		</div>
+	</div>
+   </div>
+ </div>
+</div>
+ 
+<script>
+ updateStaticPage();
+</script>
+
