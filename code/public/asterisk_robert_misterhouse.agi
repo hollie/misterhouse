@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
 #
 # MisterHouse.agi by Robert Mann
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
 # met:
-# 
+#
 #     * Redistributions of source code must retain the above copyright
 #       notice, this list of conditions and the following disclaimer.
 #     * Redistributions in binary form must reproduce the above copyright
@@ -14,7 +14,7 @@
 #     * Neither the name of the <ORGANIZATION> nor the names of its
 #       contributors may be used to endorse or promote products derived from
 #       this software without specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
 # IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
 # THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
@@ -39,95 +39,103 @@ $verbose = 0;
 
 # Your misterhouse server information.  You need to use the same information that is in your mh.ini file.
 $MH_ADDRESS = 'yourmisterhouseIP';
-$MH_PORT = 'yourmisterhousePORT';
-$username = 'yourusername';
-$password = 'yourpassword';
+$MH_PORT    = 'yourmisterhousePORT';
+$username   = 'yourusername';
+$password   = 'yourpassword';
 
 # Currently set to cepstral but if you wish to use Festival you may comment the next line and uncomment the line below.
 $ttsengine = '/opt/theta/bin/theta';
+
 # $ttsengine = '/usr/bin/text2wave';
 
 # This section will parse throught the AGI variables passed to the program from Asterisk
 $AGI = new Asterisk::AGI;
 my %input = $AGI->ReadParse();
-$AGI->setcallback(\&mycallback);
+$AGI->setcallback( \&mycallback );
 
 # If you have verbose set to 1 then you will get a AGI enviroment dump to your Asterisk console
-if ($verbose){
-	verbose("AGI Environment Dump:");
-	foreach $i (sort keys %input) {
-	        verbose(" -- $i = $input{$i}");
-	}
+if ($verbose) {
+    verbose("AGI Environment Dump:");
+    foreach $i ( sort keys %input ) {
+        verbose(" -- $i = $input{$i}");
+    }
 }
 
-$mydir = dirname($0);
-$ttstype = basename($ttsengine);
+$mydir      = dirname($0);
+$ttstype    = basename($ttsengine);
 $ttscommand = $ttsengine;
 
 # Try to create a TCP socket to Misterhouse to establish communications with MisterHouse.
-$remote = IO::Socket::INET->new(Proto => "tcp", PeerAddr => "$MH_ADDRESS", PeerPort => "$MH_PORT",)
-	or die "cannot connect to misterhouse on port 8090 at 192.168.1.250";
+$remote = IO::Socket::INET->new(
+    Proto    => "tcp",
+    PeerAddr => "$MH_ADDRESS",
+    PeerPort => "$MH_PORT",
+) or die "cannot connect to misterhouse on port 8090 at 192.168.1.250";
 
 # Do a simple login to Misterhouse.  Not really needed if you are behind a firewall but just in case you are not
 # it is included.  Keep in mind this is all plain text so if you are worried about that you should be aware.
 print $remote "Login: $username\n";
 print $remote "Secret: $password\n";
 
-# Find out what we are trying to do here.  If we are sending simple callerid info, 
+# Find out what we are trying to do here.  If we are sending simple callerid info,
 # Sending DTMF to track outbound calls or just sending a external command to Misterhouse.
 # More can be added if we choose this method but for now these are the commands currently
 # supported in this version.
 
-if ($ARGV[0] =~ /CallerID/){
-	print $remote "CallerID: $input{callerid} Line: $input{channel}\n";
-} elsif ($ARGV[0] =~ /DTMF/){
-        $ARGV[0] =~ /DTMF: (.*)/;
-	my ($extension) = $1 || $input{extension};
-        $extension =~ s/\D+//g;
-	verbose("DTMF: $extension CallFrom: $input{channel}");
-	print $remote "DTMF: $extension CallFrom: $input{channel}\n";
-} elsif ($ARGV[0] =~ /Command/){
-	print $remote "$ARGV[0]\n";
+if ( $ARGV[0] =~ /CallerID/ ) {
+    print $remote "CallerID: $input{callerid} Line: $input{channel}\n";
+}
+elsif ( $ARGV[0] =~ /DTMF/ ) {
+    $ARGV[0] =~ /DTMF: (.*)/;
+    my ($extension) = $1 || $input{extension};
+    $extension =~ s/\D+//g;
+    verbose("DTMF: $extension CallFrom: $input{channel}");
+    print $remote "DTMF: $extension CallFrom: $input{channel}\n";
+}
+elsif ( $ARGV[0] =~ /Command/ ) {
+    print $remote "$ARGV[0]\n";
 }
 
 # Wait for any communications back from MisterHouse if we are expecting any.  If not MisterHouse will
 # close our connection for us and we will just continue on past it.
-while(<$remote>) {
-	chomp;
-	&speak_text("$_");
+while (<$remote>) {
+    chomp;
+    &speak_text("$_");
 }
 
 # If we received any messages back from MisterHouse they will be listed here.  We should be able
 # to accept any length text back as it is saved to a wav file and played back to the channel.
 sub speak_text {
-	my ($text) = @_;
-	verbose("TTS type is: $ttstype");
-	verbose("TEXT OUTPUT: $text");
-	(undef, $filename) = tempfile( "/tmp/misterhouseXXXXX", SUFFIX => ".wav");
-	if ($ttstype eq "theta") {
-		$ENV{THETA_HOME} = dirname(dirname($ttscommand));
-		system("$ttscommand -F 8000 -o $filename \"$text\"");
-	}
-	if ($ttstype eq "text2wave") {
-		system("echo \"$text\" | $ttscommand -scale 1.5 -F 8000 -o $filename -");
-	}
-	$streamfile = substr($filename, 0, -4);
-	$AGI->stream_file($streamfile);
-	unlink($filename);
+    my ($text) = @_;
+    verbose("TTS type is: $ttstype");
+    verbose("TEXT OUTPUT: $text");
+    ( undef, $filename ) =
+      tempfile( "/tmp/misterhouseXXXXX", SUFFIX => ".wav" );
+    if ( $ttstype eq "theta" ) {
+        $ENV{THETA_HOME} = dirname( dirname($ttscommand) );
+        system("$ttscommand -F 8000 -o $filename \"$text\"");
+    }
+    if ( $ttstype eq "text2wave" ) {
+        system(
+            "echo \"$text\" | $ttscommand -scale 1.5 -F 8000 -o $filename -");
+    }
+    $streamfile = substr( $filename, 0, -4 );
+    $AGI->stream_file($streamfile);
+    unlink($filename);
 }
 
 # Hehe.  Not really sure why this code is even here to be honest.  Have not researched it enough
 # to know for sure.  It may be some sort of code needed by AGI itself.
 sub mycallback {
-	my ($returncode) = @_;
-	print STDERR "MYCALLBACK: User Hungup ($returncode)\n";
-	exit($returncode);
+    my ($returncode) = @_;
+    print STDERR "MYCALLBACK: User Hungup ($returncode)\n";
+    exit($returncode);
 }
 
 # This code simply sends verbose messages to the console of Asterisk.
 sub verbose {
-	if (defined($verbose)) {
-		$AGI->verbose("@_", $verbose);
-		return(0);
-	}
+    if ( defined($verbose) ) {
+        $AGI->verbose( "@_", $verbose );
+        return (0);
+    }
 }

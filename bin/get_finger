@@ -3,22 +3,25 @@
 use strict;
 use IO::Socket;
 
-unless (@ARGV == 1 or @ARGV == 2) { die "usage: $0 user\@host [outfile]" }
-my ($user,$host) = split "@", shift;
+unless ( @ARGV == 1 or @ARGV == 2 ) { die "usage: $0 user\@host [outfile]" }
+my ( $user, $host ) = split "@", shift;
 my $outfile = shift || '';
-my $EOL = "\015\012";
-my $BLANK = $EOL x 2;
-my $remote = IO::Socket::INET->new( Proto     => "tcp",
-				    PeerAddr  => $host,
-				    PeerPort  => "finger(79)",
-				   );
+my $EOL     = "\015\012";
+my $BLANK   = $EOL x 2;
+my $remote  = IO::Socket::INET->new(
+    Proto    => "tcp",
+    PeerAddr => $host,
+    PeerPort => "finger(79)",
+);
 unless ($remote) { die "cannot connect to finger on $host" }
 $remote->autoflush(1);
 print $remote $user . $BLANK;
+
 if ($outfile) {
-    open(OUT, ">$outfile") || die "cannot open output file $outfile";
-    while ( <$remote> ) { print OUT}
-} else {
-    while ( <$remote> ) { print }
+    open( OUT, ">$outfile" ) || die "cannot open output file $outfile";
+    while (<$remote>) { print OUT}
+}
+else {
+    while (<$remote>) { print }
 }
 close $remote;

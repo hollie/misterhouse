@@ -12,36 +12,37 @@
 # Needs Perl IVR module on http://search.cpan.org/search?dist=Ivrs
 # Most voicemodems are supported, Read doc which is included in Ivrs module
 ##############################################################################
-#               
+#
 require 5.000;
 use Ivrs;
 
 #serial port where voice modem is connected
-$portname='ttyS2';
+$portname = 'ttyS2';
 
 #location of the voiceprompts
-$vdir="/root/misterhouse/prompts";
+$vdir = "/root/misterhouse/prompts";
 
 # hostname where the IVR socket server is running
 $parms{host} = 'localhost';
- 
+
 # connect port number IVR socket server
 $parms{port} = '1235';
 
-&create_ivr_socket; # create client to GUI server socket
+&create_ivr_socket;    # create client to GUI server socket
 
 #initialize the serial port
-$iv = new Ivrs($portname,$vdir,'1');
+$iv = new Ivrs( $portname, $vdir, '1' );
 print "Serial port and Modem initialized\n";
 
 #set the serial port parameters.
-$iv->setport("38400","none","8","1","rts","8096")||die"Setting Failed\n";
+$iv->setport( "38400", "none", "8", "1", "rts", "8096" )
+  || die "Setting Failed\n";
 
 #initialize the modem and put it in voice mode
-$iv->initmodem||die"Modem failed\n";
+$iv->initmodem || die "Modem failed\n";
 
 print "IVR is waiting for incoming call.....\n";
-$iv->waitring; 
+$iv->waitring;
 print "Incoming call received\n";
 
 &do_autentication;
@@ -49,205 +50,211 @@ print "Incoming call received\n";
 #######################
 # start menu structure
 #######################
-MAINMENU:  while (1==1) {
-           $iv->addmsg("hoofd-menu");
-           $iv->playfile||&closeall;  
-           $dtmfin = &main_level; 
-             if ($dtmfin eq '1') {
-               LICHTMENU: while (1==1) {
-               $dtmfin = &licht_level;
-                 if ($dtmfin eq '1') {
-                   SLAAPKAMERLICHTMENU: while (1==1) {
-                   $dtmfin = &lamp_activate; 
-                     if ($dtmfin eq '1') {
-                     $iv->addmsg("1");
-                     $iv->addmsg("moment");
-                     $iv->playfile||&closeall;  
-                     &send_ivr_socket ("lamp bedroom on"); #put in valid voicecommand        
-                     $iv->addmsg("lamp");
-                     $iv->addmsg("is");
-                     $iv->addmsg("on");
-                     $iv->playfile||&closeall;  
-                     }
-                     elsif ($dtmfin eq '2') {
-                     $iv->addmsg("1");
-                     $iv->addmsg("moment");
-                     $iv->playfile||&closeall;  
-                     &send_ivr_socket ("lamp bedroom off"); #put in valid voicecommand 
-                     $iv->addmsg("lamp");
-                     $iv->addmsg("is");
-                     $iv->addmsg("off");
-                     $iv->playfile||&closeall;    
-                     }
-                     elsif ($dtmfin eq '8') {
-                     next LICHTMENU;
-                     }     
-                     elsif ($dtmfin eq '9') {
-                     next MAINMENU; 
-                     } 
-                     else {
-                     $iv->addmsg("wrong-choice");
-                     $iv->playfile||&closeall;   
-                     }
-                   }
-                 }
-                
-                   if ($dtmfin eq '2') {
-                   TESTLICHTMENU: while (1==1) {
-                   $dtmfin = &lamp_activate; 
-                     if ($dtmfin eq '1') {
-                     $iv->addmsg("1");
-                     $iv->addmsg("moment");
-                     $iv->playfile||&closeall;  
-                     &send_ivr_socket ("testlamp on"); #put in valid voicecommand 
-                     $iv->addmsg("lamp");
-                     $iv->addmsg("is");
-                     $iv->addmsg("on");
-                     $iv->playfile||&closeall;  
-                     }
-                     elsif ($dtmfin eq '2') {
-                     $iv->addmsg("1");
-                     $iv->addmsg("moment");
-                     $iv->playfile||&closeall;  
-                     &send_ivr_socket ("testlamp off"); #put in valid voicecommand 
-                     $iv->addmsg("lamp");
-                     $iv->addmsg("is");
-                     $iv->addmsg("off";
-                     $iv->playfile||&closeall;    
-                     }
-                     elsif ($dtmfin eq '8') {
-                     next LICHTMENU;
-                     }     
-                     elsif ($dtmfin eq '9') {
-                     next MAINMENU; 
-                     } 
-                     else {
-                     $iv->addmsg("wrong-choice");
-                     $iv->playfile||&closeall;   
-                     }
-                   }
-                 }
+MAINMENU: while ( 1 == 1 ) {
+    $iv->addmsg("hoofd-menu");
+    $iv->playfile || &closeall;
+    $dtmfin = &main_level;
+    if ( $dtmfin eq '1' ) {
+        LICHTMENU: while ( 1 == 1 ) {
+            $dtmfin = &licht_level;
+            if ( $dtmfin eq '1' ) {
+                SLAAPKAMERLICHTMENU: while ( 1 == 1 ) {
+                    $dtmfin = &lamp_activate;
+                    if ( $dtmfin eq '1' ) {
+                        $iv->addmsg("1");
+                        $iv->addmsg("moment");
+                        $iv->playfile || &closeall;
+                        &send_ivr_socket("lamp bedroom on")
+                          ;    #put in valid voicecommand
+                        $iv->addmsg("lamp");
+                        $iv->addmsg("is");
+                        $iv->addmsg("on");
+                        $iv->playfile || &closeall;
+                    }
+                    elsif ( $dtmfin eq '2' ) {
+                        $iv->addmsg("1");
+                        $iv->addmsg("moment");
+                        $iv->playfile || &closeall;
+                        &send_ivr_socket("lamp bedroom off")
+                          ;    #put in valid voicecommand
+                        $iv->addmsg("lamp");
+                        $iv->addmsg("is");
+                        $iv->addmsg("off");
+                        $iv->playfile || &closeall;
+                    }
+                    elsif ( $dtmfin eq '8' ) {
+                        next LICHTMENU;
+                    }
+                    elsif ( $dtmfin eq '9' ) {
+                        next MAINMENU;
+                    }
+                    else {
+                        $iv->addmsg("wrong-choice");
+                        $iv->playfile || &closeall;
+                    }
+                }
+            }
 
-                 elsif ($dtmfin eq '8') {
-                 next MAINMENU;
-                 }     
-                 elsif ($dtmfin eq '9') {
-                 next MAINMENU;
-                 }
-                 else {
-                 $iv->addmsg("wrong-choice");
-                 $iv->playfile||&closeall;
-                 }
-               } 
-             last MAINMENU;
-             }
+            if ( $dtmfin eq '2' ) {
+                TESTLICHTMENU: while ( 1 == 1 ) {
+                    $dtmfin = &lamp_activate;
+                    if ( $dtmfin eq '1' ) {
+                        $iv->addmsg("1");
+                        $iv->addmsg("moment");
+                        $iv->playfile || &closeall;
+                        &send_ivr_socket("testlamp on")
+                          ;    #put in valid voicecommand
+                        $iv->addmsg("lamp");
+                        $iv->addmsg("is");
+                        $iv->addmsg("on");
+                        $iv->playfile || &closeall;
+                    }
+                    elsif ( $dtmfin eq '2' ) {
+                        $iv->addmsg("1");
+                        $iv->addmsg("moment");
+                        $iv->playfile || &closeall;
+                        &send_ivr_socket("testlamp off")
+                          ;    #put in valid voicecommand
+                        $iv->addmsg("lamp");
+                        $iv->addmsg("is");
+                        $iv->addmsg("off");
+                        $iv->playfile || &closeall;
+                    }
+                    elsif ( $dtmfin eq '8' ) {
+                        next LICHTMENU;
+                    }
+                    elsif ( $dtmfin eq '9' ) {
+                        next MAINMENU;
+                    }
+                    else {
+                        $iv->addmsg("wrong-choice");
+                        $iv->playfile || &closeall;
+                    }
+                }
+            }
 
-             elsif ($dtmfin eq '2') {
-               VERWARMINGMENU: while (1==1) {
-               $dtmfin = &verwarming_level;
-                 if ($dtmfin eq '1') {
-                 $dtmfin = &verwarming_slaapkamer_level;
-                   if ($dtmfin>28 or $dtmfin<8) {
-                     if ($dtmfin =~ /^0/) {
-                     $dtmfin=~ s/0//;
-                     }   
-                   $iv->addmsg($dtmfin);
-                   $iv->addmsg("degrees");
-                   $iv->addmsg("is");
-                   $iv->addmsg("out");
-                   $iv->addmsg("of-reach");
-                   $iv->addmsg("choose");
-                   $iv->addmsg("between");
-                   $iv->addmsg("8");
-                   $iv->addmsg("and");
-                   $iv->addmsg("28");
-                   $iv->addmsg("degrees");
-                   $iv->playfile||&closeall;  
-                   next VERWARMINGMENU;
-                   }
+            elsif ( $dtmfin eq '8' ) {
+                next MAINMENU;
+            }
+            elsif ( $dtmfin eq '9' ) {
+                next MAINMENU;
+            }
+            else {
+                $iv->addmsg("wrong-choice");
+                $iv->playfile || &closeall;
+            }
+        }
+        last MAINMENU;
+    }
 
-                 $iv->addmsg("1");
-                 $iv->addmsg("moment");
-                 $iv->playfile||&closeall;                                
-                 &send_ivr_socket ("HEATING BEDROOM $dtmfin"); #put in valid voicecommand 
-                 $iv->addmsg("bedroom");
-                 $iv->addmsg("heating");
-                 $iv->addmsg("set");
-                 $iv->addmsg("on");
-                   if ($dtmfin =~ /^0/) {
-                   $dtmfin=~ s/0//;
-                   }     
-                 $iv->addmsg($dtmfin);
-                 $iv->addmsg("degrees");
-                 $iv->playfile||&closeall;
-                 }
+    elsif ( $dtmfin eq '2' ) {
+        VERWARMINGMENU: while ( 1 == 1 ) {
+            $dtmfin = &verwarming_level;
+            if ( $dtmfin eq '1' ) {
+                $dtmfin = &verwarming_slaapkamer_level;
+                if ( $dtmfin > 28 or $dtmfin < 8 ) {
+                    if ( $dtmfin =~ /^0/ ) {
+                        $dtmfin =~ s/0//;
+                    }
+                    $iv->addmsg($dtmfin);
+                    $iv->addmsg("degrees");
+                    $iv->addmsg("is");
+                    $iv->addmsg("out");
+                    $iv->addmsg("of-reach");
+                    $iv->addmsg("choose");
+                    $iv->addmsg("between");
+                    $iv->addmsg("8");
+                    $iv->addmsg("and");
+                    $iv->addmsg("28");
+                    $iv->addmsg("degrees");
+                    $iv->playfile || &closeall;
+                    next VERWARMINGMENU;
+                }
 
-                 elsif ($dtmfin eq '8') {
-                 next MAINMENU;
-                 }
-                 elsif ($dtmfin eq '9') {
-                 next MAINMENU;
-                 }
-                 else {
-                 $iv->addmsg("wrong choice");
-                 $iv->playfile||&closeall;
-                 }                   
-               }
-             last MAINMENU;
-             }         
+                $iv->addmsg("1");
+                $iv->addmsg("moment");
+                $iv->playfile || &closeall;
+                &send_ivr_socket("HEATING BEDROOM $dtmfin")
+                  ;    #put in valid voicecommand
+                $iv->addmsg("bedroom");
+                $iv->addmsg("heating");
+                $iv->addmsg("set");
+                $iv->addmsg("on");
 
-             else {
-             $iv->addmsg("onjuiste-keuze");
-             $iv->playfile||&closeall;              
-             } 
-           }
+                if ( $dtmfin =~ /^0/ ) {
+                    $dtmfin =~ s/0//;
+                }
+                $iv->addmsg($dtmfin);
+                $iv->addmsg("degrees");
+                $iv->playfile || &closeall;
+            }
+
+            elsif ( $dtmfin eq '8' ) {
+                next MAINMENU;
+            }
+            elsif ( $dtmfin eq '9' ) {
+                next MAINMENU;
+            }
+            else {
+                $iv->addmsg("wrong choice");
+                $iv->playfile || &closeall;
+            }
+        }
+        last MAINMENU;
+    }
+
+    else {
+        $iv->addmsg("onjuiste-keuze");
+        $iv->playfile || &closeall;
+    }
+}
 
 sub do_autentication {
     $counter_001 = 1;
     $iv->addmsg("goodday");
-    $iv->playfile||&closeall;
-      while  ($counter_001 ne '4') {
-      $iv->addmsg("enter-your-pincode");
-      $accno=$iv->playfile("","4")||&closeall;
-      print "The caller has entered $accno\n";
-        if ($accno eq '1234') {
-        print "$counter_001.e Autentication Successfull\n";
-        $iv->addmsg("welkom");
-        $iv->playfile||&closeall;
-        return '1';
+    $iv->playfile || &closeall;
+    while ( $counter_001 ne '4' ) {
+        $iv->addmsg("enter-your-pincode");
+        $accno = $iv->playfile( "", "4" ) || &closeall;
+        print "The caller has entered $accno\n";
+        if ( $accno eq '1234' ) {
+            print "$counter_001.e Autentication Successfull\n";
+            $iv->addmsg("welkom");
+            $iv->playfile || &closeall;
+            return '1';
         }
-        elsif ($accno eq '0000') { #for testing purpose
-        &closeall;
+        elsif ( $accno eq '0000' ) {    #for testing purpose
+            &closeall;
         }
         else {
-        print "$counter_001.e Autentication NOT Successfull\n";
-        $iv->addmsg("wrong-pincode");
-        $iv->playfile||&closeall;  
-        $counter_001++; 
+            print "$counter_001.e Autentication NOT Successfull\n";
+            $iv->addmsg("wrong-pincode");
+            $iv->playfile || &closeall;
+            $counter_001++;
         }
-      }
+    }
     $iv->addmsg("access-denied");
-    $iv->playfile||&closeall;
+    $iv->playfile || &closeall;
     &closeall;
     exit 1;
-    }
+}
 
-sub main_level {  
+sub main_level {
     $iv->addmsg("press");
     $iv->addmsg("1");
     $iv->addmsg("for");
-    $iv->addmsg("light"); 
-    $iv->addmsg("control"); 
+    $iv->addmsg("light");
+    $iv->addmsg("control");
     $iv->addmsg("press");
     $iv->addmsg("2");
     $iv->addmsg("for");
     $iv->addmsg("heating");
-    $iv->addmsg("control"); 
-    $iv->addmsg("tsil15"); #give user max 15sec to choose digit
-    $accno=$iv->playfile("","1")||&closeall;
+    $iv->addmsg("control");
+    $iv->addmsg("tsil15");    #give user max 15sec to choose digit
+    $accno = $iv->playfile( "", "1" ) || &closeall;
     print "The caller has entered $accno\n";
     return $accno;
-    }  
+}
 
 sub licht_level {
     $iv->addmsg("press");
@@ -263,16 +270,16 @@ sub licht_level {
     $iv->addmsg("press");
     $iv->addmsg("8");
     $iv->addmsg("for");
-    $iv->addmsg("back");  
+    $iv->addmsg("back");
     $iv->addmsg("toets");
     $iv->addmsg("9");
     $iv->addmsg("for");
-    $iv->addmsg("main-menu");   
-    $iv->addmsg("tsil15"); #give user time to enter choose digit
-    $accno=$iv->playfile("","1")||&closeall;
+    $iv->addmsg("main-menu");
+    $iv->addmsg("tsil15");    #give user time to enter choose digit
+    $accno = $iv->playfile( "", "1" ) || &closeall;
     print "The caller has entered $accno\n";
-    return $accno;      
-    }
+    return $accno;
+}
 
 sub verwarming_level {
     $iv->addmsg("press");
@@ -292,20 +299,20 @@ sub verwarming_level {
     $iv->addmsg("press");
     $iv->addmsg("9");
     $iv->addmsg("for");
-    $iv->addmsg("main-menu");    
-    $iv->addmsg("tsil15"); #give user time to enter choose digit
-    $accno=$iv->playfile("","1")||&closeall;
+    $iv->addmsg("main-menu");
+    $iv->addmsg("tsil15");    #give user time to enter choose digit
+    $accno = $iv->playfile( "", "1" ) || &closeall;
     print "The caller has entered $accno\n";
-    return $accno;       
-    $iv->playfile||&closeall;
-    }
+    return $accno;
+    $iv->playfile || &closeall;
+}
 
 sub verwarming_slaapkamer_level {
     $iv->addmsg("enter-needed-temperature");
-    $accno=$iv->playfile("","2")||&closeall;
+    $accno = $iv->playfile( "", "2" ) || &closeall;
     print "The caller has entered $accno\n";
     return $accno;
-    }                          
+}
 
 sub lamp_activate {
     $iv->addmsg("press");
@@ -321,42 +328,46 @@ sub lamp_activate {
     $iv->addmsg("press");
     $iv->addmsg("8");
     $iv->addmsg("for");
-    $iv->addmsg("back");    
+    $iv->addmsg("back");
     $iv->addmsg("press");
     $iv->addmsg("9");
     $iv->addmsg("for");
     $iv->addmsg("main-menu");
-    $iv->addmsg("tsil15"); #give user time to enter choose digit
-    $accno=$iv->playfile("","1")||&closeall;
+    $iv->addmsg("tsil15");    #give user time to enter choose digit
+    $accno = $iv->playfile( "", "1" ) || &closeall;
     print "The caller has entered $accno\n";
     return $accno;
-    }                        
+}
 
 ##################################################
-# create client to Home-Control IVR socket server 
+# create client to Home-Control IVR socket server
 ##################################################
 sub create_ivr_socket {
     use IO::Socket;
     print "Socket created on: $parms{host} port $parms{port}\n";
-    $socket = new IO::Socket::INET (PeerAddr => $parms{host}, PeerPort => $parms{port}, Proto => 'tcp') or die "\nCould not create socket: $!\n";
-    }
+    $socket = new IO::Socket::INET(
+        PeerAddr => $parms{host},
+        PeerPort => $parms{port},
+        Proto    => 'tcp'
+    ) or die "\nCould not create socket: $!\n";
+}
 
 #################################################
-# send command to Home-Control IVR socket server 
+# send command to Home-Control IVR socket server
 #################################################
 sub send_ivr_socket {
-    my ($data) = @_;     
+    my ($data) = @_;
     print $socket "$data\n";
     print "data sent: $data\n";
     my $answer = <$socket>;
     print "response is: $answer";
-    }
+}
 
 ############################################
 # close the IVR connection and exit program
-############################################  
+############################################
 sub closeall {
     sleep 2;
     $iv->closep;
     exit 1;
-    }
+}

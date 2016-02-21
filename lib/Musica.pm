@@ -1,3 +1,4 @@
+
 =head1 B<Musica>
 
 =head2 SYNOPSIS
@@ -507,268 +508,194 @@ package Musica;
 @Musica::ISA = ('Serial_Item');
 
 use vars qw( %source_name_to_number @source_number_to_name
-             %source_name_to_number_30419 @source_number_to_name_30419
-             %button_name_to_number @button_number_to_name
-             %button_name_to_number_40822 @button_number_to_name_40822
-           );
+  %source_name_to_number_30419 @source_number_to_name_30419
+  %button_name_to_number @button_number_to_name
+  %button_name_to_number_40822 @button_number_to_name_40822
+);
 
 %source_name_to_number = (
-   'CD'       => 1,
-   'AUX'      => 2,
-   'TAPE'     => 3,
-   'TUNER'    => 4,
-   'TUNER2'   => 5,
-   'AM'       => 6,
-   'FM'       => 7,
-   'MP3'      => 8,
-   'BLUES'    => 9,
-   'CHILDREN' => 10,
-   'CLASSIC'  => 11,
-   'COUNTRY'  => 12,
-   'DAD'      => 13,
-   'DANCE'    => 14,
-   'DVD'      => 15,
-   'LIGHTS'   => 16,
-   'INTERNET' => 17,
-   'JAZZ'     => 18,
-   'REQUEST'  => 19,
-   'MOM'      => 20,
-   'XMRADIO'  => 21,
-   'XM RADIO' => 21,
-   'POP'      => 22,
-   'R&B'      => 23,
-   'RAP'      => 24,
-   'RADIO'    => 25,
-   'HD RADIO' => 25,
-   'ROCK'     => 26,
-   'SAT'      => 27,
-   'SAT2'     => 28,
-   'SOUL'     => 29,
-   'WESTERN'  => 30
+    'CD'       => 1,
+    'AUX'      => 2,
+    'TAPE'     => 3,
+    'TUNER'    => 4,
+    'TUNER2'   => 5,
+    'AM'       => 6,
+    'FM'       => 7,
+    'MP3'      => 8,
+    'BLUES'    => 9,
+    'CHILDREN' => 10,
+    'CLASSIC'  => 11,
+    'COUNTRY'  => 12,
+    'DAD'      => 13,
+    'DANCE'    => 14,
+    'DVD'      => 15,
+    'LIGHTS'   => 16,
+    'INTERNET' => 17,
+    'JAZZ'     => 18,
+    'REQUEST'  => 19,
+    'MOM'      => 20,
+    'XMRADIO'  => 21,
+    'XM RADIO' => 21,
+    'POP'      => 22,
+    'R&B'      => 23,
+    'RAP'      => 24,
+    'RADIO'    => 25,
+    'HD RADIO' => 25,
+    'ROCK'     => 26,
+    'SAT'      => 27,
+    'SAT2'     => 28,
+    'SOUL'     => 29,
+    'WESTERN'  => 30
 );
 
 %source_name_to_number_30419 = (
-   'CD'       => 1,
-   'AUX'      => 2,
-   'TAPE'     => 3,
-   'TUNER'    => 4,
-   'TUNER2'   => 5,
-   'AM'       => 6,
-   'FM'       => 7,
-   'MP3'      => 8,
-   'BLUES'    => 9,
-   'CHILDREN' => 10,
-   'CLASSIC'  => 11,
-   'COUNTRY'  => 12,
-   'DAD'      => 13,
-   'DANCE'    => 14,
-   'DVD'      => 15,
-   'LIGHTS'   => 16,
-   'INTERNET' => 17,
-   'JAZZ'     => 18,
-   'REQUEST'  => 19,
-   'MOM'      => 20,
-   'XMRADIO'  => 21,
-   'XM RADIO' => 21,
-   'POP'      => 22,
-   'R&B'      => 23,
-   'RAP'      => 24,
-   'RADIO'    => 25,
-   'HD RADIO' => 25,
-   'ROCK'     => 26,
-   'SAT'      => 27,
-   'SAT2'     => 28,
-   'SOUL'     => 29,
-   'CD2'      => 30,
-   'TALK'     => 31,
-   'NEWS'     => 32,
-   'SIRIUS'   => 33,
-   'TRAFFIC'  => 34,
-   'WEATHER'  => 35,
-   'SPORTS'   => 36,
-   'NPR'      => 37,
-   'DSS'      => 38,
-   'M SERVER' => 39,
-   'M-SERVER' => 39,
-   'DISH'     => 40,
-   ''         => 41,
-   'EXTAUDIO' => 42,
-   'MASTER'   => 43,
-   'BEDROOM'  => 44,
-   'KITCHEN'  => 45,
-   'DINING'   => 46,
-   'LIVING'   => 47,
-   'FAMILY'   => 48,
-   'GREAT'    => 49,
-   'STUDY'    => 50,
-   'OUTSIDE'  => 51,
-   'ROOM'  => 52,
+    'CD'       => 1,
+    'AUX'      => 2,
+    'TAPE'     => 3,
+    'TUNER'    => 4,
+    'TUNER2'   => 5,
+    'AM'       => 6,
+    'FM'       => 7,
+    'MP3'      => 8,
+    'BLUES'    => 9,
+    'CHILDREN' => 10,
+    'CLASSIC'  => 11,
+    'COUNTRY'  => 12,
+    'DAD'      => 13,
+    'DANCE'    => 14,
+    'DVD'      => 15,
+    'LIGHTS'   => 16,
+    'INTERNET' => 17,
+    'JAZZ'     => 18,
+    'REQUEST'  => 19,
+    'MOM'      => 20,
+    'XMRADIO'  => 21,
+    'XM RADIO' => 21,
+    'POP'      => 22,
+    'R&B'      => 23,
+    'RAP'      => 24,
+    'RADIO'    => 25,
+    'HD RADIO' => 25,
+    'ROCK'     => 26,
+    'SAT'      => 27,
+    'SAT2'     => 28,
+    'SOUL'     => 29,
+    'CD2'      => 30,
+    'TALK'     => 31,
+    'NEWS'     => 32,
+    'SIRIUS'   => 33,
+    'TRAFFIC'  => 34,
+    'WEATHER'  => 35,
+    'SPORTS'   => 36,
+    'NPR'      => 37,
+    'DSS'      => 38,
+    'M SERVER' => 39,
+    'M-SERVER' => 39,
+    'DISH'     => 40,
+    ''         => 41,
+    'EXTAUDIO' => 42,
+    'MASTER'   => 43,
+    'BEDROOM'  => 44,
+    'KITCHEN'  => 45,
+    'DINING'   => 46,
+    'LIVING'   => 47,
+    'FAMILY'   => 48,
+    'GREAT'    => 49,
+    'STUDY'    => 50,
+    'OUTSIDE'  => 51,
+    'ROOM'     => 52,
 );
 
 @source_number_to_name = (
-   ''         ,
-   'CD'       ,
-   'AUX'      ,
-   'TAPE'     ,
-   'TUNER'    ,
-   'TUNER2'   ,
-   'AM'       ,
-   'FM'       ,
-   'MP3'      ,
-   'BLUES'    ,
-   'CHILDREN' ,
-   'CLASSIC'  ,
-   'COUNTRY'  ,
-   'DAD'      ,
-   'DANCE'    ,
-   'DVD'      ,
-   'LIGHTS'   ,
-   'INTERNET' ,
-   'JAZZ'     ,
-   'REQUEST'  ,
-   'MOM'      ,
-   'XM RADIO' ,
-   'POP'      ,
-   'R&B'      ,
-   'RAP'      ,
-   'HD RADIO' ,
-   'ROCK'     ,
-   'SAT'      ,
-   'SAT2'     ,
-   'SOUL'     ,
-   'WESTERN'
+    '',        'CD',       'AUX',   'TAPE',     'TUNER',    'TUNER2',
+    'AM',      'FM',       'MP3',   'BLUES',    'CHILDREN', 'CLASSIC',
+    'COUNTRY', 'DAD',      'DANCE', 'DVD',      'LIGHTS',   'INTERNET',
+    'JAZZ',    'REQUEST',  'MOM',   'XM RADIO', 'POP',      'R&B',
+    'RAP',     'HD RADIO', 'ROCK',  'SAT',      'SAT2',     'SOUL',
+    'WESTERN'
 );
 
 @source_number_to_name_30419 = (
-   ''         ,
-   'CD'       ,
-   'AUX'      ,
-   'TAPE'     ,
-   'TUNER'    ,
-   'TUNER2'   ,
-   'AM'       ,
-   'FM'       ,
-   'MP3'      ,
-   'BLUES'    ,
-   'CHILDREN' ,
-   'CLASSIC'  ,
-   'COUNTRY'  ,
-   'DAD'      ,
-   'DANCE'    ,
-   'DVD'      ,
-   'LIGHTS'   ,
-   'INTERNET' ,
-   'JAZZ'     ,
-   'REQUEST'  ,
-   'MOM'      ,
-   'XMRADIO'  ,
-   'POP'      ,
-   'R&B'      ,
-   'RAP'      ,
-   'RADIO'    ,
-   'ROCK'     ,
-   'SAT'      ,
-   'SAT2'     ,
-   'SOUL'     ,
-   'CD2'      ,
-   'TALK'     ,
-   'NEWS'     ,
-   'SIRIUS'   ,
-   'TRAFFIC'  ,
-   'WEATHER'  ,
-   'SPORTS'   ,
-   'NPR'      ,
-   'DSS'      ,
-   'M SERVER' ,
-   'DISH'     ,
-   ''
+    '',        'CD',      'AUX',   'TAPE',     'TUNER',    'TUNER2',
+    'AM',      'FM',      'MP3',   'BLUES',    'CHILDREN', 'CLASSIC',
+    'COUNTRY', 'DAD',     'DANCE', 'DVD',      'LIGHTS',   'INTERNET',
+    'JAZZ',    'REQUEST', 'MOM',   'XMRADIO',  'POP',      'R&B',
+    'RAP',     'RADIO',   'ROCK',  'SAT',      'SAT2',     'SOUL',
+    'CD2',     'TALK',    'NEWS',  'SIRIUS',   'TRAFFIC',  'WEATHER',
+    'SPORTS',  'NPR',     'DSS',   'M SERVER', 'DISH',     ''
 );
 
 %button_name_to_number = (
-   'pause'     => 1,
-   'stop'      => 2,
-   'play'      => 3,
-   'rewind'    => 4,
-   'up'        => 5,
-   'forward'   => 6,
-   'left'      => 7,
-   'down'      => 8,
-   'right'     => 9,
-   'previous'  => 10,
-   'power'     => 11,
-   'next'      => 12,
+    'pause'    => 1,
+    'stop'     => 2,
+    'play'     => 3,
+    'rewind'   => 4,
+    'up'       => 5,
+    'forward'  => 6,
+    'left'     => 7,
+    'down'     => 8,
+    'right'    => 9,
+    'previous' => 10,
+    'power'    => 11,
+    'next'     => 12,
 );
 
 %button_name_to_number_40822 = (
-   'pause'     => 1,  # 1
-   'stop'      => 2,  # 9
-   'play'      => 3,  # 2
-   'shuffle'   => 4,  # 3
-   'repeat'    => 6,  # 4
-   'left'      => 7,  # 7
-   'right'     => 9,  # 8
-   'previous'  => 10, # 5
-   'mode'      => 11, # 0
-   'next'      => 12, # 6
+    'pause'    => 1,     # 1
+    'stop'     => 2,     # 9
+    'play'     => 3,     # 2
+    'shuffle'  => 4,     # 3
+    'repeat'   => 6,     # 4
+    'left'     => 7,     # 7
+    'right'    => 9,     # 8
+    'previous' => 10,    # 5
+    'mode'     => 11,    # 0
+    'next'     => 12,    # 6
 );
 
 @button_number_to_name = (
-   '',
-   'pause',
-   'stop',
-   'play',
-   'rewind',
-   'up',
-   'forward',
-   'left',
-   'down',
-   'right',
-   'previous',
-   'power',
-   'next'
+    '',        'pause', 'stop', 'play',  'rewind',   'up',
+    'forward', 'left',  'down', 'right', 'previous', 'power',
+    'next'
 );
 
 @button_number_to_name_40822 = (
-   '',
-   'pause',
-   'stop',
-   'play',
-   'shuffle',
-   '',
-   'repeat',
-   'left',
-   '',
-   'right',
-   'previous',
-   'mode',
-   'next'
+    '',       'pause', 'stop', 'play',  'shuffle',  '',
+    'repeat', 'left',  '',     'right', 'previous', 'mode',
+    'next'
 );
 
 my %commands_to_keys = (
-#  ChangeSrc seems to be okay to send with the current value
-#   'ChangeSrc' => 'source',
-   'ChangeTreb' => 'treble',
-   'ChangeBass' => 'bass',
-   'ChangeBal' => 'balance',
-   'ChangeVol' => 'volume',
-   'ChangeMute' => 'mute',
-   'ChangeLoud' => 'loudness',
-   'ChangeAmp' => 'amp',
-   'ChangeBaCo' => 'blcolor',
-   'ChangeBaLi' => 'brightness',
+
+    #  ChangeSrc seems to be okay to send with the current value
+    #   'ChangeSrc' => 'source',
+    'ChangeTreb' => 'treble',
+    'ChangeBass' => 'bass',
+    'ChangeBal'  => 'balance',
+    'ChangeVol'  => 'volume',
+    'ChangeMute' => 'mute',
+    'ChangeLoud' => 'loudness',
+    'ChangeAmp'  => 'amp',
+    'ChangeBaCo' => 'blcolor',
+    'ChangeBaLi' => 'brightness',
 );
 
 # The version of this Misterhouse object
 use constant OBJECT_VERSION => '2.0';
+
 # Maximum number of zones and sources in the system
-use constant MAX_ZONES => 6;
+use constant MAX_ZONES   => 6;
 use constant MAX_SOURCES => 4;
+
 # Maximum amount of time to wait for a response to a command (in seconds)
 use constant MAX_RESPONSE_WAIT => 5;
+
 # How long after a zone turns on should mute/volume changes not be reported?
 use constant IGNORE_AFTER_ON => 15;
+
 # How long after a button_held to ignore a button_pressed
 use constant IGNORE_BUTTON_PRESSED_AFTER_HELD => 2;
+
 # How long to wait for a zone to turn on
 use constant MAX_ZONE_ON_DELAY => 10;
 
@@ -776,761 +703,1141 @@ use constant MAX_ZONE_ON_DELAY => 10;
 # source labels which it sends at startup.
 # Set this to 1 to send out the source label when a zone selects a source
 use constant SOURCE_SEND_LABELS => 1;
+
 # Set this to 1 to ignore source label changes from keypads
 use constant SOURCE_IGNORE_LABLES => 1;
 
 my %Musica_Systems;
 
 sub serial_startup {
-   # Nothing needs to be done here...
+
+    # Nothing needs to be done here...
 }
 
 sub _check_for_data {
-   for my $port_name (keys %Musica_Systems) {
-      if (($Musica_Systems{$port_name}{'last_data_received'} + MAX_RESPONSE_WAIT) < $::Time) {
-         # It has been a while since we received data for this object... so, call
-         # the _send_next_cmd() function which will re-send the first item in the
-         # queue (if there is one present) just to try the command again
-         if ($Musica_Systems{$port_name}{'object'}->{'queue'}->[0]) {
-            $Musica_Systems{$port_name}{'object'}->{'waiting_for_zone'} = 0;
-            if (($Musica_Systems{$port_name}{'object'}->{'resend_count'} < 3) or ($Musica_Systems{$port_name}{'object'}->{'queue'}->[0] =~ /^StatVer/)) {
-               $Musica_Systems{$port_name}{'object'}->{'resend_count'}++;
-               $Musica_Systems{$port_name}{'object'}->_report_error("Going to re-send command [" . $Musica_Systems{$port_name}{'object'}->{'queue'}->[0] . "] ($Musica_Systems{$port_name}{'object'}->{'resend_count'} times)");
-               $Musica_Systems{$port_name}{'object'}->_send_next_cmd();
-            } elsif ($Musica_Systems{$port_name}{'object'}->{'resend_count'} == 3) {
-               $Musica_Systems{$port_name}{'object'}->{'resend_count'}++;
-               $Musica_Systems{$port_name}{'object'}->_report_error("Resetting serial connection to re-send command [" . $Musica_Systems{$port_name}{'object'}->{'queue'}->[0] . "] ($Musica_Systems{$port_name}{'object'}->{'resend_count'} times)");
-               &::serial_port_reopen($port_name);
-            } elsif ($Musica_Systems{$port_name}{'object'}->{'resend_count'} < 6) {
-               $Musica_Systems{$port_name}{'object'}->{'resend_count'}++;
-               $Musica_Systems{$port_name}{'object'}->_report_error("Going to re-send command [" . $Musica_Systems{$port_name}{'object'}->{'queue'}->[0] . "] ($Musica_Systems{$port_name}{'object'}->{'resend_count'} times)");
-               $Musica_Systems{$port_name}{'object'}->_send_next_cmd();
-            } else {
-               $Musica_Systems{$port_name}{'object'}->_critical_error("Re-sent command [" . $Musica_Systems{$port_name}{'object'}->{'queue'}->[0] . '] too many times, dropping');
-               $Musica_Systems{$port_name}{'object'}->_found_response();
+    for my $port_name ( keys %Musica_Systems ) {
+        if (
+            (
+                $Musica_Systems{$port_name}{'last_data_received'} +
+                MAX_RESPONSE_WAIT
+            ) < $::Time
+          )
+        {
+            # It has been a while since we received data for this object... so, call
+            # the _send_next_cmd() function which will re-send the first item in the
+            # queue (if there is one present) just to try the command again
+            if ( $Musica_Systems{$port_name}{'object'}->{'queue'}->[0] ) {
+                $Musica_Systems{$port_name}{'object'}->{'waiting_for_zone'} = 0;
+                if (
+                    (
+                        $Musica_Systems{$port_name}{'object'}->{'resend_count'}
+                        < 3
+                    )
+                    or ( $Musica_Systems{$port_name}{'object'}->{'queue'}->[0]
+                        =~ /^StatVer/ )
+                  )
+                {
+                    $Musica_Systems{$port_name}{'object'}->{'resend_count'}++;
+                    $Musica_Systems{$port_name}{'object'}
+                      ->_report_error( "Going to re-send command ["
+                          . $Musica_Systems{$port_name}{'object'}->{'queue'}
+                          ->[0]
+                          . "] ($Musica_Systems{$port_name}{'object'}->{'resend_count'} times)"
+                      );
+                    $Musica_Systems{$port_name}{'object'}->_send_next_cmd();
+                }
+                elsif (
+                    $Musica_Systems{$port_name}{'object'}->{'resend_count'} ==
+                    3 )
+                {
+                    $Musica_Systems{$port_name}{'object'}->{'resend_count'}++;
+                    $Musica_Systems{$port_name}{'object'}->_report_error(
+                        "Resetting serial connection to re-send command ["
+                          . $Musica_Systems{$port_name}{'object'}->{'queue'}
+                          ->[0]
+                          . "] ($Musica_Systems{$port_name}{'object'}->{'resend_count'} times)"
+                    );
+                    &::serial_port_reopen($port_name);
+                }
+                elsif (
+                    $Musica_Systems{$port_name}{'object'}->{'resend_count'} <
+                    6 )
+                {
+                    $Musica_Systems{$port_name}{'object'}->{'resend_count'}++;
+                    $Musica_Systems{$port_name}{'object'}
+                      ->_report_error( "Going to re-send command ["
+                          . $Musica_Systems{$port_name}{'object'}->{'queue'}
+                          ->[0]
+                          . "] ($Musica_Systems{$port_name}{'object'}->{'resend_count'} times)"
+                      );
+                    $Musica_Systems{$port_name}{'object'}->_send_next_cmd();
+                }
+                else {
+                    $Musica_Systems{$port_name}{'object'}
+                      ->_critical_error( "Re-sent command ["
+                          . $Musica_Systems{$port_name}{'object'}->{'queue'}
+                          ->[0]
+                          . '] too many times, dropping' );
+                    $Musica_Systems{$port_name}{'object'}->_found_response();
+                }
+                $Musica_Systems{$port_name}{'last_data_received'} = $::Time;
             }
-            $Musica_Systems{$port_name}{'last_data_received'} = $::Time;
-         }
-      }
-      for (my $i = 1; $i <= MAX_ZONES; $i++) {
-         if ($Musica_Systems{$port_name}{'object'}->{'zones'}[$i]) {
-            if ($Musica_Systems{$port_name}{'object'}->{'zones'}[$i]->{'just_turned_on'}) {
-               if (($Musica_Systems{$port_name}{'object'}->{'zones'}[$i]->{'on_time'} + MAX_ZONE_ON_DELAY) <= $::Time) {
-                  if ($Musica_Systems{$port_name}{'object'}->{'on_repeat_count'} < 3) {
-                     $Musica_Systems{$port_name}{'object'}->{'on_repeat_count'}++;
-                     $Musica_Systems{$port_name}{'object'}->_report_error("Turning zone $i on again since it did not turn on before");
-                     $Musica_Systems{$port_name}{'object'}->{'zones'}[$i]->{'on_time'} = $::Time;
-                     $Musica_Systems{$port_name}{'object'}->_queue_cmd("ChangeSrc/$i/$Musica_Systems{$port_name}{'object'}->{'zones'}[$i]->{'just_turned_on'}");
-                  } elsif ($Musica_Systems{$port_name}{'object'}->{'on_repeat_count'} == 3) {
-                     $Musica_Systems{$port_name}{'object'}->{'on_repeat_count'}++;
-                     $Musica_Systems{$port_name}{'object'}->_report_error("Resetting serial connection to turn zone $i on again since it did not turn on before");
-                     &::serial_port_reopen($port_name);
-                  } elsif ($Musica_Systems{$port_name}{'object'}->{'on_repeat_count'} < 6) {
-                     $Musica_Systems{$port_name}{'object'}->{'on_repeat_count'}++;
-                     $Musica_Systems{$port_name}{'object'}->_report_error("Turning zone $i on again since it did not turn on before");
-                     $Musica_Systems{$port_name}{'object'}->{'zones'}[$i]->{'on_time'} = $::Time;
-                     $Musica_Systems{$port_name}{'object'}->_queue_cmd("ChangeSrc/$i/$Musica_Systems{$port_name}{'object'}->{'zones'}[$i]->{'just_turned_on'}");
-                  } else {
-                     $Musica_Systems{$port_name}{'object'}->_critical_error("Turning zone $i on again since it did not turn on before");
-                  }
-               }
+        }
+        for ( my $i = 1; $i <= MAX_ZONES; $i++ ) {
+            if ( $Musica_Systems{$port_name}{'object'}->{'zones'}[$i] ) {
+                if ( $Musica_Systems{$port_name}{'object'}->{'zones'}[$i]
+                    ->{'just_turned_on'} )
+                {
+                    if (
+                        (
+                            $Musica_Systems{$port_name}{'object'}
+                            ->{'zones'}[$i]->{'on_time'} + MAX_ZONE_ON_DELAY
+                        ) <= $::Time
+                      )
+                    {
+                        if ( $Musica_Systems{$port_name}{'object'}
+                            ->{'on_repeat_count'} < 3 )
+                        {
+                            $Musica_Systems{$port_name}{'object'}
+                              ->{'on_repeat_count'}++;
+                            $Musica_Systems{$port_name}{'object'}
+                              ->_report_error(
+                                "Turning zone $i on again since it did not turn on before"
+                              );
+                            $Musica_Systems{$port_name}{'object'}
+                              ->{'zones'}[$i]->{'on_time'} = $::Time;
+                            $Musica_Systems{$port_name}{'object'}->_queue_cmd(
+                                "ChangeSrc/$i/$Musica_Systems{$port_name}{'object'}->{'zones'}[$i]->{'just_turned_on'}"
+                            );
+                        }
+                        elsif ( $Musica_Systems{$port_name}{'object'}
+                            ->{'on_repeat_count'} == 3 )
+                        {
+                            $Musica_Systems{$port_name}{'object'}
+                              ->{'on_repeat_count'}++;
+                            $Musica_Systems{$port_name}{'object'}
+                              ->_report_error(
+                                "Resetting serial connection to turn zone $i on again since it did not turn on before"
+                              );
+                            &::serial_port_reopen($port_name);
+                        }
+                        elsif ( $Musica_Systems{$port_name}{'object'}
+                            ->{'on_repeat_count'} < 6 )
+                        {
+                            $Musica_Systems{$port_name}{'object'}
+                              ->{'on_repeat_count'}++;
+                            $Musica_Systems{$port_name}{'object'}
+                              ->_report_error(
+                                "Turning zone $i on again since it did not turn on before"
+                              );
+                            $Musica_Systems{$port_name}{'object'}
+                              ->{'zones'}[$i]->{'on_time'} = $::Time;
+                            $Musica_Systems{$port_name}{'object'}->_queue_cmd(
+                                "ChangeSrc/$i/$Musica_Systems{$port_name}{'object'}->{'zones'}[$i]->{'just_turned_on'}"
+                            );
+                        }
+                        else {
+                            $Musica_Systems{$port_name}{'object'}
+                              ->_critical_error(
+                                "Turning zone $i on again since it did not turn on before"
+                              );
+                        }
+                    }
+                }
             }
-         }
-      }
-      &::check_for_generic_serial_data($port_name) if $::Serial_Ports{$port_name}{'object'};
-      my $data = $::Serial_Ports{$port_name}{'data_record'};
-      next if !$data;
-      $Musica_Systems{$port_name}{'object'}->_parse_data($data);
-      $main::Serial_Ports{$port_name}{'data_record'}='';
-      $Musica_Systems{$port_name}{'last_data_received'} = $::Time;
-   }
+        }
+        &::check_for_generic_serial_data($port_name)
+          if $::Serial_Ports{$port_name}{'object'};
+        my $data = $::Serial_Ports{$port_name}{'data_record'};
+        next if !$data;
+        $Musica_Systems{$port_name}{'object'}->_parse_data($data);
+        $main::Serial_Ports{$port_name}{'data_record'}    = '';
+        $Musica_Systems{$port_name}{'last_data_received'} = $::Time;
+    }
 }
 
 sub reset {
-   my ($self) = @_;
-   $$self{'queue'} = ();
-   foreach (@{$$self{'zones'}}) {
-      $_->{'just_turned_on'} = 0;
-   }
-   $self->_queue_cmd('EventData/0/1');
-   $self->_queue_cmd('EventSrc/1');
-   $self->_queue_cmd('EventStore/0/1');
-   $self->_queue_cmd('StatVer/0');
+    my ($self) = @_;
+    $$self{'queue'} = ();
+    foreach ( @{ $$self{'zones'} } ) {
+        $_->{'just_turned_on'} = 0;
+    }
+    $self->_queue_cmd('EventData/0/1');
+    $self->_queue_cmd('EventSrc/1');
+    $self->_queue_cmd('EventStore/0/1');
+    $self->_queue_cmd('StatVer/0');
 }
 
 sub new {
-   my ($class, $port_name) = @_;
-   my $self = {};
-   $$self{'port_name'} = $port_name;
-   $$self{'zone'} = 0;
-   &::print_log("$self->{'port_name'}: Netstreams Musica Misterhouse Module Version " . OBJECT_VERSION);
-   for (my $i = 1; $i <= MAX_ZONES; $i++) {
-      $$self{'zones'}[$i] = undef;
-   }
-   @{$$self{'queue'}} = ();
-   bless $self, $class;
-   $$self{'musica_obj'} = $self;
-   $Musica_Systems{$port_name}{'object'} = $self;
-   if (1==scalar(keys %Musica_Systems)) { # Add hooks on first call only
-      &::MainLoop_pre_add_hook(\&Musica::_check_for_data, 1);
-   }
-   &::serial_port_create($port_name, $::config_parms{$port_name . "_serial_port"}, 9600);
-   $self->_queue_cmd('EventData/0/1');
-   $self->_queue_cmd('EventSrc/1');
-   $self->_queue_cmd('EventStore/0/1');
-   $self->_queue_cmd('StatVer/0');
-   return $self;
+    my ( $class, $port_name ) = @_;
+    my $self = {};
+    $$self{'port_name'} = $port_name;
+    $$self{'zone'}      = 0;
+    &::print_log(
+        "$self->{'port_name'}: Netstreams Musica Misterhouse Module Version "
+          . OBJECT_VERSION );
+    for ( my $i = 1; $i <= MAX_ZONES; $i++ ) {
+        $$self{'zones'}[$i] = undef;
+    }
+    @{ $$self{'queue'} } = ();
+    bless $self, $class;
+    $$self{'musica_obj'} = $self;
+    $Musica_Systems{$port_name}{'object'} = $self;
+    if ( 1 == scalar( keys %Musica_Systems ) ) {  # Add hooks on first call only
+        &::MainLoop_pre_add_hook( \&Musica::_check_for_data, 1 );
+    }
+    &::serial_port_create( $port_name,
+        $::config_parms{ $port_name . "_serial_port" }, 9600 );
+    $self->_queue_cmd('EventData/0/1');
+    $self->_queue_cmd('EventSrc/1');
+    $self->_queue_cmd('EventStore/0/1');
+    $self->_queue_cmd('StatVer/0');
+    return $self;
 }
 
 sub _store_zone_source {
-   my ($self, $zone, $source, $set_by) = @_;
-   &::print_log("$self->{'port_name'}: _store_zone_source($zone,$source)") if $main::Debug{musica};
-   if ($$self{'zones'}[$zone] and ($source ne 'X')) {
-      my $currsrc = $$self{'zones'}[$zone]->{'source'};
-      &::print_log("$self->{'port_name'}: _store_zone_source($zone,$source): $currsrc") if $main::Debug{musica};
-      unless ($currsrc eq $source) {
-         $$self{'timerOff'}->stop() if $$self{'timerOff'};
-         if ($currsrc eq '0') {
-            # Currently off
-            $$self{'zones'}[$zone]->set_receive('zone_on', $set_by);
-            &::print_log("$self->{'port_name'}: _store_zone_source($zone,$source): Zone just turned on") if $main::Debug{musica};
-            if (($source eq '1') or ($source eq '2') or ($source eq '3') or ($source eq '4')) {
-               # 5602 keypads don't seem to get the source labels unless they are on, so
-               # make sure to set the labels whenever a source is selected
-               if (SOURCE_SEND_LABELS) {
-                  $$self{'sources'}[$source]->set_label($$self{'sources'}[$source]->get_label());
-               }
+    my ( $self, $zone, $source, $set_by ) = @_;
+    &::print_log("$self->{'port_name'}: _store_zone_source($zone,$source)")
+      if $main::Debug{musica};
+    if ( $$self{'zones'}[$zone] and ( $source ne 'X' ) ) {
+        my $currsrc = $$self{'zones'}[$zone]->{'source'};
+        &::print_log(
+            "$self->{'port_name'}: _store_zone_source($zone,$source): $currsrc")
+          if $main::Debug{musica};
+        unless ( $currsrc eq $source ) {
+            $$self{'timerOff'}->stop() if $$self{'timerOff'};
+            if ( $currsrc eq '0' ) {
+
+                # Currently off
+                $$self{'zones'}[$zone]->set_receive( 'zone_on', $set_by );
+                &::print_log(
+                    "$self->{'port_name'}: _store_zone_source($zone,$source): Zone just turned on"
+                ) if $main::Debug{musica};
+                if (   ( $source eq '1' )
+                    or ( $source eq '2' )
+                    or ( $source eq '3' )
+                    or ( $source eq '4' ) )
+                {
+                    # 5602 keypads don't seem to get the source labels unless they are on, so
+                    # make sure to set the labels whenever a source is selected
+                    if (SOURCE_SEND_LABELS) {
+                        $$self{'sources'}[$source]->set_label(
+                            $$self{'sources'}[$source]->get_label() );
+                    }
+                }
             }
-         } else {
-            if ($source eq '0') {
-               if (defined $currsrc) {
-                  &::print_log("$self->{'port_name'}: _store_zone_source($zone,$source): Zone just turned off") if $main::Debug{musica};
-                  $$self{'zones'}[$zone]->set_receive('zone_off', $set_by);
-                  if ($$self{'timerOff'}) {
-                     $$self{'timerOff'}->set(0);
-                  }
-               }
-            } else {
-               &::print_log("$self->{'port_name'}: _store_zone_source($zone,$source): Zone source changed") if $main::Debug{musica};
-               $$self{'zones'}[$zone]->set_receive('source_changed', $set_by);
-               if (($source eq '1') or ($source eq '2') or ($source eq '3') or ($source eq '4')) {
-                  # 5602 keypads don't seem to get the source labels unless they are on, so
-                  # make sure to set the labels whenever a source is selected
-                  if (SOURCE_SEND_LABELS) {
-                     $$self{'sources'}[$source]->set_label($$self{'sources'}[$source]->get_label());
-                  }
-               }
+            else {
+                if ( $source eq '0' ) {
+                    if ( defined $currsrc ) {
+                        &::print_log(
+                            "$self->{'port_name'}: _store_zone_source($zone,$source): Zone just turned off"
+                        ) if $main::Debug{musica};
+                        $$self{'zones'}[$zone]
+                          ->set_receive( 'zone_off', $set_by );
+                        if ( $$self{'timerOff'} ) {
+                            $$self{'timerOff'}->set(0);
+                        }
+                    }
+                }
+                else {
+                    &::print_log(
+                        "$self->{'port_name'}: _store_zone_source($zone,$source): Zone source changed"
+                    ) if $main::Debug{musica};
+                    $$self{'zones'}[$zone]
+                      ->set_receive( 'source_changed', $set_by );
+                    if (   ( $source eq '1' )
+                        or ( $source eq '2' )
+                        or ( $source eq '3' )
+                        or ( $source eq '4' ) )
+                    {
+                        # 5602 keypads don't seem to get the source labels unless they are on, so
+                        # make sure to set the labels whenever a source is selected
+                        if (SOURCE_SEND_LABELS) {
+                            $$self{'sources'}[$source]->set_label(
+                                $$self{'sources'}[$source]->get_label() );
+                        }
+                    }
+                }
             }
-         }
-         $$self{'zones'}[$zone]->{'source'} = $source;
-         if ($$self{'sources'}[$currsrc]) {
-            $$self{'sources'}[$currsrc]->_zone_not_using($zone);
-         }
-         if ($$self{'sources'}[$source]) {
-            $$self{'sources'}[$source]->_zone_is_using($zone);
-         }
-      }
-   }
+            $$self{'zones'}[$zone]->{'source'} = $source;
+            if ( $$self{'sources'}[$currsrc] ) {
+                $$self{'sources'}[$currsrc]->_zone_not_using($zone);
+            }
+            if ( $$self{'sources'}[$source] ) {
+                $$self{'sources'}[$source]->_zone_is_using($zone);
+            }
+        }
+    }
 }
 
 sub _found_response {
-   my ($self) = @_;
-   &::print_log("$self->{'port_name'}: found response for: [$self->{'queue'}->[0]]") if $main::Debug{musica};
-   $self->{'last_received'} = $self->{'next_last_received'};
-   $self->{'next_last_received'} = $$self{'queue'}->[0];
-   shift @{$$self{'queue'}};
-   $self->{'resend_count'} = 0;
-   $self->_send_next_cmd();
+    my ($self) = @_;
+    &::print_log(
+        "$self->{'port_name'}: found response for: [$self->{'queue'}->[0]]")
+      if $main::Debug{musica};
+    $self->{'last_received'}      = $self->{'next_last_received'};
+    $self->{'next_last_received'} = $$self{'queue'}->[0];
+    shift @{ $$self{'queue'} };
+    $self->{'resend_count'} = 0;
+    $self->_send_next_cmd();
 }
 
 sub _check_first_cmd {
-   my ($self, $zone, $cmd) = @_;
-   return unless $$self{'zones'}[$zone];
-   return unless ($$self{'zones'}[$zone]->{'keypad_version'} >= 40822);
-   return if ($$self{'zones'}[$zone]->{'just_turned_on'});
-   my $compare = $$self{'queue'}->[0];
-   if ($compare) {
-      # Now, see if we got a response to the first command in the queue
-      if ($cmd eq $compare) {
-         $self->_found_response();
-         return 1;
-      }
-   }
-   return 0;
+    my ( $self, $zone, $cmd ) = @_;
+    return unless $$self{'zones'}[$zone];
+    return unless ( $$self{'zones'}[$zone]->{'keypad_version'} >= 40822 );
+    return if ( $$self{'zones'}[$zone]->{'just_turned_on'} );
+    my $compare = $$self{'queue'}->[0];
+    if ($compare) {
+
+        # Now, see if we got a response to the first command in the queue
+        if ( $cmd eq $compare ) {
+            $self->_found_response();
+            return 1;
+        }
+    }
+    return 0;
 }
 
 sub _see_if_zone_just_turned_on {
-   my ($self, $zone, $new_source, $set_by) = @_;
-   return 0 unless $$self{'zones'}[$zone];
-   return 0 unless defined($$self{'zones'}[$zone]->{'source'});
-   my $currsrc = $$self{'zones'}[$zone]->{'source'};
-   &::print_log("$self->{'port_name'}: Zone $zone exists and source is defined (currsrc=$currsrc, new_source=$new_source), just_turned_on=" . $$self{'zones'}[$zone]->{'just_turned_on'}) if $main::Debug{musica};
-   if (($currsrc eq '0') and ($new_source ne '0')) {
-      # Currently off
-      unless ($$self{'zones'}[$zone]->{'just_turned_on'}) {
-         $$self{'zones'}[$zone]->{'on_time'} = $::Time;
-         &::print_log("$self->{'port_name'}: setting just_turned_on=$new_source (zone $zone)") if $main::Debug{musica};
-         $$self{'zones'}[$zone]->{'just_turned_on'} = $new_source;
-         $$self{'zones'}[$zone]->{'just_turned_on_by'} = $set_by;
-         $$self{'on_repeat_count'} = 0;
-         &::print_log("$self->{'port_name'}: Recording that zone $zone was just turned on") if $main::Debug{musica};
-      }
-      return 1;
-   }
-   return 0;
+    my ( $self, $zone, $new_source, $set_by ) = @_;
+    return 0 unless $$self{'zones'}[$zone];
+    return 0 unless defined( $$self{'zones'}[$zone]->{'source'} );
+    my $currsrc = $$self{'zones'}[$zone]->{'source'};
+    &::print_log(
+        "$self->{'port_name'}: Zone $zone exists and source is defined (currsrc=$currsrc, new_source=$new_source), just_turned_on="
+          . $$self{'zones'}[$zone]->{'just_turned_on'} )
+      if $main::Debug{musica};
+    if ( ( $currsrc eq '0' ) and ( $new_source ne '0' ) ) {
+
+        # Currently off
+        unless ( $$self{'zones'}[$zone]->{'just_turned_on'} ) {
+            $$self{'zones'}[$zone]->{'on_time'} = $::Time;
+            &::print_log(
+                "$self->{'port_name'}: setting just_turned_on=$new_source (zone $zone)"
+            ) if $main::Debug{musica};
+            $$self{'zones'}[$zone]->{'just_turned_on'}    = $new_source;
+            $$self{'zones'}[$zone]->{'just_turned_on_by'} = $set_by;
+            $$self{'on_repeat_count'}                     = 0;
+            &::print_log(
+                "$self->{'port_name'}: Recording that zone $zone was just turned on"
+            ) if $main::Debug{musica};
+        }
+        return 1;
+    }
+    return 0;
 }
 
 sub _parse_data {
-   my ($self, $data) = @_;
-   &::print_log("$self->{'port_name'}: parsing serial data: [$data]") if $main::Debug{musica};
-   # First, check to see if we got a Busy response which means we need to re-send
-   # the first command in the queue
-   if ($data eq 'Busy') {
-      &::print_log("$self->{'port_name'}: re-sending first command in queue") if $main::Debug{musica};
-      $self->_send_next_cmd();
-      return;
-   }
-   my ($cmd, $value) = ($data =~ m=^([^/]+)/(.*)$=);
-   unless ($data =~ /\//) {
-      $cmd = $data;
-   }
-   if ($cmd eq 'State') {
-      $cmd = 'Chang';
-   }
-   my $compare = $$self{'queue'}->[0];
-   $compare =~ s/\/.*$//;
-   if ($compare) {
-      # Now, see if we got a response to the first command in the queue
-      if ($cmd eq $compare) {
-         unless ($compare eq 'ChangeSrc') {
+    my ( $self, $data ) = @_;
+    &::print_log("$self->{'port_name'}: parsing serial data: [$data]")
+      if $main::Debug{musica};
+
+    # First, check to see if we got a Busy response which means we need to re-send
+    # the first command in the queue
+    if ( $data eq 'Busy' ) {
+        &::print_log("$self->{'port_name'}: re-sending first command in queue")
+          if $main::Debug{musica};
+        $self->_send_next_cmd();
+        return;
+    }
+    my ( $cmd, $value ) = ( $data =~ m=^([^/]+)/(.*)$= );
+    unless ( $data =~ /\// ) {
+        $cmd = $data;
+    }
+    if ( $cmd eq 'State' ) {
+        $cmd = 'Chang';
+    }
+    my $compare = $$self{'queue'}->[0];
+    $compare =~ s/\/.*$//;
+    if ($compare) {
+
+        # Now, see if we got a response to the first command in the queue
+        if ( $cmd eq $compare ) {
+            unless ( $compare eq 'ChangeSrc' ) {
+                $self->_found_response();
+            }
+        }
+    }
+    if ( $cmd eq 'StatVer' ) {
+        my ( $zone, $version ) = split /\//, $value;
+        $version =~ s/^\D//;
+        if ( $zone == 0 ) {
+            $$self{'adc_version'} = $version;
+            &::print_log(
+                "$self->{'port_name'}: Netstreams Musica ADC Version: $version"
+            );
+        }
+        elsif ( $$self{'zones'}[$zone] ) {
+            if ( $version eq 'X' ) {
+                $version = 'Not Present';
+                $self->_report_error( 'Zone keypad not detected by ADC',
+                    $zone );
+                $$self{'zones'}[$zone]->{'present'} = 0;
+            }
+            else {
+                $$self{'zones'}[$zone]->{'keypad_version'} = $version;
+                $main::Save{"Musica-Keypad$zone-Version"} = $version;
+                &::print_log(
+                    "$self->{'port_name'}: Netstreams Musica Zone $zone Keypad Version: $version"
+                );
+                $self->_process_keypad_version($zone);
+            }
+        }
+    }
+    elsif ( $cmd eq 'EventPress' ) {
+        if ( ( $compare eq 'ExePress' ) or ( $compare eq 'ExeHold' ) ) {
+
+            # Both ExePress and ExeHold commands respond with EventPress
             $self->_found_response();
-         }
-      }
-   }
-   if ($cmd eq 'StatVer') {
-      my ($zone, $version) = split /\//, $value;
-      $version =~ s/^\D//;
-      if ($zone == 0) {
-         $$self{'adc_version'} = $version;
-         &::print_log("$self->{'port_name'}: Netstreams Musica ADC Version: $version");
-      } elsif ($$self{'zones'}[$zone]) {
-         if ($version eq 'X') {
-            $version = 'Not Present';
-            $self->_report_error('Zone keypad not detected by ADC', $zone);
-            $$self{'zones'}[$zone]->{'present'} = 0;
-         } else {
-            $$self{'zones'}[$zone]->{'keypad_version'} = $version;
-            $main::Save{"Musica-Keypad$zone-Version"} = $version;
-            &::print_log("$self->{'port_name'}: Netstreams Musica Zone $zone Keypad Version: $version");
-            $self->_process_keypad_version($zone);
-         }
-      }
-   } elsif ($cmd eq 'EventPress') {
-      if (($compare eq 'ExePress') or ($compare eq 'ExeHold')) {
-         # Both ExePress and ExeHold commands respond with EventPress
-         $self->_found_response();
-      } else {
-         my ($source, $button, $zone) = split /\//, $value;
-         my $action = 'button_pressed_';
-         my $ignore = 0;
-         if ($button > 12) {
-            $button -= 12;
-            $action = 'button_held_';
-            $$self{'last_held_time'} = $main::Time;
-            $$self{'last_held_button'} = $button;
-         } elsif ($$self{'last_held_time'} and $$self{'last_held_button'})  {
-            if (($main::Time - $$self{'last_held_time'}) <= IGNORE_BUTTON_PRESSED_AFTER_HELD) {
-               if ($$self{'last_held_button'} == $button) {
-                  &::print_log("$self->{'port_name'}: ignoring button press because of recent button hold") if $main::Debug{musica};
-                  $ignore = 1;
-               }
+        }
+        else {
+            my ( $source, $button, $zone ) = split /\//, $value;
+            my $action = 'button_pressed_';
+            my $ignore = 0;
+            if ( $button > 12 ) {
+                $button -= 12;
+                $action                    = 'button_held_';
+                $$self{'last_held_time'}   = $main::Time;
+                $$self{'last_held_button'} = $button;
             }
-         }
-         unless ($ignore) {
-            if ($$self{'zones'}[$zone]) {
-               if ($$self{'zones'}[$zone]->{'keypad_version'} >= 40822) {
-                  $$self{'zones'}[$zone]->set_receive($action . $button_number_to_name_40822[$button], 'keypad');
-               } else {
-                  $$self{'zones'}[$zone]->set_receive($action . $button_number_to_name[$button], 'keypad');
-               }
+            elsif ( $$self{'last_held_time'} and $$self{'last_held_button'} ) {
+                if ( ( $main::Time - $$self{'last_held_time'} ) <=
+                    IGNORE_BUTTON_PRESSED_AFTER_HELD )
+                {
+                    if ( $$self{'last_held_button'} == $button ) {
+                        &::print_log(
+                            "$self->{'port_name'}: ignoring button press because of recent button hold"
+                        ) if $main::Debug{musica};
+                        $ignore = 1;
+                    }
+                }
             }
-            if ($$self{'sources'}[$source]) {
-               if (($$self{'zones'}[$zone]) and ($$self{'zones'}[$zone]->{'keypad_version'} >= 40822)) {
-                  $$self{'sources'}[$source]->set_receive($action . $button_number_to_name_40822[$button], 'keypad');
-               } else {
-                  $$self{'sources'}[$source]->set_receive($action . $button_number_to_name[$button], 'keypad');
-               }
+            unless ($ignore) {
+                if ( $$self{'zones'}[$zone] ) {
+                    if ( $$self{'zones'}[$zone]->{'keypad_version'} >= 40822 ) {
+                        $$self{'zones'}[$zone]->set_receive(
+                            $action . $button_number_to_name_40822[$button],
+                            'keypad' );
+                    }
+                    else {
+                        $$self{'zones'}[$zone]->set_receive(
+                            $action . $button_number_to_name[$button],
+                            'keypad' );
+                    }
+                }
+                if ( $$self{'sources'}[$source] ) {
+                    if (    ( $$self{'zones'}[$zone] )
+                        and
+                        ( $$self{'zones'}[$zone]->{'keypad_version'} >= 40822 )
+                      )
+                    {
+                        $$self{'sources'}[$source]->set_receive(
+                            $action . $button_number_to_name_40822[$button],
+                            'keypad' );
+                    }
+                    else {
+                        $$self{'sources'}[$source]->set_receive(
+                            $action . $button_number_to_name[$button],
+                            'keypad' );
+                    }
+                }
             }
-         }
-      }
-   } elsif ($cmd eq 'ExeLock') {
-      my ($zone, $lock) = split /\//, $value;
-      $self->_store_zone_data($zone, 'locked', $lock, ($lock ? 'locked' : 'unlocked'));
-   } elsif ($cmd eq 'ChangeVol') {
-      my ($zone, $volume) = split /\//, $value;
-      $self->_store_zone_data($zone, 'volume', $volume, 'volume_changed');
-   } elsif ($cmd eq 'NudgeVol') {
-      my ($zone, $volume) = split /\//, $value;
-      $self->_store_zone_nudge($zone, 'volume', $volume, 0, 35, 'volume_changed');
-   } elsif ($cmd eq 'ChangeMute') {
-      my ($zone, $mute) = split /\//, $value;
-      $self->_store_zone_data($zone, 'mute', $mute, ($mute ? 'mute_on' : 'mute_off'));
-   } elsif ($cmd eq 'ChangeTreb') {
-      my ($zone, $treble) = split /\//, $value;
-      $self->_store_zone_data($zone, 'treble', $treble, 'treble_changed');
-   } elsif ($cmd eq 'NudgeTreb') {
-      my ($zone, $treble) = split /\//, $value;
-      $self->_store_zone_nudge($zone, 'treble', $treble, 1, 15, 'treble_changed');
-   } elsif ($cmd eq 'ChangeBass') {
-      my ($zone, $bass) = split /\//, $value;
-      $self->_store_zone_data($zone, 'bass', $bass, 'bass_changed');
-   } elsif ($cmd eq 'NudgeBass') {
-      my ($zone, $bass) = split /\//, $value;
-      $self->_store_zone_nudge($zone, 'bass', $bass, 1, 15, 'bass_changed');
-   } elsif ($cmd eq 'ChangeBal') {
-      my ($zone, $balance) = split /\//, $value;
-      $self->_store_zone_data($zone, 'balance', $balance, 'balance_changed');
-   } elsif ($cmd eq 'NudgeBal') {
-      my ($zone, $balance) = split /\//, $value;
-      $self->_store_zone_nudge($zone, 'balance', $balance, 1, 15, 'balance_changed');
-   } elsif ($cmd eq 'ChangeLoud') {
-      my ($zone, $loudness) = split /\//, $value;
-      $self->_store_zone_data($zone, 'loudness', $loudness, ($loudness ? 'loudness_on' : 'loudness_off'));
-   } elsif ($cmd eq 'ChangeAmp') {
-      my ($zone, $amp) = split /\//, $value;
-      my $newstate = 'internal_amp';
-      if ($amp == 1) {
-         $newstate = 'internal_external_amp';
-      } elsif ($amp == 2) {
-         $newstate = 'external_amp';
-      }
-      $self->_store_zone_data($zone, 'amp', $amp, $newstate);
-   } elsif ($cmd eq 'ChangeBaCo') {
-      my ($zone, $color) = split /\//, $value;
-      $self->_store_zone_data($zone, 'blcolor', $color, ($color ? 'color_amber' : 'color_green'));
-   } elsif ($cmd eq 'ChangeBaLi') {
-      my ($zone, $level) = split /\//, $value;
-      $self->_store_zone_data($zone, 'brightness', $level, 'brightness_changed');
-   } elsif ($cmd eq 'NudgeSrc') {
-      my ($zone, $source) = split /\//, $value;
-      $self->_store_zone_source($zone, $source, 'misterhouse');
-   } elsif ($cmd eq 'ChangeSrc') {
-      my ($zone, $source) = split /\//, $value;
-      if ($zone == 0) {
-         for (my $i = 1; $i <= MAX_ZONES; $i++) {
-            $self->_store_zone_source($i, $source, 'misterhouse');
-         }
-      } else {
-         unless ($self->_see_if_zone_just_turned_on($zone, $source, 'misterhouse')) {
-            $self->_store_zone_source($zone, $source, 'misterhouse');
-         }
-      }
-      if ($compare eq 'ChangeSrc') {
-         $self->_found_response();
-      }
-   } elsif ($cmd eq 'ChangeStore') {
-      my ($source, $label) = split /\//, $value;
-      if ($$self{'sources'}[$source]) {
-         $$self{'sources'}[$source]->{'label'} = $label;
-      }
-   } elsif ($cmd eq 'EventStore') {
-      unless (SOURCE_IGNORE_LABLES) {
-         my ($zone, @sources) = split /\//, $value;
-         my $changed = 0;
-         for (my $i = 1; $i <= MAX_SOURCES; $i++) {
-            if ($$self{'sources'}[$i]) {
-               unless ($$self{'sources'}[$i]->{'label'} eq $sources[$i-1]) {
-                  if ($$self{'sources'}[$i]->{'label'}) {
-                     $changed = $i;
-                     $$self{'sources'}[$i]->{'label'} = $sources[$i-1];
-                     if ($$self{'zones'}[$zone]) {
-                        $$self{'sources'}[$i]->set_receive('label_changed', $$self{'zones'}[$zone]);
-                     } else {
-                        $$self{'sources'}[$i]->set_receive('label_changed', undef);
-                     }
-                  }
-               }
+        }
+    }
+    elsif ( $cmd eq 'ExeLock' ) {
+        my ( $zone, $lock ) = split /\//, $value;
+        $self->_store_zone_data( $zone, 'locked', $lock,
+            ( $lock ? 'locked' : 'unlocked' ) );
+    }
+    elsif ( $cmd eq 'ChangeVol' ) {
+        my ( $zone, $volume ) = split /\//, $value;
+        $self->_store_zone_data( $zone, 'volume', $volume, 'volume_changed' );
+    }
+    elsif ( $cmd eq 'NudgeVol' ) {
+        my ( $zone, $volume ) = split /\//, $value;
+        $self->_store_zone_nudge( $zone, 'volume', $volume, 0, 35,
+            'volume_changed' );
+    }
+    elsif ( $cmd eq 'ChangeMute' ) {
+        my ( $zone, $mute ) = split /\//, $value;
+        $self->_store_zone_data( $zone, 'mute', $mute,
+            ( $mute ? 'mute_on' : 'mute_off' ) );
+    }
+    elsif ( $cmd eq 'ChangeTreb' ) {
+        my ( $zone, $treble ) = split /\//, $value;
+        $self->_store_zone_data( $zone, 'treble', $treble, 'treble_changed' );
+    }
+    elsif ( $cmd eq 'NudgeTreb' ) {
+        my ( $zone, $treble ) = split /\//, $value;
+        $self->_store_zone_nudge( $zone, 'treble', $treble, 1, 15,
+            'treble_changed' );
+    }
+    elsif ( $cmd eq 'ChangeBass' ) {
+        my ( $zone, $bass ) = split /\//, $value;
+        $self->_store_zone_data( $zone, 'bass', $bass, 'bass_changed' );
+    }
+    elsif ( $cmd eq 'NudgeBass' ) {
+        my ( $zone, $bass ) = split /\//, $value;
+        $self->_store_zone_nudge( $zone, 'bass', $bass, 1, 15, 'bass_changed' );
+    }
+    elsif ( $cmd eq 'ChangeBal' ) {
+        my ( $zone, $balance ) = split /\//, $value;
+        $self->_store_zone_data( $zone, 'balance', $balance,
+            'balance_changed' );
+    }
+    elsif ( $cmd eq 'NudgeBal' ) {
+        my ( $zone, $balance ) = split /\//, $value;
+        $self->_store_zone_nudge( $zone, 'balance', $balance, 1, 15,
+            'balance_changed' );
+    }
+    elsif ( $cmd eq 'ChangeLoud' ) {
+        my ( $zone, $loudness ) = split /\//, $value;
+        $self->_store_zone_data( $zone, 'loudness', $loudness,
+            ( $loudness ? 'loudness_on' : 'loudness_off' ) );
+    }
+    elsif ( $cmd eq 'ChangeAmp' ) {
+        my ( $zone, $amp ) = split /\//, $value;
+        my $newstate = 'internal_amp';
+        if ( $amp == 1 ) {
+            $newstate = 'internal_external_amp';
+        }
+        elsif ( $amp == 2 ) {
+            $newstate = 'external_amp';
+        }
+        $self->_store_zone_data( $zone, 'amp', $amp, $newstate );
+    }
+    elsif ( $cmd eq 'ChangeBaCo' ) {
+        my ( $zone, $color ) = split /\//, $value;
+        $self->_store_zone_data( $zone, 'blcolor', $color,
+            ( $color ? 'color_amber' : 'color_green' ) );
+    }
+    elsif ( $cmd eq 'ChangeBaLi' ) {
+        my ( $zone, $level ) = split /\//, $value;
+        $self->_store_zone_data( $zone, 'brightness', $level,
+            'brightness_changed' );
+    }
+    elsif ( $cmd eq 'NudgeSrc' ) {
+        my ( $zone, $source ) = split /\//, $value;
+        $self->_store_zone_source( $zone, $source, 'misterhouse' );
+    }
+    elsif ( $cmd eq 'ChangeSrc' ) {
+        my ( $zone, $source ) = split /\//, $value;
+        if ( $zone == 0 ) {
+            for ( my $i = 1; $i <= MAX_ZONES; $i++ ) {
+                $self->_store_zone_source( $i, $source, 'misterhouse' );
             }
-         }
-         if ($$self{'zones'}[$zone]) {
-            $$self{'zones'}[$zone]->set_receive('changed_label_source_' . $changed, 'keypad') if $changed;
-         }
-      }
-   } elsif ($cmd eq 'EventSrc') {
-      my (@sources) = split /\//, $value;
-      my $who = 'keypad';
-      if ($self->{'next_last_received'} eq 'AllOff') {
-         $who = 'misterhouse';
-      }
-      for (my $i = 1; $i <= MAX_ZONES; $i++) {
-         unless ($self->_see_if_zone_just_turned_on($i, $sources[$i-1], $who)) {
-            $self->_store_zone_source($i, $sources[$i-1], $who);
-         }
-      }
-   } elsif ($cmd eq 'EventData') {
-      my ($zone, $volume, $bass, $treble, $balance, $loudness, $mute, $blcolor,
-          $brightness, $audioport, $amp, $locked, $overheat) = split /\//, $value;
-      if ($$self{'zones'}[$zone]) {
-         if ($self->_check_first_cmd($zone, "ChangeVol/$zone/$volume")) {
-            $self->_store_zone_data($zone, 'volume', $volume, 'volume_changed');
-         } elsif ($$self{'zones'}[$zone]->{'volume'} != $volume) {
-            if (defined($$self{'zones'}[$zone]->{'volume'}) and (($$self{'zones'}[$zone]->{'on_time'} + IGNORE_AFTER_ON) < $::Time)) {
-               $$self{'zones'}[$zone]->set_receive('volume_changed', 'keypad')
+        }
+        else {
+            unless (
+                $self->_see_if_zone_just_turned_on(
+                    $zone, $source, 'misterhouse'
+                )
+              )
+            {
+                $self->_store_zone_source( $zone, $source, 'misterhouse' );
             }
-            $$self{'zones'}[$zone]->{'volume'} = $volume;
-         }
-         if ($self->_check_first_cmd($zone, "ChangeBass/$zone/$bass")) {
-            $self->_store_zone_data($zone, 'bass', $bass, 'bass_changed');
-         } elsif ($$self{'zones'}[$zone]->{'bass'} != $bass) {
-            $$self{'zones'}[$zone]->set_receive('bass_changed', 'keypad') if defined $$self{'zones'}[$zone]->{'bass'};
-            $$self{'zones'}[$zone]->{'bass'} = $bass;
-         }
-         if ($self->_check_first_cmd($zone, "ChangeTreb/$zone/$treble")) {
-            $self->_store_zone_data($zone, 'treble', $treble, 'treble_changed');
-         } elsif ($$self{'zones'}[$zone]->{'treble'} != $treble) {
-            $$self{'zones'}[$zone]->set_receive('treble_changed', 'keypad') if defined $$self{'zones'}[$zone]->{'treble'};
-            $$self{'zones'}[$zone]->{'treble'} = $treble;
-         }
-         if ($self->_check_first_cmd($zone, "ChangeBal/$zone/$balance")) {
-            $self->_store_zone_data($zone, 'balance', $balance, 'balance_changed');
-         } elsif ($$self{'zones'}[$zone]->{'balance'} != $balance) {
-            $$self{'zones'}[$zone]->set_receive('balance_changed', 'keypad') if defined $$self{'zones'}[$zone]->{'balance'};
-            $$self{'zones'}[$zone]->{'balance'} = $balance;
-         }
-         if ($self->_check_first_cmd($zone, "ChangeLoud/$zone/$loudness")) {
-            $self->_store_zone_data($zone, 'loudness', $loudness, ($loudness ? 'loudness_on' : 'loudness_off'));
-         } elsif ($$self{'zones'}[$zone]->{'loudness'} != $loudness) {
-            if ($loudness) {
-               $$self{'zones'}[$zone]->set_receive('loudness_on', 'keypad') if defined $$self{'zones'}[$zone]->{'loudness'};
-            } else {
-               $$self{'zones'}[$zone]->set_receive('loudness_off', 'keypad') if defined $$self{'zones'}[$zone]->{'loudness'};
+        }
+        if ( $compare eq 'ChangeSrc' ) {
+            $self->_found_response();
+        }
+    }
+    elsif ( $cmd eq 'ChangeStore' ) {
+        my ( $source, $label ) = split /\//, $value;
+        if ( $$self{'sources'}[$source] ) {
+            $$self{'sources'}[$source]->{'label'} = $label;
+        }
+    }
+    elsif ( $cmd eq 'EventStore' ) {
+        unless (SOURCE_IGNORE_LABLES) {
+            my ( $zone, @sources ) = split /\//, $value;
+            my $changed = 0;
+            for ( my $i = 1; $i <= MAX_SOURCES; $i++ ) {
+                if ( $$self{'sources'}[$i] ) {
+                    unless (
+                        $$self{'sources'}[$i]->{'label'} eq $sources[ $i - 1 ] )
+                    {
+                        if ( $$self{'sources'}[$i]->{'label'} ) {
+                            $changed = $i;
+                            $$self{'sources'}[$i]->{'label'} =
+                              $sources[ $i - 1 ];
+                            if ( $$self{'zones'}[$zone] ) {
+                                $$self{'sources'}[$i]
+                                  ->set_receive( 'label_changed',
+                                    $$self{'zones'}[$zone] );
+                            }
+                            else {
+                                $$self{'sources'}[$i]
+                                  ->set_receive( 'label_changed', undef );
+                            }
+                        }
+                    }
+                }
             }
-            $$self{'zones'}[$zone]->{'loudness'} = $loudness;
-         }
-         if ($self->_check_first_cmd($zone, "ChangeMute/$zone/$mute")) {
-            $self->_store_zone_data($zone, 'mute', $mute, ($mute ? 'mute_on' : 'mute_off'));
-         } elsif ($$self{'zones'}[$zone]->{'mute'} != $mute) {
-            if (defined($$self{'zones'}[$zone]->{'mute'}) and (($$self{'zones'}[$zone]->{'on_time'} + IGNORE_AFTER_ON) < $::Time)) {
-               if ($mute) {
-                  $$self{'zones'}[$zone]->set_receive('mute_on', 'keypad');
-               } else {
-                  $$self{'zones'}[$zone]->set_receive('mute_off', 'keypad');
-               }
+            if ( $$self{'zones'}[$zone] ) {
+                $$self{'zones'}[$zone]
+                  ->set_receive( 'changed_label_source_' . $changed, 'keypad' )
+                  if $changed;
             }
-            $$self{'zones'}[$zone]->{'mute'} = $mute;
-         }
-         if ($self->_check_first_cmd($zone, "ChangeBaCo/$zone/$blcolor")) {
-            $self->_store_zone_data($zone, 'blcolor', $blcolor, ($blcolor ? 'color_amber' : 'color_green'));
-         } elsif ($$self{'zones'}[$zone]->{'blcolor'} != $blcolor) {
-            if ($blcolor) {
-               $$self{'zones'}[$zone]->set_receive('color_amber', 'keypad') if defined $$self{'zones'}[$zone]->{'blcolor'};
-            } else {
-               $$self{'zones'}[$zone]->set_receive('color_green', 'keypad') if defined $$self{'zones'}[$zone]->{'blcolor'};
+        }
+    }
+    elsif ( $cmd eq 'EventSrc' ) {
+        my (@sources) = split /\//, $value;
+        my $who = 'keypad';
+        if ( $self->{'next_last_received'} eq 'AllOff' ) {
+            $who = 'misterhouse';
+        }
+        for ( my $i = 1; $i <= MAX_ZONES; $i++ ) {
+            unless (
+                $self->_see_if_zone_just_turned_on(
+                    $i, $sources[ $i - 1 ], $who
+                )
+              )
+            {
+                $self->_store_zone_source( $i, $sources[ $i - 1 ], $who );
             }
-            $$self{'zones'}[$zone]->{'blcolor'} = $blcolor;
-         }
-         if ($self->_check_first_cmd($zone, "ChangeBaLi/$zone/$brightness")) {
-            $self->_store_zone_data($zone, 'brightness', $brightness, 'brightness_changed');
-         } elsif ($$self{'zones'}[$zone]->{'brightness'} != $brightness) {
-            if (defined $$self{'zones'}[$zone]->{'brightness'}) {
-               if ($$self{'zones'}[$zone]->{'brightness'} == 0) {
-                  $$self{'zones'}[$zone]->set_receive('backlight_on', 'keypad')
-               } elsif ($brightness == 0) {
-                  $$self{'zones'}[$zone]->set_receive('backlight_off', 'keypad')
-               } else {
-                  $$self{'zones'}[$zone]->set_receive('brightness_changed', 'keypad')
-               }
+        }
+    }
+    elsif ( $cmd eq 'EventData' ) {
+        my (
+            $zone,     $volume, $bass,    $treble,     $balance,
+            $loudness, $mute,   $blcolor, $brightness, $audioport,
+            $amp,      $locked, $overheat
+        ) = split /\//, $value;
+        if ( $$self{'zones'}[$zone] ) {
+            if ( $self->_check_first_cmd( $zone, "ChangeVol/$zone/$volume" ) ) {
+                $self->_store_zone_data( $zone, 'volume', $volume,
+                    'volume_changed' );
             }
-            $$self{'zones'}[$zone]->{'brightness'} = $brightness;
-         }
-         unless ($$self{'zones'}[$zone]->{'audioport'} == $audioport) {
-            if ($audioport) {
-               $$self{'zones'}[$zone]->set_receive('audio_port_connected', 'keypad') if defined $$self{'zones'}[$zone]->{'audioport'};
-            } else {
-               $$self{'zones'}[$zone]->set_receive('audio_port_disconnected', 'keypad') if defined $$self{'zones'}[$zone]->{'audioport'};
+            elsif ( $$self{'zones'}[$zone]->{'volume'} != $volume ) {
+                if (
+                    defined( $$self{'zones'}[$zone]->{'volume'} )
+                    and (
+                        (
+                            $$self{'zones'}[$zone]->{'on_time'} +
+                            IGNORE_AFTER_ON
+                        ) < $::Time
+                    )
+                  )
+                {
+                    $$self{'zones'}[$zone]
+                      ->set_receive( 'volume_changed', 'keypad' );
+                }
+                $$self{'zones'}[$zone]->{'volume'} = $volume;
             }
-            $$self{'zones'}[$zone]->{'audioport'} = $audioport;
-         }
-         if ($self->_check_first_cmd($zone, "ChangeAmp/$zone/$amp")) {
-            my $newstate = 'internal_amp';
-            if ($amp == 1) {
-               $newstate = 'internal_external_amp';
-            } elsif ($amp == 2) {
-               $newstate = 'external_amp';
+            if ( $self->_check_first_cmd( $zone, "ChangeBass/$zone/$bass" ) ) {
+                $self->_store_zone_data( $zone, 'bass', $bass, 'bass_changed' );
             }
-            $self->_store_zone_data($zone, 'amp', $amp, $newstate);
-         } elsif ($$self{'zones'}[$zone]->{'amp'} != $amp) {
-            if ($amp == 0) {
-               $$self{'zones'}[$zone]->set_receive('internal_amp', 'keypad') if defined $$self{'zones'}[$zone]->{'amp'};
-            } elsif ($amp == 1) {
-               $$self{'zones'}[$zone]->set_receive('internal_external_amp', 'keypad') if defined $$self{'zones'}[$zone]->{'amp'};
-            } else {
-               $$self{'zones'}[$zone]->set_receive('external_amp', 'keypad') if defined $$self{'zones'}[$zone]->{'amp'};
+            elsif ( $$self{'zones'}[$zone]->{'bass'} != $bass ) {
+                $$self{'zones'}[$zone]->set_receive( 'bass_changed', 'keypad' )
+                  if defined $$self{'zones'}[$zone]->{'bass'};
+                $$self{'zones'}[$zone]->{'bass'} = $bass;
             }
-            $$self{'zones'}[$zone]->{'amp'} = $amp;
-         }
-         unless ($$self{'zones'}[$zone]->{'locked'} == $locked) {
-            if ($locked) {
-               $$self{'zones'}[$zone]->set_receive('locked', 'keypad') if defined $$self{'zones'}[$zone]->{'locked'};
-            } else {
-               $$self{'zones'}[$zone]->set_receive('unlocked', 'keypad') if defined $$self{'zones'}[$zone]->{'locked'};
+            if ( $self->_check_first_cmd( $zone, "ChangeTreb/$zone/$treble" ) )
+            {
+                $self->_store_zone_data( $zone, 'treble', $treble,
+                    'treble_changed' );
             }
-            $$self{'zones'}[$zone]->{'locked'} = $locked;
-         }
-         unless ($$self{'zones'}[$zone]->{'overheat'} == $overheat) {
-            if ($overheat) {
-               $$self{'zones'}[$zone]->set_receive('overheated', 'keypad') if defined $$self{'zones'}[$zone]->{'overheat'};
-            } else {
-               $$self{'zones'}[$zone]->set_receive('heat_normal', 'keypad') if defined $$self{'zones'}[$zone]->{'overheat'};
+            elsif ( $$self{'zones'}[$zone]->{'treble'} != $treble ) {
+                $$self{'zones'}[$zone]
+                  ->set_receive( 'treble_changed', 'keypad' )
+                  if defined $$self{'zones'}[$zone]->{'treble'};
+                $$self{'zones'}[$zone]->{'treble'} = $treble;
             }
-            $$self{'zones'}[$zone]->{'overheat'} = $overheat;
-         }
-         if ($$self{'zones'}[$zone]->{'just_turned_on'}) {
-            &::print_log("$self->{'port_name'}: Got first EventData after zone $zone was turned on, setting zone_on state") if $main::Debug{musica};
-            $self->_store_zone_source($zone, $$self{'zones'}[$zone]->{'just_turned_on'}, $$self{'zones'}[$zone]->{'just_turned_on_by'});
-            $$self{'zones'}[$zone]->{'just_turned_on'} = 0;
-            if ($$self{'waiting_for_zone'} == $zone) {
-               &::print_log("$self->{'port_name'}: Queue was waiting on this zone, sending next message") if $main::Debug{musica};
-               $$self{'waiting_for_zone'} = 0;
-               $self->_send_next_cmd();
+            if ( $self->_check_first_cmd( $zone, "ChangeBal/$zone/$balance" ) )
+            {
+                $self->_store_zone_data( $zone, 'balance', $balance,
+                    'balance_changed' );
             }
-         }
-      }
-   }
+            elsif ( $$self{'zones'}[$zone]->{'balance'} != $balance ) {
+                $$self{'zones'}[$zone]
+                  ->set_receive( 'balance_changed', 'keypad' )
+                  if defined $$self{'zones'}[$zone]->{'balance'};
+                $$self{'zones'}[$zone]->{'balance'} = $balance;
+            }
+            if (
+                $self->_check_first_cmd( $zone, "ChangeLoud/$zone/$loudness" ) )
+            {
+                $self->_store_zone_data( $zone, 'loudness', $loudness,
+                    ( $loudness ? 'loudness_on' : 'loudness_off' ) );
+            }
+            elsif ( $$self{'zones'}[$zone]->{'loudness'} != $loudness ) {
+                if ($loudness) {
+                    $$self{'zones'}[$zone]
+                      ->set_receive( 'loudness_on', 'keypad' )
+                      if defined $$self{'zones'}[$zone]->{'loudness'};
+                }
+                else {
+                    $$self{'zones'}[$zone]
+                      ->set_receive( 'loudness_off', 'keypad' )
+                      if defined $$self{'zones'}[$zone]->{'loudness'};
+                }
+                $$self{'zones'}[$zone]->{'loudness'} = $loudness;
+            }
+            if ( $self->_check_first_cmd( $zone, "ChangeMute/$zone/$mute" ) ) {
+                $self->_store_zone_data( $zone, 'mute', $mute,
+                    ( $mute ? 'mute_on' : 'mute_off' ) );
+            }
+            elsif ( $$self{'zones'}[$zone]->{'mute'} != $mute ) {
+                if (
+                    defined( $$self{'zones'}[$zone]->{'mute'} )
+                    and (
+                        (
+                            $$self{'zones'}[$zone]->{'on_time'} +
+                            IGNORE_AFTER_ON
+                        ) < $::Time
+                    )
+                  )
+                {
+                    if ($mute) {
+                        $$self{'zones'}[$zone]
+                          ->set_receive( 'mute_on', 'keypad' );
+                    }
+                    else {
+                        $$self{'zones'}[$zone]
+                          ->set_receive( 'mute_off', 'keypad' );
+                    }
+                }
+                $$self{'zones'}[$zone]->{'mute'} = $mute;
+            }
+            if ( $self->_check_first_cmd( $zone, "ChangeBaCo/$zone/$blcolor" ) )
+            {
+                $self->_store_zone_data( $zone, 'blcolor', $blcolor,
+                    ( $blcolor ? 'color_amber' : 'color_green' ) );
+            }
+            elsif ( $$self{'zones'}[$zone]->{'blcolor'} != $blcolor ) {
+                if ($blcolor) {
+                    $$self{'zones'}[$zone]
+                      ->set_receive( 'color_amber', 'keypad' )
+                      if defined $$self{'zones'}[$zone]->{'blcolor'};
+                }
+                else {
+                    $$self{'zones'}[$zone]
+                      ->set_receive( 'color_green', 'keypad' )
+                      if defined $$self{'zones'}[$zone]->{'blcolor'};
+                }
+                $$self{'zones'}[$zone]->{'blcolor'} = $blcolor;
+            }
+            if (
+                $self->_check_first_cmd(
+                    $zone, "ChangeBaLi/$zone/$brightness"
+                )
+              )
+            {
+                $self->_store_zone_data( $zone, 'brightness', $brightness,
+                    'brightness_changed' );
+            }
+            elsif ( $$self{'zones'}[$zone]->{'brightness'} != $brightness ) {
+                if ( defined $$self{'zones'}[$zone]->{'brightness'} ) {
+                    if ( $$self{'zones'}[$zone]->{'brightness'} == 0 ) {
+                        $$self{'zones'}[$zone]
+                          ->set_receive( 'backlight_on', 'keypad' );
+                    }
+                    elsif ( $brightness == 0 ) {
+                        $$self{'zones'}[$zone]
+                          ->set_receive( 'backlight_off', 'keypad' );
+                    }
+                    else {
+                        $$self{'zones'}[$zone]
+                          ->set_receive( 'brightness_changed', 'keypad' );
+                    }
+                }
+                $$self{'zones'}[$zone]->{'brightness'} = $brightness;
+            }
+            unless ( $$self{'zones'}[$zone]->{'audioport'} == $audioport ) {
+                if ($audioport) {
+                    $$self{'zones'}[$zone]
+                      ->set_receive( 'audio_port_connected', 'keypad' )
+                      if defined $$self{'zones'}[$zone]->{'audioport'};
+                }
+                else {
+                    $$self{'zones'}[$zone]
+                      ->set_receive( 'audio_port_disconnected', 'keypad' )
+                      if defined $$self{'zones'}[$zone]->{'audioport'};
+                }
+                $$self{'zones'}[$zone]->{'audioport'} = $audioport;
+            }
+            if ( $self->_check_first_cmd( $zone, "ChangeAmp/$zone/$amp" ) ) {
+                my $newstate = 'internal_amp';
+                if ( $amp == 1 ) {
+                    $newstate = 'internal_external_amp';
+                }
+                elsif ( $amp == 2 ) {
+                    $newstate = 'external_amp';
+                }
+                $self->_store_zone_data( $zone, 'amp', $amp, $newstate );
+            }
+            elsif ( $$self{'zones'}[$zone]->{'amp'} != $amp ) {
+                if ( $amp == 0 ) {
+                    $$self{'zones'}[$zone]
+                      ->set_receive( 'internal_amp', 'keypad' )
+                      if defined $$self{'zones'}[$zone]->{'amp'};
+                }
+                elsif ( $amp == 1 ) {
+                    $$self{'zones'}[$zone]
+                      ->set_receive( 'internal_external_amp', 'keypad' )
+                      if defined $$self{'zones'}[$zone]->{'amp'};
+                }
+                else {
+                    $$self{'zones'}[$zone]
+                      ->set_receive( 'external_amp', 'keypad' )
+                      if defined $$self{'zones'}[$zone]->{'amp'};
+                }
+                $$self{'zones'}[$zone]->{'amp'} = $amp;
+            }
+            unless ( $$self{'zones'}[$zone]->{'locked'} == $locked ) {
+                if ($locked) {
+                    $$self{'zones'}[$zone]->set_receive( 'locked', 'keypad' )
+                      if defined $$self{'zones'}[$zone]->{'locked'};
+                }
+                else {
+                    $$self{'zones'}[$zone]->set_receive( 'unlocked', 'keypad' )
+                      if defined $$self{'zones'}[$zone]->{'locked'};
+                }
+                $$self{'zones'}[$zone]->{'locked'} = $locked;
+            }
+            unless ( $$self{'zones'}[$zone]->{'overheat'} == $overheat ) {
+                if ($overheat) {
+                    $$self{'zones'}[$zone]
+                      ->set_receive( 'overheated', 'keypad' )
+                      if defined $$self{'zones'}[$zone]->{'overheat'};
+                }
+                else {
+                    $$self{'zones'}[$zone]
+                      ->set_receive( 'heat_normal', 'keypad' )
+                      if defined $$self{'zones'}[$zone]->{'overheat'};
+                }
+                $$self{'zones'}[$zone]->{'overheat'} = $overheat;
+            }
+            if ( $$self{'zones'}[$zone]->{'just_turned_on'} ) {
+                &::print_log(
+                    "$self->{'port_name'}: Got first EventData after zone $zone was turned on, setting zone_on state"
+                ) if $main::Debug{musica};
+                $self->_store_zone_source(
+                    $zone,
+                    $$self{'zones'}[$zone]->{'just_turned_on'},
+                    $$self{'zones'}[$zone]->{'just_turned_on_by'}
+                );
+                $$self{'zones'}[$zone]->{'just_turned_on'} = 0;
+                if ( $$self{'waiting_for_zone'} == $zone ) {
+                    &::print_log(
+                        "$self->{'port_name'}: Queue was waiting on this zone, sending next message"
+                    ) if $main::Debug{musica};
+                    $$self{'waiting_for_zone'} = 0;
+                    $self->_send_next_cmd();
+                }
+            }
+        }
+    }
 }
 
 sub _process_keypad_version {
-   my ($self, $zone_num) = @_;
-   if ($$self{'zones'}[$zone_num]->{'keypad_version'} < 40822) {
-      # Use older source names if any keypad is older...
-      %source_name_to_number = %source_name_to_number_30419;
-      @source_number_to_name = @source_number_to_name_30419;
-   }
+    my ( $self, $zone_num ) = @_;
+    if ( $$self{'zones'}[$zone_num]->{'keypad_version'} < 40822 ) {
+
+        # Use older source names if any keypad is older...
+        %source_name_to_number = %source_name_to_number_30419;
+        @source_number_to_name = @source_number_to_name_30419;
+    }
 }
 
 sub _register_zone {
-   my ($self, $zone_obj, $zone_num) = @_;
-   $$self{'zones'}[$zone_num] = $zone_obj;
-   # Determine version of the keypad
-   if ($$self{'zones'}[$zone_num]->{'keypad_version'}) {
-      &::print_log("$self->{'port_name'}: Netstreams Musica Zone $zone_num Keypad Version: " . $$self{'zones'}[$zone_num]->{'keypad_version'} . " (as specified in your .mht file)");
-      $self->_process_keypad_version($zone_num);
-   } else {
-      if ($main::Save{"Musica-Keypad$zone_num-Version"}) {
-         $$self{'zones'}[$zone_num]->{'keypad_version'} = $main::Save{"Musica-Keypad$zone_num-Version"};
-         &::print_log("$self->{'port_name'}: Netstreams Musica Zone $zone_num Keypad Version: " . $main::Save{"Musica-Keypad$zone_num-Version"} . " (restored from \%Save)");
-         $self->_process_keypad_version($zone_num);
-      } else {
-         $self->_queue_cmd("StatVer/$zone_num");
-      }
-   }
+    my ( $self, $zone_obj, $zone_num ) = @_;
+    $$self{'zones'}[$zone_num] = $zone_obj;
+
+    # Determine version of the keypad
+    if ( $$self{'zones'}[$zone_num]->{'keypad_version'} ) {
+        &::print_log(
+            "$self->{'port_name'}: Netstreams Musica Zone $zone_num Keypad Version: "
+              . $$self{'zones'}[$zone_num]->{'keypad_version'}
+              . " (as specified in your .mht file)" );
+        $self->_process_keypad_version($zone_num);
+    }
+    else {
+        if ( $main::Save{"Musica-Keypad$zone_num-Version"} ) {
+            $$self{'zones'}[$zone_num]->{'keypad_version'} =
+              $main::Save{"Musica-Keypad$zone_num-Version"};
+            &::print_log(
+                "$self->{'port_name'}: Netstreams Musica Zone $zone_num Keypad Version: "
+                  . $main::Save{"Musica-Keypad$zone_num-Version"}
+                  . " (restored from \%Save)" );
+            $self->_process_keypad_version($zone_num);
+        }
+        else {
+            $self->_queue_cmd("StatVer/$zone_num");
+        }
+    }
 }
 
 sub _register_source {
-   my ($self, $source_obj, $source_num) = @_;
-   $$self{'sources'}[$source_num] = $source_obj;
+    my ( $self, $source_obj, $source_num ) = @_;
+    $$self{'sources'}[$source_num] = $source_obj;
 }
 
 sub _send_next_cmd {
-   my ($self) = @_;
-   if ($$self{'queue'}->[0]) {
-      my ($cmd, $zone, $value);
-      if (($cmd, $zone, $value) = ($$self{'queue'}->[0] =~ /^([^\/]+)\/(\d+)\/(\d+)/)) {
-         &::print_log("$self->{'port_name'}: checking command '$cmd' '$zone' '$value'") if $main::Debug{musica};
-         if ($$self{'zones'}[$zone]) {
-            # Check to make sure the zone still isn't turning on
-            &::print_log("$self->{'port_name'}: just_turned_on=$$self{'zones'}[$zone]->{'just_turned_on'} (zone $zone)") if $main::Debug{musica};
-            if ($$self{'zones'}[$zone]->{'just_turned_on'}) {
-               my $moved = '';
-               # See if we can find a command for another zone meanwhile
-               for (my $i = 0; $i <= {@{$$self{'queue'}}}; $i++) {
-                  if ($$self{'queue'}->[$i] =~ /^[^\/]+\/(\d+)/) {
-                     if ($$self{'zones'}[$1] and not $$self{'zones'}[$zone]->{'just_turned_on'}) {
-                        $moved = $$self{'queue'}->[$i];
-                        splice @{$$self{'queue'}}, $i, 1;
-                        unshift @{$$self{'queue'}}, $moved;
-                     }
-                  }
-               }
-               if ($moved) {
-                  &::print_log("$self->{'port_name'}: Moved command '$moved' to front of queue since we are waiting on zone $zone to turn on") if $main::Debug{musica};
-                  $self->_send_next_cmd();
-               } else {
-                  # Nothing to send, so we have to wait...
-                  $$self{'waiting_for_zone'} = $zone;
-                  &::print_log("$self->{'port_name'}: Queue stalled while waiting for zone $zone to turn on");
-                  return;
-               }
+    my ($self) = @_;
+    if ( $$self{'queue'}->[0] ) {
+        my ( $cmd, $zone, $value );
+        if ( ( $cmd, $zone, $value ) =
+            ( $$self{'queue'}->[0] =~ /^([^\/]+)\/(\d+)\/(\d+)/ ) )
+        {
+            &::print_log(
+                "$self->{'port_name'}: checking command '$cmd' '$zone' '$value'"
+            ) if $main::Debug{musica};
+            if ( $$self{'zones'}[$zone] ) {
+
+                # Check to make sure the zone still isn't turning on
+                if ( $$self{'zones'}[$zone]->{'just_turned_on'} ) {
+                    &::print_log(
+                        "$self->{'port_name'}: just_turned_on=$$self{'zones'}[$zone]->{'just_turned_on'} (zone $zone)"
+                    ) if $main::Debug{musica};
+                    my $moved = '';
+
+                    # See if we can find a command for another zone meanwhile
+                    for ( my $i = 0;
+                        $i <= scalar( @{ $$self{'queue'} } ); $i++ )
+                    {
+                        if ( $$self{'queue'}->[$i] =~ /^[^\/]+\/(\d+)/ ) {
+                            if ( $$self{'zones'}[$1]
+                                and
+                                not $$self{'zones'}[$zone]->{'just_turned_on'} )
+                            {
+                                $moved = $$self{'queue'}->[$i];
+                                splice @{ $$self{'queue'} }, $i, 1;
+                                unshift @{ $$self{'queue'} }, $moved;
+                            }
+                        }
+                    }
+                    if ($moved) {
+                        &::print_log(
+                            "$self->{'port_name'}: Moved command '$moved' to front of queue since we are waiting on zone $zone to turn on"
+                        ) if $main::Debug{musica};
+                        $self->_send_next_cmd();
+                    }
+                    else {
+                        # Nothing to send, so we have to wait...
+                        $$self{'waiting_for_zone'} = $zone;
+                        &::print_log(
+                            "$self->{'port_name'}: Queue stalled while waiting for zone $zone to turn on"
+                        );
+                        return;
+                    }
+                }
+
+                # Check to see if this command is necessary since the new keypads will not
+                # respond with an EventData if these messages don't change anythig
+                if ( $commands_to_keys{$cmd} ) {
+                    &::print_log(
+                        "$self->{'port_name'}: $cmd -> $commands_to_keys{$cmd}")
+                      if $main::Debug{musica};
+                    if (
+                        defined $$self{'zones'}[$zone]
+                        ->{ $commands_to_keys{$cmd} } )
+                    {
+                        if ( $$self{'zones'}[$zone]->{ $commands_to_keys{$cmd} }
+                            == $value )
+                        {
+                            &::print_log(
+                                "$self->{'port_name'} zone $zone: dropping unnecessary command (already set to value): [$$self{'queue'}->[0]]"
+                            ) if $main::Debug{musica};
+                            shift @{ $$self{'queue'} };
+                            $self->_send_next_cmd();
+                            return;
+                        }
+                    }
+                }
             }
-            # Check to see if this command is necessary since the new keypads will not
-            # respond with an EventData if these messages don't change anythig
-            if ($commands_to_keys{$cmd}) {
-               &::print_log("$self->{'port_name'}: $cmd -> $commands_to_keys{$cmd}") if $main::Debug{musica};
-               if (defined $$self{'zones'}[$zone]->{$commands_to_keys{$cmd}}) {
-                  if ($$self{'zones'}[$zone]->{$commands_to_keys{$cmd}} == $value) {
-                     &::print_log("$self->{'port_name'} zone $zone: dropping unnecessary command (already set to value): [$$self{'queue'}->[0]]") if $main::Debug{musica};
-                     shift @{$$self{'queue'}};
-                     $self->_send_next_cmd();
-                     return;
-                  }
-               }
+        }
+        &::print_log(
+            "$self->{'port_name'}: sending first command in queue: [$$self{'queue'}->[0]]"
+        ) if $main::Debug{musica};
+        $main::Serial_Ports{ $$self{'port_name'} }{'object'}
+          ->write("$$self{'queue'}->[0]\r");
+        $Musica_Systems{ $$self{'port_name'} }{'last_data_received'} = $::Time;
+        if ( $cmd and ( $cmd eq 'ChangeAmp' ) ) {
+            if (    $$self{'zones'}[$zone]
+                and $$self{'zones'}[$zone]->{'keypad_version'} >= 40822 )
+            {
+                # This version does not respond to this message
+                shift @{ $$self{'queue'} };
             }
-         }
-      }
-      &::print_log("$self->{'port_name'}: sending first command in queue: [$$self{'queue'}->[0]]") if $main::Debug{musica};
-      $main::Serial_Ports{$$self{'port_name'}}{'object'}->write("$$self{'queue'}->[0]\r");
-      $Musica_Systems{$$self{'port_name'}}{'last_data_received'} = $::Time;
-      if ($cmd and ($cmd eq 'ChangeAmp')) {
-         if ($$self{'zones'}[$zone] and $$self{'zones'}[$zone]->{'keypad_version'} >= 40822) {
-            # This version does not respond to this message
-            shift @{$$self{'queue'}};
-         }
-      }
-   }
+        }
+    }
 }
 
 sub _queue_cmd {
-   my ($self, $cmd) = @_;
-   if ($$self{'port_name'}) {
-      &::print_log("$self->{'port_name'}: queueing command: [$cmd]") if $main::Debug{musica};
-      if (($cmd =~ /^ChangeSrc\//) and ($#{$$self{'queue'}} >= 1)) {
-         # Make sure ChangeSrc commands come before other commands (but never in front of existing first command)
-         my $last = 0;
-         for (my $i = 1; $i <= $#{$$self{'queue'}}; $i++) {
-            if ($$self{'queue'}->[$i] =~ /^ChangeSrc\//) {
-               $last = $i;
+    my ( $self, $cmd ) = @_;
+    if ( $$self{'port_name'} ) {
+        &::print_log("$self->{'port_name'}: queueing command: [$cmd]")
+          if $main::Debug{musica};
+        if ( ( $cmd =~ /^ChangeSrc\// ) and ( $#{ $$self{'queue'} } >= 1 ) ) {
+
+            # Make sure ChangeSrc commands come before other commands (but never in front of existing first command)
+            my $last = 0;
+            for ( my $i = 1; $i <= $#{ $$self{'queue'} }; $i++ ) {
+                if ( $$self{'queue'}->[$i] =~ /^ChangeSrc\// ) {
+                    $last = $i;
+                }
             }
-         }
-         splice @{$$self{'queue'}}, 1, 0, $cmd;
-      } else {
-         push @{$$self{'queue'}}, $cmd;
-      }
-      if ($#{$$self{'queue'}} == 0) {
-         # No entries waiting in queue, send right away, and reset data received timer
-         $Musica_Systems{$$self{'port_name'}}{'last_data_received'} = $::Time;
-         $self->_send_next_cmd();
-      }
-   } elsif ($$self{'musica_obj'}) {
-      $$self{'musica_obj'}->_queue_cmd($cmd);
-   } else {
-      &::print_log("ERROR: Musica($self->{'object_name'}): Could not find queue in which to place command [$cmd]") if $main::Debug{musica};
-   }
+            splice @{ $$self{'queue'} }, 1, 0, $cmd;
+        }
+        else {
+            push @{ $$self{'queue'} }, $cmd;
+        }
+        if ( $#{ $$self{'queue'} } == 0 ) {
+
+            # No entries waiting in queue, send right away, and reset data received timer
+            $Musica_Systems{ $$self{'port_name'} }{'last_data_received'} =
+              $::Time;
+            $self->_send_next_cmd();
+        }
+    }
+    elsif ( $$self{'musica_obj'} ) {
+        $$self{'musica_obj'}->_queue_cmd($cmd);
+    }
+    else {
+        &::print_log(
+            "ERROR: Musica($self->{'object_name'}): Could not find queue in which to place command [$cmd]"
+        ) if $main::Debug{musica};
+    }
 }
 
 # Takes in a number and a minimum and maximum value and converts that to
 # a number between 1 and 15.
 sub _scale_to_15 {
-   my ($val, $min, $max) = @_;
-   if ($val < $min) {
-      $val = $min;
-   }
-   if ($val > $max) {
-      $val = $max;
-   }
-   $val -= $min;
-   return (int(14*$val/($max-$min))+1);
+    my ( $val, $min, $max ) = @_;
+    if ( $val < $min ) {
+        $val = $min;
+    }
+    if ( $val > $max ) {
+        $val = $max;
+    }
+    $val -= $min;
+    return ( int( 14 * $val / ( $max - $min ) ) + 1 );
 }
 
 sub _print_log {
-   my ($self, $msg, $zone) = @_;
-   if ((not $zone) or ($zone == 0)) {
-      &::print_log("Musica($self->{'port_name'}): $msg") if $main::Debug{musica};
-   } elsif ($$self{'zones'}[$zone]) {
-      &::print_log("Musica($self->{'port_name'}) zone $zone: $msg") if $main::Debug{musica};
-   }
+    my ( $self, $msg, $zone ) = @_;
+    if ( ( not $zone ) or ( $zone == 0 ) ) {
+        &::print_log("Musica($self->{'port_name'}): $msg")
+          if $main::Debug{musica};
+    }
+    elsif ( $$self{'zones'}[$zone] ) {
+        &::print_log("Musica($self->{'port_name'}) zone $zone: $msg")
+          if $main::Debug{musica};
+    }
 }
 
 sub _critical_error {
-   my ($self, $error) = @_;
-   $self->_report_error($error);
-   if ($self->{'critical_error_function'}) {
-      $self->{'critical_error_function'}->($error);
-   }
+    my ( $self, $error ) = @_;
+    $self->_report_error($error);
+    if ( $self->{'critical_error_function'} ) {
+        $self->{'critical_error_function'}->($error);
+    }
 }
 
 sub _report_error {
-   my ($self, $error, $zone) = @_;
-   if ((not $zone) or ($zone == 0)) {
-      $$self{'last_error'} = $error;
-      $self->set_receive('error');
-      &::print_log("ERROR: Musica($self->{'port_name'}): $error");
-   } elsif ($$self{'zones'}[$zone]) {
-      $$self{'zones'}[$zone]->{'last_error'} = $error;
-      $$self{'zones'}[$zone]->set_receive('error');
-      &::print_log("ERROR: Musica($self->{'port_name'}) zone $zone: $error");
-   } else {
-      $$self{'last_error'} = "Received error regarding non-existant zone: $error";
-      $self->set_receive('error');
-   }
+    my ( $self, $error, $zone ) = @_;
+    if ( ( not $zone ) or ( $zone == 0 ) ) {
+        $$self{'last_error'} = $error;
+        $self->set_receive('error');
+        &::print_log("ERROR: Musica($self->{'port_name'}): $error");
+    }
+    elsif ( $$self{'zones'}[$zone] ) {
+        $$self{'zones'}[$zone]->{'last_error'} = $error;
+        $$self{'zones'}[$zone]->set_receive('error');
+        &::print_log("ERROR: Musica($self->{'port_name'}) zone $zone: $error");
+    }
+    else {
+        $$self{'last_error'} =
+          "Received error regarding non-existant zone: $error";
+        $self->set_receive('error');
+    }
 }
 
 sub _calc_zone_nudge {
-   my ($initial, $direction, $min, $max) = @_;
-   if ($direction == 0) {
-      $initial--;
-      if ($initial < $min) {
-         $initial = $min;
-      }
-   } elsif ($direction == 1) {
-      $initial++;
-      if ($initial > $max) {
-         $initial = $max;
-      }
-   }
-   return $initial;
+    my ( $initial, $direction, $min, $max ) = @_;
+    if ( $direction == 0 ) {
+        $initial--;
+        if ( $initial < $min ) {
+            $initial = $min;
+        }
+    }
+    elsif ( $direction == 1 ) {
+        $initial++;
+        if ( $initial > $max ) {
+            $initial = $max;
+        }
+    }
+    return $initial;
 }
 
 sub _store_zone_nudge {
-   my ($self, $zone, $member, $value, $min, $max, $newstate) = @_;
-   if ($zone == 0) {
-      for (my $i = 1; $i <= MAX_ZONES; $i++) {
-         if ($$self{'zones'}[$i] and $$self{'zones'}[$i]->{'present'}) {
-            $self->_store_zone_data($zone, $member, &Musica::_calc_zone_nudge($$self{'zones'}[$i]->{$member}, $value, $min, $max), $newstate);
-         }
-      }
-   } else {
-      $self->_store_zone_data($zone, $member, $value, $newstate);
-   }
+    my ( $self, $zone, $member, $value, $min, $max, $newstate ) = @_;
+    if ( $zone == 0 ) {
+        for ( my $i = 1; $i <= MAX_ZONES; $i++ ) {
+            if ( $$self{'zones'}[$i] and $$self{'zones'}[$i]->{'present'} ) {
+                $self->_store_zone_data(
+                    $zone, $member,
+                    &Musica::_calc_zone_nudge(
+                        $$self{'zones'}[$i]->{$member},
+                        $value, $min, $max
+                    ),
+                    $newstate
+                );
+            }
+        }
+    }
+    else {
+        $self->_store_zone_data( $zone, $member, $value, $newstate );
+    }
 }
 
 sub _store_zone_data {
-   my ($self, $zone, $member, $value, $newstate) = @_;
-   if ($zone == 0) {
-      for (my $i = 1; $i <= MAX_ZONES; $i++) {
-         if ($$self{'zones'}[$i] and $$self{'zones'}[$i]->{'present'}) {
-            if ($$self{'zones'}[$i]->{$member} != $value) {
-               $$self{'zones'}[$i]->{$member} = $value;
-               $$self{'zones'}[$i]->set_receive($newstate, 'misterhouse');
+    my ( $self, $zone, $member, $value, $newstate ) = @_;
+    if ( $zone == 0 ) {
+        for ( my $i = 1; $i <= MAX_ZONES; $i++ ) {
+            if ( $$self{'zones'}[$i] and $$self{'zones'}[$i]->{'present'} ) {
+                if ( $$self{'zones'}[$i]->{$member} != $value ) {
+                    $$self{'zones'}[$i]->{$member} = $value;
+                    $$self{'zones'}[$i]
+                      ->set_receive( $newstate, 'misterhouse' );
+                }
             }
-         }
-      }
-   } else {
-      if ($$self{'zones'}[$zone]) {
-         if ($value eq 'X') {
-            $$self{'zones'}[$zone]->_report_error("Zone keypad not detected by ADC (tried to set $member)");
-         } else {
-            if ($$self{'zones'}[$zone]->{$member} != $value) {
-               $$self{'zones'}[$zone]->{$member} = $value;
-               $$self{'zones'}[$zone]->set_receive($newstate, 'misterhouse');
+        }
+    }
+    else {
+        if ( $$self{'zones'}[$zone] ) {
+            if ( $value eq 'X' ) {
+                $$self{'zones'}[$zone]->_report_error(
+                    "Zone keypad not detected by ADC (tried to set $member)");
             }
-         }
-      }
-   }
+            else {
+                if ( $$self{'zones'}[$zone]->{$member} != $value ) {
+                    $$self{'zones'}[$zone]->{$member} = $value;
+                    $$self{'zones'}[$zone]
+                      ->set_receive( $newstate, 'misterhouse' );
+                }
+            }
+        }
+    }
 }
 
 sub _is_base_obj {
-   my ($self, $function) = @_;
-   if ($self->{'port_name'}) {
-      return 1;
-   } else {
-      $self->_report_error("$function() can only be called on main Musica object");
-      return 0;
-   }
+    my ( $self, $function ) = @_;
+    if ( $self->{'port_name'} ) {
+        return 1;
+    }
+    else {
+        $self->_report_error(
+            "$function() can only be called on main Musica object");
+        return 0;
+    }
 }
 
 sub get_zone_obj {
-   my ($self, $zone_num) = @_;
-   return $$self{'zones'}[$zone_num];
+    my ( $self, $zone_num ) = @_;
+    return $$self{'zones'}[$zone_num];
 }
 
 ################################################################################
@@ -1538,276 +1845,287 @@ sub get_zone_obj {
 ################################################################################
 
 sub set_critical_error_function {
-   my ($self, $ptr) = @_;
-   $self->{'critical_error_function'} = $ptr;
+    my ( $self, $ptr ) = @_;
+    $self->{'critical_error_function'} = $ptr;
 }
 
 sub get_musica_obj {
-   my ($self) = @_;
-   return $self->{'musica_obj'};
+    my ($self) = @_;
+    return $self->{'musica_obj'};
 }
 
 sub get_object_version {
-   return OBJECT_VERSION;
+    return OBJECT_VERSION;
 }
 
 sub get_port_name {
-   my ($self) = @_;
-   return unless ($self->_is_base_obj('get_port_name'));
-   return $self->{'port_name'};
+    my ($self) = @_;
+    return unless ( $self->_is_base_obj('get_port_name') );
+    return $self->{'port_name'};
 }
 
 sub get_zones {
-   my ($self) = @_;
-   return unless ($self->_is_base_obj('get_zones'));
-   return (@{$self->{'zones'}});
+    my ($self) = @_;
+    return unless ( $self->_is_base_obj('get_zones') );
+    return ( @{ $self->{'zones'} } );
 }
 
 sub get_sources {
-   my ($self) = @_;
-   return unless ($self->_is_base_obj('get_sources'));
-   return (@{$self->{'sources'}});
+    my ($self) = @_;
+    return unless ( $self->_is_base_obj('get_sources') );
+    return ( @{ $self->{'sources'} } );
 }
 
 sub get_adc_version {
-   my ($self) = @_;
-   return unless ($self->_is_base_obj('get_adc_version'));
-   return $self->{'adc_version'};
+    my ($self) = @_;
+    return unless ( $self->_is_base_obj('get_adc_version') );
+    return $self->{'adc_version'};
 }
 
 sub get_last_error {
-   my ($self) = @_;
-   return ($$self{'last_error'});
+    my ($self) = @_;
+    return ( $$self{'last_error'} );
 }
 
 sub all_off {
-   my ($self) = @_;
-   return unless ($self->_is_base_obj('all_off'));
-   $self->_queue_cmd('AllOff');
+    my ($self) = @_;
+    return unless ( $self->_is_base_obj('all_off') );
+    $self->_queue_cmd('AllOff');
 }
 
 sub activate_doorbell_mute {
-   my ($self) = @_;
-   return unless ($self->_is_base_obj('activate_doorbell_mute'));
-   $self->_queue_cmd("ChangeDoor/1");
+    my ($self) = @_;
+    return unless ( $self->_is_base_obj('activate_doorbell_mute') );
+    $self->_queue_cmd("ChangeDoor/1");
 }
 
 sub activate_phone_mute {
-   my ($self) = @_;
-   return unless ($self->_is_base_obj('activate_phone_mute'));
-   $self->_queue_cmd("ChangePhone/1");
+    my ($self) = @_;
+    return unless ( $self->_is_base_obj('activate_phone_mute') );
+    $self->_queue_cmd("ChangePhone/1");
 }
 
 sub switched_outlet_on {
-   my ($self) = @_;
-   return unless ($self->_is_base_obj('switched_outlet_on'));
-   $self->_queue_cmd("ChangeSwOu/1");
+    my ($self) = @_;
+    return unless ( $self->_is_base_obj('switched_outlet_on') );
+    $self->_queue_cmd("ChangeSwOu/1");
 }
 
 sub switched_outlet_off {
-   my ($self) = @_;
-   return unless ($self->_is_base_obj('switched_outlet_off'));
-   $self->_queue_cmd("ChangeSwOu/0");
+    my ($self) = @_;
+    return unless ( $self->_is_base_obj('switched_outlet_off') );
+    $self->_queue_cmd("ChangeSwOu/0");
 }
 
 sub set_treble {
-   my ($self, $treble) = @_;
-   $treble = _scale_to_15($treble, -14, 14);
-   $self->_queue_cmd("ChangeTreb/$$self{'zone'}/$treble");
+    my ( $self, $treble ) = @_;
+    $treble = _scale_to_15( $treble, -14, 14 );
+    $self->_queue_cmd("ChangeTreb/$$self{'zone'}/$treble");
 }
 
 sub set_bass {
-   my ($self, $bass) = @_;
-   my $newbass = _scale_to_15($bass, -14, 14);
-   $self->_queue_cmd("ChangeBass/$$self{'zone'}/$newbass");
+    my ( $self, $bass ) = @_;
+    my $newbass = _scale_to_15( $bass, -14, 14 );
+    $self->_queue_cmd("ChangeBass/$$self{'zone'}/$newbass");
 }
 
 sub set_balance {
-   my ($self, $balance) = @_;
-   $balance = _scale_to_15($balance, -7, 7);
-   $self->_queue_cmd("ChangeBal/$$self{'zone'}/$balance");
+    my ( $self, $balance ) = @_;
+    $balance = _scale_to_15( $balance, -7, 7 );
+    $self->_queue_cmd("ChangeBal/$$self{'zone'}/$balance");
 }
 
 sub set_source {
-   my ($self, $source) = @_;
-   if (ref $source) {
-      # Passing in a reference to an object?
-      if ($source->isa('Musica::Source')) {
-         $source = $source->{'source'};
-      } else {
-         $self->_report_error("set_source(): Invalid reference as source parameter: $source");
-      }
-   } elsif ($Musica::source_name_to_number{uc($source)}) {
-      # Specified the source label, look up proper source number
-      my $labelid = $Musica::source_name_to_number{uc($source)};
-      for (my $i = 1; $i <= MAX_SOURCES; $i++) {
-         if ($$self{'musica_obj'}->{'sources'}[$i]->{'label'} == $labelid) {
-            $source = $i;
-            last;
-         }
-      }
-   }
-   unless (($source eq 'E') or ($source eq 'F')) {
-      unless (($source > 0) and ($source <= Musica::MAX_SOURCES)) {
-         $self->_report_error("set_source(): Invalid source identifier: $source");
-         return;
-      }
-   }
-   $self->_queue_cmd("ChangeSrc/$$self{'zone'}/$source");
+    my ( $self, $source ) = @_;
+    if ( ref $source ) {
+
+        # Passing in a reference to an object?
+        if ( $source->isa('Musica::Source') ) {
+            $source = $source->{'source'};
+        }
+        else {
+            $self->_report_error(
+                "set_source(): Invalid reference as source parameter: $source");
+        }
+    }
+    elsif ( $Musica::source_name_to_number{ uc($source) } ) {
+
+        # Specified the source label, look up proper source number
+        my $labelid = $Musica::source_name_to_number{ uc($source) };
+        for ( my $i = 1; $i <= MAX_SOURCES; $i++ ) {
+            if ( $$self{'musica_obj'}->{'sources'}[$i]->{'label'} == $labelid )
+            {
+                $source = $i;
+                last;
+            }
+        }
+    }
+    unless ( ( $source eq 'E' ) or ( $source eq 'F' ) ) {
+        unless ( ( $source > 0 ) and ( $source <= Musica::MAX_SOURCES ) ) {
+            $self->_report_error(
+                "set_source(): Invalid source identifier: $source");
+            return;
+        }
+    }
+    $self->_queue_cmd("ChangeSrc/$$self{'zone'}/$source");
 }
 
 sub set_volume {
-   my ($self, $volume) = @_;
-   if ($volume =~ s/%$//) {
-      $volume = (35 * ($volume/100));
-   }
-   unless (($volume >= 0) or ($volume <= 35)) {
-      $self->_report_error("set_volume(): volume specified is out of range: $volume");
-   }
-   $volume =~ s/^\s+//;
-   $volume =~ s/\s+$//;
-   $self->_queue_cmd("ChangeVol/$$self{'zone'}/$volume");
+    my ( $self, $volume ) = @_;
+    if ( $volume =~ s/%$// ) {
+        $volume = ( 35 * ( $volume / 100 ) );
+    }
+    unless ( ( $volume >= 0 ) or ( $volume <= 35 ) ) {
+        $self->_report_error(
+            "set_volume(): volume specified is out of range: $volume");
+    }
+    $volume =~ s/^\s+//;
+    $volume =~ s/\s+$//;
+    $self->_queue_cmd("ChangeVol/$$self{'zone'}/$volume");
 }
 
 sub mute {
-   my ($self) = @_;
-   $self->_queue_cmd("ChangeMute/$$self{'zone'}/1");
+    my ($self) = @_;
+    $self->_queue_cmd("ChangeMute/$$self{'zone'}/1");
 }
 
 sub unmute {
-   my ($self) = @_;
-   $self->_queue_cmd("ChangeMute/$$self{'zone'}/0");
+    my ($self) = @_;
+    $self->_queue_cmd("ChangeMute/$$self{'zone'}/0");
 }
 
 sub loudness_on {
-   my ($self) = @_;
-   $self->_queue_cmd("ChangeLoud/$$self{'zone'}/1");
+    my ($self) = @_;
+    $self->_queue_cmd("ChangeLoud/$$self{'zone'}/1");
 }
 
 sub loudness_off {
-   my ($self) = @_;
-   $self->_queue_cmd("ChangeLoud/$$self{'zone'}/0");
+    my ($self) = @_;
+    $self->_queue_cmd("ChangeLoud/$$self{'zone'}/0");
 }
 
 sub turn_off {
-   my ($self) = @_;
-   $self->_queue_cmd("ChangeSrc/$$self{'zone'}/0");
+    my ($self) = @_;
+    $self->_queue_cmd("ChangeSrc/$$self{'zone'}/0");
 }
 
 sub internal_amp {
-   my ($self) = @_;
-   $self->_queue_cmd("ChangeAmp/$$self{'zone'}/0");
+    my ($self) = @_;
+    $self->_queue_cmd("ChangeAmp/$$self{'zone'}/0");
 }
 
 sub both_amps {
-   my ($self) = @_;
-   $self->_queue_cmd("ChangeAmp/$$self{'zone'}/1");
+    my ($self) = @_;
+    $self->_queue_cmd("ChangeAmp/$$self{'zone'}/1");
 }
 
 sub external_amp {
-   my ($self) = @_;
-   $self->_queue_cmd("ChangeAmp/$$self{'zone'}/2");
+    my ($self) = @_;
+    $self->_queue_cmd("ChangeAmp/$$self{'zone'}/2");
 }
 
 sub green_backlight {
-   my ($self) = @_;
-   $self->_queue_cmd("ChangeBaCo/$$self{'zone'}/0");
+    my ($self) = @_;
+    $self->_queue_cmd("ChangeBaCo/$$self{'zone'}/0");
 }
 
 sub white_backlight {
-   my ($self) = @_;
-   $self->_queue_cmd("ChangeBaCo/$$self{'zone'}/0");
+    my ($self) = @_;
+    $self->_queue_cmd("ChangeBaCo/$$self{'zone'}/0");
 }
 
 sub amber_backlight {
-   my ($self) = @_;
-   $self->_queue_cmd("ChangeBaCo/$$self{'zone'}/1");
+    my ($self) = @_;
+    $self->_queue_cmd("ChangeBaCo/$$self{'zone'}/1");
 }
 
 sub blue_backlight {
-   my ($self) = @_;
-   $self->_queue_cmd("ChangeBaCo/$$self{'zone'}/1");
+    my ($self) = @_;
+    $self->_queue_cmd("ChangeBaCo/$$self{'zone'}/1");
 }
 
 sub set_backlight_brightness {
-   my ($self, $level) = @_;
-   if ($level =~ s/%$//) {
-      $level = (8 * ($level/100));
-   }
-   unless (($level >= 0) or ($level <= 8)) {
-      $self->_report_error("set_backlight_brightness(): level specified is out of range: $level");
-   }
-   $self->_queue_cmd("ChangeBaLi/$$self{'zone'}/$level");
+    my ( $self, $level ) = @_;
+    if ( $level =~ s/%$// ) {
+        $level = ( 8 * ( $level / 100 ) );
+    }
+    unless ( ( $level >= 0 ) or ( $level <= 8 ) ) {
+        $self->_report_error(
+            "set_backlight_brightness(): level specified is out of range: $level"
+        );
+    }
+    $self->_queue_cmd("ChangeBaLi/$$self{'zone'}/$level");
 }
 
 sub nudge_volume_down {
-   my ($self) = @_;
-   $self->_queue_cmd("NudgeVol/$$self{'zone'}/0");
+    my ($self) = @_;
+    $self->_queue_cmd("NudgeVol/$$self{'zone'}/0");
 }
 
 sub nudge_volume_up {
-   my ($self) = @_;
-   $self->_queue_cmd("NudgeVol/$$self{'zone'}/1");
+    my ($self) = @_;
+    $self->_queue_cmd("NudgeVol/$$self{'zone'}/1");
 }
 
 sub nudge_bass_down {
-   my ($self) = @_;
-   $self->_queue_cmd("NudgeBass/$$self{'zone'}/0");
+    my ($self) = @_;
+    $self->_queue_cmd("NudgeBass/$$self{'zone'}/0");
 }
 
 sub nudge_bass_up {
-   my ($self) = @_;
-   $self->_queue_cmd("NudgeBass/$$self{'zone'}/1");
+    my ($self) = @_;
+    $self->_queue_cmd("NudgeBass/$$self{'zone'}/1");
 }
 
 sub nudge_treble_down {
-   my ($self) = @_;
-   $self->_queue_cmd("NudgeTreb/$$self{'zone'}/0");
+    my ($self) = @_;
+    $self->_queue_cmd("NudgeTreb/$$self{'zone'}/0");
 }
 
 sub nudge_treble_up {
-   my ($self) = @_;
-   $self->_queue_cmd("NudgeTreb/$$self{'zone'}/1");
+    my ($self) = @_;
+    $self->_queue_cmd("NudgeTreb/$$self{'zone'}/1");
 }
 
 sub nudge_balance_left {
-   my ($self) = @_;
-   $self->_queue_cmd("NudgeBal/$$self{'zone'}/0");
+    my ($self) = @_;
+    $self->_queue_cmd("NudgeBal/$$self{'zone'}/0");
 }
 
 sub nudge_balance_right {
-   my ($self) = @_;
-   $self->_queue_cmd("NudgeBal/$$self{'zone'}/1");
+    my ($self) = @_;
+    $self->_queue_cmd("NudgeBal/$$self{'zone'}/1");
 }
 
 sub lock_menu {
-   my ($self) = @_;
-   $self->_queue_cmd("ExeLock/$$self{'zone'}/1");
+    my ($self) = @_;
+    $self->_queue_cmd("ExeLock/$$self{'zone'}/1");
 }
 
 sub unlock_menu {
-   my ($self) = @_;
-   $self->_queue_cmd("ExeLock/$$self{'zone'}/0");
+    my ($self) = @_;
+    $self->_queue_cmd("ExeLock/$$self{'zone'}/0");
 }
 
 sub set_preset_label {
-   my ($self, $number, $label) = @_;
-   my $label = uc($label);
-   my $labelnum = 0;
-   if ($label =~ /^\d+$/) {
-      $labelnum = $label;
-   } else {
-      # Look up label unless a number is already provided
-      if ($Musica::source_name_to_number{$label}) {
-         $labelnum = $Musica::source_name_to_number{$label};
-      }
-   }
-   $self->_queue_cmd("Chang/41/$$self{'zone'}/$number/$labelnum");
+    my ( $self, $number, $label ) = @_;
+    my $label    = uc($label);
+    my $labelnum = 0;
+    if ( $label =~ /^\d+$/ ) {
+        $labelnum = $label;
+    }
+    else {
+        # Look up label unless a number is already provided
+        if ( $Musica::source_name_to_number{$label} ) {
+            $labelnum = $Musica::source_name_to_number{$label};
+        }
+    }
+    $self->_queue_cmd("Chang/41/$$self{'zone'}/$number/$labelnum");
 }
 
 sub set_preset_frequency {
-   my ($self, $number, $freq) = @_;
-   $self->_queue_cmd("Chang/4A/$$self{'zone'}/$number/$freq");
+    my ( $self, $number, $freq ) = @_;
+    $self->_queue_cmd("Chang/4A/$$self{'zone'}/$number/$freq");
 }
 
 ################################################################################
@@ -1839,66 +2157,86 @@ package Musica::Zone;
 @Musica::Zone::ISA = ('Musica');
 
 sub new {
-   my ($class, $musica_obj, $zone_num, $version) = @_;
-   my $self = {};
-   # Assume it is present until told otherwise
-   $$self{'present'} = 1;
-   $$self{'zone'} = $zone_num;
-   $$self{'musica_obj'} = $musica_obj;
-   $$self{'keypad_version'} = $version if ($version);
-   bless $self, $class;
-   $musica_obj->_register_zone($self, $zone_num);
-   return $self;
+    my ( $class, $musica_obj, $zone_num, $version ) = @_;
+    my $self = {};
+
+    # Assume it is present until told otherwise
+    $$self{'present'}        = 1;
+    $$self{'zone'}           = $zone_num;
+    $$self{'musica_obj'}     = $musica_obj;
+    $$self{'keypad_version'} = $version if ($version);
+    bless $self, $class;
+    $musica_obj->_register_zone( $self, $zone_num );
+    return $self;
 }
 
 sub _report_error {
-   my ($self, $error) = @_;
-   $$self{'last_error'} = $error;
-   $self->set_receive('error');
-   &::print_log("ERROR: Musica($self->{'musica_obj'}->{'port_name'}) zone $$self{'object_name'}: $error");
+    my ( $self, $error ) = @_;
+    $$self{'last_error'} = $error;
+    $self->set_receive('error');
+    &::print_log(
+        "ERROR: Musica($self->{'musica_obj'}->{'port_name'}) zone $$self{'object_name'}: $error"
+    );
 }
 
 sub set {
-   my ($self, $state) = @_;
-   &::print_log("$$self{'object_name'}: got state: $state") if $main::Debug{musica};
-   if ($state eq 'off') {
-      &::print_log("$$self{'object_name'}: got state off, turning off zone") if $main::Debug{musica};
-      $self->turn_off();
-   } elsif ($state =~ s/^volume//) {
-      &::print_log("$$self{'object_name'}: got state volume change: $state") if $main::Debug{musica};
-      $self->set_volume($state);
-   } elsif ($state eq 'mute') {
-      $self->mute();
-   } elsif ($state eq 'unmute') {
-      $self->unmute();
-   } elsif (($state eq 'E') or ($state eq 'F') or (($state =~ /^\d+$/) and ($state >= 1) and ($state <= 4))) {
-      &::print_log("$$self{'object_name'}: got state $state, changing source") if $main::Debug{musica};
-      $self->set_source($state);
-   } else {
-      &::print_log("$$self{'object_name'}: got unknown Musica state: $state");
-   }
+    my ( $self, $state ) = @_;
+    &::print_log("$$self{'object_name'}: got state: $state")
+      if $main::Debug{musica};
+    if ( $state eq 'off' ) {
+        &::print_log("$$self{'object_name'}: got state off, turning off zone")
+          if $main::Debug{musica};
+        $self->turn_off();
+    }
+    elsif ( $state =~ s/^volume// ) {
+        &::print_log("$$self{'object_name'}: got state volume change: $state")
+          if $main::Debug{musica};
+        $self->set_volume($state);
+    }
+    elsif ( $state eq 'mute' ) {
+        $self->mute();
+    }
+    elsif ( $state eq 'unmute' ) {
+        $self->unmute();
+    }
+    elsif (( $state eq 'E' )
+        or ( $state eq 'F' )
+        or ( ( $state =~ /^\d+$/ ) and ( $state >= 1 ) and ( $state <= 4 ) ) )
+    {
+        &::print_log("$$self{'object_name'}: got state $state, changing source")
+          if $main::Debug{musica};
+        $self->set_source($state);
+    }
+    else {
+        &::print_log("$$self{'object_name'}: got unknown Musica state: $state");
+    }
 }
 
 sub _resolve_to_button_id {
-   my ($self, $button) = @_;
-   if ($button =~ /^\d+$/) {
-      if (($button >= 1) and ($button <= 12)) {
-         return $button;
-      } else {
-         $self->_report_error("press_button()/hold_button(): Invalid button ID: $button (must be 1 to 12)");
-         return 0;
-      }
-   }
-   if ($$self{'keypad_version'} >= 40822) {
-      if ($Musica::button_name_to_number_40822{$button}) {
-         return $Musica::button_name_to_number_40822{$button};
-      }
-   } else {
-      if ($Musica::button_name_to_number{$button}) {
-         return $Musica::button_name_to_number{$button};
-      }
-   }
-   $self->_report_error("press_button()/hold_button(): Invalid button label: $button");
+    my ( $self, $button ) = @_;
+    if ( $button =~ /^\d+$/ ) {
+        if ( ( $button >= 1 ) and ( $button <= 12 ) ) {
+            return $button;
+        }
+        else {
+            $self->_report_error(
+                "press_button()/hold_button(): Invalid button ID: $button (must be 1 to 12)"
+            );
+            return 0;
+        }
+    }
+    if ( $$self{'keypad_version'} >= 40822 ) {
+        if ( $Musica::button_name_to_number_40822{$button} ) {
+            return $Musica::button_name_to_number_40822{$button};
+        }
+    }
+    else {
+        if ( $Musica::button_name_to_number{$button} ) {
+            return $Musica::button_name_to_number{$button};
+        }
+    }
+    $self->_report_error(
+        "press_button()/hold_button(): Invalid button label: $button");
 }
 
 ################################################################################
@@ -1906,159 +2244,167 @@ sub _resolve_to_button_id {
 ################################################################################
 
 sub delay_off {
-   my ($self, $delay) = @_;
-   if (defined($delay)) {
-      &::print_log("$$self{'object_name'}: delay_off set to $delay") if $main::Debug{musica};
-      unless ($$self{'timerOff'}) {
-         $$self{'timerOff'} = new Timer();
-      }
-      $$self{'timerOff'}->set($delay, $self);
-   }
-   if ($$self{'timerOff'}) {
-      return $$self{'timerOff'}->query();
-   } else {
-      return 0;
-   }
+    my ( $self, $delay ) = @_;
+    if ( defined($delay) ) {
+        &::print_log("$$self{'object_name'}: delay_off set to $delay")
+          if $main::Debug{musica};
+        unless ( $$self{'timerOff'} ) {
+            $$self{'timerOff'} = new Timer();
+        }
+        $$self{'timerOff'}->set( $delay, $self );
+    }
+    if ( $$self{'timerOff'} ) {
+        return $$self{'timerOff'}->query();
+    }
+    else {
+        return 0;
+    }
 }
 
 sub nudge_source_down {
-   my ($self) = @_;
-   if ($self->{'source'} eq '0') {
-      $self->_report_error("nudge_source_down(): zone is not on.");
-   } else {
-      $self->_queue_cmd("NudgeSrc/$$self{'zone'}/0");
-   }
+    my ($self) = @_;
+    if ( $self->{'source'} eq '0' ) {
+        $self->_report_error("nudge_source_down(): zone is not on.");
+    }
+    else {
+        $self->_queue_cmd("NudgeSrc/$$self{'zone'}/0");
+    }
 }
 
 sub nudge_source_up {
-   my ($self) = @_;
-   if ($self->{'source'} eq '0') {
-      $self->_report_error("nudge_source_up(): zone is not on.");
-   } else {
-      $self->_queue_cmd("NudgeSrc/$$self{'zone'}/1");
-   }
+    my ($self) = @_;
+    if ( $self->{'source'} eq '0' ) {
+        $self->_report_error("nudge_source_up(): zone is not on.");
+    }
+    else {
+        $self->_queue_cmd("NudgeSrc/$$self{'zone'}/1");
+    }
 }
 
 sub get_zone_num() {
-   my ($self) = @_;
-   return $self->{'zone'};
+    my ($self) = @_;
+    return $self->{'zone'};
 }
 
 sub get_keypad_version() {
-   my ($self) = @_;
-   return $self->{'keypad_version'};
+    my ($self) = @_;
+    return $self->{'keypad_version'};
 }
 
 sub get_last_on_time() {
-   my ($self) = @_;
-   return $self->{'on_time'};
+    my ($self) = @_;
+    return $self->{'on_time'};
 }
 
 sub get_source() {
-   my ($self) = @_;
-   return $self->{'source'};
+    my ($self) = @_;
+    return $self->{'source'};
 }
 
 sub get_source_obj() {
-   my ($self) = @_;
-   return $self->{'source'};
-   if ($$self{'sources'}[$self->{'source'}]) {
-      return $$self{'sources'}[$self->{'source'}];
-   }
-   return undef;
+    my ($self) = @_;
+    return $self->{'source'};
+    if ( $$self{'sources'}[ $self->{'source'} ] ) {
+        return $$self{'sources'}[ $self->{'source'} ];
+    }
+    return undef;
 }
 
 sub get_volume() {
-   my ($self) = @_;
-   return $self->{'volume'};
+    my ($self) = @_;
+    return $self->{'volume'};
 }
 
 sub get_bass_level() {
-   my ($self) = @_;
-   return (($self->{'bass'} - 8) * 2);
+    my ($self) = @_;
+    return ( ( $self->{'bass'} - 8 ) * 2 );
 }
 
 sub get_treble_level() {
-   my ($self) = @_;
-   return (($self->{'treble'} - 8) * 2);
+    my ($self) = @_;
+    return ( ( $self->{'treble'} - 8 ) * 2 );
 }
 
 sub get_balance() {
-   my ($self) = @_;
-   return ($self->{'balance'} - 8);
+    my ($self) = @_;
+    return ( $self->{'balance'} - 8 );
 }
 
 sub get_loudness() {
-   my ($self) = @_;
-   return $self->{'loudness'};
+    my ($self) = @_;
+    return $self->{'loudness'};
 }
 
 sub get_mute() {
-   my ($self) = @_;
-   return $self->{'mute'};
+    my ($self) = @_;
+    return $self->{'mute'};
 }
 
 sub get_blcolor() {
-   my ($self) = @_;
-   if ($self->{'blcolor'}) {
-      return 'amber';
-   } else {
-      return 'green';
-   }
+    my ($self) = @_;
+    if ( $self->{'blcolor'} ) {
+        return 'amber';
+    }
+    else {
+        return 'green';
+    }
 }
 
 sub get_brightness() {
-   my ($self) = @_;
-   return $self->{'brightness'};
+    my ($self) = @_;
+    return $self->{'brightness'};
 }
 
 sub get_audioport() {
-   my ($self) = @_;
-   return $self->{'audioport'};
+    my ($self) = @_;
+    return $self->{'audioport'};
 }
 
 sub get_amp() {
-   my ($self) = @_;
-   if ($self->{'amp'} == 2) {
-      return 'external_amp';
-   } elsif ($self->{'amp'} == 1) {
-      return 'both';
-   } else {
-      return 'room_amp';
-   }
+    my ($self) = @_;
+    if ( $self->{'amp'} == 2 ) {
+        return 'external_amp';
+    }
+    elsif ( $self->{'amp'} == 1 ) {
+        return 'both';
+    }
+    else {
+        return 'room_amp';
+    }
 }
 
 sub get_locked() {
-   my ($self) = @_;
-   return $self->{'locked'};
+    my ($self) = @_;
+    return $self->{'locked'};
 }
 
 sub get_overheat() {
-   my ($self) = @_;
-   return $self->{'overheat'};
+    my ($self) = @_;
+    return $self->{'overheat'};
 }
 
 sub get_button_labels() {
-   my ($self) = @_;
-   if ($$self{'keypad_version'} >= 40822) {
-      return (sort keys %Musica::button_name_to_number_40822);
-   } else {
-      return (sort keys %Musica::button_name_to_number);
-   }
+    my ($self) = @_;
+    if ( $$self{'keypad_version'} >= 40822 ) {
+        return ( sort keys %Musica::button_name_to_number_40822 );
+    }
+    else {
+        return ( sort keys %Musica::button_name_to_number );
+    }
 }
 
 sub press_button() {
-   my ($self, $button) = @_;
-   if ($button = $self->_resolve_to_button_id($button)) {
-      $self->_queue_cmd("ExePress/$$self{'source'}/$button");
-   }
+    my ( $self, $button ) = @_;
+    if ( $button = $self->_resolve_to_button_id($button) ) {
+        $self->_queue_cmd("ExePress/$$self{'source'}/$button");
+    }
 }
 
 sub hold_button() {
-   my ($self, $button) = @_;
-   if ($button = $self->_resolve_to_button_id($button)) {
-      $self->_queue_cmd("ExeHold/$$self{'source'}/$button");
-   }
+    my ( $self, $button ) = @_;
+    if ( $button = $self->_resolve_to_button_id($button) ) {
+        $self->_queue_cmd("ExeHold/$$self{'source'}/$button");
+    }
 }
 
 ################################################################################
@@ -2076,57 +2422,62 @@ package Musica::Source;
 @Musica::Source::ISA = ('Musica');
 
 sub new {
-   my ($class, $musica_obj, $source_num) = @_;
-   my $self = {};
-   $$self{'source'} = $source_num;
-   $$self{'musica_obj'} = $musica_obj;
-   for (my $i = 1; $i <= Musica::MAX_ZONES; $i++) {
-      $$self{'zones'}->[$i] = 0;
-   }
-   bless $self, $class;
-   $musica_obj->_register_source($self, $source_num);
-   return $self;
+    my ( $class, $musica_obj, $source_num ) = @_;
+    my $self = {};
+    $$self{'source'}     = $source_num;
+    $$self{'musica_obj'} = $musica_obj;
+    for ( my $i = 1; $i <= Musica::MAX_ZONES; $i++ ) {
+        $$self{'zones'}->[$i] = 0;
+    }
+    bless $self, $class;
+    $musica_obj->_register_source( $self, $source_num );
+    return $self;
 }
 
 sub _report_error {
-   my ($self, $error) = @_;
-   $$self{'last_error'} = $error;
-   $self->set_receive('error');
-   &::print_log("ERROR: Musica($self->{'musica_obj'}->{'port_name'}) source $$self{'object_name'}: $error");
+    my ( $self, $error ) = @_;
+    $$self{'last_error'} = $error;
+    $self->set_receive('error');
+    &::print_log(
+        "ERROR: Musica($self->{'musica_obj'}->{'port_name'}) source $$self{'object_name'}: $error"
+    );
 }
 
 sub _zone_not_using {
-   my ($self, $zone) = @_;
-   unless ($$self{'zones'}->[$zone] == 1) {
-      return;
-   }
-   $$self{'zones'}->[$zone] = 0;
-   for (my $i = 1; $i <= Musica::MAX_ZONES; $i++) {
-      if ($$self{'zones'}->[$i] == 1) {
-         # There is still another listener
-         return;
-      }
-   }
-   $self->set_receive('no_listeners');
+    my ( $self, $zone ) = @_;
+    unless ( $$self{'zones'}->[$zone] == 1 ) {
+        return;
+    }
+    $$self{'zones'}->[$zone] = 0;
+    for ( my $i = 1; $i <= Musica::MAX_ZONES; $i++ ) {
+        if ( $$self{'zones'}->[$i] == 1 ) {
+
+            # There is still another listener
+            return;
+        }
+    }
+    $self->set_receive('no_listeners');
 }
 
 sub _zone_is_using {
-   my ($self, $zone) = @_;
-   if ($$self{'zones'}->[$zone] == 1) {
-      # Already being used by this zone
-      return;
-   }
-   $$self{'zones'}->[$zone] = 1;
-   $self->set_receive("listener_zone_$zone");
-   for (my $i = 1; $i <= Musica::MAX_ZONES; $i++) {
-      if ($$self{'zones'}->[$i] == 1) {
-         if ($i != $zone) {
-            # There was already a listener...
-            return;
-         }
-      }
-   }
-   $self->set_receive('first_listener');
+    my ( $self, $zone ) = @_;
+    if ( $$self{'zones'}->[$zone] == 1 ) {
+
+        # Already being used by this zone
+        return;
+    }
+    $$self{'zones'}->[$zone] = 1;
+    $self->set_receive("listener_zone_$zone");
+    for ( my $i = 1; $i <= Musica::MAX_ZONES; $i++ ) {
+        if ( $$self{'zones'}->[$i] == 1 ) {
+            if ( $i != $zone ) {
+
+                # There was already a listener...
+                return;
+            }
+        }
+    }
+    $self->set_receive('first_listener');
 }
 
 ################################################################################
@@ -2134,62 +2485,68 @@ sub _zone_is_using {
 ################################################################################
 
 sub get_usage_count() {
-   my ($self) = @_;
-   my $ret = 0;
-   for (my $i = 1; $i <= Musica::MAX_ZONES; $i++) {
-      if ($$self{'zones'}->[$i] == 1) {
-         $ret++;
-      }
-   }
-   return ($ret);
+    my ($self) = @_;
+    my $ret = 0;
+    for ( my $i = 1; $i <= Musica::MAX_ZONES; $i++ ) {
+        if ( $$self{'zones'}->[$i] == 1 ) {
+            $ret++;
+        }
+    }
+    return ($ret);
 }
 
 sub get_zones() {
-   my ($self) = @_;
-   my @ret;
-   for (my $i = 1; $i <= Musica::MAX_ZONES; $i++) {
-      if ($$self{'zones'}->[$i] == 1) {
-         push @ret, $i;
-      }
-   }
-   return (@ret);
+    my ($self) = @_;
+    my @ret;
+    for ( my $i = 1; $i <= Musica::MAX_ZONES; $i++ ) {
+        if ( $$self{'zones'}->[$i] == 1 ) {
+            push @ret, $i;
+        }
+    }
+    return (@ret);
 }
 
 sub get_source_labels() {
-   return (sort keys %Musica::source_name_to_number);
+    return ( sort keys %Musica::source_name_to_number );
 }
 
 sub get_source_num() {
-   my ($self) = @_;
-   return ($self->{'source'});
+    my ($self) = @_;
+    return ( $self->{'source'} );
 }
 
 sub get_label() {
-   my ($self) = @_;
-   if ($self->{'label'}) {
-      return $Musica::source_number_to_name[$self->{'label'}];
-   } else {
-      return '';
-   }
+    my ($self) = @_;
+    if ( $self->{'label'} ) {
+        return $Musica::source_number_to_name[ $self->{'label'} ];
+    }
+    else {
+        return '';
+    }
 }
 
 sub set_label {
-   my ($self, $label) = @_;
-   my $label = uc($label);
-   my $labelnum = 0;
-   if ($label =~ /^\d+$/) {
-      $labelnum = $label;
-   } else {
-      # Look up label unless a number is already provided
-      if ($Musica::source_name_to_number{$label}) {
-         $labelnum = $Musica::source_name_to_number{$label};
-      }
-   }
-   unless (($labelnum >= 1) and ($labelnum <= $#Musica::source_number_to_name)) {
-      $self->_report_error("set_label(): Invalid source label: $label (resolved number was $labelnum)");
-      return;
-   }
-   $self->_queue_cmd("ChangeStore/$$self{'source'}/$labelnum");
+    my ( $self, $label ) = @_;
+    my $label    = uc($label);
+    my $labelnum = 0;
+    if ( $label =~ /^\d+$/ ) {
+        $labelnum = $label;
+    }
+    else {
+        # Look up label unless a number is already provided
+        if ( $Musica::source_name_to_number{$label} ) {
+            $labelnum = $Musica::source_name_to_number{$label};
+        }
+    }
+    unless (( $labelnum >= 1 )
+        and ( $labelnum <= $#Musica::source_number_to_name ) )
+    {
+        $self->_report_error(
+            "set_label(): Invalid source label: $label (resolved number was $labelnum)"
+        );
+        return;
+    }
+    $self->_queue_cmd("ChangeStore/$$self{'source'}/$labelnum");
 }
 
 ################################################################################
@@ -2197,7 +2554,6 @@ sub set_label {
 ################################################################################
 
 1;
-
 
 =back
 

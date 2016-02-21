@@ -1,3 +1,4 @@
+
 =head1 B<Presence_Monitor>
 
 =head2 SYNOPSIS
@@ -86,34 +87,33 @@ B<Generic_Item>
 
 =cut
 
-
 use strict;
 
 package Presence_Monitor;
 
 @Presence_Monitor::ISA = ('Generic_Item');
 
-sub new
-{
-	my ($class,$p_object,$p_OM) = @_;
-	my $self={};
-	bless $self,$class;
-	$$self{m_obj}= $p_object;
-	$$self{m_OM} = $p_OM;
-	$p_OM->tie_items($self);
-	$$self{m_timerCancelPredict} = new Timer();
-	$$self{m_timerOccupancyExpire} = new Timer();
-	$$self{state}=0;
-	$$self{m_occupancy_expire} = 0;
-	$$self{wdog_interval} = 60;
-	$$self{m_timer_wdog} = new Timer;
-	$$self{m_timer_wdog}-> set($self->{wdog_interval}, sub {&Presence_Monitor::watch_dog($self)});
-	$$self{debug} = $main::Debug{presence};
-	return $self;
+sub new {
+    my ( $class, $p_object, $p_OM ) = @_;
+    my $self = {};
+    bless $self, $class;
+    $$self{m_obj} = $p_object;
+    $$self{m_OM}  = $p_OM;
+    $p_OM->tie_items($self);
+    $$self{m_timerCancelPredict}   = new Timer();
+    $$self{m_timerOccupancyExpire} = new Timer();
+    $$self{state}                  = 0;
+    $$self{m_occupancy_expire}     = 0;
+    $$self{wdog_interval}          = 60;
+    $$self{m_timer_wdog}           = new Timer;
+    $$self{m_timer_wdog}->set( $self->{wdog_interval},
+        sub { &Presence_Monitor::watch_dog($self) } );
+    $$self{debug} = $main::Debug{presence};
+    return $self;
 }
 
 sub set_debug {
-    my ($self, $debug) = @_;
+    my ( $self, $debug ) = @_;
     $self->{debug} = $debug;
 }
 
@@ -125,180 +125,235 @@ occupancy expiration timer is in play.
 =cut
 
 sub watch_dog {
-   my ($self) = @_;
-   if ($self->state eq 'occupied') {
-       if (!$self->{m_timerOccupancyExpire}->active( )) {
-	   &::print_log("$$self{object_name}: watch_dog, occupied without timer!") if $self->{debug};
-	   if (defined $self->{m_occupancy_expire}) {
-	       &::print_log("$$self{object_name}: occupancy timer set $$self{m_occupancy_expire}, watchdog condition!") if $self->{debug};
-	       $self->{m_timerOccupancyExpire}->set($self->{m_occupancy_expire}, $self);
-	       $self->{wdog_interval} = $self->{m_occupancy_expire}+2;
-	   }
-       }
-   }
-   # reload the timer
-   $self->{m_timer_wdog}-> set($self->{wdog_interval}, sub {&Presence_Monitor::watch_dog($self)});
+    my ($self) = @_;
+    if ( $self->state eq 'occupied' ) {
+        if ( !$self->{m_timerOccupancyExpire}->active() ) {
+            &::print_log(
+                "$$self{object_name}: watch_dog, occupied without timer!")
+              if $self->{debug};
+            if ( defined $self->{m_occupancy_expire} ) {
+                &::print_log(
+                    "$$self{object_name}: occupancy timer set $$self{m_occupancy_expire}, watchdog condition!"
+                ) if $self->{debug};
+                $self->{m_timerOccupancyExpire}
+                  ->set( $self->{m_occupancy_expire}, $self );
+                $self->{wdog_interval} = $self->{m_occupancy_expire} + 2;
+            }
+        }
+    }
+
+    # reload the timer
+    $self->{m_timer_wdog}->set( $self->{wdog_interval},
+        sub { &Presence_Monitor::watch_dog($self) } );
 }
 
 sub handle_presence {
-   my ($self) = @_;
-   # Return if already occupied
-   return if ($self->state eq 'occupied');
-   foreach my $action (keys %{$$self{'vacancy_timers'}}) {
-      foreach my $time (keys %{$$self{'vacancy_timers'}{$action}}) {
-         if ($$self{'vacancy_timers'}{$action}{$time}{'timer'}->active()) {
-            $$self{'vacancy_timers'}{$action}{$time}{'timer'}->unset();
-         }
-      }
-   }
-   foreach my $action (keys %{$$self{'presence_timers'}}) {
-      foreach my $time (keys %{$$self{'presence_timers'}{$action}}) {
-         unless ($$self{'presence_timers'}{$action}{$time}{'timer'}->active()) {
-            $$self{'presence_timers'}{$action}{$time}{'timer'}->set($time, $$self{'presence_timers'}{$action}{$time}{'action'});
-         }
-      }
-   }
+    my ($self) = @_;
+
+    # Return if already occupied
+    return if ( $self->state eq 'occupied' );
+    foreach my $action ( keys %{ $$self{'vacancy_timers'} } ) {
+        foreach my $time ( keys %{ $$self{'vacancy_timers'}{$action} } ) {
+            if ( $$self{'vacancy_timers'}{$action}{$time}{'timer'}->active() ) {
+                $$self{'vacancy_timers'}{$action}{$time}{'timer'}->unset();
+            }
+        }
+    }
+    foreach my $action ( keys %{ $$self{'presence_timers'} } ) {
+        foreach my $time ( keys %{ $$self{'presence_timers'}{$action} } ) {
+            unless (
+                $$self{'presence_timers'}{$action}{$time}{'timer'}->active() )
+            {
+                $$self{'presence_timers'}{$action}{$time}{'timer'}->set( $time,
+                    $$self{'presence_timers'}{$action}{$time}{'action'} );
+            }
+        }
+    }
 }
 
 sub handle_vacancy {
-   my ($self) = @_;
-   # Return if already vacant
-   return unless ($self->state eq 'occupied');
-   foreach my $action (keys %{$$self{'presence_timers'}}) {
-      foreach my $time (keys %{$$self{'presence_timers'}{$action}}) {
-         if ($$self{'presence_timers'}{$action}{$time}{'timer'}->active()) {
-            $$self{'presence_timers'}{$action}{$time}{'timer'}->unset();
-         }
-      }
-   }
-   foreach my $action (keys %{$$self{'vacancy_timers'}}) {
-      foreach my $time (keys %{$$self{'vacancy_timers'}{$action}}) {
-         unless ($$self{'vacancy_timers'}{$action}{$time}{'timer'}->active()) {
-            $$self{'vacancy_timers'}{$action}{$time}{'timer'}->set($time, $$self{'vacancy_timers'}{$action}{$time}{'action'});
-         }
-      }
-   }
+    my ($self) = @_;
+
+    # Return if already vacant
+    return unless ( $self->state eq 'occupied' );
+    foreach my $action ( keys %{ $$self{'presence_timers'} } ) {
+        foreach my $time ( keys %{ $$self{'presence_timers'}{$action} } ) {
+            if ( $$self{'presence_timers'}{$action}{$time}{'timer'}->active() )
+            {
+                $$self{'presence_timers'}{$action}{$time}{'timer'}->unset();
+            }
+        }
+    }
+    foreach my $action ( keys %{ $$self{'vacancy_timers'} } ) {
+        foreach my $time ( keys %{ $$self{'vacancy_timers'}{$action} } ) {
+            unless (
+                $$self{'vacancy_timers'}{$action}{$time}{'timer'}->active() )
+            {
+                $$self{'vacancy_timers'}{$action}{$time}{'timer'}->set( $time,
+                    $$self{'vacancy_timers'}{$action}{$time}{'action'} );
+            }
+        }
+    }
 }
 
 sub process_count {
-   my ($self, $l_count, $p_setby) = @_;
-   my $p_state = undef;
-   if ($l_count < 0 and ($self->state() eq 'occupied' or $self->state() eq 'vacant')) { 
-      #start the timer for prediction
-      $$self{m_timerCancelPredict}->set(60, $self);
-  #    $$self{m_timerOccupancyExpire}->unset( );
-      &::print_log("$$self{object_name}: predict timer set 60, marking room as predict") if $self->{debug};
-      $p_state = 'predict';
-   } elsif ($l_count >= 1) {
-      $p_state = 'occupied';
-      $$self{m_timerCancelPredict}->unset();
-      my $m_state = $$self{m_obj}->state;
-      my $m_name = $$self{m_obj}->{object_name};
-      &::print_log("$$self{object_name}: room occupied $m_state $m_name") if $self->{debug};
-      if (defined $$self{m_occupancy_expire} and $$self{m_obj}->state =~ /(motion|open)/i) {
-#            and ref $p_setby and ref $p_setby->get_set_by and $p_setby->get_set_by eq $$self{m_obj} 
-            $$self{m_timerOccupancyExpire}->set($$self{m_occupancy_expire}, $self);
-            &::print_log("$$self{object_name}: occupancy timer set $$self{m_occupancy_expire}, marking room as occupied") if $self->{debug};
-      } elsif (!(defined $$self{m_occupancy_expire})) {
-         $$self{m_timerOccupancyExpire}->unset();
-      }
-      $self->handle_presence();
-   } elsif ( ($l_count == 0 or $l_count eq '' or (($l_count > 0) and ($l_count < 1))) and 
-	     !$$self{m_timerCancelPredict}->active and
-	     !$$self{m_timerOccupancyExpire}->active) {
-      &::print_log("$$self{object_name}: room count ($l_count) zero, marking room as vacant") if $self->{debug};
-      $p_state = 'vacant';
-      $self->handle_vacancy();
-   } elsif ($l_count == -1) {
-      $p_state = 'predict';
-      $self->handle_vacancy();
-   }
-   return $p_state;
+    my ( $self, $l_count, $p_setby ) = @_;
+    my $p_state = undef;
+    if ( $l_count < 0
+        and ( $self->state() eq 'occupied' or $self->state() eq 'vacant' ) )
+    {
+        #start the timer for prediction
+        $$self{m_timerCancelPredict}->set( 60, $self );
+
+        #    $$self{m_timerOccupancyExpire}->unset( );
+        &::print_log(
+            "$$self{object_name}: predict timer set 60, marking room as predict"
+        ) if $self->{debug};
+        $p_state = 'predict';
+    }
+    elsif ( $l_count >= 1 ) {
+        $p_state = 'occupied';
+        $$self{m_timerCancelPredict}->unset();
+        my $m_state = $$self{m_obj}->state;
+        my $m_name  = $$self{m_obj}->{object_name};
+        &::print_log("$$self{object_name}: room occupied $m_state $m_name")
+          if $self->{debug};
+        if ( defined $$self{m_occupancy_expire}
+            and $$self{m_obj}->state =~ /(motion|open)/i )
+        {
+            #            and ref $p_setby and ref $p_setby->get_set_by and $p_setby->get_set_by eq $$self{m_obj}
+            $$self{m_timerOccupancyExpire}
+              ->set( $$self{m_occupancy_expire}, $self );
+            &::print_log(
+                "$$self{object_name}: occupancy timer set $$self{m_occupancy_expire}, marking room as occupied"
+            ) if $self->{debug};
+        }
+        elsif ( !( defined $$self{m_occupancy_expire} ) ) {
+            $$self{m_timerOccupancyExpire}->unset();
+        }
+        $self->handle_presence();
+    }
+    elsif (
+        (
+               $l_count == 0
+            or $l_count eq ''
+            or ( ( $l_count > 0 ) and ( $l_count < 1 ) )
+        )
+        and !$$self{m_timerCancelPredict}->active
+        and !$$self{m_timerOccupancyExpire}->active
+      )
+    {
+        &::print_log(
+            "$$self{object_name}: room count ($l_count) zero, marking room as vacant"
+        ) if $self->{debug};
+        $p_state = 'vacant';
+        $self->handle_vacancy();
+    }
+    elsif ( $l_count == -1 ) {
+        $p_state = 'predict';
+        $self->handle_vacancy();
+    }
+    return $p_state;
 }
 
 sub add_presence_timer {
-   my ($self, $time, $action) = @_;
-   $$self{'presence_timers'}{$action}{$time}{'timer'} = new Timer;
-   $$self{'presence_timers'}{$action}{$time}{'action'} = $action;
+    my ( $self, $time, $action ) = @_;
+    $$self{'presence_timers'}{$action}{$time}{'timer'}  = new Timer;
+    $$self{'presence_timers'}{$action}{$time}{'action'} = $action;
 }
 
 sub remove_presence_timer {
-   my ($self, $time, $action) = @_;
-   if ($$self{'presence_timers'} and $$self{'presence_timers'}{$action} and $$self{'presence_timers'}{$action}{$time}) {
-      $$self{'presence_timers'}{$action}{$time}{'timer'}->unset();
-      delete $$self{'presence_timers'}{$action}{$time};
-      unless (keys %{$$self{'presence_timers'}{$action}}) {
-         delete $$self{'presence_timers'}{$action};
-      }
-      return 1;
-   }
-   return 0;
+    my ( $self, $time, $action ) = @_;
+    if (    $$self{'presence_timers'}
+        and $$self{'presence_timers'}{$action}
+        and $$self{'presence_timers'}{$action}{$time} )
+    {
+        $$self{'presence_timers'}{$action}{$time}{'timer'}->unset();
+        delete $$self{'presence_timers'}{$action}{$time};
+        unless ( keys %{ $$self{'presence_timers'}{$action} } ) {
+            delete $$self{'presence_timers'}{$action};
+        }
+        return 1;
+    }
+    return 0;
 }
 
 sub add_vacancy_timer {
-   my ($self, $time, $action) = @_;
-   $$self{'vacancy_timers'}{$action}{$time}{'timer'} = new Timer;
-   $$self{'vacancy_timers'}{$action}{$time}{'action'} = $action;
+    my ( $self, $time, $action ) = @_;
+    $$self{'vacancy_timers'}{$action}{$time}{'timer'}  = new Timer;
+    $$self{'vacancy_timers'}{$action}{$time}{'action'} = $action;
 }
 
 sub remove_vacancy_timer {
-   my ($self, $time, $action) = @_;
-   if ($$self{'vacancy_timers'} and $$self{'vacancy_timers'}{$action} and $$self{'vacancy_timers'}{$action}{$time}) {
-      $$self{'vacancy_timers'}{$action}{$time}{'timer'}->unset();
-      delete $$self{'vacancy_timers'}{$action}{$time};
-      unless (keys %{$$self{'vacancy_timers'}{$action}}) {
-         delete $$self{'vacancy_timers'}{$action};
-      }
-      return 1;
-   }
-   return 0;
+    my ( $self, $time, $action ) = @_;
+    if (    $$self{'vacancy_timers'}
+        and $$self{'vacancy_timers'}{$action}
+        and $$self{'vacancy_timers'}{$action}{$time} )
+    {
+        $$self{'vacancy_timers'}{$action}{$time}{'timer'}->unset();
+        delete $$self{'vacancy_timers'}{$action}{$time};
+        unless ( keys %{ $$self{'vacancy_timers'}{$action} } ) {
+            delete $$self{'vacancy_timers'}{$action};
+        }
+        return 1;
+    }
+    return 0;
 }
 
-sub set
-{
-	my ($self, $p_state, $p_setby, $p_response) = @_;
+sub set {
+    my ( $self, $p_state, $p_setby, $p_response ) = @_;
 
-	#we dont care about $p_state as we derive it from the sensor count.  one way only.
-		
-	#Timer expired.  Reset predict state
-	if ($p_setby eq $$self{m_timerCancelPredict} and $self->state() eq 'predict') { #timer up reset
-		if ($$self{m_OM}->sensor_count($$self{m_obj}) eq -1) {
-                        &::print_log("$$self{object_name}: prediction timer expired, marking room as vacant") if $self->{debug};
-			$$self{m_OM}->sensor_count($$self{m_obj}, 0);
-			$p_state = 'vacant';
-                        $self->handle_vacancy();
-		} else {
-			$p_state = undef;
-		}
-	} elsif ($p_setby eq $$self{m_timerOccupancyExpire} and $self->state() eq 'occupied') { #timer up
-		$p_state = 'vacant';
-	        $$self{m_OM}->sensor_count($$self{m_obj}, 0);
-                &::print_log("$$self{object_name}: occupancy timer expired, marking room as vacant") if $self->{debug};
-                $self->handle_vacancy();
-	} else {
-	        my $l_count = $$self{m_OM}->sensor_count($$self{m_obj});
-                $p_state = $self->process_count($l_count,$p_setby);
-        }
+    #we dont care about $p_state as we derive it from the sensor count.  one way only.
 
-        if (defined $p_state and $p_state ne $self->state()) {
-                $self->SUPER::set($p_state, $p_setby, $p_response);
+    #Timer expired.  Reset predict state
+    if (    $p_setby eq $$self{m_timerCancelPredict}
+        and $self->state() eq 'predict' )
+    {    #timer up reset
+        if ( $$self{m_OM}->sensor_count( $$self{m_obj} ) eq -1 ) {
+            &::print_log(
+                "$$self{object_name}: prediction timer expired, marking room as vacant"
+            ) if $self->{debug};
+            $$self{m_OM}->sensor_count( $$self{m_obj}, 0 );
+            $p_state = 'vacant';
+            $self->handle_vacancy();
         }
+        else {
+            $p_state = undef;
+        }
+    }
+    elsif ( $p_setby eq $$self{m_timerOccupancyExpire}
+        and $self->state() eq 'occupied' )
+    {    #timer up
+        $p_state = 'vacant';
+        $$self{m_OM}->sensor_count( $$self{m_obj}, 0 );
+        &::print_log(
+            "$$self{object_name}: occupancy timer expired, marking room as vacant"
+        ) if $self->{debug};
+        $self->handle_vacancy();
+    }
+    else {
+        my $l_count = $$self{m_OM}->sensor_count( $$self{m_obj} );
+        $p_state = $self->process_count( $l_count, $p_setby );
+    }
+
+    if ( defined $p_state and $p_state ne $self->state() ) {
+        $self->SUPER::set( $p_state, $p_setby, $p_response );
+    }
 }
 
-sub occupancy_expire
-{
-   my ($self,$p_delay) = @_;
-   $$self{m_occupancy_expire}=$p_delay if defined $p_delay;
-   return $$self{m_occupancy_expire};
+sub occupancy_expire {
+    my ( $self, $p_delay ) = @_;
+    $$self{m_occupancy_expire} = $p_delay if defined $p_delay;
+    return $$self{m_occupancy_expire};
 }
 
 sub set_count {
-   my ($self, $count) = @_;
-	$$self{m_OM}->sensor_count($$self{m_obj}, $count);
-   my $p_state = $self->process_count($count);
-   if (defined $p_state and $p_state ne $self->state()) {
-      $self->SUPER::set($p_state);
-   }
+    my ( $self, $count ) = @_;
+    $$self{m_OM}->sensor_count( $$self{m_obj}, $count );
+    my $p_state = $self->process_count($count);
+    if ( defined $p_state and $p_state ne $self->state() ) {
+        $self->SUPER::set($p_state);
+    }
 }
 
 =item C<get_time_diff>
@@ -308,26 +363,25 @@ Returns the number of seconds since the last motion in the room
 =cut
 
 sub get_time_diff {
-   my ($self) = @_;
-	my $last = $$self{m_OM}->get_last_motion($$self{m_obj});
-   $last = 0 unless defined $last;
-   return ($::Time - $last);
+    my ($self) = @_;
+    my $last = $$self{m_OM}->get_last_motion( $$self{m_obj} );
+    $last = 0 unless defined $last;
+    return ( $::Time - $last );
 }
 
 sub get_count {
-   my ($self) = @_;
-	return $$self{m_OM}->sensor_count($$self{m_obj});
+    my ($self) = @_;
+    return $$self{m_OM}->sensor_count( $$self{m_obj} );
 }
 
-sub writable
-{
-	return 0;
+sub writable {
+    return 0;
 }
 
 #sub default_getstate
 #{
 #	my ($self,$p_state) = @_;
-#		
+#
 #	return $$self{m_OM}->sensor_count($$self{m_obj});
 #}
 

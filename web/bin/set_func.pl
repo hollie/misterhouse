@@ -13,18 +13,18 @@ use strict;
 
 #print "db a=@ARGV\n";
 
-                                # Process form
-if (@ARGV > 2) {
+# Process form
+if ( @ARGV > 2 ) {
 
-                                # Allow un-authorized users to browse only (if listed in password_allow)
+    # Allow un-authorized users to browse only (if listed in password_allow)
     return 'Not authorized to make set_func updates' unless $Authorized;
 
-                                # Drop var= prefix.  Required order:  func, resp, @vars
-    my ($func, $args, $resp);
+    # Drop var= prefix.  Required order:  func, resp, @vars
+    my ( $func, $args, $resp );
     for (@ARGV) {
         $_ =~ s/^\S+?=//;
         if ($resp) {
-	    $_ =~ s/'/\\'/g; # added to escape single quotes
+            $_ =~ s/'/\\'/g;    # added to escape single quotes
             $args .= "'$_',";
         }
         elsif ($func) {
@@ -37,10 +37,11 @@ if (@ARGV > 2) {
     $func = "$func($args)";
     my $html = eval $func;
     print "\nError in set_func.pl: $@\n" if $@;
-    return $html if $html;      # Allow function to override response
+    return $html if $html;    # Allow function to override response
     return &http_redirect($resp);
 }
-                                # Create form ... not tested ...
+
+# Create form ... not tested ...
 else {
     my $func = shift;
     my $resp = shift;
@@ -48,14 +49,12 @@ else {
     $html .= "<p><form action='/bin/set_var.pl' method=post>\n";
     $html .= "<b>Function:</b>$func\n<br>";
     $html .= "<b>Value:</b>\n";
-    
+
     $html .= qq|<input name='func'  type=hidden value="$func">\n|;
     $html .= qq|<input name='resp'  type=hidden value="$resp">\n|;
     $html .= qq|<input name='value' type=input  size=100>\n|;
     $html .= "</form>\n";
 
-    return &html_page('', $html);
+    return &html_page( '', $html );
 }
-
-
 

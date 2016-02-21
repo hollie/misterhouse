@@ -1,3 +1,4 @@
+
 =head1 B<Marrick>
 
 =head2 SYNOPSIS
@@ -24,308 +25,315 @@ use strict;
 
 package Marrick;
 
-my ($_cmds, %Marrick);
+my ( $_cmds, %Marrick );
 my $Mserial_port;
 
 my %dimref = qw(M 0 N 1 O 2 P 3 A 4 B 5 C 6 D 7 E 8 F 9 G A H B I C J D
-                K E L F);
+  K E L F);
 
 my %dimrev = qw(0 M 1 N 2 O 3 P 4 A 5 B 6 C 7 D 8 E 9 F A G B H C I D J
-		E K F L);
+  E K F L);
 
 my %table_hcodes = qw(A 0  B 1  C 2  D 3  E 4  F 5  G 6  H 7
-                      I 8  J 9  K A  L B  M C  N D  O E  P F);
+  I 8  J 9  K A  L B  M C  N D  O E  P F);
 
 my %table_dcodes = qw(1 0   2 1   3 2   4 3   5 4   6 5   7 6   8 7
-                      9 8  A 9  B A  C B  D C  E D  F E  G F);
+  9 8  A 9  B A  C B  D C  E D  F E  G F);
 
 my %table_rhcodes = qw(0 A  1 B  2 C  3 D  4 E  5 F  6 G  7 H
-                      8 I  9 J  A K  B L  C M  D N  E O  F P);
+  8 I  9 J  A K  B L  C M  D N  E O  F P);
 
 my %table_rdcodes = qw(0 1   1 2   2 3   3 4   4 5   5 6   6 7   7 8
-                       8 9   9 A   A B   B C   C D   D E   E F   F G);
+  8 9   9 A   A B   B C   C D   D E   E F   F G);
 
 my %table_fcodes = qw(J N0   K F0   L M   M M PRESET_DIM1 A PRESET_DIM2 B);
 
-my $readBuf = ();
+my $readBuf  = ();
 my @ReplyBuf = ();
 
-sub ShrinkReplyBuf
-{
-	my @NewReply=();
-	foreach my $rp1 (@ReplyBuf) { if ($rp1 ne "") { $NewReply[$#NewReply+1]=$rp1; } }
-	@ReplyBuf=@NewReply;
+sub ShrinkReplyBuf {
+    my @NewReply = ();
+    foreach my $rp1 (@ReplyBuf) {
+        if ( $rp1 ne "" ) { $NewReply[ $#NewReply + 1 ] = $rp1; }
+    }
+    @ReplyBuf = @NewReply;
 }
-sub read
-{
-	my $len=0;
-        do
-        {
-               	my $data;
-		$len=0;
-               	if ($data = $Mserial_port->read(255))
-               	{
-               	 	$readBuf .= $data;
-			my $hexd=unpack("H*",$data);
-			$len=length($data);
-			&main::print_log("Marrick - We got [$len] bytes: $hexd") if $main::Debug{marrick};
-               	}
-	} while ($len > 0);
-	while ( $readBuf =~ /^([^\r,^\n]*)[\n,\r]+(.*)$/sig )
-	{
-		my $found=$1;
-		my $restline=$2;
-		if ($found ne "")
-		{
-			&main::print_log("Marrick - Appending to Reply buffer: $found") if $main::Debug{marrick};
-			$ReplyBuf[$#ReplyBuf+1]=$found;
-		}
-		$readBuf=$restline;
-	}
-	return undef;
+
+sub read {
+    my $len = 0;
+    do {
+        my $data;
+        $len = 0;
+        if ( $data = $Mserial_port->read(255) ) {
+            $readBuf .= $data;
+            my $hexd = unpack( "H*", $data );
+            $len = length($data);
+            &main::print_log("Marrick - We got [$len] bytes: $hexd")
+              if $main::Debug{marrick};
+        }
+    } while ( $len > 0 );
+    while ( $readBuf =~ /^([^\r,^\n]*)[\n,\r]+(.*)$/sig ) {
+        my $found    = $1;
+        my $restline = $2;
+        if ( $found ne "" ) {
+            &main::print_log("Marrick - Appending to Reply buffer: $found")
+              if $main::Debug{marrick};
+            $ReplyBuf[ $#ReplyBuf + 1 ] = $found;
+        }
+        $readBuf = $restline;
+    }
+    return undef;
 }
 
 sub init {
-# Nothing to init??
-	($Mserial_port)=@_;
-	#$Mserial_port->debug(0);
-	$Mserial_port->reset_error;
-	$Mserial_port->databits(8);
-	$Mserial_port->stopbits(1);
-	$Mserial_port->parity("none");
-	$Mserial_port->buffers(4096, 4096);
-	@ReplyBuf=();
-	$Mserial_port->write("M00=00\r");    # Setting to 0 for old dim modes (needed for TXB16)
-	sleep(1);
-	&read();
-	@ReplyBuf=();
-	$Mserial_port->write("V0\r");	     # Get the version of Marrick firmware	
-	sleep(1);
-	&read();
-	foreach my $l1 (@ReplyBuf)
-	{
-		if ($l1=~/^V.+/)
-		{
-			$Marrick{VERSION}=$l1;
-		}
-	}
-	@ReplyBuf=();
-	$Mserial_port->write("V1\r");
-	sleep(1);
-	&read();
-	foreach my $l1 (@ReplyBuf)
-	{
-		if ($l1=~/Copyright/)
-		{
-			$Marrick{COPYRIGHT}=$l1;
-		}
-	}
-	@ReplyBuf=();
-	if (($Marrick{VERSION} ne "")and($Marrick{COPYRIGHT} ne ""))
-	{
-		&::MainLoop_pre_add_hook( \&Marrick::check_for_data,   1);
- 		&main::print_log("Marrick unit serial has been initialized.") if $main::Debug{marrick};
-		&main::print_log("Marrick Reports: $Marrick{COPYRIGHT}") if $main::Debug{marrick};
-		&main::print_log("Marrick Version: $Marrick{VERSION}") if $main::Debug{marrick};
-		$Marrick{SENABLE}=1;
-	}
+
+    # Nothing to init??
+    ($Mserial_port) = @_;
+
+    #$Mserial_port->debug(0);
+    $Mserial_port->reset_error;
+    $Mserial_port->databits(8);
+    $Mserial_port->stopbits(1);
+    $Mserial_port->parity("none");
+    $Mserial_port->buffers( 4096, 4096 );
+    @ReplyBuf = ();
+    $Mserial_port->write("M00=00\r")
+      ;    # Setting to 0 for old dim modes (needed for TXB16)
+    sleep(1);
+    &read();
+    @ReplyBuf = ();
+    $Mserial_port->write("V0\r");    # Get the version of Marrick firmware
+    sleep(1);
+    &read();
+
+    foreach my $l1 (@ReplyBuf) {
+        if ( $l1 =~ /^V.+/ ) {
+            $Marrick{VERSION} = $l1;
+        }
+    }
+    @ReplyBuf = ();
+    $Mserial_port->write("V1\r");
+    sleep(1);
+    &read();
+    foreach my $l1 (@ReplyBuf) {
+        if ( $l1 =~ /Copyright/ ) {
+            $Marrick{COPYRIGHT} = $l1;
+        }
+    }
+    @ReplyBuf = ();
+    if ( ( $Marrick{VERSION} ne "" ) and ( $Marrick{COPYRIGHT} ne "" ) ) {
+        &::MainLoop_pre_add_hook( \&Marrick::check_for_data, 1 );
+        &main::print_log("Marrick unit serial has been initialized.")
+          if $main::Debug{marrick};
+        &main::print_log("Marrick Reports: $Marrick{COPYRIGHT}")
+          if $main::Debug{marrick};
+        &main::print_log("Marrick Version: $Marrick{VERSION}")
+          if $main::Debug{marrick};
+        $Marrick{SENABLE} = 1;
+    }
 }
+
 sub startup {
-	# Initialize Module Stuff (RWT)
-	$Marrick{COPYRIGHT}="";
-	$Marrick{VERSION}="";
-	$Marrick{SEQNUM}=0;
-	$Marrick{NODEID}=0;
-	$Marrick{HOUSEID}="";
-	$Marrick{UNITID}="";
-	$Marrick{SENABLE}=0;
-	$Marrick{STATUS_REQUEST} = "";
-	@ReplyBuf=();
-	&main::print_log("Marrick unit has been started - Main events processor initialized.") if $main::Debug{marrick};
+
+    # Initialize Module Stuff (RWT)
+    $Marrick{COPYRIGHT}      = "";
+    $Marrick{VERSION}        = "";
+    $Marrick{SEQNUM}         = 0;
+    $Marrick{NODEID}         = 0;
+    $Marrick{HOUSEID}        = "";
+    $Marrick{UNITID}         = "";
+    $Marrick{SENABLE}        = 0;
+    $Marrick{STATUS_REQUEST} = "";
+    @ReplyBuf                = ();
+    &main::print_log(
+        "Marrick unit has been started - Main events processor initialized.")
+      if $main::Debug{marrick};
 
 }
 
-sub GetReply
-{
-	&read();
-	my $GReply="";
-	foreach my $rpc (0..$#ReplyBuf)
-	{
-		my $rp1=$ReplyBuf[$rpc];
-		if (($rp1=~/^[E,e,\*].*/)and($GReply eq ""))
-		{
-			$GReply=$rp1;
-			delete $ReplyBuf[$rpc];
-		}
-	}
-	if ($GReply ne "") { &ShrinkReplyBuf; }
-	return $GReply;
+sub GetReply {
+    &read();
+    my $GReply = "";
+    foreach my $rpc ( 0 .. $#ReplyBuf ) {
+        my $rp1 = $ReplyBuf[$rpc];
+        if ( ( $rp1 =~ /^[E,e,\*].*/ ) and ( $GReply eq "" ) ) {
+            $GReply = $rp1;
+            delete $ReplyBuf[$rpc];
+        }
+    }
+    if ( $GReply ne "" ) { &ShrinkReplyBuf; }
+    return $GReply;
 }
 
-sub ClearReplies
-{
-	foreach my $rpc (0..$#ReplyBuf)
-	{
-		my $rp1=$ReplyBuf[$rpc];
-		if ($rp1=~/^[E,e,\*].*/)
-		{
-			delete $ReplyBuf[$rpc];
-		}
-	}
-	&ShrinkReplyBuf;
+sub ClearReplies {
+    foreach my $rpc ( 0 .. $#ReplyBuf ) {
+        my $rp1 = $ReplyBuf[$rpc];
+        if ( $rp1 =~ /^[E,e,\*].*/ ) {
+            delete $ReplyBuf[$rpc];
+        }
+    }
+    &ShrinkReplyBuf;
 }
 
-sub GetEvent
-{
-	&read();
-	my $GReply="";
-	foreach my $rpc (0..$#ReplyBuf)
-	{
-		my $rp1=$ReplyBuf[$rpc];
-		if (($rp1=~/^[X,x].*/)and($GReply eq ""))
-		{
-			$GReply=$rp1;
-			delete $ReplyBuf[$rpc];
-		}
-	}
-	if ($GReply ne "") { &ShrinkReplyBuf; }
-	return $GReply;
+sub GetEvent {
+    &read();
+    my $GReply = "";
+    foreach my $rpc ( 0 .. $#ReplyBuf ) {
+        my $rp1 = $ReplyBuf[$rpc];
+        if ( ( $rp1 =~ /^[X,x].*/ ) and ( $GReply eq "" ) ) {
+            $GReply = $rp1;
+            delete $ReplyBuf[$rpc];
+        }
+    }
+    if ( $GReply ne "" ) { &ShrinkReplyBuf; }
+    return $GReply;
 }
 
-sub Process_Event
-{
-	my $INevent;
-	($INevent)=@_;
-	&main::print_log("Marrick - Checking for Event Processing - \"$INevent\".") if $main::Debug{marrick};
-	if ($INevent =~ /^X(\S)(\S)(\S)/)
-	{
-		if ($1 eq "0")
-		{
-			$Marrick{HOUSEID}=$table_rhcodes{$2};
-			$Marrick{UNITID}=$table_rdcodes{$3};
-			return undef;
-		}
-		elsif ($1 eq "1")
-		{
-			if ($3 eq "0")
-			{
-				my $rslt="";
-				$Marrick{HOUSEID}=$table_rhcodes{$2};
-				foreach my $unit ("1".."G")
-				{
-					$rslt .= "X".$Marrick{HOUSEID}.$unit.$Marrick{HOUSEID}."K";
-				}
-				return $rslt;
-			}
-			elsif ($3 eq "1")
-			{
-				my $rslt="";
-				$Marrick{HOUSEID}=$table_rhcodes{$2};
-				foreach my $unit ("1".."G")
-				{
-					$rslt .= "X".$Marrick{HOUSEID}.$unit.$Marrick{HOUSEID}."J";
-				}
-				return $rslt;
-			}
-			elsif ($3 eq "2")
-			{
-				my $rslt="";
-				$Marrick{HOUSEID}=$table_rhcodes{$2};
-				$rslt .= "X".$Marrick{HOUSEID}.$Marrick{UNITID}.$Marrick{HOUSEID}."J";
-				return $rslt;
-			}
-			elsif ($3 eq "3")
-			{
-				my $rslt="";
-				$Marrick{HOUSEID}=$table_rhcodes{$2};
-				$rslt .= "X".$Marrick{HOUSEID}.$Marrick{UNITID}.$Marrick{HOUSEID}."K";
-				return $rslt;
-			}
-			elsif ($3 eq "A")
-			{
-				my $rslt = "X".$Marrick{HOUSEID}.$Marrick{UNITID}.$table_rhcodes{$2}."PRESET_DIM1";
-				return $rslt;
-			}
-			elsif ($3 eq "B")
-			{
-				my $rslt = "X".$Marrick{HOUSEID}.$Marrick{UNITID}.$table_rhcodes{$2}."PRESET_DIM2";
-				return $rslt;
-			}
-		}
-	}
-	else
-	{
-		return undef;
-	}
+sub Process_Event {
+    my $INevent;
+    ($INevent) = @_;
+    &main::print_log("Marrick - Checking for Event Processing - \"$INevent\".")
+      if $main::Debug{marrick};
+    if ( $INevent =~ /^X(\S)(\S)(\S)/ ) {
+        if ( $1 eq "0" ) {
+            $Marrick{HOUSEID} = $table_rhcodes{$2};
+            $Marrick{UNITID}  = $table_rdcodes{$3};
+            return undef;
+        }
+        elsif ( $1 eq "1" ) {
+            if ( $3 eq "0" ) {
+                my $rslt = "";
+                $Marrick{HOUSEID} = $table_rhcodes{$2};
+                foreach my $unit ( "1" .. "G" ) {
+                    $rslt .=
+                      "X" . $Marrick{HOUSEID} . $unit . $Marrick{HOUSEID} . "K";
+                }
+                return $rslt;
+            }
+            elsif ( $3 eq "1" ) {
+                my $rslt = "";
+                $Marrick{HOUSEID} = $table_rhcodes{$2};
+                foreach my $unit ( "1" .. "G" ) {
+                    $rslt .=
+                      "X" . $Marrick{HOUSEID} . $unit . $Marrick{HOUSEID} . "J";
+                }
+                return $rslt;
+            }
+            elsif ( $3 eq "2" ) {
+                my $rslt = "";
+                $Marrick{HOUSEID} = $table_rhcodes{$2};
+                $rslt .= "X"
+                  . $Marrick{HOUSEID}
+                  . $Marrick{UNITID}
+                  . $Marrick{HOUSEID} . "J";
+                return $rslt;
+            }
+            elsif ( $3 eq "3" ) {
+                my $rslt = "";
+                $Marrick{HOUSEID} = $table_rhcodes{$2};
+                $rslt .= "X"
+                  . $Marrick{HOUSEID}
+                  . $Marrick{UNITID}
+                  . $Marrick{HOUSEID} . "K";
+                return $rslt;
+            }
+            elsif ( $3 eq "A" ) {
+                my $rslt = "X"
+                  . $Marrick{HOUSEID}
+                  . $Marrick{UNITID}
+                  . $table_rhcodes{$2}
+                  . "PRESET_DIM1";
+                return $rslt;
+            }
+            elsif ( $3 eq "B" ) {
+                my $rslt = "X"
+                  . $Marrick{HOUSEID}
+                  . $Marrick{UNITID}
+                  . $table_rhcodes{$2}
+                  . "PRESET_DIM2";
+                return $rslt;
+            }
+        }
+    }
+    else {
+        return undef;
+    }
 }
 
 sub check_for_data {
-	my $Event;
-	&read();
-	do {
-		$Event = &GetEvent();
-		if ($Event ne "")
-		{
-			&main::print_log("Marrick - Received Event: $Event") if $main::Debug{marrick};
-			my $Cmmd=&Process_Event($Event);
-			&main::print_log("Marrick - Processed_Event Returned : $Cmmd") if $main::Debug{marrick};
-			if ($Cmmd ne "") 
-			{
-				&main::process_serial_data($Cmmd);
-			}
-		}
-	} while ($Event ne "");
+    my $Event;
+    &read();
+    do {
+        $Event = &GetEvent();
+        if ( $Event ne "" ) {
+            &main::print_log("Marrick - Received Event: $Event")
+              if $main::Debug{marrick};
+            my $Cmmd = &Process_Event($Event);
+            &main::print_log("Marrick - Processed_Event Returned : $Cmmd")
+              if $main::Debug{marrick};
+            if ( $Cmmd ne "" ) {
+                &main::process_serial_data($Cmmd);
+            }
+        }
+    } while ( $Event ne "" );
 }
-
 
 sub send_X10 {
-    my ($serial_port, $house_code) = @_;
+    my ( $serial_port, $house_code ) = @_;
     my $header = "";
-    &main::print_log("Sending Marrick x10 code: $house_code") if $main::Debug{marrick};
+    &main::print_log("Sending Marrick x10 code: $house_code")
+      if $main::Debug{marrick};
+
     # Incoming string looks like this:  XA1AK
-    my ($house, $device, $level, $code) = $house_code =~ /X(\S)(\S)(\S)(\S+)/;
-    my $house_bits = $table_hcodes{$house};
+    my ( $house, $device, $level, $code ) = $house_code =~ /X(\S)(\S)(\S)(\S+)/;
+    my $house_bits  = $table_hcodes{$house};
     my $device_bits = $table_dcodes{$device};
-    my $code_bits = $table_fcodes{$code};
-    if ($code=~/PRESET_DIM/)
-    {
-	$header ="X0" . $house_bits . $device_bits;
-	$header.="X1" . $table_hcodes{$level} . $code_bits;
-	&main::print_log("DIM PRESET Encoded House: $house, Unit: $device Code: $code Level: $level") if $main::Debug{marrick};
-	&main::print_log("DIM PRESET SENT Code: $header") if $main::Debug{marrick};
+    my $code_bits   = $table_fcodes{$code};
+    if ( $code =~ /PRESET_DIM/ ) {
+        $header = "X0" . $house_bits . $device_bits;
+        $header .= "X1" . $table_hcodes{$level} . $code_bits;
+        &main::print_log(
+            "DIM PRESET Encoded House: $house, Unit: $device Code: $code Level: $level"
+        ) if $main::Debug{marrick};
+        &main::print_log("DIM PRESET SENT Code: $header")
+          if $main::Debug{marrick};
     }
-    else
-    {
-    	unless (defined $house_bits and defined $device_bits and defined $code_bits)
-    	{
-		&main::print_log("Error, invalid Marrick X10 data.  data=$house_code house=$house_bits device=$device_bits code=$code_bits");
-       		return;
-    	}
-    	$header = $code_bits . $house_bits . $device_bits;
+    else {
+        unless (defined $house_bits
+            and defined $device_bits
+            and defined $code_bits )
+        {
+            &main::print_log(
+                "Error, invalid Marrick X10 data.  data=$house_code house=$house_bits device=$device_bits code=$code_bits"
+            );
+            return;
+        }
+        $header = $code_bits . $house_bits . $device_bits;
     }
     &ClearReplies;
-    &main::print_log("Marrick x10 command sent: $header") if $main::Debug{marrick};
-retrns:
-    my $slen = length($header)+1;
-    my $sent = $serial_port->write($header . "\r");
-    my $rslt="";
-    while ($rslt eq "")
-    {
-    	$rslt = &GetReply();
+    &main::print_log("Marrick x10 command sent: $header")
+      if $main::Debug{marrick};
+    retrns:
+    my $slen = length($header) + 1;
+    my $sent = $serial_port->write( $header . "\r" );
+    my $rslt = "";
+    while ( $rslt eq "" ) {
+        $rslt = &GetReply();
     }
-    if ($rslt =~ /E.*/)
-    {
-	&main::print_log("Marrick - Error received when sending command $header to X10.");
-     	goto retrns
+    if ( $rslt =~ /E.*/ ) {
+        &main::print_log(
+            "Marrick - Error received when sending command $header to X10.");
+        goto retrns;
     }
-    elsif ($rslt =~ /\*/)
-    {
-	&main::print_log("Marrick - Command accepted by X10.") if $main::Debug{marrick};
+    elsif ( $rslt =~ /\*/ ) {
+        &main::print_log("Marrick - Command accepted by X10.")
+          if $main::Debug{marrick};
     }
-    &main::print_log("Bad Marrick X10 transmition sent=$sent expected=$slen") unless $sent == $slen;
+    &main::print_log("Bad Marrick X10 transmition sent=$sent expected=$slen")
+      unless $sent == $slen;
 }
 
-return 1;           # for require
+return 1;    # for require
 
 __END__
 
