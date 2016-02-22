@@ -3,7 +3,7 @@
 #use Date::Calc qw(Add_Delta_Days);
 use Getopt::Long;
 use Date::Easter;
-use Date::Manip;	
+use Date::Manip;
 use Date::ICal;
 use Data::ICal;
 use Data::ICal::Entry::Event;
@@ -21,184 +21,212 @@ my $occ;
 my $years;
 my $help;
 my $noweekend = '';
-my $output = "";
+my $output    = "";
 
-GetOptions("h" => \$help, "n" => \$noweekend, "y=s" => \$years, "f=s" => \$output );
+GetOptions(
+    "h"   => \$help,
+    "n"   => \$noweekend,
+    "y=s" => \$years,
+    "f=s" => \$output
+);
 my $filename = $ARGV[0];
 
-if (!$years) {
-  my ($_s,$_m,$_h,$_d,$_mo,$year,$_w,$_d,$_i) = localtime(time);
-  $years = $year + 1900;
-} 
+if ( !$years ) {
+    my ( $_s, $_m, $_h, $_d, $_mo, $year, $_w, $_d, $_i ) = localtime(time);
+    $years = $year + 1900;
+}
 
-if ($years =~/^\+(\d+)/) {
-  my $span = $1;
-  my ($_s,$_m,$_h,$_d,$_mo,$year,$_w,$_d,$_i) = localtime(time);
-  $years = $year + 1900;
-  my $current_year = $year + 1900;
-  for (my $count = 1; $count <= $span; $count++) {
-    $years .= "," . ($current_year + $count);
-  }
-}  
+if ( $years =~ /^\+(\d+)/ ) {
+    my $span = $1;
+    my ( $_s, $_m, $_h, $_d, $_mo, $year, $_w, $_d, $_i ) = localtime(time);
+    $years = $year + 1900;
+    my $current_year = $year + 1900;
+    for ( my $count = 1; $count <= $span; $count++ ) {
+        $years .= "," . ( $current_year + $count );
+    }
+}
 
 print "y=$years\n" if $DB;
 
 &print_help if ($help);
-&print_help if (!$filename);
+&print_help if ( !$filename );
 
 my %dow;
- $dow{"monday"} = "1";
- $dow{"tuesday"} = "2";
- $dow{"wednesday"} = "3";
- $dow{"thursday"} = "4";
- $dow{"friday"} = "5";
- $dow{"saturday"} = "6";
- $dow{"sunday"} = "7";
+$dow{"monday"}    = "1";
+$dow{"tuesday"}   = "2";
+$dow{"wednesday"} = "3";
+$dow{"thursday"}  = "4";
+$dow{"friday"}    = "5";
+$dow{"saturday"}  = "6";
+$dow{"sunday"}    = "7";
 
 my @icaldata;
-my @hyears = split /,/,$years;
+my @hyears = split /,/, $years;
 
-  foreach my $year (@hyears) {
-	open (FILE, "$filename") || die "Cannot open file $filename!\n";
-	foreach (<FILE>) {
-		s/\#.*$//;		# remove comments
-		next if (/^\s*$/);
+foreach my $year (@hyears) {
+    open( FILE, "$filename" ) || die "Cannot open file $filename!\n";
+    foreach (<FILE>) {
+        s/\#.*$//;    # remove comments
+        next if (/^\s*$/);
 
-		my ($str, $summary) = /^\"(.*)\"\s*\"(.*)\"/;
+        my ( $str, $summary ) = /^\"(.*)\"\s*\"(.*)\"/;
 
-		if ($str =~ m/(before|after)/i) {
+        if ( $str =~ m/(before|after)/i ) {
 
-			my ($nday,$op,$ndate) = $str =~ /^(\S*)\s(\S*)\s(.*)/;
-			$ndate .= ",$year";
-			$nday = lc $nday;
-			# ----------------------------- Easter Special Case
-			if ($str =~ m/EASTER/i) {
-				my ($emon,$eday) = easter($year);
-				print "Easter is $emon, $eday\n" if ($DB > 1);
-				$ndate = "$emon/$eday/$year";
-			}
-			print "db:$str: $nday-$op-$ndate\n" if ($DB > 1);
-			my $tmpdate = ParseDate($ndate);
-			my $offset;
-			my ($tmpdow,$tmpday,$tmpmonth,$tmpyear) = split(/\,/,UnixDate($tmpdate, "%w,%e,%B,%Y"));
-			print "db: $tmpdow, $tmpday, $tmpmonth, $tmpyear -> $nday $dow{\"$nday\"}" if ($DB > 1);
-			if (lc $op eq "after") {
-				$offset = ($dow{$nday} + $tmpdow ) % 7;
-				print " o=$offset\n" if ($DB > 1);
-			} else {
-				$offset = ($dow{$nday} - $tmpdow) % -7;
-				print " o=$offset\n" if ($DB > 1);
-			}
-			my $cdate = DateCalc($tmpdate,"$offset days");
-			my ($hyear,$hmon,$hday) = $cdate =~ /(\d\d\d\d)(\d\d)(\d\d)/;
-			#strip leading zeros
-			$hmon =~ s/^0*//g;
-			$hday =~ s/^0*//g;
-			print "$str - $summary\n" if ($DB > 0);
-			#id <tab> date <tab> text <tab><tab><tab> holiday on <tab> vacation off
-			push @icaldata,"$hyear\t$hmon\t$hday\t$summary";
-			#print "$mhdate\n";
-		} else {
+            my ( $nday, $op, $ndate ) = $str =~ /^(\S*)\s(\S*)\s(.*)/;
+            $ndate .= ",$year";
+            $nday = lc $nday;
 
-		$str .= ",$year";
-   my $date = ParseDate($str);
-   my $olddate = "";
-   # Special case for boxing day, if sunday then Tuesday
-   if ($summary =~ m/boxing day/i) {
-	if (UnixDate($date,"%w") == 7) {
-	   $olddate = $date;
-	   $date = DateCalc($date,"+2 days");
-   	   #$summary .= " (Stat)";
-	}
-	if (UnixDate($date,"%w") == 1) {
-	   $olddate = $date;
-	   $date = DateCalc($date,"+1 days");
-	   #$summary .= " (Stat)";
-	}
-   }
+            # ----------------------------- Easter Special Case
+            if ( $str =~ m/EASTER/i ) {
+                my ( $emon, $eday ) = easter($year);
+                print "Easter is $emon, $eday\n" if ( $DB > 1 );
+                $ndate = "$emon/$eday/$year";
+            }
+            print "db:$str: $nday-$op-$ndate\n" if ( $DB > 1 );
+            my $tmpdate = ParseDate($ndate);
+            my $offset;
+            my ( $tmpdow, $tmpday, $tmpmonth, $tmpyear ) =
+              split( /\,/, UnixDate( $tmpdate, "%w,%e,%B,%Y" ) );
+            print
+              "db: $tmpdow, $tmpday, $tmpmonth, $tmpyear -> $nday $dow{\"$nday\"}"
+              if ( $DB > 1 );
+            if ( lc $op eq "after" ) {
+                $offset = ( $dow{$nday} + $tmpdow ) % 7;
+                print " o=$offset\n" if ( $DB > 1 );
+            }
+            else {
+                $offset = ( $dow{$nday} - $tmpdow ) % -7;
+                print " o=$offset\n" if ( $DB > 1 );
+            }
+            my $cdate = DateCalc( $tmpdate, "$offset days" );
+            my ( $hyear, $hmon, $hday ) = $cdate =~ /(\d\d\d\d)(\d\d)(\d\d)/;
 
-   if (!Date_IsWorkDay($date)) {
-      $olddate = $date;
-      $date = Date_NextWorkDay($date);
-      #$summary .= " (Stat)";
-   }
+            #strip leading zeros
+            $hmon =~ s/^0*//g;
+            $hday =~ s/^0*//g;
+            print "$str - $summary\n" if ( $DB > 0 );
 
-   if ($olddate and (!$noweekend)) {
-      my ($hyear1,$hmon1,$hday1) = $olddate =~ /(\d\d\d\d)(\d\d)(\d\d)/;
-      #strip leading zeros
-      $hmon1 =~ s/^0*//g;
-      $hday1 =~ s/^0*//g;
-      push @icaldata, "$hyear1\t$hmon1\t$hday1\t$summary";
-   };
+            #id <tab> date <tab> text <tab><tab><tab> holiday on <tab> vacation off
+            push @icaldata, "$hyear\t$hmon\t$hday\t$summary";
 
-   $summary .= " (Stat)" if ($olddate);
-   my ($hyear,$hmon,$hday) = $date =~ /(\d\d\d\d)(\d\d)(\d\d)/;
-   #strip leading zeros
-   $hmon =~ s/^0*//g;
-   $hday =~ s/^0*//g;
-   print "$str - $summary\n"  if ($DB > 0);
+            #print "$mhdate\n";
+        }
+        else {
 
-   push @icaldata, "$hyear\t$hmon\t$hday\t$summary";
-   }
-	}
-	close (FILE);
+            $str .= ",$year";
+            my $date    = ParseDate($str);
+            my $olddate = "";
 
- }
+            # Special case for boxing day, if sunday then Tuesday
+            if ( $summary =~ m/boxing day/i ) {
+                if ( UnixDate( $date, "%w" ) == 7 ) {
+                    $olddate = $date;
+                    $date = DateCalc( $date, "+2 days" );
 
-  my $calendar = new Data::ICal;
-  $calendar->add_properties(
-           method      => "PUBLISH",
-  );foreach my $line (@icaldata) {
-	my ($year, $month, $day, $summary) = split/\t/,$line;
-        my $event = Data::ICal::Entry::Event->new();
- 	my $start = Date::ICal->new( year => $year, month => $month, day => $day )->ical;
-#	my $end = $start->clone;
-	my $end = $start;
-#	$end->add('day');
-        $start += "P0D";
-	$end += "P1D";
-print "s=" . $start . " e=" . $end ."\n" if $DB;
-        $event->add_properties(
- 	   summary     => $summary,
- 	   #description => "FreeFormText.\\nMore FreeFormText.\\n\\n",
- 	   #dtstart     => Date::ICal->new( epoch => time )->ical,
- 	   dtstart     => $start, #->ical (localtime => 1),
- 	   dtend       => $end, #->ical (localtime => 1),
- 	   dtstamp     => Date::ICal->new( epoch => time )->ical,
- 	   #class       => "PUBLIC",
- 	   #organizer   => "MAILTO:foo\@bar",
- 	   #location    => "Phone call",
- 	   #priority    => 5,
- 	   #transp      => "OPAQUE",
- 	   #sequence    => 0,
- 	   #uid         => "123",
-	   );
-        $calendar->add_entry($event);
-  print "$year,$month,$day,$summary\n" if $DB;
+                    #$summary .= " (Stat)";
+                }
+                if ( UnixDate( $date, "%w" ) == 1 ) {
+                    $olddate = $date;
+                    $date = DateCalc( $date, "+1 days" );
+
+                    #$summary .= " (Stat)";
+                }
+            }
+
+            if ( !Date_IsWorkDay($date) ) {
+                $olddate = $date;
+                $date    = Date_NextWorkDay($date);
+
+                #$summary .= " (Stat)";
+            }
+
+            if ( $olddate and ( !$noweekend ) ) {
+                my ( $hyear1, $hmon1, $hday1 ) =
+                  $olddate =~ /(\d\d\d\d)(\d\d)(\d\d)/;
+
+                #strip leading zeros
+                $hmon1 =~ s/^0*//g;
+                $hday1 =~ s/^0*//g;
+                push @icaldata, "$hyear1\t$hmon1\t$hday1\t$summary";
+            }
+
+            $summary .= " (Stat)" if ($olddate);
+            my ( $hyear, $hmon, $hday ) = $date =~ /(\d\d\d\d)(\d\d)(\d\d)/;
+
+            #strip leading zeros
+            $hmon =~ s/^0*//g;
+            $hday =~ s/^0*//g;
+            print "$str - $summary\n" if ( $DB > 0 );
+
+            push @icaldata, "$hyear\t$hmon\t$hday\t$summary";
+        }
+    }
+    close(FILE);
+
+}
+
+my $calendar = new Data::ICal;
+$calendar->add_properties( method => "PUBLISH", );
+foreach my $line (@icaldata) {
+    my ( $year, $month, $day, $summary ) = split /\t/, $line;
+    my $event = Data::ICal::Entry::Event->new();
+    my $start =
+      Date::ICal->new( year => $year, month => $month, day => $day )->ical;
+
+    #	my $end = $start->clone;
+    my $end = $start;
+
+    #	$end->add('day');
+    $start += "P0D";
+    $end   += "P1D";
+    print "s=" . $start . " e=" . $end . "\n" if $DB;
+    $event->add_properties(
+        summary => $summary,
+
+        #description => "FreeFormText.\\nMore FreeFormText.\\n\\n",
+        #dtstart     => Date::ICal->new( epoch => time )->ical,
+        dtstart => $start,    #->ical (localtime => 1),
+        dtend   => $end,      #->ical (localtime => 1),
+        dtstamp => Date::ICal->new( epoch => time )->ical,
+
+        #class       => "PUBLIC",
+        #organizer   => "MAILTO:foo\@bar",
+        #location    => "Phone call",
+        #priority    => 5,
+        #transp      => "OPAQUE",
+        #sequence    => 0,
+        #uid         => "123",
+    );
+    $calendar->add_entry($event);
+    print "$year,$month,$day,$summary\n" if $DB;
 }
 if ($output) {
-   print "Writing out to file $output...";
-   open FILE,">$output" || die "Cannot open file for writing!\n";
-   print FILE $calendar->as_string;
-   close FILE;
-   print "done\n"
-} else {
-  print $calendar->as_string;
+    print "Writing out to file $output...";
+    open FILE, ">$output" || die "Cannot open file for writing!\n";
+    print FILE $calendar->as_string;
+    close FILE;
+    print "done\n";
+}
+else {
+    print $calendar->as_string;
 }
 
 sub print_help {
 
-  print "Help:	$progname $version\n";
-  print "usage:	$progname [-h]\n";
-  print "	$progname [-y year(s)] [-y +year(s)] [-f output_file] [-n] region_file_definition\n";
-  print	"	-h: Help\n";
-  print "	-y: Year(s) to generate, comma separated list (ie, 2006,2007,2008)\n";
-  print "	    current year is used if no year(s) specified\n";
-  print "	or\n";
-  print "	-y: + additional years to generate from current year\n";
-  print "	-n: no holiday events on weekends\n";
-  print "	-o: write output to file\n";
-  print "\n";
+    print "Help:	$progname $version\n";
+    print "usage:	$progname [-h]\n";
+    print
+      "	$progname [-y year(s)] [-y +year(s)] [-f output_file] [-n] region_file_definition\n";
+    print "	-h: Help\n";
+    print
+      "	-y: Year(s) to generate, comma separated list (ie, 2006,2007,2008)\n";
+    print "	    current year is used if no year(s) specified\n";
+    print "	or\n";
+    print "	-y: + additional years to generate from current year\n";
+    print "	-n: no holiday events on weekends\n";
+    print "	-o: write output to file\n";
+    print "\n";
 
-  exit;
+    exit;
 }

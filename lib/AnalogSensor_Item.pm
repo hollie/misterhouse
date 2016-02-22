@@ -1,3 +1,4 @@
+
 =head1 B<AnalogSensor_Item>
 
 =head2 SYNOPSIS
@@ -101,336 +102,392 @@ package AnalogSensor_Item;
 
 use Time::HiRes qw(gettimeofday);
 
-
 sub new {
 
-	my $self = bless {}, shift;
-	my $object = shift;
-	my @args = @_;
-	if (ref $object) {
-		$$self{object} = $object;
-		# now, tie it
-		$object->tie_items($self);
-	} else {
-		$self->id($object);
-		$self->type(shift @args);
-	}
-	$$self{m_activityTime} = 24*3600;
-	# maintain measurement member as it is like state
-	$self->restore_data('m_measurement','m_timestamp','m_time_since_previous','m_measurement_change','m_activityTime');
-	$$self{m_max_records} = 10;
-        for my $token (@args) {
-           my ($tag, $value) = split(/=/,$token);
-           if (defined($tag) and defined($value)) {
-              print "[AnalogSensor_Item] Adding analog sensor token: $tag "
-                  . "having value: $value\n" if $main::Debug{analogsensor};
-              $self->token($tag, $value);
-           }
+    my $self   = bless {}, shift;
+    my $object = shift;
+    my @args   = @_;
+    if ( ref $object ) {
+        $$self{object} = $object;
+
+        # now, tie it
+        $object->tie_items($self);
+    }
+    else {
+        $self->id($object);
+        $self->type( shift @args );
+    }
+    $$self{m_activityTime} = 24 * 3600;
+
+    # maintain measurement member as it is like state
+    $self->restore_data(
+        'm_measurement',         'm_timestamp',
+        'm_time_since_previous', 'm_measurement_change',
+        'm_activityTime'
+    );
+    $$self{m_max_records} = 10;
+    for my $token (@args) {
+        my ( $tag, $value ) = split( /=/, $token );
+        if ( defined($tag) and defined($value) ) {
+            print "[AnalogSensor_Item] Adding analog sensor token: $tag "
+              . "having value: $value\n"
+              if $main::Debug{analogsensor};
+            $self->token( $tag, $value );
         }
-        $$self{m_timerCheck} = new Timer();
-	return $self;
+    }
+    $$self{m_timerCheck} = new Timer();
+    return $self;
 }
 
 sub id {
-	my ($self, $p_id) = @_;
-	$$self{m_id} = $p_id if defined($p_id);
-	return $$self{m_id};
+    my ( $self, $p_id ) = @_;
+    $$self{m_id} = $p_id if defined($p_id);
+    return $$self{m_id};
 }
 
 sub type {
-	my ($self, $p_type) = @_;
-	$$self{m_type} = $p_type if $p_type;
-	return $$self{m_type};
+    my ( $self, $p_type ) = @_;
+    $$self{m_type} = $p_type if $p_type;
+    return $$self{m_type};
 }
 
 sub measurement {
-	my ($self, $p_measurement, $p_timestamp, $p_skip_delta) = @_;
-	my @measurement_records = ();
-	@measurement_records = @{$$self{m_measurement_records}} if exists($$self{m_measurement_records});
-	my $measurement_record = {};
-	# check to see if @measurement_records exist; if not then attempt to restore
-	#   from saved data
-	if (!(@measurement_records)) {
-		if ($$self{m_measurement}) {
-			$measurement_record->{measurement} = $$self{m_measurement};
-			$measurement_record->{timestamp} = $$self{m_timestamp};
-			unshift @measurement_records, $measurement_record;
-			$$self{m_measurement_records} = [ @ measurement_records ];
-		}
-	}
-	if (defined($p_measurement)) {
-		$p_timestamp = gettimeofday() unless $p_timestamp; # get a timestamp if one not procided
-		$p_measurement += $self->apply_offset if $self->apply_offset;
-		$measurement_record->{measurement} = $p_measurement;
-		$measurement_record->{timestamp} = $p_timestamp;
-		# update the item's "set_time" hash member as it can be used to compute idle time
-		$self->{set_time} = $main::Time;
-		# if we have a prior record, then compute the deltas
-		if (!($p_skip_delta) && @measurement_records) {
-			my $last_index = 0; #scalar(@measurement_records)-1;
-			$$self{m_time_since_previous} = $p_timestamp -
-				$measurement_records[$last_index]->{time_since_previous};
-			$$self{m_measurement_change} = $p_measurement -
-				$measurement_records[$last_index]->{measurement};
-			# and update this record
-			$measurement_record->{time_since_previous} = $$self{m_time_since_previous};
-			$measurement_record->{measurement_change} = $$self{m_measurement_change};
-		} else {
-			$measurement_record->{time_since_previous} = 0;
-			$measurement_record->{measurement_change} = 0;
-		}
-		unshift @measurement_records, $measurement_record;
-		if (scalar(@measurement_records) > $$self{m_max_records}) {
-			pop @measurement_records;
-		}
-# not sure the following is needed to prevent leaks
-#		$$self{m_measurement_records} = undef;
-		$$self{m_measurement_records} = [ @measurement_records ];
-		$$self{m_measurement} = $p_measurement;
-		$$self{m_timestamp} = $p_timestamp;
-		$main::Weather{$self->map_to_weather} = $p_measurement
-                       if (defined($p_measurement) && ($self->map_to_weather));
-		$self->check_tied_state_conditions();
-		$self->check_tied_event_conditions();
-#                $self{m_timerCheck}->set($$self{'m_inactivityTime'}, $self);
+    my ( $self, $p_measurement, $p_timestamp, $p_skip_delta ) = @_;
+    my @measurement_records = ();
+    @measurement_records = @{ $$self{m_measurement_records} }
+      if exists( $$self{m_measurement_records} );
+    my $measurement_record = {};
 
-                # update all "tied" AnalogAveraging_Items
-                if ($$self{m_objects}) {
-                   for my $averager (@{$$self{m_objects}}) {
-                      if ($averager && $averager->can('update_measurement')) {
-                         $averager->update_measurement($self, $p_measurement, $p_timestamp);
-                      }
-                   }
+    # check to see if @measurement_records exist; if not then attempt to restore
+    #   from saved data
+    if ( !(@measurement_records) ) {
+        if ( $$self{m_measurement} ) {
+            $measurement_record->{measurement} = $$self{m_measurement};
+            $measurement_record->{timestamp}   = $$self{m_timestamp};
+            unshift @measurement_records, $measurement_record;
+            $$self{m_measurement_records} = [@measurement_records];
+        }
+    }
+    if ( defined($p_measurement) ) {
+        $p_timestamp = gettimeofday()
+          unless $p_timestamp;    # get a timestamp if one not procided
+        $p_measurement += $self->apply_offset if $self->apply_offset;
+        $measurement_record->{measurement} = $p_measurement;
+        $measurement_record->{timestamp}   = $p_timestamp;
+
+        # update the item's "set_time" hash member as it can be used to compute idle time
+        $self->{set_time} = $main::Time;
+
+        # if we have a prior record, then compute the deltas
+        if ( !($p_skip_delta) && @measurement_records ) {
+            my $last_index = 0;    #scalar(@measurement_records)-1;
+            $$self{m_time_since_previous} =
+              $p_timestamp -
+              $measurement_records[$last_index]->{time_since_previous};
+            $$self{m_measurement_change} =
+              $p_measurement - $measurement_records[$last_index]->{measurement};
+
+            # and update this record
+            $measurement_record->{time_since_previous} =
+              $$self{m_time_since_previous};
+            $measurement_record->{measurement_change} =
+              $$self{m_measurement_change};
+        }
+        else {
+            $measurement_record->{time_since_previous} = 0;
+            $measurement_record->{measurement_change}  = 0;
+        }
+        unshift @measurement_records, $measurement_record;
+        if ( scalar(@measurement_records) > $$self{m_max_records} ) {
+            pop @measurement_records;
+        }
+
+        # not sure the following is needed to prevent leaks
+        #		$$self{m_measurement_records} = undef;
+        $$self{m_measurement_records}           = [@measurement_records];
+        $$self{m_measurement}                   = $p_measurement;
+        $$self{m_timestamp}                     = $p_timestamp;
+        $main::Weather{ $self->map_to_weather } = $p_measurement
+          if ( defined($p_measurement) && ( $self->map_to_weather ) );
+        $self->check_tied_state_conditions();
+        $self->check_tied_event_conditions();
+
+        #                $self{m_timerCheck}->set($$self{'m_inactivityTime'}, $self);
+
+        # update all "tied" AnalogAveraging_Items
+        if ( $$self{m_objects} ) {
+            for my $averager ( @{ $$self{m_objects} } ) {
+                if ( $averager && $averager->can('update_measurement') ) {
+                    $averager->update_measurement( $self, $p_measurement,
+                        $p_timestamp );
                 }
-	}
+            }
+        }
+    }
 
-	return $$self{m_measurement};
+    return $$self{m_measurement};
 }
 
 sub set {
-   my ($self, $p_state, $p_setby) = @_;
-   if ($p_setby eq $$self{m_timerCheck}) {
-      if ($$self{'m_activityAction'}) {
-         package main;
-         eval $$self{'m_activityAction'};
-         package AnalogSensor_Item;
-      } else {
-         &print_log("$$self{object_name}->Has not received a measurement in $$self{'m_inactivityTime'} seconds");
-      }
-      $p_state = 'check';
-      $self->SUPER::set($p_state,$p_setby);
-   } elsif ($p_setby eq $$self{object}) {
-      $self->measurement($$self{object}->state);
-   }
+    my ( $self, $p_state, $p_setby ) = @_;
+    if ( $p_setby eq $$self{m_timerCheck} ) {
+        if ( $$self{'m_activityAction'} ) {
+
+            package main;
+            eval $$self{'m_activityAction'};
+
+            package AnalogSensor_Item;
+        }
+        else {
+            &print_log(
+                "$$self{object_name}->Has not received a measurement in $$self{'m_inactivityTime'} seconds"
+            );
+        }
+        $p_state = 'check';
+        $self->SUPER::set( $p_state, $p_setby );
+    }
+    elsif ( $p_setby eq $$self{object} ) {
+        $self->measurement( $$self{object}->state );
+    }
 }
 
 sub set_inactivity_alarm {
-   my ($self, $time, $action) = @_;
-   $$self{m_inactivityAction} = $action;
-   $$self{m_inactivityTime} = $time;
-   $$self{m_timerCheck}->set($time,$self);
+    my ( $self, $time, $action ) = @_;
+    $$self{m_inactivityAction} = $action;
+    $$self{m_inactivityTime}   = $time;
+    $$self{m_timerCheck}->set( $time, $self );
 }
-
 
 sub get_average_change_rate {
     my $self = shift;
-    my $max  = shift || 1;
+    my $max = shift || 1;
 
     my $subtotal = 0;
     my $duration = 0;
     my $index    = 1;
 
-    for my $measurement_record (@{$$self{m_measurement_records}}) {
+    for my $measurement_record ( @{ $$self{m_measurement_records} } ) {
         $subtotal += $measurement_record->{measurement_change};
         $duration += $measurement_record->{time_since_previous};
-        last if ($index++ == $max);
+        last if ( $index++ == $max );
     }
 
-    return  $subtotal / $duration if ($duration);
+    return $subtotal / $duration if ($duration);
     return;
 }
 
 sub measurement_change {
-   my ($self) = @_;
-   return $$self{m_measurement_change};
+    my ($self) = @_;
+    return $$self{m_measurement_change};
 }
 
 sub weather_to_rrd {
-   my $weather_ref = shift;
-   my $rrd_ref     = lc $weather_ref;
+    my $weather_ref = shift;
+    my $rrd_ref     = lc $weather_ref;
 
-   # this is totally ridiculous that RRD names are not the same as Weather hash refs
-   # somebody was definitely not thinking, so we implement a small transformation hash:
-   my %rrd_name_of = (
-       # weather hash         RRD name
-       barom               => 'pressure',
-       dewindoor           => 'indew',
-       dewoutdoor          => 'dew',
-       humidindoor         => 'inhumid',
-       humidoutdoor        => 'humid',
-       rainrate            => 'rate',
-       raintotal           => 'rain',
-       tempindoor          => 'intemp',
-       tempoutdoor         => 'temp',
-       tempoutdoorapparent => 'apparent',
-       windavgdir          => 'avgdir',
-       windavgspeed        => 'avgspeed',
-       windgustdir         => 'dir',
-       windgustspeed       => 'speed',
-   );
+    # this is totally ridiculous that RRD names are not the same as Weather hash refs
+    # somebody was definitely not thinking, so we implement a small transformation hash:
+    my %rrd_name_of = (
 
-   # so if our weather hash ref is known, return its RRD name, else return
-   # the weather hash name in lower case
-   return defined $rrd_name_of{$weather_ref} ? $rrd_name_of{$weather_ref}
-                                             : lc $weather_ref;
+        # weather hash         RRD name
+        barom               => 'pressure',
+        dewindoor           => 'indew',
+        dewoutdoor          => 'dew',
+        humidindoor         => 'inhumid',
+        humidoutdoor        => 'humid',
+        rainrate            => 'rate',
+        raintotal           => 'rain',
+        tempindoor          => 'intemp',
+        tempoutdoor         => 'temp',
+        tempoutdoorapparent => 'apparent',
+        windavgdir          => 'avgdir',
+        windavgspeed        => 'avgspeed',
+        windgustdir         => 'dir',
+        windgustspeed       => 'speed',
+    );
+
+    # so if our weather hash ref is known, return its RRD name, else return
+    # the weather hash name in lower case
+    return defined $rrd_name_of{$weather_ref}
+      ? $rrd_name_of{$weather_ref}
+      : lc $weather_ref;
 }
 
 sub map_to_weather {
-	my ($self, $p_hash_ref, $p_sensor_name) = @_;
-	$$self{m_weather_hash_ref} = $p_hash_ref if $p_hash_ref;
-        if ($p_sensor_name) {
-          my $rrd_ref = &AnalogSensor_Item::weather_to_rrd(lc $p_hash_ref);
-          my $sensor_names = $main::config_parms{weather_graph_sensor_names};
-           if ($sensor_names) {
-              if ($sensor_names !~ /$rrd_ref/i) {
-                 $sensor_names .= ", $rrd_ref => $p_sensor_name";
-                 $main::config_parms{weather_graph_sensor_names} = $sensor_names;
-                 print "[AnalogSensor] weather_graph_sensor_names: $sensor_names\n" if $main::Debug{analogsensor};
-              }
-           } else {
-              $main::config_parms{weather_graph_sensor_names} = "$rrd_ref => $p_sensor_name";
-              print "[AnalogSensor] weather_graph_sensor_names: $main::config_parms{weather_graph_sensor_names}\n"
-                 if $main::Debug{analogsensor};
-           }
+    my ( $self, $p_hash_ref, $p_sensor_name ) = @_;
+    $$self{m_weather_hash_ref} = $p_hash_ref if $p_hash_ref;
+    if ($p_sensor_name) {
+        my $rrd_ref      = &AnalogSensor_Item::weather_to_rrd( lc $p_hash_ref );
+        my $sensor_names = $main::config_parms{weather_graph_sensor_names};
+        if ($sensor_names) {
+            if ( $sensor_names !~ /$rrd_ref\W/i ) {
+                $sensor_names .= ", $rrd_ref => $p_sensor_name";
+                $main::config_parms{weather_graph_sensor_names} = $sensor_names;
+                print
+                  "[AnalogSensor] weather_graph_sensor_names: $sensor_names\n"
+                  if $main::Debug{analogsensor};
+            }
         }
-	return $$self{m_weather_hash_ref};
+        else {
+            $main::config_parms{weather_graph_sensor_names} =
+              "$rrd_ref => $p_sensor_name";
+            print
+              "[AnalogSensor] weather_graph_sensor_names: $main::config_parms{weather_graph_sensor_names}\n"
+              if $main::Debug{analogsensor};
+        }
+    }
+    return $$self{m_weather_hash_ref};
 }
 
 sub apply_offset {
-	my ($self, $p_offset) = @_;
-	$$self{m_offset} = $p_offset if $p_offset;
-	return $$self{m_offset};
+    my ( $self, $p_offset ) = @_;
+    $$self{m_offset} = $p_offset if $p_offset;
+    return $$self{m_offset};
 }
 
 sub token {
-   my ($self, $p_token, $p_val) = @_;
-   if ($p_token) {
-      $$self{tokens}{$p_token} = $p_val if defined $p_val;
-      return $$self{tokens}{$p_token} if $$self{tokens};
-   }
+    my ( $self, $p_token, $p_val ) = @_;
+    if ($p_token) {
+        $$self{tokens}{$p_token} = $p_val if defined $p_val;
+        return $$self{tokens}{$p_token} if $$self{tokens};
+    }
 }
 
 sub remove_token {
-   my ($self, $p_token) = @_;
-   if ($p_token) {
-      delete $$self{tokens}{$p_token} if exists $$self{tokens}{$p_token};
-   }
+    my ( $self, $p_token ) = @_;
+    if ($p_token) {
+        delete $$self{tokens}{$p_token} if exists $$self{tokens}{$p_token};
+    }
 }
 
 sub tie_state_condition {
-   my ($self, $condition, $state_key) = @_;
-   return unless defined $state_key;
-   $$self{tied_state_conditions}{$condition} = $state_key;
+    my ( $self, $condition, $state_key ) = @_;
+    return unless defined $state_key;
+    $$self{tied_state_conditions}{$condition} = $state_key;
 }
 
 sub untie_state_condition {
-   my ($self, $condition) = @_;
-   if ($condition) {
-      delete $self->{tied_state_conditions}{$condition};
-   }
-   else {
-      delete $self->{tied_state_conditions}; # Untie em all
-   }
+    my ( $self, $condition ) = @_;
+    if ($condition) {
+        delete $self->{tied_state_conditions}{$condition};
+    }
+    else {
+        delete $self->{tied_state_conditions};    # Untie em all
+    }
 }
 
 sub check_tied_state_conditions {
-   my ($self) = @_;
-   # construct the tokens
-   my $token_string = "";
-   for my $token (keys %{$$self{tokens}}) {
-      $token_string .= 'my $token_' . $token . ' = ' . $$self{tokens}{$token} . '; ';
-   }
-   print "[AnalogSensor] token_string: $token_string\n" if ($token_string) && $main::Debug{analogsensor};
-   for my $condition (keys %{$$self{tied_state_conditions}}) {
-      next if (defined $self->state && $$self{tied_state_conditions}{$condition} eq $self->state);
-      # expose vars for evaluating the condition
-      my $measurement = $self->measurement;
-      my $measurement_change = abs($self->{m_measurement_change});
-      my $time_since_previous = $self->{m_time_since_previous};
-      my $recent_change_rate = $self->get_average_change_rate(3);
-      my $state = $self->state;
-      my $code = "no strict; ";
-      $code .= ($token_string) ? ($token_string . ' ' . $condition) : $condition;
-      my $result = eval($code);
-      if ($@) {
-         &::print_log("Problem encountered when evaluating " . $self->{object_name}
-            . " condition: $condition: $@");
-         $self->untie_state_condition($condition);
-      } elsif ($result) {
-         $self->SUPER::set($$self{tied_state_conditions}{$condition});
-         last;
-      }
-   }
+    my ($self) = @_;
+
+    # construct the tokens
+    my $token_string = "";
+    for my $token ( keys %{ $$self{tokens} } ) {
+        $token_string .=
+          'my $token_' . $token . ' = ' . $$self{tokens}{$token} . '; ';
+    }
+    print "[AnalogSensor] token_string: $token_string\n"
+      if ($token_string) && $main::Debug{analogsensor};
+    for my $condition ( keys %{ $$self{tied_state_conditions} } ) {
+        next
+          if ( defined $self->state
+            && $$self{tied_state_conditions}{$condition} eq $self->state );
+
+        # expose vars for evaluating the condition
+        my $measurement         = $self->measurement;
+        my $measurement_change  = abs( $self->{m_measurement_change} );
+        my $time_since_previous = $self->{m_time_since_previous};
+        my $recent_change_rate  = $self->get_average_change_rate(3);
+        my $state               = $self->state;
+        my $code                = "no strict; ";
+        $code .=
+          ($token_string) ? ( $token_string . ' ' . $condition ) : $condition;
+        my $result = eval($code);
+
+        if ($@) {
+            &::print_log( "Problem encountered when evaluating "
+                  . $self->{object_name}
+                  . " condition: $condition: $@" );
+            $self->untie_state_condition($condition);
+        }
+        elsif ($result) {
+            $self->SUPER::set( $$self{tied_state_conditions}{$condition} );
+            last;
+        }
+    }
 }
 
 sub tie_event_condition {
-   my ($self, $condition, $event) = @_;
-   return unless defined $event;
-   $$self{tied_event_conditions}{$condition} = $event;
+    my ( $self, $condition, $event ) = @_;
+    return unless defined $event;
+    $$self{tied_event_conditions}{$condition} = $event;
 }
 
 sub untie_event_condition {
-   my ($self, $condition) = @_;
-   if ($condition) {
-      delete $self->{tied_event_conditions}{$condition};
-   }
-   else {
-      delete $self->{tied_event_conditions}; # Untie em all
-   }
+    my ( $self, $condition ) = @_;
+    if ($condition) {
+        delete $self->{tied_event_conditions}{$condition};
+    }
+    else {
+        delete $self->{tied_event_conditions};    # Untie em all
+    }
 }
 
 sub check_tied_event_conditions {
-   my ($self) = @_;
+    my ($self) = @_;
+
     # construct the tokens
-   my $token_string = "";
-   for my $token (keys %{$$self{tokens}}) {
-      $token_string .= 'my $token_' . $token . ' = ' . $$self{tokens}{$token} . '; ';
-   }
-   print "[AnalogSensor] token_string: $token_string\n" if ($token_string) && $main::Debug{analogsensor};
-   for my $condition (keys %{$$self{tied_event_conditions}}) {
-      next if (defined $self->state && $$self{tied_event_conditions}{$condition} eq $self->state);
-      # expose vars for evaluating the condition
-      my $measurement = $self->measurement;
-      my $measurement_change = abs($self->{m_measurement_change});
-      my $time_since_previous = $self->{m_time_since_previous};
-      my $recent_change_rate = $self->get_average_change_rate(3);
-      my $state = $self->state;
-      my $code = "no strict; ";
-      $code .= ($token_string) ? ($token_string . ' ' . $condition) : $condition;
-      my $result = eval($code);
-      if ($@) {
-         &::print_log("Problem encountered when evaluating " . $self->{object_name}
-            . " condition: $condition; $@");
-         $self->untie_state_condition($condition);
-      } elsif ($result) {
-         package main; # needed to do this to allow usercode callbacks and vars to be used w/o needing main::
-         my $code = "no strict; ";
-         $code .= $$self{tied_event_conditions}{$condition};
-         eval($code);
-         if ($@) {
-            &::print_log("Problem encountered when executing event for " .
-               $self->{object_name} . " and code: $code; $@");
-         }
-         package AnalogSensor_Item;
-      }
-   }
+    my $token_string = "";
+    for my $token ( keys %{ $$self{tokens} } ) {
+        $token_string .=
+          'my $token_' . $token . ' = ' . $$self{tokens}{$token} . '; ';
+    }
+    print "[AnalogSensor] token_string: $token_string\n"
+      if ($token_string) && $main::Debug{analogsensor};
+    for my $condition ( keys %{ $$self{tied_event_conditions} } ) {
+        next
+          if ( defined $self->state
+            && $$self{tied_event_conditions}{$condition} eq $self->state );
+
+        # expose vars for evaluating the condition
+        my $measurement         = $self->measurement;
+        my $measurement_change  = abs( $self->{m_measurement_change} );
+        my $time_since_previous = $self->{m_time_since_previous};
+        my $recent_change_rate  = $self->get_average_change_rate(3);
+        my $state               = $self->state;
+        my $code                = "no strict; ";
+        $code .=
+          ($token_string) ? ( $token_string . ' ' . $condition ) : $condition;
+        my $result = eval($code);
+
+        if ($@) {
+            &::print_log( "Problem encountered when evaluating "
+                  . $self->{object_name}
+                  . " condition: $condition; $@" );
+            $self->untie_state_condition($condition);
+        }
+        elsif ($result) {
+
+            package main
+              ; # needed to do this to allow usercode callbacks and vars to be used w/o needing main::
+            my $code = "no strict; ";
+            $code .= $$self{tied_event_conditions}{$condition};
+            eval($code);
+            if ($@) {
+                &::print_log( "Problem encountered when executing event for "
+                      . $self->{object_name}
+                      . " and code: $code; $@" );
+            }
+
+            package AnalogSensor_Item;
+        }
+    }
 }
 
-sub add
-{
-    my ($self,$p_object) = @_;
+sub add {
+    my ( $self, $p_object ) = @_;
 
-    push @{$$self{m_objects}}, $p_object if $p_object->isa('AnalogAveraging_Item');
+    push @{ $$self{m_objects} }, $p_object
+      if $p_object->isa('AnalogAveraging_Item');
 }
 
 =back
@@ -508,110 +565,129 @@ package AnalogRangeSensor_Item;
 @AnalogRangeSensor_Item::ISA = ('AnalogSensor_Item');
 
 sub new {
-#   my ($class, $id, $sensor_type, @r_tokens ) = @_;
-   my $self;
-   my $class = shift;
-   my $object = shift;
-   my @args = @_;
-   if (ref $object) {
-     $self = &AnalogSensor_Item::new($class, $object);
-   } else {
-     my $sensor_type = shift @args;
-     $self = &AnalogSensor_Item::new($class, $object, $sensor_type);
-   }
 
-   my %states;
-   my %diag_config;
-        for my $token (@args) {
-           my ($tag, $value) = split(/=/,$token);
-           if (defined($tag) and defined($value)) {
-              print "[AnalogRangeSensor_Item] Adding analog sensor token: $tag "
-                  . "having value: $value\n" if $main::Debug{analogsensor};
-              $diag_config{$tag} = $value;
-           }
+    #   my ($class, $id, $sensor_type, @r_tokens ) = @_;
+    my $self;
+    my $class  = shift;
+    my $object = shift;
+    my @args   = @_;
+    if ( ref $object ) {
+        $self = &AnalogSensor_Item::new( $class, $object );
+    }
+    else {
+        my $sensor_type = shift @args;
+        $self = &AnalogSensor_Item::new( $class, $object, $sensor_type );
+    }
+
+    my %states;
+    my %diag_config;
+    for my $token (@args) {
+        my ( $tag, $value ) = split( /=/, $token );
+        if ( defined($tag) and defined($value) ) {
+            print "[AnalogRangeSensor_Item] Adding analog sensor token: $tag "
+              . "having value: $value\n"
+              if $main::Debug{analogsensor};
+            $diag_config{$tag} = $value;
         }
-   my $alert_low = $diag_config{'alert_lo'};
-   my $warning_low = $diag_config{'warning_lo'};
-   my $warning_high = $diag_config{'warning_hi'};
-   my $alert_high = $diag_config{'alert_hi'};
+    }
+    my $alert_low    = $diag_config{'alert_lo'};
+    my $warning_low  = $diag_config{'warning_lo'};
+    my $warning_high = $diag_config{'warning_hi'};
+    my $alert_high   = $diag_config{'alert_hi'};
 
-   # it would also be good to pass along other tokens specified
+    # it would also be good to pass along other tokens specified
 
-   # down the road, would be nice to make configurable.
-   # ..., normal => 3-5, warning => 2-6, critical => x-10, error => 1-x
+    # down the road, would be nice to make configurable.
+    # ..., normal => 3-5, warning => 2-6, critical => x-10, error => 1-x
 
-   # five states supported for now
-   #
-   # alert low  | warning low |  normal  | warning high |  alert high
-   # ----------------------------------------------------------------
-   #
-   # it may also be desirable to 'squash' states: alert_low or alert_high = alert, etc...
+    # five states supported for now
+    #
+    # alert low  | warning low |  normal  | warning high |  alert high
+    # ----------------------------------------------------------------
+    #
+    # it may also be desirable to 'squash' states: alert_low or alert_high = alert, etc...
 
-   $states{"alert_low"} = "alert_low";
-   $states{"alert_high"} = "alert_high";
+    $states{"alert_low"}  = "alert_low";
+    $states{"alert_high"} = "alert_high";
 
-   $states{"warning_low"} = "warning_low";
-   $states{"warning_high"} = "warning_high";
+    $states{"warning_low"}  = "warning_low";
+    $states{"warning_high"} = "warning_high";
 
-   $states{"normal"} = "normal";
+    $states{"normal"} = "normal";
 
+    &::print_log( "[AnalogRangeSensor_Item] Specified ranges for "
+          . $self->{object_name}
+          . " : $alert_low,$warning_low,$warning_high,$alert_high" )
+      if $main::Debug{analogsensor};
 
-   &::print_log( "[AnalogRangeSensor_Item] Specified ranges for " . $self->{object_name} . " : $alert_low,$warning_low,$warning_high,$alert_high") if $main::Debug{analogsensor};
+    #if ($diag_config) { #need to put this back
+    my $condition;
+    my $normal_condition = "";
 
-   #if ($diag_config) { #need to put this back
-      my $condition;
-      my $normal_condition = "";
+    # alert conditions
+    if ( defined($alert_low) ) {
+        $self->token( 'alert_lo', $alert_low );
+        $condition = '$measurement < $token_alert_lo';
+        print "[AnalogRangeSensor_Item] Condition Alert_low: $condition \n"
+          if $main::Debug{analogsensor};
+        $self->tie_state_condition( "$condition", $states{"alert_low"} );
+    }
+    if ( defined($alert_high) ) {
+        $self->token( 'alert_hi', $alert_high );
+        $condition = '$measurement > $token_alert_hi';
+        print "[AnalogRangeSensor_Item] Condition Alert_High: $condition \n"
+          if $main::Debug{analogsensor};
+        $self->tie_state_condition( "$condition", $states{"alert_high"} );
+    }
 
-      # alert conditions
-      if (defined($alert_low)) {
-         $self->token('alert_lo',$alert_low);
-         $condition = '$measurement < $token_alert_lo';
-print "[AnalogRangeSensor_Item] Condition Alert_low: $condition \n"  if $main::Debug{analogsensor};
-	 $self->tie_state_condition("$condition", $states{"alert_low"})
-      }
-      if (defined($alert_high)) {
-         $self->token('alert_hi',$alert_high);
-         $condition = '$measurement > $token_alert_hi';
-print "[AnalogRangeSensor_Item] Condition Alert_High: $condition \n" if $main::Debug{analogsensor};
-	 $self->tie_state_condition("$condition", $states{"alert_high"})
-      }
+    # warning conditions
 
-      # warning conditions
+    if ( defined($warning_low) ) {
+        $self->token( 'warning_lo', $warning_low );
+        $condition = '$measurement < $token_warning_lo';
+        if ( defined($alert_low) ) {
+            $condition .= ' and $measurement > $token_alert_lo';
+        }
+        print "[AnalogRangeSensor_Item] Condition Warning_Low: $condition \n"
+          if $main::Debug{analogsensor};
+        $self->tie_state_condition( "$condition", $states{"warning_low"} );
+    }
+    if ( defined($warning_high) ) {
+        $self->token( 'warning_hi', $warning_high );
+        $condition = '$measurement > $token_warning_hi';
+        if ( defined($alert_high) ) {
+            $condition .= ' and $measurement < $token_alert_hi';
+        }
+        print "[AnalogRangeSensor_Item] Condition Warning_High: $condition \n"
+          if $main::Debug{analogsensor};
+        $self->tie_state_condition( "$condition", $states{"warning_high"} );
+    }
 
-      if (defined($warning_low)) {
-            $self->token('warning_lo',$warning_low);
-	    $condition = '$measurement < $token_warning_lo';
-	    if (defined($alert_low)) {
-		$condition .= ' and $measurement > $token_alert_lo';
-	    }
-print "[AnalogRangeSensor_Item] Condition Warning_Low: $condition \n" if $main::Debug{analogsensor};
-            $self->tie_state_condition("$condition",$states{"warning_low"});
-      }
-      if (defined($warning_high)) {
-            $self->token('warning_hi',$warning_high);
-	    $condition = '$measurement > $token_warning_hi';
-	    if (defined($alert_high)) {
-		$condition .= ' and $measurement < $token_alert_hi';
-	    }
-print "[AnalogRangeSensor_Item] Condition Warning_High: $condition \n" if $main::Debug{analogsensor};
-            $self->tie_state_condition("$condition",$states{"warning_high"});
-      }
-      #normal condition
-      $normal_condition .=  '($measurement > $token_alert_lo)' if (defined($alert_low));
-      $normal_condition .= " and " if ((defined($alert_low)) and (defined($warning_low)));
-      $normal_condition .=  '($measurement > $token_warning_lo)' if (defined($warning_low));
-      $normal_condition .= " and " if ((defined($warning_low)) and (defined($warning_high)));
-      $normal_condition .=  '($measurement < $token_warning_hi)' if (defined($warning_high));
-      $normal_condition .= " and " if ((defined($warning_high)) and (defined($alert_high)));
-      $normal_condition .=  '($measurement < $token_alert_hi)' if (defined($alert_high));
+    #normal condition
+    $normal_condition .= '($measurement > $token_alert_lo)'
+      if ( defined($alert_low) );
+    $normal_condition .= " and "
+      if ( ( defined($alert_low) ) and ( defined($warning_low) ) );
+    $normal_condition .= '($measurement > $token_warning_lo)'
+      if ( defined($warning_low) );
+    $normal_condition .= " and "
+      if ( ( defined($warning_low) ) and ( defined($warning_high) ) );
+    $normal_condition .= '($measurement < $token_warning_hi)'
+      if ( defined($warning_high) );
+    $normal_condition .= " and "
+      if ( ( defined($warning_high) ) and ( defined($alert_high) ) );
+    $normal_condition .= '($measurement < $token_alert_hi)'
+      if ( defined($alert_high) );
 
-print "[AnalogRangeSensor_Item] Condition Normal: $condition \n" if $main::Debug{analogsensor};
-      $self->tie_state_condition("$normal_condition",$states{"normal"});
+    print "[AnalogRangeSensor_Item] Condition Normal: $condition \n"
+      if $main::Debug{analogsensor};
+    $self->tie_state_condition( "$normal_condition", $states{"normal"} );
 
-      $self->check_tied_state_conditions();
-   #}
+    $self->check_tied_state_conditions();
 
-   return $self;
+    #}
+
+    return $self;
 }
 
 =back
@@ -681,75 +757,88 @@ package AnalogAveraging_Item;
 
 @AnalogAveraging_Item::ISA = ('AnalogSensor_Item');
 
-sub new
-{
+sub new {
 
-	my ($class, $p_sensor_item, @p_tokens) = @_;
+    my ( $class, $p_sensor_item, @p_tokens ) = @_;
 
-	my $self={};
-	bless $self, $class;
-	$$self{m_activityTime} = 24*3600;
-        $$self{m_sensorTimeout} = 3600;  # ignore any sensors whose value is 1 hr old
-        $self->id('');
-        $self->type('averaging');
-	# maintain measurement member as it is like state
-	$self->restore_data('m_measurement','m_timestamp','m_time_since_previous','m_measurement_change','m_activityTime');
-	$$self{m_max_records} = 10;
+    my $self = {};
+    bless $self, $class;
+    $$self{m_activityTime} = 24 * 3600;
+    $$self{m_sensorTimeout} = 3600; # ignore any sensors whose value is 1 hr old
+    $self->id('');
+    $self->type('averaging');
 
-        if ($p_sensor_item && $p_sensor_item->isa('AnalogSensor_Item')) {
-           $self->add($p_sensor_item);
+    # maintain measurement member as it is like state
+    $self->restore_data(
+        'm_measurement',         'm_timestamp',
+        'm_time_since_previous', 'm_measurement_change',
+        'm_activityTime'
+    );
+    $$self{m_max_records} = 10;
 
-           for my $token (@p_tokens) {
-              my ($tag, $value) = split(/=/,$token);
-              if (defined($tag) and defined($value)) {
-                 print "[AnalogAveraging_Item] Adding analog averager token: $tag "
-                     . "having value: $value\n" if $main::Debug{analogsensor};
-                 $self->token($tag, $value);
-              }
-           }
+    if ( $p_sensor_item && $p_sensor_item->isa('AnalogSensor_Item') ) {
+        $self->add($p_sensor_item);
+
+        for my $token (@p_tokens) {
+            my ( $tag, $value ) = split( /=/, $token );
+            if ( defined($tag) and defined($value) ) {
+                print
+                  "[AnalogAveraging_Item] Adding analog averager token: $tag "
+                  . "having value: $value\n"
+                  if $main::Debug{analogsensor};
+                $self->token( $tag, $value );
+            }
         }
-        $$self{m_timerCheck} = new Timer();
-	return $self;
+    }
+    $$self{m_timerCheck} = new Timer();
+    return $self;
 
 }
 
-sub add
-{
-    my ($self,$p_object) = @_;
+sub add {
+    my ( $self, $p_object ) = @_;
 
     $p_object->add($self);
-#    $$self{m_measurements}{$p_object} = undef;
+
+    #    $$self{m_measurements}{$p_object} = undef;
 }
 
-sub sensor_timeout
-{
-   my ($self, $timeout) = @_;
-   $$self{m_sensorTimeout} = $timeout if defined $timeout;
-   return $$self{m_sensorTimeout};
+sub sensor_timeout {
+    my ( $self, $timeout ) = @_;
+    $$self{m_sensorTimeout} = $timeout if defined $timeout;
+    return $$self{m_sensorTimeout};
 }
 
-sub update_measurement
-{
-   my ($self, $p_object, $p_measurement, $p_timestamp) = @_;
-   $$self{m_measurements}{$p_object}{measurement} = $p_measurement;
-   $$self{m_measurements}{$p_object}{timestamp} = $p_timestamp;
+sub update_measurement {
+    my ( $self, $p_object, $p_measurement, $p_timestamp ) = @_;
+    $$self{m_measurements}{$p_object}{measurement} = $p_measurement;
+    $$self{m_measurements}{$p_object}{timestamp}   = $p_timestamp;
 
-   my $measurement_accumulator = 0;
-   my $measurement_count = 0;
+    my $measurement_accumulator = 0;
+    my $measurement_count       = 0;
 
-   for my $measurement_key (keys %{$$self{m_measurements}}) {
-      if (($p_timestamp - $$self{m_measurements}{$measurement_key}{timestamp}) < $self->sensor_timeout) {
-         $measurement_accumulator += $$self{m_measurements}{$measurement_key}{measurement};
-         $measurement_count++;
-      }
-   }
+    for my $measurement_key ( keys %{ $$self{m_measurements} } ) {
+        if (
+            (
+                $p_timestamp -
+                $$self{m_measurements}{$measurement_key}{timestamp}
+            ) < $self->sensor_timeout
+          )
+        {
+            $measurement_accumulator +=
+              $$self{m_measurements}{$measurement_key}{measurement};
+            $measurement_count++;
+        }
+    }
 
-   if ($measurement_count) {
-      my $average = $measurement_accumulator/$measurement_count;
-      &::print_log("[AnalogAveraging_Item] average value for " . $self->get_object_name
-         . " is $average using a total of $measurement_count individual sensors") if $main::Debug{analogsensor};
-      $self->measurement($average);
-   }
+    if ($measurement_count) {
+        my $average = $measurement_accumulator / $measurement_count;
+        &::print_log( "[AnalogAveraging_Item] average value for "
+              . $self->get_object_name
+              . " is $average using a total of $measurement_count individual sensors"
+        ) if $main::Debug{analogsensor};
+        $self->measurement($average);
+    }
 }
 
 1;

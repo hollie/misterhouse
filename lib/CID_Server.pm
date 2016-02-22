@@ -1,3 +1,4 @@
+
 =head1 B<CID_Server>
 
 =head2 SYNOPSIS
@@ -28,61 +29,77 @@ B<Telephony_Item>
 
 use strict;
 
-my (@CID_Server_yac_objects, $hooks_added);
+my ( @CID_Server_yac_objects, $hooks_added );
 
-use Acid;                       # For server CID data to Audry Acid client
+use Acid;    # For server CID data to Audry Acid client
 
 package CID_Server;
 
 @CID_Server::ISA = ('Telephony_Item');
 
-sub new
-{
-	my ($class,$p_Telephony) = @_;
-	my $self={};
+sub new {
+    my ( $class, $p_Telephony ) = @_;
+    my $self = {};
 
-	bless $self,$class;
+    bless $self, $class;
 
-	$p_Telephony->tie_items($self,'cid') if defined $p_Telephony;	
+    $p_Telephony->tie_items( $self, 'cid' ) if defined $p_Telephony;
 
-    unless ($hooks_added++) {
-        &::MainLoop_pre_add_hook( \&CID_Server::check_requests, 1);
+    unless ( $hooks_added++ ) {
+        &::MainLoop_pre_add_hook( \&CID_Server::check_requests, 1 );
     }
 
-	return $self;
+    return $self;
 }
 
-sub set
-{
-    my ($self,$p_state,$p_setby) = @_;
+sub set {
+    my ( $self, $p_state, $p_setby ) = @_;
     print "CID_Server set:$p_state\n" if $main::Debug{cid_server};
 
-    if ($p_state =~ /^CID/i)
-    {
-        if (lc $p_setby->category() ne 'reject') 
-        {
-                                # Service YAC clients
-            for my $current_object (@CID_Server_yac_objects) 
-            {
-                print "CID_Server set calling $current_object->{client_address}\n"  if $main::Debug{cid_server};
-                $current_object->set('cid:' . $p_setby->cid_name() . '~' . $p_setby->formated_number());
-            }
-                                # Service Acid clients
-            &Acid::write(&Acid::CID_TYPE_INCOMING_CALL(), $p_setby->cid_name(), $p_setby->formated_number());
+    if ( $p_state =~ /^CID/i ) {
+        if ( lc $p_setby->category() ne 'reject' ) {
 
-				# Send xAP/xPL data, if xAP/xPL port is opened
-	    if ($main::Socket_Ports{'xap_send'}) {
-#		my $caller = $cid_announce->parse_format($p_setby, '$format1', $::config_parms{local_area_code});
-		&xAP::send('xAP', 'CID.Incoming', 'CID.Incoming' => 
-			   {Type => 'Voice', DateTime => &::time_date_stamp(20), 
-			    Phone => $p_setby->formated_number(), Name => $p_setby->cid_name(),
-			    RNNumber => 'Available', RNName => 'Available', 
-			    Formatted_Date => $::Date_Now, Formatted_Time => $::Time_Now});
-		&xPL::sendXpl('*.*', 'CID.BASIC' => 
-			   {CallType => 'INBOUND',
-			    Phone => $p_setby->formated_number(), CLN => $p_setby->cid_name()
-			    });
-	    }
+            # Service YAC clients
+            for my $current_object (@CID_Server_yac_objects) {
+                print
+                  "CID_Server set calling $current_object->{client_address}\n"
+                  if $main::Debug{cid_server};
+                $current_object->set( 'cid:'
+                      . $p_setby->cid_name() . '~'
+                      . $p_setby->formated_number() );
+            }
+
+            # Service Acid clients
+            &Acid::write( &Acid::CID_TYPE_INCOMING_CALL(),
+                $p_setby->cid_name(), $p_setby->formated_number() );
+
+            # Send xAP/xPL data, if xAP/xPL port is opened
+            if ( $main::Socket_Ports{'xap_send'} ) {
+
+                #		my $caller = $cid_announce->parse_format($p_setby, '$format1', $::config_parms{local_area_code});
+                &xAP::send(
+                    'xAP',
+                    'CID.Incoming',
+                    'CID.Incoming' => {
+                        Type           => 'Voice',
+                        DateTime       => &::time_date_stamp(20),
+                        Phone          => $p_setby->formated_number(),
+                        Name           => $p_setby->cid_name(),
+                        RNNumber       => 'Available',
+                        RNName         => 'Available',
+                        Formatted_Date => $::Date_Now,
+                        Formatted_Time => $::Time_Now
+                    }
+                );
+                &xPL::sendXpl(
+                    '*.*',
+                    'CID.BASIC' => {
+                        CallType => 'INBOUND',
+                        Phone    => $p_setby->formated_number(),
+                        CLN      => $p_setby->cid_name()
+                    }
+                );
+            }
 
         }
 
@@ -91,8 +108,9 @@ sub set
 }
 
 sub check_requests {
-    if ($::New_Second) {        # Check for new subscribers
-#       print "Checking for acid requests\n";
+    if ($::New_Second) {    # Check for new subscribers
+
+        #       print "Checking for acid requests\n";
         &Acid::read();
     }
 }
@@ -101,46 +119,51 @@ package CID_Server_YAC;
 
 @CID_Server_YAC::ISA = ('Generic_Item');
 
-sub new 
-{
-    my ($class, $client_address) = @_;
+sub new {
+    my ( $class, $client_address ) = @_;
     my $self = {};
-    $$self{state} = '';
-    $$self{client_address} = $client_address;
+    $$self{state}                = '';
+    $$self{client_address}       = $client_address;
     $$self{states_casesensitive} = 1;
     bless $self, $class;
     push @CID_Server_yac_objects, $self;
     return $self;
 }
-  
-sub setstate_cid
-{
-    my ($self, $substate) = @_;
-    print "CID_Server_YAC ip=$self->{client_address} data:$substate\n" if $main::Debug{cid_server};
 
-    if ($main::config_parms{yacserver_inline}) 
-    {
+sub setstate_cid {
+    my ( $self, $substate ) = @_;
+    print "CID_Server_YAC ip=$self->{client_address} data:$substate\n"
+      if $main::Debug{cid_server};
+
+    if ( $main::config_parms{yacserver_inline} ) {
+
         # Timeout => 0,  # Does not help with 2 second pauses on unavailable  addresses :(
-        if (my $sock = new IO::Socket::INET->new(PeerAddr => $self->{client_address}, PeerPort => '10629', Proto => 'tcp')) 
+        if (
+            my $sock = new IO::Socket::INET->new(
+                PeerAddr => $self->{client_address},
+                PeerPort => '10629',
+                Proto    => 'tcp'
+            )
+          )
         {
             $sock->autoflush(1);
 
             my $yakmessage = '@CALL' . $substate;
-            print "CID_Server_YAC socket set:$yakmessage\n" if $main::Debug{cid_server};
+            print "CID_Server_YAC socket set:$yakmessage\n"
+              if $main::Debug{cid_server};
             print $sock $yakmessage . "\0";
             close $sock;
         }
-        else
-        {
+        else {
             print "CID_Server_YAC set socket creation failed\n";
         }
     }
-    else
-    {
+    else {
         #       my $YacServerProcess = new Process_Item(qq|send_ip_msg $self->{client_address}:10629 "$state"|);
         #       start $YacServerProcess;
         my $yakmessage = '@CALL' . $substate;
-        &main::run(qq|send_ip_msg $self->{client_address}:10629 "$yakmessage"|, 1);
+        &main::run( qq|send_ip_msg $self->{client_address}:10629 "$yakmessage"|,
+            1 );
     }
 }
 

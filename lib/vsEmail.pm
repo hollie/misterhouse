@@ -18,7 +18,7 @@
 package vsEmail;
 require 5.000;
 $VERSION = "1.11";
-$ID = "vsEmail.pm";
+$ID      = "vsEmail.pm";
 
 =head1 NAME
 
@@ -79,28 +79,30 @@ functionality.  See POD below for details:
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sub new {
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	my $class = shift;
-	my (%parameters) = @_;
-	my ($param);
-	my $this = {
-		SmtpServer		=> "",
-		SendMailPath	=> "",
-		HtmlMode		=> "",
-		From			=> "",
-		ReplyTo		=> "",
-		To			=> "",
-		Cc			=> "",
-		Subject		=> "",
-		Message		=> "",
-		Log			=> "",
-	};
-	bless $this;
-	# set the initial paramenters if they were specified
-	foreach $param (keys(%parameters)) {
-		$this->{$param} = $parameters{$param};
-	}
-	return $this;
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    my $class = shift;
+    my (%parameters) = @_;
+    my ($param);
+    my $this = {
+        SmtpServer   => "",
+        SendMailPath => "",
+        HtmlMode     => "",
+        From         => "",
+        ReplyTo      => "",
+        To           => "",
+        Cc           => "",
+        Subject      => "",
+        Message      => "",
+        Log          => "",
+    };
+    bless $this;
+
+    # set the initial paramenters if they were specified
+    foreach $param ( keys(%parameters) ) {
+        $this->{$param} = $parameters{$param};
+    }
+    return $this;
 }
 
 # ###########################################################################
@@ -109,227 +111,267 @@ sub new {
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sub Version {
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	return $VERSION;
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    return $VERSION;
 }
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sub SmtpServer {
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	my $this = shift;
-	my $newValue = shift;
-	if (defined($newValue)) {
-		$this->{'SmtpServer'} = $newValue;
-	} else {
-		return $this->{'SmtpServer'};
-	}
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    my $this     = shift;
+    my $newValue = shift;
+    if ( defined($newValue) ) {
+        $this->{'SmtpServer'} = $newValue;
+    }
+    else {
+        return $this->{'SmtpServer'};
+    }
 }
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sub SendmailPath {
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	my $this = shift;
-	my $newValue = shift;
-	if (defined($newValue)) {
-		$this->{'SendmailPath'} = $newValue;
-	} else {
-		return $this->{'SendmailPath'};
-	}
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    my $this     = shift;
+    my $newValue = shift;
+    if ( defined($newValue) ) {
+        $this->{'SendmailPath'} = $newValue;
+    }
+    else {
+        return $this->{'SendmailPath'};
+    }
 }
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sub HtmlMode {
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	my $this = shift;
-	my $newValue = shift;
-	if (defined($newValue)) {
-		$this->{'HtmlMode'} = $newValue;
-	} else {
-		return $this->{'HtmlMode'};
-	}
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    my $this     = shift;
+    my $newValue = shift;
+    if ( defined($newValue) ) {
+        $this->{'HtmlMode'} = $newValue;
+    }
+    else {
+        return $this->{'HtmlMode'};
+    }
 }
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sub From {
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	my $this = shift;
-	my $newValue = shift;
-	if (defined($newValue)) {
-		$this->{'From'} = $newValue;
-	} else {
-		return $this->{'From'};
-	}
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    my $this     = shift;
+    my $newValue = shift;
+    if ( defined($newValue) ) {
+        $this->{'From'} = $newValue;
+    }
+    else {
+        return $this->{'From'};
+    }
 }
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sub ReplyTo {
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	my $this = shift;
-	my $newValue = shift;
-	if (defined($newValue)) {
-		$this->{'ReplyTo'} = $newValue;
-	} else {
-		return $this->{'ReplyTo'};
-	}
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    my $this     = shift;
+    my $newValue = shift;
+    if ( defined($newValue) ) {
+        $this->{'ReplyTo'} = $newValue;
+    }
+    else {
+        return $this->{'ReplyTo'};
+    }
 }
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sub To {
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	my $this = shift;
-	my $newValue = shift;
-	if (defined($newValue)) {
-		$this->{'To'} = $newValue;
-	} else {
-		return $this->{'To'};
-	}
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    my $this     = shift;
+    my $newValue = shift;
+    if ( defined($newValue) ) {
+        $this->{'To'} = $newValue;
+    }
+    else {
+        return $this->{'To'};
+    }
 }
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sub Cc {
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	my $this = shift;
-	my $newValue = shift;
-	if (defined($newValue)) {
-		$this->{'Cc'} = $newValue;
-	} else {
-		return $this->{'Cc'};
-	}
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    my $this     = shift;
+    my $newValue = shift;
+    if ( defined($newValue) ) {
+        $this->{'Cc'} = $newValue;
+    }
+    else {
+        return $this->{'Cc'};
+    }
 }
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sub Subject {
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	my $this = shift;
-	my $newValue = shift;
-	if (defined($newValue)) {
-		$this->{'Subject'} = $newValue;
-	} else {
-		return $this->{'Subject'};
-	}
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    my $this     = shift;
+    my $newValue = shift;
+    if ( defined($newValue) ) {
+        $this->{'Subject'} = $newValue;
+    }
+    else {
+        return $this->{'Subject'};
+    }
 }
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sub Message {
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	my $this = shift;
-	my $newValue = shift;
-	if (defined($newValue)) {
-		$this->{'Message'} = $newValue;
-	} else {
-		return $this->{'Message'};
-	}
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    my $this     = shift;
+    my $newValue = shift;
+    if ( defined($newValue) ) {
+        $this->{'Message'} = $newValue;
+    }
+    else {
+        return $this->{'Message'};
+    }
 }
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sub Log {
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	my $this = shift;
-	return $this->{'Log'};
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    my $this = shift;
+    return $this->{'Log'};
 }
 
 # ###########################################################################
 # # PUBLIC METHODS
 # ###########################################################################
 
-
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sub AppendToMessage {
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	my $this = shift;
-	my $newValue = shift;
-	if (defined($newValue)) {
-		$this->{'Message'} .= $newValue;
-		return 1;
-	} else {
-		return 0;
-	}
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    my $this     = shift;
+    my $newValue = shift;
+    if ( defined($newValue) ) {
+        $this->{'Message'} .= $newValue;
+        return 1;
+    }
+    else {
+        return 0;
+    }
 }
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-sub Send  {
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	my $this = shift;
-	my $sendmailPath = $this->SendmailPath;
+sub Send {
 
-	# check for required variables
-	unless ($this->ValidAddress($this->To) && $this->ValidAddress($this->From)) {
-		$this->{'Log'} .= "Invalid email address.\n";
-		return 0;
-	}
-	
-	if ($sendmailPath) {
-		if (-r $sendmailPath) {
-			# send message using sendmail
-			open (MAIL,"|$sendmailPath -t");
-			print MAIL "To: " . $this->To . "\n";
-			print MAIL "Cc: " . $this->Cc . "\n" if ($this->Cc);
-			print MAIL "Reply-To: " . $this->ReplyTo . "\n" if ($this->ReplyTo);
-			print MAIL "From: " . $this->From . "\n";
-			print MAIL "Subject: " . $this->Subject . "\n";
-			if ($this->HtmlMode) {
-				print MAIL "Content-type: text/html\n";	
-			} else {
-				print MAIL "Content-type: text/plain\n";
-			}
-			print MAIL "X-Mailer: " . $this->Version . "\n";
-			print MAIL "\n";
-			print MAIL $this->Message;
-			close (MAIL);
-			$this->{'Log'} = $sendmailPath . "\n";
-			$this->{'Log'} .= "Date: " . vsSmtpMail::time_to_date() . "\n";
-			$this->{'Log'} .= "To: " . $this->To . "\n";
-			$this->{'Log'} .= "From: " . $this->From . "\n";
-			$this->{'Log'} .= "Subject: " . $this->Subject . "\n";
-			return 1;
-		} elsif (-e $sendmailPath) {
-			$this->{'Log'} = "Permission denied on '" . $sendmailPath . "'. \n";
-			return 0;
-		} else {
-			$this->{'Log'} = "Sendmail was not found at '" . $sendmailPath . "'.\n";
-			return 0;
-		}
-	} else {
-		# send the message using the SMTP server module
-		my (%smtpMessage);
-		$smtpMessage{'Smtp'} = $this->SmtpServer;
-		$smtpMessage{'Content-type'} = "text/html" if ($this->HtmlMode);
-		$smtpMessage{'To'} = $this->To;
-		$smtpMessage{'Cc'} = $this->Cc;
-		$smtpMessage{'From'} = $this->From;
-		$smtpMessage{'Subject'} = $this->Subject;
-		$smtpMessage{'Message'} = $this->Message;
-		if (vsSmtpMail::sendmail(%smtpMessage)) {
-			$this->{'Log'} = $vsSmtpMail::log;
-			return 1;
-		} else {
-			$this->{'Log'} = $vsSmtpMail::log;
-			return 0;
-		}
-	}
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    my $this         = shift;
+    my $sendmailPath = $this->SendmailPath;
+
+    # check for required variables
+    unless ( $this->ValidAddress( $this->To )
+        && $this->ValidAddress( $this->From ) )
+    {
+        $this->{'Log'} .= "Invalid email address.\n";
+        return 0;
+    }
+
+    if ($sendmailPath) {
+        if ( -r $sendmailPath ) {
+
+            # send message using sendmail
+            open( MAIL, "|$sendmailPath -t" );
+            print MAIL "To: " . $this->To . "\n";
+            print MAIL "Cc: " . $this->Cc . "\n" if ( $this->Cc );
+            print MAIL "Reply-To: " . $this->ReplyTo . "\n"
+              if ( $this->ReplyTo );
+            print MAIL "From: " . $this->From . "\n";
+            print MAIL "Subject: " . $this->Subject . "\n";
+            if ( $this->HtmlMode ) {
+                print MAIL "Content-type: text/html\n";
+            }
+            else {
+                print MAIL "Content-type: text/plain\n";
+            }
+            print MAIL "X-Mailer: " . $this->Version . "\n";
+            print MAIL "\n";
+            print MAIL $this->Message;
+            close(MAIL);
+            $this->{'Log'} = $sendmailPath . "\n";
+            $this->{'Log'} .= "Date: " . vsSmtpMail::time_to_date() . "\n";
+            $this->{'Log'} .= "To: " . $this->To . "\n";
+            $this->{'Log'} .= "From: " . $this->From . "\n";
+            $this->{'Log'} .= "Subject: " . $this->Subject . "\n";
+            return 1;
+        }
+        elsif ( -e $sendmailPath ) {
+            $this->{'Log'} = "Permission denied on '" . $sendmailPath . "'. \n";
+            return 0;
+        }
+        else {
+            $this->{'Log'} =
+              "Sendmail was not found at '" . $sendmailPath . "'.\n";
+            return 0;
+        }
+    }
+    else {
+        # send the message using the SMTP server module
+        my (%smtpMessage);
+        $smtpMessage{'Smtp'}         = $this->SmtpServer;
+        $smtpMessage{'Content-type'} = "text/html" if ( $this->HtmlMode );
+        $smtpMessage{'To'}           = $this->To;
+        $smtpMessage{'Cc'}           = $this->Cc;
+        $smtpMessage{'From'}         = $this->From;
+        $smtpMessage{'Subject'}      = $this->Subject;
+        $smtpMessage{'Message'}      = $this->Message;
+
+        if ( vsSmtpMail::sendmail(%smtpMessage) ) {
+            $this->{'Log'} = $vsSmtpMail::log;
+            return 1;
+        }
+        else {
+            $this->{'Log'} = $vsSmtpMail::log;
+            return 0;
+        }
+    }
 }
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sub ValidAddress {
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	my $this = shift;
-	my $address = shift;
-	if (($address =~ /(@.*@)|(\.\.)|(@\.)|(\.@)|(^\.)/) || ($address !~ /^.+\@(\[?)[a-zA-Z0-9\-\.]+\.([a-zA-Z]{2,3}|[0-9]{1,3})(\]?)$/)) {
-		return 0;
-	} else {
-		return 1;
-	}
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    my $this    = shift;
+    my $address = shift;
+    if (
+        ( $address =~ /(@.*@)|(\.\.)|(@\.)|(\.@)|(^\.)/ )
+        || ( $address !~
+            /^.+\@(\[?)[a-zA-Z0-9\-\.]+\.([a-zA-Z]{2,3}|[0-9]{1,3})(\]?)$/ )
+      )
+    {
+        return 0;
+    }
+    else {
+        return 1;
+    }
 }
 
 1;
 
-
 # ###########################################################################
 # ###########################################################################
 package vsSmtpMail;
+
 # ###########################################################################
 # ###########################################################################
-# Mail::Sendmail by Milivoj Ivkovic <mi@alma.ch> 
+# Mail::Sendmail by Milivoj Ivkovic <mi@alma.ch>
 # see embedded POD documentation after __END__
 # or http://alma.ch/perl/mail.htm
 # ###########################################################################
@@ -356,264 +398,280 @@ $VERSION = '0.77';
 # every script), and leave the rest as is. See pod documentation for details
 
 %mailcfg = (
+
     # List of SMTP servers:
-    'smtp'    => [ qw( localhost ) ],
+    'smtp' => [qw( localhost )],
+
     #'smtp'    => [ qw( mail.mydomain.com ) ], # example
 
-    'from'    => '', # default sender e-mail, used when no From header in mail
+    'from' => '',    # default sender e-mail, used when no From header in mail
 
-    'mime'    => 1, # use MIME encoding by default
+    'mime' => 1,     # use MIME encoding by default
 
-    'retries' => 1, # number of retries on smtp connect failure
-    'delay'   => 1, # delay in seconds between retries
+    'retries' => 1,  # number of retries on smtp connect failure
+    'delay'   => 1,  # delay in seconds between retries
 
-    'tz'      => '', # only to override automatic detection
-    'port'    => 25, # change it if you always use a non-standard port
-    'debug'   => 0 # prints stuff to STDERR
+    'tz'    => '',   # only to override automatic detection
+    'port'  => 25,   # change it if you always use a non-standard port
+    'debug' => 0     # prints stuff to STDERR
 );
 
 # *******************************************************************
 
 require Exporter;
 use vars qw(
-            $VERSION
-            @ISA
-            @EXPORT
-            @EXPORT_OK
-            %mailcfg
-            $default_smtp_server
-            $default_smtp_port
-            $default_sender
-            $TZ
-            $use_MIME
-            $address_rx
-            $debug
-            $log
-            $error
-            $retry_delay
-            $connect_retries
-           );
+  $VERSION
+  @ISA
+  @EXPORT
+  @EXPORT_OK
+  %mailcfg
+  $default_smtp_server
+  $default_smtp_port
+  $default_sender
+  $TZ
+  $use_MIME
+  $address_rx
+  $debug
+  $log
+  $error
+  $retry_delay
+  $connect_retries
+);
 
 use Socket;
-use Time::Local; # for automatic time zone detection
+use Time::Local;    # for automatic time zone detection
 
 # use MIME::QuotedPrint if available and configured in %mailcfg
 eval("use MIME::QuotedPrint");
 
+$mailcfg{'mime'} &&= ( !$@ );
 
-$mailcfg{'mime'} &&= (!$@);
-
-@ISA        = qw(Exporter);
-@EXPORT     = qw(&sendmail);
-@EXPORT_OK  = qw(
-                 %mailcfg
-                 time_to_date
-                 $default_smtp_server
-                 $default_smtp_port
-                 $default_sender
-                 $TZ
-                 $address_rx
-                 $debug
-                 $log
-                 $error
-                );
+@ISA       = qw(Exporter);
+@EXPORT    = qw(&sendmail);
+@EXPORT_OK = qw(
+  %mailcfg
+  time_to_date
+  $default_smtp_server
+  $default_smtp_port
+  $default_sender
+  $TZ
+  $address_rx
+  $debug
+  $log
+  $error
+);
 
 # regex for e-mail addresses where full=$1, user=$2, domain=$3
 # see pod documentation about this regex
 
 my $word_rx = '[\x21\x23-\x27\x2A-\x2B\x2D\w\x3D\x3F]+';
-my $user_rx = $word_rx         # valid chars
-             .'(?:\.' . $word_rx . ')*' # possibly more words preceded by a dot
-             ;
-my $dom_rx = '\w[-\w]+(?:\.\w[-\w]+)*'; # less valid chars in domain names
-my $ip_rx = '\[\d{1,3}(?:\.\d{1,3}){3}\]';
+my $user_rx = $word_rx                                     # valid chars
+  . '(?:\.' . $word_rx . ')*'    # possibly more words preceded by a dot
+  ;
+my $dom_rx = '\w[-\w]+(?:\.\w[-\w]+)*';       # less valid chars in domain names
+my $ip_rx  = '\[\d{1,3}(?:\.\d{1,3}){3}\]';
 
 $address_rx = '\b((' . $user_rx . ')\@(' . $dom_rx . '\b|' . $ip_rx . '))';
-; # v. 0.4
+;                                             # v. 0.4
 
 sub time_to_date {
+
     # convert a time() value to a date-time string according to RFC 822
 
-    my $time = $_[0] || time(); # default to now if no argument
+    my $time = $_[0] || time();               # default to now if no argument
 
     my @months = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
     my @wdays  = qw(Sun Mon Tue Wed Thu Fri Sat);
 
-    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)
-        = localtime($time);
+    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) =
+      localtime($time);
 
     $TZ ||= $mailcfg{'tz'};
 
     if ( $TZ eq "" ) {
+
         # offset in hours
-        my $offset  = sprintf "%.1f", (timegm(localtime) - time) / 3600;
+        my $offset  = sprintf "%.1f", ( timegm(localtime) - time ) / 3600;
         my $minutes = sprintf "%02d", ( $offset - int($offset) ) * 60;
-        $TZ  = sprintf("%+03d", int($offset)) . $minutes;
+        $TZ = sprintf( "%+03d", int($offset) ) . $minutes;
     }
-    return join(" ",
-                    ($wdays[$wday] . ','),
-                     $mday,
-                     $months[$mon],
-                     $year+1900,
-                     sprintf("%02d", $hour) . ":" . sprintf("%02d", $min),
-                     $TZ
-               );
-} # end sub time_to_date
+    return join( " ",
+        ( $wdays[$wday] . ',' ),
+        $mday, $months[$mon],
+        $year + 1900,
+        sprintf( "%02d", $hour ) . ":" . sprintf( "%02d", $min ), $TZ );
+}    # end sub time_to_date
 
 sub sendmail {
+
     # original sendmail 1.21 by Christian Mallwitz.
     # Modified and 'modulized' by mi@alma.ch
 
     $error = '';
-    $log = "vsSmtpMail v. $VERSION - "    . scalar(localtime()) . "\n";
+    $log   = "vsSmtpMail v. $VERSION - " . scalar( localtime() ) . "\n";
 
     local $_;
     local $/ = "\015\012";
 
-    my (%mail, $k,
-        $smtp, $server, $port, $connected, $localhost,
-        $message, $fromaddr, $recip, @recipients, $to, $header,
-       );
+    my (
+        %mail,       $k,         $smtp,    $server,   $port,
+        $connected,  $localhost, $message, $fromaddr, $recip,
+        @recipients, $to,        $header,
+    );
 
     sub fail {
+
         # things to do before returning a sendmail failure
         print STDERR @_ if $^W;
-        $error .= join(" ", @_) . "\n";
+        $error .= join( " ", @_ ) . "\n";
         close S;
         return 0;
     }
 
     # all config keys to lowercase, to prevent typo errors
-    foreach $k (keys %mailcfg) {
-        if ($k =~ /[A-Z]/) {
-            $mailcfg{lc($k)} = $mailcfg{$k};
+    foreach $k ( keys %mailcfg ) {
+        if ( $k =~ /[A-Z]/ ) {
+            $mailcfg{ lc($k) } = $mailcfg{$k};
         }
     }
 
     # redo hash, arranging keys case etc...
     while (@_) {
-        # arrange keys case
-        $k = ucfirst lc(shift @_);
 
-        if (!$k and $^W) {
-            warn "Received false mail hash key: \'$k\'. Did you forget to put it in quotes?\n";
+        # arrange keys case
+        $k = ucfirst lc( shift @_ );
+
+        if ( !$k and $^W ) {
+            warn
+              "Received false mail hash key: \'$k\'. Did you forget to put it in quotes?\n";
         }
 
-        $k =~ s/\s*:\s*$//o; # kill colon (and possible spaces) at end, we add it later.
+        $k =~ s/\s*:\s*$//o
+          ;    # kill colon (and possible spaces) at end, we add it later.
         $mail{$k} = shift @_;
     }
 
     $smtp = $mail{'Smtp'} || $mail{'Server'} || $default_smtp_server;
 
-    unshift @{$mailcfg{'smtp'}}, $smtp if ($smtp and $mailcfg{'smtp'}->[0] ne $smtp);
-    
+    unshift @{ $mailcfg{'smtp'} }, $smtp
+      if ( $smtp and $mailcfg{'smtp'}->[0] ne $smtp );
+
     # delete non-header keys, so we don't send them later as mail headers
     # I like this syntax, but it doesn't seem to work with AS port 5.003_07:
     # delete @mail{'Smtp', 'Server'};
     # so instead:
-    delete $mail{'Smtp'}; delete $mail{'Server'};
+    delete $mail{'Smtp'};
+    delete $mail{'Server'};
 
-    $mailcfg{'port'} = $mail{'Port'} || $default_smtp_port || $mailcfg{'port'} || 25;
+    $mailcfg{'port'} =
+      $mail{'Port'} || $default_smtp_port || $mailcfg{'port'} || 25;
     delete $mail{'Port'};
 
     # for backward compatibility only
     $mailcfg{'retries'} = $connect_retries if defined($connect_retries);
-    $mailcfg{'delay'} = $retry_delay if defined($retry_delay);
+    $mailcfg{'delay'}   = $retry_delay     if defined($retry_delay);
 
     {    # don't warn for undefined values below
         local $^W = 0;
-        $message = join("", $mail{'Message'}, $mail{'Body'}, $mail{'Text'});
+        $message = join( "", $mail{'Message'}, $mail{'Body'}, $mail{'Text'} );
     }
 
     # delete @mail{'Message', 'Body', 'Text'};
-    delete $mail{'Message'}; delete $mail{'Body'}; delete $mail{'Text'};
+    delete $mail{'Message'};
+    delete $mail{'Body'};
+    delete $mail{'Text'};
 
     # Extract 'From:' e-mail address
 
     $fromaddr = $mail{'From'} || $default_sender || $mailcfg{'from'};
-    unless ($fromaddr =~ /$address_rx/) {
+    unless ( $fromaddr =~ /$address_rx/ ) {
         return fail("Bad or missing From address: \'$fromaddr\'");
     }
     $fromaddr = $1;
 
     # add Date header if needed
-    $mail{Date} ||= time_to_date() ;
+    $mail{Date} ||= time_to_date();
     $log .= "Date: $mail{Date}\n";
 
     # cleanup message, and encode if needed
-    $message =~ s/^\./\.\./gom;     # handle . as first character
-    $message =~ s/\r\n/\n/go;     # normalize line endings, step 1 of 2 (next step after MIME encoding)
+    $message =~ s/^\./\.\./gom;    # handle . as first character
+    $message =~ s/\r\n/\n/go
+      ;    # normalize line endings, step 1 of 2 (next step after MIME encoding)
 
     $mail{'Mime-version'} ||= '1.0';
     $mail{'Content-type'} ||= 'text/plain; charset="iso-8859-1"';
 
     unless ( $mail{'Content-transfer-encoding'}
-          || $mail{'Content-type'} =~ /multipart/io )
+        || $mail{'Content-type'} =~ /multipart/io )
     {
-        if ($mailcfg{'mime'}) {
+        if ( $mailcfg{'mime'} ) {
             $mail{'Content-transfer-encoding'} = 'quoted-printable';
             $message = encode_qp($message);
         }
         else {
             $mail{'Content-transfer-encoding'} = '8bit';
-            if ($message =~ /[\x80-\xFF]/o) {
-                $error .= "MIME::QuotedPrint not present!\nSending 8bit characters, hoping it will come across OK.\n";
+            if ( $message =~ /[\x80-\xFF]/o ) {
+                $error .=
+                  "MIME::QuotedPrint not present!\nSending 8bit characters, hoping it will come across OK.\n";
                 warn "MIME::QuotedPrint not present!\n",
-                     "Sending 8bit characters, hoping it will come across OK.\n"
-                     if $^W;
+                  "Sending 8bit characters, hoping it will come across OK.\n"
+                  if $^W;
             }
         }
     }
 
-    $message =~ s/\n/\015\012/go; # normalize line endings, step 2.
+    $message =~ s/\n/\015\012/go;    # normalize line endings, step 2.
 
     # Get recipients
-    {    # don't warn for undefined values below
+    {                                # don't warn for undefined values below
         local $^W = 0;
-        $recip = join(", ", $mail{To}, $mail{Cc}, $mail{Bcc});
+        $recip = join( ", ", $mail{To}, $mail{Cc}, $mail{Bcc} );
     }
 
     delete $mail{'Bcc'};
 
     @recipients = ();
-    while ($recip =~ /$address_rx/go) {
+    while ( $recip =~ /$address_rx/go ) {
         push @recipients, $1;
     }
     unless (@recipients) {
-        return fail("No recipient!")
+        return fail("No recipient!");
     }
 
     # get local hostname for polite HELO
-    $localhost = (gethostbyname('localhost'))[0] || 'localhost';
+    $localhost = ( gethostbyname('localhost') )[0] || 'localhost';
 
-    foreach $server ( @{$mailcfg{'smtp'}} ) {
+    foreach $server ( @{ $mailcfg{'smtp'} } ) {
+
         # open socket needs to be inside this foreach loop on Linux,
         # otherwise all servers fail if 1st one fails !??! why?
-        unless ( socket S, AF_INET, SOCK_STREAM, (getprotobyname 'tcp')[2] ) {
-            return fail("socket failed ($!)")
+        unless ( socket S, AF_INET, SOCK_STREAM, ( getprotobyname 'tcp' )[2] ) {
+            return fail("socket failed ($!)");
         }
 
         print "- trying $server\n" if $mailcfg{'debug'} > 1;
 
- 	#print "<b>" . $server. "</b><p>";
+        #print "<b>" . $server. "</b><p>";
 
-       $server =~ s/\s+//go; # remove spaces just in case of a typo
-        # extract port if server name like "mail.domain.com:2525"
-        ($server =~ s/:(.+)$//o) ? $port = $1    : $port = $mailcfg{'port'};
-        $smtp = $server; # save $server for use outside foreach loop
+        $server =~ s/\s+//go;    # remove spaces just in case of a typo
+            # extract port if server name like "mail.domain.com:2525"
+        ( $server =~ s/:(.+)$//o ) ? $port = $1 : $port = $mailcfg{'port'};
+        $smtp = $server;    # save $server for use outside foreach loop
 
-
- 
         my $smtpaddr = inet_aton $server;
         unless ($smtpaddr) {
             $error .= "$server not found\n";
-            next; # next server
+            next;           # next server
         }
 
-        my $retried = 0; # reset retries for each server
-        while ( ( not $connected = connect S, pack_sockaddr_in($port, $smtpaddr) )
+        my $retried = 0;    # reset retries for each server
+        while (
+            (
+                not $connected = connect S, pack_sockaddr_in( $port, $smtpaddr )
+            )
             and ( $retried < $mailcfg{'retries'} )
-              ) {
+          )
+        {
             $retried++;
             $error .= "connect to $server failed ($!)\n";
             print "- connect to $server failed ($!)\n" if $mailcfg{'debug'} > 1;
@@ -621,54 +679,57 @@ sub sendmail {
             sleep $mailcfg{'delay'};
         }
 
-        if ( $connected ) {
+        if ($connected) {
             print "- connected to $server\n" if $mailcfg{'debug'} > 3;
             last;
         }
         else {
             $error .= "connect to $server failed\n";
-            print "- connect to $server failed, next server...\n" if $mailcfg{'debug'} > 1;
-            next; # next server
+            print "- connect to $server failed, next server...\n"
+              if $mailcfg{'debug'} > 1;
+            next;    # next server
         }
     }
 
-    unless ( $connected ) {
-        return fail("connect to $smtp failed ($!) no (more) retries!")
-    };
-
-    {
-        local $^W = 0; # don't warn on undefined variables
-        # Add info to log variable
-        $log .= "Server: $smtp Port: $port\n"
-              . "From: $fromaddr\n"
-              . "Subject: $mail{Subject}\n"
-              . "To: ";
+    unless ($connected) {
+        return fail("connect to $smtp failed ($!) no (more) retries!");
     }
 
-    my($oldfh) = select(S); $| = 1; select($oldfh);
+    {
+        local $^W = 0;    # don't warn on undefined variables
+                          # Add info to log variable
+        $log .=
+            "Server: $smtp Port: $port\n"
+          . "From: $fromaddr\n"
+          . "Subject: $mail{Subject}\n" . "To: ";
+    }
 
-    chomp($_ = <S>);
-    if (/^[45]/ or !$_) {
-        return fail("Connection error from $smtp on port $port ($_)")
+    my ($oldfh) = select(S);
+    $| = 1;
+    select($oldfh);
+
+    chomp( $_ = <S> );
+    if ( /^[45]/ or !$_ ) {
+        return fail("Connection error from $smtp on port $port ($_)");
     }
 
     print S "HELO $localhost\015\012";
-    chomp($_ = <S>);
-    if (/^[45]/ or !$_) {
-        return fail("HELO error ($_)")
+    chomp( $_ = <S> );
+    if ( /^[45]/ or !$_ ) {
+        return fail("HELO error ($_)");
     }
-    
+
     print S "mail from: <$fromaddr>\015\012";
-    chomp($_ = <S>);
-    if (/^[45]/ or !$_) {
-        return fail("mail From: error ($_)")
+    chomp( $_ = <S> );
+    if ( /^[45]/ or !$_ ) {
+        return fail("mail From: error ($_)");
     }
 
     foreach $to (@recipients) {
         if ($debug) { print STDERR "sending to: <$to>\n"; }
         print S "rcpt to: <$to>\015\012";
-        chomp($_ = <S>);
-        if (/^[45]/ or !$_) {
+        chomp( $_ = <S> );
+        if ( /^[45]/ or !$_ ) {
             $log .= "!Failed: $to\n    ";
             return fail("Error sending to <$to> ($_)\n");
         }
@@ -679,16 +740,16 @@ sub sendmail {
 
     # start data part
     print S "data\015\012";
-    chomp($_ = <S>);
-    if (/^[45]/ or !$_) {
-           return fail("Cannot send data ($_)");
+    chomp( $_ = <S> );
+    if ( /^[45]/ or !$_ ) {
+        return fail("Cannot send data ($_)");
     }
 
     # print headers
-    foreach $header (keys %mail) {
-        $mail{$header} =~ s/\s+$//o; # kill possible trailing garbage
+    foreach $header ( keys %mail ) {
+        $mail{$header} =~ s/\s+$//o;    # kill possible trailing garbage
         print S "$header: ", $mail{$header}, "\015\012";
-    };
+    }
 
     #- test diconnecting from network here, to see what happens
     #- print STDERR "DISCONNECT NOW!\n";
@@ -696,13 +757,11 @@ sub sendmail {
     #- print STDERR "trying to continue, expecting an error... \n";
 
     # send message body
-    print S "\015\012",
-            $message,
-            "\015\012.\015\012";
+    print S "\015\012", $message, "\015\012.\015\012";
 
-    chomp($_ = <S>);
-    if (/^[45]/ or !$_) {
-           return fail("message transmission failed ($_)");
+    chomp( $_ = <S> );
+    if ( /^[45]/ or !$_ ) {
+        return fail("message transmission failed ($_)");
     }
 
     # finish
@@ -711,7 +770,7 @@ sub sendmail {
     close S;
 
     return 1;
-} # end sub sendmail
+}    # end sub sendmail
 
 1;
 __END__

@@ -4,51 +4,53 @@ use strict;
 
 # Simple insteon.mht syntax converter by Marc MERLIN <marc_soft@merlins.org>
 # This is not even close to being foolproof but it may just work for you, or
-# you can tweak the regexes a bit to make it work for you. 
+# you can tweak the regexes a bit to make it work for you.
 # If it breaks, you get to keep both pieces :)
 
 # Run:
 # convert_insteon_config < old_items.mht > new_items.mht
-# If you are upgrading from the old insteon code, you will also need 
+# If you are upgrading from the old insteon code, you will also need
 # to delete data/mh_temp.saved_states and mh_temp.saved_states.unused
 
-while (<>)
-{
-	# these work for all, but don't know what insteon device to set
-	s#IPLL,\s*PLM:(\d+),\s*#INSTEON_ICONTROLLER, $1, #i;
-	s#IPLL,#INSTEON_SWITCHLINC|SWITCHLINCRELAY|KEYPADLINC|REMOTELINC,#i;
-	s#IPLD,#INSTEON_LAMPLINC|APPLIANCELINC|MOTIONSENSOR,#i;
+while (<>) {
 
-	# the regexes below do some magic based on my insteon.mht file which 
-	# has comments stating what each device actually is, so I use this to
-	# turn refine the check above to state which of the 3 or 4 devices we 
-	# actually got:
-#IPLL,	11.E1.9D:01,	mbr_kpl,	All_Lights,			PLM, # v1.8 keypadlinc dimmer
-#IPLL,	0E.07.49:02,	fmr_kpl_kitchen_kpl,	fmr_kplB|buttons,	PLM,
-#IPLL,	0F.B7.05:01,	mbr_lamp2,	All_Lights|mbr_both,		PLM, # v4.2 switchlink dimmer
-#IPLD,	0F.6E.C2,	mbr_lamp3,	All_Lights,			PLM, # v4.3 lamplinc
-#IPLD,	11.8E.1C,	gar_mos1,	Sensors,			PLM,1001 # v1.1
-#IPLL,	15.E7.62:01,	iolinc_garside,	iolincs,			PLM,0007 # v1.4 iolinc
+    # these work for all, but don't know what insteon device to set
+    s#IPLL,\s*PLM:(\d+),\s*#INSTEON_ICONTROLLER, $1, #i;
+    s#IPLL,#INSTEON_SWITCHLINC|SWITCHLINCRELAY|KEYPADLINC|REMOTELINC,#i;
+    s#IPLD,#INSTEON_LAMPLINC|APPLIANCELINC|MOTIONSENSOR,#i;
 
-	# those are local hacks to do the right replaces with my config file
-	s#INSTEON_SWITCHLINC\|SWITCHLINCRELAY\|KEYPADLINC\|REMOTELINC(.*switchlin. dimmer)#INSTEON_SWITCHLINC$1#i;
-	s#INSTEON_SWITCHLINC\|SWITCHLINCRELAY\|KEYPADLINC\|REMOTELINC(.*switchlin. relay)#INSTEON_SWITCHLINCRELAY$1#i;
-	s#INSTEON_SWITCHLINC\|SWITCHLINCRELAY\|KEYPADLINC\|REMOTELINC(.*_kpl)#INSTEON_KEYPADLINC$1#i;
-	s#INSTEON_SWITCHLINC\|SWITCHLINCRELAY\|KEYPADLINC\|REMOTELINC(.*rlink)#INSTEON_REMOTELINC$1#i;
-	# IOLINC isn't supported yet, but it does look like a switchlinc relay.
-	s#INSTEON_SWITCHLINC\|SWITCHLINCRELAY\|KEYPADLINC\|REMOTELINC(.*iolin)#INSTEON_SWITCHLINCRELAY$1#i;
-	s#INSTEON_SWITCHLINC\|SWITCHLINCRELAY\|KEYPADLINC\|REMOTELINC(.*PLM)#INSTEON_PLM$1#i;
+    # the regexes below do some magic based on my insteon.mht file which
+    # has comments stating what each device actually is, so I use this to
+    # turn refine the check above to state which of the 3 or 4 devices we
+    # actually got:
+    #IPLL,	11.E1.9D:01,	mbr_kpl,	All_Lights,			PLM, # v1.8 keypadlinc dimmer
+    #IPLL,	0E.07.49:02,	fmr_kpl_kitchen_kpl,	fmr_kplB|buttons,	PLM,
+    #IPLL,	0F.B7.05:01,	mbr_lamp2,	All_Lights|mbr_both,		PLM, # v4.2 switchlink dimmer
+    #IPLD,	0F.6E.C2,	mbr_lamp3,	All_Lights,			PLM, # v4.3 lamplinc
+    #IPLD,	11.8E.1C,	gar_mos1,	Sensors,			PLM,1001 # v1.1
+    #IPLL,	15.E7.62:01,	iolinc_garside,	iolincs,			PLM,0007 # v1.4 iolinc
 
-	s#INSTEON_LAMPLINC\|APPLIANCELINC\|MOTIONSENSOR(.*lamplin)#INSTEON_LAMPLINC$1#i;
-	s#INSTEON_LAMPLINC\|APPLIANCELINC\|MOTIONSENSOR(.*appliance lin)#INSTEON_APPLIANCELINC$1#i;
-	s#INSTEON_LAMPLINC\|APPLIANCELINC\|MOTIONSENSOR(.*_mos\d+)#INSTEON_MOTIONSENSOR$1#i;
+    # those are local hacks to do the right replaces with my config file
+    s#INSTEON_SWITCHLINC\|SWITCHLINCRELAY\|KEYPADLINC\|REMOTELINC(.*switchlin. dimmer)#INSTEON_SWITCHLINC$1#i;
+    s#INSTEON_SWITCHLINC\|SWITCHLINCRELAY\|KEYPADLINC\|REMOTELINC(.*switchlin. relay)#INSTEON_SWITCHLINCRELAY$1#i;
+    s#INSTEON_SWITCHLINC\|SWITCHLINCRELAY\|KEYPADLINC\|REMOTELINC(.*_kpl)#INSTEON_KEYPADLINC$1#i;
+    s#INSTEON_SWITCHLINC\|SWITCHLINCRELAY\|KEYPADLINC\|REMOTELINC(.*rlink)#INSTEON_REMOTELINC$1#i;
 
-	# obviously, the idea is that if you have any of those INSTEON_A|B|C left over
-	# after the regexes above, you need to fix them yourself or add more regexes.
+    # IOLINC isn't supported yet, but it does look like a switchlinc relay.
+    s#INSTEON_SWITCHLINC\|SWITCHLINCRELAY\|KEYPADLINC\|REMOTELINC(.*iolin)#INSTEON_SWITCHLINCRELAY$1#i;
+    s#INSTEON_SWITCHLINC\|SWITCHLINCRELAY\|KEYPADLINC\|REMOTELINC(.*PLM)#INSTEON_PLM$1#i;
 
-	s#,\s*plm,?(?:\d+)?##i;
-	# restore 'plm' on the one line we need it on.
-	s/INSTEON_PLM/INSTEON_PLM, PLM/;
+    s#INSTEON_LAMPLINC\|APPLIANCELINC\|MOTIONSENSOR(.*lamplin)#INSTEON_LAMPLINC$1#i;
+    s#INSTEON_LAMPLINC\|APPLIANCELINC\|MOTIONSENSOR(.*appliance lin)#INSTEON_APPLIANCELINC$1#i;
+    s#INSTEON_LAMPLINC\|APPLIANCELINC\|MOTIONSENSOR(.*_mos\d+)#INSTEON_MOTIONSENSOR$1#i;
 
-	print;
+    # obviously, the idea is that if you have any of those INSTEON_A|B|C left over
+    # after the regexes above, you need to fix them yourself or add more regexes.
+
+    s#,\s*plm,?(?:\d+)?##i;
+
+    # restore 'plm' on the one line we need it on.
+    s/INSTEON_PLM/INSTEON_PLM, PLM/;
+
+    print;
 }

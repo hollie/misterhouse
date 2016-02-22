@@ -1,0 +1,78 @@
+<div class='row top-buffer'>
+	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
+		<div class='col-sm-12'>
+			<p><strong>Version: </strong><!--#include var="$Version"--><br>
+			<strong>Modified:</strong> <!--#include var="$Version_date"--><br>
+			<strong>OS:</strong> <!--#include var="$^O"--><br>
+			<strong>Perl:</strong> <!--#include code="sprintf '%vd', $^V;"--><br>
+			<strong>User:</strong> <!--#include var="$Info{User}"--><br>
+		</div>
+	</div>
+</div>
+<div class='row top-buffer'>
+	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
+		<div class='col-sm-4'>
+			<a href="http://misterhouse.net" class='btn btn-default btn-lg btn-block btn-list' role='button'>
+				<i class='fa fa-home fa-2x fa-fw'></i> MisterHouse Website</a>
+		</div>
+		<div class='col-sm-8'>
+			<p>It Knows Kung-Fu, visit MisterHouse's own homepage.<p>
+		</div>
+	</div>
+</div>
+<div class='row top-buffer'>
+	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
+		<div class='col-sm-4'>
+			<a href="/docs/index.html" class='btn btn-default btn-lg btn-block btn-list' role='button'>
+				<i class='fa fa-book fa-2x fa-fw'></i> Local Documentation
+			</a>
+		</div>
+		<div class='col-sm-8'>
+			<p>Read the Documentation to get the most out of your Setup.</p>
+		</div>
+	</div>
+</div>
+<div class='row top-buffer'>
+	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
+		<div class='col-sm-4'>
+			<a href="http://misterhouse.10964.n7.nabble.com/" class='btn btn-default btn-lg btn-block btn-list' role='button'>
+				<i class='fa fa-envelope-o fa-2x fa-fw'></i> Nabble Archives
+			</a>
+		</div>
+		<div class='col-sm-8'>
+			<p>Search the online mailing list archives.</p>
+		</div>
+	</div>
+</div>
+<div class='row top-buffer'>
+	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
+		<div class='col-sm-4'>
+			<a href="https://github.com/hollie/misterhouse/wiki" class='btn btn-default btn-lg btn-block btn-list' role='button'>
+				<i class='fa fa-pencil fa-2x fa-fw'></i> MisterHouse Wiki
+			</a>
+		</div>
+		<div class='col-sm-8'>
+			<p>Read the MisterHouse wiki for additional support.</p>
+		</div>
+	</div>
+</div>
+<div class='row top-buffer'>
+	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
+		<div class='col-sm-4'>
+			<a href="https://github.com/hollie/misterhouse" class='btn btn-default btn-lg btn-block btn-list' role='button'>
+				<i class='fa fa-github fa-2x fa-fw'></i> GitHub
+			</a>
+		</div>
+		<div class='col-sm-8'>
+			<p>Take part in the development of MisterHouse.</p>
+		</div>
+	</div>
+</div>
+<div class='row top-buffer'>
+	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
+		<div class='col-sm-12'>
+			<p class="text-muted"><small> MisterHouse was created by Bruce Winter.  Ron Klinkien developed the v2.3 web interface.  Kevin Robert Keegan 
+			developed the v4 web interface, updates by H.Plato. IA7 v1.0.800 Font Awesome by Dave Gandy - http://fontawesome.io</small></p>
+		</div>
+	</div>
+</div>

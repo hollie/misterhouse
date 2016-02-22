@@ -1,3 +1,4 @@
+
 =head1 B<Display_Alpha>
 
 =head2 SYNOPSIS
@@ -64,584 +65,716 @@ B<NONE>
 =cut
 
 use strict;
-use IO::File; # Added for BMP import
+use IO::File;    # Added for BMP import
 
 package Display_Alpha;
 
 my @room_names;
-sub startup {
-                                # Open a port for each room
-    for my $port_room (split ',', $::config_parms{Display_Alpha_port}) {
-        my ($port, $room) = $port_room =~ /(\S+) *=> *(\S+)/;
 
-	my $type;
+sub startup {
+
+    # Open a port for each room
+    for my $port_room ( split ',', $::config_parms{Display_Alpha_port} ) {
+        my ( $port, $room ) = $port_room =~ /(\S+) *=> *(\S+)/;
+
+        my $type;
 
         if ($room) {
-	    $room = lc $room;
-	    $type = $::config_parms{"Display_Alpha_type_$room"};
-	}
-	else {
-	    $type = $::config_parms{Display_Alpha_type};
+            $room = lc $room;
+            $type = $::config_parms{"Display_Alpha_type_$room"};
+        }
+        else {
+            $type = $::config_parms{Display_Alpha_type};
             $port = $port_room;
             $room = 'default';
         }
-        print "Opening Display_Alpha port: pr=$port_room port=$port room=$room\n" if $::Debug{display_alpha};
-        push @room_names, $room;	
-	
-	if ($type and $type eq 'old') {
-	    &::serial_port_create("Display_Alpha_$room", $port, 9600, undef, undef, undef, "even", 7, 2);
-	}
-	else {
-            &::serial_port_create("Display_Alpha_$room", $port, 9600);            
-	}
+        print
+          "Opening Display_Alpha port: pr=$port_room port=$port room=$room\n"
+          if $::Debug{display_alpha};
+        push @room_names, $room;
+
+        if ( $type and $type eq 'old' ) {
+            &::serial_port_create( "Display_Alpha_$room", $port, 9600, undef,
+                undef, undef, "even", 7, 2 );
+        }
+        else {
+            &::serial_port_create( "Display_Alpha_$room", $port, 9600 );
+        }
 
     }
-    &::Exit_add_hook( sub { &main::display_alpha(text => 'I am shut down', color => 'yellow', mode => 'thankyou') }, 1);
+    &::Exit_add_hook(
+        sub {
+            &main::display_alpha(
+                text  => 'I am shut down',
+                color => 'yellow',
+                mode  => 'thankyou'
+            );
+        },
+        1
+    );
 }
 
 my @messages;
 my @images;
 my @image_names;
-my %image_addresses; # by name
+my %image_addresses;    # by name
 
-my %bitmaps; # converted image data by filename
+my %bitmaps;            # converted image data by filename
 
-my $INIT="\0\0\0\0\0\0\x01Z00\x02";
+my $INIT   = "\0\0\0\0\0\0\x01Z00\x02";
 my $FINISH = "\004";
 
-my %positions= ( middle   => "\x20", top => "\x22", bottom => "\x26", fill => "\x30", left => "\x31", right => "\x32");
+my %positions = (
+    middle => "\x20",
+    top    => "\x22",
+    bottom => "\x26",
+    fill   => "\x30",
+    left   => "\x31",
+    right  => "\x32"
+);
 
 # positions have little effect on single-row Beta Brite signs
 
-my %modes  = ( rotate   => "\x61", hold     => "\x62", flash => "\x63", 
-                  rollup   => "\x65", rolldown => "\x66", rollleft => "\x67", rollright => "\x68",
-                  wipeup   => "\x69", wipedown => "\x6A", wipeleft => "\x6B", wiperight => "\x6C",
-                  rollup2  => "\x6D", special  => "\x6E", auto => "\x6F",
-                  wipein2  => "\x70", wipeout2 => "\x71", wipein => "\x72", wipeout => "\x73",
-                  rotates  => "\x74", explode => "\x75", clock => "\x76"
-                );
+my %modes = (
+    rotate    => "\x61",
+    hold      => "\x62",
+    flash     => "\x63",
+    rollup    => "\x65",
+    rolldown  => "\x66",
+    rollleft  => "\x67",
+    rollright => "\x68",
+    wipeup    => "\x69",
+    wipedown  => "\x6A",
+    wipeleft  => "\x6B",
+    wiperight => "\x6C",
+    rollup2   => "\x6D",
+    special   => "\x6E",
+    auto      => "\x6F",
+    wipein2   => "\x70",
+    wipeout2  => "\x71",
+    wipein    => "\x72",
+    wipeout   => "\x73",
+    rotates   => "\x74",
+    explode   => "\x75",
+    clock     => "\x76"
+);
 
 # last two modes are Alpha 3.0 (won't work with older signs)
 
-my %special_modes = (sparkle  => "\x31",twinkle  => "\x30",snow => "\x32", interlock => "\x33", switch => "\x34", slide => "\x35", spray => "\x36", starburst => "\x37", welcome => "\x38", slotmachine => "\x39", newsflash => "\x3A", trumpet => "\x3B", cyclecolors => "\x43", thankyou => "\x53", nosmoking => "\x55", dontdrinkanddrive => "\x56", runninganimal => "\x57", fireworks => "\x58", turbocar=>"\x59", cherrybomb=>"\x5A");
+my %special_modes = (
+    sparkle           => "\x31",
+    twinkle           => "\x30",
+    snow              => "\x32",
+    interlock         => "\x33",
+    switch            => "\x34",
+    slide             => "\x35",
+    spray             => "\x36",
+    starburst         => "\x37",
+    welcome           => "\x38",
+    slotmachine       => "\x39",
+    newsflash         => "\x3A",
+    trumpet           => "\x3B",
+    cyclecolors       => "\x43",
+    thankyou          => "\x53",
+    nosmoking         => "\x55",
+    dontdrinkanddrive => "\x56",
+    runninganimal     => "\x57",
+    fireworks         => "\x58",
+    turbocar          => "\x59",
+    cherrybomb        => "\x5A"
+);
 
 # cyclecolors, trumpet and newsflash do not work on older Beta Brite signs
 
+my %colors = (
+    red       => "\x31",
+    green     => "\x32",
+    amber     => "\x33",
+    darkred   => "\x34",
+    darkgreen => "\x35",
+    brown     => "\x36",
+    orange    => "\x37",
+    yellow    => "\x38",
+    rainbow1  => "\x39",
+    rainbow2  => "\x41",
+    mix       => "\x42",
+    auto      => "\x43",
+    off       => "\x30"
+);
 
-my %colors = (      red => "\x31", green => "\x32", amber => "\x33", darkred => "\x34",
-                    darkgreen => "\x35", brown => "\x36", orange => "\x37", yellow => "\x38",
-                    rainbow1 => "\x39", rainbow2 => "\x41", mix => "\x42", auto => "\x43",                     off => "\x30"
-    	     );
+my %fonts = ( small => "\x31", large => "\x33", fancy => "\x35" );
 
-my %fonts = (small => "\x31", large => "\x33", fancy => "\x35");
+my %speeds = (
+    fast    => "\x18",
+    faster  => "\x19",
+    slow    => "\x17",
+    slower  => "\x16",
+    slowest => "\x15"
+);
 
-my %speeds = (fast => "\x18", faster => "\x19", slow => "\x17", slower =>"\x16", slowest => "\x15");
-
-my %beta_brite_colors = ( '000000' => '0', '800000' => '4', '008000' => '5', '800080' => '6', 'FF0000' => '1', '00FF00' => '2', 'FFFF00' => '8', '808000' => '3', 'FF00FF' => '7', '0000FF' => '0', '00FFFF' => '2', 'C0C0C0' => '6', FFFFFF => '8', '008080' => '2', '808080' => '6', '000080' => '0', '4000FF' => '6');
-
-
+my %beta_brite_colors = (
+    '000000' => '0',
+    '800000' => '4',
+    '008000' => '5',
+    '800080' => '6',
+    'FF0000' => '1',
+    '00FF00' => '2',
+    'FFFF00' => '8',
+    '808000' => '3',
+    'FF00FF' => '7',
+    '0000FF' => '0',
+    '00FFFF' => '2',
+    'C0C0C0' => '6',
+    FFFFFF   => '8',
+    '008080' => '2',
+    '808080' => '6',
+    '000080' => '0',
+    '4000FF' => '6'
+);
 
 sub set_message_memory {
-	my (%parms) = @_;
-	my ($message, $address);
+    my (%parms) = @_;
+    my ( $message, $address );
 
-	if (!$parms{message}) {
-		($message, $address) = @_;		
-	}
-	else {
-		$message = $parms{message};
-		$address = $parms{address};
-	}
+    if ( !$parms{message} ) {
+        ( $message, $address ) = @_;
+    }
+    else {
+        $message = $parms{message};
+        $address = $parms{address};
+    }
 
-	$address = "A" unless $address;
-	my $result;
-	my $size = 0;
+    $address = "A" unless $address;
+    my $result;
+    my $size = 0;
 
-	$size = length($message);
+    $size = length($message);
 
-	$result =  $address . 'AU' . uc(sprintf("%04x", $size)) . 'FFFE';
+    $result = $address . 'AU' . uc( sprintf( "%04x", $size ) ) . 'FFFE';
 
-	return $result;
+    return $result;
 
-	
 }
 
 sub image_dimensions {
-	my $image = shift;
-	my ($height, $width);
-	my @rows = split("\r", $image);
+    my $image = shift;
+    my ( $height, $width );
+    my @rows = split( "\r", $image );
 
-	$height = $#rows + 1;
-	$width = length($rows[0]);
+    $height = $#rows + 1;
+    $width  = length( $rows[0] );
 
-	return ($height, $width);
+    return ( $height, $width );
 }
 
 sub set_image_memory {
-	my (%parms) = @_;
-	my ($image, $address, $height, $width);
+    my (%parms) = @_;
+    my ( $image, $address, $height, $width );
 
-	if (!$parms{image}) {
-		($image, $address) = @_;		
-	}
-	else {
-		$image = $parms{image};
-		$address = $parms{address};
-	}
+    if ( !$parms{image} ) {
+        ( $image, $address ) = @_;
+    }
+    else {
+        $image   = $parms{image};
+        $address = $parms{address};
+    }
 
-	($height, $width) = &image_dimensions($image);
+    ( $height, $width ) = &image_dimensions($image);
 
-	return $address . 'DU' . uc(sprintf("%02x",$height) . sprintf("%02x",$width))  . '4000';
+    return
+      $address . 'DU'
+      . uc( sprintf( "%02x", $height ) . sprintf( "%02x", $width ) ) . '4000';
 
 }
 
 sub image {
-	my (%parms) = @_;
-	my ($image, $address, $height, $width);
+    my (%parms) = @_;
+    my ( $image, $address, $height, $width );
 
-	if (!$parms{image}) {
-		($image, $address) = @_;		
-	}
-	else {
-		$image = $parms{image};
-		$address = $parms{address};
-	}
+    if ( !$parms{image} ) {
+        ( $image, $address ) = @_;
+    }
+    else {
+        $image   = $parms{image};
+        $address = $parms{address};
+    }
 
-	($height, $width) = &image_dimensions($image);
+    ( $height, $width ) = &image_dimensions($image);
 
-	print "Address: $address height: $height width: $width\n" if $::Debug{display_alpha};
+    print "Address: $address height: $height width: $width\n"
+      if $::Debug{display_alpha};
 
-
-	return(uc(sprintf("%02x",$height) . sprintf("%02x",$width)) . $image);
+    return (
+        uc( sprintf( "%02x", $height ) . sprintf( "%02x", $width ) ) . $image );
 
 }
 
 sub special_function {
-	"E@_";
+    "E@_";
 }
 
 sub image_header {
-	my $address = shift;
-	$address = 'A' unless $address;
-	"I$address";
+    my $address = shift;
+    $address = 'A' unless $address;
+    "I$address";
 }
 
 sub header {
-	my $address = shift;
-	$address = 'A' unless $address;
-	"A$address\x1b";
+    my $address = shift;
+    $address = 'A' unless $address;
+    "A$address\x1b";
 }
 
 sub message {
-	my (%parms) = @_;
+    my (%parms) = @_;
 
+    my (
+        $message,  $color, $mode,    $position, $font,
+        $fontsize, $speed, $address, $image,    $imageposition
+    );
+    my $special;
 
+    if ( !$parms{text} ) {
+        (
+            $message,       $color,    $mode,  $position,
+            $font,          $fontsize, $speed, $image,
+            $imageposition, $address
+        ) = @_;
+    }
+    else {
+        $message       = $parms{text};
+        $color         = $parms{color};
+        $mode          = $parms{mode};
+        $position      = $parms{position};
+        $address       = $parms{address};
+        $font          = $parms{font};
+        $image         = $parms{image};
+        $speed         = $parms{speed};
+        $imageposition = $parms{imageposition};
+        $fontsize      = $parms{fontsize};
+    }
 
-	my ($message, $color, $mode, $position, $font, $fontsize, $speed, $address, $image, $imageposition);
-	my $special;
+    if ($mode) {
+        if ( !$modes{$mode} ) {
+            if ( $special_modes{$mode} ) {
+                $special = 1;
+            }
+            else {
+                $mode = undef;    #unknown mode
+            }
+        }
+    }
+    $mode          = 'hold' unless $mode;
+    $imageposition = 'left' unless $imageposition;
+    $position = 'middle' if !$position or !$positions{$position};
+    $address = "A" unless $address;
+    my $result = $positions{$position}
+      . ( ($special) ? ( "\x6E" . $special_modes{$mode} ) : $modes{$mode} );
+    $result .= "\x1c" . $colors{$color} if $color    and $colors{$color};
+    $result .= "\x1a" . $fonts{$font}   if $font     and $fonts{$font};
+    $result .= "\x12"                   if $fontsize and $fontsize eq 'wide';
+    $result .= $speeds{$speed}          if $speed    and $speeds{$speed};
 
-	if (!$parms{text}) {
-		($message, $color, $mode, $position, $font, $fontsize, $speed, $image, $imageposition, $address) = @_;		
-	}
-	else {
-		$message = $parms{text};
-		$color = $parms{color};
-		$mode = $parms{mode};
-		$position = $parms{position};
-		$address = $parms{address};
-		$font = $parms{font};
-		$image = $parms{image};
-		$speed = $parms{speed};
-		$imageposition = $parms{imageposition};
-		$fontsize = $parms{fontsize};
-	}
-
-
-	if ($mode) {
-		if (!$modes{$mode}) {
-			if ($special_modes{$mode}) {
-				$special = 1;
-			}
-			else {
-				$mode = undef; #unknown mode
-			}
-		}
-	}
-	$mode = 'hold' unless $mode;
-	$imageposition = 'left' unless $imageposition;
-	$position = 'middle' if !$position or !$positions{$position};
-	$address = "A" unless $address;
-	my $result = $positions{$position} . (($special)?("\x6E" . $special_modes{$mode}):$modes{$mode});
-	$result .= "\x1c" . $colors{$color} if $color and $colors{$color};
-	$result .= "\x1a" . $fonts{$font} if $font and $fonts{$font};
-	$result .= "\x12" if $fontsize and $fontsize eq 'wide';
-	$result .= $speeds{$speed} if $speed and $speeds{$speed};
-	if ($image) {	
-		print "Embedding image: $image\n" if $::Debug{display_alpha};
-		$result .= "\x14" . $image if $imageposition eq 'left';
-	}
-	$result .= $message;
-	if ($image) {	
-		$result .= "\x14" . $image if $imageposition eq 'right';
-	}
-	return $result;
+    if ($image) {
+        print "Embedding image: $image\n" if $::Debug{display_alpha};
+        $result .= "\x14" . $image if $imageposition eq 'left';
+    }
+    $result .= $message;
+    if ($image) {
+        $result .= "\x14" . $image if $imageposition eq 'right';
+    }
+    return $result;
 }
 
 sub main::display_alpha {
-	my (%parms) = @_;
-	my %message_parms;
-	my ($text, $mode, $color, $font, $position, $image, $image_position, $rooms, $wait);
-	my @rooms;
-	my $image_address;
+    my (%parms) = @_;
+    my %message_parms;
+    my (
+        $text,  $mode,           $color, $font, $position,
+        $image, $image_position, $rooms, $wait
+    );
+    my @rooms;
+    my $image_address;
 
-	if ($parms{text}) {
-		$text = $parms{text};
-		$color = $parms{color};
-		$font = $parms{font};
-		$mode = $parms{mode};
-		$position = $parms{position};
-		$wait = $parms{wait};
-		$image = $parms{image};
-		$rooms = $parms{rooms};
-		$image_position = $parms{imageposition};		
-	}
-	else {
-		($text, $mode, $color, $font, $position, $image, $image_position, $rooms, $wait) = @_;
-	}
+    if ( $parms{text} ) {
+        $text           = $parms{text};
+        $color          = $parms{color};
+        $font           = $parms{font};
+        $mode           = $parms{mode};
+        $position       = $parms{position};
+        $wait           = $parms{wait};
+        $image          = $parms{image};
+        $rooms          = $parms{rooms};
+        $image_position = $parms{imageposition};
+    }
+    else {
+        (
+            $text,  $mode,           $color, $font, $position,
+            $image, $image_position, $rooms, $wait
+        ) = @_;
+    }
 
-	$message_parms{text} = $text;
-	$message_parms{color} = $color;
-	$message_parms{mode} = $mode;
-	$message_parms{font} = $font;
-	$message_parms{position} = $position;
-	$message_parms{imageposition} = $image_position;
+    $message_parms{text}          = $text;
+    $message_parms{color}         = $color;
+    $message_parms{mode}          = $mode;
+    $message_parms{font}          = $font;
+    $message_parms{position}      = $position;
+    $message_parms{imageposition} = $image_position;
 
-        my $image_name = $image; #save name for cache key
+    my $image_name = $image;    #save name for cache key
 
-	if ($image and $image !~ /\r/) { #invalid Beta Brite DOT
-#	    my $image_file = "$::config_parms{data_dir}/alpha/images/$image.bmp";
-	    my $image_file = $::Pgm_Root . "/data/alpha/images/$image.bmp";
-		if (-e $image_file) { # look for Windows Bitmap (Todo: add XBM support)
-		    if (!&::file_changed($image_file) and $bitmaps{$image}) { #cached
-			$image = $bitmaps{$image};
-	  	    }
-		    else {
-		        my %info = &GetBMPInfo($image_file);
-		        my @picture = @{$info{picture}};
-		        my @color_table = @{$info{color_table}};
-    		        $image = '';
-	                print "\n" if $::Debug{display_alpha};
-		        for my $i (0 .. $#picture) {
-		            for my $j ( 0 .. $#{$picture[$i]} ) {
-			        if (defined $beta_brite_colors{uc(@color_table[$picture[$i][$j]])}) {
-				        $image .= $beta_brite_colors{uc(@color_table[$picture[$i][$j]])};
-			        }
-			        else { # unmapped color, turn LED off
-				    $image .= $beta_brite_colors{'000000'};    
-                                }
-	        	        print $picture[$i][$j] if $::Debug{display_alpha};
-		            }
-			    $image .= "\r";
-		            print "\n" if $::Debug{display_alpha};
-		        }
-   		        $bitmaps{$image_name} = $image; #cache bitmap data
-		    }
-		}
-		else {
-			warn "Display_Alpha:Missing bitmap image: $image";
-			$image = undef;
-		}	
-	}
+    if ( $image and $image !~ /\r/ ) {    #invalid Beta Brite DOT
 
-	if ($image) {
-		if (defined $image_addresses{$image_name}) {		
-			$image_address = $image_addresses{$image_name};
-		}
-		else {
-			push @images, $image;
-			push @image_names, $image_name;
-			$image_address = 65 + $#images;
-			$image_addresses{$image_name} = $image_address;
-		}
-		$message_parms{image} = chr($image_address);
-	}
+        #	    my $image_file = "$::config_parms{data_dir}/alpha/images/$image.bmp";
+        my $image_file = $::Pgm_Root . "/data/alpha/images/$image.bmp";
+        if ( -e $image_file )
+        {    # look for Windows Bitmap (Todo: add XBM support)
+            if ( !&::file_changed($image_file) and $bitmaps{$image} ) {  #cached
+                $image = $bitmaps{$image};
+            }
+            else {
+                my %info        = &GetBMPInfo($image_file);
+                my @picture     = @{ $info{picture} };
+                my @color_table = @{ $info{color_table} };
+                $image = '';
+                print "\n" if $::Debug{display_alpha};
+                for my $i ( 0 .. $#picture ) {
+                    for my $j ( 0 .. $#{ $picture[$i] } ) {
+                        if (
+                            defined $beta_brite_colors{
+                                uc( @color_table[ $picture[$i][$j] ] ) } )
+                        {
+                            $image .= $beta_brite_colors{
+                                uc( @color_table[ $picture[$i][$j] ] ) };
+                        }
+                        else {    # unmapped color, turn LED off
+                            $image .= $beta_brite_colors{'000000'};
+                        }
+                        print $picture[$i][$j] if $::Debug{display_alpha};
+                    }
+                    $image .= "\r";
+                    print "\n" if $::Debug{display_alpha};
+                }
+                $bitmaps{$image_name} = $image;    #cache bitmap data
+            }
+        }
+        else {
+            warn "Display_Alpha:Missing bitmap image: $image";
+            $image = undef;
+        }
+    }
 
-	# push text to sequence
-	push @messages, &message(%message_parms);
+    if ($image) {
+        if ( defined $image_addresses{$image_name} ) {
+            $image_address = $image_addresses{$image_name};
+        }
+        else {
+            push @images,      $image;
+            push @image_names, $image_name;
+            $image_address = 65 + $#images;
+            $image_addresses{$image_name} = $image_address;
+        }
+        $message_parms{image} = chr($image_address);
+    }
 
-	# rooms=all or allandout, etc. used by some speak apps make no sense in display mapping scheme
-	# room = port name and the default is to send to all rooms
+    # push text to sequence
+    push @messages, &message(%message_parms);
 
-	$rooms = undef if $rooms and $rooms =~ /^all/i;
+    # rooms=all or allandout, etc. used by some speak apps make no sense in display mapping scheme
+    # room = port name and the default is to send to all rooms
 
-	@rooms = split ',', $rooms if $rooms;
+    $rooms = undef if $rooms and $rooms =~ /^all/i;
 
-	if (!$wait or $#messages > 93) { # last in sequence or sign memory full
-		&send_sequence(@rooms);
-	}
+    @rooms = split ',', $rooms if $rooms;
+
+    if ( !$wait or $#messages > 93 ) {    # last in sequence or sign memory full
+        &send_sequence(@rooms);
+    }
 }
 
 sub send {
-	my ($data, $room) = @_;
+    my ( $data, $room ) = @_;
 
-        print "Display_Alpha: room=$room parms=@_ data=$data\n" if $::Debug{display_alpha};
+    print "Display_Alpha: room=$room parms=@_ data=$data\n"
+      if $::Debug{display_alpha};
 
-        if ($::Serial_Ports{"Display_Alpha_$room"} and $::Serial_Ports{"Display_Alpha_$room"}{object}) {
-            $::Serial_Ports{"Display_Alpha_$room"}{object}->write($data);
+    if (    $::Serial_Ports{"Display_Alpha_$room"}
+        and $::Serial_Ports{"Display_Alpha_$room"}{object} )
+    {
+        $::Serial_Ports{"Display_Alpha_$room"}{object}->write($data);
+    }
+    else {
+        if (    $::Serial_Ports{"Display_Alpha_$room"}
+            and $::Serial_Ports{"Display_Alpha_$room"}{object} )
+        {
+            $::Serial_Ports{"Display_Alpha_default"}{object}->write($data);
+            warn
+              "Invalid alphanumeric display port: $room.  Data sent to default port\n";
         }
         else {
-	    if ($::Serial_Ports{"Display_Alpha_$room"} and $::Serial_Ports{"Display_Alpha_$room"}{object}) {
-                $::Serial_Ports{"Display_Alpha_default"}{object}->write($data);
-		warn "Invalid alphanumeric display port: $room.  Data sent to default port\n";
-	    }
-	    else {
-		warn "Invalid alphanumeric display port: $room.\n";
-            }            
-        }	
+            warn "Invalid alphanumeric display port: $room.\n";
+        }
+    }
 }
 
 sub send_sequence {
-     my @rooms = @_;
-     my $address;
-     my $run_sequence;
+    my @rooms = @_;
+    my $address;
+    my $run_sequence;
 
-     @rooms = @room_names unless @rooms; # populated on init, contains 'default' if no rooms defined
-     for my $room (@rooms) {	
+    @rooms = @room_names
+      unless @rooms; # populated on init, contains 'default' if no rooms defined
+    for my $room (@rooms) {
 
-	# Set memory
+        # Set memory
 
-	$address = 32; # 32-126, except 48 (20H-7EH, except 30H)
-	&send($INIT, $room);
-	&send(&special_function("\x24"), $room);
-	for (@messages) {
-		&send(&set_message_memory(message=> $_, address=>chr($address++)), $room);
-		$address++ if $address == 48;
-	}
-	$address = 65;
-	for (@images) {
-		print "Setting image: $address\n" if $::Debug{display_alpha};
+        $address = 32;    # 32-126, except 48 (20H-7EH, except 30H)
+        &send( $INIT,                     $room );
+        &send( &special_function("\x24"), $room );
+        for (@messages) {
+            &send(
+                &set_message_memory(
+                    message => $_,
+                    address => chr( $address++ )
+                ),
+                $room
+            );
+            $address++ if $address == 48;
+        }
+        $address = 65;
+        for (@images) {
+            print "Setting image: $address\n" if $::Debug{display_alpha};
 
-		&send(&set_image_memory(image=> $_, address=>chr($address++)), $room);
-	}
-	&send($FINISH, $room);
+            &send(
+                &set_image_memory( image => $_, address => chr( $address++ ) ),
+                $room
+            );
+        }
+        &send( $FINISH, $room );
 
-	# Send images and messages
+        # Send images and messages
 
-	$address = 65;
-	for (@images) {
-		print "Sending image: $address\n" if $::Debug{display_alpha};
-		&send($INIT, $room);
-		&send(&image_header(chr($address)), $room);
-		&send(&image(image =>$_, address=>$address++), $room);
-		&send($FINISH, $room);
-	}
-	$address = 32;
-	for (@messages) {
-		&send($INIT, $room);
-		&send(&header(chr($address++)), $room);
-		&send($_, $room);
-		&send($FINISH, $room);
-		$address++ if $address == 48;
-	}
+        $address = 65;
+        for (@images) {
+            print "Sending image: $address\n" if $::Debug{display_alpha};
+            &send( $INIT,                          $room );
+            &send( &image_header( chr($address) ), $room );
+            &send( &image( image => $_, address => $address++ ), $room );
+            &send( $FINISH, $room );
+        }
+        $address = 32;
+        for (@messages) {
+            &send( $INIT,                        $room );
+            &send( &header( chr( $address++ ) ), $room );
+            &send( $_,                           $room );
+            &send( $FINISH,                      $room );
+            $address++ if $address == 48;
+        }
 
-	# Set run sequence
+        # Set run sequence
 
-	&send($INIT, $room);
-	&send(&special_function("\x2e"), $room);
-	$address = 32;
-	$run_sequence = '';
-	for (@messages) {
-		$run_sequence .= chr($address++);
-		$address++ if $address == 48;
-	}
-	&send("TU$run_sequence", $room);
-	&send($FINISH, $room);
+        &send( $INIT,                     $room );
+        &send( &special_function("\x2e"), $room );
+        $address      = 32;
+        $run_sequence = '';
+        for (@messages) {
+            $run_sequence .= chr( $address++ );
+            $address++ if $address == 48;
+        }
+        &send( "TU$run_sequence", $room );
+        &send( $FINISH,           $room );
 
     }
 
     # reset sequence
 
-    @messages = qw();
-    @images = qw();
-    @image_names = qw();
+    @messages        = qw();
+    @images          = qw();
+    @image_names     = qw();
     %image_addresses = qw();
 }
 
 sub BMPRead ($$) {
-    my ($fh, $len) = @_;
+    my ( $fh, $len ) = @_;
     my $retval;
     my $buf;
 
-    sysread($fh, $buf, $len);
+    sysread( $fh, $buf, $len );
     return $buf;
     return $retval;
 }
 
 sub GetBMPInfo ($) {
-    my %comments=();
-    my $filename=shift;
-    my $fh = new IO::File;
-    my $temp = 0;
-    my ($len, $listlength, $pos, $buf);
+    my %comments = ();
+    my $filename = shift;
+    my $fh       = new IO::File;
+    my $temp     = 0;
+    my ( $len, $listlength, $pos, $buf );
 
     return if !-r $filename or !-f _;
-    return if !open($fh, $filename);
+    return if !open( $fh, $filename );
     binmode($fh);
 
     #Test for Bitmap
 
-    return if BMPRead($fh,  2) ne 'BM';
+    return if BMPRead( $fh, 2 ) ne 'BM';
 
     print "Bitmap file: $filename\n" if $::Debug{display_alpha};
 
     # Get size
 
-    my $size = ord(BMPRead($fh, 1));
-    $size += 256 * ord(BMPRead($fh, 1));
-    $size += 256 * ord(BMPRead($fh, 1));
-    $size += 256 * ord(BMPRead($fh, 1));
+    my $size = ord( BMPRead( $fh, 1 ) );
+    $size += 256 * ord( BMPRead( $fh, 1 ) );
+    $size += 256 * ord( BMPRead( $fh, 1 ) );
+    $size += 256 * ord( BMPRead( $fh, 1 ) );
 
     print "File size: $size\n" if $::Debug{display_alpha};
 
     # Check for invalid bits
 
-    return if ord(BMPRead($fh, 1));
-    return if ord(BMPRead($fh, 1));
-    return if ord(BMPRead($fh, 1));
-    return if ord(BMPRead($fh, 1));
+    return if ord( BMPRead( $fh, 1 ) );
+    return if ord( BMPRead( $fh, 1 ) );
+    return if ord( BMPRead( $fh, 1 ) );
+    return if ord( BMPRead( $fh, 1 ) );
 
-    my $offset = ord(BMPRead($fh, 1));
-    $offset += 256 * ord(BMPRead($fh, 1));
-    $offset += 256 * ord(BMPRead($fh, 1));
-    $offset += 256 * ord(BMPRead($fh, 1));
+    my $offset = ord( BMPRead( $fh, 1 ) );
+    $offset += 256 * ord( BMPRead( $fh, 1 ) );
+    $offset += 256 * ord( BMPRead( $fh, 1 ) );
+    $offset += 256 * ord( BMPRead( $fh, 1 ) );
 
     print "Data offset: $offset\n" if $::Debug{display_alpha};
 
-    BMPRead($fh, 4);
+    BMPRead( $fh, 4 );
 
-    my $width = ord(BMPRead($fh, 1));
-    $width += 256 * ord(BMPRead($fh, 1));
-    $width += 256 * ord(BMPRead($fh, 1));
-    $width += 256 * ord(BMPRead($fh, 1));
+    my $width = ord( BMPRead( $fh, 1 ) );
+    $width += 256 * ord( BMPRead( $fh, 1 ) );
+    $width += 256 * ord( BMPRead( $fh, 1 ) );
+    $width += 256 * ord( BMPRead( $fh, 1 ) );
 
     print "Width: $width\n" if $::Debug{display_alpha};
 
-
-    my $height = ord(BMPRead($fh, 1));
-    $height += 256 * ord(BMPRead($fh, 1));
-    $height += 256 * ord(BMPRead($fh, 1));
-    $height += 256 * ord(BMPRead($fh, 1));
+    my $height = ord( BMPRead( $fh, 1 ) );
+    $height += 256 * ord( BMPRead( $fh, 1 ) );
+    $height += 256 * ord( BMPRead( $fh, 1 ) );
+    $height += 256 * ord( BMPRead( $fh, 1 ) );
 
     print "Height: $height\n" if $::Debug{display_alpha};
 
+    BMPRead( $fh, 2 );    # skip planes (must be zero)
 
-    BMPRead($fh, 2); # skip planes (must be zero)
-
-    my $bitsperpixel = ord(BMPRead($fh, 1));
-    $bitsperpixel += 256 * ord(BMPRead($fh, 1));
+    my $bitsperpixel = ord( BMPRead( $fh, 1 ) );
+    $bitsperpixel += 256 * ord( BMPRead( $fh, 1 ) );
 
     print "Bits per pixel: $bitsperpixel\n" if $::Debug{display_alpha};
 
-    my $compressed = ord(BMPRead($fh, 1));
-    $compressed += 256 * ord(BMPRead($fh, 1));
-    $compressed += 256 * ord(BMPRead($fh, 1));
-    $compressed += 256 * ord(BMPRead($fh, 1));
+    my $compressed = ord( BMPRead( $fh, 1 ) );
+    $compressed += 256 * ord( BMPRead( $fh, 1 ) );
+    $compressed += 256 * ord( BMPRead( $fh, 1 ) );
+    $compressed += 256 * ord( BMPRead( $fh, 1 ) );
 
-    if ($::Debug{display_alpha}) {
-        print ((($compressed)?('Compression method: ' . $compressed):"Uncompressed") . "\n");	
+    if ( $::Debug{display_alpha} ) {
+        print(
+            (
+                  ($compressed)
+                ? ( 'Compression method: ' . $compressed )
+                : "Uncompressed"
+            )
+            . "\n"
+        );
     }
 
-    my $data_size = ord(BMPRead($fh, 1));
-    $data_size += 256 * ord(BMPRead($fh, 1));
-    $data_size += 256 * ord(BMPRead($fh, 1));
-    $data_size += 256 * ord(BMPRead($fh, 1));
+    my $data_size = ord( BMPRead( $fh, 1 ) );
+    $data_size += 256 * ord( BMPRead( $fh, 1 ) );
+    $data_size += 256 * ord( BMPRead( $fh, 1 ) );
+    $data_size += 256 * ord( BMPRead( $fh, 1 ) );
 
     unless ($data_size) {
-       	$data_size = $size - $offset; #file size minus header size equals data size
+        $data_size =
+          $size - $offset;    #file size minus header size equals data size
     }
 
-    print "Data size: $data_size\n" if $::Debug{display_alpha}; 
+    print "Data size: $data_size\n" if $::Debug{display_alpha};
 
-    BMPRead($fh, 4); # skip pels
-    BMPRead($fh, 4); # skip pels
+    BMPRead( $fh, 4 );        # skip pels
+    BMPRead( $fh, 4 );        # skip pels
 
-    my $colors = ord(BMPRead($fh, 1));
-    $colors += 256 * ord(BMPRead($fh, 1));
-    $colors += 256 * ord(BMPRead($fh, 1));
-    $colors += 256 * ord(BMPRead($fh, 1));
+    my $colors = ord( BMPRead( $fh, 1 ) );
+    $colors += 256 * ord( BMPRead( $fh, 1 ) );
+    $colors += 256 * ord( BMPRead( $fh, 1 ) );
+    $colors += 256 * ord( BMPRead( $fh, 1 ) );
 
-    $colors = 2 ** $bitsperpixel unless $colors; #calculate if missing
+    $colors = 2**$bitsperpixel unless $colors;    #calculate if missing
 
     print "Colors: $colors\n" if $::Debug{display_alpha};
 
-    BMPRead($fh, 4); # skip "important" colors (don't care)
+    BMPRead( $fh, 4 );    # skip "important" colors (don't care)
 
     my $color_table;
     my @color_table;
 
-    if ($bitsperpixel == 4 or $bitsperpixel == 8) { #16-color bitmap has 16 * 4 byte color table (colors take up four bytes each)
+    if ( $bitsperpixel == 4 or $bitsperpixel == 8 )
+    { #16-color bitmap has 16 * 4 byte color table (colors take up four bytes each)
 
-	for my $i (1..2**$bitsperpixel) {
-	    my $blue = unpack('H2', BMPRead($fh, 1));
-	    my $green = unpack('H2', BMPRead($fh, 1));
-	    my $red = unpack('H2', BMPRead($fh, 1));
-            BMPRead($fh, 1); #skip reserved byte (last in quad)	   
-	    my $hex_color = "$red$green$blue";
+        for my $i ( 1 .. 2**$bitsperpixel ) {
+            my $blue  = unpack( 'H2', BMPRead( $fh, 1 ) );
+            my $green = unpack( 'H2', BMPRead( $fh, 1 ) );
+            my $red   = unpack( 'H2', BMPRead( $fh, 1 ) );
+            BMPRead( $fh, 1 );    #skip reserved byte (last in quad)
+            my $hex_color = "$red$green$blue";
             push @color_table, $hex_color;
-	    print "Color #$i: " . uc($hex_color) . "\n" if $::Debug{display_alpha};
+            print "Color #$i: " . uc($hex_color) . "\n"
+              if $::Debug{display_alpha};
         }
 
     }
     else {
         print "No color table\n" if $::Debug{display_alpha};
     }
-   
+
     my $bytes_per_row;
 
-    if ($bitsperpixel == 4 or $bitsperpixel == 8) {
-	$bytes_per_row = int(($bitsperpixel * $width) / 8);
-	if ($width % 2 and $bitsperpixel == 4) {
-           $bytes_per_row++; # odd width uses extra byte for last column
+    if ( $bitsperpixel == 4 or $bitsperpixel == 8 ) {
+        $bytes_per_row = int( ( $bitsperpixel * $width ) / 8 );
+        if ( $width % 2 and $bitsperpixel == 4 ) {
+            $bytes_per_row++;    # odd width uses extra byte for last column
         }
     }
 
-    if ($bytes_per_row % 4) { # align on word boundary if not already
-       $bytes_per_row += (4 - $bytes_per_row % 4);
+    if ( $bytes_per_row % 4 ) {    # align on word boundary if not already
+        $bytes_per_row += ( 4 - $bytes_per_row % 4 );
     }
 
     print "Bytes per row: $bytes_per_row\n" if $::Debug{display_alpha};
 
-    my @picture; # array of row array references (PERL 2D array)
-    for my $row (1..$height) {
-	 my $column = 1;
-	 my $pixel = 1;
-         my @picture_row;
-	 while ($column <= $bytes_per_row) {
-		 my $data = BMPRead($fh, 1);
-		 if ($bitsperpixel == 8) {
-		     push @picture_row, $data if $column <= $width;
-		 }
-                 else {
-		     push @picture_row, int(ord($data) / 16) if $pixel <= $width;  	
-		     $pixel++;
-		     push @picture_row, ord($data) % 16 if $pixel <= $width;
-		     $pixel++;
-                 }
-                 $column++;	         
-	 }
-	unshift @picture, [@picture_row];
+    my @picture;    # array of row array references (PERL 2D array)
+    for my $row ( 1 .. $height ) {
+        my $column = 1;
+        my $pixel  = 1;
+        my @picture_row;
+        while ( $column <= $bytes_per_row ) {
+            my $data = BMPRead( $fh, 1 );
+            if ( $bitsperpixel == 8 ) {
+                push @picture_row, $data if $column <= $width;
+            }
+            else {
+                push @picture_row, int( ord($data) / 16 ) if $pixel <= $width;
+                $pixel++;
+                push @picture_row, ord($data) % 16 if $pixel <= $width;
+                $pixel++;
+            }
+            $column++;
+        }
+        unshift @picture, [@picture_row];
     }
 
-    $comments{picture} = [@picture];
-    $comments{size} = $size;
-    $comments{colors} = $colors;
+    $comments{picture}     = [@picture];
+    $comments{size}        = $size;
+    $comments{colors}      = $colors;
     $comments{color_table} = [@color_table];
     return %comments;
 }
 
-
 1;
-
 
 =back
 

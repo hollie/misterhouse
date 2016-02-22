@@ -22,25 +22,25 @@
 #
 #   my $page_process=new Process_Item;
 #   my $page_program="$Pgm_Root/bin/snpp_page";
-# 
+#
 #   if (state_now $garage_light eq ON) {
 #       set $page_process "$page_program --name brent --message
 #            'Garage motion detected.'";
 #       start $page_process;
 #   }
-# 
+#
 # This software is distributed under the GNU public license version 2
 #================================================================================
 
 use strict;
 
-my ($Pgm_Path, $Pgm_Name, $Version);
+my ( $Pgm_Path, $Pgm_Name, $Version );
 use vars '$Pgm_Root';
 use vars "%config_parms";
 
 BEGIN {
     ($Version) = q$Revision$ =~ /: (\S+)/;
-    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
     $Pgm_Root = "$Pgm_Path/..";
     eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'";
@@ -51,9 +51,14 @@ BEGIN {
 #--------------------------------------------------------------------------------
 use Getopt::Long;
 my %parms;
-if (!&GetOptions(\%parms, "h", "help", "message=s", "name=s") or
-    @ARGV or $parms{h} or $parms{help} or !$parms{message} or !$parms{name}) {
-    print<<eof;
+if (  !&GetOptions( \%parms, "h", "help", "message=s", "name=s" )
+    or @ARGV
+    or $parms{h}
+    or $parms{help}
+    or !$parms{message}
+    or !$parms{name} )
+{
+    print <<eof;
 
 $Pgm_Name (version $Version) sends alphanumeric page using SNPP.
 
@@ -71,16 +76,16 @@ $Pgm_Name (version $Version) sends alphanumeric page using SNPP.
 
 eof
 
-  exit;
+    exit;
 }
 
 #--------------------------------------------------------------------------------
 # The main routine
 #--------------------------------------------------------------------------------
-my ($number, $server);
+my ( $number, $server );
 &setup;
-unless ($number && $server) {
-	print<<eof;
+unless ( $number && $server ) {
+    print <<eof;
 
 Could not find [number] and/or [server] for '$parms{name}'. Please make sure:
 
@@ -93,7 +98,7 @@ snpp_page_$parms{name}_server
 are in your mh[.private].ini configuration file.
 
 eof
-	exit;
+    exit;
 }
 &send_page;
 exit;
@@ -103,28 +108,30 @@ exit;
 #--------------------------------------------------------------------------------
 sub setup {
     use Net::SNPP;
-	require 'handy_utilities.pl';
+    require 'handy_utilities.pl';
 
-	# Read entire config files
-	my $private_parms = $Pgm_Path . "/mh.private.ini";
-	&main::read_opts(\%config_parms, $Pgm_Path . "/mh.ini");
-	&main::read_opts(\%config_parms, $private_parms) if -e $private_parms;
+    # Read entire config files
+    my $private_parms = $Pgm_Path . "/mh.private.ini";
+    &main::read_opts( \%config_parms, $Pgm_Path . "/mh.ini" );
+    &main::read_opts( \%config_parms, $private_parms ) if -e $private_parms;
 
-	# Parse out the snpp options
-	for my $parm (keys %config_parms) {
-		next unless $config_parms{$parm};
-		$number=$config_parms{$parm} if $parm=~/snpp_page_$parms{name}_number/;
-		$server=$config_parms{$parm} if $parm=~/snpp_page_$parms{name}_server/;
-	}
+    # Parse out the snpp options
+    for my $parm ( keys %config_parms ) {
+        next unless $config_parms{$parm};
+        $number = $config_parms{$parm}
+          if $parm =~ /snpp_page_$parms{name}_number/;
+        $server = $config_parms{$parm}
+          if $parm =~ /snpp_page_$parms{name}_server/;
+    }
 }
 
 #--------------------------------------------------------------------------------
 # Actually send the page via SNPP
 #--------------------------------------------------------------------------------
 sub send_page {
-	my $snpp = Net::SNPP->new("$server");
-	print "$number $parms{message} $server\n";
-	$snpp->send(Pager => $number, Message => "$parms{message}") ||
-	  die $snpp->message;
-	$snpp->quit;
+    my $snpp = Net::SNPP->new("$server");
+    print "$number $parms{message} $server\n";
+    $snpp->send( Pager => $number, Message => "$parms{message}" )
+      || die $snpp->message;
+    $snpp->quit;
 }

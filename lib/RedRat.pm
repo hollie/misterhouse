@@ -1,3 +1,4 @@
+
 =head1 B<RedRat>
 
 =head2 SYNOPSIS
@@ -37,7 +38,9 @@ package RedRat;
 @RedRat::ISA = ('Serial_Item');
 
 sub serial_startup {
-    &main::serial_port_create('RedRat', $main::config_parms{RedRat_serial_port}, 19200, 'none');
+    &main::serial_port_create( 'RedRat',
+        $main::config_parms{RedRat_serial_port},
+        19200, 'none' );
 }
 
 sub new {
@@ -49,29 +52,28 @@ sub new {
 }
 
 sub add {
-	my ($self, $command, $code) = @_;
-        $$self{$command} = $code;
-	push(@{$$self{states}},$command);
+    my ( $self, $command, $code ) = @_;
+    $$self{$command} = $code;
+    push( @{ $$self{states} }, $command );
 }
 
 sub set {
-    my ($self, $command) = @_;
-	if (!defined $$self{$command}) {
-		&::print_log("RedRat: Invalid State: $command");
-	} else {
-		if ($main::Debug{redrat} ) {
-			&::print_log("RedRat: Sending $command -> $$self{$command}");
-		}
-		select(undef,undef,undef,0.40);
-		$main::Serial_Ports{RedRat}{object}->write($$self{$command});
-		&Generic_Item::set_states_for_next_pass($self,$command);
-	}
+    my ( $self, $command ) = @_;
+    if ( !defined $$self{$command} ) {
+        &::print_log("RedRat: Invalid State: $command");
+    }
+    else {
+        if ( $main::Debug{redrat} ) {
+            &::print_log("RedRat: Sending $command -> $$self{$command}");
+        }
+        select( undef, undef, undef, 0.40 );
+        $main::Serial_Ports{RedRat}{object}->write( $$self{$command} );
+        &Generic_Item::set_states_for_next_pass( $self, $command );
+    }
 
 }
 
-
 1;
-
 
 =back
 
