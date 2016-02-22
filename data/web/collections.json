@@ -636,47 +636,47 @@
   "117" : {
   	"icon" : "fa-leaf",
   	"name" : "Outdoor Temp",
-  	"link" : "/bin/weather_graph.pl?tempout"
+  	"link" : "/ia7/#path=/rrd?now-6hour?outdoor_temp"
   },
   "118" : {
   	"icon" : "wi-thermometer",
   	"name" : "Indoor Temp",
-  	"link" : "/bin/weather_graph.pl?tempin"
+  	"link" : "/ia7/#path=/rrd?now-6hour?indoor_temp"
   },
   "119" : {
   	"icon" : "wi-sprinkle",
   	"name" : "Outdoor Humidity",
-  	"link" : "/bin/weather_graph.pl?humout"
+  	"link" : "/ia7/#path=/rrd?now-6hour?outdoor_humid"
   },
   "120" : {
   	"icon" : "wi-sprinkles",
   	"name" : "Indoor Humidity",
-  	"link" : "/bin/weather_graph.pl?humin"
+  	"link" : "/ia7/#path=/rrd?now-6hour?indoor_humid"
   },
   "121" : {
   	"icon" : "wi-strong-wind",
   	"name" : "Wind Speed",
-  	"link" : "/bin/weather_graph.pl?windspeed"
+  	"link" : "/ia7/#path=/rrd?now-6hour?wind_speed"
   },
   "122" : {
   	"icon" : "fa-arrows",
   	"name" : "Wind Direction",
-  	"link" : "/bin/weather_graph.pl?winddir"
+  	"link" : "/ia7/#path=/rrd?now-6hour?wind_dir"
   },
   "123" : {
   	"icon" : "wi-rain",
   	"name" : "Total Rain",
-  	"link" : "/bin/weather_graph.pl?raintotal"
+  	"link" : "/ia7/#path=/rrd?now-6hour?rain"
   },   
   "124" : {
   	"icon" : "wi-sprinkle",
   	"name" : "Rain Rate",
-  	"link" : "/bin/weather_graph.pl?rainrate"
+  	"link" : "/ia7/#path=/rrd?now-6hour?rain_rate"
   },  
   "125" : {
   	"icon" : "wi-cloud-refresh",
   	"name" : "Baro Pressure",
-  	"link" : "/bin/weather_graph.pl?press"
+  	"link" : "/ia7/#path=/rrd?now-6hour?outside_press"
   }, 
  
   "92" : {

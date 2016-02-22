@@ -1,3 +1,4 @@
+
 =head1 B<IR_Item>
 
 =head2 SYNOPSIS
@@ -33,11 +34,11 @@ package IR_Item;
 @IR_Item::ISA = ('Generic_Item');
 
 my %default_map = qw(
-    ON  POWER
-    OFF POWER
+  ON  POWER
+  OFF POWER
 );
 
-my ($hooks_added, @objects_xap);
+my ( $hooks_added, @objects_xap );
 
 =item C<new($type, $code, $interface, $mapref)>
 
@@ -65,128 +66,152 @@ $mapref is a reference to a hash that specifies commands to be mapped to other c
 =cut
 
 sub new {
-    my ($class, $device, $code, $interface, $mapref) = @_;
+    my ( $class, $device, $code, $interface, $mapref ) = @_;
     my $self = {};
-    $$self{state} = '';
-    $$self{code}  = $code if $code;
+    $$self{state}     = '';
+    $$self{code}      = $code if $code;
     $$self{interface} = ($interface) ? lc $interface : 'cm17';
- 
-                # Enable receiving of IR data
-    if ($$self{interface} eq 'xap') {
+
+    # Enable receiving of IR data
+    if ( $$self{interface} eq 'xap' ) {
         $$self{states_casesensitive} = 1;
-        &::MainLoop_pre_add_hook( \&IR_Item::check_xap, 1) unless $hooks_added++;
+        &::MainLoop_pre_add_hook( \&IR_Item::check_xap, 1 )
+          unless $hooks_added++;
         push @objects_xap, $self;
     }
-    
+
     $device = uc $device unless $$self{states_casesensitive};
-    $device = 'TV' unless $device;
-    $$self{device} =    $device;
-    
+    $device = 'TV'       unless $device;
+    $$self{device} = $device;
+
     $mapref = \%default_map unless $mapref;
     $$self{mapref} = $mapref;
-    
+
     bless $self, $class;
     return $self;
 }
 
 sub check_xap {
-    if (my $xap_data = &xAP::received_data()) {
-        return unless $$xap_data{'xap-header'}{class} and $$xap_data{'xap-header'}{class} eq 'ir.receive';
+    if ( my $xap_data = &xAP::received_data() ) {
+        return
+          unless $$xap_data{'xap-header'}{class}
+          and $$xap_data{'xap-header'}{class} eq 'ir.receive';
         for my $o (@objects_xap) {
-            print "IR_Item xap: $$xap_data{'ir.signal'}{device} = $$xap_data{'ir.signal'}{signal}\n";
+            print
+              "IR_Item xap: $$xap_data{'ir.signal'}{device} = $$xap_data{'ir.signal'}{signal}\n";
             next unless uc $$xap_data{'ir.signal'}{device} eq $$o{device};
-            $o -> SUPER::set($$xap_data{'ir.signal'}{signal}, 'xap');
+            $o->SUPER::set( $$xap_data{'ir.signal'}{signal}, 'xap' );
         }
     }
 }
 
 my $device_prev;
+
 sub default_setstate {
-    my ($self, $state, $substate, $setby) = @_;
+    my ( $self, $state, $substate, $setby ) = @_;
 
-    return if $setby eq 'xap';  # Do not echo incoming data back out
+    return if $setby eq 'xap';    # Do not echo incoming data back out
 
-#   print "db set=$state pass=$main::Loop_Count\n";
+    #   print "db set=$state pass=$main::Loop_Count\n";
 
     my $device = $$self{device};
     $state = uc $state unless $$self{states_casesensitive};
 
-                                # Option to make changing channels faster on devices with a timeout
-    if ($$self{code} and $$self{code} eq 'addEnter') {
+    # Option to make changing channels faster on devices with a timeout
+    if ( $$self{code} and $$self{code} eq 'addEnter' ) {
         $state =~ s/^(\d+),/$1,ENTER,/g;
         $state =~ s/,(\d+),/,$1,ENTER,/g;
         $state =~ s/,(\d+)$/,$1,ENTER/g;
         $state =~ s/^(\d+)$/$1,ENTER/g;
     }
-                                # Option to do nothing to numbers
-    elsif ($$self{code} eq 'noPad') {
+
+    # Option to do nothing to numbers
+    elsif ( $$self{code} eq 'noPad' ) {
     }
-                                # Default is to lead single digit with a 0.  Cover all 4 cases:
-                                #  1,record    stop,2   stop,3,record     4
+
+    # Default is to lead single digit with a 0.  Cover all 4 cases:
+    #  1,record    stop,2   stop,3,record     4
     else {
         $state =~ s/^(\d),/0$1,/g;
         $state =~ s/,(\d),/,0$1,/g;
         $state =~ s/,(\d)$/,0$1/g;
         $state =~ s/^(\d)$/0$1/g;
 
-                                # Lead with another 0 for devices that require 3 digits.
-        if ($$self{code} and $$self{code} eq '3digit') {
+        # Lead with another 0 for devices that require 3 digits.
+        if ( $$self{code} and $$self{code} eq '3digit' ) {
             $state =~ s/^(\d\d),/0$1,/g;
             $state =~ s/,(\d\d),/,0$1,/g;
             $state =~ s/,(\d\d)$/,0$1/g;
             $state =~ s/^(\d\d)$/0$1/g;
         }
     }
-                                # Put commas between all digits, so they are seperate commands
+
+    # Put commas between all digits, so they are seperate commands
     $state =~ s/(\d)(?=\d)/$1,/g;
-                                # Record must be pressed twice??
+
+    # Record must be pressed twice??
     $state =~ s/RECORD/RECORD,RECORD/g;
-                                # Add delay after powering up
+
+    # Add delay after powering up
     $state =~ s/POWER,/POWER,DELAY,/g;
 
     print "Sending IR_Item command $device $state\n" if $main::Debug{ir};
     my $mapped_ir;
-    for my $command (split(',', $state)) {
+    for my $command ( split( ',', $state ) ) {
 
-                                # Lets build our own delay
-        if ($command eq 'DELAY') {
-            select undef, undef, undef, 0.3; # Give it a chance to get going before doing other commands
+        # Lets build our own delay
+        if ( $command eq 'DELAY' ) {
+            select undef, undef, undef,
+              0.3;   # Give it a chance to get going before doing other commands
             next;
         }
-                                # IR mapping is mainly for controlers like 
-                                # Homevision and CPU-XA that use learned IR
-                                # slots instead of symbolic commands.
-        if ($mapped_ir = $$self{mapref}->{$command}) {
+
+        # IR mapping is mainly for controlers like
+        # Homevision and CPU-XA that use learned IR
+        # slots instead of symbolic commands.
+        if ( $mapped_ir = $$self{mapref}->{$command} ) {
             $command = $mapped_ir;
         }
-        if ($$self{interface} eq 'cm17') {
-                                # Since the X10 IR Commander is a bit slow (.5 sec per xmit),
-                                #  lets only send the device code if it is different than last time.
-            $device = '' if $device and  $device eq $device_prev;
+        if ( $$self{interface} eq 'cm17' ) {
+
+            # Since the X10 IR Commander is a bit slow (.5 sec per xmit),
+            #  lets only send the device code if it is different than last time.
+            $device = '' if $device and $device eq $device_prev;
             $device_prev = $$self{device};
-            return if &main::proxy_send('cm17', 'send_ir', "$device $command");
-            &ControlX10::CM17::send_ir($main::Serial_Ports{cm17}{object}, "$device $command");
-            $device = '';       # Use device only on the first command
-        } elsif ($$self{interface} eq 'homevision') {
-            &Homevision::send($main::Serial_Ports{Homevision}{object}, $command);
-        } elsif ($$self{interface} eq 'ncpuxa') {
-            &ncpuxa_mh::send($main::config_parms{ncpuxa_port}, $command);
-        } elsif ($$self{interface} eq 'uirt2') {
-            &UIRT2::set($device, $command);
-        } elsif ($$self{interface} eq 'usb_uirt') {
-            &USB_UIRT::set($device, $command);
-        } elsif ($$self{interface} eq 'lirc') {
-	    &lirc_mh::send($device, $command);
-        } elsif ($$self{interface} eq 'ninja') {
-	    &ninja_mh::send($device, $command);
-        } elsif ($$self{interface} eq 'xap') {
-            &xAP::send('xAP', 'IR.Transmit', 'IR.Signal' => {Device => $device, Signal => $command});
-        } else {
+            return
+              if &main::proxy_send( 'cm17', 'send_ir', "$device $command" );
+            &ControlX10::CM17::send_ir( $main::Serial_Ports{cm17}{object},
+                "$device $command" );
+            $device = '';    # Use device only on the first command
+        }
+        elsif ( $$self{interface} eq 'homevision' ) {
+            &Homevision::send( $main::Serial_Ports{Homevision}{object},
+                $command );
+        }
+        elsif ( $$self{interface} eq 'ncpuxa' ) {
+            &ncpuxa_mh::send( $main::config_parms{ncpuxa_port}, $command );
+        }
+        elsif ( $$self{interface} eq 'uirt2' ) {
+            &UIRT2::set( $device, $command );
+        }
+        elsif ( $$self{interface} eq 'usb_uirt' ) {
+            &USB_UIRT::set( $device, $command );
+        }
+        elsif ( $$self{interface} eq 'lirc' ) {
+            &lirc_mh::send( $device, $command );
+        }
+        elsif ( $$self{interface} eq 'ninja' ) {
+            &ninja_mh::send( $device, $command );
+        }
+        elsif ( $$self{interface} eq 'xap' ) {
+            &xAP::send( 'xAP', 'IR.Transmit',
+                'IR.Signal' => { Device => $device, Signal => $command } );
+        }
+        else {
             print "IR_Item::set Interface $$self{interface} not supported.\n";
         }
     }
 }
-
 
 =back
 
@@ -254,7 +279,6 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 =cut
-
 
 #
 # $Log: IR_Item.pm,v $

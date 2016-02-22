@@ -21,52 +21,59 @@ Note: Correct long. and time_zone parms for those of us in the
 =cut
 
 $v_iridium_check = new Voice_Cmd '[Get,List,Browse] iridium flares';
-$v_iridium_check ->set_info('Lists times and locations flares from iridium satellites');
-
+$v_iridium_check->set_info(
+    'Lists times and locations flares from iridium satellites');
 
 # Create trigger
 
 if ($Reload) {
-    &trigger_set('$New_Week', "run_voice_cmd('Get iridium flares')", 'NoExpire', 'get iridium info')
-      unless &trigger_get('get iridium info');
+    &trigger_set(
+        '$New_Week', "run_voice_cmd('Get iridium flares')",
+        'NoExpire',  'get iridium info'
+    ) unless &trigger_get('get iridium info');
 }
 
 sub uninstall_internet_iridium {
-	&trigger_delete('get iridium info');
+    &trigger_delete('get iridium info');
 }
 
-                                # Their web site uses dorky Time Zone strings,
-                                # so use UCT (GMT+0) and translate.
+# Their web site uses dorky Time Zone strings,
+# so use UCT (GMT+0) and translate.
 my $iridium_check_e = "$Code_Dirs[0]/iridium_check_events.pl";
 my $iridium_check_f = "$config_parms{data_dir}/web/iridium.html";
-my $iridium_check_u = "http://www.heavens-above.com/iridium.asp?" .
-"lat=$config_parms{latitude}&lng=$config_parms{longitude}&alt=0&TZ=UCT&Dur=7&" .
-"loc=$config_parms{city}";
-$p_iridium_check = new Process_Item qq[get_url "$iridium_check_u" "$iridium_check_f"];
-
+my $iridium_check_u =
+    "http://www.heavens-above.com/iridium.asp?"
+  . "lat=$config_parms{latitude}&lng=$config_parms{longitude}&alt=0&TZ=UCT&Dur=7&"
+  . "loc=$config_parms{city}";
+$p_iridium_check =
+  new Process_Item qq[get_url "$iridium_check_u" "$iridium_check_f"];
 
 sub respond_iridium {
-	my $connected = shift;
-	my $display = &list_iridium();
-	if ($display) {
-		$v_iridium_check->respond("app=iridium connected=$connected Listing iridium data.");
-		display $display, 0, 'Iridium list', 'fixed';
-	}
-	else {
-		$v_iridium_check->respond("app=iridium connected=$connected Nothing to report.");
-	}
+    my $connected = shift;
+    my $display   = &list_iridium();
+    if ($display) {
+        $v_iridium_check->respond(
+            "app=iridium connected=$connected Listing iridium data.");
+        display $display, 0, 'Iridium list', 'fixed';
+    }
+    else {
+        $v_iridium_check->respond(
+            "app=iridium connected=$connected Nothing to report.");
+    }
 }
 
 sub list_iridium {
-    my ($display, $time, $sec, $time_sec);
+    my ( $display, $time, $sec, $time_sec );
     my $html = file_read $iridium_check_f;
-                                # Add a base href, so we can click on links
+
+    # Add a base href, so we can click on links
     $html =~ s|</head>|\n<BASE href='http://www.heavens-above.com/'>|i;
     file_write $iridium_check_f, $html;
 
     my $text = &html_to_text($html);
 
-    open(MYCODE, ">$iridium_check_e") or print_log "Error in writing to $iridium_check_e";
+    open( MYCODE, ">$iridium_check_e" )
+      or print_log "Error in writing to $iridium_check_e";
     print MYCODE "\n#@ Auto-generated from code/common/internet_iridium.pl\n\n";
     print MYCODE "\n\$t_iridium_timer = new Timer;\n\n";
 
@@ -87,24 +94,30 @@ sub list_iridium {
 
 eof
 
-    for (split "\n", $text) {
+    for ( split "\n", $text ) {
         if (/Iridium \d+$/) {
-            s/\xb0//g;          # Drop ^o (degree) symbol
-            s/\(.+?\)//g;       # Drop the (NSEW ) strings
+            s/\xb0//g;       # Drop ^o (degree) symbol
+            s/\(.+?\)//g;    # Drop the (NSEW ) strings
             my @a = split;
-#           print "db t=$text\na=@a\n";
-#           print "db testing time: $a[1]/$a[0] $a[2]\n";
-            $time = my_str2time($config_parms{date_format} =~ /ddmm/ ?
-                                "$a[0]/$a[1] $a[2]" : "$a[1]/$a[0] $a[2]") +
-                                  3600*$config_parms{time_zone};
-            $time += 3600 if (localtime)[8]; # Adjust for daylight savings time
-            ($time_sec)   = time_date_stamp(6, $time) . ' ' . time_date_stamp(16, $time);
-            ($time, $sec) = time_date_stamp(9, $time);
-            $display .= sprintf "%s, mag=%2d, alt=%3d, azimuth=%3d, %s %s\n", $time_sec, @a[3,4,5,9,10];
 
-            next unless $a[4] > 20; # We can not see them if they are too low
+            #           print "db t=$text\na=@a\n";
+            #           print "db testing time: $a[1]/$a[0] $a[2]\n";
+            $time = my_str2time(
+                $config_parms{date_format} =~ /ddmm/
+                ? "$a[0]/$a[1] $a[2]"
+                : "$a[1]/$a[0] $a[2]"
+              ) +
+              3600 * $config_parms{time_zone};
+            $time += 3600 if (localtime)[8];  # Adjust for daylight savings time
+            ($time_sec) =
+              time_date_stamp( 6, $time ) . ' ' . time_date_stamp( 16, $time );
+            ( $time, $sec ) = time_date_stamp( 9, $time );
+            $display .= sprintf "%s, mag=%2d, alt=%3d, azimuth=%3d, %s %s\n",
+              $time_sec, @a[ 3, 4, 5, 9, 10 ];
 
-                                # Create a seperate code file with a time_now for each event
+            next unless $a[4] > 20;    # We can not see them if they are too low
+
+            # Create a seperate code file with a time_now for each event
             print MYCODE<<eof;
             if (\$Dark and time_now '$time - 0:02' and $a[3] <= \$config_parms{iridium_brightness}) {
                 set \$t_iridium_timer 120 + $sec;
@@ -118,42 +131,36 @@ eof
         }
     }
     close MYCODE;
-    do_user_file $iridium_check_e; # This will enable the above MYCODE
+    do_user_file $iridium_check_e;    # This will enable the above MYCODE
     return $display;
 }
 
-if (said $v_iridium_check) {
-	my $state = $v_iridium_check->{state};
-	my $state2 = $state;
-	$state2 = 'Browsing' if $state2 eq 'Browse';
-	$state2 = 'Getting' if $state2 eq 'Get';
-	start   $p_iridium_check if $state eq 'Get';
-	if ($state eq 'Browse') {
-		if (-e $iridium_check_f) {
-			browser $iridium_check_f;
-		}
-		else {
-			$state2 = 'I do not have any iridium data.';
-		}
-	}
+if ( said $v_iridium_check) {
+    my $state  = $v_iridium_check->{state};
+    my $state2 = $state;
+    $state2 = 'Browsing' if $state2 eq 'Browse';
+    $state2 = 'Getting'  if $state2 eq 'Get';
+    start $p_iridium_check if $state eq 'Get';
+    if ( $state eq 'Browse' ) {
+        if ( -e $iridium_check_f ) {
+            browser $iridium_check_f;
+        }
+        else {
+            $state2 = 'I do not have any iridium data.';
+        }
+    }
 
-	if ($state eq 'List') {
-		&respond_iridium(1);
-	}
-	else {
-		$v_iridium_check->respond("app=iridium $state2" . ' iridium report...');
-	}
+    if ( $state eq 'List' ) {
+        &respond_iridium(1);
+    }
+    else {
+        $v_iridium_check->respond(
+            "app=iridium $state2" . ' iridium report...' );
+    }
 
 }
 
-
 &respond_iridium(0) if done_now $p_iridium_check;
-
-
-
-
-
-
 
 =begin example
 

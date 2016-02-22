@@ -9,64 +9,72 @@ my $PWD = "####";
 
 # insert in SQL database
 sub DSC2SQL {
-   my $Msg = shift;
-   my %TempData;
-   my $TimeNow = `date "+%Y-%m-%d %H:%M:%S"`;
-   chomp $TimeNow;
+    my $Msg = shift;
+    my %TempData;
+    my $TimeNow = `date "+%Y-%m-%d %H:%M:%S"`;
+    chomp $TimeNow;
 
-   $TempData{'timestamp'} = $TimeNow;
-   $TempData{'message'}   = "$Msg";
-   $SQL->insert( "AlarmEvent", \%TempData );
-   return;
+    $TempData{'timestamp'} = $TimeNow;
+    $TempData{'message'}   = "$Msg";
+    $SQL->insert( "AlarmEvent", \%TempData );
+    return;
 }
 
 # display alarm system message if there is a status change
 if ( my $AlarmState = $DSC->state_now ) {
-   print_log "DSC->state_now is [$AlarmState]";
+    print_log "DSC->state_now is [$AlarmState]";
 
-   DSC2SQL("system $AlarmState by $DSC->{user_name} ($DSC->{user_id})") if $AlarmState =~ /^armed/i;
-   Send_Email( "misterhouse", "Alarm armed by user $DSC->{user_name} or MH reboot", $::config_parms{Pager} ) if $AlarmState =~ /^armed/i;
+    DSC2SQL("system $AlarmState by $DSC->{user_name} ($DSC->{user_id})")
+      if $AlarmState =~ /^armed/i;
+    Send_Email( "misterhouse",
+        "Alarm armed by user $DSC->{user_name} or MH reboot",
+        $::config_parms{Pager} )
+      if $AlarmState =~ /^armed/i;
 
-   DSC2SQL("system $AlarmState by $DSC->{user_name} ($DSC->{user_id})") if $AlarmState =~ /^disarmed/i;
-   Send_Email( "misterhouse", "Alarm disarmed by user $DSC->{user_name}", $::config_parms{Pager} ) if $AlarmState =~ /^disarmed/i;
+    DSC2SQL("system $AlarmState by $DSC->{user_name} ($DSC->{user_id})")
+      if $AlarmState =~ /^disarmed/i;
+    Send_Email( "misterhouse", "Alarm disarmed by user $DSC->{user_name}",
+        $::config_parms{Pager} )
+      if $AlarmState =~ /^disarmed/i;
 
-   DSC2SQL("system is now in $AlarmState") if $AlarmState =~ /^alarm/i;
-   Send_Email( "misterhouse", "ALARM ALARM activated", $::config_parms{Pager} ) if $AlarmState =~ /^alarm/i;
+    DSC2SQL("system is now in $AlarmState") if $AlarmState =~ /^alarm/i;
+    Send_Email( "misterhouse", "ALARM ALARM activated", $::config_parms{Pager} )
+      if $AlarmState =~ /^alarm/i;
 }
 
 # open light when disarm system
 # tell greating message
 $All_Interior_Lights_B = new X10_Item('B');
 if ( $DSC->state_now =~ /^disarmed/i ) {
-   set $All_Interior_Lights_B ON if $Dark;
+    set $All_Interior_Lights_B ON if $Dark;
 
-   # speak welcome message
-   my $VMcount = vocp_countmsgs(100);
-   my $VMnew   = vocp_countnewmsgs(100);
-   my $t = $DSC->{IntTstatTemp}{1};
-   $t =~s/^0+//;   # remove leading zero
-   my $TTS  = "Bonjour $DSC->{user_name}. ";
-      $TTS .= "La tempez rature intairieure est de $t degrer. ";
-      $TTS .= "Vous avez $VMcount messages dans la boite vocale. ";
-      $TTS .= "Et vous avez $VMnew nouveaux messages. ";
-   SpeakFrench("$TTS");
+    # speak welcome message
+    my $VMcount = vocp_countmsgs(100);
+    my $VMnew   = vocp_countnewmsgs(100);
+    my $t       = $DSC->{IntTstatTemp}{1};
+    $t =~ s/^0+//;    # remove leading zero
+    my $TTS = "Bonjour $DSC->{user_name}. ";
+    $TTS .= "La tempez rature intairieure est de $t degrer. ";
+    $TTS .= "Vous avez $VMcount messages dans la boite vocale. ";
+    $TTS .= "Et vous avez $VMnew nouveaux messages. ";
+    SpeakFrench("$TTS");
 
-   $::config_parms{DSC_5401_time_log} = 0;
-   $::config_parms{DSC_5401_ring_log} = 0;
-   $::config_parms{DSC_5401_temp_log} = 0;
-   $::config_parms{DSC_5401_part_log} = 0;
-   $::config_parms{DSC_5401_zone_log} = 0;
+    $::config_parms{DSC_5401_time_log} = 0;
+    $::config_parms{DSC_5401_ring_log} = 0;
+    $::config_parms{DSC_5401_temp_log} = 0;
+    $::config_parms{DSC_5401_part_log} = 0;
+    $::config_parms{DSC_5401_zone_log} = 0;
 }
 
 # close light when leaving
 if ( $DSC->state_now =~ /^armed/i ) {
-   SpeakFrench("L'alarme est activer");
-   set $All_Interior_Lights_B OFF;
-   $::config_parms{DSC_5401_time_log} = 0;
-   $::config_parms{DSC_5401_ring_log} = 1;
-   $::config_parms{DSC_5401_temp_log} = 0;
-   $::config_parms{DSC_5401_part_log} = 1;
-   $::config_parms{DSC_5401_zone_log} = 1;
+    SpeakFrench("L'alarme est activer");
+    set $All_Interior_Lights_B OFF;
+    $::config_parms{DSC_5401_time_log} = 0;
+    $::config_parms{DSC_5401_ring_log} = 1;
+    $::config_parms{DSC_5401_temp_log} = 0;
+    $::config_parms{DSC_5401_part_log} = 1;
+    $::config_parms{DSC_5401_zone_log} = 1;
 }
 
 # keep the latest temperature recorded by the DSC system, more reliable than iButton
@@ -83,32 +91,37 @@ if ( $DSC->state_now =~ /^armed/i ) {
 # the on_movie_end parameter define this script
 # I put a touch on a file when we have a new file
 if ( new_second 5 ) {
-   if ( !( time_now '23:59' ) && !( time_now '$Time_Sunset' ) ) {
-      if ( $DSC->{partition_status}{1} =~ /armed/ ) {
-         if ( -e $::config_parms{MotionLastMovie} ) {
-            my $MovieFile = "Unknown";
+    if ( !( time_now '23:59' ) && !( time_now '$Time_Sunset' ) ) {
+        if ( $DSC->{partition_status}{1} =~ /armed/ ) {
+            if ( -e $::config_parms{MotionLastMovie} ) {
+                my $MovieFile = "Unknown";
 
-            # send the movie
-            if ( open F, "$::config_parms{MotionLastMovie}" ) {
-               $MovieFile = <F>;
-               close F;
-               system(
-                  "/usr/bin/mime-construct                    \\
+                # send the movie
+                if ( open F, "$::config_parms{MotionLastMovie}" ) {
+                    $MovieFile = <F>;
+                    close F;
+                    system(
+                        "/usr/bin/mime-construct                    \\
                   --to \"email\@gaetanlord.ca\"               \\
                   --subject  \"Motion detected\"              \\
                   --string   \"Filename $MovieFile\"          \\
                   --type video/mpeg --file-attach $MovieFile"
-               );
-            }
+                    );
+                }
 
-            # send a page to my cell phone
-            ($MovieFile) = $MovieFile =~ /.*\/(.*)$/;    # get only the file name without path
-            Send_Email( "Motion detected", "Motion detected in file $MovieFile", $::config_parms{Pager} );
-            print_log "Motion detected while alarm is on ($MovieFile)";
-            unlink $::config_parms{MotionLastMovie};
-         }
-      }
-   }
+                # send a page to my cell phone
+                ($MovieFile) = $MovieFile =~
+                  /.*\/(.*)$/;    # get only the file name without path
+                Send_Email(
+                    "Motion detected",
+                    "Motion detected in file $MovieFile",
+                    $::config_parms{Pager}
+                );
+                print_log "Motion detected while alarm is on ($MovieFile)";
+                unlink $::config_parms{MotionLastMovie};
+            }
+        }
+    }
 }
 
 #mime-construct \
@@ -210,48 +223,62 @@ $DSC->cmd("000") if said $v_alarm_poll;
 $v_alarm_status = new Voice_Cmd "DSC Status Report";
 $DSC->cmd("001") if said $v_alarm_status;
 
-$v_alarm_partition_arm = new Voice_Cmd "DSC Arm partition 1 without access code";
+$v_alarm_partition_arm =
+  new Voice_Cmd "DSC Arm partition 1 without access code";
 $DSC->cmd( "PartitionArmControl", 1 ) if said $v_alarm_partition_arm;
 
 # 010
-$v_alarm_set_time_date = new Voice_Cmd "DSC Set Alarm system to the current computer time";
+$v_alarm_set_time_date =
+  new Voice_Cmd "DSC Set Alarm system to the current computer time";
 if ( said $v_alarm_set_time_date) {
-   my ( $sec, $m, $h, $mday, $mon, $year, $wday, $yday, $isdst ) = localtime(time);
-   $year = sprintf( "%02d", $year % 100 );
-   $mon += 1;
-   $m    = ( $m < 10 )    ? "0" . $m    : $m;
-   $h    = ( $h < 10 )    ? "0" . $h    : $h;
-   $mday = ( $mday < 10 ) ? "0" . $mday : $mday;
-   $mon  = ( $mon < 10 )  ? "0" . $mon  : $mon;
-   my $TimeStamp = "$h$m$mon$mday$year";
-   &::print_log("Setting time on DSC panel to $TimeStamp");
-   &::logit( "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log", "Setting time on DSC panel to $TimeStamp" );
-   $DSC->cmd( "SetDateTime", $TimeStamp );
+    my ( $sec, $m, $h, $mday, $mon, $year, $wday, $yday, $isdst ) =
+      localtime(time);
+    $year = sprintf( "%02d", $year % 100 );
+    $mon += 1;
+    $m    = ( $m < 10 )    ? "0" . $m    : $m;
+    $h    = ( $h < 10 )    ? "0" . $h    : $h;
+    $mday = ( $mday < 10 ) ? "0" . $mday : $mday;
+    $mon  = ( $mon < 10 )  ? "0" . $mon  : $mon;
+    my $TimeStamp = "$h$m$mon$mday$year";
+    &::print_log("Setting time on DSC panel to $TimeStamp");
+    &::logit(
+        "$main::config_parms{data_dir}/logs/DSC5401.$main::Year_Month_Now.log",
+        "Setting time on DSC panel to $TimeStamp"
+    );
+    $DSC->cmd( "SetDateTime", $TimeStamp );
 }
 
 # here you have to give the user access code, replace #### with the access code
 # note this is not secure
 # 033
-$v_alarm_partition_arm_code = new Voice_Cmd "DSC Arm partition 1 from webpage with user code";
-$DSC->cmd( "PartitionArmControlWithCode", "1", "$PWD" ) if said $v_alarm_partition_arm_code;
+$v_alarm_partition_arm_code =
+  new Voice_Cmd "DSC Arm partition 1 from webpage with user code";
+$DSC->cmd( "PartitionArmControlWithCode", "1", "$PWD" )
+  if said $v_alarm_partition_arm_code;
 
 # here you have to give the user access code, replace #### with the access code
 # note this is not secure
 # 040
-$v_alarm_partition_disarm = new Voice_Cmd "DSC Disarm partition 1 from webpage with user code";
-$DSC->cmd( "PartitionDisarmControl", "1", "$PWD" ) if said $v_alarm_partition_disarm;
+$v_alarm_partition_disarm =
+  new Voice_Cmd "DSC Disarm partition 1 from webpage with user code";
+$DSC->cmd( "PartitionDisarmControl", "1", "$PWD" )
+  if said $v_alarm_partition_disarm;
 
 # 050
 $v_alarm_verbose_arming = new Voice_Cmd "DSC Verbose arming message [on,off]";
-$DSC->cmd( "VerboseArmingControl", $state ) if $state = said $v_alarm_verbose_arming;
+$DSC->cmd( "VerboseArmingControl", $state )
+  if $state = said $v_alarm_verbose_arming;
 
 # 056
 $v_alarm_time_broadcast = new Voice_Cmd "DSC Periodical Time Message [on,off]";
-$DSC->cmd( "TimeBroadcastControl", $state ) if $state = said $v_alarm_time_broadcast;
+$DSC->cmd( "TimeBroadcastControl", $state )
+  if $state = said $v_alarm_time_broadcast;
 
 # 057
 $v_alarm_temp_broadcast_on = new Voice_Cmd "DSC Periodical Temp Message ON";
-$DSC->cmd( "TemperatureBroadcastControl", 1 ) if said $v_alarm_temp_broadcast_on;
+$DSC->cmd( "TemperatureBroadcastControl", 1 )
+  if said $v_alarm_temp_broadcast_on;
 $v_alarm_temp_broadcast_off = new Voice_Cmd "DSC Periodical Temp Message OFF";
-$DSC->cmd( "TemperatureBroadcastControl", 0 ) if said $v_alarm_temp_broadcast_off;
+$DSC->cmd( "TemperatureBroadcastControl", 0 )
+  if said $v_alarm_temp_broadcast_off;
 

@@ -1,3 +1,4 @@
+
 =head1 B<Logger>
 
 =head2 SYNOPSIS
@@ -46,99 +47,83 @@ Creates a new Logger class.  $p_name - optional argument to easily set $$self{ob
 
 =cut
 
-sub new
-{
-  my ($class, $p_object_name) = @_;
-  my $self  = $class->Generic_Item::new();
-  bless $self, $class;
+sub new {
+    my ( $class, $p_object_name ) = @_;
+    my $self = $class->Generic_Item::new();
+    bless $self, $class;
 
-  $$self{object_name} = $p_object_name if(defined $p_object_name);
-  
-  # STATES - info initially
-  $self->set_states('fatal', 'error', 'warn', 'info', 'debug', 'trace');
-  $$self{state}='info';
+    $$self{object_name} = $p_object_name if ( defined $p_object_name );
 
-  $self->print_expression(
-        'my $tmp = $self->get_object_name();'
-      . '$tmp =~ s/(_logger|_log)$//i;'
-      . '&main::print_log( $tmp . \' [\' . $level . \'] \' . $msg );');
-      
-  return $self;
+    # STATES - info initially
+    $self->set_states( 'fatal', 'error', 'warn', 'info', 'debug', 'trace' );
+    $$self{state} = 'info';
+
+    $self->print_expression( 'my $tmp = $self->get_object_name();'
+          . '$tmp =~ s/(_logger|_log)$//i;'
+          . '&main::print_log( $tmp . \' [\' . $level . \'] \' . $msg );' );
+
+    return $self;
 }
 
-
-sub fatal
-{
-  my ($self, $p_string) = @_;
-  $self->log($p_string, 'fatal');
+sub fatal {
+    my ( $self, $p_string ) = @_;
+    $self->log( $p_string, 'fatal' );
 }
 
-sub error
-{
-  my ($self, $p_string) = @_;
-  $self->log($p_string, 'error');
+sub error {
+    my ( $self, $p_string ) = @_;
+    $self->log( $p_string, 'error' );
 }
 
-sub warn
-{
-  my ($self, $p_string) = @_;
-  $self->log($p_string, 'warn');
+sub warn {
+    my ( $self, $p_string ) = @_;
+    $self->log( $p_string, 'warn' );
 }
 
-sub info
-{
-  my ($self, $p_string) = @_;
-  $self->log($p_string, 'info');
+sub info {
+    my ( $self, $p_string ) = @_;
+    $self->log( $p_string, 'info' );
 }
 
-sub debug
-{
-  my ($self, $p_string) = @_;
-  $self->log($p_string, 'debug');
+sub debug {
+    my ( $self, $p_string ) = @_;
+    $self->log( $p_string, 'debug' );
 }
 
-sub trace
-{
-  my ($self, $p_string) = @_;
-  $self->log($p_string, 'trace');
+sub trace {
+    my ( $self, $p_string ) = @_;
+    $self->log( $p_string, 'trace' );
 }
 
-sub log
-{
-  my ($self, $p_string, $p_log_level) = @_;
+sub log {
+    my ( $self, $p_string, $p_log_level ) = @_;
 
-  if($self->isLoggable($p_log_level))
-  {
-    $self->_print_log($p_string, $p_log_level);
-  }
-}
-
-sub isLoggable
-{
-  my ($self, $p_log_level) = @_;
-  
-  for my $level ($self->get_states)
-  {
-    if($level eq $p_log_level)
-    {
-      return 1;
-    }    
-    elsif($level eq $self->state)
-    {
-      return 0;
+    if ( $self->isLoggable($p_log_level) ) {
+        $self->_print_log( $p_string, $p_log_level );
     }
-  }
-  
-  return 0;
 }
 
-sub _print_log
-{
-  my ($self, $msg, $level) = @_;
-  
-  package main;
-  return eval $self->print_expression;
-}  
+sub isLoggable {
+    my ( $self, $p_log_level ) = @_;
+
+    for my $level ( $self->get_states ) {
+        if ( $level eq $p_log_level ) {
+            return 1;
+        }
+        elsif ( $level eq $self->state ) {
+            return 0;
+        }
+    }
+
+    return 0;
+}
+
+sub _print_log {
+    my ( $self, $msg, $level ) = @_;
+
+    package main;
+    return eval $self->print_expression;
+}
 
 =item C<print_expression>
 
@@ -158,21 +143,16 @@ Default Value:
 
 =cut
 
-sub print_expression
-{
-	my ($self, $p_expr) = @_;
-	if(defined $p_expr)
-	{
-    $$self{print_expression} = $p_expr;
-  }
-  
-  return $$self{print_expression};
+sub print_expression {
+    my ( $self, $p_expr ) = @_;
+    if ( defined $p_expr ) {
+        $$self{print_expression} = $p_expr;
+    }
+
+    return $$self{print_expression};
 }
 
-
 1;
-
-
 
 =back
 

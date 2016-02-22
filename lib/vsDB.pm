@@ -13,694 +13,758 @@
 package vsDB;
 require 5.000;
 $VERSION = "1.3.9";
-$ID = "vsDB.pm";
-
+$ID      = "vsDB.pm";
 
 #_____________________________________________________________________________
 sub new {
-	my $class = shift;
-	my %keyValues = @_;
-	my (%fieldNames,@fileArray,@row,@filterArray);
+    my $class     = shift;
+    my %keyValues = @_;
+    my ( %fieldNames, @fileArray, @row, @filterArray );
 
-	# if no delimiter is specified, then make it a tab char.
-	$keyValues{'delimiter'} = "\t" unless defined($keyValues{'delimiter'});
+    # if no delimiter is specified, then make it a tab char.
+    $keyValues{'delimiter'} = "\t" unless defined( $keyValues{'delimiter'} );
 
-	my $this = {
-		fileName			=> $keyValues{'file'},
-		delimiter			=> $keyValues{'delimiter'},
-		fieldNames			=> \%fieldNames,
-		fileArray			=> \@fileArray,
-		filterArray			=> \@filterArray,
-		row				=> \@row,
-		recordCount		=> 0,
-		filterRecordCount		=> 0,
-		absolutePosition		=> 0,
-		pageSize			=> 10,
-		EOF				=> 1,
-		isOpen			=> 0,
-		lastError			=> '',
-		appendOnly			=> 1,
-		isDirty			=> 0,
-		originalCount		=> 0,
-		CR				=> '<CR>',
-		LF				=> '<LF>',
-	};
-	bless $this;
-	return $this;
+    my $this = {
+        fileName          => $keyValues{'file'},
+        delimiter         => $keyValues{'delimiter'},
+        fieldNames        => \%fieldNames,
+        fileArray         => \@fileArray,
+        filterArray       => \@filterArray,
+        row               => \@row,
+        recordCount       => 0,
+        filterRecordCount => 0,
+        absolutePosition  => 0,
+        pageSize          => 10,
+        EOF               => 1,
+        isOpen            => 0,
+        lastError         => '',
+        appendOnly        => 1,
+        isDirty           => 0,
+        originalCount     => 0,
+        CR                => '<CR>',
+        LF                => '<LF>',
+    };
+    bless $this;
+    return $this;
 }
-
 
 # ###########################################################################
 # PUBLIC PROPERTIES
 
-
 #_____________________________________________________________________________
 sub Version {
-	return $VERSION;
+    return $VERSION;
 }
 
 #_____________________________________________________________________________
 sub ID {
-	return $ID;
+    return $ID;
 }
 
 #_____________________________________________________________________________
 sub LastError {
-	my ($this) = shift;
-	return $this->{'lastError'};
+    my ($this) = shift;
+    return $this->{'lastError'};
 }
 
 #_____________________________________________________________________________
 sub AbsolutePosition {
-	my ($this) = shift;
-	my ($newValue) = shift;
-	if (defined($newValue)) {
-		$this->{'absolutePosition'} = $newValue;
-		$this->_RefreshRow;
-	} else {
-		return $this->{'absolutePosition'};
-	}	
+    my ($this)     = shift;
+    my ($newValue) = shift;
+    if ( defined($newValue) ) {
+        $this->{'absolutePosition'} = $newValue;
+        $this->_RefreshRow;
+    }
+    else {
+        return $this->{'absolutePosition'};
+    }
 }
 
 #_____________________________________________________________________________
 sub ActivePage {
-	my ($this) = shift;
-	my ($newValue) = shift;
-	if (defined($newValue)) {
-		$newValue = $this->PageCount if ($newValue > $this->PageCount);
-		$this->{'absolutePosition'} = ($this->{'pageSize'} * ($newValue-1)) + 1;
-		# make sure we are on the right page if filtered
-		while ($this->{'filterArray'}[$this->{'absolutePosition'}]) {
-			$this->{'absolutePosition'}++;
-		}		
-		$this->_RefreshRow;
-		return 1;
-	} else {
-	    # BUG - when filtering, this returns the wrong value
-	    return 1 if ($this->{'absolutePosition'} == 1);
-	    my ($count) = (($this->{'absolutePosition'} - 1) / $this->{'pageSize'}); #/
-	    my ($activePage) = int($count) + 1;
-	    $activePage = $this->PageCount if ($activePage > $this->PageCount);
-	    return $activePage;
-	}	
-	
+    my ($this)     = shift;
+    my ($newValue) = shift;
+    if ( defined($newValue) ) {
+        $newValue = $this->PageCount if ( $newValue > $this->PageCount );
+        $this->{'absolutePosition'} =
+          ( $this->{'pageSize'} * ( $newValue - 1 ) ) + 1;
+
+        # make sure we are on the right page if filtered
+        while ( $this->{'filterArray'}[ $this->{'absolutePosition'} ] ) {
+            $this->{'absolutePosition'}++;
+        }
+        $this->_RefreshRow;
+        return 1;
+    }
+    else {
+        # BUG - when filtering, this returns the wrong value
+        return 1 if ( $this->{'absolutePosition'} == 1 );
+        my ($count) =
+          ( ( $this->{'absolutePosition'} - 1 ) / $this->{'pageSize'} );    #/
+        my ($activePage) = int($count) + 1;
+        $activePage = $this->PageCount if ( $activePage > $this->PageCount );
+        return $activePage;
+    }
+
 }
 
 #_____________________________________________________________________________
 sub PageSize {
-	my ($this) = shift;
-	my ($newValue) = shift;
-	if (defined($newValue)) {
-		$this->{'pageSize'} = int($newValue) if (int($newValue) > 0);
-		return 1;
-	} else {
-		return $this->{'pageSize'};
-	}	
+    my ($this)     = shift;
+    my ($newValue) = shift;
+    if ( defined($newValue) ) {
+        $this->{'pageSize'} = int($newValue) if ( int($newValue) > 0 );
+        return 1;
+    }
+    else {
+        return $this->{'pageSize'};
+    }
 }
 
 #_____________________________________________________________________________
 sub PageCount {
-	my ($this) = shift;
-	my ($count) = ($this->{'filterRecordCount'} / $this->{'pageSize'}); #/
-	if (int($count) < $count) {$count = int($count)+1}
-	return $count;
+    my ($this)  = shift;
+    my ($count) = ( $this->{'filterRecordCount'} / $this->{'pageSize'} );    #/
+    if ( int($count) < $count ) { $count = int($count) + 1 }
+    return $count;
 }
 
 #_____________________________________________________________________________
 sub File {
-	my ($this) = shift;
-	my ($newVal) = shift;
-	# if the file has changed, then we can't just append...
-	if ($newVal) {$this->{'appendOnly'} = 0}
-	return $this->_GetSetProperty("fileName",$newVal);
+    my ($this)   = shift;
+    my ($newVal) = shift;
+
+    # if the file has changed, then we can't just append...
+    if ($newVal) { $this->{'appendOnly'} = 0 }
+    return $this->_GetSetProperty( "fileName", $newVal );
 }
 
 #_____________________________________________________________________________
 sub CR {
-	return shift->_GetSetProperty("CR",shift);
+    return shift->_GetSetProperty( "CR", shift );
 }
 
 #_____________________________________________________________________________
 sub LF {
-	return shift->_GetSetProperty("LF",shift);
+    return shift->_GetSetProperty( "LF", shift );
 }
 
 #_____________________________________________________________________________
 sub Delimiter {
-	return shift->_GetSetProperty("delimiter",shift);
+    return shift->_GetSetProperty( "delimiter", shift );
 }
 
 #_____________________________________________________________________________
 sub RecordCount {
-	return shift->{'filterRecordCount'};
+    return shift->{'filterRecordCount'};
 }
 
 #_____________________________________________________________________________
 sub EOF {
-	my ($this) = shift;
-	return 1 if ($this->RecordCount < 1);
-	return $this->{'EOF'};
+    my ($this) = shift;
+    return 1 if ( $this->RecordCount < 1 );
+    return $this->{'EOF'};
 }
 
 #_____________________________________________________________________________
 sub FieldValue {
-	my ($this) = shift;
-	return "EOF" if ($this->{'EOF'});
-	my ($fieldName) = shift || return "ERROR: FieldValue(): Field Name Required";
-	my ($newValue) = shift;
-	my ($fieldNumber) = $this->{'fieldNames'}{$fieldName};
-	my ($lineFeed) = chr(10);
-	my ($carriageReturn) = chr(13);
-	my ($crReplacement) = $this->{'CR'};
-	my ($lfReplacement) = $this->{'LF'};
-	return "ERROR: FieldValue('" . $fieldName . "') Field Not Found." if (!defined($fieldNumber));
+    my ($this) = shift;
+    return "EOF" if ( $this->{'EOF'} );
+    my ($fieldName) =
+      shift || return "ERROR: FieldValue(): Field Name Required";
+    my ($newValue)       = shift;
+    my ($fieldNumber)    = $this->{'fieldNames'}{$fieldName};
+    my ($lineFeed)       = chr(10);
+    my ($carriageReturn) = chr(13);
+    my ($crReplacement)  = $this->{'CR'};
+    my ($lfReplacement)  = $this->{'LF'};
+    return "ERROR: FieldValue('" . $fieldName . "') Field Not Found."
+      if ( !defined($fieldNumber) );
 
-	# if a new value is defined, update, otherwise return current value
-	if (defined($newValue)) {
-		$this->{'isDirty'} = 1;
-		if ($this->{'absolutePosition'} <= $this->{'originalCount'}) {
-			$this->{'appendOnly'} = 0
-		};
-		# make sure we don't corrupt the file with a delimiter or
-		# line break in the data.
-		$newValue =~ s/$this->{'delimiter'}//g;
-		$newValue =~ s/$carriageReturn/$crReplacement/g;
-		$newValue =~ s/$lineFeed/$lfReplacement/g;
-		# $newValue =~ s/\n//g; # (should already be dealt with)
-		$this->{'row'}[$fieldNumber] = $newValue;
+    # if a new value is defined, update, otherwise return current value
+    if ( defined($newValue) ) {
+        $this->{'isDirty'} = 1;
+        if ( $this->{'absolutePosition'} <= $this->{'originalCount'} ) {
+            $this->{'appendOnly'} = 0;
+        }
 
-		# update the fileArray to match the current row.  originally used
-		# a join on the row array, but that caused unititialize var errors
-		# when there are blank fields.  this could probably be improved by
-		# only updating when the cursor is moved or commit is called
-		my ($newRow,$newField);
-		my ($colNum) = 0;
-		foreach ($this->FieldNames) {
-			$newField = $this->{'row'}[$colNum];
-			if (!defined($newField)) {$newField = ""}
-			$newRow .= $newField;
-			$newRow .= $this->{'delimiter'};
-			$colNum++;
-		}
-		# get rid of the last delimiter
-		for (my $x = 1;$x <= length($this->{'delimiter'}); $x++) {
-			chop($newRow);
-		}
-		
-		$this->{'fileArray'}[$this->{'absolutePosition'}] = $newRow . "\n";
-		return 1;
-	} else {
-		# make sure we return a defined value || won't work because it doesn;t
-		# differentiate between 0 and null 
-		if (defined($this->{'row'}[$fieldNumber])) {
-			my $returnVal = $this->{'row'}[$fieldNumber];
-			$returnVal =~ s/$crReplacement/$carriageReturn/g;
-			$returnVal =~ s/$lfReplacement/$lineFeed/g;
-			return $returnVal;
+        # make sure we don't corrupt the file with a delimiter or
+        # line break in the data.
+        $newValue =~ s/$this->{'delimiter'}//g;
+        $newValue =~ s/$carriageReturn/$crReplacement/g;
+        $newValue =~ s/$lineFeed/$lfReplacement/g;
 
-		} else {
-			return "";
-		}
-	}
+        # $newValue =~ s/\n//g; # (should already be dealt with)
+        $this->{'row'}[$fieldNumber] = $newValue;
+
+        # update the fileArray to match the current row.  originally used
+        # a join on the row array, but that caused unititialize var errors
+        # when there are blank fields.  this could probably be improved by
+        # only updating when the cursor is moved or commit is called
+        my ( $newRow, $newField );
+        my ($colNum) = 0;
+        foreach ( $this->FieldNames ) {
+            $newField = $this->{'row'}[$colNum];
+            if ( !defined($newField) ) { $newField = "" }
+            $newRow .= $newField;
+            $newRow .= $this->{'delimiter'};
+            $colNum++;
+        }
+
+        # get rid of the last delimiter
+        for ( my $x = 1; $x <= length( $this->{'delimiter'} ); $x++ ) {
+            chop($newRow);
+        }
+
+        $this->{'fileArray'}[ $this->{'absolutePosition'} ] = $newRow . "\n";
+        return 1;
+    }
+    else {
+        # make sure we return a defined value || won't work because it doesn;t
+        # differentiate between 0 and null
+        if ( defined( $this->{'row'}[$fieldNumber] ) ) {
+            my $returnVal = $this->{'row'}[$fieldNumber];
+            $returnVal =~ s/$crReplacement/$carriageReturn/g;
+            $returnVal =~ s/$lfReplacement/$lineFeed/g;
+            return $returnVal;
+
+        }
+        else {
+            return "";
+        }
+    }
 }
 
 #_____________________________________________________________________________
 sub FieldNames {
-	# returns all fieldnames as an array
-	my ($this) = shift;
-	return 0 unless ($this->{'isOpen'});
-	my ($fieldRow) = $this->{'fileArray'}[0];
-	chop ($fieldRow);
-	my (@tempfieldNames) = split($this->{'delimiter'},$fieldRow);
-	return @tempfieldNames;
+
+    # returns all fieldnames as an array
+    my ($this) = shift;
+    return 0 unless ( $this->{'isOpen'} );
+    my ($fieldRow) = $this->{'fileArray'}[0];
+    chop($fieldRow);
+    my (@tempfieldNames) = split( $this->{'delimiter'}, $fieldRow );
+    return @tempfieldNames;
 }
 
 #_____________________________________________________________________________
 sub Row {
-	# returns current row values as an array
-	my ($this) = shift;
-	return 0 unless ($this->{'isOpen'});
-	my ($tempRow) = $this->{'row'};
-	return @$tempRow;
+
+    # returns current row values as an array
+    my ($this) = shift;
+    return 0 unless ( $this->{'isOpen'} );
+    my ($tempRow) = $this->{'row'};
+    return @$tempRow;
 }
 
 #_____________________________________________________________________________
 sub xml {
-	# returns current recordset as xml
-	my ($this) = shift;
-	my ($strRootName) = shift || "vsDB";
-	my ($strElementName) = shift || "Record";
-	my ($strXml);
 
-	$strXml = "<?xml version=\"1.0\"?>\n";
-	$strXml .= "<!DOCTYPE $strRootName>\n";
-	$strXml .= "<$strRootName>\n";
-	$this->MoveFirst;
-	my (@fields) = $this->FieldNames;
-	my ($field, $fieldValue);
-	until ($this->EOF) {
-		$strXml .= "<$strElementName>\n";
-		foreach $field (@fields) {
-			$fieldValue = $this->FieldValue($field);
-			$strXml .= "<$field>$fieldValue</$field>\n";
-		}			
-		$strXml .= "</$strElementName>\n";
-	$this->MoveNext;
-	}		
-	$strXml .= "</$strRootName>\n";	
-	
-	return $strXml;
+    # returns current recordset as xml
+    my ($this)           = shift;
+    my ($strRootName)    = shift || "vsDB";
+    my ($strElementName) = shift || "Record";
+    my ($strXml);
+
+    $strXml = "<?xml version=\"1.0\"?>\n";
+    $strXml .= "<!DOCTYPE $strRootName>\n";
+    $strXml .= "<$strRootName>\n";
+    $this->MoveFirst;
+    my (@fields) = $this->FieldNames;
+    my ( $field, $fieldValue );
+    until ( $this->EOF ) {
+        $strXml .= "<$strElementName>\n";
+        foreach $field (@fields) {
+            $fieldValue = $this->FieldValue($field);
+            $strXml .= "<$field>$fieldValue</$field>\n";
+        }
+        $strXml .= "</$strElementName>\n";
+        $this->MoveNext;
+    }
+    $strXml .= "</$strRootName>\n";
+
+    return $strXml;
 }
 
 #_____________________________________________________________________________
 sub MoveNext {
-	# moves the curser to the next row in the data file 
-	my ($this) = shift;
-	return 0 unless ($this->{'isOpen'});
-	return 0 if ($this->{'EOF'});
-	$this->{'absolutePosition'}++;
-	while ($this->{'filterArray'}[$this->{'absolutePosition'}]) {
-		$this->{'absolutePosition'}++;
-	}		
-	$this->_RefreshRow;
-	return 1;
+
+    # moves the curser to the next row in the data file
+    my ($this) = shift;
+    return 0 unless ( $this->{'isOpen'} );
+    return 0 if ( $this->{'EOF'} );
+    $this->{'absolutePosition'}++;
+    while ( $this->{'filterArray'}[ $this->{'absolutePosition'} ] ) {
+        $this->{'absolutePosition'}++;
+    }
+    $this->_RefreshRow;
+    return 1;
 }
 
 #_____________________________________________________________________________
 sub MovePrevious {
-	# moves the curser to the previous row in the data file 
-	my ($this) = shift;
-	return 0 unless ($this->{'isOpen'});
-	return 0 if ($this->{'absolutePosition'} < 2);
-	$this->{'absolutePosition'}--;
-	while ($this->{'filterArray'}[$this->{'absolutePosition'}]) {
-		$this->{'absolutePosition'}--;
-	}		
-	$this->_RefreshRow;
-	return 1;
+
+    # moves the curser to the previous row in the data file
+    my ($this) = shift;
+    return 0 unless ( $this->{'isOpen'} );
+    return 0 if ( $this->{'absolutePosition'} < 2 );
+    $this->{'absolutePosition'}--;
+    while ( $this->{'filterArray'}[ $this->{'absolutePosition'} ] ) {
+        $this->{'absolutePosition'}--;
+    }
+    $this->_RefreshRow;
+    return 1;
 }
 
 #_____________________________________________________________________________
 sub MoveFirst {
-	# moves the curser to the first row in the data file 
-	my ($this) = shift;
-	return 0 unless ($this->{'isOpen'});
-	$this->{'absolutePosition'} = 1;
-	while ($this->{'filterArray'}[$this->{'absolutePosition'}]) {
-		$this->{'absolutePosition'}++;
-	}		
-	$this->_RefreshRow;
-	return 1;
+
+    # moves the curser to the first row in the data file
+    my ($this) = shift;
+    return 0 unless ( $this->{'isOpen'} );
+    $this->{'absolutePosition'} = 1;
+    while ( $this->{'filterArray'}[ $this->{'absolutePosition'} ] ) {
+        $this->{'absolutePosition'}++;
+    }
+    $this->_RefreshRow;
+    return 1;
 }
 
 #_____________________________________________________________________________
 sub MoveLast {
-	# moves the curser to the last row in the data file 
-	my ($this) = shift;
-	return 0 unless ($this->{'isOpen'});
-	$this->{'absolutePosition'} = $this->{'recordCount'};
-	while ($this->{'filterArray'}[$this->{'absolutePosition'}]) {
-		$this->{'absolutePosition'}--;
-	}		
-	$this->_RefreshRow;
-	return 1;
+
+    # moves the curser to the last row in the data file
+    my ($this) = shift;
+    return 0 unless ( $this->{'isOpen'} );
+    $this->{'absolutePosition'} = $this->{'recordCount'};
+    while ( $this->{'filterArray'}[ $this->{'absolutePosition'} ] ) {
+        $this->{'absolutePosition'}--;
+    }
+    $this->_RefreshRow;
+    return 1;
 }
 
 #_____________________________________________________________________________
 sub Delete {
-	# delete the current row 
-	my ($this) = shift;
-	return 0 unless ($this->{'isOpen'});
-	return 0 if $this->{'recordCount'} < 1;
-	return 0 if ($this->{'EOF'});
-	$this->{'isDirty'} = 1;
-	if ($this->{'absolutePosition'} <= $this->{'originalCount'}) {
-		$this->{'appendOnly'} = 0
-	};
-	my ($tempArray) = $this->{'fileArray'};
-	splice(@$tempArray,$this->{'absolutePosition'},1);
-	$this->{'recordCount'}--;
-	$this->{'filterRecordCount'}--;
-	$this->_RefreshRow;
-	return 1;
+
+    # delete the current row
+    my ($this) = shift;
+    return 0 unless ( $this->{'isOpen'} );
+    return 0 if $this->{'recordCount'} < 1;
+    return 0 if ( $this->{'EOF'} );
+    $this->{'isDirty'} = 1;
+    if ( $this->{'absolutePosition'} <= $this->{'originalCount'} ) {
+        $this->{'appendOnly'} = 0;
+    }
+    my ($tempArray) = $this->{'fileArray'};
+    splice( @$tempArray, $this->{'absolutePosition'}, 1 );
+    $this->{'recordCount'}--;
+    $this->{'filterRecordCount'}--;
+    $this->_RefreshRow;
+    return 1;
 }
 
 #_____________________________________________________________________________
 sub AddNew {
-	# add a new row to the end of the recordset
-	my ($this) = shift;
-	return 0 unless ($this->{'isOpen'});
-	$this->{'isDirty'} = 1;
-	$this->{'recordCount'}++;
-	$this->{'absolutePosition'} = $this->{'recordCount'};
-	$this->{'filterRecordCount'}++;
-	# the number of delimiter chars is fieldCount - 1
-	my ($delimiterCount) = 0;
-	foreach ($this->FieldNames) {
-		$delimiterCount++;
-	}
-	$delimiterCount--;
 
-	# add the correct number of colums using the delimiterCount
-	$this->{'fileArray'}[$this->{'absolutePosition'}] = ($this->{'delimiter'} x $delimiterCount) . "\n";
-	
-	$this->MoveLast;
+    # add a new row to the end of the recordset
+    my ($this) = shift;
+    return 0 unless ( $this->{'isOpen'} );
+    $this->{'isDirty'} = 1;
+    $this->{'recordCount'}++;
+    $this->{'absolutePosition'} = $this->{'recordCount'};
+    $this->{'filterRecordCount'}++;
 
-	return 1;
+    # the number of delimiter chars is fieldCount - 1
+    my ($delimiterCount) = 0;
+    foreach ( $this->FieldNames ) {
+        $delimiterCount++;
+    }
+    $delimiterCount--;
+
+    # add the correct number of colums using the delimiterCount
+    $this->{'fileArray'}[ $this->{'absolutePosition'} ] =
+      ( $this->{'delimiter'} x $delimiterCount ) . "\n";
+
+    $this->MoveLast;
+
+    return 1;
 }
 
 #_____________________________________________________________________________
 sub AddNewField {
-	# add a new row to the end of the recordset
-	my ($this) = shift;
-	my ($newFieldName) = shift || return 0;
-	my ($defaultValue) = shift;
-	$defaultValue = '' unless (defined($defaultValue));
-	
-	$this->{'isOpen'} = 1;
-	$this->{'appendOnly'} = 0;
-	$this->{'isDirty'} = 1;
 
-	# update the fieldnames array
-	my ($nextField) = 0;
-	foreach ($this->FieldNames) {
-		$nextField++;
-	}
-	$this->{'fieldNames'}{$newFieldName} = $nextField;
+    # add a new row to the end of the recordset
+    my ($this)         = shift;
+    my ($newFieldName) = shift || return 0;
+    my ($defaultValue) = shift;
+    $defaultValue = '' unless ( defined($defaultValue) );
 
-	chop($this->{'fileArray'}[0]);
-	
-	# update the first row in the file array
-	if ($nextField > 0) {
-		$this->{'fileArray'}[0] .= $this->{'delimiter'};
-	}
-	$this->{'fileArray'}[0] .= $newFieldName . "\n";
+    $this->{'isOpen'}     = 1;
+    $this->{'appendOnly'} = 0;
+    $this->{'isDirty'}    = 1;
 
-	return 1;
+    # update the fieldnames array
+    my ($nextField) = 0;
+    foreach ( $this->FieldNames ) {
+        $nextField++;
+    }
+    $this->{'fieldNames'}{$newFieldName} = $nextField;
+
+    chop( $this->{'fileArray'}[0] );
+
+    # update the first row in the file array
+    if ( $nextField > 0 ) {
+        $this->{'fileArray'}[0] .= $this->{'delimiter'};
+    }
+    $this->{'fileArray'}[0] .= $newFieldName . "\n";
+
+    return 1;
 }
 
 #_____________________________________________________________________________
 sub Max {
-	# returns the maximum value for the specified column
-	my ($this) = shift;
-	my ($fieldName) = shift || return 0;
-	my ($alpha) = shift || 0;
-	my ($curVal);
-	my ($curPos) = $this->{'absolutePosition'};
-	$this->MoveFirst;
-	my ($maxVal) = $this->FieldValue($fieldName);
-	while (!$this->EOF) {
-		$curVal = $this->FieldValue($fieldName);
-		if (!$alpha) {
-			if ($curVal ne "") {
-				if (int($curVal) > int($maxVal)) {$maxVal = $curVal};
-			}
-		} else {
-			if ((lc($curVal) cmp lc($maxVal)) > 0) {$maxVal = $curVal};
-		}
-		$this->MoveNext;
-	}
-	$this->AbsolutePosition($curPos);
-	return $maxVal;
+
+    # returns the maximum value for the specified column
+    my ($this)      = shift;
+    my ($fieldName) = shift || return 0;
+    my ($alpha)     = shift || 0;
+    my ($curVal);
+    my ($curPos) = $this->{'absolutePosition'};
+    $this->MoveFirst;
+    my ($maxVal) = $this->FieldValue($fieldName);
+    while ( !$this->EOF ) {
+        $curVal = $this->FieldValue($fieldName);
+        if ( !$alpha ) {
+            if ( $curVal ne "" ) {
+                if ( int($curVal) > int($maxVal) ) { $maxVal = $curVal }
+            }
+        }
+        else {
+            if ( ( lc($curVal) cmp lc($maxVal) ) > 0 ) { $maxVal = $curVal }
+        }
+        $this->MoveNext;
+    }
+    $this->AbsolutePosition($curPos);
+    return $maxVal;
 }
 
 #_____________________________________________________________________________
 sub Min {
-	# returns the maximum value for the specified column
-	my ($this) = shift;
-	my ($fieldName) = shift || return 0;
-	my ($alpha) = shift || 0;
-	my ($curVal);
-	my ($curPos) = $this->{'absolutePosition'};
-	$this->MoveFirst;
-	my ($minVal) = $this->FieldValue($fieldName);
-	while (!$this->EOF) {
-		$curVal = $this->FieldValue($fieldName);
-		if ($alpha) {
-			if ($curVal ne "") {
-				if (int($curVal) < int($minVal)) {$minVal = $curVal};
-			}
-		} else {
-			if ((lc($curVal) cmp lc($minVal)) < 0) {$minVal = $curVal};
-		}
-		$this->MoveNext;
-	}
-	$this->AbsolutePosition($curPos);
-	return $minVal;
+
+    # returns the maximum value for the specified column
+    my ($this)      = shift;
+    my ($fieldName) = shift || return 0;
+    my ($alpha)     = shift || 0;
+    my ($curVal);
+    my ($curPos) = $this->{'absolutePosition'};
+    $this->MoveFirst;
+    my ($minVal) = $this->FieldValue($fieldName);
+    while ( !$this->EOF ) {
+        $curVal = $this->FieldValue($fieldName);
+        if ($alpha) {
+            if ( $curVal ne "" ) {
+                if ( int($curVal) < int($minVal) ) { $minVal = $curVal }
+            }
+        }
+        else {
+            if ( ( lc($curVal) cmp lc($minVal) ) < 0 ) { $minVal = $curVal }
+        }
+        $this->MoveNext;
+    }
+    $this->AbsolutePosition($curPos);
+    return $minVal;
 }
 
 #_____________________________________________________________________________
 sub Filter {
-	# $obj->Filter($fieldName,$operator,$criteria);
 
-	# TODO: > and < are not working properly... maybe text comparison problem?? 	
-	my ($this) = shift;
-	my ($fieldName) = shift || return 0;
-	my ($operator) = shift || "eq";
-	my ($criteria) = shift;
-	$criteria = "" unless defined($criteria);
-	
-	my ($filterSetting);
+    # $obj->Filter($fieldName,$operator,$criteria);
 
-	$this->{'filterArray'}[0] = 0;
-	$this->MoveFirst;
+    # TODO: > and < are not working properly... maybe text comparison problem??
+    my ($this)      = shift;
+    my ($fieldName) = shift || return 0;
+    my ($operator)  = shift || "eq";
+    my ($criteria)  = shift;
+    $criteria = "" unless defined($criteria);
 
-	while (!$this->EOF) {
-		$filterSetting = 0;
-		if ($operator eq "eq" && $this->FieldValue($fieldName) ne $criteria) {
-			$filterSetting = 1;
-		} elsif ($operator eq "ne" && !($this->FieldValue($fieldName) ne $criteria)) {
-			$filterSetting = 1;
-		} elsif ($operator eq "like" && !(index(lc($this->FieldValue($fieldName)),lc($criteria),0) + 1)) {
-			$filterSetting = 1;
-		} elsif ($operator eq ">" && !($this->FieldValue($fieldName) > $criteria) ) {
-			$filterSetting = 1;
-		} elsif ($operator eq "<" && !($this->FieldValue($fieldName) < $criteria) ) {
-			$filterSetting = 1;
-		}
-		
-		# print "<p>" . $this->{'absolutePosition'} . ": " . $filterSetting . "<p>";
-		$this->{'filterArray'}[$this->{'absolutePosition'}] = $filterSetting;
+    my ($filterSetting);
 
-		$this->{'filterRecordCount'} -= 1 if ($filterSetting);	
-		$this->MoveNext;
-	}
-	$this->MoveFirst;
-	return 1;
+    $this->{'filterArray'}[0] = 0;
+    $this->MoveFirst;
+
+    while ( !$this->EOF ) {
+        $filterSetting = 0;
+        if ( $operator eq "eq" && $this->FieldValue($fieldName) ne $criteria ) {
+            $filterSetting = 1;
+        }
+        elsif ( $operator eq "ne"
+            && !( $this->FieldValue($fieldName) ne $criteria ) )
+        {
+            $filterSetting = 1;
+        }
+        elsif (
+            $operator eq "like"
+            && !(
+                index( lc( $this->FieldValue($fieldName) ), lc($criteria), 0 )
+                + 1
+            )
+          )
+        {
+            $filterSetting = 1;
+        }
+        elsif ( $operator eq ">"
+            && !( $this->FieldValue($fieldName) > $criteria ) )
+        {
+            $filterSetting = 1;
+        }
+        elsif ( $operator eq "<"
+            && !( $this->FieldValue($fieldName) < $criteria ) )
+        {
+            $filterSetting = 1;
+        }
+
+        # print "<p>" . $this->{'absolutePosition'} . ": " . $filterSetting . "<p>";
+        $this->{'filterArray'}[ $this->{'absolutePosition'} ] = $filterSetting;
+
+        $this->{'filterRecordCount'} -= 1 if ($filterSetting);
+        $this->MoveNext;
+    }
+    $this->MoveFirst;
+    return 1;
 }
 
 #_____________________________________________________________________________
 sub RemoveFilter {
-	my ($this) = shift;
-	my (@newArray);
-	$this->{'filterArray'} = \@newArray;
-	$this->{'filterRecordCount'} = $this->{'recordCount'};
-	return 1;
+    my ($this) = shift;
+    my (@newArray);
+    $this->{'filterArray'}       = \@newArray;
+    $this->{'filterRecordCount'} = $this->{'recordCount'};
+    return 1;
 }
 
 #_____________________________________________________________________________
 sub Commit {
-	# update the file, saving all changes made 
-	my ($this) = shift;
-	my ($useFlock) = shift || 0;
-	my ($fileName) = $this->{'fileName'};
 
-	# if no changes were made, don't bother writing to the file 
-	if (!$this->{'isDirty'}) {return 1};
+    # update the file, saving all changes made
+    my ($this)     = shift;
+    my ($useFlock) = shift || 0;
+    my ($fileName) = $this->{'fileName'};
 
-	if ($this->{'appendOnly'}) {
-		# if only new records were added, just append to the file
-		my ($nCount);
-		if (!open (OUTPUTFILE, ">>$fileName")) {
-			$this->{'lastError'} = "Commit: Couldn't Open DataFile '$fileName' For Appending";
-			return 0
-		};
-		flock(OUTPUTFILE,2) if ($useFlock);
-		my ($tempArray) = $this->{'fileArray'};
-		for ($nCount = $this->{'originalCount'} + 1; $nCount <= $this->{'recordCount'}; $nCount++) {
-			print OUTPUTFILE @$tempArray[$nCount];
-		}
-	} else {		
-		# if records were changed or deleted, we have to replace them all 	
-		if (!open (OUTPUTFILE, ">$fileName")) {
-			$this->{'lastError'} = "Commit: Couldn't Open DataFile '$fileName' For Writing";
-			return 0
-		};
-		flock(OUTPUTFILE,2) if ($useFlock);
-		my ($tempArray) = $this->{'fileArray'};
-		print OUTPUTFILE join('',@$tempArray);
-	}
-	close (OUTPUTFILE);
-	flock(OUTPUTFILE,8) if ($useFlock);
-	return 1;
+    # if no changes were made, don't bother writing to the file
+    if ( !$this->{'isDirty'} ) { return 1 }
+
+    if ( $this->{'appendOnly'} ) {
+
+        # if only new records were added, just append to the file
+        my ($nCount);
+        if ( !open( OUTPUTFILE, ">>$fileName" ) ) {
+            $this->{'lastError'} =
+              "Commit: Couldn't Open DataFile '$fileName' For Appending";
+            return 0;
+        }
+        flock( OUTPUTFILE, 2 ) if ($useFlock);
+        my ($tempArray) = $this->{'fileArray'};
+        for (
+            $nCount = $this->{'originalCount'} + 1;
+            $nCount <= $this->{'recordCount'};
+            $nCount++
+          )
+        {
+            print OUTPUTFILE @$tempArray[$nCount];
+        }
+    }
+    else {
+        # if records were changed or deleted, we have to replace them all
+        if ( !open( OUTPUTFILE, ">$fileName" ) ) {
+            $this->{'lastError'} =
+              "Commit: Couldn't Open DataFile '$fileName' For Writing";
+            return 0;
+        }
+        flock( OUTPUTFILE, 2 ) if ($useFlock);
+        my ($tempArray) = $this->{'fileArray'};
+        print OUTPUTFILE join( '', @$tempArray );
+    }
+    close(OUTPUTFILE);
+    flock( OUTPUTFILE, 8 ) if ($useFlock);
+    return 1;
 }
 
 #_____________________________________________________________________________
 sub Sort {
-	# sorts the datafile on the given column 
-	# obj->Sort($field);
-	# if $field is ommited, or an invalid fieldname is used, defaults to
-	# the left-most column.
-	
-	my ($this) = shift;
-	my ($fieldName) = shift || '0';
-	my ($desc) = shift || '0';
-	my ($delimiter) = $this->{'delimiter'};
 
-	# can't append once we've changed the sort order 
-	$this->{'appendOnly'} = 0;	
+    # sorts the datafile on the given column
+    # obj->Sort($field);
+    # if $field is ommited, or an invalid fieldname is used, defaults to
+    # the left-most column.
 
-	# sorting will mess up filter, so lets remove it 
-	$this->RemoveFilter;	
-	
-	# get the fieldnumber (or default to leftmost column)
-	my ($fieldNumber) = $this->{'fieldNames'}{$fieldName} || 0;
-	# make a copy of the unsorted array pointer
-	my ($unsortedArray) = $this->{'fileArray'};
-	# remove the column names from the array
-	my ($fieldNames) = shift(@$unsortedArray);	
-	
-	# now we sort the unsorted array
-	my (@sortedArray) = sort { 
-		# custom sorting comparison routine
-		my (@aVals) = split($delimiter,$a);
-		my (@bVals) = split($delimiter,$b);
-		if ($desc) {
-			return $bVals[$fieldNumber] cmp $aVals[$fieldNumber];
-		} else {
-			return $aVals[$fieldNumber] cmp $bVals[$fieldNumber]; 
-		}
-		undef(@aVals);
-		undef(@bVals);
-	} @$unsortedArray;
-	# get rid of the unsorted array
-	undef($unsortedArray);
-	
-	# put the column names back in and update the array pointer
-	unshift(@sortedArray,$fieldNames);
-	$this->{'fileArray'} = \@sortedArray;	
-	
-	$this->MoveFirst;
-	return 1;
+    my ($this)      = shift;
+    my ($fieldName) = shift || '0';
+    my ($desc)      = shift || '0';
+    my ($delimiter) = $this->{'delimiter'};
+
+    # can't append once we've changed the sort order
+    $this->{'appendOnly'} = 0;
+
+    # sorting will mess up filter, so lets remove it
+    $this->RemoveFilter;
+
+    # get the fieldnumber (or default to leftmost column)
+    my ($fieldNumber) = $this->{'fieldNames'}{$fieldName} || 0;
+
+    # make a copy of the unsorted array pointer
+    my ($unsortedArray) = $this->{'fileArray'};
+
+    # remove the column names from the array
+    my ($fieldNames) = shift(@$unsortedArray);
+
+    # now we sort the unsorted array
+    my (@sortedArray) = sort {
+
+        # custom sorting comparison routine
+        my (@aVals) = split( $delimiter, $a );
+        my (@bVals) = split( $delimiter, $b );
+        if ($desc) {
+            return $bVals[$fieldNumber] cmp $aVals[$fieldNumber];
+        }
+        else {
+            return $aVals[$fieldNumber] cmp $bVals[$fieldNumber];
+        }
+        undef(@aVals);
+        undef(@bVals);
+    } @$unsortedArray;
+
+    # get rid of the unsorted array
+    undef($unsortedArray);
+
+    # put the column names back in and update the array pointer
+    unshift( @sortedArray, $fieldNames );
+    $this->{'fileArray'} = \@sortedArray;
+
+    $this->MoveFirst;
+    return 1;
 }
-
 
 #_____________________________________________________________________________
 sub Open {
-	# open the file, store the contents as an array, get the number of
-	# records and retreive the first row 
-	my $this = shift;
-	my $fileName = $this->{'fileName'};
-	my $delimiter = $this->{'delimiter'};
-	my (@tempFileArray);
 
-	# security check to make sure a command is not being attempted
-	$fileName =~ s/;//g;
-	$fileName =~ s/|//g;
+    # open the file, store the contents as an array, get the number of
+    # records and retreive the first row
+    my $this      = shift;
+    my $fileName  = $this->{'fileName'};
+    my $delimiter = $this->{'delimiter'};
+    my (@tempFileArray);
 
-	if (!(-e $fileName)) {
-		$this->{'lastError'} = "Open: Datafile '$fileName' Not Found";
-		return 0;
-	} elsif (!(-r $fileName)) {
-		$this->{'lastError'} = "Open: Couldn't Open DataFile '$fileName' For Reading";
-		return 0;
-	}
+    # security check to make sure a command is not being attempted
+    $fileName =~ s/;//g;
+    $fileName =~ s/|//g;
 
-	# try to open the file 	
-	if (open(THISFILE, "$fileName")) {
-		@tempFileArray = <THISFILE>;
-		close(THISFILE);
-	} else {
-	    return 0;
-	}
-	
-	# get the entire contents of the file	
-	$this->{'fileArray'} = \@tempFileArray;
+    if ( !( -e $fileName ) ) {
+        $this->{'lastError'} = "Open: Datafile '$fileName' Not Found";
+        return 0;
+    }
+    elsif ( !( -r $fileName ) ) {
+        $this->{'lastError'} =
+          "Open: Couldn't Open DataFile '$fileName' For Reading";
+        return 0;
+    }
 
-	# get the number of rows
-	$this->{'recordCount'} = @tempFileArray - 1;
+    # try to open the file
+    if ( open( THISFILE, "$fileName" ) ) {
+        @tempFileArray = <THISFILE>;
+        close(THISFILE);
+    }
+    else {
+        return 0;
+    }
 
-	# get the top row, which should be fieldnames
-	my $fileRow = $tempFileArray[0];
-	chop($fileRow);
-	
-	# split the top row into fields
-	my (@tempfieldNames) = split($delimiter,$fileRow);
-	my ($fieldName) = "";
-	my ($counter) = 0;
-	foreach $fieldName (@tempfieldNames) {
-		$this->{'fieldNames'}{$fieldName} = $counter;
-		$counter++
-	}		
+    # get the entire contents of the file
+    $this->{'fileArray'} = \@tempFileArray;
 
-	$this->MoveFirst;
-	$this->{'isOpen'} = 1;
-	$this->_RefreshRow;
-	$this->{'filterRecordCount'} = $this->{'recordCount'};
-	$this->{'originalCount'} = $this->{'recordCount'};
-	return 1;
+    # get the number of rows
+    $this->{'recordCount'} = @tempFileArray - 1;
+
+    # get the top row, which should be fieldnames
+    my $fileRow = $tempFileArray[0];
+    chop($fileRow);
+
+    # split the top row into fields
+    my (@tempfieldNames) = split( $delimiter, $fileRow );
+    my ($fieldName)      = "";
+    my ($counter)        = 0;
+    foreach $fieldName (@tempfieldNames) {
+        $this->{'fieldNames'}{$fieldName} = $counter;
+        $counter++;
+    }
+
+    $this->MoveFirst;
+    $this->{'isOpen'} = 1;
+    $this->_RefreshRow;
+    $this->{'filterRecordCount'} = $this->{'recordCount'};
+    $this->{'originalCount'}     = $this->{'recordCount'};
+    return 1;
 }
 
 #_____________________________________________________________________________
 sub Close {
-	my ($this) = shift;
-	$this->{'isOpen'} = 0;
-	return 1;
+    my ($this) = shift;
+    $this->{'isOpen'} = 0;
+    return 1;
 }
 
-
 # ###########################################################################
-# PRIVATE METHODS 
-
+# PRIVATE METHODS
 
 #_____________________________________________________________________________
 sub DESTROY {
-	my ($this) = shift;
-	$this->Close;
+    my ($this) = shift;
+    $this->Close;
 }
 
 #_____________________________________________________________________________
 sub _RefreshRow {
-	# sync the current row with the fileArray.  also do some validation to
-	# make sure we haven't moved the curser out of range 
-	my ($this) = shift;
-	return 0 unless ($this->{'isOpen'});
-	# make sure absolutePosition is a legit value  and set EOF
-	$this->{'EOF'} = 0;
-	$this->{'absolutePosition'} = 1 if ($this->{'absolutePosition'} < 1);
-	if ($this->{'absolutePosition'} > $this->{'recordCount'}) {
-		$this->{'EOF'} = 1;
-		$this->{'absolutePosition'} = $this->{'recordCount'};
-		return 1;
-	}
 
-	# now grab the next row
-	my ($tempRow) = $this->{'fileArray'}[$this->{'absolutePosition'}];
-	chop ($tempRow);
-	my (@row) = split($this->{'delimiter'},$tempRow);
-	$this->{'row'} = \@row;
-	return 1;
+    # sync the current row with the fileArray.  also do some validation to
+    # make sure we haven't moved the curser out of range
+    my ($this) = shift;
+    return 0 unless ( $this->{'isOpen'} );
+
+    # make sure absolutePosition is a legit value  and set EOF
+    $this->{'EOF'} = 0;
+    $this->{'absolutePosition'} = 1 if ( $this->{'absolutePosition'} < 1 );
+    if ( $this->{'absolutePosition'} > $this->{'recordCount'} ) {
+        $this->{'EOF'}              = 1;
+        $this->{'absolutePosition'} = $this->{'recordCount'};
+        return 1;
+    }
+
+    # now grab the next row
+    my ($tempRow) = $this->{'fileArray'}[ $this->{'absolutePosition'} ];
+    chop($tempRow);
+    my (@row) = split( $this->{'delimiter'}, $tempRow );
+    $this->{'row'} = \@row;
+    return 1;
 }
-
 
 #_____________________________________________________________________________
 sub _GetSetProperty {
-	# private fuction that is used by properties to get/set values
-	# if a parameter is sent in, then the property is set and true is returned.
-	# if no parameter is sent, then the current value is returned
-	my $this = shift;
-	my $fieldName = shift;
-	my $newValue = shift;
-	if (defined($newValue)) {
-		$this->{$fieldName} = $newValue;
-	} else {
-		return $this->{$fieldName};
-	}
-	return 1;
+
+    # private fuction that is used by properties to get/set values
+    # if a parameter is sent in, then the property is set and true is returned.
+    # if no parameter is sent, then the current value is returned
+    my $this      = shift;
+    my $fieldName = shift;
+    my $newValue  = shift;
+    if ( defined($newValue) ) {
+        $this->{$fieldName} = $newValue;
+    }
+    else {
+        return $this->{$fieldName};
+    }
+    return 1;
 }
 
-1; # for require
-
+1;    # for require
 
 __END__
 

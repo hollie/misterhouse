@@ -3,7 +3,7 @@
 # perl libs (change lib path below). You need to have netpbm installed. Ron Klinkien.
 
 BEGIN {
-    push (@INC, "/mh/lib", "/mh/lib/site");
+    push( @INC, "/mh/lib", "/mh/lib/site" );
 }
 
 use LWP::UserAgent;
@@ -15,11 +15,10 @@ my $doc;
 my $base;
 my %pages;
 
-$pages{'dilbert'} = 
-  [
-   'http://www.dilbert.com/comics/dilbert/archive/',
-   'img.*?src="(/comics/dilbert/archive/images/dilbert\d+.gif)"'
-  ];
+$pages{'dilbert'} = [
+    'http://www.dilbert.com/comics/dilbert/archive/',
+    'img.*?src="(/comics/dilbert/archive/images/dilbert\d+.gif)"'
+];
 
 #$pages{'bobbins'} =
 #  [
@@ -47,7 +46,7 @@ $pages{'dilbert'} =
 #  ];
 
 # ----------------------------- page layout, such as it is --------------------
-my $compilation =<<"COMP";
+my $compilation = <<"COMP";
 <html><body>
 <base target ="output">
 <table width=100% bgcolor="lightgrey">
@@ -77,318 +76,339 @@ $ua->agent( "Snorq/0.1" . $ua->agent );
 my ( $req, $res );
 
 for my $page ( sort keys %pages ) {
-  if ( $#ARGV != -1 ) {
-	next unless grep /$page/i, @ARGV;
-  }
-  print "$page\n";
+    if ( $#ARGV != -1 ) {
+        next unless grep /$page/i, @ARGV;
+    }
+    print "$page\n";
 
-  # Figure out what we're getting!
-  my $content = "";
-  my $contenttype = "";
-  my $numrules = $#{$pages{$page}};
-  my $n = -1; # gack
-  my $url;
+    # Figure out what we're getting!
+    my $content     = "";
+    my $contenttype = "";
+    my $numrules    = $#{ $pages{$page} };
+    my $n           = -1;                    # gack
+    my $url;
 
- RULE:
-  for my $rule ( @{$pages{$page}} ) {
+    RULE:
+    for my $rule ( @{ $pages{$page} } ) {
 
-	# increment rule number
-	$n++;
+        # increment rule number
+        $n++;
 
-	print "   rule ", $n + 1, " of ", $numrules + 1, " : $rule\n";
+        print "   rule ", $n + 1, " of ", $numrules + 1, " : $rule\n";
 
-	if ( !$content ) {
-	  # First rule is always a URL
-	  $url = $rule;
-	} else {
-	  ( $url ) = $content =~ m/$rule/mi;
-	  if (!defined( $url )) {
-		print "   error extracting $rule\n";
-	$content = undef;
-		last RULE;
-	  }
-	}
+        if ( !$content ) {
 
-	# Patch in base and stuff
-	if ( defined $base ) {
-	  $uri = new URI::URL($url);
+            # First rule is always a URL
+            $url = $rule;
+        }
+        else {
+            ($url) = $content =~ m/$rule/mi;
+            if ( !defined($url) ) {
+                print "   error extracting $rule\n";
+                $content = undef;
+                last RULE;
+            }
+        }
 
-	  # Gack! relative URL!
-	  if ( $uri->path !~ m|^/| ) {
-		local $URI::ABS_ALLOW_RELATIVE_SCHEME = 1; # gack gack
-		$uri = URI->new($url)->abs( $base );
-	  }
+        # Patch in base and stuff
+        if ( defined $base ) {
+            $uri = new URI::URL($url);
 
-	  if ( !defined( $uri->host )) {
-		$uri->scheme( $base->scheme );
-		$uri->host( $base->host );
-	  }
+            # Gack! relative URL!
+            if ( $uri->path !~ m|^/| ) {
+                local $URI::ABS_ALLOW_RELATIVE_SCHEME = 1;    # gack gack
+                $uri = URI->new($url)->abs($base);
+            }
 
-	  $url = $uri->as_string;
-	}
+            if ( !defined( $uri->host ) ) {
+                $uri->scheme( $base->scheme );
+                $uri->host( $base->host );
+            }
 
-	print "   fetching $url\n";
+            $url = $uri->as_string;
+        }
 
-	$cached = 0;
+        print "   fetching $url\n";
 
-	# if this is the terminal rule, try a HEAD instead of a GET
-	if ( $n == $numrules ) {
-	  $req = new HTTP::Request
-		HEAD => $url;
+        $cached = 0;
 
-	  $res = $ua->request( $req );
+        # if this is the terminal rule, try a HEAD instead of a GET
+        if ( $n == $numrules ) {
+            $req = new HTTP::Request HEAD => $url;
 
-	  if ( $res->is_success ) {
-		my $utime;
+            $res = $ua->request($req);
 
-		# See if we get a datestamp
-		$date = $res->headers->header( 'Last-Modified' );
-		if ( defined( $date )) {
-		  print "   Last Mod: $date\n";
-		  $utime = str2time( $date );
-		} else {
-		  $utime = 0;
-		}
-		$contenttype = $res->content_type;
+            if ( $res->is_success ) {
+                my $utime;
 
-		# And this is what we call a "hack"
-		$filename = "${page}_$contenttype";
-		$filename =~ s|/|.|g;
+                # See if we get a datestamp
+                $date = $res->headers->header('Last-Modified');
+                if ( defined($date) ) {
+                    print "   Last Mod: $date\n";
+                    $utime = str2time($date);
+                }
+                else {
+                    $utime = 0;
+                }
+                $contenttype = $res->content_type;
 
-		if ( -f $filename ) {
-		  (undef, undef, undef, undef, undef, undef, undef, undef,
-		   undef, $mtime, undef, undef, undef ) = stat( $filename );
-		  if ( $mtime > $utime ) {
-			$cached = 1;
-		  } else {
-			$cached = 0;
-		  }
-		}
-	  } else {
-		print "   head failed, for some reason.\n";
-	  }
-	}
+                # And this is what we call a "hack"
+                $filename = "${page}_$contenttype";
+                $filename =~ s|/|.|g;
 
-	# Screw caching, since it seems not to work.
-	$cached = 0;
+                if ( -f $filename ) {
+                    (
+                        undef, undef, undef,  undef, undef, undef, undef,
+                        undef, undef, $mtime, undef, undef, undef
+                    ) = stat($filename);
+                    if ( $mtime > $utime ) {
+                        $cached = 1;
+                    }
+                    else {
+                        $cached = 0;
+                    }
+                }
+            }
+            else {
+                print "   head failed, for some reason.\n";
+            }
+        }
 
-	if ( $cached ) {
-	  print "   cached, not fetching\n";
-	} else {
-	  $req = new HTTP::Request
-		GET => $url;
+        # Screw caching, since it seems not to work.
+        $cached = 0;
 
-	  $res = $ua->request( $req );
+        if ($cached) {
+            print "   cached, not fetching\n";
+        }
+        else {
+            $req = new HTTP::Request GET => $url;
 
-	  if ( $res->is_success ) {
-		$content = $res->content;
-		$contenttype = $res->content_type;
+            $res = $ua->request($req);
 
-		# And this is what we call a "hack"
-		$filename = "${page}_$contenttype";
-		$filename =~ s|/|.|g;
+            if ( $res->is_success ) {
+                $content     = $res->content;
+                $contenttype = $res->content_type;
 
-		$base = $res->base;
-	  } else {
-		print "   error fetching data\n";
-		$page = $res->as_string;
-		undef $content;
-		last RULE;
-	  }
-	}
+                # And this is what we call a "hack"
+                $filename = "${page}_$contenttype";
+                $filename =~ s|/|.|g;
 
-	next if !defined( $content );
-	next if $n < $numrules;
+                $base = $res->base;
+            }
+            else {
+                print "   error fetching data\n";
+                $page = $res->as_string;
+                undef $content;
+                last RULE;
+            }
+        }
 
-	print "   Item $page, content type $contenttype successfully fetched.\n";
+        next if !defined($content);
+        next if $n < $numrules;
 
-	# Now, filter the page.
-	if ( defined( $filters{$page})) {
-	  print "   filtering it: ";
+        print
+          "   Item $page, content type $contenttype successfully fetched.\n";
 
-	  print "start...";
-	  my @filters = reverse @{$filters{$page}};
+        # Now, filter the page.
+        if ( defined( $filters{$page} ) ) {
+            print "   filtering it: ";
 
-	  my $filter = pop @filters;
-	  $content =~ s/^.*?$filter//si;
+            print "start...";
+            my @filters = reverse @{ $filters{$page} };
 
-	  print "end...";
-	  $filter = pop @filters;
-	  $content =~ s/$filter.*?$//si;
+            my $filter = pop @filters;
+            $content =~ s/^.*?$filter//si;
 
-	  if ( $#filters != -1 ) {
-		print "body...";
+            print "end...";
+            $filter = pop @filters;
+            $content =~ s/$filter.*?$//si;
 
-		while ( $#filters != -1 ) {
-		  my $search = pop @filters;
-		  my $replace = pop @filters;
+            if ( $#filters != -1 ) {
+                print "body...";
 
-		  $content =~ s/$search/$replace/sgie;
-		}
-	  }
-	  print "done.\n";
-	}
+                while ( $#filters != -1 ) {
+                    my $search  = pop @filters;
+                    my $replace = pop @filters;
 
-  }
+                    $content =~ s/$search/$replace/sgie;
+                }
+            }
+            print "done.\n";
+        }
 
-  # Don't bother doing more if we couldn't get the page
-  next unless $content;
+    }
 
-  # Fix up URLs
-  if ( $contenttype =~ /^text\/html/i ) {
-	print "   Repatching URLs to $base\n";
-	$doc = "";
-	my $parser = HTML::Parser->new( api_version => 3,
-									start_h => [\&p_start,
-												"tagname, text, attr"],
-									default_h =>
-									[ sub { $doc .= shift }, "text"]
-								  );
-	$parser->parse( $content );
-	$parser->eof;
-	$content = $doc;
-  }
-  
-  # Save the damn thing
-  open( PAGE, ">$filename" );
-  print PAGE $content;
-  close( PAGE );
+    # Don't bother doing more if we couldn't get the page
+    next unless $content;
 
-  # Figure out the link type, and add it.
-  if ( $contenttype =~ /^image/i ) {
-	print "   Slicing image... [$page/$contenttype]";
-	$new = carve_image( $page, $contenttype );
-	unlink( $filename ); # don't leave the old image lying around
-	print "done.\n";
+    # Fix up URLs
+    if ( $contenttype =~ /^text\/html/i ) {
+        print "   Repatching URLs to $base\n";
+        $doc = "";
+        my $parser = HTML::Parser->new(
+            api_version => 3,
+            start_h     => [ \&p_start, "tagname, text, attr" ],
+            default_h   => [ sub { $doc .= shift }, "text" ]
+        );
+        $parser->parse($content);
+        $parser->eof;
+        $content = $doc;
+    }
 
-	# See if it's got a place of its own to go into.
-	if (!( $compilation =~
-		   s|(<!-- feed me $page -->)|$new\n|)) {
-	  $compilation =~ s|(<!-- feed me pix -->)|$new\n$1|;
-	}
-  } else {
-	my $srcurl = "";
-	$srcurl = " (<a href=\"$url\">from $url</a>)<br>";
-	$srcurl .= " ($date)" if $date;
-	if (!(	$compilation =~
-			s|(<!-- feed me $page -->)|<a href="$filename">$page</a>$srcurl\n|
-)) {
-	  $compilation =~
-		s|(<!-- feed me text -->)|<a href="$filename">$page</a>$srcurl\n$1|;
-	}
-  }
+    # Save the damn thing
+    open( PAGE, ">$filename" );
+    print PAGE $content;
+    close(PAGE);
+
+    # Figure out the link type, and add it.
+    if ( $contenttype =~ /^image/i ) {
+        print "   Slicing image... [$page/$contenttype]";
+        $new = carve_image( $page, $contenttype );
+        unlink($filename);    # don't leave the old image lying around
+        print "done.\n";
+
+        # See if it's got a place of its own to go into.
+        if ( !( $compilation =~ s|(<!-- feed me $page -->)|$new\n| ) ) {
+            $compilation =~ s|(<!-- feed me pix -->)|$new\n$1|;
+        }
+    }
+    else {
+        my $srcurl = "";
+        $srcurl = " (<a href=\"$url\">from $url</a>)<br>";
+        $srcurl .= " ($date)" if $date;
+        if (
+            !(
+                $compilation =~
+                s|(<!-- feed me $page -->)|<a href="$filename">$page</a>$srcurl\n|
+            )
+          )
+        {
+            $compilation =~
+              s|(<!-- feed me text -->)|<a href="$filename">$page</a>$srcurl\n$1|;
+        }
+    }
 }
 
 open( PAGE, ">main.html" );
 print PAGE $compilation;
-close( PAGE );
+close(PAGE);
 
 # This is ghastly, but noone seems to have a nice image processing
 # module for Perl that I could use instead.
 sub carve_image {
-  my ( $name, $type ) = @_;
-  my $html = "";
+    my ( $name, $type ) = @_;
+    my $html = "";
 
-  my  $filename = "${name}_$type";
-  $filename =~ s|/|.|g;
+    my $filename = "${name}_$type";
+    $filename =~ s|/|.|g;
 
-  # Make directory FIXME nuke it if it exists
-  mkdir $name, 0755 unless -d $name;
+    # Make directory FIXME nuke it if it exists
+    mkdir $name, 0755 unless -d $name;
 
-  # Convert to a pnm
-  if ( $type eq "png" ) {
-	`pngtopnm $filename > $name/$filename`;
-  } else {
-	`anytopnm $filename > $name/$filename`;
-  }
+    # Convert to a pnm
+    if ( $type eq "png" ) {
+        `pngtopnm $filename > $name/$filename`;
+    }
+    else {
+        `anytopnm $filename > $name/$filename`;
+    }
 
-  my $tijd = str2time( $date );
-  # Get dimensions (use Image::Info for this!)
-  $pnmfile = `pnmfile $name/$filename`;
-  ( $wide, $high ) = $pnmfile =~ m/:.*?,\s(\d+)\sby\s(\d+).*?/i;
+    my $tijd = str2time($date);
 
-  return qq( <pre>$pnmfile</pre>\n)
-	if !defined( $wide ) or !defined( $high );
+    # Get dimensions (use Image::Info for this!)
+    $pnmfile = `pnmfile $name/$filename`;
+    ( $wide, $high ) = $pnmfile =~ m/:.*?,\s(\d+)\sby\s(\d+).*?/i;
 
-  $html = qq(<table cellpadding="0" cellspacing="0" border="0">\n);
+    return qq( <pre>$pnmfile</pre>\n)
+      if !defined($wide)
+      or !defined($high);
 
-  for ( $y = 0; $y < $high; $y += 140 ) {
-	if ( $y + 140 > $high ) {
-	  $h = $high - $y;
-	} else {
-	  $h = 140;
-	}
+    $html = qq(<table cellpadding="0" cellspacing="0" border="0">\n);
 
-	$html.="<tr>";
+    for ( $y = 0; $y < $high; $y += 140 ) {
+        if ( $y + 140 > $high ) {
+            $h = $high - $y;
+        }
+        else {
+            $h = 140;
+        }
 
-	for ( $x = 0; $x < $wide; $x += 150 ) {
-	  if ( $x + 150 > $wide ) {
-		$w = $wide - $x;
-	  } else {
-		$w = 150;
-	  }
+        $html .= "<tr>";
 
-	  `pnmcut $x $y $w $h $name/$filename 2>/dev/null | ppmtogif 2>/dev/null > $name/$ {name}_$ {x}_$ {y}.gif`;
-	  $html .= qq(<td><img src="$name/$ {name}_$ {x}_$ {y}.gif" width="$w" height="$h"></td>);
-	}
-	$html.="</tr>\n";
-  }
-  $html .= "</table>\n";
+        for ( $x = 0; $x < $wide; $x += 150 ) {
+            if ( $x + 150 > $wide ) {
+                $w = $wide - $x;
+            }
+            else {
+                $w = 150;
+            }
 
-  # Cleanup
-  unlink( "$name/$filename" );
+            `pnmcut $x $y $w $h $name/$filename 2>/dev/null | ppmtogif 2>/dev/null > $name/$ {name}_$ {x}_$ {y}.gif`;
+            $html .=
+              qq(<td><img src="$name/$ {name}_$ {x}_$ {y}.gif" width="$w" height="$h"></td>);
+        }
+        $html .= "</tr>\n";
+    }
+    $html .= "</table>\n";
 
-  return $html;
+    # Cleanup
+    unlink("$name/$filename");
+
+    return $html;
 }
 
-sub patchurl
-  {
-	my $base = shift;
-	my $url = shift;
+sub patchurl {
+    my $base = shift;
+    my $url  = shift;
 
-	my $uri = new URI $url;
+    my $uri = new URI $url;
 
-	eval {
-	  if ( !defined( $uri->scheme ) or !$uri->scheme ) {
-		$uri = new URI $url, ($base->scheme || 'http'); # what the hell?
-	  }
+    eval {
+        if ( !defined( $uri->scheme ) or !$uri->scheme ) {
+            $uri = new URI $url, ( $base->scheme || 'http' );   # what the hell?
+        }
 
-	  # Gack! relative URL!
-	  if ( $uri->path !~ m|^/| ) {
-		local $URI::ABS_ALLOW_RELATIVE_SCHEME = 1; # gack gack
-		$uri = URI->new($url)->abs( $base );
-	  }
+        # Gack! relative URL!
+        if ( $uri->path !~ m|^/| ) {
+            local $URI::ABS_ALLOW_RELATIVE_SCHEME = 1;          # gack gack
+            $uri = URI->new($url)->abs($base);
+        }
 
-	  if ( !defined( $uri->host )) {
-		$uri->scheme( $base->scheme || 'http' );
-		$uri->host( $base->host );
-	  }
-	};
+        if ( !defined( $uri->host ) ) {
+            $uri->scheme( $base->scheme || 'http' );
+            $uri->host( $base->host );
+        }
+    };
 
-	$uri->scheme( 'http' ) unless $uri->scheme; # thanks, slashdot
+    $uri->scheme('http') unless $uri->scheme;    # thanks, slashdot
 
-	return $url if $@; # bail out if there's an error.
+    return $url if $@;                           # bail out if there's an error.
 
-	$uri->as_string;
-  }
+    $uri->as_string;
+}
 
-sub p_start
-  {
-	my $tag = $_[1];
-	if (( $_[0] eq "a" ) || ( $_[0] eq "img" ) || ( $_[0] eq "link" ) ||
-		( $_[0] eq "script" ) || ( $_[0] eq "form" ) || ( $_[0] eq "input" )) {
-	  $tag = "<$_[0]";
-	  for my $a ( keys %{$_[2]} ) {
-		my $t = $_[2]->{$a};
-		if ( $a =~ /^href|src|action$/i ) {
-		  $t = patchurl( $base, $t );
-		  $tag .= qq( $a="$t" );
-		} else {
-		  $tag .= qq( $a="$t" );
-		}
-	  }
-	  $tag =~ s/\s+$//; # just in case
-	  $tag .= ">";
-	}
-	$doc .= $tag;
-  }
+sub p_start {
+    my $tag = $_[1];
+    if (   ( $_[0] eq "a" )
+        || ( $_[0] eq "img" )
+        || ( $_[0] eq "link" )
+        || ( $_[0] eq "script" )
+        || ( $_[0] eq "form" )
+        || ( $_[0] eq "input" ) )
+    {
+        $tag = "<$_[0]";
+        for my $a ( keys %{ $_[2] } ) {
+            my $t = $_[2]->{$a};
+            if ( $a =~ /^href|src|action$/i ) {
+                $t = patchurl( $base, $t );
+                $tag .= qq( $a="$t" );
+            }
+            else {
+                $tag .= qq( $a="$t" );
+            }
+        }
+        $tag =~ s/\s+$//;    # just in case
+        $tag .= ">";
+    }
+    $doc .= $tag;
+}

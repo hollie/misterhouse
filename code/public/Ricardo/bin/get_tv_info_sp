@@ -16,25 +16,40 @@
 #---------------------------------------------------------------------------
 
 use strict;
-my($Pgm_Path, $Pgm_Name, $Version);
-BEGIN {
-    ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+my ( $Pgm_Path, $Pgm_Name, $Version );
 
-    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.*)\.?/;
+BEGIN {
+    ($Version) =
+      q$Revision$ =~ /: (\S+)/;   # Note: revision number is auto-updated by cvs
+
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.*)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
+    eval
+      "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
 }
 
 my %parms;
 use Getopt::Long;
-if (!&GetOptions(\%parms, "h", "help", "db=s", 
-                 "channels=s", "dates=s", "times=s", "keys=s", "keyfile=s", 'title_only', "increment=s", 
-                 "outfile1=s", "outfile2=s", "type=s",
-                 "debug", "quiet") or @ARGV or 
-    !($parms{channels} or $parms{dates} or $parms{times} or 
-      $parms{keys} or $parms{keyfile} or $parms{type} or
-    ($parms{h} or $parms{help}))) {
-    print<<eof;
+if (
+    !&GetOptions(
+        \%parms,      "h",          "help",        "db=s",
+        "channels=s", "dates=s",    "times=s",     "keys=s",
+        "keyfile=s",  'title_only', "increment=s", "outfile1=s",
+        "outfile2=s", "type=s",     "debug",       "quiet"
+    )
+    or @ARGV
+    or !(
+           $parms{channels}
+        or $parms{dates}
+        or $parms{times}
+        or $parms{keys}
+        or $parms{keyfile}
+        or $parms{type}
+        or ( $parms{h} or $parms{help} )
+    )
+  )
+{
+    print <<eof;
 
 $Pgm_Name returns info about tv programs that match the requested parms.
 It uses a database created by the get_tv_grid program.
@@ -87,89 +102,112 @@ See mh/code/bruce/tv_info.pl for examples on how to use this from mh.
 
 eof
 
-  exit;
+    exit;
 }
 
-                                # Globals
-my (@channels, @dates, @times, @keys, @types, %DBM, %DBM2, $match_cnt, $match_list1, $match_list2,
-    $date_today, $time_now, $min_begin, $min_now, $symbol);
+# Globals
+my (
+    @channels,   @dates,    @times,     @keys,        @types,
+    %DBM,        %DBM2,     $match_cnt, $match_list1, $match_list2,
+    $date_today, $time_now, $min_begin, $min_now,     $symbol
+);
 my %config_parms;
 
 &setup;
 &find_match;
-print "\nEncontrados $match_cnt programas. resultados detallados en fichero $parms{outfile2}\n" unless $parms{quiet};
+print
+  "\nEncontrados $match_cnt programas. resultados detallados en fichero $parms{outfile2}\n"
+  unless $parms{quiet};
 print $match_list1 if $match_cnt < 10;
 
 sub find_match {
     my @tv_list;
     $match_cnt = 0;
 
-#    my @db_keys = %DBM;
-#    my $db_count = @db_keys;
-#    print "db count=$db_count\n";
+    #    my @db_keys = %DBM;
+    #    my $db_count = @db_keys;
+    #    print "db count=$db_count\n";
 
     for my $pgm_date (@dates) {
         for my $time_start (@times) {
             for my $ch_key (@channels) {
-                my $db_key = join($;, $ch_key, $pgm_date, $time_start);
+                my $db_key = join( $;, $ch_key, $pgm_date, $time_start );
                 print "key=$db_key.\n" if $parms{debug};
-                if (my $db_data = $DBM{$db_key}) {
-                	print "db_data=$db_data\n" if $parms{debug};
-                               # Drop HTML tags
+                if ( my $db_data = $DBM{$db_key} ) {
+                    print "db_data=$db_data\n" if $parms{debug};
 
-                    my($pgm_name, $pgm_type, $time_end, $pgm_desc) = split($;, $db_data);
+                    # Drop HTML tags
 
-                    my $min_start   = &hour_to_min($time_start);
-                    my $min_end     = &hour_to_min($time_end);
-		    $min_end += 24 * 60 if ($min_end < $min_start); 
-                    my $pgm_length = ($min_end - $min_start);
+                    my ( $pgm_name, $pgm_type, $time_end, $pgm_desc ) =
+                      split( $;, $db_data );
+
+                    my $min_start = &hour_to_min($time_start);
+                    my $min_end   = &hour_to_min($time_end);
+                    $min_end += 24 * 60 if ( $min_end < $min_start );
+                    my $pgm_length = ( $min_end - $min_start );
 
                     print "name=$pgm_name\n" if $parms{debug};
                     @keys = ('.*') if @keys[0] eq 'all';
                     for my $key (@keys) {
-			print "key: $key\n" if $parms{debug};
+                        print "key: $key\n" if $parms{debug};
                         @types = ('.*') if @types[0] eq 'all';
-			for my $type (@types) {
-			    print "type: $type\n" if $parms{debug};
+                        for my $type (@types) {
+                            print "type: $type\n" if $parms{debug};
+
                             # added .?\b to match whole words and plurals only
                             # Make upper case keywords case-sensitive
                             # \b$key.?\b
-                            # In the end I found \bword\b was too limited, as it was necessary to list both 
+                            # In the end I found \bword\b was too limited, as it was necessary to list both
                             # Egypt and Egyptian.
-                            # What I do now is to add an (invisible) space after a word in the key_list if I do not 
+                            # What I do now is to add an (invisible) space after a word in the key_list if I do not
                             # want part of a word to be matched, ie 'lion[SPACE]' to prevent matching with 'Lionel'.
                             # I can also now edit the key_lists with Notepad from inside mh.
                             # I have added case-sensitive upper-case in $pgm_desc.
-			    if ( ($pgm_name    =~ /\b$key/i or ($pgm_desc    =~ /\b$key/i and !$parms{title_only})) and
-			    ($pgm_type =~ /\b$type/i) ) {
+                            if (
+                                (
+                                    $pgm_name =~ /\b$key/i
+                                    or ( $pgm_desc =~ /\b$key/i
+                                        and !$parms{title_only} )
+                                )
+                                and ( $pgm_type =~ /\b$type/i )
+                              )
+                            {
                                 # The next 2 lines highlight the selected key-word(s), using the selected symbol in mh.ini
-                                $pgm_desc =~ s/($key)/$symbol$symbol\1$symbol/gi;
-                                $pgm_name =~ s/($key)/$symbol$symbol\1$symbol/gi;
-                    
+                                $pgm_desc =~
+                                  s/($key)/$symbol$symbol\1$symbol/gi;
+                                $pgm_name =~
+                                  s/($key)/$symbol$symbol\1$symbol/gi;
+
                                 my $ch_data = $DBM2{$ch_key};
-                                my($ch_number, $ch_name) = split($;, $ch_data);
-                                if ($parms{debug}) {
+                                my ( $ch_number, $ch_name ) =
+                                  split( $;, $ch_data );
+                                if ( $parms{debug} ) {
                                     print "\nEncontrado un programa:\n";
                                     print "    Canal: $ch_number $ch_name\n";
-                                    print "     Hora: $pgm_date $time_start -> $time_end\n";
+                                    print
+                                      "     Hora: $pgm_date $time_start -> $time_end\n";
                                     print " Duración: $pgm_length minutos\n";
                                     print "   Título: $pgm_name\n";
                                     print "    Desc.:  $pgm_desc\n\n";
                                 }
-                        
+
                                 $match_cnt++;
-                                $pgm_name =~ s/\*+//g; # Change **show name** => show name
-                                $pgm_name =~ s/[\\\$\^]//g;  # Remove regular expression chars introduced above
-                                my $temp = "\n$match_cnt|  $pgm_name| Canal $ch_name| $ch_key| Dial $ch_number|  ";
-            
-                                $temp .= "El $pgm_date| " if @dates > 1 or $pgm_date ne $date_today;
-            
+                                $pgm_name =~
+                                  s/\*+//g;  # Change **show name** => show name
+                                $pgm_name =~ s/[\\\$\^]//g
+                                  ; # Remove regular expression chars introduced above
+                                my $temp =
+                                  "\n$match_cnt|  $pgm_name| Canal $ch_name| $ch_key| Dial $ch_number|  ";
+
+                                $temp .= "El $pgm_date| "
+                                  if @dates > 1 or $pgm_date ne $date_today;
+
                                 $temp .= "De $time_start hasta $time_end|\n";
                                 $match_list1 .= $temp;
-                                $match_list1 =~ s/\(.+\)\.//g; 
+                                $match_list1 =~ s/\(.+\)\.//g;
                                 last;
                             }
-			}
+                        }
                     }
 
                 }
@@ -178,18 +216,20 @@ sub find_match {
         }
     }
 
-
-                                # Do this as quick a possible, so we can use File_Item watch in mh
-    open (OUT1, ">$parms{outfile1}") or die "Error, could not open output file $parms{outfile1}: $!\n";
-    open (OUT2, ">$parms{outfile2}") or die "Error, could not open output file $parms{outfile2}: $!\n";
+    # Do this as quick a possible, so we can use File_Item watch in mh
+    open( OUT1, ">$parms{outfile1}" )
+      or die "Error, could not open output file $parms{outfile1}: $!\n";
+    open( OUT2, ">$parms{outfile2}" )
+      or die "Error, could not open output file $parms{outfile2}: $!\n";
     my $print_date = time_date_stamp(15);
-    if ($parms{dates} ne $print_date) {
-       $print_date = $parms{dates};
-    } 
+    if ( $parms{dates} ne $print_date ) {
+        $print_date = $parms{dates};
+    }
     print OUT1 "Encontrados $match_cnt programas.\n$match_list1";
 
-#    It's a bit tidier like this (I can't actually see the bottom two lines without the CRs)
-    print OUT2 "Found $match_cnt $parms{name} shows.                             $print_date\n\n$match_list2";
+    #    It's a bit tidier like this (I can't actually see the bottom two lines without the CRs)
+    print OUT2
+      "Found $match_cnt $parms{name} shows.                             $print_date\n\n$match_list2";
     print OUT2 "\n \n \n \n \n \n \n";
 
     close OUT1;
@@ -198,207 +238,220 @@ sub find_match {
 }
 
 sub setup {
-    require 'handy_utilities.pl';       # For read_mh_opts funcion
-    &main::read_mh_opts(\%config_parms, $Pgm_Path);
+    require 'handy_utilities.pl';    # For read_mh_opts funcion
+    &main::read_mh_opts( \%config_parms, $Pgm_Path );
 
-                                # These are needed to drop HTML tag data
+    # These are needed to drop HTML tag data
     use HTML::FormatText;
     use HTML::Parse;
 
-
-    $parms{db}    = "tv" unless $parms{db};
+    $parms{db} = "tv" unless $parms{db};
     my $dbm_file  = "$config_parms{data_dir}/$parms{db}_programs.dbm";
     my $dbm_file2 = "$config_parms{data_dir}/$parms{db}_channels.dbm";
     print "Using dbm file $dbm_file\n" unless $parms{quiet};
-    $symbol  = $config_parms{tv_key_symbol};
+    $symbol = $config_parms{tv_key_symbol};
 
     use Fcntl;
     use DB_File;
-    tie (%DBM,  'DB_File', $dbm_file,  O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file: $!";
-    tie (%DBM2, 'DB_File', $dbm_file2, O_RDWR|O_CREAT, 0666) or print "\nError, can not open dbm file $dbm_file2: $!";
+    tie( %DBM, 'DB_File', $dbm_file, O_RDWR | O_CREAT, 0666 )
+      or print "\nError, can not open dbm file $dbm_file: $!";
+    tie( %DBM2, 'DB_File', $dbm_file2, O_RDWR | O_CREAT, 0666 )
+      or print "\nError, can not open dbm file $dbm_file2: $!";
 
-    my ($day, $month, $year) = (localtime(time))[3,4,5];
-    $year = $year % 100;
-    $date_today = sprintf("%02d/%02d/%02d", $day, ++$month, $year);
-    $time_now = sprintf("%02d:%02d",(localtime)[2],(localtime)[1]);
-    $min_now = &hour_to_min($time_now);
+    my ( $day, $month, $year ) = ( localtime(time) )[ 3, 4, 5 ];
+    $year       = $year % 100;
+    $date_today = sprintf( "%02d/%02d/%02d", $day, ++$month, $year );
+    $time_now   = sprintf( "%02d:%02d", (localtime)[2], (localtime)[1] );
+    $min_now    = &hour_to_min($time_now);
 
-    $parms{name}     = 'TV'    	     unless $parms{name};
-    $parms{times}    = $time_now     unless $parms{times};
-    $parms{times}    = '0+23.99'     if lc($parms{times}) eq 'all';
-    $parms{increment}= 1             unless $parms{increment};
-    $parms{dates}    = $date_today   unless $parms{dates};
+    $parms{name}  = 'TV'      unless $parms{name};
+    $parms{times} = $time_now unless $parms{times};
+    $parms{times} = '0+23.99' if lc( $parms{times} ) eq 'all';
+    $parms{increment} = 1           unless $parms{increment};
+    $parms{dates}     = $date_today unless $parms{dates};
 
-                                # Allow for +increment format
-    if (my ($date_start, $days) = $parms{dates} =~ /(\S*)\+(\d+)/) {
+    # Allow for +increment format
+    if ( my ( $date_start, $days ) = $parms{dates} =~ /(\S*)\+(\d+)/ ) {
         $date_start = $date_today unless $date_start;
-        $parms{dates} = "$date_start-". &increment_date($date_start, $days);
+        $parms{dates} = "$date_start-" . &increment_date( $date_start, $days );
     }
-    if (my ($time_start, $hours) = $parms{times} =~ /(\S*)\+(\S+)/) {
+    if ( my ( $time_start, $hours ) = $parms{times} =~ /(\S*)\+(\S+)/ ) {
         $time_start = $time_now unless $time_start;
-        my $time_stop = $hours * 60 + &hour_to_min(&ampm_to_hour24($time_start));
+        my $time_stop =
+          $hours * 60 + &hour_to_min( &ampm_to_hour24($time_start) );
         $time_stop = &min_to_hour($time_stop);
         $parms{times} = "$time_start-$time_stop";
     }
-    
+
     $parms{channels} = 'all' unless $parms{channels};
-    @channels = split_parm($parms{channels}, 'channels');
-    @dates    = split_parm($parms{dates}, 'dates');
-    @times    = split_parm($parms{times}, 'times');
-    $min_begin = &hour_to_min(@times[0]);
- 
-    $parms{keyfile} = "$config_parms{data_dir}/$parms{keyfile}" if $parms{keyfile} and !-f $parms{keyfile};
-    if ($parms{keyfile} and -f $parms{keyfile}) {
-        @keys = file_read($parms{keyfile});
-	@types = ('all');
+    @channels = split_parm( $parms{channels}, 'channels' );
+    @dates    = split_parm( $parms{dates},    'dates' );
+    @times    = split_parm( $parms{times},    'times' );
+    $min_begin = &hour_to_min( @times[0] );
+
+    $parms{keyfile} = "$config_parms{data_dir}/$parms{keyfile}"
+      if $parms{keyfile} and !-f $parms{keyfile};
+    if ( $parms{keyfile} and -f $parms{keyfile} ) {
+        @keys  = file_read( $parms{keyfile} );
+        @types = ('all');
     }
     else {
-        @keys = split(/ ?,/,  $parms{keys});
-	@types = ('all');
+        @keys = split( / ?,/, $parms{keys} );
+        @types = ('all');
     }
     @keys = grep s/^ *//, @keys;
-    @keys = grep !/^\#/,  @keys;  # Delete commented out records
+    @keys = grep !/^\#/,  @keys;    # Delete commented out records
     print "keys: @keys\n" if $parms{debug};
 
-    if ($parms{type} and !$parms{keys}) {
-	@types = split(/ ?,/, $parms{type});
-	@keys = ('all');
+    if ( $parms{type} and !$parms{keys} ) {
+        @types = split( / ?,/, $parms{type} );
+        @keys = ('all');
     }
     print "type: @types\n" if $parms{debug};
 
-                                # Sort @times, but keep 0->5:59 after 23:59
-#   @times = sort {&hour_to_min(&ampm_to_hour24($a)) <=> &hour_to_min(&ampm_to_hour24($b))} @times;
-  	@times = sort {
-        my $t1 = &hour_to_min(&ampm_to_hour24($a));
-        my $t2 = &hour_to_min(&ampm_to_hour24($b));
+    # Sort @times, but keep 0->5:59 after 23:59
+    #   @times = sort {&hour_to_min(&ampm_to_hour24($a)) <=> &hour_to_min(&ampm_to_hour24($b))} @times;
+    @times = sort {
+        my $t1 = &hour_to_min( &ampm_to_hour24($a) );
+        my $t2 = &hour_to_min( &ampm_to_hour24($b) );
         $t2 >= 360 and $t1 < 360 or $t1 <=> $t2;
     } @times;
 
-    @channels = sort{$a <=> $b} keys %DBM2 if !@channels or $channels[0] eq 'all';
+    @channels = sort { $a <=> $b } keys %DBM2
+      if !@channels
+      or $channels[0] eq 'all';
 
-    $parms{outfile1} = "$config_parms{data_dir}/$parms{db}_info1.txt" unless $parms{outfile1};
-    $parms{outfile2} = "$config_parms{data_dir}/$parms{db}_info2.txt" unless $parms{outfile2};
+    $parms{outfile1} = "$config_parms{data_dir}/$parms{db}_info1.txt"
+      unless $parms{outfile1};
+    $parms{outfile2} = "$config_parms{data_dir}/$parms{db}_info2.txt"
+      unless $parms{outfile2};
 
-    print "\nSearching for:\n  channels: @channels\n  times: @times\n  " .
-        "dates: @dates\n  keys: @keys\n  type: @types\n\n" unless $parms{quiet};
+    print "\nSearching for:\n  channels: @channels\n  times: @times\n  "
+      . "dates: @dates\n  keys: @keys\n  type: @types\n\n"
+      unless $parms{quiet};
 
 }
 
-                                # Allow for ranges in parms (e.g. -channels 2-12  -time 5 PM-9pm)
+# Allow for ranges in parms (e.g. -channels 2-12  -time 5 PM-9pm)
 sub split_parm {
-    my ($parm, $type) = @_;
-    my ($i, $j, $low, $high, @parms);
+    my ( $parm, $type ) = @_;
+    my ( $i, $j, $low, $high, @parms );
     print "split_parm: $parm, type: $type\n" if $parms{debug};
-    for $i (split(',', $parm)) {
-        if ($i =~ /-/) {
-            ($low, $high) = split('-', $i);
-            if ($type eq 'channels') {
-                for $j ($low .. $high) {
-                    push(@parms, $j);
+    for $i ( split( ',', $parm ) ) {
+        if ( $i =~ /-/ ) {
+            ( $low, $high ) = split( '-', $i );
+            if ( $type eq 'channels' ) {
+                for $j ( $low .. $high ) {
+                    push( @parms, $j );
                 }
             }
-            elsif ($type eq 'lengths') {
-                for ($j = $low; $j <= $high; $j += .5) {
-                    push(@parms, $j);
+            elsif ( $type eq 'lengths' ) {
+                for ( $j = $low; $j <= $high; $j += .5 ) {
+                    push( @parms, $j );
                 }
             }
-            elsif ($type eq 'times' or $type eq 'early_am') {
+            elsif ( $type eq 'times' or $type eq 'early_am' ) {
                 $low  = &ampm_to_hour24($low);
                 $high = &ampm_to_hour24($high);
-#               $min_begin = &hour_to_min($low) if ($type eq 'times');
-                my ($high_hour, $high_min) = split ':', $high;
+
+                #               $min_begin = &hour_to_min($low) if ($type eq 'times');
+                my ( $high_hour, $high_min ) = split ':', $high;
                 print "db h=$high_hour m=$high_min\n" if $parms{debug};
-#                $low -= 4 if lc $parms{started} eq 'yes' and !$parms{all};
-#                $low = 6 if $low < 6 and $high > 6;
-#                $low = 0 if ($low > $high or $low < 0);
+
+                #                $low -= 4 if lc $parms{started} eq 'yes' and !$parms{all};
+                #                $low = 6 if $low < 6 and $high > 6;
+                #                $low = 0 if ($low > $high or $low < 0);
                 $low .= ':00' unless $low =~ /:/;
-                push(@parms, $j=$low);
+                push( @parms, $j = $low );
                 my $loop_count = 0;
                 while (1) {
                     print "db time low=$low high=$high j=$j\n" if $parms{debug};
-                    my ($hour, $min) = $j =~ /(\d+):?(\d*)/;
+                    my ( $hour, $min ) = $j =~ /(\d+):?(\d*)/;
                     $min = '00' unless defined $min;
                     $min += $parms{increment};
-		    if ($high > $low) {
-		        # high hour > low hour, ie.: 21:00-23:30
+                    if ( $high > $low ) {
+
+                        # high hour > low hour, ie.: 21:00-23:30
                         last if $j >= $high_hour and $min >= $high_min;
-		    }
-		    else {
-			# high hour < low hour, midnight pass, ie.: 23:30-00:30
+                    }
+                    else {
+                        # high hour < low hour, midnight pass, ie.: 23:30-00:30
                         last if $j <= $high_hour and $min >= $high_min;
-	            }
-                    if ($min >= 60) {
+                    }
+                    if ( $min >= 60 ) {
                         $min = '00';
                         $hour++;
                         $hour = 0 if $hour > 23;
                     }
                     $j = sprintf "%02d:%02d", $hour, $min;
-                    push(@parms, $j);
+                    push( @parms, $j );
                 }
             }
-            elsif ($type eq 'dates') {
-                push(@parms, $low);
+            elsif ( $type eq 'dates' ) {
+                push( @parms, $low );
                 my $loop_count = 0;
                 while (1) {
-                    $low = &increment_date($low, 1);
-                    push(@parms, $low);
+                    $low = &increment_date( $low, 1 );
+                    push( @parms, $low );
                     last if $low eq $high or ++$loop_count > 365;
                 }
             }
         }
         else {
             $i = &ampm_to_hour24($i) if $type eq 'times';
-            push(@parms, $i);
+            push( @parms, $i );
         }
     }
     return @parms;
 }
 
-
 sub increment_date {
-    use HTTP::Date;                             # For str2time
-    my ($date, $days) = @_;
-    my ($day, $month, $year) = split('/', $date);
+    use HTTP::Date;    # For str2time
+    my ( $date, $days ) = @_;
+    my ( $day, $month, $year ) = split( '/', $date );
     $year += 2000;
-    my $timeinsec = str2time("$year-$month-$day");  
-    $timeinsec += $days * 24 * 60 * 60;         # Add the offest (adjusted to seconds)
-    ($day, $month, $year) = (localtime($timeinsec))[3,4,5];
+    my $timeinsec = str2time("$year-$month-$day");
+    $timeinsec += $days * 24 * 60 * 60;   # Add the offest (adjusted to seconds)
+    ( $day, $month, $year ) = ( localtime($timeinsec) )[ 3, 4, 5 ];
     $year = $year % 100;
-    return sprintf("%02d/%02d/%02d", $day, ++$month, $year);
+    return sprintf( "%02d/%02d/%02d", $day, ++$month, $year );
 }
+
 sub min_to_hour {
     my ($min) = @_;
-    my $hour = int($min / 60);
-#    $min = $min - $hour * 60;
+    my $hour = int( $min / 60 );
+
+    #    $min = $min - $hour * 60;
     $min = $min % 60;
     $hour -= 24 if $hour >= 24;
-    return sprintf("%02d:%02d", $hour, $min);
+    return sprintf( "%02d:%02d", $hour, $min );
 }
+
 sub hour_to_min {
-    my ($hour, $min) = split(':', @_[0]);
+    my ( $hour, $min ) = split( ':', @_[0] );
     return $hour * 60 + $min;
 }
+
 sub hour24_to_ampm {
-    my ($hour, $min) = split(':', @_[0]);
-    if ($hour >= 24) {
-        $hour  = 12 if ($hour == 24 );
-        $hour -= 24 if ($hour >  24 );
+    my ( $hour, $min ) = split( ':', @_[0] );
+    if ( $hour >= 24 ) {
+        $hour = 12 if ( $hour == 24 );
+        $hour -= 24 if ( $hour > 24 );
         return ($hour) . ":$min AM";
     }
-    elsif ($hour >= 12) {
-        $hour -= 12 if ($hour > 12 );
+    elsif ( $hour >= 12 ) {
+        $hour -= 12 if ( $hour > 12 );
         return ($hour) . ":$min PM";
     }
     else {
-        $hour = 12 if ($hour == 0 );
+        $hour = 12 if ( $hour == 0 );
         return "$hour:$min AM";
     }
 }
 
-
 sub ampm_to_hour24 {
-    my ($hour, $min, $ampm) = @_[0] =~ /(\d+):?(\d*) *(\S*)/;
-    $hour += 12 if uc($ampm) eq 'PM' and $hour  < 12;
+    my ( $hour, $min, $ampm ) = @_[0] =~ /(\d+):?(\d*) *(\S*)/;
+    $hour += 12 if uc($ampm) eq 'PM' and $hour < 12;
     $hour -= 12 if uc($ampm) eq 'AM' and $hour == 12;
     $min = "00" unless $min;
     $hour .= ":$min";

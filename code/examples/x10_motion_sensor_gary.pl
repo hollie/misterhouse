@@ -1,3 +1,4 @@
+
 =begin comment
 
 From Gary Sanders, on 01/2003
@@ -41,81 +42,78 @@ skills - nil, YMMV.
 
 =cut
 
-
 #  X10 motion Sensors
 
-$motion                = new Serial_Item('XIJ', ON);
-$motion->                add            ('XIK', OFF);
+$motion = new Serial_Item( 'XIJ', ON );
+$motion->add( 'XIK', OFF );
 
-$motion_unit->           add            ('XI5', 'carport sense 1');
-$motion_unit->           add            ('XI6', 'carport sense 1 dark');
-$motion_unit->           add            ('XI8', 'carport sense 2');
-
+$motion_unit->add( 'XI5', 'carport sense 1' );
+$motion_unit->add( 'XI6', 'carport sense 1 dark' );
+$motion_unit->add( 'XI8', 'carport sense 2' );
 
 #------- Carport Sensor 1 (By front screen door) ------
 
 $timer_carport1 = new Timer();
 
-if (state_now $motion eq ON) {
-    if ((state $motion_unit) eq 'carport sense 1') {
-	if (inactive $timer_carport1) {
-	    if ((time_greater_than '09:00 PM') or
-	       (time_less_than ("$Time_Sunrise + 0:05"))) {
-	    	set $walk_light ON;
-	    	print "Walk light on";
-	    	speak ("walk light on");
-	    	set $screen_room_lights '90%';
-	    	print "screen room lights on";
-	    	speak ("screen room lights on");
-	    }
-	    set $carport_light1 ON;
-	    print "carport sensor 1 movement detected - carport light on";
-	    speak ("carport sensor 1 movement detected - carport light on");
-	}
-	set $timer_carport1 240;
+if ( state_now $motion eq ON ) {
+    if ( ( state $motion_unit) eq 'carport sense 1' ) {
+        if ( inactive $timer_carport1) {
+            if (   ( time_greater_than '09:00 PM' )
+                or ( time_less_than("$Time_Sunrise + 0:05") ) )
+            {
+                set $walk_light ON;
+                print "Walk light on";
+                speak("walk light on");
+                set $screen_room_lights '90%';
+                print "screen room lights on";
+                speak("screen room lights on");
+            }
+            set $carport_light1 ON;
+            print "carport sensor 1 movement detected - carport light on";
+            speak("carport sensor 1 movement detected - carport light on");
+        }
+        set $timer_carport1 240;
     }
 }
 
-if (expired $timer_carport1) {
-	if ((time_greater_than '09:00 PM') or
-	       (time_less_than ("$Time_Sunrise + 0:30"))) {
-	   set $walk_light OFF;
-	   print "Walk light off";
-	   speak ("walk light off");
-	   set $screen_room_lights OFF;
-	   print "screen room lights off";
-	   speak ("screen room lights off");
-	   }	
-	set $carport_light1 OFF;
-	print "carport light 1 off";
-	speak ("carport light 1 off");
+if ( expired $timer_carport1) {
+    if (   ( time_greater_than '09:00 PM' )
+        or ( time_less_than("$Time_Sunrise + 0:30") ) )
+    {
+        set $walk_light OFF;
+        print "Walk light off";
+        speak("walk light off");
+        set $screen_room_lights OFF;
+        print "screen room lights off";
+        speak("screen room lights off");
+    }
+    set $carport_light1 OFF;
+    print "carport light 1 off";
+    speak("carport light 1 off");
 }
-
-
 
 #------- Carport Sensor 2 (Front of shed) -------
 
 $timer_carport2 = new Timer();
 
-if (state_now $motion eq ON) {
-    if ((state $motion_unit) eq 'carport sense 2') {
-	if (inactive $timer_carport2) {
-	    #set $x10_sounder ON;
-	    print "carport sensor 2 movement detected - light on";
-	    speak ("carport sensor 2 movement detected - light on");
-	}
-	set $timer_carport2 15;
+if ( state_now $motion eq ON ) {
+    if ( ( state $motion_unit) eq 'carport sense 2' ) {
+        if ( inactive $timer_carport2) {
+
+            #set $x10_sounder ON;
+            print "carport sensor 2 movement detected - light on";
+            speak("carport sensor 2 movement detected - light on");
+        }
+        set $timer_carport2 15;
     }
 }
 
-}
+if ( state_now $motion eq OFF ) {
+    if ( ( state $motion_unit) eq 'carport sense 2' ) {
 
-if (state_now $motion eq OFF) {
-    if ((state $motion_unit) eq 'carport sense 2') {
-	#set $x10_sounder ON;
-	print "carport sensor 2 OFF code received";
-	speak ("carport sensor 2 OFF code received");
+        #set $x10_sounder ON;
+        print "carport sensor 2 OFF code received";
+        speak("carport sensor 2 OFF code received");
     }
 }
-
 

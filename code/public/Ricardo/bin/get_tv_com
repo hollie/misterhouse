@@ -5,7 +5,7 @@
 #  File:
 #      get_tv_com
 #  Description:
-#      A perl script that gets the 
+#      A perl script that gets the
 #  Author:
 #      Mario Bonja based extensively on get_weather_ca, written by
 #      Bruce Winter    bruce@misterhouse.net   http://misterhouse.net
@@ -19,23 +19,31 @@
 
 use strict;
 
-my ($Pgm_Path, $Pgm_Name);
+my ( $Pgm_Path, $Pgm_Name );
+
 BEGIN {
-    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
 }
 
-my ($Version) = q$Revision: 0.1 $ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
+my ($Version) =
+  q$Revision: 0.1 $ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
 
 #print "Command: $Pgm_Name @ARGV\n";
 #print "Version: $Version\n";
 
 use Getopt::Long;
 my %parms;
-if (!&GetOptions(\%parms, "reget", "h", "help", "v", "debug", "showId:s", "file=s", "no_log") or
-    @ARGV or
-    ($parms{h} or $parms{help})) {
-    print<<eof;
+if (
+    !&GetOptions(
+        \%parms,    "reget",  "h", "help", "v", "debug",
+        "showId:s", "file=s", "no_log"
+    )
+    or @ARGV
+    or ( $parms{h} or $parms{help} )
+  )
+{
+    print <<eof;
 
 $Pgm_Name gets TV schedule info
 
@@ -59,11 +67,11 @@ Usage:
 
 eof
     exit;
-  }
+}
 
 my %config_parms;
 my $caller = caller;
-my $return_flag = ($caller and $caller ne 'main') ? 1 : 0;
+my $return_flag = ( $caller and $caller ne 'main' ) ? 1 : 0;
 my $ProgramName;
 my $EpisodeName;
 my $EpisodeDate;
@@ -71,43 +79,47 @@ my $EpisodeTime;
 my $EpisodeDescription;
 
 #use my_lib "$Pgm_Path/../lib/site"; # See note in lib/mh_perl2exe.pl for lib -> my_lib explaination
-BEGIN { eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'" } # Use BEGIN eval to keep perl2exe happy
+BEGIN {
+    eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'";
+}    # Use BEGIN eval to keep perl2exe happy
 
-require 'handy_utilities.pl';       # For read_mh_opts funcion
-&main::read_mh_opts(\%config_parms, $Pgm_Path);
+require 'handy_utilities.pl';    # For read_mh_opts funcion
+&main::read_mh_opts( \%config_parms, $Pgm_Path );
 
 use HTML::TableExtract;
 use Date::Parse;
 use Date::Format;
 
-$parms{showId}  = 0 unless $parms{showId};
+$parms{showId} = 0 unless $parms{showId};
 
 # Get the list of programs from the list file.
-my $programs_file = $config_parms{code_dir}."/".$config_parms{TV_com_progs_file};
-open(TV_PROGRAMS, $programs_file) or print "Warning, could not open $programs_file!\n", return 1; 
-my(@TV_com_progs) = <TV_PROGRAMS>;
+my $programs_file =
+  $config_parms{code_dir} . "/" . $config_parms{TV_com_progs_file};
+open( TV_PROGRAMS, $programs_file )
+  or print "Warning, could not open $programs_file!\n", return 1;
+my (@TV_com_progs) = <TV_PROGRAMS>;
 close TV_PROGRAMS;
 
 my $TvURL;
 my $showId;
 $showId = $parms{showId};
-$TvURL = $TV_com_progs[$showId];
+$TvURL  = $TV_com_progs[$showId];
 
 my $f_tv_html = "$config_parms{data_dir}/web/tv_com";
 $f_tv_html .= $showId . ".html";
 my $f_tv_data = "$config_parms{data_dir}/tv_data";
 
-my $debug = 1 if ($parms{debug});
+my $debug = 1 if ( $parms{debug} );
 
 ##########
 # get TV #
 ##########
 
-my $tv_time = (stat($f_tv_html))[9];
-if ($parms{reget} or
-    (-s $f_tv_html < 10) )
+my $tv_time = ( stat($f_tv_html) )[9];
+if ( $parms{reget}
+    or ( -s $f_tv_html < 10 ) )
 {
-    get_url_ua($TvURL, $f_tv_html);
+    get_url_ua( $TvURL, $f_tv_html );
 }
 
 ############
@@ -132,34 +144,35 @@ exit(0);
 
 # from get_url
 sub get_url_ua {
-    my $url = shift;
+    my $url  = shift;
     my $file = shift;
 
     use LWP::UserAgent;
 
     my $ua = new LWP::UserAgent;
-    $config_parms{proxy} = $ENV{HTTP_PROXY}           unless $config_parms{proxy};
-    $ua -> proxy(['http', 'ftp'] => $config_parms{proxy}) if $config_parms{proxy};
+    $config_parms{proxy} = $ENV{HTTP_PROXY} unless $config_parms{proxy};
+    $ua->proxy( [ 'http', 'ftp' ] => $config_parms{proxy} )
+      if $config_parms{proxy};
 
-    $ua->timeout([120]);         # Time out after 60 seconds 
-    $ua->env_proxy(); 
+    $ua->timeout( [120] );    # Time out after 60 seconds
+    $ua->env_proxy();
 
-    my $request = new HTTP::Request('GET', $url);
+    my $request = new HTTP::Request( 'GET', $url );
     my $response;
 
-    print "Retrieving (with ua) $url into $file ...\n" unless $config_parms{quiet};
-    if ($file eq '/dev/null') {
+    print "Retrieving (with ua) $url into $file ...\n"
+      unless $config_parms{quiet};
+    if ( $file eq '/dev/null' ) {
         $response = $ua->simple_request($request);
     }
     else {
-        $response = $ua->simple_request($request, $file);
+        $response = $ua->simple_request( $request, $file );
     }
 
-    if ($response->is_error()) {
+    if ( $response->is_error() ) {
         printf "error: %s\n", $response->status_line;
     }
 }
-
 
 # There is an HTML TV page on disk. Parse the TV data out of it and
 # save the results in a file so that the parent MH process can read them back
@@ -172,76 +185,80 @@ sub parse_tv_com {
     my $temp2;
 
     # find the start of the actual data
-#print STDERR $html if ($debug);
+    #print STDERR $html if ($debug);
 
     # Get the program name
     $html =~ m/\<title\>\s*([^<]*) TV Show/i;
     $ProgramName = $1;
 
-    $html =~ m/span class=\"f-C00\"\>\s*([\w]+)\s*([\w]+)\s*([\w]+),\s*([\w]+)/i;
+    $html =~
+      m/span class=\"f-C00\"\>\s*([\w]+)\s*([\w]+)\s*([\w]+),\s*([\w]+)/i;
     $EpisodeDate = $1 . " " . $2 . " " . $3 . ", " . $4;
 
     # Get the program time
-    $html =~ m/Airs Next: \<span class=\"f-333\"\>\s*([\w]+)\s+([\w]+)\s+([\w]+)\s+([\d:]+)\s+([\w]+)/i;
-    if ( $4 ne '' and $5 ne '' )
-    {
+    $html =~
+      m/Airs Next: \<span class=\"f-333\"\>\s*([\w]+)\s+([\w]+)\s+([\w]+)\s+([\d:]+)\s+([\w]+)/i;
+    if ( $4 ne '' and $5 ne '' ) {
         $EpisodeTime = $4 . " " . $5;
     }
-    else
-    {
+    else {
         $EpisodeTime = "";
     }
 
     # Get the next episode details.
-    $html =~ m/Next Episode:\s*\<a\s*([^\n]*)\>\s*([^\n]*)\<\/a\>\<\/span\>\<br\s*\/\>\s*\n\s*([^\n]*)/i;
-    $EpisodeName = $2;
+    $html =~
+      m/Next Episode:\s*\<a\s*([^\n]*)\>\s*([^\n]*)\<\/a\>\<\/span\>\<br\s*\/\>\s*\n\s*([^\n]*)/i;
+    $EpisodeName        = $2;
     $EpisodeDescription = $3;
     $EpisodeDescription =~ s/"//g;
     $EpisodeDescription =~ s/\<br \/\>//g;
     $EpisodeDescription =~ s/\n//g;
     $EpisodeDescription =~ s/\r//g;
 
-    print "Program: $ProgramName\nDate: $EpisodeDate\nTime: $EpisodeTime\nTitle: $EpisodeName\nDescription: $EpisodeDescription\n" if $parms{v};
+    print
+      "Program: $ProgramName\nDate: $EpisodeDate\nTime: $EpisodeTime\nTitle: $EpisodeName\nDescription: $EpisodeDescription\n"
+      if $parms{v};
 }
-
 
 sub save_tv_com {
     my $file = shift;
     my $perl = '';
-    my ($year, $month, $day);
+    my ( $year, $month, $day );
 
     # input date format is "Thursday March 9, 2006"
     $EpisodeDate =~ m/([\w]+) ([\w]+) ([\d]+), ([\d]+)/i;
-    $year = $4;
+    $year  = $4;
     $month = monthStr_To_num($2);
-    $day = $3;
+    $day   = $3;
 
     # old format
-#    $perl .= '$TVProgramName[' . $showId . '] = "' . $ProgramName . '"' . ";\n";
-#    $perl .= '$TVEpisodeName[' . $showId . '] = "' . $EpisodeName . '"' . ";\n";
-#    $perl .= '$TVEpisodeDate[' . $showId . '] = "' . $EpisodeDate . '"' . ";\n";
-#    $perl .= '$TVEpisodeDescription[' . $showId . '] = "' . $EpisodeDescription . '"' . ";\n";
+    #    $perl .= '$TVProgramName[' . $showId . '] = "' . $ProgramName . '"' . ";\n";
+    #    $perl .= '$TVEpisodeName[' . $showId . '] = "' . $EpisodeName . '"' . ";\n";
+    #    $perl .= '$TVEpisodeDate[' . $showId . '] = "' . $EpisodeDate . '"' . ";\n";
+    #    $perl .= '$TVEpisodeDescription[' . $showId . '] = "' . $EpisodeDescription . '"' . ";\n";
 
     # output format is "TV	date	no time	Prog name	Programmes TV	Episode name & Desc"
-    if ( $year ) {
-        $perl .= "TV$showId\t$year.$month.$day\t$EpisodeTime\t$ProgramName\tProgrammes TV\t$EpisodeName: $EpisodeDescription\n";
+    if ($year) {
+        $perl .=
+          "TV$showId\t$year.$month.$day\t$EpisodeTime\t$ProgramName\tProgrammes TV\t$EpisodeName: $EpisodeDescription\n";
+
         # append the data to the file
-        main::logit($file, $perl, 0, 0);
+        main::logit( $file, $perl, 0, 0 );
     }
 }
 
 sub monthStr_To_num {
     my $monthStr = shift;
 
-    return 1 if ( $monthStr =~ m/Jan/i );
-    return 2 if ( $monthStr =~ m/Feb/i );
-    return 3 if ( $monthStr =~ m/Mar/i );
-    return 4 if ( $monthStr =~ m/Apr/i );
-    return 5 if ( $monthStr =~ m/May/i );
-    return 6 if ( $monthStr =~ m/Jun/i );
-    return 7 if ( $monthStr =~ m/Jul/i );
-    return 8 if ( $monthStr =~ m/Aug/i );
-    return 9 if ( $monthStr =~ m/Sep/i );
+    return 1  if ( $monthStr =~ m/Jan/i );
+    return 2  if ( $monthStr =~ m/Feb/i );
+    return 3  if ( $monthStr =~ m/Mar/i );
+    return 4  if ( $monthStr =~ m/Apr/i );
+    return 5  if ( $monthStr =~ m/May/i );
+    return 6  if ( $monthStr =~ m/Jun/i );
+    return 7  if ( $monthStr =~ m/Jul/i );
+    return 8  if ( $monthStr =~ m/Aug/i );
+    return 9  if ( $monthStr =~ m/Sep/i );
     return 10 if ( $monthStr =~ m/Oct/i );
     return 11 if ( $monthStr =~ m/Nov/i );
     return 12 if ( $monthStr =~ m/Dec/i );

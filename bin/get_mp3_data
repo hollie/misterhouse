@@ -4,17 +4,23 @@
 use strict;
 use IO::File;
 
-my($Pgm_Path, $Pgm_Name, $Version);
+my ( $Pgm_Path, $Pgm_Name, $Version );
+
 BEGIN {
-    ($Version) = q$Revision$ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
-    ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.+)\.?/;
+    ($Version) =
+      q$Revision$ =~ /: (\S+)/;   # Note: revision number is auto-updated by cvs
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.+)\.?/;
     ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
 }
 
 my %parms;
 use Getopt::Long;
-if (!&GetOptions(\%parms, "h", "help", "dbm=s") or !@ARGV or $parms{h} or $parms{help}) {
-    print<<eof;
+if (   !&GetOptions( \%parms, "h", "help", "dbm=s" )
+    or !@ARGV
+    or $parms{h}
+    or $parms{help} )
+{
+    print <<eof;
 
 $Pgm_Name reads mp3 directories and stores the results in a dbm file.
 
@@ -37,17 +43,19 @@ eof
     exit;
 }
 
-my (%counts, %DBM, @data);
+my ( %counts, %DBM, @data );
 &setup;
 for my $dir (@ARGV) {
     print "\nTraversing dir $dir\n";
     &read_mp3_dir($dir);
 }
-print "\nRead $counts{dir} directories and $counts{file} files.\n  - Found  $counts{tag} files with TAG data\n";
+print
+  "\nRead $counts{dir} directories and $counts{file} files.\n  - Found  $counts{tag} files with TAG data\n";
 my @tags = qw(title artist album year comment genre file);
-for (0 .. 6) {
-    printf "  - Found %4d files with a $tags[$_] tag\n", $counts{$_} unless $_ == 6;
-    $DBM{$tags[$_]} = join $;, @{$data[$_]};
+for ( 0 .. 6 ) {
+    printf "  - Found %4d files with a $tags[$_] tag\n", $counts{$_}
+      unless $_ == 6;
+    $DBM{ $tags[$_] } = join $;, @{ $data[$_] };
 }
 
 sub setup {
@@ -55,212 +63,289 @@ sub setup {
     print "\nData will be stored in $parms{dbm}\n";
     unlink $parms{dbm};
     use DB_File;
-    tie %DBM, 'DB_File', $parms{dbm}, O_RDWR|O_CREAT, 0666 or die "Can not open dbm file $parms{dbm}: $!";
+    tie %DBM, 'DB_File', $parms{dbm}, O_RDWR | O_CREAT, 0666
+      or die "Can not open dbm file $parms{dbm}: $!";
 }
 
 sub OggRead ($$$) {
-#Accepts three parameters.  The first is an open file handle to an Ogg stream.
-#The second is a reference to a variable where temporary data can be stored.
-#This variable should be initialized to zero by the calling routine.
-#The third is the number of bytes to return.
-#The Ogg encapulation is removed from the stream.
-#Returns nothing if there is an error, such as EOF.
-    my ($fh, $remainder, $bytes) = @_;
-    my ($buf, $retval);
-    while ($bytes > 0) {
-        if ($$remainder == 0) {
-	    #Find out if the stream is an Ogg stream and is version 0.
-	    return if sysread($fh, $buf, 5) != 5;
-	    return if unpack('H10', $buf) ne '4f67675300';
-	    #Skip the next 21 bytes.
-	    return if sysread($fh, $buf, 21) != 21;
-	    #Read the number of page segments.
-	    return if sysread($fh, $buf, 1) != 1;
-	    my $segments = ord($buf);
-	    #Read the segment table.
-	    while ($segments > 0) {
-		return if sysread($fh, $buf, 1) != 1;
-		$$remainder += ord($buf);
-		$segments--;
-	    }
-	}
-	my $size = $bytes;
-	$size = $$remainder if $$remainder < $bytes;
-	$bytes -= $size;
-	return if sysread($fh, $buf, $size) != $size;
-	$$remainder -= $size;
-	$retval .= $buf;
+
+    #Accepts three parameters.  The first is an open file handle to an Ogg stream.
+    #The second is a reference to a variable where temporary data can be stored.
+    #This variable should be initialized to zero by the calling routine.
+    #The third is the number of bytes to return.
+    #The Ogg encapulation is removed from the stream.
+    #Returns nothing if there is an error, such as EOF.
+    my ( $fh, $remainder, $bytes ) = @_;
+    my ( $buf, $retval );
+    while ( $bytes > 0 ) {
+        if ( $$remainder == 0 ) {
+
+            #Find out if the stream is an Ogg stream and is version 0.
+            return if sysread( $fh, $buf, 5 ) != 5;
+            return if unpack( 'H10', $buf ) ne '4f67675300';
+
+            #Skip the next 21 bytes.
+            return if sysread( $fh, $buf, 21 ) != 21;
+
+            #Read the number of page segments.
+            return if sysread( $fh, $buf, 1 ) != 1;
+            my $segments = ord($buf);
+
+            #Read the segment table.
+            while ( $segments > 0 ) {
+                return if sysread( $fh, $buf, 1 ) != 1;
+                $$remainder += ord($buf);
+                $segments--;
+            }
+        }
+        my $size = $bytes;
+        $size = $$remainder if $$remainder < $bytes;
+        $bytes -= $size;
+        return if sysread( $fh, $buf, $size ) != $size;
+        $$remainder -= $size;
+        $retval .= $buf;
     }
     return $retval;
 }
 
 sub GetOggInfo ($) {
-#Accepts a pathname as a parameter.
-#Returns comments as UTF-8 encoded strings in a hash.
-#Returns an empty hash if there are any errors.
-#All comment field names are converted to uppercase.
-#Uses IO::File.
-    my %comments=();
-    my $filename=shift;
+
+    #Accepts a pathname as a parameter.
+    #Returns comments as UTF-8 encoded strings in a hash.
+    #Returns an empty hash if there are any errors.
+    #All comment field names are converted to uppercase.
+    #Uses IO::File.
+    my %comments = ();
+    my $filename = shift;
+
     #The file handle closes automatically when $fh goes out of scope.
-    my $fh = new IO::File;
+    my $fh   = new IO::File;
     my $temp = 0;
-    my ($len, $listlength, $pos, $buf);
+    my ( $len, $listlength, $pos, $buf );
+
     #Find out if the file exists and is readable.  Then open it.
     return if !-r $filename or !-f _;
-    return if !open($fh, $filename);
+    return if !open( $fh, $filename );
     binmode($fh);
+
     #Find out if the Ogg Stream uses Vorbis version 0 encoding.
-    return if unpack('H22', OggRead($fh, \$temp, 11)) ne '01766f7262697300000000';
+    return
+      if unpack( 'H22', OggRead( $fh, \$temp, 11 ) ) ne
+      '01766f7262697300000000';
+
     #Skip the next 18 bytes of the identification header.
-    $buf = OggRead($fh, \$temp, 18);
+    $buf = OggRead( $fh, \$temp, 18 );
     return if !defined $buf;
+
     #Check the framing bit.
-    return if unpack('b1', OggRead($fh, \$temp, 1)) ne '1';
+    return if unpack( 'b1', OggRead( $fh, \$temp, 1 ) ) ne '1';
+
     #Find out if there is a comment packet.
-    return if unpack('H14', OggRead($fh, \$temp, 7)) ne '03766f72626973';
+    return if unpack( 'H14', OggRead( $fh, \$temp, 7 ) ) ne '03766f72626973';
+
     #Read the vendor string.
-    $len = unpack('I', OggRead($fh, \$temp, 4));
+    $len = unpack( 'I', OggRead( $fh, \$temp, 4 ) );
     return if !defined $len;
-    $buf = OggRead($fh, \$temp, $len);
+    $buf = OggRead( $fh, \$temp, $len );
     return if !defined $buf;
     $comments{VENDOR} = $buf;
+
     #Read the user comment list length.
-    $listlength = unpack('I', OggRead($fh, \$temp, 4));
+    $listlength = unpack( 'I', OggRead( $fh, \$temp, 4 ) );
     return if !defined $listlength;
+
     #Read the user comments.
-    while ($listlength > 0) {
-	$len = unpack('I', OggRead($fh, \$temp, 4));
-	return if !defined $len;
-	$buf = OggRead($fh, \$temp, $len);
-	return if !defined $buf;
-	$pos = index $buf, '=';
-	$comments{uc(substr($buf, 0, $pos))} = substr($buf, $pos + 1);
-	$listlength--;
+    while ( $listlength > 0 ) {
+        $len = unpack( 'I', OggRead( $fh, \$temp, 4 ) );
+        return if !defined $len;
+        $buf = OggRead( $fh, \$temp, $len );
+        return if !defined $buf;
+        $pos = index $buf, '=';
+        $comments{ uc( substr( $buf, 0, $pos ) ) } = substr( $buf, $pos + 1 );
+        $listlength--;
     }
+
     #Error check
-    return if unpack('b1', OggRead($fh, \$temp, 1)) ne '1';
+    return if unpack( 'b1', OggRead( $fh, \$temp, 1 ) ) ne '1';
+
     #Return the user comments.
     return %comments;
 }
 
 sub read_mp3_dir {
-    my($dir) = @_;
+    my ($dir) = @_;
     my $buffer;
-    $dir =~ s|[/\\]$||;		# Drop trailing / or \
+    $dir =~ s|[/\\]$||;    # Drop trailing / or \
     print "  - Reading files in $dir\n";
     $counts{dir}++;
-    opendir(MP3DIR, $dir) or do {print "Error in dir open: $!\n"; return};
-    my @files = readdir MP3DIR;  # print "db files=@files\n";
+    opendir( MP3DIR, $dir ) or do { print "Error in dir open: $!\n"; return };
+    my @files = readdir MP3DIR;    # print "db files=@files\n";
     close MP3DIR;
 
-    my @mp3_genres = ('Blues', 'Classic Rock', 'Country', 'Dance', 'Disco',
-	'Funk', 'Grunge', 'Hip-Hop', 'Jazz', 'Metal', 'New Age', 'Oldies', 'Other',
-	'Pop', 'R&B', 'Rap', 'Reggae', 'Rock', 'Techno', 'Industrial',
-	'Alternative', 'Ska', 'Death Metal', 'Pranks', 'Soundtrack', 'Euro-Techno',
-	'Ambient', 'Trip-Hop', 'Vocal', 'Jazz+Funk', 'Fusion', 'Trance',
-	'Classical', 'Instrumental', 'Acid', 'House', 'Game', 'Sound Clip',
-	'Gospel', 'Noise', 'Alt. Rock', 'Bass', 'Soul', 'Punk', 'Space',
-	'Meditative', 'Instrumental Pop', 'Instrumental Rock', 'Ethnic', 'Gothic',
-	'Darkwave', 'Techno-Industrial', 'Electronic', 'Pop-Folk', 'Eurodance',
-	'Dream', 'Southern Rock', 'Comedy', 'Cult', 'Gangsta Rap', 'Top 40',
-	'Christian Rap', 'Pop/Funk', 'Jungle', 'Native American', 'Cabaret',
-	'New Wave', 'Psychedelic', 'Rave', 'Showtunes', 'Trailer', 'Lo-Fi',
-	'Tribal', 'Acid Punk', 'Acid Jazz', 'Polka', 'Retro', 'Musical',
-	'Rock & Roll', 'Hard Rock', 'Folk', 'Folk/Rock', 'National Folk', 'Swing',
-	'Fast-Fusion', 'Bebob', 'Latin', 'Revival', 'Celtic', 'Bluegrass',
-	'Avantgarde', 'Gothic Rock', 'Progressive Rock', 'Psychedelic Rock',
-	'Symphonic Rock', 'Slow Rock', 'Big Band', 'Chorus', 'Easy Listening',
-	'Acoustic', 'Humour', 'Speech', 'Chanson', 'Opera', 'Chamber Music',
-	'Sonata', 'Symphony', 'Booty Bass', 'Primus', 'Porn Groove', 'Satire',
-	'Slow Jam', 'Club', 'Tango', 'Samba', 'Folklore', 'Ballad', 'Power Ballad',
-	'Rhythmic Soul', 'Freestyle', 'Duet', 'Punk Rock', 'Drum Solo',
-	'A Cappella', 'Euro-House', 'Dance Hall', 'Goa', 'Drum & Bass',
-	'Club-House', 'Hardcore', 'Terror', 'Indie', 'BritPop', 'Negerpunk',
-	'Polsk Punk', 'Beat', 'Christian Gangsta Rap', 'Heavy Metal',
-	'Black Metal', 'Crossover', 'Contemporary Christian', 'Christian Rock',
-	'Merengue', 'Salsa', 'Thrash Metal', 'Anime', 'JPop', 'Synthpop');
+    my @mp3_genres = (
+        'Blues',                  'Classic Rock',
+        'Country',                'Dance',
+        'Disco',                  'Funk',
+        'Grunge',                 'Hip-Hop',
+        'Jazz',                   'Metal',
+        'New Age',                'Oldies',
+        'Other',                  'Pop',
+        'R&B',                    'Rap',
+        'Reggae',                 'Rock',
+        'Techno',                 'Industrial',
+        'Alternative',            'Ska',
+        'Death Metal',            'Pranks',
+        'Soundtrack',             'Euro-Techno',
+        'Ambient',                'Trip-Hop',
+        'Vocal',                  'Jazz+Funk',
+        'Fusion',                 'Trance',
+        'Classical',              'Instrumental',
+        'Acid',                   'House',
+        'Game',                   'Sound Clip',
+        'Gospel',                 'Noise',
+        'Alt. Rock',              'Bass',
+        'Soul',                   'Punk',
+        'Space',                  'Meditative',
+        'Instrumental Pop',       'Instrumental Rock',
+        'Ethnic',                 'Gothic',
+        'Darkwave',               'Techno-Industrial',
+        'Electronic',             'Pop-Folk',
+        'Eurodance',              'Dream',
+        'Southern Rock',          'Comedy',
+        'Cult',                   'Gangsta Rap',
+        'Top 40',                 'Christian Rap',
+        'Pop/Funk',               'Jungle',
+        'Native American',        'Cabaret',
+        'New Wave',               'Psychedelic',
+        'Rave',                   'Showtunes',
+        'Trailer',                'Lo-Fi',
+        'Tribal',                 'Acid Punk',
+        'Acid Jazz',              'Polka',
+        'Retro',                  'Musical',
+        'Rock & Roll',            'Hard Rock',
+        'Folk',                   'Folk/Rock',
+        'National Folk',          'Swing',
+        'Fast-Fusion',            'Bebob',
+        'Latin',                  'Revival',
+        'Celtic',                 'Bluegrass',
+        'Avantgarde',             'Gothic Rock',
+        'Progressive Rock',       'Psychedelic Rock',
+        'Symphonic Rock',         'Slow Rock',
+        'Big Band',               'Chorus',
+        'Easy Listening',         'Acoustic',
+        'Humour',                 'Speech',
+        'Chanson',                'Opera',
+        'Chamber Music',          'Sonata',
+        'Symphony',               'Booty Bass',
+        'Primus',                 'Porn Groove',
+        'Satire',                 'Slow Jam',
+        'Club',                   'Tango',
+        'Samba',                  'Folklore',
+        'Ballad',                 'Power Ballad',
+        'Rhythmic Soul',          'Freestyle',
+        'Duet',                   'Punk Rock',
+        'Drum Solo',              'A Cappella',
+        'Euro-House',             'Dance Hall',
+        'Goa',                    'Drum & Bass',
+        'Club-House',             'Hardcore',
+        'Terror',                 'Indie',
+        'BritPop',                'Negerpunk',
+        'Polsk Punk',             'Beat',
+        'Christian Gangsta Rap',  'Heavy Metal',
+        'Black Metal',            'Crossover',
+        'Contemporary Christian', 'Christian Rock',
+        'Merengue',               'Salsa',
+        'Thrash Metal',           'Anime',
+        'JPop',                   'Synthpop'
+    );
 
-    for my $file (sort @files) {
-        next if ($file =~ /^\./);
+    for my $file ( sort @files ) {
+        next if ( $file =~ /^\./ );
         $file = "$dir/$file";
         &read_mp3_dir($file), next if -d $file;
-#       next if $file eq '.' or $file eq '..' or $file !~ /\.mp3$/i;
+
+        #       next if $file eq '.' or $file eq '..' or $file !~ /\.mp3$/i;
         $counts{file}++;
-        open(MP3FILE, $file) or print "Error in in file open: $!\n";
-        if (open(MP3FILE, $file)) {
+        open( MP3FILE, $file ) or print "Error in in file open: $!\n";
+        if ( open( MP3FILE, $file ) ) {
 
             seek MP3FILE, -128, 2;
             read MP3FILE, $buffer, 128;
             close MP3FILE;
 
-            my @tag_data = unpack('A3A30A30A30A4A30C1', $buffer);
-	    my $is_mp3 = 0;
-            if ('TAG' eq shift @tag_data) {
+            my @tag_data = unpack( 'A3A30A30A30A4A30C1', $buffer );
+            my $is_mp3 = 0;
+            if ( 'TAG' eq shift @tag_data ) {
                 $counts{tag}++;
-		$is_mp3 = 1;
-            } else {
-		my %ogg_data = GetOggInfo($file);
-		if (scalar %ogg_data) {
-		    $counts{tag}++;
-		    $tag_data[0] = $ogg_data{TITLE};
-		    $tag_data[1] = $ogg_data{ARTIST};
-		    $tag_data[2] = $ogg_data{ALBUM};
-		    if (defined $ogg_data{YEAR}) {
-		    	$tag_data[3] = $ogg_data{YEAR};
-		    } else {
-		    	$tag_data[3] = $ogg_data{DATE};
-		    }
-		    $tag_data[4] = $ogg_data{COMMENT};
-		    $tag_data[5] = $ogg_data{GENRE};
-		} else {
-		    undef @tag_data;
-		}
+                $is_mp3 = 1;
+            }
+            else {
+                my %ogg_data = GetOggInfo($file);
+                if ( scalar %ogg_data ) {
+                    $counts{tag}++;
+                    $tag_data[0] = $ogg_data{TITLE};
+                    $tag_data[1] = $ogg_data{ARTIST};
+                    $tag_data[2] = $ogg_data{ALBUM};
+                    if ( defined $ogg_data{YEAR} ) {
+                        $tag_data[3] = $ogg_data{YEAR};
+                    }
+                    else {
+                        $tag_data[3] = $ogg_data{DATE};
+                    }
+                    $tag_data[4] = $ogg_data{COMMENT};
+                    $tag_data[5] = $ogg_data{GENRE};
+                }
+                else {
+                    undef @tag_data;
+                }
             }
 
-	    if (!$is_mp3) {
-			#stored in artist, album subdirectories with "Music Now" song index prefix
-			if ($file =~ /\/(.*?)\/(.*?)\/\d\d\d\x20(.*).wma/i) {
-				$tag_data[0] = $3;
-				$tag_data[2] = $2;
-				$tag_data[1] = $1;
-				$counts{tag}++;
-			}
-			elsif ($file =~ /\/(.*?)\/(.*?)\/\d\d\d-(.*).wma/i) {
-				$tag_data[0] = $3;
-				$tag_data[2] = $2;
-				$tag_data[1] = $1;
-				$counts{tag}++;
-			} #stored in root as artist - song (Napster does this)
-			elsif ($file =~ /\/(.*?)\x20-\x20(.*).wma/i) {
-				$tag_data[0] = $2;											$tag_data[1] = $1;
-				$counts{tag}++;
-			}
-	    }
+            if ( !$is_mp3 ) {
 
-            for my $i (0 .. 5) {
-                if ($i == 5 && $is_mp3) {
-                    $tag_data[$i] = $mp3_genres[$tag_data[$i]] if defined $tag_data[$i];
+                #stored in artist, album subdirectories with "Music Now" song index prefix
+                if ( $file =~ /\/(.*?)\/(.*?)\/\d\d\d\x20(.*).wma/i ) {
+                    $tag_data[0] = $3;
+                    $tag_data[2] = $2;
+                    $tag_data[1] = $1;
+                    $counts{tag}++;
+                }
+                elsif ( $file =~ /\/(.*?)\/(.*?)\/\d\d\d-(.*).wma/i ) {
+                    $tag_data[0] = $3;
+                    $tag_data[2] = $2;
+                    $tag_data[1] = $1;
+                    $counts{tag}++;
+                }    #stored in root as artist - song (Napster does this)
+                elsif ( $file =~ /\/(.*?)\x20-\x20(.*).wma/i ) {
+                    $tag_data[0] = $2;
+                    $tag_data[1] = $1;
+                    $counts{tag}++;
+                }
+            }
+
+            for my $i ( 0 .. 5 ) {
+                if ( $i == 5 && $is_mp3 ) {
+                    $tag_data[$i] = $mp3_genres[ $tag_data[$i] ]
+                      if defined $tag_data[$i];
                 }
 
-                $tag_data[$i] =~ tr/\x20-\x7e//cd; # Drop non-ascii characters
+                $tag_data[$i] =~ tr/\x20-\x7e//cd;   # Drop non-ascii characters
                 $tag_data[$i] =~ s/^\s+//;
                 $tag_data[$i] =~ s/\s+$//;
-		if ($i == 1) {
-			if ($tag_data[$i] =~ s/^The\s+//) {
-				# Move "The" to the end...
-				$tag_data[$i] .= ', The';
-			}
-		}
-                push @{$data[$i]}, $tag_data[$i];
+                if ( $i == 1 ) {
+                    if ( $tag_data[$i] =~ s/^The\s+// ) {
+
+                        # Move "The" to the end...
+                        $tag_data[$i] .= ', The';
+                    }
+                }
+                push @{ $data[$i] }, $tag_data[$i];
                 $counts{$i}++ if $tag_data[$i];
             }
-	    $file =~ s|\\|/|g;
-            push @{$data[6]}, $file;
+            $file =~ s|\\|/|g;
+            push @{ $data[6] }, $file;
         }
     }
 }
-
 
 #
 # $Log: get_mp3_data,v $

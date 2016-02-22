@@ -1,3 +1,4 @@
+
 =begin comment
 
 This module contains common code used by the X10_MR26.pm and X10_W800.pm
@@ -72,7 +73,7 @@ use X10_RF_rfxsensor;
 # parsed (i.e. a new command, it will return undef).
 
 sub decode_rf_bytes {
-    my($module, @bytes) = @_;
+    my ( $module, @bytes ) = @_;
 
     my $uc_module = uc $module;
     my $lc_module = lc $module;
@@ -83,9 +84,9 @@ sub decode_rf_bytes {
     # byte and byte 3 is the 1st physical byte).  Store the converted bytes
     # as integers instead of characters.
     my @nbytes;
-    for (my $i = 0; $i < 4; $i++) {
-	my $j = ($i < 2) ? 2 + $i : $i - 2;
-	$nbytes[$j] = ord(pack("B8", unpack("b*", $bytes[$i])));
+    for ( my $i = 0; $i < 4; $i++ ) {
+        my $j = ( $i < 2 ) ? 2 + $i : $i - 2;
+        $nbytes[$j] = ord( pack( "B8", unpack( "b*", $bytes[$i] ) ) );
     }
 
     # Since the MR26 doesn't have the checksum bytes, we'll just manufacture
@@ -93,60 +94,69 @@ sub decode_rf_bytes {
     # because decode_rf_bytes can also handle security data sent by a W800RF32,
     # which requires a unique forth byte.  Since the mr26 can't handle security
     # data, we don't need to worry about it.
-    if ($lc_module eq 'mr26') {
-	$nbytes[1] = $nbytes[0] ^ 0xff;
-	$nbytes[3] = $nbytes[2] ^ 0xff;
+    if ( $lc_module eq 'mr26' ) {
+        $nbytes[1] = $nbytes[0] ^ 0xff;
+        $nbytes[3] = $nbytes[2] ^ 0xff;
     }
 
     # Come up with binary representations of the bytes for use in messages.
     my @bbytes;
-    for (my $i = 0; $i < 4; $i++) {
-	$bbytes[$i] = unpack("B*", chr($nbytes[$i]));
+    for ( my $i = 0; $i < 4; $i++ ) {
+        $bbytes[$i] = unpack( "B*", chr( $nbytes[$i] ) );
     }
 
-    if ($main::Debug{$lc_module}) {
-	&::print_log(sprintf "%s: reordered data: %02x %02x %02x %02x",
-		             $uc_module,
-		             $nbytes[0], $nbytes[1], $nbytes[2], $nbytes[3]);
+    if ( $main::Debug{$lc_module} ) {
+        &::print_log( sprintf "%s: reordered data: %02x %02x %02x %02x",
+            $uc_module, $nbytes[0], $nbytes[1], $nbytes[2], $nbytes[3] );
     }
 
     # The first two bytes are always complements (Except for Digimax and rfxsensor).
-    my $initial_checksum_good = (($nbytes[0] ^ $nbytes[1]) == 0xff);
+    my $initial_checksum_good = ( ( $nbytes[0] ^ $nbytes[1] ) == 0xff );
 
     # Determine what type of device this command appears to have come from.
-    if (&rf_is_powerline($initial_checksum_good, @nbytes)) {
-	&::print_log("$lc_module: this is x10 powerline data") if ($main::Debug{$lc_module});
-	return &rf_process_powerline($module, @nbytes, @bbytes);
+    if ( &rf_is_powerline( $initial_checksum_good, @nbytes ) ) {
+        &::print_log("$lc_module: this is x10 powerline data")
+          if ( $main::Debug{$lc_module} );
+        return &rf_process_powerline( $module, @nbytes, @bbytes );
 
-    } elsif (&rf_is_tv_remote($initial_checksum_good, @nbytes)) {
-	&::print_log("$lc_module: this is tv remote data") if ($main::Debug{$lc_module});
-	return &rf_process_tv_remote($module, @nbytes, @bbytes);
+    }
+    elsif ( &rf_is_tv_remote( $initial_checksum_good, @nbytes ) ) {
+        &::print_log("$lc_module: this is tv remote data")
+          if ( $main::Debug{$lc_module} );
+        return &rf_process_tv_remote( $module, @nbytes, @bbytes );
 
-    } elsif ($lc_module ne 'mr26') { # Can't receive the following with an MR26
+    }
+    elsif ( $lc_module ne 'mr26' ) {  # Can't receive the following with an MR26
 
-	if (&rf_is_security($initial_checksum_good, @nbytes)) {
-          &::print_log("$lc_module: this is x10 security data") if ($main::Debug{$lc_module});
-	    return &rf_process_security($module, @nbytes, @bbytes);
+        if ( &rf_is_security( $initial_checksum_good, @nbytes ) ) {
+            &::print_log("$lc_module: this is x10 security data")
+              if ( $main::Debug{$lc_module} );
+            return &rf_process_security( $module, @nbytes, @bbytes );
 
-	} elsif (&rf_is_rfxsensor(@bytes)) {
-          &::print_log("$lc_module: this is rfxsensor data") if ($main::Debug{$lc_module});
-	    return &rf_process_rfxsensor($module, @bytes);
+        }
+        elsif ( &rf_is_rfxsensor(@bytes) ) {
+            &::print_log("$lc_module: this is rfxsensor data")
+              if ( $main::Debug{$lc_module} );
+            return &rf_process_rfxsensor( $module, @bytes );
 
-	} elsif (&rf_is_digimax210(@bytes)) {
-          &::print_log("$lc_module: this is digimax data") if ($main::Debug{$lc_module});
-	    return &rf_process_digimax210($module, @bytes);
-	}
+        }
+        elsif ( &rf_is_digimax210(@bytes) ) {
+            &::print_log("$lc_module: this is digimax data")
+              if ( $main::Debug{$lc_module} );
+            return &rf_process_digimax210( $module, @bytes );
+        }
     }
 
     # If we made it to here, then we don't know what to do with the command.
-    if (!$initial_checksum_good) {
-	&::print_log(  "${uc_module}: bad initial checksum: "
-		     . "$bbytes[0] $bbytes[1] $bbytes[2] $bbytes[3]")
-		     if $main::Debug{$lc_module};
-    } else {
-	&::print_log(  "${uc_module}: bad checksum: "
-		     . "$bbytes[0] $bbytes[1] $bbytes[2] $bbytes[3]")
-		     if $main::Debug{$lc_module};
+    if ( !$initial_checksum_good ) {
+        &::print_log( "${uc_module}: bad initial checksum: "
+              . "$bbytes[0] $bbytes[1] $bbytes[2] $bbytes[3]" )
+          if $main::Debug{$lc_module};
+    }
+    else {
+        &::print_log( "${uc_module}: bad checksum: "
+              . "$bbytes[0] $bbytes[1] $bbytes[2] $bbytes[3]" )
+          if $main::Debug{$lc_module};
     }
 
     return "BADCHECKSUM";
@@ -158,15 +168,18 @@ sub decode_rf_bytes {
 #	Set state of all MR26/W800 and X10_RF_Receiver objects.
 
 sub rf_set_receiver {
-    my($module, $state) = @_;
+    my ( $module, $state ) = @_;
 
     my $uc_module = uc $module;
 
-    for my $name (&main::list_objects_by_type('X10_' . $uc_module),
-		  &main::list_objects_by_type('X10_RF_Receiver'  ) ) {
+    for my $name (
+        &main::list_objects_by_type( 'X10_' . $uc_module ),
+        &main::list_objects_by_type('X10_RF_Receiver')
+      )
+    {
 
-	my $object = &main::get_object_by_name($name);
-	$object->set($state);
+        my $object = &main::get_object_by_name($name);
+        $object->set($state);
     }
 }
 
@@ -176,20 +189,21 @@ sub rf_set_receiver {
 #	Set the state of any items or classes associated with this device.
 
 sub rf_set_RF_Item {
-    my($module, $desc, $no_match_text, $item_id, $class_id, $state) = @_;
+    my ( $module, $desc, $no_match_text, $item_id, $class_id, $state ) = @_;
 
     my $uc_module = uc $module;
     my $lc_module = lc $module;
 
     my $matched;
-    for my $name (&main::list_objects_by_type('RF_Item')) {
+    for my $name ( &main::list_objects_by_type('RF_Item') ) {
         my $object = &main::get_object_by_name($name);
         my $id     = $object->{rf_id};
-        if ($id eq $item_id or (defined $class_id and $id eq $class_id)) {
-            $object->set($state,'rf');
+        if ( $id eq $item_id or ( defined $class_id and $id eq $class_id ) ) {
+            $object->set( $state, 'rf' );
             $matched = 1;
-            if ($main::Debug{$lc_module}) {
-                 &::print_log ("$item_id: " . substr($name, 1) . " set $state");
+            if ( $main::Debug{$lc_module} ) {
+                &::print_log(
+                    "$item_id: " . substr( $name, 1 ) . " set $state" );
             }
         }
     }
@@ -204,20 +218,21 @@ sub rf_set_RF_Item {
 #	Get the state of the item with the given id.
 
 sub rf_get_RF_Item {
-    my($module, $desc, $no_match_text, $item_id) = @_;
+    my ( $module, $desc, $no_match_text, $item_id ) = @_;
 
     my $uc_module = uc $module;
     my $lc_module = lc $module;
 
     my $matched;
-    for my $name (&main::list_objects_by_type('RF_Item')) {
+    for my $name ( &main::list_objects_by_type('RF_Item') ) {
         my $object = &main::get_object_by_name($name);
         my $id     = $object->{rf_id};
-        if ($id eq $item_id) {
+        if ( $id eq $item_id ) {
             my $state = $object->state;
             $matched = 1;
-            if ($main::Debug{$lc_module}) {
-                 &::print_log ("$item_id: " . substr($name, 1) . " get $state");
+            if ( $main::Debug{$lc_module} ) {
+                &::print_log(
+                    "$item_id: " . substr( $name, 1 ) . " get $state" );
             }
             return $state;
         }
