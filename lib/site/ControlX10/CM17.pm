@@ -155,13 +155,13 @@ sub send_bits {
     my @bits = split //, $bits;
 
                                 # Reset the device
-    $serial_port->dtr_active(0);
+    $serial_port->dtr_active(0) or warn "Could not set dtr_active(0)";
     $serial_port->rts_active(0);
     select (undef, undef, undef, .100); # How long??
 
 
                                 # Turn the device on
-    $serial_port->dtr_active(1);
+    $serial_port->dtr_active(1) or warn "Could not set dtr_active(1)";
     $serial_port->rts_active(1);
     select (undef, undef, undef, .20);  # How long??
 
@@ -180,14 +180,14 @@ sub send_bits {
     }
                                 # Leave the device on till switch occurs ... emperically derived 
                                 #  - 50->70  ms seemed to be the minnimum
-    $serial_port->dtr_active(1);
+    $serial_port->dtr_active(1) or warn "Could not set dtr_active(1)";
     $serial_port->rts_active(1);
     select (undef, undef, undef, .150);
 
     print " done\n" if $DEBUG;
 
                                 # Turn the device off
-    $serial_port->dtr_active(0);
+    $serial_port->dtr_active(0) or warn "Could not set dtr_active(0)";
     $serial_port->rts_active(0);
 
 }

@@ -22,67 +22,71 @@ Authors:
 
 package WebServices;
 
-sub TestArray{
-	my @x = [1,2,3];
-	return @x;
+sub TestArray {
+    my @x = [ 1, 2, 3 ];
+    return @x;
 }
 
-sub ListObjectsByType{
-	$self = shift;
-	my $obj_type = shift;
-	# main::print_log "Listing objects of type $obj_type by SoapServer";
-	my @results = &main::list_objects_by_type($obj_type);
-	return [@results];
+sub ListObjectsByType {
+    $self = shift;
+    my $obj_type = shift;
+
+    # main::print_log "Listing objects of type $obj_type by SoapServer";
+    my @results = &main::list_objects_by_type($obj_type);
+    return [@results];
 }
 
 sub ListObjectsByFile {
-	return &main::list_objects_by_file();
+    return &main::list_objects_by_file();
 }
 
 sub ListObjectTypes {
-	my @results = &main::list_object_types();
-	return [@results];
+    my @results = &main::list_object_types();
+    return [@results];
 }
 
 sub RunVoiceCommand {
-	my ($self, $cmd) = @_;
+    my ( $self, $cmd ) = @_;
 
-	return &main::run_voice_cmd($cmd,undef, "SOAP");
+    return &main::run_voice_cmd( $cmd, undef, "SOAP" );
 }
 
 sub SetItemState {
-	my ($self, $item, $state) = @_;
-	
-	$item =~s/\$//;
-	$item = '$main::' . $item;
-	
-	my $eval_cmd = qq[($item and ref($item) ne '' and ref($item) ne 'SCALAR' and $item->can('set')) ?
+    my ( $self, $item, $state ) = @_;
+
+    $item =~ s/\$//;
+    $item = '$main::' . $item;
+
+    my $eval_cmd =
+      qq[($item and ref($item) ne '' and ref($item) ne 'SCALAR' and $item->can('set')) ?
 		           ($item->set("$state", 'SOAP')) : ($item = "$state")];
-                                      
-   	eval $eval_cmd ;
-   	
-   	if ($@) {
-   		return (0,$@)
-   	}else{
-   		return (1, $state)
-   	}
+
+    eval $eval_cmd;
+
+    if ($@) {
+        return ( 0, $@ );
+    }
+    else {
+        return ( 1, $state );
+    }
 }
 
-sub GetItemState{
-	my($self, $item) = @_;
+sub GetItemState {
+    my ( $self, $item ) = @_;
 
-	$item =~ s/\$//;
-	$item = '$main::' . $item;
-	
-	my $state ;
-	
-	#my $eval_cmd = qq^\$state = $item->state^;
+    $item =~ s/\$//;
+    $item = '$main::' . $item;
 
-	my $eval_cmd = qq[($item and ref($item) ne '' and ref($item) ne 'SCALAR' and $item->can('state')) ? (\$state = $item->state) : ($item)];
-	
-	eval $eval_cmd;
+    my $state;
 
-	return $@ ? $@ : $state;
+    #my $eval_cmd = qq^\$state = $item->state^;
+
+    my $eval_cmd =
+      qq[($item and ref($item) ne '' and ref($item) ne 'SCALAR' and $item->can('state')) ? (\$state = $item->state) : ($item)];
+
+    eval $eval_cmd;
+
+    return $@ ? $@ : $state;
 }
 
 1;

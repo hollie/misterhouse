@@ -1,3 +1,4 @@
+
 =head1 B<Numbered_Menu>
 
 =head2 SYNOPSIS
@@ -84,332 +85,303 @@ my @m_itemList;
 my $m_menuDepth;
 my $m_active;
 
-sub new
-{
-	my ($p_class,$p_menugroup, $p_delay) = @_;
-	my $self={};
+sub new {
+    my ( $p_class, $p_menugroup, $p_delay ) = @_;
+    my $self = {};
 
-	bless $self, $p_class;
+    bless $self, $p_class;
 
-	$p_delay=3               unless defined $p_delay;
+    $p_delay     = 3         unless defined $p_delay;
     $p_menugroup = 'default' unless $p_menugroup;
 
-	$$self{m_menugroup}   = $p_menugroup;
-	$$self{m_outputTimer} = new Timer();
-	$$self{m_outputDelay} = $p_delay;
+    $$self{m_menugroup}   = $p_menugroup;
+    $$self{m_outputTimer} = new Timer();
+    $$self{m_outputDelay} = $p_delay;
     $$self{m_active}      = 0;
     $$self{m_menuDepth}   = 0;
 
-	return $self;
+    return $self;
 }
 
-sub set
-{
-	my ($self, $p_state, $p_setby) = @_;
-#	&::print_log("State called: $p_state, $p_setby");
+sub set {
+    my ( $self, $p_state, $p_setby ) = @_;
+
+    #	&::print_log("State called: $p_state, $p_setby");
     $p_state = lc $p_state;
 
-	return unless ($$self{m_active} or $p_state eq 'start' or $p_state eq 'on');
+    return
+      unless ( $$self{m_active} or $p_state eq 'start' or $p_state eq 'on' );
 
-	if ($p_setby ne $$self{m_outputTimer}) #keep timer states out of the loop
-	{
-		$self->SUPER::set($p_state);
-	}
-
-	if ($p_setby eq $$self{m_outputTimer})
-	{
-		if ($p_state eq 'off')
-		{
-			$self->sequence_item();
-		}
-	}
-	else #process any request
-	{
-		if ($p_state =~ /^[0-9]+/ and $$self{m_active})
-		{
-			$self->select_item($p_state);
-		}
-		elsif ($p_state eq 'exit' and $$self{m_active})
-		{
-			$self->exit();
-		}
-		elsif ($p_state eq 'repeat' and $$self{m_active})
-		{
-			$self->repeat();
-		}
-		elsif ($p_state eq 'next' and $$self{m_active})
-		{
-			$self->next();
-		}
-		elsif ($p_state eq 'previous' and $$self{m_active})
-		{
-			$self->previous();
-		}
-		elsif ($p_state eq 'start' or $p_state eq 'on')
-		{
-			$self->start();
-		}
-		elsif ($p_state eq 'stop' or $p_state eq 'off')
-		{
-			$self->stop();
-		}
-	}
-}
-
-sub select_menu
-{
-	my ($self, $p_menu) = @_;
-    return unless $p_menu;  # Avoid mh abend if I run start twice in a row
-
-	my $menus = $$self{m_menus};
-
-	$$self{m_outputTimer}->set(0); #stop output
-
-#	&::print_log("Selected Menu: $p_menu : $$self{m_menuDepth}");
-	$$self{m_menuCurrent} = $p_menu;
-
-    ${$$self{m_menuList}}[$$self{m_menuDepth}] = $p_menu;
-
-	$$self{m_itemIndex} = 1;
-    return unless $$menus{$$self{m_menuCurrent}}; # Guard against bad menus
-	$$self{m_itemCount} = @{$$menus{$$self{m_menuCurrent}}{items}};
-
-	if ($$self{m_menuCurrent} =~ /^states/) {
-		my $l_menuPrevious = ${$$self{m_menuList}}[$$self{m_menuDepth}-1];
-		my $l_itemPrevious = ${$$self{m_itemList}}[$$self{m_menuDepth}-1];
-		my $item = ${$$menus{$l_menuPrevious}{items}}[$l_itemPrevious-1];
-
-#		&::print_log("POP:$$self{m_menuDepth},$l_menuPrevious: $l_itemPrevious : $$item{A}: $$item{Dstates}");
-		if ($$item{A} and $$item{Dstates} )
-		{
-			$self->set_states_for_next_pass("MENU:$$item{Dprefix}command$$item{Dsuffix}");
-		}
-	}
-	else {
-		$self->set_states_for_next_pass("MENU:$$self{m_menuCurrent}");
-	}
-}
-
-sub select_item
-{
-	my ($self, $p_item) = @_;
-	my $menus = $$self{m_menus};
-
-	$$self{m_outputTimer}->set(0); #stop output
-
-	if ($p_item > $$self{m_itemCount})
-	{
-		#ignore bogus entries
-		return;
-	}
-	$$self{m_itemCurrent} = $p_item;
-	${$$self{m_itemList}}[$$self{m_menuDepth}]=$p_item;
-#	my $tester= ${$$self{m_itemList}}[$$self{m_menuDepth}];
-#	&::print_log("---set: $tester, $$self{m_menuDepth},$p_item:");
-	my $item = ${$$menus{$$self{m_menuCurrent}}{items}}[$p_item-1];
-
-#	&::print_log("GOTO: $$item{goto}");
-	if ($$item{A}) #action
-	{
-		if ($$item{Dstates})
-		{
-			$$self{m_menuDepth}++;
-			$self->select_menu($$item{'Dstates_menu'});
-			$self->item_delay();
-		}
-		elsif ($$item{A} eq 'state_select')
-		{
-			my $l_item = $p_item -1;
-			my $l_itemPrevious = ${$$self{m_itemList}}[$$self{m_menuDepth}-1]-1;
-			my $l_menuPrevious = ${$$self{m_menuList}}[$$self{m_menuDepth}-1];
-#			&::print_log("MenuPreve: $l_menuPrevious");
-			my $response=&::menu_run($$self{m_menugroup},$l_menuPrevious,$l_itemPrevious,$l_item,"l");
-			if ($response)
-			{
-				$self->set_states_for_next_pass("RESPONSE:$response");
-			}
-			$self->repeat();
-		}
-		else
-		{
-#			&::print_log("ARun Item:$$self{m_menuCurrent} : $p_item");
-			my $l_item = $$self{m_itemCurrent}-1;
-#			&::menu_run("$$self{m_menugroup},$$self{m_menuCurrent},$l_item,$$item{D},l");
-			my $response = &::menu_run($$self{m_menugroup},$$self{m_menuCurrent},$l_item,undef,"l");
-			if ($response)
-			{
-				$self->set_states_for_next_pass("RESPONSE:$response");
-			}
-		}
-	}
-	elsif ($$item{R}) #response
-	{
-#		&::print_log("RRun Item:$$self{m_menucurrent} : $p_item");
-		my $l_item = $$self{m_itemCurrent}-1;
-		my $response = &::menu_run($$self{m_menugroup},$$self{m_menuCurrent},$l_item,undef,"l");
-		if ($response)
-		{
-			$self->set_states_for_next_pass("RESPONSE:$response");
-		}
-	}
-	else #menu
-	{
-		$$self{m_menuDepth}++;
-		$self->select_menu($$item{D});
-		$self->item_delay();
-	}
-}
-
-sub start
-{
-	my ($self) = @_;
-	$$self{m_active}    = 1;
-	$$self{m_itemIndex} = 1;
-	$$self{m_menuDepth} = 0;
-
-                                # Allow for parsed menus elsewhere
-    unless ($$self{m_menus}) {
-        $$self{m_menus} = $main::Menus{$$self{m_menugroup}};
+    if ( $p_setby ne $$self{m_outputTimer} )  #keep timer states out of the loop
+    {
+        $self->SUPER::set($p_state);
     }
 
-	my $menu = $$self{m_menus};
-    $$self{m_menuCurrent} = ${$$menu{_menu_list}}[0];
-    $self->select_menu($$self{m_menuCurrent});
-	$self->item_delay();
+    if ( $p_setby eq $$self{m_outputTimer} ) {
+        if ( $p_state eq 'off' ) {
+            $self->sequence_item();
+        }
+    }
+    else                                      #process any request
+    {
+        if ( $p_state =~ /^[0-9]+/ and $$self{m_active} ) {
+            $self->select_item($p_state);
+        }
+        elsif ( $p_state eq 'exit' and $$self{m_active} ) {
+            $self->exit();
+        }
+        elsif ( $p_state eq 'repeat' and $$self{m_active} ) {
+            $self->repeat();
+        }
+        elsif ( $p_state eq 'next' and $$self{m_active} ) {
+            $self->next();
+        }
+        elsif ( $p_state eq 'previous' and $$self{m_active} ) {
+            $self->previous();
+        }
+        elsif ( $p_state eq 'start' or $p_state eq 'on' ) {
+            $self->start();
+        }
+        elsif ( $p_state eq 'stop' or $p_state eq 'off' ) {
+            $self->stop();
+        }
+    }
 }
 
-sub stop
-{
-	my ($self) = @_;
-	$$self{m_active}=0;
+sub select_menu {
+    my ( $self, $p_menu ) = @_;
+    return unless $p_menu;    # Avoid mh abend if I run start twice in a row
+
+    my $menus = $$self{m_menus};
+
+    $$self{m_outputTimer}->set(0);    #stop output
+
+    #	&::print_log("Selected Menu: $p_menu : $$self{m_menuDepth}");
+    $$self{m_menuCurrent} = $p_menu;
+
+    ${ $$self{m_menuList} }[ $$self{m_menuDepth} ] = $p_menu;
+
+    $$self{m_itemIndex} = 1;
+    return unless $$menus{ $$self{m_menuCurrent} };    # Guard against bad menus
+    $$self{m_itemCount} = @{ $$menus{ $$self{m_menuCurrent} }{items} };
+
+    if ( $$self{m_menuCurrent} =~ /^states/ ) {
+        my $l_menuPrevious = ${ $$self{m_menuList} }[ $$self{m_menuDepth} - 1 ];
+        my $l_itemPrevious = ${ $$self{m_itemList} }[ $$self{m_menuDepth} - 1 ];
+        my $item = ${ $$menus{$l_menuPrevious}{items} }[ $l_itemPrevious - 1 ];
+
+        #		&::print_log("POP:$$self{m_menuDepth},$l_menuPrevious: $l_itemPrevious : $$item{A}: $$item{Dstates}");
+        if ( $$item{A} and $$item{Dstates} ) {
+            $self->set_states_for_next_pass(
+                "MENU:$$item{Dprefix}command$$item{Dsuffix}");
+        }
+    }
+    else {
+        $self->set_states_for_next_pass("MENU:$$self{m_menuCurrent}");
+    }
 }
 
-sub repeat
-{
-	my ($self) = @_;
-	$self->select_menu($$self{m_menuCurrent});
-	$self->sequence_item();
+sub select_item {
+    my ( $self, $p_item ) = @_;
+    my $menus = $$self{m_menus};
+
+    $$self{m_outputTimer}->set(0);    #stop output
+
+    if ( $p_item > $$self{m_itemCount} ) {
+
+        #ignore bogus entries
+        return;
+    }
+    $$self{m_itemCurrent} = $p_item;
+    ${ $$self{m_itemList} }[ $$self{m_menuDepth} ] = $p_item;
+
+    #	my $tester= ${$$self{m_itemList}}[$$self{m_menuDepth}];
+    #	&::print_log("---set: $tester, $$self{m_menuDepth},$p_item:");
+    my $item = ${ $$menus{ $$self{m_menuCurrent} }{items} }[ $p_item - 1 ];
+
+    #	&::print_log("GOTO: $$item{goto}");
+    if ( $$item{A} )    #action
+    {
+        if ( $$item{Dstates} ) {
+            $$self{m_menuDepth}++;
+            $self->select_menu( $$item{'Dstates_menu'} );
+            $self->item_delay();
+        }
+        elsif ( $$item{A} eq 'state_select' ) {
+            my $l_item = $p_item - 1;
+            my $l_itemPrevious =
+              ${ $$self{m_itemList} }[ $$self{m_menuDepth} - 1 ] - 1;
+            my $l_menuPrevious =
+              ${ $$self{m_menuList} }[ $$self{m_menuDepth} - 1 ];
+
+            #			&::print_log("MenuPreve: $l_menuPrevious");
+            my $response =
+              &::menu_run( $$self{m_menugroup}, $l_menuPrevious,
+                $l_itemPrevious, $l_item, "l" );
+            if ($response) {
+                $self->set_states_for_next_pass("RESPONSE:$response");
+            }
+            $self->repeat();
+        }
+        else {
+            #			&::print_log("ARun Item:$$self{m_menuCurrent} : $p_item");
+            my $l_item = $$self{m_itemCurrent} - 1;
+
+            #			&::menu_run("$$self{m_menugroup},$$self{m_menuCurrent},$l_item,$$item{D},l");
+            my $response =
+              &::menu_run( $$self{m_menugroup}, $$self{m_menuCurrent}, $l_item,
+                undef, "l" );
+            if ($response) {
+                $self->set_states_for_next_pass("RESPONSE:$response");
+            }
+        }
+    }
+    elsif ( $$item{R} )    #response
+    {
+        #		&::print_log("RRun Item:$$self{m_menucurrent} : $p_item");
+        my $l_item = $$self{m_itemCurrent} - 1;
+        my $response =
+          &::menu_run( $$self{m_menugroup}, $$self{m_menuCurrent}, $l_item,
+            undef, "l" );
+        if ($response) {
+            $self->set_states_for_next_pass("RESPONSE:$response");
+        }
+    }
+    else                   #menu
+    {
+        $$self{m_menuDepth}++;
+        $self->select_menu( $$item{D} );
+        $self->item_delay();
+    }
 }
 
+sub start {
+    my ($self) = @_;
+    $$self{m_active}    = 1;
+    $$self{m_itemIndex} = 1;
+    $$self{m_menuDepth} = 0;
 
-sub next
-{
-	my ($self) = @_;
-	if ($$self{m_itemIndex} <= $$self{m_itemCount})
-	{
-		$self->output_item($$self{m_menuCurrent},$$self{m_itemIndex});
-		$$self{m_itemIndex}++;
-		$self->item_delay();
-	}
-	else #End if items
-	{
-		$self->set_states_for_next_pass("ITEM:-:END");
-	}
+    # Allow for parsed menus elsewhere
+    unless ( $$self{m_menus} ) {
+        $$self{m_menus} = $main::Menus{ $$self{m_menugroup} };
+    }
+
+    my $menu = $$self{m_menus};
+    $$self{m_menuCurrent} = ${ $$menu{_menu_list} }[0];
+    $self->select_menu( $$self{m_menuCurrent} );
+    $self->item_delay();
 }
 
-sub sequence_item
-{
-	my ($self) = @_;
-	$self->next();
+sub stop {
+    my ($self) = @_;
+    $$self{m_active} = 0;
 }
 
-sub previous
-{
-	my ($self) = @_;
-	if ($$self{m_itemIndex} > 0)
-	{
-		$self->output_item($$self{m_menuCurrent},$$self{m_itemIndex});
-		$$self{m_itemIndex}--;
-		$self->item_delay();
-	}
-	else #End if items
-	{
-		$self->set_states_for_next_pass("ITEM:+:BEGINING");
-#       $self->exit;            # Walk back to previous menu
-	}
+sub repeat {
+    my ($self) = @_;
+    $self->select_menu( $$self{m_menuCurrent} );
+    $self->sequence_item();
 }
 
-sub exit
-{
-	my ($self) = @_;
-	if ($$self{m_menuDepth} >0)
-	{
-		$$self{m_menuDepth}--;
-	}
-	$self->select_menu(${$$self{m_menuList}}[$$self{m_menuDepth}]);
-	$self->sequence_item();
+sub next {
+    my ($self) = @_;
+    if ( $$self{m_itemIndex} <= $$self{m_itemCount} ) {
+        $self->output_item( $$self{m_menuCurrent}, $$self{m_itemIndex} );
+        $$self{m_itemIndex}++;
+        $self->item_delay();
+    }
+    else    #End if items
+    {
+        $self->set_states_for_next_pass("ITEM:-:END");
+    }
+}
+
+sub previous {
+    my ($self) = @_;
+    if ( $$self{m_itemIndex} > 0 ) {
+        $self->output_item( $$self{m_menuCurrent}, $$self{m_itemIndex} );
+        $$self{m_itemIndex}--;
+        $self->item_delay();
+    }
+    else    #End if items
+    {
+        $self->set_states_for_next_pass("ITEM:+:BEGINING");
+
+        #       $self->exit;            # Walk back to previous menu
+    }
+}
+
+sub exit {
+    my ($self) = @_;
+    if ( $$self{m_menuDepth} > 0 ) {
+        $$self{m_menuDepth}--;
+    }
+    $self->select_menu( ${ $$self{m_menuList} }[ $$self{m_menuDepth} ] );
+    $self->sequence_item();
 
 }
 
-sub sequence_item
-{
-	my ($self) = @_;
-	if ($$self{m_itemIndex} <= $$self{m_itemCount})
-	{
-		$self->output_item($$self{m_menuCurrent},$$self{m_itemIndex});
- 		$$self{m_itemIndex}++;
-		$self->item_delay();
-	}
-	else #End if items
-	{
-		$self->set_states_for_next_pass("ITEM:-:END");
-	}
+sub sequence_item {
+    my ($self) = @_;
+    if ( $$self{m_itemIndex} <= $$self{m_itemCount} ) {
+        $self->output_item( $$self{m_menuCurrent}, $$self{m_itemIndex} );
+        $$self{m_itemIndex}++;
+        $self->item_delay();
+    }
+    else    #End if items
+    {
+        $self->set_states_for_next_pass("ITEM:-:END");
+    }
 }
 
-sub item_delay
-{
-	my ($self) = @_;
+sub item_delay {
+    my ($self) = @_;
 
-	if ($$self{m_outputDelay} == 0)
-	{
-		# if delay is set to 0 there should be something in here to immediately call back.
-		$self->set('off',$$self{m_outputTimer});  # might be recursive somehow though?
-	}
-	elsif ($$self{m_outputDelay} == -1)
-	{
-		# Do not automatically advance the item bail out
-	}
-	else
-	{
-		my $l_name = $self->get_object_name();
-		my $action = $l_name . "->set('off'," . $l_name . "->{m_outputTimer})";
-#		&::print_log("delay=$$self{m_outputDelay}, Action: $action");
-		$$self{m_outputTimer}->set($$self{m_outputDelay},$action);
-	}
+    if ( $$self{m_outputDelay} == 0 ) {
+
+        # if delay is set to 0 there should be something in here to immediately call back.
+        $self->set( 'off', $$self{m_outputTimer} )
+          ;    # might be recursive somehow though?
+    }
+    elsif ( $$self{m_outputDelay} == -1 ) {
+
+        # Do not automatically advance the item bail out
+    }
+    else {
+        my $l_name = $self->get_object_name();
+        my $action = $l_name . "->set('off'," . $l_name . "->{m_outputTimer})";
+
+        #		&::print_log("delay=$$self{m_outputDelay}, Action: $action");
+        $$self{m_outputTimer}->set( $$self{m_outputDelay}, $action );
+    }
 }
 
-sub output_item
-{
-	my ($self,$p_menu,$p_item) = @_;
-	my $menus = $$self{m_menus};
-	my $item = ${$$menus{$p_menu}{items}}[$p_item-1];
-	my $name;
+sub output_item {
+    my ( $self, $p_menu, $p_item ) = @_;
+    my $menus = $$self{m_menus};
+    my $item  = ${ $$menus{$p_menu}{items} }[ $p_item - 1 ];
+    my $name;
 
-# logic could be simplified quite a bit.. Functionality first.. Optimization last ;)
-	if ($$item{A})
-	{
-		if ($$item{Dstates})
-		{
-#			&::print_log("--Actions--" . ${$$item{actions}}[0] );
-			$name = $$item{Dprefix} . "command" . $$item{Dsuffix};
-		}
-		else
-		{
-			$name = $$item{D};
-		}
-	}
-	elsif ($$item{R})
-	{
-		$name = $$item{D};
-	}
-	else
-	{
-		$name = $$item{D};
-	}
-	$self->set_states_for_next_pass("ITEM:$p_item:$name");
+    # logic could be simplified quite a bit.. Functionality first.. Optimization last ;)
+    if ( $$item{A} ) {
+        if ( $$item{Dstates} ) {
+
+            #			&::print_log("--Actions--" . ${$$item{actions}}[0] );
+            $name = $$item{Dprefix} . "command" . $$item{Dsuffix};
+        }
+        else {
+            $name = $$item{D};
+        }
+    }
+    elsif ( $$item{R} ) {
+        $name = $$item{D};
+    }
+    else {
+        $name = $$item{D};
+    }
+    $self->set_states_for_next_pass("ITEM:$p_item:$name");
 }
 1;
-
 
 =back
 

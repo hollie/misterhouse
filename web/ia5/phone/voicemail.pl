@@ -4,9 +4,10 @@
 
 # Authority: anyone
 
-if ('mci' eq lc $config_parms{phone_voicemail_type}) {
-    my $phone = ($Authorized) ? $config_parms{phone_voicemail_number} : '0001112222';
-    my $pin   = ($Authorized) ? $config_parms{phone_voicemail_pin}    : '9999';
+if ( 'mci' eq lc $config_parms{phone_voicemail_type} ) {
+    my $phone =
+      ($Authorized) ? $config_parms{phone_voicemail_number} : '0001112222';
+    my $pin = ($Authorized) ? $config_parms{phone_voicemail_pin} : '9999';
     return qq[
 <form method="POST" ACTION='http://messagecenter.mci.com/secure/login.jsp' NAME="login_form">
 <input type="hidden" size="12" name="partnername" value="">
@@ -17,9 +18,9 @@ if ('mci' eq lc $config_parms{phone_voicemail_type}) {
 ];
 }
 
-elsif ('asterisk' eq lc $config_parms{phone_voicemail_type}) {
+elsif ( 'asterisk' eq lc $config_parms{phone_voicemail_type} ) {
     my $mailbox = ($Authorized) ? $config_parms{phone_voicemail_number} : '25';
-    my $pin   = ($Authorized) ? $config_parms{phone_voicemail_pin}    : '9999';
+    my $pin = ($Authorized) ? $config_parms{phone_voicemail_pin} : '9999';
     return qq[<form method="POST"
 ACTION='$config_parms{phone_voicemail_url}'
 NAME="login_form">
@@ -30,11 +31,13 @@ NAME="login_form">
 name="submit" alt="Voicemail">
 </form>];
 }
-elsif ('vocp' eq lc $config_parms{phone_voicemail_type}) {
-    return qq[<a href='sub?vocp_display_voicemail'><img src="images/voicemails.gif" alt='Voice Mail' border=0></a>];
+elsif ( 'vocp' eq lc $config_parms{phone_voicemail_type} ) {
+    return
+      qq[<a href='sub?vocp_display_voicemail'><img src="images/voicemails.gif" alt='Voice Mail' border=0></a>];
 
 }
 
 else {
-    return qq[<a href='voicemail.shtml'><img src="images/voicemails.gif" alt='Voice mail' border=0></a><br>];
+    return
+      qq[<a href='voicemail.shtml'><img src="images/voicemails.gif" alt='Voice mail' border=0></a><br>];
 }

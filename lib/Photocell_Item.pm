@@ -1,3 +1,4 @@
+
 =head1 B<Photocell_Item>
 
 =head2 SYNOPSIS
@@ -65,74 +66,86 @@ package Photocell_Item;
 
 @Photocell_Item::ISA = ('Base_Item');
 
-sub initialize
-{
-	my ($self) = @_;
-	$$self{m_timerCheck} = new Timer() if ! defined $$self{m_timerCheck};
-	$$self{m_timerCheck}->set(24*60*60,$self);
-	$$self{state}='dark';
-   $$self{m_write} = 0;
-   $$self{m_blnCheck} = 1;
-   $$self{'inactivity_time'} = 24*3600;
+sub initialize {
+    my ($self) = @_;
+    $$self{m_timerCheck} = new Timer() if !defined $$self{m_timerCheck};
+    $$self{m_timerCheck}->set( 24 * 60 * 60, $self );
+    $$self{state}             = 'dark';
+    $$self{m_write}           = 0;
+    $$self{m_blnCheck}        = 1;
+    $$self{'inactivity_time'} = 24 * 3600;
 }
 
-sub set
-{
-	my ($self,$p_state,$p_setby,$p_response) = @_;
-	my $l_state;
+sub set {
+    my ( $self, $p_state, $p_setby, $p_response ) = @_;
+    my $l_state;
 
-   # Ignore the motion/still states
-   if (($p_state eq 'motion') or ($p_state eq 'still')) {
-      return;
-   }
+    # Ignore the motion/still states
+    if ( ( $p_state eq 'motion' ) or ( $p_state eq 'still' ) ) {
+        return;
+    }
 
-   if (ref $p_setby and $p_setby->can('get_set_by')) {
-      &::print_log("Photocell_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name} was set by " . $p_setby->get_set_by) if $main::Debug{occupancy};
-   } else {
-      &::print_log("Photocell_Item($$self{object_name})::set($p_state, $p_setby)") if $main::Debug{occupancy};
-   }
+    if ( ref $p_setby and $p_setby->can('get_set_by') ) {
+        &::print_log(
+            "Photocell_Item($$self{object_name})::set($p_state, $p_setby): $$p_setby{object_name} was set by "
+              . $p_setby->get_set_by )
+          if $main::Debug{occupancy};
+    }
+    else {
+        &::print_log(
+            "Photocell_Item($$self{object_name})::set($p_state, $p_setby)")
+          if $main::Debug{occupancy};
+    }
 
-	if ($p_state eq 'on') {
-		$l_state = 'dark';
-	} elsif ($p_state eq 'off' and $p_setby eq $$self{m_timerCheck} and $$self{m_blnCheck}==1 ) {
-      if ($$self{'inactivity_action'}) {
-         package main;
-         eval $$self{'inactivity_action'};
-         package Photocell_Item;
-      } else {
-		   &::print_log($$self{object_name} . "->No state change in 24hrs.");
-      }
-		$l_state = 'check';
-	} elsif ($p_state eq 'off') {
-		$l_state = 'light';
-	} else {
-		$l_state = $p_state;
-	}
-	if ($$self{m_blnCheck}) {
-		$$self{m_timerCheck}->set(24*60*60,$self);
-	}
-	$self->SUPER::set($l_state,$p_setby,$p_response) if defined $l_state;
+    if ( $p_state eq 'on' ) {
+        $l_state = 'dark';
+    }
+    elsif ( $p_state eq 'off'
+        and $p_setby eq $$self{m_timerCheck}
+        and $$self{m_blnCheck} == 1 )
+    {
+        if ( $$self{'inactivity_action'} ) {
+
+            package main;
+            eval $$self{'inactivity_action'};
+
+            package Photocell_Item;
+        }
+        else {
+            &::print_log( $$self{object_name} . "->No state change in 24hrs." );
+        }
+        $l_state = 'check';
+    }
+    elsif ( $p_state eq 'off' ) {
+        $l_state = 'light';
+    }
+    else {
+        $l_state = $p_state;
+    }
+    if ( $$self{m_blnCheck} ) {
+        $$self{m_timerCheck}->set( 24 * 60 * 60, $self );
+    }
+    $self->SUPER::set( $l_state, $p_setby, $p_response ) if defined $l_state;
 
 }
 
-sub check()
-{
-	my ($self,$p_blnCheck) = @_;
-	$$self{m_blnCheck} = $p_blnCheck if defined $p_blnCheck;
-	if (! $$self{m_blnCheck}) {
-		$$self{m_timerCheck}->stop();		
-	}
-	return $$self{m_blnCheck};
+sub check() {
+    my ( $self, $p_blnCheck ) = @_;
+    $$self{m_blnCheck} = $p_blnCheck if defined $p_blnCheck;
+    if ( !$$self{m_blnCheck} ) {
+        $$self{m_timerCheck}->stop();
+    }
+    return $$self{m_blnCheck};
 
 }
 
 # If an inactivity alarm is set, the specified action is executed
 # if no notification of a lighting change has occured for X hours
 sub set_inactivity_alarm($$$) {
-   my ($self, $time, $action) = @_;
-   $$self{'inactivity_action'} = $action;
-   $$self{'inactivity_time'} = $time*3600;
-   $$self{m_timerCheck}->set($time*3600, $self) if $$self{m_blnCheck};
+    my ( $self, $time, $action ) = @_;
+    $$self{'inactivity_action'} = $action;
+    $$self{'inactivity_time'}   = $time * 3600;
+    $$self{m_timerCheck}->set( $time * 3600, $self ) if $$self{m_blnCheck};
 }
 
 1;

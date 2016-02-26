@@ -23,108 +23,117 @@ The HTML of this page is based on work by Kent Noonan.
 
 =cut
 
-use vars qw($stat_cool_temp $stat_heat_temp $stat_mode $stat_fan $stat_hold $stat_indoor_temp $stat_output);
+use vars
+  qw($stat_cool_temp $stat_heat_temp $stat_mode $stat_fan $stat_hold $stat_indoor_temp $stat_output);
 use strict;
 my $html;
 my $stat;
-my $NAME="omnistat_setup_web.pl";
+my $NAME = "omnistat_setup_web.pl";
 
-Omnistat::omnistat_debug("$NAME: got args ".join(", ", @ARGV));
+Omnistat::omnistat_debug( "$NAME: got args " . join( ", ", @ARGV ) );
 
 #Get the arguments.
 # mmmh, this is a hackish way to parse web arguments, but happens to work if they are sent
 # exacly in the right order, which they are as long as the form isn't modified -- merlin
 my ( $location, $heat_temp, $cool_temp, $mode, $fan, $hold, $submit ) = @ARGV;
 if ( $location =~ /([^=]+)=(.+)/ & $2 ne "" ) {
-  $location = $2;
-  Omnistat::omnistat_debug("$NAME: Got location $location from URL");
+    $location = $2;
+    Omnistat::omnistat_debug("$NAME: Got location $location from URL");
 }
 if ( $submit =~ /([^=]+)=(.+)/ & $2 ne "" ) {
-  $submit = $2;
-  Omnistat::omnistat_debug("$NAME: Got submit value of $submit from URL");
+    $submit = $2;
+    Omnistat::omnistat_debug("$NAME: Got submit value of $submit from URL");
 }
 
 my @locations;    #Holds the names of all the stats
                   #Get first omnistat object names
 foreach my $object_type (&::list_object_types) {
-  foreach my $object_name ( &::list_objects_by_type($object_type) ) {
-    my $object = &::get_object_by_name("$object_name");
-    $object = $object_name unless $object;
-    if ( $object and $object->isa('Omnistat') ) {
-      Omnistat::omnistat_debug("$NAME: Found stat $object_name");
-      push @locations, $object_name;
-      if (not $location) {
-        $location = $object_name;
-        Omnistat::omnistat_debug("$NAME: Will set location to $location");
-      }
+    foreach my $object_name ( &::list_objects_by_type($object_type) ) {
+        my $object = &::get_object_by_name("$object_name");
+        $object = $object_name unless $object;
+        if ( $object and $object->isa('Omnistat') ) {
+            Omnistat::omnistat_debug("$NAME: Found stat $object_name");
+            push @locations, $object_name;
+            if ( not $location ) {
+                $location = $object_name;
+                Omnistat::omnistat_debug(
+                    "$NAME: Will set location to $location");
+            }
+        }
     }
-  }
 }
-
 
 #Get the omnistat by name
 $stat = &::get_object_by_name("$location");
 
-if (not $stat) {
-  if (not $location) {
-    die "$NAME was not able to get an omnistat object, check your stat definitions in mycode/omnistat.pl";
-  } else {
-    die "$NAME was not able to get an omnistat object with location \"$location\"";
-  }
-} else {
-  Omnistat::omnistat_debug("$NAME: will work with stat $location");
+if ( not $stat ) {
+    if ( not $location ) {
+        die
+          "$NAME was not able to get an omnistat object, check your stat definitions in mycode/omnistat.pl";
+    }
+    else {
+        die
+          "$NAME was not able to get an omnistat object with location \"$location\"";
+    }
+}
+else {
+    Omnistat::omnistat_debug("$NAME: will work with stat $location");
 }
 
-my $print_cycle = "";
+my $print_cycle    = "";
 my $print_vacation = "";
 
-if ($stat->is_omnistat2) {
-  $print_cycle = "<option value='cycle'>Cycle</option>";
-  $print_vacation = "<option value='vacation'>Vacation</option>";
+if ( $stat->is_omnistat2 ) {
+    $print_cycle    = "<option value='cycle'>Cycle</option>";
+    $print_vacation = "<option value='vacation'>Vacation</option>";
 }
 
-if ($submit eq 'reset stat to scheduled values') {
-  Omnistat::omnistat_debug("$NAME: Got 'reset to scheduled values' for $location");
-  $stat->restore_setpoints();
+if ( $submit eq 'reset stat to scheduled values' ) {
+    Omnistat::omnistat_debug(
+        "$NAME: Got 'reset to scheduled values' for $location");
+    $stat->restore_setpoints();
 }
-
 
 # Parse variable to remove everything before the value
 # If the variable is not null, send it to the stat
 if ( $cool_temp =~ /([^=]+)=(\d+)/ & $2 ne "" ) {
-$stat->cool_setpoint($2);
-Omnistat::omnistat_log("set cool to $2");
-speak "$location Air conditioning set to $2 degrees";
+    $stat->cool_setpoint($2);
+    Omnistat::omnistat_log("set cool to $2");
+    speak "$location Air conditioning set to $2 degrees";
 }
 
 if ( $heat_temp =~ /([^=]+)=(\d+)/ & $2 ne "" ) {
-$stat->heat_setpoint($2);
-Omnistat::omnistat_log("set heat to $2");
-speak "$location Heat set to $2 degrees";
+    $stat->heat_setpoint($2);
+    Omnistat::omnistat_log("set heat to $2");
+    speak "$location Heat set to $2 degrees";
 }
 
 if ( $mode =~ /([^=]+)=(.+)/ & $2 ne "" ) {
-$stat->mode($2);
-Omnistat::omnistat_log("set mode to $2");
-speak "Thermostat $location mode set to $2";
+    $stat->mode($2);
+    Omnistat::omnistat_log("set mode to $2");
+    speak "Thermostat $location mode set to $2";
 }
 
 if ( $fan =~ /([^=]+)=(.+)/ & $2 ne "" ) {
-$stat->fan($2);
-Omnistat::omnistat_log("set $location fan to $2");
-speak "Thermostat $location fan set to $2";
+    $stat->fan($2);
+    Omnistat::omnistat_log("set $location fan to $2");
+    speak "Thermostat $location fan set to $2";
 }
 
 if ( $hold =~ /([^=]+)=(.+)/ & $2 ne "" ) {
-$stat->hold($2);
-Omnistat::omnistat_log("set $location hold to $2");
-speak "Thermostat $location hold set to $2";
+    $stat->hold($2);
+    Omnistat::omnistat_log("set $location hold to $2");
+    speak "Thermostat $location hold set to $2";
 }
 
 # this will pickup changes we may have just made
-( $stat_cool_temp, $stat_heat_temp, $stat_mode, $stat_fan, $stat_hold, $stat_indoor_temp, $stat_output ) = $stat->read_group1("true");
+(
+    $stat_cool_temp, $stat_heat_temp, $stat_mode, $stat_fan, $stat_hold,
+    $stat_indoor_temp, $stat_output
+) = $stat->read_group1("true");
 
-my $pretty_name = &pretty_object_name($location)." (".$stat->get_stat_type().")";
+my $pretty_name =
+  &pretty_object_name($location) . " (" . $stat->get_stat_type() . ")";
 
 #Write the HTML page
 $html = '<html><body>' . &html_header('Browse Items') . "
@@ -149,23 +158,36 @@ $html = '<html><body>' . &html_header('Browse Items') . "
 
 #Create the list of thermostats
 if ( $#locations > 0 ) {
-  #Omnistat::omnistat_debug("$NAME: Got multiple locations (".($#locations+1).") for drop down menu");
 
-  $html = $html . "<select name ='location' onChange='this.form.submit();'>";
+    #Omnistat::omnistat_debug("$NAME: Got multiple locations (".($#locations+1).") for drop down menu");
 
-  foreach my $statname (@locations) {
-    if ( $location eq $statname ) {
-      #Omnistat::omnistat_debug("$NAME: Selecting $statname in drop down menu since it is location $location. Objects are ".&::get_object_by_name($statname)." and ".&::get_object_by_name($statname));
-      $html = $html . "<option SELECTED  value ='$statname'>" . &pretty_object_name($statname) . "</option>";
-    } else {
-      $html = $html . "<option value ='$statname'>" . &pretty_object_name($statname) . "</option>";
+    $html = $html . "<select name ='location' onChange='this.form.submit();'>";
+
+    foreach my $statname (@locations) {
+        if ( $location eq $statname ) {
+
+            #Omnistat::omnistat_debug("$NAME: Selecting $statname in drop down menu since it is location $location. Objects are ".&::get_object_by_name($statname)." and ".&::get_object_by_name($statname));
+            $html =
+                $html
+              . "<option SELECTED  value ='$statname'>"
+              . &pretty_object_name($statname)
+              . "</option>";
+        }
+        else {
+            $html =
+                $html
+              . "<option value ='$statname'>"
+              . &pretty_object_name($statname)
+              . "</option>";
+        }
     }
-  }
-  $html = $html . "</select>";
-} else {
-  Omnistat::omnistat_debug("$NAME: Got single location $location, skipping drop down menu");
-  $html = $html . $pretty_name;
-  $html = $html . "<input name='location' value='$location' type='hidden'>";
+    $html = $html . "</select>";
+}
+else {
+    Omnistat::omnistat_debug(
+        "$NAME: Got single location $location, skipping drop down menu");
+    $html = $html . $pretty_name;
+    $html = $html . "<input name='location' value='$location' type='hidden'>";
 }
 $html = $html
   . "<br><br><a style='font-size: 120%; font-weight: bold;'> Current temp&nbsp;$stat_indoor_temp

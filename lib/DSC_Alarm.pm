@@ -1,3 +1,4 @@
+
 =head1 B<DSC_Alarm>
 
 =head2 SYNOPSIS
@@ -75,39 +76,42 @@ Create serial port(s) according to mh.ini  Register hooks if any ports created.
 
 =cut
 
-sub serial_startup
-{
+sub serial_startup {
     my ($instance) = @_;
-    push(@DSC_Alarm_Ports, $instance);
+    push( @DSC_Alarm_Ports, $instance );
 
-    my $port     = $::config_parms{$instance . "_serial_port"};
-    my $speed    = $::config_parms{$instance . "_baudrate"};
-    if (&::serial_port_create($instance, $port, $speed, 'dtr'))
-    {
+    my $port  = $::config_parms{ $instance . "_serial_port" };
+    my $speed = $::config_parms{ $instance . "_baudrate" };
+    if ( &::serial_port_create( $instance, $port, $speed, 'dtr' ) ) {
+
         # The create call will not succeed for proxies, so we don't enter this case for proxy configsk
-        init($::Serial_Ports{$instance}{object});
-        ::print_log "\nDSC_Alarm.pm initialzed $instance on hardware $port at $speed baud\n" if $main::Debug{dsc};
+        init( $::Serial_Ports{$instance}{object} );
+        ::print_log
+          "\nDSC_Alarm.pm initialzed $instance on hardware $port at $speed baud\n"
+          if $main::Debug{dsc};
     }
 
     # Add to the generic list so check_for_generic_serial_data is called for us automatically
-    push(@::Generic_Serial_Ports, $instance);
+    push( @::Generic_Serial_Ports, $instance );
 
-    if (1==scalar @DSC_Alarm_Ports)   # Add hooks on first call only
+    if ( 1 == scalar @DSC_Alarm_Ports )    # Add hooks on first call only
     {
-        &::Reload_pre_add_hook(\&DSC_Alarm::reload_reset, 'persistent');
-        &::MainLoop_pre_add_hook(\&DSC_Alarm::check_for_data, 'persistent');
+        &::Reload_pre_add_hook( \&DSC_Alarm::reload_reset, 'persistent' );
+        &::MainLoop_pre_add_hook( \&DSC_Alarm::check_for_data, 'persistent' );
 
         #&::Serial_data_add_hook(\&DSC_Alarm::serial_data, 'persistent');
         #      &::MainLoop_pre_add_hook( \&DSC_Alarm::UserCodePreHook,   1);
         #      &::MainLoop_post_add_hook( \&DSC_Alarm::UserCodePostHook, 1 );
-        $::Year_Month_Now = &::time_date_stamp(10,time);  # Not yet set when we init.
-        &::logit("$::config_parms{data_dir}/logs/$instance.$::Year_Month_Now.log", "DSC_Alarm.pm Initialized");
+        $::Year_Month_Now =
+          &::time_date_stamp( 10, time );    # Not yet set when we init.
+        &::logit(
+            "$::config_parms{data_dir}/logs/$instance.$::Year_Month_Now.log",
+            "DSC_Alarm.pm Initialized" );
         ::print_log "DSC_Alarm.pm adding hooks \n" if $main::Debug{dsc};
     }
 }
 
-sub init
-{
+sub init {
     my ($serial_port) = @_;
 
     $serial_port->error_msg(0);
@@ -117,50 +121,49 @@ sub init
     $serial_port->parity("none");
     $serial_port->stopbits(1);
 
-    $serial_port->dtr_active(1);
+    $serial_port->dtr_active(1) or warn "Could not set dtr_active(1)";
     $serial_port->rts_active(0);
-    select (undef, undef, undef, .100); 	# Sleep a bit
+    select( undef, undef, undef, .100 );    # Sleep a bit
 }
 
-sub reload_reset
-{
+sub reload_reset {
     undef %DSC_Alarm_Objects;
 }
 
-sub check_for_data
-{
-    for my $port_name (@DSC_Alarm_Ports)
-    {
-        if (my $data = $main::Serial_Ports{$port_name}{data_record})
-        {
+sub check_for_data {
+    for my $port_name (@DSC_Alarm_Ports) {
+        if ( my $data = $main::Serial_Ports{$port_name}{data_record} ) {
             $main::Serial_Ports{$port_name}{data_record} = undef;
-            &::logit("$::config_parms{data_dir}/logs/$port_name.$::Year_Month_Now.log", "$data");
-            ::print_log "DSC_Alarm port $port_name data = $data, $::Loop_Count\n" if $main::Debug{dsc};
+            &::logit(
+                "$::config_parms{data_dir}/logs/$port_name.$::Year_Month_Now.log",
+                "$data"
+            );
+            ::print_log
+              "DSC_Alarm port $port_name data = $data, $::Loop_Count\n"
+              if $main::Debug{dsc};
+
             #print "DSC_Alarm port $port_name data = $data, $::Loop_Count\n";
 
-            if ($DSC_Alarm_Objects{$port_name})
-            {
-                my @object_refs = @{$DSC_Alarm_Objects{$port_name}};
-                while (my $self = pop @object_refs)
-                {
-                    if ($data =~ /^.*System\s+Armed in (.*) Mode/)
-                    {
-                      set $self "Armed";
-                      $self->{mode} = $1;
+            if ( $DSC_Alarm_Objects{$port_name} ) {
+                my @object_refs = @{ $DSC_Alarm_Objects{$port_name} };
+                while ( my $self = pop @object_refs ) {
+                    if ( $data =~ /^.*System\s+Armed in (.*) Mode/ ) {
+                        set $self "Armed";
+                        $self->{mode} = $1;
                     }
                     set $self "Disarmed" if $data =~ /^.*System\s+Opening.*/;
-                    if ($data =~ /^.*System\s+Alarm Zone\s+(\d+).*/)
-                    {
-                      set $self "Alarm";
-                      $self->{zone} = $1;
+                    if ( $data =~ /^.*System\s+Alarm Zone\s+(\d+).*/ ) {
+                        set $self "Alarm";
+                        $self->{zone} = $1;
                     }
-                    $self->{user} = $2   if $data =~ /^.*User (|Code)\s+(\d+).*/;
+                    $self->{user} = $2 if $data =~ /^.*User (|Code)\s+(\d+).*/;
                 }
             }
-            else
-            {
-                ::print_log "DSC_Alarm.pm Warning: Data received on port $port_name, but no user script objects defined\n";
-                my $warn_once = new DSC_Alarm($port_name);  # Create dummy object to avoid repetitious log messages.
+            else {
+                ::print_log
+                  "DSC_Alarm.pm Warning: Data received on port $port_name, but no user script objects defined\n";
+                my $warn_once = new DSC_Alarm($port_name)
+                  ;    # Create dummy object to avoid repetitious log messages.
             }
         }
     }
@@ -177,7 +180,7 @@ Where 'alarm-name' is the prefix used in the mh.ini entry 'DSC_Alarm_serial_port
 =cut
 
 sub new {
-    my ($class, $port_name) = @_;
+    my ( $class, $port_name ) = @_;
     $port_name = 'DSC_Alarm' if !$port_name;
 
     my $self = {};
@@ -187,9 +190,11 @@ sub new {
     $$self{port_name} = $port_name;
     bless $self, $class;
 
-    push @{$DSC_Alarm_Objects{$port_name}}, $self;
-    ::print_log "DSC_Alarm.pm Warning: Over 50 DSC Alarm user script objects defined on $port_name\n" if 50 < scalar @{$DSC_Alarm_Objects{$port_name}};
-    restore_data $self ('user', 'zone', 'mode');
+    push @{ $DSC_Alarm_Objects{$port_name} }, $self;
+    ::print_log
+      "DSC_Alarm.pm Warning: Over 50 DSC Alarm user script objects defined on $port_name\n"
+      if 50 < scalar @{ $DSC_Alarm_Objects{$port_name} };
+    restore_data $self ( 'user', 'zone', 'mode' );
 
     return $self;
 }
@@ -199,7 +204,6 @@ sub new {
 Returns the last serial data received.  Valid for 1 pass only.  Important Note:  Due to mh internals, the "said" method and the "state" method (and all "state" derived methods) lag each other's values by 1 pass through the user scripts.  As such, any given script should use "said" or "state", but should NOT mix the two!
 
 =cut
-
 
 sub said {
     my $port_name = $_[0]->{port_name};
@@ -215,7 +219,7 @@ User number of last code used to arm/disarm system.  If present, mh.ini parm DSC
 sub user {
     my $instance = $_[0]->{port_name};
     my $user     = $_[0]->{user};
-    my $name = $main::config_parms{$instance . '_user_' . $user};
+    my $name     = $main::config_parms{ $instance . '_user_' . $user };
     $name = $user if !$name;
     return $name;
 }
@@ -256,7 +260,6 @@ sub mode {
     return if 'Armed' ne $_[0]->{state};
     return $_[0]->{mode};
 }
-
 
 1;
 

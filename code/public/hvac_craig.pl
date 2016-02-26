@@ -1,3 +1,4 @@
+
 =begin comment
 
 From Craig Schaeffer on 09/2002
@@ -25,28 +26,31 @@ by 6:00am, it would start about 4 hours early! So much for smart.
 
 sub calcSetbackDelta {
 
-    my $inside_temp = convert_k2f(state $temp_inside/10);
-    my $outside_temp = convert_k2f(state $temp_outside/10);
-    my $minutes_per_degree = 8;          #default for heating
-    my $delta = 10;                      #give it some kind of default
+    my $inside_temp  = convert_k2f( state $temp_inside/ 10 );
+    my $outside_temp = convert_k2f( state $temp_outside/ 10 );
+    my $minutes_per_degree = 8;     #default for heating
+    my $delta              = 10;    #give it some kind of default
 
-    if ($TX10->{mode} eq 'Heat') {
-       $minutes_per_degree++ if $outside_temp < 40;
-       $minutes_per_degree++ if $outside_temp < 30;
-       $delta = int ($minutes_per_degree  * (68 - $inside_temp));
-       $delta = 10 if $delta < 10;  #sanity checks
-       $delta = 90 if $delta > 90;
+    if ( $TX10->{mode} eq 'Heat' ) {
+        $minutes_per_degree++ if $outside_temp < 40;
+        $minutes_per_degree++ if $outside_temp < 30;
+        $delta = int( $minutes_per_degree * ( 68 - $inside_temp ) );
+        $delta = 10 if $delta < 10;    #sanity checks
+        $delta = 90 if $delta > 90;
     }
-    elsif ($TX10->{mode} eq 'Cool') {
-       $minutes_per_degree = 25;     #takes a lot longer to cool than heat
-       $minutes_per_degree += 2 if $outside_temp >; 80;
-       $minutes_per_degree += 3 if $outside_temp >; 85;
-       $delta = int ($minutes_per_degree  * ($inside_temp - 78));
-       $delta = 10 if $delta <   10;
-       $delta = 120 if $delta > 120;      #never start earlier than 2 hours before
-    } else {
-       print_log "Thermostat mode is neither Heat nor Cool";
+    elsif ( $TX10->{mode} eq 'Cool' ) {
+        $minutes_per_degree = 25;      #takes a lot longer to cool than heat
+        $minutes_per_degree += 2 if $outside_temp >;
+        80;
+        $minutes_per_degree += 3 if $outside_temp >;
+        85;
+        $delta = int( $minutes_per_degree * ( $inside_temp - 78 ) );
+        $delta = 10  if $delta < 10;
+        $delta = 120 if $delta > 120;   #never start earlier than 2 hours before
     }
-       
+    else {
+        print_log "Thermostat mode is neither Heat nor Cool";
+    }
+
     return $delta;
 }

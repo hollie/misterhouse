@@ -39,140 +39,157 @@
 #use POSIX qw(strftime);
 
 $p_weather_update = new Process_Item;
-$v_weather_update = new Voice_Cmd '[Show results from,Run] wunderground.com upload';
-my $weather_update_html_path = "$config_parms{data_dir}/web/wu-result.html"; #noloop
-
+$v_weather_update =
+  new Voice_Cmd '[Show results from,Run] wunderground.com upload';
+my $weather_update_html_path =
+  "$config_parms{data_dir}/web/wu-result.html";    #noloop
 
 # Create trigger
 
 if ($Reload) {
-	my $command = "new_minute " . (($config_parms{wunderground_frequency})?$config_parms{wunderground_frequency}:10);
+    my $command = "new_minute "
+      . (
+        ( $config_parms{wunderground_frequency} )
+        ? $config_parms{wunderground_frequency}
+        : 10
+      );
 
-    &trigger_set($command, "run_voice_cmd('Run wunderground.com upload')", 'NoExpire', 'upload weather')
+    &trigger_set( $command, "run_voice_cmd('Run wunderground.com upload')",
+        'NoExpire', 'upload weather' )
       unless &trigger_get('upload weather');
 }
 
 # Events
 
-display($weather_update_html_path) if said $v_weather_update eq 'Show results from';
+display($weather_update_html_path)
+  if said $v_weather_update eq 'Show results from';
 
-if (said $v_weather_update eq 'Run') {
+if ( said $v_weather_update eq 'Run' ) {
 
     $v_weather_update->respond('app=wunderground Uploading weather data...');
 
-    my $stationid = $config_parms{wunderground_stationid};
-    my $passwd    = $config_parms{wunderground_password};
-    my $weather_clouds='';
-    my $weather_conditions='';
+    my $stationid          = $config_parms{wunderground_stationid};
+    my $passwd             = $config_parms{wunderground_password};
+    my $weather_clouds     = '';
+    my $weather_conditions = '';
 
-	my $weather_winddir=$Weather{WindAvgDir};
-	$weather_winddir=$Weather{WindGustDir} unless $weather_winddir;
+    my $weather_winddir = $Weather{WindAvgDir};
+    $weather_winddir = $Weather{WindGustDir} unless $weather_winddir;
 
     # Make some conversions if necessary
-    my $weather_tempoutdoor=$Weather{TempOutdoor};
-    my $weather_dewoutdoor=$Weather{DewOutdoor};
+    my $weather_tempoutdoor = $Weather{TempOutdoor};
+    my $weather_dewoutdoor  = $Weather{DewOutdoor};
 
-    if ($config_parms{weather_uom_temp} eq 'C') {
-    	grep {$_=convert_c2f($_) if defined $_;} (
-    		$weather_tempoutdoor,
-    		$weather_dewoutdoor
-		);
-	}
-
-    my $weather_baromsea = $Weather{BaromSea};
-    if (not defined $weather_baromsea) {
-    	if (defined $Weather{Barom}) {
-	    	$weather_baromsea=convert_local_barom_to_sea($Weather{Barom});
-	    	print_log ("weather_upload warning: using non sea-level pressure");
-		} else {
-			print_log ("weather_upload warning: no pressure reading available");
-		}
+    if ( $config_parms{weather_uom_temp} eq 'C' ) {
+        grep { $_ = convert_c2f($_) if defined $_; }
+          ( $weather_tempoutdoor, $weather_dewoutdoor );
     }
 
-    if (defined $weather_baromsea and $config_parms{weather_uom_baro} eq 'mb') {
-    	$weather_baromsea=convert_mb2in($weather_baromsea);
-	}
+    my $weather_baromsea = $Weather{BaromSea};
+    if ( not defined $weather_baromsea ) {
+        if ( defined $Weather{Barom} ) {
+            $weather_baromsea = convert_local_barom_to_sea( $Weather{Barom} );
+            print_log("weather_upload warning: using non sea-level pressure");
+        }
+        else {
+            print_log("weather_upload warning: no pressure reading available");
+        }
+    }
+
+    if ( defined $weather_baromsea and $config_parms{weather_uom_baro} eq 'mb' )
+    {
+        $weather_baromsea = convert_mb2in($weather_baromsea);
+    }
 
     my $weather_windgustspeed = $Weather{WindGustSpeed};
-    my $weather_windavgspeed = $Weather{WindAvgSpeed};
+    my $weather_windavgspeed  = $Weather{WindAvgSpeed};
 
-    if ($config_parms{weather_uom_wind} eq 'kph') {
-    	grep {$_=convert_km2mile($_) if defined $_;} (
-    		$weather_windgustspeed,
-    		$weather_windavgspeed
-		);
-	}
-    if ($config_parms{weather_uom_wind} eq 'm/s') {
-    	grep {$_=convert_mps2mph($_) if defined $_;} (
-    		$weather_windgustspeed,
-    		$weather_windavgspeed
-		);
-	}
+    if ( $config_parms{weather_uom_wind} eq 'kph' ) {
+        grep { $_ = convert_km2mile($_) if defined $_; }
+          ( $weather_windgustspeed, $weather_windavgspeed );
+    }
+    if ( $config_parms{weather_uom_wind} eq 'm/s' ) {
+        grep { $_ = convert_mps2mph($_) if defined $_; }
+          ( $weather_windgustspeed, $weather_windavgspeed );
+    }
 
-	my $weather_rainrate=$Weather{RainRate};
-	if (defined $weather_rainrate and $config_parms{weather_uom_rainrate} eq 'mm/hr') {
-		$weather_rainrate=convert_mm2in($weather_rainrate);
-	}
+    my $weather_rainrate = $Weather{RainRate};
+    if ( defined $weather_rainrate
+        and $config_parms{weather_uom_rainrate} eq 'mm/hr' )
+    {
+        $weather_rainrate = convert_mm2in($weather_rainrate);
+    }
 
-	# note, the WxTendency -> current conditions stuff was removed
-	# as WxTendency is a forecast of weather 24-48 hours in advance,
-	# not current conditions, see rev 626 for a copy of the old code
+    # note, the WxTendency -> current conditions stuff was removed
+    # as WxTendency is a forecast of weather 24-48 hours in advance,
+    # not current conditions, see rev 626 for a copy of the old code
 
-	# see code/common/weather_metar.pl for a definition of the METAR codes
-	# used in $weather_conditions and $weather_clouds
-	# add new codes here iff we can detect the conditions
-	# note that "MI", "BC" and "PR" are not complete codes by themselves
-	# and that cloud conditions are already passed along via $clouds
+    # see code/common/weather_metar.pl for a definition of the METAR codes
+    # used in $weather_conditions and $weather_clouds
+    # add new codes here iff we can detect the conditions
+    # note that "MI", "BC" and "PR" are not complete codes by themselves
+    # and that cloud conditions are already passed along via $clouds
 
+    if ( $Weather{Conditions} =~ /rain/i or $Weather{Raining} ) {
+        $weather_conditions = 'RA';
+        if ( defined $weather_rainrate ) {
+            if ( $weather_rainrate >= 1 ) {    # 1+ inches per hour sounds heavy
+                $weather_conditions = '+RA';
+            }
+            if ( $weather_rainrate <= 0.1 )
+            {    # 0.1- inches per hour sounds light
+                $weather_conditions = '-RA';
+            }
+        }
+    }
+    $weather_conditions = 'SN' if $Weather{Conditions} =~ /snow/i;
 
-	if ($Weather{Conditions} =~ /rain/i or $Weather{Raining}) {
-		$weather_conditions='RA';
-		if (defined $weather_rainrate) {
-			if ($weather_rainrate >= 1) { # 1+ inches per hour sounds heavy
-				$weather_conditions='+RA';
-			}
-			if ($weather_rainrate <= 0.1) { # 0.1- inches per hour sounds light
-				$weather_conditions='-RA';
-			}
-		}
-	}
-	$weather_conditions='SN' if $Weather{Conditions} =~ /snow/i;
+    if ( defined $Weather{Clouds} ) {
+        if ( $Weather{Clouds} =~ /overcast/i ) {
+            $weather_clouds = 'OVC';
+        }
+        elsif ( $Weather{Clouds} =~ /broken/i ) {
+            $weather_clouds = 'BKN';
+        }
+        elsif ( $Weather{Clouds} =~ /few/i ) {
+            $weather_clouds = 'FEW';
+        }
+        elsif ( $Weather{Clouds} =~ /scattered/i ) {
+            $weather_clouds = 'SCT';
+        }
+        elsif ( $Weather{Clouds} =~ /clear/i ) {
+            $weather_clouds = 'SKC';
+        }
+    }
 
-	if (defined $Weather{Clouds}) {
-		if ($Weather{Clouds} =~ /overcast/i) {
-			$weather_clouds='OVC';
-		} elsif ($Weather{Clouds} =~ /broken/i) {
-			$weather_clouds='BKN';
-		} elsif ($Weather{Clouds} =~ /few/i) {
-			$weather_clouds='FEW';
-		} elsif ($Weather{Clouds} =~ /scattered/i) {
-			$weather_clouds='SCT';
-		} elsif ($Weather{Clouds} =~ /clear/i) {
-			$weather_clouds='SKC';
-		}
-	}
-
-    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =  gmtime();
-    my $utc = sprintf "%s-%02d-%02d %02d:%02d:%02d", $year+1900, $mon+1, $mday, $hour, $min, $sec;
+    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) =
+      gmtime();
+    my $utc = sprintf "%s-%02d-%02d %02d:%02d:%02d", $year + 1900, $mon + 1,
+      $mday, $hour, $min, $sec;
     $utc = &escape($utc);
 
-    my $url = sprintf 'http://weatherstation.wunderground.com/weatherstation/updateweatherstation.php?ID=%s&dateutc=%s&softwaretype=Misterhouse&action=updateraw',
-	$stationid, $utc;
+    my $url =
+      sprintf
+      'http://weatherstation.wunderground.com/weatherstation/updateweatherstation.php?ID=%s&dateutc=%s&softwaretype=Misterhouse&action=updateraw',
+      $stationid, $utc;
 
-	$url .= "&winddir=$weather_winddir" if defined $weather_winddir;
-	$url .= "&windspeedmph=$weather_windavgspeed" if defined $weather_windavgspeed;
-	$url .= "&windgustmph=$weather_windgustspeed" if defined $weather_windgustspeed;
-	$url .= "&tempf=$weather_tempoutdoor" if defined $weather_tempoutdoor;
-	$url .= "&rainin=$weather_rainrate" if defined $weather_rainrate;
-	$url .= "&baromin=$weather_baromsea" if defined $weather_baromsea;
-	$url .= "&dewptf=$weather_dewoutdoor" if defined $weather_dewoutdoor;
-	$url .= "&humidity=$Weather{HumidOutdoor}" if defined $Weather{HumidOutdoor};
-	$url .= "&weather=$weather_conditions";
-	$url .= "&clouds=$weather_clouds" if $weather_clouds ne '';
+    $url .= "&winddir=$weather_winddir" if defined $weather_winddir;
+    $url .= "&windspeedmph=$weather_windavgspeed"
+      if defined $weather_windavgspeed;
+    $url .= "&windgustmph=$weather_windgustspeed"
+      if defined $weather_windgustspeed;
+    $url .= "&tempf=$weather_tempoutdoor" if defined $weather_tempoutdoor;
+    $url .= "&rainin=$weather_rainrate"   if defined $weather_rainrate;
+    $url .= "&baromin=$weather_baromsea"  if defined $weather_baromsea;
+    $url .= "&dewptf=$weather_dewoutdoor" if defined $weather_dewoutdoor;
+    $url .= "&humidity=$Weather{HumidOutdoor}"
+      if defined $Weather{HumidOutdoor};
+    $url .= "&weather=$weather_conditions";
+    $url .= "&clouds=$weather_clouds" if $weather_clouds ne '';
 
-	print_log ("wunderground: $url") if $Debug{weather}; 
+    print_log("wunderground: $url") if $Debug{weather};
 
-	$url .= "&PASSWORD=${passwd}";
+    $url .= "&PASSWORD=${passwd}";
 
     set $p_weather_update qq|get_url -quiet "$url" $weather_update_html_path|;
     start $p_weather_update;
@@ -180,8 +197,9 @@ if (said $v_weather_update eq 'Run') {
 
 # *** Need to parse the response to look for errors
 
-if (done_now $p_weather_update) {
-	$v_weather_update->respond('app=wunderground connected=0 Weather upload completed.');
+if ( done_now $p_weather_update) {
+    $v_weather_update->respond(
+        'app=wunderground connected=0 Weather upload completed.');
 
 }
 

@@ -1,3 +1,4 @@
+
 =head1 B<Philips_Hue>
 
 =head2 SYNOPSIS
@@ -109,20 +110,23 @@ package Philips_Hue;
 use Device::Hue;
 
 sub new {
-    my ($class, $p_address) = @_;
-    my ($gateway, $apikey, $lamp_id) = $p_address =~ /(\S+):(\S+):(\S+)/;
+    my ( $class, $p_address ) = @_;
+    my ( $gateway, $apikey, $lamp_id ) = $p_address =~ /(\S+):(\S+):(\S+)/;
     my $self = $class->SUPER::new();
     $$self{gateway} = 'http://' . $gateway;
     $$self{apikey}  = $apikey;
     $$self{lamp_id} = $lamp_id;
-    $$self{hue}     = new Device::Hue('bridge' => $$self{gateway}, 'key' => $$self{apikey}, 'debug' => 0);
-    $$self{light}   = $$self{hue}->light($$self{lamp_id});
-    
-    $self->addStates ('on', 'off');
-	
+    $$self{hue}     = new Device::Hue(
+        'bridge' => $$self{gateway},
+        'key'    => $$self{apikey},
+        'debug'  => 0
+    );
+    $$self{light} = $$self{hue}->light( $$self{lamp_id} );
+
+    $self->addStates( 'on', 'off', '20%', '40%', '60%', '80%', '100%' );
+
     return $self;
 }
-
 
 sub lamp_id {
     my ($self) = shift;
@@ -131,149 +135,221 @@ sub lamp_id {
 
 sub addStates {
     my $self = shift;
-    push(@{$$self{states}}, @_) unless $self->{displayonly};
+    push( @{ $$self{states} }, @_ ) unless $self->{displayonly};
 }
 
-sub default_setstate
-{
-    my ($self, $state, $substate, $set_by) = @_;
-        
-    my $cmnd = ($state =~ /^off/i) ? 'off' : 'on';
-    	
-    return -1 if ($self->state eq $state); # Don't propagate state unless it has changed.
-    
-    ::print_log('hue', "Request " . $self->get_object_name . " turn " . $cmnd);
-	::print_log('hue', "Command settings: '" . $$self{gateway} . "' - '" . $$self{apikey} . "' - '" . $$self{lamp_id} . "' : '" . $cmnd. "'");
-	
+sub default_setstate {
+    my ( $self, $state, $substate, $set_by ) = @_;
+
+    my $cmnd = ( $state =~ /^off/i ) ? 'off' : 'on';
+    $cmnd = $state if ( $state =~ /\%/ );
+
+    return -1
+      if ( $self->state eq $state )
+      ;    # Don't propagate state unless it has changed.
+
+    ::print_log( 'hue',
+        "Request " . $self->get_object_name . " turn " . $cmnd );
+    ::print_log( 'hue',
+            "Command settings: '"
+          . $$self{gateway} . "' - '"
+          . $$self{apikey} . "' - '"
+          . $$self{lamp_id} . "' : '"
+          . $cmnd
+          . "'" );
+
     # Disable the effect commands when we turn off the light
-    if ($cmnd eq 'off') {
-    	$self->effect('none');
+    if ( $cmnd eq 'off' || $cmnd eq 'on' ) {
+        ::print_log( 'hue', "Sending effect 'none'" );
+        $self->effect('none');
     }
-    
-    $$self{light}->$cmnd;
 
-	return;
-	
-}
+    if ( $cmnd =~ /(\d+)\%/ ) {
+        ::print_log( 'hue', "Sending brightness $1" );
+        $self->bri($1);
+    }
+    else {
+        ::print_log( 'hue', "Sending command $cmnd" );
+        $$self{light}->$cmnd;
+    }
 
-sub effect
-{
-	my ($self, $effect) = @_;
-	
-	my $light_state = $self->state();
-	
-	::print_log('hue', "Effect '$effect' request, current lamp state is $light_state");
-
-	# Light needs to be on to be able to program an effect
-	$self->set('on');
-	
-	# Send effect command
-	::print_log('hue', "Sending effect command");
-	if ($effect ne 'off') {
-		$$self{light}->set_state({'effect' => $effect});
-	} else {
-		$$self{light}->set_state({'effect' => 'none'});
-	}
-	
-	# If the light was off and effect is none, ensure it is back off after we sent the command
-	if ($light_state ne 'on' && $effect ne 'on') {
-		::print_log('hue', "Restoring light state to off");
-		$self->set('off');
-	}
-	
-}
-
-sub bri
-{
-	my ($self, $value) = @_;
-	
-	# Sanity check
-	if (!(($value =~ /\d+/) && ($value >= 0) && ($value <= 100))) {
-		::print_log("Brightness value should be in %, but you passed $value. Brightness not set");
-		return;
-	}
-	
-	my $res = $self->_calc_bri_command($value);
-	
-	if ($res->{'cmd'} eq 'off'){
-		::print_log('hue', "Turning lamp off (bri == 0)");
-		$self->set('off');
-	} else {
-		::print_log('hue', "Setting lamp to brightness level $value %");
-		# We need to pass a value between 1 and 255 to Device::Hue
-		$self->set('on');
-		$$self{light}->bri($res->{'bri'});
-	}
-}
-
-sub ct_k
-{
-	my ($self, $value) = @_;
-	
-	# Sanity check
-	if (!($value =~ /\d+/)) {
-		::print_log("Color temperature in Kelvin should be numeric, but you passed $value. Value not set");
-		return;
-	}
-	
-	$self->set('on');
-	$$self{light}->ct_k($value);
-
-	::print_log('hue', "Setting color temperature in Kelvin to $value");
+    return;
 
 }
 
-sub hs
-{
-	my ($self, $hue, $sat) = @_;
-	
-	$self->set('on');
-	$$self{light}->set_state({'hue' => $hue, 'sat' => $sat});	
+sub effect {
+    my ( $self, $effect ) = @_;
 
-	::print_log('hue', "Setting hue and saturation to $hue - $sat");
+    my $light_state = $self->state();
+
+    ::print_log( 'hue',
+        "Effect '$effect' request, current lamp state is $light_state" );
+
+    # Do not continue if state is undefined to avoid loops.
+    return if ( $light_state eq "" );
+
+    # Light needs to be on to be able to program an effect
+    $$self{light}->on;
+
+    # Send effect command
+    ::print_log( 'hue', "Sending effect command '$effect'" );
+    if ( $effect ne 'off' ) {
+        $$self{light}->set_state( { 'effect' => $effect } );
+    }
+    else {
+        $$self{light}->set_state( { 'effect' => 'none' } );
+    }
+
+    # If the light was off and effect is none, ensure it is back off after we sent the command
+    if ( $light_state eq 'off' && $effect eq 'none' ) {
+        ::print_log( 'hue', "Restoring light state to off" );
+        $$self{light}->off;
+    }
 
 }
 
-sub hsb
-{
-	my ($self, $hue, $sat, $bri) = @_;
-	
-	$self->hs($hue, $sat);
-	$self->bri($bri);
+sub bri {
+    my ( $self, $value ) = @_;
+
+    # Sanity check
+    if ( !( ( $value =~ /\d+/ ) && ( $value >= 0 ) && ( $value <= 100 ) ) ) {
+        ::print_log(
+            "Brightness value should be in %, but you passed $value. Brightness not set"
+        );
+        return;
+    }
+
+    my $res = $self->_calc_bri_command($value);
+
+    if ( $res->{'cmd'} eq 'off' ) {
+        ::print_log( 'hue', "Turning lamp off (bri == 0)" );
+        $self->set('off');
+    }
+    else {
+        ::print_log( 'hue', "Setting lamp to brightness level $value %" );
+
+        # We need to pass a value between 1 and 255 to Device::Hue
+        $self->set('on');
+        $$self{light}->bri( $res->{'bri'} );
+    }
+}
+
+sub ct_k {
+    my ( $self, $value ) = @_;
+
+    # Sanity check
+    if ( !( $value =~ /\d+/ ) ) {
+        ::print_log(
+            "Color temperature in Kelvin should be numeric, but you passed $value. Value not set"
+        );
+        return;
+    }
+
+    $self->set('on');
+    $$self{light}->ct_k($value);
+
+    ::print_log( 'hue', "Setting color temperature in Kelvin to $value" );
+
+}
+
+sub hs {
+    my ( $self, $hue, $sat ) = @_;
+
+    $self->set('on');
+    $$self{light}->set_state( { 'hue' => $hue, 'sat' => $sat } );
+
+    ::print_log( 'hue', "Setting hue and saturation to $hue - $sat" );
+
+}
+
+sub hsb {
+    my ( $self, $hue, $sat, $bri ) = @_;
+
+    $self->hs( $hue, $sat );
+    $self->bri($bri);
 
 }
 
 # Determine what command to send to the lamp depending on the requested brightness level
 # 0 = off
 # 100 = on, full brightness
-sub _calc_bri_command
-{
-	my ($self, $value) = @_;
-	
-	if ($value == 0){
-		return {'cmd' => 'off'};
-	} else {
-		# We need to pass a value between 1 and 255 to Device::Hue
-		my $scaled = int($value/100*255);
-		return {'cmd' => 'on', 'bri' => $scaled};
-	}
+sub _calc_bri_command {
+    my ( $self, $value ) = @_;
+
+    if ( $value == 0 ) {
+        return { 'cmd' => 'off' };
+    }
+    else {
+        # We need to pass a value between 1 and 255 to Device::Hue
+        my $scaled = int( $value / 100 * 255 );
+        return { 'cmd' => 'on', 'bri' => $scaled };
+    }
 }
 
 #sub transition_time
 #{
 #	my ($self, $value) = @_;
-#	
+#
 #	# Sanity check
 #	if (!($value =~ /\d+/)) {
 #		::print_log('hue', "Transition time should be numeric");
 #		return;
 #	}
-#	
+#
 #	my $scaled = $value*10;
 #	$$self{trans_time} = $scaled;
 #
 #	::print_log('hue', "Setting transition time to $value s for next command");
 #
 #}
+
+=head1 B<Philips_Lux>
+
+=head2 SYNOPSIS
+
+Support for the Philips Lux devices
+
+=head2 DESCRIPTION
+
+This module inherits from Philips_Hue and disables the features that are not available on a Lux light. Basically this means everything that has to do with color settings.
+
+=cut
+
+package Philips_Lux;
+
+@Philips_Lux::ISA = ('Philips_Hue');
+
+sub effect {
+    my $self = shift();
+
+    return;
+
+}
+
+sub ct_k {
+    my ( $self, $value ) = @_;
+
+    ::print_log( 'hue',
+        "Setting color temperature not supported on Lux light" );
+
+    return;
+
+}
+
+sub hs {
+    my ( $self, $hue, $sat ) = @_;
+
+    ::print_log( 'hue',
+        "Setting hue and saturation not supported on Lux light" );
+
+}
+
+sub hsb {
+    my ( $self, $hue, $sat, $bri ) = @_;
+
+    ::print_log( 'hue',
+        "Setting hue, saturation and brightness not supported on Lux light" );
+
+}
 
 1;

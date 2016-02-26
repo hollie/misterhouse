@@ -17,8 +17,8 @@ my $DisplayCreateItem_Item       = "";
 my $DisplayCreateItem_Category   = "";
 my $DisplayCreateCategory_Status = "";
 my $DisplayKeyboard              = 1;     # do we display the keyboard
-my @Category;                             # array containing category name, in file order
-                                          # this allow to get printed list in store aisle.
+my @Category;    # array containing category name, in file order
+                 # this allow to get printed list in store aisle.
 my $AtShopStatus = "";
 my $NumColumns;
 my $ColumnsWidth;
@@ -27,14 +27,16 @@ my $ColumnsWidth;
 my $ConfigError = ReadConfig();
 return $ConfigError if $ConfigError;
 if ( $Config{'DisplayMode'} eq 'pda' ) {
-   $NumColumns = $Config{'NumColumnsPDA'};
+    $NumColumns = $Config{'NumColumnsPDA'};
 }
 else {
-   $NumColumns = $Config{'NumColumnsNormal'};
+    $NumColumns = $Config{'NumColumnsNormal'};
 }
 $ColumnsWidth    = 100 / $NumColumns . '%';
-$DisplayKeyboard = $Config{'DisplayKeyboardPDA'} if $Config{'DisplayMode'} eq 'pda';
-$DisplayKeyboard = $Config{'DisplayKeyboardNormal'} if $Config{'DisplayMode'} eq 'normal';
+$DisplayKeyboard = $Config{'DisplayKeyboardPDA'}
+  if $Config{'DisplayMode'} eq 'pda';
+$DisplayKeyboard = $Config{'DisplayKeyboardNormal'}
+  if $Config{'DisplayMode'} eq 'normal';
 
 #}}}
 
@@ -45,13 +47,13 @@ print "I will use list $PrettyListName \n" if $shoppinglistdebug;
 # parse received parameter {{{
 my $Action;
 foreach my $param (@ARGV) {
-   $param =~ /^(.+)=(.+)$/ && do {
-      $html .= "<p>$1 ** $2</p>\n" if $shoppinglistdebug;
-      next if $2 eq 'Choose Action';
-      $param{$1} = $2;
+    $param =~ /^(.+)=(.+)$/ && do {
+        $html .= "<p>$1 ** $2</p>\n" if $shoppinglistdebug;
+        next if $2 eq 'Choose Action';
+        $param{$1} = $2;
 
-      #print "Param [$1] = [$2]\n";    #DEBUG
-     }
+        #print "Param [$1] = [$2]\n";    #DEBUG
+      }
 }
 
 # workaround for audrey browser
@@ -64,346 +66,373 @@ ReadList();
 #}}}
 # handle action{{{
 if ( $param{'Cancel'} eq 'Cancel' ) {
-   $Status = "Action canceled";
+    $Status = "Action canceled";
 
-   # remove all element in %param hash
-   %param = ();
+    # remove all element in %param hash
+    %param = ();
 }
 
 if ( $param{'HomePageRemove'} eq 'Remove' ) {
-   my $RemoveCount = 0;
-   my $RemoveItem;
-   foreach my $CatItem ( keys %param ) {
-      if ( $param{$CatItem} eq 'uncheck' ) {
-         my ( $Cat, $Item ) = split( /_/, $CatItem );
-         $CurrentItem{$Cat}{$Item} = 0;
-         $RemoveCount++;
-         $RemoveItem = $Item;
-      }
-   }
+    my $RemoveCount = 0;
+    my $RemoveItem;
+    foreach my $CatItem ( keys %param ) {
+        if ( $param{$CatItem} eq 'uncheck' ) {
+            my ( $Cat, $Item ) = split( /_/, $CatItem );
+            $CurrentItem{$Cat}{$Item} = 0;
+            $RemoveCount++;
+            $RemoveItem = $Item;
+        }
+    }
 
-   $Status = "No Item removed"                   if $RemoveCount == 0;
-   $Status = "<i>$RemoveItem</i> removed"        if $RemoveCount == 1;
-   $Status = "<i>$RemoveCount</i> items removed" if $RemoveCount > 1;
-   WriteList();
-   print "Status=[$Status]\n";
-   1;
+    $Status = "No Item removed"                   if $RemoveCount == 0;
+    $Status = "<i>$RemoveItem</i> removed"        if $RemoveCount == 1;
+    $Status = "<i>$RemoveCount</i> items removed" if $RemoveCount > 1;
+    WriteList();
+    print "Status=[$Status]\n";
+    1;
 }
 
 if ( exists $param{'DisplayManageList_ChangeList'} ) {
-   $PrettyListName = $param{'DisplayManageList_ChangeList'};
-   $ListFile       = "$config_parms{'data_dir'}/ListManager/${PrettyListName}.lst";
-   system("touch $ListFile") if ( !-f $ListFile );
-   $Config{'CurrentList'} = $ListFile;
-   WriteConfig();
-   ReadList();
-   $Status = "Using $PrettyListName";
-   1;
+    $PrettyListName = $param{'DisplayManageList_ChangeList'};
+    $ListFile = "$config_parms{'data_dir'}/ListManager/${PrettyListName}.lst";
+    system("touch $ListFile") if ( !-f $ListFile );
+    $Config{'CurrentList'} = $ListFile;
+    WriteConfig();
+    ReadList();
+    $Status = "Using $PrettyListName";
+    1;
 }
 
 if ( exists $param{'DisplayManageList_NewList'} ) {
-   $PrettyListName = $param{'DisplayManageList_NewList'};
-   $ListFile       = "$config_parms{'data_dir'}/ListManager/${PrettyListName}.lst";
-   system("touch $ListFile") if ( !-f $ListFile );
-   $Config{'CurrentList'} = $ListFile;
-   WriteConfig();
-   ReadList();
-   $Status = "Using $PrettyListName";
-   1;
+    $PrettyListName = $param{'DisplayManageList_NewList'};
+    $ListFile = "$config_parms{'data_dir'}/ListManager/${PrettyListName}.lst";
+    system("touch $ListFile") if ( !-f $ListFile );
+    $Config{'CurrentList'} = $ListFile;
+    WriteConfig();
+    ReadList();
+    $Status = "Using $PrettyListName";
+    1;
 }
 
 if ( exists $param{'DisplayCreateCategory_Action'} ) {
-   $param{'DisplayCreateCategory_Name'} =~ s/(\w+)/\u\L$1/g;
-   if ( exists $CurrentItem{ $param{'DisplayCreateCategory_Name'} }{'DummyItem'} ) {
-      $DisplayCreateCategory_Status = "<font color=red><h3>Category $param{'DisplayCreateCategory_Name'} already exists</h3></font>";
-      $param{'HomePage_Action'} = 'Create Category';
-   }
-   else {
-      my @OldCategory = @Category;
-      @Category = ();
-      push @Category, $param{'DisplayCreateCategory_Name'} if ( $#OldCategory == -1 );
-      foreach my $c (@OldCategory) {
-         push @Category, $param{'DisplayCreateCategory_Name'} if ( $c eq $param{'DisplayCreateCategory_BeforeCategory'} );
-         push @Category, $c;
-      }
-      $DisplayCreateCategory_Status = "<font color=red><h3>$param{'DisplayCreateCategory_Name'} created</h3></font>";
-      $CurrentItem{ $param{'DisplayCreateCategory_Name'} }{'DummyItem'} = 1;
-   }
-   WriteList();
-   $param{'HomePage_Action'} = 'Create Category' if exists $param{'DisplayCreateCategory_AddMultiple'};
+    $param{'DisplayCreateCategory_Name'} =~ s/(\w+)/\u\L$1/g;
+    if (
+        exists $CurrentItem{ $param{'DisplayCreateCategory_Name'} }{'DummyItem'}
+      )
+    {
+        $DisplayCreateCategory_Status =
+          "<font color=red><h3>Category $param{'DisplayCreateCategory_Name'} already exists</h3></font>";
+        $param{'HomePage_Action'} = 'Create Category';
+    }
+    else {
+        my @OldCategory = @Category;
+        @Category = ();
+        push @Category, $param{'DisplayCreateCategory_Name'}
+          if ( $#OldCategory == -1 );
+        foreach my $c (@OldCategory) {
+            push @Category, $param{'DisplayCreateCategory_Name'}
+              if ( $c eq $param{'DisplayCreateCategory_BeforeCategory'} );
+            push @Category, $c;
+        }
+        $DisplayCreateCategory_Status =
+          "<font color=red><h3>$param{'DisplayCreateCategory_Name'} created</h3></font>";
+        $CurrentItem{ $param{'DisplayCreateCategory_Name'} }{'DummyItem'} = 1;
+    }
+    WriteList();
+    $param{'HomePage_Action'} = 'Create Category'
+      if exists $param{'DisplayCreateCategory_AddMultiple'};
 }
 
 if ( exists $param{'DisplayAtShop_Remove'} ) {
-   my $num = 0;
-   foreach my $CatItem ( keys %param ) {
-      if ( $param{$CatItem} eq 'on' ) {
-         my ( $Cat, $Item ) = split( /_/, $CatItem );
-         $CurrentItem{$Cat}{$Item} = 0;
-         $num++;
-      }
-   }
-   WriteList();
-   $param{'HomePage_Action'} = 'At Shop';
-   $AtShopStatus = "$num items checkout" if ( $num > 0 );
-   1;
+    my $num = 0;
+    foreach my $CatItem ( keys %param ) {
+        if ( $param{$CatItem} eq 'on' ) {
+            my ( $Cat, $Item ) = split( /_/, $CatItem );
+            $CurrentItem{$Cat}{$Item} = 0;
+            $num++;
+        }
+    }
+    WriteList();
+    $param{'HomePage_Action'} = 'At Shop';
+    $AtShopStatus = "$num items checkout" if ( $num > 0 );
+    1;
 }
 
 if ( exists $param{'DisplayManageItem'} ) {
-   if ( exists $param{'DisplayManageItem_submit'} ) {    # we have change something
-      my $Category = $param{'DisplayManageItem_Category'};
-      foreach my $k (%param) {
-         if ( $k =~ /DisplayManageItem_Ren/ ) {
-            my ( $Category, $Item ) = $k =~ /^DisplayManageItem_Ren_(.*)_(.*)$/;
-            next if ( $Item eq $param{$k} );
-            $CurrentItem{$Category}{ $param{$k} } = $CurrentItem{$Category}{$Item};
-            delete $CurrentItem{$Category}{$Item};
-         }
-         elsif ( $k =~ /DisplayManageItem_Del/ ) {
-            my ( $Category, $Item ) = $k =~ /^DisplayManageItem_Del_(.*)_(.*)$/;
-            delete $CurrentItem{$Category}{$Item};
-         }
-      }
-   }
-   elsif ( exists $param{'DisplayManageItem_Category'} ) {
-      $param{'HomePage_Action'} = 'Manage Item';
-   }
-   WriteList();
+    if ( exists $param{'DisplayManageItem_submit'} )
+    {    # we have change something
+        my $Category = $param{'DisplayManageItem_Category'};
+        foreach my $k (%param) {
+            if ( $k =~ /DisplayManageItem_Ren/ ) {
+                my ( $Category, $Item ) =
+                  $k =~ /^DisplayManageItem_Ren_(.*)_(.*)$/;
+                next if ( $Item eq $param{$k} );
+                $CurrentItem{$Category}{ $param{$k} } =
+                  $CurrentItem{$Category}{$Item};
+                delete $CurrentItem{$Category}{$Item};
+            }
+            elsif ( $k =~ /DisplayManageItem_Del/ ) {
+                my ( $Category, $Item ) =
+                  $k =~ /^DisplayManageItem_Del_(.*)_(.*)$/;
+                delete $CurrentItem{$Category}{$Item};
+            }
+        }
+    }
+    elsif ( exists $param{'DisplayManageItem_Category'} ) {
+        $param{'HomePage_Action'} = 'Manage Item';
+    }
+    WriteList();
 }
 
 if ( exists $param{'DisplayManageCategory'} ) {
-   if ( exists $param{'DisplayManageCategory_submit'} ) {    # we have change something
-      foreach my $k (%param) {
-         if ( $k =~ /DisplayManageCategory_Ren/ ) {
-            my ($Cat) = $k =~ /^DisplayManageCategory_Ren_(.*)$/;
-            my $NewName = $param{"$k"};
-            next if ( $Cat eq $NewName );
-            my $i = -1;
-            while ( $i++ < $#Category ) {
-               if ( $Category[$i] eq $Cat ) {
-                  $Category[$i] = $param{$k};
-                  foreach my $j ( keys %{ $CurrentItem{$Cat} } ) {
-                     $CurrentItem{ $param{$k} }{$j} = $CurrentItem{$Cat}{$j};
-                     delete $CurrentItem{$Cat}{$j};
-                  }
-               }
+    if ( exists $param{'DisplayManageCategory_submit'} )
+    {    # we have change something
+        foreach my $k (%param) {
+            if ( $k =~ /DisplayManageCategory_Ren/ ) {
+                my ($Cat) = $k =~ /^DisplayManageCategory_Ren_(.*)$/;
+                my $NewName = $param{"$k"};
+                next if ( $Cat eq $NewName );
+                my $i = -1;
+                while ( $i++ < $#Category ) {
+                    if ( $Category[$i] eq $Cat ) {
+                        $Category[$i] = $param{$k};
+                        foreach my $j ( keys %{ $CurrentItem{$Cat} } ) {
+                            $CurrentItem{ $param{$k} }{$j} =
+                              $CurrentItem{$Cat}{$j};
+                            delete $CurrentItem{$Cat}{$j};
+                        }
+                    }
+                }
             }
-         }
-         elsif ( $k =~ /DisplayManageCategory_Del/ ) {
-            my ($Cat) = $k =~ /^DisplayManageCategory_Del_(.*)$/;
-            my @NewArray;
-            foreach $k (@Category) {
-               next if $k eq $Cat;
-               push @NewArray, $k;
-            }
-            @Category = @NewArray;
+            elsif ( $k =~ /DisplayManageCategory_Del/ ) {
+                my ($Cat) = $k =~ /^DisplayManageCategory_Del_(.*)$/;
+                my @NewArray;
+                foreach $k (@Category) {
+                    next if $k eq $Cat;
+                    push @NewArray, $k;
+                }
+                @Category = @NewArray;
 
-            foreach my $Item ( keys %{ $CurrentItem{$Cat} } ) {
-               delete $CurrentItem{$Cat}{$Item};
+                foreach my $Item ( keys %{ $CurrentItem{$Cat} } ) {
+                    delete $CurrentItem{$Cat}{$Item};
+                }
             }
-         }
-      }
-   }
-   WriteList();
+        }
+    }
+    WriteList();
 }
 
 if ( exists $param{'DisplayCategoryItem_Submit'} ) {
-   my $AddedCount    = 0;
-   my $ChangedCount  = 0;
-   my $DisabledCount = 0;
-   my $AddedItem;
-   my $ChangedItem;
-   my $DisabledItem;
-   my $DisplayCategory = $param{'DisplayCategoryItem_Category'};
-   my $StatusA;
-   my $StatusC;
-   my $StatusD;
+    my $AddedCount    = 0;
+    my $ChangedCount  = 0;
+    my $DisabledCount = 0;
+    my $AddedItem;
+    my $ChangedItem;
+    my $DisabledItem;
+    my $DisplayCategory = $param{'DisplayCategoryItem_Category'};
+    my $StatusA;
+    my $StatusC;
+    my $StatusD;
 
-   foreach my $Cat ( keys %CurrentItem ) {
-      next if ( $Cat ne $DisplayCategory && $DisplayCategory ne 'ALL' );
-      foreach my $Item ( keys %{ $CurrentItem{$Cat} } ) {
-         next if $Item eq "DummyItem";
-         my $FormKey = "${Cat}";
-         $FormKey =~ s/ /XYZ/g;    # javascript workaround XYZ separate category and item
-         $FormKey .= "_$Item";
-         next if !$param{$FormKey};
-         next if ( $param{$FormKey} == $CurrentItem{$Cat}{$Item} );    # already
-         if ( $CurrentItem{$Cat}{$Item} == 0 && $param{$FormKey} > 0 ) {
-            $AddedCount++;
-            $AddedItem = $Item;
-            $CurrentItem{$Cat}{$Item} = $param{$FormKey};
-         }
-         elsif ( $CurrentItem{$Cat}{$Item} > 0 && $param{$FormKey} == 0 ) {
-            $DisabledCount++;
-            $DisabledItem = $Item;
-            $CurrentItem{$Cat}{$Item} = 0;
-         }
-         elsif ( $param{$FormKey} != $CurrentItem{$Cat}{$Item} ) {
-            $ChangedCount++;
-            $ChangedItem = $Item;
-            $CurrentItem{$Cat}{$Item} = $param{$FormKey};
-         }
-      }
-   }
+    foreach my $Cat ( keys %CurrentItem ) {
+        next if ( $Cat ne $DisplayCategory && $DisplayCategory ne 'ALL' );
+        foreach my $Item ( keys %{ $CurrentItem{$Cat} } ) {
+            next if $Item eq "DummyItem";
+            my $FormKey = "${Cat}";
+            $FormKey =~
+              s/ /XYZ/g;  # javascript workaround XYZ separate category and item
+            $FormKey .= "_$Item";
+            next if !$param{$FormKey};
+            next if ( $param{$FormKey} == $CurrentItem{$Cat}{$Item} ); # already
+            if ( $CurrentItem{$Cat}{$Item} == 0 && $param{$FormKey} > 0 ) {
+                $AddedCount++;
+                $AddedItem = $Item;
+                $CurrentItem{$Cat}{$Item} = $param{$FormKey};
+            }
+            elsif ( $CurrentItem{$Cat}{$Item} > 0 && $param{$FormKey} == 0 ) {
+                $DisabledCount++;
+                $DisabledItem = $Item;
+                $CurrentItem{$Cat}{$Item} = 0;
+            }
+            elsif ( $param{$FormKey} != $CurrentItem{$Cat}{$Item} ) {
+                $ChangedCount++;
+                $ChangedItem = $Item;
+                $CurrentItem{$Cat}{$Item} = $param{$FormKey};
+            }
+        }
+    }
 
-   #print "Enable=$EnableCount Disable=$DisableCount\n";
-   $StatusA = "<i>0</i> added, "               if $AddedCount == 0;
-   $StatusA = "<i>$AddedItem</i> added, "      if $AddedCount == 1;
-   $StatusA = "<i>$AddedCount</i> added, "     if $AddedCount > 1;
-   $StatusC = "<i>0</i> changed, "             if $ChangedCount == 0;
-   $StatusC = "<i>$ChangedItem</i> changed, "  if $ChangedCount == 1;
-   $StatusC = "<i>$ChangedCount</i> changed, " if $ChangedCount > 1;
-   $StatusD = "<i>0</i> removed"               if $DisabledCount == 0;
-   $StatusD = "<i>$DisabledItem</i> removed"   if $DisabledCount == 1;
-   $StatusD = "<i>$DisabledCount</i> removed"  if $DisabledCount > 1;
+    #print "Enable=$EnableCount Disable=$DisableCount\n";
+    $StatusA = "<i>0</i> added, "               if $AddedCount == 0;
+    $StatusA = "<i>$AddedItem</i> added, "      if $AddedCount == 1;
+    $StatusA = "<i>$AddedCount</i> added, "     if $AddedCount > 1;
+    $StatusC = "<i>0</i> changed, "             if $ChangedCount == 0;
+    $StatusC = "<i>$ChangedItem</i> changed, "  if $ChangedCount == 1;
+    $StatusC = "<i>$ChangedCount</i> changed, " if $ChangedCount > 1;
+    $StatusD = "<i>0</i> removed"               if $DisabledCount == 0;
+    $StatusD = "<i>$DisabledItem</i> removed"   if $DisabledCount == 1;
+    $StatusD = "<i>$DisabledCount</i> removed"  if $DisabledCount > 1;
 
-   if ( $AddedCount == 0 && $ChangedCount == 0 && $DisabledCount == 0 ) {
-      $Status = "No new item selected";
-   }
-   else {
-      $Status = $StatusA . $StatusC . $StatusD;
-   }
+    if ( $AddedCount == 0 && $ChangedCount == 0 && $DisabledCount == 0 ) {
+        $Status = "No new item selected";
+    }
+    else {
+        $Status = $StatusA . $StatusC . $StatusD;
+    }
 
-   WriteList();
-   1;
+    WriteList();
+    1;
 }
 
 if ( exists $param{'SearchCategoryItem_Submit'} ) {
-   my $AddedCount    = 0;
-   my $ChangedCount  = 0;
-   my $DisabledCount = 0;
-   my $AddedItem;
-   my $ChangedItem;
-   my $DisabledItem;
-   my $DisplayCategory = $param{'DisplayCategoryItem_Category'};
-   my $StatusA;
-   my $StatusC;
-   my $StatusD;
+    my $AddedCount    = 0;
+    my $ChangedCount  = 0;
+    my $DisabledCount = 0;
+    my $AddedItem;
+    my $ChangedItem;
+    my $DisabledItem;
+    my $DisplayCategory = $param{'DisplayCategoryItem_Category'};
+    my $StatusA;
+    my $StatusC;
+    my $StatusD;
 
-   foreach my $Cat ( keys %CurrentItem ) {
-      foreach my $Item ( keys %{ $CurrentItem{$Cat} } ) {
-         next if $Item eq "DummyItem";
-         my $FormKey = "${Cat}";
-         $FormKey =~ s/ /XYZ/g;    # javascript workaround XYZ separate category and item
-         $FormKey .= "_$Item";
-         next if !$param{$FormKey};
-         next if ( $param{$FormKey} == $CurrentItem{$Cat}{$Item} );    # same value
-         if ( $CurrentItem{$Cat}{$Item} == 0 && $param{$FormKey} > 0 ) {
-            $AddedCount++;
-            $AddedItem = $Item;
-            $CurrentItem{$Cat}{$Item} = $param{$FormKey};
-         }
-         elsif ( $CurrentItem{$Cat}{$Item} > 0 && $param{$FormKey} == 0 ) {
-            $DisabledCount++;
-            $DisabledItem = $Item;
-            $CurrentItem{$Cat}{$Item} = 0;
-         }
-         elsif ( $param{$FormKey} != $CurrentItem{$Cat}{$Item} ) {
-            $ChangedCount++;
-            $ChangedItem = $Item;
-            $CurrentItem{$Cat}{$Item} = $param{$FormKey};
-         }
-      }
-   }
+    foreach my $Cat ( keys %CurrentItem ) {
+        foreach my $Item ( keys %{ $CurrentItem{$Cat} } ) {
+            next if $Item eq "DummyItem";
+            my $FormKey = "${Cat}";
+            $FormKey =~
+              s/ /XYZ/g;  # javascript workaround XYZ separate category and item
+            $FormKey .= "_$Item";
+            next if !$param{$FormKey};
+            next
+              if ( $param{$FormKey} == $CurrentItem{$Cat}{$Item} ); # same value
+            if ( $CurrentItem{$Cat}{$Item} == 0 && $param{$FormKey} > 0 ) {
+                $AddedCount++;
+                $AddedItem = $Item;
+                $CurrentItem{$Cat}{$Item} = $param{$FormKey};
+            }
+            elsif ( $CurrentItem{$Cat}{$Item} > 0 && $param{$FormKey} == 0 ) {
+                $DisabledCount++;
+                $DisabledItem = $Item;
+                $CurrentItem{$Cat}{$Item} = 0;
+            }
+            elsif ( $param{$FormKey} != $CurrentItem{$Cat}{$Item} ) {
+                $ChangedCount++;
+                $ChangedItem = $Item;
+                $CurrentItem{$Cat}{$Item} = $param{$FormKey};
+            }
+        }
+    }
 
-   #print "Enable=$EnableCount Disable=$DisableCount\n";
-   $StatusA = "<i>0</i> added, "               if $AddedCount == 0;
-   $StatusA = "<i>$AddedItem</i> added, "      if $AddedCount == 1;
-   $StatusA = "<i>$AddedCount</i> added, "     if $AddedCount > 1;
-   $StatusC = "<i>0</i> changed, "             if $ChangedCount == 0;
-   $StatusC = "<i>$ChangedItem</i> changed, "  if $ChangedCount == 1;
-   $StatusC = "<i>$ChangedCount</i> changed, " if $ChangedCount > 1;
-   $StatusD = "<i>0</i> removed"               if $DisabledCount == 0;
-   $StatusD = "<i>$DisabledItem</i> removed"   if $DisabledCount == 1;
-   $StatusD = "<i>$DisabledCount</i> removed"  if $DisabledCount > 1;
+    #print "Enable=$EnableCount Disable=$DisableCount\n";
+    $StatusA = "<i>0</i> added, "               if $AddedCount == 0;
+    $StatusA = "<i>$AddedItem</i> added, "      if $AddedCount == 1;
+    $StatusA = "<i>$AddedCount</i> added, "     if $AddedCount > 1;
+    $StatusC = "<i>0</i> changed, "             if $ChangedCount == 0;
+    $StatusC = "<i>$ChangedItem</i> changed, "  if $ChangedCount == 1;
+    $StatusC = "<i>$ChangedCount</i> changed, " if $ChangedCount > 1;
+    $StatusD = "<i>0</i> removed"               if $DisabledCount == 0;
+    $StatusD = "<i>$DisabledItem</i> removed"   if $DisabledCount == 1;
+    $StatusD = "<i>$DisabledCount</i> removed"  if $DisabledCount > 1;
 
-   if ( $AddedCount == 0 && $ChangedCount == 0 && $DisabledCount == 0 ) {
-      $Status = "No new item selected";
-   }
-   else {
-      $Status = $StatusA . $StatusC . $StatusD;
-   }
+    if ( $AddedCount == 0 && $ChangedCount == 0 && $DisabledCount == 0 ) {
+        $Status = "No new item selected";
+    }
+    else {
+        $Status = $StatusA . $StatusC . $StatusD;
+    }
 
-   WriteList();
-   1;
+    WriteList();
+    1;
 }
 
 if ( exists $param{'DisplayCategoryItem_SelectAll'} ) {
-   my $count = 0;
-   foreach my $Category ( keys %CurrentItem ) {
-      next if ( $param{'DisplayCategoryItem_Category'} ne $Category && $param{'DisplayCategoryItem_Category'} ne 'ALL' );
-      foreach my $Item ( keys %{ $CurrentItem{$Category} } ) {
-         next if $Item eq 'DummyItem';
-         $count++ if $CurrentItem{$Category}{$Item} == 0;
-         $CurrentItem{$Category}{$Item} = 1;
-      }
-   }
-   WriteList();
-   $Status = "$count items added";
-   1;
+    my $count = 0;
+    foreach my $Category ( keys %CurrentItem ) {
+        next
+          if ( $param{'DisplayCategoryItem_Category'} ne $Category
+            && $param{'DisplayCategoryItem_Category'} ne 'ALL' );
+        foreach my $Item ( keys %{ $CurrentItem{$Category} } ) {
+            next if $Item eq 'DummyItem';
+            $count++ if $CurrentItem{$Category}{$Item} == 0;
+            $CurrentItem{$Category}{$Item} = 1;
+        }
+    }
+    WriteList();
+    $Status = "$count items added";
+    1;
 }
 
 if ( $param{'HomePage_Action'} eq 'Clear All' ) {
-   my $count = 0;
-   foreach my $Category ( keys %CurrentItem ) {
-      foreach my $Item ( keys %{ $CurrentItem{$Category} } ) {
-         $count++ if $CurrentItem{$Category}{$Item} == 1;
-         $CurrentItem{$Category}{$Item} = 0;
-      }
-   }
-   WriteList();
-   $Status = "$count items cleared";
-   1;
+    my $count = 0;
+    foreach my $Category ( keys %CurrentItem ) {
+        foreach my $Item ( keys %{ $CurrentItem{$Category} } ) {
+            $count++ if $CurrentItem{$Category}{$Item} == 1;
+            $CurrentItem{$Category}{$Item} = 0;
+        }
+    }
+    WriteList();
+    $Status = "$count items cleared";
+    1;
 }
 
 if ( exists $param{'DisplayCreateItem_Add_Item'} ) {
-   $param{'DisplayCreateItem_Item'} =~ s/(\w+)/\u\L$1/g;
+    $param{'DisplayCreateItem_Item'} =~ s/(\w+)/\u\L$1/g;
 
-   # duplicate entry
-   if ( exists $CurrentItem{ $param{'DisplayCreateItem_Category'} }{ $param{'DisplayCreateItem_Item'} } ) {
-      $DisplayCreateItem_Status   = $param{'DisplayCreateItem_Item'} . " exists";
-      $DisplayCreateItem_Item     = $param{'DisplayCreateItem_Item'};
-      $DisplayCreateItem_Category = $param{'DisplayCreateItem_Category'};
-      $param{'HomePage_Action'}   = 'Create Item';
-   }
-   else {
-      $CurrentItem{ $param{'DisplayCreateItem_Category'} }{ $param{'DisplayCreateItem_Item'} } = ( $param{'DisplayCreateItem_CurrentList'} ) ? 1 : 0;
-      $Status = "<i>$param{'DisplayCreateItem_Item'}</i> added in $param{'DisplayCreateItem_Category'}";
-      WriteList();
-   }
-   if ( exists $param{'DisplayCreateItem_AddMultiple'} ) {    # add more Item
-      $DisplayCreateItem_Status   = "$param{'DisplayCreateItem_Item'} added";
-      $DisplayCreateItem_Item     = '';
-      $DisplayCreateItem_Category = $param{'DisplayCreateItem_Category'};
-      $param{'HomePage_Action'}   = 'Create Item';
-   }
-   1;
+    # duplicate entry
+    if (
+        exists $CurrentItem{ $param{'DisplayCreateItem_Category'} }
+        { $param{'DisplayCreateItem_Item'} } )
+    {
+        $DisplayCreateItem_Status =
+          $param{'DisplayCreateItem_Item'} . " exists";
+        $DisplayCreateItem_Item     = $param{'DisplayCreateItem_Item'};
+        $DisplayCreateItem_Category = $param{'DisplayCreateItem_Category'};
+        $param{'HomePage_Action'}   = 'Create Item';
+    }
+    else {
+        $CurrentItem{ $param{'DisplayCreateItem_Category'} }
+          { $param{'DisplayCreateItem_Item'} } =
+          ( $param{'DisplayCreateItem_CurrentList'} ) ? 1 : 0;
+        $Status =
+          "<i>$param{'DisplayCreateItem_Item'}</i> added in $param{'DisplayCreateItem_Category'}";
+        WriteList();
+    }
+    if ( exists $param{'DisplayCreateItem_AddMultiple'} ) {    # add more Item
+        $DisplayCreateItem_Status   = "$param{'DisplayCreateItem_Item'} added";
+        $DisplayCreateItem_Item     = '';
+        $DisplayCreateItem_Category = $param{'DisplayCreateItem_Category'};
+        $param{'HomePage_Action'}   = 'Create Item';
+    }
+    1;
 }
 
 if ( $param{'HomePage_Action'} eq "Display PDA" ) {
-   $Config{'DisplayMode'} = 'pda';
-   $Status                = "PDA display mode";
-   $NumColumns            = $Config{'NumColumnsPDA'};
-   $ColumnsWidth          = 100 / $NumColumns . '%';
+    $Config{'DisplayMode'} = 'pda';
+    $Status                = "PDA display mode";
+    $NumColumns            = $Config{'NumColumnsPDA'};
+    $ColumnsWidth          = 100 / $NumColumns . '%';
 }
 
 if ( $param{'HomePage_Action'} eq "Display Normal" ) {
-   $Config{'DisplayMode'} = 'normal';
-   $Status                = "Regular display mode";
-   $NumColumns            = $Config{'NumColumnsNormal'};
-   $ColumnsWidth          = 100 / $NumColumns . '%';
+    $Config{'DisplayMode'} = 'normal';
+    $Status                = "Regular display mode";
+    $NumColumns            = $Config{'NumColumnsNormal'};
+    $ColumnsWidth          = 100 / $NumColumns . '%';
 }
 
 if ( exists $param{'DisplayPreferences'} ) {
-   foreach my $k ( keys %param ) {
-      next if $k eq 'Preferences';
-      $Config{$k} = $param{$k};
-   }
-   $Config{'DisplayKeyboardPDA'}    = 0 if !exists $param{'DisplayKeyboardPDA'};
-   $Config{'AddToListDefault'}    = 0 if !exists $param{'AddToListDefault'};
-   $Config{'DisplayKeyboardNormal'} = 0 if !exists $param{'DisplayKeyboardNormal'};
-   $Config{'DisplayStatus'}         = 0 if !exists $param{'DisplayStatus'};
-   $Config{'PrintHtmlPipe'}         = 0 if !exists $param{'PrintHtmlPipe'};
-   1;
+    foreach my $k ( keys %param ) {
+        next if $k eq 'Preferences';
+        $Config{$k} = $param{$k};
+    }
+    $Config{'DisplayKeyboardPDA'} = 0 if !exists $param{'DisplayKeyboardPDA'};
+    $Config{'AddToListDefault'}   = 0 if !exists $param{'AddToListDefault'};
+    $Config{'DisplayKeyboardNormal'} = 0
+      if !exists $param{'DisplayKeyboardNormal'};
+    $Config{'DisplayStatus'} = 0 if !exists $param{'DisplayStatus'};
+    $Config{'PrintHtmlPipe'} = 0 if !exists $param{'PrintHtmlPipe'};
+    1;
 }
 
 $Status = "The list is empty, create category and item" if ( $#Category == -1 );
@@ -430,56 +459,58 @@ $html .= qq[<body>];
 $html .= qq[<form name="main" action="/bin/ListManager.pl" method="post">\n];
 
 if ( $param{'HomePage_Action'} eq 'About' ) {
-   DisplayAbout();
+    DisplayAbout();
 }
 elsif ( $param{'HomePage_Action'} eq 'At Shop' ) {
-   DisplayAtShop($AtShopStatus);
+    DisplayAtShop($AtShopStatus);
 }
 elsif ( $param{'HomePage_Action'} eq 'Create Category' ) {
-   DisplayCreateCategory($DisplayCreateCategory_Status);
+    DisplayCreateCategory($DisplayCreateCategory_Status);
 }
 elsif ( $param{'HomePage_Action'} eq 'Create Item' ) {
-   $DisplayCreateItem_Category = $param{'DisplayCategoryItem_Category'} if exists $param{'DisplayCategoryItem_Category'};
-   DisplayCreateItem( $DisplayCreateItem_Status, $DisplayCreateItem_Item, $DisplayCreateItem_Category );
+    $DisplayCreateItem_Category = $param{'DisplayCategoryItem_Category'}
+      if exists $param{'DisplayCategoryItem_Category'};
+    DisplayCreateItem( $DisplayCreateItem_Status, $DisplayCreateItem_Item,
+        $DisplayCreateItem_Category );
 }
 elsif ( $param{'HomePage_Action'} eq 'Man Page' ) {
-   DisplayManPage();
+    DisplayManPage();
 }
 elsif ( $param{'HomePage_Action'} eq 'Manage Category' ) {
-   DisplayManageCategory();
+    DisplayManageCategory();
 }
 elsif ( $param{'HomePage_Action'} eq 'Manage Item' ) {
-   DisplayManageItem( $param{'DisplayManageItem_Category'} );
+    DisplayManageItem( $param{'DisplayManageItem_Category'} );
 }
 elsif ( $param{'HomePage_Action'} eq 'Manage List' ) {
-   DisplayManageList();
+    DisplayManageList();
 }
 elsif ( $param{'HomePage_Action'} eq 'Preferences' ) {
-   DisplayPreferences();
+    DisplayPreferences();
 }
 elsif ( $param{'HomePage_Action'} eq 'Print' ) {
-   PrintHtml();
+    PrintHtml();
 }
 elsif ( $param{'HomePage_Action'} eq 'Print Preview' ) {
-   PrintPreview();
+    PrintPreview();
 }
 elsif ( $param{'HomePage_Action'} eq 'Print Text' ) {
-   PrintText();
+    PrintText();
 }
 elsif ( $param{'HomePage_Action'} eq 'Quick Guide' ) {
-   DisplayQuickGuide();
+    DisplayQuickGuide();
 }
 elsif ( $Config{'NewUser'} == 1 ) {
-   DisplayNewUserInfo();
+    DisplayNewUserInfo();
 }
 elsif ( $param{'DisplayCategoryItem'} ) {
-   DisplayCategoryItem( $param{'DisplayCategoryItem'} );
+    DisplayCategoryItem( $param{'DisplayCategoryItem'} );
 }
 elsif ( $param{'DisplaySearchItem'} ) {
-   DisplaySearchItem( $param{'DisplaySearchItem'} );
+    DisplaySearchItem( $param{'DisplaySearchItem'} );
 }
 else {
-   DisplayHomePage();
+    DisplayHomePage();
 }
 
 #}}}
@@ -488,14 +519,15 @@ $html .= qq[</form>];
 $html .= qq[</body>];
 $html .= qq[</html>];
 
-return &html_page('', $html);
+return &html_page( '', $html );
+
 #}}}
 
 # ============== Subroutine ================
 
 #sub DisplayAbout {{{
 sub DisplayAbout {
-   $html .= qq [
+    $html .= qq [
   <CENTER>
   <H2>ListManager</H2>
   <p>Version '$Version'</p>
@@ -505,33 +537,36 @@ sub DisplayAbout {
   <br>
   <input type="submit" name="action" value="OK">
 ];
-   1;
+    1;
 }
 
 #}}}
 #sub DisplayAtShop{{{
 sub DisplayAtShop {
-   my $Msg = shift;
-   $html .= qq[<p><center>$Msg</center></p>\n] if $Msg;
-   foreach my $DisplayCategory (@Category) {    # no sort, to display in aisles way (shopping)
-      my $HeaderPrint = 0;
-      my $num         = 0;
-      foreach my $Item ( sort keys %{ $CurrentItem{$DisplayCategory} } ) {
-         next if $Item eq 'DummyItem';
-         if ( $CurrentItem{$DisplayCategory}{$Item} > 0 ) {
-            Header($DisplayCategory) if !$HeaderPrint++;
-            $html .= qq[</tr>\n<tr>\n] if $num % $NumColumns == 0;
-            my $Count = "($CurrentItem{$DisplayCategory}{$Item})" if $CurrentItem{$DisplayCategory}{$Item} > 1;
-            $html .= qq[<td><input type="checkbox" name="${DisplayCategory}_$Item">$Item $Count</td>\n];
-            $num++;
-         }
-      }
-      $html .= qq[ </tr>\n</table><hr>\n] if $HeaderPrint;
-   }
+    my $Msg = shift;
+    $html .= qq[<p><center>$Msg</center></p>\n] if $Msg;
+    foreach my $DisplayCategory (@Category)
+    {    # no sort, to display in aisles way (shopping)
+        my $HeaderPrint = 0;
+        my $num         = 0;
+        foreach my $Item ( sort keys %{ $CurrentItem{$DisplayCategory} } ) {
+            next if $Item eq 'DummyItem';
+            if ( $CurrentItem{$DisplayCategory}{$Item} > 0 ) {
+                Header($DisplayCategory) if !$HeaderPrint++;
+                $html .= qq[</tr>\n<tr>\n] if $num % $NumColumns == 0;
+                my $Count = "($CurrentItem{$DisplayCategory}{$Item})"
+                  if $CurrentItem{$DisplayCategory}{$Item} > 1;
+                $html .=
+                  qq[<td><input type="checkbox" name="${DisplayCategory}_$Item">$Item $Count</td>\n];
+                $num++;
+            }
+        }
+        $html .= qq[ </tr>\n</table><hr>\n] if $HeaderPrint;
+    }
 
-   sub Header {
-      my $DisplayCategory = shift;
-      $html .= qq[
+    sub Header {
+        my $DisplayCategory = shift;
+        $html .= qq[
 <table width="100%" >
  <tr>
    <TD align=left><input type="submit" name="Cancel" value="Cancel" ></TD>
@@ -543,20 +578,21 @@ sub DisplayAtShop {
 <tr>
 ];
 
-   }
+    }
 
-   1;
+    1;
 }
 
 #}}}
 #sub DisplayCategoryItem {{{
 sub DisplayCategoryItem {
-   my $Category = shift;
-   my $DisplayColumns;
-   $DisplayColumns = ( $Config{'DisplayMode'} eq 'normal' ) ? ( $NumColumns - 1 ) : 1;
-   my $SelectAll = '';
+    my $Category = shift;
+    my $DisplayColumns;
+    $DisplayColumns =
+      ( $Config{'DisplayMode'} eq 'normal' ) ? ( $NumColumns - 1 ) : 1;
+    my $SelectAll = '';
 
-   $html .= qq[
+    $html .= qq[
    <SCRIPT Language = "JavaScript">
 
    function doPlus(checkbox,txt){
@@ -577,17 +613,20 @@ sub DisplayCategoryItem {
    </script>
    ];
 
-   $html .= qq[<input type="hidden" name="DisplayCategoryItem_Category" value="$Category">\n];
-   $html .= qq[<table width="100%">];
-   $html .= qq[<tr>\n];
-   $html .= qq[<td align=left><input type="submit" name="DisplayCategoryItem_SelectAll" value="Select All"></td>\n];
-   $html .= qq[<td align=right><input type="submit" name="HomePage_Action" value="Create Item"></td>\n];
-   $html .= qq[</tr>\n];
-   $html .= qq[</table>];
+    $html .=
+      qq[<input type="hidden" name="DisplayCategoryItem_Category" value="$Category">\n];
+    $html .= qq[<table width="100%">];
+    $html .= qq[<tr>\n];
+    $html .=
+      qq[<td align=left><input type="submit" name="DisplayCategoryItem_SelectAll" value="Select All"></td>\n];
+    $html .=
+      qq[<td align=right><input type="submit" name="HomePage_Action" value="Create Item"></td>\n];
+    $html .= qq[</tr>\n];
+    $html .= qq[</table>];
 
-   foreach my $DisplayCategory ( sort @Category ) {
-      next if ( $Category ne $DisplayCategory && $Category ne 'ALL' );
-      $html .= qq[
+    foreach my $DisplayCategory ( sort @Category ) {
+        next if ( $Category ne $DisplayCategory && $Category ne 'ALL' );
+        $html .= qq[
 <table width="100%" >
 <tr>
 <TD align=left><H3>$DisplayCategory<H3></TD>
@@ -598,38 +637,46 @@ sub DisplayCategoryItem {
 <table width="100%" cellspacing=0 cellpadding=0>
 <tr>
 ];
-      my $num = 0;
-      foreach my $Item ( sort keys %{ $CurrentItem{$DisplayCategory} } ) {
-         my $JavaCat = $DisplayCategory;
-         $JavaCat =~ s/\ /XYZ/g;
-         next if $Item eq 'DummyItem';
-         my $Checked = ( $CurrentItem{$DisplayCategory}{$Item} == 0 ) ? '' : 'checked';
-         my $value   = ( $CurrentItem{$DisplayCategory}{$Item} == 0 ) ? 0  : $CurrentItem{$DisplayCategory}{$Item};
-         $html .= qq[</tr>\n<tr>\n] if $num % $DisplayColumns == 0;
-         $html .= qq[<td><input type="button" name="plus" value="+" 
+        my $num = 0;
+        foreach my $Item ( sort keys %{ $CurrentItem{$DisplayCategory} } ) {
+            my $JavaCat = $DisplayCategory;
+            $JavaCat =~ s/\ /XYZ/g;
+            next if $Item eq 'DummyItem';
+            my $Checked =
+              ( $CurrentItem{$DisplayCategory}{$Item} == 0 ) ? '' : 'checked';
+            my $value =
+              ( $CurrentItem{$DisplayCategory}{$Item} == 0 )
+              ? 0
+              : $CurrentItem{$DisplayCategory}{$Item};
+            $html .= qq[</tr>\n<tr>\n] if $num % $DisplayColumns == 0;
+            $html .= qq[<td><input type="button" name="plus" value="+" 
                      onClick="doPlus('${JavaCat}_${Item}_check','${JavaCat}_${Item}')">\n];
-         $html .= qq[<input type="button" name="minus" value="-" 
+            $html .= qq[<input type="button" name="minus" value="-" 
                      onClick="doMinus('${JavaCat}_${Item}_check','${JavaCat}_${Item}')">\n];
-         $html .= qq[<input type="checkbox" disabled name="${JavaCat}_${Item}_check" $Checked>\n];
+            $html .=
+              qq[<input type="checkbox" disabled name="${JavaCat}_${Item}_check" $Checked>\n];
 
-         $html .= qq[$Item <input type="text"  value="$value" name="${JavaCat}_${Item}" size="1" style="border:solid 0 #fff; color:#630; background:#fff none;"></td>\n];
-         $num++;
-      }
-      $html .= qq[</tr>];
-      $html .= qq[</table>\n];
-      $html .= qq[<p><center>No Item defined in category $DisplayCategory</center></p>] if !$num;
-      $SelectAll = '';
-   }
-   1;
+            $html .=
+              qq[$Item <input type="text"  value="$value" name="${JavaCat}_${Item}" size="1" style="border:solid 0 #fff; color:#630; background:#fff none;"></td>\n];
+            $num++;
+        }
+        $html .= qq[</tr>];
+        $html .= qq[</table>\n];
+        $html .=
+          qq[<p><center>No Item defined in category $DisplayCategory</center></p>]
+          if !$num;
+        $SelectAll = '';
+    }
+    1;
 }
 
 #}}}
 #sub DisplayCreateCategory{{{
 sub DisplayCreateCategory {
-   my $Status = shift;
+    my $Status = shift;
 
-   # javascript {{{
-   $html .= qq[
+    # javascript {{{
+    $html .= qq[
 
    <SCRIPT LANGUAGE="JavaScript">
    function CheckForm()  {
@@ -653,54 +700,58 @@ sub DisplayCreateCategory {
      </SCRIPT>
    ];
 
-   #}}}
-   $html .= ( $Config{'DisplayMode'} eq 'normal' ) ? "<center>\n" : "<left>\n";
-   $html .= qq[<p><font color=red size="2">$Status</font></p>] if ( $Status ne "" );
-   $html .= qq[<p>Category:<input type="text" name="DisplayCreateCategory_Name" size="30"></p>\n];
+    #}}}
+    $html .= ( $Config{'DisplayMode'} eq 'normal' ) ? "<center>\n" : "<left>\n";
+    $html .= qq[<p><font color=red size="2">$Status</font></p>]
+      if ( $Status ne "" );
+    $html .=
+      qq[<p>Category:<input type="text" name="DisplayCreateCategory_Name" size="30"></p>\n];
 
-   # display Category pull down if there is defined category{{{
-   if ( $#Category >= 0 ) {
-      $html .= qq[<p>Insert before:\n];
-      $html .= qq[<select name="DisplayCreateCategory_BeforeCategory">\n];
-      $html .= qq[  <option selected>Pick Category</option>\n];
+    # display Category pull down if there is defined category{{{
+    if ( $#Category >= 0 ) {
+        $html .= qq[<p>Insert before:\n];
+        $html .= qq[<select name="DisplayCreateCategory_BeforeCategory">\n];
+        $html .= qq[  <option selected>Pick Category</option>\n];
 
-      foreach my $Category ( keys %CurrentItem ) {
-         $html .= qq[     <option>$Category</option>\n];
-      }
-      $html .= qq[
+        foreach my $Category ( keys %CurrentItem ) {
+            $html .= qq[     <option>$Category</option>\n];
+        }
+        $html .= qq[
       </select>
       ];
-   }
+    }
 
-   #}}}
+    #}}}
 
-   # display keyboard
-   InsertKeyboard('DisplayCreateCategory_Name') if $DisplayKeyboard;
+    # display keyboard
+    InsertKeyboard('DisplayCreateCategory_Name') if $DisplayKeyboard;
 
-   my $AddMultiple = ( exists $param{'DisplayCreateCategory_AddMultiple'} ) ? 'checked' : '';
-   $html .= qq[
+    my $AddMultiple =
+      ( exists $param{'DisplayCreateCategory_AddMultiple'} ) ? 'checked' : '';
+    $html .= qq[
    <p>Create multiple: <input type="checkbox" name="DisplayCreateCategory_AddMultiple" $AddMultiple></p>
    <p>
     <input type="submit" name="DisplayCreateCategory_Action" value="Add Category" onClick="return CheckForm()">
     <input type="submit" name="Cancel" value="Cancel">
    </p>
    ];
-   $html .= ( $Config{'DisplayMode'} eq 'normal' ) ? "</center>\n" : "</left>\n";
-   1;
+    $html .=
+      ( $Config{'DisplayMode'} eq 'normal' ) ? "</center>\n" : "</left>\n";
+    1;
 }
 
 #}}}
 #sub DisplayCreateItem{{{
 sub DisplayCreateItem {
-   my $Status           = shift;
-   my $SelectedItem     = shift;
-   my $SelectedCategory = shift;
+    my $Status           = shift;
+    my $SelectedItem     = shift;
+    my $SelectedCategory = shift;
 
-   $Status = "" if !$Status;
-   $Status = "You must define a category first" if $#Category == -1;
+    $Status = "" if !$Status;
+    $Status = "You must define a category first" if $#Category == -1;
 
-   # javascript {{{
-   $html .= qq[
+    # javascript {{{
+    $html .= qq[
 
 <SCRIPT LANGUAGE="JavaScript">
 function CheckForm()  {
@@ -719,38 +770,44 @@ function CheckForm()  {
 </SCRIPT>
 ];
 
-   #}}}
+    #}}}
 
-   $html .= ( $Config{'DisplayMode'} eq 'normal' ) ? "<center>\n" : "<left>\n";
+    $html .= ( $Config{'DisplayMode'} eq 'normal' ) ? "<center>\n" : "<left>\n";
 
-   if ( $#Category >= 0 ) {
+    if ( $#Category >= 0 ) {
 
-      # display Category pull down {{{
-      $html .= qq[<select name="DisplayCreateItem_Category">\n];
-      $html .= qq[  <option selected>Pick Category</option>\n] if ( $SelectedCategory eq '' );
-      $html .= qq[  <option>Pick Category</option>\n] if ( $SelectedCategory ne '' );
+        # display Category pull down {{{
+        $html .= qq[<select name="DisplayCreateItem_Category">\n];
+        $html .= qq[  <option selected>Pick Category</option>\n]
+          if ( $SelectedCategory eq '' );
+        $html .= qq[  <option>Pick Category</option>\n]
+          if ( $SelectedCategory ne '' );
 
-      foreach my $Category ( sort keys %CurrentItem ) {
-         my $selected = ( $SelectedCategory eq $Category ) ? "selected" : '';
-         $html .= qq[     <option $selected>$Category</option>\n];
-      }
-      $html .= qq[   
+        foreach my $Category ( sort keys %CurrentItem ) {
+            my $selected = ( $SelectedCategory eq $Category ) ? "selected" : '';
+            $html .= qq[     <option $selected>$Category</option>\n];
+        }
+        $html .= qq[   
       </select>
       ];
 
-      #}}}
+        #}}}
 
-      $html .= qq[<p>Item:<input type="text" name="DisplayCreateItem_Item" size=30 value="$SelectedItem"></p>\n];
-   }
-   $html .= qq[<p><font color=red size="2">$Status</font></p>] if ( $Status ne "" );
+        $html .=
+          qq[<p>Item:<input type="text" name="DisplayCreateItem_Item" size=30 value="$SelectedItem"></p>\n];
+    }
+    $html .= qq[<p><font color=red size="2">$Status</font></p>]
+      if ( $Status ne "" );
 
-   # display keyboard
-   InsertKeyboard('DisplayCreateItem_Item') if $DisplayKeyboard;
+    # display keyboard
+    InsertKeyboard('DisplayCreateItem_Item') if $DisplayKeyboard;
 
-   # the submit button
-   my $AddMultiple = ( exists $param{'DisplayCreateItem_AddMultiple'} ) ? 'checked' : '';
-   my $AddToListDefault = ( $Config{'AddToListDefault'} == 1  ) ? 'checked' : '';
-   $html .= qq[
+    # the submit button
+    my $AddMultiple =
+      ( exists $param{'DisplayCreateItem_AddMultiple'} ) ? 'checked' : '';
+    my $AddToListDefault =
+      ( $Config{'AddToListDefault'} == 1 ) ? 'checked' : '';
+    $html .= qq[
       <p>Add item to selected: <input type="checkbox" name="DisplayCreateItem_CurrentList" $AddToListDefault></p>
       <p>Add multiple: <input type="checkbox" name="DisplayCreateItem_AddMultiple" $AddMultiple></p>
       <p>
@@ -758,22 +815,23 @@ function CheckForm()  {
       <input type="submit" name="Cancel" value="Cancel">
       </p>
       ];
-   $html .= ( $Config{'DisplayMode'} eq 'normal' ) ? "</center>\n" : "</left>\n";
+    $html .=
+      ( $Config{'DisplayMode'} eq 'normal' ) ? "</center>\n" : "</left>\n";
 
-   1;
+    1;
 }
 
 #}}}
 #sub DisplayHomePage {{{
 sub DisplayHomePage {
 
-   #$Status = "Current list" if $Status eq '';
-   my $DisplayType = 'Display Normal' if $Config{'DisplayMode'} eq 'pda';
-   $DisplayType = 'Display PDA' if $Config{'DisplayMode'} eq 'normal';
+    #$Status = "Current list" if $Status eq '';
+    my $DisplayType = 'Display Normal' if $Config{'DisplayMode'} eq 'pda';
+    $DisplayType = 'Display PDA' if $Config{'DisplayMode'} eq 'normal';
 
-   #<select name="action" onChange="main.submit();">
-   $html .= qq[<p><left><h3>$PrettyListName list</h3></left></p>\n];
-   $html .= qq[
+    #<select name="action" onChange="main.submit();">
+    $html .= qq[<p><left><h3>$PrettyListName list</h3></left></p>\n];
+    $html .= qq[
      <SCRIPT LANGUAGE="JavaScript">
      function confirmation() {
 
@@ -820,41 +878,48 @@ sub DisplayHomePage {
        </TD > 
       ];
 
-   # normal mode status
-   $Status = '' if !$Config{'DisplayStatus'};
-   if ( $Config{'DisplayMode'} eq 'normal' ) {
-      $html .= qq[           <TD><center><H3>$Status<H3><center></TD>\n];
-   }
+    # normal mode status
+    $Status = '' if !$Config{'DisplayStatus'};
+    if ( $Config{'DisplayMode'} eq 'normal' ) {
+        $html .= qq[           <TD><center><H3>$Status<H3><center></TD>\n];
+    }
 
-   $html .= qq[  <TD align="right"> <input type = "submit" name = "HomePageRemove" value = "Remove" > </TD>\n];
-   $html .= qq[    </tr>\n];
+    $html .=
+      qq[  <TD align="right"> <input type = "submit" name = "HomePageRemove" value = "Remove" > </TD>\n];
+    $html .= qq[    </tr>\n];
 
-   # pda status
-   $html .= qq[     <tr><TD colspan="2"><center><H3>$Status<H3><center></TD></TR>\n] if ( $Config{'DisplayMode'} eq 'pda' );
+    # pda status
+    $html .=
+      qq[     <tr><TD colspan="2"><center><H3>$Status<H3><center></TD></TR>\n]
+      if ( $Config{'DisplayMode'} eq 'pda' );
 
-   $html .= qq[   </table>\n];
+    $html .= qq[   </table>\n];
 
-   DisplayCurrentList();
+    DisplayCurrentList();
 
-   # we display all category
-   my $num = 0;
-   $html .= qq[   <input type="submit" name="DisplayCategoryItem" value="ALL"    style="border:solid 0 #000; color:#630; background:#FFFF80 none;">\n];
-   $html .= qq[   <input type="submit" name="DisplaySearchItem" value="Search" style="border:solid 0 #000; color:#630; background:#FFFF80 none;">\n];
-   foreach my $cat ( sort @Category ) {
-      $html .= qq[   <input type="submit" name="DisplayCategoryItem" value="$cat" style="border:solid 0 #000; color:#630; background:#CCCCCC none;">&nbsp;\n];
-      $num++;
-   }
+    # we display all category
+    my $num = 0;
+    $html .=
+      qq[   <input type="submit" name="DisplayCategoryItem" value="ALL"    style="border:solid 0 #000; color:#630; background:#FFFF80 none;">\n];
+    $html .=
+      qq[   <input type="submit" name="DisplaySearchItem" value="Search" style="border:solid 0 #000; color:#630; background:#FFFF80 none;">\n];
+    foreach my $cat ( sort @Category ) {
+        $html .=
+          qq[   <input type="submit" name="DisplayCategoryItem" value="$cat" style="border:solid 0 #000; color:#630; background:#CCCCCC none;">&nbsp;\n];
+        $num++;
+    }
 
-   1;
+    1;
 }
 
 #}}}
 #sub DisplayManageCategory{{{
 sub DisplayManageCategory {
-   my $DisplayColumns = ( $Config{'DisplayMode'} eq 'normal' ) ? ( $NumColumns - 1 ) : 1;
-   my $DisplayWidth   = 100 / $DisplayColumns . '%';
+    my $DisplayColumns =
+      ( $Config{'DisplayMode'} eq 'normal' ) ? ( $NumColumns - 1 ) : 1;
+    my $DisplayWidth = 100 / $DisplayColumns . '%';
 
-   $html .= qq[
+    $html .= qq[
    <SCRIPT LANGUAGE="JavaScript">
      //http://www.irt.org/script/1693.htm
      var nav = window.Event ? true : false;
@@ -878,52 +943,59 @@ sub DisplayManageCategory {
    </script>
    ];
 
-   $html .= qq[<input type="hidden" name="DisplayManageCategory" value="1">\n];
-   $html .= qq[<table width="100%">\n];
-   $html .= qq[  <TD align="left"> <input type="submit" name="Cancel" value="Cancel" > </TD>\n];
-   $html .= qq[  <TD align="right"> <input type="submit" name="DisplayManageCategory_submit" value="Submit" > </TD>\n];
-   $html .= qq[</table>\n];
-   $html .= qq[<table width="100%">\n];
-   $html .= qq[<td align=right><input type="submit" name="HomePage_Action" value="Create Category"></td>\n];
-   $html .= qq[</table>\n];
+    $html .= qq[<input type="hidden" name="DisplayManageCategory" value="1">\n];
+    $html .= qq[<table width="100%">\n];
+    $html .=
+      qq[  <TD align="left"> <input type="submit" name="Cancel" value="Cancel" > </TD>\n];
+    $html .=
+      qq[  <TD align="right"> <input type="submit" name="DisplayManageCategory_submit" value="Submit" > </TD>\n];
+    $html .= qq[</table>\n];
+    $html .= qq[<table width="100%">\n];
+    $html .=
+      qq[<td align=right><input type="submit" name="HomePage_Action" value="Create Category"></td>\n];
+    $html .= qq[</table>\n];
 
-   $html .= qq[<table width="100%" cellspacing=0 ><colgroup span="$DisplayColumns" >\n];
+    $html .=
+      qq[<table width="100%" cellspacing=0 ><colgroup span="$DisplayColumns" >\n];
 
-   # display delete header
-   my $i    = 0;
-   my @keys = keys %CurrentItem;
-   my $imax = scalar @keys;
-   $html .= qq[<tr>\n];
-   while ( $i++ < ( $imax - 1 ) && $i < ( $DisplayColumns + 1 ) ) {
-      $html .= qq[<td align="left">del&nbsp;&nbsp;rename</td>\n];
-   }
-   $html .= qq[</tr>\n];
+    # display delete header
+    my $i    = 0;
+    my @keys = keys %CurrentItem;
+    my $imax = scalar @keys;
+    $html .= qq[<tr>\n];
+    while ( $i++ < ( $imax - 1 ) && $i < ( $DisplayColumns + 1 ) ) {
+        $html .= qq[<td align="left">del&nbsp;&nbsp;rename</td>\n];
+    }
+    $html .= qq[</tr>\n];
 
-   # display category
-   my $num = 0;
-   foreach my $Category ( keys %CurrentItem ) {
-      next if $Category eq "Web_Functions";
-      $html .= qq[ <tr>\n] if $num % $DisplayColumns == 0;
-      $html .= qq[   <td><input type="checkbox" name="DisplayManageCategory_Del_${Category}" value="1">\n];
-      $html .= qq[    <input type="text" name="DisplayManageCategory_Ren_${Category}" value="$Category" onkeypress="return noenter()"></td>\n];
-      $num++;
-      $html .= qq[ </tr>\n] if $num % $DisplayColumns == 0;
-   }
-   $html .= qq[     </tr>\n];
-   $html .= qq[   </table>\n\n];
+    # display category
+    my $num = 0;
+    foreach my $Category ( keys %CurrentItem ) {
+        next if $Category eq "Web_Functions";
+        $html .= qq[ <tr>\n] if $num % $DisplayColumns == 0;
+        $html .=
+          qq[   <td><input type="checkbox" name="DisplayManageCategory_Del_${Category}" value="1">\n];
+        $html .=
+          qq[    <input type="text" name="DisplayManageCategory_Ren_${Category}" value="$Category" onkeypress="return noenter()"></td>\n];
+        $num++;
+        $html .= qq[ </tr>\n] if $num % $DisplayColumns == 0;
+    }
+    $html .= qq[     </tr>\n];
+    $html .= qq[   </table>\n\n];
 
-   $html .= qq[<hr>\n];
-   1;
+    $html .= qq[<hr>\n];
+    1;
 }
 
 #}}}
 #sub DisplayManageItem{{{
 sub DisplayManageItem {
-   my $Category       = shift;
-   my $DisplayColumns = ( $Config{'DisplayMode'} eq 'normal' ) ? ( $NumColumns - 1 ) : 1;
-   my $DisplayWidth   = 100 / $DisplayColumns . '%';
+    my $Category = shift;
+    my $DisplayColumns =
+      ( $Config{'DisplayMode'} eq 'normal' ) ? ( $NumColumns - 1 ) : 1;
+    my $DisplayWidth = 100 / $DisplayColumns . '%';
 
-   $html .= qq[
+    $html .= qq[
    <SCRIPT LANGUAGE="JavaScript">
      //http://www.irt.org/script/1693.htm
      var nav = window.Event ? true : false;
@@ -946,79 +1018,90 @@ sub DisplayManageItem {
      }
    </script>
    ];
-   $html .= qq[<input type="hidden" name="DisplayManageItem" value="1">\n];
-   $html .= qq[<input type="hidden" name="DisplayCategoryItem_Category" value="$Category">\n];
+    $html .= qq[<input type="hidden" name="DisplayManageItem" value="1">\n];
+    $html .=
+      qq[<input type="hidden" name="DisplayCategoryItem_Category" value="$Category">\n];
 
-   $html .= qq[<table width="100%">\n];
-   $html .= qq[  <TD align="left"> <input type="submit" name="Cancel" value="Cancel" > </TD>\n];
+    $html .= qq[<table width="100%">\n];
+    $html .=
+      qq[  <TD align="left"> <input type="submit" name="Cancel" value="Cancel" > </TD>\n];
 
-   # normal mode status
-   $Status = '' if !$Config{'DisplayStatus'};
-   if ( $Config{'DisplayMode'} eq 'normal' ) {
-      $html .= qq[ <TD align=center><H3>$Status<H3></TD>\n];
-   }
+    # normal mode status
+    $Status = '' if !$Config{'DisplayStatus'};
+    if ( $Config{'DisplayMode'} eq 'normal' ) {
+        $html .= qq[ <TD align=center><H3>$Status<H3></TD>\n];
+    }
 
-   $html .= qq[  <TD align="right"> <input type="submit" name="DisplayManageItem_submit" value="Submit" > </TD>\n];
-   $html .= qq[    </tr>\n];
+    $html .=
+      qq[  <TD align="right"> <input type="submit" name="DisplayManageItem_submit" value="Submit" > </TD>\n];
+    $html .= qq[    </tr>\n];
 
-   # pda status
-   $html .= qq[     <tr><TD colspan="2"><center><H3>$Status<H3><center></TD></TR>\n] if ( $Config{'DisplayMode'} eq 'pda' );
-   $html .= qq[   </table>\n];
-   $html .= qq[<table width="100%">\n];
-   $html .= qq[<td align=right><input type="submit" name="HomePage_Action" value="Create Item"></td>\n];
-   $html .= qq[</table>\n];
+    # pda status
+    $html .=
+      qq[     <tr><TD colspan="2"><center><H3>$Status<H3><center></TD></TR>\n]
+      if ( $Config{'DisplayMode'} eq 'pda' );
+    $html .= qq[   </table>\n];
+    $html .= qq[<table width="100%">\n];
+    $html .=
+      qq[<td align=right><input type="submit" name="HomePage_Action" value="Create Item"></td>\n];
+    $html .= qq[</table>\n];
 
-   if ( $Category eq '' ) {
-      $html .= qq[<p><h3><center>Please select a category</center></h3></p>\n];
-   }
-   else {
-      $html .= qq[<p><h3><center>$Category</center></h3></p>\n];
-   }
+    if ( $Category eq '' ) {
+        $html .=
+          qq[<p><h3><center>Please select a category</center></h3></p>\n];
+    }
+    else {
+        $html .= qq[<p><h3><center>$Category</center></h3></p>\n];
+    }
 
-   $html .= qq[<table width="100%" cellspacing=0 ><colgroup span="$DisplayColumns" >\n];
+    $html .=
+      qq[<table width="100%" cellspacing=0 ><colgroup span="$DisplayColumns" >\n];
 
-   # display delete/rename header
-   my $i    = 0;
-   my @keys = keys %{ $CurrentItem{$Category} };
-   my $imax = scalar @keys;
-   $html .= qq[<tr>\n];
-   while ( $i++ < ( $imax - 1 ) && $i < ( $DisplayColumns + 1 ) ) {
-      $html .= qq[<td align="left">del&nbsp;&nbsp;rename</td>\n];
-   }
-   $html .= qq[</tr>\n];
+    # display delete/rename header
+    my $i    = 0;
+    my @keys = keys %{ $CurrentItem{$Category} };
+    my $imax = scalar @keys;
+    $html .= qq[<tr>\n];
+    while ( $i++ < ( $imax - 1 ) && $i < ( $DisplayColumns + 1 ) ) {
+        $html .= qq[<td align="left">del&nbsp;&nbsp;rename</td>\n];
+    }
+    $html .= qq[</tr>\n];
 
-   # display item
-   my $num = 0;
-   foreach my $Item ( keys %{ $CurrentItem{$Category} } ) {
-      next if ( $Item eq 'DummyItem' );
-      $html .= qq[     <tr>\n] if $num % $DisplayColumns == 0;
-      $html .= qq[       <td><input type="checkbox" name="DisplayManageItem_Del_${Category}_${Item}" value="1">\n];
-      $html .= qq[           <input type="text" name="DisplayManageItem_Ren_${Category}_${Item}" value="$Item" onkeypress="return noenter()"></td>\n];
-      $num++;
-      $html .= qq[     </tr>\n] if $num % $DisplayColumns == 0;
-   }
-   $html .= qq[     </tr>\n];
-   $html .= qq[   </table>\n\n];
+    # display item
+    my $num = 0;
+    foreach my $Item ( keys %{ $CurrentItem{$Category} } ) {
+        next if ( $Item eq 'DummyItem' );
+        $html .= qq[     <tr>\n] if $num % $DisplayColumns == 0;
+        $html .=
+          qq[       <td><input type="checkbox" name="DisplayManageItem_Del_${Category}_${Item}" value="1">\n];
+        $html .=
+          qq[           <input type="text" name="DisplayManageItem_Ren_${Category}_${Item}" value="$Item" onkeypress="return noenter()"></td>\n];
+        $num++;
+        $html .= qq[     </tr>\n] if $num % $DisplayColumns == 0;
+    }
+    $html .= qq[     </tr>\n];
+    $html .= qq[   </table>\n\n];
 
-   $html .= qq[<hr>\n];
+    $html .= qq[<hr>\n];
 
-   # we display all category
-   foreach my $cat ( sort keys %CurrentItem ) {
-      next if $cat eq '';
-      $html .= qq[   <input type="submit" name="DisplayManageItem_Category" value="$cat">\n];
-   }
+    # we display all category
+    foreach my $cat ( sort keys %CurrentItem ) {
+        next if $cat eq '';
+        $html .=
+          qq[   <input type="submit" name="DisplayManageItem_Category" value="$cat">\n];
+    }
 
-   1;
+    1;
 }
 
 #}}}
 #sub DisplayManageList{{{
 sub DisplayManageList {
-   my $cols = 3;
-   my $num  = 0;
+    my $cols = 3;
+    my $num  = 0;
 
-   # javascript {{{
-   $html .= qq[
+    # javascript {{{
+    $html .= qq[
 
    <SCRIPT LANGUAGE="JavaScript">
    function CheckForm()  {
@@ -1031,43 +1114,47 @@ sub DisplayManageList {
    </SCRIPT>
    ];
 
-   #}}}
-   $html .= ( $Config{'DisplayMode'} eq 'normal' ) ? "<center>\n" : "<left>\n";
-   $html .= qq[<p>Select from the following list, or enter a new list name</p>\n];
-   $html .= qq[<TABLE BORDER><TR>\n];
+    #}}}
+    $html .= ( $Config{'DisplayMode'} eq 'normal' ) ? "<center>\n" : "<left>\n";
+    $html .=
+      qq[<p>Select from the following list, or enter a new list name</p>\n];
+    $html .= qq[<TABLE BORDER><TR>\n];
 
-   my @Lists = <$config_parms{'data_dir'}/ListManager/*.lst>;
-   foreach my $l (@Lists) {
-      my ($PrettyName) = $l =~ /.*\/(.*).lst$/;
-      $html .= qq[</tr>\n<TR>\n] if $num % $cols == 0;
-      $html .= qq[<TD><center><input type="submit" name="DisplayManageList_ChangeList" value="$PrettyName"></center></TD>\n];
-      $num++;
-   }
+    my @Lists = <$config_parms{'data_dir'}/ListManager/*.lst>;
+    foreach my $l (@Lists) {
+        my ($PrettyName) = $l =~ /.*\/(.*).lst$/;
+        $html .= qq[</tr>\n<TR>\n] if $num % $cols == 0;
+        $html .=
+          qq[<TD><center><input type="submit" name="DisplayManageList_ChangeList" value="$PrettyName"></center></TD>\n];
+        $num++;
+    }
 
-   $html .= qq[</TR></TABLE>\n];
-   $html .= qq[<p>New List:<input type="text" name="DisplayManageList_NewList" size=30></p>\n];
+    $html .= qq[</TR></TABLE>\n];
+    $html .=
+      qq[<p>New List:<input type="text" name="DisplayManageList_NewList" size=30></p>\n];
 
-   # display keyboard
-   InsertKeyboard('DisplayManageList_NewList') if $DisplayKeyboard;
+    # display keyboard
+    InsertKeyboard('DisplayManageList_NewList') if $DisplayKeyboard;
 
-   # the submit button
-   $html .= qq[
+    # the submit button
+    $html .= qq[
    <p>
    <input type="submit" name="DisplayManageList_Action" value="Add List" onClick="return CheckForm()">
    <input type="submit" name="Cancel" value="Cancel">
    </p>
    ];
 
-   $html .= ( $Config{'DisplayMode'} eq 'normal' ) ? "</center>\n" : "</left>\n";
-   1;
+    $html .=
+      ( $Config{'DisplayMode'} eq 'normal' ) ? "</center>\n" : "</left>\n";
+    1;
 }
 
 #}}}
 #sub DisplayManPage{{{
 sub DisplayManPage {
-   $html .= qq[<p><input type="submit" name="action" value="Exit"><p>\n];
+    $html .= qq[<p><input type="submit" name="action" value="Exit"><p>\n];
 
-   my $POD = qq[ 
+    my $POD = qq[ 
 # ====================== POD START ==============================
 =pod
 
@@ -1298,22 +1385,23 @@ Please contact about any problems or suggestions via the misterhouse mailing lis
 #  ======================== POD END ==================================
 ];
 
-   open DOC, "echo \"$POD\" | pod2html --cachedir=$config_parms{html_alias_cache} --flush 2>/dev/null |";
-   my $content = 0;
-   while (<DOC>) {
-      $content = 1 if /<body/;
-      next if /<body/;
-      $content = 0 if /<\/body/;
-      $html .= qq[$_] if $content;
-   }
-   close DOC;
-   1;
+    open DOC,
+      "echo \"$POD\" | pod2html --cachedir=$config_parms{html_alias_cache} --flush 2>/dev/null |";
+    my $content = 0;
+    while (<DOC>) {
+        $content = 1 if /<body/;
+        next if /<body/;
+        $content = 0 if /<\/body/;
+        $html .= qq[$_] if $content;
+    }
+    close DOC;
+    1;
 }
 
 #}}}
 #sub DisplayNewUserInfo{{{
 sub DisplayNewUserInfo {
-   $html .= qq [
+    $html .= qq [
       <H2>ListManager</H2>
       <p> Welcome to ListManager </p>
       
@@ -1335,43 +1423,55 @@ sub DisplayNewUserInfo {
       </UL>
         <center><input type="submit" name="action" value="OK"></center>
       ];
-   $Config{'NewUser'} = 0;
-   WriteConfig();
-   1;
+    $Config{'NewUser'} = 0;
+    WriteConfig();
+    1;
 }
 
 #}}}
 #sub DisplayPreferences{{{
 sub DisplayPreferences {
-   my $CheckedPDA    = ( $Config{'DisplayKeyboardPDA'} == 1 )    ? 'checked' : '';
-   my $CheckedNormal = ( $Config{'DisplayKeyboardNormal'} == 1 ) ? 'checked' : '';
-   my $CheckedPipe   = ( $Config{'PrintPipe'} == 1 )             ? 'checked' : '';
-   my $StatusChecked = ( $Config{'DisplayStatus'} == 1 )         ? 'checked' : '';
-   my $CheckedAddToListDefault = ( $Config{'AddToListDefault'} == 1 )         ? 'checked' : '';
-   $html .= qq[<left>\n];
-   $html .= qq[<h3>Please select your preferences</h3>\n];
+    my $CheckedPDA = ( $Config{'DisplayKeyboardPDA'} == 1 ) ? 'checked' : '';
+    my $CheckedNormal =
+      ( $Config{'DisplayKeyboardNormal'} == 1 ) ? 'checked' : '';
+    my $CheckedPipe   = ( $Config{'PrintPipe'} == 1 )     ? 'checked' : '';
+    my $StatusChecked = ( $Config{'DisplayStatus'} == 1 ) ? 'checked' : '';
+    my $CheckedAddToListDefault =
+      ( $Config{'AddToListDefault'} == 1 ) ? 'checked' : '';
+    $html .= qq[<left>\n];
+    $html .= qq[<h3>Please select your preferences</h3>\n];
 
-   $html .= qq[<p>Add to List when Creating Item Selected by default: <input type="checkbox" name="AddToListDefault" $CheckedAddToListDefault></p>\n];
-   $html .= qq[<p>Display keyboard in PDA mode: <input type="checkbox" name="DisplayKeyboardPDA" $CheckedPDA></p>\n];
-   $html .= qq[<p>Display keyboard in Normal mode: <input type="checkbox" name="DisplayKeyboardNormal" $CheckedNormal></p>\n];
-   $html .= qq[<p>Columns in PDA mode:<input type="text" name="NumColumnsPDA" size=2 align="center" value="$Config{'NumColumnsPDA'}"></p>\n];
-   $html .= qq[<p>Columns in normal mode: <input type="text" name="NumColumnsNormal" size=2 value="$Config{'NumColumnsNormal'}"></p>\n];
-   $html .= qq[<p>Display status message: <input type="checkbox" name="DisplayStatus" $StatusChecked></p>\n];
-   $html .= qq[<hr><p>Please consult the man page about the print preference</p>];
-   $html .= qq[<p>Print text cmd:<input type="text" name="PrintTextCommand" size=20 align="center" value="$Config{'PrintTextCommand'}"></p>\n];
-   $html .= qq[<p>Print html cmd:<input type="text" name="PrintHtmlCommand" size=20 align="center" value="$Config{'PrintHtmlCommand'}"></p>\n];
-   $html .= qq[<p><input type="submit" name="DisplayPreferences" value="OK"></p>\n];
+    $html .=
+      qq[<p>Add to List when Creating Item Selected by default: <input type="checkbox" name="AddToListDefault" $CheckedAddToListDefault></p>\n];
+    $html .=
+      qq[<p>Display keyboard in PDA mode: <input type="checkbox" name="DisplayKeyboardPDA" $CheckedPDA></p>\n];
+    $html .=
+      qq[<p>Display keyboard in Normal mode: <input type="checkbox" name="DisplayKeyboardNormal" $CheckedNormal></p>\n];
+    $html .=
+      qq[<p>Columns in PDA mode:<input type="text" name="NumColumnsPDA" size=2 align="center" value="$Config{'NumColumnsPDA'}"></p>\n];
+    $html .=
+      qq[<p>Columns in normal mode: <input type="text" name="NumColumnsNormal" size=2 value="$Config{'NumColumnsNormal'}"></p>\n];
+    $html .=
+      qq[<p>Display status message: <input type="checkbox" name="DisplayStatus" $StatusChecked></p>\n];
+    $html .=
+      qq[<hr><p>Please consult the man page about the print preference</p>];
+    $html .=
+      qq[<p>Print text cmd:<input type="text" name="PrintTextCommand" size=20 align="center" value="$Config{'PrintTextCommand'}"></p>\n];
+    $html .=
+      qq[<p>Print html cmd:<input type="text" name="PrintHtmlCommand" size=20 align="center" value="$Config{'PrintHtmlCommand'}"></p>\n];
+    $html .=
+      qq[<p><input type="submit" name="DisplayPreferences" value="OK"></p>\n];
 
-   $html .= qq[</left>\n];
+    $html .= qq[</left>\n];
 
-   1;
+    1;
 }
 
 #}}}
 #sub DisplayQuickGuide{{{
 sub DisplayQuickGuide {
 
-   $html .= qq [
+    $html .= qq [
      <H2>ListManager</H2>
      <p> Welcome to the ListManager quick guide</p>
      
@@ -1391,31 +1491,33 @@ sub DisplayQuickGuide {
      </UL>
        <center><input type="submit" name="action" value="OK"></center>
    ];
-   $Config{'NewUser'} = 0;
-   WriteConfig();
-   1;
+    $Config{'NewUser'} = 0;
+    WriteConfig();
+    1;
 }
 
 #}}}
 #sub DisplaySearchItem{{{
 sub DisplaySearchItem {
 
-   my $Item2Search = shift;
-   my $loc = ( $Config{'DisplayMode'} eq 'pda' ) ? 'left' : 'center';
-   if ( $Item2Search eq "Search" ) {
+    my $Item2Search = shift;
+    my $loc = ( $Config{'DisplayMode'} eq 'pda' ) ? 'left' : 'center';
+    if ( $Item2Search eq "Search" ) {
 
-      $html .= qq[<p><$loc>Search:<input type="text" name="DisplaySearchItem" size=30 value="">
+        $html .=
+          qq[<p><$loc>Search:<input type="text" name="DisplaySearchItem" size=30 value="">
                  <input type="submit" align="right" name="SearchCategoryItem_Submit" value="Submit" >
                  </$loc></p>
                  ];
 
-      # display keyboard
-      InsertKeyboard('DisplaySearchItem') if $DisplayKeyboard;
-      $html .= qq[<p><$loc><input type="submit" name="Cancel2" value="Cancel"></$loc></p>];
-   }
-   else {
+        # display keyboard
+        InsertKeyboard('DisplaySearchItem') if $DisplayKeyboard;
+        $html .=
+          qq[<p><$loc><input type="submit" name="Cancel2" value="Cancel"></$loc></p>];
+    }
+    else {
 
-      $html .= qq[
+        $html .= qq[
            <SCRIPT Language = "JavaScript">
         
            function doPlus(checkbox,txt){
@@ -1436,43 +1538,54 @@ sub DisplaySearchItem {
            </script>
            ];
 
-      $html .= qq[<p><input type="submit" align="right" name="SearchCategoryItem_Submit" value="Submit" ></p>
+        $html .=
+          qq[<p><input type="submit" align="right" name="SearchCategoryItem_Submit" value="Submit" ></p>
       <hr>
       <table width="100%" cellspacing=0 cellpadding=0>
       ];
-      foreach my $DisplayCategory ( sort @Category ) {
-         foreach my $Item ( sort keys %{ $CurrentItem{$DisplayCategory} } ) {
-            my $JavaCat = $DisplayCategory;
-            $JavaCat =~ s/\ /XYZ/g;
-            next if $Item eq 'DummyItem';
-            next if $Item !~ /$Item2Search/i;
-            my $Checked = ( $CurrentItem{$DisplayCategory}{$Item} == 0 ) ? '' : 'checked';
-            my $value   = ( $CurrentItem{$DisplayCategory}{$Item} == 0 ) ? 0  : $CurrentItem{$DisplayCategory}{$Item};
-            $html .= qq[<tr>\n];
-            $html .= qq[<td>\n];
-            $html .= qq[<input type="button" name="plus" value="+" onClick="doPlus('${JavaCat}_${Item}_check','${JavaCat}_${Item}')">\n];
-            $html .= qq[<input type="button" name="minus" value="-" onClick="doMinus('${JavaCat}_${Item}_check','${JavaCat}_${Item}')">\n];
-            $html .= qq[<input type="checkbox" disabled name="${JavaCat}_${Item}_check" $Checked>\n];
-            $html .= qq[$DisplayCategory: $Item\n];
-            $html .= qq[<input type="text"  value="$value" name="${JavaCat}_${Item}" size="1" style="border:solid 0 #fff; color:#630; background:#fff none;">];
-            $html .= qq[</td>\n];
-            $html .= qq[</tr>];
-         }
-      }
-      $html .= qq[</table>\n];
-      1;
+        foreach my $DisplayCategory ( sort @Category ) {
+            foreach my $Item ( sort keys %{ $CurrentItem{$DisplayCategory} } ) {
+                my $JavaCat = $DisplayCategory;
+                $JavaCat =~ s/\ /XYZ/g;
+                next if $Item eq 'DummyItem';
+                next if $Item !~ /$Item2Search/i;
+                my $Checked =
+                  ( $CurrentItem{$DisplayCategory}{$Item} == 0 )
+                  ? ''
+                  : 'checked';
+                my $value =
+                  ( $CurrentItem{$DisplayCategory}{$Item} == 0 )
+                  ? 0
+                  : $CurrentItem{$DisplayCategory}{$Item};
+                $html .= qq[<tr>\n];
+                $html .= qq[<td>\n];
+                $html .=
+                  qq[<input type="button" name="plus" value="+" onClick="doPlus('${JavaCat}_${Item}_check','${JavaCat}_${Item}')">\n];
+                $html .=
+                  qq[<input type="button" name="minus" value="-" onClick="doMinus('${JavaCat}_${Item}_check','${JavaCat}_${Item}')">\n];
+                $html .=
+                  qq[<input type="checkbox" disabled name="${JavaCat}_${Item}_check" $Checked>\n];
+                $html .= qq[$DisplayCategory: $Item\n];
+                $html .=
+                  qq[<input type="text"  value="$value" name="${JavaCat}_${Item}" size="1" style="border:solid 0 #fff; color:#630; background:#fff none;">];
+                $html .= qq[</td>\n];
+                $html .= qq[</tr>];
+            }
+        }
+        $html .= qq[</table>\n];
+        1;
 
-   }
+    }
 
-   1;
+    1;
 }
 
 #}}}
 #sub InsertCSS {{{
 sub InsertCSS {
 
-   if ( $Config{'DisplayMode'} eq 'pda' ) {
-      $html .= qq[
+    if ( $Config{'DisplayMode'} eq 'pda' ) {
+        $html .= qq[
          <style type="text/css">
          
          td { font-family:monospace,serif,sans-serif,cursive,fantasy;
@@ -1512,8 +1625,9 @@ sub InsertCSS {
             }
          </style>
       ];
-   } elsif ($param{'HomePage_Action'} eq 'Man Page') {
-   $html .= qq[
+    }
+    elsif ( $param{'HomePage_Action'} eq 'Man Page' ) {
+        $html .= qq[
          <style type="text/css">
 
          pre,p,li {
@@ -1536,17 +1650,18 @@ sub InsertCSS {
             }
          </style>
    ];
-   } else {
+    }
+    else {
 
-      #input:focus, textarea:focus, select:focus, input:hover
-      #  { background : #ffd;
-      #    color : black; }
-      #style="border:solid 0 #fff; color:#630; background:#fff none;
-      #input[type="submit"]:active { border-color: red;
-      #                              border:solid 0;
-      #                              color: red;
-      #                              background: #ffc; }
-      $html .= qq[
+        #input:focus, textarea:focus, select:focus, input:hover
+        #  { background : #ffd;
+        #    color : black; }
+        #style="border:solid 0 #fff; color:#630; background:#fff none;
+        #input[type="submit"]:active { border-color: red;
+        #                              border:solid 0;
+        #                              color: red;
+        #                              background: #ffc; }
+        $html .= qq[
          <style type="text/css">
          
          td { font-family:monospace,serif,sans-serif,cursive,fantasy;
@@ -1602,17 +1717,17 @@ sub InsertCSS {
             }
          </style>
       ];
-   }
-   1;
+    }
+    1;
 }
 
 #}}}
 #sub InsertKeyboard {{{
 sub InsertKeyboard {
-   my $name    = shift;
-   my $Spacing = ( $Config{'DisplayMode'} eq 'pda' ) ? "0" : "2";
-   my $Padding = ( $Config{'DisplayMode'} eq 'pda' ) ? "0" : "2";
-   $html .= qq[
+    my $name    = shift;
+    my $Spacing = ( $Config{'DisplayMode'} eq 'pda' ) ? "0" : "2";
+    my $Padding = ( $Config{'DisplayMode'} eq 'pda' ) ? "0" : "2";
+    $html .= qq[
 
        <SCRIPT language="javascript" type="text/javascript">
        var string=new Array();
@@ -1642,8 +1757,8 @@ sub InsertKeyboard {
        </SCRIPT>
    ];
 
-   if ( $Config{'DisplayMode'} ne 'pda' ) {
-      $html .= qq[
+    if ( $Config{'DisplayMode'} ne 'pda' ) {
+        $html .= qq[
       <center>
       <TABLE  cellspacing=$Spacing cellpadding="$Padding">
         <TR>
@@ -1727,12 +1842,12 @@ sub InsertKeyboard {
       </center>
       ];
 
-   }
-   else {
+    }
+    else {
 
-#<TD colspan="3"><INPUT onclick="seek(' ');" type="button" value="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SPACE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"></TD>
+        #<TD colspan="3"><INPUT onclick="seek(' ');" type="button" value="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SPACE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"></TD>
 
-      $html .= qq[
+        $html .= qq[
       <left> 
 
       <TABLE cellspacing=$Spacing cellpadding="$Padding">
@@ -1805,142 +1920,154 @@ sub InsertKeyboard {
 
       </left>
       ];
-   }
-   1;
+    }
+    1;
 }
 
 #}}}
 #sub PrintText{{{
 sub PrintText {
-   my $txt;
-   my $NumColumns = 3;
-   my $HR         = '-' x 78 . "\n";
-   $html .= qq[<input type="hidden" name="action" value="Print">\n];
-   $html .= qq[<p><input type="submit" name="action" value="Exit"><p>\n];
-   if ( $Config{'PrintTextCommand'} ne '' ) {
-      foreach my $DisplayCategory (@Category) {    # no sort, to display in aisles way (shopping)
-         my $HeaderPrint = 0;
-         my $num         = 0;
-         my @ITEM;
-         foreach my $Item ( sort keys %{ $CurrentItem{$DisplayCategory} } ) {
-            next if $Item eq 'DummyItem';
-            if ( $CurrentItem{$DisplayCategory}{$Item} == 1 ) {
-               $txt .= "$HR" . uc($DisplayCategory) . "\n$HR" if !$HeaderPrint++;
-               $ITEM[$num] = $Item;
-               $num++;
+    my $txt;
+    my $NumColumns = 3;
+    my $HR         = '-' x 78 . "\n";
+    $html .= qq[<input type="hidden" name="action" value="Print">\n];
+    $html .= qq[<p><input type="submit" name="action" value="Exit"><p>\n];
+    if ( $Config{'PrintTextCommand'} ne '' ) {
+        foreach my $DisplayCategory (@Category)
+        {    # no sort, to display in aisles way (shopping)
+            my $HeaderPrint = 0;
+            my $num         = 0;
+            my @ITEM;
+            foreach my $Item ( sort keys %{ $CurrentItem{$DisplayCategory} } ) {
+                next if $Item eq 'DummyItem';
+                if ( $CurrentItem{$DisplayCategory}{$Item} == 1 ) {
+                    $txt .= "$HR" . uc($DisplayCategory) . "\n$HR"
+                      if !$HeaderPrint++;
+                    $ITEM[$num] = $Item;
+                    $num++;
+                }
+                if ( $num == $NumColumns ) {
+                    $txt .= sprintf( "%-25s %-25s %-25s\n\n", @ITEM );
+                    foreach my $i (@ITEM) {
+                        $i = '';
+                    }
+                    $num = 0;
+                }
             }
-            if ( $num == $NumColumns ) {
-               $txt .= sprintf( "%-25s %-25s %-25s\n\n", @ITEM );
-               foreach my $i (@ITEM) {
-                  $i = '';
-               }
-               $num = 0;
-            }
-         }
-         $txt .= sprintf( "%-25s %-25s %-25s\n", @ITEM ) if $num > 0;
+            $txt .= sprintf( "%-25s %-25s %-25s\n", @ITEM ) if $num > 0;
 
-         #$txt .= '-' x 78 . "\n\n\n" if ($HeaderPrint>0);
-         $txt .= "\n\n" if ( $HeaderPrint > 0 );
-      }
-      my $temp = "$config_parms{'data_dir'}/ListManager/ListManager.prt";
-      open( TMP, ">$temp" );
-      print TMP $txt;
-      close TMP;
-      $Config{'PrintTextCommand'} =~ s/ FILE/ $temp/;
-      system("$Config{'PrintTextCommand'}");
-      unlink $temp;
-      $html .= qq[<pre>$txt</pre>\n<p>The following page has been print with "$Config{'PrintTextCommand'}" <p>\n];
-   }
-   else {
-      $html .= "<p>The print command hasn't been defined yet, please consult the Man page and then set the print preference</p>";
-   }
-   1;
+            #$txt .= '-' x 78 . "\n\n\n" if ($HeaderPrint>0);
+            $txt .= "\n\n" if ( $HeaderPrint > 0 );
+        }
+        my $temp = "$config_parms{'data_dir'}/ListManager/ListManager.prt";
+        open( TMP, ">$temp" );
+        print TMP $txt;
+        close TMP;
+        $Config{'PrintTextCommand'} =~ s/ FILE/ $temp/;
+        system("$Config{'PrintTextCommand'}");
+        unlink $temp;
+        $html .=
+          qq[<pre>$txt</pre>\n<p>The following page has been print with "$Config{'PrintTextCommand'}" <p>\n];
+    }
+    else {
+        $html .=
+          "<p>The print command hasn't been defined yet, please consult the Man page and then set the print preference</p>";
+    }
+    1;
 
 }
 
 #}}}
 #sub PrintHtml{{{
 sub PrintHtml {
-   my $Msg = shift;
-   $html .= qq[<input type="hidden" name="action" value="Print">\n];
-   $html .= qq[<p><input type="submit" name="action" value="Exit"><p>\n];
-   if ( $Config{'PrintHtmlCommand'} ne '' ) {
-      $html .= qq[<p><center><h2>$PrettyListName</h2></center></p>\n];
-      foreach my $DisplayCategory (@Category) {    # no sort, to display in aisles way (shopping)
-         my $HeaderPrint = 0;
-         my $num         = 0;
-         foreach my $Item ( sort keys %{ $CurrentItem{$DisplayCategory} } ) {
-            next if $Item eq 'DummyItem';
-            if ( $CurrentItem{$DisplayCategory}{$Item} > 0 ) {
-               PrintHtmlHeader($DisplayCategory) if !$HeaderPrint++;
-               $html .= qq[</tr>\n<tr>\n] if $num % $NumColumns == 0;
-               my $Count = "($CurrentItem{$DisplayCategory}{$Item})" if $CurrentItem{$DisplayCategory}{$Item} > 1;
-               $html .= qq[<td><input type="checkbox" name="${DisplayCategory}_$Item">$Item $Count</td>\n];
-               $num++;
+    my $Msg = shift;
+    $html .= qq[<input type="hidden" name="action" value="Print">\n];
+    $html .= qq[<p><input type="submit" name="action" value="Exit"><p>\n];
+    if ( $Config{'PrintHtmlCommand'} ne '' ) {
+        $html .= qq[<p><center><h2>$PrettyListName</h2></center></p>\n];
+        foreach my $DisplayCategory (@Category)
+        {    # no sort, to display in aisles way (shopping)
+            my $HeaderPrint = 0;
+            my $num         = 0;
+            foreach my $Item ( sort keys %{ $CurrentItem{$DisplayCategory} } ) {
+                next if $Item eq 'DummyItem';
+                if ( $CurrentItem{$DisplayCategory}{$Item} > 0 ) {
+                    PrintHtmlHeader($DisplayCategory) if !$HeaderPrint++;
+                    $html .= qq[</tr>\n<tr>\n] if $num % $NumColumns == 0;
+                    my $Count = "($CurrentItem{$DisplayCategory}{$Item})"
+                      if $CurrentItem{$DisplayCategory}{$Item} > 1;
+                    $html .=
+                      qq[<td><input type="checkbox" name="${DisplayCategory}_$Item">$Item $Count</td>\n];
+                    $num++;
+                }
             }
-         }
-         $html .= qq[ <td></td>\n] while ( $num++ % $NumColumns != 0 );
-         $html .= qq[ </tr>\n</table><hr>\n] if $HeaderPrint;
-      }
+            $html .= qq[ <td></td>\n] while ( $num++ % $NumColumns != 0 );
+            $html .= qq[ </tr>\n</table><hr>\n] if $HeaderPrint;
+        }
 
-      sub PrintHtmlHeader {
-         my $DisplayCategory = shift;
-         $html .= qq[
+        sub PrintHtmlHeader {
+            my $DisplayCategory = shift;
+            $html .= qq[
            <p><H3>$DisplayCategory<H3></p>
            <table width="100%" ><colgroup span="$NumColumns" width="$ColumnsWidth">
            <tr>
          ];
-      }
+        }
 
-      my $temp = "$config_parms{'data_dir'}/ListManager/ListManager.prt";
-      open( TMP, ">$temp" );
-      print TMP $html;
-      close TMP;
-      $Config{'PrintHtmlCommand'} =~ s/ FILE/ $temp/;
-      system("$Config{'PrintHtmlCommand'}");
-      unlink $temp;
-      $html .= qq[<p>The following page has been print with "$Config{'PrintHtmlCommand'}" <p>\n];
-   }
-   else {
-      $html .= "<p>The print command hasn't been defined yet, please consult the Man page and then set the print preference</p>";
-   }
-   1;
+        my $temp = "$config_parms{'data_dir'}/ListManager/ListManager.prt";
+        open( TMP, ">$temp" );
+        print TMP $html;
+        close TMP;
+        $Config{'PrintHtmlCommand'} =~ s/ FILE/ $temp/;
+        system("$Config{'PrintHtmlCommand'}");
+        unlink $temp;
+        $html .=
+          qq[<p>The following page has been print with "$Config{'PrintHtmlCommand'}" <p>\n];
+    }
+    else {
+        $html .=
+          "<p>The print command hasn't been defined yet, please consult the Man page and then set the print preference</p>";
+    }
+    1;
 }
 
 #}}}
 #sub PrintPreview{{{
 sub PrintPreview {
-   my $Msg = shift;
-   $html .= qq[<input type="hidden" name="action" value="PrintPreview">\n];
-   $html .= qq[<p><center><h2>$PrettyListName</h2></center></p>\n];
-   foreach my $DisplayCategory (@Category) {    # no sort, to display in aisles way (shopping)
-      my $HeaderPrint = 0;
-      my $num         = 0;
-      foreach my $Item ( sort keys %{ $CurrentItem{$DisplayCategory} } ) {
-         next if $Item eq 'DummyItem';
-         if ( $CurrentItem{$DisplayCategory}{$Item} > 0 ) {
-            PrintHeader($DisplayCategory) if !$HeaderPrint++;
-            $html .= qq[</tr>\n<tr>\n] if $num % $NumColumns == 0;
-            my $Count = "($CurrentItem{$DisplayCategory}{$Item})" if $CurrentItem{$DisplayCategory}{$Item} > 1;
-            $html .= qq[<td><input type="checkbox" name="${DisplayCategory}_$Item">$Item $Count</td>\n];
-            $num++;
-         }
-      }
-      $html .= qq[ <td></td>\n] while ( $num++ % $NumColumns != 0 );
-      $html .= qq[ </tr>\n</table>\n] if $HeaderPrint;
-   }
+    my $Msg = shift;
+    $html .= qq[<input type="hidden" name="action" value="PrintPreview">\n];
+    $html .= qq[<p><center><h2>$PrettyListName</h2></center></p>\n];
+    foreach my $DisplayCategory (@Category)
+    {    # no sort, to display in aisles way (shopping)
+        my $HeaderPrint = 0;
+        my $num         = 0;
+        foreach my $Item ( sort keys %{ $CurrentItem{$DisplayCategory} } ) {
+            next if $Item eq 'DummyItem';
+            if ( $CurrentItem{$DisplayCategory}{$Item} > 0 ) {
+                PrintHeader($DisplayCategory) if !$HeaderPrint++;
+                $html .= qq[</tr>\n<tr>\n] if $num % $NumColumns == 0;
+                my $Count = "($CurrentItem{$DisplayCategory}{$Item})"
+                  if $CurrentItem{$DisplayCategory}{$Item} > 1;
+                $html .=
+                  qq[<td><input type="checkbox" name="${DisplayCategory}_$Item">$Item $Count</td>\n];
+                $num++;
+            }
+        }
+        $html .= qq[ <td></td>\n] while ( $num++ % $NumColumns != 0 );
+        $html .= qq[ </tr>\n</table>\n] if $HeaderPrint;
+    }
 
-   sub PrintHeader {
-      my $DisplayCategory = shift;
-      $html .= qq[
+    sub PrintHeader {
+        my $DisplayCategory = shift;
+        $html .= qq[
        <br><p><H3 style="font-size: 14pt; color:#630; background:#CCC none;">$DisplayCategory</H3></p>
    <table width="100%" ><colgroup span="$NumColumns" width="$ColumnsWidth">
    <tr>
    ];
 
-   }
+    }
 
-   1;
+    1;
 }
 
 #}}}
@@ -1949,67 +2076,75 @@ sub PrintPreview {
 # assume a directory ListManager in data_dir
 sub ReadConfig {
 
-   ReadDefault($DefaultList);
+    ReadDefault($DefaultList);
 
-   # validate if directory exists
-   if ( !-d $DirPath ) {
-      print_log "Directory ListManager doesn't exist";
-      print_log "  Creating $DirPath";
-      mkdir( "$DirPath", 0755 ) or return shoppingListError("ReadConfig: Can't create directory $DirPath: $!");
-   }
+    # validate if directory exists
+    if ( !-d $DirPath ) {
+        print_log "Directory ListManager doesn't exist";
+        print_log "  Creating $DirPath";
+        mkdir( "$DirPath", 0755 )
+          or return shoppingListError(
+            "ReadConfig: Can't create directory $DirPath: $!");
+    }
 
-   # validate is we have a configuration file
-   if ( !-f $ConfigFile ) {
-      print_log "Creating basic configuration file $ConfigFile";
-      open CONFIG, ">$ConfigFile" or return shoppingListError("ReadConfig: Can't open config file $ConfigFile: $!");
-      print CONFIG ConfigFileHeader();
-      print CONFIG ConfigDefault($DefaultList);
-      close CONFIG;
-   }
+    # validate is we have a configuration file
+    if ( !-f $ConfigFile ) {
+        print_log "Creating basic configuration file $ConfigFile";
+        open CONFIG, ">$ConfigFile"
+          or return shoppingListError(
+            "ReadConfig: Can't open config file $ConfigFile: $!");
+        print CONFIG ConfigFileHeader();
+        print CONFIG ConfigDefault($DefaultList);
+        close CONFIG;
+    }
 
-   # do we have a list in the directory
-   my @List = <$DirPath/*.lst>;
+    # do we have a list in the directory
+    my @List = <$DirPath/*.lst>;
 
-   if ( $#List < 0 ) {
-      open LIST, ">$DefaultList" or return shoppingListError("ReadConfig: Can't open new list $DefaultList: $!");
-      print LIST DefaultList();
-      close LIST;
-   }
+    if ( $#List < 0 ) {
+        open LIST, ">$DefaultList"
+          or return shoppingListError(
+            "ReadConfig: Can't open new list $DefaultList: $!");
+        print LIST DefaultList();
+        close LIST;
+    }
 
-   # now we could read the configuration
-   open CONFIG, "$ConfigFile" or return shoppingListError("ReadConfig: Can't open config file $ConfigFile: $!");
-   while (<CONFIG>) {
-      chomp;
-      s/^\s*(.*?)\s*$/$1/;
-      next if /^#/;
-      next if /^$/;
-      /^(.+)=(.+)$/ && do {
-         $Config{$1} = $2;
-         $Config{$1} = 1 if $Config{$1} eq 'on';
-         $Config{$1} = 0 if $Config{$1} eq 'off';
-        }
-   }
-   close CONFIG;
-   return 0;
+    # now we could read the configuration
+    open CONFIG, "$ConfigFile"
+      or return shoppingListError(
+        "ReadConfig: Can't open config file $ConfigFile: $!");
+    while (<CONFIG>) {
+        chomp;
+        s/^\s*(.*?)\s*$/$1/;
+        next if /^#/;
+        next if /^$/;
+        /^(.+)=(.+)$/ && do {
+            $Config{$1} = $2;
+            $Config{$1} = 1 if $Config{$1} eq 'on';
+            $Config{$1} = 0 if $Config{$1} eq 'off';
+          }
+    }
+    close CONFIG;
+    return 0;
 }
 
 # this need to be done, in case of upgrade/new parameter
 # this contains all possible parameter
 sub ReadDefault {
-   $Config{'CurrentList'}           = "$DefaultList";
-   $Config{'DisplayKeyboardPDA'}    = 1;
-   $Config{'AddToListDefault'}    = 1;
-   $Config{'DisplayKeyboardNormal'} = 1;
-   $Config{'DisplayMode'}           = 'normal';
-   $Config{'DisplayStatus'}         = 1;
-   $Config{'NumColumnsPDA'}         = 2;
-   $Config{'NumColumnsNormal'}      = 5;
-   $Config{'NewUser'}               = 1;
-   1;
+    $Config{'CurrentList'}           = "$DefaultList";
+    $Config{'DisplayKeyboardPDA'}    = 1;
+    $Config{'AddToListDefault'}      = 1;
+    $Config{'DisplayKeyboardNormal'} = 1;
+    $Config{'DisplayMode'}           = 'normal';
+    $Config{'DisplayStatus'}         = 1;
+    $Config{'NumColumnsPDA'}         = 2;
+    $Config{'NumColumnsNormal'}      = 5;
+    $Config{'NewUser'}               = 1;
+    1;
 }
 
 sub ConfigDefault {
-   return <<EndOfConfig
+    return <<EndOfConfig
 CurrentList=$DefaultList
 DisplayKeyboardPDA=1
 AddToListDefault=1
@@ -2020,12 +2155,12 @@ NumColumnsPDA=2
 NumColumnsNormal=5
 NewUser=1
 EndOfConfig
-     ;
-   1;
+      ;
+    1;
 }
 
 sub DefaultList {
-   return <<EndOfConfig
+    return <<EndOfConfig
 #Category are enclosed in squared bracket, ie:[Vegetables]
 #Items are following their respective category
 #Items enabled are set to 1, ie: brocoli=1
@@ -2061,12 +2196,12 @@ sub DefaultList {
 [Tea And Coffee]
 [Vegetarian]
 EndOfConfig
-     ;
-   1;
+      ;
+    1;
 }
 
 sub ConfigFileHeader {
-   return <<EndOfConfig
+    return <<EndOfConfig
 #Entry in this file are "config_parm=value"
 
 #CurrentList define the current list in use, the list could be 
@@ -2091,50 +2226,51 @@ sub ConfigFileHeader {
 #PrintTextCommand same as Html but for a list in text format.
 
 EndOfConfig
-     ;
-   1;
+      ;
+    1;
 }
 
 #}}}
 #sub ReadList {{{
 sub ReadList {
-   my $CurrentCategory;
-   @Category    = ();
-   %CurrentItem = ();
-   open( SHOPLISTFILE, "<$ListFile" ) || return shoppingListError("ReadList $ListFile: $!");
-   print "Reading file $ListFile\n" if $shoppinglistdebug;
-   while (<SHOPLISTFILE>) {
-      chomp;
-      s/^\s*(.*?)\s*$/$1/;
-      next if /^#/;
-      next if /^$/;
-      /^\[(.+)\]$/ && do {
-         $CurrentCategory = $1;
-         $CurrentCategory =~ s/(\w+)/\u\L$1/g;
-         $CurrentItem{"$CurrentCategory"}{'DummyItem'} = 0;
-         push @Category, $CurrentCategory;
-         next;
-      };
-      /^(.+)=(.+)$/ && do {
-         my $item = $1;
-         my $val  = $2;
-         $item =~ s/(\w+)/\u\L$1/g;
-         $CurrentItem{"$CurrentCategory"}{"$item"} = $val;
-         next;
-      };
-   }
-   close(SHOPLISTFILE);
+    my $CurrentCategory;
+    @Category    = ();
+    %CurrentItem = ();
+    open( SHOPLISTFILE, "<$ListFile" )
+      || return shoppingListError("ReadList $ListFile: $!");
+    print "Reading file $ListFile\n" if $shoppinglistdebug;
+    while (<SHOPLISTFILE>) {
+        chomp;
+        s/^\s*(.*?)\s*$/$1/;
+        next if /^#/;
+        next if /^$/;
+        /^\[(.+)\]$/ && do {
+            $CurrentCategory = $1;
+            $CurrentCategory =~ s/(\w+)/\u\L$1/g;
+            $CurrentItem{"$CurrentCategory"}{'DummyItem'} = 0;
+            push @Category, $CurrentCategory;
+            next;
+        };
+        /^(.+)=(.+)$/ && do {
+            my $item = $1;
+            my $val  = $2;
+            $item =~ s/(\w+)/\u\L$1/g;
+            $CurrentItem{"$CurrentCategory"}{"$item"} = $val;
+            next;
+        };
+    }
+    close(SHOPLISTFILE);
 
-   #print Dumper %CurrentItem;
-   1;
+    #print Dumper %CurrentItem;
+    1;
 }
 
 #}}}
 #sub shoppingListError {{{
 sub shoppingListError {
-   my ($message) = @_;
-   print "shoppingListError called\n   $message\n";
-   return qq[
+    my ($message) = @_;
+    print "shoppingListError called\n   $message\n";
+    return qq[
 <html>
 <head>
 <title>List Manager Error</title>
@@ -2150,65 +2286,71 @@ sub shoppingListError {
 #}}}
 #sub DisplayCurrentList {{{
 sub DisplayCurrentList {
-   my %ItemOn;
-   my %ItemCount;
-   foreach my $Category ( keys %CurrentItem ) {
-      foreach my $Item ( keys %{ $CurrentItem{$Category} } ) {
-         next if ( $Item eq 'DummyItem' );
-         $ItemOn{"$Item"} = $Category if $CurrentItem{$Category}{$Item} > 0;
-         $ItemCount{"$Item"} = "($CurrentItem{$Category}{$Item})" if $CurrentItem{$Category}{$Item} > 1;
-      }
-   }
-   $html .= qq[<table width="100%"><colgroup span="$NumColumns" width="$ColumnsWidth">\n];
-   my $num = 0;
-   foreach my $Item ( sort keys %ItemOn ) {
-      $html .= qq[     <tr>\n] if $num % $NumColumns == 0;
-      $html .= qq[       <td><input type="checkbox" name="$ItemOn{$Item}_$Item" value="uncheck">$Item $ItemCount{"$Item"}</td>\n];
-      $num++;
-      $html .= qq[     </tr>\n] if $num % $NumColumns == 0;
-   }
-   $html .= qq[     </tr>\n];
-   $html .= qq[   </table><hr>\n\n];
-   1;
+    my %ItemOn;
+    my %ItemCount;
+    foreach my $Category ( keys %CurrentItem ) {
+        foreach my $Item ( keys %{ $CurrentItem{$Category} } ) {
+            next if ( $Item eq 'DummyItem' );
+            $ItemOn{"$Item"} = $Category if $CurrentItem{$Category}{$Item} > 0;
+            $ItemCount{"$Item"} = "($CurrentItem{$Category}{$Item})"
+              if $CurrentItem{$Category}{$Item} > 1;
+        }
+    }
+    $html .=
+      qq[<table width="100%"><colgroup span="$NumColumns" width="$ColumnsWidth">\n];
+    my $num = 0;
+    foreach my $Item ( sort keys %ItemOn ) {
+        $html .= qq[     <tr>\n] if $num % $NumColumns == 0;
+        $html .=
+          qq[       <td><input type="checkbox" name="$ItemOn{$Item}_$Item" value="uncheck">$Item $ItemCount{"$Item"}</td>\n];
+        $num++;
+        $html .= qq[     </tr>\n] if $num % $NumColumns == 0;
+    }
+    $html .= qq[     </tr>\n];
+    $html .= qq[   </table><hr>\n\n];
+    1;
 }
 
 #}}}
 #sub WriteConfig{{{
 sub WriteConfig {
-   open CONFIG, ">$ConfigFile" or return shoppingListError("WriteConfig: Can't open config file $ConfigFile: $!");
-   print CONFIG ConfigFileHeader();
-   foreach my $k ( sort keys %Config ) {
-      $Config{$k} = lc( $Config{$k} ) if $k != 'CurrentList';
-      print CONFIG "$k=$Config{$k}\n";
-   }
-   close CONFIG;
-   1;
+    open CONFIG, ">$ConfigFile"
+      or return shoppingListError(
+        "WriteConfig: Can't open config file $ConfigFile: $!");
+    print CONFIG ConfigFileHeader();
+    foreach my $k ( sort keys %Config ) {
+        $Config{$k} = lc( $Config{$k} ) if $k != 'CurrentList';
+        print CONFIG "$k=$Config{$k}\n";
+    }
+    close CONFIG;
+    1;
 }
 
 #}}}
 #sub WriteList {{{
 sub WriteList {
-   open( SHOPLISTFILE, ">$ListFile" ) || return shoppingListError("WriteConfig: $ListFile: $!");
-   print SHOPLISTFILE ListHeader();
-   foreach my $Cat (@Category) {
-      print SHOPLISTFILE "[$Cat]\n";
-      foreach my $Item ( sort keys %{ $CurrentItem{$Cat} } ) {
-         next if ( $Item eq 'DummyItem' );
-         print SHOPLISTFILE "   $Item=$CurrentItem{$Cat}{$Item}\n";
-      }
-   }
-   close SHOPLISTFILE;
-   1;
+    open( SHOPLISTFILE, ">$ListFile" )
+      || return shoppingListError("WriteConfig: $ListFile: $!");
+    print SHOPLISTFILE ListHeader();
+    foreach my $Cat (@Category) {
+        print SHOPLISTFILE "[$Cat]\n";
+        foreach my $Item ( sort keys %{ $CurrentItem{$Cat} } ) {
+            next if ( $Item eq 'DummyItem' );
+            print SHOPLISTFILE "   $Item=$CurrentItem{$Cat}{$Item}\n";
+        }
+    }
+    close SHOPLISTFILE;
+    1;
 
-   sub ListHeader {
-      return <<EndOfHeader
+    sub ListHeader {
+        return <<EndOfHeader
 #Category are enclosed in squared bracket, ie:[Vegetables]
 #Items are following their respective category
 #Items enabled are set to 1, ie: brocoli=1
 EndOfHeader
-        ;
-      1;
-   }
+          ;
+        1;
+    }
 }
 
 #}}}

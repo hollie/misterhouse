@@ -20,10 +20,10 @@
 #---------------------------------------------------------------------------
 #  Purpose:
 #      This script runs an instance of the pocketsphinx voice recognition
-#      program using the language model and dicitionary provided on the 
+#      program using the language model and dicitionary provided on the
 #      command line.  Recognized phrases are sent via a socket connection
 #      to the misterhouse application running on host/port.  This script
-#      can be run on any machine, not necessary to be run on the same 
+#      can be run on any machine, not necessary to be run on the same
 #      computer where misterhouse is running.
 #
 
@@ -33,12 +33,16 @@ use strict;
 #======================================================================
 # Version info
 #======================================================================
-my($Pgm_Path, $Pgm_Name, $Version);
+my ( $Pgm_Path, $Pgm_Name, $Version );
+
 BEGIN {
-   ($Version) = q$Revision: 1084 $ =~ /: (\S+)/; # Note: revision number is auto-updated by cvs
-   ($Pgm_Path, $Pgm_Name) = $0 =~ /(.*)[\\\/](.*)\.?/;
-   ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
-   eval "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
+    ($Version) =
+      q$Revision: 1084 $ =~
+      /: (\S+)/;    # Note: revision number is auto-updated by cvs
+    ( $Pgm_Path, $Pgm_Name ) = $0 =~ /(.*)[\\\/](.*)\.?/;
+    ($Pgm_Name) = $0 =~ /([^.]+)/, $Pgm_Path = '.' unless $Pgm_Name;
+    eval
+      "use lib '$Pgm_Path/../lib', '$Pgm_Path/../lib/site'"; # So perl2exe works
 }
 
 use Getopt::Long;
@@ -59,27 +63,32 @@ my @devices;
 # Gracefully exit on kill signal
 #======================================================================
 sub signal_handler {
-  kill ("TERM",$listener_pid);
-  foreach my $child (@child_pid) {
-    if ($child) {
-      kill ("TERM",$child);
-      waitpid ( $child, 0 );
+    kill( "TERM", $listener_pid );
+    foreach my $child (@child_pid) {
+        if ($child) {
+            kill( "TERM", $child );
+            waitpid( $child, 0 );
+        }
     }
-  }
-  exit 0;
+    exit 0;
 }
-$SIG{INT}  = \&signal_handler;  
-$SIG{TERM} = \&signal_handler;  
-$SIG{KILL} = \&signal_handler;  
+$SIG{INT}  = \&signal_handler;
+$SIG{TERM} = \&signal_handler;
+$SIG{KILL} = \&signal_handler;
 
 #======================================================================
 # Check invocation options, and print usage message if necessary
 #======================================================================
-if (!&GetOptions(\%parms, "h", "help", "host=s", "port=i", "log_file=s",
-   "sent_file=s", "lm_file=s", "hmm_file=s", "program=s",
-   "device=s", "sample=i") or ($parms{h} or $parms{help}))
+if (
+    !&GetOptions(
+        \%parms,      "h",          "help",        "host=s",
+        "port=i",     "log_file=s", "sent_file=s", "lm_file=s",
+        "hmm_file=s", "program=s",  "device=s",    "sample=i"
+    )
+    or ( $parms{h} or $parms{help} )
+  )
 {
-   print<<eof;
+    print <<eof;
 $Pgm_Name runs an instance of the pocketsphinx voice recognition program
 using the defined language model and dictionary.  Recognized phrases are
 sent to the misterhouse program listening on the defined host/post.  The
@@ -112,137 +121,145 @@ audio device and sample rate are configurable on the command line.
              -sample 16000
 
 eof
-  exit;
+    exit;
 }
 
 &setup;
 
 # fork off multiple devices if necessary
-@devices = split(/\|/,$parms{device});
+@devices = split( /\|/, $parms{device} );
 @child_pid = ();
-if (@devices > 1) {
-  for (my $i = 0; $i < @devices; $i++) {
-    if (my $child = fork) {
-      $child_pid[$i] = $child;
-    } else {
-      &run ($devices[$i], $parms{log_file});
-      exit;
+if ( @devices > 1 ) {
+    for ( my $i = 0; $i < @devices; $i++ ) {
+        if ( my $child = fork ) {
+            $child_pid[$i] = $child;
+        }
+        else {
+            &run( $devices[$i], $parms{log_file} );
+            exit;
+        }
     }
-  }
-  wait;
-  &signal_handler;
-} else {
-  &run ($parms{device}, $parms{log_file});
+    wait;
+    &signal_handler;
+}
+else {
+    &run( $parms{device}, $parms{log_file} );
 }
 
 sub setup {
-   $parms{host} = "localhost" unless $parms{host};
-   $parms{port} = 3235        unless $parms{port};
-   $parms{program}   = "/usr/local/bin/pocketsphinx_continuous" unless $parms{program};
-   $parms{device}    = "default" unless $parms{device};
-   $parms{sample}    = 16000 unless $parms{sample};
+    $parms{host} = "localhost" unless $parms{host};
+    $parms{port} = 3235        unless $parms{port};
+    $parms{program} = "/usr/local/bin/pocketsphinx_continuous"
+      unless $parms{program};
+    $parms{device} = "default" unless $parms{device};
+    $parms{sample} = 16000     unless $parms{sample};
 
-   $parms{device} =~ s/\{//;
-   $parms{device} =~ s/\}//;
-   $parms{device} =~ s/\(//;
-   $parms{device} =~ s/\)//;
+    $parms{device} =~ s/\{//;
+    $parms{device} =~ s/\}//;
+    $parms{device} =~ s/\(//;
+    $parms{device} =~ s/\)//;
 }
 
 sub run {
-  my $device = shift;
+    my $device = shift;
 
-  # strip leading/trailing whitespace
-  $device =~ s/^\s+//;
-  $device =~ s/\s+$//;
+    # strip leading/trailing whitespace
+    $device =~ s/^\s+//;
+    $device =~ s/\s+$//;
 
-  my $host      = $parms{host};
-  my $port      = $parms{port};
-  my $sent      = $parms{sent_file};
-  my $lm_file   = $parms{lm_file};
-  my $hmm       = $parms{hmm_file};
-  my $program   = $parms{program};
-  my $rate      = $parms{sample};
+    my $host    = $parms{host};
+    my $port    = $parms{port};
+    my $sent    = $parms{sent_file};
+    my $lm_file = $parms{lm_file};
+    my $hmm     = $parms{hmm_file};
+    my $program = $parms{program};
+    my $rate    = $parms{sample};
 
-  my $logfile   = $parms{log_file} . "\_$device" . ".log";
+    my $logfile = $parms{log_file} . "\_$device" . ".log";
 
-  open LOGFILE, ">$logfile" || die "cannot open $logfile";
-  autoflush LOGFILE 1;
+    open LOGFILE, ">$logfile" || die "cannot open $logfile";
+    autoflush LOGFILE 1;
 
-  if (!-e $sent) {
-    die "Missing sent_file $sent !!";
-  }
-  if (!-e $lm_file) {
-    die "missing lm_file $lm_file !!";
-  }
-  if (!-e $hmm) {
-    die "missing hmm_file $hmm !!";
-  }
-  if (!-e $program) {
-    die "missing program $program !!";
-  }
-
-  print LOGFILE "host: $host\n";
-  print LOGFILE "port: $port\n";
-  print LOGFILE "sent: $sent\n";
-  print LOGFILE "lm: $lm_file\n";
-  print LOGFILE "hmm: $hmm\n";
-  print LOGFILE "program: $program\n";
-  print LOGFILE "device: $device\n";
-  print LOGFILE "rate: $rate\n";
-
-  my $socket = IO::Socket::INET->new(PeerAddr=>$host, PeerPort=>$port, Proto=>'tcp', Type=> SOCK_STREAM) or die "\nCould not create socket: $!\n";
-
-  print LOGFILE "starting listener ...\n";
-  my $sphinx_command = join " ",
-        "$program",
-#        "-adcin yes",
-#        "-cepext .16k",
-#        "-agc none",
-        "-adcdev $device",
-#        "-live yes",
-#        "-fwdflat yes",
-#        "-bestpath yes",
-#        "-nfft 256",
-#        "-cmn none",
-#        "-agc emax",
-        "-lm $lm_file",
-        "-hmm $hmm",
-        "-samprate $rate",
-#        "-dsratio 2",
-#        "-topn 2",
-#        "-wbeam 1e-35",
-#        "-pbeam 1e-40",
-#        "-lpbeam 1e-30",
-#        "-lponlybeam 1e-30",
-#        "-maxhmmpf 500",
-#        "-maxwpf 10",
-#        "-mmap yes"
-        ;
-
-  print LOGFILE "sphinx_command: $sphinx_command\n";
-
-  $listener_pid = open(LISTENER, $sphinx_command . "|");
-  print LOGFILE "sphinx:: child: $listener_pid\n";
-
-  while(my $msg = <LISTENER>){
-    chomp $msg;
-    print LOGFILE "sphinx:: msg: $msg\n";
-    if ( $msg =~ /^\d+\: (.*)$/ ) {
-      $msg = $1;
-      print LOGFILE "sphinx:: found: $msg\n";
-      if (`grep \'$msg\' $sent`) {
-        $msg = lc $msg;
-        $msg =~ s/_/ /g;
-        if ($msg) {
-          print $socket "$msg\n";
-          print LOGFILE "sphinx:: cmd: $msg\n";
-        }
-      }
+    if ( !-e $sent ) {
+        die "Missing sent_file $sent !!";
     }
-  }
+    if ( !-e $lm_file ) {
+        die "missing lm_file $lm_file !!";
+    }
+    if ( !-e $hmm ) {
+        die "missing hmm_file $hmm !!";
+    }
+    if ( !-e $program ) {
+        die "missing program $program !!";
+    }
 
-  close ($socket);
-  close (LOGFILE);
+    print LOGFILE "host: $host\n";
+    print LOGFILE "port: $port\n";
+    print LOGFILE "sent: $sent\n";
+    print LOGFILE "lm: $lm_file\n";
+    print LOGFILE "hmm: $hmm\n";
+    print LOGFILE "program: $program\n";
+    print LOGFILE "device: $device\n";
+    print LOGFILE "rate: $rate\n";
+
+    my $socket = IO::Socket::INET->new(
+        PeerAddr => $host,
+        PeerPort => $port,
+        Proto    => 'tcp',
+        Type     => SOCK_STREAM
+    ) or die "\nCould not create socket: $!\n";
+
+    print LOGFILE "starting listener ...\n";
+    my $sphinx_command = join " ", "$program",
+
+      #        "-adcin yes",
+      #        "-cepext .16k",
+      #        "-agc none",
+      "-adcdev $device",
+
+      #        "-live yes",
+      #        "-fwdflat yes",
+      #        "-bestpath yes",
+      #        "-nfft 256",
+      #        "-cmn none",
+      #        "-agc emax",
+      "-lm $lm_file", "-hmm $hmm", "-samprate $rate",
+
+      #        "-dsratio 2",
+      #        "-topn 2",
+      #        "-wbeam 1e-35",
+      #        "-pbeam 1e-40",
+      #        "-lpbeam 1e-30",
+      #        "-lponlybeam 1e-30",
+      #        "-maxhmmpf 500",
+      #        "-maxwpf 10",
+      #        "-mmap yes"
+      ;
+
+    print LOGFILE "sphinx_command: $sphinx_command\n";
+
+    $listener_pid = open( LISTENER, $sphinx_command . "|" );
+    print LOGFILE "sphinx:: child: $listener_pid\n";
+
+    while ( my $msg = <LISTENER> ) {
+        chomp $msg;
+        print LOGFILE "sphinx:: msg: $msg\n";
+        if ( $msg =~ /^\d+\: (.*)$/ ) {
+            $msg = $1;
+            print LOGFILE "sphinx:: found: $msg\n";
+            if (`grep \'$msg\' $sent`) {
+                $msg = lc $msg;
+                $msg =~ s/_/ /g;
+                if ($msg) {
+                    print $socket "$msg\n";
+                    print LOGFILE "sphinx:: cmd: $msg\n";
+                }
+            }
+        }
+    }
+
+    close($socket);
+    close(LOGFILE);
 
 }
 

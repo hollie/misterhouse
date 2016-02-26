@@ -2300,7 +2300,7 @@ Device::SerialPort - Linux/POSIX emulation of Win32::SerialPort functions.
   $PortObj->purge_tx;
 
       # controlling outputs from the port
-  $PortObj->dtr_active(T);		# sends outputs direct to hardware
+  $PortObj->dtr_active(T) or warn "Could not set dtr_active(T)";		# sends outputs direct to hardware
   $PortObj->rts_active(Yes);		# return status of ioctl call
 					# return undef on failure
 

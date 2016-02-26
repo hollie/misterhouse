@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html><head><title>MisterHouse</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<link rel="apple-touch-icon" href="touch-icon_60.png">
+	<link rel="apple-touch-icon" sizes="76x76" href="/touch-icon_76.png">
+	<link rel="apple-touch-icon" sizes="120x120" href="/touch-icon_120.png">
+	<link rel="apple-touch-icon" sizes="152x152" href="/touch-icon_152.png">
+	<link rel="apple-touch-icon" sizes="180x180" href="/touch-icon_180.png">
+	<link rel="shortcut icon" href="/touch-icon_76.png" type="image/x-icon">
+	
+	<!--Font Awesome-->
+	<link href="/ia7/include/font-awesome.4.3.0.min.css" rel="stylesheet">
+
+	<!--Weather Icons-->
+	<link href="/ia7/include/weather-icons.1.3.css" rel="stylesheet">
+	
+	<!--Responsive Tables-->
+	<link href="/ia7/include/tables.css" rel="stylesheet">
+	
+	<!-- Jquery -->
+	<script src="/ia7/include/jquery.1.10.2.min.js"></script>
+	<script src="/ia7/include/jquery.longclick-1.0.min.js"></script>
+	
+	<!--Bootstrap-->
+	<!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="/ia7/include/bootstrap.3.3.5.min.css">
+	
+	<!-- Optional theme -->
+	<link rel="stylesheet" href="/ia7/include/bootstrap-theme.3.3.5.min.css">
+	
+	<!-- Latest compiled and minified bootstrap JavaScript -->
+	<script src="/ia7/include/bootstrap.3.3.5.min.js"></script>
+	
+	<!-- bootstrap editable -->
+	<link href="/ia7/include/bootstrap3-editable.1.5.0.css" rel="stylesheet"/>
+    <script src="/ia7/include/bootstrap3-editable.1.5.0.min.js"></script>
+	
+	<!-- A custom jquery UI script to enable sortable items -->
+	<!-- <script src="include/jquery-ui-1.11.1.custom.min.js"></script> -->
+	
+	<!-- Enables Jquery UI functions to work on touch interfaces -->
+  	<!-- <script src="/ia7/include/jquery.ui.touch-punch.0.2.3.min.js"></script> -->
+	
+	<!-- Flot libraries for graphing RRDs -->
+	<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.min.js"></script>
+	<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.selection.min.js"></script>
+	<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.resize.min.js"></script>
+	<script language="javascript" type="text/javascript" src="/ia7/include/jquery.flot.time.min.js"></script>
+	
+	
+	<!-- ia7 JS File-->
+	<script src="/ia7/include/javascript.js"></script>
+	
+	<style type="text/css">
+	.btn-list {
+	  overflow: hidden;
+	  text-overflow: ellipsis;
+	  white-space: nowrap;
+	  text-align: left;
+	  padding-left: 15px;
+	  padding-right: 15px;
+	}
+	@media (min-width: 768px) {
+		.top-buffer {
+			margin-top:20px;
+		}
+	}
+	.btn-direct {
+	  border-style: solid;
+	  border-width: 2px;
+	  border-color: black;
+	}
+	
+	.btn-direct:focus,.btn-direct:active {
+      outline: none !important;
+	}
+	
+	@media (min-width: 450px){
+		.control-dialog {
+			width: 400px;
+		}
+	}
+	.col-center {
+		text-align: center;
+	}
+	.dropdown-lead{
+		width: 100%;
+	}
+	.leadcontainer {
+		left: 0;
+		position: absolute;
+		right: 30px;
+	}
+	.dropdown-toggle{
+		width: 30px;
+		box-sizing: border-box;
+	}
+	.fillsplit {
+		position: relative;
+	}
+	.states {
+		text-align: center;
+	}
+	.breadcrumb{
+		margin-bottom: 0;
+	}
+	.trigger{
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.dark-row{
+		background-color: #F5F5F5;
+	}
+	.toolbar-btn {
+    	margin-left: 3px;
+    	margin-top: -4px;
+	}
+	.navbutton-padding {
+		margin-top: 3px;
+	}
+	.toolbar-right-end {
+		margin-right: 15px;
+	}	
+	.icon-larger:before 
+	{
+  		font-size: 46px;
+  		margin-left: -10px;
+	}	
+	.rrd-period-dropdown
+	{
+		margin-left:55px;
+	}
+	.rrd-legend-class
+	{	
+    	margin-left:10px;
+	}
+	#top-graph
+	{
+		margin-left: 10px;
+	}
+	#rrd-graph
+	{
+    	width:700px;
+    	height:500px;
+    	min-width:200px;
+    	float:left;
+    	margin-left:-10px;
+	}
+	</style>
+</head>
+<body>
+<div class='row'>
+	<div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
+		  <h3>
+		  	&nbsp;&nbsp;&nbsp;MisterHouse
+		  	  <button id="toolButton" type="button" class="btn btn-default toolbar-btn toolbar-right-end pull-right">
+  				<i class="fa fa-gear"></i>
+				</button>
+				
+			  <button id="mhstatus" entity="ia7_status" type="button" class="btn btn-info toolbar-btn pull-right">
+  				<span class='pull-right'>checking</span>
+				</button>		  	
+		  </h3>
+		<ol id='nav' class="breadcrumb">
+		</ol>
+	</div>
+</div>
+
+<div id="list_content">
+</div>
+<div class='row top-buffer'>
+        <div class='col-sm-12 col-sm-offset-0 col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2'>
+                <div class='col-sm-12 col-center'>
+                        <!-- Put Footer Stuff Here -->
+                        <!--#include file="/bin/tagline.pl"--><br>
+                        <!--#include file="/bin/uptime.pl"-->&nbsp;&nbsp;<!--#include file="$config_parms{web_href_counter}"-->
+                </div>
+        </d
+<!-- Voice Command Modal -->
+<div class="modal fade" id="lastResponse" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h4 class="modal-title" id="myModalLabel">Last Response</h4>
+      </div>
+      <div class="modal-body">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+<!-- Object Modal -->
+<div class="modal fade" id="control" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog control-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title" id="myModalLabel"><span class="object-title"></span>
+	        <div class="btn-group btn-group-sm pull-right">
+	        	<button type="button" class="btn btn-default mhstatemode"><i class="fa fa-gear"></i></button>
+	        	<button type="button" class="btn btn-default" data-dismiss="modal"><i class="fa fa-times"></i></button>
+	        </div>
+        </h4>
+      </div>
+      <div class="modal-body">
+        <div class="states">
+        </div>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+<!-- Tool Modal -->
+<div class="modal fade" id="optionsModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog options-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title" id="myModalLabel"><span class="object-title"></span>
+	        <div class="btn-group btn-group-sm pull-right">
+	        	<button type="button" class="btn btn-default" data-dismiss="modal"><i class="fa fa-times"></i></button>
+	        </div>
+        </h4>
+      </div>
+      <div class="modal-body">
+        <div id="options">
+        </div>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
+</body></html>
